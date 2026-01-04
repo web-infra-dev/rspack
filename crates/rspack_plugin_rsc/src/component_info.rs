@@ -78,7 +78,7 @@ fn traverse_with_server_entry_context(
 ) {
   let is_server_entry = {
     get_module_rsc_information(module)
-      .is_some_and(|rsc| rsc.module_type.contains(RscModuleType::ServerEntry))
+      .is_some_and(|rsc| rsc.module_type == RscModuleType::ServerEntry)
   };
   if is_server_entry {
     server_entries.push(get_module_resource(module).to_string());
@@ -323,7 +323,7 @@ fn is_client_component_entry_module(module: &dyn Module) -> bool {
 fn is_action_client_layer_module(module: &dyn Module) -> bool {
   let rsc = get_module_rsc_information(module);
   matches!(&rsc, Some(rsc) if !rsc.action_ids.is_empty())
-    && matches!(&rsc, Some(rsc) if rsc.module_type.contains(RscModuleType::Client))
+    && matches!(&rsc, Some(rsc) if rsc.module_type == RscModuleType::Client)
 }
 
 fn get_assumed_source_type<'a>(module: &dyn Module, source_type: &'a str) -> &'a str {

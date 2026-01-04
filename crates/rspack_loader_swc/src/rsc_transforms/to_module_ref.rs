@@ -12,20 +12,19 @@ fn to_cjs_server_entry(resource: &str, server_refs: &[Wtf8Atom]) -> String {
       Some("default") => {
         cjs_source.push_str(&formatdoc! {
           r#"
-            const _default = require("{}?skip-rsc-transform");
+            const _default = require("{resource}?rsc-server-entry-proxy=true");
             module.exports = createServerEntry(
               _default,
-              "{}",
+              "{resource}",
             );
           "#,
-          resource,
-          resource
+          resource = resource
         });
       }
       Some(ident) => {
         cjs_source.push_str(&formatdoc! {
           r#"
-            const _original_{ident} = require("{resource}?skip-rsc-transform").{ident};
+            const _original_{ident} = require("{resource}?rsc-server-entry-proxy=true").{ident};
             exports.{ident} = createServerEntry(
               _original_{ident},
               "{resource}",
@@ -50,20 +49,19 @@ fn to_esm_server_entry(resource: &str, server_refs: &[Wtf8Atom]) -> String {
       Some("default") => {
         esm_source.push_str(&formatdoc! {
           r#"
-            import _default from "{}?skip-rsc-transform";
+            import _default from "{resource}?rsc-server-entry-proxy=true";
             export default createServerEntry(
               _default,
-              "{}",
+              "{resource}",
             )
           "#,
-          resource,
-          resource
+          resource = resource
         });
       }
       Some(ident) => {
         esm_source.push_str(&formatdoc! {
           r#"
-            import {{ {ident} as _original_{ident} }} from "{resource}?skip-rsc-transform";
+            import {{ {ident} as _original_{ident} }} from "{resource}?rsc-server-entry-proxy=true";
             export const {ident} = createServerEntry(
               _original_{ident},
               "{resource}",
@@ -187,8 +185,7 @@ pub fn to_module_ref(module: &NormalModule) -> Result<Option<String>> {
   };
 
   let resource = module.resource_resolved_data().resource();
-
-  if rsc.module_type.contains(RscModuleType::ServerEntry) {
+  if rsc.module_type == RscModuleType::ServerEntry {
     if rsc
       .server_refs
       .iter()
@@ -205,7 +202,7 @@ pub fn to_module_ref(module: &NormalModule) -> Result<Option<String>> {
     }
   }
 
-  if rsc.module_type.contains(RscModuleType::Client) {
+  if rsc.module_type == RscModuleType::Client {
     if rsc
       .client_refs
       .iter()

@@ -772,7 +772,7 @@ impl<'a, C: Comments> ServerActions<'a, C> {
       }
       None => {
         *rsc_meta = Some(RscMeta {
-          module_type: RscModuleType::None,
+          module_type: RscModuleType::Server,
           server_refs: Default::default(),
           client_refs: Default::default(),
           is_cjs: false,

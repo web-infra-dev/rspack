@@ -30,6 +30,7 @@ pub enum Config {
 #[serde(rename_all = "camelCase")]
 pub struct Options {
   pub is_react_server_layer: bool,
+  pub enable_server_entry: bool,
 }
 
 struct DirectiveImportCollection {
@@ -45,6 +46,7 @@ struct DirectiveImportCollection {
 /// same purpose, so does not run this transform.
 struct ReactServerComponents<'a> {
   is_react_server_layer: bool,
+  enable_server_entry: bool,
   filepath: String,
   rsc_meta: &'a RefCell<Option<RscMeta>>,
   directive_import_collection: Option<DirectiveImportCollection>,
@@ -78,7 +80,7 @@ impl VisitMut for ReactServerComponents<'_> {
     #[allow(clippy::unwrap_used)]
     let directive_import_collection = self.directive_import_collection.as_ref().unwrap();
 
-    let is_server_entry = directive_import_collection.is_server_entry;
+    let is_server_entry = self.enable_server_entry && directive_import_collection.is_server_entry;
     let is_client_entry = directive_import_collection.is_client_entry;
 
     self.remove_top_level_directive(module);
@@ -86,11 +88,10 @@ impl VisitMut for ReactServerComponents<'_> {
     let is_cjs = contains_cjs(module);
 
     if self.is_react_server_layer {
-      if is_client_entry {
-        self.set_client_metadata(is_cjs);
-      }
       if is_server_entry {
         self.set_server_entry_metadata(is_cjs);
+      } else if is_client_entry {
+        self.set_client_metadata(is_cjs);
       }
     }
     module.visit_mut_children_with(self)
@@ -124,7 +125,7 @@ impl ReactServerComponents<'_> {
     let mut rsc_meta = self.rsc_meta.borrow_mut();
     match rsc_meta.as_mut() {
       Some(rsc_meta) => {
-        rsc_meta.module_type |= RscModuleType::ServerEntry;
+        rsc_meta.module_type = RscModuleType::ServerEntry;
         rsc_meta.server_refs = export_names.clone();
         rsc_meta.is_cjs = is_cjs;
       }
@@ -151,7 +152,7 @@ impl ReactServerComponents<'_> {
     let mut rsc_meta = self.rsc_meta.borrow_mut();
     match rsc_meta.as_mut() {
       Some(rsc_meta) => {
-        rsc_meta.module_type |= RscModuleType::Client;
+        rsc_meta.module_type = RscModuleType::Client;
         rsc_meta.client_refs = export_names.clone();
         rsc_meta.is_cjs = is_cjs;
       }
@@ -508,8 +509,13 @@ pub fn server_components(
     Config::WithOptions(x) => x.is_react_server_layer,
     _ => false,
   };
+  let enable_server_entry = match &config {
+    Config::WithOptions(x) => x.enable_server_entry,
+    _ => false,
+  };
   visit_mut_pass(ReactServerComponents {
     is_react_server_layer,
+    enable_server_entry,
     rsc_meta,
     filepath: match &*filename {
       FileName::Custom(path) => format!("<{path}>"),

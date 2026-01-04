@@ -7,7 +7,6 @@ use std::{
 };
 
 use async_trait::async_trait;
-use bitflags::bitflags;
 use json::JsonValue;
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
@@ -53,15 +52,18 @@ pub struct BuildContext {
 
 #[cacheable]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct RscModuleType(u8);
-
-bitflags! {
-    impl RscModuleType: u8 {
-      const None = 1 << 0;
-      const ServerEntry = 1 << 1;
-      const Server = 1 << 2;
-      const Client = 1 << 3;
-  }
+pub enum RscModuleType {
+  /// Represents a server entry module with "use server-entry" directive.
+  ///
+  /// Transformation flow:
+  /// 1. Original module with "use server-entry" is transformed into a proxy module
+  /// 2. The proxy module (with `module_type = ServerEntry`) imports the original implementation
+  /// 3. The original implementation module may resulting in `module_type = Client`
+  ///
+  /// Note: "use server" and "use client" directives can coexist in the same file.
+  ServerEntry,
+  Server,
+  Client,
 }
 
 #[cacheable]

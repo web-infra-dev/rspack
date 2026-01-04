@@ -11,7 +11,7 @@ use rspack_core::{LoaderContext, Module, RscMeta, RunnerContext};
 pub use server_actions::{Config as ServerActionsConfig, server_actions};
 use swc_core::{
   common::{FileName, comments::SingleThreadedComments},
-  ecma::ast::{Pass, noop_pass},
+  ecma::ast::Pass,
 };
 pub use to_module_ref::to_module_ref;
 
@@ -27,22 +27,20 @@ pub fn rsc_pass(
     .get_layer()
     .is_some_and(|layer| layer == "react-server-components");
 
+  // Avoid transforming the redirected server entry module to prevent duplicate RSC metadata generation.
+  let from_server_entry_proxy = loader_context
+    .resource_query()
+    .is_some_and(|q| q.contains("rsc-server-entry-proxy=true"));
+
   (
-    // Avoid transforming the redirected server entry module to prevent duplicate RSC metadata generation.
-    if loader_context
-      .resource_query()
-      .is_some_and(|q| q.contains("skip-rsc-transform"))
-    {
-      swc_core::common::pass::Either::Right(noop_pass())
-    } else {
-      swc_core::common::pass::Either::Left(server_components(
-        filename,
-        Config::WithOptions(Options {
-          is_react_server_layer,
-        }),
-        rsc_meta,
-      ))
-    },
+    server_components(
+      filename,
+      Config::WithOptions(Options {
+        is_react_server_layer,
+        enable_server_entry: !from_server_entry_proxy,
+      }),
+      rsc_meta,
+    ),
     server_actions(
       resource_path.to_string(),
       ServerActionsConfig {
