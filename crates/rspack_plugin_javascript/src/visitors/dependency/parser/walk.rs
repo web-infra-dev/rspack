@@ -848,7 +848,7 @@ impl JavascriptParser<'_> {
                 this,
                 expr,
                 &expr_info.callee_members,
-                &expr_info.call,
+                expr_info.call,
                 &expr_info.members,
                 &expr_info.member_ranges,
                 for_name,
@@ -858,7 +858,7 @@ impl JavascriptParser<'_> {
           {
             return;
           }
-          self.walk_call_expression(&expr_info.call);
+          self.walk_call_expression(expr_info.call);
           return;
         }
       }
@@ -1094,7 +1094,7 @@ impl JavascriptParser<'_> {
                     this,
                     expr,
                     &expr_info.callee_members,
-                    &expr_info.call,
+                    expr_info.call,
                     &expr_info.members,
                     &expr_info.member_ranges,
                     for_name,
