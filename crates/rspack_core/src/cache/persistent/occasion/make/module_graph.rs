@@ -181,9 +181,7 @@ pub async fn recovery_module_graph(
     });
   // recovery incoming connections
   for (dep_id, module_identifier) in need_check_dep {
-    let mgm = mg
-      .module_graph_module_by_identifier_mut(&module_identifier)
-      .expect("should mgm exist");
+    let mgm = mg.module_graph_module_by_identifier_mut(&module_identifier);
     mgm.add_incoming_connection(dep_id);
   }
 
