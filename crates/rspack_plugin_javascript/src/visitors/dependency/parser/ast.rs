@@ -1,5 +1,10 @@
 use swc_core::ecma::ast::*;
 
+/// A reference-based wrapper around SWC AST expression types.
+///
+/// This enum holds references to various expression types to avoid
+/// unnecessary cloning during AST traversal and analysis. The lifetime
+/// `'ast` represents the lifetime of the original AST node being referenced.
 #[derive(Debug)]
 pub enum ExprRef<'ast> {
   This(&'ast ThisExpr),
