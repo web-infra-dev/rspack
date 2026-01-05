@@ -2251,9 +2251,9 @@ checksum = "078e285eafdfb6c4b434e0d31e8cfcb5115b651496faca5749b88fafd4f23bfd"
 
 [[package]]
 name = "json-strip-comments"
-version = "1.0.4"
+version = "3.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b271732a960335e715b6b2ae66a086f115c74eb97360e996d2bd809bfc063bba"
+checksum = "25376d12b2f6ae53f986f86e2a808a56af03d72284ae24fc35a2e290d09ee3c3"
 dependencies = [
  "memchr",
 ]
@@ -5117,9 +5117,9 @@ dependencies = [
 
 [[package]]
 name = "rspack_resolver"
-version = "0.6.6"
+version = "0.6.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8608208a0fda740545c1e7a6727fe94fbb407142259b122d328e3165beddc07d"
+checksum = "197d5ba46acaff0cb0bf3abaa6594a36cb050440ab0c6edf3876a23b85879f49"
 dependencies = [
  "async-trait",
  "cfg-if",
