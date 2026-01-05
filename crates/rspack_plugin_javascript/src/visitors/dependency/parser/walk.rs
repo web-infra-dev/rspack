@@ -1423,7 +1423,7 @@ impl JavascriptParser<'_> {
     }
   }
 
-  fn walk_function_expression<'ast>(&mut self, expr: &'ast FnExpr) {
+  fn walk_function_expression(&mut self, expr: &FnExpr) {
     let was_top_level = self.top_level_scope;
     self.top_level_scope = TopLevelScope::False;
     let mut scope_params: Vec<_> = expr
@@ -1433,7 +1433,7 @@ impl JavascriptParser<'_> {
       .map(|params| Pattern::from(&params.pat))
       .collect();
 
-    if let Some(pat) = expr.ident.as_ref().map(|ident| Pattern::Identifier(ident)) {
+    if let Some(pat) = expr.ident.as_ref().map(Pattern::Identifier) {
       scope_params.push(pat);
     }
 
@@ -1450,7 +1450,7 @@ impl JavascriptParser<'_> {
       Pattern::ObjectPattern(obj) => self.walk_object_pattern(obj),
       Pattern::RestElement(rest) => self.walk_rest_element(rest),
       Pattern::Expression(expr) => self.walk_expression(expr),
-      Pattern::Identifier(_) => (),
+      Pattern::Identifier(_) | Pattern::Invalid => (),
     }
   }
 

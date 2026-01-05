@@ -1109,12 +1109,12 @@ impl<'parser> JavascriptParser<'parser> {
     F: FnOnce(&mut Self, &Ident) + Copy,
   {
     match pattern {
-      Pattern::Identifier(ident) => self.enter_ident(&ident, on_ident),
+      Pattern::Identifier(ident) => self.enter_ident(ident, on_ident),
       Pattern::ArrayPattern(array) => self.enter_array_pattern(array, on_ident),
       Pattern::AssignmentPattern(assign) => self.enter_assignment_pattern(assign, on_ident),
       Pattern::ObjectPattern(obj) => self.enter_object_pattern(obj, on_ident),
       Pattern::RestElement(rest) => self.enter_rest_pattern(rest, on_ident),
-      Pattern::Expression(_) => (),
+      Pattern::Expression(_) | Pattern::Invalid => (),
     }
   }
 

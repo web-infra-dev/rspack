@@ -582,6 +582,7 @@ pub enum Pattern<'ast> {
   AssignmentPattern(&'ast AssignPat),
   /// Actually ESTree spec doesn't have this variant, here we use it to represent `Pat::Expr` of SWC
   Expression(&'ast Expr),
+  Invalid,
 }
 
 impl<'ast> From<&'ast Pat> for Pattern<'ast> {
@@ -593,7 +594,7 @@ impl<'ast> From<&'ast Pat> for Pattern<'ast> {
       Pat::Rest(r) => Pattern::RestElement(r),
       Pat::Assign(a) => Pattern::AssignmentPattern(a),
       Pat::Expr(e) => Pattern::Expression(e),
-      Pat::Invalid(_) => unreachable!(),
+      Pat::Invalid(_) => Pattern::Invalid,
     }
   }
 }
