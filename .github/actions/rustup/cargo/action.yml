@@ -14,7 +14,7 @@ runs:
   using: composite
   steps:
     - name: Cache to github
-      if: ${{ runner.environment == 'github-hosted' }}
+      if: ${{ runner.environment == 'github-hosted' || startsWith(runner.name, 'blacksmith-' ) }}
       uses: Swatinem/rust-cache@779680da715d629ac1d338a641029a2f4372abb5 # v2
       with:
         prefix-key: 'RCache-G-2'
