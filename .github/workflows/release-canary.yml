@@ -47,25 +47,25 @@ jobs:
       matrix:
         array:
           - target: x86_64-unknown-linux-gnu
-            runner: ${{'"blacksmith-4vcpu-ubuntu-2204"'}}
+            runner: ${{'"blacksmith-8vcpu-ubuntu-2204"'}}
           - target: aarch64-unknown-linux-gnu
-            runner: ${{'"blacksmith-4vcpu-ubuntu-2204"'}}
+            runner: ${{'"blacksmith-8vcpu-ubuntu-2204"'}}
           - target: x86_64-unknown-linux-musl
-            runner: ${{'"blacksmith-4vcpu-ubuntu-2204"'}}
+            runner: ${{'"blacksmith-8vcpu-ubuntu-2204"'}}
           - target: aarch64-unknown-linux-musl
-            runner: ${{'"blacksmith-4vcpu-ubuntu-2204"'}}
+            runner: ${{'"blacksmith-8vcpu-ubuntu-2204"'}}
           - target: i686-pc-windows-msvc
             runner: ${{ '"blacksmith-4vcpu-windows-2025"' }}
           - target: x86_64-pc-windows-msvc
-            runner: ${{ '"blacksmith-4vcpu-windows-2025"' }}
+            runner: ${{ '"blacksmith-8vcpu-windows-2025"' }}
           - target: aarch64-pc-windows-msvc
-            runner: ${{ '"blacksmith-4vcpu-windows-2025"' }}
+            runner: ${{ '"blacksmith-8vcpu-windows-2025"' }}
           - target: x86_64-apple-darwin
             runner: ${{ needs.get-runner-labels.outputs.MACOS_RUNNER_LABELS }}
           - target: aarch64-apple-darwin
             runner: ${{ needs.get-runner-labels.outputs.MACOS_RUNNER_LABELS }}
           - target: wasm32-wasip1-threads
-            runner: ${{'"blacksmith-4vcpu-ubuntu-2204"'}}
+            runner: ${{'"blacksmith-8vcpu-ubuntu-2204"'}}
     uses: ./.github/workflows/reusable-build.yml
     with:
       ref: ${{inputs.commit || github.sha}}
