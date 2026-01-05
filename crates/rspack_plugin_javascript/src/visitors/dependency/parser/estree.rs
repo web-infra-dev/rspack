@@ -5,11 +5,12 @@ use swc_core::{
   atoms::Atom,
   common::{Span, Spanned},
   ecma::ast::{
-    BlockStmt, BreakStmt, Class, ClassDecl, ClassExpr, ContinueStmt, DebuggerStmt, Decl,
-    DoWhileStmt, EmptyStmt, ExportAll, ExportDecl, ExportDefaultDecl, ExportDefaultExpr,
-    ExportSpecifier, Expr, ExprStmt, FnDecl, FnExpr, ForInStmt, ForOfStmt, ForStmt, Function,
-    Ident, IfStmt, LabeledStmt, NamedExport, ObjectLit, ReturnStmt, Stmt, SwitchStmt, ThrowStmt,
-    TryStmt, UsingDecl, VarDecl, VarDeclKind, VarDeclarator, WhileStmt, WithStmt,
+    ArrayPat, AssignPat, BlockStmt, BreakStmt, Class, ClassDecl, ClassExpr, ContinueStmt,
+    DebuggerStmt, Decl, DoWhileStmt, EmptyStmt, ExportAll, ExportDecl, ExportDefaultDecl,
+    ExportDefaultExpr, ExportSpecifier, Expr, ExprStmt, FnDecl, FnExpr, ForInStmt, ForOfStmt,
+    ForStmt, Function, Ident, IfStmt, LabeledStmt, NamedExport, ObjectLit, ObjectPat, Pat, RestPat,
+    ReturnStmt, Stmt, SwitchStmt, ThrowStmt, TryStmt, UsingDecl, VarDecl, VarDeclKind,
+    VarDeclarator, WhileStmt, WithStmt,
   },
 };
 
@@ -568,6 +569,31 @@ impl VariableDeclaration<'_> {
     match self {
       VariableDeclaration::VarDecl(v) => &v.decls,
       VariableDeclaration::UsingDecl(u) => &u.decls,
+    }
+  }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum Pattern<'ast> {
+  Identifier(&'ast Ident),
+  ObjectPattern(&'ast ObjectPat),
+  ArrayPattern(&'ast ArrayPat),
+  RestElement(&'ast RestPat),
+  AssignmentPattern(&'ast AssignPat),
+  /// Actually ESTree spec doesn't have this variant, here we use it to represent `Pat::Expr` of SWC
+  Expression(&'ast Expr),
+}
+
+impl<'ast> From<&'ast Pat> for Pattern<'ast> {
+  fn from(pat: &'ast Pat) -> Self {
+    match pat {
+      Pat::Ident(i) => Pattern::Identifier(&i.id),
+      Pat::Object(o) => Pattern::ObjectPattern(o),
+      Pat::Array(a) => Pattern::ArrayPattern(a),
+      Pat::Rest(r) => Pattern::RestElement(r),
+      Pat::Assign(a) => Pattern::AssignmentPattern(a),
+      Pat::Expr(e) => Pattern::Expression(e),
+      Pat::Invalid(_) => unreachable!(),
     }
   }
 }

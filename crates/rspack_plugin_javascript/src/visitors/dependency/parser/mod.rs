@@ -37,7 +37,7 @@ use swc_core::{
     ast::{
       ArrayPat, AssignPat, AssignTargetPat, CallExpr, Decl, Expr, Ident, Lit, MemberExpr,
       MetaPropExpr, MetaPropKind, ObjectPat, ObjectPatProp, OptCall, OptChainBase, OptChainExpr,
-      Pat, Program, RestPat, Stmt, ThisExpr,
+      Program, RestPat, Stmt, ThisExpr,
     },
     utils::ExprFactory,
   },
@@ -52,7 +52,7 @@ use crate::{
   },
   utils::eval::{self, BasicEvaluatedExpression},
   visitors::{
-    ScanDependenciesResult,
+    Pattern, ScanDependenciesResult,
     dependency::parser::ast::ExprRef,
     scope_info::{
       ScopeInfoDB, ScopeInfoId, TagInfo, TagInfoId, VariableInfo, VariableInfoFlags, VariableInfoId,
@@ -1065,14 +1065,14 @@ impl<'parser> JavascriptParser<'parser> {
       .elems
       .iter()
       .flatten()
-      .for_each(|ele| self.enter_pattern(Cow::Borrowed(ele), on_ident));
+      .for_each(|ele| self.enter_pattern(Pattern::from(ele), on_ident));
   }
 
   fn enter_assignment_pattern<F>(&mut self, assign: &AssignPat, on_ident: F)
   where
     F: FnOnce(&mut Self, &Ident) + Copy,
   {
-    self.enter_pattern(Cow::Borrowed(&assign.left), on_ident);
+    self.enter_pattern(Pattern::from(assign.left.as_ref()), on_ident);
   }
 
   fn enter_object_pattern<F>(&mut self, obj: &ObjectPat, on_ident: F)
@@ -1081,7 +1081,9 @@ impl<'parser> JavascriptParser<'parser> {
   {
     for prop in &obj.props {
       match prop {
-        ObjectPatProp::KeyValue(kv) => self.enter_pattern(Cow::Borrowed(&kv.value), on_ident),
+        ObjectPatProp::KeyValue(kv) => {
+          self.enter_pattern(Pattern::from(kv.value.as_ref()), on_ident)
+        }
         ObjectPatProp::Assign(assign) => {
           let old = self.in_short_hand;
           if assign.value.is_none() {
@@ -1099,21 +1101,20 @@ impl<'parser> JavascriptParser<'parser> {
   where
     F: FnOnce(&mut Self, &Ident) + Copy,
   {
-    self.enter_pattern(Cow::Borrowed(&rest.arg), on_ident)
+    self.enter_pattern(Pattern::from(rest.arg.as_ref()), on_ident)
   }
 
-  fn enter_pattern<F>(&mut self, pattern: Cow<Pat>, on_ident: F)
+  fn enter_pattern<'ast, F>(&mut self, pattern: Pattern<'ast>, on_ident: F)
   where
     F: FnOnce(&mut Self, &Ident) + Copy,
   {
-    match &*pattern {
-      Pat::Ident(ident) => self.enter_ident(&ident.id, on_ident),
-      Pat::Array(array) => self.enter_array_pattern(array, on_ident),
-      Pat::Assign(assign) => self.enter_assignment_pattern(assign, on_ident),
-      Pat::Object(obj) => self.enter_object_pattern(obj, on_ident),
-      Pat::Rest(rest) => self.enter_rest_pattern(rest, on_ident),
-      Pat::Invalid(_) => (),
-      Pat::Expr(_) => (),
+    match pattern {
+      Pattern::Identifier(ident) => self.enter_ident(&ident, on_ident),
+      Pattern::ArrayPattern(array) => self.enter_array_pattern(array, on_ident),
+      Pattern::AssignmentPattern(assign) => self.enter_assignment_pattern(assign, on_ident),
+      Pattern::ObjectPattern(obj) => self.enter_object_pattern(obj, on_ident),
+      Pattern::RestElement(rest) => self.enter_rest_pattern(rest, on_ident),
+      Pattern::Expression(_) => (),
     }
   }
 
@@ -1128,10 +1129,10 @@ impl<'parser> JavascriptParser<'parser> {
     }
   }
 
-  fn enter_patterns<'a, I, F>(&mut self, patterns: I, on_ident: F)
+  fn enter_patterns<'ast, I, F>(&mut self, patterns: I, on_ident: F)
   where
     F: FnOnce(&mut Self, &Ident) + Copy,
-    I: Iterator<Item = Cow<'a, Pat>>,
+    I: Iterator<Item = Pattern<'ast>>,
   {
     for pattern in patterns {
       self.enter_pattern(pattern, on_ident);
@@ -1178,7 +1179,7 @@ impl<'parser> JavascriptParser<'parser> {
       }
       Decl::Var(var) => {
         for decl in &var.decls {
-          self.enter_pattern(Cow::Borrowed(&decl.name), on_ident);
+          self.enter_pattern(Pattern::from(&decl.name), on_ident);
         }
       }
       Decl::Using(_) => (),

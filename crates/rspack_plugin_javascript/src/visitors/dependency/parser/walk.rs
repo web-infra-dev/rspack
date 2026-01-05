@@ -25,12 +25,8 @@ use super::{
 };
 use crate::{
   parser_plugin::{JavascriptParserPlugin, is_logic_op},
-  visitors::{ExportedVariableInfo, ExprRef, VariableDeclaration},
+  visitors::{ExportedVariableInfo, ExprRef, Pattern, VariableDeclaration},
 };
-
-fn warp_ident_to_pat(ident: Ident) -> Pat {
-  Pat::Ident(ident.into())
-}
 
 impl JavascriptParser<'_> {
   fn in_block_scope<F>(&mut self, f: F)
@@ -50,10 +46,10 @@ impl JavascriptParser<'_> {
     self.in_tagged_template_tag = old_in_tagged_template_tag;
   }
 
-  pub fn in_class_scope<'a, I, F>(&mut self, has_this: bool, params: I, f: F)
+  pub fn in_class_scope<'ast, I, F>(&mut self, has_this: bool, params: I, f: F)
   where
     F: FnOnce(&mut Self),
-    I: Iterator<Item = Cow<'a, Pat>>,
+    I: Iterator<Item = Pattern<'ast>>,
   {
     let old_definitions = self.definitions;
     let old_in_try = self.in_try;
@@ -80,10 +76,10 @@ impl JavascriptParser<'_> {
     self.in_tagged_template_tag = old_in_tagged_template_tag;
   }
 
-  pub(crate) fn in_function_scope<'a, I, F>(&mut self, has_this: bool, params: I, f: F)
+  pub(crate) fn in_function_scope<'ast, I, F>(&mut self, has_this: bool, params: I, f: F)
   where
     F: FnOnce(&mut Self),
-    I: Iterator<Item = Cow<'a, Pat>>,
+    I: Iterator<Item = Pattern<'ast>>,
   {
     let old_definitions = self.definitions;
     let old_top_level_scope = self.top_level_scope;
@@ -225,10 +221,10 @@ impl JavascriptParser<'_> {
   fn walk_catch_clause(&mut self, catch_clause: &CatchClause) {
     self.in_block_scope(|this| {
       if let Some(param) = &catch_clause.param {
-        this.enter_pattern(Cow::Borrowed(param), |this, ident| {
+        this.enter_pattern(Pattern::from(param), |this, ident| {
           this.define_variable(ident.sym.clone());
         });
-        this.walk_pattern(param)
+        this.walk_pattern(Pattern::from(param))
       }
       let prev = this.prev_statement;
       this.block_pre_walk_statements(&catch_clause.body.stmts);
@@ -363,7 +359,7 @@ impl JavascriptParser<'_> {
         self.block_pre_walk_variable_declaration(decl);
         self.walk_variable_declaration(decl);
       }
-      ForHead::Pat(pat) => self.walk_pattern(pat),
+      ForHead::Pat(pat) => self.walk_pattern(Pattern::from(pat.as_ref())),
     }
   }
 
@@ -396,7 +392,7 @@ impl JavascriptParser<'_> {
         .declarator(self, declarator, decl)
         .unwrap_or_default()
       {
-        self.walk_pattern(&declarator.name);
+        self.walk_pattern(Pattern::from(&declarator.name));
         if let Some(init) = &declarator.init {
           self.walk_expression(init);
         }
@@ -676,7 +672,7 @@ impl JavascriptParser<'_> {
     self.top_level_scope = TopLevelScope::False;
     self.in_function_scope(
       true,
-      std::iter::once(Cow::Borrowed(setter.param.as_ref())),
+      std::iter::once(Pattern::from(setter.param.as_ref())),
       |parser| {
         if let Some(body) = &setter.body {
           parser.detect_mode(&body.stmts);
@@ -707,7 +703,7 @@ impl JavascriptParser<'_> {
         self.top_level_scope = TopLevelScope::False;
         self.in_function_scope(
           true,
-          method.function.params.iter().map(|p| Cow::Borrowed(&p.pat)),
+          method.function.params.iter().map(|p| Pattern::from(&p.pat)),
           |parser| {
             parser.walk_function(&method.function);
           },
@@ -963,7 +959,7 @@ impl JavascriptParser<'_> {
           .and_then(|i| i.as_ref())
           .is_none()
         {
-          scope_params.push(Cow::Borrowed(pat));
+          scope_params.push(Pattern::from(pat));
         }
       }
     } else if let Some(arrow_expr) = expr.as_arrow() {
@@ -976,7 +972,7 @@ impl JavascriptParser<'_> {
           .and_then(|i| i.as_ref())
           .is_none()
         {
-          scope_params.push(Cow::Borrowed(pat));
+          scope_params.push(Pattern::from(pat));
         }
       }
     }
@@ -985,7 +981,7 @@ impl JavascriptParser<'_> {
     if let Some(expr) = expr.as_fn_expr()
       && let Some(ident) = &expr.ident
     {
-      scope_params.push(Cow::Owned(Pat::Ident(ident.clone().into())));
+      scope_params.push(Pattern::Identifier(ident));
     }
 
     let was_top_level_scope = self.top_level_scope;
@@ -1275,21 +1271,18 @@ impl JavascriptParser<'_> {
         return;
       }
       self.walk_expression(&expr.right);
-      self.enter_pattern(
-        Cow::Owned(warp_ident_to_pat(ident.clone().into())),
-        |this, ident| {
-          if !ident
-            .sym
-            .call_hooks_name(this, |this, for_name| {
-              this.plugin_drive.clone().assign(this, expr, for_name)
-            })
-            .unwrap_or_default()
-          {
-            // webpack use `walk_expression`, `walk_expression` just walk down the ast, so it's ok to use `walk_identifier`
-            this.walk_identifier(ident);
-          }
-        },
-      );
+      self.enter_pattern(Pattern::Identifier(ident), |this, ident| {
+        if !ident
+          .sym
+          .call_hooks_name(this, |this, for_name| {
+            this.plugin_drive.clone().assign(this, expr, for_name)
+          })
+          .unwrap_or_default()
+        {
+          // webpack use `walk_expression`, `walk_expression` just walk down the ast, so it's ok to use `walk_identifier`
+          this.walk_identifier(ident);
+        }
+      });
     } else if let Some(pat) = expr.left.as_pat() {
       self.walk_expression(&expr.right);
       self.enter_assign_target_pattern(
@@ -1346,9 +1339,9 @@ impl JavascriptParser<'_> {
     if !matches!(was_top_level_scope, TopLevelScope::False) {
       self.top_level_scope = TopLevelScope::ArrowFunction;
     }
-    self.in_function_scope(false, expr.params.iter().map(Cow::Borrowed), |this| {
+    self.in_function_scope(false, expr.params.iter().map(Pattern::from), |this| {
       for param in &expr.params {
-        this.walk_pattern(param)
+        this.walk_pattern(Pattern::from(param))
       }
       match &*expr.body {
         BlockStmtOrExpr::BlockStmt(stmt) => {
@@ -1409,7 +1402,7 @@ impl JavascriptParser<'_> {
         .function()
         .params
         .iter()
-        .map(|param| Cow::Borrowed(&param.pat)),
+        .map(|param| Pattern::from(&param.pat)),
       |this| {
         this.walk_function(decl.function());
       },
@@ -1419,7 +1412,7 @@ impl JavascriptParser<'_> {
 
   fn walk_function(&mut self, f: &Function) {
     for param in &f.params {
-      self.walk_pattern(&param.pat)
+      self.walk_pattern(Pattern::from(&param.pat))
     }
     if let Some(body) = &f.body {
       self.detect_mode(&body.stmts);
@@ -1430,22 +1423,18 @@ impl JavascriptParser<'_> {
     }
   }
 
-  fn walk_function_expression(&mut self, expr: &FnExpr) {
+  fn walk_function_expression<'ast>(&mut self, expr: &'ast FnExpr) {
     let was_top_level = self.top_level_scope;
     self.top_level_scope = TopLevelScope::False;
     let mut scope_params: Vec<_> = expr
       .function
       .params
       .iter()
-      .map(|params| Cow::Borrowed(&params.pat))
+      .map(|params| Pattern::from(&params.pat))
       .collect();
 
-    if let Some(pat) = expr
-      .ident
-      .as_ref()
-      .map(|ident| warp_ident_to_pat(ident.clone()))
-    {
-      scope_params.push(Cow::Owned(pat));
+    if let Some(pat) = expr.ident.as_ref().map(|ident| Pattern::Identifier(ident)) {
+      scope_params.push(pat);
     }
 
     self.in_function_scope(true, scope_params.into_iter(), |this| {
@@ -1454,15 +1443,14 @@ impl JavascriptParser<'_> {
     self.top_level_scope = was_top_level;
   }
 
-  pub fn walk_pattern(&mut self, pat: &Pat) {
+  pub fn walk_pattern<'ast>(&mut self, pat: Pattern<'ast>) {
     match pat {
-      Pat::Array(array) => self.walk_array_pattern(array),
-      Pat::Assign(assign) => self.walk_assignment_pattern(assign),
-      Pat::Object(obj) => self.walk_object_pattern(obj),
-      Pat::Rest(rest) => self.walk_rest_element(rest),
-      Pat::Expr(expr) => self.walk_expression(expr),
-      Pat::Ident(_) => (),
-      Pat::Invalid(_) => (),
+      Pattern::ArrayPattern(array) => self.walk_array_pattern(array),
+      Pattern::AssignmentPattern(assign) => self.walk_assignment_pattern(assign),
+      Pattern::ObjectPattern(obj) => self.walk_object_pattern(obj),
+      Pattern::RestElement(rest) => self.walk_rest_element(rest),
+      Pattern::Expression(expr) => self.walk_expression(expr),
+      Pattern::Identifier(_) => (),
     }
   }
 
@@ -1491,7 +1479,7 @@ impl JavascriptParser<'_> {
   }
 
   fn walk_rest_element(&mut self, rest: &RestPat) {
-    self.walk_pattern(&rest.arg);
+    self.walk_pattern(Pattern::from(rest.arg.as_ref()));
   }
 
   fn walk_object_pattern(&mut self, obj: &ObjectPat) {
@@ -1502,7 +1490,7 @@ impl JavascriptParser<'_> {
             // webpack use `walk_expression`, `walk_expression` just walk down the ast, so it's ok to use `walk_prop_name`
             self.walk_prop_name(&kv.key);
           }
-          self.walk_pattern(&kv.value);
+          self.walk_pattern(Pattern::from(kv.value.as_ref()));
         }
         ObjectPatProp::Assign(assign) => {
           if let Some(value) = &assign.value {
@@ -1516,7 +1504,7 @@ impl JavascriptParser<'_> {
 
   fn walk_assignment_pattern(&mut self, pat: &AssignPat) {
     self.walk_expression(&pat.right);
-    self.walk_pattern(&pat.left);
+    self.walk_pattern(Pattern::from(pat.left.as_ref()));
   }
 
   fn walk_array_pattern(&mut self, pat: &ArrayPat) {
@@ -1524,7 +1512,7 @@ impl JavascriptParser<'_> {
       .elems
       .iter()
       .flatten()
-      .for_each(|ele| self.walk_pattern(ele));
+      .for_each(|ele| self.walk_pattern(Pattern::from(ele)));
   }
 
   fn walk_class_declaration(&mut self, decl: MaybeNamedClassDecl) {
@@ -1547,9 +1535,9 @@ impl JavascriptParser<'_> {
       && let Some(pat) = class_expr
         .ident
         .as_ref()
-        .map(|ident| warp_ident_to_pat(ident.clone()))
+        .map(|ident| Pattern::Identifier(ident))
     {
-      vec![Cow::Owned(pat)]
+      vec![pat]
     } else {
       vec![]
     };
@@ -1586,11 +1574,11 @@ impl JavascriptParser<'_> {
 
             let params = ctor.params.iter().map(|p| {
               let p = p.as_param().expect("should only contain param");
-              Cow::Borrowed(&p.pat)
+              Pattern::from(&p.pat)
             });
             this.in_function_scope(true, params.clone(), |this| {
               for param in params {
-                this.walk_pattern(&param)
+                this.walk_pattern(param)
               }
 
               if let Some(body) = &ctor.body {
@@ -1623,7 +1611,7 @@ impl JavascriptParser<'_> {
             this.top_level_scope = TopLevelScope::False;
             this.in_function_scope(
               true,
-              method.function.params.iter().map(|p| Cow::Borrowed(&p.pat)),
+              method.function.params.iter().map(|p| Pattern::from(&p.pat)),
               |this| this.walk_function(&method.function),
             );
             this.top_level_scope = was_top_level;
@@ -1642,7 +1630,7 @@ impl JavascriptParser<'_> {
             this.top_level_scope = TopLevelScope::False;
             this.in_function_scope(
               true,
-              method.function.params.iter().map(|p| Cow::Borrowed(&p.pat)),
+              method.function.params.iter().map(|p| Pattern::from(&p.pat)),
               |this| this.walk_function(&method.function),
             );
             this.top_level_scope = was_top_level;
