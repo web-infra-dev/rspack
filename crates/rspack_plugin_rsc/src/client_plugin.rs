@@ -4,7 +4,7 @@ use atomic_refcell::AtomicRefCell;
 use derive_more::Debug;
 use rspack_collections::Identifier;
 use rspack_core::{
-  ChunkGraph, ChunkGroup, ChunkGroupUkey, ChunkUkey, Compilation, CompilationProcessAssets,
+  ChunkGraph, ChunkGroup, ChunkGroupUkey, ChunkUkey, Compilation, CompilationAfterProcessAssets,
   CompilationRuntimeRequirementInTree, CompilerFailed, CompilerId, CompilerMake,
   CrossOriginLoading, Dependency, DependencyId, EntryDependency, Logger, ModuleGraph,
   ModuleGraphRef, ModuleId, ModuleIdentifier, Plugin, RuntimeGlobals,
@@ -462,8 +462,8 @@ impl Plugin for RscClientPlugin {
 
     ctx
       .compilation_hooks
-      .process_assets
-      .tap(process_assets::new(self));
+      .after_process_assets
+      .tap(after_process_assets::new(self));
 
     Ok(())
   }
@@ -565,8 +565,8 @@ async fn runtime_requirements_in_tree(
   Ok(None)
 }
 
-#[plugin_hook(CompilationProcessAssets for RscClientPlugin)]
-async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
+#[plugin_hook(CompilationAfterProcessAssets for RscClientPlugin)]
+async fn after_process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let logger = compilation.get_logger("rspack.RscClientPlugin");
 
   let server_compiler_id = self.coordinator.get_server_compiler_id().await?;
