@@ -438,38 +438,39 @@ fn get_exports_type_impl(
           if matches!(export_info.provided(), Some(ExportProvided::NotProvided)) {
             handle_default(default_object)
           } else {
-            let Some(GetTargetResult::Target(target)) =
-              get_target(export_info, mg, Rc::new(|_| true), &mut Default::default())
-            else {
-              return ExportsType::Dynamic;
-            };
-            if target
-              .export
-              .and_then(|t| {
-                if t.len() == 1 {
-                  t.first().cloned()
-                } else {
-                  None
-                }
-              })
-              .is_some_and(|v| v == "__esModule")
-            {
-              let Some(target_exports_type) = mg
-                .module_by_identifier(&target.module)
-                .map(|m| m.build_meta().exports_type)
-              else {
-                return ExportsType::Dynamic;
-              };
-              match target_exports_type {
-                BuildMetaExportsType::Flagged | BuildMetaExportsType::Namespace => {
-                  ExportsType::Namespace
-                }
-                BuildMetaExportsType::Default => handle_default(default_object),
-                _ => ExportsType::Dynamic,
-              }
-            } else {
-              ExportsType::Dynamic
-            }
+            ExportsType::Dynamic
+            // let Some(GetTargetResult::Target(target)) =
+            //   get_target(export_info, mg, Rc::new(|_| true), &mut Default::default())
+            // else {
+            //   return ExportsType::Dynamic;
+            // };
+            // if target
+            //   .export
+            //   .and_then(|t| {
+            //     if t.len() == 1 {
+            //       t.first().cloned()
+            //     } else {
+            //       None
+            //     }
+            //   })
+            //   .is_some_and(|v| v == "__esModule")
+            // {
+            //   let Some(target_exports_type) = mg
+            //     .module_by_identifier(&target.module)
+            //     .map(|m| m.build_meta().exports_type)
+            //   else {
+            //     return ExportsType::Dynamic;
+            //   };
+            //   match target_exports_type {
+            //     BuildMetaExportsType::Flagged | BuildMetaExportsType::Namespace => {
+            //       ExportsType::Namespace
+            //     }
+            //     BuildMetaExportsType::Default => handle_default(default_object),
+            //     _ => ExportsType::Dynamic,
+            //   }
+            // } else {
+            //   ExportsType::Dynamic
+            // }
           }
         } else {
           ExportsType::DefaultWithNamed
