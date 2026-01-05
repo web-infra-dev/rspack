@@ -552,7 +552,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           (None, alias.clone())
         };
       let used_in =
-        collect_usage_files_for_module(compilation, &module_graph, &module_id, &entry_point_names)
+        collect_usage_files_for_module(compilation, module_graph, &module_id, &entry_point_names)
           // keep only the file path, drop aggregated suffix like " + 1 modules"
           .into_iter()
           .map(|s| {
