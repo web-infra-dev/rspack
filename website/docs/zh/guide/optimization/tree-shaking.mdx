@@ -168,7 +168,7 @@ export const foo = 42;
 
 ## Pure 注解
 
-通过 `/*#__PURE__*/` 注解可以告诉 Rspack 某个函数调用无副作用。它可以被放到函数调用之前，用来标记此函数调用是无副作用的。
+通过 [`/*#__PURE__*/`](https://github.com/javascript-compiler-hints/compiler-notations-spec/blob/main/pure-notation-spec.md) 注解可以告诉 Rspack 某个函数调用无副作用。它可以被放到函数调用之前，用来标记此函数调用是无副作用的。
 
 如果一个没被使用的变量定义的初始值被认为是无副作用的，它会被标记为死代码，不会被执行且会被压缩工具清除掉。
 
