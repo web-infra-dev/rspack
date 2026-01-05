@@ -151,10 +151,6 @@ jobs:
           force-use-github: true
           include-hidden-files: true
 
-      - name: Debug
-        if: ${{ inputs.target == 'wasm32-wasip1-threads' }}
-        uses: ./.github/actions/debugger
-
       ### WASM
       - name: Test WASM
         timeout-minutes: 15 # Tests should finish within 15 mins, please fix your tests instead of changing this to a higher timeout.
