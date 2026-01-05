@@ -1,7 +1,7 @@
 const path = require("path");
 const file = path.resolve(__dirname, "lib.js");
 const createUse = loaders =>
-	loaders.map(l => ({ loader: l, parallel: { maxWorkers: 4 }, options: {} }));
+	loaders.map(l => ({ loader: l, parallel: true, options: {} }));
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	context: __dirname,

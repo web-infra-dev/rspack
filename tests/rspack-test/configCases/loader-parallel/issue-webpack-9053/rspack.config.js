@@ -4,11 +4,11 @@ module.exports = {
 		rules: [
 			{
 				test: /c\.js$/,
-				use: [{ loader: "loader2", parallel: { maxWorkers: 4 }, options: {} }]
+				use: [{ loader: "loader2", parallel: true, options: {} }]
 			},
 			{
 				test: /d\.js$/,
-				use: [{ loader: "loader3", parallel: { maxWorkers: 4 }, options: {} }]
+				use: [{ loader: "loader3", parallel: true, options: {} }]
 			}
 		]
 	},

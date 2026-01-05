@@ -12,7 +12,7 @@ module.exports = {
 					{
 						loader: "./loader.js",
 						options: {},
-						parallel: { maxWorkers: 4 }
+						parallel: true
 					}
 				]
 			}

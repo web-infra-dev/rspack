@@ -14,7 +14,7 @@ const createRule = (testNumber, loaders) => ({
 	resourceQuery: new RegExp("case-" + testNumber),
 	use: loaders.map(loader => ({
 		loader,
-		parallel: { maxWorkers: 4 },
+		parallel: true,
 		options: {}
 	}))
 });

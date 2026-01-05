@@ -10,7 +10,7 @@ module.exports = {
 				use: [
 					{
 						loader: "./my-loader.js",
-						parallel: { maxWorkers: 4 },
+						parallel: true,
 						options: {}
 					}
 				]

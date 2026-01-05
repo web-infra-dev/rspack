@@ -10,13 +10,13 @@ module.exports = {
 			{
 				test: path.join(__dirname, "a.js"),
 				use: [
-					{ loader: "./loader-2.js", parallel: { maxWorkers: 4 }, options: {} },
+					{ loader: "./loader-2.js", parallel: true, options: {} },
 					{
 						loader: "builtin:test-no-passthrough-loader",
-						parallel: { maxWorkers: 4 },
+						parallel: true,
 						options: {}
 					},
-					{ loader: "./loader-1.js", parallel: { maxWorkers: 4 }, options: {} }
+					{ loader: "./loader-1.js", parallel: true, options: {} }
 				]
 			}
 		]

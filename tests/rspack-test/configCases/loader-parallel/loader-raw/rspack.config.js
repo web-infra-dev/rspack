@@ -5,7 +5,7 @@ module.exports = {
 		rules: [
 			{
 				test: /\.png$/,
-				use: [{ loader: "./loader.js", parallel: { maxWorkers: 4 }, options: {} }],
+				use: [{ loader: "./loader.js", parallel: true, options: {} }],
 				type: "asset/resource"
 			}
 		]
