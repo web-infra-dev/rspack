@@ -1532,10 +1532,7 @@ impl JavascriptParser<'_> {
 
     // TODO: define variable for class expression in block pre walk
     let scope_params = if let ClassDeclOrExpr::Expr(class_expr) = class_decl_or_expr
-      && let Some(pat) = class_expr
-        .ident
-        .as_ref()
-        .map(|ident| Pattern::Identifier(ident))
+      && let Some(pat) = class_expr.ident.as_ref().map(Pattern::Identifier)
     {
       vec![pat]
     } else {
