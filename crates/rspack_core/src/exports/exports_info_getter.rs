@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{borrow::Cow, sync::Arc};
 
 use either::Either;
 use itertools::Itertools;
@@ -8,10 +8,7 @@ use rspack_util::{atom::Atom, ext::DynHash};
 use super::{
   ExportInfoData, ExportProvided, ExportsInfo, ProvidedExports, UsageState, UsedName, UsedNameItem,
 };
-use crate::{
-  ExportsInfoData, InlinedUsedName, MaybeDynamicTargetExportInfo, ModuleGraph, RuntimeSpec,
-  UsageKey, UsedExports,
-};
+use crate::{ExportsInfoData, InlinedUsedName, ModuleGraph, RuntimeSpec, UsageKey, UsedExports};
 
 #[derive(Debug, Clone)]
 pub enum PrefetchExportsInfoMode<'a> {
@@ -301,34 +298,15 @@ impl<'a> PrefetchedExportsInfoWrapper<'a> {
     ProvidedExports::ProvidedNames(ret)
   }
 
-  // An alternative version of `get_export_info`, and don't need `&mut ModuleGraph`.
-  // You can use this when you can't or don't want to use `&mut ModuleGraph`.
-  // Currently this function is used to finding a reexport's target.
-  pub fn get_export_info_without_mut_module_graph(
-    &self,
-    name: &Atom,
-  ) -> MaybeDynamicTargetExportInfo<'_> {
-    self.get_export_info_without_mut_module_graph_impl(&self.entry, name)
-  }
-
-  fn get_export_info_without_mut_module_graph_impl(
-    &self,
-    exports_info: &ExportsInfo,
-    name: &Atom,
-  ) -> MaybeDynamicTargetExportInfo<'_> {
-    if let Some(export_info) = self.get_named_export_in_exports_info(exports_info, name) {
-      return MaybeDynamicTargetExportInfo::Static(export_info);
+  pub fn get_export_info_without_mut_module_graph(&self, name: &Atom) -> Cow<'_, ExportInfoData> {
+    if let Some(export_info) = self.get_named_export_in_exports_info(&self.entry, name) {
+      return Cow::Borrowed(export_info);
     }
-
-    MaybeDynamicTargetExportInfo::Dynamic {
-      export_name: name.clone(),
-      other_export_info: self.get_other_in_exports_info(exports_info),
-      data: ExportInfoData::new(
-        *exports_info,
-        Some(name.clone()),
-        Some(self.get_other_in_exports_info(exports_info)),
-      ),
-    }
+    Cow::Owned(ExportInfoData::new(
+      self.entry,
+      Some(name.clone()),
+      Some(self.get_other_in_exports_info(&self.entry)),
+    ))
   }
 
   pub fn update_hash(&self, hasher: &mut dyn std::hash::Hasher, runtime: Option<&RuntimeSpec>) {
