@@ -34,13 +34,14 @@ import { applyRspackOptionsDefaults, getPnpDefault } from './config/defaults';
 import type { PlatformTargetProperties } from './config/target';
 import ExecuteModulePlugin from './ExecuteModulePlugin';
 import ConcurrentCompilationError from './error/ConcurrentCompilationError';
+import * as rspackExports from './exports';
 import {
   ThreadsafeInputNodeFS,
   ThreadsafeIntermediateNodeFS,
   ThreadsafeOutputNodeFS,
 } from './FileSystem';
 import type { FileSystemInfoEntry } from './FileSystemInfo';
-import { rspack } from './index';
+import type { rspack } from './index';
 import Cache from './lib/Cache';
 import CacheFacade from './lib/CacheFacade';
 import { Logger } from './logging/Logger';
@@ -48,6 +49,7 @@ import { NormalModuleFactory } from './NormalModuleFactory';
 import { ResolverFactory } from './ResolverFactory';
 import { RuleSetCompiler } from './RuleSetCompiler';
 import { createCompilerRuntimeGlobals } from './RuntimeGlobals';
+import { rspack as rspackFn } from './rspack';
 import { Stats } from './Stats';
 import {
   createCompilationHooksRegisters,
@@ -250,14 +252,16 @@ class Compiler {
     };
 
     const compilerRuntimeGlobals = createCompilerRuntimeGlobals(options);
-    this.webpack = {
-      ...rspack,
+    const compilerFn = function (...params: Parameters<typeof rspackFn>) {
+      return rspackFn(...params);
+    };
+    const compilerRspack = Object.assign(compilerFn, rspackExports, {
       RuntimeGlobals: compilerRuntimeGlobals,
-    } as typeof rspack;
-    this.rspack = {
-      ...rspack,
-      RuntimeGlobals: compilerRuntimeGlobals,
-    } as typeof rspack;
+    }) as unknown as typeof rspack;
+    compilerRspack.rspack = compilerRspack;
+    compilerRspack.webpack = compilerRspack;
+    this.webpack = compilerRspack;
+    this.rspack = compilerRspack;
     this.root = this;
     this.outputPath = '';
 

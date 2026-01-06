@@ -1,3 +1,4 @@
+pub mod ast;
 mod call_hooks_name;
 pub mod estree;
 mod walk;
@@ -31,7 +32,7 @@ use rspack_util::{SpanExt, fx_hash::FxIndexSet};
 use rustc_hash::{FxHashMap, FxHashSet};
 use swc_core::{
   atoms::Atom,
-  common::{BytePos, Mark, Span, Spanned, comments::Comments, util::take::Take},
+  common::{BytePos, Mark, Span, Spanned, comments::Comments},
   ecma::{
     ast::{
       ArrayPat, AssignPat, AssignTargetPat, CallExpr, Decl, Expr, Ident, Lit, MemberExpr,
@@ -52,6 +53,7 @@ use crate::{
   utils::eval::{self, BasicEvaluatedExpression},
   visitors::{
     ScanDependenciesResult,
+    dependency::parser::ast::ExprRef,
     scope_info::{
       ScopeInfoDB, ScopeInfoId, TagInfo, TagInfoId, VariableInfo, VariableInfoFlags, VariableInfoId,
     },
@@ -80,8 +82,8 @@ where
 }
 
 #[derive(Debug)]
-pub struct ExtractedMemberExpressionChainData {
-  pub object: Expr,
+pub struct ExtractedMemberExpressionChainData<'ast> {
+  pub object: ExprRef<'ast>,
   pub members: Vec<Atom>,
   pub members_optionals: Vec<bool>,
   pub member_ranges: Vec<Span>,
@@ -96,14 +98,14 @@ bitflags! {
 }
 
 #[derive(Debug)]
-pub enum MemberExpressionInfo {
-  Call(CallExpressionInfo),
+pub enum MemberExpressionInfo<'ast> {
+  Call(CallExpressionInfo<'ast>),
   Expression(ExpressionExpressionInfo),
 }
 
 #[derive(Debug)]
-pub struct CallExpressionInfo {
-  pub call: CallExpr,
+pub struct CallExpressionInfo<'ast> {
+  pub call: &'ast CallExpr,
   pub root_info: ExportedVariableInfo,
   pub callee_members: Vec<Atom>,
   pub members: Vec<Atom>,
@@ -148,6 +150,17 @@ impl RootName for Expr {
       Expr::Ident(ident) => ident.get_root_name(),
       Expr::This(this) => this.get_root_name(),
       Expr::MetaProp(meta) => meta.get_root_name(),
+      _ => None,
+    }
+  }
+}
+
+impl RootName for ExprRef<'_> {
+  fn get_root_name(&self) -> Option<Atom> {
+    match self {
+      ExprRef::Ident(ident) => ident.get_root_name(),
+      ExprRef::This(this) => this.get_root_name(),
+      ExprRef::MetaProp(meta) => meta.get_root_name(),
       _ => None,
     }
   }
@@ -869,22 +882,22 @@ impl<'parser> JavascriptParser<'parser> {
     self.definitions_db.set(self.definitions, name, new_info);
   }
 
-  fn _get_member_expression_info(
+  fn _get_member_expression_info<'ast>(
     &mut self,
-    object: Expr,
+    object: ExprRef<'ast>,
     mut members: Vec<Atom>,
     mut members_optionals: Vec<bool>,
     mut member_ranges: Vec<Span>,
     allowed_types: AllowedMemberTypes,
-  ) -> Option<MemberExpressionInfo> {
+  ) -> Option<MemberExpressionInfo<'ast>> {
     match object {
-      Expr::Call(expr) => {
+      ExprRef::Call(expr) => {
         if !allowed_types.contains(AllowedMemberTypes::CallExpression) {
           return None;
         }
         let callee = expr.callee.as_expr()?;
         let (root_name, mut root_members) = if let Some(member) = callee.as_member() {
-          let extracted = self.extract_member_expression_chain(Expr::Member(member.clone()));
+          let extracted = self.extract_member_expression_chain(ExprRef::Member(member));
           let root_name = extracted.object.get_root_name()?;
           (root_name, extracted.members)
         } else {
@@ -909,7 +922,7 @@ impl<'parser> JavascriptParser<'parser> {
           member_ranges,
         }))
       }
-      Expr::MetaProp(_) | Expr::Ident(_) | Expr::This(_) => {
+      ExprRef::MetaProp(_) | ExprRef::Ident(_) | ExprRef::This(_) => {
         if !allowed_types.contains(AllowedMemberTypes::Expression) {
           return None;
         }
@@ -938,24 +951,24 @@ impl<'parser> JavascriptParser<'parser> {
     }
   }
 
-  pub fn get_member_expression_info_from_expr(
+  pub fn get_member_expression_info_from_expr<'ast>(
     &mut self,
-    expr: &Expr,
+    expr: &'ast Expr,
     allowed_types: AllowedMemberTypes,
-  ) -> Option<MemberExpressionInfo> {
+  ) -> Option<MemberExpressionInfo<'ast>> {
     match expr {
       Expr::Member(_) | Expr::OptChain(_) => {
-        self.get_member_expression_info(expr.clone(), allowed_types)
+        self.get_member_expression_info(expr.into(), allowed_types)
       }
-      _ => self._get_member_expression_info(expr.clone(), vec![], vec![], vec![], allowed_types),
+      _ => self._get_member_expression_info(expr.into(), vec![], vec![], vec![], allowed_types),
     }
   }
 
-  pub fn get_member_expression_info(
+  pub fn get_member_expression_info<'ast>(
     &mut self,
-    expr: Expr,
+    expr: ExprRef<'ast>,
     allowed_types: AllowedMemberTypes,
-  ) -> Option<MemberExpressionInfo> {
+  ) -> Option<MemberExpressionInfo<'ast>> {
     let ExtractedMemberExpressionChainData {
       object,
       members,
@@ -971,15 +984,18 @@ impl<'parser> JavascriptParser<'parser> {
     )
   }
 
-  pub fn extract_member_expression_chain(&self, expr: Expr) -> ExtractedMemberExpressionChainData {
+  pub fn extract_member_expression_chain<'ast>(
+    &self,
+    expr: ExprRef<'ast>,
+  ) -> ExtractedMemberExpressionChainData<'ast> {
     let mut object = expr;
     let mut members = Vec::new();
     let mut members_optionals = Vec::new();
     let mut member_ranges = Vec::new();
     let mut in_optional_chain = self.member_expr_in_optional_chain;
     loop {
-      match &mut object {
-        Expr::Member(expr) => {
+      match object {
+        ExprRef::Member(expr) => {
           if let Some(computed) = expr.prop.as_computed() {
             let Expr::Lit(lit) = &*computed.expr else {
               break;
@@ -1004,13 +1020,13 @@ impl<'parser> JavascriptParser<'parser> {
             break;
           }
           members_optionals.push(in_optional_chain);
-          object = *expr.obj.take();
+          object = expr.obj.as_ref().into();
           in_optional_chain = false;
         }
-        Expr::OptChain(expr) => {
+        ExprRef::OptChain(expr) => {
           in_optional_chain = expr.optional;
-          if let OptChainBase::Member(member) = &mut *expr.base {
-            object = Expr::Member(member.take());
+          if let OptChainBase::Member(member) = expr.base.as_ref() {
+            object = ExprRef::Member(member);
           } else {
             break;
           }

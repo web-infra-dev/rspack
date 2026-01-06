@@ -15,13 +15,17 @@ const ensureLoaderWorkerPool = async (workerOptions?: {
     const maxWorkers = workerOptions?.maxWorkers
       ? Math.max(workerOptions.maxWorkers, 1)
       : undefined;
+    const maxWorkersFromEnv = parseInt(
+      process.env.RSPACK_LOADER_WORKER_THREADS || '',
+      10,
+    );
 
     const pool = new Tinypool({
       filename: path.resolve(__dirname, 'worker.js'),
       useAtomics: false,
 
-      maxThreads: maxWorkers || availableThreads,
-      minThreads: maxWorkers || availableThreads,
+      maxThreads: maxWorkers || maxWorkersFromEnv || availableThreads,
+      minThreads: maxWorkers || maxWorkersFromEnv || availableThreads,
       concurrentTasksPerWorker: 1,
     });
 
