@@ -255,8 +255,7 @@ class Compiler {
     const compilerFn = function (...params: Parameters<typeof rspackFn>) {
       return rspackFn(...params);
     };
-    const compilerRspack = Object.assign(compilerFn, {
-      ...rspackExports,
+    const compilerRspack = Object.assign(compilerFn, rspackExports, {
       RuntimeGlobals: compilerRuntimeGlobals,
     }) as unknown as typeof rspack;
     compilerRspack.rspack = compilerRspack;
