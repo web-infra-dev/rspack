@@ -161,6 +161,19 @@ jobs:
         if: ${{ inputs.target == 'x86_64-pc-windows-msvc' }}
         run: RUST_TARGET=${{ inputs.target }} pnpm build:binding:${{ inputs.profile }}
 
+      - name: Install arm64 build tools
+        # temp workaround in blacksmith runners
+        if: ${{ inputs.target == 'aarch64-pc-windows-msvc' && startsWith(runner.name, 'blacksmith-') }}
+        shell: pwsh
+        run: |
+          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+          $installPath = & $vswhere -products * -latest -property installationPath
+          $setupExe = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\setup.exe"
+
+          Start-Process -FilePath $setupExe `
+            -ArgumentList "modify", "--installPath", "`"$installPath`"", "--add", "Microsoft.VisualStudio.Component.VC.Tools.ARM64", "--quiet", "--norestart" `
+            -Wait -PassThru -NoNewWindow
+
       - name: Build aarch64-pc-windows-msvc
         if: ${{ inputs.target == 'aarch64-pc-windows-msvc' }}
         run: RUST_TARGET=${{ inputs.target }} DISABLE_PLUGIN=1 pnpm build:binding:${{ inputs.profile }}
