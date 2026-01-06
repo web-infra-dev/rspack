@@ -59,7 +59,7 @@ jobs:
     uses: ./.github/workflows/reusable-build.yml
     with:
       target: x86_64-unknown-linux-gnu
-      runner: ${{ '"blacksmith-8vcpu-ubuntu-2204"' }}
+      runner: ${{ '"blacksmith-4vcpu-ubuntu-2204"' }}
       test-runner: ${{ '"blacksmith-4vcpu-ubuntu-2204"' }}
       test: true
       bench: true
@@ -73,7 +73,7 @@ jobs:
     with:
       target: x86_64-pc-windows-msvc
       profile: 'dev'
-      runner: ${{ '"blacksmith-8vcpu-windows-2025"' }}
+      runner: ${{ '"blacksmith-4vcpu-windows-2025"' }}
       test-runner: '"blacksmith-4vcpu-windows-2025"'
       test: true
 
@@ -97,7 +97,7 @@ jobs:
     with:
       target: wasm32-wasip1-threads
       profile: 'ci'
-      runner: ${{ '"blacksmith-8vcpu-ubuntu-2204"' }}
+      runner: ${{ '"blacksmith-4vcpu-ubuntu-2204"' }}
       test-runner: ${{ '"blacksmith-4vcpu-ubuntu-2204"' }}
       test: true
 
