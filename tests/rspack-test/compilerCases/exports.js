@@ -12,7 +12,7 @@ class MyPlugin {
 
 /** @type {import('@rspack/test-tools').TCompilerCaseConfig} */
 module.exports = {
-  description: "should be called every compilation",
+  description: "should export rspack function from compiler.rspack with unique RuntimeGlobals",
   options(context) {
     return {
       context: context.getSource(),
