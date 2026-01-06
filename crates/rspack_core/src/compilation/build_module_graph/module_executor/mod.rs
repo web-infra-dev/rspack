@@ -102,6 +102,7 @@ impl ModuleExecutor {
     // clean removed entries
     let removed_module = compilation
       .build_module_graph_artifact
+      .get()
       .revoked_modules()
       .chain(self.make_artifact.revoked_modules())
       .collect::<HashSet<_>>();
@@ -117,16 +118,18 @@ impl ModuleExecutor {
     )
     .await?;
 
-    let mg = compilation
+    compilation
       .build_module_graph_artifact
-      .get_module_graph_mut();
-    let module_assets = std::mem::take(&mut self.module_assets);
-    for (original_module_identifier, assets) in module_assets {
-      // recursive import module may not exist the module, just skip it
-      if let Some(module) = mg.module_by_identifier_mut(&original_module_identifier) {
-        module.build_info_mut().assets.extend(assets);
-      }
-    }
+      .with_mut(|artifact| {
+        let mg = artifact.get_module_graph_mut();
+        let module_assets = std::mem::take(&mut self.module_assets);
+        for (original_module_identifier, assets) in module_assets {
+          // recursive import module may not exist the module, just skip it
+          if let Some(module) = mg.module_by_identifier_mut(&original_module_identifier) {
+            module.build_info_mut().assets.extend(assets);
+          }
+        }
+      });
 
     let diagnostics = self.make_artifact.diagnostics();
     compilation.extend_diagnostics(diagnostics);

@@ -282,7 +282,12 @@ impl Compiler {
     let make_hook_start = logger.time("make hook");
     self
       .cache
-      .before_build_module_graph(&mut self.compilation.build_module_graph_artifact)
+      .before_build_module_graph(
+        self
+          .compilation
+          .build_module_graph_artifact
+          .get_mut_unchecked(),
+      )
       .await;
 
     self
@@ -308,7 +313,7 @@ impl Compiler {
     self.compilation.finish_build_module_graph().await?;
     self
       .cache
-      .after_build_module_graph(&self.compilation.build_module_graph_artifact)
+      .after_build_module_graph(self.compilation.build_module_graph_artifact.get())
       .await;
 
     logger.time_end(start);

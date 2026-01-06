@@ -229,19 +229,21 @@ async fn normal_module_factory_module(
 #[plugin_hook(CompilerMake for LazyCompilationPlugin<T: Backend, F: LazyCompilationTestCheck>)]
 async fn compiler_make(&self, compilation: &mut Compilation) -> Result<()> {
   let active_modules = self.backend.lock().await.current_active_modules().await?;
-  let module_graph = compilation
+  compilation
     .build_module_graph_artifact
-    .get_module_graph_mut();
-  for module_id in &active_modules {
-    let Some(active_module) = module_graph.module_by_identifier_mut(module_id) else {
-      continue;
-    };
-    let Some(active_module) = active_module.downcast_mut::<LazyCompilationProxyModule>() else {
-      continue;
-    };
+    .with_mut(|artifact| {
+      let module_graph = artifact.get_module_graph_mut();
+      for module_id in &active_modules {
+        let Some(active_module) = module_graph.module_by_identifier_mut(module_id) else {
+          continue;
+        };
+        let Some(active_module) = active_module.downcast_mut::<LazyCompilationProxyModule>() else {
+          continue;
+        };
 
-    active_module.invalid();
-  }
+        active_module.invalid();
+      }
+    });
 
   *self.active_modules.write().await = active_modules.into_iter().collect();
 

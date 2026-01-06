@@ -227,19 +227,21 @@ impl ModernModuleLibraryPlugin {
 
     let mg = compilation
       .build_module_graph_artifact
-      .get_module_graph_mut();
-    for dep in deps_to_replace {
-      let dep_id = dep.id();
-      external_connections.remove(dep_id);
-      // remove connection
-      mg.revoke_dependency(dep_id, false);
-      // overwrite dependency
-      mg.add_dependency(dep);
-    }
+      .with_mut(|artifact| {
+        let mg = artifact.get_module_graph_mut();
+        for dep in deps_to_replace {
+          let dep_id = dep.id();
+          external_connections.remove(dep_id);
+          // remove connection
+          mg.revoke_dependency(dep_id, false);
+          // overwrite dependency
+          mg.add_dependency(dep);
+        }
 
-    for connection in &external_connections {
-      mg.revoke_dependency(connection, true);
-    }
+        for connection in &external_connections {
+          mg.revoke_dependency(connection, true);
+        }
+      });
 
     Ok(())
   }

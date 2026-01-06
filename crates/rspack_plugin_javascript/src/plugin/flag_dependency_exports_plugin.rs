@@ -201,10 +201,12 @@ async fn finish_modules(
   };
   let module_graph_cache = compilation.module_graph_cache_artifact.clone();
 
-  let module_graph = compilation
+  compilation
     .build_module_graph_artifact
-    .get_module_graph_mut();
-  FlagDependencyExportsState::new(module_graph, &module_graph_cache).apply(modules);
+    .with_mut(|artifact| {
+      let module_graph = artifact.get_module_graph_mut();
+      FlagDependencyExportsState::new(module_graph, &module_graph_cache).apply(modules);
+    });
   Ok(())
 }
 

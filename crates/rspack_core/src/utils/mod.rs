@@ -8,6 +8,7 @@ use crate::{
   ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, Compilation, ConcatenatedModule,
   ModuleGraph, ModuleIdentifier,
 };
+mod artifact_cell;
 mod comment;
 mod compile_boolean_matcher;
 mod concatenated_module_visitor;
@@ -34,6 +35,7 @@ mod source;
 pub mod task_loop;
 mod template;
 mod to_path;
+pub use artifact_cell::ArtifactCell;
 pub use compile_boolean_matcher::*;
 pub use concatenated_module_visitor::*;
 pub use concatenation_scope::*;

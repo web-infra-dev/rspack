@@ -755,6 +755,7 @@ impl Stats<'_> {
       self
         .compilation
         .build_module_graph_artifact
+        .get()
         .built_modules()
         .contains(&identifier)
     };

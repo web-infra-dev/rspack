@@ -268,14 +268,16 @@ async fn finish_modules(
     );
   }
 
-  let module_graph = compilation
+  compilation
     .build_module_graph_artifact
-    .get_module_graph_mut();
-  for m in entry_modules {
-    module_graph
-      .get_exports_info_data_mut(&m)
-      .set_used_in_unknown_way(None);
-  }
+    .with_mut(|artifact| {
+      let mg = artifact.get_module_graph_mut();
+      for m in entry_modules {
+        module_graph
+          .get_exports_info_data_mut(&m)
+          .set_used_in_unknown_way(None);
+      }
+    });
 
   Ok(())
 }
