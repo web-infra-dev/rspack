@@ -4,7 +4,7 @@ use swc_core::{
 };
 
 use super::{AllowedMemberTypes, ExportedVariableInfo, JavascriptParser, MemberExpressionInfo};
-use crate::visitors::scope_info::VariableInfoId;
+use crate::visitors::{ExprRef, scope_info::VariableInfoId};
 
 /// callHooksForName/callHooksForInfo in webpack
 /// webpack use HookMap and filter at callHooksForName/callHooksForInfo
@@ -70,7 +70,7 @@ impl CallHooksName for MemberExpr {
     F: Fn(&mut JavascriptParser, &str) -> Option<T>,
   {
     let Some(MemberExpressionInfo::Expression(expr_name)) =
-      parser.get_member_expression_info(Expr::Member(self.clone()), AllowedMemberTypes::Expression)
+      parser.get_member_expression_info(ExprRef::Member(self), AllowedMemberTypes::Expression)
     else {
       return None;
     };

@@ -164,7 +164,7 @@ Since `value` is used, the `foo` it depends on is retained.
 
 ## Pure annotation
 
-Use the `/*#__PURE__*/` annotation to tell Rspack that a function call is side-effect-free (pure). Place it before function calls to mark them as having no side effects.
+Use the [`/*#__PURE__*/`](https://github.com/javascript-compiler-hints/compiler-notations-spec/blob/main/pure-notation-spec.md) annotation to tell Rspack that a function call is side-effect-free (pure). Place it before function calls to mark them as having no side effects.
 
 When an unused variable's initial value is marked as side-effect-free (pure), it's treated as dead code and removed by the minimizer.
 
