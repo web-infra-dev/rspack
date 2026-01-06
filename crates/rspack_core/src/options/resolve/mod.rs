@@ -6,7 +6,7 @@ use std::borrow::Cow;
 use hashlink::LinkedHashMap;
 use rspack_cacheable::{
   cacheable,
-  with::{AsCacheable, AsMap, AsPreset, AsRefStr, AsTuple2, AsVec},
+  with::{AsCacheable, AsMap, AsOption, AsPreset, AsRefStr, AsTuple2, AsVec},
 };
 use rspack_paths::Utf8PathBuf;
 use rspack_regex::RspackRegex;
@@ -138,6 +138,9 @@ pub struct Resolve {
   pub enforce_extension: Option<EnforceExtension>,
   /// If set, Yarn PnP resolution will be supported.
   pub pnp: Option<bool>,
+  /// Path to PnP manifest file
+  #[cacheable(with=AsOption<AsPreset>)]
+  pub pnp_manifest: Option<Utf8PathBuf>,
   /// Whether to parse [module.builtinModules](https://nodejs.org/api/module.html#modulebuiltinmodules) or not.
   pub builtin_modules: bool,
 }

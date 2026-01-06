@@ -1,4 +1,5 @@
 use hashlink::LinkedHashMap;
+use rspack_paths::Utf8PathBuf;
 
 use super::{
   Alias, AliasFields, ByDependency, ConditionNames, DependencyCategoryStr, DescriptionFiles,
@@ -40,6 +41,7 @@ fn is_empty(resolve: &Resolve) -> bool {
     && is_none!(roots)
     && is_none!(tsconfig)
     && is_none!(by_dependency)
+    && is_none!(pnp_manifest)
 }
 
 #[derive(Default, Debug)]
@@ -71,6 +73,7 @@ struct ResolveWithEntry {
   restrictions: Entry<Restrictions>,
   roots: Entry<Roots>,
   pnp: Entry<bool>,
+  pnp_manifest: Entry<Utf8PathBuf>,
 }
 
 fn parse_resolve(resolve: Resolve) -> ResolveWithEntry {
@@ -104,6 +107,7 @@ fn parse_resolve(resolve: Resolve) -> ResolveWithEntry {
     restrictions: entry!(restrictions),
     roots: entry!(roots),
     pnp: entry!(pnp),
+    pnp_manifest: entry!(pnp_manifest),
   };
   let Some(by_dependency) = resolve.by_dependency else {
     return res;
@@ -162,6 +166,7 @@ fn parse_resolve(resolve: Resolve) -> ResolveWithEntry {
   update_by_value!(restrictions, |i: Option<&_>| i.is_some());
   update_by_value!(roots, |i: Option<&_>| i.is_some());
   update_by_value!(tsconfig, |i: Option<&_>| i.is_some());
+  update_by_value!(pnp_manifest, |i: Option<&_>| i.is_some());
 
   res
 }
@@ -274,6 +279,12 @@ fn _merge_resolve(first: Resolve, second: Resolve) -> Resolve {
 
   let result_entry = ResolveWithEntry {
     pnp: merge!(pnp, second.pnp.base.get_value_type(), |_| true, |_, b| b),
+    pnp_manifest: merge!(
+      pnp_manifest,
+      second.pnp_manifest.base.get_value_type(),
+      |_| true,
+      |_, b| b
+    ),
     extensions: merge!(
       extensions,
       second.extensions.base.get_value_type(),
@@ -397,6 +408,7 @@ fn _merge_resolve(first: Resolve, second: Resolve) -> Resolve {
   setup_by_values!(alias_fields);
   setup_by_values!(restrictions);
   setup_by_values!(roots);
+  setup_by_values!(pnp_manifest);
 
   macro_rules! to_resolve {
     ($ident: ident) => {
@@ -430,6 +442,7 @@ fn _merge_resolve(first: Resolve, second: Resolve) -> Resolve {
   to_resolve!(alias_fields);
   to_resolve!(restrictions);
   to_resolve!(roots);
+  to_resolve!(pnp_manifest);
 
   let by_dependency = if by_dependency.iter().all(|(_, by_value)| is_empty(by_value)) {
     None
@@ -460,6 +473,7 @@ fn _merge_resolve(first: Resolve, second: Resolve) -> Resolve {
     restrictions: result_entry.restrictions.base,
     roots: result_entry.roots.base,
     pnp: result_entry.pnp.base,
+    pnp_manifest: result_entry.pnp_manifest.base,
     builtin_modules: false,
   }
 }

@@ -603,3 +603,21 @@ export default {
   },
 };
 ```
+
+## resolve.pnpManifest
+
+- **Type:** `string`
+- **Default:** the closest `.pnp.cjs` file
+
+The path to the PnP manifest file. Rspack will attempt to find the closest `.pnp.cjs` file if `resolve.pnp` is enabled and this option is not provided.
+
+Example:
+
+```js title="rspack.config.mjs"
+export default {
+  resolve: {
+    pnp: true,
+    pnpManifest: path.resolve(__dirname, '.pnp.cjs'),
+  },
+};
+```
