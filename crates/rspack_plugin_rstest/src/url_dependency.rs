@@ -14,7 +14,9 @@ pub struct RstestUrlDependencyTemplate {
 
 impl RstestUrlDependencyTemplate {
   pub fn new(preserve_extensions: Vec<String>) -> Self {
-    Self { preserve_extensions }
+    Self {
+      preserve_extensions,
+    }
   }
 
   pub fn template_type() -> DependencyTemplateType {
@@ -36,21 +38,15 @@ impl DependencyTemplate for RstestUrlDependencyTemplate {
 
     // Strip query string and fragment from request path before checking extension
     let request = dep.request();
-    let request_path = request
-      .split(&['?', '#'][..])
-      .next()
-      .unwrap_or(request);
+    let request_path = request.split(&['?', '#'][..]).next().unwrap_or(request);
 
-    let should_preserve = request_path
-      .rsplit('.')
-      .next()
-      .is_some_and(|ext| {
-        self.preserve_extensions.iter().any(|preserve_ext| {
-          // Support both ".ext" and "ext" formats
-          let preserve_ext = preserve_ext.trim_start_matches('.');
-          ext.eq_ignore_ascii_case(preserve_ext)
-        })
-      });
+    let should_preserve = request_path.rsplit('.').next().is_some_and(|ext| {
+      self.preserve_extensions.iter().any(|preserve_ext| {
+        // Support both ".ext" and "ext" formats
+        let preserve_ext = preserve_ext.trim_start_matches('.');
+        ext.eq_ignore_ascii_case(preserve_ext)
+      })
+    });
 
     if should_preserve {
       return;
