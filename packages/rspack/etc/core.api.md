@@ -4890,8 +4890,6 @@ export interface ModuleFederationPluginOptions extends Omit<ModuleFederationPlug
     // (undocumented)
     implementation?: string;
     // (undocumented)
-    independentShareDir?: string;
-    // (undocumented)
     injectUsedExports?: boolean;
     // (undocumented)
     manifest?: ModuleFederationManifestPluginOptions;
@@ -4899,6 +4897,8 @@ export interface ModuleFederationPluginOptions extends Omit<ModuleFederationPlug
     runtimePlugins?: RuntimePlugins;
     // (undocumented)
     shareStrategy?: 'version-first' | 'loaded-first';
+    // (undocumented)
+    treeshakeSharedDir?: string;
     // (undocumented)
     treeshakeSharedExcludePlugins?: string[];
     // (undocumented)

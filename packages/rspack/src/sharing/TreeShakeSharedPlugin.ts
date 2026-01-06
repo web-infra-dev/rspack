@@ -19,7 +19,7 @@ export class TreeShakeSharedPlugin {
   constructor(options: TreeshakeSharedPluginOptions) {
     const { mfConfig, reShake } = options;
     this.mfConfig = mfConfig;
-    this.outputDir = mfConfig.independentShareDir || 'independent-packages';
+    this.outputDir = mfConfig.treeshakeSharedDir || 'independent-packages';
     this.reShake = Boolean(reShake);
   }
 

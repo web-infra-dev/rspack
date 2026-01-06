@@ -1,24 +1,24 @@
 const fs = __non_webpack_require__("fs");
 const path = __non_webpack_require__("path");
 
-const independentShareDir = path.join(
+const treeshakeSharedDir = path.join(
 	__dirname,
 	"independent-packages"
 );
 
 const customPluginAssetPath = path.join(
-	independentShareDir,
+	treeshakeSharedDir,
 	"apply-plugin.json"
 );
 
 const uiLibShareContainerPath = path.join(
-	independentShareDir,
+	treeshakeSharedDir,
 	"ui_lib/1.0.0",
 	"share-entry.js"
 );
 
 const uiLibDepShareContainerPath = path.join(
-	independentShareDir,
+	treeshakeSharedDir,
 	"ui_lib_dep/1.0.0",
 	"share-entry.js"
 );

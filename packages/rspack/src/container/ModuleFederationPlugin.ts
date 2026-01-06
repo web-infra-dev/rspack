@@ -23,7 +23,7 @@ export interface ModuleFederationPluginOptions extends Omit<
   shareStrategy?: 'version-first' | 'loaded-first';
   manifest?: ModuleFederationManifestPluginOptions;
   injectUsedExports?: boolean;
-  independentShareDir?: string;
+  treeshakeSharedDir?: string;
   treeshakeSharedExcludePlugins?: string[];
   treeshakeSharedPlugins?: string[];
 }
