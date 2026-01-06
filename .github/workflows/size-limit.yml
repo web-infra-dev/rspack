@@ -10,7 +10,7 @@ permissions:
 jobs:
   size-limit:
     name: Binding Size Limit
-    runs-on: blacksmith-4vcpu-ubuntu-2204
+    runs-on: ${{ fromJSON(vars.CI_LINUX_BUILD_RUNNER || '"ubuntu-22.04"') }}
     steps:
       - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
 
