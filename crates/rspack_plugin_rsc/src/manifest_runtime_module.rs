@@ -14,7 +14,7 @@ use crate::{
   loaders::action_entry_loader::{ACTION_ENTRY_LOADER_IDENTIFIER, parse_action_entries},
   plugin_state::PLUGIN_STATES,
   reference_manifest::{ManifestExport, ManifestNode, ModuleLoading, ServerReferenceManifest},
-  utils::{ChunkModules, to_json_string_literal},
+  utils::{ChunkModules, get_module_resource, to_json_string_literal},
 };
 
 fn serialize_none_as_empty_object<S, T>(val: &Option<T>, serializer: S) -> Result<S::Ok, S::Error>
@@ -183,11 +183,11 @@ fn record_module(
   compilation: &Compilation,
   client_modules: &FxHashMap<String, ManifestExport>,
   module_graph: &ModuleGraphRef<'_>,
-  module_idenfitifier: ModuleIdentifier,
-  module_id: ModuleId,
+  module_identifier: &ModuleIdentifier,
+  module_id: &ModuleId,
   server_consumer_module_map: &mut FxHashMap<String, ManifestNode>,
 ) {
-  let Some(module) = module_graph.module_by_identifier(&module_idenfitifier) else {
+  let Some(module) = module_graph.module_by_identifier(module_identifier) else {
     return;
   };
   let Some(normal_module) = module.as_normal_module() else {
@@ -201,23 +201,7 @@ fn record_module(
     return;
   }
 
-  // Match Resource is undefined unless an import is using the inline match resource syntax
-  // https://webpack.js.org/api/loaders/#inline-matchresource
-  let mod_path = normal_module
-    .match_resource()
-    .map(|resource| resource.path())
-    .unwrap_or(normal_module.resource_resolved_data().path());
-  let mod_query = normal_module.resource_resolved_data().query().unwrap_or("");
-  // query is already part of mod.resource
-  // so it's only necessary to add it for matchResource or mod.resourceResolveData
-  let resource = match mod_path {
-    Some(mod_path) => format!("{}{}", mod_path.as_str(), mod_query),
-    None => normal_module
-      .resource_resolved_data()
-      .resource()
-      .to_string(),
-  };
-
+  let resource = get_module_resource(module.as_ref());
   if resource.is_empty() {
     return;
   }
@@ -228,12 +212,12 @@ fn record_module(
     chunks: vec![],
     r#async: Some(ModuleGraph::is_async(
       &compilation.async_modules_artifact.borrow(),
-      &module_idenfitifier,
+      &module.identifier(),
     )),
   };
   let mut node = FxHashMap::default();
   node.insert("*".to_string(), manifest_export);
-  if let Some(export) = client_modules.get(&resource) {
+  if let Some(export) = client_modules.get(resource.as_ref()) {
     server_consumer_module_map.insert(export.id.clone(), node);
   }
 }
@@ -246,14 +230,31 @@ fn build_server_consumer_module_map(
   let module_graph = compilation.get_module_graph();
   let chunk_modules = ChunkModules::new(compilation, &module_graph);
   for (module_identifier, module_id) in chunk_modules {
-    record_module(
-      compilation,
-      client_modules,
-      &module_graph,
-      module_identifier,
-      module_id,
-      &mut server_consumer_module_map,
-    );
+    let Some(module) = module_graph.module_by_identifier(&module_identifier) else {
+      continue;
+    };
+
+    if let Some(concatenated_module) = module.as_concatenated_module() {
+      for inner_module in concatenated_module.get_modules() {
+        record_module(
+          compilation,
+          client_modules,
+          &module_graph,
+          &inner_module.id,
+          &module_id,
+          &mut server_consumer_module_map,
+        );
+      }
+    } else {
+      record_module(
+        compilation,
+        client_modules,
+        &module_graph,
+        &module_identifier,
+        &module_id,
+        &mut server_consumer_module_map,
+      );
+    }
   }
   server_consumer_module_map
 }

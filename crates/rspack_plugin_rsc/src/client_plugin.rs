@@ -75,16 +75,12 @@ fn record_module(
   entry_name: &str,
   module_id: &ModuleId,
   module_identifier: &ModuleIdentifier,
-  client_entry_modules: &FxHashSet<ModuleIdentifier>,
   chunk_ukey: &ChunkUkey,
   compilation: &Compilation,
   required_chunks: &[String],
   plugin_state: &mut PluginState,
 ) {
-  let Some(module) = (client_entry_modules.contains(module_identifier))
-    .then(|| compilation.module_by_identifier(module_identifier))
-    .flatten()
-  else {
+  let Some(module) = compilation.module_by_identifier(module_identifier) else {
     return;
   };
 
@@ -179,6 +175,9 @@ fn record_chunk_group(
       .chunk_graph
       .get_chunk_modules_identifier(chunk_ukey);
     for module_identifier in chunk_modules {
+      if !client_entry_modules.contains(module_identifier) {
+        continue;
+      }
       let Some(module_id) =
         ChunkGraph::get_module_id(&compilation.module_ids_artifact, *module_identifier)
       else {
@@ -194,7 +193,6 @@ fn record_chunk_group(
             entry_name,
             module_id,
             &inner_module.id,
-            client_entry_modules,
             chunk_ukey,
             compilation,
             required_chunks,
@@ -206,7 +204,6 @@ fn record_chunk_group(
           entry_name,
           module_id,
           module_identifier,
-          client_entry_modules,
           chunk_ukey,
           compilation,
           required_chunks,
