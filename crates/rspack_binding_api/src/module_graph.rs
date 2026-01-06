@@ -30,7 +30,7 @@ impl JsModuleGraph {
     let compilation = unsafe { self.compilation.as_ref() };
     if compilation.build_module_graph_artifact.is_none() {
       return Err(napi::Error::from_reason(
-        "ModuleGraph is not available during module graph building phase.".to_string(),
+        "ModuleGraph is not available during module graph building phase".to_string(),
       ));
     }
     let module_graph = compilation.get_module_graph();
