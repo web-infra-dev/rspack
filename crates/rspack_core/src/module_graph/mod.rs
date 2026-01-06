@@ -1,6 +1,7 @@
+pub mod internal;
 pub mod rollback;
-use std::collections::hash_map::Entry;
 
+use internal::try_get_module_graph_module_mut_by_identifier;
 use rayon::prelude::*;
 use rspack_collections::IdentifierMap;
 use rspack_error::Result;
@@ -124,7 +125,7 @@ impl ModuleGraphData {
 
 #[derive(Debug, Default)]
 pub struct ModuleGraph {
-  inner: ModuleGraphData,
+  pub(super) inner: ModuleGraphData,
 }
 impl ModuleGraph {
   // checkpoint
@@ -213,14 +214,10 @@ impl ModuleGraph {
       let con = self
         .connection_by_dependency_id(dep_id)
         .expect("should have connection");
-      match map.entry(con.original_module_identifier) {
-        Entry::Occupied(mut occ) => {
-          occ.get_mut().push(con);
-        }
-        Entry::Vacant(vac) => {
-          vac.insert(vec![con]);
-        }
-      }
+      map
+        .entry(con.original_module_identifier)
+        .or_default()
+        .push(con);
     }
     map
   }
@@ -258,7 +255,8 @@ impl ModuleGraph {
 
     // remove outgoing from original module graph module
     if let Some(original_module_identifier) = &original_module_identifier
-      && let Some(mgm) = self.module_graph_module_by_identifier_mut(original_module_identifier)
+      && let Some(mgm) =
+        try_get_module_graph_module_mut_by_identifier(self, original_module_identifier)
     {
       mgm.remove_outgoing_connection(dep_id);
       if force {
@@ -267,7 +265,7 @@ impl ModuleGraph {
     }
     // remove incoming from module graph module
     if let Some(module_identifier) = &module_identifier
-      && let Some(mgm) = self.module_graph_module_by_identifier_mut(module_identifier)
+      && let Some(mgm) = try_get_module_graph_module_mut_by_identifier(self, module_identifier)
     {
       mgm.remove_incoming_connection(dep_id);
     }
@@ -333,9 +331,7 @@ impl ModuleGraph {
       old_mgm.depth,
       old_mgm.exports,
     );
-    let new_mgm = module_graph
-      .module_graph_module_by_identifier_mut(target_module)
-      .expect("should have mgm");
+    let new_mgm = module_graph.module_graph_module_by_identifier_mut(target_module);
     new_mgm.post_order_index = assign_tuple.0;
     new_mgm.pre_order_index = assign_tuple.1;
     new_mgm.depth = assign_tuple.2;
@@ -378,16 +374,12 @@ impl ModuleGraph {
       }
     }
 
-    let old_mgm = self
-      .module_graph_module_by_identifier_mut(old_module)
-      .expect("should have mgm");
+    let old_mgm = self.module_graph_module_by_identifier_mut(old_module);
     for dep_id in &affected_outgoing_connection {
       old_mgm.remove_outgoing_connection(dep_id);
     }
 
-    let new_mgm = self
-      .module_graph_module_by_identifier_mut(new_module)
-      .expect("should have mgm");
+    let new_mgm = self.module_graph_module_by_identifier_mut(new_module);
     for dep_id in affected_outgoing_connection {
       new_mgm.add_outgoing_connection(dep_id);
     }
@@ -413,16 +405,12 @@ impl ModuleGraph {
       }
     }
 
-    let old_mgm = self
-      .module_graph_module_by_identifier_mut(old_module)
-      .expect("should have mgm");
+    let old_mgm = self.module_graph_module_by_identifier_mut(old_module);
     for dep_id in &affected_incoming_connection {
       old_mgm.remove_incoming_connection(dep_id);
     }
 
-    let new_mgm = self
-      .module_graph_module_by_identifier_mut(new_module)
-      .expect("should have mgm");
+    let new_mgm = self.module_graph_module_by_identifier_mut(new_module);
     for dep_id in affected_incoming_connection {
       new_mgm.add_incoming_connection(dep_id);
     }
@@ -462,9 +450,7 @@ impl ModuleGraph {
       }
     }
 
-    let new_mgm = self
-      .module_graph_module_by_identifier_mut(new_module)
-      .expect("should have mgm");
+    let new_mgm = self.module_graph_module_by_identifier_mut(new_module);
     for dep_id in affected_outgoing_connections {
       new_mgm.add_outgoing_connection(dep_id);
     }
@@ -477,19 +463,14 @@ impl ModuleGraph {
   }
 
   pub fn set_depth_if_lower(&mut self, module_id: &ModuleIdentifier, depth: usize) -> bool {
-    let mgm = self
-      .module_graph_module_by_identifier_mut(module_id)
-      .expect("should have module graph module");
-    if let Some(ref mut cur_depth) = mgm.depth {
-      if *cur_depth > depth {
-        *cur_depth = depth;
-        return true;
+    let mgm = self.module_graph_module_by_identifier_mut(module_id);
+    match mgm.depth {
+      Some(cur_depth) if cur_depth <= depth => false,
+      _ => {
+        mgm.depth = Some(depth);
+        true
       }
-    } else {
-      mgm.depth = Some(depth);
-      return true;
     }
-    false
   }
 
   pub fn add_module(&mut self, module: BoxModule) {
@@ -538,7 +519,7 @@ impl ModuleGraph {
     &self,
     block_id: &AsyncDependenciesBlockIdentifier,
   ) -> Option<&AsyncDependenciesBlock> {
-    self.inner.blocks.get(block_id).map(|b| &**b)
+    self.inner.blocks.get(block_id).map(AsRef::as_ref)
   }
 
   pub fn block_by_id_expect(
@@ -565,19 +546,6 @@ impl ModuleGraph {
     self.inner.dependencies.insert(*dependency.id(), dependency);
   }
 
-  /// Try to get a dependency by ID, returning None if not found.
-  ///
-  /// **RESTRICTED TO BINDING LAYER ONLY**: This method should ONLY be used in
-  /// the `rspack_binding_api` crate for JavaScript/Node.js API bindings that need
-  /// to handle missing dependencies gracefully for external API consumers.
-  ///
-  /// **All internal Rust code should use `dependency_by_id()`** instead, which
-  /// enforces the invariant that dependencies exist and provides clear panic
-  /// messages when this expectation is violated.
-  pub fn try_dependency_by_id(&self, dependency_id: &DependencyId) -> Option<&BoxDependency> {
-    self.inner.dependencies.get(dependency_id)
-  }
-
   /// Get a dependency by ID, panicking if not found.
   ///
   /// **PREFERRED METHOD**: Use this for ALL internal Rust code including:
@@ -591,7 +559,7 @@ impl ModuleGraph {
   /// Dependencies should always be accessible in internal operations, so this
   /// method enforces that invariant with a clear panic message if violated.
   ///
-  /// **Only the binding layer (`rspack_binding_api`) should use `try_dependency_by_id()`**
+  /// **Only the binding layer (`rspack_binding_api`) should use `internal::try_dependency_by_id()`**
   /// for graceful handling of missing dependencies in external APIs.
   pub fn dependency_by_id(&self, dependency_id: &DependencyId) -> &BoxDependency {
     self
@@ -636,11 +604,9 @@ impl ModuleGraph {
   }
 
   pub fn get_module_by_dependency_id(&self, dep_id: &DependencyId) -> Option<&BoxModule> {
-    if let Some(module_id) = self.module_identifier_by_dependency_id(dep_id) {
-      self.inner.modules.get(module_id)
-    } else {
-      None
-    }
+    self
+      .module_identifier_by_dependency_id(dep_id)
+      .and_then(|module_id| self.inner.modules.get(module_id))
   }
 
   fn add_connection(
@@ -674,22 +640,14 @@ impl ModuleGraph {
 
     // set to module incoming connection
     {
-      let mgm = self
-        .module_graph_module_by_identifier_mut(&module_id)
-        .unwrap_or_else(|| {
-          panic!(
-            "Failed to add connection: Module linked to module identifier {module_id} cannot be found"
-          )
-        });
+      let mgm = self.module_graph_module_by_identifier_mut(&module_id);
 
       mgm.add_incoming_connection(dependency_id);
     }
 
     // set to origin module outgoing connection
     if let Some(identifier) = origin_module_id {
-      let original_mgm = self
-        .module_graph_module_by_identifier_mut(&identifier)
-        .expect("should mgm exist");
+      let original_mgm = self.module_graph_module_by_identifier_mut(&identifier);
       original_mgm.add_outgoing_connection(dependency_id);
     };
   }
@@ -743,12 +701,21 @@ impl ModuleGraph {
     self.inner.module_graph_modules.get(identifier)
   }
 
-  /// Uniquely identify a module graph module by its module's identifier and return the exclusive reference
+  /// Get a mutable module graph module by identifier, panicking if not found.
+  ///
+  /// **PREFERRED METHOD**: Use this for all internal code where the module graph module
+  /// should exist. This enforces the invariant with a clear panic message if violated.
+  ///
+  /// Only use `try_module_graph_module_by_identifier_mut()` when you need to handle missing modules.
   pub fn module_graph_module_by_identifier_mut(
     &mut self,
     identifier: &ModuleIdentifier,
-  ) -> Option<&mut ModuleGraphModule> {
-    self.inner.module_graph_modules.get_mut(identifier)
+  ) -> &mut ModuleGraphModule {
+    self
+      .inner
+      .module_graph_modules
+      .get_mut(identifier)
+      .unwrap_or_else(|| panic!("ModuleGraphModule with identifier {identifier:?} not found"))
   }
 
   pub fn get_ordered_outgoing_connections(
@@ -935,22 +902,16 @@ impl ModuleGraph {
     connection.set_module_identifier(*module_id);
 
     // remove dep_id from old module mgm incoming connection
-    let old_mgm = self
-      .module_graph_module_by_identifier_mut(&old_module_identifier)
-      .expect("should exist mgm");
+    let old_mgm = self.module_graph_module_by_identifier_mut(&old_module_identifier);
     old_mgm.remove_incoming_connection(dep_id);
 
     // add dep_id to updated module mgm incoming connection
-    let new_mgm = self
-      .module_graph_module_by_identifier_mut(module_id)
-      .expect("should exist mgm");
+    let new_mgm = self.module_graph_module_by_identifier_mut(module_id);
     new_mgm.add_incoming_connection(*dep_id);
   }
 
   pub fn get_optimization_bailout_mut(&mut self, id: &ModuleIdentifier) -> &mut Vec<String> {
-    let mgm = self
-      .module_graph_module_by_identifier_mut(id)
-      .expect("should have module graph module");
+    let mgm = self.module_graph_module_by_identifier_mut(id);
     mgm.optimization_bailout_mut()
   }
 
