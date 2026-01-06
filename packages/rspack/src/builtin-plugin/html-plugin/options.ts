@@ -75,7 +75,7 @@ export type HtmlRspackPluginOptions = {
 
   /**
    * Configure the SRI hash algorithm, which is disabled by default.
-   * @deprecated Use `experiments.SubresourceIntegrityPlugin` instead.
+   * @deprecated Use `SubresourceIntegrityPlugin` instead.
    */
   sri?: 'sha256' | 'sha384' | 'sha512';
 

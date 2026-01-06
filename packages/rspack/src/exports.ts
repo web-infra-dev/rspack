@@ -377,10 +377,6 @@ interface Experiments {
     cleanup: () => Promise<void>;
   };
   RemoveDuplicateModulesPlugin: typeof RemoveDuplicateModulesPlugin;
-  /**
-   * @deprecated Use `rspack.SubresourceIntegrityPlugin` instead
-   */
-  SubresourceIntegrityPlugin: typeof SubresourceIntegrityPlugin;
   EsmLibraryPlugin: typeof EsmLibraryPlugin;
   RsdoctorPlugin: typeof RsdoctorPlugin;
   RstestPlugin: typeof RstestPlugin;
@@ -421,7 +417,6 @@ export const experiments: Experiments = {
     },
   },
   RemoveDuplicateModulesPlugin,
-  SubresourceIntegrityPlugin,
   EsmLibraryPlugin,
   /**
    * Note: This plugin is unstable yet
