@@ -7,7 +7,7 @@ use std::{
 use rspack_error::{Error, Severity, cyan, yellow};
 use rspack_fs::ReadableFileSystem;
 use rspack_loader_runner::DescriptionData;
-use rspack_paths::AssertUtf8;
+use rspack_paths::{AssertUtf8, Utf8PathBuf};
 use rspack_util::location::byte_line_column_to_offset;
 use rustc_hash::FxHashSet as HashSet;
 
@@ -324,13 +324,15 @@ fn to_rspack_resolver_options(
     builtin_modules: options.builtin_modules,
     imports_fields,
     enable_pnp: options.pnp.unwrap_or(false),
-    pnp_manifest: if options.pnp.unwrap_or(false) {
-      std::env::current_dir()
-        .ok()
-        .and_then(|cwd| pnp::find_closest_pnp_manifest_path(&cwd))
-    } else {
-      None
-    },
+    pnp_manifest: options.pnp_manifest.map(PathBuf::from).or_else(|| {
+      if options.pnp.unwrap_or(false) {
+        std::env::current_dir()
+          .ok()
+          .and_then(|cwd| pnp::find_closest_pnp_manifest_path(&cwd))
+      } else {
+        None
+      }
+    }),
   }
 }
 

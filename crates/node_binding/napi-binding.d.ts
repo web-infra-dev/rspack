@@ -1739,6 +1739,12 @@ export interface NapiResolveOptions {
    * Default `false`
    */
   enablePnp?: boolean
+  /** 
+   * Path to yarn Plug'n'Play manifest file.
+   *
+   * Default `None`
+   */
+  pnpManifest?: string
 }
 
 export interface NativeWatcherOptions {
@@ -2785,6 +2791,7 @@ export interface RawResolveOptions {
   restrictions?: (string | RegExp)[]
   roots?: Array<string>
   pnp?: boolean
+  pnpManifest?: string
 }
 
 export interface RawResolveOptionsWithDependencyType {
@@ -2812,6 +2819,7 @@ export interface RawResolveOptionsWithDependencyType {
   dependencyType?: string
   resolveToContext?: boolean
   pnp?: boolean
+  pnpManifest?: string
 }
 
 export interface RawResolveTsconfigOptions {

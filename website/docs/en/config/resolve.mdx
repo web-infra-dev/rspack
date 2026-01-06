@@ -611,3 +611,70 @@ Supports [tsconfig project references](https://www.typescriptlang.org/docs/handb
 The list of tsconfig paths can be provided manually, or you may specify `auto` to read the paths list from `tsconfig.references` automatically.
 
 This feature is disabled when the value is `undefined`.
+
+## resolve.fullySpecified
+
+- **Type:** `boolean`
+- **Default:** `false`
+
+No longer resolve extensions, no longer resolve mainFiles in package.json (but does not affect requests from mainFiles, browser, alias).
+
+## resolve.restrictions
+
+- **Type:** `string[]`
+- **Default:** `[]`
+
+A list of resolve restrictions to restrict the paths that a request can be resolved on.
+
+## resolve.roots
+
+- **Type:** `string[]`
+- **Default:** `[]`
+
+A list of directories where server-relative URLs (beginning with '/') are resolved. It defaults to the `context` configuration option. On systems other than Windows, these requests are initially resolved as an absolute path.
+
+## resolve.symlinks
+
+- **Type:** `boolean`
+- **Default:** `true`
+
+Whether to resolve symlinks to their symlinked location.
+
+When enabled, symlinked resources are resolved to their real path, not their symlinked location. Note that this may cause module resolution to fail when using tools that symlink packages (like `npm link`).
+
+## resolve.pnp
+
+- **Type:** `boolean`
+- **Default:** `!!process.versions.pnp`
+
+When enabled, it will enable [Yarn PnP](https://yarnpkg.com/features/pnp) resolution.
+
+It's enabled by default if [`!!process.versions.pnp`](https://yarnpkg.com/advanced/pnpapi#processversionspnp) is `true`, which means the application is running in Yarn PnP environments.
+
+Example:
+
+```js title="rspack.config.mjs"
+export default {
+  resolve: {
+    pnp: true,
+  },
+};
+```
+
+## resolve.pnpManifest
+
+- **Type:** `string`
+- **Default:** `undefined`
+
+The path to the PnP manifest file. Rspack will attempt to find the closest PnP manifest file if `resolve.pnp` is enabled and this option is not provided.
+
+Example:
+
+```js title="rspack.config.mjs"
+export default {
+  resolve: {
+    pnp: true,
+    pnpManifest: path.resolve(__dirname, '.pnp.cjs'),
+  },
+};
+```
