@@ -11,7 +11,7 @@ use swc_core::{
   },
 };
 
-use super::state::UsageCallback;
+use super::state::InnerGraphUsageOperation;
 use crate::{
   ClassExt,
   dependency::PureExpressionDependency,
@@ -138,16 +138,7 @@ impl InnerGraphPlugin {
         let pure_part_end = pure_part.real_hi();
         Self::on_usage(
           parser,
-          Box::new(move |parser, used_by_exports| {
-            if !matches!(used_by_exports, Some(UsedByExports::Bool(true)) | None) {
-              let mut dep = PureExpressionDependency::new(
-                (pure_part_start, pure_part_end).into(),
-                *parser.module_identifier,
-              );
-              dep.set_used_by_exports(used_by_exports);
-              parser.add_dependency(Box::new(dep));
-            }
-          }),
+          InnerGraphUsageOperation::PureExpression((pure_part_start, pure_part_end).into()),
         );
       }
     }
@@ -259,7 +250,7 @@ impl InnerGraphPlugin {
     }
 
     let mut finalized = vec![];
-    for (symbol, cbs) in state.usage_callback_map.drain() {
+    for (symbol, cbs) in state.usage_map.drain() {
       let usage = state.inner_graph.get(&symbol);
       let used_by_exports = if let Some(usage) = usage {
         match usage {
@@ -278,8 +269,31 @@ impl InnerGraphPlugin {
       }
     }
 
-    for (cb, used_by_exports) in finalized {
-      cb(parser, Some(used_by_exports));
+    for (op, used_by_exports) in finalized {
+      match op {
+        InnerGraphUsageOperation::PureExpression(range) => {
+          // Only create dependency when the expression is conditionally used
+          if !matches!(used_by_exports, UsedByExports::Bool(true)) {
+            let mut dep = PureExpressionDependency::new(range, *parser.module_identifier);
+            dep.set_used_by_exports(Some(used_by_exports));
+            parser.add_dependency(Box::new(dep));
+          }
+        }
+        InnerGraphUsageOperation::ESMImportSpecifier(dep_idx) => {
+          if let Some(dep) = parser.get_dependency_mut(dep_idx)
+            && let Some(dep) = dep.downcast_mut::<crate::dependency::ESMImportSpecifierDependency>()
+          {
+            dep.set_used_by_exports(Some(used_by_exports));
+          }
+        }
+        InnerGraphUsageOperation::URLDependency(dep_idx) => {
+          if let Some(dep) = parser.get_dependency_mut(dep_idx)
+            && let Some(dep) = dep.downcast_mut::<crate::dependency::URLDependency>()
+          {
+            dep.set_used_by_exports(Some(used_by_exports));
+          }
+        }
+      }
     }
   }
 
@@ -292,21 +306,20 @@ impl InnerGraphPlugin {
     parser.inner_graph.add_usage(symbol, usage);
   }
 
-  pub fn on_usage(parser: &mut JavascriptParser, on_usage_callback: UsageCallback) {
-    if parser.inner_graph.is_enabled() {
-      if let Some(symbol) = parser.inner_graph.get_top_level_symbol() {
-        parser
-          .inner_graph
-          .usage_callback_map
-          .entry(symbol)
-          .or_default()
-          .push(on_usage_callback);
-      } else {
-        on_usage_callback(parser, Some(UsedByExports::Bool(true)));
-      }
-    } else {
-      on_usage_callback(parser, None);
+  pub fn on_usage(parser: &mut JavascriptParser, operation: InnerGraphUsageOperation) {
+    if parser.inner_graph.is_enabled()
+      && let Some(symbol) = parser.inner_graph.get_top_level_symbol()
+    {
+      parser
+        .inner_graph
+        .usage_map
+        .entry(symbol)
+        .or_default()
+        .push(operation);
+      // When inner graph is enabled but no top-level symbol, the expression is always used,
+      // so we skip adding PureExpressionDependency (same as UsedByExports::Bool(true))
     }
+    // When inner graph is disabled, we skip adding PureExpressionDependency (same as None)
   }
 
   pub fn tag_top_level_symbol(
@@ -565,16 +578,7 @@ impl JavascriptParserPlugin for InnerGraphPlugin {
         let pure_part_end = pure_part.real_hi();
         Self::on_usage(
           parser,
-          Box::new(move |parser, used_by_exports| {
-            if !matches!(used_by_exports, Some(UsedByExports::Bool(true)) | None) {
-              let mut dep = PureExpressionDependency::new(
-                (pure_part_start, pure_part_end).into(),
-                *parser.module_identifier,
-              );
-              dep.set_used_by_exports(used_by_exports);
-              parser.add_dependency(Box::new(dep));
-            }
-          }),
+          InnerGraphUsageOperation::PureExpression((pure_part_start, pure_part_end).into()),
         );
       }
     }
@@ -623,14 +627,7 @@ impl JavascriptParserPlugin for InnerGraphPlugin {
 
       Self::on_usage(
         parser,
-        Box::new(move |parser, used_by_exports| {
-          if !matches!(used_by_exports, Some(UsedByExports::Bool(true)) | None) {
-            let mut dep =
-              PureExpressionDependency::new(expr_span.into(), *parser.module_identifier);
-            dep.set_used_by_exports(used_by_exports);
-            parser.add_dependency(Box::new(dep));
-          }
-        }),
+        InnerGraphUsageOperation::PureExpression(expr_span.into()),
       );
     }
 
@@ -703,14 +700,7 @@ impl JavascriptParserPlugin for InnerGraphPlugin {
         if !matches!(element, ClassMember::Method(_)) && element.is_static() {
           Self::on_usage(
             parser,
-            Box::new(move |parser, used_by_exports| {
-              if !matches!(used_by_exports, Some(UsedByExports::Bool(true)) | None) {
-                let mut dep =
-                  PureExpressionDependency::new(expr_span.into(), *parser.module_identifier);
-                dep.set_used_by_exports(used_by_exports);
-                parser.add_dependency(Box::new(dep));
-              }
-            }),
+            InnerGraphUsageOperation::PureExpression(expr_span.into()),
           );
         }
       } else {
@@ -748,14 +738,7 @@ impl JavascriptParserPlugin for InnerGraphPlugin {
 
           InnerGraphPlugin::on_usage(
             parser,
-            Box::new(move |parser, used_by_exports| {
-              if !matches!(used_by_exports, Some(UsedByExports::Bool(true)) | None) {
-                let mut dep =
-                  PureExpressionDependency::new(super_span.into(), *parser.module_identifier);
-                dep.set_used_by_exports(used_by_exports);
-                parser.add_dependency(Box::new(dep));
-              }
-            }),
+            InnerGraphUsageOperation::PureExpression(super_span.into()),
           );
         } else if decl.init.is_none() || !decl.init.as_ref().expect("unreachable").is_class() {
           let init = decl.init.as_ref().expect("should have initialization");
@@ -763,14 +746,7 @@ impl JavascriptParserPlugin for InnerGraphPlugin {
 
           InnerGraphPlugin::on_usage(
             parser,
-            Box::new(move |parser, used_by_exports| {
-              if !matches!(used_by_exports, Some(UsedByExports::Bool(true)) | None) {
-                let mut dep =
-                  PureExpressionDependency::new(init_span.into(), *parser.module_identifier);
-                dep.set_used_by_exports(used_by_exports);
-                parser.add_dependency(Box::new(dep));
-              }
-            }),
+            InnerGraphUsageOperation::PureExpression(init_span.into()),
           );
         }
       }

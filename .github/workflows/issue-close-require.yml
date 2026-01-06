@@ -15,7 +15,7 @@ jobs:
     if: github.repository_owner == 'web-infra-dev'
     steps:
       - name: need reproduce
-        uses: actions-cool/issues-helper@d1d51fccf39469b5458203b1369060db0ff0c0db # v3
+        uses: actions-cool/issues-helper@e2ff99831a4f13625d35064e2b3dfe65c07a0396 # v3
         with:
           actions: 'close-issues'
           labels: 'need reproduction'
@@ -24,7 +24,7 @@ jobs:
             Since the issue was labeled with `need reproduction`, but no response in 14 days. This issue will be closed. Feel free to comment and reopen it if you have any further questions.
 
       - name: need more info
-        uses: actions-cool/issues-helper@d1d51fccf39469b5458203b1369060db0ff0c0db # v3
+        uses: actions-cool/issues-helper@e2ff99831a4f13625d35064e2b3dfe65c07a0396 # v3
         with:
           actions: 'close-issues'
           labels: 'need more info'
@@ -33,7 +33,7 @@ jobs:
             Since the issue was labeled with `need more info`, but no response in 14 days. This issue will be closed. Feel free to comment and reopen it if you have any further questions.
 
       - name: awaiting feedback
-        uses: actions-cool/issues-helper@d1d51fccf39469b5458203b1369060db0ff0c0db # v3
+        uses: actions-cool/issues-helper@e2ff99831a4f13625d35064e2b3dfe65c07a0396 # v3
         with:
           actions: 'close-issues'
           labels: 'awaiting more feedback'

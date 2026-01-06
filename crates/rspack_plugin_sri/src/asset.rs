@@ -293,7 +293,11 @@ pub async fn handle_assets(&self, compilation: &mut Compilation) -> Result<()> {
 }
 
 #[plugin_hook(CompilationAfterProcessAssets for SubresourceIntegrityPlugin)]
-pub async fn detect_unresolved_integrity(&self, compilation: &mut Compilation) -> Result<()> {
+pub async fn detect_unresolved_integrity(
+  &self,
+  compilation: &Compilation,
+  diagnostics: &mut Vec<Diagnostic>,
+) -> Result<()> {
   let mut contain_unresolved_files = vec![];
   for chunk in compilation.chunk_by_ukey.values() {
     for file in chunk.files() {
@@ -309,7 +313,7 @@ pub async fn detect_unresolved_integrity(&self, compilation: &mut Compilation) -
   }
 
   for file in contain_unresolved_files {
-    compilation.push_diagnostic(Diagnostic::error(
+    diagnostics.push(Diagnostic::error(
       "SubresourceIntegrity".to_string(),
       format!("Asset {file} contains unresolved integrity placeholders"),
     ));

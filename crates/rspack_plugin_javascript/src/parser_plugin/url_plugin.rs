@@ -14,10 +14,11 @@ use url::Url;
 
 use super::JavascriptParserPlugin;
 use crate::{
+  InnerGraphPlugin,
   dependency::{URLContextDependency, URLDependency},
   magic_comment::try_extract_magic_comment,
-  parser_plugin::inner_graph::plugin::InnerGraphPlugin,
-  visitors::{JavascriptParser, context_reg_exp, create_context_dependency},
+  parser_plugin::inner_graph::state::InnerGraphUsageOperation,
+  visitors::{ExprRef, JavascriptParser, context_reg_exp, create_context_dependency},
 };
 
 #[derive(Default)]
@@ -38,12 +39,13 @@ impl Visit for NestedNewUrlVisitor {
 }
 
 pub fn is_meta_url(parser: &mut JavascriptParser, expr: &MemberExpr) -> bool {
-  let chain = parser.extract_member_expression_chain(Expr::Member(expr.clone()));
-  chain.object.as_meta_prop().is_some_and(|meta| {
-    meta.kind == MetaPropKind::ImportMeta
+  let chain = parser.extract_member_expression_chain(ExprRef::Member(expr));
+  if let ExprRef::MetaProp(meta) = chain.object {
+    return meta.kind == MetaPropKind::ImportMeta
       && chain.members.len() == 1
-      && chain.members.first().is_some_and(|member| member == "url")
-  })
+      && chain.members.first().is_some_and(|member| member == "url");
+  }
+  false
 }
 
 pub fn get_url_request(
@@ -165,16 +167,7 @@ impl JavascriptParserPlugin for URLPlugin {
       );
       let dep_idx = parser.next_dependency_idx();
       parser.add_dependency(Box::new(dep));
-      InnerGraphPlugin::on_usage(
-        parser,
-        Box::new(move |parser, used_by_exports| {
-          if let Some(dep) = parser.get_dependency_mut(dep_idx)
-            && let Some(dep) = dep.downcast_mut::<URLDependency>()
-          {
-            dep.set_used_by_exports(used_by_exports);
-          }
-        }),
-      );
+      InnerGraphPlugin::on_usage(parser, InnerGraphUsageOperation::URLDependency(dep_idx));
       return Some(true);
     }
 

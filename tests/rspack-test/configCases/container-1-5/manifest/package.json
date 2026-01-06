@@ -1,0 +1,9 @@
+{
+  "name": "mf-manifest",
+  "version": "1.0.0",
+  "dependencies": {
+    "xreact": "^1.0.0",
+    "@scope-sc/dep1": "^1.0.0",
+    "@scope-sc2/dep2": "^1.0.0"
+  }
+}

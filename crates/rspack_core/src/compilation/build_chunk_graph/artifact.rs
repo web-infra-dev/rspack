@@ -200,10 +200,7 @@ where
       let module_idx = cache.module_idx.clone();
       let module_graph = compilation.get_module_graph_mut();
       for (m, (pre, post)) in module_idx {
-        let Some(mgm) = module_graph.module_graph_module_by_identifier_mut(&m) else {
-          continue;
-        };
-
+        let mgm = module_graph.module_graph_module_by_identifier_mut(&m);
         mgm.pre_order_index = Some(pre);
         mgm.post_order_index = Some(post);
       }
