@@ -7,7 +7,7 @@ use std::{
 use rspack_error::{Error, Severity, cyan, yellow};
 use rspack_fs::ReadableFileSystem;
 use rspack_loader_runner::DescriptionData;
-use rspack_paths::{AssertUtf8, Utf8PathBuf};
+use rspack_paths::AssertUtf8;
 use rspack_util::location::byte_line_column_to_offset;
 use rustc_hash::FxHashSet as HashSet;
 
