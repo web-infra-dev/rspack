@@ -8,9 +8,9 @@ use rspack_cacheable::{cacheable, cacheable_dyn, with::Skip};
 use rspack_core::{
   AsyncDependenciesBlockIdentifier, BuildMetaExportsType, COLLECTED_TYPESCRIPT_INFO_PARSE_META_KEY,
   ChunkGraph, CollectedTypeScriptInfo, Compilation, DependenciesBlock, DependencyId,
-  GenerateContext, Module, ModuleArgument, ModuleCodeTemplate, ModuleGraph, ModuleType,
-  ParseContext, ParseResult, ParserAndGenerator, RuntimeGlobals, RuntimeVariable,
-  SideEffectsBailoutItem, SourceType, TemplateContext, TemplateReplaceSource,
+  GenerateContext, InnerGraphState, Module, ModuleCodeTemplate, ModuleGraph, ModuleType,
+  ModuleArgument, ParseContext, ParseResult, ParserAndGenerator, RuntimeGlobals,
+  RuntimeVariable, SideEffectsBailoutItem, SourceType, TemplateContext, TemplateReplaceSource,
   diagnostics::map_box_diagnostics_to_module_parse_diagnostics,
   remove_bom, render_init_fragments,
   rspack_sources::{BoxSource, ReplaceSource, Source, SourceExt},
@@ -92,9 +92,10 @@ impl ParserRuntimeRequirementsData {
 #[cacheable]
 #[derive(Default)]
 pub struct JavaScriptParserAndGenerator {
-  // TODO
   #[cacheable(with=Skip)]
   parser_plugins: Vec<BoxJavascriptParserPlugin>,
+  #[cacheable(with=Skip)]
+  pub inner_graph: InnerGraphState,
 }
 
 impl std::fmt::Debug for JavaScriptParserAndGenerator {
@@ -291,6 +292,8 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       presentational_dependencies,
       mut warning_diagnostics,
       mut side_effects_item,
+      inner_graph,
+      ..
     } = match ast.visit(|program, _| {
       scan_dependencies(
         &source_string,
@@ -317,6 +320,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         return default_with_diagnostics(source, diagnostics);
       }
     };
+    self.inner_graph = inner_graph;
     diagnostics.append(&mut warning_diagnostics);
     let mut side_effects_bailout = None;
 

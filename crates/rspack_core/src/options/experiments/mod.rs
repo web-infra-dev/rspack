@@ -5,4 +5,5 @@
 pub struct Experiments {
   pub css: bool,
   pub defer_import: bool,
+  pub advanced_tree_shaking: bool,
 }

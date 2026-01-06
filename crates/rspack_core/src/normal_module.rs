@@ -262,6 +262,10 @@ impl NormalModule {
     &*self.parser_and_generator
   }
 
+  pub fn parser_and_generator_mut(&mut self) -> &mut dyn ParserAndGenerator {
+    &mut *self.parser_and_generator
+  }
+
   pub fn code_generation_dependencies(&self) -> &Option<Vec<BoxModuleDependency>> {
     &self.code_generation_dependencies
   }

@@ -619,6 +619,7 @@ export interface ExperimentsNormalized {
   useInputFileSystem?: false | RegExp[];
   nativeWatcher?: boolean;
   deferImport?: boolean;
+  advancedTreeShaking?: boolean;
 }
 
 export type IgnoreWarningsNormalized = ((

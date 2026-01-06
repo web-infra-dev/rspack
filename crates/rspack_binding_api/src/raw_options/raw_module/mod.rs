@@ -318,6 +318,8 @@ pub struct RawJavascriptParserOptions {
   /// This option is experimental in Rspack only and subject to change or be removed anytime.
   /// @experimental
   pub import_meta_resolve: Option<bool>,
+  pub defer_import: Option<bool>,
+  pub side_effects_free: Option<Vec<String>>,
 }
 
 #[napi(object)]
@@ -401,6 +403,9 @@ impl From<RawJavascriptParserOptions> for JavascriptParserOptions {
       jsx: value.jsx,
       defer_import: value.defer_import,
       import_meta_resolve: value.import_meta_resolve,
+      side_effects_free: value
+        .side_effects_free
+        .map(|functions| functions.into_iter().collect()),
     }
   }
 }

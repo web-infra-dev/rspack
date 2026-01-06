@@ -1,6 +1,6 @@
 use rspack_core::{
-  ConstDependency, DependencyRange, DependencyType, ExportPresenceMode, ImportAttributes,
-  ImportPhase,
+  ConstDependency, Dependency, DependencyRange, DependencyType, ExportPresenceMode,
+  ImportAttributes, ImportPhase, InnerGraphUsageOperation,
 };
 use swc_core::{
   atoms::Atom,
@@ -8,10 +8,9 @@ use swc_core::{
   ecma::ast::{BinExpr, BinaryOp, Callee, Expr, Ident, ImportDecl},
 };
 
-use super::{InnerGraphPlugin, JavascriptParserPlugin};
+use super::{InnerGraphParserPlugin, JavascriptParserPlugin};
 use crate::{
   dependency::{ESMImportSideEffectDependency, ESMImportSpecifierDependency},
-  parser_plugin::inner_graph::state::InnerGraphUsageOperation,
   utils::object_properties::get_attributes,
   visitors::{
     AllowedMemberTypes, AtomMembers, ExportedVariableInfo, JavascriptParser, MemberExpressionInfo,
@@ -160,13 +159,10 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
     );
     dep.evaluated_in_operator = true;
 
-    let dep_idx = parser.next_dependency_idx();
+    let dep_id = *dep.id();
     parser.add_dependency(Box::new(dep));
 
-    InnerGraphPlugin::on_usage(
-      parser,
-      InnerGraphUsageOperation::ESMImportSpecifier(dep_idx),
-    );
+    InnerGraphParserPlugin::on_usage(parser, InnerGraphUsageOperation::ESMImportSpecifier(dep_id));
 
     Some(true)
   }
@@ -225,13 +221,10 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
       settings.attributes,
       loc,
     );
-    let dep_idx = parser.next_dependency_idx();
+    let dep_id = *dep.id();
     parser.add_dependency(Box::new(dep));
 
-    InnerGraphPlugin::on_usage(
-      parser,
-      InnerGraphUsageOperation::ESMImportSpecifier(dep_idx),
-    );
+    InnerGraphParserPlugin::on_usage(parser, InnerGraphUsageOperation::ESMImportSpecifier(dep_id));
 
     Some(true)
   }
@@ -294,13 +287,10 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
       .strict_this_context_on_imports
       .unwrap_or(false)
       && !direct_import;
-    let dep_idx = parser.next_dependency_idx();
+    let dep_id = *dep.id();
     parser.add_dependency(Box::new(dep));
 
-    InnerGraphPlugin::on_usage(
-      parser,
-      InnerGraphUsageOperation::ESMImportSpecifier(dep_idx),
-    );
+    InnerGraphParserPlugin::on_usage(parser, InnerGraphUsageOperation::ESMImportSpecifier(dep_id));
 
     parser.walk_expr_or_spread(&call_expr.args);
     Some(true)
@@ -357,13 +347,10 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
       settings.attributes,
       parser.to_dependency_location(DependencyRange::from(span)),
     );
-    let dep_idx = parser.next_dependency_idx();
+    let dep_id = *dep.id();
     parser.add_dependency(Box::new(dep));
 
-    InnerGraphPlugin::on_usage(
-      parser,
-      InnerGraphUsageOperation::ESMImportSpecifier(dep_idx),
-    );
+    InnerGraphParserPlugin::on_usage(parser, InnerGraphUsageOperation::ESMImportSpecifier(dep_id));
 
     Some(true)
   }

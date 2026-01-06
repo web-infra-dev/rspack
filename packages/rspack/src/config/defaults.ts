@@ -219,6 +219,9 @@ const applyExperimentsDefaults = (experiments: ExperimentsNormalized) => {
 
   // Enable `useInputFileSystem` will introduce much more fs overheads,  So disable by default.
   D(experiments, 'useInputFileSystem', false);
+
+  // IGNORE(experiments.advancedTreeShaking): Rspack specific configuration for no side effects notation
+  D(experiments, 'advancedTreeShaking', false);
 };
 
 const applyIncrementalDefaults = (options: RspackOptionsNormalized) => {

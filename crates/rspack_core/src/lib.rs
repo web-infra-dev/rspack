@@ -98,8 +98,9 @@ pub use rspack_location::{
   DependencyLocation, RealDependencyLocation, SourcePosition, SyntheticDependencyLocation,
 };
 pub mod concatenated_module;
+mod inner_graph;
 pub mod reserved_names;
-
+pub use inner_graph::*;
 use rspack_cacheable::{cacheable, with::AsPreset};
 pub use rspack_loader_runner::{
   AdditionalData, BUILTIN_LOADER_PREFIX, ParseMeta, ResourceData, ResourceParsedData, Scheme,
