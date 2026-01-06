@@ -20,6 +20,7 @@ module.exports = {
 			    },
 			  },
 			  experiments: Object {
+			    advancedTreeShaking: false,
 			    asyncWebAssembly: false,
 			    buildHttp: undefined,
 			    cache: false,

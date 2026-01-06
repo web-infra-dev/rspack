@@ -4,7 +4,6 @@ use rspack_core::{
 };
 
 pub mod plugin;
-pub mod state;
 
 pub fn connection_active_used_by_exports(
   connection: &ModuleGraphConnection,

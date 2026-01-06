@@ -172,7 +172,9 @@ pub struct DefaultExportInfo<'a> {
 #[derive(Debug, Default)]
 pub struct FlagDependencyExportsPlugin;
 
-#[plugin_hook(CompilationFinishModules for FlagDependencyExportsPlugin)]
+pub static FLAG_DEPENDENCY_EXPORTS_STAGE: i32 = 0;
+
+#[plugin_hook(CompilationFinishModules for FlagDependencyExportsPlugin, stage = FLAG_DEPENDENCY_EXPORTS_STAGE)]
 async fn finish_modules(
   &self,
   compilation: &mut Compilation,

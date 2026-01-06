@@ -4,8 +4,8 @@ mod util;
 
 use rspack_core::{
   AsyncDependenciesBlock, BoxDependency, BoxDependencyTemplate, BuildInfo, BuildMeta,
-  CompilerOptions, FactoryMeta, ModuleIdentifier, ModuleLayer, ModuleType, ParseMeta,
-  ParserOptions, ResourceData, RuntimeTemplate, SideEffectsBailoutItemWithSpan,
+  CompilerOptions, FactoryMeta, InnerGraphState, ModuleIdentifier, ModuleLayer, ModuleType,
+  ParseMeta, ParserOptions, ResourceData, RuntimeTemplate, SideEffectsBailoutItemWithSpan,
 };
 use rspack_error::Diagnostic;
 use rspack_javascript_compiler::ast::Program;
@@ -29,6 +29,7 @@ pub struct ScanDependenciesResult {
   pub presentational_dependencies: Vec<BoxDependencyTemplate>,
   pub warning_diagnostics: Vec<Diagnostic>,
   pub side_effects_item: Option<SideEffectsBailoutItemWithSpan>,
+  pub inner_graph: InnerGraphState,
 }
 
 #[allow(clippy::too_many_arguments)]

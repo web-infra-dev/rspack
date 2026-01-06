@@ -1,5 +1,7 @@
 use itertools::Itertools;
-use rspack_core::{BoxDependency, ConstDependency, DependencyRange, DependencyType, ImportPhase};
+use rspack_core::{
+  BoxDependency, ConstDependency, DependencyRange, DependencyType, ImportPhase, InnerGraphMapUsage,
+};
 use rspack_util::SpanExt;
 use swc_core::{
   atoms::Atom,
@@ -7,12 +9,12 @@ use swc_core::{
 };
 
 use super::{
-  DEFAULT_STAR_JS_WORD, InnerGraphMapUsage, InnerGraphPlugin, JS_DEFAULT_KEYWORD,
-  JavascriptParserPlugin,
+  DEFAULT_STAR_JS_WORD, JS_DEFAULT_KEYWORD, JavascriptParserPlugin,
   esm_import_dependency_parser_plugin::{ESM_SPECIFIER_TAG, ESMSpecifierData},
   inline_const::{INLINABLE_CONST_TAG, InlinableConstData},
 };
 use crate::{
+  InnerGraphParserPlugin,
   dependency::{
     DeclarationId, DeclarationInfo, ESMExportExpressionDependency, ESMExportHeaderDependency,
     ESMExportImportedSpecifierDependency, ESMExportSpecifierDependency,
@@ -78,7 +80,7 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
     export_name: &Atom,
     export_name_span: Span,
   ) -> Option<bool> {
-    InnerGraphPlugin::add_variable_usage(
+    InnerGraphParserPlugin::add_variable_usage(
       parser,
       local_id,
       InnerGraphMapUsage::Value(export_name.clone()),
@@ -277,7 +279,7 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
       Some(parser.source_rope().clone()),
     );
     parser.add_dependency(Box::new(dep));
-    InnerGraphPlugin::add_variable_usage(
+    InnerGraphParserPlugin::add_variable_usage(
       parser,
       expr.ident().unwrap_or_else(|| &DEFAULT_STAR_JS_WORD),
       InnerGraphMapUsage::Value(JS_DEFAULT_KEYWORD.clone()),

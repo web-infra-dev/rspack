@@ -43,6 +43,7 @@ import {
   HttpUriPlugin,
   InferAsyncModulesPlugin,
   InlineExportsPlugin,
+  InnerGraphPlugin,
   JavascriptModulesPlugin,
   JsonModulesPlugin,
   MangleExportsPlugin,
@@ -275,6 +276,9 @@ export class RspackOptionsApply {
       new FlagDependencyUsagePlugin(
         options.optimization.usedExports === 'global',
       ).apply(compiler);
+    }
+    if (options.optimization.innerGraph) {
+      new InnerGraphPlugin().apply(compiler);
     }
     if (options.optimization.concatenateModules) {
       new ModuleConcatenationPlugin().apply(compiler);
