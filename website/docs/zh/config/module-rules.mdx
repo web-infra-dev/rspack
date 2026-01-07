@@ -764,9 +764,6 @@ export default {
       },
     ],
   },
-  experiments: {
-    parallelLoader: true,
-  },
 };
 ```
 
@@ -774,7 +771,6 @@ export default {
 
 :::tip
 
-- 由于当前功能是实验性特性，只有开启 [experiments.parallelLoader](/config/experiments#experimentsparallelloader) 时该配置才会生效。
 - loader 的选项需要满足 [HTML structured clone algorithm](https://nodejs.org/api/worker_threads.html#portpostmessagevalue-transferlist)，否则会发送失败。
 - 目前 loader 在 worker 中不支持 `LoaderContext._compilation`, `LoaderContext._compiler`, `LoaderContext._module` 上的大多数方法。
 

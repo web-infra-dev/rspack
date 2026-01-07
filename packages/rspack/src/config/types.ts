@@ -2827,11 +2827,6 @@ export type Experiments = {
    */
   buildHttp?: HttpUriOptions;
   /**
-   * Enable parallel loader
-   * @default false
-   */
-  parallelLoader?: boolean;
-  /**
    * Enable Node.js input file system
    * @default false
    */

@@ -149,39 +149,6 @@ export default {
 
 Rspack 在 v1.4.0 后默认使用 `'advance-silent'` 开启所有阶段的增量构建；之前的版本默认使用 `'safe'` 仅开启 `make` 和 `emitAssets` 阶段的增量。
 
-## experiments.parallelLoader
-
-<ApiMeta addedVersion="1.3.1" />
-
-- **类型**: `boolean`
-- **默认值:** `false`
-
-开启并行 loader，你需要使用 [`rules[].use.parallel`](/config/module-rules#rulesuseparallel) 手动为各个 loader 分别开启并行模式。开启后，对应的 loader 会被发送到 worker threads 执行。
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    rules: [
-      {
-        test: /\.less$/,
-        use: [
-          {
-            loader: 'less-loader',
-            parallel: true,
-            options: {
-              // loader options
-            },
-          },
-        ],
-      },
-    ],
-  },
-  experiments: {
-    parallelLoader: true,
-  },
-};
-```
-
 ## experiments.cache
 
 <ApiMeta addedVersion="1.2.0-alpha.0" />

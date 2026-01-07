@@ -48,7 +48,6 @@ module.exports = {
 			    inlineEnum: false,
 			    lazyBarrel: true,
 			    lazyCompilation: false,
-			    parallelLoader: false,
 			    topLevelAwait: true,
 			    typeReexportsPresence: false,
 			    useInputFileSystem: false,

@@ -764,9 +764,6 @@ export default {
       },
     ],
   },
-  experiments: {
-    parallelLoader: true,
-  },
 };
 ```
 
@@ -774,7 +771,6 @@ When multiple loaders within the same rule have `parallel` enabled, Rspack execu
 
 :::tip
 
-- This feature is experimental. It only takes effect when [experiments.parallelLoader](/config/experiments#experimentsparallelloader) is enabled.
 - The loader options must comply with the [HTML structured clone algorithm](https://nodejs.org/api/worker_threads.html#portpostmessagevalue-transferlist), otherwise transmission will fail.
 - In worker mode, most methods on `LoaderContext._compilation`, `LoaderContext._compiler`, `LoaderContext._module` are not supported.
 

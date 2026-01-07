@@ -964,10 +964,7 @@ export async function runLoaders(
   };
 
   const enableParallelism = (currentLoaderObject: any) => {
-    return (
-      compiler.options.experiments.parallelLoader &&
-      currentLoaderObject?.parallel
-    );
+    return currentLoaderObject?.parallel;
   };
 
   const isomorphoicRun = async (fn: Function, args: any[]) => {

@@ -422,7 +422,6 @@ export const getNormalizedRspackOptions = (
           getNormalizedIncrementalOptions(options),
         ),
         buildHttp: experiments.buildHttp,
-        parallelLoader: experiments.parallelLoader,
         useInputFileSystem: experiments.useInputFileSystem,
       };
     }),
@@ -704,7 +703,6 @@ export interface ExperimentsNormalized {
   incremental?: false | Incremental;
   futureDefaults?: boolean;
   buildHttp?: HttpUriPluginOptions;
-  parallelLoader?: boolean;
   useInputFileSystem?: false | RegExp[];
   /**
    * @deprecated This option is deprecated, it's already stable and enabled by default, Rspack will remove this option in future version
