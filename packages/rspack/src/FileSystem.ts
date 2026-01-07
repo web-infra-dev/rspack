@@ -255,8 +255,8 @@ class ThreadsafeIntermediateNodeFS extends ThreadsafeOutputNodeFS {
     });
     this.read = memoizeFn(() => {
       const readFn = fs.read.bind(fs);
-      return async (fd: number, length: number, position: number) => {
-        new Promise((resolve) => {
+      return (fd: number, length: number, position: number) => {
+        return new Promise((resolve, reject) => {
           readFn(
             fd,
             {
@@ -265,7 +265,7 @@ class ThreadsafeIntermediateNodeFS extends ThreadsafeOutputNodeFS {
             },
             (err, _bytesRead, buffer) => {
               if (err) {
-                resolve(err);
+                reject(err);
               } else {
                 resolve(buffer);
               }
