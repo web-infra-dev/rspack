@@ -262,13 +262,11 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
 
     if !matches!(has_js_matcher, BooleanMatcher::Condition(false)) {
       let js_matcher = has_js_matcher.render("chunkId");
-      let charset = compilation.options.output.charset;
       let cross_origin_loading = &compilation.options.output.cross_origin_loading;
       if with_prefetch {
         let link_prefetch_code = compilation.runtime_template.render(
           &self.template(TemplateId::WithPrefetchLink),
           Some(serde_json::json!({
-            "_charset": charset,
             "_cross_origin": cross_origin_loading.to_string(),
           })),
         )?;
@@ -302,7 +300,6 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
         let link_preload_code = compilation.runtime_template.render(
           &self.template(TemplateId::WithPreloadLink),
           Some(serde_json::json!({
-            "_charset": charset,
             "_cross_origin": cross_origin_loading.to_string(),
           })),
         )?;

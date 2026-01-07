@@ -699,12 +699,6 @@ export type Output = {
    * */
   chunkLoadTimeout?: number;
 
-  /**
-   * Add charset="utf-8" to the HTML <script> tag.
-   * @default true
-   * */
-  charset?: boolean;
-
   /** Tell Rspack what kind of ES-features may be used in the generated runtime-code. */
   environment?: Environment;
 

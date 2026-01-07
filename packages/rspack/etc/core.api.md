@@ -5616,7 +5616,6 @@ export type Output = {
     devtoolModuleFilenameTemplate?: DevtoolModuleFilenameTemplate;
     devtoolFallbackModuleFilenameTemplate?: DevtoolFallbackModuleFilenameTemplate;
     chunkLoadTimeout?: number;
-    charset?: boolean;
     environment?: Environment;
     compareBeforeEmit?: boolean;
     bundlerInfo?: BundlerInfoOptions;
@@ -5669,8 +5668,6 @@ export interface OutputNormalized {
     asyncChunks?: boolean;
     // (undocumented)
     bundlerInfo?: BundlerInfoOptions;
-    // (undocumented)
-    charset?: boolean;
     // (undocumented)
     chunkFilename?: ChunkFilename;
     // (undocumented)

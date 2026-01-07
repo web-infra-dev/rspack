@@ -2161,8 +2161,6 @@ pub struct OutputOptionsBuilder {
   chunk_load_timeout: Option<u32>,
   /// Set the chunk format.
   chunk_format: Option<String>,
-  /// Set the charset.
-  charset: Option<bool>,
   /// Set the filename.
   filename: Option<Filename>,
   /// Set the chunk filename.
@@ -2248,7 +2246,6 @@ impl From<OutputOptions> for OutputOptionsBuilder {
       chunk_loading_global: Some(value.chunk_loading_global),
       chunk_load_timeout: Some(value.chunk_load_timeout),
       chunk_format: None,
-      charset: Some(value.charset),
       filename: Some(value.filename),
       chunk_filename: Some(value.chunk_filename),
       cross_origin_loading: Some(value.cross_origin_loading),
@@ -2302,7 +2299,6 @@ impl From<&mut OutputOptionsBuilder> for OutputOptionsBuilder {
       chunk_loading_global: value.chunk_loading_global.take(),
       chunk_load_timeout: value.chunk_load_timeout.take(),
       chunk_format: value.chunk_format.take(),
-      charset: value.charset.take(),
       filename: value.filename.take(),
       chunk_filename: value.chunk_filename.take(),
       cross_origin_loading: value.cross_origin_loading.take(),
@@ -2434,14 +2430,6 @@ impl OutputOptionsBuilder {
   /// The format of chunks (formats included by default are 'array-push' (web/webworker), 'commonjs' (node.js), 'module' (ESM).
   pub fn chunk_format(&mut self, chunk_format: String) -> &mut Self {
     self.chunk_format = Some(chunk_format);
-    self
-  }
-
-  /// Add charset="utf-8" to the HTML <script> tag.
-  ///
-  /// Default set to `true`.
-  pub fn charset(&mut self, charset: bool) -> &mut Self {
-    self.charset = Some(charset);
     self
   }
 
@@ -2828,8 +2816,6 @@ impl OutputOptionsBuilder {
 
     let chunk_load_timeout = d!(self.chunk_load_timeout.take(), 120_000);
 
-    let charset = d!(self.charset.take(), true);
-
     let hot_update_global = f!(self.hot_update_global.take(), || {
       format!(
         "webpackHotUpdate{}",
@@ -3146,7 +3132,6 @@ impl OutputOptionsBuilder {
       chunk_loading,
       chunk_loading_global,
       chunk_load_timeout,
-      charset,
       filename,
       chunk_filename,
       cross_origin_loading,
@@ -3863,7 +3848,7 @@ mod test {
   fn mutable_builder_into_owned_builder() {
     let _ = CompilerOptions::builder()
       .optimization(OptimizationOptionsBuilder::default().node_env("development".to_string()))
-      .output(OutputOptionsBuilder::default().charset(true))
+      .output(OutputOptionsBuilder::default())
       .experiments(ExperimentsBuilder::default().future_defaults(true))
       .module(ModuleOptionsBuilder::default().no_parse(ModuleNoParseRules::Rules(vec![])))
       .node(NodeOptionBuilder::default().dirname(NodeDirnameOption::EvalOnly))
