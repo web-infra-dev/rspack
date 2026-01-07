@@ -292,9 +292,21 @@ function getPaths(options: ModuleFederationPluginOptions): RuntimePaths {
     };
   }
 
-  const runtimeToolsPath =
-    options.implementation ??
-    require.resolve('@module-federation/runtime-tools');
+  let runtimeToolsPath: string;
+  if (options.implementation) {
+    runtimeToolsPath = options.implementation;
+  } else {
+    try {
+      runtimeToolsPath = require.resolve('@module-federation/runtime-tools');
+    } catch (e) {
+      if ((e as NodeJS.ErrnoException).code === 'MODULE_NOT_FOUND') {
+        throw new Error(
+          'Module Federation runtime is not installed. Please install it by running:\n\n  npm install @module-federation/runtime-tools\n',
+        );
+      }
+      throw e;
+    }
+  }
   const bundlerRuntimePath = require.resolve(
     '@module-federation/webpack-bundler-runtime',
     { paths: [runtimeToolsPath] },
