@@ -270,6 +270,16 @@ impl<'a> JavaScriptTransformer<'a> {
       options.unresolved_mark = Some(unresolved_mark);
     });
 
+    let config = {
+      let filename_path = match fm.name.as_ref() {
+        FileName::Real(p) => Some(p.as_path()),
+        _ => None,
+      };
+      Rc::default().into_config(filename_path)?.ok_or_else(|| {
+        rspack_error::error!("Failed to create default swc config for {}", &fm.name)
+      })?
+    };
+
     let comments = SingleThreadedComments::default();
     let config = read_config(&options, &fm.name)?
       .ok_or_else(|| rspack_error::error!("cannot process file because it's ignored by .swcrc"))?;
