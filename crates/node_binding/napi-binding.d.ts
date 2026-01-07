@@ -1397,7 +1397,6 @@ export interface JsStatsModuleCommonAttributes {
   failed?: boolean
   errors?: number
   warnings?: number
-  profile?: JsStatsModuleProfile
   chunks?: Array<string>
   assets?: Array<string>
   reasons?: Array<JsStatsModuleReason>
@@ -2598,7 +2597,6 @@ export interface RawOptions {
   cache: RawCacheOptions
   experiments: RawExperiments
   node?: RawNodeOption
-  profile: boolean
   amd?: string
   bail: boolean
   __references: Record<string, any>

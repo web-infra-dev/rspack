@@ -4201,7 +4201,6 @@ type KnownStatsModule = {
     failed?: boolean;
     errors?: number;
     warnings?: number;
-    profile?: StatsProfile;
     reasons?: StatsModuleReason[];
     usedExports?: boolean | string[] | null;
     providedExports?: string[] | null;
@@ -4263,13 +4262,6 @@ type KnownStatsPrinterContext = {
     formatFlag?: (flag: string) => string;
     formatTime?: (time: number, boldQuantity?: boolean) => string;
     chunkGroupKind?: string;
-};
-
-// @public (undocumented)
-type KnownStatsProfile = {
-    total: number;
-    resolving: number;
-    building: number;
 };
 
 // @public (undocumented)
@@ -5919,9 +5911,6 @@ interface PrivateProperty extends ClassPropertyBase {
     type: "PrivateProperty";
 }
 
-// @public
-export type Profile = boolean;
-
 // @public (undocumented)
 type Program = Module_2 | Script;
 
@@ -6914,7 +6903,6 @@ declare namespace rspackExports {
         DevServer,
         DevServerMiddleware,
         IgnoreWarnings,
-        Profile,
         Amd,
         Bail,
         Performance_2 as Performance,
@@ -6953,7 +6941,6 @@ export type RspackOptions = {
     plugins?: Plugins;
     devServer?: DevServer;
     module?: ModuleOptions;
-    profile?: Profile;
     amd?: Amd;
     bail?: Bail;
     performance?: Performance_2;
@@ -7018,8 +7005,6 @@ export interface RspackOptionsNormalized {
     performance?: Performance_2;
     // (undocumented)
     plugins: Plugins;
-    // (undocumented)
-    profile?: Profile;
     // (undocumented)
     resolve: Resolve;
     // (undocumented)
@@ -7738,9 +7723,6 @@ class StatsPrinter {
 
 // @public (undocumented)
 type StatsPrinterContext = KnownStatsPrinterContext & Record<string, any>;
-
-// @public (undocumented)
-type StatsProfile = KnownStatsProfile & Record<string, any>;
 
 // @public
 export type StatsValue = boolean | StatsOptions | StatsPresets;

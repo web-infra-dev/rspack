@@ -5,14 +5,11 @@ chunk (runtime: main) bundle.js (main) xx bytes (javascript) xx bytes (runtime) 
   ./.|sync xx bytes [dependent] [built] [code generated]
     commonjs require context . ./index.js 2:1-16
     commonjs require context . ./index.js 3:1-16
-    xx ms (resolving: xx ms, building: xx ms)
   ./a.js xx bytes [dependent] [built] [code generated]
     cjs self exports reference self ./a.js
     cjs require ./a ./index.js 1:9-13
-    xx ms (resolving: xx ms, building: xx ms)
   ./index.js xx bytes [built] [code generated] [2 warnings]
     entry ./index
-    xx ms (resolving: xx ms, building: xx ms)
 
 WARNING in ./index.js 2:1-16
   ⚠ Critical dependency: the request of a dependency is an expression

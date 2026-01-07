@@ -811,7 +811,6 @@ impl Stats<'_> {
       assets: None,
       modules: None,
       source: None,
-      profile: None,
       orphan: None,
       provided_exports: None,
       used_exports: None,
@@ -878,15 +877,6 @@ impl Stats<'_> {
         .filter(|d| d.module_identifier.is_some_and(|id| id == identifier))
         .count() as u32;
 
-      let profile = if let Some(p) = mgm.profile()
-        && let Some(factory) = p.factory_duration()
-        && let Some(building) = p.building_duration()
-      {
-        Some(StatsModuleProfile { factory, building })
-      } else {
-        None
-      };
-
       stats.identifier = Some(identifier);
       stats.name = Some(module.readable_identifier(&self.compilation.options.context));
       stats.name_for_condition = module.name_for_condition().map(|n| n.to_string());
@@ -902,8 +892,6 @@ impl Stats<'_> {
       stats.failed = Some(errors > 0);
       stats.errors = Some(errors);
       stats.warnings = Some(warnings);
-
-      stats.profile = profile;
     }
 
     if options.ids {
@@ -1149,7 +1137,6 @@ impl Stats<'_> {
       assets: None,
       modules: None,
       source: None,
-      profile: None,
       orphan: None,
       provided_exports: None,
       used_exports: None,
@@ -1265,7 +1252,6 @@ impl Stats<'_> {
       assets: None,
       modules: None,
       source: None,
-      profile: None,
       orphan: None,
       provided_exports: None,
       used_exports: None,
