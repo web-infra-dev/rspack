@@ -365,10 +365,9 @@ function overrideOptions(
     (options as RspackOptions).experiments!.nativeWatcher ??= true;
   }
 
-  (options as RspackOptions).experiments!.rspackFuture ??= {};
-  (options as RspackOptions).experiments!.rspackFuture!.bundlerInfo ??= {};
-  (options as RspackOptions).experiments!.rspackFuture!.bundlerInfo!.force ??=
-    false;
+  (options as RspackOptions).output ??= {};
+  (options as RspackOptions).output!.bundlerInfo ??= {};
+  (options as RspackOptions).output!.bundlerInfo!.force ??= false;
   // test incremental: "safe" here, we test default incremental in Incremental-*.test.js
   (options as RspackOptions).experiments!.incremental ??= 'safe';
 

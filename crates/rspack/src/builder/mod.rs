@@ -49,8 +49,8 @@ use rspack_core::{
   MangleExportsOption, Mode, ModuleNoParseRules, ModuleOptions, ModuleRule, ModuleRuleEffect,
   ModuleType, NodeDirnameOption, NodeFilenameOption, NodeGlobalOption, NodeOption, Optimization,
   OutputOptions, ParseOption, ParserOptions, ParserOptionsMap, PathInfo, PublicPath, Resolve,
-  RspackFuture, RuleSetCondition, RuleSetLogicalConditions, SideEffectOption, StatsOptions,
-  TrustedTypes, UnsafeCachePredicate, UsedExportsOption, WasmLoading, WasmLoadingType,
+  RuleSetCondition, RuleSetLogicalConditions, SideEffectOption, StatsOptions, TrustedTypes,
+  UnsafeCachePredicate, UsedExportsOption, WasmLoading, WasmLoadingType,
   incremental::{IncrementalOptions, IncrementalPasses},
 };
 use rspack_error::{Error, Result};
@@ -3686,8 +3686,6 @@ pub struct ExperimentsBuilder {
   incremental: Option<IncrementalOptions>,
   /// Whether to enable top level await.
   top_level_await: Option<bool>,
-  /// Rspack future.
-  rspack_future: Option<RspackFuture>,
   /// Cache options.
   cache: Option<ExperimentCacheOptions>,
   /// Whether to enable output module.
@@ -3706,7 +3704,6 @@ impl From<Experiments> for ExperimentsBuilder {
     ExperimentsBuilder {
       incremental: Some(value.incremental),
       top_level_await: Some(value.top_level_await),
-      rspack_future: Some(value.rspack_future),
       cache: Some(value.cache),
       output_module: None,
       future_defaults: None,
@@ -3721,7 +3718,6 @@ impl From<&mut ExperimentsBuilder> for ExperimentsBuilder {
     ExperimentsBuilder {
       incremental: value.incremental.take(),
       top_level_await: value.top_level_await.take(),
-      rspack_future: value.rspack_future.take(),
       cache: value.cache.take(),
       output_module: value.output_module.take(),
       future_defaults: value.future_defaults.take(),
@@ -3796,7 +3792,6 @@ impl ExperimentsBuilder {
         ExperimentCacheOptions::Disabled
       }
     });
-    let rspack_future = d!(self.rspack_future.take(), RspackFuture {});
 
     // Builder specific
     let future_defaults = w!(self.future_defaults, false);
@@ -3807,7 +3802,6 @@ impl ExperimentsBuilder {
     Ok(Experiments {
       incremental,
       top_level_await,
-      rspack_future,
       cache,
       css: d!(self.css, false),
       lazy_barrel: true,

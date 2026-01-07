@@ -122,6 +122,9 @@ async function generateOptions(
       chunkFilename: '[name].chunk.[fullhash].js',
       publicPath: 'https://test.cases/path/',
       library: { type: 'commonjs2' },
+      bundlerInfo: {
+        force: false,
+      },
     },
     optimization: {
       moduleIds: 'named',
@@ -130,11 +133,6 @@ async function generateOptions(
     target,
     experiments: {
       css: true,
-      rspackFuture: {
-        bundlerInfo: {
-          force: false,
-        },
-      },
     },
   } as RspackOptions;
 

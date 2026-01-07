@@ -521,6 +521,13 @@ type BufferEncodingOption = 'buffer' | {
     encoding: 'buffer';
 };
 
+// @public
+export type BundlerInfoOptions = {
+    version?: string;
+    bundler?: string;
+    force?: boolean | ('version' | 'uniqueId')[];
+};
+
 // @public (undocumented)
 type ByPass = (req: Request_2, res: Response_2, proxyConfig: ProxyConfigArrayItem) => any;
 
@@ -2443,7 +2450,6 @@ export type Experiments = {
     layers?: boolean;
     incremental?: IncrementalPresets | Incremental;
     futureDefaults?: boolean;
-    rspackFuture?: RspackFutureOptions;
     buildHttp?: HttpUriOptions;
     parallelLoader?: boolean;
     useInputFileSystem?: UseInputFileSystem;
@@ -2531,8 +2537,6 @@ export interface ExperimentsNormalized {
     outputModule?: boolean;
     // (undocumented)
     parallelLoader?: boolean;
-    // (undocumented)
-    rspackFuture?: RspackFutureOptions;
     // (undocumented)
     topLevelAwait?: boolean;
     // (undocumented)
@@ -5618,6 +5622,7 @@ export type Output = {
     charset?: boolean;
     environment?: Environment;
     compareBeforeEmit?: boolean;
+    bundlerInfo?: BundlerInfoOptions;
 };
 
 // @public (undocumented)
@@ -5665,6 +5670,8 @@ export interface OutputNormalized {
     assetModuleFilename?: AssetModuleFilename;
     // (undocumented)
     asyncChunks?: boolean;
+    // (undocumented)
+    bundlerInfo?: BundlerInfoOptions;
     // (undocumented)
     charset?: boolean;
     // (undocumented)
@@ -6901,7 +6908,7 @@ declare namespace rspackExports {
         OptimizationSplitChunksOptions,
         Optimization,
         ExperimentCacheOptions,
-        RspackFutureOptions,
+        BundlerInfoOptions,
         LazyCompilationOptions,
         Incremental,
         IncrementalPresets,
@@ -6921,15 +6928,6 @@ declare namespace rspackExports {
         Configuration
     }
 }
-
-// @public
-export type RspackFutureOptions = {
-    bundlerInfo?: {
-        version?: string;
-        bundler?: string;
-        force?: boolean | ('version' | 'uniqueId')[];
-    };
-};
 
 // @public (undocumented)
 export type RspackOptions = {

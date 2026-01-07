@@ -113,6 +113,9 @@ const defaultOptions = (
     filename: '[name].mjs',
     pathinfo: true,
     module: true,
+    bundlerInfo: {
+      force: false,
+    },
   },
   bail: true,
   optimization: {
@@ -128,11 +131,6 @@ const defaultOptions = (
   plugins: [new rspack.experiments.EsmLibraryPlugin()],
   experiments: {
     css: true,
-    rspackFuture: {
-      bundlerInfo: {
-        force: false,
-      },
-    },
     outputModule: true,
   },
 });

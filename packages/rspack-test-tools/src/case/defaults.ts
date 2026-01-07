@@ -42,8 +42,7 @@ export function getRspackDefaultConfig(
   const normalizedConfig = getNormalizedWebpackOptions(config);
   applyWebpackOptionsDefaults(normalizedConfig);
   // make snapshot stable
-  (normalizedConfig as any).experiments.rspackFuture.bundlerInfo.version =
-    '$version$';
+  (normalizedConfig as any).output.bundlerInfo.version = '$version$';
   process.chdir(CURRENT_CWD);
   return normalizedConfig;
 }

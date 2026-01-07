@@ -230,7 +230,6 @@ function checkConfigsDocumentationCoverage() {
   // 		"resolveLoader",
   // 		"module.parser",
   // 		"module.generator",
-  // 		"experiments.rspackFuture",
   // 		"experiments.incremental",
   // 		"output.library.amd",
   // 		"output.library.commonjs",

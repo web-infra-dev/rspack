@@ -712,6 +712,11 @@ export type Output = {
    * Check if to be emitted file already exists and have the same content before writing to output filesystem.
    */
   compareBeforeEmit?: boolean;
+
+  /**
+   * Information about the bundler.
+   */
+  bundlerInfo?: BundlerInfoOptions;
 };
 
 //#endregion
@@ -2598,26 +2603,21 @@ export type ExperimentCacheOptions =
     };
 
 /**
- * Options for future Rspack features.
+ * Information about the bundler.
  */
-export type RspackFutureOptions = {
+export type BundlerInfoOptions = {
   /**
-   * Information about the bundler.
+   * Version of the bundler.
    */
-  bundlerInfo?: {
-    /**
-     * Version of the bundler.
-     */
-    version?: string;
-    /**
-     * Name of the bundler.
-     */
-    bundler?: string;
-    /**
-     * Force specific features.
-     */
-    force?: boolean | ('version' | 'uniqueId')[];
-  };
+  version?: string;
+  /**
+   * Name of the bundler.
+   */
+  bundler?: string;
+  /**
+   * Force specific features.
+   */
+  force?: boolean | ('version' | 'uniqueId')[];
 };
 
 /**
@@ -2821,10 +2821,6 @@ export type Experiments = {
    * @default false
    */
   futureDefaults?: boolean;
-  /**
-   * Enable future Rspack features default options.
-   */
-  rspackFuture?: RspackFutureOptions;
   /**
    * Enable loading of modules via HTTP/HTTPS requests.
    * @default false

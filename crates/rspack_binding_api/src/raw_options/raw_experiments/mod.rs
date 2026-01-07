@@ -1,11 +1,9 @@
 mod raw_cache;
 mod raw_incremental;
-mod raw_rspack_future;
 
 use napi_derive::napi;
 use raw_cache::{RawExperimentCacheOptions, normalize_raw_experiment_cache_options};
 use raw_incremental::RawIncremental;
-use raw_rspack_future::RawRspackFuture;
 use rspack_core::{Experiments, incremental::IncrementalOptions};
 use rspack_regex::RspackRegex;
 
@@ -17,7 +15,6 @@ pub struct RawExperiments {
   pub top_level_await: bool,
   #[napi(ts_type = "false | { [key: string]: boolean }")]
   pub incremental: Option<WithFalse<RawIncremental>>,
-  pub rspack_future: Option<RawRspackFuture>,
   #[napi(
     ts_type = r#"boolean | { type: "persistent" } & RawExperimentCacheOptionsPersistent | { type: "memory" }"#
   )]
@@ -40,7 +37,6 @@ impl From<RawExperiments> for Experiments {
         None => IncrementalOptions::empty_passes(),
       },
       top_level_await: value.top_level_await,
-      rspack_future: value.rspack_future.unwrap_or_default().into(),
       cache: normalize_raw_experiment_cache_options(value.cache),
       css: value.css.unwrap_or(false),
       lazy_barrel: value.lazy_barrel,

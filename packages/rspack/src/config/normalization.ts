@@ -17,6 +17,7 @@ import type {
   Amd,
   AssetModuleFilename,
   Bail,
+  BundlerInfoOptions,
   CacheOptions,
   ChunkFilename,
   ChunkLoading,
@@ -74,7 +75,6 @@ import type {
   Profile,
   PublicPath,
   Resolve,
-  RspackFutureOptions,
   RspackOptions,
   RuleSetRules,
   ScriptType,
@@ -255,6 +255,7 @@ export const getNormalizedRspackOptions = (
         charset: output.charset,
         environment: cloneObject(output.environment),
         compareBeforeEmit: output.compareBeforeEmit,
+        bundlerInfo: output.bundlerInfo,
       };
     }),
     resolve: nestedConfig(config.resolve, (resolve) => ({
@@ -652,6 +653,7 @@ export interface OutputNormalized {
   charset?: boolean;
   chunkLoadTimeout?: number;
   compareBeforeEmit?: boolean;
+  bundlerInfo?: BundlerInfoOptions;
 }
 
 export interface ModuleOptionsNormalized {
@@ -701,7 +703,6 @@ export interface ExperimentsNormalized {
   layers?: boolean;
   incremental?: false | Incremental;
   futureDefaults?: boolean;
-  rspackFuture?: RspackFutureOptions;
   buildHttp?: HttpUriPluginOptions;
   parallelLoader?: boolean;
   useInputFileSystem?: false | RegExp[];

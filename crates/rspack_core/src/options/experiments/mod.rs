@@ -11,13 +11,8 @@ use crate::incremental::IncrementalOptions;
 pub struct Experiments {
   pub incremental: IncrementalOptions,
   pub top_level_await: bool,
-  pub rspack_future: RspackFuture,
   pub cache: ExperimentCacheOptions,
   pub css: bool,
   pub lazy_barrel: bool,
   pub defer_import: bool,
 }
-
-#[allow(clippy::empty_structs_with_brackets)]
-#[derive(Debug)]
-pub struct RspackFuture {}
