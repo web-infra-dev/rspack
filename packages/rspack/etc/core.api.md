@@ -2451,7 +2451,6 @@ export type Experiments = {
     incremental?: IncrementalPresets | Incremental;
     futureDefaults?: boolean;
     buildHttp?: HttpUriOptions;
-    parallelLoader?: boolean;
     useInputFileSystem?: UseInputFileSystem;
     nativeWatcher?: boolean;
     inlineConst?: boolean;
@@ -2535,8 +2534,6 @@ export interface ExperimentsNormalized {
     nativeWatcher?: boolean;
     // (undocumented)
     outputModule?: boolean;
-    // (undocumented)
-    parallelLoader?: boolean;
     // (undocumented)
     topLevelAwait?: boolean;
     // (undocumented)
