@@ -94,7 +94,7 @@ define_hook!(CompilationRuntimeRequirementInChunk: SeriesBail(compilation: &mut 
 define_hook!(CompilationAdditionalTreeRuntimeRequirements: Series(compilation: &mut Compilation, chunk_ukey: &ChunkUkey, runtime_requirements: &mut RuntimeGlobals));
 define_hook!(CompilationRuntimeRequirementInTree: SeriesBail(compilation: &mut Compilation, chunk_ukey: &ChunkUkey, all_runtime_requirements: &RuntimeGlobals, runtime_requirements: &RuntimeGlobals, runtime_requirements_mut: &mut RuntimeGlobals));
 define_hook!(CompilationOptimizeCodeGeneration: Series(compilation: &mut Compilation));
-define_hook!(CompilationAfterCodeGeneration: Series(compilation: &mut Compilation));
+define_hook!(CompilationAfterCodeGeneration: Series(compilation: &Compilation, diagnostics: &mut Vec<Diagnostic>));
 define_hook!(CompilationChunkHash: Series(compilation: &Compilation, chunk_ukey: &ChunkUkey, hasher: &mut RspackHash),tracing=false);
 define_hook!(CompilationContentHash: Series(compilation: &Compilation, chunk_ukey: &ChunkUkey, hashes: &mut HashMap<SourceType, RspackHash>));
 define_hook!(CompilationDependentFullHash: SeriesBail(compilation: &Compilation, chunk_ukey: &ChunkUkey) -> bool);
@@ -1893,12 +1893,15 @@ impl Compilation {
     };
     self.code_generation(code_generation_modules).await?;
 
+    let mut diagnostics = vec![];
     plugin_driver
       .compilation_hooks
       .after_code_generation
-      .call(self)
+      .call(self, &mut diagnostics)
       .await
       .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.afterCodeGeneration"))?;
+    self.extend_diagnostics(diagnostics);
+
     logger.time_end(start);
 
     let start = logger.time("runtime requirements");
