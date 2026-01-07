@@ -199,6 +199,10 @@ pub fn module_source_path(module: &BoxModule, compilation: &Compilation) -> Opti
   if let Some(pos) = identifier.find('?') {
     identifier.truncate(pos);
   }
+  // strip aggregated suffix like " + 1 modules"
+  if let Some((before, _)) = identifier.split_once(" + ") {
+    identifier = before.to_string();
+  }
   if identifier.starts_with("./") {
     identifier.drain(..2);
   }

@@ -1,5 +1,6 @@
 use std::{
   path::PathBuf,
+  rc::Rc,
   sync::{Arc, LazyLock},
 };
 
@@ -151,7 +152,16 @@ async fn finish_modules(
       let unknown_exports = relevant_exports
         .iter()
         .filter(|export_info| {
-          export_info.is_reexport() && get_target(export_info, module_graph).is_none()
+          export_info.is_reexport()
+            && !matches!(
+              get_target(
+                export_info,
+                module_graph,
+                Rc::new(|_| true),
+                &mut Default::default()
+              ),
+              Some(GetTargetResult::Target(_))
+            )
         })
         .copied()
         .collect::<Vec<_>>();
