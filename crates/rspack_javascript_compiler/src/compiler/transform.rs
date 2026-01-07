@@ -17,7 +17,10 @@ pub use swc_core::base::config::Options as SwcOptions;
 use swc_core::{
   base::{
     BoolOr,
-    config::{BuiltInput, InputSourceMap, JsMinifyCommentOption, OutputCharset, SourceMapsConfig},
+    config::{
+      BuiltInput, Config, InputSourceMap, JsMinifyCommentOption, OutputCharset, Rc,
+      SourceMapsConfig,
+    },
     sourcemap,
   },
   common::{
@@ -73,6 +76,7 @@ struct JavaScriptTransformer<'a> {
   options: SwcOptions,
   javascript_compiler: &'a JavaScriptCompiler,
   helpers: Helpers,
+  config: Config,
 }
 
 const SWC_MIETTE_DIAGNOSTIC_CODE: &str = "Builtin swc-loader error";
@@ -91,6 +95,16 @@ impl<'a> JavaScriptTransformer<'a> {
       options.unresolved_mark = Some(unresolved_mark);
     });
 
+    let config = {
+      let filename_path = match fm.name.as_ref() {
+        FileName::Real(p) => Some(p.as_path()),
+        _ => None,
+      };
+      Rc::default().into_config(filename_path)?.ok_or_else(|| {
+        rspack_error::error!("Failed to create default swc config for {}", &fm.name)
+      })?
+    };
+
     let comments = SingleThreadedComments::default();
     let helpers = GLOBALS.set(&compiler.globals, || {
       let external_helpers = options.config.jsc.external_helpers;
@@ -104,6 +118,7 @@ impl<'a> JavaScriptTransformer<'a> {
       options,
       helpers,
       comments,
+      config,
     })
   }
 
@@ -232,7 +247,7 @@ impl<'a> JavaScriptTransformer<'a> {
           self.options.source_file_name.clone(),
           self.options.config.source_map_ignore_list.clone(),
           handler,
-          None,
+          Some(self.config.clone()),
           Some(&self.comments),
           before_pass,
         )
