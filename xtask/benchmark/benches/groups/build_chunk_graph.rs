@@ -181,7 +181,7 @@ pub fn build_chunk_graph_benchmark_inner(c: &mut Criterion) {
       compiler.compilation.side_effects_optimize_artifact.take();
     let mut diagnostics: Vec<Diagnostic> = vec![];
     let mut build_module_graph_artifact =
-      mem::take(&mut compiler.compilation.build_module_graph_artifact);
+      compiler.compilation.build_module_graph_artifact.take();
     while matches!(
       compiler
         .plugin_driver
@@ -197,7 +197,7 @@ pub fn build_chunk_graph_benchmark_inner(c: &mut Criterion) {
         .unwrap(),
       Some(true)
     ) {}
-    compiler.compilation.build_module_graph_artifact = build_module_graph_artifact;
+    compiler.compilation.build_module_graph_artifact = DerefOption::new(build_module_graph_artifact);
 
     compiler.compilation.side_effects_optimize_artifact =
       DerefOption::new(side_effects_optimize_artifact);

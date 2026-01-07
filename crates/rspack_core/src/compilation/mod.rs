@@ -1657,9 +1657,7 @@ impl Compilation {
       Some(true)
     ) {}
     self.side_effects_optimize_artifact = DerefOption::new(side_effects_optimize_artifact);
-    self
-      .build_module_graph_artifact
-      .swap(&mut build_module_graph_artifact);
+    self.build_module_graph_artifact = DerefOption::new(build_module_graph_artifact);
     self.extend_diagnostics(diagnostics);
 
     logger.time_end(start);
