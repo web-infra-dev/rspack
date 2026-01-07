@@ -139,7 +139,11 @@ impl EsmLibraryPlugin {
     }
   }
 
-  pub(crate) async fn link(&self, compilation: &mut Compilation) -> Result<()> {
+  pub(crate) async fn link(
+    &self,
+    compilation: &Compilation,
+    diagnostics: &mut Vec<Diagnostic>,
+  ) -> Result<()> {
     let module_graph = compilation.get_module_graph();
 
     // codegen uses self.concatenated_modules_map_for_codegen which has hold another Arc, so
@@ -247,7 +251,7 @@ impl EsmLibraryPlugin {
 
     // link imported specifier with exported symbol
     let mut needed_namespace_objects_by_ukey = UkeyMap::default();
-    compilation.extend_diagnostics(self.link_imports_and_exports(
+    diagnostics.extend(self.link_imports_and_exports(
       compilation,
       &mut link,
       &mut concate_modules_map,
