@@ -2781,6 +2781,7 @@ export interface RawRstestPluginOptions {
   importMetaPathName: boolean
   hoistMockModule: boolean
   manualMockRoot: string
+  preserveNewUrl?: Array<string>
 }
 
 export interface RawRuleSetCondition {
