@@ -1,9 +1,9 @@
 // @ts-nocheck
-"use strict";
+'use strict';
 
 module.exports = function supportsUsing() {
-	try {
-		const f = eval(`(function f() {
+  try {
+    const f = eval(`(function f() {
 			let disposed = false;
 
 			{
@@ -19,8 +19,8 @@ module.exports = function supportsUsing() {
 
 			return disposed;
 		})`);
-		return f() === true;
-	} catch (_err) {
-		return false;
-	}
+    return f() === true;
+  } catch (_err) {
+    return false;
+  }
 };

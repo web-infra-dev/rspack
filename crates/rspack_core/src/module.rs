@@ -3,6 +3,7 @@ use std::{
   borrow::Cow,
   fmt::{Debug, Display, Formatter},
   hash::Hash,
+  rc::Rc,
   sync::Arc,
 };
 
@@ -33,11 +34,11 @@ use crate::{
   ChunkGraph, ChunkUkey, CodeGenerationResult, CollectedTypeScriptInfo, Compilation,
   CompilationAsset, CompilationId, CompilerId, CompilerOptions, ConcatenationScope,
   ConnectionState, Context, ContextModule, DependenciesBlock, DependencyId, ExportProvided,
-  ExternalModule, ModuleGraph, ModuleGraphCacheArtifact, ModuleLayer, ModuleType, NormalModule,
-  PrefetchExportsInfoMode, RawModule, Resolve, ResolverFactory, RuntimeSpec, RuntimeTemplate,
-  SelfModule, SharedPluginDriver, SourceType, concatenated_module::ConcatenatedModule,
-  dependencies_block::dependencies_block_update_hash, get_target,
-  value_cache_versions::ValueCacheVersions,
+  ExternalModule, GetTargetResult, ModuleGraph, ModuleGraphCacheArtifact, ModuleLayer, ModuleType,
+  NormalModule, PrefetchExportsInfoMode, RawModule, Resolve, ResolverFactory, RuntimeSpec,
+  RuntimeTemplate, SelfModule, SharedPluginDriver, SourceType,
+  concatenated_module::ConcatenatedModule, dependencies_block::dependencies_block_update_hash,
+  get_target, value_cache_versions::ValueCacheVersions,
 };
 
 pub struct BuildContext {
@@ -473,7 +474,9 @@ fn get_exports_type_impl(
           if matches!(export_info.provided(), Some(ExportProvided::NotProvided)) {
             handle_default(default_object)
           } else {
-            let Some(target) = get_target(export_info, mg) else {
+            let Some(GetTargetResult::Target(target)) =
+              get_target(export_info, mg, Rc::new(|_| true), &mut Default::default())
+            else {
               return ExportsType::Dynamic;
             };
             if target
@@ -494,8 +497,9 @@ fn get_exports_type_impl(
                 return ExportsType::Dynamic;
               };
               match target_exports_type {
-                BuildMetaExportsType::Flagged => ExportsType::Namespace,
-                BuildMetaExportsType::Namespace => ExportsType::Namespace,
+                BuildMetaExportsType::Flagged | BuildMetaExportsType::Namespace => {
+                  ExportsType::Namespace
+                }
                 BuildMetaExportsType::Default => handle_default(default_object),
                 _ => ExportsType::Dynamic,
               }

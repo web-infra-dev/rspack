@@ -1,0 +1,321 @@
+---
+date: 2025-12-31 16:00:00
+sidebar: false
+---
+
+_2025 年 12 月 31 日_
+
+# Rspack 1.7 发布公告
+
+![Rspack 1.7](https://assets.rspack.rs/rspack/rspack-banner-v1-7.png)
+
+---
+
+我们很高兴地宣布 Rspack 1.7 已正式发布！这是 Rspack 1.x 的最后一个 minor 版本，主要聚焦于现有功能的稳定性改进。接下来，我们将很快带来 Rspack 2.0。
+
+值得关注的变更如下：
+
+- 新特性
+  - [SWC 插件兼容性提升](#swc-插件兼容性提升)
+  - [支持 Import Bytes](#支持-import-bytes)
+  - [Lazy compilation](#lazy-compilation)
+  - [实验特性稳定化](#实验特性稳定化)
+- Rstack 进展
+  - [Rsbuild 1.7](#rsbuild-17)
+  - [Rsdoctor 1.4](#rsdoctor-14)
+  - [Rslib 0.19](#rslib-019)
+  - [Rstest 0.7](#rstest-07)
+  - [Rspress 2.0 RC](#rspress-20-rc)
+
+## 新特性
+
+### SWC 插件兼容性提升
+
+在过去的版本中，SWC Wasm 插件的升级成本一直较高。这是由于 SWC 的 AST 结构会随着版本演进发生变化，已有插件在 SWC 升级后可能无法继续工作，插件作者需要进行适配，插件使用者也需要同步升级依赖，这在一定程度上影响了项目的稳定性和升级体验。
+
+为缓解这一问题，我们向 SWC 社区贡献了一系列 [兼容性改进](https://swc.rs/docs/plugin/ecmascript/compatibility)，包括：
+
+- 使用自描述式的 [cbor](https://www.rfc-editor.org/rfc/rfc8949.html) 序列化方案，取代原先对版本敏感的 [rkyv](https://rkyv.org/)，使 Wasm 插件能更好地适应 AST 结构的变更
+- 为 AST 中的枚举类型引入 `Unknown` 变体，从而在遇到新字段或新节点时提升容错能力
+
+在 Rspack 1.7 中，我们升级了使用的 SWC 版本并支持了上述方案。在此之后，多数场景下 SWC 的升级将不会影响基于旧版本 SWC 构建的插件的正常使用。
+
+目前，该方案已在大部分流行的 SWC Wasm 插件中完成接入。如果你是 SWC Wasm 插件作者，可参考 [官方指南](https://swc.rs/docs/plugin/ecmascript/compatibility#make-your-plugin-compatible)，接入该方案，以降低后续版本演进中的维护成本。
+
+### 支持 Import Bytes
+
+Rspack 现已原生支持 [Import Bytes](https://github.com/tc39/proposal-import-bytes) 提案，可以将静态资源作为 `Uint8Array` 导入，并通过 `TextDecoder` 解码。
+
+```js
+// 静态导入
+import fileBytes from './file.bin' with { type: 'bytes' };
+const decoder = new TextDecoder('utf-8');
+const text = decoder.decode(fileBytes);
+
+// 动态导入
+const module = await import('./file.bin', { with: { type: 'bytes' } });
+const decoder = new TextDecoder('utf-8');
+const text = decoder.decode(module.default);
+```
+
+### Lazy compilation
+
+在 Rspack 1.5 中，我们完成了 [Lazy Compilation](/guide/features/lazy-compilation) 特性的稳定化，并在 Rsbuild 中默认对动态导入的模块启用了按需编译。
+
+从 Rspack 1.7 开始，Rspack CLI 在构建 web 应用时也将默认对动态导入的模块启用按需编译。这一改进可以减少首次构建的模块数量，从而加快开发服务器的启动速度。
+
+```js title="rspack.config.mjs"
+export default {
+  // 当前默认配置
+  lazyCompilation: {
+    imports: true,
+    entries: false,
+  },
+};
+```
+
+如果你有特殊需求，例如需要调试完整构建的产物，或分析完整的模块图，可以通过将 [lazyCompilation](/config/lazy-compilation) 设置为 `false` 来显式关闭该功能。
+
+### 实验特性稳定化
+
+在 Rspack 1.7 中，我们稳定化了多项实验性特性。以下能力已完成生产验证并进入稳定阶段，相关实验开关也随之废弃，或调整为默认行为：
+
+- **常量内联优化**：该优化已正式稳定，并在生产构建中默认启用。
+  - 原有的 [experiments.inlineConst](/config/deprecated-options#experimentsinlineconst) 选项已废弃
+  - 如需关闭该行为，可通过 [optimization.inlineExports](/config/optimization#optimizationinlineexports) 来控制
+- **TypeScript enum 内联优化**：该优化已正式稳定。
+  - 原有的 [experiments.inlineEnum](/config/deprecated-options#experimentsinlineenum) 选项已废弃
+  - 使用 [collectTypeScriptInfo.exportedEnum](/guide/features/builtin-swc-loader#collecttypescriptinfoexportedenum) 控制是否收集导出的 `enum` 信息
+  - 使用 [optimization.inlineExports](/config/optimization#optimizationinlineexports) 来控制是否内联 `enum`
+- **类型重导出检查**：该优化已正式稳定。
+  - 原有的 [experiments.typeReexportsPresence](/config/deprecated-options#experimentstypereexportspresence) 选项已废弃
+
+> 参考 [升级指南](#升级指南) 了解如何调整相关配置。
+
+## Rstack 进展
+
+### Rsbuild 1.7
+
+#### Error overlay 改进
+
+Rsbuild 的 error overlay 现在支持显示**运行时错误**。当应用在运行过程中抛出异常时，错误会直接渲染到 overlay 上，帮助你更快发现并定位问题。
+
+![Rsbuild 1.7 Error Overlay](https://assets.rspack.rs/rspack/assets/rspack-v1-7-rsbuild-error-overlay.png)
+
+该功能默认关闭，可通过 [dev.client.overlay.runtime](https://rsbuild.rs/zh/config/dev/client#overlayruntime) 选项按需开启：
+
+```js title=rsbuild.config.ts
+export default {
+  dev: {
+    client: {
+      overlay: {
+        runtime: true,
+      },
+    },
+  },
+};
+```
+
+#### 产物体积对比
+
+Rsbuild 现在支持输出产物体积对比，用来查看构建结果是否发生了体积变化。
+
+![Rsbuild 1.7 Print Size Diff](https://assets.rspack.rs/rspack/assets/rspack-v1-7-rsbuild-print-size-diff.png)
+
+开启 [performance.printFileSize.diff](https://rsbuild.rs/zh/config/performance/print-file-size#diff) 选项后，Rsbuild 构建完成时会记录一份产物体积快照，后续构建会自动与上一次结果对比，并在日志中直接展示体积变化。你可以清楚地看到每个文件是变大还是变小，以及整体体积的增减情况，适合在日常开发和性能回归中快速发现体积变化。
+
+```js title=rsbuild.config.ts
+export default {
+  performance: {
+    printFileSize: {
+      diff: true,
+    },
+  },
+};
+```
+
+#### create-rsbuild 改进
+
+`create-rsbuild` 现在包含了更多开箱即用的工具。
+
+在创建 Rsbuild 项目时，你现在可以选择自动集成 [Rstest](https://rstest.rs/) 作为测试框架，或启用 [Storybook](https://storybook.rsbuild.rs/) 用于 UI 组件的开发与调试。相关依赖和配置都会在初始化时一次性完成，减少重复的手动配置成本。
+
+```text
+◆  Select additional tools (Use <space> to select, <enter> to continue)
+│  ◼ Rstest - testing
+│  ◻ Biome - linting & formatting
+│  ◻ ESLint - linting
+│  ◻ Prettier - formatting
+│  ◻ Storybook - component development
+└
+```
+
+### Rsdoctor 1.4
+
+#### 新的 Treemap 视图
+
+Rsdoctor 1.4 对原有的 [Treemap](https://rsdoctor.rs/zh/guide/usage/bundle-size) 视图进行了改进。新的交互设计可以帮助你更直观地分析 bundle 的整体构成，以及各类资源和模块的体积占比。
+
+在该视图中，你可以通过搜索快速定位到具体的模块或资源。点击某个模块或资源后，视图会自动聚焦并放大对应区域。双击模块还可以展开其依赖链路，逐层查看模块之间的引用关系，从而更清晰地分析体积来源。
+
+![Rsdoctor Treemap](https://assets.rspack.rs/rspack/assets/rspack-v1-7-rsdoctor-treemap.gif)
+
+### Rslib 0.19
+
+#### ESM 产物稳定化
+
+在此前的版本中，Rslib 通过实验性配置 [experiments.advancedEsm](https://rslib.rs/zh/config/lib/experiments#experimentsadvancedesm) 来启用 Rspack 的 [新版 ESM 库产物](/plugins/rspack/esm-library-plugin#esmlibraryplugin)，用于提升 ESM 产物的整体质量。经过多个版本的验证与打磨，该能力现已完成稳定化。
+
+自 Rslib 0.19 起，Rslib 的 bundle 模式将默认启用该特性。开发者无需进行任何额外配置，即可直接获得对静态分析更友好、并完整支持代码分割的 ESM 产物。
+
+#### JavaScript API
+
+Rslib 0.19 引入了 [JavaScript API](https://rslib.rs/api/start)，使开发者可以在 JavaScript 代码中以编程方式直接调用 Rslib 的构建能力。
+
+下面是一个基础示例：
+
+```js
+import { createRslib } from '@rslib/core';
+
+// 创建 Rslib 实例
+const rslib = await createRslib();
+// 构建生产环境输出
+await rslib.build();
+```
+
+> 更多使用方式请参考 [API 文档](https://rslib.rs/api/javascript-api/core)。
+
+### Rstest 0.7
+
+#### 配置适配器
+
+Rstest 0.7 引入了 [extends](https://rstest.rs/zh/config/test/extends) 选项和适配器机制，用于直接复用现有的工具或框架配置。适配器是一个配置转换函数，可以将其他工具的配置转换为 Rstest 的配置，从而降低 Rstest 的集成成本。
+
+例如，在一个使用 Rslib 的库项目中，通过 [@rstest/adapter-rslib](https://www.npmjs.com/package/@rstest/adapter-rslib) 适配器，你可以直接复用已有的 Rslib 配置：
+
+```js title=rstest.config.ts
+import { defineConfig } from '@rstest/core';
+import { withRslibConfig } from '@rstest/adapter-rslib';
+
+export default defineConfig({
+  // 自动读取 rslib.config.ts 并转换为 Rstest 配置
+  extends: withRslibConfig(),
+  // 其他测试配置
+  coverage: {
+    // ...
+  },
+});
+```
+
+适配器则负责将不同工具的配置转换为 Rstest 的配置（如 `define`、`alias` 等），而 `extends` 则负责将转换后的配置与 Rstest 的配置进行合并。通过二者的配合，任何基于 Rspack 的工具或框架，都可以以最小成本与 Rstest 集成。
+
+目前 `@rstest/adapter-rslib` 适配器已正式发布，后续我们还将推出更多适配器，以对接 Rstack 的各个工具。你也可以参考 [Rstest - 适配器](https://rstest.rs/zh/guide/integration/adapters) 来编写自定义的适配器。
+
+#### 测试反馈优化
+
+Rstest 针对本地开发与调试场景进行了多项体验优化，让测试反馈更加直观：
+
+- **更早发现卡住的测试:** Rstest 现已支持在本地运行时标记长时间未完成的测试用例。当测试过程变慢时，你可以直接看到是哪个用例正在执行、可能已经卡住，而不再只能盯着终端等待整个测试超时结束。
+
+- **更清晰的超时失败反馈:** 当测试因超时失败时，Rstest 现在会在错误信息中展示已执行的断言数量。这能帮助你快速判断测试是否已经部分执行，或是卡在了某个异步逻辑中，从而更快定位问题。
+
+### Rspress 2.0 RC
+
+#### SSG-MD 特性
+
+在基于 React 动态渲染的前端框架中，往往存在静态信息难以提取的问题，Rspress 也遇到了相同的问题。Rspress 允许用户通过 [MDX 片段](https://v2.rspress.rs/zh/guide/use-mdx/components)、React 组件、Hooks 以及 TSX 路由等动态特性来增强文档表现力。但这些动态内容在转换为 Markdown 文本时会面临以下问题：
+
+- 直接将 MDX 输入给 AI 会包含大量代码语法噪音，并丢失 React 组件内容
+- 将 SSG 生成的 HTML 转为 Markdown 往往效果不佳，信息质量难以保证
+
+为了解决这个问题，Rspress 2.0 引入了 [SSG-MD](https://v2.rspress.rs/zh/guide/basic/ssg-md) 特性。这是一个全新的功能，见名知意，与 [静态站点生成（SSG）](https://v2.rspress.rs/zh/guide/basic/ssg) 唯一的不同在于它将你的页面渲染为 Markdown 文件，而非 HTML 文件，并生成 [llms.txt](https://llmstxt.org/) 及 llms-full.txt 相关文件。相比与将 HTML 转化为 Markdown 等传统方式，SSG-MD 在渲染期间拥有更好的信息源，比如 React 虚拟 DOM，因此拥有更好的静态信息质量和灵活性。
+
+启用方式非常简单：
+
+```js title="rspress.config.ts"
+import { defineConfig } from '@rspress/core';
+
+export default defineConfig({
+  llms: true,
+});
+```
+
+构建后将生成如下结构：
+
+```
+doc_build
+├── llms.txt          # 摘要版，包含关键文档索引
+├── llms-full.txt     # 完整版，包含所有文档内容
+├── guide
+│   └── start
+│       └── introduction.md
+└── ...
+```
+
+对于自定义组件，你可以通过环境变量来控制其在 SSG-MD 模式下的渲染行为：
+
+```tsx
+export function Tab({ label }: { label: string }) {
+  if (import.meta.env.SSG_MD) {
+    // SSG-MD 模式下输出纯文本描述
+    return <>{`**Tab: ${label}**`}</>;
+  }
+  // 正常渲染交互式组件
+  return <div className="tab">{label}</div>;
+}
+```
+
+这样既保证了文档的交互体验，也能帮助 AI 理解组件的语义信息。
+
+> 详见 [SSG-MD 使用指南](https://v2.rspress.rs/zh/guide/basic/ssg-md)
+
+## 升级指南
+
+### 升级 SWC 插件
+
+如果你的项目中使用了 SWC Wasm 插件（如 `@swc/plugin-emotion` 等），请升级插件至兼容 `swc_core@54` 及以上版本，否则可能因版本不兼容导致构建失败或运行异常。
+
+> 详情请查阅：[常见问题 - SWC 插件版本不匹配](/errors/swc-plugin-version)。
+
+### 移除废弃配置
+
+- 以下实验性选项已废弃，可以直接移除：
+
+```js title="rspack.config.mjs"
+export default {
+  // [!code --]
+  experiments: {
+    // [!code --]
+    inlineConst: true,
+    // [!code --]
+    inlineEnum: true,
+    // [!code --]
+    typeReexportsPresence: true,
+  },
+};
+```
+
+- 调整 `builtin:swc-loader` 中的 [collectTypeScriptInfo](/guide/features/builtin-swc-loader#collecttypescriptinfo) 选项位置，移除 `rspackExperiments` 层级：
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.ts$/,
+        loader: 'builtin:swc-loader',
+        options: {
+          // [!code --]
+          rspackExperiments: {
+            collectTypeScriptInfo: {
+              exportedEnum: true,
+              typeExports: true,
+            },
+            // [!code --]
+          },
+        },
+      },
+    ],
+  },
+};
+```

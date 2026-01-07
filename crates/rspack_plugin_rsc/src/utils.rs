@@ -4,7 +4,7 @@ use futures::future::BoxFuture;
 use rspack_collections::Identifiable;
 use rspack_core::{
   ChunkGraph, ChunkGroup, ChunkGroupUkey, ChunkUkey, Compilation, CompilerId,
-  ConcatenatedInnerModule, Module, ModuleGraphRef, ModuleId, ModuleIdentifier, ModuleType,
+  ConcatenatedInnerModule, Module, ModuleGraph, ModuleId, ModuleIdentifier, ModuleType,
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 use serde::Serialize;
@@ -44,7 +44,7 @@ pub fn is_css_mod(module: &dyn Module) -> bool {
 
 pub struct ChunkModules<'a> {
   compilation: &'a Compilation,
-  module_graph: &'a ModuleGraphRef<'a>,
+  module_graph: &'a ModuleGraph,
   chunk_groups_iter: Box<dyn Iterator<Item = (&'a ChunkGroupUkey, &'a ChunkGroup)> + 'a>,
   chunks_iter: Option<std::slice::Iter<'a, ChunkUkey>>,
   modules_iter: Option<std::collections::hash_set::Iter<'a, ModuleIdentifier>>,
@@ -54,7 +54,7 @@ pub struct ChunkModules<'a> {
 }
 
 impl<'a> ChunkModules<'a> {
-  pub fn new(compilation: &'a Compilation, module_graph: &'a ModuleGraphRef) -> Self {
+  pub fn new(compilation: &'a Compilation, module_graph: &'a ModuleGraph) -> Self {
     let chunk_groups_iter = Box::new(compilation.chunk_group_by_ukey.iter());
     Self {
       compilation,

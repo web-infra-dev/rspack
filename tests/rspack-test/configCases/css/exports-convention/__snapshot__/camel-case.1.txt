@@ -1,0 +1,14 @@
+Object {
+  btn--info_is-disabled_1: _3c92d88ece7370c6,
+  btn-info_is-disabled: _142e8ff3d7628576,
+  btnInfoIsDisabled: _142e8ff3d7628576,
+  btnInfoIsDisabled1: _3c92d88ece7370c6,
+  class: _77200828a826a775,
+  default: e0a1e5cf43fc4113,
+  foo: bar,
+  fooBar: de3bcd93e33abf4c,
+  foo_bar: de3bcd93e33abf4c,
+  my-btn-info_is-disabled: value,
+  myBtnInfoIsDisabled: value,
+  simple: _359017524abf35d8,
+}

@@ -9,9 +9,9 @@ use rspack_collections::Identifier;
 use rspack_core::{
   ChunkGroupUkey, Compilation, CompilationAfterCodeGeneration, CompilationAfterProcessAssets,
   CompilationId, CompilationModuleIds, CompilationOptimizeChunkModules, CompilationOptimizeChunks,
-  CompilationParams, CompilerCompilation, Plugin,
+  CompilationParams, CompilerCompilation, ModuleIdsArtifact, Plugin,
 };
-use rspack_error::Result;
+use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_devtool::{
   SourceMapDevToolModuleOptionsPlugin, SourceMapDevToolModuleOptionsPluginOptions,
@@ -275,7 +275,7 @@ async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<
   // 1. collect modules
   rsd_modules.extend(collect_modules(
     &modules,
-    &module_graph,
+    module_graph,
     chunk_graph,
     &compilation.options.context,
   ));
@@ -318,7 +318,7 @@ async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<
   }
 
   // 4. collect module dependencies
-  let dependency_infos = collect_module_dependencies(&modules, &module_ukey_map, &module_graph);
+  let dependency_infos = collect_module_dependencies(&modules, &module_ukey_map, module_graph);
   for (origin_module_id, dependencies) in dependency_infos {
     for (dep_module_id, (dep_id, dependency)) in dependencies {
       if let Some(rsd_module) = rsd_modules.get_mut(&dep_module_id) {
@@ -357,7 +357,7 @@ async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<
 
   // 6. collect chunk modules
   let chunk_modules =
-    collect_chunk_modules(chunk_by_ukey, &module_ukey_map, chunk_graph, &module_graph);
+    collect_chunk_modules(chunk_by_ukey, &module_ukey_map, chunk_graph, module_graph);
 
   tokio::spawn(async move {
     match hooks
@@ -379,7 +379,12 @@ async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<
 }
 
 #[plugin_hook(CompilationModuleIds for RsdoctorPlugin, stage = 9999)]
-async fn module_ids(&self, compilation: &mut Compilation) -> Result<()> {
+async fn module_ids(
+  &self,
+  compilation: &Compilation,
+  module_ids: &mut ModuleIdsArtifact,
+  _diagnostics: &mut Vec<Diagnostic>,
+) -> Result<()> {
   if !self.has_module_graph_feature(RsdoctorPluginModuleGraphFeature::ModuleIds) {
     return Ok(());
   }
@@ -392,7 +397,7 @@ async fn module_ids(&self, compilation: &mut Compilation) -> Result<()> {
     &MODULE_UKEY_MAP
       .get(&compilation.id())
       .expect("should have module ukey map"),
-    &compilation.module_ids_artifact,
+    module_ids,
   );
 
   tokio::spawn(async move {
@@ -426,7 +431,7 @@ async fn after_code_generation(&self, compilation: &mut Compilation) -> Result<(
     &MODULE_UKEY_MAP
       .get(&compilation.id())
       .expect("should have module ukey map"),
-    &module_graph,
+    module_graph,
     compilation,
   );
 
@@ -447,7 +452,11 @@ async fn after_code_generation(&self, compilation: &mut Compilation) -> Result<(
 }
 
 #[plugin_hook(CompilationAfterProcessAssets for RsdoctorPlugin, stage = 9999)]
-async fn after_process_assets(&self, compilation: &mut Compilation) -> Result<()> {
+async fn after_process_assets(
+  &self,
+  compilation: &Compilation,
+  _diagnostics: &mut Vec<Diagnostic>,
+) -> Result<()> {
   if !self.has_chunk_graph_feature(RsdoctorPluginChunkGraphFeature::Assets) {
     return Ok(());
   }

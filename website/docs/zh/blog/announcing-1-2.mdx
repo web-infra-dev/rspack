@@ -98,7 +98,7 @@ export default {
 
 Rspack v1.2 将不再监听 `node_modules` 和 `.git` 目录下的文件变动，这将显著减少监听的文件数目并带来性能提升。
 
-通过 [benchmark 仓库](https://github.com/rspack-contrib/build-tools-performance) 中的数据，这项调整将：
+通过 [benchmark 仓库](https://github.com/rstackjs/build-tools-performance) 中的数据，这项调整将：
 
 - 减少内存占用 120MB
 - 提升 Dev 启动速度 40%
@@ -120,7 +120,7 @@ export default {
 
 ### 减少内存使用
 
-我们优化了在 [rspack-sources](https://github.com/web-infra-dev/rspack-sources) 计算过程中用于存储字符串的数据结构。在整个计算过程中，所有字符串数据都指向根节点的字符串堆内存，有效避免了计算过程中产生新的字符串分配。
+我们优化了在 [rspack-sources](https://github.com/rstackjs/rspack-sources) 计算过程中用于存储字符串的数据结构。在整个计算过程中，所有字符串数据都指向根节点的字符串堆内存，有效避免了计算过程中产生新的字符串分配。
 
 > 详见：[perf: reduce memory consumption of CachedSource](https://github.com/web-infra-dev/rspack/pull/8666)。
 
@@ -179,7 +179,7 @@ Rsbuild v1.2 已经与 Rspack v1.2 同步发布，并带来了多项新特性：
 
 ### WarnCaseSensitiveModules 默认关闭
 
-[WarnCaseSensitiveModulesPlugin](/plugins/webpack/warn-case-sensitive-modules-plugin) 插件用于检查模块的路径，并对路径全部为小写的冲突模块发出警告。Rspack 过去默认启用它，但由于它只是一个 linter 插件，并且它在开发模式下会产生额外的性能开销。所以现在 Rspack 默认禁用了这项功能。
+[WarnCaseSensitiveModulesPlugin](/plugins/webpack/case-sensitive-plugin) 插件用于检查模块的路径，并对路径全部为小写的冲突模块发出警告。Rspack 过去默认启用它，但由于它只是一个 linter 插件，并且它在开发模式下会产生额外的性能开销。所以现在 Rspack 默认禁用了这项功能。
 
 如果你倾向于保持之前的行为，可以设置：
 

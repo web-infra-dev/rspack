@@ -135,11 +135,7 @@ impl SwcLoader {
         if !is_typescript {
           return;
         }
-        let Some(options) = &self
-          .options_with_additional
-          .rspack_experiments
-          .collect_typescript_info
-        else {
+        let Some(options) = &self.options_with_additional.collect_typescript_info else {
           return;
         };
         collected_ts_info = Some(collect_typescript_info(

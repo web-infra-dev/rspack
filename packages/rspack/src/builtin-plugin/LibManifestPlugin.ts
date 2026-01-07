@@ -1,35 +1,35 @@
 import {
-	BuiltinPluginName,
-	type RawLibManifestPluginOptions
-} from "@rspack/binding";
-import { create } from "./base";
+  BuiltinPluginName,
+  type RawLibManifestPluginOptions,
+} from '@rspack/binding';
+import { create } from './base';
 
 export type LibManifestPluginOptions = {
-	context?: string;
+  context?: string;
 
-	entryOnly?: boolean;
+  entryOnly?: boolean;
 
-	format?: boolean;
+  format?: boolean;
 
-	name?: string;
+  name?: string;
 
-	path: string;
+  path: string;
 
-	type?: string;
+  type?: string;
 };
 
 export const LibManifestPlugin = create(
-	BuiltinPluginName.LibManifestPlugin,
-	(options: LibManifestPluginOptions): RawLibManifestPluginOptions => {
-		const { context, entryOnly, format, name, path, type } = options;
+  BuiltinPluginName.LibManifestPlugin,
+  (options: LibManifestPluginOptions): RawLibManifestPluginOptions => {
+    const { context, entryOnly, format, name, path, type } = options;
 
-		return {
-			context,
-			entryOnly,
-			format,
-			name,
-			path,
-			type
-		};
-	}
+    return {
+      context,
+      entryOnly,
+      format,
+      name,
+      path,
+      type,
+    };
+  },
 );

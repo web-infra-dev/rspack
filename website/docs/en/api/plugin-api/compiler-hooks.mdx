@@ -230,7 +230,7 @@ This hook is only triggered when calling [compiler.run()](/api/javascript-api/in
 ```js
 class ExamplePlugin {
   apply(compiler) {
-    compiler.hooks.beforeRun.tap('ExamplePlugin', compiler => {
+    compiler.hooks.beforeRun.tap('ExamplePlugin', (compiler) => {
       console.log('Build is about to start...');
     });
   }
@@ -283,7 +283,7 @@ This hook is only triggered when calling [compiler.run()](/api/javascript-api/in
 ```js
 class ExamplePlugin {
   apply(compiler) {
-    compiler.hooks.beforeRun.tap('ExamplePlugin', compiler => {
+    compiler.hooks.beforeRun.tap('ExamplePlugin', (compiler) => {
       console.log('Build start...');
     });
   }
@@ -338,7 +338,7 @@ This hook is only triggered when calling [compiler.watch()](/api/javascript-api/
 ```js
 class ExamplePlugin {
   apply(compiler) {
-    compiler.hooks.watchRun.tap('ExamplePlugin', compiler => {
+    compiler.hooks.watchRun.tap('ExamplePlugin', (compiler) => {
       const { modifiedFiles, removedFiles } = compiler;
       if (modifiedFiles) {
         console.log('Changed files:', Array.from(modifiedFiles));
@@ -400,10 +400,10 @@ You can use the `compilation` parameter to access the properties of the compilat
 ```js
 class ExamplePlugin {
   apply(compiler) {
-    compiler.hooks.thisCompilation.tap('ExamplePlugin', compilation => {
+    compiler.hooks.thisCompilation.tap('ExamplePlugin', (compilation) => {
       console.log('compilation created:', compilation);
 
-      compilation.hooks.make.tap('ExamplePlugin', compilation => {
+      compilation.hooks.make.tap('ExamplePlugin', (compilation) => {
         console.log("compilation's make hook called:", compilation);
       });
     });
@@ -436,10 +436,10 @@ You can use the `compilation` parameter to access the properties of the compilat
 ```js
 class ExamplePlugin {
   apply(compiler) {
-    compiler.hooks.compilation.tap('ExamplePlugin', compilation => {
+    compiler.hooks.compilation.tap('ExamplePlugin', (compilation) => {
       console.log('compilation created:', compilation);
 
-      compilation.hooks.make.tap('ExamplePlugin', compilation => {
+      compilation.hooks.make.tap('ExamplePlugin', (compilation) => {
         console.log("compilation's make hook called:", compilation);
       });
     });
@@ -528,7 +528,7 @@ Called before emitting assets. Should return a boolean telling whether to emit.
 - **Example:**
 
 ```js
-compiler.hooks.shouldEmit.tap('MyPlugin', compilation => {
+compiler.hooks.shouldEmit.tap('MyPlugin', (compilation) => {
   // return true to emit the output, otherwise false
   return true;
 });

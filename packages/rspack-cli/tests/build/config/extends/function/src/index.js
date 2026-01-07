@@ -1,1 +1,1 @@
-console.log("Function extends test");
+console.log('Function extends test');

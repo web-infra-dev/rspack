@@ -151,11 +151,13 @@ fn build_module_map(compilation: &Compilation) -> IdentifierMap<GraphModule> {
   module_map.reserve(modules.len());
   for (id, module) in modules {
     let mut graph_module = GraphModule::new(id, module.source().is_some());
-    for dependency_id in module.get_dependencies() {
-      let Some(dependency) = module_graph.dependency_by_id(dependency_id) else {
-        continue;
-      };
-      let Some(dependent_module) = module_graph.get_module_by_dependency_id(dependency_id) else {
+    // if allow async cycles, the async dependencies should not be collected to check for cycles
+    for dependency_id in module_graph
+      .get_outgoing_connections(&id)
+      .map(|conn| conn.dependency_id)
+    {
+      let dependency = module_graph.dependency_by_id(&dependency_id);
+      let Some(dependent_module) = module_graph.get_module_by_dependency_id(&dependency_id) else {
         continue;
       };
       // Only include dependencies that represent a real source file.
@@ -213,9 +215,6 @@ pub struct CircularDependencyRspackPluginOptions {
   /// When `true`, the plugin will emit Error diagnostics rather than the
   /// default Warn severity.
   pub fail_on_error: bool,
-  /// When `true`, asynchronous imports like `import("some-module")` will not
-  /// be considered connections that can create cycles.
-  pub allow_async_cycles: bool,
   /// Cycles containing any module name that matches this regex will not be
   /// counted as a cycle.
   pub exclude: Option<RspackRegex>,
@@ -298,7 +297,7 @@ impl CircularDependencyRspackPlugin {
     &self,
     entrypoint: String,
     cycle: Vec<ModuleIdentifier>,
-    _compilation: &mut Compilation,
+    _diagnostics: &mut Vec<Diagnostic>,
   ) -> Result<()> {
     match &self.options.on_ignored {
       Some(callback) => callback(entrypoint, cycle.iter().map(ToString::to_string).collect()).await,
@@ -310,7 +309,8 @@ impl CircularDependencyRspackPlugin {
     &self,
     entrypoint: String,
     cycle: Vec<ModuleIdentifier>,
-    compilation: &mut Compilation,
+    compilation: &Compilation,
+    diagnostics: &mut Vec<Diagnostic>,
   ) -> Result<()> {
     if let Some(callback) = &self.options.on_detected {
       return callback(entrypoint, cycle.iter().map(ToString::to_string).collect()).await;
@@ -345,7 +345,7 @@ impl CircularDependencyRspackPlugin {
       })
       .collect();
 
-    compilation.push_diagnostic(diagnostic_factory(
+    diagnostics.push(diagnostic_factory(
       "Circular Dependency".to_string(),
       format!(
         "Circular dependency detected:\n {}",
@@ -357,7 +357,11 @@ impl CircularDependencyRspackPlugin {
 }
 
 #[plugin_hook(CompilationOptimizeModules for CircularDependencyRspackPlugin)]
-async fn optimize_modules(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
+async fn optimize_modules(
+  &self,
+  compilation: &Compilation,
+  diagnostics: &mut Vec<Diagnostic>,
+) -> Result<Option<bool>> {
   if let Some(on_start) = &self.options.on_start {
     on_start().await?;
   };
@@ -385,11 +389,11 @@ async fn optimize_modules(&self, compilation: &mut Compilation) -> Result<Option
       for cycle in detector.find_cycles_from(module_id) {
         if self.is_cycle_ignored(&module_map, &cycle, compilation) {
           self
-            .handle_cycle_ignored(entrypoint_name.clone(), cycle, compilation)
+            .handle_cycle_ignored(entrypoint_name.clone(), cycle, diagnostics)
             .await?
         } else {
           self
-            .handle_cycle_detected(entrypoint_name.clone(), cycle, compilation)
+            .handle_cycle_detected(entrypoint_name.clone(), cycle, compilation, diagnostics)
             .await?
         }
       }

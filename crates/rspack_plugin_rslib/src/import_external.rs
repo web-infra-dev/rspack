@@ -20,9 +20,7 @@ pub fn replace_import_dependencies_for_external_modules(
       };
       for block_dep_id in block.get_dependencies() {
         let block_dep = mg.dependency_by_id(block_dep_id);
-        if let Some(block_dep) = block_dep
-          && let Some(import_dependency) = block_dep.as_any().downcast_ref::<ImportDependency>()
-        {
+        if let Some(import_dependency) = block_dep.as_any().downcast_ref::<ImportDependency>() {
           let import_dep_connection = mg.connection_by_dependency_id(block_dep_id);
           if let Some(import_dep_connection) = import_dep_connection {
             // Try find the connection with a import dependency pointing to an external module.
@@ -51,7 +49,9 @@ pub fn replace_import_dependencies_for_external_modules(
     }
   }
 
-  let mut mg = Compilation::get_make_module_graph_mut(&mut compilation.build_module_graph_artifact);
+  let mg = compilation
+    .build_module_graph_artifact
+    .get_module_graph_mut();
   for dep in deps_to_replace {
     let dep_id = dep.id();
     // remove connection

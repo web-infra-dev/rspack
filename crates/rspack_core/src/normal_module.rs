@@ -672,7 +672,7 @@ impl Module for NormalModule {
       // If the module build failed and the module is able to emit JavaScript source,
       // we should emit an error message to the runtime, otherwise we do nothing.
       if self
-        .source_types(&module_graph)
+        .source_types(module_graph)
         .contains(&SourceType::JavaScript)
       {
         let error = error.render_report(compilation.options.stats.colors)?;
@@ -706,7 +706,7 @@ impl Module for NormalModule {
     }
 
     let module_graph = compilation.get_module_graph();
-    for source_type in self.source_types(&module_graph) {
+    for source_type in self.source_types(module_graph) {
       let generation_result = inner
         .parser_and_generator
         .generate(
@@ -829,21 +829,20 @@ impl Module for NormalModule {
         module_chain.insert(self.identifier());
         let mut current = ConnectionState::Active(false);
         for dependency_id in self.get_dependencies().iter() {
-          if let Some(dependency) = module_graph.dependency_by_id(dependency_id) {
-            let state = dependency.get_module_evaluation_side_effects_state(
-              module_graph,
-              module_graph_cache,
-              module_chain,
-              connection_state_cache,
-            );
-            if matches!(state, ConnectionState::Active(true)) {
-              // TODO add optimization bailout
-              module_chain.remove(&self.identifier());
-              connection_state_cache.insert(self.inner().id, ConnectionState::Active(true));
-              return ConnectionState::Active(true);
-            } else if !matches!(state, ConnectionState::CircularConnection) {
-              current = current + state;
-            }
+          let dependency = module_graph.dependency_by_id(dependency_id);
+          let state = dependency.get_module_evaluation_side_effects_state(
+            module_graph,
+            module_graph_cache,
+            module_chain,
+            connection_state_cache,
+          );
+          if matches!(state, ConnectionState::Active(true)) {
+            // TODO add optimization bailout
+            module_chain.remove(&self.identifier());
+            connection_state_cache.insert(self.inner().id, ConnectionState::Active(true));
+            return ConnectionState::Active(true);
+          } else if !matches!(state, ConnectionState::CircularConnection) {
+            current = current + state;
           }
         }
         module_chain.remove(&self.identifier());

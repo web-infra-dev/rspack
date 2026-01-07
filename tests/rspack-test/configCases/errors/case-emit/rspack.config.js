@@ -1,3 +1,5 @@
+const { CaseSensitivePlugin } = require("@rspack/core");
+
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	entry: {
@@ -6,5 +8,6 @@ module.exports = {
 	},
 	output: {
 		filename: "[name].js"
-	}
+	},
+	plugins: [new CaseSensitivePlugin()]
 };

@@ -82,6 +82,7 @@ mod normal_module_factory;
 mod options;
 mod panic;
 mod path_data;
+mod platform;
 mod plugins;
 mod raw_options;
 mod resolver;
@@ -109,7 +110,8 @@ use napi::{CallContext, bindgen_prelude::*};
 pub use raw_options::{CustomPluginBuilder, register_custom_plugin};
 use rspack_collections::UkeyMap;
 use rspack_core::{
-  BoxDependency, Compilation, CompilerId, EntryOptions, ModuleIdentifier, PluginExt,
+  BoxDependency, Compilation, CompilerId, CompilerPlatform, EntryOptions, ModuleIdentifier,
+  PluginExt,
 };
 use rspack_error::Diagnostic;
 use rspack_fs::{IntermediateFileSystem, NativeFileSystem, ReadableFileSystem};
@@ -127,6 +129,7 @@ use crate::{
   error::{ErrorCode, RspackResultToNapiResultExt},
   fs_node::{HybridFileSystem, NodeFileSystem, ThreadsafeNodeFS},
   module::ModuleObject,
+  platform::RawCompilerPlatform,
   plugins::{
     JsCleanupPlugin, JsHooksAdapterPlugin, RegisterJsTapKind, RegisterJsTaps, buildtime_plugins,
   },
@@ -188,6 +191,7 @@ impl JsCompiler {
     input_filesystem: Option<ThreadsafeNodeFS>,
     mut resolver_factory_reference: Reference<JsResolverFactory>,
     unsafe_fast_drop: bool,
+    platform: RawCompilerPlatform,
   ) -> Result<Self> {
     tracing::info!(name:"rspack_version", version = rspack_workspace::rspack_pkg_version!());
     tracing::info!(name:"raw_options", options=?&options);
@@ -298,6 +302,8 @@ impl JsCompiler {
           None
         };
 
+      let platform = Arc::new(CompilerPlatform::from(platform));
+
       let rspack = rspack_core::Compiler::new(
         compiler_path,
         compiler_options,
@@ -313,6 +319,7 @@ impl JsCompiler {
         Some(resolver_factory),
         Some(loader_resolver_factory),
         Some(compiler_context.clone()),
+        platform,
       );
 
       Ok(Self {

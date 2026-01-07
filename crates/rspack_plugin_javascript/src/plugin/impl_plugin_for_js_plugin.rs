@@ -460,7 +460,7 @@ async fn content_hash(
   let module_graph = compilation.get_module_graph();
   let mut ordered_modules = compilation
     .chunk_graph
-    .get_chunk_modules_identifier_by_source_type(chunk_ukey, SourceType::JavaScript, &module_graph);
+    .get_chunk_modules_identifier_by_source_type(chunk_ukey, SourceType::JavaScript, module_graph);
   // SAFETY: module identifier is unique
   ordered_modules.sort_unstable();
 
@@ -518,7 +518,7 @@ async fn render_manifest(
     && !chunk_has_runtime_or_js(
       chunk_ukey,
       &compilation.chunk_graph,
-      &compilation.get_module_graph(),
+      compilation.get_module_graph(),
     )
   {
     return Ok(());
@@ -658,7 +658,7 @@ pub fn chunk_has_js(chunk_ukey: &ChunkUkey, compilation: &Compilation) -> bool {
   compilation.chunk_graph.has_chunk_module_by_source_type(
     chunk_ukey,
     SourceType::JavaScript,
-    &compilation.get_module_graph(),
+    compilation.get_module_graph(),
   )
 }
 

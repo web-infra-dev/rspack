@@ -192,7 +192,7 @@ pub fn generate_entry_startup(
       .module_by_identifier(module)
       .filter(|module| {
         module
-          .source_types(&module_graph)
+          .source_types(module_graph)
           .contains(&SourceType::JavaScript)
       })
       .and_then(|module| {

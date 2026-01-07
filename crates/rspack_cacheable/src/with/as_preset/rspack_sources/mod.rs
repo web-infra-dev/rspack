@@ -11,7 +11,7 @@ use rspack_sources::{
 };
 
 use super::AsPreset;
-use crate::{DeserializeError, SerializeError};
+use crate::{Error, Result};
 
 #[cacheable(crate=crate)]
 pub struct CacheableSource {
@@ -37,17 +37,14 @@ impl ArchiveWith<BoxSource> for AsPreset {
 
 impl<S> SerializeWith<BoxSource, S> for AsPreset
 where
-  S: Fallible<Error = SerializeError> + Allocator + Writer,
+  S: Fallible<Error = Error> + Allocator + Writer,
 {
-  fn serialize_with(
-    field: &BoxSource,
-    serializer: &mut S,
-  ) -> Result<Self::Resolver, SerializeError> {
+  fn serialize_with(field: &BoxSource, serializer: &mut S) -> Result<Self::Resolver> {
     let map = match field.map(&ObjectPool::default(), &Default::default()) {
       Some(map) => Some(
         map
           .to_json()
-          .map_err(|_| SerializeError::MessageError("source map to json failed"))?,
+          .map_err(|_| Error::MessageError("source map to json failed"))?,
       ),
       None => None,
     };
@@ -64,12 +61,12 @@ where
 
 impl<D> DeserializeWith<Archived<CacheableSource>, BoxSource, D> for AsPreset
 where
-  D: Fallible<Error = DeserializeError>,
+  D: Fallible<Error = Error>,
 {
   fn deserialize_with(
     field: &Archived<CacheableSource>,
     deserializer: &mut D,
-  ) -> Result<BoxSource, DeserializeError> {
+  ) -> Result<BoxSource> {
     let CacheableSource { buffer, map } = field.deserialize(deserializer)?;
     if let Some(map) = &map
       && let Ok(source_map) = SourceMap::from_json(map)

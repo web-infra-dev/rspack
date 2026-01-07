@@ -1,8 +1,8 @@
-name: "📝 Tracking Issue"
+name: '📝 Tracking Issue'
 description: Create a tracking issue
-title: "[Tracking]: "
+title: '[Tracking]: '
 type: Task
-labels: ["tracking issue"]
+labels: ['tracking issue']
 body:
   - type: textarea
     id: description

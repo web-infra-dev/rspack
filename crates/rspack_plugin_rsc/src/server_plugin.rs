@@ -268,13 +268,13 @@ impl RscServerPlugin {
       .collect();
     compilation.add_include(add_include_args).await?;
     for (dependency_id, runtime) in included_dependencies {
-      let mut mg =
-        Compilation::get_make_module_graph_mut(&mut compilation.build_module_graph_artifact);
+      let mg =
+        compilation.get_module_graph_mut();
       let Some(module) = mg.get_module_by_dependency_id(&dependency_id) else {
         continue;
       };
-      let info = mg.get_exports_info(&module.identifier());
-      info.set_used_in_unknown_way(&mut mg, Some(&runtime));
+      let info = mg.get_exports_info_data_mut(&module.identifier());
+      info.set_used_in_unknown_way(Some(&runtime));
     }
 
     self
@@ -344,13 +344,13 @@ impl RscServerPlugin {
       .collect();
     compilation.add_include(add_include_args).await?;
     for (dependency_id, runtime) in included_dependencies {
-      let mut mg =
-        Compilation::get_make_module_graph_mut(&mut compilation.build_module_graph_artifact);
+      let mg =
+        compilation.get_module_graph_mut();
       let Some(m) = mg.get_module_by_dependency_id(&dependency_id) else {
         continue;
       };
-      let info = mg.get_exports_info(&m.identifier());
-      info.set_used_in_unknown_way(&mut mg, Some(&runtime));
+      let info = mg.get_exports_info_data_mut(&m.identifier());
+      info.set_used_in_unknown_way(Some(&runtime));
     }
 
     Ok(())

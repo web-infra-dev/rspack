@@ -64,6 +64,7 @@ module.exports = [
 			]
 		}
 	},
+	// MAYBE: support function type of exportsConvention
 	{
 		...common,
 		output: {

@@ -201,9 +201,7 @@ fn filter_client_components(
 
     // `ids` are the identifiers that are imported from the dependency,
     // if it's present, it's an array of strings.
-    let Some(dependency) = module_graph.dependency_by_id(&connection.dependency_id) else {
-      continue;
-    };
+    let dependency = module_graph.dependency_by_id(&connection.dependency_id);
     let ids = if let Some(dependency) = dependency.downcast_ref::<CommonJsExportRequireDependency>()
     {
       Some(dependency.get_ids(&module_graph))

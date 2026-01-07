@@ -1,5 +1,6 @@
 use std::{
   path::PathBuf,
+  rc::Rc,
   sync::{Arc, LazyLock},
 };
 
@@ -12,9 +13,9 @@ use rspack_core::{
   CompilationAfterCodeGeneration, CompilationConcatenationScope, CompilationFinishModules,
   CompilationOptimizeChunks, CompilationParams, CompilationProcessAssets,
   CompilationRuntimeRequirementInTree, CompilerCompilation, ConcatenatedModuleInfo,
-  ConcatenationScope, DependencyType, ExternalModuleInfo, Logger, ModuleGraph, ModuleIdentifier,
-  ModuleInfo, ModuleType, NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, Plugin,
-  PrefetchExportsInfoMode, RuntimeGlobals, get_target, is_esm_dep_like,
+  ConcatenationScope, DependencyType, ExternalModuleInfo, GetTargetResult, Logger, ModuleGraph,
+  ModuleIdentifier, ModuleInfo, ModuleType, NormalModuleFactoryParser, ParserAndGenerator,
+  ParserOptions, Plugin, PrefetchExportsInfoMode, RuntimeGlobals, get_target, is_esm_dep_like,
   rspack_sources::{ReplaceSource, Source},
 };
 use rspack_error::Result;
@@ -110,7 +111,7 @@ async fn finish_modules(
     let mut should_scope_hoisting = true;
 
     if let Some(reason) =
-      module.get_concatenation_bailout_reason(&module_graph, &compilation.chunk_graph)
+      module.get_concatenation_bailout_reason(module_graph, &compilation.chunk_graph)
     {
       logger.debug(format!(
         "module {module_identifier} has bailout reason: {reason}",
@@ -127,7 +128,7 @@ async fn finish_modules(
     // }
     else if module_graph
       .get_incoming_connections(module_identifier)
-      .filter_map(|conn| module_graph.dependency_by_id(&conn.dependency_id))
+      .map(|conn| module_graph.dependency_by_id(&conn.dependency_id))
       .any(|dep| {
         !is_esm_dep_like(dep)
           && !matches!(
@@ -151,7 +152,16 @@ async fn finish_modules(
       let unknown_exports = relevant_exports
         .iter()
         .filter(|export_info| {
-          export_info.is_reexport() && get_target(export_info, &module_graph).is_none()
+          export_info.is_reexport()
+            && !matches!(
+              get_target(
+                export_info,
+                module_graph,
+                Rc::new(|_| true),
+                &mut Default::default()
+              ),
+              Some(GetTargetResult::Target(_))
+            )
         })
         .copied()
         .collect::<Vec<_>>();
@@ -258,12 +268,13 @@ async fn finish_modules(
     );
   }
 
-  let mut module_graph =
-    Compilation::get_make_module_graph_mut(&mut compilation.build_module_graph_artifact);
+  let module_graph = compilation
+    .build_module_graph_artifact
+    .get_module_graph_mut();
   for m in entry_modules {
-    let exports_info = module_graph.get_exports_info(&m);
-
-    exports_info.set_used_in_unknown_way(&mut module_graph, None);
+    module_graph
+      .get_exports_info_data_mut(&m)
+      .set_used_in_unknown_way(None);
   }
 
   Ok(())

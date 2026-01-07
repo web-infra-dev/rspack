@@ -9,13 +9,14 @@ use rspack_collections::{IdentifierIndexMap, IdentifierIndexSet, IdentifierMap, 
 use rspack_core::{
   BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, ChunkInitFragments, ChunkUkey,
   CodeGenerationPublicPathAutoReplace, Compilation, ConcatenatedModuleIdent, DependencyType,
-  ExportMode, ExportProvided, ExportsInfoGetter, ExportsType, FindTargetResult, GetUsedNameParam,
-  IdentCollector, MaybeDynamicTargetExportInfoHashKey, ModuleGraph, ModuleGraphCacheArtifact,
-  ModuleIdentifier, ModuleInfo, NAMESPACE_OBJECT_EXPORT, PathData, PrefetchExportsInfoMode,
-  RuntimeGlobals, SourceType, URLStaticMode, UsageState, UsedName, UsedNameItem, escape_name,
-  find_new_name, get_cached_readable_identifier, get_js_chunk_filename_template, property_access,
-  property_name, reserved_names::RESERVED_NAMES, rspack_sources::ReplaceSource,
-  split_readable_identifier, to_normal_comment,
+  ExportInfoHashKey, ExportMode, ExportProvided, ExportsInfoGetter, ExportsType, FindTargetResult,
+  GetUsedNameParam, IdentCollector, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
+  ModuleInfo, NAMESPACE_OBJECT_EXPORT, PathData, PrefetchExportsInfoMode, RuntimeGlobals,
+  SourceType, URLStaticMode, UsageState, UsedName, UsedNameItem, escape_name, find_new_name,
+  find_target, get_cached_readable_identifier, get_js_chunk_filename_template,
+  get_module_directives, get_module_hashbang, property_access, property_name,
+  reserved_names::RESERVED_NAMES, rspack_sources::ReplaceSource, split_readable_identifier,
+  to_normal_comment,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_javascript_compiler::ast::Ast;
@@ -197,7 +198,7 @@ impl EsmLibraryPlugin {
         let mut escaped_identifiers: FxHashMap<String, Vec<String>> = FxHashMap::default();
         let readable_identifier = get_cached_readable_identifier(
           &info.id(),
-          &module_graph,
+          module_graph,
           &compilation.module_static_cache_artifact,
           &compilation.options.context,
         );
@@ -296,8 +297,11 @@ impl EsmLibraryPlugin {
           }
 
           let mut ns_obj = Vec::new();
-          let exports_info = module_graph.get_exports_info(module_info_id);
-          for export_info in exports_info.as_data(&module_graph).exports().values() {
+          for export_info in module_graph
+            .get_exports_info_data(module_info_id)
+            .exports()
+            .values()
+          {
             if matches!(export_info.provided(), Some(ExportProvided::NotProvided)) {
               continue;
             }
@@ -310,7 +314,7 @@ impl EsmLibraryPlugin {
             if let Some(UsedNameItem::Str(used_name)) = export_info.get_used_name(None, None) {
               let mut binding = Self::get_binding(
                 None,
-                &compilation.get_module_graph(),
+                compilation.get_module_graph(),
                 &compilation.module_graph_cache_artifact,
                 module_info_id,
                 vec![export_info.name().cloned().unwrap_or("".into())],
@@ -464,7 +468,7 @@ var {} = {{}};
       let info = &mut concate_modules_map[id];
       let readable_identifier = get_cached_readable_identifier(
         id,
-        &module_graph,
+        module_graph,
         &compilation.module_static_cache_artifact,
         context,
       );
@@ -634,7 +638,7 @@ var {} = {{}};
       if info.name.is_none() {
         let readable_identifier = get_cached_readable_identifier(
           external_module,
-          &module_graph,
+          module_graph,
           &compilation.module_static_cache_artifact,
           context,
         );
@@ -933,9 +937,7 @@ var {} = {{}};
     }
 
     let mut exports = if collect_own_exports {
-      let exports_info = module_graph
-        .get_exports_info(&module_id)
-        .as_data(module_graph);
+      let exports_info = module_graph.get_exports_info_data(&module_id);
       exports_info
         .exports()
         .iter()
@@ -947,9 +949,7 @@ var {} = {{}};
     };
 
     for dep in module.get_dependencies() {
-      let dep = module_graph
-        .dependency_by_id(dep)
-        .expect("should have dependency");
+      let dep = module_graph.dependency_by_id(dep);
       if let Some(dep) = dep.downcast_ref::<ESMExportImportedSpecifierDependency>()
         && dep.name.is_none()
       {
@@ -991,9 +991,7 @@ var {} = {{}};
     let context = &compilation.options.context;
     let module_graph = compilation.get_module_graph();
 
-    let exports_info = module_graph
-      .get_exports_info(&entry_module)
-      .as_data(&module_graph);
+    let exports_info = module_graph.get_exports_info_data(&entry_module);
 
     // detect reexport star
     let mut star_re_exports_modules = IdentifierIndexSet::default();
@@ -1010,7 +1008,7 @@ var {} = {{}};
 
     Self::resolve_re_export_star_from_unknown(
       entry_module,
-      &module_graph,
+      module_graph,
       &compilation.module_graph_cache_artifact,
       true,
     )
@@ -1035,7 +1033,7 @@ var {} = {{}};
       let chunk_link = link.get_mut_unwrap(&current_chunk);
       let binding = Self::get_binding(
         None,
-        &module_graph,
+        module_graph,
         &compilation.module_graph_cache_artifact,
         &entry_module,
         vec![name.clone()],
@@ -1064,6 +1062,10 @@ var {} = {{}};
 
               let export_name = if let Some(id) = symbol_binding.ids.first() {
                 required_info.property_access(id, &mut chunk_link.used_names)
+              } else if let Some(default_access) = &required_info.default_access
+                && default_access == &symbol_binding.symbol
+              {
+                required_info.default_exported(&mut chunk_link.used_names)
               } else {
                 symbol_binding.symbol
               };
@@ -1132,7 +1134,7 @@ var {} = {{}};
             &entry_chunk_link.used_names,
             &escaped_identifiers[&get_cached_readable_identifier(
               &entry_module,
-              &module_graph,
+              module_graph,
               &compilation.module_static_cache_artifact,
               context,
             )],
@@ -1237,6 +1239,43 @@ var {} = {{}};
         let entry_module_chunk = Self::get_module_chunk(entry_module, compilation);
         entry_imports.entry(entry_module).or_default();
 
+        // NOTE: Similar hashbang and directives handling logic.
+        // See rspack_plugin_rslib/src/plugin.rs render() for why this duplication is necessary.
+        let hashbang = get_module_hashbang(module_graph, &entry_module);
+        let directives = get_module_directives(module_graph, &entry_module);
+
+        if let Some(hashbang) = &hashbang {
+          let entry_chunk_link = link.get_mut_unwrap(&entry_chunk_ukey);
+          entry_chunk_link.init_fragments.insert(
+            0,
+            Box::new(rspack_core::NormalInitFragment::new(
+              format!("{hashbang}\n"),
+              rspack_core::InitFragmentStage::StageConstants,
+              i32::MIN,
+              rspack_core::InitFragmentKey::unique(),
+              None,
+            )),
+          );
+        }
+
+        if let Some(directives) = directives {
+          let entry_module_chunk_link = link.get_mut_unwrap(&entry_module_chunk);
+
+          for (idx, directive) in directives.iter().enumerate() {
+            let insert_pos = if hashbang.is_some() { 1 + idx } else { idx };
+            entry_module_chunk_link.init_fragments.insert(
+              insert_pos,
+              Box::new(rspack_core::NormalInitFragment::new(
+                format!("{directive}\n"),
+                rspack_core::InitFragmentStage::StageConstants,
+                i32::MIN + 1 + idx as i32,
+                rspack_core::InitFragmentKey::unique(),
+                None,
+              )),
+            );
+          }
+        }
+
         /*
         entry module sometimes are splitted to whatever chunk user needs,
         so the entry chunk maynot actually contains entry modules
@@ -1285,18 +1324,12 @@ var {} = {{}};
         // import './foo.cjs'
         // should be rendered as __webpack_require__('./foo.cjs')
         for dep_id in module.get_dependencies() {
-          let Some(dep) = module_graph.dependency_by_id(dep_id) else {
-            continue;
-          };
+          let dep = module_graph.dependency_by_id(dep_id);
 
           let Some(conn) = module_graph.connection_by_dependency_id(dep_id) else {
             continue;
           };
-          if !conn.is_target_active(
-            &module_graph,
-            None,
-            &compilation.module_graph_cache_artifact,
-          ) {
+          if !conn.is_target_active(module_graph, None, &compilation.module_graph_cache_artifact) {
             continue;
           }
 
@@ -1346,7 +1379,7 @@ var {} = {{}};
 
             let binding = Self::get_binding(
               Some(m),
-              &module_graph,
+              module_graph,
               &compilation.module_graph_cache_artifact,
               ref_module,
               options.ids.clone(),
@@ -1382,7 +1415,7 @@ var {} = {{}};
 
             let mut binding = Self::get_binding(
               None,
-              &module_graph,
+              module_graph,
               &compilation.module_graph_cache_artifact,
               ref_module,
               vec![ref_atom.clone()],
@@ -1460,7 +1493,7 @@ var {} = {{}};
         if needs_import_chunk && !from_external {
           let readable_identifier = get_cached_readable_identifier(
             &m,
-            &module_graph,
+            module_graph,
             &compilation.module_static_cache_artifact,
             context,
           );
@@ -1518,11 +1551,7 @@ var {} = {{}};
             continue;
           };
 
-          if !conn.is_target_active(
-            &module_graph,
-            None,
-            &compilation.module_graph_cache_artifact,
-          ) {
+          if !conn.is_target_active(module_graph, None, &compilation.module_graph_cache_artifact) {
             continue;
           }
 
@@ -1590,6 +1619,11 @@ var {} = {{}};
 
       let mut removed_import_stmts = vec![];
       for (key, specifiers) in &chunk_link.raw_import_stmts {
+        if specifiers.atoms.is_empty() && specifiers.default_import.is_none() {
+          // import 'externals'
+          continue;
+        }
+
         if key.1.is_some() {
           // TODO: optimize import attributes
           continue;
@@ -1671,7 +1705,7 @@ var {} = {{}};
     call_context: bool,
     strict_esm_module: bool,
     asi_safe: Option<bool>,
-    already_visited: &mut FxHashSet<MaybeDynamicTargetExportInfoHashKey>,
+    already_visited: &mut FxHashSet<ExportInfoHashKey>,
     required: &mut IdentifierIndexMap<ExternalInterop>,
     all_used_names: &mut FxHashSet<Atom>,
   ) -> Ref {
@@ -1848,7 +1882,7 @@ var {} = {{}};
             info.module,
             Self::add_require(
               *info_id,
-              None,
+              from,
               Some(info.name.clone().expect("should have symbol")),
               all_used_names,
               required,
@@ -1950,9 +1984,11 @@ var {} = {{}};
           ));
         }
 
-        let reexport = export_info.find_target(
+        let reexport = find_target(
+          &export_info,
           mg,
           Arc::new(|module: &ModuleIdentifier| module_to_info_map.contains_key(module)),
+          &mut Default::default(),
         );
         match reexport {
           FindTargetResult::NoTarget => {}
@@ -2061,7 +2097,7 @@ var {} = {{}};
               info.module,
               Self::add_require(
                 *info_id,
-                None,
+                from,
                 Some(info.name.clone().expect("should have symbol")),
                 all_used_names,
                 required,

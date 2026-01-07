@@ -219,7 +219,7 @@ impl Stats<'_> {
       .par_bridge()
       .map(|module| {
         self.get_module(
-          &module_graph,
+          module_graph,
           module_graph_cache,
           module,
           false,
@@ -309,7 +309,7 @@ impl Stats<'_> {
         };
 
         let root_modules = chunk_graph
-          .get_chunk_root_modules(&c.ukey(), &module_graph, module_graph_cache)
+          .get_chunk_root_modules(&c.ukey(), module_graph, module_graph_cache)
           .into_iter()
           .collect::<IdentifierSet>();
 
@@ -324,12 +324,12 @@ impl Stats<'_> {
           let chunk_modules = self
             .compilation
             .chunk_graph
-            .get_chunk_modules(&c.ukey(), &module_graph);
+            .get_chunk_modules(&c.ukey(), module_graph);
           let mut chunk_modules = chunk_modules
             .into_iter()
             .map(|m| {
               self.get_module(
-                &module_graph,
+                module_graph,
                 module_graph_cache,
                 m,
                 false,
@@ -619,7 +619,7 @@ impl Stats<'_> {
 
         let module_trace = get_module_trace(
           module_identifier,
-          &module_graph,
+          module_graph,
           self.compilation,
           &self.compilation.options,
         );
@@ -677,7 +677,7 @@ impl Stats<'_> {
 
         let module_trace = get_module_trace(
           module_identifier,
-          &module_graph,
+          module_graph,
           self.compilation,
           &self.compilation.options,
         );
@@ -731,7 +731,7 @@ impl Stats<'_> {
   #[allow(clippy::too_many_arguments)]
   fn get_module<'a>(
     &'a self,
-    module_graph: &'a ModuleGraph<'a>,
+    module_graph: &'a ModuleGraph,
     module_graph_cache: &'a ModuleGraphCacheArtifact,
     module: &'a BoxModule,
     executed: bool,
@@ -995,15 +995,14 @@ impl Stats<'_> {
             })
             .unzip();
           let dependency = module_graph.dependency_by_id(&connection.dependency_id);
-          let (r#type, user_request) =
-            if let Some(d) = dependency.and_then(|d| d.as_module_dependency()) {
-              (Some(d.dependency_type().as_str()), Some(d.user_request()))
-            } else if let Some(d) = dependency.and_then(|d| d.as_context_dependency()) {
-              (Some(d.dependency_type().as_str()), Some(d.request()))
-            } else {
-              (None, None)
-            };
-          let loc = dependency.and_then(|d| d.loc()).map(|l| l.to_string());
+          let (r#type, user_request) = if let Some(d) = dependency.as_module_dependency() {
+            (Some(d.dependency_type().as_str()), Some(d.user_request()))
+          } else if let Some(d) = dependency.as_context_dependency() {
+            (Some(d.dependency_type().as_str()), Some(d.request()))
+          } else {
+            (None, None)
+          };
+          let loc = dependency.loc().map(|l| l.to_string());
           let explanation = module_graph
             .get_dep_meta_if_existing(&connection.dependency_id)
             .and_then(|extra| extra.explanation);
@@ -1331,7 +1330,7 @@ impl Stats<'_> {
 
 pub fn create_stats_errors<'a>(
   compilation: &'a Compilation,
-  module_graph: &'a ModuleGraph<'a>,
+  module_graph: &'a ModuleGraph,
   diagnostics: &'a mut Vec<Diagnostic>,
   colored: bool,
 ) -> Vec<StatsError<'a>> {

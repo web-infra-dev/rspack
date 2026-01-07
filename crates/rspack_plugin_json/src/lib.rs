@@ -200,12 +200,7 @@ impl ParserAndGenerator for JsonParserAndGenerator {
               UsageState::Unused
             ) =>
           {
-            create_object_for_exports_info(
-              json_data.clone(),
-              &exports_info,
-              *runtime,
-              &module_graph,
-            )
+            create_object_for_exports_info(json_data.clone(), &exports_info, *runtime, module_graph)
           }
           _ => json_data.clone(),
         };

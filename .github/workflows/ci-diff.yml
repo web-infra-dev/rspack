@@ -5,16 +5,17 @@ on:
     types: [opened, synchronize, reopened]
     # Ignore md files in PR to skip workflow when only documentation changes
     paths-ignore:
-      - "**/*.md"
-      - "website/**"
+      - '**/*.md'
+      - 'website/**'
 
   push:
     branches:
       - main
+      - v2
     # Ignore md files in push to skip workflow when only documentation changes
     paths-ignore:
-      - "**/*.md"
-      - "website/**"
+      - '**/*.md'
+      - 'website/**'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -73,7 +74,7 @@ jobs:
       - name: Clone build-tools-performance
         run: |
           cd ..
-          git clone https://github.com/rspack-contrib/build-tools-performance.git
+          git clone https://github.com/rstackjs/build-tools-performance.git
 
       - name: Link packages and install dependencies
         working-directory: ../build-tools-performance
@@ -92,5 +93,5 @@ jobs:
         uses: web-infra-dev/rsdoctor-action@5b30d999c6e0a7840df1445d222b020ef282ed6f
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          file_path: "../build-tools-performance/**/dist/rsdoctor-data.json"
-          target_branch: "main"
+          file_path: '../build-tools-performance/**/dist/rsdoctor-data.json'
+          target_branch: 'main'

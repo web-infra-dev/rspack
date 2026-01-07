@@ -19,10 +19,10 @@ When writing Rspack plugins, you can use `compiler.getCache(name: string)` or `c
 The following code finds out the newly added assets in the `processAssets`:
 
 ```js
-compiler.hooks.compilation.tap('MyPlugin', compilation => {
+compiler.hooks.compilation.tap('MyPlugin', (compilation) => {
   compilation.hooks.processAssets.tapPromise('MyPlugin', async () => {
     const cache = compilation.getCache('MyPlugin');
-    const currentAssets = compilation.getAssets().map(i => i.name);
+    const currentAssets = compilation.getAssets().map((i) => i.name);
     const lastAssets = await cache.getPromise('assets', null);
     if (lastAssets) {
       for (const asset of currentAssets) {
@@ -94,7 +94,7 @@ Try to get cache data asynchronously, call the computer function to generate whe
 ```js title=MyPlugin.js
 const createAssetsData = async () => {
   console.log('only called once');
-  return compilation.getAssets().map(i => i.name);
+  return compilation.getAssets().map((i) => i.name);
 };
 
 compilation.hooks.processAssets.tapPromise('MyPlugin', async () => {

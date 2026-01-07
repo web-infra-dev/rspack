@@ -117,7 +117,7 @@ impl ModuleExecutor {
     )
     .await?;
 
-    let mut mg = compilation
+    let mg = compilation
       .build_module_graph_artifact
       .get_module_graph_mut();
     let module_assets = std::mem::take(&mut self.module_assets);

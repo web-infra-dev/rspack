@@ -52,19 +52,19 @@ var __nested_rspack_exports__ = {};
 function normalizeUrl(url) {
     let urlString = url.trim();
     if (/^data:/i.test(urlString)) return urlString;
-    let protocol = -1 !== urlString.indexOf("//") ? `${urlString.split("//")[0]}//` : "", components = urlString.replace(RegExp(protocol, "i"), "").split("/"), host = components[0].toLowerCase().replace(/\.$/, "");
-    return components[0] = "", protocol + host + components.reduce((accumulator, item)=>{
+    let protocol = -1 !== urlString.indexOf('//') ? `${urlString.split('//')[0]}//` : '', components = urlString.replace(RegExp(protocol, 'i'), '').split('/'), host = components[0].toLowerCase().replace(/\.$/, '');
+    return components[0] = '', protocol + host + components.reduce((accumulator, item)=>{
         switch(item){
-            case "..":
+            case '..':
                 accumulator.pop();
                 break;
-            case ".":
+            case '.':
                 break;
             default:
                 accumulator.push(item);
         }
         return accumulator;
-    }, []).join("/");
+    }, []).join('/');
 }
 __nested_rspack_require_18_37__.r(__nested_rspack_exports__), __nested_rspack_require_18_37__.d(__nested_rspack_exports__, {
     cssReload: ()=>cssReload,
@@ -76,23 +76,23 @@ function updateCss(el, url) {
     let normalizedUrl;
     if (url) normalizedUrl = url;
     else {
-        let href = el.getAttribute("href");
+        let href = el.getAttribute('href');
         if (!href) return;
-        normalizedUrl = href.split("?")[0];
+        normalizedUrl = href.split('?')[0];
     }
-    if (!isUrlRequest(el.href) || !1 === el.isLoaded || !normalizedUrl || !(normalizedUrl.indexOf(".css") > -1)) return;
+    if (!isUrlRequest(el.href) || !1 === el.isLoaded || !normalizedUrl || !(normalizedUrl.indexOf('.css') > -1)) return;
     el.visited = !0;
     let newEl = el.cloneNode();
-    newEl.isLoaded = !1, newEl.addEventListener("load", ()=>{
+    newEl.isLoaded = !1, newEl.addEventListener('load', ()=>{
         !newEl.isLoaded && (newEl.isLoaded = !0, el.parentNode && el.parentNode.removeChild(el));
-    }), newEl.addEventListener("error", ()=>{
+    }), newEl.addEventListener('error', ()=>{
         !newEl.isLoaded && (newEl.isLoaded = !0, el.parentNode && el.parentNode.removeChild(el));
     }), newEl.href = `${normalizedUrl}?${Date.now()}`;
     let parent = el.parentNode;
     parent && (el.nextSibling ? parent.insertBefore(newEl, el.nextSibling) : parent.appendChild(newEl));
 }
 function reloadAll() {
-    let elements = document.querySelectorAll("link");
+    let elements = document.querySelectorAll('link');
     forEach.call(elements, (el)=>{
         !0 !== el.visited && updateCss(el);
     });
@@ -103,7 +103,7 @@ function isUrlRequest(url) {
 function cssReload(moduleId, options) {
     var fn;
     let timeout;
-    if (noDocument) return console.log("[HMR] No `window.document` found, CSS HMR disabled"), noop;
+    if (noDocument) return console.log('[HMR] No `window.document` found, CSS HMR disabled'), noop;
     let getScriptSrc = function(moduleId) {
         let src = srcByModuleId[moduleId];
         if (!src) {
@@ -117,33 +117,33 @@ function cssReload(moduleId, options) {
         return (fileMap)=>{
             if (!src) return null;
             let splitResult = src.match(/([^\\/]+)\.js$/), filename = splitResult && splitResult[1];
-            return filename && fileMap ? fileMap.split(",").map((mapRule)=>{
-                let reg = RegExp(`${filename}\\.js$`, "g");
+            return filename && fileMap ? fileMap.split(',').map((mapRule)=>{
+                let reg = RegExp(`${filename}\\.js$`, 'g');
                 return normalizeUrl(src.replace(reg, `${mapRule.replace(/{fileName}/g, filename)}.css`));
             }) : [
-                src.replace(".js", ".css")
+                src.replace('.js', '.css')
             ];
         };
     }(moduleId);
     return fn = function() {
         let src = getScriptSrc(options.filename), reloaded = function(src) {
             if (!src) return !1;
-            let elements = document.querySelectorAll("link"), loaded = !1;
+            let elements = document.querySelectorAll('link'), loaded = !1;
             return forEach.call(elements, (el)=>{
                 var href;
                 let ret, normalizedHref;
                 if (!el.href) return;
-                let url = (href = el.href, ret = "", normalizedHref = normalizeUrl(href), src.some((url)=>{
+                let url = (href = el.href, ret = '', normalizedHref = normalizeUrl(href), src.some((url)=>{
                     normalizedHref.indexOf(src) > -1 && (ret = url);
                 }), ret);
                 !isUrlRequest(url) || !0 !== el.visited && url && (updateCss(el, url), loaded = !0);
             }), loaded;
         }(src);
         if (options.locals) {
-            console.log("[HMR] Detected local CSS Modules. Reload all CSS"), reloadAll();
+            console.log('[HMR] Detected local CSS Modules. Reload all CSS'), reloadAll();
             return;
         }
-        reloaded ? console.log("[HMR] CSS reload %s", src && src.join(" ")) : (console.log("[HMR] Reload all CSS"), reloadAll());
+        reloaded ? console.log('[HMR] CSS reload %s', src && src.join(' ')) : (console.log('[HMR] Reload all CSS'), reloadAll());
     }, timeout = 0, function(...args) {
         let self = this;
         clearTimeout(timeout), timeout = setTimeout(function() {

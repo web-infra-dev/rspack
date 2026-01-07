@@ -1,14 +1,15 @@
-use std::{fmt::Debug, rc::Rc};
+use std::{borrow::Cow, fmt::Debug, rc::Rc};
 
 use rayon::prelude::*;
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   BoxModule, Compilation, CompilationOptimizeDependencies, ConnectionState, DependencyExtraMeta,
-  DependencyId, FactoryMeta, Logger, MaybeDynamicTargetExportInfo, ModuleFactoryCreateData,
-  ModuleGraph, ModuleGraphConnection, ModuleIdentifier, NormalModuleCreateData,
-  NormalModuleFactoryModule, Plugin, PrefetchExportsInfoMode, RayonConsumer,
-  ResolvedExportInfoTarget, SideEffectsDoOptimize, SideEffectsDoOptimizeMoveTarget,
-  SideEffectsOptimizeArtifact,
+  DependencyId, FactoryMeta, GetTargetResult, Logger, ModuleFactoryCreateData, ModuleGraph,
+  ModuleGraphConnection, ModuleIdentifier, NormalModuleCreateData, NormalModuleFactoryModule,
+  Plugin, PrefetchExportsInfoMode, RayonConsumer, ResolvedExportInfoTarget, SideEffectsDoOptimize,
+  SideEffectsDoOptimizeMoveTarget, SideEffectsOptimizeArtifact,
+  build_module_graph::BuildModuleGraphArtifact,
+  can_move_target, get_target,
   incremental::{self, IncrementalPasses, Mutation},
 };
 use rspack_error::{Diagnostic, Result};
@@ -150,14 +151,15 @@ async fn nmf_module(
 #[plugin_hook(CompilationOptimizeDependencies for SideEffectsFlagPlugin,tracing=false)]
 async fn optimize_dependencies(
   &self,
-  compilation: &mut Compilation,
+  compilation: &Compilation,
   side_effects_optimize_artifact: &mut SideEffectsOptimizeArtifact,
+  build_module_graph_artifact: &mut BuildModuleGraphArtifact,
   _diagnostics: &mut Vec<Diagnostic>,
 ) -> Result<Option<bool>> {
   let logger = compilation.get_logger("rspack.SideEffectsFlagPlugin");
   let start = logger.time("update connections");
 
-  let module_graph = compilation.get_module_graph();
+  let module_graph = build_module_graph_artifact.get_module_graph();
 
   let all_modules = module_graph.modules();
 
@@ -167,7 +169,7 @@ async fn optimize_dependencies(
       (
         *module_identifier,
         module.get_side_effects_connection_state(
-          &module_graph,
+          module_graph,
           &compilation.module_graph_cache_artifact,
           &mut Default::default(),
           &mut Default::default(),
@@ -204,9 +206,7 @@ async fn optimize_dependencies(
         if modules.contains(&original_module) {
           continue;
         }
-        let Some(dep) = module_graph.dependency_by_id(&connection.dependency_id) else {
-          continue;
-        };
+        let dep = module_graph.dependency_by_id(&connection.dependency_id);
         if dep.is::<ESMExportImportedSpecifierDependency>() && modules.insert(original_module) {
           affected_incoming_modules(&original_module, module_graph, modules);
         }
@@ -218,7 +218,7 @@ async fn optimize_dependencies(
       |mut modules, mutation| match mutation {
         Mutation::ModuleAdd { module } | Mutation::ModuleUpdate { module } => {
           if modules.insert(*module) {
-            affected_incoming_modules(module, &module_graph, &mut modules);
+            affected_incoming_modules(module, module_graph, &mut modules);
           }
           modules.extend(
             module_graph
@@ -257,7 +257,7 @@ async fn optimize_dependencies(
     .map(|connection| {
       (
         connection.dependency_id,
-        can_optimize_connection(connection, &side_effects_state_map, &module_graph),
+        can_optimize_connection(connection, &side_effects_state_map, module_graph),
       )
     })
     .consume(|(dep_id, can_optimize)| {
@@ -276,22 +276,22 @@ async fn optimize_dependencies(
   while !do_optimizes.is_empty() {
     do_optimized_count += do_optimizes.len();
 
-    let mut module_graph = compilation.get_seal_module_graph_mut();
+    let module_graph = build_module_graph_artifact.get_module_graph_mut();
 
     let new_connections: Vec<_> = do_optimizes
       .into_iter()
       .map(|(dependency, do_optimize)| {
-        do_optimize_connection(dependency, do_optimize, &mut module_graph)
+        do_optimize_connection(dependency, do_optimize, module_graph)
       })
       .collect();
 
-    let module_graph = compilation.get_module_graph();
+    let module_graph = build_module_graph_artifact.get_module_graph();
     do_optimizes = new_connections
       .into_par_iter()
       .filter(|(_, module)| side_effects_state_map[module] == ConnectionState::Active(false))
       .filter_map(|(connection, _)| module_graph.connection_by_dependency_id(&connection))
       .filter_map(|connection| {
-        can_optimize_connection(connection, &side_effects_state_map, &module_graph)
+        can_optimize_connection(connection, &side_effects_state_map, module_graph)
           .map(|i| (connection.dependency_id, i))
       })
       .collect();
@@ -342,7 +342,7 @@ fn can_optimize_connection(
 ) -> Option<SideEffectsDoOptimize> {
   let original_module = connection.original_module_identifier?;
   let dependency_id = connection.dependency_id;
-  let dep = module_graph.dependency_by_id(&dependency_id)?;
+  let dep = module_graph.dependency_by_id(&dependency_id);
 
   if let Some(dep) = dep.downcast_ref::<ESMExportImportedSpecifierDependency>()
     && let Some(name) = &dep.name
@@ -351,7 +351,8 @@ fn can_optimize_connection(
       module_graph.get_prefetched_exports_info(&original_module, PrefetchExportsInfoMode::Default);
     let export_info = exports_info.get_export_info_without_mut_module_graph(name);
 
-    let target = export_info.can_move_target(
+    let target = can_move_target(
+      &export_info,
       module_graph,
       Rc::new(|target: &ResolvedExportInfoTarget| {
         side_effects_state_map[&target.module] == ConnectionState::Active(false)
@@ -372,11 +373,11 @@ fn can_optimize_connection(
       })
       .unwrap_or_else(|| ids.get(1..).unwrap_or_default().to_vec());
     let need_move_target = match export_info {
-      MaybeDynamicTargetExportInfo::Static(export_info) => Some(SideEffectsDoOptimizeMoveTarget {
+      Cow::Borrowed(export_info) => Some(SideEffectsDoOptimizeMoveTarget {
         export_info: export_info.id(),
         target_export: target.export,
       }),
-      MaybeDynamicTargetExportInfo::Dynamic { .. } => None,
+      Cow::Owned { .. } => None,
     };
 
     return Some(SideEffectsDoOptimize {
@@ -397,12 +398,17 @@ fn can_optimize_connection(
     );
     let export_info = exports_info.get_export_info_without_mut_module_graph(&ids[0]);
 
-    let target = export_info.get_target(
+    let Some(GetTargetResult::Target(target)) = get_target(
+      &export_info,
       module_graph,
       Rc::new(|target: &ResolvedExportInfoTarget| {
         side_effects_state_map[&target.module] == ConnectionState::Active(false)
       }),
-    )?;
+      &mut Default::default(),
+    ) else {
+      return None;
+    };
+
     if !module_graph.can_update_module(&dependency_id, &target.module) {
       return None;
     }

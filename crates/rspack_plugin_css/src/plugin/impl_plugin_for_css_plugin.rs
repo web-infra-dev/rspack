@@ -89,7 +89,7 @@ impl CssPlugin {
   async fn render_chunk(
     &self,
     compilation: &Compilation,
-    mg: &ModuleGraph<'_>,
+    mg: &ModuleGraph,
     chunk: &Chunk,
     output_path: &str,
     css_import_modules: Vec<&dyn Module>,
@@ -319,20 +319,34 @@ async fn runtime_requirements_in_tree(
     compilation,
   );
 
-  if (runtime_requirements.contains(RuntimeGlobals::HAS_CSS_MODULES)
+  if !is_enabled_for_chunk {
+    return Ok(None);
+  }
+
+  if runtime_requirements.contains(RuntimeGlobals::HAS_CSS_MODULES)
     || runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS)
-    || runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS))
-    && is_enabled_for_chunk
+    || runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS)
   {
-    runtime_requirements_mut.insert(RuntimeGlobals::PUBLIC_PATH);
-    runtime_requirements_mut.insert(RuntimeGlobals::GET_CHUNK_CSS_FILENAME);
-    runtime_requirements_mut.insert(RuntimeGlobals::HAS_OWN_PROPERTY);
     runtime_requirements_mut.insert(RuntimeGlobals::MODULE_FACTORIES_ADD_ONLY);
     runtime_requirements_mut.insert(RuntimeGlobals::MAKE_NAMESPACE_OBJECT);
+  }
+
+  if runtime_requirements.contains(RuntimeGlobals::HAS_CSS_MODULES) {
     compilation.add_runtime_module(
       chunk_ukey,
       CssLoadingRuntimeModule::new(&compilation.runtime_template).boxed(),
     )?;
+  }
+
+  if runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS) {
+    runtime_requirements_mut.insert(RuntimeGlobals::PUBLIC_PATH);
+    runtime_requirements_mut.insert(RuntimeGlobals::GET_CHUNK_CSS_FILENAME);
+    runtime_requirements_mut.insert(RuntimeGlobals::HAS_OWN_PROPERTY);
+  }
+
+  if runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS) {
+    runtime_requirements_mut.insert(RuntimeGlobals::PUBLIC_PATH);
+    runtime_requirements_mut.insert(RuntimeGlobals::GET_CHUNK_CSS_FILENAME);
   }
 
   Ok(None)
@@ -350,12 +364,12 @@ async fn content_hash(
   let css_import_modules = compilation.chunk_graph.get_chunk_modules_by_source_type(
     chunk_ukey,
     SourceType::CssImport,
-    &module_graph,
+    module_graph,
   );
   let css_modules = compilation.chunk_graph.get_chunk_modules_by_source_type(
     chunk_ukey,
     SourceType::Css,
-    &module_graph,
+    module_graph,
   );
   let (ordered_modules, _) =
     Self::get_ordered_chunk_css_modules(chunk, compilation, css_import_modules, css_modules);
@@ -399,12 +413,12 @@ async fn render_manifest(
   let css_import_modules = compilation.chunk_graph.get_chunk_modules_by_source_type(
     chunk_ukey,
     SourceType::CssImport,
-    &module_graph,
+    module_graph,
   );
   let css_modules = compilation.chunk_graph.get_chunk_modules_by_source_type(
     chunk_ukey,
     SourceType::Css,
-    &module_graph,
+    module_graph,
   );
   if css_import_modules.is_empty() && css_modules.is_empty() {
     return Ok(());
@@ -444,7 +458,7 @@ async fn render_manifest(
       let (source, diagnostics) = self
         .render_chunk(
           compilation,
-          &module_graph,
+          module_graph,
           chunk,
           &output_path,
           css_import_modules,

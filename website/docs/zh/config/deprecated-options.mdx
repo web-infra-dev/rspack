@@ -6,6 +6,35 @@ import { ApiMeta } from '../../../components/ApiMeta';
 
 这些选项仅为向后兼容而保留，不应在新项目中使用。
 
+## builtin:swc-loader 选项
+
+### rspackExperiments.collectTypeScriptInfo
+
+<ApiMeta deprecatedVersion="1.7.0" />
+
+用于从 TypeScript 的 AST 中收集信息，以供 Rspack 后续过程进行消费。
+
+:::warning
+此配置已被废弃。请使用顶层的 [`collectTypeScriptInfo`](/guide/features/builtin-swc-loader#collecttypescriptinfo) 替代。
+
+```diff
+{
+  loader: 'builtin:swc-loader',
+  options: {
+-   rspackExperiments: {
+-     collectTypeScriptInfo: {
+-       exportedEnum: true,
+-     },
+-   },
++   collectTypeScriptInfo: {
++     exportedEnum: true,
++   },
+  },
+}
+```
+
+:::
+
 ## experiments.topLevelAwait
 
 - **类型：** `boolean`
@@ -125,9 +154,9 @@ export default {
 用于启用 TypeScript 枚举的内联优化。
 
 :::warning
-此配置已被废弃，不再需要。枚举内联优化现在由 [`optimization.inlineExports`](/config/optimization#optimizationinlineexports) 和 [`builtin:swc-loader rspackExperiments.collectTypeScriptInfo.exportedEnum`](/guide/features/builtin-swc-loader#rspackexperimentscollecttypescriptinfoexportedenum) 控制。
+此配置已被废弃，不再需要。枚举内联优化现在由 [`optimization.inlineExports`](/config/optimization#optimizationinlineexports) 和 [`builtin:swc-loader collectTypeScriptInfo.exportedEnum`](/guide/features/builtin-swc-loader#collecttypescriptinfoexportedenum) 控制。
 
-详细示例可参考：[inline enum 示例](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/inline-enum)
+详细示例可参考：[inline enum 示例](https://github.com/rstackjs/rstack-examples/tree/main/rspack/inline-enum)
 :::
 
 ## experiments.lazyBarrel
@@ -159,9 +188,9 @@ Lazy barrel 现在是一个稳定功能，始终处于启用状态。它通过�
 用于启用类型重导出的错误容忍。
 
 :::warning
-此配置已被废弃，不再需要。类型重导出存在性检查现在由 [`module.parser.javascript.typeReexportsPresence`](/config/module#moduleparserjavascripttypereexportspresence) 和 [`builtin:swc-loader rspackExperiments.collectTypeScriptInfo.typeExports`](/guide/features/builtin-swc-loader#rspackexperimentscollecttypescriptinfotypeexports) 控制。
+此配置已被废弃，不再需要。类型重导出存在性检查现在由 [`module.parser.javascript.typeReexportsPresence`](/config/module#moduleparserjavascripttypereexportspresence) 和 [`builtin:swc-loader collectTypeScriptInfo.typeExports`](/guide/features/builtin-swc-loader#collecttypescriptinfotypeexports) 控制。
 
-详细示例可参考：[type reexports presence 示例](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/type-reexports-presence)
+详细示例可参考：[type reexports presence 示例](https://github.com/rstackjs/rstack-examples/tree/main/rspack/type-reexports-presence)
 :::
 
 ## module.parser.javascript.inlineConst

@@ -7,7 +7,7 @@ use rspack_core::{
   ChunkGraph, ChunkGroup, ChunkGroupUkey, ChunkUkey, Compilation, CompilationAfterProcessAssets,
   CompilationRuntimeRequirementInTree, CompilerFailed, CompilerId, CompilerMake,
   CrossOriginLoading, Dependency, DependencyId, EntryDependency, Logger, ModuleGraph,
-  ModuleGraphRef, ModuleId, ModuleIdentifier, Plugin, RuntimeGlobals,
+  ModuleId, ModuleIdentifier, Plugin, RuntimeGlobals,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
@@ -269,7 +269,7 @@ async fn collect_entry_js_files(
 }
 
 fn collect_actions(
-  module_graph: &ModuleGraphRef<'_>,
+  module_graph: &ModuleGraph,
   module_identifier: &ModuleIdentifier,
   collected_actions: &mut FxHashMap<String, Vec<ActionIdNamePair>>,
   visited_modules: &mut FxHashSet<ModuleIdentifier>,
@@ -526,7 +526,7 @@ async fn make(&self, compilation: &mut Compilation) -> Result<()> {
         .or_default()
         .insert(*dependency.id());
       include_dependencies.push(*dependency.id());
-      Compilation::get_make_module_graph_mut(&mut compilation.build_module_graph_artifact)
+      compilation.get_module_graph_mut()
         .add_dependency(dependency);
     }
 
@@ -563,7 +563,7 @@ async fn runtime_requirements_in_tree(
 }
 
 #[plugin_hook(CompilationAfterProcessAssets for RscClientPlugin)]
-async fn after_process_assets(&self, compilation: &mut Compilation) -> Result<()> {
+async fn after_process_assets(&self, compilation: &Compilation, _diagnostics: &mut Vec<Diagnostic>) -> Result<()> {
   let logger = compilation.get_logger("rspack.RscClientPlugin");
 
   let server_compiler_id = self.coordinator.get_server_compiler_id().await?;

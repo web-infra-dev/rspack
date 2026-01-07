@@ -1,6 +1,6 @@
 {
   "name": "@rspack/binding-linux-arm64-musl",
-  "version": "1.7.0-beta.0",
+  "version": "1.7.1",
   "license": "MIT",
   "description": "Node binding for rspack",
   "main": "rspack.linux-arm64-musl.node",
@@ -13,9 +13,17 @@
   },
   "publishConfig": {
     "access": "public",
-    "os": ["linux"],
-    "cpu": ["arm64"],
-    "libc": ["musl"]
+    "os": [
+      "linux"
+    ],
+    "cpu": [
+      "arm64"
+    ],
+    "libc": [
+      "musl"
+    ]
   },
-  "files": ["rspack.linux-arm64-musl.node"]
+  "files": [
+    "rspack.linux-arm64-musl.node"
+  ]
 }

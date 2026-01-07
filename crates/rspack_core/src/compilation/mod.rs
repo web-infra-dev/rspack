@@ -45,15 +45,15 @@ use crate::{
   ChunkByUkey, ChunkContentHash, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkHashesArtifact,
   ChunkKind, ChunkNamedIdArtifact, ChunkRenderArtifact, ChunkRenderCacheArtifact,
   ChunkRenderResult, ChunkUkey, CodeGenerationJob, CodeGenerationResult, CodeGenerationResults,
-  CompilationLogger, CompilationLogging, CompilerOptions, ConcatenationScope,
+  CompilationLogger, CompilationLogging, CompilerOptions, CompilerPlatform, ConcatenationScope,
   DependenciesDiagnosticsArtifact, DependencyCodeGeneration, DependencyTemplate,
   DependencyTemplateType, DependencyType, DerefOption, Entry, EntryData, EntryOptions,
   EntryRuntime, Entrypoint, ExecuteModuleId, Filename, ImportPhase, ImportVarMap,
   ImportedByDeferModulesArtifact, Logger, MemoryGCStorage, ModuleFactory, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleGraphMut, ModuleGraphPartial, ModuleGraphRef, ModuleIdentifier,
-  ModuleIdsArtifact, ModuleStaticCacheArtifact, PathData, ResolverFactory, RuntimeGlobals,
-  RuntimeKeyMap, RuntimeMode, RuntimeModule, RuntimeSpec, RuntimeSpecMap, RuntimeTemplate,
-  SharedPluginDriver, SideEffectsOptimizeArtifact, SourceType, Stats, ValueCacheVersions,
+  ModuleGraphCacheArtifact, ModuleIdentifier, ModuleIdsArtifact, ModuleStaticCacheArtifact,
+  PathData, ResolverFactory, RuntimeGlobals, RuntimeKeyMap, RuntimeMode, RuntimeModule,
+  RuntimeSpec, RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver, SideEffectsOptimizeArtifact,
+  SourceType, Stats, ValueCacheVersions,
   build_chunk_graph::artifact::BuildChunkGraphArtifact,
   compilation::build_module_graph::{
     BuildModuleGraphArtifact, ModuleExecutor, UpdateParam, build_module_graph,
@@ -77,14 +77,15 @@ define_hook!(CompilationExecuteModule:
 define_hook!(CompilationFinishModules: Series(compilation: &mut Compilation, async_modules_artifact: &mut AsyncModulesArtifact));
 define_hook!(CompilationSeal: Series(compilation: &mut Compilation));
 define_hook!(CompilationConcatenationScope: SeriesBail(compilation: &Compilation, curr_module: ModuleIdentifier) -> ConcatenationScope);
-define_hook!(CompilationOptimizeDependencies: SeriesBail(compilation: &mut Compilation, side_effects_optimize_artifact: &mut SideEffectsOptimizeArtifact, diagnostics: &mut Vec<Diagnostic>) -> bool);
-define_hook!(CompilationOptimizeModules: SeriesBail(compilation: &mut Compilation) -> bool);
-define_hook!(CompilationAfterOptimizeModules: Series(compilation: &mut Compilation));
+define_hook!(CompilationOptimizeDependencies: SeriesBail(compilation: &Compilation, side_effects_optimize_artifact: &mut SideEffectsOptimizeArtifact,  build_module_graph_artifact: &mut BuildModuleGraphArtifact,
+ diagnostics: &mut Vec<Diagnostic>) -> bool);
+define_hook!(CompilationOptimizeModules: SeriesBail(compilation: &Compilation, diagnostics: &mut Vec<Diagnostic>) -> bool);
+define_hook!(CompilationAfterOptimizeModules: Series(compilation: &Compilation));
 define_hook!(CompilationOptimizeChunks: SeriesBail(compilation: &mut Compilation) -> bool);
-define_hook!(CompilationOptimizeTree: Series(compilation: &mut Compilation));
+define_hook!(CompilationOptimizeTree: Series(compilation: &Compilation));
 define_hook!(CompilationOptimizeChunkModules: SeriesBail(compilation: &mut Compilation) -> bool);
-define_hook!(CompilationModuleIds: Series(compilation: &mut Compilation));
-define_hook!(CompilationChunkIds: Series(compilation: &mut Compilation));
+define_hook!(CompilationModuleIds: Series(compilation: &Compilation, module_ids: &mut ModuleIdsArtifact, diagnostics: &mut Vec<Diagnostic>));
+define_hook!(CompilationChunkIds: Series(compilation: &Compilation, chunk_by_ukey: &mut ChunkByUkey, named_chunk_ids_artifact: &mut ChunkNamedIdArtifact, diagnostics: &mut Vec<Diagnostic>));
 define_hook!(CompilationRuntimeModule: Series(compilation: &mut Compilation, module: &ModuleIdentifier, chunk: &ChunkUkey));
 define_hook!(CompilationAdditionalModuleRuntimeRequirements: Series(compilation: &Compilation, module_identifier: &ModuleIdentifier, runtime_requirements: &mut RuntimeGlobals),tracing=false);
 define_hook!(CompilationRuntimeRequirementInModule: SeriesBail(compilation: &Compilation, module_identifier: &ModuleIdentifier, all_runtime_requirements: &RuntimeGlobals, runtime_requirements: &RuntimeGlobals, runtime_requirements_mut: &mut RuntimeGlobals),tracing=false);
@@ -100,8 +101,8 @@ define_hook!(CompilationDependentFullHash: SeriesBail(compilation: &Compilation,
 define_hook!(CompilationRenderManifest: Series(compilation: &Compilation, chunk_ukey: &ChunkUkey, manifest: &mut Vec<RenderManifestEntry>, diagnostics: &mut Vec<Diagnostic>),tracing=false);
 define_hook!(CompilationChunkAsset: Series(compilation: &Compilation, chunk_ukey: &ChunkUkey, filename: &str));
 define_hook!(CompilationProcessAssets: Series(compilation: &mut Compilation));
-define_hook!(CompilationAfterProcessAssets: Series(compilation: &mut Compilation));
-define_hook!(CompilationAfterSeal: Series(compilation: &mut Compilation),tracing=true);
+define_hook!(CompilationAfterProcessAssets: Series(compilation: &Compilation, diagnostics: &mut Vec<Diagnostic>));
+define_hook!(CompilationAfterSeal: Series(compilation: &Compilation),tracing=true);
 
 #[derive(Debug, Default)]
 pub struct CompilationHooks {
@@ -218,10 +219,9 @@ pub struct Compilation {
   pub hot_index: u32,
   pub records: Option<CompilationRecords>,
   pub options: Arc<CompilerOptions>,
+  pub platform: Arc<CompilerPlatform>,
   pub entries: Entry,
   pub global_entry: EntryData,
-  // module graph partial used in seal phase
-  pub seal_module_graph_partial: Option<ModuleGraphPartial>,
   pub dependency_factories: HashMap<DependencyType, Arc<dyn ModuleFactory>>,
   pub dependency_templates: HashMap<DependencyTemplateType, Arc<dyn DependencyTemplate>>,
   pub runtime_modules: IdentifierMap<Box<dyn RuntimeModule>>,
@@ -298,7 +298,7 @@ pub struct Compilation {
 
   pub modified_files: ArcPathSet,
   pub removed_files: ArcPathSet,
-  pub build_module_graph_artifact: BuildModuleGraphArtifact,
+  pub build_module_graph_artifact: DerefOption<BuildModuleGraphArtifact>,
   pub input_filesystem: Arc<dyn ReadableFileSystem>,
 
   pub intermediate_filesystem: Arc<dyn IntermediateFileSystem>,
@@ -337,6 +337,7 @@ impl Compilation {
   pub fn new(
     compiler_id: CompilerId,
     options: Arc<CompilerOptions>,
+    platform: Arc<CompilerPlatform>,
     plugin_driver: SharedPluginDriver,
     buildtime_plugin_driver: SharedPluginDriver,
     resolver_factory: Arc<ResolverFactory>,
@@ -360,7 +361,7 @@ impl Compilation {
       runtime_template: RuntimeTemplate::new(options.clone()),
       records,
       options: options.clone(),
-      seal_module_graph_partial: None,
+      platform,
       dependency_factories: Default::default(),
       dependency_templates: Default::default(),
       runtime_modules: Default::default(),
@@ -427,7 +428,7 @@ impl Compilation {
       module_executor,
       in_finish_make: AtomicBool::new(false),
 
-      build_module_graph_artifact: BuildModuleGraphArtifact::default(),
+      build_module_graph_artifact: DerefOption::new(BuildModuleGraphArtifact::default()),
       modified_files,
       removed_files,
       input_filesystem,
@@ -447,70 +448,39 @@ impl Compilation {
     self.compiler_id
   }
 
-  pub fn swap_build_module_graph_artifact_with_compilation(&mut self, other: &mut Compilation) {
+  pub fn recover_module_graph_to_new_compilation(&mut self, new_compilation: &mut Compilation) {
+    self
+      .build_module_graph_artifact
+      .get_module_graph_mut()
+      .reset();
     std::mem::swap(
       &mut self.build_module_graph_artifact,
-      &mut other.build_module_graph_artifact,
+      &mut new_compilation.build_module_graph_artifact,
     );
   }
   pub fn swap_build_module_graph_artifact(&mut self, make_artifact: &mut BuildModuleGraphArtifact) {
-    mem::swap(&mut self.build_module_graph_artifact, make_artifact);
+    self.build_module_graph_artifact.swap(make_artifact);
+  }
+  pub fn get_module_graph(&self) -> &ModuleGraph {
+    self.build_module_graph_artifact.get_module_graph()
   }
 
-  pub fn get_module_graph(&self) -> ModuleGraphRef<'_> {
-    if let Some(other_module_graph) = &self.seal_module_graph_partial {
-      ModuleGraph::new_ref([
-        Some(self.build_module_graph_artifact.get_module_graph_partial()),
-        Some(other_module_graph),
-      ])
-    } else {
-      ModuleGraph::new_ref([
-        Some(self.build_module_graph_artifact.get_module_graph_partial()),
-        None,
-      ])
-    }
-  }
-
-  // FIXME: find a better way to do this.
+  // it will return None during make phase since mg is incomplete
   pub fn module_by_identifier(&self, identifier: &ModuleIdentifier) -> Option<&BoxModule> {
-    if let Some(other_module_graph) = &self.seal_module_graph_partial
-      && let Some(module) = other_module_graph.modules.get(identifier)
-    {
-      return module.as_ref();
+    if self.build_module_graph_artifact.is_none() {
+      return None;
+    }
+    if let Some(module) = self.get_module_graph().module_by_identifier(identifier) {
+      return Some(module);
     };
 
-    if let Some(module) = self
+    self
       .build_module_graph_artifact
-      .get_module_graph_partial()
-      .modules
-      .get(identifier)
-    {
-      return module.as_ref();
-    }
-
-    None
+      .get_module_graph()
+      .module_by_identifier(identifier)
   }
-  pub fn get_make_module_graph_mut(
-    build_module_graph_artifact: &mut BuildModuleGraphArtifact,
-  ) -> ModuleGraphMut<'_> {
-    ModuleGraph::new_mut(
-      [None, None],
-      build_module_graph_artifact.get_module_graph_partial_mut(),
-    )
-  }
-  // TODO: remove &mut self in the future
-  pub fn get_seal_module_graph_mut(&mut self) -> ModuleGraphMut<'_> {
-    let seal_module_graph_partial = self
-      .seal_module_graph_partial
-      .as_mut()
-      .expect("should set seal_module_graph");
-    ModuleGraph::new_mut(
-      [
-        Some(self.build_module_graph_artifact.get_module_graph_partial()),
-        None,
-      ],
-      seal_module_graph_partial,
-    )
+  pub fn get_module_graph_mut(&mut self) -> &mut ModuleGraph {
+    self.build_module_graph_artifact.get_module_graph_mut()
   }
 
   pub fn file_dependencies(
@@ -654,8 +624,10 @@ impl Compilation {
 
   pub async fn add_entry(&mut self, entry: BoxDependency, options: EntryOptions) -> Result<()> {
     let entry_id = *entry.id();
-    let entry_name = options.name.clone();
-    Compilation::get_make_module_graph_mut(&mut self.build_module_graph_artifact)
+    let entry_name: Option<String> = options.name.clone();
+    self
+      .build_module_graph_artifact
+      .get_module_graph_mut()
       .add_dependency(entry);
     if let Some(name) = &entry_name {
       if let Some(data) = self.entries.get_mut(name) {
@@ -689,21 +661,23 @@ impl Compilation {
       self.add_entry(entry, options).await?;
     }
 
-    let make_artifact = mem::take(&mut self.build_module_graph_artifact);
-    self.build_module_graph_artifact = update_module_graph(
-      self,
-      make_artifact,
-      vec![UpdateParam::BuildEntry(
-        self
-          .entries
-          .values()
-          .flat_map(|item| item.all_dependencies())
-          .chain(self.global_entry.all_dependencies())
-          .copied()
-          .collect(),
-      )],
-    )
-    .await?;
+    let make_artifact = self.build_module_graph_artifact.take();
+    self.build_module_graph_artifact = DerefOption::new(
+      update_module_graph(
+        self,
+        make_artifact,
+        vec![UpdateParam::BuildEntry(
+          self
+            .entries
+            .values()
+            .flat_map(|item| item.all_dependencies())
+            .chain(self.global_entry.all_dependencies())
+            .copied()
+            .collect(),
+        )],
+      )
+      .await?,
+    );
     Ok(())
   }
 
@@ -716,7 +690,9 @@ impl Compilation {
 
     for (entry, options) in args {
       let entry_id = *entry.id();
-      Compilation::get_make_module_graph_mut(&mut self.build_module_graph_artifact)
+      self
+        .build_module_graph_artifact
+        .get_module_graph_mut()
         .add_dependency(entry);
       if let Some(name) = options.name.clone() {
         if let Some(data) = self.entries.get_mut(&name) {
@@ -736,21 +712,23 @@ impl Compilation {
 
     // Recheck entry and clean useless entry
     // This should before finish_modules hook is called, ensure providedExports effects on new added modules
-    let make_artifact = mem::take(&mut self.build_module_graph_artifact);
-    self.build_module_graph_artifact = update_module_graph(
-      self,
-      make_artifact,
-      vec![UpdateParam::BuildEntry(
-        self
-          .entries
-          .values()
-          .flat_map(|item| item.all_dependencies())
-          .chain(self.global_entry.all_dependencies())
-          .copied()
-          .collect(),
-      )],
-    )
-    .await?;
+    let make_artifact = self.build_module_graph_artifact.take();
+    self.build_module_graph_artifact = DerefOption::new(
+      update_module_graph(
+        self,
+        make_artifact,
+        vec![UpdateParam::BuildEntry(
+          self
+            .entries
+            .values()
+            .flat_map(|item| item.all_dependencies())
+            .chain(self.global_entry.all_dependencies())
+            .copied()
+            .collect(),
+        )],
+      )
+      .await?,
+    );
     Ok(())
   }
 
@@ -1046,8 +1024,8 @@ impl Compilation {
       self.module_executor = Some(module_executor);
     }
 
-    let artifact = std::mem::take(&mut self.build_module_graph_artifact);
-    self.build_module_graph_artifact = build_module_graph(self, artifact).await?;
+    let artifact = self.build_module_graph_artifact.take();
+    self.build_module_graph_artifact = DerefOption::new(build_module_graph(self, artifact).await?);
 
     self.in_finish_make.store(true, Ordering::Release);
 
@@ -1059,17 +1037,19 @@ impl Compilation {
     module_identifiers: IdentifierSet,
     f: impl Fn(Vec<&BoxModule>) -> T,
   ) -> Result<T> {
-    let artifact = std::mem::take(&mut self.build_module_graph_artifact);
+    let artifact = self.build_module_graph_artifact.take();
 
     // https://github.com/webpack/webpack/blob/19ca74127f7668aaf60d59f4af8fcaee7924541a/lib/Compilation.js#L2462C21-L2462C25
     self.module_graph_cache_artifact.unfreeze();
 
-    self.build_module_graph_artifact = update_module_graph(
-      self,
-      artifact,
-      vec![UpdateParam::ForceBuildModules(module_identifiers.clone())],
-    )
-    .await?;
+    self.build_module_graph_artifact = DerefOption::new(
+      update_module_graph(
+        self,
+        artifact,
+        vec![UpdateParam::ForceBuildModules(module_identifiers.clone())],
+      )
+      .await?,
+    );
 
     let module_graph = self.get_module_graph();
     Ok(f(module_identifiers
@@ -1403,11 +1383,16 @@ impl Compilation {
 
   #[instrument("Compilation:after_process_assets", skip_all)]
   async fn after_process_assets(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
-    plugin_driver
+    let mut diagnostics: Vec<Diagnostic> = vec![];
+
+    let res = plugin_driver
       .compilation_hooks
       .after_process_assets
-      .call(self)
-      .await
+      .call(self, &mut diagnostics)
+      .await;
+
+    self.extend_diagnostics(diagnostics);
+    res
   }
 
   #[instrument("Compilation:after_seal", target=TRACING_BENCH_TARGET,skip_all)]
@@ -1464,8 +1449,9 @@ impl Compilation {
   pub async fn finish_build_module_graph(&mut self) -> Result<()> {
     self.in_finish_make.store(false, Ordering::Release);
     // clean up the entry deps
-    let make_artifact = std::mem::take(&mut self.build_module_graph_artifact);
-    self.build_module_graph_artifact = finish_build_module_graph(self, make_artifact).await?;
+    let make_artifact = self.build_module_graph_artifact.take();
+    self.build_module_graph_artifact =
+      DerefOption::new(finish_build_module_graph(self, make_artifact).await?);
     // sync assets to module graph from module_executor
     if let Some(module_executor) = &mut self.module_executor {
       let mut module_executor = std::mem::take(module_executor);
@@ -1569,7 +1555,7 @@ impl Compilation {
           for revoked_module in revoked_modules {
             dependencies_diagnostics_artifact.remove(&revoked_module);
           }
-          let modules = mutations.get_affected_modules_with_module_graph(&self.get_module_graph());
+          let modules = mutations.get_affected_modules_with_module_graph(self.get_module_graph());
           let logger = self.get_logger("rspack.incremental.dependenciesDiagnostics");
           logger.log(format!(
             "{} modules are affected, {} in total",
@@ -1602,10 +1588,10 @@ impl Compilation {
         let diagnostics = mgm
           .all_dependencies
           .iter()
-          .filter_map(|dependency_id| module_graph.dependency_by_id(dependency_id))
-          .filter_map(|dependency| {
+          .filter_map(|dependency_id| {
+            let dependency = module_graph.dependency_by_id(dependency_id);
             dependency
-              .get_diagnostics(&module_graph, module_graph_cache)
+              .get_diagnostics(module_graph, module_graph_cache)
               .map(|diagnostics| {
                 diagnostics.into_iter().map(|mut diagnostic| {
                   diagnostic.module_identifier = Some(*module_identifier);
@@ -1630,7 +1616,11 @@ impl Compilation {
 
   #[instrument("Compilation:seal", skip_all)]
   pub async fn seal(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
-    self.seal_module_graph_partial = Some(ModuleGraphPartial::default());
+    // add a checkpoint here since we may modify module graph later in incremental compilation
+    // and we can recover to this checkpoint in the future
+    if self.incremental.passes_enabled(IncrementalPasses::MAKE) {
+      self.build_module_graph_artifact.module_graph.checkpoint();
+    }
 
     if !self.options.mode.is_development() {
       self.module_static_cache_artifact.freeze();
@@ -1651,16 +1641,23 @@ impl Compilation {
 
     let mut side_effects_optimize_artifact = self.side_effects_optimize_artifact.take();
     let mut diagnostics: Vec<Diagnostic> = vec![];
+    let mut build_module_graph_artifact = mem::take(&mut self.build_module_graph_artifact);
     while matches!(
       plugin_driver
         .compilation_hooks
         .optimize_dependencies
-        .call(self, &mut side_effects_optimize_artifact, &mut diagnostics)
+        .call(
+          self,
+          &mut side_effects_optimize_artifact,
+          &mut build_module_graph_artifact,
+          &mut diagnostics
+        )
         .await
         .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.optimizeDependencies"))?,
       Some(true)
     ) {}
     self.side_effects_optimize_artifact = DerefOption::new(side_effects_optimize_artifact);
+    self.build_module_graph_artifact = build_module_graph_artifact;
     self.extend_diagnostics(diagnostics);
 
     logger.time_end(start);
@@ -1682,15 +1679,17 @@ impl Compilation {
     })
     .await?;
 
+    let mut diagnostics = vec![];
     while matches!(
       plugin_driver
         .compilation_hooks
         .optimize_modules
-        .call(self)
+        .call(self, &mut diagnostics)
         .await
         .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.optimizeModules"))?,
       Some(true)
     ) {}
+    self.extend_diagnostics(diagnostics);
 
     plugin_driver
       .compilation_hooks
@@ -1732,21 +1731,36 @@ impl Compilation {
 
     let start = logger.time("module ids");
 
+    let mut diagnostics = vec![];
+    let mut module_ids_artifact = mem::take(&mut self.module_ids_artifact);
     plugin_driver
       .compilation_hooks
       .module_ids
-      .call(self)
+      .call(self, &mut module_ids_artifact, &mut diagnostics)
       .await
       .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.moduleIds"))?;
+    self.module_ids_artifact = module_ids_artifact;
+    self.extend_diagnostics(diagnostics);
     logger.time_end(start);
 
     let start = logger.time("chunk ids");
+    let mut diagnostics = vec![];
+    let mut chunk_by_ukey = mem::take(&mut self.chunk_by_ukey);
+    let mut named_chunk_ids_artifact = mem::take(&mut self.named_chunk_ids_artifact);
     plugin_driver
       .compilation_hooks
       .chunk_ids
-      .call(self)
+      .call(
+        self,
+        &mut chunk_by_ukey,
+        &mut named_chunk_ids_artifact,
+        &mut diagnostics,
+      )
       .await
       .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.chunkIds"))?;
+    self.chunk_by_ukey = chunk_by_ukey;
+    self.named_chunk_ids_artifact = named_chunk_ids_artifact;
+    self.extend_diagnostics(diagnostics);
     logger.time_end(start);
 
     self.assign_runtime_ids();

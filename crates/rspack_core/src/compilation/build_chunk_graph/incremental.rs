@@ -486,7 +486,7 @@ impl CodeSplitter {
       .incremental
       .mutations_read(IncrementalPasses::BUILD_CHUNK_GRAPH)
     {
-      let affected_modules = mutations.get_affected_modules_with_module_graph(&module_graph);
+      let affected_modules = mutations.get_affected_modules_with_module_graph(module_graph);
       let removed_modules: IdentifierSet = mutations
         .iter()
         .filter_map(|mutation| match mutation {

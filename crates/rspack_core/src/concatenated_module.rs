@@ -42,14 +42,14 @@ use crate::{
   CodeGenerationExportsFinalNames, CodeGenerationPublicPathAutoReplace, CodeGenerationResult,
   Compilation, ConcatenatedModuleIdent, ConcatenationScope, ConditionalInitFragment,
   ConnectionState, Context, DEFAULT_EXPORT, DEFAULT_EXPORT_ATOM, DependenciesBlock, DependencyId,
-  DependencyType, ExportProvided, ExportsArgument, ExportsInfoGetter, ExportsType, FactoryMeta,
-  GetUsedNameParam, ImportedByDeferModulesArtifact, InitFragment, InitFragmentStage,
-  LibIdentOptions, MaybeDynamicTargetExportInfoHashKey, Module, ModuleArgument, ModuleGraph,
+  DependencyType, ExportInfoHashKey, ExportProvided, ExportsArgument, ExportsInfoGetter,
+  ExportsType, FactoryMeta, GetUsedNameParam, ImportedByDeferModulesArtifact, InitFragment,
+  InitFragmentStage, LibIdentOptions, Module, ModuleArgument, ModuleGraph,
   ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, ModuleLayer,
   ModuleStaticCacheArtifact, ModuleType, NAMESPACE_OBJECT_EXPORT, ParserOptions,
   PrefetchExportsInfoMode, Resolve, RuntimeCondition, RuntimeGlobals, RuntimeSpec, SourceType,
   URLStaticMode, UsageState, UsedName, UsedNameItem, escape_identifier, filter_runtime,
-  get_runtime_key, impl_source_map_config, merge_runtime_condition,
+  find_target, get_runtime_key, impl_source_map_config, merge_runtime_condition,
   merge_runtime_condition_non_false, module_update_hash, property_access, property_name,
   render_make_deferred_namespace_mode_from_exports_type, reserved_names::RESERVED_NAMES,
   subtract_runtime_condition, to_identifier_with_escaped, to_normal_comment,
@@ -699,9 +699,7 @@ impl Module for ConcatenatedModule {
 
       // populate dependencies
       for dep_id in module.get_dependencies().iter() {
-        let dep = module_graph
-          .dependency_by_id(dep_id)
-          .expect("should have dependency");
+        let dep = module_graph.dependency_by_id(dep_id);
         let module_id_of_dep = module_graph.module_identifier_by_dependency_id(dep_id);
         if !is_esm_dep_like(dep) || !modules.contains(&module_id_of_dep) {
           self.dependencies.push(*dep_id);
@@ -763,7 +761,7 @@ impl Module for ConcatenatedModule {
     let context = compilation.options.context.clone();
 
     let (references_info, module_to_info_map) = self.get_modules_with_info(
-      &compilation.get_module_graph(),
+      compilation.get_module_graph(),
       &compilation.module_graph_cache_artifact,
       runtime,
       &compilation.imported_by_defer_modules_artifact,
@@ -849,7 +847,7 @@ impl Module for ConcatenatedModule {
         let mut escaped_identifiers: HashMap<String, Vec<String>> = HashMap::default();
         let readable_identifier = get_cached_readable_identifier(
           &info.id(),
-          &module_graph,
+          module_graph,
           &compilation.module_static_cache_artifact,
           &context,
         );
@@ -893,7 +891,7 @@ impl Module for ConcatenatedModule {
         .expect("should have module identifier");
       let readable_identifier = get_cached_readable_identifier(
         &info.id(),
-        &module_graph,
+        module_graph,
         &compilation.module_static_cache_artifact,
         &context,
       );
@@ -1189,7 +1187,7 @@ impl Module for ConcatenatedModule {
         ) in refs
         {
           let final_name = Self::get_final_name(
-            &compilation.get_module_graph(),
+            compilation.get_module_graph(),
             &compilation.module_graph_cache_artifact,
             &compilation.module_static_cache_artifact,
             referenced_info_id,
@@ -1265,7 +1263,7 @@ impl Module for ConcatenatedModule {
       };
       exports_map.insert(used_name.clone(), {
         let final_name = Self::get_final_name(
-          &compilation.get_module_graph(),
+          compilation.get_module_graph(),
           &compilation.module_graph_cache_artifact,
           &compilation.module_static_cache_artifact,
           &root_module_id,
@@ -1453,7 +1451,7 @@ impl Module for ConcatenatedModule {
           .expect("should have box module");
         let module_readable_identifier = get_cached_readable_identifier(
           module_info_id,
-          &module_graph,
+          module_graph,
           &compilation.module_static_cache_artifact,
           &context,
         );
@@ -1474,7 +1472,7 @@ impl Module for ConcatenatedModule {
 
           if let Some(UsedNameItem::Str(used_name)) = export_info.get_used_name(None, runtime) {
             let final_name = Self::get_final_name(
-              &compilation.get_module_graph(),
+              compilation.get_module_graph(),
               &compilation.module_graph_cache_artifact,
               &compilation.module_static_cache_artifact,
               module_info_id,
@@ -1561,7 +1559,7 @@ impl Module for ConcatenatedModule {
           .expect("should have module");
         let module_readable_identifier = get_cached_readable_identifier(
           &info.module,
-          &module_graph,
+          module_graph,
           &compilation.module_static_cache_artifact,
           &context,
         );
@@ -1569,7 +1567,7 @@ impl Module for ConcatenatedModule {
           .runtime_template
           .get_property_accessed_deferred_module(
             module.get_exports_type(
-              &module_graph,
+              module_graph,
               &compilation.module_graph_cache_artifact,
               root_module.build_meta().strict_esm_module,
             ),
@@ -1604,7 +1602,7 @@ impl Module for ConcatenatedModule {
               .render_runtime_globals(&RuntimeGlobals::MAKE_DEFERRED_NAMESPACE_OBJECT),
             module_id,
             render_make_deferred_namespace_mode_from_exports_type(module.get_exports_type(
-              &module_graph,
+              module_graph,
               &compilation.module_graph_cache_artifact,
               root_module.build_meta().strict_esm_module,
             )),
@@ -1623,7 +1621,7 @@ impl Module for ConcatenatedModule {
         .expect("should have module info");
       let module_readable_identifier = get_cached_readable_identifier(
         &module_info_id,
-        &module_graph,
+        module_graph,
         &compilation.module_static_cache_artifact,
         &context,
       );
@@ -1688,7 +1686,7 @@ impl Module for ConcatenatedModule {
               "\n// non-deferred import to a deferred module ({})\nvar {} = {}.a;",
               get_cached_readable_identifier(
                 &info.module,
-                &module_graph,
+                module_graph,
                 &compilation.module_static_cache_artifact,
                 &context,
               ),
@@ -1809,7 +1807,7 @@ impl Module for ConcatenatedModule {
     let runtime = runtime.as_deref();
     let concatenation_entries = self.create_concatenation_list(
       runtime,
-      &compilation.get_module_graph(),
+      compilation.get_module_graph(),
       &compilation.module_graph_cache_artifact,
     );
 
@@ -1831,7 +1829,7 @@ impl Module for ConcatenatedModule {
             ConcatenationEntry::External(e) => Ok(
               ChunkGraph::get_module_id(
                 &compilation.module_ids_artifact,
-                e.module(&compilation.get_module_graph()),
+                e.module(compilation.get_module_graph()),
               )
               .map(|id| id.to_string()),
             ),
@@ -2167,9 +2165,7 @@ impl ConcatenatedModule {
     let mut references = connections
       .into_iter()
       .filter_map(|connection| {
-        let dep = mg
-          .dependency_by_id(&connection.dependency_id)
-          .expect("should have dependency");
+        let dep = mg.dependency_by_id(&connection.dependency_id);
         if !is_esm_dep_like(dep) {
           return None;
         }
@@ -2536,7 +2532,7 @@ impl ConcatenatedModule {
     dep_deferred: bool,
     strict_esm_module: bool,
     asi_safe: Option<bool>,
-    already_visited: &mut HashSet<MaybeDynamicTargetExportInfoHashKey>,
+    already_visited: &mut HashSet<ExportInfoHashKey>,
   ) -> FinalBindingResult {
     let info = module_to_info_map
       .get(info_id)
@@ -2872,9 +2868,11 @@ impl ConcatenatedModule {
           }));
         }
 
-        let reexport = export_info.find_target(
+        let reexport = find_target(
+          &export_info,
           mg,
           Arc::new(|module: &ModuleIdentifier| module_to_info_map.contains_key(module)),
+          &mut Default::default(),
         );
         match reexport {
           crate::FindTargetResult::NoTarget => {}

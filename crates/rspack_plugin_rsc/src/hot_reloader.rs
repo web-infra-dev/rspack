@@ -1,7 +1,7 @@
 use std::hash::{Hash, Hasher};
 
 use rspack_collections::{IdentifierMap, IdentifierSet};
-use rspack_core::{Compilation, Module, ModuleGraphRef, RscModuleType};
+use rspack_core::{Compilation, Module, ModuleGraph, RscModuleType};
 use rustc_hash::{FxHashMap, FxHasher};
 
 use crate::constants::LAYERS_NAMES;
@@ -50,7 +50,7 @@ pub fn track_server_component_changes(
 #[allow(clippy::too_many_arguments)]
 fn collect_changed_server_components(
   compilation: &Compilation,
-  module_graph: &ModuleGraphRef<'_>,
+  module_graph: &ModuleGraph,
   module: &dyn Module,
   prev_server_component_hashes: &IdentifierMap<u64>,
   visited_modules: &mut IdentifierSet,

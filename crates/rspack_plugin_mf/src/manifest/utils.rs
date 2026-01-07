@@ -43,7 +43,8 @@ pub fn ensure_shared_entry<'a>(
       name: pkg.to_string(),
       version: String::new(),
       requiredVersion: None,
-      singleton: None,
+      // default singleton to true
+      singleton: Some(true),
       assets: super::data::StatsAssetsGroup::default(),
       usedIn: Vec::new(),
     })
@@ -56,12 +57,19 @@ pub fn record_shared_usage(
   module_graph: &ModuleGraph,
   compilation: &Compilation,
 ) {
+  fn strip_aggregate_suffix(s: &str) -> String {
+    if let Some((before, _)) = s.split_once(" + ") {
+      before.to_string()
+    } else {
+      s.to_string()
+    }
+  }
   if let Some(issuer_module) = module_graph.get_issuer(module_identifier) {
     let issuer_name = issuer_module
       .readable_identifier(&compilation.options.context)
       .to_string();
     if !issuer_name.is_empty() {
-      let key = strip_ext(&issuer_name);
+      let key = strip_ext(&strip_aggregate_suffix(&issuer_name));
       shared_usage_links.push((pkg.to_string(), key));
     }
   }
@@ -70,9 +78,7 @@ pub fn record_shared_usage(
       let Some(connection) = module_graph.connection_by_dependency_id(dep_id) else {
         continue;
       };
-      let Some(dependency) = module_graph.dependency_by_id(&connection.dependency_id) else {
-        continue;
-      };
+      let dependency = module_graph.dependency_by_id(&connection.dependency_id);
       let maybe_request = dependency
         .as_module_dependency()
         .map(|dep| dep.user_request().to_string())
@@ -82,7 +88,7 @@ pub fn record_shared_usage(
             .map(|dep| dep.request().to_string())
         });
       if let Some(request) = maybe_request {
-        let key = strip_ext(&request);
+        let key = strip_ext(&strip_aggregate_suffix(&request));
         shared_usage_links.push((pkg.to_string(), key));
       }
     }
@@ -92,14 +98,16 @@ pub fn record_shared_usage(
 pub fn parse_provide_shared_identifier(identifier: &str) -> Option<(String, String)> {
   let (before_request, _) = identifier.split_once(" = ")?;
   let token = before_request.split_whitespace().last()?;
-  let (name, version) = token.split_once('@')?;
+  // For scoped packages like @scope/pkg@1.0.0, split at the LAST '@'
+  let (name, version) = token.rsplit_once('@')?;
   Some((name.to_string(), version.to_string()))
 }
 
 pub fn parse_consume_shared_identifier(identifier: &str) -> Option<(String, Option<String>)> {
   let (_, rest) = identifier.split_once(") ")?;
   let token = rest.split_whitespace().next()?;
-  let (name, version) = token.split_once('@')?;
+  // For scoped packages like @scope/pkg@1.0.0, split at the LAST '@'
+  let (name, version) = token.rsplit_once('@')?;
   let version = version.trim();
   let required = if version.is_empty() || version == "*" {
     None

@@ -10,7 +10,7 @@ on:
         required: true
         type: string
       profile: # Rust profile, "ci" or "production" or "profiling"
-        default: "ci"
+        default: 'ci'
         required: false
         type: string
       ref: # Git reference to checkout
@@ -20,7 +20,7 @@ on:
         required: false
         default: true
         type: boolean
-        description: "Prefer docker build"
+        description: 'Prefer docker build'
 env:
   # Since CI builds are more akin to from-scratch builds, incremental compilation adds unnecessary dependency-tracking and IO overhead, reducing caching effectiveness.
   # https://github.com/rust-lang/rust-analyzer/blob/25368d24308d6a94ffe8b99f0122bcf5a2175322/.github/workflows/ci.yaml#L11

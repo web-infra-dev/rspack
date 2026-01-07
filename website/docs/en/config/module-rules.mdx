@@ -390,7 +390,7 @@ export default {
         test: /\.js$/,
         include: /node_modules/,
         descriptionData: {
-          name: packageJsonName => packageJsonName.includes('rspack'),
+          name: (packageJsonName) => packageJsonName.includes('rspack'),
         },
         // additional rule options...
       },
@@ -631,7 +631,7 @@ The meanings of all `type` options are as follows:
 - `'javascript/dynamic'`: JavaScript modules, treated as Script.
 - `'json'`: JSON data module, see [JSON](/guide/tech/json).
 - `'css' | 'css/module' | 'css/auto'`: CSS module, see [Built-in CSS support](/guide/tech/css#built-in-css-support).
-- `'asset' | 'asset/source' | 'asset/resource' | 'asset/inline'`: Asset module, see [Asset Module](/guide/features/asset-module).
+- `'asset' | 'asset/source' | 'asset/resource' | 'asset/inline' | 'asset/bytes'`: Asset module, see [Asset Module](/guide/features/asset-module).
 
 ## rules[].layer
 
@@ -713,7 +713,7 @@ export default {
       {
         test: /\.svg$/,
         type: 'asset',
-        use: info => [
+        use: (info) => [
           {
             loader: 'svgo-loader',
             options: {

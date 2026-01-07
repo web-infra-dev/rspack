@@ -1,7 +1,7 @@
 use indoc::formatdoc;
 use rspack_collections::Identifier;
 use rspack_core::{
-  ChunkGraph, ChunkUkey, Compilation, Module, ModuleGraph, ModuleGraphRef, ModuleId,
+  ChunkGraph, ChunkUkey, Compilation, Module, ModuleGraph, ModuleId,
   ModuleIdentifier, RuntimeModule, RuntimeModuleStage, impl_runtime_module,
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt};
@@ -182,7 +182,7 @@ fn build_server_manifest(
 fn record_module(
   compilation: &Compilation,
   client_modules: &FxHashMap<String, ManifestExport>,
-  module_graph: &ModuleGraphRef<'_>,
+  module_graph: &ModuleGraph,
   module_identifier: &ModuleIdentifier,
   module_id: &ModuleId,
   server_consumer_module_map: &mut FxHashMap<String, ManifestNode>,

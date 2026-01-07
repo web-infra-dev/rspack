@@ -5,16 +5,17 @@ on:
     inputs:
       pr:
         type: number
-        description: "Run Benchmark PR number"
+        description: 'Run Benchmark PR number'
         required: true
   push:
     branches:
       - main
+      - v2
     paths-ignore:
-      - "**/*.md"
-      - "website/**"
+      - '**/*.md'
+      - 'website/**'
     tags-ignore:
-      - "**"
+      - '**'
 
 permissions:
   # Allow commenting on commits
@@ -33,7 +34,7 @@ jobs:
       target: x86_64-unknown-linux-gnu
       runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS ||  '"ubuntu-22.04"' }}
       ref: ${{ github.event_name == 'workflow_dispatch' && format('refs/pull/{0}/head', inputs.pr) || github.sha }}
-      profile: "release"
+      profile: 'release'
       test: false
       bench: false
       prefer_docker: false

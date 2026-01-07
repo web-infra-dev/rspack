@@ -8,46 +8,46 @@
  * https://github.com/suguru03/neo-async/blob/master/LICENSE
  */
 export interface Dictionary<T> {
-	[key: string]: T;
+  [key: string]: T;
 }
 export type IterableCollection<T> = T[] | IterableIterator<T> | Dictionary<T>;
 export type ErrorCallback<E = Error> = (err?: E | null) => void;
 export type AsyncIterator<T, E = Error> = (
-	item: T,
-	callback: ErrorCallback<E>
+  item: T,
+  callback: ErrorCallback<E>,
 ) => void;
 
 function throwError() {
-	throw new Error("Callback was already called.");
+  throw new Error('Callback was already called.');
 }
 
 function noop() {}
 
 function onlyOnce<E = Error>(func: ErrorCallback<E>): ErrorCallback<E> {
-	return (err?: E | null) => {
-		const fn = func;
-		func = throwError;
-		fn(err);
-	};
+  return (err?: E | null) => {
+    const fn = func;
+    func = throwError;
+    fn(err);
+  };
 }
 
 function once<E = Error>(func: ErrorCallback<E>): ErrorCallback<E> {
-	return (err?: E | null) => {
-		const fn = func;
-		func = noop;
-		fn(err);
-	};
+  return (err?: E | null) => {
+    const fn = func;
+    func = noop;
+    fn(err);
+  };
 }
 
 function arrayEach<T, E = Error>(
-	array: T[],
-	iterator: (item: T, callback: ErrorCallback<E>) => void,
-	callback: ErrorCallback<E>
+  array: T[],
+  iterator: (item: T, callback: ErrorCallback<E>) => void,
+  callback: ErrorCallback<E>,
 ): void {
-	let index = -1;
-	while (++index < array.length) {
-		iterator(array[index], onlyOnce(callback));
-	}
+  let index = -1;
+  while (++index < array.length) {
+    iterator(array[index], onlyOnce(callback));
+  }
 }
 
 /**
@@ -85,30 +85,30 @@ function arrayEach<T, E = Error>(
  *
  */
 function each<T, E = Error>(
-	collection: IterableCollection<T>,
-	iterator: AsyncIterator<T, E>,
-	originalCallback: ErrorCallback<E>
+  collection: IterableCollection<T>,
+  iterator: AsyncIterator<T, E>,
+  originalCallback: ErrorCallback<E>,
 ) {
-	let callback = once(originalCallback);
-	let size = 0;
-	let completed = 0;
+  let callback = once(originalCallback);
+  let size = 0;
+  let completed = 0;
 
-	const done: ErrorCallback<E> = err => {
-		if (err) {
-			callback = once(callback);
-			callback(err);
-		} else if (++completed === size) {
-			callback(null);
-		}
-	};
+  const done: ErrorCallback<E> = (err) => {
+    if (err) {
+      callback = once(callback);
+      callback(err);
+    } else if (++completed === size) {
+      callback(null);
+    }
+  };
 
-	if (Array.isArray(collection)) {
-		size = collection.length;
-		arrayEach(collection, iterator, done);
-	}
-	if (!size) {
-		callback(null);
-	}
+  if (Array.isArray(collection)) {
+    size = collection.length;
+    arrayEach(collection, iterator, done);
+  }
+  if (!size) {
+    callback(null);
+  }
 }
 
 export default { each };

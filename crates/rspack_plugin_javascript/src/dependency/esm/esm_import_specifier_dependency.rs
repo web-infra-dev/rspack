@@ -436,7 +436,7 @@ impl ESMImportSpecifierDependencyTemplate {
       PrefetchExportsInfoMode::Nested(ids),
     );
     let exports_type = module.get_exports_type(
-      &mg,
+      mg,
       &code_generatable_context
         .compilation
         .module_graph_cache_artifact,
@@ -532,16 +532,16 @@ impl DependencyTemplate for ESMImportSpecifierDependencyTemplate {
       ..
     } = code_generatable_context;
     let module_graph = compilation.get_module_graph();
-    let ids = dep.get_ids(&module_graph);
+    let ids = dep.get_ids(module_graph);
     let connection = module_graph.connection_by_dependency_id(&dep.id);
     // Early return if target is not active and export is not inlined
     if let Some(con) = connection
       && !con.is_target_active(
-        &module_graph,
+        module_graph,
         *runtime,
         &compilation.module_graph_cache_artifact,
       )
-      && !is_export_inlined(&module_graph, con.module_identifier(), ids, *runtime)
+      && !is_export_inlined(module_graph, con.module_identifier(), ids, *runtime)
     {
       return;
     }
@@ -578,7 +578,7 @@ impl DependencyTemplate for ESMImportSpecifierDependencyTemplate {
           .and_then(|id| module_graph.module_by_identifier(id))
           .expect("should have parent module");
         let exports_type = module.get_exports_type(
-          &module_graph,
+          module_graph,
           &code_generatable_context
             .compilation
             .module_graph_cache_artifact,
@@ -641,9 +641,7 @@ impl DependencyConditionFn for ESMImportSpecifierDependencyCondition {
     module_graph: &ModuleGraph,
     _module_graph_cache: &ModuleGraphCacheArtifact,
   ) -> ConnectionState {
-    let dependency = module_graph
-      .dependency_by_id(&connection.dependency_id)
-      .expect("should have dependency");
+    let dependency = module_graph.dependency_by_id(&connection.dependency_id);
     let dependency = dependency
       .downcast_ref::<ESMImportSpecifierDependency>()
       .expect("should be ESMImportSpecifierDependency");

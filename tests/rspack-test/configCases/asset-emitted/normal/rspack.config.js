@@ -5,13 +5,13 @@ const Compilation = require("@rspack/core").Compilation;
 module.exports = {
 	plugins: [
 		compiler => {
+			const Source = compiler.rspack.sources.Source;
 			const files = {};
 			compiler.hooks.assetEmitted.tap(
 				"Test",
 				(file, { content, source, outputPath, compilation, targetPath }) => {
 					expect(Buffer.isBuffer(content)).toBe(true);
-					// CHANGE: source is instace of RawSource
-					// expect(source).toBeInstanceOf(Source);
+					expect(source).toBeInstanceOf(Source);
 					expect(typeof outputPath).toBe("string");
 					expect(typeof targetPath).toBe("string");
 					expect(compilation).toBeInstanceOf(Compilation);

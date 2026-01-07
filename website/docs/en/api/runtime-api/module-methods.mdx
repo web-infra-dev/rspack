@@ -73,7 +73,7 @@ Calls to `import()` are treated as split points, meaning the requested module an
 
 ```js
 if (module.hot) {
-  import('lodash').then(_ => {
+  import('lodash').then((_) => {
     // Do something with lodash (a.k.a '_')...
   });
 }
@@ -94,7 +94,7 @@ For example, `import(`./locale/$\{language}.json`)` will cause every `.json` fil
 ```js
 // imagine we had a method to get language from cookies or other storage
 const language = detectVisitorLanguage();
-import(`./locale/${language}.json`).then(module => {
+import(`./locale/${language}.json`).then((module) => {
   // do something with the translations
 });
 ```
@@ -140,7 +140,7 @@ When set to `true`, Rspack will skip analysis and bundling processing for the dy
 This is particularly useful for dynamically loading ESM third-party libraries from external CDNs, for example:
 
 ```js
-import('https://esm.sh/react' /* webpackIgnore: true */).then(React => {
+import('https://esm.sh/react' /* webpackIgnore: true */).then((React) => {
   console.log(React.version); // 19.0.0
 });
 ```

@@ -14,7 +14,6 @@ use swc_core::base::config::{
 #[serde(rename_all = "camelCase", default)]
 pub struct RawRspackExperiments {
   pub import: Option<Vec<RawImportOptions>>,
-  pub collect_type_script_info: Option<RawCollectTypeScriptInfoOptions>,
   #[serde(default)]
   pub react_server_components: bool,
 }
@@ -29,7 +28,6 @@ pub struct RawCollectTypeScriptInfoOptions {
 #[derive(Default, Debug)]
 pub(crate) struct RspackExperiments {
   pub(crate) import: Option<Vec<ImportOptions>>,
-  pub(crate) collect_typescript_info: Option<CollectTypeScriptInfoOptions>,
   pub(crate) react_server_components: bool,
 }
 
@@ -52,7 +50,6 @@ impl From<RawRspackExperiments> for RspackExperiments {
       import: value
         .import
         .map(|i| i.into_iter().map(|v| v.into()).collect()),
-      collect_typescript_info: value.collect_type_script_info.map(|v| v.into()),
       react_server_components: value.react_server_components,
     }
   }
@@ -118,6 +115,9 @@ pub struct SwcLoaderJsOptions {
   pub source_map_ignore_list: Option<FilePattern>,
 
   #[serde(default)]
+  pub collect_type_script_info: Option<RawCollectTypeScriptInfoOptions>,
+
+  #[serde(default)]
   pub rspack_experiments: Option<RawRspackExperiments>,
 }
 
@@ -127,6 +127,7 @@ pub(crate) struct SwcCompilerOptionsWithAdditional {
   raw_options: String,
   pub(crate) swc_options: Options,
   pub(crate) rspack_experiments: RspackExperiments,
+  pub(crate) collect_typescript_info: Option<CollectTypeScriptInfoOptions>,
 }
 
 impl AsRefStrConverter for SwcCompilerOptionsWithAdditional {
@@ -160,6 +161,7 @@ impl TryFrom<&str> for SwcCompilerOptionsWithAdditional {
       error,
       is_module,
       schema,
+      collect_type_script_info,
       rspack_experiments,
       source_map_ignore_list,
     } = option;
@@ -195,6 +197,7 @@ impl TryFrom<&str> for SwcCompilerOptionsWithAdditional {
         ..serde_json::from_value(serde_json::Value::Object(Default::default()))?
       },
       rspack_experiments: rspack_experiments.unwrap_or_default().into(),
+      collect_typescript_info: collect_type_script_info.map(|v| v.into()),
     })
   }
 }
