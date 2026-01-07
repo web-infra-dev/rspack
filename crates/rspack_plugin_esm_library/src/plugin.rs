@@ -8,15 +8,7 @@ use atomic_refcell::AtomicRefCell;
 use regex::Regex;
 use rspack_collections::{IdentifierIndexMap, IdentifierSet, UkeyMap};
 use rspack_core::{
-  ApplyContext, AssetInfo, AsyncModulesArtifact, ChunkUkey, Compilation,
-  CompilationAdditionalChunkRuntimeRequirements, CompilationAdditionalTreeRuntimeRequirements,
-  CompilationAfterCodeGeneration, CompilationConcatenationScope, CompilationFinishModules,
-  CompilationOptimizeChunks, CompilationParams, CompilationProcessAssets,
-  CompilationRuntimeRequirementInTree, CompilerCompilation, ConcatenatedModuleInfo,
-  ConcatenationScope, DependencyType, ExternalModuleInfo, Logger, ModuleGraph, ModuleIdentifier,
-  ModuleInfo, ModuleType, NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, Plugin,
-  PrefetchExportsInfoMode, ProcessAssetsArtifact, RuntimeGlobals, get_target, is_esm_dep_like,
-  rspack_sources::{ReplaceSource, Source},
+  ApplyContext, AssetInfo, AsyncModulesArtifact, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements, CompilationAdditionalTreeRuntimeRequirements, CompilationAfterCodeGeneration, CompilationConcatenationScope, CompilationFinishModules, CompilationOptimizeChunks, CompilationParams, CompilationProcessAssets, CompilationRuntimeRequirementInTree, CompilerCompilation, ConcatenatedModuleInfo, ConcatenationScope, DependencyType, ExternalModuleInfo, GetTargetResult, Logger, ModuleGraph, ModuleIdentifier, ModuleInfo, ModuleType, NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, Plugin, PrefetchExportsInfoMode, ProcessAssetsArtifact, RuntimeGlobals, get_target, is_esm_dep_like, rspack_sources::{ReplaceSource, Source}
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
