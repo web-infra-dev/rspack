@@ -50,8 +50,8 @@ export type HtmlRspackPluginOptions = {
 
   /** Inject a [`base`](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base) tag. */
   base?:
-  | string
-  | { href?: string; target?: '_self' | '_blank' | '_parent' | '_top' };
+    | string
+    | { href?: string; target?: '_self' | '_blank' | '_parent' | '_top' };
 
   /**
    * Modern browsers support non-blocking JavaScript loading ([`defer` attribute](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/script#defer)) to improve the page startup performance.
