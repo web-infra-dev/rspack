@@ -13,7 +13,6 @@ module.exports = {
 			template: "input.html",
 			inject: "head",
 			scriptLoading: "blocking",
-			sri: "sha512"
 		})
 	],
 };

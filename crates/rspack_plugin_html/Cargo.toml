@@ -26,7 +26,6 @@ rspack_paths      = { workspace = true }
 rspack_util       = { workspace = true }
 serde             = { workspace = true, features = ["derive"] }
 serde_json        = { workspace = true }
-sha2              = { workspace = true }
 sugar_path        = { workspace = true }
 swc_core          = { workspace = true }
 swc_html          = { workspace = true }

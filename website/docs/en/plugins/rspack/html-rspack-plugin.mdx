@@ -161,7 +161,6 @@ type HtmlRspackPluginOptions = {
   chunks?: string[];
   excludeChunks?: string[];
   chunksSortMode?: 'auto' | 'manual';
-  sri?: 'sha256' | 'sha384' | 'sha512';
   minify?: boolean;
   favicon?: string;
   meta?: Record<string, string | Record<string, string>>;
@@ -269,13 +268,6 @@ type HtmlRspackPluginOptions = {
       default: '`"auto"`',
       description:
         'Allows to control how chunks should be sorted before they are included to the HTML.',
-    },
-    {
-      name: '`sri`',
-      type: '`"sha256"" | "sha384"" | "sha512"" | undefined`',
-      default: '`undefined`',
-      description:
-        '<p>**Deprecated**: use [`SubresourceIntegrityPlugin`](./subresource-integrity-plugin) instead.</p><p>Configure the SRI hash algorithm, which is disabled by default.</p>',
     },
     {
       name: '`minify`',
