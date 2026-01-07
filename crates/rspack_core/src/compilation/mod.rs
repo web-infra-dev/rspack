@@ -1641,7 +1641,7 @@ impl Compilation {
 
     let mut side_effects_optimize_artifact = self.side_effects_optimize_artifact.take();
     let mut diagnostics: Vec<Diagnostic> = vec![];
-    let mut build_module_graph_artifact = mem::take(&mut self.build_module_graph_artifact);
+    let mut build_module_graph_artifact = self.build_module_graph_artifact.take();
     while matches!(
       plugin_driver
         .compilation_hooks
@@ -1657,7 +1657,9 @@ impl Compilation {
       Some(true)
     ) {}
     self.side_effects_optimize_artifact = DerefOption::new(side_effects_optimize_artifact);
-    self.build_module_graph_artifact = build_module_graph_artifact;
+    self
+      .build_module_graph_artifact
+      .swap(&mut build_module_graph_artifact);
     self.extend_diagnostics(diagnostics);
 
     logger.time_end(start);
