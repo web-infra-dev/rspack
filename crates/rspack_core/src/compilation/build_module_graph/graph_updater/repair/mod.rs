@@ -11,7 +11,7 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use self::context::TaskContext;
 use super::BuildModuleGraphArtifact;
 use crate::{
-  BuildDependency, Compilation, ModuleProfile,
+  BuildDependency, Compilation,
   utils::task_loop::{Task, run_task_loop},
 };
 
@@ -43,7 +43,6 @@ pub async fn repair(
         .into_iter()
         .map(|dep_id| {
           let dependency = module_graph.dependency_by_id(&dep_id);
-          let current_profile = compilation.options.profile.then(ModuleProfile::default);
           Box::new(factorize::FactorizeTask {
             compiler_id: compilation.compiler_id(),
             compilation_id: compilation.id(),
@@ -56,7 +55,6 @@ pub async fn repair(
             dependencies: vec![dependency.clone()],
             resolve_options: None,
             options: compilation.options.clone(),
-            current_profile,
             resolver_factory: compilation.resolver_factory.clone(),
             from_unlazy: false,
           }) as Box<dyn Task<TaskContext>>

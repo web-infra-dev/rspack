@@ -2,7 +2,7 @@ use rspack_error::Result;
 
 use super::{TaskContext, build::BuildTask, lazy::ProcessUnlazyDependenciesTask};
 use crate::{
-  BoxDependency, BoxModule, ModuleIdentifier, ModuleProfile,
+  BoxDependency, BoxModule, ModuleIdentifier,
   compilation::build_module_graph::ForwardedIdSet,
   module_graph::{ModuleGraph, ModuleGraphModule},
   utils::task_loop::{Task, TaskResult, TaskType},
@@ -14,7 +14,6 @@ pub struct AddTask {
   pub module: BoxModule,
   pub module_graph_module: Box<ModuleGraphModule>,
   pub dependencies: Vec<BoxDependency>,
-  pub current_profile: Option<ModuleProfile>,
   pub from_unlazy: bool,
 }
 
@@ -116,7 +115,6 @@ impl Task<TaskContext> for AddTask {
       compiler_id: context.compiler_id,
       compilation_id: context.compilation_id,
       module: self.module,
-      current_profile: self.current_profile,
       resolver_factory: context.resolver_factory.clone(),
       compiler_options: context.compiler_options.clone(),
       plugin_driver: context.plugin_driver.clone(),

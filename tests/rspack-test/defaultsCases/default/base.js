@@ -368,7 +368,6 @@ module.exports = {
 			  },
 			  performance: false,
 			  plugins: Array [],
-			  profile: false,
 			  resolve: Object {
 			    aliasFields: Array [],
 			    byDependency: Object {

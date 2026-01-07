@@ -2934,13 +2934,6 @@ export type IgnoreWarnings = (
 )[];
 //#endregion
 
-//#region Profile
-/**
- * Capture a "profile" of the application, including statistics and hints, which can then be dissected using the Analyze tool.
- * */
-export type Profile = boolean;
-//#endregion
-
 //#region amd
 /**
  * Set the value of `require.amd` and `define.amd`. Or disable AMD support.
@@ -3107,10 +3100,6 @@ export type RspackOptions = {
    * Options for module configuration.
    */
   module?: ModuleOptions;
-  /**
-   * Whether to capture a profile of the application.
-   */
-  profile?: Profile;
   /**
    * Set the value of `require.amd` or `define.amd`.
    * Setting `amd` to false will disable rspack's AMD support.

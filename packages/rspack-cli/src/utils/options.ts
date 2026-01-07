@@ -101,7 +101,6 @@ export const commonOptionsForBuildAndServe = (command: Command): Command => {
     })
     .option('-m, --mode <mode>', 'mode')
     .option('-o, --output-path <dir>', 'output path dir')
-    .option('--profile', 'capture timing information for each module')
     .option('-w, --watch', 'watch');
 };
 
@@ -111,7 +110,6 @@ export type CommonOptionsForBuildAndServe = CommonOptions & {
   entry?: string[];
   mode?: string;
   outputPath?: string;
-  profile?: boolean;
   watch?: boolean;
 };
 

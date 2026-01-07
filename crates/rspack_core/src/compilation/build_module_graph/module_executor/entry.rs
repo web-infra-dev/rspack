@@ -7,7 +7,7 @@ use super::{
   overwrite::overwrite_tasks,
 };
 use crate::{
-  Context, Dependency, LoaderImportDependency, ModuleProfile,
+  Context, Dependency, LoaderImportDependency,
   utils::task_loop::{Task, TaskResult, TaskType},
 };
 
@@ -74,10 +74,6 @@ impl Task<ExecutorTaskContext> for EntryTask {
           dependencies: vec![dep],
           resolve_options: None,
           options: origin_context.compiler_options.clone(),
-          current_profile: origin_context
-            .compiler_options
-            .profile
-            .then(ModuleProfile::default),
           resolver_factory: origin_context.resolver_factory.clone(),
           from_unlazy: false,
         })]));

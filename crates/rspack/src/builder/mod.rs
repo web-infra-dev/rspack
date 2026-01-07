@@ -236,14 +236,6 @@ impl CompilerBuilder {
     self
   }
 
-  /// Set whether to enable profiling.
-  ///
-  /// See [`CompilerOptionsBuilder::profile`] for more details.
-  pub fn profile(&mut self, profile: bool) -> &mut Self {
-    self.options_builder.profile(profile);
-    self
-  }
-
   /// Set options for module configuration.
   ///
   /// Both are accepted:
@@ -584,8 +576,6 @@ pub struct CompilerOptionsBuilder {
   resolve_loader: Option<Resolve>,
   /// The type of externals.
   devtool: Option<Devtool>,
-  /// The type of externals.
-  profile: Option<bool>,
   /// Whether to fail on the first error.
   bail: Option<bool>,
   /// Performance optimization options.
@@ -619,7 +609,6 @@ impl From<&mut CompilerOptionsBuilder> for CompilerOptionsBuilder {
       resolve: value.resolve.take(),
       resolve_loader: value.resolve_loader.take(),
       devtool: value.devtool.take(),
-      profile: value.profile.take(),
       bail: value.bail.take(),
       experiments: value.experiments.take(),
       module: value.module.take(),
@@ -720,12 +709,6 @@ impl CompilerOptionsBuilder {
   /// Set whether to fail on the first error.
   pub fn bail(&mut self, bail: bool) -> &mut Self {
     self.bail = Some(bail);
-    self
-  }
-
-  /// Set whether to enable profiling.
-  pub fn profile(&mut self, profile: bool) -> &mut Self {
-    self.profile = Some(profile);
     self
   }
 
@@ -938,7 +921,6 @@ impl CompilerOptionsBuilder {
       }
     });
 
-    let profile = d!(self.profile.take(), false);
     let bail = d!(self.bail.take(), false);
     let cache = d!(self.cache.take(), {
       if development {
@@ -1271,7 +1253,6 @@ impl CompilerOptionsBuilder {
       experiments,
       node,
       optimization,
-      profile,
       amd,
       bail,
       __references: Default::default(),

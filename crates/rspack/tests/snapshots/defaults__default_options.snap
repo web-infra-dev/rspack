@@ -1536,7 +1536,6 @@ CompilerOptions {
         avoid_entry_iife: false,
         real_content_hash: false,
     },
-    profile: false,
     amd: None,
     bail: false,
     __references: {},

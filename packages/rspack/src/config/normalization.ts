@@ -72,7 +72,6 @@ import type {
   Path,
   Performance,
   Plugins,
-  Profile,
   PublicPath,
   Resolve,
   RspackOptions,
@@ -427,7 +426,6 @@ export const getNormalizedRspackOptions = (
     watch: config.watch,
     watchOptions: cloneObject(config.watchOptions),
     devServer: config.devServer,
-    profile: config.profile,
     amd: config.amd,
     bail: config.bail,
     lazyCompilation: optionalNestedConfig(config.lazyCompilation, (options) =>
@@ -760,7 +758,6 @@ export interface RspackOptionsNormalized {
   devServer?: DevServer;
   ignoreWarnings?: IgnoreWarningsNormalized;
   performance?: Performance;
-  profile?: Profile;
   amd?: Amd;
   bail?: Bail;
 }
