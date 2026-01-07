@@ -25,7 +25,7 @@
       "@typescript-eslint/no-confusing-void-expression": "off",
       "@typescript-eslint/promise-function-async": "off",
       "@typescript-eslint/use-unknown-in-catch-callback-variable": "off",
-      "@typescript-eslint/require-await": "off",
+      "@typescript-eslint/require-await": "error",
       "@typescript-eslint/switch-exhaustiveness-check": "off",
       "@typescript-eslint/return-await": "off",
       "@typescript-eslint/non-nullable-type-assertion-style": "off",
