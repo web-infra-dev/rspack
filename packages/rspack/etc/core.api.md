@@ -3123,7 +3123,6 @@ export type HtmlRspackPluginOptions = {
     chunks?: string[];
     excludeChunks?: string[];
     chunksSortMode?: 'auto' | 'manual';
-    sri?: 'sha256' | 'sha384' | 'sha512';
     minify?: boolean;
     favicon?: string;
     meta?: Record<string, string | Record<string, string>>;

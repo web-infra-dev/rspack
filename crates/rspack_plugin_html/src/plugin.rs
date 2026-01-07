@@ -98,7 +98,7 @@ async fn generate_html(
     .await?;
 
   let asset_tags: HtmlPluginAssetTags =
-    HtmlPluginAssetTags::from_assets(config, &before_generation_data.assets, &assets_info.1);
+    HtmlPluginAssetTags::from_assets(config, &before_generation_data.assets);
 
   let alter_asset_tags_data = hooks
     .borrow()

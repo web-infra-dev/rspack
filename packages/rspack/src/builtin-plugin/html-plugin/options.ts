@@ -50,8 +50,8 @@ export type HtmlRspackPluginOptions = {
 
   /** Inject a [`base`](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base) tag. */
   base?:
-    | string
-    | { href?: string; target?: '_self' | '_blank' | '_parent' | '_top' };
+  | string
+  | { href?: string; target?: '_self' | '_blank' | '_parent' | '_top' };
 
   /**
    * Modern browsers support non-blocking JavaScript loading ([`defer` attribute](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/script#defer)) to improve the page startup performance.
@@ -72,12 +72,6 @@ export type HtmlRspackPluginOptions = {
    * @default "auto"
    */
   chunksSortMode?: 'auto' | 'manual';
-
-  /**
-   * Configure the SRI hash algorithm, which is disabled by default.
-   * @deprecated Use `SubresourceIntegrityPlugin` instead.
-   */
-  sri?: 'sha256' | 'sha384' | 'sha512';
 
   /**
    * Controls whether to minify the output, disabled by default.

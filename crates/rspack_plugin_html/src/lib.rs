@@ -2,7 +2,6 @@ pub mod asset;
 pub mod config;
 pub mod injector;
 pub mod parser;
-pub mod sri;
 pub mod tag;
 pub mod template;
 

@@ -208,7 +208,6 @@ const HtmlRspackPluginImpl = create(
       chunks: c.chunks,
       excludeChunks: c.excludeChunks,
       chunksSortMode,
-      sri: c.sri,
       minify: c.minify,
       meta,
       scriptLoading,
