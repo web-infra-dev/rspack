@@ -55,7 +55,6 @@ insta               = { version = "1.42.0", default-features = false }
 itertools           = { version = "0.14.0", default-features = false, features = ["use_std"] }
 itoa                = { version = "1.0.17", default-features = false }
 json                = { version = "0.12.4", default-features = false }
-jsonc-parser        = { version = "0.26.2", default-features = false, features = ["serde"] }
 lightningcss        = { version = "1.0.0-alpha.68", default-features = false, features = ["serde"] }
 md4                 = { version = "0.10.2", default-features = false }
 memchr              = { version = "2.7.6", default-features = false }
