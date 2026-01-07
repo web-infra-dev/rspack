@@ -38,7 +38,7 @@ use swc_core::{
   ecma::{
     ast::{EsVersion, Pass, Program},
     parser::{
-      Syntax, parse_file_as_commonjs, parse_file_as_module, parse_file_as_program,
+      Syntax, TsSyntax, parse_file_as_commonjs, parse_file_as_module, parse_file_as_program,
       parse_file_as_script,
     },
     transforms::base::helpers::{self, Helpers},
@@ -270,20 +270,8 @@ impl<'a> JavaScriptTransformer<'a> {
       options.unresolved_mark = Some(unresolved_mark);
     });
 
-    let config = {
-      let filename_path = match fm.name.as_ref() {
-        FileName::Real(p) => Some(p.as_path()),
-        _ => None,
-      };
-      Rc::default().into_config(filename_path)?.ok_or_else(|| {
-        rspack_error::error!("Failed to create default swc config for {}", &fm.name)
-      })?
-    };
-
+    let config = get_swc_config_from_file(&fm.name);
     let comments = SingleThreadedComments::default();
-    let config = read_config(&options, &fm.name)?
-      .ok_or_else(|| rspack_error::error!("cannot process file because it's ignored by .swcrc"))?;
-
     let helpers = GLOBALS.set(&compiler.globals, || {
       let mut external_helpers = options.config.jsc.external_helpers;
       external_helpers.merge(config.jsc.external_helpers);
@@ -660,4 +648,42 @@ impl<'a> JavaScriptTransformer<'a> {
       }
     }
   }
+}
+
+fn get_swc_config_from_file(filename: &FileName) -> Config {
+  let filename_path = match filename {
+    FileName::Real(p) => Some(p.as_path()),
+    _ => return Config::default(),
+  };
+
+  let filename_ext = match filename_path {
+    Some(p) => p.extension().and_then(|ext| ext.to_str()),
+    None => return Config::default(),
+  };
+
+  let mut config = Config::default();
+  match filename_ext {
+    Some("tsx") => {
+      config.jsc.syntax = Some(Syntax::Typescript(TsSyntax {
+        tsx: true,
+        ..Default::default()
+      }))
+    }
+    Some("cts" | "mts") => {
+      config.jsc.syntax = Some(Syntax::Typescript(TsSyntax {
+        tsx: false,
+        disallow_ambiguous_jsx_like: true,
+        ..Default::default()
+      }))
+    }
+    Some("ts") => {
+      config.jsc.syntax = Some(Syntax::Typescript(TsSyntax {
+        tsx: false,
+        ..Default::default()
+      }))
+    }
+    _ => {}
+  }
+
+  config
 }
