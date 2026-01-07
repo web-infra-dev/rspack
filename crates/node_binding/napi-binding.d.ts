@@ -2132,7 +2132,6 @@ export interface RawExperimentCacheOptionsPersistent {
 export interface RawExperiments {
   topLevelAwait: boolean
 incremental?: false | { [key: string]: boolean }
-rspackFuture?: RawRspackFuture
 cache: boolean | { type: "persistent" } & RawExperimentCacheOptionsPersistent | { type: "memory" }
 useInputFileSystem?: false | Array<RegExp>
 css?: boolean
@@ -2779,10 +2778,6 @@ export interface RawRslibPluginOptions {
    * @default `false`
    */
   forceNodeShims?: boolean
-}
-
-export interface RawRspackFuture {
-
 }
 
 export interface RawRstestPluginOptions {

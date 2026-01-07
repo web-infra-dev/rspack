@@ -46,6 +46,43 @@ export default {
 };
 ```
 
+### output.bundlerInfo
+
+<ApiMeta addedVersion="1.0.0" />
+
+> 在 1.x 版本中，你可以使用 `experiments.rspackFuture.bundlerInfo`。
+
+- **类型：**
+
+  ```ts
+  type BundlerInfo = {
+    version?: string,
+    bundler?: string,
+    force?: ('version' | 'uniqueId')[] ｜ boolean;
+  };
+  ```
+
+用于在生成产物中注入当前使用的 Rspack 信息。其中：
+
+- `version`：用于指定 Rspack 版本，默认读取 `@rspack/core/package.json` 中的 `version` 字段。
+- `bundler`：用于指定打包工具名称，默认为 `rspack`
+- `force`：是否强制注入 Rspack 信息，会以运行时模块的形式加入到产物中，默认为 `true` 即强制注入，可通过数组选择强制注入的项目。
+
+#### 关闭默认注入
+
+可通过将 `force` 设定为 `false` 来关闭默认注入，此时仅在检测到代码中使用了 `__rspack_version__` 和 `__rspack_unique_id__` 时才会注入：
+
+- [`__rspack_version__`](/api/runtime-api/module-variables#__rspack_version__)：注入版本信息
+- [`__rspack_unique_id__`](/api/runtime-api/module-variables#__rspack_unique_id__)：注入打包工具唯一ID
+
+```js title="rspack.config.mjs"
+export default {
+  output: {
+    bundlerInfo: { force: false },
+  },
+};
+```
+
 ## output.charset
 
 - **类型：** `boolean`

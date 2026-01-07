@@ -85,13 +85,13 @@ function options(
       moduleIds: 'named',
       chunkIds: 'named',
     },
+    otuput: {
+      bundlerInfo: {
+        force: false,
+      },
+    },
     experiments: {
       css: true,
-      rspackFuture: {
-        bundlerInfo: {
-          force: false,
-        },
-      },
     },
   } as RspackOptions;
   if (typeof custom === 'function') {

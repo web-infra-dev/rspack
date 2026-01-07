@@ -65,14 +65,12 @@ function defaultOptions(index: number, context: ITestContext): RspackOptions {
     context: context.getSource(),
     output: {
       path: context.getDist(),
+      bundlerInfo: {
+        force: false,
+      },
     },
     experiments: {
       css: true,
-      rspackFuture: {
-        bundlerInfo: {
-          force: false,
-        },
-      },
     },
   };
 }

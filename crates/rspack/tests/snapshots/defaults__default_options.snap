@@ -1513,7 +1513,6 @@ CompilerOptions {
             ),
         },
         top_level_await: true,
-        rspack_future: RspackFuture,
         cache: Disabled,
         css: false,
         lazy_barrel: true,

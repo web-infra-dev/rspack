@@ -264,17 +264,15 @@ function defaultOptions(
     entry: './hook',
     output: {
       path: context.getDist(),
+      bundlerInfo: {
+        force: false,
+      },
     },
     optimization: {
       minimize: false,
     },
     experiments: {
       css: true,
-      rspackFuture: {
-        bundlerInfo: {
-          force: false,
-        },
-      },
     },
   } as RspackOptions;
   if (custom) {

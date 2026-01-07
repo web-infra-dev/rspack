@@ -49,13 +49,6 @@ module.exports = {
 			    lazyBarrel: true,
 			    lazyCompilation: false,
 			    parallelLoader: false,
-			    rspackFuture: Object {
-			      bundlerInfo: Object {
-			        bundler: rspack,
-			        force: true,
-			        version: $version$,
-			      },
-			    },
 			    topLevelAwait: true,
 			    typeReexportsPresence: false,
 			    useInputFileSystem: false,
@@ -303,6 +296,11 @@ module.exports = {
 			  output: Object {
 			    assetModuleFilename: [hash][ext][query],
 			    asyncChunks: true,
+			    bundlerInfo: Object {
+			      bundler: rspack,
+			      force: true,
+			      version: $version$,
+			    },
 			    charset: false,
 			    chunkFilename: [name].js,
 			    chunkFormat: array-push,

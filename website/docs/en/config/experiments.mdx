@@ -181,49 +181,6 @@ export default {
 };
 ```
 
-## experiments.rspackFuture
-
-- **Type:** `object`
-
-- **Default:** See options down below for details
-
-Used to control whether to enable Rspack future default options, check out the details [here](https://github.com/web-infra-dev/rspack/pull/4107).
-
-### rspackFuture.bundlerInfo
-
-<ApiMeta addedVersion="1.0.0" />
-
-- **Type**:
-
-  ```ts
-  type BundlerInfo = {
-    version?: string,
-    bundler?: string,
-    force?: ('version' | 'uniqueId')[] ｜ boolean;
-  };
-  ```
-
-Used to inject the currently used Rspack information into the generated asset:
-
-- `version`: Used to specify the Rspack version, defaults to the `version` field in `@rspack/core/package.json`.
-- `bundler`: Used to specify the name of the packaging tool, defaults to `rspack`.
-- `force`: Whether to force the injection of Rspack information, which will be added to chunk as a runtime module, and defaults to `true` to force injection. An array can be used to select the items to be forced injected.
-
-#### Disable default injection
-
-The default injection can be disabled by setting `force` to `false`. Then injection will only occur when `__rspack_version__` and `__rspack_unique_id__` are detected in the code:
-
-- [`__rspack_version__`](/api/runtime-api/module-variables#__rspack_version__): Inject version information.
-- [`__rspack_unique_id__`](/api/runtime-api/module-variables#__rspack_unique_id__): Inject the unique ID of the bundler.
-
-```js title="rspack.config.mjs"
-export default {
-  experiments: {
-    rspackFuture: { bundlerInfo: { force: false } },
-  },
-};
-```
-
 ## experiments.cache
 
 <ApiMeta addedVersion="1.2.0-alpha.0" />

@@ -4,14 +4,12 @@ module.exports = {
 	options(context) {
 		return {
 			context: context.getSource(),
-			entry: "./fixtures/index",
-			experiments: {
-				rspackFuture: {
-					bundlerInfo: {
-						force: true
-					}
+			output: {
+				bundlerInfo: {
+					force: true
 				}
-			}
+			},
+			entry: "./fixtures/index",
 		};
 	},
 	async check(stats) {

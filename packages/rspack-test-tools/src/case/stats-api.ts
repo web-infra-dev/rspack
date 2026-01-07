@@ -74,9 +74,9 @@ function options(
   const res = (custom?.(context) || {}) as RspackOptions;
   res.experiments ??= {};
   res.experiments!.css ??= true;
-  res.experiments!.rspackFuture ??= {};
-  res.experiments!.rspackFuture!.bundlerInfo ??= {};
-  res.experiments!.rspackFuture!.bundlerInfo!.force ??= false;
+  res.output ??= {};
+  res.output!.bundlerInfo ??= {};
+  res.output!.bundlerInfo!.force ??= false;
   if (!global.printLogger) {
     res.infrastructureLogging = {
       level: 'error',

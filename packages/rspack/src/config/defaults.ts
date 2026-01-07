@@ -46,7 +46,6 @@ import type {
   Optimization,
   Performance,
   ResolveOptions,
-  RspackFutureOptions,
   RuleSetRules,
   SnapshotOptions,
 } from './types';
@@ -132,11 +131,6 @@ export const applyRspackOptionsDefaults = (
     outputModule: options.experiments.outputModule,
     entry: options.entry,
   });
-  // bundlerInfo is affected by outputDefaults so must be executed after outputDefaults
-  applybundlerInfoDefaults(
-    options.experiments.rspackFuture,
-    options.output.library,
-  );
 
   applyExternalsPresetsDefaults(options.externalsPresets, {
     targetProperties,
@@ -264,9 +258,6 @@ const applyExperimentsDefaults = (
     D(experiments.incremental, 'chunksRender', true);
     D(experiments.incremental, 'emitAssets', true);
   }
-  // IGNORE(experiments.rspackFuture): Rspack specific configuration
-  D(experiments, 'rspackFuture', {});
-  // rspackFuture.bundlerInfo default value is applied after applyDefaults
 
   // IGNORE(experiments.parallelLoader): Rspack specific configuration for parallel loader execution
   D(experiments, 'parallelLoader', false);
@@ -286,21 +277,6 @@ const applyExperimentsDefaults = (
 
   // IGNORE(experiments.lazyBarrel): Rspack specific configuration for lazy make side effects free barrel file
   D(experiments, 'lazyBarrel', true);
-};
-
-const applybundlerInfoDefaults = (
-  rspackFuture?: RspackFutureOptions,
-  library?: Library,
-) => {
-  if (typeof rspackFuture === 'object') {
-    D(rspackFuture, 'bundlerInfo', {});
-    if (typeof rspackFuture.bundlerInfo === 'object') {
-      D(rspackFuture.bundlerInfo, 'version', RSPACK_VERSION);
-      D(rspackFuture.bundlerInfo, 'bundler', 'rspack');
-      // don't inject for library mode
-      D(rspackFuture.bundlerInfo, 'force', !library);
-    }
-  }
 };
 
 const applySnapshotDefaults = (
@@ -925,6 +901,15 @@ const applyOutputDefaults = (
     });
     return Array.from(enabledWasmLoadingTypes);
   });
+
+  // IGNORE(output.bundlerInfo): rspack specific
+  D(output, 'bundlerInfo', {});
+  if (typeof output.bundlerInfo === 'object') {
+    D(output.bundlerInfo, 'version', RSPACK_VERSION);
+    D(output.bundlerInfo, 'bundler', 'rspack');
+    // don't inject for library mode
+    D(output.bundlerInfo, 'force', !output.library);
+  }
 };
 
 const applyExternalsPresetsDefaults = (
