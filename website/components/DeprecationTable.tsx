@@ -1,7 +1,6 @@
 import { Table } from '@builtIns/Table';
 import { useLocation } from '@hooks/useLocation';
 import { useLang } from '@rspress/core/runtime';
-import { Link } from '@rspress/core/theme';
 import semver from 'semver';
 
 function useDeprecatedVersion() {
