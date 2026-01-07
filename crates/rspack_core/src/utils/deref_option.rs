@@ -6,15 +6,6 @@ use std::{
 #[derive(Debug)]
 pub struct DerefOption<T>(Option<T>);
 
-impl<T> Default for DerefOption<T>
-where
-  T: Default,
-{
-  fn default() -> Self {
-    Self(Some(T::default()))
-  }
-}
-
 impl<T> From<T> for DerefOption<T> {
   fn from(value: T) -> Self {
     Self::new(value)
