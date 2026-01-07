@@ -33,7 +33,6 @@ CompilerOptions {
         ),
         chunk_loading_global: "webpackChunk",
         chunk_load_timeout: 120000,
-        charset: true,
         filename: Filename(
             Template(
                 "[name].js",

@@ -20,10 +20,10 @@ Rspack x.x.x compiled successfully in X s
 assets by chunk xx bytes (id hint: all)
   asset c-all-b_js-113206d7531c234d.js xx bytes [emitted] [immutable] (id hint: all)
   asset c-all-c_js-9f8c7c16580d157a.js xx bytes [emitted] [immutable] (id hint: all)
-asset c-runtime~main-f25a17b47b43aefb.js xx KiB [emitted] [immutable] (name: runtime~main)
+asset c-runtime~main-4af3a6192ba7ffaf.js xx KiB [emitted] [immutable] (name: runtime~main)
 asset c-main-831261ae36cba529.js xx bytes [emitted] [immutable] (name: main)
 asset c-vendors-node_modules_vendor_js-01281488ed24fc05.js xx bytes [emitted] [immutable] (id hint: vendors)
-Entrypoint main xx KiB = c-runtime~main-f25a17b47b43aefb.js xx KiB c-all-c_js-9f8c7c16580d157a.js xx bytes c-main-831261ae36cba529.js xx bytes
+Entrypoint main xx KiB = c-runtime~main-4af3a6192ba7ffaf.js xx KiB c-all-c_js-9f8c7c16580d157a.js xx bytes c-main-831261ae36cba529.js xx bytes
 runtime modules xx KiB 14 modules
 cacheable modules xx bytes
   ./c.js xx bytes [built] [code generated]

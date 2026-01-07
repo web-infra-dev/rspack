@@ -833,8 +833,6 @@ const applyOutputDefaults = (
   D(output, 'workerPublicPath', '');
   D(output, 'sourceMapFilename', '[file].map[query]');
   F(output, 'scriptType', () => (output.module ? 'module' : false));
-  // IGNORE(output.charset): `output.charset` has already been deprecated for a long time
-  D(output, 'charset', false);
   D(output, 'chunkLoadTimeout', 120000);
 
   const { trustedTypes } = output;

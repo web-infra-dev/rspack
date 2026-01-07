@@ -2634,7 +2634,6 @@ export interface RawOutputOptions {
   module: boolean
   chunkLoading: string | false
   chunkLoadTimeout: number
-  charset: boolean
   enabledChunkLoadingTypes?: Array<string>
   trustedTypes?: RawTrustedTypes
   sourceMapFilename: string

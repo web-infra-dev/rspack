@@ -252,7 +252,6 @@ export const getNormalizedRspackOptions = (
         devtoolFallbackModuleFilenameTemplate:
           output.devtoolFallbackModuleFilenameTemplate,
         chunkLoadTimeout: output.chunkLoadTimeout,
-        charset: output.charset,
         environment: cloneObject(output.environment),
         compareBeforeEmit: output.compareBeforeEmit,
         bundlerInfo: output.bundlerInfo,
@@ -649,7 +648,6 @@ export interface OutputNormalized {
   devtoolModuleFilenameTemplate?: DevtoolModuleFilenameTemplate;
   devtoolFallbackModuleFilenameTemplate?: DevtoolFallbackModuleFilenameTemplate;
   environment?: Environment;
-  charset?: boolean;
   chunkLoadTimeout?: number;
   compareBeforeEmit?: boolean;
   bundlerInfo?: BundlerInfoOptions;

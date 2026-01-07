@@ -163,7 +163,6 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
     let with_fetch_priority = runtime_requirements.contains(RuntimeGlobals::HAS_FETCH_PRIORITY);
     let cross_origin_loading = &compilation.options.output.cross_origin_loading;
     let script_type = &compilation.options.output.script_type;
-    let charset = compilation.options.output.charset;
 
     let hooks = RuntimePlugin::get_compilation_hooks(compilation.id());
 
@@ -242,7 +241,6 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
       let link_prefetch_code = compilation.runtime_template.render(
         &self.template_id(TemplateId::WithPrefetchLink),
         Some(serde_json::json!({
-          "_charset": charset,
           "_cross_origin": cross_origin_loading.to_string(),
         })),
       )?;
@@ -276,7 +274,6 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
       let link_preload_code = compilation.runtime_template.render(
         &self.template_id(TemplateId::WithPreloadLink),
         Some(serde_json::json!({
-          "_charset": charset,
           "_script_type": script_type.as_str(),
           "_cross_origin": cross_origin_loading.to_string(),
         })),

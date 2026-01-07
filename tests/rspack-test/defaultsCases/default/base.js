@@ -300,7 +300,6 @@ module.exports = {
 			      force: true,
 			      version: $version$,
 			    },
-			    charset: false,
 			    chunkFilename: [name].js,
 			    chunkFormat: array-push,
 			    chunkLoadTimeout: 120000,

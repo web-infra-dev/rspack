@@ -1,7 +1,4 @@
 link = document.createElement("link");
-<% if (_charset) { %>
-link.charset = 'utf-8';
-<% } %>
 if (<%- SCRIPT_NONCE %>) {
   link.setAttribute("nonce", <%- SCRIPT_NONCE %>);
 }
