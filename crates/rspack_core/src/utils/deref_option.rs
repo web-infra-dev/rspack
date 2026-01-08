@@ -1,6 +1,5 @@
 use std::{
   fmt::Debug,
-  mem,
   ops::{Deref, DerefMut},
 };
 
@@ -34,19 +33,6 @@ impl<T> DerefOption<T> {
       other,
     );
   }
-  pub fn swap_2(&mut self, other: T) -> Option<T> {
-    match self.0 {
-      None => {
-        self.0 = Some(other);
-        return None;
-      }
-      Some(_) => {
-        let mut v = Some(other);
-        mem::swap(&mut self.0, &mut v);
-        return v;
-      }
-    }
-  }
 }
 impl<T> Deref for DerefOption<T> {
   type Target = T;
@@ -63,20 +49,5 @@ impl<T> DerefMut for DerefOption<T> {
       .0
       .as_mut()
       .unwrap_or_else(|| panic!("should set in compilation first"))
-  }
-}
-
-#[cfg(test)]
-mod tests {
-  use super::*;
-
-  #[test]
-  fn test_take_then_return() {
-    let mut v: Option<i32> = None;
-    let mut u: Option<i32> = Some(32);
-    mem::swap(&mut v, &mut u);
-
-    assert_eq!(v, Some(32));
-    assert_eq!(u, None);
   }
 }
