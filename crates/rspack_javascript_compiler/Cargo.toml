@@ -14,10 +14,8 @@ version.workspace       = true
 anyhow = { workspace = true }
 base64 = { workspace = true }
 indoc = { workspace = true }
-jsonc-parser = { workspace = true }
 rustc-hash = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
-serde_json = { workspace = true }
 swc_config = { workspace = true }
 swc_core = { workspace = true, features = [
   "__ecma",
