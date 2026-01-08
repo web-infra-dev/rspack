@@ -37,7 +37,7 @@ export default {
 ```
 
 :::tip
-从 Rspack 1.7 开始，`builtin:swc-loader` 默认启用 [verbatimModuleSyntax](https://swc.rs/docs/configuration/compilation#jsc.transform.verbatimmodulesyntax) 以获得更好的 TypeScript 兼容性。此选项确保仅类型导入（例如 `import type { Foo } from 'bar'`）在运行时被完全擦除，从而改善 tree-shaking 并减小打包体积。
+从 Rspack 2.0 开始，`builtin:swc-loader` 默认启用 [verbatimModuleSyntax](https://swc.rs/docs/configuration/compilation#jsc.transform.verbatimmodulesyntax) 以获得更好的 TypeScript 兼容性。此选项确保仅类型导入（例如 `import type { Foo } from 'bar'`）在运行时被完全擦除，从而改善 tree-shaking 并减小打包体积。
 
 如果需要，你可以显式禁用它：
 
