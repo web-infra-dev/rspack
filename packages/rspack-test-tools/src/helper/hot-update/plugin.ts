@@ -167,7 +167,9 @@ export class HotUpdatePlugin {
       compilation.hooks.runtimeModule.tap(
         PLUGIN_NAME,
         (module: any, _set: any) => {
-          if (module.constructorName === 'DefinePropertyGettersRuntimeModule') {
+          if (
+            module.constructor.name === 'DefinePropertyGettersRuntimeModule'
+          ) {
             module.source.source = Buffer.from(
               `
 										${RuntimeGlobals.definePropertyGetters} = function (exports, definition) {

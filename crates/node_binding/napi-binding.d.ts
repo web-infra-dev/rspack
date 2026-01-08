@@ -1205,6 +1205,8 @@ export interface JsRuntimeModule {
   moduleIdentifier: string
   constructorName: string
   name: string
+  stage: number
+  isolate: boolean
 }
 
 export interface JsRuntimeModuleArg {
@@ -2781,6 +2783,7 @@ export interface RawRstestPluginOptions {
   importMetaPathName: boolean
   hoistMockModule: boolean
   manualMockRoot: string
+  preserveNewUrl?: Array<string>
 }
 
 export interface RawRuleSetCondition {

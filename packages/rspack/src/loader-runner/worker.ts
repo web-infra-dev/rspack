@@ -648,10 +648,10 @@ function worker(workerOptions: WorkerOptions) {
   const waitFor = createWaitForPendingRequest(sendRequest);
 
   loaderImpl(workerOptions, sendRequest, waitFor)
-    .then(async (data) => {
+    .then((data) => {
       workerData.workerPort.postMessage({ type: 'done', data });
     })
-    .catch(async (err) => {
+    .catch((err) => {
       workerData.workerPort.postMessage({
         type: 'done-error',
         error: serializeError(err),
