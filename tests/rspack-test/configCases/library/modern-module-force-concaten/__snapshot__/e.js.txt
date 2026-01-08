@@ -65,5 +65,5 @@ var bar_default = /*#__PURE__*/__webpack_require__.n(bar);
 
 
 var __webpack_exports__bar = (bar_default());
-var __webpack_exports__foo = /* inlined export .foo */ ("foo");
+var __webpack_exports__foo = (/* inlined export .foo */"foo");
 export { __webpack_exports__bar as bar, __webpack_exports__foo as foo };
