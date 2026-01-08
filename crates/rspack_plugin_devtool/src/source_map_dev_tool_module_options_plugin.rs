@@ -1,6 +1,7 @@
+use rspack_collections::IdentifierMap;
 use rspack_core::{
   BoxModule, ChunkUkey, Compilation, CompilationBuildModule, CompilationId,
-  CompilationRuntimeModule, CompilerId, ModuleIdentifier, Plugin,
+  CompilationRuntimeModule, CompilerId, ModuleIdentifier, Plugin, RuntimeModule,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -46,21 +47,22 @@ async fn build_module(
 #[plugin_hook(CompilationRuntimeModule for SourceMapDevToolModuleOptionsPlugin)]
 async fn runtime_module(
   &self,
-  compilation: &mut Compilation,
-  module: &ModuleIdentifier,
+  _compilation: &Compilation,
+  module_identifier: &ModuleIdentifier,
   _chunk: &ChunkUkey,
+  runtime_modules: &mut IdentifierMap<Box<dyn RuntimeModule>>,
 ) -> Result<()> {
-  let Some(module) = compilation.runtime_modules.get_mut(module) else {
+  let Some(runtime_module) = runtime_modules.get_mut(module_identifier) else {
     return Ok(());
   };
   if self.module {
-    module.set_source_map_kind(SourceMapKind::SourceMap);
+    runtime_module.set_source_map_kind(SourceMapKind::SourceMap);
   } else {
-    module.set_source_map_kind(SourceMapKind::SimpleSourceMap);
+    runtime_module.set_source_map_kind(SourceMapKind::SimpleSourceMap);
   }
   if self.cheap {
-    let current_kind = *module.get_source_map_kind();
-    module.set_source_map_kind(current_kind | SourceMapKind::Cheap)
+    let current_kind = *runtime_module.get_source_map_kind();
+    runtime_module.set_source_map_kind(current_kind | SourceMapKind::Cheap)
   }
   Ok(())
 }
