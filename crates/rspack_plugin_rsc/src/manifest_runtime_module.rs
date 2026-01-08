@@ -228,7 +228,7 @@ fn build_server_consumer_module_map(
 ) -> FxHashMap<String, ManifestNode> {
   let mut server_consumer_module_map: FxHashMap<String, ManifestNode> = Default::default();
   let module_graph = compilation.get_module_graph();
-  let chunk_modules = ChunkModules::new(compilation, &module_graph);
+  let chunk_modules = ChunkModules::new(compilation, module_graph);
   for (module_identifier, module_id) in chunk_modules {
     let Some(module) = module_graph.module_by_identifier(&module_identifier) else {
       continue;
@@ -239,7 +239,7 @@ fn build_server_consumer_module_map(
         record_module(
           compilation,
           client_modules,
-          &module_graph,
+          module_graph,
           &inner_module.id,
           &module_id,
           &mut server_consumer_module_map,
@@ -249,7 +249,7 @@ fn build_server_consumer_module_map(
       record_module(
         compilation,
         client_modules,
-        &module_graph,
+        module_graph,
         &module_identifier,
         &module_id,
         &mut server_consumer_module_map,

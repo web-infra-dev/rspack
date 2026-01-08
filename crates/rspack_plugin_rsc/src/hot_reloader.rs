@@ -34,7 +34,7 @@ pub fn track_server_component_changes(
 
     collect_changed_server_components(
       compilation,
-      &module_graph,
+      module_graph,
       resolved_module.as_ref(),
       prev_server_component_hashes,
       &mut visited_modules,

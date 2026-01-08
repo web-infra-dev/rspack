@@ -756,7 +756,7 @@ impl ModuleGraph {
   }
 
   pub fn get_resolved_module(&self, dependency_id: &DependencyId) -> Option<&ModuleIdentifier> {
-    match self.connection_by_dependency_id(&dependency_id) {
+    match self.connection_by_dependency_id(dependency_id) {
         Some(connection) => Some(&connection.resolved_module),
         None => None,
       }

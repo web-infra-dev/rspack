@@ -158,7 +158,7 @@ fn filter_client_components(
       let exports_info = module_graph.get_exports_info(&module.identifier());
       let prefetched_exports_info = ExportsInfoGetter::prefetch(
         &exports_info,
-        &module_graph,
+        module_graph,
         PrefetchExportsInfoMode::Default,
       );
       let unused = !prefetched_exports_info.is_module_used(Some(runtime));
@@ -204,15 +204,15 @@ fn filter_client_components(
     let dependency = module_graph.dependency_by_id(&connection.dependency_id);
     let ids = if let Some(dependency) = dependency.downcast_ref::<CommonJsExportRequireDependency>()
     {
-      Some(dependency.get_ids(&module_graph))
+      Some(dependency.get_ids(module_graph))
     } else if let Some(dependency) =
       dependency.downcast_ref::<ESMExportImportedSpecifierDependency>()
     {
-      Some(dependency.get_ids(&module_graph))
+      Some(dependency.get_ids(module_graph))
     } else {
       dependency
         .downcast_ref::<ESMImportSpecifierDependency>()
-        .map(|dependency| dependency.get_ids(&module_graph))
+        .map(|dependency| dependency.get_ids(module_graph))
     };
     if let Some(ids) = ids {
       for id in ids {

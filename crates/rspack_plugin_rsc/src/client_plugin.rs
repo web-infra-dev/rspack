@@ -333,7 +333,7 @@ fn collect_client_actions_from_dependencies(
         continue;
       };
       collect_actions(
-        &module_graph,
+        module_graph,
         module_identifier,
         &mut collected_actions,
         &mut visited_modules,
