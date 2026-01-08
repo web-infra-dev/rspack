@@ -1,6 +1,5 @@
 use std::{
   fmt::Debug,
-  mem,
   ops::{Deref, DerefMut},
 };
 
@@ -36,7 +35,7 @@ impl<T> DerefOption<T> {
   }
 
   pub fn replace(&mut self, value: T) -> Option<T> {
-    mem::replace(&mut self.0, Some(value))
+    self.0.replace(value)
   }
 }
 impl<T> Deref for DerefOption<T> {
