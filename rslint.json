@@ -27,7 +27,7 @@
       "@typescript-eslint/use-unknown-in-catch-callback-variable": "off",
       "@typescript-eslint/require-await": "error",
       "@typescript-eslint/switch-exhaustiveness-check": "off",
-      "@typescript-eslint/return-await": "off",
+      "@typescript-eslint/return-await": "error",
       "@typescript-eslint/non-nullable-type-assertion-style": "off",
       "@typescript-eslint/no-misused-spread": "off",
       "@typescript-eslint/unbound-method": "off",

@@ -242,7 +242,7 @@ class ThreadsafeIntermediateNodeFS extends ThreadsafeOutputNodeFS {
     this.write = memoizeFn(() => {
       const writeFn = util.promisify(fs.write.bind(fs));
       return async (fd: number, content: Buffer, position: number) => {
-        return await writeFn(fd, content, {
+        return writeFn(fd, content, {
           position,
         });
       };
@@ -250,7 +250,7 @@ class ThreadsafeIntermediateNodeFS extends ThreadsafeOutputNodeFS {
     this.writeAll = memoizeFn(() => {
       const writeFn = util.promisify(fs.writeFile.bind(fs));
       return async (fd: number, content: Buffer) => {
-        return await writeFn(fd, content);
+        return writeFn(fd, content);
       };
     });
     this.read = memoizeFn(() => {
