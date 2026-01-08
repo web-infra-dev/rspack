@@ -47,9 +47,7 @@ export const createCompilerHooksRegisters: CreatePartialRegisters<
 
       function (queried) {
         return async function () {
-          return await queried.promise(
-            getCompiler().__internal__get_compilation()!,
-          );
+          return queried.promise(getCompiler().__internal__get_compilation()!);
         };
       },
     ),
@@ -62,9 +60,7 @@ export const createCompilerHooksRegisters: CreatePartialRegisters<
 
       function (queried) {
         return async function () {
-          return await queried.promise(
-            getCompiler().__internal__get_compilation()!,
-          );
+          return queried.promise(getCompiler().__internal__get_compilation()!);
         };
       },
     ),
@@ -90,9 +86,7 @@ export const createCompilerHooksRegisters: CreatePartialRegisters<
 
       function (queried) {
         return async function () {
-          return await queried.promise(
-            getCompiler().__internal__get_compilation()!,
-          );
+          return queried.promise(getCompiler().__internal__get_compilation()!);
         };
       },
     ),
@@ -105,9 +99,7 @@ export const createCompilerHooksRegisters: CreatePartialRegisters<
 
       function (queried) {
         return async function () {
-          return await queried.promise(
-            getCompiler().__internal__get_compilation()!,
-          );
+          return queried.promise(getCompiler().__internal__get_compilation()!);
         };
       },
     ),

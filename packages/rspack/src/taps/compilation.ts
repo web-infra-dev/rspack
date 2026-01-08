@@ -282,7 +282,7 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
 
       function (queried) {
         return async function () {
-          return await queried.promise(
+          return queried.promise(
             getCompiler().__internal__get_compilation()!.modules,
           );
         };
@@ -329,7 +329,7 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
 
       function (queried) {
         return async function () {
-          return await queried.promise(
+          return queried.promise(
             getCompiler().__internal__get_compilation()!.chunks,
             getCompiler().__internal__get_compilation()!.modules,
           );
@@ -346,7 +346,7 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
 
       function (queried) {
         return async function () {
-          return await queried.promise(
+          return queried.promise(
             getCompiler().__internal__get_compilation()!.chunks,
             getCompiler().__internal__get_compilation()!.modules,
           );
@@ -403,7 +403,7 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
 
       function (queried) {
         return async function () {
-          return await queried.promise(
+          return queried.promise(
             getCompiler().__internal__get_compilation()!.assets,
           );
         };
@@ -447,7 +447,7 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
 
       function (queried) {
         return async function () {
-          return await queried.promise();
+          return queried.promise();
         };
       },
     ),
