@@ -4,7 +4,11 @@ class Plugin {
 	apply(compiler) {
 		compiler.hooks.compilation.tap("TestFakePlugin", compilation => {
 			compilation.hooks.runtimeModule.tap("TestFakePlugin", (module, chunk) => {
-				if (module.constructorName === "CssLoadingRuntimeModule") {
+				if (module.constructor.name === "CssLoadingRuntimeModule") {
+					expect(module.constructorName).toBe("CssLoadingRuntimeModule");
+					expect(module.moduleIdentifier).toBe("webpack/runtime/css loading");
+					expect(module.identifier()).toBe("webpack/runtime/css loading");
+					expect(module.readableIdentifier()).toBe("webpack/runtime/css loading");
 					const originSource = module.source.source.toString("utf-8");
 					module.source.source = Buffer.from(
 						`${originSource}\n__webpack_require__.f.miniCss.test = true;\n`,
