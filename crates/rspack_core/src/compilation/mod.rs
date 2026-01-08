@@ -1254,10 +1254,16 @@ impl Compilation {
         "Chunk filename that dependent on full hash",
         "chunk filename that dependent on full hash is not supported in incremental compilation",
       )
+      && let Some(diagnostic) = diagnostic
     {
-      if let Some(diagnostic) = diagnostic {
-        self.push_diagnostic(diagnostic);
-      }
+      self.push_diagnostic(diagnostic);
+    }
+
+    // Check if CHUNKS_RENDER pass is disabled, and clear artifact if needed
+    if !self
+      .incremental
+      .passes_enabled(IncrementalPasses::CHUNKS_RENDER)
+    {
       self.chunk_render_artifact.clear();
     }
 
@@ -1292,7 +1298,6 @@ impl Compilation {
       ));
       chunks
     } else {
-      self.chunk_render_artifact.clear();
       self.chunk_by_ukey.keys().copied().collect()
     };
     let results = rspack_futures::scope::<_, Result<_>>(|token| {
@@ -1732,6 +1737,14 @@ impl Compilation {
 
     let start = logger.time("module ids");
 
+    // Check if MODULE_IDS pass is disabled, and clear artifact if needed
+    if !self
+      .incremental
+      .passes_enabled(IncrementalPasses::MODULE_IDS)
+    {
+      self.module_ids_artifact.clear();
+    }
+
     let mut diagnostics = vec![];
     let mut module_ids_artifact = mem::take(&mut self.module_ids_artifact);
     plugin_driver
@@ -1745,6 +1758,15 @@ impl Compilation {
     logger.time_end(start);
 
     let start = logger.time("chunk ids");
+
+    // Check if CHUNK_IDS pass is disabled, and clear artifact if needed
+    if !self
+      .incremental
+      .passes_enabled(IncrementalPasses::CHUNK_IDS)
+    {
+      self.named_chunk_ids_artifact.clear();
+    }
+
     let mut diagnostics = vec![];
     let mut chunk_by_ukey = mem::take(&mut self.chunk_by_ukey);
     let mut named_chunk_ids_artifact = mem::take(&mut self.named_chunk_ids_artifact);
@@ -1774,6 +1796,14 @@ impl Compilation {
       .await
       .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.optimizeCodeGeneration"))?;
     logger.time_end(start);
+
+    // Check if MODULES_HASHES pass is disabled, and clear artifact if needed
+    if !self
+      .incremental
+      .passes_enabled(IncrementalPasses::MODULES_HASHES)
+    {
+      self.cgm_hash_artifact.clear();
+    }
 
     let create_module_hashes_modules = if let Some(mutations) = self
       .incremental
@@ -1851,7 +1881,6 @@ impl Compilation {
 
       modules
     } else {
-      self.cgm_hash_artifact.clear();
       self.get_module_graph().modules().keys().copied().collect()
     };
     self
@@ -1947,6 +1976,15 @@ impl Compilation {
       )
       .await?;
     let runtime_chunks = self.get_chunk_graph_entries().collect();
+
+    // Check if CHUNKS_RUNTIME_REQUIREMENTS pass is disabled, and clear artifact if needed
+    if !self
+      .incremental
+      .passes_enabled(IncrementalPasses::CHUNKS_RUNTIME_REQUIREMENTS)
+    {
+      self.cgc_runtime_requirements_artifact.clear();
+    }
+
     let process_runtime_requirements_chunks = if let Some(mutations) = self
       .incremental
       .mutations_read(IncrementalPasses::CHUNKS_RUNTIME_REQUIREMENTS)
@@ -1979,7 +2017,6 @@ impl Compilation {
       ));
       affected_chunks
     } else {
-      self.cgc_runtime_requirements_artifact.clear();
       self.chunk_by_ukey.keys().copied().collect()
     };
     self
@@ -2350,10 +2387,14 @@ impl Compilation {
         "Chunk content that dependent on full hash",
         "it requires calculating the hashes of all the chunks, which is a global effect",
       )
+      && let Some(diagnostic) = diagnostic
     {
-      if let Some(diagnostic) = diagnostic {
-        self.push_diagnostic(diagnostic);
-      }
+      self.push_diagnostic(diagnostic);
+    }
+    if !self
+      .incremental
+      .passes_enabled(IncrementalPasses::CHUNKS_HASHES)
+    {
       self.chunk_hashes_artifact.clear();
     }
 
@@ -2382,7 +2423,6 @@ impl Compilation {
       ));
       chunks
     } else {
-      self.chunk_hashes_artifact.clear();
       self.chunk_by_ukey.keys().copied().collect()
     };
 
