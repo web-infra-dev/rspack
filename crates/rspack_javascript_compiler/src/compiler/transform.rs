@@ -5,28 +5,20 @@
  * Author Donny/강동윤
  * Copyright (c)
  */
-use std::{
-  env,
-  fs::File,
-  path::{Path, PathBuf},
-  sync::{Arc, LazyLock},
-};
+use std::{env, fs::File, path::PathBuf, sync::Arc};
 
 use anyhow::{Context, bail};
 use base64::prelude::*;
 use indoc::formatdoc;
-use jsonc_parser::parse_to_serde_value;
 use rspack_error::Result;
-use rspack_util::{itoa, source_map::SourceMapKind, swc::minify_file_comments};
-use serde_json::error::Category;
+use rspack_util::{source_map::SourceMapKind, swc::minify_file_comments};
 use swc_config::{is_module::IsModule, merge::Merge};
 pub use swc_core::base::config::Options as SwcOptions;
 use swc_core::{
   base::{
     BoolOr,
     config::{
-      BuiltInput, Config, ConfigFile, InputSourceMap, JsMinifyCommentOption, OutputCharset, Rc,
-      RootMode, SourceMapsConfig,
+      BuiltInput, Config, InputSourceMap, JsMinifyCommentOption, OutputCharset, SourceMapsConfig,
     },
     sourcemap,
   },
@@ -74,174 +66,6 @@ impl JavaScriptCompiler {
 
     javascript_transformer.transform(inspect_parsed_ast, before_pass, module_source_map_kind)
   }
-}
-
-fn parse_swcrc(s: &str) -> Result<Rc, anyhow::Error> {
-  fn convert_json_err(e: serde_json::Error) -> anyhow::Error {
-    let line = e.line();
-    let column = e.column();
-
-    let msg = match e.classify() {
-      Category::Io => "io error",
-      Category::Syntax => "syntax error",
-      Category::Data => "unmatched data",
-      Category::Eof => "unexpected eof",
-    };
-    let mut line_buffer = itoa::Buffer::new();
-    let line_str = line_buffer.format(line);
-    let mut column_buffer = itoa::Buffer::new();
-    let column_str = column_buffer.format(column);
-    anyhow::Error::new(e).context(format!(
-      "failed to deserialize .swcrc (json) file: {msg}: {line_str}:{column_str}"
-    ))
-  }
-
-  let v = parse_to_serde_value(
-    s.trim_start_matches('\u{feff}'),
-    &jsonc_parser::ParseOptions {
-      allow_comments: true,
-      allow_trailing_commas: true,
-      allow_loose_object_property_names: false,
-    },
-  )?
-  .ok_or_else(|| anyhow::Error::msg("failed to deserialize empty .swcrc (json) file"))?;
-
-  if let Ok(rc) = serde_json::from_value(v.clone()) {
-    return Ok(rc);
-  }
-
-  serde_json::from_value(v)
-    .map(Rc::Single)
-    .map_err(convert_json_err)
-}
-
-fn find_swcrc(path: &Path, root: &Path, root_mode: RootMode) -> Option<PathBuf> {
-  let mut parent = path.parent();
-  while let Some(dir) = parent {
-    let swcrc = dir.join(".swcrc");
-
-    if swcrc.exists() {
-      return Some(swcrc);
-    }
-
-    if dir == root && root_mode == RootMode::Root {
-      break;
-    }
-    parent = dir.parent();
-  }
-
-  None
-}
-
-fn load_swcrc(path: &Path) -> Result<Rc, anyhow::Error> {
-  let content = std::fs::read_to_string(path).context("failed to read config (.swcrc) file")?;
-
-  parse_swcrc(&content)
-}
-
-fn read_config(opts: &SwcOptions, name: &FileName) -> Result<Option<Config>, anyhow::Error> {
-  static CUR_DIR: LazyLock<PathBuf> = LazyLock::new(|| {
-    if cfg!(target_arch = "wasm32") {
-      PathBuf::new()
-    } else {
-      ::std::env::current_dir().expect("should be available")
-    }
-  });
-
-  let res: Result<_, anyhow::Error> = {
-    let SwcOptions {
-      root,
-      root_mode,
-      swcrc,
-      config_file,
-      ..
-    } = opts;
-
-    let root = root.as_ref().unwrap_or(&CUR_DIR);
-
-    let swcrc_path = match config_file {
-      Some(ConfigFile::Str(s)) => Some(PathBuf::from(s.clone())),
-      _ => {
-        if *swcrc {
-          if let FileName::Real(path) = name {
-            find_swcrc(path, root, *root_mode)
-          } else {
-            None
-          }
-        } else {
-          None
-        }
-      }
-    };
-
-    let config_file = match swcrc_path.as_deref() {
-      Some(s) => Some(load_swcrc(s)?),
-      _ => None,
-    };
-    let filename_path = match name {
-      FileName::Real(p) => Some(&**p),
-      _ => None,
-    };
-
-    if let Some(filename_path) = filename_path {
-      if let Some(config) = config_file {
-        let dir = swcrc_path
-          .as_deref()
-          .and_then(|p| p.parent())
-          .expect(".swcrc path should have parent dir");
-
-        let mut config = config
-          .into_config(Some(filename_path))
-          .context("failed to process config file")?;
-
-        if let Some(c) = &mut config
-          && c.jsc.base_url != PathBuf::new()
-        {
-          let joined = dir.join(&c.jsc.base_url);
-          c.jsc.base_url = if cfg!(target_os = "windows") && c.jsc.base_url.as_os_str() == "." {
-            dir.canonicalize().with_context(|| {
-              format!(
-                "failed to canonicalize base url using the path of \
-                                  .swcrc\nDir: {}\n(Used logic for windows)",
-                dir.display(),
-              )
-            })?
-          } else {
-            joined.canonicalize().with_context(|| {
-              format!(
-                "failed to canonicalize base url using the path of \
-                                  .swcrc\nPath: {}\nDir: {}\nbaseUrl: {}",
-                joined.display(),
-                dir.display(),
-                c.jsc.base_url.display()
-              )
-            })?
-          };
-        }
-
-        return Ok(config);
-      }
-
-      let config_file = config_file.unwrap_or_default();
-      let config = config_file.into_config(Some(filename_path))?;
-
-      return Ok(config);
-    }
-
-    let config = match config_file {
-      Some(config_file) => config_file.into_config(None)?,
-      None => Rc::default().into_config(None)?,
-    };
-
-    match config {
-      Some(config) => Ok(Some(config)),
-      None => {
-        anyhow::bail!("no config matched for file ({name})")
-      }
-    }
-  };
-
-  res.with_context(|| format!("failed to read .swcrc file for input file at `{name}`"))
 }
 
 struct JavaScriptTransformer<'a> {
