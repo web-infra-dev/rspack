@@ -5120,6 +5120,9 @@ name = "rspack_tracing"
 version = "0.7.1"
 dependencies = [
  "rspack_tracing_perfetto",
+ "serde",
+ "serde_json",
+ "tracing",
  "tracing-subscriber",
 ]
 
