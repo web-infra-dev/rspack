@@ -40,6 +40,18 @@ export class PreviewCommand implements RspackCommand {
       setDefaultNodeEnv(options, 'production');
       normalizeCommonOptions(options, 'preview');
 
+      const packageName = '@rspack/dev-server';
+      try {
+        require.resolve(packageName);
+      } catch {
+        const logger = cli.getLogger();
+        logger.warn(
+          `Package "${packageName}" is not installed. Please install it before using "rspack preview" command.`,
+        );
+        process.exit(2);
+      }
+
+      // Lazy import @rspack/dev-server to avoid loading it on build mode
       const { RspackDevServer } = await import('@rspack/dev-server');
 
       let { config } = await cli.loadConfig(options);

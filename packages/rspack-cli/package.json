@@ -34,13 +34,12 @@
   },
   "dependencies": {
     "@discoveryjs/json-ext": "^0.5.7",
-    "@rspack/dev-server": "~1.1.5",
-    "exit-hook": "^4.0.0",
-    "webpack-bundle-analyzer": "4.10.2"
+    "exit-hook": "^4.0.0"
   },
   "devDependencies": {
     "@rslib/core": "0.19.1",
     "@rspack/core": "workspace:*",
+    "@rspack/dev-server": "~1.1.5",
     "@rspack/test-tools": "workspace:*",
     "@types/webpack-bundle-analyzer": "^4.7.0",
     "cac": "^6.7.14",
@@ -50,10 +49,24 @@
     "picocolors": "^1.1.1",
     "pirates": "^4.0.7",
     "ts-node": "^10.9.2",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "webpack-bundle-analyzer": "4.10.2"
   },
   "peerDependencies": {
-    "@rspack/core": "^1.0.0-alpha || ^1.x"
+    "@rspack/core": "^1.0.0-alpha || ^1.x",
+    "@rspack/dev-server": "~1.1.5",
+    "webpack-bundle-analyzer": "4.10.2"
+  },
+  "peerDependenciesMeta": {
+    "@rspack/core": {
+      "optional": false
+    },
+    "@rspack/dev-server": {
+      "optional": true
+    },
+    "webpack-bundle-analyzer": {
+      "optional": true
+    }
   },
   "publishConfig": {
     "access": "public",
