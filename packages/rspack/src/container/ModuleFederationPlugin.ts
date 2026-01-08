@@ -36,7 +36,7 @@ export class ModuleFederationPlugin {
 
   apply(compiler: Compiler) {
     const { webpack } = compiler;
-    const paths = getPaths(this._options);
+    const paths = getPaths(this._options, compiler);
     compiler.options.resolve.alias = {
       '@module-federation/runtime-tools': paths.runtimeTools,
       '@module-federation/runtime': paths.runtime,
@@ -283,7 +283,10 @@ function getRuntimePlugins(options: ModuleFederationPluginOptions) {
   return options.runtimePlugins ?? [];
 }
 
-function getPaths(options: ModuleFederationPluginOptions): RuntimePaths {
+function getPaths(
+  options: ModuleFederationPluginOptions,
+  compiler: Compiler,
+): RuntimePaths {
   if (IS_BROWSER) {
     return {
       runtimeTools: '@module-federation/runtime-tools',
@@ -297,7 +300,9 @@ function getPaths(options: ModuleFederationPluginOptions): RuntimePaths {
     runtimeToolsPath = options.implementation;
   } else {
     try {
-      runtimeToolsPath = require.resolve('@module-federation/runtime-tools');
+      runtimeToolsPath = require.resolve('@module-federation/runtime-tools', {
+        paths: [compiler.context],
+      });
     } catch (e) {
       if ((e as NodeJS.ErrnoException).code === 'MODULE_NOT_FOUND') {
         throw new Error(
