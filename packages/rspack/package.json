@@ -65,14 +65,17 @@
     "webpack-sources": "3.3.3"
   },
   "dependencies": {
-    "@module-federation/runtime-tools": "0.22.0",
     "@rspack/binding": "workspace:*",
     "@rspack/lite-tapable": "1.1.0"
   },
   "peerDependencies": {
+    "@module-federation/runtime-tools": ">=0.22.0",
     "@swc/helpers": ">=0.5.1"
   },
   "peerDependenciesMeta": {
+    "@module-federation/runtime-tools": {
+      "optional": true
+    },
     "@swc/helpers": {
       "optional": true
     }
