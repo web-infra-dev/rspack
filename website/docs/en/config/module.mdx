@@ -411,6 +411,46 @@ export default {
 <img src="file:///path/to/project/dist/icon.svg" />
 ```
 
+### module.parser.javascript.bundleNewUrl
+
+<ApiMeta stability={Stability.Experimental} />
+
+<PropertyType
+  type="boolean"
+  defaultValueList={[{ defaultValue: 'undefined' }]}
+/>
+
+When set to `true`, Rspack will bundle `new URL()` targets as separate entry chunks (single-file output).
+
+This option creates an `AsyncDependenciesBlock` with special `EntryOptions` that:
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        bundleNewUrl: true,
+      },
+    },
+  },
+};
+```
+
+When combined with `url: 'new-url-relative'`, relative URLs are generated:
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        url: 'new-url-relative',
+        bundleNewUrl: true,
+      },
+    },
+  },
+};
+```
+
 ### module.parser.javascript.exprContextCritical
 
 <PropertyType

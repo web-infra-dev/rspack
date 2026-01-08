@@ -1,3 +1,4 @@
+mod url_bundle;
 use std::sync::LazyLock;
 
 use regex::Regex;
@@ -11,6 +12,7 @@ use rspack_core::{
   URLStaticMode, UsedByExports,
 };
 use swc_core::ecma::atoms::Atom;
+pub use url_bundle::{URLBundleDependency, URLBundleDependencyTemplate};
 
 use crate::{connection_active_used_by_exports, runtime::AUTO_PUBLIC_PATH_PLACEHOLDER};
 
