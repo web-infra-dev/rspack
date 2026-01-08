@@ -15,7 +15,6 @@ import type {
   ExternalObject,
   JsCompilation,
   JsPathData,
-  JsRuntimeModule,
   JsSource,
 } from '@rspack/binding';
 import binding from '@rspack/binding';
@@ -252,7 +251,7 @@ export class Compilation {
     runtimeRequirementInTree: liteTapable.HookMap<
       liteTapable.SyncBailHook<[Chunk, Set<string>], void>
     >;
-    runtimeModule: liteTapable.SyncHook<[JsRuntimeModule, Chunk]>;
+    runtimeModule: liteTapable.SyncHook<[RuntimeModule, Chunk]>;
     seal: liteTapable.SyncHook<[]>;
     afterSeal: liteTapable.AsyncSeriesHook<[], void>;
     needAdditionalPass: liteTapable.SyncBailHook<[], boolean>;
