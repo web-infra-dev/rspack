@@ -1359,6 +1359,8 @@ impl CompilationRuntimeModule for CompilationRuntimeModuleTap {
           .as_str()
           .cow_replace(compilation.runtime_template.runtime_module_prefix(), "")
           .into_owned(),
+        stage: module.stage().into(),
+        isolate: module.should_isolate(),
       },
       chunk: ChunkWrapper::new(*chunk_ukey, compilation),
     };
