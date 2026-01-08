@@ -419,7 +419,7 @@ export const experiments: Experiments = {
     },
     async cleanup() {
       await JavaScriptTracer.cleanupJavaScriptTrace();
-      await syncTraceEvent(JavaScriptTracer.events);
+      syncTraceEvent(JavaScriptTracer.events);
       cleanupGlobalTrace();
     },
   },

@@ -13,7 +13,7 @@ runs:
 
   steps:
     - name: GitHub Script
-      uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd
+      uses: actions/github-script@450193c5abd4cdb17ba9f3ffcfe8f635c4bb6c2a
       with:
         script: |
           const limit = parseInt("${{ inputs.size-threshold }}") || 51200;
