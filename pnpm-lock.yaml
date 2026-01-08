@@ -714,6 +714,9 @@ importers:
       '@babel/preset-react':
         specifier: ^7.28.5
         version: 7.28.5(@babel/core@7.28.5)
+      '@module-federation/runtime-tools':
+        specifier: ^0.22.0
+        version: 0.22.0
       '@rspack/binding-testing':
         specifier: workspace:*
         version: link:../../crates/rspack_binding_builder_testing
