@@ -196,11 +196,15 @@ pub fn build_chunk_graph_benchmark_inner(c: &mut Criterion) {
         .unwrap(),
       Some(true)
     ) {}
-    compiler.compilation.build_module_graph_artifact =
-      DerefOption::new(build_module_graph_artifact);
+    compiler
+      .compilation
+      .build_module_graph_artifact
+      .replace(build_module_graph_artifact);
 
-    compiler.compilation.side_effects_optimize_artifact =
-      DerefOption::new(side_effects_optimize_artifact);
+    compiler
+      .compilation
+      .side_effects_optimize_artifact
+      .replace(side_effects_optimize_artifact);
     compiler.compilation.extend_diagnostics(diagnostics);
 
     compiler

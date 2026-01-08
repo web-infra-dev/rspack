@@ -662,7 +662,7 @@ impl Compilation {
     }
 
     let make_artifact = self.build_module_graph_artifact.take();
-    self.build_module_graph_artifact = DerefOption::new(
+    self.build_module_graph_artifact.replace(
       update_module_graph(
         self,
         make_artifact,
@@ -713,7 +713,7 @@ impl Compilation {
     // Recheck entry and clean useless entry
     // This should before finish_modules hook is called, ensure providedExports effects on new added modules
     let make_artifact = self.build_module_graph_artifact.take();
-    self.build_module_graph_artifact = DerefOption::new(
+    self.build_module_graph_artifact.replace(
       update_module_graph(
         self,
         make_artifact,
@@ -1025,7 +1025,9 @@ impl Compilation {
     }
 
     let artifact = self.build_module_graph_artifact.take();
-    self.build_module_graph_artifact = DerefOption::new(build_module_graph(self, artifact).await?);
+    self
+      .build_module_graph_artifact
+      .replace(build_module_graph(self, artifact).await?);
 
     self.in_finish_make.store(true, Ordering::Release);
 
@@ -1042,7 +1044,7 @@ impl Compilation {
     // https://github.com/webpack/webpack/blob/19ca74127f7668aaf60d59f4af8fcaee7924541a/lib/Compilation.js#L2462C21-L2462C25
     self.module_graph_cache_artifact.unfreeze();
 
-    self.build_module_graph_artifact = DerefOption::new(
+    self.build_module_graph_artifact.replace(
       update_module_graph(
         self,
         artifact,
@@ -1450,8 +1452,9 @@ impl Compilation {
     self.in_finish_make.store(false, Ordering::Release);
     // clean up the entry deps
     let make_artifact = self.build_module_graph_artifact.take();
-    self.build_module_graph_artifact =
-      DerefOption::new(finish_build_module_graph(self, make_artifact).await?);
+    self
+      .build_module_graph_artifact
+      .replace(finish_build_module_graph(self, make_artifact).await?);
     // sync assets to module graph from module_executor
     if let Some(module_executor) = &mut self.module_executor {
       let mut module_executor = std::mem::take(module_executor);
@@ -1639,8 +1642,8 @@ impl Compilation {
     let start = logger.time("optimize dependencies");
     // https://github.com/webpack/webpack/blob/d15c73469fd71cf98734685225250148b68ddc79/lib/Compilation.js#L2812-L2814
 
-    let mut side_effects_optimize_artifact = self.side_effects_optimize_artifact.take();
     let mut diagnostics: Vec<Diagnostic> = vec![];
+    let mut side_effects_optimize_artifact = self.side_effects_optimize_artifact.take();
     let mut build_module_graph_artifact = self.build_module_graph_artifact.take();
     while matches!(
       plugin_driver
@@ -1656,8 +1659,12 @@ impl Compilation {
         .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.optimizeDependencies"))?,
       Some(true)
     ) {}
-    self.side_effects_optimize_artifact = DerefOption::new(side_effects_optimize_artifact);
-    self.build_module_graph_artifact = DerefOption::new(build_module_graph_artifact);
+    self
+      .side_effects_optimize_artifact
+      .replace(side_effects_optimize_artifact);
+    self
+      .build_module_graph_artifact
+      .replace(build_module_graph_artifact);
     self.extend_diagnostics(diagnostics);
 
     logger.time_end(start);

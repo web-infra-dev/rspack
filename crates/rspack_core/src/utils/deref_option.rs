@@ -1,5 +1,6 @@
 use std::{
   fmt::Debug,
+  mem,
   ops::{Deref, DerefMut},
 };
 
@@ -32,6 +33,10 @@ impl<T> DerefOption<T> {
         .unwrap_or_else(|| panic!("should set in compilation first")),
       other,
     );
+  }
+
+  pub fn replace(&mut self, value: T) -> Option<T> {
+    mem::replace(&mut self.0, Some(value))
   }
 }
 impl<T> Deref for DerefOption<T> {
