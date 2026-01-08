@@ -122,7 +122,7 @@ async fn render_startup(
         match used_name {
           UsedNameItem::Str(used_name) =>
             format!("{exports_name}{}", property_access(vec![used_name], 0)),
-          UsedNameItem::Inlined(inlined) => inlined.render(),
+          UsedNameItem::Inlined(inlined) => inlined.render(""),
         }
       )));
     }
