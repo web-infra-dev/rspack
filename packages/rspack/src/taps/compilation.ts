@@ -6,6 +6,7 @@ import {
   __to_binding_runtime_globals,
   isReservedRuntimeGlobal,
 } from '../RuntimeGlobals';
+import { createRenderedRuntimeModule } from '../RuntimeModule';
 import { createHash } from '../util/createHash';
 import type { CreatePartialRegisters } from './types';
 
@@ -133,8 +134,11 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
 
       function (queried) {
         return function ({ module, chunk }: binding.JsRuntimeModuleArg) {
+          const runtimeModule = createRenderedRuntimeModule(module);
+          const compilation = getCompiler().__internal__get_compilation()!;
+          runtimeModule.attach(compilation, chunk, compilation.chunkGraph);
           const originSource = module.source?.source;
-          queried.call(module, chunk);
+          queried.call(runtimeModule, chunk);
           const newSource = module.source?.source;
           if (newSource && newSource !== originSource) {
             return module;
