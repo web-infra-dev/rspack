@@ -36,6 +36,29 @@ export default {
 };
 ```
 
+:::tip
+Starting from Rspack 1.7, `builtin:swc-loader` enables [verbatimModuleSyntax](https://swc.rs/docs/configuration/compilation#jsc.transform.verbatimmodulesyntax) by default for better TypeScript compatibility. This option ensures that type-only imports (e.g., `import type { Foo } from 'bar'`) are completely erased at runtime, improving tree-shaking and reducing bundle size.
+
+You can explicitly disable it if needed:
+
+```js
+{
+  loader: 'builtin:swc-loader',
+  options: {
+    jsc: {
+      parser: {
+        syntax: 'typescript',
+      },
+      transform: {
+        verbatimModuleSyntax: false,
+      },
+    },
+  },
+}
+```
+
+:::
+
 ### JSX transpilation
 
 To transpile React's `.jsx` files:
