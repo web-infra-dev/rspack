@@ -46,24 +46,82 @@ impl Tracer for StdoutTracer {
 
   fn sync_trace(&mut self, events: Vec<TraceEvent>) {
     if let Some(writer) = &mut self.writer {
-      for event in events {
-        // Serialize TraceEvent to JSON, including track_name and process_name
-        let json_value = serde_json::json!({
-          "name": event.name,
-          "track_name": event.track_name,
-          "process_name": event.process_name,
-          "ts": event.ts,
-          "ph": event.ph,
-          "uuid": event.uuid,
-          "args": event.args,
-          "categories": event.categories,
-        });
+      use std::collections::HashMap;
 
-        // Write as JSON line
-        if let Ok(json_str) = serde_json::to_string(&json_value) {
-          let _ = writeln!(writer, "{}", json_str);
+      // Track begin events by uuid to match with end events
+      let mut pending_events: HashMap<u32, TraceEvent> = HashMap::new();
+
+      for event in events {
+        match event.ph.as_str() {
+          "b" => {
+            // Store begin event
+            pending_events.insert(event.uuid, event);
+          }
+          "e" => {
+            // Find matching begin event and calculate duration
+            if let Some(begin_event) = pending_events.remove(&event.uuid) {
+              let duration_ns = event.ts.saturating_sub(begin_event.ts);
+              let duration_ms = duration_ns as f64 / 1_000_000.0;
+
+              // Build fields object
+              let mut fields = serde_json::Map::new();
+              fields.insert("message".to_string(), serde_json::json!("close"));
+              fields.insert(
+                "time.busy".to_string(),
+                serde_json::json!(format!("{:.2}ms", duration_ms)),
+              );
+
+              // Add any args from the event
+              if let Some(args) = begin_event.args {
+                for (key, value) in args {
+                  fields.insert(key, serde_json::json!(value));
+                }
+              }
+
+              // Build span object if we have track_name
+              let span_obj = if let Some(track_name) = &begin_event.track_name {
+                Some(serde_json::json!({
+                  "name": track_name,
+                }))
+              } else {
+                None
+              };
+
+              // Build JSON in Rust trace format
+              // ts is in nanoseconds, convert to microseconds for chrono
+              let json_value = serde_json::json!({
+                "timestamp": begin_event.ts,
+                "level": "DEBUG",
+                "fields": fields,
+                "target": begin_event.process_name.as_deref().unwrap_or("javascript"),
+                "span": span_obj,
+              });
+
+              if let Ok(json_str) = serde_json::to_string(&json_value) {
+                let _ = writeln!(writer, "{}", json_str);
+              }
+            }
+          }
+          _ => {
+            // For other event types (like "X", "P"), output as-is
+            let json_value = serde_json::json!({
+              "name": event.name,
+              "track_name": event.track_name,
+              "process_name": event.process_name,
+              "ts": event.ts,
+              "ph": event.ph,
+              "uuid": event.uuid,
+              "args": event.args,
+              "categories": event.categories,
+            });
+
+            if let Ok(json_str) = serde_json::to_string(&json_value) {
+              let _ = writeln!(writer, "{}", json_str);
+            }
+          }
         }
       }
+
       // Flush to ensure events are written immediately
       let _ = writer.flush();
     }
