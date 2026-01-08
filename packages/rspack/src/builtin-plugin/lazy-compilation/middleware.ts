@@ -43,14 +43,6 @@ const DEPRECATED_LAZY_COMPILATION_OPTIONS_WARN =
 const REPEAT_LAZY_COMPILATION_OPTIONS_WARN =
   'Both top-level `lazyCompilation` and `experiments.lazyCompilation` options are set. The top-level `lazyCompilation` configuration will take precedence.';
 
-/**
- * Create a middleware that handles lazy compilation requests from the client.
- * This function returns an Express-style middleware that listens for
- * requests triggered by lazy compilation in the dev server client,
- * then invokes the Rspack compiler to compile modules on demand.
- * Use this middleware when integrating lazy compilation into a
- * custom development server instead of relying on the built-in server.
- */
 export const lazyCompilationMiddleware = (
   compiler: Compiler | MultiCompiler,
 ): MiddlewareHandler => {
@@ -88,7 +80,6 @@ export const lazyCompilationMiddleware = (
       }
 
       const options = {
-        // TODO: remove this when experiments.lazyCompilation is removed
         ...c.options.experiments.lazyCompilation,
         ...c.options.lazyCompilation,
       };
@@ -139,7 +130,6 @@ export const lazyCompilationMiddleware = (
   const activeModules: Set<string> = new Set();
 
   const options = {
-    // TODO: remove this when experiments.lazyCompilation is removed
     ...compiler.options.experiments.lazyCompilation,
     ...compiler.options.lazyCompilation,
   };
@@ -173,7 +163,19 @@ function applyPlugin(
   plugin.apply(compiler);
 }
 
-// used for reuse code, do not export this
+function getRequestBody(req: IncomingMessage): Promise<string> {
+  return new Promise((resolve, reject) => {
+    let body = '';
+    req.on('data', (chunk) => {
+      body += chunk.toString();
+    });
+    req.on('end', () => {
+      resolve(body);
+    });
+    req.on('error', reject);
+  });
+}
+
 const lazyCompilationMiddlewareInternal = (
   compiler: Compiler | MultiCompiler,
   activeModules: Set<string>,
@@ -181,16 +183,34 @@ const lazyCompilationMiddlewareInternal = (
 ): MiddlewareHandler => {
   const logger = compiler.getInfrastructureLogger('LazyCompilation');
 
-  return (req: IncomingMessage, res: ServerResponse, next?: () => void) => {
+  return async (
+    req: IncomingMessage,
+    res: ServerResponse,
+    next?: () => void,
+  ) => {
     if (!req.url?.startsWith(lazyCompilationPrefix)) {
-      // only handle requests that are come from lazyCompilation
       return next?.();
     }
 
-    const modules = req.url
-      .slice(lazyCompilationPrefix.length)
-      .split('@')
-      .map(decodeURIComponent);
+    let modules: string[] = [];
+
+    if (req.method === 'POST') {
+      try {
+        const body = await getRequestBody(req);
+        modules = JSON.parse(body);
+      } catch (err) {
+        logger.error('Failed to parse request body: ' + err);
+        res.writeHead(400);
+        res.end('Bad Request');
+        return;
+      }
+    } else {
+      modules = req.url
+        .slice(lazyCompilationPrefix.length)
+        .split('@')
+        .map(decodeURIComponent);
+    }
+
     req.socket.setNoDelay(true);
 
     res.setHeader('content-type', 'text/event-stream');
@@ -209,6 +229,9 @@ const lazyCompilationMiddlewareInternal = (
 
     if (moduleActivated.length && compiler.watching) {
       compiler.watching.invalidate();
+    }
+    if (req.method === 'POST') {
+      res.end();
     }
   };
 };
