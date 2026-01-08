@@ -1402,15 +1402,8 @@ async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<
     | IncrementalPasses::CHUNKS_HASHES,
     "ModuleConcatenationPlugin (optimization.concatenateModules = true)",
     "it requires calculating the modules that can be concatenated based on all the modules, which is a global effect",
-  ) {
-    if let Some(diagnostic) = diagnostic {
+  ) && let Some(diagnostic) = diagnostic {
       compilation.push_diagnostic(diagnostic);
-    }
-    compilation.cgm_hash_artifact.clear();
-    compilation.module_ids_artifact.clear();
-    compilation.named_chunk_ids_artifact.clear();
-    compilation.cgc_runtime_requirements_artifact.clear();
-    compilation.chunk_hashes_artifact.clear();
   }
 
   self.optimize_chunk_modules_impl(compilation).await?;

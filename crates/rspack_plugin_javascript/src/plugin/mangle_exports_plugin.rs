@@ -64,11 +64,9 @@ async fn optimize_code_generation(&self, compilation: &mut Compilation) -> Resul
     IncrementalPasses::MODULES_HASHES,
     "MangleExportsPlugin (optimization.mangleExports = true)",
     "it requires calculating the export names of all the modules, which is a global effect",
-  ) {
-    if let Some(diagnostic) = diagnostic {
-      compilation.push_diagnostic(diagnostic);
-    }
-    compilation.cgm_hash_artifact.clear();
+  ) && let Some(diagnostic) = diagnostic
+  {
+    compilation.push_diagnostic(diagnostic);
   }
 
   let mg = compilation.get_module_graph_mut();
