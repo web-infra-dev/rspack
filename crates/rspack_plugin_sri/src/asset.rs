@@ -3,7 +3,7 @@ use std::{cmp::Ordering, sync::Arc};
 use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use rspack_core::{
   ChunkUkey, Compilation, CompilationAfterProcessAssets, CompilationAssets,
-  CompilationProcessAssets, CrossOriginLoading, ManifestAssetType,
+  CompilationProcessAssets, CrossOriginLoading, ManifestAssetType, ProcessAssetsArtifact,
   chunk_graph_chunk::ChunkId,
   rspack_sources::{ReplaceSource, Source},
 };
@@ -260,7 +260,7 @@ async fn add_minssing_integrities(
 }
 
 #[plugin_hook(CompilationProcessAssets for SubresourceIntegrityPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_OPTIMIZE_INLINE - 1)]
-pub async fn handle_assets(&self, compilation: &mut Compilation) -> Result<()> {
+pub async fn handle_assets(&self, compilation: &mut Compilation, _artifact: &mut ProcessAssetsArtifact) -> Result<()> {
   let integrities = process_chunks(&self.options.hash_func_names, compilation);
   let compilation_integrities =
     SubresourceIntegrityPlugin::get_compilation_integrities_mut(compilation.id());

@@ -40,8 +40,8 @@ use rspack_core::{
   NormalModuleFactoryCreateModuleHook, NormalModuleFactoryFactorize,
   NormalModuleFactoryFactorizeHook, NormalModuleFactoryResolve,
   NormalModuleFactoryResolveForScheme, NormalModuleFactoryResolveForSchemeHook,
-  NormalModuleFactoryResolveHook, NormalModuleFactoryResolveResult, ResourceData, RuntimeGlobals,
-  Scheme, build_module_graph::BuildModuleGraphArtifact, parse_resource,
+  NormalModuleFactoryResolveHook, NormalModuleFactoryResolveResult, ProcessAssetsArtifact,
+  ResourceData, RuntimeGlobals, Scheme, build_module_graph::BuildModuleGraphArtifact, parse_resource,
   rspack_sources::RawStringSource,
 };
 use rspack_error::Diagnostic;
@@ -1430,7 +1430,7 @@ impl CompilationChunkAsset for CompilationChunkAssetTap {
 
 #[async_trait]
 impl CompilationProcessAssets for CompilationProcessAssetsTap {
-  async fn run(&self, compilation: &mut Compilation) -> rspack_error::Result<()> {
+  async fn run(&self, compilation: &mut Compilation, _artifact: &mut ProcessAssetsArtifact) -> rspack_error::Result<()> {
     let compilation = JsCompilationWrapper::new(compilation);
     self.function.call_with_promise(compilation).await
   }

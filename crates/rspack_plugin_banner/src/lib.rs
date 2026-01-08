@@ -8,6 +8,7 @@ use futures::future::BoxFuture;
 use regex::Regex;
 use rspack_core::{
   Chunk, Compilation, CompilationProcessAssets, Filename, Logger, PathData, Plugin,
+  ProcessAssetsArtifact,
   rspack_sources::{BoxSource, ConcatSource, RawStringSource, SourceExt},
   to_comment,
 };
@@ -125,7 +126,7 @@ impl BannerPlugin {
 }
 
 #[plugin_hook(CompilationProcessAssets for BannerPlugin, stage = self.config.stage.unwrap_or(Compilation::PROCESS_ASSETS_STAGE_ADDITIONS))]
-async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
+async fn process_assets(&self, compilation: &mut Compilation, _artifact: &mut ProcessAssetsArtifact) -> Result<()> {
   let logger = compilation.get_logger("rspack.BannerPlugin");
   let start = logger.time("add banner");
   let mut updates = vec![];

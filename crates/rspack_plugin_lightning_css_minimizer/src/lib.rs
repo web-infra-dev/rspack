@@ -14,6 +14,7 @@ use rayon::prelude::*;
 use regex::Regex;
 use rspack_core::{
   ChunkUkey, Compilation, CompilationChunkHash, CompilationProcessAssets, Plugin,
+  ProcessAssetsArtifact,
   diagnostics::MinifyError,
   rspack_sources::{
     MapOptions, ObjectPool, RawStringSource, SourceExt, SourceMap, SourceMapSource,
@@ -122,7 +123,7 @@ async fn chunk_hash(
 }
 
 #[plugin_hook(CompilationProcessAssets for LightningCssMinimizerRspackPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_OPTIMIZE_SIZE)]
-async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
+async fn process_assets(&self, compilation: &mut Compilation, _artifact: &mut ProcessAssetsArtifact) -> Result<()> {
   let options = &self.options;
   let minimizer_options = &self.options.minimizer_options;
   let all_warnings: RwLock<Vec<Diagnostic>> = Default::default();

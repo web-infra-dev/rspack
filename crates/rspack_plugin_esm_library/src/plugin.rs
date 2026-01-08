@@ -8,15 +8,7 @@ use atomic_refcell::AtomicRefCell;
 use regex::Regex;
 use rspack_collections::{IdentifierIndexMap, IdentifierSet, UkeyMap};
 use rspack_core::{
-  ApplyContext, AssetInfo, AsyncModulesArtifact, ChunkUkey, Compilation,
-  CompilationAdditionalChunkRuntimeRequirements, CompilationAdditionalTreeRuntimeRequirements,
-  CompilationAfterCodeGeneration, CompilationConcatenationScope, CompilationFinishModules,
-  CompilationOptimizeChunks, CompilationParams, CompilationProcessAssets,
-  CompilationRuntimeRequirementInTree, CompilerCompilation, ConcatenatedModuleInfo,
-  ConcatenationScope, DependencyType, ExternalModuleInfo, GetTargetResult, Logger, ModuleGraph,
-  ModuleIdentifier, ModuleInfo, ModuleType, NormalModuleFactoryParser, ParserAndGenerator,
-  ParserOptions, Plugin, PrefetchExportsInfoMode, RuntimeGlobals, get_target, is_esm_dep_like,
-  rspack_sources::{ReplaceSource, Source},
+  ApplyContext, AssetInfo, AsyncModulesArtifact, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements, CompilationAdditionalTreeRuntimeRequirements, CompilationAfterCodeGeneration, CompilationConcatenationScope, CompilationFinishModules, CompilationOptimizeChunks, CompilationParams, CompilationProcessAssets, CompilationRuntimeRequirementInTree, CompilerCompilation, ConcatenatedModuleInfo, ConcatenationScope, DependencyType, ExternalModuleInfo, GetTargetResult, Logger, ModuleGraph, ModuleIdentifier, ModuleInfo, ModuleType, NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, Plugin, PrefetchExportsInfoMode, ProcessAssetsArtifact, RuntimeGlobals, get_target, is_esm_dep_like, rspack_sources::{ReplaceSource, Source}
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
@@ -390,7 +382,7 @@ static RSPACK_ESM_CHUNK_PLACEHOLDER_RE: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r##"__RSPACK_ESM_CHUNK_[^'"]+"##).expect("should have regex"));
 
 #[plugin_hook(CompilationProcessAssets for EsmLibraryPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_AFTER_OPTIMIZE_HASH)]
-async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
+async fn process_assets(&self, compilation: &mut Compilation, _artifact: &mut ProcessAssetsArtifact) -> Result<()> {
   let mut replaced = vec![];
   let mut removed = vec![];
 
