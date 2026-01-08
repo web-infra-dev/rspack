@@ -23,6 +23,6 @@ export enum RequestType {
   CompilationGetAssetPathWithInfo = 'CompilationGetAssetPathWithInfo',
 }
 
-export async function run() {
-  throw new Error('Not support browser');
+export function run(): Promise<never> {
+  return Promise.reject(new Error('Not support browser'));
 }

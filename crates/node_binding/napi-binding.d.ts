@@ -1205,6 +1205,8 @@ export interface JsRuntimeModule {
   moduleIdentifier: string
   constructorName: string
   name: string
+  stage: number
+  isolate: boolean
 }
 
 export interface JsRuntimeModuleArg {

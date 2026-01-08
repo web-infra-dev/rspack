@@ -70,7 +70,7 @@ export class ExternalsPlugin extends RspackBuiltinPlugin {
       const processResolveResult = this.#processResolveResult;
 
       return async (ctx: RawExternalItemFnCtx) => {
-        return await new Promise((resolve, reject) => {
+        return new Promise((resolve, reject) => {
           const data = ctx.data();
           const promise = item(
             {

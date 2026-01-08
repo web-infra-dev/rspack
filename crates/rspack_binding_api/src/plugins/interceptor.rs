@@ -10,7 +10,7 @@ use napi::{
   Env, JsValue,
   bindgen_prelude::{Buffer, FromNapiValue, Function, JsValuesTupleIntoVec, Promise, ToNapiValue},
 };
-use rspack_collections::IdentifierSet;
+use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   AfterResolveResult, AssetEmittedInfo, AsyncModulesArtifact, BeforeResolveResult, BindingCell,
   BoxModule, ChunkUkey, Compilation, CompilationAdditionalTreeRuntimeRequirements,
@@ -41,7 +41,7 @@ use rspack_core::{
   NormalModuleFactoryFactorizeHook, NormalModuleFactoryResolve,
   NormalModuleFactoryResolveForScheme, NormalModuleFactoryResolveForSchemeHook,
   NormalModuleFactoryResolveHook, NormalModuleFactoryResolveResult, ResourceData, RuntimeGlobals,
-  Scheme, build_module_graph::BuildModuleGraphArtifact, parse_resource,
+  RuntimeModule, Scheme, build_module_graph::BuildModuleGraphArtifact, parse_resource,
   rspack_sources::RawStringSource,
 };
 use rspack_error::Diagnostic;
@@ -1340,11 +1340,12 @@ impl CompilationRuntimeRequirementInTree for CompilationRuntimeRequirementInTree
 impl CompilationRuntimeModule for CompilationRuntimeModuleTap {
   async fn run(
     &self,
-    compilation: &mut Compilation,
+    compilation: &Compilation,
     m: &ModuleIdentifier,
     chunk_ukey: &ChunkUkey,
+    runtime_modules: &mut IdentifierMap<Box<dyn RuntimeModule>>,
   ) -> rspack_error::Result<()> {
-    let Some(module) = compilation.runtime_modules.get(m) else {
+    let Some(module) = runtime_modules.get(m) else {
       return Ok(());
     };
     let source_string = module.generate(compilation).await?;
@@ -1358,16 +1359,15 @@ impl CompilationRuntimeModule for CompilationRuntimeModuleTap {
           .as_str()
           .cow_replace(compilation.runtime_template.runtime_module_prefix(), "")
           .into_owned(),
+        stage: module.stage().into(),
+        isolate: module.should_isolate(),
       },
       chunk: ChunkWrapper::new(*chunk_ukey, compilation),
     };
     if let Some(module) = self.function.call_with_sync(arg).await?
       && let Some(source) = module.source
     {
-      let module = compilation
-        .runtime_modules
-        .get_mut(m)
-        .expect("should have module");
+      let module = runtime_modules.get_mut(m).expect("should have module");
       match source.source {
         napi::Either::A(string) => {
           module.set_custom_source(string);
