@@ -1292,6 +1292,7 @@ impl Compilation {
       ));
       chunks
     } else {
+      self.chunk_render_artifact.clear();
       self.chunk_by_ukey.keys().copied().collect()
     };
     let results = rspack_futures::scope::<_, Result<_>>(|token| {
@@ -1850,6 +1851,7 @@ impl Compilation {
 
       modules
     } else {
+      self.cgm_hash_artifact.clear();
       self.get_module_graph().modules().keys().copied().collect()
     };
     self
@@ -1889,6 +1891,7 @@ impl Compilation {
       ));
       modules
     } else {
+      self.code_generation_results = Default::default();
       self.get_module_graph().modules().keys().copied().collect()
     };
     self.code_generation(code_generation_modules).await?;
@@ -1934,6 +1937,7 @@ impl Compilation {
       ));
       modules
     } else {
+      self.cgm_runtime_requirements_artifact = Default::default();
       self.get_module_graph().modules().keys().copied().collect()
     };
     self
@@ -1975,6 +1979,7 @@ impl Compilation {
       ));
       affected_chunks
     } else {
+      self.cgc_runtime_requirements_artifact.clear();
       self.chunk_by_ukey.keys().copied().collect()
     };
     self
@@ -2377,6 +2382,7 @@ impl Compilation {
       ));
       chunks
     } else {
+      self.chunk_hashes_artifact.clear();
       self.chunk_by_ukey.keys().copied().collect()
     };
 
