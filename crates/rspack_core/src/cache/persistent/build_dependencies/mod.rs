@@ -113,7 +113,6 @@ mod test {
   use std::{path::PathBuf, sync::Arc};
 
   use rspack_fs::{MemoryFileSystem, WritableFileSystem};
-  use rspack_paths::Utf8PathBuf;
   use rspack_storage::Storage;
 
   use super::{
@@ -158,7 +157,7 @@ mod test {
     let options = vec![PathBuf::from("/index.js"), PathBuf::from("/configs")];
     let snapshot_options = SnapshotOptions::default();
     let storage = Arc::new(MemoryStorage::default());
-    let codec = Arc::new(CacheCodec::new(Utf8PathBuf::from("/")));
+    let codec = Arc::new(CacheCodec::new(None));
     let mut build_deps = BuildDeps::new(
       &options,
       &snapshot_options,

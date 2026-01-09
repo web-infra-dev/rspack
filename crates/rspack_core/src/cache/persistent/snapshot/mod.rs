@@ -161,7 +161,7 @@ mod tests {
   use std::sync::Arc;
 
   use rspack_fs::{MemoryFileSystem, WritableFileSystem};
-  use rspack_paths::{ArcPath, Utf8PathBuf};
+  use rspack_paths::ArcPath;
 
   use super::{
     super::{codec::CacheCodec, storage::MemoryStorage},
@@ -178,7 +178,7 @@ mod tests {
   async fn should_snapshot_work() {
     let fs = Arc::new(MemoryFileSystem::default());
     let storage = Arc::new(MemoryStorage::default());
-    let codec = Arc::new(CacheCodec::new(Utf8PathBuf::from("/")));
+    let codec = Arc::new(CacheCodec::new(None));
     let options = SnapshotOptions::new(
       vec![PathMatcher::String("constant".into())],
       vec![PathMatcher::String("node_modules/project".into())],

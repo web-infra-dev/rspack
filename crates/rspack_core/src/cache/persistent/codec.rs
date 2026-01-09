@@ -10,12 +10,12 @@ use rspack_paths::Utf8PathBuf;
 /// Internal cacheable context for serialization
 #[derive(Debug, Clone)]
 struct Context {
-  project_path: Utf8PathBuf,
+  project_path: Option<Utf8PathBuf>,
 }
 
 impl rspack_cacheable::CacheableContext for Context {
   fn project_root(&self) -> Option<&Path> {
-    Some(self.project_path.as_std_path())
+    self.project_path.as_ref().map(|p| p.as_std_path())
   }
 }
 
@@ -41,7 +41,7 @@ pub struct CacheCodec {
 }
 
 impl CacheCodec {
-  pub fn new(project_path: Utf8PathBuf) -> Self {
+  pub fn new(project_path: Option<Utf8PathBuf>) -> Self {
     Self {
       context: Context { project_path },
     }
