@@ -1162,7 +1162,13 @@ export type JavascriptParserOptions = {
   /** Override the module to strict or non-strict. */
   overrideStrict?: 'strict' | 'non-strict';
 
-  // TODO: add docs
+  /**
+   * Control whether the CommonJS `require` function may be renamed to other identifiers
+   * (for example via aliasing or destructuring) when parsing modules.
+   * Set this to `false` to disallow renaming `require`, which can be useful for stricter
+   * analysis or when relying on `require` remaining a well-known identifier.
+   * @default true
+   */
   requireRename?: boolean;
 
   // TODO: add docs
