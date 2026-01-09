@@ -2826,15 +2826,13 @@ impl ConcatenatedModule {
               }
               UsedName::Inlined(inlined) => {
                 return FinalBindingResult::from_binding(Binding::Raw(RawBinding {
-                  raw_name: format!(
-                    "{} {}",
-                    to_normal_comment(&format!(
+                  raw_name: inlined
+                    .inlined_value()
+                    .render(&to_normal_comment(&format!(
                       "inlined export {}",
                       property_access(&export_name, 0)
-                    )),
-                    inlined.inlined_value().render()
-                  )
-                  .into(),
+                    )))
+                    .into(),
                   ids: inlined.suffix_ids().to_vec(),
                   export_name,
                   info_id: info.module,
@@ -2888,15 +2886,13 @@ impl ConcatenatedModule {
                 &export,
               ) {
                 return FinalBindingResult::from_binding(Binding::Raw(RawBinding {
-                  raw_name: format!(
-                    "{} {}",
-                    to_normal_comment(&format!(
+                  raw_name: inlined
+                    .inlined_value()
+                    .render(&to_normal_comment(&format!(
                       "inlined export {}",
                       property_access(&export_name, 0)
-                    )),
-                    inlined.inlined_value().render()
-                  )
-                  .into(),
+                    )))
+                    .into(),
                   ids: inlined.suffix_ids().to_vec(),
                   export_name,
                   info_id: info.module,
@@ -2958,15 +2954,13 @@ impl ConcatenatedModule {
             // Inlined namespace export symbol is not possible for now but we compat it here
             UsedName::Inlined(inlined) => Binding::Raw(RawBinding {
               info_id: info.module,
-              raw_name: format!(
-                "{} {}",
-                to_normal_comment(&format!(
+              raw_name: inlined
+                .inlined_value()
+                .render(&to_normal_comment(&format!(
                   "inlined export {}",
                   property_access(&export_name, 0)
-                )),
-                inlined.inlined_value().render()
-              )
-              .into(),
+                )))
+                .into(),
               ids: inlined.suffix_ids().to_vec(),
               export_name,
               comment: None,
@@ -3018,15 +3012,13 @@ impl ConcatenatedModule {
                 "inlined export is not possible for deferred external module"
               );
               Binding::Raw(RawBinding {
-                raw_name: format!(
-                  "{} {}",
-                  to_normal_comment(&format!(
+                raw_name: inlined
+                  .inlined_value()
+                  .render(&to_normal_comment(&format!(
                     "inlined export {}",
                     property_access(&export_name, 0)
-                  )),
-                  inlined.inlined_value().render()
-                )
-                .into(),
+                  )))
+                  .into(),
                 ids: inlined.suffix_ids().to_vec(),
                 export_name,
                 info_id: info.module,
