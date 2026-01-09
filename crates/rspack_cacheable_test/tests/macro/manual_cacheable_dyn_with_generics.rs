@@ -1,9 +1,16 @@
-use rspack_cacheable::{r#dyn::VTablePtr, enable_cacheable as cacheable, from_bytes, to_bytes};
+use rspack_cacheable::{
+  CacheableContext, r#dyn::VTablePtr, enable_cacheable as cacheable, from_bytes, to_bytes,
+};
 
 #[test]
 #[cfg_attr(miri, ignore)]
 fn test_manual_cacheable_dyn_macro_with_generics() {
   struct Context;
+  impl CacheableContext for Context {
+    fn project_root(&self) -> Option<&std::path::Path> {
+      None
+    }
+  }
 
   trait Animal<T = ()>: rspack_cacheable::r#dyn::SerializeDyn {
     fn color(&self) -> &str;
