@@ -1,7 +1,8 @@
-use std::{any::Any, sync::Arc};
+use std::sync::Arc;
 
 use rspack_cacheable::{
-  Error, enable_cacheable as cacheable, from_bytes, to_bytes,
+  CacheableContext, ContextGuard, Error, Result, enable_cacheable as cacheable, from_bytes,
+  to_bytes,
   with::{As, AsConverter},
 };
 
@@ -15,17 +16,21 @@ struct Context {
   option: Arc<CompilerOptions>,
 }
 
+impl CacheableContext for Context {
+  fn project_root(&self) -> Option<&std::path::Path> {
+    None
+  }
+}
+
 #[cacheable]
 struct FromContext;
 
 impl AsConverter<Arc<CompilerOptions>> for FromContext {
-  fn serialize(_data: &Arc<CompilerOptions>, _ctx: &dyn Any) -> Result<Self, Error> {
+  fn serialize(_data: &Arc<CompilerOptions>, _guard: &ContextGuard) -> Result<Self> {
     Ok(FromContext)
   }
-  fn deserialize(self, ctx: &dyn Any) -> Result<Arc<CompilerOptions>, Error> {
-    let Some(ctx) = ctx.downcast_ref::<Context>() else {
-      return Err(Error::MessageError("context not match"));
-    };
+  fn deserialize(self, guard: &ContextGuard) -> Result<Arc<CompilerOptions>> {
+    let ctx = guard.downcast_context::<Context>()?;
     Ok(ctx.option.clone())
   }
 }
@@ -50,10 +55,15 @@ fn test_context() {
 
   let bytes = to_bytes(&module, &()).unwrap();
 
-  assert!(matches!(
-    from_bytes::<Module, ()>(&bytes, &()),
-    Err(Error::MessageError("context not match"))
-  ));
+  let result = from_bytes::<Module, ()>(&bytes, &());
+  assert!(result.is_err(), "should fail when using wrong context");
+  if let Err(e) = result {
+    assert!(
+      matches!(e, Error::NoContext),
+      "expected NoContext but got: {:?}",
+      e
+    );
+  }
   let new_module: Module = from_bytes(&bytes, &context).unwrap();
   assert_eq!(module, new_module);
 }
