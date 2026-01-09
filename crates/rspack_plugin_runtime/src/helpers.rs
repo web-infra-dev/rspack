@@ -260,9 +260,19 @@ pub fn generate_entry_startup(
     .join(", ");
   if chunks_ids.is_empty() {
     if !module_ids_code.is_empty() {
-      source.push_str(&format!("var {exports_name} = ("));
-      source.push_str(module_ids_code);
-      source.push_str(");\n");
+      if passive {
+        source.push_str(&format!("var {exports_name} = ("));
+        source.push_str(module_ids_code);
+        source.push_str(");\n");
+      } else {
+        source.push_str(&format!(
+          "var {exports_name} = {}(0, [], function() {{\n        return {};\n      }});\n",
+          compilation
+            .runtime_template
+            .render_runtime_globals(&RuntimeGlobals::STARTUP_ENTRYPOINT),
+          module_ids_code
+        ));
+      }
     }
   } else {
     if !passive {
