@@ -10,10 +10,10 @@ __webpack_require__.add({
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   fs: () => (/* reexport safe */ fs__rspack_import_0["default"]),
-  named: () => (/* reexport safe */ (42)),
+  named: () => (/* reexport safe */ (/* inlined export _lib__rspack_import_1 */42)),
   r: () => (/* reexport safe */ fs__rspack_import_0.readFile),
   readFile: () => (/* reexport safe */ fs__rspack_import_0.readFile),
-  starExports: () => (/* reexport safe */ (42))
+  starExports: () => (/* reexport safe */ (/* inlined export _lib2__rspack_import_2 */42))
 });
 /* import */ var fs__rspack_import_0 = __webpack_require__(/*! fs */ "fs");
 

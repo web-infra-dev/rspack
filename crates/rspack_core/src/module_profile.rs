@@ -1,7 +1,7 @@
 use std::time::Instant;
 
 use rspack_cacheable::{
-  cacheable,
+  ContextGuard, Result, cacheable,
   with::{Custom, CustomConverter},
 };
 
@@ -17,13 +17,10 @@ enum ProfileState {
 
 impl CustomConverter for ProfileState {
   type Target = Option<u64>;
-  fn serialize(&self, _ctx: &dyn std::any::Any) -> Result<Self::Target, rspack_cacheable::Error> {
+  fn serialize(&self, _guard: &ContextGuard) -> Result<Self::Target> {
     Ok(self.duration())
   }
-  fn deserialize(
-    data: Self::Target,
-    _ctx: &dyn std::any::Any,
-  ) -> Result<Self, rspack_cacheable::Error> {
+  fn deserialize(data: Self::Target, _guard: &ContextGuard) -> Result<Self> {
     if let Some(time) = data {
       Ok(ProfileState::Finish(time))
     } else {

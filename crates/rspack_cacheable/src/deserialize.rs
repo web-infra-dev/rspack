@@ -1,5 +1,3 @@
-use std::any::Any;
-
 use rkyv::{
   Archive, Deserialize, access,
   api::{deserialize_using, high::HighValidator},
@@ -10,7 +8,7 @@ use rkyv::{
 };
 
 use crate::{
-  context::ContextGuard,
+  context::{CacheableContext, ContextGuard},
   error::{Error, Result},
 };
 
@@ -21,7 +19,7 @@ pub type Deserializer = Strategy<Pool, Error>;
 ///
 /// This function implementation refers to rkyv::from_bytes and
 /// add custom error and context support
-pub fn from_bytes<T, C: Any>(bytes: &[u8], context: &C) -> Result<T>
+pub fn from_bytes<T, C: CacheableContext>(bytes: &[u8], context: &C) -> Result<T>
 where
   T: Archive,
   T::Archived: for<'a> CheckBytes<Validator<'a>> + Deserialize<T, Deserializer>,
