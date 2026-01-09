@@ -2,7 +2,8 @@ use std::path::PathBuf;
 
 use rspack_cacheable::{
   Error, enable_cacheable as cacheable,
-  with::{AsString, AsStringConverter},
+  utils::PortablePath,
+  with::{As, AsString, AsStringConverter},
 };
 
 #[cacheable(with=AsString)]
@@ -30,7 +31,7 @@ impl AsStringConverter for Regex {
 #[cacheable]
 #[derive(Debug, PartialEq, Eq)]
 struct Module {
-  #[cacheable(with=AsString)]
+  #[cacheable(with=As<PortablePath>)]
   path: PathBuf,
   #[cacheable(with=AsString)]
   regex: Regex,
