@@ -87,20 +87,6 @@ export function createRenderedRuntimeModule(
         this._source = module.source;
       }
 
-      /**
-       * @deprecated use `module.constructor.name` instead
-       */
-      get constructorName() {
-        return module.constructorName;
-      }
-
-      /**
-       * @deprecated use `module.identifier()` instead
-       */
-      get moduleIdentifier() {
-        return module.moduleIdentifier;
-      }
-
       get source(): JsSource | undefined {
         return this._source;
       }
