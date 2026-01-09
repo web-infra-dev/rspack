@@ -142,13 +142,11 @@ impl Tracer for StdoutTracer {
               }
 
               // Build span object if we have track_name
-              let span_obj = if let Some(track_name) = &begin_event.track_name {
-                Some(serde_json::json!({
+              let span_obj = begin_event.track_name.map(|track_name| {
+                serde_json::json!({
                   "name": track_name,
-                }))
-              } else {
-                None
-              };
+                })
+              });
 
               // Convert relative microsecond timestamp to absolute ISO 8601 format
               let absolute_ts_micros = self.begin_ts + begin_event.ts;
@@ -165,7 +163,11 @@ impl Tracer for StdoutTracer {
 
               if let Ok(json_str) = serde_json::to_string(&json_value) {
                 // Lock the mutex to access the writer
-                let _ = writeln!(writer.lock().unwrap(), "{}", json_str);
+                let _ = writeln!(
+                  writer.lock().expect("Failed to lock writer"),
+                  "{}",
+                  json_str
+                );
               }
             }
           }
@@ -174,14 +176,14 @@ impl Tracer for StdoutTracer {
       }
 
       // Flush to ensure events are written immediately
-      let _ = writer.lock().unwrap().flush();
+      let _ = writer.lock().expect("Failed to lock writer").flush();
     }
   }
 
   fn teardown(&mut self) {
     // Flush any remaining data
     if let Some(writer) = &self.writer {
-      let _ = writer.lock().unwrap().flush();
+      let _ = writer.lock().expect("Failed to lock writer").flush();
     }
   }
 }
