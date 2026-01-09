@@ -51,7 +51,7 @@ var sendRequest = function sendRequest() {
     });
 };
 
-var updateEventSource = function updateEventSource() {
+var sendActiveRequest = function sendActiveRequest() {
   hasPendingUpdate = true;
 
   // If no request is pending, start one
@@ -76,7 +76,7 @@ exports.activate = function (options) {
 
   if (!compiling.has(data)) {
     compiling.add(data);
-    updateEventSource();
+    sendActiveRequest();
   }
 
   if (!active && !module.hot) {
@@ -88,6 +88,6 @@ exports.activate = function (options) {
   return function () {
     errorHandlers.delete(onError);
     compiling.delete(data);
-    updateEventSource();
+    sendActiveRequest();
   };
 };
