@@ -30,7 +30,7 @@ pub mod __private {
 pub use deserialize::from_bytes;
 #[cfg(feature = "noop")]
 pub fn from_bytes<T, C: CacheableContext>(_bytes: &[u8], _context: &C) -> Result<T> {
-  let _ = deserialize::from_bytes::<u8, u8>;
+  let _ = deserialize::from_bytes::<u8, C>;
   panic!("Cannot use from_bytes when noop feature is enabled")
 }
 
@@ -38,7 +38,7 @@ pub fn from_bytes<T, C: CacheableContext>(_bytes: &[u8], _context: &C) -> Result
 pub use serialize::to_bytes;
 #[cfg(feature = "noop")]
 pub fn to_bytes<T, C: CacheableContext>(_value: &T, _ctx: &C) -> Result<Vec<u8>> {
-  let _ = serialize::to_bytes::<u8, u8>;
+  let _ = serialize::to_bytes::<u8, C>;
   panic!("Cannot use to_bytes when noop feature is enabled")
 }
 
