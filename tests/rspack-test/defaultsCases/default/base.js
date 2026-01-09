@@ -216,7 +216,7 @@ module.exports = {
 			        jsx: false,
 			        requireAsExpression: true,
 			        requireDynamic: true,
-			        requireRename: true,
+			        requireAlias: true,
 			        requireResolve: true,
 			        strictExportPresence: false,
 			        typeReexportsPresence: no-tolerant,

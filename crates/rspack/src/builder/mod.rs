@@ -1721,7 +1721,7 @@ impl ModuleOptionsBuilder {
           strict_export_presence: Some(false),
           worker: Some(vec!["...".to_string()]),
           import_meta: Some(true),
-          require_rename: Some(true),
+          require_alias: Some(true),
           require_as_expression: Some(true),
           require_dynamic: Some(true),
           require_resolve: Some(true),

@@ -2343,7 +2343,7 @@ export interface RawJavascriptParserOptions {
    * This option is experimental in Rspack only and subject to change or be removed anytime.
    * @experimental
    */
-  requireRename?: boolean
+  requireAlias?: boolean
   /**
    * This option is experimental in Rspack only and subject to change or be removed anytime.
    * @experimental

@@ -1169,7 +1169,7 @@ export type JavascriptParserOptions = {
    * analysis or when relying on `require` remaining a well-known identifier.
    * @default true
    */
-  requireRename?: boolean;
+  requireAlias?: boolean;
 
   // TODO: add docs
   requireAsExpression?: boolean;

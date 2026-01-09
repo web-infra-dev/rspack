@@ -2,7 +2,7 @@ module.exports = {
   module: {
     parser: {
       javascript: {
-        requireRename: false,
+        requireAlias: false,
         requireAsExpression: false
       }
     }

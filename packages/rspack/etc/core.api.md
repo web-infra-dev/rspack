@@ -3563,7 +3563,7 @@ export type JavascriptParserOptions = {
     strictExportPresence?: boolean;
     worker?: string[] | boolean;
     overrideStrict?: 'strict' | 'non-strict';
-    requireRename?: boolean;
+    requireAlias?: boolean;
     requireAsExpression?: boolean;
     requireDynamic?: boolean;
     requireResolve?: boolean;

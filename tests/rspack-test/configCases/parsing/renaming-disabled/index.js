@@ -12,7 +12,7 @@ function test2() {
 test;
 test2;
 
-it("should NOT rename require when requireRename is false", function () {
+it("should NOT rename require when requireAlias is false", function () {
 	const fs = __non_webpack_require__("fs");
 	const path = __non_webpack_require__("path");
 

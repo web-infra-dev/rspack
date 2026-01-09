@@ -322,7 +322,7 @@ const applyJavascriptParserOptionsDefaults = (
   D(parserOptions, 'wrappedContextRegExp', /.*/);
   D(parserOptions, 'strictExportPresence', false);
   D(parserOptions, 'requireAsExpression', true);
-  D(parserOptions, 'requireRename', true);
+  D(parserOptions, 'requireAlias', true);
   D(parserOptions, 'requireDynamic', true);
   D(parserOptions, 'requireResolve', true);
   D(parserOptions, 'commonjs', true);
