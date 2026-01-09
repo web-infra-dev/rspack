@@ -130,7 +130,7 @@ impl Tracer for StdoutTracer {
               let json_value = serde_json::json!({
                 "level": "DEBUG",
                 "fields": fields,
-                "target": begin_event.process_name.as_deref().unwrap_or("javascript"),
+                "target": "javascript",
                 "span": span_obj,
               });
 
