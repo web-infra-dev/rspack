@@ -1,9 +1,8 @@
 mod option;
 mod strategy;
 
-use std::{path::Path, sync::Arc};
+use std::sync::Arc;
 
-use rspack_cacheable::{from_bytes, to_bytes};
 use rspack_error::Result;
 use rspack_fs::ReadableFileSystem;
 use rspack_paths::{ArcPath, ArcPathSet};
@@ -13,7 +12,7 @@ pub use self::{
   option::{PathMatcher, SnapshotOptions},
   strategy::Strategy,
 };
-use super::storage::Storage;
+use super::{codec::CacheCodec, storage::Storage};
 use crate::FutureConsumer;
 
 pub const SCOPE: &str = "snapshot";
@@ -28,6 +27,7 @@ pub struct Snapshot {
   options: Arc<SnapshotOptions>,
   fs: Arc<dyn ReadableFileSystem>,
   storage: Arc<dyn Storage>,
+  codec: Arc<CacheCodec>,
 }
 
 impl Snapshot {
@@ -35,12 +35,14 @@ impl Snapshot {
     options: SnapshotOptions,
     fs: Arc<dyn ReadableFileSystem>,
     storage: Arc<dyn Storage>,
+    codec: Arc<CacheCodec>,
   ) -> Self {
     Self {
       scope: SCOPE,
       options: Arc::new(options),
       fs,
       storage,
+      codec,
     }
   }
 
@@ -49,12 +51,14 @@ impl Snapshot {
     options: SnapshotOptions,
     fs: Arc<dyn ReadableFileSystem>,
     storage: Arc<dyn Storage>,
+    codec: Arc<CacheCodec>,
   ) -> Self {
     Self {
       scope,
       options: Arc::new(options),
       fs,
       storage,
+      codec,
     }
   }
 
@@ -81,16 +85,18 @@ impl Snapshot {
   #[tracing::instrument("Cache::Snapshot::add", skip_all)]
   pub async fn add(&self, paths: impl Iterator<Item = ArcPath>) {
     let helper = Arc::new(StrategyHelper::new(self.fs.clone()));
+    let codec = self.codec.clone();
     // TODO merge package version file
     paths
       .map(|path| {
         let helper = helper.clone();
         let options = self.options.clone();
+        let codec = codec.clone();
         async move {
           let strategy = Self::calc_strategy(&options, &helper, &path).await?;
           Some((
-            path.as_os_str().as_encoded_bytes().to_vec(),
-            to_bytes::<_, ()>(&strategy, &()).expect("should to bytes success"),
+            codec.encode(&path).expect("should encode success"),
+            codec.encode(&strategy).expect("should encode success"),
           ))
         }
       })
@@ -117,6 +123,7 @@ impl Snapshot {
     let mut deleted_path = ArcPathSet::default();
     let mut no_change_path = ArcPathSet::default();
     let helper = Arc::new(StrategyHelper::new(self.fs.clone()));
+    let codec = self.codec.clone();
 
     let data = self.storage.load(self.scope).await?;
     let is_hot_start = !data.is_empty();
@@ -124,10 +131,10 @@ impl Snapshot {
       .into_iter()
       .map(|(key, value)| {
         let helper = helper.clone();
+        let codec = codec.clone();
         async move {
-          let path: ArcPath = Path::new(&*String::from_utf8_lossy(&key)).into();
-          let strategy: Strategy =
-            from_bytes::<Strategy, ()>(&value, &()).expect("should from bytes success");
+          let path: ArcPath = codec.decode(&key).expect("should decode success");
+          let strategy: Strategy = codec.decode(&value).expect("should decode success");
           let validate = helper.validate(&path, &strategy).await;
           (path, validate)
         }
@@ -156,7 +163,10 @@ mod tests {
   use rspack_fs::{MemoryFileSystem, WritableFileSystem};
   use rspack_paths::ArcPath;
 
-  use super::{super::storage::MemoryStorage, PathMatcher, Snapshot, SnapshotOptions};
+  use super::{
+    super::{codec::CacheCodec, storage::MemoryStorage},
+    PathMatcher, Snapshot, SnapshotOptions,
+  };
 
   macro_rules! p {
     ($tt:tt) => {
@@ -168,6 +178,7 @@ mod tests {
   async fn should_snapshot_work() {
     let fs = Arc::new(MemoryFileSystem::default());
     let storage = Arc::new(MemoryStorage::default());
+    let codec = Arc::new(CacheCodec::new(None));
     let options = SnapshotOptions::new(
       vec![PathMatcher::String("constant".into())],
       vec![PathMatcher::String("node_modules/project".into())],
@@ -201,7 +212,7 @@ mod tests {
       .await
       .unwrap();
 
-    let snapshot = Snapshot::new(options, fs.clone(), storage);
+    let snapshot = Snapshot::new(options, fs.clone(), storage, codec);
 
     snapshot
       .add(

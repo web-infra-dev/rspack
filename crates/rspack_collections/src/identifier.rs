@@ -9,7 +9,11 @@ use std::{
 use dashmap::{DashMap, DashSet};
 use hashlink::{LinkedHashMap, LinkedHashSet};
 use indexmap::{IndexMap, IndexSet};
-use rspack_cacheable::{cacheable, with, with::AsPreset};
+use rspack_cacheable::{
+  ContextGuard, Error as CacheableError, cacheable,
+  utils::PortableString,
+  with::{Custom, CustomConverter},
+};
 use serde::Serialize;
 use ustr::Ustr;
 
@@ -34,10 +38,10 @@ pub type IdentifierIndexSet = IndexSet<Identifier, BuildHasherDefault<Identifier
 pub type IdentifierDashSet = DashSet<Identifier, BuildHasherDefault<IdentifierHasher>>;
 pub type IdentifierLinkedSet = LinkedHashSet<Identifier, BuildHasherDefault<IdentifierHasher>>;
 
-#[cacheable(hashable)]
+#[cacheable(with=Custom, hashable)]
 #[derive(Debug, Default, Clone, Copy, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize)]
 #[cfg_attr(allocative, derive(allocative::Allocative))]
-pub struct Identifier(#[cacheable(with=AsPreset)] Ustr);
+pub struct Identifier(Ustr);
 
 impl Deref for Identifier {
   type Target = Ustr;
@@ -99,14 +103,12 @@ impl fmt::Display for Identifier {
 }
 
 // for Identifier
-impl with::AsRefStrConverter for Identifier {
-  fn as_str(&self) -> &str {
-    self.0.as_str()
+impl CustomConverter for Identifier {
+  type Target = PortableString;
+  fn serialize(&self, guard: &ContextGuard) -> Result<Self::Target, CacheableError> {
+    Ok(PortableString::new(self.as_str(), guard.project_root()))
   }
-  fn from_str(s: &str) -> Self
-  where
-    Self: Sized,
-  {
-    s.into()
+  fn deserialize(data: Self::Target, guard: &ContextGuard) -> Result<Self, CacheableError> {
+    Ok(Self::from(data.into_path_string(guard.project_root())))
   }
 }

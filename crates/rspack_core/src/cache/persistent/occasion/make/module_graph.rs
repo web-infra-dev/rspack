@@ -1,9 +1,7 @@
 use std::sync::Arc;
 
 use rayon::prelude::*;
-use rspack_cacheable::{
-  Error as CacheableError, cacheable, from_bytes, to_bytes, utils::OwnedOrRef,
-};
+use rspack_cacheable::{cacheable, utils::OwnedOrRef};
 use rspack_collections::IdentifierSet;
 use rspack_error::Result;
 use rustc_hash::FxHashSet as HashSet;
@@ -16,7 +14,7 @@ use crate::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, Dependency,
   DependencyId, DependencyParents, ExportsInfoData, ModuleGraph, ModuleGraphConnection,
   ModuleGraphModule, ModuleIdentifier, RayonConsumer,
-  cache::persistent::cacheable_context::CacheableContext,
+  cache::persistent::codec::CacheCodec,
   compilation::build_module_graph::{LazyDependencies, ModuleToLazyMake},
 };
 
@@ -43,7 +41,7 @@ pub fn save_module_graph(
   removed_modules: &IdentifierSet,
   need_update_modules: &IdentifierSet,
   storage: &Arc<dyn Storage>,
-  context: &CacheableContext,
+  codec: &CacheCodec,
 ) {
   for identifier in removed_modules {
     storage.remove(SCOPE, identifier.as_bytes());
@@ -94,9 +92,9 @@ pub fn save_module_graph(
         blocks,
         lazy_info,
       };
-      match to_bytes(&node, context) {
+      match codec.encode(&node) {
         Ok(bytes) => (identifier.as_bytes().to_vec(), bytes),
-        Err(err @ CacheableError::UnsupportedField) => {
+        Err(err) if err.to_string().contains("unsupported field") => {
           tracing::warn!("to bytes failed {:?}", err);
           // try use alternatives
           node.module = TempModule::transform_from(node.module);
@@ -106,7 +104,7 @@ pub fn save_module_graph(
             .map(|(dep, _)| (TempDependency::transform_from(dep), None))
             .collect();
           node.blocks = vec![];
-          if let Ok(bytes) = to_bytes(&node, context) {
+          if let Ok(bytes) = codec.encode(&node) {
             (identifier.as_bytes().to_vec(), bytes)
           } else {
             panic!("alternatives serialize failed")
@@ -129,7 +127,7 @@ pub fn save_module_graph(
 #[tracing::instrument("Cache::Occasion::Make::ModuleGraph::recovery", skip_all)]
 pub async fn recovery_module_graph(
   storage: &Arc<dyn Storage>,
-  context: &CacheableContext,
+  codec: &CacheCodec,
 ) -> Result<(ModuleGraph, ModuleToLazyMake, HashSet<DependencyId>)> {
   let mut need_check_dep = vec![];
   let mut mg = ModuleGraph::default();
@@ -139,7 +137,8 @@ pub async fn recovery_module_graph(
     .await?
     .into_par_iter()
     .map(|(_, v)| {
-      from_bytes::<Node, CacheableContext>(&v, context)
+      codec
+        .decode::<Node>(&v)
         .expect("unexpected module graph deserialize failed")
     })
     .with_max_len(1)
