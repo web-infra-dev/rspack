@@ -20,8 +20,8 @@ it('should re-export esm correctly', async () => {
 	expect(lib4).toBe(24)
 })
 
-var index_lib3 = /* inlined export .lib3 */(42);
-var index_lib4 = /* inlined export .lib4 */(24);
+var index_lib3 = (/* inlined export .lib3 */42);
+var index_lib4 = (/* inlined export .lib4 */24);
 export { index_lib3 as lib3, index_lib4 as lib4, lib2_lib2 as lib2, lib_lib as lib };
 
 ```
