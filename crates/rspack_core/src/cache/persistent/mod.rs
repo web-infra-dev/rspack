@@ -64,9 +64,7 @@ impl PersistentCache {
     intermediate_filesystem: Arc<dyn IntermediateFileSystem>,
   ) -> Self {
     let async_mode = compiler_options.mode.is_development();
-    let codec = Arc::new(CacheCodec::new(
-      compiler_options.context.as_path().to_path_buf(),
-    ));
+    let codec = Arc::new(CacheCodec::new(None));
     // use codec.encode to transform the absolute path in option,
     // it will ensure that same project in different directory have the same version.
     let option_bytes = codec

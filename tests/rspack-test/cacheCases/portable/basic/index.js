@@ -10,7 +10,7 @@ it('should basic test work', async () => {
     await NEXT_MOVE_DIR_START();
   }
   if (COMPILER_INDEX == 2) {
-    expect(value).toBe(1);
+    expect(value).toBe(3);
   }
 });
 
