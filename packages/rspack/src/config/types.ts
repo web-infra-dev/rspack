@@ -1163,10 +1163,7 @@ export type JavascriptParserOptions = {
   overrideStrict?: 'strict' | 'non-strict';
 
   /**
-   * Control whether the CommonJS `require` function may be renamed to other identifiers
-   * (for example via aliasing or destructuring) when parsing modules.
-   * Set this to `false` to disallow renaming `require`, which can be useful for stricter
-   * analysis or when relying on `require` remaining a well-known identifier.
+   * Control whether renaming of the CommonJS `require` function will be parsed and transformed.
    * @default true
    */
   requireAlias?: boolean;
