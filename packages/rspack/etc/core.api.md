@@ -521,13 +521,6 @@ type BufferEncodingOption = 'buffer' | {
     encoding: 'buffer';
 };
 
-// @public
-export type BundlerInfoOptions = {
-    version?: string;
-    bundler?: string;
-    force?: boolean | ('version' | 'uniqueId')[];
-};
-
 // @public (undocumented)
 type ByPass = (req: Request_2, res: Response_2, proxyConfig: ProxyConfigArrayItem) => any;
 
@@ -1619,6 +1612,7 @@ export type CssAutoGeneratorOptions = {
 export type CssAutoParserOptions = {
     namedExports?: CssParserNamedExports;
     url?: CssParserUrl;
+    resolveImport?: CssParserResolveImport;
 };
 
 // @public
@@ -1725,6 +1719,7 @@ export type CssModuleGeneratorOptions = CssAutoGeneratorOptions;
 export type CssModuleParserOptions = {
     namedExports?: CssParserNamedExports;
     url?: CssParserUrl;
+    resolveImport?: CssParserResolveImport;
 };
 
 // @public (undocumented)
@@ -1734,7 +1729,11 @@ export type CssParserNamedExports = boolean;
 export type CssParserOptions = {
     namedExports?: CssParserNamedExports;
     url?: CssParserUrl;
+    resolveImport?: CssParserResolveImport;
 };
+
+// @public (undocumented)
+export type CssParserResolveImport = boolean | ((url: string, media: string | undefined, resourcePath: string, supports: string | undefined, layer: string | undefined) => boolean);
 
 // @public (undocumented)
 export type CssParserUrl = boolean;
@@ -2450,7 +2449,9 @@ export type Experiments = {
     layers?: boolean;
     incremental?: IncrementalPresets | Incremental;
     futureDefaults?: boolean;
+    rspackFuture?: RspackFutureOptions;
     buildHttp?: HttpUriOptions;
+    parallelLoader?: boolean;
     useInputFileSystem?: UseInputFileSystem;
     nativeWatcher?: boolean;
     inlineConst?: boolean;
@@ -2493,6 +2494,8 @@ interface Experiments_2 {
     RslibPlugin: typeof RslibPlugin;
     // (undocumented)
     RstestPlugin: typeof RstestPlugin;
+    // @deprecated (undocumented)
+    SubresourceIntegrityPlugin: typeof SubresourceIntegrityPlugin;
     // (undocumented)
     swc: {
         transform: typeof transform;
@@ -2534,6 +2537,10 @@ export interface ExperimentsNormalized {
     nativeWatcher?: boolean;
     // (undocumented)
     outputModule?: boolean;
+    // (undocumented)
+    parallelLoader?: boolean;
+    // (undocumented)
+    rspackFuture?: RspackFutureOptions;
     // (undocumented)
     topLevelAwait?: boolean;
     // (undocumented)
@@ -3124,6 +3131,7 @@ export type HtmlRspackPluginOptions = {
     chunks?: string[];
     excludeChunks?: string[];
     chunksSortMode?: 'auto' | 'manual';
+    sri?: 'sha256' | 'sha384' | 'sha512';
     minify?: boolean;
     favicon?: string;
     meta?: Record<string, string | Record<string, string>>;
@@ -4201,6 +4209,7 @@ type KnownStatsModule = {
     failed?: boolean;
     errors?: number;
     warnings?: number;
+    profile?: StatsProfile;
     reasons?: StatsModuleReason[];
     usedExports?: boolean | string[] | null;
     providedExports?: string[] | null;
@@ -4262,6 +4271,13 @@ type KnownStatsPrinterContext = {
     formatFlag?: (flag: string) => string;
     formatTime?: (time: number, boldQuantity?: boolean) => string;
     chunkGroupKind?: string;
+};
+
+// @public (undocumented)
+type KnownStatsProfile = {
+    total: number;
+    resolving: number;
+    building: number;
 };
 
 // @public (undocumented)
@@ -5608,9 +5624,9 @@ export type Output = {
     devtoolModuleFilenameTemplate?: DevtoolModuleFilenameTemplate;
     devtoolFallbackModuleFilenameTemplate?: DevtoolFallbackModuleFilenameTemplate;
     chunkLoadTimeout?: number;
+    charset?: boolean;
     environment?: Environment;
     compareBeforeEmit?: boolean;
-    bundlerInfo?: BundlerInfoOptions;
 };
 
 // @public (undocumented)
@@ -5659,7 +5675,7 @@ export interface OutputNormalized {
     // (undocumented)
     asyncChunks?: boolean;
     // (undocumented)
-    bundlerInfo?: BundlerInfoOptions;
+    charset?: boolean;
     // (undocumented)
     chunkFilename?: ChunkFilename;
     // (undocumented)
@@ -5910,6 +5926,9 @@ interface PrivateProperty extends ClassPropertyBase {
     // (undocumented)
     type: "PrivateProperty";
 }
+
+// @public
+export type Profile = boolean;
 
 // @public (undocumented)
 type Program = Module_2 | Script;
@@ -6822,6 +6841,7 @@ declare namespace rspackExports {
         AssetParserOptions,
         CssParserNamedExports,
         CssParserUrl,
+        CssParserResolveImport,
         CssParserOptions,
         CssAutoParserOptions,
         CssModuleParserOptions,
@@ -6891,7 +6911,7 @@ declare namespace rspackExports {
         OptimizationSplitChunksOptions,
         Optimization,
         ExperimentCacheOptions,
-        BundlerInfoOptions,
+        RspackFutureOptions,
         LazyCompilationOptions,
         Incremental,
         IncrementalPresets,
@@ -6903,6 +6923,7 @@ declare namespace rspackExports {
         DevServer,
         DevServerMiddleware,
         IgnoreWarnings,
+        Profile,
         Amd,
         Bail,
         Performance_2 as Performance,
@@ -6910,6 +6931,15 @@ declare namespace rspackExports {
         Configuration
     }
 }
+
+// @public
+export type RspackFutureOptions = {
+    bundlerInfo?: {
+        version?: string;
+        bundler?: string;
+        force?: boolean | ('version' | 'uniqueId')[];
+    };
+};
 
 // @public (undocumented)
 export type RspackOptions = {
@@ -6941,6 +6971,7 @@ export type RspackOptions = {
     plugins?: Plugins;
     devServer?: DevServer;
     module?: ModuleOptions;
+    profile?: Profile;
     amd?: Amd;
     bail?: Bail;
     performance?: Performance_2;
@@ -7005,6 +7036,8 @@ export interface RspackOptionsNormalized {
     performance?: Performance_2;
     // (undocumented)
     plugins: Plugins;
+    // (undocumented)
+    profile?: Profile;
     // (undocumented)
     resolve: Resolve;
     // (undocumented)
@@ -7723,6 +7756,9 @@ class StatsPrinter {
 
 // @public (undocumented)
 type StatsPrinterContext = KnownStatsPrinterContext & Record<string, any>;
+
+// @public (undocumented)
+type StatsProfile = KnownStatsProfile & Record<string, any>;
 
 // @public
 export type StatsValue = boolean | StatsOptions | StatsPresets;

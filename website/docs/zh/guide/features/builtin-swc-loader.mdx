@@ -328,7 +328,11 @@ Rspack 内置的实验性功能。
 
 ### rspackExperiments.import
 
-<ApiMeta stability={Stability.Experimental} />
+<ApiMeta stability={Stability.Experimental} deprecated />
+
+:::warning 已废弃
+`rspackExperiments.import` 已被废弃。请使用 [rspackExperiments.transformImport](#rspackexperimentstransformimport) 替代，它提供相同的功能并具有更先进的 API 设计。
+:::
 
 移植自 [babel-plugin-import](https://github.com/umijs/babel-plugin-import)，配置基本保持一致。
 
@@ -474,6 +478,96 @@ export default {
 import Button from 'antd/es/button';
 import 'antd/es/button/style';
 ```
+
+### rspackExperiments.transformImport
+
+<ApiMeta addedVersion="2.0.0" />
+
+`transformImport` 是 [`rspackExperiments.import`](#rspackexperimentsimport) 的后继版本，提供相同的模块导入转换功能，更现代易用的 API 设计。推荐新项目使用此配置，现有项目也建议从 `import` 迁移到 `transformImport`。
+
+核心概念与 `rspackExperiments.import` 相同——将源模块的导入转换为更加具体的模块导入，并可选地添加额外的输出（例如样式）。
+
+#### 配置选项
+
+| 选项          | 类型       | 描述                                                                                                   |
+| ------------- | ---------- | ------------------------------------------------------------------------------------------------------ |
+| `source`      | `string`   | 要匹配的源模块，例如 `'antd'` 或 `'./src/components'`                                                  |
+| `output`      | `string[]` | 转换后导入的输出模板数组。使用 `{{ filename }}` 作为导入说明符的占位符，只有第一个输出包含导入的说明符 |
+| `namedImport` | `boolean`  | 是否保持命名导入。默认：`false`（转换为默认导入）                                                      |
+| `exclude`     | `string[]` | 要排除转换的导入说明符数组                                                                             |
+
+#### 模板辅助函数
+
+`output` 模板支持以下辅助函数：
+
+- `{{ filename }}` - 原始导入说明符
+- `{{ kebabCase filename }}` - 转换为 kebab-case（例如 `MyButton` → `my-button`）
+- `{{ camelCase filename }}` - 转换为 camelCase
+- `{{ snakeCase filename }}` - 转换为 snake_case
+- `{{ upperCase filename }}` - 转换为大写
+- `{{ lowerCase filename }}` - 转换为小写
+
+#### 示例
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        loader: 'builtin:swc-loader',
+        options: {
+          rspackExperiments: {
+            transformImport: [
+              {
+                source: './src/components',
+                output: [
+                  './src/components/lib/{{ kebabCase filename }}',
+                  './src/components/lib/{{ kebabCase filename }}/style.css',
+                ],
+              },
+              {
+                source: './src/ui',
+                output: [
+                  './src/ui/es/{{ kebabCase filename }}.js',
+                  './src/ui/css/{{ kebabCase filename }}.css',
+                ],
+              },
+              {
+                source: './src/utils',
+                namedImport: true,
+                output: ['./src/utils/lib/{{ filename }}'],
+              },
+              {
+                source: './src/exclude',
+                output: ['./src/exclude/lib/{{ kebabCase filename }}'],
+                exclude: ['Excluded'],
+              },
+            ],
+          },
+        },
+      },
+    ],
+  },
+};
+```
+
+使用此配置：
+
+```ts
+import { MyButton, MyInput } from './src/components';
+```
+
+将被转换为：
+
+```ts
+import MyButton from './src/components/lib/my-button';
+import './src/components/lib/my-button/style.css';
+import MyInput from './src/components/lib/my-input';
+import './src/components/lib/my-input/style.css';
+```
+
+更多示例请参考 [测试配置](https://github.com/web-infra-dev/rspack/blob/main/tests/rspack-test/configCases/builtin-swc-loader/transform-import/rspack.config.js)。
 
 ### collectTypeScriptInfo
 

@@ -11,6 +11,7 @@ import type {
 } from '@swc/types';
 import type { CollectTypeScriptInfoOptions } from './collectTypeScriptInfo';
 import type { PluginImportOptions } from './pluginImport';
+import type { TransformImportOptions } from './transformImport';
 export type SwcLoaderEnvConfig = EnvConfig;
 export type SwcLoaderJscConfig = JscConfig;
 export type SwcLoaderModuleConfig = ModuleConfig;
@@ -30,6 +31,14 @@ export type SwcLoaderOptions = Config & {
    * @experimental
    */
   rspackExperiments?: {
+    /**
+     * Transform named imports from a library to individual module imports.
+     * This is a modern replacement for the deprecated `import` option.
+     */
+    transformImport?: TransformImportOptions;
+    /**
+     * @deprecated Use `transformImport` instead. This option will be removed in Rspack v2.0.
+     */
     import?: PluginImportOptions;
     /**
      * @deprecated Use top-level `collectTypeScriptInfo` instead.
