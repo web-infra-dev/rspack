@@ -8,7 +8,9 @@ use std::{borrow::Cow, cmp::Ordering, fmt::Debug};
 
 use itertools::Itertools;
 use rspack_collections::{DatabaseItem, IdentifierMap, UkeyMap, UkeySet};
-use rspack_core::{ChunkUkey, Compilation, CompilationOptimizeChunks, Logger, Plugin};
+use rspack_core::{
+  ChunkGroupKind, ChunkLoading, ChunkUkey, Compilation, CompilationOptimizeChunks, Logger, Plugin,
+};
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_util::{fx_hash::FxIndexMap, tracing_preset::TRACING_BENCH_TARGET};
@@ -60,7 +62,34 @@ impl SplitChunksPlugin {
     all_modules.sort_unstable();
 
     let module_sizes = Self::get_module_sizes(&all_modules, compilation);
-    let module_chunks = Self::get_module_chunks(&all_modules, compilation);
+    let mut module_chunks = Self::get_module_chunks(&all_modules, compilation);
+
+    // Identify URL bundle chunks (async_chunks=false AND chunk_loading=Disable)
+    // These chunks should produce single-file outputs and should not be split
+    let url_bundle_chunks: UkeySet<ChunkUkey> = compilation
+      .chunk_group_by_ukey
+      .values()
+      .filter_map(|cg| {
+        if let ChunkGroupKind::Entrypoint { options, .. } = &cg.kind {
+          // Check if this is a URL bundle entrypoint
+          if options.async_chunks == Some(false)
+            && matches!(options.chunk_loading, Some(ChunkLoading::Disable))
+          {
+            return Some(cg.chunks.clone());
+          }
+        }
+        None
+      })
+      .flatten()
+      .collect();
+
+    // Remove URL bundle chunks from module_chunks so modules in these chunks
+    // are not considered for splitting
+    if !url_bundle_chunks.is_empty() {
+      for chunks in module_chunks.values_mut() {
+        chunks.retain(|c| !url_bundle_chunks.contains(c));
+      }
+    }
     logger.time_end(start);
 
     let chunk_index_map: UkeyMap<ChunkUkey, u64> = {

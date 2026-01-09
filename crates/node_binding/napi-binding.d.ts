@@ -2328,6 +2328,8 @@ export interface RawJavascriptParserOptions {
   dynamicImportPrefetch?: string
   dynamicImportFetchPriority?: string
   url?: string
+  /** Bundle new URL() targets as separate entry chunks (single-file output) */
+  bundleNewUrl?: boolean
   exprContextCritical?: boolean
   unknownContextCritical?: boolean
   wrappedContextCritical?: boolean

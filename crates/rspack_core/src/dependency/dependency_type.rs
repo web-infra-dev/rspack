@@ -47,6 +47,8 @@ pub enum DependencyType {
   NewUrlContext,
   // new Worker()
   NewWorker,
+  // new URL() bundle mode (single-file entry)
+  NewUrlBundle,
   // create script url
   CreateScriptUrl,
   // import.meta.webpackHot.accept
@@ -151,6 +153,7 @@ impl DependencyType {
       DependencyType::NewUrl => "new URL()",
       DependencyType::NewUrlContext => "new URL() context",
       DependencyType::NewWorker => "new Worker()",
+      DependencyType::NewUrlBundle => "new URL() bundle",
       DependencyType::CreateScriptUrl => "create script url",
       DependencyType::ImportMetaHotAccept => "import.meta.webpackHot.accept",
       DependencyType::ImportMetaHotDecline => "import.meta.webpackHot.decline",

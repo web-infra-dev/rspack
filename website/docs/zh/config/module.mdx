@@ -411,6 +411,44 @@ export default {
 <img src="file:///path/to/project/dist/icon.svg" />
 ```
 
+### module.parser.javascript.bundleNewUrl
+
+<ApiMeta stability={Stability.Experimental} />
+
+<PropertyType
+  type="boolean"
+  defaultValueList={[{ defaultValue: 'undefined' }]}
+/>
+
+当设置为 `true` 时，Rspack 会将 `new URL()` 目标打包为单独的入口 chunk（单文件输出）。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        bundleNewUrl: true,
+      },
+    },
+  },
+};
+```
+
+当与 `url: 'new-url-relative'` 结合使用时，会生成相对 URL：
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        url: 'new-url-relative',
+        bundleNewUrl: true,
+      },
+    },
+  },
+};
+```
+
 ### module.parser.javascript.exprContextCritical
 
 <PropertyType

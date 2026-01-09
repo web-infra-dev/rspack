@@ -48,6 +48,7 @@ async fn normal_module_factory_parser(
     if !matches!(options.url, Some(JavascriptParserUrl::Disable)) {
       parser.add_parser_plugin(Box::new(crate::parser_plugin::URLPlugin {
         mode: options.url,
+        bundle_new_url: options.bundle_new_url,
       }));
     }
   }

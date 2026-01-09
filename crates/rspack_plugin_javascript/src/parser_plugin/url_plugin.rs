@@ -1,7 +1,11 @@
+use std::hash::Hash;
+
 use rspack_core::{
-  ConstDependency, ContextDependency, ContextMode, ContextNameSpaceObject, ContextOptions,
-  DependencyCategory, JavascriptParserUrl, RuntimeGlobals,
+  AsyncDependenciesBlock, ChunkLoading, ConstDependency, ContextDependency, ContextMode,
+  ContextNameSpaceObject, ContextOptions, DependencyCategory, DependencyRange, EntryOptions,
+  GroupOptions, JavascriptParserUrl, RuntimeGlobals, SharedSourceMap,
 };
+use rspack_hash::RspackHash;
 use rspack_util::SpanExt;
 use swc_core::{
   common::Spanned,
@@ -15,7 +19,7 @@ use url::Url;
 use super::JavascriptParserPlugin;
 use crate::{
   InnerGraphPlugin,
-  dependency::{URLContextDependency, URLDependency},
+  dependency::{URLBundleDependency, URLContextDependency, URLDependency},
   magic_comment::try_extract_magic_comment,
   parser_plugin::inner_graph::state::InnerGraphUsageOperation,
   visitors::{ExprRef, JavascriptParser, context_reg_exp, create_context_dependency},
@@ -101,6 +105,8 @@ pub fn get_url_request(
 
 pub struct URLPlugin {
   pub mode: Option<JavascriptParserUrl>,
+  /// Whether to bundle new URL() targets as separate entry chunks
+  pub bundle_new_url: Option<bool>,
 }
 
 impl JavascriptParserPlugin for URLPlugin {
@@ -159,6 +165,11 @@ impl JavascriptParserPlugin for URLPlugin {
     }
 
     if let Some((request, start, end)) = get_url_request(parser, expr) {
+      // Handle Bundle mode - create AsyncDependenciesBlock with special EntryOptions
+      if self.bundle_new_url == Some(true) {
+        return self.handle_bundle_mode(parser, expr, request, start, end);
+      }
+
       let dep = URLDependency::new(
         request.into(),
         expr.span.into(),
@@ -225,6 +236,74 @@ impl JavascriptParserPlugin for URLPlugin {
       return None;
     }
     get_url_request(parser, expr)?;
+    Some(true)
+  }
+}
+
+impl URLPlugin {
+  /// Handle Bundle mode: creates an AsyncDependenciesBlock with EntryOptions
+  /// that force single-file output (no chunk loading, no async chunks)
+  fn handle_bundle_mode(
+    &self,
+    parser: &mut JavascriptParser,
+    expr: &NewExpr,
+    request: String,
+    start: u32,
+    end: u32,
+  ) -> Option<bool> {
+    let output_options = &parser.compiler_options.output;
+    let mut hasher = RspackHash::from(output_options);
+    parser.module_identifier.hash(&mut hasher);
+    parser.worker_index.hash(&mut hasher);
+    parser.worker_index += 1;
+    let digest = hasher.digest(&output_options.hash_digest);
+    let runtime = digest
+      .rendered(output_options.hash_digest_length)
+      .to_owned();
+
+    // Use empty public_path - it will be resolved at runtime via RuntimeGlobals::PUBLIC_PATH
+    let public_path = String::new();
+
+    // Use relative URL when mode is NewUrlRelative
+    let use_relative = matches!(self.mode, Some(JavascriptParserUrl::NewUrlRelative));
+
+    let dep = Box::new(URLBundleDependency::new(
+      request.clone(),
+      public_path,
+      expr.span.into(),
+      (start, end).into(),
+      use_relative,
+    ));
+
+    let source_map: SharedSourceMap = parser.source_rope().clone();
+    let mut block = AsyncDependenciesBlock::new(
+      *parser.module_identifier,
+      Into::<DependencyRange>::into(expr.span).to_loc(Some(&source_map)),
+      None,
+      vec![dep],
+      Some(request),
+    );
+
+    // Set EntryOptions with:
+    // - chunk_loading: Disable (no chunk loading runtime needed)
+    // - async_chunks: false (prevent further async chunk splitting)
+    // This ensures the bundle is a single self-contained file
+    block.set_group_options(GroupOptions::Entrypoint(Box::new(EntryOptions {
+      name: None, // Anonymous entry - will get auto-generated chunk name
+      runtime: Some(runtime.into()),
+      chunk_loading: Some(ChunkLoading::Disable),
+      wasm_loading: None,
+      async_chunks: Some(false),
+      public_path: None,
+      base_uri: None,
+      filename: None,
+      library: None,
+      depend_on: None,
+      layer: None,
+    })));
+
+    parser.add_block(Box::new(block));
+
     Some(true)
   }
 }
