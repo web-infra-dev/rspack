@@ -8,7 +8,7 @@ use rspack_collections::IdentifierSet;
 use rspack_error::Result;
 use rustc_hash::FxHashSet;
 
-use super::super::{Storage, cacheable_context::CacheableContext};
+use super::super::{Storage, codec::CacheCodec};
 use crate::{
   FactorizeInfo,
   compilation::build_module_graph::{BuildModuleGraphArtifact, BuildModuleGraphArtifactState},
@@ -18,13 +18,13 @@ use crate::{
 /// Make Occasion is used to save MakeArtifact
 #[derive(Debug)]
 pub struct MakeOccasion {
-  context: Arc<CacheableContext>,
+  codec: Arc<CacheCodec>,
   storage: Arc<dyn Storage>,
 }
 
 impl MakeOccasion {
-  pub fn new(storage: Arc<dyn Storage>, context: Arc<CacheableContext>) -> Self {
-    Self { storage, context }
+  pub fn new(storage: Arc<dyn Storage>, codec: Arc<CacheCodec>) -> Self {
+    Self { storage, codec }
   }
 
   #[tracing::instrument(name = "Cache::Occasion::Make::save", skip_all)]
@@ -65,14 +65,14 @@ impl MakeOccasion {
       affected_modules.removed(),
       &need_update_modules,
       &self.storage,
-      &self.context,
+      &self.codec,
     );
   }
 
   #[tracing::instrument(name = "Cache::Occasion::Make::recovery", skip_all)]
   pub async fn recovery(&self) -> Result<BuildModuleGraphArtifact> {
     let (mg, module_to_lazy_make, entry_dependencies) =
-      module_graph::recovery_module_graph(&self.storage, &self.context).await?;
+      module_graph::recovery_module_graph(&self.storage, &self.codec).await?;
 
     // regenerate statistical data
     // recovery make_failed_module

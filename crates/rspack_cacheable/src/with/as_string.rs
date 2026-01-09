@@ -59,17 +59,3 @@ where
     AsStringConverter::from_str(field.as_str())
   }
 }
-
-// for pathbuf
-use std::path::PathBuf;
-impl AsStringConverter for PathBuf {
-  fn to_string(&self) -> Result<String> {
-    Ok(self.to_string_lossy().to_string())
-  }
-  fn from_str(s: &str) -> Result<Self>
-  where
-    Self: Sized,
-  {
-    Ok(PathBuf::from(s))
-  }
-}
