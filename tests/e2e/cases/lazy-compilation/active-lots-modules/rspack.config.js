@@ -1,5 +1,14 @@
 const { rspack } = require('@rspack/core');
 
+/*
+Construct a project with lots of virtual files with very long file names
+And `virtual_index.js` dynamically imports all the long file name files.
+src/
+├── virtual_index.js
+├── virtual_with_a_very_long_file_name_number_....._0.js
+...
+└── virtual_with_a_very_long_file_name_number_....._19.js
+*/
 let lotsLongFileNameVirtualFiles = {};
 let longStr = new Array(1024).fill('a').join('');
 for (let i = 0; i < 20; i++) {
