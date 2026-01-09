@@ -1161,6 +1161,12 @@ export type JavascriptParserOptions = {
   /** Override the module to strict or non-strict. */
   overrideStrict?: 'strict' | 'non-strict';
 
+  /**
+   * Control whether renaming of the CommonJS `require` function will be parsed and transformed.
+   * @default true
+   */
+  requireAlias?: boolean;
+
   // TODO: add docs
   requireAsExpression?: boolean;
 
