@@ -1955,14 +1955,10 @@ var {} = {{}};
                 ));
               }
               UsedName::Inlined(inlined) => {
-                return Ref::Inline(format!(
-                  "{} {}",
-                  to_normal_comment(&format!(
-                    "inlined export {}",
-                    property_access(&export_name, 0)
-                  )),
-                  inlined.render()
-                ));
+                return Ref::Inline(inlined.render(&to_normal_comment(&format!(
+                  "inlined export {}",
+                  property_access(&export_name, 0)
+                ))));
               }
             }
           } else {
@@ -2007,14 +2003,10 @@ var {} = {{}};
                 None,
                 &export,
               ) {
-                return Ref::Inline(format!(
-                  "{} {}",
-                  to_normal_comment(&format!(
-                    "inlined export {}",
-                    property_access(&export_name, 0)
-                  )),
-                  inlined.inlined_value().render()
-                ));
+                return Ref::Inline(inlined.inlined_value().render(&to_normal_comment(&format!(
+                  "inlined export {}",
+                  property_access(&export_name, 0)
+                ))));
               }
             }
             panic!(
@@ -2072,16 +2064,15 @@ var {} = {{}};
               Arc::new(move |binding| normal_render(binding, as_call, call_context, asi_safe)),
             )),
             // Inlined namespace export symbol is not possible for now but we compat it here
-            UsedName::Inlined(inlined) => Ref::Inline(inlined.render()),
+            UsedName::Inlined(inlined) => Ref::Inline(inlined.render("")),
           };
         }
 
         if let Some(UsedName::Inlined(inlined)) = used_name {
-          let comment = to_normal_comment(&format!(
+          return Ref::Inline(inlined.render(&to_normal_comment(&format!(
             "inlined export {}",
             property_access(&export_name, 0)
-          ));
-          return Ref::Inline(format!("{comment}{}", inlined.render()));
+          ))));
         }
 
         panic!(
@@ -2112,13 +2103,9 @@ var {} = {{}};
               used_name,
               Arc::new(move |binding| normal_render(binding, as_call, call_context, asi_safe)),
             )),
-            UsedName::Inlined(inlined) => {
-              let comment = to_normal_comment(&format!(
-                "inlined export {}",
-                property_access(&export_name, 0)
-              ));
-              Ref::Inline(format!("{}{comment}", inlined.render()))
-            }
+            UsedName::Inlined(inlined) => Ref::Inline(inlined.render(&to_normal_comment(
+              &format!("inlined export {}", property_access(&export_name, 0)),
+            ))),
           }
         } else {
           Ref::Inline("/* unused export */ undefined".into())

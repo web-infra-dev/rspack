@@ -71,7 +71,7 @@ var bar_default = /*#__PURE__*/__webpack_require__.n(bar);
 
 
 
-const value = /* inlined export .foo */ ("foo") + (bar_default())
+const value = (/* inlined export .foo */"foo") + (bar_default())
 
 
 
