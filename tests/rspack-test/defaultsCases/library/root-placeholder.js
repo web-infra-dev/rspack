@@ -13,43 +13,43 @@ module.exports = {
 	}),
 	diff: e =>
 		e.toMatchInlineSnapshot(`
-		- Expected
-		+ Received
+			- Expected
+			+ Received
 
-		@@ ... @@
-		-         "force": true,
-		+         "force": false,
-		@@ ... @@
-		-     "chunkLoadingGlobal": "webpackChunk_rspack_tests",
-		+     "chunkLoadingGlobal": "webpackChunkmyLib",
-		@@ ... @@
-		-     "devtoolNamespace": "@rspack/tests",
-		+     "devtoolNamespace": "myLib",
-		@@ ... @@
-		-     "enabledLibraryTypes": Array [],
-		+     "enabledLibraryTypes": Array [
-		+       "var",
-		+     ],
-		@@ ... @@
-		-     "hotUpdateGlobal": "webpackHotUpdate_rspack_tests",
-		+     "hotUpdateGlobal": "webpackHotUpdatemyLib",
-		@@ ... @@
-		-     "library": undefined,
-		+     "library": Object {
-		+       "amdContainer": undefined,
-		+       "auxiliaryComment": undefined,
-		+       "export": undefined,
-		+       "name": Object {
-		+         "root": Array [
-		+           "[name]",
-		+           "myLib",
-		+         ],
-		+       },
-		+       "type": "var",
-		+       "umdNamedDefine": undefined,
-		+     },
-		@@ ... @@
-		-     "uniqueName": "@rspack/tests",
-		+     "uniqueName": "myLib",
-	`)
+			@@ ... @@
+			-         "force": true,
+			+         "force": false,
+			@@ ... @@
+			-     "chunkLoadingGlobal": "webpackChunk_rspack_tests",
+			+     "chunkLoadingGlobal": "webpackChunkmyLib",
+			@@ ... @@
+			-     "devtoolNamespace": "@rspack/tests",
+			+     "devtoolNamespace": "myLib",
+			@@ ... @@
+			-     "enabledLibraryTypes": Array [],
+			+     "enabledLibraryTypes": Array [
+			+       "var",
+			+     ],
+			@@ ... @@
+			-     "hotUpdateGlobal": "webpackHotUpdate_rspack_tests",
+			+     "hotUpdateGlobal": "webpackHotUpdatemyLib",
+			@@ ... @@
+			-     "library": undefined,
+			+     "library": Object {
+			+       "amdContainer": undefined,
+			+       "auxiliaryComment": undefined,
+			+       "export": undefined,
+			+       "name": Object {
+			+         "root": Array [
+			+           "[name]",
+			+           "myLib",
+			+         ],
+			+       },
+			+       "type": "var",
+			+       "umdNamedDefine": undefined,
+			+     },
+			@@ ... @@
+			-     "uniqueName": "@rspack/tests",
+			+     "uniqueName": "myLib",
+		`)
 };

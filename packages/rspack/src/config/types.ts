@@ -1163,6 +1163,9 @@ export type JavascriptParserOptions = {
   overrideStrict?: 'strict' | 'non-strict';
 
   // TODO: add docs
+  requireRename?: boolean;
+
+  // TODO: add docs
   requireAsExpression?: boolean;
 
   // TODO: add docs

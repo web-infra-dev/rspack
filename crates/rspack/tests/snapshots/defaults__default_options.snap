@@ -1456,6 +1456,9 @@ CompilerOptions {
                             import_meta: Some(
                                 true,
                             ),
+                            require_rename: Some(
+                                true,
+                            ),
                             require_as_expression: Some(
                                 true,
                             ),

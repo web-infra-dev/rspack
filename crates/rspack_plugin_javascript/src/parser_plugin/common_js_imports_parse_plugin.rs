@@ -402,9 +402,9 @@ impl CommonJsImportsParserPlugin {
 }
 
 impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
-  fn can_rename(&self, _parser: &mut JavascriptParser, for_name: &str) -> Option<bool> {
+  fn can_rename(&self, parser: &mut JavascriptParser, for_name: &str) -> Option<bool> {
     if for_name == expr_name::REQUIRE {
-      Some(true)
+      Some(parser.javascript_options.require_rename.unwrap_or(true))
     } else {
       None
     }
