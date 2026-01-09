@@ -23,11 +23,15 @@ struct SharedWriter {
 
 impl Write for SharedWriter {
   fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
-    self.writer.lock().unwrap().write(buf)
+    self
+      .writer
+      .lock()
+      .expect("Failed to lock writer")
+      .write(buf)
   }
 
   fn flush(&mut self) -> std::io::Result<()> {
-    self.writer.lock().unwrap().flush()
+    self.writer.lock().expect("Failed to lock writer").flush()
   }
 }
 
@@ -55,18 +59,10 @@ fn format_timestamp_iso8601(micros: u64) -> String {
     .unwrap_or_else(|| "Invalid timestamp".to_string())
 }
 
+#[derive(Default)]
 pub struct StdoutTracer {
   begin_ts: u64,
   writer: Option<Arc<Mutex<dyn Write + Send>>>,
-}
-
-impl Default for StdoutTracer {
-  fn default() -> Self {
-    Self {
-      begin_ts: 0,
-      writer: None,
-    }
-  }
 }
 
 impl Tracer for StdoutTracer {
