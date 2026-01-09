@@ -1,5 +1,3 @@
-use std::borrow::Cow;
-
 use rspack_core::{
   AsyncDependenciesBlock, ChunkGroupOptions, ContextDependency, ContextNameSpaceObject,
   ContextOptions, DependencyCategory, DependencyRange, DependencyType, DynamicImportFetchPriority,
@@ -23,7 +21,7 @@ use crate::{
   utils::object_properties::{get_attributes, get_value_by_obj_prop},
   visitors::{
     AllowedMemberTypes, ContextModuleScanResult, ExportedVariableInfo, JavascriptParser,
-    MemberExpressionInfo, Statement, TagInfoData, TopLevelScope, VariableDeclaration,
+    MemberExpressionInfo, Pattern, Statement, TagInfoData, TopLevelScope, VariableDeclaration,
     context_reg_exp, create_context_dependency, create_traceable_error, get_non_optional_part,
     parse_order_string,
   },
@@ -517,21 +515,22 @@ fn get_fulfilled_callback_namespace_obj(import_then: &CallExpr) -> Option<&Pat> 
   None
 }
 
-fn walk_import_then_fulfilled_callback(
+fn walk_import_then_fulfilled_callback<'ast>(
   parser: &mut JavascriptParser,
-  import_call: &CallExpr,
-  fulfilled_callback: &Expr,
-  namespace_obj_arg: &Pat,
+  import_call: &'ast CallExpr,
+  fulfilled_callback: &'ast Expr,
+  namespace_obj_arg: &'ast Pat,
 ) {
-  let mut scope_params: Vec<Cow<Pat>> = if let Some(fn_expr) = fulfilled_callback.as_fn_expr() {
+  let mut scope_params: Vec<Pattern<'ast>> = if let Some(fn_expr) = fulfilled_callback.as_fn_expr()
+  {
     fn_expr
       .function
       .params
       .iter()
-      .map(|p| Cow::Borrowed(&p.pat))
+      .map(|p| Pattern::from(&p.pat))
       .collect()
   } else if let Some(arrow_expr) = fulfilled_callback.as_arrow() {
-    arrow_expr.params.iter().map(Cow::Borrowed).collect()
+    arrow_expr.params.iter().map(Pattern::from).collect()
   } else {
     unreachable!()
   };
@@ -540,7 +539,7 @@ fn walk_import_then_fulfilled_callback(
   if let Some(expr) = fulfilled_callback.as_fn_expr()
     && let Some(ident) = &expr.ident
   {
-    scope_params.push(Cow::Owned(Pat::Ident(ident.clone().into())));
+    scope_params.push(Pattern::Identifier(ident));
   }
 
   let was_top_level_scope = parser.top_level_scope;
@@ -580,7 +579,7 @@ fn walk_import_then_fulfilled_callback(
       }
       if let Some(expr) = fulfilled_callback.as_fn_expr() {
         for param in &expr.function.params {
-          parser.walk_pattern(&param.pat);
+          parser.walk_pattern(Pattern::from(&param.pat));
         }
         if let Some(stmt) = &expr.function.body {
           parser.detect_mode(&stmt.stmts);
@@ -591,7 +590,7 @@ fn walk_import_then_fulfilled_callback(
         }
       } else if let Some(expr) = fulfilled_callback.as_arrow() {
         for pat in &expr.params {
-          parser.walk_pattern(pat);
+          parser.walk_pattern(Pattern::from(pat));
         }
         match &*expr.body {
           BlockStmtOrExpr::BlockStmt(stmt) => {

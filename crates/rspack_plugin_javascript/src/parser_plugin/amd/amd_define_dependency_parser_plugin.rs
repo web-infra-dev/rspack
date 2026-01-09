@@ -9,7 +9,7 @@ use rustc_hash::FxHashMap;
 use swc_core::{
   common::Spanned,
   ecma::{
-    ast::{BlockStmtOrExpr, CallExpr, Callee, Expr, Lit, Pat},
+    ast::{BlockStmtOrExpr, CallExpr, Callee, Expr, Lit},
     utils::ExprExt,
   },
 };
@@ -25,7 +25,8 @@ use crate::{
   },
   utils::eval::BasicEvaluatedExpression,
   visitors::{
-    ExportedVariableInfo, JavascriptParser, Statement, context_reg_exp, create_context_dependency,
+    ExportedVariableInfo, JavascriptParser, Pattern, Statement, context_reg_exp,
+    create_context_dependency,
   },
 };
 
@@ -104,11 +105,11 @@ fn get_lit_str(expr: &Expr) -> Option<Atom> {
   })
 }
 
-fn get_ident_name(pat: &Pat) -> Atom {
-  pat
-    .as_ident()
-    .map(|ident| ident.sym.clone())
-    .unwrap_or("".into())
+fn get_ident_name(pat: Pattern<'_>) -> Atom {
+  match pat {
+    Pattern::Identifier(ident) => ident.sym.clone(),
+    _ => "".into(),
+  }
 }
 
 impl AMDDefineDependencyParserPlugin {
@@ -279,10 +280,10 @@ impl AMDDefineDependencyParserPlugin {
     Some(true)
   }
 
-  fn process_call_define(
+  fn process_call_define<'ast>(
     &self,
     parser: &mut JavascriptParser,
-    call_expr: &CallExpr,
+    call_expr: &'ast CallExpr,
   ) -> Option<bool> {
     let mut array: Option<&Expr> = None;
     let mut func: Option<&Expr> = None;
@@ -402,7 +403,7 @@ impl AMDDefineDependencyParserPlugin {
       parser.parser_exports_state = Some(false);
     }
 
-    let mut fn_params: Option<Vec<Cow<'_, Pat>>> = None;
+    let mut fn_params: Option<Vec<Pattern<'ast>>> = None;
     let mut fn_params_offset = 0usize;
     if let Some(func) = func {
       if is_unbound_function_expression(func) {
@@ -412,10 +413,10 @@ impl AMDDefineDependencyParserPlugin {
               .function
               .params
               .iter()
-              .map(|param| Cow::Borrowed(&param.pat))
+              .map(|param| Pattern::from(&param.pat))
               .collect(),
           ),
-          Expr::Arrow(array_func) => Some(array_func.params.iter().map(Cow::Borrowed).collect()),
+          Expr::Arrow(array_func) => Some(array_func.params.iter().map(Pattern::from).collect()),
           _ => None,
         };
       } else if is_bound_function_expression(func) {
@@ -437,7 +438,7 @@ impl AMDDefineDependencyParserPlugin {
             .function
             .params
             .iter()
-            .map(|param| Cow::Borrowed(&param.pat))
+            .map(|param| Pattern::from(&param.pat))
             .collect(),
         );
 
@@ -466,7 +467,7 @@ impl AMDDefineDependencyParserPlugin {
           let idx = i - fn_params_offset;
           i += 1;
           if let Some(name) = identifiers.get(&idx) {
-            fn_renames.insert(get_ident_name(param), name.clone());
+            fn_renames.insert(get_ident_name(*param), name.clone());
             return false;
           }
           true
@@ -481,7 +482,7 @@ impl AMDDefineDependencyParserPlugin {
         let idx = i - fn_params_offset;
         i += 1;
         if idx < RESERVED_NAMES.len() {
-          fn_renames.insert(get_ident_name(param), RESERVED_NAMES[idx].into());
+          fn_renames.insert(get_ident_name(*param), RESERVED_NAMES[idx].into());
           return false;
         }
         true
@@ -543,11 +544,10 @@ impl AMDDefineDependencyParserPlugin {
               .function
               .params
               .iter()
-              .map(|param| Cow::Borrowed(&param.pat))
-              .filter(|pat| {
-                pat
-                  .as_ident()
-                  .is_some_and(|ident| !RESERVED_NAMES.contains(&ident.sym.as_str()))
+              .map(|param| Pattern::from(&param.pat))
+              .filter(|pat| match pat {
+                Pattern::Identifier(ident) => !RESERVED_NAMES.contains(&ident.sym.as_str()),
+                _ => false,
               }),
             |parser| {
               for (name, rename_identifier) in fn_renames.iter() {
