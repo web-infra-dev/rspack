@@ -585,6 +585,7 @@ function getRawJavascriptParserOptions(
         : parser.worker,
     overrideStrict: parser.overrideStrict,
     requireAsExpression: parser.requireAsExpression,
+    requireAlias: parser.requireAlias,
     requireDynamic: parser.requireDynamic,
     requireResolve: parser.requireResolve,
     commonjs: parser.commonjs,
