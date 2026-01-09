@@ -9,10 +9,10 @@ use rkyv::{
 use crate::{Error, Result, context::ContextGuard};
 
 pub trait AsConverter<T> {
-  fn serialize(data: &T, ctx: &ContextGuard) -> Result<Self>
+  fn serialize(data: &T, guard: &ContextGuard) -> Result<Self>
   where
     Self: Sized;
-  fn deserialize(self, ctx: &ContextGuard) -> Result<T>;
+  fn deserialize(self, guard: &ContextGuard) -> Result<T>;
 }
 
 pub struct As<A> {
