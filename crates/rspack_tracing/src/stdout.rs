@@ -1,14 +1,48 @@
-use std::io::Write;
+use std::{
+  io::Write,
+  sync::{Arc, Mutex},
+};
 
-use tracing_subscriber::fmt::format::FmtSpan;
+use tracing_subscriber::fmt::{MakeWriter, format::FmtSpan};
 
 use crate::{
-  TraceEvent, TraceWriter,
+  TraceEvent,
   tracer::{Layered, Tracer},
 };
 
+// A custom MakeWriter that wraps a shared Arc<Mutex<>> writer
+#[derive(Clone)]
+struct SharedWriterMaker {
+  writer: Arc<Mutex<dyn Write + Send>>,
+}
+
+// Wrapper to implement Write trait for the MakeWriter
+struct SharedWriter {
+  writer: Arc<Mutex<dyn Write + Send>>,
+}
+
+impl Write for SharedWriter {
+  fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+    self.writer.lock().unwrap().write(buf)
+  }
+
+  fn flush(&mut self) -> std::io::Result<()> {
+    self.writer.lock().unwrap().flush()
+  }
+}
+
+impl<'a> MakeWriter<'a> for SharedWriterMaker {
+  type Writer = SharedWriter;
+
+  fn make_writer(&'a self) -> Self::Writer {
+    SharedWriter {
+      writer: self.writer.clone(),
+    }
+  }
+}
+
 pub struct StdoutTracer {
-  writer: Option<Box<dyn Write + Send>>,
+  writer: Option<Arc<Mutex<dyn Write + Send>>>,
 }
 
 impl Default for StdoutTracer {
@@ -20,18 +54,23 @@ impl Default for StdoutTracer {
 impl Tracer for StdoutTracer {
   fn setup(&mut self, output: &str) -> Option<Layered> {
     use tracing_subscriber::{fmt, prelude::*};
-    let trace_writer = TraceWriter::from(output.to_owned());
 
-    // Store a clone of the writer for sync_trace
-    self.writer = match output {
-      "stdout" => Some(Box::new(std::io::stdout())),
-      "stderr" => Some(Box::new(std::io::stderr())),
+    // Create the shared writer wrapped in Arc<Mutex<>>
+    let writer: Arc<Mutex<Box<dyn Write + Send>>> = match output {
+      "stdout" => Arc::new(Mutex::new(Box::new(std::io::stdout()))),
+      "stderr" => Arc::new(Mutex::new(Box::new(std::io::stderr()))),
       path => {
         let file = std::fs::File::create(path)
           .unwrap_or_else(|e| panic!("Failed to create trace file: {path} due to {e}"));
-        Some(Box::new(file))
+        Arc::new(Mutex::new(Box::new(file)))
       }
     };
+
+    // Store the shared writer for sync_trace
+    self.writer = Some(writer.clone());
+
+    // Create a custom MakeWriter that uses the same shared writer
+    let make_writer = SharedWriterMaker { writer };
 
     Some(
       fmt::layer()
@@ -39,13 +78,13 @@ impl Tracer for StdoutTracer {
         .with_file(false)
         // To keep track of the closing point of spans
         .with_span_events(FmtSpan::CLOSE)
-        .with_writer(trace_writer.make_writer())
+        .with_writer(make_writer)
         .boxed(),
     )
   }
 
   fn sync_trace(&mut self, events: Vec<TraceEvent>) {
-    if let Some(writer) = &mut self.writer {
+    if let Some(writer) = &self.writer {
       use std::collections::HashMap;
 
       // Track begin events by uuid to match with end events
@@ -88,7 +127,6 @@ impl Tracer for StdoutTracer {
               };
 
               // Build JSON in Rust trace format
-              // ts is in nanoseconds, convert to microseconds for chrono
               let json_value = serde_json::json!({
                 "level": "DEBUG",
                 "fields": fields,
@@ -97,7 +135,8 @@ impl Tracer for StdoutTracer {
               });
 
               if let Ok(json_str) = serde_json::to_string(&json_value) {
-                let _ = writeln!(writer, "{}", json_str);
+                // Lock the mutex to access the writer
+                let _ = writeln!(writer.lock().unwrap(), "{}", json_str);
               }
             }
           }
@@ -106,14 +145,14 @@ impl Tracer for StdoutTracer {
       }
 
       // Flush to ensure events are written immediately
-      let _ = writer.flush();
+      let _ = writer.lock().unwrap().flush();
     }
   }
 
   fn teardown(&mut self) {
     // Flush any remaining data
-    if let Some(writer) = &mut self.writer {
-      let _ = writer.flush();
+    if let Some(writer) = &self.writer {
+      let _ = writer.lock().unwrap().flush();
     }
   }
 }
