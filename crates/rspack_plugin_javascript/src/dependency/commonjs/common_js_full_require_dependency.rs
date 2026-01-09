@@ -191,7 +191,6 @@ impl DependencyTemplate for CommonJsFullRequireDependencyTemplate {
       }
       && let Some(used) = used
     {
-      let comment = to_normal_comment(&property_access(&dep.names, 0));
       let mut require_expr = match used {
         UsedName::Normal(used) => {
           format!(
@@ -202,11 +201,14 @@ impl DependencyTemplate for CommonJsFullRequireDependencyTemplate {
             compilation
               .runtime_template
               .module_id(compilation, &dep.id, &dep.request, false),
-            comment,
+            to_normal_comment(&property_access(&dep.names, 0)),
             property_access(used, 0)
           )
         }
-        UsedName::Inlined(inlined) => format!("{}{}", comment, inlined.render()),
+        UsedName::Inlined(inlined) => inlined.render(&to_normal_comment(&format!(
+          "inlined export {}",
+          property_access(&dep.names, 0)
+        ))),
       };
       if dep.asi_safe {
         require_expr = format!("({require_expr})");
