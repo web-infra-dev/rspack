@@ -41,16 +41,17 @@ use rspack_core::{
   CacheOptions, ChunkLoading, ChunkLoadingType, CleanOptions, Compiler, CompilerOptions,
   CompilerPlatform, Context, CrossOriginLoading, CssAutoGeneratorOptions, CssAutoParserOptions,
   CssExportsConvention, CssGeneratorOptions, CssModuleGeneratorOptions, CssModuleParserOptions,
-  CssParserOptions, DynamicImportMode, EntryDescription, EntryOptions, EntryRuntime, Environment,
-  ExperimentCacheOptions, Experiments, ExternalItem, ExternalType, Filename, GeneratorOptions,
-  GeneratorOptionsMap, JavascriptParserCommonjsExportsOption, JavascriptParserCommonjsOptions,
-  JavascriptParserOptions, JavascriptParserOrder, JavascriptParserUrl, JsonGeneratorOptions,
-  JsonParserOptions, LibraryName, LibraryNonUmdObject, LibraryOptions, LibraryType,
-  MangleExportsOption, Mode, ModuleNoParseRules, ModuleOptions, ModuleRule, ModuleRuleEffect,
-  ModuleType, NodeDirnameOption, NodeFilenameOption, NodeGlobalOption, NodeOption, Optimization,
-  OutputOptions, ParseOption, ParserOptions, ParserOptionsMap, PathInfo, PublicPath, Resolve,
-  RspackFuture, RuleSetCondition, RuleSetLogicalConditions, SideEffectOption, StatsOptions,
-  TrustedTypes, UnsafeCachePredicate, UsedExportsOption, WasmLoading, WasmLoadingType,
+  CssParserImport, CssParserOptions, DynamicImportMode, EntryDescription, EntryOptions,
+  EntryRuntime, Environment, ExperimentCacheOptions, Experiments, ExternalItem, ExternalType,
+  Filename, GeneratorOptions, GeneratorOptionsMap, JavascriptParserCommonjsExportsOption,
+  JavascriptParserCommonjsOptions, JavascriptParserOptions, JavascriptParserOrder,
+  JavascriptParserUrl, JsonGeneratorOptions, JsonParserOptions, LibraryName, LibraryNonUmdObject,
+  LibraryOptions, LibraryType, MangleExportsOption, Mode, ModuleNoParseRules, ModuleOptions,
+  ModuleRule, ModuleRuleEffect, ModuleType, NodeDirnameOption, NodeFilenameOption,
+  NodeGlobalOption, NodeOption, Optimization, OutputOptions, ParseOption, ParserOptions,
+  ParserOptionsMap, PathInfo, PublicPath, Resolve, RspackFuture, RuleSetCondition,
+  RuleSetLogicalConditions, SideEffectOption, StatsOptions, TrustedTypes, UnsafeCachePredicate,
+  UsedExportsOption, WasmLoading, WasmLoadingType,
   incremental::{IncrementalOptions, IncrementalPasses},
 };
 use rspack_error::{Error, Result};
@@ -1763,18 +1764,21 @@ impl ModuleOptionsBuilder {
     if css {
       let css_parser_options = ParserOptions::Css(CssParserOptions {
         named_exports: Some(true),
+        resolve_import: Some(CssParserImport::Bool(true)),
         url: Some(true),
       });
       parser.insert("css".to_string(), css_parser_options.clone());
 
       let css_auto_parser_options = ParserOptions::CssAuto(CssAutoParserOptions {
         named_exports: Some(true),
+        resolve_import: Some(CssParserImport::Bool(true)),
         url: Some(true),
       });
       parser.insert("css/auto".to_string(), css_auto_parser_options);
 
       let css_module_parser_options = ParserOptions::CssModule(CssModuleParserOptions {
         named_exports: Some(true),
+        resolve_import: Some(CssParserImport::Bool(true)),
         url: Some(true),
       });
       parser.insert("css/module".to_string(), css_module_parser_options);
