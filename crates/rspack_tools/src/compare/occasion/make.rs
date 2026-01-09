@@ -4,9 +4,10 @@ pub use rspack_core::cache::persistent::occasion::make::SCOPE;
 use rspack_core::{
   DependencyId,
   build_module_graph::BuildModuleGraphArtifact,
-  cache::persistent::{CacheableContext, occasion::make::MakeOccasion, storage::Storage},
+  cache::persistent::{codec::CacheCodec, occasion::make::MakeOccasion, storage::Storage},
 };
 use rspack_error::Result;
+use rspack_paths::Utf8PathBuf;
 use rustc_hash::FxHashMap as HashMap;
 
 use crate::{debug_info::DebugInfo, utils::ensure_iter_equal};
@@ -29,9 +30,10 @@ pub async fn compare(
   ensure_iter_equal("Make module key", map1.keys(), map2.keys(), &debug_info)?;
 
   // Convert stored data to BuildModuleGraphArtifact using MakeOccasion's recovery ability
-  let context = Arc::new(CacheableContext);
-  let occasion1 = MakeOccasion::new(storage1.clone(), context.clone());
-  let occasion2 = MakeOccasion::new(storage2.clone(), context.clone());
+  // Use a dummy path for codec since we're only deserializing
+  let codec = Arc::new(CacheCodec::new(Utf8PathBuf::from("/")));
+  let occasion1 = MakeOccasion::new(storage1.clone(), codec.clone());
+  let occasion2 = MakeOccasion::new(storage2.clone(), codec.clone());
 
   let artifact1 = occasion1.recovery().await?;
   let artifact2 = occasion2.recovery().await?;
