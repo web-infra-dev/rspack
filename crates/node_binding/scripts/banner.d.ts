@@ -95,6 +95,8 @@ export interface JsSource {
 	source: string | Buffer
 	map?: string
 }
+
+export type CompilerId = void;
 /* -- banner.d.ts end -- */
 
 /* -- napi-rs generated below -- */

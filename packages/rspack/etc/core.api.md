@@ -1559,6 +1559,15 @@ interface ContinueStatement extends Node_4, HasSpan {
 }
 
 // @public (undocumented)
+export class Coordinator {
+    constructor();
+    // (undocumented)
+    applyClientCompiler(clientCompiler: Compiler): void;
+    // (undocumented)
+    applyServerCompiler(serverCompiler: Compiler): void;
+}
+
+// @public (undocumented)
 export const CopyRspackPlugin: {
     new (copy: CopyRspackPluginOptions): {
         name: string;
@@ -1591,6 +1600,12 @@ type CreateReadStream = (path: PathLike, options?: NodeJS.BufferEncoding | ReadS
 // @public (undocumented)
 type CreateReadStreamFSImplementation = FSImplementation & {
     read: (...args: any[]) => any;
+};
+
+// @public (undocumented)
+function createRscPlugins(): {
+    ServerPlugin: RspackPluginInstance;
+    ClientPlugin: RspackPluginInstance;
 };
 
 // @public (undocumented)
@@ -2462,6 +2477,8 @@ interface Experiments_2 {
     // (undocumented)
     createNativePlugin: typeof createNativePlugin;
     // (undocumented)
+    createRscPlugins: typeof createRscPlugins;
+    // (undocumented)
     CssChunkingPlugin: typeof CssChunkingPlugin;
     // (undocumented)
     EsmLibraryPlugin: typeof EsmLibraryPlugin;
@@ -2481,6 +2498,8 @@ interface Experiments_2 {
         async: typeof async;
         sync: typeof sync;
     };
+    // (undocumented)
+    RSC_LAYERS_NAMES: typeof RSC_LAYERS_NAMES;
     // (undocumented)
     RsdoctorPlugin: typeof RsdoctorPlugin;
     // (undocumented)
@@ -6454,6 +6473,31 @@ type Rewrite = {
 type RewriteTo = (context: HistoryContext) => string;
 
 // @public (undocumented)
+const RSC_LAYERS_NAMES: {
+    reactServerComponents: string;
+    serverSideRendering: string;
+    actionBrowser: string;
+};
+
+// @public (undocumented)
+export class RscClientPlugin extends RspackBuiltinPlugin {
+    constructor(coordinator: Coordinator);
+    // (undocumented)
+    name: string;
+    // (undocumented)
+    raw(compiler: Compiler): binding.BuiltinPlugin;
+}
+
+// @public (undocumented)
+export class RscServerPlugin extends RspackBuiltinPlugin {
+    constructor(coordinator: Coordinator);
+    // (undocumented)
+    name: string;
+    // (undocumented)
+    raw(compiler: Compiler): binding.BuiltinPlugin;
+}
+
+// @public (undocumented)
 const RsdoctorPlugin: typeof RsdoctorPluginImpl & {
     getHooks: (compilation: Compilation) => RsdoctorPluginHooks;
     getCompilationHooks: (compilation: Compilation) => RsdoctorPluginHooks;
@@ -6709,6 +6753,7 @@ declare namespace rspackExports {
         SwcJsMinimizerRspackPluginOptions,
         CircularDependencyRspackPlugin,
         ContextReplacementPlugin,
+        Coordinator,
         CopyRspackPlugin,
         CssExtractRspackPlugin,
         EvalDevToolModulePlugin,
@@ -6716,6 +6761,8 @@ declare namespace rspackExports {
         HtmlRspackPlugin,
         LightningCssMinimizerRspackPlugin,
         NormalModuleReplacementPlugin,
+        RscClientPlugin,
+        RscServerPlugin,
         SourceMapDevToolPlugin,
         SwcJsMinimizerRspackPlugin,
         experiments,
@@ -7910,6 +7957,7 @@ export type SwcLoaderOptions = Config_2 & {
     rspackExperiments?: {
         import?: PluginImportOptions;
         collectTypeScriptInfo?: CollectTypeScriptInfoOptions;
+        reactServerComponents?: boolean;
     };
 };
 

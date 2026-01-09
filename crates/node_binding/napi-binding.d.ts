@@ -95,6 +95,8 @@ export interface JsSource {
 	source: string | Buffer
 	map?: string
 }
+
+export type CompilerId = void;
 /* -- banner.d.ts end -- */
 
 /* -- napi-rs generated below -- */
@@ -334,6 +336,7 @@ export declare class JsCompiler {
   rebuild(changed_files: string[], removed_files: string[], callback: (err: null | Error) => void): void
   close(): Promise<void>
   getVirtualFileStore(): VirtualFileStore | null
+  getCompilerId(): ExternalObject<CompilerId>
 }
 
 export declare class JsContextModuleFactoryAfterResolveData {
@@ -359,6 +362,10 @@ export declare class JsContextModuleFactoryBeforeResolveData {
   set regExp(rawRegExp: RegExp | undefined)
   get recursive(): boolean
   set recursive(recursive: boolean)
+}
+
+export declare class JsCoordinator {
+  constructor(getServerCompilerIdJsFn: () => ExternalObject<CompilerId>)
 }
 
 export declare class JsDependencies {
@@ -602,7 +609,9 @@ export declare enum BuiltinPluginName {
   LazyCompilationPlugin = 'LazyCompilationPlugin',
   ModuleInfoHeaderPlugin = 'ModuleInfoHeaderPlugin',
   HttpUriPlugin = 'HttpUriPlugin',
-  CssChunkingPlugin = 'CssChunkingPlugin'
+  CssChunkingPlugin = 'CssChunkingPlugin',
+  RscServerPlugin = 'RscServerPlugin',
+  RscClientPlugin = 'RscClientPlugin'
 }
 
 export declare function cleanupGlobalTrace(): void

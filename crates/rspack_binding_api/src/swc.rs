@@ -1,10 +1,14 @@
+use std::{rc::Rc, sync::Arc};
+
 use napi::bindgen_prelude::within_runtime_if_available;
 use rspack_javascript_compiler::{
   JavaScriptCompiler, TransformOutput as CompilerTransformOutput, minify::JsMinifyOptions,
   transform::SwcOptions,
 };
 use rspack_util::source_map::SourceMapKind;
-use swc_core::{base::config::SourceMapsConfig, ecma::ast::noop_pass};
+use swc_core::{
+  base::config::SourceMapsConfig, common::comments::SingleThreadedComments, ecma::ast::noop_pass,
+};
 
 #[napi(object)]
 pub struct TransformOutput {
@@ -52,14 +56,16 @@ fn _transform(source: String, options: String) -> napi::Result<TransformOutput> 
   }
 
   let compiler = JavaScriptCompiler::new();
+  let comments = Rc::new(SingleThreadedComments::default());
   let module_source_map_kind = _to_source_map_kind(options.source_maps.clone());
 
   compiler
     .transform(
       source,
-      Some(swc_core::common::FileName::Real(
+      Some(Arc::new(swc_core::common::FileName::Real(
         options.filename.clone().into(),
-      )),
+      ))),
+      comments,
       options,
       Some(module_source_map_kind),
       |_, _| {},

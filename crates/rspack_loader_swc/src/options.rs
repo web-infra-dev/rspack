@@ -14,6 +14,8 @@ use swc_core::base::config::{
 #[serde(rename_all = "camelCase", default)]
 pub struct RawRspackExperiments {
   pub import: Option<Vec<RawImportOptions>>,
+  #[serde(default)]
+  pub react_server_components: bool,
 }
 
 #[derive(Default, Deserialize, Debug)]
@@ -26,6 +28,7 @@ pub struct RawCollectTypeScriptInfoOptions {
 #[derive(Default, Debug)]
 pub(crate) struct RspackExperiments {
   pub(crate) import: Option<Vec<ImportOptions>>,
+  pub(crate) react_server_components: bool,
 }
 
 #[derive(Default, Debug)]
@@ -47,6 +50,7 @@ impl From<RawRspackExperiments> for RspackExperiments {
       import: value
         .import
         .map(|i| i.into_iter().map(|v| v.into()).collect()),
+      react_server_components: value.react_server_components,
     }
   }
 }

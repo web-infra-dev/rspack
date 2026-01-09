@@ -37,6 +37,10 @@ export type SwcLoaderOptions = Config & {
      * providing better TypeScript development experience and smaller output bundle size.
      */
     collectTypeScriptInfo?: CollectTypeScriptInfoOptions;
+    /**
+     * Enable React Server Components support.
+     */
+    reactServerComponents?: boolean;
   };
 };
 

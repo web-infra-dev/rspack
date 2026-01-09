@@ -82,3 +82,4 @@ export * from './SwcJsMinimizerPlugin';
 export * from './URLPlugin';
 export * from './WebWorkerTemplatePlugin';
 export * from './WorkerPlugin';
+export { createRscPlugins, RSC_LAYERS_NAMES } from './rsc';

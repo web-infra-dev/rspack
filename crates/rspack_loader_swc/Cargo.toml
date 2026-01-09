@@ -11,8 +11,6 @@ ignored = ["swc"]
 [features]
 default = []
 plugin = [
-  "rspack_util/plugin",
-
   # plugin_transform_host_native cannot be enabled directly to avoid wasmer dependency
   "swc_core/__plugin_transform_host",
   "swc_core/__plugin_transform_host_schema_v1",
@@ -22,6 +20,10 @@ plugin = [
 [dependencies]
 async-trait                    = { workspace = true }
 either                         = { workspace = true }
+hex                            = { workspace = true }
+indoc                          = { workspace = true }
+once_cell                      = { workspace = true }
+regex                          = { workspace = true }
 rspack_cacheable               = { workspace = true }
 rspack_core                    = { workspace = true }
 rspack_error                   = { workspace = true }
@@ -30,11 +32,12 @@ rspack_javascript_compiler     = { workspace = true }
 rspack_loader_runner           = { workspace = true }
 rspack_swc_plugin_import       = { workspace = true }
 rspack_swc_plugin_ts_collector = { workspace = true }
-rspack_util                    = { workspace = true, optional = true }
+rspack_util                    = { workspace = true }
 rspack_workspace               = { workspace = true }
 rustc-hash                     = { workspace = true }
 serde                          = { workspace = true, features = ["derive"] }
 serde_json                     = { workspace = true }
+sha2                           = { workspace = true }
 sugar_path                     = { workspace = true }
 swc                            = { workspace = true, features = ["manual-tokio-runtime"] }
 swc_config                     = { workspace = true }

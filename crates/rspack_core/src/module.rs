@@ -11,7 +11,7 @@ use async_trait::async_trait;
 use json::JsonValue;
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
-  with::{AsInner, AsInnerConverter, AsOption, AsPreset, AsVec},
+  with::{AsInner, AsInnerConverter, AsMap, AsOption, AsPreset, AsVec},
 };
 use rspack_collections::{Identifiable, Identifier, IdentifierMap, IdentifierSet};
 use rspack_error::{Diagnosable, Result};
@@ -22,10 +22,12 @@ use rspack_sources::BoxSource;
 use rspack_util::{
   atom::Atom,
   ext::{AsAny, DynHash},
+  fx_hash::FxIndexMap,
   source_map::ModuleSourceMapConfig,
 };
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use serde::Serialize;
+use swc_core::atoms::Wtf8Atom;
 
 use crate::{
   AsyncDependenciesBlock, BindingCell, BoxDependency, BoxDependencyTemplate, BoxModuleDependency,
@@ -47,6 +49,38 @@ pub struct BuildContext {
   pub runtime_template: Arc<RuntimeTemplate>,
   pub plugin_driver: SharedPluginDriver,
   pub fs: Arc<dyn ReadableFileSystem>,
+}
+
+#[cacheable]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum RscModuleType {
+  /// Represents a server entry module with "use server-entry" directive.
+  ///
+  /// Transformation flow:
+  /// 1. Original module with "use server-entry" is transformed into a proxy module
+  /// 2. The proxy module (with `module_type = ServerEntry`) imports the original implementation
+  /// 3. The original implementation module may resulting in `module_type = Client`
+  ///
+  /// Note: "use server" and "use client" directives can coexist in the same file.
+  ServerEntry,
+  Server,
+  Client,
+}
+
+#[cacheable]
+#[derive(Debug, Clone)]
+pub struct RscMeta {
+  pub module_type: RscModuleType,
+
+  #[cacheable(with=AsVec<AsPreset>)]
+  pub server_refs: Vec<Wtf8Atom>,
+
+  #[cacheable(with=AsVec<AsPreset>)]
+  pub client_refs: Vec<Wtf8Atom>,
+  pub is_cjs: bool,
+
+  #[cacheable(with=AsMap<AsPreset, AsPreset>)]
+  pub action_ids: FxIndexMap<Atom, Atom>,
 }
 
 #[cacheable]
@@ -76,6 +110,7 @@ pub struct BuildInfo {
   pub module: bool,
   pub inline_exports: bool,
   pub collected_typescript_info: Option<CollectedTypeScriptInfo>,
+  pub rsc: Option<RscMeta>,
   /// Stores external fields from the JS side (Record<string, any>),
   /// while other properties are stored in KnownBuildInfo.
   #[cacheable(with=AsPreset)]
@@ -105,6 +140,7 @@ impl Default for BuildInfo {
       module: false,
       inline_exports: false,
       collected_typescript_info: None,
+      rsc: None,
       extras: Default::default(),
     }
   }
