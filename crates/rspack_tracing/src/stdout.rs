@@ -90,7 +90,6 @@ impl Tracer for StdoutTracer {
               // Build JSON in Rust trace format
               // ts is in nanoseconds, convert to microseconds for chrono
               let json_value = serde_json::json!({
-                "timestamp": begin_event.ts,
                 "level": "DEBUG",
                 "fields": fields,
                 "target": begin_event.process_name.as_deref().unwrap_or("javascript"),
@@ -102,23 +101,7 @@ impl Tracer for StdoutTracer {
               }
             }
           }
-          _ => {
-            // For other event types (like "X", "P"), output as-is
-            let json_value = serde_json::json!({
-              "name": event.name,
-              "track_name": event.track_name,
-              "process_name": event.process_name,
-              "ts": event.ts,
-              "ph": event.ph,
-              "uuid": event.uuid,
-              "args": event.args,
-              "categories": event.categories,
-            });
-
-            if let Ok(json_str) = serde_json::to_string(&json_value) {
-              let _ = writeln!(writer, "{}", json_str);
-            }
-          }
+          _ => {}
         }
       }
 
