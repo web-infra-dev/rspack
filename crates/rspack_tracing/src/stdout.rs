@@ -41,19 +41,43 @@ impl<'a> MakeWriter<'a> for SharedWriterMaker {
   }
 }
 
+/// Converts a microsecond timestamp to ISO 8601 format with microsecond precision
+/// Example: 1704708707916028 -> "2026-01-08T11:31:47.916028Z"
+fn format_timestamp_iso8601(micros: u64) -> String {
+  use chrono::{DateTime, Utc};
+
+  let secs = (micros / 1_000_000) as i64;
+  let subsec_micros = (micros % 1_000_000) as u32;
+  let nanos = subsec_micros * 1000;
+
+  DateTime::<Utc>::from_timestamp(secs, nanos)
+    .map(|dt| dt.to_rfc3339_opts(chrono::SecondsFormat::Micros, true))
+    .unwrap_or_else(|| "Invalid timestamp".to_string())
+}
+
 pub struct StdoutTracer {
+  begin_ts: u64,
   writer: Option<Arc<Mutex<dyn Write + Send>>>,
 }
 
 impl Default for StdoutTracer {
   fn default() -> Self {
-    Self { writer: None }
+    Self {
+      begin_ts: 0,
+      writer: None,
+    }
   }
 }
 
 impl Tracer for StdoutTracer {
   fn setup(&mut self, output: &str) -> Option<Layered> {
     use tracing_subscriber::{fmt, prelude::*};
+
+    // Record the start time in microseconds since UNIX epoch
+    self.begin_ts = std::time::SystemTime::now()
+      .duration_since(std::time::UNIX_EPOCH)
+      .expect("System time before UNIX epoch")
+      .as_micros() as u64;
 
     // Create the shared writer wrapped in Arc<Mutex<>>
     let writer: Arc<Mutex<Box<dyn Write + Send>>> = match output {
@@ -126,8 +150,13 @@ impl Tracer for StdoutTracer {
                 None
               };
 
+              // Convert relative microsecond timestamp to absolute ISO 8601 format
+              let absolute_ts_micros = self.begin_ts + begin_event.ts;
+              let timestamp_iso = format_timestamp_iso8601(absolute_ts_micros);
+
               // Build JSON in Rust trace format
               let json_value = serde_json::json!({
+                "timestamp": timestamp_iso,
                 "level": "DEBUG",
                 "fields": fields,
                 "target": "javascript",
