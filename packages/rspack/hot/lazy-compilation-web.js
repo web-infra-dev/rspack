@@ -11,30 +11,21 @@ var errorHandlers = new Set();
 /** @type {Promise<void> | undefined} */
 var pendingRequestPromise;
 /** @type {AbortController | undefined} */
-var activeAbortController;
 /** @type {boolean} */
 var hasPendingUpdate = false;
 
 var sendRequest = function sendRequest() {
   if (compiling.size === 0) {
     pendingRequestPromise = undefined;
-    activeAbortController = undefined;
     hasPendingUpdate = false;
     return Promise.resolve();
   }
 
   var modules = Array.from(compiling);
-  activeAbortController = new AbortController();
-  var signal = activeAbortController.signal;
 
   return fetch(urlBase, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Accept: 'text/event-stream',
-    },
     body: JSON.stringify(modules),
-    signal: signal,
   })
     .then(function (response) {
       if (!response.ok) {
