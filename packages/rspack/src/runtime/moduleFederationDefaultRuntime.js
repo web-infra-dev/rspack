@@ -3,7 +3,9 @@ var __module_federation_bundler_runtime__,
   __module_federation_runtime_plugins__,
   __module_federation_remote_infos__,
   __module_federation_container_name__,
-  __module_federation_share_strategy__;
+  __module_federation_share_strategy__,
+  __module_federation_share_fallbacks__,
+  __module_federation_library_type__;
 module.exports = function () {
   if (
     (__webpack_require__.initializeSharingData ||
@@ -53,6 +55,17 @@ module.exports = function () {
 
     early(
       __webpack_require__.federation,
+      'libraryType',
+      () => __module_federation_library_type__,
+    );
+    early(
+      __webpack_require__.federation,
+      'sharedFallback',
+      () => __module_federation_share_fallbacks__,
+    );
+    const sharedFallback = __webpack_require__.federation.sharedFallback;
+    early(
+      __webpack_require__.federation,
       'consumesLoadingModuleToHandlerMapping',
       () => {
         const consumesLoadingModuleToHandlerMapping = {};
@@ -60,7 +73,17 @@ module.exports = function () {
           consumesLoadingModuleToConsumeDataMapping,
         )) {
           consumesLoadingModuleToHandlerMapping[moduleId] = {
-            getter: data.fallback,
+            getter: sharedFallback
+              ? __webpack_require__.federation.bundlerRuntime?.getSharedFallbackGetter(
+                  {
+                    shareKey: data.shareKey,
+                    factory: data.fallback,
+                    webpackRequire: __webpack_require__,
+                    libraryType: __webpack_require__.federation.libraryType,
+                  },
+                )
+              : data.fallback,
+            treeshakeGetter: sharedFallback ? data.fallback : undefined,
             shareInfo: {
               shareConfig: {
                 fixedDependencies: false,
@@ -72,6 +95,12 @@ module.exports = function () {
               scope: [data.shareScope],
             },
             shareKey: data.shareKey,
+            treeshake: __webpack_require__.federation.sharedFallback
+              ? {
+                  get: data.fallback,
+                  strategy: data.treeshakeStrategy,
+                }
+              : undefined,
           };
         }
         return consumesLoadingModuleToHandlerMapping;
@@ -104,6 +133,7 @@ module.exports = function () {
               singleton,
               requiredVersion,
               strictVersion,
+              treeshakeStrategy,
             } = stage;
             const shareConfig = {};
             const isValidValue = function (val) {
@@ -126,6 +156,11 @@ module.exports = function () {
               scope: [scope],
               shareConfig,
               get: factory,
+              treeshake: treeshakeStrategy
+                ? {
+                    strategy: treeshakeStrategy,
+                  }
+                : undefined,
             };
             if (shared[name]) {
               shared[name].push(options);
@@ -273,9 +308,9 @@ module.exports = function () {
     });
 
     __webpack_require__.federation.instance =
-      __webpack_require__.federation.runtime.init(
-        __webpack_require__.federation.initOptions,
-      );
+      __webpack_require__.federation.bundlerRuntime.init({
+        webpackRequire: __webpack_require__,
+      });
 
     if (__webpack_require__.consumesLoadingData?.initialConsumes) {
       __webpack_require__.federation.bundlerRuntime.installInitialConsumes({

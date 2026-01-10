@@ -46,14 +46,14 @@ use crate::{
   ChunkKind, ChunkNamedIdArtifact, ChunkRenderArtifact, ChunkRenderCacheArtifact,
   ChunkRenderResult, ChunkUkey, CodeGenerationJob, CodeGenerationResult, CodeGenerationResults,
   CompilationLogger, CompilationLogging, CompilerOptions, CompilerPlatform, ConcatenationScope,
-  DependenciesDiagnosticsArtifact, DependencyCodeGeneration, DependencyTemplate,
+  DependenciesDiagnosticsArtifact, DependencyCodeGeneration, DependencyId, DependencyTemplate,
   DependencyTemplateType, DependencyType, DerefOption, Entry, EntryData, EntryOptions,
-  EntryRuntime, Entrypoint, ExecuteModuleId, Filename, ImportPhase, ImportVarMap,
-  ImportedByDeferModulesArtifact, Logger, MemoryGCStorage, ModuleFactory, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleIdentifier, ModuleIdsArtifact, ModuleStaticCacheArtifact,
-  PathData, ResolverFactory, RuntimeGlobals, RuntimeKeyMap, RuntimeMode, RuntimeModule,
-  RuntimeSpec, RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver, SideEffectsOptimizeArtifact,
-  SourceType, Stats, ValueCacheVersions,
+  EntryRuntime, Entrypoint, ExecuteModuleId, ExtendedReferencedExport, Filename, ImportPhase,
+  ImportVarMap, ImportedByDeferModulesArtifact, Logger, MemoryGCStorage, ModuleFactory,
+  ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, ModuleIdsArtifact,
+  ModuleStaticCacheArtifact, PathData, ResolverFactory, RuntimeGlobals, RuntimeKeyMap, RuntimeMode,
+  RuntimeModule, RuntimeSpec, RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver,
+  SideEffectsOptimizeArtifact, SourceType, Stats, ValueCacheVersions,
   build_chunk_graph::artifact::BuildChunkGraphArtifact,
   compilation::build_module_graph::{
     BuildModuleGraphArtifact, ModuleExecutor, UpdateParam, build_module_graph,
@@ -76,6 +76,13 @@ define_hook!(CompilationExecuteModule:
   Series(module: &ModuleIdentifier, runtime_modules: &IdentifierSet, code_generation_results: &BindingCell<CodeGenerationResults>, execute_module_id: &ExecuteModuleId));
 define_hook!(CompilationFinishModules: Series(compilation: &mut Compilation, async_modules_artifact: &mut AsyncModulesArtifact));
 define_hook!(CompilationSeal: Series(compilation: &mut Compilation));
+define_hook!(CompilationDependencyReferencedExports: Series(
+  compilation: &Compilation,
+  dependency: &DependencyId,
+  referenced_exports: &Option<Vec<ExtendedReferencedExport>>,
+  runtime: Option<&RuntimeSpec>,
+  module_graph: Option<&ModuleGraph>
+));
 define_hook!(CompilationConcatenationScope: SeriesBail(compilation: &Compilation, curr_module: ModuleIdentifier) -> ConcatenationScope);
 define_hook!(CompilationOptimizeDependencies: SeriesBail(compilation: &Compilation, side_effects_optimize_artifact: &mut SideEffectsOptimizeArtifact,  build_module_graph_artifact: &mut BuildModuleGraphArtifact,
  diagnostics: &mut Vec<Diagnostic>) -> bool);
@@ -114,6 +121,7 @@ pub struct CompilationHooks {
   pub succeed_module: CompilationSucceedModuleHook,
   pub execute_module: CompilationExecuteModuleHook,
   pub finish_modules: CompilationFinishModulesHook,
+  pub dependency_referenced_exports: CompilationDependencyReferencedExportsHook,
   pub seal: CompilationSealHook,
   pub optimize_dependencies: CompilationOptimizeDependenciesHook,
   pub optimize_modules: CompilationOptimizeModulesHook,
