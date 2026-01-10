@@ -123,11 +123,24 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
     if for_name == expr_name::IMPORT_META_VERSION {
       Some(eval::evaluate_to_number(5_f64, start, end))
     } else if for_name == expr_name::IMPORT_META_URL {
-      Some(eval::evaluate_to_string(
-        self.import_meta_url(parser),
-        start,
-        end,
-      ))
+      if parser.is_esm {
+        if parser
+          .compiler_options
+          .output
+          .environment
+          .supports_document()
+        {
+          None
+        } else {
+          Some(eval::evaluate_to_string(
+            self.import_meta_url(parser),
+            start,
+            end,
+          ))
+        }
+      } else {
+        None
+      }
     } else {
       None
     }
@@ -250,7 +263,18 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
             continue;
           }
           if prop.id == "url" {
-            content.push(format!(r#"url: "{}""#, self.import_meta_url(parser)))
+            if parser.is_esm
+              && parser
+                .compiler_options
+                .output
+                .environment
+                .supports_document()
+            {
+              // Preserve import.meta.url for web targets in ES modules using a getter
+              content.push(r#"get url() { return import.meta.url; }"#.to_string())
+            } else {
+              content.push(format!(r#"url: "{}""#, self.import_meta_url(parser)))
+            }
           } else if prop.id == "webpack" {
             content.push(format!(r#"webpack: {}"#, self.import_meta_version()));
           } else {
@@ -304,12 +328,25 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
   ) -> Option<bool> {
     if for_name == expr_name::IMPORT_META_URL {
       // import.meta.url
-      parser.add_presentational_dependency(Box::new(ConstDependency::new(
-        member_expr.span().into(),
-        format!("'{}'", self.import_meta_url(parser)).into(),
-        None,
-      )));
-      Some(true)
+      if !parser.is_esm {
+        // import.meta.url is only available in ES modules
+        return None;
+      }
+      if parser
+        .compiler_options
+        .output
+        .environment
+        .supports_document()
+      {
+        Some(true)
+      } else {
+        parser.add_presentational_dependency(Box::new(ConstDependency::new(
+          member_expr.span().into(),
+          format!("'{}'", self.import_meta_url(parser)).into(),
+          None,
+        )));
+        Some(true)
+      }
     } else if for_name == expr_name::IMPORT_META_VERSION {
       // import.meta.webpack
       parser.add_presentational_dependency(Box::new(ConstDependency::new(
