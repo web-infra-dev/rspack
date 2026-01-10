@@ -26,6 +26,9 @@ module.exports = {
   },
   context: __dirname,
   mode: 'development',
+  optimization: {
+    runtimeChunk: 'single',
+  },
   plugins: [
     new rspack.HtmlRspackPlugin(),
     function (compiler) {
