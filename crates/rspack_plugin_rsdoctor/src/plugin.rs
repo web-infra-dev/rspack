@@ -257,7 +257,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
 }
 
 #[plugin_hook(CompilationOptimizeChunkModules for RsdoctorPlugin, stage = 9999)]
-async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
+async fn optimize_chunk_modules(&self, compilation: &Compilation) -> Result<Option<bool>> {
   if !self.has_module_graph_feature(RsdoctorPluginModuleGraphFeature::ModuleGraph) {
     return Ok(None);
   }
