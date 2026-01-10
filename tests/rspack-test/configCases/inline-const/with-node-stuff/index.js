@@ -12,5 +12,5 @@ it("should have correct exports", () => {
 
 it("should be inlined for userGlobal", () => {
   const block = generated.match(/\/\/ START:A([\s\S]*)\/\/ END:A/)[1];
-  expect(block.includes(`(/* inlined export .global */ ("global")).toBe("global")`)).toBe(true);
+  expect(block.includes(`((/* inlined export .global */"global"))`)).toBe(true);
 })

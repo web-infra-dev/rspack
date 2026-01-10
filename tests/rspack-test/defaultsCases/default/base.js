@@ -206,6 +206,7 @@ module.exports = {
 			        importDynamic: true,
 			        importMeta: true,
 			        jsx: false,
+			        requireAlias: true,
 			        requireAsExpression: true,
 			        requireDynamic: true,
 			        requireResolve: true,

@@ -335,7 +335,7 @@ async fn render_startup(
 
       source.add(RawStringSource::from(format!(
         "var {var_name} = {};\n",
-        inlined.render()
+        inlined.render("")
       )));
 
       exports.push((var_name, Some(info_name.to_string())));

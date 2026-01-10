@@ -662,7 +662,7 @@ impl Compilation {
     }
 
     let make_artifact = self.build_module_graph_artifact.take();
-    self.build_module_graph_artifact = DerefOption::new(
+    self.build_module_graph_artifact.replace(
       update_module_graph(
         self,
         make_artifact,
@@ -713,7 +713,7 @@ impl Compilation {
     // Recheck entry and clean useless entry
     // This should before finish_modules hook is called, ensure providedExports effects on new added modules
     let make_artifact = self.build_module_graph_artifact.take();
-    self.build_module_graph_artifact = DerefOption::new(
+    self.build_module_graph_artifact.replace(
       update_module_graph(
         self,
         make_artifact,
@@ -1025,7 +1025,9 @@ impl Compilation {
     }
 
     let artifact = self.build_module_graph_artifact.take();
-    self.build_module_graph_artifact = DerefOption::new(build_module_graph(self, artifact).await?);
+    self
+      .build_module_graph_artifact
+      .replace(build_module_graph(self, artifact).await?);
 
     self.in_finish_make.store(true, Ordering::Release);
 
@@ -1042,7 +1044,7 @@ impl Compilation {
     // https://github.com/webpack/webpack/blob/19ca74127f7668aaf60d59f4af8fcaee7924541a/lib/Compilation.js#L2462C21-L2462C25
     self.module_graph_cache_artifact.unfreeze();
 
-    self.build_module_graph_artifact = DerefOption::new(
+    self.build_module_graph_artifact.replace(
       update_module_graph(
         self,
         artifact,
@@ -1254,10 +1256,16 @@ impl Compilation {
         "Chunk filename that dependent on full hash",
         "chunk filename that dependent on full hash is not supported in incremental compilation",
       )
+      && let Some(diagnostic) = diagnostic
     {
-      if let Some(diagnostic) = diagnostic {
-        self.push_diagnostic(diagnostic);
-      }
+      self.push_diagnostic(diagnostic);
+    }
+
+    // Check if CHUNKS_RENDER pass is disabled, and clear artifact if needed
+    if !self
+      .incremental
+      .passes_enabled(IncrementalPasses::CHUNKS_RENDER)
+    {
       self.chunk_render_artifact.clear();
     }
 
@@ -1292,7 +1300,6 @@ impl Compilation {
       ));
       chunks
     } else {
-      self.chunk_render_artifact.clear();
       self.chunk_by_ukey.keys().copied().collect()
     };
     let results = rspack_futures::scope::<_, Result<_>>(|token| {
@@ -1451,8 +1458,9 @@ impl Compilation {
     self.in_finish_make.store(false, Ordering::Release);
     // clean up the entry deps
     let make_artifact = self.build_module_graph_artifact.take();
-    self.build_module_graph_artifact =
-      DerefOption::new(finish_build_module_graph(self, make_artifact).await?);
+    self
+      .build_module_graph_artifact
+      .replace(finish_build_module_graph(self, make_artifact).await?);
     // sync assets to module graph from module_executor
     if let Some(module_executor) = &mut self.module_executor {
       let mut module_executor = std::mem::take(module_executor);
@@ -1640,9 +1648,9 @@ impl Compilation {
     let start = logger.time("optimize dependencies");
     // https://github.com/webpack/webpack/blob/d15c73469fd71cf98734685225250148b68ddc79/lib/Compilation.js#L2812-L2814
 
-    let mut side_effects_optimize_artifact = self.side_effects_optimize_artifact.take();
     let mut diagnostics: Vec<Diagnostic> = vec![];
-    let mut build_module_graph_artifact = mem::take(&mut self.build_module_graph_artifact);
+    let mut side_effects_optimize_artifact = self.side_effects_optimize_artifact.take();
+    let mut build_module_graph_artifact = self.build_module_graph_artifact.take();
     while matches!(
       plugin_driver
         .compilation_hooks
@@ -1657,8 +1665,12 @@ impl Compilation {
         .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.optimizeDependencies"))?,
       Some(true)
     ) {}
-    self.side_effects_optimize_artifact = DerefOption::new(side_effects_optimize_artifact);
-    self.build_module_graph_artifact = build_module_graph_artifact;
+    self
+      .side_effects_optimize_artifact
+      .replace(side_effects_optimize_artifact);
+    self
+      .build_module_graph_artifact
+      .replace(build_module_graph_artifact);
     self.extend_diagnostics(diagnostics);
 
     logger.time_end(start);
@@ -1732,6 +1744,14 @@ impl Compilation {
 
     let start = logger.time("module ids");
 
+    // Check if MODULE_IDS pass is disabled, and clear artifact if needed
+    if !self
+      .incremental
+      .passes_enabled(IncrementalPasses::MODULE_IDS)
+    {
+      self.module_ids_artifact.clear();
+    }
+
     let mut diagnostics = vec![];
     let mut module_ids_artifact = mem::take(&mut self.module_ids_artifact);
     plugin_driver
@@ -1745,6 +1765,15 @@ impl Compilation {
     logger.time_end(start);
 
     let start = logger.time("chunk ids");
+
+    // Check if CHUNK_IDS pass is disabled, and clear artifact if needed
+    if !self
+      .incremental
+      .passes_enabled(IncrementalPasses::CHUNK_IDS)
+    {
+      self.named_chunk_ids_artifact.clear();
+    }
+
     let mut diagnostics = vec![];
     let mut chunk_by_ukey = mem::take(&mut self.chunk_by_ukey);
     let mut named_chunk_ids_artifact = mem::take(&mut self.named_chunk_ids_artifact);
@@ -1774,6 +1803,14 @@ impl Compilation {
       .await
       .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.optimizeCodeGeneration"))?;
     logger.time_end(start);
+
+    // Check if MODULES_HASHES pass is disabled, and clear artifact if needed
+    if !self
+      .incremental
+      .passes_enabled(IncrementalPasses::MODULES_HASHES)
+    {
+      self.cgm_hash_artifact.clear();
+    }
 
     let create_module_hashes_modules = if let Some(mutations) = self
       .incremental
@@ -1851,7 +1888,6 @@ impl Compilation {
 
       modules
     } else {
-      self.cgm_hash_artifact.clear();
       self.get_module_graph().modules().keys().copied().collect()
     };
     self
@@ -1947,6 +1983,15 @@ impl Compilation {
       )
       .await?;
     let runtime_chunks = self.get_chunk_graph_entries().collect();
+
+    // Check if CHUNKS_RUNTIME_REQUIREMENTS pass is disabled, and clear artifact if needed
+    if !self
+      .incremental
+      .passes_enabled(IncrementalPasses::CHUNKS_RUNTIME_REQUIREMENTS)
+    {
+      self.cgc_runtime_requirements_artifact.clear();
+    }
+
     let process_runtime_requirements_chunks = if let Some(mutations) = self
       .incremental
       .mutations_read(IncrementalPasses::CHUNKS_RUNTIME_REQUIREMENTS)
@@ -1979,7 +2024,6 @@ impl Compilation {
       ));
       affected_chunks
     } else {
-      self.cgc_runtime_requirements_artifact.clear();
       self.chunk_by_ukey.keys().copied().collect()
     };
     self
@@ -2350,10 +2394,14 @@ impl Compilation {
         "Chunk content that dependent on full hash",
         "it requires calculating the hashes of all the chunks, which is a global effect",
       )
+      && let Some(diagnostic) = diagnostic
     {
-      if let Some(diagnostic) = diagnostic {
-        self.push_diagnostic(diagnostic);
-      }
+      self.push_diagnostic(diagnostic);
+    }
+    if !self
+      .incremental
+      .passes_enabled(IncrementalPasses::CHUNKS_HASHES)
+    {
       self.chunk_hashes_artifact.clear();
     }
 
@@ -2382,7 +2430,6 @@ impl Compilation {
       ));
       chunks
     } else {
-      self.chunk_hashes_artifact.clear();
       self.chunk_by_ukey.keys().copied().collect()
     };
 

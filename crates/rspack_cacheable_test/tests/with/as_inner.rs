@@ -2,13 +2,14 @@ use std::{path::PathBuf, sync::Arc};
 
 use rspack_cacheable::{
   enable_cacheable as cacheable,
-  with::{AsInner, AsString},
+  utils::PortablePath,
+  with::{As, AsInner},
 };
 
 #[cacheable]
 #[derive(Debug, PartialEq, Eq)]
 struct Data {
-  #[cacheable(with=AsInner<AsString>)]
+  #[cacheable(with=AsInner<As<PortablePath>>)]
   block1: once_cell::sync::OnceCell<PathBuf>,
   #[cacheable(with=AsInner)]
   block2: once_cell::sync::OnceCell<usize>,

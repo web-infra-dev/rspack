@@ -106,7 +106,7 @@ impl ExportInfoData {
   pub fn get_rename_info(&self) -> Cow<'_, str> {
     match (self.used_name(), self.name()) {
       (Some(UsedNameItem::Inlined(inlined)), _) => {
-        return format!("inlined to {}", inlined.render()).into();
+        return format!("inlined to {}", inlined.render("")).into();
       }
       (Some(UsedNameItem::Str(used)), Some(name)) if used != name => {
         return format!("renamed to {used}").into();
