@@ -2,6 +2,7 @@ import type { AssetInfo, RawModuleRuleUse, RawOptions } from '@rspack/binding';
 import {
   resolveCollectTypeScriptInfo,
   resolvePluginImport,
+  resolveTransformImport,
 } from '../builtin-loader';
 import {
   type FeatureOptions,
@@ -506,10 +507,21 @@ const getSwcLoaderOptions: GetLoaderOptions = (options, _) => {
       );
     }
 
-    // resolve `rspackExperiments.import` options
+    // resolve `rspackExperiments` options
     const { rspackExperiments } = options;
     if (rspackExperiments) {
+      // resolve `rspackExperiments.transformImport` options (new API)
+      if (rspackExperiments.transformImport) {
+        rspackExperiments.transformImport = resolveTransformImport(
+          rspackExperiments.transformImport,
+        );
+      }
+
+      // resolve `rspackExperiments.import` options (deprecated API)
       if (rspackExperiments.import || rspackExperiments.pluginImport) {
+        deprecate(
+          '`rspackExperiments.import` is deprecated and will be removed in Rspack v2.0. Use `rspackExperiments.transformImport` instead.',
+        );
         rspackExperiments.import = resolvePluginImport(
           rspackExperiments.import || rspackExperiments.pluginImport,
         );

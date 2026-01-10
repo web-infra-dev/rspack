@@ -148,9 +148,24 @@ pub struct ImportOptions {
   pub ignore_style_component: Option<Vec<String>>,
 }
 
+/// Modern configuration for transformImport API
+#[derive(Debug, Deserialize, Default, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct TransformImportOptions {
+  /// Library name to match (e.g., "antd")
+  pub source: String,
+  /// Use named import instead of default import (default: true)
+  pub named_import: Option<bool>,
+  /// Output paths as template strings (e.g., `["antd/es/{{ kebabCase filename }}.js"]`)
+  pub output: Vec<String>,
+  /// Members to exclude from transformation
+  pub exclude: Option<Vec<String>>,
+}
+
 const CUSTOM_JS: &str = "CUSTOM_JS_NAME";
 const CUSTOM_STYLE: &str = "CUSTOM_STYLE";
 const CUSTOM_STYLE_NAME: &str = "CUSTOM_STYLE_NAME";
+const TRANSFORM_IMPORT_OUTPUT: &str = "TRANSFORM_IMPORT_OUTPUT_";
 
 /// Panic:
 ///
@@ -230,6 +245,56 @@ pub fn plugin_import(
   });
 
   visit_mut_pass(ImportPlugin { config, renderer })
+}
+
+/// Creates a transform pass for the modern transformImport API
+///
+/// This is the modern replacement for plugin_import with a cleaner API design.
+pub fn transform_import(
+  config: &Vec<TransformImportOptions>,
+) -> swc_core::ecma::visit::VisitMutPass<TransformImportPlugin<'_>> {
+  let mut renderer = TemplateEngine::new();
+
+  // Register helpers (same as plugin_import)
+  renderer.register_helper("kebabCase", |value| value.to_kebab_case());
+  renderer.register_helper("legacyKebabCase", |value| {
+    identifier_to_legacy_kebab_case(value)
+  });
+  renderer.register_helper("camelCase", |value| value.to_lower_camel_case());
+  renderer.register_helper("snakeCase", |value| value.to_snake_case());
+  renderer.register_helper("legacySnakeCase", |value| {
+    identifier_to_legacy_snake_case(value)
+  });
+  renderer.register_helper("upperCase", |value| {
+    value.cow_to_ascii_uppercase().into_owned()
+  });
+  renderer.register_helper("lowerCase", |value| {
+    value.cow_to_ascii_lowercase().into_owned()
+  });
+
+  // Register output templates for each config
+  config.iter().enumerate().for_each(|(index, item)| {
+    for (output_idx, output_tpl) in item.output.iter().enumerate() {
+      match Template::parse(output_tpl) {
+        Ok(template) => {
+          let template_name = format!("{}{}{}", item.source, TRANSFORM_IMPORT_OUTPUT, output_idx);
+          renderer.register_template(template_name, template);
+        }
+        Err(e) => {
+          HANDLER.with(|handler| {
+            handler.err(&format!(
+              "[builtin:swc-loader] Failed to parse option \"rspackExperiments.transformImport[{}].output[{}]\".\nReason: {}",
+              index,
+              output_idx,
+              &e.to_string()
+            ))
+          });
+        }
+      }
+    }
+  });
+
+  visit_mut_pass(TransformImportPlugin { config, renderer })
 }
 
 #[derive(Debug)]
@@ -546,4 +611,217 @@ fn render_context(s: String) -> HashMap<&'static str, String> {
   let mut ctx = HashMap::default();
   ctx.insert("member", s);
   ctx
+}
+
+fn render_context_filename(s: String) -> HashMap<&'static str, String> {
+  let mut ctx = HashMap::default();
+  ctx.insert("filename", s);
+  ctx
+}
+
+pub struct TransformImportPlugin<'a> {
+  pub config: &'a Vec<TransformImportOptions>,
+  pub renderer: TemplateEngine<'a>,
+}
+
+impl TransformImportPlugin<'_> {
+  /// Transform a named import member according to the config.
+  /// Returns a vector of output paths (the first is the JS import, the rest are side-effect imports like CSS).
+  fn transform(&self, name: &str, config: &TransformImportOptions) -> Vec<String> {
+    // Check if excluded
+    if config
+      .exclude
+      .as_ref()
+      .is_some_and(|list| list.iter().any(|c| c == name))
+    {
+      return vec![];
+    }
+
+    let ctx = render_context_filename(name.to_string());
+    let mut outputs = vec![];
+
+    for output_idx in 0..config.output.len() {
+      let template_name = format!("{}{}{}", config.source, TRANSFORM_IMPORT_OUTPUT, output_idx);
+      match self.renderer.render(&template_name, &ctx) {
+        Ok(rendered) => outputs.push(rendered),
+        Err(err) => {
+          HANDLER.with(|handler| {
+            handler.err(&format!(
+              "[builtin:swc-loader] Failed to render \"rspackExperiments.transformImport[i].output[{output_idx}]\".\nReason: {err}",
+            ))
+          });
+        }
+      }
+    }
+
+    outputs
+  }
+}
+
+impl VisitMut for TransformImportPlugin<'_> {
+  fn visit_mut_module(&mut self, module: &mut Module) {
+    // Use visitor to collect all ident references
+    let mut visitor = IdentComponent {
+      ident_set: HashSet::default(),
+      type_ident_set: HashSet::default(),
+      in_ts_type_ref: false,
+    };
+    module.body.visit_with(&mut visitor);
+
+    let ident_referenced = |ident: &Ident| -> bool { visitor.ident_set.contains(&ident.to_id()) };
+    let type_ident_referenced =
+      |ident: &Ident| -> bool { visitor.type_ident_set.contains(&ident.to_id()) };
+
+    // Collect new specifiers to add
+    let mut new_js_imports: Vec<EsSpec> = vec![];
+    let mut new_side_effect_imports: Vec<String> = vec![];
+    let mut specifiers_rm_es: HashSet<usize> = HashSet::default();
+
+    let config = &self.config;
+
+    for (item_index, item) in module.body.iter_mut().enumerate() {
+      if let ModuleItem::ModuleDecl(ModuleDecl::Import(var)) = item {
+        let source = &*var.src.value;
+
+        if let Some(child_config) = config
+          .iter()
+          .find(|&c| c.source == source.to_string_lossy())
+        {
+          let mut rm_specifier: HashSet<usize> = HashSet::default();
+
+          for (specifier_idx, specifier) in var.specifiers.iter().enumerate() {
+            if let ImportSpecifier::Named(s) = specifier {
+              let imported = s.imported.as_ref().map(|imported| match imported {
+                ModuleExportName::Ident(ident) => ident.sym.to_string(),
+                ModuleExportName::Str(str) => str.value.to_string_lossy().to_string(),
+              });
+
+              let as_name: Option<String> = imported.is_some().then(|| s.local.sym.to_string());
+              let ident: String = imported.unwrap_or_else(|| s.local.sym.to_string());
+              let mark = s.local.ctxt.as_u32();
+
+              if ident_referenced(&s.local) {
+                let outputs = self.transform(&ident, child_config);
+
+                if !outputs.is_empty() {
+                  // First output is the JS import
+                  let use_named_import = child_config.named_import.unwrap_or(true);
+                  new_js_imports.push(EsSpec {
+                    source: outputs[0].clone(),
+                    default_spec: ident,
+                    as_name,
+                    use_default_import: !use_named_import,
+                    mark,
+                  });
+
+                  // Additional outputs are side-effect imports (e.g., CSS)
+                  for output in outputs.into_iter().skip(1) {
+                    new_side_effect_imports.push(output);
+                  }
+
+                  rm_specifier.insert(specifier_idx);
+                }
+              } else if type_ident_referenced(&s.local) {
+                // Type referenced - keep it
+              } else {
+                // Not referenced, should be tree-shaken
+                rm_specifier.insert(specifier_idx);
+              }
+            }
+          }
+
+          if rm_specifier.len() == var.specifiers.len() {
+            // All specifiers removed, remove whole statement
+            specifiers_rm_es.insert(item_index);
+          } else {
+            // Only remove some specifiers
+            var.specifiers = var
+              .specifiers
+              .take()
+              .into_iter()
+              .enumerate()
+              .filter_map(|(idx, spec)| (!rm_specifier.contains(&idx)).then_some(spec))
+              .collect();
+          }
+        }
+      }
+    }
+
+    // Remove statements with all specifiers removed
+    module.body = module
+      .body
+      .take()
+      .into_iter()
+      .enumerate()
+      .filter_map(|(idx, stmt)| (!specifiers_rm_es.contains(&idx)).then_some(stmt))
+      .collect();
+
+    let body = &mut module.body;
+
+    // Add new JS imports
+    for js_source in new_js_imports {
+      let js_source_ref = js_source.source.as_str();
+      let dec = ModuleItem::ModuleDecl(ModuleDecl::Import(ImportDecl {
+        span: DUMMY_SP,
+        specifiers: if js_source.use_default_import {
+          vec![ImportSpecifier::Default(ImportDefaultSpecifier {
+            span: DUMMY_SP,
+            local: Ident {
+              ctxt: SyntaxContext::from_u32(js_source.mark),
+              span: Span::new(BytePos::DUMMY, BytePos::DUMMY),
+              sym: Atom::from(js_source.as_name.unwrap_or(js_source.default_spec).as_str()),
+              optional: false,
+            },
+          })]
+        } else {
+          vec![ImportSpecifier::Named(ImportNamedSpecifier {
+            span: DUMMY_SP,
+            imported: if js_source.as_name.is_some() {
+              Some(ModuleExportName::Ident(Ident {
+                span: DUMMY_SP,
+                ctxt: Default::default(),
+                sym: Atom::from(js_source.default_spec.as_str()),
+                optional: false,
+              }))
+            } else {
+              None
+            },
+            local: Ident {
+              ctxt: SyntaxContext::from_u32(js_source.mark),
+              span: Span::new(BytePos::DUMMY, BytePos::DUMMY),
+              sym: Atom::from(js_source.as_name.unwrap_or(js_source.default_spec).as_str()),
+              optional: false,
+            },
+            is_type_only: false,
+          })]
+        },
+        src: Box::new(Str {
+          span: DUMMY_SP,
+          value: Wtf8Atom::from(js_source_ref),
+          raw: None,
+        }),
+        type_only: false,
+        with: Default::default(),
+        phase: ImportPhase::default(),
+      }));
+      body.insert(0, dec);
+    }
+
+    // Add side-effect imports (CSS, etc.)
+    for side_effect_source in new_side_effect_imports {
+      let dec = ModuleItem::ModuleDecl(ModuleDecl::Import(ImportDecl {
+        span: DUMMY_SP,
+        specifiers: vec![],
+        src: Box::new(Str {
+          span: DUMMY_SP,
+          value: Wtf8Atom::from(side_effect_source),
+          raw: None,
+        }),
+        type_only: false,
+        with: Default::default(),
+        phase: ImportPhase::default(),
+      }));
+      body.insert(0, dec);
+    }
+  }
 }

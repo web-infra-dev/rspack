@@ -23,7 +23,14 @@ macro_rules! either {
 
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn transform(rspack_experiments: &RspackExperiments) -> impl Pass + '_ {
-  either!(rspack_experiments.import, |options| {
-    rspack_swc_plugin_import::plugin_import(options)
-  })
+  (
+    // Legacy import API (deprecated)
+    either!(rspack_experiments.import, |options| {
+      rspack_swc_plugin_import::plugin_import(options)
+    }),
+    // Modern transformImport API
+    either!(rspack_experiments.transform_import, |options| {
+      rspack_swc_plugin_import::transform_import(options)
+    }),
+  )
 }

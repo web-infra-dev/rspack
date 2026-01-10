@@ -328,7 +328,11 @@ Experimental features provided by rspack.
 
 ### rspackExperiments.import
 
-<ApiMeta stability={Stability.Experimental} />
+<ApiMeta stability={Stability.Experimental} deprecated />
+
+:::warning Deprecated
+`rspackExperiments.import` has been deprecated. Please use [rspackExperiments.transformImport](#rspackexperimentstransformimport) instead, which provides the same functionality with a more advanced API design.
+:::
 
 Ported from [babel-plugin-import](https://github.com/umijs/babel-plugin-import), configurations are basically the same.
 
@@ -471,6 +475,96 @@ The above configuration will transform `import { Button } from 'antd';` to:
 import Button from 'antd/es/button';
 import 'antd/es/button/style';
 ```
+
+### rspackExperiments.transformImport
+
+<ApiMeta addedVersion="2.0.0" />
+
+`transformImport` is the successor to [`rspackExperiments.import`](#rspackexperimentsimport), providing the same functionality for transforming module imports with a more advanced API design. This is the recommended approach for new projects, and existing projects are encouraged to migrate from `import` to `transformImport`.
+
+The core concept is the same as `rspackExperiments.import` - transforming import specifiers from a source module into individual module imports, with optional additional outputs (e.g., styles).
+
+#### Configuration Options
+
+| Option        | Type       | Description                                                                                                                                                                |
+| ------------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `source`      | `string`   | The source module to match, e.g., `'antd'` or `'./src/components'`                                                                                                         |
+| `output`      | `string[]` | Array of output templates for the transformed imports. Use `{{ filename }}` as placeholder for the import specifier, only the first output contains the imported specifier |
+| `namedImport` | `boolean`  | Whether to keep the import as a named import. Default: `false` (converts to default import)                                                                                |
+| `exclude`     | `string[]` | Array of import specifiers to exclude from transformation                                                                                                                  |
+
+#### Template Helpers
+
+The `output` templates support the following helpers:
+
+- `{{ filename }}` - The original import specifier
+- `{{ kebabCase filename }}` - Convert to kebab-case (e.g., `MyButton` → `my-button`)
+- `{{ camelCase filename }}` - Convert to camelCase
+- `{{ snakeCase filename }}` - Convert to snake_case
+- `{{ upperCase filename }}` - Convert to UPPERCASE
+- `{{ lowerCase filename }}` - Convert to lowercase
+
+#### Example
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        loader: 'builtin:swc-loader',
+        options: {
+          rspackExperiments: {
+            transformImport: [
+              {
+                source: './src/components',
+                output: [
+                  './src/components/lib/{{ kebabCase filename }}',
+                  './src/components/lib/{{ kebabCase filename }}/style.css',
+                ],
+              },
+              {
+                source: './src/ui',
+                output: [
+                  './src/ui/es/{{ kebabCase filename }}.js',
+                  './src/ui/css/{{ kebabCase filename }}.css',
+                ],
+              },
+              {
+                source: './src/utils',
+                namedImport: true,
+                output: ['./src/utils/lib/{{ filename }}'],
+              },
+              {
+                source: './src/exclude',
+                output: ['./src/exclude/lib/{{ kebabCase filename }}'],
+                exclude: ['Excluded'],
+              },
+            ],
+          },
+        },
+      },
+    ],
+  },
+};
+```
+
+With this configuration:
+
+```ts
+import { MyButton, MyInput } from './src/components';
+```
+
+Will be transformed to:
+
+```ts
+import MyButton from './src/components/lib/my-button';
+import './src/components/lib/my-button/style.css';
+import MyInput from './src/components/lib/my-input';
+import './src/components/lib/my-input/style.css';
+```
+
+For more examples, see the [test configuration](https://github.com/web-infra-dev/rspack/blob/main/tests/rspack-test/configCases/builtin-swc-loader/transform-import/rspack.config.js).
 
 ### collectTypeScriptInfo
 
