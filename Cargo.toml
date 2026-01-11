@@ -100,7 +100,7 @@ termcolor           = { version = "1.4.1", default-features = false }
 textwrap            = { version = "0.16.1", default-features = false }
 thread_local        = { version = "1.1.9", default-features = false }
 tokio               = { version = "1.48.0", default-features = false, features = ["rt", "rt-multi-thread"] }
-toml                = { version = "0.8.19", default-features = false, features = ["parse", "display"] }
+toml                = { version = "0.9.11", default-features = false, features = ["parse", "display"] }
 tracing             = { version = "0.1.44", default-features = false, features = ["max_level_trace", "release_max_level_trace"] }
 tracing-subscriber  = { version = "0.3.22", default-features = false, features = ["fmt", "registry"] }
 trybuild            = { version = "1.0.114", default-features = false, features = ["diff"] }
