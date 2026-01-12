@@ -15,7 +15,7 @@ on:
 jobs:
   codspeed:
     name: Codspeed-build
-    runs-on: ${{  fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' ) }}
+    runs-on: ${{ fromJSON(inputs.runner) }}
     steps:
       - name: Checkout
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
