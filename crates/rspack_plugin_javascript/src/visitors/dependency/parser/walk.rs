@@ -375,7 +375,7 @@ impl JavascriptParser<'_> {
       {
         let drive = self.plugin_drive.clone();
         if drive
-          .can_rename(self, &renamed_identifier)
+          .can_rename(self, init, &renamed_identifier)
           .unwrap_or_default()
         {
           if !drive
@@ -930,7 +930,9 @@ impl JavascriptParser<'_> {
       if let Some(rename_identifier) = parser.get_rename_identifier(expr)
         && let drive = parser.plugin_drive.clone()
         && rename_identifier
-          .call_hooks_name(parser, |this, for_name| drive.can_rename(this, for_name))
+          .call_hooks_name(parser, |this, for_name| {
+            drive.can_rename(this, expr, for_name)
+          })
           .unwrap_or_default()
         && !rename_identifier
           .call_hooks_name(parser, |this, for_name| drive.rename(this, expr, for_name))
@@ -1257,7 +1259,9 @@ impl JavascriptParser<'_> {
       if let Some(rename_identifier) = self.get_rename_identifier(&expr.right)
         && let drive = self.plugin_drive.clone()
         && rename_identifier
-          .call_hooks_name(self, |this, for_name| drive.can_rename(this, for_name))
+          .call_hooks_name(self, |this, for_name| {
+            drive.can_rename(this, &expr.right, for_name)
+          })
           .unwrap_or_default()
       {
         if !rename_identifier

@@ -184,7 +184,12 @@ impl JavascriptParserPlugin for AMDParserPlugin {
     None
   }
 
-  fn can_rename(&self, _parser: &mut JavascriptParser, for_name: &str) -> Option<bool> {
+  fn can_rename(
+    &self,
+    _parser: &mut JavascriptParser,
+    _expr: &Expr,
+    for_name: &str,
+  ) -> Option<bool> {
     if for_name == DEFINE {
       return Some(true);
     }
