@@ -13,6 +13,6 @@
   "devDependencies": {
     "@rspack/cli": "workspace:*",
     "@rspack/core": "workspace:*",
-    "vue-loader": "^17.4.2"
+    "rspack-vue-loader": "^17.4.5"
   }
 }
