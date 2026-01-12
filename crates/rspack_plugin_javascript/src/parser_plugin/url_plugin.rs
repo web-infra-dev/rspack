@@ -104,7 +104,12 @@ pub struct URLPlugin {
 }
 
 impl JavascriptParserPlugin for URLPlugin {
-  fn can_rename(&self, _parser: &mut JavascriptParser, for_name: &str) -> Option<bool> {
+  fn can_rename(
+    &self,
+    _parser: &mut JavascriptParser,
+    _expr: &Expr,
+    for_name: &str,
+  ) -> Option<bool> {
     (for_name == "URL").then_some(true)
   }
 
