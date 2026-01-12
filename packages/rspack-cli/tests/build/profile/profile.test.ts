@@ -75,7 +75,8 @@ describe('profile', () => {
         .every(
           (line) =>
             line.target.startsWith('rspack') ||
-            line.target.startsWith('rspack_resolver'),
+            line.target.startsWith('rspack_resolver') ||
+            line.target.startsWith('javascript'),
         ),
     ).toBe(true);
   });
