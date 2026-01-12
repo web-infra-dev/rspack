@@ -83,7 +83,7 @@ impl EvaluatedInlinableValue {
     Self::String(v)
   }
 
-  pub fn render(&self) -> String {
+  pub fn render(&self, comment: &str) -> String {
     let s: Cow<str> = match self {
       Self::Null => "null".into(),
       Self::Undefined => "undefined".into(),
@@ -94,7 +94,7 @@ impl EvaluatedInlinableValue {
       }
       Self::String(v) => json_stringify(v.as_str()).into(),
     };
-    format!("({s})")
+    format!("({comment}{s})")
   }
 }
 
@@ -129,8 +129,8 @@ impl InlinedUsedName {
     }
   }
 
-  pub fn render(&self) -> String {
-    let mut inlined = self.value.render();
+  pub fn render(&self, comment: &str) -> String {
+    let mut inlined = self.value.render(comment);
     inlined.push_str(&property_access(&self.suffix, 0));
     inlined
   }

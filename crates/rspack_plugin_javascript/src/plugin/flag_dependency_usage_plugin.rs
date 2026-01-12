@@ -521,7 +521,6 @@ async fn optimize_dependencies(
     "it requires calculating the used exports based on all modules, which is a global effect",
   ) {
     diagnostics.extend(diagnostic);
-    // compilation.cgm_hash_artifact.clear();
   }
 
   let mut proxy =

@@ -67,6 +67,17 @@ impl From<u32> for RuntimeModuleStage {
   }
 }
 
+impl From<RuntimeModuleStage> for u32 {
+  fn from(value: RuntimeModuleStage) -> Self {
+    match value {
+      RuntimeModuleStage::Normal => 0,
+      RuntimeModuleStage::Basic => 5,
+      RuntimeModuleStage::Attach => 10,
+      RuntimeModuleStage::Trigger => 20,
+    }
+  }
+}
+
 pub trait RuntimeModuleExt {
   fn boxed(self) -> Box<dyn RuntimeModule>;
 }

@@ -29,19 +29,20 @@ pub mod __private {
 #[cfg(not(feature = "noop"))]
 pub use deserialize::from_bytes;
 #[cfg(feature = "noop")]
-pub fn from_bytes<T, C: std::any::Any>(_bytes: &[u8], _context: &C) -> Result<T> {
-  let _ = deserialize::from_bytes::<u8, u8>;
+pub fn from_bytes<T, C: CacheableContext>(_bytes: &[u8], _context: &C) -> Result<T> {
+  let _ = deserialize::from_bytes::<u8, C>;
   panic!("Cannot use from_bytes when noop feature is enabled")
 }
 
 #[cfg(not(feature = "noop"))]
 pub use serialize::to_bytes;
 #[cfg(feature = "noop")]
-pub fn to_bytes<T, C: std::any::Any>(_value: &T, _ctx: &C) -> Result<Vec<u8>> {
-  let _ = serialize::to_bytes::<u8, u8>;
+pub fn to_bytes<T, C: CacheableContext>(_value: &T, _ctx: &C) -> Result<Vec<u8>> {
+  let _ = serialize::to_bytes::<u8, C>;
   panic!("Cannot use to_bytes when noop feature is enabled")
 }
 
+pub use context::{CacheableContext, ContextGuard};
 pub use deserialize::{Deserializer, Validator};
 pub use error::{Error, Result};
 pub use serialize::Serializer;

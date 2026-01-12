@@ -4,7 +4,7 @@ import {
   rspack,
   type SwcLoaderOptions,
 } from '@rspack/core';
-import { VueLoaderPlugin } from 'vue-loader';
+import { VueLoaderPlugin } from 'rspack-vue-loader';
 
 // Target browsers, see: https://github.com/browserslist/browserslist
 const targets = ['last 2 versions', '> 0.2%', 'not dead', 'Firefox ESR'];
@@ -20,7 +20,7 @@ export default defineConfig({
     rules: [
       {
         test: /\.vue$/,
-        loader: 'vue-loader',
+        loader: 'rspack-vue-loader',
         options: {
           experimentalInlineMatchResource: true,
         },

@@ -1208,6 +1208,8 @@ export interface JsRuntimeModule {
   moduleIdentifier: string
   constructorName: string
   name: string
+  stage: number
+  isolate: boolean
 }
 
 export interface JsRuntimeModuleArg {
@@ -2346,6 +2348,11 @@ export interface RawJavascriptParserOptions {
   worker?: Array<string>
   overrideStrict?: string
   importMeta?: boolean
+  /**
+   * This option is experimental in Rspack only and subject to change or be removed anytime.
+   * @experimental
+   */
+  requireAlias?: boolean
   /**
    * This option is experimental in Rspack only and subject to change or be removed anytime.
    * @experimental

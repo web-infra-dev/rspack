@@ -74,12 +74,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e9d4ee0d472d1cd2e28c97dfa124b3d8d992e10eb0a035f33f5d12e3a177ba3b"
 
 [[package]]
-name = "android-tzdata"
-version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e999941b234f3131b00bc13c22d06e8c5ff726d1b6318ac7eb276997bbb4fef0"
-
-[[package]]
 name = "android_system_properties"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -628,14 +622,13 @@ checksum = "9330f8b2ff13f34540b44e946ef35111825727b38d33286ef986142615121801"
 
 [[package]]
 name = "chrono"
-version = "0.4.39"
+version = "0.4.42"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7e36cc9d416881d2e24f9a963be5fb1cd90966419ac844274161d10488b3e825"
+checksum = "145052bdd345b87320e369255277e3fb5152762ad123a901ef5c262dd38fe8d2"
 dependencies = [
- "android-tzdata",
  "iana-time-zone",
  "num-traits",
- "windows-targets 0.52.6",
+ "windows-link 0.2.1",
 ]
 
 [[package]]
@@ -3738,6 +3731,7 @@ dependencies = [
  "json",
  "lightningcss",
  "once_cell",
+ "regex",
  "rkyv 0.8.8",
  "rspack-allocative",
  "rspack_cacheable_macros",
@@ -3745,6 +3739,7 @@ dependencies = [
  "rspack_sources",
  "serde_json",
  "smol_str",
+ "sugar_path",
  "swc_core",
  "ustr-fxhash",
  "xxhash-rust",
@@ -5120,7 +5115,9 @@ dependencies = [
 name = "rspack_tracing"
 version = "0.7.1"
 dependencies = [
+ "chrono",
  "rspack_tracing_perfetto",
+ "serde_json",
  "tracing-subscriber",
 ]
 
