@@ -66,7 +66,7 @@ use rspack_plugin_html::HtmlRspackPlugin;
 use rspack_plugin_ignore::IgnorePlugin;
 use rspack_plugin_javascript::{
   FlagDependencyExportsPlugin, FlagDependencyUsagePlugin, InferAsyncModulesPlugin,
-  InlineExportsPlugin, JsPlugin, MangleExportsPlugin, ModuleConcatenationPlugin,
+  InlineExportsPlugin, InnerGraphPlugin, JsPlugin, MangleExportsPlugin, ModuleConcatenationPlugin,
   SideEffectsFlagPlugin, api_plugin::APIPlugin, define_plugin::DefinePlugin,
   provide_plugin::ProvidePlugin, url_plugin::URLPlugin,
 };
@@ -196,6 +196,7 @@ pub enum BuiltinPluginName {
   EvalSourceMapDevToolPlugin,
   EvalDevToolModulePlugin,
   SideEffectsFlagPlugin,
+  InnerGraphPlugin,
   FlagDependencyExportsPlugin,
   FlagDependencyUsagePlugin,
   InlineExportsPlugin,
@@ -604,9 +605,14 @@ impl<'a> BuiltinPlugin<'a> {
           .boxed(),
         );
       }
-      BuiltinPluginName::SideEffectsFlagPlugin => {
-        plugins.push(SideEffectsFlagPlugin::default().boxed())
-      }
+      BuiltinPluginName::SideEffectsFlagPlugin => plugins.push(
+        SideEffectsFlagPlugin::new(
+          downcast_into::<bool>(self.options)
+            .map_err(|report| napi::Error::from_reason(report.to_string()))?,
+        )
+        .boxed(),
+      ),
+      BuiltinPluginName::InnerGraphPlugin => plugins.push(InnerGraphPlugin::default().boxed()),
       BuiltinPluginName::FlagDependencyExportsPlugin => {
         plugins.push(FlagDependencyExportsPlugin::default().boxed())
       }

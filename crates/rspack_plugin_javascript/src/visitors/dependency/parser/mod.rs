@@ -23,9 +23,9 @@ use rspack_cacheable::{
 };
 use rspack_core::{
   AsyncDependenciesBlock, BoxDependency, BoxDependencyTemplate, BuildInfo, BuildMeta,
-  CompilerOptions, DependencyRange, FactoryMeta, JavascriptParserCommonjsExportsOption,
-  JavascriptParserOptions, ModuleIdentifier, ModuleLayer, ModuleType, ParseMeta, ResourceData,
-  RuntimeTemplate, SideEffectsBailoutItemWithSpan,
+  CompilerOptions, DependencyRange, FactoryMeta, InnerGraphState,
+  JavascriptParserCommonjsExportsOption, JavascriptParserOptions, ModuleIdentifier, ModuleLayer,
+  ModuleType, ParseMeta, ResourceData, RuntimeTemplate, SideEffectsBailoutItemWithSpan,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_util::{SpanExt, fx_hash::FxIndexSet};
@@ -47,8 +47,7 @@ use crate::{
   BoxJavascriptParserPlugin,
   dependency::local_module::LocalModule,
   parser_plugin::{
-    self, ImportsReferencesState, InnerGraphState, JavaScriptParserPluginDrive,
-    JavascriptParserPlugin,
+    self, ImportsReferencesState, JavaScriptParserPluginDrive, JavascriptParserPlugin,
   },
   utils::eval::{self, BasicEvaluatedExpression},
   visitors::{
@@ -344,7 +343,7 @@ pub struct JavascriptParser<'parser> {
   pub(crate) plugin_drive: Rc<JavaScriptParserPluginDrive>,
   // ===== states =======
   pub(crate) definitions_db: ScopeInfoDB,
-  pub(super) definitions: ScopeInfoId,
+  pub(crate) definitions: ScopeInfoId,
   pub(crate) top_level_scope: TopLevelScope,
   pub(crate) current_tag_info: Option<TagInfoId>,
   pub in_try: bool,
@@ -484,14 +483,16 @@ impl<'parser> JavascriptParser<'parser> {
       plugins.push(Box::new(parser_plugin::InlineConstPlugin));
     }
     if compiler_options.optimization.inner_graph {
-      plugins.push(Box::new(parser_plugin::InnerGraphPlugin::new(
+      plugins.push(Box::new(parser_plugin::InnerGraphParserPlugin::new(
         unresolved_mark,
+        compiler_options.experiments.advanced_tree_shaking,
       )));
     }
 
     if compiler_options.optimization.side_effects.is_true() {
       plugins.push(Box::new(parser_plugin::SideEffectsParserPlugin::new(
         unresolved_mark,
+        compiler_options.experiments.advanced_tree_shaking,
       )));
     }
 
@@ -551,6 +552,7 @@ impl<'parser> JavascriptParser<'parser> {
         presentational_dependencies: self.presentational_dependencies,
         warning_diagnostics: self.warning_diagnostics,
         side_effects_item: self.side_effects_item,
+        inner_graph: self.inner_graph,
       })
     } else {
       Err(self.errors)

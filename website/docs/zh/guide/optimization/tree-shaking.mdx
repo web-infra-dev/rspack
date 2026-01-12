@@ -182,3 +182,71 @@ export const foo = 42;
 - 当 [optimization.innerGraph](/config/optimization#optimizationinnergraph) 被设置成 `true` 时这个行为将被启用。
 
 :::
+
+## NO_SIDE_EFFECTS 注解
+
+`/*#__NO_SIDE_EFFECTS__*/` 是一项遵循社区[规范](https://github.com/javascript-compiler-hints/compiler-notations-spec/blob/main/no-side-effects-notation-spec.md) 的特性。与 `/*#__PURE__*/` 标记在调用方不同，`/*#__NO_SIDE_EFFECTS__*/` 用于标记**函数的定义**，声明该函数在调用时不会产生副作用。
+相比 `/*#__PURE__*/`，它的优势在于只需在定义处标记一次，所有调用都会受益。
+
+该功能目前处于实验阶段，需要通过下面的实验性 feature 开关开启，且依赖于 [optimization.sideEffects](/config/optimization#optimizationsideeffects)（sideEffects 在生产模式下默认开启）：
+
+```javascript title="rspack.config.js"
+module.exports = {
+  experiments: {
+    advancedTreeShaking: true,
+  },
+};
+```
+
+你可以将该注解放在函数声明、函数表达式、箭头函数或导出语句之前，更多请参考社区[规范](https://github.com/javascript-compiler-hints/compiler-notations-spec/blob/main/no-side-effects-notation-spec.md)：
+
+```javascript
+/*#__NO_SIDE_EFFECTS__*/
+function foo() {
+  console.log('foo');
+}
+
+/*#__NO_SIDE_EFFECTS__*/
+const bar = () => {
+  console.log('bar');
+};
+
+/*#__NO_SIDE_EFFECTS__*/
+export default function baz() {}
+
+/*#__NO_SIDE_EFFECTS__*/
+export function baz() {}
+```
+
+如果一个函数被标记为无副作用且其返回值未被使用，Rspack 将移除该调用。
+
+## sideEffectsFree
+
+`sideEffectsFree` 允许你通过 Rspack 配置文件手动指定某些函数名在特定模块中是无副作用的。这在处理无法修改源码的第三方库（如 `node_modules` 中的包）时非常有用。
+
+:::note
+只会对在顶层作用域的函数定义有效。
+:::
+
+对于可以修改源码的业务代码，优先使用 `/*#__NO_SIDE_EFFECTS__*/` 注解。
+
+### 使用方式
+
+该选项配置在 `module.rules` 的 `parser` 中：
+
+```javascript title="rspack.config.js"
+module.exports = {
+  module: {
+    rules: [
+      {
+        test: /node_modules\/some-library\/index.js/,
+        parser: {
+          sideEffectsFree: ['isString', 'isNumber'],
+        },
+      },
+    ],
+  },
+};
+```
+
+如果在对应的模块中没有找到 sideEffectsFree 中指定的函数名，Rspack 会发出警告。

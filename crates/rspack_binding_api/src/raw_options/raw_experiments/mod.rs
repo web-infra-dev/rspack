@@ -27,6 +27,7 @@ pub struct RawExperiments {
   pub css: Option<bool>,
   pub lazy_barrel: bool,
   pub defer_import: bool,
+  pub advanced_tree_shaking: bool,
 }
 
 impl From<RawExperiments> for Experiments {
@@ -45,6 +46,7 @@ impl From<RawExperiments> for Experiments {
       css: value.css.unwrap_or(false),
       lazy_barrel: value.lazy_barrel,
       defer_import: value.defer_import,
+      advanced_tree_shaking: value.advanced_tree_shaking,
     }
   }
 }

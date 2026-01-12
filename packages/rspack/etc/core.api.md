@@ -2503,6 +2503,8 @@ interface Experiments_2 {
 // @public (undocumented)
 export interface ExperimentsNormalized {
     // (undocumented)
+    advancedTreeShaking?: boolean;
+    // (undocumented)
     asyncWebAssembly?: boolean;
     // (undocumented)
     buildHttp?: HttpUriPluginOptions;
@@ -3573,6 +3575,7 @@ export type JavascriptParserOptions = {
     typeReexportsPresence?: 'no-tolerant' | 'tolerant' | 'tolerant-no-check';
     jsx?: boolean;
     deferImport?: boolean;
+    sideEffectsFree?: string[];
 };
 
 // @public (undocumented)

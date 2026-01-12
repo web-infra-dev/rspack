@@ -1483,6 +1483,7 @@ CompilerOptions {
                                 false,
                             ),
                             defer_import: None,
+                            side_effects_free: None,
                         },
                     ),
                 },
@@ -1521,6 +1522,7 @@ CompilerOptions {
         css: false,
         lazy_barrel: true,
         defer_import: false,
+        advanced_tree_shaking: false,
     },
     node: Some(
         NodeOption {

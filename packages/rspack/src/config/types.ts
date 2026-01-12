@@ -1199,6 +1199,9 @@ export type JavascriptParserOptions = {
 
   /** Whether to enable defer import */
   deferImport?: boolean;
+
+  /** Flag the function to have no side effects */
+  sideEffectsFree?: string[];
 };
 
 export type JsonParserOptions = {
