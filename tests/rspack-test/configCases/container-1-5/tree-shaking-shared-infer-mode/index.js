@@ -2,10 +2,10 @@ const fs = __non_webpack_require__('fs');
 const path = __non_webpack_require__('path');
 
 __webpack_require__.p = 'PUBLIC_PATH';
-it('should load treeshake shared via set infer strategy', async () => {
+it('should load tree shaking shared via set "runtime-infer" mode', async () => {
   const app = await import('./App.js');
   expect(app.default()).toEqual(
-    'default Uilib has Button, List, Badge exports not treeshake, and ui-lib-es Button value is Button should treeshake',
+    'default Uilib has Button, List, Badge exports not tree shaking, and ui-lib-es Button value is Button should tree shaking',
   );
 
   const bundlePath = path.join(__dirname, 'node_modules_ui-lib_index_js.js');
@@ -15,12 +15,12 @@ it('should load treeshake shared via set infer strategy', async () => {
   expect(bundleContent).toContain('List');
 
   const uiLibShared =
-    __FEDERATION__.__SHARE__['treeshake_share'].default['ui-lib'][
+    __FEDERATION__.__SHARE__['tree_shaking_share'].default['ui-lib'][
       '1.0.0'
     ];
   expect(uiLibShared.loaded).toEqual(undefined);
-  expect(uiLibShared.treeshake.loaded).toEqual(true);
-  expect(Object.keys(uiLibShared.treeshake.lib()).sort()).toEqual([
+  expect(uiLibShared.treeShaking.loaded).toEqual(true);
+  expect(Object.keys(uiLibShared.treeShaking.lib()).sort()).toEqual([
     'Button',
     'default',
   ]);
@@ -43,22 +43,22 @@ it('should load treeshake shared via set infer strategy', async () => {
   expect(uiLibESBundleContent).not.toContain('List');
 
   const uiLibESShared =
-    __FEDERATION__.__SHARE__['treeshake_share'].default['ui-lib-es'][
+    __FEDERATION__.__SHARE__['tree_shaking_share'].default['ui-lib-es'][
       '1.0.0'
     ];
   expect(uiLibESShared.loaded).toEqual(undefined);
-  expect(uiLibESShared.treeshake.loaded).toEqual(true);
+  expect(uiLibESShared.treeShaking.loaded).toEqual(true);
 
-  expect(Object.keys(uiLibESShared.treeshake.lib()).sort()).toEqual(['Button']);
+  expect(Object.keys(uiLibESShared.treeShaking.lib()).sort()).toEqual(['Button']);
 
   const esFallback = (await uiLibESShared.get())();
   expect(Object.keys(esFallback).sort()).toEqual(['Badge', 'Button', 'List']);
 });
 
-it('should treeshake ui-lib-dynamic-specific-export correctly', async () => {
+it('should tree shaking ui-lib-dynamic-specific-export correctly', async () => {
   const { dynamicUISpecificExport } = await import('./App.js');
   expect(await dynamicUISpecificExport()).toEqual(
-    'dynamic Uilib has List exports treeshake',
+    'dynamic Uilib has List exports tree shaking',
   );
 
   const bundlePath = path.join(
@@ -71,11 +71,11 @@ it('should treeshake ui-lib-dynamic-specific-export correctly', async () => {
   expect(bundleContent).not.toContain('Badge');
 });
 
-// different from webpack, webpack can not treeshake dynamic import
-it('should treeshake ui-lib-dynamic-default-export', async () => {
+// different from webpack, webpack can not tree shaking dynamic import
+it('should tree shaking ui-lib-dynamic-default-export', async () => {
   const { dynamicUIDefaultExport } = await import('./App.js');
   expect(await dynamicUIDefaultExport()).toEqual(
-    'dynamic Uilib has List exports treeshake',
+    'dynamic Uilib has List exports tree shaking',
   );
 
   const bundlePath = path.join(
@@ -88,10 +88,10 @@ it('should treeshake ui-lib-dynamic-default-export', async () => {
   expect(bundleContent).not.toContain('Badge');
 });
 
-it('should not treeshake ui-lib-side-effect if not set sideEffect:false ', async () => {
+it('should not tree shaking ui-lib-side-effect if not set sideEffect:false ', async () => {
   const { dynamicUISideEffectExport } = await import('./App.js');
   expect(await dynamicUISideEffectExport()).toEqual(
-    'dynamic Uilib has List exports not treeshake',
+    'dynamic Uilib has List exports not tree shaking',
   );
 
   const bundlePath = path.join(
@@ -123,7 +123,7 @@ it('should inject usedExports into manifest and stats if enable manifest', async
   ).toEqual(JSON.stringify(['Button', 'default']));
 });
 
-it('should treeshake scope-sc ui-lib correctly', async () => {
+it('should tree shaking scope-sc ui-lib correctly', async () => {
   const { scopeScUILib } = await import('./App.js');
   expect(scopeScUILib()).toEqual('scope-sc Uilib has Button, List, Badge');
 

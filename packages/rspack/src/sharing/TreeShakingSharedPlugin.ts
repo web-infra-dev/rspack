@@ -4,28 +4,28 @@ import { IndependentSharedPlugin } from './IndependentSharedPlugin';
 import { SharedUsedExportsOptimizerPlugin } from './SharedUsedExportsOptimizerPlugin';
 import { normalizeSharedOptions } from './SharePlugin';
 
-export interface TreeshakeSharedPluginOptions {
+export interface TreeshakingSharedPluginOptions {
   mfConfig: ModuleFederationPluginOptions;
   reShake?: boolean;
 }
 
-export class TreeShakeSharedPlugin {
+export class TreeShakingSharedPlugin {
   mfConfig: ModuleFederationPluginOptions;
   outputDir: string;
   reShake?: boolean;
   private _independentSharePlugin?: IndependentSharedPlugin;
 
-  name = 'TreeShakeSharedPlugin';
-  constructor(options: TreeshakeSharedPluginOptions) {
+  name = 'TreeShakingSharedPlugin';
+  constructor(options: TreeshakingSharedPluginOptions) {
     const { mfConfig, reShake } = options;
     this.mfConfig = mfConfig;
-    this.outputDir = mfConfig.treeshakeSharedDir || 'independent-packages';
+    this.outputDir = mfConfig.treeShakingSharedDir || 'independent-packages';
     this.reShake = Boolean(reShake);
   }
 
   apply(compiler: Compiler) {
     const { mfConfig, outputDir, reShake } = this;
-    const { name, shared, library, treeshakeSharedPlugins } = mfConfig;
+    const { name, shared, library, treeShakingSharedPlugins } = mfConfig;
     if (!shared) {
       return;
     }
@@ -36,13 +36,13 @@ export class TreeShakeSharedPlugin {
 
     if (
       sharedOptions.some(
-        ([_, config]) => config.treeshake && config.import !== false,
+        ([_, config]) => config.treeShaking && config.import !== false,
       )
     ) {
       if (!reShake) {
         new SharedUsedExportsOptimizerPlugin(
           sharedOptions,
-          mfConfig.injectUsedExports,
+          mfConfig.injectTreeShakingUsedExports,
           mfConfig.manifest,
         ).apply(compiler);
       }
@@ -50,11 +50,16 @@ export class TreeShakeSharedPlugin {
         name: name,
         shared: shared,
         outputDir,
-        plugins: treeshakeSharedPlugins?.map((p) => require(p)) || [],
-        treeshake: reShake,
+        plugins:
+          treeShakingSharedPlugins?.map((p) => {
+            const _constructor = require(p);
+            return new _constructor();
+          }) || [],
+        treeShaking: reShake,
         library,
         manifest: mfConfig.manifest,
-        treeshakeSharedExcludePlugins: mfConfig.treeshakeSharedExcludePlugins,
+        treeShakingSharedExcludePlugins:
+          mfConfig.treeShakingSharedExcludePlugins,
       });
       this._independentSharePlugin.apply(compiler);
     }

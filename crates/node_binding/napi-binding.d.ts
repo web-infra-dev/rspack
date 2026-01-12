@@ -1865,7 +1865,7 @@ export interface RawConsumeOptions {
   strictVersion: boolean
   singleton: boolean
   eager: boolean
-  treeshakeStrategy?: string
+  treeShakingMode?: string
 }
 
 export interface RawConsumeSharedPluginOptions {
@@ -2598,7 +2598,7 @@ export interface RawOptimizationOptions {
 
 export interface RawOptimizeSharedConfig {
   shareKey: string
-  treeshake: boolean
+  treeShaking: boolean
   usedExports?: Array<string>
 }
 
@@ -2702,7 +2702,7 @@ export interface RawProvideOptions {
   singleton?: boolean
   requiredVersion?: string | false | undefined
   strictVersion?: boolean
-  treeshakeStrategy?: string
+  treeShakingMode?: string
 }
 
 export interface RawRelated {
@@ -2850,7 +2850,7 @@ export interface RawSharedContainerPluginOptions {
 
 export interface RawSharedUsedExportsOptimizerPluginOptions {
   shared: Array<RawOptimizeSharedConfig>
-  injectUsedExports?: boolean
+  injectTreeShakingUsedExports?: boolean
   manifestFileName?: string
   statsFileName?: string
 }

@@ -1,6 +1,6 @@
 import { Stability, ApiMeta } from '@components/ApiMeta';
 
-# TreeShakeSharedPlugin
+# TreeShakingSharedPlugin
 
 <ApiMeta stability={Stability.Experimental} />
 
@@ -18,16 +18,16 @@ import { Stability, ApiMeta } from '@components/ApiMeta';
 
 ```js
 // rspack.config.js
-const { TreeShakeSharedPlugin } = require('@rspack/core');
+const { TreeShakingSharedPlugin } = require('@rspack/core');
 
 module.exports = {
   plugins: [
-    new TreeShakeSharedPlugin({
+    new TreeShakingSharedPlugin({
       reShake: true,
       mfConfig: {
         name: 'app',
         shared: {
-          'lodash-es': { treeshake: true },
+          'lodash-es': { treeShaking: { mode: 'server-calc' } },
         },
         library: { type: 'var', name: 'App' },
         manifest: true,
@@ -42,4 +42,4 @@ module.exports = {
 
 - Normalizes `shared` into `[shareName, SharedConfig][]`.
 - Registers `SharedUsedExportsOptimizerPlugin` when `reShake` is `false` to inject used-exports from the stats manifest.
-- Triggers independent compilation for shared entries with `treeshake: true`, and writes the produced assets back to the `stats/manifest` (fallback fields).
+- Triggers independent compilation for shared entries with `tree shaking: true`, and writes the produced assets back to the `stats/manifest` (fallback fields).

@@ -25,14 +25,14 @@ use crate::manifest::StatsRoot;
 #[derive(Debug, Clone)]
 pub struct OptimizeSharedConfig {
   pub share_key: String,
-  pub treeshake: bool,
+  pub tree_shaking: bool,
   pub used_exports: Vec<String>,
 }
 
 #[derive(Debug, Clone)]
 pub struct SharedUsedExportsOptimizerPluginOptions {
   pub shared: Vec<OptimizeSharedConfig>,
-  pub inject_used_exports: bool,
+  pub inject_tree_shaking_used_exports: bool,
   pub stats_file_name: Option<String>,
   pub manifest_file_name: Option<String>,
 }
@@ -47,7 +47,7 @@ struct SharedEntryData {
 pub struct SharedUsedExportsOptimizerPlugin {
   shared_map: FxHashMap<String, SharedEntryData>,
   shared_referenced_exports: Arc<RwLock<FxHashMap<String, FxHashSet<String>>>>,
-  inject_used_exports: bool,
+  inject_tree_shaking_used_exports: bool,
   stats_file_name: Option<String>,
   manifest_file_name: Option<String>,
 }
@@ -55,8 +55,8 @@ pub struct SharedUsedExportsOptimizerPlugin {
 impl SharedUsedExportsOptimizerPlugin {
   pub fn new(options: SharedUsedExportsOptimizerPluginOptions) -> Self {
     let mut shared_map = FxHashMap::default();
-    let inject_used_exports = options.inject_used_exports;
-    for config in options.shared.into_iter().filter(|c| c.treeshake) {
+    let inject_tree_shaking_used_exports = options.inject_tree_shaking_used_exports;
+    for config in options.shared.into_iter().filter(|c| c.tree_shaking) {
       let atoms = config
         .used_exports
         .into_iter()
@@ -77,7 +77,7 @@ impl SharedUsedExportsOptimizerPlugin {
     Self::new_inner(
       shared_map,
       shared_referenced_exports,
-      inject_used_exports,
+      inject_tree_shaking_used_exports,
       options.stats_file_name,
       options.manifest_file_name,
     )
@@ -244,7 +244,7 @@ async fn optimize_dependencies(
         .get(&share_key)
         .cloned()
     };
-    // Check if this share key is in our shared map and has treeshake enabled
+    // Check if this share key is in our shared map and has tree_shaking enabled
     if !self.shared_map.contains_key(&share_key) {
       continue;
     }
@@ -526,7 +526,7 @@ impl Plugin for SharedUsedExportsOptimizerPlugin {
       .compilation_hooks
       .process_assets
       .tap(process_assets::new(self));
-    if self.inject_used_exports {
+    if self.inject_tree_shaking_used_exports {
       ctx
         .compilation_hooks
         .additional_tree_runtime_requirements

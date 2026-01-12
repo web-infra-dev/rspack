@@ -20,52 +20,46 @@ module.exports = {
   target: 'async-node',
   plugins: [
     new ModuleFederationPlugin({
-      name: 'treeshake_share',
+      name: 'tree_shaking_share_server',
       manifest: true,
       filename: 'remoteEntry.js',
       library: {
         type: 'commonjs-module',
-        name: 'treeshake_share',
+        name: 'tree_shaking_share',
       },
       exposes: {
         './App': './App.js',
       },
       runtimePlugins: [require.resolve('./runtime-plugin.js')],
       shared: {
-				'@scope-sc/ui-lib': {
-          requiredVersion: '*',
-          treeshake: {
-            strategy: 'infer',
-          },
-        },
         'ui-lib': {
           requiredVersion: '*',
-          treeshake: {
-            strategy: 'infer',
+          treeShaking: {
+            mode: 'server-calc',
           },
         },
         'ui-lib-es': {
           requiredVersion: '*',
-          treeshake: {
-            strategy: 'infer',
+          treeShaking: {
+            mode: 'server-calc',
           },
         },
         'ui-lib-dynamic-specific-export': {
           requiredVersion: '*',
-          treeshake: {
-            strategy: 'infer',
+          treeShaking: {
+            mode: 'server-calc',
           },
         },
         'ui-lib-dynamic-default-export': {
           requiredVersion: '*',
-          treeshake: {
-            strategy: 'infer',
+          treeShaking: {
+            mode: 'server-calc',
           },
         },
         'ui-lib-side-effect': {
           requiredVersion: '*',
-          treeshake: {
-            strategy: 'infer',
+          treeShaking: {
+            mode: 'server-calc',
           },
         },
       },

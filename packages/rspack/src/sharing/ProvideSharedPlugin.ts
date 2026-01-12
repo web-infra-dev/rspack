@@ -40,7 +40,7 @@ type ProvidesEnhancedExtraConfig = {
   /**
    * Tree shaking strategy for the shared module.
    */
-  treeshakeStrategy?: 'server' | 'infer';
+  treeShakingMode?: 'server-calc' | 'runtime-infer';
 };
 
 export function normalizeProvideShareOptions<Enhanced extends boolean = false>(
@@ -73,7 +73,7 @@ export function normalizeProvideShareOptions<Enhanced extends boolean = false>(
           singleton: enhancedItem.singleton,
           requiredVersion: enhancedItem.requiredVersion,
           strictVersion: enhancedItem.strictVersion,
-          treeshakeStrategy: enhancedItem.treeshakeStrategy,
+          treeShakingMode: enhancedItem.treeShakingMode,
         };
       }
       return raw;

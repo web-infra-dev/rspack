@@ -1,26 +1,31 @@
+import shared_0 from 'ui-lib';
+import shared_1 from 'ui-lib-dep';
+
 const fs = __non_webpack_require__("fs");
 const path = __non_webpack_require__("path");
+__webpack_require__.p = 'PUBLIC_PATH';
 
-const treeshakeSharedDir = path.join(
+const treeShakingSharedDir = path.join(
 	__dirname,
 	"independent-packages"
 );
 
-const customPluginAssetPath = path.join(
-	treeshakeSharedDir,
-	"apply-plugin.json"
-);
-
 const uiLibShareContainerPath = path.join(
-	treeshakeSharedDir,
+	treeShakingSharedDir,
 	"ui_lib/1.0.0",
 	"share-entry.js"
 );
 
 const uiLibDepShareContainerPath = path.join(
-	treeshakeSharedDir,
+	treeShakingSharedDir,
 	"ui_lib_dep/1.0.0",
 	"share-entry.js"
+);
+
+const customPluginAssetPath = path.join(
+	uiLibDepShareContainerPath,
+  '../..',
+	"apply-plugin.json"
 );
 
 
@@ -37,7 +42,8 @@ it("reshake share container should only have specify usedExports", async () => {
 			return 'call init'
 		}
 		});
-		const shareModules = await uiLibDepShareContainerModule.get();
+		const shareModulesGetter = await uiLibDepShareContainerModule.get();
+		const shareModules = shareModulesGetter();
 		expect(shareModules.Message).toBe('Message');
 		expect(shareModules.Text).not.toBeDefined();
 });
@@ -55,7 +61,8 @@ it("correct handle share dep while reshake", async () => {
 			return 'call init'
 		}
 		});
-		const shareModules = await uiLibShareContainerModule.get();
+		const shareModulesGetter = await uiLibShareContainerModule.get();
+		const shareModules = shareModulesGetter();
  		expect(shareModules.Badge).toBe('Badge');
  		expect(shareModules.MessagePro).toBe('MessagePro');
 });

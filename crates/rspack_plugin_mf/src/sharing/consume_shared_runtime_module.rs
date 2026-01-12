@@ -89,7 +89,7 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
         .get(&module, Some(chunk.runtime()));
       if let Some(data) = code_gen.data.get::<CodeGenerationDataConsumeShared>() {
         module_id_to_consume_data_mapping.insert(id, format!(
-          "{{ shareScope: {}, shareKey: {}, import: {}, requiredVersion: {}, strictVersion: {}, singleton: {}, eager: {}, fallback: {}, treeshakeStrategy: {} }}",
+          "{{ shareScope: {}, shareKey: {}, import: {}, requiredVersion: {}, strictVersion: {}, singleton: {}, eager: {}, fallback: {}, treeShakingMode: {} }}",
           json_stringify(&data.share_scope),
           json_stringify(&data.share_key),
           json_stringify(&data.import),
@@ -98,7 +98,7 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
           json_stringify(&data.singleton),
           json_stringify(&data.eager),
           data.fallback.as_deref().unwrap_or("undefined"),
-          json_stringify(&data.treeshake_strategy),
+          json_stringify(&data.tree_shaking_mode),
         ));
       }
     };
@@ -219,5 +219,5 @@ pub struct CodeGenerationDataConsumeShared {
   pub singleton: bool,
   pub eager: bool,
   pub fallback: Option<String>,
-  pub treeshake_strategy: Option<String>,
+  pub tree_shaking_mode: Option<String>,
 }

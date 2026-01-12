@@ -1,10 +1,11 @@
-const { TreeShakeSharedPlugin } = require("@rspack/core").sharing;
+const { TreeShakingSharedPlugin } = require("@rspack/core").sharing;
+const path = require("path");
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	// entry:'./index.js',
 	optimization: {
-		// minimize:false,
+		minimize: true,
 		chunkIds: "named",
 		moduleIds: "named"
 	},
@@ -12,25 +13,8 @@ module.exports = {
 		chunkFilename: "[id].js"
 	},
 	plugins: [
-		new TreeShakeSharedPlugin({
+		new TreeShakingSharedPlugin({
 			reShake: true,
-					plugins: [
-					{
-						apply(compiler) {
-							compiler.hooks.thisCompilation.tap('applyPlugins', (compilation) => {
-								compilation.hooks.processAssets.tapPromise(
-									{
-										name: 'applyPlugins',
-									},
-									async () => {
-										compilation.emitAsset('apply-plugin.json', new compilation.compiler.rspack.sources.RawSource(JSON.stringify({
-											reShake: true
-										})))
-									})
-							})
-						}
-					}
-				],
 			mfConfig: {
 				name: 'reshake_share',
 				library: {
@@ -38,17 +22,23 @@ module.exports = {
 				},
 				shared: {
 					'ui-lib': {
-						treeshake: true,
-						requiredVersion: '*',
-						usedExports:['Badge','MessagePro']
+            version:'1.0.0',
+						treeShaking: { 
+              mode:'runtime-infer',
+              usedExports:['Badge','MessagePro']
+            },
+						requiredVersion: '^1.0.0',
 					},
 					'ui-lib-dep': {
-						treeshake: true,
-						requiredVersion: '*',
-						usedExports:['Message']
+            version:'1.0.0',
+						treeShaking: { 
+              mode:'runtime-infer',
+              usedExports:['Message']
+            },
+						requiredVersion: '^1.0.0',
 					}
 				},
-
+        treeShakingSharedPlugins:[path.resolve(__dirname, './CustomPlugin.js')]
 			}
 		})
 	]

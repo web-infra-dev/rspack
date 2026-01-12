@@ -19,7 +19,7 @@ pub struct ProvideSharedDependency {
   pub singleton: Option<bool>,
   pub required_version: Option<ConsumeVersion>,
   pub strict_version: Option<bool>,
-  pub treeshake_strategy: Option<String>,
+  pub tree_shaking_mode: Option<String>,
   resource_identifier: ResourceIdentifier,
   factorize_info: FactorizeInfo,
 }
@@ -35,7 +35,7 @@ impl ProvideSharedDependency {
     singleton: Option<bool>,
     required_version: Option<ConsumeVersion>,
     strict_version: Option<bool>,
-    treeshake_strategy: Option<String>,
+    tree_shaking_mode: Option<String>,
   ) -> Self {
     let resource_identifier = format!(
       "provide module ({}) {} as {} @ {} {}",
@@ -56,7 +56,7 @@ impl ProvideSharedDependency {
       singleton,
       required_version,
       strict_version,
-      treeshake_strategy,
+      tree_shaking_mode,
       resource_identifier,
       factorize_info: Default::default(),
     }

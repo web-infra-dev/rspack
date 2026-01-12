@@ -35,7 +35,7 @@ pub struct ProvideOptions {
   pub singleton: Option<bool>,
   pub required_version: Option<ConsumeVersion>,
   pub strict_version: Option<bool>,
-  pub treeshake_strategy: Option<String>,
+  pub tree_shaking_mode: Option<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -47,7 +47,7 @@ pub struct VersionedProvideOptions {
   pub singleton: Option<bool>,
   pub required_version: Option<ConsumeVersion>,
   pub strict_version: Option<bool>,
-  pub treeshake_strategy: Option<String>,
+  pub tree_shaking_mode: Option<String>,
 }
 
 impl ProvideOptions {
@@ -60,7 +60,7 @@ impl ProvideOptions {
       singleton: self.singleton,
       required_version: self.required_version.clone(),
       strict_version: self.strict_version,
-      treeshake_strategy: self.treeshake_strategy.clone(),
+      tree_shaking_mode: self.tree_shaking_mode.clone(),
     }
   }
 }
@@ -112,7 +112,7 @@ impl ProvideSharedPlugin {
     singleton: Option<bool>,
     required_version: Option<ConsumeVersion>,
     strict_version: Option<bool>,
-    treeshake_strategy: Option<String>,
+    tree_shaking_mode: Option<String>,
     resource: &str,
     resource_data: &ResourceData,
     mut add_diagnostic: impl FnMut(Diagnostic),
@@ -130,7 +130,7 @@ impl ProvideSharedPlugin {
           singleton,
           strict_version,
           required_version,
-          treeshake_strategy: treeshake_strategy.clone(),
+          tree_shaking_mode: tree_shaking_mode.clone(),
         },
       );
     } else if let Some(description) = resource_data.description() {
@@ -148,7 +148,7 @@ impl ProvideSharedPlugin {
             singleton,
             strict_version,
             required_version,
-            treeshake_strategy: treeshake_strategy.clone(),
+            tree_shaking_mode: tree_shaking_mode.clone(),
           },
         );
       } else {
@@ -219,7 +219,7 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
           config.singleton,
           config.required_version.clone(),
           config.strict_version,
-          config.treeshake_strategy.clone(),
+          config.tree_shaking_mode.clone(),
         )) as BoxDependency,
         EntryOptions {
           name: None,
@@ -263,7 +263,7 @@ async fn normal_module_factory_module(
           config.singleton,
           config.required_version.clone(),
           config.strict_version,
-          config.treeshake_strategy.clone(),
+          config.tree_shaking_mode.clone(),
           resource,
           resource_data,
           |d| data.diagnostics.push(d),
@@ -284,7 +284,7 @@ async fn normal_module_factory_module(
           config.singleton,
           config.required_version.clone(),
           config.strict_version,
-          config.treeshake_strategy.clone(),
+          config.tree_shaking_mode.clone(),
           resource,
           resource_data,
           |d| data.diagnostics.push(d),

@@ -36,7 +36,7 @@ pub struct ConsumeOptions {
   pub strict_version: bool,
   pub singleton: bool,
   pub eager: bool,
-  pub treeshake_strategy: Option<String>,
+  pub tree_shaking_mode: Option<String>,
 }
 
 #[cacheable]
@@ -369,7 +369,7 @@ impl ConsumeSharedPlugin {
         strict_version: config.strict_version,
         singleton: config.singleton,
         eager: config.eager,
-        treeshake_strategy: config.treeshake_strategy.clone(),
+        tree_shaking_mode: config.tree_shaking_mode.clone(),
       },
     )
   }
@@ -440,7 +440,7 @@ async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<B
             strict_version: options.strict_version,
             singleton: options.singleton,
             eager: options.eager,
-            treeshake_strategy: options.treeshake_strategy.clone(),
+            tree_shaking_mode: options.tree_shaking_mode.clone(),
           }),
           |d| data.diagnostics.push(d),
         )

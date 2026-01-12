@@ -7,7 +7,7 @@
 - Bundle: bundle.js
 - Bundle: common_js_2.chunk.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
-- Update: main.LAST_HASH.hot-update.js, size: 42292
+- Update: main.LAST_HASH.hot-update.js, size: 42338
 
 ## Manifest
 
@@ -101,7 +101,7 @@ __webpack_require__.h = () => ("CURRENT_HASH")
 // webpack/runtime/consumes_loading
 (() => {
 
-__webpack_require__.consumesLoadingData = { chunkMapping: {"main":["webpack/sharing/consume/default/common/./common?1"],"webpack_sharing_consume_default_common2_common_2":["webpack/sharing/consume/default/common2/./common?2"]}, moduleIdToConsumeDataMapping: {"webpack/sharing/consume/default/common2/./common?2": { shareScope: "default", shareKey: "common2", import: "./common?2", requiredVersion: "1.1.1", strictVersion: true, singleton: false, eager: false, fallback: () => (__webpack_require__.e("common_js_2").then(() => (() => (__webpack_require__("./common.js?2"))))) }, "webpack/sharing/consume/default/common/./common?1": { shareScope: "default", shareKey: "common", import: "./common?1", requiredVersion: "1.1.1", strictVersion: true, singleton: false, eager: true, fallback: () => (() => (__webpack_require__("./common.js?1"))) }}, initialConsumes: ["webpack/sharing/consume/default/common/./common?1"] };
+__webpack_require__.consumesLoadingData = { chunkMapping: {"main":["webpack/sharing/consume/default/common/./common?1"],"webpack_sharing_consume_default_common2_common_2":["webpack/sharing/consume/default/common2/./common?2"]}, moduleIdToConsumeDataMapping: {"webpack/sharing/consume/default/common2/./common?2": { shareScope: "default", shareKey: "common2", import: "./common?2", requiredVersion: "1.1.1", strictVersion: true, singleton: false, eager: false, fallback: () => (__webpack_require__.e("common_js_2").then(() => (() => (__webpack_require__("./common.js?2"))))), treeShakingMode: null }, "webpack/sharing/consume/default/common/./common?1": { shareScope: "default", shareKey: "common", import: "./common?1", requiredVersion: "1.1.1", strictVersion: true, singleton: false, eager: true, fallback: () => (() => (__webpack_require__("./common.js?1"))), treeShakingMode: null }}, initialConsumes: ["webpack/sharing/consume/default/common/./common?1"] };
 var splitAndConvert = function(str) {
   return str.split(".").map(function(item) {
     return +item == item ? +item : item;

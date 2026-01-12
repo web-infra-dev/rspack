@@ -14,9 +14,9 @@ export type SharedItem = string;
 export type SharedObject = {
   [k: string]: SharedConfig | SharedItem;
 };
-export type TreeshakeConfig = {
+export type TreeShakingConfig = {
   usedExports?: string[];
-  strategy?: 'server' | 'infer';
+  mode?: 'server-calc' | 'runtime-infer';
   filename?: string;
 };
 
@@ -30,7 +30,7 @@ export type SharedConfig = {
   singleton?: boolean;
   strictVersion?: boolean;
   version?: false | string;
-  treeshake?: TreeshakeConfig;
+  treeShaking?: TreeShakingConfig;
 };
 
 export type NormalizedSharedOptions = [string, SharedConfig][];
@@ -72,7 +72,7 @@ export function createProvideShareOptions(
         singleton: options.singleton,
         requiredVersion: options.requiredVersion,
         strictVersion: options.strictVersion,
-        treeshakeStrategy: options.treeshake?.strategy,
+        treeShakingMode: options.treeShaking?.mode,
       },
     }));
 }
@@ -90,7 +90,7 @@ export function createConsumeShareOptions(
       singleton: options.singleton,
       packageName: options.packageName,
       eager: options.eager,
-      treeshakeStrategy: options.treeshake?.strategy,
+      treeShakingMode: options.treeShaking?.mode,
     },
   }));
 }

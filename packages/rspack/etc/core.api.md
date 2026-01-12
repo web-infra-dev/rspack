@@ -1372,7 +1372,7 @@ export type ConsumesConfig = {
     shareScope?: string;
     singleton?: boolean;
     strictVersion?: boolean;
-    treeshakeStrategy?: 'server' | 'infer';
+    treeShakingMode?: 'server-calc' | 'runtime-infer';
 };
 
 // @public (undocumented)
@@ -1391,7 +1391,7 @@ class ConsumeSharedPlugin extends RspackBuiltinPlugin {
             packageName: string | undefined;
             singleton: boolean;
             eager: boolean;
-            treeshakeStrategy: "server" | "infer" | undefined;
+            treeShakingMode: "server-calc" | "runtime-infer" | undefined;
         }][];
         enhanced: boolean;
     };
@@ -4890,7 +4890,7 @@ export interface ModuleFederationPluginOptions extends Omit<ModuleFederationPlug
     // (undocumented)
     implementation?: string;
     // (undocumented)
-    injectUsedExports?: boolean;
+    injectTreeShakingUsedExports?: boolean;
     // (undocumented)
     manifest?: ModuleFederationManifestPluginOptions;
     // (undocumented)
@@ -4898,11 +4898,11 @@ export interface ModuleFederationPluginOptions extends Omit<ModuleFederationPlug
     // (undocumented)
     shareStrategy?: 'version-first' | 'loaded-first';
     // (undocumented)
-    treeshakeSharedDir?: string;
+    treeShakingSharedDir?: string;
     // (undocumented)
-    treeshakeSharedExcludePlugins?: string[];
+    treeShakingSharedExcludePlugins?: string[];
     // (undocumented)
-    treeshakeSharedPlugins?: string[];
+    treeShakingSharedPlugins?: string[];
 }
 
 // @public (undocumented)
@@ -5997,7 +5997,7 @@ type ProvidesEnhancedExtraConfig = {
     singleton?: boolean;
     strictVersion?: boolean;
     requiredVersion?: false | string;
-    treeshakeStrategy?: 'server' | 'infer';
+    treeShakingMode?: 'server-calc' | 'runtime-infer';
 };
 
 // @public (undocumented)
@@ -6701,7 +6701,7 @@ declare namespace rspackExports {
         SharedItem,
         SharedObject,
         SharePluginOptions,
-        TreeshakeSharedPluginOptions,
+        TreeshakingSharedPluginOptions,
         sharing,
         LightningcssFeatureOptions,
         LightningcssLoaderOptions,
@@ -7350,7 +7350,7 @@ export type SharedConfig = {
     singleton?: boolean;
     strictVersion?: boolean;
     version?: false | string;
-    treeshake?: TreeshakeConfig;
+    treeShaking?: TreeShakingConfig;
 };
 
 // @public (undocumented)
@@ -7398,7 +7398,7 @@ class SharePlugin {
             singleton: boolean | undefined;
             packageName: string | undefined;
             eager: boolean | undefined;
-            treeshakeStrategy: "server" | "infer" | undefined;
+            treeShakingMode: "server-calc" | "runtime-infer" | undefined;
         };
     }[];
     // (undocumented)
@@ -7413,7 +7413,7 @@ class SharePlugin {
             singleton: boolean | undefined;
             requiredVersion: string | false | undefined;
             strictVersion: boolean | undefined;
-            treeshakeStrategy: "server" | "infer" | undefined;
+            treeShakingMode: "server-calc" | "runtime-infer" | undefined;
         };
     }[];
     // (undocumented)
@@ -7432,7 +7432,7 @@ export type SharePluginOptions = {
 // @public (undocumented)
 export const sharing: {
     ProvideSharedPlugin: typeof ProvideSharedPlugin;
-    TreeShakeSharedPlugin: typeof TreeShakeSharedPlugin;
+    TreeShakingSharedPlugin: typeof TreeShakingSharedPlugin;
     ConsumeSharedPlugin: typeof ConsumeSharedPlugin;
     SharePlugin: typeof SharePlugin;
 };
@@ -8418,15 +8418,15 @@ interface TransformConfig {
 function transformSync(source: string, options?: Options): TransformOutput;
 
 // @public (undocumented)
-type TreeshakeConfig = {
+type TreeShakingConfig = {
     usedExports?: string[];
-    strategy?: 'server' | 'infer';
+    mode?: 'server-calc' | 'runtime-infer';
     filename?: string;
 };
 
 // @public (undocumented)
-class TreeShakeSharedPlugin {
-    constructor(options: TreeshakeSharedPluginOptions);
+class TreeShakingSharedPlugin {
+    constructor(options: TreeshakingSharedPluginOptions);
     // (undocumented)
     apply(compiler: Compiler): void;
     // (undocumented)
@@ -8442,7 +8442,7 @@ class TreeShakeSharedPlugin {
 }
 
 // @public (undocumented)
-export interface TreeshakeSharedPluginOptions {
+export interface TreeshakingSharedPluginOptions {
     // (undocumented)
     mfConfig: ModuleFederationPluginOptions;
     // (undocumented)

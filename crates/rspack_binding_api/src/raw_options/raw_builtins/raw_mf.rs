@@ -116,7 +116,7 @@ pub struct RawProvideOptions {
   #[napi(ts_type = "string | false | undefined")]
   pub required_version: Option<RawVersion>,
   pub strict_version: Option<bool>,
-  pub treeshake_strategy: Option<String>,
+  pub tree_shaking_mode: Option<String>,
 }
 
 impl From<RawProvideOptions> for (String, ProvideOptions) {
@@ -131,7 +131,7 @@ impl From<RawProvideOptions> for (String, ProvideOptions) {
         singleton: value.singleton,
         required_version: value.required_version.map(|v| RawVersionWrapper(v).into()),
         strict_version: value.strict_version,
-        treeshake_strategy: value.treeshake_strategy,
+        tree_shaking_mode: value.tree_shaking_mode,
       },
     )
   }
@@ -207,7 +207,7 @@ impl From<RawConsumeSharedPluginOptions> for ConsumeSharedPluginOptions {
 #[napi(object)]
 pub struct RawOptimizeSharedConfig {
   pub share_key: String,
-  pub treeshake: bool,
+  pub tree_shaking: bool,
   pub used_exports: Option<Vec<String>>,
 }
 
@@ -215,7 +215,7 @@ impl From<RawOptimizeSharedConfig> for OptimizeSharedConfig {
   fn from(value: RawOptimizeSharedConfig) -> Self {
     Self {
       share_key: value.share_key,
-      treeshake: value.treeshake,
+      tree_shaking: value.tree_shaking,
       used_exports: value.used_exports.unwrap_or_default(),
     }
   }
@@ -225,7 +225,7 @@ impl From<RawOptimizeSharedConfig> for OptimizeSharedConfig {
 #[napi(object)]
 pub struct RawSharedUsedExportsOptimizerPluginOptions {
   pub shared: Vec<RawOptimizeSharedConfig>,
-  pub inject_used_exports: Option<bool>,
+  pub inject_tree_shaking_used_exports: Option<bool>,
   pub manifest_file_name: Option<String>,
   pub stats_file_name: Option<String>,
 }
@@ -238,7 +238,7 @@ impl From<RawSharedUsedExportsOptimizerPluginOptions> for SharedUsedExportsOptim
         .into_iter()
         .map(|config| config.into())
         .collect(),
-      inject_used_exports: value.inject_used_exports.unwrap_or(true),
+      inject_tree_shaking_used_exports: value.inject_tree_shaking_used_exports.unwrap_or(true),
       manifest_file_name: value
         .manifest_file_name
         .and_then(|s| if s.trim().is_empty() { None } else { Some(s) }),
@@ -263,7 +263,7 @@ pub struct RawConsumeOptions {
   pub strict_version: bool,
   pub singleton: bool,
   pub eager: bool,
-  pub treeshake_strategy: Option<String>,
+  pub tree_shaking_mode: Option<String>,
 }
 
 impl From<RawConsumeOptions> for (String, ConsumeOptions) {
@@ -280,7 +280,7 @@ impl From<RawConsumeOptions> for (String, ConsumeOptions) {
         strict_version: value.strict_version,
         singleton: value.singleton,
         eager: value.eager,
-        treeshake_strategy: value.treeshake_strategy,
+        tree_shaking_mode: value.tree_shaking_mode,
       },
     )
   }
@@ -351,7 +351,7 @@ pub struct RawManifestSharedOption {
 pub struct RawStatsBuildInfo {
   pub build_version: String,
   pub build_name: Option<String>,
-  // only appear when enable treeshake
+  // only appear when enable tree_shaking
   pub target: Option<Vec<String>>,
   pub plugins: Option<Vec<String>>,
 }

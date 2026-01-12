@@ -1,6 +1,6 @@
 import { Stability, ApiMeta } from '@components/ApiMeta';
 
-# TreeShakeSharedPlugin
+# TreeShakingSharedPlugin
 
 <ApiMeta stability={Stability.Experimental} />
 
@@ -12,22 +12,22 @@ import { Stability, ApiMeta } from '@components/ApiMeta';
 
 - `mfConfig`：`ModuleFederationPluginOptions`，传入模块联邦插件所需要的配置项。
 - `plugins`：额外插件列表，可在独立编译中复用。
-- `reShake`：是否在独立编译阶段执行二次摇树优化（二次摇树通常在部署平台确定了完整的依赖信息后重新触发的一次全新构建，提高共享依赖 treeshake 命中的准确率）。
+- `reShake`：是否在独立编译阶段执行二次摇树优化（二次摇树通常在部署平台确定了完整的依赖信息后重新触发的一次全新构建，提高共享依赖 tree shaking 命中的准确率）。
 
 **使用示例**
 
 ```js
 // rspack.config.js
-const { TreeShakeSharedPlugin } = require('@rspack/core');
+const { TreeShakingSharedPlugin } = require('@rspack/core');
 
 module.exports = {
   plugins: [
-    new TreeShakeSharedPlugin({
+    new TreeShakingSharedPlugin({
       reShake: true,
       mfConfig: {
         name: 'app',
         shared: {
-          'lodash-es': { treeshake: true },
+          'lodash-es': { treeShaking: true },
         },
         library: { type: 'var', name: 'App' },
         manifest: true,
@@ -42,4 +42,4 @@ module.exports = {
 
 - 读取 `shared` 配置后标准化为 `[shareName, SharedConfig][]`。
 - 当 `reShake` 为 `false` 时，注册 `SharedUsedExportsOptimizerPlugin`，基于 stats 清单注入已用导出集合。
-- 对 `treeshake` 的共享包触发独立编译，产出回写到 stats/manifest 中的 fallback 字段。
+- 对 `tree shaking` 的共享包触发独立编译，产出回写到 stats/manifest 中的 fallback 字段。

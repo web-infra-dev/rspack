@@ -83,7 +83,7 @@ module.exports = function () {
                   },
                 )
               : data.fallback,
-            treeshakeGetter: sharedFallback ? data.fallback : undefined,
+            treeShakingGetter: sharedFallback ? data.fallback : undefined,
             shareInfo: {
               shareConfig: {
                 fixedDependencies: false,
@@ -95,10 +95,10 @@ module.exports = function () {
               scope: [data.shareScope],
             },
             shareKey: data.shareKey,
-            treeshake: __webpack_require__.federation.sharedFallback
+            treeShaking: __webpack_require__.federation.sharedFallback
               ? {
                   get: data.fallback,
-                  strategy: data.treeshakeStrategy,
+                  mode: data.treeShakingMode,
                 }
               : undefined,
           };
@@ -133,7 +133,7 @@ module.exports = function () {
               singleton,
               requiredVersion,
               strictVersion,
-              treeshakeStrategy,
+              treeShakingMode,
             } = stage;
             const shareConfig = {};
             const isValidValue = function (val) {
@@ -156,9 +156,9 @@ module.exports = function () {
               scope: [scope],
               shareConfig,
               get: factory,
-              treeshake: treeshakeStrategy
+              treeShaking: treeShakingMode
                 ? {
-                    strategy: treeshakeStrategy,
+                    mode: treeShakingMode,
                   }
                 : undefined,
             };

@@ -16,24 +16,24 @@ import type { NormalizedSharedOptions } from './SharePlugin';
 
 type OptimizeSharedConfig = {
   shareKey: string;
-  treeshake: boolean;
+  treeShaking: boolean;
   usedExports?: string[];
 };
 
 export class SharedUsedExportsOptimizerPlugin extends RspackBuiltinPlugin {
   name = BuiltinPluginName.SharedUsedExportsOptimizerPlugin;
   private sharedOptions: NormalizedSharedOptions;
-  private injectUsedExports: boolean;
+  private injectTreeShakingUsedExports: boolean;
   private manifestOptions: ModuleFederationManifestPluginOptions;
 
   constructor(
     sharedOptions: NormalizedSharedOptions,
-    injectUsedExports?: boolean,
+    injectTreeShakingUsedExports?: boolean,
     manifestOptions?: ModuleFederationManifestPluginOptions,
   ) {
     super();
     this.sharedOptions = sharedOptions;
-    this.injectUsedExports = injectUsedExports ?? true;
+    this.injectTreeShakingUsedExports = injectTreeShakingUsedExports ?? true;
     this.manifestOptions = manifestOptions ?? {};
   }
 
@@ -41,8 +41,8 @@ export class SharedUsedExportsOptimizerPlugin extends RspackBuiltinPlugin {
     const shared: OptimizeSharedConfig[] = this.sharedOptions.map(
       ([shareKey, config]) => ({
         shareKey,
-        treeshake: !!config.treeshake,
-        usedExports: config.treeshake?.usedExports,
+        treeShaking: !!config.treeShaking,
+        usedExports: config.treeShaking?.usedExports,
       }),
     );
     const { manifestFileName, statsFileName } = getFileName(
@@ -50,7 +50,7 @@ export class SharedUsedExportsOptimizerPlugin extends RspackBuiltinPlugin {
     );
     return {
       shared,
-      injectUsedExports: this.injectUsedExports,
+      injectTreeShakingUsedExports: this.injectTreeShakingUsedExports,
       manifestFileName,
       statsFileName,
     };

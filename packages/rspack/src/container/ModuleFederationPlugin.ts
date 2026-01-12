@@ -2,7 +2,7 @@ import type { Compiler } from '../Compiler';
 import type { ExternalsType } from '../config';
 import type { ShareFallback } from '../sharing/IndependentSharedPlugin';
 import type { SharedConfig } from '../sharing/SharePlugin';
-import { TreeShakeSharedPlugin } from '../sharing/TreeShakeSharedPlugin';
+import { TreeShakingSharedPlugin } from '../sharing/TreeShakingSharedPlugin';
 import { isRequiredVersion } from '../sharing/utils';
 import {
   ModuleFederationManifestPlugin,
@@ -22,15 +22,15 @@ export interface ModuleFederationPluginOptions extends Omit<
   implementation?: string;
   shareStrategy?: 'version-first' | 'loaded-first';
   manifest?: ModuleFederationManifestPluginOptions;
-  injectUsedExports?: boolean;
-  treeshakeSharedDir?: string;
-  treeshakeSharedExcludePlugins?: string[];
-  treeshakeSharedPlugins?: string[];
+  injectTreeShakingUsedExports?: boolean;
+  treeShakingSharedDir?: string;
+  treeShakingSharedExcludePlugins?: string[];
+  treeShakingSharedPlugins?: string[];
 }
 export type RuntimePlugins = string[] | [string, Record<string, unknown>][];
 
 export class ModuleFederationPlugin {
-  private _treeShakeSharedPlugin?: TreeShakeSharedPlugin;
+  private _treeShakingSharedPlugin?: TreeShakingSharedPlugin;
 
   constructor(private _options: ModuleFederationPluginOptions) {}
 
@@ -44,18 +44,18 @@ export class ModuleFederationPlugin {
     };
 
     const sharedOptions = getSharedOptions(this._options);
-    const treeshakeEntries = sharedOptions.filter(
-      ([, config]) => config.treeshake,
+    const treeShakingEntries = sharedOptions.filter(
+      ([, config]) => config.treeShaking,
     );
-    if (treeshakeEntries.length > 0) {
-      this._treeShakeSharedPlugin = new TreeShakeSharedPlugin({
+    if (treeShakingEntries.length > 0) {
+      this._treeShakingSharedPlugin = new TreeShakingSharedPlugin({
         mfConfig: this._options,
         reShake: false,
       });
-      this._treeShakeSharedPlugin.apply(compiler);
+      this._treeShakingSharedPlugin.apply(compiler);
     }
 
-    // need to wait treeShakeSharedPlugin buildAssets
+    // need to wait treeShakingSharedPlugin buildAssets
     let runtimePluginApplied = false;
     compiler.hooks.beforeRun.tapPromise(
       {
@@ -69,7 +69,7 @@ export class ModuleFederationPlugin {
           paths,
           this._options,
           compiler,
-          this._treeShakeSharedPlugin?.buildAssets || {},
+          this._treeShakingSharedPlugin?.buildAssets,
         );
         new ModuleFederationRuntimePlugin({
           entryRuntime,
@@ -88,7 +88,7 @@ export class ModuleFederationPlugin {
           paths,
           this._options,
           compiler,
-          this._treeShakeSharedPlugin?.buildAssets || {},
+          this._treeShakingSharedPlugin?.buildAssets || {},
         );
         new ModuleFederationRuntimePlugin({
           entryRuntime,
@@ -256,7 +256,7 @@ function getDefaultEntryRuntime(
   paths: RuntimePaths,
   options: ModuleFederationPluginOptions,
   compiler: Compiler,
-  treeshakeShareFallbacks: ShareFallback,
+  treeShakingShareFallbacks?: ShareFallback,
 ) {
   const runtimePlugins = getRuntimePlugins(options);
   const remoteInfos = getRemoteInfos(options);
@@ -293,7 +293,7 @@ function getDefaultEntryRuntime(
       options.shareStrategy ?? 'version-first',
     )}`,
     `const __module_federation_share_fallbacks__ = ${JSON.stringify(
-      treeshakeShareFallbacks,
+      treeShakingShareFallbacks,
     )}`,
     `const __module_federation_library_type__ = ${JSON.stringify(libraryType)}`,
     IS_BROWSER

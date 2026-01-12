@@ -83,16 +83,16 @@ function getBuildInfo(
   };
 
   const normalizedShared = normalizeSharedOptions(mfConfig.shared || {});
-  const enableTreeshake = Object.values(normalizedShared).some(
-    (config) => config[1].treeshake,
+  const enableTreeShaking = Object.values(normalizedShared).some(
+    (config) => config[1].treeShaking,
   );
-  if (enableTreeshake) {
+  if (enableTreeShaking) {
     statsBuildInfo.target = Array.isArray(compiler.options.target)
       ? compiler.options.target
       : [];
-    statsBuildInfo.plugins = mfConfig.treeshakeSharedPlugins || [];
+    statsBuildInfo.plugins = mfConfig.treeShakingSharedPlugins || [];
     statsBuildInfo.excludePlugins =
-      mfConfig.treeshakeSharedExcludePlugins || [];
+      mfConfig.treeShakingSharedExcludePlugins || [];
   }
 
   return statsBuildInfo;
@@ -101,7 +101,7 @@ function getBuildInfo(
 interface StatsBuildInfo {
   buildVersion: string;
   buildName?: string;
-  // only appear when enable treeshake
+  // only appear when enable tree shaking
   target?: string[];
   excludePlugins?: string[];
   plugins?: string[];

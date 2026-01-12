@@ -1,6 +1,6 @@
 // const path = require('path');
 
-// default strategy will use fallback asset if no server data. And the fallback will load asset via fetch + eval.
+// default mode will use fallback asset if no server data. And the fallback will load asset via fetch + eval.
 // Cause the asset not deploy, so we need to proxy the asset to local.
 module.exports = function () {
   return {

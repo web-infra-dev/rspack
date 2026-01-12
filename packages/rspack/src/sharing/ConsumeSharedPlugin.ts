@@ -31,10 +31,7 @@ export type ConsumesConfig = {
   shareScope?: string;
   singleton?: boolean;
   strictVersion?: boolean;
-  /**
-   * Tree shaking strategy for the shared module.
-   */
-  treeshakeStrategy?: 'server' | 'infer';
+  treeShakingMode?: 'server-calc' | 'runtime-infer';
 };
 
 export function normalizeConsumeShareOptions(
@@ -57,7 +54,7 @@ export function normalizeConsumeShareOptions(
               strictVersion: false,
               singleton: false,
               eager: false,
-              treeshakeStrategy: undefined,
+              treeShakingMode: undefined,
             }
           : // key is a request/key
             // item is a version
@@ -70,7 +67,7 @@ export function normalizeConsumeShareOptions(
               packageName: undefined,
               singleton: false,
               eager: false,
-              treeshakeStrategy: undefined,
+              treeShakingMode: undefined,
             };
       return result;
     },
@@ -86,7 +83,7 @@ export function normalizeConsumeShareOptions(
       packageName: item.packageName,
       singleton: !!item.singleton,
       eager: !!item.eager,
-      treeshakeStrategy: item.treeshakeStrategy,
+      treeShakingMode: item.treeShakingMode,
     }),
   );
 }

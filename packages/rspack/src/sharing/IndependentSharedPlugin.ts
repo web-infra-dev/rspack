@@ -35,7 +35,7 @@ const filterPlugin = (plugin: Plugins[0], excludedPlugins: string[] = []) => {
     return true;
   }
   return ![
-    'TreeShakeSharedPlugin',
+    'TreeShakingSharedPlugin',
     'IndependentSharedPlugin',
     'ModuleFederationPlugin',
     'SharedUsedExportsOptimizerPlugin',
@@ -52,10 +52,10 @@ export interface IndependentSharePluginOptions {
   library?: LibraryOptions;
   outputDir?: string;
   plugins?: Plugins;
-  treeshake?: boolean;
+  treeShaking?: boolean;
   manifest?: ModuleFederationManifestPluginOptions;
-  injectUsedExports?: boolean;
-  treeshakeSharedExcludePlugins?: string[];
+  injectTreeShakingUsedExports?: boolean;
+  treeShakingSharedExcludePlugins?: string[];
 }
 
 // { react: [  [ react/19.0.0/index.js , 19.0.0, react_global_name ]  ] }
@@ -127,34 +127,35 @@ export class IndependentSharedPlugin {
   sharedOptions: [string, SharedConfig][];
   outputDir: string;
   plugins: Plugins;
-  treeshake?: boolean;
+  treeShaking?: boolean;
   manifest?: ModuleFederationManifestPluginOptions;
   buildAssets: ShareFallback = {};
-  injectUsedExports?: boolean;
-  treeshakeSharedExcludePlugins?: string[];
+  injectTreeShakingUsedExports?: boolean;
+  treeShakingSharedExcludePlugins?: string[];
 
   name = 'IndependentSharedPlugin';
   constructor(options: IndependentSharePluginOptions) {
     const {
       outputDir,
       plugins,
-      treeshake,
+      treeShaking,
       shared,
       name,
       manifest,
-      injectUsedExports,
+      injectTreeShakingUsedExports,
       library,
-      treeshakeSharedExcludePlugins,
+      treeShakingSharedExcludePlugins,
     } = options;
     this.shared = shared;
     this.mfName = name;
     this.outputDir = outputDir || 'independent-packages';
     this.plugins = plugins || [];
-    this.treeshake = treeshake;
+    this.treeShaking = treeShaking;
     this.manifest = manifest;
-    this.injectUsedExports = injectUsedExports ?? true;
+    this.injectTreeShakingUsedExports = injectTreeShakingUsedExports ?? true;
     this.library = library;
-    this.treeshakeSharedExcludePlugins = treeshakeSharedExcludePlugins || [];
+    this.treeShakingSharedExcludePlugins =
+      treeShakingSharedExcludePlugins || [];
     this.sharedOptions = parseOptions(
       shared,
       (item, key) => {
@@ -269,7 +270,7 @@ export class IndependentSharedPlugin {
 
   private async createIndependentCompilers(parentCompiler: Compiler) {
     const { sharedOptions, buildAssets, outputDir } = this;
-    console.log('🚀 Start creating a standalone compiler...');
+    console.log('Start building shared fallback resources ...');
 
     // collect share requests for each shareName and then build share container
     const shareRequestsMap: ShareRequestsMap =
@@ -277,7 +278,7 @@ export class IndependentSharedPlugin {
 
     await Promise.all(
       sharedOptions.map(async ([shareName, shareConfig]) => {
-        if (!shareConfig.treeshake || shareConfig.import === false) {
+        if (!shareConfig.treeShaking || shareConfig.import === false) {
           return;
         }
         const shareRequests = shareRequestsMap[shareName].requests;
@@ -293,7 +294,7 @@ export class IndependentSharedPlugin {
                   shareName,
                   version,
                   request,
-                  independentShareFileName: sharedConfig?.treeshake?.filename,
+                  independentShareFileName: sharedConfig?.treeShaking?.filename,
                 },
               });
             if (typeof shareFileName === 'string') {
@@ -309,7 +310,7 @@ export class IndependentSharedPlugin {
       }),
     );
 
-    console.log('✅ All independent packages have been compiled successfully');
+    console.log('All shared fallback have been compiled successfully!');
   }
 
   private async createIndependentCompiler(
@@ -324,9 +325,9 @@ export class IndependentSharedPlugin {
       plugins,
       outputDir,
       sharedOptions,
-      treeshake,
+      treeShaking,
       library,
-      treeshakeSharedExcludePlugins,
+      treeShakingSharedExcludePlugins,
     } = this;
 
     const outputDirWithShareName = resolveOutputDir(
@@ -354,7 +355,7 @@ export class IndependentSharedPlugin {
       if (
         plugin !== undefined &&
         typeof plugin !== 'string' &&
-        filterPlugin(plugin, treeshakeSharedExcludePlugins)
+        filterPlugin(plugin, treeShakingSharedExcludePlugins)
       ) {
         finalPlugins.push(plugin);
       }
@@ -388,11 +389,11 @@ export class IndependentSharedPlugin {
       }),
     );
 
-    if (treeshake) {
+    if (treeShaking) {
       finalPlugins.push(
         new SharedUsedExportsOptimizerPlugin(
           sharedOptions,
-          this.injectUsedExports,
+          this.injectTreeShakingUsedExports,
         ),
       );
     }
@@ -451,33 +452,21 @@ export class IndependentSharedPlugin {
     return new Promise<any>((resolve, reject) => {
       compiler.run((err: any, stats: any) => {
         if (err || stats?.hasErrors()) {
-          const target = currentShare ? currentShare.shareName : '收集依赖';
+          const target = currentShare ? currentShare.shareName : 'Collect deps';
           console.error(
-            `❌ ${target} 编译失败:`,
+            `${target} Compile failed:`,
             err ||
               stats
                 .toJson()
                 .errors.map((e: Error) => e.message)
                 .join('\n'),
           );
-          reject(err || new Error(`${target} 编译失败`));
+          reject(err || new Error(`${target} Compile failed`));
           return;
         }
 
         currentShare &&
-          console.log(`✅ 独立包 ${currentShare.shareName} 编译成功`);
-
-        if (stats) {
-          currentShare && console.log(`📊 ${currentShare.shareName} 编译统计:`);
-          console.log(
-            stats.toString({
-              colors: true,
-              chunks: false,
-              modules: false,
-            }),
-          );
-        }
-
+          console.log(`${currentShare.shareName} Compile success`);
         resolve(extraPlugin.getData());
       });
     });
