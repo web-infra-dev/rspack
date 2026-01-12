@@ -94,12 +94,12 @@ class VirtualEntryPlugin {
     compiler.hooks.thisCompilation.tap(
       'RemoveVirtualEntryAsset',
       (compilation) => {
-        compilation.hooks.processAssets.tapPromise(
+        compilation.hooks.processAssets.tap(
           {
             name: 'RemoveVirtualEntryAsset',
             stage: compiler.webpack.Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE,
           },
-          async () => {
+          () => {
             try {
               const chunk = compilation.namedChunks.get(VIRTUAL_ENTRY_NAME);
 
@@ -211,13 +211,13 @@ export class IndependentSharedPlugin {
       compiler.hooks.compilation.tap(
         'IndependentSharedPlugin',
         (compilation) => {
-          compilation.hooks.processAssets.tapPromise(
+          compilation.hooks.processAssets.tap(
             {
               name: 'injectBuildAssets',
               stage: (compilation.constructor as any)
                 .PROCESS_ASSETS_STAGE_OPTIMIZE_TRANSFER,
             },
-            async () => {
+            () => {
               const { statsFileName, manifestFileName } = getFileName(manifest);
               const injectBuildAssetsIntoStatsOrManifest = (
                 filename: string,

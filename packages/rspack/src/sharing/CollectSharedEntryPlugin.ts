@@ -55,13 +55,13 @@ export class CollectSharedEntryPlugin extends RspackBuiltinPlugin {
     compiler.hooks.thisCompilation.tap(
       'Collect shared entry',
       (compilation) => {
-        compilation.hooks.processAssets.tapPromise(
+        compilation.hooks.processAssets.tap(
           {
             name: 'CollectSharedEntry',
             stage:
               compiler.webpack.Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_INLINE,
           },
-          async () => {
+          () => {
             compilation.getAssets().forEach((asset) => {
               if (asset.name === SHARE_ENTRY_ASSET) {
                 this._collectedEntries = JSON.parse(

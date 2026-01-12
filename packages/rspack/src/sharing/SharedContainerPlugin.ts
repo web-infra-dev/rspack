@@ -75,11 +75,11 @@ export class SharedContainerPlugin extends RspackBuiltinPlugin {
     compiler.hooks.thisCompilation.tap(
       this.name,
       (compilation: Compilation) => {
-        compilation.hooks.processAssets.tapPromise(
+        compilation.hooks.processAssets.tap(
           {
             name: 'getShareContainerFile',
           },
-          async () => {
+          () => {
             const remoteEntryPoint = compilation.entrypoints.get(shareName);
             assert(
               remoteEntryPoint,

@@ -57,12 +57,12 @@ export class ModuleFederationPlugin {
 
     // need to wait treeShakingSharedPlugin buildAssets
     let runtimePluginApplied = false;
-    compiler.hooks.beforeRun.tapPromise(
+    compiler.hooks.beforeRun.tap(
       {
         name: 'ModuleFederationPlugin',
         stage: 100,
       },
-      async () => {
+      () => {
         if (runtimePluginApplied) return;
         runtimePluginApplied = true;
         const entryRuntime = getDefaultEntryRuntime(
@@ -76,12 +76,12 @@ export class ModuleFederationPlugin {
         }).apply(compiler);
       },
     );
-    compiler.hooks.watchRun.tapPromise(
+    compiler.hooks.watchRun.tap(
       {
         name: 'ModuleFederationPlugin',
         stage: 100,
       },
-      async () => {
+      () => {
         if (runtimePluginApplied) return;
         runtimePluginApplied = true;
         const entryRuntime = getDefaultEntryRuntime(
