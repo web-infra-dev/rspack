@@ -319,9 +319,9 @@ importers:
       '@rspack/core':
         specifier: workspace:*
         version: link:../../rspack
-      vue-loader:
-        specifier: ^17.4.2
-        version: 17.4.2(vue@3.5.26(typescript@5.9.3))(webpack@5.102.1)
+      rspack-vue-loader:
+        specifier: ^17.4.5
+        version: 17.4.5(vue@3.5.26(typescript@5.9.3))(webpack@5.102.1)
 
   packages/create-rspack/template-vue-ts:
     dependencies:
@@ -335,12 +335,12 @@ importers:
       '@rspack/core':
         specifier: workspace:*
         version: link:../../rspack
+      rspack-vue-loader:
+        specifier: ^17.4.5
+        version: 17.4.5(vue@3.5.26(typescript@5.9.3))(webpack@5.102.1)
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
-      vue-loader:
-        specifier: ^17.4.2
-        version: 17.4.2(vue@3.5.26(typescript@5.9.3))(webpack@5.102.1)
 
   packages/rspack:
     dependencies:
@@ -684,6 +684,9 @@ importers:
       react-refresh:
         specifier: ^0.18.0
         version: 0.18.0
+      rspack-vue-loader:
+        specifier: ^17.4.5
+        version: 17.4.5(vue@3.5.26(typescript@5.9.3))(webpack@5.102.1)
       tailwindcss:
         specifier: ^3.4.19
         version: 3.4.19(ts-node@10.9.2(@types/node@20.19.27)(typescript@5.9.3))
@@ -693,9 +696,6 @@ importers:
       vue:
         specifier: ^3.5.26
         version: 3.5.26(typescript@5.9.3)
-      vue-loader:
-        specifier: ^17.4.2
-        version: 17.4.2(vue@3.5.26(typescript@5.9.3))(webpack@5.102.1)
       ws:
         specifier: ^8.18.3
         version: 8.18.3
@@ -5741,9 +5741,6 @@ packages:
     resolution: {integrity: sha512-Bb33KbowVTIj5s7Ked1OsqHUeCpz//tPwR+E2zJgJKo9Z5XolZ9b6bdUgjmYlwnWhoOQKoTd1TYToZGn5mAYOg==}
     engines: {node: '>= 0.8'}
 
-  hash-sum@2.0.0:
-    resolution: {integrity: sha512-WdZTbAByD+pHfl/g9QSsBIIwy8IT+EsPiKDs0KNX+zSHhdDLFKdZu0BQHljvO+0QI/BasbMSUa8wYNCZTvhslg==}
-
   hash.js@1.1.7:
     resolution: {integrity: sha512-taOaskGt4z4SOANNseOviYDvjEJinIkRgmp7LbKP2YTTmVxWBl87s/uzK9r+44BclBSp2X7K1hqeNfz9JbBeXA==}
 
@@ -7540,6 +7537,18 @@ packages:
       '@rsbuild/core':
         optional: true
 
+  rspack-vue-loader@17.4.5:
+    resolution: {integrity: sha512-i88hGa4mySkwiP7HqRICIAhomcMdkNCZ5tQGcxkcUWmDfC2QfeQegFBEKY4RdbuxJ3p1Ocj/Ul6Sh4yl6L7mDg==}
+    peerDependencies:
+      '@vue/compiler-sfc': '*'
+      vue: '*'
+      webpack: ^5.0.0
+    peerDependenciesMeta:
+      '@vue/compiler-sfc':
+        optional: true
+      vue:
+        optional: true
+
   rspress-plugin-font-open-sans@1.0.3:
     resolution: {integrity: sha512-17i7uUqvyy5k51ggZJ5xoP9duqC2W76GcBviIu400VXXAQEZx3JzZWPcGz9gGmVaFHAkH19NtZK0EYKfneX4rw==}
     peerDependencies:
@@ -8486,18 +8495,6 @@ packages:
 
   vscode-uri@3.1.0:
     resolution: {integrity: sha512-/BpdSx+yCQGnCvecbyXdxHDkuk55/G3xwnC0GqY4gmQ3j+A+g8kzzgB4Nk/SINjqn6+waqw3EgbVF2QKExkRxQ==}
-
-  vue-loader@17.4.2:
-    resolution: {integrity: sha512-yTKOA4R/VN4jqjw4y5HrynFL8AK0Z3/Jt7eOJXEitsm0GMRHDBjCfCiuTiLP7OESvsZYo2pATCWhDqxC5ZrM6w==}
-    peerDependencies:
-      '@vue/compiler-sfc': '*'
-      vue: '*'
-      webpack: ^4.1.0 || ^5.0.0-0
-    peerDependenciesMeta:
-      '@vue/compiler-sfc':
-        optional: true
-      vue:
-        optional: true
 
   vue@3.5.26:
     resolution: {integrity: sha512-SJ/NTccVyAoNUJmkM9KUqPcYlY+u8OVL1X5EW9RIs3ch5H2uERxyyIUI4MRxVCSOiEcupX9xNGde1tL9ZKpimA==}
@@ -13648,8 +13645,6 @@ snapshots:
       safe-buffer: 5.2.1
       to-buffer: 1.2.2
 
-  hash-sum@2.0.0: {}
-
   hash.js@1.1.7:
     dependencies:
       inherits: 2.0.4
@@ -15963,6 +15958,14 @@ snapshots:
     optionalDependencies:
       '@rsbuild/core': 1.7.2
 
+  rspack-vue-loader@17.4.5(vue@3.5.26(typescript@5.9.3))(webpack@5.102.1):
+    dependencies:
+      chalk: 4.1.2
+      watchpack: 2.4.4
+      webpack: 5.102.1
+    optionalDependencies:
+      vue: 3.5.26(typescript@5.9.3)
+
   rspress-plugin-font-open-sans@1.0.3(@rspress/core@2.0.0-rc.4(@types/react@19.2.7)):
     dependencies:
       '@rspress/core': 2.0.0-rc.4(@types/react@19.2.7)
@@ -16927,15 +16930,6 @@ snapshots:
   vscode-uri@3.0.8: {}
 
   vscode-uri@3.1.0: {}
-
-  vue-loader@17.4.2(vue@3.5.26(typescript@5.9.3))(webpack@5.102.1):
-    dependencies:
-      chalk: 4.1.2
-      hash-sum: 2.0.0
-      watchpack: 2.4.4
-      webpack: 5.102.1
-    optionalDependencies:
-      vue: 3.5.26(typescript@5.9.3)
 
   vue@3.5.26(typescript@5.9.3):
     dependencies:
