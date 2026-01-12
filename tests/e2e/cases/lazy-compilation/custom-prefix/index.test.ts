@@ -3,9 +3,7 @@ import { expect, test } from '@/fixtures';
 test('should use custom prefix for lazy compilation', async ({ page }) => {
   // Wait for a request with custom prefix
   const responsePromise = page.waitForResponse(
-    (response) =>
-      response.url().includes('/custom-lazy-endpoint-') &&
-      response.request().method() === 'GET',
+    (response) => response.url().includes('/custom-lazy-endpoint-'),
     { timeout: 5000 },
   );
 

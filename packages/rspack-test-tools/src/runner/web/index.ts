@@ -175,7 +175,12 @@ export class WebRunner extends NodeRunner {
   protected createBaseModuleScope() {
     const moduleScope = super.createBaseModuleScope();
     moduleScope.EventSource = EventSource;
-    moduleScope.fetch = async (url: string) => {
+    moduleScope.fetch = async (url: string, options: any) => {
+      // For Lazy Compilation Proxy the POST request to the real dev server.
+      if (options?.method === 'POST') {
+        return fetch(url, options as any);
+      }
+
       try {
         const filePath = this.urlToPath(url);
         this.log(`fetch: ${url} -> ${filePath}`);

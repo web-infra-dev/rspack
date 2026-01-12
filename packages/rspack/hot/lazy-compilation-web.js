@@ -1,44 +1,65 @@
-if (typeof EventSource !== 'function') {
+if (typeof fetch !== 'function') {
   throw new Error(
-    "Environment doesn't support lazy compilation (requires EventSource)",
+    "Environment doesn't support lazy compilation (requires fetch API)",
   );
 }
 
 var urlBase = decodeURIComponent(__resourceQuery.slice(1));
-/** @type {EventSource | undefined} */
-var activeEventSource;
 var compiling = new Set();
 var errorHandlers = new Set();
 
-var updateEventSource = function updateEventSource() {
-  if (activeEventSource) activeEventSource.close();
-  if (compiling.size) {
-    activeEventSource = new EventSource(
-      urlBase +
-        Array.from(compiling, function (module) {
-          return encodeURIComponent(module);
-        }).join('@'),
-    );
-    /**
-     * @this {EventSource}
-     * @param {Event & { message?: string, filename?: string, lineno?: number, colno?: number, error?: Error }} event event
-     */
-    activeEventSource.onerror = function (event) {
-      errorHandlers.forEach(function (onError) {
-        onError(
-          new Error(
-            'Problem communicating active modules to the server' +
-              (event.message ? `: ${event.message} ` : '') +
-              (event.filename ? `: ${event.filename} ` : '') +
-              (event.lineno ? `: ${event.lineno} ` : '') +
-              (event.colno ? `: ${event.colno} ` : '') +
-              (event.error ? `: ${event.error}` : ''),
-          ),
+/** @type {Promise<void> | undefined} */
+var pendingRequestPromise;
+/** @type {AbortController | undefined} */
+/** @type {boolean} */
+var hasPendingUpdate = false;
+
+var sendRequest = function sendRequest() {
+  if (compiling.size === 0) {
+    pendingRequestPromise = undefined;
+    hasPendingUpdate = false;
+    return Promise.resolve();
+  }
+
+  var modules = Array.from(compiling);
+
+  return fetch(urlBase, {
+    method: 'POST',
+    body: JSON.stringify(modules),
+  })
+    .then(function (response) {
+      if (!response.ok) {
+        var error = new Error(
+          'Problem communicating active modules to the server: HTTP ' +
+            response.status,
         );
+        errorHandlers.forEach(function (onError) {
+          onError(error);
+        });
+      }
+      // The response is kept alive for server-side event streaming,
+      // but we don't need to process events for lazy compilation.
+    })
+    .catch(function (err) {
+      if (err.name === 'AbortError') {
+        // Request was aborted, which is expected when deactivating
+        return;
+      }
+      errorHandlers.forEach(function (onError) {
+        onError(err);
       });
-    };
-  } else {
-    activeEventSource = undefined;
+    });
+};
+
+var sendActiveRequest = function sendActiveRequest() {
+  hasPendingUpdate = true;
+
+  // If no request is pending, start one
+  if (!pendingRequestPromise) {
+    pendingRequestPromise = sendRequest().finally(function () {
+      // After the request completes, check if there are pending updates
+      pendingRequestPromise = undefined;
+    });
   }
 };
 
@@ -55,7 +76,7 @@ exports.activate = function (options) {
 
   if (!compiling.has(data)) {
     compiling.add(data);
-    updateEventSource();
+    sendActiveRequest();
   }
 
   if (!active && !module.hot) {
@@ -67,6 +88,6 @@ exports.activate = function (options) {
   return function () {
     errorHandlers.delete(onError);
     compiling.delete(data);
-    updateEventSource();
+    sendActiveRequest();
   };
 };
