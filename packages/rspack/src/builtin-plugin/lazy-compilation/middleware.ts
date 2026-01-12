@@ -163,15 +163,18 @@ function applyPlugin(
   plugin.apply(compiler);
 }
 
-function getRequestBody(
+function readModuleIdsFromBody(
   req: IncomingMessage & { body?: unknown },
-): Promise<string> {
+): Promise<string[]> {
   // If body is already parsed by another middleware, use it directly
   if (req.body !== undefined) {
-    if (typeof req.body === 'string') {
+    if (Array.isArray(req.body)) {
       return Promise.resolve(req.body);
     }
-    return Promise.resolve(JSON.stringify(req.body));
+    if (typeof req.body === 'string') {
+      return Promise.resolve(JSON.parse(req.body));
+    }
+    throw new Error('Invalid body type');
   }
 
   return new Promise((resolve, reject) => {
@@ -182,7 +185,7 @@ function getRequestBody(
     req.on('end', () => {
       // Concatenate all chunks and decode as UTF-8 to handle multi-byte characters correctly
       const body = Buffer.concat(chunks).toString('utf8');
-      resolve(body);
+      resolve(JSON.parse(body));
     });
     req.on('error', reject);
   });
@@ -208,8 +211,7 @@ const lazyCompilationMiddlewareInternal = (
 
     if (req.method === 'POST') {
       try {
-        const body = await getRequestBody(req);
-        modules = JSON.parse(body);
+        modules = await readModuleIdsFromBody(req);
       } catch (err) {
         logger.error('Failed to parse request body: ' + err);
         res.writeHead(400);
