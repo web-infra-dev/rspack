@@ -90,7 +90,6 @@ export const normalizeCommonOptions = (
  */
 export const commonOptionsForBuildAndServe = (command: Command): Command => {
   return command
-    .option('--analyze', 'analyze')
     .option(
       '-d, --devtool <value>',
       'specify a developer tool for debugging. Defaults to `cheap-module-source-map` in development and `source-map` in production.',
@@ -105,7 +104,6 @@ export const commonOptionsForBuildAndServe = (command: Command): Command => {
 };
 
 export type CommonOptionsForBuildAndServe = CommonOptions & {
-  analyze?: boolean;
   devtool?: string | boolean;
   entry?: string[];
   mode?: string;
