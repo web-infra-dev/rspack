@@ -241,6 +241,8 @@ async fn optimize_dependencies(
 
     modules
   } else {
+    // Clear artifact when incremental is disabled for SIDE_EFFECTS pass
+    side_effects_optimize_artifact.clear();
     all_modules.keys().copied().collect()
   };
   logger.time_end(inner_start);

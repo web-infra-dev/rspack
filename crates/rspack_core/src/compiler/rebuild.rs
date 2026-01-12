@@ -8,12 +8,7 @@ use rspack_tasks::within_compiler_context;
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::{
-  ChunkGraph, ChunkKind, Compilation, Compiler, DerefOption, RuntimeSpec,
-  chunk_graph_chunk::ChunkId,
-  chunk_graph_module::ModuleId,
-  compilation::build_module_graph::ModuleExecutor,
-  fast_set,
-  incremental::{Incremental, IncrementalPasses},
+  CacheOptions, ChunkGraph, ChunkKind, Compilation, Compiler, DerefOption, RuntimeSpec, chunk_graph_chunk::ChunkId, chunk_graph_module::ModuleId, compilation::build_module_graph::ModuleExecutor, fast_set, incremental::Incremental
 };
 
 impl Compiler {
@@ -78,11 +73,8 @@ impl Compiler {
         self.compiler_context.clone(),
       );
       new_compilation.hot_index = self.compilation.hot_index + 1;
-
-      if new_compilation
-        .incremental
-        .mutations_readable(IncrementalPasses::MAKE)
-      {
+      // reuse old compilation artifact based on options.cache and decide whether to clear it based on incremental options which is already handled in ever build_artifact process
+      if !matches!(self.options.cache, CacheOptions::Disabled) {
         // recover module graph from last compilation
         self
           .compilation
@@ -94,88 +86,45 @@ impl Compiler {
 
         // reuse module executor
         new_compilation.module_executor = std::mem::take(&mut self.compilation.module_executor);
-      }
-      if new_compilation
-        .incremental
-        .mutations_readable(IncrementalPasses::INFER_ASYNC_MODULES)
-      {
+
         new_compilation.async_modules_artifact =
           std::mem::take(&mut self.compilation.async_modules_artifact);
-      }
-      if new_compilation
-        .incremental
-        .mutations_readable(IncrementalPasses::DEPENDENCIES_DIAGNOSTICS)
-      {
+
         new_compilation.dependencies_diagnostics_artifact =
           std::mem::take(&mut self.compilation.dependencies_diagnostics_artifact);
-      }
-      if new_compilation
-        .incremental
-        .mutations_readable(IncrementalPasses::SIDE_EFFECTS)
-      {
+
         new_compilation.side_effects_optimize_artifact =
           DerefOption::new(self.compilation.side_effects_optimize_artifact.take());
-      }
-      if new_compilation
-        .incremental
-        .mutations_readable(IncrementalPasses::MODULE_IDS)
-      {
+
         new_compilation.module_ids_artifact =
           std::mem::take(&mut self.compilation.module_ids_artifact);
-      }
-      if new_compilation
-        .incremental
-        .mutations_readable(IncrementalPasses::CHUNK_IDS)
-      {
+
         new_compilation.named_chunk_ids_artifact =
           std::mem::take(&mut self.compilation.named_chunk_ids_artifact);
-      }
-      if new_compilation
-        .incremental
-        .mutations_readable(IncrementalPasses::MODULES_HASHES)
-      {
+
         new_compilation.cgm_hash_artifact = std::mem::take(&mut self.compilation.cgm_hash_artifact);
-      }
-      if new_compilation
-        .incremental
-        .mutations_readable(IncrementalPasses::MODULES_CODEGEN)
-      {
+
         new_compilation.code_generation_results =
           std::mem::take(&mut self.compilation.code_generation_results);
-      }
-      if new_compilation
-        .incremental
-        .mutations_readable(IncrementalPasses::MODULES_RUNTIME_REQUIREMENTS)
-      {
+
         new_compilation.cgm_runtime_requirements_artifact =
           std::mem::take(&mut self.compilation.cgm_runtime_requirements_artifact);
-      }
-      if new_compilation
-        .incremental
-        .mutations_readable(IncrementalPasses::CHUNKS_RUNTIME_REQUIREMENTS)
-      {
+
         new_compilation.cgc_runtime_requirements_artifact =
           std::mem::take(&mut self.compilation.cgc_runtime_requirements_artifact);
-      }
-      if new_compilation
-        .incremental
-        .mutations_readable(IncrementalPasses::CHUNKS_HASHES)
-      {
+
         new_compilation.chunk_hashes_artifact =
           std::mem::take(&mut self.compilation.chunk_hashes_artifact);
-      }
-      if new_compilation
-        .incremental
-        .mutations_readable(IncrementalPasses::CHUNKS_RENDER)
-      {
+
         new_compilation.chunk_render_artifact =
           std::mem::take(&mut self.compilation.chunk_render_artifact);
+
+        new_compilation.chunk_render_cache_artifact =
+          std::mem::take(&mut self.compilation.chunk_render_cache_artifact);
+        new_compilation
+          .chunk_render_cache_artifact
+          .start_next_generation();
       }
-      new_compilation.chunk_render_cache_artifact =
-        std::mem::take(&mut self.compilation.chunk_render_cache_artifact);
-      new_compilation
-        .chunk_render_cache_artifact
-        .start_next_generation();
 
       // FOR BINDING SAFETY:
       // Update `compilation` for each rebuild.
