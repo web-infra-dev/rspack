@@ -18,7 +18,6 @@ import type {
   AssetModuleFilename,
   Bail,
   BundlerInfoOptions,
-  CacheOptions,
   ChunkFilename,
   ChunkLoading,
   ChunkLoadingGlobal,
@@ -303,7 +302,36 @@ export const getNormalizedRspackOptions = (
     ),
     loader: cloneObject(config.loader),
     snapshot: nestedConfig(config.snapshot, (_snapshot) => ({})),
-    cache: optionalNestedConfig(config.cache, (cache) => cache),
+    cache: optionalNestedConfig(config.cache, (cache) => {
+      if (typeof cache === 'boolean') {
+        return cache;
+      }
+      if (cache.type === 'memory') {
+        return cache;
+      }
+      const snapshot = cache.snapshot || {};
+      return {
+        type: 'persistent',
+        buildDependencies: nestedArray(cache.buildDependencies, (deps) =>
+          deps.map((d) => path.resolve(config.context || process.cwd(), d)),
+        ),
+        version: cache.version || '',
+        snapshot: {
+          immutablePaths: nestedArray(snapshot.immutablePaths, (p) => [...p]),
+          unmanagedPaths: nestedArray(snapshot.unmanagedPaths, (p) => [...p]),
+          managedPaths: optionalNestedArray(snapshot.managedPaths, (p) => [
+            ...p,
+          ]) || [/[\\/]node_modules[\\/][^.]/],
+        },
+        storage: {
+          type: 'filesystem',
+          directory: path.resolve(
+            config.context || process.cwd(),
+            cache.storage?.directory || 'node_modules/.cache/rspack',
+          ),
+        },
+      };
+    }),
     stats: nestedConfig(config.stats, (stats) => {
       if (stats === false) {
         return {
@@ -378,40 +406,6 @@ export const getNormalizedRspackOptions = (
       }
       return {
         ...experiments,
-        cache: optionalNestedConfig(experiments.cache, (cache) => {
-          if (typeof cache === 'boolean') {
-            return cache;
-          }
-          if (cache.type === 'memory') {
-            return cache;
-          }
-          const snapshot = cache.snapshot || {};
-          return {
-            type: 'persistent',
-            buildDependencies: nestedArray(cache.buildDependencies, (deps) =>
-              deps.map((d) => path.resolve(config.context || process.cwd(), d)),
-            ),
-            version: cache.version || '',
-            snapshot: {
-              immutablePaths: nestedArray(snapshot.immutablePaths, (p) => [
-                ...p,
-              ]),
-              unmanagedPaths: nestedArray(snapshot.unmanagedPaths, (p) => [
-                ...p,
-              ]),
-              managedPaths: optionalNestedArray(snapshot.managedPaths, (p) => [
-                ...p,
-              ]) || [/[\\/]node_modules[\\/][^.]/],
-            },
-            storage: {
-              type: 'filesystem',
-              directory: path.resolve(
-                config.context || process.cwd(),
-                cache.storage?.directory || 'node_modules/.cache/rspack',
-              ),
-            },
-          };
-        }),
         lazyCompilation: optionalNestedConfig(
           experiments.lazyCompilation,
           (options) => (options === true ? {} : options),
@@ -660,7 +654,7 @@ export interface ModuleOptionsNormalized {
   unsafeCache?: boolean | RegExp;
 }
 
-export type ExperimentCacheNormalized =
+export type CacheNormalized =
   | boolean
   | {
       type: 'memory';
@@ -681,7 +675,6 @@ export type ExperimentCacheNormalized =
     };
 
 export interface ExperimentsNormalized {
-  cache?: ExperimentCacheNormalized;
   /**
    * @deprecated This option is deprecated and will be removed in future versions.
    *
@@ -747,7 +740,7 @@ export interface RspackOptionsNormalized {
   node: Node;
   loader: Loader;
   snapshot: SnapshotOptions;
-  cache?: CacheOptions;
+  cache?: CacheNormalized;
   stats: StatsValue;
   optimization: Optimization;
   plugins: Plugins;

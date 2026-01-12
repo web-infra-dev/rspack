@@ -1123,7 +1123,7 @@ export async function runLoaders(
     },
   });
 
-  if (compiler.options.experiments.cache && compiler.options?.cache) {
+  if (compiler.options?.cache) {
     commitCustomFieldsToRust(context._module.buildInfo);
   }
 

@@ -8,23 +8,21 @@ use napi::{
   bindgen_prelude::{FromNapiValue, JsObjectValue, Object, TypeName, ValidateNapiValue},
 };
 use napi_derive::napi;
-use raw_snapshot::RawExperimentSnapshotOptions;
+use raw_snapshot::RawSnapshotOptions;
 use raw_storage::RawStorageOptions;
-use rspack_core::{ExperimentCacheOptions, cache::persistent::PersistentCacheOptions};
+use rspack_core::{CacheOptions, cache::persistent::PersistentCacheOptions};
 
-pub type RawExperimentCacheOptions = Either<bool, RawExperimentCache>;
-
-#[derive(Debug, Default)]
+#[derive(Debug)]
 #[napi(object)]
-pub struct RawExperimentCacheOptionsPersistent {
+pub struct RawCacheOptionsPersistent {
   pub build_dependencies: Option<Vec<String>>,
   pub version: Option<String>,
-  pub snapshot: Option<RawExperimentSnapshotOptions>,
+  pub snapshot: Option<RawSnapshotOptions>,
   pub storage: Option<RawStorageOptions>,
 }
 
-impl From<RawExperimentCacheOptionsPersistent> for PersistentCacheOptions {
-  fn from(value: RawExperimentCacheOptionsPersistent) -> Self {
+impl From<RawCacheOptionsPersistent> for PersistentCacheOptions {
+  fn from(value: RawCacheOptionsPersistent) -> Self {
     Self {
       build_dependencies: value
         .build_dependencies
@@ -39,16 +37,21 @@ impl From<RawExperimentCacheOptionsPersistent> for PersistentCacheOptions {
   }
 }
 
-#[derive(Debug, Default)]
-pub enum RawExperimentCache {
-  #[default]
-  Memory,
-  Persistent(RawExperimentCacheOptionsPersistent),
+#[derive(Debug)]
+#[napi(object)]
+pub struct RawCacheOptionsMemory {
+  pub max_generations: Option<u32>,
 }
 
-impl TypeName for RawExperimentCache {
+#[derive(Debug)]
+pub enum InnerCacheOptions {
+  Memory(RawCacheOptionsMemory),
+  Persistent(RawCacheOptionsPersistent),
+}
+
+impl TypeName for InnerCacheOptions {
   fn type_name() -> &'static str {
-    "RawExperimentCache"
+    "InnerCacheOptions"
   }
 
   fn value_type() -> napi::ValueType {
@@ -56,9 +59,9 @@ impl TypeName for RawExperimentCache {
   }
 }
 
-impl ValidateNapiValue for RawExperimentCache {}
+impl ValidateNapiValue for InnerCacheOptions {}
 
-impl FromNapiValue for RawExperimentCache {
+impl FromNapiValue for InnerCacheOptions {
   unsafe fn from_napi_value(
     env: napi::sys::napi_env,
     napi_val: napi::sys::napi_value,
@@ -69,10 +72,13 @@ impl FromNapiValue for RawExperimentCache {
 
       let v = match &*t {
         "persistent" => {
-          let o = RawExperimentCacheOptionsPersistent::from_napi_value(env, napi_val)?;
+          let o = RawCacheOptionsPersistent::from_napi_value(env, napi_val)?;
           Self::Persistent(o)
         }
-        "memory" => Self::Memory,
+        "memory" => {
+          let o = RawCacheOptionsMemory::from_napi_value(env, napi_val)?;
+          Self::Memory(o)
+        }
         _ => panic!("Unexpected cache type: {t}, expected 'persistent' or 'memory'"),
       };
 
@@ -81,20 +87,22 @@ impl FromNapiValue for RawExperimentCache {
   }
 }
 
-pub fn normalize_raw_experiment_cache_options(
-  options: RawExperimentCacheOptions,
-) -> ExperimentCacheOptions {
+pub type RawCacheOptions = Either<bool, InnerCacheOptions>;
+
+pub fn normalize_raw_cache(options: RawCacheOptions) -> CacheOptions {
   match options {
     Either::A(options) => {
       if options {
-        ExperimentCacheOptions::Memory
+        CacheOptions::Memory { max_generations: 1 }
       } else {
-        ExperimentCacheOptions::Disabled
+        CacheOptions::Disabled
       }
     }
     Either::B(options) => match options {
-      RawExperimentCache::Persistent(options) => ExperimentCacheOptions::Persistent(options.into()),
-      RawExperimentCache::Memory => ExperimentCacheOptions::Memory,
+      InnerCacheOptions::Persistent(options) => CacheOptions::Persistent(options.into()),
+      InnerCacheOptions::Memory(options) => CacheOptions::Memory {
+        max_generations: options.max_generations.unwrap_or(1),
+      },
     },
   }
 }
