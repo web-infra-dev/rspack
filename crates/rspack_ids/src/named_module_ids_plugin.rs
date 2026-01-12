@@ -130,12 +130,21 @@ async fn module_ids(
   module_ids_artifact: &mut ModuleIdsArtifact,
   _diagnostics: &mut Vec<Diagnostic>,
 ) -> Result<()> {
+  // Clear artifacts when incremental is disabled for MODULE_IDS pass
+  if !compilation
+    .incremental
+    .passes_enabled(IncrementalPasses::MODULE_IDS)
+  {
+    module_ids_artifact.clear();
+  }
+
   let mut module_ids = std::mem::take(module_ids_artifact);
   let mut used_ids: FxHashMap<ModuleId, ModuleIdentifier> = module_ids
     .iter()
     .map(|(&module, id)| (id.clone(), module))
     .collect();
   let module_graph = compilation.get_module_graph();
+
   if let Some(mutations) = compilation
     .incremental
     .mutations_read(IncrementalPasses::MODULE_IDS)

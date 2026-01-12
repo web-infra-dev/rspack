@@ -156,6 +156,14 @@ async fn optimize_dependencies(
   build_module_graph_artifact: &mut BuildModuleGraphArtifact,
   _diagnostics: &mut Vec<Diagnostic>,
 ) -> Result<Option<bool>> {
+  // Clear artifact when incremental is disabled for SIDE_EFFECTS pass
+  if !compilation
+    .incremental
+    .passes_enabled(IncrementalPasses::SIDE_EFFECTS)
+  {
+    side_effects_optimize_artifact.clear();
+  }
+
   let logger = compilation.get_logger("rspack.SideEffectsFlagPlugin");
   let start = logger.time("update connections");
 
@@ -179,6 +187,7 @@ async fn optimize_dependencies(
     .collect();
 
   let inner_start = logger.time("prepare connections");
+
   let modules: IdentifierSet = if let Some(mutations) = compilation
     .incremental
     .mutations_read(IncrementalPasses::SIDE_EFFECTS)
@@ -241,8 +250,6 @@ async fn optimize_dependencies(
 
     modules
   } else {
-    // Clear artifact when incremental is disabled for SIDE_EFFECTS pass
-    side_effects_optimize_artifact.clear();
     all_modules.keys().copied().collect()
   };
   logger.time_end(inner_start);

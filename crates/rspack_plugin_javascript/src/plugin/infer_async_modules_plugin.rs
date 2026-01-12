@@ -18,6 +18,14 @@ async fn finish_modules(
   compilation: &mut Compilation,
   async_modules_artifact: &mut AsyncModulesArtifact,
 ) -> Result<()> {
+  // Clear artifact when incremental is disabled for INFER_ASYNC_MODULES pass
+  if !compilation
+    .incremental
+    .passes_enabled(IncrementalPasses::INFER_ASYNC_MODULES)
+  {
+    async_modules_artifact.clear();
+  }
+
   if let Some(mutations) = compilation
     .incremental
     .mutations_read(IncrementalPasses::INFER_ASYNC_MODULES)
@@ -34,9 +42,6 @@ async fn finish_modules(
       .for_each(|module| {
         async_modules_artifact.remove(module);
       });
-  } else {
-    // Clear artifact when incremental is disabled for INFER_ASYNC_MODULES pass
-    async_modules_artifact.clear();
   }
 
   let module_graph = compilation.get_module_graph();

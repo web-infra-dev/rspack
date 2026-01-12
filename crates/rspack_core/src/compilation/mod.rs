@@ -1548,6 +1548,14 @@ impl Compilation {
     &self,
     dependencies_diagnostics_artifact: &mut DependenciesDiagnosticsArtifact,
   ) -> Vec<Diagnostic> {
+    // Clear artifact when incremental is disabled for DEPENDENCIES_DIAGNOSTICS pass
+    if !self
+      .incremental
+      .passes_enabled(IncrementalPasses::DEPENDENCIES_DIAGNOSTICS)
+    {
+      dependencies_diagnostics_artifact.clear();
+    }
+
     // Compute modules while holding the lock, then release it
     let (modules, has_mutations) = {
       let mutations = self

@@ -205,6 +205,14 @@ async fn chunk_ids(
   named_chunk_ids_artifact: &mut ChunkNamedIdArtifact,
   _diagnostics: &mut Vec<Diagnostic>,
 ) -> rspack_error::Result<()> {
+  // Clear artifact when incremental is disabled for CHUNK_IDS pass
+  if !compilation
+    .incremental
+    .passes_enabled(IncrementalPasses::CHUNK_IDS)
+  {
+    named_chunk_ids_artifact.clear();
+  }
+
   if let Some(mutations) = compilation
     .incremental
     .mutations_read(IncrementalPasses::CHUNK_IDS)
