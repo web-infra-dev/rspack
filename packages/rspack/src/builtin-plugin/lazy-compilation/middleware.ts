@@ -163,13 +163,25 @@ function applyPlugin(
   plugin.apply(compiler);
 }
 
-function getRequestBody(req: IncomingMessage): Promise<string> {
+function getRequestBody(
+  req: IncomingMessage & { body?: unknown },
+): Promise<string> {
+  // If body is already parsed by another middleware, use it directly
+  if (req.body !== undefined) {
+    if (typeof req.body === 'string') {
+      return Promise.resolve(req.body);
+    }
+    return Promise.resolve(JSON.stringify(req.body));
+  }
+
   return new Promise((resolve, reject) => {
-    let body = '';
-    req.on('data', (chunk) => {
-      body += chunk.toString();
+    const chunks: Buffer[] = [];
+    req.on('data', (chunk: Buffer) => {
+      chunks.push(chunk);
     });
     req.on('end', () => {
+      // Concatenate all chunks and decode as UTF-8 to handle multi-byte characters correctly
+      const body = Buffer.concat(chunks).toString('utf8');
       resolve(body);
     });
     req.on('error', reject);
