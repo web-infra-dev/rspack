@@ -2,7 +2,7 @@ use rspack_cacheable::{
   cacheable,
   with::{AsRefStr, AsRefStrConverter},
 };
-use rspack_swc_plugin_import::{ImportOptions, RawImportOptions};
+use rspack_swc_plugin_import::{ImportOptions, RawImportOptions, TransformImportOptions};
 use serde::Deserialize;
 use swc_config::{file_pattern::FilePattern, types::BoolConfig};
 use swc_core::base::config::{
@@ -14,6 +14,7 @@ use swc_core::base::config::{
 #[serde(rename_all = "camelCase", default)]
 pub struct RawRspackExperiments {
   pub import: Option<Vec<RawImportOptions>>,
+  pub transform_import: Option<Vec<TransformImportOptions>>,
 }
 
 #[derive(Default, Deserialize, Debug)]
@@ -26,6 +27,7 @@ pub struct RawCollectTypeScriptInfoOptions {
 #[derive(Default, Debug)]
 pub(crate) struct RspackExperiments {
   pub(crate) import: Option<Vec<ImportOptions>>,
+  pub(crate) transform_import: Option<Vec<TransformImportOptions>>,
 }
 
 #[derive(Default, Debug)]
@@ -47,6 +49,7 @@ impl From<RawRspackExperiments> for RspackExperiments {
       import: value
         .import
         .map(|i| i.into_iter().map(|v| v.into()).collect()),
+      transform_import: value.transform_import,
     }
   }
 }
