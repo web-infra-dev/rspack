@@ -11,11 +11,11 @@ Rspack 提供两种方案来支持 Vue：
 
 ## Vue 3
 
-目前，Rspack 已经完成了对 Vue 3 的支持，请确保你的 [vue-loader](https://github.com/vuejs/vue-loader) 版本 >= 17.2.2，并进行如下配置：
+目前，Rspack 已经完成了对 Vue 3 的支持，请确保你的 [rspack-vue-loader](https://github.com/rstackjs/rspack-vue-loader) 版本 >= 17.2.2，并进行如下配置：
 
 ```js title="rspack.config.mjs"
 import { defineConfig } from '@rspack/cli';
-import { VueLoaderPlugin } from 'vue-loader';
+import { VueLoaderPlugin } from 'rspack-vue-loader';
 
 export default defineConfig({
   plugins: [new VueLoaderPlugin()],
@@ -23,7 +23,7 @@ export default defineConfig({
     rules: [
       {
         test: /\.vue$/,
-        loader: 'vue-loader',
+        loader: 'rspack-vue-loader',
         options: {
           // 注意，为了绝大多数功能的可用性，请确保该选项为 `true`
           experimentalInlineMatchResource: true,
