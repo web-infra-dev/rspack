@@ -27,14 +27,6 @@
 
 更多的细节, 可以查看 [Rsdoctor - 重复包治理](https://rsdoctor.rs/zh/blog/topic/duplicate-pkg-problem).
 
-## webpack-bundle-analyzer
-
-Rspack CLI 支持使用 `--analyze` 选项进行包体积分析，我们在内部使用 [webpack-bundle-analyzer](https://www.npmjs.com/package/webpack-bundle-analyzer) 实现该功能。
-
-```sh
-$ rspack build --analyze
-```
-
 ## bundle-stats & statoscope
 
 你也可以生成 stats.json 文件，用其他包解析工具进一步分析，如 [bundle-stats](https://github.com/relative-ci/bundle-stats) 或 [statoscope](https://statoscope.tech/)。
