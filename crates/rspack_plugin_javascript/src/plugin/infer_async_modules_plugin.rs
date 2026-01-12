@@ -34,6 +34,9 @@ async fn finish_modules(
       .for_each(|module| {
         async_modules_artifact.remove(module);
       });
+  } else {
+    // Clear artifact when incremental is disabled for INFER_ASYNC_MODULES pass
+    async_modules_artifact.clear();
   }
 
   let module_graph = compilation.get_module_graph();
