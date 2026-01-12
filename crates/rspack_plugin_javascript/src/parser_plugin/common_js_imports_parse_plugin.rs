@@ -402,21 +402,9 @@ impl CommonJsImportsParserPlugin {
 }
 
 impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
-  fn can_rename(&self, parser: &mut JavascriptParser, expr: &Expr, for_name: &str) -> Option<bool> {
+  fn can_rename(&self, parser: &mut JavascriptParser, for_name: &str) -> Option<bool> {
     if for_name == expr_name::REQUIRE {
-      let require_alias = parser.javascript_options.require_alias.unwrap_or(true);
-      if !require_alias {
-        let mut warning = create_traceable_error(
-          "Critical dependency".into(),
-          "please enable 'module.parser.javascript.requireAlias' to analyze require alias"
-            .to_string(),
-          parser.source.to_owned(),
-          expr.span().into(),
-        );
-        warning.severity = Severity::Warning;
-        parser.add_warning(warning.into());
-      }
-      Some(require_alias)
+      Some(parser.javascript_options.require_alias.unwrap_or(true))
     } else {
       None
     }
