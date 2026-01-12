@@ -8,5 +8,7 @@ version.workspace = true
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dependencies]
+chrono                  = { workspace = true, features = ["alloc"] }
 rspack_tracing_perfetto = { workspace = true }
+serde_json              = { workspace = true }
 tracing-subscriber      = { workspace = true, features = ["env-filter", "json"] }
