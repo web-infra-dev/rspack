@@ -4,7 +4,7 @@ use cow_utils::CowUtils;
 use itertools::Itertools;
 use rspack_core::DependencyRange;
 use rustc_hash::FxHashSet as HashSet;
-use swc_core::{atoms::Atom, common::Spanned};
+use swc_core::{atoms::Atom, common::Spanned, ecma::ast::Expr};
 
 use super::{super::JavascriptParserPlugin, ProvideValue, VALUE_DEP_PREFIX};
 use crate::{dependency::ProvideDependency, visitors::JavascriptParser};
@@ -62,7 +62,7 @@ impl ProvideParserPlugin {
 }
 
 impl JavascriptParserPlugin for ProvideParserPlugin {
-  fn can_rename(&self, _parser: &mut JavascriptParser, str: &str) -> Option<bool> {
+  fn can_rename(&self, _parser: &mut JavascriptParser, _expr: &Expr, str: &str) -> Option<bool> {
     self.names.contains(str).then_some(true)
   }
 

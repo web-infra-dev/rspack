@@ -52,7 +52,7 @@ impl DefineParserPlugin {
 }
 
 impl JavascriptParserPlugin for DefineParserPlugin {
-  fn can_rename(&self, parser: &mut JavascriptParser, str: &str) -> Option<bool> {
+  fn can_rename(&self, parser: &mut JavascriptParser, _expr: &Expr, str: &str) -> Option<bool> {
     if let Some(first_key) = self.walk_data.can_rename.get(str) {
       self.add_value_dependency(parser, str);
       if let Some(first_key) = first_key
