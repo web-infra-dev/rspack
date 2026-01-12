@@ -35,14 +35,12 @@
   "dependencies": {
     "@discoveryjs/json-ext": "^0.5.7",
     "@rspack/dev-server": "~1.1.5",
-    "exit-hook": "^4.0.0",
-    "webpack-bundle-analyzer": "4.10.2"
+    "exit-hook": "^4.0.0"
   },
   "devDependencies": {
     "@rslib/core": "0.19.1",
     "@rspack/core": "workspace:*",
     "@rspack/test-tools": "workspace:*",
-    "@types/webpack-bundle-analyzer": "^4.7.0",
     "cac": "^6.7.14",
     "concat-stream": "^2.0.0",
     "cross-env": "^10.1.0",

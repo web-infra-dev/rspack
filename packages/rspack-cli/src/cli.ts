@@ -139,18 +139,6 @@ export class RspackCLI {
       if (options.outputPath) {
         item.output.path = path.resolve(process.cwd(), options.outputPath);
       }
-      if (options.analyze) {
-        const { BundleAnalyzerPlugin } =
-          await import('webpack-bundle-analyzer');
-        (item.plugins ??= []).push({
-          name: 'rspack-bundle-analyzer',
-          apply(compiler: any) {
-            new BundleAnalyzerPlugin({
-              generateStatsFile: true,
-            }).apply(compiler);
-          },
-        });
-      }
       if (process.env.RSPACK_PROFILE) {
         const { applyProfile } = await import('./utils/profile.js');
         await applyProfile(
