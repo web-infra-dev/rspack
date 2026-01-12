@@ -38,7 +38,7 @@ pub trait JavascriptParserPlugin {
   /// The return value will have no effect.
   fn top_level_for_of_await_stmt(&self, _parser: &mut JavascriptParser, _stmt: &ForOfStmt) {}
 
-  fn can_rename(&self, _parser: &mut JavascriptParser, _str: &str) -> Option<bool> {
+  fn can_rename(&self, _parser: &mut JavascriptParser, _expr: &Expr, _str: &str) -> Option<bool> {
     None
   }
 
