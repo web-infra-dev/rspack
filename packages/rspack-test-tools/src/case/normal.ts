@@ -201,6 +201,11 @@ function defaultOptions(
           type: 'webassembly/async',
         },
       ],
+      parser: {
+        javascript: {
+          requireAlias: true,
+        },
+      },
     },
     plugins: (compilerOptions?.plugins || [])
       .concat(testConfig.plugins || [])
