@@ -4,7 +4,7 @@ use derive_more::Debug;
 use futures::{future::BoxFuture, lock::Mutex};
 use rspack_core::{
   BoxDependency, Compilation, CompilationParams, CompilerCompilation, CompilerMake, Context,
-  DependencyId, DependencyType, EntryDependency, EntryOptions, Plugin,
+  DependencyId, DependencyType, EntryDependency, EntryOptions, Plugin, internal,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -66,8 +66,8 @@ async fn make(&self, compilation: &mut Compilation) -> Result<()> {
       let entry_dependency: BoxDependency = if let Some(map) =
         imported_dependencies.get(entry.as_str())
         && let Some(dependency_id) = map.get(&options)
+        && let Some(dependency) = internal::try_dependency_by_id(module_graph, dependency_id)
       {
-        let dependency = module_graph.dependency_by_id(dependency_id);
         next_imported_dependencies
           .entry(entry.into())
           .or_default()
