@@ -579,9 +579,9 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
     None
   }
 
-  fn can_rename(&self, parser: &mut JavascriptParser, expr: &Expr, str: &str) -> Option<bool> {
+  fn can_rename(&self, parser: &mut JavascriptParser, str: &str) -> Option<bool> {
     for plugin in &self.plugins {
-      let res = plugin.can_rename(parser, expr, str);
+      let res = plugin.can_rename(parser, str);
       // `SyncBailHook`
       if res.is_some() {
         return res;
