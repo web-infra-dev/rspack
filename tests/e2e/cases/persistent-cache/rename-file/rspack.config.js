@@ -8,10 +8,7 @@ module.exports = {
   // the persistent cache will write to disk
   mode: 'production',
   plugins: [new rspack.HtmlRspackPlugin()],
-  cache: true,
-  experiments: {
-    cache: {
-      type: 'persistent',
-    },
+  cache: {
+    type: 'persistent',
   },
 };

@@ -19,12 +19,9 @@ module.exports = {
       },
     },
   ],
-  cache: true,
   lazyCompilation: true,
-  experiments: {
-    cache: {
-      type: 'persistent',
-    },
+  cache: {
+    type: 'persistent',
   },
   devServer: {
     hot: true,
