@@ -1142,6 +1142,12 @@ impl JsStats {
   }
 
   fn modules(&self, env: &Env, options: &ExtendedStatsOptions) -> Result<napi_value> {
+    if self.inner.compilation.build_module_graph_artifact.is_none() {
+      return unsafe {
+        ToNapiValue::to_napi_value(env.raw(), Vec::<JsStatsModule>::new()).to_napi_result()
+      };
+    }
+
     self
       .inner
       .get_modules(options, |res| {
@@ -1194,6 +1200,12 @@ impl JsStats {
   }
 
   fn errors(&self, env: &Env) -> napi::Result<napi_value> {
+    if self.inner.compilation.build_module_graph_artifact.is_none() {
+      return unsafe {
+        ToNapiValue::to_napi_value(env.raw(), Vec::<JsStatsModule>::new()).to_napi_result()
+      };
+    }
+
     self.inner.get_errors(|errors| {
       let val = errors
         .into_iter()
@@ -1204,6 +1216,12 @@ impl JsStats {
   }
 
   fn warnings(&self, env: &Env) -> napi::Result<napi_value> {
+    if self.inner.compilation.build_module_graph_artifact.is_none() {
+      return unsafe {
+        ToNapiValue::to_napi_value(env.raw(), Vec::<JsStatsModule>::new()).to_napi_result()
+      };
+    }
+
     self.inner.get_warnings(|warnings| {
       let val = warnings
         .into_iter()
