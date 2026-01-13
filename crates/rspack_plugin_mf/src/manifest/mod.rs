@@ -249,7 +249,8 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         .downcast_ref::<ContainerEntryModule>()
       {
         container_entry_module = Some(module_identifier);
-        for (expose_key, options) in container_entry.exposes() {
+        let blocks = module.get_blocks();
+        for (index, (expose_key, options)) in container_entry.exposes().iter().enumerate() {
           let expose_name = expose_key.trim_start_matches("./").to_string();
           let Some(import) = options.import.iter().find(|request| !request.is_empty()) else {
             continue;
@@ -266,7 +267,21 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
               requires: Vec::new(),
               assets: StatsAssetsGroup::default(),
             });
-          if let Some(n) = &options.name
+
+          if let Some(block_id) = blocks.get(index)
+            && let Some(chunk_group) = compilation
+              .chunk_graph
+              .get_block_chunk_group(block_id, &compilation.chunk_group_by_ukey)
+            && let Some(chunk_key) = chunk_group.chunks.first()
+            && let Some(chunk) = compilation.chunk_by_ukey.get(chunk_key)
+          {
+            if let Some(name) = chunk.name() {
+              expose_chunk_names.insert(expose_file_key.clone(), name.to_string());
+            }
+          }
+
+          if !expose_chunk_names.contains_key(&expose_file_key)
+            && let Some(n) = &options.name
             && !n.is_empty()
           {
             expose_chunk_names.insert(expose_file_key, n.clone());
