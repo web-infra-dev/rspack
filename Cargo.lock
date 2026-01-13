@@ -3764,6 +3764,7 @@ name = "rspack_cacheable_test"
 version = "0.100.0-alpha.0"
 dependencies = [
  "camino",
+ "criterion2",
  "dashmap 6.1.0",
  "json",
  "lightningcss",
