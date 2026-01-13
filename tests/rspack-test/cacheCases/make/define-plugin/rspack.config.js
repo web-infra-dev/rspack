@@ -14,10 +14,8 @@ module.exports = {
 	optimization: {
 		minimize: false
 	},
-	experiments: {
-		cache: {
-			type: "persistent"
-		}
+	cache: {
+		type: "persistent"
 	},
 	plugins: [
 		{

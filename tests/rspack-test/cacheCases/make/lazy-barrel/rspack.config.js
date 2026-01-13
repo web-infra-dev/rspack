@@ -7,10 +7,10 @@ module.exports = {
 		// avoid analyze side effects that will change index.js dependencies at HMR
 		sideEffects: "flag"
 	},
+	cache: {
+		type: "persistent"
+	},
 	experiments: {
-		cache: {
-			type: "persistent"
-		},
 		lazyBarrel: true
 	},
 	plugins: [

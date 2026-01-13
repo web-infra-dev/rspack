@@ -1515,7 +1515,6 @@ CompilerOptions {
             ),
         },
         top_level_await: true,
-        cache: Disabled,
         css: false,
         lazy_barrel: true,
         defer_import: false,

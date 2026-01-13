@@ -23,7 +23,8 @@ where
   match options {
     CacheOptions::Disabled => None,
     CacheOptions::Memory { max_generations } => {
-      Some(Box::new(MemoryStorage::new(max_generations.unwrap_or(1))))
+      Some(Box::new(MemoryStorage::new(*max_generations)))
     }
+    CacheOptions::Persistent(_) => Some(Box::new(MemoryStorage::new(1))),
   }
 }

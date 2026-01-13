@@ -352,11 +352,6 @@ function overrideOptions(
   if (typeof options.output.pathinfo === 'undefined')
     options.output.pathinfo = false;
   if (!options.output.filename) options.output.filename = 'bundle.js';
-  if (options.cache && (options.cache as any).type === 'filesystem') {
-    const cacheDirectory = path.join(tempDir, '.cache');
-    (options.cache as any).cacheDirectory = cacheDirectory;
-    (options.cache as any).name = `config-${index}`;
-  }
   options.optimization ??= {};
   options.experiments ??= {};
   options.experiments.css ??= true;
