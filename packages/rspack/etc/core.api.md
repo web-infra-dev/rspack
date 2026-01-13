@@ -2302,6 +2302,7 @@ export type Environment = {
     document?: boolean;
     dynamicImport?: boolean;
     dynamicImportInWorker?: boolean;
+    importMetaDirnameAndFilename?: boolean;
     forOf?: boolean;
     globalThis?: boolean;
     methodShorthand?: boolean;
