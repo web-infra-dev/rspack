@@ -22,7 +22,6 @@ module.exports = {
 			  experiments: Object {
 			    asyncWebAssembly: false,
 			    buildHttp: undefined,
-			    cache: false,
 			    css: undefined,
 			    deferImport: false,
 			    futureDefaults: false,

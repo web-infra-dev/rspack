@@ -1823,9 +1823,15 @@ export interface RawCacheGroupOptions {
   usedExports?: boolean
 }
 
-export interface RawCacheOptions {
-  type: string
+export interface RawCacheOptionsMemory {
   maxGenerations?: number
+}
+
+export interface RawCacheOptionsPersistent {
+  buildDependencies?: Array<string>
+  version?: string
+  snapshot?: RawSnapshotOptions
+  storage?: RawStorageOptions
 }
 
 export interface RawCircularDependencyRspackPluginOptions {
@@ -2123,27 +2129,13 @@ export interface RawEvalDevToolModulePluginOptions {
   sourceUrlComment?: string
 }
 
-export interface RawExperimentCacheOptionsPersistent {
-  buildDependencies?: Array<string>
-  version?: string
-  snapshot?: RawExperimentSnapshotOptions
-  storage?: RawStorageOptions
-}
-
 export interface RawExperiments {
   topLevelAwait: boolean
 incremental?: false | { [key: string]: boolean }
-cache: boolean | { type: "persistent" } & RawExperimentCacheOptionsPersistent | { type: "memory" }
 useInputFileSystem?: false | Array<RegExp>
 css?: boolean
 lazyBarrel: boolean
 deferImport: boolean
-}
-
-export interface RawExperimentSnapshotOptions {
-  immutablePaths: Array<string|RegExp>
-  unmanagedPaths: Array<string|RegExp>
-  managedPaths: Array<string|RegExp>
 }
 
 export interface RawExposeOptions {
@@ -2601,7 +2593,7 @@ export interface RawOptions {
   module: RawModuleOptions
   optimization: RawOptimizationOptions
   stats: RawStatsOptions
-  cache: RawCacheOptions
+  cache: boolean | { type: "memory" } | ({ type: "persistent" } & RawCacheOptionsPersistent)
   experiments: RawExperiments
   node?: RawNodeOption
   amd?: string
@@ -2827,6 +2819,12 @@ export interface RawSizeLimitsPluginOptions {
   hints?: "error" | "warning"
   maxAssetSize?: number
   maxEntrypointSize?: number
+}
+
+export interface RawSnapshotOptions {
+  immutablePaths: Array<string|RegExp>
+  unmanagedPaths: Array<string|RegExp>
+  managedPaths: Array<string|RegExp>
 }
 
 export interface RawSplitChunkSizes {

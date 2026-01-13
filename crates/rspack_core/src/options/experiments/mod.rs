@@ -1,7 +1,3 @@
-mod cache;
-
-pub use cache::CacheOptions as ExperimentCacheOptions;
-
 use crate::incremental::IncrementalOptions;
 
 // BE CAREFUL:
@@ -11,7 +7,6 @@ use crate::incremental::IncrementalOptions;
 pub struct Experiments {
   pub incremental: IncrementalOptions,
   pub top_level_await: bool,
-  pub cache: ExperimentCacheOptions,
   pub css: bool,
   pub lazy_barrel: bool,
   pub defer_import: bool,

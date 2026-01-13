@@ -8,7 +8,7 @@ use rspack_fs::{IntermediateFileSystem, ReadableFileSystem};
 
 use self::{disable::DisableCache, memory::MemoryCache, persistent::PersistentCache};
 use crate::{
-  Compilation, CompilerOptions, ExperimentCacheOptions,
+  CacheOptions, Compilation, CompilerOptions,
   compilation::build_module_graph::BuildModuleGraphArtifact,
 };
 
@@ -42,10 +42,10 @@ pub fn new_cache(
   input_filesystem: Arc<dyn ReadableFileSystem>,
   intermediate_filesystem: Arc<dyn IntermediateFileSystem>,
 ) -> Box<dyn Cache> {
-  match &compiler_option.experiments.cache {
-    ExperimentCacheOptions::Disabled => Box::new(DisableCache),
-    ExperimentCacheOptions::Memory => Box::new(MemoryCache),
-    ExperimentCacheOptions::Persistent(option) => Box::new(PersistentCache::new(
+  match &compiler_option.cache {
+    CacheOptions::Disabled => Box::new(DisableCache),
+    CacheOptions::Memory { .. } => Box::new(MemoryCache),
+    CacheOptions::Persistent(option) => Box::new(PersistentCache::new(
       compiler_path,
       option,
       compiler_option.clone(),

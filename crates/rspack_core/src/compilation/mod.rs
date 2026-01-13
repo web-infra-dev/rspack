@@ -405,8 +405,9 @@ impl Compilation {
       code_generated_modules: Default::default(),
       chunk_render_cache_artifact: ChunkRenderCacheArtifact::new(MemoryGCStorage::new(
         match &options.cache {
-          CacheOptions::Memory { max_generations } => max_generations.unwrap_or(1),
           CacheOptions::Disabled => 0, // FIXME: this should be removed in future
+          CacheOptions::Memory { max_generations } => *max_generations,
+          CacheOptions::Persistent(_) => 1,
         },
       )),
       build_time_executed_modules: Default::default(),

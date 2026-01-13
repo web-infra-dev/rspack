@@ -91,13 +91,7 @@ export const applyRspackOptionsDefaults = (
   // but Rspack currently does not support this option
   F(options, 'cache', () => development);
 
-  if (options.cache === false) {
-    options.experiments.cache = false;
-  }
-
-  applyExperimentsDefaults(options.experiments, {
-    development,
-  });
+  applyExperimentsDefaults(options.experiments);
 
   applyOptimizationDefaults(options.optimization, {
     production,
@@ -215,13 +209,7 @@ const applyInfrastructureLoggingDefaults = (
   D(infrastructureLogging, 'appendOnly', !tty);
 };
 
-const applyExperimentsDefaults = (
-  experiments: ExperimentsNormalized,
-  { development }: { development: boolean },
-) => {
-  // IGNORE(experiments.cache): In webpack, cache is undefined by default
-  F(experiments, 'cache', () => development);
-
+const applyExperimentsDefaults = (experiments: ExperimentsNormalized) => {
   D(experiments, 'futureDefaults', false);
   // TODO: lazyCompilation is moving to Configuration top level, we can remove this in future.
   // IGNORE(experiments.lazyCompilation): In webpack, lazyCompilation is undefined by default
