@@ -32,7 +32,7 @@ fn get_simplified_template_result<'a>(
         .cooked
         .as_ref()
         .and_then(|q| q.as_atom())
-        .expect("quasic should be not empty"),
+        .unwrap_or(&quasi_expr.raw),
       TemplateStringKind::Raw => &quasi_expr.raw,
     };
     if i > 0 {
