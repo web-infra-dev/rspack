@@ -217,6 +217,7 @@ export const applyRspackOptionsBaseDefaults = (
 	options: RspackOptionsNormalized
 ) => {
 	F(options, "context", () => process.cwd());
+	F(options.output, "path", () => options.context);
 	applyInfrastructureLoggingDefaults(options.infrastructureLogging);
 };
 
