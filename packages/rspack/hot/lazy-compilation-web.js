@@ -1,6 +1,6 @@
-if (typeof fetch !== 'function') {
+if (typeof XMLHttpRequest === 'undefined') {
   throw new Error(
-    "Environment doesn't support lazy compilation (requires fetch API)",
+    "Environment doesn't support lazy compilation (requires XMLHttpRequest)",
   );
 }
 
@@ -8,58 +8,63 @@ var urlBase = decodeURIComponent(__resourceQuery.slice(1));
 var compiling = new Set();
 var errorHandlers = new Set();
 
-/** @type {Promise<void> | undefined} */
-var pendingRequestPromise;
-/** @type {AbortController | undefined} */
+/** @type {XMLHttpRequest | undefined} */
+var pendingXhr;
 /** @type {boolean} */
 var hasPendingUpdate = false;
 
 var sendRequest = function sendRequest() {
   if (compiling.size === 0) {
-    pendingRequestPromise = undefined;
     hasPendingUpdate = false;
-    return Promise.resolve();
+    return;
   }
 
   var modules = Array.from(compiling);
+  var data = modules.join('\n');
 
-  return fetch(urlBase, {
-    method: 'POST',
-    body: JSON.stringify(modules),
-  })
-    .then(function (response) {
-      if (!response.ok) {
+  var xhr = new XMLHttpRequest();
+  pendingXhr = xhr;
+  xhr.open('POST', urlBase, true);
+  // text/plain Content-Type is simple request header
+  xhr.setRequestHeader('Content-Type', 'text/plain');
+
+  xhr.onreadystatechange = function () {
+    if (xhr.readyState === 4) {
+      pendingXhr = undefined;
+      if (xhr.status < 200 || xhr.status >= 300) {
         var error = new Error(
           'Problem communicating active modules to the server: HTTP ' +
-            response.status,
+            xhr.status,
         );
         errorHandlers.forEach(function (onError) {
           onError(error);
         });
       }
-      // The response is kept alive for server-side event streaming,
-      // but we don't need to process events for lazy compilation.
-    })
-    .catch(function (err) {
-      if (err.name === 'AbortError') {
-        // Request was aborted, which is expected when deactivating
-        return;
+      if (hasPendingUpdate) {
+        hasPendingUpdate = false;
+        sendRequest();
       }
-      errorHandlers.forEach(function (onError) {
-        onError(err);
-      });
+    }
+  };
+
+  xhr.onerror = function () {
+    pendingXhr = undefined;
+    var error = new Error('Problem communicating active modules to the server');
+    errorHandlers.forEach(function (onError) {
+      onError(error);
     });
+  };
+
+  xhr.send(data);
 };
 
 var sendActiveRequest = function sendActiveRequest() {
   hasPendingUpdate = true;
 
   // If no request is pending, start one
-  if (!pendingRequestPromise) {
-    pendingRequestPromise = sendRequest().finally(function () {
-      // After the request completes, check if there are pending updates
-      pendingRequestPromise = undefined;
-    });
+  if (!pendingXhr) {
+    hasPendingUpdate = false;
+    sendRequest();
   }
 };
 

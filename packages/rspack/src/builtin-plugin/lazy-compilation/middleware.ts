@@ -172,7 +172,7 @@ function readModuleIdsFromBody(
       return Promise.resolve(req.body);
     }
     if (typeof req.body === 'string') {
-      return Promise.resolve(JSON.parse(req.body));
+      return Promise.resolve(req.body.split('\n').filter(Boolean));
     }
     throw new Error('Invalid body type');
   }
@@ -185,7 +185,7 @@ function readModuleIdsFromBody(
     req.on('end', () => {
       // Concatenate all chunks and decode as UTF-8 to handle multi-byte characters correctly
       const body = Buffer.concat(chunks).toString('utf8');
-      resolve(JSON.parse(body));
+      resolve(body.split('\n').filter(Boolean));
     });
     req.on('error', reject);
   });
@@ -210,6 +210,7 @@ const lazyCompilationMiddlewareInternal = (
     let modules: string[] = [];
 
     if (req.method === 'POST') {
+      res.setHeader('Access-Control-Allow-Origin', '*');
       try {
         modules = await readModuleIdsFromBody(req);
       } catch (err) {
