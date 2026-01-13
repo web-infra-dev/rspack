@@ -63,6 +63,66 @@ pub static ABSOLUTE_REQUEST: LazyLock<Regex> =
 pub static PACKAGE_NAME: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"^((?:@[^\\/]+[\\/])?[^\\/]+)").expect("Invalid regex"));
 
+/// Runtime utility packages that should always maintain their own identity
+/// and never inherit parent's shared key
+static UTILITY_PACKAGES: LazyLock<HashSet<&'static str>> = LazyLock::new(|| {
+  [
+    "@babel/runtime",
+    "@babel/runtime-corejs2",
+    "@babel/runtime-corejs3",
+    "tslib",
+    "core-js",
+    "core-js-pure",
+    "regenerator-runtime",
+    "@swc/helpers",
+  ]
+  .into_iter()
+  .collect()
+});
+
+/// Check if a package is a utility package that should always use its own identity
+fn is_utility_package(name: &str) -> bool {
+  UTILITY_PACKAGES.contains(name)
+}
+
+/// Extract npm package name from a module's resource path
+/// e.g., "/node_modules/@babel/runtime/helpers/esm/inherits.js" -> "@babel/runtime"
+/// e.g., "/node_modules/antd/es/index.js" -> "antd"
+fn extract_package_name_from_path(path: &str) -> Option<String> {
+  let node_modules_marker = "node_modules/";
+  // Also handle Windows-style paths
+  let node_modules_marker_win = "node_modules\\";
+
+  let idx = path
+    .rfind(node_modules_marker)
+    .or_else(|| path.rfind(node_modules_marker_win));
+
+  if let Some(idx) = idx {
+    let marker_len = if path[idx..].starts_with(node_modules_marker) {
+      node_modules_marker.len()
+    } else {
+      node_modules_marker_win.len()
+    };
+    let after_node_modules = &path[idx + marker_len..];
+
+    // Handle scoped packages (@org/package)
+    if after_node_modules.starts_with('@') {
+      // Find the second slash for scoped packages
+      let parts: Vec<&str> = after_node_modules.splitn(3, ['/', '\\']).collect();
+      if parts.len() >= 2 {
+        return Some(format!("{}/{}", parts[0], parts[1]));
+      }
+    } else {
+      // Non-scoped package - take everything up to first slash
+      if let Some(slash_idx) = after_node_modules.find(['/', '\\']) {
+        return Some(after_node_modules[..slash_idx].to_string());
+      }
+      return Some(after_node_modules.to_string());
+    }
+  }
+  None
+}
+
 #[derive(Debug)]
 pub struct MatchedConsumes {
   pub resolved: FxHashMap<String, Arc<ConsumeOptions>>,
@@ -932,6 +992,21 @@ impl ConsumeSharedPlugin {
         .collect()
     };
 
+    // Collect resource paths for all modules to determine their actual package names
+    let module_resources: HashMap<ModuleIdentifier, Option<String>> = {
+      let module_graph = compilation.get_module_graph();
+      module_data
+        .keys()
+        .map(|id| {
+          let resource = module_graph
+            .module_by_identifier(id)
+            .and_then(|m| m.as_normal_module())
+            .map(|nm| nm.resource_resolved_data().resource().to_string());
+          (*id, resource)
+        })
+        .collect()
+    };
+
     let mut queue = VecDeque::new();
     let mut visited = HashSet::new();
     let mut shared_descendants = HashSet::new();
@@ -979,11 +1054,43 @@ impl ConsumeSharedPlugin {
             // Mark target as shared descendant
             shared_descendants.insert(*target_id);
 
-            // Inherit parent's shared key if target doesn't have one
-            if !effective_keys.contains_key(target_id)
-              && let Some(key) = parent_shared_key.as_ref()
-            {
-              effective_keys.insert(*target_id, key.clone());
+            // Determine effective shared key for target module
+            // Key logic: Use target's own package name if it's a different package or a utility package
+            if !effective_keys.contains_key(target_id) {
+              // Get target's actual package name from its resource path
+              let target_pkg = module_resources
+                .get(target_id)
+                .and_then(|r| r.as_ref())
+                .and_then(|path| extract_package_name_from_path(path));
+
+              // Get parent's package name for comparison
+              let parent_pkg = parent_shared_key
+                .as_ref()
+                .and_then(|key| extract_package_name_from_path(key));
+
+              if let Some(target_pkg_name) = target_pkg {
+                // Utility packages (like @babel/runtime, tslib) ALWAYS use their own identity
+                if is_utility_package(&target_pkg_name) {
+                  effective_keys.insert(*target_id, target_pkg_name);
+                } else {
+                  // Check if target belongs to a DIFFERENT package than parent
+                  let is_different_package = parent_pkg
+                    .as_ref()
+                    .map(|p| p != &target_pkg_name)
+                    .unwrap_or(true);
+
+                  if is_different_package {
+                    // Use target's own package name
+                    effective_keys.insert(*target_id, target_pkg_name);
+                  } else if let Some(key) = parent_shared_key.as_ref() {
+                    // Same package - inherit parent's key
+                    effective_keys.insert(*target_id, key.clone());
+                  }
+                }
+              } else if let Some(key) = parent_shared_key.as_ref() {
+                // Fallback: inherit parent's key if we couldn't determine target's package
+                effective_keys.insert(*target_id, key.clone());
+              }
             }
 
             queue.push_back(*target_id);

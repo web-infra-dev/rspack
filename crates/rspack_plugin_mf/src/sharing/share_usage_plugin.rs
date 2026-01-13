@@ -506,6 +506,54 @@ impl ShareUsagePlugin {
       }
     }
 
+    // Track internal usage: check modules that are descendants of fallback
+    // This handles cases where internal modules within a package use exports
+    // that are not directly imported by external consumers
+    let internal_modules = self.collect_internal_descendants(module_graph, fallback_id);
+
+    for internal_id in &internal_modules {
+      // Skip the fallback module itself
+      if internal_id == fallback_id {
+        continue;
+      }
+
+      // Check outgoing connections from internal modules
+      for connection in module_graph.get_outgoing_connections(internal_id) {
+        let target_id = connection.module_identifier();
+
+        // Check if this connection points to the fallback or another internal module
+        if (target_id == fallback_id || internal_modules.contains(target_id))
+          && let Some(dependency) = module_graph.dependency_by_id(&connection.dependency_id)
+        {
+          let referenced = dependency.get_referenced_exports(
+            module_graph,
+            &ModuleGraphCacheArtifact::default(),
+            None,
+          );
+
+          for export_ref in referenced {
+            let names = match export_ref {
+              ExtendedReferencedExport::Array(names) => {
+                names.into_iter().map(|n| n.to_string()).collect::<Vec<_>>()
+              }
+              ExtendedReferencedExport::Export(info) => info
+                .name
+                .into_iter()
+                .map(|n| n.to_string())
+                .collect::<Vec<_>>(),
+            };
+
+            for name in names {
+              if !name.is_empty() && name != "*" && !used_exports.contains(&name) {
+                // This export is used internally within the package
+                used_exports.push(name);
+              }
+            }
+          }
+        }
+      }
+    }
+
     (used_exports, provided_exports)
   }
 
@@ -586,6 +634,37 @@ impl ShareUsagePlugin {
     }
 
     None
+  }
+
+  /// Collect all modules that are descendants of the fallback module
+  /// (i.e., modules imported by the fallback or its dependencies within the same package)
+  /// This is used to track internal usage within a shared package
+  fn collect_internal_descendants(
+    &self,
+    module_graph: &ModuleGraph,
+    fallback_id: &ModuleIdentifier,
+  ) -> HashSet<ModuleIdentifier> {
+    use std::collections::VecDeque;
+
+    let mut descendants = HashSet::new();
+    let mut queue = VecDeque::new();
+    queue.push_back(*fallback_id);
+
+    while let Some(current) = queue.pop_front() {
+      if !descendants.insert(current) {
+        continue;
+      }
+
+      // Get outgoing connections (modules this module imports)
+      for conn in module_graph.get_outgoing_connections(&current) {
+        let target = *conn.module_identifier();
+        if !descendants.contains(&target) {
+          queue.push_back(target);
+        }
+      }
+    }
+
+    descendants
   }
 
   fn get_single_chunk_characteristics(
