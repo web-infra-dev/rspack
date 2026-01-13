@@ -4329,6 +4329,7 @@ dependencies = [
 name = "rspack_plugin_dynamic_entry"
 version = "0.7.1"
 dependencies = [
+ "atomic_refcell",
  "derive_more",
  "futures",
  "rspack_core",
