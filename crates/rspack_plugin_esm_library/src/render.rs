@@ -233,6 +233,7 @@ var {} = {{}};
     }
 
     let mut already_required = IdentifierIndexSet::default();
+
     for m in &chunk_link.hoisted_modules {
       let info = concatenated_modules_map
         .get(m)
@@ -729,7 +730,12 @@ var {} = {{}};
     info: &ConcatenatedModuleInfo,
     chunk_link: &ChunkLinkContext,
   ) -> Result<ReplaceSource> {
-    let mut source = info.source.clone().expect("should have source");
+    let Some(mut source) = info.source.clone() else {
+      return Err(rspack_error::Error::error(format!(
+        "module: {} has no source",
+        info.module
+      )));
+    };
 
     for ((atom, ctxt), refs) in &info.binding_to_ref {
       if ctxt == &info.global_ctxt

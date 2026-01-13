@@ -16,9 +16,7 @@ module.exports = {
 	},
 	externals: "external-module",
 	optimization: {
-		avoidEntryIife: true,
-		concatenateModules: true,
-		minimize: false
+		runtimeChunk: false
 	},
 	plugins: [
 		function () {
@@ -30,10 +28,10 @@ module.exports = {
 				compilation.hooks.afterProcessAssets.tap("testcase", assets => {
 					const bundle = Object.values(assets)[0]._value;
 					expect(bundle)
-						.toContain(`var __webpack_exports__cjsInterop = (foo_default());
-export { external_module as defaultImport, namedImport, __webpack_exports__cjsInterop as cjsInterop };`);
+						.toContain(`var foo_default = /*#__PURE__*/__webpack_require__.n(foo);\nvar foo_default_0 = foo_default();`);
+					expect(bundle).toContain('foo_default_0 as cjsInterop')
 					expect(bundle).toContain(
-						'import external_module, { namedImport } from "external-module";'
+						'export { default as defaultImport, namedImport } from "external-module";'
 					);
 				});
 			};

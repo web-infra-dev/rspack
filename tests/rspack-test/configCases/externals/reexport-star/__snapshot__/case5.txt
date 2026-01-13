@@ -1,14 +1,13 @@
-import { foo } from "external1-alias";
-export * from "external1-alias";
+import { __webpack_require__ } from "./runtime~0.mjs";
+import "./906.mjs";
 
-;// CONCATENATED MODULE: external "external1-alias"
-
-;// CONCATENATED MODULE: ./case5.js
+const external_external1_alias_ = __webpack_require__("825");
 
 
-const bar = foo + 1
+const bar = external_external1_alias_.foo + 1
 
 
 
 
 export { bar };
+export * from "external1-alias";

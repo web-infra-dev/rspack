@@ -1,12 +1,8 @@
-import "external1-alias";
+import "./906.mjs";
 
-;// CONCATENATED MODULE: external "external1-alias"
-
-;// CONCATENATED MODULE: ./case3/foo.js
 
 const foo = 2
 
-;// CONCATENATED MODULE: ./case3/index.js
 
 const bar = 1
 

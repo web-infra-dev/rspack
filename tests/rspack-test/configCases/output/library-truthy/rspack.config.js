@@ -6,6 +6,10 @@ module.exports = {
 		}
 	},
 	optimization: {
+		runtimeChunk: false,
 		avoidEntryIife: true
+	},
+	experiments: {
+		outputModule: true
 	}
 };

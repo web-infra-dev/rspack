@@ -1546,6 +1546,30 @@ The AMD module will be:
 define('MyLibrary', [], factory);
 ```
 
+### output.library.preserveModules
+
+- **Type:** `string`
+- **Default:** `undefined`
+
+:::info
+Only available when `library.type` is set to `modern-module`.
+:::
+
+When enabled, Rspack will preserve the original directory structure of modules within the specified directory.
+
+```js
+import path from 'path';
+module.exports = {
+  //...
+  output: {
+    library: {
+      type: 'modern-module',
+      preserveModules: path.resolve('./src'),
+    },
+  },
+};
+```
+
 ## output.module
 
 - **Type:** `boolean`

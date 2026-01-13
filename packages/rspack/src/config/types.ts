@@ -154,6 +154,11 @@ export type LibraryOptions = {
    * Otherwise, an anonymous define is used.
    * */
   umdNamedDefine?: UmdNamedDefine;
+
+  /**
+   * PreserveModules only works for `modern-module`
+   */
+  preserveModules?: string;
 };
 
 /** Options for library. */

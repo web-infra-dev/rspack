@@ -101,6 +101,14 @@ export function defaultOptions(
   };
 }
 
+export function enableEsmLibraryPlugin(options: RspackOptions): boolean {
+  return (
+    options.output?.library === 'modern-module' ||
+    (typeof options.output?.library === 'object' &&
+      (options.output?.library as { type: string }).type === 'modern-module')
+  );
+}
+
 export function overrideOptions(
   index: number,
   context: ITestContext,
@@ -113,9 +121,17 @@ export function overrideOptions(
     options.amd = {};
   }
   if (!options.output?.filename) {
-    const outputModule = options.experiments?.outputModule;
+    const runtimeChunkForModernModule =
+      options.optimization?.runtimeChunk === undefined &&
+      enableEsmLibraryPlugin(options);
+    const outputModule =
+      options.experiments?.outputModule || enableEsmLibraryPlugin(options);
     options.output ??= {};
-    options.output.filename = `bundle${index}${outputModule ? '.mjs' : '.js'}`;
+    options.output.filename = `${runtimeChunkForModernModule ? `[name]${outputModule ? '.mjs' : '.js'}` : `bundle${index}${outputModule ? '.mjs' : '.js'}`}`;
+  }
+  if (enableEsmLibraryPlugin(options)) {
+    options.optimization ??= {};
+    options.optimization.runtimeChunk ??= { name: `runtime~${index}` };
   }
 
   if (options.cache === undefined) options.cache = false;

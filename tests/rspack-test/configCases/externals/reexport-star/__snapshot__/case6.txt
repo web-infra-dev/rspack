@@ -1,6 +1,9 @@
-import "external1-alias";
+import { __webpack_require__ } from "./runtime~0.mjs";
+import "./906.mjs";
+
+__webpack_require__("825");
+
+
+
+
 export * from "external1-alias";
-
-;// CONCATENATED MODULE: external "external1-alias"
-
-;// CONCATENATED MODULE: ./case6.js

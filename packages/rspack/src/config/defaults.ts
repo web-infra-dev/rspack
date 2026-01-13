@@ -10,6 +10,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import {
+  applyLimits,
   LightningCssMinimizerRspackPlugin,
   SwcJsMinimizerRspackPlugin,
 } from '../builtin-plugin';
@@ -22,7 +23,6 @@ import type {
   EntryDescriptionNormalized,
   EntryNormalized,
   ExperimentsNormalized,
-  OutputNormalized,
   RspackOptionsNormalized,
 } from './normalization';
 import {
@@ -110,7 +110,7 @@ export const applyRspackOptionsDefaults = (
     deferImport: options.experiments.deferImport,
   });
 
-  applyOutputDefaults(options.output, {
+  applyOutputDefaults(options, {
     context: options.context!,
     targetProperties,
     isAffectedByBrowserslist:
@@ -505,7 +505,7 @@ const applyModuleDefaults = (
 };
 
 const applyOutputDefaults = (
-  output: OutputNormalized,
+  options: RspackOptionsNormalized,
   {
     context,
     outputModule,
@@ -520,6 +520,7 @@ const applyOutputDefaults = (
     entry: EntryNormalized;
   },
 ) => {
+  const { output } = options;
   const getLibraryName = (library: Library): string => {
     const libraryName =
       typeof library === 'object' && library && !Array.isArray(library)
@@ -835,6 +836,9 @@ const applyOutputDefaults = (
         enabledLibraryTypes.push(desc.library.type);
       }
     });
+    if (enabledLibraryTypes.includes('modern-module')) {
+      applyLimits(options);
+    }
     return enabledLibraryTypes;
   });
   A(output, 'enabledChunkLoadingTypes', () => {
