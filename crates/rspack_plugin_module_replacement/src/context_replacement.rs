@@ -43,10 +43,10 @@ impl ContextReplacementPlugin {
 
 #[plugin_hook(ContextModuleFactoryBeforeResolve for ContextReplacementPlugin)]
 async fn cmf_before_resolve(&self, mut result: BeforeResolveResult) -> Result<BeforeResolveResult> {
-  if let BeforeResolveResult::Data(data) = &mut result {
-    if self.resource_reg_exp.test(&data.request)
-      && let Some(new_content_resource) = &self.new_content_resource
-    {
+  if let BeforeResolveResult::Data(data) = &mut result
+    && self.resource_reg_exp.test(&data.request)
+  {
+    if let Some(new_content_resource) = &self.new_content_resource {
       data.request = new_content_resource.clone();
     }
     if let Some(new_content_recursive) = self.new_content_recursive {
