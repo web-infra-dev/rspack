@@ -65,7 +65,7 @@ export default defineConfig<RspackOptions>({
             if (config.experiments.incremental == undefined) {
               config.experiments.incremental = true;
             }
-            const cache = config.experiments.cache;
+            const cache = config.cache;
             if (typeof cache === 'object' && cache.type === 'persistent') {
               cache.storage = {
                 type: 'filesystem',

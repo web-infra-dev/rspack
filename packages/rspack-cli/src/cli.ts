@@ -179,7 +179,7 @@ export class RspackCLI {
       }
 
       // set configPaths to persistent cache build dependencies
-      const cacheOptions = item.experiments?.cache;
+      const cacheOptions = item.cache;
       if (
         typeof cacheOptions === 'object' &&
         cacheOptions.type === 'persistent'

@@ -10,10 +10,8 @@ module.exports = {
 			}
 		]
 	},
-	experiments: {
-		cache: {
-			type: "persistent"
-		}
+	cache: {
+		type: "persistent"
 	},
 	plugins: [
 		{

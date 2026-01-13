@@ -1793,7 +1793,25 @@ export type SnapshotOptions = {};
  * // Disable caching
  * cache: false
  */
-export type CacheOptions = boolean;
+export type CacheOptions =
+  | boolean
+  | {
+      type: 'memory';
+    }
+  | {
+      type: 'persistent';
+      buildDependencies?: string[];
+      version?: string;
+      snapshot?: {
+        immutablePaths?: (string | RegExp)[];
+        unmanagedPaths?: (string | RegExp)[];
+        managedPaths?: (string | RegExp)[];
+      };
+      storage?: {
+        type: 'filesystem';
+        directory?: string;
+      };
+    };
 //#endregion
 
 //#region Stats
@@ -2570,38 +2588,6 @@ export type Optimization = {
 };
 //#endregion
 
-//#region Experiments
-/**
- * Options for caching snapshots and intermediate products during the build process.
- * @description Controls whether caching is enabled or disabled.
- * @default true in development mode, false in production mode
- * @example
- * // Enable caching
- * cache: true
- *
- * // Disable caching
- * cache: false
- */
-export type ExperimentCacheOptions =
-  | boolean
-  | {
-      type: 'memory';
-    }
-  | {
-      type: 'persistent';
-      buildDependencies?: string[];
-      version?: string;
-      snapshot?: {
-        immutablePaths?: (string | RegExp)[];
-        unmanagedPaths?: (string | RegExp)[];
-        managedPaths?: (string | RegExp)[];
-      };
-      storage?: {
-        type: 'filesystem';
-        directory?: string;
-      };
-    };
-
 /**
  * Information about the bundler.
  */
@@ -2766,10 +2752,6 @@ export type UseInputFileSystem = false | RegExp[];
  * Experimental features configuration.
  */
 export type Experiments = {
-  /**
-   * Enable new cache.
-   */
-  cache?: ExperimentCacheOptions;
   /**
    * Enable lazy compilation.
    * @deprecated Please use the configuration top-level `lazyCompilation` option instead.

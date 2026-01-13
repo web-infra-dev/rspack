@@ -3,9 +3,18 @@ use napi_derive::napi;
 use rspack_core::cache::persistent::snapshot::{PathMatcher, SnapshotOptions};
 use rspack_regex::RspackRegex;
 
+type RawPathMatcher = Either<String, RspackRegex>;
+
+fn normalize_raw_path_matcher(value: RawPathMatcher) -> PathMatcher {
+  match value {
+    Either::A(s) => PathMatcher::String(s),
+    Either::B(reg) => PathMatcher::Regexp(reg),
+  }
+}
+
 #[derive(Debug, Default)]
 #[napi(object)]
-pub struct RawExperimentSnapshotOptions {
+pub struct RawSnapshotOptions {
   #[napi(ts_type = r#"Array<string|RegExp>"#)]
   pub immutable_paths: Vec<RawPathMatcher>,
   #[napi(ts_type = r#"Array<string|RegExp>"#)]
@@ -14,10 +23,8 @@ pub struct RawExperimentSnapshotOptions {
   pub managed_paths: Vec<RawPathMatcher>,
 }
 
-type RawPathMatcher = Either<String, RspackRegex>;
-
-impl From<RawExperimentSnapshotOptions> for SnapshotOptions {
-  fn from(value: RawExperimentSnapshotOptions) -> Self {
+impl From<RawSnapshotOptions> for SnapshotOptions {
+  fn from(value: RawSnapshotOptions) -> Self {
     SnapshotOptions::new(
       value
         .immutable_paths
@@ -35,12 +42,5 @@ impl From<RawExperimentSnapshotOptions> for SnapshotOptions {
         .map(normalize_raw_path_matcher)
         .collect(),
     )
-  }
-}
-
-fn normalize_raw_path_matcher(value: RawPathMatcher) -> PathMatcher {
-  match value {
-    Either::A(s) => PathMatcher::String(s),
-    Either::B(reg) => PathMatcher::Regexp(reg),
   }
 }
