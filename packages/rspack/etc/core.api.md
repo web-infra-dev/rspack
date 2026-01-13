@@ -7200,6 +7200,8 @@ export class RuntimeModule {
     // (undocumented)
     shouldIsolate(): boolean;
     // (undocumented)
+    get source(): JsSource | undefined;
+    // (undocumented)
     get stage(): RuntimeModuleStage;
     // (undocumented)
     static STAGE_ATTACH: RuntimeModuleStage;
