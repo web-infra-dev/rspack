@@ -274,10 +274,9 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
               .get_block_chunk_group(block_id, &compilation.chunk_group_by_ukey)
             && let Some(chunk_key) = chunk_group.chunks.first()
             && let Some(chunk) = compilation.chunk_by_ukey.get(chunk_key)
+            && let Some(name) = chunk.name()
           {
-            if let Some(name) = chunk.name() {
-              expose_chunk_names.insert(expose_file_key.clone(), name.to_string());
-            }
+            expose_chunk_names.insert(expose_file_key.clone(), name.to_string());
           }
 
           if !expose_chunk_names.contains_key(&expose_file_key)
