@@ -49,6 +49,10 @@ export class RuntimeModule {
     this.chunkGraph = chunkGraph;
   }
 
+  get source(): JsSource | undefined {
+    return undefined;
+  }
+
   get name(): string {
     return this._name;
   }
