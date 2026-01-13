@@ -42,15 +42,15 @@ use rspack_core::{
   CompilerPlatform, Context, CrossOriginLoading, CssAutoGeneratorOptions, CssAutoParserOptions,
   CssExportsConvention, CssGeneratorOptions, CssModuleGeneratorOptions, CssModuleParserOptions,
   CssParserOptions, DynamicImportMode, EntryDescription, EntryOptions, EntryRuntime, Environment,
-  ExperimentCacheOptions, Experiments, ExternalItem, ExternalType, Filename, GeneratorOptions,
-  GeneratorOptionsMap, JavascriptParserCommonjsExportsOption, JavascriptParserCommonjsOptions,
-  JavascriptParserOptions, JavascriptParserOrder, JavascriptParserUrl, JsonGeneratorOptions,
-  JsonParserOptions, LibraryName, LibraryNonUmdObject, LibraryOptions, LibraryType,
-  MangleExportsOption, Mode, ModuleNoParseRules, ModuleOptions, ModuleRule, ModuleRuleEffect,
-  ModuleType, NodeDirnameOption, NodeFilenameOption, NodeGlobalOption, NodeOption, Optimization,
-  OutputOptions, ParseOption, ParserOptions, ParserOptionsMap, PathInfo, PublicPath, Resolve,
-  RuleSetCondition, RuleSetLogicalConditions, SideEffectOption, StatsOptions, TrustedTypes,
-  UnsafeCachePredicate, UsedExportsOption, WasmLoading, WasmLoadingType,
+  Experiments, ExternalItem, ExternalType, Filename, GeneratorOptions, GeneratorOptionsMap,
+  JavascriptParserCommonjsExportsOption, JavascriptParserCommonjsOptions, JavascriptParserOptions,
+  JavascriptParserOrder, JavascriptParserUrl, JsonGeneratorOptions, JsonParserOptions, LibraryName,
+  LibraryNonUmdObject, LibraryOptions, LibraryType, MangleExportsOption, Mode, ModuleNoParseRules,
+  ModuleOptions, ModuleRule, ModuleRuleEffect, ModuleType, NodeDirnameOption, NodeFilenameOption,
+  NodeGlobalOption, NodeOption, Optimization, OutputOptions, ParseOption, ParserOptions,
+  ParserOptionsMap, PathInfo, PublicPath, Resolve, RuleSetCondition, RuleSetLogicalConditions,
+  SideEffectOption, StatsOptions, TrustedTypes, UnsafeCachePredicate, UsedExportsOption,
+  WasmLoading, WasmLoadingType,
   incremental::{IncrementalOptions, IncrementalPasses},
 };
 use rspack_error::{Error, Result};
@@ -924,9 +924,7 @@ impl CompilerOptionsBuilder {
     let bail = d!(self.bail.take(), false);
     let cache = d!(self.cache.take(), {
       if development {
-        CacheOptions::Memory {
-          max_generations: None,
-        }
+        CacheOptions::Memory { max_generations: 1 }
       } else {
         CacheOptions::Disabled
       }
@@ -934,11 +932,7 @@ impl CompilerOptionsBuilder {
 
     // apply experiments defaults
     let mut experiments_builder = f!(self.experiments.take(), Experiments::builder);
-    let mut experiments = experiments_builder.build(builder_context, development, production)?;
-    // Disable experiments cache if global cache is set to `Disabled`
-    if matches!(cache, CacheOptions::Disabled) {
-      experiments.cache = ExperimentCacheOptions::Disabled;
-    }
+    let experiments = experiments_builder.build(builder_context, development, production)?;
 
     let async_web_assembly = expect!(experiments_builder.async_web_assembly);
     if async_web_assembly {
@@ -3653,8 +3647,6 @@ pub struct ExperimentsBuilder {
   incremental: Option<IncrementalOptions>,
   /// Whether to enable top level await.
   top_level_await: Option<bool>,
-  /// Cache options.
-  cache: Option<ExperimentCacheOptions>,
   /// Whether to enable output module.
   output_module: Option<bool>,
   /// Whether to enable future defaults.
@@ -3671,7 +3663,6 @@ impl From<Experiments> for ExperimentsBuilder {
     ExperimentsBuilder {
       incremental: Some(value.incremental),
       top_level_await: Some(value.top_level_await),
-      cache: Some(value.cache),
       output_module: None,
       future_defaults: None,
       css: Some(value.css),
@@ -3685,7 +3676,6 @@ impl From<&mut ExperimentsBuilder> for ExperimentsBuilder {
     ExperimentsBuilder {
       incremental: value.incremental.take(),
       top_level_await: value.top_level_await.take(),
-      cache: value.cache.take(),
       output_module: value.output_module.take(),
       future_defaults: value.future_defaults.take(),
       css: value.css.take(),
@@ -3704,12 +3694,6 @@ impl ExperimentsBuilder {
   /// Set whether to enable top level await.
   pub fn top_level_await(&mut self, top_level_await: bool) -> &mut Self {
     self.top_level_await = Some(top_level_await);
-    self
-  }
-
-  /// Set the cache options.
-  pub fn cache(&mut self, cache: ExperimentCacheOptions) -> &mut Self {
-    self.cache = Some(cache);
     self
   }
 
@@ -3737,7 +3721,7 @@ impl ExperimentsBuilder {
   fn build(
     &mut self,
     _builder_context: &mut BuilderContext,
-    development: bool,
+    _development: bool,
     production: bool,
   ) -> Result<Experiments> {
     let incremental = f!(self.incremental.take(), || {
@@ -3752,13 +3736,6 @@ impl ExperimentsBuilder {
       }
     });
     let top_level_await = d!(self.top_level_await, true);
-    let cache = f!(self.cache.take(), || {
-      if development {
-        ExperimentCacheOptions::Memory
-      } else {
-        ExperimentCacheOptions::Disabled
-      }
-    });
 
     // Builder specific
     let future_defaults = w!(self.future_defaults, false);
@@ -3769,7 +3746,6 @@ impl ExperimentsBuilder {
     Ok(Experiments {
       incremental,
       top_level_await,
-      cache,
       css: d!(self.css, false),
       lazy_barrel: true,
       defer_import: false,

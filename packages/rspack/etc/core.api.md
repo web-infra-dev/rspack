@@ -597,8 +597,41 @@ class CacheFacade {
 // @public (undocumented)
 type CacheHookMap = Map<string, SyncBailHook<[any[], StatsFactoryContext], any>[]>;
 
+// @public (undocumented)
+export type CacheNormalized = boolean | {
+    type: 'memory';
+} | {
+    type: 'persistent';
+    buildDependencies: string[];
+    version: string;
+    snapshot: {
+        immutablePaths: (string | RegExp)[];
+        unmanagedPaths: (string | RegExp)[];
+        managedPaths: (string | RegExp)[];
+    };
+    storage: {
+        type: 'filesystem';
+        directory: string;
+    };
+};
+
 // @public
-export type CacheOptions = boolean;
+export type CacheOptions = boolean | {
+    type: 'memory';
+} | {
+    type: 'persistent';
+    buildDependencies?: string[];
+    version?: string;
+    snapshot?: {
+        immutablePaths?: (string | RegExp)[];
+        unmanagedPaths?: (string | RegExp)[];
+        managedPaths?: (string | RegExp)[];
+    };
+    storage?: {
+        type: 'filesystem';
+        directory?: string;
+    };
+};
 
 // @public (undocumented)
 type Callback_2 = (stats?: Stats | MultiStats) => any;
@@ -2402,45 +2435,8 @@ interface ExecuteModuleContext {
     [key: string]: (id: string) => any;
 }
 
-// @public (undocumented)
-export type ExperimentCacheNormalized = boolean | {
-    type: 'memory';
-} | {
-    type: 'persistent';
-    buildDependencies: string[];
-    version: string;
-    snapshot: {
-        immutablePaths: (string | RegExp)[];
-        unmanagedPaths: (string | RegExp)[];
-        managedPaths: (string | RegExp)[];
-    };
-    storage: {
-        type: 'filesystem';
-        directory: string;
-    };
-};
-
-// @public
-export type ExperimentCacheOptions = boolean | {
-    type: 'memory';
-} | {
-    type: 'persistent';
-    buildDependencies?: string[];
-    version?: string;
-    snapshot?: {
-        immutablePaths?: (string | RegExp)[];
-        unmanagedPaths?: (string | RegExp)[];
-        managedPaths?: (string | RegExp)[];
-    };
-    storage?: {
-        type: 'filesystem';
-        directory?: string;
-    };
-};
-
 // @public
 export type Experiments = {
-    cache?: ExperimentCacheOptions;
     lazyCompilation?: boolean | LazyCompilationOptions;
     asyncWebAssembly?: boolean;
     outputModule?: boolean;
@@ -2509,8 +2505,6 @@ export interface ExperimentsNormalized {
     asyncWebAssembly?: boolean;
     // (undocumented)
     buildHttp?: HttpUriPluginOptions;
-    // (undocumented)
-    cache?: ExperimentCacheNormalized;
     // (undocumented)
     css?: boolean;
     // (undocumented)
@@ -6723,7 +6717,7 @@ declare namespace rspackExports {
         EntryDescriptionNormalized,
         OutputNormalized,
         ModuleOptionsNormalized,
-        ExperimentCacheNormalized,
+        CacheNormalized,
         ExperimentsNormalized,
         IgnoreWarningsNormalized,
         OptimizationRuntimeChunkNormalized,
@@ -6890,7 +6884,6 @@ declare namespace rspackExports {
         OptimizationSplitChunksCacheGroup,
         OptimizationSplitChunksOptions,
         Optimization,
-        ExperimentCacheOptions,
         BundlerInfoOptions,
         LazyCompilationOptions,
         Incremental,
@@ -6962,7 +6955,7 @@ export interface RspackOptionsNormalized {
     // (undocumented)
     bail?: Bail;
     // (undocumented)
-    cache?: CacheOptions;
+    cache?: CacheNormalized;
     // (undocumented)
     context?: Context;
     // (undocumented)

@@ -31,11 +31,8 @@ function check_issuer(modules) {
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	context: __dirname,
-	cache: true,
-	experiments: {
-		cache: {
-			type: "persistent"
-		}
+	cache: {
+		type: "persistent"
 	},
 	plugins: [
 		{

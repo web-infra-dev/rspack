@@ -3,10 +3,8 @@ const path = require("path");
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	context: __dirname,
-	experiments: {
-		cache: {
-			type: "persistent"
-		}
+	cache: {
+		type: "persistent"
 	},
 	optimization: {
 		providedExports: false
