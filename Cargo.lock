@@ -4500,7 +4500,6 @@ dependencies = [
  "cow-utils",
  "either",
  "fast-glob",
- "futures",
  "indexmap",
  "itertools 0.14.0",
  "num-bigint",
