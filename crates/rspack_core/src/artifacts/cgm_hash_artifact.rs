@@ -1,7 +1,8 @@
 use rspack_collections::IdentifierMap;
 use rspack_hash::RspackHashDigest;
 
-use crate::{ModuleIdentifier, RuntimeSpec, RuntimeSpecMap};
+use super::ArtifactExt;
+use crate::{ModuleIdentifier, RuntimeSpec, RuntimeSpecMap, incremental::IncrementalPasses};
 
 #[derive(Debug, Default)]
 pub struct CgmHashArtifact {
@@ -46,5 +47,13 @@ impl CgmHashArtifact {
 
   pub fn clear(&mut self) {
     self.module_to_hashes.clear();
+  }
+}
+
+impl ArtifactExt for CgmHashArtifact {
+  const PASS: IncrementalPasses = IncrementalPasses::MODULES_HASHES;
+
+  fn reset(&mut self) {
+    self.clear();
   }
 }

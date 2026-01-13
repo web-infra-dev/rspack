@@ -64,7 +64,7 @@ use crate::{
   incremental::{self, Incremental, IncrementalPasses, Mutation},
   is_source_equal,
   old_cache::Cache as OldCache,
-  to_identifier,
+  reset_artifact_if_passes_disabled, to_identifier,
 };
 
 define_hook!(CompilationAddEntry: Series(compilation: &mut Compilation, entry_name: Option<&str>));
@@ -1261,13 +1261,8 @@ impl Compilation {
       self.push_diagnostic(diagnostic);
     }
 
-    // Check if CHUNKS_RENDER pass is disabled, and clear artifact if needed
-    if !self
-      .incremental
-      .passes_enabled(IncrementalPasses::CHUNKS_RENDER)
-    {
-      self.chunk_render_artifact.clear();
-    }
+    // Check if CHUNKS_RENDER pass is disabled, and reset artifact state if needed
+    reset_artifact_if_passes_disabled(&self.incremental, &mut self.chunk_render_artifact);
 
     let chunks = if let Some(mutations) = self
       .incremental
@@ -1341,7 +1336,7 @@ impl Compilation {
       self.chunk_render_artifact.extend(chunk_render_results);
       self.chunk_render_artifact.clone()
     } else {
-      chunk_render_results
+      ChunkRenderArtifact::new(chunk_render_results)
     };
 
     for (
@@ -1477,6 +1472,11 @@ impl Compilation {
     dependencies_diagnostics_artifact: &mut DependenciesDiagnosticsArtifact,
     async_modules_artifact: &mut AsyncModulesArtifact,
   ) -> Result<Vec<Diagnostic>> {
+    // Check if INFER_ASYNC_MODULES pass is disabled, and reset artifact state if needed
+    reset_artifact_if_passes_disabled(&self.incremental, async_modules_artifact);
+    // Check if DEPENDENCIES_DIAGNOSTICS pass is disabled, and reset artifact state if needed
+    reset_artifact_if_passes_disabled(&self.incremental, dependencies_diagnostics_artifact);
+
     let logger = self.get_logger("rspack.Compilation");
     if let Some(mut mutations) = self.incremental.mutations_write() {
       mutations.extend(
@@ -1648,6 +1648,9 @@ impl Compilation {
     let start = logger.time("optimize dependencies");
     // https://github.com/webpack/webpack/blob/d15c73469fd71cf98734685225250148b68ddc79/lib/Compilation.js#L2812-L2814
 
+    // Check if SIDE_EFFECTS pass is disabled, and reset artifact state if needed
+    reset_artifact_if_passes_disabled(&self.incremental, &mut self.side_effects_optimize_artifact);
+
     let mut diagnostics: Vec<Diagnostic> = vec![];
     let mut side_effects_optimize_artifact = self.side_effects_optimize_artifact.take();
     let mut build_module_graph_artifact = self.build_module_graph_artifact.take();
@@ -1680,6 +1683,9 @@ impl Compilation {
 
     let start = logger.time("create chunks");
     self.module_graph_cache_artifact.freeze();
+    // Check if BUILD_CHUNK_GRAPH pass is disabled, and reset artifact state if needed
+    reset_artifact_if_passes_disabled(&self.incremental, &mut self.build_chunk_graph_artifact);
+
     use_code_splitting_cache(self, |compilation| async {
       let start = logger.time("rebuild chunk graph");
       build_chunk_graph(compilation)?;
@@ -1744,13 +1750,8 @@ impl Compilation {
 
     let start = logger.time("module ids");
 
-    // Check if MODULE_IDS pass is disabled, and clear artifact if needed
-    if !self
-      .incremental
-      .passes_enabled(IncrementalPasses::MODULE_IDS)
-    {
-      self.module_ids_artifact.clear();
-    }
+    // Check if MODULE_IDS pass is disabled, and reset artifact state if needed
+    reset_artifact_if_passes_disabled(&self.incremental, &mut self.module_ids_artifact);
 
     let mut diagnostics = vec![];
     let mut module_ids_artifact = mem::take(&mut self.module_ids_artifact);
@@ -1766,13 +1767,8 @@ impl Compilation {
 
     let start = logger.time("chunk ids");
 
-    // Check if CHUNK_IDS pass is disabled, and clear artifact if needed
-    if !self
-      .incremental
-      .passes_enabled(IncrementalPasses::CHUNK_IDS)
-    {
-      self.named_chunk_ids_artifact.clear();
-    }
+    // Check if CHUNK_IDS pass is disabled, and reset artifact state if needed
+    reset_artifact_if_passes_disabled(&self.incremental, &mut self.named_chunk_ids_artifact);
 
     let mut diagnostics = vec![];
     let mut chunk_by_ukey = mem::take(&mut self.chunk_by_ukey);
@@ -1804,13 +1800,8 @@ impl Compilation {
       .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.optimizeCodeGeneration"))?;
     logger.time_end(start);
 
-    // Check if MODULES_HASHES pass is disabled, and clear artifact if needed
-    if !self
-      .incremental
-      .passes_enabled(IncrementalPasses::MODULES_HASHES)
-    {
-      self.cgm_hash_artifact.clear();
-    }
+    // Check if MODULES_HASHES pass is disabled, and reset artifact state if needed
+    reset_artifact_if_passes_disabled(&self.incremental, &mut self.cgm_hash_artifact);
 
     let create_module_hashes_modules = if let Some(mutations) = self
       .incremental
@@ -1895,6 +1886,9 @@ impl Compilation {
       .await?;
 
     let start = logger.time("code generation");
+    // Check if MODULES_CODEGEN pass is disabled, and reset artifact state if needed
+    reset_artifact_if_passes_disabled(&self.incremental, &mut self.code_generation_results);
+
     let code_generation_modules = if let Some(mutations) = self
       .incremental
       .mutations_read(IncrementalPasses::MODULES_CODEGEN)
@@ -1944,6 +1938,12 @@ impl Compilation {
     logger.time_end(start);
 
     let start = logger.time("runtime requirements");
+    // Check if MODULES_RUNTIME_REQUIREMENTS pass is disabled, and reset artifact state if needed
+    reset_artifact_if_passes_disabled(
+      &self.incremental,
+      &mut self.cgm_runtime_requirements_artifact,
+    );
+
     let process_runtime_requirements_modules = if let Some(mutations) = self
       .incremental
       .mutations_read(IncrementalPasses::MODULES_RUNTIME_REQUIREMENTS)
@@ -1984,13 +1984,11 @@ impl Compilation {
       .await?;
     let runtime_chunks = self.get_chunk_graph_entries().collect();
 
-    // Check if CHUNKS_RUNTIME_REQUIREMENTS pass is disabled, and clear artifact if needed
-    if !self
-      .incremental
-      .passes_enabled(IncrementalPasses::CHUNKS_RUNTIME_REQUIREMENTS)
-    {
-      self.cgc_runtime_requirements_artifact.clear();
-    }
+    // Check if CHUNKS_RUNTIME_REQUIREMENTS pass is disabled, and reset artifact state if needed
+    reset_artifact_if_passes_disabled(
+      &self.incremental,
+      &mut self.cgc_runtime_requirements_artifact,
+    );
 
     let process_runtime_requirements_chunks = if let Some(mutations) = self
       .incremental
@@ -2398,12 +2396,7 @@ impl Compilation {
     {
       self.push_diagnostic(diagnostic);
     }
-    if !self
-      .incremental
-      .passes_enabled(IncrementalPasses::CHUNKS_HASHES)
-    {
-      self.chunk_hashes_artifact.clear();
-    }
+    reset_artifact_if_passes_disabled(&self.incremental, &mut self.chunk_hashes_artifact);
 
     let create_hash_chunks = if let Some(mutations) = self
       .incremental

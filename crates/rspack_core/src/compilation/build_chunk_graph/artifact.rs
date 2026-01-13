@@ -239,3 +239,17 @@ where
 pub struct BuildChunkGraphArtifact {
   pub code_splitting_cache: CodeSplittingCache,
 }
+
+impl BuildChunkGraphArtifact {
+  pub fn clear(&mut self) {
+    self.code_splitting_cache = CodeSplittingCache::default();
+  }
+}
+
+impl crate::ArtifactExt for BuildChunkGraphArtifact {
+  const PASS: IncrementalPasses = IncrementalPasses::BUILD_CHUNK_GRAPH;
+
+  fn reset(&mut self) {
+    self.clear();
+  }
+}

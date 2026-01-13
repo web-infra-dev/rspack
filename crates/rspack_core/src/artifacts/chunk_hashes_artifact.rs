@@ -1,6 +1,7 @@
 use rspack_collections::UkeyMap;
 
-use crate::{ChunkHashesResult, ChunkUkey};
+use super::ArtifactExt;
+use crate::{ChunkHashesResult, ChunkUkey, incremental::IncrementalPasses};
 
 #[derive(Debug, Default)]
 pub struct ChunkHashesArtifact {
@@ -37,5 +38,13 @@ impl ChunkHashesArtifact {
 
   pub fn clear(&mut self) {
     self.chunk_to_hashes.clear();
+  }
+}
+
+impl ArtifactExt for ChunkHashesArtifact {
+  const PASS: IncrementalPasses = IncrementalPasses::CHUNKS_HASHES;
+
+  fn reset(&mut self) {
+    self.clear();
   }
 }

@@ -13,9 +13,10 @@ use rspack_util::atom::Atom;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet};
 use serde::Serialize;
 
+use super::ArtifactExt;
 use crate::{
   AssetInfo, BindingCell, ChunkInitFragments, ConcatenationScope, ModuleIdentifier, RuntimeGlobals,
-  RuntimeSpec, RuntimeSpecMap, SourceType,
+  RuntimeSpec, RuntimeSpecMap, SourceType, incremental::IncrementalPasses,
 };
 
 #[derive(Clone, Debug)]
@@ -379,6 +380,19 @@ impl CodeGenerationResults {
     &HashMap<CodeGenResultId, BindingCell<CodeGenerationResult>>,
   ) {
     (&self.map, &self.module_generation_result_map)
+  }
+
+  pub fn clear(&mut self) {
+    self.module_generation_result_map.clear();
+    self.map.clear();
+  }
+}
+
+impl ArtifactExt for CodeGenerationResults {
+  const PASS: IncrementalPasses = IncrementalPasses::MODULES_CODEGEN;
+
+  fn reset(&mut self) {
+    self.clear();
   }
 }
 
