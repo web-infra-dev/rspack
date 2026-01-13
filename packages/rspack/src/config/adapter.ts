@@ -131,11 +131,15 @@ function getRawOutputEnvironment(
     destructuring: Boolean(environment.destructuring),
     document: Boolean(environment.document),
     dynamicImport: Boolean(environment.dynamicImport),
+    dynamicImportInWorker: Boolean(environment.dynamicImportInWorker),
     forOf: Boolean(environment.forOf),
     globalThis: Boolean(environment.globalThis),
     module: Boolean(environment.module),
     optionalChaining: Boolean(environment.optionalChaining),
     templateLiteral: Boolean(environment.templateLiteral),
+    importMetaDirnameAndFilename: Boolean(
+      environment.importMetaDirnameAndFilename,
+    ),
   };
 }
 

@@ -28,7 +28,7 @@ config.push(
 		}))
 );
 
-// // ES modules
+// ES modules
 config.push(
 	...values.map((value) => ({
 		target: "node",

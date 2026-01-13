@@ -18,6 +18,7 @@ module.exports = {
 					  dynamicImportInWorker: false,
 					  forOf: false,
 					  globalThis: false,
+					  importMetaDirnameAndFilename: false,
 					  methodShorthand: false,
 					  module: false,
 					  nodePrefixForCoreModules: false,
