@@ -63,6 +63,8 @@ export type ApiTargetProperties = {
   importScripts: boolean | null;
   /**  has importScripts available when creating a worker */
   importScriptsInWorker: boolean | null;
+  /** node.js allows to use `import.meta.dirname` and `import.meta.filename` */
+  importMetaDirnameAndFilename: boolean | null;
   /**  has fetch function available for WebAssembly */
   fetchWasm: boolean | null;
   /**  has global variable available */
@@ -235,6 +237,9 @@ You can also more options via the 'target' option: 'browserslist' / 'browserslis
         nodeBuiltins: true,
         // v16.0.0, v14.18.0
         nodePrefixForCoreModules: +major < 15 ? v(14, 18) : v(16),
+        // Added in: v21.2.0, v20.11.0, but Node.js will output experimental warning, we don't want it
+        // v24.0.0, v22.16.0 - This property is no longer experimental.
+        importMetaDirnameAndFilename: v(22, 16),
         global: true,
         document: false,
         fetchWasm: false,
@@ -281,6 +286,8 @@ You can also more options via the 'target' option: 'browserslist' / 'browserslis
         // 15.0.0	- Node.js	v16.5
         // 14.0.0 - Mode.js v14.17, but prefixes only since v14.18
         nodePrefixForCoreModules: v(15),
+        // 37.0.0 - Node.js v22.16
+        importMetaDirnameAndFilename: v(37),
 
         require: true,
         document: context === 'renderer',
