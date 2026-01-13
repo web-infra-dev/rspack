@@ -44,4 +44,3 @@ when the lazy compilation server runs on a different origin (port) than the fron
 2. **Cross-Origin Request**: Browser sends POST request to a different origin
 3. **Simple Request**: Uses `Content-Type: text/plain` to avoid CORS preflight
 4. **XMLHttpRequest**: Uses XHR instead of fetch for better browser compatibility
-
