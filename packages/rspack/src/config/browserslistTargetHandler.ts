@@ -317,6 +317,11 @@ export const resolve = (
       rawChecker({
         node: [14, 18],
       }),
+    importMetaDirnameAndFilename:
+      nodeProperty &&
+      rawChecker({
+        node: [22, 16],
+      }),
     require: nodeProperty,
   };
 };
