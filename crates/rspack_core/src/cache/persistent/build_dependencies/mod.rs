@@ -9,6 +9,7 @@ use rustc_hash::FxHashSet as HashSet;
 
 use self::helper::{Helper, is_node_package_path};
 use super::{
+  codec::CacheCodec,
   snapshot::{Snapshot, SnapshotOptions},
   storage::Storage,
 };
@@ -40,6 +41,7 @@ impl BuildDeps {
     snapshot_options: &SnapshotOptions,
     fs: Arc<dyn ReadableFileSystem>,
     storage: Arc<dyn Storage>,
+    codec: Arc<CacheCodec>,
   ) -> Self {
     Self {
       added: Default::default(),
@@ -49,6 +51,7 @@ impl BuildDeps {
         snapshot_options.clone(),
         fs.clone(),
         storage.clone(),
+        codec,
       ),
       storage,
       fs,
@@ -112,7 +115,10 @@ mod test {
   use rspack_fs::{MemoryFileSystem, WritableFileSystem};
   use rspack_storage::Storage;
 
-  use super::{super::storage::MemoryStorage, BuildDeps, SCOPE, SnapshotOptions};
+  use super::{
+    super::{codec::CacheCodec, storage::MemoryStorage},
+    BuildDeps, SCOPE, SnapshotOptions,
+  };
   #[tokio::test]
   async fn build_dependencies_test() {
     let fs = Arc::new(MemoryFileSystem::default());
@@ -151,13 +157,26 @@ mod test {
     let options = vec![PathBuf::from("/index.js"), PathBuf::from("/configs")];
     let snapshot_options = SnapshotOptions::default();
     let storage = Arc::new(MemoryStorage::default());
-    let mut build_deps = BuildDeps::new(&options, &snapshot_options, fs.clone(), storage.clone());
+    let codec = Arc::new(CacheCodec::new(None));
+    let mut build_deps = BuildDeps::new(
+      &options,
+      &snapshot_options,
+      fs.clone(),
+      storage.clone(),
+      codec.clone(),
+    );
     let warnings = build_deps.add(vec![].into_iter()).await;
     assert_eq!(warnings.len(), 1);
     let data = storage.load(SCOPE).await.expect("should load success");
     assert_eq!(data.len(), 9);
 
-    let mut build_deps = BuildDeps::new(&options, &snapshot_options, fs.clone(), storage.clone());
+    let mut build_deps = BuildDeps::new(
+      &options,
+      &snapshot_options,
+      fs.clone(),
+      storage.clone(),
+      codec,
+    );
     fs.write("/b.js".into(), r#"require("./c")"#.as_bytes())
       .await
       .unwrap();
