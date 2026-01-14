@@ -6,35 +6,6 @@ This page lists configuration options that have been deprecated in Rspack.
 
 These options are kept for backward compatibility only and should not be used in new projects.
 
-## builtin:swc-loader options
-
-### rspackExperiments.collectTypeScriptInfo
-
-<ApiMeta deprecatedVersion="1.7.0" />
-
-Used to collect information from TypeScript's AST for consumption by subsequent Rspack processes.
-
-:::warning
-This configuration has been deprecated. Use top-level [`collectTypeScriptInfo`](/guide/features/builtin-swc-loader#collecttypescriptinfo) instead.
-
-```diff
-{
-  loader: 'builtin:swc-loader',
-  options: {
--   rspackExperiments: {
--     collectTypeScriptInfo: {
--       exportedEnum: true,
--     },
--   },
-+   collectTypeScriptInfo: {
-+     exportedEnum: true,
-+   },
-  },
-}
-```
-
-:::
-
 ## experiments.parallelCodeSplitting
 
 <ApiMeta deprecatedVersion="1.6.2" />

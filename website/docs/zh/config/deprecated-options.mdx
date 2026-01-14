@@ -6,35 +6,6 @@ import { ApiMeta } from '../../../components/ApiMeta';
 
 这些选项仅为向后兼容而保留，不应在新项目中使用。
 
-## builtin:swc-loader 选项
-
-### rspackExperiments.collectTypeScriptInfo
-
-<ApiMeta deprecatedVersion="1.7.0" />
-
-用于从 TypeScript 的 AST 中收集信息，以供 Rspack 后续过程进行消费。
-
-:::warning
-此配置已被废弃。请使用顶层的 [`collectTypeScriptInfo`](/guide/features/builtin-swc-loader#collecttypescriptinfo) 替代。
-
-```diff
-{
-  loader: 'builtin:swc-loader',
-  options: {
--   rspackExperiments: {
--     collectTypeScriptInfo: {
--       exportedEnum: true,
--     },
--   },
-+   collectTypeScriptInfo: {
-+     exportedEnum: true,
-+   },
-  },
-}
-```
-
-:::
-
 ## experiments.parallelCodeSplitting
 
 <ApiMeta deprecatedVersion="1.6.2" />

@@ -7855,7 +7855,6 @@ export type SwcLoaderOptions = Config_2 & {
     collectTypeScriptInfo?: CollectTypeScriptInfoOptions;
     rspackExperiments?: {
         import?: PluginImportOptions;
-        collectTypeScriptInfo?: CollectTypeScriptInfoOptions;
     };
 };
 
