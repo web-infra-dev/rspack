@@ -12,6 +12,7 @@ use crate::{
   Chunk, ChunkGraph, ChunkKind, CodeGenerationDataAssetInfo, CodeGenerationDataFilename,
   CodeGenerationResult, CompilationAsset, CompilationAssets, EntryOptions, Entrypoint,
   FactorizeInfo, ModuleType, PublicPath, RuntimeSpec, SourceType,
+  compilation::{code_generation, create_module_hashes, runtime_requirements},
   utils::task_loop::{Task, TaskResult, TaskType},
 };
 
@@ -278,21 +279,23 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
     // replace code_generation_results is the same reason
     compilation.chunk_graph = chunk_graph;
 
-    compilation.create_module_hashes(modules.clone()).await?;
+    create_module_hashes::create_module_hashes(&mut compilation, modules.clone()).await?;
 
-    compilation
-      .code_generation_modules(&mut None, modules.clone())
-      .await?;
-    compilation
-      .process_modules_runtime_requirements(modules.clone(), compilation.plugin_driver.clone())
-      .await?;
-    compilation
-      .process_chunks_runtime_requirements(
-        UkeySet::from_iter([chunk_ukey]),
-        UkeySet::from_iter([chunk_ukey]),
-        compilation.plugin_driver.clone(),
-      )
-      .await?;
+    code_generation::code_generation_modules(&mut compilation, &mut None, modules.clone()).await?;
+    let plugin_driver = compilation.plugin_driver.clone();
+    runtime_requirements::process_modules_runtime_requirements(
+      &mut compilation,
+      modules.clone(),
+      plugin_driver.clone(),
+    )
+    .await?;
+    runtime_requirements::process_chunks_runtime_requirements(
+      &mut compilation,
+      UkeySet::from_iter([chunk_ukey]),
+      UkeySet::from_iter([chunk_ukey]),
+      plugin_driver,
+    )
+    .await?;
     let runtime_modules = compilation
       .chunk_graph
       .get_chunk_runtime_modules_iterable(&chunk_ukey)

@@ -247,7 +247,8 @@ impl BuildChunkGraphArtifact {
 }
 
 impl crate::ArtifactExt for BuildChunkGraphArtifact {
-  const PASS: IncrementalPasses = IncrementalPasses::BUILD_CHUNK_GRAPH.union(IncrementalPasses::MAKE);
+  const PASS: IncrementalPasses =
+    IncrementalPasses::BUILD_CHUNK_GRAPH.union(IncrementalPasses::MAKE);
 
   fn reset(&mut self) {
     self.clear();

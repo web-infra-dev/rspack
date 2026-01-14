@@ -1,5 +1,17 @@
+pub mod assign_runtime_ids;
 pub mod build_chunk_graph;
 pub mod build_module_graph;
+pub mod chunk_ids;
+pub mod code_generation;
+pub mod compile_passes;
+pub mod create_chunk_assets;
+pub mod create_hash;
+pub mod create_module_hashes;
+pub mod module_ids;
+pub mod optimize;
+pub mod optimize_code_generation;
+pub mod process_assets;
+pub mod runtime_requirements;
 use std::{
   collections::{VecDeque, hash_map},
   fmt::{self, Debug},
@@ -40,15 +52,14 @@ use tracing::instrument;
 use ustr::Ustr;
 
 use crate::{
-  AsyncModulesArtifact, BindingCell, BoxDependency, BoxModule, CacheCount, CacheOptions,
+  AsyncModulesArtifact, BindingCell, BoxDependency, BoxModule, CacheOptions,
   CgcRuntimeRequirementsArtifact, CgmHashArtifact, CgmRuntimeRequirementsArtifact, Chunk,
   ChunkByUkey, ChunkContentHash, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkHashesArtifact,
-  ChunkKind, ChunkNamedIdArtifact, ChunkRenderArtifact, ChunkRenderCacheArtifact,
-  ChunkRenderResult, ChunkUkey, CodeGenerationJob, CodeGenerationResult, CodeGenerationResults,
-  CompilationLogger, CompilationLogging, CompilerOptions, CompilerPlatform, ConcatenationScope,
-  DependenciesDiagnosticsArtifact, DependencyCodeGeneration, DependencyTemplate,
-  DependencyTemplateType, DependencyType, DerefOption, Entry, EntryData, EntryOptions,
-  EntryRuntime, Entrypoint, ExecuteModuleId, Filename, ImportPhase, ImportVarMap,
+  ChunkKind, ChunkNamedIdArtifact, ChunkRenderArtifact, ChunkRenderCacheArtifact, ChunkUkey,
+  CodeGenerationResults, CompilationLogger, CompilationLogging, CompilerOptions, CompilerPlatform,
+  ConcatenationScope, DependenciesDiagnosticsArtifact, DependencyCodeGeneration,
+  DependencyTemplate, DependencyTemplateType, DependencyType, DerefOption, Entry, EntryData,
+  EntryOptions, Entrypoint, ExecuteModuleId, Filename, ImportPhase, ImportVarMap,
   ImportedByDeferModulesArtifact, Logger, MemoryGCStorage, ModuleFactory, ModuleGraph,
   ModuleGraphCacheArtifact, ModuleIdentifier, ModuleIdsArtifact, ModuleStaticCacheArtifact,
   PathData, ResolverFactory, RuntimeGlobals, RuntimeKeyMap, RuntimeMode, RuntimeModule,
@@ -1017,21 +1028,7 @@ impl Compilation {
 
   #[instrument("Compilation:build_module_graph",target=TRACING_BENCH_TARGET, skip_all)]
   pub async fn build_module_graph(&mut self) -> Result<()> {
-    // run module_executor
-    if let Some(module_executor) = &mut self.module_executor {
-      let mut module_executor = std::mem::take(module_executor);
-      module_executor.hook_before_make(self).await?;
-      self.module_executor = Some(module_executor);
-    }
-
-    let artifact = self.build_module_graph_artifact.take();
-    self
-      .build_module_graph_artifact
-      .replace(build_module_graph(self, artifact).await?);
-
-    self.in_finish_make.store(true, Ordering::Release);
-
-    Ok(())
+    compile_passes::make_phase(self).await
   }
 
   pub async fn rebuild_module<T>(
@@ -1058,367 +1055,6 @@ impl Compilation {
       .into_iter()
       .filter_map(|id| module_graph.module_by_identifier(&id))
       .collect::<Vec<_>>()))
-  }
-
-  #[instrument("Compilation:code_generation",target=TRACING_BENCH_TARGET, skip_all)]
-  async fn code_generation(&mut self, modules: IdentifierSet) -> Result<()> {
-    let logger = self.get_logger("rspack.Compilation");
-    let mut codegen_cache_counter = match self.options.cache {
-      CacheOptions::Disabled => None,
-      _ => Some(logger.cache("module code generation cache")),
-    };
-
-    let module_graph = self.get_module_graph();
-    let mut no_codegen_dependencies_modules = IdentifierSet::default();
-    let mut has_codegen_dependencies_modules = IdentifierSet::default();
-    for module_identifier in modules {
-      let module = module_graph
-        .module_by_identifier(&module_identifier)
-        .expect("should have module");
-      if module.get_code_generation_dependencies().is_none() {
-        no_codegen_dependencies_modules.insert(module_identifier);
-      } else {
-        has_codegen_dependencies_modules.insert(module_identifier);
-      }
-    }
-
-    self
-      .code_generation_modules(&mut codegen_cache_counter, no_codegen_dependencies_modules)
-      .await?;
-    self
-      .code_generation_modules(&mut codegen_cache_counter, has_codegen_dependencies_modules)
-      .await?;
-
-    if let Some(counter) = codegen_cache_counter {
-      logger.cache_end(counter);
-    }
-
-    Ok(())
-  }
-
-  pub(crate) async fn code_generation_modules(
-    &mut self,
-    cache_counter: &mut Option<CacheCount>,
-    modules: IdentifierSet,
-  ) -> Result<()> {
-    let chunk_graph = &self.chunk_graph;
-    let module_graph = self.get_module_graph();
-    let mut jobs = Vec::new();
-    for module in modules {
-      let mut map: HashMap<RspackHashDigest, CodeGenerationJob> = HashMap::default();
-      for runtime in chunk_graph.get_module_runtimes_iter(module, &self.chunk_by_ukey) {
-        let hash = ChunkGraph::get_module_hash(self, module, runtime)
-          .expect("should have cgm.hash in code generation");
-        let scope = self
-          .plugin_driver
-          .compilation_hooks
-          .concatenation_scope
-          .call(self, module)
-          .await?;
-        if let Some(job) = map.get_mut(hash) {
-          job.runtimes.push(runtime.clone());
-        } else {
-          map.insert(
-            hash.clone(),
-            CodeGenerationJob {
-              module,
-              hash: hash.clone(),
-              runtime: runtime.clone(),
-              runtimes: vec![runtime.clone()],
-              scope,
-            },
-          );
-        }
-      }
-      jobs.extend(map.into_values());
-    }
-
-    let results = rspack_futures::scope::<_, _>(|token| {
-      jobs.into_iter().for_each(|job| {
-        // SAFETY: await immediately and trust caller to poll future entirely
-        let s = unsafe { token.used((&self, &module_graph, job)) };
-
-        s.spawn(|(this, module_graph, job)| async {
-          let options = &this.options;
-          let old_cache = &this.old_cache;
-
-          let module = module_graph
-            .module_by_identifier(&job.module)
-            .expect("should have module");
-          let codegen_res = old_cache
-            .code_generate_occasion
-            .use_cache(&job, || async {
-              module
-                .code_generation(this, Some(&job.runtime), job.scope.clone())
-                .await
-                .map(|mut codegen_res| {
-                  codegen_res.set_hash(
-                    &options.output.hash_function,
-                    &options.output.hash_digest,
-                    &options.output.hash_salt,
-                  );
-                  codegen_res
-                })
-            })
-            .await;
-
-          (job.module, job.runtimes, codegen_res)
-        })
-      })
-    })
-    .await;
-    let results = results
-      .into_iter()
-      .map(|res| res.to_rspack_result())
-      .collect::<Result<Vec<_>>>()?;
-
-    for (module, runtimes, (codegen_res, from_cache)) in results {
-      if let Some(counter) = cache_counter {
-        if from_cache {
-          counter.hit();
-        } else {
-          counter.miss();
-        }
-      }
-      let codegen_res = match codegen_res {
-        Ok(codegen_res) => codegen_res,
-        Err(err) => {
-          let mut diagnostic = Diagnostic::from(err);
-          diagnostic.module_identifier = Some(module);
-          self.push_diagnostic(diagnostic);
-          let mut codegen_res = CodeGenerationResult::default();
-          codegen_res.set_hash(
-            &self.options.output.hash_function,
-            &self.options.output.hash_digest,
-            &self.options.output.hash_salt,
-          );
-          codegen_res
-        }
-      };
-      self
-        .code_generation_results
-        .insert(module, codegen_res, runtimes);
-      self.code_generated_modules.insert(module);
-    }
-    Ok(())
-  }
-
-  #[instrument("Compilation:create_module_assets",target=TRACING_BENCH_TARGET, skip_all)]
-  async fn create_module_assets(&mut self, _plugin_driver: SharedPluginDriver) {
-    let mut chunk_asset_map = vec![];
-    let mut module_assets = vec![];
-    let mg = self.get_module_graph();
-    for (identifier, module) in mg.modules() {
-      let assets = &module.build_info().assets;
-      if assets.is_empty() {
-        continue;
-      }
-
-      for (name, asset) in assets.as_ref() {
-        module_assets.push((name.clone(), asset.clone()));
-      }
-      // assets of executed modules are not in this compilation
-      if self
-        .chunk_graph
-        .chunk_graph_module_by_module_identifier
-        .contains_key(&identifier)
-      {
-        for chunk in self.chunk_graph.get_module_chunks(identifier).iter() {
-          for name in assets.keys() {
-            chunk_asset_map.push((*chunk, name.clone()))
-          }
-        }
-      }
-    }
-
-    for (name, asset) in module_assets {
-      self.emit_asset(name, asset);
-    }
-
-    for (chunk, asset_name) in chunk_asset_map {
-      let chunk = self.chunk_by_ukey.expect_get_mut(&chunk);
-      chunk.add_auxiliary_file(asset_name);
-    }
-  }
-
-  #[instrument("Compilation::create_chunk_assets",target=TRACING_BENCH_TARGET, skip_all)]
-  async fn create_chunk_assets(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
-    if (self.options.output.filename.has_hash_placeholder()
-      || self.options.output.chunk_filename.has_hash_placeholder()
-      || self.options.output.css_filename.has_hash_placeholder()
-      || self
-        .options
-        .output
-        .css_chunk_filename
-        .has_hash_placeholder())
-      && let Some(diagnostic) = self.incremental.disable_passes(
-        IncrementalPasses::CHUNKS_RENDER,
-        "Chunk filename that dependent on full hash",
-        "chunk filename that dependent on full hash is not supported in incremental compilation",
-      )
-      && let Some(diagnostic) = diagnostic
-    {
-      self.push_diagnostic(diagnostic);
-    }
-
-    // Check if CHUNKS_RENDER pass is disabled, and reset artifact state if needed
-    reset_artifact_if_passes_disabled(&self.incremental, &mut self.chunk_render_artifact);
-
-    let chunks = if let Some(mutations) = self
-      .incremental
-      .mutations_read(IncrementalPasses::CHUNKS_RENDER)
-      && !self.chunk_render_artifact.is_empty()
-    {
-      let removed_chunks = mutations.iter().filter_map(|mutation| match mutation {
-        Mutation::ChunkRemove { chunk } => Some(*chunk),
-        _ => None,
-      });
-      for removed_chunk in removed_chunks {
-        self.chunk_render_artifact.remove(&removed_chunk);
-      }
-      self
-        .chunk_render_artifact
-        .retain(|chunk, _| self.chunk_by_ukey.contains(chunk));
-      let chunks: UkeySet<ChunkUkey> = mutations
-        .iter()
-        .filter_map(|mutation| match mutation {
-          Mutation::ChunkSetHashes { chunk } => Some(*chunk),
-          _ => None,
-        })
-        .collect();
-      tracing::debug!(target: incremental::TRACING_TARGET, passes = %IncrementalPasses::CHUNKS_RENDER, %mutations);
-      let logger = self.get_logger("rspack.incremental.chunksRender");
-      logger.log(format!(
-        "{} chunks are affected, {} in total",
-        chunks.len(),
-        self.chunk_by_ukey.len()
-      ));
-      chunks
-    } else {
-      self.chunk_by_ukey.keys().copied().collect()
-    };
-    let results = rspack_futures::scope::<_, Result<_>>(|token| {
-      chunks.iter().for_each(|chunk| {
-        // SAFETY: await immediately and trust caller to poll future entirely
-        let s = unsafe { token.used((&self, &plugin_driver, chunk)) };
-
-        s.spawn(|(this, plugin_driver, chunk)| async {
-          let mut manifests = Vec::new();
-          let mut diagnostics = Vec::new();
-          plugin_driver
-            .compilation_hooks
-            .render_manifest
-            .call(this, chunk, &mut manifests, &mut diagnostics)
-            .await?;
-
-          rspack_error::Result::Ok((
-            *chunk,
-            ChunkRenderResult {
-              manifests,
-              diagnostics,
-            },
-          ))
-        });
-      })
-    })
-    .await;
-
-    let mut chunk_render_results: UkeyMap<ChunkUkey, ChunkRenderResult> = Default::default();
-    for result in results {
-      let item = result.to_rspack_result()?;
-      let (key, value) = item?;
-      chunk_render_results.insert(key, value);
-    }
-    let chunk_ukey_and_manifest = if self
-      .incremental
-      .passes_enabled(IncrementalPasses::CHUNKS_RENDER)
-    {
-      self.chunk_render_artifact.extend(chunk_render_results);
-      self.chunk_render_artifact.clone()
-    } else {
-      ChunkRenderArtifact::new(chunk_render_results)
-    };
-
-    for (
-      chunk_ukey,
-      ChunkRenderResult {
-        manifests,
-        diagnostics,
-      },
-    ) in chunk_ukey_and_manifest
-    {
-      self.extend_diagnostics(diagnostics);
-
-      for file_manifest in manifests {
-        let filename = file_manifest.filename;
-        let current_chunk = self.chunk_by_ukey.expect_get_mut(&chunk_ukey);
-
-        current_chunk.set_rendered(true);
-        if file_manifest.auxiliary {
-          current_chunk.add_auxiliary_file(filename.clone());
-        } else {
-          current_chunk.add_file(filename.clone());
-        }
-
-        self.emit_asset(
-          filename.clone(),
-          CompilationAsset::new(Some(file_manifest.source), file_manifest.info),
-        );
-
-        _ = self
-          .chunk_asset(chunk_ukey, &filename, plugin_driver.clone())
-          .await;
-      }
-    }
-
-    Ok(())
-  }
-
-  #[instrument("Compilation:process_assets",target=TRACING_BENCH_TARGET, skip_all)]
-  async fn process_assets(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
-    plugin_driver
-      .compilation_hooks
-      .process_assets
-      .call(self)
-      .await
-      .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.processAssets"))
-  }
-
-  #[instrument("Compilation:after_process_assets", skip_all)]
-  async fn after_process_assets(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
-    let mut diagnostics: Vec<Diagnostic> = vec![];
-
-    let res = plugin_driver
-      .compilation_hooks
-      .after_process_assets
-      .call(self, &mut diagnostics)
-      .await;
-
-    self.extend_diagnostics(diagnostics);
-    res
-  }
-
-  #[instrument("Compilation:after_seal", target=TRACING_BENCH_TARGET,skip_all)]
-  async fn after_seal(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
-    plugin_driver.compilation_hooks.after_seal.call(self).await
-  }
-
-  // #[instrument(
-  //   name = "Compilation:chunk_asset",
-  //   skip(self, plugin_driver, chunk_ukey)
-  // )]
-  async fn chunk_asset(
-    &self,
-    chunk_ukey: ChunkUkey,
-    filename: &str,
-    plugin_driver: SharedPluginDriver,
-  ) -> Result<()> {
-    plugin_driver
-      .compilation_hooks
-      .chunk_asset
-      .call(self, &chunk_ukey, filename)
-      .await?;
-    Ok(())
   }
 
   pub fn entry_modules(&self) -> IdentifierSet {
@@ -1450,20 +1086,7 @@ impl Compilation {
 
   #[instrument("Compilation:finish",target=TRACING_BENCH_TARGET, skip_all)]
   pub async fn finish_build_module_graph(&mut self) -> Result<()> {
-    self.in_finish_make.store(false, Ordering::Release);
-    // clean up the entry deps
-    let make_artifact = self.build_module_graph_artifact.take();
-    self
-      .build_module_graph_artifact
-      .replace(finish_build_module_graph(self, make_artifact).await?);
-    // sync assets to module graph from module_executor
-    if let Some(module_executor) = &mut self.module_executor {
-      let mut module_executor = std::mem::take(module_executor);
-      module_executor.hook_after_finish_modules(self).await?;
-      self.module_executor = Some(module_executor);
-    }
-    // make finished, make artifact should be readonly thereafter.
-    Ok(())
+    compile_passes::finish_make_phase(self).await
   }
   // collect build module graph effects for incremental compilation
   #[tracing::instrument("Compilation:collect_build_module_graph_effects", skip_all)]
@@ -1648,9 +1271,6 @@ impl Compilation {
     let start = logger.time("optimize dependencies");
     // https://github.com/webpack/webpack/blob/d15c73469fd71cf98734685225250148b68ddc79/lib/Compilation.js#L2812-L2814
 
-
-
-
     logger.time_end(start);
 
     // ModuleGraph is frozen for now on, we have a module graph that won't change
@@ -1673,92 +1293,18 @@ impl Compilation {
     })
     .await?;
 
-    let mut diagnostics = vec![];
-    while matches!(
-      plugin_driver
-        .compilation_hooks
-        .optimize_modules
-        .call(self, &mut diagnostics)
-        .await
-        .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.optimizeModules"))?,
-      Some(true)
-    ) {}
-    self.extend_diagnostics(diagnostics);
-
-    plugin_driver
-      .compilation_hooks
-      .after_optimize_modules
-      .call(self)
-      .await
-      .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.afterOptimizeModules"))?;
-
-    while matches!(
-      plugin_driver
-        .compilation_hooks
-        .optimize_chunks
-        .call(self)
-        .await
-        .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.optimizeChunks"))?,
-      Some(true)
-    ) {}
-
+    optimize::optimize_chunks_phase(self, plugin_driver.clone()).await?;
     logger.time_end(start);
 
-    let start = logger.time("optimize");
-    plugin_driver
-      .compilation_hooks
-      .optimize_tree
-      .call(self)
-      .await
-      .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.optimizeTree"))?;
-
-    plugin_driver
-      .compilation_hooks
-      .optimize_chunk_modules
-      .call(self)
-      .await
-      .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.optimizeChunkModules"))?;
-    logger.time_end(start);
+    optimize::optimize_tree_phase(self, plugin_driver.clone()).await?;
 
     // ChunkGraph is frozen for now on, we have a chunk graph that won't change
     // so now we can start to generate assets based on the chunk graph
 
- 
-
-    let start = logger.time("chunk ids");
-
-    // Check if CHUNK_IDS pass is disabled, and reset artifact state if needed
-    reset_artifact_if_passes_disabled(&self.incremental, &mut self.named_chunk_ids_artifact);
-
-    let mut diagnostics = vec![];
-    let mut chunk_by_ukey = mem::take(&mut self.chunk_by_ukey);
-    let mut named_chunk_ids_artifact = mem::take(&mut self.named_chunk_ids_artifact);
-    plugin_driver
-      .compilation_hooks
-      .chunk_ids
-      .call(
-        self,
-        &mut chunk_by_ukey,
-        &mut named_chunk_ids_artifact,
-        &mut diagnostics,
-      )
-      .await
-      .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.chunkIds"))?;
-    self.chunk_by_ukey = chunk_by_ukey;
-    self.named_chunk_ids_artifact = named_chunk_ids_artifact;
-    self.extend_diagnostics(diagnostics);
-    logger.time_end(start);
-
-    self.assign_runtime_ids();
-
-    let start = logger.time("optimize code generation");
-    plugin_driver
-      .compilation_hooks
-      .optimize_code_generation
-      .call(self)
-      .await
-      .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.optimizeCodeGeneration"))?;
-    logger.time_end(start);
+    module_ids::module_ids(self, plugin_driver.clone()).await?;
+    chunk_ids::chunk_ids(self, plugin_driver.clone()).await?;
+    assign_runtime_ids::assign_runtime_ids(self);
+    optimize_code_generation::optimize_code_generation(self, plugin_driver.clone()).await?;
 
     // Check if MODULES_HASHES pass is disabled, and reset artifact state if needed
     reset_artifact_if_passes_disabled(&self.incremental, &mut self.cgm_hash_artifact);
@@ -1841,9 +1387,7 @@ impl Compilation {
     } else {
       self.get_module_graph().modules().keys().copied().collect()
     };
-    self
-      .create_module_hashes(create_module_hashes_modules)
-      .await?;
+    create_module_hashes::create_module_hashes(self, create_module_hashes_modules).await?;
 
     let start = logger.time("code generation");
     // Check if MODULES_CODEGEN pass is disabled, and reset artifact state if needed
@@ -1884,7 +1428,7 @@ impl Compilation {
       self.code_generation_results = Default::default();
       self.get_module_graph().modules().keys().copied().collect()
     };
-    self.code_generation(code_generation_modules).await?;
+    code_generation::code_generation(self, code_generation_modules).await?;
 
     let mut diagnostics = vec![];
     plugin_driver
@@ -1936,12 +1480,12 @@ impl Compilation {
       self.cgm_runtime_requirements_artifact = Default::default();
       self.get_module_graph().modules().keys().copied().collect()
     };
-    self
-      .process_modules_runtime_requirements(
-        process_runtime_requirements_modules,
-        plugin_driver.clone(),
-      )
-      .await?;
+    runtime_requirements::process_modules_runtime_requirements(
+      self,
+      process_runtime_requirements_modules,
+      plugin_driver.clone(),
+    )
+    .await?;
     let runtime_chunks = self.get_chunk_graph_entries().collect();
 
     // Check if CHUNKS_RUNTIME_REQUIREMENTS pass is disabled, and reset artifact state if needed
@@ -1984,103 +1528,36 @@ impl Compilation {
     } else {
       self.chunk_by_ukey.keys().copied().collect()
     };
-    self
-      .process_chunks_runtime_requirements(
-        process_runtime_requirements_chunks,
-        runtime_chunks,
-        plugin_driver.clone(),
-      )
-      .await?;
+    runtime_requirements::process_chunks_runtime_requirements(
+      self,
+      process_runtime_requirements_chunks,
+      runtime_chunks,
+      plugin_driver.clone(),
+    )
+    .await?;
     logger.time_end(start);
 
     let start = logger.time("hashing");
-    self.create_hash(plugin_driver.clone()).await?;
-    self.runtime_modules_code_generation().await?;
+    create_hash::create_hash(self, plugin_driver.clone()).await?;
+    create_hash::runtime_modules_code_generation(self).await?;
     logger.time_end(start);
 
     let start = logger.time("create module assets");
-    self.create_module_assets(plugin_driver.clone()).await;
+    create_chunk_assets::create_module_assets(self, plugin_driver.clone()).await;
     logger.time_end(start);
 
     let start = logger.time("create chunk assets");
-    self.create_chunk_assets(plugin_driver.clone()).await?;
+    create_chunk_assets::create_chunk_assets(self, plugin_driver.clone()).await?;
     logger.time_end(start);
 
-    let start = logger.time("process assets");
-    self.process_assets(plugin_driver.clone()).await?;
-    logger.time_end(start);
-
-    let start = logger.time("after process assets");
-    self.after_process_assets(plugin_driver.clone()).await?;
-    logger.time_end(start);
-
-    let start = logger.time("after seal");
-    self.after_seal(plugin_driver).await?;
-    logger.time_end(start);
+    process_assets::process_assets(self, plugin_driver.clone()).await?;
+    process_assets::after_process_assets(self, plugin_driver.clone()).await?;
+    process_assets::after_seal(self, plugin_driver).await?;
 
     if !self.options.mode.is_development() {
       self.module_static_cache_artifact.unfreeze();
     }
     Ok(())
-  }
-
-  pub async fn module_ids(){
-       let start = logger.time("module ids");
-
-    // Check if MODULE_IDS pass is disabled, and reset artifact state if needed
-    reset_artifact_if_passes_disabled(&self.incremental, &mut self.module_ids_artifact);
-
-    let mut diagnostics = vec![];
-    let mut module_ids_artifact = mem::take(&mut self.module_ids_artifact);
-    plugin_driver
-      .compilation_hooks
-      .module_ids
-      .call(self, &mut module_ids_artifact, &mut diagnostics)
-      .await
-      .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.moduleIds"))?;
-    self.module_ids_artifact = module_ids_artifact;
-    self.extend_diagnostics(diagnostics);
-    logger.time_end(start);
-  }
-  pub fn assign_runtime_ids(&mut self) {
-    fn process_entrypoint(
-      entrypoint_ukey: &ChunkGroupUkey,
-      chunk_group_by_ukey: &ChunkGroupByUkey,
-      chunk_by_ukey: &ChunkByUkey,
-      chunk_graph: &mut ChunkGraph,
-    ) {
-      let entrypoint = chunk_group_by_ukey.expect_get(entrypoint_ukey);
-      let runtime = entrypoint
-        .kind
-        .get_entry_options()
-        .and_then(|o| match &o.runtime {
-          Some(EntryRuntime::String(s)) => Some(s.to_owned()),
-          _ => None,
-        })
-        .or(entrypoint.name().map(|n| n.to_string()));
-      if let (Some(runtime), Some(chunk)) = (
-        runtime,
-        chunk_by_ukey.get(&entrypoint.get_runtime_chunk(chunk_group_by_ukey)),
-      ) {
-        chunk_graph.set_runtime_id(runtime, chunk.id().map(|id| id.to_string()));
-      }
-    }
-    for i in self.entrypoints.iter() {
-      process_entrypoint(
-        i.1,
-        &self.chunk_group_by_ukey,
-        &self.chunk_by_ukey,
-        &mut self.chunk_graph,
-      )
-    }
-    for i in self.async_entrypoints.iter() {
-      process_entrypoint(
-        i,
-        &self.chunk_group_by_ukey,
-        &self.chunk_by_ukey,
-        &mut self.chunk_graph,
-      )
-    }
   }
 
   pub fn get_chunk_graph_entries(&self) -> impl Iterator<Item = ChunkUkey> + use<'_> {
@@ -2097,12 +1574,13 @@ impl Compilation {
   pub async fn optimize_dependencies(&mut self) -> Result<()> {
     // Check if SIDE_EFFECTS pass is disabled, and reset artifact state if needed
     reset_artifact_if_passes_disabled(&self.incremental, &mut self.side_effects_optimize_artifact);
-    
+
     let mut diagnostics: Vec<Diagnostic> = vec![];
     let mut side_effects_optimize_artifact = self.side_effects_optimize_artifact.take();
     let mut build_module_graph_artifact = self.build_module_graph_artifact.take();
     while matches!(
-      self.plugin_driver
+      self
+        .plugin_driver
         .compilation_hooks
         .optimize_dependencies
         .call(
@@ -2115,7 +1593,7 @@ impl Compilation {
         .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.optimizeDependencies"))?,
       Some(true)
     ) {}
-        self
+    self
       .side_effects_optimize_artifact
       .replace(side_effects_optimize_artifact);
     self
