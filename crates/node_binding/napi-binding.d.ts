@@ -2133,7 +2133,6 @@ export interface RawExperiments {
 incremental?: false | { [key: string]: boolean }
 useInputFileSystem?: false | Array<RegExp>
 css?: boolean
-lazyBarrel: boolean
 deferImport: boolean
 }
 
