@@ -17,7 +17,9 @@ pub fn collect_assets_from_chunk(
   let mut js_async = HashSet::<String>::default();
   let mut css_sync = HashSet::<String>::default();
   let mut css_async = HashSet::<String>::default();
-  let chunk = compilation.chunk_by_ukey.expect_get(chunk_key);
+  let Some(chunk) = compilation.chunk_by_ukey.get(chunk_key) else {
+    return empty_assets_group();
+  };
 
   for file in chunk.files() {
     if file.ends_with(".css") {
