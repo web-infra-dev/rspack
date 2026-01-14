@@ -22,6 +22,7 @@ export default defineConfig({
   },
   output: {
     externals: [/@rspack\/core/, /api-wrapper/],
+    module: false,
   },
   env: {
     RUST_BACKTRACE: 'full',
