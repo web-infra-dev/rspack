@@ -1648,33 +1648,8 @@ impl Compilation {
     let start = logger.time("optimize dependencies");
     // https://github.com/webpack/webpack/blob/d15c73469fd71cf98734685225250148b68ddc79/lib/Compilation.js#L2812-L2814
 
-    // Check if SIDE_EFFECTS pass is disabled, and reset artifact state if needed
-    reset_artifact_if_passes_disabled(&self.incremental, &mut self.side_effects_optimize_artifact);
 
-    let mut diagnostics: Vec<Diagnostic> = vec![];
-    let mut side_effects_optimize_artifact = self.side_effects_optimize_artifact.take();
-    let mut build_module_graph_artifact = self.build_module_graph_artifact.take();
-    while matches!(
-      plugin_driver
-        .compilation_hooks
-        .optimize_dependencies
-        .call(
-          self,
-          &mut side_effects_optimize_artifact,
-          &mut build_module_graph_artifact,
-          &mut diagnostics
-        )
-        .await
-        .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.optimizeDependencies"))?,
-      Some(true)
-    ) {}
-    self
-      .side_effects_optimize_artifact
-      .replace(side_effects_optimize_artifact);
-    self
-      .build_module_graph_artifact
-      .replace(build_module_graph_artifact);
-    self.extend_diagnostics(diagnostics);
+
 
     logger.time_end(start);
 
@@ -1748,22 +1723,7 @@ impl Compilation {
     // ChunkGraph is frozen for now on, we have a chunk graph that won't change
     // so now we can start to generate assets based on the chunk graph
 
-    let start = logger.time("module ids");
-
-    // Check if MODULE_IDS pass is disabled, and reset artifact state if needed
-    reset_artifact_if_passes_disabled(&self.incremental, &mut self.module_ids_artifact);
-
-    let mut diagnostics = vec![];
-    let mut module_ids_artifact = mem::take(&mut self.module_ids_artifact);
-    plugin_driver
-      .compilation_hooks
-      .module_ids
-      .call(self, &mut module_ids_artifact, &mut diagnostics)
-      .await
-      .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.moduleIds"))?;
-    self.module_ids_artifact = module_ids_artifact;
-    self.extend_diagnostics(diagnostics);
-    logger.time_end(start);
+ 
 
     let start = logger.time("chunk ids");
 
@@ -2064,6 +2024,24 @@ impl Compilation {
     Ok(())
   }
 
+  pub async fn module_ids(){
+       let start = logger.time("module ids");
+
+    // Check if MODULE_IDS pass is disabled, and reset artifact state if needed
+    reset_artifact_if_passes_disabled(&self.incremental, &mut self.module_ids_artifact);
+
+    let mut diagnostics = vec![];
+    let mut module_ids_artifact = mem::take(&mut self.module_ids_artifact);
+    plugin_driver
+      .compilation_hooks
+      .module_ids
+      .call(self, &mut module_ids_artifact, &mut diagnostics)
+      .await
+      .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.moduleIds"))?;
+    self.module_ids_artifact = module_ids_artifact;
+    self.extend_diagnostics(diagnostics);
+    logger.time_end(start);
+  }
   pub fn assign_runtime_ids(&mut self) {
     fn process_entrypoint(
       entrypoint_ukey: &ChunkGroupUkey,
@@ -2116,7 +2094,36 @@ impl Compilation {
     });
     entries.chain(async_entries)
   }
-
+  pub async fn optimize_dependencies(&mut self) -> Result<()> {
+    // Check if SIDE_EFFECTS pass is disabled, and reset artifact state if needed
+    reset_artifact_if_passes_disabled(&self.incremental, &mut self.side_effects_optimize_artifact);
+    
+    let mut diagnostics: Vec<Diagnostic> = vec![];
+    let mut side_effects_optimize_artifact = self.side_effects_optimize_artifact.take();
+    let mut build_module_graph_artifact = self.build_module_graph_artifact.take();
+    while matches!(
+      self.plugin_driver
+        .compilation_hooks
+        .optimize_dependencies
+        .call(
+          self,
+          &mut side_effects_optimize_artifact,
+          &mut build_module_graph_artifact,
+          &mut diagnostics
+        )
+        .await
+        .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.optimizeDependencies"))?,
+      Some(true)
+    ) {}
+        self
+      .side_effects_optimize_artifact
+      .replace(side_effects_optimize_artifact);
+    self
+      .build_module_graph_artifact
+      .replace(build_module_graph_artifact);
+    self.extend_diagnostics(diagnostics);
+    Ok(())
+  }
   #[instrument("Compilation:process_modules_runtime_requirements", skip_all)]
   pub async fn process_modules_runtime_requirements(
     &mut self,
