@@ -92,10 +92,10 @@ sftrace-setup       = { version = "0.1.2", default-features = false }
 sha2                = { version = "0.10.9", default-features = false }
 signal-hook         = { version = "0.3.18", default-features = false, features = ["iterator"] }
 simd-json           = { version = "0.17.0", default-features = false }
-smol_str            = { version = "0.3.4", default-features = false }
+smol_str            = { version = "0.3.5", default-features = false }
 stacker             = { version = "0.1.22", default-features = false }
 sugar_path          = { version = "1.2.1", default-features = false, features = ["cached_current_dir"] }
-syn                 = { version = "2.0.113", default-features = false }
+syn                 = { version = "2.0.114", default-features = false }
 termcolor           = { version = "1.4.1", default-features = false }
 textwrap            = { version = "0.16.1", default-features = false }
 thread_local        = { version = "1.1.9", default-features = false }
