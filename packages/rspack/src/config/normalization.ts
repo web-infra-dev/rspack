@@ -374,11 +374,6 @@ export const getNormalizedRspackOptions = (
     performance: config.performance,
     plugins: nestedArray(config.plugins, (p) => [...p]),
     experiments: nestedConfig(config.experiments, (experiments) => {
-      if (experiments.lazyBarrel) {
-        deprecate(
-          '`experiments.lazyBarrel` config is deprecated and will be removed in Rspack v2.0. Lazy barrel is already stable and enabled by default. Remove this option from your Rspack configuration.',
-        );
-      }
       if (experiments.inlineConst) {
         deprecate(
           '`experiments.inlineConst` config is deprecated and will be removed in Rspack v2.0. Inline Const is already stable and enabled by default. Remove this option from your Rspack configuration.',
@@ -677,10 +672,6 @@ export interface ExperimentsNormalized {
    */
   inlineEnum?: boolean;
   typeReexportsPresence?: boolean;
-  /**
-   * @deprecated This option is deprecated, it's already stable and enabled by default, Rspack will remove this option in future version
-   */
-  lazyBarrel?: boolean;
   nativeWatcher?: boolean;
   deferImport?: boolean;
 }

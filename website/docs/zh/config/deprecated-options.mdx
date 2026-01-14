@@ -101,25 +101,6 @@ export default {
 详细示例可参考：[inline enum 示例](https://github.com/rstackjs/rstack-examples/tree/main/rspack/inline-enum)
 :::
 
-## experiments.lazyBarrel
-
-<ApiMeta deprecatedVersion="1.7.0" />
-
-- **类型：** `boolean`
-- **默认值：** `true`
-
-用于启用 barrel 文件的惰性编译优化，跳过无副作用的重导出模块中未使用的模块的构建。
-
-:::warning
-此配置已被废弃，将在 Rspack v2.0 中移除。Lazy barrel 优化已经稳定并默认启用。请从 Rspack 配置中移除此选项。
-:::
-
-:::tip
-Lazy barrel 现在是一个稳定功能，始终处于启用状态。它通过跳过无副作用 barrel 文件中未使用的重导出模块的构建来优化构建性能。
-
-更多详情，请参阅 [Lazy barrel 指南](/guide/optimization/lazy-barrel)。
-:::
-
 ## experiments.typeReexportsPresence
 
 <ApiMeta deprecatedVersion="1.7.0" />

@@ -15,7 +15,6 @@ pub struct RawExperiments {
   #[napi(ts_type = "false | Array<RegExp>")]
   pub use_input_file_system: Option<WithFalse<Vec<RspackRegex>>>,
   pub css: Option<bool>,
-  pub lazy_barrel: bool,
   pub defer_import: bool,
 }
 
@@ -30,7 +29,6 @@ impl From<RawExperiments> for Experiments {
         None => IncrementalOptions::empty_passes(),
       },
       css: value.css.unwrap_or(false),
-      lazy_barrel: value.lazy_barrel,
       defer_import: value.defer_import,
     }
   }
