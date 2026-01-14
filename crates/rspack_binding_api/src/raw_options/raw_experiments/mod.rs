@@ -10,7 +10,6 @@ use super::WithFalse;
 #[derive(Debug)]
 #[napi(object, object_to_js = false)]
 pub struct RawExperiments {
-  pub top_level_await: bool,
   #[napi(ts_type = "false | { [key: string]: boolean }")]
   pub incremental: Option<WithFalse<RawIncremental>>,
   #[napi(ts_type = "false | Array<RegExp>")]
@@ -30,7 +29,6 @@ impl From<RawExperiments> for Experiments {
         },
         None => IncrementalOptions::empty_passes(),
       },
-      top_level_await: value.top_level_await,
       css: value.css.unwrap_or(false),
       lazy_barrel: value.lazy_barrel,
       defer_import: value.defer_import,

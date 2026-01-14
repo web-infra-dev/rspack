@@ -412,9 +412,7 @@ impl<'parser> JavascriptParser<'parser> {
 
     if module_type.is_js_auto() || module_type.is_js_esm() {
       plugins.push(Box::new(parser_plugin::ESMTopLevelThisParserPlugin));
-      plugins.push(Box::new(parser_plugin::ESMDetectionParserPlugin::new(
-        compiler_options.experiments.top_level_await,
-      )));
+      plugins.push(Box::new(parser_plugin::ESMDetectionParserPlugin::default()));
       plugins.push(Box::new(
         parser_plugin::ImportMetaContextDependencyParserPlugin,
       ));
