@@ -1,6 +1,5 @@
 import http from 'node:http';
 import path from 'node:path';
-import { setTimeout } from 'node:timers/promises';
 import { test as base, expect } from '@playwright/test';
 import fs from 'fs-extra';
 import { type Compiler, type Configuration, rspack } from '@rspack/core';
@@ -16,6 +15,7 @@ function createLazyCompilationServer(
   return new Promise((resolve, reject) => {
     const middleware = rspack.lazyCompilationMiddleware(compiler);
     const server = http.createServer((req, res) => {
+      res.setHeader('Access-Control-Allow-Origin', '*');
       middleware(req, res, () => {
         res.writeHead(404);
         res.end('Not Found');
