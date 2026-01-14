@@ -2445,7 +2445,6 @@ export type Experiments = {
     buildHttp?: HttpUriOptions;
     useInputFileSystem?: UseInputFileSystem;
     nativeWatcher?: boolean;
-    typeReexportsPresence?: boolean;
     deferImport?: boolean;
 };
 
@@ -2511,8 +2510,6 @@ export interface ExperimentsNormalized {
     nativeWatcher?: boolean;
     // (undocumented)
     outputModule?: boolean;
-    // (undocumented)
-    typeReexportsPresence?: boolean;
     // (undocumented)
     useInputFileSystem?: false | RegExp[];
 }

@@ -43,18 +43,3 @@ An array to pass the loader package name and its options.
 :::warning
 This option has been deprecated. Use [rules[].use](/config/module-rules#rulesuse) instead.
 :::
-
-## experiments.typeReexportsPresence
-
-<ApiMeta deprecatedVersion="1.7.0" />
-
-- **Type:** `boolean`
-- **Default:** `false`
-
-Used to enable error tolerance for type re-exports.
-
-:::warning
-This configuration has been deprecated and is no longer required. Type re-exports presence checking is now controlled by [`module.parser.javascript.typeReexportsPresence`](/config/module#moduleparserjavascripttypereexportspresence) and [`builtin:swc-loader collectTypeScriptInfo.typeExports`](/guide/features/builtin-swc-loader#collecttypescriptinfotypeexports).
-
-Please refer to [type reexports presence example](https://github.com/rstackjs/rstack-examples/tree/main/rspack/type-reexports-presence) for more details.
-:::
