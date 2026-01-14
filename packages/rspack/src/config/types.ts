@@ -2801,12 +2801,6 @@ export type Experiments = {
    */
   nativeWatcher?: boolean;
   /**
-   * Enable type reexports presence feature
-   * @default false
-   * @deprecated This option is deprecated, it's already stable. Rspack will remove this option in future version
-   */
-  typeReexportsPresence?: boolean;
-  /**
    * Enable defer import feature
    * @default false
    */

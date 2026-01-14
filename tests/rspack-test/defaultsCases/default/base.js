@@ -43,7 +43,6 @@ module.exports = {
 			      sideEffects: true,
 			      silent: true,
 			    },
-			    typeReexportsPresence: false,
 			    useInputFileSystem: false,
 			  },
 			  externals: undefined,
