@@ -35,39 +35,6 @@ This configuration has been deprecated. Use top-level [`collectTypeScriptInfo`](
 
 :::
 
-## experiments.topLevelAwait
-
-- **Type:** `boolean`
-- **Default:** `true`
-
-Enables support for [Top-level await](https://github.com/tc39/proposal-top-level-await). Top-level await can only be used in modules with [ModuleType](/config/module-rules#rulestype) set to `javascript/esm`.
-
-Enabled by default. Can be disabled with this configuration:
-
-```js title="rspack.config.mjs"
-export default {
-  experiments: {
-    topLevelAwait: false,
-  },
-};
-```
-
-:::warning
-This option has been deprecated and will be removed in Rspack v2.0.
-
-Top-level await will always be enabled in the future. Remove this option from your Rspack configuration.
-:::
-
-## experiments.lazyCompilation
-
-<ApiMeta deprecatedVersion="1.5.0" />
-
-Used to enable lazy compilation.
-
-:::warning
-This configuration has been deprecated. Use [lazyCompilation](/config/lazy-compilation) instead.
-:::
-
 ## experiments.layers
 
 <ApiMeta deprecatedVersion="1.6.0" />

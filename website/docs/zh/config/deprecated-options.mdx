@@ -35,39 +35,6 @@ import { ApiMeta } from '../../../components/ApiMeta';
 
 :::
 
-## experiments.topLevelAwait
-
-- **类型：** `boolean`
-- **默认值：** `true`
-
-开启打包 [Top-level await](https://github.com/tc39/proposal-top-level-await) 的支持，`Top-level await` 仅能在 [ModuleType](/config/module-rules#rulestype) 为 `javascript/esm` 的模块中使用。
-
-默认开启，可通过该配置关闭：
-
-```js title="rspack.config.mjs"
-export default {
-  experiments: {
-    topLevelAwait: false,
-  },
-};
-```
-
-:::warning
-该配置项已经废弃，将在 Rspack v2.0 中被移除。
-
-未来 `Top-level await` 特性将会始终开启，请从 Rspack 配置中移除此选项。
-:::
-
-## experiments.lazyCompilation
-
-<ApiMeta deprecatedVersion="1.5.0" />
-
-用于开启懒编译。
-
-:::warning
-该配置项已经废弃，请使用 [lazyCompilation](/config/lazy-compilation) 替代此项。
-:::
-
 ## experiments.layers
 
 <ApiMeta deprecatedVersion="1.6.0" />
