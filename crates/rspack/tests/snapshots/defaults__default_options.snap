@@ -1514,7 +1514,6 @@ CompilerOptions {
                 MAKE | EMIT_ASSETS,
             ),
         },
-        top_level_await: true,
         css: false,
         lazy_barrel: true,
         defer_import: false,

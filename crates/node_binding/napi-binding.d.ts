@@ -2130,7 +2130,6 @@ export interface RawEvalDevToolModulePluginOptions {
 }
 
 export interface RawExperiments {
-  topLevelAwait: boolean
 incremental?: false | { [key: string]: boolean }
 useInputFileSystem?: false | Array<RegExp>
 css?: boolean

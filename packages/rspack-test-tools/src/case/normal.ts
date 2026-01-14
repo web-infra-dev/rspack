@@ -230,7 +230,6 @@ function defaultOptions(
     experiments: {
       css: false,
       asyncWebAssembly: true,
-      topLevelAwait: true,
       // CHANGE: rspack does not support `backCompat` yet.
       // backCompat: false,
       // CHANGE: Rspack enables `css` by default.
