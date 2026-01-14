@@ -7,10 +7,10 @@
   "author": "",
   "license": "ISC",
   "scripts": {
-    "test": "cross-env RUST_BACKTRACE=full pnpm run --stream /^test:.*/",
-    "testu": "pnpm run --stream /^test:.*/ -u",
-    "test:base": "rstest",
-    "test:hot": "cross-env RSPACK_HOT_TEST=true node --no-warnings --expose-gc --max-old-space-size=8192 --experimental-vm-modules ../../node_modules/@rstest/core/bin/rstest --config ./rstest.config.hot.ts --passWithNoTests"
+    "test": "rstest",
+    "testu": "rstest -u",
+    "test:base": "rstest --project base",
+    "test:hot": "rstest --project hottest"
   },
   "devDependencies": {
     "@rspack/cli": "workspace:*",
@@ -19,7 +19,7 @@
     "@rspack/plugin-preact-refresh": "1.1.4",
     "@rspack/plugin-react-refresh": "^1.6.0",
     "@rspack/test-tools": "workspace:*",
-    "@rstest/core": "^0.7.8",
+    "@rstest/core": "^0.7.9",
     "@swc/helpers": "0.5.18",
     "@swc/plugin-remove-console": "^12.1.0",
     "@types/babel__generator": "7.27.0",
