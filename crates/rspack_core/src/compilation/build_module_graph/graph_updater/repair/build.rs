@@ -150,9 +150,7 @@ impl Task<TaskContext> for BuildResultTask {
      -> Vec<Box<AsyncDependenciesBlock>> {
       for (index_in_block, dependency) in dependencies.into_iter().enumerate() {
         let dependency_id = *dependency.id();
-        if context.compiler_options.experiments.lazy_barrel
-          && let Some(until) = dependency.lazy()
-        {
+        if let Some(until) = dependency.lazy() {
           lazy_dependencies.insert(&dependency, until);
         }
         if current_block.is_none() {

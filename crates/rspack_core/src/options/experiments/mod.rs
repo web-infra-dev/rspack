@@ -7,6 +7,5 @@ use crate::incremental::IncrementalOptions;
 pub struct Experiments {
   pub incremental: IncrementalOptions,
   pub css: bool,
-  pub lazy_barrel: bool,
   pub defer_import: bool,
 }
