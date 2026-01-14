@@ -2439,7 +2439,6 @@ interface ExecuteModuleContext {
 export type Experiments = {
     asyncWebAssembly?: boolean;
     outputModule?: boolean;
-    topLevelAwait?: boolean;
     css?: boolean;
     layers?: boolean;
     incremental?: IncrementalPresets | Incremental;
@@ -2524,8 +2523,6 @@ export interface ExperimentsNormalized {
     nativeWatcher?: boolean;
     // (undocumented)
     outputModule?: boolean;
-    // (undocumented)
-    topLevelAwait?: boolean;
     // (undocumented)
     typeReexportsPresence?: boolean;
     // (undocumented)

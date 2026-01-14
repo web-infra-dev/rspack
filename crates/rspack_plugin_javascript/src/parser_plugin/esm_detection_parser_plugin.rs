@@ -27,10 +27,8 @@ impl JavascriptParser<'_> {
     );
   }
 
-  fn handle_top_level_await(&mut self, allow_top_level: bool, span: Span) {
-    if !allow_top_level {
-      self.throw_top_level_await_error("The top-level-await experiment is not enabled (set experiments.topLevelAwait: true to enabled it)".into(), span);
-    } else if self.is_esm {
+  fn handle_top_level_await(&mut self, span: Span) {
+    if self.is_esm {
       self.build_meta.has_top_level_await = true;
     } else {
       self.throw_top_level_await_error(
@@ -41,15 +39,8 @@ impl JavascriptParser<'_> {
   }
 }
 
-pub struct ESMDetectionParserPlugin {
-  top_level_await: bool,
-}
-
-impl ESMDetectionParserPlugin {
-  pub fn new(top_level_await: bool) -> Self {
-    Self { top_level_await }
-  }
-}
+#[derive(Default)]
+pub struct ESMDetectionParserPlugin;
 
 // nonHarmonyIdentifiers
 fn is_non_esm_identifier(name: &str) -> bool {
@@ -87,7 +78,7 @@ impl JavascriptParserPlugin for ESMDetectionParserPlugin {
     let lo = expr.span_lo();
     let hi = lo.add(BytePos(AWAIT_LEN));
     let span = Span::new(lo, hi);
-    parser.handle_top_level_await(self.top_level_await, span);
+    parser.handle_top_level_await(span);
   }
 
   fn top_level_for_of_await_stmt(
@@ -99,7 +90,7 @@ impl JavascriptParserPlugin for ESMDetectionParserPlugin {
     let lo = stmt.span_lo().add(BytePos(offset));
     let hi = lo.add(BytePos(AWAIT_LEN));
     let span = Span::new(lo, hi);
-    parser.handle_top_level_await(self.top_level_await, span);
+    parser.handle_top_level_await(span);
   }
 
   fn evaluate_typeof<'a>(

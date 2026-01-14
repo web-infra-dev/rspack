@@ -3645,8 +3645,6 @@ impl OptimizationOptionsBuilder {
 pub struct ExperimentsBuilder {
   /// Incremental passes.
   incremental: Option<IncrementalOptions>,
-  /// Whether to enable top level await.
-  top_level_await: Option<bool>,
   /// Whether to enable output module.
   output_module: Option<bool>,
   /// Whether to enable future defaults.
@@ -3662,7 +3660,6 @@ impl From<Experiments> for ExperimentsBuilder {
   fn from(value: Experiments) -> Self {
     ExperimentsBuilder {
       incremental: Some(value.incremental),
-      top_level_await: Some(value.top_level_await),
       output_module: None,
       future_defaults: None,
       css: Some(value.css),
@@ -3675,7 +3672,6 @@ impl From<&mut ExperimentsBuilder> for ExperimentsBuilder {
   fn from(value: &mut ExperimentsBuilder) -> Self {
     ExperimentsBuilder {
       incremental: value.incremental.take(),
-      top_level_await: value.top_level_await.take(),
       output_module: value.output_module.take(),
       future_defaults: value.future_defaults.take(),
       css: value.css.take(),
@@ -3688,12 +3684,6 @@ impl ExperimentsBuilder {
   /// Set the incremental passes.
   pub fn incremental(&mut self, incremental: IncrementalOptions) -> &mut Self {
     self.incremental = Some(incremental);
-    self
-  }
-
-  /// Set whether to enable top level await.
-  pub fn top_level_await(&mut self, top_level_await: bool) -> &mut Self {
-    self.top_level_await = Some(top_level_await);
     self
   }
 
@@ -3735,8 +3725,6 @@ impl ExperimentsBuilder {
         passes,
       }
     });
-    let top_level_await = d!(self.top_level_await, true);
-
     // Builder specific
     let future_defaults = w!(self.future_defaults, false);
     w!(self.css, *future_defaults);
@@ -3745,7 +3733,6 @@ impl ExperimentsBuilder {
 
     Ok(Experiments {
       incremental,
-      top_level_await,
       css: d!(self.css, false),
       lazy_barrel: true,
       defer_import: false,
