@@ -213,7 +213,6 @@ const applyExperimentsDefaults = (experiments: ExperimentsNormalized) => {
   D(experiments, 'futureDefaults', false);
   D(experiments, 'asyncWebAssembly', experiments.futureDefaults);
   D(experiments, 'css', experiments.futureDefaults ? true : undefined);
-  D(experiments, 'topLevelAwait', true);
   D(experiments, 'deferImport', false);
 
   D(experiments, 'buildHttp', undefined);

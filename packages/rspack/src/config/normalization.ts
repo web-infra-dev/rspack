@@ -379,11 +379,6 @@ export const getNormalizedRspackOptions = (
           '`experiments.layers` config is deprecated and will be removed in Rspack v2.0. Feature layers will always be enabled. Remove this option from your Rspack configuration.',
         );
       }
-      if (experiments.topLevelAwait === false) {
-        deprecate(
-          '`experiments.topLevelAwait` config is deprecated and will be removed in Rspack v2.0. Top-level await will always be enabled. Remove this option from your Rspack configuration.',
-        );
-      }
       if (experiments.lazyBarrel) {
         deprecate(
           '`experiments.lazyBarrel` config is deprecated and will be removed in Rspack v2.0. Lazy barrel is already stable and enabled by default. Remove this option from your Rspack configuration.',
@@ -673,7 +668,6 @@ export type CacheNormalized =
 export interface ExperimentsNormalized {
   asyncWebAssembly?: boolean;
   outputModule?: boolean;
-  topLevelAwait?: boolean;
   css?: boolean;
   /**
    * @deprecated This option is deprecated, layers is enabled since v1.6.0
