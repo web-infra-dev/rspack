@@ -208,7 +208,6 @@ const lazyCompilationMiddlewareInternal = (
     }
 
     let modules: string[] = [];
-    res.setHeader('Access-Control-Allow-Origin', '*');
     if (req.method === 'POST') {
       try {
         modules = await readModuleIdsFromBody(req);
