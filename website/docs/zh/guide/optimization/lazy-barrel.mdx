@@ -202,24 +202,6 @@ Rspack 可以分析模块是否有副作用（这个能力已经被 [`optimizati
 
 在 make 阶段，必须先构建依赖才能分析它们的副作用。Lazy barrel 专门设计用于避免构建这些依赖。因此，它依赖于显式标记，如 `package.json` 中的 `"sideEffects": false` 或 `rules[].sideEffects`，这些标记不需要依赖检查，因为它们声明整个包或匹配的模块都是无副作用的。
 
-## 配置
-
-Lazy barrel 自 Rspack 1.6.0 起默认启用。无需配置。
-
-如果你使用的是旧版本且配置中有 `experiments.lazyBarrel`，可以安全地移除它：
-
-```diff title="rspack.config.mjs"
-export default {
--  experiments: {
--    lazyBarrel: true,
--  },
-};
-```
-
-:::warning 废弃的配置
-`experiments.lazyBarrel` 配置选项已被废弃，将在 Rspack v2.0 中移除。参见[废弃选项](/config/deprecated-options#experimentslazybarrel)。
-:::
-
 ## 延伸阅读
 
 - [RFC: Lazy make for reexports in side effects free barrel file](https://github.com/web-infra-dev/rspack/discussions/11273)

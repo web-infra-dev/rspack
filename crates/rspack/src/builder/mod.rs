@@ -3734,7 +3734,6 @@ impl ExperimentsBuilder {
     Ok(Experiments {
       incremental,
       css: d!(self.css, false),
-      lazy_barrel: true,
       defer_import: false,
     })
   }
