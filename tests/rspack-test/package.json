@@ -20,7 +20,7 @@
     "@rspack/cli": "workspace:*",
     "@rspack/core": "workspace:*",
     "@rspack/plugin-preact-refresh": "1.1.4",
-    "@rspack/plugin-react-refresh": "^1.5.3",
+    "@rspack/plugin-react-refresh": "^1.6.0",
     "@rspack/test-tools": "workspace:*",
     "@rstest/core": "^0.7.8",
     "@swc/helpers": "0.5.18",
