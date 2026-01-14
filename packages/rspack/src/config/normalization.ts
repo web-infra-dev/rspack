@@ -406,10 +406,6 @@ export const getNormalizedRspackOptions = (
       }
       return {
         ...experiments,
-        lazyCompilation: optionalNestedConfig(
-          experiments.lazyCompilation,
-          (options) => (options === true ? {} : options),
-        ),
         incremental: optionalNestedConfig(experiments.incremental, (options) =>
           getNormalizedIncrementalOptions(options),
         ),
@@ -675,12 +671,6 @@ export type CacheNormalized =
     };
 
 export interface ExperimentsNormalized {
-  /**
-   * @deprecated This option is deprecated and will be removed in future versions.
-   *
-   * Please use the Configuration top-level `lazyCompilation` option instead.
-   */
-  lazyCompilation?: false | LazyCompilationOptions;
   asyncWebAssembly?: boolean;
   outputModule?: boolean;
   topLevelAwait?: boolean;
