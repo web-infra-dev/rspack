@@ -247,32 +247,19 @@ const lazyCompilationMiddlewareInternal = (
     res: ServerResponse,
     next?: () => void,
   ) => {
-    if (!req.url?.startsWith(lazyCompilationPrefix)) {
+    if (!req.url?.startsWith(lazyCompilationPrefix) || req.method !== 'POST') {
       return next?.();
     }
 
     let modules: string[] = [];
-    if (req.method === 'POST') {
-      try {
-        modules = await readModuleIdsFromBody(req);
-      } catch (err) {
-        logger.error('Failed to parse request body: ' + err);
-        res.writeHead(400);
-        res.end('Bad Request');
-        return;
-      }
-    } else {
-      modules = req.url
-        .slice(lazyCompilationPrefix.length)
-        .split('@')
-        .map(decodeURIComponent);
+    try {
+      modules = await readModuleIdsFromBody(req);
+    } catch (err) {
+      logger.error('Failed to parse request body: ' + err);
+      res.writeHead(400);
+      res.end('Bad Request');
+      return;
     }
-
-    req.socket.setNoDelay(true);
-
-    res.setHeader('content-type', 'text/event-stream');
-    res.writeHead(200);
-    res.write('\n');
 
     const moduleActivated = [];
     for (const key of modules) {
@@ -287,8 +274,9 @@ const lazyCompilationMiddlewareInternal = (
     if (moduleActivated.length && compiler.watching) {
       compiler.watching.invalidate();
     }
-    if (req.method === 'POST') {
-      res.end();
-    }
+
+    res.writeHead(200);
+    res.write('\n');
+    res.end();
   };
 };
