@@ -1515,7 +1515,6 @@ CompilerOptions {
             ),
         },
         css: false,
-        lazy_barrel: true,
         defer_import: false,
     },
     node: Some(
