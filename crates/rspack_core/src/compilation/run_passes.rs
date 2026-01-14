@@ -69,7 +69,7 @@ impl Compilation {
       use rspack_util::debug_tool::wait_for_signal;
       wait_for_signal("seal compilation");
     }
-    let logger = self.get_logger("rspack.Compiler");
+    let logger = self.get_logger("rspack.Compilation");
     // https://github.com/webpack/webpack/blob/main/lib/Compilation.js#L2809
     plugin_driver
       .compilation_hooks

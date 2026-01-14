@@ -15,8 +15,8 @@ use tracing::instrument;
 pub use self::rebuild::CompilationRecords;
 use crate::{
   BoxPlugin, CleanOptions, Compilation, CompilationAsset, CompilerOptions, CompilerPlatform,
-  ContextModuleFactory, Filename, KeepPattern, NormalModuleFactory, PluginDriver,
-  ResolverFactory, SharedPluginDriver,
+  ContextModuleFactory, Filename, KeepPattern, NormalModuleFactory, PluginDriver, ResolverFactory,
+  SharedPluginDriver,
   cache::{Cache, new_cache},
   compilation::build_module_graph::ModuleExecutor,
   fast_set, include_hash,
