@@ -20,9 +20,7 @@ module.exports = {
 		usedExports: true,
 		providedExports: true,
 		minimize: false,
-		mangleExports: false
+		mangleExports: false,
+		inlineExports: false
 	},
-	experiments: {
-		inlineConst: false
-	}
 };

@@ -97,8 +97,6 @@ export const applyRspackOptionsDefaults = (
     production,
     development,
     css: options.experiments.css!,
-    deprecatedInline:
-      options.experiments.inlineConst! || options.experiments.inlineEnum!,
   });
 
   applySnapshotDefaults(options.snapshot, { production });
@@ -245,12 +243,6 @@ const applyExperimentsDefaults = (experiments: ExperimentsNormalized) => {
   // IGNORE(experiments.useInputFileSystem): Rspack specific configuration
   // Enable `useInputFileSystem` will introduce much more fs overheads,  So disable by default.
   D(experiments, 'useInputFileSystem', false);
-
-  // IGNORE(experiments.inlineConst): Rspack specific configuration for inline const
-  D(experiments, 'inlineConst', true);
-
-  // IGNORE(experiments.inlineEnum): Rspack specific configuration for inline enum
-  D(experiments, 'inlineEnum', false);
 
   // IGNORE(experiments.typeReexportsPresence): Rspack specific configuration for type reexports presence
   D(experiments, 'typeReexportsPresence', false);
@@ -983,12 +975,10 @@ const applyOptimizationDefaults = (
     production,
     development,
     css,
-    deprecatedInline,
   }: {
     production: boolean;
     development: boolean;
     css: boolean;
-    deprecatedInline: boolean;
   },
 ) => {
   // IGNORE(optimization.removeAvailableModules): removeAvailableModules is no use for webpack
@@ -1007,7 +997,7 @@ const applyOptimizationDefaults = (
   });
   F(optimization, 'sideEffects', () => (production ? true : 'flag'));
   D(optimization, 'mangleExports', production);
-  D(optimization, 'inlineExports', deprecatedInline && production);
+  D(optimization, 'inlineExports', production);
   D(optimization, 'providedExports', true);
   D(optimization, 'usedExports', production);
   D(optimization, 'innerGraph', production);

@@ -21,10 +21,8 @@ module.exports = {
 					chunks: "all"
 				}
 			}
-		}
+		},
+		// inlineExports will inline all shared-*.js, so there won't have a shared.js which is splitted out by splitChunks
+		inlineExports: false
 	},
-	experiments: {
-		// inlineConst will inline all shared-*.js, so there won't have a shared.js which is splitted out by splitChunks
-		inlineConst: false,
-	}
 };

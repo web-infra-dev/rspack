@@ -13,7 +13,7 @@ import { type LoaderObject, parsePathQueryFragment } from '../loader-runner';
 import type { Logger } from '../logging/Logger';
 import type { Module } from '../Module';
 import type { ResolveRequest } from '../Resolver';
-import { deprecate, isNil } from '../util';
+import { isNil } from '../util';
 import type Hash from '../util/hash';
 import type { RspackOptionsNormalized } from './normalization';
 import type {
@@ -513,19 +513,6 @@ const getSwcLoaderOptions: GetLoaderOptions = (options, _) => {
         rspackExperiments.import = resolvePluginImport(
           rspackExperiments.import || rspackExperiments.pluginImport,
         );
-      }
-      if (rspackExperiments.collectTypeScriptInfo) {
-        deprecate(
-          '`rspackExperiments.collectTypeScriptInfo` is deprecated and will be removed in Rspack v2.0. Use top-level `collectTypeScriptInfo` instead.',
-        );
-        // If top-level is not set, use rspackExperiments config
-        if (!options.collectTypeScriptInfo) {
-          options.collectTypeScriptInfo = resolveCollectTypeScriptInfo(
-            rspackExperiments.collectTypeScriptInfo,
-          );
-        }
-        // Remove from rspackExperiments to avoid duplication
-        delete rspackExperiments.collectTypeScriptInfo;
       }
     }
   }

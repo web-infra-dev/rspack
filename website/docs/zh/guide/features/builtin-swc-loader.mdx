@@ -483,10 +483,6 @@ import 'antd/es/button/style';
 
 为了保证收集到的信息的准确性，用户需要确保 `builtin:swc-loader` 后续的 Normal Loader 不会去修改这些已经被收集到的相关信息对应的 AST，以免导致收集到的信息和实际的代码不一致的情况。
 
-:::tip
-在 Rspack 1.7 之前的版本中，可以使用 [rspackExperiments.collectTypeScriptInfo](/config/deprecated-options#experimentscollecttypescriptinfo) 选项。
-:::
-
 #### collectTypeScriptInfo.typeExports
 
 <ApiMeta addedVersion="1.7.0" />
@@ -515,9 +511,6 @@ import 'antd/es/button/style';
 const isProduction = process.env.NODE_ENV === 'production';
 
 export default {
-  experiments: {
-    inlineEnum: true, // 目前为实验性功能，需开启此选项
-  },
   module: {
     rules: [
       {
