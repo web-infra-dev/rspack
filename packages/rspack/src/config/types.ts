@@ -2819,12 +2819,6 @@ export type Experiments = {
    */
   typeReexportsPresence?: boolean;
   /**
-   * Enable lazy make side effects free barrel file
-   * @default false
-   * @deprecated This option is deprecated, it's already stable and enabled by default, Rspack will remove this option in future version
-   */
-  lazyBarrel?: boolean;
-  /**
    * Enable defer import feature
    * @default false
    */

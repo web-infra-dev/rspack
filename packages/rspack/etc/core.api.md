@@ -2448,7 +2448,6 @@ export type Experiments = {
     inlineConst?: boolean;
     inlineEnum?: boolean;
     typeReexportsPresence?: boolean;
-    lazyBarrel?: boolean;
     deferImport?: boolean;
 };
 
@@ -2514,8 +2513,6 @@ export interface ExperimentsNormalized {
     inlineConst?: boolean;
     // @deprecated (undocumented)
     inlineEnum?: boolean;
-    // @deprecated (undocumented)
-    lazyBarrel?: boolean;
     // (undocumented)
     nativeWatcher?: boolean;
     // (undocumented)
