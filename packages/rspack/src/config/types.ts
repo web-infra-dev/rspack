@@ -2801,18 +2801,6 @@ export type Experiments = {
    */
   nativeWatcher?: boolean;
   /**
-   * Enable inline const feature
-   * @default false
-   * @deprecated This option is deprecated, it's already stable and enabled by default, Rspack will remove this option in future version
-   */
-  inlineConst?: boolean;
-  /**
-   * Enable inline enum feature
-   * @default false
-   * @deprecated This option is deprecated, it's already stable. Rspack will remove this option in future version
-   */
-  inlineEnum?: boolean;
-  /**
    * Enable type reexports presence feature
    * @default false
    * @deprecated This option is deprecated, it's already stable. Rspack will remove this option in future version

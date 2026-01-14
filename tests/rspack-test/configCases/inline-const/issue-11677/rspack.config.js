@@ -1,6 +1,6 @@
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
-	experiments: {
-		inlineConst: true
+	optimization: {
+		inlineExports: true
 	}
 };

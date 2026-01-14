@@ -2445,8 +2445,6 @@ export type Experiments = {
     buildHttp?: HttpUriOptions;
     useInputFileSystem?: UseInputFileSystem;
     nativeWatcher?: boolean;
-    inlineConst?: boolean;
-    inlineEnum?: boolean;
     typeReexportsPresence?: boolean;
     deferImport?: boolean;
 };
@@ -2509,10 +2507,6 @@ export interface ExperimentsNormalized {
     futureDefaults?: boolean;
     // (undocumented)
     incremental?: false | Incremental;
-    // @deprecated (undocumented)
-    inlineConst?: boolean;
-    // @deprecated (undocumented)
-    inlineEnum?: boolean;
     // (undocumented)
     nativeWatcher?: boolean;
     // (undocumented)
@@ -7861,7 +7855,6 @@ export type SwcLoaderOptions = Config_2 & {
     collectTypeScriptInfo?: CollectTypeScriptInfoOptions;
     rspackExperiments?: {
         import?: PluginImportOptions;
-        collectTypeScriptInfo?: CollectTypeScriptInfoOptions;
     };
 };
 
