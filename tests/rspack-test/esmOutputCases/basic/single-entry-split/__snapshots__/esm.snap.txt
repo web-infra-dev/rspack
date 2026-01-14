@@ -1,0 +1,42 @@
+```mjs title=bar.mjs
+
+export { v } from "./bar_js.mjs";
+
+```
+
+```mjs title=bar_js.mjs
+// ./bar.js
+const v = () => 42
+export { v };
+
+```
+
+```mjs title=foo.mjs
+
+export { value } from "./foo_js.mjs";
+
+```
+
+```mjs title=foo_js.mjs
+import { v } from "./bar_js.mjs";
+
+// ./foo.js
+
+
+const value = () => v()
+
+export { value };
+
+```
+
+```mjs title=main.mjs
+import { value } from "./foo_js.mjs";
+
+// ./index.js
+
+
+it('should have correct value', () => {
+  expect(value()).toBe(42)
+})
+
+```
