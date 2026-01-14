@@ -1,5 +1,6 @@
 import path from 'node:path';
-import { defineConfig } from '@rstest/core';
+import { defineConfig, defineProject, type ProjectConfig } from '@rstest/core';
+
 const root = path.resolve(__dirname, "../../");
 
 process.env.NO_COLOR = '1';
@@ -9,7 +10,7 @@ const setupFilesAfterEnv = [
 	"@rspack/test-tools/setup-expect",
 ];
 
-const wasmConfig = process.env.WASM && defineConfig({
+const wasmConfig = process.env.WASM && defineProject({
 	setupFiles: [...setupFilesAfterEnv, "@rspack/test-tools/setup-wasm"],
 	exclude: [
 		// Skip because they rely on snapshots
@@ -31,20 +32,17 @@ const wasmConfig = process.env.WASM && defineConfig({
 		"NativeWatcher*.test.js",
 	],
 	maxConcurrency: 1,
-	pool: {
-		maxWorkers: 1,
-		execArgv: ['--no-warnings', '--expose-gc', '--max-old-space-size=6144', '--experimental-vm-modules'],
-	}
 });
 
-export default defineConfig({
+const sharedConfig = defineProject({
 	setupFiles: setupFilesAfterEnv,
+	name: 'base',
 	testTimeout: process.env.CI ? 60000 : 30000,
 	include: [
 		"*.test.js",
 	],
 	slowTestThreshold: 5000,
-  // Retry on CI to reduce flakes
+	// Retry on CI to reduce flakes
 	retry: process.env.CI ? 3 : 0,
 	resolve: {
 		alias: {
@@ -70,13 +68,9 @@ export default defineConfig({
 	chaiConfig: process.env.CI ? {
 		// show all info on CI
 		truncateThreshold: 5000,
-
 	} : undefined,
-	pool: {
-		maxWorkers: "80%",
-		execArgv: ['--no-warnings', '--expose-gc', '--max-old-space-size=8192', '--experimental-vm-modules'],
-	},
 	env: {
+		RUST_BACKTRACE: 'full',
 		updateSnapshot:
 			process.argv.includes("-u") || process.argv.includes("--updateSnapshot") ? 'true' : 'false',
 		RSPACK_DEV: 'false',
@@ -104,8 +98,30 @@ export default defineConfig({
 		__RSPACK_TEST_TOOLS_PATH__: path.resolve(root, "packages/rspack-test-tools"),
 		__DEBUG__: process.env.DEBUG === "test" ? 'true' : 'false',
 	},
-	hideSkippedTests: true,
-	reporters: ['default'],
 	...(wasmConfig || {}),
+}) as ProjectConfig;
+
+
+export default defineConfig({
+	projects: [{
+		extends: sharedConfig,
+		name: 'base',
+	}, {
+		extends: sharedConfig,
+		name: 'hottest',
+		include: process.env.WASM ? [] : ["<rootDir>/*.hottest.js"],
+		env: {
+			RSPACK_HOT_TEST: 'true',
+		},
+	}],
+	reporters: ['default'],
+	hideSkippedTests: true,
+	pool: process.env.WASM ? {
+		maxWorkers: 1,
+		execArgv: ['--no-warnings', '--expose-gc', '--max-old-space-size=6144', '--experimental-vm-modules'],
+	} : {
+		maxWorkers: "80%",
+		execArgv: ['--no-warnings', '--expose-gc', '--max-old-space-size=8192', '--experimental-vm-modules'],
+	},
 });
 
