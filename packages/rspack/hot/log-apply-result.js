@@ -3,15 +3,16 @@
 	Author Tobias Koppers @sokra
 */
 
+import log, { groupCollapsed, groupEnd } from './log.js';
+
 /**
  * @param {(string | number)[]} updatedModules updated modules
  * @param {(string | number)[] | null} renewedModules renewed modules
  */
-module.exports = function (updatedModules, renewedModules) {
+export default function (updatedModules, renewedModules) {
   var unacceptedModules = updatedModules.filter(function (moduleId) {
     return renewedModules && renewedModules.indexOf(moduleId) < 0;
   });
-  var log = require('./log');
 
   if (unacceptedModules.length > 0) {
     log(
@@ -30,9 +31,9 @@ module.exports = function (updatedModules, renewedModules) {
     renewedModules.forEach(function (moduleId) {
       if (typeof moduleId === 'string' && moduleId.indexOf('!') !== -1) {
         var parts = moduleId.split('!');
-        log.groupCollapsed('info', '[HMR]  - ' + parts.pop());
+        groupCollapsed('info', '[HMR]  - ' + parts.pop());
         log('info', '[HMR]  - ' + moduleId);
-        log.groupEnd('info');
+        groupEnd('info');
       } else {
         log('info', '[HMR]  - ' + moduleId);
       }
@@ -46,4 +47,4 @@ module.exports = function (updatedModules, renewedModules) {
         '[HMR] Consider using the optimization.moduleIds: "named" for module names.',
       );
   }
-};
+}

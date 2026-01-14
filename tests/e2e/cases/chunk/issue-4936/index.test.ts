@@ -7,7 +7,7 @@ test('should load success', async ({ page, fileAction }) => {
   fileAction.updateFile(
     './src/index.js',
     () => `
-import(/* webpackChunkName: "bar" */'./app').then((m) => {
+import(/* webpackChunkName: "bar" */'./app.js').then((m) => {
 	m.title('456')
 });`,
   );

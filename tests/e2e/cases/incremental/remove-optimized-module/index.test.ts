@@ -10,7 +10,7 @@ test('remove optimized module should not panic', async ({
 
   const overlay = page.frameLocator('#webpack-dev-server-client-overlay');
   await expect(
-    overlay.getByText("Module not found: Can't resolve './Button'"),
+    overlay.getByText("Module not found: Can't resolve './Button.js'"),
   ).toBeVisible();
 
   fileAction.updateFile(

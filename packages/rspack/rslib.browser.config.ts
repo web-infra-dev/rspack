@@ -2,7 +2,8 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import vm from 'node:vm';
 import { pluginNodePolyfill } from '@rsbuild/plugin-node-polyfill';
-import { defineConfig, type rsbuild, rspack } from '@rslib/core';
+import { defineConfig, type RsbuildPlugin, rspack } from '@rslib/core';
+import packageJson from './package.json' with { type: 'json' };
 
 const bindingDir = path.resolve('../../crates/node_binding');
 const distDir = path.resolve('../rspack-browser/dist');
@@ -13,8 +14,13 @@ export default defineConfig({
   lib: [
     {
       format: 'esm',
-      syntax: 'es2021',
+      syntax: 'es2023',
       dts: { build: true },
+      redirect: {
+        dts: {
+          extension: true,
+        },
+      },
       autoExternal: false,
       source: {
         entry: {
@@ -24,7 +30,7 @@ export default defineConfig({
     },
     {
       format: 'esm',
-      syntax: 'es2021',
+      syntax: 'es2023',
       dts: false,
       autoExtension: false,
       source: {
@@ -82,24 +88,17 @@ export default defineConfig({
   source: {
     tsconfigPath: './tsconfig.browser.json',
     define: {
-      WEBPACK_VERSION: JSON.stringify(require('./package.json').webpackVersion),
-      RSPACK_VERSION: JSON.stringify(require('./package.json').version),
+      WEBPACK_VERSION: JSON.stringify(packageJson.webpackVersion),
+      RSPACK_VERSION: JSON.stringify(packageJson.version),
       IS_BROWSER: JSON.stringify(true),
       // In `@rspack/browser`, runtime code like loaders and hmr should be written into something like memfs ahead of time.
       // Requiring these files should resolve to `@rspack/browser/xx`
-      __dirname: JSON.stringify('@rspack/browser'),
+      'import.meta.dirname': JSON.stringify('@rspack/browser'),
       // Runtime code
       MF_RUNTIME_CODE: JSON.stringify(MF_RUNTIME_CODE),
     },
   },
   tools: {
-    bundlerChain: (chain, { CHAIN_ID }) => {
-      // remove the entry loader in Rslib to avoid
-      // "Cannot access 'Compiler' before initialization" error caused by circular dependency
-      chain.module
-        .rule(`Rslib:${CHAIN_ID.RULE.JS}-entry-loader`)
-        .uses.delete('rsbuild:lib-entry-module');
-    },
     rspack: (config, { rspack }) => {
       config.plugins.push(
         new rspack.IgnorePlugin({
@@ -122,7 +121,7 @@ export default defineConfig({
  * 1. Wraps `new Worker("./wasi-worker-browser.mjs", import.meta.url)` inside `importScripts`.
  * 2. Retrieves the WebAssembly module URL from the global variable `window.RSPACK_WASM_URL`.
  */
-function copyRspackBrowserRuntimePlugin(): rsbuild.RsbuildPlugin {
+function copyRspackBrowserRuntimePlugin(): RsbuildPlugin {
   return {
     name: 'copy-rspack-browser-runtime-plugin',
     setup(api) {
@@ -162,7 +161,7 @@ function copyRspackBrowserRuntimePlugin(): rsbuild.RsbuildPlugin {
  * The reason that we don't use `paths` in `tsconfig.json` is that it can't rewrite the module idents in `declare module`,
  * so we decided to simply replace all instances of it.
  */
-function replaceDtsPlugin(): rsbuild.RsbuildPlugin {
+function replaceDtsPlugin(): RsbuildPlugin {
   return {
     name: 'replace-dts-plugin',
     setup(api) {
@@ -187,21 +186,21 @@ function replaceDtsPlugin(): rsbuild.RsbuildPlugin {
           }
 
           // There are three cases that @rspack/binding may be used
-          // 1. import("@rspack/binding").XXX
-          // 2. import { XX } from "@rspack/binding"
-          // 3. declare module "@rspack/binding" { XX }
+          // 1. import('@rspack/binding').XXX
+          // 2. import { XX } from '@rspack/binding'
+          // 3. declare module '@rspack/binding' { XX }
           const replacedDts = dts
             .replaceAll(
-              'import("@rspack/binding")',
-              `import("${relativeBindingDts}")`,
+              `import('@rspack/binding')`,
+              `import('${relativeBindingDts}')`,
             )
             .replaceAll(
-              'from "@rspack/binding"',
-              `from "${relativeBindingDts}"`,
+              `from '@rspack/binding'`,
+              `from '${relativeBindingDts}'`,
             )
             .replaceAll(
-              'declare module "@rspack/binding"',
-              `declare module "${relativeBindingDts}"`,
+              `declare module '@rspack/binding'`,
+              `declare module '${relativeBindingDts}'`,
             );
           await fs.writeFile(filePath, replacedDts);
         }
@@ -220,6 +219,12 @@ async function getModuleFederationRuntimeCode() {
   const { code: downgradedRuntime } = await swc.transform(runtime, {
     jsc: {
       target: 'es2015',
+      parser: {
+        syntax: 'ecmascript',
+      },
+    },
+    module: {
+      type: 'commonjs',
     },
   });
 
@@ -229,12 +234,27 @@ async function getModuleFederationRuntimeCode() {
     ecma: 2015,
   });
 
-  const sandbox = { module: { exports: undefined } } as any;
+  const exports = {};
+  const module = { exports };
+  const sandbox = {
+    module,
+    exports,
+    console,
+  };
+
   vm.createContext(sandbox);
   vm.runInContext(minimizedRuntime.code, sandbox);
 
-  const functionContent = rspack.Template.getFunctionContent(
-    sandbox.module.exports,
-  );
+  // @ts-expect-error
+  const runtimeExport = module.exports.default || module.exports;
+
+  const originalToString = runtimeExport.toString;
+  runtimeExport.toString = function () {
+    return originalToString
+      .call(this)
+      .replace(/^function\s+[\w$]+/, 'function');
+  };
+
+  const functionContent = rspack.Template.getFunctionContent(runtimeExport);
   return functionContent;
 }

@@ -1,3 +1,4 @@
+import { createRequire } from 'node:module';
 import type { Compiler } from '../Compiler';
 import type { ExternalsType } from '../config';
 import type { SharedConfig } from '../sharing/SharePlugin';
@@ -12,6 +13,8 @@ import {
 import type { ModuleFederationPluginV1Options } from './ModuleFederationPluginV1';
 import { ModuleFederationRuntimePlugin } from './ModuleFederationRuntimePlugin';
 import { parseOptions } from './options';
+
+const require = createRequire(import.meta.url);
 
 declare const MF_RUNTIME_CODE: string;
 
@@ -367,7 +370,7 @@ function getDefaultEntryRuntime(
     IS_BROWSER
       ? MF_RUNTIME_CODE
       : compiler.webpack.Template.getFunctionContent(
-          require('./moduleFederationDefaultRuntime.js'),
+          require('./moduleFederationDefaultRuntime.js').default,
         ),
   ].join(';');
   return `@module-federation/runtime/rspack.js!=!data:text/javascript,${content}`;

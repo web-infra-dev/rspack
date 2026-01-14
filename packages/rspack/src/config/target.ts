@@ -1,3 +1,4 @@
+import { createRequire } from 'node:module';
 import binding from '@rspack/binding';
 /**
  * The following code is modified based on
@@ -10,6 +11,8 @@ import binding from '@rspack/binding';
  */
 import { memoize } from '../util/memoize';
 import * as browserslistTargetHandler from './browserslistTargetHandler';
+
+const require = createRequire(import.meta.url);
 
 const getBrowserslistTargetHandler = memoize(() => browserslistTargetHandler);
 

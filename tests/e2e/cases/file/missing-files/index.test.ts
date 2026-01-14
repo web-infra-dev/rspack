@@ -6,10 +6,10 @@ test('missing files should be able to recover if being added back', async ({
 }) => {
   const overlay = page.frameLocator('#webpack-dev-server-client-overlay');
   await expect(
-    overlay.getByText("Can't resolve './missing-file-1'"),
+    overlay.getByText("Can't resolve './missing-file-1.js'"),
   ).toBeVisible();
   await expect(
-    overlay.getByText("Can't resolve './missing-file-2'"),
+    overlay.getByText("Can't resolve './missing-file-2.js'"),
   ).toBeVisible();
 
   fileAction.updateFile(
@@ -28,7 +28,7 @@ test('missing files should be able to recover if being added back', async ({
   fileAction.deleteFile('src/missing-file-1.js');
 
   await expect(
-    overlay.getByText("Can't resolve './missing-file-1'"),
+    overlay.getByText("Can't resolve './missing-file-1.js'"),
   ).toBeVisible();
 
   fileAction.updateFile(

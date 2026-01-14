@@ -8,6 +8,9 @@ import {
 } from '@rspack/core';
 import { RspackDevServer } from '@rspack/dev-server';
 import type { PathInfoFixtures } from './pathInfo';
+import { createRequire } from 'node:module';
+
+const require = createRequire(import.meta.url);
 
 class Rspack {
   private config: RspackConfig;

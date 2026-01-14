@@ -5,15 +5,14 @@ import rspackEsmDefaultImport, {
 
 type IsFunction<T> = T extends (...args: any[]) => any ? true : false;
 
+// not real Node.js behavior
 // https://github.com/web-infra-dev/rspack/issues/8095
 describe.concurrent(
   'js-api-type should be correct when importing from @rspack/core',
   () => {
     it('esm default import', async () => {
-      // rspack has no default export now
-      type Falsy = IsFunction<typeof rspackEsmDefaultImport>;
-      const falsy: Falsy = false;
-      falsy;
+      assert(rspackEsmDefaultImport);
+      assert(typeof rspackEsmDefaultImport === 'function');
       assert(rspackEsmDefaultImport.BannerPlugin);
     });
 

@@ -65,7 +65,7 @@ export const WebpackError = Error;
 
 export type { Watching } from './Watching';
 
-import sources = require('webpack-sources');
+import * as sources from 'webpack-sources';
 
 export { sources };
 

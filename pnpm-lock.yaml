@@ -29,8 +29,8 @@ importers:
         specifier: workspace:*
         version: link:packages/rspack-cli
       '@rstest/core':
-        specifier: ^0.7.8
-        version: 0.7.8(jsdom@26.1.0)
+        specifier: ^0.7.9
+        version: 0.7.9(jsdom@26.1.0)
       '@taplo/cli':
         specifier: ^0.7.0
         version: 0.7.0
@@ -639,6 +639,9 @@ importers:
       '@babel/preset-react':
         specifier: ^7.28.5
         version: 7.28.5(@babel/core@7.28.5)
+      '@module-federation/runtime-tools':
+        specifier: ^0.22.0
+        version: 0.22.0
       '@playwright/test':
         specifier: 1.57.0
         version: 1.57.0
@@ -730,8 +733,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/rspack-test-tools
       '@rstest/core':
-        specifier: ^0.7.8
-        version: 0.7.8(jsdom@26.1.0)
+        specifier: ^0.7.9
+        version: 0.7.9(jsdom@26.1.0)
       '@swc/helpers':
         specifier: 0.5.18
         version: 0.5.18
@@ -3576,8 +3579,8 @@ packages:
   '@rstack-dev/doc-ui@1.12.2':
     resolution: {integrity: sha512-4C+tfhODxCp81ohCik9baOdbhYGNFqdwcwQMAESncF0YX3EawdNCORI1E26DqkY/F3ggfKG4qOlEAu+oOxrPxg==}
 
-  '@rstest/core@0.7.8':
-    resolution: {integrity: sha512-A7oN5GLMYuVkTGjXTH+69nz3wR0lxHUkWax+hVq+jNQmcf81ZqJosTLqN6jwFZdmCfHbj3iTd9ku6boo8tJlnA==}
+  '@rstest/core@0.7.9':
+    resolution: {integrity: sha512-RHNPS1MDUxtf+1Z0YZi+vIQ13SdvCbcbpzDA7XHcPziTRy2mAPg8nfcms+XzbIp95KXH75ucAhgAKNFO0QgARA==}
     engines: {node: '>=18.12.0'}
     hasBin: true
     peerDependencies:
@@ -11141,7 +11144,7 @@ snapshots:
       - react
       - react-dom
 
-  '@rstest/core@0.7.8(jsdom@26.1.0)':
+  '@rstest/core@0.7.9(jsdom@26.1.0)':
     dependencies:
       '@rsbuild/core': 1.7.1
       '@types/chai': 5.2.3
