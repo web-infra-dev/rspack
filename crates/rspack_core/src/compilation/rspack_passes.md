@@ -34,14 +34,19 @@ compilation/
 └── after_seal/                   # afterSeal hook
 ```
 
-## Pass Order
+## Pass Entry
+
+- `Compiler::compile` builds `CompilationParams`, fires `thisCompilation` then `compilation` compiler hooks (binding safety for JS), and delegates to `Compilation::run_passes`.
+- `Compilation::run_passes` performs the make and seal stages using the order below.
+
+## Pass Order (Compilation::run_passes)
 
 `run_passes` orchestrates the full pipeline (make + seal) in this order:
 
-1. Compiler hooks: `thisCompilation` → `compilation`
-2. Make: `make` hook → `build_module_graph` → `finish_make` hook → `finish_build_module_graph`
-3. Collect make diagnostics (`collect_build_module_graph_effects`)
-4. Seal kickoff: `CompilationHooks::seal` (checkpoint + cache freeze)
+1. Make: `make` hook → `build_module_graph` → `finish_make` hook → `finish_build_module_graph`
+2. Collect make diagnostics (`collect_build_module_graph_effects`)
+3. Incremental checkpoint (`module_graph`), freeze module static cache in production
+4. Seal kickoff: `CompilationHooks::seal`
 5. `optimize_dependencies_pass`
 6. `build_chunk_graph_pass` → `optimize_modules_pass` → `optimize_chunks_pass`
 7. `optimize_tree_pass` → `optimize_chunk_modules_pass`
@@ -55,3 +60,4 @@ compilation/
 15. `create_chunk_assets_pass`
 16. `process_assets_pass`
 17. `after_seal_pass`
+18. Unfreeze module static cache in production
