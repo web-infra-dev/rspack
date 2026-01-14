@@ -8,7 +8,8 @@ use anymap::CloneAny;
 use once_cell::sync::OnceCell;
 use rspack_cacheable::{
   cacheable,
-  with::{AsInner, AsOption, AsPreset, AsString},
+  utils::PortablePath,
+  with::{As, AsInner, AsOption, AsPreset},
 };
 use rspack_error::{Error, Result, ToStringResultToRspackResultExt};
 use rspack_paths::{Utf8Path, Utf8PathBuf};
@@ -307,7 +308,7 @@ impl ResourceData {
 #[derive(Debug, Clone)]
 pub struct DescriptionData {
   /// Path to package.json
-  #[cacheable(with=AsString)]
+  #[cacheable(with=As<PortablePath>)]
   path: PathBuf,
 
   /// Raw package.json
