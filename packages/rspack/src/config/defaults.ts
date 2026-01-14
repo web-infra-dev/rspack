@@ -243,9 +243,6 @@ const applyExperimentsDefaults = (experiments: ExperimentsNormalized) => {
   // IGNORE(experiments.useInputFileSystem): Rspack specific configuration
   // Enable `useInputFileSystem` will introduce much more fs overheads,  So disable by default.
   D(experiments, 'useInputFileSystem', false);
-
-  // IGNORE(experiments.typeReexportsPresence): Rspack specific configuration for type reexports presence
-  D(experiments, 'typeReexportsPresence', false);
 };
 
 const applySnapshotDefaults = (
