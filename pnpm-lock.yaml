@@ -163,8 +163,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/rspack
       '@rspack/plugin-react-refresh':
-        specifier: ^1.5.3
-        version: 1.5.3(react-refresh@0.18.0)
+        specifier: ^1.6.0
+        version: 1.6.0(react-refresh@0.18.0)
       '@types/react':
         specifier: ^19.2.7
         version: 19.2.7
@@ -243,8 +243,8 @@ importers:
         specifier: workspace:*
         version: link:../../rspack
       '@rspack/plugin-react-refresh':
-        specifier: ^1.5.3
-        version: 1.5.3(react-refresh@0.18.0)
+        specifier: ^1.6.0
+        version: 1.6.0(react-refresh@0.18.0)
       '@types/react':
         specifier: ^19.2.7
         version: 19.2.7
@@ -271,8 +271,8 @@ importers:
         specifier: workspace:*
         version: link:../../rspack
       '@rspack/plugin-react-refresh':
-        specifier: ^1.5.3
-        version: 1.5.3(react-refresh@0.18.0)
+        specifier: ^1.6.0
+        version: 1.6.0(react-refresh@0.18.0)
       '@types/react':
         specifier: ^19.2.7
         version: 19.2.7
@@ -319,9 +319,9 @@ importers:
       '@rspack/core':
         specifier: workspace:*
         version: link:../../rspack
-      vue-loader:
-        specifier: ^17.4.2
-        version: 17.4.2(vue@3.5.26(typescript@5.9.3))(webpack@5.102.1)
+      rspack-vue-loader:
+        specifier: ^17.4.5
+        version: 17.4.5(vue@3.5.26(typescript@5.9.3))(webpack@5.102.1)
 
   packages/create-rspack/template-vue-ts:
     dependencies:
@@ -335,12 +335,12 @@ importers:
       '@rspack/core':
         specifier: workspace:*
         version: link:../../rspack
+      rspack-vue-loader:
+        specifier: ^17.4.5
+        version: 17.4.5(vue@3.5.26(typescript@5.9.3))(webpack@5.102.1)
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
-      vue-loader:
-        specifier: ^17.4.2
-        version: 17.4.2(vue@3.5.26(typescript@5.9.3))(webpack@5.102.1)
 
   packages/rspack:
     dependencies:
@@ -625,8 +625,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/rspack
       '@rspack/plugin-react-refresh':
-        specifier: ^1.5.3
-        version: 1.5.3(react-refresh@0.18.0)
+        specifier: ^1.6.0
+        version: 1.6.0(react-refresh@0.18.0)
       '@types/react':
         specifier: ^19.2.7
         version: 19.2.7
@@ -655,8 +655,8 @@ importers:
         specifier: ~1.1.5
         version: 1.1.5(@rspack/core@packages+rspack)(@types/express@4.17.23)(webpack@5.102.1)
       '@rspack/plugin-react-refresh':
-        specifier: ^1.5.3
-        version: 1.5.3(react-refresh@0.18.0)
+        specifier: ^1.6.0
+        version: 1.6.0(react-refresh@0.18.0)
       '@swc/helpers':
         specifier: 0.5.18
         version: 0.5.18
@@ -690,6 +690,9 @@ importers:
       react-refresh:
         specifier: ^0.18.0
         version: 0.18.0
+      rspack-vue-loader:
+        specifier: ^17.4.5
+        version: 17.4.5(vue@3.5.26(typescript@5.9.3))(webpack@5.102.1)
       tailwindcss:
         specifier: ^3.4.19
         version: 3.4.19(ts-node@10.9.2(@types/node@20.19.27)(typescript@5.9.3))
@@ -699,9 +702,6 @@ importers:
       vue:
         specifier: ^3.5.26
         version: 3.5.26(typescript@5.9.3)
-      vue-loader:
-        specifier: ^17.4.2
-        version: 17.4.2(vue@3.5.26(typescript@5.9.3))(webpack@5.102.1)
       ws:
         specifier: ^8.18.3
         version: 8.18.3
@@ -727,8 +727,8 @@ importers:
         specifier: 1.1.4
         version: 1.1.4(@prefresh/core@1.5.7(preact@10.27.2))(@prefresh/utils@1.2.1)
       '@rspack/plugin-react-refresh':
-        specifier: ^1.5.3
-        version: 1.5.3(react-refresh@0.18.0)
+        specifier: ^1.6.0
+        version: 1.6.0(react-refresh@0.18.0)
       '@rspack/test-tools':
         specifier: workspace:*
         version: link:../../packages/rspack-test-tools
@@ -977,8 +977,8 @@ importers:
         specifier: 2.0.0-rc.4
         version: 2.0.0-rc.4(@rspress/core@2.0.0-rc.4(@types/react@19.2.7))
       '@shikijs/transformers':
-        specifier: ^3.20.0
-        version: 3.20.0
+        specifier: ^3.21.0
+        version: 3.21.0
       '@types/node':
         specifier: ^20.19.27
         version: 20.19.27
@@ -3476,8 +3476,8 @@ packages:
       '@prefresh/core': ^1.5.0
       '@prefresh/utils': ^1.2.0
 
-  '@rspack/plugin-react-refresh@1.5.3':
-    resolution: {integrity: sha512-VOnQMf3YOHkTqJ0+BJbrYga4tQAWNwoAnkgwRauXB4HOyCc5wLfBs9DcOFla/2usnRT3Sq6CMVhXmdPobwAoTA==}
+  '@rspack/plugin-react-refresh@1.6.0':
+    resolution: {integrity: sha512-OO53gkrte/Ty4iRXxxM6lkwPGxsSsupFKdrPFnjwFIYrPvFLjeolAl5cTx+FzO5hYygJiGnw7iEKTmD+ptxqDA==}
     peerDependencies:
       react-refresh: '>=0.10.0 <1.0.0'
       webpack-hot-middleware: 2.x
@@ -3631,6 +3631,9 @@ packages:
   '@shikijs/core@3.20.0':
     resolution: {integrity: sha512-f2ED7HYV4JEk827mtMDwe/yQ25pRiXZmtHjWF8uzZKuKiEsJR7Ce1nuQ+HhV9FzDcbIo4ObBCD9GPTzNuy9S1g==}
 
+  '@shikijs/core@3.21.0':
+    resolution: {integrity: sha512-AXSQu/2n1UIQekY8euBJlvFYZIw0PHY63jUzGbrOma4wPxzznJXTXkri+QcHeBNaFxiiOljKxxJkVSoB3PjbyA==}
+
   '@shikijs/engine-javascript@3.20.0':
     resolution: {integrity: sha512-OFx8fHAZuk7I42Z9YAdZ95To6jDePQ9Rnfbw9uSRTSbBhYBp1kEOKv/3jOimcj3VRUKusDYM6DswLauwfhboLg==}
 
@@ -3646,11 +3649,14 @@ packages:
   '@shikijs/themes@3.20.0':
     resolution: {integrity: sha512-U1NSU7Sl26Q7ErRvJUouArxfM2euWqq1xaSrbqMu2iqa+tSp0D1Yah8216sDYbdDHw4C8b75UpE65eWorm2erQ==}
 
-  '@shikijs/transformers@3.20.0':
-    resolution: {integrity: sha512-PrHHMRr3Q5W1qB/42kJW6laqFyWdhrPF2hNR9qjOm1xcSiAO3hAHo7HaVyHE6pMyevmy3i51O8kuGGXC78uK3g==}
+  '@shikijs/transformers@3.21.0':
+    resolution: {integrity: sha512-CZwvCWWIiRRiFk9/JKzdEooakAP8mQDtBOQ1TKiCaS2E1bYtyBCOkUzS8akO34/7ufICQ29oeSfkb3tT5KtrhA==}
 
   '@shikijs/types@3.20.0':
     resolution: {integrity: sha512-lhYAATn10nkZcBQ0BlzSbJA3wcmL5MXUUF8d2Zzon6saZDlToKaiRX60n2+ZaHJCmXEcZRWNzn+k9vplr8Jhsw==}
+
+  '@shikijs/types@3.21.0':
+    resolution: {integrity: sha512-zGrWOxZ0/+0ovPY7PvBU2gIS9tmhSUUt30jAcNV0Bq0gb2S98gwfjIs1vxlmH5zM7/4YxLamT6ChlqqAJmPPjA==}
 
   '@shikijs/vscode-textmate@10.0.2':
     resolution: {integrity: sha512-83yeghZ2xxin3Nj8z1NMd/NCuca+gsYXswywDy5bHvwlWL8tpTQmzGeUuHd9FC3E/SBEMvzJRwWEOz5gGes9Qg==}
@@ -5772,9 +5778,6 @@ packages:
     resolution: {integrity: sha512-Bb33KbowVTIj5s7Ked1OsqHUeCpz//tPwR+E2zJgJKo9Z5XolZ9b6bdUgjmYlwnWhoOQKoTd1TYToZGn5mAYOg==}
     engines: {node: '>= 0.8'}
 
-  hash-sum@2.0.0:
-    resolution: {integrity: sha512-WdZTbAByD+pHfl/g9QSsBIIwy8IT+EsPiKDs0KNX+zSHhdDLFKdZu0BQHljvO+0QI/BasbMSUa8wYNCZTvhslg==}
-
   hash.js@1.1.7:
     resolution: {integrity: sha512-taOaskGt4z4SOANNseOviYDvjEJinIkRgmp7LbKP2YTTmVxWBl87s/uzK9r+44BclBSp2X7K1hqeNfz9JbBeXA==}
 
@@ -7582,6 +7585,18 @@ packages:
       '@rsbuild/core':
         optional: true
 
+  rspack-vue-loader@17.4.5:
+    resolution: {integrity: sha512-i88hGa4mySkwiP7HqRICIAhomcMdkNCZ5tQGcxkcUWmDfC2QfeQegFBEKY4RdbuxJ3p1Ocj/Ul6Sh4yl6L7mDg==}
+    peerDependencies:
+      '@vue/compiler-sfc': '*'
+      vue: '*'
+      webpack: ^5.0.0
+    peerDependenciesMeta:
+      '@vue/compiler-sfc':
+        optional: true
+      vue:
+        optional: true
+
   rspress-plugin-font-open-sans@1.0.3:
     resolution: {integrity: sha512-17i7uUqvyy5k51ggZJ5xoP9duqC2W76GcBviIu400VXXAQEZx3JzZWPcGz9gGmVaFHAkH19NtZK0EYKfneX4rw==}
     peerDependencies:
@@ -8536,18 +8551,6 @@ packages:
 
   vscode-uri@3.1.0:
     resolution: {integrity: sha512-/BpdSx+yCQGnCvecbyXdxHDkuk55/G3xwnC0GqY4gmQ3j+A+g8kzzgB4Nk/SINjqn6+waqw3EgbVF2QKExkRxQ==}
-
-  vue-loader@17.4.2:
-    resolution: {integrity: sha512-yTKOA4R/VN4jqjw4y5HrynFL8AK0Z3/Jt7eOJXEitsm0GMRHDBjCfCiuTiLP7OESvsZYo2pATCWhDqxC5ZrM6w==}
-    peerDependencies:
-      '@vue/compiler-sfc': '*'
-      vue: '*'
-      webpack: ^4.1.0 || ^5.0.0-0
-    peerDependenciesMeta:
-      '@vue/compiler-sfc':
-        optional: true
-      vue:
-        optional: true
 
   vue@3.5.26:
     resolution: {integrity: sha512-SJ/NTccVyAoNUJmkM9KUqPcYlY+u8OVL1X5EW9RIs3ch5H2uERxyyIUI4MRxVCSOiEcupX9xNGde1tL9ZKpimA==}
@@ -10832,7 +10835,7 @@ snapshots:
   '@rsbuild/plugin-react@1.4.2(@rsbuild/core@1.6.15)':
     dependencies:
       '@rsbuild/core': 1.6.15
-      '@rspack/plugin-react-refresh': 1.5.3(react-refresh@0.18.0)
+      '@rspack/plugin-react-refresh': 1.6.0(react-refresh@0.18.0)
       react-refresh: 0.18.0
     transitivePeerDependencies:
       - webpack-hot-middleware
@@ -11083,7 +11086,7 @@ snapshots:
       '@prefresh/core': 1.5.7(preact@10.27.2)
       '@prefresh/utils': 1.2.1
 
-  '@rspack/plugin-react-refresh@1.5.3(react-refresh@0.18.0)':
+  '@rspack/plugin-react-refresh@1.6.0(react-refresh@0.18.0)':
     dependencies:
       error-stack-parser: 2.1.4
       html-entities: 2.6.0
@@ -11293,6 +11296,13 @@ snapshots:
       '@types/hast': 3.0.4
       hast-util-to-html: 9.0.5
 
+  '@shikijs/core@3.21.0':
+    dependencies:
+      '@shikijs/types': 3.21.0
+      '@shikijs/vscode-textmate': 10.0.2
+      '@types/hast': 3.0.4
+      hast-util-to-html: 9.0.5
+
   '@shikijs/engine-javascript@3.20.0':
     dependencies:
       '@shikijs/types': 3.20.0
@@ -11321,12 +11331,17 @@ snapshots:
     dependencies:
       '@shikijs/types': 3.20.0
 
-  '@shikijs/transformers@3.20.0':
+  '@shikijs/transformers@3.21.0':
     dependencies:
-      '@shikijs/core': 3.20.0
-      '@shikijs/types': 3.20.0
+      '@shikijs/core': 3.21.0
+      '@shikijs/types': 3.21.0
 
   '@shikijs/types@3.20.0':
+    dependencies:
+      '@shikijs/vscode-textmate': 10.0.2
+      '@types/hast': 3.0.4
+
+  '@shikijs/types@3.21.0':
     dependencies:
       '@shikijs/vscode-textmate': 10.0.2
       '@types/hast': 3.0.4
@@ -13775,8 +13790,6 @@ snapshots:
       safe-buffer: 5.2.1
       to-buffer: 1.2.2
 
-  hash-sum@2.0.0: {}
-
   hash.js@1.1.7:
     dependencies:
       inherits: 2.0.4
@@ -16096,6 +16109,14 @@ snapshots:
     optionalDependencies:
       '@rsbuild/core': 1.7.2
 
+  rspack-vue-loader@17.4.5(vue@3.5.26(typescript@5.9.3))(webpack@5.102.1):
+    dependencies:
+      chalk: 4.1.2
+      watchpack: 2.4.4
+      webpack: 5.102.1
+    optionalDependencies:
+      vue: 3.5.26(typescript@5.9.3)
+
   rspress-plugin-font-open-sans@1.0.3(@rspress/core@2.0.0-rc.4(@types/react@19.2.7)):
     dependencies:
       '@rspress/core': 2.0.0-rc.4(@types/react@19.2.7)
@@ -17083,15 +17104,6 @@ snapshots:
   vscode-uri@3.0.8: {}
 
   vscode-uri@3.1.0: {}
-
-  vue-loader@17.4.2(vue@3.5.26(typescript@5.9.3))(webpack@5.102.1):
-    dependencies:
-      chalk: 4.1.2
-      hash-sum: 2.0.0
-      watchpack: 2.4.4
-      webpack: 5.102.1
-    optionalDependencies:
-      vue: 3.5.26(typescript@5.9.3)
 
   vue@3.5.26(typescript@5.9.3):
     dependencies:

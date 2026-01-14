@@ -58,7 +58,7 @@ var sendRequest = function sendRequest() {
   xhr.send(data);
 };
 
-var sendActiveRequest = function sendActiveRequest() {
+function sendActiveRequest() {
   hasPendingUpdate = true;
 
   // If no request is pending, start one
