@@ -36,8 +36,6 @@ module.exports = {
 	optimization: {
 		chunkIds: 'named',
 		concatenateModules: false,
+		inlineExports: true
 	},
-	experiments: {
-		inlineEnum: true
-	}
 };
