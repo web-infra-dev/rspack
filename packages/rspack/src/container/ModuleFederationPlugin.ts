@@ -50,7 +50,7 @@ export class ModuleFederationPlugin {
     if (treeShakingEntries.length > 0) {
       this._treeShakingSharedPlugin = new TreeShakingSharedPlugin({
         mfConfig: this._options,
-        reShake: false,
+        secondary: false,
       });
       this._treeShakingSharedPlugin.apply(compiler);
     }

@@ -1,0 +1,7 @@
+{
+  "name": "manifest-disable-assets-analyze",
+  "version": "1.0.0",
+  "dependencies": {
+    "react": "^1.0.0"
+  }
+}

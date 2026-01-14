@@ -7,7 +7,7 @@ class CustomPlugin {
         },
         async () => {
           compilation.emitAsset('apply-plugin.json', new compilation.compiler.rspack.sources.RawSource(JSON.stringify({
-            reShake: true
+            secondary: true
           })))
         })
     })

@@ -6,25 +6,25 @@ import { normalizeSharedOptions } from './SharePlugin';
 
 export interface TreeshakingSharedPluginOptions {
   mfConfig: ModuleFederationPluginOptions;
-  reShake?: boolean;
+  secondary?: boolean;
 }
 
 export class TreeShakingSharedPlugin {
   mfConfig: ModuleFederationPluginOptions;
   outputDir: string;
-  reShake?: boolean;
+  secondary?: boolean;
   private _independentSharePlugin?: IndependentSharedPlugin;
 
   name = 'TreeShakingSharedPlugin';
   constructor(options: TreeshakingSharedPluginOptions) {
-    const { mfConfig, reShake } = options;
+    const { mfConfig, secondary } = options;
     this.mfConfig = mfConfig;
     this.outputDir = mfConfig.treeShakingSharedDir || 'independent-packages';
-    this.reShake = Boolean(reShake);
+    this.secondary = Boolean(secondary);
   }
 
   apply(compiler: Compiler) {
-    const { mfConfig, outputDir, reShake } = this;
+    const { mfConfig, outputDir, secondary } = this;
     const { name, shared, library, treeShakingSharedPlugins } = mfConfig;
     if (!shared) {
       return;
@@ -39,7 +39,7 @@ export class TreeShakingSharedPlugin {
         ([_, config]) => config.treeShaking && config.import !== false,
       )
     ) {
-      if (!reShake) {
+      if (!secondary) {
         new SharedUsedExportsOptimizerPlugin(
           sharedOptions,
           mfConfig.injectTreeShakingUsedExports,
@@ -55,7 +55,7 @@ export class TreeShakingSharedPlugin {
             const _constructor = require(p);
             return new _constructor();
           }) || [],
-        treeShaking: reShake,
+        treeShaking: secondary,
         library,
         manifest: mfConfig.manifest,
         treeShakingSharedExcludePlugins:

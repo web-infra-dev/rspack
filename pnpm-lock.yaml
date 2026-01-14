@@ -345,8 +345,8 @@ importers:
   packages/rspack:
     dependencies:
       '@module-federation/runtime-tools':
-        specifier: 0.0.0-feat-shared-treeshake-poc-20260112063915
-        version: 0.0.0-feat-shared-treeshake-poc-20260112063915
+        specifier: 0.0.0-feat-shared-treeshake-poc-20260114091859
+        version: 0.0.0-feat-shared-treeshake-poc-20260114091859
       '@rspack/binding':
         specifier: workspace:*
         version: link:../../crates/node_binding
@@ -2436,8 +2436,8 @@ packages:
   '@microsoft/tsdoc@0.16.0':
     resolution: {integrity: sha512-xgAyonlVVS+q7Vc7qLW0UrJU7rSFcETRWsqdXZtjzRU8dF+6CkozTK4V4y1LwOX7j8r/vHphjDeMeGI4tNGeGA==}
 
-  '@module-federation/error-codes@0.0.0-feat-shared-treeshake-poc-20260112063915':
-    resolution: {integrity: sha512-4uEX/pP736lBol4kNQhBXWxgi5ZwYt5yessvex4QyPBFhgbwKUAlUXkDjq9majoDUvfwrnmR3qVcyZldyffzsQ==}
+  '@module-federation/error-codes@0.0.0-feat-shared-treeshake-poc-20260114091859':
+    resolution: {integrity: sha512-9OWijy+79YkHNWjuw0V8pLBoJPyIrjnVDfoC/2Ojg1QdWCRHld8oVj5JozU5J/GbFEzqm8ChOEmU6IWF5mNHNg==}
 
   '@module-federation/error-codes@0.21.6':
     resolution: {integrity: sha512-MLJUCQ05KnoVl8xd6xs9a5g2/8U+eWmVxg7xiBMeR0+7OjdWUbHwcwgVFatRIwSZvFgKHfWEiI7wsU1q1XbTRQ==}
@@ -2445,8 +2445,8 @@ packages:
   '@module-federation/error-codes@0.22.0':
     resolution: {integrity: sha512-xF9SjnEy7vTdx+xekjPCV5cIHOGCkdn3pIxo9vU7gEZMIw0SvAEdsy6Uh17xaCpm8V0FWvR0SZoK9Ik6jGOaug==}
 
-  '@module-federation/runtime-core@0.0.0-feat-shared-treeshake-poc-20260112063915':
-    resolution: {integrity: sha512-tUlxVoY12LFvY3kCwiVMFtoMhJ0+/Igmca4MD3iA9e52s/regdpfucNhZHCpsg9fYmY7uJsjeLMVB45vbM0cKA==}
+  '@module-federation/runtime-core@0.0.0-feat-shared-treeshake-poc-20260114091859':
+    resolution: {integrity: sha512-KmLnVDlMSeMRI3pnhhplO4f1t7j7CQJv49Wf+s6P4K6lRxoAD9+OOf29RDfo7Lqvux/nYfmxGGFUGJ8mh22QrA==}
 
   '@module-federation/runtime-core@0.21.6':
     resolution: {integrity: sha512-5Hd1Y5qp5lU/aTiK66lidMlM/4ji2gr3EXAtJdreJzkY+bKcI5+21GRcliZ4RAkICmvdxQU5PHPL71XmNc7Lsw==}
@@ -2454,8 +2454,8 @@ packages:
   '@module-federation/runtime-core@0.22.0':
     resolution: {integrity: sha512-GR1TcD6/s7zqItfhC87zAp30PqzvceoeDGYTgF3Vx2TXvsfDrhP6Qw9T4vudDQL3uJRne6t7CzdT29YyVxlgIA==}
 
-  '@module-federation/runtime-tools@0.0.0-feat-shared-treeshake-poc-20260112063915':
-    resolution: {integrity: sha512-WsMFP6u0ii3v4htfAF5WglAFQOz3l6wNgifU5bZJfCCBDL6xfp8yUhXQBmY26NosDYBGyZeVXB+YI4By4dH5dQ==}
+  '@module-federation/runtime-tools@0.0.0-feat-shared-treeshake-poc-20260114091859':
+    resolution: {integrity: sha512-v1sAMviM9OtPeOQKu4eW7SEo0d57M0ojWgI9rubvRdUX/lee3p02rpA8D8ouXsTvWR8zkBT+arrMhKwfv8/U+g==}
 
   '@module-federation/runtime-tools@0.21.6':
     resolution: {integrity: sha512-fnP+ZOZTFeBGiTAnxve+axGmiYn2D60h86nUISXjXClK3LUY1krUfPgf6MaD4YDJ4i51OGXZWPekeMe16pkd8Q==}
@@ -2463,8 +2463,8 @@ packages:
   '@module-federation/runtime-tools@0.22.0':
     resolution: {integrity: sha512-4ScUJ/aUfEernb+4PbLdhM/c60VHl698Gn1gY21m9vyC1Ucn69fPCA1y2EwcCB7IItseRMoNhdcWQnzt/OPCNA==}
 
-  '@module-federation/runtime@0.0.0-feat-shared-treeshake-poc-20260112063915':
-    resolution: {integrity: sha512-u4SaPkbYtMWdEmxbXhEj13nROnGBr02U6IXF8JXIvvPEHO+ryF/DXJt21HTCgVzYjf2q2kkam0pd7qd+82R/Eg==}
+  '@module-federation/runtime@0.0.0-feat-shared-treeshake-poc-20260114091859':
+    resolution: {integrity: sha512-Sp+3lm1Z+7xZcBDkEozF78LSLhR3gAySSMKLhmv14NRls0EkPwEuaDZAS6SZwpWeZ9zubwch977jDq4hRcCgeA==}
 
   '@module-federation/runtime@0.21.6':
     resolution: {integrity: sha512-+caXwaQqwTNh+CQqyb4mZmXq7iEemRDrTZQGD+zyeH454JAYnJ3s/3oDFizdH6245pk+NiqDyOOkHzzFQorKhQ==}
@@ -2472,8 +2472,8 @@ packages:
   '@module-federation/runtime@0.22.0':
     resolution: {integrity: sha512-38g5iPju2tPC3KHMPxRKmy4k4onNp6ypFPS1eKGsNLUkXgHsPMBFqAjDw96iEcjri91BrahG4XcdyKi97xZzlA==}
 
-  '@module-federation/sdk@0.0.0-feat-shared-treeshake-poc-20260112063915':
-    resolution: {integrity: sha512-O8jgq1o8blGys+zf87ToqNsjTaRBUV9zfzcpy4S1YPCAOcW8i2alHOdqppJAXF5fGlI6x8+3jXEALGqxAUrkWQ==}
+  '@module-federation/sdk@0.0.0-feat-shared-treeshake-poc-20260114091859':
+    resolution: {integrity: sha512-KD8otMLAzLNYGO7W6eGv0ddXt58KO4OJJ4NJsvCNpGDBf3XhbPUOWeswcGxk0dSiAcAGh9qLu9FEslRW+5/3AQ==}
 
   '@module-federation/sdk@0.21.6':
     resolution: {integrity: sha512-x6hARETb8iqHVhEsQBysuWpznNZViUh84qV2yE7AD+g7uIzHKiYdoWqj10posbo5XKf/147qgWDzKZoKoEP2dw==}
@@ -2481,8 +2481,8 @@ packages:
   '@module-federation/sdk@0.22.0':
     resolution: {integrity: sha512-x4aFNBKn2KVQRuNVC5A7SnrSCSqyfIWmm1DvubjbO9iKFe7ith5niw8dqSFBekYBg2Fwy+eMg4sEFNVvCAdo6g==}
 
-  '@module-federation/webpack-bundler-runtime@0.0.0-feat-shared-treeshake-poc-20260112063915':
-    resolution: {integrity: sha512-ULsyc6WLtiyeZ3BegBL685cCBc5XrxjvwnGhNcsE4POY5Eev/fznBq3lsLoeycc2bHwXxaZzk0u8OYmH1Mnn9A==}
+  '@module-federation/webpack-bundler-runtime@0.0.0-feat-shared-treeshake-poc-20260114091859':
+    resolution: {integrity: sha512-q+PPBcIT8rBUobBvS6eEcP9IZn9jBv796LNtpsYLwy643aAvMsRefAUJnI9KmMdJLQLareO6j/6uNkzYJ4mAmA==}
 
   '@module-federation/webpack-bundler-runtime@0.21.6':
     resolution: {integrity: sha512-7zIp3LrcWbhGuFDTUMLJ2FJvcwjlddqhWGxi/MW3ur1a+HaO8v5tF2nl+vElKmbG1DFLU/52l3PElVcWf/YcsQ==}
@@ -10220,16 +10220,16 @@ snapshots:
 
   '@microsoft/tsdoc@0.16.0': {}
 
-  '@module-federation/error-codes@0.0.0-feat-shared-treeshake-poc-20260112063915': {}
+  '@module-federation/error-codes@0.0.0-feat-shared-treeshake-poc-20260114091859': {}
 
   '@module-federation/error-codes@0.21.6': {}
 
   '@module-federation/error-codes@0.22.0': {}
 
-  '@module-federation/runtime-core@0.0.0-feat-shared-treeshake-poc-20260112063915':
+  '@module-federation/runtime-core@0.0.0-feat-shared-treeshake-poc-20260114091859':
     dependencies:
-      '@module-federation/error-codes': 0.0.0-feat-shared-treeshake-poc-20260112063915
-      '@module-federation/sdk': 0.0.0-feat-shared-treeshake-poc-20260112063915
+      '@module-federation/error-codes': 0.0.0-feat-shared-treeshake-poc-20260114091859
+      '@module-federation/sdk': 0.0.0-feat-shared-treeshake-poc-20260114091859
 
   '@module-federation/runtime-core@0.21.6':
     dependencies:
@@ -10241,10 +10241,10 @@ snapshots:
       '@module-federation/error-codes': 0.22.0
       '@module-federation/sdk': 0.22.0
 
-  '@module-federation/runtime-tools@0.0.0-feat-shared-treeshake-poc-20260112063915':
+  '@module-federation/runtime-tools@0.0.0-feat-shared-treeshake-poc-20260114091859':
     dependencies:
-      '@module-federation/runtime': 0.0.0-feat-shared-treeshake-poc-20260112063915
-      '@module-federation/webpack-bundler-runtime': 0.0.0-feat-shared-treeshake-poc-20260112063915
+      '@module-federation/runtime': 0.0.0-feat-shared-treeshake-poc-20260114091859
+      '@module-federation/webpack-bundler-runtime': 0.0.0-feat-shared-treeshake-poc-20260114091859
 
   '@module-federation/runtime-tools@0.21.6':
     dependencies:
@@ -10256,11 +10256,11 @@ snapshots:
       '@module-federation/runtime': 0.22.0
       '@module-federation/webpack-bundler-runtime': 0.22.0
 
-  '@module-federation/runtime@0.0.0-feat-shared-treeshake-poc-20260112063915':
+  '@module-federation/runtime@0.0.0-feat-shared-treeshake-poc-20260114091859':
     dependencies:
-      '@module-federation/error-codes': 0.0.0-feat-shared-treeshake-poc-20260112063915
-      '@module-federation/runtime-core': 0.0.0-feat-shared-treeshake-poc-20260112063915
-      '@module-federation/sdk': 0.0.0-feat-shared-treeshake-poc-20260112063915
+      '@module-federation/error-codes': 0.0.0-feat-shared-treeshake-poc-20260114091859
+      '@module-federation/runtime-core': 0.0.0-feat-shared-treeshake-poc-20260114091859
+      '@module-federation/sdk': 0.0.0-feat-shared-treeshake-poc-20260114091859
 
   '@module-federation/runtime@0.21.6':
     dependencies:
@@ -10274,16 +10274,16 @@ snapshots:
       '@module-federation/runtime-core': 0.22.0
       '@module-federation/sdk': 0.22.0
 
-  '@module-federation/sdk@0.0.0-feat-shared-treeshake-poc-20260112063915': {}
+  '@module-federation/sdk@0.0.0-feat-shared-treeshake-poc-20260114091859': {}
 
   '@module-federation/sdk@0.21.6': {}
 
   '@module-federation/sdk@0.22.0': {}
 
-  '@module-federation/webpack-bundler-runtime@0.0.0-feat-shared-treeshake-poc-20260112063915':
+  '@module-federation/webpack-bundler-runtime@0.0.0-feat-shared-treeshake-poc-20260114091859':
     dependencies:
-      '@module-federation/runtime': 0.0.0-feat-shared-treeshake-poc-20260112063915
-      '@module-federation/sdk': 0.0.0-feat-shared-treeshake-poc-20260112063915
+      '@module-federation/runtime': 0.0.0-feat-shared-treeshake-poc-20260114091859
+      '@module-federation/sdk': 0.0.0-feat-shared-treeshake-poc-20260114091859
 
   '@module-federation/webpack-bundler-runtime@0.21.6':
     dependencies:

@@ -8442,7 +8442,7 @@ class TreeShakingSharedPlugin {
     // (undocumented)
     outputDir: string;
     // (undocumented)
-    reShake?: boolean;
+    secondary?: boolean;
 }
 
 // @public (undocumented)
@@ -8450,7 +8450,7 @@ export interface TreeshakingSharedPluginOptions {
     // (undocumented)
     mfConfig: ModuleFederationPluginOptions;
     // (undocumented)
-    reShake?: boolean;
+    secondary?: boolean;
 }
 
 // @public (undocumented)

@@ -14,9 +14,9 @@ module.exports = {
 	},
 	plugins: [
 		new TreeShakingSharedPlugin({
-			reShake: true,
+			secondary: true,
 			mfConfig: {
-				name: 'reshake_share',
+				name: 'secondary_tree_shaking_share',
 				library: {
 					type: 'commonjs2',
 				},
