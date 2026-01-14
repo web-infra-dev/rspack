@@ -4736,11 +4736,12 @@ dependencies = [
 name = "rspack_plugin_remove_duplicate_modules"
 version = "0.7.1"
 dependencies = [
+ "dashmap 6.1.0",
+ "rayon",
  "rspack_collections",
  "rspack_core",
  "rspack_error",
  "rspack_hook",
- "rustc-hash",
  "tracing",
 ]
 
