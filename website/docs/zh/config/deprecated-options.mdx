@@ -43,18 +43,3 @@ export default {
 :::warning
 该选项已被废弃，请改用 [rules[].use](/config/module-rules#rulesuse)。
 :::
-
-## experiments.typeReexportsPresence
-
-<ApiMeta deprecatedVersion="1.7.0" />
-
-- **类型：** `boolean`
-- **默认值：** `false`
-
-用于启用类型重导出的错误容忍。
-
-:::warning
-此配置已被废弃，不再需要。类型重导出存在性检查现在由 [`module.parser.javascript.typeReexportsPresence`](/config/module#moduleparserjavascripttypereexportspresence) 和 [`builtin:swc-loader collectTypeScriptInfo.typeExports`](/guide/features/builtin-swc-loader#collecttypescriptinfotypeexports) 控制。
-
-详细示例可参考：[type reexports presence 示例](https://github.com/rstackjs/rstack-examples/tree/main/rspack/type-reexports-presence)
-:::

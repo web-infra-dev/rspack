@@ -374,11 +374,6 @@ export const getNormalizedRspackOptions = (
     performance: config.performance,
     plugins: nestedArray(config.plugins, (p) => [...p]),
     experiments: nestedConfig(config.experiments, (experiments) => {
-      if (experiments.typeReexportsPresence) {
-        deprecate(
-          '`experiments.typeReexportsPresence` config is deprecated and will be removed in Rspack v2.0. typeReexportsPresence is already stable. Remove this option from your Rspack configuration.',
-        );
-      }
       return {
         ...experiments,
         incremental: optionalNestedConfig(experiments.incremental, (options) =>
@@ -653,7 +648,6 @@ export interface ExperimentsNormalized {
   futureDefaults?: boolean;
   buildHttp?: HttpUriPluginOptions;
   useInputFileSystem?: false | RegExp[];
-  typeReexportsPresence?: boolean;
   nativeWatcher?: boolean;
   deferImport?: boolean;
 }
