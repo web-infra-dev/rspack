@@ -248,10 +248,6 @@ Matches all modules that match this resource, and will match against layer of th
 
 For more information about layers, see the [Layer guide](/guide/features/layer).
 
-:::warning
-For version before v1.6.0, this configuration will only work if [experiments.layers = true](/config/deprecated-options#experimentslayers).
-:::
-
 A basic example:
 
 ```js title="rspack.config.mjs"
@@ -642,10 +638,6 @@ The meanings of all `type` options are as follows:
 Used to mark the layer of the matching module. A group of modules could be united in one layer which could then be used in split chunks, stats or [entry options](/config/entry#entrydescriptionlayer).
 
 For more information about layers, see the [Layer guide](/guide/features/layer).
-
-:::warning
-For version before v1.6.0, this configuration will only work if [experiments.layers = true](/config/deprecated-options#experimentslayers).
-:::
 
 ```js title="rspack.config.mjs"
 export default {

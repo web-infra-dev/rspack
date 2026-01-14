@@ -2777,12 +2777,6 @@ export type Experiments = {
    */
   css?: boolean;
   /**
-   * Enable module layers feature.
-   * @deprecated This option is deprecated, layers is enabled since v1.6.0
-   * @default false
-   */
-  layers?: boolean;
-  /**
    * Enable incremental builds.
    */
   incremental?: IncrementalPresets | Incremental;
