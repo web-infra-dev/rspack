@@ -676,6 +676,13 @@ const applyOutputDefaults = (
     'nodePrefixForCoreModules',
     () => tp && optimistic(tp.nodePrefixForCoreModules),
   );
+  F(
+    environment,
+    'importMetaDirnameAndFilename',
+    () =>
+      // No optimistic, because it is new
+      tp?.importMetaDirnameAndFilename,
+  );
   F(environment, 'templateLiteral', () => tp && optimistic(tp.templateLiteral));
   F(environment, 'dynamicImport', () =>
     conditionallyOptimistic(tp?.dynamicImport, output.module),
