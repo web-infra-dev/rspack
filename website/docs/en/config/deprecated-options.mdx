@@ -35,31 +35,6 @@ This configuration has been deprecated. Use top-level [`collectTypeScriptInfo`](
 
 :::
 
-## experiments.layers
-
-<ApiMeta deprecatedVersion="1.6.0" />
-
-- **Type:** `boolean`
-- **Default:** `true`
-
-Controls whether to enable the layer feature. Layers add an identifier prefix to all modules in a subgraph starting from a module in the module graph, to distinguish them from modules in different layers. For example:
-
-The `layer` of the `index.js` module is `null` by default, and its `identifier` is `./index.js`. If we set `layer = 'client'` for it, its `identifier` becomes `(client)/./index.js`. At this point, the `index.js` modules in these two different layers are treated as distinct modules, because their unique `identifier`s differ. The final output includes the artifacts of both modules.
-
-By default, a module's layer is `null`, and it inherits its parent module's layer. You can add a layer to an entry module using `entryOptions.layer`, and add a layer to matched modules using [`module.rule[].layer`](/config/module-rules#ruleslayer). Additionally, you can match based on the parent module's layer using [`module.rule[].issuerLayer`](/config/module-rules#rulesissuerlayer).
-
-```js title="rspack.config.mjs"
-export default {
-  experiments: {
-    layers: true,
-  },
-};
-```
-
-:::warning
-This option is deprecated. Layers are now always enabled. Remove this option from your Rspack configuration.
-:::
-
 ## experiments.parallelCodeSplitting
 
 <ApiMeta deprecatedVersion="1.6.2" />
