@@ -226,7 +226,6 @@ function checkConfigsDocumentationCoverage() {
 
   // const implementedConfigs = getImplementedConfigs().filter(config => {
   // 	return ![
-  // 		"experiments.lazyCompilation.backend",
   // 		"resolveLoader",
   // 		"module.parser",
   // 		"module.generator",

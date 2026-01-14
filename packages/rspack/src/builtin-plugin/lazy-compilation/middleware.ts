@@ -2,7 +2,6 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import { type Compiler, MultiCompiler } from '../..';
 import type { LazyCompilationOptions } from '../../config';
 import type { MiddlewareHandler } from '../../config/devServer';
-import { deprecate } from '../../util';
 import { BuiltinLazyCompilationPlugin } from './lazyCompilation';
 
 export const LAZY_COMPILATION_PREFIX = '/lazy-compilation-using-';
@@ -37,12 +36,6 @@ const getFullServerUrl = ({ serverUrl, prefix }: LazyCompilationOptions) => {
   );
 };
 
-const DEPRECATED_LAZY_COMPILATION_OPTIONS_WARN =
-  'The `experiments.lazyCompilation` option is deprecated, please use the configuration top level `lazyCompilation` instead.';
-
-const REPEAT_LAZY_COMPILATION_OPTIONS_WARN =
-  'Both top-level `lazyCompilation` and `experiments.lazyCompilation` options are set. The top-level `lazyCompilation` configuration will take precedence.';
-
 /**
  * Create a middleware that handles lazy compilation requests from the client.
  * This function returns an Express-style middleware that listens for
@@ -60,36 +53,11 @@ export const lazyCompilationMiddleware = (
     let i = 0;
 
     for (const c of compiler.compilers) {
-      if (c.options.experiments.lazyCompilation) {
-        if (c.name) {
-          deprecate(
-            `The 'experiments.lazyCompilation' option in compiler named '${c.name}' is deprecated, please use the Configuration top level 'lazyCompilation' instead.`,
-          );
-        } else {
-          deprecate(DEPRECATED_LAZY_COMPILATION_OPTIONS_WARN);
-        }
-      }
-
-      if (c.options.lazyCompilation && c.options.experiments.lazyCompilation) {
-        if (c.name) {
-          deprecate(
-            `The top-level 'lazyCompilation' option in compiler named '${c.name}' will override the 'experiments.lazyCompilation' option.`,
-          );
-        } else {
-          deprecate(REPEAT_LAZY_COMPILATION_OPTIONS_WARN);
-        }
-      }
-
-      if (
-        !c.options.lazyCompilation &&
-        !c.options.experiments.lazyCompilation
-      ) {
+      if (!c.options.lazyCompilation) {
         continue;
       }
 
       const options = {
-        // TODO: remove this when experiments.lazyCompilation is removed
-        ...c.options.experiments.lazyCompilation,
         ...c.options.lazyCompilation,
       };
 
@@ -122,25 +90,13 @@ export const lazyCompilationMiddleware = (
     };
   }
 
-  if (compiler.options.experiments.lazyCompilation) {
-    deprecate(DEPRECATED_LAZY_COMPILATION_OPTIONS_WARN);
-    if (compiler.options.lazyCompilation) {
-      deprecate(REPEAT_LAZY_COMPILATION_OPTIONS_WARN);
-    }
-  }
-
-  if (
-    !compiler.options.lazyCompilation &&
-    !compiler.options.experiments.lazyCompilation
-  ) {
+  if (!compiler.options.lazyCompilation) {
     return noop;
   }
 
   const activeModules: Set<string> = new Set();
 
   const options = {
-    // TODO: remove this when experiments.lazyCompilation is removed
-    ...compiler.options.experiments.lazyCompilation,
     ...compiler.options.lazyCompilation,
   };
 

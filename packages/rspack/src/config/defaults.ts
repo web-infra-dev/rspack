@@ -211,9 +211,6 @@ const applyInfrastructureLoggingDefaults = (
 
 const applyExperimentsDefaults = (experiments: ExperimentsNormalized) => {
   D(experiments, 'futureDefaults', false);
-  // TODO: lazyCompilation is moving to Configuration top level, we can remove this in future.
-  // IGNORE(experiments.lazyCompilation): In webpack, lazyCompilation is undefined by default
-  D(experiments, 'lazyCompilation', false);
   D(experiments, 'asyncWebAssembly', experiments.futureDefaults);
   D(experiments, 'css', experiments.futureDefaults ? true : undefined);
   D(experiments, 'topLevelAwait', true);

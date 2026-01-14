@@ -2753,12 +2753,6 @@ export type UseInputFileSystem = false | RegExp[];
  */
 export type Experiments = {
   /**
-   * Enable lazy compilation.
-   * @deprecated Please use the configuration top-level `lazyCompilation` option instead.
-   * @default false
-   */
-  lazyCompilation?: boolean | LazyCompilationOptions;
-  /**
    * Enable async WebAssembly.
    * Support the new WebAssembly according to the [updated specification](https://github.com/WebAssembly/esm-integration), it makes a WebAssembly module an async module.
    * @default false

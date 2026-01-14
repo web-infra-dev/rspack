@@ -2437,7 +2437,6 @@ interface ExecuteModuleContext {
 
 // @public
 export type Experiments = {
-    lazyCompilation?: boolean | LazyCompilationOptions;
     asyncWebAssembly?: boolean;
     outputModule?: boolean;
     topLevelAwait?: boolean;
@@ -2521,8 +2520,6 @@ export interface ExperimentsNormalized {
     layers?: boolean;
     // @deprecated (undocumented)
     lazyBarrel?: boolean;
-    // @deprecated (undocumented)
-    lazyCompilation?: false | LazyCompilationOptions;
     // (undocumented)
     nativeWatcher?: boolean;
     // (undocumented)
