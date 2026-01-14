@@ -66,7 +66,7 @@ function sendActiveRequest() {
     hasPendingUpdate = false;
     sendRequest();
   }
-};
+}
 
 /**
  * @param {{ data: string, onError: (err: Error) => void, active: boolean, module: module }} options options

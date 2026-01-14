@@ -43,6 +43,14 @@ const DEPRECATED_LAZY_COMPILATION_OPTIONS_WARN =
 const REPEAT_LAZY_COMPILATION_OPTIONS_WARN =
   'Both top-level `lazyCompilation` and `experiments.lazyCompilation` options are set. The top-level `lazyCompilation` configuration will take precedence.';
 
+/**
+ * Create a middleware that handles lazy compilation requests from the client.
+ * This function returns an Express-style middleware that listens for
+ * requests triggered by lazy compilation in the dev server client,
+ * then invokes the Rspack compiler to compile modules on demand.
+ * Use this middleware when integrating lazy compilation into a
+ * custom development server instead of relying on the built-in server.
+ */
 export const lazyCompilationMiddleware = (
   compiler: Compiler | MultiCompiler,
 ): MiddlewareHandler => {
@@ -130,6 +138,7 @@ export const lazyCompilationMiddleware = (
   const activeModules: Set<string> = new Set();
 
   const options = {
+    // TODO: remove this when experiments.lazyCompilation is removed
     ...compiler.options.experiments.lazyCompilation,
     ...compiler.options.lazyCompilation,
   };
@@ -178,16 +187,51 @@ function readModuleIdsFromBody(
   }
 
   return new Promise((resolve, reject) => {
+    if ((req as any).aborted || req.destroyed) {
+      reject(new Error('Request was aborted before body could be read'));
+      return;
+    }
+
+    const cleanup = () => {
+      req.removeListener('data', onData);
+      req.removeListener('end', onEnd);
+      req.removeListener('error', onError);
+      req.removeListener('close', onClose);
+      req.removeListener('aborted', onAborted);
+    };
+
     const chunks: Buffer[] = [];
-    req.on('data', (chunk: Buffer) => {
+    const onData = (chunk: Buffer) => {
       chunks.push(chunk);
-    });
-    req.on('end', () => {
-      // Concatenate all chunks and decode as UTF-8 to handle multi-byte characters correctly
+    };
+
+    const onEnd = () => {
+      cleanup();
+      // Concatenate all chunks and decode as UTF-8 to handle multibyte characters correctly
       const body = Buffer.concat(chunks).toString('utf8');
       resolve(body.split('\n').filter(Boolean));
-    });
-    req.on('error', reject);
+    };
+
+    const onError = (err: Error) => {
+      cleanup();
+      reject(err);
+    };
+
+    const onClose = () => {
+      cleanup();
+      reject(new Error('Request was closed before body could be read'));
+    };
+
+    const onAborted = () => {
+      cleanup();
+      reject(new Error('Request was aborted before body could be read'));
+    };
+
+    req.on('data', onData);
+    req.on('end', onEnd);
+    req.on('error', onError);
+    req.on('close', onClose);
+    req.on('aborted', onAborted);
   });
 }
 
