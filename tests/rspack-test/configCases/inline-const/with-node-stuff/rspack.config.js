@@ -8,8 +8,6 @@ module.exports = {
 	},
 	optimization: {
 		minimize: false,
+		inlineExports: true
 	},
-	experiments: {
-		inlineConst: true
-	}
 };

@@ -374,16 +374,6 @@ export const getNormalizedRspackOptions = (
     performance: config.performance,
     plugins: nestedArray(config.plugins, (p) => [...p]),
     experiments: nestedConfig(config.experiments, (experiments) => {
-      if (experiments.inlineConst) {
-        deprecate(
-          '`experiments.inlineConst` config is deprecated and will be removed in Rspack v2.0. Inline Const is already stable and enabled by default. Remove this option from your Rspack configuration.',
-        );
-      }
-      if (experiments.inlineEnum) {
-        deprecate(
-          '`experiments.inlineEnum` config is deprecated and will be removed in Rspack v2.0. Inline Enum is already stable. Remove this option from your Rspack configuration.',
-        );
-      }
       if (experiments.typeReexportsPresence) {
         deprecate(
           '`experiments.typeReexportsPresence` config is deprecated and will be removed in Rspack v2.0. typeReexportsPresence is already stable. Remove this option from your Rspack configuration.',
@@ -663,14 +653,6 @@ export interface ExperimentsNormalized {
   futureDefaults?: boolean;
   buildHttp?: HttpUriPluginOptions;
   useInputFileSystem?: false | RegExp[];
-  /**
-   * @deprecated This option is deprecated, it's already stable and enabled by default, Rspack will remove this option in future version
-   */
-  inlineConst?: boolean;
-  /**
-   * @deprecated This option is deprecated, it's already stable and enabled by default, Rspack will remove this option in future version
-   */
-  inlineEnum?: boolean;
   typeReexportsPresence?: boolean;
   nativeWatcher?: boolean;
   deferImport?: boolean;

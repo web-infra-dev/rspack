@@ -73,34 +73,6 @@ export default {
 该选项已被废弃，请改用 [rules[].use](/config/module-rules#rulesuse)。
 :::
 
-## experiments.inlineConst
-
-<ApiMeta deprecatedVersion="1.7.0" />
-
-- **类型：** `boolean`
-- **默认值：** `false`
-
-用于启用常量导出的跨模块内联优化实验性功能。
-
-:::warning
-此配置已被废弃，不再需要。内联导出优化现在由 [`optimization.inlineExports`](/config/optimization#optimizationinlineexports) 控制。
-:::
-
-## experiments.inlineEnum
-
-<ApiMeta deprecatedVersion="1.7.0" />
-
-- **类型：** `boolean`
-- **默认值：** `false`
-
-用于启用 TypeScript 枚举的内联优化。
-
-:::warning
-此配置已被废弃，不再需要。枚举内联优化现在由 [`optimization.inlineExports`](/config/optimization#optimizationinlineexports) 和 [`builtin:swc-loader collectTypeScriptInfo.exportedEnum`](/guide/features/builtin-swc-loader#collecttypescriptinfoexportedenum) 控制。
-
-详细示例可参考：[inline enum 示例](https://github.com/rstackjs/rstack-examples/tree/main/rspack/inline-enum)
-:::
-
 ## experiments.typeReexportsPresence
 
 <ApiMeta deprecatedVersion="1.7.0" />
@@ -114,17 +86,4 @@ export default {
 此配置已被废弃，不再需要。类型重导出存在性检查现在由 [`module.parser.javascript.typeReexportsPresence`](/config/module#moduleparserjavascripttypereexportspresence) 和 [`builtin:swc-loader collectTypeScriptInfo.typeExports`](/guide/features/builtin-swc-loader#collecttypescriptinfotypeexports) 控制。
 
 详细示例可参考：[type reexports presence 示例](https://github.com/rstackjs/rstack-examples/tree/main/rspack/type-reexports-presence)
-:::
-
-## module.parser.javascript.inlineConst
-
-<ApiMeta deprecatedVersion="1.7.0" />
-
-- **类型：** `boolean`
-- **默认值：** `false`
-
-用于控制是否在解析器中对常量导出执行跨模块内联优化。
-
-:::warning
-此配置已被废弃。请使用 [`optimization.inlineExports`](/config/optimization#optimizationinlineexports)。
 :::

@@ -512,9 +512,6 @@ Whether to collect information about exported `enum`s, so Rspack can perform cro
 const isProduction = process.env.NODE_ENV === 'production';
 
 export default {
-  experiments: {
-    inlineEnum: true, // This is currently an experimental feature and requires explicit enabling
-  },
   module: {
     rules: [
       {

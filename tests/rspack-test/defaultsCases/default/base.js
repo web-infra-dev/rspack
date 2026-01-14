@@ -43,8 +43,6 @@ module.exports = {
 			      sideEffects: true,
 			      silent: true,
 			    },
-			    inlineConst: true,
-			    inlineEnum: false,
 			    typeReexportsPresence: false,
 			    useInputFileSystem: false,
 			  },
