@@ -11,8 +11,9 @@ pub use camino::{Utf8Component, Utf8Components, Utf8Path, Utf8PathBuf, Utf8Prefi
 use dashmap::{DashMap, DashSet};
 use indexmap::IndexSet;
 use rspack_cacheable::{
-  cacheable,
-  with::{AsRefStr, AsRefStrConverter},
+  ContextGuard, Error as CacheableError, cacheable,
+  utils::PortablePath,
+  with::{Custom, CustomConverter},
 };
 use rustc_hash::FxHasher;
 use ustr::IdentityHasher;
@@ -52,7 +53,7 @@ impl<'a> AssertUtf8 for &'a Path {
   }
 }
 
-#[cacheable(with=AsRefStr, hashable)]
+#[cacheable(with=Custom)]
 #[derive(Clone, PartialEq, Eq)]
 pub struct ArcPath {
   path: Arc<Path>,
@@ -126,12 +127,15 @@ impl From<&str> for ArcPath {
   }
 }
 
-impl AsRefStrConverter for ArcPath {
-  fn as_str(&self) -> &str {
-    self.path.to_str().expect("expect utf8 str")
+impl CustomConverter for ArcPath {
+  type Target = PortablePath;
+  fn serialize(&self, guard: &ContextGuard) -> Result<Self::Target, CacheableError> {
+    Ok(PortablePath::new(&self.path, guard.project_root()))
   }
-  fn from_str(s: &str) -> Self {
-    Self::from(Path::new(s))
+  fn deserialize(data: Self::Target, guard: &ContextGuard) -> Result<Self, CacheableError> {
+    Ok(Self::from(PathBuf::from(
+      data.into_path_string(guard.project_root()),
+    )))
   }
 }
 

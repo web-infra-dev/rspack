@@ -1,3 +1,5 @@
+use std::hash::Hash;
+
 use rkyv::{
   Archive, Deserialize, Place, Serialize,
   de::Pooling,
@@ -5,8 +7,9 @@ use rkyv::{
   ser::Sharing,
   with::{ArchiveWith, DeserializeWith, SerializeWith},
 };
+use rspack_cacheable_macros::enable_cacheable as cacheable;
 
-use crate::{ContextGuard, Error, Result, cacheable};
+use crate::{ContextGuard, Error, Result};
 
 /// A trait for writing custom serialization and deserialization.
 ///
@@ -26,6 +29,32 @@ pub struct Custom;
 /// which can avoid some deserialization conflicts.
 #[cacheable(crate=crate)]
 pub struct DataBox<T: Archive>(T);
+
+// impl hashable for ArchivedDataBox
+impl<T> Hash for ArchivedDataBox<T>
+where
+  T: Archive,
+  T::Archived: Hash,
+{
+  fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+    self.0.hash(state);
+  }
+}
+impl<T> PartialEq for ArchivedDataBox<T>
+where
+  T: Archive,
+  T::Archived: PartialEq,
+{
+  fn eq(&self, other: &Self) -> bool {
+    self.0 == other.0
+  }
+}
+impl<T> Eq for ArchivedDataBox<T>
+where
+  T: Archive,
+  T::Archived: Eq,
+{
+}
 
 pub struct CustomResolver<A: Archive> {
   resolver: DataBoxResolver<A>,
