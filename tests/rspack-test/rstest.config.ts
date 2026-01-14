@@ -36,7 +36,6 @@ const wasmConfig = process.env.WASM && defineProject({
 
 const sharedConfig = defineProject({
 	setupFiles: setupFilesAfterEnv,
-	name: 'base',
 	testTimeout: process.env.CI ? 60000 : 30000,
 	include: [
 		"*.test.js",
@@ -116,7 +115,7 @@ export default defineConfig({
 	reporters: ['default'],
 	hideSkippedTests: true,
 	pool: {
-		maxWorkers: process.env.WASM  ? 1 : "80%",
+		maxWorkers: process.env.WASM ? 1 : "80%",
 		execArgv: ['--no-warnings', '--expose-gc', '--max-old-space-size=8192', '--experimental-vm-modules'],
 	},
 });
