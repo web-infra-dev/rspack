@@ -35,31 +35,6 @@ import { ApiMeta } from '../../../components/ApiMeta';
 
 :::
 
-## experiments.layers
-
-<ApiMeta deprecatedVersion="1.6.0" />
-
-- **类型：** `boolean`
-- **默认值：** `true`
-
-控制是否启用 layer 功能，layer 可以为模块图中以一个模块作为起点的子图中的所有模块添加标识符前缀，用来与其他不同 layer 的模块进行区分，比如：
-
-`index.js` 模块的 layer 为默认的 `null`，其 `identifier` 为 `./index.js`，我们为其添加 `layer = 'client'`，其 `identifier` 会变成 `(client)/./index.js`，这时这两个不同 layer 的 `index.js` 会被区分为不同的模块，因为其唯一标识 `identifier` 不一样，最终产物中也会存在这两个模块的产物。
-
-模块默认的 layer 为 `null`，模块默认会继承其父模块的 layer，你可以通过 `entryOptions.layer` 为一个入口模块添加 layer，也可以通过 [`module.rule[].layer`](/config/module-rules#ruleslayer) 为匹配到的模块添加 layer，同时可以通过 [`module.rule[].issuerLayer`](/config/module-rules#rulesissuerlayer) 根据父模块的 layer 进行匹配。
-
-```js title="rspack.config.mjs"
-export default {
-  experiments: {
-    layers: true,
-  },
-};
-```
-
-:::warning
-该配置项已经废弃，layers 特性已始终开启，请从 Rspack 配置项中移除此配置。
-:::
-
 ## experiments.parallelCodeSplitting
 
 <ApiMeta deprecatedVersion="1.6.2" />
