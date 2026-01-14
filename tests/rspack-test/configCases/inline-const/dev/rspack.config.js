@@ -4,7 +4,7 @@ module.exports = {
 	output: {
 		pathinfo: false
 	},
-	experiments: {
-		inlineConst: true
+	optimization: {
+		inlineExports: true
 	}
 };
