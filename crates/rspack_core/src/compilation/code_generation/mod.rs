@@ -1,63 +1,68 @@
 use super::*;
 use crate::logger::Logger;
 
-impl Compilation {
-  pub async fn code_generation_pass(
-    &mut self,
-    plugin_driver: SharedPluginDriver,
-  ) -> Result<()> {
-    let logger = self.get_logger("rspack.Compilation");
-    let start = logger.time("code generation");
-    let code_generation_modules = if let Some(mutations) = self
-      .incremental
-      .mutations_read(IncrementalPasses::MODULES_CODEGEN)
-      && !self.code_generation_results.is_empty()
-    {
-      let revoked_modules = mutations.iter().filter_map(|mutation| match mutation {
-        Mutation::ModuleRemove { module } => Some(*module),
+pub async fn code_generation_pass(
+  compilation: &mut Compilation,
+  plugin_driver: SharedPluginDriver,
+) -> Result<()> {
+  let logger = compilation.get_logger("rspack.Compilation");
+  let start = logger.time("code generation");
+  let code_generation_modules = if let Some(mutations) = compilation
+    .incremental
+    .mutations_read(IncrementalPasses::MODULES_CODEGEN)
+    && !compilation.code_generation_results.is_empty()
+  {
+    let revoked_modules = mutations.iter().filter_map(|mutation| match mutation {
+      Mutation::ModuleRemove { module } => Some(*module),
+      _ => None,
+    });
+    for revoked_module in revoked_modules {
+      compilation.code_generation_results.remove(&revoked_module);
+    }
+    let modules: IdentifierSet = mutations
+      .iter()
+      .filter_map(|mutation| match mutation {
+        Mutation::ModuleSetHashes { module } => Some(*module),
         _ => None,
-      });
-      for revoked_module in revoked_modules {
-        self.code_generation_results.remove(&revoked_module);
-      }
-      let modules: IdentifierSet = mutations
-        .iter()
-        .filter_map(|mutation| match mutation {
-          Mutation::ModuleSetHashes { module } => Some(*module),
-          _ => None,
-        })
-        .collect();
-      // also cleanup for updated modules, for `insert(); insert();` the second insert() won't override the first insert() on code_generation_results
-      for module in &modules {
-        self.code_generation_results.remove(module);
-      }
-      tracing::debug!(target: incremental::TRACING_TARGET, passes = %IncrementalPasses::MODULES_CODEGEN, %mutations);
-      let logger = self.get_logger("rspack.incremental.modulesCodegen");
-      logger.log(format!(
-        "{} modules are affected, {} in total",
-        modules.len(),
-        self.get_module_graph().modules().len()
-      ));
-      modules
-    } else {
-      self.code_generation_results = Default::default();
-      self.get_module_graph().modules().keys().copied().collect()
-    };
-    self.code_generation(code_generation_modules).await?;
+      })
+      .collect();
+    // also cleanup for updated modules, for `insert(); insert();` the second insert() won't override the first insert() on code_generation_results
+    for module in &modules {
+      compilation.code_generation_results.remove(module);
+    }
+    tracing::debug!(target: incremental::TRACING_TARGET, passes = %IncrementalPasses::MODULES_CODEGEN, %mutations);
+    let logger = compilation.get_logger("rspack.incremental.modulesCodegen");
+    logger.log(format!(
+      "{} modules are affected, {} in total",
+      modules.len(),
+      compilation.get_module_graph().modules().len()
+    ));
+    modules
+  } else {
+    compilation.code_generation_results = Default::default();
+    compilation
+      .get_module_graph()
+      .modules()
+      .keys()
+      .copied()
+      .collect()
+  };
+  compilation.code_generation(code_generation_modules).await?;
 
-    let mut diagnostics = vec![];
-    plugin_driver
-      .compilation_hooks
-      .after_code_generation
-      .call(self, &mut diagnostics)
-      .await
-      .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.afterCodeGeneration"))?;
-    self.extend_diagnostics(diagnostics);
+  let mut diagnostics = vec![];
+  plugin_driver
+    .compilation_hooks
+    .after_code_generation
+    .call(compilation, &mut diagnostics)
+    .await
+    .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.afterCodeGeneration"))?;
+  compilation.extend_diagnostics(diagnostics);
 
-    logger.time_end(start);
-    Ok(())
-  }
+  logger.time_end(start);
+  Ok(())
+}
 
+impl Compilation {
   #[instrument("Compilation:code_generation",target=TRACING_BENCH_TARGET, skip_all)]
   async fn code_generation(&mut self, modules: IdentifierSet) -> Result<()> {
     let logger = self.get_logger("rspack.Compilation");

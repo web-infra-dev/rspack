@@ -11,7 +11,7 @@ The compilation process is organized into independent modules, each responsible 
 ```
 compilation/
 ├── mod.rs                        # Main Compilation struct which exposes the public API
-├── run_passes.rs                 # Pass driver which calls all pass(which includes make and seal)
+├── run_passes.rs                 # Pass driver invoked from Compiler that runs make + seal passes
 ├── build_module_graph/           # Module graph construction
 │   └── finish_module/            # Finalize module graph, async modules, dependency diagnostics
 ├── optimize_dependencies/        # optimizeDependencies hook + side effects artifact
@@ -36,18 +36,22 @@ compilation/
 
 ## Pass Order
 
-`run_passes` orchestrates passes after `CompilationHooks::seal` in this order:
+`run_passes` orchestrates the full pipeline (make + seal) in this order:
 
-1. `optimize_dependencies_pass`
-2. `build_chunk_graph_pass` → `optimize_modules_pass` → `optimize_chunks_pass`
-3. `optimize_tree_pass` → `optimize_chunk_modules_pass`
-4. `module_ids_pass` → `chunk_ids_pass` → `assign_runtime_ids`
-5. `optimize_code_generation_pass`
-6. `create_module_hashes_pass`
-7. `code_generation_pass`
-8. `runtime_requirements_pass`
-9. `create_hash_pass` (also runs runtime module code generation)
-10. `create_module_assets_pass`
-11. `create_chunk_assets_pass`
-12. `process_assets_pass`
-13. `after_seal_pass`
+1. Compiler hooks: `thisCompilation` → `compilation`
+2. Make: `make` hook → `build_module_graph` → `finish_make` hook → `finish_build_module_graph`
+3. Collect make diagnostics (`collect_build_module_graph_effects`)
+4. Seal kickoff: `CompilationHooks::seal` (checkpoint + cache freeze)
+5. `optimize_dependencies_pass`
+6. `build_chunk_graph_pass` → `optimize_modules_pass` → `optimize_chunks_pass`
+7. `optimize_tree_pass` → `optimize_chunk_modules_pass`
+8. `module_ids_pass` → `chunk_ids_pass` → `assign_runtime_ids`
+9. `optimize_code_generation_pass`
+10. `create_module_hashes_pass`
+11. `code_generation_pass`
+12. `runtime_requirements_pass`
+13. `create_hash_pass` (also runs runtime module code generation)
+14. `create_module_assets_pass`
+15. `create_chunk_assets_pass`
+16. `process_assets_pass`
+17. `after_seal_pass`

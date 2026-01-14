@@ -1,18 +1,18 @@
 use super::*;
 use crate::logger::Logger;
 
-impl Compilation {
-  pub async fn create_chunk_assets_pass(
-    &mut self,
-    plugin_driver: SharedPluginDriver,
-  ) -> Result<()> {
-    let logger = self.get_logger("rspack.Compilation");
-    let start = logger.time("create chunk assets");
-    self.create_chunk_assets(plugin_driver).await?;
-    logger.time_end(start);
-    Ok(())
-  }
+pub async fn create_chunk_assets_pass(
+  compilation: &mut Compilation,
+  plugin_driver: SharedPluginDriver,
+) -> Result<()> {
+  let logger = compilation.get_logger("rspack.Compilation");
+  let start = logger.time("create chunk assets");
+  compilation.create_chunk_assets(plugin_driver).await?;
+  logger.time_end(start);
+  Ok(())
+}
 
+impl Compilation {
   #[instrument("Compilation::create_chunk_assets",target=TRACING_BENCH_TARGET, skip_all)]
   async fn create_chunk_assets(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
     if (self.options.output.filename.has_hash_placeholder()

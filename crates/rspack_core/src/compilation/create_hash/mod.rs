@@ -6,16 +6,19 @@ pub struct ChunkHashResult {
   pub content_hash: ChunkContentHash,
 }
 
-impl Compilation {
-  pub async fn create_hash_pass(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
-    let logger = self.get_logger("rspack.Compilation");
-    let start = logger.time("hashing");
-    self.create_hash(plugin_driver).await?;
-    self.runtime_modules_code_generation().await?;
-    logger.time_end(start);
-    Ok(())
-  }
+pub async fn create_hash_pass(
+  compilation: &mut Compilation,
+  plugin_driver: SharedPluginDriver,
+) -> Result<()> {
+  let logger = compilation.get_logger("rspack.Compilation");
+  let start = logger.time("hashing");
+  compilation.create_hash(plugin_driver).await?;
+  compilation.runtime_modules_code_generation().await?;
+  logger.time_end(start);
+  Ok(())
+}
 
+impl Compilation {
   #[instrument(name = "Compilation:create_hash",target=TRACING_BENCH_TARGET, skip_all)]
   pub async fn create_hash(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
     let logger = self.get_logger("rspack.Compilation");

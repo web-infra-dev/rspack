@@ -248,7 +248,7 @@ impl Compiler {
     //   self.compilation.incremental = Incremental::new_hot(self.options.experiments.incremental);
     // }
 
-    self.compile().await?;
+    self.run_passes().await?;
     self.old_cache.begin_idle();
     self.compile_done().await?;
     self.cache.after_compile(&self.compilation).await;
@@ -257,7 +257,8 @@ impl Compiler {
 
     Ok(())
   }
-  async fn build_module_graph(&mut self) -> Result<()> {
+  #[instrument("Compiler:compile", target=TRACING_BENCH_TARGET,skip_all)]
+  async fn run_passes(&mut self) -> Result<()> {
     let mut compilation_params = self.new_compilation_params();
     // FOR BINDING SAFETY:
     // Make sure `thisCompilation` hook was called for each `JsCompilation` update before any access to it.
@@ -278,6 +279,7 @@ impl Compiler {
       .await?;
 
     let logger = self.compilation.get_logger("rspack.Compiler");
+
     let make_start = logger.time("make");
     let make_hook_start = logger.time("make hook");
     self
@@ -312,18 +314,7 @@ impl Compiler {
       .await;
 
     logger.time_end(start);
-    Ok(())
-  }
-  #[instrument("Compiler:compile", target=TRACING_BENCH_TARGET,skip_all)]
-  async fn compile(&mut self) -> Result<()> {
-    let logger = self.compilation.get_logger("rspack.Compiler");
-    let start = logger.time("seal compilation");
-    #[cfg(feature = "debug_tool")]
-    {
-      use rspack_util::debug_tool::wait_for_signal;
-      wait_for_signal("seal compilation");
-    }
-    self.build_module_graph().await?;
+
     let dependencies_diagnostics_artifact =
       self.compilation.dependencies_diagnostics_artifact.clone();
     let async_modules_artifact = self.compilation.async_modules_artifact.clone();
@@ -335,7 +326,37 @@ impl Compiler {
       )
       .await?;
     self.compilation.extend_diagnostics(diagnostics);
-    self.compilation.seal(self.plugin_driver.clone()).await?;
+
+    #[cfg(feature = "debug_tool")]
+    {
+      use rspack_util::debug_tool::wait_for_signal;
+      wait_for_signal("seal compilation");
+    }
+
+    self
+      .compilation
+      .run_passes(self.plugin_driver.clone())
+      .await?;
+
+    // Consume plugin driver diagnostic
+    let plugin_driver_diagnostics = self.plugin_driver.take_diagnostic();
+    self
+      .compilation
+      .extend_diagnostics(plugin_driver_diagnostics);
+
+    Ok(())
+  }
+
+  #[instrument("Compiler:compile", target=TRACING_BENCH_TARGET,skip_all)]
+  async fn compile(&mut self) -> Result<()> {
+    let logger = self.compilation.get_logger("rspack.Compiler");
+    let start = logger.time("seal compilation");
+    #[cfg(feature = "debug_tool")]
+    {
+      use rspack_util::debug_tool::wait_for_signal;
+      wait_for_signal("seal compilation");
+    }
+    self.run_passes().await?;
     logger.time_end(start);
 
     // Consume plugin driver diagnostic

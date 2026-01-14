@@ -1,24 +1,24 @@
+mod after_seal;
+mod assign_runtime_ids;
 pub mod build_chunk_graph;
 pub mod build_module_graph;
-mod assign_runtime_ids;
-mod create_module_assets;
-mod create_chunk_assets;
-mod process_assets;
-mod after_seal;
+mod chunk_ids;
 mod code_generation;
-mod runtime_requirements;
+mod create_chunk_assets;
 mod create_hash;
+mod create_module_assets;
 mod create_module_hashes;
 mod finish_module;
+mod module_ids;
+mod optimize_chunk_modules;
+mod optimize_chunks;
+mod optimize_code_generation;
 mod optimize_dependencies;
 mod optimize_modules;
-mod optimize_chunks;
 mod optimize_tree;
-mod optimize_chunk_modules;
-mod module_ids;
-mod chunk_ids;
-mod optimize_code_generation;
+mod process_assets;
 mod run_passes;
+mod runtime_requirements;
 use std::{
   collections::{VecDeque, hash_map},
   fmt::{self, Debug},
@@ -67,7 +67,7 @@ use crate::{
   DependenciesDiagnosticsArtifact, DependencyCodeGeneration, DependencyTemplate,
   DependencyTemplateType, DependencyType, DerefOption, Entry, EntryData, EntryOptions,
   EntryRuntime, Entrypoint, ExecuteModuleId, Filename, ImportPhase, ImportVarMap,
-  ImportedByDeferModulesArtifact, Logger, MemoryGCStorage, ModuleFactory, ModuleGraph,
+  ImportedByDeferModulesArtifact, MemoryGCStorage, ModuleFactory, ModuleGraph,
   ModuleGraphCacheArtifact, ModuleIdentifier, ModuleIdsArtifact, ModuleStaticCacheArtifact,
   PathData, ResolverFactory, RuntimeGlobals, RuntimeKeyMap, RuntimeMode, RuntimeModule,
   RuntimeSpec, RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver, SideEffectsOptimizeArtifact,
@@ -1060,34 +1060,6 @@ impl Compilation {
   pub fn entrypoint_by_name_mut(&mut self, name: &str) -> &mut Entrypoint {
     let ukey = self.entrypoints.get(name).expect("entrypoint not found");
     self.chunk_group_by_ukey.expect_get_mut(ukey)
-  }
-
-  #[instrument("Compilation:seal", skip_all)]
-  pub async fn seal(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
-    // add a checkpoint here since we may modify module graph later in incremental compilation
-    // and we can recover to this checkpoint in the future
-    if self.incremental.passes_enabled(IncrementalPasses::MAKE) {
-      self.build_module_graph_artifact.module_graph.checkpoint();
-    }
-
-    if !self.options.mode.is_development() {
-      self.module_static_cache_artifact.freeze();
-    }
-
-    // https://github.com/webpack/webpack/blob/main/lib/Compilation.js#L2809
-    plugin_driver
-      .compilation_hooks
-      .seal
-      .call(self)
-      .await
-      .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.seal"))?;
-
-    self.run_passes(plugin_driver).await?;
-
-    if !self.options.mode.is_development() {
-      self.module_static_cache_artifact.unfreeze();
-    }
-    Ok(())
   }
 
   pub fn get_chunk_graph_entries(&self) -> impl Iterator<Item = ChunkUkey> + use<'_> {

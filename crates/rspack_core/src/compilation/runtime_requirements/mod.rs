@@ -1,6 +1,114 @@
 use super::*;
 use crate::logger::Logger;
 
+pub async fn runtime_requirements_pass(
+  compilation: &mut Compilation,
+  plugin_driver: SharedPluginDriver,
+) -> Result<()> {
+  let logger = compilation.get_logger("rspack.Compilation");
+  let start = logger.time("runtime requirements");
+  let process_runtime_requirements_modules = if let Some(mutations) = compilation
+    .incremental
+    .mutations_read(IncrementalPasses::MODULES_RUNTIME_REQUIREMENTS)
+    && !compilation.cgm_runtime_requirements_artifact.is_empty()
+  {
+    let revoked_modules = mutations.iter().filter_map(|mutation| match mutation {
+      Mutation::ModuleRemove { module } => Some(*module),
+      _ => None,
+    });
+    for revoked_module in revoked_modules {
+      compilation
+        .cgm_runtime_requirements_artifact
+        .remove(&revoked_module);
+    }
+    let modules: IdentifierSet = mutations
+      .iter()
+      .filter_map(|mutation| match mutation {
+        Mutation::ModuleSetHashes { module } => Some(*module),
+        _ => None,
+      })
+      .collect();
+    let logger = compilation.get_logger("rspack.incremental.modulesRuntimeRequirements");
+    logger.log(format!(
+      "{} modules are affected, {} in total",
+      modules.len(),
+      compilation.get_module_graph().modules().len()
+    ));
+    modules
+  } else {
+    compilation.cgm_runtime_requirements_artifact = Default::default();
+    compilation
+      .get_module_graph()
+      .modules()
+      .keys()
+      .copied()
+      .collect()
+  };
+  compilation
+    .process_modules_runtime_requirements(
+      process_runtime_requirements_modules,
+      plugin_driver.clone(),
+    )
+    .await?;
+  let runtime_chunks = compilation.get_chunk_graph_entries().collect();
+
+  // Check if CHUNKS_RUNTIME_REQUIREMENTS pass is disabled, and clear artifact if needed
+  if !compilation
+    .incremental
+    .passes_enabled(IncrementalPasses::CHUNKS_RUNTIME_REQUIREMENTS)
+  {
+    compilation.cgc_runtime_requirements_artifact.clear();
+  }
+
+  let process_runtime_requirements_chunks = if let Some(mutations) = compilation
+    .incremental
+    .mutations_read(IncrementalPasses::CHUNKS_RUNTIME_REQUIREMENTS)
+    && !compilation.cgc_runtime_requirements_artifact.is_empty()
+  {
+    let removed_chunks = mutations.iter().filter_map(|mutation| match mutation {
+      Mutation::ChunkRemove { chunk } => Some(chunk),
+      _ => None,
+    });
+    for removed_chunk in removed_chunks {
+      compilation
+        .cgc_runtime_requirements_artifact
+        .remove(removed_chunk);
+    }
+    let affected_chunks = mutations.get_affected_chunks_with_chunk_graph(compilation);
+    for affected_chunk in &affected_chunks {
+      compilation
+        .cgc_runtime_requirements_artifact
+        .remove(affected_chunk);
+    }
+    for runtime_chunk in &runtime_chunks {
+      compilation
+        .cgc_runtime_requirements_artifact
+        .remove(runtime_chunk);
+    }
+    compilation
+      .cgc_runtime_requirements_artifact
+      .retain(|chunk, _| compilation.chunk_by_ukey.contains(chunk));
+    let logger = compilation.get_logger("rspack.incremental.chunksRuntimeRequirements");
+    logger.log(format!(
+      "{} chunks are affected, {} in total",
+      affected_chunks.len(),
+      compilation.chunk_by_ukey.len()
+    ));
+    affected_chunks
+  } else {
+    compilation.chunk_by_ukey.keys().copied().collect()
+  };
+  compilation
+    .process_chunks_runtime_requirements(
+      process_runtime_requirements_chunks,
+      runtime_chunks,
+      plugin_driver.clone(),
+    )
+    .await?;
+  logger.time_end(start);
+  Ok(())
+}
+
 macro_rules! process_runtime_requirement_hook_macro {
   ($name: ident, $s: ty, $c: ty) => {
     async fn $name(
@@ -45,105 +153,6 @@ macro_rules! process_runtime_requirement_hook_macro {
 }
 
 impl Compilation {
-  pub async fn runtime_requirements_pass(
-    &mut self,
-    plugin_driver: SharedPluginDriver,
-  ) -> Result<()> {
-    let logger = self.get_logger("rspack.Compilation");
-    let start = logger.time("runtime requirements");
-    let process_runtime_requirements_modules = if let Some(mutations) = self
-      .incremental
-      .mutations_read(IncrementalPasses::MODULES_RUNTIME_REQUIREMENTS)
-      && !self.cgm_runtime_requirements_artifact.is_empty()
-    {
-      let revoked_modules = mutations.iter().filter_map(|mutation| match mutation {
-        Mutation::ModuleRemove { module } => Some(*module),
-        _ => None,
-      });
-      for revoked_module in revoked_modules {
-        self
-          .cgm_runtime_requirements_artifact
-          .remove(&revoked_module);
-      }
-      let modules: IdentifierSet = mutations
-        .iter()
-        .filter_map(|mutation| match mutation {
-          Mutation::ModuleSetHashes { module } => Some(*module),
-          _ => None,
-        })
-        .collect();
-      let logger = self.get_logger("rspack.incremental.modulesRuntimeRequirements");
-      logger.log(format!(
-        "{} modules are affected, {} in total",
-        modules.len(),
-        self.get_module_graph().modules().len()
-      ));
-      modules
-    } else {
-      self.cgm_runtime_requirements_artifact = Default::default();
-      self.get_module_graph().modules().keys().copied().collect()
-    };
-    self
-      .process_modules_runtime_requirements(
-        process_runtime_requirements_modules,
-        plugin_driver.clone(),
-      )
-      .await?;
-    let runtime_chunks = self.get_chunk_graph_entries().collect();
-
-    // Check if CHUNKS_RUNTIME_REQUIREMENTS pass is disabled, and clear artifact if needed
-    if !self
-      .incremental
-      .passes_enabled(IncrementalPasses::CHUNKS_RUNTIME_REQUIREMENTS)
-    {
-      self.cgc_runtime_requirements_artifact.clear();
-    }
-
-    let process_runtime_requirements_chunks = if let Some(mutations) = self
-      .incremental
-      .mutations_read(IncrementalPasses::CHUNKS_RUNTIME_REQUIREMENTS)
-      && !self.cgc_runtime_requirements_artifact.is_empty()
-    {
-      let removed_chunks = mutations.iter().filter_map(|mutation| match mutation {
-        Mutation::ChunkRemove { chunk } => Some(chunk),
-        _ => None,
-      });
-      for removed_chunk in removed_chunks {
-        self.cgc_runtime_requirements_artifact.remove(removed_chunk);
-      }
-      let affected_chunks = mutations.get_affected_chunks_with_chunk_graph(self);
-      for affected_chunk in &affected_chunks {
-        self
-          .cgc_runtime_requirements_artifact
-          .remove(affected_chunk);
-      }
-      for runtime_chunk in &runtime_chunks {
-        self.cgc_runtime_requirements_artifact.remove(runtime_chunk);
-      }
-      self
-        .cgc_runtime_requirements_artifact
-        .retain(|chunk, _| self.chunk_by_ukey.contains(chunk));
-      let logger = self.get_logger("rspack.incremental.chunksRuntimeRequirements");
-      logger.log(format!(
-        "{} chunks are affected, {} in total",
-        affected_chunks.len(),
-        self.chunk_by_ukey.len()
-      ));
-      affected_chunks
-    } else {
-      self.chunk_by_ukey.keys().copied().collect()
-    };
-    self
-      .process_chunks_runtime_requirements(
-        process_runtime_requirements_chunks,
-        runtime_chunks,
-        plugin_driver.clone(),
-      )
-      .await?;
-    logger.time_end(start);
-    Ok(())
-  }
-
   #[instrument("Compilation:process_modules_runtime_requirements", skip_all)]
   pub async fn process_modules_runtime_requirements(
     &mut self,
