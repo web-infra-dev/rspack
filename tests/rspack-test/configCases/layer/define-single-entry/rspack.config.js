@@ -8,9 +8,6 @@ module.exports = {
 		paid: { import: "./main.js", layer: "paid" },
 		free: { import: "./main.js", layer: "free" }
 	},
-	experiments: {
-		layers: true
-	},
 	optimization: {
 		splitChunks: {
 			cacheGroups: {

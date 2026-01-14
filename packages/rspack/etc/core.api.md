@@ -2440,7 +2440,6 @@ export type Experiments = {
     asyncWebAssembly?: boolean;
     outputModule?: boolean;
     css?: boolean;
-    layers?: boolean;
     incremental?: IncrementalPresets | Incremental;
     futureDefaults?: boolean;
     buildHttp?: HttpUriOptions;
@@ -2515,8 +2514,6 @@ export interface ExperimentsNormalized {
     inlineConst?: boolean;
     // @deprecated (undocumented)
     inlineEnum?: boolean;
-    // @deprecated (undocumented)
-    layers?: boolean;
     // @deprecated (undocumented)
     lazyBarrel?: boolean;
     // (undocumented)

@@ -374,11 +374,6 @@ export const getNormalizedRspackOptions = (
     performance: config.performance,
     plugins: nestedArray(config.plugins, (p) => [...p]),
     experiments: nestedConfig(config.experiments, (experiments) => {
-      if (experiments.layers) {
-        deprecate(
-          '`experiments.layers` config is deprecated and will be removed in Rspack v2.0. Feature layers will always be enabled. Remove this option from your Rspack configuration.',
-        );
-      }
       if (experiments.lazyBarrel) {
         deprecate(
           '`experiments.lazyBarrel` config is deprecated and will be removed in Rspack v2.0. Lazy barrel is already stable and enabled by default. Remove this option from your Rspack configuration.',
@@ -669,10 +664,6 @@ export interface ExperimentsNormalized {
   asyncWebAssembly?: boolean;
   outputModule?: boolean;
   css?: boolean;
-  /**
-   * @deprecated This option is deprecated, layers is enabled since v1.6.0
-   */
-  layers?: boolean;
   incremental?: false | Incremental;
   futureDefaults?: boolean;
   buildHttp?: HttpUriPluginOptions;
