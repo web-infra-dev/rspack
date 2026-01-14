@@ -68,7 +68,7 @@
     "@rspack/cli": "workspace:*",
     "@taplo/cli": "^0.7.0",
     "@types/is-ci": "^3.0.4",
-    "@types/node": "^20.19.27",
+    "@types/node": "^20.19.29",
     "check-dependency-version-consistency": "^5.0.1",
     "commander": "14.0.2",
     "cross-env": "^10.1.0",
