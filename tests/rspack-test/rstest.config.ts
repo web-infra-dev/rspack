@@ -101,7 +101,6 @@ const sharedConfig = defineProject({
 	...(wasmConfig || {}),
 }) as ProjectConfig;
 
-
 export default defineConfig({
 	projects: [{
 		extends: sharedConfig,
@@ -116,11 +115,8 @@ export default defineConfig({
 	}],
 	reporters: ['default'],
 	hideSkippedTests: true,
-	pool: process.env.WASM ? {
-		maxWorkers: 1,
-		execArgv: ['--no-warnings', '--expose-gc', '--max-old-space-size=6144', '--experimental-vm-modules'],
-	} : {
-		maxWorkers: "80%",
+	pool: {
+		maxWorkers: process.env.WASM  ? 1 : "80%",
 		execArgv: ['--no-warnings', '--expose-gc', '--max-old-space-size=8192', '--experimental-vm-modules'],
 	},
 });
