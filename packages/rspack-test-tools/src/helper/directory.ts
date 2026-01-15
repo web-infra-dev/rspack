@@ -9,6 +9,9 @@ export const isValidCaseDirectory = (name: string) =>
   !name.startsWith('_') && !name.startsWith('.') && name !== 'node_modules';
 
 export function describeByWalk(
+  /**
+   * The test file absolute path.
+   */
   testFile: string,
   createCase: (name: string, src: string, dist: string) => void,
   options: {
@@ -30,6 +33,7 @@ export function describeByWalk(
     options.source || path.join(path.dirname(testFile), `${testId}Cases`);
 
   const testSourceId = path.basename(sourceBase);
+  const absoluteTestDir = path.join(testFile, '..');
 
   const distBase =
     options.dist || path.join(path.dirname(testFile), 'js', testId);
@@ -75,8 +79,21 @@ export function describeByWalk(
               .split('.')
               .shift()!,
           );
+          let suiteName = name;
 
-          describeFn(name, () => {
+          // support filter test by absolute path
+          if (process.env.testFilter?.includes(absoluteTestDir)) {
+            const absoluteName = path.join(
+              absoluteTestDir,
+              testSourceId,
+              caseName,
+            );
+            if (absoluteName.includes(process.env.testFilter!)) {
+              suiteName = absoluteName;
+            }
+          }
+
+          describeFn(suiteName, () => {
             const source = path.join(sourceBase, caseName);
             let dist = '';
             if (absoluteDist) {
@@ -89,7 +106,7 @@ export function describeByWalk(
                 dist = path.join(sourceBase, caseName, relativeDist);
               }
             }
-            createCase(name, source, dist);
+            createCase(suiteName, source, dist);
           });
         }
       });
