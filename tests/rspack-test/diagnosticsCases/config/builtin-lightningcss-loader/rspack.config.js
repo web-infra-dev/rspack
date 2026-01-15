@@ -18,7 +18,7 @@ module.exports = {
 						options: {
 							unusedSymbols: ["unused"],
 							targets: "> 0.2%",
-							draft: "xx"
+							drafts: "xx"
 						}
 					}
 				],

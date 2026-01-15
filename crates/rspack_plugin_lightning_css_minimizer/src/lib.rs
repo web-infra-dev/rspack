@@ -63,7 +63,7 @@ pub struct MinimizerOptions {
   pub targets: Option<Browsers>,
   pub include: Option<u32>,
   pub exclude: Option<u32>,
-  pub draft: Option<Draft>,
+  pub drafts: Option<Draft>,
   pub non_standard: Option<NonStandard>,
   pub pseudo_classes: Option<PseudoClasses>,
   pub unused_symbols: Vec<String>,
@@ -74,7 +74,7 @@ impl Hash for MinimizerOptions {
     self.error_recovery.hash(state);
     self.include.hash(state);
     self.exclude.hash(state);
-    self.draft.hash(state);
+    self.drafts.hash(state);
     self.non_standard.hash(state);
     self.unused_symbols.hash(state);
     if let Some(pseudo_classes) = &self.pseudo_classes {
@@ -162,7 +162,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         let mut parser_flags = ParserFlags::empty();
         parser_flags.set(
           ParserFlags::CUSTOM_MEDIA,
-          matches!(&minimizer_options.draft, Some(draft) if draft.custom_media),
+          matches!(&minimizer_options.drafts, Some(drafts) if drafts.custom_media),
         );
         parser_flags.set(
           ParserFlags::DEEP_SELECTOR_COMBINATOR,
