@@ -5,8 +5,15 @@ const require = createRequire(import.meta.url);
 
 export default defineConfig({
   lib: [
-    { format: 'cjs', syntax: ['node 18.12'], dts: { bundle: false } },
-    { format: 'esm', syntax: ['node 18.12'] },
+    {
+      format: 'cjs',
+      syntax: ['es2023'],
+      dts: true,
+    },
+    {
+      format: 'esm',
+      syntax: ['es2023'],
+    },
   ],
   source: {
     tsconfigPath: './tsconfig.build.json',
