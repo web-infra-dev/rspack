@@ -100,7 +100,7 @@ impl Compilation {
     })
     .await;
 
-    let mut chunk_render_results: UkeyMap<ChunkUkey, ChunkRenderResult> = Default::default();
+    let mut chunk_render_results = ChunkRenderArtifact::default();
     for result in results {
       let item = result.to_rspack_result()?;
       let (key, value) = item?;
