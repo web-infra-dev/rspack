@@ -8,7 +8,10 @@ mod create_chunk_assets;
 mod create_hash;
 mod create_module_assets;
 mod create_module_hashes;
-mod finish_module;
+mod finish_make;
+mod finish_module_graph;
+mod finish_modules;
+mod make;
 mod module_ids;
 mod optimize_chunk_modules;
 mod optimize_chunks;
@@ -19,6 +22,7 @@ mod optimize_tree;
 mod process_assets;
 mod run_passes;
 mod runtime_requirements;
+mod seal;
 use std::{
   collections::{VecDeque, hash_map},
   fmt::{self, Debug},
@@ -74,8 +78,7 @@ use crate::{
   SourceType, Stats, ValueCacheVersions,
   build_chunk_graph::artifact::BuildChunkGraphArtifact,
   compilation::build_module_graph::{
-    BuildModuleGraphArtifact, ModuleExecutor, UpdateParam, build_module_graph,
-    finish_build_module_graph, update_module_graph,
+    BuildModuleGraphArtifact, ModuleExecutor, UpdateParam, update_module_graph,
   },
   compiler::{CompilationRecords, CompilerId},
   get_runtime_key,
@@ -989,25 +992,6 @@ impl Compilation {
     let ukey = chunk.ukey();
     chunk_by_ukey.add(chunk);
     ukey
-  }
-
-  #[instrument("Compilation:build_module_graph",target=TRACING_BENCH_TARGET, skip_all)]
-  pub async fn build_module_graph(&mut self) -> Result<()> {
-    // run module_executor
-    if let Some(module_executor) = &mut self.module_executor {
-      let mut module_executor = std::mem::take(module_executor);
-      module_executor.hook_before_make(self).await?;
-      self.module_executor = Some(module_executor);
-    }
-
-    let artifact = self.build_module_graph_artifact.take();
-    self
-      .build_module_graph_artifact
-      .replace(build_module_graph(self, artifact).await?);
-
-    self.in_finish_make.store(true, Ordering::Release);
-
-    Ok(())
   }
 
   pub async fn rebuild_module<T>(
