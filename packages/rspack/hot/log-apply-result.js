@@ -9,7 +9,7 @@ import log, { groupCollapsed, groupEnd } from './log.js';
  * @param {(string | number)[]} updatedModules updated modules
  * @param {(string | number)[] | null} renewedModules renewed modules
  */
-export default function (updatedModules, renewedModules) {
+function logApplyResult(updatedModules, renewedModules) {
   var unacceptedModules = updatedModules.filter(function (moduleId) {
     return renewedModules && renewedModules.indexOf(moduleId) < 0;
   });
@@ -48,3 +48,6 @@ export default function (updatedModules, renewedModules) {
       );
   }
 }
+
+export default logApplyResult;
+export { logApplyResult as 'module.exports' };

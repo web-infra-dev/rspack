@@ -1,7 +1,7 @@
-import http from 'http';
-import https from 'https';
+import { createRequire } from 'node:module';
 
 var urlBase = decodeURIComponent(__resourceQuery.slice(1));
+var require = createRequire(import.meta.url);
 
 /**
  * @param {{ data: string, onError: (err: Error) => void, active: boolean, module: module }} options options
@@ -13,7 +13,9 @@ export const activate = function (options) {
   var active = options.active;
   /** @type {import("http").IncomingMessage} */
   var response;
-  var request = (urlBase.startsWith('https') ? https : http).request(
+  var request = (
+    urlBase.startsWith('https') ? require('https') : require('http')
+  ).request(
     urlBase + encodeURIComponent(data),
     {
       agent: false,

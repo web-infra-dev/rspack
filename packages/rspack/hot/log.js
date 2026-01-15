@@ -85,3 +85,4 @@ log.setLogLevel = setLogLevel;
 log.formatError = formatError;
 
 export default log;
+export { log as 'module.exports' };

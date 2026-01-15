@@ -18,4 +18,7 @@ EventEmitter.prototype.emit = function (eventName) {
   }
 };
 
-export default new EventEmitter();
+var emitter = new EventEmitter();
+
+export default emitter;
+export { emitter as 'module.exports' };

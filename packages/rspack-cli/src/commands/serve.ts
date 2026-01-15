@@ -1,4 +1,5 @@
 import type { Compiler, MultiRspackOptions } from '@rspack/core';
+import { rspack } from '@rspack/core';
 import type { RspackDevServer as RspackDevServerType } from '@rspack/dev-server';
 import type { RspackCLI } from '../cli';
 import { DEFAULT_SERVER_HOT } from '../constants';
@@ -10,7 +11,6 @@ import {
   normalizeCommonOptions,
   setDefaultNodeEnv,
 } from '../utils/options';
-import { rspack } from '../utils/rspackCore';
 
 type ServerOptions = CommonOptionsForBuildAndServe & {
   hot?: boolean | 'only';
