@@ -5534,7 +5534,6 @@ export type Output = {
     chunkFilename?: ChunkFilename;
     crossOriginLoading?: CrossOriginLoading;
     cssFilename?: CssFilename;
-    cssHeadDataCompression?: boolean;
     cssChunkFilename?: CssChunkFilename;
     hotUpdateMainFilename?: HotUpdateMainFilename;
     hotUpdateChunkFilename?: HotUpdateChunkFilename;
