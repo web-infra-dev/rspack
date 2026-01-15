@@ -16,3 +16,5 @@ const promise = new Promise((resolve) => {
     resolve();
   });
 });
+
+await promise;
