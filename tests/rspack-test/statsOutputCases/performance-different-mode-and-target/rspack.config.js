@@ -6,6 +6,10 @@ module.exports = [
 		target: "web",
 		output: {
 			filename: "warning.pro-web.js"
+		},
+		stats: {
+			assets: true,
+			modules: true,
 		}
 	},
 	{
@@ -14,6 +18,10 @@ module.exports = [
 		target: "webworker",
 		output: {
 			filename: "warning.pro-webworker.js"
+		},
+		stats: {
+			assets: true,
+			modules: true,
 		}
 	},
 	{
@@ -22,6 +30,10 @@ module.exports = [
 		target: "node",
 		output: {
 			filename: "no-warning.pro-node.js"
+		},
+		stats: {
+			assets: true,
+			modules: true,
 		}
 	},
 	{
@@ -30,6 +42,10 @@ module.exports = [
 		target: "web",
 		output: {
 			filename: "no-warning.dev-web.js"
+		},
+		stats: {
+			assets: true,
+			modules: true,
 		}
 	},
 	{
@@ -38,6 +54,10 @@ module.exports = [
 		target: "node",
 		output: {
 			filename: "no-warning.dev-node.js"
+		},
+		stats: {
+			assets: true,
+			modules: true,
 		}
 	},
 	{
@@ -49,6 +69,10 @@ module.exports = [
 		},
 		output: {
 			filename: "no-warning.dev-web-with-limit-set.js"
+		},
+		stats: {
+			assets: true,
+			modules: true,
 		}
 	},
 	{
@@ -60,6 +84,10 @@ module.exports = [
 		},
 		output: {
 			filename: "warning.pro-node-with-hints-set.js"
+		},
+		stats: {
+			assets: true,
+			modules: true,
 		}
 	}
 ];

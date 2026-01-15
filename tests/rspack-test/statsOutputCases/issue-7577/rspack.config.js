@@ -13,6 +13,10 @@ const base = {
 				}
 			}
 		}
+	},
+	stats: {
+		assets: true,
+		modules: true,
 	}
 };
 /** @type {import("@rspack/core").Configuration[]} */

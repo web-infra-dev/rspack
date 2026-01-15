@@ -15,5 +15,9 @@ module.exports = {
 				}
 			}
 		}
+	},
+	stats: {
+		assets: true,
+		modules: true,
 	}
 };

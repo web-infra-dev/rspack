@@ -29,6 +29,7 @@ const NAMED_PRESETS: Record<string, StatsOptions> = {
     entrypoints: true,
     chunkGroups: true,
     ids: true,
+    assets: true,
     modules: false,
     chunks: true,
     chunkRelations: true,
@@ -60,11 +61,13 @@ const NAMED_PRESETS: Record<string, StatsOptions> = {
   detailed: {
     hash: true,
     builtAt: true,
+    assets: true,
     relatedAssets: true,
     entrypoints: true,
     chunkGroups: true,
     ids: true,
     chunks: true,
+    modules: true,
     chunkRelations: true,
     chunkModules: false,
     chunkOrigins: true,
@@ -142,8 +145,6 @@ const NORMAL_ON: StatsFunc = ({ all }) => all !== false;
 const NORMAL_OFF: StatsFunc = ({ all }) => all === true;
 const ON_FOR_TO_STRING: StatsFunc = ({ all }, { forToString }) =>
   forToString ? all !== false : all === true;
-const OFF_FOR_TO_STRING: StatsFunc = ({ all }, { forToString }) =>
-  forToString ? all === true : all !== false;
 const AUTO_FOR_TO_STRING: StatsFunc = ({ all }, { forToString }) => {
   if (all === false) return false;
   if (all === true) return true;
@@ -151,6 +152,8 @@ const AUTO_FOR_TO_STRING: StatsFunc = ({ all }, { forToString }) => {
   return true;
 };
 
+// NOTE: Unlike webpack's defaults, Rspack uses minimal stats defaults to reduce JS-Rust communication overhead.
+// The default behavior aligns with the 'errors-warnings' preset for both toString() and toJson() output.
 const DEFAULTS: StatsDefault = {
   // context: (options, context, compilation) => compilation.compiler.context,
   // requestShortener: (options, context, compilation) =>
@@ -158,36 +161,31 @@ const DEFAULTS: StatsDefault = {
   // 		? compilation.requestShortener
   // 		: new RequestShortener(options.context, compilation.compiler.root),
   performance: NORMAL_ON,
-  hash: OFF_FOR_TO_STRING,
+  hash: NORMAL_OFF,
   env: NORMAL_OFF,
   version: NORMAL_ON,
   timings: NORMAL_ON,
-  builtAt: OFF_FOR_TO_STRING,
-  assets: NORMAL_ON,
+  builtAt: NORMAL_OFF,
+  assets: NORMAL_OFF,
   entrypoints: AUTO_FOR_TO_STRING,
-  chunkGroups: OFF_FOR_TO_STRING,
-  chunkGroupAuxiliary: OFF_FOR_TO_STRING,
-  chunkGroupChildren: OFF_FOR_TO_STRING,
+  chunkGroups: NORMAL_OFF,
+  chunkGroupAuxiliary: NORMAL_OFF,
+  chunkGroupChildren: NORMAL_OFF,
   chunkGroupMaxAssets: (_, { forToString }) =>
     forToString ? 5 : Number.POSITIVE_INFINITY,
-  chunks: OFF_FOR_TO_STRING,
-  chunkRelations: OFF_FOR_TO_STRING,
+  chunks: NORMAL_OFF,
+  chunkRelations: NORMAL_OFF,
   chunkModules: ({ all, modules }) => {
     if (all === false) return false;
     if (all === true) return true;
     if (modules) return false;
     return true;
   },
-  dependentModules: OFF_FOR_TO_STRING,
-  chunkOrigins: OFF_FOR_TO_STRING,
-  ids: OFF_FOR_TO_STRING,
-  modules: ({ all, chunks, chunkModules }, { forToString }) => {
-    if (all === false) return false;
-    if (all === true) return true;
-    if (forToString && chunks && chunkModules) return false;
-    return true;
-  },
-  nestedModules: OFF_FOR_TO_STRING,
+  dependentModules: NORMAL_OFF,
+  chunkOrigins: NORMAL_OFF,
+  ids: NORMAL_OFF,
+  modules: NORMAL_OFF,
+  nestedModules: NORMAL_OFF,
   groupModulesByType: ON_FOR_TO_STRING,
   groupModulesByCacheStatus: ON_FOR_TO_STRING,
   groupModulesByLayer: ON_FOR_TO_STRING,
@@ -200,7 +198,7 @@ const DEFAULTS: StatsDefault = {
     forToString ? 10 : Number.POSITIVE_INFINITY,
   nestedModulesSpace: (_, { forToString }) =>
     forToString ? 10 : Number.POSITIVE_INFINITY,
-  relatedAssets: OFF_FOR_TO_STRING,
+  relatedAssets: NORMAL_OFF,
   groupAssetsByEmitStatus: ON_FOR_TO_STRING,
   groupAssetsByInfo: ON_FOR_TO_STRING,
   groupAssetsByPath: ON_FOR_TO_STRING,
@@ -208,7 +206,7 @@ const DEFAULTS: StatsDefault = {
   groupAssetsByChunk: ON_FOR_TO_STRING,
   assetsSpace: (_, { forToString }) =>
     forToString ? 15 : Number.POSITIVE_INFINITY,
-  orphanModules: OFF_FOR_TO_STRING,
+  orphanModules: NORMAL_OFF,
   runtimeModules: ({ all, runtime }, { forToString }) =>
     runtime !== undefined
       ? runtime
@@ -217,30 +215,30 @@ const DEFAULTS: StatsDefault = {
         : all !== false,
   cachedModules: ({ all, cached }, { forToString }) =>
     cached !== undefined ? cached : forToString ? all === true : all !== false,
-  moduleAssets: OFF_FOR_TO_STRING,
-  depth: OFF_FOR_TO_STRING,
-  cachedAssets: OFF_FOR_TO_STRING,
-  reasons: OFF_FOR_TO_STRING,
+  moduleAssets: NORMAL_OFF,
+  depth: NORMAL_OFF,
+  cachedAssets: NORMAL_OFF,
+  reasons: NORMAL_OFF,
   reasonsSpace: (_, { forToString }) =>
     forToString ? 15 : Number.POSITIVE_INFINITY,
   groupReasonsByOrigin: ON_FOR_TO_STRING,
-  usedExports: OFF_FOR_TO_STRING,
-  providedExports: OFF_FOR_TO_STRING,
-  optimizationBailout: OFF_FOR_TO_STRING,
-  children: OFF_FOR_TO_STRING,
+  usedExports: NORMAL_OFF,
+  providedExports: NORMAL_OFF,
+  optimizationBailout: NORMAL_OFF,
+  children: NORMAL_OFF,
   source: NORMAL_OFF,
   moduleTrace: NORMAL_ON,
   errors: NORMAL_ON,
   errorsCount: NORMAL_ON,
   errorDetails: AUTO_FOR_TO_STRING,
-  errorStack: OFF_FOR_TO_STRING,
+  errorStack: NORMAL_OFF,
   warnings: NORMAL_ON,
   warningsCount: NORMAL_ON,
-  publicPath: OFF_FOR_TO_STRING,
+  publicPath: NORMAL_OFF,
   logging: ({ all }, { forToString }) =>
     forToString && all !== false ? 'info' : false,
   loggingDebug: () => [],
-  loggingTrace: OFF_FOR_TO_STRING,
+  loggingTrace: NORMAL_OFF,
   excludeModules: () => [],
   excludeAssets: () => [],
   modulesSort: () => 'depth',
@@ -248,7 +246,7 @@ const DEFAULTS: StatsDefault = {
   nestedModulesSort: () => false,
   chunksSort: () => false,
   assetsSort: () => '!size',
-  outputPath: OFF_FOR_TO_STRING,
+  outputPath: NORMAL_OFF,
   colors: () => false,
 };
 

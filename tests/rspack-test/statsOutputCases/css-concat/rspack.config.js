@@ -7,5 +7,9 @@ module.exports = {
 	},
 	experiments: {
 		css: true
+	},
+	stats: {
+		assets: true,
+		modules: true,
 	}
 };

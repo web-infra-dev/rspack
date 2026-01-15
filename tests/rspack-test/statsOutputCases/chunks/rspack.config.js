@@ -7,6 +7,7 @@ module.exports = {
 	},
 	profile: true,
 	stats: {
+		assets: true,
 		reasons: true,
 		chunks: true,
 		chunkModules: true,
