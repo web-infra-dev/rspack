@@ -109,6 +109,10 @@ export default defineConfig({
           /src[/\\]loader-runner[/\\]service\.ts/,
           path.resolve('./src/browser/service.ts'),
         ),
+        new rspack.NormalModuleReplacementPlugin(
+          /src[/\\]builtin-plugin[/\\]lazy-compilation[/\\]middleware\.ts/,
+          path.resolve('./src/browser/middleware.ts'),
+        ),
       );
     },
   },
