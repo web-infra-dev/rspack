@@ -6,15 +6,6 @@ use std::{
 #[derive(Debug)]
 pub struct DerefOption<T>(Option<T>);
 
-impl<T> Default for DerefOption<T>
-where
-  T: Default,
-{
-  fn default() -> Self {
-    Self(Some(T::default()))
-  }
-}
-
 impl<T> From<T> for DerefOption<T> {
   fn from(value: T) -> Self {
     Self::new(value)
@@ -41,6 +32,10 @@ impl<T> DerefOption<T> {
         .unwrap_or_else(|| panic!("should set in compilation first")),
       other,
     );
+  }
+
+  pub fn replace(&mut self, value: T) -> Option<T> {
+    self.0.replace(value)
   }
 }
 impl<T> Deref for DerefOption<T> {

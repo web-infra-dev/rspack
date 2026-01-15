@@ -12,6 +12,11 @@ pub struct RawRstestPluginOptions {
   pub hoist_mock_module: bool,
   // Root of the manual mock directory.
   pub manual_mock_root: String,
+  // Preserve `new URL("*.<ext>", import.meta.url)` expressions for specified extensions
+  // instead of transforming them to asset imports.
+  // This allows rstest to dynamically load modules (e.g., wasm) at runtime.
+  // Example: [".wasm"] to preserve wasm URL expressions.
+  pub preserve_new_url: Option<Vec<String>>,
 }
 
 impl From<RawRstestPluginOptions> for RstestPluginOptions {
@@ -21,6 +26,7 @@ impl From<RawRstestPluginOptions> for RstestPluginOptions {
       hoist_mock_module: value.hoist_mock_module,
       import_meta_path_name: value.import_meta_path_name,
       manual_mock_root: value.manual_mock_root,
+      preserve_new_url: value.preserve_new_url.unwrap_or_default(),
     }
   }
 }

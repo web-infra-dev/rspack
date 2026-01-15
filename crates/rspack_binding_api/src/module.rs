@@ -745,6 +745,8 @@ pub struct JsRuntimeModule {
   pub module_identifier: String,
   pub constructor_name: String,
   pub name: String,
+  pub stage: u32,
+  pub isolate: bool,
 }
 
 #[napi(object, object_from_js = false)]

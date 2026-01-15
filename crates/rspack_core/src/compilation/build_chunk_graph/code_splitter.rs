@@ -404,7 +404,6 @@ impl CodeSplitter {
         )
       {
         incremental_diagnostic = diagnostic;
-        compilation.chunk_render_artifact.clear();
       }
     }
 

@@ -1205,6 +1205,8 @@ export interface JsRuntimeModule {
   moduleIdentifier: string
   constructorName: string
   name: string
+  stage: number
+  isolate: boolean
 }
 
 export interface JsRuntimeModuleArg {
@@ -2341,6 +2343,11 @@ export interface RawJavascriptParserOptions {
    * This option is experimental in Rspack only and subject to change or be removed anytime.
    * @experimental
    */
+  requireAlias?: boolean
+  /**
+   * This option is experimental in Rspack only and subject to change or be removed anytime.
+   * @experimental
+   */
   requireAsExpression?: boolean
   /**
    * This option is experimental in Rspack only and subject to change or be removed anytime.
@@ -2790,6 +2797,7 @@ export interface RawRstestPluginOptions {
   importMetaPathName: boolean
   hoistMockModule: boolean
   manualMockRoot: string
+  preserveNewUrl?: Array<string>
 }
 
 export interface RawRuleSetCondition {

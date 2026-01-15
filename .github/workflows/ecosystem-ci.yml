@@ -33,6 +33,7 @@ on:
   push:
     branches:
       - main
+      - v2
     paths-ignore:
       - '**/*.md'
       - 'website/**'

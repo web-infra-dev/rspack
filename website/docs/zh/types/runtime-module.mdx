@@ -1,17 +1,18 @@
 <>
 
 ```ts
-type RuntimeModule = {
+class RuntimeModule {
   source?: {
     isRaw: boolean;
     isBuffer: boolean;
     source: Buffer;
     map?: Buffer;
   };
-  moduleIdentifier: string;
-  constructorName: string;
+  stage: number;
   name: string;
-};
+  identifier(): string;
+  readableIdentifier(): string;
+}
 ```
 
 </>
