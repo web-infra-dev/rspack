@@ -161,7 +161,8 @@ impl Compilation {
           .collect::<Vec<_>>();
         (*module_identifier, diagnostics)
       })
-      .collect();
+      .collect::<rspack_collections::IdentifierMap<Vec<Diagnostic>>>()
+      .into();
     let all_modules_diagnostics = if has_mutations {
       dependencies_diagnostics_artifact.extend(dependencies_diagnostics);
       dependencies_diagnostics_artifact.clone()
