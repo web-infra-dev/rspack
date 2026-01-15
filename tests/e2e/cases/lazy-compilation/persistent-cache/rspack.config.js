@@ -13,7 +13,7 @@ module.exports = {
     {
       apply(compiler) {
         compiler.hooks.done.tap('TEST', function (stats) {
-          const { modules } = stats.toJson();
+          const { modules } = stats.toJson({ modules: true });
           compiler.__modules = modules.map((item) => item.identifier);
         });
       },
