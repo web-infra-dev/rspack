@@ -438,9 +438,6 @@ importers:
       '@discoveryjs/json-ext':
         specifier: ^0.5.7
         version: 0.5.7
-      '@rspack/dev-server':
-        specifier: ~1.1.5
-        version: 1.1.5(@rspack/core@packages+rspack)(@types/express@4.17.23)(webpack@5.102.1)
       exit-hook:
         specifier: ^4.0.0
         version: 4.0.0
@@ -451,6 +448,9 @@ importers:
       '@rspack/core':
         specifier: workspace:*
         version: link:../rspack
+      '@rspack/dev-server':
+        specifier: ~1.1.5
+        version: 1.1.5(@rspack/core@packages+rspack)(@types/express@4.17.23)(webpack@5.102.1)
       '@rspack/test-tools':
         specifier: workspace:*
         version: link:../rspack-test-tools

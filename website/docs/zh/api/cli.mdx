@@ -73,6 +73,16 @@ Options:
 
 `rspack dev` 用于运行 Rspack 开发服务器，将会在本地启动一个开发服务器，监听文件变化并自动刷新浏览器。
 
+:::info 必需依赖
+`rspack dev` 命令需要安装 `@rspack/dev-server`。如果尚未安装，请运行：
+
+```bash
+pnpm add -D @rspack/dev-server
+# 或
+npm install -D @rspack/dev-server
+```
+:::
+
 ```bash
 npx rspack dev
 ```
@@ -110,6 +120,16 @@ Options:
 ## rspack preview
 
 `rspack preview` 用于在本地预览生产模式构建的产物, 注意你需要提前执行 `rspack build` 命令构建出产物。
+
+:::info 必需依赖
+`rspack preview` 命令需要安装 `@rspack/dev-server`。如果尚未安装，请运行：
+
+```bash
+pnpm add -D @rspack/dev-server
+# 或
+npm install -D @rspack/dev-server
+```
+:::
 
 ```bash
 npx rspack preview

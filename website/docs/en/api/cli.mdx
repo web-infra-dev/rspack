@@ -73,6 +73,16 @@ Options:
 
 `rspack dev` is used to run Rspack dev server, which will start a local dev server that will listen for file changes and automatically refresh the browser.
 
+:::info Required dependency
+The `rspack dev` command requires `@rspack/dev-server` to be installed. If you haven't installed it yet, run:
+
+```bash
+pnpm add -D @rspack/dev-server
+# or
+npm install -D @rspack/dev-server
+```
+:::
+
 ```bash
 npx rspack dev
 ```
@@ -110,6 +120,16 @@ Options:
 ## rspack preview
 
 `rspack preview` is used to preview the production build output locally, note that you need to build the output first by running the `rspack build` command.
+
+:::info Required dependency
+The `rspack preview` command requires `@rspack/dev-server` to be installed. If you haven't installed it yet, run:
+
+```bash
+pnpm add -D @rspack/dev-server
+# or
+npm install -D @rspack/dev-server
+```
+:::
 
 ```bash
 npx rspack preview
