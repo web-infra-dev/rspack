@@ -67,8 +67,6 @@ jobs:
       - name: Run e2e for @rspack/browser
         uses: ./.github/actions/docker/run
         if: inputs.target == 'wasm32-wasip1-threads'
-        env:
-          WASM: 1
         with:
           # Jammy uses ubuntu 22.04
           # If this is to change, make sure to upgrade the ubuntu version in GitHub Actions
@@ -78,6 +76,7 @@ jobs:
           options: -v ${{ runner.tool_cache }}:${{runner.tool_cache}}
           script: |
             export PATH=${{ steps.calculate-node-bin-path.outputs.path }}:$PATH
+            export WASM=1
             pnpm run build:js
             pnpm run test:e2e
 
