@@ -157,6 +157,12 @@ export function createWatchInitialProcessor(
           return () => {
             if (!cached) {
               cached = stats.toJson({
+                assets: true,
+                chunks: true,
+                chunkModules: true,
+                modules: true,
+                entrypoints: true,
+                chunkGroups: true,
                 errorDetails: true,
               });
             }
@@ -202,6 +208,10 @@ export function createWatchInitialProcessor(
           stats.hasWarnings()
         ) {
           const statsJson = stats.toJson({
+            assets: true,
+            chunks: true,
+            entrypoints: true,
+            chunkGroups: true,
             errorDetails: true,
           });
           if (statsJson.errors) {

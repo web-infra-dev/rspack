@@ -273,9 +273,12 @@ function createRunner(
     await updatePlugin.goNext();
     const stats = await compiler.build();
     const jsonStats = stats.toJson({
+      assets: true,
       chunks: true,
-      entrypoints: true,
+      chunkModules: true,
       modules: true,
+      entrypoints: true,
+      chunkGroups: true,
       // errorDetails: true
     });
     await checkStats(jsonStats);
@@ -297,6 +300,10 @@ function createRunner(
     compiler.createCompiler();
     const stats = await compiler.build();
     const jsonStats = stats.toJson({
+      assets: true,
+      chunks: true,
+      entrypoints: true,
+      chunkGroups: true,
       // errorDetails: true
     });
     await checkStats(jsonStats);
@@ -324,6 +331,10 @@ function createRunner(
     compiler.createCompiler();
     const stats = await compiler.build();
     const jsonStats = stats.toJson({
+      assets: true,
+      chunks: true,
+      entrypoints: true,
+      chunkGroups: true,
       // errorDetails: true
     });
 
