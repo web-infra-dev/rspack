@@ -3,7 +3,7 @@ const { ModuleFederationPlugin } = require("@rspack/core").container;
 function createConfig() {
 	return {
 		output: {
-			libraryTarget: "system"
+			library: { type: "system" }
 		},
 		plugins: [
 			new ModuleFederationPlugin({
@@ -11,7 +11,7 @@ function createConfig() {
 				filename: "container.js",
 				library: { type: "system" },
 				exposes: ["./other", "./self", "./dep"],
-				manifest:false,
+				manifest: false,
 				remotes: {
 					abc: "ABC",
 					def: "DEF",
@@ -23,7 +23,7 @@ function createConfig() {
 				name: "container2",
 				filename: "container2.js",
 				library: { type: "system" },
-				manifest:false,
+				manifest: false,
 				exposes: ["./other", "./self", "./dep"],
 				remotes: {
 					abc: "ABC",

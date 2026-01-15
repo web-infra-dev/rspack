@@ -530,30 +530,6 @@ export type Output = {
   library?: Library;
 
   /**
-   * Specify which export should be exposed as a library.
-   * @deprecated We might drop support for this, so prefer to use output.library.export
-   * */
-  libraryExport?: LibraryExport;
-
-  /**
-   * Configure how the library will be exposed.
-   * @deprecated Use output.library.type instead as we might drop support for output.libraryTarget in the future.
-   * */
-  libraryTarget?: LibraryType;
-
-  /**
-   * When using output.library.type: "umd", setting output.umdNamedDefine to true will name the AMD module of the UMD build.
-   * @deprecated Use output.library.umdNamedDefine instead.
-   */
-  umdNamedDefine?: UmdNamedDefine;
-
-  /**
-   * Add a comment in the UMD wrapper.
-   * @deprecated use output.library.auxiliaryComment instead.
-   * */
-  auxiliaryComment?: AuxiliaryComment;
-
-  /**
    * Output JavaScript files as module type.
    * Disabled by default as it's an experimental feature. To use it, you must set experiments.outputModule to true.
    * @default false
@@ -1492,7 +1468,7 @@ export type Target = false | AllowTarget | AllowTarget[];
 //#region ExternalsType
 /**
  * Specify the default type of externals.
- * `amd`, `umd`, `system` and `jsonp` externals depend on the `output.libraryTarget` being set to the same value e.g. you can only consume amd externals within an amd library.
+ * `amd`, `umd`, `system` and `jsonp` externals depend on the `output.library.type` being set to the same value e.g. you can only consume amd externals within an amd library.
  * @default 'var'
  */
 export type ExternalsType =
@@ -1524,7 +1500,7 @@ export type ExternalsType =
 //#region Externals
 
 /**
- * External item object when both libraryTarget and externalsType is 'umd'
+ * External item object when both library.type and externalsType is 'umd'
  */
 export type ExternalItemUmdValue = {
   root: string | string[];
@@ -1547,7 +1523,7 @@ export type ExternalItemValue =
   | string[]
   | ExternalItemUmdValue
   /**
-   * when libraryTarget and externalsType is not 'umd'
+   * when library.type and externalsType is not 'umd'
    */
   | ExternalItemObjectValue;
 

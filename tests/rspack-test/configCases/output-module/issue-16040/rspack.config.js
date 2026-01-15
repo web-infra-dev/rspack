@@ -13,7 +13,7 @@ module.exports = {
 		chunkFilename: "[name].chunk.js",
 		assetModuleFilename: "[hash][ext][query]",
 		module: true,
-		libraryTarget: "module",
+		library: { type: "module" },
 		chunkFormat: "module",
 		chunkLoading: "import",
 		environment: {

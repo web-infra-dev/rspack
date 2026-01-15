@@ -598,7 +598,7 @@ export default {
 - **类型：** `string`
 - **默认值：** `'self'`
 
-当输出为 library 时，尤其是当 `libraryTarget` 为 `'umd'`时，此选项将决定使用哪个全局对象来挂载 library。为了使 UMD 构建在浏览器和 Node.js 上均可用，应将 `output.globalObject` 选项设置为 `'this'`。对于类似 web 的目标，默认为 `self`。
+当输出为 library 时，尤其是当 `library.type` 为 `'umd'`时，此选项将决定使用哪个全局对象来挂载 library。为了使 UMD 构建在浏览器和 Node.js 上均可用，应将 `output.globalObject` 选项设置为 `'this'`。对于类似 web 的目标，默认为 `self`。
 
 入口点的返回值将会使用 `output.library.name` 赋值给全局对象。依赖于 `target` 配置项，全局对象将会发生对应的改变，例如：`self`, `global` 或者 `globalThis`。
 
@@ -607,8 +607,10 @@ export default {
 ```js title="rspack.config.mjs"
 export default {
   output: {
-    library: 'myLib',
-    libraryTarget: 'umd',
+    library: {
+      name: 'myLib',
+      type: 'umd',
+    },
     filename: 'myLib.js',
     globalObject: 'this',
   },
@@ -1290,7 +1292,9 @@ export default {
 export default {
   //...
   output: {
-    libraryTarget: 'umd',
+    library: {
+      type: 'umd',
+    },
   },
 };
 ```
@@ -1863,27 +1867,3 @@ export default {
   },
 };
 ```
-
-## output.auxiliaryComment
-
-:::warning
-请优先使用 [`output.library.auxiliaryComment`](#outputlibraryauxiliarycomment)。
-:::
-
-## output.libraryExport \{#outputlibraryexport-1}
-
-:::warning
-我们可能会停止对此的支持，所以最好使用 [output.library.export](#outputlibraryexport)，其作用与 `libraryExport` 一致。
-:::
-
-## output.libraryTarget
-
-:::warning
-请使用 [`output.library.type`](#outputlibrarytype) 代替，因为我们可能在未来放弃对 `output.libraryTarget` 的支持。
-:::
-
-## output.umdNamedDefine
-
-:::warning
-最好使用 [`output.library.umdNamedDefine`](#outputlibraryumdnameddefine)。
-:::

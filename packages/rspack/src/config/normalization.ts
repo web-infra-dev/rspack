@@ -152,12 +152,9 @@ export const getNormalizedRspackOptions = (
       const { library } = output;
       const libraryAsName = library;
       const libraryBase =
-        typeof library === 'object' &&
-        library &&
-        !Array.isArray(library) &&
-        'type' in library
-          ? library
-          : libraryAsName || output.libraryTarget
+        typeof library === 'object' && library && !Array.isArray(library)
+          ? (library as LibraryOptions)
+          : libraryAsName
             ? ({
                 name: libraryAsName,
               } as LibraryOptions)
@@ -197,26 +194,7 @@ export const getNormalizedRspackOptions = (
         iife: output.iife,
         module: output.module,
         sourceMapFilename: output.sourceMapFilename,
-        library: libraryBase && {
-          type:
-            output.libraryTarget !== undefined
-              ? output.libraryTarget
-              : libraryBase.type,
-          auxiliaryComment:
-            output.auxiliaryComment !== undefined
-              ? output.auxiliaryComment
-              : libraryBase.auxiliaryComment,
-          amdContainer: libraryBase.amdContainer,
-          export:
-            output.libraryExport !== undefined
-              ? output.libraryExport
-              : libraryBase.export,
-          name: libraryBase.name,
-          umdNamedDefine:
-            output.umdNamedDefine !== undefined
-              ? output.umdNamedDefine
-              : libraryBase.umdNamedDefine,
-        },
+        library: libraryBase,
         strictModuleErrorHandling:
           output.strictModuleErrorHandling ??
           output.strictModuleExceptionHandling,
