@@ -667,7 +667,7 @@ interface CallExpression extends ExpressionBase {
 type CallFn = (...args: any[]) => any;
 
 // @public (undocumented)
-const CaseSensitivePlugin: {
+export const CaseSensitivePlugin: {
     new (): {
         name: string;
         _args: [];
@@ -676,8 +676,6 @@ const CaseSensitivePlugin: {
         apply(compiler: Compiler): void;
     };
 };
-export { CaseSensitivePlugin }
-export { CaseSensitivePlugin as WarnCaseSensitiveModulesPlugin }
 
 // @public (undocumented)
 interface CatchClause extends Node_4, HasSpan {
@@ -6579,7 +6577,6 @@ declare namespace rspackExports {
         ProvidePluginOptions,
         BannerPlugin,
         CaseSensitivePlugin,
-        CaseSensitivePlugin as WarnCaseSensitiveModulesPlugin,
         DefinePlugin,
         DynamicEntryPlugin,
         EntryPlugin,
