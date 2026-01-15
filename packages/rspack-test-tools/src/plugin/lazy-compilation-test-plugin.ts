@@ -38,6 +38,9 @@ export class LazyCompilationTestPlugin {
         resolve(null);
       });
       server.on('request', (req, res) => {
+        // Set CORS headers for jsdom's XMLHttpRequest
+        res.setHeader('Access-Control-Allow-Origin', '*');
+
         middleware(req, res, () => {});
       });
       server.on('connection', (socket) => {
