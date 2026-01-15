@@ -667,7 +667,7 @@ interface CallExpression extends ExpressionBase {
 type CallFn = (...args: any[]) => any;
 
 // @public (undocumented)
-const CaseSensitivePlugin: {
+export const CaseSensitivePlugin: {
     new (): {
         name: string;
         _args: [];
@@ -676,7 +676,6 @@ const CaseSensitivePlugin: {
         apply(compiler: Compiler): void;
     };
 };
-export { CaseSensitivePlugin }
 
 // @public (undocumented)
 interface CatchClause extends Node_4, HasSpan {
