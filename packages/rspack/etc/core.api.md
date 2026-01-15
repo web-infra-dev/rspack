@@ -2466,8 +2466,6 @@ interface Experiments_2 {
         register: (filter: string, layer: 'logger' | 'perfetto', output: string) => Promise<void>;
         cleanup: () => Promise<void>;
     };
-    // @deprecated (undocumented)
-    lazyCompilationMiddleware: typeof lazyCompilationMiddleware;
     // (undocumented)
     RemoveDuplicateModulesPlugin: typeof RemoveDuplicateModulesPlugin;
     // (undocumented)
