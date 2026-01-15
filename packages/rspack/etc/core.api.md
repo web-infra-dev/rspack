@@ -3040,7 +3040,6 @@ export type HotUpdateMainFilename = FilenameTemplate;
 
 // @public (undocumented)
 export const HtmlRspackPlugin: typeof HtmlRspackPluginImpl & {
-    getHooks: (compilation: Compilation) => HtmlRspackPluginHooks;
     getCompilationHooks: (compilation: Compilation) => HtmlRspackPluginHooks;
     createHtmlTagObject: (tagName: string, attributes?: Record<string, string | boolean>, innerHTML?: string) => JsHtmlPluginTag;
     version: number;
@@ -6415,7 +6414,6 @@ type RewriteTo = (context: HistoryContext) => string;
 
 // @public (undocumented)
 const RsdoctorPlugin: typeof RsdoctorPluginImpl & {
-    getHooks: (compilation: Compilation) => RsdoctorPluginHooks;
     getCompilationHooks: (compilation: Compilation) => RsdoctorPluginHooks;
 };
 
@@ -7172,7 +7170,6 @@ enum RuntimeModuleStage {
 
 // @public (undocumented)
 export const RuntimePlugin: typeof RuntimePluginImpl & {
-    getHooks: (compilation: Compilation) => RuntimePluginHooks;
     getCompilationHooks: (compilation: Compilation) => RuntimePluginHooks;
 };
 
