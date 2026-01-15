@@ -83,13 +83,13 @@ export function describeByWalk(
 
           // support filter test by absolute path
           if (process.env.testFilter?.includes(absoluteTestDir)) {
-            const absoluteName = path.join(
+            const fullCasePath = path.join(
               absoluteTestDir,
               testSourceId,
               caseName,
             );
-            if (absoluteName.includes(process.env.testFilter!)) {
-              suiteName = absoluteName;
+            if (fullCasePath.includes(process.env.testFilter!)) {
+              suiteName = fullCasePath;
             }
           }
 
