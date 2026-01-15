@@ -428,7 +428,7 @@ function cachedWatchStats(
         return cached[stepName];
       }
       cached[stepName] = compiler.getStats()!.toJson({
-        errorDetails: true,
+        all: true,
       });
       return cached[stepName];
     };
