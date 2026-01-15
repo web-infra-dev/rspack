@@ -381,10 +381,6 @@ interface Experiments {
   RsdoctorPlugin: typeof RsdoctorPlugin;
   RstestPlugin: typeof RstestPlugin;
   RslibPlugin: typeof RslibPlugin;
-  /**
-   * @deprecated Use `rspack.lazyCompilationMiddleware` instead
-   */
-  lazyCompilationMiddleware: typeof lazyCompilationMiddleware;
   swc: {
     transform: typeof transform;
     minify: typeof minify;
@@ -436,7 +432,6 @@ export const experiments: Experiments = {
    * @internal
    */
   RslibPlugin,
-  lazyCompilationMiddleware,
   swc: {
     minify,
     transform,
