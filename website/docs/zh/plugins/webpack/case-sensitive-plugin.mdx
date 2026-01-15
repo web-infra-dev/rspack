@@ -4,10 +4,6 @@ import { ApiMeta } from '@components/ApiMeta.tsx';
 
 <ApiMeta addedVersion={'1.2.0'} />
 
-:::tip
-该插件在 v1.7.0 中更名为 `CaseSensitivePlugin`。`WarnCaseSensitiveModulesPlugin` 已被废弃，并将在未来的版本中移除。
-:::
-
 检测引用的模块名称的大小写冲突，并发出警告。
 
 在不同操作系统中，文件系统对大小写的处理方式可能不同。当代码中引用仅大小写不同的模块名称时，可能会导致跨系统编译时出现意外的错误，这个插件用于预防这种情况。

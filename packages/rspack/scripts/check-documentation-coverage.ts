@@ -112,7 +112,6 @@ function checkPluginsDocumentationCoverage() {
     'RsdoctorPlugin', // This plugin is not stable yet
     'RstestPlugin', // This plugin is not stable yet
     'RslibPlugin', // This plugin is not stable yet
-    'WarnCaseSensitiveModulesPlugin', // This plugin is deprecated and will be replaced with CaseSensitivePlugin
   ];
 
   const undocumentedPlugins = Array.from(implementedPlugins).filter(

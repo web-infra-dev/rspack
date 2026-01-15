@@ -677,7 +677,6 @@ const CaseSensitivePlugin: {
     };
 };
 export { CaseSensitivePlugin }
-export { CaseSensitivePlugin as WarnCaseSensitiveModulesPlugin }
 
 // @public (undocumented)
 interface CatchClause extends Node_4, HasSpan {
@@ -6579,7 +6578,6 @@ declare namespace rspackExports {
         ProvidePluginOptions,
         BannerPlugin,
         CaseSensitivePlugin,
-        CaseSensitivePlugin as WarnCaseSensitiveModulesPlugin,
         DefinePlugin,
         DynamicEntryPlugin,
         EntryPlugin,
