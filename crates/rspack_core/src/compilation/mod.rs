@@ -93,7 +93,7 @@ define_hook!(CompilationAdditionalChunkRuntimeRequirements: Series(compilation: 
 define_hook!(CompilationRuntimeRequirementInChunk: SeriesBail(compilation: &mut Compilation, chunk_ukey: &ChunkUkey, all_runtime_requirements: &RuntimeGlobals, runtime_requirements: &RuntimeGlobals, runtime_requirements_mut: &mut RuntimeGlobals));
 define_hook!(CompilationAdditionalTreeRuntimeRequirements: Series(compilation: &mut Compilation, chunk_ukey: &ChunkUkey, runtime_requirements: &mut RuntimeGlobals));
 define_hook!(CompilationRuntimeRequirementInTree: SeriesBail(compilation: &mut Compilation, chunk_ukey: &ChunkUkey, all_runtime_requirements: &RuntimeGlobals, runtime_requirements: &RuntimeGlobals, runtime_requirements_mut: &mut RuntimeGlobals));
-define_hook!(CompilationOptimizeCodeGeneration: Series(compilation: &mut Compilation));
+define_hook!(CompilationOptimizeCodeGeneration: Series(compilation: &Compilation, build_module_graph_artifact: &mut BuildModuleGraphArtifact, diagnostics: &mut Vec<Diagnostic>));
 define_hook!(CompilationAfterCodeGeneration: Series(compilation: &Compilation, diagnostics: &mut Vec<Diagnostic>));
 define_hook!(CompilationChunkHash: Series(compilation: &Compilation, chunk_ukey: &ChunkUkey, hasher: &mut RspackHash),tracing=false);
 define_hook!(CompilationContentHash: Series(compilation: &Compilation, chunk_ukey: &ChunkUkey, hashes: &mut HashMap<SourceType, RspackHash>));
@@ -1796,12 +1796,18 @@ impl Compilation {
     self.assign_runtime_ids();
 
     let start = logger.time("optimize code generation");
+    let mut build_module_graph_artifact = self.build_module_graph_artifact.take();
+    let mut diagnostics = vec![];
     plugin_driver
       .compilation_hooks
       .optimize_code_generation
-      .call(self)
+      .call(self, &mut build_module_graph_artifact, &mut diagnostics)
       .await
       .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.optimizeCodeGeneration"))?;
+    self
+      .build_module_graph_artifact
+      .replace(build_module_graph_artifact);
+    self.extend_diagnostics(diagnostics);
     logger.time_end(start);
 
     // Check if MODULES_HASHES pass is disabled, and clear artifact if needed
