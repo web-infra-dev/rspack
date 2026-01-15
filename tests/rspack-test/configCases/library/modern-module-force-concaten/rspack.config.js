@@ -26,7 +26,7 @@ module.exports = {
 	output: {
 		filename: `[name].js`,
 		module: true,
-		libraryTarget: "modern-module",
+		library: { type: "modern-module" },
 		iife: false,
 		chunkFormat: "module"
 	},

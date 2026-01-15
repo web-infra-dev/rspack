@@ -2673,7 +2673,7 @@ export type ExternalItemUmdValue = {
 // @public
 export type ExternalItemValue = string | boolean | string[] | ExternalItemUmdValue
 /**
-* when libraryTarget and externalsType is not 'umd'
+* when library.type and externalsType is not 'umd'
 */
 | ExternalItemObjectValue;
 
@@ -5543,10 +5543,6 @@ export type Output = {
     chunkLoadingGlobal?: ChunkLoadingGlobal;
     enabledLibraryTypes?: EnabledLibraryTypes;
     library?: Library;
-    libraryExport?: LibraryExport;
-    libraryTarget?: LibraryType;
-    umdNamedDefine?: UmdNamedDefine;
-    auxiliaryComment?: AuxiliaryComment;
     module?: OutputModule;
     strictModuleExceptionHandling?: StrictModuleExceptionHandling;
     strictModuleErrorHandling?: StrictModuleErrorHandling;

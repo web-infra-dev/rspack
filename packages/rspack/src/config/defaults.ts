@@ -39,6 +39,7 @@ import type {
   JavascriptParserOptions,
   JsonGeneratorOptions,
   Library,
+  LibraryOptions,
   Loader,
   Mode,
   ModuleOptions,
@@ -550,11 +551,8 @@ const applyOutputDefaults = (
 ) => {
   const getLibraryName = (library: Library): string => {
     const libraryName =
-      typeof library === 'object' &&
-      library &&
-      !Array.isArray(library) &&
-      'type' in library
-        ? library.name
+      typeof library === 'object' && library && !Array.isArray(library)
+        ? (library as LibraryOptions).name
         : library;
     if (Array.isArray(libraryName)) {
       return libraryName.join('.');
