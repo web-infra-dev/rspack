@@ -20,19 +20,13 @@ export type RuntimePluginHooks = {
 };
 
 const RuntimePlugin = RuntimePluginImpl as typeof RuntimePluginImpl & {
-  /**
-   * @deprecated Use `getCompilationHooks` instead.
-   */
-  getHooks: (compilation: Compilation) => RuntimePluginHooks;
   getCompilationHooks: (compilation: Compilation) => RuntimePluginHooks;
 };
 
 const compilationHooksMap: WeakMap<Compilation, RuntimePluginHooks> =
   new WeakMap();
 
-RuntimePlugin.getHooks = RuntimePlugin.getCompilationHooks = (
-  compilation: Compilation,
-) => {
+RuntimePlugin.getCompilationHooks = (compilation: Compilation) => {
   checkCompilation(compilation);
 
   let hooks = compilationHooksMap.get(compilation);

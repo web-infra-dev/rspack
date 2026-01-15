@@ -243,10 +243,6 @@ function htmlTagObjectToString(tag: {
 }
 
 const HtmlRspackPlugin = HtmlRspackPluginImpl as typeof HtmlRspackPluginImpl & {
-  /**
-   * @deprecated Use `getCompilationHooks` instead.
-   */
-  getHooks: (compilation: Compilation) => HtmlRspackPluginHooks;
   getCompilationHooks: (compilation: Compilation) => HtmlRspackPluginHooks;
   createHtmlTagObject: (
     tagName: string,
@@ -287,8 +283,7 @@ HtmlRspackPlugin.createHtmlTagObject = (
   };
 };
 
-HtmlRspackPlugin.getHooks = HtmlRspackPlugin.getCompilationHooks =
-  getPluginHooks;
+HtmlRspackPlugin.getCompilationHooks = getPluginHooks;
 HtmlRspackPlugin.version = 5;
 
 export { HtmlRspackPlugin };
