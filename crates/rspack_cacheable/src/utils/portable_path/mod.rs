@@ -1,7 +1,8 @@
+mod path_helper;
+
 use std::path::Path;
 
-use sugar_path::SugarPath;
-
+use self::path_helper::{is_absolute_path, to_absolute_path, to_relative_path};
 use crate::{ContextGuard, Result, cacheable, with::AsConverter};
 
 /// A portable path representation that can be serialized and deserialized across different
@@ -30,17 +31,20 @@ pub struct PortablePath {
 impl PortablePath {
   /// Create a portable path, converting to relative if both path and project_root are absolute
   pub fn new(path: &Path, project_root: Option<&Path>) -> Self {
-    if path.is_absolute()
+    let path_str = path.to_string_lossy();
+    if is_absolute_path(path_str.as_ref())
       && let Some(project_root) = project_root
     {
+      let base_str = project_root.to_string_lossy();
+
       return Self {
-        path: path.relative(project_root).to_slash_lossy().into_owned(),
+        path: to_relative_path(path_str.as_ref(), base_str.as_ref()),
         transformed: true,
       };
     }
 
     Self {
-      path: path.to_slash_lossy().into_owned(),
+      path: path_str.to_string(),
       transformed: false,
     }
   }
@@ -50,11 +54,7 @@ impl PortablePath {
     if self.transformed
       && let Some(project_root) = project_root
     {
-      return self
-        .path
-        .absolutize_with(project_root)
-        .to_string_lossy()
-        .into_owned();
+      return to_absolute_path(&self.path, project_root.to_string_lossy());
     }
     self.path
   }
