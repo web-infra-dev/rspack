@@ -1,3 +1,4 @@
+// TODO: refactor pure ESM and verify browser behavior
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import vm from 'node:vm';
