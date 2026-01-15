@@ -210,6 +210,8 @@ export function createWatchInitialProcessor(
           const statsJson = stats.toJson({
             assets: true,
             chunks: true,
+            chunkModules: true,
+            modules: true,
             entrypoints: true,
             chunkGroups: true,
             errorDetails: true,
@@ -441,6 +443,7 @@ function cachedWatchStats(
         entrypoints: true,
         assets: true,
         chunks: true,
+        chunkModules: true,
         modules: true,
         errorDetails: true,
       });
