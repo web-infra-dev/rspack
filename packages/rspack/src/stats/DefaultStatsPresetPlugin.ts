@@ -145,6 +145,8 @@ const NORMAL_ON: StatsFunc = ({ all }) => all !== false;
 const NORMAL_OFF: StatsFunc = ({ all }) => all === true;
 const ON_FOR_TO_STRING: StatsFunc = ({ all }, { forToString }) =>
   forToString ? all !== false : all === true;
+const OFF_FOR_TO_STRING: StatsFunc = ({ all }, { forToString }) =>
+  forToString ? all === true : all !== false;
 const AUTO_FOR_TO_STRING: StatsFunc = ({ all }, { forToString }) => {
   if (all === false) return false;
   if (all === true) return true;
@@ -161,7 +163,7 @@ const DEFAULTS: StatsDefault = {
   // 		? compilation.requestShortener
   // 		: new RequestShortener(options.context, compilation.compiler.root),
   performance: NORMAL_ON,
-  hash: NORMAL_OFF,
+  hash: OFF_FOR_TO_STRING,
   env: NORMAL_OFF,
   version: NORMAL_ON,
   timings: NORMAL_ON,
