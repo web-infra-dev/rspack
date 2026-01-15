@@ -15,6 +15,7 @@ const base = {
 		}
 	},
 	stats: {
+		entrypoints: true,
 		assets: true,
 		modules: true,
 	}

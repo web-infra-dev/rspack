@@ -22,6 +22,7 @@ module.exports = {
 		splitChunks: { chunks: "all", name: "common" }
 	},
 	stats: {
+		entrypoints: true,
 		assets: true,
 		modules: true,
 	}

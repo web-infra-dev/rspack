@@ -167,27 +167,27 @@ const DEFAULTS: StatsDefault = {
   env: NORMAL_OFF,
   version: NORMAL_ON,
   timings: NORMAL_ON,
-  builtAt: NORMAL_OFF,
+  builtAt: OFF_FOR_TO_STRING,
   assets: NORMAL_OFF,
-  entrypoints: AUTO_FOR_TO_STRING,
+  entrypoints: NORMAL_OFF,
   chunkGroups: NORMAL_OFF,
-  chunkGroupAuxiliary: NORMAL_OFF,
-  chunkGroupChildren: NORMAL_OFF,
+  chunkGroupAuxiliary: OFF_FOR_TO_STRING,
+  chunkGroupChildren: OFF_FOR_TO_STRING,
   chunkGroupMaxAssets: (_, { forToString }) =>
     forToString ? 5 : Number.POSITIVE_INFINITY,
   chunks: NORMAL_OFF,
-  chunkRelations: NORMAL_OFF,
+  chunkRelations: OFF_FOR_TO_STRING,
   chunkModules: ({ all, modules }) => {
     if (all === false) return false;
     if (all === true) return true;
     if (modules) return false;
     return true;
   },
-  dependentModules: NORMAL_OFF,
-  chunkOrigins: NORMAL_OFF,
-  ids: NORMAL_OFF,
+  dependentModules: OFF_FOR_TO_STRING,
+  chunkOrigins: OFF_FOR_TO_STRING,
+  ids: OFF_FOR_TO_STRING,
   modules: NORMAL_OFF,
-  nestedModules: NORMAL_OFF,
+  nestedModules: OFF_FOR_TO_STRING,
   groupModulesByType: ON_FOR_TO_STRING,
   groupModulesByCacheStatus: ON_FOR_TO_STRING,
   groupModulesByLayer: ON_FOR_TO_STRING,
@@ -200,7 +200,7 @@ const DEFAULTS: StatsDefault = {
     forToString ? 10 : Number.POSITIVE_INFINITY,
   nestedModulesSpace: (_, { forToString }) =>
     forToString ? 10 : Number.POSITIVE_INFINITY,
-  relatedAssets: NORMAL_OFF,
+  relatedAssets: OFF_FOR_TO_STRING,
   groupAssetsByEmitStatus: ON_FOR_TO_STRING,
   groupAssetsByInfo: ON_FOR_TO_STRING,
   groupAssetsByPath: ON_FOR_TO_STRING,
@@ -208,7 +208,7 @@ const DEFAULTS: StatsDefault = {
   groupAssetsByChunk: ON_FOR_TO_STRING,
   assetsSpace: (_, { forToString }) =>
     forToString ? 15 : Number.POSITIVE_INFINITY,
-  orphanModules: NORMAL_OFF,
+  orphanModules: OFF_FOR_TO_STRING,
   runtimeModules: ({ all, runtime }, { forToString }) =>
     runtime !== undefined
       ? runtime
@@ -217,30 +217,30 @@ const DEFAULTS: StatsDefault = {
         : all !== false,
   cachedModules: ({ all, cached }, { forToString }) =>
     cached !== undefined ? cached : forToString ? all === true : all !== false,
-  moduleAssets: NORMAL_OFF,
-  depth: NORMAL_OFF,
-  cachedAssets: NORMAL_OFF,
-  reasons: NORMAL_OFF,
+  moduleAssets: OFF_FOR_TO_STRING,
+  depth: OFF_FOR_TO_STRING,
+  cachedAssets: OFF_FOR_TO_STRING,
+  reasons: OFF_FOR_TO_STRING,
   reasonsSpace: (_, { forToString }) =>
     forToString ? 15 : Number.POSITIVE_INFINITY,
   groupReasonsByOrigin: ON_FOR_TO_STRING,
-  usedExports: NORMAL_OFF,
-  providedExports: NORMAL_OFF,
-  optimizationBailout: NORMAL_OFF,
-  children: NORMAL_OFF,
+  usedExports: OFF_FOR_TO_STRING,
+  providedExports: OFF_FOR_TO_STRING,
+  optimizationBailout: OFF_FOR_TO_STRING,
+  children: OFF_FOR_TO_STRING,
   source: NORMAL_OFF,
   moduleTrace: NORMAL_ON,
   errors: NORMAL_ON,
   errorsCount: NORMAL_ON,
   errorDetails: AUTO_FOR_TO_STRING,
-  errorStack: NORMAL_OFF,
+  errorStack: OFF_FOR_TO_STRING,
   warnings: NORMAL_ON,
   warningsCount: NORMAL_ON,
-  publicPath: NORMAL_OFF,
+  publicPath: OFF_FOR_TO_STRING,
   logging: ({ all }, { forToString }) =>
     forToString && all !== false ? 'info' : false,
   loggingDebug: () => [],
-  loggingTrace: NORMAL_OFF,
+  loggingTrace: OFF_FOR_TO_STRING,
   excludeModules: () => [],
   excludeAssets: () => [],
   modulesSort: () => 'depth',
@@ -248,7 +248,7 @@ const DEFAULTS: StatsDefault = {
   nestedModulesSort: () => false,
   chunksSort: () => false,
   assetsSort: () => '!size',
-  outputPath: NORMAL_OFF,
+  outputPath: OFF_FOR_TO_STRING,
   colors: () => false,
 };
 

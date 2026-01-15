@@ -4,6 +4,7 @@ const entry = {
 	c: "./c"
 };
 const stats = {
+	entrypoints: true,
 	assets: true,
 	chunks: true
 };

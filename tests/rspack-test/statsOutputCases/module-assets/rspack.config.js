@@ -3,6 +3,7 @@ module.exports = {
 	mode: "production",
 	entry: "./index",
 	stats: {
+		entrypoints: true,
 		assets: true,
 		chunkGroups: true,
 		chunkGroupAuxiliary: true,
