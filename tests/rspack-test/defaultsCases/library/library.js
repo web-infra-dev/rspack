@@ -27,15 +27,11 @@ module.exports = {
 			@@ ... @@
 			-     "library": undefined,
 			+     "library": Object {
-			+       "amdContainer": undefined,
-			+       "auxiliaryComment": undefined,
-			+       "export": undefined,
 			+       "name": Array [
 			+         "myLib",
 			+         "awesome",
 			+       ],
 			+       "type": "var",
-			+       "umdNamedDefine": undefined,
 			+     },
 			@@ ... @@
 			-     "uniqueName": "@rspack/tests",

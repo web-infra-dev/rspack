@@ -26,19 +26,17 @@ module.exports = {
 			-     "devtoolNamespace": "@rspack/tests",
 			+     "devtoolNamespace": "myLib",
 			@@ ... @@
-			-     "enabledLibraryTypes": Array [],
+			+     ],
 			+     "enabledLibraryTypes": Array [
 			+       "var",
-			+     ],
+			@@ ... @@
+			-     "enabledLibraryTypes": Array [],
 			@@ ... @@
 			-     "hotUpdateGlobal": "webpackHotUpdate_rspack_tests",
 			+     "hotUpdateGlobal": "webpackHotUpdatemyLib",
 			@@ ... @@
 			-     "library": undefined,
 			+     "library": Object {
-			+       "amdContainer": undefined,
-			+       "auxiliaryComment": undefined,
-			+       "export": undefined,
 			+       "name": Object {
 			+         "root": Array [
 			+           "[name]",
@@ -46,7 +44,6 @@ module.exports = {
 			+         ],
 			+       },
 			+       "type": "var",
-			+       "umdNamedDefine": undefined,
 			+     },
 			@@ ... @@
 			-     "uniqueName": "@rspack/tests",

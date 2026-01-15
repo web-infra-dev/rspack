@@ -1,6 +1,6 @@
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	output: {
-		libraryTarget: "commonjs"
+		library: { type: "commonjs" }
 	}
 };

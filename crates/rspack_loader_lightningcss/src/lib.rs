@@ -72,7 +72,7 @@ impl LightningCssLoader {
     let mut parser_flags = ParserFlags::empty();
     parser_flags.set(
       ParserFlags::CUSTOM_MEDIA,
-      matches!(&self.config.draft, Some(draft) if draft.custom_media),
+      matches!(&self.config.drafts, Some(drafts) if drafts.custom_media),
     );
     parser_flags.set(
       ParserFlags::DEEP_SELECTOR_COMBINATOR,

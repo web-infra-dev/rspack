@@ -616,8 +616,10 @@ For example:
 ```js title="rspack.config.mjs"
 export default {
   output: {
-    library: 'myLib',
-    libraryTarget: 'umd',
+    library: {
+      name: 'myLib',
+      type: 'umd',
+    },
     filename: 'myLib.js',
     globalObject: 'this',
   },
@@ -1298,7 +1300,9 @@ Note that omitting `library.name` will result in the assignment of all propertie
 export default {
   //...
   output: {
-    libraryTarget: 'umd',
+    library: {
+      type: 'umd',
+    },
   },
 };
 ```
@@ -1551,7 +1555,7 @@ Output JavaScript files as module type. Disabled by default as it's an experimen
 
 When enabled, Rspack will set [`output.iife`](#outputiife) to `false`, [`output.scriptType`](#outputscripttype) to `'module'` and `terserOptions.module` to `true` internally.
 
-If you're using Rspack to compile a library to be consumed by others, make sure to set [`output.libraryTarget`](#librarytarget-module) to `'module'` when `output.module` is `true`.
+If you're using Rspack to compile a library to be consumed by others, make sure to set [`output.library.type`](#outputlibrarytype) to `'module'` when `output.module` is `true`.
 
 ```js title="rspack.config.mjs"
 export default {
@@ -1870,61 +1874,4 @@ export default {
     workerWasmLoading: 'fetch',
   },
 };
-```
-
-## output.auxiliaryComment
-
-:::warning
-Prefer to use [`output.library.auxiliaryComment`](#outputlibraryauxiliarycomment) instead.
-:::
-
-## output.libraryExport \{#outputlibraryexport-1}
-
-:::warning
-We might drop support for this, so prefer to use [output.library.export](#outputlibraryexport) which works the same as `libraryExport`.
-:::
-
-## output.libraryTarget
-
-:::warning
-Please use [`output.library.type`](#outputlibrarytype) instead as we might drop support for `output.libraryTarget` in the future.
-:::
-
-## output.umdNamedDefine
-
-:::warning
-Prefer to use [`output.library.umdNamedDefine`](#outputlibraryumdnameddefine) instead.
-:::
-
-## output.cssHeadDataCompression
-
-<ApiMeta addedVersion={'1.0.0'} />
-
-- **Type:** `boolean`
-- **Default:** `false` for development mode, `true` for production mode
-
-Rspack adds some metadata in CSS to parse CSS modules, and this configuration determines whether to compress these metadata.
-
-For example
-
-```css
-.local-a {
-  color: blue;
-}
-
-head {
-  --webpack-main: a: local-a/&\.\/ src\/index\.module\.css;
-}
-```
-
-After compress 👇
-
-```css
-.local-a {
-  color: blue;
-}
-
-head {
-  --webpack-main: &\.\/ srcăindexāmoduleācss;
-}
 ```

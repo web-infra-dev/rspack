@@ -120,10 +120,6 @@ server.start();
 
 - `compiler`: The current [Compiler](/api/javascript-api/compiler) instance, use `lazyCompilation` config from it.
 
-:::tip
-Prior to Rspack 1.7, this middleware was only available via `rspack.experiments.lazyCompilationMiddleware`.
-:::
-
 ## Customizing lazy compilation endpoint
 
 By default, the lazy compilation middleware uses the `/lazy-compilation-using-` prefix for handling requests. If you need to customize this prefix, you can use the `prefix` option:

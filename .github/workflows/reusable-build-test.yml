@@ -71,7 +71,7 @@ jobs:
       matrix:
         node: ${{ fromJSON(
           inputs.target == 'wasm32-wasip1-threads'&& '[24]'
-          || contains(inputs.target, 'linux') && '[18, 20, 22]'
+          || contains(inputs.target, 'linux') && '[20, 22, 24]'
           || '[22]') }}
     name: Test Node ${{ matrix.node }}
     defaults:
@@ -105,7 +105,7 @@ jobs:
       - name: Pnpm Install
         uses: ./.github/actions/pnpm/install-dependencies
         with:
-          save-if: ${{ github.ref_name == 'main' && matrix.node == '18' }}
+          save-if: ${{ github.ref_name == 'main' && matrix.node == '20' }}
 
       ### x86_64-unknown-linux-gnu
       - name: Test x86_64-unknown-linux-gnu

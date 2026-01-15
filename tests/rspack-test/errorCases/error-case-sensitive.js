@@ -1,6 +1,6 @@
 const fs = require("fs");
 const path = require("path");
-const { WarnCaseSensitiveModulesPlugin } = require("@rspack/core");
+const { CaseSensitivePlugin } = require("@rspack/core");
 
 const isCaseInsensitiveFilesystem = fs.existsSync(
 	path.resolve(__dirname, "../fixtures", "errors", "FILE.js")
@@ -13,7 +13,7 @@ module.exports = isCaseInsensitiveFilesystem
 			return {
 				mode: "development",
 				entry: "./case-sensitive",
-				plugins: [new WarnCaseSensitiveModulesPlugin()]
+				plugins: [new CaseSensitivePlugin()]
 			};
 		},
 		async check(diagnostics) {

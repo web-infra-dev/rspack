@@ -667,7 +667,7 @@ interface CallExpression extends ExpressionBase {
 type CallFn = (...args: any[]) => any;
 
 // @public (undocumented)
-const CaseSensitivePlugin: {
+export const CaseSensitivePlugin: {
     new (): {
         name: string;
         _args: [];
@@ -676,8 +676,6 @@ const CaseSensitivePlugin: {
         apply(compiler: Compiler): void;
     };
 };
-export { CaseSensitivePlugin }
-export { CaseSensitivePlugin as WarnCaseSensitiveModulesPlugin }
 
 // @public (undocumented)
 interface CatchClause extends Node_4, HasSpan {
@@ -2466,8 +2464,6 @@ interface Experiments_2 {
         register: (filter: string, layer: 'logger' | 'perfetto', output: string) => Promise<void>;
         cleanup: () => Promise<void>;
     };
-    // @deprecated (undocumented)
-    lazyCompilationMiddleware: typeof lazyCompilationMiddleware;
     // (undocumented)
     RemoveDuplicateModulesPlugin: typeof RemoveDuplicateModulesPlugin;
     // (undocumented)
@@ -2677,7 +2673,7 @@ export type ExternalItemUmdValue = {
 // @public
 export type ExternalItemValue = string | boolean | string[] | ExternalItemUmdValue
 /**
-* when libraryTarget and externalsType is not 'umd'
+* when library.type and externalsType is not 'umd'
 */
 | ExternalItemObjectValue;
 
@@ -3042,7 +3038,6 @@ export type HotUpdateMainFilename = FilenameTemplate;
 
 // @public (undocumented)
 export const HtmlRspackPlugin: typeof HtmlRspackPluginImpl & {
-    getHooks: (compilation: Compilation) => HtmlRspackPluginHooks;
     getCompilationHooks: (compilation: Compilation) => HtmlRspackPluginHooks;
     createHtmlTagObject: (tagName: string, attributes?: Record<string, string | boolean>, innerHTML?: string) => JsHtmlPluginTag;
     version: number;
@@ -4345,7 +4340,6 @@ export type LightningcssLoaderOptions = {
     targets?: Targets | string[] | string;
     include?: LightningcssFeatureOptions;
     exclude?: LightningcssFeatureOptions;
-    draft?: Drafts;
     drafts?: Drafts;
     nonStandard?: NonStandard;
     pseudoClasses?: PseudoClasses;
@@ -4374,7 +4368,6 @@ export type LightningCssMinimizerRspackPluginOptions = {
         targets?: string[] | string;
         include?: LightningcssFeatureOptions;
         exclude?: LightningcssFeatureOptions;
-        draft?: Drafts;
         drafts?: Drafts;
         nonStandard?: NonStandard;
         pseudoClasses?: PseudoClasses;
@@ -5541,7 +5534,6 @@ export type Output = {
     chunkFilename?: ChunkFilename;
     crossOriginLoading?: CrossOriginLoading;
     cssFilename?: CssFilename;
-    cssHeadDataCompression?: boolean;
     cssChunkFilename?: CssChunkFilename;
     hotUpdateMainFilename?: HotUpdateMainFilename;
     hotUpdateChunkFilename?: HotUpdateChunkFilename;
@@ -5551,10 +5543,6 @@ export type Output = {
     chunkLoadingGlobal?: ChunkLoadingGlobal;
     enabledLibraryTypes?: EnabledLibraryTypes;
     library?: Library;
-    libraryExport?: LibraryExport;
-    libraryTarget?: LibraryType;
-    umdNamedDefine?: UmdNamedDefine;
-    auxiliaryComment?: AuxiliaryComment;
     module?: OutputModule;
     strictModuleExceptionHandling?: StrictModuleExceptionHandling;
     strictModuleErrorHandling?: StrictModuleErrorHandling;
@@ -6417,7 +6405,6 @@ type RewriteTo = (context: HistoryContext) => string;
 
 // @public (undocumented)
 const RsdoctorPlugin: typeof RsdoctorPluginImpl & {
-    getHooks: (compilation: Compilation) => RsdoctorPluginHooks;
     getCompilationHooks: (compilation: Compilation) => RsdoctorPluginHooks;
 };
 
@@ -6581,7 +6568,6 @@ declare namespace rspackExports {
         ProvidePluginOptions,
         BannerPlugin,
         CaseSensitivePlugin,
-        CaseSensitivePlugin as WarnCaseSensitiveModulesPlugin,
         DefinePlugin,
         DynamicEntryPlugin,
         EntryPlugin,
@@ -7174,7 +7160,6 @@ enum RuntimeModuleStage {
 
 // @public (undocumented)
 export const RuntimePlugin: typeof RuntimePluginImpl & {
-    getHooks: (compilation: Compilation) => RuntimePluginHooks;
     getCompilationHooks: (compilation: Compilation) => RuntimePluginHooks;
 };
 

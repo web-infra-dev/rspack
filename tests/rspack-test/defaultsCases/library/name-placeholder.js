@@ -34,16 +34,12 @@ module.exports = {
 			@@ ... @@
 			-     "library": undefined,
 			+     "library": Object {
-			+       "amdContainer": undefined,
-			+       "auxiliaryComment": undefined,
-			+       "export": undefined,
 			+       "name": Array [
 			+         "my[name]Lib",
 			+         "[name]",
 			+         "lib",
 			+       ],
 			+       "type": "var",
-			+       "umdNamedDefine": undefined,
 			+     },
 			@@ ... @@
 			-     "uniqueName": "@rspack/tests",

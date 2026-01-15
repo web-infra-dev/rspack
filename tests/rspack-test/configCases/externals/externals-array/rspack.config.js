@@ -3,7 +3,7 @@ const webpack = require("@rspack/core");
 module.exports = [
 	{
 		output: {
-			libraryTarget: "commonjs2"
+			library: { type: "commonjs2" }
 		},
 		externals: {
 			external: ["@rspack/core", "version"]
