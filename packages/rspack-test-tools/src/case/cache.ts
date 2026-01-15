@@ -273,6 +273,9 @@ function createRunner(
     await updatePlugin.goNext();
     const stats = await compiler.build();
     const jsonStats = stats.toJson({
+      chunks: true,
+      entrypoints: true,
+      modules: true,
       // errorDetails: true
     });
     await checkStats(jsonStats);
