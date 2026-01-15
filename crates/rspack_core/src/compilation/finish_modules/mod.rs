@@ -1,25 +1,23 @@
+use rspack_error::Result;
+
 use super::*;
 use crate::logger::Logger;
 
-impl Compilation {
-  #[instrument("Compilation:finish",target=TRACING_BENCH_TARGET, skip_all)]
-  pub async fn finish_build_module_graph(&mut self) -> Result<()> {
-    self.in_finish_make.store(false, Ordering::Release);
-    // clean up the entry deps
-    let make_artifact = self.build_module_graph_artifact.take();
-    self
-      .build_module_graph_artifact
-      .replace(finish_build_module_graph(self, make_artifact).await?);
-    // sync assets to module graph from module_executor
-    if let Some(module_executor) = &mut self.module_executor {
-      let mut module_executor = std::mem::take(module_executor);
-      module_executor.hook_after_finish_modules(self).await?;
-      self.module_executor = Some(module_executor);
-    }
-    // make finished, make artifact should be readonly thereafter.
-    Ok(())
-  }
+pub async fn finish_modules_pass(compilation: &mut Compilation) -> Result<()> {
+  let dependencies_diagnostics_artifact = compilation.dependencies_diagnostics_artifact.clone();
+  let async_modules_artifact = compilation.async_modules_artifact.clone();
+  let diagnostics = compilation
+    .collect_build_module_graph_effects(
+      &mut dependencies_diagnostics_artifact.borrow_mut(),
+      &mut async_modules_artifact.borrow_mut(),
+    )
+    .await?;
+  compilation.extend_diagnostics(diagnostics);
 
+  Ok(())
+}
+
+impl Compilation {
   #[tracing::instrument("Compilation:collect_build_module_graph_effects", skip_all)]
   pub async fn collect_build_module_graph_effects(
     &mut self,
