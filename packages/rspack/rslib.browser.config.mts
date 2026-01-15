@@ -23,7 +23,7 @@ export default defineConfig({
       },
     },
     {
-      format: 'esm',
+      format: 'iife',
       syntax: 'es2021',
       dts: false,
       autoExtension: false,
