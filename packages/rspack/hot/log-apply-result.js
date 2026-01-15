@@ -3,7 +3,7 @@
 	Author Tobias Koppers @sokra
 */
 
-import log, { groupCollapsed, groupEnd } from './log.js';
+import { log, groupCollapsed, groupEnd } from './log.js';
 
 /**
  * @param {(string | number)[]} updatedModules updated modules
@@ -49,5 +49,4 @@ function logApplyResult(updatedModules, renewedModules) {
   }
 }
 
-export default logApplyResult;
-export { logApplyResult as 'module.exports' };
+export { logApplyResult };

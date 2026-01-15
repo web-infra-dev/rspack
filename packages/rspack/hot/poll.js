@@ -4,8 +4,8 @@
 */
 /*globals __resourceQuery */
 
-import log, { formatError } from './log.js';
-import logApplyResult from './log-apply-result.js';
+import { log, formatError } from './log.js';
+import { logApplyResult } from './log-apply-result.js';
 
 if (import.meta.webpackHot) {
   var hotPollInterval = +__resourceQuery.slice(1) || 10 * 60 * 1000;
