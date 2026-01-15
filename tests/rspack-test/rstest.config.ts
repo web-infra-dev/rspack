@@ -34,6 +34,14 @@ const wasmConfig = process.env.WASM && defineProject({
 	maxConcurrency: 1,
 });
 
+const testFilter = process.argv.includes("--test") || process.argv.includes("-t")
+				? process.argv[
+				(process.argv.includes("-t")
+					? process.argv.indexOf("-t")
+					: process.argv.indexOf("--test")) + 1
+				]
+				: undefined;
+
 const sharedConfig = defineProject({
 	setupFiles: setupFilesAfterEnv,
 	testTimeout: process.env.CI ? 60000 : 30000,
@@ -75,14 +83,7 @@ const sharedConfig = defineProject({
 		RSPACK_DEV: 'false',
 		RSPACK_EXPERIMENTAL: 'true',
 		RSPACK_CONFIG_VALIDATE: "strict",
-		testFilter:
-			process.argv.includes("--test") || process.argv.includes("-t")
-				? process.argv[
-				(process.argv.includes("-t")
-					? process.argv.indexOf("-t")
-					: process.argv.indexOf("--test")) + 1
-				]
-				: undefined,
+		testFilter,	
 		printLogger: process.env.DEBUG === "test" ? 'true' : 'false',
 		__TEST_PATH__: __dirname,
 		__TEST_FIXTURES_PATH__: path.resolve(__dirname, "fixtures"),
@@ -112,7 +113,7 @@ export default defineConfig({
 			RSPACK_HOT_TEST: 'true',
 		},
 	}],
-	reporters: ['default'],
+	reporters: testFilter ? ['verbose'] : ['default'],
 	hideSkippedTests: true,
 	pool: {
 		maxWorkers: process.env.WASM ? 1 : "80%",
