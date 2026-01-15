@@ -33,7 +33,7 @@ export function describeByWalk(
     options.source || path.join(path.dirname(testFile), `${testId}Cases`);
 
   const testSourceId = path.basename(sourceBase);
-  const absoluteTestDir = path.join(testFile, '..');
+  const absoluteTestDir = path.dirname(testFile);
 
   const distBase =
     options.dist || path.join(path.dirname(testFile), 'js', testId);
