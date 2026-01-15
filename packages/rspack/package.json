@@ -4,12 +4,12 @@
   "webpackVersion": "5.75.0",
   "license": "MIT",
   "description": "The fast Rust-based web bundler with webpack-compatible API",
-  "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "publishConfig": {
     "access": "public",
     "provenance": true
   },
+  "type": "module",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",

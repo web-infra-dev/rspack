@@ -6,7 +6,7 @@
 ## Asset Files
 - Bundle: bundle.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
-- Update: main.hot-update.js, size: 6674
+- Update: main.hot-update.js, size: 6025
 
 ## Manifest
 
@@ -27,28 +27,46 @@
 - ./index.css
 
 #### Changed Runtime Modules
+- webpack/runtime/define_property_getters
 - webpack/runtime/get_full_hash
 
 #### Changed Content
 ```js
 "use strict";
 self["webpackHotUpdate"]("main", {
-"../../../../../../../../packages/rspack/dist/cssExtractHmr.js"(__unused_rspack_module, exports) {
+"./index.css"(module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+// extracted by css-extract-rspack-plugin
 
-var __nested_rspack_require_18_37__ = {};
-__nested_rspack_require_18_37__.d = (exports1, definition)=>{
-    for(var key in definition)__nested_rspack_require_18_37__.o(definition, key) && !__nested_rspack_require_18_37__.o(exports1, key) && Object.defineProperty(exports1, key, {
-        enumerable: !0,
-        get: definition[key]
-    });
-}, __nested_rspack_require_18_37__.o = (obj, prop)=>Object.prototype.hasOwnProperty.call(obj, prop), __nested_rspack_require_18_37__.r = (exports1)=>{
-    "u" > typeof Symbol && Symbol.toStringTag && Object.defineProperty(exports1, Symbol.toStringTag, {
-        value: 'Module'
-    }), Object.defineProperty(exports1, '__esModule', {
-        value: !0
-    });
-};
-var __nested_rspack_exports__ = {};
+    if(true) {
+      (function() {
+        var localsJsonString = undefined;
+        var cssReload = (__webpack_require__("../../../../../../../../packages/rspack/dist/cssExtractHmr.js")/* .cssReload */.cssReload)(module.id, {});
+        // only invalidate when locals change
+        if (
+          module.hot.data &&
+          module.hot.data.value &&
+          module.hot.data.value !== localsJsonString
+        ) {
+          module.hot.invalidate();
+        } else {
+          module.hot.accept();
+        }
+        module.hot.dispose(function(data) {
+          data.value = localsJsonString;
+          cssReload();
+        });
+      })();
+    }
+  
+
+},
+"../../../../../../../../packages/rspack/dist/cssExtractHmr.js"(__unused_rspack___webpack_module__, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  cssReload: () => (cssReload),
+  normalizeUrl: () => (normalizeUrl)
+});
 function normalizeUrl(url) {
     let urlString = url.trim();
     if (/^data:/i.test(urlString)) return urlString;
@@ -66,11 +84,7 @@ function normalizeUrl(url) {
         return accumulator;
     }, []).join('/');
 }
-__nested_rspack_require_18_37__.r(__nested_rspack_exports__), __nested_rspack_require_18_37__.d(__nested_rspack_exports__, {
-    cssReload: ()=>cssReload,
-    normalizeUrl: ()=>normalizeUrl
-});
-const srcByModuleId = Object.create(null), noDocument = "u" < typeof document, { forEach } = Array.prototype;
+let srcByModuleId = Object.create(null), noDocument = "u" < typeof document, { forEach: forEach } = Array.prototype;
 function noop() {}
 function updateCss(el, url) {
     let normalizedUrl;
@@ -151,45 +165,24 @@ function cssReload(moduleId, options) {
         }, 50);
     };
 }
-for(var __rspack_i in exports.cssReload = __nested_rspack_exports__.cssReload, exports.normalizeUrl = __nested_rspack_exports__.normalizeUrl, __nested_rspack_exports__)-1 === [
-    "cssReload",
-    "normalizeUrl"
-].indexOf(__rspack_i) && (exports[__rspack_i] = __nested_rspack_exports__[__rspack_i]);
-Object.defineProperty(exports, "__esModule", ({
-    value: !0
-}));
 
 
-},
-"./index.css"(module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.r(__webpack_exports__);
-// extracted by css-extract-rspack-plugin
-
-    if(true) {
-      (function() {
-        var localsJsonString = undefined;
-        var cssReload = (__webpack_require__("../../../../../../../../packages/rspack/dist/cssExtractHmr.js")/* .cssReload */.cssReload)(module.id, {});
-        // only invalidate when locals change
-        if (
-          module.hot.data &&
-          module.hot.data.value &&
-          module.hot.data.value !== localsJsonString
-        ) {
-          module.hot.invalidate();
-        } else {
-          module.hot.accept();
-        }
-        module.hot.dispose(function(data) {
-          data.value = localsJsonString;
-          cssReload();
-        });
-      })();
-    }
-  
 
 },
 
 },function(__webpack_require__) {
+// webpack/runtime/define_property_getters
+(() => {
+
+										__webpack_require__.d = function (exports, definition) {
+												for (var key in definition) {
+														if (__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key)) {
+																Object.defineProperty(exports, key, { configurable: true, enumerable: true, get: definition[key] });
+														}
+												}
+										};
+										
+})();
 // webpack/runtime/get_full_hash
 (() => {
 __webpack_require__.h = () => ("CURRENT_HASH")

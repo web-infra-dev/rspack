@@ -220,6 +220,12 @@ async function getModuleFederationRuntimeCode() {
   const { code: downgradedRuntime } = await swc.transform(runtime, {
     jsc: {
       target: 'es2015',
+      parser: {
+        syntax: 'ecmascript',
+      },
+    },
+    module: {
+      type: 'commonjs',
     },
   });
 
@@ -229,12 +235,27 @@ async function getModuleFederationRuntimeCode() {
     ecma: 2015,
   });
 
-  const sandbox = { module: { exports: undefined } } as any;
+  const exports = {};
+  const module = { exports };
+  const sandbox = {
+    module,
+    exports,
+    console,
+  };
+
   vm.createContext(sandbox);
   vm.runInContext(minimizedRuntime.code, sandbox);
 
-  const functionContent = rspack.Template.getFunctionContent(
-    sandbox.module.exports,
-  );
+  // @ts-expect-error
+  const runtimeExport = module.exports.default || module.exports;
+
+  const originalToString = runtimeExport.toString;
+  runtimeExport.toString = function () {
+    return originalToString
+      .call(this)
+      .replace(/^function\s+[\w$]+/, 'function');
+  };
+
+  const functionContent = rspack.Template.getFunctionContent(runtimeExport);
   return functionContent;
 }

@@ -1,8 +1,11 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
+import { createRequire } from 'node:module';
 import { type Compiler, MultiCompiler } from '../..';
 import type { LazyCompilationOptions } from '../../config';
 import type { MiddlewareHandler } from '../../config/devServer';
 import { BuiltinLazyCompilationPlugin } from './lazyCompilation';
+
+const require = createRequire(import.meta.url);
 
 export const LAZY_COMPILATION_PREFIX = '/lazy-compilation-using-';
 

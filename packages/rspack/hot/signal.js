@@ -3,14 +3,16 @@
 	Author Tobias Koppers @sokra
 */
 /*globals __resourceQuery */
-if (module.hot) {
-  var log = require('./log');
 
+import log, { formatError } from './log.js';
+import logApplyResult from './log-apply-result.js';
+
+if (import.meta.webpackHot) {
   /**
    * @param {boolean=} fromUpdate true when called from update
    */
   var checkForUpdate = function checkForUpdate(fromUpdate) {
-    module.hot
+    import.meta.webpackHot
       .check()
       .then(function (updatedModules) {
         if (!updatedModules) {
@@ -19,7 +21,7 @@ if (module.hot) {
           return;
         }
 
-        return module.hot
+        return import.meta.webpackHot
           .apply({
             ignoreUnaccepted: true,
             onUnaccepted: function (data) {
@@ -31,17 +33,17 @@ if (module.hot) {
             },
           })
           .then(function (renewedModules) {
-            require('./log-apply-result')(updatedModules, renewedModules);
+            logApplyResult(updatedModules, renewedModules);
 
             checkForUpdate(true);
             return null;
           });
       })
       .catch(function (err) {
-        var status = module.hot.status();
+        var status = import.meta.webpackHot.status();
         if (['abort', 'fail'].indexOf(status) >= 0) {
           log('warning', '[HMR] Cannot apply update.');
-          log('warning', '[HMR] ' + log.formatError(err));
+          log('warning', '[HMR] ' + formatError(err));
           log('warning', '[HMR] You need to restart the application!');
         } else {
           log('warning', '[HMR] Update failed: ' + (err.stack || err.message));
@@ -50,10 +52,12 @@ if (module.hot) {
   };
 
   process.on(__resourceQuery.slice(1) || 'SIGUSR2', function () {
-    if (module.hot.status() !== 'idle') {
+    if (import.meta.webpackHot.status() !== 'idle') {
       log(
         'warning',
-        '[HMR] Got signal but currently in ' + module.hot.status() + ' state.',
+        '[HMR] Got signal but currently in ' +
+          import.meta.webpackHot.status() +
+          ' state.',
       );
       log('warning', '[HMR] Need to be in idle state to start hot update.');
       return;

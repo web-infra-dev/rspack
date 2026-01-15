@@ -1,5 +1,8 @@
+import { createRequire } from 'node:module';
 import type { Compiler } from './Compiler';
 import { RuntimeVariable, renderRuntimeVariables } from './RuntimeGlobals';
+
+const require = createRequire(import.meta.url);
 
 export default class ExecuteModulePlugin {
   apply(compiler: Compiler) {
