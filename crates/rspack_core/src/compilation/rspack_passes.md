@@ -12,14 +12,18 @@ The compilation process is organized into independent modules, each responsible 
 compilation/
 ├── mod.rs                        # Main Compilation struct which exposes the public API
 ├── run_passes.rs                 # Pass driver invoked from Compiler that runs make + seal passes
-├── build_module_graph/           # Module graph construction
-│   └── finish_module/            # Finalize module graph, async modules, dependency diagnostics
+├── make/                         # make_hook_pass: make hook + cache.before_build_module_graph
+├── build_module_graph/           # build_module_graph_pass: module graph construction
+├── finish_make/                  # finish_make_pass: finish_make hook
+├── finish_module_graph/          # finish_module_graph_pass: finalize module graph + cache
+├── finish_modules/               # finish_modules_pass: finish_modules hook, diagnostics, checkpoint
+├── seal/                         # seal_pass: seal hook
 ├── optimize_dependencies/        # optimizeDependencies hook + side effects artifact
 ├── build_chunk_graph/            # Chunk graph construction (code splitting cache + pass wrapper)
 ├── optimize_modules/             # optimizeModules + afterOptimizeModules hooks
 ├── optimize_chunks/              # optimizeChunks hook
 ├── optimize_tree/                # optimizeTree hook
-├── optimize_chunk_modules        # optimizeChunkModules hook
+├── optimize_chunk_modules/       # optimizeChunkModules hook
 ├── module_ids/                   # Module ID assignment + diagnostics
 ├── chunk_ids/                    # Chunk ID assignment + diagnostics
 ├── assign_runtime_ids/           # Runtime ID assignment for runtime chunks
@@ -43,21 +47,24 @@ compilation/
 
 `run_passes` orchestrates the full pipeline (make + seal) in this order:
 
-1. Make: `make` hook → `build_module_graph` → `finish_make` hook → `finish_build_module_graph`
-2. Collect make diagnostics (`collect_build_module_graph_effects`)
-3. Incremental checkpoint (`module_graph`), freeze module static cache in production
-4. Seal kickoff: `CompilationHooks::seal`
-5. `optimize_dependencies_pass`
-6. `build_chunk_graph_pass` → `optimize_modules_pass` → `optimize_chunks_pass`
-7. `optimize_tree_pass` → `optimize_chunk_modules_pass`
-8. `module_ids_pass` → `chunk_ids_pass` → `assign_runtime_ids`
-9. `optimize_code_generation_pass`
-10. `create_module_hashes_pass`
-11. `code_generation_pass`
-12. `runtime_requirements_pass`
-13. `create_hash_pass` (also runs runtime module code generation)
-14. `create_module_assets_pass`
-15. `create_chunk_assets_pass`
-16. `process_assets_pass`
-17. `after_seal_pass`
-18. Unfreeze module static cache in production
+1. `make_hook_pass`: `make` hook + cache.before_build_module_graph
+2. `build_module_graph_pass`: build module graph
+3. `finish_make_pass`: `finish_make` hook
+4. `finish_module_graph_pass`: `finish_build_module_graph` + cache.after_build_module_graph
+5. `finish_modules_pass`: `finish_modules` hook, collect diagnostics, incremental checkpoint
+6. Freeze module static cache in production
+7. `seal_pass`: `seal` hook
+8. `optimize_dependencies_pass`
+9. `build_chunk_graph_pass` → `optimize_modules_pass` → `optimize_chunks_pass`
+10. `optimize_tree_pass` → `optimize_chunk_modules_pass`
+11. `module_ids_pass` → `chunk_ids_pass` → `assign_runtime_ids`
+12. `optimize_code_generation_pass`
+13. `create_module_hashes_pass`
+14. `code_generation_pass`
+15. `runtime_requirements_pass`
+16. `create_hash_pass` (also runs runtime module code generation)
+17. `create_module_assets_pass`
+18. `create_chunk_assets_pass`
+19. `process_assets_pass`
+20. `after_seal_pass`
+21. Unfreeze module static cache in production
