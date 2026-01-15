@@ -1133,17 +1133,26 @@ export type JavascriptParserOptions = {
 
   /**
    * Control whether renaming of the CommonJS `require` function will be parsed and transformed.
-   * @default true
+   * @default false
    */
   requireAlias?: boolean;
 
-  // TODO: add docs
+  /**
+   * Control whether `require` used as an expression (e.g., `const req = require; req('./module')`) will be parsed.
+   * @default true
+   */
   requireAsExpression?: boolean;
 
-  // TODO: add docs
+  /**
+   * Control whether dynamic `require` calls (e.g., `require(variable)`) will be parsed.
+   * @default true
+   */
   requireDynamic?: boolean;
 
-  // TODO: add docs
+  /**
+   * Control whether `require.resolve()` calls will be parsed.
+   * @default true
+   */
   requireResolve?: boolean;
 
   /**
@@ -1152,7 +1161,10 @@ export type JavascriptParserOptions = {
    */
   commonjs?: JavascriptParserCommonjsOption;
 
-  // TODO: add docs
+  /**
+   * Control whether dynamic `import()` calls (e.g., `import(variable)`) will be parsed.
+   * @default true
+   */
   importDynamic?: boolean;
 
   /**
@@ -1166,7 +1178,11 @@ export type JavascriptParserOptions = {
   /** Whether to enable JSX parsing */
   jsx?: boolean;
 
-  /** Whether to enable defer import */
+  /**
+   * Whether to enable defer import.
+   * This option is controlled by `experiments.deferImport` and should not be set directly.
+   * @default false
+   */
   deferImport?: boolean;
 };
 
