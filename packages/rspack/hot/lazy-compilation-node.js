@@ -1,14 +1,16 @@
+import { createRequire } from 'node:module';
+
 var urlBase = decodeURIComponent(__resourceQuery.slice(1));
+var require = createRequire(import.meta.url);
 
 /**
  * @param {{ data: string, onError: (err: Error) => void, active: boolean, module: module }} options options
  * @returns {() => void} function to destroy response
  */
-exports.activate = function (options) {
+export const activate = function (options) {
   var data = options.data;
   var onError = options.onError;
   var active = options.active;
-  var module = options.module;
   /** @type {import("http").IncomingMessage} */
   var response;
   var request = (
@@ -22,7 +24,7 @@ exports.activate = function (options) {
     function (res) {
       response = res;
       response.on('error', errorHandler);
-      if (!active && !module.hot) {
+      if (!active && !import.meta.webpackHot) {
         console.log(
           'Hot Module Replacement is not enabled. Waiting for process restart...',
         );

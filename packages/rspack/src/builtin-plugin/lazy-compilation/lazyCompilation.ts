@@ -11,6 +11,6 @@ export const BuiltinLazyCompilationPlugin = create(
     imports: boolean,
     client: string,
     test?: RegExp | ((module: Module) => boolean),
-  ) => ({ module, imports, entries, test, client, currentActiveModules }),
+  ) => ({ imports, entries, test, client, currentActiveModules }),
   'thisCompilation',
 );

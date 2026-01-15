@@ -1,36 +1,36 @@
-const rspackCjsDefaultRequire = require('@rspack/core');
-const { rspack: rspackCjsNamedRequire } = require('@rspack/core');
-
 import assert from 'node:assert';
-
-type IsFunction<T> = T extends (...args: any[]) => any ? true : false;
+const {
+  rspackCjsDefaultRequire,
+  rspackCjsNamedRequire,
+  webpackCjsNamedRequire,
+} = require('./api-wrapper.cjs');
 
 // https://github.com/web-infra-dev/rspack/issues/8095
 describe.concurrent(
   'js-api-type should be correct when requiring from @rspack/core',
   () => {
     it('cjs default require', async () => {
-      type Truthy = IsFunction<typeof rspackCjsDefaultRequire>;
-      const truthy: Truthy = true;
-      truthy;
-      assert(rspackCjsDefaultRequire.BannerPlugin);
+      // const rspack = require('@rspack/core')
       assert(typeof rspackCjsDefaultRequire === 'function');
+      assert(rspackCjsDefaultRequire.BannerPlugin);
       const compiler = rspackCjsDefaultRequire({});
       assert(compiler);
     });
 
     it('cjs named require', async () => {
-      type Truthy = IsFunction<typeof rspackCjsNamedRequire>;
-      const truthy: Truthy = true;
-      truthy;
-      assert(rspackCjsNamedRequire.BannerPlugin);
+      // const { rspack } = require('@rspack/core')
       assert(typeof rspackCjsNamedRequire === 'function');
+      // const { webpack } = require('@rspack/core')
+      assert(typeof webpackCjsNamedRequire === 'function');
+      assert(rspackCjsNamedRequire.BannerPlugin);
       const compiler = rspackCjsNamedRequire({});
       assert(compiler);
     });
 
     it('rspack.default should not exist in cjs require', async () => {
+      // const { rspack } = require('@rspack/core')
       assert(!(rspackCjsNamedRequire as any).default);
+      // const rspack = require('@rspack/core')
       assert(!(rspackCjsDefaultRequire as any).default);
     });
   },

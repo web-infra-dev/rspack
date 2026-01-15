@@ -1,11 +1,11 @@
 import fs from 'node:fs';
+import { createRequire } from 'node:module';
 import path from 'node:path';
 import {
   BuiltinPluginName,
   type JsHtmlPluginTag,
   type RawHtmlRspackPluginOptions,
 } from '@rspack/binding';
-
 import type { Compilation } from '../../Compilation';
 import type { Compiler } from '../../Compiler';
 import { create } from '../base';
@@ -19,6 +19,8 @@ import {
   type HtmlRspackPluginOptions,
   setPluginOptions,
 } from './options';
+
+const require = createRequire(import.meta.url);
 
 type HtmlPluginTag = {
   tagName: string;
