@@ -1,5 +1,3 @@
-import { createRequire } from 'node:module';
-import binding from '@rspack/binding';
 /**
  * The following code is modified based on
  * https://github.com/webpack/webpack/blob/4b4ca3b/lib/config/target.js
@@ -9,6 +7,9 @@ import binding from '@rspack/binding';
  * Copyright (c) JS Foundation and other contributors
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
+
+import { createRequire } from 'node:module';
+import binding from '@rspack/binding';
 import { memoize } from '../util/memoize';
 import * as browserslistTargetHandler from './browserslistTargetHandler';
 
@@ -103,13 +104,10 @@ export type EcmaTargetProperties = {
   asyncFunction: boolean | null;
 };
 
-// type TargetProperties =
-// 	| PlatformTargetProperties
-// 	| ApiTargetProperties
-// 	| EcmaTargetProperties
-// 	| (PlatformTargetProperties & ApiTargetProperties)
-// 	| (PlatformTargetProperties & EcmaTargetProperties)
-// 	| (ApiTargetProperties & EcmaTargetProperties);
+export type ExtractedTargetProperties = {
+  esVersion?: number | null;
+  platforms?: string[] | null;
+};
 
 type Never<T> = { [P in keyof T]?: never };
 type Mix<A, B> = (A & Never<B>) | (Never<A> & B) | (A & B);
@@ -117,7 +115,85 @@ type Mix<A, B> = (A & Never<B>) | (Never<A> & B) | (A & B);
 export type TargetProperties = Mix<
   Mix<PlatformTargetProperties, ElectronContextTargetProperties>,
   Mix<ApiTargetProperties, EcmaTargetProperties>
->;
+> &
+  ExtractedTargetProperties;
+
+// modify based on https://github.com/rstackjs/browserslist-to-es-version/blob/a6c1be0afef412fc288d6a2214d307e8f2e647cf/src/index.ts
+function browsersToESVersion(browsers: string[]) {
+  // The minimal version for [es2015, es2016, es2017, es2018, es2019, es2020, es2021, es2022]
+  const ES_VERSIONS_MAP: Record<string, number[]> = {
+    chrome: [51, 52, 57, 64, 73, 80, 85, 94],
+    edge: [15, 15, 15, 79, 79, 80, 85, 94],
+    safari: [10, 10.3, 11, 16.4, 17, 17, 17, 17],
+    firefox: [54, 54, 54, 78, 78, 80, 80, 93],
+    opera: [38, 39, 44, 51, 60, 67, 71, 80],
+    samsung: [5, 6.2, 6.2, 8.2, 11.1, 13, 14, 17],
+  };
+
+  const aliases: Record<string, string> = {
+    ios_saf: 'safari',
+    and_chr: 'chrome',
+    and_ff: 'firefox',
+  };
+
+  const renameBrowser = (name: string) => {
+    return aliases[name] || name;
+  };
+
+  // SWC minifier only supports up to 2022
+  let esVersion = 2022;
+
+  for (const item of browsers) {
+    const pairs = item.split(' ');
+
+    // skip invalid item
+    if (pairs.length < 2) {
+      continue;
+    }
+
+    const browser = renameBrowser(pairs[0]);
+    const version = Number(pairs[1].split('-')[0]);
+
+    // ignore unknown version
+    if (Number.isNaN(version)) {
+      continue;
+    }
+
+    // IE / Android 4.x ~ 5.x only supports es5
+    if (browser === 'ie' || (browser === 'android' && version < 6)) {
+      esVersion = 5;
+      break;
+    }
+
+    // skip unknown browsers
+    const versions = ES_VERSIONS_MAP[browser];
+    if (!versions) {
+      continue;
+    }
+
+    if (version < versions[0]) {
+      esVersion = Math.min(5, esVersion);
+    } else if (version < versions[1]) {
+      esVersion = Math.min(2015, esVersion);
+    } else if (version < versions[2]) {
+      esVersion = Math.min(2016, esVersion);
+    } else if (version < versions[3]) {
+      esVersion = Math.min(2017, esVersion);
+    } else if (version < versions[4]) {
+      esVersion = Math.min(2018, esVersion);
+    } else if (version < versions[5]) {
+      esVersion = Math.min(2019, esVersion);
+    } else if (version < versions[6]) {
+      esVersion = Math.min(2020, esVersion);
+    } else if (version < versions[7]) {
+      esVersion = Math.min(2021, esVersion);
+    } else if (version < versions[8]) {
+      esVersion = Math.min(2022, esVersion);
+    }
+  }
+
+  return esVersion;
+}
 
 /**
  * @param major major version
@@ -172,7 +248,11 @@ You can also more options via the 'target' option: 'browserslist' / 'browserslis
       }
 
       const browserslistTargetHandler = getBrowserslistTargetHandler();
-      return browserslistTargetHandler.resolve(browsers);
+      return {
+        ...browserslistTargetHandler.resolve(browsers),
+        platforms: browsers,
+        esVersion: browsersToESVersion(browsers),
+      };
     },
   ],
   [
@@ -236,6 +316,26 @@ You can also more options via the 'target' option: 'browserslist' / 'browserslis
         webworker: false,
         browser: false,
 
+        platforms: major ? [`node ${major}${minor ? `.${minor}` : ''}`] : [],
+        // https://github.com/microsoft/TypeScript/wiki/Node-Target-Mapping
+        esVersion: v(18)
+          ? 2022
+          : v(16)
+            ? 2021
+            : v(14)
+              ? 2020
+              : v(12)
+                ? 2019
+                : v(10)
+                  ? 2018
+                  : v(8)
+                    ? 2017
+                    : v(7)
+                      ? 2016
+                      : v(6, 5)
+                        ? 2015
+                        : 5,
+
         require: !asyncFlag,
         nodeBuiltins: true,
         // v16.0.0, v14.18.0
@@ -271,7 +371,7 @@ You can also more options via the 'target' option: 'browserslist' / 'browserslis
     /^electron((\d+)(?:\.(\d+))?)?-(main|preload|renderer)$/,
     (_, major, minor, context) => {
       const v = versionDependent(major, minor);
-      // see https://node.green/ + https://github.com/electron/releases
+      // see https://node.green/ + https://releases.electronjs.org/releases.json
       return {
         node: true,
         electron: true,
@@ -283,6 +383,27 @@ You can also more options via the 'target' option: 'browserslist' / 'browserslis
         electronMain: context === 'main',
         electronPreload: context === 'preload',
         electronRenderer: context === 'renderer',
+
+        platforms: major
+          ? [`electron ${major}${minor ? `.${minor}` : ''}`]
+          : [],
+        esVersion: v(23)
+          ? 2022
+          : v(15)
+            ? 2021
+            : v(12)
+              ? 2020
+              : v(5)
+                ? 2019
+                : v(3)
+                  ? 2018
+                  : v(1, 8)
+                    ? 2017
+                    : v(1, 5)
+                      ? 2016
+                      : v(1, 4)
+                        ? 2015
+                        : 5,
 
         global: true,
         nodeBuiltins: true,
@@ -320,7 +441,7 @@ You can also more options via the 'target' option: 'browserslist' / 'browserslis
     /^(?:nwjs|node-webkit)((\d+)(?:\.(\d+))?)?$/,
     (_, major, minor) => {
       const v = versionDependent(major, minor);
-      // see https://node.green/ + https://github.com/nwjs/nw.js/blob/nw48/CHANGELOG.md
+      // see https://node.green/ + https://github.com/nwjs/nw.js/blob/main/CHANGELOG.md
       return {
         node: true,
         web: true,
@@ -328,6 +449,25 @@ You can also more options via the 'target' option: 'browserslist' / 'browserslis
         webworker: null,
         browser: false,
         electron: false,
+
+        platforms: major ? [`nwjs ${major}${minor ? `.${minor}` : ''}`] : [],
+        esVersion: v(0, 65)
+          ? 2022
+          : v(0, 54)
+            ? 2021
+            : v(0, 46)
+              ? 2020
+              : v(0, 39)
+                ? 2019
+                : v(0, 31)
+                  ? 2018
+                  : v(0, 23)
+                    ? 2017
+                    : v(0, 20)
+                      ? 2016
+                      : v(0, 17)
+                        ? 2015
+                        : 5,
 
         global: true,
         nodeBuiltins: true,
@@ -359,8 +499,10 @@ You can also more options via the 'target' option: 'browserslist' / 'browserslis
     /^es(\d+)$/,
     (version) => {
       let v = +version;
-      if (v < 1000) v = v + 2009;
+      if (5 < v && v < 1000) v = v + 2009;
       return {
+        // SWC minifier only supports up to 2022
+        esVersion: v > 2022 ? 2022 : v,
         const: v >= 2015,
         templateLiteral: v >= 2015,
         optionalChaining: v >= 2020,
@@ -379,11 +521,6 @@ You can also more options via the 'target' option: 'browserslist' / 'browserslis
   ],
 ];
 
-/**
- * @param target the target
- * @param context the context directory
- * @returns target properties
- */
 export const getTargetProperties = (
   target: string,
   context: string,
@@ -415,6 +552,31 @@ const mergeTargetProperties = (
 
   const result: Partial<TargetProperties> = {};
   for (const key of keys) {
+    if (key === 'esVersion') {
+      let minVersion: number | undefined;
+      for (const tp of targetProperties) {
+        if (typeof tp.esVersion === 'number') {
+          minVersion =
+            minVersion === undefined
+              ? tp.esVersion
+              : Math.min(minVersion, tp.esVersion);
+        }
+      }
+      if (minVersion !== undefined) result[key] = minVersion;
+      continue;
+    }
+
+    if (key === 'platforms') {
+      const merged = new Set<string>();
+      for (const tp of targetProperties) {
+        if (Array.isArray(tp.platforms)) {
+          for (const p of tp.platforms) merged.add(p);
+        }
+      }
+      if (merged.size > 0) result[key] = Array.from(merged);
+      continue;
+    }
+
     let hasTrue = false;
     let hasFalse = false;
     for (const tp of targetProperties) {
@@ -433,12 +595,10 @@ const mergeTargetProperties = (
   return result as TargetProperties;
 };
 
-/**
- * @param targets the targets
- * @param context the context directory
- * @returns target properties
- */
-export const getTargetsProperties = (targets: string[], context: string) => {
+export const getTargetsProperties = (
+  targets: string[],
+  context: string,
+): TargetProperties => {
   return mergeTargetProperties(
     targets.map((t) => getTargetProperties(t, context)),
   );

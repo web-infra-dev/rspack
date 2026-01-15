@@ -2406,7 +2406,7 @@ export interface RawLightningCssBrowsers {
 
 export interface RawLightningCssMinimizerOptions {
   errorRecovery: boolean
-  targets?: Array<string>
+  targets?: string[] | RawLightningCssBrowsers
   include?: number
   exclude?: number
   drafts?: RawDraft

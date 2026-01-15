@@ -52,13 +52,20 @@ pub struct Config {
 pub struct RawConfig {
   pub minify: Option<bool>,
   pub error_recovery: Option<bool>,
-  pub targets: Option<Vec<String>>,
+  pub targets: Option<RawConfigTargets>,
   pub include: Option<u32>,
   pub exclude: Option<u32>,
   pub drafts: Option<Draft>,
   pub non_standard: Option<NonStandard>,
   pub pseudo_classes: Option<PseudoClasses>,
   pub unused_symbols: Option<Vec<String>>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(untagged)]
+pub enum RawConfigTargets {
+  Browserslist(Vec<String>),
+  Targets(Browsers),
 }
 
 impl TryFrom<RawConfig> for Config {
@@ -69,7 +76,10 @@ impl TryFrom<RawConfig> for Config {
       error_recovery: value.error_recovery,
       targets: value
         .targets
-        .map(browserslist_to_lightningcss_targets)
+        .map(|targets| match targets {
+          RawConfigTargets::Browserslist(query) => browserslist_to_lightningcss_targets(query),
+          RawConfigTargets::Targets(browsers) => Ok(Some(browsers)),
+        })
         .transpose()
         .to_rspack_result_with_message(|e| format!("Failed to parse browserslist: {e}"))?
         .flatten(),
