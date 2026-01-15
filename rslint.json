@@ -49,7 +49,7 @@
       "@typescript-eslint/no-extraneous-class": "off",
       "@typescript-eslint/consistent-type-imports": "off",
       "@typescript-eslint/no-invalid-void-type": "off",
-      "@typescript-eslint/default-param-last": "off"
+      "@typescript-eslint/default-param-last": "error"
     },
     "plugins": ["@typescript-eslint"]
   }
