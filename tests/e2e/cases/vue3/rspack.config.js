@@ -1,5 +1,5 @@
 const { DefinePlugin, HtmlRspackPlugin } = require('@rspack/core');
-const { VueLoaderPlugin } = require('vue-loader');
+const { VueLoaderPlugin } = require('rspack-vue-loader');
 
 /** @type { import('@rspack/core').RspackOptions } */
 module.exports = {
@@ -26,7 +26,7 @@ module.exports = {
     rules: [
       {
         test: /\.vue$/,
-        loader: 'vue-loader',
+        loader: 'rspack-vue-loader',
         options: {
           experimentalInlineMatchResource: true,
         },

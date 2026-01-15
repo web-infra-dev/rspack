@@ -286,9 +286,9 @@ export class SubresourceIntegrityPlugin extends NativeSubresourceIntegrityPlugin
             const hwpHooks = getHooks(compilation);
             hwpHooks.beforeAssetTagGeneration.tapPromise(
               PLUGIN_NAME,
-              async (data) => {
+              (data) => {
                 self.handleHwpPluginArgs(data);
-                return data;
+                return Promise.resolve(data);
               },
             );
 
@@ -297,13 +297,13 @@ export class SubresourceIntegrityPlugin extends NativeSubresourceIntegrityPlugin
                 name: PLUGIN_NAME,
                 stage: 10000,
               },
-              async (data) => {
+              (data) => {
                 self.handleHwpBodyTags(
                   data,
                   compiler.outputPath,
                   compiler.options.output.crossOriginLoading,
                 );
-                return data;
+                return Promise.resolve(data);
               },
             );
           });

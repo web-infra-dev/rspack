@@ -37,7 +37,7 @@ it('should have correct import', () => {
 	expect(from_esm["default"]).toBe('esm')
 
 	expect(foo.foo).toBe(42)
-	expect(/* inlined export .value */("value")).toBe('value')
+	expect((/* inlined export .value */"value")).toBe('value')
 })
 
 // ./index.js

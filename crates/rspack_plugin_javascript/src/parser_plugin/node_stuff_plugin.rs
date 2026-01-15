@@ -281,7 +281,6 @@ impl NodeStuffPlugin {
   }
 
   /// Get the member replacement value for import.meta.filename/dirname
-  /// Returns None if the property should be preserved as-is, Some(replacement) otherwise
   fn get_import_meta_member_replacement(
     parser: &mut JavascriptParser,
     property: NodeMetaProperty,
@@ -331,7 +330,7 @@ impl NodeStuffPlugin {
           .unwrap_or(false)
       {
         // Keep as import.meta.filename/dirname - runtime supports it
-        return None;
+        return Some(property.import_meta_name().to_string());
       }
       Self::add_node_module_dependencies(parser, property);
       return Some(property.node_module_runtime_expr().to_string());

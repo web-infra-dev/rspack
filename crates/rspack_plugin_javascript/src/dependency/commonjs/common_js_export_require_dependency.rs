@@ -500,7 +500,6 @@ impl DependencyTemplate for CommonJsExportRequireDependencyTemplate {
         *runtime,
         ids,
       ) {
-      let comment = to_normal_comment(&property_access(ids, 0));
       match used_imported {
         UsedName::Normal(used_imported) => {
           format!(
@@ -512,11 +511,14 @@ impl DependencyTemplate for CommonJsExportRequireDependencyTemplate {
               &dep.request,
               false,
             ),
-            comment,
+            to_normal_comment(&property_access(ids, 0)),
             property_access(used_imported, 0)
           )
         }
-        UsedName::Inlined(inlined) => format!("{}{}", comment, inlined.render()),
+        UsedName::Inlined(inlined) => inlined.render(&to_normal_comment(&format!(
+          "inlined export {}",
+          property_access(ids, 0)
+        ))),
       }
     } else {
       compilation.runtime_template.module_raw(

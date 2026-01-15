@@ -95,7 +95,7 @@ jobs:
         run: cargo codegen
 
       - name: Install cargo-deny
-        uses: taiki-e/install-action@0e76c5c569f13f7eb21e8e5b26fe710062b57b62 # v2
+        uses: taiki-e/install-action@dfcb1ee29051d97c8d0f2d437199570008fd5612 # v2
         with:
           tool: cargo-deny@0.18.3
       - name: Check licenses
