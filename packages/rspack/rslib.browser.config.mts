@@ -13,7 +13,7 @@ export default defineConfig({
   lib: [
     {
       format: 'esm',
-      syntax: 'es2021',
+      syntax: 'es2023',
       dts: { build: true },
       autoExternal: false,
       source: {
@@ -24,7 +24,7 @@ export default defineConfig({
     },
     {
       format: 'esm',
-      syntax: 'es2021',
+      syntax: 'es2023',
       dts: false,
       autoExtension: false,
       source: {

@@ -26,7 +26,7 @@ const externalAlias: rsbuild.Rspack.Externals = ({ request }, callback) => {
 
 const commonLibConfig: LibConfig = {
   format: 'cjs',
-  syntax: ['node 18.12'],
+  syntax: ['es2023'],
   source: {
     define: {
       WEBPACK_VERSION: JSON.stringify(require('./package.json').webpackVersion),
