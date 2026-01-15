@@ -17,6 +17,8 @@ module.exports = {
 	},
 	async check(stats) {
 		const statsOptions = {
+			assets: true,
+			modules: true,
 			usedExports: true,
 			providedExports: true,
 			timings: false,

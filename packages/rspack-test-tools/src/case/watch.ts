@@ -428,7 +428,11 @@ function cachedWatchStats(
         return cached[stepName];
       }
       cached[stepName] = compiler.getStats()!.toJson({
-        all: true,
+        entrypoints: true,
+        assets: true,
+        chunks: true,
+        modules: true,
+        errorDetails: true,
       });
       return cached[stepName];
     };
