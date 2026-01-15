@@ -12,7 +12,6 @@ import path from 'node:path';
 import type { HttpUriPluginOptions } from '../builtin-plugin';
 import type { Compilation } from '../Compilation';
 import type WebpackError from '../lib/WebpackError';
-import { deprecate } from '../util';
 import type {
   Amd,
   AssetModuleFilename,
@@ -150,12 +149,6 @@ export const getNormalizedRspackOptions = (
             )(config.entry)
           : getNormalizedEntryStatic(config.entry),
     output: nestedConfig(config.output, (output) => {
-      if ('cssHeadDataCompression' in output) {
-        deprecate(
-          'cssHeadDataCompression is not used now, see https://github.com/web-infra-dev/rspack/pull/8534, this option could be removed in the future',
-        );
-      }
-
       const { library } = output;
       const libraryAsName = library;
       const libraryBase =

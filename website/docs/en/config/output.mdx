@@ -1895,36 +1895,3 @@ Please use [`output.library.type`](#outputlibrarytype) instead as we might drop 
 :::warning
 Prefer to use [`output.library.umdNamedDefine`](#outputlibraryumdnameddefine) instead.
 :::
-
-## output.cssHeadDataCompression
-
-<ApiMeta addedVersion={'1.0.0'} />
-
-- **Type:** `boolean`
-- **Default:** `false` for development mode, `true` for production mode
-
-Rspack adds some metadata in CSS to parse CSS modules, and this configuration determines whether to compress these metadata.
-
-For example
-
-```css
-.local-a {
-  color: blue;
-}
-
-head {
-  --webpack-main: a: local-a/&\.\/ src\/index\.module\.css;
-}
-```
-
-After compress 👇
-
-```css
-.local-a {
-  color: blue;
-}
-
-head {
-  --webpack-main: &\.\/ srcăindexāmoduleācss;
-}
-```

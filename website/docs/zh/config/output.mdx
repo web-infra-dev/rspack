@@ -1887,36 +1887,3 @@ export default {
 :::warning
 最好使用 [`output.library.umdNamedDefine`](#outputlibraryumdnameddefine)。
 :::
-
-## output.cssHeadDataCompression
-
-<ApiMeta addedVersion={'1.0.0'} />
-
-- **类型：** `boolean`
-- **默认值：** 在 development 模式下为 `false`，在 production 模式下为 `true`
-
-Rspack 会在 CSS 中添加一些元信息，用以解析 CSS modules，此配置决定是否压缩元信息。
-
-例如 👇
-
-```css
-.local-a {
-  color: blue;
-}
-
-head {
-  --webpack-main: a: local-a/&\.\/ src\/index\.module\.css;
-}
-```
-
-压缩后
-
-```css
-.local-a {
-  color: blue;
-}
-
-head {
-  --webpack-main: &\.\/ srcăindexāmoduleācss;
-}
-```
