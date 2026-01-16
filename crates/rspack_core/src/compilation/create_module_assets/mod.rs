@@ -29,11 +29,11 @@ impl Compilation {
       }
       // assets of executed modules are not in this compilation
       if self
-        .chunk_graph
+        .build_chunk_graph_artifact.chunk_graph
         .chunk_graph_module_by_module_identifier
         .contains_key(&identifier)
       {
-        for chunk in self.chunk_graph.get_module_chunks(identifier).iter() {
+        for chunk in self.build_chunk_graph_artifact.chunk_graph.get_module_chunks(identifier).iter() {
           for name in assets.keys() {
             chunk_asset_map.push((*chunk, name.clone()))
           }
@@ -46,7 +46,7 @@ impl Compilation {
     }
 
     for (chunk, asset_name) in chunk_asset_map {
-      let chunk = self.chunk_by_ukey.expect_get_mut(&chunk);
+      let chunk = self.build_chunk_graph_artifact.chunk_by_ukey.expect_get_mut(&chunk);
       chunk.add_auxiliary_file(asset_name);
     }
   }

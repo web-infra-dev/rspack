@@ -49,7 +49,7 @@ fn recurse_chunk_group(
   }
   visited_groups.insert(*group);
 
-  if let Some(chunk_group) = compilation.chunk_group_by_ukey.get(group) {
+  if let Some(chunk_group) = compilation.build_chunk_graph_artifact.chunk_group_by_ukey.get(group) {
     for chunk in chunk_group.chunks.iter() {
       recurse_chunk(chunk, all_chunks, visited_groups, compilation);
     }
@@ -70,7 +70,7 @@ fn recurse_chunk(
   }
   all_chunks.insert(*chunk);
 
-  if let Some(chunk) = compilation.chunk_by_ukey.get(chunk) {
+  if let Some(chunk) = compilation.build_chunk_graph_artifact.chunk_by_ukey.get(chunk) {
     for group in chunk.groups() {
       recurse_chunk_group(group, all_chunks, visited_groups, compilation);
     }

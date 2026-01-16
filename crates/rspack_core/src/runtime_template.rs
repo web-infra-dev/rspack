@@ -1000,8 +1000,8 @@ return {}
       return format!("Promise.resolve({})", comment.trim());
     };
     let chunk_group = compilation
-      .chunk_graph
-      .get_block_chunk_group(block, &compilation.chunk_group_by_ukey);
+      .build_chunk_graph_artifact.chunk_graph
+      .get_block_chunk_group(block, &compilation.build_chunk_graph_artifact.chunk_group_by_ukey);
     let Some(chunk_group) = chunk_group else {
       let comment = self.comment(CommentOptions {
         request: None,
@@ -1028,8 +1028,8 @@ return {}
     let chunks = chunk_group
       .chunks
       .iter()
-      .map(|c| compilation.chunk_by_ukey.expect_get(c))
-      .filter(|c| !c.has_runtime(&compilation.chunk_group_by_ukey) && c.id().is_some())
+      .map(|c| compilation.build_chunk_graph_artifact.chunk_by_ukey.expect_get(c))
+      .filter(|c| !c.has_runtime(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey) && c.id().is_some())
       .collect::<Vec<_>>();
 
     if chunks.len() == 1 {

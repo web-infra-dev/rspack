@@ -249,7 +249,7 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
     });
 
     // add chunk to this compilation
-    let chunk = compilation.chunk_by_ukey.add(chunk);
+    let chunk = compilation.build_chunk_graph_artifact.chunk_by_ukey.add(chunk);
     let chunk_ukey = chunk.ukey();
 
     chunk_graph.connect_chunk_and_entry_module(
@@ -261,7 +261,7 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
     entrypoint.set_runtime_chunk(chunk.ukey());
     entrypoint.set_entrypoint_chunk(chunk.ukey());
 
-    compilation.chunk_group_by_ukey.add(entrypoint);
+    compilation.build_chunk_graph_artifact.chunk_group_by_ukey.add(entrypoint);
 
     // Assign ids to modules and modules to the chunk
     for &m in &modules {
@@ -276,7 +276,7 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
     // to the chunk_graph in API that receives both compilation and chunk_graph
     //
     // replace code_generation_results is the same reason
-    compilation.chunk_graph = chunk_graph;
+    compilation.build_chunk_graph_artifact.chunk_graph = chunk_graph;
 
     compilation.create_module_hashes(modules.clone()).await?;
 
@@ -294,7 +294,7 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
       )
       .await?;
     let runtime_modules = compilation
-      .chunk_graph
+      .build_chunk_graph_artifact.chunk_graph
       .get_chunk_runtime_modules_iterable(&chunk_ukey)
       .copied()
       .collect::<IdentifierSet>();

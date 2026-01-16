@@ -11,6 +11,7 @@ pub async fn build_chunk_graph_pass(compilation: &mut Compilation) -> Result<()>
     let start = logger.time("rebuild chunk graph");
     build_chunk_graph(compilation)?;
     compilation
+      .build_chunk_graph_artifact
       .chunk_graph
       .generate_dot(compilation, "after-code-splitting")
       .await;

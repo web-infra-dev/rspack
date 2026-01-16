@@ -225,15 +225,15 @@ impl CompilationRecords {
     compilation: &Compilation,
   ) -> FxHashMap<ModuleId, FxHashMap<ChunkId, RspackHashDigest>> {
     compilation
-      .chunk_graph
+      .build_chunk_graph_artifact.chunk_graph
       .chunk_graph_module_by_module_identifier
       .keys()
       .filter_map(|identifier| {
         let module_id =
           ChunkGraph::get_module_id(&compilation.module_ids_artifact, *identifier)?.clone();
         let mut hashes = FxHashMap::default();
-        for chunk in compilation.chunk_graph.get_module_chunks(*identifier) {
-          let chunk = compilation.chunk_by_ukey.expect_get(chunk);
+        for chunk in compilation.build_chunk_graph_artifact.chunk_graph.get_module_chunks(*identifier) {
+          let chunk = compilation.build_chunk_graph_artifact.chunk_by_ukey.expect_get(chunk);
           let chunk_id = chunk.id().expect("should have chunk_id").clone();
           let hash = compilation
             .code_generation_results
@@ -266,7 +266,7 @@ impl CompilationRecords {
   fn record_runtimes(compilation: &Compilation) -> RuntimeSpec {
     compilation
       .get_chunk_graph_entries()
-      .filter_map(|entry_ukey| compilation.chunk_by_ukey.get(&entry_ukey))
+      .filter_map(|entry_ukey| compilation.build_chunk_graph_artifact.chunk_by_ukey.get(&entry_ukey))
       .flat_map(|entry_chunk| entry_chunk.runtime().clone())
       .collect()
   }
@@ -275,14 +275,14 @@ impl CompilationRecords {
     compilation: &Compilation,
   ) -> FxHashMap<ChunkId, (RuntimeSpec, FxHashSet<ModuleId>)> {
     compilation
-      .chunk_by_ukey
+      .build_chunk_graph_artifact.chunk_by_ukey
       .values()
       .filter(|chunk| chunk.kind() != ChunkKind::HotUpdate)
       .map(|chunk| {
         let chunk_id = chunk.expect_id().clone();
         let chunk_runtime = chunk.runtime().clone();
         let chunk_modules: FxHashSet<ModuleId> = compilation
-          .chunk_graph
+          .build_chunk_graph_artifact.chunk_graph
           .get_chunk_modules_identifier(&chunk.ukey())
           .iter()
           .filter_map(|m| ChunkGraph::get_module_id(&compilation.module_ids_artifact, *m))

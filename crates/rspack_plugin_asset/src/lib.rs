@@ -843,11 +843,11 @@ async fn render_manifest(
   manifest: &mut Vec<RenderManifestEntry>,
   _diagnostics: &mut Vec<Diagnostic>,
 ) -> Result<()> {
-  let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+  let chunk = compilation.build_chunk_graph_artifact.chunk_by_ukey.expect_get(chunk_ukey);
   let module_graph = compilation.get_module_graph();
 
   let ordered_modules = compilation
-    .chunk_graph
+    .build_chunk_graph_artifact.chunk_graph
     .get_chunk_modules_identifier_by_source_type(chunk_ukey, SourceType::Asset, module_graph);
 
   let assets = ordered_modules

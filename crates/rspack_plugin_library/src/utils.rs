@@ -53,15 +53,15 @@ pub fn get_options_for_chunk<'a>(
   chunk_ukey: &ChunkUkey,
 ) -> Option<&'a LibraryOptions> {
   if compilation
-    .chunk_graph
+    .build_chunk_graph_artifact.chunk_graph
     .get_number_of_entry_modules(chunk_ukey)
     == 0
   {
     return None;
   }
-  let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+  let chunk = compilation.build_chunk_graph_artifact.chunk_by_ukey.expect_get(chunk_ukey);
   chunk
-    .get_entry_options(&compilation.chunk_group_by_ukey)
+    .get_entry_options(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
     .and_then(|options| options.library.as_ref())
     .or(compilation.options.output.library.as_ref())
 }

@@ -55,7 +55,7 @@ impl Compilation {
       }
       self
         .chunk_render_artifact
-        .retain(|chunk, _| self.chunk_by_ukey.contains(chunk));
+        .retain(|chunk, _| self.build_chunk_graph_artifact.chunk_by_ukey.contains(chunk));
       let chunks: UkeySet<ChunkUkey> = mutations
         .iter()
         .filter_map(|mutation| match mutation {
@@ -68,11 +68,11 @@ impl Compilation {
       logger.log(format!(
         "{} chunks are affected, {} in total",
         chunks.len(),
-        self.chunk_by_ukey.len()
+        self.build_chunk_graph_artifact.chunk_by_ukey.len()
       ));
       chunks
     } else {
-      self.chunk_by_ukey.keys().copied().collect()
+      self.build_chunk_graph_artifact.chunk_by_ukey.keys().copied().collect()
     };
     let results = rspack_futures::scope::<_, Result<_>>(|token| {
       chunks.iter().for_each(|chunk| {
@@ -128,7 +128,7 @@ impl Compilation {
 
       for file_manifest in manifests {
         let filename = file_manifest.filename;
-        let current_chunk = self.chunk_by_ukey.expect_get_mut(&chunk_ukey);
+        let current_chunk = self.build_chunk_graph_artifact.chunk_by_ukey.expect_get_mut(&chunk_ukey);
 
         current_chunk.set_rendered(true);
         if file_manifest.auxiliary {

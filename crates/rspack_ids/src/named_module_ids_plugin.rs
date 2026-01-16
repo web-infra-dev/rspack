@@ -174,7 +174,7 @@ async fn module_ids(
       not_used
         && module.need_id()
         && compilation
-          .chunk_graph
+          .build_chunk_graph_artifact.chunk_graph
           .get_number_of_module_chunks(*module_identifier)
           != 0
     })

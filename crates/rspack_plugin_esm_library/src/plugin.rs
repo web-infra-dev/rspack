@@ -111,7 +111,7 @@ async fn finish_modules(
     let mut should_scope_hoisting = true;
 
     if let Some(reason) =
-      module.get_concatenation_bailout_reason(module_graph, &compilation.chunk_graph)
+      module.get_concatenation_bailout_reason(module_graph, &compilation.build_chunk_graph_artifact.chunk_graph)
     {
       logger.debug(format!(
         "module {module_identifier} has bailout reason: {reason}",
@@ -310,8 +310,8 @@ async fn after_code_generation(
 ) -> Result<()> {
   let mut chunk_ids_to_ukey = FxHashMap::default();
 
-  for chunk_ukey in compilation.chunk_by_ukey.keys() {
-    let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+  for chunk_ukey in compilation.build_chunk_graph_artifact.chunk_by_ukey.keys() {
+    let chunk = compilation.build_chunk_graph_artifact.chunk_by_ukey.expect_get(chunk_ukey);
 
     if let Some(id) = chunk.id() {
       chunk_ids_to_ukey.insert(id.as_str().to_string(), *chunk_ukey);
@@ -334,7 +334,7 @@ async fn additional_chunk_runtime_requirements(
   let info_map = self.concatenated_modules_map.read().await;
 
   for m in compilation
-    .chunk_graph
+    .build_chunk_graph_artifact.chunk_graph
     .get_chunk_modules_identifier(chunk_ukey)
   {
     let info = info_map.get(m).expect("should have this info map");
@@ -430,7 +430,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         let end = captures.range().end as u32;
         let Some(chunk) = chunk_ids_to_ukey.get(chunk_id).map(|chunk_ukey| {
           compilation
-            .chunk_by_ukey
+            .build_chunk_graph_artifact.chunk_by_ukey
             .get(chunk_ukey)
             .expect("should have chunk for chunk ukey")
         }) else {

@@ -259,11 +259,8 @@ impl ModuleConcatenationPlugin {
       return None;
     }
 
-    let Compilation {
-      chunk_graph,
-      chunk_by_ukey,
-      ..
-    } = compilation;
+    let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
+    let chunk_by_ukey = &compilation.build_chunk_graph_artifact.chunk_by_ukey;
     let module_graph = compilation.get_module_graph();
     let module_graph_cache = &compilation.module_graph_cache_artifact;
 
@@ -741,7 +738,7 @@ impl ModuleConcatenationPlugin {
         Some(compilation),
       )
       .await?;
-    let mut chunk_graph = std::mem::take(&mut compilation.chunk_graph);
+    let mut chunk_graph = std::mem::take(&mut compilation.build_chunk_graph_artifact.chunk_graph);
     let module_graph = compilation.get_module_graph_mut();
     let root_mgm_exports = module_graph
       .module_graph_module_by_identifier(&root_module_id)
@@ -829,7 +826,7 @@ impl ModuleConcatenationPlugin {
       !inner_connection
     });
     module_graph.add_module(new_module.boxed());
-    compilation.chunk_graph = chunk_graph;
+    compilation.build_chunk_graph_artifact.chunk_graph = chunk_graph;
     Ok(())
   }
 
@@ -871,16 +868,16 @@ impl ModuleConcatenationPlugin {
         let mut can_be_inner = true;
         let mut bailout_reason = vec![];
         let number_of_module_chunks = compilation
-          .chunk_graph
+          .build_chunk_graph_artifact.chunk_graph
           .get_number_of_module_chunks(module_id);
-        let is_entry_module = compilation.chunk_graph.is_entry_module(&module_id);
+        let is_entry_module = compilation.build_chunk_graph_artifact.chunk_graph.is_entry_module(&module_id);
         let module_graph = compilation.get_module_graph();
         let m = module_graph
           .module_by_identifier(&module_id)
           .expect("should have module");
 
         if let Some(reason) =
-          m.get_concatenation_bailout_reason(module_graph, &compilation.chunk_graph)
+          m.get_concatenation_bailout_reason(module_graph, &compilation.build_chunk_graph_artifact.chunk_graph)
         {
           bailout_reason.push(reason);
           return (false, false, module_id, bailout_reason);
@@ -1068,8 +1065,8 @@ impl ModuleConcatenationPlugin {
           .expect("should have module");
         let mut runtime = RuntimeSpec::default();
         for r in compilation
-          .chunk_graph
-          .get_module_runtimes_iter(module_id, &compilation.chunk_by_ukey)
+          .build_chunk_graph_artifact.chunk_graph
+          .get_module_runtimes_iter(module_id, &compilation.build_chunk_graph_artifact.chunk_by_ukey)
         {
           runtime.extend(r);
         }
@@ -1120,7 +1117,7 @@ impl ModuleConcatenationPlugin {
           );
         }
         let number_of_chunks = compilation
-          .chunk_graph
+          .build_chunk_graph_artifact.chunk_graph
           .get_number_of_module_chunks(module_id);
         (
           module_id,
@@ -1635,7 +1632,7 @@ fn add_concatenated_module(
   let root_module_source_types = box_module.source_types(module_graph);
   let is_root_module_asset_module = root_module_source_types.contains(&SourceType::Asset);
 
-  let mut chunk_graph = std::mem::take(&mut compilation.chunk_graph);
+  let mut chunk_graph = std::mem::take(&mut compilation.build_chunk_graph_artifact.chunk_graph);
   let module_graph = compilation.get_module_graph_mut();
 
   let root_mgm_exports = module_graph
@@ -1701,7 +1698,7 @@ fn add_concatenated_module(
   }
 
   module_graph.add_module(new_module.boxed());
-  compilation.chunk_graph = chunk_graph;
+  compilation.build_chunk_graph_artifact.chunk_graph = chunk_graph;
 }
 
 fn is_connection_active_in_runtime(

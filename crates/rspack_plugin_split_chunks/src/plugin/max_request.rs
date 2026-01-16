@@ -15,8 +15,8 @@ impl SplitChunksPlugin {
     cache_group: &CacheGroup,
     used_chunks: &mut Cow<UkeySet<ChunkUkey>>,
   ) {
-    let chunk_db = &compilation.chunk_by_ukey;
-    let chunk_group_db = &compilation.chunk_group_by_ukey;
+    let chunk_db = &compilation.build_chunk_graph_artifact.chunk_by_ukey;
+    let chunk_group_db = &compilation.build_chunk_graph_artifact.chunk_group_by_ukey;
     let invalided_chunks = used_chunks
       .iter()
       .map(|c| chunk_db.expect_get(c))

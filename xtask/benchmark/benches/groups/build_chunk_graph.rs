@@ -225,7 +225,7 @@ pub fn build_chunk_graph_benchmark_inner(c: &mut Criterion) {
       reset_chunk_graph_state(&mut compiler.compilation);
       runner.run(|| {
         build_chunk_graph::build_chunk_graph(&mut compiler.compilation).unwrap();
-        assert_eq!(compiler.compilation.chunk_by_ukey.len(), NUM_MODULES / 10);
+        assert_eq!(compiler.compilation.build_chunk_graph_artifact.chunk_by_ukey.len(), NUM_MODULES / 10);
       });
     });
   });
@@ -234,11 +234,6 @@ pub fn build_chunk_graph_benchmark_inner(c: &mut Criterion) {
 criterion_group!(chunk_graph, build_chunk_graph_benchmark);
 
 fn reset_chunk_graph_state(compilation: &mut Compilation) {
-  compilation.chunk_by_ukey = Default::default();
-  compilation.chunk_graph = Default::default();
-  compilation.chunk_group_by_ukey = Default::default();
-  compilation.entrypoints = Default::default();
-  compilation.async_entrypoints = Default::default();
-  compilation.named_chunk_groups = Default::default();
-  compilation.named_chunks = Default::default();
+  compilation.build_chunk_graph_artifact = Default::default();
+
 }

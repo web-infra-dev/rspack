@@ -136,8 +136,8 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   };
 
   // filter file
-  for chunk in compilation.chunk_by_ukey.values() {
-    let can_be_initial = chunk.can_be_initial(&compilation.chunk_group_by_ukey);
+  for chunk in compilation.build_chunk_graph_artifact.chunk_by_ukey.values() {
+    let can_be_initial = chunk.can_be_initial(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey);
 
     if let Some(entry_only) = self.config.entry_only
       && entry_only

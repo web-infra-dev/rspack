@@ -89,8 +89,8 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
     Default::default();
 
   // Collect all css modules in chunks and the execpted order of them
-  let chunk_graph = &compilation.chunk_graph;
-  let chunks = &compilation.chunk_by_ukey;
+  let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
+  let chunks = &compilation.build_chunk_graph_artifact.chunk_by_ukey;
   let module_graph = compilation.get_module_graph();
 
   for (chunk_ukey, chunk) in chunks.iter() {
@@ -117,7 +117,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
     if modules.is_empty() {
       continue;
     }
-    let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+    let chunk = compilation.build_chunk_graph_artifact.chunk_by_ukey.expect_get(chunk_ukey);
     let (ordered_modules, _) = CssPlugin::get_modules_in_order(chunk, modules, compilation);
     let mut module_identifiers: Vec<ModuleIdentifier> = Vec::with_capacity(ordered_modules.len());
     for (i, module) in ordered_modules.iter().enumerate() {
@@ -374,12 +374,12 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
         break;
       }
     }
-    let new_chunk_ukey = Compilation::add_chunk(&mut compilation.chunk_by_ukey);
+    let new_chunk_ukey = Compilation::add_chunk(&mut compilation.build_chunk_graph_artifact.chunk_by_ukey);
     #[allow(clippy::unwrap_used)]
-    let new_chunk = compilation.chunk_by_ukey.get_mut(&new_chunk_ukey).unwrap();
+    let new_chunk = compilation.build_chunk_graph_artifact.chunk_by_ukey.get_mut(&new_chunk_ukey).unwrap();
     new_chunk.prevent_integration();
     new_chunk.add_id_name_hints("css".to_string());
-    let chunk_graph = &mut compilation.chunk_graph;
+    let chunk_graph = &mut compilation.build_chunk_graph_artifact.chunk_graph;
     for module_identifier in &new_chunk_modules {
       remaining_modules.shift_remove(module_identifier);
       chunk_graph.connect_chunk_and_module(new_chunk_ukey, *module_identifier);
@@ -389,7 +389,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
   logger.time_end(start);
 
   let start = logger.time("apply split chunks");
-  let chunk_graph = &mut compilation.chunk_graph;
+  let chunk_graph = &mut compilation.build_chunk_graph_artifact.chunk_graph;
   for chunk_state in chunk_states.values() {
     let mut chunks: UkeySet<ChunkUkey> = UkeySet::default();
     for module_identifier in &chunk_state.modules {
@@ -399,12 +399,12 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
           continue;
         }
         chunks.insert(*new_chunk_ukey);
-        let chunk_by_ukey = &mut compilation.chunk_by_ukey;
+        let chunk_by_ukey = &mut compilation.build_chunk_graph_artifact.chunk_by_ukey;
         let [chunk, new_chunk] = chunk_by_ukey.get_many_mut([&chunk_state.chunk, new_chunk_ukey]);
         #[allow(clippy::unwrap_used)]
         chunk
           .unwrap()
-          .split(new_chunk.unwrap(), &mut compilation.chunk_group_by_ukey);
+          .split(new_chunk.unwrap(), &mut compilation.build_chunk_graph_artifact.chunk_group_by_ukey);
       }
     }
   }

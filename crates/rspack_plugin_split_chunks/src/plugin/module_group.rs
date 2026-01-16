@@ -505,7 +505,7 @@ impl SplitChunksPlugin {
         // Since there are modules removed, make sure the rest of chunks are all used.
         other_module_group.chunks.retain(|c| {
           compilation
-            .chunk_graph
+            .build_chunk_graph_artifact.chunk_graph
             .is_any_module_in_chunk(other_module_group.modules.iter(), *c)
         });
 

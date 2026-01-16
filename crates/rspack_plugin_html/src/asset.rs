@@ -56,11 +56,11 @@ impl HtmlPluginAssets {
       {
         chunks
           .iter()
-          .filter(|&name| compilation.entrypoints.contains_key(name))
+          .filter(|&name| compilation.build_chunk_graph_artifact.entrypoints.contains_key(name))
           .collect()
       } else {
         compilation
-          .entrypoints
+          .build_chunk_graph_artifact.entrypoints
           .keys()
           .filter(|&entry_name| {
             let mut included = true;
@@ -78,7 +78,7 @@ impl HtmlPluginAssets {
     let included_assets = sorted_entry_names
       .iter()
       .map(|entry_name| compilation.entrypoint_by_name(entry_name))
-      .flat_map(|entry| entry.get_files(&compilation.chunk_by_ukey))
+      .flat_map(|entry| entry.get_files(&compilation.build_chunk_graph_artifact.chunk_by_ukey))
       .filter_map(|asset_name| {
         let asset = compilation.assets().get(&asset_name).expect("TODO:");
         if asset.info.hot_module_replacement.unwrap_or(false)

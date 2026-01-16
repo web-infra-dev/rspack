@@ -14,12 +14,7 @@ pub fn build_chunk_graph(compilation: &mut Compilation) -> rspack_error::Result<
     .incremental
     .mutations_readable(IncrementalPasses::BUILD_CHUNK_GRAPH);
   let mut splitter = if enable_incremental {
-    std::mem::take(
-      &mut compilation
-        .build_chunk_graph_artifact
-        .code_splitting_cache
-        .code_splitter,
-    )
+    std::mem::take(&mut compilation.build_chunk_graph_artifact.code_splitter)
   } else {
     Default::default()
   };
@@ -47,13 +42,10 @@ pub fn build_chunk_graph(compilation: &mut Compilation) -> rspack_error::Result<
 
   // make sure all module (weak dependency particularly) has a cgm
   for module_identifier in all_modules {
-    compilation.chunk_graph.add_module(module_identifier)
+    compilation.build_chunk_graph_artifact.chunk_graph.add_module(module_identifier)
   }
 
-  compilation
-    .build_chunk_graph_artifact
-    .code_splitting_cache
-    .code_splitter = splitter;
+  compilation.build_chunk_graph_artifact.code_splitter = splitter;
 
   Ok(())
 }

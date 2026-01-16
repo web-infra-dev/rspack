@@ -769,7 +769,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let mut file_to_chunk: HashMap<&str, &Chunk> = HashMap::default();
   // use to write
   let mut file_to_chunk_ukey: HashMap<String, ChunkUkey> = HashMap::default();
-  for chunk in compilation.chunk_by_ukey.values() {
+  for chunk in compilation.build_chunk_graph_artifact.chunk_by_ukey.values() {
     for file in chunk.files() {
       file_to_chunk.insert(file, chunk);
       file_to_chunk_ukey.insert(file.to_string(), chunk.ukey());
@@ -822,7 +822,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     if let Some((source_map_filename, source_map_asset)) = source_map {
       compilation.emit_asset(source_map_filename.to_string(), source_map_asset);
 
-      let chunk = chunk_ukey.map(|ukey| compilation.chunk_by_ukey.expect_get_mut(ukey));
+      let chunk = chunk_ukey.map(|ukey| compilation.build_chunk_graph_artifact.chunk_by_ukey.expect_get_mut(ukey));
       if let Some(chunk) = chunk {
         chunk.add_auxiliary_file(source_map_filename.to_string());
       }

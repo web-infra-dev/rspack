@@ -49,10 +49,10 @@ impl CssLoadingRuntimeModule {
     let mut set: UkeySet<ChunkUkey> = Default::default();
     let module_graph = compilation.get_module_graph();
 
-    let chunk = compilation.chunk_by_ukey.expect_get(&self.chunk);
+    let chunk = compilation.build_chunk_graph_artifact.chunk_by_ukey.expect_get(&self.chunk);
 
-    for chunk in chunk.get_all_async_chunks(&compilation.chunk_group_by_ukey) {
-      if compilation.chunk_graph.has_chunk_module_by_source_type(
+    for chunk in chunk.get_all_async_chunks(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey) {
+      if compilation.build_chunk_graph_artifact.chunk_graph.has_chunk_module_by_source_type(
         &chunk,
         SOURCE_TYPE[0],
         module_graph,
@@ -128,13 +128,13 @@ impl RuntimeModule for CssLoadingRuntimeModule {
     let runtime_requirements = get_chunk_runtime_requirements(compilation, &self.chunk);
 
     let with_loading = runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS) && {
-      let chunk = compilation.chunk_by_ukey.expect_get(&self.chunk);
+      let chunk = compilation.build_chunk_graph_artifact.chunk_by_ukey.expect_get(&self.chunk);
 
       chunk
-        .get_all_async_chunks(&compilation.chunk_group_by_ukey)
+        .get_all_async_chunks(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
         .iter()
         .any(|chunk| {
-          compilation.chunk_graph.has_chunk_module_by_source_type(
+          compilation.build_chunk_graph_artifact.chunk_graph.has_chunk_module_by_source_type(
             chunk,
             SOURCE_TYPE[0],
             compilation.get_module_graph(),
@@ -150,7 +150,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
 
     let condition_map =
       compilation
-        .chunk_graph
+        .build_chunk_graph_artifact.chunk_graph
         .get_chunk_condition_map(&self.chunk, compilation, chunk_has_css);
     let has_css_matcher = compile_boolean_matcher(&condition_map);
 
@@ -211,7 +211,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
       if chunks.is_empty() {
         res.push("// no chunk loading".to_string());
       } else {
-        let chunk = compilation.chunk_by_ukey.expect_get(&self.chunk);
+        let chunk = compilation.build_chunk_graph_artifact.chunk_by_ukey.expect_get(&self.chunk);
         let loading = compilation.runtime_template.render(
           &self.template_id(TemplateId::WithLoading),
           Some(serde_json::json!({
@@ -225,7 +225,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
               chunks
                 .iter()
                 .filter_map(|id| {
-                  let chunk = compilation.chunk_by_ukey.expect_get(id);
+                  let chunk = compilation.build_chunk_graph_artifact.chunk_by_ukey.expect_get(id);
 
                   chunk.id().map(|id| {
                     format!(
@@ -344,7 +344,7 @@ impl CssLoadingRuntimeModule {
 }
 
 fn chunk_has_css(chunk: &ChunkUkey, compilation: &Compilation) -> bool {
-  compilation.chunk_graph.has_chunk_module_by_source_type(
+  compilation.build_chunk_graph_artifact.chunk_graph.has_chunk_module_by_source_type(
     chunk,
     SOURCE_TYPE[0],
     compilation.get_module_graph(),

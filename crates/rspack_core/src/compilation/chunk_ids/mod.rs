@@ -17,7 +17,7 @@ pub async fn chunk_ids_pass(
   }
 
   let mut diagnostics = vec![];
-  let mut chunk_by_ukey = mem::take(&mut compilation.chunk_by_ukey);
+  let mut chunk_by_ukey = mem::take(&mut compilation.build_chunk_graph_artifact.chunk_by_ukey);
   let mut named_chunk_ids_artifact = mem::take(&mut compilation.named_chunk_ids_artifact);
   plugin_driver
     .compilation_hooks
@@ -30,7 +30,7 @@ pub async fn chunk_ids_pass(
     )
     .await
     .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.chunkIds"))?;
-  compilation.chunk_by_ukey = chunk_by_ukey;
+  compilation.build_chunk_graph_artifact.chunk_by_ukey = chunk_by_ukey;
   compilation.named_chunk_ids_artifact = named_chunk_ids_artifact;
   compilation.extend_diagnostics(diagnostics);
   logger.time_end(start);

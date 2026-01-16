@@ -141,8 +141,8 @@ impl PluginCssExtract {
 
     let mut groups = chunk.groups().iter().cloned().collect::<Vec<_>>();
     groups.sort_by(|a, b| {
-      let a = compilation.chunk_group_by_ukey.expect_get(a);
-      let b = compilation.chunk_group_by_ukey.expect_get(b);
+      let a = compilation.build_chunk_graph_artifact.chunk_group_by_ukey.expect_get(a);
+      let b = compilation.build_chunk_graph_artifact.chunk_group_by_ukey.expect_get(b);
       match a.index.cmp(&b.index) {
         std::cmp::Ordering::Equal => a.ukey.cmp(&b.ukey),
         order_res => order_res,
@@ -152,7 +152,7 @@ impl PluginCssExtract {
     let mut modules_by_chunk_group = groups
       .iter()
       .map(|chunk_group| {
-        let chunk_group = compilation.chunk_group_by_ukey.expect_get(chunk_group);
+        let chunk_group = compilation.build_chunk_graph_artifact.chunk_group_by_ukey.expect_get(chunk_group);
         let mut sorted_module = modules
           .iter()
           .map(|module| {
@@ -270,7 +270,7 @@ impl PluginCssExtract {
                   reasons
                     .iter()
                     .filter_map(|cg| {
-                      let chunk_group = compilation.chunk_group_by_ukey.expect_get(cg);
+                      let chunk_group = compilation.build_chunk_graph_artifact.chunk_group_by_ukey.expect_get(cg);
 
                       chunk_group.name()
                     })
@@ -281,7 +281,7 @@ impl PluginCssExtract {
                 let good_chunk_groups = good_reasons.map(|reasons| {
                   reasons
                     .iter()
-                    .filter_map(|cg| compilation.chunk_group_by_ukey.expect_get(cg).name())
+                    .filter_map(|cg| compilation.build_chunk_graph_artifact.chunk_group_by_ukey.expect_get(cg).name())
                     .collect::<Vec<_>>()
                     .join(", ")
                 });
@@ -326,7 +326,7 @@ impl PluginCssExtract {
     let mut diagnostics = Vec::new();
     if let Some(conflicts) = conflicts {
       diagnostics.extend(conflicts.into_iter().map(|conflict| {
-        let chunk = compilation.chunk_by_ukey.expect_get(&conflict.chunk);
+        let chunk = compilation.build_chunk_graph_artifact.chunk_by_ukey.expect_get(&conflict.chunk);
         let fallback_module = module_graph
           .module_by_identifier(&conflict.fallback_module)
           .expect("should have module");
@@ -454,7 +454,7 @@ despite it was not able to fulfill desired ordering with these modules:
         let content = content.cow_replace(
           BASE_URI,
           chunk
-            .get_entry_options(&compilation.chunk_group_by_ukey)
+            .get_entry_options(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
             .and_then(|entry_options| entry_options.base_uri.as_ref())
             .unwrap_or(&undo_path),
         );
@@ -554,7 +554,7 @@ async fn runtime_requirement_in_tree(
             .content_hash(&compilation.chunk_hashes_artifact)?
             .contains_key(&SOURCE_TYPE[0])
             .then(|| {
-              if chunk.can_be_initial(&compilation.chunk_group_by_ukey) {
+              if chunk.can_be_initial(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey) {
                 filename.clone()
               } else {
                 chunk_filename.clone()
@@ -588,7 +588,7 @@ async fn content_hash(
 ) -> Result<()> {
   let module_graph = compilation.get_module_graph();
 
-  let rendered_modules = compilation.chunk_graph.get_chunk_modules_by_source_type(
+  let rendered_modules = compilation.build_chunk_graph_artifact.chunk_graph.get_chunk_modules_by_source_type(
     chunk_ukey,
     SOURCE_TYPE[0],
     module_graph,
@@ -597,7 +597,7 @@ async fn content_hash(
   if rendered_modules.is_empty() {
     return Ok(());
   }
-  let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+  let chunk = compilation.build_chunk_graph_artifact.chunk_by_ukey.expect_get(chunk_ukey);
 
   let (used_modules, diagnostics) =
     self.sort_modules(chunk, &rendered_modules, compilation, module_graph);
@@ -630,13 +630,13 @@ async fn render_manifest(
   diagnostics: &mut Vec<Diagnostic>,
 ) -> Result<()> {
   let module_graph = compilation.get_module_graph();
-  let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+  let chunk = compilation.build_chunk_graph_artifact.chunk_by_ukey.expect_get(chunk_ukey);
 
   if matches!(chunk.kind(), ChunkKind::HotUpdate) {
     return Ok(());
   }
 
-  let rendered_modules = compilation.chunk_graph.get_chunk_modules_by_source_type(
+  let rendered_modules = compilation.build_chunk_graph_artifact.chunk_graph.get_chunk_modules_by_source_type(
     chunk_ukey,
     SOURCE_TYPE[0],
     module_graph,
@@ -646,7 +646,7 @@ async fn render_manifest(
     return Ok(());
   }
 
-  let filename_template = if chunk.can_be_initial(&compilation.chunk_group_by_ukey) {
+  let filename_template = if chunk.can_be_initial(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey) {
     &self.options.filename
   } else {
     &self.options.chunk_filename

@@ -28,7 +28,7 @@ pub fn get_used_module_ids_and_modules(
   compilation: &Compilation,
   filter: Option<Box<dyn Fn(&BoxModule) -> bool>>,
 ) -> (FxHashSet<String>, Vec<ModuleIdentifier>) {
-  let chunk_graph = &compilation.chunk_graph;
+  let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
   let mut modules = vec![];
   let mut used_ids = FxHashSet::default();
 

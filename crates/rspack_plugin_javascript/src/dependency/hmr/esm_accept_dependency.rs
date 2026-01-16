@@ -93,7 +93,7 @@ impl DependencyTemplate for ESMAcceptDependencyTemplate {
 
       let condition = {
         compilation.runtime_template.runtime_condition_expression(
-          &compilation.chunk_graph,
+          &compilation.build_chunk_graph_artifact.chunk_graph,
           Some(&runtime_condition),
           *runtime,
           runtime_requirements,

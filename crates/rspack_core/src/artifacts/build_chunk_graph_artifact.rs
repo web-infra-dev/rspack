@@ -14,19 +14,19 @@ use crate::{
 };
 
 #[derive(Debug, Default)]
-pub struct CodeSplittingCache {
-  chunk_by_ukey: ChunkByUkey,
-  chunk_graph: ChunkGraph,
-  chunk_group_by_ukey: ChunkGroupByUkey,
-  entrypoints: IndexMap<String, ChunkGroupUkey>,
-  async_entrypoints: Vec<ChunkGroupUkey>,
-  named_chunk_groups: HashMap<String, ChunkGroupUkey>,
-  named_chunks: HashMap<String, ChunkUkey>,
+pub struct BuildChunkGraphArtifact {
+  pub chunk_by_ukey: ChunkByUkey,
+  pub chunk_graph: ChunkGraph,
+  pub chunk_group_by_ukey: ChunkGroupByUkey,
+  pub entrypoints: IndexMap<String, ChunkGroupUkey>,
+  pub async_entrypoints: Vec<ChunkGroupUkey>,
+  pub named_chunk_groups: HashMap<String, ChunkGroupUkey>,
+  pub named_chunks: HashMap<String, ChunkUkey>,
   pub(crate) code_splitter: CodeSplitter,
   pub(crate) module_idx: IdentifierMap<(u32, u32)>,
 }
 
-impl CodeSplittingCache {
+impl BuildChunkGraphArtifact {
   // we can skip rebuilding chunk graph if none of modules
   // has changed its outgoings
   // we don't need to check if module has changed its incomings
@@ -38,13 +38,11 @@ impl CodeSplittingCache {
   fn can_skip_rebuilding_legacy(&self, this_compilation: &Compilation) -> bool {
     let logger = this_compilation.get_logger("rspack.Compilation.codeSplittingCache");
 
-    if !this_compilation.entries.keys().eq(
-      this_compilation
-        .build_chunk_graph_artifact
-        .code_splitting_cache
-        .entrypoints
-        .keys(),
-    ) {
+    if !this_compilation
+      .entries
+      .keys()
+      .eq(this_compilation.build_chunk_graph_artifact.entrypoints.keys())
+    {
       logger.log("entrypoints change detected, rebuilding chunk graph");
       return false;
     }
@@ -181,23 +179,11 @@ where
     .passes_enabled(IncrementalPasses::BUILD_CHUNK_GRAPH);
   let no_change = compilation
     .build_chunk_graph_artifact
-    .code_splitting_cache
     .can_skip_rebuilding(compilation);
 
   if incremental_code_splitting || no_change {
-    let cache = &mut compilation.build_chunk_graph_artifact.code_splitting_cache;
-    rayon::scope(|s| {
-      s.spawn(|_| compilation.chunk_by_ukey = cache.chunk_by_ukey.clone());
-      s.spawn(|_| compilation.chunk_graph = cache.chunk_graph.clone());
-      s.spawn(|_| compilation.chunk_group_by_ukey = cache.chunk_group_by_ukey.clone());
-      s.spawn(|_| compilation.entrypoints = cache.entrypoints.clone());
-      s.spawn(|_| compilation.async_entrypoints = cache.async_entrypoints.clone());
-      s.spawn(|_| compilation.named_chunk_groups = cache.named_chunk_groups.clone());
-      s.spawn(|_| compilation.named_chunks = cache.named_chunks.clone());
-    });
-
     if no_change {
-      let module_idx = cache.module_idx.clone();
+      let module_idx = compilation.build_chunk_graph_artifact.module_idx.clone();
       let module_graph = compilation.get_module_graph_mut();
       for (m, (pre, post)) in module_idx {
         let mgm = module_graph.module_graph_module_by_identifier_mut(&m);
@@ -210,16 +196,6 @@ where
   }
 
   let compilation = task(compilation).await?;
-  let cache = &mut compilation.build_chunk_graph_artifact.code_splitting_cache;
-  rayon::scope(|s| {
-    s.spawn(|_| cache.chunk_by_ukey = compilation.chunk_by_ukey.clone());
-    s.spawn(|_| cache.chunk_graph = compilation.chunk_graph.clone());
-    s.spawn(|_| cache.chunk_group_by_ukey = compilation.chunk_group_by_ukey.clone());
-    s.spawn(|_| cache.entrypoints = compilation.entrypoints.clone());
-    s.spawn(|_| cache.async_entrypoints = compilation.async_entrypoints.clone());
-    s.spawn(|_| cache.named_chunk_groups = compilation.named_chunk_groups.clone());
-    s.spawn(|_| cache.named_chunks = compilation.named_chunks.clone());
-  });
 
   let mg = compilation.get_module_graph();
   let mut map = IdentifierMap::default();
@@ -230,12 +206,6 @@ where
 
     map.insert(mid, (pre, post));
   }
-  let cache = &mut compilation.build_chunk_graph_artifact.code_splitting_cache;
-  cache.module_idx = map;
+  compilation.build_chunk_graph_artifact.module_idx = map;
   Ok(())
-}
-
-#[derive(Debug, Default)]
-pub struct BuildChunkGraphArtifact {
-  pub code_splitting_cache: CodeSplittingCache,
 }
