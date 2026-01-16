@@ -19,6 +19,7 @@ use crate::{
   mock_method_dependency::MockMethodDependencyTemplate,
   mock_module_id_dependency::MockModuleIdDependencyTemplate,
   module_path_name_dependency::ModulePathNameDependencyTemplate, parser_plugin::RstestParserPlugin,
+  url_dependency::RstestUrlDependencyTemplate,
 };
 
 #[derive(Debug)]
@@ -27,6 +28,7 @@ pub struct RstestPluginOptions {
   pub hoist_mock_module: bool,
   pub import_meta_path_name: bool,
   pub manual_mock_root: String,
+  pub preserve_new_url: Vec<String>,
 }
 
 #[derive(Debug)]
@@ -147,6 +149,15 @@ async fn compilation_stage_9999(
     ImportDependencyTemplate::template_type(),
     Arc::new(ImportDependencyTemplate::default()),
   );
+
+  if !self.options.preserve_new_url.is_empty() {
+    compilation.set_dependency_template(
+      RstestUrlDependencyTemplate::template_type(),
+      Arc::new(RstestUrlDependencyTemplate::new(
+        self.options.preserve_new_url.clone(),
+      )),
+    );
+  }
 
   Ok(())
 }

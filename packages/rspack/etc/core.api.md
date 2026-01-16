@@ -53,7 +53,7 @@ import { JsRsdoctorChunkGraph } from '@rspack/binding';
 import { JsRsdoctorModuleGraph } from '@rspack/binding';
 import { JsRsdoctorModuleIdsPatch } from '@rspack/binding';
 import { JsRsdoctorModuleSourcesPatch } from '@rspack/binding';
-import type { JsRuntimeModule } from '@rspack/binding';
+import type { JsSource } from '@rspack/binding';
 import type { JsStats } from '@rspack/binding';
 import type { JsStatsCompilation } from '@rspack/binding';
 import type { JsStatsError } from '@rspack/binding';
@@ -1026,7 +1026,7 @@ export class Compilation {
         Set<string>
         ]>;
         runtimeRequirementInTree: liteTapable.HookMap<liteTapable.SyncBailHook<[Chunk, Set<string>], void>>;
-        runtimeModule: liteTapable.SyncHook<[JsRuntimeModule, Chunk]>;
+        runtimeModule: liteTapable.SyncHook<[RuntimeModule, Chunk]>;
         seal: liteTapable.SyncHook<[]>;
         afterSeal: liteTapable.AsyncSeriesHook<[], void>;
         needAdditionalPass: liteTapable.SyncBailHook<[], boolean>;
@@ -2263,6 +2263,7 @@ export type Environment = {
     document?: boolean;
     dynamicImport?: boolean;
     dynamicImportInWorker?: boolean;
+    importMetaDirnameAndFilename?: boolean;
     forOf?: boolean;
     globalThis?: boolean;
     methodShorthand?: boolean;
@@ -3564,6 +3565,7 @@ export type JavascriptParserOptions = {
     strictExportPresence?: boolean;
     worker?: string[] | boolean;
     overrideStrict?: 'strict' | 'non-strict';
+    requireAlias?: boolean;
     requireAsExpression?: boolean;
     requireDynamic?: boolean;
     requireResolve?: boolean;
@@ -7206,6 +7208,8 @@ export class RuntimeModule {
     readableIdentifier(): string;
     // (undocumented)
     shouldIsolate(): boolean;
+    // (undocumented)
+    get source(): JsSource | undefined;
     // (undocumented)
     get stage(): RuntimeModuleStage;
     // (undocumented)

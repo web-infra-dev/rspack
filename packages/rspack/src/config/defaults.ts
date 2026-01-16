@@ -322,6 +322,7 @@ const applyJavascriptParserOptionsDefaults = (
   D(parserOptions, 'wrappedContextRegExp', /.*/);
   D(parserOptions, 'strictExportPresence', false);
   D(parserOptions, 'requireAsExpression', true);
+  D(parserOptions, 'requireAlias', true);
   D(parserOptions, 'requireDynamic', true);
   D(parserOptions, 'requireResolve', true);
   D(parserOptions, 'commonjs', true);
@@ -674,6 +675,13 @@ const applyOutputDefaults = (
     environment,
     'nodePrefixForCoreModules',
     () => tp && optimistic(tp.nodePrefixForCoreModules),
+  );
+  F(
+    environment,
+    'importMetaDirnameAndFilename',
+    () =>
+      // No optimistic, because it is new
+      tp?.importMetaDirnameAndFilename,
   );
   F(environment, 'templateLiteral', () => tp && optimistic(tp.templateLiteral));
   F(environment, 'dynamicImport', () =>

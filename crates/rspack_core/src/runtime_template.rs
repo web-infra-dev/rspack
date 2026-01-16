@@ -663,14 +663,10 @@ impl RuntimeTemplate {
             !is_deferred,
             "can't inline the exports of defer imported module"
           );
-          return format!(
-            "{} {}",
-            to_normal_comment(&format!(
-              "inlined export {}",
-              property_access(export_name, 0)
-            )),
-            inlined.render()
-          );
+          return inlined.render(&to_normal_comment(&format!(
+            "inlined export {}",
+            property_access(export_name, 0)
+          )));
         }
         None => {
           return format!(

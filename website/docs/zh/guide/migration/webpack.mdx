@@ -21,7 +21,7 @@ Rspack 的配置是基于 webpack 的设计实现的，以此你能够非常轻�
 <PackageManagerTabs command="remove webpack webpack-cli webpack-dev-server" />
 
 :::tip
-在个别情况下，你仍然需要保留 `webpack` 作为开发依赖，例如使用 [vue-loader](https://github.com/vuejs/vue-loader) 时。
+在个别情况下，你仍然需要保留 `webpack` 作为开发依赖，例如使用 [vue-loader](https://github.com/vuejs/vue-loader) 时 (你可以使用 [rspack-vue-loader](https://github.com/rstackjs/rspack-vue-loader) 替代)。
 
 这是因为这些库直接 `import` 了 webpack 的子路径，与 webpack 产生了耦合。如果你遇到了这种情况，可以向这些插件的维护者反馈，询问他们能否将 `webpack` 作为可选依赖。
 :::

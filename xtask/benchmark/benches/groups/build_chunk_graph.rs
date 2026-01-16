@@ -1,11 +1,13 @@
 #![allow(clippy::unwrap_used)]
-use std::{mem, sync::Arc};
+use std::sync::Arc;
 
 use criterion::criterion_group;
 use rspack::builder::Builder as _;
 use rspack_benchmark::Criterion;
 use rspack_core::{
-  Compilation, Compiler, DerefOption, Experiments, Optimization, build_chunk_graph, fast_set,
+  Compilation, Compiler, Experiments, Optimization, build_chunk_graph,
+  build_module_graph::build_module_graph_pass,
+  fast_set,
   incremental::{Incremental, IncrementalOptions},
 };
 use rspack_error::Diagnostic;
@@ -175,13 +177,14 @@ pub fn build_chunk_graph_benchmark_inner(c: &mut Criterion) {
       .call(&mut compiler.compilation)
       .await
       .unwrap();
-    compiler.compilation.build_module_graph().await.unwrap();
+    build_module_graph_pass(&mut compiler.compilation)
+      .await
+      .unwrap();
 
     let mut side_effects_optimize_artifact =
       compiler.compilation.side_effects_optimize_artifact.take();
     let mut diagnostics: Vec<Diagnostic> = vec![];
-    let mut build_module_graph_artifact =
-      mem::take(&mut compiler.compilation.build_module_graph_artifact);
+    let mut build_module_graph_artifact = compiler.compilation.build_module_graph_artifact.take();
     while matches!(
       compiler
         .plugin_driver
@@ -197,10 +200,15 @@ pub fn build_chunk_graph_benchmark_inner(c: &mut Criterion) {
         .unwrap(),
       Some(true)
     ) {}
-    compiler.compilation.build_module_graph_artifact = build_module_graph_artifact;
+    compiler
+      .compilation
+      .build_module_graph_artifact
+      .replace(build_module_graph_artifact);
 
-    compiler.compilation.side_effects_optimize_artifact =
-      DerefOption::new(side_effects_optimize_artifact);
+    compiler
+      .compilation
+      .side_effects_optimize_artifact
+      .replace(side_effects_optimize_artifact);
     compiler.compilation.extend_diagnostics(diagnostics);
 
     compiler

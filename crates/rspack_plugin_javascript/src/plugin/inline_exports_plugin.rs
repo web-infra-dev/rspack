@@ -107,7 +107,6 @@ async fn optimize_dependencies(
     "it requires calculating the export names of all the modules, which is a global effect",
   ) {
     diagnostics.extend(diagnostic);
-    //compilation.cgm_hash_artifact.clear();
   }
 
   let mg = build_module_graph_artifact.get_module_graph_mut();

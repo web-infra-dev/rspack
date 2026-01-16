@@ -415,6 +415,9 @@ export type Environment = {
   /** The environment supports an async import() when creating a worker, only for web targets at the moment. */
   dynamicImportInWorker?: boolean;
 
+  /** The environment supports `import.meta.dirname` and `import.meta.filename`. */
+  importMetaDirnameAndFilename?: boolean;
+
   /** The environment supports 'for of' iteration ('for (const x of array) { ... }'). */
   forOf?: boolean;
 
@@ -1161,6 +1164,12 @@ export type JavascriptParserOptions = {
 
   /** Override the module to strict or non-strict. */
   overrideStrict?: 'strict' | 'non-strict';
+
+  /**
+   * Control whether renaming of the CommonJS `require` function will be parsed and transformed.
+   * @default true
+   */
+  requireAlias?: boolean;
 
   // TODO: add docs
   requireAsExpression?: boolean;

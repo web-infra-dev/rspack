@@ -418,7 +418,11 @@ async fn module_ids(
 }
 
 #[plugin_hook(CompilationAfterCodeGeneration for RsdoctorPlugin, stage = 9999)]
-async fn after_code_generation(&self, compilation: &mut Compilation) -> Result<()> {
+async fn after_code_generation(
+  &self,
+  compilation: &Compilation,
+  _diagnostics: &mut Vec<Diagnostic>,
+) -> Result<()> {
   if !self.has_module_graph_feature(RsdoctorPluginModuleGraphFeature::ModuleSources) {
     return Ok(());
   }
