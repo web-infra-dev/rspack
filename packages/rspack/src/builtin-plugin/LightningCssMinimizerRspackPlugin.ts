@@ -55,6 +55,7 @@ export const LightningCssMinimizerRspackPlugin = create(
       else if (typeof options.minimizerOptions.targets === 'object')
         targets = encodeTargets(options.minimizerOptions.targets);
     } else if (this.target.platforms) {
+      // Default target derived from rspack target
       targets = resolveDefaultLightningCssTargets(this.target.platforms);
     }
     return {

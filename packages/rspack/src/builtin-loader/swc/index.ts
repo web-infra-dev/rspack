@@ -25,13 +25,19 @@ export const getSwcLoaderOptions: GetLoaderOptions = (o, composeOptions) => {
     options.jsc.experimental ??= {};
     options.jsc.experimental.disableAllLints ??= true;
 
-    if (composeOptions.compiler.target?.platforms) {
-      const { platforms } = composeOptions.compiler.target;
-      options.env ??= {};
-      options.env.targets ??= resolveDefaultSwcTargets(platforms);
-    } else if (composeOptions.compiler.target?.esVersion) {
-      const { esVersion } = composeOptions.compiler.target;
-      options.jsc.target ??= esVersion >= 2015 ? `es${esVersion}` : 'es5';
+    // Default target derived from rspack target
+    if (
+      options.env?.targets === undefined &&
+      options.jsc?.target === undefined
+    ) {
+      if (composeOptions.compiler.target?.platforms) {
+        const { platforms } = composeOptions.compiler.target;
+        options.env ??= {};
+        options.env.targets ??= resolveDefaultSwcTargets(platforms);
+      } else if (composeOptions.compiler.target?.esVersion) {
+        const { esVersion } = composeOptions.compiler.target;
+        options.jsc.target ??= esVersion >= 2015 ? `es${esVersion}` : 'es5';
+      }
     }
 
     // resolve top-level `collectTypeScriptInfo` options (stable API)

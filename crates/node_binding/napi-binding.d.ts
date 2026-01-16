@@ -2101,22 +2101,22 @@ export interface RawEntryDynamicResult {
 }
 
 export interface RawEnvironment {
-  const?: boolean
-  methodShorthand?: boolean
-  arrowFunction?: boolean
-  nodePrefixForCoreModules?: boolean
-  asyncFunction?: boolean
-  bigIntLiteral?: boolean
-  destructuring?: boolean
-  document?: boolean
-  dynamicImport?: boolean
-  forOf?: boolean
-  globalThis?: boolean
-  module?: boolean
-  optionalChaining?: boolean
-  templateLiteral?: boolean
-  dynamicImportInWorker?: boolean
-  importMetaDirnameAndFilename?: boolean
+  const: boolean
+  methodShorthand: boolean
+  arrowFunction: boolean
+  nodePrefixForCoreModules: boolean
+  asyncFunction: boolean
+  bigIntLiteral: boolean
+  destructuring: boolean
+  document: boolean
+  dynamicImport: boolean
+  forOf: boolean
+  globalThis: boolean
+  module: boolean
+  optionalChaining: boolean
+  templateLiteral: boolean
+  dynamicImportInWorker: boolean
+  importMetaDirnameAndFilename: boolean
 }
 
 export interface RawEsmLibraryPlugin {

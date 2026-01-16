@@ -326,8 +326,7 @@ impl NodeStuffPlugin {
           .compiler_options
           .output
           .environment
-          .import_meta_dirname_and_filename
-          .unwrap_or(false)
+          .supports_import_meta_dirname_and_filename()
       {
         // Keep as import.meta.filename/dirname - runtime supports it
         return Some(property.import_meta_name().to_string());
@@ -385,8 +384,7 @@ impl NodeStuffPlugin {
           .compiler_options
           .output
           .environment
-          .import_meta_dirname_and_filename
-          .unwrap_or(false)
+          .supports_import_meta_dirname_and_filename()
       {
         return Some(property.import_meta_name().to_string());
       }

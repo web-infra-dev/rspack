@@ -277,7 +277,11 @@ export const SwcJsMinimizerRspackPlugin = create(
   ): RawSwcJsMinimizerRspackPluginOptions {
     let compress = options?.minimizerOptions?.compress ?? true;
     const mangle = options?.minimizerOptions?.mangle ?? true;
-    const ecma = options?.minimizerOptions?.ecma ?? this.target?.esVersion ?? 5;
+    const ecma =
+      options?.minimizerOptions?.ecma ??
+      // Default target derived from rspack target
+      this.target?.esVersion ??
+      5;
     const format = {
       comments: false, // terser and swc use different default value: 'some'
       ...options?.minimizerOptions?.format,

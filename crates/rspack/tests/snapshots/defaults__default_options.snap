@@ -95,50 +95,22 @@ CompilerOptions {
         worker_public_path: "",
         script_type: "",
         environment: Environment {
-            const: Some(
-                false,
-            ),
-            method_shorthand: None,
-            arrow_function: Some(
-                false,
-            ),
-            node_prefix_for_core_modules: Some(
-                false,
-            ),
-            async_function: Some(
-                false,
-            ),
-            big_int_literal: Some(
-                false,
-            ),
-            destructuring: Some(
-                false,
-            ),
-            document: Some(
-                true,
-            ),
-            dynamic_import: Some(
-                false,
-            ),
-            for_of: Some(
-                false,
-            ),
-            global_this: Some(
-                false,
-            ),
-            module: Some(
-                false,
-            ),
-            optional_chaining: Some(
-                false,
-            ),
-            template_literal: Some(
-                false,
-            ),
-            dynamic_import_in_worker: Some(
-                false,
-            ),
-            import_meta_dirname_and_filename: None,
+            const: false,
+            method_shorthand: true,
+            arrow_function: false,
+            node_prefix_for_core_modules: false,
+            async_function: false,
+            big_int_literal: false,
+            destructuring: false,
+            document: true,
+            dynamic_import: false,
+            for_of: false,
+            global_this: false,
+            module: false,
+            optional_chaining: false,
+            template_literal: false,
+            dynamic_import_in_worker: false,
+            import_meta_dirname_and_filename: false,
         },
         compare_before_emit: true,
     },

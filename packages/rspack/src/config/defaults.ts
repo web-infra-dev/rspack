@@ -595,14 +595,17 @@ const applyOutputDefaults = (
   F(output, 'module', () => !!outputModule);
 
   const environment = output.environment!;
-  // For new features we don't optimistically assume user's target already support it
-  const unoptimistic = (v?: boolean | null) => v === true;
+
   // For old features we optimistically assume user's target already support it
   const optimistic = (v?: boolean | null) => v || v === undefined;
   const conditionallyOptimistic = (v?: boolean | null, c?: boolean) =>
-    (v === undefined && c) || !!v;
+    (v === undefined && c) || v;
 
-  F(environment, 'globalThis', () => tp && unoptimistic(tp.globalThis));
+  F(
+    environment,
+    'globalThis',
+    () => tp && (tp.globalThis as boolean | undefined),
+  );
   F(environment, 'bigIntLiteral', () => tp && optimistic(tp.bigIntLiteral));
   F(environment, 'const', () => tp && optimistic(tp.const));
   // IGNORE(output.environment.methodShorthand): will align method shorthand optimization for webpack soon
@@ -624,24 +627,36 @@ const applyOutputDefaults = (
   F(
     environment,
     'importMetaDirnameAndFilename',
-    () => tp && unoptimistic(tp.importMetaDirnameAndFilename),
+    // No optimistic, because it is new
+    () => tp && (tp.importMetaDirnameAndFilename as boolean | undefined),
   );
   F(environment, 'templateLiteral', () => tp && optimistic(tp.templateLiteral));
   F(
     environment,
     'dynamicImport',
-    () => tp && conditionallyOptimistic(tp.dynamicImport, output.module),
+    () =>
+      tp &&
+      (conditionallyOptimistic(tp.dynamicImport, output.module) as
+        | boolean
+        | undefined),
   );
   F(
     environment,
     'dynamicImportInWorker',
     () =>
-      tp && conditionallyOptimistic(tp.dynamicImportInWorker, output.module),
+      tp &&
+      (conditionallyOptimistic(tp.dynamicImportInWorker, output.module) as
+        | boolean
+        | undefined),
   );
   F(
     environment,
     'module',
-    () => tp && conditionallyOptimistic(tp.module, output.module),
+    () =>
+      tp &&
+      (conditionallyOptimistic(tp.module, output.module) as
+        | boolean
+        | undefined),
   );
   F(environment, 'document', () => tp && optimistic(tp.document));
 

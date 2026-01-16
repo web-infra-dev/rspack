@@ -231,6 +231,7 @@ export const getLightningcssLoaderOptions: GetLoaderOptions = (
       options.targets === undefined &&
       composeOptions.compiler.target?.platforms
     ) {
+      // Default target derived from rspack target
       options.targets = resolveDefaultLightningCssTargets(
         composeOptions.compiler.target.platforms,
       );
