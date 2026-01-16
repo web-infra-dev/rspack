@@ -88,7 +88,6 @@ export const lazyCompilationMiddleware = (
       }
 
       const options = {
-        // TODO: remove this when experiments.lazyCompilation is removed
         ...c.options.experiments.lazyCompilation,
         ...c.options.lazyCompilation,
       };
@@ -173,7 +172,69 @@ function applyPlugin(
   plugin.apply(compiler);
 }
 
-// used for reuse code, do not export this
+function readModuleIdsFromBody(
+  req: IncomingMessage & { body?: unknown },
+): Promise<string[]> {
+  // If body is already parsed by another middleware, use it directly
+  if (req.body !== undefined) {
+    if (Array.isArray(req.body)) {
+      return Promise.resolve(req.body);
+    }
+    if (typeof req.body === 'string') {
+      return Promise.resolve(req.body.split('\n').filter(Boolean));
+    }
+    throw new Error('Invalid body type');
+  }
+
+  return new Promise((resolve, reject) => {
+    if ((req as any).aborted || req.destroyed) {
+      reject(new Error('Request was aborted before body could be read'));
+      return;
+    }
+
+    const cleanup = () => {
+      req.removeListener('data', onData);
+      req.removeListener('end', onEnd);
+      req.removeListener('error', onError);
+      req.removeListener('close', onClose);
+      req.removeListener('aborted', onAborted);
+    };
+
+    const chunks: Buffer[] = [];
+    const onData = (chunk: Buffer) => {
+      chunks.push(chunk);
+    };
+
+    const onEnd = () => {
+      cleanup();
+      // Concatenate all chunks and decode as UTF-8 to handle multibyte characters correctly
+      const body = Buffer.concat(chunks).toString('utf8');
+      resolve(body.split('\n').filter(Boolean));
+    };
+
+    const onError = (err: Error) => {
+      cleanup();
+      reject(err);
+    };
+
+    const onClose = () => {
+      cleanup();
+      reject(new Error('Request was closed before body could be read'));
+    };
+
+    const onAborted = () => {
+      cleanup();
+      reject(new Error('Request was aborted before body could be read'));
+    };
+
+    req.on('data', onData);
+    req.on('end', onEnd);
+    req.on('error', onError);
+    req.on('close', onClose);
+    req.on('aborted', onAborted);
+  });
+}
+
 const lazyCompilationMiddlewareInternal = (
   compiler: Compiler | MultiCompiler,
   activeModules: Set<string>,
@@ -181,21 +242,24 @@ const lazyCompilationMiddlewareInternal = (
 ): MiddlewareHandler => {
   const logger = compiler.getInfrastructureLogger('LazyCompilation');
 
-  return (req: IncomingMessage, res: ServerResponse, next?: () => void) => {
-    if (!req.url?.startsWith(lazyCompilationPrefix)) {
-      // only handle requests that are come from lazyCompilation
+  return async (
+    req: IncomingMessage,
+    res: ServerResponse,
+    next?: () => void,
+  ) => {
+    if (!req.url?.startsWith(lazyCompilationPrefix) || req.method !== 'POST') {
       return next?.();
     }
 
-    const modules = req.url
-      .slice(lazyCompilationPrefix.length)
-      .split('@')
-      .map(decodeURIComponent);
-    req.socket.setNoDelay(true);
-
-    res.setHeader('content-type', 'text/event-stream');
-    res.writeHead(200);
-    res.write('\n');
+    let modules: string[] = [];
+    try {
+      modules = await readModuleIdsFromBody(req);
+    } catch (err) {
+      logger.error('Failed to parse request body: ' + err);
+      res.writeHead(400);
+      res.end('Bad Request');
+      return;
+    }
 
     const moduleActivated = [];
     for (const key of modules) {
@@ -210,5 +274,9 @@ const lazyCompilationMiddlewareInternal = (
     if (moduleActivated.length && compiler.watching) {
       compiler.watching.invalidate();
     }
+
+    res.writeHead(200);
+    res.write('\n');
+    res.end();
   };
 };
