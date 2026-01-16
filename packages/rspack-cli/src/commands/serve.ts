@@ -4,6 +4,7 @@ import type {
   MultiCompiler,
   MultiRspackOptions,
 } from '@rspack/core';
+import { rspack } from '@rspack/core';
 // @ts-ignore
 import type { RspackDevServer as RspackDevServerType } from '@rspack/dev-server';
 import type { RspackCLI } from '../cli';
@@ -69,15 +70,15 @@ export class ServeCommand implements RspackCommand {
         ) {
           logger.error(
             'The "@rspack/dev-server" package is required to use the serve command.\n' +
-            'Please install it by running:\n' +
-            '  pnpm add -D @rspack/dev-server\n' +
-            '  or\n' +
-            '  npm install -D @rspack/dev-server',
+              'Please install it by running:\n' +
+              '  pnpm add -D @rspack/dev-server\n' +
+              '  or\n' +
+              '  npm install -D @rspack/dev-server',
           );
         } else {
           logger.error(
             'Failed to load "@rspack/dev-server":\n' +
-            ((error as Error)?.message || String(error)),
+              ((error as Error)?.message || String(error)),
           );
         }
         process.exit(1);
