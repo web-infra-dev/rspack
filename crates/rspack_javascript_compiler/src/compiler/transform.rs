@@ -5,7 +5,7 @@
  * Author Donny/강동윤
  * Copyright (c)
  */
-use std::{env, fs::File, path::PathBuf, rc::Rc, sync::Arc};
+use std::{env, fs::File, path::PathBuf, sync::Arc};
 
 use anyhow::{Context, bail};
 use base64::prelude::*;
@@ -99,7 +99,6 @@ impl<'a> JavaScriptTransformer<'a> {
     });
 
     let config = get_swc_config_from_file(&fm.name);
-    let comments = Rc::new(SingleThreadedComments::default());
     let helpers = GLOBALS.set(&compiler.globals, || {
       let mut external_helpers = options.config.jsc.external_helpers;
       external_helpers.merge(config.jsc.external_helpers);
