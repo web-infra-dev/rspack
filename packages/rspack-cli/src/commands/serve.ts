@@ -1,4 +1,11 @@
-import type { Compiler, MultiRspackOptions } from '@rspack/core';
+import type {
+  Compiler,
+  DevServer,
+  MultiCompiler,
+  MultiRspackOptions,
+} from '@rspack/core';
+// @ts-ignore
+import type { RspackDevServer as RspackDevServerType } from '@rspack/dev-server';
 import type { RspackCLI } from '../cli';
 import { DEFAULT_SERVER_HOT } from '../constants';
 import type { RspackCommand } from '../types';
@@ -47,15 +54,18 @@ export class ServeCommand implements RspackCommand {
       cliOptions.hot = normalizeHotOption(cliOptions.hot);
 
       // Lazy import @rspack/dev-server to avoid loading it on build mode
-      let RspackDevServer: any;
+      let RspackDevServer: new (
+        options: DevServer,
+        compiler: MultiCompiler | Compiler,
+      ) => RspackDevServerType;
       try {
         const devServerModule = await import('@rspack/dev-server');
         RspackDevServer = devServerModule.RspackDevServer;
-      } catch (error: any) {
+      } catch (error: unknown) {
         const logger = cli.getLogger();
         if (
-          error?.code === 'MODULE_NOT_FOUND' ||
-          error?.code === 'ERR_MODULE_NOT_FOUND'
+          (error as Error & { code?: string })?.code === 'MODULE_NOT_FOUND' ||
+          (error as Error & { code?: string })?.code === 'ERR_MODULE_NOT_FOUND'
         ) {
           logger.error(
             'The "@rspack/dev-server" package is required to use the serve command.\n' +
@@ -67,7 +77,7 @@ export class ServeCommand implements RspackCommand {
         } else {
           logger.error(
             'Failed to load "@rspack/dev-server":\n' +
-            (error?.message || String(error)),
+            ((error as Error)?.message || String(error)),
           );
         }
         process.exit(1);
@@ -90,7 +100,7 @@ export class ServeCommand implements RspackCommand {
       );
 
       const usedPorts: number[] = [];
-      const servers: any[] = [];
+      const servers: RspackDevServerType[] = [];
 
       /**
        * webpack uses an Array of compilerForDevServer,

@@ -1,3 +1,5 @@
+import { PackageManagerTabs } from '@theme';
+
 # Command line interface
 
 [@rspack/cli](https://npmjs.com/package/@rspack/cli) is the command line tool for Rspack, providing a variety of commands to make working with Rspack easier.
@@ -76,12 +78,7 @@ Options:
 :::info Required dependency
 The `rspack dev` command requires `@rspack/dev-server` to be installed. If you haven't installed it yet, run:
 
-```bash
-pnpm add -D @rspack/dev-server
-# or
-npm install -D @rspack/dev-server
-```
-
+<PackageManagerTabs command="add @rspack/dev-server -D" />
 :::
 
 ```bash
@@ -125,11 +122,7 @@ Options:
 :::info Required dependency
 The `rspack preview` command requires `@rspack/dev-server` to be installed. If you haven't installed it yet, run:
 
-```bash
-pnpm add -D @rspack/dev-server
-# or
-npm install -D @rspack/dev-server
-```
+<PackageManagerTabs command="add @rspack/dev-server -D" />
 
 :::
 
