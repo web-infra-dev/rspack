@@ -53,11 +53,7 @@ async fn additional_chunk_runtime_requirements(
     .get_number_of_entry_modules(chunk_ukey)
     > 0
   {
-    // When async federation startup is requested, STARTUP_ENTRYPOINT will be present and
-    // the MF wrapper handles startup; avoid adding ON_CHUNKS_LOADED in that case.
-    if !runtime_requirements.contains(RuntimeGlobals::ASYNC_FEDERATION_STARTUP) {
-      runtime_requirements.insert(RuntimeGlobals::ON_CHUNKS_LOADED);
-    }
+    runtime_requirements.insert(RuntimeGlobals::ON_CHUNKS_LOADED);
     runtime_requirements.insert(RuntimeGlobals::EXPORTS);
     runtime_requirements.insert(RuntimeGlobals::REQUIRE);
   }

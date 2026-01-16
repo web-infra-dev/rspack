@@ -401,11 +401,6 @@ var {} = {{}};
           .chunk_graph
           .get_chunk_entry_modules_with_chunk_group_iterable(chunk_ukey);
         let module_graph = compilation.get_module_graph();
-        let has_expose_entry = compilation.chunk_graph.has_chunk_module_by_source_type(
-          chunk_ukey,
-          SourceType::Expose,
-          module_graph,
-        );
         for (i, (module, entry)) in entries.iter().enumerate() {
           let chunk_group = compilation.chunk_group_by_ukey.expect_get(entry);
           let chunk_ids = chunk_group
@@ -624,36 +619,14 @@ var {} = {{}};
             .into(),
           );
           startup.push("// run startup".into());
-          if has_expose_entry
-            && runtime_requirements.contains(RuntimeGlobals::ASYNC_FEDERATION_STARTUP)
-          {
-            let require_global = runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE);
-            startup.push(
-              format!(
-                "if ({}.mfStartupBase) {}.mfStartupBase();",
-                require_global, require_global
-              )
-              .into(),
-            );
-            startup.push(
-              format!(
-                "var {} = ({}.mfStartup || {})();",
-                runtime_template.render_runtime_globals(&RuntimeGlobals::EXPORTS),
-                require_global,
-                runtime_template.render_runtime_globals(&RuntimeGlobals::STARTUP)
-              )
-              .into(),
-            );
-          } else {
-            startup.push(
-              format!(
-                "var {} = {}();",
-                runtime_template.render_runtime_globals(&RuntimeGlobals::EXPORTS),
-                runtime_template.render_runtime_globals(&RuntimeGlobals::STARTUP)
-              )
-              .into(),
-            );
-          }
+          startup.push(
+            format!(
+              "var {} = {}();",
+              runtime_template.render_runtime_globals(&RuntimeGlobals::EXPORTS),
+              runtime_template.render_runtime_globals(&RuntimeGlobals::STARTUP)
+            )
+            .into(),
+          );
         } else {
           startup.push("// startup".into());
           startup.push(buf2.join("\n").into());

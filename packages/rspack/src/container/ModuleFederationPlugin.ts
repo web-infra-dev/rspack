@@ -59,7 +59,6 @@ export class ModuleFederationPlugin {
     new ModuleFederationRuntimePlugin({
       entryRuntime,
       experiments: runtimeExperiments,
-      asyncStartup,
     }).apply(compiler);
 
     // Keep v1 options isolated from v2-only fields like `experiments`.
