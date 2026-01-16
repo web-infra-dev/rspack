@@ -4,7 +4,11 @@ import { test as base, expect } from '@playwright/test';
 import fs from 'fs-extra';
 import { type Compiler, type Configuration, rspack } from '@rspack/core';
 import { RspackDevServer } from '@rspack/dev-server';
+import { fileURLToPath } from 'node:url';
+import { createRequire } from 'node:module';
 
+const require = createRequire(import.meta.url);
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const tempDir = path.resolve(__dirname, '../../temp');
 
 // Create a separate lazy compilation server on a different port (cross-origin)
