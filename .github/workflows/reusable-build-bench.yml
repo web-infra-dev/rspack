@@ -82,3 +82,5 @@ jobs:
         with:
           run: pnpm run bench:ci
           token: ${{ secrets.CODSPEED_TOKEN }}
+      - name: debug
+        uses: ./.github/actions/debugger

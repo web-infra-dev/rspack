@@ -99,4 +99,4 @@ runs:
 
         # Run the benchmarks
         # Enable fair sched to make benchmark more stable, see: https://github.com/CodSpeedHQ/runner/pull/91
-        env VALGRIND_FLAGS='--fair-sched=yes' codspeed run $RUNNER_ARGS -- '${{ inputs.run }}'
+        # env VALGRIND_FLAGS='--fair-sched=yes' codspeed run $RUNNER_ARGS -- '${{ inputs.run }}'
