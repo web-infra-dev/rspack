@@ -17,5 +17,9 @@ module.exports = [0, 1, 10, 2, 20, 11, 12, 13, 3, 30].map(n => ({
 				for (let i = (n / 10) | 0; i > 0; i--) compilation.warnings.push(err);
 			});
 		}
-	]
+	],
+	stats: {
+		assets: true,
+		modules: true,
+	}
 }));

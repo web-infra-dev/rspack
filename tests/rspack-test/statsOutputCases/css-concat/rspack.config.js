@@ -7,5 +7,10 @@ module.exports = {
 	},
 	experiments: {
 		css: true
+	},
+	stats: {
+		entrypoints: true,
+		assets: true,
+		modules: true,
 	}
 };

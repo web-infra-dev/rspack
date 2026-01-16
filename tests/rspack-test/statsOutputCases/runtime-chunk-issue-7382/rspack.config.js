@@ -12,6 +12,7 @@ module.exports = {
 		hash: false,
 		timings: false,
 		builtAt: false,
+		entrypoints: true,
 		assets: false,
 		modules: false,
 		reasons: true

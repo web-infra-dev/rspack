@@ -10,6 +10,7 @@ module.exports = {
 		filename: "[name].js"
 	},
 	stats: {
+		assets: true,
 		hash: false,
 		timings: false,
 		builtAt: false,

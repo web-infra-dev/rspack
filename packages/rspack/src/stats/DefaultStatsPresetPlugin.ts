@@ -29,6 +29,7 @@ const NAMED_PRESETS: Record<string, StatsOptions> = {
     entrypoints: true,
     chunkGroups: true,
     ids: true,
+    assets: true,
     modules: false,
     chunks: true,
     chunkRelations: true,
@@ -60,11 +61,13 @@ const NAMED_PRESETS: Record<string, StatsOptions> = {
   detailed: {
     hash: true,
     builtAt: true,
+    assets: true,
     relatedAssets: true,
     entrypoints: true,
     chunkGroups: true,
     ids: true,
     chunks: true,
+    modules: true,
     chunkRelations: true,
     chunkModules: false,
     chunkOrigins: true,
@@ -151,6 +154,8 @@ const AUTO_FOR_TO_STRING: StatsFunc = ({ all }, { forToString }) => {
   return true;
 };
 
+// NOTE: Unlike webpack's defaults, Rspack uses minimal stats defaults to reduce JS-Rust communication overhead.
+// The default behavior aligns with the 'errors-warnings' preset for both toString() and toJson() output.
 const DEFAULTS: StatsDefault = {
   // context: (options, context, compilation) => compilation.compiler.context,
   // requestShortener: (options, context, compilation) =>
@@ -163,14 +168,14 @@ const DEFAULTS: StatsDefault = {
   version: NORMAL_ON,
   timings: NORMAL_ON,
   builtAt: OFF_FOR_TO_STRING,
-  assets: NORMAL_ON,
-  entrypoints: AUTO_FOR_TO_STRING,
-  chunkGroups: OFF_FOR_TO_STRING,
+  assets: NORMAL_OFF,
+  entrypoints: NORMAL_OFF,
+  chunkGroups: NORMAL_OFF,
   chunkGroupAuxiliary: OFF_FOR_TO_STRING,
   chunkGroupChildren: OFF_FOR_TO_STRING,
   chunkGroupMaxAssets: (_, { forToString }) =>
     forToString ? 5 : Number.POSITIVE_INFINITY,
-  chunks: OFF_FOR_TO_STRING,
+  chunks: NORMAL_OFF,
   chunkRelations: OFF_FOR_TO_STRING,
   chunkModules: ({ all, modules }) => {
     if (all === false) return false;
@@ -181,12 +186,7 @@ const DEFAULTS: StatsDefault = {
   dependentModules: OFF_FOR_TO_STRING,
   chunkOrigins: OFF_FOR_TO_STRING,
   ids: OFF_FOR_TO_STRING,
-  modules: ({ all, chunks, chunkModules }, { forToString }) => {
-    if (all === false) return false;
-    if (all === true) return true;
-    if (forToString && chunks && chunkModules) return false;
-    return true;
-  },
+  modules: NORMAL_OFF,
   nestedModules: OFF_FOR_TO_STRING,
   groupModulesByType: ON_FOR_TO_STRING,
   groupModulesByCacheStatus: ON_FOR_TO_STRING,

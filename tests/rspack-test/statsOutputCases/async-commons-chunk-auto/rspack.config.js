@@ -6,7 +6,8 @@ const stats = {
 	assets: false,
 	chunks: true,
 	chunkOrigins: true,
-	modules: false
+	modules: false,
+	entrypoints: 'auto',
 };
 /** @type {import("@rspack/core").Configuration[]} */
 module.exports = [
