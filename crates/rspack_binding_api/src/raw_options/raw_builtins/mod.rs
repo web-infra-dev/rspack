@@ -127,7 +127,10 @@ use self::{
 };
 use crate::{
   options::entry::JsEntryPluginOptions,
-  plugins::{JsCoordinator, JsLoaderRspackPlugin, JsLoaderRunnerGetter},
+  plugins::{
+    JsCoordinator, JsLoaderRspackPlugin, JsLoaderRunnerGetter, JsRscClientPluginOptions,
+    JsRscServerPluginOptions,
+  },
   raw_options::{
     RawDynamicEntryPluginOptions, RawEvalDevToolModulePluginOptions, RawExternalItemWrapper,
     RawExternalsPluginOptions, RawHttpExternalsRspackPluginOptions, RawSplitChunksOptions,
@@ -842,12 +845,12 @@ impl<'a> BuiltinPlugin<'a> {
         plugins.push(CssChunkingPlugin::new(options.into()).boxed());
       }
       BuiltinPluginName::RscServerPlugin => {
-        let options = downcast_into::<&mut JsCoordinator>(self.options)
+        let options = &downcast_into::<JsRscServerPluginOptions>(self.options)
           .map_err(|report| napi::Error::from_reason(report.to_string()))?;
-        plugins.push(RscServerPlugin::new(options.into()).boxed());
+        plugins.push(RscServerPlugin::new(options.try_into()?).boxed());
       }
       BuiltinPluginName::RscClientPlugin => {
-        let options = downcast_into::<&mut JsCoordinator>(self.options)
+        let options = &downcast_into::<JsRscClientPluginOptions>(self.options)
           .map_err(|report| napi::Error::from_reason(report.to_string()))?;
         plugins.push(RscClientPlugin::new(options.into()).boxed());
       }

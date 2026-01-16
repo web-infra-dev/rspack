@@ -39,6 +39,7 @@ define_hook!(CompilerEmit: Series(compilation: &mut Compilation));
 define_hook!(CompilerAfterEmit: Series(compilation: &mut Compilation));
 define_hook!(CompilerAssetEmitted: Series(compilation: &Compilation, filename: &str, info: &AssetEmittedInfo));
 define_hook!(CompilerClose: Series(compilation: &Compilation));
+define_hook!(CompilerDone: Series(compilation: &Compilation));
 define_hook!(CompilerFailed: Series(compilation: &Compilation));
 
 #[derive(Debug, Default)]
@@ -52,6 +53,7 @@ pub struct CompilerHooks {
   pub after_emit: CompilerAfterEmitHook,
   pub asset_emitted: CompilerAssetEmittedHook,
   pub close: CompilerCloseHook,
+  pub done: CompilerDoneHook,
   pub failed: CompilerFailedHook,
 }
 
@@ -212,7 +214,15 @@ impl Compiler {
   pub async fn build(&mut self) -> Result<()> {
     let compiler_context = self.compiler_context.clone();
     match within_compiler_context(compiler_context, self.build_inner()).await {
-      Ok(_) => Ok(()),
+      Ok(_) => {
+        self
+          .plugin_driver
+          .compiler_hooks
+          .done
+          .call(&self.compilation)
+          .await?;
+        Ok(())
+      }
       Err(e) => {
         self
           .plugin_driver

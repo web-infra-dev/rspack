@@ -5,9 +5,8 @@ use derive_more::Debug;
 use rspack_collections::Identifier;
 use rspack_core::{
   ChunkGraph, ChunkGroup, ChunkGroupUkey, ChunkUkey, Compilation, CompilationAfterProcessAssets,
-  CompilationRuntimeRequirementInTree, CompilerFailed, CompilerId, CompilerMake,
-  CrossOriginLoading, Dependency, DependencyId, EntryDependency, Logger, ModuleGraph,
-  ModuleId, ModuleIdentifier, Plugin, RuntimeGlobals,
+  CompilerFailed, CompilerId, CompilerMake, CrossOriginLoading, Dependency, DependencyId,
+  EntryDependency, Logger, ModuleGraph, ModuleId, ModuleIdentifier, Plugin,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
@@ -16,7 +15,6 @@ use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::{
   Coordinator,
-  hot_reloader_runtime_module::RscHotReloaderRuntimeModule,
   loaders::client_entry_loader::{
     CLIENT_ENTRY_LOADER_IDENTIFIER, ParsedClientEntries, parse_client_entries,
   },
@@ -26,7 +24,7 @@ use crate::{
 };
 
 pub struct RscClientPluginOptions {
-  pub coordinator: Coordinator,
+  pub coordinator: Arc<Coordinator>,
 }
 
 #[plugin]
@@ -97,8 +95,11 @@ fn record_module(
       return;
     };
 
-    #[allow(clippy::unwrap_used)]
-    let prefix = &plugin_state.module_loading.as_ref().unwrap().prefix;
+    let prefix = &plugin_state
+      .module_loading
+      .as_ref()
+      .expect("module_loading should be initialized in traverse_modules before recording modules")
+      .prefix;
     let css_files: Vec<String> = chunk
       .files()
       .iter()
@@ -246,8 +247,11 @@ async fn collect_entry_js_files(
       .entry_js_files
       .entry(entry_name.to_string())
       .or_default();
-    #[allow(clippy::unwrap_used)]
-    let prefix = &plugin_state.module_loading.as_ref().unwrap().prefix;
+    let prefix = &plugin_state
+      .module_loading
+      .as_ref()
+      .expect("module_loading should be initialized in traverse_modules before recording modules")
+      .prefix;
 
     *entry_js_files = chunk_group
       .get_files(&compilation.chunk_by_ukey)
@@ -345,8 +349,8 @@ fn collect_client_actions_from_dependencies(
 }
 
 impl RscClientPlugin {
-  pub fn new(coordinator: Arc<Coordinator>) -> Self {
-    Self::new_inner(coordinator, Default::default(), Default::default())
+  pub fn new(options: RscClientPluginOptions) -> Self {
+    Self::new_inner(options.coordinator, Default::default(), Default::default())
   }
 
   async fn traverse_modules(
@@ -454,11 +458,6 @@ impl Plugin for RscClientPlugin {
 
     ctx
       .compilation_hooks
-      .runtime_requirement_in_tree
-      .tap(runtime_requirements_in_tree::new(self));
-
-    ctx
-      .compilation_hooks
       .after_process_assets
       .tap(after_process_assets::new(self));
 
@@ -476,14 +475,14 @@ async fn make(&self, compilation: &mut Compilation) -> Result<()> {
   *self.server_compiler_id.borrow_mut() = Some(server_compiler_id);
 
   let plugin_states = PLUGIN_STATES.borrow_mut();
-  let Some(plugin_state) = plugin_states.get(&server_compiler_id) else {
-    return Err(rspack_error::error!(
-      "Failed to find plugin state for server compiler (ID: {}). \
-     The server compiler may not have properly collected client entry information, \
-     or the compiler has not been initialized yet.",
-      server_compiler_id.as_u32()
-    ));
-  };
+  let plugin_state = plugin_states
+    .get(&compilation.compiler_id())
+    .ok_or_else(|| {
+      rspack_error::error!(
+        "RscClientPlugin: Plugin state not found in make hook for compiler {:#?}.",
+        compilation.compiler_id()
+      )
+    })?;
 
   let context = compilation.options.context.clone();
   let mut include_dependencies = vec![];
@@ -526,7 +525,8 @@ async fn make(&self, compilation: &mut Compilation) -> Result<()> {
         .or_default()
         .insert(*dependency.id());
       include_dependencies.push(*dependency.id());
-      compilation.get_module_graph_mut()
+      compilation
+        .get_module_graph_mut()
         .add_dependency(dependency);
     }
 
@@ -540,30 +540,12 @@ async fn make(&self, compilation: &mut Compilation) -> Result<()> {
   Ok(())
 }
 
-#[plugin_hook(CompilationRuntimeRequirementInTree for RscClientPlugin)]
-async fn runtime_requirements_in_tree(
-  &self,
-  compilation: &mut Compilation,
-  chunk_ukey: &ChunkUkey,
-  _all_runtime_requirements: &RuntimeGlobals,
-  runtime_requirements: &RuntimeGlobals,
-  _runtime_requirements_mut: &mut RuntimeGlobals,
-) -> Result<Option<()>> {
-  if runtime_requirements.contains(RuntimeGlobals::RSC_HOT_RELOADER) {
-    compilation.add_runtime_module(
-      chunk_ukey,
-      #[allow(clippy::unwrap_used)]
-      Box::new(RscHotReloaderRuntimeModule::new(
-        self.server_compiler_id.borrow().unwrap(),
-      )),
-    )?;
-  }
-
-  Ok(None)
-}
-
 #[plugin_hook(CompilationAfterProcessAssets for RscClientPlugin)]
-async fn after_process_assets(&self, compilation: &Compilation, _diagnostics: &mut Vec<Diagnostic>) -> Result<()> {
+async fn after_process_assets(
+  &self,
+  compilation: &Compilation,
+  _diagnostics: &mut Vec<Diagnostic>,
+) -> Result<()> {
   let logger = compilation.get_logger("rspack.RscClientPlugin");
 
   let server_compiler_id = self.coordinator.get_server_compiler_id().await?;

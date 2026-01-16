@@ -1,9 +1,8 @@
 use atomic_refcell::AtomicRefCell;
+use futures::future::BoxFuture;
 use rspack_core::CompilerId;
 use rspack_error::Result;
 use tokio::sync::Notify;
-
-use crate::utils::GetServerCompilerId;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum State {
@@ -16,6 +15,8 @@ enum State {
   ServerActionsDone,
   Failed,
 }
+
+type GetServerCompilerId = Box<dyn Fn() -> BoxFuture<'static, Result<CompilerId>> + Sync + Send>;
 
 pub struct Coordinator {
   state: AtomicRefCell<State>,

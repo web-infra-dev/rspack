@@ -1,25 +1,29 @@
-import type binding from "@rspack/binding";
-import type { Compiler } from "../..";
-import { createBuiltinPlugin, RspackBuiltinPlugin } from "../base";
-import { type Coordinator, GET_OR_INIT_BINDING } from "./Coordinator";
+import type binding from '@rspack/binding';
+import type { Compiler } from '../..';
+import { createBuiltinPlugin, RspackBuiltinPlugin } from '../base';
+import { type Coordinator, GET_OR_INIT_BINDING } from './Coordinator';
+
+export type RscServerPluginOptions = {
+  coordinator: Coordinator;
+  onServerComponentChanges?: () => Promise<void>;
+};
 
 export class RscServerPlugin extends RspackBuiltinPlugin {
-	name = "RscServerPlugin";
-	#coordinator: Coordinator;
+  name = 'RscServerPlugin';
+  #options: RscServerPluginOptions;
 
-	constructor(coordinator: Coordinator) {
-		super();
-		this.#coordinator = coordinator;
-	}
+  constructor(options: RscServerPluginOptions) {
+    super();
+    this.#options = options;
+  }
 
-	#resolve(serverCompiler: Compiler) {
-		this.#coordinator.applyServerCompiler(serverCompiler);
-		// @ts-ignore
-		return this.#coordinator[GET_OR_INIT_BINDING]();
-	}
+  raw(compiler: Compiler): binding.BuiltinPlugin {
+    this.#options.coordinator.applyServerCompiler(compiler);
 
-	raw(compiler: Compiler): binding.BuiltinPlugin {
-		const bindingOptions = this.#resolve(compiler);
-		return createBuiltinPlugin(this.name, bindingOptions);
-	}
+    return createBuiltinPlugin(this.name, {
+      // @ts-ignore
+      coordinator: this.#options.coordinator[GET_OR_INIT_BINDING](),
+      onServerComponentChanges: this.#options.onServerComponentChanges,
+    });
+  }
 }

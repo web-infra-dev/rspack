@@ -3,7 +3,6 @@ mod component_info;
 mod constants;
 mod coordinator;
 mod hot_reloader;
-mod hot_reloader_runtime_module;
 mod loaders;
 mod manifest_runtime_module;
 mod plugin_state;
@@ -17,4 +16,4 @@ pub use loaders::{
   action_entry_loader_plugin::ActionEntryLoaderPlugin,
   client_entry_loader_plugin::ClientEntryLoaderPlugin,
 };
-pub use server_plugin::RscServerPlugin;
+pub use server_plugin::{RscServerPlugin, RscServerPluginOptions};

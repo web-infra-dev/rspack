@@ -1,10 +1,9 @@
 use std::borrow::Cow;
 
-use futures::future::BoxFuture;
 use rspack_collections::Identifiable;
 use rspack_core::{
-  ChunkGraph, ChunkGroup, ChunkGroupUkey, ChunkUkey, Compilation, CompilerId,
-  ConcatenatedInnerModule, Module, ModuleGraph, ModuleId, ModuleIdentifier, ModuleType,
+  ChunkGraph, ChunkGroup, ChunkGroupUkey, ChunkUkey, Compilation, ConcatenatedInnerModule, Module,
+  ModuleGraph, ModuleId, ModuleIdentifier, ModuleType,
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 use serde::Serialize;
@@ -150,9 +149,6 @@ impl<'a> Iterator for ChunkModules<'a> {
     }
   }
 }
-
-pub type GetServerCompilerId =
-  Box<dyn Fn() -> BoxFuture<'static, Result<CompilerId>> + Sync + Send>;
 
 /// Returns a JSON string literal for `value` (i.e. double-encoded), suitable for embedding into JS.
 ///

@@ -2,12 +2,13 @@ use std::sync::Arc;
 
 use atomic_refcell::AtomicRefCell;
 use derive_more::Debug;
+use futures::future::BoxFuture;
 use rspack_collections::{Identifiable, IdentifierMap};
 use rspack_core::{
   BoxDependency, ChunkUkey, Compilation, CompilationParams, CompilationProcessAssets,
-  CompilationRuntimeRequirementInTree, CompilerFailed, CompilerFinishMake, CompilerThisCompilation,
-  Dependency, DependencyId, EntryDependency, EntryOptions, Logger, Plugin, RuntimeGlobals,
-  RuntimeSpec, get_entry_runtime,
+  CompilationRuntimeRequirementInTree, CompilerDone, CompilerFailed, CompilerFinishMake,
+  CompilerThisCompilation, Dependency, DependencyId, EntryDependency, EntryOptions, Logger, Plugin,
+  RuntimeGlobals, RuntimeSpec, get_entry_runtime,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -57,17 +58,30 @@ struct InjectedActionEntry {
   pub add_entry: (BoxDependency, EntryOptions),
 }
 
+type OnServerComponentChanges = Box<dyn Fn() -> BoxFuture<'static, Result<()>> + Sync + Send>;
+
+pub struct RscServerPluginOptions {
+  pub coordinator: Arc<Coordinator>,
+  pub on_server_component_changes: Option<OnServerComponentChanges>,
+}
+
 #[plugin]
 #[derive(Debug)]
 pub struct RscServerPlugin {
   #[debug(skip)]
   coordinator: Arc<Coordinator>,
+  #[debug(skip)]
+  on_server_component_changes: Option<OnServerComponentChanges>,
   prev_server_component_hashes: AtomicRefCell<IdentifierMap<u64>>,
 }
 
 impl RscServerPlugin {
-  pub fn new(coordinator: Arc<Coordinator>) -> Self {
-    Self::new_inner(coordinator, Default::default())
+  pub fn new(options: RscServerPluginOptions) -> Self {
+    Self::new_inner(
+      options.coordinator,
+      options.on_server_component_changes,
+      Default::default(),
+    )
   }
 }
 
@@ -148,6 +162,7 @@ impl Plugin for RscServerPlugin {
       .this_compilation
       .tap(this_compilation::new(self));
 
+    ctx.compiler_hooks.done.tap(done::new(self));
     ctx.compiler_hooks.failed.tap(failed::new(self));
 
     ctx.compiler_hooks.finish_make.tap(finish_make::new(self));
@@ -268,8 +283,7 @@ impl RscServerPlugin {
       .collect();
     compilation.add_include(add_include_args).await?;
     for (dependency_id, runtime) in included_dependencies {
-      let mg =
-        compilation.get_module_graph_mut();
+      let mg = compilation.get_module_graph_mut();
       let Some(module) = mg.get_module_by_dependency_id(&dependency_id) else {
         continue;
       };
@@ -291,8 +305,14 @@ impl RscServerPlugin {
 
     let mut added_client_action_entry_list: Vec<InjectedActionEntry> = Vec::new();
     let plugin_states = PLUGIN_STATES.borrow_mut();
-    #[allow(clippy::unwrap_used)]
-    let plugin_state = plugin_states.get(&compilation.compiler_id()).unwrap();
+    let plugin_state = plugin_states
+      .get(&compilation.compiler_id())
+      .ok_or_else(|| {
+        rspack_error::error!(
+          "RscServerPlugin: Plugin state not found in finish_make hook for compiler {:#?}.",
+          compilation.compiler_id()
+        )
+      })?;
 
     for (entry_name, action_entry_imports) in &plugin_state.client_actions_per_entry {
       // If an action method is already created in the server layer, we don't
@@ -344,8 +364,7 @@ impl RscServerPlugin {
       .collect();
     compilation.add_include(add_include_args).await?;
     for (dependency_id, runtime) in included_dependencies {
-      let mg =
-        compilation.get_module_graph_mut();
+      let mg = compilation.get_module_graph_mut();
       let Some(m) = mg.get_module_by_dependency_id(&dependency_id) else {
         continue;
       };
@@ -509,6 +528,30 @@ impl RscServerPlugin {
       ),
     })
   }
+}
+
+#[plugin_hook(CompilerDone for RscServerPlugin)]
+async fn done(&self, compilation: &Compilation) -> Result<()> {
+  if let Some(on_server_component_changes) = self.on_server_component_changes.as_ref() {
+    let plugin_states = PLUGIN_STATES.borrow();
+    let plugin_state = plugin_states
+      .get(&compilation.compiler_id())
+      .ok_or_else(|| {
+        rspack_error::error!(
+          "RscServerPlugin: Plugin state not found in done hook for compiler {:#?}.",
+          compilation.compiler_id()
+        )
+      })?;
+    let changed_server_components_per_entry = plugin_state
+      .changed_server_components_per_entry
+      .iter()
+      .filter(|(_, changes)| !changes.is_empty())
+      .collect::<FxHashMap<_, _>>();
+    if !changed_server_components_per_entry.is_empty() {
+      (on_server_component_changes)().await?;
+    }
+  }
+  Ok(())
 }
 
 #[plugin_hook(CompilerFailed for RscServerPlugin)]
