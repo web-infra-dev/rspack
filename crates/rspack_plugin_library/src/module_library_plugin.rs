@@ -1,9 +1,9 @@
 use std::hash::Hash;
 
 use rspack_core::{
-  ChunkGraph, ChunkUkey, Compilation, CompilationParams, CompilerCompilation, ExportProvided,
-  ExportsType, LibraryOptions, ModuleGraph, ModuleIdentifier, Plugin, PrefetchExportsInfoMode,
-  RuntimeVariable, UsedNameItem, property_access,
+  ChunkUkey, Compilation, CompilationParams, CompilerCompilation, ExportProvided, ExportsType,
+  LibraryOptions, ModuleGraph, ModuleIdentifier, Plugin, PrefetchExportsInfoMode, RuntimeVariable,
+  UsedNameItem, property_access,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
   to_identifier, to_module_export_name,
 };

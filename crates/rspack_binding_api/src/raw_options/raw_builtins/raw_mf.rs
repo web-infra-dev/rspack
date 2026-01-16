@@ -218,20 +218,13 @@ pub struct RawModuleFederationRuntimePluginOptions {
   #[napi(ts_type = "string | undefined")]
   pub entry_runtime: Option<String>,
   pub experiments: Option<RawModuleFederationRuntimeExperimentsOptions>,
-  #[napi(js_name = "asyncStartup")]
-  pub async_startup: Option<bool>,
 }
 
 impl From<RawModuleFederationRuntimePluginOptions> for ModuleFederationRuntimePluginOptions {
   fn from(value: RawModuleFederationRuntimePluginOptions) -> Self {
-    let mut experiments: ModuleFederationRuntimeExperimentsOptions =
-      value.experiments.map(Into::into).unwrap_or_default();
-    if let Some(async_startup) = value.async_startup {
-      experiments.async_startup = async_startup;
-    }
     Self {
       entry_runtime: value.entry_runtime,
-      experiments,
+      experiments: value.experiments.map(Into::into).unwrap_or_default(),
     }
   }
 }
