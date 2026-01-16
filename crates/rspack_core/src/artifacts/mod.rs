@@ -1,4 +1,6 @@
 mod async_modules_artifact;
+mod build_chunk_graph_artifact;
+mod build_module_graph_artifact;
 mod cgc_runtime_requirements_artifact;
 mod cgm_hash_artifact;
 mod cgm_runtime_requirement_artifact;
@@ -15,6 +17,9 @@ mod module_static_cache_artifact;
 mod side_effects_do_optimize_artifact;
 
 pub use async_modules_artifact::AsyncModulesArtifact;
+pub(crate) use build_chunk_graph_artifact::use_code_splitting_cache;
+pub use build_chunk_graph_artifact::*;
+pub use build_module_graph_artifact::*;
 pub use cgc_runtime_requirements_artifact::CgcRuntimeRequirementsArtifact;
 pub use cgm_hash_artifact::*;
 pub use cgm_runtime_requirement_artifact::*;

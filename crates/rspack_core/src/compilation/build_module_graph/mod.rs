@@ -1,4 +1,3 @@
-mod artifact;
 mod graph_updater;
 mod lazy_barrel_artifact;
 mod module_executor;
@@ -10,13 +9,13 @@ use rspack_util::tracing_preset::TRACING_BENCH_TARGET;
 use tracing::instrument;
 
 pub use self::{
-  artifact::{BuildModuleGraphArtifact, BuildModuleGraphArtifactState},
   graph_updater::{UpdateParam, update_module_graph},
   lazy_barrel_artifact::{
     ForwardId, ForwardedIdSet, HasLazyDependencies, LazyDependencies, LazyUntil, ModuleToLazyMake,
   },
   module_executor::{ExecuteModuleId, ExecutedRuntimeModule, ModuleExecutor},
 };
+pub use crate::{BuildModuleGraphArtifact, BuildModuleGraphArtifactState};
 use crate::{Compilation, logger::Logger};
 
 pub async fn build_module_graph_pass(compilation: &mut Compilation) -> Result<()> {

@@ -1,11 +1,7 @@
 use rspack_error::Result;
 
 use crate::{
-  compilation::{
-    Compilation,
-    build_chunk_graph::{artifact::use_code_splitting_cache, build_chunk_graph},
-  },
-  logger::Logger,
+  Compilation, build_chunk_graph::build_chunk_graph, logger::Logger, use_code_splitting_cache,
 };
 
 pub async fn build_chunk_graph_pass(compilation: &mut Compilation) -> Result<()> {
