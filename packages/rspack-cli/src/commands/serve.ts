@@ -1,5 +1,11 @@
-import type { Compiler, MultiRspackOptions } from '@rspack/core';
+import type {
+  Compiler,
+  DevServer,
+  MultiCompiler,
+  MultiRspackOptions,
+} from '@rspack/core';
 import { rspack } from '@rspack/core';
+// @ts-ignore
 import type { RspackDevServer as RspackDevServerType } from '@rspack/dev-server';
 import type { RspackCLI } from '../cli';
 import { DEFAULT_SERVER_HOT } from '../constants';
@@ -49,7 +55,34 @@ export class ServeCommand implements RspackCommand {
       cliOptions.hot = normalizeHotOption(cliOptions.hot);
 
       // Lazy import @rspack/dev-server to avoid loading it on build mode
-      const { RspackDevServer } = await import('@rspack/dev-server');
+      let RspackDevServer: new (
+        options: DevServer,
+        compiler: MultiCompiler | Compiler,
+      ) => RspackDevServerType;
+      try {
+        const devServerModule = await import('@rspack/dev-server');
+        RspackDevServer = devServerModule.RspackDevServer;
+      } catch (error: unknown) {
+        const logger = cli.getLogger();
+        if (
+          (error as Error & { code?: string })?.code === 'MODULE_NOT_FOUND' ||
+          (error as Error & { code?: string })?.code === 'ERR_MODULE_NOT_FOUND'
+        ) {
+          logger.error(
+            'The "@rspack/dev-server" package is required to use the serve command.\n' +
+              'Please install it by running:\n' +
+              '  pnpm add -D @rspack/dev-server\n' +
+              '  or\n' +
+              '  npm install -D @rspack/dev-server',
+          );
+        } else {
+          logger.error(
+            'Failed to load "@rspack/dev-server":\n' +
+              ((error as Error)?.message || String(error)),
+          );
+        }
+        process.exit(1);
+      }
 
       const userConfig = await cli.buildCompilerConfig(cliOptions, 'serve');
       const compiler = await cli.createCompiler(userConfig);
