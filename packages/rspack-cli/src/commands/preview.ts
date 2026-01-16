@@ -1,10 +1,14 @@
 import path from 'node:path';
 import type {
+  Compiler,
   DevServer,
+  MultiCompiler,
   MultiRspackOptions,
   RspackOptions,
 } from '@rspack/core';
 import { rspack } from '@rspack/core';
+// @ts-ignore
+import type { RspackDevServer as RspackDevServerType } from '@rspack/dev-server';
 import type { RspackCLI } from '../cli';
 import type { RspackCommand } from '../types';
 import {
@@ -40,15 +44,18 @@ export class PreviewCommand implements RspackCommand {
       setDefaultNodeEnv(options, 'production');
       normalizeCommonOptions(options, 'preview');
 
-      let RspackDevServer: any;
+      let RspackDevServer: new (
+        options: DevServer,
+        compiler: MultiCompiler | Compiler,
+      ) => RspackDevServerType;
       try {
         const devServerModule = await import('@rspack/dev-server');
         RspackDevServer = devServerModule.RspackDevServer;
-      } catch (error: any) {
+      } catch (error: unknown) {
         const logger = cli.getLogger();
         if (
-          error?.code === 'MODULE_NOT_FOUND' ||
-          error?.code === 'ERR_MODULE_NOT_FOUND'
+          (error as Error & { code?: string })?.code === 'MODULE_NOT_FOUND' ||
+          (error as Error & { code?: string })?.code === 'ERR_MODULE_NOT_FOUND'
         ) {
           logger.error(
             'The "@rspack/dev-server" package is required to use the preview command.\n' +
@@ -60,7 +67,7 @@ export class PreviewCommand implements RspackCommand {
         } else {
           logger.error(
             'Failed to load "@rspack/dev-server":\n' +
-              (error?.message || String(error)),
+              ((error as Error)?.message || String(error)),
           );
         }
         process.exit(1);
