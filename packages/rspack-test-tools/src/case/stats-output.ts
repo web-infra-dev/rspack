@@ -72,13 +72,13 @@ function defaultOptions(index: number, context: ITestContext): RspackOptions {
     fs.existsSync(path.join(context.getSource(), 'webpack.config.js'))
   ) {
     return {
+      output: {
+        bundlerInfo: {
+          force: false,
+        },
+      },
       experiments: {
         css: true,
-        rspackFuture: {
-          bundlerInfo: {
-            force: false,
-          },
-        },
       },
     } as RspackOptions;
   }
@@ -89,17 +89,15 @@ function defaultOptions(index: number, context: ITestContext): RspackOptions {
     output: {
       filename: 'bundle.js',
       path: context.getDist(),
+      bundlerInfo: {
+        force: false,
+      },
     },
     optimization: {
       minimize: false,
     },
     experiments: {
       css: true,
-      rspackFuture: {
-        bundlerInfo: {
-          force: false,
-        },
-      },
     },
   } as RspackOptions;
 }

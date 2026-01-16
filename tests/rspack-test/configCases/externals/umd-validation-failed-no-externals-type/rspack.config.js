@@ -4,7 +4,7 @@ const { CopyRspackPlugin } = require("@rspack/core");
 module.exports = {
 	entry: "./index.js",
 	output: {
-		libraryTarget: "umd"
+		library: { type: "umd" }
 	},
 	externals: {
 		lodash: {

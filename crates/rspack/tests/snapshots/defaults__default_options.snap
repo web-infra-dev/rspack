@@ -33,7 +33,6 @@ CompilerOptions {
         ),
         chunk_loading_global: "webpackChunk",
         chunk_load_timeout: 120000,
-        charset: true,
         filename: Filename(
             Template(
                 "[name].js",
@@ -1456,6 +1455,9 @@ CompilerOptions {
                             import_meta: Some(
                                 true,
                             ),
+                            require_alias: Some(
+                                true,
+                            ),
                             require_as_expression: Some(
                                 true,
                             ),
@@ -1512,11 +1514,7 @@ CompilerOptions {
                 MAKE | EMIT_ASSETS,
             ),
         },
-        top_level_await: true,
-        rspack_future: RspackFuture,
-        cache: Disabled,
         css: false,
-        lazy_barrel: true,
         defer_import: false,
     },
     node: Some(
@@ -1538,7 +1536,6 @@ CompilerOptions {
         avoid_entry_iife: false,
         real_content_hash: false,
     },
-    profile: false,
     amd: None,
     bail: false,
     __references: {},

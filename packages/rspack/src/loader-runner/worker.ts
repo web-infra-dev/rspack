@@ -1,10 +1,12 @@
+import fs from 'node:fs';
 import querystring from 'node:querystring';
 import { promisify } from 'node:util';
 import { type MessagePort, receiveMessageOnPort } from 'node:worker_threads';
 
 import { JsLoaderState, type NormalModule } from '@rspack/binding';
 import type { LoaderContext } from '../config';
-
+import * as swc from '../swc';
+import { cleverMerge } from '../util/cleverMerge';
 import { createHash } from '../util/createHash';
 import { absolutify, contextify } from '../util/identifier';
 import { memoize } from '../util/memoize';
@@ -249,14 +251,14 @@ async function loaderImpl(
     rspack: {
       // @ts-expect-error: some properties are missing.
       experiments: {
-        swc: require('../swc'),
+        swc,
       },
     },
     // @ts-expect-error: some properties are missing.
     webpack: {
       util: {
-        createHash: require('../util/createHash').createHash,
-        cleverMerge: require('../util/cleverMerge').cleverMerge,
+        createHash,
+        cleverMerge,
       },
     },
   };
@@ -329,7 +331,7 @@ async function loaderImpl(
     );
   };
 
-  loaderContext.fs = require('node:fs');
+  loaderContext.fs = fs;
 
   Object.defineProperty(loaderContext, 'request', {
     enumerable: true,
@@ -648,10 +650,10 @@ function worker(workerOptions: WorkerOptions) {
   const waitFor = createWaitForPendingRequest(sendRequest);
 
   loaderImpl(workerOptions, sendRequest, waitFor)
-    .then(async (data) => {
+    .then((data) => {
       workerData.workerPort.postMessage({ type: 'done', data });
     })
-    .catch(async (err) => {
+    .catch((err) => {
       workerData.workerPort.postMessage({
         type: 'done-error',
         error: serializeError(err),

@@ -1,4 +1,8 @@
-import type { JsAddingRuntimeModule } from '@rspack/binding';
+import type {
+  JsAddingRuntimeModule,
+  JsRuntimeModule,
+  JsSource,
+} from '@rspack/binding';
 import type { Chunk } from './Chunk';
 import type { ChunkGraph } from './ChunkGraph';
 import type { Compilation } from './Compilation';
@@ -45,6 +49,10 @@ export class RuntimeModule {
     this.chunkGraph = chunkGraph;
   }
 
+  get source(): JsSource | undefined {
+    return undefined;
+  }
+
   get name(): string {
     return this._name;
   }
@@ -70,4 +78,39 @@ export class RuntimeModule {
       `Should implement "generate" method of runtime module "${this.name}"`,
     );
   }
+}
+
+export function createRenderedRuntimeModule(
+  module: JsRuntimeModule,
+): RuntimeModule {
+  const RuntimeModuleClass = {
+    [module.constructorName]: class extends RuntimeModule {
+      private _source: JsSource | undefined;
+      constructor() {
+        super(module.name, module.stage);
+        this._source = module.source;
+      }
+
+      get source(): JsSource | undefined {
+        return this._source;
+      }
+
+      identifier(): string {
+        return module.moduleIdentifier;
+      }
+
+      readableIdentifier(): string {
+        return module.moduleIdentifier;
+      }
+
+      shouldIsolate(): boolean {
+        return module.isolate;
+      }
+
+      generate(): string {
+        return this._source?.source.toString('utf-8') || '';
+      }
+    },
+  }[module.constructorName];
+  return new RuntimeModuleClass();
 }

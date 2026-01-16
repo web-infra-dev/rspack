@@ -107,16 +107,10 @@ const compilationHooksMap: WeakMap<Compilation, RsdoctorPluginHooks> =
   new WeakMap();
 
 const RsdoctorPlugin = RsdoctorPluginImpl as typeof RsdoctorPluginImpl & {
-  /**
-   * @deprecated Use `getCompilationHooks` instead.
-   */
-  getHooks: (compilation: Compilation) => RsdoctorPluginHooks;
   getCompilationHooks: (compilation: Compilation) => RsdoctorPluginHooks;
 };
 
-RsdoctorPlugin.getHooks = RsdoctorPlugin.getCompilationHooks = (
-  compilation: Compilation,
-) => {
+RsdoctorPlugin.getCompilationHooks = (compilation: Compilation) => {
   checkCompilation(compilation);
 
   let hooks = compilationHooksMap.get(compilation);
@@ -161,7 +155,7 @@ export const createRsdoctorPluginHooksRegisters: CreatePartialRegisters<
       },
       function (queried) {
         return async function (data: JsRsdoctorModuleGraph) {
-          return await queried.promise(data);
+          return queried.promise(data);
         };
       },
     ),
@@ -174,7 +168,7 @@ export const createRsdoctorPluginHooksRegisters: CreatePartialRegisters<
       },
       function (queried) {
         return async function (data: JsRsdoctorChunkGraph) {
-          return await queried.promise(data);
+          return queried.promise(data);
         };
       },
     ),
@@ -187,7 +181,7 @@ export const createRsdoctorPluginHooksRegisters: CreatePartialRegisters<
       },
       function (queried) {
         return async function (data: JsRsdoctorModuleIdsPatch) {
-          return await queried.promise(data);
+          return queried.promise(data);
         };
       },
     ),
@@ -200,7 +194,7 @@ export const createRsdoctorPluginHooksRegisters: CreatePartialRegisters<
       },
       function (queried) {
         return async function (data: JsRsdoctorModuleSourcesPatch) {
-          return await queried.promise(data);
+          return queried.promise(data);
         };
       },
     ),
@@ -213,7 +207,7 @@ export const createRsdoctorPluginHooksRegisters: CreatePartialRegisters<
       },
       function (queried) {
         return async function (data: JsRsdoctorAssetPatch) {
-          return await queried.promise(data);
+          return queried.promise(data);
         };
       },
     ),

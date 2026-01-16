@@ -27,8 +27,6 @@ pub struct RawLightningCssMinimizerOptions {
   pub targets: Option<Vec<String>>,
   pub include: Option<u32>,
   pub exclude: Option<u32>,
-  // TODO: deprecate `draft` in favor of `drafts`
-  pub draft: Option<RawDraft>,
   pub drafts: Option<RawDraft>,
   pub non_standard: Option<RawNonStandard>,
   pub pseudo_classes: Option<RawLightningCssPseudoClasses>,
@@ -93,14 +91,9 @@ impl TryFrom<RawLightningCssMinimizerRspackPluginOptions> for PluginOptions {
           .flatten(),
         include: value.minimizer_options.include,
         exclude: value.minimizer_options.exclude,
-        // We should use `drafts` if it is present, otherwise use `draft`
-        draft: value
-          .minimizer_options
-          .drafts
-          .or(value.minimizer_options.draft)
-          .map(|d| Draft {
-            custom_media: d.custom_media,
-          }),
+        drafts: value.minimizer_options.drafts.map(|d| Draft {
+          custom_media: d.custom_media,
+        }),
         non_standard: value.minimizer_options.non_standard.map(|n| NonStandard {
           deep_selector_combinator: n.deep_selector_combinator,
         }),

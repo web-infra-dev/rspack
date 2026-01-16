@@ -39,6 +39,7 @@ import type {
   JavascriptParserOptions,
   JsonGeneratorOptions,
   Library,
+  LibraryOptions,
   Loader,
   Mode,
   ModuleOptions,
@@ -46,7 +47,6 @@ import type {
   Optimization,
   Performance,
   ResolveOptions,
-  RspackFutureOptions,
   RuleSetRules,
   SnapshotOptions,
 } from './types';
@@ -83,7 +83,6 @@ export const applyRspackOptionsDefaults = (
 
   F(options, 'devtool', () => (development ? 'eval' : false));
   D(options, 'watch', false);
-  D(options, 'profile', false);
   // IGNORE(lazyCompilation): Unlike webpack where lazyCompilation is configured under experiments, Rspack exposes this option at the configuration root level.
   D(options, 'lazyCompilation', false);
   // IGNORE(bail): bail is default to false in webpack, but it's set in `Compilation`
@@ -93,20 +92,12 @@ export const applyRspackOptionsDefaults = (
   // but Rspack currently does not support this option
   F(options, 'cache', () => development);
 
-  if (options.cache === false) {
-    options.experiments.cache = false;
-  }
-
-  applyExperimentsDefaults(options.experiments, {
-    development,
-  });
+  applyExperimentsDefaults(options.experiments);
 
   applyOptimizationDefaults(options.optimization, {
     production,
     development,
     css: options.experiments.css!,
-    deprecatedInline:
-      options.experiments.inlineConst! || options.experiments.inlineEnum!,
   });
 
   applySnapshotDefaults(options.snapshot, { production });
@@ -132,11 +123,6 @@ export const applyRspackOptionsDefaults = (
     outputModule: options.experiments.outputModule,
     entry: options.entry,
   });
-  // bundlerInfo is affected by outputDefaults so must be executed after outputDefaults
-  applybundlerInfoDefaults(
-    options.experiments.rspackFuture,
-    options.output.library,
-  );
 
   applyExternalsPresetsDefaults(options.externalsPresets, {
     targetProperties,
@@ -222,20 +208,10 @@ const applyInfrastructureLoggingDefaults = (
   D(infrastructureLogging, 'appendOnly', !tty);
 };
 
-const applyExperimentsDefaults = (
-  experiments: ExperimentsNormalized,
-  { development }: { development: boolean },
-) => {
-  // IGNORE(experiments.cache): In webpack, cache is undefined by default
-  F(experiments, 'cache', () => development);
-
+const applyExperimentsDefaults = (experiments: ExperimentsNormalized) => {
   D(experiments, 'futureDefaults', false);
-  // TODO: lazyCompilation is moving to Configuration top level, we can remove this in future.
-  // IGNORE(experiments.lazyCompilation): In webpack, lazyCompilation is undefined by default
-  D(experiments, 'lazyCompilation', false);
   D(experiments, 'asyncWebAssembly', experiments.futureDefaults);
   D(experiments, 'css', experiments.futureDefaults ? true : undefined);
-  D(experiments, 'topLevelAwait', true);
   D(experiments, 'deferImport', false);
 
   D(experiments, 'buildHttp', undefined);
@@ -264,43 +240,10 @@ const applyExperimentsDefaults = (
     D(experiments.incremental, 'chunksRender', true);
     D(experiments.incremental, 'emitAssets', true);
   }
-  // IGNORE(experiments.rspackFuture): Rspack specific configuration
-  D(experiments, 'rspackFuture', {});
-  // rspackFuture.bundlerInfo default value is applied after applyDefaults
-
-  // IGNORE(experiments.parallelLoader): Rspack specific configuration for parallel loader execution
-  D(experiments, 'parallelLoader', false);
 
   // IGNORE(experiments.useInputFileSystem): Rspack specific configuration
   // Enable `useInputFileSystem` will introduce much more fs overheads,  So disable by default.
   D(experiments, 'useInputFileSystem', false);
-
-  // IGNORE(experiments.inlineConst): Rspack specific configuration for inline const
-  D(experiments, 'inlineConst', true);
-
-  // IGNORE(experiments.inlineEnum): Rspack specific configuration for inline enum
-  D(experiments, 'inlineEnum', false);
-
-  // IGNORE(experiments.typeReexportsPresence): Rspack specific configuration for type reexports presence
-  D(experiments, 'typeReexportsPresence', false);
-
-  // IGNORE(experiments.lazyBarrel): Rspack specific configuration for lazy make side effects free barrel file
-  D(experiments, 'lazyBarrel', true);
-};
-
-const applybundlerInfoDefaults = (
-  rspackFuture?: RspackFutureOptions,
-  library?: Library,
-) => {
-  if (typeof rspackFuture === 'object') {
-    D(rspackFuture, 'bundlerInfo', {});
-    if (typeof rspackFuture.bundlerInfo === 'object') {
-      D(rspackFuture.bundlerInfo, 'version', RSPACK_VERSION);
-      D(rspackFuture.bundlerInfo, 'bundler', 'rspack');
-      // don't inject for library mode
-      D(rspackFuture.bundlerInfo, 'force', !library);
-    }
-  }
 };
 
 const applySnapshotDefaults = (
@@ -322,6 +265,7 @@ const applyJavascriptParserOptionsDefaults = (
   D(parserOptions, 'wrappedContextRegExp', /.*/);
   D(parserOptions, 'strictExportPresence', false);
   D(parserOptions, 'requireAsExpression', true);
+  D(parserOptions, 'requireAlias', false);
   D(parserOptions, 'requireDynamic', true);
   D(parserOptions, 'requireResolve', true);
   D(parserOptions, 'commonjs', true);
@@ -607,11 +551,8 @@ const applyOutputDefaults = (
 ) => {
   const getLibraryName = (library: Library): string => {
     const libraryName =
-      typeof library === 'object' &&
-      library &&
-      !Array.isArray(library) &&
-      'type' in library
-        ? library.name
+      typeof library === 'object' && library && !Array.isArray(library)
+        ? (library as LibraryOptions).name
         : library;
     if (Array.isArray(libraryName)) {
       return libraryName.join('.');
@@ -674,6 +615,13 @@ const applyOutputDefaults = (
     environment,
     'nodePrefixForCoreModules',
     () => tp && optimistic(tp.nodePrefixForCoreModules),
+  );
+  F(
+    environment,
+    'importMetaDirnameAndFilename',
+    () =>
+      // No optimistic, because it is new
+      tp?.importMetaDirnameAndFilename,
   );
   F(environment, 'templateLiteral', () => tp && optimistic(tp.templateLiteral));
   F(environment, 'dynamicImport', () =>
@@ -860,8 +808,6 @@ const applyOutputDefaults = (
   D(output, 'workerPublicPath', '');
   D(output, 'sourceMapFilename', '[file].map[query]');
   F(output, 'scriptType', () => (output.module ? 'module' : false));
-  // IGNORE(output.charset): `output.charset` has already been deprecated for a long time
-  D(output, 'charset', false);
   D(output, 'chunkLoadTimeout', 120000);
 
   const { trustedTypes } = output;
@@ -925,6 +871,15 @@ const applyOutputDefaults = (
     });
     return Array.from(enabledWasmLoadingTypes);
   });
+
+  // IGNORE(output.bundlerInfo): rspack specific
+  D(output, 'bundlerInfo', {});
+  if (typeof output.bundlerInfo === 'object') {
+    D(output.bundlerInfo, 'version', RSPACK_VERSION);
+    D(output.bundlerInfo, 'bundler', 'rspack');
+    // don't inject for library mode
+    D(output.bundlerInfo, 'force', !output.library);
+  }
 };
 
 const applyExternalsPresetsDefaults = (
@@ -1022,12 +977,10 @@ const applyOptimizationDefaults = (
     production,
     development,
     css,
-    deprecatedInline,
   }: {
     production: boolean;
     development: boolean;
     css: boolean;
-    deprecatedInline: boolean;
   },
 ) => {
   // IGNORE(optimization.removeAvailableModules): removeAvailableModules is no use for webpack
@@ -1046,7 +999,7 @@ const applyOptimizationDefaults = (
   });
   F(optimization, 'sideEffects', () => (production ? true : 'flag'));
   D(optimization, 'mangleExports', production);
-  D(optimization, 'inlineExports', deprecatedInline && production);
+  D(optimization, 'inlineExports', production);
   D(optimization, 'providedExports', true);
   D(optimization, 'usedExports', production);
   D(optimization, 'innerGraph', production);

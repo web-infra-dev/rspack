@@ -41,7 +41,7 @@ pub struct Config {
   pub targets: Option<Browsers>,
   pub include: Option<u32>,
   pub exclude: Option<u32>,
-  pub draft: Option<Draft>,
+  pub drafts: Option<Draft>,
   pub non_standard: Option<NonStandard>,
   pub pseudo_classes: Option<PseudoClasses>,
   pub unused_symbols: Option<Vec<String>>,
@@ -55,8 +55,6 @@ pub struct RawConfig {
   pub targets: Option<Vec<String>>,
   pub include: Option<u32>,
   pub exclude: Option<u32>,
-  // TODO: deprecate `draft` in favor of `drafts`
-  pub draft: Option<Draft>,
   pub drafts: Option<Draft>,
   pub non_standard: Option<NonStandard>,
   pub pseudo_classes: Option<PseudoClasses>,
@@ -77,8 +75,7 @@ impl TryFrom<RawConfig> for Config {
         .flatten(),
       include: value.include,
       exclude: value.exclude,
-      // We should use `drafts` if it is present, otherwise use `draft`
-      draft: value.drafts.or(value.draft),
+      drafts: value.drafts,
       non_standard: value.non_standard,
       pseudo_classes: value.pseudo_classes,
       unused_symbols: value.unused_symbols,

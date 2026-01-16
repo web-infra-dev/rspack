@@ -1037,6 +1037,15 @@ export interface JsResourceData {
   descriptionFilePath?: string
 }
 
+export interface JsRscClientPluginOptions {
+  coordinator: JsCoordinator
+}
+
+export interface JsRscServerPluginOptions {
+  coordinator: JsCoordinator
+  onServerComponentChanges?: (() => void) | undefined | null
+}
+
 export interface JsRsdoctorAsset {
   ukey: number
   path: string
@@ -1214,6 +1223,8 @@ export interface JsRuntimeModule {
   moduleIdentifier: string
   constructorName: string
   name: string
+  stage: number
+  isolate: boolean
 }
 
 export interface JsRuntimeModuleArg {
@@ -1406,7 +1417,6 @@ export interface JsStatsModuleCommonAttributes {
   failed?: boolean
   errors?: number
   warnings?: number
-  profile?: JsStatsModuleProfile
   chunks?: Array<string>
   assets?: Array<string>
   reasons?: Array<JsStatsModuleReason>
@@ -1831,9 +1841,15 @@ export interface RawCacheGroupOptions {
   usedExports?: boolean
 }
 
-export interface RawCacheOptions {
-  type: string
+export interface RawCacheOptionsMemory {
   maxGenerations?: number
+}
+
+export interface RawCacheOptionsPersistent {
+  buildDependencies?: Array<string>
+  version?: string
+  snapshot?: RawSnapshotOptions
+  storage?: RawStorageOptions
 }
 
 export interface RawCircularDependencyRspackPluginOptions {
@@ -2131,28 +2147,11 @@ export interface RawEvalDevToolModulePluginOptions {
   sourceUrlComment?: string
 }
 
-export interface RawExperimentCacheOptionsPersistent {
-  buildDependencies?: Array<string>
-  version?: string
-  snapshot?: RawExperimentSnapshotOptions
-  storage?: RawStorageOptions
-}
-
 export interface RawExperiments {
-  topLevelAwait: boolean
 incremental?: false | { [key: string]: boolean }
-rspackFuture?: RawRspackFuture
-cache: boolean | { type: "persistent" } & RawExperimentCacheOptionsPersistent | { type: "memory" }
 useInputFileSystem?: false | Array<RegExp>
 css?: boolean
-lazyBarrel: boolean
 deferImport: boolean
-}
-
-export interface RawExperimentSnapshotOptions {
-  immutablePaths: Array<string|RegExp>
-  unmanagedPaths: Array<string|RegExp>
-  managedPaths: Array<string|RegExp>
 }
 
 export interface RawExposeOptions {
@@ -2249,7 +2248,6 @@ export interface RawHtmlRspackPluginOptions {
   chunks?: Array<string>
   excludeChunks?: Array<string>
   chunksSortMode: "auto" | "manual"
-  sri?: "sha256" | "sha384" | "sha512"
   minify?: boolean
   title?: string
   favicon?: string
@@ -2350,6 +2348,11 @@ export interface RawJavascriptParserOptions {
    * This option is experimental in Rspack only and subject to change or be removed anytime.
    * @experimental
    */
+  requireAlias?: boolean
+  /**
+   * This option is experimental in Rspack only and subject to change or be removed anytime.
+   * @experimental
+   */
   requireAsExpression?: boolean
   /**
    * This option is experimental in Rspack only and subject to change or be removed anytime.
@@ -2424,7 +2427,6 @@ export interface RawLightningCssMinimizerOptions {
   targets?: Array<string>
   include?: number
   exclude?: number
-  draft?: RawDraft
   drafts?: RawDraft
   nonStandard?: RawNonStandard
   pseudoClasses?: RawLightningCssPseudoClasses
@@ -2606,10 +2608,9 @@ export interface RawOptions {
   module: RawModuleOptions
   optimization: RawOptimizationOptions
   stats: RawStatsOptions
-  cache: RawCacheOptions
+  cache: boolean | { type: "memory" } | ({ type: "persistent" } & RawCacheOptionsPersistent)
   experiments: RawExperiments
   node?: RawNodeOption
-  profile: boolean
   amd?: string
   bail: boolean
   __references: Record<string, any>
@@ -2645,7 +2646,6 @@ export interface RawOutputOptions {
   module: boolean
   chunkLoading: string | false
   chunkLoadTimeout: number
-  charset: boolean
   enabledChunkLoadingTypes?: Array<string>
   trustedTypes?: RawTrustedTypes
   sourceMapFilename: string
@@ -2790,10 +2790,6 @@ export interface RawRslibPluginOptions {
   forceNodeShims?: boolean
 }
 
-export interface RawRspackFuture {
-
-}
-
 export interface RawRstestPluginOptions {
   injectModulePathName: boolean
   importMetaPathName: boolean
@@ -2838,6 +2834,12 @@ export interface RawSizeLimitsPluginOptions {
   hints?: "error" | "warning"
   maxAssetSize?: number
   maxEntrypointSize?: number
+}
+
+export interface RawSnapshotOptions {
+  immutablePaths: Array<string|RegExp>
+  unmanagedPaths: Array<string|RegExp>
+  managedPaths: Array<string|RegExp>
 }
 
 export interface RawSplitChunkSizes {

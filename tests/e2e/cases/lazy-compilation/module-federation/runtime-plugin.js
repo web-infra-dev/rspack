@@ -1,4 +1,4 @@
-module.exports = function () {
+export default function () {
   let component;
   return {
     name: 'proxy-remote',
@@ -12,4 +12,4 @@ module.exports = function () {
       return () => component;
     },
   };
-};
+}

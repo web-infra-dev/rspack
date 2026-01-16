@@ -138,7 +138,8 @@ export function createWatchCase(name: string, src: string, dist: string, temp: s
 export function createWatchIncrementalCase(name: string, src: string, dist: string, temp: string, options?: WatchIncrementalOptions): void;
 
 // @public (undocumented)
-export function describeByWalk(testFile: string, createCase: (name: string, src: string, dist: string) => void, options?: {
+export function describeByWalk(
+testFile: string, createCase: (name: string, src: string, dist: string) => void, options?: {
     type?: 'file' | 'directory';
     level?: number;
     source?: string;

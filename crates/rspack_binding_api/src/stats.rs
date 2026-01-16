@@ -487,7 +487,6 @@ pub struct JsStatsModuleCommonAttributes<'a> {
   pub failed: Option<bool>,
   pub errors: Option<u32>,
   pub warnings: Option<u32>,
-  pub profile: Option<JsStatsModuleProfile>,
 
   // ids
   pub chunks: Option<Vec<&'a str>>,
@@ -630,7 +629,6 @@ impl<'a> TryFrom<StatsModule<'a>> for JsStatsModule<'a> {
       reasons,
       assets: stats.assets,
       source,
-      profile: stats.profile.map(|p| p.into()),
       orphan: stats.orphan,
       provided_exports: stats.provided_exports.map(AtomVecWrapper::new),
       optimization_bailout: stats.optimization_bailout.map(StringSliceWrapper::new),

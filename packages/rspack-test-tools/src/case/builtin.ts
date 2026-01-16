@@ -76,6 +76,9 @@ export function defaultOptions(context: ITestContext): RspackOptions {
       webassemblyModuleFilename: '[hash].module.wasm',
       workerChunkLoading: 'import-scripts',
       workerWasmLoading: 'fetch',
+      bundlerInfo: {
+        force: false,
+      },
     },
     module: {
       rules: [
@@ -144,11 +147,6 @@ export function defaultOptions(context: ITestContext): RspackOptions {
     experiments: {
       css: true,
       futureDefaults: true,
-      rspackFuture: {
-        bundlerInfo: {
-          force: false,
-        },
-      },
     },
     devtool: false,
     context: context.getSource(),

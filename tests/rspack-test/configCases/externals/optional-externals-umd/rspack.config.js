@@ -1,7 +1,7 @@
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	output: {
-		libraryTarget: "umd"
+		library: { type: "umd" }
 	},
 	externals: {
 		external: "external"

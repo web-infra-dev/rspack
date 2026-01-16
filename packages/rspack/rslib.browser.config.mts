@@ -1,3 +1,4 @@
+// TODO: refactor pure ESM and verify browser behavior
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import vm from 'node:vm';
@@ -13,7 +14,7 @@ export default defineConfig({
   lib: [
     {
       format: 'esm',
-      syntax: 'es2021',
+      syntax: 'es2023',
       dts: { build: true },
       autoExternal: false,
       source: {
@@ -24,7 +25,7 @@ export default defineConfig({
     },
     {
       format: 'esm',
-      syntax: 'es2021',
+      syntax: 'es2023',
       dts: false,
       autoExtension: false,
       source: {
@@ -220,6 +221,12 @@ async function getModuleFederationRuntimeCode() {
   const { code: downgradedRuntime } = await swc.transform(runtime, {
     jsc: {
       target: 'es2015',
+      parser: {
+        syntax: 'ecmascript',
+      },
+    },
+    module: {
+      type: 'commonjs',
     },
   });
 
@@ -229,12 +236,27 @@ async function getModuleFederationRuntimeCode() {
     ecma: 2015,
   });
 
-  const sandbox = { module: { exports: undefined } } as any;
+  const exports = {};
+  const module = { exports };
+  const sandbox = {
+    module,
+    exports,
+    console,
+  };
+
   vm.createContext(sandbox);
   vm.runInContext(minimizedRuntime.code, sandbox);
 
-  const functionContent = rspack.Template.getFunctionContent(
-    sandbox.module.exports,
-  );
+  // @ts-expect-error
+  const runtimeExport = module.exports.default || module.exports;
+
+  const originalToString = runtimeExport.toString;
+  runtimeExport.toString = function () {
+    return originalToString
+      .call(this)
+      .replace(/^function\s+[\w$]+/, 'function');
+  };
+
+  const functionContent = rspack.Template.getFunctionContent(runtimeExport);
   return functionContent;
 }

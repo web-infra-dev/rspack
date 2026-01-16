@@ -7,17 +7,13 @@ module.exports = {
   output: {
     path: path.resolve(__dirname, 'dist'),
   },
-  cache: true,
-  experiments: {
-    cache: {
-      type: 'persistent',
-    },
+  cache: {
+    type: 'persistent',
   },
   plugins: [
     {
       apply(compiler) {
-        const [dep1, dep2] =
-          compiler.options.experiments.cache.buildDependencies;
+        const [dep1, dep2] = compiler.options.cache.buildDependencies;
         if (
           dep1 === path.resolve(__dirname, './rspack.config.js') &&
           dep2 === path.resolve(__dirname, './base.config.js')

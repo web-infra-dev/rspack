@@ -41,7 +41,7 @@ Rspack 的测试用例包括如下：
 也可以进入 `tests/rspack-test` 文件夹并运行 `npm run test` 来运行测试用例，并且对测试流程进行更精细的控制：
 
 - **需要刷新测试快照时**：添加 `-u` 参数，如 `npm run test -- -u`
-- **需要过滤测试用例时**：添加 `-t` 参数，如 `npm run test -- -t configCases/asset` 即可仅运行 `tests/rspack-test/configCases/asset` 文件夹下的用例。匹配支持正则，详见 [rstest](https://rstest.rs/config/test/testNamePattern)
+- **需要过滤测试用例时**：添加 `-t` 参数。匹配支持正则，详见 [rstest](https://rstest.rs/config/test/testNamePattern)
 
 ### 运行测试
 
@@ -51,8 +51,11 @@ Rspack 的测试用例包括如下：
 - 或在 `tests/rspack-test` 目录下运行 `npm run test`。
 - 如需更新 snapshot，在 `tests/rspack-test` 目录下运行 `npm run test -- -u`。
 - 如需传入特定 rstest cli 参数，在 `tests/rspack-test` 目录下运行 `npm run test -- {args}`。
-- 如需过滤特定测试用例，在 `tests/rspack-test` 目录下运行 `npm run test  -- -t path-of-spec`。
-  - 如 `npm run test -- -t configCases/asset` 即可仅运行 `tests/rspack-test/configCases/asset` 文件夹下的用例（config 会自动映射到 configCases，其他文件夹类似）。
+- 如需过滤特定测试用例，运行 `npm run test -- -t ${testPath}`，其中 `${testPath}` 可以是绝对路径或相对路径。
+  - 例如：
+    - `npm run test -- -t hotCases/json/error-in-json` (或 `npm run test -- -t /Users/rspack/tests/rspack-test/hotCases/json/error-in-json`) 将运行 `error-in-json` 测试用例中的所有测试。
+    - `npm run test -- -t hotCases/json` (或 `npm run test -- -t /Users/rspack/tests/rspack-test/hotCases/json`) 将运行 `json` 目录下的所有测试用例。
+    - `npm run test -- -t hotCases` (或 `npm run test -- -t /Users/rspack/tests/rspack-test/hotCases`) 将运行 `hotCases` 目录下的所有测试用例。
 - 如需使用 Rspack Wasm 运行测试用例，需要额外配置以下环境变量：
   1. `NAPI_RS_FORCE_WASI=1`： 强制使用 Rspack Wasm 而不是原生绑定
   2. `WASM=1`：启用 Wasm 专用的测试配置

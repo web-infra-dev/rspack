@@ -4,6 +4,7 @@ mod memory;
 use std::{path::PathBuf, sync::Arc};
 
 pub use memory::MemoryStorage;
+use rspack_cacheable::{cacheable, utils::PortablePath, with::As};
 use rspack_fs::IntermediateFileSystem;
 pub use rspack_storage::Storage;
 use rspack_storage::{BridgeFileSystem, PackStorage, PackStorageOptions};
@@ -12,9 +13,13 @@ use rspack_storage::{BridgeFileSystem, PackStorage, PackStorageOptions};
 ///
 /// This enum contains all of supported storage options.
 /// Since MemoryStorage is only used in unit test, there is no need to add it here.
+#[cacheable]
 #[derive(Debug, Clone, Hash)]
 pub enum StorageOptions {
-  FileSystem { directory: PathBuf },
+  FileSystem {
+    #[cacheable(with=As<PortablePath>)]
+    directory: PathBuf,
+  },
 }
 
 pub fn create_storage(

@@ -8,9 +8,12 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 
+import { createRequire } from 'node:module';
 import Hash from './hash';
 import createMd4 from './hash/md4';
 import createXXHash64 from './hash/xxhash64';
+
+const require = createRequire(import.meta.url);
 
 const BULK_SIZE = 2000;
 

@@ -120,7 +120,6 @@ pub struct RawOutputOptions {
   #[napi(ts_type = "string | false")]
   pub chunk_loading: RawChunkLoading,
   pub chunk_load_timeout: u32,
-  pub charset: bool,
   pub enabled_chunk_loading_types: Option<Vec<String>>,
   pub trusted_types: Option<RawTrustedTypes>,
   pub source_map_filename: String,
@@ -217,7 +216,6 @@ impl TryFrom<RawOutputOptions> for OutputOptions {
         WithFalse::True(s) => s,
       },
       environment: value.environment.into(),
-      charset: value.charset,
       chunk_load_timeout: value.chunk_load_timeout,
       compare_before_emit: value.compare_before_emit,
     })

@@ -429,9 +429,7 @@ const SIMPLE_PRINTERS: Record<
   },
   'module.optimizationBailout[]': (optimizationBailout, { yellow }) =>
     yellow(optimizationBailout),
-  'module.issuerPath': (_issuerPath, { module }) =>
-    module.profile ? undefined : '',
-  'module.profile': (_profile) => undefined,
+  'module.issuerPath': (_issuerPath) => '',
   'module.filteredModules': (filteredModules, { module: { modules } }) =>
     filteredModules > 0
       ? `${moreCount(modules, filteredModules)} nested ${plural(
@@ -459,7 +457,6 @@ const SIMPLE_PRINTERS: Record<
   'module.separator!': () => '\n',
 
   'moduleIssuer.id': (id, { formatModuleId }) => formatModuleId(id),
-  'moduleIssuer.profile.total': (value, { formatTime }) => formatTime(value),
 
   'moduleReason.type': (type) => type,
   'moduleReason.userRequest': (userRequest, { cyan }) =>
@@ -483,22 +480,6 @@ const SIMPLE_PRINTERS: Record<
           'reasons',
         )}`
       : undefined,
-
-  'module.profile.total': (value, { formatTime }) => formatTime(value),
-  'module.profile.resolving': (value, { formatTime }) =>
-    `resolving: ${formatTime(value)}`,
-  'module.profile.restoring': (value, { formatTime }) =>
-    `restoring: ${formatTime(value)}`,
-  'module.profile.integration': (value, { formatTime }) =>
-    `integration: ${formatTime(value)}`,
-  'module.profile.building': (value, { formatTime }) =>
-    `building: ${formatTime(value)}`,
-  'module.profile.storing': (value, { formatTime }) =>
-    `storing: ${formatTime(value)}`,
-  'module.profile.additionalResolving': (value, { formatTime }) =>
-    value ? `additional resolving: ${formatTime(value)}` : undefined,
-  'module.profile.additionalIntegration': (value, { formatTime }) =>
-    value ? `additional integration: ${formatTime(value)}` : undefined,
 
   'chunkGroup.kind!': (_, { chunkGroupKind }) => chunkGroupKind,
   'chunkGroup.separator!': () => '\n',
@@ -821,7 +802,6 @@ const PREFERRED_ORDERS: Record<string, string[]> = {
     'reasons',
     'filteredReasons',
     'issuerPath',
-    'profile',
     'modules',
     'filteredModules',
   ],
@@ -836,17 +816,6 @@ const PREFERRED_ORDERS: Record<string, string[]> = {
     'explanation',
     'children',
     'filteredChildren',
-  ],
-  'module.profile': [
-    'total',
-    'separator!',
-    'resolving',
-    'restoring',
-    'integration',
-    'building',
-    'storing',
-    'additionalResolving',
-    'additionalIntegration',
   ],
   chunk: [
     'id',
@@ -945,48 +914,6 @@ const joinOneLine = (items: any[]) =>
     .map((item) => item.content)
     .filter(Boolean)
     .join(' ');
-
-const joinInBrackets = (items: any[]) => {
-  const res = [];
-  let mode = 0;
-  for (const item of items) {
-    if (item.element === 'separator!') {
-      switch (mode) {
-        case 0:
-        case 1:
-          mode += 2;
-          break;
-        case 4:
-          res.push(')');
-          mode = 3;
-          break;
-      }
-    }
-    if (!item.content) continue;
-    switch (mode) {
-      case 0:
-        mode = 1;
-        break;
-      case 1:
-        res.push(' ');
-        break;
-      case 2:
-        res.push('(');
-        mode = 4;
-        break;
-      case 3:
-        res.push(' (');
-        mode = 4;
-        break;
-      case 4:
-        res.push(', ');
-        break;
-    }
-    res.push(item.content);
-  }
-  if (mode === 4) res.push(')');
-  return res.join('');
-};
 
 const indent = (str: string, prefix: string, noPrefixInFirstLine?: boolean) => {
   const rem = str.replace(/\n([^\n])/g, `\n${prefix}$1`);
@@ -1103,7 +1030,6 @@ const SIMPLE_ELEMENT_JOINERS: Record<
           case 'optimizationBailout':
           case 'reasons':
           case 'issuerPath':
-          case 'profile':
           case 'children':
           case 'modules':
             if (item.content) {
@@ -1178,7 +1104,6 @@ const SIMPLE_ELEMENT_JOINERS: Record<
       '  ',
     );
   },
-  'module.profile': joinInBrackets,
   moduleIssuer: joinOneLine,
   chunkOrigin: (items) => `> ${joinOneLine(items)}`,
   'errors[].error': joinError(true),

@@ -1,4 +1,4 @@
-import('./async').then(() => {
+import('./async.js').then(() => {
   const div = document.createElement('div');
   div.innerText = 'ok';
   div.id = 'status';

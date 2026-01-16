@@ -22,10 +22,8 @@ pub use dependencies_block::{
 mod fake_namespace_object;
 pub use fake_namespace_object::*;
 mod runtime_template;
-pub use runtime_template::*;
-mod module_profile;
-pub use module_profile::*;
 use rspack_collections::Database;
+pub use runtime_template::*;
 pub mod external_module;
 pub use external_module::*;
 mod logger;

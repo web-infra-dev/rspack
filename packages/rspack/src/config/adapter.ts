@@ -99,12 +99,9 @@ export const getRawOptions = (
     }),
     optimization: options.optimization as Required<Optimization>,
     stats: getRawStats(options.stats),
-    cache: {
-      type: options.cache ? 'memory' : 'disable',
-    },
+    cache: options.cache || false,
     experiments,
     node: getRawNode(options.node),
-    profile: options.profile!,
     amd: options.amd ? JSON.stringify(options.amd || {}) : undefined,
     bail: options.bail!,
     __references: {},
@@ -131,11 +128,15 @@ function getRawOutputEnvironment(
     destructuring: Boolean(environment.destructuring),
     document: Boolean(environment.document),
     dynamicImport: Boolean(environment.dynamicImport),
+    dynamicImportInWorker: Boolean(environment.dynamicImportInWorker),
     forOf: Boolean(environment.forOf),
     globalThis: Boolean(environment.globalThis),
     module: Boolean(environment.module),
     optionalChaining: Boolean(environment.optionalChaining),
     templateLiteral: Boolean(environment.templateLiteral),
+    importMetaDirnameAndFilename: Boolean(
+      environment.importMetaDirnameAndFilename,
+    ),
   };
 }
 
@@ -585,6 +586,7 @@ function getRawJavascriptParserOptions(
         : parser.worker,
     overrideStrict: parser.overrideStrict,
     requireAsExpression: parser.requireAsExpression,
+    requireAlias: parser.requireAlias,
     requireDynamic: parser.requireDynamic,
     requireResolve: parser.requireResolve,
     commonjs: parser.commonjs,

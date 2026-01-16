@@ -14,9 +14,6 @@ module.exports = {
 			-   "devtool": false,
 			+   "devtool": "eval",
 			@@ ... @@
-			-     "cache": false,
-			+     "cache": true,
-			@@ ... @@
 			-   "mode": "none",
 			+   "mode": "development",
 			@@ ... @@

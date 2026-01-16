@@ -2,7 +2,8 @@ use std::path::PathBuf;
 
 use rspack_cacheable::{
   enable_cacheable as cacheable,
-  with::{AsCacheable, AsString, AsTuple3},
+  utils::PortablePath,
+  with::{As, AsCacheable, AsTuple3},
 };
 
 #[cacheable]
@@ -11,7 +12,7 @@ struct Data {
   param1: (u32, u32, u32),
   #[cacheable(with=AsTuple3)]
   param2: (u32, u32, u32),
-  #[cacheable(with=AsTuple3<AsCacheable, AsCacheable, AsString>)]
+  #[cacheable(with=AsTuple3<AsCacheable, AsCacheable, As<PortablePath>>)]
   param3: (u32, u32, PathBuf),
 }
 

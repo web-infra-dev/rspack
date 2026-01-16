@@ -110,13 +110,13 @@ export default {
 ### object
 
 :::warning
-An object with `{ root, commonjs, commonjs2, amd, ... }` is only allowed for [`libraryTarget: 'umd'`](/config/output#outputlibrarytarget) and [`externalsType: 'umd'`](#externalstype). It's not allowed for other library targets.
+An object with `{ root, commonjs, commonjs2, amd, ... }` is only allowed for [`library.type: 'umd'`](/config/output#outputlibrarytarget) and [`externalsType: 'umd'`](#externalstype). It's not allowed for other library targets.
 :::
 
 ```js title="rspack.config.mjs"
 export default {
   externals: {
-    // When `libraryTarget: 'umd'` and `externalsType: 'umd'`, the following format must be strictly followed:
+    // When `library.type: 'umd'` and `externalsType: 'umd'`, the following format must be strictly followed:
     lodash: {
       root: '_', // indicates global variable
       commonjs: 'lodash',
@@ -277,7 +277,7 @@ export default {
 - **Type:** `string`
 - **Default:** `'var'`
 
-Specify the default type of externals. `amd`, `umd`, `system` and `jsonp` externals **depend on the [`output.libraryTarget`](/config/output#outputlibrarytarget)** being set to the same value e.g. you can only consume `amd` externals within an `amd` library.
+Specify the default type of externals. `amd`, `umd`, `system` and `jsonp` externals **depend on the [`output.library.type`](/config/output#outputlibrarytype)** being set to the same value e.g. you can only consume `amd` externals within an `amd` library.
 
 Supported types:
 

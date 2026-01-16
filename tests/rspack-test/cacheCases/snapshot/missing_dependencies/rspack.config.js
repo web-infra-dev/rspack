@@ -6,9 +6,7 @@ module.exports = {
 			alias_file: ["./file1", "./file2"]
 		}
 	},
-	experiments: {
-		cache: {
-			type: "persistent"
-		}
+	cache: {
+		type: "persistent"
 	}
 };

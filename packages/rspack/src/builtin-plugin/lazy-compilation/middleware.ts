@@ -1,9 +1,11 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
+import { createRequire } from 'node:module';
 import { type Compiler, MultiCompiler } from '../..';
 import type { LazyCompilationOptions } from '../../config';
 import type { MiddlewareHandler } from '../../config/devServer';
-import { deprecate } from '../../util';
 import { BuiltinLazyCompilationPlugin } from './lazyCompilation';
+
+const require = createRequire(import.meta.url);
 
 export const LAZY_COMPILATION_PREFIX = '/lazy-compilation-using-';
 
@@ -37,12 +39,6 @@ const getFullServerUrl = ({ serverUrl, prefix }: LazyCompilationOptions) => {
   );
 };
 
-const DEPRECATED_LAZY_COMPILATION_OPTIONS_WARN =
-  'The `experiments.lazyCompilation` option is deprecated, please use the configuration top level `lazyCompilation` instead.';
-
-const REPEAT_LAZY_COMPILATION_OPTIONS_WARN =
-  'Both top-level `lazyCompilation` and `experiments.lazyCompilation` options are set. The top-level `lazyCompilation` configuration will take precedence.';
-
 /**
  * Create a middleware that handles lazy compilation requests from the client.
  * This function returns an Express-style middleware that listens for
@@ -60,36 +56,11 @@ export const lazyCompilationMiddleware = (
     let i = 0;
 
     for (const c of compiler.compilers) {
-      if (c.options.experiments.lazyCompilation) {
-        if (c.name) {
-          deprecate(
-            `The 'experiments.lazyCompilation' option in compiler named '${c.name}' is deprecated, please use the Configuration top level 'lazyCompilation' instead.`,
-          );
-        } else {
-          deprecate(DEPRECATED_LAZY_COMPILATION_OPTIONS_WARN);
-        }
-      }
-
-      if (c.options.lazyCompilation && c.options.experiments.lazyCompilation) {
-        if (c.name) {
-          deprecate(
-            `The top-level 'lazyCompilation' option in compiler named '${c.name}' will override the 'experiments.lazyCompilation' option.`,
-          );
-        } else {
-          deprecate(REPEAT_LAZY_COMPILATION_OPTIONS_WARN);
-        }
-      }
-
-      if (
-        !c.options.lazyCompilation &&
-        !c.options.experiments.lazyCompilation
-      ) {
+      if (!c.options.lazyCompilation) {
         continue;
       }
 
       const options = {
-        // TODO: remove this when experiments.lazyCompilation is removed
-        ...c.options.experiments.lazyCompilation,
         ...c.options.lazyCompilation,
       };
 
@@ -122,25 +93,13 @@ export const lazyCompilationMiddleware = (
     };
   }
 
-  if (compiler.options.experiments.lazyCompilation) {
-    deprecate(DEPRECATED_LAZY_COMPILATION_OPTIONS_WARN);
-    if (compiler.options.lazyCompilation) {
-      deprecate(REPEAT_LAZY_COMPILATION_OPTIONS_WARN);
-    }
-  }
-
-  if (
-    !compiler.options.lazyCompilation &&
-    !compiler.options.experiments.lazyCompilation
-  ) {
+  if (!compiler.options.lazyCompilation) {
     return noop;
   }
 
   const activeModules: Set<string> = new Set();
 
   const options = {
-    // TODO: remove this when experiments.lazyCompilation is removed
-    ...compiler.options.experiments.lazyCompilation,
     ...compiler.options.lazyCompilation,
   };
 
@@ -173,7 +132,69 @@ function applyPlugin(
   plugin.apply(compiler);
 }
 
-// used for reuse code, do not export this
+function readModuleIdsFromBody(
+  req: IncomingMessage & { body?: unknown },
+): Promise<string[]> {
+  // If body is already parsed by another middleware, use it directly
+  if (req.body !== undefined) {
+    if (Array.isArray(req.body)) {
+      return Promise.resolve(req.body);
+    }
+    if (typeof req.body === 'string') {
+      return Promise.resolve(req.body.split('\n').filter(Boolean));
+    }
+    throw new Error('Invalid body type');
+  }
+
+  return new Promise((resolve, reject) => {
+    if ((req as any).aborted || req.destroyed) {
+      reject(new Error('Request was aborted before body could be read'));
+      return;
+    }
+
+    const cleanup = () => {
+      req.removeListener('data', onData);
+      req.removeListener('end', onEnd);
+      req.removeListener('error', onError);
+      req.removeListener('close', onClose);
+      req.removeListener('aborted', onAborted);
+    };
+
+    const chunks: Buffer[] = [];
+    const onData = (chunk: Buffer) => {
+      chunks.push(chunk);
+    };
+
+    const onEnd = () => {
+      cleanup();
+      // Concatenate all chunks and decode as UTF-8 to handle multibyte characters correctly
+      const body = Buffer.concat(chunks).toString('utf8');
+      resolve(body.split('\n').filter(Boolean));
+    };
+
+    const onError = (err: Error) => {
+      cleanup();
+      reject(err);
+    };
+
+    const onClose = () => {
+      cleanup();
+      reject(new Error('Request was closed before body could be read'));
+    };
+
+    const onAborted = () => {
+      cleanup();
+      reject(new Error('Request was aborted before body could be read'));
+    };
+
+    req.on('data', onData);
+    req.on('end', onEnd);
+    req.on('error', onError);
+    req.on('close', onClose);
+    req.on('aborted', onAborted);
+  });
+}
+
 const lazyCompilationMiddlewareInternal = (
   compiler: Compiler | MultiCompiler,
   activeModules: Set<string>,
@@ -181,21 +202,24 @@ const lazyCompilationMiddlewareInternal = (
 ): MiddlewareHandler => {
   const logger = compiler.getInfrastructureLogger('LazyCompilation');
 
-  return (req: IncomingMessage, res: ServerResponse, next?: () => void) => {
-    if (!req.url?.startsWith(lazyCompilationPrefix)) {
-      // only handle requests that are come from lazyCompilation
+  return async (
+    req: IncomingMessage,
+    res: ServerResponse,
+    next?: () => void,
+  ) => {
+    if (!req.url?.startsWith(lazyCompilationPrefix) || req.method !== 'POST') {
       return next?.();
     }
 
-    const modules = req.url
-      .slice(lazyCompilationPrefix.length)
-      .split('@')
-      .map(decodeURIComponent);
-    req.socket.setNoDelay(true);
-
-    res.setHeader('content-type', 'text/event-stream');
-    res.writeHead(200);
-    res.write('\n');
+    let modules: string[] = [];
+    try {
+      modules = await readModuleIdsFromBody(req);
+    } catch (err) {
+      logger.error('Failed to parse request body: ' + err);
+      res.writeHead(400);
+      res.end('Bad Request');
+      return;
+    }
 
     const moduleActivated = [];
     for (const key of modules) {
@@ -210,5 +234,9 @@ const lazyCompilationMiddlewareInternal = (
     if (moduleActivated.length && compiler.watching) {
       compiler.watching.invalidate();
     }
+
+    res.writeHead(200);
+    res.write('\n');
+    res.end();
   };
 };

@@ -1,5 +1,8 @@
+import { createRequire } from 'node:module';
 import { pathToFileURL } from 'node:url';
 import { isEsmFile } from './isEsmFile';
+
+const require = createRequire(import.meta.url);
 
 export const crossImport = async <T = any>(path: string): Promise<T> => {
   if (isEsmFile(path)) {

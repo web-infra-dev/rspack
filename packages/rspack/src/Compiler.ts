@@ -7,6 +7,8 @@
  * Copyright (c) JS Foundation and other contributors
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
+
+import { createRequire } from 'node:module';
 import type binding from '@rspack/binding';
 import * as liteTapable from '@rspack/lite-tapable';
 import type Watchpack from 'watchpack';
@@ -17,7 +19,6 @@ import {
   JsLoaderRspackPlugin,
 } from './builtin-plugin';
 import { canInherentFromParent } from './builtin-plugin/base';
-
 import type { Chunk } from './Chunk';
 import type { CompilationParams } from './Compilation';
 import { Compilation } from './Compilation';
@@ -72,6 +73,8 @@ import type {
 import { makePathsRelative } from './util/identifier';
 import { VirtualModulesPlugin } from './VirtualModulesPlugin';
 import { Watching } from './Watching';
+
+const require = createRequire(import.meta.url);
 
 export interface AssetEmittedInfo {
   content: Buffer;

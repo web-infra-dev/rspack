@@ -138,6 +138,9 @@ function defaultOptions(context: ITestContext, target: TTarget) {
       chunkFilename: '[name].chunk.[fullhash].js',
       publicPath: 'https://test.cases/path/',
       library: { type: 'commonjs2' },
+      bundlerInfo: {
+        force: false,
+      },
     },
     optimization: {
       moduleIds: 'named',
@@ -147,11 +150,6 @@ function defaultOptions(context: ITestContext, target: TTarget) {
       css: true,
       // test incremental: "safe" here, we test default incremental in Incremental-*.test.js
       incremental: 'safe',
-      rspackFuture: {
-        bundlerInfo: {
-          force: false,
-        },
-      },
     },
   } as RspackOptions;
 

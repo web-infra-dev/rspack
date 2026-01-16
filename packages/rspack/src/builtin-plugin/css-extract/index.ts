@@ -10,7 +10,7 @@ import { PLUGIN_NAME } from './utils';
 export * from './loader';
 
 const DEFAULT_FILENAME = '[name].css';
-const LOADER_PATH = join(__dirname, 'cssExtractLoader.js');
+const LOADER_PATH = join(import.meta.dirname, 'cssExtractLoader.js');
 
 export type { CssExtractRspackLoaderOptions } from './loader';
 

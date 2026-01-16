@@ -1,5 +1,3 @@
-use std::any::Any;
-
 use rkyv::{
   Archive, Archived, Deserialize, Place, Resolver, Serialize,
   de::Pooling,
@@ -11,10 +9,10 @@ use rkyv::{
 use crate::{Error, Result, context::ContextGuard};
 
 pub trait AsConverter<T> {
-  fn serialize(data: &T, ctx: &dyn Any) -> Result<Self>
+  fn serialize(data: &T, guard: &ContextGuard) -> Result<Self>
   where
     Self: Sized;
-  fn deserialize(self, ctx: &dyn Any) -> Result<T>;
+  fn deserialize(self, guard: &ContextGuard) -> Result<T>;
 }
 
 pub struct As<A> {
@@ -47,8 +45,8 @@ where
 {
   #[inline]
   fn serialize_with(field: &T, serializer: &mut S) -> Result<Self::Resolver> {
-    let ctx = ContextGuard::sharing_context(serializer)?;
-    let value = <A as AsConverter<T>>::serialize(field, ctx)?;
+    let guard = ContextGuard::sharing_guard(serializer)?;
+    let value = <A as AsConverter<T>>::serialize(field, guard)?;
     Ok(AsResolver {
       resolver: value.serialize(serializer)?,
       value,
@@ -65,7 +63,7 @@ where
   #[inline]
   fn deserialize_with(field: &Archived<A>, de: &mut D) -> Result<T> {
     let field = A::Archived::deserialize(field, de)?;
-    let ctx = ContextGuard::pooling_context(de)?;
-    field.deserialize(ctx)
+    let guard = ContextGuard::pooling_guard(de)?;
+    field.deserialize(guard)
   }
 }

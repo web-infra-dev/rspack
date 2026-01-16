@@ -22,7 +22,6 @@ module.exports = {
 			  experiments: Object {
 			    asyncWebAssembly: false,
 			    buildHttp: undefined,
-			    cache: false,
 			    css: undefined,
 			    deferImport: false,
 			    futureDefaults: false,
@@ -44,20 +43,6 @@ module.exports = {
 			      sideEffects: true,
 			      silent: true,
 			    },
-			    inlineConst: true,
-			    inlineEnum: false,
-			    lazyBarrel: true,
-			    lazyCompilation: false,
-			    parallelLoader: false,
-			    rspackFuture: Object {
-			      bundlerInfo: Object {
-			        bundler: rspack,
-			        force: true,
-			        version: $version$,
-			      },
-			    },
-			    topLevelAwait: true,
-			    typeReexportsPresence: false,
 			    useInputFileSystem: false,
 			  },
 			  externals: undefined,
@@ -86,6 +71,7 @@ module.exports = {
 			      dynamicImportInWorker: undefined,
 			      forOf: true,
 			      globalThis: undefined,
+			      importMetaDirnameAndFilename: undefined,
 			      methodShorthand: true,
 			      module: undefined,
 			      nodePrefixForCoreModules: true,
@@ -214,6 +200,7 @@ module.exports = {
 			        importDynamic: true,
 			        importMeta: true,
 			        jsx: false,
+			        requireAlias: false,
 			        requireAsExpression: true,
 			        requireDynamic: true,
 			        requireResolve: true,
@@ -303,7 +290,11 @@ module.exports = {
 			  output: Object {
 			    assetModuleFilename: [hash][ext][query],
 			    asyncChunks: true,
-			    charset: false,
+			    bundlerInfo: Object {
+			      bundler: rspack,
+			      force: true,
+			      version: $version$,
+			    },
 			    chunkFilename: [name].js,
 			    chunkFormat: array-push,
 			    chunkLoadTimeout: 120000,
@@ -336,6 +327,7 @@ module.exports = {
 			      dynamicImportInWorker: undefined,
 			      forOf: true,
 			      globalThis: undefined,
+			      importMetaDirnameAndFilename: undefined,
 			      methodShorthand: true,
 			      module: undefined,
 			      nodePrefixForCoreModules: true,
@@ -372,7 +364,6 @@ module.exports = {
 			  },
 			  performance: false,
 			  plugins: Array [],
-			  profile: false,
 			  resolve: Object {
 			    aliasFields: Array [],
 			    byDependency: Object {

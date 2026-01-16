@@ -6,7 +6,7 @@ const local = 'index'
 const index_local = ''
 
 it('should have deconflicted symbol', () => {
-	expect(/* inlined export .value */(42)).toBe(42)
+	expect((/* inlined export .value */42)).toBe(42)
 	expect(local).toBe('index')
 	expect(index_local).toBe('')
 })

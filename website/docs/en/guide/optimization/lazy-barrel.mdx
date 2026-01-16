@@ -171,24 +171,6 @@ Rspack can analyze whether a module has side effects (this capability is already
 
 During the make phase, dependencies must be built before their side effects can be analyzed. Lazy barrel is specifically designed to avoid building those dependencies. Therefore, it relies on explicit markers like `"sideEffects": false` in `package.json` or `rules[].sideEffects`, which don't require dependency checking since they declare the entire package or matched modules as side-effect-free.
 
-## Configuration
-
-Lazy barrel is enabled by default since Rspack 1.6.0. No configuration is needed.
-
-If you're using an older version and have `experiments.lazyBarrel` in your configuration, you can safely remove it:
-
-```diff title="rspack.config.mjs"
-export default {
--  experiments: {
--    lazyBarrel: true,
--  },
-};
-```
-
-:::warning Deprecated configuration
-The `experiments.lazyBarrel` configuration option has been deprecated and will be removed in Rspack v2.0.
-:::
-
 ## Further reading
 
 - [RFC: Lazy make for reexports in side effects free barrel file](https://github.com/web-infra-dev/rspack/discussions/11273)

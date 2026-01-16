@@ -65,7 +65,7 @@ export const WebpackError = Error;
 
 export type { Watching } from './Watching';
 
-import sources = require('webpack-sources');
+import * as sources from 'webpack-sources';
 
 export { sources };
 
@@ -106,10 +106,6 @@ export type {
 export {
   BannerPlugin,
   CaseSensitivePlugin,
-  /**
-   * @deprecated Use `rspack.CaseSensitivePlugin` instead
-   */
-  CaseSensitivePlugin as WarnCaseSensitiveModulesPlugin,
   DefinePlugin,
   DynamicEntryPlugin,
   EntryPlugin,
@@ -379,18 +375,10 @@ interface Experiments {
     cleanup: () => Promise<void>;
   };
   RemoveDuplicateModulesPlugin: typeof RemoveDuplicateModulesPlugin;
-  /**
-   * @deprecated Use `rspack.SubresourceIntegrityPlugin` instead
-   */
-  SubresourceIntegrityPlugin: typeof SubresourceIntegrityPlugin;
   EsmLibraryPlugin: typeof EsmLibraryPlugin;
   RsdoctorPlugin: typeof RsdoctorPlugin;
   RstestPlugin: typeof RstestPlugin;
   RslibPlugin: typeof RslibPlugin;
-  /**
-   * @deprecated Use `rspack.lazyCompilationMiddleware` instead
-   */
-  lazyCompilationMiddleware: typeof lazyCompilationMiddleware;
   swc: {
     transform: typeof transform;
     minify: typeof minify;
@@ -425,7 +413,6 @@ export const experiments: Experiments = {
     },
   },
   RemoveDuplicateModulesPlugin,
-  SubresourceIntegrityPlugin,
   EsmLibraryPlugin,
   /**
    * Note: This plugin is unstable yet
@@ -445,7 +432,6 @@ export const experiments: Experiments = {
    * @internal
    */
   RslibPlugin,
-  lazyCompilationMiddleware,
   swc: {
     minify,
     transform,

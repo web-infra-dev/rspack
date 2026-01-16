@@ -352,11 +352,6 @@ function overrideOptions(
   if (typeof options.output.pathinfo === 'undefined')
     options.output.pathinfo = false;
   if (!options.output.filename) options.output.filename = 'bundle.js';
-  if (options.cache && (options.cache as any).type === 'filesystem') {
-    const cacheDirectory = path.join(tempDir, '.cache');
-    (options.cache as any).cacheDirectory = cacheDirectory;
-    (options.cache as any).name = `config-${index}`;
-  }
   options.optimization ??= {};
   options.experiments ??= {};
   options.experiments.css ??= true;
@@ -365,10 +360,9 @@ function overrideOptions(
     (options as RspackOptions).experiments!.nativeWatcher ??= true;
   }
 
-  (options as RspackOptions).experiments!.rspackFuture ??= {};
-  (options as RspackOptions).experiments!.rspackFuture!.bundlerInfo ??= {};
-  (options as RspackOptions).experiments!.rspackFuture!.bundlerInfo!.force ??=
-    false;
+  (options as RspackOptions).output ??= {};
+  (options as RspackOptions).output!.bundlerInfo ??= {};
+  (options as RspackOptions).output!.bundlerInfo!.force ??= false;
   // test incremental: "safe" here, we test default incremental in Incremental-*.test.js
   (options as RspackOptions).experiments!.incremental ??= 'safe';
 

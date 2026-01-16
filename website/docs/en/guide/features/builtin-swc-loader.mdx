@@ -36,6 +36,29 @@ export default {
 };
 ```
 
+:::tip
+Starting from Rspack 2.0, `builtin:swc-loader` enables [verbatimModuleSyntax](https://swc.rs/docs/configuration/compilation#jsc.transform.verbatimmodulesyntax) by default for better TypeScript compatibility. This option ensures that type-only imports (e.g., `import type { Foo } from 'bar'`) are completely erased at runtime, improving tree-shaking and reducing bundle size.
+
+You can explicitly disable it if needed:
+
+```js
+{
+  loader: 'builtin:swc-loader',
+  options: {
+    jsc: {
+      parser: {
+        syntax: 'typescript',
+      },
+      transform: {
+        verbatimModuleSyntax: false,
+      },
+    },
+  },
+}
+```
+
+:::
+
 ### JSX transpilation
 
 To transpile React's `.jsx` files:
@@ -457,10 +480,6 @@ Collects information from TypeScript's AST for consumption by subsequent Rspack 
 
 To ensure the accuracy of the collected information, users must ensure that subsequent Normal Loaders after `builtin:swc-loader` do not modify the Abstract Syntax Tree (AST) corresponding to the collected information. This precaution is necessary to prevent discrepancies between the collected information and the actual code.
 
-:::tip
-Before Rspack 1.7, the [rspackExperiments.collectTypeScriptInfo](/config/deprecated-options#experimentscollecttypescriptinfo) option could be used.
-:::
-
 #### collectTypeScriptInfo.typeExports
 
 <ApiMeta addedVersion="1.7.0" />
@@ -489,9 +508,6 @@ Whether to collect information about exported `enum`s, so Rspack can perform cro
 const isProduction = process.env.NODE_ENV === 'production';
 
 export default {
-  experiments: {
-    inlineEnum: true, // This is currently an experimental feature and requires explicit enabling
-  },
   module: {
     rules: [
       {

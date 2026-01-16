@@ -2,7 +2,8 @@ use std::path::PathBuf;
 
 use rspack_cacheable::{
   enable_cacheable as cacheable,
-  with::{AsString, AsVec},
+  utils::PortablePath,
+  with::{As, AsVec},
 };
 use rustc_hash::FxHashSet;
 
@@ -16,7 +17,7 @@ struct Module {
 #[derive(Debug, PartialEq, Eq)]
 struct App {
   modules: FxHashSet<Module>,
-  #[cacheable(with=AsVec<AsString>)]
+  #[cacheable(with=AsVec<As<PortablePath>>)]
   paths: Vec<PathBuf>,
   sizes: Vec<u32>,
 }

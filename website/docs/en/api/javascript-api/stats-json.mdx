@@ -245,14 +245,6 @@ type StatsModule = {
 
   // Source code
   source?: string | Buffer;
-
-  // The compilation time statistics for each phase (in milliseconds, need to enable `profile`)
-  profile?: {
-    // Finding the module
-    resolving: number;
-    // Compiling the module
-    building: number;
-  };
 };
 ```
 

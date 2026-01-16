@@ -18,7 +18,7 @@ use rspack_core::{
   ParserOptions, Plugin, PrefetchExportsInfoMode, RuntimeGlobals, get_target, is_esm_dep_like,
   rspack_sources::{ReplaceSource, Source},
 };
-use rspack_error::Result;
+use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{
   JavascriptModulesRenderChunkContent, JsPlugin, RenderSource,
@@ -303,7 +303,11 @@ async fn concatenation_scope(
 }
 
 #[plugin_hook(CompilationAfterCodeGeneration for EsmLibraryPlugin)]
-async fn after_code_generation(&self, compilation: &mut Compilation) -> Result<()> {
+async fn after_code_generation(
+  &self,
+  compilation: &Compilation,
+  diagnostics: &mut Vec<Diagnostic>,
+) -> Result<()> {
   let mut chunk_ids_to_ukey = FxHashMap::default();
 
   for chunk_ukey in compilation.chunk_by_ukey.keys() {
@@ -316,7 +320,7 @@ async fn after_code_generation(&self, compilation: &mut Compilation) -> Result<(
 
   *self.chunk_ids_to_ukey.borrow_mut() = chunk_ids_to_ukey;
 
-  self.link(compilation).await?;
+  self.link(compilation, diagnostics).await?;
   Ok(())
 }
 

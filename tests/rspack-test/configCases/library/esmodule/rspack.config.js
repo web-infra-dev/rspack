@@ -1,7 +1,7 @@
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	output: {
-		libraryTarget: "module",
+		library: { type: "module" },
 		iife: false,
 		chunkFormat: "module",
 		filename: "bundle0.mjs"

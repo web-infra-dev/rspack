@@ -68,16 +68,17 @@ impl SwcLoader {
 
     let swc_options = {
       let mut swc_options = self.options_with_additional.swc_options.clone();
-      if swc_options.config.jsc.transform.as_ref().is_some() {
-        let mut transform = TransformConfig::default();
-        transform.react.development =
-          Some(Mode::is_development(&loader_context.context.options.mode));
-        swc_options
-          .config
-          .jsc
-          .transform
-          .merge(MergingOption::from(Some(transform)));
-      }
+      let mut transform = TransformConfig::default();
+      transform.react.development =
+        Some(Mode::is_development(&loader_context.context.options.mode));
+      // Enable verbatimModuleSyntax by default for better TypeScript compatibility
+      transform.verbatim_module_syntax = Some(true).into();
+
+      swc_options
+        .config
+        .jsc
+        .transform
+        .merge(MergingOption::from(Some(transform)));
 
       if loader_context.context.source_map_kind.enabled() {
         if let Some(pre_source_map) = loader_context.source_map().cloned()

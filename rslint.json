@@ -25,9 +25,9 @@
       "@typescript-eslint/no-confusing-void-expression": "off",
       "@typescript-eslint/promise-function-async": "off",
       "@typescript-eslint/use-unknown-in-catch-callback-variable": "off",
-      "@typescript-eslint/require-await": "off",
+      "@typescript-eslint/require-await": "error",
       "@typescript-eslint/switch-exhaustiveness-check": "off",
-      "@typescript-eslint/return-await": "off",
+      "@typescript-eslint/return-await": "error",
       "@typescript-eslint/non-nullable-type-assertion-style": "off",
       "@typescript-eslint/no-misused-spread": "off",
       "@typescript-eslint/unbound-method": "off",
@@ -37,7 +37,19 @@
       "@typescript-eslint/no-unused-vars": "off",
       "@typescript-eslint/no-var-requires": "off",
       "@typescript-eslint/no-require-imports": "off",
-      "@typescript-eslint/no-empty-function": "off"
+      "@typescript-eslint/no-empty-function": "off",
+      "@typescript-eslint/ban-ts-comment": "off",
+      "@typescript-eslint/consistent-indexed-object-style": "off",
+      "@typescript-eslint/no-this-alias": "off",
+      "@typescript-eslint/consistent-type-definitions": "off",
+      "@typescript-eslint/consistent-return": "off",
+      "@typescript-eslint/consistent-type-exports": "off",
+      "@typescript-eslint/consistent-generic-constructors": "off",
+      "@typescript-eslint/ban-types": "off",
+      "@typescript-eslint/no-extraneous-class": "off",
+      "@typescript-eslint/consistent-type-imports": "off",
+      "@typescript-eslint/no-invalid-void-type": "off",
+      "@typescript-eslint/default-param-last": "error"
     },
     "plugins": ["@typescript-eslint"]
   }
