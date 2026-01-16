@@ -94,8 +94,7 @@ async fn read_file_compile_async_wasm_plugin_runtime_requirements_in_tree(
       .options
       .output
       .environment
-      .dynamic_import
-      .unwrap_or_default();
+      .supports_dynamic_import();
 
   compilation.add_runtime_module(
     chunk_ukey,

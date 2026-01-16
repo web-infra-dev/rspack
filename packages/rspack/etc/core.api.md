@@ -127,8 +127,8 @@ export type AmdContainer = string;
 export const applyRspackOptionsBaseDefaults: (options: RspackOptionsNormalized) => void;
 
 // @public (undocumented)
-export const applyRspackOptionsDefaults: (options: RspackOptionsNormalized) => {
-    platform: false | {
+export const applyRspackOptionsDefaults: (options: RspackOptionsNormalized) => false | {
+    platform: {
         web: boolean | null | undefined;
         browser: boolean | null | undefined;
         webworker: boolean | null | undefined;
@@ -136,6 +136,8 @@ export const applyRspackOptionsDefaults: (options: RspackOptionsNormalized) => {
         nwjs: boolean | null | undefined;
         electron: boolean | null | undefined;
     };
+    esVersion: number | null | undefined;
+    platforms: string[] | null | undefined;
 };
 
 // @public (undocumented)
@@ -1340,6 +1342,9 @@ export class Compiler {
     runAsChild(callback: (err?: null | Error, entries?: Chunk[], compilation?: Compilation) => any): void;
     // (undocumented)
     running: boolean;
+    // (undocumented)
+    get target(): ExtractedTargetProperties;
+    set target(target: ExtractedTargetProperties);
     // @internal
     unsafeFastDrop: boolean;
     // (undocumented)
@@ -2827,6 +2832,12 @@ type ExtractCommentsObject = {
 
 // @public (undocumented)
 type ExtractCommentsOptions = ExtractCommentsCondition | ExtractCommentsObject;
+
+// @public (undocumented)
+type ExtractedTargetProperties = {
+    esVersion?: number | null;
+    platforms?: string[] | null;
+};
 
 // @public (undocumented)
 type ExtraPluginHookData = {
@@ -4481,7 +4492,7 @@ export type LightningCssMinimizerRspackPluginOptions = {
     removeUnusedLocalIdents?: boolean;
     minimizerOptions?: {
         errorRecovery?: boolean;
-        targets?: string[] | string;
+        targets?: string[] | string | Targets;
         include?: LightningcssFeatureOptions;
         exclude?: LightningcssFeatureOptions;
         drafts?: Drafts;
@@ -7371,7 +7382,7 @@ const RuntimeChunkPlugin: {
 };
 
 // @public (undocumented)
-export const RuntimeGlobals: Record<"publicPath" | "chunkName" | "moduleId" | "module" | "exports" | "require" | "global" | "system" | "requireScope" | "thisAsExports" | "returnExportsFromRuntime" | "moduleLoaded" | "entryModuleId" | "moduleCache" | "moduleFactories" | "moduleFactoriesAddOnly" | "ensureChunk" | "ensureChunkHandlers" | "ensureChunkIncludeEntries" | "prefetchChunk" | "prefetchChunkHandlers" | "preloadChunk" | "preloadChunkHandlers" | "definePropertyGetters" | "makeNamespaceObject" | "createFakeNamespaceObject" | "compatGetDefaultExport" | "harmonyModuleDecorator" | "nodeModuleDecorator" | "getFullHash" | "wasmInstances" | "instantiateWasm" | "uncaughtErrorHandler" | "scriptNonce" | "loadScript" | "createScript" | "createScriptUrl" | "getTrustedTypesPolicy" | "hasFetchPriority" | "runtimeId" | "getChunkScriptFilename" | "getChunkCssFilename" | "rspackVersion" | "hasCssModules" | "rspackUniqueId" | "getChunkUpdateScriptFilename" | "getChunkUpdateCssFilename" | "startup" | "startupNoDefault" | "startupOnlyAfter" | "startupOnlyBefore" | "chunkCallback" | "startupEntrypoint" | "startupChunkDependencies" | "onChunksLoaded" | "externalInstallChunk" | "interceptModuleExecution" | "shareScopeMap" | "initializeSharing" | "currentRemoteGetScope" | "getUpdateManifestFilename" | "hmrDownloadManifest" | "hmrDownloadUpdateHandlers" | "hmrModuleData" | "hmrInvalidateModuleHandlers" | "hmrRuntimeStatePrefix" | "amdDefine" | "amdOptions" | "hasOwnProperty" | "systemContext" | "baseURI" | "relativeUrl" | "asyncModule" | "asyncModuleExportSymbol" | "makeDeferredNamespaceObject" | "makeDeferredNamespaceObjectSymbol", string>;
+export const RuntimeGlobals: Record<"publicPath" | "chunkName" | "moduleId" | "module" | "require" | "global" | "system" | "exports" | "requireScope" | "thisAsExports" | "returnExportsFromRuntime" | "moduleLoaded" | "entryModuleId" | "moduleCache" | "moduleFactories" | "moduleFactoriesAddOnly" | "ensureChunk" | "ensureChunkHandlers" | "ensureChunkIncludeEntries" | "prefetchChunk" | "prefetchChunkHandlers" | "preloadChunk" | "preloadChunkHandlers" | "definePropertyGetters" | "makeNamespaceObject" | "createFakeNamespaceObject" | "compatGetDefaultExport" | "harmonyModuleDecorator" | "nodeModuleDecorator" | "getFullHash" | "wasmInstances" | "instantiateWasm" | "uncaughtErrorHandler" | "scriptNonce" | "loadScript" | "createScript" | "createScriptUrl" | "getTrustedTypesPolicy" | "hasFetchPriority" | "runtimeId" | "getChunkScriptFilename" | "getChunkCssFilename" | "rspackVersion" | "hasCssModules" | "rspackUniqueId" | "getChunkUpdateScriptFilename" | "getChunkUpdateCssFilename" | "startup" | "startupNoDefault" | "startupOnlyAfter" | "startupOnlyBefore" | "chunkCallback" | "startupEntrypoint" | "startupChunkDependencies" | "onChunksLoaded" | "externalInstallChunk" | "interceptModuleExecution" | "shareScopeMap" | "initializeSharing" | "currentRemoteGetScope" | "getUpdateManifestFilename" | "hmrDownloadManifest" | "hmrDownloadUpdateHandlers" | "hmrModuleData" | "hmrInvalidateModuleHandlers" | "hmrRuntimeStatePrefix" | "amdDefine" | "amdOptions" | "hasOwnProperty" | "systemContext" | "baseURI" | "relativeUrl" | "asyncModule" | "asyncModuleExportSymbol" | "makeDeferredNamespaceObject" | "makeDeferredNamespaceObjectSymbol", string>;
 
 // @public (undocumented)
 export class RuntimeModule {
@@ -8265,23 +8276,23 @@ export type Target = false | AllowTarget | AllowTarget[];
 // @public (undocumented)
 interface Targets {
     // (undocumented)
-    android?: number;
+    android?: string;
     // (undocumented)
-    chrome?: number;
+    chrome?: string;
     // (undocumented)
-    edge?: number;
+    edge?: string;
     // (undocumented)
-    firefox?: number;
+    firefox?: string;
     // (undocumented)
-    ie?: number;
+    ie?: string;
     // (undocumented)
-    ios_saf?: number;
+    ios_saf?: string;
     // (undocumented)
-    opera?: number;
+    opera?: string;
     // (undocumented)
-    safari?: number;
+    safari?: string;
     // (undocumented)
-    samsung?: number;
+    samsung?: string;
 }
 
 // @public
