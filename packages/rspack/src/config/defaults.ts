@@ -212,7 +212,8 @@ const applyInfrastructureLoggingDefaults = (
 
 const applyExperimentsDefaults = (experiments: ExperimentsNormalized) => {
   D(experiments, 'futureDefaults', false);
-  D(experiments, 'asyncWebAssembly', experiments.futureDefaults);
+  // IGNORE(experiments.asyncWebAssembly): Rspack enable async WebAssembly by default
+  D(experiments, 'asyncWebAssembly', true);
   D(experiments, 'css', experiments.futureDefaults ? true : undefined);
   D(experiments, 'deferImport', false);
 

@@ -12,42 +12,12 @@ module.exports = {
 			+ Received
 
 			@@ ... @@
-			-     "asyncWebAssembly": false,
-			+     "asyncWebAssembly": true,
-			@@ ... @@
 			-     "css": undefined,
 			+     "css": true,
 			@@ ... @@
 			-     "futureDefaults": false,
 			+     "futureDefaults": true,
 			@@ ... @@
-			+       Object {
-			+         "rules": Array [
-			@@ ... @@
-			+             "descriptionData": Object {
-			+               "type": "module",
-			+             },
-			+             "resolve": Object {
-			+               "fullySpecified": true,
-			+             },
-			+           },
-			+         ],
-			+         "test": /\\.wasm$/i,
-			+         "type": "webassembly/async",
-			+       },
-			+       Object {
-			+         "mimetype": "application/wasm",
-			+         "rules": Array [
-			+           Object {
-			+             "descriptionData": Object {
-			+               "type": "module",
-			+             },
-			+             "resolve": Object {
-			+               "fullySpecified": true,
-			+             },
-			+           },
-			+         ],
-			+         "type": "webassembly/async",
 			+       },
 			+       Object {
 			+         "resolve": Object {
@@ -64,8 +34,7 @@ module.exports = {
 			+           "preferRelative": true,
 			+         },
 			+         "type": "css/module",
-			+       },
-			+       Object {
+			@@ ... @@
 			+         "mimetype": "text/css",
 			+         "resolve": Object {
 			+           "fullySpecified": true,
@@ -92,6 +61,8 @@ module.exports = {
 			+         "localIdentName": "[fullhash]",
 			+       },
 			@@ ... @@
+			+         },
+			+       },
 			+       "css": Object {
 			+         "namedExports": true,
 			+         "url": true,
@@ -99,21 +70,21 @@ module.exports = {
 			+       "css/auto": Object {
 			+         "namedExports": true,
 			+         "url": true,
-			+       },
+			@@ ... @@
 			+       "css/module": Object {
 			+         "namedExports": true,
 			+         "url": true,
-			+       },
 			@@ ... @@
 			+         "css",
 			@@ ... @@
+			+         ],
 			+       },
 			+       "css-import": Object {
 			+         "conditionNames": Array [
 			+           "webpack",
 			+           "production",
 			+           "style",
-			+         ],
+			@@ ... @@
 			+         "extensions": Array [
 			+           ".css",
 			+         ],

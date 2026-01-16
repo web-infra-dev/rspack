@@ -3749,7 +3749,7 @@ impl ExperimentsBuilder {
     // Builder specific
     let future_defaults = w!(self.future_defaults, false);
     w!(self.css, *future_defaults);
-    w!(self.async_web_assembly, *future_defaults);
+    w!(self.async_web_assembly, true);
     w!(self.output_module, false);
 
     Ok(Experiments {
