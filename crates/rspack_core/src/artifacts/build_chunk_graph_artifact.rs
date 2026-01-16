@@ -27,6 +27,9 @@ pub struct BuildChunkGraphArtifact {
 }
 
 impl BuildChunkGraphArtifact {
+  fn clear(&mut self){
+    *self = BuildChunkGraphArtifact::default();
+  }
   // we can skip rebuilding chunk graph if none of modules
   // has changed its outgoings
   // we don't need to check if module has changed its incomings
@@ -169,6 +172,7 @@ where
   T: Fn(&'a mut Compilation) -> F,
   F: Future<Output = Result<&'a mut Compilation>>,
 {
+  
   if !compilation.incremental.enabled() {
     task(compilation).await?;
     return Ok(());
@@ -176,23 +180,26 @@ where
 
   let incremental_code_splitting = compilation
     .incremental
-    .passes_enabled(IncrementalPasses::BUILD_CHUNK_GRAPH);
+    .passes_enabled(IncrementalPasses::BUILD_CHUNK_GRAPH | IncrementalPasses::MAKE);
+  if !incremental_code_splitting{
+    compilation.build_chunk_graph_artifact.clear();
+  }
   let no_change = compilation
     .build_chunk_graph_artifact
     .can_skip_rebuilding(compilation);
 
-  if incremental_code_splitting || no_change {
-    if no_change {
-      let module_idx = compilation.build_chunk_graph_artifact.module_idx.clone();
-      let module_graph = compilation.get_module_graph_mut();
+  if incremental_code_splitting && no_change {
+   
+      let module_idx = &compilation.build_chunk_graph_artifact.module_idx;
+      let module_graph = &mut compilation.build_module_graph_artifact.module_graph;
       for (m, (pre, post)) in module_idx {
-        let mgm = module_graph.module_graph_module_by_identifier_mut(&m);
-        mgm.pre_order_index = Some(pre);
-        mgm.post_order_index = Some(post);
+        let mgm = module_graph.module_graph_module_by_identifier_mut(m);
+        mgm.pre_order_index = Some(*pre);
+        mgm.post_order_index = Some(*post);
       }
 
       return Ok(());
-    }
+    
   }
 
   let compilation = task(compilation).await?;
