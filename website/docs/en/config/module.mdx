@@ -749,6 +749,106 @@ export default {
 };
 ```
 
+### module.parser.javascript.requireAlias
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
+
+Control whether renaming of the CommonJS `require` function will be parsed and transformed.
+
+When set to `true`, Rspack will parse and transform cases where `require` is assigned to a variable or passed as a parameter (e.g., `const req = require; req('./module')`).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        requireAlias: true,
+      },
+    },
+  },
+};
+```
+
+### module.parser.javascript.requireAsExpression
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+
+Control whether `require` used as an expression will be parsed.
+
+When set to `false`, Rspack will not parse `require` when it's used as an expression (e.g., `const req = require; req('./module')`). This can improve build performance if your code doesn't use this pattern.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        requireAsExpression: false,
+      },
+    },
+  },
+};
+```
+
+### module.parser.javascript.requireDynamic
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+
+Control whether dynamic `require` calls will be parsed.
+
+When set to `false`, Rspack will not parse dynamic `require` calls where the module path is not a static string (e.g., `require(variable)`). This can improve build performance if your code doesn't use dynamic requires.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        requireDynamic: false,
+      },
+    },
+  },
+};
+```
+
+### module.parser.javascript.requireResolve
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+
+Control whether `require.resolve()` calls will be parsed.
+
+When set to `false`, Rspack will not parse `require.resolve()` calls. This can improve build performance if your code doesn't use `require.resolve()`.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        requireResolve: false,
+      },
+    },
+  },
+};
+```
+
+### module.parser.javascript.importDynamic
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+
+Control whether dynamic `import()` calls will be parsed.
+
+When set to `false`, Rspack will not parse dynamic `import()` calls where the module path is not a static string (e.g., `import(variable)`). This can improve build performance if your code doesn't use dynamic imports.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        importDynamic: false,
+      },
+    },
+  },
+};
+```
+
 ### module.parser.javascript.jsx
 
 <ApiMeta stability={Stability.Experimental} addedVersion="1.5.7" />
