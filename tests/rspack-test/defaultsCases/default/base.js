@@ -20,7 +20,7 @@ module.exports = {
 			    },
 			  },
 			  experiments: Object {
-			    asyncWebAssembly: false,
+			    asyncWebAssembly: true,
 			    buildHttp: undefined,
 			    css: undefined,
 			    deferImport: false,
@@ -146,6 +146,34 @@ module.exports = {
 			          },
 			        },
 			        type: javascript/esm,
+			      },
+			      Object {
+			        rules: Array [
+			          Object {
+			            descriptionData: Object {
+			              type: module,
+			            },
+			            resolve: Object {
+			              fullySpecified: true,
+			            },
+			          },
+			        ],
+			        test: /\\\\\\.wasm\\$/i,
+			        type: webassembly/async,
+			      },
+			      Object {
+			        mimetype: application/wasm,
+			        rules: Array [
+			          Object {
+			            descriptionData: Object {
+			              type: module,
+			            },
+			            resolve: Object {
+			              fullySpecified: true,
+			            },
+			          },
+			        ],
+			        type: webassembly/async,
 			      },
 			      Object {
 			        dependency: url,

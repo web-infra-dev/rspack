@@ -17,7 +17,7 @@ In minor releases, Rspack may change the APIs of experimental features. If you'r
 ## experiments.asyncWebAssembly
 
 - **Type:** `boolean`
-- **Default:** `false`
+- **Default:** `true`
 
 Supports the new WebAssembly according to the [updated specification](https://github.com/WebAssembly/esm-integration), making WebAssembly modules async.
 
@@ -29,7 +29,7 @@ export default {
 };
 ```
 
-This is enabled by default when [experiments.futureDefaults](#experimentsfuturedefaults) is set to `true`.
+This is enabled by default in Rspack.
 
 ## experiments.outputModule
 
