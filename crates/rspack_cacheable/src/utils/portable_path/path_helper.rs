@@ -7,12 +7,12 @@ pub fn is_absolute_path(path: impl AsRef<str>) -> bool {
 
   #[cfg(not(windows))]
   {
-    path.len() > 1 && path[0] == MAIN_SEPARATOR_U8
+    path.len() > 0 && path[0] == MAIN_SEPARATOR_U8
   }
 
   #[cfg(windows)]
   {
-    path.len() > 3 && path[1] == b':' && path[2] == MAIN_SEPARATOR_U8
+    path.len() > 2 && path[1] == b':' && path[2] == MAIN_SEPARATOR_U8
   }
 }
 
@@ -133,6 +133,10 @@ pub fn to_absolute_path(relative_path: impl AsRef<str>, base: impl AsRef<str>) -
         relative_level += 1;
         relative_prefix_end = index;
       }
+      // Check if the path ends with "."
+      if dot_count == 1 {
+        relative_prefix_end = index;
+      }
       break;
     }
     let i = relative_bytes[index];
@@ -141,6 +145,7 @@ pub fn to_absolute_path(relative_path: impl AsRef<str>, base: impl AsRef<str>) -
       index += 1;
       continue;
     }
+    // relative path separator always /
     if i == b'/' {
       if dot_count == 2 {
         relative_level += 1;
@@ -177,6 +182,7 @@ pub fn to_absolute_path(relative_path: impl AsRef<str>, base: impl AsRef<str>) -
 
   let mut result = String::new();
   if base_prefix_end != 0 {
+    // not ends with /
     result.push_str(&base_str[0..base_prefix_end]);
   } else {
     #[cfg(not(windows))]
@@ -186,9 +192,23 @@ pub fn to_absolute_path(relative_path: impl AsRef<str>, base: impl AsRef<str>) -
     result.push_str(&base_str[0..3])
   }
 
-  let relative_remainder = &relative_str[relative_prefix_end..];
+  // remove last separator
+  let relative_remainder = if !relative_bytes.is_empty() {
+    let last_index = relative_bytes.len() - 1;
+    // relative path separator always /
+    if relative_bytes[last_index] == b'/' && relative_prefix_end < last_index {
+      &relative_str[relative_prefix_end..last_index]
+    } else {
+      &relative_str[relative_prefix_end..]
+    }
+  } else {
+    ""
+  };
   if !relative_remainder.is_empty() {
-    result.push(MAIN_SEPARATOR);
+    // Only add separator if result doesn't already end with one
+    if base_prefix_end != 0 {
+      result.push(MAIN_SEPARATOR);
+    }
     for i in relative_remainder.as_bytes() {
       if i == &b'/' {
         result.push(MAIN_SEPARATOR)
@@ -255,23 +275,27 @@ mod test {
   #[cfg(not(windows))]
   fn should_to_absolute_path_work() {
     let test_cases = vec![
-      ("/home/user/project", "src/main.rs"),
-      ("/home/user/project", "../other/file.txt"),
-      ("/home/user/project", "../../etc/config.ini"),
-      ("/a/b", "c/d"),
-      ("/a/b", ".."),
-      ("/a/b/c", "../.."),
-      ("/a", ""),
-      ("/a/b", "."),
+      ("src/main.rs", "/home/user/project"),
+      ("../other/file.txt", "/home/user/project"),
+      ("../../etc/config.ini", "/home/user/project"),
+      ("c/d", "/a/b"),
+      ("..", "/a/b"),
+      ("../..", "/a/b/c"),
+      ("", "/a"),
+      (".", "/a/b"),
+      ("../c/", "/a"),
+      ("../../../", "/a"),
     ];
 
-    for (base, relative) in test_cases {
+    for (relative, base) in test_cases {
       let result = to_absolute_path(relative, base);
       let expected = format!("{}/{}", base, relative).normalize();
       assert_eq!(
-        result, expected,
+        result,
+        expected.to_string_lossy(),
         "Failed: base={:?}, relative={:?}",
-        base, relative
+        base,
+        relative
       );
     }
   }

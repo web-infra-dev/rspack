@@ -2,7 +2,7 @@ mod path_helper;
 
 use std::path::Path;
 
-use self::path_helper::{is_absolute_path, to_absolute_path, to_relative_path};
+pub use self::path_helper::{is_absolute_path, to_absolute_path, to_relative_path};
 use crate::{ContextGuard, Result, cacheable, with::AsConverter};
 
 /// A portable path representation that can be serialized and deserialized across different

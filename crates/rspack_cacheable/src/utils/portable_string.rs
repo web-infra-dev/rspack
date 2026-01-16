@@ -1,8 +1,8 @@
 use std::{path::Path, sync::LazyLock};
 
 use regex::Regex;
-use sugar_path::SugarPath;
 
+use super::portable_path::{to_absolute_path, to_relative_path};
 use crate::{ContextGuard, Result, cacheable, with::AsConverter};
 
 static PATH_REGEX: LazyLock<Regex> = LazyLock::new(|| {
@@ -87,11 +87,7 @@ impl PortableString {
       result.push_str(&content[last_end..path_match.start()]);
 
       // Convert to portable format with <project_root> placeholder
-      let relative_path = path_match
-        .as_str()
-        .relative(project_root)
-        .to_slash_lossy()
-        .to_string();
+      let relative_path = to_relative_path(path_match.as_str(), project_root.to_string_lossy());
       let portable_path = if relative_path.is_empty() || relative_path == "." {
         format!("{}/", PROJECT_ROOT_PLACEHOLDER)
       } else {
@@ -119,7 +115,7 @@ impl PortableString {
     }
 
     let content = &self.content;
-    let project_root_str = project_root.to_slash_lossy();
+    let project_root_str = project_root.to_string_lossy();
     let mut result = String::with_capacity(content.len());
     let mut last_end = 0;
 
@@ -135,9 +131,9 @@ impl PortableString {
       result.push_str(&content[last_end..full_match.start()]);
 
       // Convert to absolute path
-      let abs_path = format!("{}/{}", &project_root_str, relative_match.as_str()).normalize();
+      let abs_path = to_absolute_path(relative_match.as_str(), &project_root_str);
 
-      result.push_str(&abs_path.to_string_lossy());
+      result.push_str(&abs_path);
       if !abs_path.ends_with(std::path::MAIN_SEPARATOR_STR) {
         result.push(std::path::MAIN_SEPARATOR);
       }
