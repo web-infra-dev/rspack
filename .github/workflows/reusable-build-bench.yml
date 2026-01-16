@@ -79,6 +79,8 @@ jobs:
       - name: Run benchmark
         uses: CodSpeedHQ/action@0700edb451d0e9f2426f99bd6977027e550fb2a6 # https://github.com/CodSpeedHQ/action/releases/tag/v4.7.0
         timeout-minutes: 30
+        env:
+          RAYON_NUM_THREADS: 1
         with:
           mode: 'simulation'
           run: pnpm run bench:ci
