@@ -1,3 +1,5 @@
+import { PackageManagerTabs } from '@theme';
+
 # 命令行工具
 
 [@rspack/cli](https://npmjs.com/package/@rspack/cli) 是 Rspack 的命令行工具，它提供了多种命令来简化 Rspack 的使用。
@@ -73,6 +75,13 @@ Options:
 
 `rspack dev` 用于运行 Rspack 开发服务器，将会在本地启动一个开发服务器，监听文件变化并自动刷新浏览器。
 
+:::info 必需依赖
+`rspack dev` 命令需要安装 [@rspack/dev-server](https://www.npmjs.com/package/@rspack/dev-server)。如果尚未安装，请运行：
+
+<PackageManagerTabs command="add @rspack/dev-server -D" />
+
+:::
+
 ```bash
 npx rspack dev
 ```
@@ -110,6 +119,13 @@ Options:
 ## rspack preview
 
 `rspack preview` 用于在本地预览生产模式构建的产物, 注意你需要提前执行 `rspack build` 命令构建出产物。
+
+:::info 必需依赖
+`rspack preview` 命令需要安装 [@rspack/dev-server](https://www.npmjs.com/package/@rspack/dev-server)。如果尚未安装，请运行：
+
+<PackageManagerTabs command="add @rspack/dev-server -D" />
+
+:::
 
 ```bash
 npx rspack preview

@@ -3,15 +3,19 @@
 	Author Tobias Koppers @sokra
 */
 /* globals __webpack_hash__ */
-if (module.hot) {
+
+import { log, formatError } from './log.js';
+import { emitter as hotEmitter } from './emitter.js';
+import { logApplyResult } from './log-apply-result.js';
+
+if (import.meta.webpackHot) {
   /** @type {undefined|string} */
   var lastHash;
   var upToDate = function upToDate() {
     return /** @type {string} */ (lastHash).indexOf(__webpack_hash__) >= 0;
   };
-  var log = require('./log');
   var check = function check() {
-    module.hot
+    import.meta.webpackHot
       .check(true)
       .then(function (updatedModules) {
         if (!updatedModules) {
@@ -36,14 +40,14 @@ if (module.hot) {
           check();
         }
 
-        require('./log-apply-result')(updatedModules, updatedModules);
+        logApplyResult(updatedModules, updatedModules);
 
         if (upToDate()) {
           log('info', '[HMR] App is up to date.');
         }
       })
       .catch(function (err) {
-        var status = module.hot.status();
+        var status = import.meta.webpackHot.status();
         if (['abort', 'fail'].indexOf(status) >= 0) {
           log(
             'warning',
@@ -52,19 +56,18 @@ if (module.hot) {
                 ? 'Need to do a full reload!'
                 : 'Please reload manually!'),
           );
-          log('warning', '[HMR] ' + log.formatError(err));
+          log('warning', '[HMR] ' + formatError(err));
           if (typeof window !== 'undefined') {
             window.location.reload();
           }
         } else {
-          log('warning', '[HMR] Update failed: ' + log.formatError(err));
+          log('warning', '[HMR] Update failed: ' + formatError(err));
         }
       });
   };
-  var hotEmitter = require('./emitter');
   hotEmitter.on('webpackHotUpdate', function (currentHash) {
     lastHash = currentHash;
-    if (!upToDate() && module.hot.status() === 'idle') {
+    if (!upToDate() && import.meta.webpackHot.status() === 'idle') {
       log('info', '[HMR] Checking for updates on the server...');
       check();
     }

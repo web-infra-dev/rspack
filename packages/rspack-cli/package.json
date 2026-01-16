@@ -10,15 +10,14 @@
     "directory": "packages/rspack-cli"
   },
   "license": "MIT",
+  "type": "module",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.mjs",
-      "require": "./dist/index.js"
+      "default": "./dist/index.js"
     },
     "./package.json": "./package.json"
   },
-  "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "bin": {
     "rspack": "./bin/rspack.js"
@@ -34,12 +33,12 @@
   },
   "dependencies": {
     "@discoveryjs/json-ext": "^0.5.7",
-    "@rspack/dev-server": "~1.1.5",
     "exit-hook": "^4.0.0"
   },
   "devDependencies": {
-    "@rslib/core": "0.19.1",
+    "@rslib/core": "0.19.2",
     "@rspack/core": "workspace:*",
+    "@rspack/dev-server": "~1.1.5",
     "@rspack/test-tools": "workspace:*",
     "cac": "^6.7.14",
     "concat-stream": "^2.0.0",
@@ -51,7 +50,13 @@
     "typescript": "^5.9.3"
   },
   "peerDependencies": {
-    "@rspack/core": "^1.0.0-alpha || ^1.x"
+    "@rspack/core": "^1.0.0-alpha || ^1.x",
+    "@rspack/dev-server": "~1.1.5"
+  },
+  "peerDependenciesMeta": {
+    "@rspack/dev-server": {
+      "optional": true
+    }
   },
   "publishConfig": {
     "access": "public",

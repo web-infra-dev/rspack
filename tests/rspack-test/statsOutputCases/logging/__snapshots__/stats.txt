@@ -19,9 +19,9 @@ LOG from LogOtherTestPlugin
 LOG from <TEST_ROOT>/statsOutputCases/logging/index.js
 <e> An error
 |     at Object.fn (<RSPACK_ROOT>/dist/index.js<LINE_COL>)
-|     at SyncBailHook.callAsyncStageRange (<ROOT>/node_modules/<PNPM_INNER>/@rspack/lite-tapable/dist/index.cjs<LINE_COL>)
-|     at SyncBailHook.callStageRange (<ROOT>/node_modules/<PNPM_INNER>/@rspack/lite-tapable/dist/index.cjs<LINE_COL>)
-|     at SyncBailHook.call (<ROOT>/node_modules/<PNPM_INNER>/@rspack/lite-tapable/dist/index.cjs<LINE_COL>)
+|     at SyncBailHook.callAsyncStageRange (<ROOT>/node_modules/<PNPM_INNER>/@rspack/lite-tapable/dist/index.js<LINE_COL>)
+|     at SyncBailHook.callStageRange (<ROOT>/node_modules/<PNPM_INNER>/@rspack/lite-tapable/dist/index.js<LINE_COL>)
+|     at SyncBailHook.call (<ROOT>/node_modules/<PNPM_INNER>/@rspack/lite-tapable/dist/index.js<LINE_COL>)
 |     at <RSPACK_ROOT>/dist/index.js<LINE_COL>
 |     at StatsFactory._forEachLevel (<RSPACK_ROOT>/dist/index.js<LINE_COL>)
 |     at StatsFactory._create (<RSPACK_ROOT>/dist/index.js<LINE_COL>)
@@ -39,9 +39,9 @@ LOG from <TEST_ROOT>/statsOutputCases/logging/index.js
 |     at onMessage (<ROOT>/node_modules/<PNPM_INNER>/tinypool/dist/entry/process.js<LINE_COL>)
 <w> A warning
 |     at Object.fn (<RSPACK_ROOT>/dist/index.js<LINE_COL>)
-|     at SyncBailHook.callAsyncStageRange (<ROOT>/node_modules/<PNPM_INNER>/@rspack/lite-tapable/dist/index.cjs<LINE_COL>)
-|     at SyncBailHook.callStageRange (<ROOT>/node_modules/<PNPM_INNER>/@rspack/lite-tapable/dist/index.cjs<LINE_COL>)
-|     at SyncBailHook.call (<ROOT>/node_modules/<PNPM_INNER>/@rspack/lite-tapable/dist/index.cjs<LINE_COL>)
+|     at SyncBailHook.callAsyncStageRange (<ROOT>/node_modules/<PNPM_INNER>/@rspack/lite-tapable/dist/index.js<LINE_COL>)
+|     at SyncBailHook.callStageRange (<ROOT>/node_modules/<PNPM_INNER>/@rspack/lite-tapable/dist/index.js<LINE_COL>)
+|     at SyncBailHook.call (<ROOT>/node_modules/<PNPM_INNER>/@rspack/lite-tapable/dist/index.js<LINE_COL>)
 |     at <RSPACK_ROOT>/dist/index.js<LINE_COL>
 |     at StatsFactory._forEachLevel (<RSPACK_ROOT>/dist/index.js<LINE_COL>)
 |     at StatsFactory._create (<RSPACK_ROOT>/dist/index.js<LINE_COL>)
@@ -76,8 +76,10 @@ LOG from rspack.Compilation
 <t> finish modules: xx ms
 <t> optimize dependencies: xx ms
 <t> rebuild chunk graph: xx ms
-<t> create chunks: xx ms
-<t> optimize: xx ms
+<t> optimize modules: xx ms
+<t> optimize chunks: xx ms
+<t> optimize tree: xx ms
+<t> optimize chunk modules: xx ms
 <t> module ids: xx ms
 <t> chunk ids: xx ms
 <t> optimize code generation: xx ms
@@ -98,7 +100,7 @@ LOG from rspack.Compilation
 
 LOG from rspack.Compiler
 <t> make hook: xx ms
-<t> make: xx ms
+<t> build module graph: xx ms
 <t> finish make hook: xx ms
 <t> finish compilation: xx ms
 <t> seal compilation: xx ms

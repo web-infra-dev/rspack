@@ -84,7 +84,6 @@ import { Server as Server_3 } from 'http';
 import { ServerOptions as ServerOptions_2 } from 'https';
 import { ServerResponse } from 'http';
 import { SourceMapDevToolPluginOptions } from '@rspack/binding';
-import sources = require('../compiled/webpack-sources');
 import { StatSyncFn } from 'fs';
 import type * as stream from 'node:stream';
 import { sync } from '@rspack/binding';
@@ -517,9 +516,34 @@ interface BreakStatement extends Node_4, HasSpan {
 type BufferCallback = (err: NodeJS.ErrnoException | null, data?: Buffer) => void;
 
 // @public (undocumented)
+interface BufferedMap {
+    	file: string;
+
+    	mappings?: Buffer_2;
+
+    	names: string[];
+
+    	sourceRoot?: string;
+
+    	sources: string[];
+
+    	sourcesContent?: ("" | Buffer_2)[];
+
+    	version: number;
+}
+
+// @public (undocumented)
 type BufferEncodingOption = 'buffer' | {
     encoding: 'buffer';
 };
+
+// @public (undocumented)
+interface BufferEntry {
+    	// (undocumented)
+    bufferedMap?: null | BufferedMap;
+    	// (undocumented)
+    map?: null | RawSourceMap_2;
+}
 
 // @public
 export type BundlerInfoOptions = {
@@ -562,6 +586,49 @@ class Cache_2 {
     // (undocumented)
     store<T>(identifier: string, etag: Etag | null, data: T, callback: CallbackCache<void>): void;
     storeBuildDependencies(dependencies: Iterable<string>, callback: CallbackCache<void>): void;
+}
+
+// @public (undocumented)
+interface CachedData {
+    	buffer: Buffer_2;
+
+    	hash?: (string | Buffer_2)[];
+
+    	maps: Map<string, BufferEntry>;
+
+    	size?: number;
+
+    	source?: boolean;
+}
+
+// @public (undocumented)
+class CachedSource extends Source {
+    	constructor(source: Source | (() => Source), cachedData?: CachedData);
+    	// (undocumented)
+    getCachedData(): CachedData;
+    	// (undocumented)
+    original(): Source;
+    	// (undocumented)
+    originalLazy(): Source | (() => Source);
+    	// (undocumented)
+    streamChunks(
+    		options: StreamChunksOptions,
+    		onChunk: (
+    			chunk: undefined | string,
+    			generatedLine: number,
+    			generatedColumn: number,
+    			sourceIndex: number,
+    			originalLine: number,
+    			originalColumn: number,
+    			nameIndex: number,
+    		) => void,
+    		onSource: (
+    			sourceIndex: number,
+    			source: null | string,
+    			sourceContent?: string,
+    		) => void,
+    		onName: (nameIndex: number, name: string) => void,
+    	): GeneratedSourceInfo;
 }
 
 // @public (undocumented)
@@ -877,6 +944,13 @@ type CollectTypeScriptInfoOptions = {
 interface CommonJsConfig extends BaseModuleConfig {
     // (undocumented)
     type: "commonjs";
+}
+
+// @public (undocumented)
+class CompatSource extends Source {
+    	constructor(sourceLike: SourceLike);
+    	// (undocumented)
+    static from(sourceLike: SourceLike): Source;
 }
 
 // @public (undocumented)
@@ -1327,6 +1401,39 @@ interface ComputedPropName extends Node_4, HasSpan {
 }
 
 export { ConcatenatedModule }
+
+// @public (undocumented)
+class ConcatSource extends Source {
+    	constructor(...args: ConcatSourceChild[]);
+    	// (undocumented)
+    add(item: ConcatSourceChild): void;
+    	// (undocumented)
+    addAllSkipOptimizing(items: ConcatSourceChild[]): void;
+    	// (undocumented)
+    getChildren(): Source[];
+    	// (undocumented)
+    streamChunks(
+    		options: StreamChunksOptions,
+    		onChunk: (
+    			chunk: undefined | string,
+    			generatedLine: number,
+    			generatedColumn: number,
+    			sourceIndex: number,
+    			originalLine: number,
+    			originalColumn: number,
+    			nameIndex: number,
+    		) => void,
+    		onSource: (
+    			sourceIndex: number,
+    			source: null | string,
+    			sourceContent?: string,
+    		) => void,
+    		onName: (nameIndex: number, name: string) => void,
+    	): GeneratedSourceInfo;
+}
+
+// @public (undocumented)
+type ConcatSourceChild = string | Source | SourceLike;
 
 // @public (undocumented)
 interface ConditionalExpression extends ExpressionBase {
@@ -2849,6 +2956,15 @@ interface FunctionExpression extends Fn, ExpressionBase {
     identifier?: Identifier;
     // (undocumented)
     type: "FunctionExpression";
+}
+
+// @public (undocumented)
+interface GeneratedSourceInfo {
+    	generatedColumn?: number;
+
+    	generatedLine?: number;
+
+    	source?: string;
 }
 
 // @public
@@ -5331,10 +5447,24 @@ interface ObjectPattern extends PatternBase {
 type ObjectPatternProperty = KeyValuePatternProperty | AssignmentPatternProperty | RestElement;
 
 // @public (undocumented)
+type OnChunk = (
+		chunk: undefined | string,
+		generatedLine: number,
+		generatedColumn: number,
+		sourceIndex: number,
+		originalLine: number,
+		originalColumn: number,
+		nameIndex: number,
+	) => void;
+
+// @public (undocumented)
 type OnCloseCallback = (proxyRes: Response_2, proxySocket: net.Socket, proxyHead: any) => void;
 
 // @public (undocumented)
 type OnErrorCallback = (err: Error, req: Request_2, res: Response_2, target?: string | Partial<url.Url>) => void;
+
+// @public (undocumented)
+type OnName = (nameIndex: number, name: string) => void;
 
 // @public (undocumented)
 type OnOpenCallback = (proxySocket: net.Socket) => void;
@@ -5347,6 +5477,13 @@ type OnProxyReqWsCallback = (proxyReq: http.ClientRequest, req: Request_2, socke
 
 // @public (undocumented)
 type OnProxyResCallback = (proxyRes: http.IncomingMessage, req: Request_2, res: Response_2) => void;
+
+// @public (undocumented)
+type OnSource = (
+		sourceIndex: number,
+		source: null | string,
+		sourceContent?: string,
+	) => void;
 
 // @public (undocumented)
 type Open = (file: PathLike, flags: undefined | string | number, callback: (arg0: null | NodeJS.ErrnoException, arg1?: number) => void) => void;
@@ -5511,6 +5648,32 @@ interface Options extends Config_2 {
     sourceRoot?: string;
     swcrc?: boolean;
     swcrcRoots?: boolean | MatchPattern | MatchPattern[];
+}
+
+// @public (undocumented)
+class OriginalSource extends Source {
+    	constructor(value: string | Buffer_2, name: string);
+    	// (undocumented)
+    getName(): string;
+    	// (undocumented)
+    streamChunks(
+    		options: StreamChunksOptions,
+    		onChunk: (
+    			chunk: undefined | string,
+    			generatedLine: number,
+    			generatedColumn: number,
+    			sourceIndex: number,
+    			originalLine: number,
+    			originalColumn: number,
+    			nameIndex: number,
+    		) => void,
+    		onSource: (
+    			sourceIndex: number,
+    			source: null | string,
+    			sourceContent?: string,
+    		) => void,
+    		_onName: (nameIndex: number, name: string) => void,
+    	): GeneratedSourceInfo;
 }
 
 // @public
@@ -5845,6 +6008,34 @@ export type Plugins = Plugin_2[];
 type Port = number | LiteralUnion<'auto', string>;
 
 // @public (undocumented)
+class PrefixSource extends Source {
+    	constructor(prefix: string, source: string | Source | Buffer_2);
+    	// (undocumented)
+    getPrefix(): string;
+    	// (undocumented)
+    original(): Source;
+    	// (undocumented)
+    streamChunks(
+    		options: StreamChunksOptions,
+    		onChunk: (
+    			chunk: undefined | string,
+    			generatedLine: number,
+    			generatedColumn: number,
+    			sourceIndex: number,
+    			originalLine: number,
+    			originalColumn: number,
+    			nameIndex: number,
+    		) => void,
+    		onSource: (
+    			sourceIndex: number,
+    			source: null | string,
+    			sourceContent?: string,
+    		) => void,
+    		onName: (nameIndex: number, name: string) => void,
+    	): GeneratedSourceInfo;
+}
+
+// @public (undocumented)
 type PrintedElement = {
     element: string;
     content: string;
@@ -5999,6 +6190,32 @@ export type PublicPath = LiteralUnion<'auto', string> | Exclude<Filename, string
 
 // @public (undocumented)
 type Purge = (files?: string | string[] | Set<string>) => void;
+
+// @public (undocumented)
+class RawSource extends Source {
+    	constructor(value: string | Buffer_2, convertToString?: boolean);
+    	// (undocumented)
+    isBuffer(): boolean;
+    	// (undocumented)
+    streamChunks(
+    		options: StreamChunksOptions,
+    		onChunk: (
+    			chunk: undefined | string,
+    			generatedLine: number,
+    			generatedColumn: number,
+    			sourceIndex: number,
+    			originalLine: number,
+    			originalColumn: number,
+    			nameIndex: number,
+    		) => void,
+    		onSource: (
+    			sourceIndex: number,
+    			source: null | string,
+    			sourceContent?: string,
+    		) => void,
+    		onName: (nameIndex: number, name: string) => void,
+    	): GeneratedSourceInfo;
+}
 
 // @public (undocumented)
 export interface RawSourceMap {
@@ -6249,6 +6466,57 @@ const RemoveDuplicateModulesPlugin: {
         apply(compiler: Compiler): void;
     };
 };
+
+// @public (undocumented)
+class Replacement {
+    	constructor(start: number, end: number, content: string, name?: string);
+    	// (undocumented)
+    content: string;
+    	// (undocumented)
+    end: number;
+    	// (undocumented)
+    index?: number;
+    	// (undocumented)
+    name?: string;
+    	// (undocumented)
+    start: number;
+}
+
+// @public (undocumented)
+class ReplaceSource extends Source {
+    	constructor(source: Source, name?: string);
+    	// (undocumented)
+    getName(): undefined | string;
+    	// (undocumented)
+    getReplacements(): Replacement[];
+    	// (undocumented)
+    insert(pos: number, newValue: string, name?: string): void;
+    	// (undocumented)
+    original(): Source;
+    	// (undocumented)
+    replace(start: number, end: number, newValue: string, name?: string): void;
+    	// (undocumented)
+    static Replacement: typeof Replacement;
+    	// (undocumented)
+    streamChunks(
+    		options: StreamChunksOptions,
+    		onChunk: (
+    			chunk: undefined | string,
+    			generatedLine: number,
+    			generatedColumn: number,
+    			sourceIndex: number,
+    			originalLine: number,
+    			originalColumn: number,
+    			nameIndex: number,
+    		) => void,
+    		onSource: (
+    			sourceIndex: number,
+    			source: null | string,
+    			sourceContent?: string,
+    		) => void,
+    		onName: (nameIndex: number, name: string) => void,
+    	): GeneratedSourceInfo;
+}
 
 // @public (undocumented)
 type Request_2 = IncomingMessage_2;
@@ -7346,6 +7614,11 @@ export const sharing: {
 };
 
 // @public (undocumented)
+class SizeOnlySource extends Source {
+    	constructor(size: number);
+}
+
+// @public (undocumented)
 export type SnapshotOptions = {};
 
 // @public (undocumented)
@@ -7373,6 +7646,21 @@ interface SourceAndMap {
 }
 
 // @public (undocumented)
+interface SourceLike {
+    	buffer?: () => Buffer_2;
+
+    	map?: (options?: MapOptions) => null | RawSourceMap_2;
+
+    	size?: () => number;
+
+    	source: () => SourceValue;
+
+    	sourceAndMap?: (options?: MapOptions) => SourceAndMap;
+
+    	updateHash?: (hash: HashLike) => void;
+}
+
+// @public (undocumented)
 export const SourceMapDevToolPlugin: {
     new (options: SourceMapDevToolPluginOptions): {
         name: string;
@@ -7388,6 +7676,75 @@ export { SourceMapDevToolPluginOptions }
 // @public
 export type SourceMapFilename = string;
 
+// @public (undocumented)
+class SourceMapSource extends Source {
+    	constructor(
+    		value: string | Buffer_2,
+    		name: string,
+    		sourceMap?: string | RawSourceMap_2 | Buffer_2,
+    		originalSource?: string | Buffer_2,
+    		innerSourceMap?: string | RawSourceMap_2 | Buffer_2,
+    		removeOriginalSource?: boolean,
+    	);
+    	// (undocumented)
+    getArgsAsBuffers(): [
+    		Buffer_2,
+    		string,
+    		Buffer_2,
+    		undefined | Buffer_2,
+    		undefined | Buffer_2,
+    		undefined | boolean,
+    	];
+    	// (undocumented)
+    streamChunks(
+    		options: StreamChunksOptions,
+    		onChunk: (
+    			chunk: undefined | string,
+    			generatedLine: number,
+    			generatedColumn: number,
+    			sourceIndex: number,
+    			originalLine: number,
+    			originalColumn: number,
+    			nameIndex: number,
+    		) => void,
+    		onSource: (
+    			sourceIndex: number,
+    			source: null | string,
+    			sourceContent?: string,
+    		) => void,
+    		onName: (nameIndex: number, name: string) => void,
+    	): GeneratedSourceInfo;
+}
+
+declare namespace sources {
+    export {
+        util_2 as util,
+        OnChunk,
+        OnName,
+        OnSource,
+        Source,
+        RawSource,
+        OriginalSource,
+        SourceMapSource,
+        CachedSource,
+        ConcatSource,
+        ReplaceSource,
+        PrefixSource,
+        SizeOnlySource,
+        CompatSource,
+        CachedData,
+        SourceLike,
+        ConcatSourceChild,
+        Replacement,
+        HashLike,
+        MapOptions,
+        RawSourceMap_2 as RawSourceMap,
+        SourceAndMap,
+        SourceValue,
+        GeneratedSourceInfo,
+        StreamChunksOptions
+    }
+}
 export { sources }
 
 // @public (undocumented)
@@ -7717,6 +8074,16 @@ type StatSyncOptions = {
     bigint?: boolean;
     throwIfNoEntry?: boolean;
 };
+
+// @public (undocumented)
+interface StreamChunksOptions {
+    	// (undocumented)
+    columns?: boolean;
+    	// (undocumented)
+    finalSource?: boolean;
+    	// (undocumented)
+    source?: boolean;
+}
 
 // @public (undocumented)
 interface StreamOptions {
@@ -9065,6 +9432,25 @@ export const util: {
     createHash: (algorithm: "debug" | "xxhash64" | "md4" | "native-md4" | (string & {}) | (new () => Hash)) => Hash;
     cleverMerge: <First, Second>(first: First, second: Second) => First | Second | (First & Second);
 };
+
+// @public (undocumented)
+namespace util_2 {
+    		// (undocumented)
+    namespace stringBufferUtils {
+        			let // (undocumented)
+        disableDualStringBufferCaching: () => void;
+        			let // (undocumented)
+        enableDualStringBufferCaching: () => void;
+        			let // (undocumented)
+        internString: (str: string) => string;
+        			let // (undocumented)
+        isDualStringBufferCachingEnabled: () => boolean;
+        			let // (undocumented)
+        enterStringInterningRange: () => void;
+        			let // (undocumented)
+        exitStringInterningRange: () => void;
+        		}
+    	}
 
 // @public (undocumented)
 export class ValidationError extends Error {

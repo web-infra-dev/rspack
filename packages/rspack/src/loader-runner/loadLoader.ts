@@ -8,12 +8,15 @@
  * https://github.com/webpack/loader-runner/blob/main/LICENSE
  */
 
+import { createRequire } from 'node:module';
 import type Url from 'node:url';
 import type { LoaderDefinitionFunction } from '../config';
 import type { PitchLoaderDefinitionFunction } from '../config/adapterRuleUse';
 import type { Compiler } from '../exports';
 import type { LoaderObject } from '.';
 import LoaderLoadingError from './LoaderLoadingError';
+
+const require = createRequire(import.meta.url);
 
 type ModuleObject = {
   default?: LoaderDefinitionFunction;

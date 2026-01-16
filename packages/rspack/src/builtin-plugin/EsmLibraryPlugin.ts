@@ -1,7 +1,7 @@
 import { BuiltinPluginName } from '@rspack/binding';
-import rspack from '..';
 import type { Compiler } from '../Compiler';
 import type { RspackOptionsNormalized } from '../config';
+import WebpackError from '../lib/WebpackError';
 import type { Logger } from '../logging/Logger';
 import { RemoveDuplicateModulesPlugin } from './RemoveDuplicateModulesPlugin';
 
@@ -66,7 +66,7 @@ export class EsmLibraryPlugin {
 
     let err;
     if ((err = checkConfig(compiler.options))) {
-      throw new rspack.WebpackError(
+      throw new WebpackError(
         `Conflicted config for ${EsmLibraryPlugin.PLUGIN_NAME}: ${err}`,
       );
     }

@@ -35,13 +35,13 @@ export default class MultiStats {
   }
 
   #createChildOptions(
-    options: boolean | StatsPresets | MultiStatsOptions = {},
+    options: boolean | StatsPresets | MultiStatsOptions,
     context: (KnownCreateStatsOptionsContext & Record<string, any>) | undefined,
   ) {
     const { children: childrenOptions = undefined, ...baseOptions } =
       typeof options === 'string' || typeof options === 'boolean'
         ? { preset: options }
-        : options;
+        : (options ?? {});
 
     const children = this.stats.map((stat, idx) => {
       const childOptions = Array.isArray(childrenOptions)

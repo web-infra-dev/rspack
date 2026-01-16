@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import { join, relative, sep } from 'node:path';
 import {
   BuiltinPluginName,
@@ -10,6 +11,8 @@ import type { Compilation } from '../Compilation';
 import type { Compiler } from '../Compiler';
 import type { CrossOriginLoading } from '../config/types';
 import { create } from './base';
+
+const require = createRequire(import.meta.url);
 
 const PLUGIN_NAME = 'SubresourceIntegrityPlugin';
 const NATIVE_HTML_PLUGIN = 'HtmlRspackPlugin';
