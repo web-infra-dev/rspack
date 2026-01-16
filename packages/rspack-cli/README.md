@@ -18,7 +18,7 @@ yarn add -D @rspack/cli
 
 ## Required dependencies
 
-The `rspack dev` and `rspack preview` commands require `@rspack/dev-server` to be installed as a peer dependency:
+The `rspack dev` and `rspack preview` commands require [@rspack/dev-server](https://www.npmjs.com/package/@rspack/dev-server) to be installed as a peer dependency:
 
 ```bash
 pnpm add -D @rspack/dev-server
