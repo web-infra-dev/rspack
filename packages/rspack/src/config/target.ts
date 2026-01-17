@@ -8,17 +8,14 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 
-import { createRequire } from 'node:module';
 import binding from '@rspack/binding';
+import { findConfig } from 'browserslist-load-config';
 import { memoize } from '../util/memoize';
 import * as browserslistTargetHandler from './browserslistTargetHandler';
-
-const require = createRequire(import.meta.url);
 
 const getBrowserslistTargetHandler = memoize(() => browserslistTargetHandler);
 
 const hasBrowserslistConfig = (context: string) => {
-  const { findConfig } = require('browserslist-load-config');
   return Boolean(findConfig(context));
 };
 
