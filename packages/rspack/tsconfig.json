@@ -10,7 +10,6 @@
     "paths": {
       "watchpack": ["./compiled/watchpack"],
       "@swc/types": ["./compiled/@swc/types"],
-      "browserslist-load-config": ["./compiled/browserslist-load-config"],
       "webpack-sources": ["./compiled/webpack-sources"],
       "tinypool": ["./compiled/tinypool"]
     }
