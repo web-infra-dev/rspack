@@ -15,5 +15,10 @@ module.exports = {
 				}
 			}
 		}
+	},
+	stats: {
+		entrypoints: 'auto',
+		assets: true,
+		modules: true,
 	}
 };

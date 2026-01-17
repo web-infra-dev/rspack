@@ -26,6 +26,7 @@ pub struct TargetProperties {
   pub global_this: Option<bool>,
   pub big_int_literal: Option<bool>,
   pub r#const: Option<bool>,
+  pub method_shorthand: Option<bool>,
   pub arrow_function: Option<bool>,
   pub for_of: Option<bool>,
   pub destructuring: Option<bool>,
@@ -35,6 +36,7 @@ pub struct TargetProperties {
   pub optional_chaining: Option<bool>,
   pub template_literal: Option<bool>,
   pub async_function: Option<bool>,
+  pub import_meta_dirname_and_filename: Option<bool>,
 }
 
 #[allow(unused)]
@@ -252,6 +254,7 @@ fn get_target_properties(target: &str, context: &Context) -> TargetProperties {
       import_scripts_in_worker: Some(false),
       global_this: Some(version_dependent(12, None, major, minor)),
       r#const: Some(version_dependent(6, None, major, minor)),
+      method_shorthand: Some(version_dependent(4, None, major, minor)),
       template_literal: Some(version_dependent(4, None, major, minor)),
       optional_chaining: Some(version_dependent(14, None, major, minor)),
       arrow_function: Some(version_dependent(6, None, major, minor)),
@@ -362,6 +365,7 @@ fn get_target_properties(target: &str, context: &Context) -> TargetProperties {
       import_scripts_in_worker: Some(true),
       global_this: Some(version_dependent(5, None, major, minor)),
       r#const: Some(version_dependent(1, Some(1), major, minor)),
+      method_shorthand: Some(version_dependent(1, Some(1), major, minor)),
       template_literal: Some(version_dependent(1, Some(1), major, minor)),
       optional_chaining: Some(version_dependent(8, None, major, minor)),
       arrow_function: Some(version_dependent(1, Some(1), major, minor)),
@@ -372,6 +376,7 @@ fn get_target_properties(target: &str, context: &Context) -> TargetProperties {
       dynamic_import: Some(version_dependent(11, None, major, minor)),
       dynamic_import_in_worker: if major.is_some() { Some(false) } else { None },
       module: Some(version_dependent(11, None, major, minor)),
+      import_meta_dirname_and_filename: None,
     };
   }
 
@@ -407,6 +412,7 @@ fn get_target_properties(target: &str, context: &Context) -> TargetProperties {
       require: Some(false),
       global_this: Some(version_dependent(0, Some(43), major, minor)),
       r#const: Some(version_dependent(0, Some(15), major, minor)),
+      method_shorthand: Some(version_dependent(0, Some(15), major, minor)),
       template_literal: Some(version_dependent(0, Some(13), major, minor)),
       optional_chaining: Some(version_dependent(0, Some(44), major, minor)),
       arrow_function: Some(version_dependent(0, Some(15), major, minor)),
@@ -440,6 +446,7 @@ fn get_target_properties(target: &str, context: &Context) -> TargetProperties {
       r#const: Some(version >= 2015),
       template_literal: Some(version >= 2015),
       optional_chaining: Some(version >= 2020),
+      method_shorthand: Some(version >= 2015),
       arrow_function: Some(version >= 2015),
       for_of: Some(version >= 2015),
       destructuring: Some(version >= 2015),

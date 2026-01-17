@@ -3,6 +3,7 @@ module.exports = {
 	mode: "production",
 	entry: "./index",
 	stats: {
+		assets: true,
 		modules: true,
 		reasons: true
 	}

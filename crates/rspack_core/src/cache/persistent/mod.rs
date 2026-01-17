@@ -1,5 +1,5 @@
 pub mod build_dependencies;
-mod cacheable_context;
+pub mod codec;
 pub mod occasion;
 pub mod snapshot;
 pub mod storage;
@@ -9,13 +9,18 @@ use std::{
   sync::Arc,
 };
 
-pub use cacheable_context::CacheableContext;
+use rspack_cacheable::{
+  cacheable,
+  utils::PortablePath,
+  with::{As, AsVec},
+};
 use rspack_fs::{IntermediateFileSystem, ReadableFileSystem};
 use rspack_paths::ArcPathSet;
 use rspack_workspace::rspack_pkg_version;
 
 use self::{
   build_dependencies::{BuildDeps, BuildDepsOptions},
+  codec::CacheCodec,
   occasion::{MakeOccasion, MetaOccasion},
   snapshot::{Snapshot, SnapshotOptions},
   storage::{Storage, StorageOptions, create_storage},
@@ -26,8 +31,10 @@ use crate::{
   compilation::build_module_graph::{BuildModuleGraphArtifact, BuildModuleGraphArtifactState},
 };
 
+#[cacheable]
 #[derive(Debug, Clone, Hash)]
 pub struct PersistentCacheOptions {
+  #[cacheable(with=AsVec<As<PortablePath>>)]
   pub build_dependencies: BuildDepsOptions,
   pub version: String,
   pub snapshot: SnapshotOptions,
@@ -40,10 +47,10 @@ pub struct PersistentCache {
   initialized: bool,
   build_deps: BuildDeps,
   snapshot: Snapshot,
-  storage: Arc<dyn Storage>,
   make_occasion: MakeOccasion,
   meta_occasion: MetaOccasion,
   async_mode: bool,
+  storage: Arc<dyn Storage>,
   // TODO replace to logger and output warnings directly.
   warnings: Vec<String>,
 }
@@ -57,19 +64,23 @@ impl PersistentCache {
     intermediate_filesystem: Arc<dyn IntermediateFileSystem>,
   ) -> Self {
     let async_mode = compiler_options.mode.is_development();
+    let codec = Arc::new(CacheCodec::new(None));
+    // use codec.encode to transform the absolute path in option,
+    // it will ensure that same project in different directory have the same version.
+    let option_bytes = codec
+      .encode(option)
+      .expect("should persistent cache options can be serialized");
     let version = {
       let mut hasher = DefaultHasher::new();
       compiler_path.hash(&mut hasher);
-      option.hash(&mut hasher);
+      option_bytes.hash(&mut hasher);
       rspack_pkg_version!().hash(&mut hasher);
       compiler_options.name.hash(&mut hasher);
       compiler_options.mode.hash(&mut hasher);
       hex::encode(hasher.finish().to_ne_bytes())
     };
     let storage = create_storage(option.storage.clone(), version, intermediate_filesystem);
-    let context = Arc::new(CacheableContext);
-    let make_occasion = MakeOccasion::new(storage.clone(), context);
-    let meta_occasion = MetaOccasion::new(storage.clone());
+
     Self {
       initialized: false,
       build_deps: BuildDeps::new(
@@ -77,13 +88,19 @@ impl PersistentCache {
         &option.snapshot,
         input_filesystem.clone(),
         storage.clone(),
+        codec.clone(),
       ),
-      snapshot: Snapshot::new(option.snapshot.clone(), input_filesystem, storage.clone()),
-      storage,
-      make_occasion,
-      meta_occasion,
-      async_mode,
+      snapshot: Snapshot::new(
+        option.snapshot.clone(),
+        input_filesystem,
+        storage.clone(),
+        codec.clone(),
+      ),
+      make_occasion: MakeOccasion::new(storage.clone(), codec.clone()),
+      meta_occasion: MetaOccasion::new(storage.clone(), codec),
       warnings: Default::default(),
+      async_mode,
+      storage,
     }
   }
 

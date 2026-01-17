@@ -1,31 +1,31 @@
-use rspack_collections::{IdentifierMap, IdentifierSet, UkeyMap};
-use rspack_error::Diagnostic;
-
-use crate::{ChunkRenderResult, ChunkUkey, ModuleId, RuntimeGlobals};
-
+mod async_modules_artifact;
+mod cgc_runtime_requirements_artifact;
 mod cgm_hash_artifact;
 mod cgm_runtime_requirement_artifact;
 mod chunk_hashes_artifact;
 mod chunk_ids_artifact;
+mod chunk_render_artifact;
 mod chunk_render_cache_artifact;
 mod code_generation_results;
+mod dependencies_diagnostics_artifact;
+mod imported_by_defer_modules_artifact;
 mod module_graph_cache_artifact;
+mod module_ids_artifact;
 mod module_static_cache_artifact;
 mod side_effects_do_optimize_artifact;
 
+pub use async_modules_artifact::AsyncModulesArtifact;
+pub use cgc_runtime_requirements_artifact::CgcRuntimeRequirementsArtifact;
 pub use cgm_hash_artifact::*;
 pub use cgm_runtime_requirement_artifact::*;
 pub use chunk_hashes_artifact::*;
 pub use chunk_ids_artifact::*;
+pub use chunk_render_artifact::ChunkRenderArtifact;
 pub use chunk_render_cache_artifact::ChunkRenderCacheArtifact;
 pub use code_generation_results::*;
+pub use dependencies_diagnostics_artifact::DependenciesDiagnosticsArtifact;
+pub use imported_by_defer_modules_artifact::ImportedByDeferModulesArtifact;
 pub use module_graph_cache_artifact::*;
+pub use module_ids_artifact::ModuleIdsArtifact;
 pub use module_static_cache_artifact::*;
 pub use side_effects_do_optimize_artifact::*;
-
-pub type AsyncModulesArtifact = IdentifierSet;
-pub type ImportedByDeferModulesArtifact = IdentifierSet;
-pub type DependenciesDiagnosticsArtifact = IdentifierMap<Vec<Diagnostic>>;
-pub type ModuleIdsArtifact = IdentifierMap<ModuleId>;
-pub type CgcRuntimeRequirementsArtifact = UkeyMap<ChunkUkey, RuntimeGlobals>;
-pub type ChunkRenderArtifact = UkeyMap<ChunkUkey, ChunkRenderResult>;

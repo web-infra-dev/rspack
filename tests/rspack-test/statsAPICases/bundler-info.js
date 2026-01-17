@@ -14,6 +14,7 @@ module.exports = {
 	},
 	async check(stats) {
 		const statsOptions = {
+			modules: true,
 			runtimeModules: true
 		};
 		expect(typeof stats?.hash).toBe("string");

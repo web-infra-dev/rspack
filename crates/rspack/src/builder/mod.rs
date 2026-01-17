@@ -3078,23 +3078,44 @@ impl OutputOptionsBuilder {
     }
 
     let mut environment = f!(self.environment.take(), Environment::default);
-    environment.global_this = tp.and_then(|t| t.global_this);
-    environment.big_int_literal = tp.map(|t| optimistic!(t.big_int_literal));
-    environment.r#const = tp.map(|t| optimistic!(t.r#const));
-    environment.arrow_function = tp.map(|t| optimistic!(t.arrow_function));
-    environment.async_function = tp.map(|t| optimistic!(t.async_function));
-    environment.for_of = tp.map(|t| optimistic!(t.for_of));
-    environment.destructuring = tp.map(|t| optimistic!(t.destructuring));
-    environment.optional_chaining = tp.map(|t| optimistic!(t.optional_chaining));
-    environment.node_prefix_for_core_modules =
-      tp.map(|t| optimistic!(t.node_prefix_for_core_modules));
-    environment.template_literal = tp.map(|t| optimistic!(t.template_literal));
-    environment.dynamic_import =
-      tp.map(|t| conditionally_optimistic!(t.dynamic_import, output_module));
-    environment.dynamic_import_in_worker =
-      tp.map(|t| conditionally_optimistic!(t.dynamic_import_in_worker, output_module));
-    environment.module = tp.map(|t| conditionally_optimistic!(t.module, output_module));
-    environment.document = tp.map(|t| optimistic!(t.document));
+    environment.global_this = tp.and_then(|t| t.global_this).unwrap_or_default();
+    environment.big_int_literal = tp
+      .map(|t| optimistic!(t.big_int_literal))
+      .unwrap_or_default();
+    environment.r#const = tp.map(|t| optimistic!(t.r#const)).unwrap_or_default();
+    environment.method_shorthand = tp
+      .map(|t| optimistic!(t.method_shorthand))
+      .unwrap_or_default();
+    environment.arrow_function = tp
+      .map(|t| optimistic!(t.arrow_function))
+      .unwrap_or_default();
+    environment.async_function = tp
+      .map(|t| optimistic!(t.async_function))
+      .unwrap_or_default();
+    environment.for_of = tp.map(|t| optimistic!(t.for_of)).unwrap_or_default();
+    environment.destructuring = tp.map(|t| optimistic!(t.destructuring)).unwrap_or_default();
+    environment.optional_chaining = tp
+      .map(|t| optimistic!(t.optional_chaining))
+      .unwrap_or_default();
+    environment.node_prefix_for_core_modules = tp
+      .map(|t| optimistic!(t.node_prefix_for_core_modules))
+      .unwrap_or_default();
+    environment.import_meta_dirname_and_filename = tp
+      .and_then(|t| t.import_meta_dirname_and_filename)
+      .unwrap_or_default();
+    environment.template_literal = tp
+      .map(|t| optimistic!(t.template_literal))
+      .unwrap_or_default();
+    environment.dynamic_import = tp
+      .map(|t| conditionally_optimistic!(t.dynamic_import, output_module))
+      .unwrap_or_default();
+    environment.dynamic_import_in_worker = tp
+      .map(|t| conditionally_optimistic!(t.dynamic_import_in_worker, output_module))
+      .unwrap_or_default();
+    environment.module = tp
+      .map(|t| conditionally_optimistic!(t.module, output_module))
+      .unwrap_or_default();
+    environment.document = tp.map(|t| optimistic!(t.document)).unwrap_or_default();
 
     Ok(OutputOptions {
       path,
@@ -3728,7 +3749,7 @@ impl ExperimentsBuilder {
     // Builder specific
     let future_defaults = w!(self.future_defaults, false);
     w!(self.css, *future_defaults);
-    w!(self.async_web_assembly, *future_defaults);
+    w!(self.async_web_assembly, true);
     w!(self.output_module, false);
 
     Ok(Experiments {

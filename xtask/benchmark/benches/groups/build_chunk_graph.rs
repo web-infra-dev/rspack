@@ -5,7 +5,9 @@ use criterion::criterion_group;
 use rspack::builder::Builder as _;
 use rspack_benchmark::Criterion;
 use rspack_core::{
-  Compilation, Compiler, Experiments, Optimization, build_chunk_graph, fast_set,
+  Compilation, Compiler, Experiments, Optimization, build_chunk_graph,
+  build_module_graph::build_module_graph_pass,
+  fast_set,
   incremental::{Incremental, IncrementalOptions},
 };
 use rspack_error::Diagnostic;
@@ -175,7 +177,9 @@ pub fn build_chunk_graph_benchmark_inner(c: &mut Criterion) {
       .call(&mut compiler.compilation)
       .await
       .unwrap();
-    compiler.compilation.build_module_graph().await.unwrap();
+    build_module_graph_pass(&mut compiler.compilation)
+      .await
+      .unwrap();
 
     let mut side_effects_optimize_artifact =
       compiler.compilation.side_effects_optimize_artifact.take();

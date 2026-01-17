@@ -143,6 +143,10 @@ export async function check(
 
     if (testConfig.writeStatsJson) {
       const jsonStats = stats.toJson({
+        assets: true,
+        chunks: true,
+        entrypoints: true,
+        chunkGroups: true,
         errorDetails: true,
       });
       fs.writeFileSync(
@@ -159,6 +163,12 @@ export async function check(
       stats.hasWarnings()
     ) {
       const statsJson = stats.toJson({
+        assets: true,
+        chunks: true,
+        chunkModules: true,
+        modules: true,
+        entrypoints: true,
+        chunkGroups: true,
         errorDetails: true,
       });
       if (statsJson.errors) {

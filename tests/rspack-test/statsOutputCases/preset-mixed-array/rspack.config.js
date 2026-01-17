@@ -28,6 +28,7 @@ module.exports = [
 			filename: "verbose.js"
 		},
 		stats: {
+			modules: true,
 			entrypoints: true,
 			hash: false,
 			timings: false,

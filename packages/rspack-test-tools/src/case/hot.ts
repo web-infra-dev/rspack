@@ -254,6 +254,12 @@ export function createHotRunner(
       throw new Error('Should generate stats during build');
     }
     const jsonStats = stats.toJson({
+      assets: true,
+      chunks: true,
+      chunkModules: true,
+      modules: true,
+      entrypoints: true,
+      chunkGroups: true,
       // errorDetails: true
     });
     const compilerOptions = compiler.getOptions();

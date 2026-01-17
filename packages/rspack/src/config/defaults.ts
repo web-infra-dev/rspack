@@ -65,7 +65,7 @@ export const applyRspackOptionsDefaults = (
     throw new Error('target should not be nil after defaults');
   }
 
-  const targetProperties =
+  const targetProperties: false | TargetProperties =
     target === false
       ? (false as const)
       : typeof target === 'string'
@@ -127,6 +127,7 @@ export const applyRspackOptionsDefaults = (
   applyExternalsPresetsDefaults(options.externalsPresets, {
     targetProperties,
     buildHttp: Boolean(options.experiments.buildHttp),
+    outputModule: options.output.module!,
   });
 
   F(options, 'externalsType', () => {
@@ -174,19 +175,20 @@ export const applyRspackOptionsDefaults = (
     options.resolveLoader,
   );
 
-  return {
-    platform:
-      targetProperties === false
-        ? targetProperties
-        : {
-            web: targetProperties.web,
-            browser: targetProperties.browser,
-            webworker: targetProperties.webworker,
-            node: targetProperties.node,
-            nwjs: targetProperties.nwjs,
-            electron: targetProperties.electron,
-          },
-  };
+  return targetProperties === false
+    ? targetProperties
+    : {
+        platform: {
+          web: targetProperties.web,
+          browser: targetProperties.browser,
+          webworker: targetProperties.webworker,
+          node: targetProperties.node,
+          nwjs: targetProperties.nwjs,
+          electron: targetProperties.electron,
+        },
+        esVersion: targetProperties.esVersion,
+        platforms: targetProperties.platforms,
+      };
 };
 
 export const applyRspackOptionsBaseDefaults = (
@@ -210,7 +212,8 @@ const applyInfrastructureLoggingDefaults = (
 
 const applyExperimentsDefaults = (experiments: ExperimentsNormalized) => {
   D(experiments, 'futureDefaults', false);
-  D(experiments, 'asyncWebAssembly', experiments.futureDefaults);
+  // IGNORE(experiments.asyncWebAssembly): Rspack enable async WebAssembly by default
+  D(experiments, 'asyncWebAssembly', true);
   D(experiments, 'css', experiments.futureDefaults ? true : undefined);
   D(experiments, 'deferImport', false);
 
@@ -309,7 +312,7 @@ const applyModuleDefaults = (
     cache: boolean;
     asyncWebAssembly: boolean;
     css?: boolean;
-    targetProperties: any;
+    targetProperties: false | TargetProperties;
     mode?: Mode;
     uniqueName?: string;
     deferImport?: boolean;
@@ -544,7 +547,7 @@ const applyOutputDefaults = (
   }: {
     context: Context;
     outputModule?: boolean;
-    targetProperties: any;
+    targetProperties: false | TargetProperties;
     isAffectedByBrowserslist: boolean;
     entry: EntryNormalized;
   },
@@ -593,11 +596,17 @@ const applyOutputDefaults = (
   F(output, 'module', () => !!outputModule);
 
   const environment = output.environment!;
-  const optimistic = (v?: boolean) => v || v === undefined;
-  const conditionallyOptimistic = (v?: boolean, c?: boolean) =>
+
+  // For old features we optimistically assume user's target already support it
+  const optimistic = (v?: boolean | null) => v || v === undefined;
+  const conditionallyOptimistic = (v?: boolean | null, c?: boolean) =>
     (v === undefined && c) || v;
 
-  F(environment, 'globalThis', () => tp?.globalThis);
+  F(
+    environment,
+    'globalThis',
+    () => tp && (tp.globalThis as boolean | undefined),
+  );
   F(environment, 'bigIntLiteral', () => tp && optimistic(tp.bigIntLiteral));
   F(environment, 'const', () => tp && optimistic(tp.const));
   // IGNORE(output.environment.methodShorthand): will align method shorthand optimization for webpack soon
@@ -619,19 +628,36 @@ const applyOutputDefaults = (
   F(
     environment,
     'importMetaDirnameAndFilename',
-    () =>
-      // No optimistic, because it is new
-      tp?.importMetaDirnameAndFilename,
+    // No optimistic, because it is new
+    () => tp && (tp.importMetaDirnameAndFilename as boolean | undefined),
   );
   F(environment, 'templateLiteral', () => tp && optimistic(tp.templateLiteral));
-  F(environment, 'dynamicImport', () =>
-    conditionallyOptimistic(tp?.dynamicImport, output.module),
+  F(
+    environment,
+    'dynamicImport',
+    () =>
+      tp &&
+      (conditionallyOptimistic(tp.dynamicImport, output.module) as
+        | boolean
+        | undefined),
   );
-  F(environment, 'dynamicImportInWorker', () =>
-    conditionallyOptimistic(tp?.dynamicImportInWorker, output.module),
+  F(
+    environment,
+    'dynamicImportInWorker',
+    () =>
+      tp &&
+      (conditionallyOptimistic(tp.dynamicImportInWorker, output.module) as
+        | boolean
+        | undefined),
   );
-  F(environment, 'module', () =>
-    conditionallyOptimistic(tp?.module, output.module),
+  F(
+    environment,
+    'module',
+    () =>
+      tp &&
+      (conditionallyOptimistic(tp.module, output.module) as
+        | boolean
+        | undefined),
   );
   F(environment, 'document', () => tp && optimistic(tp.document));
 
@@ -887,27 +913,60 @@ const applyExternalsPresetsDefaults = (
   {
     targetProperties,
     buildHttp,
-  }: { targetProperties: any; buildHttp: boolean },
+    outputModule,
+  }: {
+    targetProperties: false | TargetProperties;
+    buildHttp: boolean;
+    outputModule: boolean;
+  },
 ) => {
-  D(externalsPresets, 'web', !buildHttp && targetProperties?.web);
-  D(externalsPresets, 'node', targetProperties?.node);
-  D(externalsPresets, 'electron', targetProperties?.electron);
+  const isUniversal = (key: keyof TargetProperties) =>
+    Boolean(outputModule && targetProperties && targetProperties[key] === null);
+
+  D(
+    externalsPresets,
+    'web',
+    !buildHttp &&
+      targetProperties &&
+      (targetProperties.web || isUniversal('node')),
+  );
+  D(
+    externalsPresets,
+    'node',
+    targetProperties && (targetProperties.node || isUniversal('node')),
+  );
+  D(
+    externalsPresets,
+    'electron',
+    // biome-ignore lint/complexity/useOptionalChain: change to optionalChain will have type error
+    (targetProperties && targetProperties.electron) || isUniversal('electron'),
+  );
   D(
     externalsPresets,
     'electronMain',
-    targetProperties?.electron && targetProperties.electronMain,
+    targetProperties &&
+      !!targetProperties.electron &&
+      (targetProperties.electronMain || isUniversal('electronMain')),
   );
   D(
     externalsPresets,
     'electronPreload',
-    targetProperties?.electron && targetProperties.electronPreload,
+    targetProperties &&
+      !!targetProperties.electron &&
+      (targetProperties.electronPreload || isUniversal('electronPreload')),
   );
   D(
     externalsPresets,
     'electronRenderer',
-    targetProperties?.electron && targetProperties.electronRenderer,
+    targetProperties &&
+      !!targetProperties.electron &&
+      (targetProperties.electronRenderer || isUniversal('electronRenderer')),
   );
-  D(externalsPresets, 'nwjs', targetProperties?.nwjs);
+  D(
+    externalsPresets,
+    'nwjs',
+    targetProperties && (targetProperties.nwjs || isUniversal('nwjs')),
+  );
 };
 
 const applyLoaderDefaults = (
@@ -915,7 +974,7 @@ const applyLoaderDefaults = (
   {
     targetProperties,
     environment,
-  }: { targetProperties: any; environment: any },
+  }: { targetProperties: false | TargetProperties; environment: any },
 ) => {
   F(loader, 'target', () => {
     if (targetProperties) {
@@ -938,24 +997,27 @@ const applyNodeDefaults = (
   {
     outputModule,
     targetProperties,
-  }: { targetProperties: any; outputModule?: boolean },
+  }: { targetProperties: false | TargetProperties; outputModule?: boolean },
 ) => {
   if (node === false) return;
 
   // IGNORE(node.global): The default value of `global` is determined by `futureDefaults` in webpack.
   F(node, 'global', () => {
-    if (targetProperties?.global) return false;
+    // biome-ignore lint/complexity/useOptionalChain: change to optionalChain will have type error
+    if (targetProperties && targetProperties.global) return false;
     return 'warn';
   });
   // IGNORE(node.__dirname): The default value of `__dirname` is determined by `futureDefaults` in webpack.
   F(node, '__dirname', () => {
-    if (targetProperties?.node)
+    // biome-ignore lint/complexity/useOptionalChain: change to optionalChain will have type error
+    if (targetProperties && targetProperties.node)
       return outputModule ? 'node-module' : 'eval-only';
     return 'warn-mock';
   });
   // IGNORE(node.__filename): The default value of `__filename` is determined by `futureDefaults` in webpack.
   F(node, '__filename', () => {
-    if (targetProperties?.node)
+    // biome-ignore lint/complexity/useOptionalChain: change to optionalChain will have type error
+    if (targetProperties && targetProperties.node)
       return outputModule ? 'node-module' : 'eval-only';
     return 'warn-mock';
   });
@@ -1079,7 +1141,7 @@ const getResolveDefaults = ({
   css,
 }: {
   context: string;
-  targetProperties: any;
+  targetProperties: false | TargetProperties;
   mode?: Mode;
   css: boolean;
 }) => {
@@ -1099,7 +1161,8 @@ const getResolveDefaults = ({
   const tp = targetProperties;
 
   const browserField =
-    tp?.web && (!tp.node || (tp.electron && tp.electronRenderer));
+    // biome-ignore lint/complexity/useOptionalChain: change to optionalChain will have type error
+    tp && tp.web && (!tp.node || (tp.electron && tp.electronRenderer));
   const aliasFields = browserField ? ['browser'] : [];
   const mainFields = browserField
     ? ['browser', 'module', '...']

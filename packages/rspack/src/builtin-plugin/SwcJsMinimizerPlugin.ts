@@ -4,6 +4,7 @@ import {
   type RawSwcJsMinimizerRspackPluginOptions,
 } from '@rspack/binding';
 
+import type { Compiler } from '../Compiler';
 import type { LiteralUnion } from '../config';
 import type { AssetConditions } from '../util/assetCondition';
 import { create } from './base';
@@ -270,12 +271,17 @@ function getRawExtractCommentsOptions(
 
 export const SwcJsMinimizerRspackPlugin = create(
   BuiltinPluginName.SwcJsMinimizerRspackPlugin,
-  (
+  function (
+    this: Compiler,
     options?: SwcJsMinimizerRspackPluginOptions,
-  ): RawSwcJsMinimizerRspackPluginOptions => {
+  ): RawSwcJsMinimizerRspackPluginOptions {
     let compress = options?.minimizerOptions?.compress ?? true;
     const mangle = options?.minimizerOptions?.mangle ?? true;
-    const ecma = options?.minimizerOptions?.ecma ?? 5;
+    const ecma =
+      options?.minimizerOptions?.ecma ??
+      // Default target derived from rspack target
+      this.target?.esVersion ??
+      5;
     const format = {
       comments: false, // terser and swc use different default value: 'some'
       ...options?.minimizerOptions?.format,
