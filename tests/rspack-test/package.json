@@ -43,7 +43,7 @@
     "json-loader": "^0.5.7",
     "less-loader": "^12.3.0",
     "lodash": "^4.17.21",
-    "memfs": "4.51.1",
+    "memfs": "4.53.0",
     "mini-svg-data-uri": "^1.4.4",
     "node-polyfill-webpack-plugin": "^4.1.0",
     "postcss-loader": "^8.2.0",
