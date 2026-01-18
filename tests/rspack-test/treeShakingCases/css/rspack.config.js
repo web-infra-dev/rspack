@@ -11,10 +11,12 @@ module.exports = {
 			{
 				test: /\.module\.css/,
 				type: "css/auto"
+			},
+			{
+				test: /\.css$/,
+				type: "css/auto"
 			}
 		]
 	},
-	experiments: {
-		css: true
-	}
+
 };

@@ -5,6 +5,7 @@ module.exports = {
 		rules: [
 			{
 				test: /\.css$/,
+				type: "css/auto",
 				use: {
 					loader: "builtin:lightningcss-loader",
 					options: {

@@ -16,7 +16,13 @@ module.exports = {
 			"css/auto": {
 				exportsOnly: false
 			}
-		}
+		},
+		rules: [
+				{
+					test: /\.css$/,
+					type: 'css/auto'
+				}
+		]
 	},
 	optimization: {
 		minimize: true,

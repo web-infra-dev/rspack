@@ -77,8 +77,14 @@ function defaultOptions(index: number, context: ITestContext): RspackOptions {
           force: false,
         },
       },
-      experiments: {
-        css: true,
+      module: {
+        defaultRules: [
+          '...',
+          {
+            test: /\.css$/i,
+            type: 'css/auto',
+          },
+        ],
       },
     } as RspackOptions;
   }
@@ -93,11 +99,16 @@ function defaultOptions(index: number, context: ITestContext): RspackOptions {
         force: false,
       },
     },
+    module: {
+      defaultRules: [
+        {
+          test: /\.css$/i,
+          type: 'css/auto',
+        },
+      ],
+    },
     optimization: {
       minimize: false,
-    },
-    experiments: {
-      css: true,
     },
   } as RspackOptions;
 }

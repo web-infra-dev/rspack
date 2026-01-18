@@ -16,6 +16,10 @@ export default defineConfig({
   module: {
     rules: [
       {
+        test: /\.css$/,
+        type: 'css/auto',
+      },
+      {
         test: /\.vue$/,
         loader: 'rspack-vue-loader',
         options: {
@@ -62,8 +66,5 @@ export default defineConfig({
         minimizerOptions: { targets },
       }),
     ],
-  },
-  experiments: {
-    css: true,
   },
 });

@@ -3,7 +3,6 @@ module.exports = {
 	entry: "./index.mjs",
 	experiments: {
 		outputModule: true,
-		css: true
 	},
 	name: "esm",
 	target: "web",
@@ -14,6 +13,14 @@ module.exports = {
 		chunkFilename: "[name].mjs",
 		chunkFormat: "module",
 		crossOriginLoading: "anonymous"
+	},
+	module: {
+		rules: [
+			{
+				test: /\.css$/,
+				type: "css/auto"
+			}
+		]
 	},
 	performance: {
 		hints: false

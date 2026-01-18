@@ -35,8 +35,13 @@ const common = (i) => ({
 	},
 	target: "web",
 	devtool: false,
-	experiments: {
-		css: true
+	module: {
+		rules: [
+			{
+				test: /\.css$/,
+				type: "css/auto"
+			}
+		]
 	},
 	output: {
 		filename: `${i}/[name].js`,

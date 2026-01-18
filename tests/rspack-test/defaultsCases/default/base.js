@@ -22,7 +22,6 @@ module.exports = {
 			  experiments: Object {
 			    asyncWebAssembly: true,
 			    buildHttp: undefined,
-			    css: undefined,
 			    deferImport: false,
 			    futureDefaults: false,
 			    incremental: Object {
@@ -207,6 +206,22 @@ module.exports = {
 			      },
 			    ],
 			    generator: Object {
+			      css: Object {
+			        esModule: true,
+			        exportsOnly: false,
+			      },
+			      css/auto: Object {
+			        esModule: true,
+			        exportsConvention: as-is,
+			        exportsOnly: false,
+			        localIdentName: [fullhash],
+			      },
+			      css/module: Object {
+			        esModule: true,
+			        exportsConvention: as-is,
+			        exportsOnly: false,
+			        localIdentName: [fullhash],
+			      },
 			      json: Object {
 			        JSONParse: true,
 			      },
@@ -217,6 +232,18 @@ module.exports = {
 			        dataUrlCondition: Object {
 			          maxSize: 8096,
 			        },
+			      },
+			      css: Object {
+			        namedExports: true,
+			        url: true,
+			      },
+			      css/auto: Object {
+			        namedExports: true,
+			        url: true,
+			      },
+			      css/module: Object {
+			        namedExports: true,
+			        url: true,
 			      },
 			      javascript: Object {
 			        commonjs: true,
@@ -304,6 +331,7 @@ module.exports = {
 			      chunks: async,
 			      defaultSizeTypes: Array [
 			        javascript,
+			        css,
 			        unknown,
 			      ],
 			      hidePathInfo: false,
@@ -434,6 +462,22 @@ module.exports = {
 			          module,
 			          ...,
 			        ],
+			      },
+			      css-import: Object {
+			        conditionNames: Array [
+			          webpack,
+			          production,
+			          style,
+			        ],
+			        extensions: Array [
+			          .css,
+			        ],
+			        mainFields: Array [
+			          style,
+			          ...,
+			        ],
+			        mainFiles: Array [],
+			        preferRelative: true,
 			      },
 			      esm: Object {
 			        aliasFields: Array [

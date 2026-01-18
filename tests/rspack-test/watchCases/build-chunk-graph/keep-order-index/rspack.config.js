@@ -7,6 +7,7 @@ module.exports = {
 		rules: [
 			{
 				test: /\.css$/,
+        type: 'javascript/auto',
 				use: [rspack.CssExtractRspackPlugin.loader, "css-loader"]
 			}
 		]
@@ -29,7 +30,6 @@ module.exports = {
 		}
 	},
 	experiments: {
-		css: false,
 		incremental: true
 	}
 };

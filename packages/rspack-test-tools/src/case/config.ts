@@ -98,9 +98,6 @@ export function defaultOptions(
     optimization: {
       minimize: false,
     },
-    experiments: {
-      css: true,
-    },
   };
 }
 
@@ -146,16 +143,14 @@ export function findBundle(
     options.output?.path &&
     fs.existsSync(path.join(options.output.path!, `bundle${index}${ext}`))
   ) {
-    if (options.experiments?.css) {
-      const cssOutputPath = path.join(
-        options.output.path!,
-        (typeof options.output?.cssFilename === 'string' &&
-          options.output?.cssFilename) ||
-          `bundle${index}.css`,
-      );
-      if (fs.existsSync(cssOutputPath)) {
-        bundlePath.push(path.relative(options.output.path!, cssOutputPath));
-      }
+    const cssOutputPath = path.join(
+      options.output.path!,
+      (typeof options.output?.cssFilename === 'string' &&
+        options.output?.cssFilename) ||
+        `bundle${index}.css`,
+    );
+    if (fs.existsSync(cssOutputPath)) {
+      bundlePath.push(path.relative(options.output.path!, cssOutputPath));
     }
 
     bundlePath.push(`./bundle${index}${ext}`);

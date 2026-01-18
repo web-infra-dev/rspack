@@ -790,7 +790,7 @@ export async function runLoaders(
       _compiler: {
         options: {
           experiments: {
-            css: compiler.options.experiments.css,
+            css: true,
           },
         },
       },

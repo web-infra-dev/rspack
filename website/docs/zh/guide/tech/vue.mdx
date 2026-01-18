@@ -65,9 +65,6 @@ export default {
       },
     ],
   },
-  experiments: {
-    css: false, // 此时需要关闭 `experiments.css` 以适配 `vue-loader` 内部处理逻辑
-  },
 };
 ```
 
@@ -86,8 +83,6 @@ export default {
 ## Vue 2
 
 Rspack 已经完成对 Vue 2（使用 vue-loader@15）的兼容。
-
-请确保在配置 Vue 2 项目时关闭 `experiments.css` 或在 CSS 相关的规则中使用 `rules[].type = "javascript/auto"`：
 
 ```js title="rspack.config.mjs"
 export default {

@@ -131,9 +131,6 @@ async function generateOptions(
       emitOnErrors: true,
     },
     target,
-    experiments: {
-      css: true,
-    },
   } as RspackOptions;
 
   options.plugins ??= [];

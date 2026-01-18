@@ -47,19 +47,33 @@ export default {
 
 ## experiments.css
 
+<ApiMeta stability={Stability.Deprecated} />
+
 - **类型：** `boolean`
 - **默认值：** `false`
 
-启用原生 CSS 支持和 CSS 相关的 parser 和 generator options：
+:::warning 已弃用
+此选项在 Rspack 2.0 中已弃用。现在手动添加 CSS type 将模块标记为 CSS 模块。
+:::
 
-- [`module.parser["css/auto"]`](/config/module#moduleparsercssauto)
-- [`module.parser.css`](/config/module#moduleparsercss)
-- [`module.parser["css/module"]`](/config/module#moduleparsercssmodule)
-- [`module.generator["css/auto"]`](/config/module#modulegeneratorcssauto)
-- [`module.generator.css`](/config/module#modulegeneratorcss)
-- [`module.generator["css/module"]`](/config/module#modulegeneratorcssmodule)
+### 迁移
 
-基本示例：
+要在 Rspack 2.0 中使用 CSS，需要手动添加 CSS 规则到配置中：
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.css$/i,
+        type: 'css/auto',
+      },
+    ],
+  },
+};
+```
+
+### 旧用法（已弃用）
 
 ```js title="rspack.config.mjs"
 export default {

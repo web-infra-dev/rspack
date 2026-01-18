@@ -5,6 +5,14 @@ module.exports = {
 		__dirname: false,
 		__filename: false,
 	},
+	module: {
+		rules: [
+			{
+				test: /\.css/,
+				type: "css/auto"
+			}
+		]
+	},
 	optimization: {
 		minimize: true,
 	},

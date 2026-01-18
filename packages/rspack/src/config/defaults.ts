@@ -97,7 +97,6 @@ export const applyRspackOptionsDefaults = (
   applyOptimizationDefaults(options.optimization, {
     production,
     development,
-    css: options.experiments.css!,
   });
 
   applySnapshotDefaults(options.snapshot, { production });
@@ -105,7 +104,6 @@ export const applyRspackOptionsDefaults = (
   applyModuleDefaults(options.module, {
     cache: !!options.cache,
     asyncWebAssembly: options.experiments.asyncWebAssembly!,
-    css: options.experiments.css,
     targetProperties,
     mode: options.mode,
     uniqueName: options.output.uniqueName,
@@ -165,7 +163,6 @@ export const applyRspackOptionsDefaults = (
       context: options.context!,
       targetProperties,
       mode: options.mode,
-      css: options.experiments.css!,
     }),
     options.resolve,
   );
@@ -214,7 +211,6 @@ const applyExperimentsDefaults = (experiments: ExperimentsNormalized) => {
   D(experiments, 'futureDefaults', false);
   // IGNORE(experiments.asyncWebAssembly): Rspack enable async WebAssembly by default
   D(experiments, 'asyncWebAssembly', true);
-  D(experiments, 'css', experiments.futureDefaults ? true : undefined);
   D(experiments, 'deferImport', false);
 
   D(experiments, 'buildHttp', undefined);
@@ -303,7 +299,6 @@ const applyModuleDefaults = (
   {
     cache,
     asyncWebAssembly,
-    css,
     targetProperties,
     mode,
     uniqueName,
@@ -311,7 +306,6 @@ const applyModuleDefaults = (
   }: {
     cache: boolean;
     asyncWebAssembly: boolean;
-    css?: boolean;
     targetProperties: false | TargetProperties;
     mode?: Mode;
     uniqueName?: string;
@@ -353,53 +347,49 @@ const applyModuleDefaults = (
   F(module.generator, 'json', () => ({}));
   assertNotNill(module.generator.json);
   applyJsonGeneratorOptionsDefaults(module.generator.json);
+  F(module.parser, 'css', () => ({}));
+  assertNotNill(module.parser.css);
+  D(module.parser.css, 'namedExports', true);
+  D(module.parser.css, 'url', true);
 
-  if (css) {
-    F(module.parser, 'css', () => ({}));
-    assertNotNill(module.parser.css);
-    D(module.parser.css, 'namedExports', true);
-    D(module.parser.css, 'url', true);
+  F(module.parser, 'css/auto', () => ({}));
+  assertNotNill(module.parser['css/auto']);
+  D(module.parser['css/auto'], 'namedExports', true);
+  D(module.parser['css/auto'], 'url', true);
 
-    F(module.parser, 'css/auto', () => ({}));
-    assertNotNill(module.parser['css/auto']);
-    D(module.parser['css/auto'], 'namedExports', true);
-    D(module.parser['css/auto'], 'url', true);
+  F(module.parser, 'css/module', () => ({}));
+  assertNotNill(module.parser['css/module']);
+  D(module.parser['css/module'], 'namedExports', true);
+  D(module.parser['css/module'], 'url', true);
 
-    F(module.parser, 'css/module', () => ({}));
-    assertNotNill(module.parser['css/module']);
-    D(module.parser['css/module'], 'namedExports', true);
-    D(module.parser['css/module'], 'url', true);
+  // IGNORE(module.generator): already check to align in 2024.6.27
+  F(module.generator, 'css', () => ({}));
+  assertNotNill(module.generator.css);
+  applyCssGeneratorOptionsDefaults(module.generator.css, {
+    targetProperties,
+  });
 
-    // IGNORE(module.generator): already check to align in 2024.6.27
-    F(module.generator, 'css', () => ({}));
-    assertNotNill(module.generator.css);
-    applyCssGeneratorOptionsDefaults(module.generator.css, {
-      targetProperties,
-    });
+  F(module.generator, 'css/auto', () => ({}));
+  assertNotNill(module.generator['css/auto']);
+  applyCssGeneratorOptionsDefaults(module.generator['css/auto'], {
+    targetProperties,
+  });
+  D(module.generator['css/auto'], 'exportsConvention', 'as-is');
+  const localIdentName =
+    mode === 'development'
+      ? uniqueName && uniqueName.length > 0
+        ? '[uniqueName]-[id]-[local]'
+        : '[id]-[local]'
+      : '[fullhash]';
+  D(module.generator['css/auto'], 'localIdentName', localIdentName);
 
-    F(module.generator, 'css/auto', () => ({}));
-    assertNotNill(module.generator['css/auto']);
-    applyCssGeneratorOptionsDefaults(module.generator['css/auto'], {
-      targetProperties,
-    });
-    D(module.generator['css/auto'], 'exportsConvention', 'as-is');
-    const localIdentName =
-      mode === 'development'
-        ? uniqueName && uniqueName.length > 0
-          ? '[uniqueName]-[id]-[local]'
-          : '[id]-[local]'
-        : '[fullhash]';
-    D(module.generator['css/auto'], 'localIdentName', localIdentName);
-
-    F(module.generator, 'css/module', () => ({}));
-    assertNotNill(module.generator['css/module']);
-    applyCssGeneratorOptionsDefaults(module.generator['css/module'], {
-      targetProperties,
-    });
-    D(module.generator['css/module'], 'exportsConvention', 'as-is');
-    D(module.generator['css/module'], 'localIdentName', localIdentName);
-  }
-
+  F(module.generator, 'css/module', () => ({}));
+  assertNotNill(module.generator['css/module']);
+  applyCssGeneratorOptionsDefaults(module.generator['css/module'], {
+    targetProperties,
+  });
+  D(module.generator['css/module'], 'exportsConvention', 'as-is');
+  D(module.generator['css/module'], 'localIdentName', localIdentName);
   // IGNORE(module.defaultRules): Rspack does not support `rule.assert`
   // https://github.com/webpack/webpack/blob/main/lib/config/defaults.js#L839
   A(module, 'defaultRules', () => {
@@ -480,28 +470,6 @@ const applyModuleDefaults = (
       rules.push({
         mimetype: 'application/wasm',
         ...wasm,
-      });
-    }
-
-    if (css) {
-      const resolve = {
-        fullySpecified: true,
-        preferRelative: true,
-      };
-      rules.push({
-        test: /\.css$/i,
-        type: 'css/auto',
-        resolve,
-      });
-      rules.push({
-        mimetype: 'text/css+module',
-        type: 'css/module',
-        resolve,
-      });
-      rules.push({
-        mimetype: 'text/css',
-        type: 'css',
-        resolve,
       });
     }
 
@@ -1039,11 +1007,9 @@ const applyOptimizationDefaults = (
   {
     production,
     development,
-    css,
   }: {
     production: boolean;
     development: boolean;
-    css: boolean;
   },
 ) => {
   // IGNORE(optimization.removeAvailableModules): removeAvailableModules is no use for webpack
@@ -1085,10 +1051,8 @@ const applyOptimizationDefaults = (
   });
   const { splitChunks } = optimization;
   if (splitChunks) {
-    // IGNORE(optimization.splitChunks.defaultSizeTypes): Rspack enables `experiments.css` by default currently
-    A(splitChunks, 'defaultSizeTypes', () =>
-      css ? ['javascript', 'css', 'unknown'] : ['javascript', 'unknown'],
-    );
+    // IGNORE(optimization.splitChunks.defaultSizeTypes): experiments.css is deprecated
+    A(splitChunks, 'defaultSizeTypes', () => ['javascript', 'css', 'unknown']);
     D(splitChunks, 'hidePathInfo', production);
     D(splitChunks, 'chunks', 'async');
     D(splitChunks, 'usedExports', optimization.usedExports === true);
@@ -1139,12 +1103,10 @@ const getResolveDefaults = ({
   context,
   targetProperties,
   mode,
-  css,
 }: {
   context: string;
   targetProperties: false | TargetProperties;
   mode?: Mode;
-  css: boolean;
 }) => {
   const conditions = ['webpack'];
 
@@ -1216,25 +1178,23 @@ const getResolveDefaults = ({
     },
   };
 
-  if (css) {
-    const styleConditions = [];
+  const styleConditions = [];
 
-    styleConditions.push('webpack');
-    styleConditions.push(mode === 'development' ? 'development' : 'production');
-    styleConditions.push('style');
+  styleConditions.push('webpack');
+  styleConditions.push(mode === 'development' ? 'development' : 'production');
+  styleConditions.push('style');
 
-    // IGNORE(resolve.byDependency.css-import): Rspack enables `experiments.css` by default currently
-    resolveOptions.byDependency!['css-import'] = {
-      // We avoid using any main files because we have to be consistent with CSS `@import`
-      // and CSS `@import` does not handle `main` files in directories,
-      // you should always specify the full URL for styles
-      mainFiles: [],
-      mainFields: ['style', '...'],
-      conditionNames: styleConditions,
-      extensions: ['.css'],
-      preferRelative: true,
-    };
-  }
+  // IGNORE(resolve.byDependency.css-import): Rspack enables `css` by default currently
+  resolveOptions.byDependency!['css-import'] = {
+    // We avoid using any main files because we have to be consistent with CSS `@import`
+    // and CSS `@import` does not handle `main` files in directories,
+    // you should always specify the full URL for styles
+    mainFiles: [],
+    mainFields: ['style', '...'],
+    conditionNames: styleConditions,
+    extensions: ['.css'],
+    preferRelative: true,
+  };
 
   return resolveOptions;
 };
