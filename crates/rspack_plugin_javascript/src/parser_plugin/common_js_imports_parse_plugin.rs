@@ -458,14 +458,14 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
       )),
       expr_name::REQUIRE_RESOLVE => Some(eval::evaluate_to_identifier(
         expr_name::REQUIRE_RESOLVE.into(),
-        expr_name::REQUIRE.into(),
+        expr_name::REQUIRE_RESOLVE.into(),
         Some(true),
         start,
         end,
       )),
       expr_name::REQUIRE_RESOLVE_WEAK => Some(eval::evaluate_to_identifier(
         expr_name::REQUIRE_RESOLVE_WEAK.into(),
-        expr_name::REQUIRE.into(),
+        expr_name::REQUIRE_RESOLVE_WEAK.into(),
         Some(true),
         start,
         end,
