@@ -4,6 +4,6 @@ function run() {
   return require.resolve('module')
 }
 
-it('should evaluate `require.resolve`', () => {
+it('should not evaluate `require.resolve()` as `require()`', () => {
   expect(run.toString()).toMatchSnapshot()
 })
