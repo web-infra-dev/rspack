@@ -38,7 +38,7 @@
     "@types/react": "^19.2.8",
     "@types/semver": "^7.7.1",
     "case-police": "~2.1.1",
-    "cspell": "^9.4.0",
+    "cspell": "^9.6.0",
     "cspell-ban-words": "0.0.4",
     "heading-case": "^1.0.4",
     "rsbuild-plugin-google-analytics": "1.0.4",
