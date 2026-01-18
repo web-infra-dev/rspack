@@ -512,8 +512,8 @@ async fn chunk_ids(
 async fn optimize_code_generation(
   &self,
   _compilation: &Compilation,
-  _bmga: &mut BuildModuleGraphArtifact,
-  _ds: &mut Vec<Diagnostic>,
+  _build_module_graph_artifact: &mut BuildModuleGraphArtifact,
+  _diagnostics: &mut Vec<Diagnostic>,
 ) -> Result<()> {
   self.sealing_hooks_report("code generation", 26).await
 }
