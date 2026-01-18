@@ -81,13 +81,13 @@ importers:
     devDependencies:
       '@napi-rs/cli':
         specifier: 3.0.4
-        version: 3.0.4(@emnapi/runtime@1.5.0)(@types/node@20.19.29)(emnapi@1.7.1(node-addon-api@7.1.1))
+        version: 3.0.4(@emnapi/runtime@1.5.0)(@types/node@20.19.29)(emnapi@1.8.1(node-addon-api@7.1.1))
       '@napi-rs/wasm-runtime':
         specifier: 1.0.7
         version: 1.0.7
       emnapi:
-        specifier: ^1.7.1
-        version: 1.7.1(node-addon-api@7.1.1)
+        specifier: ^1.8.1
+        version: 1.8.1(node-addon-api@7.1.1)
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
@@ -127,13 +127,13 @@ importers:
     devDependencies:
       '@napi-rs/cli':
         specifier: 3.0.4
-        version: 3.0.4(@emnapi/runtime@1.5.0)(@types/node@20.19.29)(emnapi@1.7.1(node-addon-api@7.1.1))
+        version: 3.0.4(@emnapi/runtime@1.5.0)(@types/node@20.19.29)(emnapi@1.8.1(node-addon-api@7.1.1))
       '@napi-rs/wasm-runtime':
         specifier: 1.0.7
         version: 1.0.7
       emnapi:
-        specifier: ^1.7.1
-        version: 1.7.1(node-addon-api@7.1.1)
+        specifier: ^1.8.1
+        version: 1.8.1(node-addon-api@7.1.1)
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
@@ -5164,8 +5164,8 @@ packages:
   elliptic@6.6.1:
     resolution: {integrity: sha512-RaddvvMatK2LJHqFJ+YA4WysVN5Ita9E35botqIYspQ4TkRAlCicdzKOjlyv/1Za5RyTNn7di//eEV0uTAfe3g==}
 
-  emnapi@1.7.1:
-    resolution: {integrity: sha512-wlLK2xFq+T+rCBlY6+lPlFVDEyE93b7hSn9dMrfWBIcPf4ArwUvymvvMnN9M5WWuiryYQe9M+UJrkqw4trdyRA==}
+  emnapi@1.8.1:
+    resolution: {integrity: sha512-34i2BbgHx1LnEO4JCGQYo6h6s4e4KrdWtdTHfllBNLbXSHPmdIHplxKejfabsRK+ukNciqVdalB+fxMibqHdaQ==}
     peerDependencies:
       node-addon-api: '>= 6.1.0'
     peerDependenciesMeta:
@@ -10199,7 +10199,7 @@ snapshots:
       '@module-federation/runtime': 0.22.0
       '@module-federation/sdk': 0.22.0
 
-  '@napi-rs/cli@3.0.4(@emnapi/runtime@1.5.0)(@types/node@20.19.29)(emnapi@1.7.1(node-addon-api@7.1.1))':
+  '@napi-rs/cli@3.0.4(@emnapi/runtime@1.5.0)(@types/node@20.19.29)(emnapi@1.8.1(node-addon-api@7.1.1))':
     dependencies:
       '@inquirer/prompts': 7.8.6(@types/node@20.19.29)
       '@napi-rs/cross-toolchain': 1.0.3
@@ -10215,7 +10215,7 @@ snapshots:
       typanion: 3.14.0
     optionalDependencies:
       '@emnapi/runtime': 1.5.0
-      emnapi: 1.7.1(node-addon-api@7.1.1)
+      emnapi: 1.8.1(node-addon-api@7.1.1)
     transitivePeerDependencies:
       - '@napi-rs/cross-toolchain-arm64-target-aarch64'
       - '@napi-rs/cross-toolchain-arm64-target-armv7'
@@ -13025,7 +13025,7 @@ snapshots:
       minimalistic-assert: 1.0.1
       minimalistic-crypto-utils: 1.0.1
 
-  emnapi@1.7.1(node-addon-api@7.1.1):
+  emnapi@1.8.1(node-addon-api@7.1.1):
     optionalDependencies:
       node-addon-api: 7.1.1
 
