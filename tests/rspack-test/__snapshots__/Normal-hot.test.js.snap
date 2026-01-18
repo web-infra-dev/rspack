@@ -1,0 +1,7 @@
+// Rstest Snapshot v1
+
+exports[`normal-hot > normal-hotCases-normalCases/require/issue-10479 > should pass 1`] = `
+function run() {
+  return _require__rspack_import_0/* .require.resolve */.Y.resolve('module')
+}
+`;

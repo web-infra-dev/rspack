@@ -1,9 +1,9 @@
 import { require } from './require';
 
 function run() {
-  return require.resolve('@types/node')
+  return require.resolve('module')
 }
 
 it('should evaluate `require.resolve`', () => {
-  expect(run()).toMatchSnapshot()
+  expect(run.toString()).toMatchSnapshot()
 })
