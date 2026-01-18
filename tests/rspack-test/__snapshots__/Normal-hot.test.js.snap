@@ -2,6 +2,6 @@
 
 exports[`normal-hot > normal-hotCases-normalCases/require/issue-10479 > should pass 1`] = `
 function run() {
-  return /*require.resolve*/(/*! module */ "module")
+  return _require__rspack_import_0/* .require */.Y.resolve('module')
 }
 `;
