@@ -24,7 +24,7 @@ export default defineConfig({
       },
     },
     {
-      format: 'esm',
+      format: 'iife',
       syntax: 'es2023',
       dts: false,
       autoExtension: false,
@@ -109,6 +109,10 @@ export default defineConfig({
         new rspack.NormalModuleReplacementPlugin(
           /src[/\\]loader-runner[/\\]service\.ts/,
           path.resolve('./src/browser/service.ts'),
+        ),
+        new rspack.NormalModuleReplacementPlugin(
+          /src[/\\]builtin-plugin[/\\]lazy-compilation[/\\]middleware\.ts/,
+          path.resolve('./src/browser/middleware.ts'),
         ),
       );
     },

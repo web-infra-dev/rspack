@@ -5,7 +5,7 @@ const TIMEOUT = 60 * 1000;
 
 export default defineConfig<RspackOptions>({
   // Look for test files in the "fixtures" directory, relative to this configuration file.
-  testDir: './cases',
+  testDir: process.env.WASM ? './browser-cases' : './cases',
 
   //	globalSetup: require.resolve("./scripts/globalSetup"),
 
