@@ -15,7 +15,7 @@ const MF_RUNTIME_CODE = await getModuleFederationRuntimeCode();
 const removeCreateRequirePlugin: RsbuildPlugin = {
   name: 'remove-create-require',
   setup(api) {
-    api.transform({ test: /\.(js|ts|mjs|cjs)$/ }, ({ code, resourcePath }) => {
+    api.transform({ test: /\.(ts)$/ }, ({ code, resourcePath }) => {
       if (
         resourcePath.includes('node_modules') ||
         !code.includes('createRequire')
@@ -119,6 +119,8 @@ export default defineConfig({
       // Runtime code
       MF_RUNTIME_CODE: JSON.stringify(MF_RUNTIME_CODE),
     },
+  },
+  resolve: {
     alias: {
       '../compiled/watchpack/index.js': path.dirname(
         require.resolve('watchpack/package.json'),
