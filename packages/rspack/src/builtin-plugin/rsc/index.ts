@@ -26,13 +26,13 @@ export function createRscPlugins(): {
   };
 }
 
-export const RSC_LAYERS_NAMES = {
+export const RscPluginLayers = {
   /**
    * The layer for server-only runtime and picking up `react-server` export conditions.
    */
-  REACT_SERVER_COMPONENTS: 'react-server-components',
+  rsc: 'react-server-components',
   /**
    * Server Side Rendering layer for app.
    */
-  SERVER_SIDE_RENDERING: 'server-side-rendering',
+  ssr: 'server-side-rendering',
 };

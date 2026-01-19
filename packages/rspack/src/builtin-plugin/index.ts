@@ -73,7 +73,7 @@ export * from './RslibPlugin';
 export * from './RstestPlugin';
 export * from './RuntimeChunkPlugin';
 export * from './RuntimePlugin';
-export { createRscPlugins, RSC_LAYERS_NAMES } from './rsc';
+export { createRscPlugins, RscPluginLayers } from './rsc';
 export * from './SideEffectsFlagPlugin';
 export * from './SizeLimitsPlugin';
 export * from './SourceMapDevToolPlugin';

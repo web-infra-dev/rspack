@@ -137,7 +137,7 @@ import {
   EsmLibraryPlugin,
   FetchCompileAsyncWasmPlugin,
   lazyCompilationMiddleware,
-  RSC_LAYERS_NAMES,
+  RscPluginLayers,
   SubresourceIntegrityPlugin,
 } from './builtin-plugin';
 
@@ -395,7 +395,7 @@ interface Experiments {
   createNativePlugin: typeof createNativePlugin;
   VirtualModulesPlugin: typeof VirtualModulesPlugin;
   createRscPlugins: typeof createRscPlugins;
-  RSC_LAYERS_NAMES: typeof RSC_LAYERS_NAMES;
+  RscPluginLayers: typeof RscPluginLayers;
 }
 
 export const experiments: Experiments = {
@@ -448,5 +448,5 @@ export const experiments: Experiments = {
   createNativePlugin,
   VirtualModulesPlugin,
   createRscPlugins,
-  RSC_LAYERS_NAMES,
+  RscPluginLayers,
 };
