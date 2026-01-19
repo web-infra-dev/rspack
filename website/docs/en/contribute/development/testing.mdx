@@ -41,7 +41,7 @@ You can run Rspack tests by running `./x test unit` or `pnpm run test:unit` at t
 You can also go to the `tests/rspack-test` folder and run `npm run test` to run test cases and add some arguments:
 
 - **When refreshing test snapshots is needed**: Add `-u`, like `npm run test -- -u`
-- **When filtering test cases is needed**: Add `-t`, like `npm run test -- -t configCases/asset` to only run test cases from the `tests/rspack-test/configCases/asset` folder. Pattern matching supports regex, see [rstest](https://rstest.rs/config/test/testNamePattern) for details.
+- **When filtering test cases is needed**: Add `-t`. Pattern matching supports regex, see [rstest](https://rstest.rs/config/test/testNamePattern) for details.
 
 ### Running tests
 
@@ -51,8 +51,11 @@ You can run these test cases in the following ways:
 - Or run `npm run test` from the `tests/rspack-test` directory.
 - To update snapshots, run `npm run test -- -u` from the `tests/rspack-test` directory.
 - To pass specific rstest cli arguments, run `npm run test -- {args}` from the `tests/rspack-test` directory.
-- To filter specific test cases, run `npm run test -- -t path-of-spec` from the `tests/rspack-test` directory.
-  - Like `npm run test -- -t configCases/asset` to only run test cases from the `tests/rspack-test/configCases/asset` folder (config will be automatically mapped to configCases, and other folders will work in a similar way).
+- To filter specific test cases, run `npm run test -- -t ${testPath}` where `testPath` can be either an absolute or relative path.
+  - For example:
+    - `npm run test -- -t hotCases/json/error-in-json` (or `npm run test -- -t /Users/rspack/tests/rspack-test/hotCases/json/error-in-json`) will run all tests in the `error-in-json` test case.
+    - `npm run test -- -t hotCases/json` (or `npm run test -- -t /Users/rspack/tests/rspack-test/hotCases/json`) will run all test cases in the `json` directory.
+    - `npm run test -- -t hotCases` (or `npm run test -- -t /Users/rspack/tests/rspack-test/hotCases`) will run all test cases in the `hotCases` directory.
 - To use Rspack Wasm for running test cases, you need to additionally configure the following environment variables:
   1. `NAPI_RS_FORCE_WASI=1`: Forces the use of Rspack Wasm instead of native binding
   2. `WASM=1`: Enables Wasm-specific test configurations

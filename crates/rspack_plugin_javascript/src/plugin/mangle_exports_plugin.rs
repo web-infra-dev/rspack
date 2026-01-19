@@ -6,9 +6,10 @@ use regex::Regex;
 use rspack_core::{
   BuildMetaExportsType, Compilation, CompilationOptimizeCodeGeneration, ExportInfo, ExportProvided,
   ExportsInfo, ExportsInfoGetter, ModuleGraph, Plugin, PrefetchExportsInfoMode,
-  PrefetchedExportsInfoWrapper, UsageState, UsedNameItem, incremental::IncrementalPasses,
+  PrefetchedExportsInfoWrapper, UsageState, UsedNameItem,
+  build_module_graph::BuildModuleGraphArtifact, incremental::IncrementalPasses,
 };
-use rspack_error::Result;
+use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_ids::id_helpers::assign_deterministic_ids;
 use rspack_util::atom::Atom;
@@ -59,17 +60,22 @@ struct ExportInfoCache {
 }
 
 #[plugin_hook(CompilationOptimizeCodeGeneration for MangleExportsPlugin)]
-async fn optimize_code_generation(&self, compilation: &mut Compilation) -> Result<()> {
+async fn optimize_code_generation(
+  &self,
+  compilation: &Compilation,
+  build_module_graph_artifact: &mut BuildModuleGraphArtifact,
+  diagnostics: &mut Vec<Diagnostic>,
+) -> Result<()> {
   if let Some(diagnostic) = compilation.incremental.disable_passes(
     IncrementalPasses::MODULES_HASHES,
     "MangleExportsPlugin (optimization.mangleExports = true)",
     "it requires calculating the export names of all the modules, which is a global effect",
   ) && let Some(diagnostic) = diagnostic
   {
-    compilation.push_diagnostic(diagnostic);
+    diagnostics.push(diagnostic);
   }
 
-  let mg = compilation.get_module_graph_mut();
+  let mg = build_module_graph_artifact.get_module_graph_mut();
   let modules = mg.modules();
 
   let mut exports_info_cache = FxHashMap::default();
