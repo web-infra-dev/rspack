@@ -175,8 +175,7 @@ impl Compilation {
               .get_module_runtimes_iter(module, &compilation.chunk_by_ukey);
             for runtime in runtimes {
               let runtime_requirements = compilation
-                .old_cache
-                .process_runtime_requirements_occasion
+                .process_runtime_requirements_cache_artifact
                 .use_cache(module, runtime, compilation, || async {
                   let mut runtime_requirements = compilation
                     .code_generation_results
