@@ -27,7 +27,7 @@ pub struct BuildChunkGraphArtifact {
 }
 
 impl BuildChunkGraphArtifact {
-  fn clear(&mut self){
+  fn clear(&mut self) {
     *self = BuildChunkGraphArtifact::default();
   }
   // we can skip rebuilding chunk graph if none of modules
@@ -41,11 +41,12 @@ impl BuildChunkGraphArtifact {
   fn can_skip_rebuilding_legacy(&self, this_compilation: &Compilation) -> bool {
     let logger = this_compilation.get_logger("rspack.Compilation.codeSplittingCache");
 
-    if !this_compilation
-      .entries
-      .keys()
-      .eq(this_compilation.build_chunk_graph_artifact.entrypoints.keys())
-    {
+    if !this_compilation.entries.keys().eq(
+      this_compilation
+        .build_chunk_graph_artifact
+        .entrypoints
+        .keys(),
+    ) {
       logger.log("entrypoints change detected, rebuilding chunk graph");
       return false;
     }
@@ -172,7 +173,6 @@ where
   T: Fn(&'a mut Compilation) -> F,
   F: Future<Output = Result<&'a mut Compilation>>,
 {
-  
   if !compilation.incremental.enabled() {
     task(compilation).await?;
     return Ok(());
@@ -181,25 +181,23 @@ where
   let incremental_code_splitting = compilation
     .incremental
     .passes_enabled(IncrementalPasses::BUILD_CHUNK_GRAPH | IncrementalPasses::MAKE);
-  if !incremental_code_splitting{
+  if !incremental_code_splitting {
     compilation.build_chunk_graph_artifact.clear();
   }
   let no_change = compilation
     .build_chunk_graph_artifact
     .can_skip_rebuilding(compilation);
 
-  if incremental_code_splitting && no_change {
-   
-      let module_idx = &compilation.build_chunk_graph_artifact.module_idx;
-      let module_graph = &mut compilation.build_module_graph_artifact.module_graph;
-      for (m, (pre, post)) in module_idx {
-        let mgm = module_graph.module_graph_module_by_identifier_mut(m);
-        mgm.pre_order_index = Some(*pre);
-        mgm.post_order_index = Some(*post);
-      }
+  if no_change {
+    let module_idx = &compilation.build_chunk_graph_artifact.module_idx;
+    let module_graph = &mut compilation.build_module_graph_artifact.module_graph;
+    for (m, (pre, post)) in module_idx {
+      let mgm = module_graph.module_graph_module_by_identifier_mut(m);
+      mgm.pre_order_index = Some(*pre);
+      mgm.post_order_index = Some(*post);
+    }
 
-      return Ok(());
-    
+    return Ok(());
   }
 
   let compilation = task(compilation).await?;

@@ -16,7 +16,6 @@ use rspack_error::{Diagnostic, Error, Result, error};
 use rspack_util::itoa;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 
-use super::incremental::ChunkCreateData;
 use crate::{
   AsyncDependenciesBlockIdentifier, ChunkGroup, ChunkGroupKind, ChunkGroupOptions, ChunkGroupUkey,
   ChunkLoading, ChunkUkey, Compilation, ConnectionState, DependenciesBlock, DependencyId,
@@ -257,19 +256,6 @@ pub(crate) struct CodeSplitter {
   stat_child_chunk_groups_reconnected: u32,
   pub(crate) stat_chunk_group_created: u32,
 
-  // incremental stat
-  pub(crate) stat_invalidated_chunk_group: u32,
-  pub(crate) stat_invalidated_caches: u32,
-  pub(crate) stat_use_cache: u32,
-  pub(crate) stat_cache_miss_by_cant_rebuild: u32,
-  pub(crate) stat_cache_miss_by_available_modules: u32,
-
-  // represents the edge of how chunk is created
-  pub(crate) edges: HashMap<AsyncDependenciesBlockIdentifier, ModuleIdentifier>,
-
-  // created from edges
-  pub(crate) chunk_caches: HashMap<AsyncDependenciesBlockIdentifier, ChunkCreateData>,
-
   prepared_connection_map: IdentifierMap<PreparedBlockConnectionMap>,
 
   prepared_blocks_map: HashMap<DependenciesBlockIdentifier, Vec<AsyncDependenciesBlockIdentifier>>,
@@ -330,15 +316,6 @@ fn get_active_state_of_connections(
 }
 
 impl CodeSplitter {
-  pub fn get_module_ordinal(&self, module_id: ModuleIdentifier) -> u64 {
-    *self.ordinal_by_module.get(&module_id).unwrap_or_else(|| {
-      panic!(
-        "expected a module ordinal for identifier '{}', but none was found.",
-        &module_id
-      )
-    })
-  }
-
   pub fn prepare_entry_input(
     &mut self,
     name: &str,
@@ -961,38 +938,6 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       ));
     }
 
-    if compilation
-      .incremental
-      .passes_enabled(IncrementalPasses::BUILD_CHUNK_GRAPH)
-    {
-      let logger = compilation.get_logger("rspack.incremental.buildChunkGraph");
-      logger.log(format!(
-        "{} chunk group created",
-        self.stat_chunk_group_created,
-      ));
-      logger.log(format!(
-        "{} chunk cache invalidated",
-        self.stat_invalidated_caches,
-      ));
-      logger.log(format!(
-        "{} chunk group invalidated",
-        self.stat_invalidated_chunk_group,
-      ));
-      logger.log(format!(
-        "{} chunk group created from cache",
-        self.stat_use_cache,
-      ));
-      logger.log(format!(
-        "{} cache missed by cannot rebuild",
-        self.stat_cache_miss_by_cant_rebuild,
-      ));
-      logger.log(format!(
-        "{} cache missed by incorrect available modules",
-        self.stat_cache_miss_by_available_modules,
-      ));
-      self.update_cache(compilation);
-    }
-
     Ok(())
   }
 
@@ -1375,8 +1320,6 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     item_chunk_ukey: ChunkUkey,
     compilation: &mut Compilation,
   ) {
-    self.edges.insert(block_id, module_id);
-
     let Some(item_chunk_group_info) = self.chunk_group_infos.get_mut(&item_chunk_group_info_ukey)
     else {
       return;
@@ -1918,7 +1861,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     self.chunk_groups_for_combining.clear();
   }
 
-  fn process_chunk_groups_for_merging(&mut self, compilation: &mut Compilation) {
+  fn process_chunk_groups_for_merging(&mut self, _compilation: &mut Compilation) {
     self.stat_processed_chunk_groups_for_merging += self.chunk_groups_for_merging.len() as u32;
     let chunk_groups_for_merging = std::mem::take(&mut self.chunk_groups_for_merging);
     let mut chunk_groups_merging_batches: Vec<Vec<(CgiUkey, Option<ProcessBlock>)>> = vec![vec![]];
@@ -2010,12 +1953,6 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
 
           if needs_walk {
             cgi.initialized = true;
-
-            // check if we can use cache to initialize it
-            if !initialized && self.recover_from_cache(info_ukey, compilation) {
-              self.stat_use_cache += 1;
-              continue;
-            }
 
             self
               .queue_delayed
@@ -2184,14 +2121,6 @@ impl DependenciesBlockIdentifier {
         .expect("should have block")
         .get_blocks()
         .to_vec(),
-    }
-  }
-
-  pub fn as_async(self) -> Option<AsyncDependenciesBlockIdentifier> {
-    if let DependenciesBlockIdentifier::AsyncDependenciesBlock(id) = self {
-      Some(id)
-    } else {
-      None
     }
   }
 }
