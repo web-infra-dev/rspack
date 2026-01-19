@@ -12,8 +12,8 @@ import {
   toFeatures,
 } from '../builtin-loader/lightningcss';
 import {
+  defaultTargetsFromRspackTargets,
   encodeTargets,
-  resolveDefaultLightningCssTargets,
 } from '../builtin-loader/lightningcss/target';
 import type { Compiler } from '../Compiler';
 import type { AssetConditions } from '../util/assetCondition';
@@ -54,9 +54,9 @@ export const LightningCssMinimizerRspackPlugin = create(
         targets = options.minimizerOptions.targets;
       else if (typeof options.minimizerOptions.targets === 'object')
         targets = encodeTargets(options.minimizerOptions.targets);
-    } else if (this.target.platforms) {
+    } else if (this.target.targets) {
       // Default target derived from rspack target
-      targets = resolveDefaultLightningCssTargets(this.target.platforms);
+      targets = defaultTargetsFromRspackTargets(this.target.targets);
     }
     return {
       test: options?.test,

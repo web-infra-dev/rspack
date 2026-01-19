@@ -11,6 +11,7 @@
 import binding from '@rspack/binding';
 import { findConfig } from 'browserslist-load-config';
 import { memoize } from '../util/memoize';
+import { decodeVersion, encodeVersion } from '../util/targetsVersion';
 import * as browserslistTargetHandler from './browserslistTargetHandler';
 
 const getBrowserslistTargetHandler = memoize(() => browserslistTargetHandler);
@@ -103,7 +104,7 @@ export type EcmaTargetProperties = {
 
 export type ExtractedTargetProperties = {
   esVersion?: number | null;
-  platforms?: string[] | null;
+  targets?: Record<string, string> | null;
 };
 
 type Never<T> = { [P in keyof T]?: never };
@@ -245,9 +246,23 @@ You can also more options via the 'target' option: 'browserslist' / 'browserslis
       }
 
       const browserslistTargetHandler = getBrowserslistTargetHandler();
+
+      const targets: Record<string, number> = {};
+      for (const p of browsers) {
+        const [name, v] = p.split(' ');
+        const version = encodeVersion(v);
+        if (version === null) continue;
+
+        if (!targets[name] || version < targets[name]) {
+          targets[name] = version;
+        }
+      }
+
       return {
         ...browserslistTargetHandler.resolve(browsers),
-        platforms: browsers,
+        targets: Object.fromEntries(
+          Object.entries(targets).map(([k, v]) => [k, decodeVersion(v)]),
+        ),
         esVersion: browsersToESVersion(browsers),
       };
     },
@@ -313,7 +328,12 @@ You can also more options via the 'target' option: 'browserslist' / 'browserslis
         webworker: false,
         browser: false,
 
-        platforms: major ? [`node ${major}${minor ? `.${minor}` : ''}`] : [],
+        targets: major
+          ? ({ node: `${major}${minor ? `.${minor}` : ''}` } as Record<
+              string,
+              string
+            >)
+          : {},
         // https://github.com/microsoft/TypeScript/wiki/Node-Target-Mapping
         esVersion: v(18)
           ? 2022
@@ -381,9 +401,12 @@ You can also more options via the 'target' option: 'browserslist' / 'browserslis
         electronPreload: context === 'preload',
         electronRenderer: context === 'renderer',
 
-        platforms: major
-          ? [`electron ${major}${minor ? `.${minor}` : ''}`]
-          : [],
+        targets: major
+          ? ({ electron: `${major}${minor ? `.${minor}` : ''}` } as Record<
+              string,
+              string
+            >)
+          : {},
         esVersion: v(23)
           ? 2022
           : v(15)
@@ -447,7 +470,12 @@ You can also more options via the 'target' option: 'browserslist' / 'browserslis
         browser: false,
         electron: false,
 
-        platforms: major ? [`nwjs ${major}${minor ? `.${minor}` : ''}`] : [],
+        targets: major
+          ? ({ nwjs: `${major}${minor ? `.${minor}` : ''}` } as Record<
+              string,
+              string
+            >)
+          : {},
         esVersion: v(0, 65)
           ? 2022
           : v(0, 54)
@@ -563,14 +591,25 @@ const mergeTargetProperties = (
       continue;
     }
 
-    if (key === 'platforms') {
-      const merged = new Set<string>();
+    if (key === 'targets') {
+      const merged: Record<string, number> = {};
       for (const tp of targetProperties) {
-        if (Array.isArray(tp.platforms)) {
-          for (const p of tp.platforms) merged.add(p);
+        if (tp.targets) {
+          for (const [name, version] of Object.entries(tp.targets)) {
+            const v = encodeVersion(version);
+            if (v !== null) {
+              if (!merged[name] || v < merged[name]) {
+                merged[name] = v;
+              }
+            }
+          }
         }
       }
-      if (merged.size > 0) result[key] = Array.from(merged);
+      if (Object.keys(merged).length > 0) {
+        result[key] = Object.fromEntries(
+          Object.entries(merged).map(([k, v]) => [k, decodeVersion(v)]),
+        );
+      }
       continue;
     }
 

@@ -2,7 +2,6 @@ import type { GetLoaderOptions } from '../../config/adapterRuleUse';
 import { deprecate } from '../../util';
 import { resolveCollectTypeScriptInfo } from './collectTypeScriptInfo';
 import { resolvePluginImport } from './pluginImport';
-import { resolveDefaultSwcTargets } from './target';
 
 export type { CollectTypeScriptInfoOptions } from './collectTypeScriptInfo';
 export type { PluginImportOptions } from './pluginImport';
@@ -17,6 +16,29 @@ export type {
   SwcLoaderTsParserConfig,
 } from './types';
 
+function defaultTargetFromRspackTargets(targets: Record<string, string>) {
+  const REMAP: Record<string, string | null> = {
+    and_chr: 'chrome',
+    and_ff: 'firefox',
+    ie_mob: 'ie',
+    ios_saf: 'ios',
+    op_mob: 'opera',
+    and_qq: null,
+    and_uc: null,
+    baidu: null,
+    bb: null,
+    kaios: null,
+    op_mini: null,
+  };
+  const result: Record<string, string> = {};
+  for (const [k, version] of Object.entries(targets)) {
+    const name = REMAP[k] ?? k;
+    if (name === null) continue;
+    result[name] = version;
+  }
+  return result;
+}
+
 export const getSwcLoaderOptions: GetLoaderOptions = (o, composeOptions) => {
   const options = o ?? {};
   if (typeof options === 'object') {
@@ -30,10 +52,11 @@ export const getSwcLoaderOptions: GetLoaderOptions = (o, composeOptions) => {
       options.env?.targets === undefined &&
       options.jsc?.target === undefined
     ) {
-      if (composeOptions.compiler.target?.platforms) {
-        const { platforms } = composeOptions.compiler.target;
+      if (composeOptions.compiler.target?.targets) {
         options.env ??= {};
-        options.env.targets ??= resolveDefaultSwcTargets(platforms);
+        options.env.targets ??= defaultTargetFromRspackTargets(
+          composeOptions.compiler.target.targets,
+        );
       } else if (composeOptions.compiler.target?.esVersion) {
         const { esVersion } = composeOptions.compiler.target;
         options.jsc.target ??= esVersion >= 2015 ? `es${esVersion}` : 'es5';

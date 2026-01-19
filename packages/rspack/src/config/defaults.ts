@@ -184,7 +184,7 @@ export const applyRspackOptionsDefaults = (
           electron: targetProperties.electron,
         },
         esVersion: targetProperties.esVersion,
-        platforms: targetProperties.platforms,
+        targets: targetProperties.targets,
       };
 };
 

@@ -9,7 +9,7 @@ type Compiler = {
   options: RspackOptionsNormalized;
   watching: Watching;
   target: {
-    platforms?: string[];
+    targets?: Record<string, string>;
     esVersion?: number;
   };
 

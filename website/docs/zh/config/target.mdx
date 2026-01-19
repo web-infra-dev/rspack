@@ -114,7 +114,7 @@ Rspack 从 `target` 配置中推断出默认 targets，并将其提供给内置 
 
 这意味着你不再需要在多个地方手动配置相同的 targets。例如，如果你设置 `target: 'node18'`，loader 和插件将自动使用与 Node.js 18 兼容的设置。
 
-第三方 loader 和插件也可以访问 `compiler.target`，根据 Rspack 的 target 配置推断默认 targets。`compiler.target` 对象包含 `platforms`（带有版本的平台名称）和 `esVersion`（ECMAScript 版本号）。
+第三方 loader 和插件也可以访问 `compiler.target`，根据 Rspack 的 target 配置推断默认 targets。`compiler.target` 对象包含 `targets`（带有版本的平台名称）和 `esVersion`（ECMAScript 版本号）。
 
 ## target: false
 

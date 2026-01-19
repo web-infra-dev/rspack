@@ -320,11 +320,11 @@ Get the full options used by this compiler.
 
 ### target
 
-- **Type:** `{ platforms?: string[]; esVersion?: number }`
+- **Type:** `{ targets?: Record<string, string>; esVersion?: number }`
 
 Get the target information derived from the [`target`](/config/target) configuration. This is useful for plugin and loader authors who need to access the target environment information.
 
-- `platforms`: An array of platform strings with versions (e.g., `['chrome 87', 'firefox 78']` or `['node 18']`).
+- `targets`: An object of platform names and their versions (e.g., `{ 'chrome': '87', 'firefox': '78', 'node': '18' }`).
 - `esVersion`: The ECMAScript version number (e.g., `5`, `2015`, `2022`).
 
 Example of using `compiler.target` in a custom loader to set default targets:
@@ -333,7 +333,7 @@ Example of using `compiler.target` in a custom loader to set default targets:
 export default function myLoader(source) {
   const options = this.getOptions();
   // Use user-specified targets, or fall back to Rspack's derived targets
-  const targets = options.targets ?? this._compiler.target.platforms;
+  const targets = options.targets ?? this._compiler.target.targets;
   // Use targets for transformation...
   return transform(source, { targets, ecmaVersion });
 }
