@@ -509,7 +509,12 @@ async fn chunk_ids(
 }
 
 #[plugin_hook(CompilationOptimizeCodeGeneration for ProgressPlugin)]
-async fn optimize_code_generation(&self, _compilation: &mut Compilation) -> Result<()> {
+async fn optimize_code_generation(
+  &self,
+  _compilation: &Compilation,
+  _build_module_graph_artifact: &mut BuildModuleGraphArtifact,
+  _diagnostics: &mut Vec<Diagnostic>,
+) -> Result<()> {
   self.sealing_hooks_report("code generation", 26).await
 }
 
