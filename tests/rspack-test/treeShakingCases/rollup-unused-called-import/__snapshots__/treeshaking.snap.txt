@@ -1,6 +1,6 @@
 ```js title=main.js
 "use strict";
-(self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["main"], {
+(self["rspackChunk"] = self["rspackChunk"] || []).push([["main"], {
 "./dead.js"() {
 /* export default */ function __rspack_default_export() {
 	return "dead";

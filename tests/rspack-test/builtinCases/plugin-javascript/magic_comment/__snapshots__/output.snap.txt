@@ -1,5 +1,5 @@
 ```js title=./sub/fold.js
-(self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["./sub/fold"], {
+(self["rspackChunk"] = self["rspackChunk"] || []).push([["./sub/fold"], {
 "./sub_fold.js"() {
 console.log("123");
 
@@ -10,7 +10,7 @@ console.log("123");
 ```
 
 ```js title=./sub/other.js
-(self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["./sub/other"], {
+(self["rspackChunk"] = self["rspackChunk"] || []).push([["./sub/other"], {
 "./other.js"() {
 console.log("123");
 
@@ -21,7 +21,7 @@ console.log("123");
 ```
 
 ```js title=./sub/single.js
-(self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["./sub/single"], {
+(self["rspackChunk"] = self["rspackChunk"] || []).push([["./sub/single"], {
 "./single_quote.js"() {
 console.log("123");
 
@@ -32,7 +32,7 @@ console.log("123");
 ```
 
 ```js title=./user/[id].js
-(self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["./user/[id]"], {
+(self["rspackChunk"] = self["rspackChunk"] || []).push([["./user/[id]"], {
 "./user/1.js"() {
 console.log("user [id]");
 
@@ -43,7 +43,7 @@ console.log("user [id]");
 ```
 
 ```js title=bug_only_single_quote_js.js
-(self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["bug_only_single_quote_js"], {
+(self["rspackChunk"] = self["rspackChunk"] || []).push([["bug_only_single_quote_js"], {
 "./bug_only_single_quote.js"() {
 console.log("123");
 
@@ -54,7 +54,7 @@ console.log("123");
 ```
 
 ```js title=main.js
-(self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["main"], {
+(self["rspackChunk"] = self["rspackChunk"] || []).push([["main"], {
 "./index.js"(__unused_rspack_module, __unused_rspack_exports, __webpack_require__) {
 __webpack_require__.e(/* import() | normal */ "normal").then(__webpack_require__.t.bind(__webpack_require__, "./normal.js", 23));
 __webpack_require__.e(/* import() | with.dot */ "with.dot").then(__webpack_require__.t.bind(__webpack_require__, "./with_dot.js", 23));
@@ -80,7 +80,7 @@ var __webpack_exports__ = (__webpack_exec__("./index.js"));
 ```
 
 ```js title=normal.js
-(self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["normal"], {
+(self["rspackChunk"] = self["rspackChunk"] || []).push([["normal"], {
 "./normal.js"() {
 console.log("123");
 
@@ -91,7 +91,7 @@ console.log("123");
 ```
 
 ```js title=user/(id)/page.js
-(self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["user/(id)/page"], {
+(self["rspackChunk"] = self["rspackChunk"] || []).push([["user/(id)/page"], {
 "./user/page/3.js"() {
 console.log("user (id)/page3");
 
@@ -102,7 +102,7 @@ console.log("user (id)/page3");
 ```
 
 ```js title=user/[id]/page.js
-(self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["user/[id]/page"], {
+(self["rspackChunk"] = self["rspackChunk"] || []).push([["user/[id]/page"], {
 "./user/page/2.js"() {
 console.log("user [id]/page2");
 
@@ -113,7 +113,7 @@ console.log("user [id]/page2");
 ```
 
 ```js title=with.dot.js
-(self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["with.dot"], {
+(self["rspackChunk"] = self["rspackChunk"] || []).push([["with.dot"], {
 "./with_dot.js"() {
 console.log("123");
 

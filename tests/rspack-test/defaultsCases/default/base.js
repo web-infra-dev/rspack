@@ -327,7 +327,7 @@ module.exports = {
 			    chunkFormat: array-push,
 			    chunkLoadTimeout: 120000,
 			    chunkLoading: jsonp,
-			    chunkLoadingGlobal: webpackChunk_rspack_tests,
+			    chunkLoadingGlobal: rspackChunk_rspack_tests,
 			    clean: false,
 			    compareBeforeEmit: true,
 			    crossOriginLoading: false,

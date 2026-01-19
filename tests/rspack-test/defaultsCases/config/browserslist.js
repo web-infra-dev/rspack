@@ -14,8 +14,8 @@ module.exports = {
 			-   "context": "<cwd>",
 			+   "context": "<TEST_TOOLS_ROOT>/tests/fixtures/browserslist",
 			@@ ... @@
-			-     "chunkLoadingGlobal": "webpackChunk_rspack_tests",
-			+     "chunkLoadingGlobal": "webpackChunk",
+			-     "chunkLoadingGlobal": "rspackChunk_rspack_tests",
+			+     "chunkLoadingGlobal": "rspackChunk",
 			@@ ... @@
 			-     "devtoolNamespace": "@rspack/tests",
 			+     "devtoolNamespace": "",

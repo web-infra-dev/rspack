@@ -31,7 +31,7 @@ CompilerOptions {
         chunk_loading: Enable(
             Jsonp,
         ),
-        chunk_loading_global: "webpackChunk",
+        chunk_loading_global: "rspackChunk",
         chunk_load_timeout: 120000,
         filename: Filename(
             Template(
