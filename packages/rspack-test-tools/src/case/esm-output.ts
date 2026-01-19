@@ -117,6 +117,15 @@ const defaultOptions = (
       force: false,
     },
   },
+  module: {
+    defaultRules: [
+      '...',
+      {
+        test: /\.css$/i,
+        type: 'css/auto',
+      },
+    ],
+  },
   bail: true,
   optimization: {
     minimize: false,
@@ -130,7 +139,6 @@ const defaultOptions = (
   },
   plugins: [new rspack.experiments.EsmLibraryPlugin()],
   experiments: {
-    css: true,
     outputModule: true,
   },
 });

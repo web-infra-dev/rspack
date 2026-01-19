@@ -14,15 +14,19 @@ const common = {
 				exportsOnly: false,
 				exportsConvention: 'camel-case',
 			}
-		}
+		},
+		rules: [
+			{
+				test: /\.css$/,
+				type: "css/auto"
+			}
+		]
 	},
 	optimization: {
 		minimize: true,
 		minimizer: [new rspack.LightningCssMinimizerRspackPlugin()]
 	},
-	experiments: {
-		css: true
-	}
+
 };
 
 module.exports = [
@@ -48,7 +52,13 @@ module.exports = [
 					exportsOnly: true,
 					exportsConvention: 'camel-case',
 				}
-			}
+			},
+			rules: [
+				{
+					test: /\.css$/,
+					type: "css/auto"
+				}
+			]
 		},
 		optimization: {
 			minimize: true,

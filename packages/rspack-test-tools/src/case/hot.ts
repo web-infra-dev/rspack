@@ -142,12 +142,20 @@ function defaultOptions(context: ITestContext, target: TTarget) {
         force: false,
       },
     },
+    module: {
+      defaultRules: [
+        '...',
+        {
+          test: /\.css$/i,
+          type: 'css/auto',
+        },
+      ],
+    },
     optimization: {
       moduleIds: 'named',
     },
     target,
     experiments: {
-      css: true,
       // test incremental: "safe" here, we test default incremental in Incremental-*.test.js
       incremental: 'safe',
     },

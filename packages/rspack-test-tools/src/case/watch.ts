@@ -366,7 +366,12 @@ function overrideOptions(
   if (!options.output.filename) options.output.filename = 'bundle.js';
   options.optimization ??= {};
   options.experiments ??= {};
-  options.experiments.css ??= true;
+  options.module ??= {};
+  options.module.defaultRules ??= ['...'];
+  options.module.defaultRules.push({
+    test: /\.css$/,
+    type: 'css/auto',
+  });
 
   if (nativeWatcher) {
     (options as RspackOptions).experiments!.nativeWatcher ??= true;

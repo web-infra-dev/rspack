@@ -21,6 +21,7 @@ const config = (i, options) => ({
 				oneOf: [
 					{
 						test: /\.css$/,
+						type: "javascript/auto",
 						use: [MCEP.loader, "css-loader"]
 					},
 					{ test: /\.js$/ },

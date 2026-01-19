@@ -12,10 +12,14 @@ module.exports = {
         exportsConvention: "camel-case",
       },
     },
+    rules: [
+      {
+        test: /\.css$/,
+        type: "css/auto"
+      }
+    ]
   },
-  experiments: {
-    css: true,
-  },
+
   plugins: [{
     apply(compiler) {
       compiler.hooks.done.tap("Test", stats => {

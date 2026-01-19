@@ -21,6 +21,10 @@ export default defineConfig({
         type: 'asset',
       },
       {
+        test: /\.css$/,
+        type: 'css/auto',
+      },
+      {
         test: /\.(jsx?|tsx?)$/,
         use: [
           {
@@ -59,8 +63,5 @@ export default defineConfig({
         minimizerOptions: { targets },
       }),
     ],
-  },
-  experiments: {
-    css: true,
   },
 });

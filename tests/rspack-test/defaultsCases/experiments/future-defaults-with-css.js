@@ -13,7 +13,6 @@ module.exports = {
 			+ Received
 
 			@@ ... @@
-			-     "css": undefined,
 			+     "css": false,
 			@@ ... @@
 			-     "futureDefaults": false,

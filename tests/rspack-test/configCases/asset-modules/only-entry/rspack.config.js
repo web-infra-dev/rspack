@@ -17,11 +17,12 @@ const common = (i, options) => ({
 			{
 				test: /\.png$/,
 				type: "asset"
+			},
+			{
+				test: /\.css$/,
+				type: "css/auto"
 			}
 		]
-	},
-	experiments: {
-		css: true
 	},
 	plugins: [
 		{

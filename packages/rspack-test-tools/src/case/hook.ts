@@ -268,11 +268,17 @@ function defaultOptions(
         force: false,
       },
     },
+    module: {
+      defaultRules: [
+        '...',
+        {
+          test: /\.css$/i,
+          type: 'css/auto',
+        },
+      ],
+    },
     optimization: {
       minimize: false,
-    },
-    experiments: {
-      css: true,
     },
   } as RspackOptions;
   if (custom) {

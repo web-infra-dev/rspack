@@ -8,6 +8,14 @@ module.exports = {
   output: {
     cssFilename: 'css/[name].css',
   },
+  module: {
+    rules: [
+      {
+        test: /\.css$/i,
+        type: 'css/auto',
+      },
+    ],
+  },
   devtool: false,
   devServer: {
     hot: true,
@@ -19,8 +27,5 @@ module.exports = {
   plugins: [new rspack.HtmlRspackPlugin()],
   watchOptions: {
     poll: 1000,
-  },
-  experiments: {
-    css: true,
   },
 };

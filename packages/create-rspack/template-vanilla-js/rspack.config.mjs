@@ -12,6 +12,10 @@ export default defineConfig({
   module: {
     rules: [
       {
+        test: /\.css$/,
+        type: 'css/auto',
+      },
+      {
         test: /\.svg$/,
         type: 'asset',
       },
@@ -42,8 +46,5 @@ export default defineConfig({
         minimizerOptions: { targets },
       }),
     ],
-  },
-  experiments: {
-    css: true,
   },
 });

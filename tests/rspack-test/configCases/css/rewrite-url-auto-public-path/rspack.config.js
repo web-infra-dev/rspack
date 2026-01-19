@@ -32,13 +32,15 @@ module.exports = {
 				generator: {
 					filename: "image/[name][ext]"
 				}
+			},
+			{
+				test: /\.css$/,
+				type: "css/auto"
 			}
 		]
 	},
 	plugins: [
 
 	],
-	experiments: {
-		css: true
-	}
+
 };

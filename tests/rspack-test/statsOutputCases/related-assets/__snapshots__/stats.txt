@@ -6,53 +6,25 @@ default:
   assets by path *.gz xx KiB
     asset default-main.js.map.gz xx KiB [emitted]
     asset default-main.js.gz xx KiB [emitted]
-    asset default-chunk_js.js.gz xx bytes [emitted]
+    asset default-chunk_js.css.map.gz xx KiB [emitted]
     + 5 assets
   assets by path *.js xx KiB
     asset default-main.js xx KiB [emitted] (name: main)
     asset default-chunk_js.js xx bytes [emitted]
-  assets by path *.css xx bytes
+  assets by path *.css xx KiB
     asset default-chunk_js.css xx bytes [emitted]
     asset default-main.css xx bytes [emitted] (name: main)
 
   WARNING in ./chunk-style.css
     ⚠ Module Warning (from <RSPACK_ROOT>/dist/cssExtractLoader.js):
-    │ use type 'css' and `CssExtractRspackPlugin` together, please set `experiments.css` to `false` or set `{ type: "javascript/auto" }` for rules with `CssExtractRspackPlugin` in your rspack config (now `CssExtractRspackPlugin` does nothing).
-   @ ./chunk.js
-   @ ./index.js
-
-  WARNING in ./chunk-style.css
-    ⚠ Module Warning (from <ROOT>/node_modules/<PNPM_INNER>/css-loader/dist/cjs.js??ruleSet[1].rules[0].use[1]):
-    │ You can't use `experiments.css` (`experiments.futureDefaults` enable built-in CSS support by default) and `css-loader` together, please set `experiments.css` to `false` or set `{ type: "javascript/auto" }` for rules with `css-loader` in your webpack config (now css-loader does nothing).
-      at Object.loader (<ROOT>/node_modules/<PNPM_INNER>/css-loader/dist/index.js<LINE_COL>)
-      at <RSPACK_ROOT>/dist/index.js<LINE_COL>
-      at node:internal/util<LINE_COL>
-      at new Promise (<anonymous>)
-      at node:internal/util<LINE_COL>
-      at isomorphoicRun (<RSPACK_ROOT>/dist/index.js<LINE_COL>)
-      at runLoaders (<RSPACK_ROOT>/dist/index.js<LINE_COL>)
+    │ use type 'css' and `CssExtractRspackPlugin` together, please set `{ type: "javascript/auto" }` for rules with `CssExtractRspackPlugin` in your rspack config (now `CssExtractRspackPlugin` does nothing).
    @ ./chunk.js
    @ ./index.js
 
   WARNING in ./style.css
     ⚠ Module Warning (from <RSPACK_ROOT>/dist/cssExtractLoader.js):
-    │ use type 'css' and `CssExtractRspackPlugin` together, please set `experiments.css` to `false` or set `{ type: "javascript/auto" }` for rules with `CssExtractRspackPlugin` in your rspack config (now `CssExtractRspackPlugin` does nothing).
+    │ use type 'css' and `CssExtractRspackPlugin` together, please set `{ type: "javascript/auto" }` for rules with `CssExtractRspackPlugin` in your rspack config (now `CssExtractRspackPlugin` does nothing).
    @ ./index.js
-
-  WARNING in ./style.css
-    ⚠ Module Warning (from <ROOT>/node_modules/<PNPM_INNER>/css-loader/dist/cjs.js??ruleSet[1].rules[0].use[1]):
-    │ You can't use `experiments.css` (`experiments.futureDefaults` enable built-in CSS support by default) and `css-loader` together, please set `experiments.css` to `false` or set `{ type: "javascript/auto" }` for rules with `css-loader` in your webpack config (now css-loader does nothing).
-      at Object.loader (<ROOT>/node_modules/<PNPM_INNER>/css-loader/dist/index.js<LINE_COL>)
-      at <RSPACK_ROOT>/dist/index.js<LINE_COL>
-      at node:internal/util<LINE_COL>
-      at new Promise (<anonymous>)
-      at node:internal/util<LINE_COL>
-      at isomorphoicRun (<RSPACK_ROOT>/dist/index.js<LINE_COL>)
-      at runLoaders (<RSPACK_ROOT>/dist/index.js<LINE_COL>)
-   @ ./index.js
-
-  2 warnings have detailed information that is not shown.
-  Use 'stats.errorDetails: true' resp. '--stats-error-details' to show it.
 
 
 relatedAssets:
@@ -63,53 +35,25 @@ relatedAssets:
   assets by path *.gz xx KiB
     asset relatedAssets-main.js.map.gz xx KiB [emitted]
     asset relatedAssets-main.js.gz xx KiB [emitted]
-    asset relatedAssets-chunk_js.js.gz xx bytes [emitted]
+    asset relatedAssets-chunk_js.css.map.gz xx KiB [emitted]
     + 5 assets
   assets by path *.js xx KiB
     asset relatedAssets-main.js xx KiB [emitted] (name: main)
     asset relatedAssets-chunk_js.js xx bytes [emitted]
-  assets by path *.css xx bytes
+  assets by path *.css xx KiB
     asset relatedAssets-chunk_js.css xx bytes [emitted]
     asset relatedAssets-main.css xx bytes [emitted] (name: main)
 
   WARNING in ./chunk-style.css
     ⚠ Module Warning (from <RSPACK_ROOT>/dist/cssExtractLoader.js):
-    │ use type 'css' and `CssExtractRspackPlugin` together, please set `experiments.css` to `false` or set `{ type: "javascript/auto" }` for rules with `CssExtractRspackPlugin` in your rspack config (now `CssExtractRspackPlugin` does nothing).
-   @ ./chunk.js
-   @ ./index.js
-
-  WARNING in ./chunk-style.css
-    ⚠ Module Warning (from <ROOT>/node_modules/<PNPM_INNER>/css-loader/dist/cjs.js??ruleSet[1].rules[0].use[1]):
-    │ You can't use `experiments.css` (`experiments.futureDefaults` enable built-in CSS support by default) and `css-loader` together, please set `experiments.css` to `false` or set `{ type: "javascript/auto" }` for rules with `css-loader` in your webpack config (now css-loader does nothing).
-      at Object.loader (<ROOT>/node_modules/<PNPM_INNER>/css-loader/dist/index.js<LINE_COL>)
-      at <RSPACK_ROOT>/dist/index.js<LINE_COL>
-      at node:internal/util<LINE_COL>
-      at new Promise (<anonymous>)
-      at node:internal/util<LINE_COL>
-      at isomorphoicRun (<RSPACK_ROOT>/dist/index.js<LINE_COL>)
-      at runLoaders (<RSPACK_ROOT>/dist/index.js<LINE_COL>)
+    │ use type 'css' and `CssExtractRspackPlugin` together, please set `{ type: "javascript/auto" }` for rules with `CssExtractRspackPlugin` in your rspack config (now `CssExtractRspackPlugin` does nothing).
    @ ./chunk.js
    @ ./index.js
 
   WARNING in ./style.css
     ⚠ Module Warning (from <RSPACK_ROOT>/dist/cssExtractLoader.js):
-    │ use type 'css' and `CssExtractRspackPlugin` together, please set `experiments.css` to `false` or set `{ type: "javascript/auto" }` for rules with `CssExtractRspackPlugin` in your rspack config (now `CssExtractRspackPlugin` does nothing).
+    │ use type 'css' and `CssExtractRspackPlugin` together, please set `{ type: "javascript/auto" }` for rules with `CssExtractRspackPlugin` in your rspack config (now `CssExtractRspackPlugin` does nothing).
    @ ./index.js
-
-  WARNING in ./style.css
-    ⚠ Module Warning (from <ROOT>/node_modules/<PNPM_INNER>/css-loader/dist/cjs.js??ruleSet[1].rules[0].use[1]):
-    │ You can't use `experiments.css` (`experiments.futureDefaults` enable built-in CSS support by default) and `css-loader` together, please set `experiments.css` to `false` or set `{ type: "javascript/auto" }` for rules with `css-loader` in your webpack config (now css-loader does nothing).
-      at Object.loader (<ROOT>/node_modules/<PNPM_INNER>/css-loader/dist/index.js<LINE_COL>)
-      at <RSPACK_ROOT>/dist/index.js<LINE_COL>
-      at node:internal/util<LINE_COL>
-      at new Promise (<anonymous>)
-      at node:internal/util<LINE_COL>
-      at isomorphoicRun (<RSPACK_ROOT>/dist/index.js<LINE_COL>)
-      at runLoaders (<RSPACK_ROOT>/dist/index.js<LINE_COL>)
-   @ ./index.js
-
-  2 warnings have detailed information that is not shown.
-  Use 'stats.errorDetails: true' resp. '--stats-error-details' to show it.
 
 
 exclude1:
@@ -118,48 +62,20 @@ exclude1:
     assets by path *.js xx KiB
       asset exclude1-main.js xx KiB [emitted] (name: main)
       asset exclude1-chunk_js.js xx bytes [emitted]
-    assets by path *.css xx bytes
+    assets by path *.css xx KiB
       asset exclude1-chunk_js.css xx bytes [emitted]
       asset exclude1-main.css xx bytes [emitted] (name: main)
 
   WARNING in ./chunk-style.css
     ⚠ Module Warning (from <RSPACK_ROOT>/dist/cssExtractLoader.js):
-    │ use type 'css' and `CssExtractRspackPlugin` together, please set `experiments.css` to `false` or set `{ type: "javascript/auto" }` for rules with `CssExtractRspackPlugin` in your rspack config (now `CssExtractRspackPlugin` does nothing).
-   @ ./chunk.js
-   @ ./index.js
-
-  WARNING in ./chunk-style.css
-    ⚠ Module Warning (from <ROOT>/node_modules/<PNPM_INNER>/css-loader/dist/cjs.js??ruleSet[1].rules[0].use[1]):
-    │ You can't use `experiments.css` (`experiments.futureDefaults` enable built-in CSS support by default) and `css-loader` together, please set `experiments.css` to `false` or set `{ type: "javascript/auto" }` for rules with `css-loader` in your webpack config (now css-loader does nothing).
-      at Object.loader (<ROOT>/node_modules/<PNPM_INNER>/css-loader/dist/index.js<LINE_COL>)
-      at <RSPACK_ROOT>/dist/index.js<LINE_COL>
-      at node:internal/util<LINE_COL>
-      at new Promise (<anonymous>)
-      at node:internal/util<LINE_COL>
-      at isomorphoicRun (<RSPACK_ROOT>/dist/index.js<LINE_COL>)
-      at runLoaders (<RSPACK_ROOT>/dist/index.js<LINE_COL>)
+    │ use type 'css' and `CssExtractRspackPlugin` together, please set `{ type: "javascript/auto" }` for rules with `CssExtractRspackPlugin` in your rspack config (now `CssExtractRspackPlugin` does nothing).
    @ ./chunk.js
    @ ./index.js
 
   WARNING in ./style.css
     ⚠ Module Warning (from <RSPACK_ROOT>/dist/cssExtractLoader.js):
-    │ use type 'css' and `CssExtractRspackPlugin` together, please set `experiments.css` to `false` or set `{ type: "javascript/auto" }` for rules with `CssExtractRspackPlugin` in your rspack config (now `CssExtractRspackPlugin` does nothing).
+    │ use type 'css' and `CssExtractRspackPlugin` together, please set `{ type: "javascript/auto" }` for rules with `CssExtractRspackPlugin` in your rspack config (now `CssExtractRspackPlugin` does nothing).
    @ ./index.js
-
-  WARNING in ./style.css
-    ⚠ Module Warning (from <ROOT>/node_modules/<PNPM_INNER>/css-loader/dist/cjs.js??ruleSet[1].rules[0].use[1]):
-    │ You can't use `experiments.css` (`experiments.futureDefaults` enable built-in CSS support by default) and `css-loader` together, please set `experiments.css` to `false` or set `{ type: "javascript/auto" }` for rules with `css-loader` in your webpack config (now css-loader does nothing).
-      at Object.loader (<ROOT>/node_modules/<PNPM_INNER>/css-loader/dist/index.js<LINE_COL>)
-      at <RSPACK_ROOT>/dist/index.js<LINE_COL>
-      at node:internal/util<LINE_COL>
-      at new Promise (<anonymous>)
-      at node:internal/util<LINE_COL>
-      at isomorphoicRun (<RSPACK_ROOT>/dist/index.js<LINE_COL>)
-      at runLoaders (<RSPACK_ROOT>/dist/index.js<LINE_COL>)
-   @ ./index.js
-
-  2 warnings have detailed information that is not shown.
-  Use 'stats.errorDetails: true' resp. '--stats-error-details' to show it.
 
 
 exclude2:
@@ -170,53 +86,25 @@ exclude2:
   assets by path *.gz xx KiB
     asset exclude2-main.js.map.gz xx KiB [emitted]
     asset exclude2-main.js.gz xx KiB [emitted]
-    asset exclude2-chunk_js.js.gz xx bytes [emitted]
+    asset exclude2-chunk_js.css.map.gz xx KiB [emitted]
     + 5 assets
   assets by path *.js xx KiB
     asset exclude2-main.js xx KiB [emitted] (name: main)
     asset exclude2-chunk_js.js xx bytes [emitted]
-  assets by path *.css xx bytes
+  assets by path *.css xx KiB
     asset exclude2-chunk_js.css xx bytes [emitted]
     asset exclude2-main.css xx bytes [emitted] (name: main)
 
   WARNING in ./chunk-style.css
     ⚠ Module Warning (from <RSPACK_ROOT>/dist/cssExtractLoader.js):
-    │ use type 'css' and `CssExtractRspackPlugin` together, please set `experiments.css` to `false` or set `{ type: "javascript/auto" }` for rules with `CssExtractRspackPlugin` in your rspack config (now `CssExtractRspackPlugin` does nothing).
-   @ ./chunk.js
-   @ ./index.js
-
-  WARNING in ./chunk-style.css
-    ⚠ Module Warning (from <ROOT>/node_modules/<PNPM_INNER>/css-loader/dist/cjs.js??ruleSet[1].rules[0].use[1]):
-    │ You can't use `experiments.css` (`experiments.futureDefaults` enable built-in CSS support by default) and `css-loader` together, please set `experiments.css` to `false` or set `{ type: "javascript/auto" }` for rules with `css-loader` in your webpack config (now css-loader does nothing).
-      at Object.loader (<ROOT>/node_modules/<PNPM_INNER>/css-loader/dist/index.js<LINE_COL>)
-      at <RSPACK_ROOT>/dist/index.js<LINE_COL>
-      at node:internal/util<LINE_COL>
-      at new Promise (<anonymous>)
-      at node:internal/util<LINE_COL>
-      at isomorphoicRun (<RSPACK_ROOT>/dist/index.js<LINE_COL>)
-      at runLoaders (<RSPACK_ROOT>/dist/index.js<LINE_COL>)
+    │ use type 'css' and `CssExtractRspackPlugin` together, please set `{ type: "javascript/auto" }` for rules with `CssExtractRspackPlugin` in your rspack config (now `CssExtractRspackPlugin` does nothing).
    @ ./chunk.js
    @ ./index.js
 
   WARNING in ./style.css
     ⚠ Module Warning (from <RSPACK_ROOT>/dist/cssExtractLoader.js):
-    │ use type 'css' and `CssExtractRspackPlugin` together, please set `experiments.css` to `false` or set `{ type: "javascript/auto" }` for rules with `CssExtractRspackPlugin` in your rspack config (now `CssExtractRspackPlugin` does nothing).
+    │ use type 'css' and `CssExtractRspackPlugin` together, please set `{ type: "javascript/auto" }` for rules with `CssExtractRspackPlugin` in your rspack config (now `CssExtractRspackPlugin` does nothing).
    @ ./index.js
-
-  WARNING in ./style.css
-    ⚠ Module Warning (from <ROOT>/node_modules/<PNPM_INNER>/css-loader/dist/cjs.js??ruleSet[1].rules[0].use[1]):
-    │ You can't use `experiments.css` (`experiments.futureDefaults` enable built-in CSS support by default) and `css-loader` together, please set `experiments.css` to `false` or set `{ type: "javascript/auto" }` for rules with `css-loader` in your webpack config (now css-loader does nothing).
-      at Object.loader (<ROOT>/node_modules/<PNPM_INNER>/css-loader/dist/index.js<LINE_COL>)
-      at <RSPACK_ROOT>/dist/index.js<LINE_COL>
-      at node:internal/util<LINE_COL>
-      at new Promise (<anonymous>)
-      at node:internal/util<LINE_COL>
-      at isomorphoicRun (<RSPACK_ROOT>/dist/index.js<LINE_COL>)
-      at runLoaders (<RSPACK_ROOT>/dist/index.js<LINE_COL>)
-   @ ./index.js
-
-  2 warnings have detailed information that is not shown.
-  Use 'stats.errorDetails: true' resp. '--stats-error-details' to show it.
 
 
 exclude3:
@@ -225,12 +113,12 @@ exclude3:
     assets by path *.br xx KiB
       asset exclude3-main.js.map.br xx KiB [emitted]
       asset exclude3-main.js.br xx KiB [emitted]
-      asset exclude3-main.css.map.br xx bytes [emitted]
+      asset exclude3-main.css.map.br xx KiB [emitted]
       asset exclude3-main.css.br xx bytes [emitted]
     assets by path *.gz xx KiB
       asset exclude3-main.js.map.gz xx KiB [emitted]
       asset exclude3-main.js.gz xx KiB [emitted]
-      asset exclude3-main.css.map.gz xx bytes [emitted]
+      asset exclude3-main.css.map.gz xx KiB [emitted]
       asset exclude3-main.css.gz xx bytes [emitted]
     assets by chunk xx KiB (name: main)
       asset exclude3-main.js xx KiB [emitted] (name: main)
@@ -238,39 +126,11 @@ exclude3:
 
   WARNING in ./chunk-style.css
     ⚠ Module Warning (from <RSPACK_ROOT>/dist/cssExtractLoader.js):
-    │ use type 'css' and `CssExtractRspackPlugin` together, please set `experiments.css` to `false` or set `{ type: "javascript/auto" }` for rules with `CssExtractRspackPlugin` in your rspack config (now `CssExtractRspackPlugin` does nothing).
-   @ ./chunk.js
-   @ ./index.js
-
-  WARNING in ./chunk-style.css
-    ⚠ Module Warning (from <ROOT>/node_modules/<PNPM_INNER>/css-loader/dist/cjs.js??ruleSet[1].rules[0].use[1]):
-    │ You can't use `experiments.css` (`experiments.futureDefaults` enable built-in CSS support by default) and `css-loader` together, please set `experiments.css` to `false` or set `{ type: "javascript/auto" }` for rules with `css-loader` in your webpack config (now css-loader does nothing).
-      at Object.loader (<ROOT>/node_modules/<PNPM_INNER>/css-loader/dist/index.js<LINE_COL>)
-      at <RSPACK_ROOT>/dist/index.js<LINE_COL>
-      at node:internal/util<LINE_COL>
-      at new Promise (<anonymous>)
-      at node:internal/util<LINE_COL>
-      at isomorphoicRun (<RSPACK_ROOT>/dist/index.js<LINE_COL>)
-      at runLoaders (<RSPACK_ROOT>/dist/index.js<LINE_COL>)
+    │ use type 'css' and `CssExtractRspackPlugin` together, please set `{ type: "javascript/auto" }` for rules with `CssExtractRspackPlugin` in your rspack config (now `CssExtractRspackPlugin` does nothing).
    @ ./chunk.js
    @ ./index.js
 
   WARNING in ./style.css
     ⚠ Module Warning (from <RSPACK_ROOT>/dist/cssExtractLoader.js):
-    │ use type 'css' and `CssExtractRspackPlugin` together, please set `experiments.css` to `false` or set `{ type: "javascript/auto" }` for rules with `CssExtractRspackPlugin` in your rspack config (now `CssExtractRspackPlugin` does nothing).
+    │ use type 'css' and `CssExtractRspackPlugin` together, please set `{ type: "javascript/auto" }` for rules with `CssExtractRspackPlugin` in your rspack config (now `CssExtractRspackPlugin` does nothing).
    @ ./index.js
-
-  WARNING in ./style.css
-    ⚠ Module Warning (from <ROOT>/node_modules/<PNPM_INNER>/css-loader/dist/cjs.js??ruleSet[1].rules[0].use[1]):
-    │ You can't use `experiments.css` (`experiments.futureDefaults` enable built-in CSS support by default) and `css-loader` together, please set `experiments.css` to `false` or set `{ type: "javascript/auto" }` for rules with `css-loader` in your webpack config (now css-loader does nothing).
-      at Object.loader (<ROOT>/node_modules/<PNPM_INNER>/css-loader/dist/index.js<LINE_COL>)
-      at <RSPACK_ROOT>/dist/index.js<LINE_COL>
-      at node:internal/util<LINE_COL>
-      at new Promise (<anonymous>)
-      at node:internal/util<LINE_COL>
-      at isomorphoicRun (<RSPACK_ROOT>/dist/index.js<LINE_COL>)
-      at runLoaders (<RSPACK_ROOT>/dist/index.js<LINE_COL>)
-   @ ./index.js
-
-  2 warnings have detailed information that is not shown.
-  Use 'stats.errorDetails: true' resp. '--stats-error-details' to show it.

@@ -128,10 +128,10 @@ export class RspackOptionsApply {
     if (
       options.externalsPresets.web ||
       options.externalsPresets.webAsync ||
-      (options.externalsPresets.node && options.experiments.css)
+      options.externalsPresets.node
     ) {
       new HttpExternalsRspackPlugin(
-        !!options.experiments.css,
+        true,
         !!options.externalsPresets.webAsync,
       ).apply(compiler);
     }
@@ -232,10 +232,7 @@ export class RspackOptionsApply {
     if (options.experiments.asyncWebAssembly) {
       new AsyncWebAssemblyModulesPlugin().apply(compiler);
     }
-    if (options.experiments.css) {
-      new CssModulesPlugin().apply(compiler);
-    }
-
+    new CssModulesPlugin().apply(compiler);
     new EntryOptionPlugin().apply(compiler);
     assertNotNill(options.context);
     compiler.hooks.entryOption.call(options.context, options.entry);

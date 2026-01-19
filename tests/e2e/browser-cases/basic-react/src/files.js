@@ -197,6 +197,10 @@ export const config = {
         test: /\.(png|svg|jpg)$/,
         type: 'asset/resource',
       },
+      {
+        test: /\.css$/,
+        type: 'css/auto',
+      },
     ],
   },
   plugins: [
@@ -205,7 +209,6 @@ export const config = {
     }),
   ],
   experiments: {
-    css: true,
     buildHttp: {
       allowedUris: ['https://'],
     },

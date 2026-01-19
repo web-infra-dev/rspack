@@ -10,25 +10,32 @@ You can choose from the following options:
 
 ### Built-in CSS support
 
-Rspack provides the [experiment.css](/config/experiments#experimentscss) option, an experimental feature introduced in webpack 5 to enable built-in CSS support. Rspack has improved this feature and plans to enable it by default in Rspack 2.0.
+Rspack supports the following three CSS module types which you can configure manually:
 
-> If you create a new project based on Rspack, it is recommended to use this method.
+- `css/auto`: Automatically determines whether a file is a normal CSS file or CSS Modules based on the file extension. Files ending with `*.module.css` are treated as CSS Modules.
+- `css`: Used to handle normal CSS files.
+- `css/module`: Used to handle [CSS Modules](#css-modules).
+
+To enable CSS support, add CSS rules to your configuration:
 
 ```js title="rspack.config.mjs"
 export default {
-  experiments: {
-    css: true,
+  module: {
+    rules: [
+      {
+        test: /\.css$/i,
+        type: 'css/auto',
+      },
+      {
+        test: /\.module\.css$/i,
+        type: 'css/module',
+      },
+    ],
   },
 };
 ```
 
-After enabling `experiment.css`, Rspack will support the following three module types, which you can set on the `rule` using `type`:
-
-- `css`: Used to handle normal CSS files.
-- `css/module`: Used to handle [CSS Modules](#css-modules).
-- `css/auto`: Automatically determines whether a file is a normal CSS file or CSS Modules based on the file extension. Files ending with `*.module.css` are treated as CSS Modules.
-
-For files ending in `*.css`, Rspack will treat them as `type: 'css/auto'` by default. You can also configure `type: 'css/auto'` to customize which files are treated as CSS files. For example, treat `.less` files as CSS files:
+You can also configure `type: 'css/auto'` to customize which files are treated as CSS files. For example, treat `.less` files as CSS files:
 
 ```js title="rspack.config.mjs"
 export default {
@@ -76,7 +83,7 @@ export default {
 > Refer to the [migration guide](/guide/migration/webpack#mini-css-extract-plugin--rspackcssextractrspackplugin) to learn how to migrate from webpack.
 
 :::tip
-CssExtractRspackPlugin cannot be used with `type: 'css'`, `type: 'css/auto'`, or `type: 'css/module'` as these types are provided by `experiments.css`.
+CssExtractRspackPlugin cannot be used with `type: 'css'`, `type: 'css/auto'`, or `type: 'css/module'` as these types are provided by native css support.
 :::
 
 ### Using style-loader
@@ -104,7 +111,7 @@ export default {
 ```
 
 :::tip
-style-loader cannot be used with `type: 'css'`, `type: 'css/auto'`, or `type: 'css/module'` as these types are provided by `experiments.css`.
+style-loader cannot be used with `type: 'css'`, `type: 'css/auto'`, or `type: 'css/module'` as these types are provided by native css support.
 :::
 
 ## CSS Modules

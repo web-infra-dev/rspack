@@ -145,7 +145,6 @@ export function defaultOptions(context: ITestContext): RspackOptions {
       extensions: ['.js'],
     },
     experiments: {
-      css: true,
       futureDefaults: true,
     },
     devtool: false,

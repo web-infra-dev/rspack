@@ -2,7 +2,12 @@
 module.exports = {
 	mode: "development",
 	devtool: false,
-	experiments: {
-		css: true
+	module: {
+		rules: [
+			{
+				test: /\.css$/,
+				type: "css/auto"
+			}
+		]
 	}
 };

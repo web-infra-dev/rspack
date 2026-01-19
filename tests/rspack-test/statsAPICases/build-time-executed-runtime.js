@@ -10,6 +10,7 @@ module.exports = {
 			module: {
 				rules: [
 					{
+						type: "javascript/auto",
 						test: /\.css$/,
 						use: [CssExtractRspackPlugin.loader, "css-loader"]
 					}
@@ -20,9 +21,6 @@ module.exports = {
 					filename: "[name].css"
 				})
 			],
-			experiments: {
-				css: false
-			}
 		};
 	},
 	async check(stats) {

@@ -2760,6 +2760,14 @@ export type Experiments = {
    * - `module.generator["css/auto"]`
    * - `module.generator.css`
    * - `module.generator["css/module"]`
+   *
+   * @deprecated This option is deprecated. In Rspack 2.0, users need to manually add CSS rules to enable CSS support.
+   * Example:
+   * ```js
+   * module: {
+   *   rules: [{ test: /\.css$/, type: "css/auto" }]
+   * }
+   * ```
    */
   css?: boolean;
   /**

@@ -59,6 +59,10 @@ const config = {
 			{
 				test: /\.(png|svg|jpg)$/,
 				type: "asset/resource"
+			},
+			{
+				test: /\.css$/,
+				type: "css/auto"
 			}
 		]
 	},
@@ -83,6 +87,5 @@ const config = {
 			}
 		}
 	],
-	experiments: { css: true }
 };
 module.exports = config;

@@ -5,6 +5,7 @@ module.exports = {
 		rules: [
 			{
 				test: /\.css$/,
+				type: "javascript/auto",
 				use: ["style-loader", "css-loader"]
 			}
 		]
