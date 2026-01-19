@@ -11,8 +11,8 @@ module.exports = {
 			-       "force": true,
 			+       "force": false,
 			@@ ... @@
-			-     "chunkLoadingGlobal": "webpackChunk_rspack_tests",
-			+     "chunkLoadingGlobal": "webpackChunkmyLib_awesome",
+			-     "chunkLoadingGlobal": "rspackChunk_rspack_tests",
+			+     "chunkLoadingGlobal": "rspackChunkmyLib_awesome",
 			@@ ... @@
 			-     "devtoolNamespace": "@rspack/tests",
 			+     "devtoolNamespace": "myLib.awesome",

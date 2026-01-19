@@ -667,7 +667,7 @@ var __rspack_jsonp = (parentChunkLoadingFunction, data) => {
 	
 };
 
-var chunkLoadingGlobal = self["webpackChunk"] = self["webpackChunk"] || [];
+var chunkLoadingGlobal = self["rspackChunk"] = self["rspackChunk"] || [];
 chunkLoadingGlobal.forEach(__rspack_jsonp.bind(null, 0));
 chunkLoadingGlobal.push = __rspack_jsonp.bind(null, chunkLoadingGlobal.push.bind(chunkLoadingGlobal));
 

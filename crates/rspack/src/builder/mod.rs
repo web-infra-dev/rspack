@@ -2787,7 +2787,7 @@ impl OutputOptionsBuilder {
     });
 
     let chunk_loading_global = f!(self.chunk_loading_global.take(), || {
-      format!("webpackChunk{}", rspack_core::to_identifier(&unique_name))
+      format!("rspackChunk{}", rspack_core::to_identifier(&unique_name))
     });
 
     let chunk_load_timeout = d!(self.chunk_load_timeout.take(), 120_000);

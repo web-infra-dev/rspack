@@ -61,7 +61,7 @@ export function defaultOptions(context: ITestContext): RspackOptions {
       cssChunkFilename: '[name].css',
       assetModuleFilename: '[hash][ext][query]',
       sourceMapFilename: '[file].map',
-      chunkLoadingGlobal: 'webpackChunkwebpack',
+      chunkLoadingGlobal: 'rspackChunk',
       chunkLoading: 'jsonp',
       uniqueName: '__rspack_test__',
       enabledLibraryTypes: ['system'],

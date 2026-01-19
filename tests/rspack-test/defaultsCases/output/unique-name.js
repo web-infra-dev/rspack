@@ -13,8 +13,8 @@ module.exports = {
 			+ Received
 
 			@@ ... @@
-			-     "chunkLoadingGlobal": "webpackChunk_rspack_tests",
-			+     "chunkLoadingGlobal": "webpackChunk_Hello_World_",
+			-     "chunkLoadingGlobal": "rspackChunk_rspack_tests",
+			+     "chunkLoadingGlobal": "rspackChunk_Hello_World_",
 			@@ ... @@
 			-     "devtoolNamespace": "@rspack/tests",
 			+     "devtoolNamespace": "@@@Hello World!",

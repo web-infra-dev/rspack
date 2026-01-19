@@ -704,7 +704,8 @@ const applyOutputDefaults = (
   const uniqueNameId = Template.toIdentifier(output.uniqueName);
   // IGNORE(output.hotUpdateGlobal): Rspack uses 'rspackHotUpdate' by default
   F(output, 'hotUpdateGlobal', () => `rspackHotUpdate${uniqueNameId}`);
-  F(output, 'chunkLoadingGlobal', () => `webpackChunk${uniqueNameId}`);
+  // IGNORE(output.chunkLoadingGlobal): Rspack uses 'rspackChunk' by default
+  F(output, 'chunkLoadingGlobal', () => `rspackChunk${uniqueNameId}`);
   D(output, 'assetModuleFilename', '[hash][ext][query]');
   D(output, 'webassemblyModuleFilename', '[hash].module.wasm');
   D(output, 'compareBeforeEmit', true);
