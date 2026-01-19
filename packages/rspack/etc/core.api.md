@@ -922,6 +922,10 @@ type ClientConfiguration = {
 };
 
 // @public (undocumented)
+class ClientPlugin extends RscClientPlugin {
+}
+
+// @public (undocumented)
 class CodeGenerationResult {
     constructor(result: binding.JsCodegenerationResult);
     // (undocumented)
@@ -1705,6 +1709,15 @@ interface ContinueStatement extends Node_4, HasSpan {
 }
 
 // @public (undocumented)
+class Coordinator {
+    constructor();
+    // (undocumented)
+    applyClientCompiler(clientCompiler: Compiler): void;
+    // (undocumented)
+    applyServerCompiler(serverCompiler: Compiler): void;
+}
+
+// @public (undocumented)
 export const CopyRspackPlugin: {
     new (copy: CopyRspackPluginOptions): {
         name: string;
@@ -1737,12 +1750,6 @@ type CreateReadStream = (path: PathLike, options?: NodeJS.BufferEncoding | ReadS
 // @public (undocumented)
 type CreateReadStreamFSImplementation = FSImplementation & {
     read: (...args: any[]) => any;
-};
-
-// @public (undocumented)
-function createRscPlugins(): {
-    ServerPlugin: RspackPluginInstance;
-    ClientPlugin: RspackPluginInstance;
 };
 
 // @public (undocumented)
@@ -2569,8 +2576,6 @@ interface Experiments_2 {
     // (undocumented)
     createNativePlugin: typeof createNativePlugin;
     // (undocumented)
-    createRscPlugins: typeof createRscPlugins;
-    // (undocumented)
     CssChunkingPlugin: typeof CssChunkingPlugin;
     // (undocumented)
     EsmLibraryPlugin: typeof EsmLibraryPlugin;
@@ -2589,7 +2594,7 @@ interface Experiments_2 {
         sync: typeof sync;
     };
     // (undocumented)
-    RscPluginLayers: typeof RscPluginLayers;
+    rsc: typeof rsc;
     // (undocumented)
     RsdoctorPlugin: typeof RsdoctorPlugin;
     // (undocumented)
@@ -6682,9 +6687,44 @@ type Rewrite = {
 type RewriteTo = (context: HistoryContext) => string;
 
 // @public (undocumented)
-const RscPluginLayers: {
-    rsc: string;
-    ssr: string;
+const rsc: {
+    createPlugins: () => {
+        ServerPlugin: new (options?: Omit<RscClientPluginOptions, "coordinator">) => ServerPlugin;
+        ClientPlugin: new () => ClientPlugin;
+    };
+    layers: {
+        readonly rsc: "react-server-components";
+        readonly ssr: "server-side-rendering";
+    };
+};
+
+// @public (undocumented)
+class RscClientPlugin extends RspackBuiltinPlugin {
+    constructor(options: RscClientPluginOptions);
+    // (undocumented)
+    name: string;
+    // (undocumented)
+    raw(compiler: Compiler): binding.BuiltinPlugin;
+}
+
+// @public (undocumented)
+type RscClientPluginOptions = {
+    coordinator: Coordinator;
+};
+
+// @public (undocumented)
+class RscServerPlugin extends RspackBuiltinPlugin {
+    constructor(options: RscServerPluginOptions);
+    // (undocumented)
+    name: string;
+    // (undocumented)
+    raw(compiler: Compiler): binding.BuiltinPlugin;
+}
+
+// @public (undocumented)
+type RscServerPluginOptions = {
+    coordinator: Coordinator;
+    onServerComponentChanges?: () => Promise<void>;
 };
 
 // @public (undocumented)
@@ -7515,6 +7555,11 @@ type ServerOptions = ServerOptions_2 & {
         protocols?: string[] | undefined;
     };
 };
+
+// @public (undocumented)
+class ServerPlugin extends RscServerPlugin {
+    constructor(options?: Omit<RscClientPluginOptions, 'coordinator'>);
+}
 
 // @public (undocumented)
 type ServerResponse_2 = ServerResponse;

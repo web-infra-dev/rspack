@@ -133,11 +133,10 @@ export { LoaderTargetPlugin } from './lib/LoaderTargetPlugin';
 export type { OutputFileSystem, WatchFileSystem } from './util/fs';
 
 import {
-  createRscPlugins,
   EsmLibraryPlugin,
   FetchCompileAsyncWasmPlugin,
   lazyCompilationMiddleware,
-  RscPluginLayers,
+  rsc,
   SubresourceIntegrityPlugin,
 } from './builtin-plugin';
 
@@ -394,8 +393,7 @@ interface Experiments {
   CssChunkingPlugin: typeof CssChunkingPlugin;
   createNativePlugin: typeof createNativePlugin;
   VirtualModulesPlugin: typeof VirtualModulesPlugin;
-  createRscPlugins: typeof createRscPlugins;
-  RscPluginLayers: typeof RscPluginLayers;
+  rsc: typeof rsc;
 }
 
 export const experiments: Experiments = {
@@ -447,6 +445,5 @@ export const experiments: Experiments = {
   CssChunkingPlugin,
   createNativePlugin,
   VirtualModulesPlugin,
-  createRscPlugins,
-  RscPluginLayers,
+  rsc,
 };

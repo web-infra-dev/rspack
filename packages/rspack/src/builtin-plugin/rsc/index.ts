@@ -1,4 +1,3 @@
-import type { RspackPluginInstance } from '../..';
 import { Coordinator } from './Coordinator';
 import {
   RscClientPlugin,
@@ -6,33 +5,43 @@ import {
 } from './RscClientPlugin';
 import { RscServerPlugin } from './RscServerPlugin';
 
-export function createRscPlugins(): {
-  ServerPlugin: RspackPluginInstance;
-  ClientPlugin: RspackPluginInstance;
-} {
-  const coordinator = new Coordinator();
-
-  return {
-    ServerPlugin: class ServerPlugin extends RscServerPlugin {
-      constructor(options: Omit<RscClientPluginOptions, 'coordinator'> = {}) {
-        super({ coordinator, ...options });
-      }
-    },
-    ClientPlugin: class ClientPlugin extends RscClientPlugin {
-      constructor() {
-        super({ coordinator });
-      }
-    },
-  };
+declare class ServerPlugin extends RscServerPlugin {
+  constructor(options?: Omit<RscClientPluginOptions, 'coordinator'>);
 }
 
-export const RscPluginLayers = {
-  /**
-   * The layer for server-only runtime and picking up `react-server` export conditions.
-   */
-  rsc: 'react-server-components',
-  /**
-   * Server Side Rendering layer for app.
-   */
-  ssr: 'server-side-rendering',
+declare class ClientPlugin extends RscClientPlugin {}
+
+export const rsc = {
+  createPlugins: (): {
+    ServerPlugin: new (
+      options?: Omit<RscClientPluginOptions, 'coordinator'>,
+    ) => ServerPlugin;
+    ClientPlugin: new () => ClientPlugin;
+  } => {
+    const coordinator = new Coordinator();
+
+    return {
+      ServerPlugin: class ServerPlugin extends RscServerPlugin {
+        constructor(options: Omit<RscClientPluginOptions, 'coordinator'> = {}) {
+          super({ coordinator, ...options });
+        }
+      },
+      ClientPlugin: class ClientPlugin extends RscClientPlugin {
+        constructor() {
+          super({ coordinator });
+        }
+      },
+    };
+  },
+
+  layers: {
+    /**
+     * The layer for server-only runtime and picking up `react-server` export conditions.
+     */
+    rsc: 'react-server-components',
+    /**
+     * Server Side Rendering layer for app.
+     */
+    ssr: 'server-side-rendering',
+  } as const,
 };
