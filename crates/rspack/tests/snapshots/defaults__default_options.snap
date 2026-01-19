@@ -164,6 +164,7 @@ CompilerOptions {
         ),
         condition_names: Some(
             [
+                "rspack",
                 "webpack",
                 "production",
                 "browser",

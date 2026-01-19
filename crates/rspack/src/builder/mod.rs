@@ -1285,7 +1285,7 @@ fn get_resolve_defaults(
   target_properties: &TargetProperties,
   css: bool,
 ) -> Resolve {
-  let mut conditions = vec!["webpack".to_string()];
+  let mut conditions = vec!["rspack".to_string(), "webpack".to_string()];
 
   // Add mode condition
   conditions.push(match mode {
@@ -1385,7 +1385,7 @@ fn get_resolve_defaults(
 
   // Add CSS dependencies if enabled
   if css {
-    let mut style_conditions = vec!["webpack".to_string()];
+    let mut style_conditions = vec!["rspack".to_string(), "webpack".to_string()];
     style_conditions.push(match mode {
       Mode::Development => "development".to_string(),
       _ => "production".to_string(),

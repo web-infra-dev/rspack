@@ -1138,7 +1138,7 @@ const getResolveDefaults = ({
   mode?: Mode;
   css: boolean;
 }) => {
-  const conditions = ['webpack'];
+  const conditions = ['rspack', 'webpack'];
 
   conditions.push(mode === 'development' ? 'development' : 'production');
 
@@ -1209,7 +1209,7 @@ const getResolveDefaults = ({
 
   if (css) {
     const styleConditions = [];
-
+    styleConditions.push('rspack');
     styleConditions.push('webpack');
     styleConditions.push(mode === 'development' ? 'development' : 'production');
     styleConditions.push('style');
