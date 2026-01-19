@@ -8,8 +8,8 @@
 - Bundle: bundle.js
 - Bundle: style2_css.chunk.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 41
-- Update: main.LAST_HASH.hot-update.js, size: 182
-- Update: style2_css.LAST_HASH.hot-update.js, size: 200
+- Update: main.LAST_HASH.hot-update.js, size: 181
+- Update: style2_css.LAST_HASH.hot-update.js, size: 199
 
 ## Manifest
 
@@ -34,7 +34,7 @@
 #### Changed Content
 ```js
 "use strict";
-self["webpackHotUpdate"]("main", {},function(__webpack_require__) {
+self["rspackHotUpdate"]("main", {},function(__webpack_require__) {
 // webpack/runtime/get_full_hash
 (() => {
 __webpack_require__.h = () => ("CURRENT_HASH")
@@ -57,7 +57,7 @@ __webpack_require__.h = () => ("CURRENT_HASH")
 #### Changed Content
 ```js
 "use strict";
-self["webpackHotUpdate"]("style2_css", {
+self["rspackHotUpdate"]("style2_css", {
 "./style2.css"(module, __unused_rspack_exports, __webpack_require__) {
 __webpack_require__.r(module.exports = {});
 module.hot.accept();

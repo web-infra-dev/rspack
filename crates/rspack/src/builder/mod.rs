@@ -2794,7 +2794,7 @@ impl OutputOptionsBuilder {
 
     let hot_update_global = f!(self.hot_update_global.take(), || {
       format!(
-        "webpackHotUpdate{}",
+        "rspackHotUpdate{}",
         rspack_core::to_identifier(&unique_name)
       )
     });

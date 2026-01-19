@@ -501,7 +501,7 @@ export type Output = {
 
   /**
    * Only used when target is set to 'web', which uses JSONP for loading hot updates.
-   * @default 'webpackHotUpdate' + output.uniqueName
+   * @default 'rspackHotUpdate' + output.uniqueName
    * */
   hotUpdateGlobal?: HotUpdateGlobal;
 
@@ -2741,7 +2741,7 @@ export type Experiments = {
   /**
    * Enable async WebAssembly.
    * Support the new WebAssembly according to the [updated specification](https://github.com/WebAssembly/esm-integration), it makes a WebAssembly module an async module.
-   * @default true
+   * @default false
    */
   asyncWebAssembly?: boolean;
   /**

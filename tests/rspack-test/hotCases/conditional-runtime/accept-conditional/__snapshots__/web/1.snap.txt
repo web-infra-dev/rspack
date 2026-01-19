@@ -10,9 +10,9 @@
 - Bundle: shared.chunk.CURRENT_HASH.js
 - Manifest: [runtime of dep1_js-dep2_js-worker_js].LAST_HASH.hot-update.json, size: 49
 - Manifest: main.LAST_HASH.hot-update.json, size: 48
-- Update: dep1_js-dep2_js-worker_js.LAST_HASH.hot-update.js, size: 487
-- Update: dep1_js-module_js.LAST_HASH.hot-update.js, size: 348
-- Update: main.LAST_HASH.hot-update.js, size: 182
+- Update: dep1_js-dep2_js-worker_js.LAST_HASH.hot-update.js, size: 486
+- Update: dep1_js-module_js.LAST_HASH.hot-update.js, size: 347
+- Update: main.LAST_HASH.hot-update.js, size: 181
 
 ## Manifest
 
@@ -45,7 +45,7 @@
 #### Changed Content
 ```js
 "use strict";
-self["webpackHotUpdate"]("dep1_js-dep2_js-worker_js", {
+self["rspackHotUpdate"]("dep1_js-dep2_js-worker_js", {
 "./dep1.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
@@ -79,7 +79,7 @@ __webpack_require__.h = () => ("CURRENT_HASH")
 #### Changed Content
 ```js
 "use strict";
-self["webpackHotUpdate"]("dep1_js-module_js", {
+self["rspackHotUpdate"]("dep1_js-module_js", {
 "./dep1.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
@@ -106,7 +106,7 @@ __webpack_require__.d(__webpack_exports__, {
 #### Changed Content
 ```js
 "use strict";
-self["webpackHotUpdate"]("main", {},function(__webpack_require__) {
+self["rspackHotUpdate"]("main", {},function(__webpack_require__) {
 // webpack/runtime/get_full_hash
 (() => {
 __webpack_require__.h = () => ("CURRENT_HASH")

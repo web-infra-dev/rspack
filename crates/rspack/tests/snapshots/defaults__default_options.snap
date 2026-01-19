@@ -64,7 +64,7 @@ CompilerOptions {
                 "[id].[fullhash].hot-update.js",
             ),
         ),
-        hot_update_global: "webpackHotUpdate",
+        hot_update_global: "rspackHotUpdate",
         library: None,
         enabled_library_types: Some(
             [],

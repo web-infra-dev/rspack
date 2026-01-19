@@ -26,8 +26,8 @@ module.exports = {
 			+       "var",
 			+     ],
 			@@ ... @@
-			-     "hotUpdateGlobal": "webpackHotUpdate_rspack_tests",
-			+     "hotUpdateGlobal": "webpackHotUpdatemyLib",
+			-     "hotUpdateGlobal": "rspackHotUpdate_rspack_tests",
+			+     "hotUpdateGlobal": "rspackHotUpdatemyLib",
 			@@ ... @@
 			-     "library": undefined,
 			+     "library": Object {
