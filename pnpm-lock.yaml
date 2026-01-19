@@ -645,6 +645,9 @@ importers:
       '@playwright/test':
         specifier: 1.57.0
         version: 1.57.0
+      '@rspack/browser':
+        specifier: workspace:*
+        version: link:../../packages/rspack-browser
       '@rspack/core':
         specifier: workspace:*
         version: link:../../packages/rspack
