@@ -103,6 +103,19 @@ export default {
 
 当 Rspack 生成运行时代码时，这有助于确定所能使用的 ES 特性（所有的代码块和模块都被运行时代码包裹）。
 
+## 内置 loader 和插件的默认 target
+
+Rspack 从 `target` 配置中推断出默认 targets，并将其提供给内置 loader 和插件。如果你没有在 loader 和 plugin 的选项中指定 targets，将使用由 `target` 配置推断出的 targets：
+
+- `builtin:swc-loader` 使用推断出的 targets 作为默认的 `env.targets` 或 `jsc.target`
+- `builtin:lightningcss-loader` 使用推断出的 targets 作为默认的 `targets`（仅适用于与 browserslist 相关的 targets，因为 Lightning CSS 仅支持浏览器 targets）
+- `SwcJsMinimizerRspackPlugin` 使用推断出的 targets 作为默认的 `ecma` 版本
+- `LightningCssMinimizerRspackPlugin` 使用推断出的 targets 作为默认的 `targets`（仅适用于与 browserslist 相关的 targets）
+
+这意味着你不再需要在多个地方手动配置相同的 targets。例如，如果你设置 `target: 'node18'`，loader 和插件将自动使用与 Node.js 18 兼容的设置。
+
+第三方 loader 和插件也可以访问 `compiler.target`，根据 Rspack 的 target 配置推断默认 targets。`compiler.target` 对象包含 `platforms`（带有版本的平台名称）和 `esVersion`（ECMAScript 版本号）。
+
 ## target: false
 
 如果上述列表中的预设 target 都不符合你的需求，你可以将 `target` 设置为 `false`，这将告诉 Rspack 不使用任何插件。

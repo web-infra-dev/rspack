@@ -318,6 +318,27 @@ console.log(compiler.webpack === compiler.rspack); // true
 
 获取根 Compiler 所使用的完整[构建配置](/config/index)。
 
+### target
+
+- **类型：** `{ platforms: string[], esVersion: number }`
+
+从 [`target`](/config/target) 配置中推断出。这对需要访问目标环境信息的插件和 loader 作者非常有用。
+
+- `platforms`: 带有版本的平台字符串数组 (例如：`['chrome 87', 'firefox 78']` 或 `['node 18']`)。
+- `esVersion`: ECMAScript 版本号 (例如：`5`, `2015`, `2022`)。
+
+在自定义 loader 中使用 `compiler.target` 设置默认 targets 的示例：
+
+```js title="my-loader.js"
+export default function myLoader(source) {
+  const options = this.getOptions();
+  // 使用用户指定的 targets，或者回退到 Rspack 推断出的 targets
+  const targets = options.targets ?? this._compiler.target.platforms;
+  // 使用 targets 进行转换...
+  return transform(source, { targets, ecmaVersion });
+}
+```
+
 ### watchMode
 
 - **类型：** `boolean`
