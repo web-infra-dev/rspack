@@ -6692,7 +6692,7 @@ const rsc: {
         ServerPlugin: new (options?: Omit<RscClientPluginOptions, "coordinator">) => ServerPlugin;
         ClientPlugin: new () => ClientPlugin;
     };
-    layers: {
+    Layers: {
         readonly rsc: "react-server-components";
         readonly ssr: "server-side-rendering";
     };

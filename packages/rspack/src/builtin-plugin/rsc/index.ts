@@ -34,7 +34,7 @@ export const rsc = {
     };
   },
 
-  layers: {
+  Layers: {
     /**
      * The layer for server-only runtime and picking up `react-server` export conditions.
      */
