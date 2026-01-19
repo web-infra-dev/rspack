@@ -23,7 +23,7 @@
   "scripts": {
     "prepare": "prebundle && node ./move-tinypool.js",
     "build": "rslib build",
-    "build:browser": "rslib build -c rslib.browser.config.mts",
+    "build:browser": "rslib build -c rslib.browser.config.ts",
     "dev": "rslib build --watch",
     "doc-coverage": "tsx ./scripts/check-documentation-coverage.ts",
     "api-extractor": "api-extractor run --verbose",
