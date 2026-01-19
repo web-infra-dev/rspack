@@ -36,7 +36,7 @@ it("should build independent share file", () => {
 });
 
 it("secondary tree shaking shared container should only have specify usedExports", async () => {
-    const uiLibDepShareContainerModule = __non_webpack_require__(uiLibDepShareContainerPath).secondary_tree_shaking_share_ui_lib_dep_100;
+    const uiLibDepShareContainerModule = __non_webpack_require__(uiLibDepShareContainerPath).secondary_tree_shaking_share_t_ui_lib_dep_100;
 		await uiLibDepShareContainerModule.init({},{
 		installInitialConsumes: async ()=>{
 			return 'call init'
@@ -50,7 +50,7 @@ it("secondary tree shaking shared container should only have specify usedExports
 
 
 it("correct handle share dep while secondary tree shaking", async () => {
-    const uiLibShareContainerModule = __non_webpack_require__(uiLibShareContainerPath).secondary_tree_shaking_share_ui_lib_100;
+    const uiLibShareContainerModule = __non_webpack_require__(uiLibShareContainerPath).secondary_tree_shaking_share_t_ui_lib_100;
 		await uiLibShareContainerModule.init({},{
 		installInitialConsumes: async ({webpackRequire})=>{
 			webpackRequire.m['webpack/sharing/consume/default/ui-lib-dep'] = (m)=>{

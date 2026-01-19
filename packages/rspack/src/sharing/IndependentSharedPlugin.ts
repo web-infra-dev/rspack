@@ -201,11 +201,6 @@ export class IndependentSharedPlugin {
       runCount++;
     });
 
-    // clean hooks
-    compiler.hooks.shutdown.tapAsync('IndependentSharedPlugin', (callback) => {
-      callback();
-    });
-
     // inject buildAssets to stats
     if (manifest) {
       compiler.hooks.compilation.tap(
@@ -346,7 +341,7 @@ export class IndependentSharedPlugin {
       });
     } else {
       extraPlugin = new SharedContainerPlugin({
-        mfName,
+        mfName: `${mfName}_${treeShaking ? 't' : 'f'}`,
         library,
         ...extraOptions.currentShare,
       });
