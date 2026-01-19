@@ -497,7 +497,7 @@ impl ExternalModule {
                 optimize.0
               } else {
                 let chunk = compilation
-                  .chunk_graph
+                  .build_chunk_graph_artifact.chunk_graph
                   .get_module_chunks(concatenation_scope.concat_module_id);
 
                 let safe_to_optimize = if chunk.is_empty() {
@@ -520,7 +520,7 @@ impl ExternalModule {
                   let module_graph = compilation.get_module_graph();
                   let mut safe_to_optimize = true;
                   'outer: for m in compilation
-                    .chunk_graph
+                    .build_chunk_graph_artifact.chunk_graph
                     .get_chunk_modules(chunk, module_graph)
                   {
                     if m.identifier() == concatenation_scope.concat_module_id {
@@ -830,7 +830,7 @@ impl Module for ExternalModule {
       "css-import" | "module" | "import" | "module-import" if !self.place_in_initial => Some(true),
       _ => Some(
         compilation
-          .chunk_graph
+          .build_chunk_graph_artifact.chunk_graph
           .get_number_of_entry_modules(chunk_key)
           > 0,
       ),

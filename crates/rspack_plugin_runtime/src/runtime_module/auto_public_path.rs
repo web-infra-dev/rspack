@@ -46,11 +46,11 @@ impl RuntimeModule for AutoPublicPathRuntimeModule {
 
   async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
     let chunk = self.chunk.expect("The chunk should be attached");
-    let chunk = compilation.chunk_by_ukey.expect_get(&chunk);
+    let chunk = compilation.build_chunk_graph_artifact.chunk_by_ukey.expect_get(&chunk);
     let filename = get_js_chunk_filename_template(
       chunk,
       &compilation.options.output,
-      &compilation.chunk_group_by_ukey,
+      &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
     );
     let filename = compilation
       .get_path(

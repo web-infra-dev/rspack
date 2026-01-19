@@ -66,7 +66,7 @@ pub async fn preserve_modules(
 
   for module_id in modules {
     if compilation
-      .chunk_graph
+      .build_chunk_graph_artifact.chunk_graph
       .get_module_chunks(module_id)
       .is_empty()
     {
@@ -92,7 +92,7 @@ pub async fn preserve_modules(
       continue;
     };
     let chunk = EsmLibraryPlugin::get_module_chunk(module_id, compilation);
-    let old_chunk = compilation.chunk_by_ukey.expect_get_mut(&chunk);
+    let old_chunk = compilation.build_chunk_graph_artifact.chunk_by_ukey.expect_get_mut(&chunk);
 
     if abs_path.starts_with(root) {
       // split module into single chunk named root
@@ -126,7 +126,7 @@ pub async fn preserve_modules(
       };
 
       if compilation
-        .chunk_graph
+        .build_chunk_graph_artifact.chunk_graph
         .get_chunk_modules_identifier(&chunk)
         .len()
         == 1
@@ -136,24 +136,24 @@ pub async fn preserve_modules(
         continue;
       }
 
-      let new_chunk_ukey = Compilation::add_chunk(&mut compilation.chunk_by_ukey);
-      compilation.chunk_graph.add_chunk(new_chunk_ukey);
+      let new_chunk_ukey = Compilation::add_chunk(&mut compilation.build_chunk_graph_artifact.chunk_by_ukey);
+      compilation.build_chunk_graph_artifact.chunk_graph.add_chunk(new_chunk_ukey);
       let [Some(new_chunk), Some(old_chunk)] = compilation
-        .chunk_by_ukey
+        .build_chunk_graph_artifact.chunk_by_ukey
         .get_many_mut([&new_chunk_ukey, &chunk])
       else {
         unreachable!("new_chunk and old_chunk should be inserted already")
       };
 
       new_chunk.set_filename_template(Some(new_filename));
-      old_chunk.split(new_chunk, &mut compilation.chunk_group_by_ukey);
+      old_chunk.split(new_chunk, &mut compilation.build_chunk_graph_artifact.chunk_group_by_ukey);
       // disconnect module from other chunks
       compilation
-        .chunk_graph
+        .build_chunk_graph_artifact.chunk_graph
         .disconnect_chunk_and_module(&chunk, module_id);
 
       compilation
-        .chunk_graph
+        .build_chunk_graph_artifact.chunk_graph
         .connect_chunk_and_module(new_chunk_ukey, module_id);
 
       if let Some(entry_names) = entry_name_for_module.get(&module_id) {
@@ -173,7 +173,7 @@ pub async fn preserve_modules(
         }
 
         compilation
-          .chunk_graph
+          .build_chunk_graph_artifact.chunk_graph
           .disconnect_chunk_and_entry_module(&chunk, module_id);
 
         let entrypoint = compilation.entrypoint_by_name_mut(entry_names.iter().next().unwrap());
@@ -181,7 +181,7 @@ pub async fn preserve_modules(
         entrypoint.set_entrypoint_chunk(new_chunk_ukey);
 
         compilation
-          .chunk_graph
+          .build_chunk_graph_artifact.chunk_graph
           .connect_chunk_and_entry_module(new_chunk_ukey, module_id, ukey);
       }
     }

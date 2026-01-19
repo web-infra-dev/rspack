@@ -44,7 +44,7 @@ async fn chunk_ids(
   let mut used_ids = get_used_chunk_ids(chunk_by_ukey);
   let used_ids_len = used_ids.len();
 
-  let chunk_graph = &compilation.chunk_graph;
+  let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
   let module_graph = compilation.get_module_graph();
   let module_graph_cache = &compilation.module_graph_cache_artifact;
   let context = self
@@ -92,7 +92,7 @@ async fn chunk_ids(
     |a, b| {
       compare_chunks_natural(
         chunk_graph,
-        &compilation.chunk_group_by_ukey,
+        &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
         &compilation.module_ids_artifact,
         a,
         b,

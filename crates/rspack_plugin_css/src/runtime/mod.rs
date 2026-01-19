@@ -102,7 +102,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
   async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
     if let Some(chunk_ukey) = self.chunk {
       let runtime_hooks = RuntimePlugin::get_compilation_hooks(compilation.id());
-      let chunk = compilation.chunk_by_ukey.expect_get(&chunk_ukey);
+      let chunk = compilation.build_chunk_graph_artifact.chunk_by_ukey.expect_get(&chunk_ukey);
       let runtime_requirements = get_chunk_runtime_requirements(compilation, &chunk_ukey);
 
       let unique_name = &compilation.options.output.unique_name;
@@ -110,7 +110,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
 
       let condition_map =
         compilation
-          .chunk_graph
+          .build_chunk_graph_artifact.chunk_graph
           .get_chunk_condition_map(&chunk_ukey, compilation, chunk_has_css);
       let has_css_matcher = compile_boolean_matcher(&condition_map);
 
@@ -118,12 +118,12 @@ impl RuntimeModule for CssLoadingRuntimeModule {
         && !matches!(has_css_matcher, BooleanMatcher::Condition(false));
       let with_fetch_priority = runtime_requirements.contains(RuntimeGlobals::HAS_FETCH_PRIORITY);
 
-      let initial_chunks = chunk.get_all_initial_chunks(&compilation.chunk_group_by_ukey);
+      let initial_chunks = chunk.get_all_initial_chunks(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey);
       let mut initial_chunk_ids = HashSet::default();
 
       for chunk_ukey in initial_chunks.iter() {
         let id = compilation
-          .chunk_by_ukey
+          .build_chunk_graph_artifact.chunk_by_ukey
           .expect_get(chunk_ukey)
           .expect_id()
           .clone();

@@ -101,7 +101,7 @@ async fn render_module_content(
     return Ok(());
   }
 
-  let Some(chunk) = compilation.chunk_by_ukey.get(chunk_ukey) else {
+  let Some(chunk) = compilation.build_chunk_graph_artifact.chunk_by_ukey.get(chunk_ukey) else {
     return Ok(());
   };
   let path_data = PathData::default()

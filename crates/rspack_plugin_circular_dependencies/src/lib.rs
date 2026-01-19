@@ -368,13 +368,13 @@ async fn optimize_modules(
 
   let module_map = build_module_map(compilation);
   let mut detector = CycleDetector::new(&module_map);
-  for (entrypoint_name, chunk_group_key) in compilation.entrypoints.clone() {
+  for (entrypoint_name, chunk_group_key) in compilation.build_chunk_graph_artifact.entrypoints.clone() {
     let chunk_group = compilation
-      .chunk_group_by_ukey
+      .build_chunk_graph_artifact.chunk_group_by_ukey
       .get(&chunk_group_key)
       .expect("Compilation should contain entrypoint chunk groups");
     let mut entry_modules = compilation
-      .chunk_graph
+      .build_chunk_graph_artifact.chunk_graph
       .get_chunk_entry_modules(&chunk_group.get_entrypoint_chunk());
 
     entry_modules.sort();

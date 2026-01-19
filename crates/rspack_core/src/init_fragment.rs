@@ -270,7 +270,7 @@ impl InitFragmentRenderContext for GenerateContext<'_> {
       .compilation
       .runtime_template
       .runtime_condition_expression(
-        &self.compilation.chunk_graph,
+        &self.compilation.build_chunk_graph_artifact.chunk_graph,
         Some(runtime_condition),
         self.runtime,
         self.runtime_requirements,

@@ -64,14 +64,14 @@ impl SplitChunksPlugin {
     logger.time_end(start);
 
     let chunk_index_map: UkeyMap<ChunkUkey, u64> = {
-      let mut ordered_chunks = compilation.chunk_by_ukey.values().collect::<Vec<_>>();
+      let mut ordered_chunks = compilation.build_chunk_graph_artifact.chunk_by_ukey.values().collect::<Vec<_>>();
 
       ordered_chunks.sort_by_cached_key(|chunk| {
         // sort by (group.index, chunk index in group)
         let group = chunk
           .groups()
           .iter()
-          .map(|group| compilation.chunk_group_by_ukey.expect_get(group))
+          .map(|group| compilation.build_chunk_graph_artifact.chunk_group_by_ukey.expect_get(group))
           .min_by(|group1, group2| group1.index.cmp(&group2.index))
           .expect("chunk should have at least one group");
         let chunk_index = group
@@ -132,7 +132,7 @@ impl SplitChunksPlugin {
       combinator.prepare_group_by_used_exports(
         &all_modules,
         module_graph,
-        &compilation.chunk_by_ukey,
+        &compilation.build_chunk_graph_artifact.chunk_by_ukey,
         &module_chunks,
         &chunk_index_map,
       );
@@ -178,7 +178,7 @@ impl SplitChunksPlugin {
           &mut is_reuse_existing_chunk_with_all_modules,
         );
 
-        let new_chunk_mut = compilation.chunk_by_ukey.expect_get_mut(&new_chunk);
+        let new_chunk_mut = compilation.build_chunk_graph_artifact.chunk_by_ukey.expect_get_mut(&new_chunk);
         tracing::trace!(
           "{module_group_key}, get Chunk {:?} with is_reuse_existing_chunk: {is_reuse_existing_chunk:?} and {is_reuse_existing_chunk_with_all_modules:?}",
           new_chunk_mut.chunk_reason()
@@ -289,7 +289,7 @@ impl Debug for SplitChunksPlugin {
 async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
   self.inner_impl(compilation).await?;
   compilation
-    .chunk_graph
+    .build_chunk_graph_artifact.chunk_graph
     .generate_dot(compilation, "after-split-chunks")
     .await;
   Ok(None)

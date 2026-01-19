@@ -174,13 +174,13 @@ impl Mutations {
               chunks.remove(chunk);
             }
             Mutation::ChunkSetId { chunk } => {
-              let chunk = compilation.chunk_by_ukey.expect_get(chunk);
+              let chunk = compilation.build_chunk_graph_artifact.chunk_by_ukey.expect_get(chunk);
               modules.extend(
                 chunk
                   .groups()
                   .iter()
                   .flat_map(|group| {
-                    let group = compilation.chunk_group_by_ukey.expect_get(group);
+                    let group = compilation.build_chunk_graph_artifact.chunk_group_by_ukey.expect_get(group);
                     group.origins()
                   })
                   .filter_map(|origin| origin.module),
@@ -192,7 +192,7 @@ impl Mutations {
         modules.extend(
           chunks
             .into_iter()
-            .flat_map(|chunk| compilation.chunk_graph.get_chunk_modules_identifier(chunk)),
+            .flat_map(|chunk| compilation.build_chunk_graph_artifact.chunk_graph.get_chunk_modules_identifier(chunk)),
         );
         modules
       })
@@ -209,7 +209,7 @@ impl Mutations {
         self.iter().fold(UkeySet::default(), |mut acc, mutation| {
           match mutation {
             Mutation::ModuleSetHashes { module } => {
-              acc.extend(compilation.chunk_graph.get_module_chunks(*module));
+              acc.extend(compilation.build_chunk_graph_artifact.chunk_graph.get_module_chunks(*module));
             }
             Mutation::ChunkAdd { chunk } => {
               acc.insert(*chunk);

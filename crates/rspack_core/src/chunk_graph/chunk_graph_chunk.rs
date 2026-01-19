@@ -628,8 +628,8 @@ impl ChunkGraph {
       .cgc_runtime_requirements_artifact
       .get(chunk_ukey)
       .unwrap_or_else(|| {
-        let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
-        let cgc = compilation.chunk_graph.expect_chunk_graph_chunk(chunk_ukey);
+        let chunk = compilation.build_chunk_graph_artifact.chunk_by_ukey.expect_get(chunk_ukey);
+        let cgc = compilation.build_chunk_graph_artifact.chunk_graph.expect_chunk_graph_chunk(chunk_ukey);
         panic!("Should have runtime requirements for chunk:\n{chunk:#?}\n{cgc:#?}")
       })
   }
@@ -689,12 +689,12 @@ impl ChunkGraph {
   ) -> HashMap<String, bool> {
     let mut map = HashMap::default();
 
-    let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+    let chunk = compilation.build_chunk_graph_artifact.chunk_by_ukey.expect_get(chunk_ukey);
     for c in chunk
-      .get_all_referenced_chunks(&compilation.chunk_group_by_ukey)
+      .get_all_referenced_chunks(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
       .iter()
     {
-      let chunk = compilation.chunk_by_ukey.expect_get(c);
+      let chunk = compilation.build_chunk_graph_artifact.chunk_by_ukey.expect_get(c);
       map.insert(chunk.expect_id().to_string(), filter(c, compilation));
     }
 

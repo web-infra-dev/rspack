@@ -412,8 +412,8 @@ async fn additional_tree_runtime_requirements(
 ) -> Result<()> {
   if !runtime_requirements.contains(RuntimeGlobals::STARTUP_NO_DEFAULT)
     && compilation
-      .chunk_graph
-      .has_chunk_entry_dependent_chunks(chunk_ukey, &compilation.chunk_group_by_ukey)
+      .build_chunk_graph_artifact.chunk_graph
+      .has_chunk_entry_dependent_chunks(chunk_ukey, &compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
   {
     runtime_requirements.insert(RuntimeGlobals::ON_CHUNKS_LOADED);
     runtime_requirements.insert(RuntimeGlobals::REQUIRE);
@@ -430,9 +430,9 @@ async fn chunk_hash(
 ) -> Result<()> {
   self.get_chunk_hash(chunk_ukey, compilation, hasher).await?;
   if compilation
-    .chunk_by_ukey
+    .build_chunk_graph_artifact.chunk_by_ukey
     .expect_get(chunk_ukey)
-    .has_runtime(&compilation.chunk_group_by_ukey)
+    .has_runtime(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
   {
     self
       .update_hash_with_bootstrap(chunk_ukey, compilation, hasher)
@@ -448,18 +448,18 @@ async fn content_hash(
   chunk_ukey: &ChunkUkey,
   hashes: &mut FxHashMap<SourceType, RspackHash>,
 ) -> Result<()> {
-  let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+  let chunk = compilation.build_chunk_graph_artifact.chunk_by_ukey.expect_get(chunk_ukey);
   let mut hasher = hashes
     .entry(SourceType::JavaScript)
     .or_insert_with(|| RspackHash::from(&compilation.options.output));
 
-  if !chunk.has_runtime(&compilation.chunk_group_by_ukey) {
+  if !chunk.has_runtime(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey) {
     chunk.id().hash(&mut hasher);
   }
 
   let module_graph = compilation.get_module_graph();
   let mut ordered_modules = compilation
-    .chunk_graph
+    .build_chunk_graph_artifact.chunk_graph
     .get_chunk_modules_identifier_by_source_type(chunk_ukey, SourceType::JavaScript, module_graph);
   // SAFETY: module identifier is unique
   ordered_modules.sort_unstable();
@@ -482,7 +482,7 @@ async fn content_hash(
     });
 
   for (runtime_module_identifier, _) in compilation
-    .chunk_graph
+    .build_chunk_graph_artifact.chunk_graph
     .get_chunk_runtime_modules_in_order(chunk_ukey, compilation)
   {
     if let Some(hash) = compilation
@@ -504,20 +504,20 @@ async fn render_manifest(
   manifest: &mut Vec<RenderManifestEntry>,
   _diagnostics: &mut Vec<Diagnostic>,
 ) -> Result<()> {
-  let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+  let chunk = compilation.build_chunk_graph_artifact.chunk_by_ukey.expect_get(chunk_ukey);
   let is_hot_update = matches!(chunk.kind(), ChunkKind::HotUpdate);
   let is_main_chunk = chunk.groups().iter().any(|group_ukey| {
-    let group = compilation.chunk_group_by_ukey.expect_get(group_ukey);
+    let group = compilation.build_chunk_graph_artifact.chunk_group_by_ukey.expect_get(group_ukey);
 
     group.is_initial() && group.kind.is_entrypoint() && &group.get_entrypoint_chunk() == chunk_ukey
   });
-  let is_runtime_chunk = chunk.has_runtime(&compilation.chunk_group_by_ukey);
+  let is_runtime_chunk = chunk.has_runtime(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey);
 
   if !is_hot_update
     && is_runtime_chunk
     && !chunk_has_runtime_or_js(
       chunk_ukey,
-      &compilation.chunk_graph,
+      &compilation.build_chunk_graph_artifact.chunk_graph,
       compilation.get_module_graph(),
     )
   {
@@ -530,7 +530,7 @@ async fn render_manifest(
   let filename_template = get_js_chunk_filename_template(
     chunk,
     &compilation.options.output,
-    &compilation.chunk_group_by_ukey,
+    &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
   );
   let mut asset_info = AssetInfo::default().with_asset_type(ManifestAssetType::JavaScript);
   asset_info.set_javascript_module(compilation.options.output.module);
@@ -648,14 +648,14 @@ pub struct ExtractedCommentsInfo {
 
 pub fn chunk_has_js(chunk_ukey: &ChunkUkey, compilation: &Compilation) -> bool {
   if compilation
-    .chunk_graph
+    .build_chunk_graph_artifact.chunk_graph
     .get_number_of_entry_modules(chunk_ukey)
     > 0
   {
     return true;
   }
 
-  compilation.chunk_graph.has_chunk_module_by_source_type(
+  compilation.build_chunk_graph_artifact.chunk_graph.has_chunk_module_by_source_type(
     chunk_ukey,
     SourceType::JavaScript,
     compilation.get_module_graph(),

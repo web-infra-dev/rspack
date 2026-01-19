@@ -688,13 +688,13 @@ impl Chunk {
   pub fn update_hash(&self, hasher: &mut RspackHash, compilation: &Compilation) {
     self.id().hash(hasher);
     let runtime_modules = compilation
-      .chunk_graph
+      .build_chunk_graph_artifact.chunk_graph
       .get_chunk_runtime_modules_iterable(&self.ukey)
       .copied()
       .collect::<IdentifierSet>();
 
     for module_identifier in compilation
-      .chunk_graph
+      .build_chunk_graph_artifact.chunk_graph
       .get_ordered_chunk_modules_identifier(&self.ukey)
     {
       if runtime_modules.contains(&module_identifier) {
@@ -709,7 +709,7 @@ impl Chunk {
     }
 
     for (runtime_module_identifier, _) in compilation
-      .chunk_graph
+      .build_chunk_graph_artifact.chunk_graph
       .get_chunk_runtime_modules_in_order(&self.ukey, compilation)
     {
       let hash = compilation
@@ -725,11 +725,11 @@ impl Chunk {
 
     "entry".hash(hasher);
     for (module, chunk_group) in compilation
-      .chunk_graph
+      .build_chunk_graph_artifact.chunk_graph
       .get_chunk_entry_modules_with_chunk_group_iterable(&self.ukey)
     {
       ChunkGraph::get_module_id(&compilation.module_ids_artifact, *module).hash(hasher);
-      if let Some(chunk_group) = compilation.chunk_group_by_ukey.get(chunk_group) {
+      if let Some(chunk_group) = compilation.build_chunk_graph_artifact.chunk_group_by_ukey.get(chunk_group) {
         chunk_group.id(compilation).hash(hasher);
       }
     }
@@ -742,7 +742,7 @@ impl Chunk {
     is_self_last_chunk: bool,
   ) -> Option<Vec<(Vec<ChunkUkey>, Vec<ChunkUkey>)>> {
     let mut list = vec![];
-    let chunk_group_by_ukey = &compilation.chunk_group_by_ukey;
+    let chunk_group_by_ukey = &compilation.build_chunk_graph_artifact.chunk_group_by_ukey;
     for group_ukey in self.get_sorted_groups_iter(chunk_group_by_ukey) {
       let group = chunk_group_by_ukey.expect_get(group_ukey);
       if let Some(last_chunk) = group.chunks.last()
@@ -813,15 +813,15 @@ impl Chunk {
     filter_fn: &F,
   ) -> Option<Vec<ChunkId>> {
     let mut list = vec![];
-    for group_ukey in self.get_sorted_groups_iter(&compilation.chunk_group_by_ukey) {
-      let group = compilation.chunk_group_by_ukey.expect_get(group_ukey);
+    for group_ukey in self.get_sorted_groups_iter(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey) {
+      let group = compilation.build_chunk_graph_artifact.chunk_group_by_ukey.expect_get(group_ukey);
       if group
         .chunks
         .last()
         .is_some_and(|chunk_ukey| chunk_ukey.eq(&self.ukey))
       {
         for child_group_ukey in group.children_iterable() {
-          let child_group = compilation.chunk_group_by_ukey.expect_get(child_group_ukey);
+          let child_group = compilation.build_chunk_graph_artifact.chunk_group_by_ukey.expect_get(child_group_ukey);
           if let Some(order) = child_group
             .kind
             .get_normal_options()
@@ -846,11 +846,11 @@ impl Chunk {
 
     let mut chunk_ids = vec![];
     for (_, child_group_ukey) in list.iter() {
-      let child_group = compilation.chunk_group_by_ukey.expect_get(child_group_ukey);
+      let child_group = compilation.build_chunk_graph_artifact.chunk_group_by_ukey.expect_get(child_group_ukey);
       for chunk_ukey in child_group.chunks.iter() {
         if filter_fn(chunk_ukey, compilation)
           && let Some(chunk_id) = compilation
-            .chunk_by_ukey
+            .build_chunk_graph_artifact.chunk_by_ukey
             .expect_get(chunk_ukey)
             .id()
             .cloned()
@@ -880,7 +880,7 @@ impl Chunk {
       compilation: &Compilation,
       filter_fn: &F,
     ) -> Option<(ChunkId, Vec<ChunkId>)> {
-      let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+      let chunk = compilation.build_chunk_graph_artifact.chunk_by_ukey.expect_get(chunk_ukey);
       if let (Some(chunk_id), Some(child_chunk_ids)) = (
         chunk.id().cloned(),
         chunk.get_child_ids_by_order(order, compilation, filter_fn),
@@ -894,10 +894,10 @@ impl Chunk {
 
     if include_direct_children {
       for chunk_ukey in self
-        .get_sorted_groups_iter(&compilation.chunk_group_by_ukey)
+        .get_sorted_groups_iter(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
         .filter_map(|chunk_group_ukey| {
           compilation
-            .chunk_group_by_ukey
+            .build_chunk_graph_artifact.chunk_group_by_ukey
             .get(chunk_group_ukey)
             .map(|g| g.chunks.clone())
         })
@@ -908,7 +908,7 @@ impl Chunk {
       }
     }
 
-    for chunk_ukey in self.get_all_async_chunks(&compilation.chunk_group_by_ukey) {
+    for chunk_ukey in self.get_all_async_chunks(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey) {
       add_child_ids_task.push((chunk_ukey, ChunkGroupOrderKey::Prefetch));
       add_child_ids_task.push((chunk_ukey, ChunkGroupOrderKey::Preload));
     }

@@ -31,7 +31,7 @@ async fn chunk_ids(
   }
 
   let module_ids = &compilation.module_ids_artifact;
-  let chunk_graph = &compilation.chunk_graph;
+  let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
   let mut ordered_chunk_modules_cache = Default::default();
 
   let chunks = chunk_by_ukey
@@ -40,7 +40,7 @@ async fn chunk_ids(
     .sorted_unstable_by(|a, b| {
       compare_chunks_natural(
         chunk_graph,
-        &compilation.chunk_group_by_ukey,
+        &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
         module_ids,
         a,
         b,

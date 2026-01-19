@@ -110,11 +110,11 @@ pub fn get_chunk_relations<'a>(
   let mut siblings = HashSet::default();
 
   for cg in chunk.groups() {
-    if let Some(cg) = compilation.chunk_group_by_ukey.get(cg) {
+    if let Some(cg) = compilation.build_chunk_graph_artifact.chunk_group_by_ukey.get(cg) {
       for p in &cg.parents {
-        if let Some(pg) = compilation.chunk_group_by_ukey.get(p) {
+        if let Some(pg) = compilation.build_chunk_graph_artifact.chunk_group_by_ukey.get(p) {
           for c in &pg.chunks {
-            if let Some(c) = compilation.chunk_by_ukey.get(c)
+            if let Some(c) = compilation.build_chunk_graph_artifact.chunk_by_ukey.get(c)
               && let Some(id) = c.id()
             {
               parents.insert(id.as_str());
@@ -124,9 +124,9 @@ pub fn get_chunk_relations<'a>(
       }
 
       for p in &cg.children {
-        if let Some(pg) = compilation.chunk_group_by_ukey.get(p) {
+        if let Some(pg) = compilation.build_chunk_graph_artifact.chunk_group_by_ukey.get(p) {
           for c in &pg.chunks {
-            if let Some(c) = compilation.chunk_by_ukey.get(c)
+            if let Some(c) = compilation.build_chunk_graph_artifact.chunk_by_ukey.get(c)
               && let Some(id) = c.id()
             {
               children.insert(id.as_str());
@@ -136,7 +136,7 @@ pub fn get_chunk_relations<'a>(
       }
 
       for c in &cg.chunks {
-        if let Some(c) = compilation.chunk_by_ukey.get(c)
+        if let Some(c) = compilation.build_chunk_graph_artifact.chunk_by_ukey.get(c)
           && c.id() != chunk.id()
           && let Some(id) = c.id()
         {

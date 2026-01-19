@@ -240,16 +240,16 @@ impl JsCompilation {
   pub fn get_named_chunk_keys(&self) -> Result<Vec<String>> {
     let compilation = self.as_ref()?;
 
-    Ok(compilation.named_chunks.keys().cloned().collect::<Vec<_>>())
+    Ok(compilation.build_chunk_graph_artifact.named_chunks.keys().cloned().collect::<Vec<_>>())
   }
 
   #[napi(ts_return_type = "Chunk")]
   pub fn get_named_chunk(&self, name: String) -> Result<Option<ChunkWrapper>> {
     let compilation = self.as_ref()?;
 
-    Ok(compilation.named_chunks.get(&name).and_then(|c| {
+    Ok(compilation.build_chunk_graph_artifact.named_chunks.get(&name).and_then(|c| {
       compilation
-        .chunk_by_ukey
+        .build_chunk_graph_artifact.chunk_by_ukey
         .get(c)
         .map(|chunk| ChunkWrapper::new(chunk.ukey(), compilation))
     }))
@@ -261,7 +261,7 @@ impl JsCompilation {
 
     Ok(
       compilation
-        .named_chunk_groups
+        .build_chunk_graph_artifact.named_chunk_groups
         .keys()
         .cloned()
         .collect::<Vec<_>>(),
@@ -273,7 +273,7 @@ impl JsCompilation {
     let compilation = self.as_ref()?;
     Ok(
       compilation
-        .named_chunk_groups
+        .build_chunk_graph_artifact.named_chunk_groups
         .get(&name)
         .map(|ukey| ChunkGroupWrapper::new(*ukey, compilation)),
     )
@@ -381,7 +381,7 @@ impl JsCompilation {
 
     Ok(
       compilation
-        .entrypoints()
+        .build_chunk_graph_artifact.entrypoints
         .values()
         .map(|ukey| ChunkGroupWrapper::new(*ukey, compilation))
         .collect(),
@@ -394,7 +394,7 @@ impl JsCompilation {
 
     Ok(
       compilation
-        .chunk_group_by_ukey
+        .build_chunk_graph_artifact.chunk_group_by_ukey
         .keys()
         .map(|ukey| ChunkGroupWrapper::new(*ukey, compilation))
         .collect::<Vec<ChunkGroupWrapper>>(),

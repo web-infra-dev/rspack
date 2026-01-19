@@ -52,14 +52,14 @@ impl Plugin for LibManifestPlugin {
 
 #[plugin_hook(CompilerEmit for LibManifestPlugin)]
 async fn emit(&self, compilation: &mut Compilation) -> Result<()> {
-  let chunk_graph = &compilation.chunk_graph;
+  let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
 
   let mut manifests: HashMap<String, String> = HashMap::default();
 
   let module_graph = compilation.get_module_graph();
 
-  for (_, chunk) in compilation.chunk_by_ukey.iter() {
-    if !chunk.can_be_initial(&compilation.chunk_group_by_ukey) {
+  for (_, chunk) in compilation.build_chunk_graph_artifact.chunk_by_ukey.iter() {
+    if !chunk.can_be_initial(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey) {
       continue;
     }
 

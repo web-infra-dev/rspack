@@ -40,11 +40,11 @@ async fn render_manifest(
   _diagnostics: &mut Vec<Diagnostic>,
 ) -> Result<()> {
   let wasm_filename_template = &compilation.options.output.webassembly_module_filename;
-  let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+  let chunk = compilation.build_chunk_graph_artifact.chunk_by_ukey.expect_get(chunk_ukey);
   let module_graph = &compilation.get_module_graph();
 
   let ordered_modules = compilation
-    .chunk_graph
+    .build_chunk_graph_artifact.chunk_graph
     .get_chunk_modules(chunk_ukey, module_graph);
 
   for m in ordered_modules {

@@ -265,7 +265,7 @@ var module = ({}[moduleId] = {{"#,
     compilation: &'me Compilation,
   ) -> Result<RenderBootstrapResult<'me>> {
     let runtime_requirements = ChunkGraph::get_chunk_runtime_requirements(compilation, chunk_ukey);
-    let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+    let chunk = compilation.build_chunk_graph_artifact.chunk_by_ukey.expect_get(chunk_ukey);
     let runtime_template = &compilation.runtime_template;
     let module_factories = runtime_requirements.contains(RuntimeGlobals::MODULE_FACTORIES);
     let require_function = runtime_requirements.contains(RuntimeGlobals::REQUIRE);
@@ -394,21 +394,21 @@ var {} = {{}};
     }
 
     if !runtime_requirements.contains(RuntimeGlobals::STARTUP_NO_DEFAULT) {
-      if chunk.has_entry_module(&compilation.chunk_graph) {
+      if chunk.has_entry_module(&compilation.build_chunk_graph_artifact.chunk_graph) {
         let mut buf2: Vec<Cow<str>> = Vec::new();
         buf2.push("// Load entry module and return exports".into());
         let entries = compilation
-          .chunk_graph
+          .build_chunk_graph_artifact.chunk_graph
           .get_chunk_entry_modules_with_chunk_group_iterable(chunk_ukey);
         for (i, (module, entry)) in entries.iter().enumerate() {
-          let chunk_group = compilation.chunk_group_by_ukey.expect_get(entry);
+          let chunk_group = compilation.build_chunk_graph_artifact.chunk_group_by_ukey.expect_get(entry);
           let chunk_ids = chunk_group
             .chunks
             .iter()
             .filter(|c| *c != chunk_ukey)
             .map(|chunk_ukey| {
               compilation
-                .chunk_by_ukey
+                .build_chunk_graph_artifact.chunk_by_ukey
                 .expect_get(chunk_ukey)
                 .expect_id()
                 .to_string()
@@ -429,8 +429,8 @@ var {} = {{}};
                   connections.iter().any(|c| {
                     c.is_target_active(module_graph, Some(chunk.runtime()), module_graph_cache)
                   }) && compilation
-                    .chunk_graph
-                    .get_module_runtimes_iter(*origin_module, &compilation.chunk_by_ukey)
+                    .build_chunk_graph_artifact.chunk_graph
+                    .get_module_runtimes_iter(*origin_module, &compilation.build_chunk_graph_artifact.chunk_by_ukey)
                     .any(|runtime| runtime.intersection(chunk.runtime()).count() > 0)
                 } else {
                   false
@@ -681,7 +681,7 @@ var {} = {{}};
     let hooks = js_plugin_hooks
       .try_read()
       .expect("should have js plugin drive");
-    let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+    let chunk = compilation.build_chunk_graph_artifact.chunk_by_ukey.expect_get(chunk_ukey);
     let supports_arrow_function = compilation
       .options
       .output
@@ -697,16 +697,16 @@ var {} = {{}};
       allow_inline_startup,
     } = Self::render_bootstrap(chunk_ukey, compilation).await?;
     let module_graph = &compilation.get_module_graph();
-    let all_modules = compilation.chunk_graph.get_chunk_modules_by_source_type(
+    let all_modules = compilation.build_chunk_graph_artifact.chunk_graph.get_chunk_modules_by_source_type(
       chunk_ukey,
       SourceType::JavaScript,
       module_graph,
     );
-    let has_entry_modules = chunk.has_entry_module(&compilation.chunk_graph);
+    let has_entry_modules = chunk.has_entry_module(&compilation.build_chunk_graph_artifact.chunk_graph);
     let inlined_modules = if allow_inline_startup && has_entry_modules {
       Some(
         compilation
-          .chunk_graph
+          .build_chunk_graph_artifact.chunk_graph
           .get_chunk_entry_modules_with_chunk_group_iterable(chunk_ukey),
       )
     } else {
@@ -781,7 +781,7 @@ var {} = {{}};
     }
 
     if compilation
-      .chunk_graph
+      .build_chunk_graph_artifact.chunk_graph
       .has_chunk_runtime_modules(chunk_ukey)
     {
       sources.add(render_runtime_modules(compilation, chunk_ukey).await?);
@@ -930,7 +930,7 @@ var {} = {{}};
         .await?;
       sources.add(render_source.source);
     } else if let Some(last_entry_module) = compilation
-      .chunk_graph
+      .build_chunk_graph_artifact.chunk_graph
       .get_chunk_entry_modules_with_chunk_group_iterable(chunk_ukey)
       .keys()
       .next_back()
@@ -1161,7 +1161,7 @@ var {} = {{}};
                     module_scope_idents,
                     used_in_non_inlined: Vec::new(),
                   };
-                  let runtime = compilation.chunk_by_ukey.expect_get(chunk_ukey).runtime();
+                  let runtime = compilation.build_chunk_graph_artifact.chunk_by_ukey.expect_get(chunk_ukey).runtime();
 
                   self.rename_module_cache.inlined_modules_to_info.insert(
                     ident,
@@ -1175,7 +1175,7 @@ var {} = {{}};
                 } else {
                   let mut idents_vec = vec![];
                   let module_ident = m.identifier();
-                  let runtime = compilation.chunk_by_ukey.expect_get(chunk_ukey).runtime();
+                  let runtime = compilation.build_chunk_graph_artifact.chunk_by_ukey.expect_get(chunk_ukey).runtime();
 
                   for ident in collector.ids {
                     if ident.id.ctxt == global_ctxt {
@@ -1341,7 +1341,7 @@ var {} = {{}};
     let module_graph = &compilation.get_module_graph();
     let is_module = compilation.options.output.module;
     let mut all_strict = compilation.options.output.module;
-    let chunk_modules = compilation.chunk_graph.get_chunk_modules_by_source_type(
+    let chunk_modules = compilation.build_chunk_graph_artifact.chunk_graph.get_chunk_modules_by_source_type(
       chunk_ukey,
       SourceType::JavaScript,
       module_graph,

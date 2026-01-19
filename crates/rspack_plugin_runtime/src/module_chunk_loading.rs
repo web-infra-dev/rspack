@@ -87,8 +87,8 @@ async fn runtime_requirements_in_tree(
   }
 
   if compilation
-    .chunk_graph
-    .has_chunk_entry_dependent_chunks(chunk_ukey, &compilation.chunk_group_by_ukey)
+    .build_chunk_graph_artifact.chunk_graph
+    .has_chunk_entry_dependent_chunks(chunk_ukey, &compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
   {
     runtime_requirements_mut.insert(RuntimeGlobals::EXTERNAL_INSTALL_CHUNK);
   }

@@ -23,20 +23,20 @@ pub fn assign_runtime_ids(compilation: &mut Compilation) {
       chunk_graph.set_runtime_id(runtime, chunk.id().map(|id| id.to_string()));
     }
   }
-  for i in compilation.entrypoints.iter() {
+  for i in compilation.build_chunk_graph_artifact.entrypoints.iter() {
     process_entrypoint(
       i.1,
-      &compilation.chunk_group_by_ukey,
-      &compilation.chunk_by_ukey,
-      &mut compilation.chunk_graph,
+      &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
+      &compilation.build_chunk_graph_artifact.chunk_by_ukey,
+      &mut compilation.build_chunk_graph_artifact.chunk_graph,
     )
   }
-  for i in compilation.async_entrypoints.iter() {
+  for i in compilation.build_chunk_graph_artifact.async_entrypoints.iter() {
     process_entrypoint(
       i,
-      &compilation.chunk_group_by_ukey,
-      &compilation.chunk_by_ukey,
-      &mut compilation.chunk_graph,
+      &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
+      &compilation.build_chunk_graph_artifact.chunk_by_ukey,
+      &mut compilation.build_chunk_graph_artifact.chunk_graph,
     )
   }
 }

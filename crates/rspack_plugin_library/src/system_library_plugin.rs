@@ -90,7 +90,7 @@ async fn render(
   };
   // system-named-assets-path is not supported
   let name = if let Some(name) = options.name {
-    let chunk = compilation.chunk_by_ukey.get(chunk_ukey);
+    let chunk = compilation.build_chunk_graph_artifact.chunk_by_ukey.get(chunk_ukey);
     let filename = Filename::from(name);
     let path_data = PathData::default()
       .chunk_id_optional(chunk.and_then(|c| c.id().map(|id| id.as_str())))
@@ -110,7 +110,7 @@ async fn render(
 
   let module_graph = compilation.get_module_graph();
   let modules = compilation
-    .chunk_graph
+    .build_chunk_graph_artifact.chunk_graph
     .get_chunk_modules_identifier(chunk_ukey)
     .iter()
     .filter_map(|identifier| {

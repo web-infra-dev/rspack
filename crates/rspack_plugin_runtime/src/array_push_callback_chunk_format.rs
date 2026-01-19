@@ -42,14 +42,14 @@ async fn additional_chunk_runtime_requirements(
   chunk_ukey: &ChunkUkey,
   runtime_requirements: &mut RuntimeGlobals,
 ) -> Result<()> {
-  let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+  let chunk = compilation.build_chunk_graph_artifact.chunk_by_ukey.expect_get(chunk_ukey);
 
-  if chunk.has_runtime(&compilation.chunk_group_by_ukey) {
+  if chunk.has_runtime(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey) {
     return Ok(());
   }
 
   if compilation
-    .chunk_graph
+    .build_chunk_graph_artifact.chunk_graph
     .get_number_of_entry_modules(chunk_ukey)
     > 0
   {
@@ -69,8 +69,8 @@ async fn js_chunk_hash(
   chunk_ukey: &ChunkUkey,
   hasher: &mut RspackHash,
 ) -> Result<()> {
-  let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
-  if chunk.has_runtime(&compilation.chunk_group_by_ukey) {
+  let chunk = compilation.build_chunk_graph_artifact.chunk_by_ukey.expect_get(chunk_ukey);
+  if chunk.has_runtime(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey) {
     return Ok(());
   }
 
@@ -84,7 +84,7 @@ async fn js_chunk_hash(
     hasher,
     compilation,
     compilation
-      .chunk_graph
+      .build_chunk_graph_artifact.chunk_graph
       .get_chunk_entry_modules_with_chunk_group_iterable(chunk_ukey),
     chunk_ukey,
   );
@@ -100,9 +100,9 @@ async fn render_chunk(
   render_source: &mut RenderSource,
 ) -> Result<()> {
   let hooks = JsPlugin::get_compilation_hooks(compilation.id());
-  let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+  let chunk = compilation.build_chunk_graph_artifact.chunk_by_ukey.expect_get(chunk_ukey);
   let has_runtime_modules = compilation
-    .chunk_graph
+    .build_chunk_graph_artifact.chunk_graph
     .has_chunk_runtime_modules(chunk_ukey);
   let global_object = &compilation.options.output.global_object;
   let hot_update_global = &compilation.options.output.hot_update_global;
@@ -133,7 +133,7 @@ async fn render_chunk(
       serde_json::to_string(chunk.expect_id()).expect("json stringify failed"),
     )));
     source.add(render_source.source.clone());
-    let has_entry = chunk.has_entry_module(&compilation.chunk_graph);
+    let has_entry = chunk.has_entry_module(&compilation.build_chunk_graph_artifact.chunk_graph);
     if has_entry || has_runtime_modules {
       source.add(RawStringSource::from_static(","));
       source.add(RawStringSource::from(format!(
@@ -147,7 +147,7 @@ async fn render_chunk(
       }
       if has_entry {
         let entries = compilation
-          .chunk_graph
+          .build_chunk_graph_artifact.chunk_graph
           .get_chunk_entry_modules_with_chunk_group_iterable(chunk_ukey);
         let start_up_source = generate_entry_startup(compilation, chunk_ukey, entries, true);
         let last_entry_module = entries

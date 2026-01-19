@@ -29,17 +29,17 @@ pub fn update_hash_for_entry_startup(
     }
 
     if let Some(runtime_chunk) = compilation
-      .chunk_group_by_ukey
+      .build_chunk_graph_artifact.chunk_group_by_ukey
       .get(entry)
-      .map(|e| e.get_runtime_chunk(&compilation.chunk_group_by_ukey))
+      .map(|e| e.get_runtime_chunk(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey))
     {
       for chunk_ukey in get_all_chunks(
         entry,
         chunk,
         Some(&runtime_chunk),
-        &compilation.chunk_group_by_ukey,
+        &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
       ) {
-        if let Some(chunk) = compilation.chunk_by_ukey.get(&chunk_ukey) {
+        if let Some(chunk) = compilation.build_chunk_graph_artifact.chunk_by_ukey.get(&chunk_ukey) {
           chunk.id().hash(hasher);
         }
       }
@@ -116,7 +116,7 @@ pub async fn get_runtime_chunk_output_name(
 ) -> Result<String> {
   let entry_point = {
     let entry_points = compilation
-      .chunk_graph
+      .build_chunk_graph_artifact.chunk_graph
       .get_chunk_entry_modules_with_chunk_group_iterable(chunk_ukey);
 
     let (_, entry_point_ukey) = entry_points
@@ -124,12 +124,12 @@ pub async fn get_runtime_chunk_output_name(
       .next()
       .ok_or_else(|| error!("should has entry point ukey"))?;
 
-    compilation.chunk_group_by_ukey.expect_get(entry_point_ukey)
+    compilation.build_chunk_graph_artifact.chunk_group_by_ukey.expect_get(entry_point_ukey)
   };
 
   let runtime_chunk = compilation
-    .chunk_by_ukey
-    .expect_get(&entry_point.get_runtime_chunk(&compilation.chunk_group_by_ukey));
+    .build_chunk_graph_artifact.chunk_by_ukey
+    .expect_get(&entry_point.get_runtime_chunk(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey));
 
   get_chunk_output_name(runtime_chunk, compilation).await
 }
@@ -140,7 +140,7 @@ pub async fn runtime_chunk_has_hash(
 ) -> Result<bool> {
   let entry_point = {
     let entry_points = compilation
-      .chunk_graph
+      .build_chunk_graph_artifact.chunk_graph
       .get_chunk_entry_modules_with_chunk_group_iterable(chunk_ukey);
 
     let (_, entry_point_ukey) = entry_points
@@ -148,16 +148,16 @@ pub async fn runtime_chunk_has_hash(
       .next()
       .ok_or_else(|| error!("should has entry point ukey"))?;
 
-    compilation.chunk_group_by_ukey.expect_get(entry_point_ukey)
+    compilation.build_chunk_graph_artifact.chunk_group_by_ukey.expect_get(entry_point_ukey)
   };
 
-  let runtime_chunk_ukey = entry_point.get_runtime_chunk(&compilation.chunk_group_by_ukey);
-  let runtime_chunk = compilation.chunk_by_ukey.expect_get(&runtime_chunk_ukey);
+  let runtime_chunk_ukey = entry_point.get_runtime_chunk(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey);
+  let runtime_chunk = compilation.build_chunk_graph_artifact.chunk_by_ukey.expect_get(&runtime_chunk_ukey);
 
   let filename = get_js_chunk_filename_template(
     runtime_chunk,
     &compilation.options.output,
-    &compilation.chunk_group_by_ukey,
+    &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
   );
 
   if filename.has_hash_placeholder() {
@@ -166,10 +166,10 @@ pub async fn runtime_chunk_has_hash(
 
   if filename.has_content_hash_placeholder()
     && (compilation
-      .chunk_graph
+      .build_chunk_graph_artifact.chunk_graph
       .has_chunk_full_hash_modules(&runtime_chunk_ukey, &compilation.runtime_modules)
       || compilation
-        .chunk_graph
+        .build_chunk_graph_artifact.chunk_graph
         .has_chunk_dependent_hash_modules(&runtime_chunk_ukey, &compilation.runtime_modules))
   {
     return Ok(true);
@@ -206,21 +206,21 @@ pub fn generate_entry_startup(
     }
 
     if let Some(runtime_chunk) = compilation
-      .chunk_group_by_ukey
+      .build_chunk_graph_artifact.chunk_group_by_ukey
       .get(entry)
-      .map(|e| e.get_runtime_chunk(&compilation.chunk_group_by_ukey))
+      .map(|e| e.get_runtime_chunk(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey))
     {
       let chunks = get_all_chunks(
         entry,
         chunk,
         Some(&runtime_chunk),
-        &compilation.chunk_group_by_ukey,
+        &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
       );
       chunks_ids.extend(
         chunks
           .iter()
           .map(|chunk_ukey| {
-            let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+            let chunk = compilation.build_chunk_graph_artifact.chunk_by_ukey.expect_get(chunk_ukey);
             chunk.expect_id().clone()
           })
           .collect::<HashSet<_>>(),
@@ -327,7 +327,7 @@ pub async fn get_chunk_output_name(chunk: &Chunk, compilation: &Compilation) -> 
   let filename = get_js_chunk_filename_template(
     chunk,
     &compilation.options.output,
-    &compilation.chunk_group_by_ukey,
+    &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
   );
   compilation
     .get_path(

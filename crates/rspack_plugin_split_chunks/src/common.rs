@@ -41,16 +41,16 @@ impl ChunkFilter {
       ChunkFilter::Func(_) => panic!("ChunkFilter is a function"),
       ChunkFilter::All => true,
       ChunkFilter::Regex(re) => {
-        let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+        let chunk = compilation.build_chunk_graph_artifact.chunk_by_ukey.expect_get(chunk_ukey);
         chunk.name().is_some_and(|name| re.test(name))
       }
       ChunkFilter::Async => {
-        let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
-        !chunk.can_be_initial(&compilation.chunk_group_by_ukey)
+        let chunk = compilation.build_chunk_graph_artifact.chunk_by_ukey.expect_get(chunk_ukey);
+        !chunk.can_be_initial(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
       }
       ChunkFilter::Initial => {
-        let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
-        chunk.can_be_initial(&compilation.chunk_group_by_ukey)
+        let chunk = compilation.build_chunk_graph_artifact.chunk_by_ukey.expect_get(chunk_ukey);
+        chunk.can_be_initial(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
       }
     }
   }

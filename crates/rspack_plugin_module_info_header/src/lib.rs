@@ -282,7 +282,7 @@ async fn render_js_module_package(
     }
 
     let chunk = compilation
-      .chunk_by_ukey
+      .build_chunk_graph_artifact.chunk_by_ukey
       .get(chunk_key)
       .expect("Chunk must exists");
 

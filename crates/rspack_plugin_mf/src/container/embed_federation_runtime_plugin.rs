@@ -60,7 +60,7 @@ async fn additional_chunk_runtime_requirements_tree(
   chunk_ukey: &ChunkUkey,
   runtime_requirements: &mut RuntimeGlobals,
 ) -> Result<()> {
-  let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+  let chunk = compilation.build_chunk_graph_artifact.chunk_by_ukey.expect_get(chunk_ukey);
 
   // Skip build time chunks
   if chunk.name() == Some("build time chunk") {
@@ -68,9 +68,9 @@ async fn additional_chunk_runtime_requirements_tree(
   }
 
   // Check if chunk needs federation runtime support
-  let has_runtime = chunk.has_runtime(&compilation.chunk_group_by_ukey);
+  let has_runtime = chunk.has_runtime(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey);
   let has_entry_modules = compilation
-    .chunk_graph
+    .build_chunk_graph_artifact.chunk_graph
     .get_number_of_entry_modules(chunk_ukey)
     > 0;
 
@@ -94,7 +94,7 @@ async fn runtime_requirement_in_tree(
   _runtime_requirements: &RuntimeGlobals,
   _runtime_requirements_mut: &mut RuntimeGlobals,
 ) -> Result<Option<()>> {
-  let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+  let chunk = compilation.build_chunk_graph_artifact.chunk_by_ukey.expect_get(chunk_ukey);
 
   // Skip build time chunks
   if chunk.name() == Some("build time chunk") {
@@ -102,7 +102,7 @@ async fn runtime_requirement_in_tree(
   }
 
   // Only inject EmbedFederationRuntimeModule into runtime chunks
-  let has_runtime = chunk.has_runtime(&compilation.chunk_group_by_ukey);
+  let has_runtime = chunk.has_runtime(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey);
   if has_runtime {
     // Collect federation dependencies snapshot
     let collected_ids_snapshot = self
@@ -167,7 +167,7 @@ async fn render_startup(
   _module: &ModuleIdentifier,
   render_source: &mut RenderSource,
 ) -> Result<()> {
-  let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+  let chunk = compilation.build_chunk_graph_artifact.chunk_by_ukey.expect_get(chunk_ukey);
 
   // Skip build time chunks
   if chunk.name() == Some("build time chunk") {
@@ -188,9 +188,9 @@ async fn render_startup(
     return Ok(());
   }
 
-  let has_runtime = chunk.has_runtime(&compilation.chunk_group_by_ukey);
+  let has_runtime = chunk.has_runtime(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey);
   let has_entry_modules = compilation
-    .chunk_graph
+    .build_chunk_graph_artifact.chunk_graph
     .get_number_of_entry_modules(chunk_ukey)
     > 0;
 

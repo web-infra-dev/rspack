@@ -23,8 +23,8 @@ async fn additional_tree_runtime_requirements(
   let is_enabled_for_chunk = is_enabled_for_chunk(chunk_ukey, &chunk_loading_value, compilation);
   if is_enabled_for_chunk
     && compilation
-      .chunk_graph
-      .has_chunk_entry_dependent_chunks(chunk_ukey, &compilation.chunk_group_by_ukey)
+      .build_chunk_graph_artifact.chunk_graph
+      .has_chunk_entry_dependent_chunks(chunk_ukey, &compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
   {
     runtime_requirements.insert(RuntimeGlobals::STARTUP_CHUNK_DEPENDENCIES);
   }

@@ -183,7 +183,7 @@ impl DependencyTemplate for DynamicImportDependencyTemplate {
     let already_in_chunk = ref_chunk == orig_chunk;
     let ref_chunk = code_generatable_context
       .compilation
-      .chunk_by_ukey
+      .build_chunk_graph_artifact.chunk_by_ukey
       .expect_get(&ref_chunk);
     let import_promise = if already_in_chunk {
       Cow::Borrowed("Promise.resolve()")

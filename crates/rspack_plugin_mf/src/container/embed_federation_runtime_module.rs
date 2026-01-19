@@ -66,7 +66,7 @@ impl RuntimeModule for EmbedFederationRuntimeModule {
     for dep_id in collected_deps.iter() {
       if let Some(module_dyn) = module_graph.get_module_by_dependency_id(dep_id) {
         let is_in_chunk = compilation
-          .chunk_graph
+          .build_chunk_graph_artifact.chunk_graph
           .is_module_in_chunk(&module_dyn.identifier(), chunk_ukey);
         if is_in_chunk {
           federation_runtime_modules.push(*dep_id);

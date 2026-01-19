@@ -121,7 +121,7 @@ impl CssPlugin {
     let mut diagnostics = vec![];
     if let Some(conflicts) = conflicts {
       diagnostics.extend(conflicts.into_iter().map(|conflict| {
-        let chunk = compilation.chunk_by_ukey.expect_get(&conflict.chunk);
+        let chunk = compilation.build_chunk_graph_artifact.chunk_by_ukey.expect_get(&conflict.chunk);
 
         let failed_module = mg
           .module_by_identifier(&conflict.failed_module)
@@ -359,14 +359,14 @@ async fn content_hash(
   chunk_ukey: &ChunkUkey,
   hashes: &mut HashMap<SourceType, RspackHash>,
 ) -> Result<()> {
-  let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+  let chunk = compilation.build_chunk_graph_artifact.chunk_by_ukey.expect_get(chunk_ukey);
   let module_graph = compilation.get_module_graph();
-  let css_import_modules = compilation.chunk_graph.get_chunk_modules_by_source_type(
+  let css_import_modules = compilation.build_chunk_graph_artifact.chunk_graph.get_chunk_modules_by_source_type(
     chunk_ukey,
     SourceType::CssImport,
     module_graph,
   );
-  let css_modules = compilation.chunk_graph.get_chunk_modules_by_source_type(
+  let css_modules = compilation.build_chunk_graph_artifact.chunk_graph.get_chunk_modules_by_source_type(
     chunk_ukey,
     SourceType::Css,
     module_graph,
@@ -405,17 +405,17 @@ async fn render_manifest(
   manifest: &mut Vec<RenderManifestEntry>,
   diagnostics: &mut Vec<Diagnostic>,
 ) -> Result<()> {
-  let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+  let chunk = compilation.build_chunk_graph_artifact.chunk_by_ukey.expect_get(chunk_ukey);
   if matches!(chunk.kind(), ChunkKind::HotUpdate) {
     return Ok(());
   }
   let module_graph = compilation.get_module_graph();
-  let css_import_modules = compilation.chunk_graph.get_chunk_modules_by_source_type(
+  let css_import_modules = compilation.build_chunk_graph_artifact.chunk_graph.get_chunk_modules_by_source_type(
     chunk_ukey,
     SourceType::CssImport,
     module_graph,
   );
-  let css_modules = compilation.chunk_graph.get_chunk_modules_by_source_type(
+  let css_modules = compilation.build_chunk_graph_artifact.chunk_graph.get_chunk_modules_by_source_type(
     chunk_ukey,
     SourceType::Css,
     module_graph,
@@ -427,7 +427,7 @@ async fn render_manifest(
   let filename_template = get_css_chunk_filename_template(
     chunk,
     &compilation.options.output,
-    &compilation.chunk_group_by_ukey,
+    &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
   );
   let mut asset_info = AssetInfo::default().with_asset_type(ManifestAssetType::Css);
   let unused_idents = Self::get_chunk_unused_local_idents(compilation, chunk, &css_modules);

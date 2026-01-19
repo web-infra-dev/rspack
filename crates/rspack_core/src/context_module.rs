@@ -455,8 +455,8 @@ impl ContextModule {
     let mut items = block_and_first_dependency_list
       .filter_map(|(b, d)| {
         let chunks = compilation
-          .chunk_graph
-          .get_block_chunk_group(&b.identifier(), &compilation.chunk_group_by_ukey)
+          .build_chunk_graph_artifact.chunk_graph
+          .get_block_chunk_group(&b.identifier(), &compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
           .map(|chunk_group| {
             let chunks = &chunk_group.chunks;
             if !chunks.is_empty() {
@@ -506,7 +506,7 @@ impl ContextModule {
           if let Some(chunks) = chunks {
             array_start.extend(chunks.iter().map(|c| {
               let chunk_id = compilation
-                .chunk_by_ukey
+                .build_chunk_graph_artifact.chunk_by_ukey
                 .expect_get(c)
                 .id()
                 .expect("should have chunk id in code generation");
