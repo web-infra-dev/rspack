@@ -60,7 +60,8 @@ jobs:
     uses: ./.github/workflows/reusable-build.yml
     with:
       target: x86_64-unknown-linux-gnu
-      runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
+      runner: ${{ vars.CI_LINUX_BUILD_RUNNER || '"ubuntu-22.04"' }}
+      test-runner: ${{ vars.CI_LINUX_TEST_RUNNER || '"ubuntu-22.04"' }}
       test: true
       bench: true
       prefer_docker: false
@@ -73,8 +74,8 @@ jobs:
     with:
       target: x86_64-pc-windows-msvc
       profile: 'dev'
-      runner: ${{ vars.WINDOWS_SELF_HOSTED_RUNNER_LABELS || '"windows-latest"' }}
-      test-runner: '"windows-latest"'
+      runner: ${{ vars.CI_WINDOWS_BUILD_RUNNER || '"windows-latest"' }}
+      test-runner: ${{ vars.CI_WINDOWS_TEST_RUNNER || '"windows-latest"' }}
       test: true
 
   test-mac:
@@ -85,7 +86,7 @@ jobs:
     with:
       target: aarch64-apple-darwin
       profile: 'ci'
-      runner: ${{ vars.MAC_SELF_HOSTED_RUNNER_LABELS || '"macos-latest"' }}
+      runner: ${{ vars.CI_MACOS_BUILD_RUNNER || '"macos-latest"' }}
       test-runner: ${{ '"macos-latest"' }}
       test: true
 
@@ -97,7 +98,8 @@ jobs:
     with:
       target: wasm32-wasip1-threads
       profile: 'ci'
-      runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
+      runner: ${{ vars.CI_LINUX_BUILD_RUNNER || '"ubuntu-22.04"' }}
+      test-runner: ${{ vars.CI_LINUX_TEST_RUNNER || '"ubuntu-22.04"' }}
       test: true
 
   check-codspeed:
@@ -120,7 +122,7 @@ jobs:
   check-cache:
     name: Check Cache Portable
     needs: [test-linux, test-windows]
-    runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"') }}
+    runs-on: ubuntu-22.04
     steps:
       - name: Checkout
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
