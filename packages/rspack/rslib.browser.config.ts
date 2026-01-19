@@ -1,14 +1,41 @@
-// TODO: refactor pure ESM and verify browser behavior
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import vm from 'node:vm';
 import { pluginNodePolyfill } from '@rsbuild/plugin-node-polyfill';
-import { defineConfig, type rsbuild, rspack } from '@rslib/core';
+import { defineConfig, type RsbuildPlugin, rspack } from '@rslib/core';
+import packageJson from './package.json' with { type: 'json' };
 
 const bindingDir = path.resolve('../../crates/node_binding');
 const distDir = path.resolve('../rspack-browser/dist');
 
 const MF_RUNTIME_CODE = await getModuleFederationRuntimeCode();
+
+// This plugin removes `createRequire` usages from the code,
+// since `createRequire` is not available in browser environment.
+const removeCreateRequirePlugin: RsbuildPlugin = {
+  name: 'remove-create-require',
+  setup(api) {
+    api.transform({ test: /\.(ts)$/ }, ({ code, resourcePath }) => {
+      if (
+        resourcePath.includes('node_modules') ||
+        !code.includes('createRequire')
+      ) {
+        return code;
+      }
+
+      return (
+        code
+          // remove `import { createRequire } from 'node:module'`
+          .replace(
+            /import\s+\{\s*createRequire\s*\}\s+from\s+['"](node:)?module['"];?/g,
+            '',
+          )
+          // remove `const require = createRequire(import.meta.url)`
+          .replace(/const\s+require\s*=\s*createRequire\([^)]*\);?/g, '')
+      );
+    });
+  },
+};
 
 export default defineConfig({
   lib: [
@@ -27,7 +54,6 @@ export default defineConfig({
       format: 'iife',
       syntax: 'es2023',
       dts: false,
-      autoExtension: false,
       source: {
         entry: {
           worker: {
@@ -79,28 +105,29 @@ export default defineConfig({
     }),
     replaceDtsPlugin(),
     copyRspackBrowserRuntimePlugin(),
+    removeCreateRequirePlugin,
   ],
   source: {
     tsconfigPath: './tsconfig.browser.json',
     define: {
-      WEBPACK_VERSION: JSON.stringify(require('./package.json').webpackVersion),
-      RSPACK_VERSION: JSON.stringify(require('./package.json').version),
+      WEBPACK_VERSION: JSON.stringify(packageJson.webpackVersion),
+      RSPACK_VERSION: JSON.stringify(packageJson.version),
       IS_BROWSER: JSON.stringify(true),
       // In `@rspack/browser`, runtime code like loaders and hmr should be written into something like memfs ahead of time.
       // Requiring these files should resolve to `@rspack/browser/xx`
-      __dirname: JSON.stringify('@rspack/browser'),
+      'import.meta.dirname': JSON.stringify('@rspack/browser'),
       // Runtime code
       MF_RUNTIME_CODE: JSON.stringify(MF_RUNTIME_CODE),
     },
   },
-  tools: {
-    bundlerChain: (chain, { CHAIN_ID }) => {
-      // remove the entry loader in Rslib to avoid
-      // "Cannot access 'Compiler' before initialization" error caused by circular dependency
-      chain.module
-        .rule(`Rslib:${CHAIN_ID.RULE.JS}-entry-loader`)
-        .uses.delete('rsbuild:lib-entry-module');
+  resolve: {
+    alias: {
+      '../compiled/watchpack/index.js': path.dirname(
+        require.resolve('watchpack/package.json'),
+      ),
     },
+  },
+  tools: {
     rspack: (config, { rspack }) => {
       config.plugins.push(
         new rspack.IgnorePlugin({
@@ -127,7 +154,7 @@ export default defineConfig({
  * 1. Wraps `new Worker("./wasi-worker-browser.mjs", import.meta.url)` inside `importScripts`.
  * 2. Retrieves the WebAssembly module URL from the global variable `window.RSPACK_WASM_URL`.
  */
-function copyRspackBrowserRuntimePlugin(): rsbuild.RsbuildPlugin {
+function copyRspackBrowserRuntimePlugin(): RsbuildPlugin {
   return {
     name: 'copy-rspack-browser-runtime-plugin',
     setup(api) {
@@ -167,7 +194,7 @@ function copyRspackBrowserRuntimePlugin(): rsbuild.RsbuildPlugin {
  * The reason that we don't use `paths` in `tsconfig.json` is that it can't rewrite the module idents in `declare module`,
  * so we decided to simply replace all instances of it.
  */
-function replaceDtsPlugin(): rsbuild.RsbuildPlugin {
+function replaceDtsPlugin(): RsbuildPlugin {
   return {
     name: 'replace-dts-plugin',
     setup(api) {
@@ -193,20 +220,20 @@ function replaceDtsPlugin(): rsbuild.RsbuildPlugin {
 
           // There are three cases that @rspack/binding may be used
           // 1. import("@rspack/binding").XXX
-          // 2. import { XX } from "@rspack/binding"
-          // 3. declare module "@rspack/binding" { XX }
+          // 2. import { XX } from '@rspack/binding'
+          // 3. declare module '@rspack/binding' { XX }
           const replacedDts = dts
             .replaceAll(
               'import("@rspack/binding")',
               `import("${relativeBindingDts}")`,
             )
             .replaceAll(
-              'from "@rspack/binding"',
-              `from "${relativeBindingDts}"`,
+              `from '@rspack/binding'`,
+              `from '${relativeBindingDts}'`,
             )
             .replaceAll(
-              'declare module "@rspack/binding"',
-              `declare module "${relativeBindingDts}"`,
+              `declare module '@rspack/binding'`,
+              `declare module '${relativeBindingDts}'`,
             );
           await fs.writeFile(filePath, replacedDts);
         }

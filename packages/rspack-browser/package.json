@@ -5,7 +5,6 @@
   "license": "MIT",
   "description": "Rspack for running in the browser. This is still in early stage and may not follow the semver.",
   "type": "module",
-  "main": "./dist/index.mjs",
   "types": "./dist/browser/index.d.ts",
   "publishConfig": {
     "access": "public",
@@ -14,7 +13,7 @@
   "exports": {
     ".": {
       "types": "./dist/browser/index.d.ts",
-      "default": "./dist/index.mjs"
+      "default": "./dist/index.js"
     },
     "./wasi-worker-browser.mjs": "./wasi-worker-browser.mjs",
     "./package.json": "./package.json"
