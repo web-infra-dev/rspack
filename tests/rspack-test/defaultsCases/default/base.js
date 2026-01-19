@@ -369,7 +369,7 @@ module.exports = {
 			    hashFunction: xxhash64,
 			    hashSalt: undefined,
 			    hotUpdateChunkFilename: [id].[fullhash].hot-update.js,
-			    hotUpdateGlobal: webpackHotUpdate_rspack_tests,
+			    hotUpdateGlobal: rspackHotUpdate_rspack_tests,
 			    hotUpdateMainFilename: [runtime].[fullhash].hot-update.json,
 			    iife: true,
 			    importFunctionName: import,

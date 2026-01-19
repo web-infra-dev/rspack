@@ -33,7 +33,7 @@ const SELF_HANDLER = (file: string, options: RspackOptions): string[] => {
     res = Object.keys(modules);
   };
   const hotUpdateGlobalKey = escapeLocalName(
-    `${options.output?.hotUpdateGlobal || 'webpackHotUpdate'}${
+    `${options.output?.hotUpdateGlobal || 'rspackHotUpdate'}${
       options.output?.uniqueName || ''
     }`,
   );

@@ -32,8 +32,8 @@ module.exports = {
 			@@ ... @@
 			-     "enabledLibraryTypes": Array [],
 			@@ ... @@
-			-     "hotUpdateGlobal": "webpackHotUpdate_rspack_tests",
-			+     "hotUpdateGlobal": "webpackHotUpdate_name_my_name_Lib_name_",
+			-     "hotUpdateGlobal": "rspackHotUpdate_rspack_tests",
+			+     "hotUpdateGlobal": "rspackHotUpdate_name_my_name_Lib_name_",
 			@@ ... @@
 			-     "library": undefined,
 			+     "library": Object {
