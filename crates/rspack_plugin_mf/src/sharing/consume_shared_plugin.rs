@@ -9,10 +9,10 @@ use regex::Regex;
 use rspack_cacheable::cacheable;
 use rspack_core::{
   BoxModule, ChunkUkey, Compilation, CompilationAdditionalTreeRuntimeRequirements,
-  CompilationParams, CompilerThisCompilation, Context, DependencyCategory, DependencyType,
-  ModuleExt, ModuleFactoryCreateData, NormalModuleCreateData, NormalModuleFactoryCreateModule,
-  NormalModuleFactoryFactorize, Plugin, ResolveOptionsWithDependencyType, ResolveResult, Resolver,
-  RuntimeGlobals,
+  CompilationFinishModules, CompilationParams, CompilerThisCompilation, Context, DependenciesBlock,
+  DependencyCategory, DependencyType, ModuleExt, ModuleFactoryCreateData, NormalModuleCreateData,
+  NormalModuleFactoryCreateModule, NormalModuleFactoryFactorize, Plugin,
+  ResolveOptionsWithDependencyType, ResolveResult, Resolver, RuntimeGlobals,
 };
 use rspack_error::{Diagnostic, Result, error};
 use rspack_fs::ReadableFileSystem;
@@ -397,6 +397,111 @@ async fn this_compilation(
   Ok(())
 }
 
+#[plugin_hook(CompilationFinishModules for ConsumeSharedPlugin, stage = 10)]
+async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
+  // Add finishModules hook to copy buildMeta/buildInfo from fallback modules *after* webpack's export analysis.
+  // Running earlier caused parity regressions, so we intentionally execute later than plugins like FlagDependencyExportsPlugin,
+  // matching the behaviour in the module-federation/core repo. This still happens before seal (see webpack's Compilation.js).
+
+  let (consume_updates, missing_fallbacks) = {
+    let module_graph = compilation.get_module_graph();
+    let mut updates = Vec::new();
+    let mut missing = Vec::new();
+
+    for (module_id, module) in module_graph.modules() {
+      let Some(consume_shared) = module.as_any().downcast_ref::<ConsumeSharedModule>() else {
+        continue;
+      };
+
+      let options = consume_shared.get_options();
+
+      let Some(import_request) = options.import.as_ref() else {
+        continue;
+      };
+
+      let fallback_id = if options.eager {
+        module.get_dependencies().iter().find_map(|dep_id| {
+          module_graph
+            .dependency_by_id(dep_id)
+            .filter(|dep| matches!(dep.dependency_type(), DependencyType::ConsumeSharedFallback))
+            .and_then(|_| {
+              module_graph
+                .module_identifier_by_dependency_id(dep_id)
+                .copied()
+            })
+        })
+      } else {
+        module.get_blocks().iter().find_map(|block_id| {
+          module_graph.block_by_id(block_id).and_then(|block| {
+            block.get_dependencies().iter().find_map(|dep_id| {
+              module_graph
+                .dependency_by_id(dep_id)
+                .filter(|dep| {
+                  matches!(dep.dependency_type(), DependencyType::ConsumeSharedFallback)
+                })
+                .and_then(|_| {
+                  module_graph
+                    .module_identifier_by_dependency_id(dep_id)
+                    .copied()
+                })
+            })
+          })
+        })
+      };
+
+      if let Some(fallback_id) = fallback_id {
+        if let Some(fallback_module) = module_graph.module_by_identifier(&fallback_id) {
+          updates.push((
+            module_id,
+            fallback_module.build_meta().clone(),
+            fallback_module.build_info().clone(),
+          ));
+        } else {
+          missing.push((module_id, import_request.clone()));
+        }
+      } else {
+        missing.push((module_id, import_request.clone()));
+      }
+    }
+
+    (updates, missing)
+  };
+
+  if !consume_updates.is_empty() {
+    let mut module_graph_mut = compilation.get_module_graph_mut();
+    for (module_id, fallback_meta, fallback_info) in consume_updates {
+      if let Some(consume_module) = module_graph_mut.module_by_identifier_mut(&module_id) {
+        // Copy buildMeta and buildInfo following webpack's DelegatedModule pattern: this.buildMeta = { ...delegateData.buildMeta };
+        // This ensures ConsumeSharedModule inherits ESM/CJS detection (exportsType) and other optimization metadata
+        *consume_module.build_meta_mut() = fallback_meta;
+        *consume_module.build_info_mut() = fallback_info;
+      }
+      // Mark all exports as provided to avoid later export analysis from pruning fallback-provided exports.
+      let exports_info = module_graph_mut.get_exports_info(&module_id);
+      exports_info.set_unknown_exports_provided(
+        &mut module_graph_mut,
+        false,
+        None,
+        None,
+        None,
+        None,
+      );
+    }
+  }
+
+  for (module_id, request) in missing_fallbacks {
+    compilation.push_diagnostic(Diagnostic::warn(
+      "ConsumeSharedFallbackMissing".into(),
+      format!(
+        "Fallback module for '{}' not found; skipping build meta copy for module '{}'",
+        request, module_id
+      ),
+    ));
+  }
+
+  Ok(())
+}
+
 #[plugin_hook(NormalModuleFactoryFactorize for ConsumeSharedPlugin)]
 async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<BoxModule>> {
   let dep = data.dependencies[0]
@@ -515,6 +620,10 @@ impl Plugin for ConsumeSharedPlugin {
       .compilation_hooks
       .additional_tree_runtime_requirements
       .tap(additional_tree_runtime_requirements::new(self));
+    ctx
+      .compilation_hooks
+      .finish_modules
+      .tap(finish_modules::new(self));
     Ok(())
   }
 }
