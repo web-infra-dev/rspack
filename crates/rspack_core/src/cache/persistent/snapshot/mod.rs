@@ -17,6 +17,14 @@ use crate::FutureConsumer;
 
 pub const SCOPE: &str = "snapshot";
 
+#[derive(Debug, Clone, Copy)]
+pub enum SnapshotType {
+  FILE,
+  CONTEXT,
+  MISSING,
+  BUILD,
+}
+
 /// Snapshot is used to check if files have been modified or deleted.
 ///
 /// Snapshot will generate `Strategy` for target file, and check the modification
@@ -66,6 +74,7 @@ impl Snapshot {
     options: &Arc<SnapshotOptions>,
     helper: &Arc<StrategyHelper>,
     path: &ArcPath,
+    snapshot_type: SnapshotType,
   ) -> Option<Strategy> {
     let path_str = path.to_string_lossy();
     if options.is_immutable_path(&path_str) {
@@ -76,14 +85,15 @@ impl Snapshot {
     {
       return Some(v);
     }
-    if let Some(h) = helper.path_hash(path).await {
-      return Some(h);
-    }
-    Some(Strategy::Missing)
+    Some(match snapshot_type {
+      SnapshotType::FILE => helper.file_hash(path).await,
+      SnapshotType::MISSING => Strategy::Missing,
+      SnapshotType::CONTEXT | SnapshotType::BUILD => helper.dir_hash(path).await,
+    })
   }
 
   #[tracing::instrument("Cache::Snapshot::add", skip_all)]
-  pub async fn add(&self, paths: impl Iterator<Item = ArcPath>) {
+  pub async fn add(&self, paths: impl Iterator<Item = ArcPath>, snapshot_type: SnapshotType) {
     let helper = Arc::new(StrategyHelper::new(self.fs.clone()));
     let codec = self.codec.clone();
     // TODO merge package version file
@@ -93,7 +103,7 @@ impl Snapshot {
         let options = self.options.clone();
         let codec = codec.clone();
         async move {
-          let strategy = Self::calc_strategy(&options, &helper, &path).await?;
+          let strategy = Self::calc_strategy(&options, &helper, &path, snapshot_type).await?;
           Some((
             codec.encode(&path).expect("should encode success"),
             codec.encode(&strategy).expect("should encode success"),
@@ -165,7 +175,7 @@ mod tests {
 
   use super::{
     super::{codec::CacheCodec, storage::MemoryStorage},
-    PathMatcher, Snapshot, SnapshotOptions,
+    PathMatcher, Snapshot, SnapshotOptions, SnapshotType,
   };
 
   macro_rules! p {
@@ -223,6 +233,7 @@ mod tests {
           p!("/node_modules/lib/file1"),
         ]
         .into_iter(),
+        SnapshotType::FILE,
       )
       .await;
     std::thread::sleep(std::time::Duration::from_millis(100));
@@ -253,7 +264,9 @@ mod tests {
     )
     .await
     .unwrap();
-    snapshot.add([p!("/file1")].into_iter()).await;
+    snapshot
+      .add([p!("/file1")].into_iter(), SnapshotType::FILE)
+      .await;
     let (is_hot_start, modified_paths, deleted_paths, no_change_paths) =
       snapshot.calc_modified_paths().await.unwrap();
     assert!(is_hot_start);

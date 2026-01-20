@@ -10,7 +10,7 @@ use rustc_hash::FxHashSet as HashSet;
 use self::helper::{Helper, is_node_package_path};
 use super::{
   codec::CacheCodec,
-  snapshot::{Snapshot, SnapshotOptions},
+  snapshot::{Snapshot, SnapshotOptions, SnapshotType},
   storage::Storage,
 };
 
@@ -84,7 +84,10 @@ impl BuildDeps {
       }
     }
 
-    self.snapshot.add(new_deps.into_iter()).await;
+    self
+      .snapshot
+      .add(new_deps.into_iter(), SnapshotType::BUILD)
+      .await;
     helper.into_warnings()
   }
 

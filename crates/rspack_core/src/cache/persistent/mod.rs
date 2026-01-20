@@ -22,7 +22,7 @@ use self::{
   build_dependencies::{BuildDeps, BuildDepsOptions},
   codec::CacheCodec,
   occasion::{MakeOccasion, MetaOccasion},
-  snapshot::{Snapshot, SnapshotOptions},
+  snapshot::{Snapshot, SnapshotOptions, SnapshotType},
   storage::{Storage, StorageOptions, create_storage},
 };
 use super::Cache;
@@ -169,18 +169,10 @@ impl Cache for PersistentCache {
 
     // save snapshot
     // TODO add a all_dependencies to collect dependencies
-    let (_, file_added, file_removed) = compilation.file_dependencies();
-    let (_, context_added, context_removed) = compilation.context_dependencies();
-    let (_, missing_added, missing_removed) = compilation.missing_dependencies();
-    let (_, build_added, _) = compilation.build_dependencies();
-    let modified_paths: ArcPathSet = compilation
-      .modified_files
-      .iter()
-      .chain(file_added)
-      .chain(missing_added)
-      .chain(context_added)
-      .cloned()
-      .collect();
+    let (_, file_added, file_updated, file_removed) = compilation.file_dependencies();
+    let (_, context_added, context_updated, context_removed) = compilation.context_dependencies();
+    let (_, missing_added, missing_updated, missing_removed) = compilation.missing_dependencies();
+    let (_, build_added, build_updated, _) = compilation.build_dependencies();
     let removed_paths: ArcPathSet = compilation
       .removed_files
       .iter()
@@ -190,10 +182,30 @@ impl Cache for PersistentCache {
       .cloned()
       .collect();
     self.snapshot.remove(removed_paths.into_iter());
-    self.snapshot.add(modified_paths.into_iter()).await;
     self
-      .warnings
-      .extend(self.build_deps.add(build_added.cloned()).await);
+      .snapshot
+      .add(file_added.chain(file_updated).cloned(), SnapshotType::FILE)
+      .await;
+    self
+      .snapshot
+      .add(
+        context_added.chain(context_updated).cloned(),
+        SnapshotType::CONTEXT,
+      )
+      .await;
+    self
+      .snapshot
+      .add(
+        missing_added.chain(missing_updated).cloned(),
+        SnapshotType::MISSING,
+      )
+      .await;
+    self.warnings.extend(
+      self
+        .build_deps
+        .add(build_added.chain(build_updated).cloned())
+        .await,
+    );
 
     self.save().await;
 
