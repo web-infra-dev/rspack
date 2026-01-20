@@ -27,8 +27,9 @@ export function defaultTargetsFromRspackTargets(
   };
   const result: Record<string, number> = {};
   for (const [k, v] of Object.entries(targets)) {
-    const name = REMAP[k] ?? k;
-    if (name === null) continue;
+    const remap = REMAP[k];
+    if (remap === null) continue;
+    const name = remap || k;
     const version = encodeVersion(v);
     if (version === null) continue;
     result[name] = version;

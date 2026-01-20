@@ -10,6 +10,7 @@
 
 import binding from '@rspack/binding';
 import { findConfig } from 'browserslist-load-config';
+import { browsersToESVersion } from 'browserslist-to-es-version/core';
 import { memoize } from '../util/memoize';
 import { decodeVersion, encodeVersion } from '../util/targetsVersion';
 import * as browserslistTargetHandler from './browserslistTargetHandler';
@@ -116,83 +117,6 @@ export type TargetProperties = Mix<
 > &
   ExtractedTargetProperties;
 
-// modify based on https://github.com/rstackjs/browserslist-to-es-version/blob/a6c1be0afef412fc288d6a2214d307e8f2e647cf/src/index.ts
-function browsersToESVersion(browsers: string[]) {
-  // The minimal version for [es2015, es2016, es2017, es2018, es2019, es2020, es2021, es2022]
-  const ES_VERSIONS_MAP: Record<string, number[]> = {
-    chrome: [51, 52, 57, 64, 73, 80, 85, 94],
-    edge: [15, 15, 15, 79, 79, 80, 85, 94],
-    safari: [10, 10.3, 11, 16.4, 17, 17, 17, 17],
-    firefox: [54, 54, 54, 78, 78, 80, 80, 93],
-    opera: [38, 39, 44, 51, 60, 67, 71, 80],
-    samsung: [5, 6.2, 6.2, 8.2, 11.1, 13, 14, 17],
-  };
-
-  const aliases: Record<string, string> = {
-    ios_saf: 'safari',
-    and_chr: 'chrome',
-    and_ff: 'firefox',
-  };
-
-  const renameBrowser = (name: string) => {
-    return aliases[name] || name;
-  };
-
-  // SWC minifier only supports up to 2022
-  let esVersion = 2022;
-
-  for (const item of browsers) {
-    const pairs = item.split(' ');
-
-    // skip invalid item
-    if (pairs.length < 2) {
-      continue;
-    }
-
-    const browser = renameBrowser(pairs[0]);
-    const version = Number(pairs[1].split('-')[0]);
-
-    // ignore unknown version
-    if (Number.isNaN(version)) {
-      continue;
-    }
-
-    // IE / Android 4.x ~ 5.x only supports es5
-    if (browser === 'ie' || (browser === 'android' && version < 6)) {
-      esVersion = 5;
-      break;
-    }
-
-    // skip unknown browsers
-    const versions = ES_VERSIONS_MAP[browser];
-    if (!versions) {
-      continue;
-    }
-
-    if (version < versions[0]) {
-      esVersion = Math.min(5, esVersion);
-    } else if (version < versions[1]) {
-      esVersion = Math.min(2015, esVersion);
-    } else if (version < versions[2]) {
-      esVersion = Math.min(2016, esVersion);
-    } else if (version < versions[3]) {
-      esVersion = Math.min(2017, esVersion);
-    } else if (version < versions[4]) {
-      esVersion = Math.min(2018, esVersion);
-    } else if (version < versions[5]) {
-      esVersion = Math.min(2019, esVersion);
-    } else if (version < versions[6]) {
-      esVersion = Math.min(2020, esVersion);
-    } else if (version < versions[7]) {
-      esVersion = Math.min(2021, esVersion);
-    } else if (version < versions[8]) {
-      esVersion = Math.min(2022, esVersion);
-    }
-  }
-
-  return esVersion;
-}
-
 /**
  * @param major major version
  * @param minor minor version
@@ -247,22 +171,23 @@ You can also more options via the 'target' option: 'browserslist' / 'browserslis
 
       const browserslistTargetHandler = getBrowserslistTargetHandler();
 
-      const targets: Record<string, number> = {};
+      const encodedTargets: Record<string, number> = {};
       for (const p of browsers) {
         const [name, v] = p.split(' ');
         const version = encodeVersion(v);
         if (version === null) continue;
 
-        if (!targets[name] || version < targets[name]) {
-          targets[name] = version;
+        if (!encodedTargets[name] || version < encodedTargets[name]) {
+          encodedTargets[name] = version;
         }
       }
+      const targets = Object.fromEntries(
+        Object.entries(encodedTargets).map(([k, v]) => [k, decodeVersion(v)]),
+      );
 
       return {
         ...browserslistTargetHandler.resolve(browsers),
-        targets: Object.fromEntries(
-          Object.entries(targets).map(([k, v]) => [k, decodeVersion(v)]),
-        ),
+        targets,
         esVersion: browsersToESVersion(browsers),
       };
     },

@@ -32,8 +32,9 @@ function defaultTargetFromRspackTargets(targets: Record<string, string>) {
   };
   const result: Record<string, string> = {};
   for (const [k, version] of Object.entries(targets)) {
-    const name = REMAP[k] ?? k;
-    if (name === null) continue;
+    const remap = REMAP[k];
+    if (remap === null) continue;
+    const name = remap || k;
     result[name] = version;
   }
   return result;

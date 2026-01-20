@@ -54,6 +54,7 @@
     "@types/node": "^20.19.29",
     "@types/watchpack": "^2.4.5",
     "browserslist-load-config": "^1.0.1",
+    "browserslist-to-es-version": "^1.4.1",
     "enhanced-resolve": "5.18.4",
     "glob-to-regexp": "^0.4.1",
     "memfs": "4.53.0",

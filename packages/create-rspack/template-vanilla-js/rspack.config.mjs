@@ -6,7 +6,7 @@ export default defineConfig({
   entry: {
     main: './src/index.js',
   },
-  target: ['browserslist:defaults'],
+  target: ['browserslist:last 2 versions, > 0.2%, not dead, Firefox ESR'],
   module: {
     rules: [
       {
