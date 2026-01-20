@@ -11,7 +11,7 @@ module.exports = {
 		expect(
 			stats
 				?.toString({ all: false, logging: "verbose" })
-				.replace(/\d+ ms/g, "X ms")
+				.replace(/[0-9]+(?:\.[0-9]+)? (?:ms|s)/g, "X ms")
 		).toMatchInlineSnapshot(`
 			LOG from rspack.Compilation
 			<t> finish modules: X ms
