@@ -2130,10 +2130,9 @@ export interface RawEvalDevToolModulePluginOptions {
 }
 
 export interface RawExperiments {
-incremental?: false | { [key: string]: boolean }
-useInputFileSystem?: false | Array<RegExp>
-css?: boolean
-deferImport: boolean
+  useInputFileSystem?: false | Array<RegExp>
+  css?: boolean
+  deferImport: boolean
 }
 
 export interface RawExposeOptions {
@@ -2592,11 +2591,12 @@ export interface RawOptions {
   stats: RawStatsOptions
   cache: boolean | { type: "memory" } | ({ type: "persistent" } & RawCacheOptionsPersistent)
   experiments: RawExperiments
-  node?: RawNodeOption
-  amd?: string
-  bail: boolean
-  __references: Record<string, any>
-  __virtual_files?: Array<JsVirtualFile>
+incremental?: false | { [key: string]: boolean }
+node?: RawNodeOption
+amd?: string
+bail: boolean
+__references: Record<string, any>
+__virtual_files?: Array<JsVirtualFile>
 }
 
 export interface RawOutputOptions {

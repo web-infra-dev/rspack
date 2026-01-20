@@ -97,6 +97,13 @@ impl IncrementalOptions {
       passes: IncrementalPasses::empty(),
     }
   }
+
+  pub fn advanced_silent() -> Self {
+    Self {
+      silent: true,
+      passes: IncrementalPasses::all() - IncrementalPasses::BUILD_CHUNK_GRAPH,
+    }
+  }
 }
 
 enum IncrementalState {

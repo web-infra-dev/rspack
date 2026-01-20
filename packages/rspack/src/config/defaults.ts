@@ -92,6 +92,8 @@ export const applyRspackOptionsDefaults = (
   // but Rspack currently does not support this option
   F(options, 'cache', () => development);
 
+  applyIncrementalDefaults(options);
+
   applyExperimentsDefaults(options.experiments);
 
   applyOptimizationDefaults(options.optimization, {
@@ -219,30 +221,31 @@ const applyExperimentsDefaults = (experiments: ExperimentsNormalized) => {
     // D(experiments.buildHttp, "frozen", false);
   }
 
-  // IGNORE(experiments.incremental): Rspack specific configuration for incremental
-  D(experiments, 'incremental', {});
-  if (typeof experiments.incremental === 'object') {
-    D(experiments.incremental, 'silent', true);
-    D(experiments.incremental, 'make', true);
-    D(experiments.incremental, 'inferAsyncModules', true);
-    D(experiments.incremental, 'providedExports', true);
-    D(experiments.incremental, 'dependenciesDiagnostics', true);
-    D(experiments.incremental, 'sideEffects', true);
-    D(experiments.incremental, 'buildChunkGraph', false);
-    D(experiments.incremental, 'moduleIds', true);
-    D(experiments.incremental, 'chunkIds', true);
-    D(experiments.incremental, 'modulesHashes', true);
-    D(experiments.incremental, 'modulesCodegen', true);
-    D(experiments.incremental, 'modulesRuntimeRequirements', true);
-    D(experiments.incremental, 'chunksRuntimeRequirements', true);
-    D(experiments.incremental, 'chunksHashes', true);
-    D(experiments.incremental, 'chunksRender', true);
-    D(experiments.incremental, 'emitAssets', true);
-  }
-
   // IGNORE(experiments.useInputFileSystem): Rspack specific configuration
   // Enable `useInputFileSystem` will introduce much more fs overheads,  So disable by default.
   D(experiments, 'useInputFileSystem', false);
+};
+
+const applyIncrementalDefaults = (options: RspackOptionsNormalized) => {
+  D(options, 'incremental', {});
+  if (typeof options.incremental === 'object') {
+    D(options.incremental, 'silent', true);
+    D(options.incremental, 'make', true);
+    D(options.incremental, 'inferAsyncModules', true);
+    D(options.incremental, 'providedExports', true);
+    D(options.incremental, 'dependenciesDiagnostics', true);
+    D(options.incremental, 'sideEffects', true);
+    D(options.incremental, 'buildChunkGraph', false);
+    D(options.incremental, 'moduleIds', true);
+    D(options.incremental, 'chunkIds', true);
+    D(options.incremental, 'modulesHashes', true);
+    D(options.incremental, 'modulesCodegen', true);
+    D(options.incremental, 'modulesRuntimeRequirements', true);
+    D(options.incremental, 'chunksRuntimeRequirements', true);
+    D(options.incremental, 'chunksHashes', true);
+    D(options.incremental, 'chunksRender', true);
+    D(options.incremental, 'emitAssets', true);
+  }
 };
 
 const applySnapshotDefaults = (

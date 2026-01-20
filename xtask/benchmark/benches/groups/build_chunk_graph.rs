@@ -118,7 +118,7 @@ pub fn build_chunk_graph_benchmark_inner(c: &mut Criterion) {
     .input_filesystem(fs.clone())
     .output_filesystem(fs.clone())
     .optimization(Optimization::builder().remove_available_modules(true))
-    .experiments(Experiments::builder().incremental(IncrementalOptions::empty_passes()))
+    .incremental(IncrementalOptions::empty_passes())
     .build()
     .unwrap();
 
@@ -137,7 +137,7 @@ pub fn build_chunk_graph_benchmark_inner(c: &mut Criterion) {
       compiler.loader_resolver_factory.clone(),
       None,
       compiler.old_cache.clone(),
-      Incremental::new_cold(compiler.options.experiments.incremental),
+      Incremental::new_cold(compiler.options.incremental),
       Some(Default::default()),
       Default::default(),
       Default::default(),

@@ -2776,10 +2776,6 @@ export type Experiments = {
    */
   css?: boolean;
   /**
-   * Enable incremental builds.
-   */
-  incremental?: IncrementalPresets | Incremental;
-  /**
    * Enable future default options.
    * @default false
    */
@@ -3064,6 +3060,11 @@ export type RspackOptions = {
    * @default false
    */
   lazyCompilation?: boolean | LazyCompilationOptions;
+
+  /**
+   * Enable incremental builds.
+   */
+  incremental?: IncrementalPresets | Incremental;
 };
 
 /** Configuration for Rspack */

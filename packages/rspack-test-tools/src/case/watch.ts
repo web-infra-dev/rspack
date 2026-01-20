@@ -381,7 +381,7 @@ function overrideOptions(
   (options as RspackOptions).output!.bundlerInfo ??= {};
   (options as RspackOptions).output!.bundlerInfo!.force ??= false;
   // test incremental: "safe" here, we test default incremental in Incremental-*.test.js
-  (options as RspackOptions).experiments!.incremental ??= 'safe';
+  (options as RspackOptions).incremental ??= 'safe';
 
   if (!global.printLogger) {
     options.infrastructureLogging = {
@@ -410,9 +410,7 @@ function defaultOptions({
 } = {}): RspackOptions {
   if (incremental) {
     return {
-      experiments: {
-        incremental: 'advance',
-      },
+      incremental: 'advance',
       ignoreWarnings: ignoreNotFriendlyForIncrementalWarnings
         ? [/is not friendly for incremental/]
         : undefined,

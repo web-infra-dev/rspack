@@ -347,9 +347,6 @@ export const getNormalizedRspackOptions = (
     experiments: nestedConfig(config.experiments, (experiments) => {
       return {
         ...experiments,
-        incremental: optionalNestedConfig(experiments.incremental, (options) =>
-          getNormalizedIncrementalOptions(options),
-        ),
         buildHttp: experiments.buildHttp,
         useInputFileSystem: experiments.useInputFileSystem,
       };
@@ -361,6 +358,9 @@ export const getNormalizedRspackOptions = (
     bail: config.bail,
     lazyCompilation: optionalNestedConfig(config.lazyCompilation, (options) =>
       options === true ? {} : options,
+    ),
+    incremental: optionalNestedConfig(config.incremental, (options) =>
+      getNormalizedIncrementalOptions(options),
     ),
   };
 };
@@ -615,7 +615,6 @@ export interface ExperimentsNormalized {
   asyncWebAssembly?: boolean;
   outputModule?: boolean;
   css?: boolean;
-  incremental?: false | Incremental;
   futureDefaults?: boolean;
   buildHttp?: HttpUriPluginOptions;
   useInputFileSystem?: false | RegExp[];
@@ -659,6 +658,7 @@ export interface RspackOptionsNormalized {
   plugins: Plugins;
   experiments: ExperimentsNormalized;
   lazyCompilation?: false | LazyCompilationOptions;
+  incremental?: false | Incremental;
   watch?: Watch;
   watchOptions: WatchOptions;
   devServer?: DevServer;
