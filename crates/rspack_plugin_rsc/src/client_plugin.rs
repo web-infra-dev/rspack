@@ -475,14 +475,12 @@ async fn make(&self, compilation: &mut Compilation) -> Result<()> {
   *self.server_compiler_id.borrow_mut() = Some(server_compiler_id);
 
   let plugin_states = PLUGIN_STATES.borrow_mut();
-  let plugin_state = plugin_states
-    .get(&server_compiler_id)
-    .ok_or_else(|| {
-      rspack_error::error!(
-        "RscClientPlugin: Plugin state not found in make hook for compiler {:#?}.",
-        compilation.compiler_id()
-      )
-    })?;
+  let plugin_state = plugin_states.get(&server_compiler_id).ok_or_else(|| {
+    rspack_error::error!(
+      "RscClientPlugin: Plugin state not found in make hook for compiler {:#?}.",
+      compilation.compiler_id()
+    )
+  })?;
 
   let context = compilation.options.context.clone();
   let mut include_dependencies = vec![];
