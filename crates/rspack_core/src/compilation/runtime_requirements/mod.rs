@@ -175,8 +175,7 @@ impl Compilation {
               .get_module_runtimes_iter(module, &compilation.chunk_by_ukey);
             for runtime in runtimes {
               let runtime_requirements = compilation
-                .old_cache
-                .process_runtime_requirements_occasion
+                .process_runtime_requirements_cache_artifact
                 .use_cache(module, runtime, compilation, || async {
                   let mut runtime_requirements = compilation
                     .code_generation_results
@@ -313,57 +312,63 @@ impl Compilation {
 
     let start = logger.time("runtime requirements.entries");
     for &entry_ukey in &entries {
+      let mut all_runtime_requirements = RuntimeGlobals::default();
+      let mut runtime_modules_to_add: Vec<(ChunkUkey, Box<dyn RuntimeModule>)> = Vec::new();
+
       let entry = self.chunk_by_ukey.expect_get(&entry_ukey);
-      let mut set = RuntimeGlobals::default();
       for chunk_ukey in entry
         .get_all_referenced_chunks(&self.chunk_group_by_ukey)
         .iter()
       {
         let runtime_requirements = ChunkGraph::get_chunk_runtime_requirements(self, chunk_ukey);
-        set.insert(*runtime_requirements);
+        all_runtime_requirements.insert(*runtime_requirements);
       }
 
       plugin_driver
         .compilation_hooks
         .additional_tree_runtime_requirements
-        .call(self, &entry_ukey, &mut set)
+        .call(self, &entry_ukey, &mut all_runtime_requirements)
         .await
         .map_err(|e| {
           e.wrap_err("caused by plugins in Compilation.hooks.additionalTreeRuntimeRequirements")
         })?;
 
-      self
-        .process_runtime_requirement_hook_mut(&mut set, {
-          let plugin_driver = plugin_driver.clone();
-          move |compilation,
-                all_runtime_requirements,
-                runtime_requirements,
-                runtime_requirements_mut| {
-            Box::pin({
-              let plugin_driver = plugin_driver.clone();
-              async move {
-                plugin_driver
-                  .compilation_hooks
-                  .runtime_requirement_in_tree
-                  .call(
-                    compilation,
-                    &entry_ukey,
-                    all_runtime_requirements,
-                    runtime_requirements,
-                    runtime_requirements_mut,
-                  )
-                  .await
-                  .map_err(|e| {
-                    e.wrap_err("caused by plugins in Compilation.hooks.runtimeRequirementInTree")
-                  })?;
-                Ok(())
-              }
-            })
+      // Inline process_runtime_requirement_hook logic for runtime_requirement_in_tree
+      {
+        let mut runtime_requirements_to_add = all_runtime_requirements;
+        let mut runtime_requirements_added;
+        loop {
+          runtime_requirements_added = runtime_requirements_to_add;
+          runtime_requirements_to_add = RuntimeGlobals::default();
+          plugin_driver
+            .compilation_hooks
+            .runtime_requirement_in_tree
+            .call(
+              self,
+              &entry_ukey,
+              &all_runtime_requirements,
+              &runtime_requirements_added,
+              &mut runtime_requirements_to_add,
+              &mut runtime_modules_to_add,
+            )
+            .await
+            .map_err(|e| {
+              e.wrap_err("caused by plugins in Compilation.hooks.runtimeRequirementInTree")
+            })?;
+          runtime_requirements_to_add = runtime_requirements_to_add
+            .difference(all_runtime_requirements.intersection(runtime_requirements_to_add));
+          if runtime_requirements_to_add.is_empty() {
+            break;
+          } else {
+            all_runtime_requirements.insert(runtime_requirements_to_add);
           }
-        })
-        .await?;
+        }
+      }
 
-      ChunkGraph::set_tree_runtime_requirements(self, entry_ukey, set);
+      ChunkGraph::set_tree_runtime_requirements(self, entry_ukey, all_runtime_requirements);
+      for (chunk_ukey, module) in runtime_modules_to_add {
+        self.add_runtime_module(&chunk_ukey, module)?;
+      }
     }
 
     // NOTE: webpack runs hooks.runtime_module in compilation.add_runtime_module
