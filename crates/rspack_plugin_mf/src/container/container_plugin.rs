@@ -3,7 +3,8 @@ use std::sync::Arc;
 use rspack_core::{
   ChunkUkey, Compilation, CompilationAdditionalTreeRuntimeRequirements, CompilationParams,
   CompilationRuntimeRequirementInTree, CompilerCompilation, CompilerMake, DependencyType,
-  EntryOptions, EntryRuntime, Filename, LibraryOptions, Plugin, RuntimeGlobals, SourceType,
+  EntryOptions, EntryRuntime, Filename, LibraryOptions, Plugin, RuntimeGlobals, RuntimeModule,
+  SourceType,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -127,19 +128,20 @@ async fn additional_tree_runtime_requirements(
 #[plugin_hook(CompilationRuntimeRequirementInTree for ContainerPlugin)]
 async fn runtime_requirements_in_tree(
   &self,
-  compilation: &mut Compilation,
+  compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
   _all_runtime_requirements: &RuntimeGlobals,
   runtime_requirements: &RuntimeGlobals,
   runtime_requirements_mut: &mut RuntimeGlobals,
+  runtime_modules_to_add: &mut Vec<(ChunkUkey, Box<dyn RuntimeModule>)>,
 ) -> Result<Option<()>> {
   if runtime_requirements.contains(RuntimeGlobals::CURRENT_REMOTE_GET_SCOPE) {
     runtime_requirements_mut.insert(RuntimeGlobals::HAS_OWN_PROPERTY);
     if self.options.enhanced {
-      compilation.add_runtime_module(
-        chunk_ukey,
+      runtime_modules_to_add.push((
+        *chunk_ukey,
         Box::new(ExposeRuntimeModule::new(&compilation.runtime_template)),
-      )?;
+      ));
     }
   }
   Ok(None)

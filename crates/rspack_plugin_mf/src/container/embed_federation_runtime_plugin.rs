@@ -9,7 +9,7 @@ use std::sync::{Arc, Mutex};
 use rspack_core::{
   ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements, CompilationParams,
   CompilationRuntimeRequirementInTree, CompilerCompilation, DependencyId, ModuleIdentifier, Plugin,
-  RuntimeGlobals,
+  RuntimeGlobals, RuntimeModule,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -88,11 +88,12 @@ async fn additional_chunk_runtime_requirements_tree(
 #[plugin_hook(CompilationRuntimeRequirementInTree for EmbedFederationRuntimePlugin)]
 async fn runtime_requirement_in_tree(
   &self,
-  compilation: &mut Compilation,
+  compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
   _all_runtime_requirements: &RuntimeGlobals,
   _runtime_requirements: &RuntimeGlobals,
   _runtime_requirements_mut: &mut RuntimeGlobals,
+  runtime_modules_to_add: &mut Vec<(ChunkUkey, Box<dyn RuntimeModule>)>,
 ) -> Result<Option<()>> {
   let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
 
@@ -118,13 +119,13 @@ async fn runtime_requirement_in_tree(
     };
 
     // Inject EmbedFederationRuntimeModule
-    compilation.add_runtime_module(
-      chunk_ukey,
+    runtime_modules_to_add.push((
+      *chunk_ukey,
       Box::new(EmbedFederationRuntimeModule::new(
         &compilation.runtime_template,
         emro,
       )),
-    )?;
+    ));
   }
 
   Ok(None)
