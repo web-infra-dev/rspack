@@ -13,8 +13,8 @@ use rspack_core::{
   CompilationContentHash, CompilationId, CompilationParams, CompilationRenderManifest,
   CompilationRuntimeRequirementInTree, CompilerCompilation, DependencyType, ManifestAssetType,
   Module, ModuleGraph, ModuleType, ParserAndGenerator, PathData, Plugin, PublicPath,
-  RenderManifestEntry, RuntimeGlobals, RuntimeModuleExt, SelfModuleFactory, SourceType,
-  get_css_chunk_filename_template,
+  RenderManifestEntry, RuntimeGlobals, RuntimeModule, RuntimeModuleExt, SelfModuleFactory,
+  SourceType, get_css_chunk_filename_template,
   rspack_sources::{
     BoxSource, CachedSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt,
   },
@@ -303,11 +303,12 @@ async fn compilation(
 #[plugin_hook(CompilationRuntimeRequirementInTree for CssPlugin)]
 async fn runtime_requirements_in_tree(
   &self,
-  compilation: &mut Compilation,
+  compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
   _all_runtime_requirements: &RuntimeGlobals,
   runtime_requirements: &RuntimeGlobals,
   runtime_requirements_mut: &mut RuntimeGlobals,
+  runtime_modules_to_add: &mut Vec<(ChunkUkey, Box<dyn RuntimeModule>)>,
 ) -> Result<Option<()>> {
   let is_enabled_for_chunk = is_enabled_for_chunk(
     chunk_ukey,
@@ -332,10 +333,10 @@ async fn runtime_requirements_in_tree(
   }
 
   if runtime_requirements.contains(RuntimeGlobals::HAS_CSS_MODULES) {
-    compilation.add_runtime_module(
-      chunk_ukey,
+    runtime_modules_to_add.push((
+      *chunk_ukey,
       CssLoadingRuntimeModule::new(&compilation.runtime_template).boxed(),
-    )?;
+    ));
   }
 
   if runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS) {
