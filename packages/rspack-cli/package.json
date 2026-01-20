@@ -1,6 +1,6 @@
 {
   "name": "@rspack/cli",
-  "version": "1.7.2",
+  "version": "2.0.0-canary.20260120",
   "description": "CLI for rspack",
   "homepage": "https://rspack.rs",
   "bugs": "https://github.com/web-infra-dev/rspack/issues",
