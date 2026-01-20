@@ -1702,7 +1702,13 @@ impl ModuleOptionsBuilder {
           wrapped_context_critical: Some(false),
           wrapped_context_reg_exp: Some(RspackRegex::new(".*").expect("should initialize `Regex`")),
           worker: Some(vec!["...".to_string()]),
-          import_meta: Some(true),
+          import_meta: target_properties.module.map(|val| {
+            if val {
+              ImportMeta::PreserveUnknown
+            } else {
+              ImportMeta::Auto
+            }
+          }),
           require_alias: Some(false),
           require_as_expression: Some(true),
           require_dynamic: Some(true),

@@ -3870,7 +3870,7 @@ export type JavascriptParserOptions = {
     dynamicImportPreload?: boolean | number;
     dynamicImportPrefetch?: boolean | number;
     dynamicImportFetchPriority?: 'low' | 'high' | 'auto';
-    importMeta?: boolean;
+    importMeta?: boolean | 'preserve-unknown';
     url?: 'relative' | 'new-url-relative' | boolean;
     exprContextCritical?: boolean;
     unknownContextCritical?: boolean;

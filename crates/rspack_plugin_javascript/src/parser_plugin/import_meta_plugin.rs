@@ -1,5 +1,5 @@
 use itertools::Itertools;
-use rspack_core::{ConstDependency, property_access};
+use rspack_core::{ConstDependency, ImportMeta, property_access};
 use rspack_error::{Error, Severity};
 use rspack_util::SpanExt;
 use swc_core::{
@@ -18,7 +18,7 @@ use crate::{
   },
 };
 
-pub struct ImportMetaPlugin;
+pub struct ImportMetaPlugin(pub(crate) ImportMeta);
 
 impl ImportMetaPlugin {
   fn import_meta_url(&self, parser: &JavascriptParser) -> String {
@@ -32,11 +32,15 @@ impl ImportMetaPlugin {
   }
 
   fn import_meta_unknown_property(&self, members: &Vec<String>) -> String {
-    format!(
-      r#"/* unsupported import.meta.{} */ undefined{}"#,
-      members.join("."),
-      property_access(members, 1)
-    )
+    if matches!(self.0, ImportMeta::PreserveUnknown) {
+      format!("import.meta{}", property_access(members, 0))
+    } else {
+      format!(
+        r#"/* unsupported import.meta.{} */ undefined{}"#,
+        members.join("."),
+        property_access(members, 1)
+      )
+    }
   }
 
   fn process_import_meta_resolve(
@@ -334,6 +338,10 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
     root_info: &ExportedVariableInfo,
     expr: &swc_core::ecma::ast::MemberExpr,
   ) -> Option<bool> {
+    if matches!(self.0, ImportMeta::PreserveUnknown) {
+      return Some(true);
+    }
+
     match root_info {
       ExportedVariableInfo::Name(root) => {
         if root == expr_name::IMPORT_META {
