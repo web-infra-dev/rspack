@@ -8,6 +8,7 @@ process.env.NO_COLOR = '1';
 const setupFilesAfterEnv = [
 	"@rspack/test-tools/setup-env",
 	"@rspack/test-tools/setup-expect",
+	"./expects/stats-string-comparator.js",
 ];
 
 const wasmConfig = process.env.WASM && defineProject({
