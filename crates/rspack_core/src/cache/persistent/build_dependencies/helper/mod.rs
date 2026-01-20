@@ -1,4 +1,3 @@
-mod utils;
 mod visitor;
 
 use std::sync::Arc;
@@ -14,9 +13,9 @@ use swc_core::{
   common::FileName,
   ecma::{ast::EsVersion, parser::Syntax},
 };
-pub use utils::is_node_package_path;
 
 use self::visitor::DependencyVisitor;
+use super::super::snapshot::is_node_package_path;
 use crate::{Resolve as ResolveOption, ResolveInnerError, ResolveResult, Resolver};
 
 /// A toolkit to recursively calculate files used by build dependencies.

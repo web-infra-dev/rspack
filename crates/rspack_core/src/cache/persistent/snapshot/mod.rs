@@ -1,5 +1,6 @@
 mod option;
 mod strategy;
+mod utils;
 
 use std::sync::Arc;
 
@@ -11,6 +12,7 @@ use self::strategy::{StrategyHelper, ValidateResult};
 pub use self::{
   option::{PathMatcher, SnapshotOptions},
   strategy::Strategy,
+  utils::is_node_package_path,
 };
 use super::{codec::CacheCodec, storage::Storage};
 use crate::FutureConsumer;

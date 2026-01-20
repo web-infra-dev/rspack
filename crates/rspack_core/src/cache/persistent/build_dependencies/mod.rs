@@ -7,10 +7,10 @@ use rspack_fs::ReadableFileSystem;
 use rspack_paths::{ArcPath, ArcPathSet, AssertUtf8};
 use rustc_hash::FxHashSet as HashSet;
 
-use self::helper::{Helper, is_node_package_path};
+use self::helper::Helper;
 use super::{
   codec::CacheCodec,
-  snapshot::{Snapshot, SnapshotOptions},
+  snapshot::{Snapshot, SnapshotOptions, is_node_package_path},
   storage::Storage,
 };
 

@@ -7,6 +7,8 @@ use rspack_fs::ReadableFileSystem;
 use rspack_paths::{ArcPath, ArcPathDashMap, AssertUtf8};
 use rustc_hash::FxHasher;
 
+use super::super::is_node_package_path;
+
 #[derive(Debug, Clone)]
 pub struct ContentHash {
   pub hash: u64,
@@ -35,6 +37,9 @@ impl HashHelper {
   /// Computes the content hash for files or directories at the given path.
   #[async_recursion::async_recursion]
   pub async fn content_hash(&self, path: &ArcPath) -> Option<ContentHash> {
+    if is_node_package_path(path) {
+      return None;
+    }
     if let Some(hash) = self.hash_cache.get(path) {
       return hash.clone();
     }
