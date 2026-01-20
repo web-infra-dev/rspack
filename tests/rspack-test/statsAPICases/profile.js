@@ -10,7 +10,7 @@ module.exports = {
 	},
 	async check(stats) {
 		expect(
-			stats?.toString({ all: false, modules: true }).replace(/\d+ ms/g, "X ms")
+      stats?.toString({ all: false, modules: true }).replace(/[0-9]+(?:\.[0-9]+)? (?:ms|s)/g, "X ms")
 		).toMatchInlineSnapshot(`
 		./fixtures/abc.js 83 bytes [built] [code generated]
 		  X ms (resolving: X ms, building: X ms)
