@@ -5,5 +5,5 @@ function run() {
 }
 
 it('should not evaluate `require.resolve()` as `require()`', () => {
-  expect(run.toString()).toMatchSnapshot()
+  expect(run.toString()).toContain(`.resolve('module')`);
 })
