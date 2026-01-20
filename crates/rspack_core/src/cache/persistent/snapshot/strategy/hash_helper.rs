@@ -37,9 +37,6 @@ impl HashHelper {
   /// Computes the content hash for files or directories at the given path.
   #[async_recursion::async_recursion]
   pub async fn content_hash(&self, path: &ArcPath) -> Option<ContentHash> {
-    if is_node_package_path(path) {
-      return None;
-    }
     if let Some(hash) = self.hash_cache.get(path) {
       return hash.clone();
     }
@@ -70,6 +67,9 @@ impl HashHelper {
         None
       }
     } else if metadata.is_directory {
+      if is_node_package_path(path) {
+        return None;
+      }
       if let Ok(mut children) = self.fs.read_dir(utf8_path).await {
         children.sort();
         let mut hasher = FxHasher::default();
