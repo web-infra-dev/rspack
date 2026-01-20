@@ -1,3 +1,7 @@
+// This file is derived from Next.js
+// Copyright (c) 2024 Vercel, Inc.
+// Licensed under the MIT License
+
 use rustc_hash::FxHashMap;
 use swc::atoms::Wtf8Atom;
 use swc_core::ecma::{

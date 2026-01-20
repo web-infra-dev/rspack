@@ -1,3 +1,7 @@
+// This file is derived from Next.js
+// Copyright (c) 2024 Vercel, Inc.
+// Licensed under the MIT License
+
 use std::{
   cell::RefCell,
   convert::{TryFrom, TryInto},
