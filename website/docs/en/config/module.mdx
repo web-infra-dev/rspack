@@ -771,18 +771,18 @@ export default {
 
 ### module.parser.javascript.requireAsExpression
 
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
 
 Control whether `require` used as an expression will be parsed.
 
-When set to `false`, Rspack will not parse `require` when it's used as an expression (e.g., `const req = require; req('./module')`). This can improve build performance if your code doesn't use this pattern.
+When set to `true`, Rspack will parse `require` when it's used as an expression (e.g., `const req = require; req('./module')`) and emit a warning. When set to `false`, this pattern will be ignored.
 
 ```js title="rspack.config.mjs"
 export default {
   module: {
     parser: {
       javascript: {
-        requireAsExpression: false,
+        requireAsExpression: true,
       },
     },
   },

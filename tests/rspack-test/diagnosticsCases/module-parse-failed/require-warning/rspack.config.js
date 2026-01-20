@@ -4,6 +4,7 @@ module.exports = {
 		parser: {
 			javascript: {
 				requireAlias: true,
+				requireAsExpression: true
 			}
 		}
 	}

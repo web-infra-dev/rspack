@@ -1644,7 +1644,7 @@ CompilerOptions {
                                 true,
                             ),
                             require_as_expression: Some(
-                                true,
+                                false,
                             ),
                             require_dynamic: Some(
                                 true,
