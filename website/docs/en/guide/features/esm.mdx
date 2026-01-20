@@ -91,7 +91,6 @@ Below are the main configuration options related to ESM and their descriptions, 
 3. [output.library.type](/config/output#outputlibrarytype): Set to `'modern-module'` for additional optimization of library ESM output format.
 4. [output.chunkLoading](/config/output#outputchunkloading): Set to `'import'` to use ESM `import` for loading chunks.
 5. [output.workerChunkLoading](/config/output#outputworkerchunkloading): Set to `'import'` to use ESM `import` for loading workers.
-6. [optimization.concatenateModules](/config/optimization#optimizationconcatenatemodules): modern-module depends on this option being enabled to ensure the output supports good tree-shaking and correct library exports.
-7. [optimization.avoidEntryIife](/config/optimization#optimizationavoidentryiife): In some cases, Rspack wraps ESM output in an IIFE, which breaks ESM's modular characteristics.
-8. [experiments.outputModule](/config/experiments#experimentsoutputmodule): Enable the experimental feature required for output.module.
-9. [HtmlWebpackPlugin.scriptLoading](/guide/tech/html#htmlwebpackplugin): Set to `'module'` to use ESM `<script type="module">` for loading `.mjs` modules.
+6. [optimization.avoidEntryIife](/config/optimization#optimizationavoidentryiife): In some cases, Rspack wraps ESM output in an IIFE, which breaks ESM's modular characteristics.
+7. [experiments.outputModule](/config/experiments#experimentsoutputmodule): Enable the experimental feature required for output.module.
+8. [HtmlWebpackPlugin.scriptLoading](/guide/tech/html#htmlwebpackplugin): Set to `'module'` to use ESM `<script type="module">` for loading `.mjs` modules.

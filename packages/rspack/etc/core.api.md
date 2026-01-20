@@ -2445,21 +2445,6 @@ interface Es6Config extends BaseModuleConfig {
 }
 
 // @public (undocumented)
-class EsmLibraryPlugin {
-    constructor(options?: {
-        preserveModules?: string;
-    });
-    // (undocumented)
-    apply(compiler: Compiler): void;
-    // (undocumented)
-    options?: {
-        preserveModules?: string;
-    };
-    // (undocumented)
-    static PLUGIN_NAME: string;
-}
-
-// @public (undocumented)
 interface EsParserConfig {
     allowReturnOutsideFunction?: boolean;
     allowSuperOutsideMethod?: boolean;
@@ -2569,8 +2554,6 @@ interface Experiments_2 {
     createNativePlugin: typeof createNativePlugin;
     // (undocumented)
     CssChunkingPlugin: typeof CssChunkingPlugin;
-    // (undocumented)
-    EsmLibraryPlugin: typeof EsmLibraryPlugin;
     // (undocumented)
     globalTrace: {
         register: (filter: string, layer: 'logger' | 'perfetto', output: string) => Promise<void>;
@@ -4432,7 +4415,7 @@ export type LibraryOptions = {
 };
 
 // @public
-export type LibraryType = LiteralUnion<'var' | 'module' | 'assign' | 'assign-properties' | 'this' | 'window' | 'self' | 'global' | 'commonjs' | 'commonjs2' | 'commonjs-module' | 'commonjs-static' | 'amd' | 'amd-require' | 'umd' | 'umd2' | 'jsonp' | 'system', string>;
+export type LibraryType = LiteralUnion<'var' | 'module' | 'modern-module' | 'assign' | 'assign-properties' | 'this' | 'window' | 'self' | 'global' | 'commonjs' | 'commonjs2' | 'commonjs-module' | 'commonjs-static' | 'amd' | 'amd-require' | 'umd' | 'umd2' | 'jsonp' | 'system', string>;
 
 // @public (undocumented)
 export type LightningcssFeatureOptions = {
