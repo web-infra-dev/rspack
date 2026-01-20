@@ -167,6 +167,7 @@ ruleparserdataurlcondition
 Rust
 rustup
 samply
+samsung
 sanyuan
 Shenzhen
 shiki

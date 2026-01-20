@@ -1,7 +1,7 @@
 // code modified based on https://github.com/parcel-bundler/lightningcss/blob/34b67a431c043fda5d4979bcdccb3008d082e243/node/browserslistToTargets.js
 
 import type { GetLoaderOptions } from '../../config/adapterRuleUse';
-import { encodeTargets, resolveDefaultLightningCssTargets } from './target';
+import { defaultTargetsFromRspackTargets, encodeTargets } from './target';
 
 /**
 MIT License
@@ -229,11 +229,11 @@ export const getLightningcssLoaderOptions: GetLoaderOptions = (
       options.targets = encodeTargets(options.targets);
     } else if (
       options.targets === undefined &&
-      composeOptions.compiler.target?.platforms
+      composeOptions.compiler.target?.targets
     ) {
       // Default target derived from rspack target
-      options.targets = resolveDefaultLightningCssTargets(
-        composeOptions.compiler.target.platforms,
+      options.targets = defaultTargetsFromRspackTargets(
+        composeOptions.compiler.target.targets,
       );
     }
 

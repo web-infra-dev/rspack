@@ -280,7 +280,10 @@ export const SwcJsMinimizerRspackPlugin = create(
     const ecma =
       options?.minimizerOptions?.ecma ??
       // Default target derived from rspack target
-      this.target?.esVersion ??
+      // TODO: SWC minifier currently only supports up to es2022, should fix this at SWC side first
+      (this.target?.esVersion && this.target.esVersion > 2022
+        ? 2022
+        : this.target.esVersion) ??
       5;
     const format = {
       comments: false, // terser and swc use different default value: 'some'

@@ -78,16 +78,34 @@ Below are the configurations supported, `targets` configuration is plain browser
 
 :::info
 
-1. The default `targets` is set to `"fully supports es6"` to ensure that minification does not introduce advanced syntax that could cause browser incompatibility (minification might turn lower-level syntax into advanced syntax because it is shorter).
+1. The `targets` option is resolved in the following priority order:
+   - User-specified `targets` in plugin options (highest priority)
+   - Targets derived from Rspack's [`target`](/config/target) configuration when using browserslist-related targets (e.g., `browserslist` or `browserslist:modern`), since Lightning CSS only supports browser-related targets, non-browser targets like `node` will not provide default targets for this plugin.
+   - Falls back to `"fully supports es6"` if neither is available
+
+   The fallback ensures that minification does not introduce advanced syntax that could cause browser incompatibility (minification might turn lower-level syntax into advanced syntax because it is shorter).
+
 2. The `exclude` option is configured with all features by default. We usually do syntax degradation in [builtin:lightningcss-loader](/guide/features/builtin-lightningcss-loader) or other loaders, so this plugin excludes all features by default to avoid syntax downgrading during the minimize process.
 
 We recommend and encourage users to configure their own `targets` to achieve the best minification results.
 :::
 
 ```ts
+type Targets = {
+  android?: string;
+  chrome?: string;
+  edge?: string;
+  firefox?: string;
+  ie?: string;
+  ios_saf?: string;
+  opera?: string;
+  safari?: string;
+  samsung?: string;
+};
+
 type LightningCssMinimizerOptions = {
   errorRecovery?: boolean;
-  targets?: string[] | string;
+  targets?: string[] | string | Targets;
   include?: LightningcssFeatureOptions;
   exclude?: LightningcssFeatureOptions;
   drafts?: Drafts;

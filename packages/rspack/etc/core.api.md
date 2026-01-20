@@ -137,7 +137,7 @@ export const applyRspackOptionsDefaults: (options: RspackOptionsNormalized) => f
         electron: boolean | null | undefined;
     };
     esVersion: number | null | undefined;
-    platforms: string[] | null | undefined;
+    targets: Record<string, string> | null | undefined;
 };
 
 // @public (undocumented)
@@ -2836,7 +2836,7 @@ type ExtractCommentsOptions = ExtractCommentsCondition | ExtractCommentsObject;
 // @public (undocumented)
 type ExtractedTargetProperties = {
     esVersion?: number | null;
-    platforms?: string[] | null;
+    targets?: Record<string, string> | null;
 };
 
 // @public (undocumented)

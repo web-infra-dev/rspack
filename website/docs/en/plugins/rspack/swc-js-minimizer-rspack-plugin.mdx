@@ -161,7 +161,7 @@ type MinimizerOptions = {
 const defaultOptions = {
   minify: true,
   mangle: true,
-  ecma: 5,
+  ecma: 5, // or derived from Rspack's target configuration
   compress: {
     passes: 2,
   }
@@ -170,6 +170,12 @@ const defaultOptions = {
   },
 };
 ```
+
+:::tip Default ecma from Rspack target
+If `ecma` is not specified, `SwcJsMinimizerRspackPlugin` will automatically derive a default value from Rspack's [`target`](/config/target) configuration. Otherwise, it defaults to `5`.
+
+This means you can rely on your Rspack `target` configuration without manually specifying the same ecma version in the plugin options.
+:::
 
 Similar to the `jsc.minify` option of SWC, please refer to [SWC - Minification](https://swc.rs/docs/configuration/minification) for all available options.
 
