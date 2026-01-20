@@ -5,7 +5,7 @@ use criterion::criterion_group;
 use rspack::builder::Builder as _;
 use rspack_benchmark::Criterion;
 use rspack_core::{
-  Compilation, Compiler, Experiments, Optimization, build_chunk_graph,
+  Compilation, Compiler, Optimization, build_chunk_graph,
   build_module_graph::build_module_graph_pass,
   fast_set,
   incremental::{Incremental, IncrementalOptions},
