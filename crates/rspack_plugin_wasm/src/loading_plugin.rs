@@ -1,6 +1,6 @@
 use rspack_core::{
   BoxPlugin, ChunkUkey, Compilation, CompilationRuntimeRequirementInTree, Plugin, PluginExt,
-  RuntimeGlobals, RuntimeModuleExt, WasmLoading, WasmLoadingType,
+  RuntimeGlobals, RuntimeModule, RuntimeModuleExt, WasmLoading, WasmLoadingType,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -22,19 +22,20 @@ pub struct FetchCompileAsyncWasmPlugin;
 #[plugin_hook(CompilationRuntimeRequirementInTree for FetchCompileAsyncWasmPlugin)]
 async fn fetch_compile_async_wasm_plugin_runtime_requirements_in_tree(
   &self,
-  compilation: &mut Compilation,
+  compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
   _all_runtime_requirements: &RuntimeGlobals,
   runtime_requirements: &RuntimeGlobals,
   runtime_requirements_mut: &mut RuntimeGlobals,
+  runtime_modules_to_add: &mut Vec<(ChunkUkey, Box<dyn RuntimeModule>)>,
 ) -> Result<Option<()>> {
   if !runtime_requirements.contains(RuntimeGlobals::INSTANTIATE_WASM) {
     return Ok(None);
   }
 
   runtime_requirements_mut.insert(RuntimeGlobals::PUBLIC_PATH);
-  compilation.add_runtime_module(
-    chunk_ukey,
+  runtime_modules_to_add.push((
+    *chunk_ukey,
     AsyncWasmLoadingRuntimeModule::new(
       &compilation.runtime_template,
       format!(
@@ -47,7 +48,7 @@ async fn fetch_compile_async_wasm_plugin_runtime_requirements_in_tree(
       *chunk_ukey,
     )
     .boxed(),
-  )?;
+  ));
 
   Ok(None)
 }
@@ -79,11 +80,12 @@ impl ReadFileCompileAsyncWasmPlugin {
 #[plugin_hook(CompilationRuntimeRequirementInTree for ReadFileCompileAsyncWasmPlugin)]
 async fn read_file_compile_async_wasm_plugin_runtime_requirements_in_tree(
   &self,
-  compilation: &mut Compilation,
+  compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
   _all_runtime_requirements: &RuntimeGlobals,
   runtime_requirements: &RuntimeGlobals,
   _runtime_requirements_mut: &mut RuntimeGlobals,
+  runtime_modules_to_add: &mut Vec<(ChunkUkey, Box<dyn RuntimeModule>)>,
 ) -> Result<Option<()>> {
   if !runtime_requirements.contains(RuntimeGlobals::INSTANTIATE_WASM) {
     return Ok(None);
@@ -96,8 +98,8 @@ async fn read_file_compile_async_wasm_plugin_runtime_requirements_in_tree(
       .environment
       .supports_dynamic_import();
 
-  compilation.add_runtime_module(
-    chunk_ukey,
+  runtime_modules_to_add.push((
+    *chunk_ukey,
     AsyncWasmLoadingRuntimeModule::new(
       &compilation.runtime_template,
       if import_enabled {
@@ -109,7 +111,7 @@ async fn read_file_compile_async_wasm_plugin_runtime_requirements_in_tree(
       *chunk_ukey,
     )
     .boxed(),
-  )?;
+  ));
 
   Ok(None)
 }
@@ -135,11 +137,12 @@ pub struct UniversalCompileAsyncWasmPlugin;
 #[plugin_hook(CompilationRuntimeRequirementInTree for UniversalCompileAsyncWasmPlugin)]
 async fn universal_compile_async_wasm_plugin_runtime_requirements_in_tree(
   &self,
-  compilation: &mut Compilation,
+  compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
   _all_runtime_requirements: &RuntimeGlobals,
   runtime_requirements: &RuntimeGlobals,
   _runtime_requirements_mut: &mut RuntimeGlobals,
+  runtime_modules_to_add: &mut Vec<(ChunkUkey, Box<dyn RuntimeModule>)>,
 ) -> Result<Option<()>> {
   if !runtime_requirements.contains(RuntimeGlobals::INSTANTIATE_WASM) {
     return Ok(None);
@@ -192,8 +195,8 @@ var wasmUrl = $PATH;"#
 		}"#
     .to_string();
 
-  compilation.add_runtime_module(
-    chunk_ukey,
+  runtime_modules_to_add.push((
+    *chunk_ukey,
     AsyncWasmLoadingRuntimeModule::new_with_before_streaming(
       &compilation.runtime_template,
       generate_load_binary_code,
@@ -203,7 +206,7 @@ var wasmUrl = $PATH;"#
       *chunk_ukey,
     )
     .boxed(),
-  )?;
+  ));
 
   Ok(None)
 }
