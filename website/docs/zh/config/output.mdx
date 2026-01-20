@@ -1538,6 +1538,30 @@ AMD module 将会是这样：
 define('MyLibrary', [], factory);
 ```
 
+### output.library.preserveModules
+
+- **类型：** `string`
+- **默认值：** `undefined`
+
+:::info
+仅在 `library.type` 为 `modern-module` 时生效。
+:::
+
+当启用后，Rspack 会保留传入目录下模块的原始文件结构。
+
+```js
+import path from 'path';
+module.exports = {
+  //...
+  output: {
+    library: {
+      type: 'modern-module',
+      preserveModules: path.resolve('./src'),
+    },
+  },
+};
+```
+
 ## output.module
 
 - **类型：** `boolean`

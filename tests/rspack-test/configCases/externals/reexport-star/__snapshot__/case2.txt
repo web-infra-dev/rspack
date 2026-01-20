@@ -1,15 +1,14 @@
+import { __webpack_require__ } from "./runtime~0.mjs";
+import "./906.mjs";
+
+const external_external1_alias_ = __webpack_require__("825");
+var a = external_external1_alias_.a;
+var b = external_external1_alias_.b;
+
+
+
+
+
+
+export { a, b, external_external1_alias_ as n1 };
 export * from "external1-alias";
-import * as __rspack_external_external1_alias_bc4b12e4 from "external1-alias";
-
-;// CONCATENATED MODULE: external "external1-alias"
-
-;// CONCATENATED MODULE: ./case2.js
-
-
-
-
-
-
-var __webpack_exports__a = __rspack_external_external1_alias_bc4b12e4.a;
-var __webpack_exports__b = __rspack_external_external1_alias_bc4b12e4.b;
-export { __rspack_external_external1_alias_bc4b12e4 as n1, __webpack_exports__a as a, __webpack_exports__b as b };

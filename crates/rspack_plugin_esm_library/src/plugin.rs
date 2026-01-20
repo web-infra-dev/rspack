@@ -421,6 +421,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       self_path.pop();
 
       let chunk_ids_to_ukey = self.chunk_ids_to_ukey.borrow();
+
       for captures in RSPACK_ESM_CHUNK_PLACEHOLDER_RE.find_iter(&content) {
         let chunk_id = captures
           .as_str()
@@ -440,7 +441,13 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         let js_files = chunk
           .files()
           .iter()
-          .filter(|f| f.ends_with("js"))
+          .filter(|f| {
+            // find ref asset info
+            let Some(asset) = compilation.assets().get(*f) else {
+              return false;
+            };
+            asset.get_info().javascript_module.unwrap_or_default()
+          })
           .collect::<Vec<_>>();
         if js_files.len() > 1 {
           return Err(rspack_error::error!(
@@ -448,17 +455,13 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
             js_files
           ));
         }
-        let chunk_path = output_path.join(
-          js_files
-            .first()
-            .unwrap_or_else(|| {
-              panic!(
-                "at least one path for chunk: {:?}",
-                chunk.id().map(|id| { id.as_str() })
-              )
-            })
-            .as_str(),
-        );
+        if js_files.is_empty() {
+          return Err(rspack_error::error!(
+            "chunk {:?} should have at least one file",
+            chunk.id()
+          ));
+        }
+        let chunk_path = output_path.join(js_files.first().expect("should have at least one file"));
         let relative = chunk_path.relative(self_path.as_path());
         let relative = relative
           .to_slash()

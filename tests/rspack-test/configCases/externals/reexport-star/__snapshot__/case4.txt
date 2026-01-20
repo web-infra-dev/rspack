@@ -1,3 +1,6 @@
-export * from "external1-alias";
+import "./906.mjs";
 
-;// CONCATENATED MODULE: ./case4.js
+
+
+
+export * from "external1-alias";

@@ -1,6 +1,7 @@
 /** @type {import("@rspack/core").Configuration} */
 module.exports = [
 	{
+		name: 'module1',
 		entry: "./module1.js",
 		target: "node",
 		node: {
@@ -23,7 +24,8 @@ module.exports = [
 		},
 	},
 	{
-		entry: "./module2.js",
+		name: 'module2',
+		entry: {bundle1: "./module2.js"},
 		target: "node",
 		node: {
 			__filename: false,
@@ -36,17 +38,16 @@ module.exports = [
 			node: false
 		},
 		output: {
-			iife: false,
 			module: true,
 			library: {
 				type: "modern-module"
 			}
 		},
-		optimization: {
-			avoidEntryIife: true,
-		},
 		experiments: {
 			outputModule: true
+		},
+		optimization: {
+			// minimize: false
 		},
 		module: {
 			parser: {
@@ -59,6 +60,7 @@ module.exports = [
 		},
 	},
 	{
+		name: 'test',
 		entry: "./test.js",
 		externals: {
 			"./bundle0.js": "commonjs ./bundle0.js",
@@ -72,5 +74,5 @@ module.exports = [
 			__filename: false,
 			__dirname: false
 		}
-	}
+	},
 ];

@@ -4428,6 +4428,7 @@ export type LibraryOptions = {
     name?: LibraryName;
     type: LibraryType;
     umdNamedDefine?: UmdNamedDefine;
+    preserveModules?: string;
 };
 
 // @public

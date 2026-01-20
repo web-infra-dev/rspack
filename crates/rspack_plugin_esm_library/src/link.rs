@@ -18,22 +18,23 @@ use rspack_core::{
   reserved_names::RESERVED_NAMES, rspack_sources::ReplaceSource, split_readable_identifier,
   to_normal_comment,
 };
-use rspack_error::{Diagnostic, Result};
+use rspack_error::{Diagnostic, Error, Result};
 use rspack_javascript_compiler::ast::Ast;
 use rspack_plugin_javascript::{
   JsPlugin, RenderSource, dependency::ESMExportImportedSpecifierDependency,
   visitors::swc_visitor::resolver,
 };
 use rspack_util::{
+  SpanExt,
   atom::Atom,
   fx_hash::{FxHashMap, FxHashSet, FxIndexMap, FxIndexSet, indexmap},
   swc::join_atom,
 };
 use swc_core::{
-  common::{FileName, SyntaxContext},
+  common::{FileName, Spanned, SyntaxContext},
   ecma::{
     ast::{EsVersion, Program},
-    parser::{Syntax, parse_file_as_module},
+    parser::{EsSyntax, Syntax, parse_file_as_module},
   },
 };
 
@@ -166,6 +167,15 @@ impl EsmLibraryPlugin {
         let mut hoisted_modules = IdentifierIndexSet::default();
 
         for m in modules.iter() {
+          if compilation
+            .code_generation_results
+            .get_one(m)
+            .get(&SourceType::JavaScript)
+            .is_none()
+          {
+            continue;
+          }
+
           let info = concate_modules_map
             .get(m)
             .unwrap_or_else(|| panic!("should have set module info for {m}"));
@@ -761,6 +771,16 @@ var {} = {{}};
                 let m = module_graph
                   .module_by_identifier(&id)
                   .expect("should have module");
+                let jsx = m
+                  .as_ref()
+                  .as_normal_module()
+                  .and_then(|normal_module| normal_module.get_parser_options())
+                  .and_then(|options| {
+                    options
+                      .get_javascript()
+                      .and_then(|js_options| js_options.jsx)
+                  })
+                  .unwrap_or(false);
                 let cm: Arc<swc_core::common::SourceMap> = Default::default();
                 let readable_identifier = m.readable_identifier(&compilation.options.context);
                 let fm = cm.new_source_file(
@@ -772,14 +792,28 @@ var {} = {{}};
                     .into_owned(),
                 );
                 let mut errors = vec![];
-                let module = parse_file_as_module(
+                let module = match parse_file_as_module(
                   &fm,
-                  Syntax::default(),
+                  Syntax::Es(EsSyntax {
+                    jsx,
+                    ..Default::default()
+                  }),
                   EsVersion::EsNext,
                   None,
                   &mut errors,
-                )
-                .expect("parse failed");
+                ) {
+                  Ok(module) => module,
+                  Err(err) => {
+                    // return empty error as we already push error to compilation.diagnostics
+                    return Err(Error::from_string(
+                      Some(fm.src.clone().into_string()),
+                      err.span().real_lo() as usize,
+                      err.span().real_hi() as usize,
+                      "JavaScript parse error:\n".to_string(),
+                      err.kind().msg().to_string(),
+                    ));
+                  }
+                };
                 let mut ast = Ast::new(Program::Module(module), cm, None);
 
                 let mut global_ctxt = SyntaxContext::empty();
@@ -1330,6 +1364,13 @@ var {} = {{}};
         .all_dependencies()
         .chain(compilation.global_entry.all_dependencies())
         .filter_map(|dep_id| module_graph.module_identifier_by_dependency_id(dep_id))
+        .filter(|module| {
+          compilation
+            .code_generation_results
+            .get_one(module)
+            .get(&SourceType::JavaScript)
+            .is_some()
+        })
         .copied()
       {
         let entry_module_chunk = Self::get_module_chunk(entry_module, compilation);
