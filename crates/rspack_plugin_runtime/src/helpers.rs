@@ -265,6 +265,7 @@ pub fn generate_entry_startup(
         source.push_str(module_ids_code);
         source.push_str(");\n");
       } else {
+        // Ensure STARTUP_ENTRYPOINT wrappers run even without dependent chunks (e.g. async startup).
         source.push_str(&format!(
           "var {exports_name} = {}(0, [], function() {{\n        return {};\n      }});\n",
           compilation

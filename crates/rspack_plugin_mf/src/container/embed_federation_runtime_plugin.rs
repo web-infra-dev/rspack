@@ -82,13 +82,10 @@ async fn additional_chunk_runtime_requirements_tree(
   if is_enabled {
     // Add STARTUP (sync) so the runtime wrapper can always hook __webpack_require__.x,
     // and STARTUP_ENTRYPOINT (async) when async startup is enabled.
+    runtime_requirements.insert(RuntimeGlobals::STARTUP);
     if self.experiments.async_startup {
-      runtime_requirements.insert(RuntimeGlobals::STARTUP);
       runtime_requirements.insert(RuntimeGlobals::STARTUP_ENTRYPOINT);
-      runtime_requirements.insert(RuntimeGlobals::ASYNC_FEDERATION_STARTUP);
       runtime_requirements.insert(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
-    } else {
-      runtime_requirements.insert(RuntimeGlobals::STARTUP);
     }
   }
 
@@ -213,7 +210,7 @@ async fn render_startup(
     return Ok(());
   }
 
-  // Entry chunks delegating to runtime need explicit startup calls
+  // Entry chunks delegating to runtime need explicit startup calls (sync only)
   if !has_runtime && has_entry_modules {
     if self.experiments.async_startup {
       return Ok(());
@@ -224,15 +221,9 @@ async fn render_startup(
     startup_with_call.add(RawStringSource::from_static(
       "\n// Federation startup call\n",
     ));
-    let startup_global = if self.experiments.async_startup {
-      compilation
-        .runtime_template
-        .render_runtime_globals(&RuntimeGlobals::STARTUP_ENTRYPOINT)
-    } else {
-      compilation
-        .runtime_template
-        .render_runtime_globals(&RuntimeGlobals::STARTUP)
-    };
+    let startup_global = compilation
+      .runtime_template
+      .render_runtime_globals(&RuntimeGlobals::STARTUP);
     startup_with_call.add(RawStringSource::from(format!("{startup_global}();\n",)));
 
     startup_with_call.add(render_source.source.clone());

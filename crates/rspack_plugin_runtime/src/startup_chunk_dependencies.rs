@@ -34,7 +34,7 @@ async fn runtime_requirements_in_tree(
 ) -> Result<Option<()>> {
   let is_enabled_for_chunk = is_enabled_for_chunk(chunk_ukey, &self.chunk_loading, compilation);
   let mut async_chunk_loading = self.async_chunk_loading;
-  if runtime_requirements.contains(RuntimeGlobals::ASYNC_FEDERATION_STARTUP) {
+  if runtime_requirements.contains(RuntimeGlobals::ASYNC_STARTUP) {
     async_chunk_loading = true;
   }
 

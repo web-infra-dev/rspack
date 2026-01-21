@@ -268,7 +268,7 @@ bitflags! {
     const MAKE_DEFERRED_NAMESPACE_OBJECT_SYMBOL = 1 << 72;
 
     // rspack only
-    const ASYNC_FEDERATION_STARTUP = 1 << 73;
+    const ASYNC_STARTUP = 1 << 73;
   }
 }
 
@@ -358,7 +358,7 @@ pub fn runtime_globals_to_string(
     RuntimeGlobals::RSPACK_VERSION => format!("{scope_name}.rv"),
     RuntimeGlobals::RSPACK_UNIQUE_ID => format!("{scope_name}.ruid"),
     RuntimeGlobals::HAS_CSS_MODULES => "has css modules".to_string(),
-    RuntimeGlobals::ASYNC_FEDERATION_STARTUP => format!("{scope_name}.mfAsyncStartup"),
+    RuntimeGlobals::ASYNC_STARTUP => format!("{scope_name}.asyncStartup"),
     RuntimeGlobals::HAS_FETCH_PRIORITY => "has fetch priority".to_string(),
     RuntimeGlobals::TO_BINARY => format!("{scope_name}.tb"),
     _ => unreachable!(),

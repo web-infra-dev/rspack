@@ -10,7 +10,7 @@ var mfStartupBase = <%- REQUIRE %>.mfStartupBase = (function () {
 	};
 })();
 
-var mfAsyncStartup = <%- ASYNC_FEDERATION_STARTUP %> = (function () {
+var mfAsyncStartup = <%- REQUIRE %>.mfAsyncStartup = (function () {
 	var hasRun = false;
 	var result;
 	return function __webpack_require__mfAsyncStartup() {
