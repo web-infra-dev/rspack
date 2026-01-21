@@ -2,10 +2,14 @@ use std::ops::{Deref, DerefMut};
 
 use rspack_collections::UkeyMap;
 
-use crate::{ChunkUkey, RuntimeGlobals};
+use crate::{ArtifactExt, ChunkUkey, RuntimeGlobals, incremental::IncrementalPasses};
 
 #[derive(Debug, Default, Clone)]
 pub struct CgcRuntimeRequirementsArtifact(UkeyMap<ChunkUkey, RuntimeGlobals>);
+
+impl ArtifactExt for CgcRuntimeRequirementsArtifact {
+  const PASS: IncrementalPasses = IncrementalPasses::CHUNKS_RUNTIME_REQUIREMENTS;
+}
 
 impl Deref for CgcRuntimeRequirementsArtifact {
   type Target = UkeyMap<ChunkUkey, RuntimeGlobals>;

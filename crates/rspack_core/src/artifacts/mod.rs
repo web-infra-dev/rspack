@@ -18,6 +18,44 @@ mod module_static_cache_artifact;
 mod process_runtime_requirements_cache_artifact;
 mod side_effects_do_optimize_artifact;
 
+use std::mem;
+
+use crate::incremental::{Incremental, IncrementalPasses};
+
+/// Trait for artifacts used in incremental compilation.
+///
+/// This trait associates each artifact with its corresponding incremental pass.
+pub trait ArtifactExt: Sized {
+  /// The incremental pass associated with this artifact.
+  ///
+  /// This constant defines which incremental compilation pass this artifact
+  /// belongs to. Returns `IncrementalPasses::empty()` if no specific pass
+  /// is associated.
+  const PASS: IncrementalPasses;
+
+  /// Determines whether this artifact should be recovered from the previous compilation.
+  ///
+  /// Returns `true` if the artifact's pass is empty (always recover) or if
+  /// the incremental system has readable mutations for this artifact's pass.
+  fn should_recover(incremental: &Incremental) -> bool {
+    incremental.mutations_readable(Self::PASS)
+  }
+
+  /// Recovers the artifact from the old compilation to the new compilation
+  /// if the incremental pass allows it.
+  fn recover(incremental: &Incremental, new: &mut Self, old: &mut Self) {
+    if Self::should_recover(incremental) {
+      mem::swap(new, old);
+    }
+  }
+}
+
+/// Recovers an artifact from the old compilation to the new compilation
+/// if the incremental pass allows it.
+pub fn recover_artifact<T: ArtifactExt>(incremental: &Incremental, new: &mut T, old: &mut T) {
+  T::recover(incremental, new, old);
+}
+
 pub use async_modules_artifact::AsyncModulesArtifact;
 pub(crate) use build_chunk_graph_artifact::use_code_splitting_cache;
 pub use build_chunk_graph_artifact::*;

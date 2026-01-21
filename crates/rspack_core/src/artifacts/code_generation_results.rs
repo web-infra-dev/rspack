@@ -14,8 +14,8 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet};
 use serde::Serialize;
 
 use crate::{
-  AssetInfo, BindingCell, ChunkInitFragments, ConcatenationScope, ModuleIdentifier, RuntimeGlobals,
-  RuntimeSpec, RuntimeSpecMap, SourceType,
+  ArtifactExt, AssetInfo, BindingCell, ChunkInitFragments, ConcatenationScope, ModuleIdentifier,
+  RuntimeGlobals, RuntimeSpec, RuntimeSpecMap, SourceType, incremental::IncrementalPasses,
 };
 
 #[derive(Clone, Debug)]
@@ -190,6 +190,10 @@ pub static CODE_GEN_RESULT_ID: AtomicU32 = AtomicU32::new(0);
 pub struct CodeGenerationResults {
   module_generation_result_map: HashMap<CodeGenResultId, BindingCell<CodeGenerationResult>>,
   map: IdentifierMap<RuntimeSpecMap<CodeGenResultId>>,
+}
+
+impl ArtifactExt for CodeGenerationResults {
+  const PASS: IncrementalPasses = IncrementalPasses::MODULES_CODEGEN;
 }
 
 impl CodeGenerationResults {
