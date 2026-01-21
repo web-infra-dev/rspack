@@ -5,5 +5,13 @@ module.exports = {
 	experiments: {
 		css: true
 	},
-  target: "web"
+	module: {
+		rules: [
+			{
+				test: /\.css$/,
+				type: "css/auto"
+			}
+		]
+	},
+	target: "web"
 };
