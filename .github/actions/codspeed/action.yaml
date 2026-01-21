@@ -1,0 +1,191 @@
+name: 'CodSpeed Performance Analysis'
+description: 'Continuous benchmarking and performance checks'
+branding:
+  color: orange
+  icon: activity
+
+author: 'Arthur Pastel'
+inputs:
+  run:
+    description: 'The command to run the benchmarks'
+    required: true
+
+  mode:
+    description: |
+      The mode to run the benchmarks in. The following modes are available:
+      - `simulation`: Run the benchmarks with CPU simulation measurements.
+      - `walltime`: Run the benchmarks with walltime measurement.
+      - `memory`: Run the benchmarks with allocation measurements.
+      - `instrumentation`: (Deprecated) Legacy name for `simulation`. Please use `simulation` instead.
+
+      We strongly recommend starting with the `simulation` mode.
+
+      Using the `walltime` mode on traditional VMs/Hosted Runners might lead to inconsistent data. For the best results, we recommend using CodSpeed Hosted Macro Runners, which are fine-tuned for performance measurement consistency.
+      Check out the [Walltime Instrument Documentation](https://docs.codspeed.io/instruments/walltime/) for more details.
+    required: true
+
+  token:
+    description: |
+      CodSpeed upload token. Only required for private repositories.
+    required: false
+
+  working-directory:
+    description: |
+      The directory where the `run` command will be executed.
+      Warning: if you use defaults.working-directory, you must still set this parameter.
+    required: false
+
+  upload-url:
+    description: 'The upload endpoint (for on-premise deployments)'
+    required: false
+
+  runner-version:
+    description: "The version of the runner to use. Use 'latest' to automatically fetch the latest release version from GitHub, or specify a version like '3.5.0' or 'v3.5.0'."
+    required: false
+
+  instruments:
+    description: |
+      Comma separated list of instruments to enable. The following instruments are available:
+      - `mongodb`: MongoDB instrumentation, requires the MongoDB instrument to be enabled for the organization in CodSpeed
+    required: false
+
+  mongo-uri-env-name:
+    description: |
+      The name of the environment variable containing the MongoDB URI. Requires the `mongodb` instrument to be activated in `instruments`.
+      If the instrumentation is enabled and this value is not set, the user will need to dynamically provide the MongoDB URI to the CodSpeed runner.
+    required: false
+
+  cache-instruments:
+    description: |
+      Enable caching of instrument installations (like valgrind or perf) to speed up subsequent workflow runs. Set to 'false' to disable caching.
+    required: false
+    default: 'true'
+
+  instruments-cache-dir:
+    description: |
+      The directory to use for caching installations of instruments (like valgrind or perf). Defaults to `$HOME/.cache/codspeed-action`.
+    required: false
+    default: '~/.cache/codspeed-action'
+
+  allow-empty:
+    description: |
+      Allow the action to complete successfully even if no benchmarks were found or run. Set to 'true' to enable this behavior.
+    required: false
+    default: 'false'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Determine runner and kernel version
+      id: versions
+      shell: bash
+      run: |
+        RUNNER_VERSION="${{ inputs.runner-version }}"
+        if [ -z "$RUNNER_VERSION" ]; then
+          RUNNER_VERSION=$(cat $GITHUB_ACTION_PATH/.codspeed-runner-version)
+        fi
+        echo "runner-version=$RUNNER_VERSION" >> $GITHUB_OUTPUT
+
+        # Get kernel version for cache key
+        KERNEL_VERSION=$(uname -r)
+        echo "kernel-version=$KERNEL_VERSION" >> $GITHUB_OUTPUT
+
+    - name: Cache CodSpeed instruments
+      if: inputs.cache-instruments == 'true'
+      uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+      with:
+        path: ${{ inputs.instruments-cache-dir }}
+        key: codspeed-instruments-${{ inputs.mode }}-${{ runner.os }}-${{ runner.arch }}-${{steps.versions.outputs.kernel-version }}-${{ steps.versions.outputs.runner-version }}
+        restore-keys: |
+          codspeed-instruments-${{ inputs.mode }}-${{ runner.os }}-${{ runner.arch }}-${{steps.versions.outputs.kernel-version }}-
+
+    - shell: bash
+      env:
+        GH_MATRIX: '${{ toJson(matrix) }}'
+        GH_STRATEGY: '${{ toJson(strategy) }}'
+      run: |
+        # Validate required inputs
+        # (custom message for smoother v4 migration)
+        if [ -z "${{ inputs.mode }}" ]; then
+          echo "::error title=Missing required input 'mode'::The 'mode' input is required as of CodSpeed Action v4. Please explicitly set 'mode' to 'simulation' or 'walltime'. Before, this variable was automatically set to instrumentation on every runner except for CodSpeed macro runners where it was set to walltime by default. See https://codspeed.io/docs/instruments for details."
+          exit 1
+        fi
+
+        # Configure and run codspeed-runner
+        RUNNER_VERSION="${{ steps.versions.outputs.runner-version }}"
+
+        # Detect version type (priority: latest > version number > branch/rev prefixes)
+        if [ "$RUNNER_VERSION" = "latest" ]; then
+          VERSION_TYPE="latest"
+        elif echo "$RUNNER_VERSION" | grep -qE '^v?[0-9]+\.[0-9]+\.[0-9]+'; then
+          # Version number (with or without 'v' prefix)
+          VERSION_TYPE="release"
+          # Strip 'v' prefix if present to normalize version format
+          RUNNER_VERSION=$(echo "$RUNNER_VERSION" | sed 's/^v//')
+        elif echo "$RUNNER_VERSION" | grep -q '^branch:'; then
+          VERSION_TYPE="branch"
+          RUNNER_VERSION=$(echo "$RUNNER_VERSION" | sed 's/^branch://')
+        elif echo "$RUNNER_VERSION" | grep -q '^rev:'; then
+          VERSION_TYPE="rev"
+          RUNNER_VERSION=$(echo "$RUNNER_VERSION" | sed 's/^rev://')
+        else
+          # Default to release version
+          VERSION_TYPE="release"
+          RUNNER_VERSION=$(echo "$RUNNER_VERSION" | sed 's/^v//')
+        fi
+
+        # Install the CodSpeedHQ/runner
+        # if [ "$VERSION_TYPE" = "latest" ]; then
+        #   curl -fsSL http://github.com/CodSpeedHQ/runner/releases/latest/download/codspeed-runner-installer.sh | bash -s -- --quiet
+        # elif [ "$VERSION_TYPE" = "branch" ]; then
+        #   # Install from specific branch using cargo
+        #   source $HOME/.cargo/env
+        #   cargo install --locked --git https://github.com/CodSpeedHQ/runner --branch "$RUNNER_VERSION" codspeed-runner
+        # elif [ "$VERSION_TYPE" = "rev" ]; then
+        #   # Install from specific commit/rev using cargo
+        #   source $HOME/.cargo/env
+        #   cargo install --locked --git https://github.com/CodSpeedHQ/runner --rev "$RUNNER_VERSION" codspeed-runner
+        # else
+        #   # Release version
+        #   head_status=$(curl -I -fsSL -w "%{http_code}" -o /dev/null https://github.com/CodSpeedHQ/runner/releases/download/v$RUNNER_VERSION/codspeed-runner-installer.sh)
+        #   if [ "$head_status" -eq 404 ]; then
+        #     echo "Error: Version $RUNNER_VERSION is not available in https://github.com/CodSpeedHQ/runner/releases, please a correct version."
+        #     exit 1
+        #   else
+        #     curl -fsSL https://github.com/CodSpeedHQ/runner/releases/download/v$RUNNER_VERSION/codspeed-runner-installer.sh | bash -s -- --quiet
+        #   fi
+        # fi
+
+        # We can use official runner if it supports config valgrind flags in the future: https://github.com/CodSpeedHQ/runner/pull/92
+        cargo install --git https://github.com/CPunisher/runner.git --rev 9c1ca5aa4742b8524843c0ac3e417c6ecb91b1bd
+
+        # Get the runner arguments
+        RUNNER_ARGS=""
+        if [ -n "${{ inputs.token }}" ]; then
+          RUNNER_ARGS="$RUNNER_ARGS --token ${{ inputs.token }}"
+        fi
+        if [ -n "${{ inputs.working-directory }}" ]; then
+          RUNNER_ARGS="$RUNNER_ARGS --working-directory=${{ inputs.working-directory }}"
+        fi
+        if [ -n "${{ inputs.upload-url }}" ]; then
+          RUNNER_ARGS="$RUNNER_ARGS --upload-url=${{ inputs.upload-url }}"
+        fi
+        if [ -n "${{ inputs.mode }}" ]; then
+          RUNNER_ARGS="$RUNNER_ARGS --mode=${{ inputs.mode }}"
+        fi
+        if [ -n "${{ inputs.instruments }}" ]; then
+          RUNNER_ARGS="$RUNNER_ARGS --instruments=${{ inputs.instruments }}"
+        fi
+        if [ -n "${{ inputs.mongo-uri-env-name }}" ]; then
+          RUNNER_ARGS="$RUNNER_ARGS --mongo-uri-env-name=${{ inputs.mongo-uri-env-name }}"
+        fi
+        if [ "${{ inputs.cache-instruments }}" = "true" ] && [ -n "${{ inputs.instruments-cache-dir }}" ]; then
+          RUNNER_ARGS="$RUNNER_ARGS --setup-cache-dir=${{ inputs.instruments-cache-dir }}"
+        fi
+        if [ "${{ inputs.allow-empty }}" = "true" ]; then
+          RUNNER_ARGS="$RUNNER_ARGS --allow-empty"
+        fi
+
+        # Run the benchmarks
+        # Enable fair sched to make benchmark more stable, see: https://github.com/CodSpeedHQ/runner/pull/91
+        env VALGRIND_FLAGS='--fair-sched=yes' codspeed run $RUNNER_ARGS -- '${{ inputs.run }}'
