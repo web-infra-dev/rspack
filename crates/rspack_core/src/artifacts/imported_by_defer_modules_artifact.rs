@@ -2,8 +2,15 @@ use std::ops::{Deref, DerefMut};
 
 use rspack_collections::IdentifierSet;
 
+use crate::{ArtifactExt, incremental::IncrementalPasses};
+
 #[derive(Debug, Default, Clone)]
 pub struct ImportedByDeferModulesArtifact(IdentifierSet);
+
+impl ArtifactExt for ImportedByDeferModulesArtifact {
+  // FIXME: define a proper incremental pass for this artifact
+  const PASS: IncrementalPasses = IncrementalPasses::empty();
+}
 
 impl Deref for ImportedByDeferModulesArtifact {
   type Target = IdentifierSet;

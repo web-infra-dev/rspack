@@ -2,10 +2,14 @@ use std::ops::{Deref, DerefMut};
 
 use rspack_collections::UkeyMap;
 
-use crate::{ChunkRenderResult, ChunkUkey};
+use crate::{ArtifactExt, ChunkRenderResult, ChunkUkey, incremental::IncrementalPasses};
 
 #[derive(Debug, Default, Clone)]
 pub struct ChunkRenderArtifact(UkeyMap<ChunkUkey, ChunkRenderResult>);
+
+impl ArtifactExt for ChunkRenderArtifact {
+  const PASS: IncrementalPasses = IncrementalPasses::CHUNKS_RENDER;
+}
 
 impl Deref for ChunkRenderArtifact {
   type Target = UkeyMap<ChunkUkey, ChunkRenderResult>;

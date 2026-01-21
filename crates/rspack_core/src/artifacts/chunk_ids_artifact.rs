@@ -1,12 +1,16 @@
 use rspack_collections::UkeyMap;
 
-use crate::{ChunkUkey, chunk_graph_chunk::ChunkId};
+use crate::{ArtifactExt, ChunkUkey, chunk_graph_chunk::ChunkId, incremental::IncrementalPasses};
 
 #[derive(Debug, Default)]
 pub struct ChunkNamedIdArtifact {
   pub chunk_short_names: UkeyMap<ChunkUkey, String>,
   pub chunk_long_names: UkeyMap<ChunkUkey, String>,
   pub chunk_ids: UkeyMap<ChunkUkey, ChunkId>,
+}
+
+impl ArtifactExt for ChunkNamedIdArtifact {
+  const PASS: IncrementalPasses = IncrementalPasses::CHUNK_IDS;
 }
 
 impl ChunkNamedIdArtifact {

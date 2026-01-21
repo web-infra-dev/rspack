@@ -2,10 +2,14 @@ use std::ops::{Deref, DerefMut};
 
 use rspack_collections::IdentifierMap;
 
-use crate::ModuleId;
+use crate::{ArtifactExt, ModuleId, incremental::IncrementalPasses};
 
 #[derive(Debug, Default, Clone)]
 pub struct ModuleIdsArtifact(IdentifierMap<ModuleId>);
+
+impl ArtifactExt for ModuleIdsArtifact {
+  const PASS: IncrementalPasses = IncrementalPasses::MODULE_IDS;
+}
 
 impl Deref for ModuleIdsArtifact {
   type Target = IdentifierMap<ModuleId>;
