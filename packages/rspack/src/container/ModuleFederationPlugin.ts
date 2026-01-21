@@ -349,7 +349,9 @@ function getDefaultEntryRuntime(
     );
     const paramsCode =
       pluginParams === undefined ? 'undefined' : JSON.stringify(pluginParams);
-    runtimePluginVars.push(`${runtimePluginVar}(${paramsCode})`);
+    runtimePluginVars.push(
+      `{ plugin: ${runtimePluginVar}, params: ${paramsCode} }`,
+    );
   }
 
   const content = [
@@ -359,7 +361,7 @@ function getDefaultEntryRuntime(
     ...runtimePluginImports,
     `const __module_federation_runtime_plugins__ = [${runtimePluginVars.join(
       ', ',
-    )}]`,
+    )}].filter(({ plugin }) => plugin).map(({ plugin, params }) => plugin(params))`,
     `const __module_federation_remote_infos__ = ${JSON.stringify(remoteInfos)}`,
     `const __module_federation_container_name__ = ${JSON.stringify(
       options.name ?? compiler.options.output.uniqueName,
