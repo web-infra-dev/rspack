@@ -1,13 +1,5 @@
 const { normalizePlaceholder } = require('@rspack/test-tools');
 
-const ANSI = {
-  reset: '\x1b[0m',
-  red: '\x1b[31m',
-  green: '\x1b[32m',
-  cyan: '\x1b[36m',
-  gray: '\x1b[90m',
-};
-
 expect.extend({
   toBeEquivalentStatsStringWith(received, expected) {
     const { matcherHint, printReceived, diff } = this.utils;
@@ -31,8 +23,7 @@ expect.extend({
           '\n\nExpected: not to be equivalent stats string\nReceived (normalized):\n' +
           printReceived(nReceived)
       : () => {
-          const rawDiff = diff(nExpected, nReceived);
-          const diffOutput = rawDiff ? '\n\nDifference:\n' + colorizeDiff(rawDiff) : '';
+          const diffOutput = diff(nExpected, nReceived);
           return matcherHint('.toBeEquivalentStatsString', 'received', 'expected') + diffOutput;
         };
 
@@ -40,22 +31,11 @@ expect.extend({
   },
 });
 
-function shouldUseColor() {
-  if (process.env.NO_COLOR !== undefined && process.env.NO_COLOR !== '') {
-    return false;
-  }
-  if (process.env.FORCE_COLOR !== undefined && process.env.FORCE_COLOR !== '0') {
-    return true;
-  }
-  return process.stdout?.isTTY ?? false;
-}
-
 function normalizeStatsString(input) {
   if (input == null) return '';
 
   let out = String(input)
     .replace(/\b\d+(?:\.\d+)?\s*(?:ms|s)\b/gi, 'X ms')
-    .replace(/\b[0-9a-f]{7,}\b/gi, '<hash>')
     .replace(/\b\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z\b/g, '<ts>')
     .replace(/\b\d+(?:\.\d+)?\s*(?:B|KB|KiB|MB|MiB|GB|GiB)\b/gi, '<size>');
 
@@ -68,19 +48,4 @@ function normalizeStatsString(input) {
     .filter(Boolean)
     .join('\n')
     .replace(/[ \t]+/g, ' ');
-}
-
-function colorizeDiff(raw) {
-  if (!raw || !shouldUseColor()) return raw;
-
-  return String(raw)
-    .split('\n')
-    .map(line => {
-      if (/^\s*\+/.test(line)) return ANSI.green + line + ANSI.reset;
-      if (/^\s*-/.test(line)) return ANSI.red + line + ANSI.reset;
-      if (/^\s*@@?/.test(line)) return ANSI.cyan + line + ANSI.reset;
-      if (/^(---|(\+\+\+)|diff) /.test(line)) return ANSI.gray + line + ANSI.reset;
-      return line;
-    })
-    .join('\n');
 }
