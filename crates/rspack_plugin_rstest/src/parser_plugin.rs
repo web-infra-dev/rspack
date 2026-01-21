@@ -593,15 +593,7 @@ impl RstestParserPlugin {
         );
         Some(false)
       }
-      // rs.importActual
-      ("rs", "importActual") | ("rstest", "importActual") => {
-        self.process_import_actual(parser, call_expr)
-      }
-      // rs.requireActual
-      ("rs", "requireActual") | ("rstest", "requireActual") => {
-        self.process_require_actual(parser, call_expr);
-        Some(false)
-      }
+      // rs.importActual and rs.requireActual are handled by call_member_chain hook
       // rs.importMock
       ("rs", "importMock") | ("rstest", "importMock") => self.load_mock(parser, call_expr, true),
       // rs.requireMock
@@ -706,6 +698,30 @@ impl JavascriptParserPlugin for RstestParserPlugin {
       }
     }
 
+    None
+  }
+
+  fn call_member_chain(
+    &self,
+    parser: &mut JavascriptParser,
+    call_expr: &CallExpr,
+    for_name: &str,
+    members: &[Atom],
+    _members_optionals: &[bool],
+    _member_ranges: &[Span],
+  ) -> Option<bool> {
+    // Handle rs.requireActual and rs.importActual calls in any context
+    if (for_name == "rs" || for_name == "rstest") && members.len() == 1 {
+      match members[0].as_str() {
+        "requireActual" => {
+          return self.process_require_actual(parser, call_expr);
+        }
+        "importActual" => {
+          return self.process_import_actual(parser, call_expr);
+        }
+        _ => {}
+      }
+    }
     None
   }
 
