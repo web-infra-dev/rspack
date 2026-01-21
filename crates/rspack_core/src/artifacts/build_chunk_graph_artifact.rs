@@ -7,8 +7,8 @@ use rustc_hash::FxHashMap as HashMap;
 use tracing::instrument;
 
 use crate::{
-  ChunkByUkey, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, Compilation, Logger,
-  ModuleIdentifier,
+  ArtifactExt, ChunkByUkey, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, Compilation,
+  Logger, ModuleIdentifier,
   build_chunk_graph::code_splitter::{CodeSplitter, DependenciesBlockIdentifier},
   incremental::{IncrementalPasses, Mutation},
 };
@@ -238,4 +238,8 @@ where
 #[derive(Debug, Default)]
 pub struct BuildChunkGraphArtifact {
   pub code_splitting_cache: CodeSplittingCache,
+}
+
+impl ArtifactExt for BuildChunkGraphArtifact {
+  const PASS: IncrementalPasses = IncrementalPasses::BUILD_CHUNK_GRAPH;
 }
