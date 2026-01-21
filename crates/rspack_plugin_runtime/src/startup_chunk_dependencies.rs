@@ -33,6 +33,10 @@ async fn runtime_requirements_in_tree(
   runtime_modules_to_add: &mut Vec<(ChunkUkey, Box<dyn RuntimeModule>)>,
 ) -> Result<Option<()>> {
   let is_enabled_for_chunk = is_enabled_for_chunk(chunk_ukey, &self.chunk_loading, compilation);
+  let mut async_chunk_loading = self.async_chunk_loading;
+  if runtime_requirements.contains(RuntimeGlobals::ASYNC_STARTUP) {
+    async_chunk_loading = true;
+  }
 
   if is_enabled_for_chunk
     && runtime_requirements.contains(RuntimeGlobals::STARTUP_CHUNK_DEPENDENCIES)
@@ -44,7 +48,7 @@ async fn runtime_requirements_in_tree(
       *chunk_ukey,
       StartupChunkDependenciesRuntimeModule::new(
         &compilation.runtime_template,
-        self.async_chunk_loading,
+        async_chunk_loading,
       )
       .boxed(),
     ));
@@ -56,7 +60,7 @@ async fn runtime_requirements_in_tree(
     runtime_requirements_mut.insert(RuntimeGlobals::ENSURE_CHUNK_INCLUDE_ENTRIES);
     runtime_modules_to_add.push((
       *chunk_ukey,
-      StartupEntrypointRuntimeModule::new(&compilation.runtime_template, self.async_chunk_loading)
+      StartupEntrypointRuntimeModule::new(&compilation.runtime_template, async_chunk_loading)
         .boxed(),
     ));
   }

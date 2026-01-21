@@ -1,0 +1,11 @@
+var prevStartup = <%- STARTUP %>;
+var hasRun = false;
+<%- STARTUP %> = function () {
+	if (!hasRun) {
+		hasRun = true;
+<%- _module_executions %>	}
+	if (typeof prevStartup === "function") {
+		return prevStartup();
+	}
+	console.warn("[MF] Invalid prevStartup");
+};

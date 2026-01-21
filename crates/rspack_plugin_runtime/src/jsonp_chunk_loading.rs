@@ -1,6 +1,7 @@
 use rspack_core::{
-  ChunkLoading, ChunkLoadingType, ChunkUkey, Compilation, CompilationRuntimeRequirementInTree,
-  Plugin, RuntimeGlobals, RuntimeModule, RuntimeModuleExt,
+  ChunkLoading, ChunkLoadingType, ChunkUkey, Compilation,
+  CompilationAdditionalTreeRuntimeRequirements, CompilationRuntimeRequirementInTree, Plugin,
+  RuntimeGlobals, RuntimeModule, RuntimeModuleExt,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -10,6 +11,25 @@ use crate::runtime_module::{JsonpChunkLoadingRuntimeModule, is_enabled_for_chunk
 #[plugin]
 #[derive(Debug, Default)]
 pub struct JsonpChunkLoadingPlugin;
+
+#[plugin_hook(CompilationAdditionalTreeRuntimeRequirements for JsonpChunkLoadingPlugin)]
+async fn additional_tree_runtime_requirements(
+  &self,
+  compilation: &mut Compilation,
+  chunk_ukey: &ChunkUkey,
+  runtime_requirements: &mut RuntimeGlobals,
+) -> Result<()> {
+  let chunk_loading_value = ChunkLoading::Enable(ChunkLoadingType::Jsonp);
+  let is_enabled_for_chunk = is_enabled_for_chunk(chunk_ukey, &chunk_loading_value, compilation);
+  if is_enabled_for_chunk
+    && compilation
+      .chunk_graph
+      .has_chunk_entry_dependent_chunks(chunk_ukey, &compilation.chunk_group_by_ukey)
+  {
+    runtime_requirements.insert(RuntimeGlobals::ASYNC_STARTUP);
+  }
+  Ok(())
+}
 
 #[plugin_hook(CompilationRuntimeRequirementInTree for JsonpChunkLoadingPlugin)]
 async fn runtime_requirements_in_tree(
@@ -71,6 +91,10 @@ impl Plugin for JsonpChunkLoadingPlugin {
   }
 
   fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
+    ctx
+      .compilation_hooks
+      .additional_tree_runtime_requirements
+      .tap(additional_tree_runtime_requirements::new(self));
     ctx
       .compilation_hooks
       .runtime_requirement_in_tree
