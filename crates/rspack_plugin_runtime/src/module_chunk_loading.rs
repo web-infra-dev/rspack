@@ -17,9 +17,10 @@ pub struct ModuleChunkLoadingPlugin;
 #[plugin_hook(CompilationAdditionalTreeRuntimeRequirements for ModuleChunkLoadingPlugin)]
 async fn additional_tree_runtime_requirements(
   &self,
-  compilation: &mut Compilation,
+  compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
   runtime_requirements: &mut RuntimeGlobals,
+  _additional_runtime_modules: &mut Vec<Box<dyn RuntimeModule>>,
 ) -> Result<()> {
   let chunk_loading_value = ChunkLoading::Enable(ChunkLoadingType::Import);
   let is_enabled_for_chunk = is_enabled_for_chunk(chunk_ukey, &chunk_loading_value, compilation);
