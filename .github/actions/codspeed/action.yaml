@@ -86,7 +86,7 @@ runs:
         fi
 
         # We can use official runner if it supports config valgrind flags in the future: https://github.com/CodSpeedHQ/runner/pull/92
-        cargo install --git https://github.com/CPunisher/runner.git --rev 9c1ca5aa4742b8524843c0ac3e417c6ecb91b1bd
+        cargo install --git https://github.com/CPunisher/runner.git --rev 9c1ca5aa4742b8524843c0ac3e417c6ecb91b1bd codspeed-runner
 
         # Get the runner arguments
         RUNNER_ARGS=""
