@@ -18,7 +18,9 @@ mod module_static_cache_artifact;
 mod process_runtime_requirements_cache_artifact;
 mod side_effects_do_optimize_artifact;
 
-use std::mem;
+use std::{mem, sync::Arc};
+
+use atomic_refcell::AtomicRefCell;
 
 use crate::incremental::{Incremental, IncrementalPasses};
 
@@ -29,8 +31,7 @@ pub trait ArtifactExt: Sized {
   /// The incremental pass associated with this artifact.
   ///
   /// This constant defines which incremental compilation pass this artifact
-  /// belongs to. Returns `IncrementalPasses::empty()` if no specific pass
-  /// is associated.
+  /// belongs to.
   const PASS: IncrementalPasses;
 
   /// Determines whether this artifact should be recovered from the previous compilation.
@@ -54,6 +55,42 @@ pub trait ArtifactExt: Sized {
 /// if the incremental pass allows it.
 pub fn recover_artifact<T: ArtifactExt>(incremental: &Incremental, new: &mut T, old: &mut T) {
   T::recover(incremental, new, old);
+}
+
+// Implementation for Box<T> - used when "napi" feature is disabled
+// where BindingCell<T> is a type alias for Box<T>
+#[cfg(not(feature = "napi"))]
+impl<T: ArtifactExt> ArtifactExt for Box<T> {
+  const PASS: IncrementalPasses = T::PASS;
+
+  fn recover(incremental: &Incremental, new: &mut Self, old: &mut Self) {
+    if Self::should_recover(incremental) {
+      mem::swap(new, old);
+    }
+  }
+}
+
+// Implementation for BindingCell<T> - used when "napi" feature is enabled
+#[cfg(feature = "napi")]
+impl<T: ArtifactExt + Into<crate::BindingCell<T>>> ArtifactExt for crate::BindingCell<T> {
+  const PASS: IncrementalPasses = T::PASS;
+
+  fn recover(incremental: &Incremental, new: &mut Self, old: &mut Self) {
+    if Self::should_recover(incremental) {
+      mem::swap(new, old);
+    }
+  }
+}
+
+// Implementation for Arc<AtomicRefCell<T>> - used for shared artifacts
+impl<T: ArtifactExt> ArtifactExt for Arc<AtomicRefCell<T>> {
+  const PASS: IncrementalPasses = T::PASS;
+
+  fn recover(incremental: &Incremental, new: &mut Self, old: &mut Self) {
+    if Self::should_recover(incremental) {
+      mem::swap(new, old);
+    }
+  }
 }
 
 pub use async_modules_artifact::AsyncModulesArtifact;

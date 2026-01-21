@@ -8,8 +8,7 @@ use rspack_tasks::within_compiler_context;
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::{
-  ArtifactExt, AsyncModulesArtifact, ChunkGraph, ChunkKind, CodeGenerationResults, Compilation,
-  Compiler, DependenciesDiagnosticsArtifact, RuntimeSpec, SideEffectsOptimizeArtifact,
+  ChunkGraph, ChunkKind, Compilation, Compiler, RuntimeSpec,
   chunk_graph_chunk::ChunkId,
   chunk_graph_module::ModuleId,
   compilation::build_module_graph::ModuleExecutor,
@@ -95,31 +94,27 @@ impl Compiler {
       // Recover artifacts based on their associated incremental passes
       let incremental = &new_compilation.incremental;
 
-      // Wrapped artifacts (Arc<AtomicRefCell<T>>, BindingCell<T>, DerefOption<T>)
-      if AsyncModulesArtifact::should_recover(incremental) {
-        std::mem::swap(
-          &mut new_compilation.async_modules_artifact,
-          &mut self.compilation.async_modules_artifact,
-        );
-      }
-      if DependenciesDiagnosticsArtifact::should_recover(incremental) {
-        std::mem::swap(
-          &mut new_compilation.dependencies_diagnostics_artifact,
-          &mut self.compilation.dependencies_diagnostics_artifact,
-        );
-      }
-      if CodeGenerationResults::should_recover(incremental) {
-        std::mem::swap(
-          &mut new_compilation.code_generation_results,
-          &mut self.compilation.code_generation_results,
-        );
-      }
-      if SideEffectsOptimizeArtifact::should_recover(incremental) {
-        std::mem::swap(
-          &mut new_compilation.side_effects_optimize_artifact,
-          &mut self.compilation.side_effects_optimize_artifact,
-        );
-      }
+      // Wrapped artifacts (SharedArtifact<T>, BindingCell<T>, DerefOption<T>)
+      recover_artifact(
+        incremental,
+        &mut new_compilation.async_modules_artifact,
+        &mut self.compilation.async_modules_artifact,
+      );
+      recover_artifact(
+        incremental,
+        &mut new_compilation.dependencies_diagnostics_artifact,
+        &mut self.compilation.dependencies_diagnostics_artifact,
+      );
+      recover_artifact(
+        incremental,
+        &mut new_compilation.code_generation_results,
+        &mut self.compilation.code_generation_results,
+      );
+      recover_artifact(
+        incremental,
+        &mut new_compilation.side_effects_optimize_artifact,
+        &mut self.compilation.side_effects_optimize_artifact,
+      );
 
       // Direct type artifacts
       recover_artifact(
