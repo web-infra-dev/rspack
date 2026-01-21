@@ -28,6 +28,20 @@ pub fn get_used_module_ids_and_modules(
   compilation: &Compilation,
   filter: Option<Box<dyn Fn(&BoxModule) -> bool>>,
 ) -> (FxHashSet<String>, Vec<ModuleIdentifier>) {
+  get_used_module_ids_and_modules_with_artifact(
+    compilation,
+    &compilation.module_ids_artifact,
+    filter,
+  )
+}
+
+#[allow(clippy::type_complexity)]
+#[allow(clippy::collapsible_else_if)]
+pub fn get_used_module_ids_and_modules_with_artifact(
+  compilation: &Compilation,
+  module_ids_artifact: &ModuleIdsArtifact,
+  filter: Option<Box<dyn Fn(&BoxModule) -> bool>>,
+) -> (FxHashSet<String>, Vec<ModuleIdentifier>) {
   let chunk_graph = &compilation.chunk_graph;
   let mut modules = vec![];
   let mut used_ids = FxHashSet::default();
@@ -45,8 +59,7 @@ pub fn get_used_module_ids_and_modules(
     .values()
     .filter(|m| m.need_id())
     .for_each(|module| {
-      let module_id =
-        ChunkGraph::get_module_id(&compilation.module_ids_artifact, module.identifier());
+      let module_id = ChunkGraph::get_module_id(module_ids_artifact, module.identifier());
       if let Some(module_id) = module_id {
         used_ids.insert(module_id.to_string());
       } else {
