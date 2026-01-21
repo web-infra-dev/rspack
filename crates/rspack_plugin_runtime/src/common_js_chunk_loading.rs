@@ -42,6 +42,9 @@ async fn additional_tree_runtime_requirements(
       .has_chunk_entry_dependent_chunks(chunk_ukey, &compilation.chunk_group_by_ukey)
   {
     runtime_requirements.insert(RuntimeGlobals::STARTUP_CHUNK_DEPENDENCIES);
+    if self.async_chunk_loading {
+      runtime_requirements.insert(RuntimeGlobals::ASYNC_STARTUP);
+    }
   }
   Ok(())
 }
@@ -49,11 +52,12 @@ async fn additional_tree_runtime_requirements(
 #[plugin_hook(CompilationRuntimeRequirementInTree for CommonJsChunkLoadingPlugin)]
 async fn runtime_requirements_in_tree(
   &self,
-  compilation: &mut Compilation,
+  compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
   _all_runtime_requirements: &RuntimeGlobals,
   runtime_requirements: &RuntimeGlobals,
   runtime_requirements_mut: &mut RuntimeGlobals,
+  runtime_modules_to_add: &mut Vec<(ChunkUkey, Box<dyn RuntimeModule>)>,
 ) -> Result<Option<()>> {
   let chunk_loading_value = if self.async_chunk_loading {
     ChunkLoading::Enable(ChunkLoadingType::AsyncNode)
@@ -95,15 +99,15 @@ async fn runtime_requirements_in_tree(
     runtime_requirements_mut.insert(RuntimeGlobals::MODULE_FACTORIES_ADD_ONLY);
     runtime_requirements_mut.insert(RuntimeGlobals::HAS_OWN_PROPERTY);
     if self.async_chunk_loading {
-      compilation.add_runtime_module(
-        chunk_ukey,
+      runtime_modules_to_add.push((
+        *chunk_ukey,
         ReadFileChunkLoadingRuntimeModule::new(&compilation.runtime_template).boxed(),
-      )?;
+      ));
     } else {
-      compilation.add_runtime_module(
-        chunk_ukey,
+      runtime_modules_to_add.push((
+        *chunk_ukey,
         RequireChunkLoadingRuntimeModule::new(&compilation.runtime_template).boxed(),
-      )?;
+      ));
     }
   }
 

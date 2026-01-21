@@ -28,6 +28,7 @@ async fn additional_tree_runtime_requirements(
       .has_chunk_entry_dependent_chunks(chunk_ukey, &compilation.chunk_group_by_ukey)
   {
     runtime_requirements.insert(RuntimeGlobals::STARTUP_CHUNK_DEPENDENCIES);
+    runtime_requirements.insert(RuntimeGlobals::ASYNC_STARTUP);
   }
   Ok(())
 }
@@ -35,11 +36,12 @@ async fn additional_tree_runtime_requirements(
 #[plugin_hook(CompilationRuntimeRequirementInTree for ImportScriptsChunkLoadingPlugin)]
 async fn runtime_requirements_in_tree(
   &self,
-  compilation: &mut Compilation,
+  compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
   _all_runtime_requirements: &RuntimeGlobals,
   runtime_requirements: &RuntimeGlobals,
   runtime_requirements_mut: &mut RuntimeGlobals,
+  runtime_modules_to_add: &mut Vec<(ChunkUkey, Box<dyn RuntimeModule>)>,
 ) -> Result<Option<()>> {
   let chunk_loading_value = ChunkLoading::Enable(ChunkLoadingType::ImportScripts);
   let is_enabled_for_chunk = is_enabled_for_chunk(chunk_ukey, &chunk_loading_value, compilation);
@@ -78,14 +80,14 @@ async fn runtime_requirements_in_tree(
       if with_create_script_url {
         runtime_requirements_mut.insert(RuntimeGlobals::CREATE_SCRIPT_URL);
       }
-      compilation.add_runtime_module(
-        chunk_ukey,
+      runtime_modules_to_add.push((
+        *chunk_ukey,
         ImportScriptsChunkLoadingRuntimeModule::new(
           &compilation.runtime_template,
           with_create_script_url,
         )
         .boxed(),
-      )?;
+      ));
     }
   }
   Ok(None)
