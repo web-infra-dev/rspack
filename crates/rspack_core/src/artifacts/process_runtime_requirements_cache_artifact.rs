@@ -17,7 +17,8 @@ impl ProcessRuntimeRequirementsCacheArtifact {
     Self {
       storage: match &options.cache {
         CacheOptions::Memory { max_generations } => Some(MemoryGCStorage::new(*max_generations)),
-        _ => None,
+        CacheOptions::Persistent(_) => Some(MemoryGCStorage::new(1)),
+        CacheOptions::Disabled => None,
       },
     }
   }
