@@ -5,8 +5,8 @@ use rspack_collections::{IdentifierIndexSet, UkeyIndexMap, UkeySet};
 use rspack_core::{
   AssetInfo, Chunk, ChunkGraph, ChunkRenderContext, ChunkUkey, CodeGenerationDataFilename,
   Compilation, ConcatenatedModuleInfo, DependencyId, InitFragment, ModuleIdentifier, PathData,
-  PathInfo, RuntimeGlobals, RuntimeVariable, SourceType, get_js_chunk_filename_template,
-  get_undo_path, render_init_fragments,
+  PathInfo, RuntimeGlobals, RuntimeVariable, SourceType, export_name,
+  get_js_chunk_filename_template, get_undo_path, render_init_fragments,
   rspack_sources::{ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt},
 };
 use rspack_error::Result;
@@ -375,10 +375,12 @@ var {} = {{}};
       } else {
         let mut imports = Vec::new();
         for (atom, local) in symbols.atoms.iter() {
+          let atom_name = export_name(atom).expect("should have export_name");
           if atom == local {
-            imports.push(atom.to_string());
+            imports.push(atom_name.into_owned());
           } else {
-            imports.push(format!("{atom} as {local}"));
+            let local_name = export_name(local).expect("should have export_name");
+            imports.push(format!("{atom_name} as {local_name}"));
           }
         }
         format!(
@@ -437,10 +439,12 @@ var {} = {{}};
             imported
               .iter()
               .map(|(imported, local)| {
+                let imported_name = export_name(imported).expect("should have export_name");
                 if imported == local {
-                  Cow::Borrowed(imported.as_str())
+                  imported_name.into_owned()
                 } else {
-                  Cow::Owned(format!("{imported} as {local}"))
+                  let local_name = export_name(local).expect("should have export_name");
+                  format!("{imported_name} as {local_name}")
                 }
               })
               .collect::<Vec<_>>()
@@ -479,20 +483,32 @@ var {} = {{}};
     for (raw_symbol, exports) in exports {
       let mut exports = exports.iter().collect::<Vec<_>>();
       exports.sort_unstable();
-      for export_name in exports {
-        let is_default = export_name.as_str() == "default";
+      for exported_name in exports {
+        let is_default = exported_name.as_str() == "default";
 
         if is_default {
           if export_default.is_none() {
             export_default = Some(raw_symbol);
           } else {
             // multiple export default
-            export_specifiers.insert(Cow::Borrowed(raw_symbol));
+            export_specifiers.insert(Cow::Owned(
+              export_name(raw_symbol)
+                .expect("should have export_name")
+                .into_owned(),
+            ));
           }
-        } else if raw_symbol == export_name {
-          export_specifiers.insert(Cow::Borrowed(raw_symbol));
+        } else if raw_symbol == exported_name {
+          export_specifiers.insert(Cow::Owned(
+            export_name(raw_symbol)
+              .expect("should have export_name")
+              .into_owned(),
+          ));
         } else {
-          export_specifiers.insert(Cow::Owned(format!("{raw_symbol} as {export_name}")));
+          let raw_symbol_name = export_name(raw_symbol).expect("should have export_name");
+          let exported_name_str = export_name(exported_name).expect("should have export_name");
+          export_specifiers.insert(Cow::Owned(format!(
+            "{raw_symbol_name} as {exported_name_str}"
+          )));
         }
       }
     }
@@ -517,8 +533,9 @@ var {} = {{}};
             serde_json::to_string(source).expect("should have correct request")
           )));
         } else {
+          let name_str = export_name(name).expect("should have export_name");
           final_source.add(RawStringSource::from(format!(
-            "export * as {name} from {};\n",
+            "export * as {name_str} from {};\n",
             serde_json::to_string(source).expect("should have correct request")
           )));
         }
@@ -537,11 +554,16 @@ var {} = {{}};
           .flat_map(|(imported, exports)| {
             let mut vec = exports.iter().collect::<Vec<_>>();
             vec.sort_unstable();
-            vec.into_iter().map(move |export_name| {
-              if *imported == export_name {
-                Cow::Borrowed(imported.as_str())
+            let imported_name = export_name(imported)
+              .expect("should have export_name")
+              .into_owned();
+            vec.into_iter().map(move |exported_name| {
+              if *imported == exported_name {
+                imported_name.clone()
               } else {
-                Cow::Owned(format!("{imported} as {export_name}"))
+                let exported_name_str =
+                  export_name(exported_name).expect("should have export_name");
+                format!("{imported_name} as {exported_name_str}")
               }
             })
           })
