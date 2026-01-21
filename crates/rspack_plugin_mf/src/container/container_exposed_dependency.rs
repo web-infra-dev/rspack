@@ -11,6 +11,7 @@ pub struct ContainerExposedDependency {
   request: String,
   pub exposed_name: String,
   resource_identifier: ResourceIdentifier,
+  dependency_type: DependencyType,
   factorize_info: FactorizeInfo,
 }
 
@@ -22,6 +23,19 @@ impl ContainerExposedDependency {
       request,
       exposed_name,
       resource_identifier,
+      dependency_type: DependencyType::ContainerExposed,
+      factorize_info: Default::default(),
+    }
+  }
+
+  pub fn new_shared_fallback(request: String) -> Self {
+    let resource_identifier = format!("share-container-fallback:{}", request).into();
+    Self {
+      id: DependencyId::new(),
+      request,
+      exposed_name: String::new(),
+      resource_identifier,
+      dependency_type: DependencyType::ShareContainerFallback,
       factorize_info: Default::default(),
     }
   }
@@ -38,7 +52,7 @@ impl Dependency for ContainerExposedDependency {
   }
 
   fn dependency_type(&self) -> &DependencyType {
-    &DependencyType::ContainerExposed
+    &self.dependency_type
   }
 
   fn resource_identifier(&self) -> Option<&str> {

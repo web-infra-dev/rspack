@@ -7,9 +7,10 @@ use rspack_core::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo,
   BuildMeta, BuildMetaExportsType, BuildResult, ChunkGroupOptions, CodeGenerationResult,
   Compilation, ConcatenationScope, Context, DependenciesBlock, Dependency, DependencyId,
-  FactoryMeta, GroupOptions, LibIdentOptions, Module, ModuleDependency, ModuleGraph,
-  ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType, StaticExportsDependency,
-  StaticExportsSpec, impl_module_meta_info, impl_source_map_config, module_update_hash,
+  DependencyType, FactoryMeta, GroupOptions, LibIdentOptions, Module, ModuleDependency,
+  ModuleGraph, ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
+  StaticExportsDependency, StaticExportsSpec, impl_module_meta_info, impl_source_map_config,
+  module_update_hash,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
@@ -36,6 +37,10 @@ pub struct ContainerEntryModule {
   build_info: BuildInfo,
   build_meta: BuildMeta,
   enhanced: bool,
+  request: Option<String>,
+  version: Option<String>,
+  dependency_type: DependencyType,
+  name: String,
 }
 
 impl ContainerEntryModule {
@@ -67,13 +72,49 @@ impl ContainerEntryModule {
         exports_type: BuildMetaExportsType::Namespace,
         ..Default::default()
       },
-      source_map_kind: SourceMapKind::empty(),
       enhanced,
+      request: None,
+      version: None,
+      dependency_type: DependencyType::ContainerEntry,
+      source_map_kind: SourceMapKind::empty(),
+      name,
+    }
+  }
+
+  pub fn new_share_container_entry(name: String, request: String, version: String) -> Self {
+    let lib_ident = format!("webpack/share/container/{}", &name);
+    Self {
+      blocks: Vec::new(),
+      dependencies: Vec::new(),
+      identifier: ModuleIdentifier::from(format!("share container entry {}@{}", &name, &version,)),
+      lib_ident,
+      exposes: vec![],
+      share_scope: String::new(),
+      factory_meta: None,
+      build_info: BuildInfo {
+        strict: true,
+        top_level_declarations: Some(FxHashSet::default()),
+        ..Default::default()
+      },
+      build_meta: BuildMeta {
+        exports_type: BuildMetaExportsType::Namespace,
+        ..Default::default()
+      },
+      enhanced: false,
+      request: Some(request),
+      version: Some(version),
+      dependency_type: DependencyType::ShareContainerEntry,
+      source_map_kind: SourceMapKind::empty(),
+      name,
     }
   }
 
   pub fn exposes(&self) -> &[(String, ExposeOptions)] {
     &self.exposes
+  }
+
+  pub fn name(&self) -> &str {
+    &self.name
   }
 }
 
@@ -115,7 +156,11 @@ impl Module for ContainerEntryModule {
   }
 
   fn module_type(&self) -> &ModuleType {
-    &ModuleType::JsDynamic
+    if self.dependency_type == DependencyType::ShareContainerEntry {
+      &ModuleType::ShareContainerShared
+    } else {
+      &ModuleType::JsDynamic
+    }
   }
 
   fn source_types(&self, _module_graph: &ModuleGraph) -> &[SourceType] {
@@ -127,7 +172,11 @@ impl Module for ContainerEntryModule {
   }
 
   fn readable_identifier(&self, _context: &Context) -> Cow<'_, str> {
-    "container entry".into()
+    if self.dependency_type == DependencyType::ShareContainerEntry {
+      "share container entry".into()
+    } else {
+      "container entry".into()
+    }
   }
 
   fn lib_ident(&self, _options: LibIdentOptions) -> Option<Cow<'_, str>> {
@@ -141,32 +190,49 @@ impl Module for ContainerEntryModule {
   ) -> Result<BuildResult> {
     let mut blocks = vec![];
     let mut dependencies: Vec<BoxDependency> = vec![];
-    for (name, options) in &self.exposes {
-      let mut block = AsyncDependenciesBlock::new(
-        self.identifier,
-        None,
-        Some(name),
-        options
-          .import
-          .iter()
-          .map(|request| {
-            Box::new(ContainerExposedDependency::new(
-              name.clone(),
-              request.clone(),
-            )) as Box<dyn Dependency>
-          })
-          .collect(),
-        None,
-      );
-      block.set_group_options(GroupOptions::ChunkGroup(
-        ChunkGroupOptions::default().name_optional(options.name.clone()),
-      ));
-      blocks.push(Box::new(block));
+
+    if self.dependency_type == DependencyType::ShareContainerEntry {
+      // Shared Container logic
+      dependencies.push(Box::new(StaticExportsDependency::new(
+        StaticExportsSpec::Array(vec!["get".into(), "init".into()]),
+        false,
+      )));
+      if let Some(request) = &self.request {
+        let dep = ContainerExposedDependency::new_shared_fallback(request.clone());
+        dependencies.push(Box::new(dep));
+      }
+    } else {
+      // Container logic
+      for (name, options) in &self.exposes {
+        let mut block = AsyncDependenciesBlock::new(
+          self.identifier,
+          None,
+          Some(name),
+          options
+            .import
+            .iter()
+            .map(|request| {
+              Box::new(ContainerExposedDependency::new(
+                name.clone(),
+                request.clone(),
+              )) as Box<dyn Dependency>
+            })
+            .collect(),
+          None,
+        );
+        block.set_group_options(GroupOptions::ChunkGroup(
+          ChunkGroupOptions::default().name_optional(options.name.clone()),
+        ));
+        blocks.push(Box::new(block));
+      }
+      dependencies.push(Box::new(StaticExportsDependency::new(
+        StaticExportsSpec::Array(vec!["get".into(), "init".into()]),
+        false,
+      )));
     }
-    dependencies.push(Box::new(StaticExportsDependency::new(
-      StaticExportsSpec::Array(vec!["get".into(), "init".into()]),
-      false,
-    )));
+
+    // I need `name` for SharedContainer logic.
+    // I will add `name` field to struct.
 
     Ok(BuildResult {
       dependencies,
@@ -192,6 +258,100 @@ impl Module for ContainerEntryModule {
     code_generation_result
       .runtime_requirements
       .insert(RuntimeGlobals::REQUIRE);
+
+    if self.dependency_type == DependencyType::ShareContainerEntry {
+      let module_graph = compilation.get_module_graph();
+      let mut factory = String::new();
+      for dependency_id in self.get_dependencies() {
+        let dependency = module_graph.dependency_by_id(dependency_id);
+        if let Some(dependency) = dependency
+          .as_any()
+          .downcast_ref::<ContainerExposedDependency>()
+        {
+          if *dependency.dependency_type() == DependencyType::ShareContainerFallback {
+            let request: &str = dependency.user_request();
+            let module_expr = compilation.runtime_template.module_raw(
+              compilation,
+              &mut code_generation_result.runtime_requirements,
+              dependency_id,
+              request,
+              false,
+            );
+            factory = compilation
+              .runtime_template
+              .returning_function(&module_expr, "");
+          }
+        }
+      }
+
+      let federation_global = format!(
+        "{}.federation",
+        compilation
+          .runtime_template
+          .render_runtime_globals(&RuntimeGlobals::REQUIRE)
+      );
+
+      // Generate installInitialConsumes function using returning_function
+      let install_initial_consumes_call = r#"localBundlerRuntime.installInitialConsumes({ 
+            installedModules: localInstalledModules, 
+            initialConsumes: __webpack_require__.consumesLoadingData.initialConsumes, 
+            moduleToHandlerMapping: __webpack_require__.federation.consumesLoadingModuleToHandlerMapping || {}, 
+            webpackRequire: __webpack_require__, 
+            asyncLoad: true 
+          })"#;
+      let install_initial_consumes_fn = compilation
+        .runtime_template
+        .returning_function(install_initial_consumes_call, "");
+
+      // Create initShareContainer function using basic_function, supporting multi-statement body
+      let init_body = format!(
+        r#"
+        var installedModules = {{}};
+        {federation_global}.instance = mfInstance;
+        {federation_global}.bundlerRuntime = bundlerRuntime;
+        
+        // Save parameters to local variables to avoid closure issues
+        var localBundlerRuntime = bundlerRuntime;
+        var localInstalledModules = installedModules;
+        
+        if(!__webpack_require__.consumesLoadingData){{return; }}
+        {federation_global}.installInitialConsumes = {install_initial_consumes_fn};
+        
+        return {federation_global}.installInitialConsumes();
+      "#,
+        federation_global = federation_global,
+        install_initial_consumes_fn = install_initial_consumes_fn
+      );
+      let init_share_container_fn = compilation
+        .runtime_template
+        .basic_function("mfInstance, bundlerRuntime", &init_body);
+
+      // Generate the final source string
+      let source = format!(
+        r#"
+          __webpack_require__.federation = {{ instance: undefined,bundlerRuntime: undefined }}
+          var factory = ()=>{factory};
+          var initShareContainer = {init_share_container_fn};
+    {runtime}(exports, {{ 
+        get: function() {{ return factory;}},
+        init: function() {{ return initShareContainer;}}
+    }});
+    "#,
+        runtime = compilation
+          .runtime_template
+          .render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS),
+        factory = factory,
+        init_share_container_fn = init_share_container_fn
+      );
+
+      // Update the code generation result with the generated source
+      code_generation_result =
+        code_generation_result.with_javascript(RawStringSource::from(source).boxed());
+      code_generation_result.add(SourceType::Expose, RawStringSource::from_static("").boxed());
+      return Ok(code_generation_result);
+    }
+
+    // Normal Container Logic
     code_generation_result
       .runtime_requirements
       .insert(RuntimeGlobals::CURRENT_REMOTE_GET_SCOPE);

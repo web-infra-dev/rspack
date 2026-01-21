@@ -27,7 +27,6 @@ pub use sharing::{
     CodeGenerationDataShareInit, DataInitStage, ShareInitData, ShareRuntimeModule,
   },
   share_runtime_plugin::ShareRuntimePlugin,
-  shared_container_entry_dependency::ShareContainerEntryOptions,
   shared_container_plugin::{SharedContainerPlugin, SharedContainerPluginOptions},
   shared_used_exports_optimizer_plugin::{
     OptimizeSharedConfig, SharedUsedExportsOptimizerPlugin, SharedUsedExportsOptimizerPluginOptions,

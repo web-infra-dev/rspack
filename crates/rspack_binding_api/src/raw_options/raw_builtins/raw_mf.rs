@@ -7,7 +7,7 @@ use rspack_plugin_mf::{
   ContainerPluginOptions, ContainerReferencePluginOptions, ExposeOptions, ManifestExposeOption,
   ManifestSharedOption, ModuleFederationManifestPluginOptions,
   ModuleFederationRuntimePluginOptions, OptimizeSharedConfig, ProvideOptions, ProvideVersion,
-  RemoteAliasTarget, RemoteOptions, ShareContainerEntryOptions, SharedContainerPluginOptions,
+  RemoteAliasTarget, RemoteOptions, SharedContainerPluginOptions,
   SharedUsedExportsOptimizerPluginOptions, StatsBuildInfo,
 };
 

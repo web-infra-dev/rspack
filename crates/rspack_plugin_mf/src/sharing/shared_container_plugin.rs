@@ -8,11 +8,13 @@ use rspack_core::{
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 
-use super::{
-  shared_container_entry_dependency::SharedContainerEntryDependency,
-  shared_container_entry_module_factory::SharedContainerEntryModuleFactory,
+use crate::{
+  container::{
+    container_entry_dependency::ContainerEntryDependency,
+    container_entry_module_factory::ContainerEntryModuleFactory,
+  },
+  sharing::shared_container_runtime_module::ShareContainerRuntimeModule,
 };
-use crate::sharing::shared_container_runtime_module::ShareContainerRuntimeModule;
 
 #[derive(Debug)]
 pub struct SharedContainerPluginOptions {
@@ -43,7 +45,7 @@ async fn compilation(
 ) -> Result<()> {
   compilation.set_dependency_factory(
     DependencyType::ShareContainerEntry,
-    Arc::new(SharedContainerEntryModuleFactory),
+    Arc::new(ContainerEntryModuleFactory),
   );
   compilation.set_dependency_factory(
     DependencyType::ShareContainerFallback,
@@ -54,7 +56,7 @@ async fn compilation(
 
 #[plugin_hook(CompilerMake for SharedContainerPlugin)]
 async fn make(&self, compilation: &mut Compilation) -> Result<()> {
-  let dep = SharedContainerEntryDependency::new(
+  let dep = ContainerEntryDependency::new_share_container_entry(
     self.options.name.clone(),
     self.options.request.clone(),
     self.options.version.clone(),

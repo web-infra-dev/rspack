@@ -1,6 +1,5 @@
 use std::sync::{Arc, RwLock};
 
-use rspack_collections::Identifiable;
 use rspack_core::{
   AsyncDependenciesBlockIdentifier, ChunkUkey, Compilation,
   CompilationAdditionalTreeRuntimeRequirements, CompilationDependencyReferencedExports,
@@ -18,10 +17,9 @@ use rustc_hash::{FxHashMap, FxHashSet};
 
 use super::{
   consume_shared_module::ConsumeSharedModule, provide_shared_module::ProvideSharedModule,
-  shared_container_entry_module::SharedContainerEntryModule,
   shared_used_exports_optimizer_runtime_module::SharedUsedExportsOptimizerRuntimeModule,
 };
-use crate::manifest::StatsRoot;
+use crate::{container::container_entry_module::ContainerEntryModule, manifest::StatsRoot};
 #[derive(Debug, Clone)]
 pub struct OptimizeSharedConfig {
   pub share_key: String,
@@ -89,10 +87,11 @@ impl SharedUsedExportsOptimizerPlugin {
       .write()
       .expect("lock poisoned");
     for (share_key, shared_entry_data) in &self.shared_map {
-      if let Some(export_set) = shared_referenced_exports.get_mut(share_key) {
-        for used_export in &shared_entry_data.used_exports {
-          export_set.insert(used_export.to_string());
-        }
+      let export_set = shared_referenced_exports
+        .entry(share_key.clone())
+        .or_default();
+      for used_export in &shared_entry_data.used_exports {
+        export_set.insert(used_export.to_string());
       }
     }
   }
@@ -151,7 +150,7 @@ async fn optimize_dependencies(
         ) {
           return None;
         }
-
+        dbg!(&module_type);
         let mut modules_to_process = Vec::new();
         let share_key = match module_type {
           rspack_core::ModuleType::ConsumeShared => {
@@ -195,23 +194,11 @@ async fn optimize_dependencies(
             sk
           }
           rspack_core::ModuleType::ShareContainerShared => {
-            let share_container_entry_module = module
-              .as_any()
-              .downcast_ref::<SharedContainerEntryModule>()?;
-            // Use the identifier to extract the share key
-            // The identifier is in format "share container entry {name}@{version}"
-            let identifier = share_container_entry_module.identifier().to_string();
-            let parts: Vec<&str> = identifier.split(' ').collect();
-            if parts.len() < 3 {
-              return None;
-            }
-            let name_part = parts[3];
-            let name_end = if let Some(stripped) = name_part.strip_prefix('@') {
-              stripped.find('@').map(|i| i + 1).unwrap_or(name_part.len())
-            } else {
-              name_part.find('@').unwrap_or(name_part.len())
-            };
-            let sk = name_part[..name_end].to_string();
+            let share_container_entry_module =
+              module.as_any().downcast_ref::<ContainerEntryModule>()?;
+            let sk = share_container_entry_module.name().to_string();
+            dbg!(&sk);
+            dbg!(&share_container_entry_module);
             collect_processed_modules(
               module_graph,
               share_container_entry_module.get_blocks(),
@@ -244,6 +231,9 @@ async fn optimize_dependencies(
         .get(&share_key)
         .cloned()
     };
+    dbg!(&share_key);
+    dbg!(&self.shared_map);
+    dbg!(&modules_to_process);
     // Check if this share key is in our shared map and has tree_shaking enabled
     if !self.shared_map.contains_key(&share_key) {
       continue;
@@ -253,15 +243,7 @@ async fn optimize_dependencies(
         continue;
       }
 
-      let real_shared_identifier = {
-        module_graph.modules().into_iter().find_map(|(id, module)| {
-          module
-            .as_any()
-            .downcast_ref::<NormalModule>()
-            .filter(|normal| normal.raw_request() == share_key)
-            .map(|_| id)
-        })
-      };
+      let real_shared_identifier = modules_to_process.first().copied();
 
       // Check if the real shared module is side effect free
       if let Some(real_shared_identifier) = real_shared_identifier {
@@ -318,10 +300,12 @@ async fn optimize_dependencies(
             })
           }
         };
+        dbg!(&can_update_module_used_stage);
         if can_update_module_used_stage {
           // mark used exports per runtime
           // Mark used exports
           for export_info in exports_info_data.exports_mut().values_mut() {
+            dbg!(&export_info);
             export_info.set_used_conditionally(
               Box::new(|used| *used == rspack_core::UsageState::Unknown),
               rspack_core::UsageState::Unused,
@@ -329,6 +313,7 @@ async fn optimize_dependencies(
             );
             export_info.set_can_mangle_provide(Some(false));
             export_info.set_can_mangle_use(Some(false));
+            dbg!(&export_info);
           }
         }
       }
@@ -433,6 +418,7 @@ async fn dependency_referenced_exports(
     return Ok(());
   }
   let mut final_exports = exports.clone();
+
   // If it's an import dependency and referenced exports indicate "exports object referenced",
   // clear any recorded shared referenced exports for this share key and stop here.
   let is_exports_object = matches!(
