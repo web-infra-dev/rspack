@@ -6,8 +6,8 @@ use rspack_core::{
   CompilationId, CompilationParams, CompilationRenderManifest, CompilerCompilation,
   ConstDependencyTemplate, DependencyType, IgnoreErrorModuleFactory, ManifestAssetType,
   ModuleGraph, ModuleType, ParserAndGenerator, PathData, Plugin, RenderManifestEntry,
-  RuntimeGlobals, RuntimeRequirementsDependencyTemplate, SelfModuleFactory, SourceType,
-  get_js_chunk_filename_template,
+  RuntimeGlobals, RuntimeModule, RuntimeRequirementsDependencyTemplate, SelfModuleFactory,
+  SourceType, get_js_chunk_filename_template,
   rspack_sources::{BoxSource, CachedSource, SourceExt},
 };
 use rspack_error::{Diagnostic, Result};
@@ -406,9 +406,10 @@ async fn compilation(
 #[plugin_hook(CompilationAdditionalTreeRuntimeRequirements for JsPlugin)]
 async fn additional_tree_runtime_requirements(
   &self,
-  compilation: &mut Compilation,
+  compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
   runtime_requirements: &mut RuntimeGlobals,
+  _runtime_modules: &mut Vec<Box<dyn RuntimeModule>>,
 ) -> Result<()> {
   if !runtime_requirements.contains(RuntimeGlobals::STARTUP_NO_DEFAULT)
     && compilation
