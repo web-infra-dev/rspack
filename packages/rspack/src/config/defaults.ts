@@ -816,7 +816,7 @@ const applyOutputDefaults = (
       trustedTypes,
       'policyName',
       () =>
-        output.uniqueName!.replace(/[^a-zA-Z0-9\-#=_/@.%]+/g, '_') || 'webpack',
+        output.uniqueName!.replace(/[^a-zA-Z0-9\-#=_/@.%]+/g, '_') || 'rspack',
     );
     D(trustedTypes, 'onPolicyCreationFailure', 'stop');
   }
