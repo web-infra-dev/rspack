@@ -1,3 +1,5 @@
+const { normalizePlaceholder } = require('@rspack/test-tools');
+
 const ANSI = {
   reset: '\x1b[0m',
   red: '\x1b[31m',
@@ -7,7 +9,7 @@ const ANSI = {
 };
 
 expect.extend({
-  toBeEquivalentStatsString(received, expected) {
+  toBeEquivalentStatsStringWith(received, expected) {
     const { matcherHint, printReceived, diff } = this.utils;
 
     if (arguments.length < 2 || expected === undefined) {
@@ -48,21 +50,17 @@ function shouldUseColor() {
   return process.stdout?.isTTY ?? false;
 }
 
-function escapeRegExp(str) {
-  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
 function normalizeStatsString(input) {
   if (input == null) return '';
 
-  const cwd = process.cwd().replace(/\\/g, '/');
   let out = String(input)
-    .replace(/\\/g, '/')
-    .replace(new RegExp(escapeRegExp(cwd), 'g'), '<root>')
-    .replace(/\b[0-9a-f]{7,}\b/gi, '<hash>')
     .replace(/\b\d+(?:\.\d+)?\s*(?:ms|s)\b/gi, 'X ms')
+    .replace(/\b[0-9a-f]{7,}\b/gi, '<hash>')
     .replace(/\b\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z\b/g, '<ts>')
     .replace(/\b\d+(?:\.\d+)?\s*(?:B|KB|KiB|MB|MiB|GB|GiB)\b/gi, '<size>');
+
+  // Then use the shared serializer for path normalization
+  out = normalizePlaceholder(out);
 
   return out
     .split(/\r?\n/)

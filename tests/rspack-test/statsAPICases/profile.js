@@ -11,7 +11,7 @@ module.exports = {
 	async check(stats) {
     expect(
       stats?.toString({ all: false, modules: true })
-    ).toBeEquivalentStatsString(`
+    ).toBeEquivalentStatsStringWith(`
 		./fixtures/abc.js 83 bytes [built] [code generated]
 		  X ms (resolving: X ms, building: X ms)
 		./fixtures/a.js 55 bytes [built] [code generated]
