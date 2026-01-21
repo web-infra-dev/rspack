@@ -20,7 +20,7 @@ use std::{
 use async_trait::async_trait;
 use rspack_core::{
   Compilation, CompilationOptimizeChunks, CompilerCompilation, Dependency, DependencyId,
-  ModuleIdentifier, Plugin, RuntimeSpec, incremental::Mutation,
+  ModuleIdentifier, Plugin, incremental::Mutation,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -193,21 +193,22 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
     .collect::<FxHashSet<_>>();
 
   // Hoist referenced modules to their runtime chunk
-  let entries = compilation
+  let runtime_chunk_by_runtime = compilation
     .get_chunk_graph_entries()
-    .filter_map(|entry| {
+    .filter_map(|runtime_chunk| {
       compilation
         .chunk_by_ukey
-        .get(&entry)
-        .map(|chunk| (chunk.runtime(), entry))
+        .get(&runtime_chunk)
+        .map(|chunk| (chunk.runtime().clone(), runtime_chunk))
     })
+    .flat_map(|(runtime, runtime_chunk)| runtime.into_iter().map(move |r| (r, runtime_chunk)))
     .collect::<FxHashMap<_, _>>();
   for module in &all_modules_to_hoist {
     let runtime_chunks = compilation
       .chunk_graph
       .get_module_runtimes_iter(*module, &compilation.chunk_by_ukey)
       .flat_map(|runtime| runtime.iter())
-      .filter_map(|runtime| entries.get(&RuntimeSpec::from_iter([*runtime])).copied())
+      .filter_map(|runtime| runtime_chunk_by_runtime.get(runtime).copied())
       .collect::<Vec<_>>();
     for runtime_chunk in runtime_chunks {
       if !compilation
@@ -222,7 +223,10 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
   }
 
   // Disconnect hoisted modules from non-runtime chunks, this is safe since we already hoist them to runtime chunk
-  let runtime_chunks = entries.values().copied().collect::<FxHashSet<_>>();
+  let runtime_chunks = runtime_chunk_by_runtime
+    .values()
+    .copied()
+    .collect::<FxHashSet<_>>();
   for module in all_modules_to_hoist {
     let non_runtime_chunks = compilation
       .chunk_graph
