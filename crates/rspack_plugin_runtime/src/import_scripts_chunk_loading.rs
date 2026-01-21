@@ -1,7 +1,7 @@
 use rspack_core::{
   ChunkLoading, ChunkLoadingType, ChunkUkey, Compilation,
   CompilationAdditionalTreeRuntimeRequirements, CompilationRuntimeRequirementInTree, Plugin,
-  RuntimeGlobals, RuntimeModuleExt,
+  RuntimeGlobals, RuntimeModule, RuntimeModuleExt,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -15,9 +15,10 @@ pub struct ImportScriptsChunkLoadingPlugin;
 #[plugin_hook(CompilationAdditionalTreeRuntimeRequirements for ImportScriptsChunkLoadingPlugin)]
 async fn additional_tree_runtime_requirements(
   &self,
-  compilation: &mut Compilation,
+  compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
   runtime_requirements: &mut RuntimeGlobals,
+  _runtime_modules: &mut Vec<Box<dyn RuntimeModule>>,
 ) -> Result<()> {
   let chunk_loading_value = ChunkLoading::Enable(ChunkLoadingType::ImportScripts);
   let is_enabled_for_chunk = is_enabled_for_chunk(chunk_ukey, &chunk_loading_value, compilation);

@@ -1,6 +1,6 @@
 use rspack_core::{
   ChunkUkey, Compilation, CompilationAdditionalTreeRuntimeRequirements,
-  CompilationRuntimeRequirementInTree, Plugin, RuntimeGlobals,
+  CompilationRuntimeRequirementInTree, Plugin, RuntimeGlobals, RuntimeModule,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -32,9 +32,10 @@ impl BundlerInfoPlugin {
 #[plugin_hook(CompilationAdditionalTreeRuntimeRequirements for BundlerInfoPlugin)]
 async fn additional_tree_runtime_requirements(
   &self,
-  _compilation: &mut Compilation,
+  _compilation: &Compilation,
   _chunk_ukey: &ChunkUkey,
   runtime_requirements: &mut RuntimeGlobals,
+  _runtime_modules: &mut Vec<Box<dyn RuntimeModule>>,
 ) -> Result<()> {
   if match &self.force {
     BundlerInfoForceMode::All => true,

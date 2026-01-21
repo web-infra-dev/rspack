@@ -3,7 +3,8 @@ use std::sync::Arc;
 use rspack_core::{
   ChunkUkey, Compilation, CompilationAdditionalTreeRuntimeRequirements, CompilationParams,
   CompilationRuntimeRequirementInTree, CompilerCompilation, CompilerMake, DependencyType,
-  EntryOptions, EntryRuntime, Filename, LibraryOptions, Plugin, RuntimeGlobals, SourceType,
+  EntryOptions, EntryRuntime, Filename, LibraryOptions, Plugin, RuntimeGlobals, RuntimeModule,
+  SourceType,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -98,9 +99,10 @@ async fn make(&self, compilation: &mut Compilation) -> Result<()> {
 #[plugin_hook(CompilationAdditionalTreeRuntimeRequirements for ContainerPlugin)]
 async fn additional_tree_runtime_requirements(
   &self,
-  compilation: &mut Compilation,
+  compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
   runtime_requirements: &mut RuntimeGlobals,
+  _runtime_modules: &mut Vec<Box<dyn RuntimeModule>>,
 ) -> Result<()> {
   let Some(entry_options) = compilation
     .chunk_by_ukey

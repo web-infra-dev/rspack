@@ -1,7 +1,7 @@
 use rspack_core::{
   ChunkLoading, ChunkLoadingType, ChunkUkey, Compilation,
   CompilationAdditionalTreeRuntimeRequirements, CompilationRuntimeRequirementInTree, Plugin,
-  RuntimeGlobals, RuntimeModuleExt,
+  RuntimeGlobals, RuntimeModule, RuntimeModuleExt,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -25,9 +25,10 @@ impl CommonJsChunkLoadingPlugin {
 #[plugin_hook(CompilationAdditionalTreeRuntimeRequirements for CommonJsChunkLoadingPlugin)]
 async fn additional_tree_runtime_requirements(
   &self,
-  compilation: &mut Compilation,
+  compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
   runtime_requirements: &mut RuntimeGlobals,
+  _runtime_modules: &mut Vec<Box<dyn RuntimeModule>>,
 ) -> Result<()> {
   let chunk_loading_value = if self.async_chunk_loading {
     ChunkLoading::Enable(ChunkLoadingType::AsyncNode)

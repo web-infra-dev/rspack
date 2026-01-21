@@ -10,7 +10,7 @@ use rspack_core::{
   CompilationProcessAssets, CompilationRecords, CompilerCompilation, DependencyType, LoaderContext,
   ModuleId, ModuleIdentifier, ModuleType, NormalModuleFactoryParser, NormalModuleLoader,
   ParserAndGenerator, ParserOptions, PathData, Plugin, RunnerContext, RuntimeGlobals,
-  RuntimeModuleExt, RuntimeSpec,
+  RuntimeModule, RuntimeModuleExt, RuntimeSpec,
   chunk_graph_chunk::ChunkId,
   rspack_sources::{RawStringSource, SourceExt},
 };
@@ -437,9 +437,10 @@ async fn normal_module_factory_parser(
 #[plugin_hook(CompilationAdditionalTreeRuntimeRequirements for HotModuleReplacementPlugin)]
 async fn additional_tree_runtime_requirements(
   &self,
-  compilation: &mut Compilation,
-  chunk_ukey: &ChunkUkey,
+  compilation: &Compilation,
+  _chunk_ukey: &ChunkUkey,
   runtime_requirements: &mut RuntimeGlobals,
+  runtime_modules: &mut Vec<Box<dyn RuntimeModule>>,
 ) -> Result<()> {
   // TODO: the hmr runtime is depend on module.id, but webpack not add it.
   runtime_requirements.insert(RuntimeGlobals::MODULE_ID);
@@ -447,10 +448,8 @@ async fn additional_tree_runtime_requirements(
   runtime_requirements.insert(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS);
   runtime_requirements.insert(RuntimeGlobals::INTERCEPT_MODULE_EXECUTION);
   runtime_requirements.insert(RuntimeGlobals::MODULE_CACHE);
-  compilation.add_runtime_module(
-    chunk_ukey,
-    HotModuleReplacementRuntimeModule::new(&compilation.runtime_template).boxed(),
-  )?;
+  runtime_modules
+    .push(HotModuleReplacementRuntimeModule::new(&compilation.runtime_template).boxed());
 
   Ok(())
 }

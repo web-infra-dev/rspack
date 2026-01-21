@@ -322,14 +322,18 @@ impl Compilation {
         set.insert(*runtime_requirements);
       }
 
+      let mut additional_runtime_modules = Vec::new();
       plugin_driver
         .compilation_hooks
         .additional_tree_runtime_requirements
-        .call(self, &entry_ukey, &mut set)
+        .call(self, &entry_ukey, &mut set, &mut additional_runtime_modules)
         .await
         .map_err(|e| {
           e.wrap_err("caused by plugins in Compilation.hooks.additionalTreeRuntimeRequirements")
         })?;
+      for module in additional_runtime_modules {
+        self.add_runtime_module(&entry_ukey, module)?;
+      }
 
       self
         .process_runtime_requirement_hook_mut(&mut set, {

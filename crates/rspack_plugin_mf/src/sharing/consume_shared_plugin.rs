@@ -12,7 +12,7 @@ use rspack_core::{
   CompilationParams, CompilerThisCompilation, Context, DependencyCategory, DependencyType,
   ModuleExt, ModuleFactoryCreateData, NormalModuleCreateData, NormalModuleFactoryCreateModule,
   NormalModuleFactoryFactorize, Plugin, ResolveOptionsWithDependencyType, ResolveResult, Resolver,
-  RuntimeGlobals,
+  RuntimeGlobals, RuntimeModule,
 };
 use rspack_error::{Diagnostic, Result, error};
 use rspack_fs::ReadableFileSystem;
@@ -473,9 +473,10 @@ async fn create_module(
 #[plugin_hook(CompilationAdditionalTreeRuntimeRequirements for ConsumeSharedPlugin)]
 async fn additional_tree_runtime_requirements(
   &self,
-  compilation: &mut Compilation,
-  chunk_ukey: &ChunkUkey,
+  compilation: &Compilation,
+  _chunk_ukey: &ChunkUkey,
   runtime_requirements: &mut RuntimeGlobals,
+  runtime_modules: &mut Vec<Box<dyn RuntimeModule>>,
 ) -> Result<()> {
   runtime_requirements.insert(RuntimeGlobals::MODULE);
   runtime_requirements.insert(RuntimeGlobals::MODULE_CACHE);
@@ -483,13 +484,10 @@ async fn additional_tree_runtime_requirements(
   runtime_requirements.insert(RuntimeGlobals::SHARE_SCOPE_MAP);
   runtime_requirements.insert(RuntimeGlobals::INITIALIZE_SHARING);
   runtime_requirements.insert(RuntimeGlobals::HAS_OWN_PROPERTY);
-  compilation.add_runtime_module(
-    chunk_ukey,
-    Box::new(ConsumeSharedRuntimeModule::new(
-      &compilation.runtime_template,
-      self.options.enhanced,
-    )),
-  )?;
+  runtime_modules.push(Box::new(ConsumeSharedRuntimeModule::new(
+    &compilation.runtime_template,
+    self.options.enhanced,
+  )));
   Ok(())
 }
 
