@@ -4,7 +4,7 @@ use rspack_core::{
   AsyncModulesArtifact, CanInlineUse, ChunkUkey, Compilation,
   CompilationAdditionalChunkRuntimeRequirements, CompilationFinishModules, CompilationParams,
   CompilerCompilation, EntryData, LibraryExport, LibraryOptions, LibraryType, ModuleIdentifier,
-  Plugin, RuntimeGlobals, UsageState, get_entry_runtime, property_access,
+  Plugin, RuntimeGlobals, RuntimeModule, UsageState, get_entry_runtime, property_access,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
 };
 use rspack_error::Result;
@@ -199,9 +199,10 @@ impl Plugin for ExportPropertyLibraryPlugin {
 #[plugin_hook(CompilationAdditionalChunkRuntimeRequirements for ExportPropertyLibraryPlugin)]
 async fn additional_chunk_runtime_requirements(
   &self,
-  compilation: &mut Compilation,
+  compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
   runtime_requirements: &mut RuntimeGlobals,
+  _runtime_modules: &mut Vec<Box<dyn RuntimeModule>>,
 ) -> Result<()> {
   if self
     .get_options_for_chunk(compilation, chunk_ukey)
