@@ -3,8 +3,14 @@ use std::ops::{Deref, DerefMut};
 use rspack_collections::IdentifierMap;
 use rspack_error::Diagnostic;
 
+use crate::{ArtifactExt, incremental::IncrementalPasses};
+
 #[derive(Debug, Default, Clone)]
 pub struct DependenciesDiagnosticsArtifact(IdentifierMap<Vec<Diagnostic>>);
+
+impl ArtifactExt for DependenciesDiagnosticsArtifact {
+  const PASS: IncrementalPasses = IncrementalPasses::DEPENDENCIES_DIAGNOSTICS;
+}
 
 impl DependenciesDiagnosticsArtifact {
   pub fn into_values(self) -> impl Iterator<Item = Vec<Diagnostic>> {
