@@ -110,6 +110,7 @@ export type LibraryExport = string | string[];
 export type LibraryType = LiteralUnion<
   | 'var'
   | 'module'
+  | 'modern-module'
   | 'assign'
   | 'assign-properties'
   | 'this'

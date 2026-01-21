@@ -2,13 +2,14 @@ import { ApiMeta } from '@components/ApiMeta.tsx';
 
 # EsmLibraryPlugin
 
-<ApiMeta specific={['Rspack']} addedVersion="1.5.6" />
-
-Rspack 提供实验性的 `EsmLibraryPlugin` 插件，用于生成静态可分析，支持 Code Splitting 并且更加美观干净的 ESM 库产物。
+<ApiMeta specific={['Rspack']} addedVersion="1.5.6" removedVersion="2.0.0" />
 
 :::tip
+该插件在 2.0 版本后已经是 ["modern-module"](/config/output#type-modern-module) 的底层实现，请使用配置开启。
 🚧 该插件仍在开发中，配置可能随时变动。
 :::
+
+Rspack 提供实验性的 `EsmLibraryPlugin` 插件，用于生成静态可分析，支持 Code Splitting 并且更加美观干净的 ESM 库产物。
 
 ```js title="rspack.config.mjs"
 import { rspack } from '@rspack/core';

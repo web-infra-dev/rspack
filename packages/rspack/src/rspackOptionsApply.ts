@@ -295,7 +295,7 @@ export class RspackOptionsApply {
         }
       }
 
-      if (options.output.library?.preserveModules && modernModuleCount > 0) {
+      if (options.output.library?.preserveModules && modernModuleCount === 0) {
         throw new Error(
           'preserveModules only works for `modern-module` library type',
         );

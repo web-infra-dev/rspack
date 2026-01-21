@@ -1,5 +1,5 @@
 const {
-	experiments: { RslibPlugin, EsmLibraryPlugin }
+	experiments: { RslibPlugin }
 } = require("@rspack/core");
 
 /** @type {import("@rspack/core").Configuration} */
@@ -63,7 +63,7 @@ module.exports = [
 				type: "modern-module"
 			}
 		},
-		plugins: [new RslibPlugin(), new EsmLibraryPlugin()]
+		plugins: [new RslibPlugin()]
 	},
 	// Test entry
 	{

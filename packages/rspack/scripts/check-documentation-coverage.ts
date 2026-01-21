@@ -114,13 +114,19 @@ function checkPluginsDocumentationCoverage() {
     'RslibPlugin', // This plugin is not stable yet
   ];
 
+  const removedPlugins = [
+    'EsmLibraryPlugin', // This plugin has already been removed
+  ];
+
   const undocumentedPlugins = Array.from(implementedPlugins).filter(
     (plugin) =>
       !documentedPlugins.has(plugin) &&
       !excludedPlugins.includes(plugin as string),
   );
   const unimplementedPlugins = Array.from(documentedPlugins).filter(
-    (plugin) => !implementedPlugins.has(plugin),
+    (plugin) =>
+      !implementedPlugins.has(plugin) &&
+      !removedPlugins.includes(plugin as string),
   );
 
   if (undocumentedPlugins.length) {

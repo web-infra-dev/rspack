@@ -75,7 +75,6 @@ function checkConfig(config: RspackOptionsNormalized): string | undefined {
   }
 
   if (config.output.chunkFormat !== false) {
-    console.log(config.output.chunkFormat);
     return 'You should disable default chunkFormat by `config.output.chunkFormat = false`';
   }
 }
