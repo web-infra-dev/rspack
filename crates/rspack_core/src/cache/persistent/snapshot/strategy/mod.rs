@@ -26,17 +26,12 @@ pub enum Strategy {
   ///
   /// This strategy will first compare the modified time,
   /// and then compare the file hash.
-  FileHash {
-    mtime: u64,
-    hash: u64,
-  },
+  FileHash { mtime: u64, hash: u64 },
 
-  /// Check by context hash
+  /// Check by dir hash
   ///
-  /// This strategy will compare all of the content files hash.
-  ContextHash {
-    hash: u64,
-  },
+  /// This strategy will compare the content hash of all files within the directory.
+  DirHash { hash: u64 },
 
   /// Check missing file
   ///
@@ -44,6 +39,10 @@ pub enum Strategy {
   /// and will return ValidateResult::Modified if it exists.
   Missing,
 
+  /// Check failed snapshot
+  ///
+  /// This strategy represents a snapshot that could not be created or
+  /// validated correctly and should be treated as invalid.
   Failed,
 }
 
@@ -52,7 +51,7 @@ impl PartialEq for Strategy {
     match (self, other) {
       (Self::PackageVersion(v1), Self::PackageVersion(v2)) => v1 == v2,
       (Self::FileHash { hash: h1, .. }, Self::FileHash { hash: h2, .. }) => h1 == h2,
-      (Self::ContextHash { hash: h1, .. }, Self::ContextHash { hash: h2, .. }) => h1 == h2,
+      (Self::DirHash { hash: h1, .. }, Self::DirHash { hash: h2, .. }) => h1 == h2,
       (Self::Missing, Self::Missing) => true,
       (Self::Failed, Self::Failed) => true,
       _ => false,
@@ -121,7 +120,7 @@ impl StrategyHelper {
   /// get path context hash strategy
   pub async fn dir_hash(&self, path: &ArcPath) -> Strategy {
     if let Some(ContentHash { hash, .. }) = self.hash_helper.dir_hash(path).await {
-      Strategy::ContextHash { hash }
+      Strategy::DirHash { hash }
     } else {
       Strategy::Failed
     }
@@ -157,7 +156,7 @@ impl StrategyHelper {
           ValidateResult::Modified
         }
       }
-      Strategy::ContextHash { hash } => {
+      Strategy::DirHash { hash } => {
         let Some(ContentHash { hash: cur_hash, .. }) = self.hash_helper.dir_hash(path).await else {
           return ValidateResult::Deleted;
         };

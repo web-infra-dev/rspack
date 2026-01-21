@@ -17,11 +17,16 @@ use crate::FutureConsumer;
 
 pub const SCOPE: &str = "snapshot";
 
+/// Represents the type of dependency snapshot being captured.
 #[derive(Debug, Clone, Copy)]
 pub enum SnapshotType {
+  /// for compilation.file_dependencies
   FILE,
+  /// for compilation.context_dependencies
   CONTEXT,
+  /// for compilation.missing_dependencies
   MISSING,
+  /// for compilation.build_dependencies
   BUILD,
 }
 
