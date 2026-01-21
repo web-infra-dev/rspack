@@ -12,10 +12,8 @@ module.exports = {
 			}
 		]
 	},
-	experiments: {
-		incremental: {
-			buildChunkGraph: true
-		}
+	incremental: {
+		buildChunkGraph: true
 	},
 	optimization: {
 		splitChunks: {
@@ -28,8 +26,5 @@ module.exports = {
 				}
 			}
 		}
-	},
-	experiments: {
-		incremental: true
 	}
 };

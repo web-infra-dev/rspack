@@ -74,7 +74,7 @@ impl TaskContext {
       self.loader_resolver_factory.clone(),
       None,
       self.old_cache.clone(),
-      Incremental::new_cold(self.compiler_options.experiments.incremental),
+      Incremental::new_cold(self.compiler_options.incremental),
       None,
       Default::default(),
       Default::default(),

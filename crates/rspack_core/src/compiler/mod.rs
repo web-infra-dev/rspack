@@ -153,7 +153,7 @@ impl Compiler {
       intermediate_filesystem.clone(),
     );
     let old_cache = Arc::new(OldCache::new(options.clone()));
-    let incremental = Incremental::new_cold(options.experiments.incremental);
+    let incremental = Incremental::new_cold(options.incremental);
     let module_executor = ModuleExecutor::default();
 
     let id = CompilerId::new();
@@ -231,7 +231,7 @@ impl Compiler {
         self.loader_resolver_factory.clone(),
         None,
         self.old_cache.clone(),
-        Incremental::new_cold(self.options.experiments.incremental),
+        Incremental::new_cold(self.options.incremental),
         Some(Default::default()),
         Default::default(),
         Default::default(),
@@ -246,7 +246,7 @@ impl Compiler {
     // TODO: disable it for now, enable it once persistent cache is added to all artifacts
     // if is_hot {
     //   // If it's a hot start, we can use incremental
-    //   self.compilation.incremental = Incremental::new_hot(self.options.experiments.incremental);
+    //   self.compilation.incremental = Incremental::new_hot(self.options.incremental);
     // }
 
     self.compile().await?;

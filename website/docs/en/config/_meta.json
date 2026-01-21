@@ -26,6 +26,7 @@
   "devtool",
   "target",
   "watch",
+  "incremental",
   "externals",
   "performance",
   "lazy-compilation",

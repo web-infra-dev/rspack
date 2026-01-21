@@ -2552,7 +2552,6 @@ export type Experiments = {
     asyncWebAssembly?: boolean;
     outputModule?: boolean;
     css?: boolean;
-    incremental?: IncrementalPresets | Incremental;
     futureDefaults?: boolean;
     buildHttp?: HttpUriOptions;
     useInputFileSystem?: UseInputFileSystem;
@@ -2614,8 +2613,6 @@ export interface ExperimentsNormalized {
     deferImport?: boolean;
     // (undocumented)
     futureDefaults?: boolean;
-    // (undocumented)
-    incremental?: false | Incremental;
     // (undocumented)
     nativeWatcher?: boolean;
     // (undocumented)
@@ -7185,6 +7182,7 @@ export type RspackOptions = {
     bail?: Bail;
     performance?: Performance_2;
     lazyCompilation?: boolean | LazyCompilationOptions;
+    incremental?: IncrementalPresets | Incremental;
 };
 
 // @public (undocumented)
@@ -7223,6 +7221,8 @@ export interface RspackOptionsNormalized {
     externalsType?: ExternalsType;
     // (undocumented)
     ignoreWarnings?: IgnoreWarningsNormalized;
+    // (undocumented)
+    incremental?: false | Incremental;
     // (undocumented)
     infrastructureLogging: InfrastructureLogging;
     // (undocumented)

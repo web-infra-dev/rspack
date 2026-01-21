@@ -1,0 +1,66 @@
+import { ApiMeta } from '../../../components/ApiMeta';
+
+# Incremental
+
+<ApiMeta addedVersion="1.1.0-beta.0" />
+
+控制是否启用增量构建功能，该功能通过只重新构建变更的部分来显著加快重构建和热模块替换（HMR）的速度。
+
+- **类型：** `boolean | 'none' | 'safe' | 'advance' | 'advance-silent' | Incremental`
+- **默认值：** `'advance-silent'`
+
+提供两种配置方式：
+
+1. 预设配置：包括 `boolean | 'none' | 'safe' | 'advance' | 'advance-silent'`
+   - `false | 'none'`：关闭增量，不对任何阶段开启
+   - `'safe'`：开启 `make` 和 `emitAssets` 阶段的增量
+   - `true | 'advance-silent'`：开启所有阶段的增量构建，最大程度优化重构建和 HMR 的性能。这是 Rspack 的默认行为
+   - `'advance'`：功能同上，但会检测对增量构建不友好的情况，并发出警告提示用户（例如一些不正确的配置）。该选项可以帮助你排查潜在的影响增量构建性能的问题。
+2. 细粒度的对象配置：`Incremental`，允许精细控制各个构建阶段的增量功能是否开启
+
+   {/* prettier-ignore */}
+   <details>
+      <summary style={{ display: 'list-item' }}>`Incremental` 详细类型</summary>
+      <blockquote>
+        <p>
+        ```ts
+        type Incremental = {
+          // 是否在遇到对增量不友好的情况下抛出警告
+          silent?: boolean;
+          // 以下配置用来控制各个阶段的增量是否开启
+          make?: boolean;
+          inferAsyncModules?: boolean;
+          providedExports?: boolean;
+          dependenciesDiagnostics?: boolean;
+          sideEffects?: boolean;
+          buildChunkGraph?: boolean;
+          moduleIds?: boolean;
+          chunkIds?: boolean;
+          modulesHashes?: boolean;
+          modulesCodegen?: boolean;
+          modulesRuntimeRequirements?: boolean;
+          chunksRuntimeRequirements?: boolean;
+          chunksHashes?: boolean;
+          chunksRender?: boolean;
+          emitAssets?: boolean;
+        };
+        ```
+        </p>
+      </blockquote>
+    </details>
+
+通常情况下我们推荐使用预设的方式进行配置，详细的对象配置仅作为方便排查 bug 提供。
+
+增量构建主要用于优化重构建速度，对首次构建不会带来性能提升。不过，当持久化缓存可用时，即使是首次构建也会被视为重构建，从而能够利用增量构建提高性能。
+
+下表概述了不同场景下增量构建的效果：
+
+|  构建方式  | 增量提速 |
+| :--------: | :------: |
+|   热构建   |    ✅    |
+|   冷构建   |    ❌    |
+|   热启动   |    ✅    |
+|   冷启动   |    ❌    |
+| 重构建/HMR |    ✅    |
+
+Rspack 在 v1.4.0 后默认使用 `'advance-silent'` 开启所有阶段的增量构建；之前的版本默认使用 `'safe'` 仅开启 `make` 和 `emitAssets` 阶段的增量。

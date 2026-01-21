@@ -1,8 +1,8 @@
 mod raw_incremental;
 
 use napi_derive::napi;
-use raw_incremental::RawIncremental;
-use rspack_core::{Experiments, incremental::IncrementalOptions};
+pub use raw_incremental::RawIncremental;
+use rspack_core::Experiments;
 use rspack_regex::RspackRegex;
 
 use super::WithFalse;
@@ -10,8 +10,6 @@ use super::WithFalse;
 #[derive(Debug)]
 #[napi(object, object_to_js = false)]
 pub struct RawExperiments {
-  #[napi(ts_type = "false | { [key: string]: boolean }")]
-  pub incremental: Option<WithFalse<RawIncremental>>,
   #[napi(ts_type = "false | Array<RegExp>")]
   pub use_input_file_system: Option<WithFalse<Vec<RspackRegex>>>,
   pub css: Option<bool>,
@@ -21,13 +19,6 @@ pub struct RawExperiments {
 impl From<RawExperiments> for Experiments {
   fn from(value: RawExperiments) -> Self {
     Self {
-      incremental: match value.incremental {
-        Some(value) => match value {
-          WithFalse::True(value) => value.into(),
-          WithFalse::False => IncrementalOptions::empty_passes(),
-        },
-        None => IncrementalOptions::empty_passes(),
-      },
       css: value.css.unwrap_or(false),
       defer_import: value.defer_import,
     }

@@ -1693,14 +1693,14 @@ CompilerOptions {
     },
     cache: Disabled,
     experiments: Experiments {
-        incremental: IncrementalOptions {
-            silent: true,
-            passes: IncrementalPasses(
-                MAKE | EMIT_ASSETS,
-            ),
-        },
         css: false,
         defer_import: false,
+    },
+    incremental: IncrementalOptions {
+        silent: true,
+        passes: IncrementalPasses(
+            MAKE | INFER_ASYNC_MODULES | PROVIDED_EXPORTS | DEPENDENCIES_DIAGNOSTICS | SIDE_EFFECTS | MODULE_IDS | CHUNK_IDS | MODULES_HASHES | MODULES_CODEGEN | MODULES_RUNTIME_REQUIREMENTS | CHUNKS_RUNTIME_REQUIREMENTS | CHUNKS_HASHES | CHUNKS_RENDER | EMIT_ASSETS,
+        ),
     },
     node: Some(
         NodeOption {

@@ -50,8 +50,7 @@ use rspack_core::{
   NodeGlobalOption, NodeOption, Optimization, OutputOptions, ParseOption, ParserOptions,
   ParserOptionsMap, PathInfo, PublicPath, Resolve, RuleSetCondition, RuleSetLogicalConditions,
   SideEffectOption, StatsOptions, TrustedTypes, UnsafeCachePredicate, UsedExportsOption,
-  WasmLoading, WasmLoadingType,
-  incremental::{IncrementalOptions, IncrementalPasses},
+  WasmLoading, WasmLoadingType, incremental::IncrementalOptions,
 };
 use rspack_error::{Error, Result};
 use rspack_fs::{IntermediateFileSystem, ReadableFileSystem, WritableFileSystem};
@@ -379,15 +378,13 @@ impl CompilerBuilder {
   ///
   /// ```rust
   /// use rspack::builder::{Builder as _, ExperimentsBuilder};
-  /// use rspack_core::{Compiler, Experiments, incremental::IncrementalOptions};
+  /// use rspack_core::{Compiler, Experiments};
   ///
   /// // Using builder without calling `build()`
-  /// let compiler = Compiler::builder()
-  ///   .experiments(ExperimentsBuilder::default().incremental(IncrementalOptions::empty_passes()));
+  /// let compiler = Compiler::builder().experiments(ExperimentsBuilder::default().css(true));
   ///
   /// // `Experiments::builder` equals to `ExperimentsBuilder::default()`
-  /// let compiler = Compiler::builder()
-  ///   .experiments(Experiments::builder().incremental(IncrementalOptions::empty_passes()));
+  /// let compiler = Compiler::builder().experiments(Experiments::builder().css(true));
   ///
   /// // Or directly passing `Experiments`
   /// // let compiler = Compiler::builder().experiments(Experiments { ... });
@@ -399,6 +396,14 @@ impl CompilerBuilder {
     V: Into<ExperimentsBuilder>,
   {
     self.options_builder.experiments(experiments);
+    self
+  }
+
+  /// Set options for incremental builds.
+  ///
+  /// See [`CompilerOptionsBuilder::incremental`] for more details.
+  pub fn incremental(&mut self, incremental: IncrementalOptions) -> &mut Self {
+    self.options_builder.incremental(incremental);
     self
   }
 
@@ -580,6 +585,8 @@ pub struct CompilerOptionsBuilder {
   bail: Option<bool>,
   /// Performance optimization options.
   experiments: Option<ExperimentsBuilder>,
+  /// Options for incremental builds.
+  incremental: Option<IncrementalOptions>,
   /// Options for module configuration.
   module: Option<ModuleOptionsBuilder>,
   /// Options for stats.
@@ -611,6 +618,7 @@ impl From<&mut CompilerOptionsBuilder> for CompilerOptionsBuilder {
       devtool: value.devtool.take(),
       bail: value.bail.take(),
       experiments: value.experiments.take(),
+      incremental: value.incremental.take(),
       module: value.module.take(),
       output: value.output.take(),
       stats: value.stats.take(),
@@ -844,15 +852,13 @@ impl CompilerOptionsBuilder {
   ///
   /// ```rust
   /// use rspack::builder::{Builder as _, ExperimentsBuilder};
-  /// use rspack_core::{Compiler, Experiments, incremental::IncrementalOptions};
+  /// use rspack_core::{Compiler, Experiments};
   ///
   /// // Using builder without calling `build()`
-  /// let compiler = Compiler::builder()
-  ///   .experiments(ExperimentsBuilder::default().incremental(IncrementalOptions::empty_passes()));
+  /// let compiler = Compiler::builder().experiments(ExperimentsBuilder::default().css(true));
   ///
   /// // `Experiments::builder` equals to `ExperimentsBuilder::default()`
-  /// let compiler = Compiler::builder()
-  ///   .experiments(Experiments::builder().incremental(IncrementalOptions::empty_passes()));
+  /// let compiler = Compiler::builder().experiments(Experiments::builder().css(true));
   ///
   /// // Or directly passing `Experiments`
   /// // let compiler = Compiler::builder().experiments(Experiments { ... });
@@ -862,6 +868,12 @@ impl CompilerOptionsBuilder {
     V: Into<ExperimentsBuilder>,
   {
     self.experiments = Some(experiments.into());
+    self
+  }
+
+  /// Set options for incremental builds.
+  pub fn incremental(&mut self, incremental: IncrementalOptions) -> &mut Self {
+    self.incremental = Some(incremental);
     self
   }
 
@@ -933,6 +945,9 @@ impl CompilerOptionsBuilder {
     // apply experiments defaults
     let mut experiments_builder = f!(self.experiments.take(), Experiments::builder);
     let experiments = experiments_builder.build(builder_context, development, production)?;
+
+    // apply incremental defaults
+    let incremental = f!(self.incremental.take(), IncrementalOptions::advanced_silent);
 
     let async_web_assembly = expect!(experiments_builder.async_web_assembly);
     if async_web_assembly {
@@ -1245,6 +1260,7 @@ impl CompilerOptionsBuilder {
       stats,
       cache,
       experiments,
+      incremental,
       node,
       optimization,
       amd,
@@ -3664,8 +3680,6 @@ impl OptimizationOptionsBuilder {
 /// [`Experiments`]: rspack_core::options::Experiments
 #[derive(Debug, Default)]
 pub struct ExperimentsBuilder {
-  /// Incremental passes.
-  incremental: Option<IncrementalOptions>,
   /// Whether to enable output module.
   output_module: Option<bool>,
   /// Whether to enable future defaults.
@@ -3680,7 +3694,6 @@ pub struct ExperimentsBuilder {
 impl From<Experiments> for ExperimentsBuilder {
   fn from(value: Experiments) -> Self {
     ExperimentsBuilder {
-      incremental: Some(value.incremental),
       output_module: None,
       future_defaults: None,
       css: Some(value.css),
@@ -3692,7 +3705,6 @@ impl From<Experiments> for ExperimentsBuilder {
 impl From<&mut ExperimentsBuilder> for ExperimentsBuilder {
   fn from(value: &mut ExperimentsBuilder) -> Self {
     ExperimentsBuilder {
-      incremental: value.incremental.take(),
       output_module: value.output_module.take(),
       future_defaults: value.future_defaults.take(),
       css: value.css.take(),
@@ -3702,12 +3714,6 @@ impl From<&mut ExperimentsBuilder> for ExperimentsBuilder {
 }
 
 impl ExperimentsBuilder {
-  /// Set the incremental passes.
-  pub fn incremental(&mut self, incremental: IncrementalOptions) -> &mut Self {
-    self.incremental = Some(incremental);
-    self
-  }
-
   /// Set whether to enable future defaults.
   pub fn future_defaults(&mut self, future_defaults: bool) -> &mut Self {
     self.future_defaults = Some(future_defaults);
@@ -3733,19 +3739,8 @@ impl ExperimentsBuilder {
     &mut self,
     _builder_context: &mut BuilderContext,
     _development: bool,
-    production: bool,
+    _production: bool,
   ) -> Result<Experiments> {
-    let incremental = f!(self.incremental.take(), || {
-      let passes = if !production {
-        IncrementalPasses::MAKE | IncrementalPasses::EMIT_ASSETS
-      } else {
-        IncrementalPasses::empty()
-      };
-      IncrementalOptions {
-        silent: true,
-        passes,
-      }
-    });
     // Builder specific
     let future_defaults = w!(self.future_defaults, false);
     w!(self.css, *future_defaults);
@@ -3753,7 +3748,6 @@ impl ExperimentsBuilder {
     w!(self.output_module, false);
 
     Ok(Experiments {
-      incremental,
       css: d!(self.css, false),
       defer_import: false,
     })

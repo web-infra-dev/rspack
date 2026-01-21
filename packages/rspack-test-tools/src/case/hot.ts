@@ -49,8 +49,7 @@ export function createHotProcessor(
       );
       overrideOptions(context, options, target, updatePlugin);
       if (incremental) {
-        options.experiments ??= {};
-        options.experiments.incremental ??= 'advance-silent';
+        options.incremental ??= 'advance-silent';
       }
       compiler.setOptions(options);
     },
@@ -155,10 +154,8 @@ function defaultOptions(context: ITestContext, target: TTarget) {
       moduleIds: 'named',
     },
     target,
-    experiments: {
-      // test incremental: "safe" here, we test default incremental in Incremental-*.test.js
-      incremental: 'safe',
-    },
+    // test incremental: "safe" here, we test default incremental in Incremental-*.test.js
+    incremental: 'safe',
   } as RspackOptions;
 
   options.plugins ??= [];
