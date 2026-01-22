@@ -9,9 +9,9 @@ module.exports = {
 		};
 	},
 	async check(stats) {
-		expect(
-			stats?.toString({ all: false, modules: true }).replace(/\d+ ms/g, "X ms")
-		).toMatchInlineSnapshot(`
+    expect(
+      stats?.toString({ all: false, modules: true })
+    ).toBeEquivalentStatsStringWith(`
 		./fixtures/abc.js 83 bytes [built] [code generated]
 		  X ms (resolving: X ms, building: X ms)
 		./fixtures/a.js 55 bytes [built] [code generated]
