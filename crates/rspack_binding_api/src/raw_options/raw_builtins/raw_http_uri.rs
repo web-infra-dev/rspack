@@ -56,7 +56,7 @@ impl HttpClient for JsHttpClient {
     let func = self.function.clone();
 
     let result = func
-      .call_with_promise((url_owned, headers_owned).into())
+      .call_with_promise((url_owned.clone(), headers_owned).into())
       .await
       .map_err(|e| anyhow::anyhow!("Error calling JavaScript HTTP client {}: {}", url_owned, e))?;
 
