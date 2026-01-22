@@ -17,32 +17,55 @@ pub const TRACING_TARGET: &str = "rspack_incremental";
 bitflags! {
   #[derive(Debug, Clone, Copy, Eq, PartialEq)]
   pub struct IncrementalPasses: u16 {
-    const MAKE = 1 << 0;
-    const INFER_ASYNC_MODULES = 1 << 1;
-    const PROVIDED_EXPORTS = 1 << 2;
-    const DEPENDENCIES_DIAGNOSTICS = 1 << 3;
-    const SIDE_EFFECTS = 1 << 4;
-    const BUILD_CHUNK_GRAPH = 1 << 5;
-    const MODULE_IDS = 1 << 6;
-    const CHUNK_IDS = 1 << 7;
-    const MODULES_HASHES = 1 << 8;
-    const MODULES_CODEGEN = 1 << 9;
-    const MODULES_RUNTIME_REQUIREMENTS = 1 << 10;
-    const CHUNKS_RUNTIME_REQUIREMENTS = 1 << 11;
-    const CHUNKS_HASHES = 1 << 12;
-    const CHUNKS_RENDER = 1 << 13;
-    const EMIT_ASSETS = 1 << 14;
+    /// Webpack stage: compiler.hooks.make (build module graph)
+    /// https://webpack.js.org/api/compiler-hooks/#make
+    const BUILD_MODULE_GRAPH = 1 << 0;
+    /// Webpack stage: compilation.hooks.finishModules
+    /// https://webpack.js.org/api/compilation-hooks/#finishmodules
+    const FINISH_MODULES = 1 << 1;
+    /// Webpack stage: compilation.hooks.optimizeDependencies
+    /// https://webpack.js.org/api/compilation-hooks/#optimizedependencies
+    const OPTIMIZE_DEPENDENCIES = 1 << 2;
+    /// Webpack stage: compilation.hooks.seal
+    /// https://webpack.js.org/api/compilation-hooks/#seal
+    const BUILD_CHUNK_GRAPH = 1 << 3;
+    /// Webpack stage: compilation.hooks.moduleIds
+    /// https://webpack.js.org/api/compilation-hooks/#moduleids
+    const MODULE_IDS = 1 << 4;
+    /// Webpack stage: compilation.hooks.chunkIds
+    /// https://webpack.js.org/api/compilation-hooks/#chunkids
+    const CHUNK_IDS = 1 << 5;
+    /// Webpack stage: compilation.hooks.moduleHash beforeModuleHash / afterModuleHash
+    /// https://webpack.js.org/api/compilation-hooks/#beforemodulehash
+    /// https://webpack.js.org/api/compilation-hooks/#aftermodulehash
+    const MODULES_HASHES = 1 << 6;
+    /// Webpack stage: compilation.hooks.codeGeneration / afterCodeGeneration
+    /// https://github.com/webpack/webpack/blob/d2a124db548cad6e84dffd93b502a4e74bfe2b6a/lib/Compilation.js#L902
+    const MODULES_CODEGEN = 1 << 7;
+    /// Webpack stage: compilation.hooks.beforeRuntimeRequirement / afterRuntimeRequirement
+    /// https://github.com/webpack/webpack/blob/d2a124db548cad6e84dffd93b502a4e74bfe2b6a/lib/Compilation.js#L907
+    const MODULES_RUNTIME_REQUIREMENTS = 1 << 8;
+    const CHUNKS_RUNTIME_REQUIREMENTS = 1 << 9;
+    /// Webpack stage: compilation.hooks.chunkHash / contentHash
+    /// https://webpack.js.org/api/compilation-hooks/#contenthash
+    const CHUNKS_HASHES = 1 << 10;
+    /// Webpack stage: compilation.hooks.chunkAsset
+    /// https://webpack.js.org/api/compilation-hooks/#chunkasset
+    const CHUNK_ASSET = 1 << 11;
+    /// Webpack stage: compiler.hooks.emit / afterEmit / assetEmitted
+    /// https://webpack.js.org/api/compiler-hooks/#emit
+    /// https://webpack.js.org/api/compiler-hooks/#afteremit
+    /// https://webpack.js.org/api/compiler-hooks/#assetemitted
+    const EMIT_ASSETS = 1 << 12;
   }
 }
 
 impl IncrementalPasses {
   pub fn pass_name(&self) -> &str {
     match *self {
-      Self::MAKE => "make",
-      Self::INFER_ASYNC_MODULES => "inferAsyncModules",
-      Self::PROVIDED_EXPORTS => "providedExports",
-      Self::DEPENDENCIES_DIAGNOSTICS => "dependenciesDiagnostics",
-      Self::SIDE_EFFECTS => "sideEffects",
+      Self::BUILD_MODULE_GRAPH => "buildModuleGraph",
+      Self::FINISH_MODULES => "finishModules",
+      Self::OPTIMIZE_DEPENDENCIES => "optimizeDependencies",
       Self::BUILD_CHUNK_GRAPH => "buildChunkGraph",
       Self::MODULE_IDS => "moduleIds",
       Self::CHUNK_IDS => "chunkIds",
@@ -51,7 +74,7 @@ impl IncrementalPasses {
       Self::MODULES_RUNTIME_REQUIREMENTS => "modulesRuntimeRequirements",
       Self::CHUNKS_RUNTIME_REQUIREMENTS => "chunksRuntimeRequirements",
       Self::CHUNKS_HASHES => "chunksHashes",
-      Self::CHUNKS_RENDER => "chunksRender",
+      Self::CHUNK_ASSET => "chunkAsset",
       Self::EMIT_ASSETS => "emitAssets",
       _ => unreachable!(),
     }

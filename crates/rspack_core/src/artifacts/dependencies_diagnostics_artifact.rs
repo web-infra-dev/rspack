@@ -9,7 +9,7 @@ use crate::{ArtifactExt, incremental::IncrementalPasses};
 pub struct DependenciesDiagnosticsArtifact(IdentifierMap<Vec<Diagnostic>>);
 
 impl ArtifactExt for DependenciesDiagnosticsArtifact {
-  const PASS: IncrementalPasses = IncrementalPasses::DEPENDENCIES_DIAGNOSTICS;
+  const PASS: IncrementalPasses = IncrementalPasses::FINISH_MODULES;
 }
 
 impl DependenciesDiagnosticsArtifact {

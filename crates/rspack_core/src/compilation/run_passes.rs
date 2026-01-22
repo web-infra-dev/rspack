@@ -28,7 +28,10 @@ impl Compilation {
     // This is the end of first pass of build module graph which will be recovered for next compilation
     // add a checkpoint here since we may modify module graph later in incremental compilation
     // and we can recover to this checkpoint in the future
-    if self.incremental.passes_enabled(IncrementalPasses::MAKE) {
+    if self
+      .incremental
+      .passes_enabled(IncrementalPasses::BUILD_MODULE_GRAPH)
+    {
       self.build_module_graph_artifact.module_graph.checkpoint();
     }
     if !self.options.mode.is_development() {

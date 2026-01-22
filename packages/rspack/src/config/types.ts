@@ -2645,29 +2645,19 @@ export type Incremental = {
    */
   silent?: boolean;
   /**
-   * Enable incremental make.
+   * Enable incremental build module graph.
    */
-  make?: boolean;
+  buildModuleGraph?: boolean;
 
   /**
-   * Enable inference of async modules.
+   * Enable incremental finish modules.
    */
-  inferAsyncModules?: boolean;
+  finishModules?: boolean;
 
   /**
-   * Enable incremental provided exports.
+   * Enable incremental optimize dependencies.
    */
-  providedExports?: boolean;
-
-  /**
-   * Enables diagnostics for dependencies.
-   */
-  dependenciesDiagnostics?: boolean;
-
-  /**
-   * Enables incremental side effects optimization.
-   */
-  sideEffects?: boolean;
+  optimizeDependencies?: boolean;
 
   /**
    * Enable incremental build chunk graph.
@@ -2710,12 +2700,12 @@ export type Incremental = {
   chunksHashes?: boolean;
 
   /**
-   * Enable incremental chunk render.
+   * Enable incremental chunk asset.
    */
-  chunksRender?: boolean;
+  chunkAsset?: boolean;
 
   /**
-   * Enable incremental asset emission.
+   * Enable incremental emit assets.
    */
   emitAssets?: boolean;
 };

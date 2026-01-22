@@ -230,11 +230,9 @@ const applyIncrementalDefaults = (options: RspackOptionsNormalized) => {
   D(options, 'incremental', {});
   if (typeof options.incremental === 'object') {
     D(options.incremental, 'silent', true);
-    D(options.incremental, 'make', true);
-    D(options.incremental, 'inferAsyncModules', true);
-    D(options.incremental, 'providedExports', true);
-    D(options.incremental, 'dependenciesDiagnostics', true);
-    D(options.incremental, 'sideEffects', true);
+    D(options.incremental, 'buildModuleGraph', true);
+    D(options.incremental, 'finishModules', true);
+    D(options.incremental, 'optimizeDependencies', true);
     D(options.incremental, 'buildChunkGraph', false);
     D(options.incremental, 'moduleIds', true);
     D(options.incremental, 'chunkIds', true);
@@ -243,7 +241,7 @@ const applyIncrementalDefaults = (options: RspackOptionsNormalized) => {
     D(options.incremental, 'modulesRuntimeRequirements', true);
     D(options.incremental, 'chunksRuntimeRequirements', true);
     D(options.incremental, 'chunksHashes', true);
-    D(options.incremental, 'chunksRender', true);
+    D(options.incremental, 'chunkAsset', true);
     D(options.incremental, 'emitAssets', true);
   }
 };
