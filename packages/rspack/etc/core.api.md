@@ -2304,6 +2304,7 @@ class EsmLibraryPlugin {
     // (undocumented)
     options?: {
         preserveModules?: string;
+        splitChunks?: OptimizationSplitChunksOptions;
     };
     // (undocumented)
     static PLUGIN_NAME: string;
