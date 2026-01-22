@@ -1,22 +1,27 @@
 use std::sync::Arc;
 
 use rspack_cacheable::from_bytes;
-pub use rspack_core::cache::persistent::snapshot::SCOPE;
-use rspack_core::cache::persistent::{snapshot::Strategy, storage::Storage};
+use rspack_core::cache::persistent::{
+  snapshot::{SnapshotScope, Strategy},
+  storage::Storage,
+};
 use rspack_error::Result;
 use rustc_hash::FxHashMap as HashMap;
 
 use crate::{debug_info::DebugInfo, utils::ensure_iter_equal};
 
 /// Compare snapshot scope data between two storages
+#[allow(dead_code)]
 pub async fn compare(
+  scope: SnapshotScope,
   storage1: Arc<dyn Storage>,
   storage2: Arc<dyn Storage>,
   debug_info: DebugInfo,
 ) -> Result<()> {
   // Load snapshot data from both storages
-  let data1 = storage1.load(SCOPE).await?;
-  let data2 = storage2.load(SCOPE).await?;
+  // TODO check SnapshotScope::Context && SnapshotScope::Missing
+  let data1 = storage1.load(scope.name()).await?;
+  let data2 = storage2.load(scope.name()).await?;
 
   // Convert to HashMap for easier comparison
   let map1: HashMap<_, _> = data1
