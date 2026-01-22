@@ -506,6 +506,9 @@ export class NodeRunner implements ITestRunner {
 }
 
 // @public (undocumented)
+export const normalizePlaceholder: (val: any) => string;
+
+// @public (undocumented)
 export function parseModules(content: string, options?: {
     bootstrap?: boolean;
     renameModule?: (name: string) => string;
