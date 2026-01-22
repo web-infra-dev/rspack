@@ -1,4 +1,5 @@
 mod option;
+mod scope;
 mod strategy;
 
 use std::sync::Arc;
@@ -10,12 +11,11 @@ use rspack_paths::{ArcPath, ArcPathSet};
 use self::strategy::{StrategyHelper, ValidateResult};
 pub use self::{
   option::{PathMatcher, SnapshotOptions},
+  scope::SnapshotScope,
   strategy::Strategy,
 };
 use super::{codec::CacheCodec, storage::Storage};
 use crate::FutureConsumer;
-
-pub const SCOPE: &str = "snapshot";
 
 /// Snapshot is used to check if files have been modified or deleted.
 ///
@@ -23,7 +23,6 @@ pub const SCOPE: &str = "snapshot";
 /// through the generated `Strategy`
 #[derive(Debug)]
 pub struct Snapshot {
-  scope: &'static str,
   options: Arc<SnapshotOptions>,
   fs: Arc<dyn ReadableFileSystem>,
   storage: Arc<dyn Storage>,
@@ -38,23 +37,6 @@ impl Snapshot {
     codec: Arc<CacheCodec>,
   ) -> Self {
     Self {
-      scope: SCOPE,
-      options: Arc::new(options),
-      fs,
-      storage,
-      codec,
-    }
-  }
-
-  pub fn new_with_scope(
-    scope: &'static str,
-    options: SnapshotOptions,
-    fs: Arc<dyn ReadableFileSystem>,
-    storage: Arc<dyn Storage>,
-    codec: Arc<CacheCodec>,
-  ) -> Self {
-    Self {
-      scope,
       options: Arc::new(options),
       fs,
       storage,
@@ -66,6 +48,7 @@ impl Snapshot {
     options: &Arc<SnapshotOptions>,
     helper: &Arc<StrategyHelper>,
     path: &ArcPath,
+    scope: SnapshotScope,
   ) -> Option<Strategy> {
     let path_str = path.to_string_lossy();
     if options.is_immutable_path(&path_str) {
@@ -76,14 +59,15 @@ impl Snapshot {
     {
       return Some(v);
     }
-    if let Some(h) = helper.path_hash(path).await {
-      return Some(h);
-    }
-    Some(Strategy::Missing)
+    Some(match scope {
+      SnapshotScope::FILE => helper.file_hash(path).await,
+      SnapshotScope::MISSING => Strategy::Missing,
+      SnapshotScope::CONTEXT | SnapshotScope::BUILD => helper.dir_hash(path).await,
+    })
   }
 
   #[tracing::instrument("Cache::Snapshot::add", skip_all)]
-  pub async fn add(&self, paths: impl Iterator<Item = ArcPath>) {
+  pub async fn add(&self, scope: SnapshotScope, paths: impl Iterator<Item = ArcPath>) {
     let helper = Arc::new(StrategyHelper::new(self.fs.clone()));
     let codec = self.codec.clone();
     // TODO merge package version file
@@ -93,7 +77,7 @@ impl Snapshot {
         let options = self.options.clone();
         let codec = codec.clone();
         async move {
-          let strategy = Self::calc_strategy(&options, &helper, &path).await?;
+          let strategy = Self::calc_strategy(&options, &helper, &path, scope).await?;
           Some((
             codec.encode(&path).expect("should encode success"),
             codec.encode(&strategy).expect("should encode success"),
@@ -102,30 +86,33 @@ impl Snapshot {
       })
       .fut_consume(|data| {
         if let Some((key, value)) = data {
-          self.storage.set(self.scope, key, value);
+          self.storage.set(scope.name(), key, value);
         }
       })
       .await;
   }
 
-  pub fn remove(&self, paths: impl Iterator<Item = ArcPath>) {
+  pub fn remove(&self, scope: SnapshotScope, paths: impl Iterator<Item = ArcPath>) {
     for item in paths {
       self
         .storage
-        .remove(self.scope, item.as_os_str().as_encoded_bytes())
+        .remove(scope.name(), item.as_os_str().as_encoded_bytes())
     }
   }
 
   #[allow(clippy::type_complexity)]
   #[tracing::instrument("Cache::Snapshot::calc_modified_path", skip_all)]
-  pub async fn calc_modified_paths(&self) -> Result<(bool, ArcPathSet, ArcPathSet, ArcPathSet)> {
+  pub async fn calc_modified_paths(
+    &self,
+    scope: SnapshotScope,
+  ) -> Result<(bool, ArcPathSet, ArcPathSet, ArcPathSet)> {
     let mut modified_path = ArcPathSet::default();
     let mut deleted_path = ArcPathSet::default();
     let mut no_change_path = ArcPathSet::default();
     let helper = Arc::new(StrategyHelper::new(self.fs.clone()));
     let codec = self.codec.clone();
 
-    let data = self.storage.load(self.scope).await?;
+    let data = self.storage.load(scope.name()).await?;
     let is_hot_start = !data.is_empty();
     data
       .into_iter()
@@ -165,7 +152,7 @@ mod tests {
 
   use super::{
     super::{codec::CacheCodec, storage::MemoryStorage},
-    PathMatcher, Snapshot, SnapshotOptions,
+    PathMatcher, Snapshot, SnapshotOptions, SnapshotScope,
   };
 
   macro_rules! p {
@@ -216,6 +203,7 @@ mod tests {
 
     snapshot
       .add(
+        SnapshotScope::FILE,
         [
           p!("/file1"),
           p!("/constant"),
@@ -237,8 +225,10 @@ mod tests {
       .await
       .unwrap();
 
-    let (is_hot_start, modified_paths, deleted_paths, no_change_paths) =
-      snapshot.calc_modified_paths().await.unwrap();
+    let (is_hot_start, modified_paths, deleted_paths, no_change_paths) = snapshot
+      .calc_modified_paths(SnapshotScope::FILE)
+      .await
+      .unwrap();
     assert!(is_hot_start);
     assert!(deleted_paths.is_empty());
     assert!(!modified_paths.contains(&p!("/constant")));
@@ -253,9 +243,13 @@ mod tests {
     )
     .await
     .unwrap();
-    snapshot.add([p!("/file1")].into_iter()).await;
-    let (is_hot_start, modified_paths, deleted_paths, no_change_paths) =
-      snapshot.calc_modified_paths().await.unwrap();
+    snapshot
+      .add(SnapshotScope::FILE, [p!("/file1")].into_iter())
+      .await;
+    let (is_hot_start, modified_paths, deleted_paths, no_change_paths) = snapshot
+      .calc_modified_paths(SnapshotScope::FILE)
+      .await
+      .unwrap();
     assert!(is_hot_start);
     assert!(deleted_paths.is_empty());
     assert!(!modified_paths.contains(&p!("/constant")));

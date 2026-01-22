@@ -1,4 +1,3 @@
-mod build_dependencies;
 mod occasion;
 mod snapshot;
 
@@ -140,12 +139,6 @@ async fn compare_storage(
     let cur_debug_info = debug_info.with_field("scope", &scope);
 
     match scope.as_str() {
-      snapshot::SCOPE => {
-        snapshot::compare(storage1.clone(), storage2.clone(), cur_debug_info).await?;
-      }
-      build_dependencies::SCOPE => {
-        build_dependencies::compare(storage1.clone(), storage2.clone(), cur_debug_info).await?;
-      }
       occasion::meta::SCOPE => {
         occasion::meta::compare(storage1.clone(), storage2.clone(), cur_debug_info).await?;
       }
@@ -153,6 +146,7 @@ async fn compare_storage(
         occasion::make::compare(storage1.clone(), storage2.clone(), cur_debug_info).await?;
       }
       _ => {
+        // TODO compare snapshot
         return Err(error!(
           "Comparison for unknown scope: {} \n{}",
           scope, debug_info
