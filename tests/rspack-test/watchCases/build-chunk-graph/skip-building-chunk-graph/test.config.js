@@ -1,6 +1,6 @@
-function assert(condition) {
+function assert(condition, message) {
 	if (!condition) {
-		throw new Error("Assertion failed for");
+		throw new Error(`Assertion failed for ${message}`);
 	}
 }
 
@@ -12,19 +12,19 @@ module.exports = {
 	checkStats(stepName, _, stats) {
 		switch (stepName) {
 			case "0":
-				assert(should_rebuild(stats));
+				assert(should_rebuild(stats), "should rebuild chunk graph");
 				break;
 			case "1":
-				assert(!should_rebuild(stats));
+				assert(!should_rebuild(stats), "should not rebuild chunk graph");
 				break;
 			case "2":
-				assert(should_rebuild(stats));
+				assert(should_rebuild(stats), "should rebuild chunk graph");
 				break;
 			case "3":
-				assert(!should_rebuild(stats));
+				assert(!should_rebuild(stats), "should not rebuild chunk graph");
 				break;
 			case "4":
-				assert(should_rebuild(stats));
+				assert(should_rebuild(stats), "should rebuild chunk graph");
 				break;
 			default:
 				throw "not have more step";
