@@ -455,7 +455,7 @@ const getNormalizedIncrementalOptions = (
       chunksRuntimeRequirements: false,
       chunksHashes: false,
       chunkAsset: false,
-      emitAssets: false,
+      emitAssets: true,
     };
   if (incremental === true || incremental === 'advance-silent') return {};
   if (incremental === 'advance') {
