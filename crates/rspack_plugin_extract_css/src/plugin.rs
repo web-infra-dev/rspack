@@ -14,7 +14,7 @@ use rspack_core::{
   CompilationRuntimeRequirementInTree, CompilerCompilation, DependencyType, Filename,
   ManifestAssetType, Module, ModuleGraph, ModuleIdentifier, ModuleType, NormalModuleFactoryParser,
   ParserAndGenerator, ParserOptions, PathData, Plugin, RenderManifestEntry, RuntimeGlobals,
-  SourceType, get_undo_path,
+  RuntimeModule, SourceType, get_undo_path,
   rspack_sources::{
     BoxSource, CachedSource, ConcatSource, RawStringSource, SourceExt, SourceMap, SourceMapSource,
     WithoutOriginalOptions,
@@ -503,11 +503,12 @@ async fn compilation(
 #[plugin_hook(CompilationRuntimeRequirementInTree for PluginCssExtract)]
 async fn runtime_requirement_in_tree(
   &self,
-  compilation: &mut Compilation,
+  compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
   _all_runtime_requirements: &RuntimeGlobals,
   runtime_requirements: &RuntimeGlobals,
   runtime_requirements_mut: &mut RuntimeGlobals,
+  runtime_modules_to_add: &mut Vec<(ChunkUkey, Box<dyn RuntimeModule>)>,
 ) -> Result<Option<()>> {
   // different from webpack, Rspack can invoke this multiple times,
   // each time with current runtime_globals, and records every mutation
@@ -533,8 +534,8 @@ async fn runtime_requirement_in_tree(
     let filename = self.options.filename.clone();
     let chunk_filename = self.options.chunk_filename.clone();
 
-    compilation.add_runtime_module(
-      chunk_ukey,
+    runtime_modules_to_add.push((
+      *chunk_ukey,
       Box::new(GetChunkFilenameRuntimeModule::new(
         &compilation.runtime_template,
         "css",
@@ -562,10 +563,10 @@ async fn runtime_requirement_in_tree(
             })
         },
       )),
-    )?;
+    ));
 
-    compilation.add_runtime_module(
-      chunk_ukey,
+    runtime_modules_to_add.push((
+      *chunk_ukey,
       Box::new(CssLoadingRuntimeModule::new(
         &compilation.runtime_template,
         *chunk_ukey,
@@ -573,7 +574,7 @@ async fn runtime_requirement_in_tree(
         self.options.link_type.clone(),
         self.options.insert.clone(),
       )),
-    )?;
+    ));
   }
 
   Ok(None)

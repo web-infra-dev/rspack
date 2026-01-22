@@ -18,7 +18,7 @@ import { Table } from '@builtIns';
 ## experiments.asyncWebAssembly
 
 - **类型：** `boolean`
-- **默认值：** `false`
+- **默认值：** `true`
 
 支持基于[新规范](https://github.com/WebAssembly/esm-integration)的 WebAssembly，这使 WebAssembly 模块成为异步模块。
 
@@ -29,8 +29,6 @@ export default {
   },
 };
 ```
-
-当设置 [experiments.futureDefaults](#experimentsfuturedefaults) 为 `true` 时，默认启用此功能。
 
 ## experiments.outputModule
 
@@ -49,19 +47,33 @@ export default {
 
 ## experiments.css
 
+<ApiMeta stability={Stability.Deprecated} />
+
 - **类型：** `boolean`
 - **默认值：** `false`
 
-启用原生 CSS 支持和 CSS 相关的 parser 和 generator options：
+:::warning 已弃用
+此选项在 Rspack 2.0 中已弃用。现在手动添加 CSS type 将模块标记为 CSS 模块。
+:::
 
-- [`module.parser["css/auto"]`](/config/module#moduleparsercssauto)
-- [`module.parser.css`](/config/module#moduleparsercss)
-- [`module.parser["css/module"]`](/config/module#moduleparsercssmodule)
-- [`module.generator["css/auto"]`](/config/module#modulegeneratorcssauto)
-- [`module.generator.css`](/config/module#modulegeneratorcss)
-- [`module.generator["css/module"]`](/config/module#modulegeneratorcssmodule)
+### 迁移
 
-基本示例：
+要在 Rspack 2.0 中使用 CSS，需要手动添加 CSS 规则到配置中：
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.css$/i,
+        type: 'css/auto',
+      },
+    ],
+  },
+};
+```
+
+### 旧用法（已弃用）
 
 ```js title="rspack.config.mjs"
 export default {
@@ -88,66 +100,9 @@ export default {
 
 ## experiments.incremental
 
-<ApiMeta addedVersion="1.1.0-beta.0" />
+<ApiMeta stability={Stability.Deprecated} />
 
-- **类型：** `boolean | 'none' | 'safe' | 'advance' | 'advance-silent' | Incremental`
-- **默认值：** `'advance-silent'`
-
-控制是否启用增量构建功能，该功能通过只重新构建变更的部分来显著加快重构建和热模块替换（HMR）的速度。提供两种配置方式：
-
-1. 预设配置：包括 `boolean | 'none' | 'safe' | 'advance' | 'advance-silent'`
-   - `false | 'none'`：关闭增量，不对任何阶段开启
-   - `'safe'`：开启 `make` 和 `emitAssets` 阶段的增量，这也是 Rspack 目前的默认行为
-   - `true | 'advance-silent'`：开启所有阶段的增量构建，最大程度优化重构建和 HMR 的性能。未来这些阶段稳定后，我们会将此选项作为 Rspack 的默认行为
-   - `'advance'`：功能同上，但会检测对增量构建不友好的情况，并发出警告提示用户（例如一些不正确的配置）。该选项可以帮助你排查潜在的影响增量构建性能的问题。
-2. 细粒度的对象配置：`Incremental`，允许精细控制各个构建阶段的增量功能是否开启
-
-   {/* prettier-ignore */}
-   <details>
-      <summary style={{ display: 'list-item' }}>`Incremental` 详细类型</summary>
-      <blockquote>
-        <p>
-        ```ts
-        type Incremental = {
-          // 是否在遇到对增量不友好的情况下抛出警告
-          silent?: boolean;
-          // 以下配置用来控制各个阶段的增量是否开启
-          make?: boolean;
-          inferAsyncModules?: boolean;
-          providedExports?: boolean;
-          dependenciesDiagnostics?: boolean;
-          sideEffects?: boolean;
-          buildChunkGraph?: boolean;
-          moduleIds?: boolean;
-          chunkIds?: boolean;
-          modulesHashes?: boolean;
-          modulesCodegen?: boolean;
-          modulesRuntimeRequirements?: boolean;
-          chunksRuntimeRequirements?: boolean;
-          chunksHashes?: boolean;
-          chunksRender?: boolean;
-          emitAssets?: boolean;
-        };
-        ```
-        </p>
-      </blockquote>
-    </details>
-
-通常情况下我们推荐使用预设的方式进行配置，详细的对象配置仅作为方便排查 bug 提供。
-
-增量构建主要用于优化重构建速度，对首次构建不会带来性能提升。不过，当持久化缓存可用时，即使是首次构建也会被视为重构建，从而能够利用增量构建提高性能。
-
-下表概述了不同场景下增量构建的效果：
-
-|  构建方式  | 增量提速 |
-| :--------: | :------: |
-|   热构建   |    ✅    |
-|   冷构建   |    ❌    |
-|   热启动   |    ✅    |
-|   冷启动   |    ❌    |
-| 重构建/HMR |    ✅    |
-
-Rspack 在 v1.4.0 后默认使用 `'advance-silent'` 开启所有阶段的增量构建；之前的版本默认使用 `'safe'` 仅开启 `make` 和 `emitAssets` 阶段的增量。
+此选项已移动至顶层 [`incremental`](/config/incremental)。
 
 ## experiments.buildHttp
 

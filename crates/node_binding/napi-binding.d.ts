@@ -2119,22 +2119,22 @@ export interface RawEntryDynamicResult {
 }
 
 export interface RawEnvironment {
-  const?: boolean
-  methodShorthand?: boolean
-  arrowFunction?: boolean
-  nodePrefixForCoreModules?: boolean
-  asyncFunction?: boolean
-  bigIntLiteral?: boolean
-  destructuring?: boolean
-  document?: boolean
-  dynamicImport?: boolean
-  forOf?: boolean
-  globalThis?: boolean
-  module?: boolean
-  optionalChaining?: boolean
-  templateLiteral?: boolean
-  dynamicImportInWorker?: boolean
-  importMetaDirnameAndFilename?: boolean
+  const: boolean
+  methodShorthand: boolean
+  arrowFunction: boolean
+  nodePrefixForCoreModules: boolean
+  asyncFunction: boolean
+  bigIntLiteral: boolean
+  destructuring: boolean
+  document: boolean
+  dynamicImport: boolean
+  forOf: boolean
+  globalThis: boolean
+  module: boolean
+  optionalChaining: boolean
+  templateLiteral: boolean
+  dynamicImportInWorker: boolean
+  importMetaDirnameAndFilename: boolean
 }
 
 export interface RawEsmLibraryPlugin {
@@ -2148,10 +2148,9 @@ export interface RawEvalDevToolModulePluginOptions {
 }
 
 export interface RawExperiments {
-incremental?: false | { [key: string]: boolean }
-useInputFileSystem?: false | Array<RegExp>
-css?: boolean
-deferImport: boolean
+  useInputFileSystem?: false | Array<RegExp>
+  css?: boolean
+  deferImport: boolean
 }
 
 export interface RawExposeOptions {
@@ -2424,7 +2423,7 @@ export interface RawLightningCssBrowsers {
 
 export interface RawLightningCssMinimizerOptions {
   errorRecovery: boolean
-  targets?: Array<string>
+  targets?: string[] | RawLightningCssBrowsers
   include?: number
   exclude?: number
   drafts?: RawDraft
@@ -2481,8 +2480,13 @@ export interface RawModuleFederationManifestPluginOptions {
   buildInfo?: RawStatsBuildInfo
 }
 
+export interface RawModuleFederationRuntimeExperimentsOptions {
+  asyncStartup?: boolean
+}
+
 export interface RawModuleFederationRuntimePluginOptions {
   entryRuntime?: string | undefined
+  experiments?: RawModuleFederationRuntimeExperimentsOptions
 }
 
 export interface RawModuleFilenameTemplateFnCtx {
@@ -2610,11 +2614,12 @@ export interface RawOptions {
   stats: RawStatsOptions
   cache: boolean | { type: "memory" } | ({ type: "persistent" } & RawCacheOptionsPersistent)
   experiments: RawExperiments
-  node?: RawNodeOption
-  amd?: string
-  bail: boolean
-  __references: Record<string, any>
-  __virtual_files?: Array<JsVirtualFile>
+incremental?: false | { [key: string]: boolean }
+node?: RawNodeOption
+amd?: string
+bail: boolean
+__references: Record<string, any>
+__virtual_files?: Array<JsVirtualFile>
 }
 
 export interface RawOutputOptions {

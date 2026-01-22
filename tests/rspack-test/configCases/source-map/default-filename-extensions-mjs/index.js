@@ -1,4 +1,4 @@
-it("creates source maps for .mjs output files by default", function() {
+it("creates source maps for .mjs output files by default", () => {
 	var fs = require("fs");
 	var source = fs.readFileSync(__filename, "utf-8");
 	var match = /sourceMappingURL\s*=\s*(.*)/.exec(source);

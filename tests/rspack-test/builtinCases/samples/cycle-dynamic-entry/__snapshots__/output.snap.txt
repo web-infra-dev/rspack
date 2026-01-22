@@ -1,6 +1,6 @@
 ```js title=dynamic-1_js-_af6f0.js
 "use strict";
-(self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["dynamic-1_js-_af6f0"], {
+(self["rspackChunk"] = self["rspackChunk"] || []).push([["dynamic-1_js-_af6f0"], {
 "./dynamic-1.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 /* import */ var _shared__rspack_import_0 = __webpack_require__("./shared.js");
@@ -16,7 +16,7 @@ console.log("dynamic-1");
 ```
 
 ```js title=dynamic-1_js-_af6f1.js
-(self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["dynamic-1_js-_af6f1"], {
+(self["rspackChunk"] = self["rspackChunk"] || []).push([["dynamic-1_js-_af6f1"], {
 "./dynamic-1.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
@@ -39,7 +39,7 @@ console.log("shared");
 
 ```js title=dynamic-2_js-_89260.js
 "use strict";
-(self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["dynamic-2_js-_89260"], {
+(self["rspackChunk"] = self["rspackChunk"] || []).push([["dynamic-2_js-_89260"], {
 "./dynamic-2.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 /* import */ var _shared__rspack_import_0 = __webpack_require__("./shared.js");
@@ -55,7 +55,7 @@ console.log("dynamic-2");
 ```
 
 ```js title=dynamic-2_js-_89261.js
-(self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["dynamic-2_js-_89261"], {
+(self["rspackChunk"] = self["rspackChunk"] || []).push([["dynamic-2_js-_89261"], {
 "./dynamic-2.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
@@ -77,7 +77,7 @@ console.log("shared");
 ```
 
 ```js title=main.js
-(self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["main"], {
+(self["rspackChunk"] = self["rspackChunk"] || []).push([["main"], {
 "./index.js"(__unused_rspack_module, __unused_rspack_exports, __webpack_require__) {
 __webpack_require__.e(/* import() */ "dynamic-1_js-_af6f1").then(__webpack_require__.bind(__webpack_require__, "./dynamic-1.js"));
 __webpack_require__.e(/* import() */ "dynamic-2_js-_89261").then(__webpack_require__.bind(__webpack_require__, "./dynamic-2.js"));

@@ -8,9 +8,15 @@ module.exports = (env, { testPath }) => ({
 	output: {
 		uniqueName: "my-app"
 	},
-	experiments: {
-		css: true
+	module: {
+		rules: [
+			{
+				test: /\.css$/,
+				type: "css/auto"
+			}
+		]
 	},
+,
 	plugins: [
 		new webpack.ids.DeterministicModuleIdsPlugin({
 			maxLength: 3,

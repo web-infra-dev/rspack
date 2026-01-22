@@ -1,6 +1,7 @@
 use rspack_core::{
-  ChunkLoading, ChunkLoadingType, ChunkUkey, Compilation, CompilationRuntimeRequirementInTree,
-  Plugin, PublicPath, RuntimeGlobals, RuntimeModuleExt,
+  ChunkLoading, ChunkLoadingType, ChunkUkey, Compilation,
+  CompilationAdditionalTreeRuntimeRequirements, CompilationRuntimeRequirementInTree, Plugin,
+  PublicPath, RuntimeGlobals, RuntimeModule, RuntimeModuleExt,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -13,14 +14,34 @@ use crate::runtime_module::{
 #[derive(Debug, Default)]
 pub struct ModuleChunkLoadingPlugin;
 
+#[plugin_hook(CompilationAdditionalTreeRuntimeRequirements for ModuleChunkLoadingPlugin)]
+async fn additional_tree_runtime_requirements(
+  &self,
+  compilation: &mut Compilation,
+  chunk_ukey: &ChunkUkey,
+  runtime_requirements: &mut RuntimeGlobals,
+) -> Result<()> {
+  let chunk_loading_value = ChunkLoading::Enable(ChunkLoadingType::Import);
+  let is_enabled_for_chunk = is_enabled_for_chunk(chunk_ukey, &chunk_loading_value, compilation);
+  if is_enabled_for_chunk
+    && compilation
+      .chunk_graph
+      .has_chunk_entry_dependent_chunks(chunk_ukey, &compilation.chunk_group_by_ukey)
+  {
+    runtime_requirements.insert(RuntimeGlobals::ASYNC_STARTUP);
+  }
+  Ok(())
+}
+
 #[plugin_hook(CompilationRuntimeRequirementInTree for ModuleChunkLoadingPlugin)]
 async fn runtime_requirements_in_tree(
   &self,
-  compilation: &mut Compilation,
+  compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
   _all_runtime_requirements: &RuntimeGlobals,
   runtime_requirements: &RuntimeGlobals,
   runtime_requirements_mut: &mut RuntimeGlobals,
+  runtime_modules_to_add: &mut Vec<(ChunkUkey, Box<dyn RuntimeModule>)>,
 ) -> Result<Option<()>> {
   let chunk_loading_value = ChunkLoading::Enable(ChunkLoadingType::Import);
   let is_enabled_for_chunk = is_enabled_for_chunk(chunk_ukey, &chunk_loading_value, compilation);
@@ -39,10 +60,10 @@ async fn runtime_requirements_in_tree(
       RuntimeGlobals::EXTERNAL_INSTALL_CHUNK if is_enabled_for_chunk => {
         has_chunk_loading = true;
 
-        compilation.add_runtime_module(
-          chunk_ukey,
+        runtime_modules_to_add.push((
+          *chunk_ukey,
           ExportRequireRuntimeModule::new(&compilation.runtime_template).boxed(),
-        )?;
+        ));
       }
 
       RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS if is_enabled_for_chunk => {
@@ -80,10 +101,10 @@ async fn runtime_requirements_in_tree(
   if has_chunk_loading && is_enabled_for_chunk {
     runtime_requirements_mut.insert(RuntimeGlobals::MODULE_FACTORIES_ADD_ONLY);
     runtime_requirements_mut.insert(RuntimeGlobals::HAS_OWN_PROPERTY);
-    compilation.add_runtime_module(
-      chunk_ukey,
+    runtime_modules_to_add.push((
+      *chunk_ukey,
       ModuleChunkLoadingRuntimeModule::new(&compilation.runtime_template).boxed(),
-    )?;
+    ));
   }
 
   if compilation
@@ -102,6 +123,10 @@ impl Plugin for ModuleChunkLoadingPlugin {
   }
 
   fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
+    ctx
+      .compilation_hooks
+      .additional_tree_runtime_requirements
+      .tap(additional_tree_runtime_requirements::new(self));
     ctx
       .compilation_hooks
       .runtime_requirement_in_tree

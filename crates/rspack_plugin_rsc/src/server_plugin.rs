@@ -8,7 +8,7 @@ use rspack_core::{
   BoxDependency, ChunkUkey, Compilation, CompilationParams, CompilationProcessAssets,
   CompilationRuntimeRequirementInTree, CompilerDone, CompilerFailed, CompilerFinishMake,
   CompilerThisCompilation, Dependency, DependencyId, EntryDependency, EntryOptions, Logger, Plugin,
-  RuntimeGlobals, RuntimeSpec, get_entry_runtime,
+  RuntimeGlobals, RuntimeModule, RuntimeSpec, get_entry_runtime,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -133,14 +133,15 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
 #[plugin_hook(CompilationRuntimeRequirementInTree for RscServerPlugin)]
 async fn runtime_requirements_in_tree(
   &self,
-  compilation: &mut Compilation,
+  _compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
   _all_runtime_requirements: &RuntimeGlobals,
   runtime_requirements: &RuntimeGlobals,
   _runtime_requirements_mut: &mut RuntimeGlobals,
+  runtime_modules_to_add: &mut Vec<(ChunkUkey, Box<dyn RuntimeModule>)>,
 ) -> Result<Option<()>> {
   if runtime_requirements.contains(RuntimeGlobals::RSC_MANIFEST) {
-    compilation.add_runtime_module(chunk_ukey, Box::new(RscManifestRuntimeModule::new()))?;
+    runtime_modules_to_add.push((*chunk_ukey, Box::new(RscManifestRuntimeModule::new())));
   }
   Ok(None)
 }

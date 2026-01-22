@@ -4,8 +4,6 @@ minimal:
   minimal (Rspack x.x.x) compiled successfully in X s
 
 none:
-  asset none.js xx bytes [emitted] (name: main)
-  ./index.js xx bytes [built] [code generated]
   none (Rspack x.x.x) compiled successfully in X s
 
 verbose:

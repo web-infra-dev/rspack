@@ -157,6 +157,12 @@ export function createWatchInitialProcessor(
           return () => {
             if (!cached) {
               cached = stats.toJson({
+                assets: true,
+                chunks: true,
+                chunkModules: true,
+                modules: true,
+                entrypoints: true,
+                chunkGroups: true,
                 errorDetails: true,
               });
             }
@@ -202,6 +208,12 @@ export function createWatchInitialProcessor(
           stats.hasWarnings()
         ) {
           const statsJson = stats.toJson({
+            assets: true,
+            chunks: true,
+            chunkModules: true,
+            modules: true,
+            entrypoints: true,
+            chunkGroups: true,
             errorDetails: true,
           });
           if (statsJson.errors) {
@@ -354,7 +366,12 @@ function overrideOptions(
   if (!options.output.filename) options.output.filename = 'bundle.js';
   options.optimization ??= {};
   options.experiments ??= {};
-  options.experiments.css ??= true;
+  options.module ??= {};
+  options.module.defaultRules ??= ['...'];
+  options.module.defaultRules.push({
+    test: /\.css$/,
+    type: 'css/auto',
+  });
 
   if (nativeWatcher) {
     (options as RspackOptions).experiments!.nativeWatcher ??= true;
@@ -364,7 +381,7 @@ function overrideOptions(
   (options as RspackOptions).output!.bundlerInfo ??= {};
   (options as RspackOptions).output!.bundlerInfo!.force ??= false;
   // test incremental: "safe" here, we test default incremental in Incremental-*.test.js
-  (options as RspackOptions).experiments!.incremental ??= 'safe';
+  (options as RspackOptions).incremental ??= 'safe';
 
   if (!global.printLogger) {
     options.infrastructureLogging = {
@@ -393,9 +410,7 @@ function defaultOptions({
 } = {}): RspackOptions {
   if (incremental) {
     return {
-      experiments: {
-        incremental: 'advance',
-      },
+      incremental: 'advance',
       ignoreWarnings: ignoreNotFriendlyForIncrementalWarnings
         ? [/is not friendly for incremental/]
         : undefined,
@@ -428,6 +443,11 @@ function cachedWatchStats(
         return cached[stepName];
       }
       cached[stepName] = compiler.getStats()!.toJson({
+        entrypoints: true,
+        assets: true,
+        chunks: true,
+        chunkModules: true,
+        modules: true,
         errorDetails: true,
       });
       return cached[stepName];

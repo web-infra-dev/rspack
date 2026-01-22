@@ -6,5 +6,9 @@ module.exports = {
 		main: "./index.js"
 	},
 	plugins: [new rspack.HotModuleReplacementPlugin()],
-	mode: "production"
+	mode: "production",
+	stats: {
+		assets: true,
+		modules: true,
+	}
 };

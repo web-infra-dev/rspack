@@ -33,6 +33,7 @@ import {
   EnableLibraryPlugin,
   EnableWasmLoadingPlugin,
   EnsureChunkConditionsPlugin,
+  EsmLibraryPlugin,
   EvalDevToolModulePlugin,
   EvalSourceMapDevToolPlugin,
   ExternalsPlugin,
@@ -128,10 +129,10 @@ export class RspackOptionsApply {
     if (
       options.externalsPresets.web ||
       options.externalsPresets.webAsync ||
-      (options.externalsPresets.node && options.experiments.css)
+      options.externalsPresets.node
     ) {
       new HttpExternalsRspackPlugin(
-        !!options.experiments.css,
+        true,
         !!options.externalsPresets.webAsync,
       ).apply(compiler);
     }
@@ -232,10 +233,7 @@ export class RspackOptionsApply {
     if (options.experiments.asyncWebAssembly) {
       new AsyncWebAssemblyModulesPlugin().apply(compiler);
     }
-    if (options.experiments.css) {
-      new CssModulesPlugin().apply(compiler);
-    }
-
+    new CssModulesPlugin().apply(compiler);
     new EntryOptionPlugin().apply(compiler);
     assertNotNill(options.context);
     compiler.hooks.entryOption.call(options.context, options.entry);
@@ -290,8 +288,35 @@ export class RspackOptionsApply {
       options.output.enabledLibraryTypes &&
       options.output.enabledLibraryTypes.length > 0
     ) {
+      let modernModuleCount = 0;
       for (const type of options.output.enabledLibraryTypes) {
-        new EnableLibraryPlugin(type).apply(compiler);
+        if (type === 'modern-module') {
+          modernModuleCount++;
+        }
+      }
+
+      if (options.output.library?.preserveModules && modernModuleCount === 0) {
+        throw new Error(
+          'preserveModules only works for `modern-module` library type',
+        );
+      }
+
+      if (modernModuleCount > 0) {
+        // ESM format has impact on chunkLoading and chunkFormat, which is not compatible with
+        // other library types
+        if (modernModuleCount !== options.output.enabledLibraryTypes.length) {
+          throw new Error(
+            '`modern-module` cannot used together with other library types',
+          );
+        }
+
+        new EsmLibraryPlugin({
+          preserveModules: options.output.library?.preserveModules,
+        }).apply(compiler);
+      } else {
+        for (const type of options.output.enabledLibraryTypes) {
+          new EnableLibraryPlugin(type).apply(compiler);
+        }
       }
     }
     if (options.optimization.splitChunks) {

@@ -18,7 +18,7 @@ module.exports = {
 			apply(compiler) {
 				compiler.hooks.done.tap("Test", function (stats) {
 					let s = stats.toJson({
-						assets: true
+						all: true
 					});
 					expect(s.assets.some(item => item.name === "a.txt")).toBeTruthy();
 				});

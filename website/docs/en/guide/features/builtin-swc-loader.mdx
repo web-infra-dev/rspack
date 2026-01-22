@@ -99,6 +99,12 @@ export default {
 
 SWC provides [jsc.target](https://swc.rs/docs/configuration/compilation#jsctarget) and [env.targets](https://swc.rs/docs/configuration/compilation#envtargets) to specify the target of JavaScript syntax lowering.
 
+:::tip Default target from Rspack
+If neither `env.targets` nor `jsc.target` is configured, `builtin:swc-loader` will automatically derive a default target from Rspack's [`target`](/config/target) configuration.
+
+This means you can rely on your Rspack `target` configuration without manually specifying the same targets in the loader options.
+:::
+
 #### jsc.target
 
 [jsc.target](https://swc.rs/docs/configuration/compilation#jsctarget) is used to specify the ECMA version, such as `es5`, `es2015`, `es2016`, etc.

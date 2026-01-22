@@ -299,6 +299,7 @@ impl<'a> BuiltinPlugin<'a> {
       }
     };
     match name {
+      // webpack also have these plugins
       BuiltinPluginName::DefinePlugin => {
         let plugin = DefinePlugin::new(
           downcast_into(self.options)
@@ -656,6 +657,8 @@ impl<'a> BuiltinPlugin<'a> {
         .boxed();
         plugins.push(plugin)
       }
+
+      // rspack specific plugins
       BuiltinPluginName::HttpExternalsRspackPlugin => {
         let plugin_options = downcast_into::<RawHttpExternalsRspackPluginOptions>(self.options)
           .map_err(|report| napi::Error::from_reason(report.to_string()))?;

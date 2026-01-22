@@ -1,5 +1,5 @@
 ```js title=main.js
-(self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["main"], {
+(self["rspackChunk"] = self["rspackChunk"] || []).push([["main"], {
 "./index.js"(__unused_rspack_module, __unused_rspack_exports, __webpack_require__) {
 /* provided dependency */ var process = __webpack_require__("./process.js");
 /* provided dependency */ var name = __webpack_require__("./name.js");

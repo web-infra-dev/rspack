@@ -46,11 +46,11 @@ export default {
 };
 ```
 
-### output.bundlerInfo
+## output.bundlerInfo
 
 <ApiMeta addedVersion="2.0.0" />
 
-> In versions 1.x, you can use `experiments.rspackFuture.bundlerInfo` instead.
+> In versions 1.x, use `experiments.rspackFuture.bundlerInfo` instead.
 
 - **Type**:
 
@@ -698,7 +698,7 @@ Typically you don't need to change `output.hotUpdateChunkFilename`.
 ## output.hotUpdateGlobal
 
 - **Type:** `string`
-- **Default:** `"webpackHotUpdate" + output.uniqueName`
+- **Default:** `"rspackHotUpdate" + output.uniqueName`
 
 Only used when [`target`](/config/target) is set to `'web'`, which uses JSONP for loading hot updates.
 
@@ -1097,8 +1097,6 @@ export default {
 
 Output ES modules.
 
-However this feature is still experimental and not fully supported yet, so make sure to enable [`experiments.outputModule`](/config/experiments#experimentsoutputmodule) beforehand. In addition, you can track the development progress in [this thread](https://github.com/webpack/webpack/issues/2933#issuecomment-774253975).
-
 ##### type: 'modern-module'
 
 ```js title="rspack.config.mjs"
@@ -1116,7 +1114,7 @@ export default {
 };
 ```
 
-This configuration generates tree-shakable output for ES Modules.
+This configuration generates tree-shakable and code-splitting available output for ES Modules.
 
 However this feature is still experimental and not fully supported yet, so make sure to enable [`experiments.outputModule`](/config/experiments#experimentsoutputmodule) beforehand.
 
@@ -1546,6 +1544,30 @@ The AMD module will be:
 define('MyLibrary', [], factory);
 ```
 
+### output.library.preserveModules
+
+- **Type:** `string`
+- **Default:** `undefined`
+
+:::info
+Only available when `library.type` is set to `modern-module`.
+:::
+
+When enabled, Rspack will preserve the original directory structure of modules within the specified directory.
+
+```js
+import path from 'path';
+module.exports = {
+  //...
+  output: {
+    library: {
+      type: 'modern-module',
+      preserveModules: path.resolve('./src'),
+    },
+  },
+};
+```
+
 ## output.module
 
 - **Type:** `boolean`
@@ -1736,7 +1758,7 @@ export default {
   //...
   output: {
     trustedTypes: {
-      policyName: 'my-application#webpack',
+      policyName: 'my-application#rspack',
     },
   },
 };
@@ -1757,7 +1779,7 @@ export default {
   output: {
     //...
     trustedTypes: {
-      policyName: 'my-application#webpack',
+      policyName: 'my-application#rspack',
       onPolicyCreationFailure: 'continue',
     },
   },

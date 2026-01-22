@@ -15,8 +15,8 @@ module.exports = {
 			-       "force": true,
 			+       "force": false,
 			@@ ... @@
-			-     "chunkLoadingGlobal": "webpackChunk_rspack_tests",
-			+     "chunkLoadingGlobal": "webpackChunkmyLib",
+			-     "chunkLoadingGlobal": "rspackChunk_rspack_tests",
+			+     "chunkLoadingGlobal": "rspackChunkmyLib",
 			@@ ... @@
 			-     "devtoolNamespace": "@rspack/tests",
 			+     "devtoolNamespace": "myLib",
@@ -26,8 +26,8 @@ module.exports = {
 			+       "var",
 			+     ],
 			@@ ... @@
-			-     "hotUpdateGlobal": "webpackHotUpdate_rspack_tests",
-			+     "hotUpdateGlobal": "webpackHotUpdatemyLib",
+			-     "hotUpdateGlobal": "rspackHotUpdate_rspack_tests",
+			+     "hotUpdateGlobal": "rspackHotUpdatemyLib",
 			@@ ... @@
 			-     "library": undefined,
 			+     "library": Object {

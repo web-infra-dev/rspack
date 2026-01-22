@@ -2046,7 +2046,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
           })
           .filter(|dep| !matches!(dep.as_module_dependency().map(|d| d.weak()), Some(true)))
           .collect::<Vec<_>>();
-        deps.sort_by_key(|a| a.source_order());
+        deps.sort_by_key(|a| (a.source_order().is_none(), a.source_order()));
 
         for dep in deps {
           let dep_id = dep.id();

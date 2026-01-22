@@ -2,7 +2,12 @@ module.exports = {
 	output: {
 		uniqueName: "app"
 	},
-	experiments: {
-		css: true
+	module: {
+		rules: [
+			{
+				test: /\.css$/,
+				type: "css/auto"
+			}
+		]
 	}
 };

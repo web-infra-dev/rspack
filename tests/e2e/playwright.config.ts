@@ -5,7 +5,7 @@ const TIMEOUT = 60 * 1000;
 
 export default defineConfig<RspackOptions>({
   // Look for test files in the "fixtures" directory, relative to this configuration file.
-  testDir: './cases',
+  testDir: process.env.WASM ? './browser-cases' : './cases',
 
   //	globalSetup: require.resolve("./scripts/globalSetup"),
 
@@ -61,9 +61,8 @@ export default defineConfig<RspackOptions>({
         rspackConfig: {
           basePort: 8200,
           handleConfig: (config: any) => {
-            config.experiments ??= {};
-            if (config.experiments.incremental == undefined) {
-              config.experiments.incremental = true;
+            if (config.incremental == undefined) {
+              config.incremental = true;
             }
             const cache = config.cache;
             if (typeof cache === 'object' && cache.type === 'persistent') {

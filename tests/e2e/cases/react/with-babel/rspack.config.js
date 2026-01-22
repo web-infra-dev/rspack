@@ -11,6 +11,10 @@ module.exports = {
   module: {
     rules: [
       {
+        test: /\.css/,
+        type: 'css/auto',
+      },
+      {
         test: /\.jsx$/,
         use: [
           {
@@ -57,8 +61,5 @@ module.exports = {
   },
   watchOptions: {
     poll: 1000,
-  },
-  experiments: {
-    css: true,
   },
 };

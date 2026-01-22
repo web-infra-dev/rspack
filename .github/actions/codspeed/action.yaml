@@ -6,36 +6,41 @@ branding:
 
 author: 'Arthur Pastel'
 inputs:
-  token:
-    description: 'CodSpeed upload token'
-    required: false
   run:
     description: 'The command to run the benchmarks'
     required: true
+
+  mode:
+    description: |
+      The mode to run the benchmarks in. The following modes are available:
+      - `simulation`: Run the benchmarks with CPU simulation measurements.
+      - `walltime`: Run the benchmarks with walltime measurement.
+      - `memory`: Run the benchmarks with allocation measurements.
+      - `instrumentation`: (Deprecated) Legacy name for `simulation`. Please use `simulation` instead.
+
+      We strongly recommend starting with the `simulation` mode.
+
+      Using the `walltime` mode on traditional VMs/Hosted Runners might lead to inconsistent data. For the best results, we recommend using CodSpeed Hosted Macro Runners, which are fine-tuned for performance measurement consistency.
+      Check out the [Walltime Instrument Documentation](https://docs.codspeed.io/instruments/walltime/) for more details.
+    required: true
+
+  token:
+    description: |
+      CodSpeed upload token. Only required for private repositories.
+    required: false
 
   working-directory:
     description: |
       The directory where the `run` command will be executed.
       Warning: if you use defaults.working-directory, you must still set this parameter.
     required: false
+
   upload-url:
     description: 'The upload endpoint (for on-premise deployments)'
     required: false
 
   runner-version:
-    description: 'The version of the runner to use'
-    required: false
-
-  mode:
-    description: |
-      The mode to to run the benchmarks in. The following modes are available:
-      - `instrumentation` (default): Run the benchmarks with instrumentation enabled.
-      - `walltime`: Run the benchmarks with walltime enabled.
-
-      We strongly recommend not changing this mode unless you know what you are doing.
-
-      Using the `walltime` mode on traditional VMs/Hosted Runners will lead to inconsistent data. For the best results, we recommend using CodSpeed Hosted Macro Runners, which are fine-tuned for performance measurement consistency.
-      Check out the [Walltime Instrument Documentation](https://docs.codspeed.io/instruments/walltime/) for more details.
+    description: "The version of the runner to use. Use 'latest' to automatically fetch the latest release version from GitHub, or specify a version like '3.5.0' or 'v3.5.0'."
     required: false
 
   instruments:
@@ -43,26 +48,45 @@ inputs:
       Comma separated list of instruments to enable. The following instruments are available:
       - `mongodb`: MongoDB instrumentation, requires the MongoDB instrument to be enabled for the organization in CodSpeed
     required: false
+
   mongo-uri-env-name:
     description: |
       The name of the environment variable containing the MongoDB URI. Requires the `mongodb` instrument to be activated in `instruments`.
       If the instrumentation is enabled and this value is not set, the user will need to dynamically provide the MongoDB URI to the CodSpeed runner.
     required: false
 
+  cache-instruments:
+    description: |
+      Enable caching of instrument installations (like valgrind or perf) to speed up subsequent workflow runs. Set to 'false' to disable caching.
+    required: false
+    default: 'true'
+
+  instruments-cache-dir:
+    description: |
+      The directory to use for caching installations of instruments (like valgrind or perf). Defaults to `$HOME/.cache/codspeed-action`.
+    required: false
+    default: '~/.cache/codspeed-action'
+
+  allow-empty:
+    description: |
+      Allow the action to complete successfully even if no benchmarks were found or run. Set to 'true' to enable this behavior.
+    required: false
+    default: 'false'
+
 runs:
   using: 'composite'
   steps:
     - shell: bash
-      env:
-        GH_MATRIX: '${{ toJson(matrix) }}'
-        GH_STRATEGY: '${{ toJson(strategy) }}'
       run: |
-        # Configure and run codspeed-runner
-        # if [ -n "${{ inputs.runner-version }}" ]; then
-        #   RUNNER_VERSION="${{ inputs.runner-version }}"
-        # else
-        #   RUNNER_VERSION=$(cat $GITHUB_ACTION_PATH/.codspeed-runner-version)
-        # fi
+        # Validate required inputs
+        # (custom message for smoother v4 migration)
+        if [ -z "${{ inputs.mode }}" ]; then
+          echo "::error title=Missing required input 'mode'::The 'mode' input is required as of CodSpeed Action v4. Please explicitly set 'mode' to 'simulation' or 'walltime'. Before, this variable was automatically set to instrumentation on every runner except for CodSpeed macro runners where it was set to walltime by default. See https://codspeed.io/docs/instruments for details."
+          exit 1
+        fi
+
+        # We can use official runner if it supports config valgrind flags in the future: https://github.com/CodSpeedHQ/runner/pull/92
+        cargo install --git https://github.com/CPunisher/runner.git --rev 9c1ca5aa4742b8524843c0ac3e417c6ecb91b1bd codspeed-runner
 
         # Get the runner arguments
         RUNNER_ARGS=""
@@ -84,18 +108,12 @@ runs:
         if [ -n "${{ inputs.mongo-uri-env-name }}" ]; then
           RUNNER_ARGS="$RUNNER_ARGS --mongo-uri-env-name=${{ inputs.mongo-uri-env-name }}"
         fi
-
-        # Install the CodSpeedHQ/runner
-        # head_status=$(curl -I -fsSL -w "%{http_code}" -o /dev/null https://github.com/CodSpeedHQ/runner/releases/download/v$RUNNER_VERSION/codspeed-runner-installer.sh)
-        # if [ "$head_status" -eq 404 ]; then
-        #   echo "Error: Version $RUNNER_VERSION is not available in https://github.com/CodSpeedHQ/runner/releases, please a correct version."
-        #   exit 1
-        # else
-        #   curl -fsSL https://github.com/CodSpeedHQ/runner/releases/download/v$RUNNER_VERSION/codspeed-runner-installer.sh | bash -s -- --quiet
-        # fi
-
-        # We can use official official runner if it supports config valgrind flags in the future: https://github.com/CodSpeedHQ/runner/pull/92
-        cargo install --git https://github.com/CPunisher/runner.git --rev 7e87e3c5d93390fb28e4fbd5f3859f3b20d8fc6a
+        if [ "${{ inputs.cache-instruments }}" = "true" ] && [ -n "${{ inputs.instruments-cache-dir }}" ]; then
+          RUNNER_ARGS="$RUNNER_ARGS --setup-cache-dir=${{ inputs.instruments-cache-dir }}"
+        fi
+        if [ "${{ inputs.allow-empty }}" = "true" ]; then
+          RUNNER_ARGS="$RUNNER_ARGS --allow-empty"
+        fi
 
         # Run the benchmarks
         # Enable fair sched to make benchmark more stable, see: https://github.com/CodSpeedHQ/runner/pull/91

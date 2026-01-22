@@ -110,6 +110,7 @@ export type LibraryExport = string | string[];
 export type LibraryType = LiteralUnion<
   | 'var'
   | 'module'
+  | 'modern-module'
   | 'assign'
   | 'assign-properties'
   | 'this'
@@ -154,6 +155,11 @@ export type LibraryOptions = {
    * Otherwise, an anonymous define is used.
    * */
   umdNamedDefine?: UmdNamedDefine;
+
+  /**
+   * PreserveModules only works for `modern-module`
+   */
+  preserveModules?: string;
 };
 
 /** Options for library. */
@@ -501,7 +507,7 @@ export type Output = {
 
   /**
    * Only used when target is set to 'web', which uses JSONP for loading hot updates.
-   * @default 'webpackHotUpdate' + output.uniqueName
+   * @default 'rspackHotUpdate' + output.uniqueName
    * */
   hotUpdateGlobal?: HotUpdateGlobal;
 
@@ -2760,12 +2766,16 @@ export type Experiments = {
    * - `module.generator["css/auto"]`
    * - `module.generator.css`
    * - `module.generator["css/module"]`
+   *
+   * @deprecated This option is deprecated. In Rspack 2.0, users need to manually add CSS rules to enable CSS support.
+   * Example:
+   * ```js
+   * module: {
+   *   rules: [{ test: /\.css$/, type: "css/auto" }]
+   * }
+   * ```
    */
   css?: boolean;
-  /**
-   * Enable incremental builds.
-   */
-  incremental?: IncrementalPresets | Incremental;
   /**
    * Enable future default options.
    * @default false
@@ -3051,6 +3061,11 @@ export type RspackOptions = {
    * @default false
    */
   lazyCompilation?: boolean | LazyCompilationOptions;
+
+  /**
+   * Enable incremental builds.
+   */
+  incremental?: IncrementalPresets | Incremental;
 };
 
 /** Configuration for Rspack */

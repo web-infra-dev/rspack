@@ -1,5 +1,8 @@
 // code modified based on https://github.com/parcel-bundler/lightningcss/blob/34b67a431c043fda5d4979bcdccb3008d082e243/node/browserslistToTargets.js
 
+import type { GetLoaderOptions } from '../../config/adapterRuleUse';
+import { defaultTargetsFromRspackTargets, encodeTargets } from './target';
+
 /**
 MIT License
 
@@ -144,15 +147,15 @@ export enum Features {
 }
 
 export interface Targets {
-  android?: number;
-  chrome?: number;
-  edge?: number;
-  firefox?: number;
-  ie?: number;
-  ios_saf?: number;
-  opera?: number;
-  safari?: number;
-  samsung?: number;
+  android?: string;
+  chrome?: string;
+  edge?: string;
+  firefox?: string;
+  ie?: string;
+  ios_saf?: string;
+  opera?: string;
+  safari?: string;
+  samsung?: string;
 }
 
 export interface Drafts {
@@ -209,4 +212,43 @@ export type LoaderOptions = {
   nonStandard?: NonStandard;
   pseudoClasses?: PseudoClasses;
   unusedSymbols?: string[];
+};
+
+export const getLightningcssLoaderOptions: GetLoaderOptions = (
+  o,
+  composeOptions,
+) => {
+  const options = o ?? {};
+  if (typeof options === 'object') {
+    if (typeof options.targets === 'string') {
+      options.targets = [options.targets];
+    } else if (
+      typeof options.targets === 'object' &&
+      !Array.isArray(options.targets)
+    ) {
+      options.targets = encodeTargets(options.targets);
+    } else if (
+      options.targets === undefined &&
+      composeOptions.compiler.target?.targets
+    ) {
+      // Default target derived from rspack target
+      options.targets = defaultTargetsFromRspackTargets(
+        composeOptions.compiler.target.targets,
+      );
+    }
+
+    if (options.include && typeof options.include === 'object') {
+      options.include = toFeatures(
+        options.include as unknown as FeatureOptions,
+      );
+    }
+
+    if (options.exclude && typeof options.exclude === 'object') {
+      options.exclude = toFeatures(
+        options.exclude as unknown as FeatureOptions,
+      );
+    }
+  }
+
+  return options;
 };

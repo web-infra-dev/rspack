@@ -11,8 +11,8 @@ module.exports = {
   cache: true,
   experiments: {
     cache: true,
-    incremental: true,
   },
+  incremental: true,
   plugins: [
     new rspack.HtmlRspackPlugin(),
     {

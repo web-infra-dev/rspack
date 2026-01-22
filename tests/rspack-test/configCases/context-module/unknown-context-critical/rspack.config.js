@@ -6,6 +6,7 @@ module.exports = {
 			javascript: {
 				unknownContextCritical: true,
 				requireAlias: true,
+				requireAsExpression: true
 			}
 		}
 	}

@@ -17,7 +17,7 @@ In minor releases, Rspack may change the APIs of experimental features. If you'r
 ## experiments.asyncWebAssembly
 
 - **Type:** `boolean`
-- **Default:** `false`
+- **Default:** `true`
 
 Supports the new WebAssembly according to the [updated specification](https://github.com/WebAssembly/esm-integration), making WebAssembly modules async.
 
@@ -28,8 +28,6 @@ export default {
   },
 };
 ```
-
-This is enabled by default when [experiments.futureDefaults](#experimentsfuturedefaults) is set to `true`.
 
 ## experiments.outputModule
 
@@ -48,8 +46,14 @@ export default {
 
 ## experiments.css
 
+<ApiMeta stability={Stability.Deprecated} />
+
 - **Type:** `boolean`
 - **Default:** `false`
+
+:::warning Deprecated
+This option is deprecated since Rspack 2.0. Users now need to manually add CSS rules to enable CSS support. In a future version, Rspack will automatically add CSS-related default rules.
+:::
 
 When enabled, Rspack enables native CSS support and CSS-related parser and generator options.
 
@@ -60,7 +64,24 @@ When enabled, Rspack enables native CSS support and CSS-related parser and gener
 - [`module.generator.css`](/config/module#modulegeneratorcss)
 - [`module.generator["css/module"]`](/config/module#modulegeneratorcssmodule)
 
-Basic example:
+### Migration
+
+To use CSS in Rspack 2.0, you need to manually add CSS rules to your configuration:
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.css$/,
+        type: 'css/auto',
+      },
+    ],
+  },
+};
+```
+
+### Legacy usage (deprecated)
 
 ```js title="rspack.config.mjs"
 export default {
@@ -87,66 +108,9 @@ export default {
 
 ## experiments.incremental
 
-<ApiMeta addedVersion="1.1.0-beta.0" />
+<ApiMeta stability={Stability.Deprecated} />
 
-- **Type:** `boolean | 'none' | 'safe' | 'advance' | 'advance-silent' | Incremental`
-- **Default:** `'advance-silent'`
-
-Whether to enable incremental build, which significantly speeds up rebuilds and HMR by only rebuilding the changed parts. Two configuration ways are provided:
-
-1. Presets: including `boolean | 'none' | 'safe' | 'advance' | 'advance-silent'`
-   - `false | 'none'`: Disable incremental, and it will not be enabled for any stage.
-   - `'safe'`: Enable incremental for `make` and `emitAssets` stages, This is also the current default behavior of Rspack.
-   - `true | 'advance-silent'`: Enable incremental for all stages to maximize performance for rebuilds and HMR. After these stages become stable in the future, we will make this option the default behavior for Rspack.
-   - `'advance'`: The same as above, but it will detect cases that are unfriendly to incremental and throw warnings to users (e.g., incorrect configurations). This option can help you to identify potential issues affecting incremental build performance.
-2. **Detailed object configuration**: `Incremental`, which allows fine-grained control over whether the incremental is enabled for each stage.
-
-   {/* prettier-ignore */}
-   <details>
-      <summary style={{ display: 'list-item' }}>Detailed type of `Incremental`</summary>
-      <blockquote>
-        <p>
-        ```ts
-        type Incremental = {
-          // Whether to throw a warning when encountering situations that are not friendly for incremental.
-          silent?: boolean;
-          // The following configuration is used to control whether the incremental of each stage is enabled.
-          make?: boolean;
-          inferAsyncModules?: boolean;
-          providedExports?: boolean;
-          dependenciesDiagnostics?: boolean;
-          sideEffects?: boolean;
-          buildChunkGraph?: boolean;
-          moduleIds?: boolean;
-          chunkIds?: boolean;
-          modulesHashes?: boolean;
-          modulesCodegen?: boolean;
-          modulesRuntimeRequirements?: boolean;
-          chunksRuntimeRequirements?: boolean;
-          chunksHashes?: boolean;
-          chunksRender?: boolean;
-          emitAssets?: boolean;
-        };
-        ```
-        </p>
-      </blockquote>
-    </details>
-
-Usually, we recommend configuring in the preset way, and the detailed object configuration is only provided to facilitate bug troubleshooting.
-
-Incremental only improves the rebuild performance and have no impact on the initial build. However, when persistent cache is available, initial builds are also treated as rebuilds too, and can benefit from incremental for performance.
-
-The table below shows the results of incremental in different scenarios:
-
-| how to build | incremental speed up |
-| :----------: | :------------------: |
-|  hot build   |          ✅          |
-|  cold build  |          ❌          |
-|  hot start   |          ✅          |
-|  cold start  |          ❌          |
-| rebuild/HMR  |          ✅          |
-
-Starting from v1.4.0, Rspack enables incremental builds for all phases by default using `'advance-silent'` mode. In previous versions, it only activated incremental builds for the `make` and `emitAssets` phases by default with `'safe'` mode.
+This option has been moved to top-level [`incremental`](/config/incremental).
 
 ## experiments.buildHttp
 

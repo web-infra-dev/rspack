@@ -771,18 +771,18 @@ export default {
 
 ### module.parser.javascript.requireAsExpression
 
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
 
 控制是否解析作为表达式使用的 `require`。
 
-当设置为 `false` 时，Rspack 不会解析作为表达式使用的 `require`（例如：`const req = require; req('./module')`）。如果代码中不使用这种模式，可以提高构建性能。
+当设置为 `true` 时，Rspack 会解析作为表达式使用的 `require`（例如：`const req = require; req('./module')`）并发出警告。当设置为 `false` 时，这种模式会被忽略。
 
 ```js title="rspack.config.mjs"
 export default {
   module: {
     parser: {
       javascript: {
-        requireAsExpression: false,
+        requireAsExpression: true,
       },
     },
   },
@@ -988,10 +988,6 @@ export default {
 };
 ```
 
-:::warning
-只有开启 [experiments.css](/config/experiments#experimentscss) 时该配置才会生效。
-:::
-
 ### module.parser["css/auto"].namedExports
 
 - **类型：** `boolean`
@@ -1083,10 +1079,6 @@ export default {
 };
 ```
 
-:::warning
-只有开启 [experiments.css](/config/experiments#experimentscss) 时该配置才会生效。
-:::
-
 ### module.parser.css.namedExports
 
 和 [`module.parser["css/auto"].namedExports`](#moduleparsercssautonamedexports) 一样。
@@ -1134,10 +1126,6 @@ export default {
   },
 };
 ```
-
-:::warning
-只有开启 [experiments.css](/config/experiments#experimentscss) 时该配置才会生效。
-:::
 
 ### module.parser["css/module"].namedExports
 
@@ -1685,10 +1673,6 @@ export default {
 };
 ```
 
-:::warning
-只有开启 [experiments.css](/config/experiments#experimentscss) 时该配置才会生效。
-:::
-
 ### module.generator["css/auto"].exportsConvention
 
 - **类型：** `'as-is' | 'camel-case' | 'camel-case-only' | 'dashes' | 'dashes-only'`
@@ -1816,10 +1800,6 @@ export default {
 };
 ```
 
-:::warning
-只有开启 [experiments.css](/config/experiments#experimentscss) 时该配置才会生效。
-:::
-
 ### module.generator.css.exportsOnly
 
 和 [`module.generator["css/auto"].exportsOnly`](#modulegeneratorcssautoexportsonly) 一样。
@@ -1867,10 +1847,6 @@ export default {
   },
 };
 ```
-
-:::warning
-只有开启 [experiments.css](/config/experiments#experimentscss) 时该配置才会生效。
-:::
 
 ### module.generator["css/module"].exportsConvention
 

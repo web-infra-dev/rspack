@@ -23,7 +23,6 @@ use crate::{
   fast_set, include_hash,
   incremental::{Incremental, IncrementalPasses},
   logger::Logger,
-  old_cache::Cache as OldCache,
   trim_dir,
 };
 
@@ -95,7 +94,6 @@ pub struct Compiler {
   pub resolver_factory: Arc<ResolverFactory>,
   pub loader_resolver_factory: Arc<ResolverFactory>,
   pub cache: Box<dyn Cache>,
-  pub old_cache: Arc<OldCache>,
   /// emitted asset versions
   /// the key of HashMap is filename, the value of HashMap is version
   pub emitted_asset_versions: HashMap<String, String>,
@@ -158,8 +156,7 @@ impl Compiler {
       input_filesystem.clone(),
       intermediate_filesystem.clone(),
     );
-    let old_cache = Arc::new(OldCache::new(options.clone()));
-    let incremental = Incremental::new_cold(options.experiments.incremental);
+    let incremental = Incremental::new_cold(options.incremental);
     let module_executor = ModuleExecutor::default();
 
     let id = CompilerId::new();
@@ -177,7 +174,6 @@ impl Compiler {
         resolver_factory.clone(),
         loader_resolver_factory.clone(),
         None,
-        old_cache.clone(),
         incremental,
         Some(module_executor),
         Default::default(),
@@ -195,7 +191,6 @@ impl Compiler {
       resolver_factory,
       loader_resolver_factory,
       cache,
-      old_cache,
       emitted_asset_versions: Default::default(),
       input_filesystem,
       platform,
@@ -238,7 +233,6 @@ impl Compiler {
 
   #[instrument("Compiler:build",target=TRACING_BENCH_TARGET, skip_all)]
   async fn build_inner(&mut self) -> Result<()> {
-    self.old_cache.end_idle();
     // TODO: clear the outdated cache entries in resolver,
     // TODO: maybe it's better to use external entries.
     let plugin_driver_clone = self.plugin_driver.clone();
@@ -256,8 +250,7 @@ impl Compiler {
         self.resolver_factory.clone(),
         self.loader_resolver_factory.clone(),
         None,
-        self.old_cache.clone(),
-        Incremental::new_cold(self.options.experiments.incremental),
+        Incremental::new_cold(self.options.incremental),
         Some(Default::default()),
         Default::default(),
         Default::default(),
@@ -272,11 +265,10 @@ impl Compiler {
     // TODO: disable it for now, enable it once persistent cache is added to all artifacts
     // if is_hot {
     //   // If it's a hot start, we can use incremental
-    //   self.compilation.incremental = Incremental::new_hot(self.options.experiments.incremental);
+    //   self.compilation.incremental = Incremental::new_hot(self.options.incremental);
     // }
 
     self.compile().await?;
-    self.old_cache.begin_idle();
     self.compile_done().await?;
     self.cache.after_compile(&self.compilation).await;
     #[cfg(allocative)]

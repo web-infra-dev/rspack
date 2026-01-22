@@ -35,9 +35,7 @@ module.exports = {
             }
         ]
     },
-    experiments: {
-        css: true
-    },
+
     plugins: [
         new Plugin()
     ]

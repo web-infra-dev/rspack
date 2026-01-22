@@ -46,9 +46,9 @@ export default {
 };
 ```
 
-### output.bundlerInfo
+## output.bundlerInfo
 
-<ApiMeta addedVersion="1.0.0" />
+<ApiMeta addedVersion="2.0.0" />
 
 > 在 1.x 版本中，你可以使用 `experiments.rspackFuture.bundlerInfo`。
 
@@ -689,7 +689,7 @@ export default {
 ## output.hotUpdateGlobal
 
 - **类型：** `string`
-- **默认值：** `"webpackHotUpdate" + output.uniqueName`
+- **默认值：** `"rspackHotUpdate" + output.uniqueName`
 
 仅当 [`target`](/config/target) 设置为 `"web"` 时使用，它使用 JSONP 来加载热更新。
 
@@ -1089,8 +1089,6 @@ export default {
 
 输出 ESM 模块。
 
-但这个特性仍然是实验性的，还没有完全支持，所以在使用之前确保启用了 [`experiments.outputModule`](/config/experiments#experimentsoutputmodule)。此外，你可以在这个 [issue](https://github.com/webpack/webpack/issues/2933#issuecomment-774253975) 中跟踪开发进度。
-
 ##### type: 'modern-module'
 
 ```js title="rspack.config.mjs"
@@ -1108,7 +1106,7 @@ export default {
 };
 ```
 
-这项配置将生成支持 tree-shaking 的 ES 模块输出。
+这项配置将生成支持 tree-shaking 和 code-splitting 的 ES 模块输出。
 
 但这个特性仍然是实验性的，还没有完全支持，所以在使用之前确保启用了 [`experiments.outputModule`](/config/experiments#experimentsoutputmodule)。
 
@@ -1538,6 +1536,30 @@ AMD module 将会是这样：
 define('MyLibrary', [], factory);
 ```
 
+### output.library.preserveModules
+
+- **类型：** `string`
+- **默认值：** `undefined`
+
+:::info
+仅在 `library.type` 为 `modern-module` 时生效。
+:::
+
+当启用后，Rspack 会保留传入目录下模块的原始文件结构。
+
+```js
+import path from 'path';
+module.exports = {
+  //...
+  output: {
+    library: {
+      type: 'modern-module',
+      preserveModules: path.resolve('./src'),
+    },
+  },
+};
+```
+
 ## output.module
 
 - **类型：** `boolean`
@@ -1728,7 +1750,7 @@ export default {
   //...
   output: {
     trustedTypes: {
-      policyName: 'my-application#webpack',
+      policyName: 'my-application#rspack',
     },
   },
 };
@@ -1749,7 +1771,7 @@ export default {
   output: {
     //...
     trustedTypes: {
-      policyName: 'my-application#webpack',
+      policyName: 'my-application#rspack',
       onPolicyCreationFailure: 'continue',
     },
   },

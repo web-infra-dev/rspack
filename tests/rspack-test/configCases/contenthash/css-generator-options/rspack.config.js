@@ -3,9 +3,7 @@ const common = {
 	optimization: {
 		realContentHash: false
 	},
-	experiments: {
-		css: true
-	}
+
 };
 
 /** @type {import("@rspack/core").Configuration[]} */

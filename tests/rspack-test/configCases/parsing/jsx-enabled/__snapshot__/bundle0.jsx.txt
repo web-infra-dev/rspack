@@ -1,11 +1,8 @@
 import { App, App1A, App1B, App1C, app1cProps } from "./App1";
 import { App2, app2Props } from "./App2";
 
-;// CONCATENATED MODULE: external "./App1"
 
-;// CONCATENATED MODULE: external "./App2"
 
-;// CONCATENATED MODULE: ./index.jsx
 
 
 
@@ -93,4 +90,4 @@ function Root() {
     </>;
 }
 
-export { Root as default };
+export default Root;

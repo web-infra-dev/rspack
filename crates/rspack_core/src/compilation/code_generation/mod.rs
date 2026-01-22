@@ -143,13 +143,12 @@ impl Compilation {
 
         s.spawn(|(this, module_graph, job)| async {
           let options = &this.options;
-          let old_cache = &this.old_cache;
 
           let module = module_graph
             .module_by_identifier(&job.module)
             .expect("should have module");
-          let codegen_res = old_cache
-            .code_generate_occasion
+          let codegen_res = this
+            .code_generate_cache_artifact
             .use_cache(&job, || async {
               module
                 .code_generation(this, Some(&job.runtime), job.scope.clone())

@@ -8,8 +8,13 @@ module.exports = (_, { testPath }) => ({
   output: {
     crossOriginLoading: "anonymous",
   },
-  experiments: {
-    css: true
+  module: {
+    rules: [
+      {
+        test: /\.css$/,
+        type: "css/auto"
+      }
+    ]
   },
   plugins: [
     new SubresourceIntegrityPlugin({

@@ -127,8 +127,8 @@ export type AmdContainer = string;
 export const applyRspackOptionsBaseDefaults: (options: RspackOptionsNormalized) => void;
 
 // @public (undocumented)
-export const applyRspackOptionsDefaults: (options: RspackOptionsNormalized) => {
-    platform: false | {
+export const applyRspackOptionsDefaults: (options: RspackOptionsNormalized) => false | {
+    platform: {
         web: boolean | null | undefined;
         browser: boolean | null | undefined;
         webworker: boolean | null | undefined;
@@ -136,6 +136,8 @@ export const applyRspackOptionsDefaults: (options: RspackOptionsNormalized) => {
         nwjs: boolean | null | undefined;
         electron: boolean | null | undefined;
     };
+    esVersion: number | null | undefined;
+    targets: Record<string, string> | null | undefined;
 };
 
 // @public (undocumented)
@@ -1344,6 +1346,9 @@ export class Compiler {
     runAsChild(callback: (err?: null | Error, entries?: Chunk[], compilation?: Compilation) => any): void;
     // (undocumented)
     running: boolean;
+    // (undocumented)
+    get target(): ExtractedTargetProperties;
+    set target(target: ExtractedTargetProperties);
     // @internal
     unsafeFastDrop: boolean;
     // (undocumented)
@@ -2453,21 +2458,6 @@ interface Es6Config extends BaseModuleConfig {
 }
 
 // @public (undocumented)
-class EsmLibraryPlugin {
-    constructor(options?: {
-        preserveModules?: string;
-    });
-    // (undocumented)
-    apply(compiler: Compiler): void;
-    // (undocumented)
-    options?: {
-        preserveModules?: string;
-    };
-    // (undocumented)
-    static PLUGIN_NAME: string;
-}
-
-// @public (undocumented)
 interface EsParserConfig {
     allowReturnOutsideFunction?: boolean;
     allowSuperOutsideMethod?: boolean;
@@ -2560,7 +2550,6 @@ export type Experiments = {
     asyncWebAssembly?: boolean;
     outputModule?: boolean;
     css?: boolean;
-    incremental?: IncrementalPresets | Incremental;
     futureDefaults?: boolean;
     buildHttp?: HttpUriOptions;
     useInputFileSystem?: UseInputFileSystem;
@@ -2577,8 +2566,6 @@ interface Experiments_2 {
     createNativePlugin: typeof createNativePlugin;
     // (undocumented)
     CssChunkingPlugin: typeof CssChunkingPlugin;
-    // (undocumented)
-    EsmLibraryPlugin: typeof EsmLibraryPlugin;
     // (undocumented)
     globalTrace: {
         register: (filter: string, layer: 'logger' | 'perfetto', output: string) => Promise<void>;
@@ -2624,8 +2611,6 @@ export interface ExperimentsNormalized {
     deferImport?: boolean;
     // (undocumented)
     futureDefaults?: boolean;
-    // (undocumented)
-    incremental?: false | Incremental;
     // (undocumented)
     nativeWatcher?: boolean;
     // (undocumented)
@@ -2842,6 +2827,12 @@ type ExtractCommentsObject = {
 
 // @public (undocumented)
 type ExtractCommentsOptions = ExtractCommentsCondition | ExtractCommentsObject;
+
+// @public (undocumented)
+type ExtractedTargetProperties = {
+    esVersion?: number | null;
+    targets?: Record<string, string> | null;
+};
 
 // @public (undocumented)
 type ExtraPluginHookData = {
@@ -4432,10 +4423,11 @@ export type LibraryOptions = {
     name?: LibraryName;
     type: LibraryType;
     umdNamedDefine?: UmdNamedDefine;
+    preserveModules?: string;
 };
 
 // @public
-export type LibraryType = LiteralUnion<'var' | 'module' | 'assign' | 'assign-properties' | 'this' | 'window' | 'self' | 'global' | 'commonjs' | 'commonjs2' | 'commonjs-module' | 'commonjs-static' | 'amd' | 'amd-require' | 'umd' | 'umd2' | 'jsonp' | 'system', string>;
+export type LibraryType = LiteralUnion<'var' | 'module' | 'modern-module' | 'assign' | 'assign-properties' | 'this' | 'window' | 'self' | 'global' | 'commonjs' | 'commonjs2' | 'commonjs-module' | 'commonjs-static' | 'amd' | 'amd-require' | 'umd' | 'umd2' | 'jsonp' | 'system', string>;
 
 // @public (undocumented)
 export type LightningcssFeatureOptions = {
@@ -4496,7 +4488,7 @@ export type LightningCssMinimizerRspackPluginOptions = {
     removeUnusedLocalIdents?: boolean;
     minimizerOptions?: {
         errorRecovery?: boolean;
-        targets?: string[] | string;
+        targets?: string[] | string | Targets;
         include?: LightningcssFeatureOptions;
         exclude?: LightningcssFeatureOptions;
         drafts?: Drafts;
@@ -4972,6 +4964,8 @@ class ModuleFederationPlugin {
 // @public (undocumented)
 export interface ModuleFederationPluginOptions extends Omit<ModuleFederationPluginV1Options, 'enhanced'> {
     // (undocumented)
+    experiments?: ModuleFederationRuntimeExperimentsOptions;
+    // (undocumented)
     implementation?: string;
     // (undocumented)
     manifest?: boolean | Omit<ModuleFederationManifestPluginOptions, 'remoteAliasMap' | 'globalName' | 'name' | 'exposes' | 'shared'>;
@@ -5010,6 +5004,12 @@ export interface ModuleFederationPluginV1Options {
     shared?: Shared;
     // (undocumented)
     shareScope?: string;
+}
+
+// @public (undocumented)
+interface ModuleFederationRuntimeExperimentsOptions {
+    // (undocumented)
+    asyncStartup?: boolean;
 }
 
 declare namespace ModuleFilenameHelpers {
@@ -7229,6 +7229,7 @@ export type RspackOptions = {
     bail?: Bail;
     performance?: Performance_2;
     lazyCompilation?: boolean | LazyCompilationOptions;
+    incremental?: IncrementalPresets | Incremental;
 };
 
 // @public (undocumented)
@@ -7267,6 +7268,8 @@ export interface RspackOptionsNormalized {
     externalsType?: ExternalsType;
     // (undocumented)
     ignoreWarnings?: IgnoreWarningsNormalized;
+    // (undocumented)
+    incremental?: false | Incremental;
     // (undocumented)
     infrastructureLogging: InfrastructureLogging;
     // (undocumented)
@@ -7427,7 +7430,7 @@ const RuntimeChunkPlugin: {
 };
 
 // @public (undocumented)
-export const RuntimeGlobals: Record<"publicPath" | "chunkName" | "moduleId" | "module" | "exports" | "require" | "global" | "system" | "requireScope" | "thisAsExports" | "returnExportsFromRuntime" | "moduleLoaded" | "entryModuleId" | "moduleCache" | "moduleFactories" | "moduleFactoriesAddOnly" | "ensureChunk" | "ensureChunkHandlers" | "ensureChunkIncludeEntries" | "prefetchChunk" | "prefetchChunkHandlers" | "preloadChunk" | "preloadChunkHandlers" | "definePropertyGetters" | "makeNamespaceObject" | "createFakeNamespaceObject" | "compatGetDefaultExport" | "harmonyModuleDecorator" | "nodeModuleDecorator" | "getFullHash" | "wasmInstances" | "instantiateWasm" | "uncaughtErrorHandler" | "scriptNonce" | "loadScript" | "createScript" | "createScriptUrl" | "getTrustedTypesPolicy" | "hasFetchPriority" | "runtimeId" | "getChunkScriptFilename" | "getChunkCssFilename" | "rspackVersion" | "hasCssModules" | "rspackUniqueId" | "getChunkUpdateScriptFilename" | "getChunkUpdateCssFilename" | "startup" | "startupNoDefault" | "startupOnlyAfter" | "startupOnlyBefore" | "chunkCallback" | "startupEntrypoint" | "startupChunkDependencies" | "onChunksLoaded" | "externalInstallChunk" | "interceptModuleExecution" | "shareScopeMap" | "initializeSharing" | "currentRemoteGetScope" | "getUpdateManifestFilename" | "hmrDownloadManifest" | "hmrDownloadUpdateHandlers" | "hmrModuleData" | "hmrInvalidateModuleHandlers" | "hmrRuntimeStatePrefix" | "amdDefine" | "amdOptions" | "hasOwnProperty" | "systemContext" | "baseURI" | "relativeUrl" | "asyncModule" | "asyncModuleExportSymbol" | "makeDeferredNamespaceObject" | "makeDeferredNamespaceObjectSymbol", string>;
+export const RuntimeGlobals: Record<"publicPath" | "chunkName" | "moduleId" | "module" | "require" | "global" | "system" | "exports" | "requireScope" | "thisAsExports" | "returnExportsFromRuntime" | "moduleLoaded" | "entryModuleId" | "moduleCache" | "moduleFactories" | "moduleFactoriesAddOnly" | "ensureChunk" | "ensureChunkHandlers" | "ensureChunkIncludeEntries" | "prefetchChunk" | "prefetchChunkHandlers" | "preloadChunk" | "preloadChunkHandlers" | "definePropertyGetters" | "makeNamespaceObject" | "createFakeNamespaceObject" | "compatGetDefaultExport" | "harmonyModuleDecorator" | "nodeModuleDecorator" | "getFullHash" | "wasmInstances" | "instantiateWasm" | "uncaughtErrorHandler" | "scriptNonce" | "loadScript" | "createScript" | "createScriptUrl" | "getTrustedTypesPolicy" | "hasFetchPriority" | "runtimeId" | "getChunkScriptFilename" | "getChunkCssFilename" | "rspackVersion" | "hasCssModules" | "rspackUniqueId" | "getChunkUpdateScriptFilename" | "getChunkUpdateCssFilename" | "startup" | "startupNoDefault" | "startupOnlyAfter" | "startupOnlyBefore" | "chunkCallback" | "startupEntrypoint" | "startupChunkDependencies" | "onChunksLoaded" | "externalInstallChunk" | "interceptModuleExecution" | "shareScopeMap" | "initializeSharing" | "currentRemoteGetScope" | "getUpdateManifestFilename" | "hmrDownloadManifest" | "hmrDownloadUpdateHandlers" | "hmrModuleData" | "hmrInvalidateModuleHandlers" | "hmrRuntimeStatePrefix" | "amdDefine" | "amdOptions" | "hasOwnProperty" | "systemContext" | "baseURI" | "relativeUrl" | "asyncModule" | "asyncModuleExportSymbol" | "makeDeferredNamespaceObject" | "makeDeferredNamespaceObjectSymbol", string>;
 
 // @public (undocumented)
 export class RuntimeModule {
@@ -8327,23 +8330,23 @@ export type Target = false | AllowTarget | AllowTarget[];
 // @public (undocumented)
 interface Targets {
     // (undocumented)
-    android?: number;
+    android?: string;
     // (undocumented)
-    chrome?: number;
+    chrome?: string;
     // (undocumented)
-    edge?: number;
+    edge?: string;
     // (undocumented)
-    firefox?: number;
+    firefox?: string;
     // (undocumented)
-    ie?: number;
+    ie?: string;
     // (undocumented)
-    ios_saf?: number;
+    ios_saf?: string;
     // (undocumented)
-    opera?: number;
+    opera?: string;
     // (undocumented)
-    safari?: number;
+    safari?: string;
     // (undocumented)
-    samsung?: number;
+    samsung?: string;
 }
 
 // @public

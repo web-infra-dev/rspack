@@ -771,18 +771,18 @@ export default {
 
 ### module.parser.javascript.requireAsExpression
 
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
 
 Control whether `require` used as an expression will be parsed.
 
-When set to `false`, Rspack will not parse `require` when it's used as an expression (e.g., `const req = require; req('./module')`). This can improve build performance if your code doesn't use this pattern.
+When set to `true`, Rspack will parse `require` when it's used as an expression (e.g., `const req = require; req('./module')`) and emit a warning. When set to `false`, this pattern will be ignored.
 
 ```js title="rspack.config.mjs"
 export default {
   module: {
     parser: {
       javascript: {
-        requireAsExpression: false,
+        requireAsExpression: true,
       },
     },
   },
@@ -988,10 +988,6 @@ export default {
 };
 ```
 
-:::warning
-This configuration will only work if [experiments.css](/config/experiments#experimentscss) is enabled.
-:::
-
 ### module.parser["css/auto"].namedExports
 
 - **Type:** `boolean`
@@ -1083,10 +1079,6 @@ export default {
 };
 ```
 
-:::warning
-This configuration will only work if [experiments.css](/config/experiments#experimentscss) is enabled.
-:::
-
 ### module.parser.css.namedExports
 
 Same as [`module.parser["css/auto"].namedExports`](#moduleparsercssautonamedexports).
@@ -1134,10 +1126,6 @@ export default {
   },
 };
 ```
-
-:::warning
-This configuration will only work if [experiments.css](/config/experiments#experimentscss) is enabled.
-:::
 
 ### module.parser["css/module"].namedExports
 
@@ -1686,10 +1674,6 @@ export default {
 };
 ```
 
-:::warning
-This configuration will only work if [experiments.css](/config/experiments#experimentscss) is enabled.
-:::
-
 ### module.generator["css/auto"].exportsConvention
 
 - **Type:** `'as-is' | 'camel-case' | 'camel-case-only' | 'dashes' | 'dashes-only'`
@@ -1819,10 +1803,6 @@ export default {
 };
 ```
 
-:::warning
-This configuration will only work if [experiments.css](/config/experiments#experimentscss) is enabled.
-:::
-
 ### module.generator.css.exportsOnly
 
 Same as [`module.generator["css/auto"].exportsOnly`](#modulegeneratorcssautoexportsonly).
@@ -1870,10 +1850,6 @@ export default {
   },
 };
 ```
-
-:::warning
-This configuration will only work if [experiments.css](/config/experiments#experimentscss) is enabled.
-:::
 
 ### module.generator["css/module"].exportsConvention
 

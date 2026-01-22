@@ -12,10 +12,14 @@ module.exports = {
 				localIdentName: "[local]",
 				exportsOnly: false
 			}
-		}
+		},
+		rules: [
+			{
+				test: /\.css$/,
+				type: "css/auto"
+			}
+		]
 	},
 	mode: "development",
-	experiments: {
-		css: true
-	}
+
 };

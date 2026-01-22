@@ -15,7 +15,8 @@ use rspack_core::{
   CompilationRuntimeRequirementInTree, CompilerCompilation, ConcatenatedModuleInfo,
   ConcatenationScope, DependencyType, ExternalModuleInfo, GetTargetResult, Logger, ModuleGraph,
   ModuleIdentifier, ModuleInfo, ModuleType, NormalModuleFactoryParser, ParserAndGenerator,
-  ParserOptions, Plugin, PrefetchExportsInfoMode, RuntimeGlobals, get_target, is_esm_dep_like,
+  ParserOptions, Plugin, PrefetchExportsInfoMode, RuntimeGlobals, RuntimeModule, get_target,
+  is_esm_dep_like,
   rspack_sources::{ReplaceSource, Source},
 };
 use rspack_error::{Diagnostic, Result};
@@ -360,14 +361,15 @@ async fn additional_chunk_runtime_requirements(
 #[plugin_hook(CompilationRuntimeRequirementInTree for EsmLibraryPlugin)]
 async fn runtime_requirements_in_tree(
   &self,
-  compilation: &mut Compilation,
+  _compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
   _all_runtime_requirements: &RuntimeGlobals,
   runtime_requirements: &RuntimeGlobals,
   _runtime_requirements_mut: &mut RuntimeGlobals,
+  runtime_modules_to_add: &mut Vec<(ChunkUkey, Box<dyn RuntimeModule>)>,
 ) -> Result<Option<()>> {
   if runtime_requirements.contains(RuntimeGlobals::REQUIRE) {
-    compilation.add_runtime_module(chunk_ukey, Box::new(RegisterModuleRuntime::default()))?;
+    runtime_modules_to_add.push((*chunk_ukey, Box::new(RegisterModuleRuntime::default())));
   }
 
   Ok(None)
@@ -421,6 +423,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       self_path.pop();
 
       let chunk_ids_to_ukey = self.chunk_ids_to_ukey.borrow();
+
       for captures in RSPACK_ESM_CHUNK_PLACEHOLDER_RE.find_iter(&content) {
         let chunk_id = captures
           .as_str()
@@ -440,7 +443,13 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         let js_files = chunk
           .files()
           .iter()
-          .filter(|f| f.ends_with("js"))
+          .filter(|f| {
+            // find ref asset info
+            let Some(asset) = compilation.assets().get(*f) else {
+              return false;
+            };
+            asset.get_info().javascript_module.unwrap_or_default()
+          })
           .collect::<Vec<_>>();
         if js_files.len() > 1 {
           return Err(rspack_error::error!(
@@ -448,17 +457,13 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
             js_files
           ));
         }
-        let chunk_path = output_path.join(
-          js_files
-            .first()
-            .unwrap_or_else(|| {
-              panic!(
-                "at least one path for chunk: {:?}",
-                chunk.id().map(|id| { id.as_str() })
-              )
-            })
-            .as_str(),
-        );
+        if js_files.is_empty() {
+          return Err(rspack_error::error!(
+            "chunk {:?} should have at least one file",
+            chunk.id()
+          ));
+        }
+        let chunk_path = output_path.join(js_files.first().expect("should have at least one file"));
         let relative = chunk_path.relative(self_path.as_path());
         let relative = relative
           .to_slash()

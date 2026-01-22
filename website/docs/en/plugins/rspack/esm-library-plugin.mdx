@@ -2,13 +2,15 @@ import { ApiMeta } from '@components/ApiMeta.tsx';
 
 # EsmLibraryPlugin
 
-<ApiMeta specific={['Rspack']} addedVersion="1.5.6" />
-
-Rspack provides experimental `EsmLibraryPlugin` plugin, provides statically analyzable, cleaner output for ESM library, and also supports code splitting.
+<ApiMeta specific={['Rspack']} addedVersion="1.5.6" removedVersion="2.0.0" />
 
 :::tip
+Since v2.0, this plugin has already bean the implementation for library with type ["modern-module"](/config/output#type-modern-module), you should use config instead of using plugin directly.
+
 🚧 This plugin is still work-in-progress, config may change at anytime.
 :::
+
+Rspack provides experimental `EsmLibraryPlugin` plugin, provides statically analyzable, cleaner output for ESM library, and also supports code splitting.
 
 ```js title="rspack.config.mjs"
 import { rspack } from '@rspack/core';

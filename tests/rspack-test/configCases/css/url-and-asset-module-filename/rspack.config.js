@@ -5,8 +5,13 @@ const common = {
 	target: "web",
 	mode: "development",
 	devtool: false,
-	experiments: {
-		css: true
+	module: {
+		rules: [
+			{
+				test: /\.css$/,
+				type: "css/auto"
+			}
+		]
 	}
 };
 
@@ -35,6 +40,10 @@ module.exports = [
 		},
 		module: {
 			rules: [
+				{
+					test: /\.css$/,
+					type: "css/auto"
+				},
 				{
 					test: /\.png$/i,
 					type: "asset/resource",

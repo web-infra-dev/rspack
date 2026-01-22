@@ -70,11 +70,6 @@ impl Compiler {
       let mut all_files = modified_files.clone();
       all_files.extend(removed_files.clone());
 
-      self.old_cache.end_idle();
-      // self
-      //   .old_cache
-      //   .set_modified_files(all_files.into_iter().collect());
-
       self.plugin_driver.clear_cache(self.compilation.id());
 
       let mut new_compilation = Compilation::new(
@@ -86,8 +81,7 @@ impl Compiler {
         self.resolver_factory.clone(),
         self.loader_resolver_factory.clone(),
         Some(records),
-        self.old_cache.clone(),
-        Incremental::new_hot(self.options.experiments.incremental),
+        Incremental::new_hot(self.options.incremental),
         Some(ModuleExecutor::default()),
         modified_files,
         removed_files,
@@ -196,6 +190,16 @@ impl Compiler {
       new_compilation
         .chunk_render_cache_artifact
         .start_next_generation();
+      new_compilation.code_generate_cache_artifact =
+        std::mem::take(&mut self.compilation.code_generate_cache_artifact);
+      new_compilation
+        .code_generate_cache_artifact
+        .start_next_generation();
+      new_compilation.process_runtime_requirements_cache_artifact =
+        std::mem::take(&mut self.compilation.process_runtime_requirements_cache_artifact);
+      new_compilation
+        .process_runtime_requirements_cache_artifact
+        .start_next_generation();
 
       // FOR BINDING SAFETY:
       // Update `compilation` for each rebuild.
@@ -203,8 +207,6 @@ impl Compiler {
       fast_set(&mut self.compilation, new_compilation);
       self.cache.before_compile(&mut self.compilation).await;
       self.compile().await?;
-
-      self.old_cache.begin_idle();
     }
 
     self.compile_done().await?;

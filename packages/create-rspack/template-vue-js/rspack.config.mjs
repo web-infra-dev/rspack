@@ -3,18 +3,20 @@ import { defineConfig } from '@rspack/cli';
 import { rspack } from '@rspack/core';
 import { VueLoaderPlugin } from 'rspack-vue-loader';
 
-// Target browsers, see: https://github.com/browserslist/browserslist
-const targets = ['last 2 versions', '> 0.2%', 'not dead', 'Firefox ESR'];
-
 export default defineConfig({
   entry: {
     main: './src/main.js',
   },
+  target: ['browserslist:last 2 versions, > 0.2%, not dead, Firefox ESR'],
   resolve: {
     extensions: ['...', '.ts', '.vue'],
   },
   module: {
     rules: [
+      {
+        test: /\.css$/,
+        type: 'css/auto',
+      },
       {
         test: /\.vue$/,
         loader: 'rspack-vue-loader',
@@ -34,7 +36,6 @@ export default defineConfig({
                   syntax: 'typescript',
                 },
               },
-              env: { targets },
             },
           },
         ],
@@ -55,15 +56,4 @@ export default defineConfig({
     }),
     new VueLoaderPlugin(),
   ],
-  optimization: {
-    minimizer: [
-      new rspack.SwcJsMinimizerRspackPlugin(),
-      new rspack.LightningCssMinimizerRspackPlugin({
-        minimizerOptions: { targets },
-      }),
-    ],
-  },
-  experiments: {
-    css: true,
-  },
 });
