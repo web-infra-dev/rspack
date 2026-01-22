@@ -1,12 +1,14 @@
 ```mjs title=main.mjs
 import { createRequire as __rspack_createRequire } from "node:module";
 const __rspack_createRequire_require = __rspack_createRequire(import.meta.url);
-// fs
+// fs?f23b
 
 // ./module.js
 
 
 console.log.bind(console)
+
+// fs?771d
 
 // ./index.js
 

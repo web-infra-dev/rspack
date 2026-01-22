@@ -12,7 +12,7 @@ __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   lib: () => (lib)
 });
-/* import */ var fs__rspack_import_0 = __webpack_require__(/*! fs */ "fs");
+/* import */ var fs__rspack_import_0 = __webpack_require__(/*! fs */ "fs?f137");
 
 /* reexport */ var __rspack_reexport = {};
 /* reexport */ for( const __rspack_import_key in fs__rspack_import_0) if(["default","lib"].indexOf(__rspack_import_key) < 0) __rspack_reexport[__rspack_import_key] =() => fs__rspack_import_0[__rspack_import_key]
@@ -66,7 +66,7 @@ __webpack_require__.d(__webpack_exports__, {
   I: () => (lib_local),
   fs: () => (/* reexport module object */ fs__rspack_import_0)
 });
-/* import */ var fs__rspack_import_0 = __webpack_require__(/*! fs */ "fs");
+/* import */ var fs__rspack_import_0 = __webpack_require__(/*! fs */ "fs?c303");
 const lib3 = 42
 
 const lib_local = 24
@@ -76,7 +76,17 @@ const lib_local = 24
 
 
 },
-"fs"
+"fs?f137"
+/*!*********************!*\
+  !*** external "fs" ***!
+  \*********************/
+(module) {
+
+module.exports = __rspack_external_fs;
+
+
+},
+"fs?c303"
 /*!*********************!*\
   !*** external "fs" ***!
   \*********************/
