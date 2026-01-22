@@ -27,5 +27,11 @@ export default defineConfig({
   env: {
     RUST_BACKTRACE: 'full',
   },
+  chaiConfig: process.env.CI
+    ? {
+        // show all info on CI
+        truncateThreshold: 5000,
+      }
+    : undefined,
   ...(wasmConfig || {}),
 });
