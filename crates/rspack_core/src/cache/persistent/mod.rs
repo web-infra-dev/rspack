@@ -22,7 +22,7 @@ use self::{
   build_dependencies::{BuildDeps, BuildDepsOptions},
   codec::CacheCodec,
   occasion::{MakeOccasion, MetaOccasion},
-  snapshot::{Snapshot, SnapshotOptions, SnapshotType},
+  snapshot::{Snapshot, SnapshotOptions, SnapshotScope},
   storage::{Storage, StorageOptions, create_storage},
 };
 use super::Cache;
@@ -46,7 +46,7 @@ pub struct PersistentCacheOptions {
 pub struct PersistentCache {
   initialized: bool,
   build_deps: BuildDeps,
-  snapshot: Snapshot,
+  snapshot: Arc<Snapshot>,
   make_occasion: MakeOccasion,
   meta_occasion: MetaOccasion,
   async_mode: bool,
@@ -80,22 +80,22 @@ impl PersistentCache {
       hex::encode(hasher.finish().to_ne_bytes())
     };
     let storage = create_storage(option.storage.clone(), version, intermediate_filesystem);
+    let snapshot = Arc::new(Snapshot::new(
+      option.snapshot.clone(),
+      input_filesystem.clone(),
+      storage.clone(),
+      codec.clone(),
+    ));
 
     Self {
       initialized: false,
       build_deps: BuildDeps::new(
         &option.build_dependencies,
-        &option.snapshot,
-        input_filesystem.clone(),
-        storage.clone(),
-        codec.clone(),
-      ),
-      snapshot: Snapshot::new(
-        option.snapshot.clone(),
         input_filesystem,
+        snapshot.clone(),
         storage.clone(),
-        codec.clone(),
       ),
+      snapshot,
       make_occasion: MakeOccasion::new(storage.clone(), codec.clone()),
       meta_occasion: MetaOccasion::new(storage.clone(), codec),
       warnings: Default::default(),
@@ -147,14 +147,34 @@ impl Cache for PersistentCache {
     // rebuild will pass modified_files and removed_files from js side,
     // so only calculate them when build.
     if !compilation.is_rebuild {
-      let (is_hot_start, modified_paths, removed_paths, _) =
-        match self.snapshot.calc_modified_paths().await {
-          Ok(res) => res,
+      let mut is_hot_start = false;
+      let mut modified_paths = ArcPathSet::default();
+      let mut removed_paths = ArcPathSet::default();
+      let data = vec![
+        self.snapshot.calc_modified_paths(SnapshotScope::FILE).await,
+        self
+          .snapshot
+          .calc_modified_paths(SnapshotScope::CONTEXT)
+          .await,
+        self
+          .snapshot
+          .calc_modified_paths(SnapshotScope::MISSING)
+          .await,
+      ];
+      for item in data {
+        match item {
+          Ok((a, b, c, _)) => {
+            is_hot_start = is_hot_start || a;
+            modified_paths.extend(b);
+            removed_paths.extend(c);
+          }
           Err(err) => {
             self.warnings.push(err.to_string());
             return false;
           }
         };
+      }
+
       tracing::debug!("cache::snapshot recovery {modified_paths:?} {removed_paths:?}",);
       compilation.modified_files.extend(modified_paths);
       compilation.removed_files.extend(removed_paths);
@@ -173,31 +193,31 @@ impl Cache for PersistentCache {
     let (_, context_added, context_updated, context_removed) = compilation.context_dependencies();
     let (_, missing_added, missing_updated, missing_removed) = compilation.missing_dependencies();
     let (_, build_added, build_updated, _) = compilation.build_dependencies();
-    let removed_paths: ArcPathSet = compilation
-      .removed_files
-      .iter()
-      .chain(file_removed)
-      .chain(context_removed)
-      .chain(missing_removed)
-      .cloned()
-      .collect();
-    self.snapshot.remove(removed_paths.into_iter());
     self
       .snapshot
-      .add(file_added.chain(file_updated).cloned(), SnapshotType::FILE)
+      .remove(SnapshotScope::FILE, file_removed.cloned());
+    self
+      .snapshot
+      .remove(SnapshotScope::CONTEXT, context_removed.cloned());
+    self
+      .snapshot
+      .remove(SnapshotScope::MISSING, missing_removed.cloned());
+    self
+      .snapshot
+      .add(SnapshotScope::FILE, file_added.chain(file_updated).cloned())
       .await;
     self
       .snapshot
       .add(
+        SnapshotScope::CONTEXT,
         context_added.chain(context_updated).cloned(),
-        SnapshotType::CONTEXT,
       )
       .await;
     self
       .snapshot
       .add(
+        SnapshotScope::MISSING,
         missing_added.chain(missing_updated).cloned(),
-        SnapshotType::MISSING,
       )
       .await;
     self.warnings.extend(
