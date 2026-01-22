@@ -11,5 +11,5 @@ pub const fn rspack_pkg_version() -> &'static str {
 
 /// The version of the Rust workspace in the root `Cargo.toml` of the repository.
 pub const fn rspack_workspace_version() -> &'static str {
-  "0.7.3"
+  "0.100.0-alpha.0"
 }
