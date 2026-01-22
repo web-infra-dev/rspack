@@ -327,6 +327,10 @@ impl Compiler {
       .await?;
 
     let mut new_emitted_asset_versions = HashMap::default();
+    let emit_assets_incremental = self
+      .compilation
+      .incremental
+      .passes_enabled(IncrementalPasses::EMIT_ASSETS);
 
     rspack_futures::scope(|token| {
       self
@@ -335,15 +339,12 @@ impl Compiler {
         .iter()
         .for_each(|(filename, asset)| {
           // collect version info to new_emitted_asset_versions
-          if self
-            .compilation
-            .incremental
-            .passes_enabled(IncrementalPasses::EMIT_ASSETS)
-          {
+          if emit_assets_incremental {
             new_emitted_asset_versions.insert(filename.clone(), asset.info.version.clone());
           }
 
-          if let Some(old_version) = self.emitted_asset_versions.get(filename)
+          if emit_assets_incremental
+            && let Some(old_version) = self.emitted_asset_versions.get(filename)
             && old_version.as_str() == asset.info.version
             && !old_version.is_empty()
           {

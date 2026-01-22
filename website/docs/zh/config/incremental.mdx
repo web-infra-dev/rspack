@@ -13,7 +13,7 @@ import { ApiMeta } from '../../../components/ApiMeta';
 
 1. 预设配置：包括 `boolean | 'none' | 'safe' | 'advance' | 'advance-silent'`
    - `false | 'none'`：关闭增量，不对任何阶段开启
-   - `'safe'`：开启 `make` 和 `emitAssets` 阶段的增量
+   - `'safe'`：开启 `buildModuleGraph` 和 `emitAssets` 阶段的增量
    - `true | 'advance-silent'`：开启所有阶段的增量构建，最大程度优化重构建和 HMR 的性能。这是 Rspack 的默认行为
    - `'advance'`：功能同上，但会检测对增量构建不友好的情况，并发出警告提示用户（例如一些不正确的配置）。该选项可以帮助你排查潜在的影响增量构建性能的问题。
 2. 细粒度的对象配置：`Incremental`，允许精细控制各个构建阶段的增量功能是否开启
@@ -28,11 +28,9 @@ import { ApiMeta } from '../../../components/ApiMeta';
           // 是否在遇到对增量不友好的情况下抛出警告
           silent?: boolean;
           // 以下配置用来控制各个阶段的增量是否开启
-          make?: boolean;
-          inferAsyncModules?: boolean;
-          providedExports?: boolean;
-          dependenciesDiagnostics?: boolean;
-          sideEffects?: boolean;
+          buildModuleGraph?: boolean;
+          finishModules?: boolean;
+          optimizeDependencies?: boolean;
           buildChunkGraph?: boolean;
           moduleIds?: boolean;
           chunkIds?: boolean;
@@ -41,7 +39,7 @@ import { ApiMeta } from '../../../components/ApiMeta';
           modulesRuntimeRequirements?: boolean;
           chunksRuntimeRequirements?: boolean;
           chunksHashes?: boolean;
-          chunksRender?: boolean;
+          chunkAsset?: boolean;
           emitAssets?: boolean;
         };
         ```
@@ -63,4 +61,4 @@ import { ApiMeta } from '../../../components/ApiMeta';
 |   冷启动   |    ❌    |
 | 重构建/HMR |    ✅    |
 
-Rspack 在 v1.4.0 后默认使用 `'advance-silent'` 开启所有阶段的增量构建；之前的版本默认使用 `'safe'` 仅开启 `make` 和 `emitAssets` 阶段的增量。
+Rspack 在 v1.4.0 后默认使用 `'advance-silent'` 开启所有阶段的增量构建；之前的版本默认使用 `'safe'` 仅开启 `buildModuleGraph` 阶段的增量。

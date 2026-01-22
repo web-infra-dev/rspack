@@ -14,7 +14,7 @@ pub struct ChunkRenderCacheArtifact {
 }
 
 impl ArtifactExt for ChunkRenderCacheArtifact {
-  const PASS: IncrementalPasses = IncrementalPasses::CHUNKS_RENDER;
+  const PASS: IncrementalPasses = IncrementalPasses::CHUNK_ASSET;
 
   fn recover(_incremental: &Incremental, new: &mut Self, old: &mut Self) {
     *new = std::mem::take(old);

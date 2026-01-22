@@ -222,5 +222,5 @@ impl BuildModuleGraphArtifact {
 }
 
 impl ArtifactExt for BuildModuleGraphArtifact {
-  const PASS: IncrementalPasses = IncrementalPasses::MAKE;
+  const PASS: IncrementalPasses = IncrementalPasses::BUILD_MODULE_GRAPH;
 }

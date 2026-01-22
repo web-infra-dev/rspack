@@ -51,10 +51,10 @@ impl CodeSplittingCache {
 
     let Some(mutations) = this_compilation
       .incremental
-      .mutations_read(IncrementalPasses::MAKE)
+      .mutations_read(IncrementalPasses::BUILD_MODULE_GRAPH)
     else {
-      logger.log("incremental for make disabled, rebuilding chunk graph");
-      // if disable incremental for make phase, we can't skip rebuilding
+      logger.log("incremental for build module graph disabled, rebuilding chunk graph");
+      // if disable incremental for build module graph phase, we can't skip rebuilding
       return false;
     };
 

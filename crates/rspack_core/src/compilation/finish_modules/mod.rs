@@ -58,7 +58,7 @@ impl Compilation {
           .iter()
           .map(|&module| Mutation::ModuleAdd { module }),
       );
-      tracing::debug!(target: incremental::TRACING_TARGET, passes = %IncrementalPasses::MAKE, %mutations);
+      tracing::debug!(target: incremental::TRACING_TARGET, passes = %IncrementalPasses::BUILD_MODULE_GRAPH, %mutations);
     }
 
     let start = logger.time("finish modules");
@@ -100,7 +100,7 @@ impl Compilation {
     let (modules, has_mutations) = {
       let mutations = self
         .incremental
-        .mutations_read(IncrementalPasses::DEPENDENCIES_DIAGNOSTICS);
+        .mutations_read(IncrementalPasses::FINISH_MODULES);
 
       // TODO move diagnostic collect to make
       if let Some(mutations) = mutations {
@@ -113,7 +113,7 @@ impl Compilation {
             dependencies_diagnostics_artifact.remove(&revoked_module);
           }
           let modules = mutations.get_affected_modules_with_module_graph(self.get_module_graph());
-          let logger = self.get_logger("rspack.incremental.dependenciesDiagnostics");
+          let logger = self.get_logger("rspack.incremental.finishModules");
           logger.log(format!(
             "{} modules are affected, {} in total",
             modules.len(),

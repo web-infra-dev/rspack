@@ -13,7 +13,7 @@ Two configuration ways are provided:
 
 1. Presets: including `boolean | 'none' | 'safe' | 'advance' | 'advance-silent'`
    - `false | 'none'`: Disable incremental, and it will not be enabled for any stage.
-   - `'safe'`: Enable incremental for `make` and `emitAssets` stages.
+   - `'safe'`: Enable incremental for the `buildModuleGraph` and `emitAssets` stage.
    - `true | 'advance-silent'`: Enable incremental for all stages to maximize performance for rebuilds and HMR. This is the default behavior of Rspack.
    - `'advance'`: The same as above, but it will detect cases that are unfriendly to incremental and throw warnings to users (e.g., incorrect configurations). This option can help you to identify potential issues affecting incremental build performance.
 2. **Detailed object configuration**: `Incremental`, which allows fine-grained control over whether the incremental is enabled for each stage.
@@ -28,11 +28,9 @@ Two configuration ways are provided:
           // Whether to throw a warning when encountering situations that are not friendly for incremental.
           silent?: boolean;
           // The following configuration is used to control whether the incremental of each stage is enabled.
-          make?: boolean;
-          inferAsyncModules?: boolean;
-          providedExports?: boolean;
-          dependenciesDiagnostics?: boolean;
-          sideEffects?: boolean;
+          buildModuleGraph?: boolean;
+          finishModules?: boolean;
+          optimizeDependencies?: boolean;
           buildChunkGraph?: boolean;
           moduleIds?: boolean;
           chunkIds?: boolean;
@@ -41,7 +39,7 @@ Two configuration ways are provided:
           modulesRuntimeRequirements?: boolean;
           chunksRuntimeRequirements?: boolean;
           chunksHashes?: boolean;
-          chunksRender?: boolean;
+          chunkAsset?: boolean;
           emitAssets?: boolean;
         };
         ```
@@ -63,4 +61,4 @@ The table below shows the results of incremental in different scenarios:
 |  cold start  |          ❌          |
 | rebuild/HMR  |          ✅          |
 
-Starting from v1.4.0, Rspack enables incremental builds using `'advance-silent'` mode by default. In previous versions, it only activated incremental builds for the `make` and `emitAssets` phases by default with `'safe'` mode.
+Starting from v1.4.0, Rspack enables incremental builds using `'advance-silent'` mode by default. In previous versions, it only activated incremental builds for the `buildModuleGraph` phase by default with `'safe'` mode.
