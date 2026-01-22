@@ -19,12 +19,12 @@ enum State {
 type GetServerCompilerId = Box<dyn Fn() -> BoxFuture<'static, Result<CompilerId>> + Sync + Send>;
 
 /// Coordinates the compilation sequence between Server Compiler and Client Compiler.
-/// 
+///
 /// Ensures the following compilation order:
 /// 1. Server Entries compilation（in Server Compiler）
 /// 2. Client Entries compilation（in Client Compiler）
 /// 3. Server Actions compilation（in Server Compiler）
-/// 
+///
 /// The coordinator manages state transitions and synchronization between compilers
 /// to maintain the correct build sequence for React Server Components.
 pub struct Coordinator {
