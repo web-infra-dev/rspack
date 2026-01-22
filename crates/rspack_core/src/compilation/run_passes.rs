@@ -20,20 +20,32 @@ impl Compilation {
     plugin_driver: SharedPluginDriver,
     cache: &mut dyn Cache,
   ) -> Result<()> {
-    make_hook_pass(self, plugin_driver.clone(), cache).await?;
+    // #region Build Module Graph First Pass
+    cache
+      .before_build_module_graph(&mut self.build_module_graph_artifact)
+      .await;
+    make_hook_pass(self, plugin_driver.clone()).await?;
     build_module_graph_pass(self).await?;
     finish_make_pass(self, plugin_driver.clone()).await?;
-    finish_module_graph_pass(self, cache).await?;
+
+    finish_module_graph_pass(self).await?;
+    // finish_modules will set exports_info for build_module_graph_artifact so we have to put it here
+    // @FIXME: after split exports_info from module graph, we can move it after build_module_graph_pass
     finish_modules_pass(self).await?;
     // This is the end of first pass of build module graph which will be recovered for next compilation
     // add a checkpoint here since we may modify module graph later in incremental compilation
     // and we can recover to this checkpoint in the future
+    cache
+      .after_build_module_graph(&self.build_module_graph_artifact)
+      .await;
     if self
       .incremental
       .passes_enabled(IncrementalPasses::BUILD_MODULE_GRAPH)
     {
       self.build_module_graph_artifact.module_graph.checkpoint();
     }
+    // #endregion Build Module Graph First Pass Finished here and will be use to recover for next compilation
+
     if !self.options.mode.is_development() {
       self.module_static_cache_artifact.freeze();
     }
