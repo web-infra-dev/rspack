@@ -34,10 +34,9 @@ swc_core                 = { workspace = true }
 tokio                    = { workspace = true }
 tracing                  = { workspace = true }
 urlencoding              = { workspace = true }
-ustr                     = { workspace = true }
 
 [package.metadata.cargo-shear]
-ignored = ["tracing", "rspack_hash", "ustr-fxhash"]
+ignored = ["tracing", "rspack_hash"]
 
 [lints.rust.unexpected_cfgs]
 check-cfg = ['cfg(allocative)']

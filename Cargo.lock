@@ -4791,7 +4791,6 @@ dependencies = [
  "tokio",
  "tracing",
  "urlencoding",
- "ustr-fxhash",
 ]
 
 [[package]]
