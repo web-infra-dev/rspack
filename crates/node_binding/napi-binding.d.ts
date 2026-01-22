@@ -2009,6 +2009,7 @@ export interface RawCssAutoGeneratorOptions {
 export interface RawCssAutoParserOptions {
   namedExports?: boolean
   url?: boolean
+  resolveImport?: boolean | ((args: [string, string | undefined, string, string | undefined, string | undefined]) => boolean)
 }
 
 export interface RawCssChunkingPluginOptions {
@@ -2045,11 +2046,13 @@ export interface RawCssModuleGeneratorOptions {
 export interface RawCssModuleParserOptions {
   namedExports?: boolean
   url?: boolean
+  resolveImport?: boolean | ((args: [string, string | undefined, string, string | undefined, string | undefined]) => boolean)
 }
 
 export interface RawCssParserOptions {
   namedExports?: boolean
   url?: boolean
+  resolveImport?: boolean | ((args: [string, string | undefined, string, string | undefined, string | undefined]) => boolean)
 }
 
 export interface RawDllEntryPluginOptions {
