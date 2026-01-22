@@ -178,3 +178,74 @@ When an unused variable's initial value is marked as side-effect-free (pure), it
 - This behavior is enabled when [optimization.innerGraph](/config/optimization#optimizationinnergraph) is set to true.
 
 :::
+
+## NO_SIDE_EFFECTS annotation
+
+`/*#__NO_SIDE_EFFECTS__*/` is a feature that follows the community [JavaScript Compiler Hints Spec](https://github.com/javascript-compiler-hints/compiler-notations-spec/blob/main/no-side-effects-notation-spec.md). Unlike `/*#__PURE__*/` which marks call sites, `/*#__NO_SIDE_EFFECTS__*/` is used to mark **function definitions**, declaring that the function has no side effects when called with arguments.
+
+### Enabling
+
+This feature is currently experimental and needs to be enabled via following experimental feature configuration, and it depends on [optimization.sideEffects](/config/optimization#optimizationsideeffects) (`sideEffects` is enabled by default in production mode):
+
+```javascript title="rspack.config.js"
+module.exports = {
+  experiments: {
+    advancedTreeShaking: true,
+  },
+};
+```
+
+### Usage
+
+You can place this annotation before function declarations, function expressions, arrow functions, or export statements, check [spec](https://github.com/javascript-compiler-hints/compiler-notations-spec/blob/main/no-side-effects-notation-spec.md) for details:
+
+```javascript
+/*#__NO_SIDE_EFFECTS__*/
+function foo() {
+  console.log('foo');
+}
+
+/*#__NO_SIDE_EFFECTS__*/
+const bar = () => {
+  console.log('bar');
+};
+
+/*#__NO_SIDE_EFFECTS__*/
+export default function baz() {}
+
+/*#__NO_SIDE_EFFECTS__*/
+export function baz() {}
+```
+
+If a function is marked as side-effect-free and its return value is unused, Rspack can safely remove the call. Compared to `/*#__PURE__*/`, the advantage is that you only need to mark it once at the definition, and all call sites will benefit.
+
+## sideEffectsFree
+
+`sideEffectsFree` allows you to manually specify function names as side-effect-free in specific modules via the Rspack configuration file. This is useful for third-party libraries where source code cannot be modified (e.g., packages in `node_modules`).
+
+:::note
+Works only for function declarations at top level scope
+:::
+
+For business source code where modification is possible, it is recommended to use the `/*#__NO_SIDE_EFFECTS__*/` annotation.
+
+### Usage
+
+This option is configured in `module.rules[i].parser`:
+
+```javascript title="rspack.config.js"
+module.exports = {
+  module: {
+    rules: [
+      {
+        test: /node_modules\/some-library\/index.js/,
+        parser: {
+          sideEffectsFree: ['isString', 'isNumber'],
+        },
+      },
+    ],
+  },
+};
+```
+
+If any function name is not found in the sideEffectsFree configuration, Rspack will give you a warning.

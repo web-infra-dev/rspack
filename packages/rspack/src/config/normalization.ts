@@ -720,6 +720,7 @@ export interface ExperimentsNormalized {
   lazyBarrel?: boolean;
   nativeWatcher?: boolean;
   deferImport?: boolean;
+  advancedTreeShaking?: boolean;
 }
 
 export type IgnoreWarningsNormalized = ((

@@ -57,6 +57,7 @@ pub(super) enum BuiltinPluginOptions {
   EnsureChunkConditionsPlugin,
   MergeDuplicateChunksPlugin,
   SideEffectsFlagPlugin,
+  InnerGraphPlugin,
   FlagDependencyExportsPlugin,
   FlagDependencyUsagePlugin(bool),
   ModuleConcatenationPlugin,
@@ -256,6 +257,9 @@ impl BuilderContext {
       }
       BuiltinPluginOptions::SideEffectsFlagPlugin => {
         plugins.push(rspack_plugin_javascript::SideEffectsFlagPlugin::default().boxed());
+      }
+      BuiltinPluginOptions::InnerGraphPlugin => {
+        plugins.push(rspack_plugin_javascript::InnerGraphPlugin::default().boxed());
       }
       BuiltinPluginOptions::FlagDependencyExportsPlugin => {
         plugins.push(rspack_plugin_javascript::FlagDependencyExportsPlugin::default().boxed());

@@ -34,9 +34,7 @@ impl PureExpressionDependency {
     runtime: Option<&RuntimeSpec>,
   ) -> RuntimeCondition {
     match self.used_by_exports {
-      Some(UsedByExports::Bool(true)) => {
-        unreachable!()
-      }
+      Some(UsedByExports::Bool(true)) => RuntimeCondition::Boolean(true),
       Some(UsedByExports::Bool(false)) => RuntimeCondition::Boolean(false),
       Some(UsedByExports::Set(ref set)) => {
         let module_graph = compilation.get_module_graph();
@@ -51,7 +49,7 @@ impl PureExpressionDependency {
       None => {
         // https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/dependencies/PureExpressionDependency.js#L32-L33
         // after check usedExports is not false, webpack ensure that usedExports is a set
-        unreachable!()
+        RuntimeCondition::Boolean(true)
       }
     }
   }
