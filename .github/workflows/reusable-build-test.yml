@@ -124,6 +124,10 @@ jobs:
         with:
           save-if: ${{ github.ref_name == 'main' && matrix.node == '18' }}
 
+      - name:
+        if: ${{ matrix.node == '22' }}
+        uses: ./.github/actions/debugger
+
       ### x86_64-unknown-linux-gnu
       - name: Test x86_64-unknown-linux-gnu
         timeout-minutes: 15 # Tests should finish within 15 mins, please fix your tests instead of changing this to a higher timeout.
