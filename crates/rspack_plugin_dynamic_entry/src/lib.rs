@@ -59,7 +59,7 @@ async fn make(&self, compilation: &mut Compilation) -> Result<()> {
 
   if compilation
     .incremental
-    .mutations_readable(IncrementalPasses::MAKE)
+    .mutations_readable(IncrementalPasses::BUILD_MODULE_GRAPH)
   {
     let mut imported_dependencies = self.imported_dependencies.borrow_mut();
     let mut next_imported_dependencies: FxHashMap<Arc<str>, FxHashMap<EntryOptions, DependencyId>> =

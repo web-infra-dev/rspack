@@ -8,7 +8,7 @@ use crate::{ArtifactExt, incremental::IncrementalPasses};
 pub struct AsyncModulesArtifact(IdentifierSet);
 
 impl ArtifactExt for AsyncModulesArtifact {
-  const PASS: IncrementalPasses = IncrementalPasses::INFER_ASYNC_MODULES;
+  const PASS: IncrementalPasses = IncrementalPasses::FINISH_MODULES;
 }
 
 impl Deref for AsyncModulesArtifact {

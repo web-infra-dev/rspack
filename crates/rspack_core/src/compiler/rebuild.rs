@@ -76,7 +76,7 @@ impl Compiler {
 
       if new_compilation
         .incremental
-        .mutations_readable(IncrementalPasses::MAKE)
+        .mutations_readable(IncrementalPasses::BUILD_MODULE_GRAPH)
       {
         // recover module graph from last compilation
         self
@@ -90,7 +90,6 @@ impl Compiler {
         // reuse module executor
         new_compilation.module_executor = std::mem::take(&mut self.compilation.module_executor);
       }
-
       // Recover artifacts based on their associated incremental passes
       let incremental = &new_compilation.incremental;
 

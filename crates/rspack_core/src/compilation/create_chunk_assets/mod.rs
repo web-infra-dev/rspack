@@ -24,7 +24,7 @@ impl Compilation {
         .css_chunk_filename
         .has_hash_placeholder())
       && let Some(diagnostic) = self.incremental.disable_passes(
-        IncrementalPasses::CHUNKS_RENDER,
+        IncrementalPasses::CHUNK_ASSET,
         "Chunk filename that dependent on full hash",
         "chunk filename that dependent on full hash is not supported in incremental compilation",
       )
@@ -33,17 +33,17 @@ impl Compilation {
       self.push_diagnostic(diagnostic);
     }
 
-    // Check if CHUNKS_RENDER pass is disabled, and clear artifact if needed
+    // Check if CHUNK_ASSET pass is disabled, and clear artifact if needed
     if !self
       .incremental
-      .passes_enabled(IncrementalPasses::CHUNKS_RENDER)
+      .passes_enabled(IncrementalPasses::CHUNK_ASSET)
     {
       self.chunk_render_artifact.clear();
     }
 
     let chunks = if let Some(mutations) = self
       .incremental
-      .mutations_read(IncrementalPasses::CHUNKS_RENDER)
+      .mutations_read(IncrementalPasses::CHUNK_ASSET)
       && !self.chunk_render_artifact.is_empty()
     {
       let removed_chunks = mutations.iter().filter_map(|mutation| match mutation {
@@ -63,8 +63,8 @@ impl Compilation {
           _ => None,
         })
         .collect();
-      tracing::debug!(target: incremental::TRACING_TARGET, passes = %IncrementalPasses::CHUNKS_RENDER, %mutations);
-      let logger = self.get_logger("rspack.incremental.chunksRender");
+      tracing::debug!(target: incremental::TRACING_TARGET, passes = %IncrementalPasses::CHUNK_ASSET, %mutations);
+      let logger = self.get_logger("rspack.incremental.chunkAsset");
       logger.log(format!(
         "{} chunks are affected, {} in total",
         chunks.len(),
@@ -108,7 +108,7 @@ impl Compilation {
     }
     let chunk_ukey_and_manifest = if self
       .incremental
-      .passes_enabled(IncrementalPasses::CHUNKS_RENDER)
+      .passes_enabled(IncrementalPasses::CHUNK_ASSET)
     {
       self.chunk_render_artifact.extend(chunk_render_results);
       self.chunk_render_artifact.clone()

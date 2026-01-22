@@ -8,7 +8,7 @@ use crate::{ArtifactExt, ChunkRenderResult, ChunkUkey, incremental::IncrementalP
 pub struct ChunkRenderArtifact(UkeyMap<ChunkUkey, ChunkRenderResult>);
 
 impl ArtifactExt for ChunkRenderArtifact {
-  const PASS: IncrementalPasses = IncrementalPasses::CHUNKS_RENDER;
+  const PASS: IncrementalPasses = IncrementalPasses::CHUNK_ASSET;
 }
 
 impl Deref for ChunkRenderArtifact {

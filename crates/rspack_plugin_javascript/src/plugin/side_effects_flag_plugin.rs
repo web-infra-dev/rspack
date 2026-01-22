@@ -181,7 +181,7 @@ async fn optimize_dependencies(
   let inner_start = logger.time("prepare connections");
   let modules: IdentifierSet = if let Some(mutations) = compilation
     .incremental
-    .mutations_read(IncrementalPasses::SIDE_EFFECTS)
+    .mutations_read(IncrementalPasses::OPTIMIZE_DEPENDENCIES)
     && !side_effects_optimize_artifact.is_empty()
   {
     side_effects_optimize_artifact.retain(|dependency_id, do_optimize| {
@@ -231,8 +231,8 @@ async fn optimize_dependencies(
       },
     );
 
-    tracing::debug!(target: incremental::TRACING_TARGET, passes = %IncrementalPasses::SIDE_EFFECTS, %mutations, ?modules);
-    let logger = compilation.get_logger("rspack.incremental.sideEffects");
+    tracing::debug!(target: incremental::TRACING_TARGET, passes = %IncrementalPasses::OPTIMIZE_DEPENDENCIES, %mutations, ?modules);
+    let logger = compilation.get_logger("rspack.incremental.optimizeDependencies");
     logger.log(format!(
       "{} modules are affected, {} in total",
       modules.len(),

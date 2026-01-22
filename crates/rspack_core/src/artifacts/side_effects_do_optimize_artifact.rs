@@ -81,5 +81,5 @@ impl FromParallelIterator<(DependencyId, SideEffectsDoOptimize)> for SideEffects
 }
 
 impl ArtifactExt for SideEffectsOptimizeArtifact {
-  const PASS: IncrementalPasses = IncrementalPasses::SIDE_EFFECTS;
+  const PASS: IncrementalPasses = IncrementalPasses::OPTIMIZE_DEPENDENCIES;
 }
