@@ -6,7 +6,7 @@ pub const fn rspack_swc_core_version() -> &'static str {
 
 /// The version of the JavaScript `@rspack/core` package.
 pub const fn rspack_pkg_version() -> &'static str {
-  "1.7.3"
+  "2.0.0-alpha.0"
 }
 
 /// The version of the Rust workspace in the root `Cargo.toml` of the repository.
