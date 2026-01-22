@@ -7,7 +7,9 @@ use rspack_util::SpanExt;
 use swc_core::{
   atoms::Atom,
   common::{Span, Spanned},
-  ecma::ast::{AssignExpr, CallExpr, Expr, ExprOrSpread, Ident, MemberExpr, NewExpr, UnaryExpr},
+  ecma::ast::{
+    AssignExpr, CallExpr, Callee, Expr, ExprOrSpread, Ident, MemberExpr, NewExpr, UnaryExpr,
+  },
 };
 
 use super::JavascriptParserPlugin;
@@ -141,6 +143,26 @@ impl CommonJsImportsParserPlugin {
     try_extract_magic_comment(parser, error_span, span)
       .get_ignore()
       .unwrap_or_default()
+  }
+
+  fn should_process_resolve(parser: &mut JavascriptParser, call_expr: &CallExpr) -> bool {
+    let Callee::Expr(expr) = &call_expr.callee else {
+      return false;
+    };
+
+    let Expr::Member(member_expr) = expr.as_ref() else {
+      return false;
+    };
+
+    let Expr::Ident(ident) = member_expr.obj.as_ref() else {
+      return false;
+    };
+
+    if parser.get_variable_info(&ident.sym).is_some() {
+      return false;
+    }
+
+    true
   }
 
   fn process_resolve(&self, parser: &mut JavascriptParser, call_expr: &CallExpr, weak: bool) {
@@ -458,14 +480,14 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
       )),
       expr_name::REQUIRE_RESOLVE => Some(eval::evaluate_to_identifier(
         expr_name::REQUIRE_RESOLVE.into(),
-        expr_name::REQUIRE.into(),
+        expr_name::REQUIRE_RESOLVE.into(),
         Some(true),
         start,
         end,
       )),
       expr_name::REQUIRE_RESOLVE_WEAK => Some(eval::evaluate_to_identifier(
         expr_name::REQUIRE_RESOLVE_WEAK.into(),
-        expr_name::REQUIRE.into(),
+        expr_name::REQUIRE_RESOLVE_WEAK.into(),
         Some(true),
         start,
         end,
@@ -505,13 +527,19 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
     if for_name == expr_name::REQUIRE || for_name == expr_name::MODULE_REQUIRE {
       self.require_handler(parser, CallOrNewExpr::Call(call_expr))
     } else if for_name == expr_name::REQUIRE_RESOLVE {
-      if matches!(parser.javascript_options.require_resolve, Some(false)) {
+      if matches!(parser.javascript_options.require_resolve, Some(false))
+        || !Self::should_process_resolve(parser, call_expr)
+      {
         return None;
       }
 
       self.process_resolve(parser, call_expr, false);
       Some(true)
     } else if for_name == expr_name::REQUIRE_RESOLVE_WEAK {
+      if !Self::should_process_resolve(parser, call_expr) {
+        return None;
+      }
+
       self.process_resolve(parser, call_expr, true);
       Some(true)
     } else {

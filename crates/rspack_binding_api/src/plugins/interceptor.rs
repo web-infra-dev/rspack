@@ -1281,9 +1281,10 @@ impl CompilationAdditionalTreeRuntimeRequirements
 {
   async fn run(
     &self,
-    compilation: &mut Compilation,
+    compilation: &Compilation,
     chunk_ukey: &ChunkUkey,
     runtime_requirements: &mut RuntimeGlobals,
+    _runtime_modules: &mut Vec<Box<dyn RuntimeModule>>,
   ) -> rspack_error::Result<()> {
     let arg = JsAdditionalTreeRuntimeRequirementsArg {
       chunk: ChunkWrapper::new(*chunk_ukey, compilation),
@@ -1309,11 +1310,12 @@ impl CompilationAdditionalTreeRuntimeRequirements
 impl CompilationRuntimeRequirementInTree for CompilationRuntimeRequirementInTreeTap {
   async fn run(
     &self,
-    compilation: &mut Compilation,
+    compilation: &Compilation,
     chunk_ukey: &ChunkUkey,
     all_runtime_requirements: &RuntimeGlobals,
     runtime_requirements: &RuntimeGlobals,
     runtime_requirements_mut: &mut RuntimeGlobals,
+    _runtime_modules_to_add: &mut Vec<(ChunkUkey, Box<dyn RuntimeModule>)>,
   ) -> rspack_error::Result<Option<()>> {
     let arg = JsRuntimeRequirementInTreeArg {
       chunk: ChunkWrapper::new(*chunk_ukey, compilation),

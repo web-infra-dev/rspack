@@ -5,8 +5,9 @@ use rspack_error::Diagnostic;
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
-  BuildDependency, DependencyId, FactorizeInfo, ModuleGraph, ModuleIdentifier,
+  ArtifactExt, BuildDependency, DependencyId, FactorizeInfo, ModuleGraph, ModuleIdentifier,
   compilation::build_module_graph::ModuleToLazyMake,
+  incremental::IncrementalPasses,
   incremental_info::IncrementalInfo,
   utils::{FileCounter, ResourceId},
 };
@@ -218,4 +219,8 @@ impl BuildModuleGraphArtifact {
   pub fn revoked_modules(&self) -> impl Iterator<Item = &ModuleIdentifier> {
     self.affected_modules.dirty()
   }
+}
+
+impl ArtifactExt for BuildModuleGraphArtifact {
+  const PASS: IncrementalPasses = IncrementalPasses::MAKE;
 }

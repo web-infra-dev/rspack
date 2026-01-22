@@ -175,5 +175,5 @@ jobs:
         env:
           NODE_NO_WARNINGS: 1
           WASM: 1
-          RSPACK_LOADER_WORKER_THREADS: 4
+          RSPACK_LOADER_WORKER_THREADS: 1
         run: pnpm run test:ci

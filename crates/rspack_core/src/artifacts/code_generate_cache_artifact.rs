@@ -3,12 +3,23 @@ use rspack_collections::Identifier;
 use rspack_error::Result;
 
 use crate::{
-  CacheOptions, CodeGenerationJob, CodeGenerationResult, CompilerOptions, MemoryGCStorage,
+  ArtifactExt, CacheOptions, CodeGenerationJob, CodeGenerationResult, CompilerOptions,
+  MemoryGCStorage,
+  incremental::{Incremental, IncrementalPasses},
 };
 
 #[derive(Debug, Default)]
 pub struct CodeGenerateCacheArtifact {
   storage: Option<MemoryGCStorage<CodeGenerationResult>>,
+}
+
+impl ArtifactExt for CodeGenerateCacheArtifact {
+  const PASS: IncrementalPasses = IncrementalPasses::MODULES_CODEGEN;
+
+  fn recover(_incremental: &Incremental, new: &mut Self, old: &mut Self) {
+    *new = std::mem::take(old);
+    new.start_next_generation();
+  }
 }
 
 impl CodeGenerateCacheArtifact {
