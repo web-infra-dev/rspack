@@ -27,7 +27,7 @@ module.exports = {
 			m => m.name === "./fixtures/esm/abc.js + 3 modules"
 		);
 		expect(concatedModule).toBeTruthy();
-		expect(stats?.toString(statsOptions).replace(/\d+ ms/g, "X ms"))
+		expect(stats?.toString(statsOptions))
 			.toMatchInlineSnapshot(`
 				asset main.js 403 bytes [emitted] (name: main)
 				orphan modules 192 bytes [orphan] 4 modules
