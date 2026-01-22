@@ -53,7 +53,7 @@ impl Compiler {
 
       self.plugin_driver.clear_cache(self.compilation.id());
 
-      let mut new_compilation = Compilation::new(
+      let mut next_compilation = Compilation::new(
         self.id,
         self.options.clone(),
         self.platform.clone(),
@@ -72,107 +72,107 @@ impl Compiler {
         true,
         self.compiler_context.clone(),
       );
-      new_compilation.hot_index = self.compilation.hot_index + 1;
+      next_compilation.hot_index = self.compilation.hot_index + 1;
 
-      if new_compilation
+      if next_compilation
         .incremental
         .mutations_readable(IncrementalPasses::BUILD_MODULE_GRAPH)
       {
         // recover module graph from last compilation
         self
           .compilation
-          .recover_module_graph_to_new_compilation(&mut new_compilation);
+          .recover_module_graph_to_new_compilation(&mut next_compilation);
 
         // seal stage used
-        new_compilation.build_chunk_graph_artifact =
+        next_compilation.build_chunk_graph_artifact =
           std::mem::take(&mut self.compilation.build_chunk_graph_artifact);
 
         // reuse module executor
-        new_compilation.module_executor = std::mem::take(&mut self.compilation.module_executor);
+        next_compilation.module_executor = std::mem::take(&mut self.compilation.module_executor);
       }
       // Recover artifacts based on their associated incremental passes
-      let incremental = &new_compilation.incremental;
+      let incremental = &next_compilation.incremental;
 
       // Wrapped artifacts (SharedArtifact<T>, BindingCell<T>, DerefOption<T>)
       recover_artifact(
         incremental,
-        &mut new_compilation.async_modules_artifact,
+        &mut next_compilation.async_modules_artifact,
         &mut self.compilation.async_modules_artifact,
       );
       recover_artifact(
         incremental,
-        &mut new_compilation.dependencies_diagnostics_artifact,
+        &mut next_compilation.dependencies_diagnostics_artifact,
         &mut self.compilation.dependencies_diagnostics_artifact,
       );
       recover_artifact(
         incremental,
-        &mut new_compilation.code_generation_results,
+        &mut next_compilation.code_generation_results,
         &mut self.compilation.code_generation_results,
       );
       recover_artifact(
         incremental,
-        &mut new_compilation.side_effects_optimize_artifact,
+        &mut next_compilation.side_effects_optimize_artifact,
         &mut self.compilation.side_effects_optimize_artifact,
       );
 
       // Direct type artifacts
       recover_artifact(
         incremental,
-        &mut new_compilation.module_ids_artifact,
+        &mut next_compilation.module_ids_artifact,
         &mut self.compilation.module_ids_artifact,
       );
       recover_artifact(
         incremental,
-        &mut new_compilation.named_chunk_ids_artifact,
+        &mut next_compilation.named_chunk_ids_artifact,
         &mut self.compilation.named_chunk_ids_artifact,
       );
       recover_artifact(
         incremental,
-        &mut new_compilation.cgm_hash_artifact,
+        &mut next_compilation.cgm_hash_artifact,
         &mut self.compilation.cgm_hash_artifact,
       );
       recover_artifact(
         incremental,
-        &mut new_compilation.cgm_runtime_requirements_artifact,
+        &mut next_compilation.cgm_runtime_requirements_artifact,
         &mut self.compilation.cgm_runtime_requirements_artifact,
       );
       recover_artifact(
         incremental,
-        &mut new_compilation.cgc_runtime_requirements_artifact,
+        &mut next_compilation.cgc_runtime_requirements_artifact,
         &mut self.compilation.cgc_runtime_requirements_artifact,
       );
       recover_artifact(
         incremental,
-        &mut new_compilation.chunk_hashes_artifact,
+        &mut next_compilation.chunk_hashes_artifact,
         &mut self.compilation.chunk_hashes_artifact,
       );
       recover_artifact(
         incremental,
-        &mut new_compilation.chunk_render_artifact,
+        &mut next_compilation.chunk_render_artifact,
         &mut self.compilation.chunk_render_artifact,
       );
 
       // Cache artifacts (custom recover impl calls start_next_generation)
       recover_artifact(
         incremental,
-        &mut new_compilation.chunk_render_cache_artifact,
+        &mut next_compilation.chunk_render_cache_artifact,
         &mut self.compilation.chunk_render_cache_artifact,
       );
       recover_artifact(
         incremental,
-        &mut new_compilation.code_generate_cache_artifact,
+        &mut next_compilation.code_generate_cache_artifact,
         &mut self.compilation.code_generate_cache_artifact,
       );
       recover_artifact(
         incremental,
-        &mut new_compilation.process_runtime_requirements_cache_artifact,
+        &mut next_compilation.process_runtime_requirements_cache_artifact,
         &mut self.compilation.process_runtime_requirements_cache_artifact,
       );
 
       // FOR BINDING SAFETY:
       // Update `compilation` for each rebuild.
       // Make sure `thisCompilation` hook was called before any other hooks that leverage `JsCompilation`.
-      fast_set(&mut self.compilation, new_compilation);
+      fast_set(&mut self.compilation, next_compilation);
       self.cache.before_compile(&mut self.compilation).await;
       self.compile().await?;
     }

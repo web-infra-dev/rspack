@@ -46,7 +46,7 @@ pub struct ModuleExecutor {
 }
 
 impl ModuleExecutor {
-  pub async fn hook_before_make(&mut self, compilation: &Compilation) -> Result<()> {
+  pub async fn before_build_module_graph(&mut self, compilation: &Compilation) -> Result<()> {
     let mut make_artifact = std::mem::take(&mut self.make_artifact);
     let mut params = Vec::with_capacity(5);
     params.push(UpdateParam::CheckNeedBuild);
@@ -85,7 +85,7 @@ impl ModuleExecutor {
     Ok(())
   }
 
-  pub async fn hook_after_finish_modules(&mut self, compilation: &mut Compilation) -> Result<()> {
+  pub async fn after_build_module_graph(&mut self, compilation: &mut Compilation) -> Result<()> {
     let sender = std::mem::take(&mut self.event_sender);
     sender
       .expect("should have sender")

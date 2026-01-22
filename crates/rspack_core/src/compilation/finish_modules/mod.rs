@@ -7,7 +7,7 @@ pub async fn finish_modules_pass(compilation: &mut Compilation) -> Result<()> {
   let dependencies_diagnostics_artifact = compilation.dependencies_diagnostics_artifact.clone();
   let async_modules_artifact = compilation.async_modules_artifact.clone();
   let diagnostics = compilation
-    .collect_build_module_graph_effects(
+    .finish_modules_inner(
       &mut dependencies_diagnostics_artifact.borrow_mut(),
       &mut async_modules_artifact.borrow_mut(),
     )
@@ -18,8 +18,8 @@ pub async fn finish_modules_pass(compilation: &mut Compilation) -> Result<()> {
 }
 
 impl Compilation {
-  #[tracing::instrument("Compilation:collect_build_module_graph_effects", skip_all)]
-  pub async fn collect_build_module_graph_effects(
+  #[tracing::instrument("Compilation:finish_modules_inner", skip_all)]
+  pub async fn finish_modules_inner(
     &mut self,
     dependencies_diagnostics_artifact: &mut DependenciesDiagnosticsArtifact,
     async_modules_artifact: &mut AsyncModulesArtifact,
