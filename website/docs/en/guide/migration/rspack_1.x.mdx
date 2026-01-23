@@ -1,0 +1,457 @@
+# Migrating from Rspack 1.x
+
+This document lists all breaking changes from Rspack v1.x to v2.0. You can refer to this document for migration.
+
+> See [Breaking changes in Rspack v2.0](https://github.com/web-infra-dev/rspack/discussions/9270) for more details.
+
+## Prerequisites
+
+### Node.js Version Requirements
+
+Rspack 2.0 has upgraded the minimum Node.js version from 16.x to **18.12.0**.
+
+Before upgrading, please ensure your Node.js version meets the requirement:
+
+```bash
+node -v
+# Should output v18.12.0 or higher
+```
+
+### Dependency Updates
+
+If you are using `@rspack/dev-server`, it is now an optional peer dependency. You need to install it manually when using the `rspack serve` command:
+
+```bash
+pnpm add -D @rspack/dev-server
+# or
+npm install --save-dev @rspack/dev-server
+# or
+yarn add -D @rspack/dev-server
+```
+
+## Configuration Default Value Adjustments
+
+In Rspack 2.0, we have adjusted the default values of multiple configuration options.
+
+### [Important] CSS Processing Enabled by Default
+
+The default value of [experiments.css](/config/experiments#experimentscss) has been changed from `false` to `true`.
+
+In Rspack 1.x, `experiments.css` was disabled by default, and you needed to explicitly enable it to use the built-in CSS processing feature.
+
+In Rspack 2.0, CSS processing is enabled by default, which means files ending with `*.css` are automatically treated as `type: 'css/auto'`, and you can process CSS files without manual configuration.
+
+If you don't want to use the built-in CSS processing feature, you need to explicitly disable it:
+
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    css: false,
+  },
+};
+```
+
+### [Important] WebAssembly Support Enabled by Default
+
+The default value of [experiments.asyncWebAssembly](/config/experiments#experimentsasyncwebassembly) has been changed from `false` to `true`.
+
+In Rspack 2.0, async WebAssembly support is enabled by default. If you don't use WebAssembly features and want to reduce runtime size, you can explicitly disable it:
+
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    asyncWebAssembly: false,
+  },
+};
+```
+
+### Global Variable Name Changes
+
+To better identify Rspack, we have changed the default global variable names from `webpack` prefix to `rspack` prefix.
+
+#### output.chunkLoadingGlobal
+
+The default value of [output.chunkLoadingGlobal](/config/output#outputchunkloadingglobal) has been changed from `webpackChunk${output.uniqueName}` to `rspackChunk${output.uniqueName}`.
+
+If your application depends on specific global variable names (e.g., referencing them directly in HTML), you need to explicitly configure them:
+
+```js title="rspack.config.mjs"
+export default {
+  output: {
+    chunkLoadingGlobal: 'webpackChunkMyApp',
+  },
+};
+```
+
+#### output.hotUpdateGlobal
+
+The default value of [output.hotUpdateGlobal](/config/output#outputhotupdateglobal) has been changed from `webpackHotUpdate${output.uniqueName}` to `rspackHotUpdate${output.uniqueName}`.
+
+#### output.trustedTypes.policyName
+
+The default value of [output.trustedTypes.policyName](/config/output#outputtrustedtypespolicyname) has been changed from `'webpack'` to `'rspack'`.
+
+If you have configured Trusted Types CSP policy and depend on specific policy names, you need to update your CSP configuration or explicitly set it:
+
+```js title="rspack.config.mjs"
+export default {
+  output: {
+    trustedTypes: {
+      policyName: 'webpack',
+    },
+  },
+};
+```
+
+### Loader and Plugin Target Derivation
+
+In Rspack 2.0, the `target` configuration of loaders and plugins now defaults to being derived from the [target](/config/target) configuration.
+
+This affects the behavior of built-in loaders like `builtin:swc-loader`. For example, when `target: 'node'`, `builtin:swc-loader` will automatically use configurations suitable for the Node.js environment.
+
+If you need to explicitly control the loader's target, you can configure it in the loader options:
+
+```js title="rspack.config.mjs"
+export default {
+  target: 'node',
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        loader: 'builtin:swc-loader',
+        options: {
+          env: {
+            targets: 'chrome >= 87',
+          },
+        },
+      },
+    ],
+  },
+};
+```
+
+### Stats Output Default Values
+
+The default values of `modules` and `assets` in the [stats](/config/stats) normal preset have been changed to `false`.
+
+This means that by default, detailed module and asset information is no longer displayed in command-line output and stats objects, making the output more concise.
+
+If you need to see detailed information, you can explicitly enable it:
+
+```js title="rspack.config.mjs"
+export default {
+  stats: {
+    modules: true,
+    assets: true,
+  },
+};
+```
+
+Or use the command line:
+
+```bash
+rspack build --stats-modules --stats-assets
+```
+
+### Parser Default Behavior
+
+#### requireAsExpression
+
+The default value of `parser.javascript.requireAsExpression` has been changed to `false`.
+
+This means `require` is no longer parsed as an expression, and some dynamic usage may no longer work. To enable it, explicitly configure:
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        requireAsExpression: true,
+      },
+    },
+  },
+};
+```
+
+#### require Alias Resolution
+
+The require alias resolution feature is disabled by default.
+
+If your code uses patterns like `const req = require; req('./module')`, you may need to explicitly enable it:
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        requireResolve: true,
+      },
+    },
+  },
+};
+```
+
+## Configuration Migration and Reorganization
+
+### [Important] experiments.cache Moved to cache
+
+The `experiments.cache` configuration has been moved to the top-level [cache](/config/cache) configuration.
+
+```diff title="rspack.config.mjs"
+export default {
+-  experiments: {
+-    cache: {
+-      type: 'filesystem',
+-      buildDependencies: {
+-        config: [__filename],
+-      },
+-    },
+-  },
++  cache: {
++    type: 'filesystem',
++    buildDependencies: {
++      config: [__filename],
++    },
++  },
+};
+```
+
+### [Important] experiments.rspackFuture Removed, bundlerInfo Moved to output
+
+The `experiments.rspackFuture` configuration has been removed, and the `bundlerInfo` option has been moved to [output.bundlerInfo](/config/output#outputbundlerinfo).
+
+```diff title="rspack.config.mjs"
+export default {
+-  experiments: {
+-    rspackFuture: {
+-      bundlerInfo: {
+-        version: '1.0.0',
+-      },
+-    },
+-  },
++  output: {
++    bundlerInfo: {
++      version: '1.0.0',
++    },
++  },
+};
+```
+
+### experiments.incremental Moved to incremental
+
+The `experiments.incremental` configuration has been moved to the top-level [incremental](/config/incremental) configuration.
+
+```diff title="rspack.config.mjs"
+export default {
+-  experiments: {
+-    incremental: {
+-      make: true,
+-      emitAssets: true,
+-    },
+-  },
++  incremental: {
++    make: true,
++    emitAssets: true,
++  },
+};
+```
+
+## Removed Configuration Options
+
+### Removed experiments Configurations
+
+The following experiments configuration options have been removed:
+
+- **`experiments.layers`** - This feature is now stable and enabled by default, no configuration needed
+- **`experiments.topLevelAwait`** - This feature is now stable and enabled by default, no configuration needed
+- **`experiments.lazyCompilation`** - Use the new lazy compilation middleware, refer to [lazy compilation documentation](/config/lazy-compilation)
+- **`experiments.lazyBarrel`** - This feature has been removed
+- **`experiments.typeReexportsPresence`** - This feature has been removed
+- **`experiments.parallelLoader`** - This feature has been removed
+- **`experiments.SubResourceIntegrityPlugin`** - This plugin has been removed
+
+### Removed output Configuration
+
+- **`output.charset`** - This configuration has been removed, modern browsers no longer need this option
+
+### Removed stats and profile Configuration
+
+- **`profile`** - This configuration has been removed
+- **`stats.profile`** - This configuration has been removed
+
+For performance profiling, we recommend using professional performance analysis tools such as [Rsdoctor](/guide/optimization/use-rsdoctor).
+
+## builtin:swc-loader Adjustments
+
+### verbatimModuleSyntax Enabled by Default
+
+The default value of the `verbatimModuleSyntax` option in `builtin:swc-loader` has been changed from `false` to `true`.
+
+This affects the behavior of type imports/exports. TypeScript will preserve the original syntax of import/export statements without performing additional transformations.
+
+If you need the old behavior, you can explicitly set it to `false`:
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.ts$/,
+        loader: 'builtin:swc-loader',
+        options: {
+          jsc: {
+            parser: {
+              syntax: 'typescript',
+            },
+            transform: {
+              verbatimModuleSyntax: false,
+            },
+          },
+        },
+      },
+    ],
+  },
+};
+```
+
+### .swcrc Reading Disabled
+
+Reading `.swcrc` files in the JavaScript compiler is disabled by default.
+
+In Rspack 1.x, if a `.swcrc` file exists in the project root directory, it would be automatically read and applied.
+
+In Rspack 2.0, `.swcrc` files are no longer automatically read. You need to migrate your SWC configuration to the loader options in `rspack.config.js`:
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        loader: 'builtin:swc-loader',
+        options: {
+          jsc: {
+            parser: {
+              syntax: 'ecmascript',
+              jsx: true,
+            },
+            transform: {
+              react: {
+                runtime: 'automatic',
+              },
+            },
+          },
+        },
+      },
+    ],
+  },
+};
+```
+
+## Plugin-Related Changes
+
+### EsmLibraryPlugin No Longer Exposed Directly
+
+`rspack.EsmLibraryPlugin` is no longer exposed as a public API.
+
+If you previously used `EsmLibraryPlugin`, you should now use the configuration approach:
+
+```diff title="rspack.config.mjs"
+-import { EsmLibraryPlugin } from '@rspack/core';
+-
+export default {
+-  plugins: [new EsmLibraryPlugin()],
++  output: {
++    library: {
++      type: 'modern-module',
++    },
++  },
+};
+```
+
+### Removed Plugins
+
+The following plugins have been removed:
+
+- **`WarnCaseSensitiveModulesPlugin`** - This plugin has been removed
+
+### Removed Plugin Methods
+
+- **Plugin `getHooks` method** - This method has been removed, use `compiler.hooks` or `compilation.hooks` directly to access hooks
+
+### HtmlRspackPlugin Adjustments
+
+The following options of [HtmlRspackPlugin](/plugins/rspack/html-rspack-plugin) have been removed:
+
+- **`sri`** - The SRI (Subresource Integrity) option has been removed
+
+If you need SRI functionality, consider using other solutions or custom plugins.
+
+### LightningCssMinimizerRspackPlugin Adjustments
+
+The following options of [LightningCssMinimizerRspackPlugin](/plugins/rspack/lightning-css-minimizer-rspack-plugin) have been removed:
+
+- **`draft`** - This option has been removed
+- **`cssHeadDataCompression`** - This option has been removed
+
+### Runtime Module Deprecated Properties
+
+Some deprecated properties of runtime modules have been removed. If you use these properties in custom plugins, you need to update your code.
+
+## Lazy Compilation
+
+Rspack 2.0 introduces a new lazy compilation middleware.
+
+If you use the lazy compilation feature, please refer to the latest [lazy compilation documentation](/config/lazy-compilation) for the new usage.
+
+## Migration Checklist
+
+Here is a complete checklist for migrating to Rspack 2.0:
+
+- [ ] Check Node.js version >= 18.12.0
+- [ ] Install `@rspack/dev-server` if using dev server
+- [ ] Update `experiments.cache` → `cache`
+- [ ] Update `experiments.rspackFuture.bundlerInfo` → `output.bundlerInfo`
+- [ ] Update `experiments.incremental` → `incremental`
+- [ ] Check and update global variable name dependencies (`chunkLoadingGlobal`, `hotUpdateGlobal`, `trustedTypes.policyName`)
+- [ ] If using `.swcrc`, migrate configuration to `rspack.config.js`
+- [ ] Check CSS processing configuration, adjust `experiments.css` as needed
+- [ ] Check stats output configuration, enable `stats.modules` and `stats.assets` as needed
+- [ ] Check parser configuration, enable `requireAsExpression` or `requireResolve` as needed
+- [ ] Remove usage of deprecated configuration options
+- [ ] Remove usage of deprecated plugins
+- [ ] If using `EsmLibraryPlugin`, change to configuration approach
+- [ ] If using lazy compilation, update to new middleware approach
+- [ ] Run tests to ensure application works properly
+
+## Additional Notes
+
+### Performance Profiling
+
+If you previously used `profile` or `stats.profile` for performance profiling, we recommend migrating to professional performance analysis tools:
+
+- [Rsdoctor](/guide/optimization/use-rsdoctor) - Official Rspack recommended performance analysis tool
+- Chrome DevTools Performance panel
+- Node.js built-in profiler
+
+### SRI (Subresource Integrity)
+
+If you previously used the `sri` option of `HtmlRspackPlugin` or `SubResourceIntegrityPlugin`, you now need to consider alternative solutions:
+
+- Use post-build processing scripts to add SRI hashes
+- Use third-party plugins
+- Add SRI attributes on the server side
+
+## Getting Help
+
+If you encounter issues during migration:
+
+- Check [GitHub Discussions](https://github.com/web-infra-dev/rspack/discussions)
+- Submit an [Issue](https://github.com/web-infra-dev/rspack/issues)
+- Join the [Discord community](https://discord.gg/rspack)
+
+## References
+
+- [Breaking changes in Rspack v2.0](https://github.com/web-infra-dev/rspack/discussions/9270)
+- [v2.0.0-alpha.0 Release Notes](https://github.com/web-infra-dev/rspack/releases/tag/v2.0.0-alpha.0)
+- [Rspack Configuration Documentation](/config/index)

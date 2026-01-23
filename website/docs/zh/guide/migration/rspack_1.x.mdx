@@ -1,0 +1,457 @@
+# 从 Rspack 1.x 迁移
+
+当前文档列出了从 Rspack v1.x 到 v2.0 的所有不兼容更新，你可以参考此文档来迁移。
+
+> 查看 [Breaking changes in Rspack v2.0](https://github.com/web-infra-dev/rspack/discussions/9270) 了解更多细节。
+
+## 前置准备
+
+### Node.js 版本要求
+
+Rspack 2.0 将最低 Node.js 版本从 16.x 升级到 **18.12.0**。
+
+在升级之前，请确保你的 Node.js 版本满足要求：
+
+```bash
+node -v
+# 应该输出 v18.12.0 或更高版本
+```
+
+### 依赖更新
+
+如果你使用 `@rspack/dev-server`，现在它变为可选的 peer dependency。使用 `rspack serve` 命令时需要手动安装：
+
+```bash
+pnpm add -D @rspack/dev-server
+# 或
+npm install --save-dev @rspack/dev-server
+# 或
+yarn add -D @rspack/dev-server
+```
+
+## 配置项默认值调整
+
+在 Rspack 2.0 中，我们调整了多个配置项的默认值。
+
+### [重要] CSS 处理默认启用
+
+[experiments.css](/config/experiments#experimentscss) 的默认值从 `false` 调整为 `true`。
+
+在 Rspack 1.x 中，`experiments.css` 默认关闭，你需要显式启用它才能使用内置的 CSS 处理功能。
+
+在 Rspack 2.0 中，CSS 处理功能默认启用，这意味着以 `*.css` 结尾的文件会默认被视为 `type: 'css/auto'`，不需要手动配置就可以处理 CSS 文件。
+
+如果你不想使用内置 CSS 处理功能，需要显式禁用：
+
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    css: false,
+  },
+};
+```
+
+### [重要] WebAssembly 支持默认启用
+
+[experiments.asyncWebAssembly](/config/experiments#experimentsasyncwebassembly) 的默认值从 `false` 调整为 `true`。
+
+在 Rspack 2.0 中，异步 WebAssembly 支持默认启用。如果你不使用 WebAssembly 功能且希望减小运行时体积，可以显式禁用：
+
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    asyncWebAssembly: false,
+  },
+};
+```
+
+### 全局变量名称变更
+
+为了更好地标识 Rspack，我们将默认的全局变量名称从 `webpack` 前缀改为 `rspack` 前缀。
+
+#### output.chunkLoadingGlobal
+
+[output.chunkLoadingGlobal](/config/output#outputchunkloadingglobal) 的默认值从 `webpackChunk${output.uniqueName}` 改为 `rspackChunk${output.uniqueName}`。
+
+如果你的应用依赖特定的全局变量名称（例如在 HTML 中直接引用），需要显式配置：
+
+```js title="rspack.config.mjs"
+export default {
+  output: {
+    chunkLoadingGlobal: 'webpackChunkMyApp',
+  },
+};
+```
+
+#### output.hotUpdateGlobal
+
+[output.hotUpdateGlobal](/config/output#outputhotupdateglobal) 的默认值从 `webpackHotUpdate${output.uniqueName}` 改为 `rspackHotUpdate${output.uniqueName}`。
+
+#### output.trustedTypes.policyName
+
+[output.trustedTypes.policyName](/config/output#outputtrustedtypespolicyname) 的默认值从 `'webpack'` 改为 `'rspack'`。
+
+如果你配置了 Trusted Types CSP 策略并依赖特定的策略名称，需要更新你的 CSP 配置或显式设置：
+
+```js title="rspack.config.mjs"
+export default {
+  output: {
+    trustedTypes: {
+      policyName: 'webpack',
+    },
+  },
+};
+```
+
+### Loader 和 Plugin 的 target 派生
+
+在 Rspack 2.0 中，loader 和 plugin 的 `target` 配置现在默认从 [target](/config/target) 配置派生。
+
+这会影响 `builtin:swc-loader` 等内置 loader 的行为。例如，当 `target: 'node'` 时，`builtin:swc-loader` 会自动使用适合 Node.js 环境的配置。
+
+如果你需要显式控制 loader 的 target，可以在 loader 选项中配置：
+
+```js title="rspack.config.mjs"
+export default {
+  target: 'node',
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        loader: 'builtin:swc-loader',
+        options: {
+          env: {
+            targets: 'chrome >= 87',
+          },
+        },
+      },
+    ],
+  },
+};
+```
+
+### Stats 输出默认值
+
+[stats](/config/stats) 的 `modules` 和 `assets` 在 normal 预设中的默认值调整为 `false`。
+
+这意味着在命令行输出和 stats 对象中，默认不再显示详细的模块和资源信息，输出更加精简。
+
+如果你需要查看详细信息，可以显式启用：
+
+```js title="rspack.config.mjs"
+export default {
+  stats: {
+    modules: true,
+    assets: true,
+  },
+};
+```
+
+或者在命令行中使用：
+
+```bash
+rspack build --stats-modules --stats-assets
+```
+
+### Parser 默认行为
+
+#### requireAsExpression
+
+`parser.javascript.requireAsExpression` 的默认值调整为 `false`。
+
+这意味着 `require` 不再被视为表达式进行解析，某些动态用法可能不再工作。如需启用，请显式配置：
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        requireAsExpression: true,
+      },
+    },
+  },
+};
+```
+
+#### require 别名解析
+
+默认禁用 require 别名解析功能。
+
+如果你的代码中使用了类似 `const req = require; req('./module')` 的模式，可能需要显式启用：
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        requireResolve: true,
+      },
+    },
+  },
+};
+```
+
+## 配置项移动和重组
+
+### [重要] experiments.cache 移动到 cache
+
+`experiments.cache` 配置已移动到顶层的 [cache](/config/cache) 配置。
+
+```diff title="rspack.config.mjs"
+export default {
+-  experiments: {
+-    cache: {
+-      type: 'filesystem',
+-      buildDependencies: {
+-        config: [__filename],
+-      },
+-    },
+-  },
++  cache: {
++    type: 'filesystem',
++    buildDependencies: {
++      config: [__filename],
++    },
++  },
+};
+```
+
+### [重要] experiments.rspackFuture 移除，bundlerInfo 移动到 output
+
+`experiments.rspackFuture` 配置已被移除，其中的 `bundlerInfo` 选项移动到 [output.bundlerInfo](/config/output#outputbundlerinfo)。
+
+```diff title="rspack.config.mjs"
+export default {
+-  experiments: {
+-    rspackFuture: {
+-      bundlerInfo: {
+-        version: '1.0.0',
+-      },
+-    },
+-  },
++  output: {
++    bundlerInfo: {
++      version: '1.0.0',
++    },
++  },
+};
+```
+
+### experiments.incremental 移动到 incremental
+
+`experiments.incremental` 配置已移动到顶层的 [incremental](/config/incremental) 配置。
+
+```diff title="rspack.config.mjs"
+export default {
+-  experiments: {
+-    incremental: {
+-      make: true,
+-      emitAssets: true,
+-    },
+-  },
++  incremental: {
++    make: true,
++    emitAssets: true,
++  },
+};
+```
+
+## 移除的配置项
+
+### 移除的 experiments 配置
+
+以下 experiments 配置项已被移除：
+
+- **`experiments.layers`** - 该功能已稳定并默认启用，无需配置
+- **`experiments.topLevelAwait`** - 该功能已稳定并默认启用，无需配置
+- **`experiments.lazyCompilation`** - 使用新的 lazy compilation middleware，参考 [lazy compilation 文档](/config/lazy-compilation)
+- **`experiments.lazyBarrel`** - 该功能已被移除
+- **`experiments.typeReexportsPresence`** - 该功能已被移除
+- **`experiments.parallelLoader`** - 该功能已被移除
+- **`experiments.SubResourceIntegrityPlugin`** - 该插件已被移除
+
+### 移除的 output 配置
+
+- **`output.charset`** - 该配置已被移除，现代浏览器不再需要此选项
+
+### 移除的 stats 和 profile 配置
+
+- **`profile`** - 该配置已被移除
+- **`stats.profile`** - 该配置已被移除
+
+如需进行性能分析，建议使用专业的性能分析工具，如 [Rsdoctor](/guide/optimization/use-rsdoctor)。
+
+## builtin:swc-loader 的调整
+
+### verbatimModuleSyntax 默认启用
+
+`builtin:swc-loader` 的 `verbatimModuleSyntax` 选项默认值从 `false` 调整为 `true`。
+
+这会影响类型导入/导出的行为。TypeScript 会保留导入/导出语句的原始语法，不会进行额外的转换。
+
+如果你需要旧的行为，可以显式设置为 `false`：
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.ts$/,
+        loader: 'builtin:swc-loader',
+        options: {
+          jsc: {
+            parser: {
+              syntax: 'typescript',
+            },
+            transform: {
+              verbatimModuleSyntax: false,
+            },
+          },
+        },
+      },
+    ],
+  },
+};
+```
+
+### 禁用 .swcrc 读取
+
+JavaScript 编译器中默认禁用 `.swcrc` 文件读取。
+
+在 Rspack 1.x 中，如果项目根目录存在 `.swcrc` 文件，会自动读取并应用配置。
+
+在 Rspack 2.0 中，`.swcrc` 文件不再自动读取。你需要将 SWC 配置迁移到 `rspack.config.js` 的 loader 选项中：
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        loader: 'builtin:swc-loader',
+        options: {
+          jsc: {
+            parser: {
+              syntax: 'ecmascript',
+              jsx: true,
+            },
+            transform: {
+              react: {
+                runtime: 'automatic',
+              },
+            },
+          },
+        },
+      },
+    ],
+  },
+};
+```
+
+## 插件相关变更
+
+### EsmLibraryPlugin 不再直接暴露
+
+`rspack.EsmLibraryPlugin` 不再作为公共 API 暴露。
+
+如果你之前使用 `EsmLibraryPlugin`，现在应该使用配置方式：
+
+```diff title="rspack.config.mjs"
+-import { EsmLibraryPlugin } from '@rspack/core';
+-
+export default {
+-  plugins: [new EsmLibraryPlugin()],
++  output: {
++    library: {
++      type: 'modern-module',
++    },
++  },
+};
+```
+
+### 移除的插件
+
+以下插件已被移除：
+
+- **`WarnCaseSensitiveModulesPlugin`** - 该插件已被移除
+
+### 移除的插件方法
+
+- **插件的 `getHooks` 方法** - 该方法已被移除，请使用 `compiler.hooks` 或 `compilation.hooks` 直接访问钩子
+
+### HtmlRspackPlugin 调整
+
+[HtmlRspackPlugin](/plugins/rspack/html-rspack-plugin) 的以下选项已被移除：
+
+- **`sri`** - SRI (Subresource Integrity) 选项已被移除
+
+如果你需要 SRI 功能，可以考虑使用其他方案或自定义插件。
+
+### LightningCssMinimizerRspackPlugin 调整
+
+[LightningCssMinimizerRspackPlugin](/plugins/rspack/lightning-css-minimizer-rspack-plugin) 的以下选项已被移除：
+
+- **`draft`** - 该选项已被移除
+- **`cssHeadDataCompression`** - 该选项已被移除
+
+### Runtime Module 废弃属性
+
+Runtime module 的一些废弃属性已被移除。如果你在自定义插件中使用了这些属性，需要更新代码。
+
+## Lazy Compilation
+
+Rspack 2.0 引入了新的 lazy compilation middleware。
+
+如果你使用 lazy compilation 功能，请参考最新的 [lazy compilation 文档](/config/lazy-compilation) 了解新的使用方式。
+
+## 迁移检查清单
+
+以下是迁移到 Rspack 2.0 的完整检查清单：
+
+- [ ] 检查 Node.js 版本 >= 18.12.0
+- [ ] 如果使用 dev server，安装 `@rspack/dev-server`
+- [ ] 更新 `experiments.cache` → `cache`
+- [ ] 更新 `experiments.rspackFuture.bundlerInfo` → `output.bundlerInfo`
+- [ ] 更新 `experiments.incremental` → `incremental`
+- [ ] 检查并更新全局变量名称依赖（`chunkLoadingGlobal`、`hotUpdateGlobal`、`trustedTypes.policyName`）
+- [ ] 如果使用 `.swcrc`，将配置迁移到 `rspack.config.js`
+- [ ] 检查 CSS 处理配置，根据需要调整 `experiments.css`
+- [ ] 检查 stats 输出配置，根据需要启用 `stats.modules` 和 `stats.assets`
+- [ ] 检查 parser 配置，根据需要启用 `requireAsExpression` 或 `requireResolve`
+- [ ] 移除对已废弃配置项的使用
+- [ ] 移除对已废弃插件的使用
+- [ ] 如果使用 `EsmLibraryPlugin`，改用配置方式
+- [ ] 如果使用 lazy compilation，更新为新的 middleware 方式
+- [ ] 运行测试，确保应用正常工作
+
+## 其他注意事项
+
+### 性能分析
+
+如果你之前使用 `profile` 或 `stats.profile` 进行性能分析，建议迁移到专业的性能分析工具：
+
+- [Rsdoctor](/guide/optimization/use-rsdoctor) - Rspack 官方推荐的性能分析工具
+- Chrome DevTools Performance 面板
+- Node.js 的内置 profiler
+
+### SRI (Subresource Integrity)
+
+如果你之前使用 `HtmlRspackPlugin` 的 `sri` 选项或 `SubResourceIntegrityPlugin`，现在需要考虑其他方案：
+
+- 使用构建后处理脚本添加 SRI hash
+- 使用第三方插件
+- 在服务器端添加 SRI 属性
+
+## 获取帮助
+
+如果你在迁移过程中遇到问题：
+
+- 查看 [GitHub Discussions](https://github.com/web-infra-dev/rspack/discussions)
+- 提交 [Issue](https://github.com/web-infra-dev/rspack/issues)
+- 加入 [Discord 社区](https://discord.gg/rspack)
+
+## 参考资源
+
+- [Breaking changes in Rspack v2.0](https://github.com/web-infra-dev/rspack/discussions/9270)
+- [v2.0.0-alpha.0 Release Notes](https://github.com/web-infra-dev/rspack/releases/tag/v2.0.0-alpha.0)
+- [Rspack 配置文档](/config/index)
