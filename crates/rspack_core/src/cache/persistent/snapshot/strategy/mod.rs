@@ -25,22 +25,35 @@ pub enum Strategy {
   /// Check by file hash
   ///
   /// This strategy will first compare the modified time,
-  /// and then compare the file hash if the file has been updated.
-  PathHash { mtime: u64, hash: u64 },
+  /// and then compare the file hash.
+  FileHash { mtime: u64, hash: u64 },
+
+  /// Check by dir hash
+  ///
+  /// This strategy will compare the content hash of all files within the directory.
+  DirHash { hash: u64 },
 
   /// Check missing file
   ///
   /// This strategy indicates that the current file is in a missing state,
   /// and will return ValidateResult::Modified if it exists.
   Missing,
+
+  /// Check failed snapshot
+  ///
+  /// This strategy represents a snapshot that could not be created or
+  /// validated correctly and should be treated as invalid.
+  Failed,
 }
 
 impl PartialEq for Strategy {
   fn eq(&self, other: &Self) -> bool {
     match (self, other) {
       (Self::PackageVersion(v1), Self::PackageVersion(v2)) => v1 == v2,
-      (Self::PathHash { hash: h1, .. }, Self::PathHash { hash: h2, .. }) => h1 == h2,
+      (Self::FileHash { hash: h1, .. }, Self::FileHash { hash: h2, .. }) => h1 == h2,
+      (Self::DirHash { hash: h1, .. }, Self::DirHash { hash: h2, .. }) => h1 == h2,
       (Self::Missing, Self::Missing) => true,
+      (Self::Failed, Self::Failed) => true,
       _ => false,
     }
   }
@@ -96,9 +109,21 @@ impl StrategyHelper {
   }
 
   /// get path file hash strategy
-  pub async fn path_hash(&self, path: &ArcPath) -> Option<Strategy> {
-    let ContentHash { hash, mtime } = self.hash_helper.content_hash(path).await?;
-    Some(Strategy::PathHash { mtime, hash })
+  pub async fn file_hash(&self, path: &ArcPath) -> Strategy {
+    if let Some(ContentHash { hash, mtime }) = self.hash_helper.file_hash(path).await {
+      Strategy::FileHash { mtime, hash }
+    } else {
+      Strategy::Failed
+    }
+  }
+
+  /// get path context hash strategy
+  pub async fn dir_hash(&self, path: &ArcPath) -> Strategy {
+    if let Some(ContentHash { hash, .. }) = self.hash_helper.dir_hash(path).await {
+      Strategy::DirHash { hash }
+    } else {
+      Strategy::Failed
+    }
   }
 
   /// validate path file by target strategy
@@ -114,15 +139,25 @@ impl StrategyHelper {
           ValidateResult::Modified
         }
       }
-      Strategy::PathHash { mtime, hash } => {
+      Strategy::FileHash { mtime, hash } => {
         let Some(modified_time) = self.modified_time(path).await else {
           return ValidateResult::Deleted;
         };
         if &modified_time == mtime {
           return ValidateResult::NoChanged;
         }
-        let Some(ContentHash { hash: cur_hash, .. }) = self.hash_helper.content_hash(path).await
+        let Some(ContentHash { hash: cur_hash, .. }) = self.hash_helper.file_hash(path).await
         else {
+          return ValidateResult::Deleted;
+        };
+        if &cur_hash == hash {
+          ValidateResult::NoChanged
+        } else {
+          ValidateResult::Modified
+        }
+      }
+      Strategy::DirHash { hash } => {
+        let Some(ContentHash { hash: cur_hash, .. }) = self.hash_helper.dir_hash(path).await else {
           return ValidateResult::Deleted;
         };
         if &cur_hash == hash {
@@ -138,6 +173,7 @@ impl StrategyHelper {
           ValidateResult::NoChanged
         }
       }
+      Strategy::Failed => ValidateResult::Modified,
     }
   }
 }
@@ -201,7 +237,7 @@ mod tests {
   }
 
   #[tokio::test]
-  async fn validate_path_hash() {
+  async fn validate_file_hash() {
     let fs = Arc::new(MemoryFileSystem::default());
     fs.create_dir_all("/".into()).await.unwrap();
     fs.write("/file1.js".into(), "abc".as_bytes())
@@ -210,7 +246,7 @@ mod tests {
 
     std::thread::sleep(std::time::Duration::from_millis(100));
     let helper = StrategyHelper::new(fs.clone());
-    let strategy = helper.path_hash(&ArcPath::from("/file1.js")).await.unwrap();
+    let strategy = helper.file_hash(&ArcPath::from("/file1.js")).await;
     assert!(matches!(
       helper
         .validate(&ArcPath::from("/file1.js"), &strategy)

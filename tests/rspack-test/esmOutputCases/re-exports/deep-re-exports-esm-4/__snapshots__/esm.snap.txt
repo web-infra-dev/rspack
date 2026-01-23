@@ -1,9 +1,12 @@
 ```mjs title=main.mjs
 import * as __rspack_external_fs from "fs";
 import * as __rspack_external_path from "path";
-// fs
+
+// fs?f137
 
 // path
+
+// fs?c303
 
 // ./lib3.js
 const lib3_lib3 = 42

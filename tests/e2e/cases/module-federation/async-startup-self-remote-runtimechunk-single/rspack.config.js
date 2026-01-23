@@ -13,6 +13,14 @@ module.exports = {
     filename: 'static/js/[name].js',
     chunkFilename: 'static/js/[name].js',
   },
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        type: 'javascript/auto',
+      },
+    ],
+  },
   optimization: {
     runtimeChunk: 'single',
     chunkIds: 'named',

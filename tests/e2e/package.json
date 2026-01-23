@@ -14,7 +14,7 @@
     "core-js": "3.47.0",
     "@rspack/core": "workspace:*",
     "@rspack/browser": "workspace:*",
-    "@rspack/dev-server": "~1.1.5",
+    "@rspack/dev-server": "~1.2.1",
     "@rspack/plugin-react-refresh": "^1.6.0",
     "@module-federation/runtime-tools": "^0.22.0",
     "@swc/helpers": "0.5.18",

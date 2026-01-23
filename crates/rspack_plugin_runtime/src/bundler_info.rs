@@ -32,9 +32,10 @@ impl BundlerInfoPlugin {
 #[plugin_hook(CompilationAdditionalTreeRuntimeRequirements for BundlerInfoPlugin)]
 async fn additional_tree_runtime_requirements(
   &self,
-  _compilation: &mut Compilation,
+  _compilation: &Compilation,
   _chunk_ukey: &ChunkUkey,
   runtime_requirements: &mut RuntimeGlobals,
+  _runtime_modules: &mut Vec<Box<dyn RuntimeModule>>,
 ) -> Result<()> {
   if match &self.force {
     BundlerInfoForceMode::All => true,

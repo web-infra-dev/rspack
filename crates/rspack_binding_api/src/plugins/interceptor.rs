@@ -1281,9 +1281,10 @@ impl CompilationAdditionalTreeRuntimeRequirements
 {
   async fn run(
     &self,
-    compilation: &mut Compilation,
+    compilation: &Compilation,
     chunk_ukey: &ChunkUkey,
     runtime_requirements: &mut RuntimeGlobals,
+    _runtime_modules: &mut Vec<Box<dyn RuntimeModule>>,
   ) -> rspack_error::Result<()> {
     let arg = JsAdditionalTreeRuntimeRequirementsArg {
       chunk: ChunkWrapper::new(*chunk_ukey, compilation),

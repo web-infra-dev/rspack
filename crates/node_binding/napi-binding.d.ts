@@ -2277,11 +2277,9 @@ export interface RawIgnorePluginOptions {
 
 export interface RawIncremental {
   silent: boolean
-  make: boolean
-  inferAsyncModules: boolean
-  providedExports: boolean
-  dependenciesDiagnostics: boolean
-  sideEffects: boolean
+  buildModuleGraph: boolean
+  finishModules: boolean
+  optimizeDependencies: boolean
   buildChunkGraph: boolean
   moduleIds: boolean
   chunkIds: boolean
@@ -2290,7 +2288,7 @@ export interface RawIncremental {
   modulesRuntimeRequirements: boolean
   chunksRuntimeRequirements: boolean
   chunksHashes: boolean
-  chunksRender: boolean
+  chunkAsset: boolean
   emitAssets: boolean
 }
 

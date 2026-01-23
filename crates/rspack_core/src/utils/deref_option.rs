@@ -1,6 +1,12 @@
 use std::{
   fmt::Debug,
+  mem,
   ops::{Deref, DerefMut},
+};
+
+use crate::{
+  ArtifactExt,
+  incremental::{Incremental, IncrementalPasses},
 };
 
 #[derive(Debug)]
@@ -53,5 +59,15 @@ impl<T> DerefMut for DerefOption<T> {
       .0
       .as_mut()
       .unwrap_or_else(|| panic!("should set in compilation first"))
+  }
+}
+
+impl<T: ArtifactExt> ArtifactExt for DerefOption<T> {
+  const PASS: IncrementalPasses = T::PASS;
+
+  fn recover(incremental: &Incremental, new: &mut Self, old: &mut Self) {
+    if Self::should_recover(incremental) {
+      mem::swap(new, old);
+    }
   }
 }

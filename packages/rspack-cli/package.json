@@ -1,6 +1,6 @@
 {
   "name": "@rspack/cli",
-  "version": "1.7.3",
+  "version": "2.0.0-alpha.0",
   "description": "CLI for rspack",
   "homepage": "https://rspack.rs",
   "bugs": "https://github.com/web-infra-dev/rspack/issues",
@@ -38,7 +38,7 @@
   "devDependencies": {
     "@rslib/core": "0.19.2",
     "@rspack/core": "workspace:*",
-    "@rspack/dev-server": "~1.1.5",
+    "@rspack/dev-server": "~1.2.1",
     "@rspack/test-tools": "workspace:*",
     "cac": "^6.7.14",
     "concat-stream": "^2.0.0",
@@ -51,7 +51,7 @@
   },
   "peerDependencies": {
     "@rspack/core": "^2.0.0-0",
-    "@rspack/dev-server": "~1.1.5"
+    "@rspack/dev-server": "~1.2.1"
   },
   "peerDependenciesMeta": {
     "@rspack/dev-server": {

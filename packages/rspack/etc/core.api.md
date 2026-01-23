@@ -3478,11 +3478,9 @@ type IncomingMessage_2 = IncomingMessage;
 // @public
 export type Incremental = {
     silent?: boolean;
-    make?: boolean;
-    inferAsyncModules?: boolean;
-    providedExports?: boolean;
-    dependenciesDiagnostics?: boolean;
-    sideEffects?: boolean;
+    buildModuleGraph?: boolean;
+    finishModules?: boolean;
+    optimizeDependencies?: boolean;
     buildChunkGraph?: boolean;
     moduleIds?: boolean;
     chunkIds?: boolean;
@@ -3491,7 +3489,7 @@ export type Incremental = {
     modulesRuntimeRequirements?: boolean;
     chunksRuntimeRequirements?: boolean;
     chunksHashes?: boolean;
-    chunksRender?: boolean;
+    chunkAsset?: boolean;
     emitAssets?: boolean;
 };
 

@@ -118,7 +118,7 @@ module.exports = {
 			  ],
 			}
 		`);
-		expect(stats?.toString(options)).toMatchInlineSnapshot(`
+		expect(stats?.toString(options)).toBeEquivalentStatsStringWith(`
 			asset main.js 195 bytes {889} [emitted] (name: main)
 			chunk {889} (runtime: main) main.js (main) 55 bytes [entry] [rendered]
 			./fixtures/a.js [195] 55 bytes {889} [built] [code generated]

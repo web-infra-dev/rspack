@@ -290,6 +290,10 @@ impl ExternalModule {
     &mut self.user_request
   }
 
+  pub fn set_id(&mut self, id: Identifier) {
+    self.id = id;
+  }
+
   pub fn get_external_type(&self) -> &ExternalType {
     &self.external_type
   }
@@ -553,26 +557,6 @@ impl ExternalModule {
 
             match used_exports {
               UsedExports::UsedNamespace(true) | UsedExports::Unknown => {
-                chunk_init_fragments.push(
-                  NormalInitFragment::new(
-                    format!(
-                      "import * as __rspack_external_{} from {}{};\n",
-                      id.clone(),
-                      json_stringify(request.primary()),
-                      attributes.unwrap_or_default()
-                    ),
-                    InitFragmentStage::StageESMImports,
-                    module_graph
-                      .get_pre_order_index(&self.identifier())
-                      .map_or(0, |num| num as i32),
-                    InitFragmentKey::ModuleExternal(module_external_fragment_key(
-                      request.primary(),
-                      &self.dependency_meta.attributes,
-                    )),
-                    None,
-                  )
-                  .boxed(),
-                );
                 let external_module_id = format!("__rspack_external_{id}");
                 let namespace_export_with_name = format!(
                   "{}{}{}",
@@ -580,26 +564,19 @@ impl ExternalModule {
                   &external_module_id,
                   &property_access(request.iter(), 1)
                 );
+
+                concatenation_scope.register_namespace_import(
+                  request.primary().to_string(),
+                  attributes.clone(),
+                  format!("__rspack_external_{id}").into(),
+                );
                 concatenation_scope.register_namespace_export(&namespace_export_with_name);
               }
               UsedExports::UsedNamespace(false) => {
-                let content = format!(
-                  "import {}{};\n",
-                  json_stringify(request.primary()),
-                  attributes.unwrap_or_default()
-                );
-                let key = module_external_fragment_key(&content, &self.dependency_meta.attributes);
-                chunk_init_fragments.push(
-                  NormalInitFragment::new(
-                    content,
-                    InitFragmentStage::StageESMImports,
-                    module_graph
-                      .get_pre_order_index(&self.identifier())
-                      .map_or(0, |num| num as i32),
-                    InitFragmentKey::ModuleExternal(key),
-                    None,
-                  )
-                  .boxed(),
+                concatenation_scope.register_import(
+                  request.primary().to_string(),
+                  attributes.clone(),
+                  None,
                 );
               }
               UsedExports::UsedNames(atoms) => {

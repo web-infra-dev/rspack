@@ -2,8 +2,14 @@ use std::ops::{Deref, DerefMut};
 
 use rspack_collections::IdentifierSet;
 
+use crate::{ArtifactExt, incremental::IncrementalPasses};
+
 #[derive(Debug, Default, Clone)]
 pub struct AsyncModulesArtifact(IdentifierSet);
+
+impl ArtifactExt for AsyncModulesArtifact {
+  const PASS: IncrementalPasses = IncrementalPasses::FINISH_MODULES;
+}
 
 impl Deref for AsyncModulesArtifact {
   type Target = IdentifierSet;

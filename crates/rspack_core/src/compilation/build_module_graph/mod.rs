@@ -32,7 +32,7 @@ impl Compilation {
     // run module_executor
     if let Some(module_executor) = &mut self.module_executor {
       let mut module_executor = std::mem::take(module_executor);
-      module_executor.hook_before_make(self).await?;
+      module_executor.before_build_module_graph(self).await?;
       self.module_executor = Some(module_executor);
     }
 

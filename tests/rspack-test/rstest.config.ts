@@ -8,6 +8,7 @@ process.env.NO_COLOR = '1';
 const setupFilesAfterEnv = [
 	"@rspack/test-tools/setup-env",
 	"@rspack/test-tools/setup-expect",
+	"./expects/stats-string-comparator.js",
 ];
 
 const wasmConfig = process.env.WASM && defineProject({
@@ -115,6 +116,7 @@ export default defineConfig({
 	}],
 	reporters: testFilter ? ['verbose'] : ['default'],
 	hideSkippedTests: true,
+	hideSkippedTestFiles: true,
 	pool: {
 		maxWorkers: process.env.WASM ? 1 : "80%",
 		execArgv: ['--no-warnings', '--expose-gc', '--max-old-space-size=8192', '--experimental-vm-modules'],

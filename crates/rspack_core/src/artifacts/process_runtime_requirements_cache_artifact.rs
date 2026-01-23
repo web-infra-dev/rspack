@@ -3,13 +3,23 @@ use rspack_collections::Identifier;
 use rspack_error::Result;
 
 use crate::{
-  CacheOptions, ChunkGraph, Compilation, CompilerOptions, MemoryGCStorage, ModuleIdentifier,
-  RuntimeGlobals, RuntimeSpec, get_runtime_key,
+  ArtifactExt, CacheOptions, ChunkGraph, Compilation, CompilerOptions, MemoryGCStorage,
+  ModuleIdentifier, RuntimeGlobals, RuntimeSpec, get_runtime_key,
+  incremental::{Incremental, IncrementalPasses},
 };
 
 #[derive(Debug, Default)]
 pub struct ProcessRuntimeRequirementsCacheArtifact {
   storage: Option<MemoryGCStorage<RuntimeGlobals>>,
+}
+
+impl ArtifactExt for ProcessRuntimeRequirementsCacheArtifact {
+  const PASS: IncrementalPasses = IncrementalPasses::MODULES_RUNTIME_REQUIREMENTS;
+
+  fn recover(_incremental: &Incremental, new: &mut Self, old: &mut Self) {
+    *new = std::mem::take(old);
+    new.start_next_generation();
+  }
 }
 
 impl ProcessRuntimeRequirementsCacheArtifact {
