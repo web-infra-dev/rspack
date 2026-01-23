@@ -177,7 +177,14 @@ impl ConcatenationEntryExternal {
   }
 }
 
-pub type ConcatenatedImportMap = Option<IndexMap<(String, Option<String>), HashSet<Atom>>>;
+#[derive(Clone, Debug, Default)]
+pub struct ConcatenatedImportMapItem {
+  pub specifiers: HashSet<Atom>,
+  pub namespace: Option<Atom>,
+}
+
+pub type ConcatenatedImportMap =
+  Option<IndexMap<(String, Option<String>), ConcatenatedImportMapItem>>;
 
 #[derive(Debug, Clone, Default)]
 pub struct ConcatenatedModuleInfo {
@@ -469,6 +476,7 @@ impl ModuleInfo {
 pub struct ImportSpec {
   pub atoms: BTreeMap<Atom, Atom>,
   pub default_import: Option<Atom>,
+  pub ns_import: Option<Atom>,
 }
 
 #[impl_source_map_config]
@@ -599,6 +607,72 @@ impl DependenciesBlock for ConcatenatedModule {
   fn get_dependencies(&self) -> &[DependencyId] {
     &self.dependencies
   }
+}
+
+pub fn render_imports(source: &str, attr: Option<&str>, import_spec: &ImportSpec) -> String {
+  let atoms = &import_spec.atoms;
+  let default_import = import_spec.default_import.as_ref();
+  let ns_import = import_spec.ns_import.as_ref();
+
+  let source_str = format!("{}{}", json_stringify(&source), attr.unwrap_or_default());
+
+  let mut render_default = false;
+  let mut render_ns = false;
+
+  let import_ns_stmt = if let Some(ns_import) = ns_import {
+    render_ns = true;
+    format!(
+      "import {}* as {ns_import} from {source_str};\n",
+      default_import
+        .map(|default_import| {
+          render_default = true;
+          format!("{default_import}, ")
+        })
+        .unwrap_or_default()
+    )
+  } else {
+    Default::default()
+  };
+
+  let import_stmt = if atoms.is_empty() {
+    if render_ns {
+      // already rendered ns and default
+      Default::default()
+    } else {
+      format!(
+        "import {}{};\n",
+        default_import
+          .map(|default_atom| { format!("{default_atom} from ") })
+          .unwrap_or_default(),
+        &source_str
+      )
+    }
+  } else {
+    format!(
+      "import {}{{ {} }} from {};\n",
+      if render_default {
+        Default::default()
+      } else {
+        default_import
+          .map(|default_atom| format!("{default_atom}, "))
+          .unwrap_or_default()
+      },
+      atoms
+        .iter()
+        .map(|(atom, internal)| {
+          if atom == internal {
+            atom.to_string()
+          } else {
+            format!("{atom} as {internal}")
+          }
+        })
+        .collect::<Vec<String>>()
+        .join(", "),
+      source_str
+    )
+  };
+
+  format!("{import_ns_stmt}{import_stmt}")
 }
 
 #[cacheable_dyn]
@@ -861,11 +935,16 @@ impl Module for ConcatenatedModule {
             }
 
             if let Some(import_map) = &info.import_map {
-              for ((source, _), imported_atoms) in import_map.iter() {
+              for ((source, _), imported) in import_map.iter() {
+                let specifiers = &imported.specifiers;
                 escaped_identifiers
                   .insert(source.clone(), split_readable_identifier(source.as_str()));
-                for atom in imported_atoms {
+                for atom in specifiers {
                   escaped_names.insert(atom.to_string(), escape_name(atom.as_str()));
+                }
+
+                if let Some(ns_symbol) = &imported.namespace {
+                  escaped_names.insert(ns_symbol.to_string(), escape_name(ns_symbol.as_str()));
                 }
               }
             }
@@ -947,11 +1026,16 @@ impl Module for ConcatenatedModule {
 
           // Iterate over imported symbols
           if let Some(import_map) = &info.import_map {
-            for ((source, attr), imported_atoms) in import_map.iter() {
+            for ((source, attr), imported) in import_map {
+              let specifiers = &imported.specifiers;
               let entry = import_stmts.entry((source.clone(), attr.clone()));
               let total_imported_atoms = entry.or_default();
 
-              for atom in imported_atoms {
+              if let Some(ns_import) = &imported.namespace {
+                total_imported_atoms.ns_import = Some(ns_import.clone());
+              }
+
+              for atom in specifiers {
                 // already import this symbol
                 if let Some(internal_atom) = total_imported_atoms.atoms.get(atom) {
                   info
@@ -1296,45 +1380,13 @@ impl Module for ConcatenatedModule {
     let mut chunk_init_fragments: Vec<Box<dyn InitFragment<ChunkRenderContext>>> = Vec::new();
 
     for ((source, attr), import_spec) in import_stmts {
-      let atoms = import_spec.atoms;
-      let default_import = import_spec.default_import;
-      let import_stmt = if atoms.is_empty() {
-        format!(
-          "import {}{}{};\n",
-          default_import
-            .map(|default_atom| { format!("{default_atom} from ") })
-            .unwrap_or_default(),
-          json_stringify(&source),
-          attr.unwrap_or_default()
-        )
-      } else {
-        format!(
-          "import {}{{ {} }} from {}{};\n",
-          default_import
-            .map(|default_atom| { format!("{default_atom}, ") })
-            .unwrap_or_default(),
-          atoms
-            .iter()
-            .map(|(atom, internal)| {
-              if atom == internal {
-                atom.to_string()
-              } else {
-                format!("{atom} as {internal}")
-              }
-            })
-            .collect::<Vec<String>>()
-            .join(", "),
-          json_stringify(&source),
-          attr.unwrap_or_default()
-        )
-      };
+      let content = render_imports(&source, attr.as_deref(), &import_spec);
 
-      // result.add(RawStringSource::from(import_stmt));
       chunk_init_fragments.push(Box::new(ConditionalInitFragment::new(
-        import_stmt.clone(),
+        content.clone(),
         InitFragmentStage::StageESMImports,
         0,
-        crate::InitFragmentKey::ESMImport(import_stmt),
+        crate::InitFragmentKey::ESMImport(content),
         None,
         RuntimeCondition::Boolean(true),
       )));

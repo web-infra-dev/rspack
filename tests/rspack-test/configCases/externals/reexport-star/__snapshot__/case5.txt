@@ -1,10 +1,9 @@
-import { __webpack_require__ } from "./runtime~0.mjs";
-import "./906.mjs";
-
-const external_external1_alias_ = __webpack_require__("825");
+import * as __rspack_external_external1_alias_bc4b12e4 from "external1-alias";
 
 
-const bar = external_external1_alias_.foo + 1
+
+
+const bar = __rspack_external_external1_alias_bc4b12e4.foo + 1
 
 
 

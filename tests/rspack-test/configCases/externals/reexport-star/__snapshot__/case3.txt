@@ -1,4 +1,5 @@
-import "./906.mjs";
+import "external1-alias";
+
 
 
 const foo = 2

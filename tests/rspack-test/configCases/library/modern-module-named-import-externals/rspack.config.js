@@ -33,11 +33,12 @@ module.exports = {
 				compilation.hooks.processAssets.tap("testcase", assets => {
 					const source = assets["test.js"].source();
 					expect(source).toMatchInlineSnapshot(`
-						import * as __rspack_external_externals3 from "externals3";
 						import { HomeLayout as external_externals0_HomeLayout, a } from "externals0";
 						import { a as external_externals1_a } from "externals1";
 						import externals2 from "externals2";
+						import * as __rspack_external_externals3 from "externals3";
 						import "externals4";
+
 
 
 
