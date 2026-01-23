@@ -10,7 +10,7 @@
   "devDependencies": {
     "@rspack/cli": "workspace:*",
     "@rspack/core": "workspace:*",
-    "@rspack/dev-server": "~1.2.0",
+    "@rspack/dev-server": "~1.2.1",
     "typescript": "^5.9.3"
   }
 }
