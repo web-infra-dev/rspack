@@ -398,7 +398,7 @@ impl CodeSplitter {
 
       if filename.has_hash_placeholder()
         && let Some(diagnostic) = compilation.incremental.disable_passes(
-          IncrementalPasses::CHUNKS_RENDER,
+          IncrementalPasses::CHUNK_ASSET,
           "Chunk filename that dependent on full hash",
           "chunk filename that dependent on full hash is not supported in incremental compilation",
         )

@@ -112,6 +112,10 @@ function checkPluginsDocumentationCoverage() {
     'RsdoctorPlugin', // This plugin is not stable yet
     'RstestPlugin', // This plugin is not stable yet
     'RslibPlugin', // This plugin is not stable yet
+    'RscClientPlugin',
+    'RscServerPlugin',
+    'ClientPlugin',
+    'ServerPlugin',
   ];
 
   const removedPlugins = [

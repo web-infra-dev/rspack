@@ -7,7 +7,7 @@ pub async fn finish_modules_pass(compilation: &mut Compilation) -> Result<()> {
   let dependencies_diagnostics_artifact = compilation.dependencies_diagnostics_artifact.clone();
   let async_modules_artifact = compilation.async_modules_artifact.clone();
   let diagnostics = compilation
-    .collect_build_module_graph_effects(
+    .finish_modules_inner(
       &mut dependencies_diagnostics_artifact.borrow_mut(),
       &mut async_modules_artifact.borrow_mut(),
     )
@@ -18,8 +18,8 @@ pub async fn finish_modules_pass(compilation: &mut Compilation) -> Result<()> {
 }
 
 impl Compilation {
-  #[tracing::instrument("Compilation:collect_build_module_graph_effects", skip_all)]
-  pub async fn collect_build_module_graph_effects(
+  #[tracing::instrument("Compilation:finish_modules_inner", skip_all)]
+  pub async fn finish_modules_inner(
     &mut self,
     dependencies_diagnostics_artifact: &mut DependenciesDiagnosticsArtifact,
     async_modules_artifact: &mut AsyncModulesArtifact,
@@ -58,7 +58,7 @@ impl Compilation {
           .iter()
           .map(|&module| Mutation::ModuleAdd { module }),
       );
-      tracing::debug!(target: incremental::TRACING_TARGET, passes = %IncrementalPasses::MAKE, %mutations);
+      tracing::debug!(target: incremental::TRACING_TARGET, passes = %IncrementalPasses::BUILD_MODULE_GRAPH, %mutations);
     }
 
     let start = logger.time("finish modules");
@@ -100,7 +100,7 @@ impl Compilation {
     let (modules, has_mutations) = {
       let mutations = self
         .incremental
-        .mutations_read(IncrementalPasses::DEPENDENCIES_DIAGNOSTICS);
+        .mutations_read(IncrementalPasses::FINISH_MODULES);
 
       // TODO move diagnostic collect to make
       if let Some(mutations) = mutations {
@@ -113,7 +113,7 @@ impl Compilation {
             dependencies_diagnostics_artifact.remove(&revoked_module);
           }
           let modules = mutations.get_affected_modules_with_module_graph(self.get_module_graph());
-          let logger = self.get_logger("rspack.incremental.dependenciesDiagnostics");
+          let logger = self.get_logger("rspack.incremental.finishModules");
           logger.log(format!(
             "{} modules are affected, {} in total",
             modules.len(),

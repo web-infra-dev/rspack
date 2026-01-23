@@ -230,8 +230,11 @@ impl EsmLibraryPlugin {
               for ((source, _), imported_atoms) in import_map.iter() {
                 escaped_identifiers
                   .insert(source.clone(), split_readable_identifier(source.as_str()));
-                for atom in imported_atoms {
+                for atom in &imported_atoms.specifiers {
                   escaped_names.insert(atom.to_string(), escape_name(atom.as_str()));
+                }
+                if let Some(ns_import) = &imported_atoms.namespace {
+                  escaped_names.insert(ns_import.to_string(), escape_name(ns_import.as_str()));
                 }
               }
             }
@@ -498,9 +501,21 @@ var {} = {{}};
               .entry((source.clone(), attr.clone()))
               .or_default();
 
-            for atom in imported_atoms {
+            if let Some(ns_import) = &imported_atoms.namespace {
+              total_imported_atoms.ns_import = Some(ns_import.clone());
+            }
+
+            for atom in &imported_atoms.specifiers {
               // already import this symbol
-              if let Some(internal_atom) = total_imported_atoms.atoms.get(atom) {
+              if let Some(internal_atom) = total_imported_atoms.atoms.get(atom).or_else(|| {
+                if atom == "default"
+                  && let Some(default_symbol) = &total_imported_atoms.default_import
+                {
+                  Some(default_symbol)
+                } else {
+                  None
+                }
+              }) {
                 internal_names.insert(atom.clone(), internal_atom.clone());
                 // if the imported symbol is exported, we rename the export as well
                 if let Some(raw_export_map) = concate_info.raw_export_map.as_mut()
@@ -1749,6 +1764,7 @@ var {} = {{}};
         if let Some(import_spec) = chunk_link.raw_import_stmts.get(&key)
           && import_spec.atoms.is_empty()
           && import_spec.default_import.is_none()
+          && import_spec.ns_import.is_none()
         {
           chunk_link.raw_import_stmts.swap_remove(&key);
         }

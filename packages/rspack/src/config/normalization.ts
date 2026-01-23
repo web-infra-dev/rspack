@@ -443,11 +443,9 @@ const getNormalizedIncrementalOptions = (
   if (incremental === 'safe')
     return {
       silent: true,
-      make: true,
-      inferAsyncModules: false,
-      providedExports: false,
-      dependenciesDiagnostics: false,
-      sideEffects: false,
+      buildModuleGraph: true,
+      finishModules: false,
+      optimizeDependencies: false,
       buildChunkGraph: false,
       moduleIds: false,
       chunkIds: false,
@@ -456,7 +454,7 @@ const getNormalizedIncrementalOptions = (
       modulesRuntimeRequirements: false,
       chunksRuntimeRequirements: false,
       chunksHashes: false,
-      chunksRender: false,
+      chunkAsset: false,
       emitAssets: true,
     };
   if (incremental === true || incremental === 'advance-silent') return {};

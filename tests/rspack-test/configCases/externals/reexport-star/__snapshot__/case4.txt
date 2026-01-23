@@ -1,4 +1,5 @@
-import "./906.mjs";
+import * as __rspack_external_external1_alias_bc4b12e4 from "external1-alias";
+
 
 
 

@@ -31,6 +31,10 @@ export type SwcLoaderOptions = Config & {
    */
   rspackExperiments?: {
     import?: PluginImportOptions;
+    /**
+     * Enable React Server Components support.
+     */
+    reactServerComponents?: boolean;
   };
 };
 

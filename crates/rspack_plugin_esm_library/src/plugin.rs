@@ -6,17 +6,17 @@ use std::{
 
 use atomic_refcell::AtomicRefCell;
 use regex::Regex;
-use rspack_collections::{IdentifierIndexMap, IdentifierSet, UkeyMap};
+use rspack_collections::{Identifiable, Identifier, IdentifierIndexMap, IdentifierSet, UkeyMap};
 use rspack_core::{
-  ApplyContext, AssetInfo, AsyncModulesArtifact, ChunkUkey, Compilation,
+  ApplyContext, AssetInfo, AsyncModulesArtifact, BoxModule, ChunkUkey, Compilation,
   CompilationAdditionalChunkRuntimeRequirements, CompilationAdditionalTreeRuntimeRequirements,
   CompilationAfterCodeGeneration, CompilationConcatenationScope, CompilationFinishModules,
   CompilationOptimizeChunks, CompilationParams, CompilationProcessAssets,
   CompilationRuntimeRequirementInTree, CompilerCompilation, ConcatenatedModuleInfo,
-  ConcatenationScope, DependencyType, ExternalModuleInfo, GetTargetResult, Logger, ModuleGraph,
-  ModuleIdentifier, ModuleInfo, ModuleType, NormalModuleFactoryParser, ParserAndGenerator,
-  ParserOptions, Plugin, PrefetchExportsInfoMode, RuntimeGlobals, RuntimeModule, get_target,
-  is_esm_dep_like,
+  ConcatenationScope, DependencyType, ExternalModuleInfo, GetTargetResult, Logger,
+  ModuleFactoryCreateData, ModuleGraph, ModuleIdentifier, ModuleInfo, ModuleType,
+  NormalModuleFactoryAfterFactorize, NormalModuleFactoryParser, ParserAndGenerator, ParserOptions,
+  Plugin, PrefetchExportsInfoMode, RuntimeGlobals, RuntimeModule, get_target, is_esm_dep_like,
   rspack_sources::{ReplaceSource, Source},
 };
 use rspack_error::{Diagnostic, Result};
@@ -527,6 +527,26 @@ async fn parse(
   Ok(())
 }
 
+#[plugin_hook(NormalModuleFactoryAfterFactorize for EsmLibraryPlugin)]
+async fn after_factorize(
+  &self,
+  data: &mut ModuleFactoryCreateData,
+  module: &mut BoxModule,
+) -> Result<()> {
+  // Check if this is an external module using the existing downcast helper
+  if let Some(external_module) = module.as_external_module_mut()
+    && external_module.get_external_type().contains("module")
+  {
+    // If there's an issuer, append it to the module id
+    if let Some(issuer_identifier) = &data.issuer_identifier {
+      let current_id = external_module.identifier();
+      let new_id = Identifier::from(format!("{current_id}|{issuer_identifier}"));
+      external_module.set_id(new_id);
+    }
+  }
+  Ok(())
+}
+
 impl Plugin for EsmLibraryPlugin {
   fn apply(&self, ctx: &mut ApplyContext) -> Result<()> {
     ctx.compiler_hooks.compilation.tap(compilation::new(self));
@@ -572,6 +592,10 @@ impl Plugin for EsmLibraryPlugin {
       .tap(optimize_chunks::new(self));
 
     ctx.normal_module_factory_hooks.parser.tap(parse::new(self));
+    ctx
+      .normal_module_factory_hooks
+      .after_factorize
+      .tap(after_factorize::new(self));
 
     Ok(())
   }
