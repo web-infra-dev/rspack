@@ -46,10 +46,12 @@ use super::{
 
 impl JavaScriptCompiler {
   /// Transforms the given JavaScript source code according to the provided options and source map kind.
+  #[allow(clippy::too_many_arguments)]
   pub fn transform<'a, S, P>(
     &self,
     source: S,
-    filename: Option<FileName>,
+    filename: Option<Arc<FileName>>,
+    comments: std::rc::Rc<SingleThreadedComments>,
     options: SwcOptions,
     module_source_map_kind: Option<SourceMapKind>,
     inspect_parsed_ast: impl FnOnce(&Program, Mark),
@@ -61,8 +63,9 @@ impl JavaScriptCompiler {
   {
     let fm = self
       .cm
-      .new_source_file(filename.unwrap_or(FileName::Anon).into(), source.into());
-    let javascript_transformer = JavaScriptTransformer::new(self.cm.clone(), fm, self, options)?;
+      .new_source_file(filename.unwrap_or(Arc::new(FileName::Anon)), source.into());
+    let javascript_transformer =
+      JavaScriptTransformer::new(self.cm.clone(), fm, comments, self, options)?;
 
     javascript_transformer.transform(inspect_parsed_ast, before_pass, module_source_map_kind)
   }
@@ -71,7 +74,7 @@ impl JavaScriptCompiler {
 struct JavaScriptTransformer<'a> {
   cm: Arc<SourceMap>,
   fm: Arc<SourceFile>,
-  comments: SingleThreadedComments,
+  comments: std::rc::Rc<SingleThreadedComments>,
   options: SwcOptions,
   javascript_compiler: &'a JavaScriptCompiler,
   helpers: Helpers,
@@ -84,6 +87,7 @@ impl<'a> JavaScriptTransformer<'a> {
   pub fn new(
     cm: Arc<SourceMap>,
     fm: Arc<SourceFile>,
+    comments: std::rc::Rc<SingleThreadedComments>,
     compiler: &'a JavaScriptCompiler,
     mut options: SwcOptions,
   ) -> Result<Self> {
@@ -95,7 +99,6 @@ impl<'a> JavaScriptTransformer<'a> {
     });
 
     let config = get_swc_config_from_file(&fm.name);
-    let comments = SingleThreadedComments::default();
     let helpers = GLOBALS.set(&compiler.globals, || {
       let mut external_helpers = options.config.jsc.external_helpers;
       external_helpers.merge(config.jsc.external_helpers);

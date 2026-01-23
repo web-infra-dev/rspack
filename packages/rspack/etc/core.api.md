@@ -924,6 +924,10 @@ type ClientConfiguration = {
 };
 
 // @public (undocumented)
+class ClientPlugin extends RscClientPlugin {
+}
+
+// @public (undocumented)
 class CodeGenerationResult {
     constructor(result: binding.JsCodegenerationResult);
     // (undocumented)
@@ -1707,6 +1711,15 @@ interface ContinueStatement extends Node_4, HasSpan {
     label?: Identifier;
     // (undocumented)
     type: "ContinueStatement";
+}
+
+// @public (undocumented)
+class Coordinator {
+    constructor();
+    // (undocumented)
+    applyClientCompiler(clientCompiler: Compiler): void;
+    // (undocumented)
+    applyServerCompiler(serverCompiler: Compiler): void;
 }
 
 // @public (undocumented)
@@ -2567,6 +2580,8 @@ interface Experiments_2 {
         async: typeof async;
         sync: typeof sync;
     };
+    // (undocumented)
+    rsc: typeof rsc;
     // (undocumented)
     RsdoctorPlugin: typeof RsdoctorPlugin;
     // (undocumented)
@@ -6670,6 +6685,47 @@ type Rewrite = {
 type RewriteTo = (context: HistoryContext) => string;
 
 // @public (undocumented)
+const rsc: {
+    createPlugins: () => {
+        ServerPlugin: new (options?: Omit<RscClientPluginOptions, "coordinator">) => ServerPlugin;
+        ClientPlugin: new () => ClientPlugin;
+    };
+    Layers: {
+        readonly rsc: "react-server-components";
+        readonly ssr: "server-side-rendering";
+    };
+};
+
+// @public (undocumented)
+class RscClientPlugin extends RspackBuiltinPlugin {
+    constructor(options: RscClientPluginOptions);
+    // (undocumented)
+    name: string;
+    // (undocumented)
+    raw(compiler: Compiler): binding.BuiltinPlugin;
+}
+
+// @public (undocumented)
+type RscClientPluginOptions = {
+    coordinator: Coordinator;
+};
+
+// @public (undocumented)
+class RscServerPlugin extends RspackBuiltinPlugin {
+    constructor(options: RscServerPluginOptions);
+    // (undocumented)
+    name: string;
+    // (undocumented)
+    raw(compiler: Compiler): binding.BuiltinPlugin;
+}
+
+// @public (undocumented)
+type RscServerPluginOptions = {
+    coordinator: Coordinator;
+    onServerComponentChanges?: () => Promise<void>;
+};
+
+// @public (undocumented)
 const RsdoctorPlugin: typeof RsdoctorPluginImpl & {
     getCompilationHooks: (compilation: Compilation) => RsdoctorPluginHooks;
 };
@@ -7502,6 +7558,11 @@ type ServerOptions = ServerOptions_2 & {
 };
 
 // @public (undocumented)
+class ServerPlugin extends RscServerPlugin {
+    constructor(options?: Omit<RscClientPluginOptions, 'coordinator'>);
+}
+
+// @public (undocumented)
 type ServerResponse_2 = ServerResponse;
 
 // @public (undocumented)
@@ -8209,6 +8270,7 @@ export type SwcLoaderOptions = Config_2 & {
     collectTypeScriptInfo?: CollectTypeScriptInfoOptions;
     rspackExperiments?: {
         import?: PluginImportOptions;
+        reactServerComponents?: boolean;
     };
 };
 

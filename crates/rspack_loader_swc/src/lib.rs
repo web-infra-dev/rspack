@@ -1,15 +1,18 @@
+#![feature(box_patterns)]
+
 mod collect_ts_info;
 mod options;
 mod plugin;
+mod rsc_transforms;
 mod transformer;
 
-use std::{default::Default, path::Path};
+use std::{cell::RefCell, default::Default, path::Path, rc::Rc, sync::Arc};
 
 use options::SwcCompilerOptionsWithAdditional;
 pub use options::SwcLoaderJsOptions;
 pub use plugin::SwcLoaderPlugin;
 use rspack_cacheable::{cacheable, cacheable_dyn};
-use rspack_core::{COLLECTED_TYPESCRIPT_INFO_PARSE_META_KEY, Mode, RunnerContext};
+use rspack_core::{COLLECTED_TYPESCRIPT_INFO_PARSE_META_KEY, Mode, Module, RscMeta, RunnerContext};
 use rspack_error::{Diagnostic, Error, Result};
 use rspack_javascript_compiler::{JavaScriptCompiler, TransformOutput};
 use rspack_loader_runner::{Identifier, Loader, LoaderContext};
@@ -20,10 +23,14 @@ use sugar_path::SugarPath;
 use swc_config::{merge::Merge, types::MergingOption};
 use swc_core::{
   base::config::{InputSourceMap, TransformConfig},
-  common::{FileName, SyntaxContext},
+  common::{FileName, SyntaxContext, comments::SingleThreadedComments},
+  ecma::ast::noop_pass,
 };
 
-use crate::collect_ts_info::collect_typescript_info;
+use crate::{
+  collect_ts_info::collect_typescript_info,
+  rsc_transforms::{rsc_pass, to_module_ref},
+};
 
 #[cacheable]
 #[derive(Debug)]
@@ -106,12 +113,14 @@ impl SwcLoader {
     };
 
     let javascript_compiler = JavaScriptCompiler::new();
-    let filename = FileName::Real(resource_path.clone().into_std_path_buf());
+    let filename = Arc::new(FileName::Real(resource_path.clone().into_std_path_buf()));
+    let comments = Rc::new(SingleThreadedComments::default());
 
     let source = content.into_string_lossy();
     let is_typescript =
       matches!(swc_options.config.jsc.syntax, Some(syntax) if syntax.typescript());
     let mut collected_ts_info = None;
+    let rsc_meta: RefCell<Option<RscMeta>> = Default::default();
 
     let TransformOutput {
       code,
@@ -119,7 +128,8 @@ impl SwcLoader {
       diagnostics,
     } = javascript_compiler.transform(
       source,
-      Some(filename),
+      Some(filename.clone()),
+      comments.clone(),
       swc_options,
       Some(loader_context.context.source_map_kind),
       |program, unresolved_mark| {
@@ -135,11 +145,40 @@ impl SwcLoader {
           options,
         ));
       },
-      |_| transformer::transform(&self.options_with_additional.rspack_experiments),
+      |_| {
+        (
+          if self
+            .options_with_additional
+            .rspack_experiments
+            .react_server_components
+          {
+            swc_core::common::pass::Either::Left(rsc_pass(
+              loader_context,
+              filename,
+              resource_path.as_str(),
+              comments,
+              &rsc_meta,
+            ))
+          } else {
+            swc_core::common::pass::Either::Right(noop_pass())
+          },
+          transformer::transform(&self.options_with_additional.rspack_experiments),
+        )
+      },
     )?;
 
     for diagnostic in diagnostics {
       loader_context.emit_diagnostic(Error::warning(diagnostic).into());
+    }
+
+    if let Some(rsc) = rsc_meta.borrow_mut().take() {
+      let module = &mut loader_context.context.module;
+      module.build_info_mut().rsc = Some(rsc);
+      // TODO: move to_module_ref into rsc transforms
+      if let Some(code) = to_module_ref(module)? {
+        loader_context.finish_with(code);
+        return Ok(());
+      }
     }
 
     if let Some(collected_ts_info) = collected_ts_info {

@@ -2,6 +2,7 @@ mod rebuild;
 use std::sync::{Arc, atomic::AtomicU32};
 
 use futures::future::join_all;
+use rspack_cacheable::cacheable;
 use rspack_error::Result;
 use rspack_fs::{IntermediateFileSystem, NativeFileSystem, ReadableFileSystem, WritableFileSystem};
 use rspack_hook::define_hook;
@@ -38,6 +39,8 @@ define_hook!(CompilerEmit: Series(compilation: &mut Compilation));
 define_hook!(CompilerAfterEmit: Series(compilation: &mut Compilation));
 define_hook!(CompilerAssetEmitted: Series(compilation: &Compilation, filename: &str, info: &AssetEmittedInfo));
 define_hook!(CompilerClose: Series(compilation: &Compilation));
+define_hook!(CompilerDone: Series(compilation: &Compilation));
+define_hook!(CompilerFailed: Series(compilation: &Compilation));
 
 #[derive(Debug, Default)]
 pub struct CompilerHooks {
@@ -50,10 +53,13 @@ pub struct CompilerHooks {
   pub after_emit: CompilerAfterEmitHook,
   pub asset_emitted: CompilerAssetEmittedHook,
   pub close: CompilerCloseHook,
+  pub done: CompilerDoneHook,
+  pub failed: CompilerFailedHook,
 }
 
 static COMPILER_ID: AtomicU32 = AtomicU32::new(0);
 
+#[cacheable]
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd)]
 pub struct CompilerId(u32);
 
@@ -200,11 +206,31 @@ impl Compiler {
     self.build().await?;
     Ok(())
   }
+
   pub async fn build(&mut self) -> Result<()> {
     let compiler_context = self.compiler_context.clone();
-    within_compiler_context(compiler_context, self.build_inner()).await?;
-    Ok(())
+    match within_compiler_context(compiler_context, self.build_inner()).await {
+      Ok(_) => {
+        self
+          .plugin_driver
+          .compiler_hooks
+          .done
+          .call(&self.compilation)
+          .await?;
+        Ok(())
+      }
+      Err(e) => {
+        self
+          .plugin_driver
+          .compiler_hooks
+          .failed
+          .call(&self.compilation)
+          .await?;
+        Err(e)
+      }
+    }
   }
+
   #[instrument("Compiler:build",target=TRACING_BENCH_TARGET, skip_all)]
   async fn build_inner(&mut self) -> Result<()> {
     // TODO: clear the outdated cache entries in resolver,

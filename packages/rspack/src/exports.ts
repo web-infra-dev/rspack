@@ -135,6 +135,7 @@ export type { OutputFileSystem, WatchFileSystem } from './util/fs';
 import {
   FetchCompileAsyncWasmPlugin,
   lazyCompilationMiddleware,
+  rsc,
   SubresourceIntegrityPlugin,
 } from './builtin-plugin';
 
@@ -390,6 +391,7 @@ interface Experiments {
   CssChunkingPlugin: typeof CssChunkingPlugin;
   createNativePlugin: typeof createNativePlugin;
   VirtualModulesPlugin: typeof VirtualModulesPlugin;
+  rsc: typeof rsc;
 }
 
 export const experiments: Experiments = {
@@ -440,4 +442,5 @@ export const experiments: Experiments = {
   CssChunkingPlugin,
   createNativePlugin,
   VirtualModulesPlugin,
+  rsc,
 };

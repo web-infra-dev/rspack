@@ -3641,6 +3641,7 @@ dependencies = [
  "rspack_plugin_real_content_hash",
  "rspack_plugin_remove_duplicate_modules",
  "rspack_plugin_remove_empty_chunks",
+ "rspack_plugin_rsc",
  "rspack_plugin_rsdoctor",
  "rspack_plugin_rslib",
  "rspack_plugin_rstest",
@@ -4045,6 +4046,10 @@ version = "0.100.0-alpha.0"
 dependencies = [
  "async-trait",
  "either",
+ "hex",
+ "indoc",
+ "once_cell",
+ "regex",
  "rspack_cacheable",
  "rspack_core",
  "rspack_error",
@@ -4058,6 +4063,7 @@ dependencies = [
  "rustc-hash",
  "serde",
  "serde_json",
+ "sha2",
  "stacker",
  "sugar_path",
  "swc",
@@ -4753,6 +4759,38 @@ dependencies = [
  "rspack_error",
  "rspack_hook",
  "tracing",
+]
+
+[[package]]
+name = "rspack_plugin_rsc"
+version = "0.100.0-alpha.0"
+dependencies = [
+ "async-trait",
+ "atomic_refcell",
+ "derive_more",
+ "form_urlencoded",
+ "futures",
+ "indoc",
+ "once_cell",
+ "regex",
+ "rspack-allocative",
+ "rspack_cacheable",
+ "rspack_collections",
+ "rspack_core",
+ "rspack_error",
+ "rspack_hash",
+ "rspack_hook",
+ "rspack_loader_runner",
+ "rspack_plugin_javascript",
+ "rspack_util",
+ "rustc-hash",
+ "serde",
+ "serde_json",
+ "simd-json",
+ "swc_core",
+ "tokio",
+ "tracing",
+ "urlencoding",
 ]
 
 [[package]]

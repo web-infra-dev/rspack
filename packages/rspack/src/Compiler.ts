@@ -131,6 +131,8 @@ export type CompilerHooks = {
   additionalPass: liteTapable.AsyncSeriesHook<[]>;
 };
 
+export const GET_COMPILER_ID = Symbol('getCompilerId');
+
 class Compiler {
   #instance?: binding.JsCompiler;
   #initial: boolean;
@@ -328,6 +330,15 @@ class Compiler {
     // 		}
     // 	});
     // });
+
+    Object.defineProperty(this, GET_COMPILER_ID, {
+      writable: false,
+      configurable: false,
+      enumerable: false,
+      value: () => {
+        return this.#instance!.getCompilerId();
+      },
+    });
   }
 
   get recordsInputPath() {

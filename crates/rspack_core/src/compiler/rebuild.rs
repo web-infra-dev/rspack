@@ -23,13 +23,33 @@ impl Compiler {
     changed_files: std::collections::HashSet<String>,
     deleted_files: std::collections::HashSet<String>,
   ) -> Result<()> {
-    within_compiler_context(
+    match within_compiler_context(
       self.compiler_context.clone(),
       self.rebuild_inner(changed_files, deleted_files),
     )
-    .await?;
-    Ok(())
+    .await
+    {
+      Ok(_) => {
+        self
+          .plugin_driver
+          .compiler_hooks
+          .done
+          .call(&self.compilation)
+          .await?;
+        Ok(())
+      }
+      Err(e) => {
+        self
+          .plugin_driver
+          .compiler_hooks
+          .failed
+          .call(&self.compilation)
+          .await?;
+        Err(e)
+      }
+    }
   }
+
   #[tracing::instrument("Compiler:rebuild", skip_all, fields(
     compiler.changed_files = ?changed_files.iter().cloned().collect::<Vec<_>>(),
     compiler.deleted_files = ?deleted_files.iter().cloned().collect::<Vec<_>>()
