@@ -12,9 +12,7 @@ use crate::{
   chunk_graph_chunk::ChunkId,
   chunk_graph_module::ModuleId,
   compilation::build_module_graph::ModuleExecutor,
-  fast_set,
-  incremental::{Incremental, IncrementalPasses},
-  recover_artifact,
+  incremental::Incremental,
 };
 
 impl Compiler {
@@ -94,105 +92,14 @@ impl Compiler {
       );
       next_compilation.hot_index = self.compilation.hot_index + 1;
 
-      if next_compilation
-        .incremental
-        .mutations_readable(IncrementalPasses::BUILD_MODULE_GRAPH)
-      {
-        // recover module graph from last compilation
-        self
-          .compilation
-          .recover_module_graph_to_new_compilation(&mut next_compilation);
-
-        // seal stage used
-        next_compilation.build_chunk_graph_artifact =
-          std::mem::take(&mut self.compilation.build_chunk_graph_artifact);
-
-        // reuse module executor
-        next_compilation.module_executor = std::mem::take(&mut self.compilation.module_executor);
-      }
-      // Recover artifacts based on their associated incremental passes
-      let incremental = &next_compilation.incremental;
-
-      // Wrapped artifacts (SharedArtifact<T>, BindingCell<T>, DerefOption<T>)
-      recover_artifact(
-        incremental,
-        &mut next_compilation.async_modules_artifact,
-        &mut self.compilation.async_modules_artifact,
-      );
-      recover_artifact(
-        incremental,
-        &mut next_compilation.dependencies_diagnostics_artifact,
-        &mut self.compilation.dependencies_diagnostics_artifact,
-      );
-      recover_artifact(
-        incremental,
-        &mut next_compilation.code_generation_results,
-        &mut self.compilation.code_generation_results,
-      );
-      recover_artifact(
-        incremental,
-        &mut next_compilation.side_effects_optimize_artifact,
-        &mut self.compilation.side_effects_optimize_artifact,
-      );
-
-      // Direct type artifacts
-      recover_artifact(
-        incremental,
-        &mut next_compilation.module_ids_artifact,
-        &mut self.compilation.module_ids_artifact,
-      );
-      recover_artifact(
-        incremental,
-        &mut next_compilation.named_chunk_ids_artifact,
-        &mut self.compilation.named_chunk_ids_artifact,
-      );
-      recover_artifact(
-        incremental,
-        &mut next_compilation.cgm_hash_artifact,
-        &mut self.compilation.cgm_hash_artifact,
-      );
-      recover_artifact(
-        incremental,
-        &mut next_compilation.cgm_runtime_requirements_artifact,
-        &mut self.compilation.cgm_runtime_requirements_artifact,
-      );
-      recover_artifact(
-        incremental,
-        &mut next_compilation.cgc_runtime_requirements_artifact,
-        &mut self.compilation.cgc_runtime_requirements_artifact,
-      );
-      recover_artifact(
-        incremental,
-        &mut next_compilation.chunk_hashes_artifact,
-        &mut self.compilation.chunk_hashes_artifact,
-      );
-      recover_artifact(
-        incremental,
-        &mut next_compilation.chunk_render_artifact,
-        &mut self.compilation.chunk_render_artifact,
-      );
-
-      // Cache artifacts (custom recover impl calls start_next_generation)
-      recover_artifact(
-        incremental,
-        &mut next_compilation.chunk_render_cache_artifact,
-        &mut self.compilation.chunk_render_cache_artifact,
-      );
-      recover_artifact(
-        incremental,
-        &mut next_compilation.code_generate_cache_artifact,
-        &mut self.compilation.code_generate_cache_artifact,
-      );
-      recover_artifact(
-        incremental,
-        &mut next_compilation.process_runtime_requirements_cache_artifact,
-        &mut self.compilation.process_runtime_requirements_cache_artifact,
-      );
+      // Store old compilation in cache for artifact recovery during run_passes
+      // The cache hooks will recover artifacts based on their associated incremental passes
+      let old_compilation = std::mem::replace(&mut self.compilation, next_compilation);
+      self.cache.store_old_compilation(Box::new(old_compilation));
 
       // FOR BINDING SAFETY:
       // Update `compilation` for each rebuild.
       // Make sure `thisCompilation` hook was called before any other hooks that leverage `JsCompilation`.
-      fast_set(&mut self.compilation, next_compilation);
       self.cache.before_compile(&mut self.compilation).await;
       self.compile().await?;
     }
