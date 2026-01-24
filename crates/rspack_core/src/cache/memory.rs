@@ -1,8 +1,6 @@
 use super::Cache;
 use crate::{
-  Compilation,
-  compilation::build_module_graph::BuildModuleGraphArtifact,
-  incremental::{Incremental, IncrementalPasses},
+  Compilation, compilation::build_module_graph::BuildModuleGraphArtifact, incremental::Incremental,
   recover_artifact,
 };
 
@@ -31,17 +29,13 @@ impl Cache for MemoryCache {
     make_artifact: &mut BuildModuleGraphArtifact,
     incremental: &Incremental,
   ) {
-    if let Some(old_compilation) = self.old_compilation.as_mut() && incremental.mutations_readable(IncrementalPasses::BUILD_MODULE_GRAPH) {
-    // reset and swap module graph
-    old_compilation
-      .build_module_graph_artifact
-      .get_module_graph_mut()
-      .reset();
-    std::mem::swap(
-      make_artifact,
-      &mut *old_compilation.build_module_graph_artifact,
-    );
-  }
+    if let Some(old_compilation) = self.old_compilation.as_mut() {
+      recover_artifact(
+        incremental,
+        make_artifact,
+        &mut old_compilation.build_module_graph_artifact,
+      );
+    }
   }
 
   // FINISH_MODULES: async_modules_artifact, dependencies_diagnostics_artifact
