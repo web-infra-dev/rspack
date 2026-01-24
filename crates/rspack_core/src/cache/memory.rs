@@ -1,10 +1,5 @@
 use super::Cache;
-use crate::{
-  Compilation,
-  compilation::build_module_graph::BuildModuleGraphArtifact,
-  incremental::Incremental,
-  recover_artifact,
-};
+use crate::{Compilation, recover_artifact};
 
 /// Memory cache implementation
 ///
@@ -23,21 +18,6 @@ impl Cache for MemoryCache {
 
   fn store_old_compilation(&mut self, compilation: Box<Compilation>) {
     self.old_compilation = Some(compilation);
-  }
-
-  // BUILD_MODULE_GRAPH: build_module_graph_artifact
-  async fn before_build_module_graph(
-    &mut self,
-    make_artifact: &mut BuildModuleGraphArtifact,
-    incremental: &Incremental,
-  ) {
-    if let Some(old_compilation) = self.old_compilation.as_mut() {
-      recover_artifact(
-        incremental,
-        make_artifact,
-        &mut *old_compilation.build_module_graph_artifact,
-      );
-    }
   }
 
   // FINISH_MODULES: async_modules_artifact, dependencies_diagnostics_artifact

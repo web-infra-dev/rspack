@@ -12,7 +12,7 @@ use crate::{
   chunk_graph_chunk::ChunkId,
   chunk_graph_module::ModuleId,
   compilation::build_module_graph::ModuleExecutor,
-  incremental::Incremental,
+  incremental::{Incremental, IncrementalPasses},
 };
 
 impl Compiler {
@@ -91,6 +91,23 @@ impl Compiler {
         self.compiler_context.clone(),
       );
       next_compilation.hot_index = self.compilation.hot_index + 1;
+
+      if next_compilation
+        .incremental
+        .mutations_readable(IncrementalPasses::BUILD_MODULE_GRAPH)
+      {
+        // recover module graph from last compilation
+        self
+          .compilation
+          .recover_module_graph_to_new_compilation(&mut next_compilation);
+
+        // seal stage used
+        next_compilation.build_chunk_graph_artifact =
+          std::mem::take(&mut self.compilation.build_chunk_graph_artifact);
+
+        // reuse module executor
+        next_compilation.module_executor = std::mem::take(&mut self.compilation.module_executor);
+      }
 
       // Store old compilation in cache for artifact recovery during run_passes
       // The cache hooks will recover artifacts based on their associated incremental passes
