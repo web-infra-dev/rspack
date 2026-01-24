@@ -1,4 +1,4 @@
-use std::{borrow::Cow, iter};
+use std::iter;
 
 use either::Either;
 use itertools::Itertools;
@@ -27,7 +27,8 @@ use crate::{
   parser_plugin::require_ensure_dependencies_block_parse_plugin::GetFunctionExpression,
   utils::eval::BasicEvaluatedExpression,
   visitors::{
-    JavascriptParser, Statement, context_reg_exp, create_context_dependency, create_traceable_error,
+    JavascriptParser, Pattern, Statement, context_reg_exp, create_context_dependency,
+    create_traceable_error,
   },
 };
 
@@ -252,7 +253,7 @@ impl AMDRequireDependenciesBlockParserPlugin {
               .params
               .iter()
               .filter(|param| !is_reserved_param(&param.pat))
-              .map(|param| Cow::Borrowed(&param.pat));
+              .map(|param| Pattern::from(&param.pat));
             parser.in_function_scope(true, params, |parser| {
               parser.walk_statement(Statement::Block(body));
             });
@@ -263,7 +264,7 @@ impl AMDRequireDependenciesBlockParserPlugin {
             .params
             .iter()
             .filter(|param| !is_reserved_param(param))
-            .map(Cow::Borrowed);
+            .map(Pattern::from);
           parser.in_function_scope(true, params, |parser| match &*arrow.body {
             BlockStmtOrExpr::BlockStmt(body) => parser.walk_statement(Statement::Block(body)),
             BlockStmtOrExpr::Expr(expr) => parser.walk_expression(expr),
