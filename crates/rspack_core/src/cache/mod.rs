@@ -1,16 +1,18 @@
 mod disable;
 mod memory;
+mod mixed;
 pub mod persistent;
 
 use std::{fmt::Debug, sync::Arc};
 
 use rspack_fs::{IntermediateFileSystem, ReadableFileSystem};
 
-use self::{disable::DisableCache, memory::MemoryCache, persistent::PersistentCache};
+use self::{
+  disable::DisableCache, memory::MemoryCache, mixed::MixedCache, persistent::PersistentCache,
+};
 use crate::{
   CacheOptions, Compilation, CompilerOptions,
-  compilation::build_module_graph::BuildModuleGraphArtifact,
-  incremental::Incremental,
+  compilation::build_module_graph::BuildModuleGraphArtifact, incremental::Incremental,
 };
 
 /// Cache trait
@@ -103,12 +105,15 @@ pub fn new_cache(
   match &compiler_option.cache {
     CacheOptions::Disabled => Box::new(DisableCache),
     CacheOptions::Memory { .. } => Box::<MemoryCache>::default(),
-    CacheOptions::Persistent(option) => Box::new(PersistentCache::new(
-      compiler_path,
-      option,
-      compiler_option.clone(),
-      input_filesystem,
-      intermediate_filesystem,
-    )),
+    CacheOptions::Persistent(option) => {
+      let persistent = PersistentCache::new(
+        compiler_path,
+        option,
+        compiler_option.clone(),
+        input_filesystem,
+        intermediate_filesystem,
+      );
+      Box::new(MixedCache::new(persistent))
+    }
   }
 }
