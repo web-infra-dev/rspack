@@ -33,10 +33,6 @@ on:
         type: boolean
         description: 'Prefer to building in docker if supported'
 
-permissions:
-  # Allow commenting on issues
-  issues: write
-
 jobs:
   build:
     uses: ./.github/workflows/reusable-build-build.yml
@@ -67,6 +63,7 @@ jobs:
     uses: ./.github/workflows/reusable-build-bench.yml
     if: inputs.bench
     needs: [build, codspeed]
+    permissions: inherit
     with:
       target: ${{ inputs.target }}
       runner: ${{ inputs.runner }}

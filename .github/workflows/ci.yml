@@ -56,6 +56,8 @@ jobs:
     name: Test Linux
     needs: [check-changed]
     if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
+    permissions:
+      issues: write
     uses: ./.github/workflows/reusable-build.yml
     with:
       target: x86_64-unknown-linux-gnu
@@ -195,6 +197,8 @@ jobs:
     name: Binary Size Limit
     needs: [check-changed]
     if: ${{ needs.check-changed.outputs.code_changed == 'true' && github.event_name == 'pull_request' }}
+    permissions:
+      pull-requests: write
     uses: ./.github/workflows/size-limit.yml
 
   # TODO: enable it after self hosted runners are ready
