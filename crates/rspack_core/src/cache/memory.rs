@@ -1,5 +1,10 @@
 use super::Cache;
-use crate::{Compilation, recover_artifact};
+use crate::{
+  Compilation,
+  compilation::build_module_graph::BuildModuleGraphArtifact,
+  incremental::{Incremental, IncrementalPasses},
+  recover_artifact,
+};
 
 /// Memory cache implementation
 ///
@@ -18,6 +23,27 @@ impl Cache for MemoryCache {
 
   fn store_old_compilation(&mut self, compilation: Box<Compilation>) {
     self.old_compilation = Some(compilation);
+  }
+
+  // BUILD_MODULE_GRAPH: build_module_graph_artifact (module graph recovery)
+  async fn before_build_module_graph(
+    &mut self,
+    make_artifact: &mut BuildModuleGraphArtifact,
+    incremental: &Incremental,
+  ) {
+    if let Some(old_compilation) = self.old_compilation.as_mut() {
+      if incremental.mutations_readable(IncrementalPasses::BUILD_MODULE_GRAPH) {
+        // reset and swap module graph
+        old_compilation
+          .build_module_graph_artifact
+          .get_module_graph_mut()
+          .reset();
+        std::mem::swap(
+          make_artifact,
+          &mut *old_compilation.build_module_graph_artifact,
+        );
+      }
+    }
   }
 
   // FINISH_MODULES: async_modules_artifact, dependencies_diagnostics_artifact

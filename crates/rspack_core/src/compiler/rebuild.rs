@@ -96,12 +96,8 @@ impl Compiler {
         .incremental
         .mutations_readable(IncrementalPasses::BUILD_MODULE_GRAPH)
       {
-        // recover module graph from last compilation
-        self
-          .compilation
-          .recover_module_graph_to_new_compilation(&mut next_compilation);
-
-        // seal stage used
+        // FIXME: This is a hack that even when IncrementalPasses::BUILD_MODULE_GRAPH is disabled,
+        // we still enable incremental build for build_chunk_graph when IncrementalPasses::BUILD_MODULE_GRAPH is enabled.
         next_compilation.build_chunk_graph_artifact =
           std::mem::take(&mut self.compilation.build_chunk_graph_artifact);
 
