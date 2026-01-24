@@ -39,6 +39,7 @@ jobs:
         with:
           ref: ${{ inputs.ref }}
           clean: ${{ runner.environment == 'github-hosted' }}
+          persist-credentials: false
 
       - name: Download and install zstd
         if: ${{ runner.os == 'Windows' }}

@@ -52,6 +52,7 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           clean: ${{ runner.environment == 'github-hosted' }}
+          persist-credentials: false
 
       - name: Download bindings
         uses: ./.github/actions/artifact/download

@@ -37,6 +37,7 @@ jobs:
         with:
           fetch-depth: 1
           ref: ${{inputs.commit || github.event.workflow_run.head_sha }}
+          persist-credentials: false
 
       - name: Pnpm Setup
         uses: ./.github/actions/pnpm/setup

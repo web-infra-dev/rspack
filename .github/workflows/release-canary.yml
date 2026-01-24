@@ -85,6 +85,7 @@ jobs:
         with:
           fetch-depth: 1
           ref: ${{inputs.commit}}
+          persist-credentials: false
 
       - name: Pnpm Setup
         uses: ./.github/actions/pnpm/setup

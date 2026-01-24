@@ -89,6 +89,7 @@ jobs:
         with:
           # This makes Actions fetch only one branch to release
           fetch-depth: 1
+          persist-credentials: false
 
       - name: Pnpm Setup
         uses: ./.github/actions/pnpm/setup

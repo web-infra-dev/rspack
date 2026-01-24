@@ -22,6 +22,7 @@ jobs:
         with:
           ref: ${{ inputs.ref }}
           clean: ${{ runner.environment == 'github-hosted' }}
+          persist-credentials: false
 
       - name: Install Rust Toolchain
         uses: ./.github/actions/rustup
