@@ -223,4 +223,10 @@ impl BuildModuleGraphArtifact {
 
 impl ArtifactExt for BuildModuleGraphArtifact {
   const PASS: IncrementalPasses = IncrementalPasses::BUILD_MODULE_GRAPH;
+  fn recover(incremental: &crate::incremental::Incremental, new: &mut Self, old: &mut Self) {
+    if incremental.mutations_readable(Self::PASS) {
+      std::mem::swap(new, old);
+      new.get_module_graph_mut().reset();
+    }
+  }
 }

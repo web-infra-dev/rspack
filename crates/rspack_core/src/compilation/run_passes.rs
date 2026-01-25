@@ -22,16 +22,21 @@ impl Compilation {
   ) -> Result<()> {
     // #region Build Module Graph First Pass
     cache
-      .before_build_module_graph(&mut self.build_module_graph_artifact)
+      .before_build_module_graph(&mut self.build_module_graph_artifact, &self.incremental)
       .await;
     make_hook_pass(self, plugin_driver.clone()).await?;
     build_module_graph_pass(self).await?;
     finish_make_pass(self, plugin_driver.clone()).await?;
 
     finish_module_graph_pass(self).await?;
+
+    // FINISH_MODULES pass
+    cache.before_finish_modules(self).await;
     // finish_modules will set exports_info for build_module_graph_artifact so we have to put it here
     // @FIXME: after split exports_info from module graph, we can move it after build_module_graph_pass
     finish_modules_pass(self).await?;
+    cache.after_finish_modules(self).await;
+
     // This is the end of first pass of build module graph which will be recovered for next compilation
     // add a checkpoint here since we may modify module graph later in incremental compilation
     // and we can recover to this checkpoint in the future
@@ -52,26 +57,65 @@ impl Compilation {
 
     seal_pass(self, plugin_driver.clone()).await?;
 
+    // OPTIMIZE_DEPENDENCIES pass
+    cache.before_optimize_dependencies(self).await;
     optimize_dependencies_pass(self, plugin_driver.clone()).await?;
+    cache.after_optimize_dependencies(self).await;
 
+    // BUILD_CHUNK_GRAPH pass
+    cache.before_build_chunk_graph(self).await;
     build_chunk_graph_pass(self).await?;
+    cache.after_build_chunk_graph(self).await;
+
     optimize_modules_pass(self, plugin_driver.clone()).await?;
     optimize_chunks_pass(self, plugin_driver.clone()).await?;
 
     optimize_tree_pass(self, plugin_driver.clone()).await?;
     optimize_chunk_modules_pass(self, plugin_driver.clone()).await?;
 
+    // MODULE_IDS pass
+    cache.before_module_ids(self).await;
     module_ids_pass(self, plugin_driver.clone()).await?;
+    cache.after_module_ids(self).await;
+
+    // CHUNK_IDS pass
+    cache.before_chunk_ids(self).await;
     chunk_ids_pass(self, plugin_driver.clone()).await?;
+    cache.after_chunk_ids(self).await;
+
     assign_runtime_ids(self);
 
     optimize_code_generation_pass(self, plugin_driver.clone()).await?;
+
+    // MODULES_HASHES pass
+    cache.before_modules_hashes(self).await;
     create_module_hashes_pass(self).await?;
+    cache.after_modules_hashes(self).await;
+
+    // MODULES_CODEGEN pass
+    cache.before_modules_codegen(self).await;
     code_generation_pass(self, plugin_driver.clone()).await?;
+    cache.after_modules_codegen(self).await;
+
+    // MODULES_RUNTIME_REQUIREMENTS and CHUNKS_RUNTIME_REQUIREMENTS passes
+    cache.before_modules_runtime_requirements(self).await;
+    cache.before_chunks_runtime_requirements(self).await;
     runtime_requirements_pass(self, plugin_driver.clone()).await?;
+    cache.after_modules_runtime_requirements(self).await;
+    cache.after_chunks_runtime_requirements(self).await;
+
+    // CHUNKS_HASHES pass
+    cache.before_chunks_hashes(self).await;
     create_hash_pass(self, plugin_driver.clone()).await?;
+    cache.after_chunks_hashes(self).await;
+
     create_module_assets_pass(self, plugin_driver.clone()).await?;
+
+    // CHUNK_ASSET pass
+    cache.before_chunk_asset(self).await;
     create_chunk_assets_pass(self, plugin_driver.clone()).await?;
+    cache.after_chunk_asset(self).await;
+
     process_assets_pass(self, plugin_driver.clone()).await?;
     after_seal_pass(self, plugin_driver).await?;
 

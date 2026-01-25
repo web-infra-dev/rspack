@@ -29,6 +29,7 @@ use super::Cache;
 use crate::{
   Compilation, CompilerOptions, Logger,
   compilation::build_module_graph::{BuildModuleGraphArtifact, BuildModuleGraphArtifactState},
+  incremental::Incremental,
 };
 
 #[cacheable]
@@ -235,7 +236,11 @@ impl Cache for PersistentCache {
     }
   }
 
-  async fn before_build_module_graph(&mut self, make_artifact: &mut BuildModuleGraphArtifact) {
+  async fn before_build_module_graph(
+    &mut self,
+    make_artifact: &mut BuildModuleGraphArtifact,
+    _incremental: &Incremental,
+  ) {
     // TODO When does not need to pass variables through make_artifact.state, use compilation.is_rebuild to check
     if matches!(
       make_artifact.state,
@@ -248,7 +253,7 @@ impl Cache for PersistentCache {
     }
   }
 
-  async fn after_build_module_graph(&mut self, make_artifact: &BuildModuleGraphArtifact) {
+  async fn after_build_module_graph(&self, make_artifact: &BuildModuleGraphArtifact) {
     self.make_occasion.save(make_artifact);
   }
 }
