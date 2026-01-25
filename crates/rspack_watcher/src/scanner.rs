@@ -35,9 +35,26 @@ impl Scanner {
         .collect::<Vec<_>>();
       let missing = accessor.missing().0.clone();
       let _tx = tx.clone();
+
+      eprintln!(
+        "[WATCHER_DEBUG] Scanner::scan() - starting file scan for {} files, start_time: {:?}",
+        files.len(),
+        start_time
+      );
+
       tokio::spawn(async move {
-        _ = scan_path_missing(&files, &missing, &_tx);
-        _ = scan_path_changed(&files, &start_time, &_tx);
+        eprintln!("[WATCHER_DEBUG] Scanner - file scan task started");
+        if !scan_path_missing(&files, &missing, &_tx) {
+          eprintln!(
+            "[WATCHER_DEBUG] Scanner - WARNING: scan_path_missing for files failed to send events"
+          );
+        }
+        if !scan_path_changed(&files, &start_time, &_tx) {
+          eprintln!(
+            "[WATCHER_DEBUG] Scanner - WARNING: scan_path_changed for files failed to send events"
+          );
+        }
+        eprintln!("[WATCHER_DEBUG] Scanner - file scan task completed");
       });
 
       let directories = accessor
@@ -48,9 +65,25 @@ impl Scanner {
         .collect::<Vec<_>>();
       let missing = accessor.missing().0.clone();
       let _tx = self.tx.clone();
+
+      eprintln!(
+        "[WATCHER_DEBUG] Scanner::scan() - starting directory scan for {} directories",
+        directories.len()
+      );
+
       tokio::spawn(async move {
-        _ = scan_path_missing(&directories, &missing, &tx);
-        _ = scan_path_changed(&directories, &start_time, &tx);
+        eprintln!("[WATCHER_DEBUG] Scanner - directory scan task started");
+        if !scan_path_missing(&directories, &missing, &tx) {
+          eprintln!(
+            "[WATCHER_DEBUG] Scanner - WARNING: scan_path_missing for directories failed to send events"
+          );
+        }
+        if !scan_path_changed(&directories, &start_time, &tx) {
+          eprintln!(
+            "[WATCHER_DEBUG] Scanner - WARNING: scan_path_changed for directories failed to send events"
+          );
+        }
+        eprintln!("[WATCHER_DEBUG] Scanner - directory scan task completed");
       });
     }
   }
@@ -78,6 +111,13 @@ fn scan_path_missing(
   if remove_event.is_empty() {
     return true;
   }
+  eprintln!(
+    "[WATCHER_DEBUG] scan_path_missing - Found {} missing paths",
+    remove_event.len()
+  );
+  for event in &remove_event {
+    eprintln!("[WATCHER_DEBUG]   - Missing: {:?}", event.path);
+  }
   tx.send(remove_event).is_ok()
 }
 
@@ -86,6 +126,11 @@ fn scan_path_changed(
   start_time: &SystemTime,
   tx: &UnboundedSender<EventBatch>,
 ) -> bool {
+  eprintln!(
+    "[WATCHER_DEBUG] scan_path_changed - Checking {} paths against start_time: {:?}",
+    paths.len(),
+    start_time
+  );
   let changed_event = paths
     .iter()
     .filter(|path| check_path_metadata(path, start_time))
@@ -97,7 +142,15 @@ fn scan_path_changed(
     .collect::<Vec<_>>();
 
   if changed_event.is_empty() {
+    eprintln!("[WATCHER_DEBUG] scan_path_changed - No changed files detected");
     return true;
+  }
+  eprintln!(
+    "[WATCHER_DEBUG] scan_path_changed - Found {} changed files",
+    changed_event.len()
+  );
+  for event in &changed_event {
+    eprintln!("[WATCHER_DEBUG]   - Changed: {:?}", event.path);
   }
   tx.send(changed_event).is_ok()
 }
@@ -107,8 +160,31 @@ fn check_path_metadata(filepath: &ArcPath, start_time: &SystemTime) -> bool {
     .metadata()
     .and_then(|metadata| metadata.modified().or(metadata.created()))
   {
-    *start_time < m_time
+    // Fix: Use <= instead of < to catch files modified at exactly start_time
+    // This is critical for CI environments where timestamp precision may be low
+    let is_changed = *start_time <= m_time;
+    if is_changed {
+      let delta = m_time
+        .duration_since(*start_time)
+        .ok()
+        .map(|d| d.as_millis())
+        .unwrap_or(0);
+      eprintln!(
+        "[WATCHER_DEBUG] check_path_metadata - File changed: {:?}, start_time: {:?}, m_time: {:?}, delta: {}ms",
+        filepath, start_time, m_time, delta
+      );
+    } else {
+      eprintln!(
+        "[WATCHER_DEBUG] check_path_metadata - File NOT changed: {:?}, start_time: {:?}, m_time: {:?}",
+        filepath, start_time, m_time
+      );
+    }
+    is_changed
   } else {
+    eprintln!(
+      "[WATCHER_DEBUG] check_path_metadata - Failed to get metadata for: {:?}",
+      filepath
+    );
     false
   }
 }

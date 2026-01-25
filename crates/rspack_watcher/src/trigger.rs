@@ -113,9 +113,23 @@ impl Trigger {
   /// - `/path`
   /// - `/path/to`
   pub fn on_event(&self, path: &ArcPath, kind: FsEventKind) {
+    eprintln!(
+      "[WATCHER_DEBUG] Trigger::on_event() - Received {:?} for path: {:?}",
+      kind, path
+    );
     let finder = self.finder();
     let associated_event = finder.find_associated_event(path, kind);
-    self.trigger_events(associated_event);
+    eprintln!(
+      "[WATCHER_DEBUG] Trigger::on_event() - Found {} associated events",
+      associated_event.len()
+    );
+    for (assoc_path, assoc_kind) in &associated_event {
+      eprintln!("[WATCHER_DEBUG]   - {:?} for {:?}", assoc_kind, assoc_path);
+    }
+    let success = self.trigger_events(associated_event);
+    if !success {
+      eprintln!("[WATCHER_DEBUG] Trigger::on_event() - WARNING: Failed to send events to executor");
+    }
   }
 
   /// Helper to construct a `DependencyFinder` for the current path register state.

@@ -136,28 +136,54 @@ impl Executor {
 
       let future = async move {
         while let Some(events) = rx.lock().await.recv().await {
+          eprintln!(
+            "[WATCHER_DEBUG] Executor - Received batch of {} events",
+            events.len()
+          );
           for event in &events {
             let path = event.path.to_string_lossy().to_string();
             match event.kind {
               FsEventKind::Change => {
+                eprintln!("[WATCHER_DEBUG] Executor - Recording change for: {}", path);
                 files_data.lock().await.changed.insert(path);
               }
               FsEventKind::Remove => {
+                eprintln!(
+                  "[WATCHER_DEBUG] Executor - Recording deletion for: {}",
+                  path
+                );
                 files_data.lock().await.deleted.insert(path);
               }
               FsEventKind::Create => {
+                eprintln!(
+                  "[WATCHER_DEBUG] Executor - Recording creation (as change) for: {}",
+                  path
+                );
                 files_data.lock().await.changed.insert(path);
               }
             }
           }
 
-          if !paused.load(Ordering::Relaxed) && !aggregate_running.load(Ordering::Relaxed) {
+          let paused_status = paused.load(Ordering::Relaxed);
+          let aggregate_running_status = aggregate_running.load(Ordering::Relaxed);
+          eprintln!(
+            "[WATCHER_DEBUG] Executor - Status: paused={}, aggregate_running={}",
+            paused_status, aggregate_running_status
+          );
+
+          if !paused_status && !aggregate_running_status {
+            eprintln!("[WATCHER_DEBUG] Executor - Triggering aggregate execution");
             let _ = exec_aggregate_tx.send(ExecAggregateEvent::Execute);
+          } else {
+            eprintln!(
+              "[WATCHER_DEBUG] Executor - Skipping aggregate execution (paused or already running)"
+            );
           }
 
           let _ = exec_tx.send(ExecEvent::Execute(events));
         }
 
+        eprintln!("[WATCHER_DEBUG] Executor - Event receiver closed, shutting down");
         let _ = exec_aggregate_tx.send(ExecAggregateEvent::Close);
         let _ = exec_tx.send(ExecEvent::Close);
       };
@@ -242,27 +268,45 @@ fn create_execute_aggregate_task(
         let mut exec_aggregate_rx_guard = exec_aggregate_rx.lock().await;
         match exec_aggregate_rx_guard.recv().await {
           Some(event) => event,
-          None => return,
+          None => {
+            eprintln!("[WATCHER_DEBUG] Executor aggregate task - Receiver closed, exiting");
+            return;
+          }
         }
       };
 
       if let ExecAggregateEvent::Execute = aggregate_rx {
+        eprintln!("[WATCHER_DEBUG] Executor aggregate task - Received execute signal");
         running.store(true, Ordering::Relaxed);
         // Wait for the aggregate timeout before executing the handler
+        eprintln!(
+          "[WATCHER_DEBUG] Executor aggregate task - Waiting {}ms for event aggregation",
+          aggregate_timeout
+        );
         tokio::time::sleep(tokio::time::Duration::from_millis(aggregate_timeout)).await;
 
         // Get the files to process
         let files = {
           let mut files = files.lock().await;
           if files.is_empty() {
+            eprintln!(
+              "[WATCHER_DEBUG] Executor aggregate task - No files to process after timeout"
+            );
             running.store(false, Ordering::Relaxed);
             continue;
           }
+          eprintln!(
+            "[WATCHER_DEBUG] Executor aggregate task - Processing {} changed and {} deleted files",
+            files.changed.len(),
+            files.deleted.len()
+          );
           std::mem::take(&mut *files)
         };
 
         // Call the event handler with the changed and deleted files
+        eprintln!("[WATCHER_DEBUG] Executor aggregate task - Calling event_aggregate_handler");
         event_handler.on_event_handle(files.changed, files.deleted);
+        eprintln!("[WATCHER_DEBUG] Executor aggregate task - event_aggregate_handler completed");
         running.store(false, Ordering::Relaxed);
       }
     }
