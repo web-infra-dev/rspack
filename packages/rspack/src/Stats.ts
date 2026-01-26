@@ -100,6 +100,8 @@ export class Stats {
         if (statsCompilationMap.has(compilation)) {
           return statsCompilationMap.get(compilation)!;
         }
+        // return empty stats for stale compilation
+        // TODO: Find a better way to handle accessing stats from stale compilations
         if (this.compilation !== this.compilation.compiler._lastCompilation) {
           return {
             assets: [],
@@ -145,6 +147,8 @@ export class Stats {
         if (statsCompilationMap.has(compilation)) {
           return statsCompilationMap.get(compilation)!;
         }
+        // return empty stats for stale compilation
+        // TODO: Find a better way to handle accessing stats from stale compilations
         if (this.compilation !== this.compilation.compiler._lastCompilation) {
           return {
             assets: [],
