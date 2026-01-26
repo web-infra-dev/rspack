@@ -683,6 +683,7 @@ export type CacheNormalized = boolean | {
         type: 'filesystem';
         directory: string;
     };
+    portable?: boolean;
 };
 
 // @public
@@ -701,6 +702,7 @@ export type CacheOptions = boolean | {
         type: 'filesystem';
         directory?: string;
     };
+    portable?: boolean;
 };
 
 // @public (undocumented)

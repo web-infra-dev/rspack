@@ -1803,6 +1803,7 @@ export type CacheOptions =
         type: 'filesystem';
         directory?: string;
       };
+      portable?: boolean;
     };
 //#endregion
 

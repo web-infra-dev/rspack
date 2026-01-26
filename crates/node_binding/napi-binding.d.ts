@@ -1850,6 +1850,7 @@ export interface RawCacheOptionsPersistent {
   version?: string
   snapshot?: RawSnapshotOptions
   storage?: RawStorageOptions
+  portable?: boolean
 }
 
 export interface RawCircularDependencyRspackPluginOptions {
