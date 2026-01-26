@@ -682,6 +682,8 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
       if (!context.cachedGetErrors) {
         const map = new WeakMap();
         context.cachedGetErrors = (compilation) => {
+          // return empty errors for stale compilation
+          // TODO: Find a better way to handle accessing stats from stale compilations
           if (compilation.compiler._lastCompilation !== compilation) {
             return [];
           }
@@ -695,6 +697,8 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
       if (!context.cachedGetWarnings) {
         const map = new WeakMap();
         context.cachedGetWarnings = (compilation) => {
+          // return empty errors for stale compilation
+          // TODO: Find a better way to handle accessing stats from stale compilations
           if (compilation.compiler._lastCompilation !== compilation) {
             return [];
           }
