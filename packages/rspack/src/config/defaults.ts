@@ -232,7 +232,7 @@ const applyIncrementalDefaults = (options: RspackOptionsNormalized) => {
     D(options.incremental, 'buildModuleGraph', true);
     D(options.incremental, 'finishModules', true);
     D(options.incremental, 'optimizeDependencies', true);
-    D(options.incremental, 'buildChunkGraph', false);
+    D(options.incremental, 'buildChunkGraph', true);
     D(options.incremental, 'moduleIds', true);
     D(options.incremental, 'chunkIds', true);
     D(options.incremental, 'modulesHashes', true);
