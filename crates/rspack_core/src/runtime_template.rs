@@ -1434,6 +1434,14 @@ impl ModuleCodegenRuntimeTemplate {
     }
   }
 
+  pub fn render_module_argument(&mut self, module_argument: ModuleArgument) -> String {
+    self.runtime_requirements.insert(RuntimeGlobals::MODULE);
+    match module_argument {
+      ModuleArgument::Module => "module".to_string(),
+      ModuleArgument::RspackModule => self.render_runtime_variable(&RuntimeVariable::Module),
+    }
+  }
+
   pub fn render_runtime_variable(&self, runtime_variable: &RuntimeVariable) -> String {
     runtime_variable_to_string(runtime_variable, &self.compiler_options)
   }

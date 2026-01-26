@@ -2,7 +2,7 @@
 PublicPath: auto
 asset main.js xx KiB {889} [emitted] (name: main)
 Entrypoint main xx KiB = main.js
-chunk {889} (runtime: main) main.js (main) xx bytes (javascript) xx bytes (runtime) [entry] [rendered]
+chunk {889} (runtime: main) main.js (main) xx bytes [entry] [rendered]
   > ./index main
   ./.|sync [641] xx bytes {889} [depth 1] [dependent] [built] [code generated]
     [no exports]
@@ -130,4 +130,4 @@ WARNING in ./index.js 3:1-16
    ·         ───────
    ╰────
 
-1970-04-20 12<LINE_COL>: Rspack x.x.x compiled with 2 warnings in X s (802455ef60d99839)
+1970-04-20 12<LINE_COL>: Rspack x.x.x compiled with 2 warnings in X s (d65f0ed7b7d561ad)

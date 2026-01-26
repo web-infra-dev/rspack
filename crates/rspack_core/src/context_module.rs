@@ -31,10 +31,10 @@ use crate::{
   ChunkGroupOptions, CodeGenerationResult, Compilation, ConcatenationScope,
   ContextElementDependency, DependenciesBlock, Dependency, DependencyCategory, DependencyId,
   DependencyLocation, DynamicImportMode, ExportsType, FactoryMeta, FakeNamespaceObjectMode,
-  GroupOptions, ImportAttributes, LibIdentOptions, Module, ModuleCodegenRuntimeTemplate,
-  ModuleGraph, ModuleId, ModuleIdsArtifact, ModuleLayer, ModuleType, RealDependencyLocation,
-  Resolve, RuntimeGlobals, RuntimeSpec, RuntimeTemplate, SourceType, contextify,
-  get_exports_type_with_strict, impl_module_meta_info, module_update_hash, to_path,
+  GroupOptions, ImportAttributes, LibIdentOptions, Module, ModuleArgument,
+  ModuleCodegenRuntimeTemplate, ModuleGraph, ModuleId, ModuleIdsArtifact, ModuleLayer, ModuleType,
+  RealDependencyLocation, Resolve, RuntimeGlobals, RuntimeSpec, RuntimeTemplate, SourceType,
+  contextify, get_exports_type_with_strict, impl_module_meta_info, module_update_hash, to_path,
 };
 
 static CHUNK_NAME_INDEX_PLACEHOLDER: &str = "[index]";
@@ -366,8 +366,9 @@ impl ContextModule {
       webpackEmptyAsyncContext.keys = {keys};
       webpackEmptyAsyncContext.resolve = webpackEmptyAsyncContext;
       webpackEmptyAsyncContext.id = {id};
-      module.exports = webpackEmptyAsyncContext;
+      {module}.exports = webpackEmptyAsyncContext;
       "#,
+      module = runtime_template.render_module_argument(ModuleArgument::Module),
       keys = runtime_template.returning_function("[]", ""),
       id = json_stringify(self.get_module_id(&compilation.module_ids_artifact))
     }
@@ -387,8 +388,9 @@ impl ContextModule {
       webpackEmptyContext.keys = {keys};
       webpackEmptyContext.resolve = webpackEmptyContext;
       webpackEmptyContext.id = {id};
-      module.exports = webpackEmptyContext;
+      {module}.exports = webpackEmptyContext;
       "#,
+      module = runtime_template.render_module_argument(ModuleArgument::Module),
       keys = runtime_template.returning_function("[]", ""),
       id = json_stringify(self.get_module_id(&compilation.module_ids_artifact))
     }
@@ -600,8 +602,9 @@ impl ContextModule {
       {async_context}
       __rspack_async_context.keys = {keys};
       __rspack_async_context.id = {id};
-      module.exports = __rspack_async_context;
+      {module}.exports = __rspack_async_context;
       "#,
+      module = runtime_template.render_module_argument(ModuleArgument::Module),
       map = json_stringify(&map),
       keys = runtime_template.returning_function("Object.keys(map)", ""),
       id = json_stringify(self.get_module_id(&compilation.module_ids_artifact))
@@ -654,8 +657,9 @@ impl ContextModule {
       __rspack_async_context.keys = {keys};
       __rspack_async_context.resolve = __rspack_async_context_resolve;
       __rspack_async_context.id = {id};
-      module.exports = __rspack_async_context;
+      {module}.exports = __rspack_async_context;
       "#,
+      module = runtime_template.render_module_argument(ModuleArgument::Module),
       map = json_stringify(&map),
       fake_map_init_statement = self.get_fake_map_init_statement(&fake_map),
       has_own_property = runtime_template.render_runtime_globals(&RuntimeGlobals::HAS_OWN_PROPERTY),
@@ -703,8 +707,9 @@ impl ContextModule {
       __rspack_async_context.keys = {keys};
       __rspack_async_context.resolve = __rspack_async_context_resolve;
       __rspack_async_context.id = {id};
-      module.exports = __rspack_async_context;
+      {module}.exports = __rspack_async_context;
       "#,
+      module = runtime_template.render_module_argument(ModuleArgument::Module),
       map = json_stringify(&map),
       fake_map_init_statement = self.get_fake_map_init_statement(&fake_map),
       module_factories = runtime_template.render_runtime_globals(&RuntimeGlobals::MODULE_FACTORIES),
@@ -748,8 +753,9 @@ impl ContextModule {
       __rspack_context.keys = {keys};
       __rspack_context.resolve = __rspack_context_resolve;
       __rspack_context.id = {id};
-      module.exports = __rspack_context;
+      {module}.exports = __rspack_context;
       "#,
+      module = runtime_template.render_module_argument(ModuleArgument::Module),
       map = json_stringify(&map),
       fake_map_init_statement = self.get_fake_map_init_statement(&fake_map),
       module_factories = runtime_template.render_runtime_globals(&RuntimeGlobals::MODULE_FACTORIES),
@@ -803,8 +809,9 @@ impl ContextModule {
       __rspack_async_context.keys = {keys};
       __rspack_async_context.resolve = __rspack_async_context_resolve;
       __rspack_async_context.id = {id};
-      module.exports = __rspack_async_context;
+      {module}.exports = __rspack_async_context;
       "#,
+      module = runtime_template.render_module_argument(ModuleArgument::Module),
       map = json_stringify(&map),
       fake_map_init_statement = self.get_fake_map_init_statement(&fake_map),
       has_own_property = runtime_template.render_runtime_globals(&RuntimeGlobals::HAS_OWN_PROPERTY),
@@ -843,9 +850,10 @@ impl ContextModule {
         return Object.keys(map);
       }};
       __rspack_context.resolve = __rspack_context_resolve;
-      module.exports = __rspack_context;
+      {module}.exports = __rspack_context;
       __rspack_context.id = {id};
       "#,
+      module = runtime_template.render_module_argument(ModuleArgument::Module),
       map = json_stringify(&map),
       fake_map_init_statement = self.get_fake_map_init_statement(&fake_map),
       has_own_property = runtime_template.render_runtime_globals(&RuntimeGlobals::HAS_OWN_PROPERTY),
@@ -1104,44 +1112,6 @@ impl Module for ContextModule {
       all_deps.extend(block.get_dependencies());
     }
 
-    code_generation_result
-      .runtime_requirements
-      .insert(RuntimeGlobals::MODULE);
-    code_generation_result
-      .runtime_requirements
-      .insert(RuntimeGlobals::HAS_OWN_PROPERTY);
-    if !all_deps.is_empty() {
-      code_generation_result
-        .runtime_requirements
-        .insert(RuntimeGlobals::REQUIRE);
-      match self.options.context_options.mode {
-        ContextMode::Weak => {
-          code_generation_result
-            .runtime_requirements
-            .insert(RuntimeGlobals::MODULE_FACTORIES);
-        }
-        ContextMode::AsyncWeak => {
-          code_generation_result
-            .runtime_requirements
-            .insert(RuntimeGlobals::MODULE_FACTORIES);
-          code_generation_result
-            .runtime_requirements
-            .insert(RuntimeGlobals::ENSURE_CHUNK);
-        }
-        ContextMode::Lazy | ContextMode::LazyOnce => {
-          code_generation_result
-            .runtime_requirements
-            .insert(RuntimeGlobals::ENSURE_CHUNK);
-        }
-        _ => {}
-      }
-      let fake_map = self.get_fake_map(all_deps.iter(), compilation);
-      if !matches!(fake_map, FakeMapValue::Bit(bit) if bit == FakeNamespaceObjectMode::NAMESPACE) {
-        code_generation_result
-          .runtime_requirements
-          .insert(RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT);
-      }
-    }
     Ok(code_generation_result)
   }
 
