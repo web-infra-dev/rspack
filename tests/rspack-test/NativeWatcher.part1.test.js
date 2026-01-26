@@ -15,8 +15,8 @@ describeByWalk(
 			// Exclude cp-z
 			/^c[p-z]/,
 			/^[d-z]/,
-      // Exclude flaky tests
-      /skip-building-chunk-graph/
+			// Exclude flaky tests
+			/skip-building-chunk-graph/
 		]
 	}
 );
