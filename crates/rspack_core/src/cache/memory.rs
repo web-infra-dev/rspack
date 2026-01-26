@@ -67,6 +67,18 @@ impl Cache for MemoryCache {
     }
   }
 
+  // BUILD_CHUNK_GRAPH: build_chunk_graph_artifact
+  async fn before_build_chunk_graph(&mut self, compilation: &mut Compilation) {
+    if let Some(old_compilation) = self.old_compilation.as_mut() {
+      let incremental = &compilation.incremental;
+      recover_artifact(
+        incremental,
+        &mut compilation.build_chunk_graph_artifact,
+        &mut old_compilation.build_chunk_graph_artifact,
+      );
+    }
+  }
+
   // MODULE_IDS: module_ids_artifact
   async fn before_module_ids(&mut self, compilation: &mut Compilation) {
     if let Some(old_compilation) = self.old_compilation.as_mut() {
@@ -176,5 +188,11 @@ impl Cache for MemoryCache {
         &mut old_compilation.chunk_render_cache_artifact,
       );
     }
+  }
+
+  // FIXME: migrate emitted_asset_versions to EmitAssetArtifact for recovery
+  // EMIT_ASSETS: no artifacts to recover
+  async fn before_emit_assets(&mut self, _compilation: &mut Compilation) {
+    // No artifacts to recover for this phase
   }
 }
