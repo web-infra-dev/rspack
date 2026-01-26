@@ -1159,21 +1159,6 @@ return {}
     )
   }
 
-  pub fn define_es_module_flag_statement(
-    &self,
-    exports_argument: ExportsArgument,
-    runtime_requirements: &mut RuntimeGlobals,
-  ) -> String {
-    runtime_requirements.insert(RuntimeGlobals::MAKE_NAMESPACE_OBJECT);
-    runtime_requirements.insert(RuntimeGlobals::EXPORTS);
-
-    format!(
-      "{}({});\n",
-      self.render_runtime_globals(&RuntimeGlobals::MAKE_NAMESPACE_OBJECT),
-      self.render_exports_argument(exports_argument)
-    )
-  }
-
   pub fn render_exports_argument(&self, exports_argument: ExportsArgument) -> String {
     match exports_argument {
       ExportsArgument::Exports => "exports".to_string(),
@@ -1271,6 +1256,10 @@ return {}
     format!(
       "var e = new Error('Module is not available (weak dependency), request is {request}'); e.code = 'MODULE_NOT_FOUND'; throw e;"
     )
+  }
+
+  pub fn create_module_codegen_runtime_template(&self) -> ModuleCodegenRuntimeTemplate {
+    ModuleCodegenRuntimeTemplate::new(self.compiler_options.clone())
   }
 }
 
@@ -1401,4 +1390,191 @@ fn get_outgoing_async_modules(
     &mut visited,
   );
   set
+}
+
+pub struct ModuleCodegenRuntimeTemplate {
+  compiler_options: Arc<CompilerOptions>,
+  runtime_requirements: RuntimeGlobals,
+}
+
+impl ModuleCodegenRuntimeTemplate {
+  pub fn new(compiler_options: Arc<CompilerOptions>) -> Self {
+    Self {
+      compiler_options,
+      runtime_requirements: RuntimeGlobals::empty(),
+    }
+  }
+
+  pub fn runtime_requirements_mut(&mut self) -> &mut RuntimeGlobals {
+    &mut self.runtime_requirements
+  }
+
+  pub fn runtime_requirements(&self) -> &RuntimeGlobals {
+    &self.runtime_requirements
+  }
+
+  pub fn render_runtime_globals(&mut self, runtime_globals: &RuntimeGlobals) -> String {
+    self.runtime_requirements.insert(*runtime_globals);
+    runtime_globals_to_string(runtime_globals, &self.compiler_options)
+  }
+
+  pub fn define_es_module_flag_statement(&mut self, exports_argument: ExportsArgument) -> String {
+    format!(
+      "{}({});\n",
+      self.render_runtime_globals(&RuntimeGlobals::MAKE_NAMESPACE_OBJECT),
+      self.render_exports_argument(exports_argument)
+    )
+  }
+
+  pub fn render_exports_argument(&mut self, exports_argument: ExportsArgument) -> String {
+    self.runtime_requirements.insert(RuntimeGlobals::EXPORTS);
+    match exports_argument {
+      ExportsArgument::Exports => "exports".to_string(),
+      ExportsArgument::RspackExports => self.render_runtime_variable(&RuntimeVariable::Exports),
+    }
+  }
+
+  pub fn render_runtime_variable(&self, runtime_variable: &RuntimeVariable) -> String {
+    runtime_variable_to_string(runtime_variable, &self.compiler_options)
+  }
+
+  pub fn returning_function(&self, return_value: &str, args: &str) -> String {
+    if self
+      .compiler_options
+      .output
+      .environment
+      .supports_arrow_function()
+    {
+      format!("({args}) => ({return_value})")
+    } else {
+      format!("function({args}) {{ return {return_value}; }}")
+    }
+  }
+
+  pub fn basic_function(&self, args: &str, body: &str) -> String {
+    if self
+      .compiler_options
+      .output
+      .environment
+      .supports_arrow_function()
+    {
+      format!(
+        r#"({args}) => {{
+{body}
+}}"#
+      )
+    } else {
+      format!(
+        r#"function({args}) {{
+{body}
+}}"#
+      )
+    }
+  }
+
+  pub fn get_property_accessed_deferred_module(
+    &mut self,
+    exports_type: ExportsType,
+    module_id_expr: &str,
+    async_deps: FxIndexSet<ModuleId>,
+  ) -> String {
+    let is_async = !async_deps.is_empty();
+    let mut content = "{\nget a() {\n  ".to_string();
+    let namespace_or_dynamic =
+      matches!(exports_type, ExportsType::Namespace | ExportsType::Dynamic);
+    if namespace_or_dynamic {
+      content += "var exports = ";
+    } else {
+      content += "return ";
+    }
+    content += &self.render_runtime_globals(&RuntimeGlobals::REQUIRE);
+    content += "(";
+    content += module_id_expr;
+    content += ")";
+    if is_async {
+      content += "[";
+      content += &self.render_runtime_globals(&RuntimeGlobals::ASYNC_MODULE_EXPORT_SYMBOL);
+      content += "]";
+    }
+    content += ";\n";
+    if namespace_or_dynamic {
+      content += "  ";
+      if matches!(exports_type, ExportsType::Dynamic) {
+        content += "if (exports.__esModule) ";
+      }
+      content += "Object.defineProperty(this, \"a\", { value: exports });\n  ";
+      content += "return exports;\n";
+    }
+    content += "},\n";
+    if is_async {
+      content += "[";
+      content +=
+        &self.render_runtime_globals(&RuntimeGlobals::MAKE_DEFERRED_NAMESPACE_OBJECT_SYMBOL);
+      content += "]: ";
+      content += &json_stringify(&async_deps);
+      content += ",\n";
+    }
+    content += "}";
+    content
+  }
+
+  pub fn runtime_condition_expression(
+    &mut self,
+    chunk_graph: &ChunkGraph,
+    runtime_condition: Option<&RuntimeCondition>,
+    runtime: Option<&RuntimeSpec>,
+  ) -> String {
+    let Some(runtime_condition) = runtime_condition else {
+      return "true".to_string();
+    };
+
+    let runtime_condition = match runtime_condition {
+      RuntimeCondition::Boolean(v) => return v.to_string(),
+      RuntimeCondition::Spec(spec) => spec,
+    };
+
+    let mut positive_runtime_ids = HashSet::default();
+    for_each_runtime(
+      Some(runtime_condition),
+      |runtime| {
+        if let Some(runtime_id) =
+          runtime.and_then(|runtime| chunk_graph.get_runtime_id(runtime.as_str()))
+        {
+          positive_runtime_ids.insert(runtime_id);
+        }
+      },
+      false,
+    );
+
+    let mut negative_runtime_ids = HashSet::default();
+    for_each_runtime(
+      subtract_runtime(runtime, Some(runtime_condition)).as_ref(),
+      |runtime| {
+        if let Some(runtime_id) =
+          runtime.and_then(|runtime| chunk_graph.get_runtime_id(runtime.as_str()))
+        {
+          negative_runtime_ids.insert(runtime_id);
+        }
+      },
+      false,
+    );
+
+    compile_boolean_matcher_from_lists(
+      positive_runtime_ids.into_iter().collect::<Vec<_>>(),
+      negative_runtime_ids.into_iter().collect::<Vec<_>>(),
+    )
+    .render(
+      self
+        .render_runtime_globals(&RuntimeGlobals::RUNTIME_ID)
+        .as_str(),
+    )
+  }
+
+  pub fn throw_missing_module_error_block(&self, request: &str) -> String {
+    let e = format!("Cannot find module '{request}'");
+    format!(
+      "var e = new Error({}); e.code = 'MODULE_NOT_FOUND'; throw e;",
+      json!(e)
+    )
+  }
 }

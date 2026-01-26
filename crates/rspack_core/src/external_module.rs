@@ -324,8 +324,10 @@ impl ExternalModule {
     runtime: Option<&RuntimeSpec>,
     concatenation_scope: Option<&mut ConcatenationScope>,
   ) -> Result<(BoxSource, ChunkInitFragments, RuntimeGlobals)> {
+    let mut runtime_template = compilation
+      .runtime_template
+      .create_module_codegen_runtime_template();
     let mut chunk_init_fragments: ChunkInitFragments = Default::default();
-    let mut runtime_requirements: RuntimeGlobals = Default::default();
     let supports_const = compilation.options.output.environment.supports_const();
     let resolved_external_type = self.resolve_external_type();
     let module_graph = compilation.get_module_graph();
@@ -412,9 +414,7 @@ impl ExternalModule {
           format!(
             "if(typeof {} === 'undefined') {{ {} }}\n",
             external_variable,
-            compilation
-              .runtime_template
-              .throw_missing_module_error_block(&self.user_request)
+            runtime_template.throw_missing_module_error_block(&self.user_request)
           )
         } else {
           String::new()
@@ -443,9 +443,7 @@ impl ExternalModule {
           format!(
             "if(typeof {} === 'undefined') {{ {} }}\n",
             external_variable,
-            compilation
-              .runtime_template
-              .throw_missing_module_error_block(&get_request_string(request))
+            runtime_template.throw_missing_module_error_block(&get_request_string(request))
           )
         } else {
           String::new()
@@ -676,7 +674,6 @@ impl ExternalModule {
       "script" if request.is_some() => {
         let request = request.expect("request should be some");
         let url_and_global = extract_url_and_global(request.primary())?;
-        runtime_requirements.insert(RuntimeGlobals::LOAD_SCRIPT);
         format!(
           r#"
 var __rspack_error = new Error();
@@ -698,9 +695,7 @@ if(typeof {global} !== "undefined") return resolve();
           global = url_and_global.global,
           global_str = serde_json::to_string(url_and_global.global).to_rspack_result()?,
           url_str = serde_json::to_string(url_and_global.url).to_rspack_result()?,
-          load_script = compilation
-            .runtime_template
-            .render_runtime_globals(&RuntimeGlobals::LOAD_SCRIPT)
+          load_script = runtime_template.render_runtime_globals(&RuntimeGlobals::LOAD_SCRIPT)
         )
       }
       _ => {
@@ -713,9 +708,7 @@ if(typeof {global} !== "undefined") return resolve();
           format!(
             "if(typeof {} === 'undefined') {{ {} }}\n",
             &external_variable,
-            compilation
-              .runtime_template
-              .throw_missing_module_error_block(&external_variable)
+            runtime_template.throw_missing_module_error_block(&external_variable)
           )
         } else {
           String::new()
@@ -731,7 +724,7 @@ if(typeof {global} !== "undefined") return resolve();
     Ok((
       RawStringSource::from(source).boxed(),
       chunk_init_fragments,
-      runtime_requirements,
+      *runtime_template.runtime_requirements(),
     ))
   }
 }
