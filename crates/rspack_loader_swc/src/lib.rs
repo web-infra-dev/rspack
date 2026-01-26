@@ -71,7 +71,7 @@ impl SwcLoader {
       let mut transform = TransformConfig::default();
       transform.react.development =
         Some(Mode::is_development(&loader_context.context.options.mode));
-      // Enable verbatimModuleSyntax by default for better TypeScript compatibility
+      // Disable verbatimModuleSyntax by default; enabling it can improve TypeScript compatibility
       transform.verbatim_module_syntax = Some(false).into();
 
       swc_options
