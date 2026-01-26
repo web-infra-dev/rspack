@@ -681,30 +681,30 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
       }
       if (!context.cachedGetErrors) {
         const map = new WeakMap();
-        context.cachedGetErrors = (compilation) =>
-          map.get(compilation) ||
-          ((errors) => {
-            map.set(compilation, errors);
-            return errors;
-          })(statsCompilation.errors);
+        context.cachedGetErrors = (compilation) => {
+          if (compilation.compiler._lastCompilation !== compilation) {
+            return [];
+          }
+          const cache = map.get(compilation);
+          if (cache) return cache;
+          const errors = statsCompilation.errors;
+          map.set(compilation, errors);
+          return errors;
+        };
       }
       if (!context.cachedGetWarnings) {
         const map = new WeakMap();
         context.cachedGetWarnings = (compilation) => {
-          return (
-            map.get(compilation) ||
-            ((warnings) => {
-              map.set(compilation, warnings);
-              return warnings;
-            })(
-              compilation
-                .__internal_getInner()
-                .createStatsWarnings(
-                  compilation.getWarnings(),
-                  !!options.colors,
-                ),
-            )
-          );
+          if (compilation.compiler._lastCompilation !== compilation) {
+            return [];
+          }
+          const cache = map.get(compilation);
+          if (cache) return cache;
+          const warnings = compilation
+            .__internal_getInner()
+            .createStatsWarnings(compilation.getWarnings(), !!options.colors);
+          map.set(compilation, warnings);
+          return warnings;
         };
       }
       if (compilation.name) {
