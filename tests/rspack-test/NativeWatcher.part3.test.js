@@ -14,7 +14,7 @@ describeByWalk(
 		exclude: [
 			// Exclude a-p
 			/^[a-p]/,
-      /skip-building-chunk-graph/
-    ]
+			/skip-building-chunk-graph/
+		]
 	}
 );
