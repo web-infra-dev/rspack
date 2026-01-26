@@ -165,6 +165,11 @@ impl Dependency {
       None => Either::B(()),
     })
   }
+  #[napi(getter)]
+  pub fn loc(&mut self) -> napi::Result<Option<crate::location::DependencyLocation>> {
+    let (dependency, _) = self.as_ref()?;
+    Ok(dependency.loc().map(|loc| loc.into()))
+  }
 }
 
 type DependencyInstanceRefs = HashMap<DependencyId, OneShotInstanceRef<Dependency>>;
