@@ -81,6 +81,10 @@ export class Stats {
   }
 
   toJson(opts?: StatsValue, forToString?: boolean): StatsCompilation {
+    if (this.compilation !== this.compilation.compiler._lastCompilation) {
+      return {};
+    }
+
     const options = this.compilation.createStatsOptions(opts, {
       forToString,
     });
@@ -131,6 +135,9 @@ export class Stats {
       ): binding.JsStatsCompilation => {
         if (statsCompilationMap.has(compilation)) {
           return statsCompilationMap.get(compilation)!;
+        }
+        if (this.compilation !== this.compilation.compiler._lastCompilation) {
+          return {};
         }
         const innerStats = this.#getInnerByCompilation(compilation);
         const innerStatsCompilation = innerStats.toJson(options);
