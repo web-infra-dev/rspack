@@ -215,6 +215,7 @@ export declare class Dependency {
   get critical(): boolean
   set critical(val: boolean)
   get ids(): Array<string> | undefined
+  get loc(): DependencyLocation | null
 }
 
 export declare class Diagnostics {
