@@ -6,9 +6,9 @@ use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
   AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo, BuildMeta, BuildResult,
   ChunkGraph, CodeGenerationResult, Compilation, ConcatenationScope, Context, DependenciesBlock,
-  Dependency, DependencyId, FactoryMeta, LibIdentOptions, Module, ModuleGraph, ModuleIdentifier,
-  ModuleType, RuntimeSpec, SourceType, impl_module_meta_info, impl_source_map_config,
-  module_update_hash,
+  Dependency, DependencyId, ExportsType, FactoryMeta, LibIdentOptions, Module, ModuleGraph,
+  ModuleIdentifier, ModuleType, RuntimeSpec, SourceType, impl_module_meta_info,
+  impl_source_map_config, module_update_hash,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
@@ -138,6 +138,15 @@ impl Module for RemoteModule {
 
   fn name_for_condition(&self) -> Option<Box<str>> {
     Some(self.request.as_str().into())
+  }
+
+  fn get_exports_type(
+    &self,
+    _module_graph: &ModuleGraph,
+    _module_graph_cache: &rspack_core::ModuleGraphCacheArtifact,
+    _strict: bool,
+  ) -> ExportsType {
+    ExportsType::Dynamic
   }
 
   async fn build(
