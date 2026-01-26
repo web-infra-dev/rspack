@@ -1417,7 +1417,7 @@ impl Module for ConcatenatedModule {
         definitions.push(format!(
           "\n  {}: {}",
           property_name(key).expect("should convert to property_name"),
-          compilation.runtime_template.returning_function(value, "")
+          runtime_template.returning_function(value, "")
         ));
       }
 
