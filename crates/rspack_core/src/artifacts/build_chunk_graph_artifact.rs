@@ -242,4 +242,8 @@ pub struct BuildChunkGraphArtifact {
 
 impl ArtifactExt for BuildChunkGraphArtifact {
   const PASS: IncrementalPasses = IncrementalPasses::BUILD_CHUNK_GRAPH;
+  // FIXME: BuildChunkGraphArtifact is controlled by BUILD_MODULE_GRAPH PASS currently cause it enable no_change optimization when BUILD_MODULE_GRAPH is enabled.
+  fn should_recover(incremental: &crate::incremental::Incremental) -> bool {
+    return incremental.passes_enabled(IncrementalPasses::BUILD_MODULE_GRAPH);
+  }
 }

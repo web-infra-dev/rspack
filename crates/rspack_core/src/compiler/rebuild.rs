@@ -96,11 +96,6 @@ impl Compiler {
         .incremental
         .mutations_readable(IncrementalPasses::BUILD_MODULE_GRAPH)
       {
-        // FIXME: This is a hack that even when IncrementalPasses::BUILD_MODULE_GRAPH is disabled,
-        // we still enable incremental build for build_chunk_graph when IncrementalPasses::BUILD_MODULE_GRAPH is enabled.
-        next_compilation.build_chunk_graph_artifact =
-          std::mem::take(&mut self.compilation.build_chunk_graph_artifact);
-
         // reuse module executor
         next_compilation.module_executor = std::mem::take(&mut self.compilation.module_executor);
       }
