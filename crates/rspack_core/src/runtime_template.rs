@@ -1577,4 +1577,138 @@ impl ModuleCodegenRuntimeTemplate {
       json!(e)
     )
   }
+
+  pub fn block_promise(
+    &mut self,
+    block: Option<&AsyncDependenciesBlockIdentifier>,
+    compilation: &Compilation,
+    message: &str,
+  ) -> String {
+    let Some(block) = block else {
+      let comment = self.comment(CommentOptions {
+        request: None,
+        chunk_name: None,
+        message: Some(message),
+      });
+      return format!("Promise.resolve({})", comment.trim());
+    };
+    let chunk_group = compilation
+      .chunk_graph
+      .get_block_chunk_group(block, &compilation.chunk_group_by_ukey);
+    let Some(chunk_group) = chunk_group else {
+      let comment = self.comment(CommentOptions {
+        request: None,
+        chunk_name: None,
+        message: Some(message),
+      });
+      return format!("Promise.resolve({})", comment.trim());
+    };
+    if chunk_group.chunks.is_empty() {
+      let comment = self.comment(CommentOptions {
+        request: None,
+        chunk_name: None,
+        message: Some(message),
+      });
+      return format!("Promise.resolve({})", comment.trim());
+    }
+    let mg = compilation.get_module_graph();
+    let block = mg.block_by_id_expect(block);
+    let comment = self.comment(CommentOptions {
+      request: None,
+      chunk_name: block.get_group_options().and_then(|o| o.name()),
+      message: Some(message),
+    });
+    let chunks = chunk_group
+      .chunks
+      .iter()
+      .map(|c| compilation.chunk_by_ukey.expect_get(c))
+      .filter(|c| !c.has_runtime(&compilation.chunk_group_by_ukey) && c.id().is_some())
+      .collect::<Vec<_>>();
+
+    if chunks.len() == 1 {
+      let chunk_id = serde_json::to_string(chunks[0].id().expect("should have chunk.id"))
+        .expect("should able to json stringify");
+
+      let fetch_priority = chunk_group
+        .kind
+        .get_normal_options()
+        .and_then(|x| x.fetch_priority);
+
+      if fetch_priority.is_some() {
+        self
+          .runtime_requirements
+          .insert(RuntimeGlobals::HAS_FETCH_PRIORITY);
+      }
+
+      format!(
+        "{}({comment}{chunk_id}{})",
+        self.render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK),
+        fetch_priority
+          .map(|x| format!(r#", "{x}""#))
+          .unwrap_or_default()
+      )
+    } else if !chunks.is_empty() {
+      let fetch_priority = chunk_group
+        .kind
+        .get_normal_options()
+        .and_then(|x| x.fetch_priority);
+
+      if fetch_priority.is_some() {
+        self
+          .runtime_requirements
+          .insert(RuntimeGlobals::HAS_FETCH_PRIORITY);
+      }
+
+      format!(
+        "Promise.all({comment}[{}])",
+        chunks
+          .iter()
+          .map(|c| format!(
+            "{}({}{})",
+            self.render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK),
+            serde_json::to_string(c.id().expect("should have chunk.id"))
+              .expect("should able to json stringify"),
+            fetch_priority
+              .map(|x| format!(r#", "{x}""#))
+              .unwrap_or_default()
+          ))
+          .collect::<Vec<_>>()
+          .join(", ")
+      )
+    } else {
+      format!("Promise.resolve({})", comment.trim())
+    }
+  }
+
+  // add a comment
+  fn comment(&self, comment_options: CommentOptions) -> String {
+    let used_pathinfo = matches!(
+      self.compiler_options.output.pathinfo,
+      PathInfo::Bool(true) | PathInfo::String(_)
+    );
+    let content = if used_pathinfo {
+      vec![
+        comment_options.message,
+        comment_options.request,
+        comment_options.chunk_name,
+      ]
+    } else {
+      vec![comment_options.message, comment_options.chunk_name]
+    }
+    .iter()
+    .filter_map(|&item| item)
+    .map(|item| contextify(self.compiler_options.context.as_path(), item))
+    .collect::<Vec<_>>()
+    .join(" | ");
+
+    if content.is_empty() {
+      return String::new();
+    }
+
+    if used_pathinfo {
+      format!("{} ", to_comment(&content))
+    } else {
+      format!("{} ", to_normal_comment(&content))
+    }
+  }
 }

@@ -31,10 +31,10 @@ use crate::{
   ChunkGroupOptions, CodeGenerationResult, Compilation, ConcatenationScope,
   ContextElementDependency, DependenciesBlock, Dependency, DependencyCategory, DependencyId,
   DependencyLocation, DynamicImportMode, ExportsType, FactoryMeta, FakeNamespaceObjectMode,
-  GroupOptions, ImportAttributes, LibIdentOptions, Module, ModuleGraph, ModuleId,
-  ModuleIdsArtifact, ModuleLayer, ModuleType, RealDependencyLocation, Resolve, RuntimeGlobals,
-  RuntimeSpec, RuntimeTemplate, SourceType, contextify, get_exports_type_with_strict,
-  impl_module_meta_info, module_update_hash, to_path,
+  GroupOptions, ImportAttributes, LibIdentOptions, Module, ModuleCodegenRuntimeTemplate,
+  ModuleGraph, ModuleId, ModuleIdsArtifact, ModuleLayer, ModuleType, RealDependencyLocation,
+  Resolve, RuntimeGlobals, RuntimeSpec, RuntimeTemplate, SourceType, contextify,
+  get_exports_type_with_strict, impl_module_meta_info, module_update_hash, to_path,
 };
 
 static CHUNK_NAME_INDEX_PLACEHOLDER: &str = "[index]";
@@ -287,7 +287,7 @@ impl ContextModule {
     fake_map: &FakeMapValue,
     async_module: bool,
     fake_map_data_expr: &str,
-    runtime_template: &RuntimeTemplate,
+    runtime_template: &mut ModuleCodegenRuntimeTemplate,
   ) -> String {
     if let FakeMapValue::Bit(bit) = fake_map {
       return self.get_return(bit, async_module, runtime_template);
@@ -304,7 +304,7 @@ impl ContextModule {
     &self,
     fake_map_bit: &FakeNamespaceObjectMode,
     async_module: bool,
-    runtime_template: &RuntimeTemplate,
+    runtime_template: &mut ModuleCodegenRuntimeTemplate,
   ) -> String {
     if *fake_map_bit == FakeNamespaceObjectMode::NAMESPACE {
       return format!(
@@ -348,7 +348,11 @@ impl ContextModule {
       .collect()
   }
 
-  fn get_source_for_empty_async_context(&self, compilation: &Compilation) -> String {
+  fn get_source_for_empty_async_context(
+    &self,
+    compilation: &Compilation,
+    runtime_template: &mut ModuleCodegenRuntimeTemplate,
+  ) -> String {
     formatdoc! {r#"
       function webpackEmptyAsyncContext(req) {{
         // Here Promise.resolve().then() is used instead of new Promise() to prevent
@@ -364,12 +368,16 @@ impl ContextModule {
       webpackEmptyAsyncContext.id = {id};
       module.exports = webpackEmptyAsyncContext;
       "#,
-      keys = compilation.runtime_template.returning_function("[]", ""),
+      keys = runtime_template.returning_function("[]", ""),
       id = json_stringify(self.get_module_id(&compilation.module_ids_artifact))
     }
   }
 
-  fn get_source_for_empty_context(&self, compilation: &Compilation) -> String {
+  fn get_source_for_empty_context(
+    &self,
+    compilation: &Compilation,
+    runtime_template: &mut ModuleCodegenRuntimeTemplate,
+  ) -> String {
     formatdoc! {r#"
       function webpackEmptyContext(req) {{
         var e = new Error("Cannot find module '" + req + "'");
@@ -381,7 +389,7 @@ impl ContextModule {
       webpackEmptyContext.id = {id};
       module.exports = webpackEmptyContext;
       "#,
-      keys = compilation.runtime_template.returning_function("[]", ""),
+      keys = runtime_template.returning_function("[]", ""),
       id = json_stringify(self.get_module_id(&compilation.module_ids_artifact))
     }
   }
@@ -390,55 +398,59 @@ impl ContextModule {
   fn get_source_string(
     &self,
     compilation: &Compilation,
-    code_gen_result: &mut CodeGenerationResult,
+    runtime_template: &mut ModuleCodegenRuntimeTemplate,
   ) -> String {
     match self.options.context_options.mode {
       ContextMode::Lazy => {
         if !self.get_blocks().is_empty() {
-          self.get_lazy_source(compilation)
+          self.get_lazy_source(compilation, runtime_template)
         } else {
-          self.get_source_for_empty_async_context(compilation)
+          self.get_source_for_empty_async_context(compilation, runtime_template)
         }
       }
       ContextMode::Eager => {
         if !self.get_dependencies().is_empty() {
-          self.get_eager_source(compilation)
+          self.get_eager_source(compilation, runtime_template)
         } else {
-          self.get_source_for_empty_async_context(compilation)
+          self.get_source_for_empty_async_context(compilation, runtime_template)
         }
       }
       ContextMode::LazyOnce => {
         if let Some(block) = self.get_blocks().first() {
-          self.get_lazy_once_source(compilation, block, code_gen_result)
+          self.get_lazy_once_source(compilation, block, runtime_template)
         } else {
-          self.get_source_for_empty_async_context(compilation)
+          self.get_source_for_empty_async_context(compilation, runtime_template)
         }
       }
       ContextMode::AsyncWeak => {
         if !self.get_dependencies().is_empty() {
-          self.get_async_weak_source(compilation)
+          self.get_async_weak_source(compilation, runtime_template)
         } else {
-          self.get_source_for_empty_async_context(compilation)
+          self.get_source_for_empty_async_context(compilation, runtime_template)
         }
       }
       ContextMode::Weak => {
         if !self.get_dependencies().is_empty() {
-          self.get_sync_weak_source(compilation)
+          self.get_sync_weak_source(compilation, runtime_template)
         } else {
-          self.get_source_for_empty_context(compilation)
+          self.get_source_for_empty_context(compilation, runtime_template)
         }
       }
       ContextMode::Sync => {
         if !self.get_dependencies().is_empty() {
-          self.get_sync_source(compilation)
+          self.get_sync_source(compilation, runtime_template)
         } else {
-          self.get_source_for_empty_context(compilation)
+          self.get_source_for_empty_context(compilation, runtime_template)
         }
       }
     }
   }
 
-  fn get_lazy_source(&self, compilation: &Compilation) -> String {
+  fn get_lazy_source(
+    &self,
+    compilation: &Compilation,
+    runtime_template: &mut ModuleCodegenRuntimeTemplate,
+  ) -> String {
     let module_graph = compilation.get_module_graph();
     let blocks = self
       .get_blocks()
@@ -524,18 +536,14 @@ impl ContextModule {
     } else if has_multiple_or_no_chunks {
       format!(
         "Promise.all(ids.slice({chunks_start_position}).map({}))",
-        compilation
-          .runtime_template
-          .render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK)
+        runtime_template.render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK)
       )
     } else {
       let mut chunks_start_position_buffer = itoa::Buffer::new();
       let chunks_start_position_str = chunks_start_position_buffer.format(chunks_start_position);
       format!(
         "{}(ids[{}])",
-        compilation
-          .runtime_template
-          .render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK),
+        runtime_template.render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK),
         chunks_start_position_str
       )
     };
@@ -543,7 +551,7 @@ impl ContextModule {
       &fake_map,
       true,
       if short_mode { "invalid" } else { "ids[1]" },
-      &compilation.runtime_template,
+      runtime_template,
     );
     let async_context = if has_no_chunk {
       formatdoc! {r#"
@@ -560,7 +568,7 @@ impl ContextModule {
           }});
         }}
         "#,
-        compilation.runtime_template.render_runtime_globals(&RuntimeGlobals::HAS_OWN_PROPERTY),
+        runtime_template.render_runtime_globals(&RuntimeGlobals::HAS_OWN_PROPERTY),
         if short_mode {
           "var id = map[req];"
         } else {
@@ -584,7 +592,7 @@ impl ContextModule {
           }});
         }}
         "#,
-        compilation.runtime_template.render_runtime_globals(&RuntimeGlobals::HAS_OWN_PROPERTY),
+        runtime_template.render_runtime_globals(&RuntimeGlobals::HAS_OWN_PROPERTY),
       }
     };
     formatdoc! {r#"
@@ -595,7 +603,7 @@ impl ContextModule {
       module.exports = __rspack_async_context;
       "#,
       map = json_stringify(&map),
-      keys = compilation.runtime_template.returning_function("Object.keys(map)", ""),
+      keys = runtime_template.returning_function("Object.keys(map)", ""),
       id = json_stringify(self.get_module_id(&compilation.module_ids_artifact))
     }
   }
@@ -604,17 +612,12 @@ impl ContextModule {
     &self,
     compilation: &Compilation,
     block_id: &AsyncDependenciesBlockIdentifier,
-    code_gen_result: &mut CodeGenerationResult,
+    runtime_template: &mut ModuleCodegenRuntimeTemplate,
   ) -> String {
     let mg = compilation.get_module_graph();
     let block = mg.block_by_id_expect(block_id);
     let dependencies = block.get_dependencies();
-    let promise = compilation.runtime_template.block_promise(
-      Some(block_id),
-      &mut code_gen_result.runtime_requirements,
-      compilation,
-      "lazy-once context",
-    );
+    let promise = runtime_template.block_promise(Some(block_id), compilation, "lazy-once context");
     let map = self.get_user_request_map(dependencies, compilation);
     let fake_map = self.get_fake_map(dependencies, compilation);
     let then_function = if !matches!(
@@ -626,12 +629,10 @@ impl ContextModule {
           {}
         }}
         "#,
-        self.get_return_module_object_source(&fake_map, true, "fakeMap[id]", &compilation.runtime_template),
+        self.get_return_module_object_source(&fake_map, true, "fakeMap[id]", runtime_template),
       }
     } else {
-      compilation
-        .runtime_template
-        .render_runtime_globals(&RuntimeGlobals::REQUIRE)
+      runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
     };
     formatdoc! {r#"
       var map = {map};
@@ -657,22 +658,22 @@ impl ContextModule {
       "#,
       map = json_stringify(&map),
       fake_map_init_statement = self.get_fake_map_init_statement(&fake_map),
-      has_own_property = compilation.runtime_template.render_runtime_globals(&RuntimeGlobals::HAS_OWN_PROPERTY),
-      keys = compilation.runtime_template.returning_function("Object.keys(map)", ""),
+      has_own_property = runtime_template.render_runtime_globals(&RuntimeGlobals::HAS_OWN_PROPERTY),
+      keys = runtime_template.returning_function("Object.keys(map)", ""),
       id = json_stringify(self.get_module_id(&compilation.module_ids_artifact))
     }
   }
 
-  fn get_async_weak_source(&self, compilation: &Compilation) -> String {
+  fn get_async_weak_source(
+    &self,
+    compilation: &Compilation,
+    runtime_template: &mut ModuleCodegenRuntimeTemplate,
+  ) -> String {
     let dependencies = self.get_dependencies();
     let map = self.get_user_request_map(dependencies, compilation);
     let fake_map = self.get_fake_map(dependencies, compilation);
-    let return_module_object = self.get_return_module_object_source(
-      &fake_map,
-      true,
-      "fakeMap[id]",
-      &compilation.runtime_template,
-    );
+    let return_module_object =
+      self.get_return_module_object_source(&fake_map, true, "fakeMap[id]", runtime_template);
     formatdoc! {r#"
       var map = {map};
       {fake_map_init_statement}
@@ -706,23 +707,23 @@ impl ContextModule {
       "#,
       map = json_stringify(&map),
       fake_map_init_statement = self.get_fake_map_init_statement(&fake_map),
-      module_factories = compilation.runtime_template.render_runtime_globals(&RuntimeGlobals::MODULE_FACTORIES),
-      has_own_property = compilation.runtime_template.render_runtime_globals(&RuntimeGlobals::HAS_OWN_PROPERTY),
-      keys = compilation.runtime_template.returning_function("Object.keys(map)", ""),
+      module_factories = runtime_template.render_runtime_globals(&RuntimeGlobals::MODULE_FACTORIES),
+      has_own_property = runtime_template.render_runtime_globals(&RuntimeGlobals::HAS_OWN_PROPERTY),
+      keys = runtime_template.returning_function("Object.keys(map)", ""),
       id = json_stringify(self.get_module_id(&compilation.module_ids_artifact))
     }
   }
 
-  fn get_sync_weak_source(&self, compilation: &Compilation) -> String {
+  fn get_sync_weak_source(
+    &self,
+    compilation: &Compilation,
+    runtime_template: &mut ModuleCodegenRuntimeTemplate,
+  ) -> String {
     let dependencies = self.get_dependencies();
     let map = self.get_user_request_map(dependencies, compilation);
     let fake_map = self.get_fake_map(dependencies, compilation);
-    let return_module_object = self.get_return_module_object_source(
-      &fake_map,
-      true,
-      "fakeMap[id]",
-      &compilation.runtime_template,
-    );
+    let return_module_object =
+      self.get_return_module_object_source(&fake_map, true, "fakeMap[id]", runtime_template);
     formatdoc! {r#"
       var map = {map};
       {fake_map_init_statement}
@@ -751,14 +752,18 @@ impl ContextModule {
       "#,
       map = json_stringify(&map),
       fake_map_init_statement = self.get_fake_map_init_statement(&fake_map),
-      module_factories = compilation.runtime_template.render_runtime_globals(&RuntimeGlobals::MODULE_FACTORIES),
-      has_own_property = compilation.runtime_template.render_runtime_globals(&RuntimeGlobals::HAS_OWN_PROPERTY),
-      keys = compilation.runtime_template.returning_function("Object.keys(map)", ""),
+      module_factories = runtime_template.render_runtime_globals(&RuntimeGlobals::MODULE_FACTORIES),
+      has_own_property = runtime_template.render_runtime_globals(&RuntimeGlobals::HAS_OWN_PROPERTY),
+      keys = runtime_template.returning_function("Object.keys(map)", ""),
       id = json_stringify(self.get_module_id(&compilation.module_ids_artifact))
     }
   }
 
-  fn get_eager_source(&self, compilation: &Compilation) -> String {
+  fn get_eager_source(
+    &self,
+    compilation: &Compilation,
+    runtime_template: &mut ModuleCodegenRuntimeTemplate,
+  ) -> String {
     let dependencies = self.get_dependencies();
     let map = self.get_user_request_map(dependencies, compilation);
     let fake_map = self.get_fake_map(dependencies, compilation);
@@ -771,12 +776,10 @@ impl ContextModule {
           {}
         }}
         "#,
-        self.get_return_module_object_source(&fake_map, true, "fakeMap[id]", &compilation.runtime_template),
+        self.get_return_module_object_source(&fake_map, true, "fakeMap[id]", runtime_template),
       }
     } else {
-      compilation
-        .runtime_template
-        .render_runtime_globals(&RuntimeGlobals::REQUIRE)
+      runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
     };
     formatdoc! {r#"
       var map = {map};
@@ -804,22 +807,22 @@ impl ContextModule {
       "#,
       map = json_stringify(&map),
       fake_map_init_statement = self.get_fake_map_init_statement(&fake_map),
-      has_own_property = compilation.runtime_template.render_runtime_globals(&RuntimeGlobals::HAS_OWN_PROPERTY),
-      keys = compilation.runtime_template.returning_function("Object.keys(map)", ""),
+      has_own_property = runtime_template.render_runtime_globals(&RuntimeGlobals::HAS_OWN_PROPERTY),
+      keys = runtime_template.returning_function("Object.keys(map)", ""),
       id = json_stringify(self.get_module_id(&compilation.module_ids_artifact))
     }
   }
 
-  fn get_sync_source(&self, compilation: &Compilation) -> String {
+  fn get_sync_source(
+    &self,
+    compilation: &Compilation,
+    runtime_template: &mut ModuleCodegenRuntimeTemplate,
+  ) -> String {
     let dependencies = self.get_dependencies();
     let map = self.get_user_request_map(dependencies, compilation);
     let fake_map = self.get_fake_map(dependencies, compilation);
-    let return_module_object = self.get_return_module_object_source(
-      &fake_map,
-      false,
-      "fakeMap[id]",
-      &compilation.runtime_template,
-    );
+    let return_module_object =
+      self.get_return_module_object_source(&fake_map, false, "fakeMap[id]", runtime_template);
     formatdoc! {r#"
       var map = {map};
       {fake_map_init_statement}
@@ -845,7 +848,7 @@ impl ContextModule {
       "#,
       map = json_stringify(&map),
       fake_map_init_statement = self.get_fake_map_init_statement(&fake_map),
-      has_own_property = compilation.runtime_template.render_runtime_globals(&RuntimeGlobals::HAS_OWN_PROPERTY),
+      has_own_property = runtime_template.render_runtime_globals(&RuntimeGlobals::HAS_OWN_PROPERTY),
       id = json_stringify(self.get_module_id(&compilation.module_ids_artifact))
     }
   }
@@ -1080,11 +1083,17 @@ impl Module for ContextModule {
     _runtime: Option<&RuntimeSpec>,
     _: Option<ConcatenationScope>,
   ) -> Result<CodeGenerationResult> {
+    let mut runtime_template = compilation
+      .runtime_template
+      .create_module_codegen_runtime_template();
     let mut code_generation_result = CodeGenerationResult::default();
     let source = self.get_source(
-      self.get_source_string(compilation, &mut code_generation_result),
+      self.get_source_string(compilation, &mut runtime_template),
       compilation,
     );
+    code_generation_result
+      .runtime_requirements
+      .insert(*runtime_template.runtime_requirements());
     code_generation_result.add(SourceType::JavaScript, source);
     let mut all_deps = self.get_dependencies().to_vec();
     let module_graph = compilation.get_module_graph();
@@ -1094,6 +1103,7 @@ impl Module for ContextModule {
         .expect("should have block in ContextModule code_generation");
       all_deps.extend(block.get_dependencies());
     }
+
     code_generation_result
       .runtime_requirements
       .insert(RuntimeGlobals::MODULE);
