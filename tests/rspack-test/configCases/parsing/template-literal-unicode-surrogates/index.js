@@ -1,6 +1,6 @@
 // Test case for template literals with Unicode surrogate pairs
 // This previously caused a panic: "quasic should be not empty"
-// See: https://github.com/web-infra-dev/rspack/issues/xxxxx
+// See: https://github.com/web-infra-dev/rspack/issues/12706
 
 it("should handle template literals with Unicode surrogate pairs", () => {
 	// Template literal with Unicode surrogate pair in RegExp
