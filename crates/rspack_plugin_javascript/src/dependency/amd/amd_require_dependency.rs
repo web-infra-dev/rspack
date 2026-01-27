@@ -97,17 +97,12 @@ impl DependencyTemplate for AMDRequireDependencyTemplate {
 
     let module_graph = code_generatable_context.compilation.get_module_graph();
     let block = module_graph.get_parent_block(&dep.id);
-    let runtime_template = &code_generatable_context.compilation.runtime_template;
 
-    let promise = code_generatable_context
-      .compilation
-      .runtime_template
-      .block_promise(
-        block,
-        code_generatable_context.runtime_requirements,
-        code_generatable_context.compilation,
-        "AMD require",
-      );
+    let promise = code_generatable_context.runtime_template.block_promise(
+      block,
+      code_generatable_context.compilation,
+      "AMD require",
+    );
 
     // has array range but no function range
     if let Some(array_range) = &dep.array_range
@@ -116,10 +111,13 @@ impl DependencyTemplate for AMDRequireDependencyTemplate {
       let start_block = promise + ".then(function() {";
       let end_block = format!(
         ";}})['catch']({})",
-        runtime_template.render_runtime_globals(&RuntimeGlobals::UNCAUGHT_ERROR_HANDLER),
+        code_generatable_context
+          .runtime_template
+          .render_runtime_globals(&RuntimeGlobals::UNCAUGHT_ERROR_HANDLER),
       );
       code_generatable_context
-        .runtime_requirements
+        .runtime_template
+        .runtime_requirements_mut()
         .insert(RuntimeGlobals::UNCAUGHT_ERROR_HANDLER);
       source.replace(dep.outer_range.start, array_range.start, &start_block, None);
       source.replace(array_range.end, dep.outer_range.end, &end_block, None);
@@ -133,11 +131,16 @@ impl DependencyTemplate for AMDRequireDependencyTemplate {
       let start_block = promise + ".then((";
       let end_block = format!(
         ").bind(exports, {}, exports, module))['catch']({})",
-        runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
-        runtime_template.render_runtime_globals(&RuntimeGlobals::UNCAUGHT_ERROR_HANDLER),
+        code_generatable_context
+          .runtime_template
+          .render_runtime_globals(&RuntimeGlobals::REQUIRE),
+        code_generatable_context
+          .runtime_template
+          .render_runtime_globals(&RuntimeGlobals::UNCAUGHT_ERROR_HANDLER),
       );
       code_generatable_context
-        .runtime_requirements
+        .runtime_template
+        .runtime_requirements_mut()
         .insert(RuntimeGlobals::UNCAUGHT_ERROR_HANDLER);
       source.replace(
         dep.outer_range.start,
@@ -207,10 +210,13 @@ impl DependencyTemplate for AMDRequireDependencyTemplate {
         } else {
           ""
         },
-        runtime_template.render_runtime_globals(&RuntimeGlobals::UNCAUGHT_ERROR_HANDLER),
+        code_generatable_context
+          .runtime_template
+          .render_runtime_globals(&RuntimeGlobals::UNCAUGHT_ERROR_HANDLER),
       );
       code_generatable_context
-        .runtime_requirements
+        .runtime_template
+        .runtime_requirements_mut()
         .insert(RuntimeGlobals::UNCAUGHT_ERROR_HANDLER);
 
       source.replace(dep.outer_range.start, array_range.start, &start_block, None);

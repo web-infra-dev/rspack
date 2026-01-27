@@ -134,6 +134,9 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
       runtime,
       ..
     } = generate_context;
+    let mut runtime_template = compilation
+      .runtime_template
+      .create_module_codegen_runtime_template();
     let hash = module
       .build_info()
       .hash
@@ -196,10 +199,9 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
         let (imports_code, imports_compat_code): (Vec<String>, Vec<String>) = dep_modules
           .iter()
           .map(|(_, dep_module)| {
-            compilation.runtime_template.import_statement(
+            runtime_template.import_statement(
               module,
               compilation,
-              runtime_requirements,
               &dep_module.deps[0].0,
               &dep_module.import_var,
               dep_module.request,
@@ -211,20 +213,6 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
         let imports_code = imports_code.join("");
         let imports_compat_code = imports_compat_code.join("");
 
-        let mut runtime_template = compilation
-          .runtime_template
-          .create_module_codegen_runtime_template();
-
-        let mut template_context = TemplateContext {
-          compilation,
-          module,
-          runtime_requirements,
-          init_fragments: &mut ModuleInitFragments::default(),
-          runtime: *runtime,
-          concatenation_scope: None,
-          data: &mut CodeGenerationData::default(),
-          runtime_template: &mut runtime_template,
-        };
         let import_obj_request_items = dep_modules
           .into_values()
           .map(|dep_module| {
@@ -232,8 +220,11 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
               .deps
               .into_iter()
               .map(|(dep_id, export_name)| {
-                let export = compilation.runtime_template.export_from_import(
-                  &mut template_context,
+                let export = runtime_template.export_from_import(
+                  compilation,
+                  &mut ModuleInitFragments::default(),
+                  module.identifier(),
+                  runtime,
                   true,
                   dep_module.request,
                   &dep_module.import_var,
@@ -265,17 +256,12 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
 
         let instantiate_call = format!(
           r#"{}(exports, module.id, "{}" {})"#,
-          compilation
-            .runtime_template
-            .render_runtime_globals(&RuntimeGlobals::INSTANTIATE_WASM),
+          runtime_template.render_runtime_globals(&RuntimeGlobals::INSTANTIATE_WASM),
           &hash,
           imports_obj.unwrap_or_default()
         );
 
         let source = if !promises.is_empty() {
-          generate_context
-            .runtime_requirements
-            .insert(RuntimeGlobals::ASYNC_MODULE);
           let promises = promises.join(", ");
           let decl = format!(
             "var __rspack_instantiate__ = function ([{promises}]) {{\n{imports_compat_code}return {instantiate_call};\n}}\n",
@@ -293,7 +279,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
   }} catch(e) {{ __rspack_async_done(e); }}
 }}, 1);
 ",
-            compilation.runtime_template.render_runtime_globals(&RuntimeGlobals::ASYNC_MODULE),
+            runtime_template.render_runtime_globals(&RuntimeGlobals::ASYNC_MODULE),
           );
 
           RawStringSource::from(format!("{decl}{async_dependencies}"))

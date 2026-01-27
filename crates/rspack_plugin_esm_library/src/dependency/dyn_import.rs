@@ -20,6 +20,7 @@ fn then_expr(
     runtime_requirements,
     compilation,
     module,
+    runtime_template,
     ..
   } = code_generatable_context;
   if compilation
@@ -27,7 +28,7 @@ fn then_expr(
     .module_identifier_by_dependency_id(dep_id)
     .is_none()
   {
-    return compilation.runtime_template.missing_module_promise(request);
+    return runtime_template.missing_module_promise(request);
   };
 
   let exports_type = get_exports_type(
@@ -36,9 +37,7 @@ fn then_expr(
     dep_id,
     &module.identifier(),
   );
-  let module_id_expr = compilation
-    .runtime_template
-    .module_id(compilation, dep_id, request, false);
+  let module_id_expr = runtime_template.module_id(compilation, dep_id, request, false);
 
   let mut fake_type = FakeNamespaceObjectMode::PROMISE_LIKE;
   let mut appending;
@@ -48,12 +47,8 @@ fn then_expr(
       runtime_requirements.insert(RuntimeGlobals::REQUIRE);
       appending = format!(
         ".then({}.bind({}, {module_id_expr}))",
-        compilation
-          .runtime_template
-          .render_runtime_globals(&RuntimeGlobals::REQUIRE),
-        compilation
-          .runtime_template
-          .render_runtime_globals(&RuntimeGlobals::REQUIRE),
+        runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
+        runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
       );
     }
     _ => {
@@ -77,21 +72,15 @@ fn then_expr(
         runtime_requirements.insert(RuntimeGlobals::REQUIRE);
         appending = format!(
           ".then({}.bind({}, {module_id_expr}))",
-          compilation
-            .runtime_template
-            .render_runtime_globals(&RuntimeGlobals::REQUIRE),
-          compilation
-            .runtime_template
-            .render_runtime_globals(&RuntimeGlobals::REQUIRE)
+          runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
+          runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
         );
         appending.push_str(
           format!(
             r#".then(function(m){{
  return {}(m, {fake_type}) 
 }})"#,
-            compilation
-              .runtime_template
-              .render_runtime_globals(&RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT)
+            runtime_template.render_runtime_globals(&RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT)
           )
           .as_str(),
         );
@@ -100,12 +89,8 @@ fn then_expr(
         runtime_requirements.insert(RuntimeGlobals::REQUIRE);
         appending = format!(
           ".then({}.bind({}, {module_id_expr}, {fake_type}))",
-          compilation
-            .runtime_template
-            .render_runtime_globals(&RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT),
-          compilation
-            .runtime_template
-            .render_runtime_globals(&RuntimeGlobals::REQUIRE)
+          runtime_template.render_runtime_globals(&RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT),
+          runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
         );
       }
     }
@@ -137,7 +122,6 @@ impl DependencyTemplate for DynamicImportDependencyTemplate {
 
     let Some(ref_module) = module_graph.get_module_by_dependency_id(dep_id) else {
       let missing_promise = code_generatable_context
-        .compilation
         .runtime_template
         .missing_module_promise(request);
       source.replace(
@@ -207,7 +191,8 @@ impl DependencyTemplate for DynamicImportDependencyTemplate {
         None,
       );
       code_generatable_context
-        .runtime_requirements
+        .runtime_template
+        .runtime_requirements_mut()
         .insert(RuntimeGlobals::REQUIRE);
       return;
     };

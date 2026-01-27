@@ -6,6 +6,7 @@ use std::{
 use cow_utils::CowUtils;
 use itertools::Itertools;
 use regex::{Captures, Regex};
+use rspack_collections::Identifier;
 use rspack_dojang::{Context, Dojang, FunctionContainer, Operand};
 use rspack_error::{Error, Result, ToStringResultToRspackResultExt, error};
 use rspack_util::{fx_hash::FxIndexSet, json_stringify};
@@ -16,11 +17,11 @@ use swc_core::atoms::Atom;
 use crate::{
   AsyncDependenciesBlockIdentifier, ChunkGraph, Compilation, CompilerOptions, DependenciesBlock,
   DependencyId, DependencyType, ExportsArgument, ExportsInfoGetter, ExportsType,
-  FakeNamespaceObjectMode, GetUsedNameParam, ImportPhase, InitFragmentExt, InitFragmentKey,
-  InitFragmentStage, Module, ModuleArgument, ModuleGraph, ModuleGraphCacheArtifact, ModuleId,
-  ModuleIdentifier, NormalInitFragment, PathInfo, PrefetchExportsInfoMode, RuntimeCondition,
-  RuntimeGlobals, RuntimeSpec, TemplateContext, UsedName, compile_boolean_matcher_from_lists,
-  contextify, property_access,
+  FakeNamespaceObjectMode, GenerateContext, GetUsedNameParam, ImportPhase, InitFragment,
+  InitFragmentExt, InitFragmentKey, InitFragmentStage, Module, ModuleArgument, ModuleGraph,
+  ModuleGraphCacheArtifact, ModuleId, ModuleIdentifier, NormalInitFragment, PathInfo,
+  PrefetchExportsInfoMode, RuntimeCondition, RuntimeGlobals, RuntimeSpec, TemplateContext,
+  UsedName, compile_boolean_matcher_from_lists, contextify, property_access,
   runtime_globals::{RuntimeVariable, runtime_globals_to_string, runtime_variable_to_string},
   to_comment, to_normal_comment,
 };
@@ -1769,10 +1770,444 @@ impl ModuleCodegenRuntimeTemplate {
     )
   }
 
+  pub fn missing_module_promise(&self, request: &str) -> String {
+    format!(
+      "Promise.resolve().then({})",
+      self.throw_missing_module_error_function(request)
+    )
+  }
+
+  pub fn missing_module_statement(&self, request: &str) -> String {
+    format!("{};\n", self.missing_module(request))
+  }
+
   pub fn throw_missing_module_error_function(&self, request: &str) -> String {
     format!(
       "function __rspack_missing_module() {{ {} }}",
       self.throw_missing_module_error_block(request)
     )
+  }
+
+  pub fn module_id(
+    &self,
+    compilation: &Compilation,
+    id: &DependencyId,
+    request: &str,
+    weak: bool,
+  ) -> String {
+    if let Some(module_identifier) = compilation
+      .get_module_graph()
+      .module_identifier_by_dependency_id(id)
+      && let Some(module_id) =
+        ChunkGraph::get_module_id(&compilation.module_ids_artifact, *module_identifier)
+    {
+      self.module_id_expr(request, module_id)
+    } else if weak {
+      "null /* weak dependency, without id */".to_string()
+    } else {
+      self.missing_module(request)
+    }
+  }
+
+  #[allow(clippy::too_many_arguments)]
+  pub fn import_statement(
+    &mut self,
+    module: &dyn Module,
+    compilation: &Compilation,
+    id: &DependencyId,
+    import_var: &str,
+    request: &str,
+    phase: ImportPhase,
+    update: bool, // whether a new variable should be created or the existing one updated
+  ) -> (String, String) {
+    let mg = compilation.get_module_graph();
+    let Some(target_module) = mg.get_module_by_dependency_id(id) else {
+      return (self.missing_module_statement(request), String::new());
+    };
+
+    let module_id_expr = self.module_id(compilation, id, request, false);
+
+    let opt_declaration = if update { "" } else { "var " };
+
+    let exports_type = get_exports_type(
+      mg,
+      &compilation.module_graph_cache_artifact,
+      id,
+      &module.identifier(),
+    );
+
+    if phase.is_defer() && !target_module.build_meta().has_top_level_await {
+      let async_deps = get_outgoing_async_modules(compilation, target_module.as_ref());
+      let import_content = format!(
+        "/* deferred import */{opt_declaration}{import_var} = {};\n",
+        self.get_property_accessed_deferred_module(exports_type, &module_id_expr, async_deps)
+      );
+      return (import_content, String::new());
+    }
+
+    let import_content = format!(
+      "/* import */ {opt_declaration}{import_var} = {}({module_id_expr});\n",
+      self.render_runtime_globals(&RuntimeGlobals::REQUIRE)
+    );
+    if matches!(exports_type, ExportsType::Dynamic) {
+      return (
+        import_content,
+        format!(
+          "/* import */ {opt_declaration}{import_var}_default = /*#__PURE__*/{}({import_var});\n",
+          self.render_runtime_globals(&RuntimeGlobals::COMPAT_GET_DEFAULT_EXPORT),
+        ),
+      );
+    }
+    (import_content, String::new())
+  }
+
+  #[allow(clippy::too_many_arguments)]
+  pub fn export_from_import(
+    &mut self,
+    compilation: &Compilation,
+    init_fragments: &mut Vec<Box<dyn InitFragment<GenerateContext<'_>>>>,
+    module_id: Identifier,
+    runtime: &Option<&RuntimeSpec>,
+    default_interop: bool,
+    request: &str,
+    import_var: &str,
+    export_name: &[Atom],
+    id: &DependencyId,
+    is_call: bool,
+    call_context: bool,
+    asi_safe: Option<bool>,
+    phase: ImportPhase,
+  ) -> String {
+    let mg = compilation.get_module_graph();
+    let Some(target_module) = mg.get_module_by_dependency_id(id) else {
+      return self.missing_module(request);
+    };
+
+    let exports_type =
+      get_exports_type(mg, &compilation.module_graph_cache_artifact, id, &module_id);
+
+    let target_module_identifier = target_module.identifier();
+
+    let is_deferred = phase.is_defer() && !target_module.build_meta().has_top_level_await;
+
+    let mut exclude_default_export_name = None;
+    if default_interop {
+      if !export_name.is_empty()
+        && let Some(first_export_name) = export_name.first()
+        && first_export_name == "default"
+      {
+        if is_deferred && !matches!(exports_type, ExportsType::Namespace) {
+          let name = &export_name[1..];
+          let Some(used) = ExportsInfoGetter::get_used_name(
+            GetUsedNameParam::WithNames(&mg.get_prefetched_exports_info(
+              &target_module_identifier,
+              PrefetchExportsInfoMode::Nested(name),
+            )),
+            *runtime,
+            name,
+          ) else {
+            return to_normal_comment(&format!(
+              "unused export {}",
+              property_access(export_name, 0)
+            )) + "undefined";
+          };
+          let UsedName::Normal(used) = used else {
+            unreachable!("can't inline the exports of defer imported module")
+          };
+          let access = format!("{import_var}.a{}", property_access(used, 0));
+          if is_call {
+            return access;
+          }
+          let Some(asi_safe) = asi_safe else {
+            return access;
+          };
+          return if asi_safe {
+            format!("({access})")
+          } else {
+            format!(";({access})")
+          };
+        }
+        match exports_type {
+          ExportsType::Dynamic => {
+            if is_call {
+              return format!("{import_var}_default(){}", property_access(export_name, 1));
+            } else {
+              return if let Some(asi_safe) = asi_safe {
+                match asi_safe {
+                  true => format!(
+                    "({import_var}_default(){})",
+                    property_access(export_name, 1)
+                  ),
+                  false => format!(
+                    ";({import_var}_default(){})",
+                    property_access(export_name, 1)
+                  ),
+                }
+              } else {
+                format!("{import_var}_default.a{}", property_access(export_name, 1))
+              };
+            }
+          }
+          ExportsType::DefaultOnly | ExportsType::DefaultWithNamed => {
+            exclude_default_export_name = Some(export_name[1..].to_vec());
+          }
+          _ => {}
+        }
+      } else if !export_name.is_empty() {
+        if matches!(exports_type, ExportsType::DefaultOnly) {
+          return format!(
+            "/* non-default import from non-esm module */undefined\n{}",
+            property_access(export_name, 1)
+          );
+        } else if !matches!(exports_type, ExportsType::Namespace)
+          && let Some(first_export_name) = export_name.first()
+          && first_export_name == "__esModule"
+        {
+          return "/* __esModule */true".to_string();
+        }
+      } else if is_deferred {
+        // now exportName.length is 0
+        // fall through to the end of this function, create the namespace there.
+      } else if matches!(
+        exports_type,
+        ExportsType::DefaultOnly | ExportsType::DefaultWithNamed
+      ) {
+        let name = format!("var {import_var}_namespace_cache;\n");
+        init_fragments.push(
+          NormalInitFragment::new(
+            name.clone(),
+            InitFragmentStage::StageESMExports,
+            -1,
+            InitFragmentKey::ESMFakeNamespaceObjectFragment(name),
+            None,
+          )
+          .boxed(),
+        );
+        let prefix = if let Some(asi_safe) = asi_safe {
+          match asi_safe {
+            true => "",
+            false => ";",
+          }
+        } else {
+          "Object"
+        };
+        return format!(
+          "/*#__PURE__*/ {prefix}({import_var}_namespace_cache || ({import_var}_namespace_cache = {}({import_var}{})))",
+          self.render_runtime_globals(&RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT),
+          if matches!(exports_type, ExportsType::DefaultOnly) {
+            ""
+          } else {
+            ", 2"
+          }
+        );
+      }
+    }
+
+    let export_name = exclude_default_export_name
+      .as_deref()
+      .unwrap_or(export_name);
+    if !export_name.is_empty() {
+      let used_name = match ExportsInfoGetter::get_used_name(
+        GetUsedNameParam::WithNames(&mg.get_prefetched_exports_info(
+          &target_module_identifier,
+          PrefetchExportsInfoMode::Nested(export_name),
+        )),
+        *runtime,
+        export_name,
+      ) {
+        Some(UsedName::Normal(used_name)) => used_name,
+        Some(UsedName::Inlined(inlined)) => {
+          assert!(
+            !is_deferred,
+            "can't inline the exports of defer imported module"
+          );
+          return inlined.render(&to_normal_comment(&format!(
+            "inlined export {}",
+            property_access(export_name, 0)
+          )));
+        }
+        None => {
+          return format!(
+            "{} undefined",
+            to_normal_comment(&format!(
+              "unused export {}",
+              property_access(export_name, 0)
+            ))
+          );
+        }
+      };
+      let comment = if used_name != export_name {
+        to_normal_comment(&property_access(export_name, 0))
+      } else {
+        String::new()
+      };
+      let property = property_access(used_name, 0);
+      let access = format!(
+        "{import_var}{}{comment}{property}",
+        if is_deferred { ".a" } else { "" }
+      );
+      if is_call && !call_context {
+        if let Some(asi_safe) = asi_safe {
+          match asi_safe {
+            true => format!("(0,{access})"),
+            false => format!(";(0,{access})"),
+          }
+        } else {
+          format!("Object({access})")
+        }
+      } else {
+        access
+      }
+    } else if is_deferred {
+      let cache_var = format!("var {import_var}_deferred_namespace_cache;\n");
+      init_fragments.push(
+        NormalInitFragment::new(
+          cache_var.clone(),
+          InitFragmentStage::StageConstants,
+          -1,
+          InitFragmentKey::ESMDeferImportNamespaceObjectFragment(cache_var),
+          None,
+        )
+        .boxed(),
+      );
+      let module_id =
+        ChunkGraph::get_module_id(&compilation.module_ids_artifact, target_module_identifier);
+      let mode = render_make_deferred_namespace_mode_from_exports_type(exports_type);
+      format!(
+        "/*#__PURE__*/ {}({import_var}_deferred_namespace_cache || ({import_var}_deferred_namespace_cache = {}({}, {})))",
+        match asi_safe {
+          Some(true) => "",
+          Some(false) => ";",
+          None => "Object",
+        },
+        self.render_runtime_globals(&RuntimeGlobals::MAKE_DEFERRED_NAMESPACE_OBJECT),
+        json_stringify(&module_id),
+        mode,
+      )
+    } else {
+      import_var.to_string()
+    }
+  }
+
+  pub fn module_namespace_promise(
+    &mut self,
+    compilation: &Compilation,
+    module_id: Identifier,
+    dep_id: &DependencyId,
+    block: Option<&AsyncDependenciesBlockIdentifier>,
+    request: &str,
+    message: &str,
+    weak: bool,
+  ) -> String {
+    if compilation
+      .get_module_graph()
+      .module_identifier_by_dependency_id(dep_id)
+      .is_none()
+    {
+      return self.missing_module_promise(request);
+    };
+
+    let promise = self.block_promise(block, compilation, message);
+    let exports_type = get_exports_type(
+      compilation.get_module_graph(),
+      &compilation.module_graph_cache_artifact,
+      dep_id,
+      &module_id,
+    );
+    let module_id_expr = self.module_id(compilation, dep_id, request, weak);
+
+    let header = if weak {
+      Some(format!(
+        r#"if(!{}[{module_id_expr}]) {{
+ {} 
+}}"#,
+        self.render_runtime_globals(&RuntimeGlobals::MODULE_FACTORIES),
+        self.weak_error(request)
+      ))
+    } else {
+      None
+    };
+    let mut fake_type = FakeNamespaceObjectMode::PROMISE_LIKE;
+    let mut appending;
+    match exports_type {
+      ExportsType::Namespace => {
+        if let Some(header) = header {
+          appending = format!(
+            ".then(function() {{ {header}\nreturn {}}})",
+            self.module_raw(compilation, dep_id, request, weak)
+          )
+        } else {
+          appending = format!(
+            ".then({}.bind({}, {module_id_expr}))",
+            self.render_runtime_globals(&RuntimeGlobals::REQUIRE),
+            self.render_runtime_globals(&RuntimeGlobals::REQUIRE),
+          );
+        }
+      }
+      _ => {
+        if matches!(exports_type, ExportsType::Dynamic) {
+          fake_type |= FakeNamespaceObjectMode::RETURN_VALUE;
+        }
+        if matches!(
+          exports_type,
+          ExportsType::DefaultWithNamed | ExportsType::Dynamic
+        ) {
+          fake_type |= FakeNamespaceObjectMode::MERGE_PROPERTIES;
+        }
+        if ModuleGraph::is_async(
+          &compilation.async_modules_artifact.borrow(),
+          compilation
+            .get_module_graph()
+            .module_identifier_by_dependency_id(dep_id)
+            .expect("should have module"),
+        ) {
+          if let Some(header) = header {
+            appending = format!(
+              r#".then(function() {{
+ {header}
+return {}
+}})"#,
+              self.module_raw(compilation, dep_id, request, weak)
+            )
+          } else {
+            appending = format!(
+              ".then({}.bind({}, {module_id_expr}))",
+              self.render_runtime_globals(&RuntimeGlobals::REQUIRE),
+              self.render_runtime_globals(&RuntimeGlobals::REQUIRE),
+            );
+          }
+          appending.push_str(
+            format!(
+              r#".then(function(m){{
+ return {}(m, {fake_type}) 
+}})"#,
+              self.render_runtime_globals(&RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT)
+            )
+            .as_str(),
+          );
+        } else {
+          fake_type |= FakeNamespaceObjectMode::MODULE_ID;
+          if let Some(header) = header {
+            let expr = format!(
+              "{}({module_id_expr}, {fake_type}))",
+              self.render_runtime_globals(&RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT)
+            );
+            appending = format!(
+              r#".then(function() {{
+ {header} return {expr};
+}})"#
+            );
+          } else {
+            appending = format!(
+              ".then({}.bind({}, {module_id_expr}, {fake_type}))",
+              self.render_runtime_globals(&RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT),
+              self.render_runtime_globals(&RuntimeGlobals::REQUIRE),
+            );
+          }
+        }
+      }
+    }
+
+    format!("{promise}{appending}")
   }
 }

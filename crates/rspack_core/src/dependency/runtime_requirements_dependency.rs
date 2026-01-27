@@ -61,7 +61,8 @@ impl DependencyTemplate for RuntimeRequirementsDependencyTemplate {
       );
 
     code_generatable_context
-      .runtime_requirements
-      .insert(dep.runtime_requirements);
+      .runtime_template
+      .runtime_requirements_mut()
+      .extend(dep.runtime_requirements);
   }
 }

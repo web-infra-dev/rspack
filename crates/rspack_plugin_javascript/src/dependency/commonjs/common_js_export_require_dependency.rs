@@ -434,7 +434,7 @@ impl DependencyTemplate for CommonJsExportRequireDependencyTemplate {
       compilation,
       module,
       runtime,
-      runtime_requirements,
+      runtime_template,
       ..
     } = code_generatable_context;
 
@@ -467,20 +467,16 @@ impl DependencyTemplate for CommonJsExportRequireDependencyTemplate {
     };
 
     let base = if dep.base.is_exports() {
-      runtime_requirements.insert(RuntimeGlobals::EXPORTS);
-      compilation
-        .runtime_template
-        .render_exports_argument(exports_argument)
+      runtime_template.render_exports_argument(exports_argument)
     } else if dep.base.is_module_exports() {
-      runtime_requirements.insert(RuntimeGlobals::MODULE);
       format!(
         "{}.exports",
-        compilation
-          .runtime_template
-          .render_module_argument(module_argument)
+        runtime_template.render_module_argument(module_argument)
       )
     } else if dep.base.is_this() {
-      runtime_requirements.insert(RuntimeGlobals::THIS_AS_EXPORTS);
+      runtime_template
+        .runtime_requirements_mut()
+        .insert(RuntimeGlobals::THIS_AS_EXPORTS);
       "this".to_string()
     } else {
       unreachable!()
@@ -504,13 +500,7 @@ impl DependencyTemplate for CommonJsExportRequireDependencyTemplate {
         UsedName::Normal(used_imported) => {
           format!(
             "{}{}{}",
-            compilation.runtime_template.module_raw(
-              compilation,
-              runtime_requirements,
-              &dep.id,
-              &dep.request,
-              false,
-            ),
+            runtime_template.module_raw(compilation, &dep.id, &dep.request, false,),
             to_normal_comment(&property_access(ids, 0)),
             property_access(used_imported, 0)
           )
@@ -521,13 +511,7 @@ impl DependencyTemplate for CommonJsExportRequireDependencyTemplate {
         ))),
       }
     } else {
-      compilation.runtime_template.module_raw(
-        compilation,
-        runtime_requirements,
-        &dep.id,
-        &dep.request,
-        false,
-      )
+      runtime_template.module_raw(compilation, &dep.id, &dep.request, false)
     };
 
     if dep.base.is_expression() {

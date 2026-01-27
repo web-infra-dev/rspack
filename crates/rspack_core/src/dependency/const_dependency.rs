@@ -72,8 +72,9 @@ impl DependencyTemplate for ConstDependencyTemplate {
 
     if let Some(runtime_requirements) = &dep.runtime_requirements {
       code_generatable_context
-        .runtime_requirements
-        .insert(*runtime_requirements);
+        .runtime_template
+        .runtime_requirements_mut()
+        .extend(*runtime_requirements);
     }
     source.replace(dep.range.start, dep.range.end, dep.content.as_ref(), None);
   }

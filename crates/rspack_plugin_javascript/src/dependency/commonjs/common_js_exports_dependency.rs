@@ -159,7 +159,7 @@ impl DependencyTemplate for CommonJsExportsDependencyTemplate {
       module,
       runtime,
       init_fragments,
-      runtime_requirements,
+      runtime_template,
       ..
     } = code_generatable_context;
 
@@ -192,20 +192,16 @@ impl DependencyTemplate for CommonJsExportsDependencyTemplate {
     let module_argument = module.get_module_argument();
 
     let base = if dep.base.is_exports() {
-      runtime_requirements.insert(RuntimeGlobals::EXPORTS);
-      compilation
-        .runtime_template
-        .render_exports_argument(exports_argument)
+      runtime_template.render_exports_argument(exports_argument)
     } else if dep.base.is_module_exports() {
-      runtime_requirements.insert(RuntimeGlobals::MODULE);
       format!(
         "{}.exports",
-        compilation
-          .runtime_template
-          .render_module_argument(module_argument)
+        runtime_template.render_module_argument(module_argument)
       )
     } else if dep.base.is_this() {
-      runtime_requirements.insert(RuntimeGlobals::THIS_AS_EXPORTS);
+      runtime_template
+        .runtime_requirements_mut()
+        .insert(RuntimeGlobals::THIS_AS_EXPORTS);
       "this".to_string()
     } else {
       panic!("Unexpected base type");

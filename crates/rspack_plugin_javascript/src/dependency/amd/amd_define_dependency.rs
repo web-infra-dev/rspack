@@ -6,8 +6,8 @@ use rspack_cacheable::{
 use rspack_core::{
   AffectType, AsContextDependency, AsModuleDependency, Dependency, DependencyCategory,
   DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
-  DependencyTemplateType, DependencyType, RuntimeGlobals, RuntimeTemplate, TemplateContext,
-  TemplateReplaceSource,
+  DependencyTemplateType, DependencyType, ModuleCodegenRuntimeTemplate, RuntimeGlobals,
+  TemplateContext, TemplateReplaceSource,
 };
 use rspack_util::{atom::Atom, json_stringify};
 
@@ -96,7 +96,7 @@ impl Branch {
     &self,
     local_module_var: &Option<String>,
     named_module: &Option<Atom>,
-    runtime_template: &RuntimeTemplate,
+    runtime_template: &mut ModuleCodegenRuntimeTemplate,
   ) -> String {
     let local_module_var = match local_module_var {
       Some(name) => name,
@@ -289,15 +289,16 @@ impl DependencyTemplate for AMDDefineDependencyTemplate {
 
     let branch = dep.branch();
     code_generatable_context
-      .runtime_requirements
-      .insert(branch.get_requests());
+      .runtime_template
+      .runtime_requirements_mut()
+      .extend(branch.get_requests());
 
     let local_module_var = dep.local_module_var();
 
     let text = branch.get_content(
       &local_module_var,
       &dep.named_module,
-      &code_generatable_context.compilation.runtime_template,
+      &mut code_generatable_context.runtime_template,
     );
     let definition = branch.get_definition(&local_module_var);
 

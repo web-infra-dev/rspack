@@ -120,7 +120,7 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
     compilation,
     module,
     runtime,
-    runtime_requirements,
+    runtime_template,
     ..
   } = code_generatable_context;
   // Only available when module factorization is successful.
@@ -170,10 +170,9 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
     phase,
     *runtime,
   );
-  let content: (String, String) = compilation.runtime_template.import_statement(
+  let content: (String, String) = runtime_template.import_statement(
     *module,
     compilation,
-    runtime_requirements,
     module_dependency.id(),
     &import_var,
     module_dependency.request(),

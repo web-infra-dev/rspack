@@ -155,10 +155,10 @@ impl DependencyTemplate for ImportEagerDependencyTemplate {
       dep.range.start,
       dep.range.end,
       code_generatable_context
-        .compilation
         .runtime_template
         .module_namespace_promise(
-          code_generatable_context,
+          code_generatable_context.compilation,
+          code_generatable_context.module.identifier(),
           &dep.id,
           block,
           &dep.request,
