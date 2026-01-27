@@ -7,10 +7,10 @@ use rspack_core::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo,
   BuildMeta, BuildMetaExportsType, BuildResult, ChunkGroupOptions, CodeGenerationResult,
   Compilation, ConcatenationScope, Context, DependenciesBlock, Dependency, DependencyId,
-  ExportsArgument, FactoryMeta, GroupOptions, LibIdentOptions, Module, ModuleDependency,
-  ModuleGraph, ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
-  StaticExportsDependency, StaticExportsSpec, impl_module_meta_info, impl_source_map_config,
-  module_update_hash,
+  ExportsArgument, FactoryMeta, GroupOptions, LibIdentOptions, Module,
+  ModuleCodegenRuntimeTemplate, ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleType,
+  RuntimeGlobals, RuntimeSpec, SourceType, StaticExportsDependency, StaticExportsSpec,
+  impl_module_meta_info, impl_source_map_config, module_update_hash,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
@@ -190,12 +190,8 @@ impl Module for ContainerEntryModule {
     code_generation_result
       .runtime_requirements
       .insert(RuntimeGlobals::CURRENT_REMOTE_GET_SCOPE);
-    let module_map = ExposeModuleMap::new(
-      compilation,
-      self,
-      &mut code_generation_result.runtime_requirements,
-    );
-    let module_map_str = module_map.render(compilation);
+    let module_map = ExposeModuleMap::new(compilation, self, &mut runtime_template);
+    let module_map_str = module_map.render(&mut runtime_template);
     let source = if self.enhanced {
       let define_property_getters =
         runtime_template.render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
@@ -301,7 +297,7 @@ impl ExposeModuleMap {
   pub fn new(
     compilation: &Compilation,
     container_entry_module: &ContainerEntryModule,
-    runtime_requirements: &mut RuntimeGlobals,
+    runtime_template: &mut ModuleCodegenRuntimeTemplate,
   ) -> Self {
     let mut module_map = vec![];
     let module_graph = compilation.get_module_graph();
@@ -324,39 +320,22 @@ impl ExposeModuleMap {
         .clone()
         .any(|(_, module, _, _)| module.is_none())
       {
-        compilation
-          .runtime_template
-          .throw_missing_module_error_block(
-            &modules_iter
-              .map(|(_, _, request, _)| request)
-              .collect::<Vec<&str>>()
-              .join(", "),
-          )
+        runtime_template.throw_missing_module_error_block(
+          &modules_iter
+            .map(|(_, _, request, _)| request)
+            .collect::<Vec<&str>>()
+            .join(", "),
+        )
       } else {
-        let block_promise = compilation.runtime_template.block_promise(
-          Some(block_id),
-          runtime_requirements,
-          compilation,
-          "",
-        );
-        let module_raw = compilation.runtime_template.returning_function(
-          &compilation.runtime_template.returning_function(
-            &modules_iter
-              .map(|(_, _, request, dependency_id)| {
-                compilation.runtime_template.module_raw(
-                  compilation,
-                  runtime_requirements,
-                  dependency_id,
-                  request,
-                  false,
-                )
-              })
-              .collect::<Vec<_>>()
-              .join(", "),
-            "",
-          ),
-          "",
-        );
+        let block_promise = runtime_template.block_promise(Some(block_id), compilation, "");
+        let modules = modules_iter
+          .map(|(_, _, request, dependency_id)| {
+            runtime_template.module_raw(compilation, dependency_id, request, false)
+          })
+          .collect::<Vec<_>>()
+          .join(", ");
+        let module_raw = runtime_template
+          .returning_function(&runtime_template.returning_function(&modules, ""), "");
         format!("return {block_promise}.then({module_raw});")
       };
       module_map.push((name.to_string(), str));
@@ -364,7 +343,7 @@ impl ExposeModuleMap {
     Self(module_map)
   }
 
-  pub fn render(&self, compilation: &Compilation) -> String {
+  pub fn render(&self, runtime_template: &mut ModuleCodegenRuntimeTemplate) -> String {
     let module_map = self
       .0
       .iter()
@@ -372,7 +351,7 @@ impl ExposeModuleMap {
         format!(
           "{}: {},",
           json_stringify(name),
-          compilation.runtime_template.basic_function("", factory)
+          runtime_template.basic_function("", factory)
         )
       })
       .collect::<Vec<_>>()

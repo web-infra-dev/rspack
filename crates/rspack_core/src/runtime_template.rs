@@ -1719,4 +1719,60 @@ impl ModuleCodegenRuntimeTemplate {
       format!("{} ", to_normal_comment(&content))
     }
   }
+
+  pub fn module_raw(
+    &mut self,
+    compilation: &Compilation,
+    id: &DependencyId,
+    request: &str,
+    weak: bool,
+  ) -> String {
+    if let Some(module_identifier) = compilation
+      .get_module_graph()
+      .module_identifier_by_dependency_id(id)
+      && let Some(module_id) =
+        ChunkGraph::get_module_id(&compilation.module_ids_artifact, *module_identifier)
+    {
+      format!(
+        "{}({})",
+        self.render_runtime_globals(&RuntimeGlobals::REQUIRE),
+        self.module_id_expr(request, module_id)
+      )
+    } else if weak {
+      self.weak_error(request)
+    } else {
+      self.missing_module(request)
+    }
+  }
+
+  pub fn module_id_expr(&self, request: &str, module_id: &ModuleId) -> String {
+    format!(
+      "{}{}",
+      self.comment(CommentOptions {
+        request: Some(request),
+        ..Default::default()
+      }),
+      json_stringify(module_id)
+    )
+  }
+
+  pub fn weak_error(&self, request: &str) -> String {
+    format!(
+      "var e = new Error('Module is not available (weak dependency), request is {request}'); e.code = 'MODULE_NOT_FOUND'; throw e;"
+    )
+  }
+
+  pub fn missing_module(&self, request: &str) -> String {
+    format!(
+      "Object({}())",
+      self.throw_missing_module_error_function(request)
+    )
+  }
+
+  pub fn throw_missing_module_error_function(&self, request: &str) -> String {
+    format!(
+      "function __rspack_missing_module() {{ {} }}",
+      self.throw_missing_module_error_block(request)
+    )
+  }
 }
