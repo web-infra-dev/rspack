@@ -15,17 +15,17 @@ pub struct WatcherDirectoriesAnalyzer;
 
 impl Analyzer for WatcherDirectoriesAnalyzer {
   fn analyze<'a>(&self, path_accessor: PathAccessor<'a>) -> Vec<WatchPattern> {
-    eprintln!("[WATCHER_DEBUG] WatcherDirectoriesAnalyzer::analyze() - Starting (Linux strategy)");
+    println!("[WATCHER_DEBUG] WatcherDirectoriesAnalyzer::analyze() - Starting (Linux strategy)");
     let patterns = self
       .find_watch_directories(path_accessor)
       .into_iter()
       .collect::<Vec<_>>();
-    eprintln!(
+    println!(
       "[WATCHER_DEBUG] WatcherDirectoriesAnalyzer::analyze() - Generated {} watch patterns",
       patterns.len()
     );
     for pattern in &patterns {
-      eprintln!(
+      println!(
         "[WATCHER_DEBUG]   - Pattern: {:?}, mode: {:?}",
         pattern.path, pattern.mode
       );
@@ -69,7 +69,7 @@ impl WatcherDirectoriesAnalyzer {
       if let Some(parent) = current.parent() {
         current = ArcPath::from(parent);
       } else {
-        eprintln!(
+        println!(
           "[WATCHER_DEBUG] WatcherDirectoriesAnalyzer::find_exists_path() - No existing parent found for: {:?}",
           original_path
         );
@@ -81,7 +81,7 @@ impl WatcherDirectoriesAnalyzer {
     } else {
       "NonRecursive"
     };
-    eprintln!(
+    println!(
       "[WATCHER_DEBUG] WatcherDirectoriesAnalyzer::find_exists_path() - Path: {:?} -> Watching: {:?}, depth: {}, mode: {}",
       original_path, current, deep, mode
     );

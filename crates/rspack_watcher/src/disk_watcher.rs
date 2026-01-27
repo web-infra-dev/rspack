@@ -35,7 +35,7 @@ impl DiskWatcher {
           let paths = &event.paths;
 
           if paths.is_empty() {
-            eprintln!(
+            println!(
               "[WATCHER_DEBUG] DiskWatcher - Received event with no paths: {:?}",
               event.kind
             );
@@ -44,7 +44,7 @@ impl DiskWatcher {
 
           let kind = match event.kind {
             EventKind::Create(_) => {
-              eprintln!(
+              println!(
                 "[WATCHER_DEBUG] DiskWatcher - Create event for {} paths",
                 paths.len()
               );
@@ -53,7 +53,7 @@ impl DiskWatcher {
             EventKind::Modify(
               ModifyKind::Data(_) | ModifyKind::Any | ModifyKind::Name(_) | ModifyKind::Metadata(_),
             ) => {
-              eprintln!(
+              println!(
                 "[WATCHER_DEBUG] DiskWatcher - Modify event ({:?}) for {} paths",
                 event.kind,
                 paths.len()
@@ -61,7 +61,7 @@ impl DiskWatcher {
               FsEventKind::Change
             }
             EventKind::Remove(_) => {
-              eprintln!(
+              println!(
                 "[WATCHER_DEBUG] DiskWatcher - Remove event for {} paths",
                 paths.len()
               );
@@ -71,7 +71,7 @@ impl DiskWatcher {
             // path/to/index.js should be removed, and path/to/index.js.map should be changed
             // Now /path/to/index.js and /path/to/index.js.map will both be changed
             _ => {
-              eprintln!(
+              println!(
                 "[WATCHER_DEBUG] DiskWatcher - Ignoring event kind: {:?}",
                 event.kind
               );
@@ -80,7 +80,7 @@ impl DiskWatcher {
           };
           let paths = event.paths.into_iter().map(ArcPath::from);
           for path in paths {
-            eprintln!(
+            println!(
               "[WATCHER_DEBUG] DiskWatcher - Triggering {:?} for path: {:?}",
               kind, path
             );
@@ -90,7 +90,7 @@ impl DiskWatcher {
 
         Err(e) => {
           // Handle error, e.g., log it or notify the user
-          eprintln!("[WATCHER_DEBUG] DiskWatcher - ERROR in file watcher: {e:?}");
+          println!("[WATCHER_DEBUG] DiskWatcher - ERROR in file watcher: {e:?}");
         }
       },
       config,
@@ -114,7 +114,7 @@ impl DiskWatcher {
   ) -> rspack_error::Result<()> {
     let patterns: HashSet<WatchPattern> = patterns.collect();
 
-    eprintln!(
+    println!(
       "[WATCHER_DEBUG] DiskWatcher::watch() - Updating watch patterns, {} new patterns",
       patterns.len()
     );
@@ -130,7 +130,7 @@ impl DiskWatcher {
     for pattern in already_watched_paths.difference(&current_should_watch_paths) {
       // If the path is no longer in the patterns to watch, unwatch it
       if let Some(watcher) = &mut self.inner {
-        eprintln!(
+        println!(
           "[WATCHER_DEBUG] DiskWatcher::watch() - Unwatching path: {:?}",
           pattern
         );
@@ -141,7 +141,7 @@ impl DiskWatcher {
         if let Err(e) = watcher.unwatch(pattern)
           && !matches!(e.kind, notify::ErrorKind::WatchNotFound)
         {
-          eprintln!(
+          println!(
             "[WATCHER_DEBUG] DiskWatcher::watch() - ERROR unwatching path {:?}: {}",
             pattern, e
           );
@@ -156,12 +156,12 @@ impl DiskWatcher {
       }
 
       if let Some(watcher) = &mut self.inner {
-        eprintln!(
+        println!(
           "[WATCHER_DEBUG] DiskWatcher::watch() - Watching path: {:?}, mode: {:?}",
           pattern.path, pattern.mode
         );
         watcher.watch(&pattern.path, pattern.mode).map_err(|e| {
-          eprintln!(
+          println!(
             "[WATCHER_DEBUG] DiskWatcher::watch() - ERROR watching path {:?}: {}",
             pattern.path, e
           );
@@ -172,12 +172,12 @@ impl DiskWatcher {
       self.watch_patterns.insert(pattern);
     }
 
-    eprintln!(
+    println!(
       "[WATCHER_DEBUG] DiskWatcher::watch() - Now watching {} paths total",
       self.watch_patterns.len()
     );
     for pattern in &self.watch_patterns {
-      eprintln!(
+      println!(
         "[WATCHER_DEBUG]   - {:?} ({:?})",
         pattern.path, pattern.mode
       );
