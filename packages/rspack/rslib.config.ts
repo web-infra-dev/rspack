@@ -188,20 +188,6 @@ export default defineConfig({
       output: {
         externals: [externalAlias, './moduleFederationDefaultRuntime.js'],
       },
-      tools: {
-        rspack: {
-          plugins: [
-            new rspack.BannerPlugin({
-              // make require esm default export compatible with commonjs
-              banner: `export { src_rspack_0 as 'module.exports' }`,
-              stage: rspack.Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_SIZE + 1,
-              raw: true,
-              footer: true,
-              include: /index\.js$/,
-            }),
-          ],
-        },
-      },
     }),
     merge(commonLibConfig, {
       source: {
