@@ -1,4 +1,5 @@
 mod error;
+mod filesystem;
 mod fs;
 mod pack;
 
