@@ -6,7 +6,7 @@ module.exports = {
 	output: {
 		filename: `[name].js`,
 		module: true,
-		library: { type: "modern-module" },
+		libraryTarget: "modern-module",
 		iife: false,
 		chunkFormat: "module"
 	},
@@ -16,7 +16,9 @@ module.exports = {
 	},
 	externals: "external-module",
 	optimization: {
-		runtimeChunk: false
+		avoidEntryIife: true,
+		concatenateModules: true,
+		minimize: false
 	},
 	plugins: [
 		function () {
@@ -28,10 +30,10 @@ module.exports = {
 				compilation.hooks.afterProcessAssets.tap("testcase", assets => {
 					const bundle = Object.values(assets)[0]._value;
 					expect(bundle)
-						.toContain(`var foo_default = /*#__PURE__*/__webpack_require__.n(foo);\nvar foo_default_0 = foo_default();`);
-					expect(bundle).toContain('foo_default_0 as cjsInterop')
+						.toContain(`var __webpack_exports__cjsInterop = (foo_default());
+export { external_module as defaultImport, namedImport, __webpack_exports__cjsInterop as cjsInterop };`);
 					expect(bundle).toContain(
-						'export { default as defaultImport, namedImport } from "external-module";'
+						'import external_module, { namedImport } from "external-module";'
 					);
 				});
 			};

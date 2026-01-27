@@ -64,12 +64,7 @@ module.exports = {
 			this.hooks.compilation.tap("testcase", handler);
 		}
 	],
-	module: {
-		rules: [
-			{
-				test: /\.css$/,
-				type: "css/auto"
-			}
-		]
+	experiments: {
+		css: true
 	}
 };

@@ -5,14 +5,10 @@ module.exports = {
 			"css/auto": {
 				localIdentName: "[path][name]-[local]"
 			}
-		},
-		rules: [
-			{
-				test: /\.css$/,
-				type: "css/auto"
-			}
-		]
+		}
 	},
 	mode: "development",
-
+	experiments: {
+		css: true
+	}
 };

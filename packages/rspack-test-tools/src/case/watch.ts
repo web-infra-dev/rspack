@@ -157,12 +157,6 @@ export function createWatchInitialProcessor(
           return () => {
             if (!cached) {
               cached = stats.toJson({
-                assets: true,
-                chunks: true,
-                chunkModules: true,
-                modules: true,
-                entrypoints: true,
-                chunkGroups: true,
                 errorDetails: true,
               });
             }
@@ -208,12 +202,6 @@ export function createWatchInitialProcessor(
           stats.hasWarnings()
         ) {
           const statsJson = stats.toJson({
-            assets: true,
-            chunks: true,
-            chunkModules: true,
-            modules: true,
-            entrypoints: true,
-            chunkGroups: true,
             errorDetails: true,
           });
           if (statsJson.errors) {
@@ -364,24 +352,25 @@ function overrideOptions(
   if (typeof options.output.pathinfo === 'undefined')
     options.output.pathinfo = false;
   if (!options.output.filename) options.output.filename = 'bundle.js';
+  if (options.cache && (options.cache as any).type === 'filesystem') {
+    const cacheDirectory = path.join(tempDir, '.cache');
+    (options.cache as any).cacheDirectory = cacheDirectory;
+    (options.cache as any).name = `config-${index}`;
+  }
   options.optimization ??= {};
   options.experiments ??= {};
-  options.module ??= {};
-  options.module.defaultRules ??= ['...'];
-  options.module.defaultRules.push({
-    test: /\.css$/,
-    type: 'css/auto',
-  });
+  options.experiments.css ??= true;
 
   if (nativeWatcher) {
     (options as RspackOptions).experiments!.nativeWatcher ??= true;
   }
 
-  (options as RspackOptions).output ??= {};
-  (options as RspackOptions).output!.bundlerInfo ??= {};
-  (options as RspackOptions).output!.bundlerInfo!.force ??= false;
+  (options as RspackOptions).experiments!.rspackFuture ??= {};
+  (options as RspackOptions).experiments!.rspackFuture!.bundlerInfo ??= {};
+  (options as RspackOptions).experiments!.rspackFuture!.bundlerInfo!.force ??=
+    false;
   // test incremental: "safe" here, we test default incremental in Incremental-*.test.js
-  (options as RspackOptions).incremental ??= 'safe';
+  (options as RspackOptions).experiments!.incremental ??= 'safe';
 
   if (!global.printLogger) {
     options.infrastructureLogging = {
@@ -410,7 +399,9 @@ function defaultOptions({
 } = {}): RspackOptions {
   if (incremental) {
     return {
-      incremental: 'advance',
+      experiments: {
+        incremental: 'advance',
+      },
       ignoreWarnings: ignoreNotFriendlyForIncrementalWarnings
         ? [/is not friendly for incremental/]
         : undefined,
@@ -443,11 +434,6 @@ function cachedWatchStats(
         return cached[stepName];
       }
       cached[stepName] = compiler.getStats()!.toJson({
-        entrypoints: true,
-        assets: true,
-        chunks: true,
-        chunkModules: true,
-        modules: true,
         errorDetails: true,
       });
       return cached[stepName];

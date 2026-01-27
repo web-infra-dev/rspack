@@ -14,7 +14,6 @@ module.exports = {
 		}
 	},
 	stats: {
-		assets: true,
 		chunks: true,
 		chunkModules: true,
 		dependentModules: true,

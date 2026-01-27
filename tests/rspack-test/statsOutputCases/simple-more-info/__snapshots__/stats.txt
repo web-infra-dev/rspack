@@ -2,4 +2,5 @@ PublicPath: auto
 asset bundle.js xx bytes [emitted] (name: main)
 ./index.js xx bytes [built] [code generated]
   entry ./index
+  xx ms (resolving: xx ms, building: xx ms)
 Rspack x.x.x compiled successfully in X s

@@ -13,15 +13,18 @@ module.exports = {
     {
       apply(compiler) {
         compiler.hooks.done.tap('TEST', function (stats) {
-          const { modules } = stats.toJson({ modules: true });
+          const { modules } = stats.toJson();
           compiler.__modules = modules.map((item) => item.identifier);
         });
       },
     },
   ],
+  cache: true,
   lazyCompilation: true,
-  cache: {
-    type: 'persistent',
+  experiments: {
+    cache: {
+      type: 'persistent',
+    },
   },
   devServer: {
     hot: true,

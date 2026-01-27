@@ -1,12 +1,10 @@
-import fs from 'node:fs';
 import querystring from 'node:querystring';
 import { promisify } from 'node:util';
 import { type MessagePort, receiveMessageOnPort } from 'node:worker_threads';
 
 import { JsLoaderState, type NormalModule } from '@rspack/binding';
 import type { LoaderContext } from '../config';
-import * as swc from '../swc';
-import { cleverMerge } from '../util/cleverMerge';
+
 import { createHash } from '../util/createHash';
 import { absolutify, contextify } from '../util/identifier';
 import { memoize } from '../util/memoize';
@@ -251,14 +249,14 @@ async function loaderImpl(
     rspack: {
       // @ts-expect-error: some properties are missing.
       experiments: {
-        swc,
+        swc: require('../swc'),
       },
     },
     // @ts-expect-error: some properties are missing.
     webpack: {
       util: {
-        createHash,
-        cleverMerge,
+        createHash: require('../util/createHash').createHash,
+        cleverMerge: require('../util/cleverMerge').cleverMerge,
       },
     },
   };
@@ -331,7 +329,7 @@ async function loaderImpl(
     );
   };
 
-  loaderContext.fs = fs;
+  loaderContext.fs = require('node:fs');
 
   Object.defineProperty(loaderContext, 'request', {
     enumerable: true,

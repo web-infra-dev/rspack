@@ -3,14 +3,7 @@ module.exports = {
 	target: ["web", "node"],
 	mode: "development",
 	experiments: {
+		css: true,
 		outputModule: true
-	},
-	module: {
-		rules: [
-			{
-				test: /\.css$/,
-				type: "css/auto"
-			}
-		]
 	}
 };

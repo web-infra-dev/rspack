@@ -12,13 +12,7 @@ module.exports = {
 			"css/auto": {
 				localIdentName: "[path][name]-[local]"
 			}
-		},
-		rules: [
-			{
-				test: /\.css$/,
-				type: "css/auto"
-			}
-		]
+		}
 	},
 	optimization: {
 		minimize: true,
@@ -26,5 +20,7 @@ module.exports = {
 		providedExports: true,
 		usedExports: true
 	},
-
+	experiments: {
+		css: true
+	}
 };

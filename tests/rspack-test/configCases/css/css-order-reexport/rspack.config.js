@@ -18,7 +18,6 @@ module.exports = {
 		rules: [
 			{
 				test: /\.css$/,
-				type: 'javascript/auto',
 				use: [
 					{
 						loader: MiniCssExtractPlugin.loader

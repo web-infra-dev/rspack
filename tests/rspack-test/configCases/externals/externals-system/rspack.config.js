@@ -1,7 +1,7 @@
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	output: {
-		library: { type: "system" }
+		libraryTarget: "system"
 	},
 	externals: {
 		external1: "external1",

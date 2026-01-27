@@ -16,9 +16,11 @@ function config(index, { concatenateModules } = {}) {
 		],
 		optimization: {
 			concatenateModules,
-			moduleIds: "named",
-			inlineExports: true
+			moduleIds: "named"
 		},
+		experiments: {
+			inlineConst: true
+		}
 	};
 }
 

@@ -7,8 +7,4 @@ module.exports = {
 	entry: {
 		entry: "./entry"
 	},
-	stats: {
-		assets: true,
-		modules: true,
-	}
 };

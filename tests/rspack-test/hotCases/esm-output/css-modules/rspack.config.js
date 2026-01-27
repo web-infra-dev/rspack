@@ -3,15 +3,8 @@ module.exports = {
 	mode: "development",
 	target: "web",
 	experiments: {
-		outputModule: true
-	},
-	module: {
-		rules: [
-			{
-				test: /\.css$/,
-				type: "css/module"
-			}
-		]
+		outputModule: true,
+		css: true
 	},
 	output: {
 		module: true,

@@ -1,0 +1,12 @@
+# Case remove-add-worker: Step 0
+
+## Changed Files
+
+
+## Asset Files
+- Bundle: bundle.js
+
+## Manifest
+
+
+## Update

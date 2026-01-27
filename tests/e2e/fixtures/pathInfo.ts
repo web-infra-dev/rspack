@@ -1,9 +1,6 @@
 import path from 'node:path';
 import fs from 'fs-extra';
 import type { Fixtures } from '@playwright/test';
-import { createRequire } from 'node:module';
-
-const require = createRequire(import.meta.url);
 
 type PathInfo = {
   testFile: string;
@@ -15,7 +12,7 @@ export type PathInfoFixtures = {
   pathInfo: PathInfo;
 };
 
-const tempDir = path.resolve(import.meta.dirname, '../temp');
+const tempDir = path.resolve(__dirname, '../temp');
 async function calcPathInfo(
   testFile: string,
   workerId: string,

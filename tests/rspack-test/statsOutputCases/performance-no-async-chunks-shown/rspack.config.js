@@ -9,8 +9,6 @@ module.exports = {
 		hints: "warning"
 	},
 	stats: {
-		assets: true,
-		modules: true,
 		colors: true,
 		hash: false,
 		entrypoints: true

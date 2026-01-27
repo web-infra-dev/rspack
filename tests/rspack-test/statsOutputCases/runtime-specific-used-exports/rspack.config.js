@@ -5,7 +5,6 @@ const entry = {
 };
 
 const stats = {
-	assets: true,
 	usedExports: true,
 	chunks: true,
 	chunkModules: true,

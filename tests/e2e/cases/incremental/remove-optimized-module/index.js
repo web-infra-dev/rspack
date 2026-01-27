@@ -1,4 +1,4 @@
-import { Button } from './comp/index.js';
+import { Button } from './comp';
 
 const div = document.createElement('div');
 div.id = 'main';

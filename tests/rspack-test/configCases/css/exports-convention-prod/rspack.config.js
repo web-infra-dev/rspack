@@ -24,10 +24,12 @@ const common = {
 						}
 					}
 				]
-			},
+			}
 		]
 	},
-
+	experiments: {
+		css: true
+	}
 };
 
 /** @type {import("@rspack/core").Configuration} */

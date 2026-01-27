@@ -2,7 +2,6 @@ mod rebuild;
 use std::sync::{Arc, atomic::AtomicU32};
 
 use futures::future::join_all;
-use rspack_cacheable::cacheable;
 use rspack_error::Result;
 use rspack_fs::{IntermediateFileSystem, NativeFileSystem, ReadableFileSystem, WritableFileSystem};
 use rspack_hook::define_hook;
@@ -39,8 +38,6 @@ define_hook!(CompilerEmit: Series(compilation: &mut Compilation));
 define_hook!(CompilerAfterEmit: Series(compilation: &mut Compilation));
 define_hook!(CompilerAssetEmitted: Series(compilation: &Compilation, filename: &str, info: &AssetEmittedInfo));
 define_hook!(CompilerClose: Series(compilation: &Compilation));
-define_hook!(CompilerDone: Series(compilation: &Compilation));
-define_hook!(CompilerFailed: Series(compilation: &Compilation));
 
 #[derive(Debug, Default)]
 pub struct CompilerHooks {
@@ -53,13 +50,10 @@ pub struct CompilerHooks {
   pub after_emit: CompilerAfterEmitHook,
   pub asset_emitted: CompilerAssetEmittedHook,
   pub close: CompilerCloseHook,
-  pub done: CompilerDoneHook,
-  pub failed: CompilerFailedHook,
 }
 
 static COMPILER_ID: AtomicU32 = AtomicU32::new(0);
 
-#[cacheable]
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd)]
 pub struct CompilerId(u32);
 
@@ -156,7 +150,7 @@ impl Compiler {
       input_filesystem.clone(),
       intermediate_filesystem.clone(),
     );
-    let incremental = Incremental::new_cold(options.incremental);
+    let incremental = Incremental::new_cold(options.experiments.incremental);
     let module_executor = ModuleExecutor::default();
 
     let id = CompilerId::new();
@@ -206,31 +200,11 @@ impl Compiler {
     self.build().await?;
     Ok(())
   }
-
   pub async fn build(&mut self) -> Result<()> {
     let compiler_context = self.compiler_context.clone();
-    match within_compiler_context(compiler_context, self.build_inner()).await {
-      Ok(_) => {
-        self
-          .plugin_driver
-          .compiler_hooks
-          .done
-          .call(&self.compilation)
-          .await?;
-        Ok(())
-      }
-      Err(e) => {
-        self
-          .plugin_driver
-          .compiler_hooks
-          .failed
-          .call(&self.compilation)
-          .await?;
-        Err(e)
-      }
-    }
+    within_compiler_context(compiler_context, self.build_inner()).await?;
+    Ok(())
   }
-
   #[instrument("Compiler:build",target=TRACING_BENCH_TARGET, skip_all)]
   async fn build_inner(&mut self) -> Result<()> {
     // TODO: clear the outdated cache entries in resolver,
@@ -250,7 +224,7 @@ impl Compiler {
         self.resolver_factory.clone(),
         self.loader_resolver_factory.clone(),
         None,
-        Incremental::new_cold(self.options.incremental),
+        Incremental::new_cold(self.options.experiments.incremental),
         Some(Default::default()),
         Default::default(),
         Default::default(),
@@ -265,7 +239,7 @@ impl Compiler {
     // TODO: disable it for now, enable it once persistent cache is added to all artifacts
     // if is_hot {
     //   // If it's a hot start, we can use incremental
-    //   self.compilation.incremental = Incremental::new_hot(self.options.incremental);
+    //   self.compilation.incremental = Incremental::new_hot(self.options.experiments.incremental);
     // }
 
     self.compile().await?;
@@ -353,10 +327,6 @@ impl Compiler {
       .await?;
 
     let mut new_emitted_asset_versions = HashMap::default();
-    let emit_assets_incremental = self
-      .compilation
-      .incremental
-      .passes_enabled(IncrementalPasses::EMIT_ASSETS);
 
     rspack_futures::scope(|token| {
       self
@@ -365,12 +335,15 @@ impl Compiler {
         .iter()
         .for_each(|(filename, asset)| {
           // collect version info to new_emitted_asset_versions
-          if emit_assets_incremental {
+          if self
+            .compilation
+            .incremental
+            .passes_enabled(IncrementalPasses::EMIT_ASSETS)
+          {
             new_emitted_asset_versions.insert(filename.clone(), asset.info.version.clone());
           }
 
-          if emit_assets_incremental
-            && let Some(old_version) = self.emitted_asset_versions.get(filename)
+          if let Some(old_version) = self.emitted_asset_versions.get(filename)
             && old_version.as_str() == asset.info.version
             && !old_version.is_empty()
           {

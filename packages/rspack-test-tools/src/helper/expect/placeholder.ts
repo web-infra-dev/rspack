@@ -22,10 +22,6 @@ const placeholderSerializer = createSnapshotSerializer({
       mark: 'rspack_root',
     },
     {
-      match: /<ROOT>\/packages\/rspack/g,
-      mark: 'rspack_root',
-    },
-    {
       match: /:\d+:\d+-\d+:\d+/g,
       mark: 'line_col_range',
     },

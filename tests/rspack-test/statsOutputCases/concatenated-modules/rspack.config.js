@@ -4,9 +4,5 @@ module.exports = {
 	optimization: {
 		concatenateModules: true,
 		minimize: false
-	},
-	stats: {
-		assets: true,
-		modules: true,
 	}
 };

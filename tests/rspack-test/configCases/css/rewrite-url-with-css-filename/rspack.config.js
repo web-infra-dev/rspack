@@ -27,12 +27,10 @@ module.exports = {
 				generator: {
 					filename: "image/[name].[contenthash:8][ext]"
 				}
-			},
-			{
-				test: /\.css$/,
-				type: "css/auto"
 			}
 		]
 	},
-
+	experiments: {
+		css: true
+	}
 };

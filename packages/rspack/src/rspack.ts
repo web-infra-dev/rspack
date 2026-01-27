@@ -69,11 +69,10 @@ function createCompiler(userOptions: RspackOptions): Compiler {
       }
     }
   }
+  const { platform } = applyRspackOptionsDefaults(compiler.options);
 
-  const tp = applyRspackOptionsDefaults(compiler.options);
-  if (tp) {
-    compiler.platform = tp.platform;
-    compiler.target = { esVersion: tp.esVersion, targets: tp.targets };
+  if (platform) {
+    compiler.platform = platform;
   }
 
   compiler.hooks.environment.call();

@@ -6,7 +6,7 @@ module.exports = {
 		__filename: false
 	},
 	output: {
-		library: { type: "commonjs2" }
+		libraryTarget: "commonjs2"
 	},
 	optimization: {
 		splitChunks: {

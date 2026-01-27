@@ -20,13 +20,5 @@ module.exports = {
 			}
 		},
 		runtimeChunk: "single"
-	},
-	module: {
-		rules: [
-			{
-				test: /\.css$/,
-				type: 'css/auto'
-			}
-		]
 	}
 };

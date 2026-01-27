@@ -5,10 +5,6 @@ module.exports = {
 	module: {
 		rules: [
 			{
-				test: /\.css/,
-				type: "css/auto"
-			},
-			{
 				resourceQuery: /\?default/,
 				parser: {
 					namedExports: false
@@ -21,8 +17,10 @@ module.exports = {
 					namedExports: true
 				},
 				type: "css/module"
-			},
+			}
 		]
 	},
-
+	experiments: {
+		css: true
+	}
 };

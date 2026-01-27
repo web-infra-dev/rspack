@@ -9,6 +9,9 @@ const basic = {
 		library: {
 			type: "modern-module"
 		},
+		iife: false,
+		chunkFormat: "module",
+		chunkLoading: "import"
 	},
 	externals: {
 		react: "react-alias",
@@ -51,11 +54,7 @@ module.exports = [
 			index: "./index.js"
 		},
 		output: {
-			module: true,
-			filename: "index.mjs"
-		},
-		experiments: {
-			outputModule: true
+			filename: "index.js"
 		}
 	}
 ];

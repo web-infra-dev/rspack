@@ -7,14 +7,8 @@ module.exports = [
 		optimization: {
 			chunkIds: "named"
 		},
-
-		module: {
-			rules: [
-				{
-					test: /\.css$/,
-					type: "css/auto"
-				}
-			]
+		experiments: {
+			css: true
 		}
 	},
 	// {

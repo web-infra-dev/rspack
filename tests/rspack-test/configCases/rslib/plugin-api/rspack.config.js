@@ -6,7 +6,7 @@ const {
 module.exports = [
 	{
 		entry: {
-			index: {import: "./index.js", filename: 'bundle0.js'},
+			index: "./index.js",
 		},
 		target: "node",
 		node: {
@@ -26,7 +26,7 @@ module.exports = [
 	},
 	{
 		entry: {
-			index: {import: "./module.js", filename: 'bundle1.mjs'},
+			index: "./module.js",
 		},
 		target: "node",
 		node: {

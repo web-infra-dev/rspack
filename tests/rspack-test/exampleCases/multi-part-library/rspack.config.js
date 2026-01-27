@@ -8,6 +8,7 @@ module.exports = {
 	output: {
 		path: path.join(__dirname, "dist"),
 		filename: "MyLibrary.[name].js",
-		library: { type: "umd", name: ["MyLibrary", "[name]"] }
+		library: ["MyLibrary", "[name]"],
+		libraryTarget: "umd"
 	}
 };

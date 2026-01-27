@@ -206,8 +206,6 @@ impl JsCompiler {
         rspack_loader_lightningcss::LightningcssLoaderPlugin::new(),
       ));
       plugins.push(Box::new(rspack_loader_swc::SwcLoaderPlugin::new()));
-      plugins.push(Box::new(rspack_plugin_rsc::ClientEntryLoaderPlugin::new()));
-      plugins.push(Box::new(rspack_plugin_rsc::ActionEntryLoaderPlugin::new()));
       plugins.push(Box::new(
         rspack_loader_react_refresh::ReactRefreshLoaderPlugin::new(),
       ));
@@ -417,11 +415,6 @@ impl JsCompiler {
       .virtual_file_store
       .as_ref()
       .map(|store| JsVirtualFileStore::new(store.clone()))
-  }
-
-  #[napi]
-  pub fn get_compiler_id(&self) -> External<CompilerId> {
-    External::new(self.compiler.id())
   }
 }
 

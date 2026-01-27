@@ -28,7 +28,9 @@ module.exports = {
 		]
 	},
 	optimization: {
-		moduleIds: "named",
-		inlineExports: true
+		moduleIds: "named"
 	},
+	experiments: {
+		inlineEnum: true
+	}
 };

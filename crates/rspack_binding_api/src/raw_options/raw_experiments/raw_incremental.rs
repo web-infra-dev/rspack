@@ -6,9 +6,11 @@ use rspack_core::incremental::{IncrementalOptions, IncrementalPasses};
 pub struct RawIncremental {
   pub silent: bool,
   // passes
-  pub build_module_graph: bool,
-  pub finish_modules: bool,
-  pub optimize_dependencies: bool,
+  pub make: bool,
+  pub infer_async_modules: bool,
+  pub provided_exports: bool,
+  pub dependencies_diagnostics: bool,
+  pub side_effects: bool,
   pub build_chunk_graph: bool,
   pub module_ids: bool,
   pub chunk_ids: bool,
@@ -17,21 +19,27 @@ pub struct RawIncremental {
   pub modules_runtime_requirements: bool,
   pub chunks_runtime_requirements: bool,
   pub chunks_hashes: bool,
-  pub chunk_asset: bool,
+  pub chunks_render: bool,
   pub emit_assets: bool,
 }
 
 impl From<RawIncremental> for IncrementalOptions {
   fn from(value: RawIncremental) -> Self {
     let mut passes = IncrementalPasses::empty();
-    if value.build_module_graph {
-      passes.insert(IncrementalPasses::BUILD_MODULE_GRAPH);
+    if value.make {
+      passes.insert(IncrementalPasses::MAKE);
     }
-    if value.finish_modules {
-      passes.insert(IncrementalPasses::FINISH_MODULES);
+    if value.infer_async_modules {
+      passes.insert(IncrementalPasses::INFER_ASYNC_MODULES);
     }
-    if value.optimize_dependencies {
-      passes.insert(IncrementalPasses::OPTIMIZE_DEPENDENCIES);
+    if value.provided_exports {
+      passes.insert(IncrementalPasses::PROVIDED_EXPORTS);
+    }
+    if value.dependencies_diagnostics {
+      passes.insert(IncrementalPasses::DEPENDENCIES_DIAGNOSTICS);
+    }
+    if value.side_effects {
+      passes.insert(IncrementalPasses::SIDE_EFFECTS);
     }
     if value.build_chunk_graph {
       passes.insert(IncrementalPasses::BUILD_CHUNK_GRAPH);
@@ -57,8 +65,8 @@ impl From<RawIncremental> for IncrementalOptions {
     if value.chunks_hashes {
       passes.insert(IncrementalPasses::CHUNKS_HASHES);
     }
-    if value.chunk_asset {
-      passes.insert(IncrementalPasses::CHUNK_ASSET);
+    if value.chunks_render {
+      passes.insert(IncrementalPasses::CHUNKS_RENDER);
     }
     if value.emit_assets {
       passes.insert(IncrementalPasses::EMIT_ASSETS);

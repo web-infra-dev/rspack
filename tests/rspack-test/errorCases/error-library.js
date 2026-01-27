@@ -5,7 +5,7 @@ module.exports = {
 		return {
 			entry: "./file",
 			output: {
-				library: { type: "var" }
+				libraryTarget: "var"
 			}
 		};
 	},

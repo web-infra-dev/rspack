@@ -34,8 +34,10 @@ module.exports = {
 	},
 	plugins: [new Plugin()],
 	optimization: {
-		concatenateModules: true,
-		// inlineExports will inline foo.js into index.js, so there is no module.modules
-		inlineExports: false
+		concatenateModules: true
 	},
+	experiments: {
+		// inlineConst will inline foo.js into index.js, so there is no module.modules
+		inlineConst: false,
+	}
 };

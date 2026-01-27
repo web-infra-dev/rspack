@@ -1,3 +1,3 @@
-import('./empty.js').then(() => {
+import('./empty').then(() => {
   document.getElementById('root').innerText = 'ok';
 });

@@ -13,9 +13,7 @@ describeByWalk(
 		dist: path.resolve(__dirname, `./js/native-watcher/watch`),
 		exclude: [
 			// Exclude a-p
-			/^[a-p]/,
-			// Exclude flaky tests
-			/skip-building-chunk-graph/
+			/^[a-p]/
 		]
 	}
 );

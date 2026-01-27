@@ -1,7 +1,10 @@
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	output: {
-		library: { type: "umd", name: "NamedLibrary", umdNamedDefine: true, auxiliaryComment: "test comment" },
+		library: "NamedLibrary",
+		libraryTarget: "umd",
+		umdNamedDefine: true,
+		auxiliaryComment: "test comment"
 	},
 	node: {
 		__dirname: false,

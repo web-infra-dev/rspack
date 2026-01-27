@@ -79,4 +79,7 @@ module.exports = {
 				}
 			})
 	],
+	experiments: {
+		parallelLoader: true
+	}
 };

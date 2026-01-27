@@ -4,6 +4,9 @@ module.exports = {
 	entry: {
 		main: "./index.js"
 	},
+	experiments: {
+		css: true
+	},
 	module: {
 		rules: [
 			{
@@ -15,7 +18,7 @@ module.exports = {
 						options: {
 							unusedSymbols: ["unused"],
 							targets: "> 0.2%",
-							drafts: "xx"
+							draft: "xx"
 						}
 					}
 				],

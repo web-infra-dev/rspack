@@ -9,14 +9,8 @@ module.exports = [
 		target: "web",
 		mode: "development",
 		devtool: false,
-
-		module: {
-			rules: [
-				{
-					test: /\.css$/,
-					type: "css/auto"
-				}
-			]
+		experiments: {
+			css: true
 		},
 		output: {
 			assetModuleFilename: "[name].[hash][ext][query][fragment]"
@@ -38,19 +32,15 @@ module.exports = [
 		target: "web",
 		mode: "development",
 		devtool: false,
-
+		experiments: {
+			css: true
+		},
 		module: {
 			parser: {
 				css: {
 					url: false
 				}
-			},
-			rules: [
-				{
-					test: /\.css$/,
-					type: "css/auto"
-				}
-			]
+			}
 		},
 		output: {
 			assetModuleFilename: "[name].[hash][ext][query][fragment]"

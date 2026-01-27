@@ -3,7 +3,7 @@ const { ModuleFederationPluginV1: ModuleFederationPlugin } = require("@rspack/co
 function createConfig() {
 	return {
 		output: {
-			library: { type: "system" }
+			libraryTarget: "system"
 		},
 		plugins: [
 			new ModuleFederationPlugin({

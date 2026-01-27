@@ -2,14 +2,6 @@
 module.exports = {
 	target: "web",
 	mode: "development",
-	module: {
-		rules: [
-			{
-				test: /\.css$/,
-				type: "css/auto"
-			}
-		]
-	},
 	output: {
 		uniqueName: "test"
 	},
@@ -42,5 +34,7 @@ module.exports = {
 			}
 		}
 	],
-
+	experiments: {
+		css: true
+	}
 };

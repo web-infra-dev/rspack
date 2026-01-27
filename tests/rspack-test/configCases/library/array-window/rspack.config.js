@@ -2,6 +2,7 @@
 module.exports = {
 	target: "web",
 	output: {
-		library: { type: "window", name: ["a", "b"] }
+		library: ["a", "b"],
+		libraryTarget: "window"
 	}
 };

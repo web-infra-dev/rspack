@@ -2,7 +2,8 @@ const webpack = require("@rspack/core");
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	output: {
-		library: { type: "amd", name: "NamedLibrary" }
+		library: "NamedLibrary",
+		libraryTarget: "amd"
 	},
 	node: {
 		__dirname: false,

@@ -790,7 +790,7 @@ export async function runLoaders(
       _compiler: {
         options: {
           experiments: {
-            css: true,
+            css: compiler.options.experiments.css,
           },
         },
       },
@@ -964,7 +964,10 @@ export async function runLoaders(
   };
 
   const enableParallelism = (currentLoaderObject: any) => {
-    return currentLoaderObject?.parallel;
+    return (
+      compiler.options.experiments.parallelLoader &&
+      currentLoaderObject?.parallel
+    );
   };
 
   const isomorphoicRun = async (fn: Function, args: any[]) => {
@@ -1123,7 +1126,7 @@ export async function runLoaders(
     },
   });
 
-  if (compiler.options?.cache) {
+  if (compiler.options.experiments.cache && compiler.options?.cache) {
     commitCustomFieldsToRust(context._module.buildInfo);
   }
 

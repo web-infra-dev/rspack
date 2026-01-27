@@ -1,21 +1,15 @@
 import {
   BuiltinPluginName,
-  type RawLightningCssMinimizerOptions,
   type RawLightningCssMinimizerRspackPluginOptions,
 } from '@rspack/binding';
+
 import {
   type Drafts,
   type FeatureOptions,
   type NonStandard,
   type PseudoClasses,
-  type Targets,
   toFeatures,
 } from '../builtin-loader/lightningcss';
-import {
-  defaultTargetsFromRspackTargets,
-  encodeTargets,
-} from '../builtin-loader/lightningcss/target';
-import type { Compiler } from '../Compiler';
 import type { AssetConditions } from '../util/assetCondition';
 import { create } from './base';
 
@@ -26,9 +20,14 @@ export type LightningCssMinimizerRspackPluginOptions = {
   removeUnusedLocalIdents?: boolean;
   minimizerOptions?: {
     errorRecovery?: boolean;
-    targets?: string[] | string | Targets;
+    targets?: string[] | string;
     include?: FeatureOptions;
     exclude?: FeatureOptions;
+    /**
+     * @deprecated Use `drafts` instead.
+     * This will be removed in the next major version.
+     */
+    draft?: Drafts;
     drafts?: Drafts;
     nonStandard?: NonStandard;
     pseudoClasses?: PseudoClasses;
@@ -38,26 +37,12 @@ export type LightningCssMinimizerRspackPluginOptions = {
 
 export const LightningCssMinimizerRspackPlugin = create(
   BuiltinPluginName.LightningCssMinimizerRspackPlugin,
-  function (
-    this: Compiler,
+  (
     options?: LightningCssMinimizerRspackPluginOptions,
-  ): RawLightningCssMinimizerRspackPluginOptions {
-    const { include, exclude, nonStandard, pseudoClasses, drafts } =
+  ): RawLightningCssMinimizerRspackPluginOptions => {
+    const { include, exclude, draft, nonStandard, pseudoClasses, drafts } =
       options?.minimizerOptions ?? {};
-    let targets: RawLightningCssMinimizerOptions['targets'] = [
-      'fully supports es6',
-    ];
-    if (options?.minimizerOptions?.targets) {
-      if (typeof options.minimizerOptions.targets === 'string')
-        targets = [options.minimizerOptions.targets];
-      else if (Array.isArray(options.minimizerOptions.targets))
-        targets = options.minimizerOptions.targets;
-      else if (typeof options.minimizerOptions.targets === 'object')
-        targets = encodeTargets(options.minimizerOptions.targets);
-    } else if (this.target.targets) {
-      // Default target derived from rspack target
-      targets = defaultTargetsFromRspackTargets(this.target.targets);
-    }
+    const targets = options?.minimizerOptions?.targets ?? 'fully supports es6'; // last not support es module chrome version
     return {
       test: options?.test,
       include: options?.include,
@@ -68,7 +53,8 @@ export const LightningCssMinimizerRspackPlugin = create(
         unusedSymbols: options?.minimizerOptions?.unusedSymbols ?? [],
         include: include ? toFeatures(include) : undefined,
         exclude: exclude ? toFeatures(exclude) : undefined,
-        targets,
+        targets: typeof targets === 'string' ? [targets] : targets,
+        draft: draft ? { customMedia: draft.customMedia ?? false } : undefined,
         drafts: drafts
           ? { customMedia: drafts.customMedia ?? false }
           : undefined,

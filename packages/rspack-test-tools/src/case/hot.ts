@@ -49,7 +49,8 @@ export function createHotProcessor(
       );
       overrideOptions(context, options, target, updatePlugin);
       if (incremental) {
-        options.incremental ??= 'advance-silent';
+        options.experiments ??= {};
+        options.experiments.incremental ??= 'advance-silent';
       }
       compiler.setOptions(options);
     },
@@ -137,25 +138,21 @@ function defaultOptions(context: ITestContext, target: TTarget) {
       chunkFilename: '[name].chunk.[fullhash].js',
       publicPath: 'https://test.cases/path/',
       library: { type: 'commonjs2' },
-      bundlerInfo: {
-        force: false,
-      },
-    },
-    module: {
-      defaultRules: [
-        '...',
-        {
-          test: /\.css$/i,
-          type: 'css/auto',
-        },
-      ],
     },
     optimization: {
       moduleIds: 'named',
     },
     target,
-    // test incremental: "safe" here, we test default incremental in Incremental-*.test.js
-    incremental: 'safe',
+    experiments: {
+      css: true,
+      // test incremental: "safe" here, we test default incremental in Incremental-*.test.js
+      incremental: 'safe',
+      rspackFuture: {
+        bundlerInfo: {
+          force: false,
+        },
+      },
+    },
   } as RspackOptions;
 
   options.plugins ??= [];
@@ -259,12 +256,6 @@ export function createHotRunner(
       throw new Error('Should generate stats during build');
     }
     const jsonStats = stats.toJson({
-      assets: true,
-      chunks: true,
-      chunkModules: true,
-      modules: true,
-      entrypoints: true,
-      chunkGroups: true,
       // errorDetails: true
     });
     const compilerOptions = compiler.getOptions();

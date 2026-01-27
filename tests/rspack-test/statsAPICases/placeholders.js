@@ -4,9 +4,7 @@ class TestPlugin {
 	apply(compiler) {
 		compiler.hooks.thisCompilation.tap("custom", compilation => {
 			compilation.hooks.optimizeModules.tap("test plugin", () => {
-				stats = compiler._lastCompilation.getStats().toJson({
-					entrypoints: true,
-				});
+				stats = compiler._lastCompilation.getStats().toJson({});
 			});
 		});
 	}

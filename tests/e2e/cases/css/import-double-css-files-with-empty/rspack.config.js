@@ -12,14 +12,6 @@ module.exports = {
   infrastructureLogging: {
     debug: false,
   },
-  module: {
-    rules: [
-      {
-        test: /\.css/,
-        type: 'css/auto',
-      },
-    ],
-  },
   plugins: [
     new rspack.HtmlRspackPlugin({
       template: './src/index.html',
@@ -27,5 +19,8 @@ module.exports = {
   ],
   watchOptions: {
     poll: 1000,
+  },
+  experiments: {
+    css: true,
   },
 };

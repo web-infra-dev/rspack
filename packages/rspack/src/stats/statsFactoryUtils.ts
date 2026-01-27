@@ -125,6 +125,7 @@ export type KnownStatsModule = {
   failed?: boolean;
   errors?: number;
   warnings?: number;
+  profile?: StatsProfile;
   reasons?: StatsModuleReason[];
   usedExports?: boolean | string[] | null;
   providedExports?: string[] | null;
@@ -134,6 +135,8 @@ export type KnownStatsModule = {
   filteredModules?: number;
   source?: string | Buffer;
 };
+
+export type StatsProfile = KnownStatsProfile & Record<string, any>;
 
 export type KnownStatsProfile = {
   total: number;
@@ -147,6 +150,7 @@ export type KnownStatsModuleIssuer = {
   identifier?: string;
   name?: string;
   id?: string | number | null;
+  // profile?: StatsProfile;
 };
 
 export type StatsModuleIssuer = KnownStatsModuleIssuer & Record<string, any>;
@@ -344,6 +348,7 @@ export type SimpleExtractors = {
     binding.JsStatsModuleIssuer,
     StatsModuleIssuer
   >;
+  profile: ExtractorsByOption<binding.JsStatsModuleProfile, StatsProfile>;
   moduleReason: ExtractorsByOption<
     binding.JsStatsModuleReason,
     StatsModuleReason

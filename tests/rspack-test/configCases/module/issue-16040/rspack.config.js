@@ -15,7 +15,7 @@ module.exports = {
 		chunkFilename: "[name].chunk.js",
 		assetModuleFilename: "[hash][ext][query]",
 		module: true,
-		library: { type: "module" },
+		libraryTarget: "module",
 		chunkFormat: "module",
 		chunkLoading: "import",
 		environment: {
@@ -27,7 +27,6 @@ module.exports = {
 	module: {
 		rules: [
 			{
-				type: 'javascript/auto',
 				test: /\.css$/i,
 				use: [MiniCssExtractPlugin.loader, "css-loader"]
 			}

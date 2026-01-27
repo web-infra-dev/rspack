@@ -9,7 +9,6 @@
   },
   "devDependencies": {
     "@rspack/cli": "workspace:*",
-    "@rspack/core": "workspace:*",
-    "@rspack/dev-server": "~1.2.1"
+    "@rspack/core": "workspace:*"
   }
 }

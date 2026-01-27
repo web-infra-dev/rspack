@@ -22,10 +22,6 @@ module.exports = {
 				test: /\.svg$/,
 				issuer: { not: [/\.js$/] },
 				type: "asset/inline"
-			},
-			{
-				test: /\.css/,
-				type: 'css/auto'
 			}
 		]
 	}

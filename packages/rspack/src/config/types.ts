@@ -110,7 +110,6 @@ export type LibraryExport = string | string[];
 export type LibraryType = LiteralUnion<
   | 'var'
   | 'module'
-  | 'modern-module'
   | 'assign'
   | 'assign-properties'
   | 'this'
@@ -155,11 +154,6 @@ export type LibraryOptions = {
    * Otherwise, an anonymous define is used.
    * */
   umdNamedDefine?: UmdNamedDefine;
-
-  /**
-   * PreserveModules only works for `modern-module`
-   */
-  preserveModules?: string;
 };
 
 /** Options for library. */
@@ -490,6 +484,15 @@ export type Output = {
   /** This option determines the name of CSS output files on disk. */
   cssFilename?: CssFilename;
 
+  /**
+   * @deprecated this config is unused, and will be removed in the future.
+   * Rspack adds some metadata in CSS to parse CSS modules, and this configuration determines whether to compress these metadata.
+   *
+   * The value is `true` in production mode.
+   * The value is `false` in development mode.
+   * */
+  cssHeadDataCompression?: boolean;
+
   /** This option determines the name of non-initial CSS output files on disk. */
   cssChunkFilename?: CssChunkFilename;
 
@@ -507,7 +510,7 @@ export type Output = {
 
   /**
    * Only used when target is set to 'web', which uses JSONP for loading hot updates.
-   * @default 'rspackHotUpdate' + output.uniqueName
+   * @default 'webpackHotUpdate' + output.uniqueName
    * */
   hotUpdateGlobal?: HotUpdateGlobal;
 
@@ -534,6 +537,30 @@ export type Output = {
 
   /** Output a library exposing the exports of your entry point. */
   library?: Library;
+
+  /**
+   * Specify which export should be exposed as a library.
+   * @deprecated We might drop support for this, so prefer to use output.library.export
+   * */
+  libraryExport?: LibraryExport;
+
+  /**
+   * Configure how the library will be exposed.
+   * @deprecated Use output.library.type instead as we might drop support for output.libraryTarget in the future.
+   * */
+  libraryTarget?: LibraryType;
+
+  /**
+   * When using output.library.type: "umd", setting output.umdNamedDefine to true will name the AMD module of the UMD build.
+   * @deprecated Use output.library.umdNamedDefine instead.
+   */
+  umdNamedDefine?: UmdNamedDefine;
+
+  /**
+   * Add a comment in the UMD wrapper.
+   * @deprecated use output.library.auxiliaryComment instead.
+   * */
+  auxiliaryComment?: AuxiliaryComment;
 
   /**
    * Output JavaScript files as module type.
@@ -675,6 +702,12 @@ export type Output = {
    * */
   chunkLoadTimeout?: number;
 
+  /**
+   * Add charset="utf-8" to the HTML <script> tag.
+   * @default true
+   * */
+  charset?: boolean;
+
   /** Tell Rspack what kind of ES-features may be used in the generated runtime-code. */
   environment?: Environment;
 
@@ -682,11 +715,6 @@ export type Output = {
    * Check if to be emitted file already exists and have the same content before writing to output filesystem.
    */
   compareBeforeEmit?: boolean;
-
-  /**
-   * Information about the bundler.
-   */
-  bundlerInfo?: BundlerInfoOptions;
 };
 
 //#endregion
@@ -1139,26 +1167,17 @@ export type JavascriptParserOptions = {
 
   /**
    * Control whether renaming of the CommonJS `require` function will be parsed and transformed.
-   * @default false
+   * @default true
    */
   requireAlias?: boolean;
 
-  /**
-   * Control whether `require` used as an expression (e.g., `const req = require; req('./module')`) will be parsed.
-   * @default true
-   */
+  // TODO: add docs
   requireAsExpression?: boolean;
 
-  /**
-   * Control whether dynamic `require` calls (e.g., `require(variable)`) will be parsed.
-   * @default true
-   */
+  // TODO: add docs
   requireDynamic?: boolean;
 
-  /**
-   * Control whether `require.resolve()` calls will be parsed.
-   * @default true
-   */
+  // TODO: add docs
   requireResolve?: boolean;
 
   /**
@@ -1167,10 +1186,7 @@ export type JavascriptParserOptions = {
    */
   commonjs?: JavascriptParserCommonjsOption;
 
-  /**
-   * Control whether dynamic `import()` calls (e.g., `import(variable)`) will be parsed.
-   * @default true
-   */
+  // TODO: add docs
   importDynamic?: boolean;
 
   /**
@@ -1184,11 +1200,7 @@ export type JavascriptParserOptions = {
   /** Whether to enable JSX parsing */
   jsx?: boolean;
 
-  /**
-   * Whether to enable defer import.
-   * This option is controlled by `experiments.deferImport` and should not be set directly.
-   * @default false
-   */
+  /** Whether to enable defer import */
   deferImport?: boolean;
 };
 
@@ -1490,7 +1502,7 @@ export type Target = false | AllowTarget | AllowTarget[];
 //#region ExternalsType
 /**
  * Specify the default type of externals.
- * `amd`, `umd`, `system` and `jsonp` externals depend on the `output.library.type` being set to the same value e.g. you can only consume amd externals within an amd library.
+ * `amd`, `umd`, `system` and `jsonp` externals depend on the `output.libraryTarget` being set to the same value e.g. you can only consume amd externals within an amd library.
  * @default 'var'
  */
 export type ExternalsType =
@@ -1522,7 +1534,7 @@ export type ExternalsType =
 //#region Externals
 
 /**
- * External item object when both library.type and externalsType is 'umd'
+ * External item object when both libraryTarget and externalsType is 'umd'
  */
 export type ExternalItemUmdValue = {
   root: string | string[];
@@ -1545,7 +1557,7 @@ export type ExternalItemValue =
   | string[]
   | ExternalItemUmdValue
   /**
-   * when library.type and externalsType is not 'umd'
+   * when libraryTarget and externalsType is not 'umd'
    */
   | ExternalItemObjectValue;
 
@@ -1785,25 +1797,7 @@ export type SnapshotOptions = {};
  * // Disable caching
  * cache: false
  */
-export type CacheOptions =
-  | boolean
-  | {
-      type: 'memory';
-    }
-  | {
-      type: 'persistent';
-      buildDependencies?: string[];
-      version?: string;
-      snapshot?: {
-        immutablePaths?: (string | RegExp)[];
-        unmanagedPaths?: (string | RegExp)[];
-        managedPaths?: (string | RegExp)[];
-      };
-      storage?: {
-        type: 'filesystem';
-        directory?: string;
-      };
-    };
+export type CacheOptions = boolean;
 //#endregion
 
 //#region Stats
@@ -2580,22 +2574,59 @@ export type Optimization = {
 };
 //#endregion
 
+//#region Experiments
 /**
- * Information about the bundler.
+ * Options for caching snapshots and intermediate products during the build process.
+ * @description Controls whether caching is enabled or disabled.
+ * @default true in development mode, false in production mode
+ * @example
+ * // Enable caching
+ * cache: true
+ *
+ * // Disable caching
+ * cache: false
  */
-export type BundlerInfoOptions = {
+export type ExperimentCacheOptions =
+  | boolean
+  | {
+      type: 'memory';
+    }
+  | {
+      type: 'persistent';
+      buildDependencies?: string[];
+      version?: string;
+      snapshot?: {
+        immutablePaths?: (string | RegExp)[];
+        unmanagedPaths?: (string | RegExp)[];
+        managedPaths?: (string | RegExp)[];
+      };
+      storage?: {
+        type: 'filesystem';
+        directory?: string;
+      };
+    };
+
+/**
+ * Options for future Rspack features.
+ */
+export type RspackFutureOptions = {
   /**
-   * Version of the bundler.
+   * Information about the bundler.
    */
-  version?: string;
-  /**
-   * Name of the bundler.
-   */
-  bundler?: string;
-  /**
-   * Force specific features.
-   */
-  force?: boolean | ('version' | 'uniqueId')[];
+  bundlerInfo?: {
+    /**
+     * Version of the bundler.
+     */
+    version?: string;
+    /**
+     * Name of the bundler.
+     */
+    bundler?: string;
+    /**
+     * Force specific features.
+     */
+    force?: boolean | ('version' | 'uniqueId')[];
+  };
 };
 
 /**
@@ -2645,19 +2676,29 @@ export type Incremental = {
    */
   silent?: boolean;
   /**
-   * Enable incremental build module graph.
+   * Enable incremental make.
    */
-  buildModuleGraph?: boolean;
+  make?: boolean;
 
   /**
-   * Enable incremental finish modules.
+   * Enable inference of async modules.
    */
-  finishModules?: boolean;
+  inferAsyncModules?: boolean;
 
   /**
-   * Enable incremental optimize dependencies.
+   * Enable incremental provided exports.
    */
-  optimizeDependencies?: boolean;
+  providedExports?: boolean;
+
+  /**
+   * Enables diagnostics for dependencies.
+   */
+  dependenciesDiagnostics?: boolean;
+
+  /**
+   * Enables incremental side effects optimization.
+   */
+  sideEffects?: boolean;
 
   /**
    * Enable incremental build chunk graph.
@@ -2700,12 +2741,12 @@ export type Incremental = {
   chunksHashes?: boolean;
 
   /**
-   * Enable incremental chunk asset.
+   * Enable incremental chunk render.
    */
-  chunkAsset?: boolean;
+  chunksRender?: boolean;
 
   /**
-   * Enable incremental emit assets.
+   * Enable incremental asset emission.
    */
   emitAssets?: boolean;
 };
@@ -2735,6 +2776,16 @@ export type UseInputFileSystem = false | RegExp[];
  */
 export type Experiments = {
   /**
+   * Enable new cache.
+   */
+  cache?: ExperimentCacheOptions;
+  /**
+   * Enable lazy compilation.
+   * @deprecated Please use the configuration top-level `lazyCompilation` option instead.
+   * @default false
+   */
+  lazyCompilation?: boolean | LazyCompilationOptions;
+  /**
    * Enable async WebAssembly.
    * Support the new WebAssembly according to the [updated specification](https://github.com/WebAssembly/esm-integration), it makes a WebAssembly module an async module.
    * @default false
@@ -2746,6 +2797,12 @@ export type Experiments = {
    */
   outputModule?: boolean;
   /**
+   * Enable top-level await.
+   * @deprecated This option is deprecated, top-level await is enabled by default.
+   * @default true
+   */
+  topLevelAwait?: boolean;
+  /**
    * Enable CSS support.
    *
    * @description
@@ -2756,26 +2813,37 @@ export type Experiments = {
    * - `module.generator["css/auto"]`
    * - `module.generator.css`
    * - `module.generator["css/module"]`
-   *
-   * @deprecated This option is deprecated. In Rspack 2.0, users need to manually add CSS rules to enable CSS support.
-   * Example:
-   * ```js
-   * module: {
-   *   rules: [{ test: /\.css$/, type: "css/auto" }]
-   * }
-   * ```
    */
   css?: boolean;
+  /**
+   * Enable module layers feature.
+   * @deprecated This option is deprecated, layers is enabled since v1.6.0
+   * @default false
+   */
+  layers?: boolean;
+  /**
+   * Enable incremental builds.
+   */
+  incremental?: IncrementalPresets | Incremental;
   /**
    * Enable future default options.
    * @default false
    */
   futureDefaults?: boolean;
   /**
+   * Enable future Rspack features default options.
+   */
+  rspackFuture?: RspackFutureOptions;
+  /**
    * Enable loading of modules via HTTP/HTTPS requests.
    * @default false
    */
   buildHttp?: HttpUriOptions;
+  /**
+   * Enable parallel loader
+   * @default false
+   */
+  parallelLoader?: boolean;
   /**
    * Enable Node.js input file system
    * @default false
@@ -2786,6 +2854,30 @@ export type Experiments = {
    * @default false
    */
   nativeWatcher?: boolean;
+  /**
+   * Enable inline const feature
+   * @default false
+   * @deprecated This option is deprecated, it's already stable and enabled by default, Rspack will remove this option in future version
+   */
+  inlineConst?: boolean;
+  /**
+   * Enable inline enum feature
+   * @default false
+   * @deprecated This option is deprecated, it's already stable. Rspack will remove this option in future version
+   */
+  inlineEnum?: boolean;
+  /**
+   * Enable type reexports presence feature
+   * @default false
+   * @deprecated This option is deprecated, it's already stable. Rspack will remove this option in future version
+   */
+  typeReexportsPresence?: boolean;
+  /**
+   * Enable lazy make side effects free barrel file
+   * @default false
+   * @deprecated This option is deprecated, it's already stable and enabled by default, Rspack will remove this option in future version
+   */
+  lazyBarrel?: boolean;
   /**
    * Enable defer import feature
    * @default false
@@ -2864,6 +2956,13 @@ export type IgnoreWarnings = (
     }
   | ((warning: WebpackError, compilation: Compilation) => boolean)
 )[];
+//#endregion
+
+//#region Profile
+/**
+ * Capture a "profile" of the application, including statistics and hints, which can then be dissected using the Analyze tool.
+ * */
+export type Profile = boolean;
 //#endregion
 
 //#region amd
@@ -3033,6 +3132,10 @@ export type RspackOptions = {
    */
   module?: ModuleOptions;
   /**
+   * Whether to capture a profile of the application.
+   */
+  profile?: Profile;
+  /**
    * Set the value of `require.amd` or `define.amd`.
    * Setting `amd` to false will disable rspack's AMD support.
    */
@@ -3051,11 +3154,6 @@ export type RspackOptions = {
    * @default false
    */
   lazyCompilation?: boolean | LazyCompilationOptions;
-
-  /**
-   * Enable incremental builds.
-   */
-  incremental?: IncrementalPresets | Incremental;
 };
 
 /** Configuration for Rspack */

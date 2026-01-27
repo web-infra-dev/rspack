@@ -7,7 +7,9 @@ module.exports = [
 	{
 		target: "web",
 		mode: "development",
-
+		experiments: {
+			css: true
+		},
 		resolve: {
 			alias: {
 				"/alias.css": false
@@ -30,10 +32,6 @@ module.exports = [
 					test: /\.less$/,
 					loader: "less-loader",
 					type: "css/global"
-				},
-				{
-					test: /\.css$/,
-					type: "css/auto"
 				}
 			]
 		},
@@ -58,19 +56,15 @@ module.exports = [
 	{
 		target: "web",
 		mode: "development",
-
+		experiments: {
+			css: true
+		},
 		module: {
 			parser: {
 				css: {
 					import: false
 				}
-			},
-			rules: [
-				{
-					test: /\.css$/,
-					type: "css/auto"
-				}
-			]
+			}
 		}
 	}
 ];

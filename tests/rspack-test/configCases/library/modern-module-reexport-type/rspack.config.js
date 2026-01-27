@@ -16,7 +16,6 @@ module.exports = {
 		library: {
 			type: "modern-module"
 		},
-		filename: '[name].mjs',
 		chunkFormat: "module"
 	},
 	experiments: {

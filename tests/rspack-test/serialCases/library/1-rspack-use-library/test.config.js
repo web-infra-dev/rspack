@@ -6,6 +6,6 @@ module.exports = {
 		};
 	},
 	afterExecute() {
-		delete global.rspackChunk;
+		delete global.webpackChunk;
 	}
 };

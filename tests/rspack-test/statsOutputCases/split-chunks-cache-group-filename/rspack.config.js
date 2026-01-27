@@ -19,7 +19,6 @@ module.exports = {
 		}
 	},
 	stats: {
-		entrypoints: true,
 		assets: false,
 		chunks: true
 	}

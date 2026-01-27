@@ -72,10 +72,11 @@ function sendActiveRequest() {
  * @param {{ data: string, onError: (err: Error) => void, active: boolean, module: module }} options options
  * @returns {() => void} function to destroy response
  */
-export const activate = function (options) {
+exports.activate = function (options) {
   var data = options.data;
   var onError = options.onError;
   var active = options.active;
+  var module = options.module;
   errorHandlers.add(onError);
 
   if (!compiling.has(data)) {
@@ -83,7 +84,7 @@ export const activate = function (options) {
     sendActiveRequest();
   }
 
-  if (!active && !import.meta.webpackHot) {
+  if (!active && !module.hot) {
     console.log(
       'Hot Module Replacement is not enabled. Waiting for process restart...',
     );

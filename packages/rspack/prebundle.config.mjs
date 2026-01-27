@@ -6,6 +6,7 @@ import { join } from 'node:path';
 export default {
   dependencies: [
     '@swc/types',
+    'browserslist-load-config',
     {
       name: 'webpack-sources',
       copyDts: true,

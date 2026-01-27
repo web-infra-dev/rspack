@@ -4,6 +4,9 @@ module.exports = {
 		__dirname: false,
 		__filename: false
 	},
+	experiments: {
+		layers: true
+	},
 	devtool: "source-map",
 	entry: {
 		main: {

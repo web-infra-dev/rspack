@@ -1,7 +1,7 @@
 use rspack_cacheable::{cacheable, with::Skip};
 use rustc_hash::FxHashSet as HashSet;
 
-use crate::{DependencyId, ExportsInfo, ModuleIdentifier, ModuleIssuer};
+use crate::{DependencyId, ExportsInfo, ModuleIdentifier, ModuleIssuer, ModuleProfile};
 
 #[cacheable]
 #[derive(Debug, Clone)]
@@ -22,6 +22,7 @@ pub struct ModuleGraphModule {
   pub(crate) pre_order_index: Option<u32>,
   pub post_order_index: Option<u32>,
   pub exports: ExportsInfo,
+  pub profile: Option<ModuleProfile>,
   pub depth: Option<usize>,
   pub optimization_bailout: Vec<String>,
 }
@@ -38,6 +39,7 @@ impl ModuleGraphModule {
       pre_order_index: None,
       post_order_index: None,
       exports: exports_info,
+      profile: None,
       depth: None,
       optimization_bailout: vec![],
     }
@@ -65,6 +67,14 @@ impl ModuleGraphModule {
 
   pub fn outgoing_connections(&self) -> &HashSet<DependencyId> {
     &self.outgoing_connections
+  }
+
+  pub fn set_profile(&mut self, profile: ModuleProfile) {
+    self.profile = Some(profile);
+  }
+
+  pub fn profile(&self) -> Option<&ModuleProfile> {
+    self.profile.as_ref()
   }
 
   pub fn set_issuer_if_unset(&mut self, issuer: Option<ModuleIdentifier>) {

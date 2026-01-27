@@ -4,35 +4,22 @@ module.exports = {
 	description: "non-root directory",
 	options: () => ({
 		cache: {
-			type: "persistent"
+			type: "filesystem"
 		}
 	}),
 	cwd: path.resolve(__dirname, "../../fixtures"),
 	diff: e =>
 		e.toMatchInlineSnapshot(`
-			- Expected
-			+ Received
+		- Expected
+		+ Received
 
-			@@ ... @@
-			-   "cache": false,
-			+   "cache": Object {
-			+     "buildDependencies": Array [],
-			+     "snapshot": Object {
-			+       "immutablePaths": Array [],
-			+       "managedPaths": Array [
-			+         /[\\\\/]node_modules[\\\\/][^.]/,
-			+       ],
-			+       "unmanagedPaths": Array [],
-			+     },
-			+     "storage": Object {
-			+       "directory": "<cwd>/fixtures/node_modules/.cache/rspack",
-			+       "type": "filesystem",
-			+     },
-			+     "type": "persistent",
-			+     "version": "",
-			+   },
-			@@ ... @@
-			-     "unsafeCache": false,
-			+     "unsafeCache": /[\\\\/]node_modules[\\\\/]/,
-		`)
+		@@ ... @@
+		-   "cache": false,
+		+   "cache": Object {
+		+     "type": "filesystem",
+		+   },
+		@@ ... @@
+		-     "unsafeCache": false,
+		+     "unsafeCache": /[\\\\/]node_modules[\\\\/]/,
+	`)
 };

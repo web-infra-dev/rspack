@@ -1,6 +1,5 @@
 ```mjs title=main.mjs
 import * as __rspack_external_fs from "fs";
-
 // fs
 
 // ./index.js

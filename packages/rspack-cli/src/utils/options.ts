@@ -90,6 +90,7 @@ export const normalizeCommonOptions = (
  */
 export const commonOptionsForBuildAndServe = (command: Command): Command => {
   return command
+    .option('--analyze', 'analyze')
     .option(
       '-d, --devtool <value>',
       'specify a developer tool for debugging. Defaults to `cheap-module-source-map` in development and `source-map` in production.',
@@ -100,14 +101,17 @@ export const commonOptionsForBuildAndServe = (command: Command): Command => {
     })
     .option('-m, --mode <mode>', 'mode')
     .option('-o, --output-path <dir>', 'output path dir')
+    .option('--profile', 'capture timing information for each module')
     .option('-w, --watch', 'watch');
 };
 
 export type CommonOptionsForBuildAndServe = CommonOptions & {
+  analyze?: boolean;
   devtool?: string | boolean;
   entry?: string[];
   mode?: string;
   outputPath?: string;
+  profile?: boolean;
   watch?: boolean;
 };
 

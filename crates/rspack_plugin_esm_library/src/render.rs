@@ -6,7 +6,7 @@ use rspack_core::{
   AssetInfo, Chunk, ChunkGraph, ChunkRenderContext, ChunkUkey, CodeGenerationDataFilename,
   Compilation, ConcatenatedModuleInfo, DependencyId, InitFragment, ModuleIdentifier, PathData,
   PathInfo, RuntimeGlobals, RuntimeVariable, SourceType, export_name,
-  get_js_chunk_filename_template, get_undo_path, render_imports, render_init_fragments,
+  get_js_chunk_filename_template, get_undo_path, render_init_fragments,
   rspack_sources::{ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt},
 };
 use rspack_error::Result;
@@ -233,7 +233,6 @@ var {} = {{}};
     }
 
     let mut already_required = IdentifierIndexSet::default();
-
     for m in &chunk_link.hoisted_modules {
       let info = concatenated_modules_map
         .get(m)
@@ -359,12 +358,47 @@ var {} = {{}};
       }
     }
 
-    for ((source, attr), import_spec) in &chunk_link.raw_import_stmts {
-      import_source.add(RawStringSource::from(render_imports(
-        source,
-        attr.as_deref(),
-        import_spec,
-      )));
+    for ((source, attr), symbols) in &chunk_link.raw_import_stmts {
+      let source_str = format!(
+        "{}{}",
+        serde_json::to_string(source).expect("should have source"),
+        if let Some(attr) = attr {
+          format!(" with {attr}")
+        } else {
+          String::new()
+        }
+      );
+
+      let import_str = if symbols.atoms.is_empty() && symbols.default_import.is_none() {
+        format!("import {source_str};\n")
+      } else {
+        let mut imports = Vec::new();
+        for (atom, local) in symbols.atoms.iter() {
+          let atom_name = export_name(atom).expect("should have export_name");
+          if atom == local {
+            imports.push(atom_name.into_owned());
+          } else {
+            let local_name = export_name(local).expect("should have export_name");
+            imports.push(format!("{atom_name} as {local_name}"));
+          }
+        }
+        format!(
+          "import {}{}from {source_str};\n",
+          if let Some(default_import) = &symbols.default_import {
+            format!("{default_import} ")
+          } else {
+            String::new()
+          },
+          if imports.is_empty() {
+            String::default()
+          } else if symbols.default_import.is_some() {
+            format!(", {{ {} }} ", imports.join(", "))
+          } else {
+            format!("{{ {} }} ", imports.join(", "))
+          }
+        )
+      };
+      import_source.add(RawStringSource::from(import_str));
     }
 
     for (id, imports) in &chunk_link.imports {
@@ -717,12 +751,7 @@ var {} = {{}};
     info: &ConcatenatedModuleInfo,
     chunk_link: &ChunkLinkContext,
   ) -> Result<ReplaceSource> {
-    let Some(mut source) = info.source.clone() else {
-      return Err(rspack_error::Error::error(format!(
-        "module: {} has no source",
-        info.module
-      )));
-    };
+    let mut source = info.source.clone().expect("should have source");
 
     for ((atom, ctxt), refs) in &info.binding_to_ref {
       if ctxt == &info.global_ctxt

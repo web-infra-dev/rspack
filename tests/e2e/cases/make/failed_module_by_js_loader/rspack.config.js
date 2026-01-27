@@ -12,7 +12,7 @@ module.exports = {
         test: /\.js$/,
         exclude: [/node_modules/],
         include: [/src/],
-        loader: './loader.cjs',
+        loader: './loader.js',
       },
     ],
   },

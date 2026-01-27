@@ -25,10 +25,10 @@ module.exports = {
 			      assets: Array [
 			        Object {
 			          name: chunkB.js,
-			          size: 132,
+			          size: 134,
 			        },
 			      ],
-			      assetsSize: 132,
+			      assetsSize: 134,
 			      auxiliaryAssets: undefined,
 			      auxiliaryAssetsSize: undefined,
 			      childAssets: undefined,
@@ -61,10 +61,10 @@ module.exports = {
 			      assets: Array [
 			        Object {
 			          name: entryB.js,
-			          size: 3190,
+			          size: 3192,
 			        },
 			      ],
-			      assetsSize: 3190,
+			      assetsSize: 3192,
 			      auxiliaryAssets: undefined,
 			      auxiliaryAssetsSize: undefined,
 			      childAssets: undefined,

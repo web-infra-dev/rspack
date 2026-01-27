@@ -2,6 +2,7 @@ use super::{TaskContext, process_dependencies::ProcessDependenciesTask};
 use crate::{
   DependencyId, ModuleIdentifier,
   compilation::build_module_graph::ForwardedIdSet,
+  internal::try_dependency_by_id_mut,
   task_loop::{Task, TaskResult, TaskType},
 };
 
@@ -37,7 +38,10 @@ impl Task<TaskContext> for ProcessUnlazyDependenciesTask {
     let dependencies_to_process: Vec<DependencyId> = requested_deps
       .into_iter()
       .filter(|dep| {
-        let dep = module_graph.dependency_by_id_mut(dep);
+        //@FIXME: It seems a bug that dependency is not found here, needs to find out the reason
+        let Some(dep) = try_dependency_by_id_mut(module_graph, dep) else {
+          return false;
+        };
         dep.unset_lazy()
       })
       .collect();

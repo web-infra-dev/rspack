@@ -3,7 +3,7 @@ module.exports = {
 	optimization: {
 		moduleIds: "named"
 	},
-	optimization: {
-		inlineExports: true
+	experiments: {
+		inlineConst: true
 	}
 };

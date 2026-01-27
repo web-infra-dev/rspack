@@ -4,12 +4,7 @@ module.exports = {
 	optimization: {
 		concatenateModules: true
 	},
-	module: {
-		rules: [
-			{
-				test: /\.css$/,
-				type: "css/auto"
-			}
-		]
+	experiments: {
+		css: true
 	}
 };

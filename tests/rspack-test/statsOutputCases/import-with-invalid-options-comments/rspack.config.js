@@ -6,7 +6,6 @@ module.exports = {
 		chunkFilename: "[name].js"
 	},
 	stats: {
-		modules: true,
 		timings: false,
 		hash: false,
 		entrypoints: false,

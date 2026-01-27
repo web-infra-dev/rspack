@@ -1,7 +1,7 @@
 module.exports = {
 	// mode: "development" || "production",
 	output: {
-		library: { type: "umd" }
+		libraryTarget: "umd"
 	},
 	externals: [
 		"add",

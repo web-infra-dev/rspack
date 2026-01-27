@@ -12,11 +12,11 @@ module.exports = {
 			+ Received
 
 			@@ ... @@
-			-       "force": true,
-			+       "force": false,
+			-         "force": true,
+			+         "force": false,
 			@@ ... @@
-			-     "chunkLoadingGlobal": "rspackChunk_rspack_tests",
-			+     "chunkLoadingGlobal": "rspackChunkmyLib",
+			-     "chunkLoadingGlobal": "webpackChunk_rspack_tests",
+			+     "chunkLoadingGlobal": "webpackChunkmyLib",
 			@@ ... @@
 			-     "devtoolNamespace": "@rspack/tests",
 			+     "devtoolNamespace": "myLib",
@@ -26,16 +26,20 @@ module.exports = {
 			+       "var",
 			+     ],
 			@@ ... @@
-			-     "hotUpdateGlobal": "rspackHotUpdate_rspack_tests",
-			+     "hotUpdateGlobal": "rspackHotUpdatemyLib",
+			-     "hotUpdateGlobal": "webpackHotUpdate_rspack_tests",
+			+     "hotUpdateGlobal": "webpackHotUpdatemyLib",
 			@@ ... @@
 			-     "library": undefined,
 			+     "library": Object {
+			+       "amdContainer": undefined,
+			+       "auxiliaryComment": undefined,
+			+       "export": undefined,
 			+       "name": Array [
 			+         "myLib",
 			+         "[name]",
 			+       ],
 			+       "type": "var",
+			+       "umdNamedDefine": undefined,
 			+     },
 			@@ ... @@
 			-     "uniqueName": "@rspack/tests",

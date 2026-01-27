@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import nodeModule from 'node:module';
+const nodeModule = require('node:module');
 
 // enable on-disk code caching of all modules loaded by Node.js
 // requires Nodejs >= 22.8.0
@@ -15,7 +15,7 @@ if (enableCompileCache) {
 // make it easier to identify the process via activity monitor or other tools
 process.title = 'rspack-node';
 
-import { RspackCLI } from '../dist/index.js';
+const { RspackCLI } = require('../dist/index');
 
 async function runCLI() {
   const cli = new RspackCLI();

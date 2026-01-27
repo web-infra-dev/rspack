@@ -1,4 +1,3 @@
-import { createRequire } from 'node:module';
 import type { Compiler } from '../Compiler';
 import type { ExternalsType } from '../config';
 import type { SharedConfig } from '../sharing/SharePlugin';
@@ -16,8 +15,6 @@ import {
   ModuleFederationRuntimePlugin,
 } from './ModuleFederationRuntimePlugin';
 import { parseOptions } from './options';
-
-const require = createRequire(import.meta.url);
 
 declare const MF_RUNTIME_CODE: string;
 
@@ -43,7 +40,7 @@ export class ModuleFederationPlugin {
 
   apply(compiler: Compiler) {
     const { webpack } = compiler;
-    const paths = getPaths(this._options, compiler);
+    const paths = getPaths(this._options);
     compiler.options.resolve.alias = {
       '@module-federation/runtime-tools': paths.runtimeTools,
       '@module-federation/runtime': paths.runtime,
@@ -306,10 +303,7 @@ function getRuntimePlugins(options: ModuleFederationPluginOptions) {
   return options.runtimePlugins ?? [];
 }
 
-function getPaths(
-  options: ModuleFederationPluginOptions,
-  compiler: Compiler,
-): RuntimePaths {
+function getPaths(options: ModuleFederationPluginOptions): RuntimePaths {
   if (IS_BROWSER) {
     return {
       runtimeTools: '@module-federation/runtime-tools',
@@ -318,23 +312,9 @@ function getPaths(
     };
   }
 
-  let runtimeToolsPath: string;
-  if (options.implementation) {
-    runtimeToolsPath = options.implementation;
-  } else {
-    try {
-      runtimeToolsPath = require.resolve('@module-federation/runtime-tools', {
-        paths: [compiler.context],
-      });
-    } catch (e) {
-      if ((e as NodeJS.ErrnoException).code === 'MODULE_NOT_FOUND') {
-        throw new Error(
-          'Module Federation runtime is not installed. Please install it by running:\n\n  npm install @module-federation/runtime-tools\n',
-        );
-      }
-      throw e;
-    }
-  }
+  const runtimeToolsPath =
+    options.implementation ??
+    require.resolve('@module-federation/runtime-tools');
   const bundlerRuntimePath = require.resolve(
     '@module-federation/webpack-bundler-runtime',
     { paths: [runtimeToolsPath] },
@@ -392,7 +372,7 @@ function getDefaultEntryRuntime(
     IS_BROWSER
       ? MF_RUNTIME_CODE
       : compiler.webpack.Template.getFunctionContent(
-          require('./moduleFederationDefaultRuntime.js').default,
+          require('./moduleFederationDefaultRuntime.js'),
         ),
   ].join(';');
   return `@module-federation/runtime/rspack.js!=!data:text/javascript,${content}`;

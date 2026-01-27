@@ -4,7 +4,7 @@ var __module_federation_bundler_runtime__,
   __module_federation_remote_infos__,
   __module_federation_container_name__,
   __module_federation_share_strategy__;
-export default function () {
+module.exports = function () {
   if (
     (__webpack_require__.initializeSharingData ||
       __webpack_require__.initializeExposesData) &&
@@ -288,4 +288,4 @@ export default function () {
       });
     }
   }
-}
+};

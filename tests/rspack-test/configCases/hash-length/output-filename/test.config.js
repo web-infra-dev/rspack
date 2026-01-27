@@ -48,6 +48,6 @@ module.exports = {
 		return "./" + filename;
 	},
 	afterExecute: () => {
-		delete global.rspackChunk;
+		delete global.webpackChunk;
 	}
 };

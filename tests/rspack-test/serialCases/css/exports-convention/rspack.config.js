@@ -47,14 +47,12 @@ const common = {
 						}
 					}
 				]
-			},
-			{
-				test: /\.css$/,
-				type: "css/auto"
 			}
 		]
 	},
-
+	experiments: {
+		css: true
+	}
 };
 
 /** @type {import("@rspack/core").Configuration} */

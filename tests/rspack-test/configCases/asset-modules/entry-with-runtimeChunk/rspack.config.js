@@ -8,12 +8,11 @@ const common = {
 			{
 				test: /\.png$/,
 				type: "asset"
-			},
-			{
-				test: /\.css$/,
-				type: "css/auto"
 			}
 		]
+	},
+	experiments: {
+		css: true
 	},
 	plugins: [
 		{
@@ -94,6 +93,7 @@ const esm = i => ({
 	},
 	experiments: {
 		outputModule: true,
+		css: true
 	}
 });
 

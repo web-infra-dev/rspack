@@ -1,6 +1,7 @@
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	output: {
-		library: { type: "assign-properties", name: ["process", "env"] }
+		library: ["process", "env"],
+		libraryTarget: "assign-properties"
 	}
 };

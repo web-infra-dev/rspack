@@ -77,15 +77,6 @@ function defaultOptions(context: ITestContext): RspackOptions {
     entry: {
       main: './',
     },
-    module: {
-      defaultRules: [
-        '...',
-        {
-          test: /\.css/,
-          type: 'css/auto',
-        },
-      ],
-    },
     mode: 'development',
     devServer: {
       hot: false,
@@ -95,8 +86,13 @@ function defaultOptions(context: ITestContext): RspackOptions {
     },
     output: {
       path: context.getDist(),
-      bundlerInfo: {
-        force: false,
+    },
+    experiments: {
+      css: true,
+      rspackFuture: {
+        bundlerInfo: {
+          force: false,
+        },
       },
     },
   } as RspackOptions;

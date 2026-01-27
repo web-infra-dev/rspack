@@ -10,7 +10,8 @@ module.exports = {
 
 	output: {
 		filename: "[name]-bundle.js",
-		library: { type: "commonjs", name: "library-[name]" },
+		library: "library-[name]",
+		libraryTarget: "commonjs",
 		devtoolNamespace: "library-[name]"
 	},
 	devtool: "eval-source-map"

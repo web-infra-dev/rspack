@@ -13,7 +13,6 @@ module.exports = [1, 2, 3, 4].map(n => ({
 		})
 	],
 	stats: {
-		assets: true,
 		chunkModules: true,
 		dependentModules: true,
 		chunkRelations: true,

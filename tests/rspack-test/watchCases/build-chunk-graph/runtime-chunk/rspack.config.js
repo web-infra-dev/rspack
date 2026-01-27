@@ -6,7 +6,9 @@ module.exports = {
 	optimization: {
 		runtimeChunk: true
 	},
-	incremental: {
-		buildChunkGraph: true
+	experiments: {
+		incremental: {
+			buildChunkGraph: true
+		}
 	}
 };

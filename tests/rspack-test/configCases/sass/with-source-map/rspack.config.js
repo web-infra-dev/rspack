@@ -32,5 +32,7 @@ module.exports = {
 			CONTEXT: JSON.stringify(__dirname)
 		})
 	],
-
+	experiments: {
+		css: true
+	}
 };

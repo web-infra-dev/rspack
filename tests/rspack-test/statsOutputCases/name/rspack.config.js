@@ -6,10 +6,6 @@ module.exports = [
 		entry: "./app.js",
 		output: {
 			filename: "bundle1.js"
-		},
-		stats: {
-			assets: true,
-			modules: true,
 		}
 	},
 	{
@@ -18,10 +14,6 @@ module.exports = [
 		entry: "./server.js",
 		output: {
 			filename: "bundle2.js"
-		},
-		stats: {
-			assets: true,
-			modules: true,
 		}
 	}
 ];

@@ -2,6 +2,9 @@ script = document.createElement('script');
 <% if (_script_type != "false") { %>
 script.type = '<%- _script_type %>';
 <% } %>
+<% if (_charset) { %>
+script.charset = 'utf-8';
+<% } %>
 script.timeout = <%- _chunk_load_timeout %>;
 if (<%- SCRIPT_NONCE %>) {
   script.setAttribute("nonce", <%- SCRIPT_NONCE %>);

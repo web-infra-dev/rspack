@@ -1,5 +1,8 @@
 /**@type {import("@rspack/core").Configuration}*/
 module.exports = {
+	experiments: {
+		css: true
+	},
 	optimization: {
 		minimize: false,
 		moduleIds: "named"

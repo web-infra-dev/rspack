@@ -52,7 +52,7 @@ module.exports = {
 							);
 						assert(preseveImport);
 						const hasExports =
-							/export\sdefault\simg_namespaceObject/.test(jsContent);
+							/export\s{\simg_namespaceObject\sas\sdefault\s}/.test(jsContent);
 						assert(hasExports);
 					});
 				});

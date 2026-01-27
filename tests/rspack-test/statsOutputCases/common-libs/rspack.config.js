@@ -7,9 +7,5 @@ module.exports = {
 	optimization: {
 		minimize: true,
 		chunkIds: "named"
-	},
-	stats: {
-		assets: true,
-		modules: true,
 	}
 };

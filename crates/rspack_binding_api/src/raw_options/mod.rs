@@ -6,7 +6,7 @@ use napi_derive::napi;
 use rspack_core::{
   CacheOptions, CompilerOptions, Context, Experiments, ModuleOptions, NodeDirnameOption,
   NodeFilenameOption, NodeGlobalOption, NodeOption, OutputOptions, References,
-  incremental::{IncrementalOptions, IncrementalPasses},
+  incremental::IncrementalPasses,
 };
 use rspack_error::error;
 
@@ -54,15 +54,10 @@ pub struct RawOptions {
   pub module: RawModuleOptions,
   pub optimization: RawOptimizationOptions,
   pub stats: RawStatsOptions,
-  // For now, memory.max_generation will not be exposed to the js side.
-  #[napi(
-    ts_type = r#"boolean | { type: "memory" } | ({ type: "persistent" } & RawCacheOptionsPersistent)"#
-  )]
   pub cache: RawCacheOptions,
   pub experiments: RawExperiments,
-  #[napi(ts_type = "false | { [key: string]: boolean }")]
-  pub incremental: Option<WithFalse<RawIncremental>>,
   pub node: Option<RawNodeOption>,
+  pub profile: bool,
   pub amd: Option<String>,
   pub bail: bool,
   #[napi(js_name = "__references", ts_type = "Record<string, any>")]
@@ -81,17 +76,10 @@ impl TryFrom<RawOptions> for CompilerOptions {
     let resolve_loader = value.resolve_loader.try_into()?;
     let mode = value.mode.unwrap_or_default().into();
     let module: ModuleOptions = value.module.try_into()?;
-    let cache = normalize_raw_cache(value.cache);
-    let experiments: Experiments = value.experiments.into();
-    let mut incremental: IncrementalOptions = match value.incremental {
-      Some(value) => match value {
-        WithFalse::True(value) => value.into(),
-        WithFalse::False => IncrementalOptions::empty_passes(),
-      },
-      None => IncrementalOptions::empty_passes(),
-    };
+    let cache = value.cache.into();
+    let mut experiments: Experiments = value.experiments.into();
     if let CacheOptions::Disabled = cache {
-      incremental.passes = IncrementalPasses::empty();
+      experiments.incremental.passes = IncrementalPasses::empty();
     }
     let optimization = value.optimization.try_into()?;
     let stats = value.stats.into();
@@ -139,11 +127,11 @@ impl TryFrom<RawOptions> for CompilerOptions {
       resolve,
       resolve_loader,
       experiments,
-      incremental,
       stats,
       cache,
       optimization,
       node,
+      profile: value.profile,
       amd: value.amd,
       bail: value.bail,
       __references: value.__references,

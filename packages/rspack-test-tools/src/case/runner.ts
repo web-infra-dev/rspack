@@ -40,12 +40,6 @@ export function cachedStats(
         return cached;
       }
       cached = compiler.getStats()!.toJson({
-        assets: true,
-        chunks: true,
-        chunkModules: true,
-        modules: true,
-        entrypoints: true,
-        chunkGroups: true,
         errorDetails: true,
       });
       return cached;

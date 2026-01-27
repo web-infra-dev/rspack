@@ -3,19 +3,15 @@
 	Author Tobias Koppers @sokra
 */
 /*globals __webpack_hash__ */
-
-import { log, formatError } from './log.js';
-import { emitter as hotEmitter } from './emitter.js';
-import { logApplyResult } from './log-apply-result.js';
-
-if (import.meta.webpackHot) {
+if (module.hot) {
   /** @type {undefined|string} */
   var lastHash;
   var upToDate = function upToDate() {
     return /** @type {string} */ (lastHash).indexOf(__webpack_hash__) >= 0;
   };
+  var log = require('./log');
   var check = function check() {
-    import.meta.webpackHot
+    module.hot
       .check()
       .then(function (updatedModules) {
         if (!updatedModules) {
@@ -27,7 +23,7 @@ if (import.meta.webpackHot) {
           return;
         }
 
-        return import.meta.webpackHot
+        return module.hot
           .apply({
             ignoreUnaccepted: true,
             ignoreDeclined: true,
@@ -63,7 +59,7 @@ if (import.meta.webpackHot) {
               check();
             }
 
-            logApplyResult(updatedModules, renewedModules);
+            require('./log-apply-result')(updatedModules, renewedModules);
 
             if (upToDate()) {
               log('info', '[HMR] App is up to date.');
@@ -71,22 +67,23 @@ if (import.meta.webpackHot) {
           });
       })
       .catch(function (err) {
-        var status = import.meta.webpackHot.status();
+        var status = module.hot.status();
         if (['abort', 'fail'].indexOf(status) >= 0) {
           log(
             'warning',
             '[HMR] Cannot check for update. Need to do a full reload!',
           );
-          log('warning', '[HMR] ' + formatError(err));
+          log('warning', '[HMR] ' + log.formatError(err));
         } else {
-          log('warning', '[HMR] Update check failed: ' + formatError(err));
+          log('warning', '[HMR] Update check failed: ' + log.formatError(err));
         }
       });
   };
+  var hotEmitter = require('./emitter');
   hotEmitter.on('webpackHotUpdate', function (currentHash) {
     lastHash = currentHash;
     if (!upToDate()) {
-      var status = import.meta.webpackHot.status();
+      var status = module.hot.status();
       if (status === 'idle') {
         log('info', '[HMR] Checking for updates on the server...');
         check();

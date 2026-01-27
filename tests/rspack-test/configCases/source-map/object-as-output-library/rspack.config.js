@@ -7,6 +7,6 @@ module.exports = {
 			amd: "[name]",
 			commonjs: "[name]"
 		},
-		library: { type: "umd" }
+		libraryTarget: "umd"
 	}
 };

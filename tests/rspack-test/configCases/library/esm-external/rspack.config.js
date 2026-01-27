@@ -2,7 +2,7 @@
 module.exports = {
 	mode: "development",
 	output: {
-		library: { type: "module" },
+		libraryTarget: "module",
 		iife: false,
 		chunkFormat: "module",
 		filename: "bundle0.mjs"

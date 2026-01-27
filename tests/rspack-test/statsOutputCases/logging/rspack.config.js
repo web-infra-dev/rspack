@@ -15,8 +15,6 @@ module.exports = {
 	},
 	plugins: [new LogTestPlugin(true)],
 	stats: {
-		assets: true,
-		modules: true,
 		colors: true,
 		logging: true,
 		loggingDebug: "custom-loader",

@@ -1,16 +1,15 @@
 const {
 	rspack,
-	experiments: { RslibPlugin, EsmLibraryPlugin },
-	experiments
+	experiments: { RslibPlugin, EsmLibraryPlugin }
 } = require("@rspack/core");
 
 /** @type {import("@rspack/core").Configuration} */
-const baseConfig = (i, mjs = false) => ({
+const baseConfig = {
 	entry: {
-		index: {import: "./index.js", filename: `bundle${i}${mjs?'.mjs':'.js'}`},
+		index: "./index.js"
 	},
 	target: "node",
-	node: mjs ? {} : {
+	node: {
 		__filename: false,
 		__dirname: false
 	},
@@ -22,12 +21,12 @@ const baseConfig = (i, mjs = false) => ({
 			})
 		]
 	}
-});
+};
 
 module.exports = [
 	// CJS output
 	{
-		...baseConfig(0),
+		...baseConfig,
 		output: {
 			library: {
 				type: "commonjs"
@@ -35,9 +34,9 @@ module.exports = [
 		},
 		plugins: [new RslibPlugin()]
 	},
-	// ESM output
+	// ESM output (without EsmLibraryPlugin)
 	{
-		...baseConfig(1, true),
+		...baseConfig,
 		experiments: {
 			outputModule: true
 		},
@@ -48,19 +47,34 @@ module.exports = [
 			module: true,
 			library: {
 				type: "modern-module"
-			},
+			}
 		},
 		plugins: [new RslibPlugin()]
+	},
+	// ESM output (with EsmLibraryPlugin)
+	{
+		...baseConfig,
+		experiments: {
+			outputModule: true
+		},
+		externals: {
+			os: "module os"
+		},
+		output: {
+			module: true,
+			library: {
+				type: "modern-module"
+			}
+		},
+		plugins: [new RslibPlugin(), new EsmLibraryPlugin()]
 	},
 	// Test entry
 	{
 		entry: "./test.js",
 		target: "node",
-		output: {
-			module: true,
-		},
-		experiments: {
-			outputModule: true,
+		node: {
+			__filename: false,
+			__dirname: false
 		}
 	}
 ];

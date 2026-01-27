@@ -5,13 +5,8 @@ module.exports = {
 		chunkFilename: "[name].js",
 		crossOriginLoading: "anonymous"
 	},
-	module: {
-		rules: [
-			{
-				test: /\.css$/,
-				type: "css/auto"
-			}
-		]
+	experiments: {
+		css: true
 	},
 	optimization: {
 		minimize: false,

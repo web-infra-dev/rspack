@@ -5,6 +5,7 @@ module.exports = {
 	output: {
 		path: path.join(__dirname, "dist"),
 		filename: "MyLibrary.umd.js",
-		library: { type: "umd", name: "MyLibrary" }
+		library: "MyLibrary",
+		libraryTarget: "umd"
 	}
 };

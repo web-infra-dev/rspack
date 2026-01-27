@@ -1,5 +1,5 @@
 import { rspack, builtinMemFs } from '@rspack/browser';
-import { files, config } from './files.js';
+import { files, config } from './files';
 
 builtinMemFs.volume.fromJSON({
   ...files,

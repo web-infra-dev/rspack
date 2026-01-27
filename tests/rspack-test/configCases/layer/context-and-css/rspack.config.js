@@ -5,6 +5,9 @@ module.exports = {
 		light: { import: "./light.js", layer: "light" },
 		dark: { import: "./dark.js", layer: "dark" }
 	},
+	experiments: {
+		css: true
+	},
 	optimization: {
 		runtimeChunk: "single"
 	},
@@ -42,10 +45,6 @@ module.exports = {
 						]
 					}
 				]
-			},
-			{
-				test: /\.css$/,
-				type: "css/auto"
 			}
 		]
 	}

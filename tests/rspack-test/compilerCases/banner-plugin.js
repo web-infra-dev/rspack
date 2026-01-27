@@ -46,7 +46,7 @@ module.exports = [{
     });
   },
   async check() {
-    const { assets } = lastStats.toJson({ assets: true });
+    const { assets } = lastStats.toJson();
     expect(assets.find(as => as.name === "entry1.js").emitted).toBe(false);
     expect(assets.find(as => as.name === "entry2.js").emitted).toBe(true);
   }

@@ -23,12 +23,10 @@ module.exports = {
 			{
 				test: /\.png$/i,
 				type: "asset/resource"
-			},
-			{
-				test: /\.css$/,
-				type: "css/auto"
 			}
 		]
 	},
-
+	experiments: {
+		css: true
+	}
 };

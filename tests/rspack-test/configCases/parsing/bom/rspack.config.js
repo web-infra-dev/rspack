@@ -13,12 +13,10 @@ module.exports = {
 			{
 				test: /\.text$/,
 				type: "asset/source"
-			},
-			{
-				test: /\.css$/,
-				type: "css/auto"
 			}
 		]
 	},
-
+	experiments: {
+		css: true
+	}
 };

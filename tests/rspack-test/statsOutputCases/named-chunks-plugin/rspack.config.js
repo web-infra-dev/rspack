@@ -17,10 +17,5 @@ module.exports = {
 				}
 			}
 		}
-	},
-	stats: {
-		entrypoints: true,
-		assets: true,
-		modules: true,
 	}
 };

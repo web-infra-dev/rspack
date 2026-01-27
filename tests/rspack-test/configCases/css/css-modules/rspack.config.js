@@ -8,7 +8,9 @@ module.exports = (env, { testPath }) => [
 	{
 		target: "web",
 		mode: "development",
-
+		experiments: {
+			css: true
+		},
 		module: {
 			rules: [
 				{
@@ -32,7 +34,9 @@ module.exports = (env, { testPath }) => [
 		output: {
 			uniqueName: "my-app"
 		},
-
+		experiments: {
+			css: true
+		},
 		module: {
 			rules: [
 				{

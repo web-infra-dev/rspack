@@ -3,7 +3,6 @@ import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import vm, { SourceTextModule } from 'node:vm';
 import type { RspackOptions, StatsCompilation } from '@rspack/core';
-import { enableEsmLibraryPlugin } from '../../case/config';
 import asModule from '../../helper/legacy/asModule';
 import createFakeWorker from '../../helper/legacy/createFakeWorker';
 import urlToRelativePath from '../../helper/legacy/urlToRelativePath';
@@ -307,17 +306,15 @@ export class NodeRunner implements ITestRunner {
           file,
         });
       }
-
       if (
-        file.path.endsWith('.mjs') ||
-        enableEsmLibraryPlugin(this._options.compilerOptions)
+        file.path.endsWith('.mjs') &&
+        this._options.compilerOptions.experiments?.outputModule
       ) {
         return this.requirers.get('esm')!(currentDirectory, modulePath, {
           ...context,
           file,
         });
       }
-
       return this.requirers.get('cjs')!(currentDirectory, modulePath, {
         ...context,
         file,

@@ -4,8 +4,6 @@ module.exports = {
 	entry: "./index",
 	performance: false,
 	stats: {
-		assets: true,
-		modules: true,
 		modulesSpace: 20
 	}
 };

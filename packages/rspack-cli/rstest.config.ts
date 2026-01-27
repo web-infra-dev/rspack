@@ -16,12 +16,12 @@ export default defineConfig({
   testEnvironment: 'node',
   globals: true,
   testTimeout: process.env.CI ? 200000 : 30000,
-  include: ['tests/**/*.test.{ts,js,cts}'],
+  include: ['tests/**/*.test.ts', 'tests/**/*.test.js'],
   source: {
     tsconfigPath: 'tests/tsconfig.json',
   },
   output: {
-    externals: [/@rspack\/core/, /api-wrapper/],
+    externals: [/@rspack\/core/],
     module: false,
   },
   env: {

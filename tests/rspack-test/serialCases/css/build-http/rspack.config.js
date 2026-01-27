@@ -10,13 +10,6 @@ module.exports = {
 			lockfileLocation: path.resolve(__dirname, "./lock-files/lock.json"),
 			cacheLocation: path.resolve(__dirname, "./lock-files/test")
 		},
-	},
-	module: {
-		rules: [
-			{
-				test: /\.css$/,
-				type: "css/auto"
-			}
-		]
+		css: true
 	}
 };

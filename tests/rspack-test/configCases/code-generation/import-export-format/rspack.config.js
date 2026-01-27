@@ -10,6 +10,8 @@ module.exports = {
 		providedExports: true,
 		minimize: false,
 		mangleExports: "size",
-		inlineExports: false
 	},
+	experiments: {
+		inlineConst: false
+	}
 };

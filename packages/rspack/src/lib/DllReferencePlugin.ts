@@ -37,7 +37,7 @@ export type DllReferencePluginOptions =
        */
       scope?: string;
       /**
-       * How the dll is exposed (library.type, defaults to manifest.type).
+       * How the dll is exposed (libraryTarget, defaults to manifest.type).
        */
       sourceType?: DllReferencePluginOptionsSourceType;
       /**
@@ -67,7 +67,7 @@ export type DllReferencePluginOptions =
        */
       scope?: string;
       /**
-       * How the dll is exposed (library.type).
+       * How the dll is exposed (libraryTarget).
        */
       sourceType?: DllReferencePluginOptionsSourceType;
       /**

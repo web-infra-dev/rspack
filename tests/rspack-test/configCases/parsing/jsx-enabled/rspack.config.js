@@ -24,6 +24,7 @@ const baseConfig = {
 		new rspack.experiments.RslibPlugin()
 	],
 	optimization: {
+		avoidEntryIife: true,
 		minimize: false,
 	},
 	module: {
@@ -101,13 +102,9 @@ module.exports = [
 		},
 	},
 	{
-		experiments: {
-			outputModule: true,
-		},
 		name: "test-output",
 		entry: "./test.js",
 		output: {
-			...baseConfig.output,
 			filename: "test.js"
 		}
 	}

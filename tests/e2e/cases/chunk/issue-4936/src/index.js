@@ -1,3 +1,3 @@
-import('./app.js').then((m) => {
+import('./app').then((m) => {
   m.title('123');
 });

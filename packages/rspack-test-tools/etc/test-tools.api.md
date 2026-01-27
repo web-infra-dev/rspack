@@ -783,6 +783,9 @@ export type TTestConfig = {
     snapshotContent?(content: string): string;
     checkSteps?: boolean;
     ignoreNotFriendlyForIncrementalWarnings?: boolean;
+    esmLibPluginOptions?: {
+        preserveModules?: string;
+    };
     resourceLoader?: (url: string, element: HTMLScriptElement) => Buffer | null;
 };
 

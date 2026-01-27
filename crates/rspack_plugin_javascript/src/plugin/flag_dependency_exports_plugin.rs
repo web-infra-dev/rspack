@@ -180,11 +180,11 @@ async fn finish_modules(
 ) -> Result<()> {
   let modules: IdentifierSet = if let Some(mutations) = compilation
     .incremental
-    .mutations_read(IncrementalPasses::FINISH_MODULES)
+    .mutations_read(IncrementalPasses::PROVIDED_EXPORTS)
   {
     let modules = mutations.get_affected_modules_with_module_graph(compilation.get_module_graph());
-    tracing::debug!(target: incremental::TRACING_TARGET, passes = %IncrementalPasses::FINISH_MODULES, %mutations, ?modules);
-    let logger = compilation.get_logger("rspack.incremental.finishModules");
+    tracing::debug!(target: incremental::TRACING_TARGET, passes = %IncrementalPasses::PROVIDED_EXPORTS, %mutations, ?modules);
+    let logger = compilation.get_logger("rspack.incremental.providedExports");
     logger.log(format!(
       "{} modules are affected, {} in total",
       modules.len(),

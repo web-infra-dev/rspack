@@ -20,12 +20,7 @@ module.exports = {
   watchOptions: {
     poll: 1000,
   },
-  module: {
-    rules: [
-      {
-        test: /\.css/,
-        type: 'css/auto',
-      },
-    ],
+  experiments: {
+    css: true,
   },
 };

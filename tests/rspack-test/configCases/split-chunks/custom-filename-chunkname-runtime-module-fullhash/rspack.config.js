@@ -7,7 +7,7 @@ module.exports = {
 	},
 	output: {
 		filename: "c-[name].js",
-		library: { type: "commonjs2" },
+		libraryTarget: "commonjs2",
 		// TODO:
 		// here is a webpack bug and also in rspack
 		// if do not set chunkFilename and hash

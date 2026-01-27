@@ -36,7 +36,6 @@ const base = name => ({
 		rules: [
 			{
 				test: /\.css$/,
-				type: "css/auto",
 				use: [
 					CssExtractRspackPlugin.loader,
 					{
@@ -58,7 +57,6 @@ const base = name => ({
 });
 
 const baseStats = {
-	assets: true,
 	entrypoints: false,
 	modules: false,
 	timings: false,

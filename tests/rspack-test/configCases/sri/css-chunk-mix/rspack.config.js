@@ -8,6 +8,9 @@ module.exports = (_, { testPath }) => ({
   output: {
     crossOriginLoading: "anonymous",
   },
+  experiments: {
+    css: true
+  },
   plugins: [
     new CssExtractRspackPlugin(),
     new SubresourceIntegrityPlugin({
@@ -26,10 +29,6 @@ module.exports = (_, { testPath }) => ({
   ],
   module: {
     rules: [
-      {
-        test: /\.module\.css/,
-        type: "css/module"
-      },
       {
         test: /-extract\.module\.css$/,
         use: [

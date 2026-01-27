@@ -2,15 +2,8 @@
 module.exports = {
 	entry: "./index.mjs",
 	experiments: {
-		outputModule: true
-	},
-	module: {
-		rules: [
-			{
-				test: /\.css$/,
-				type: "css/auto"
-			}
-		]
+		outputModule: true,
+		css: true
 	},
 	name: "esm",
 	target: "web",

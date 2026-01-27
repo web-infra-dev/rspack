@@ -4,14 +4,7 @@ module.exports = {
 	mode: "development",
 	experiments: {
 		outputModule: true,
-	},
-	module: {
-		rules: [
-			{
-				test: /\.css$/,
-				type: "css/auto"
-			}
-		]
+		css: true
 	},
 	output: {
 		module: true,

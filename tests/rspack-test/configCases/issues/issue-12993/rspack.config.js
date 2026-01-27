@@ -2,20 +2,16 @@ module.exports = [
 	{
 		mode: "development",
 		output: {
-			library: {
-				name: "lib",
-				type: "global"
-			}
+			library: "lib",
+			libraryTarget: "global"
 		}
 	},
 	{
 		mode: "development",
 		devtool: false,
 		output: {
-			library: {
-				name: "lib",
-				type: "global"
-			}
+			library: "lib",
+			libraryTarget: "global"
 		}
 	}
 ];

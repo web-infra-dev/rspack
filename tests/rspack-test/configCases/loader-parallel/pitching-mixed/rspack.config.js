@@ -21,6 +21,9 @@ module.exports = [
 				CONTEXT: JSON.stringify(__dirname)
 			})
 		],
+		experiments: {
+			parallelLoader: true
+		}
 	},
 	{
 		module: {
@@ -44,6 +47,9 @@ module.exports = [
 				CONTEXT: JSON.stringify(__dirname)
 			})
 		],
+		experiments: {
+			parallelLoader: true
+		}
 	},
 	{
 		module: {
@@ -67,6 +73,9 @@ module.exports = [
 				CONTEXT: JSON.stringify(__dirname)
 			})
 		],
+		experiments: {
+			parallelLoader: true
+		}
 	},
 	{
 		module: {
@@ -86,5 +95,8 @@ module.exports = [
 				CONTEXT: JSON.stringify(__dirname)
 			})
 		],
+		experiments: {
+			parallelLoader: true
+		}
 	}
 ];

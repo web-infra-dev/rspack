@@ -5,13 +5,9 @@ module.exports = {
 			"css/auto": {
 				localIdentName: "[path][name]-[local]"
 			}
-		},
-		rules: [
-			{
-				test: /\.css$/,
-				type: "css/auto"
-			}
-		]
+		}
 	},
-
+	experiments: {
+		css: true
+	}
 };

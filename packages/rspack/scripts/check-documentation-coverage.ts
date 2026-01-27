@@ -112,14 +112,7 @@ function checkPluginsDocumentationCoverage() {
     'RsdoctorPlugin', // This plugin is not stable yet
     'RstestPlugin', // This plugin is not stable yet
     'RslibPlugin', // This plugin is not stable yet
-    'RscClientPlugin',
-    'RscServerPlugin',
-    'ClientPlugin',
-    'ServerPlugin',
-  ];
-
-  const removedPlugins = [
-    'EsmLibraryPlugin', // This plugin has already been removed
+    'WarnCaseSensitiveModulesPlugin', // This plugin is deprecated and will be replaced with CaseSensitivePlugin
   ];
 
   const undocumentedPlugins = Array.from(implementedPlugins).filter(
@@ -128,9 +121,7 @@ function checkPluginsDocumentationCoverage() {
       !excludedPlugins.includes(plugin as string),
   );
   const unimplementedPlugins = Array.from(documentedPlugins).filter(
-    (plugin) =>
-      !implementedPlugins.has(plugin) &&
-      !removedPlugins.includes(plugin as string),
+    (plugin) => !implementedPlugins.has(plugin),
   );
 
   if (undocumentedPlugins.length) {
@@ -235,9 +226,11 @@ function checkConfigsDocumentationCoverage() {
 
   // const implementedConfigs = getImplementedConfigs().filter(config => {
   // 	return ![
+  // 		"experiments.lazyCompilation.backend",
   // 		"resolveLoader",
   // 		"module.parser",
   // 		"module.generator",
+  // 		"experiments.rspackFuture",
   // 		"experiments.incremental",
   // 		"output.library.amd",
   // 		"output.library.commonjs",
@@ -246,6 +239,10 @@ function checkConfigsDocumentationCoverage() {
   // 		"output.workerWasmLoading",
   // 		"output.workerPublicPath",
   // 		"output.strictModuleExceptionHandling",
+  // 		"output.auxiliaryComment.amd",
+  // 		"output.auxiliaryComment.commonjs",
+  // 		"output.auxiliaryComment.commonjs2",
+  // 		"output.auxiliaryComment.root",
   // 		"stats",
   // 		"optimization.splitChunks",
   // 		"optimization.removeAvailableModules",

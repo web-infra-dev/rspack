@@ -108,7 +108,7 @@ define_hook!(CompilationChunkIds: Series(compilation: &Compilation, chunk_by_uke
 define_hook!(CompilationRuntimeModule: Series(compilation: &Compilation, module: &ModuleIdentifier, chunk: &ChunkUkey, runtime_modules: &mut IdentifierMap<Box<dyn RuntimeModule>>));
 define_hook!(CompilationAdditionalModuleRuntimeRequirements: Series(compilation: &Compilation, module_identifier: &ModuleIdentifier, runtime_requirements: &mut RuntimeGlobals),tracing=false);
 define_hook!(CompilationRuntimeRequirementInModule: SeriesBail(compilation: &Compilation, module_identifier: &ModuleIdentifier, all_runtime_requirements: &RuntimeGlobals, runtime_requirements: &RuntimeGlobals, runtime_requirements_mut: &mut RuntimeGlobals),tracing=false);
-define_hook!(CompilationAdditionalChunkRuntimeRequirements: Series(compilation: &Compilation, chunk_ukey: &ChunkUkey, runtime_requirements: &mut RuntimeGlobals, runtime_modules: &mut Vec<Box<dyn RuntimeModule>>));
+define_hook!(CompilationAdditionalChunkRuntimeRequirements: Series(compilation: &mut Compilation, chunk_ukey: &ChunkUkey, runtime_requirements: &mut RuntimeGlobals));
 define_hook!(CompilationRuntimeRequirementInChunk: SeriesBail(compilation: &mut Compilation, chunk_ukey: &ChunkUkey, all_runtime_requirements: &RuntimeGlobals, runtime_requirements: &RuntimeGlobals, runtime_requirements_mut: &mut RuntimeGlobals));
 define_hook!(CompilationAdditionalTreeRuntimeRequirements: Series(compilation: &Compilation, chunk_ukey: &ChunkUkey, runtime_requirements: &mut RuntimeGlobals, runtime_modules: &mut Vec<Box<dyn RuntimeModule>>));
 define_hook!(CompilationRuntimeRequirementInTree: SeriesBail(compilation: &Compilation, chunk_ukey: &ChunkUkey, all_runtime_requirements: &RuntimeGlobals, runtime_requirements: &RuntimeGlobals, runtime_requirements_mut: &mut RuntimeGlobals, runtime_modules_to_add: &mut Vec<(ChunkUkey, Box<dyn RuntimeModule>)>));
@@ -383,9 +383,8 @@ impl Compilation {
       code_generated_modules: Default::default(),
       chunk_render_cache_artifact: ChunkRenderCacheArtifact::new(MemoryGCStorage::new(
         match &options.cache {
+          CacheOptions::Memory { max_generations } => max_generations.unwrap_or(1),
           CacheOptions::Disabled => 0, // FIXME: this should be removed in future
-          CacheOptions::Memory { max_generations } => *max_generations,
-          CacheOptions::Persistent(_) => 1,
         },
       )),
       code_generate_cache_artifact: CodeGenerateCacheArtifact::new(&options),

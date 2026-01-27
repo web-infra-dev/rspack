@@ -2,9 +2,5 @@
 module.exports = {
 	mode: "production",
 	entry: "./index",
-	performance: false,
-	stats: {
-		assets: true,
-		modules: true,
-	}
+	performance: false
 };

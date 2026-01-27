@@ -1,5 +1,5 @@
-import a from './a.js';
-import b from './b.js';
+import a from './a';
+import b from './b';
 
 const div = document.createElement('div');
 div.innerText = a + b;

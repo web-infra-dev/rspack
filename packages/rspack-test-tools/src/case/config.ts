@@ -91,22 +91,19 @@ export function defaultOptions(
     cache: false,
     output: {
       path: context.getDist(),
-      bundlerInfo: {
-        force: false,
-      },
     },
     optimization: {
       minimize: false,
     },
+    experiments: {
+      css: true,
+      rspackFuture: {
+        bundlerInfo: {
+          force: false,
+        },
+      },
+    },
   };
-}
-
-export function enableEsmLibraryPlugin(options: RspackOptions): boolean {
-  return (
-    options.output?.library === 'modern-module' ||
-    (typeof options.output?.library === 'object' &&
-      (options.output?.library as { type: string }).type === 'modern-module')
-  );
 }
 
 export function overrideOptions(
@@ -121,17 +118,9 @@ export function overrideOptions(
     options.amd = {};
   }
   if (!options.output?.filename) {
-    const runtimeChunkForModernModule =
-      options.optimization?.runtimeChunk === undefined &&
-      enableEsmLibraryPlugin(options);
-    const outputModule =
-      options.experiments?.outputModule || enableEsmLibraryPlugin(options);
+    const outputModule = options.experiments?.outputModule;
     options.output ??= {};
-    options.output.filename = `${runtimeChunkForModernModule ? `[name]${outputModule ? '.mjs' : '.js'}` : `bundle${index}${outputModule ? '.mjs' : '.js'}`}`;
-  }
-  if (enableEsmLibraryPlugin(options)) {
-    options.optimization ??= {};
-    options.optimization.runtimeChunk ??= { name: `runtime~${index}` };
+    options.output.filename = `bundle${index}${outputModule ? '.mjs' : '.js'}`;
   }
 
   if (options.cache === undefined) options.cache = false;
@@ -159,14 +148,16 @@ export function findBundle(
     options.output?.path &&
     fs.existsSync(path.join(options.output.path!, `bundle${index}${ext}`))
   ) {
-    const cssOutputPath = path.join(
-      options.output.path!,
-      (typeof options.output?.cssFilename === 'string' &&
-        options.output?.cssFilename) ||
-        `bundle${index}.css`,
-    );
-    if (fs.existsSync(cssOutputPath)) {
-      bundlePath.push(path.relative(options.output.path!, cssOutputPath));
+    if (options.experiments?.css) {
+      const cssOutputPath = path.join(
+        options.output.path!,
+        (typeof options.output?.cssFilename === 'string' &&
+          options.output?.cssFilename) ||
+          `bundle${index}.css`,
+      );
+      if (fs.existsSync(cssOutputPath)) {
+        bundlePath.push(path.relative(options.output.path!, cssOutputPath));
+      }
     }
 
     bundlePath.push(`./bundle${index}${ext}`);

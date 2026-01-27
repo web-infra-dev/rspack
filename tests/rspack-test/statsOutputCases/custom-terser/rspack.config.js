@@ -21,7 +21,6 @@ module.exports = {
 		]
 	},
 	stats: {
-		assets: true,
 		chunkModules: false,
 		modules: true,
 		providedExports: true,

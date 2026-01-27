@@ -20,10 +20,6 @@ module.exports = [
 					}
 				}
 			}
-		},
-		stats: {
-			assets: true,
-			modules: true,
 		}
 	},
 	{
@@ -45,10 +41,6 @@ module.exports = [
 					}
 				}
 			}
-		},
-		stats: {
-			assets: true,
-			modules: true,
 		}
 	}
 ];

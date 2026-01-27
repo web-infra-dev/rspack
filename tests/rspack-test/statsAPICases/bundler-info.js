@@ -4,17 +4,18 @@ module.exports = {
 	options(context) {
 		return {
 			context: context.getSource(),
-			output: {
-				bundlerInfo: {
-					force: true
-				}
-			},
 			entry: "./fixtures/index",
+			experiments: {
+				rspackFuture: {
+					bundlerInfo: {
+						force: true
+					}
+				}
+			}
 		};
 	},
 	async check(stats) {
 		const statsOptions = {
-			modules: true,
 			runtimeModules: true
 		};
 		expect(typeof stats?.hash).toBe("string");

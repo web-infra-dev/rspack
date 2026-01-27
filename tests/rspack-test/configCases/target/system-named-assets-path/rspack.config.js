@@ -1,7 +1,8 @@
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	output: {
-		library: { type: "system", name: "named-system-module-[name]" }
+		library: "named-system-module-[name]",
+		libraryTarget: "system"
 	},
 	node: {
 		__dirname: false,

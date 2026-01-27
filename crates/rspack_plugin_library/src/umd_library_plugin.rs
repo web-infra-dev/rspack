@@ -4,8 +4,7 @@ use rspack_core::{
   Chunk, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements, CompilationParams,
   CompilerCompilation, ExternalModule, ExternalRequest, Filename, LibraryAuxiliaryComment,
   LibraryCustomUmdObject, LibraryName, LibraryNonUmdObject, LibraryOptions, LibraryType,
-  ModuleGraph, ModuleGraphCacheArtifact, PathData, Plugin, RuntimeGlobals, RuntimeModule,
-  SourceType,
+  ModuleGraph, ModuleGraphCacheArtifact, PathData, Plugin, RuntimeGlobals, SourceType,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt, error};
@@ -290,10 +289,9 @@ async fn js_chunk_hash(
 #[plugin_hook(CompilationAdditionalChunkRuntimeRequirements for UmdLibraryPlugin)]
 async fn additional_chunk_runtime_requirements(
   &self,
-  compilation: &Compilation,
+  compilation: &mut Compilation,
   chunk_ukey: &ChunkUkey,
   runtime_requirements: &mut RuntimeGlobals,
-  _runtime_modules: &mut Vec<Box<dyn RuntimeModule>>,
 ) -> Result<()> {
   let Some(_) = self.get_options_for_chunk(compilation, chunk_ukey) else {
     return Ok(());

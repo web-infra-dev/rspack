@@ -54,8 +54,11 @@ module.exports = {
             },
           },
         ],
-        type: 'css/auto',
+        type: 'css',
       },
     ],
+  },
+  experiments: {
+    css: true,
   },
 };

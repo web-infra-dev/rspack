@@ -16,14 +16,6 @@ module.exports = [
 			chunkIds: "named",
 			moduleIds: "named",
 			runtimeChunk: true
-		},
-		module: {
-			rules: [
-				{
-					test: /\.css$/,
-					type: 'css/auto'
-				}
-			]
 		}
 	},
 	{
@@ -35,14 +27,8 @@ module.exports = [
 			filename: "[name].js"
 		},
 		target: "web",
-
-		module: {
-			rules: [
-				{
-					test: /\.css$/,
-					type: "css/auto"
-				}
-			]
+		experiments: {
+			css: true
 		}
 	}
 ];

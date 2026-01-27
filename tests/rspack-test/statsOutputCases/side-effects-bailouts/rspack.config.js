@@ -5,7 +5,6 @@ module.exports = {
 	},
 	mode: "production",
 	stats: {
-		assets: true,
 		chunks: true,
 		children: true,
 		modules: true,

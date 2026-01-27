@@ -1,10 +1,11 @@
 import { BuiltinPluginName } from '@rspack/binding';
+import rspack from '..';
 import type { Compiler } from '../Compiler';
 import type { RspackOptionsNormalized } from '../config';
-import WebpackError from '../lib/WebpackError';
+import type { Logger } from '../logging/Logger';
 import { RemoveDuplicateModulesPlugin } from './RemoveDuplicateModulesPlugin';
 
-export function applyLimits(options: RspackOptionsNormalized) {
+function applyLimits(options: RspackOptionsNormalized, logger: Logger) {
   // concatenateModules is not supported in ESM library mode, it has its own scope hoist algorithm
   options.optimization.concatenateModules = false;
 
@@ -18,11 +19,18 @@ export function applyLimits(options: RspackOptionsNormalized) {
   options.output.module = true;
 
   if (options.output.chunkLoading && options.output.chunkLoading !== 'import') {
+    logger.warn(
+      `\`output.chunkLoading\` should be \`"import"\` or \`false\`, but got ${options.output.chunkLoading}, changed it to \`"import"\``,
+    );
     options.output.chunkLoading = 'import';
   }
 
   if (options.output.chunkLoading === undefined) {
     options.output.chunkLoading = 'import';
+  }
+
+  if (options.output.library) {
+    options.output.library = undefined;
   }
 
   let { splitChunks } = options.optimization;
@@ -50,12 +58,15 @@ export class EsmLibraryPlugin {
   }
 
   apply(compiler: Compiler) {
-    applyLimits(compiler.options);
+    const logger = compiler.getInfrastructureLogger(
+      EsmLibraryPlugin.PLUGIN_NAME,
+    );
+    applyLimits(compiler.options, logger);
     new RemoveDuplicateModulesPlugin().apply(compiler);
 
     let err;
     if ((err = checkConfig(compiler.options))) {
-      throw new WebpackError(
+      throw new rspack.WebpackError(
         `Conflicted config for ${EsmLibraryPlugin.PLUGIN_NAME}: ${err}`,
       );
     }

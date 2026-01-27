@@ -33,6 +33,13 @@ pub fn try_dependency_by_id<'a>(
 ) -> Option<&'a BoxDependency> {
   module_graph.inner.dependencies.get(dependency_id)
 }
+#[inline]
+pub fn try_dependency_by_id_mut<'a>(
+  module_graph: &'a mut ModuleGraph,
+  dependency_id: &DependencyId,
+) -> Option<&'a mut BoxDependency> {
+  module_graph.inner.dependencies.get_mut(dependency_id)
+}
 
 /// Try to get a mutable module graph module by identifier, returning None if not found.
 ///

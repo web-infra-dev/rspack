@@ -1,14 +1,9 @@
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	entry: "./index.mjs",
-
-	module: {
-		rules: [
-			{
-				test: /\.css$/,
-				type: "css/auto"
-			}
-		]
+	experiments: {
+		outputModule: true,
+		css: true
 	},
 	name: "esm",
 	target: "web",

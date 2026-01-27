@@ -46,7 +46,7 @@ export function hotLoader(
         // ${Date.now()}
         var cssReload = require(${stringifyRequest(
           context.loaderContext,
-          path.join(import.meta.dirname, 'cssExtractHmr.js'),
+          path.join(__dirname, 'cssExtractHmr.js'),
         )}).cssReload(module.id, ${JSON.stringify(context.options ?? {})});
         // only invalidate when locals change
         if (
@@ -69,6 +69,7 @@ export function hotLoader(
 
 const loader: LoaderDefinition = function loader(content) {
   if (
+    this._compiler?.options?.experiments?.css &&
     this._module &&
     (this._module.type === 'css' ||
       this._module.type === 'css/auto' ||
@@ -81,6 +82,7 @@ const loader: LoaderDefinition = function loader(content) {
 
 export const pitch: LoaderDefinition['pitch'] = function (request, _, data) {
   if (
+    this._compiler?.options?.experiments?.css &&
     this._module &&
     (this._module.type === 'css' ||
       this._module.type === 'css/auto' ||
@@ -88,7 +90,7 @@ export const pitch: LoaderDefinition['pitch'] = function (request, _, data) {
       this._module.type === 'css/module')
   ) {
     const e = new Error(
-      `use type 'css' and \`CssExtractRspackPlugin\` together, please set \`{ type: "javascript/auto" }\` for rules with \`CssExtractRspackPlugin\` in your rspack config (now \`CssExtractRspackPlugin\` does nothing).`,
+      `use type 'css' and \`CssExtractRspackPlugin\` together, please set \`experiments.css\` to \`false\` or set \`{ type: "javascript/auto" }\` for rules with \`CssExtractRspackPlugin\` in your rspack config (now \`CssExtractRspackPlugin\` does nothing).`,
     );
     e.stack = undefined;
     this.emitWarning(e);

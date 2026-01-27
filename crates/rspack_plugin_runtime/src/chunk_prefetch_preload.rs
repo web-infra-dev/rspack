@@ -17,10 +17,9 @@ pub struct ChunkPrefetchPreloadPlugin;
 #[plugin_hook(CompilationAdditionalChunkRuntimeRequirements for ChunkPrefetchPreloadPlugin)]
 async fn additional_chunk_runtime_requirements(
   &self,
-  compilation: &Compilation,
+  compilation: &mut Compilation,
   chunk_ukey: &ChunkUkey,
   runtime_requirements: &mut RuntimeGlobals,
-  runtime_modules: &mut Vec<Box<dyn RuntimeModule>>,
 ) -> Result<()> {
   let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
   if compilation
@@ -37,10 +36,13 @@ async fn additional_chunk_runtime_requirements(
     runtime_requirements.insert(RuntimeGlobals::PREFETCH_CHUNK);
     runtime_requirements.insert(RuntimeGlobals::ON_CHUNKS_LOADED);
     runtime_requirements.insert(RuntimeGlobals::EXPORTS);
-    runtime_modules.push(Box::new(ChunkPrefetchStartupRuntimeModule::new(
-      &compilation.runtime_template,
-      startup_child_chunks,
-    )));
+    compilation.add_runtime_module(
+      chunk_ukey,
+      Box::new(ChunkPrefetchStartupRuntimeModule::new(
+        &compilation.runtime_template,
+        startup_child_chunks,
+      )),
+    )?
   }
   Ok(())
 }

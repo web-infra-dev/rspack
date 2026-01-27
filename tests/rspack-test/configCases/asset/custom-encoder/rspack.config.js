@@ -19,7 +19,6 @@ module.exports = {
             },
             {
                 test: /\.css/,
-                type: 'javascript/auto',
                 use: [
                     rspack.CssExtractRspackPlugin.loader,
                     'css-loader',

@@ -18,6 +18,14 @@ console.log(typeof module)
 it ('`typeof module` should be intercepted by Rslib Plugin', () => {
 	const file = path.resolve(__dirname, 'bundle1.mjs')
 	const content = fs.readFileSync(file, 'utf-8');
-	expect(content).toContain(`import node_module from "node:module";`)
-	expect(content).toContain(`console.log(typeof node_module)`)
+	expect(content).toBe(`import node_module from "node:module";
+
+;// CONCATENATED MODULE: external "node:module"
+
+;// CONCATENATED MODULE: ./module.js
+
+
+console.log(typeof node_module)
+
+`)
 })

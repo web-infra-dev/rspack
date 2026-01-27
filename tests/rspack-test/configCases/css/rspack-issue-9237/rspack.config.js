@@ -42,12 +42,10 @@ module.exports = {
 				generator: {
 					filename: "static/svg/[name][ext]"
 				}
-			},
-			{
-				test: /\.css$/,
-				type: "css/auto"
 			}
 		]
 	},
-
+	experiments: {
+		css: true
+	}
 };

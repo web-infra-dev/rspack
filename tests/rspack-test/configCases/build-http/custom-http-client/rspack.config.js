@@ -2,7 +2,6 @@ const path = require("node:path");
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
-	target: 'web',
 	entry: "./index.js",
 	experiments: {
 		buildHttp: {

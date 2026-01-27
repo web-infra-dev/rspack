@@ -28,5 +28,7 @@ module.exports = {
 	devtool: "cheap-module-source-map",
 	externals: ["source-map"],
 	externalsType: "commonjs",
-
+	experiments: {
+		css: true
+	}
 };

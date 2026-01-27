@@ -1,4 +1,4 @@
-import type { RspackOptions } from '@rspack/core';
+import rspack, { type RspackOptions } from '@rspack/core';
 import { BasicCaseCreator } from '../test/creator';
 import type { ITestContext, ITestEnv } from '../type';
 import {
@@ -35,7 +35,30 @@ const creator = new BasicCaseCreator({
           name,
           ['rspack.config.cjs', 'rspack.config.js', 'webpack.config.js'],
           defaultOptions,
-          () => {},
+          (_index, context, options) => {
+            const testConfig = context.getTestConfig();
+            if (testConfig.esmLibPluginOptions) {
+              let target;
+
+              const otherPlugins =
+                options.plugins?.filter((plugin) => {
+                  const isTarget =
+                    plugin instanceof rspack.experiments.EsmLibraryPlugin;
+                  if (isTarget) {
+                    target = plugin;
+                  }
+                  return !isTarget;
+                }) ?? [];
+
+              options.plugins = [
+                ...otherPlugins,
+                new rspack.experiments.EsmLibraryPlugin({
+                  ...target!.options,
+                  ...testConfig.esmLibPluginOptions,
+                }),
+              ];
+            }
+          },
         );
       },
       compiler: async (context: ITestContext) => {
@@ -90,21 +113,6 @@ const defaultOptions = (
     filename: '[name].mjs',
     pathinfo: true,
     module: true,
-    library: {
-      type: 'modern-module',
-    },
-    bundlerInfo: {
-      force: false,
-    },
-  },
-  module: {
-    defaultRules: [
-      '...',
-      {
-        test: /\.css$/i,
-        type: 'css/auto',
-      },
-    ],
   },
   bail: true,
   optimization: {
@@ -117,7 +125,14 @@ const defaultOptions = (
     fs: 'module-import fs',
     path: 'module-import path',
   },
+  plugins: [new rspack.experiments.EsmLibraryPlugin()],
   experiments: {
+    css: true,
+    rspackFuture: {
+      bundlerInfo: {
+        force: false,
+      },
+    },
     outputModule: true,
   },
 });

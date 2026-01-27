@@ -1,16 +1,13 @@
 import fs from 'node:fs';
-import { createRequire } from 'node:module';
 import path from 'node:path';
 import type { MultiRspackOptions, RspackOptions } from '@rspack/core';
-import { rspack } from '@rspack/core';
 import { addHook } from 'pirates';
 import { crossImport } from './crossImport';
 import findConfig from './findConfig';
 import { isEsmFile } from './isEsmFile';
 import isTsFile, { TS_EXTENSION } from './isTsFile';
 import type { CommonOptions } from './options';
-
-const require = createRequire(import.meta.url);
+import { rspack } from './rspackCore';
 
 const injectInlineSourceMap = ({
   code,

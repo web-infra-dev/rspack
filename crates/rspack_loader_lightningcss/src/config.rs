@@ -41,7 +41,7 @@ pub struct Config {
   pub targets: Option<Browsers>,
   pub include: Option<u32>,
   pub exclude: Option<u32>,
-  pub drafts: Option<Draft>,
+  pub draft: Option<Draft>,
   pub non_standard: Option<NonStandard>,
   pub pseudo_classes: Option<PseudoClasses>,
   pub unused_symbols: Option<Vec<String>>,
@@ -52,20 +52,15 @@ pub struct Config {
 pub struct RawConfig {
   pub minify: Option<bool>,
   pub error_recovery: Option<bool>,
-  pub targets: Option<RawConfigTargets>,
+  pub targets: Option<Vec<String>>,
   pub include: Option<u32>,
   pub exclude: Option<u32>,
+  // TODO: deprecate `draft` in favor of `drafts`
+  pub draft: Option<Draft>,
   pub drafts: Option<Draft>,
   pub non_standard: Option<NonStandard>,
   pub pseudo_classes: Option<PseudoClasses>,
   pub unused_symbols: Option<Vec<String>>,
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(untagged)]
-pub enum RawConfigTargets {
-  Browserslist(Vec<String>),
-  Targets(Browsers),
 }
 
 impl TryFrom<RawConfig> for Config {
@@ -76,16 +71,14 @@ impl TryFrom<RawConfig> for Config {
       error_recovery: value.error_recovery,
       targets: value
         .targets
-        .map(|targets| match targets {
-          RawConfigTargets::Browserslist(query) => browserslist_to_lightningcss_targets(query),
-          RawConfigTargets::Targets(browsers) => Ok(Some(browsers)),
-        })
+        .map(browserslist_to_lightningcss_targets)
         .transpose()
         .to_rspack_result_with_message(|e| format!("Failed to parse browserslist: {e}"))?
         .flatten(),
       include: value.include,
       exclude: value.exclude,
-      drafts: value.drafts,
+      // We should use `drafts` if it is present, otherwise use `draft`
+      draft: value.drafts.or(value.draft),
       non_standard: value.non_standard,
       pseudo_classes: value.pseudo_classes,
       unused_symbols: value.unused_symbols,

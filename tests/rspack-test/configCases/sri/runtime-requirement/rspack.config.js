@@ -7,7 +7,14 @@ module.exports = {
 		main: "./index.js"
 	},
 	output: {
-		crossOriginLoading: "anonymous",
+		crossOriginLoading: "anonymous"
 	},
 	plugins: [new SubresourceIntegrityPlugin()],
+	experiments: {
+		rspackFuture: {
+			bundlerInfo: {
+				force: false
+			}
+		}
+	}
 };

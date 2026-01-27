@@ -12,14 +12,11 @@ module.exports = {
 		emitOnErrors: true
 	},
 	experiments: {
+		css: true,
 		asyncWebAssembly: true
 	},
 	module: {
 		rules: [
-			{
-				type: "css/auto",
-				test: /\.css$/,
-			},
 			{
 				type: "asset/source",
 				test: /source\.txt$/,
@@ -61,7 +58,7 @@ module.exports = {
 				}
 			},
 			{
-				type: "css/auto",
+				type: "css",
 				test: /style\.css$/,
 				use: {
 					loader: "./loader.js",

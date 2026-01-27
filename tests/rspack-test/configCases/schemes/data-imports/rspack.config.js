@@ -44,16 +44,11 @@ module.exports = {
 			{
 				mimetype: /^text\/bad-base64/,
 				type: "asset/inline"
-			},
-			{
-				test: /\.css$/,
-				type: "css/auto"
-			},
-			{
-				mimetype: 'text/css',
-				type: "css/auto"
 			}
 		]
 	},
 	plugins: [new Plugin()],
+	experiments: {
+		css: true
+	}
 };

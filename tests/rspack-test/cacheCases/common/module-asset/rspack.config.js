@@ -10,15 +10,17 @@ module.exports = {
 			}
 		]
 	},
-	cache: {
-		type: "persistent"
+	experiments: {
+		cache: {
+			type: "persistent"
+		}
 	},
 	plugins: [
 		{
 			apply(compiler) {
 				compiler.hooks.done.tap("Test", function (stats) {
 					let s = stats.toJson({
-						all: true
+						assets: true
 					});
 					expect(s.assets.some(item => item.name === "a.txt")).toBeTruthy();
 				});

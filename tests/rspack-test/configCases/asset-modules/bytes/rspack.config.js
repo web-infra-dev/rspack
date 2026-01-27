@@ -6,16 +6,14 @@ module.exports = [
 		name: "web",
 		mode: "development",
 		target: "web",
-
+		experiments: {
+			css: true
+		},
 		module: {
 			rules: [
 				{
 					test: /\.svg$/,
 					type: "asset/bytes"
-				},
-				{
-					test: /\.css$/,
-					type: "css/auto"
 				}
 			]
 		}
@@ -24,15 +22,14 @@ module.exports = [
 		name: "node",
 		mode: "development",
 		target: "node",
+		experiments: {
+			css: true
+		},
 		module: {
 			rules: [
 				{
 					test: /\.svg$/,
 					type: "asset/bytes"
-				},
-				{
-					test: /\.css$/,
-					type: "css/auto"
 				}
 			]
 		}
@@ -43,16 +40,13 @@ module.exports = [
 		target: ["web", "node"],
 		experiments: {
 			outputModule: true,
+			css: true
 		},
 		module: {
 			rules: [
 				{
 					test: /\.svg$/,
 					type: "asset/bytes"
-				},
-				{
-					test: /\.css$/,
-					type: "css/auto"
 				}
 			]
 		}

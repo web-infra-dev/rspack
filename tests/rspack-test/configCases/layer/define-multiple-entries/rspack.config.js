@@ -10,6 +10,9 @@ module.exports = {
 		paid: { dependOn: "common", import: "./paid.js", layer: "paid" },
 		free: { dependOn: "common", import: "./free.js", layer: "free" }
 	},
+	experiments: {
+		layers: true
+	},
 	optimization: {
 		splitChunks: {
 			cacheGroups: {

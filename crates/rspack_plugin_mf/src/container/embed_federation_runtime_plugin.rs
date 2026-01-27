@@ -58,10 +58,9 @@ impl EmbedFederationRuntimePlugin {
 #[plugin_hook(CompilationAdditionalChunkRuntimeRequirements for EmbedFederationRuntimePlugin)]
 async fn additional_chunk_runtime_requirements_tree(
   &self,
-  compilation: &Compilation,
+  compilation: &mut Compilation,
   chunk_ukey: &ChunkUkey,
   runtime_requirements: &mut RuntimeGlobals,
-  _runtime_modules: &mut Vec<Box<dyn RuntimeModule>>,
 ) -> Result<()> {
   let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
 

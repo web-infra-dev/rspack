@@ -1,7 +1,4 @@
-export default function () {
-  const path = JSON.stringify(this.resourcePath);
-
-  return `
-    export * from ${path};
-  `;
-}
+// @ts-nocheck
+module.exports = function () {
+  return `require(${JSON.stringify(this.resourcePath)})`;
+};

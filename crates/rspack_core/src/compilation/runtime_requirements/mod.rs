@@ -266,18 +266,14 @@ impl Compilation {
       .collect::<UkeyMap<_, _>>();
 
     for (chunk_ukey, mut set) in chunk_requirements {
-      let mut additional_runtime_modules = Vec::new();
       plugin_driver
         .compilation_hooks
         .additional_chunk_runtime_requirements
-        .call(self, &chunk_ukey, &mut set, &mut additional_runtime_modules)
+        .call(self, &chunk_ukey, &mut set)
         .await
         .map_err(|e| {
           e.wrap_err("caused by plugins in Compilation.hooks.additionalChunkRuntimeRequirements")
         })?;
-      for module in additional_runtime_modules {
-        self.add_runtime_module(&chunk_ukey, module)?;
-      }
 
       self
         .process_runtime_requirement_hook_mut(&mut set, {

@@ -32,10 +32,6 @@ const config = {
 						}
 					}
 				]
-			},
-			{
-				test: /\.css$/,
-				type: "css/auto"
 			}
 		]
 	},
@@ -49,7 +45,9 @@ const config = {
 			}
 		}
 	],
-
+	experiments: {
+		css: true
+	}
 };
 
 module.exports = config;

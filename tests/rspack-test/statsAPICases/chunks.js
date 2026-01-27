@@ -25,8 +25,6 @@ module.exports = {
 	},
 	async check(stats) {
 		const statsChunks = stats?.toJson({
-			assets: true,
-			modules: true,
 			chunks: true,
 			timings: false,
 			builtAt: false,

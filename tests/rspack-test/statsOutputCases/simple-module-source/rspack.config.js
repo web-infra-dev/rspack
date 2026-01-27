@@ -7,8 +7,6 @@ module.exports = {
 		filename: "bundle.js"
 	},
 	stats: {
-		assets: true,
-		modules: true,
 		builtAt: false,
 		timings: false,
 		source: true,

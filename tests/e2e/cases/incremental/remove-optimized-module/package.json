@@ -1,5 +1,4 @@
 {
   "name": "test",
-  "type": "module",
   "sideEffects": false
 }

@@ -7,10 +7,12 @@ let index = 0;
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	context: __dirname,
-	cache: {
-		type: "persistent",
-		snapshot: {
-			immutablePaths: [path.resolve(__dirname, "./file.js")]
+	experiments: {
+		cache: {
+			type: "persistent",
+			snapshot: {
+				immutablePaths: [path.resolve(__dirname, "./file.js")]
+			}
 		}
 	},
 	plugins: [

@@ -7,10 +7,8 @@ module.exports = [
 			index: path.resolve(__dirname, "./index.js")
 		},
 		output: {
-			library: {
-				name: "[name]",
-				export: "default",
-			},
+			library: "[name]",
+			libraryExport: "default"
 		},
 		optimization: {
 			concatenateModules: true
@@ -21,10 +19,8 @@ module.exports = [
 			index: path.resolve(__dirname, "./index.js")
 		},
 		output: {
-			library: {
-				name: "[name]_doc",
-				export: "default"
-			},
+			library: "[name]_doc",
+			libraryExport: "default"
 		},
 		optimization: {
 			concatenateModules: true

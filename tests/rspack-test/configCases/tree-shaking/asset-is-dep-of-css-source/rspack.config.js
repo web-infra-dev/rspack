@@ -6,13 +6,10 @@ module.exports = {
 			{
 				test: /\.svg$/,
 				type: "asset/resource"
-			},
-			{
-				test: /\.css/,
-				type: 'css/auto'
 			}
 		]
 	},
+
 	optimization: {
 		sideEffects: true
 	},

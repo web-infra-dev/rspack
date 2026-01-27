@@ -12,7 +12,6 @@ module.exports = {
 	externals: ["external"],
 	stats: {
 		assets: false,
-		modules: true,
 		orphanModules: true,
 		optimizationBailout: true
 	}

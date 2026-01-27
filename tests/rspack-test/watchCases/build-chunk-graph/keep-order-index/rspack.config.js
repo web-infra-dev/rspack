@@ -7,13 +7,14 @@ module.exports = {
 		rules: [
 			{
 				test: /\.css$/,
-        type: 'javascript/auto',
 				use: [rspack.CssExtractRspackPlugin.loader, "css-loader"]
 			}
 		]
 	},
-	incremental: {
-		buildChunkGraph: true
+	experiments: {
+		incremental: {
+			buildChunkGraph: true
+		}
 	},
 	optimization: {
 		splitChunks: {
@@ -26,5 +27,9 @@ module.exports = {
 				}
 			}
 		}
+	},
+	experiments: {
+		css: false,
+		incremental: true
 	}
 };

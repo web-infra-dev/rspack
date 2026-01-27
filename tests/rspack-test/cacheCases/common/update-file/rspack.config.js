@@ -12,8 +12,10 @@ module.exports = {
 			}
 		]
 	},
-	cache: {
-		type: "persistent"
+	experiments: {
+		cache: {
+			type: "persistent"
+		}
 	},
 	plugins: [
 		{

@@ -26,7 +26,7 @@ use std::cell::RefCell;
 
 use napi::{
   Either, Env, Unknown,
-  bindgen_prelude::{ClassInstance, FromNapiValue, JsObjectValue, Object},
+  bindgen_prelude::{FromNapiValue, JsObjectValue, Object},
 };
 use napi_derive::napi;
 use raw_dll::{RawDllReferenceAgencyPluginOptions, RawFlagAllModulesAsUsedPluginOptions};
@@ -85,7 +85,6 @@ use rspack_plugin_no_emit_on_errors::NoEmitOnErrorsPlugin;
 use rspack_plugin_real_content_hash::RealContentHashPlugin;
 use rspack_plugin_remove_duplicate_modules::RemoveDuplicateModulesPlugin;
 use rspack_plugin_remove_empty_chunks::RemoveEmptyChunksPlugin;
-use rspack_plugin_rsc::{RscClientPlugin, RscServerPlugin};
 use rspack_plugin_rslib::RslibPlugin;
 use rspack_plugin_runtime::{
   ArrayPushCallbackChunkFormatPlugin, BundlerInfoPlugin, ChunkPrefetchPreloadPlugin,
@@ -127,10 +126,7 @@ use self::{
 };
 use crate::{
   options::entry::JsEntryPluginOptions,
-  plugins::{
-    JsCoordinator, JsLoaderRspackPlugin, JsLoaderRunnerGetter, JsRscClientPluginOptions,
-    JsRscServerPluginOptions,
-  },
+  plugins::{JsLoaderRspackPlugin, JsLoaderRunnerGetter},
   raw_options::{
     RawDynamicEntryPluginOptions, RawEvalDevToolModulePluginOptions, RawExternalItemWrapper,
     RawExternalsPluginOptions, RawHttpExternalsRspackPluginOptions, RawSplitChunksOptions,
@@ -240,10 +236,6 @@ pub enum BuiltinPluginName {
   ModuleInfoHeaderPlugin,
   HttpUriPlugin,
   CssChunkingPlugin,
-
-  // react server components
-  RscServerPlugin,
-  RscClientPlugin,
 }
 
 #[doc(hidden)]
@@ -846,16 +838,6 @@ impl<'a> BuiltinPlugin<'a> {
         let options = downcast_into::<RawCssChunkingPluginOptions>(self.options)
           .map_err(|report| napi::Error::from_reason(report.to_string()))?;
         plugins.push(CssChunkingPlugin::new(options.into()).boxed());
-      }
-      BuiltinPluginName::RscServerPlugin => {
-        let options = &downcast_into::<JsRscServerPluginOptions>(self.options)
-          .map_err(|report| napi::Error::from_reason(report.to_string()))?;
-        plugins.push(RscServerPlugin::new(options.try_into()?).boxed());
-      }
-      BuiltinPluginName::RscClientPlugin => {
-        let options = &downcast_into::<JsRscClientPluginOptions>(self.options)
-          .map_err(|report| napi::Error::from_reason(report.to_string()))?;
-        plugins.push(RscClientPlugin::new(options.into()).boxed());
       }
     }
     Ok(())

@@ -5,7 +5,7 @@ use criterion::criterion_group;
 use rspack::builder::Builder as _;
 use rspack_benchmark::Criterion;
 use rspack_core::{
-  Compilation, Compiler, Optimization, build_chunk_graph,
+  Compilation, Compiler, Experiments, Optimization, build_chunk_graph,
   build_module_graph::build_module_graph_pass,
   fast_set,
   incremental::{Incremental, IncrementalOptions},
@@ -118,7 +118,7 @@ pub fn build_chunk_graph_benchmark_inner(c: &mut Criterion) {
     .input_filesystem(fs.clone())
     .output_filesystem(fs.clone())
     .optimization(Optimization::builder().remove_available_modules(true))
-    .incremental(IncrementalOptions::empty_passes())
+    .experiments(Experiments::builder().incremental(IncrementalOptions::empty_passes()))
     .build()
     .unwrap();
 
@@ -136,7 +136,7 @@ pub fn build_chunk_graph_benchmark_inner(c: &mut Criterion) {
       compiler.resolver_factory.clone(),
       compiler.loader_resolver_factory.clone(),
       None,
-      Incremental::new_cold(compiler.options.incremental),
+      Incremental::new_cold(compiler.options.experiments.incremental),
       Some(Default::default()),
       Default::default(),
       Default::default(),

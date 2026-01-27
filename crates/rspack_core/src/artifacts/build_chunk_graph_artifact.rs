@@ -51,10 +51,10 @@ impl CodeSplittingCache {
 
     let Some(mutations) = this_compilation
       .incremental
-      .mutations_read(IncrementalPasses::BUILD_MODULE_GRAPH)
+      .mutations_read(IncrementalPasses::MAKE)
     else {
-      logger.log("incremental for build module graph disabled, rebuilding chunk graph");
-      // if disable incremental for build module graph phase, we can't skip rebuilding
+      logger.log("incremental for make disabled, rebuilding chunk graph");
+      // if disable incremental for make phase, we can't skip rebuilding
       return false;
     };
 
@@ -242,8 +242,4 @@ pub struct BuildChunkGraphArtifact {
 
 impl ArtifactExt for BuildChunkGraphArtifact {
   const PASS: IncrementalPasses = IncrementalPasses::BUILD_CHUNK_GRAPH;
-  // FIXME: BuildChunkGraphArtifact is controlled by BUILD_MODULE_GRAPH PASS currently because it enables no_change optimization when BUILD_MODULE_GRAPH is enabled.
-  fn should_recover(incremental: &crate::incremental::Incremental) -> bool {
-    incremental.passes_enabled(IncrementalPasses::BUILD_MODULE_GRAPH)
-  }
 }

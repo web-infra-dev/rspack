@@ -1,6 +1,6 @@
 module.exports = {
 	output: {
-		library: { type: "commonjs-module" },
+		libraryTarget: "commonjs-module",
 		importFunctionName: "((name) => Promise.resolve({ request: name }))"
 	},
 	externals: {

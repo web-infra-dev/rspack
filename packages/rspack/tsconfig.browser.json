@@ -4,8 +4,6 @@
     "outDir": "../rspack-browser/dist",
     "rootDir": "src",
     "lib": ["es2022", "dom"],
-    "module": "ES2022",
-    "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "emitDeclarationOnly": true,
     "sourceMap": false,

@@ -1,5 +1,5 @@
 ```js title=main.js
-(self["rspackChunk"] = self["rspackChunk"] || []).push([["main"], {
+(self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["main"], {
 "./index.tsx"() {
 class a {
 }

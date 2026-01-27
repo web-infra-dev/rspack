@@ -3,7 +3,9 @@ module.exports = {
 	optimization: {
 		splitChunks: false
 	},
-	incremental: {
-		buildChunkGraph: true
+	experiments: {
+		incremental: {
+			buildChunkGraph: true
+		}
 	}
 };

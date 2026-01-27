@@ -12,5 +12,8 @@ module.exports = {
 				type: "css/module"
 			}
 		]
+	},
+	experiments: {
+		css: true
 	}
 };

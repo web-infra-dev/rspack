@@ -1,8 +1,10 @@
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
-	output: {
-		bundlerInfo: {
-			force: true
+	experiments: {
+		rspackFuture: {
+			bundlerInfo: {
+				force: true
+			}
 		}
-	},
+	}
 };

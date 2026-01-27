@@ -28,4 +28,7 @@ module.exports = /** @type {import("@rspack/core").Configuration} */ ({
 			}
 		]
 	},
+	experiments: {
+		typeReexportsPresence: true
+	}
 });

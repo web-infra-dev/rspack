@@ -8,10 +8,6 @@ type Compiler = {
   watchFileSystem: WatchFileSystem | null;
   options: RspackOptionsNormalized;
   watching: Watching;
-  target: {
-    targets?: string[];
-    esVersion?: number;
-  };
 
   getInfrastructureLogger(name: string | (() => string)): Logger;
   getCache(name: string): CacheFacade;

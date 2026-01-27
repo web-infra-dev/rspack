@@ -13,9 +13,5 @@ module.exports = {
 		warning => {
 			return warning.module.identifier().endsWith("?2");
 		}
-	],
-	stats: {
-		assets: true,
-		modules: true,
-	}
+	]
 };

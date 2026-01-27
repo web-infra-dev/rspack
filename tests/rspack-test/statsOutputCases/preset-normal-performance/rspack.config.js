@@ -6,8 +6,6 @@ module.exports = {
 		hints: "warning"
 	},
 	stats: {
-		assets: true,
-		modules: true,
 		hash: false,
 		colors: true
 	}

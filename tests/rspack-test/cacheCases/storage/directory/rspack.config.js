@@ -6,11 +6,13 @@ const cacheDir = path.join(__dirname, "node_modules/.cache/test/");
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	context: __dirname,
-	cache: {
-		type: "persistent",
-		storage: {
-			type: "filesystem",
-			directory: cacheDir
+	experiments: {
+		cache: {
+			type: "persistent",
+			storage: {
+				type: "filesystem",
+				directory: cacheDir
+			}
 		}
 	},
 	plugins: [

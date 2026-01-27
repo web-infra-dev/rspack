@@ -27,10 +27,6 @@ module.exports = {
 		},
 		rules: [
 			{
-				test: /\.css/,
-				type: "css/auto"
-			},
-			{
 				include: path.resolve(__dirname, "legacy"),
 				test: /\.css$/,
 				type: "css/module",
@@ -41,8 +37,10 @@ module.exports = {
 					exportsConvention: "camel-case",
 					localIdentName: "[hash]-[local]"
 				}
-			},
+			}
 		]
 	},
-
+	experiments: {
+		css: true
+	}
 };

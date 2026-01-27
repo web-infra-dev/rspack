@@ -37,8 +37,6 @@ class StatsPrinterTestPlugin {
 module.exports = {
 	entry: "./index",
 	stats: {
-		assets: true,
-		modules: true,
 		builtAt: false,
 		timings: false,
 		version: false

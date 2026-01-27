@@ -1,5 +1,7 @@
 module.exports = {
-	incremental: {
-		buildChunkGraph: true
+	experiments: {
+		incremental: {
+			buildChunkGraph: true
+		}
 	}
 };

@@ -107,10 +107,16 @@ const compilationHooksMap: WeakMap<Compilation, RsdoctorPluginHooks> =
   new WeakMap();
 
 const RsdoctorPlugin = RsdoctorPluginImpl as typeof RsdoctorPluginImpl & {
+  /**
+   * @deprecated Use `getCompilationHooks` instead.
+   */
+  getHooks: (compilation: Compilation) => RsdoctorPluginHooks;
   getCompilationHooks: (compilation: Compilation) => RsdoctorPluginHooks;
 };
 
-RsdoctorPlugin.getCompilationHooks = (compilation: Compilation) => {
+RsdoctorPlugin.getHooks = RsdoctorPlugin.getCompilationHooks = (
+  compilation: Compilation,
+) => {
   checkCompilation(compilation);
 
   let hooks = compilationHooksMap.get(compilation);

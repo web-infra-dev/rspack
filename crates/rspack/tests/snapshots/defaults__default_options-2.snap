@@ -4,7 +4,6 @@ expression: builder_context
 ---
 BuilderContext {
     plugins: [
-        AsyncWebAssemblyModulesPlugin,
         ArrayPushCallbackChunkFormatPlugin,
         EnableChunkLoadingPlugin(
             Jsonp,

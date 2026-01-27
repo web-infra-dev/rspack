@@ -13,10 +13,9 @@
     "test:hot": "rstest --project hottest"
   },
   "devDependencies": {
-    "@module-federation/runtime-tools": "^0.22.0",
-    "@rspack/binding-testing": "workspace:*",
     "@rspack/cli": "workspace:*",
     "@rspack/core": "workspace:*",
+    "@rspack/binding-testing": "workspace:*",
     "@rspack/plugin-preact-refresh": "1.1.4",
     "@rspack/plugin-react-refresh": "^1.6.0",
     "@rspack/test-tools": "workspace:*",
@@ -38,9 +37,9 @@
     "css-loader": "^7.1.2",
     "file-loader": "^6.2.0",
     "graceful-fs": "^4.2.11",
+    "json-loader": "^0.5.7",
     "html-loader": "^5.1.0",
     "html-webpack-plugin": "^5.6.5",
-    "json-loader": "^0.5.7",
     "less-loader": "^12.3.0",
     "lodash": "^4.17.21",
     "memfs": "4.53.0",

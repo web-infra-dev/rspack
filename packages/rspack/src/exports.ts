@@ -65,7 +65,7 @@ export const WebpackError = Error;
 
 export type { Watching } from './Watching';
 
-import * as sources from 'webpack-sources';
+import sources = require('webpack-sources');
 
 export { sources };
 
@@ -106,6 +106,10 @@ export type {
 export {
   BannerPlugin,
   CaseSensitivePlugin,
+  /**
+   * @deprecated Use `rspack.CaseSensitivePlugin` instead
+   */
+  CaseSensitivePlugin as WarnCaseSensitiveModulesPlugin,
   DefinePlugin,
   DynamicEntryPlugin,
   EntryPlugin,
@@ -133,9 +137,9 @@ export { LoaderTargetPlugin } from './lib/LoaderTargetPlugin';
 export type { OutputFileSystem, WatchFileSystem } from './util/fs';
 
 import {
+  EsmLibraryPlugin,
   FetchCompileAsyncWasmPlugin,
   lazyCompilationMiddleware,
-  rsc,
   SubresourceIntegrityPlugin,
 } from './builtin-plugin';
 
@@ -373,9 +377,18 @@ interface Experiments {
     cleanup: () => Promise<void>;
   };
   RemoveDuplicateModulesPlugin: typeof RemoveDuplicateModulesPlugin;
+  /**
+   * @deprecated Use `rspack.SubresourceIntegrityPlugin` instead
+   */
+  SubresourceIntegrityPlugin: typeof SubresourceIntegrityPlugin;
+  EsmLibraryPlugin: typeof EsmLibraryPlugin;
   RsdoctorPlugin: typeof RsdoctorPlugin;
   RstestPlugin: typeof RstestPlugin;
   RslibPlugin: typeof RslibPlugin;
+  /**
+   * @deprecated Use `rspack.lazyCompilationMiddleware` instead
+   */
+  lazyCompilationMiddleware: typeof lazyCompilationMiddleware;
   swc: {
     transform: typeof transform;
     minify: typeof minify;
@@ -391,7 +404,6 @@ interface Experiments {
   CssChunkingPlugin: typeof CssChunkingPlugin;
   createNativePlugin: typeof createNativePlugin;
   VirtualModulesPlugin: typeof VirtualModulesPlugin;
-  rsc: typeof rsc;
 }
 
 export const experiments: Experiments = {
@@ -409,6 +421,8 @@ export const experiments: Experiments = {
     },
   },
   RemoveDuplicateModulesPlugin,
+  SubresourceIntegrityPlugin,
+  EsmLibraryPlugin,
   /**
    * Note: This plugin is unstable yet
    *
@@ -427,6 +441,7 @@ export const experiments: Experiments = {
    * @internal
    */
   RslibPlugin,
+  lazyCompilationMiddleware,
   swc: {
     minify,
     transform,
@@ -442,5 +457,4 @@ export const experiments: Experiments = {
   CssChunkingPlugin,
   createNativePlugin,
   VirtualModulesPlugin,
-  rsc,
 };

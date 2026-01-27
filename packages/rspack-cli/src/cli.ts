@@ -10,7 +10,6 @@ import type {
   RspackPluginInstance,
   Stats,
 } from '@rspack/core';
-import { rspack } from '@rspack/core';
 import cac, { type CAC } from 'cac';
 import { createColors, isColorSupported } from 'picocolors';
 import { BuildCommand } from './commands/build';
@@ -22,6 +21,7 @@ import type {
   CommonOptions,
   CommonOptionsForBuildAndServe,
 } from './utils/options';
+import { rspack } from './utils/rspackCore';
 
 type Command = 'serve' | 'build';
 
@@ -139,6 +139,21 @@ export class RspackCLI {
       if (options.outputPath) {
         item.output.path = path.resolve(process.cwd(), options.outputPath);
       }
+      if (options.analyze) {
+        const { BundleAnalyzerPlugin } =
+          await import('webpack-bundle-analyzer');
+        (item.plugins ??= []).push({
+          name: 'rspack-bundle-analyzer',
+          apply(compiler: any) {
+            new BundleAnalyzerPlugin({
+              generateStatsFile: true,
+            }).apply(compiler);
+          },
+        });
+      }
+      if (options.profile) {
+        item.profile = true;
+      }
       if (process.env.RSPACK_PROFILE) {
         const { applyProfile } = await import('./utils/profile.js');
         await applyProfile(
@@ -179,7 +194,7 @@ export class RspackCLI {
       }
 
       // set configPaths to persistent cache build dependencies
-      const cacheOptions = item.cache;
+      const cacheOptions = item.experiments?.cache;
       if (
         typeof cacheOptions === 'object' &&
         cacheOptions.type === 'persistent'

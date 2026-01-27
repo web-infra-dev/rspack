@@ -4,9 +4,5 @@ module.exports = {
 	entry: "./index",
 	externals: {
 		test: "commonjs test"
-	},
-	stats: {
-		assets: true,
-		modules: true,
 	}
 };

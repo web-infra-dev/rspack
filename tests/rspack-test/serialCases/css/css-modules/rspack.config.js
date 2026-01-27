@@ -6,15 +6,9 @@ module.exports = (env, { testPath }) => [
 	{
 		target: "web",
 		mode: "development",
-		module: {
-			rules: [
-				{
-					test: /\.css$/,
-					type: "css/auto"
-				}
-			]
-		},
-
+		experiments: {
+			css: true
+		}
 	},
 	{
 		target: "web",
@@ -22,15 +16,9 @@ module.exports = (env, { testPath }) => [
 		output: {
 			uniqueName: "my-app"
 		},
-		module: {
-			rules: [
-				{
-					test: /\.css$/,
-					type: "css/auto"
-				}
-			]
+		experiments: {
+			css: true
 		},
-
 		plugins: [
 			new webpack.ids.DeterministicModuleIdsPlugin({
 				maxLength: 3,

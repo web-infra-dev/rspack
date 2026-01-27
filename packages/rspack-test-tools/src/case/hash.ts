@@ -63,19 +63,15 @@ export function createHashCase(name: string, src: string, dist: string) {
 function defaultOptions(index: number, context: ITestContext): RspackOptions {
   return {
     context: context.getSource(),
-    module: {
-      defaultRules: [
-        '...',
-        {
-          test: /\.css$/i,
-          type: 'css/auto',
-        },
-      ],
-    },
     output: {
       path: context.getDist(),
-      bundlerInfo: {
-        force: false,
+    },
+    experiments: {
+      css: true,
+      rspackFuture: {
+        bundlerInfo: {
+          force: false,
+        },
       },
     },
   };

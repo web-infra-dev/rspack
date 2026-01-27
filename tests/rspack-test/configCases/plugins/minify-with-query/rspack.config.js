@@ -7,15 +7,9 @@ module.exports = {
 			"css/auto": {
 				exportsOnly: false
 			}
-		},
-		rules: [
-			{
-				test: /\.css$/,
-				type: "css/auto"
-			}
-		]
+		}
 	},
-	// experiments: { css: true },
+	experiments: { css: true },
 	output: {
 		filename: "bundle0.js?hash=[contenthash]",
 		cssFilename: "bundle0.css?hash=[contenthash]"

@@ -9,8 +9,10 @@ const config = index => ({
 	optimization: {
 		runtimeChunk: "single"
 	},
-	incremental: {
-		buildChunkGraph: true
+	experiments: {
+		incremental: {
+			buildChunkGraph: true
+		}
 	}
 });
 

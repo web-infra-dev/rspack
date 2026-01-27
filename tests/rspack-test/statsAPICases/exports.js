@@ -17,12 +17,6 @@ module.exports = {
 	},
 	async check(stats) {
 		const statsOptions = {
-			entrypoints: true,
-			assets: true,
-			chunks: true,
-			chunkModules: true,
-			chunkGroups: true,
-			modules: true,
 			usedExports: true,
 			providedExports: true,
 			timings: false,
@@ -1226,15 +1220,7 @@ module.exports = {
 			  warningsCount: 0,
 			}
 		`);
-		expect(stats?.toString({
-			assets: true,
-			modules: true,
-			usedExports: true,
-			providedExports: true,
-			timings: false,
-			builtAt: false,
-			version: false
-		})).toMatchInlineSnapshot(`
+		expect(stats?.toString(statsOptions)).toMatchInlineSnapshot(`
 			asset main.js 403 bytes [emitted] (name: main)
 			orphan modules 192 bytes [orphan] 4 modules
 			runtime modules 647 bytes 3 modules
