@@ -822,7 +822,6 @@ impl Module for ConcatenatedModule {
       .runtime_template
       .create_module_codegen_runtime_template();
 
-    let mut runtime_requirements = RuntimeGlobals::default();
     let runtime = if let Some(self_runtime) = &self.runtime
       && let Some(generation_runtime) = generation_runtime
     {

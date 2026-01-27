@@ -33,8 +33,8 @@ use crate::{
   DependencyLocation, DynamicImportMode, ExportsType, FactoryMeta, FakeNamespaceObjectMode,
   GroupOptions, ImportAttributes, LibIdentOptions, Module, ModuleArgument,
   ModuleCodegenRuntimeTemplate, ModuleGraph, ModuleId, ModuleIdsArtifact, ModuleLayer, ModuleType,
-  RealDependencyLocation, Resolve, RuntimeGlobals, RuntimeSpec, RuntimeTemplate, SourceType,
-  contextify, get_exports_type_with_strict, impl_module_meta_info, module_update_hash, to_path,
+  RealDependencyLocation, Resolve, RuntimeGlobals, RuntimeSpec, SourceType, contextify,
+  get_exports_type_with_strict, impl_module_meta_info, module_update_hash, to_path,
 };
 
 static CHUNK_NAME_INDEX_PLACEHOLDER: &str = "[index]";

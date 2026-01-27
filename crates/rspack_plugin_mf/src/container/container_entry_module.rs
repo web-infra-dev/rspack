@@ -7,9 +7,10 @@ use rspack_core::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo,
   BuildMeta, BuildMetaExportsType, BuildResult, ChunkGroupOptions, CodeGenerationResult,
   Compilation, ConcatenationScope, Context, DependenciesBlock, Dependency, DependencyId,
-  FactoryMeta, GroupOptions, LibIdentOptions, Module, ModuleDependency, ModuleGraph,
-  ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType, StaticExportsDependency,
-  StaticExportsSpec, impl_module_meta_info, impl_source_map_config, module_update_hash,
+  ExportsArgument, FactoryMeta, GroupOptions, LibIdentOptions, Module, ModuleDependency,
+  ModuleGraph, ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
+  StaticExportsDependency, StaticExportsSpec, impl_module_meta_info, impl_source_map_config,
+  module_update_hash,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
@@ -182,19 +183,10 @@ impl Module for ContainerEntryModule {
     _runtime: Option<&RuntimeSpec>,
     _: Option<ConcatenationScope>,
   ) -> Result<CodeGenerationResult> {
+    let mut runtime_template = compilation
+      .runtime_template
+      .create_module_codegen_runtime_template();
     let mut code_generation_result = CodeGenerationResult::default();
-    code_generation_result
-      .runtime_requirements
-      .insert(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
-    code_generation_result
-      .runtime_requirements
-      .insert(RuntimeGlobals::EXPORTS);
-    code_generation_result
-      .runtime_requirements
-      .insert(RuntimeGlobals::REQUIRE);
-    code_generation_result
-      .runtime_requirements
-      .insert(RuntimeGlobals::CURRENT_REMOTE_GET_SCOPE);
     let module_map = ExposeModuleMap::new(
       compilation,
       self,
@@ -202,33 +194,27 @@ impl Module for ContainerEntryModule {
     );
     let module_map_str = module_map.render(compilation);
     let source = if self.enhanced {
+      let define_property_getters =
+        runtime_template.render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
+      let get_container = format!(
+        "{}.getContainer",
+        runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
+      );
+      let init_container = format!(
+        "{}.initContainer",
+        runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
+      );
+
       format!(
         r#"
-{}(exports, {{
+{}({}, {{
 	get: {},
 	init: {}
 }});"#,
-        compilation
-          .runtime_template
-          .render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS),
-        compilation.runtime_template.returning_function(
-          &format!(
-            "{}.getContainer",
-            compilation
-              .runtime_template
-              .render_runtime_globals(&RuntimeGlobals::REQUIRE)
-          ),
-          ""
-        ),
-        compilation.runtime_template.returning_function(
-          &format!(
-            "{}.initContainer",
-            compilation
-              .runtime_template
-              .render_runtime_globals(&RuntimeGlobals::REQUIRE)
-          ),
-          ""
-        ),
+        define_property_getters,
+        runtime_template.render_exports_argument(ExportsArgument::Exports),
+        runtime_template.returning_function(&get_container, ""),
+        runtime_template.returning_function(&init_container, ""),
       )
     } else {
       format!(
@@ -252,32 +238,27 @@ var init = function(shareScope, initScope) {{
   {share_scope_map}[name] = shareScope;
   return {initialize_sharing}(name, initScope);
 }}
-{define_property_getters}(exports, {{
+{define_property_getters}({exports}, {{
 	get: {export_get},
 	init: {export_init}
 }});"#,
-        current_remote_get_scope = compilation
-          .runtime_template
-          .render_runtime_globals(&RuntimeGlobals::CURRENT_REMOTE_GET_SCOPE),
-        has_own_property = compilation
-          .runtime_template
-          .render_runtime_globals(&RuntimeGlobals::HAS_OWN_PROPERTY),
-        share_scope_map = compilation
-          .runtime_template
-          .render_runtime_globals(&RuntimeGlobals::SHARE_SCOPE_MAP),
+        exports = runtime_template.render_exports_argument(ExportsArgument::Exports),
+        current_remote_get_scope =
+          runtime_template.render_runtime_globals(&RuntimeGlobals::CURRENT_REMOTE_GET_SCOPE),
+        has_own_property =
+          runtime_template.render_runtime_globals(&RuntimeGlobals::HAS_OWN_PROPERTY),
+        share_scope_map = runtime_template.render_runtime_globals(&RuntimeGlobals::SHARE_SCOPE_MAP),
         share_scope = json_stringify(&self.share_scope),
-        initialize_sharing = compilation
-          .runtime_template
-          .render_runtime_globals(&RuntimeGlobals::INITIALIZE_SHARING),
-        define_property_getters = compilation
-          .runtime_template
-          .render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS),
-        get_scope_reject = compilation.runtime_template.basic_function(
+        initialize_sharing =
+          runtime_template.render_runtime_globals(&RuntimeGlobals::INITIALIZE_SHARING),
+        define_property_getters =
+          runtime_template.render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS),
+        get_scope_reject = runtime_template.basic_function(
           "",
           r#"throw new Error('Module "' + module + '" does not exist in container.');"#
         ),
-        export_get = compilation.runtime_template.returning_function("get", ""),
-        export_init = compilation.runtime_template.returning_function("init", ""),
+        export_get = runtime_template.returning_function("get", ""),
+        export_init = runtime_template.returning_function("init", ""),
       )
     };
     code_generation_result =
@@ -291,6 +272,9 @@ var init = function(shareScope, initScope) {{
           share_scope: self.share_scope.clone(),
         });
     }
+    code_generation_result
+      .runtime_requirements
+      .insert(*runtime_template.runtime_requirements());
     Ok(code_generation_result)
   }
 
