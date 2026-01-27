@@ -151,7 +151,6 @@ async fn optimize_dependencies(
         ) {
           return None;
         }
-        dbg!(&module_type);
         let mut modules_to_process = Vec::new();
         let share_key = match module_type {
           rspack_core::ModuleType::ConsumeShared => {
@@ -198,8 +197,6 @@ async fn optimize_dependencies(
             let share_container_entry_module =
               module.as_any().downcast_ref::<ContainerEntryModule>()?;
             let sk = share_container_entry_module.name().to_string();
-            dbg!(&sk);
-            dbg!(&share_container_entry_module);
             collect_processed_modules(
               module_graph,
               share_container_entry_module.get_blocks(),
@@ -232,9 +229,6 @@ async fn optimize_dependencies(
         .get(&share_key)
         .cloned()
     };
-    dbg!(&share_key);
-    dbg!(&self.shared_map);
-    dbg!(&modules_to_process);
     // Check if this share key is in our shared map and has tree_shaking enabled
     if !self.shared_map.contains_key(&share_key) {
       continue;
@@ -301,12 +295,10 @@ async fn optimize_dependencies(
             })
           }
         };
-        dbg!(&can_update_module_used_stage);
         if can_update_module_used_stage {
           // mark used exports per runtime
           // Mark used exports
           for export_info in exports_info_data.exports_mut().values_mut() {
-            dbg!(&export_info);
             export_info.set_used_conditionally(
               Box::new(|used| *used == rspack_core::UsageState::Unknown),
               rspack_core::UsageState::Unused,
@@ -314,7 +306,6 @@ async fn optimize_dependencies(
             );
             export_info.set_can_mangle_provide(Some(false));
             export_info.set_can_mangle_use(Some(false));
-            dbg!(&export_info);
           }
         }
       }

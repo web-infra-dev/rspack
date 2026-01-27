@@ -85,6 +85,7 @@ export class ModuleFederationPlugin {
         );
         new ModuleFederationRuntimePlugin({
           entryRuntime,
+          experiments: runtimeExperiments,
         }).apply(compiler);
       },
     );

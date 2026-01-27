@@ -4,6 +4,7 @@ const { ModuleFederationPlugin } = container;
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
+  // entry: './index.js',
   target:'async-node',
 	optimization:{
 		minimize: true,

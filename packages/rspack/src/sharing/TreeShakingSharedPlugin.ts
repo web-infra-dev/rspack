@@ -1,8 +1,11 @@
+import { createRequire } from 'node:module';
 import type { Compiler } from '../Compiler';
 import type { ModuleFederationPluginOptions } from '../container/ModuleFederationPlugin';
 import { IndependentSharedPlugin } from './IndependentSharedPlugin';
 import { SharedUsedExportsOptimizerPlugin } from './SharedUsedExportsOptimizerPlugin';
 import { normalizeSharedOptions } from './SharePlugin';
+
+const require = createRequire(import.meta.url);
 
 export interface TreeshakingSharedPluginOptions {
   mfConfig: ModuleFederationPluginOptions;

@@ -661,8 +661,8 @@ importers:
         specifier: ^7.28.5
         version: 7.28.5(@babel/core@7.28.6)
       '@module-federation/runtime-tools':
-        specifier: ^0.22.0
-        version: 0.22.0
+        specifier: 0.0.0-feat-shared-treeshake-poc-20260114091859
+        version: 0.0.0-feat-shared-treeshake-poc-20260114091859
       '@playwright/test':
         specifier: 1.57.0
         version: 1.57.0
@@ -736,8 +736,8 @@ importers:
         specifier: ^7.28.5
         version: 7.28.5(@babel/core@7.28.6)
       '@module-federation/runtime-tools':
-        specifier: ^0.22.0
-        version: 0.22.0
+        specifier: 0.0.0-feat-shared-treeshake-poc-20260114091859
+        version: 0.0.0-feat-shared-treeshake-poc-20260114091859
       '@rspack/binding-testing':
         specifier: workspace:*
         version: link:../../crates/rspack_binding_builder_testing
