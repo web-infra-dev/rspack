@@ -1775,6 +1775,84 @@ export type SnapshotOptions = {};
 
 //#region Cache
 /**
+ * Snapshot options for determining which files have been modified.
+ */
+export type CacheSnapshotOptions = {
+  /**
+   * An array of paths to immutable files, changes to these paths will be ignored during hot restart.
+   */
+  immutablePaths?: (string | RegExp)[];
+  /**
+   * An array of paths in managedPaths that are not managed by the package manager.
+   */
+  unmanagedPaths?: (string | RegExp)[];
+  /**
+   * An array of paths managed by the package manager.
+   * @default [/[\\/]node_modules[\\/][^.]/]
+   */
+  managedPaths?: (string | RegExp)[];
+};
+
+/**
+ * Storage options for persistent cache.
+ */
+export type CacheStorageOptions = {
+  /**
+   * Storage type, currently only supports 'filesystem'.
+   */
+  type: 'filesystem';
+  /**
+   * Cache directory path.
+   * @default 'node_modules/.cache/rspack'
+   */
+  directory?: string;
+};
+
+/**
+ * Persistent cache options.
+ */
+export type PersistentCacheOptions = {
+  /**
+   * Cache type.
+   */
+  type: 'persistent';
+  /**
+   * An array of files containing build dependencies, Rspack will use the hash of each of these files to invalidate the persistent cache.
+   * @default []
+   */
+  buildDependencies?: string[];
+  /**
+   * Cache version, different versions of caches are isolated from each other.
+   * @default ""
+   */
+  version?: string;
+  /**
+   * Snapshot options for determining which files have been modified.
+   */
+  snapshot?: CacheSnapshotOptions;
+  /**
+   * Storage options for cache.
+   */
+  storage?: CacheStorageOptions;
+  /**
+   * Enable portable cache mode. When enabled, the generated cache content can be shared across different platforms and paths within the same project.
+   * @description Portable cache makes the cache platform-independent by converting platform-specific data (e.g., absolute paths to relative paths) during serialization and deserialization.
+   * @default false
+   */
+  portable?: boolean;
+};
+
+/**
+ * Memory cache options.
+ */
+export type MemoryCacheOptions = {
+  /**
+   * Cache type.
+   */
+  type: 'memory';
+};
+
+/**
  * Options for caching snapshots and intermediate products during the build process.
  * @description Controls whether caching is enabled or disabled.
  * @default true in development mode, false in production mode
@@ -1787,24 +1865,8 @@ export type SnapshotOptions = {};
  */
 export type CacheOptions =
   | boolean
-  | {
-      type: 'memory';
-    }
-  | {
-      type: 'persistent';
-      buildDependencies?: string[];
-      version?: string;
-      snapshot?: {
-        immutablePaths?: (string | RegExp)[];
-        unmanagedPaths?: (string | RegExp)[];
-        managedPaths?: (string | RegExp)[];
-      };
-      storage?: {
-        type: 'filesystem';
-        directory?: string;
-      };
-      portable?: boolean;
-    };
+  | MemoryCacheOptions
+  | PersistentCacheOptions;
 //#endregion
 
 //#region Stats
