@@ -206,9 +206,15 @@ impl Module for LazyCompilationProxyModule {
     _runtime: Option<&RuntimeSpec>,
     mut concatenation_scope: Option<ConcatenationScope>,
   ) -> Result<CodeGenerationResult> {
-    let mut runtime_requirements = RuntimeGlobals::empty();
-    runtime_requirements.insert(RuntimeGlobals::MODULE);
-    runtime_requirements.insert(RuntimeGlobals::REQUIRE);
+    let mut runtime_template = compilation
+      .runtime_template
+      .create_module_codegen_runtime_template();
+    runtime_template
+      .runtime_requirements_mut()
+      .insert(RuntimeGlobals::MODULE);
+    runtime_template
+      .runtime_requirements_mut()
+      .insert(RuntimeGlobals::REQUIRE);
     let mut codegen_data = CodeGenerationData::default();
 
     let client_dep_id = self.dependencies[0];
@@ -245,6 +251,7 @@ impl Module for LazyCompilationProxyModule {
         .module_identifier_by_dependency_id(&dep_id)
         .expect("should have module");
 
+      let mut runtime_requirements = RuntimeGlobals::empty();
       let mut template_ctx = TemplateContext {
         compilation,
         module: module_graph
@@ -256,9 +263,10 @@ impl Module for LazyCompilationProxyModule {
         runtime: None,
         concatenation_scope: concatenation_scope.as_mut(),
         data: &mut codegen_data,
+        runtime_template: &mut runtime_template,
       };
 
-      RawStringSource::from(format!(
+      let res = RawStringSource::from(format!(
         "{client}
         module.exports = {};
         if (module.hot) {{
@@ -281,7 +289,13 @@ impl Module for LazyCompilationProxyModule {
           ChunkGraph::get_module_id(&compilation.module_ids_artifact, *module)
             .expect("should have module id")
         ),
-      ))
+      ));
+
+      runtime_template
+        .runtime_requirements_mut()
+        .extend(runtime_requirements);
+
+      res
     } else {
       RawStringSource::from(format!(
         "{client}
@@ -298,7 +312,7 @@ impl Module for LazyCompilationProxyModule {
     };
 
     let mut codegen_result = CodeGenerationResult::default().with_javascript(Arc::new(source));
-    codegen_result.runtime_requirements = runtime_requirements;
+    codegen_result.runtime_requirements = *runtime_template.runtime_requirements();
     codegen_result.data = codegen_data;
 
     Ok(codegen_result)

@@ -7,7 +7,7 @@ use rspack_util::ext::AsAny;
 
 use crate::{
   ChunkInitFragments, CodeGenerationData, Compilation, ConcatenationScope, DependencyType, Module,
-  ModuleInitFragments, RuntimeGlobals, RuntimeSpec,
+  ModuleCodegenRuntimeTemplate, ModuleInitFragments, RuntimeGlobals, RuntimeSpec,
 };
 
 pub struct TemplateContext<'a, 'b, 'c> {
@@ -18,6 +18,7 @@ pub struct TemplateContext<'a, 'b, 'c> {
   pub runtime: Option<&'a RuntimeSpec>,
   pub concatenation_scope: Option<&'c mut ConcatenationScope>,
   pub data: &'a mut CodeGenerationData,
+  pub runtime_template: &'a mut ModuleCodegenRuntimeTemplate,
 }
 
 impl TemplateContext<'_, '_, '_> {

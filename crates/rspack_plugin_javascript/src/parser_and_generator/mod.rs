@@ -306,6 +306,9 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       let mut source = ReplaceSource::new(source.clone());
       let compilation = generate_context.compilation;
       let mut init_fragments = vec![];
+      let mut runtime_template = compilation
+        .runtime_template
+        .create_module_codegen_runtime_template();
       let mut context = TemplateContext {
         compilation,
         module,
@@ -314,6 +317,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         runtime: generate_context.runtime,
         concatenation_scope: generate_context.concatenation_scope.take(),
         data: generate_context.data,
+        runtime_template: &mut runtime_template,
       };
 
       module.get_dependencies().iter().for_each(|dependency_id| {
@@ -338,6 +342,9 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         .iter()
         .for_each(|block_id| self.source_block(compilation, block_id, &mut source, &mut context));
       generate_context.concatenation_scope = context.concatenation_scope.take();
+      generate_context
+        .runtime_requirements
+        .insert(*runtime_template.runtime_requirements());
       render_init_fragments(source.boxed(), init_fragments, generate_context)
     } else {
       panic!(

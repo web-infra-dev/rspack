@@ -211,6 +211,10 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
         let imports_code = imports_code.join("");
         let imports_compat_code = imports_compat_code.join("");
 
+        let mut runtime_template = compilation
+          .runtime_template
+          .create_module_codegen_runtime_template();
+
         let mut template_context = TemplateContext {
           compilation,
           module,
@@ -219,6 +223,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
           runtime: *runtime,
           concatenation_scope: None,
           data: &mut CodeGenerationData::default(),
+          runtime_template: &mut runtime_template,
         };
         let import_obj_request_items = dep_modules
           .into_values()
@@ -297,6 +302,10 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
             "{imports_code}{imports_compat_code}module.exports = {instantiate_call};"
           ))
         };
+
+        generate_context
+          .runtime_requirements
+          .insert(*runtime_template.runtime_requirements());
 
         Ok(source.boxed())
       }
