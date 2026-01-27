@@ -17,7 +17,8 @@ module.exports = {
 			remoteType: "commonjs-module",
 			remotes: {
 				A: "./container-a.js"
-			}
+      },
+      shared: ["myX"],
 		}),
 		function (compiler) {
 			compiler.hooks.thisCompilation.tap(
@@ -28,6 +29,9 @@ module.exports = {
 						data => {
 							if (data.request === "myA") {
 								data.request = "A";
+              }
+              if (data.request === "myX") {
+                data.request = "./x";
 							}
 						}
 					);
