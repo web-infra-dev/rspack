@@ -48,7 +48,7 @@ fn extend_required_chunks(
     let Some(chunk_id) = chunk.id() else {
       continue;
     };
-    for file in chunk.files() {
+    for file in chunk.files().iter().filter(|f| f.ends_with(".js")) {
       if let Some(asset) = compilation.assets().get(file) {
         let asset_info = asset.get_info();
         if asset_info.hot_module_replacement.unwrap_or(false)
