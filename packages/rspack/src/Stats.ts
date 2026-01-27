@@ -100,6 +100,21 @@ export class Stats {
         if (statsCompilationMap.has(compilation)) {
           return statsCompilationMap.get(compilation)!;
         }
+        // return empty stats for stale compilation
+        // TODO: Find a better way to handle accessing stats from stale compilations
+        if (this.compilation !== this.compilation.compiler._lastCompilation) {
+          return {
+            assets: [],
+            assetsByChunkName: [],
+            chunks: [],
+            entrypoints: [],
+            errors: [],
+            hash: 'XXXX',
+            modules: [],
+            namedChunkGroups: [],
+            warnings: [],
+          };
+        }
         const innerStats = this.#getInnerByCompilation(compilation);
         options.warnings = false;
         const innerStatsCompilation = innerStats.toJson(options);
@@ -131,6 +146,21 @@ export class Stats {
       ): binding.JsStatsCompilation => {
         if (statsCompilationMap.has(compilation)) {
           return statsCompilationMap.get(compilation)!;
+        }
+        // return empty stats for stale compilation
+        // TODO: Find a better way to handle accessing stats from stale compilations
+        if (this.compilation !== this.compilation.compiler._lastCompilation) {
+          return {
+            assets: [],
+            assetsByChunkName: [],
+            chunks: [],
+            entrypoints: [],
+            errors: [],
+            hash: 'XXXX',
+            modules: [],
+            namedChunkGroups: [],
+            warnings: [],
+          };
         }
         const innerStats = this.#getInnerByCompilation(compilation);
         const innerStatsCompilation = innerStats.toJson(options);
