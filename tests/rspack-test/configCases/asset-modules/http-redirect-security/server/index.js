@@ -5,78 +5,56 @@ const http = require("http");
 function createServer() {
   const server = http.createServer((req, res) => {
     const url = new URL(req.url, `http://${req.headers.host}`);
-    const logOutcome = (status, headers) => {
-      const location = headers && headers.Location ? ` Location=${headers.Location}` : "";
-      console.log(`[server] -> ${status}${location}`);
-    };
-    console.log(`[server] <- ${req.method} ${url.pathname}`);
 
     if (url.pathname === "/redirect-to-disallowed") {
-      const headers = { "Location": "https://evil.com/malicious.js" };
-      res.writeHead(302, headers);
-      logOutcome(302, headers);
+      res.writeHead(302, { "Location": "https://evil.com/malicious.js" });
       res.end();
       return;
     }
 
     if (url.pathname === "/redirect-to-non-http") {
-      const headers = { "Location": "ftp://example.com/file.js" };
-      res.writeHead(302, headers);
-      logOutcome(302, headers);
+      res.writeHead(302, { "Location": "ftp://example.com/file.js" });
       res.end();
       return;
     }
 
     if (url.pathname === "/redirect-chain") {
-      const headers = { "Location": "/redirect-chain-1" };
-      res.writeHead(302, headers);
-      logOutcome(302, headers);
+      res.writeHead(302, { "Location": "/redirect-chain-1" });
       res.end();
       return;
     }
 
     if (url.pathname === "/redirect-chain-1") {
-      const headers = { "Location": "/redirect-chain-2" };
-      res.writeHead(302, headers);
-      logOutcome(302, headers);
+      res.writeHead(302, { "Location": "/redirect-chain-2" });
       res.end();
       return;
     }
 
     if (url.pathname === "/redirect-chain-2") {
-      const headers = { "Location": "/redirect-chain-3" };
-      res.writeHead(302, headers);
-      logOutcome(302, headers);
+      res.writeHead(302, { "Location": "/redirect-chain-3" });
       res.end();
       return;
     }
 
     if (url.pathname === "/redirect-chain-3") {
-      const headers = { "Location": "/redirect-chain-4" };
-      res.writeHead(302, headers);
-      logOutcome(302, headers);
+      res.writeHead(302, { "Location": "/redirect-chain-4" });
       res.end();
       return;
     }
 
     if (url.pathname === "/redirect-chain-4") {
-      const headers = { "Location": "/redirect-chain-5" };
-      res.writeHead(302, headers);
-      logOutcome(302, headers);
+      res.writeHead(302, { "Location": "/redirect-chain-5" });
       res.end();
       return;
     }
 
     if (url.pathname === "/redirect-chain-5") {
-      const headers = { "Location": "/redirect-chain-6" };
-      res.writeHead(302, headers);
-      logOutcome(302, headers);
+      res.writeHead(302, { "Location": "/redirect-chain-6" });
       res.end();
       return;
     }
 
     res.writeHead(404);
-    logOutcome(404);
     res.end("Not found");
   });
   server.unref();
@@ -116,10 +94,7 @@ class ServerPlugin {
       }
     );
 
-    compiler.hooks.done.tapAsync("ServerPlugin", (stats, callback) => {
-
-      console.log('callback', callback, stats)
-
+    compiler.hooks.done.tap("ServerPlugin", (stats, callback) => {
       const s = this.server;
       if (s && --this.refs === 0) {
         this.server = undefined;

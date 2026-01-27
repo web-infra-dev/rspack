@@ -6807,6 +6807,7 @@ type Rspack = typeof rspack_2 & typeof rspackExports & {
 // @public (undocumented)
 const rspack: Rspack;
 export default rspack;
+export { rspack as module.exports }
 export { rspack }
 
 // @public (undocumented)
