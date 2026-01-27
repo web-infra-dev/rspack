@@ -17,7 +17,6 @@ fn then_expr(
   request: &str,
 ) -> String {
   let TemplateContext {
-    runtime_requirements,
     compilation,
     module,
     runtime_template,
@@ -44,7 +43,6 @@ fn then_expr(
 
   match exports_type {
     ExportsType::Namespace => {
-      runtime_requirements.insert(RuntimeGlobals::REQUIRE);
       appending = format!(
         ".then({}.bind({}, {module_id_expr}))",
         runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
@@ -61,7 +59,6 @@ fn then_expr(
       ) {
         fake_type |= FakeNamespaceObjectMode::MERGE_PROPERTIES;
       }
-      runtime_requirements.insert(RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT);
       if ModuleGraph::is_async(
         &compilation.async_modules_artifact.borrow(),
         compilation
@@ -69,7 +66,6 @@ fn then_expr(
           .module_identifier_by_dependency_id(dep_id)
           .expect("should have module"),
       ) {
-        runtime_requirements.insert(RuntimeGlobals::REQUIRE);
         appending = format!(
           ".then({}.bind({}, {module_id_expr}))",
           runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
@@ -86,7 +82,6 @@ fn then_expr(
         );
       } else {
         fake_type |= FakeNamespaceObjectMode::MODULE_ID;
-        runtime_requirements.insert(RuntimeGlobals::REQUIRE);
         appending = format!(
           ".then({}.bind({}, {module_id_expr}, {fake_type}))",
           runtime_template.render_runtime_globals(&RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT),

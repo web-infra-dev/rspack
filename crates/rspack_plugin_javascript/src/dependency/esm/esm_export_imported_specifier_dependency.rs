@@ -484,7 +484,6 @@ impl ESMExportImportedSpecifierDependency {
   pub fn add_export_fragments(&self, ctxt: &mut TemplateContext, mode: ExportMode) {
     let TemplateContext {
       module,
-      runtime_requirements,
       runtime,
       runtime_template,
       ..
@@ -786,9 +785,6 @@ impl ESMExportImportedSpecifierDependency {
             &format!("function(key) {{ return {import_var}[key]; }}.bind(0, __rspack_import_key)");
         }
 
-        runtime_requirements.insert(RuntimeGlobals::EXPORTS);
-        runtime_requirements.insert(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
-
         let module = mg
           .module_by_identifier(&module.identifier())
           .expect("should have module graph module");
@@ -830,19 +826,18 @@ impl ESMExportImportedSpecifierDependency {
     exports_type: ExportsType,
   ) -> (NormalInitFragment, ESMExportInitFragment) {
     let TemplateContext {
-      runtime_requirements,
       module,
       compilation,
+      runtime_template,
       ..
     } = ctxt;
-    runtime_requirements.insert(RuntimeGlobals::EXPORTS);
-    runtime_requirements.insert(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
-    runtime_requirements.insert(RuntimeGlobals::MAKE_DEFERRED_NAMESPACE_OBJECT);
+    runtime_template
+      .runtime_requirements_mut()
+      .insert(RuntimeGlobals::EXPORTS);
     let module_id = ChunkGraph::get_module_id(&compilation.module_ids_artifact, target_module);
     let mode = render_make_deferred_namespace_mode_from_exports_type(exports_type);
     let mut export_map = vec![];
-    export_map.push((key.into(), format!("/* reexport deferred namespace object */ {name}_deferred_namespace_cache || ({name}_deferred_namespace_cache = {}({}, {}))", compilation
-                .runtime_template
+    export_map.push((key.into(), format!("/* reexport deferred namespace object */ {name}_deferred_namespace_cache || ({name}_deferred_namespace_cache = {}({}, {}))", runtime_template
                 .render_runtime_globals(&RuntimeGlobals::MAKE_DEFERRED_NAMESPACE_OBJECT), json_stringify(&module_id), mode).into()));
     let cache_var = format!("var {name}_deferred_namespace_cache;\n");
 
@@ -866,17 +861,18 @@ impl ESMExportImportedSpecifierDependency {
     name: &str,
     value_key: ValueKey,
   ) -> ESMExportInitFragment {
-    let TemplateContext {
-      runtime_requirements,
-      module,
-      ..
-    } = ctxt;
     let return_value = Self::get_return_value(name.to_owned(), value_key);
-    runtime_requirements.insert(RuntimeGlobals::EXPORTS);
-    runtime_requirements.insert(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
+    ctxt
+      .runtime_template
+      .runtime_requirements_mut()
+      .insert(RuntimeGlobals::EXPORTS);
+    ctxt
+      .runtime_template
+      .runtime_requirements_mut()
+      .insert(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
     let mut export_map = vec![];
     export_map.push((key.into(), format!("/* {comment} */ {return_value}").into()));
-    ESMExportInitFragment::new(module.get_exports_argument(), export_map)
+    ESMExportInitFragment::new(ctxt.module.get_exports_argument(), export_map)
   }
 
   fn get_reexport_fake_namespace_object_fragments(
@@ -887,20 +883,18 @@ impl ESMExportImportedSpecifierDependency {
     fake_type: u8,
   ) -> (NormalInitFragment, ESMExportInitFragment) {
     let TemplateContext {
-      runtime_requirements,
       module,
       compilation,
+      runtime_template,
       ..
     } = ctxt;
-    runtime_requirements.insert(RuntimeGlobals::EXPORTS);
-    runtime_requirements.insert(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
-    runtime_requirements.insert(RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT);
+    runtime_template
+      .runtime_requirements_mut()
+      .insert(RuntimeGlobals::EXPORTS);
     let mut export_map = vec![];
     let value = format!(
       r"/* reexport fake namespace object from non-ESM */ {name}_namespace_cache || ({name}_namespace_cache = {}({name}{}))",
-      compilation
-        .runtime_template
-        .render_runtime_globals(&RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT),
+      runtime_template.render_runtime_globals(&RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT),
       if fake_type == 0 {
         "".to_string()
       } else {
@@ -949,15 +943,14 @@ impl ESMExportImportedSpecifierDependency {
     }
     let TemplateContext {
       module,
-      runtime_requirements,
       runtime_template,
       ..
     } = ctxt;
     let return_value = Self::get_return_value(name.to_string(), value_key);
     let exports_name = module.get_exports_argument();
-    runtime_requirements.insert(RuntimeGlobals::EXPORTS);
-    runtime_requirements.insert(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
-    runtime_requirements.insert(RuntimeGlobals::HAS_OWN_PROPERTY);
+    runtime_template
+      .runtime_requirements_mut()
+      .insert(RuntimeGlobals::EXPORTS);
     format!(
       "if({}({}, {})) {}({}, {{ {}: function() {{ return {}; }} }});\n",
       runtime_template.render_runtime_globals(&RuntimeGlobals::HAS_OWN_PROPERTY),

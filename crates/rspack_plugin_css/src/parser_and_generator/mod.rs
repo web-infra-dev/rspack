@@ -532,7 +532,6 @@ impl ParserAndGenerator for CssParserAndGenerator {
         let mut context = TemplateContext {
           compilation,
           module,
-          runtime_requirements: generate_context.runtime_requirements,
           runtime: generate_context.runtime,
           init_fragments: &mut init_fragments,
           concatenation_scope: generate_context.concatenation_scope.take(),
