@@ -187,6 +187,9 @@ impl Module for ContainerEntryModule {
       .runtime_template
       .create_module_codegen_runtime_template();
     let mut code_generation_result = CodeGenerationResult::default();
+    code_generation_result
+      .runtime_requirements
+      .insert(RuntimeGlobals::CURRENT_REMOTE_GET_SCOPE);
     let module_map = ExposeModuleMap::new(
       compilation,
       self,
