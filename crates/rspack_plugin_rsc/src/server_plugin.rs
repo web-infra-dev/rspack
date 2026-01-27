@@ -315,6 +315,10 @@ impl RscServerPlugin {
         )
       })?;
 
+    println!(
+      "plugin_state.client_actions_per_entry: {:#?}",
+      plugin_state.client_actions_per_entry
+    );
     for (entry_name, action_entry_imports) in &plugin_state.client_actions_per_entry {
       // If an action method is already created in the server layer, we don't
       // need to create it again in the action layer.
