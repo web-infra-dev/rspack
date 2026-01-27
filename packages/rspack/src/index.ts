@@ -12,3 +12,5 @@ const rspack: Rspack = fn;
 export * from './exports';
 export default rspack;
 export { rspack };
+// make require esm default export compatible with commonjs
+export { rspack as 'module.exports' };

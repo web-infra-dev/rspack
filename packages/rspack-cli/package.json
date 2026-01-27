@@ -36,7 +36,7 @@
     "exit-hook": "^4.0.0"
   },
   "devDependencies": {
-    "@rslib/core": "0.19.2",
+    "@rslib/core": "0.19.3",
     "@rspack/core": "workspace:*",
     "@rspack/dev-server": "~1.2.1",
     "@rspack/test-tools": "workspace:*",
