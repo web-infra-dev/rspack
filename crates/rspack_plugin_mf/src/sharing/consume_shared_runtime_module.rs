@@ -102,6 +102,7 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
         ));
       }
     };
+    // Match enhanced/webpack behavior: include all referenced chunks so async ones are mapped too
     for chunk in chunk.get_all_referenced_chunks(&compilation.chunk_group_by_ukey) {
       let modules = compilation
         .chunk_graph

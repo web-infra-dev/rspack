@@ -12,6 +12,14 @@ module.exports = {
   watchOptions: {
     poll: 1000,
   },
+  module: {
+    rules: [
+      {
+        test: /\.css/,
+        type: 'css/auto',
+      },
+    ],
+  },
   optimization: {
     splitChunks: {
       minSize: 0,
@@ -26,8 +34,5 @@ module.exports = {
         },
       },
     },
-  },
-  experiments: {
-    css: true,
   },
 };

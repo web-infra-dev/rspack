@@ -65,9 +65,6 @@ export default {
       },
     ],
   },
-  experiments: {
-    css: false, // At this point, you need to turn off `experiments.css` to adapt to the internal processing logic of `vue-loader`
-  },
 };
 ```
 
@@ -87,7 +84,7 @@ You can refer to the related example [example-vue3](https://github.com/rstackjs/
 
 Rspack has completed compatibility with Vue 2 (using vue-loader@15).
 
-Please make sure to turn off `experiments.css` when configuring Vue 2 projects or use `rules[].type = "javascript/auto"` in CSS-related rules:
+Please make sure to use `rules[].type = "javascript/auto"` in CSS-related rules:
 
 ```js title="rspack.config.mjs"
 export default {

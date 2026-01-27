@@ -4,6 +4,14 @@ module.exports = {
 	entry: {
 		main: "./src/index.js"
 	},
+	module: {
+		rules: [
+			{
+				test: /\.css$/,
+				type: 'css/auto'
+			}
+		]
+	},
 	optimization: {
 		splitChunks: {
 			chunks: "all",

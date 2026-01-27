@@ -15,7 +15,14 @@ module.exports = {
 		minimize: false
 	},
 	experiments: {
-		css: true,
 		outputModule: true
+	},
+	module: {
+		rules: [
+			{
+				test: /\.css$/,
+				type: "css/auto"
+			}
+		]
 	}
 };

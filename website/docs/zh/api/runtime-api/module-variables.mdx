@@ -655,7 +655,7 @@ __webpack_get_script_filename__ = (chunkId) => {
 
 <ApiMeta specific={['Rspack', 'Webpack']} />
 
-可在 `output.libraryTarget="system"` 时获取 System.js 上下文。
+可在 `output.library.type="system"` 时获取 System.js 上下文。
 
 ## Rspack
 
@@ -663,7 +663,7 @@ __webpack_get_script_filename__ = (chunkId) => {
 
 <ApiMeta specific={['Rspack']} />
 当前使用的 Rspack 版本，默认从 `@rspack/core/package.json` 读取。可以通过
-`experiments.rspackFuture.bundlerInfo.version` 修改。
+`output.bundlerInfo.version` 修改。
 
 <Columns>
 ```js title=源码
@@ -685,8 +685,8 @@ __webpack_require__.rv = '0.7.4';
 
 当前打包工具的 ID，值为 `{bundler}@{version}`。其中：
 
-- `bundler`：默认为 `"rspack"` 可以通过 [experiments.rspackFuture.bundlerInfo.bundler](/config/experiments#rspackfuturebundlerinfo) 修改。
-- `version`：默认从 `@rspack/core/package.json` 读取，可以通过 [experiments.rspackFuture.bundlerInfo.version](/config/experiments#rspackfuturebundlerinfo) 修改。
+- `bundler`：默认为 `"rspack"` 可以通过 [output.bundlerInfo.bundler](/config/output#outputbundlerinfo) 修改。
+- `version`：默认从 `@rspack/core/package.json` 读取，可以通过 [output.bundlerInfo.version](/config/output#outputbundlerinfo) 修改。
 
 <Columns>
 ```js title=源码

@@ -8,6 +8,7 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 
+import { createRequire } from 'node:module';
 import util from 'node:util';
 import type Watchpack from 'watchpack';
 
@@ -17,6 +18,8 @@ import type {
   Watcher,
   WatchFileSystem,
 } from '../util/fs';
+
+const require = createRequire(import.meta.url);
 
 export default class NodeWatchFileSystem implements WatchFileSystem {
   inputFileSystem: InputFileSystem;
@@ -68,7 +71,7 @@ export default class NodeWatchFileSystem implements WatchFileSystem {
     }
 
     const oldWatcher = this.watcher;
-    const Watchpack = require('watchpack');
+    const Watchpack = require('../compiled/watchpack/index.js');
     this.watcher = new Watchpack(options);
 
     if (callbackUndelayed) {

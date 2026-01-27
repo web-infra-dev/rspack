@@ -122,20 +122,15 @@ async function generateOptions(
       chunkFilename: '[name].chunk.[fullhash].js',
       publicPath: 'https://test.cases/path/',
       library: { type: 'commonjs2' },
+      bundlerInfo: {
+        force: false,
+      },
     },
     optimization: {
       moduleIds: 'named',
       emitOnErrors: true,
     },
     target,
-    experiments: {
-      css: true,
-      rspackFuture: {
-        bundlerInfo: {
-          force: false,
-        },
-      },
-    },
   } as RspackOptions;
 
   options.plugins ??= [];
@@ -275,6 +270,12 @@ function createRunner(
     await updatePlugin.goNext();
     const stats = await compiler.build();
     const jsonStats = stats.toJson({
+      assets: true,
+      chunks: true,
+      chunkModules: true,
+      modules: true,
+      entrypoints: true,
+      chunkGroups: true,
       // errorDetails: true
     });
     await checkStats(jsonStats);
@@ -296,6 +297,10 @@ function createRunner(
     compiler.createCompiler();
     const stats = await compiler.build();
     const jsonStats = stats.toJson({
+      assets: true,
+      chunks: true,
+      entrypoints: true,
+      chunkGroups: true,
       // errorDetails: true
     });
     await checkStats(jsonStats);
@@ -323,6 +328,10 @@ function createRunner(
     compiler.createCompiler();
     const stats = await compiler.build();
     const jsonStats = stats.toJson({
+      assets: true,
+      chunks: true,
+      entrypoints: true,
+      chunkGroups: true,
       // errorDetails: true
     });
 

@@ -170,6 +170,9 @@ function defaultOptions(
       pathinfo: 'verbose',
       path: context.getDist(),
       filename: compilerOptions?.module ? 'bundle.mjs' : 'bundle.js',
+      bundlerInfo: {
+        force: false,
+      },
     },
     resolve: {
       modules: ['web_modules', 'node_modules'],
@@ -198,6 +201,11 @@ function defaultOptions(
           type: 'webassembly/async',
         },
       ],
+      parser: {
+        javascript: {
+          requireAlias: true,
+        },
+      },
     },
     plugins: (compilerOptions?.plugins || [])
       .concat(testConfig.plugins || [])
@@ -221,13 +229,7 @@ function defaultOptions(
       }),
     experiments: {
       css: false,
-      rspackFuture: {
-        bundlerInfo: {
-          force: false,
-        },
-      },
       asyncWebAssembly: true,
-      topLevelAwait: true,
       // CHANGE: rspack does not support `backCompat` yet.
       // backCompat: false,
       // CHANGE: Rspack enables `css` by default.

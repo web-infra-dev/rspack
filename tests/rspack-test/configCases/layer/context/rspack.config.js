@@ -18,6 +18,7 @@ module.exports = {
 		rules: [
 			{
 				test: /\.less$/i,
+				type: 'javascript/auto',
 				oneOf: [
 					{
 						issuerLayer: "light",

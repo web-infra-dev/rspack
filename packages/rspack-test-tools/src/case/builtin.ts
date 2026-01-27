@@ -61,7 +61,7 @@ export function defaultOptions(context: ITestContext): RspackOptions {
       cssChunkFilename: '[name].css',
       assetModuleFilename: '[hash][ext][query]',
       sourceMapFilename: '[file].map',
-      chunkLoadingGlobal: 'webpackChunkwebpack',
+      chunkLoadingGlobal: 'rspackChunk',
       chunkLoading: 'jsonp',
       uniqueName: '__rspack_test__',
       enabledLibraryTypes: ['system'],
@@ -76,6 +76,9 @@ export function defaultOptions(context: ITestContext): RspackOptions {
       webassemblyModuleFilename: '[hash].module.wasm',
       workerChunkLoading: 'import-scripts',
       workerWasmLoading: 'fetch',
+      bundlerInfo: {
+        force: false,
+      },
     },
     module: {
       rules: [
@@ -142,13 +145,7 @@ export function defaultOptions(context: ITestContext): RspackOptions {
       extensions: ['.js'],
     },
     experiments: {
-      css: true,
       futureDefaults: true,
-      rspackFuture: {
-        bundlerInfo: {
-          force: false,
-        },
-      },
     },
     devtool: false,
     context: context.getSource(),

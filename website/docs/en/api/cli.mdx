@@ -1,3 +1,5 @@
+import { PackageManagerTabs } from '@theme';
+
 # Command line interface
 
 [@rspack/cli](https://npmjs.com/package/@rspack/cli) is the command line tool for Rspack, providing a variety of commands to make working with Rspack easier.
@@ -66,15 +68,18 @@ Options:
   -w, --watch          watch                          [boolean] [default: false]
       --env            env passed to config function                     [array]
   -d, --devtool        devtool                        [boolean] [default: false]
-      --analyze        analyze                        [boolean] [default: false]
       --json           emit stats json
-      --profile        capture timing information for each module
-                                                      [boolean] [default: false]
 ```
 
 ## rspack dev
 
 `rspack dev` is used to run Rspack dev server, which will start a local dev server that will listen for file changes and automatically refresh the browser.
+
+:::info Required dependency
+The `rspack dev` command requires [@rspack/dev-server](https://www.npmjs.com/package/@rspack/dev-server) to be installed. If you haven't installed it yet, run:
+
+<PackageManagerTabs command="add @rspack/dev-server -D" />
+:::
 
 ```bash
 npx rspack dev
@@ -113,6 +118,13 @@ Options:
 ## rspack preview
 
 `rspack preview` is used to preview the production build output locally, note that you need to build the output first by running the `rspack build` command.
+
+:::info Required dependency
+The `rspack preview` command requires [@rspack/dev-server](https://www.npmjs.com/package/@rspack/dev-server) to be installed. If you haven't installed it yet, run:
+
+<PackageManagerTabs command="add @rspack/dev-server -D" />
+
+:::
 
 ```bash
 npx rspack preview

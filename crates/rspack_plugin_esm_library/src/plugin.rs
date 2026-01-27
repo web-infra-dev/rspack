@@ -6,16 +6,17 @@ use std::{
 
 use atomic_refcell::AtomicRefCell;
 use regex::Regex;
-use rspack_collections::{IdentifierIndexMap, IdentifierSet, UkeyMap};
+use rspack_collections::{Identifiable, Identifier, IdentifierIndexMap, IdentifierSet, UkeyMap};
 use rspack_core::{
-  ApplyContext, AssetInfo, AsyncModulesArtifact, ChunkUkey, Compilation,
+  ApplyContext, AssetInfo, AsyncModulesArtifact, BoxModule, ChunkUkey, Compilation,
   CompilationAdditionalChunkRuntimeRequirements, CompilationAdditionalTreeRuntimeRequirements,
   CompilationAfterCodeGeneration, CompilationConcatenationScope, CompilationFinishModules,
   CompilationOptimizeChunks, CompilationParams, CompilationProcessAssets,
   CompilationRuntimeRequirementInTree, CompilerCompilation, ConcatenatedModuleInfo,
-  ConcatenationScope, DependencyType, ExternalModuleInfo, GetTargetResult, Logger, ModuleGraph,
-  ModuleIdentifier, ModuleInfo, ModuleType, NormalModuleFactoryParser, ParserAndGenerator,
-  ParserOptions, Plugin, PrefetchExportsInfoMode, RuntimeGlobals, get_target, is_esm_dep_like,
+  ConcatenationScope, DependencyType, ExternalModuleInfo, GetTargetResult, Logger,
+  ModuleFactoryCreateData, ModuleGraph, ModuleIdentifier, ModuleInfo, ModuleType,
+  NormalModuleFactoryAfterFactorize, NormalModuleFactoryParser, ParserAndGenerator, ParserOptions,
+  Plugin, PrefetchExportsInfoMode, RuntimeGlobals, RuntimeModule, get_target, is_esm_dep_like,
   rspack_sources::{ReplaceSource, Source},
 };
 use rspack_error::{Diagnostic, Result};
@@ -327,9 +328,10 @@ async fn after_code_generation(
 #[plugin_hook(CompilationAdditionalChunkRuntimeRequirements for EsmLibraryPlugin)]
 async fn additional_chunk_runtime_requirements(
   &self,
-  compilation: &mut Compilation,
+  compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
   runtime_requirements: &mut RuntimeGlobals,
+  _runtime_modules: &mut Vec<Box<dyn RuntimeModule>>,
 ) -> Result<()> {
   let info_map = self.concatenated_modules_map.read().await;
 
@@ -360,14 +362,15 @@ async fn additional_chunk_runtime_requirements(
 #[plugin_hook(CompilationRuntimeRequirementInTree for EsmLibraryPlugin)]
 async fn runtime_requirements_in_tree(
   &self,
-  compilation: &mut Compilation,
+  _compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
   _all_runtime_requirements: &RuntimeGlobals,
   runtime_requirements: &RuntimeGlobals,
   _runtime_requirements_mut: &mut RuntimeGlobals,
+  runtime_modules_to_add: &mut Vec<(ChunkUkey, Box<dyn RuntimeModule>)>,
 ) -> Result<Option<()>> {
   if runtime_requirements.contains(RuntimeGlobals::REQUIRE) {
-    compilation.add_runtime_module(chunk_ukey, Box::new(RegisterModuleRuntime::default()))?;
+    runtime_modules_to_add.push((*chunk_ukey, Box::new(RegisterModuleRuntime::default())));
   }
 
   Ok(None)
@@ -376,9 +379,10 @@ async fn runtime_requirements_in_tree(
 #[plugin_hook(CompilationAdditionalTreeRuntimeRequirements for EsmLibraryPlugin, stage = -100)]
 async fn additional_tree_runtime_requirements(
   &self,
-  _compilation: &mut Compilation,
+  _compilation: &Compilation,
   _chunk_ukey: &ChunkUkey,
   runtime_requirements: &mut RuntimeGlobals,
+  _runtime_modules: &mut Vec<Box<dyn RuntimeModule>>,
 ) -> Result<()> {
   // avoid generate startup runtime, eg. entry dependent chunk loading runtime
   runtime_requirements.insert(RuntimeGlobals::STARTUP_NO_DEFAULT);
@@ -421,6 +425,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       self_path.pop();
 
       let chunk_ids_to_ukey = self.chunk_ids_to_ukey.borrow();
+
       for captures in RSPACK_ESM_CHUNK_PLACEHOLDER_RE.find_iter(&content) {
         let chunk_id = captures
           .as_str()
@@ -440,7 +445,13 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         let js_files = chunk
           .files()
           .iter()
-          .filter(|f| f.ends_with("js"))
+          .filter(|f| {
+            // find ref asset info
+            let Some(asset) = compilation.assets().get(*f) else {
+              return false;
+            };
+            asset.get_info().javascript_module.unwrap_or_default()
+          })
           .collect::<Vec<_>>();
         if js_files.len() > 1 {
           return Err(rspack_error::error!(
@@ -448,17 +459,13 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
             js_files
           ));
         }
-        let chunk_path = output_path.join(
-          js_files
-            .first()
-            .unwrap_or_else(|| {
-              panic!(
-                "at least one path for chunk: {:?}",
-                chunk.id().map(|id| { id.as_str() })
-              )
-            })
-            .as_str(),
-        );
+        if js_files.is_empty() {
+          return Err(rspack_error::error!(
+            "chunk {:?} should have at least one file",
+            chunk.id()
+          ));
+        }
+        let chunk_path = output_path.join(js_files.first().expect("should have at least one file"));
         let relative = chunk_path.relative(self_path.as_path());
         let relative = relative
           .to_slash()
@@ -521,6 +528,26 @@ async fn parse(
   Ok(())
 }
 
+#[plugin_hook(NormalModuleFactoryAfterFactorize for EsmLibraryPlugin)]
+async fn after_factorize(
+  &self,
+  data: &mut ModuleFactoryCreateData,
+  module: &mut BoxModule,
+) -> Result<()> {
+  // Check if this is an external module using the existing downcast helper
+  if let Some(external_module) = module.as_external_module_mut()
+    && external_module.get_external_type().contains("module")
+  {
+    // If there's an issuer, append it to the module id
+    if let Some(issuer_identifier) = &data.issuer_identifier {
+      let current_id = external_module.identifier();
+      let new_id = Identifier::from(format!("{current_id}|{issuer_identifier}"));
+      external_module.set_id(new_id);
+    }
+  }
+  Ok(())
+}
+
 impl Plugin for EsmLibraryPlugin {
   fn apply(&self, ctx: &mut ApplyContext) -> Result<()> {
     ctx.compiler_hooks.compilation.tap(compilation::new(self));
@@ -566,6 +593,10 @@ impl Plugin for EsmLibraryPlugin {
       .tap(optimize_chunks::new(self));
 
     ctx.normal_module_factory_hooks.parser.tap(parse::new(self));
+    ctx
+      .normal_module_factory_hooks
+      .after_factorize
+      .tap(after_factorize::new(self));
 
     Ok(())
   }

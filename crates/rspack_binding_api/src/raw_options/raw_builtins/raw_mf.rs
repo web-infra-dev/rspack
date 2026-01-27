@@ -6,9 +6,9 @@ use rspack_plugin_mf::{
   CollectSharedEntryPluginOptions, ConsumeOptions, ConsumeSharedPluginOptions, ConsumeVersion,
   ContainerPluginOptions, ContainerReferencePluginOptions, ExposeOptions, ManifestExposeOption,
   ManifestSharedOption, ModuleFederationManifestPluginOptions,
-  ModuleFederationRuntimePluginOptions, OptimizeSharedConfig, ProvideOptions, ProvideVersion,
-  RemoteAliasTarget, RemoteOptions, SharedContainerPluginOptions,
-  SharedUsedExportsOptimizerPluginOptions, StatsBuildInfo,
+  ModuleFederationRuntimeExperimentsOptions, ModuleFederationRuntimePluginOptions,
+  OptimizeSharedConfig, ProvideOptions, ProvideVersion, RemoteAliasTarget, RemoteOptions,
+  SharedContainerPluginOptions, SharedUsedExportsOptimizerPluginOptions, StatsBuildInfo,
 };
 
 use crate::options::{
@@ -313,12 +313,31 @@ impl From<RawVersionWrapper> for ConsumeVersion {
 pub struct RawModuleFederationRuntimePluginOptions {
   #[napi(ts_type = "string | undefined")]
   pub entry_runtime: Option<String>,
+  pub experiments: Option<RawModuleFederationRuntimeExperimentsOptions>,
 }
 
 impl From<RawModuleFederationRuntimePluginOptions> for ModuleFederationRuntimePluginOptions {
   fn from(value: RawModuleFederationRuntimePluginOptions) -> Self {
     Self {
       entry_runtime: value.entry_runtime,
+      experiments: value.experiments.map(Into::into).unwrap_or_default(),
+    }
+  }
+}
+
+#[derive(Debug, Default)]
+#[napi(object)]
+pub struct RawModuleFederationRuntimeExperimentsOptions {
+  #[napi(js_name = "asyncStartup")]
+  pub async_startup: Option<bool>,
+}
+
+impl From<RawModuleFederationRuntimeExperimentsOptions>
+  for ModuleFederationRuntimeExperimentsOptions
+{
+  fn from(value: RawModuleFederationRuntimeExperimentsOptions) -> Self {
+    Self {
+      async_startup: value.async_startup.unwrap_or(false),
     }
   }
 }

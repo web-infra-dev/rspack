@@ -1,19 +1,13 @@
 import type { AssetInfo, RawModuleRuleUse, RawOptions } from '@rspack/binding';
-import {
-  resolveCollectTypeScriptInfo,
-  resolvePluginImport,
-} from '../builtin-loader';
-import {
-  type FeatureOptions,
-  toFeatures,
-} from '../builtin-loader/lightningcss';
+import { getLightningcssLoaderOptions } from '../builtin-loader/lightningcss';
+import { getSwcLoaderOptions } from '../builtin-loader/swc';
 import type { Compilation } from '../Compilation';
 import type { Compiler } from '../Compiler';
 import { type LoaderObject, parsePathQueryFragment } from '../loader-runner';
 import type { Logger } from '../logging/Logger';
 import type { Module } from '../Module';
 import type { ResolveRequest } from '../Resolver';
-import { deprecate, isNil } from '../util';
+import { isNil } from '../util';
 import type Hash from '../util/hash';
 import type { RspackOptionsNormalized } from './normalization';
 import type {
@@ -487,68 +481,10 @@ export function createRawModuleRuleUses(
   return createRawModuleRuleUsesImpl(allUses, path, options);
 }
 
-type GetLoaderOptions = (
+export type GetLoaderOptions = (
   o: RuleSetLoaderWithOptions['options'],
   options: ComposeJsUseOptions,
 ) => RuleSetLoaderWithOptions['options'];
-
-const getSwcLoaderOptions: GetLoaderOptions = (options, _) => {
-  if (options && typeof options === 'object') {
-    // enable `disableAllLints` by default to reduce performance overhead
-    options.jsc ??= {};
-    options.jsc.experimental ??= {};
-    options.jsc.experimental.disableAllLints ??= true;
-
-    // resolve top-level `collectTypeScriptInfo` options (stable API)
-    if (options.collectTypeScriptInfo) {
-      options.collectTypeScriptInfo = resolveCollectTypeScriptInfo(
-        options.collectTypeScriptInfo,
-      );
-    }
-
-    // resolve `rspackExperiments.import` options
-    const { rspackExperiments } = options;
-    if (rspackExperiments) {
-      if (rspackExperiments.import || rspackExperiments.pluginImport) {
-        rspackExperiments.import = resolvePluginImport(
-          rspackExperiments.import || rspackExperiments.pluginImport,
-        );
-      }
-      if (rspackExperiments.collectTypeScriptInfo) {
-        deprecate(
-          '`rspackExperiments.collectTypeScriptInfo` is deprecated and will be removed in Rspack v2.0. Use top-level `collectTypeScriptInfo` instead.',
-        );
-        // If top-level is not set, use rspackExperiments config
-        if (!options.collectTypeScriptInfo) {
-          options.collectTypeScriptInfo = resolveCollectTypeScriptInfo(
-            rspackExperiments.collectTypeScriptInfo,
-          );
-        }
-        // Remove from rspackExperiments to avoid duplication
-        delete rspackExperiments.collectTypeScriptInfo;
-      }
-    }
-  }
-  return options;
-};
-
-const getLightningcssLoaderOptions: GetLoaderOptions = (o, _) => {
-  if (o && typeof o === 'object') {
-    if (typeof o.targets === 'string') {
-      o.targets = [o.targets];
-    }
-
-    if (o.include && typeof o.include === 'object') {
-      o.include = toFeatures(o.include as unknown as FeatureOptions);
-    }
-
-    if (o.exclude && typeof o.exclude === 'object') {
-      o.exclude = toFeatures(o.exclude as unknown as FeatureOptions);
-    }
-  }
-
-  return o;
-};
 
 function getBuiltinLoaderOptions(
   identifier: string,

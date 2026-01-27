@@ -2,6 +2,7 @@
   "name": "e2e-test",
   "private": true,
   "version": "0.1.8",
+  "type": "module",
   "scripts": {
     "test": "playwright test",
     "test:CI": "CI=1 pnpm run test"
@@ -13,8 +14,9 @@
     "core-js": "3.47.0",
     "@rspack/core": "workspace:*",
     "@rspack/browser": "workspace:*",
-    "@rspack/dev-server": "~1.1.5",
+    "@rspack/dev-server": "~1.2.1",
     "@rspack/plugin-react-refresh": "^1.6.0",
+    "@module-federation/runtime-tools": "^0.22.0",
     "@swc/helpers": "0.5.18",
     "@types/fs-extra": "11.0.4",
     "babel-loader": "^10.0.0",

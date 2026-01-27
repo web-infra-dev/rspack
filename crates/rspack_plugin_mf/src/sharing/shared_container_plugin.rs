@@ -3,7 +3,7 @@ use std::sync::Arc;
 use rspack_core::{
   ChunkUkey, Compilation, CompilationAdditionalTreeRuntimeRequirements, CompilationParams,
   CompilerCompilation, CompilerMake, DependencyType, Filename, LibraryOptions, Plugin,
-  RuntimeGlobals, RuntimeModuleExt,
+  RuntimeGlobals, RuntimeModule, RuntimeModuleExt,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -79,15 +79,16 @@ async fn make(&self, compilation: &mut Compilation) -> Result<()> {
 #[plugin_hook(CompilationAdditionalTreeRuntimeRequirements for SharedContainerPlugin)]
 async fn additional_tree_runtime_requirements(
   &self,
-  compilation: &mut Compilation,
+  compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
   _runtime_requirements: &mut RuntimeGlobals,
+  runtime_modules: &mut Vec<Box<dyn RuntimeModule>>,
 ) -> Result<()> {
   let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
   if let Some(name) = chunk.name()
     && name == self.options.name
   {
-    compilation.add_runtime_module(chunk_ukey, ShareContainerRuntimeModule::new().boxed())?;
+    runtime_modules.push(ShareContainerRuntimeModule::new().boxed());
   }
   Ok(())
 }

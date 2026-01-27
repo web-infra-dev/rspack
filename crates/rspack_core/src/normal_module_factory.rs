@@ -31,6 +31,7 @@ define_hook!(NormalModuleFactoryCreateModule: SeriesBail(data: &mut ModuleFactor
 define_hook!(NormalModuleFactoryModule: Series(data: &mut ModuleFactoryCreateData, create_data: &mut NormalModuleCreateData, module: &mut BoxModule),tracing=false);
 define_hook!(NormalModuleFactoryParser: Series(module_type: &ModuleType, parser: &mut Box<dyn ParserAndGenerator>, parser_options: Option<&ParserOptions>),tracing=false);
 define_hook!(NormalModuleFactoryResolveLoader: SeriesBail(context: &Context, resolver: &Resolver, l: &ModuleRuleUseLoader) -> BoxLoader,tracing=false);
+define_hook!(NormalModuleFactoryAfterFactorize: Series(data: &mut ModuleFactoryCreateData, module: &mut BoxModule),tracing=false);
 
 pub enum NormalModuleFactoryResolveResult {
   Module(BoxModule),
@@ -53,6 +54,7 @@ pub struct NormalModuleFactoryHooks {
   /// So this hook is used to resolve inline loader (inline loader requests).
   // should move to ResolverFactory?
   pub resolve_loader: NormalModuleFactoryResolveLoaderHook,
+  pub after_factorize: NormalModuleFactoryAfterFactorizeHook,
 }
 
 #[derive(Debug)]
@@ -68,7 +70,16 @@ impl ModuleFactory for NormalModuleFactory {
     if let Some(before_resolve_data) = self.before_resolve(data).await? {
       return Ok(before_resolve_data);
     }
-    let factory_result = self.factorize(data).await?;
+    let mut factory_result = self.factorize(data).await?;
+
+    if let Some(module) = &mut factory_result.module {
+      self
+        .plugin_driver
+        .normal_module_factory_hooks
+        .after_factorize
+        .call(data, module)
+        .await?;
+    }
 
     Ok(factory_result)
   }

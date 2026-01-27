@@ -1,6 +1,9 @@
+import { createRequire } from 'node:module';
 import path from 'node:path';
 // biome-ignore syntax/correctness/noTypeOnlyImportAttributes: Biome does not support this
 import type { Tinypool } from 'tinypool' with { 'resolution-mode': 'import' };
+
+const require = createRequire(import.meta.url);
 
 let pool: Promise<Tinypool> | undefined;
 const ensureLoaderWorkerPool = async (workerOptions?: {
@@ -21,7 +24,7 @@ const ensureLoaderWorkerPool = async (workerOptions?: {
     );
 
     const pool = new Tinypool({
-      filename: path.resolve(__dirname, 'worker.js'),
+      filename: path.resolve(import.meta.dirname, 'worker.js'),
       useAtomics: false,
 
       maxThreads: maxWorkers || maxWorkersFromEnv || availableThreads,

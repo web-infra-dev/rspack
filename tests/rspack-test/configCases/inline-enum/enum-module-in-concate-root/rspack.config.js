@@ -27,8 +27,6 @@ module.exports = {
   },
   optimization: {
     concatenateModules: true,
+    inlineExports: true
   },
-  experiments: {
-    inlineEnum: true,
-  }
 }

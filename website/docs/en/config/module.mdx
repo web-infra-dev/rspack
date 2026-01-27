@@ -749,6 +749,106 @@ export default {
 };
 ```
 
+### module.parser.javascript.requireAlias
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
+
+Control whether renaming of the CommonJS `require` function will be parsed and transformed.
+
+When set to `true`, Rspack will parse and transform cases where `require` is assigned to a variable or passed as a parameter (e.g., `const req = require; req('./module')`).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        requireAlias: true,
+      },
+    },
+  },
+};
+```
+
+### module.parser.javascript.requireAsExpression
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
+
+Control whether `require` used as an expression will be parsed.
+
+When set to `true`, Rspack will parse `require` when it's used as an expression (e.g., `const req = require; req('./module')`) and emit a warning. When set to `false`, this pattern will be ignored.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        requireAsExpression: true,
+      },
+    },
+  },
+};
+```
+
+### module.parser.javascript.requireDynamic
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+
+Control whether dynamic `require` calls will be parsed.
+
+When set to `false`, Rspack will not parse dynamic `require` calls where the module path is not a static string (e.g., `require(variable)`). This can improve build performance if your code doesn't use dynamic requires.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        requireDynamic: false,
+      },
+    },
+  },
+};
+```
+
+### module.parser.javascript.requireResolve
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+
+Control whether `require.resolve()` calls will be parsed.
+
+When set to `false`, Rspack will not parse `require.resolve()` calls. This can improve build performance if your code doesn't use `require.resolve()`.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        requireResolve: false,
+      },
+    },
+  },
+};
+```
+
+### module.parser.javascript.importDynamic
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+
+Control whether dynamic `import()` calls will be parsed.
+
+When set to `false`, Rspack will not parse dynamic `import()` calls where the module path is not a static string (e.g., `import(variable)`). This can improve build performance if your code doesn't use dynamic imports.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        importDynamic: false,
+      },
+    },
+  },
+};
+```
+
 ### module.parser.javascript.jsx
 
 <ApiMeta stability={Stability.Experimental} addedVersion="1.5.7" />
@@ -888,10 +988,6 @@ export default {
 };
 ```
 
-:::warning
-This configuration will only work if [experiments.css](/config/experiments#experimentscss) is enabled.
-:::
-
 ### module.parser["css/auto"].namedExports
 
 - **Type:** `boolean`
@@ -983,10 +1079,6 @@ export default {
 };
 ```
 
-:::warning
-This configuration will only work if [experiments.css](/config/experiments#experimentscss) is enabled.
-:::
-
 ### module.parser.css.namedExports
 
 Same as [`module.parser["css/auto"].namedExports`](#moduleparsercssautonamedexports).
@@ -1034,10 +1126,6 @@ export default {
   },
 };
 ```
-
-:::warning
-This configuration will only work if [experiments.css](/config/experiments#experimentscss) is enabled.
-:::
 
 ### module.parser["css/module"].namedExports
 
@@ -1586,10 +1674,6 @@ export default {
 };
 ```
 
-:::warning
-This configuration will only work if [experiments.css](/config/experiments#experimentscss) is enabled.
-:::
-
 ### module.generator["css/auto"].exportsConvention
 
 - **Type:** `'as-is' | 'camel-case' | 'camel-case-only' | 'dashes' | 'dashes-only'`
@@ -1719,10 +1803,6 @@ export default {
 };
 ```
 
-:::warning
-This configuration will only work if [experiments.css](/config/experiments#experimentscss) is enabled.
-:::
-
 ### module.generator.css.exportsOnly
 
 Same as [`module.generator["css/auto"].exportsOnly`](#modulegeneratorcssautoexportsonly).
@@ -1770,10 +1850,6 @@ export default {
   },
 };
 ```
-
-:::warning
-This configuration will only work if [experiments.css](/config/experiments#experimentscss) is enabled.
-:::
 
 ### module.generator["css/module"].exportsConvention
 

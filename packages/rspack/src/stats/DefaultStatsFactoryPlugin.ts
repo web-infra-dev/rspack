@@ -51,7 +51,6 @@ import type {
   StatsError,
   StatsModuleReason,
   StatsModuleTraceItem,
-  StatsProfile,
 } from './statsFactoryUtils';
 import {
   assetGroup,
@@ -682,30 +681,34 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
       }
       if (!context.cachedGetErrors) {
         const map = new WeakMap();
-        context.cachedGetErrors = (compilation) =>
-          map.get(compilation) ||
-          ((errors) => {
-            map.set(compilation, errors);
-            return errors;
-          })(statsCompilation.errors);
+        context.cachedGetErrors = (compilation) => {
+          // return empty errors for stale compilation
+          // TODO: Find a better way to handle accessing stats from stale compilations
+          if (compilation.compiler._lastCompilation !== compilation) {
+            return [];
+          }
+          const cache = map.get(compilation);
+          if (cache) return cache;
+          const errors = statsCompilation.errors;
+          map.set(compilation, errors);
+          return errors;
+        };
       }
       if (!context.cachedGetWarnings) {
         const map = new WeakMap();
         context.cachedGetWarnings = (compilation) => {
-          return (
-            map.get(compilation) ||
-            ((warnings) => {
-              map.set(compilation, warnings);
-              return warnings;
-            })(
-              compilation
-                .__internal_getInner()
-                .createStatsWarnings(
-                  compilation.getWarnings(),
-                  !!options.colors,
-                ),
-            )
-          );
+          // return empty errors for stale compilation
+          // TODO: Find a better way to handle accessing stats from stale compilations
+          if (compilation.compiler._lastCompilation !== compilation) {
+            return [];
+          }
+          const cache = map.get(compilation);
+          if (cache) return cache;
+          const warnings = compilation
+            .__internal_getInner()
+            .createStatsWarnings(compilation.getWarnings(), !!options.colors);
+          map.set(compilation, warnings);
+          return warnings;
         };
       }
       if (compilation.name) {
@@ -1279,10 +1282,6 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
       object.failed = commonAttributes.failed;
       object.errors = commonAttributes.errors;
       object.warnings = commonAttributes.warnings;
-      const profile = commonAttributes.profile;
-      if (profile) {
-        object.profile = factory.create(`${type}.profile`, profile, context);
-      }
     },
     ids: (object, module) => {
       const { commonAttributes } = module;
@@ -1354,24 +1353,11 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
       }
     },
   },
-  profile: {
-    _: (object, profile) => {
-      const factory = profile.factory;
-      const building = profile.building;
-      const statsProfile: StatsProfile = {
-        total: factory + building,
-        resolving: factory,
-        building,
-      };
-      Object.assign(object, statsProfile);
-    },
-  },
   moduleIssuer: {
     _: (object, module, _context, _options, _factory) => {
       if (module.moduleDescriptor) {
         object.identifier = module.moduleDescriptor.identifier;
         object.name = module.moduleDescriptor.name;
-        // - profile
       }
     },
     ids: (object, module) => {

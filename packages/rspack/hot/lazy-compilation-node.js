@@ -1,4 +1,7 @@
+import { createRequire } from 'node:module';
+
 var urlBase = decodeURIComponent(__resourceQuery.slice(1));
+var require = createRequire(import.meta.url);
 var compiling = new Set();
 var errorHandlers = new Set();
 
@@ -79,7 +82,7 @@ function sendActiveRequest() {
  * @param {{ data: string, onError: (err: Error) => void, active: boolean, module: module }} options options
  * @returns {() => void} function to destroy response
  */
-exports.activate = function (options) {
+export const activate = function (options) {
   var data = options.data;
   var onError = options.onError;
   var active = options.active;

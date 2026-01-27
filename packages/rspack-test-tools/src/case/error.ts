@@ -85,12 +85,17 @@ function options(
       moduleIds: 'named',
       chunkIds: 'named',
     },
-    experiments: {
-      css: true,
-      rspackFuture: {
-        bundlerInfo: {
-          force: false,
+    module: {
+      defaultRules: [
+        {
+          test: /\.css$/i,
+          type: 'css/auto',
         },
+      ],
+    },
+    otuput: {
+      bundlerInfo: {
+        force: false,
       },
     },
   } as RspackOptions;

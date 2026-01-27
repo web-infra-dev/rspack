@@ -46,12 +46,42 @@ export default {
 };
 ```
 
-## output.charset
+## output.bundlerInfo
 
-- **类型：** `boolean`
-- **默认值：** `false`
+<ApiMeta addedVersion="2.0.0" />
 
-为 `<script>` 标签添加已被标记为[已废弃的](https://developer.mozilla.org/zh-CN/docs/Web/HTML/Element/script#Charset) `charset="utf-8"` 属性。
+> 在 1.x 版本中，你可以使用 `experiments.rspackFuture.bundlerInfo`。
+
+- **类型：**
+
+  ```ts
+  type BundlerInfo = {
+    version?: string,
+    bundler?: string,
+    force?: ('version' | 'uniqueId')[] ｜ boolean;
+  };
+  ```
+
+用于在生成产物中注入当前使用的 Rspack 信息。其中：
+
+- `version`：用于指定 Rspack 版本，默认读取 `@rspack/core/package.json` 中的 `version` 字段。
+- `bundler`：用于指定打包工具名称，默认为 `rspack`
+- `force`：是否强制注入 Rspack 信息，会以运行时模块的形式加入到产物中，默认为 `true` 即强制注入，可通过数组选择强制注入的项目。
+
+#### 关闭默认注入
+
+可通过将 `force` 设定为 `false` 来关闭默认注入，此时仅在检测到代码中使用了 `__rspack_version__` 和 `__rspack_unique_id__` 时才会注入：
+
+- [`__rspack_version__`](/api/runtime-api/module-variables#__rspack_version__)：注入版本信息
+- [`__rspack_unique_id__`](/api/runtime-api/module-variables#__rspack_unique_id__)：注入打包工具唯一ID
+
+```js title="rspack.config.mjs"
+export default {
+  output: {
+    bundlerInfo: { force: false },
+  },
+};
+```
 
 ## output.chunkFilename
 
@@ -568,7 +598,7 @@ export default {
 - **类型：** `string`
 - **默认值：** `'self'`
 
-当输出为 library 时，尤其是当 `libraryTarget` 为 `'umd'`时，此选项将决定使用哪个全局对象来挂载 library。为了使 UMD 构建在浏览器和 Node.js 上均可用，应将 `output.globalObject` 选项设置为 `'this'`。对于类似 web 的目标，默认为 `self`。
+当输出为 library 时，尤其是当 `library.type` 为 `'umd'`时，此选项将决定使用哪个全局对象来挂载 library。为了使 UMD 构建在浏览器和 Node.js 上均可用，应将 `output.globalObject` 选项设置为 `'this'`。对于类似 web 的目标，默认为 `self`。
 
 入口点的返回值将会使用 `output.library.name` 赋值给全局对象。依赖于 `target` 配置项，全局对象将会发生对应的改变，例如：`self`, `global` 或者 `globalThis`。
 
@@ -577,8 +607,10 @@ export default {
 ```js title="rspack.config.mjs"
 export default {
   output: {
-    library: 'myLib',
-    libraryTarget: 'umd',
+    library: {
+      name: 'myLib',
+      type: 'umd',
+    },
     filename: 'myLib.js',
     globalObject: 'this',
   },
@@ -657,7 +689,7 @@ export default {
 ## output.hotUpdateGlobal
 
 - **类型：** `string`
-- **默认值：** `"webpackHotUpdate" + output.uniqueName`
+- **默认值：** `"rspackHotUpdate" + output.uniqueName`
 
 仅当 [`target`](/config/target) 设置为 `"web"` 时使用，它使用 JSONP 来加载热更新。
 
@@ -1057,8 +1089,6 @@ export default {
 
 输出 ESM 模块。
 
-但这个特性仍然是实验性的，还没有完全支持，所以在使用之前确保启用了 [`experiments.outputModule`](/config/experiments#experimentsoutputmodule)。此外，你可以在这个 [issue](https://github.com/webpack/webpack/issues/2933#issuecomment-774253975) 中跟踪开发进度。
-
 ##### type: 'modern-module'
 
 ```js title="rspack.config.mjs"
@@ -1076,7 +1106,7 @@ export default {
 };
 ```
 
-这项配置将生成支持 tree-shaking 的 ES 模块输出。
+这项配置将生成支持 tree-shaking 和 code-splitting 的 ES 模块输出。
 
 但这个特性仍然是实验性的，还没有完全支持，所以在使用之前确保启用了 [`experiments.outputModule`](/config/experiments#experimentsoutputmodule)。
 
@@ -1260,7 +1290,9 @@ export default {
 export default {
   //...
   output: {
-    libraryTarget: 'umd',
+    library: {
+      type: 'umd',
+    },
   },
 };
 ```
@@ -1504,6 +1536,30 @@ AMD module 将会是这样：
 define('MyLibrary', [], factory);
 ```
 
+### output.library.preserveModules
+
+- **类型：** `string`
+- **默认值：** `undefined`
+
+:::info
+仅在 `library.type` 为 `modern-module` 时生效。
+:::
+
+当启用后，Rspack 会保留传入目录下模块的原始文件结构。
+
+```js
+import path from 'path';
+module.exports = {
+  //...
+  output: {
+    library: {
+      type: 'modern-module',
+      preserveModules: path.resolve('./src'),
+    },
+  },
+};
+```
+
 ## output.module
 
 - **类型：** `boolean`
@@ -1694,7 +1750,7 @@ export default {
   //...
   output: {
     trustedTypes: {
-      policyName: 'my-application#webpack',
+      policyName: 'my-application#rspack',
     },
   },
 };
@@ -1715,7 +1771,7 @@ export default {
   output: {
     //...
     trustedTypes: {
-      policyName: 'my-application#webpack',
+      policyName: 'my-application#rspack',
       onPolicyCreationFailure: 'continue',
     },
   },
@@ -1832,61 +1888,4 @@ export default {
     workerWasmLoading: 'fetch',
   },
 };
-```
-
-## output.auxiliaryComment
-
-:::warning
-请优先使用 [`output.library.auxiliaryComment`](#outputlibraryauxiliarycomment)。
-:::
-
-## output.libraryExport \{#outputlibraryexport-1}
-
-:::warning
-我们可能会停止对此的支持，所以最好使用 [output.library.export](#outputlibraryexport)，其作用与 `libraryExport` 一致。
-:::
-
-## output.libraryTarget
-
-:::warning
-请使用 [`output.library.type`](#outputlibrarytype) 代替，因为我们可能在未来放弃对 `output.libraryTarget` 的支持。
-:::
-
-## output.umdNamedDefine
-
-:::warning
-最好使用 [`output.library.umdNamedDefine`](#outputlibraryumdnameddefine)。
-:::
-
-## output.cssHeadDataCompression
-
-<ApiMeta addedVersion={'1.0.0'} />
-
-- **类型：** `boolean`
-- **默认值：** 在 development 模式下为 `false`，在 production 模式下为 `true`
-
-Rspack 会在 CSS 中添加一些元信息，用以解析 CSS modules，此配置决定是否压缩元信息。
-
-例如 👇
-
-```css
-.local-a {
-  color: blue;
-}
-
-head {
-  --webpack-main: a: local-a/&\.\/ src\/index\.module\.css;
-}
-```
-
-压缩后
-
-```css
-.local-a {
-  color: blue;
-}
-
-head {
-  --webpack-main: &\.\/ srcăindexāmoduleācss;
-}
 ```

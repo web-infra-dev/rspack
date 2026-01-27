@@ -1,11 +1,115 @@
 use std::path::Path;
 
 use rspack_core::{Compilation, ModuleGraph, ModuleIdentifier};
-use rspack_util::fx_hash::FxHashMap as HashMap;
+use rspack_util::fx_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
-use super::data::{StatsExpose, StatsShared};
+use super::{
+  data::{StatsAssetsGroup, StatsExpose, StatsRemote, StatsShared},
+  options::RemoteAliasTarget,
+};
 
 const HOT_UPDATE_SUFFIX: &str = ".hot-update";
+
+pub fn ensure_configured_remotes(
+  remote_list: &mut Vec<StatsRemote>,
+  remote_alias_map: &std::collections::HashMap<String, RemoteAliasTarget>,
+  container_name: &str,
+) {
+  for (alias, target) in remote_alias_map {
+    if !remote_list.iter().any(|r| r.alias == *alias) {
+      let remote_container_name = if target.name.is_empty() {
+        alias.clone()
+      } else {
+        target.name.clone()
+      };
+      remote_list.push(StatsRemote {
+        alias: alias.clone(),
+        consumingFederationContainerName: container_name.to_string(),
+        federationContainerName: remote_container_name,
+        moduleName: ".".to_string(),
+        entry: target.entry.clone(),
+        usedIn: vec!["UNKNOWN".to_string()],
+      });
+    }
+  }
+}
+
+pub fn collect_entry_files(compilation: &Compilation, container_name: &str) -> HashSet<String> {
+  let mut entry_files = HashSet::default();
+  for (name, entrypoint_ukey) in &compilation.entrypoints {
+    if name == container_name {
+      continue;
+    }
+    let entrypoint = compilation.chunk_group_by_ukey.expect_get(entrypoint_ukey);
+    for chunk_ukey in &entrypoint.chunks {
+      if let Some(chunk) = compilation.chunk_by_ukey.get(chunk_ukey) {
+        for file in chunk.files() {
+          entry_files.insert(file.clone());
+        }
+        for async_chunk_ukey in chunk.get_all_async_chunks(&compilation.chunk_group_by_ukey) {
+          if let Some(async_chunk) = compilation.chunk_by_ukey.get(&async_chunk_ukey) {
+            let mut should_filter = false;
+            if let Some(chunk_name) = async_chunk.name()
+              && chunk_name.contains(name)
+            {
+              should_filter = true;
+            }
+            if !should_filter {
+              for file in async_chunk.files() {
+                if file.contains(name) {
+                  should_filter = true;
+                  break;
+                }
+              }
+            }
+            if should_filter {
+              for file in async_chunk.files() {
+                entry_files.insert(file.clone());
+              }
+            }
+          }
+        }
+      }
+    }
+    let runtime_chunk_ukey = entrypoint.get_runtime_chunk(&compilation.chunk_group_by_ukey);
+    if let Some(chunk) = compilation.chunk_by_ukey.get(&runtime_chunk_ukey) {
+      for file in chunk.files() {
+        entry_files.insert(file.clone());
+      }
+    }
+  }
+  entry_files
+}
+
+pub fn filter_assets(
+  assets: &mut StatsAssetsGroup,
+  entry_files: &HashSet<String>,
+  shared_asset_files: &HashSet<String>,
+  remove_shared: bool,
+) {
+  let filter_fn =
+    |asset: &String| !entry_files.contains(asset) || shared_asset_files.contains(asset);
+
+  assets.js.sync.retain(filter_fn);
+  assets.js.r#async.retain(filter_fn);
+  assets.css.sync.retain(filter_fn);
+  assets.css.r#async.retain(filter_fn);
+
+  if remove_shared {
+    let filter_shared = |asset: &String| !shared_asset_files.contains(asset);
+    assets.js.sync.retain(filter_shared);
+    assets.js.r#async.retain(filter_shared);
+    assets.css.sync.retain(filter_shared);
+    assets.css.r#async.retain(filter_shared);
+
+    // Remove async assets that are already in sync
+    let sync_js: HashSet<_> = assets.js.sync.iter().cloned().collect();
+    assets.js.r#async.retain(|asset| !sync_js.contains(asset));
+
+    let sync_css: HashSet<_> = assets.css.sync.iter().cloned().collect();
+    assets.css.r#async.retain(|asset| !sync_css.contains(asset));
+  }
+}
 
 pub fn compose_id_with_separator(container: &str, name: &str) -> String {
   format!("{container}:{name}")

@@ -1,6 +1,6 @@
 ```js title=lib_js.js
 "use strict";
-(self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["lib_js"], {
+(self["rspackChunk"] = self["rspackChunk"] || []).push([["lib_js"], {
 "./lib.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
@@ -32,7 +32,7 @@ function test() {}
 
 ```js title=main.js
 "use strict";
-(self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["main"], {
+(self["rspackChunk"] = self["rspackChunk"] || []).push([["main"], {
 "./app.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
   answer: () => (answer)

@@ -76,6 +76,12 @@ export default {
 
 SWC provides [jsc.target](https://swc.rs/docs/configuration/compilation#jsctarget) and [env.targets](https://swc.rs/docs/configuration/compilation#envtargets) to specify the target of JavaScript syntax lowering.
 
+:::tip Default target from Rspack
+If neither `env.targets` nor `jsc.target` is configured, `builtin:swc-loader` will automatically derive a default target from Rspack's [`target`](/config/target) configuration.
+
+This means you can rely on your Rspack `target` configuration without manually specifying the same targets in the loader options.
+:::
+
 #### jsc.target
 
 [jsc.target](https://swc.rs/docs/configuration/compilation#jsctarget) is used to specify the ECMA version, such as `es5`, `es2015`, `es2016`, etc.
@@ -457,10 +463,6 @@ Collects information from TypeScript's AST for consumption by subsequent Rspack 
 
 To ensure the accuracy of the collected information, users must ensure that subsequent Normal Loaders after `builtin:swc-loader` do not modify the Abstract Syntax Tree (AST) corresponding to the collected information. This precaution is necessary to prevent discrepancies between the collected information and the actual code.
 
-:::tip
-Before Rspack 1.7, the [rspackExperiments.collectTypeScriptInfo](/config/deprecated-options#experimentscollecttypescriptinfo) option could be used.
-:::
-
 #### collectTypeScriptInfo.typeExports
 
 <ApiMeta addedVersion="1.7.0" />
@@ -489,9 +491,6 @@ Whether to collect information about exported `enum`s, so Rspack can perform cro
 const isProduction = process.env.NODE_ENV === 'production';
 
 export default {
-  experiments: {
-    inlineEnum: true, // This is currently an experimental feature and requires explicit enabling
-  },
   module: {
     rules: [
       {

@@ -11,8 +11,8 @@ module.exports = {
   cache: true,
   experiments: {
     cache: true,
-    incremental: true,
   },
+  incremental: true,
   plugins: [
     new rspack.HtmlRspackPlugin(),
     {
@@ -24,8 +24,8 @@ module.exports = {
             normalModuleFactory.hooks.resolve.tapPromise(
               'PLUGIN',
               async (resolveData) => {
-                if (resolveData.request == './file') {
-                  resolveData.request = `./loader.js?time=${sharedObj.time}!./file`;
+                if (resolveData.request == './file.js') {
+                  resolveData.request = `./loader.cjs?time=${sharedObj.time}!./file.js`;
                 }
               },
             );

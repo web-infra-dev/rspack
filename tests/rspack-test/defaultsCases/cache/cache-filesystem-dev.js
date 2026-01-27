@@ -1,7 +1,7 @@
 /** @type {import('@rspack/test-tools').TDefaultsCaseConfig} */
 module.exports = {
 	description: "cache filesystem development",
-	options: () => ({ mode: "development", cache: { type: "filesystem" } }),
+	options: () => ({ mode: "development", cache: { type: "persistent" } }),
 	diff: e =>
 		e.toMatchInlineSnapshot(`
 			- Expected
@@ -10,17 +10,33 @@ module.exports = {
 			@@ ... @@
 			-   "cache": false,
 			+   "cache": Object {
-			+     "type": "filesystem",
+			+     "buildDependencies": Array [],
+			+     "snapshot": Object {
+			+       "immutablePaths": Array [],
+			+       "managedPaths": Array [
+			+         /[\\\\/]node_modules[\\\\/][^.]/,
+			+       ],
+			+       "unmanagedPaths": Array [],
+			+     },
+			+     "storage": Object {
+			+       "directory": "<cwd>/node_modules/.cache/rspack",
+			+       "type": "filesystem",
+			+     },
+			+     "type": "persistent",
+			+     "version": "",
 			+   },
 			@@ ... @@
 			-   "devtool": false,
 			+   "devtool": "eval",
 			@@ ... @@
-			-     "cache": false,
-			+     "cache": true,
-			@@ ... @@
 			-   "mode": "none",
 			+   "mode": "development",
+			@@ ... @@
+			-         "localIdentName": "[fullhash]",
+			+         "localIdentName": "[id]-[local]",
+			@@ ... @@
+			-         "localIdentName": "[fullhash]",
+			+         "localIdentName": "[id]-[local]",
 			@@ ... @@
 			-         "exportsDepth": 9007199254740991,
 			+         "exportsDepth": 1,
@@ -35,6 +51,9 @@ module.exports = {
 			-     "nodeEnv": false,
 			+     "moduleIds": "named",
 			+     "nodeEnv": "development",
+			@@ ... @@
+			-           "production",
+			+           "development",
 			@@ ... @@
 			-       "production",
 			+       "development",

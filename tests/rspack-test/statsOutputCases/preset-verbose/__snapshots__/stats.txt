@@ -9,22 +9,17 @@ chunk {889} (runtime: main) main.js (main) xx bytes (javascript) xx bytes (runti
     ModuleConcatenation bailout: Module Concatenation is not implemented for javascript/auto
     commonjs require context . [237] ./index.js 2:1-16
     commonjs require context . [237] ./index.js 3:1-16
-    [237] ->
-    xx ms (resolving: xx ms, building: xx ms)
   ./a.js [670] xx bytes {889} [depth 1] [dependent] [built] [code generated]
     [used exports unknown]
     Statement with side_effects in source code at ./a.js<LINE_COL>-21
     ModuleConcatenation bailout: Module is not an ECMAScript module
     cjs self exports reference self [670] ./a.js
     cjs require ./a [237] ./index.js 1:9-13
-    [237] ->
-    xx ms (resolving: xx ms, building: xx ms)
   ./index.js [237] xx bytes {889} [depth 0] [built] [code generated] [2 warnings]
     [no exports used]
     Statement with side_effects in source code at ./index.js<LINE_COL>-15
     ModuleConcatenation bailout: Module is not an ECMAScript module
     entry ./index
-    xx ms (resolving: xx ms, building: xx ms)
   
 
 LOG from LogTestPlugin

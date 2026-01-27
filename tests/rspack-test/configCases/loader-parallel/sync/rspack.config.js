@@ -36,7 +36,4 @@ module.exports = {
 			createRule(10, [syncLoader, syncLoader, syncLoader])
 		]
 	},
-	experiments: {
-		parallelLoader: true
-	}
 };

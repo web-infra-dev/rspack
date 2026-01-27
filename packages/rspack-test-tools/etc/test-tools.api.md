@@ -506,6 +506,9 @@ export class NodeRunner implements ITestRunner {
 }
 
 // @public (undocumented)
+export const normalizePlaceholder: (val: any) => string;
+
+// @public (undocumented)
 export function parseModules(content: string, options?: {
     bootstrap?: boolean;
     renameModule?: (name: string) => string;
@@ -780,9 +783,6 @@ export type TTestConfig = {
     snapshotContent?(content: string): string;
     checkSteps?: boolean;
     ignoreNotFriendlyForIncrementalWarnings?: boolean;
-    esmLibPluginOptions?: {
-        preserveModules?: string;
-    };
     resourceLoader?: (url: string, element: HTMLScriptElement) => Buffer | null;
 };
 

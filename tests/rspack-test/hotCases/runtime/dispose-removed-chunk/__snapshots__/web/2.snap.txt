@@ -9,8 +9,8 @@
 - Bundle: b_js.CURRENT_HASH.js
 - Bundle: bundle.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 35
-- Update: b_js.LAST_HASH.hot-update.js, size: 342
-- Update: main.LAST_HASH.hot-update.js, size: 182
+- Update: b_js.LAST_HASH.hot-update.js, size: 341
+- Update: main.LAST_HASH.hot-update.js, size: 181
 
 ## Manifest
 
@@ -35,7 +35,7 @@
 #### Changed Content
 ```js
 "use strict";
-self["webpackHotUpdate"]("b_js", {
+self["rspackHotUpdate"]("b_js", {
 "./b.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
@@ -62,7 +62,7 @@ __webpack_require__.d(__webpack_exports__, {
 #### Changed Content
 ```js
 "use strict";
-self["webpackHotUpdate"]("main", {},function(__webpack_require__) {
+self["rspackHotUpdate"]("main", {},function(__webpack_require__) {
 // webpack/runtime/get_full_hash
 (() => {
 __webpack_require__.h = () => ("CURRENT_HASH")

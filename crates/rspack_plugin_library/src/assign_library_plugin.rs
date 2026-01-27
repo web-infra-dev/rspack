@@ -9,7 +9,8 @@ use rspack_core::{
   CompilationAdditionalChunkRuntimeRequirements, CompilationFinishModules, CompilationParams,
   CompilerCompilation, EntryData, ExportProvided, Filename, LibraryExport, LibraryName,
   LibraryNonUmdObject, LibraryOptions, ModuleIdentifier, PathData, Plugin, PrefetchExportsInfoMode,
-  RuntimeGlobals, RuntimeVariable, SourceType, UsageState, get_entry_runtime, property_access,
+  RuntimeGlobals, RuntimeModule, RuntimeVariable, SourceType, UsageState, get_entry_runtime,
+  property_access,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
   to_identifier,
 };
@@ -518,9 +519,10 @@ impl Plugin for AssignLibraryPlugin {
 #[plugin_hook(CompilationAdditionalChunkRuntimeRequirements for AssignLibraryPlugin)]
 async fn additional_chunk_runtime_requirements(
   &self,
-  compilation: &mut Compilation,
+  compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
   runtime_requirements: &mut RuntimeGlobals,
+  _runtime_modules: &mut Vec<Box<dyn RuntimeModule>>,
 ) -> Result<()> {
   if self
     .get_options_for_chunk(compilation, chunk_ukey)?

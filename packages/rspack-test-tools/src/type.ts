@@ -182,10 +182,6 @@ export type TTestConfig = {
   checkSteps?: boolean;
   // Only valid for Watch tests
   ignoreNotFriendlyForIncrementalWarnings?: boolean;
-  // Only valid for ESM library tests
-  esmLibPluginOptions?: {
-    preserveModules?: string;
-  };
   resourceLoader?: (url: string, element: HTMLScriptElement) => Buffer | null;
 };
 

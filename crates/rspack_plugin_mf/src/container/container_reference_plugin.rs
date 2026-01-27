@@ -3,7 +3,7 @@ use std::sync::Arc;
 use rspack_core::{
   BoxModule, ChunkUkey, Compilation, CompilationParams, CompilationRuntimeRequirementInTree,
   CompilerCompilation, DependencyType, ExternalType, ModuleExt, ModuleFactoryCreateData,
-  NormalModuleFactoryFactorize, Plugin, RuntimeGlobals,
+  NormalModuleFactoryFactorize, Plugin, RuntimeGlobals, RuntimeModule,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -107,11 +107,12 @@ async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<B
 #[plugin_hook(CompilationRuntimeRequirementInTree for ContainerReferencePlugin)]
 async fn runtime_requirements_in_tree(
   &self,
-  compilation: &mut Compilation,
+  compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
   _all_runtime_requirements: &RuntimeGlobals,
   runtime_requirements: &RuntimeGlobals,
   runtime_requirements_mut: &mut RuntimeGlobals,
+  runtime_modules_to_add: &mut Vec<(ChunkUkey, Box<dyn RuntimeModule>)>,
 ) -> Result<Option<()>> {
   if runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS) {
     runtime_requirements_mut.insert(RuntimeGlobals::MODULE);
@@ -119,13 +120,13 @@ async fn runtime_requirements_in_tree(
     runtime_requirements_mut.insert(RuntimeGlobals::HAS_OWN_PROPERTY);
     runtime_requirements_mut.insert(RuntimeGlobals::INITIALIZE_SHARING);
     runtime_requirements_mut.insert(RuntimeGlobals::SHARE_SCOPE_MAP);
-    compilation.add_runtime_module(
-      chunk_ukey,
+    runtime_modules_to_add.push((
+      *chunk_ukey,
       Box::new(RemoteRuntimeModule::new(
         &compilation.runtime_template,
         self.options.enhanced,
       )),
-    )?;
+    ));
   }
   Ok(None)
 }

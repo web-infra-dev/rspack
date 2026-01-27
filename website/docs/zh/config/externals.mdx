@@ -110,13 +110,13 @@ export default {
 ### 对象
 
 :::warning
-带有 `{ root, commonjs, commonjs2, amd, ... }` 的对象只允许用于 [`libraryTarget: 'umd'`](/config/output#outputlibrarytarget) 和 [`externalsType: 'umd'`](#externalstype)。其他库的 target 不允许这样做。
+带有 `{ root, commonjs, commonjs2, amd, ... }` 的对象只允许用于 [`library.type: 'umd'`](/config/output#outputlibrarytarget) 和 [`externalsType: 'umd'`](#externalstype)。其他库的 target 不允许这样做。
 :::
 
 ```js title="rspack.config.mjs"
 export default {
   externals: {
-    // 在 `libraryTarget: 'umd'` 和 `externalsType: 'umd'` 时，需严格遵循以下格式：
+    // 在 `library.type: 'umd'` 和 `externalsType: 'umd'` 时，需严格遵循以下格式：
     lodash: {
       root: '_', // 指向全局变量
       commonjs: 'lodash',
@@ -149,7 +149,9 @@ export default {
 回调函数接收三个参数：
 
 - `err` (`Error`): 用于标识外部化导入时是否出现错误。如果有错误，这应该是唯一使用的参数。
-- `result` (`string | string[] | object`): 使用其他外部格式描述外部模块（[字符串](#字符串)，[字符串数组](#字符串数组)或[对象](#对象) ）。
+- `result` (`string | string[] | object | boolean`): 描述外部模块。
+  - `string | string[] | object`: 使用其他外部格式描述外部模块（[字符串](#字符串)，[字符串数组](#字符串数组)或[对象](#对象)）。
+  - `boolean`: 传递 `true` 会将依赖外部化，使用原始的请求路径作为外部模块名称。传递 `false` 会告诉 Rspack 跳过剩余的 external 配置并打包该依赖。
 - `type` (`string`): 指示 [externalsType](#externalstype) 的可选参数（如果还没有在 `result` 参数中指出的话）。
 
 例如，要外部化所有导入路径与正则表达式匹配的导入，可以这样做：
@@ -277,7 +279,7 @@ export default {
 - **类型：** `string`
 - **默认值：** `'var'`
 
-指定 externals 的默认类型。当 external 被设置为 `amd`，`umd`，`system` 以及 `jsonp` 时，[`output.libraryTarget`](/config/output#outputlibrarytarget) 的值也应相同。例如，你只能在 `amd` 库中使用 `amd` 的 externals。
+指定 externals 的默认类型。当 external 被设置为 `amd`，`umd`，`system` 以及 `jsonp` 时，[`output.library.type`](/config/output#outputlibrarytype) 的值也应相同。例如，你只能在 `amd` 库中使用 `amd` 的 externals。
 
 支持的类型如下：
 

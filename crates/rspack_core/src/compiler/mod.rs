@@ -2,6 +2,7 @@ mod rebuild;
 use std::sync::{Arc, atomic::AtomicU32};
 
 use futures::future::join_all;
+use rspack_cacheable::cacheable;
 use rspack_error::Result;
 use rspack_fs::{IntermediateFileSystem, NativeFileSystem, ReadableFileSystem, WritableFileSystem};
 use rspack_hook::define_hook;
@@ -22,7 +23,6 @@ use crate::{
   fast_set, include_hash,
   incremental::{Incremental, IncrementalPasses},
   logger::Logger,
-  old_cache::Cache as OldCache,
   trim_dir,
 };
 
@@ -39,6 +39,8 @@ define_hook!(CompilerEmit: Series(compilation: &mut Compilation));
 define_hook!(CompilerAfterEmit: Series(compilation: &mut Compilation));
 define_hook!(CompilerAssetEmitted: Series(compilation: &Compilation, filename: &str, info: &AssetEmittedInfo));
 define_hook!(CompilerClose: Series(compilation: &Compilation));
+define_hook!(CompilerDone: Series(compilation: &Compilation));
+define_hook!(CompilerFailed: Series(compilation: &Compilation));
 
 #[derive(Debug, Default)]
 pub struct CompilerHooks {
@@ -51,10 +53,13 @@ pub struct CompilerHooks {
   pub after_emit: CompilerAfterEmitHook,
   pub asset_emitted: CompilerAssetEmittedHook,
   pub close: CompilerCloseHook,
+  pub done: CompilerDoneHook,
+  pub failed: CompilerFailedHook,
 }
 
 static COMPILER_ID: AtomicU32 = AtomicU32::new(0);
 
+#[cacheable]
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd)]
 pub struct CompilerId(u32);
 
@@ -89,7 +94,6 @@ pub struct Compiler {
   pub resolver_factory: Arc<ResolverFactory>,
   pub loader_resolver_factory: Arc<ResolverFactory>,
   pub cache: Box<dyn Cache>,
-  pub old_cache: Arc<OldCache>,
   /// emitted asset versions
   /// the key of HashMap is filename, the value of HashMap is version
   pub emitted_asset_versions: HashMap<String, String>,
@@ -152,8 +156,7 @@ impl Compiler {
       input_filesystem.clone(),
       intermediate_filesystem.clone(),
     );
-    let old_cache = Arc::new(OldCache::new(options.clone()));
-    let incremental = Incremental::new_cold(options.experiments.incremental);
+    let incremental = Incremental::new_cold(options.incremental);
     let module_executor = ModuleExecutor::default();
 
     let id = CompilerId::new();
@@ -171,7 +174,6 @@ impl Compiler {
         resolver_factory.clone(),
         loader_resolver_factory.clone(),
         None,
-        old_cache.clone(),
         incremental,
         Some(module_executor),
         Default::default(),
@@ -189,7 +191,6 @@ impl Compiler {
       resolver_factory,
       loader_resolver_factory,
       cache,
-      old_cache,
       emitted_asset_versions: Default::default(),
       input_filesystem,
       platform,
@@ -205,14 +206,33 @@ impl Compiler {
     self.build().await?;
     Ok(())
   }
+
   pub async fn build(&mut self) -> Result<()> {
     let compiler_context = self.compiler_context.clone();
-    within_compiler_context(compiler_context, self.build_inner()).await?;
-    Ok(())
+    match within_compiler_context(compiler_context, self.build_inner()).await {
+      Ok(_) => {
+        self
+          .plugin_driver
+          .compiler_hooks
+          .done
+          .call(&self.compilation)
+          .await?;
+        Ok(())
+      }
+      Err(e) => {
+        self
+          .plugin_driver
+          .compiler_hooks
+          .failed
+          .call(&self.compilation)
+          .await?;
+        Err(e)
+      }
+    }
   }
+
   #[instrument("Compiler:build",target=TRACING_BENCH_TARGET, skip_all)]
   async fn build_inner(&mut self) -> Result<()> {
-    self.old_cache.end_idle();
     // TODO: clear the outdated cache entries in resolver,
     // TODO: maybe it's better to use external entries.
     let plugin_driver_clone = self.plugin_driver.clone();
@@ -230,8 +250,7 @@ impl Compiler {
         self.resolver_factory.clone(),
         self.loader_resolver_factory.clone(),
         None,
-        self.old_cache.clone(),
-        Incremental::new_cold(self.options.experiments.incremental),
+        Incremental::new_cold(self.options.incremental),
         Some(Default::default()),
         Default::default(),
         Default::default(),
@@ -246,11 +265,10 @@ impl Compiler {
     // TODO: disable it for now, enable it once persistent cache is added to all artifacts
     // if is_hot {
     //   // If it's a hot start, we can use incremental
-    //   self.compilation.incremental = Incremental::new_hot(self.options.experiments.incremental);
+    //   self.compilation.incremental = Incremental::new_hot(self.options.incremental);
     // }
 
     self.compile().await?;
-    self.old_cache.begin_idle();
     self.compile_done().await?;
     self.cache.after_compile(&self.compilation).await;
     #[cfg(allocative)]
@@ -335,6 +353,10 @@ impl Compiler {
       .await?;
 
     let mut new_emitted_asset_versions = HashMap::default();
+    let emit_assets_incremental = self
+      .compilation
+      .incremental
+      .passes_enabled(IncrementalPasses::EMIT_ASSETS);
 
     rspack_futures::scope(|token| {
       self
@@ -343,15 +365,12 @@ impl Compiler {
         .iter()
         .for_each(|(filename, asset)| {
           // collect version info to new_emitted_asset_versions
-          if self
-            .compilation
-            .incremental
-            .passes_enabled(IncrementalPasses::EMIT_ASSETS)
-          {
+          if emit_assets_incremental {
             new_emitted_asset_versions.insert(filename.clone(), asset.info.version.clone());
           }
 
-          if let Some(old_version) = self.emitted_asset_versions.get(filename)
+          if emit_assets_incremental
+            && let Some(old_version) = self.emitted_asset_versions.get(filename)
             && old_version.as_str() == asset.info.version
             && !old_version.is_empty()
           {

@@ -8,7 +8,7 @@ use super::{
 };
 use crate::{
   AsyncDependenciesBlock, BoxDependency, BoxModule, BuildContext, BuildResult, CompilationId,
-  CompilerId, CompilerOptions, DependencyParents, ModuleProfile, ResolverFactory, RuntimeTemplate,
+  CompilerId, CompilerOptions, DependencyParents, ResolverFactory, RuntimeTemplate,
   SharedPluginDriver,
   compilation::build_module_graph::{ForwardedIdSet, HasLazyDependencies, LazyDependencies},
   utils::{
@@ -22,7 +22,6 @@ pub struct BuildTask {
   pub compiler_id: CompilerId,
   pub compilation_id: CompilationId,
   pub module: BoxModule,
-  pub current_profile: Option<ModuleProfile>,
   pub resolver_factory: Arc<ResolverFactory>,
   pub compiler_options: Arc<CompilerOptions>,
   pub runtime_template: Arc<RuntimeTemplate>,
@@ -44,14 +43,10 @@ impl Task<TaskContext> for BuildTask {
       resolver_factory,
       plugin_driver,
       runtime_template,
-      mut current_profile,
       mut module,
       fs,
       forwarded_ids,
     } = *self;
-    if let Some(current_profile) = &mut current_profile {
-      current_profile.mark_building_start();
-    }
 
     plugin_driver
       .compilation_hooks
@@ -74,16 +69,11 @@ impl Task<TaskContext> for BuildTask {
       )
       .await;
 
-    if let Some(current_profile) = &mut current_profile {
-      current_profile.mark_building_end();
-    }
-
     result.map::<Vec<Box<dyn Task<TaskContext>>>, _>(|build_result| {
       vec![Box::new(BuildResultTask {
         module,
         build_result: Box::new(build_result),
         plugin_driver,
-        current_profile,
         forwarded_ids,
       })]
     })
@@ -95,7 +85,6 @@ struct BuildResultTask {
   pub module: BoxModule,
   pub build_result: Box<BuildResult>,
   pub plugin_driver: SharedPluginDriver,
-  pub current_profile: Option<ModuleProfile>,
   pub forwarded_ids: ForwardedIdSet,
 }
 
@@ -108,7 +97,6 @@ impl Task<TaskContext> for BuildResultTask {
     let BuildResultTask {
       mut module,
       build_result,
-      current_profile,
       plugin_driver,
       mut forwarded_ids,
     } = *self;
@@ -162,9 +150,7 @@ impl Task<TaskContext> for BuildResultTask {
      -> Vec<Box<AsyncDependenciesBlock>> {
       for (index_in_block, dependency) in dependencies.into_iter().enumerate() {
         let dependency_id = *dependency.id();
-        if context.compiler_options.experiments.lazy_barrel
-          && let Some(until) = dependency.lazy()
-        {
+        if let Some(until) = dependency.lazy() {
           lazy_dependencies.insert(&dependency, until);
         }
         if current_block.is_none() {
@@ -199,9 +185,6 @@ impl Task<TaskContext> for BuildResultTask {
     {
       let mgm = module_graph.module_graph_module_by_identifier_mut(&module.identifier());
       mgm.all_dependencies = all_dependencies.clone();
-      if let Some(current_profile) = current_profile {
-        mgm.set_profile(current_profile);
-      }
     }
 
     let module_identifier = module.identifier();

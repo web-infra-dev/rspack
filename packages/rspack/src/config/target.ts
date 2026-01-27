@@ -1,4 +1,3 @@
-import binding from '@rspack/binding';
 /**
  * The following code is modified based on
  * https://github.com/webpack/webpack/blob/4b4ca3b/lib/config/target.js
@@ -8,13 +7,17 @@ import binding from '@rspack/binding';
  * Copyright (c) JS Foundation and other contributors
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
+
+import binding from '@rspack/binding';
+import { findConfig } from 'browserslist-load-config';
+import { browsersToESVersion } from 'browserslist-to-es-version/core';
 import { memoize } from '../util/memoize';
+import { decodeVersion, encodeVersion } from '../util/targetsVersion';
 import * as browserslistTargetHandler from './browserslistTargetHandler';
 
 const getBrowserslistTargetHandler = memoize(() => browserslistTargetHandler);
 
 const hasBrowserslistConfig = (context: string) => {
-  const { findConfig } = require('browserslist-load-config');
   return Boolean(findConfig(context));
 };
 
@@ -100,13 +103,10 @@ export type EcmaTargetProperties = {
   asyncFunction: boolean | null;
 };
 
-// type TargetProperties =
-// 	| PlatformTargetProperties
-// 	| ApiTargetProperties
-// 	| EcmaTargetProperties
-// 	| (PlatformTargetProperties & ApiTargetProperties)
-// 	| (PlatformTargetProperties & EcmaTargetProperties)
-// 	| (ApiTargetProperties & EcmaTargetProperties);
+export type ExtractedTargetProperties = {
+  esVersion?: number | null;
+  targets?: Record<string, string> | null;
+};
 
 type Never<T> = { [P in keyof T]?: never };
 type Mix<A, B> = (A & Never<B>) | (Never<A> & B) | (A & B);
@@ -114,7 +114,8 @@ type Mix<A, B> = (A & Never<B>) | (Never<A> & B) | (A & B);
 export type TargetProperties = Mix<
   Mix<PlatformTargetProperties, ElectronContextTargetProperties>,
   Mix<ApiTargetProperties, EcmaTargetProperties>
->;
+> &
+  ExtractedTargetProperties;
 
 /**
  * @param major major version
@@ -169,7 +170,26 @@ You can also more options via the 'target' option: 'browserslist' / 'browserslis
       }
 
       const browserslistTargetHandler = getBrowserslistTargetHandler();
-      return browserslistTargetHandler.resolve(browsers);
+
+      const encodedTargets: Record<string, number> = {};
+      for (const p of browsers) {
+        const [name, v] = p.split(' ');
+        const version = encodeVersion(v);
+        if (version === null) continue;
+
+        if (!encodedTargets[name] || version < encodedTargets[name]) {
+          encodedTargets[name] = version;
+        }
+      }
+      const targets = Object.fromEntries(
+        Object.entries(encodedTargets).map(([k, v]) => [k, decodeVersion(v)]),
+      );
+
+      return {
+        ...browserslistTargetHandler.resolve(browsers),
+        targets,
+        esVersion: browsersToESVersion(browsers),
+      };
     },
   ],
   [
@@ -233,6 +253,31 @@ You can also more options via the 'target' option: 'browserslist' / 'browserslis
         webworker: false,
         browser: false,
 
+        targets: major
+          ? ({ node: `${major}${minor ? `.${minor}` : ''}` } as Record<
+              string,
+              string
+            >)
+          : {},
+        // https://github.com/microsoft/TypeScript/wiki/Node-Target-Mapping
+        esVersion: v(18)
+          ? 2022
+          : v(16)
+            ? 2021
+            : v(14)
+              ? 2020
+              : v(12)
+                ? 2019
+                : v(10)
+                  ? 2018
+                  : v(8)
+                    ? 2017
+                    : v(7)
+                      ? 2016
+                      : v(6, 5)
+                        ? 2015
+                        : 5,
+
         require: !asyncFlag,
         nodeBuiltins: true,
         // v16.0.0, v14.18.0
@@ -268,7 +313,7 @@ You can also more options via the 'target' option: 'browserslist' / 'browserslis
     /^electron((\d+)(?:\.(\d+))?)?-(main|preload|renderer)$/,
     (_, major, minor, context) => {
       const v = versionDependent(major, minor);
-      // see https://node.green/ + https://github.com/electron/releases
+      // see https://node.green/ + https://releases.electronjs.org/releases.json
       return {
         node: true,
         electron: true,
@@ -280,6 +325,30 @@ You can also more options via the 'target' option: 'browserslist' / 'browserslis
         electronMain: context === 'main',
         electronPreload: context === 'preload',
         electronRenderer: context === 'renderer',
+
+        targets: major
+          ? ({ electron: `${major}${minor ? `.${minor}` : ''}` } as Record<
+              string,
+              string
+            >)
+          : {},
+        esVersion: v(23)
+          ? 2022
+          : v(15)
+            ? 2021
+            : v(12)
+              ? 2020
+              : v(5)
+                ? 2019
+                : v(3)
+                  ? 2018
+                  : v(1, 8)
+                    ? 2017
+                    : v(1, 5)
+                      ? 2016
+                      : v(1, 4)
+                        ? 2015
+                        : 5,
 
         global: true,
         nodeBuiltins: true,
@@ -317,7 +386,7 @@ You can also more options via the 'target' option: 'browserslist' / 'browserslis
     /^(?:nwjs|node-webkit)((\d+)(?:\.(\d+))?)?$/,
     (_, major, minor) => {
       const v = versionDependent(major, minor);
-      // see https://node.green/ + https://github.com/nwjs/nw.js/blob/nw48/CHANGELOG.md
+      // see https://node.green/ + https://github.com/nwjs/nw.js/blob/main/CHANGELOG.md
       return {
         node: true,
         web: true,
@@ -325,6 +394,30 @@ You can also more options via the 'target' option: 'browserslist' / 'browserslis
         webworker: null,
         browser: false,
         electron: false,
+
+        targets: major
+          ? ({ nwjs: `${major}${minor ? `.${minor}` : ''}` } as Record<
+              string,
+              string
+            >)
+          : {},
+        esVersion: v(0, 65)
+          ? 2022
+          : v(0, 54)
+            ? 2021
+            : v(0, 46)
+              ? 2020
+              : v(0, 39)
+                ? 2019
+                : v(0, 31)
+                  ? 2018
+                  : v(0, 23)
+                    ? 2017
+                    : v(0, 20)
+                      ? 2016
+                      : v(0, 17)
+                        ? 2015
+                        : 5,
 
         global: true,
         nodeBuiltins: true,
@@ -356,8 +449,10 @@ You can also more options via the 'target' option: 'browserslist' / 'browserslis
     /^es(\d+)$/,
     (version) => {
       let v = +version;
-      if (v < 1000) v = v + 2009;
+      if (5 < v && v < 1000) v = v + 2009;
       return {
+        // SWC minifier only supports up to 2022
+        esVersion: v > 2022 ? 2022 : v,
         const: v >= 2015,
         templateLiteral: v >= 2015,
         optionalChaining: v >= 2020,
@@ -376,11 +471,6 @@ You can also more options via the 'target' option: 'browserslist' / 'browserslis
   ],
 ];
 
-/**
- * @param target the target
- * @param context the context directory
- * @returns target properties
- */
 export const getTargetProperties = (
   target: string,
   context: string,
@@ -412,6 +502,42 @@ const mergeTargetProperties = (
 
   const result: Partial<TargetProperties> = {};
   for (const key of keys) {
+    if (key === 'esVersion') {
+      let minVersion: number | undefined;
+      for (const tp of targetProperties) {
+        if (typeof tp.esVersion === 'number') {
+          minVersion =
+            minVersion === undefined
+              ? tp.esVersion
+              : Math.min(minVersion, tp.esVersion);
+        }
+      }
+      if (minVersion !== undefined) result[key] = minVersion;
+      continue;
+    }
+
+    if (key === 'targets') {
+      const merged: Record<string, number> = {};
+      for (const tp of targetProperties) {
+        if (tp.targets) {
+          for (const [name, version] of Object.entries(tp.targets)) {
+            const v = encodeVersion(version);
+            if (v !== null) {
+              if (!merged[name] || v < merged[name]) {
+                merged[name] = v;
+              }
+            }
+          }
+        }
+      }
+      if (Object.keys(merged).length > 0) {
+        result[key] = Object.fromEntries(
+          Object.entries(merged).map(([k, v]) => [k, decodeVersion(v)]),
+        );
+      }
+      continue;
+    }
+
     let hasTrue = false;
     let hasFalse = false;
     for (const tp of targetProperties) {
@@ -430,12 +556,10 @@ const mergeTargetProperties = (
   return result as TargetProperties;
 };
 
-/**
- * @param targets the targets
- * @param context the context directory
- * @returns target properties
- */
-export const getTargetsProperties = (targets: string[], context: string) => {
+export const getTargetsProperties = (
+  targets: string[],
+  context: string,
+): TargetProperties => {
   return mergeTargetProperties(
     targets.map((t) => getTargetProperties(t, context)),
   );

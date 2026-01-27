@@ -41,7 +41,7 @@ export type DllPluginOptions = {
   path: string;
 
   /**
-   * Type of the dll bundle (external type, use value of 'output.libraryTarget').
+   * Type of the dll bundle (external type, use value of 'output.library.type').
    */
   type?: string;
 };

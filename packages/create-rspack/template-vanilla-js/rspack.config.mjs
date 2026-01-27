@@ -2,15 +2,17 @@
 import { defineConfig } from '@rspack/cli';
 import { rspack } from '@rspack/core';
 
-// Target browsers, see: https://github.com/browserslist/browserslist
-const targets = ['last 2 versions', '> 0.2%', 'not dead', 'Firefox ESR'];
-
 export default defineConfig({
   entry: {
     main: './src/index.js',
   },
+  target: ['browserslist:last 2 versions, > 0.2%, not dead, Firefox ESR'],
   module: {
     rules: [
+      {
+        test: /\.css$/,
+        type: 'css/auto',
+      },
       {
         test: /\.svg$/,
         type: 'asset',
@@ -27,7 +29,6 @@ export default defineConfig({
                   syntax: 'ecmascript',
                 },
               },
-              env: { targets },
             },
           },
         ],
@@ -35,15 +36,4 @@ export default defineConfig({
     ],
   },
   plugins: [new rspack.HtmlRspackPlugin({ template: './index.html' })],
-  optimization: {
-    minimizer: [
-      new rspack.SwcJsMinimizerRspackPlugin(),
-      new rspack.LightningCssMinimizerRspackPlugin({
-        minimizerOptions: { targets },
-      }),
-    ],
-  },
-  experiments: {
-    css: true,
-  },
 });

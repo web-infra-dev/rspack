@@ -1,11 +1,11 @@
 import fs from 'node:fs';
+import { createRequire } from 'node:module';
 import path from 'node:path';
 import {
   BuiltinPluginName,
   type JsHtmlPluginTag,
   type RawHtmlRspackPluginOptions,
 } from '@rspack/binding';
-
 import type { Compilation } from '../../Compilation';
 import type { Compiler } from '../../Compiler';
 import { create } from '../base';
@@ -19,6 +19,8 @@ import {
   type HtmlRspackPluginOptions,
   setPluginOptions,
 } from './options';
+
+const require = createRequire(import.meta.url);
 
 type HtmlPluginTag = {
   tagName: string;
@@ -208,7 +210,6 @@ const HtmlRspackPluginImpl = create(
       chunks: c.chunks,
       excludeChunks: c.excludeChunks,
       chunksSortMode,
-      sri: c.sri,
       minify: c.minify,
       meta,
       scriptLoading,
@@ -244,10 +245,6 @@ function htmlTagObjectToString(tag: {
 }
 
 const HtmlRspackPlugin = HtmlRspackPluginImpl as typeof HtmlRspackPluginImpl & {
-  /**
-   * @deprecated Use `getCompilationHooks` instead.
-   */
-  getHooks: (compilation: Compilation) => HtmlRspackPluginHooks;
   getCompilationHooks: (compilation: Compilation) => HtmlRspackPluginHooks;
   createHtmlTagObject: (
     tagName: string,
@@ -288,8 +285,7 @@ HtmlRspackPlugin.createHtmlTagObject = (
   };
 };
 
-HtmlRspackPlugin.getHooks = HtmlRspackPlugin.getCompilationHooks =
-  getPluginHooks;
+HtmlRspackPlugin.getCompilationHooks = getPluginHooks;
 HtmlRspackPlugin.version = 5;
 
 export { HtmlRspackPlugin };

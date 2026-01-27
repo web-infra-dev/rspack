@@ -5,7 +5,8 @@ use rspack_core::{
   CompilationAdditionalTreeRuntimeRequirements, CompilationDependencyReferencedExports,
   CompilationOptimizeDependencies, CompilationProcessAssets, DependenciesBlock, DependencyId,
   DependencyType, ExportsType, ExtendedReferencedExport, Module, ModuleGraph, ModuleIdentifier,
-  NormalModule, Plugin, RuntimeGlobals, RuntimeModuleExt, RuntimeSpec, SideEffectsOptimizeArtifact,
+  Plugin, RuntimeGlobals, RuntimeModule, RuntimeModuleExt, RuntimeSpec,
+  SideEffectsOptimizeArtifact,
   build_module_graph::BuildModuleGraphArtifact,
   rspack_sources::{RawStringSource, SourceExt, SourceValue},
 };
@@ -364,17 +365,17 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 )]
 async fn additional_tree_runtime_requirements(
   &self,
-  compilation: &mut Compilation,
-  chunk_ukey: &ChunkUkey,
+  _compilation: &Compilation,
+  _chunk_ukey: &ChunkUkey,
   runtime_requirements: &mut RuntimeGlobals,
+  runtime_modules: &mut Vec<Box<dyn RuntimeModule>>,
 ) -> Result<()> {
   if self.shared_map.is_empty() {
     return Ok(());
   }
 
   runtime_requirements.insert(RuntimeGlobals::RUNTIME_ID);
-  compilation.add_runtime_module(
-    chunk_ukey,
+  runtime_modules.push(
     SharedUsedExportsOptimizerRuntimeModule::new(Arc::new(
       self
         .shared_referenced_exports
@@ -383,7 +384,7 @@ async fn additional_tree_runtime_requirements(
         .clone(),
     ))
     .boxed(),
-  )?;
+  );
 
   Ok(())
 }

@@ -113,15 +113,17 @@ fn fetch_from_data_url(source_url: &str) -> Result<String, String> {
 
 /// Get absolute path for source file using Node.js logic
 fn get_absolute_path(context: &Utf8Path, request: &str, source_root: Option<&str>) -> Utf8PathBuf {
-  if let Some(source_root) = source_root {
+  let path = if let Some(source_root) = source_root {
     let source_root_path = Utf8Path::new(source_root);
     if is_absolute(source_root_path) {
-      return source_root_path.join(request);
+      source_root_path.join(request)
+    } else {
+      context.join(source_root).join(request)
     }
-    return context.join(source_root).join(request);
-  }
-
-  context.join(request)
+  } else {
+    context.join(request)
+  };
+  path.node_normalize()
 }
 
 /// Fetch source content from file system
@@ -210,7 +212,7 @@ async fn fetch_from_url(
 
   // 3. Absolute path
   if is_absolute(Utf8Path::new(url)) {
-    let source_url = url.to_string();
+    let source_url = Utf8Path::new(url).node_normalize().to_string();
 
     if !skip_reading {
       let mut possible_requests = Vec::with_capacity(2);
@@ -482,5 +484,24 @@ mod tests {
       assert!(result.source_mapping_url.is_empty());
       assert!(result.replacement_string.is_empty());
     }
+  }
+  #[tokio::test]
+  async fn test_extract_source_map_normalization() {
+    let context = Utf8Path::new("/context");
+
+    // Test get_absolute_path normalization
+    let path = get_absolute_path(context, "../foo.js", None);
+    assert_eq!(path.as_str(), "/foo.js");
+
+    let path = get_absolute_path(context, "a/../../b/c.js", None);
+    assert_eq!(path.as_str(), "/b/c.js");
+
+    // Test fetch_from_url normalization for absolute paths
+    let fs: Arc<dyn ReadableFileSystem> = Arc::new(rspack_fs::MemoryFileSystem::default());
+
+    let (path, _) = fetch_from_url(&fs, context, "/a/b/../c.js", None, true)
+      .await
+      .unwrap();
+    assert_eq!(path, "/a/c.js");
   }
 }

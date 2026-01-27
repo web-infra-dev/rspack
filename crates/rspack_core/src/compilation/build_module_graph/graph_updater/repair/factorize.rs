@@ -7,7 +7,7 @@ use super::{TaskContext, add::AddTask};
 use crate::{
   BoxDependency, CompilationId, CompilerId, CompilerOptions, Context, ExportsInfoData,
   FactorizeInfo, ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier,
-  ModuleLayer, ModuleProfile, Resolve, ResolverFactory,
+  ModuleLayer, Resolve, ResolverFactory,
   module_graph::ModuleGraphModule,
   utils::{
     ResourceId,
@@ -28,7 +28,6 @@ pub struct FactorizeTask {
   pub dependencies: Vec<BoxDependency>,
   pub resolve_options: Option<Arc<Resolve>>,
   pub options: Arc<CompilerOptions>,
-  pub current_profile: Option<ModuleProfile>,
   pub resolver_factory: Arc<ResolverFactory>,
   pub from_unlazy: bool,
 }
@@ -39,9 +38,6 @@ impl Task<TaskContext> for FactorizeTask {
     TaskType::Background
   }
   async fn background_run(mut self: Box<Self>) -> TaskResult<TaskContext> {
-    if let Some(current_profile) = &mut self.current_profile {
-      current_profile.mark_factory_start();
-    }
     let dependency = &self.dependencies[0];
 
     let context = if let Some(context) = dependency.get_context()
@@ -113,10 +109,6 @@ impl Task<TaskContext> for FactorizeTask {
       }
     };
 
-    if let Some(current_profile) = &mut self.current_profile {
-      current_profile.mark_factory_end();
-    }
-
     let factorize_info = if let Some(unsafe_cache_predicate) = &self.options.module.unsafe_cache
       && let Some(result) = &factory_result
       && let Some(module) = &result.module
@@ -151,7 +143,6 @@ impl Task<TaskContext> for FactorizeTask {
       original_module_identifier: self.original_module_identifier,
       factory_result,
       dependencies: create_data.dependencies,
-      current_profile: self.current_profile,
       exports_info_related: exports_info,
       factorize_info,
       from_unlazy: self.from_unlazy,
@@ -166,7 +157,6 @@ pub struct FactorizeResultTask {
   /// Result will be available if [crate::ModuleFactory::create] returns `Ok`.
   pub factory_result: Option<ModuleFactoryResult>,
   pub dependencies: Vec<BoxDependency>,
-  pub current_profile: Option<ModuleProfile>,
   pub exports_info_related: ExportsInfoData,
   pub factorize_info: FactorizeInfo,
   pub from_unlazy: bool,
@@ -182,7 +172,6 @@ impl Task<TaskContext> for FactorizeResultTask {
       original_module_identifier,
       factory_result,
       mut dependencies,
-      current_profile,
       exports_info_related,
       mut factorize_info,
       from_unlazy,
@@ -253,7 +242,6 @@ impl Task<TaskContext> for FactorizeResultTask {
       module,
       module_graph_module: Box::new(mgm),
       dependencies,
-      current_profile,
       from_unlazy,
     })])
   }

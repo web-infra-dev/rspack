@@ -16,16 +16,22 @@ export default defineConfig({
   testEnvironment: 'node',
   globals: true,
   testTimeout: process.env.CI ? 200000 : 30000,
-  include: ['tests/**/*.test.ts', 'tests/**/*.test.js'],
+  include: ['tests/**/*.test.{ts,js,cts}'],
   source: {
     tsconfigPath: 'tests/tsconfig.json',
   },
   output: {
-    externals: [/@rspack\/core/],
+    externals: [/@rspack\/core/, /api-wrapper/],
     module: false,
   },
   env: {
     RUST_BACKTRACE: 'full',
   },
+  chaiConfig: process.env.CI
+    ? {
+        // show all info on CI
+        truncateThreshold: 5000,
+      }
+    : undefined,
   ...(wasmConfig || {}),
 });

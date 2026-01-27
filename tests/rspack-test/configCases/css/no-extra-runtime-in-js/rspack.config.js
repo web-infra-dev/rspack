@@ -5,9 +5,6 @@ module.exports = {
 	target: "web",
 	mode: "development",
 	devtool: false,
-	experiments: {
-		css: true
-	},
 	module: {
 		rules: [
 			{
@@ -37,6 +34,10 @@ module.exports = {
 			{
 				mimetype: "image/png",
 				type: "asset/resource"
+			},
+			{
+				test: /\.css$/,
+				type: "css/auto"
 			}
 		]
 	},

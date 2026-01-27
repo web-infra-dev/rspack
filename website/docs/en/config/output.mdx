@@ -46,12 +46,42 @@ export default {
 };
 ```
 
-## output.charset
+## output.bundlerInfo
 
-- **Type:** `boolean`
-- **Default:** `false`
+<ApiMeta addedVersion="2.0.0" />
 
-Add [deprecated](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/script#Charset) `charset="utf-8"` attribute to the HTML `<script>` tag.
+> In versions 1.x, use `experiments.rspackFuture.bundlerInfo` instead.
+
+- **Type**:
+
+  ```ts
+  type BundlerInfo = {
+    version?: string,
+    bundler?: string,
+    force?: ('version' | 'uniqueId')[] ｜ boolean;
+  };
+  ```
+
+Used to inject the currently used Rspack information into the generated asset:
+
+- `version`: Used to specify the Rspack version, defaults to the `version` field in `@rspack/core/package.json`.
+- `bundler`: Used to specify the name of the packaging tool, defaults to `rspack`.
+- `force`: Whether to force the injection of Rspack information, which will be added to chunk as a runtime module, and defaults to `true` to force injection. An array can be used to select the items to be forced injected.
+
+#### Disable default injection
+
+The default injection can be disabled by setting `force` to `false`. Then injection will only occur when `__rspack_version__` and `__rspack_unique_id__` are detected in the code:
+
+- [`__rspack_version__`](/api/runtime-api/module-variables#__rspack_version__): Inject version information.
+- [`__rspack_unique_id__`](/api/runtime-api/module-variables#__rspack_unique_id__): Inject the unique ID of the bundler.
+
+```js title="rspack.config.mjs"
+export default {
+  output: {
+    bundlerInfo: { force: false },
+  },
+};
+```
 
 ## output.chunkFilename
 
@@ -586,8 +616,10 @@ For example:
 ```js title="rspack.config.mjs"
 export default {
   output: {
-    library: 'myLib',
-    libraryTarget: 'umd',
+    library: {
+      name: 'myLib',
+      type: 'umd',
+    },
     filename: 'myLib.js',
     globalObject: 'this',
   },
@@ -666,7 +698,7 @@ Typically you don't need to change `output.hotUpdateChunkFilename`.
 ## output.hotUpdateGlobal
 
 - **Type:** `string`
-- **Default:** `"webpackHotUpdate" + output.uniqueName`
+- **Default:** `"rspackHotUpdate" + output.uniqueName`
 
 Only used when [`target`](/config/target) is set to `'web'`, which uses JSONP for loading hot updates.
 
@@ -1065,8 +1097,6 @@ export default {
 
 Output ES modules.
 
-However this feature is still experimental and not fully supported yet, so make sure to enable [`experiments.outputModule`](/config/experiments#experimentsoutputmodule) beforehand. In addition, you can track the development progress in [this thread](https://github.com/webpack/webpack/issues/2933#issuecomment-774253975).
-
 ##### type: 'modern-module'
 
 ```js title="rspack.config.mjs"
@@ -1084,7 +1114,7 @@ export default {
 };
 ```
 
-This configuration generates tree-shakable output for ES Modules.
+This configuration generates tree-shakable and code-splitting available output for ES Modules.
 
 However this feature is still experimental and not fully supported yet, so make sure to enable [`experiments.outputModule`](/config/experiments#experimentsoutputmodule) beforehand.
 
@@ -1268,7 +1298,9 @@ Note that omitting `library.name` will result in the assignment of all propertie
 export default {
   //...
   output: {
-    libraryTarget: 'umd',
+    library: {
+      type: 'umd',
+    },
   },
 };
 ```
@@ -1512,6 +1544,30 @@ The AMD module will be:
 define('MyLibrary', [], factory);
 ```
 
+### output.library.preserveModules
+
+- **Type:** `string`
+- **Default:** `undefined`
+
+:::info
+Only available when `library.type` is set to `modern-module`.
+:::
+
+When enabled, Rspack will preserve the original directory structure of modules within the specified directory.
+
+```js
+import path from 'path';
+module.exports = {
+  //...
+  output: {
+    library: {
+      type: 'modern-module',
+      preserveModules: path.resolve('./src'),
+    },
+  },
+};
+```
+
 ## output.module
 
 - **Type:** `boolean`
@@ -1521,7 +1577,7 @@ Output JavaScript files as module type. Disabled by default as it's an experimen
 
 When enabled, Rspack will set [`output.iife`](#outputiife) to `false`, [`output.scriptType`](#outputscripttype) to `'module'` and `terserOptions.module` to `true` internally.
 
-If you're using Rspack to compile a library to be consumed by others, make sure to set [`output.libraryTarget`](#librarytarget-module) to `'module'` when `output.module` is `true`.
+If you're using Rspack to compile a library to be consumed by others, make sure to set [`output.library.type`](#outputlibrarytype) to `'module'` when `output.module` is `true`.
 
 ```js title="rspack.config.mjs"
 export default {
@@ -1702,7 +1758,7 @@ export default {
   //...
   output: {
     trustedTypes: {
-      policyName: 'my-application#webpack',
+      policyName: 'my-application#rspack',
     },
   },
 };
@@ -1723,7 +1779,7 @@ export default {
   output: {
     //...
     trustedTypes: {
-      policyName: 'my-application#webpack',
+      policyName: 'my-application#rspack',
       onPolicyCreationFailure: 'continue',
     },
   },
@@ -1840,61 +1896,4 @@ export default {
     workerWasmLoading: 'fetch',
   },
 };
-```
-
-## output.auxiliaryComment
-
-:::warning
-Prefer to use [`output.library.auxiliaryComment`](#outputlibraryauxiliarycomment) instead.
-:::
-
-## output.libraryExport \{#outputlibraryexport-1}
-
-:::warning
-We might drop support for this, so prefer to use [output.library.export](#outputlibraryexport) which works the same as `libraryExport`.
-:::
-
-## output.libraryTarget
-
-:::warning
-Please use [`output.library.type`](#outputlibrarytype) instead as we might drop support for `output.libraryTarget` in the future.
-:::
-
-## output.umdNamedDefine
-
-:::warning
-Prefer to use [`output.library.umdNamedDefine`](#outputlibraryumdnameddefine) instead.
-:::
-
-## output.cssHeadDataCompression
-
-<ApiMeta addedVersion={'1.0.0'} />
-
-- **Type:** `boolean`
-- **Default:** `false` for development mode, `true` for production mode
-
-Rspack adds some metadata in CSS to parse CSS modules, and this configuration determines whether to compress these metadata.
-
-For example
-
-```css
-.local-a {
-  color: blue;
-}
-
-head {
-  --webpack-main: a: local-a/&\.\/ src\/index\.module\.css;
-}
-```
-
-After compress 👇
-
-```css
-.local-a {
-  color: blue;
-}
-
-head {
-  --webpack-main: &\.\/ srcăindexāmoduleācss;
-}
 ```

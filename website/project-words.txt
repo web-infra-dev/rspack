@@ -48,9 +48,6 @@ esbuild
 etags
 evanw
 experimentscss
-experimentsrspackfuture
-experimentsrspackfuturedisableapplyentrylazily
-experimentsrspackfuturenewresolver
 externalstypecommonjs
 faga295
 fargs
@@ -170,6 +167,7 @@ ruleparserdataurlcondition
 Rust
 rustup
 samply
+samsung
 sanyuan
 Shenzhen
 shiki

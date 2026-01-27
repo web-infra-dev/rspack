@@ -663,7 +663,7 @@ This method is used to initialize modules of a shared scope in the host containe
 
 <ApiMeta specific={['Rspack', 'Webpack']} />
 
-Context from System.js when `output.libraryTarget="system"`
+Context from System.js when `output.library.type="system"`
 
 ## Rspack
 
@@ -671,7 +671,7 @@ Context from System.js when `output.libraryTarget="system"`
 
 <ApiMeta specific={['Rspack']} />
 Current Rspack version, default to version in `@rspack/core/package.json`, can
-be modified through experiments.rspackFuture.bundlerInfo.version.
+be modified through output.bundlerInfo.version.
 
 <Columns>
 ```js title=Source
@@ -693,8 +693,8 @@ __webpack_require__.rv = '0.7.4';
 
 The ID of the current bundler, the value is `bundler={bundler}@{version}`:
 
-- `bundler`: Default to `"rspack"` and can be modified through [experiments.rspackFuture.bundlerInfo.bundler](/config/experiments#rspackfuturebundlerinfo).
-- `version`: Default to version in `@rspack/core/package.json` and can be modified through [experiments.rspackFuture.bundlerInfo.version](/config/experiments#rspackfuturebundlerinfo).
+- `bundler`: Default to `"rspack"` and can be modified through [output.bundlerInfo.bundler](/config/output#outputbundlerinfo).
+- `version`: Default to version in `@rspack/core/package.json` and can be modified through [output.bundlerInfo.version](/config/output#outputbundlerinfo).
 
 <Columns>
 ```js title=Source

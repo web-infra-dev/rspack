@@ -122,10 +122,6 @@ server.start();
 
 - `compiler`: 当前的 [Compiler](/api/javascript-api/compiler)，使用该 Compiler 对应的 `lazyCompilation` 配置。
 
-:::tip
-在 Rspack 1.7 版本之前，该中间件需要通过 `rspack.experiments.lazyCompilationMiddleware` 来获取。
-:::
-
 ## 自定义懒编译端点
 
 默认情况下，懒编译中间件使用 `/lazy-compilation-using-` 前缀来处理请求。如果你需要自定义这个前缀，可以使用 `prefix` 选项：

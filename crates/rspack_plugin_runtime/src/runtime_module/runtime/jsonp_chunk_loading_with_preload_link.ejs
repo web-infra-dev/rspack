@@ -1,7 +1,4 @@
 var link = document.createElement('link');
-<% if (_charset) { %>
-link.charset = 'utf-8';
-<% } %>
 <% if (_script_type != "false" && _script_type != "module") { %>
 link.type = "<%- _script_type %>";
 <% } %>

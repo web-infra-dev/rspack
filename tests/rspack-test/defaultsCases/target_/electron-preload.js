@@ -23,6 +23,15 @@ module.exports = {
 			-     "target": "web",
 			+     "target": "electron-preload",
 			@@ ... @@
+			-         "exportsOnly": false,
+			+         "exportsOnly": true,
+			@@ ... @@
+			-         "exportsOnly": false,
+			+         "exportsOnly": true,
+			@@ ... @@
+			-         "exportsOnly": false,
+			+         "exportsOnly": true,
+			@@ ... @@
 			-     "__dirname": "warn-mock",
 			-     "__filename": "warn-mock",
 			-     "global": "warn",

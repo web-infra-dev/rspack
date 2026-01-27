@@ -81,6 +81,27 @@ impl ConcatenationScope {
     raw_export_map.insert(export_name, symbol);
   }
 
+  pub fn register_namespace_import(
+    &mut self,
+    import_source: String,
+    attributes: Option<String>,
+    import_symbol: Atom,
+  ) -> &Atom {
+    let raw_import_map = self.current_module.import_map.get_or_insert_default();
+    let entry = raw_import_map
+      .entry((import_source, attributes))
+      .or_default();
+
+    if entry.namespace.is_none() {
+      entry.namespace = Some(import_symbol)
+    }
+
+    entry
+      .namespace
+      .as_ref()
+      .expect("should have namespace symbol")
+  }
+
   pub fn register_import(
     &mut self,
     import_source: String,
@@ -96,7 +117,7 @@ impl ConcatenationScope {
       return;
     };
 
-    entry.insert(import_symbol);
+    entry.specifiers.insert(import_symbol);
   }
 
   pub fn register_namespace_export(&mut self, symbol: &str) {

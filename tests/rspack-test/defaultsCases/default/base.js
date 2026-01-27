@@ -20,44 +20,10 @@ module.exports = {
 			    },
 			  },
 			  experiments: Object {
-			    asyncWebAssembly: false,
+			    asyncWebAssembly: true,
 			    buildHttp: undefined,
-			    cache: false,
-			    css: undefined,
 			    deferImport: false,
 			    futureDefaults: false,
-			    incremental: Object {
-			      buildChunkGraph: false,
-			      chunkIds: true,
-			      chunksHashes: true,
-			      chunksRender: true,
-			      chunksRuntimeRequirements: true,
-			      dependenciesDiagnostics: true,
-			      emitAssets: true,
-			      inferAsyncModules: true,
-			      make: true,
-			      moduleIds: true,
-			      modulesCodegen: true,
-			      modulesHashes: true,
-			      modulesRuntimeRequirements: true,
-			      providedExports: true,
-			      sideEffects: true,
-			      silent: true,
-			    },
-			    inlineConst: true,
-			    inlineEnum: false,
-			    lazyBarrel: true,
-			    lazyCompilation: false,
-			    parallelLoader: false,
-			    rspackFuture: Object {
-			      bundlerInfo: Object {
-			        bundler: rspack,
-			        force: true,
-			        version: $version$,
-			      },
-			    },
-			    topLevelAwait: true,
-			    typeReexportsPresence: false,
 			    useInputFileSystem: false,
 			  },
 			  externals: undefined,
@@ -72,6 +38,22 @@ module.exports = {
 			  },
 			  externalsType: var,
 			  ignoreWarnings: undefined,
+			  incremental: Object {
+			    buildChunkGraph: false,
+			    buildModuleGraph: true,
+			    chunkAsset: true,
+			    chunkIds: true,
+			    chunksHashes: true,
+			    chunksRuntimeRequirements: true,
+			    emitAssets: true,
+			    finishModules: true,
+			    moduleIds: true,
+			    modulesCodegen: true,
+			    modulesHashes: true,
+			    modulesRuntimeRequirements: true,
+			    optimizeDependencies: true,
+			    silent: true,
+			  },
 			  infrastructureLogging: Object {},
 			  lazyCompilation: false,
 			  loader: Object {
@@ -163,6 +145,34 @@ module.exports = {
 			        type: javascript/esm,
 			      },
 			      Object {
+			        rules: Array [
+			          Object {
+			            descriptionData: Object {
+			              type: module,
+			            },
+			            resolve: Object {
+			              fullySpecified: true,
+			            },
+			          },
+			        ],
+			        test: /\\\\\\.wasm\\$/i,
+			        type: webassembly/async,
+			      },
+			      Object {
+			        mimetype: application/wasm,
+			        rules: Array [
+			          Object {
+			            descriptionData: Object {
+			              type: module,
+			            },
+			            resolve: Object {
+			              fullySpecified: true,
+			            },
+			          },
+			        ],
+			        type: webassembly/async,
+			      },
+			      Object {
 			        dependency: url,
 			        oneOf: Array [
 			          Object {
@@ -194,6 +204,22 @@ module.exports = {
 			      },
 			    ],
 			    generator: Object {
+			      css: Object {
+			        esModule: true,
+			        exportsOnly: false,
+			      },
+			      css/auto: Object {
+			        esModule: true,
+			        exportsConvention: as-is,
+			        exportsOnly: false,
+			        localIdentName: [fullhash],
+			      },
+			      css/module: Object {
+			        esModule: true,
+			        exportsConvention: as-is,
+			        exportsOnly: false,
+			        localIdentName: [fullhash],
+			      },
 			      json: Object {
 			        JSONParse: true,
 			      },
@@ -205,6 +231,18 @@ module.exports = {
 			          maxSize: 8096,
 			        },
 			      },
+			      css: Object {
+			        namedExports: true,
+			        url: true,
+			      },
+			      css/auto: Object {
+			        namedExports: true,
+			        url: true,
+			      },
+			      css/module: Object {
+			        namedExports: true,
+			        url: true,
+			      },
 			      javascript: Object {
 			        commonjs: true,
 			        deferImport: false,
@@ -215,8 +253,8 @@ module.exports = {
 			        importDynamic: true,
 			        importMeta: true,
 			        jsx: false,
-			        requireAlias: true,
-			        requireAsExpression: true,
+			        requireAlias: false,
+			        requireAsExpression: false,
 			        requireDynamic: true,
 			        requireResolve: true,
 			        strictExportPresence: false,
@@ -291,6 +329,7 @@ module.exports = {
 			      chunks: async,
 			      defaultSizeTypes: Array [
 			        javascript,
+			        css,
 			        unknown,
 			      ],
 			      hidePathInfo: false,
@@ -305,12 +344,16 @@ module.exports = {
 			  output: Object {
 			    assetModuleFilename: [hash][ext][query],
 			    asyncChunks: true,
-			    charset: false,
+			    bundlerInfo: Object {
+			      bundler: rspack,
+			      force: true,
+			      version: $version$,
+			    },
 			    chunkFilename: [name].js,
 			    chunkFormat: array-push,
 			    chunkLoadTimeout: 120000,
 			    chunkLoading: jsonp,
-			    chunkLoadingGlobal: webpackChunk_rspack_tests,
+			    chunkLoadingGlobal: rspackChunk_rspack_tests,
 			    clean: false,
 			    compareBeforeEmit: true,
 			    crossOriginLoading: false,
@@ -352,7 +395,7 @@ module.exports = {
 			    hashFunction: xxhash64,
 			    hashSalt: undefined,
 			    hotUpdateChunkFilename: [id].[fullhash].hot-update.js,
-			    hotUpdateGlobal: webpackHotUpdate_rspack_tests,
+			    hotUpdateGlobal: rspackHotUpdate_rspack_tests,
 			    hotUpdateMainFilename: [runtime].[fullhash].hot-update.json,
 			    iife: true,
 			    importFunctionName: import,
@@ -375,7 +418,6 @@ module.exports = {
 			  },
 			  performance: false,
 			  plugins: Array [],
-			  profile: false,
 			  resolve: Object {
 			    aliasFields: Array [],
 			    byDependency: Object {
@@ -418,6 +460,22 @@ module.exports = {
 			          module,
 			          ...,
 			        ],
+			      },
+			      css-import: Object {
+			        conditionNames: Array [
+			          webpack,
+			          production,
+			          style,
+			        ],
+			        extensions: Array [
+			          .css,
+			        ],
+			        mainFields: Array [
+			          style,
+			          ...,
+			        ],
+			        mainFiles: Array [],
+			        preferRelative: true,
 			      },
 			      esm: Object {
 			        aliasFields: Array [

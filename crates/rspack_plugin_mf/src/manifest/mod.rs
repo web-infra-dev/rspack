@@ -29,7 +29,8 @@ use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_util::fx_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use utils::{
-  collect_expose_requirements, compose_id_with_separator, ensure_shared_entry, is_hot_file,
+  collect_entry_files, collect_expose_requirements, compose_id_with_separator,
+  ensure_configured_remotes, ensure_shared_entry, filter_assets, is_hot_file,
   parse_consume_shared_identifier, parse_provide_shared_identifier, record_shared_usage, strip_ext,
 };
 
@@ -92,6 +93,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     .keys()
     .map(|k| k.to_string())
     .collect();
+
   // Build metaData
   let container_name = self
     .options
@@ -99,6 +101,8 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     .clone()
     .filter(|s| !s.is_empty())
     .unwrap_or_else(|| compilation.options.output.unique_name.clone());
+
+  let entry_files = collect_entry_files(compilation, &container_name);
   let global_name = self
     .options
     .global_name
@@ -453,7 +457,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         assets = Some(collect_assets_from_chunk(
           compilation,
           chunk_key,
-          &entry_point_names,
+          &entry_files,
         ));
       }
       if assets.is_none()
@@ -462,47 +466,27 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         assets = Some(collect_assets_from_chunk(
           compilation,
           chunk_key,
-          &entry_point_names,
+          &entry_files,
         ));
       }
       if assets.is_none()
         && let Some(module_id) = module_ids_by_name.get(expose_file_key)
       {
-        assets = collect_assets_for_module(compilation, module_id, &entry_point_names);
+        assets = collect_assets_for_module(compilation, module_id, &entry_files);
       }
       let mut assets = assets.unwrap_or_else(empty_assets_group);
       if let Some(path) = expose_module_paths.get(expose_file_key) {
         expose.file = path.clone();
       }
-      if !entry_name.is_empty() {
-        assets.js.sync.retain(|asset| asset != &entry_name);
-        assets.js.r#async.retain(|asset| asset != &entry_name);
-        assets.css.sync.retain(|asset| asset != &entry_name);
-        assets.css.r#async.retain(|asset| asset != &entry_name);
-      }
-      assets
-        .js
-        .sync
-        .retain(|asset| !shared_asset_files.contains(asset));
-      assets
-        .js
-        .r#async
-        .retain(|asset| !shared_asset_files.contains(asset));
-      assets
-        .css
-        .sync
-        .retain(|asset| !shared_asset_files.contains(asset));
-      assets
-        .css
-        .r#async
-        .retain(|asset| !shared_asset_files.contains(asset));
+      // Remove main entry files from assets
+      filter_assets(&mut assets, &entry_files, &shared_asset_files, true);
       normalize_assets_group(&mut assets);
       expose.assets = assets;
     }
 
     if let Some(module_id) = container_entry_module
       && let Some(mut entry_assets) =
-        collect_assets_for_module(compilation, &module_id, &entry_point_names)
+        collect_assets_for_module(compilation, &module_id, &entry_files)
     {
       entry_assets
         .js
@@ -512,15 +496,10 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         .css
         .sync
         .retain(|asset| !shared_asset_files.contains(asset));
-      if !entry_name.is_empty() {
-        entry_assets.js.sync.retain(|asset| asset != &entry_name);
-        entry_assets.js.r#async.retain(|asset| asset != &entry_name);
-        entry_assets.css.sync.retain(|asset| asset != &entry_name);
-        entry_assets
-          .css
-          .r#async
-          .retain(|asset| asset != &entry_name);
-      }
+
+      // Remove main entry files from assets
+      filter_assets(&mut entry_assets, &entry_files, &shared_asset_files, false);
+
       normalize_assets_group(&mut entry_assets);
       for expose in exposes_map.values_mut() {
         let is_empty = expose.assets.js.sync.is_empty()
@@ -601,24 +580,11 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   };
   // Ensure all configured remotes exist in stats, add missing with defaults
   let mut remote_list = remote_list;
-  for (alias, target) in self.options.remote_alias_map.iter() {
-    if !remote_list.iter().any(|r| r.alias == *alias) {
-      let remote_container_name = if target.name.is_empty() {
-        alias.clone()
-      } else {
-        target.name.clone()
-      };
-      remote_list.push(StatsRemote {
-        alias: alias.clone(),
-        consumingFederationContainerName: container_name.clone(),
-        federationContainerName: remote_container_name.clone(),
-        // default moduleName to "." for missing entries
-        moduleName: ".".to_string(),
-        entry: target.entry.clone(),
-        usedIn: vec!["UNKNOWN".to_string()],
-      });
-    }
-  }
+  ensure_configured_remotes(
+    &mut remote_list,
+    &self.options.remote_alias_map,
+    &container_name,
+  );
 
   let stats_root = StatsRoot {
     id: container_name.clone(),

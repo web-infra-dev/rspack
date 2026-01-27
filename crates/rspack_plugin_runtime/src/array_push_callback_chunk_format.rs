@@ -2,7 +2,7 @@ use std::hash::Hash;
 
 use rspack_core::{
   ChunkGraph, ChunkKind, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
-  CompilationParams, CompilerCompilation, Plugin, RuntimeGlobals, RuntimeVariable,
+  CompilationParams, CompilerCompilation, Plugin, RuntimeGlobals, RuntimeModule, RuntimeVariable,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt};
@@ -38,9 +38,10 @@ async fn compilation(
 #[plugin_hook(CompilationAdditionalChunkRuntimeRequirements for ArrayPushCallbackChunkFormatPlugin)]
 async fn additional_chunk_runtime_requirements(
   &self,
-  compilation: &mut Compilation,
+  compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
   runtime_requirements: &mut RuntimeGlobals,
+  _runtime_modules: &mut Vec<Box<dyn RuntimeModule>>,
 ) -> Result<()> {
   let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
 
@@ -149,7 +150,10 @@ async fn render_chunk(
         let entries = compilation
           .chunk_graph
           .get_chunk_entry_modules_with_chunk_group_iterable(chunk_ukey);
-        let start_up_source = generate_entry_startup(compilation, chunk_ukey, entries, true);
+        let runtime_requirements =
+          ChunkGraph::get_tree_runtime_requirements(compilation, chunk_ukey);
+        let passive = !runtime_requirements.contains(RuntimeGlobals::STARTUP_ENTRYPOINT);
+        let start_up_source = generate_entry_startup(compilation, chunk_ukey, entries, passive);
         let last_entry_module = entries
           .keys()
           .next_back()
@@ -169,8 +173,6 @@ async fn render_chunk(
           )
           .await?;
         source.add(render_source.source);
-        let runtime_requirements =
-          ChunkGraph::get_tree_runtime_requirements(compilation, chunk_ukey);
         if runtime_requirements.contains(RuntimeGlobals::RETURN_EXPORTS_FROM_RUNTIME) {
           source.add(RawStringSource::from(format!(
             "return {};\n",

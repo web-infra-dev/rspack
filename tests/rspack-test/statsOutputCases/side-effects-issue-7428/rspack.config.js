@@ -8,6 +8,8 @@ module.exports = {
 		concatenateModules: true
 	},
 	stats: {
+		assets: true,
+		modules: true,
 		orphanModules: true,
 		nestedModules: true,
 		usedExports: true,

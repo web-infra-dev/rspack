@@ -72,11 +72,15 @@ function options(
   custom?: (context: ITestContext) => RspackOptions,
 ) {
   const res = (custom?.(context) || {}) as RspackOptions;
-  res.experiments ??= {};
-  res.experiments!.css ??= true;
-  res.experiments!.rspackFuture ??= {};
-  res.experiments!.rspackFuture!.bundlerInfo ??= {};
-  res.experiments!.rspackFuture!.bundlerInfo!.force ??= false;
+  res.output ??= {};
+  res.module ??= {};
+  res.module.defaultRules ??= ['...'];
+  res.module.defaultRules.push({
+    test: /\.css$/,
+    type: 'css/auto',
+  });
+  res.output!.bundlerInfo ??= {};
+  res.output!.bundlerInfo!.force ??= false;
   if (!global.printLogger) {
     res.infrastructureLogging = {
       level: 'error',

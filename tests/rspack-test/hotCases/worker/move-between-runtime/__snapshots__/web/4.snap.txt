@@ -16,10 +16,10 @@
 - Manifest: [runtime of workerA_js].LAST_HASH.hot-update.json, size: 71
 - Manifest: [runtime of workerB_js].LAST_HASH.hot-update.json, size: 71
 - Manifest: main.LAST_HASH.hot-update.json, size: 56
-- Update: main.LAST_HASH.hot-update.js, size: 182
-- Update: shared.LAST_HASH.hot-update.js, size: 766
-- Update: workerA_js.LAST_HASH.hot-update.js, size: 613
-- Update: workerB_js.LAST_HASH.hot-update.js, size: 474
+- Update: main.LAST_HASH.hot-update.js, size: 181
+- Update: shared.LAST_HASH.hot-update.js, size: 765
+- Update: workerA_js.LAST_HASH.hot-update.js, size: 612
+- Update: workerB_js.LAST_HASH.hot-update.js, size: 473
 
 ## Manifest
 
@@ -60,7 +60,7 @@
 #### Changed Content
 ```js
 "use strict";
-self["webpackHotUpdate"]("main", {},function(__webpack_require__) {
+self["rspackHotUpdate"]("main", {},function(__webpack_require__) {
 // webpack/runtime/get_full_hash
 (() => {
 __webpack_require__.h = () => ("CURRENT_HASH")
@@ -84,7 +84,7 @@ __webpack_require__.h = () => ("CURRENT_HASH")
 #### Changed Content
 ```js
 "use strict";
-self["webpackHotUpdate"]("shared", {
+self["rspackHotUpdate"]("shared", {
 "./moduleAs.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
@@ -121,7 +121,7 @@ __webpack_require__.d(__webpack_exports__, {
 #### Changed Content
 ```js
 "use strict";
-self["webpackHotUpdate"]("workerA_js", {
+self["rspackHotUpdate"]("workerA_js", {
 "./moduleA.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
@@ -156,7 +156,7 @@ __webpack_require__.h = () => ("CURRENT_HASH")
 #### Changed Content
 ```js
 "use strict";
-self["webpackHotUpdate"]("workerB_js", {
+self["rspackHotUpdate"]("workerB_js", {
 "./moduleB.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {

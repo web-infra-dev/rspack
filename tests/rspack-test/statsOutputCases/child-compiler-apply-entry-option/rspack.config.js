@@ -18,6 +18,8 @@ module.exports = {
 		})
 	],
 	stats: {
+		assets: true,
+		modules: true,
 		children: true,
 		entrypoints: true
 	}

@@ -10,6 +10,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import {
+  applyLimits,
   LightningCssMinimizerRspackPlugin,
   SwcJsMinimizerRspackPlugin,
 } from '../builtin-plugin';
@@ -22,7 +23,6 @@ import type {
   EntryDescriptionNormalized,
   EntryNormalized,
   ExperimentsNormalized,
-  OutputNormalized,
   RspackOptionsNormalized,
 } from './normalization';
 import {
@@ -39,6 +39,7 @@ import type {
   JavascriptParserOptions,
   JsonGeneratorOptions,
   Library,
+  LibraryOptions,
   Loader,
   Mode,
   ModuleOptions,
@@ -46,7 +47,6 @@ import type {
   Optimization,
   Performance,
   ResolveOptions,
-  RspackFutureOptions,
   RuleSetRules,
   SnapshotOptions,
 } from './types';
@@ -65,7 +65,7 @@ export const applyRspackOptionsDefaults = (
     throw new Error('target should not be nil after defaults');
   }
 
-  const targetProperties =
+  const targetProperties: false | TargetProperties =
     target === false
       ? (false as const)
       : typeof target === 'string'
@@ -83,7 +83,6 @@ export const applyRspackOptionsDefaults = (
 
   F(options, 'devtool', () => (development ? 'eval' : false));
   D(options, 'watch', false);
-  D(options, 'profile', false);
   // IGNORE(lazyCompilation): Unlike webpack where lazyCompilation is configured under experiments, Rspack exposes this option at the configuration root level.
   D(options, 'lazyCompilation', false);
   // IGNORE(bail): bail is default to false in webpack, but it's set in `Compilation`
@@ -93,20 +92,13 @@ export const applyRspackOptionsDefaults = (
   // but Rspack currently does not support this option
   F(options, 'cache', () => development);
 
-  if (options.cache === false) {
-    options.experiments.cache = false;
-  }
+  applyIncrementalDefaults(options);
 
-  applyExperimentsDefaults(options.experiments, {
-    development,
-  });
+  applyExperimentsDefaults(options.experiments);
 
   applyOptimizationDefaults(options.optimization, {
     production,
     development,
-    css: options.experiments.css!,
-    deprecatedInline:
-      options.experiments.inlineConst! || options.experiments.inlineEnum!,
   });
 
   applySnapshotDefaults(options.snapshot, { production });
@@ -114,14 +106,13 @@ export const applyRspackOptionsDefaults = (
   applyModuleDefaults(options.module, {
     cache: !!options.cache,
     asyncWebAssembly: options.experiments.asyncWebAssembly!,
-    css: options.experiments.css,
     targetProperties,
     mode: options.mode,
     uniqueName: options.output.uniqueName,
     deferImport: options.experiments.deferImport,
   });
 
-  applyOutputDefaults(options.output, {
+  applyOutputDefaults(options, {
     context: options.context!,
     targetProperties,
     isAffectedByBrowserslist:
@@ -132,15 +123,11 @@ export const applyRspackOptionsDefaults = (
     outputModule: options.experiments.outputModule,
     entry: options.entry,
   });
-  // bundlerInfo is affected by outputDefaults so must be executed after outputDefaults
-  applybundlerInfoDefaults(
-    options.experiments.rspackFuture,
-    options.output.library,
-  );
 
   applyExternalsPresetsDefaults(options.externalsPresets, {
     targetProperties,
     buildHttp: Boolean(options.experiments.buildHttp),
+    outputModule: options.output.module!,
   });
 
   F(options, 'externalsType', () => {
@@ -178,7 +165,6 @@ export const applyRspackOptionsDefaults = (
       context: options.context!,
       targetProperties,
       mode: options.mode,
-      css: options.experiments.css!,
     }),
     options.resolve,
   );
@@ -188,19 +174,20 @@ export const applyRspackOptionsDefaults = (
     options.resolveLoader,
   );
 
-  return {
-    platform:
-      targetProperties === false
-        ? targetProperties
-        : {
-            web: targetProperties.web,
-            browser: targetProperties.browser,
-            webworker: targetProperties.webworker,
-            node: targetProperties.node,
-            nwjs: targetProperties.nwjs,
-            electron: targetProperties.electron,
-          },
-  };
+  return targetProperties === false
+    ? targetProperties
+    : {
+        platform: {
+          web: targetProperties.web,
+          browser: targetProperties.browser,
+          webworker: targetProperties.webworker,
+          node: targetProperties.node,
+          nwjs: targetProperties.nwjs,
+          electron: targetProperties.electron,
+        },
+        esVersion: targetProperties.esVersion,
+        targets: targetProperties.targets,
+      };
 };
 
 export const applyRspackOptionsBaseDefaults = (
@@ -222,20 +209,10 @@ const applyInfrastructureLoggingDefaults = (
   D(infrastructureLogging, 'appendOnly', !tty);
 };
 
-const applyExperimentsDefaults = (
-  experiments: ExperimentsNormalized,
-  { development }: { development: boolean },
-) => {
-  // IGNORE(experiments.cache): In webpack, cache is undefined by default
-  F(experiments, 'cache', () => development);
-
+const applyExperimentsDefaults = (experiments: ExperimentsNormalized) => {
   D(experiments, 'futureDefaults', false);
-  // TODO: lazyCompilation is moving to Configuration top level, we can remove this in future.
-  // IGNORE(experiments.lazyCompilation): In webpack, lazyCompilation is undefined by default
-  D(experiments, 'lazyCompilation', false);
-  D(experiments, 'asyncWebAssembly', experiments.futureDefaults);
-  D(experiments, 'css', experiments.futureDefaults ? true : undefined);
-  D(experiments, 'topLevelAwait', true);
+  // IGNORE(experiments.asyncWebAssembly): Rspack enable async WebAssembly by default
+  D(experiments, 'asyncWebAssembly', true);
   D(experiments, 'deferImport', false);
 
   D(experiments, 'buildHttp', undefined);
@@ -244,62 +221,28 @@ const applyExperimentsDefaults = (
     // D(experiments.buildHttp, "frozen", false);
   }
 
-  // IGNORE(experiments.incremental): Rspack specific configuration for incremental
-  D(experiments, 'incremental', {});
-  if (typeof experiments.incremental === 'object') {
-    D(experiments.incremental, 'silent', true);
-    D(experiments.incremental, 'make', true);
-    D(experiments.incremental, 'inferAsyncModules', true);
-    D(experiments.incremental, 'providedExports', true);
-    D(experiments.incremental, 'dependenciesDiagnostics', true);
-    D(experiments.incremental, 'sideEffects', true);
-    D(experiments.incremental, 'buildChunkGraph', false);
-    D(experiments.incremental, 'moduleIds', true);
-    D(experiments.incremental, 'chunkIds', true);
-    D(experiments.incremental, 'modulesHashes', true);
-    D(experiments.incremental, 'modulesCodegen', true);
-    D(experiments.incremental, 'modulesRuntimeRequirements', true);
-    D(experiments.incremental, 'chunksRuntimeRequirements', true);
-    D(experiments.incremental, 'chunksHashes', true);
-    D(experiments.incremental, 'chunksRender', true);
-    D(experiments.incremental, 'emitAssets', true);
-  }
-  // IGNORE(experiments.rspackFuture): Rspack specific configuration
-  D(experiments, 'rspackFuture', {});
-  // rspackFuture.bundlerInfo default value is applied after applyDefaults
-
-  // IGNORE(experiments.parallelLoader): Rspack specific configuration for parallel loader execution
-  D(experiments, 'parallelLoader', false);
-
   // IGNORE(experiments.useInputFileSystem): Rspack specific configuration
   // Enable `useInputFileSystem` will introduce much more fs overheads,  So disable by default.
   D(experiments, 'useInputFileSystem', false);
-
-  // IGNORE(experiments.inlineConst): Rspack specific configuration for inline const
-  D(experiments, 'inlineConst', true);
-
-  // IGNORE(experiments.inlineEnum): Rspack specific configuration for inline enum
-  D(experiments, 'inlineEnum', false);
-
-  // IGNORE(experiments.typeReexportsPresence): Rspack specific configuration for type reexports presence
-  D(experiments, 'typeReexportsPresence', false);
-
-  // IGNORE(experiments.lazyBarrel): Rspack specific configuration for lazy make side effects free barrel file
-  D(experiments, 'lazyBarrel', true);
 };
 
-const applybundlerInfoDefaults = (
-  rspackFuture?: RspackFutureOptions,
-  library?: Library,
-) => {
-  if (typeof rspackFuture === 'object') {
-    D(rspackFuture, 'bundlerInfo', {});
-    if (typeof rspackFuture.bundlerInfo === 'object') {
-      D(rspackFuture.bundlerInfo, 'version', RSPACK_VERSION);
-      D(rspackFuture.bundlerInfo, 'bundler', 'rspack');
-      // don't inject for library mode
-      D(rspackFuture.bundlerInfo, 'force', !library);
-    }
+const applyIncrementalDefaults = (options: RspackOptionsNormalized) => {
+  D(options, 'incremental', {});
+  if (typeof options.incremental === 'object') {
+    D(options.incremental, 'silent', true);
+    D(options.incremental, 'buildModuleGraph', true);
+    D(options.incremental, 'finishModules', true);
+    D(options.incremental, 'optimizeDependencies', true);
+    D(options.incremental, 'buildChunkGraph', false);
+    D(options.incremental, 'moduleIds', true);
+    D(options.incremental, 'chunkIds', true);
+    D(options.incremental, 'modulesHashes', true);
+    D(options.incremental, 'modulesCodegen', true);
+    D(options.incremental, 'modulesRuntimeRequirements', true);
+    D(options.incremental, 'chunksRuntimeRequirements', true);
+    D(options.incremental, 'chunksHashes', true);
+    D(options.incremental, 'chunkAsset', true);
+    D(options.incremental, 'emitAssets', true);
   }
 };
 
@@ -321,8 +264,8 @@ const applyJavascriptParserOptionsDefaults = (
   D(parserOptions, 'wrappedContextCritical', false);
   D(parserOptions, 'wrappedContextRegExp', /.*/);
   D(parserOptions, 'strictExportPresence', false);
-  D(parserOptions, 'requireAsExpression', true);
-  D(parserOptions, 'requireAlias', true);
+  D(parserOptions, 'requireAsExpression', false);
+  D(parserOptions, 'requireAlias', false);
   D(parserOptions, 'requireDynamic', true);
   D(parserOptions, 'requireResolve', true);
   D(parserOptions, 'commonjs', true);
@@ -357,7 +300,6 @@ const applyModuleDefaults = (
   {
     cache,
     asyncWebAssembly,
-    css,
     targetProperties,
     mode,
     uniqueName,
@@ -365,8 +307,7 @@ const applyModuleDefaults = (
   }: {
     cache: boolean;
     asyncWebAssembly: boolean;
-    css?: boolean;
-    targetProperties: any;
+    targetProperties: false | TargetProperties;
     mode?: Mode;
     uniqueName?: string;
     deferImport?: boolean;
@@ -407,53 +348,49 @@ const applyModuleDefaults = (
   F(module.generator, 'json', () => ({}));
   assertNotNill(module.generator.json);
   applyJsonGeneratorOptionsDefaults(module.generator.json);
+  F(module.parser, 'css', () => ({}));
+  assertNotNill(module.parser.css);
+  D(module.parser.css, 'namedExports', true);
+  D(module.parser.css, 'url', true);
 
-  if (css) {
-    F(module.parser, 'css', () => ({}));
-    assertNotNill(module.parser.css);
-    D(module.parser.css, 'namedExports', true);
-    D(module.parser.css, 'url', true);
+  F(module.parser, 'css/auto', () => ({}));
+  assertNotNill(module.parser['css/auto']);
+  D(module.parser['css/auto'], 'namedExports', true);
+  D(module.parser['css/auto'], 'url', true);
 
-    F(module.parser, 'css/auto', () => ({}));
-    assertNotNill(module.parser['css/auto']);
-    D(module.parser['css/auto'], 'namedExports', true);
-    D(module.parser['css/auto'], 'url', true);
+  F(module.parser, 'css/module', () => ({}));
+  assertNotNill(module.parser['css/module']);
+  D(module.parser['css/module'], 'namedExports', true);
+  D(module.parser['css/module'], 'url', true);
 
-    F(module.parser, 'css/module', () => ({}));
-    assertNotNill(module.parser['css/module']);
-    D(module.parser['css/module'], 'namedExports', true);
-    D(module.parser['css/module'], 'url', true);
+  // IGNORE(module.generator): already check to align in 2024.6.27
+  F(module.generator, 'css', () => ({}));
+  assertNotNill(module.generator.css);
+  applyCssGeneratorOptionsDefaults(module.generator.css, {
+    targetProperties,
+  });
 
-    // IGNORE(module.generator): already check to align in 2024.6.27
-    F(module.generator, 'css', () => ({}));
-    assertNotNill(module.generator.css);
-    applyCssGeneratorOptionsDefaults(module.generator.css, {
-      targetProperties,
-    });
+  F(module.generator, 'css/auto', () => ({}));
+  assertNotNill(module.generator['css/auto']);
+  applyCssGeneratorOptionsDefaults(module.generator['css/auto'], {
+    targetProperties,
+  });
+  D(module.generator['css/auto'], 'exportsConvention', 'as-is');
+  const localIdentName =
+    mode === 'development'
+      ? uniqueName && uniqueName.length > 0
+        ? '[uniqueName]-[id]-[local]'
+        : '[id]-[local]'
+      : '[fullhash]';
+  D(module.generator['css/auto'], 'localIdentName', localIdentName);
 
-    F(module.generator, 'css/auto', () => ({}));
-    assertNotNill(module.generator['css/auto']);
-    applyCssGeneratorOptionsDefaults(module.generator['css/auto'], {
-      targetProperties,
-    });
-    D(module.generator['css/auto'], 'exportsConvention', 'as-is');
-    const localIdentName =
-      mode === 'development'
-        ? uniqueName && uniqueName.length > 0
-          ? '[uniqueName]-[id]-[local]'
-          : '[id]-[local]'
-        : '[fullhash]';
-    D(module.generator['css/auto'], 'localIdentName', localIdentName);
-
-    F(module.generator, 'css/module', () => ({}));
-    assertNotNill(module.generator['css/module']);
-    applyCssGeneratorOptionsDefaults(module.generator['css/module'], {
-      targetProperties,
-    });
-    D(module.generator['css/module'], 'exportsConvention', 'as-is');
-    D(module.generator['css/module'], 'localIdentName', localIdentName);
-  }
-
+  F(module.generator, 'css/module', () => ({}));
+  assertNotNill(module.generator['css/module']);
+  applyCssGeneratorOptionsDefaults(module.generator['css/module'], {
+    targetProperties,
+  });
+  D(module.generator['css/module'], 'exportsConvention', 'as-is');
+  D(module.generator['css/module'], 'localIdentName', localIdentName);
   // IGNORE(module.defaultRules): Rspack does not support `rule.assert`
   // https://github.com/webpack/webpack/blob/main/lib/config/defaults.js#L839
   A(module, 'defaultRules', () => {
@@ -537,28 +474,6 @@ const applyModuleDefaults = (
       });
     }
 
-    if (css) {
-      const resolve = {
-        fullySpecified: true,
-        preferRelative: true,
-      };
-      rules.push({
-        test: /\.css$/i,
-        type: 'css/auto',
-        resolve,
-      });
-      rules.push({
-        mimetype: 'text/css+module',
-        type: 'css/module',
-        resolve,
-      });
-      rules.push({
-        mimetype: 'text/css',
-        type: 'css',
-        resolve,
-      });
-    }
-
     rules.push(
       {
         dependency: 'url',
@@ -591,7 +506,7 @@ const applyModuleDefaults = (
 };
 
 const applyOutputDefaults = (
-  output: OutputNormalized,
+  options: RspackOptionsNormalized,
   {
     context,
     outputModule,
@@ -601,18 +516,16 @@ const applyOutputDefaults = (
   }: {
     context: Context;
     outputModule?: boolean;
-    targetProperties: any;
+    targetProperties: false | TargetProperties;
     isAffectedByBrowserslist: boolean;
     entry: EntryNormalized;
   },
 ) => {
+  const { output } = options;
   const getLibraryName = (library: Library): string => {
     const libraryName =
-      typeof library === 'object' &&
-      library &&
-      !Array.isArray(library) &&
-      'type' in library
-        ? library.name
+      typeof library === 'object' && library && !Array.isArray(library)
+        ? (library as LibraryOptions).name
         : library;
     if (Array.isArray(libraryName)) {
       return libraryName.join('.');
@@ -653,11 +566,17 @@ const applyOutputDefaults = (
   F(output, 'module', () => !!outputModule);
 
   const environment = output.environment!;
-  const optimistic = (v?: boolean) => v || v === undefined;
-  const conditionallyOptimistic = (v?: boolean, c?: boolean) =>
+
+  // For old features we optimistically assume user's target already support it
+  const optimistic = (v?: boolean | null) => v || v === undefined;
+  const conditionallyOptimistic = (v?: boolean | null, c?: boolean) =>
     (v === undefined && c) || v;
 
-  F(environment, 'globalThis', () => tp?.globalThis);
+  F(
+    environment,
+    'globalThis',
+    () => tp && (tp.globalThis as boolean | undefined),
+  );
   F(environment, 'bigIntLiteral', () => tp && optimistic(tp.bigIntLiteral));
   F(environment, 'const', () => tp && optimistic(tp.const));
   // IGNORE(output.environment.methodShorthand): will align method shorthand optimization for webpack soon
@@ -679,19 +598,36 @@ const applyOutputDefaults = (
   F(
     environment,
     'importMetaDirnameAndFilename',
-    () =>
-      // No optimistic, because it is new
-      tp?.importMetaDirnameAndFilename,
+    // No optimistic, because it is new
+    () => tp && (tp.importMetaDirnameAndFilename as boolean | undefined),
   );
   F(environment, 'templateLiteral', () => tp && optimistic(tp.templateLiteral));
-  F(environment, 'dynamicImport', () =>
-    conditionallyOptimistic(tp?.dynamicImport, output.module),
+  F(
+    environment,
+    'dynamicImport',
+    () =>
+      tp &&
+      (conditionallyOptimistic(tp.dynamicImport, output.module) as
+        | boolean
+        | undefined),
   );
-  F(environment, 'dynamicImportInWorker', () =>
-    conditionallyOptimistic(tp?.dynamicImportInWorker, output.module),
+  F(
+    environment,
+    'dynamicImportInWorker',
+    () =>
+      tp &&
+      (conditionallyOptimistic(tp.dynamicImportInWorker, output.module) as
+        | boolean
+        | undefined),
   );
-  F(environment, 'module', () =>
-    conditionallyOptimistic(tp?.module, output.module),
+  F(
+    environment,
+    'module',
+    () =>
+      tp &&
+      (conditionallyOptimistic(tp.module, output.module) as
+        | boolean
+        | undefined),
   );
   F(environment, 'document', () => tp && optimistic(tp.document));
 
@@ -736,8 +672,10 @@ const applyOutputDefaults = (
   });
 
   const uniqueNameId = Template.toIdentifier(output.uniqueName);
-  F(output, 'hotUpdateGlobal', () => `webpackHotUpdate${uniqueNameId}`);
-  F(output, 'chunkLoadingGlobal', () => `webpackChunk${uniqueNameId}`);
+  // IGNORE(output.hotUpdateGlobal): Rspack uses 'rspackHotUpdate' by default
+  F(output, 'hotUpdateGlobal', () => `rspackHotUpdate${uniqueNameId}`);
+  // IGNORE(output.chunkLoadingGlobal): Rspack uses 'rspackChunk' by default
+  F(output, 'chunkLoadingGlobal', () => `rspackChunk${uniqueNameId}`);
   D(output, 'assetModuleFilename', '[hash][ext][query]');
   D(output, 'webassemblyModuleFilename', '[hash].module.wasm');
   D(output, 'compareBeforeEmit', true);
@@ -868,8 +806,6 @@ const applyOutputDefaults = (
   D(output, 'workerPublicPath', '');
   D(output, 'sourceMapFilename', '[file].map[query]');
   F(output, 'scriptType', () => (output.module ? 'module' : false));
-  // IGNORE(output.charset): `output.charset` has already been deprecated for a long time
-  D(output, 'charset', false);
   D(output, 'chunkLoadTimeout', 120000);
 
   const { trustedTypes } = output;
@@ -878,7 +814,7 @@ const applyOutputDefaults = (
       trustedTypes,
       'policyName',
       () =>
-        output.uniqueName!.replace(/[^a-zA-Z0-9\-#=_/@.%]+/g, '_') || 'webpack',
+        output.uniqueName!.replace(/[^a-zA-Z0-9\-#=_/@.%]+/g, '_') || 'rspack',
     );
     D(trustedTypes, 'onPolicyCreationFailure', 'stop');
   }
@@ -901,6 +837,9 @@ const applyOutputDefaults = (
         enabledLibraryTypes.push(desc.library.type);
       }
     });
+    if (enabledLibraryTypes.includes('modern-module')) {
+      applyLimits(options);
+    }
     return enabledLibraryTypes;
   });
   A(output, 'enabledChunkLoadingTypes', () => {
@@ -933,6 +872,15 @@ const applyOutputDefaults = (
     });
     return Array.from(enabledWasmLoadingTypes);
   });
+
+  // IGNORE(output.bundlerInfo): rspack specific
+  D(output, 'bundlerInfo', {});
+  if (typeof output.bundlerInfo === 'object') {
+    D(output.bundlerInfo, 'version', RSPACK_VERSION);
+    D(output.bundlerInfo, 'bundler', 'rspack');
+    // don't inject for library mode
+    D(output.bundlerInfo, 'force', !output.library);
+  }
 };
 
 const applyExternalsPresetsDefaults = (
@@ -940,27 +888,60 @@ const applyExternalsPresetsDefaults = (
   {
     targetProperties,
     buildHttp,
-  }: { targetProperties: any; buildHttp: boolean },
+    outputModule,
+  }: {
+    targetProperties: false | TargetProperties;
+    buildHttp: boolean;
+    outputModule: boolean;
+  },
 ) => {
-  D(externalsPresets, 'web', !buildHttp && targetProperties?.web);
-  D(externalsPresets, 'node', targetProperties?.node);
-  D(externalsPresets, 'electron', targetProperties?.electron);
+  const isUniversal = (key: keyof TargetProperties) =>
+    Boolean(outputModule && targetProperties && targetProperties[key] === null);
+
+  D(
+    externalsPresets,
+    'web',
+    !buildHttp &&
+      targetProperties &&
+      (targetProperties.web || isUniversal('node')),
+  );
+  D(
+    externalsPresets,
+    'node',
+    targetProperties && (targetProperties.node || isUniversal('node')),
+  );
+  D(
+    externalsPresets,
+    'electron',
+    // biome-ignore lint/complexity/useOptionalChain: change to optionalChain will have type error
+    (targetProperties && targetProperties.electron) || isUniversal('electron'),
+  );
   D(
     externalsPresets,
     'electronMain',
-    targetProperties?.electron && targetProperties.electronMain,
+    targetProperties &&
+      !!targetProperties.electron &&
+      (targetProperties.electronMain || isUniversal('electronMain')),
   );
   D(
     externalsPresets,
     'electronPreload',
-    targetProperties?.electron && targetProperties.electronPreload,
+    targetProperties &&
+      !!targetProperties.electron &&
+      (targetProperties.electronPreload || isUniversal('electronPreload')),
   );
   D(
     externalsPresets,
     'electronRenderer',
-    targetProperties?.electron && targetProperties.electronRenderer,
+    targetProperties &&
+      !!targetProperties.electron &&
+      (targetProperties.electronRenderer || isUniversal('electronRenderer')),
   );
-  D(externalsPresets, 'nwjs', targetProperties?.nwjs);
+  D(
+    externalsPresets,
+    'nwjs',
+    targetProperties && (targetProperties.nwjs || isUniversal('nwjs')),
+  );
 };
 
 const applyLoaderDefaults = (
@@ -968,7 +949,7 @@ const applyLoaderDefaults = (
   {
     targetProperties,
     environment,
-  }: { targetProperties: any; environment: any },
+  }: { targetProperties: false | TargetProperties; environment: any },
 ) => {
   F(loader, 'target', () => {
     if (targetProperties) {
@@ -991,24 +972,27 @@ const applyNodeDefaults = (
   {
     outputModule,
     targetProperties,
-  }: { targetProperties: any; outputModule?: boolean },
+  }: { targetProperties: false | TargetProperties; outputModule?: boolean },
 ) => {
   if (node === false) return;
 
   // IGNORE(node.global): The default value of `global` is determined by `futureDefaults` in webpack.
   F(node, 'global', () => {
-    if (targetProperties?.global) return false;
+    // biome-ignore lint/complexity/useOptionalChain: change to optionalChain will have type error
+    if (targetProperties && targetProperties.global) return false;
     return 'warn';
   });
   // IGNORE(node.__dirname): The default value of `__dirname` is determined by `futureDefaults` in webpack.
   F(node, '__dirname', () => {
-    if (targetProperties?.node)
+    // biome-ignore lint/complexity/useOptionalChain: change to optionalChain will have type error
+    if (targetProperties && targetProperties.node)
       return outputModule ? 'node-module' : 'eval-only';
     return 'warn-mock';
   });
   // IGNORE(node.__filename): The default value of `__filename` is determined by `futureDefaults` in webpack.
   F(node, '__filename', () => {
-    if (targetProperties?.node)
+    // biome-ignore lint/complexity/useOptionalChain: change to optionalChain will have type error
+    if (targetProperties && targetProperties.node)
       return outputModule ? 'node-module' : 'eval-only';
     return 'warn-mock';
   });
@@ -1029,13 +1013,9 @@ const applyOptimizationDefaults = (
   {
     production,
     development,
-    css,
-    deprecatedInline,
   }: {
     production: boolean;
     development: boolean;
-    css: boolean;
-    deprecatedInline: boolean;
   },
 ) => {
   // IGNORE(optimization.removeAvailableModules): removeAvailableModules is no use for webpack
@@ -1054,7 +1034,7 @@ const applyOptimizationDefaults = (
   });
   F(optimization, 'sideEffects', () => (production ? true : 'flag'));
   D(optimization, 'mangleExports', production);
-  D(optimization, 'inlineExports', deprecatedInline && production);
+  D(optimization, 'inlineExports', production);
   D(optimization, 'providedExports', true);
   D(optimization, 'usedExports', production);
   D(optimization, 'innerGraph', production);
@@ -1077,10 +1057,8 @@ const applyOptimizationDefaults = (
   });
   const { splitChunks } = optimization;
   if (splitChunks) {
-    // IGNORE(optimization.splitChunks.defaultSizeTypes): Rspack enables `experiments.css` by default currently
-    A(splitChunks, 'defaultSizeTypes', () =>
-      css ? ['javascript', 'css', 'unknown'] : ['javascript', 'unknown'],
-    );
+    // IGNORE(optimization.splitChunks.defaultSizeTypes): experiments.css is deprecated
+    A(splitChunks, 'defaultSizeTypes', () => ['javascript', 'css', 'unknown']);
     D(splitChunks, 'hidePathInfo', production);
     D(splitChunks, 'chunks', 'async');
     D(splitChunks, 'usedExports', optimization.usedExports === true);
@@ -1131,12 +1109,10 @@ const getResolveDefaults = ({
   context,
   targetProperties,
   mode,
-  css,
 }: {
   context: string;
-  targetProperties: any;
+  targetProperties: false | TargetProperties;
   mode?: Mode;
-  css: boolean;
 }) => {
   const conditions = ['webpack'];
 
@@ -1154,7 +1130,8 @@ const getResolveDefaults = ({
   const tp = targetProperties;
 
   const browserField =
-    tp?.web && (!tp.node || (tp.electron && tp.electronRenderer));
+    // biome-ignore lint/complexity/useOptionalChain: change to optionalChain will have type error
+    tp && tp.web && (!tp.node || (tp.electron && tp.electronRenderer));
   const aliasFields = browserField ? ['browser'] : [];
   const mainFields = browserField
     ? ['browser', 'module', '...']
@@ -1207,25 +1184,23 @@ const getResolveDefaults = ({
     },
   };
 
-  if (css) {
-    const styleConditions = [];
+  const styleConditions = [];
 
-    styleConditions.push('webpack');
-    styleConditions.push(mode === 'development' ? 'development' : 'production');
-    styleConditions.push('style');
+  styleConditions.push('webpack');
+  styleConditions.push(mode === 'development' ? 'development' : 'production');
+  styleConditions.push('style');
 
-    // IGNORE(resolve.byDependency.css-import): Rspack enables `experiments.css` by default currently
-    resolveOptions.byDependency!['css-import'] = {
-      // We avoid using any main files because we have to be consistent with CSS `@import`
-      // and CSS `@import` does not handle `main` files in directories,
-      // you should always specify the full URL for styles
-      mainFiles: [],
-      mainFields: ['style', '...'],
-      conditionNames: styleConditions,
-      extensions: ['.css'],
-      preferRelative: true,
-    };
-  }
+  // IGNORE(resolve.byDependency.css-import): Rspack enables `css` by default currently
+  resolveOptions.byDependency!['css-import'] = {
+    // We avoid using any main files because we have to be consistent with CSS `@import`
+    // and CSS `@import` does not handle `main` files in directories,
+    // you should always specify the full URL for styles
+    mainFiles: [],
+    mainFields: ['style', '...'],
+    conditionNames: styleConditions,
+    extensions: ['.css'],
+    preferRelative: true,
+  };
 
   return resolveOptions;
 };

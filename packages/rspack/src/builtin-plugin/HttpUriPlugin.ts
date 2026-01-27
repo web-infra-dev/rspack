@@ -1,4 +1,5 @@
 import type { IncomingMessage } from 'node:http';
+import { createRequire } from 'node:module';
 import path from 'node:path';
 import {
   type BuiltinPlugin,
@@ -8,6 +9,9 @@ import {
 import type { Compiler } from '../Compiler';
 import { memoize } from '../util/memoize';
 import { createBuiltinPlugin, RspackBuiltinPlugin } from './base';
+
+const require = createRequire(import.meta.url);
+
 export type HttpUriPluginOptionsAllowedUris = (string | RegExp)[];
 
 export type HttpUriPluginOptions = {

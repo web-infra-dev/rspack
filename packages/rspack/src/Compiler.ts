@@ -7,6 +7,8 @@
  * Copyright (c) JS Foundation and other contributors
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
+
+import { createRequire } from 'node:module';
 import type binding from '@rspack/binding';
 import * as liteTapable from '@rspack/lite-tapable';
 import type Watchpack from 'watchpack';
@@ -17,7 +19,6 @@ import {
   JsLoaderRspackPlugin,
 } from './builtin-plugin';
 import { canInherentFromParent } from './builtin-plugin/base';
-
 import type { Chunk } from './Chunk';
 import type { CompilationParams } from './Compilation';
 import { Compilation } from './Compilation';
@@ -31,7 +32,10 @@ import type {
 } from './config';
 import { getRawOptions } from './config';
 import { applyRspackOptionsDefaults, getPnpDefault } from './config/defaults';
-import type { PlatformTargetProperties } from './config/target';
+import type {
+  ExtractedTargetProperties,
+  PlatformTargetProperties,
+} from './config/target';
 import ExecuteModulePlugin from './ExecuteModulePlugin';
 import ConcurrentCompilationError from './error/ConcurrentCompilationError';
 import * as rspackExports from './exports';
@@ -72,6 +76,8 @@ import type {
 import { makePathsRelative } from './util/identifier';
 import { VirtualModulesPlugin } from './VirtualModulesPlugin';
 import { Watching } from './Watching';
+
+const require = createRequire(import.meta.url);
 
 export interface AssetEmittedInfo {
   content: Buffer;
@@ -124,6 +130,8 @@ export type CompilerHooks = {
   entryOption: liteTapable.SyncBailHook<[string, EntryNormalized], any>;
   additionalPass: liteTapable.AsyncSeriesHook<[]>;
 };
+
+export const GET_COMPILER_ID = Symbol('getCompilerId');
 
 class Compiler {
   #instance?: binding.JsCompiler;
@@ -179,6 +187,7 @@ class Compiler {
   cache: Cache;
   compilerPath: string;
   #platform: PlatformTargetProperties;
+  #target: ExtractedTargetProperties;
   options: RspackOptionsNormalized;
   /**
    * Whether to skip dropping Rust compiler instance to improve performance.
@@ -291,6 +300,7 @@ class Compiler {
       nwjs: null,
       electron: null,
     };
+    this.#target = {};
 
     this.__internal_browser_require = () => {
       throw new Error(
@@ -320,6 +330,15 @@ class Compiler {
     // 		}
     // 	});
     // });
+
+    Object.defineProperty(this, GET_COMPILER_ID, {
+      writable: false,
+      configurable: false,
+      enumerable: false,
+      value: () => {
+        return this.#instance!.getCompilerId();
+      },
+    });
   }
 
   get recordsInputPath() {
@@ -348,6 +367,14 @@ class Compiler {
 
   set platform(platform: PlatformTargetProperties) {
     this.#platform = platform;
+  }
+
+  get target() {
+    return this.#target;
+  }
+
+  set target(target: ExtractedTargetProperties) {
+    this.#target = target;
   }
 
   /**

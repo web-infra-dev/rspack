@@ -1,5 +1,7 @@
 use std::sync::Arc;
 
+use dashmap::DashMap;
+use rayon::prelude::*;
 use rspack_collections::IdentifierSet;
 use rspack_core::{
   ChunkUkey, Compilation, CompilationOptimizeChunks, ModuleIdentifier, Plugin,
@@ -7,7 +9,6 @@ use rspack_core::{
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
-use rustc_hash::FxHashMap;
 
 #[derive(Debug)]
 #[plugin]
@@ -21,22 +22,70 @@ impl std::default::Default for RemoveDuplicateModulesPlugin {
   }
 }
 
+fn find_reusable_chunk(
+  compilation: &Compilation,
+  chunks: &[ChunkUkey],
+  modules: &[ModuleIdentifier],
+) -> Option<ChunkUkey> {
+  let filter = |chunk: &&ChunkUkey| {
+    let chunk_modules = compilation.chunk_graph.get_chunk_modules_identifier(chunk);
+    modules.len() == chunk_modules.len()
+      && modules.iter().all(|module| chunk_modules.contains(module))
+  };
+
+  if chunks.len() > 10 {
+    chunks.par_iter().find_first(filter).copied()
+  } else {
+    chunks.iter().find(filter).copied()
+  }
+}
+
 #[plugin_hook(CompilationOptimizeChunks for RemoveDuplicateModulesPlugin)]
 async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
   let module_graph = compilation.get_module_graph();
   let chunk_graph = &compilation.chunk_graph;
 
-  let mut chunk_map: FxHashMap<Vec<ChunkUkey>, Vec<ModuleIdentifier>> = FxHashMap::default();
+  let chunk_map: DashMap<Vec<ChunkUkey>, Vec<ModuleIdentifier>> = DashMap::default();
 
-  for identifier in module_graph.modules().keys() {
-    let chunks = chunk_graph.get_module_chunks(*identifier);
-    let mut sorted_chunks = chunks.iter().copied().collect::<Vec<_>>();
-    sorted_chunks.sort();
-    chunk_map
-      .entry(sorted_chunks)
-      .or_default()
-      .push(*identifier);
-  }
+  module_graph
+    .modules()
+    .par_iter()
+    .for_each(|(identifier, _)| {
+      let chunks = chunk_graph.get_module_chunks(*identifier);
+      let mut sorted_chunks = chunks.iter().copied().collect::<Vec<_>>();
+      sorted_chunks.sort();
+      chunk_map
+        .entry(sorted_chunks)
+        .or_default()
+        .push(*identifier);
+    });
+
+  /*
+    sort chunks so that do max effort to find reusable chunk
+    eg. 3 entry
+    entry1: [main, foo, bar]
+    entry2: [foo, bar]
+    entry3: [bar]
+
+    the chunk map is
+    main:[entry1]
+    foo: [entry1, entry2]
+    bar: [entry1, entry2, entry3]
+
+    sorted
+    1. so bar gets split first,
+      found usable chunk entry3!
+    2. then split foo, found usable chunk entry2!
+
+    the result chunk is
+    main -> foo -> bar
+
+    the algorithm is easy and cannot cover all optimization possibilities, but
+    its performance is good and it works for most sceneries, if you have better
+    algorithm feel free to contribute, thanks
+  */
+  let mut chunk_map = chunk_map.into_iter().collect::<Vec<_>>();
+  chunk_map.sort_by_key(|(chunks, _)| chunks.len());
 
   for (chunks, modules) in chunk_map {
     if chunks.len() <= 1 {
@@ -44,19 +93,32 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
     }
 
     // split chunks from original chunks and create new chunk
-    let new_chunk_ukey = Compilation::add_chunk(&mut compilation.chunk_by_ukey);
-    if let Some(mut mutations) = compilation.incremental.mutations_write() {
-      mutations.add(Mutation::ChunkAdd {
-        chunk: new_chunk_ukey,
-      });
-    }
-    let new_chunk = compilation.chunk_by_ukey.expect_get_mut(&new_chunk_ukey);
-    *new_chunk.chunk_reason_mut() = Some("modules are shared across multiple chunks".into());
-    compilation.chunk_graph.add_chunk(new_chunk_ukey);
+    let new_chunk_ukey = if let Some(chunk) = find_reusable_chunk(compilation, &chunks, &modules) {
+      // we can use this chunk directly
+      // all modules are into existing chunk, the chunkMap needs update
+
+      chunk
+    } else {
+      let new_chunk_ukey = Compilation::add_chunk(&mut compilation.chunk_by_ukey);
+      if let Some(mut mutations) = compilation.incremental.mutations_write() {
+        mutations.add(Mutation::ChunkAdd {
+          chunk: new_chunk_ukey,
+        });
+      };
+      let new_chunk = compilation.chunk_by_ukey.expect_get_mut(&new_chunk_ukey);
+      *new_chunk.chunk_reason_mut() = Some("modules are shared across multiple chunks".into());
+      compilation.chunk_graph.add_chunk(new_chunk_ukey);
+
+      new_chunk_ukey
+    };
 
     let mut entry_modules = IdentifierSet::default();
 
     for chunk_ukey in &chunks {
+      if chunk_ukey == &new_chunk_ukey {
+        continue;
+      }
+
       let [Some(new_chunk), Some(origin)] = compilation
         .chunk_by_ukey
         .get_many_mut([&new_chunk_ukey, chunk_ukey])
@@ -76,6 +138,9 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
     for m in modules {
       let is_entry = entry_modules.contains(&m);
       for chunk_ukey in &chunks {
+        if chunk_ukey == &new_chunk_ukey {
+          continue;
+        }
         compilation
           .chunk_graph
           .disconnect_chunk_and_module(chunk_ukey, m);

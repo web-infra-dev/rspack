@@ -113,7 +113,12 @@ function createCompilerProcessor(
         expect(typeof stats).toBe('object');
         const compilation = stats.compilation;
         const statsJson = stats.toJson({
+          assets: true,
+          chunks: true,
+          chunkModules: true,
           modules: true,
+          entrypoints: true,
+          chunkGroups: true,
           reasons: true,
         });
         expect(typeof statsJson).toBe('object');

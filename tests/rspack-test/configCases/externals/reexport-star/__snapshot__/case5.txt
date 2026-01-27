@@ -1,14 +1,12 @@
-import { foo } from "external1-alias";
-export * from "external1-alias";
-
-;// CONCATENATED MODULE: external "external1-alias"
-
-;// CONCATENATED MODULE: ./case5.js
+import * as __rspack_external_external1_alias_bc4b12e4 from "external1-alias";
 
 
-const bar = foo + 1
+
+
+const bar = __rspack_external_external1_alias_bc4b12e4.foo + 1
 
 
 
 
 export { bar };
+export * from "external1-alias";

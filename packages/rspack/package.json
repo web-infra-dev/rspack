@@ -1,15 +1,15 @@
 {
   "name": "@rspack/core",
-  "version": "1.7.2",
+  "version": "2.0.0-alpha.0",
   "webpackVersion": "5.75.0",
   "license": "MIT",
   "description": "The fast Rust-based web bundler with webpack-compatible API",
-  "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "publishConfig": {
     "access": "public",
     "provenance": true
   },
+  "type": "module",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -23,7 +23,7 @@
   "scripts": {
     "prepare": "prebundle && node ./move-tinypool.js",
     "build": "rslib build",
-    "build:browser": "rslib build -c rslib.browser.config.mts",
+    "build:browser": "rslib build -c rslib.browser.config.ts",
     "dev": "rslib build --watch",
     "doc-coverage": "tsx ./scripts/check-documentation-coverage.ts",
     "api-extractor": "api-extractor run --verbose",
@@ -36,7 +36,7 @@
     "module.d.ts"
   ],
   "engines": {
-    "node": ">=18.12.0"
+    "node": "^20.19.0 || >=22.12.0"
   },
   "homepage": "https://rspack.rs",
   "bugs": "https://github.com/web-infra-dev/rspack/issues",
@@ -54,6 +54,7 @@
     "@types/node": "^20.19.29",
     "@types/watchpack": "^2.4.5",
     "browserslist-load-config": "^1.0.1",
+    "browserslist-to-es-version": "^1.4.1",
     "enhanced-resolve": "5.18.4",
     "glob-to-regexp": "^0.4.1",
     "memfs": "4.53.0",
@@ -65,14 +66,17 @@
     "webpack-sources": "3.3.3"
   },
   "dependencies": {
-    "@module-federation/runtime-tools": "0.0.0-feat-shared-treeshake-poc-20260114091859",
     "@rspack/binding": "workspace:*",
     "@rspack/lite-tapable": "1.1.0"
   },
   "peerDependencies": {
+    "@module-federation/runtime-tools": "0.0.0-feat-shared-treeshake-poc-20260114091859",
     "@swc/helpers": ">=0.5.1"
   },
   "peerDependenciesMeta": {
+    "@module-federation/runtime-tools": {
+      "optional": true
+    },
     "@swc/helpers": {
       "optional": true
     }

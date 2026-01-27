@@ -5,8 +5,8 @@ use rspack_collections::{IdentifierIndexSet, UkeyIndexMap, UkeySet};
 use rspack_core::{
   AssetInfo, Chunk, ChunkGraph, ChunkRenderContext, ChunkUkey, CodeGenerationDataFilename,
   Compilation, ConcatenatedModuleInfo, DependencyId, InitFragment, ModuleIdentifier, PathData,
-  PathInfo, RuntimeGlobals, RuntimeVariable, SourceType, get_js_chunk_filename_template,
-  get_undo_path, render_init_fragments,
+  PathInfo, RuntimeGlobals, RuntimeVariable, SourceType, export_name,
+  get_js_chunk_filename_template, get_undo_path, render_imports, render_init_fragments,
   rspack_sources::{ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt},
 };
 use rspack_error::Result;
@@ -233,6 +233,7 @@ var {} = {{}};
     }
 
     let mut already_required = IdentifierIndexSet::default();
+
     for m in &chunk_link.hoisted_modules {
       let info = concatenated_modules_map
         .get(m)
@@ -358,45 +359,12 @@ var {} = {{}};
       }
     }
 
-    for ((source, attr), symbols) in &chunk_link.raw_import_stmts {
-      let source_str = format!(
-        "{}{}",
-        serde_json::to_string(source).expect("should have source"),
-        if let Some(attr) = attr {
-          format!(" with {attr}")
-        } else {
-          String::new()
-        }
-      );
-
-      let import_str = if symbols.atoms.is_empty() && symbols.default_import.is_none() {
-        format!("import {source_str};\n")
-      } else {
-        let mut imports = Vec::new();
-        for (atom, local) in symbols.atoms.iter() {
-          if atom == local {
-            imports.push(atom.to_string());
-          } else {
-            imports.push(format!("{atom} as {local}"));
-          }
-        }
-        format!(
-          "import {}{}from {source_str};\n",
-          if let Some(default_import) = &symbols.default_import {
-            format!("{default_import} ")
-          } else {
-            String::new()
-          },
-          if imports.is_empty() {
-            String::default()
-          } else if symbols.default_import.is_some() {
-            format!(", {{ {} }} ", imports.join(", "))
-          } else {
-            format!("{{ {} }} ", imports.join(", "))
-          }
-        )
-      };
-      import_source.add(RawStringSource::from(import_str));
+    for ((source, attr), import_spec) in &chunk_link.raw_import_stmts {
+      import_source.add(RawStringSource::from(render_imports(
+        source,
+        attr.as_deref(),
+        import_spec,
+      )));
     }
 
     for (id, imports) in &chunk_link.imports {
@@ -436,10 +404,12 @@ var {} = {{}};
             imported
               .iter()
               .map(|(imported, local)| {
+                let imported_name = export_name(imported).expect("should have export_name");
                 if imported == local {
-                  Cow::Borrowed(imported.as_str())
+                  imported_name.into_owned()
                 } else {
-                  Cow::Owned(format!("{imported} as {local}"))
+                  let local_name = export_name(local).expect("should have export_name");
+                  format!("{imported_name} as {local_name}")
                 }
               })
               .collect::<Vec<_>>()
@@ -478,20 +448,32 @@ var {} = {{}};
     for (raw_symbol, exports) in exports {
       let mut exports = exports.iter().collect::<Vec<_>>();
       exports.sort_unstable();
-      for export_name in exports {
-        let is_default = export_name.as_str() == "default";
+      for exported_name in exports {
+        let is_default = exported_name.as_str() == "default";
 
         if is_default {
           if export_default.is_none() {
             export_default = Some(raw_symbol);
           } else {
             // multiple export default
-            export_specifiers.insert(Cow::Borrowed(raw_symbol));
+            export_specifiers.insert(Cow::Owned(
+              export_name(raw_symbol)
+                .expect("should have export_name")
+                .into_owned(),
+            ));
           }
-        } else if raw_symbol == export_name {
-          export_specifiers.insert(Cow::Borrowed(raw_symbol));
+        } else if raw_symbol == exported_name {
+          export_specifiers.insert(Cow::Owned(
+            export_name(raw_symbol)
+              .expect("should have export_name")
+              .into_owned(),
+          ));
         } else {
-          export_specifiers.insert(Cow::Owned(format!("{raw_symbol} as {export_name}")));
+          let raw_symbol_name = export_name(raw_symbol).expect("should have export_name");
+          let exported_name_str = export_name(exported_name).expect("should have export_name");
+          export_specifiers.insert(Cow::Owned(format!(
+            "{raw_symbol_name} as {exported_name_str}"
+          )));
         }
       }
     }
@@ -516,8 +498,9 @@ var {} = {{}};
             serde_json::to_string(source).expect("should have correct request")
           )));
         } else {
+          let name_str = export_name(name).expect("should have export_name");
           final_source.add(RawStringSource::from(format!(
-            "export * as {name} from {};\n",
+            "export * as {name_str} from {};\n",
             serde_json::to_string(source).expect("should have correct request")
           )));
         }
@@ -536,11 +519,16 @@ var {} = {{}};
           .flat_map(|(imported, exports)| {
             let mut vec = exports.iter().collect::<Vec<_>>();
             vec.sort_unstable();
-            vec.into_iter().map(move |export_name| {
-              if *imported == export_name {
-                Cow::Borrowed(imported.as_str())
+            let imported_name = export_name(imported)
+              .expect("should have export_name")
+              .into_owned();
+            vec.into_iter().map(move |exported_name| {
+              if *imported == exported_name {
+                imported_name.clone()
               } else {
-                Cow::Owned(format!("{imported} as {export_name}"))
+                let exported_name_str =
+                  export_name(exported_name).expect("should have export_name");
+                format!("{imported_name} as {exported_name_str}")
               }
             })
           })
@@ -729,7 +717,12 @@ var {} = {{}};
     info: &ConcatenatedModuleInfo,
     chunk_link: &ChunkLinkContext,
   ) -> Result<ReplaceSource> {
-    let mut source = info.source.clone().expect("should have source");
+    let Some(mut source) = info.source.clone() else {
+      return Err(rspack_error::Error::error(format!(
+        "module: {} has no source",
+        info.module
+      )));
+    };
 
     for ((atom, ctxt), refs) in &info.binding_to_ref {
       if ctxt == &info.global_ctxt

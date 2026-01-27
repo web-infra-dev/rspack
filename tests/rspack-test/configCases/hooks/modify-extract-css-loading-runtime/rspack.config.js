@@ -5,8 +5,6 @@ class Plugin {
 		compiler.hooks.compilation.tap("TestFakePlugin", compilation => {
 			compilation.hooks.runtimeModule.tap("TestFakePlugin", (module, chunk) => {
 				if (module.constructor.name === "CssLoadingRuntimeModule") {
-					expect(module.constructorName).toBe("CssLoadingRuntimeModule");
-					expect(module.moduleIdentifier).toBe("webpack/runtime/css loading");
 					expect(module.identifier()).toBe("webpack/runtime/css loading");
 					expect(module.readableIdentifier()).toBe("webpack/runtime/css loading");
 					const originSource = module.source.source.toString("utf-8");

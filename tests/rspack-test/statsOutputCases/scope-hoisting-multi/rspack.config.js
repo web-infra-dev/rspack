@@ -24,7 +24,8 @@ module.exports = [
 			}
 		},
 		stats: {
-			assets: false
+			assets: false,
+			modules: true,
 		}
 	},
 
@@ -52,6 +53,7 @@ module.exports = [
 		},
 		stats: {
 			assets: false,
+			modules: true,
 			orphanModules: true,
 			optimizationBailout: true
 		}

@@ -3,7 +3,7 @@ use std::hash::Hash;
 use rspack_core::{
   ChunkGraph, ChunkKind, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
   CompilationDependentFullHash, CompilationParams, CompilerCompilation, ModuleIdentifier, Plugin,
-  RuntimeGlobals, RuntimeVariable, SourceType,
+  RuntimeGlobals, RuntimeModule, RuntimeVariable, SourceType,
   rspack_sources::{ConcatSource, RawStringSource, Source, SourceExt},
 };
 use rspack_error::Result;
@@ -46,9 +46,10 @@ async fn compilation(
 #[plugin_hook(CompilationAdditionalChunkRuntimeRequirements for ModuleChunkFormatPlugin)]
 async fn additional_chunk_runtime_requirements(
   &self,
-  compilation: &mut Compilation,
+  compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
   runtime_requirements: &mut RuntimeGlobals,
+  _runtime_modules: &mut Vec<Box<dyn RuntimeModule>>,
 ) -> Result<()> {
   let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
 
@@ -182,6 +183,9 @@ async fn render_chunk(
       .get_chunk_entry_modules_with_chunk_group_iterable(chunk_ukey);
 
     let mut startup_source = vec![];
+    let runtime_requirements = ChunkGraph::get_tree_runtime_requirements(compilation, chunk_ukey);
+    let use_startup_entrypoint = runtime_requirements.contains(RuntimeGlobals::STARTUP_ENTRYPOINT);
+    let mut entry_module_ids = Vec::new();
 
     startup_source.push(format!(
       "var {} = function(moduleId) {{ return {}({} = moduleId); }}",
@@ -254,21 +258,46 @@ async fn render_chunk(
 
       let module_id_expr = serde_json::to_string(module_id).expect("invalid module_id");
 
+      if use_startup_entrypoint {
+        entry_module_ids.push(module_id_expr);
+      } else {
+        startup_source.push(format!(
+          "{}{}({module_id_expr});",
+          if i + 1 == entries.len() {
+            format!(
+              "var {} = ",
+              compilation
+                .runtime_template
+                .render_runtime_variable(&RuntimeVariable::Exports)
+            )
+          } else {
+            "".to_string()
+          },
+          compilation
+            .runtime_template
+            .render_runtime_variable(&RuntimeVariable::StartupExec),
+        ));
+      }
+    }
+
+    if use_startup_entrypoint && !entry_module_ids.is_empty() {
+      let startup_exec = compilation
+        .runtime_template
+        .render_runtime_variable(&RuntimeVariable::StartupExec);
+      let module_ids_code = entry_module_ids
+        .iter()
+        .map(|module_id_expr| format!("{startup_exec}({module_id_expr})"))
+        .collect::<Vec<_>>()
+        .join(", ");
       startup_source.push(format!(
-        "{}{}({module_id_expr});",
-        if i + 1 == entries.len() {
-          format!(
-            "var {} = ",
-            compilation
-              .runtime_template
-              .render_runtime_variable(&RuntimeVariable::Exports)
-          )
-        } else {
-          "".to_string()
-        },
+        "var {} = {}(0, [], function() {{\n        return {};\n      }});",
         compilation
           .runtime_template
-          .render_runtime_variable(&RuntimeVariable::StartupExec),
+          .render_runtime_variable(&RuntimeVariable::Exports),
+        compilation
+          .runtime_template
+          .render_runtime_globals(&RuntimeGlobals::STARTUP_ENTRYPOINT),
+        module_ids_code
       ));
     }
 

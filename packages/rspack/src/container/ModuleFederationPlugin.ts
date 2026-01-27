@@ -1,3 +1,4 @@
+import { createRequire } from 'node:module';
 import type { Compiler } from '../Compiler';
 import type { ExternalsType } from '../config';
 import type { ShareFallback } from '../sharing/IndependentSharedPlugin';
@@ -9,8 +10,13 @@ import {
   type ModuleFederationManifestPluginOptions,
 } from './ModuleFederationManifestPlugin';
 import type { ModuleFederationPluginV1Options } from './ModuleFederationPluginV1';
-import { ModuleFederationRuntimePlugin } from './ModuleFederationRuntimePlugin';
+import {
+  type ModuleFederationRuntimeExperimentsOptions,
+  ModuleFederationRuntimePlugin,
+} from './ModuleFederationRuntimePlugin';
 import { parseOptions } from './options';
+
+const require = createRequire(import.meta.url);
 
 declare const MF_RUNTIME_CODE: string;
 
@@ -26,6 +32,7 @@ export interface ModuleFederationPluginOptions extends Omit<
   treeShakingSharedDir?: string;
   treeShakingSharedExcludePlugins?: string[];
   treeShakingSharedPlugins?: string[];
+  experiments?: ModuleFederationRuntimeExperimentsOptions;
 }
 export type RuntimePlugins = string[] | [string, Record<string, unknown>][];
 
@@ -36,7 +43,7 @@ export class ModuleFederationPlugin {
 
   apply(compiler: Compiler) {
     const { webpack } = compiler;
-    const paths = getPaths(this._options);
+    const paths = getPaths(this._options, compiler);
     compiler.options.resolve.alias = {
       '@module-federation/runtime-tools': paths.runtimeTools,
       '@module-federation/runtime': paths.runtime,
@@ -54,6 +61,11 @@ export class ModuleFederationPlugin {
       });
       this._treeShakingSharedPlugin.apply(compiler);
     }
+
+    const asyncStartup = this._options.experiments?.asyncStartup ?? false;
+    const runtimeExperiments: ModuleFederationRuntimeExperimentsOptions = {
+      asyncStartup,
+    };
 
     // need to wait treeShakingSharedPlugin buildAssets
     let runtimePluginApplied = false;
@@ -90,16 +102,28 @@ export class ModuleFederationPlugin {
           compiler,
           this._treeShakingSharedPlugin?.buildAssets || {},
         );
+        // Pass only the entry runtime to the Rust-side plugin
         new ModuleFederationRuntimePlugin({
           entryRuntime,
+          experiments: runtimeExperiments,
         }).apply(compiler);
       },
     );
 
-    new webpack.container.ModuleFederationPluginV1({
-      ...this._options,
+    // Keep v1 options isolated from v2-only fields like `experiments`.
+    const v1Options: ModuleFederationPluginV1Options = {
+      name: this._options.name,
+      exposes: this._options.exposes,
+      filename: this._options.filename,
+      library: this._options.library,
+      remoteType: this._options.remoteType,
+      remotes: this._options.remotes,
+      runtime: this._options.runtime,
+      shareScope: this._options.shareScope,
+      shared: this._options.shared,
       enhanced: true,
-    }).apply(compiler);
+    };
+    new webpack.container.ModuleFederationPluginV1(v1Options).apply(compiler);
 
     if (this._options.manifest) {
       new ModuleFederationManifestPlugin(this._options).apply(compiler);
@@ -226,7 +250,10 @@ function getSharedOptions(
   );
 }
 
-function getPaths(options: ModuleFederationPluginOptions): RuntimePaths {
+function getPaths(
+  options: ModuleFederationPluginOptions,
+  compiler: Compiler,
+): RuntimePaths {
   if (IS_BROWSER) {
     return {
       runtimeTools: '@module-federation/runtime-tools',
@@ -235,9 +262,23 @@ function getPaths(options: ModuleFederationPluginOptions): RuntimePaths {
     };
   }
 
-  const runtimeToolsPath =
-    options.implementation ??
-    require.resolve('@module-federation/runtime-tools');
+  let runtimeToolsPath: string;
+  if (options.implementation) {
+    runtimeToolsPath = options.implementation;
+  } else {
+    try {
+      runtimeToolsPath = require.resolve('@module-federation/runtime-tools', {
+        paths: [compiler.context],
+      });
+    } catch (e) {
+      if ((e as NodeJS.ErrnoException).code === 'MODULE_NOT_FOUND') {
+        throw new Error(
+          'Module Federation runtime is not installed. Please install it by running:\n\n  npm install @module-federation/runtime-tools\n',
+        );
+      }
+      throw e;
+    }
+  }
   const bundlerRuntimePath = require.resolve(
     '@module-federation/webpack-bundler-runtime',
     { paths: [runtimeToolsPath] },
@@ -274,7 +315,9 @@ function getDefaultEntryRuntime(
     );
     const paramsCode =
       pluginParams === undefined ? 'undefined' : JSON.stringify(pluginParams);
-    runtimePluginVars.push(`${runtimePluginVar}(${paramsCode})`);
+    runtimePluginVars.push(
+      `{ plugin: ${runtimePluginVar}, params: ${paramsCode} }`,
+    );
   }
 
   const content = [
@@ -284,7 +327,7 @@ function getDefaultEntryRuntime(
     ...runtimePluginImports,
     `const __module_federation_runtime_plugins__ = [${runtimePluginVars.join(
       ', ',
-    )}]`,
+    )}].filter(({ plugin }) => plugin).map(({ plugin, params }) => plugin(params))`,
     `const __module_federation_remote_infos__ = ${JSON.stringify(remoteInfos)}`,
     `const __module_federation_container_name__ = ${JSON.stringify(
       options.name ?? compiler.options.output.uniqueName,
@@ -299,7 +342,7 @@ function getDefaultEntryRuntime(
     IS_BROWSER
       ? MF_RUNTIME_CODE
       : compiler.webpack.Template.getFunctionContent(
-          require('./moduleFederationDefaultRuntime.js'),
+          require('./moduleFederationDefaultRuntime.js').default,
         ),
   ].join(';');
   return `@module-federation/runtime/rspack.js!=!data:text/javascript,${content}`;

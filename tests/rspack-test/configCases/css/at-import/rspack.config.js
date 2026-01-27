@@ -9,10 +9,15 @@ module.exports = {
 		generator: {
 			"css/auto": {
 				exportsOnly: false,
+				exportsConvention: "camel-case",
 			}
-		}
+		},
+		rules: [
+			{
+				test: /\.css$/,
+				type: "css/auto"
+			}
+		]
 	},
-	experiments: {
-		css: true
-	}
+
 };

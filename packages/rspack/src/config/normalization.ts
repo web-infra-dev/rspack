@@ -12,12 +12,11 @@ import path from 'node:path';
 import type { HttpUriPluginOptions } from '../builtin-plugin';
 import type { Compilation } from '../Compilation';
 import type WebpackError from '../lib/WebpackError';
-import { deprecate } from '../util';
 import type {
   Amd,
   AssetModuleFilename,
   Bail,
-  CacheOptions,
+  BundlerInfoOptions,
   ChunkFilename,
   ChunkLoading,
   ChunkLoadingGlobal,
@@ -71,10 +70,8 @@ import type {
   Path,
   Performance,
   Plugins,
-  Profile,
   PublicPath,
   Resolve,
-  RspackFutureOptions,
   RspackOptions,
   RuleSetRules,
   ScriptType,
@@ -152,21 +149,12 @@ export const getNormalizedRspackOptions = (
             )(config.entry)
           : getNormalizedEntryStatic(config.entry),
     output: nestedConfig(config.output, (output) => {
-      if ('cssHeadDataCompression' in output) {
-        deprecate(
-          'cssHeadDataCompression is not used now, see https://github.com/web-infra-dev/rspack/pull/8534, this option could be removed in the future',
-        );
-      }
-
       const { library } = output;
       const libraryAsName = library;
       const libraryBase =
-        typeof library === 'object' &&
-        library &&
-        !Array.isArray(library) &&
-        'type' in library
-          ? library
-          : libraryAsName || output.libraryTarget
+        typeof library === 'object' && library && !Array.isArray(library)
+          ? (library as LibraryOptions)
+          : libraryAsName
             ? ({
                 name: libraryAsName,
               } as LibraryOptions)
@@ -206,26 +194,7 @@ export const getNormalizedRspackOptions = (
         iife: output.iife,
         module: output.module,
         sourceMapFilename: output.sourceMapFilename,
-        library: libraryBase && {
-          type:
-            output.libraryTarget !== undefined
-              ? output.libraryTarget
-              : libraryBase.type,
-          auxiliaryComment:
-            output.auxiliaryComment !== undefined
-              ? output.auxiliaryComment
-              : libraryBase.auxiliaryComment,
-          amdContainer: libraryBase.amdContainer,
-          export:
-            output.libraryExport !== undefined
-              ? output.libraryExport
-              : libraryBase.export,
-          name: libraryBase.name,
-          umdNamedDefine:
-            output.umdNamedDefine !== undefined
-              ? output.umdNamedDefine
-              : libraryBase.umdNamedDefine,
-        },
+        library: libraryBase,
         strictModuleErrorHandling:
           output.strictModuleErrorHandling ??
           output.strictModuleExceptionHandling,
@@ -252,9 +221,9 @@ export const getNormalizedRspackOptions = (
         devtoolFallbackModuleFilenameTemplate:
           output.devtoolFallbackModuleFilenameTemplate,
         chunkLoadTimeout: output.chunkLoadTimeout,
-        charset: output.charset,
         environment: cloneObject(output.environment),
         compareBeforeEmit: output.compareBeforeEmit,
+        bundlerInfo: output.bundlerInfo,
       };
     }),
     resolve: nestedConfig(config.resolve, (resolve) => ({
@@ -304,7 +273,36 @@ export const getNormalizedRspackOptions = (
     ),
     loader: cloneObject(config.loader),
     snapshot: nestedConfig(config.snapshot, (_snapshot) => ({})),
-    cache: optionalNestedConfig(config.cache, (cache) => cache),
+    cache: optionalNestedConfig(config.cache, (cache) => {
+      if (typeof cache === 'boolean') {
+        return cache;
+      }
+      if (cache.type === 'memory') {
+        return cache;
+      }
+      const snapshot = cache.snapshot || {};
+      return {
+        type: 'persistent',
+        buildDependencies: nestedArray(cache.buildDependencies, (deps) =>
+          deps.map((d) => path.resolve(config.context || process.cwd(), d)),
+        ),
+        version: cache.version || '',
+        snapshot: {
+          immutablePaths: nestedArray(snapshot.immutablePaths, (p) => [...p]),
+          unmanagedPaths: nestedArray(snapshot.unmanagedPaths, (p) => [...p]),
+          managedPaths: optionalNestedArray(snapshot.managedPaths, (p) => [
+            ...p,
+          ]) || [/[\\/]node_modules[\\/][^.]/],
+        },
+        storage: {
+          type: 'filesystem',
+          directory: path.resolve(
+            config.context || process.cwd(),
+            cache.storage?.directory || 'node_modules/.cache/rspack',
+          ),
+        },
+      };
+    }),
     stats: nestedConfig(config.stats, (stats) => {
       if (stats === false) {
         return {
@@ -347,92 +345,22 @@ export const getNormalizedRspackOptions = (
     performance: config.performance,
     plugins: nestedArray(config.plugins, (p) => [...p]),
     experiments: nestedConfig(config.experiments, (experiments) => {
-      if (experiments.layers) {
-        deprecate(
-          '`experiments.layers` config is deprecated and will be removed in Rspack v2.0. Feature layers will always be enabled. Remove this option from your Rspack configuration.',
-        );
-      }
-      if (experiments.topLevelAwait === false) {
-        deprecate(
-          '`experiments.topLevelAwait` config is deprecated and will be removed in Rspack v2.0. Top-level await will always be enabled. Remove this option from your Rspack configuration.',
-        );
-      }
-      if (experiments.lazyBarrel) {
-        deprecate(
-          '`experiments.lazyBarrel` config is deprecated and will be removed in Rspack v2.0. Lazy barrel is already stable and enabled by default. Remove this option from your Rspack configuration.',
-        );
-      }
-      if (experiments.inlineConst) {
-        deprecate(
-          '`experiments.inlineConst` config is deprecated and will be removed in Rspack v2.0. Inline Const is already stable and enabled by default. Remove this option from your Rspack configuration.',
-        );
-      }
-      if (experiments.inlineEnum) {
-        deprecate(
-          '`experiments.inlineEnum` config is deprecated and will be removed in Rspack v2.0. Inline Enum is already stable. Remove this option from your Rspack configuration.',
-        );
-      }
-      if (experiments.typeReexportsPresence) {
-        deprecate(
-          '`experiments.typeReexportsPresence` config is deprecated and will be removed in Rspack v2.0. typeReexportsPresence is already stable. Remove this option from your Rspack configuration.',
-        );
-      }
       return {
         ...experiments,
-        cache: optionalNestedConfig(experiments.cache, (cache) => {
-          if (typeof cache === 'boolean') {
-            return cache;
-          }
-          if (cache.type === 'memory') {
-            return cache;
-          }
-          const snapshot = cache.snapshot || {};
-          return {
-            type: 'persistent',
-            buildDependencies: nestedArray(cache.buildDependencies, (deps) =>
-              deps.map((d) => path.resolve(config.context || process.cwd(), d)),
-            ),
-            version: cache.version || '',
-            snapshot: {
-              immutablePaths: nestedArray(snapshot.immutablePaths, (p) => [
-                ...p,
-              ]),
-              unmanagedPaths: nestedArray(snapshot.unmanagedPaths, (p) => [
-                ...p,
-              ]),
-              managedPaths: optionalNestedArray(snapshot.managedPaths, (p) => [
-                ...p,
-              ]) || [/[\\/]node_modules[\\/][^.]/],
-            },
-            storage: {
-              type: 'filesystem',
-              directory: path.resolve(
-                config.context || process.cwd(),
-                cache.storage?.directory || 'node_modules/.cache/rspack',
-              ),
-            },
-          };
-        }),
-        lazyCompilation: optionalNestedConfig(
-          experiments.lazyCompilation,
-          (options) => (options === true ? {} : options),
-        ),
-        incremental: optionalNestedConfig(experiments.incremental, (options) =>
-          getNormalizedIncrementalOptions(options),
-        ),
         buildHttp: experiments.buildHttp,
-        parallelLoader: experiments.parallelLoader,
         useInputFileSystem: experiments.useInputFileSystem,
       };
     }),
     watch: config.watch,
     watchOptions: cloneObject(config.watchOptions),
     devServer: config.devServer,
-    profile: config.profile,
     amd: config.amd,
     bail: config.bail,
     lazyCompilation: optionalNestedConfig(config.lazyCompilation, (options) =>
       options === true ? {} : options,
+    ),
+    incremental: optionalNestedConfig(config.incremental, (options) =>
+      getNormalizedIncrementalOptions(options),
     ),
   };
 };
@@ -515,11 +443,9 @@ const getNormalizedIncrementalOptions = (
   if (incremental === 'safe')
     return {
       silent: true,
-      make: true,
-      inferAsyncModules: false,
-      providedExports: false,
-      dependenciesDiagnostics: false,
-      sideEffects: false,
+      buildModuleGraph: true,
+      finishModules: false,
+      optimizeDependencies: false,
       buildChunkGraph: false,
       moduleIds: false,
       chunkIds: false,
@@ -528,7 +454,7 @@ const getNormalizedIncrementalOptions = (
       modulesRuntimeRequirements: false,
       chunksRuntimeRequirements: false,
       chunksHashes: false,
-      chunksRender: false,
+      chunkAsset: false,
       emitAssets: true,
     };
   if (incremental === true || incremental === 'advance-silent') return {};
@@ -649,9 +575,9 @@ export interface OutputNormalized {
   devtoolModuleFilenameTemplate?: DevtoolModuleFilenameTemplate;
   devtoolFallbackModuleFilenameTemplate?: DevtoolFallbackModuleFilenameTemplate;
   environment?: Environment;
-  charset?: boolean;
   chunkLoadTimeout?: number;
   compareBeforeEmit?: boolean;
+  bundlerInfo?: BundlerInfoOptions;
 }
 
 export interface ModuleOptionsNormalized {
@@ -663,7 +589,7 @@ export interface ModuleOptionsNormalized {
   unsafeCache?: boolean | RegExp;
 }
 
-export type ExperimentCacheNormalized =
+export type CacheNormalized =
   | boolean
   | {
       type: 'memory';
@@ -684,40 +610,12 @@ export type ExperimentCacheNormalized =
     };
 
 export interface ExperimentsNormalized {
-  cache?: ExperimentCacheNormalized;
-  /**
-   * @deprecated This option is deprecated and will be removed in future versions.
-   *
-   * Please use the Configuration top-level `lazyCompilation` option instead.
-   */
-  lazyCompilation?: false | LazyCompilationOptions;
   asyncWebAssembly?: boolean;
   outputModule?: boolean;
-  topLevelAwait?: boolean;
   css?: boolean;
-  /**
-   * @deprecated This option is deprecated, layers is enabled since v1.6.0
-   */
-  layers?: boolean;
-  incremental?: false | Incremental;
   futureDefaults?: boolean;
-  rspackFuture?: RspackFutureOptions;
   buildHttp?: HttpUriPluginOptions;
-  parallelLoader?: boolean;
   useInputFileSystem?: false | RegExp[];
-  /**
-   * @deprecated This option is deprecated, it's already stable and enabled by default, Rspack will remove this option in future version
-   */
-  inlineConst?: boolean;
-  /**
-   * @deprecated This option is deprecated, it's already stable and enabled by default, Rspack will remove this option in future version
-   */
-  inlineEnum?: boolean;
-  typeReexportsPresence?: boolean;
-  /**
-   * @deprecated This option is deprecated, it's already stable and enabled by default, Rspack will remove this option in future version
-   */
-  lazyBarrel?: boolean;
   nativeWatcher?: boolean;
   deferImport?: boolean;
 }
@@ -752,18 +650,18 @@ export interface RspackOptionsNormalized {
   node: Node;
   loader: Loader;
   snapshot: SnapshotOptions;
-  cache?: CacheOptions;
+  cache?: CacheNormalized;
   stats: StatsValue;
   optimization: Optimization;
   plugins: Plugins;
   experiments: ExperimentsNormalized;
   lazyCompilation?: false | LazyCompilationOptions;
+  incremental?: false | Incremental;
   watch?: Watch;
   watchOptions: WatchOptions;
   devServer?: DevServer;
   ignoreWarnings?: IgnoreWarningsNormalized;
   performance?: Performance;
-  profile?: Profile;
   amd?: Amd;
   bail?: Bail;
 }

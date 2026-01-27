@@ -248,19 +248,19 @@ pub async fn link_preload(&self, mut data: LinkPreloadData) -> Result<LinkPreloa
 #[plugin_hook(CompilationAdditionalTreeRuntimeRequirements for SubresourceIntegrityPlugin)]
 pub async fn handle_runtime(
   &self,
-  compilation: &mut Compilation,
+  compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
   runtime_requirements: &mut RuntimeGlobals,
+  runtime_modules: &mut Vec<Box<dyn RuntimeModule>>,
 ) -> Result<()> {
   runtime_requirements.insert(RuntimeGlobals::REQUIRE);
-  compilation.add_runtime_module(
-    chunk_ukey,
+  runtime_modules.push(
     SRIHashVariableRuntimeModule::new(
       &compilation.runtime_template,
       *chunk_ukey,
       self.options.hash_func_names.clone(),
     )
     .boxed(),
-  )?;
+  );
   Ok(())
 }

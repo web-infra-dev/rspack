@@ -45,7 +45,7 @@ const validateExternalUmd = ({
   if (typeof library === 'object' && 'type' in library) {
     isLibraryUmd = library.type === 'umd';
   } else {
-    isLibraryUmd = output?.libraryTarget === 'umd';
+    isLibraryUmd = false;
   }
 
   if (

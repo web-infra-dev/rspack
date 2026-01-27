@@ -50,9 +50,7 @@ const config = {
 			}
 		})
 	],
-	experiments: {
-		css: true
-	},
+,
 	module: {
 		rules: [
 			{
@@ -69,6 +67,10 @@ const config = {
 			{
 				test: /\.txt/,
 				type: "asset/source"
+			},
+			{
+				test: /\.css$/,
+				type: "css/auto"
 			}
 		]
 	}
