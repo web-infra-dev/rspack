@@ -15,7 +15,7 @@ on:
   push:
     branches:
       - main
-      - v2
+      - v1.x
     paths-ignore:
       - '**/*.md'
       - 'website/**'
@@ -24,7 +24,7 @@ on:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
-  cancel-in-progress: ${{ github.ref_name != 'main' && github.ref_name != 'v2' }}
+  cancel-in-progress: ${{ github.ref_name != 'main' && github.ref_name != 'v1.x' }}
 
 permissions:
   # Allow commenting on issues for `reusable-build.yml`

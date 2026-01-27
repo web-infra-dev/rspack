@@ -11,7 +11,7 @@ on:
   push:
     branches:
       - main
-      - v2
+      - v1.x
     # Ignore md files in push to skip workflow when only documentation changes
     paths-ignore:
       - '**/*.md'
