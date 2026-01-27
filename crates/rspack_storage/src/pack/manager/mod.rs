@@ -10,7 +10,7 @@ use tokio::sync::{Mutex, oneshot, oneshot::Receiver};
 use super::{
   ScopeUpdates,
   data::{PackOptions, PackScope, RootMeta, RootMetaState, RootOptions},
-  strategy::{ScopeStrategy, WriteScopeResult},
+  strategy::{SplitPackStrategy, WriteScopeResult},
 };
 use crate::{
   ItemPairs, Result,
@@ -23,7 +23,7 @@ type ScopeMap = HashMap<String, PackScope>;
 pub struct ScopeManager {
   pub root_options: Arc<RootOptions>,
   pub pack_options: Arc<PackOptions>,
-  pub strategy: Arc<dyn ScopeStrategy>,
+  pub strategy: Arc<SplitPackStrategy>,
   pub scopes: Arc<Mutex<ScopeMap>>,
   pub root_meta: Arc<Mutex<RootMetaState>>,
   pub queue: TaskQueue,
@@ -33,7 +33,7 @@ impl ScopeManager {
   pub fn new(
     root_options: Arc<RootOptions>,
     pack_options: Arc<PackOptions>,
-    strategy: Arc<dyn ScopeStrategy>,
+    strategy: Arc<SplitPackStrategy>,
   ) -> Self {
     ScopeManager {
       root_options,
@@ -241,7 +241,7 @@ async fn update_scopes(
   scopes: &mut ScopeMap,
   mut updates: ScopeUpdates,
   pack_options: Arc<PackOptions>,
-  strategy: &dyn ScopeStrategy,
+  strategy: &SplitPackStrategy,
 ) -> Result<()> {
   for (scope_name, _) in updates.iter() {
     scopes.entry(scope_name.to_string()).or_insert_with(|| {
@@ -280,7 +280,7 @@ async fn update_scopes(
 async fn save_scopes(
   mut scopes: ScopeMap,
   root_meta: &RootMeta,
-  strategy: &dyn ScopeStrategy,
+  strategy: &SplitPackStrategy,
   root_options: &RootOptions,
 ) -> Result<ScopeMap> {
   scopes.retain(|_, scope| scope.loaded());
@@ -331,7 +331,7 @@ mod tests {
   use rustc_hash::FxHashMap as HashMap;
 
   use crate::{
-    BridgeFileSystem, FileSystem, ItemKey, ItemValue,
+    FileSystem, ItemKey, ItemValue,
     error::Result,
     pack::{
       data::{PackOptions, RootOptions},
@@ -362,11 +362,7 @@ mod tests {
     )
   }
 
-  async fn test_cold_start(
-    root: &Utf8Path,
-    temp: &Utf8Path,
-    fs: Arc<dyn FileSystem>,
-  ) -> Result<()> {
+  async fn test_cold_start(root: &Utf8Path, temp: &Utf8Path, fs: Arc<FileSystem>) -> Result<()> {
     let root_options = Arc::new(RootOptions {
       expire: 60000,
       root: root.parent().expect("should get parent").to_path_buf(),
@@ -379,7 +375,6 @@ mod tests {
 
     let strategy = Arc::new(SplitPackStrategy::new(
       root.to_path_buf(),
-      temp.to_path_buf(),
       fs.clone(),
       Some(1),
       Some(2),
@@ -420,7 +415,7 @@ mod tests {
     Ok(())
   }
 
-  async fn test_hot_start(root: &Utf8Path, temp: &Utf8Path, fs: Arc<dyn FileSystem>) -> Result<()> {
+  async fn test_hot_start(root: &Utf8Path, temp: &Utf8Path, fs: Arc<FileSystem>) -> Result<()> {
     let root_options = Arc::new(RootOptions {
       expire: 60000,
       root: root.parent().expect("should get parent").to_path_buf(),
@@ -433,7 +428,6 @@ mod tests {
 
     let strategy = Arc::new(SplitPackStrategy::new(
       root.to_path_buf(),
-      temp.to_path_buf(),
       fs.clone(),
       Some(1),
       Some(2),
@@ -489,11 +483,7 @@ mod tests {
     Ok(())
   }
 
-  async fn test_invalid_start(
-    root: &Utf8Path,
-    temp: &Utf8Path,
-    fs: Arc<dyn FileSystem>,
-  ) -> Result<()> {
+  async fn test_invalid_start(root: &Utf8Path, temp: &Utf8Path, fs: Arc<FileSystem>) -> Result<()> {
     let root_options = Arc::new(RootOptions {
       expire: 60000,
       root: root.parent().expect("should get parent").to_path_buf(),
@@ -507,7 +497,6 @@ mod tests {
 
     let strategy = Arc::new(SplitPackStrategy::new(
       root.to_path_buf(),
-      temp.to_path_buf(),
       fs.clone(),
       Some(1),
       Some(2),
@@ -540,7 +529,7 @@ mod tests {
     Ok(())
   }
 
-  async fn test_clean(root: &Utf8Path, temp: &Utf8Path, fs: Arc<dyn FileSystem>) -> Result<()> {
+  async fn test_clean(root: &Utf8Path, temp: &Utf8Path, fs: Arc<FileSystem>) -> Result<()> {
     let root_options = Arc::new(RootOptions {
       expire: 60000,
       root: root.parent().expect("should get parent").to_path_buf(),
@@ -553,7 +542,6 @@ mod tests {
 
     let strategy = Arc::new(SplitPackStrategy::new(
       root.to_path_buf(),
-      temp.to_path_buf(),
       fs.clone(),
       Some(1),
       Some(2),
@@ -570,9 +558,12 @@ mod tests {
   }
 
   async fn test_manager() -> Result<()> {
-    let fs = Arc::new(BridgeFileSystem(Arc::new(MemoryFileSystem::default())));
     let root = Utf8PathBuf::from("/cache/test_manager");
     let temp = Utf8PathBuf::from("/temp/test_manager");
+    let fs = Arc::new(FileSystem::new(
+      Arc::new(MemoryFileSystem::default()),
+      root.clone(),
+    ));
     test_cold_start(&root, &temp, fs.clone()).await?;
     test_hot_start(&root, &temp, fs.clone()).await?;
     test_invalid_start(&root, &temp, fs.clone()).await?;

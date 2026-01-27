@@ -30,7 +30,6 @@ pub fn create_storage(
   match options {
     StorageOptions::FileSystem { directory } => {
       let option = PackStorageOptions {
-        temp_root: directory.join(".temp"),
         root: directory,
         clean: true,
         bucket_size: 20,

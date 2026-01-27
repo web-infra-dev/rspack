@@ -24,7 +24,7 @@ mod test_storage_build {
     root: &Utf8PathBuf,
     temp_root: &Utf8PathBuf,
     version: &str,
-    fs: Arc<dyn FileSystem>,
+    fs: Arc<FileSystem>,
   ) -> PackStorageOptions {
     PackStorageOptions {
       version: version.to_string(),
@@ -42,7 +42,7 @@ mod test_storage_build {
 
   async fn test_initial_build(
     root: &Utf8PathBuf,
-    fs: Arc<dyn FileSystem>,
+    fs: Arc<FileSystem>,
     options: PackStorageOptions,
   ) -> Result<()> {
     let storage = PackStorage::new(options);
@@ -63,7 +63,7 @@ mod test_storage_build {
 
   async fn test_recovery_modify(
     root: &Utf8PathBuf,
-    fs: Arc<dyn FileSystem>,
+    fs: Arc<FileSystem>,
     options: PackStorageOptions,
   ) -> Result<()> {
     let storage = PackStorage::new(options);
@@ -83,7 +83,7 @@ mod test_storage_build {
 
   async fn test_recovery_final(
     _root: &Utf8PathBuf,
-    _fs: Arc<dyn FileSystem>,
+    _fs: Arc<FileSystem>,
     options: PackStorageOptions,
   ) -> Result<()> {
     let storage = PackStorage::new(options);
@@ -114,11 +114,11 @@ mod test_storage_build {
     let cases = [
       (
         get_native_path("test_build_native"),
-        Arc::new(BridgeFileSystem(Arc::new(NativeFileSystem::new(false)))),
+        Arc::new(FileSystem::new(Arc::new(NativeFileSystem::new(false)))),
       ),
       (
         get_memory_path("test_build_memory"),
-        Arc::new(BridgeFileSystem(Arc::new(MemoryFileSystem::default()))),
+        Arc::new(FileSystem::new(Arc::new(MemoryFileSystem::default()))),
       ),
     ];
     let version = "xxx".to_string();

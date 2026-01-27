@@ -11,20 +11,16 @@ use std::{
   sync::Arc,
 };
 
-use handle_file::{
-  recovery_move_lock, recovery_remove_lock, remove_expired_versions, remove_unused_scope_files,
-  remove_unused_scopes,
-};
+use handle_file::{remove_expired_versions, remove_unused_scope_files, remove_unused_scopes};
 use itertools::Itertools;
 use rspack_paths::{Utf8Path, Utf8PathBuf};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 use util::get_name;
 
-use super::{RootStrategy, ScopeStrategy};
 use crate::{
   FileSystem,
   error::{Result, ValidateResult},
-  fs::{FSError, FSOperation},
+  filesystem::fs::{FSError, FSOperation},
   pack::data::{
     PackContents, PackKeys, PackScope, RootMeta, RootMetaFrom, RootOptions, current_time,
   },
@@ -32,9 +28,8 @@ use crate::{
 
 #[derive(Debug, Clone)]
 pub struct SplitPackStrategy {
-  pub fs: Arc<dyn FileSystem>,
+  pub fs: Arc<FileSystem>,
   pub root: Arc<Utf8PathBuf>,
-  pub temp_root: Arc<Utf8PathBuf>,
   pub fresh_generation: Option<usize>,
   pub release_generation: Option<usize>,
 }
@@ -42,18 +37,20 @@ pub struct SplitPackStrategy {
 impl SplitPackStrategy {
   pub fn new(
     root: Utf8PathBuf,
-    temp_root: Utf8PathBuf,
-    fs: Arc<dyn FileSystem>,
+    fs: Arc<FileSystem>,
     fresh_generation: Option<usize>,
     release_generation: Option<usize>,
   ) -> Self {
     Self {
       fs,
       root: Arc::new(root),
-      temp_root: Arc::new(temp_root),
       fresh_generation,
       release_generation,
     }
+  }
+
+  pub fn temp_root(&self) -> Utf8PathBuf {
+    self.root.join(".temp")
   }
 
   pub async fn get_pack_hash(
@@ -75,14 +72,11 @@ impl SplitPackStrategy {
   }
 }
 
-#[async_trait::async_trait]
-impl RootStrategy for SplitPackStrategy {
-  async fn before_load(&self) -> Result<()> {
-    recovery_remove_lock(&self.root, &self.temp_root, self.fs.clone()).await?;
-    recovery_move_lock(&self.root, &self.temp_root, self.fs.clone()).await?;
+impl SplitPackStrategy {
+  pub async fn before_load(&self) -> Result<()> {
     Ok(())
   }
-  async fn read_root_meta(&self) -> Result<Option<RootMeta>> {
+  pub async fn read_root_meta(&self) -> Result<Option<RootMeta>> {
     let meta_path = RootMeta::get_path(&self.root);
     if !self.fs.exists(&meta_path).await? {
       return Ok(None);
@@ -109,7 +103,7 @@ impl RootStrategy for SplitPackStrategy {
       from: RootMetaFrom::File,
     }))
   }
-  async fn write_root_meta(&self, root_meta: &RootMeta) -> Result<()> {
+  pub async fn write_root_meta(&self, root_meta: &RootMeta) -> Result<()> {
     let meta_path = RootMeta::get_path(&self.root);
     let mut writer = self.fs.write_file(&meta_path).await?;
 
@@ -125,7 +119,7 @@ impl RootStrategy for SplitPackStrategy {
 
     Ok(())
   }
-  async fn validate_root(&self, root_meta: &RootMeta) -> Result<ValidateResult> {
+  pub async fn validate_root(&self, root_meta: &RootMeta) -> Result<ValidateResult> {
     if matches!(root_meta.from, RootMetaFrom::New) {
       Ok(ValidateResult::Valid)
     } else {
@@ -138,7 +132,7 @@ impl RootStrategy for SplitPackStrategy {
     }
   }
 
-  async fn clean(
+  pub async fn clean(
     &self,
     root_meta: &RootMeta,
     scopes: &HashMap<String, PackScope>,
@@ -157,9 +151,7 @@ impl RootStrategy for SplitPackStrategy {
     Ok(())
   }
 
-  async fn reset(&self) {
+  pub async fn reset(&self) {
     let _ = self.fs.remove_dir(&self.root).await;
   }
 }
-
-impl ScopeStrategy for SplitPackStrategy {}

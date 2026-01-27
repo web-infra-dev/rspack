@@ -13,7 +13,7 @@ use crate::{
   pack::{
     ScopeUpdate,
     data::{Pack, PackFileMeta, PackOptions},
-    strategy::{PackReadStrategy, PackWriteStrategy, UpdatePacksResult, split::util::get_name},
+    strategy::{UpdatePacksResult, split::util::get_name},
   },
 };
 
@@ -36,9 +36,8 @@ impl PartialEq for PackItemCandidate {
   }
 }
 
-#[async_trait]
-impl PackWriteStrategy for SplitPackStrategy {
-  async fn optimize_packs(
+impl SplitPackStrategy {
+  pub async fn optimize_packs(
     &self,
     dir: Utf8PathBuf,
     options: &PackOptions,
@@ -59,7 +58,7 @@ impl PackWriteStrategy for SplitPackStrategy {
     })
   }
 
-  async fn update_packs(
+  pub async fn update_packs(
     &self,
     dir: Utf8PathBuf,
     generation: usize,
@@ -172,8 +171,9 @@ impl PackWriteStrategy for SplitPackStrategy {
     })
   }
 
-  async fn write_pack(&self, pack: &Pack) -> Result<()> {
-    let path = redirect_to_path(&pack.path, &self.root, &self.temp_root)?;
+  pub async fn write_pack(&self, pack: &Pack) -> Result<()> {
+    let temp_root = self.temp_root();
+    let path = redirect_to_path(&pack.path, &self.root, &temp_root)?;
     let keys = pack.keys.expect_value();
     let contents = pack.contents.expect_value();
     let generations = &pack.generations;
@@ -393,7 +393,7 @@ mod tests {
     pack::{
       data::{Pack, PackFileMeta, PackOptions},
       strategy::{
-        PackWriteStrategy, SplitPackStrategy, UpdatePacksResult,
+        SplitPackStrategy, UpdatePacksResult,
         split::{
           handle_file::redirect_to_path,
           util::test_pack_utils::{UpdateVal, clean_strategy, create_strategies, mock_updates},
@@ -416,13 +416,10 @@ mod tests {
     pack.generations = vec![1_usize, 2_usize];
     strategy.write_pack(&pack).await?;
 
+    let temp_root = strategy.temp_root();
     let mut reader = strategy
       .fs
-      .read_file(&redirect_to_path(
-        &pack.path,
-        &strategy.root,
-        &strategy.temp_root,
-      )?)
+      .read_file(&redirect_to_path(&pack.path, &strategy.root, &temp_root)?)
       .await?;
     assert_eq!(reader.read_line().await?, "5 5");
     assert_eq!(reader.read_line().await?, "5 5");

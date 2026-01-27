@@ -15,7 +15,7 @@ mod test_storage_lock {
 
   #[derive(Debug)]
   pub struct MockFileSystem {
-    pub fs: Arc<dyn FileSystem>,
+    pub fs: Arc<FileSystem>,
     pub moved: AtomicUsize,
     pub break_on: usize,
   }
@@ -87,7 +87,7 @@ mod test_storage_lock {
     version: &str,
     root: &Utf8PathBuf,
     temp_root: &Utf8PathBuf,
-    fs: Arc<dyn FileSystem>,
+    fs: Arc<FileSystem>,
   ) -> Result<()> {
     let storage = PackStorage::new(PackStorageOptions {
       version: version.to_string(),
@@ -124,7 +124,7 @@ mod test_storage_lock {
     version: &str,
     root: &Utf8PathBuf,
     temp_root: &Utf8PathBuf,
-    fs: Arc<dyn FileSystem>,
+    fs: Arc<FileSystem>,
   ) -> Result<()> {
     let storage = PackStorage::new(PackStorageOptions {
       version: version.to_string(),
@@ -146,7 +146,7 @@ mod test_storage_lock {
     version: &str,
     root: &Utf8PathBuf,
     temp_root: &Utf8PathBuf,
-    fs: Arc<dyn FileSystem>,
+    fs: Arc<FileSystem>,
   ) -> Result<()> {
     let storage = PackStorage::new(PackStorageOptions {
       version: version.to_string(),
@@ -173,11 +173,11 @@ mod test_storage_lock {
     let cases = [
       (
         get_native_path("test_lock_native"),
-        Arc::new(BridgeFileSystem(Arc::new(NativeFileSystem::new(false)))),
+        Arc::new(FileSystem::new(Arc::new(NativeFileSystem::new(false)))),
       ),
       (
         get_memory_path("test_lock_memory"),
-        Arc::new(BridgeFileSystem(Arc::new(MemoryFileSystem::default()))),
+        Arc::new(FileSystem::new(Arc::new(MemoryFileSystem::default()))),
       ),
     ];
 
@@ -222,11 +222,11 @@ mod test_storage_lock {
     let cases = [
       (
         get_native_path("test_lock_fail_native"),
-        Arc::new(BridgeFileSystem(Arc::new(NativeFileSystem::new(false)))),
+        Arc::new(FileSystem::new(Arc::new(NativeFileSystem::new(false)))),
       ),
       (
         get_memory_path("test_lock_fail_memory"),
-        Arc::new(BridgeFileSystem(Arc::new(MemoryFileSystem::default()))),
+        Arc::new(FileSystem::new(Arc::new(MemoryFileSystem::default()))),
       ),
     ];
 

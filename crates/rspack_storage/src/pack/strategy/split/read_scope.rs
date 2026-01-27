@@ -11,13 +11,13 @@ use crate::{
   error::{Error, ErrorType, Result},
   pack::{
     data::{Pack, PackFileMeta, PackKeys, PackScope, ScopeMeta},
-    strategy::{PackMainContents, PackReadStrategy, ScopeReadStrategy},
+    strategy::PackMainContents,
   },
 };
 
 #[async_trait]
-impl ScopeReadStrategy for SplitPackStrategy {
-  async fn ensure_meta(&self, scope: &mut PackScope) -> Result<()> {
+impl SplitPackStrategy {
+  pub async fn ensure_meta(&self, scope: &mut PackScope) -> Result<()> {
     if !scope.meta.loaded() {
       let meta_path = ScopeMeta::get_path(&scope.path);
       let meta = read_scope_meta(scope.name, &meta_path, self.fs.clone())
@@ -28,7 +28,7 @@ impl ScopeReadStrategy for SplitPackStrategy {
     Ok(())
   }
 
-  async fn ensure_packs(&self, scope: &mut PackScope) -> Result<()> {
+  pub async fn ensure_packs(&self, scope: &mut PackScope) -> Result<()> {
     self.ensure_meta(scope).await?;
 
     if !scope.packs.loaded() {
@@ -52,7 +52,7 @@ impl ScopeReadStrategy for SplitPackStrategy {
     Ok(())
   }
 
-  async fn ensure_keys(&self, scope: &mut PackScope) -> Result<()> {
+  pub async fn ensure_keys(&self, scope: &mut PackScope) -> Result<()> {
     self.ensure_packs(scope).await?;
 
     let read_key_results = read_keys(scope, self).await?;
@@ -68,7 +68,7 @@ impl ScopeReadStrategy for SplitPackStrategy {
     Ok(())
   }
 
-  async fn ensure_contents(&self, scope: &mut PackScope) -> Result<()> {
+  pub async fn ensure_contents(&self, scope: &mut PackScope) -> Result<()> {
     self.ensure_keys(scope).await?;
 
     let read_content_results = read_contents(scope, self).await?;
@@ -85,7 +85,7 @@ impl ScopeReadStrategy for SplitPackStrategy {
     Ok(())
   }
 
-  fn get_path(&self, str: &str) -> Utf8PathBuf {
+  pub fn get_path(&self, str: &str) -> Utf8PathBuf {
     self.root.join(str)
   }
 }
@@ -93,7 +93,7 @@ impl ScopeReadStrategy for SplitPackStrategy {
 async fn read_scope_meta(
   scope: &'static str,
   path: &Utf8Path,
-  fs: Arc<dyn FileSystem>,
+  fs: Arc<FileSystem>,
 ) -> Result<Option<ScopeMeta>> {
   if !fs.exists(path).await? {
     return Ok(None);
@@ -288,7 +288,7 @@ mod tests {
     pack::{
       data::{PackOptions, PackScope, ScopeMeta},
       strategy::{
-        ScopeReadStrategy, SplitPackStrategy,
+        SplitPackStrategy,
         split::util::test_pack_utils::{
           clean_strategy, create_strategies, mock_pack_file, mock_scope_meta_file,
         },
@@ -296,7 +296,7 @@ mod tests {
     },
   };
 
-  async fn mock_scope(path: &Utf8Path, fs: &dyn FileSystem, options: &PackOptions) -> Result<()> {
+  async fn mock_scope(path: &Utf8Path, fs: &FileSystem, options: &PackOptions) -> Result<()> {
     mock_scope_meta_file(&ScopeMeta::get_path(path), fs, options, 3).await?;
     for bucket_id in 0..options.bucket_size {
       for pack_no in 0..3 {

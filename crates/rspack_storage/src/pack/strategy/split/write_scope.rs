@@ -7,63 +7,59 @@ use tokio::task::JoinError;
 
 use super::{
   SplitPackStrategy,
-  handle_file::{
-    move_files, prepare_scope_dirs, redirect_to_path, remove_files, remove_lock, write_lock,
-  },
+  handle_file::{prepare_scope_dirs, redirect_to_path},
   util::{choose_bucket, flag_scope_wrote},
 };
 use crate::{
   error::Result,
-  fs::BatchFSError,
+  filesystem::fs::BatchFSError,
   pack::{
     data::{Pack, PackScope},
-    strategy::{PackWriteStrategy, ScopeUpdate, ScopeWriteStrategy, WriteScopeResult},
+    strategy::{ScopeUpdate, WriteScopeResult},
   },
 };
 
 #[async_trait]
-impl ScopeWriteStrategy for SplitPackStrategy {
-  async fn before_all(&self, scopes: &mut HashMap<String, PackScope>) -> Result<()> {
-    prepare_scope_dirs(scopes, &self.root, &self.temp_root, self.fs.clone()).await?;
+impl SplitPackStrategy {
+  pub async fn before_all(&self, scopes: &mut HashMap<String, PackScope>) -> Result<()> {
+    // Begin transaction using FileSystem API
+    self.fs.begin_transaction((*self.root).clone()).await?;
+
+    let temp_root = self.temp_root();
+    prepare_scope_dirs(scopes, &self.root, &temp_root, self.fs.clone()).await?;
     Ok(())
   }
 
-  async fn merge_changed(&self, changed: WriteScopeResult) -> Result<()> {
-    // remove files with `.lock`
-    write_lock(
-      "remove.lock",
-      &changed.wrote_files,
-      &self.root,
-      &self.temp_root,
-      self.fs.clone(),
-    )
-    .await?;
-    remove_files(changed.removed_files, self.fs.clone()).await?;
-    remove_lock("remove.lock", &self.root, self.fs.clone()).await?;
+  pub async fn merge_changed(&self, changed: WriteScopeResult) -> Result<()> {
+    // Add all new/updated files to transaction (files are already in temp directory)
+    for file_path in &changed.wrote_files {
+      // Get relative path from root
+      let relative_path = file_path
+        .strip_prefix(self.root.as_path())
+        .unwrap_or(file_path.as_path());
 
-    // move files with `.lock`
-    write_lock(
-      "move.lock",
-      &changed.wrote_files,
-      &self.root,
-      &self.temp_root,
-      self.fs.clone(),
-    )
-    .await?;
-    move_files(
-      changed.wrote_files,
-      &self.root,
-      &self.temp_root,
-      self.fs.clone(),
-    )
-    .await?;
-    remove_lock("move.lock", &self.root, self.fs.clone()).await?;
+      self
+        .fs
+        .transaction_add_file_from_temp(relative_path)
+        .await?;
+    }
 
-    self.fs.remove_dir(&self.temp_root).await?;
+    // Mark files for removal
+    for file_path in &changed.removed_files {
+      let relative_path = file_path
+        .strip_prefix(self.root.as_path())
+        .unwrap_or(file_path.as_path());
+
+      self.fs.transaction_remove_file(relative_path).await?;
+    }
+
+    // Commit the transaction
+    self.fs.commit_transaction().await?;
+
     Ok(())
   }
 
-  async fn after_all(&self, scopes: &mut HashMap<String, PackScope>) -> Result<()> {
+  pub async fn after_all(&self, scopes: &mut HashMap<String, PackScope>) -> Result<()> {
     for scope in scopes.values_mut() {
       flag_scope_wrote(scope);
     }
@@ -71,7 +67,7 @@ impl ScopeWriteStrategy for SplitPackStrategy {
     Ok(())
   }
 
-  async fn update_scope(&self, scope: &mut PackScope, updates: ScopeUpdate) -> Result<()> {
+  pub async fn update_scope(&self, scope: &mut PackScope, updates: ScopeUpdate) -> Result<()> {
     if !scope.loaded() {
       panic!("scope not loaded, run `load` first");
     }
@@ -162,7 +158,7 @@ impl ScopeWriteStrategy for SplitPackStrategy {
     Ok(())
   }
 
-  async fn release_scope(&self, scope: &mut PackScope) -> Result<()> {
+  pub async fn release_scope(&self, scope: &mut PackScope) -> Result<()> {
     if let Some(release_generation) = self.release_generation {
       let meta = scope.meta.expect_value();
       let packs = scope.packs.expect_value_mut();
@@ -179,7 +175,7 @@ impl ScopeWriteStrategy for SplitPackStrategy {
     Ok(())
   }
 
-  async fn optimize_scope(&self, scope: &mut PackScope) -> Result<()> {
+  pub async fn optimize_scope(&self, scope: &mut PackScope) -> Result<()> {
     if !scope.loaded() {
       panic!("scope not loaded, run `load` first");
     }
@@ -237,7 +233,7 @@ impl ScopeWriteStrategy for SplitPackStrategy {
     Ok(())
   }
 
-  async fn write_packs(&self, scope: &mut PackScope) -> Result<WriteScopeResult> {
+  pub async fn write_packs(&self, scope: &mut PackScope) -> Result<WriteScopeResult> {
     let removed_files = std::mem::take(&mut scope.removed);
     let packs = scope.packs.take_value().expect("should have scope packs");
     let meta = scope.meta.expect_value_mut();
@@ -286,9 +282,10 @@ impl ScopeWriteStrategy for SplitPackStrategy {
     })
   }
 
-  async fn write_meta(&self, scope: &mut PackScope) -> Result<WriteScopeResult> {
+  pub async fn write_meta(&self, scope: &mut PackScope) -> Result<WriteScopeResult> {
     let meta = scope.meta.expect_value();
-    let path = redirect_to_path(&meta.path, &self.root, &self.temp_root)?;
+    let temp_root = self.temp_root();
+    let path = redirect_to_path(&meta.path, &self.root, &temp_root)?;
     self
       .fs
       .ensure_dir(path.parent().expect("should have parent"))
@@ -341,9 +338,10 @@ async fn save_pack(pack: &Pack, strategy: &SplitPackStrategy) -> Result<String> 
     panic!("pack keys and contents length not match");
   }
   strategy.write_pack(pack).await?;
+  let temp_root = strategy.temp_root();
   let hash = strategy
     .get_pack_hash(
-      &redirect_to_path(&pack.path, &strategy.root, &strategy.temp_root)?,
+      &redirect_to_path(&pack.path, &strategy.root, &temp_root)?,
       keys,
       contents,
     )
@@ -380,12 +378,9 @@ mod tests {
     pack::{
       SplitPackStrategy,
       data::{PackOptions, PackScope},
-      strategy::{
-        ScopeReadStrategy, ScopeWriteStrategy,
-        split::util::test_pack_utils::{
-          UpdateVal, clean_strategy, count_bucket_packs, count_scope_packs, create_strategies,
-          get_bucket_pack_sizes, mock_updates, save_scope,
-        },
+      strategy::split::util::test_pack_utils::{
+        UpdateVal, clean_strategy, count_bucket_packs, count_scope_packs, create_strategies,
+        get_bucket_pack_sizes, mock_updates, save_scope,
       },
     },
   };

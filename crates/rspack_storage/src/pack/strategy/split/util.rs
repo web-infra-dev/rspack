@@ -80,18 +80,17 @@ pub mod test_pack_utils {
 
   use super::flag_scope_wrote;
   use crate::{
-    BridgeFileSystem, FileSystem,
+    FileSystem,
     error::Result,
     pack::{
       data::{PackOptions, PackScope, current_time},
       strategy::{
-        ScopeUpdate, ScopeWriteStrategy, SplitPackStrategy, WriteScopeResult,
-        split::handle_file::prepare_scope,
+        ScopeUpdate, SplitPackStrategy, WriteScopeResult, split::handle_file::prepare_scope,
       },
     },
   };
 
-  pub async fn mock_root_meta_file(path: &Utf8Path, fs: &dyn FileSystem) -> Result<()> {
+  pub async fn mock_root_meta_file(path: &Utf8Path, fs: &FileSystem) -> Result<()> {
     fs.ensure_dir(path.parent().expect("should have parent"))
       .await?;
     let mut writer = fs.write_file(path).await?;
@@ -104,7 +103,7 @@ pub mod test_pack_utils {
 
   pub async fn mock_scope_meta_file(
     path: &Utf8Path,
-    fs: &dyn FileSystem,
+    fs: &FileSystem,
     options: &PackOptions,
     pack_count: usize,
   ) -> Result<()> {
@@ -141,7 +140,7 @@ pub mod test_pack_utils {
     path: &Utf8Path,
     unique_id: &str,
     item_count: usize,
-    fs: &dyn FileSystem,
+    fs: &FileSystem,
   ) -> Result<()> {
     fs.ensure_dir(path.parent().expect("should have parent"))
       .await?;
@@ -223,6 +222,7 @@ pub mod test_pack_utils {
   }
 
   pub async fn clean_strategy(strategy: &SplitPackStrategy) {
+    let temp_root = strategy.temp_root();
     strategy
       .fs
       .remove_dir(&strategy.root)
@@ -230,12 +230,12 @@ pub mod test_pack_utils {
       .expect("should remove dir");
     strategy
       .fs
-      .remove_dir(&strategy.temp_root)
+      .remove_dir(&temp_root)
       .await
       .expect("should remove dir");
   }
 
-  pub async fn flush_file_mtime(path: &Utf8Path, fs: Arc<dyn FileSystem>) -> Result<()> {
+  pub async fn flush_file_mtime(path: &Utf8Path, fs: Arc<FileSystem>) -> Result<()> {
     let content = fs.read_file(path).await?.read_to_end().await?;
     let mut writer = fs.write_file(path).await?;
     writer.write_all(&content).await?;
@@ -248,13 +248,11 @@ pub mod test_pack_utils {
     scope: &mut PackScope,
     strategy: &SplitPackStrategy,
   ) -> Result<WriteScopeResult> {
-    prepare_scope(
-      &scope.path,
-      &strategy.root,
-      &strategy.temp_root,
-      strategy.fs.clone(),
-    )
-    .await?;
+    // Begin transaction using FileSystem API
+    strategy.fs.begin_transaction().await?;
+
+    let temp_root = strategy.temp_root();
+    prepare_scope(&scope.path, &strategy.root, &temp_root, strategy.fs.clone()).await?;
 
     let mut changed = WriteScopeResult::default();
     changed.extend(strategy.write_packs(scope).await?);
@@ -278,26 +276,19 @@ pub mod test_pack_utils {
   }
 
   pub fn create_strategies(case: &str) -> Vec<SplitPackStrategy> {
-    let fs = [
-      (
-        Arc::new(BridgeFileSystem(Arc::new(MemoryFileSystem::default()))),
-        get_memory_path(case),
-      ),
-      (
-        Arc::new(BridgeFileSystem(Arc::new(NativeFileSystem::new(false)))),
-        get_native_path(case),
-      ),
+    let paths = [get_memory_path(case), get_native_path(case)];
+    let fs_impls: [Arc<dyn rspack_fs::IntermediateFileSystem>; 2] = [
+      Arc::new(MemoryFileSystem::default()),
+      Arc::new(NativeFileSystem::new(false)),
     ];
 
-    fs.into_iter()
-      .map(|(fs, root)| {
-        SplitPackStrategy::new(
-          root.join("cache"),
-          root.join("temp"),
-          fs,
-          Some(1_usize),
-          Some(2_usize),
-        )
+    paths
+      .into_iter()
+      .zip(fs_impls)
+      .map(|(root_base, fs_impl)| {
+        let root = root_base.join("cache");
+        let fs = Arc::new(FileSystem::new(fs_impl, root.clone()));
+        SplitPackStrategy::new(root, fs, Some(1_usize), Some(2_usize))
       })
       .collect_vec()
   }

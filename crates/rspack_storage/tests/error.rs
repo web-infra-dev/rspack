@@ -24,7 +24,7 @@ mod test_storage_error {
     root: &Utf8PathBuf,
     temp_root: &Utf8PathBuf,
     version: &str,
-    fs: Arc<dyn FileSystem>,
+    fs: Arc<FileSystem>,
   ) -> PackStorageOptions {
     PackStorageOptions {
       version: version.to_string(),
@@ -42,7 +42,7 @@ mod test_storage_error {
 
   async fn test_initial_error(
     root: &Utf8PathBuf,
-    fs: Arc<dyn FileSystem>,
+    fs: Arc<FileSystem>,
     options: PackStorageOptions,
   ) -> Result<()> {
     let storage = PackStorage::new(options);
@@ -64,7 +64,7 @@ mod test_storage_error {
 
   async fn test_recovery_invalid_meta(
     root: &Utf8PathBuf,
-    fs: Arc<dyn FileSystem>,
+    fs: Arc<FileSystem>,
     options: PackStorageOptions,
   ) -> Result<()> {
     let storage = PackStorage::new(options);
@@ -113,7 +113,7 @@ mod test_storage_error {
 
   async fn test_recovery_remove_pack(
     root: &Utf8PathBuf,
-    fs: Arc<dyn FileSystem>,
+    fs: Arc<FileSystem>,
     options: PackStorageOptions,
   ) -> Result<()> {
     let storage = PackStorage::new(options);
@@ -140,7 +140,7 @@ mod test_storage_error {
 
   async fn test_recovery_modified_pack(
     root: &Utf8PathBuf,
-    fs: Arc<dyn FileSystem>,
+    fs: Arc<FileSystem>,
     options: PackStorageOptions,
   ) -> Result<()> {
     let storage = PackStorage::new(options);
@@ -177,11 +177,11 @@ mod test_storage_error {
     let cases = [
       (
         get_native_path("test_error_native"),
-        Arc::new(BridgeFileSystem(Arc::new(NativeFileSystem::new(false)))),
+        Arc::new(FileSystem::new(Arc::new(NativeFileSystem::new(false)))),
       ),
       (
         get_memory_path("test_error_memory"),
-        Arc::new(BridgeFileSystem(Arc::new(MemoryFileSystem::default()))),
+        Arc::new(FileSystem::new(Arc::new(MemoryFileSystem::default()))),
       ),
     ];
     let version = "xxx".to_string();

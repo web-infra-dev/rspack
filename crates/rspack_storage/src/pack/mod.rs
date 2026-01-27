@@ -25,8 +25,7 @@ pub struct PackStorage {
 
 pub struct PackStorageOptions {
   pub root: PathBuf,
-  pub temp_root: PathBuf,
-  pub fs: Arc<dyn FileSystem>,
+  pub fs: Arc<FileSystem>,
   pub bucket_size: usize,
   pub pack_size: usize,
   pub expire: u64,
@@ -38,10 +37,13 @@ pub struct PackStorageOptions {
 
 impl PackStorage {
   pub fn new(options: PackStorageOptions) -> Self {
+    let root = options.root.clone().assert_utf8();
+    let version_root = root.join(&options.version);
+
     Self {
       manager: ScopeManager::new(
         Arc::new(RootOptions {
-          root: options.root.clone().assert_utf8(),
+          root: root.clone(),
           expire: options.expire,
           clean: options.clean,
         }),
@@ -50,8 +52,7 @@ impl PackStorage {
           pack_size: options.pack_size,
         }),
         Arc::new(SplitPackStrategy::new(
-          options.root.join(&options.version).assert_utf8(),
-          options.temp_root.join(&options.version).assert_utf8(),
+          version_root,
           options.fs,
           options.fresh_generation,
           options.release_generation,

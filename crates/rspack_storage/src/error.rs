@@ -1,4 +1,4 @@
-use crate::fs::{BatchFSError, FSError};
+use crate::filesystem::fs::{BatchFSError, FSError};
 
 #[derive(Debug)]
 pub struct InvalidDetail {

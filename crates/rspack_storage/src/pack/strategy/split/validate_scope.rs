@@ -5,12 +5,11 @@ use itertools::Itertools;
 use super::{SplitPackStrategy, util::get_indexed_packs};
 use crate::{
   error::{Error, ErrorType, Result, ValidateResult},
-  pack::{data::PackScope, strategy::ScopeValidateStrategy},
+  pack::data::PackScope,
 };
 
-#[async_trait]
-impl ScopeValidateStrategy for SplitPackStrategy {
-  async fn validate_meta(&self, scope: &mut PackScope) -> Result<ValidateResult> {
+impl SplitPackStrategy {
+  pub async fn validate_meta(&self, scope: &mut PackScope) -> Result<ValidateResult> {
     let meta = scope.meta.expect_value();
 
     if meta.bucket_size != scope.options.bucket_size {
@@ -24,7 +23,7 @@ impl ScopeValidateStrategy for SplitPackStrategy {
     return Ok(ValidateResult::Valid);
   }
 
-  async fn validate_packs(&self, scope: &mut PackScope) -> Result<ValidateResult> {
+  pub async fn validate_packs(&self, scope: &mut PackScope) -> Result<ValidateResult> {
     let (_, pack_list) = get_indexed_packs(scope, None);
 
     let tasks = pack_list
@@ -87,7 +86,7 @@ mod tests {
     pack::{
       data::{PackOptions, PackScope, RootMeta, ScopeMeta},
       strategy::{
-        ScopeReadStrategy, ScopeValidateStrategy, ScopeWriteStrategy, SplitPackStrategy,
+        SplitPackStrategy,
         split::{
           handle_file::prepare_scope,
           util::{
@@ -178,7 +177,7 @@ mod tests {
   async fn test_flush_packs_mtime(
     scope_path: Utf8PathBuf,
     strategy: &SplitPackStrategy,
-    fs: Arc<dyn FileSystem>,
+    fs: Arc<FileSystem>,
     options: Arc<PackOptions>,
     files: HashSet<Utf8PathBuf>,
   ) -> Result<()> {
@@ -252,10 +251,11 @@ mod tests {
         .await
         .expect("should update scope");
 
+      let temp_root = strategy.temp_root();
       prepare_scope(
         &mock_scope.path,
         &strategy.root,
-        &strategy.temp_root,
+        &temp_root,
         strategy.fs.clone(),
       )
       .await
