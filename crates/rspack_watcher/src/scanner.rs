@@ -162,7 +162,7 @@ fn check_path_metadata(filepath: &ArcPath, start_time: &SystemTime) -> bool {
   {
     // Fix: Use <= instead of < to catch files modified at exactly start_time
     // This is critical for CI environments where timestamp precision may be low
-    let is_changed = *start_time <= m_time;
+    let is_changed = *start_time != m_time;
     if is_changed {
       let delta = m_time
         .duration_since(*start_time)
