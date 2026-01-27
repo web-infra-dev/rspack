@@ -242,7 +242,10 @@ async fn normal_module_factory_module(
   {
     return Ok(());
   }
-  let request = &create_data.raw_request;
+  let dependency = data.dependencies[0]
+    .as_module_dependency()
+    .expect("should be module dependency");
+  let request = dependency.request();
   {
     let match_provides = self.match_provides.read().await;
     if let Some(config) = match_provides.get(request) {
