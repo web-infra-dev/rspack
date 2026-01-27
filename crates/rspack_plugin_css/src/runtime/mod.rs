@@ -102,6 +102,9 @@ impl RuntimeModule for CssLoadingRuntimeModule {
   async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
     if let Some(chunk_ukey) = self.chunk {
       let runtime_hooks = RuntimePlugin::get_compilation_hooks(compilation.id());
+      let mut runtime_template = compilation
+        .runtime_template
+        .create_module_codegen_runtime_template();
       let chunk = compilation.chunk_by_ukey.expect_get(&chunk_ukey);
       let runtime_requirements = get_chunk_runtime_requirements(compilation, &chunk_ukey);
 
@@ -193,8 +196,10 @@ impl RuntimeModule for CssLoadingRuntimeModule {
         .await?;
 
       let chunk_load_timeout = compilation.options.output.chunk_load_timeout.to_string();
+      let module_factories =
+        runtime_template.render_runtime_globals(&RuntimeGlobals::MODULE_FACTORIES);
 
-      let load_css_chunk_data = compilation.runtime_template.basic_function(
+      let load_css_chunk_data = runtime_template.basic_function(
         "target, chunkId",
         &format!(
           r#"{}
@@ -203,9 +208,7 @@ installedChunks[chunkId] = 0;
           with_hmr
             .then_some(format!(
               "var moduleIds = [];\nif(target == {})",
-              compilation
-                .runtime_template
-                .render_runtime_globals(&RuntimeGlobals::MODULE_FACTORIES)
+              module_factories
             ))
             .unwrap_or_default(),
           if with_hmr {
@@ -223,9 +226,7 @@ installedChunks[chunkId] = 0;
             .map(|id| serde_json::to_string(id).expect("should ok to convert to string"))
             .collect::<Vec<_>>()
             .join(","),
-          compilation
-            .runtime_template
-            .render_runtime_globals(&RuntimeGlobals::MODULE_FACTORIES)
+          runtime_template.render_runtime_globals(&RuntimeGlobals::MODULE_FACTORIES)
         ))
       } else if !initial_chunk_ids.is_empty() {
         Cow::Owned(
@@ -235,9 +236,7 @@ installedChunks[chunkId] = 0;
               let id = serde_json::to_string(id).expect("should ok to convert to string");
               format!(
                 "loadCssChunkData({}, 0, {});",
-                compilation
-                  .runtime_template
-                  .render_runtime_globals(&RuntimeGlobals::MODULE_FACTORIES),
+                runtime_template.render_runtime_globals(&RuntimeGlobals::MODULE_FACTORIES),
                 id
               )
             })

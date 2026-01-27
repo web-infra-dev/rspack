@@ -486,6 +486,7 @@ impl ESMExportImportedSpecifierDependency {
       module,
       runtime_requirements,
       runtime,
+      runtime_template,
       ..
     } = ctxt;
     let compilation = ctxt.compilation;
@@ -802,12 +803,8 @@ impl ESMExportImportedSpecifierDependency {
               r#"{content}
 /* reexport */ {}({}, __rspack_reexport);
 "#,
-              compilation
-                .runtime_template
-                .render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS),
-              compilation
-                .runtime_template
-                .render_exports_argument(exports_name),
+              runtime_template.render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS),
+              runtime_template.render_exports_argument(exports_name),
             ),
             if is_async {
               InitFragmentStage::StageAsyncESMImports
@@ -953,7 +950,7 @@ impl ESMExportImportedSpecifierDependency {
     let TemplateContext {
       module,
       runtime_requirements,
-      compilation,
+      runtime_template,
       ..
     } = ctxt;
     let return_value = Self::get_return_value(name.to_string(), value_key);
@@ -963,17 +960,11 @@ impl ESMExportImportedSpecifierDependency {
     runtime_requirements.insert(RuntimeGlobals::HAS_OWN_PROPERTY);
     format!(
       "if({}({}, {})) {}({}, {{ {}: function() {{ return {}; }} }});\n",
-      compilation
-        .runtime_template
-        .render_runtime_globals(&RuntimeGlobals::HAS_OWN_PROPERTY),
+      runtime_template.render_runtime_globals(&RuntimeGlobals::HAS_OWN_PROPERTY),
       name,
       serde_json::to_string(&first_value_key.to_string()).expect("should serialize to string"),
-      compilation
-        .runtime_template
-        .render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS),
-      compilation
-        .runtime_template
-        .render_exports_argument(exports_name),
+      runtime_template.render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS),
+      runtime_template.render_exports_argument(exports_name),
       property_name(&key).expect("should have property_name"),
       return_value
     )

@@ -136,6 +136,7 @@ impl DependencyTemplate for MockModuleIdDependencyTemplate {
 
     let module_id = module_id_rstest(
       code_generatable_context.compilation,
+      &mut code_generatable_context.runtime_template,
       &dep.id,
       &dep.request,
       dep.weak,

@@ -6,8 +6,8 @@ use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
   AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo, BuildMeta, BuildResult,
   CodeGenerationResult, Compilation, ConcatenationScope, Context, DependenciesBlock, DependencyId,
-  FactoryMeta, LibIdentOptions, Module, ModuleDependency, ModuleGraph, ModuleId, ModuleType,
-  RuntimeGlobals, RuntimeSpec, SourceType, StaticExportsDependency, StaticExportsSpec,
+  FactoryMeta, LibIdentOptions, Module, ModuleArgument, ModuleDependency, ModuleGraph, ModuleId,
+  ModuleType, RuntimeSpec, SourceType, StaticExportsDependency, StaticExportsSpec,
   ValueCacheVersions, impl_module_meta_info, impl_source_map_config, module_update_hash,
   rspack_sources::{BoxSource, OriginalSource, RawStringSource},
 };
@@ -121,13 +121,10 @@ impl Module for DelegatedModule {
     _runtime: Option<&RuntimeSpec>,
     _concatenation_scope: Option<ConcatenationScope>,
   ) -> Result<CodeGenerationResult> {
-    let mut runtime_requirements = RuntimeGlobals::default();
-    runtime_requirements.insert(RuntimeGlobals::REQUIRE);
-    runtime_requirements.insert(RuntimeGlobals::MODULE);
-    let mut code_generation_result = CodeGenerationResult {
-      runtime_requirements,
-      ..Default::default()
-    };
+    let mut runtime_template = compilation
+      .runtime_template
+      .create_module_codegen_runtime_template();
+    let mut code_generation_result = CodeGenerationResult::default();
 
     let dep = self.dependencies[0];
     let mg = compilation.get_module_graph();
@@ -140,14 +137,9 @@ impl Module for DelegatedModule {
     let str = match source_module {
       Some(_) => {
         let mut s = format!(
-          "module.exports = ({})",
-          compilation.runtime_template.module_raw(
-            compilation,
-            &mut code_generation_result.runtime_requirements,
-            &dep,
-            dependency.request(),
-            false,
-          )
+          "{}.exports = ({})",
+          runtime_template.render_module_argument(ModuleArgument::Module),
+          runtime_template.module_raw(compilation, &dep, dependency.request(), false,)
         );
 
         let request = json_stringify(
@@ -171,9 +163,7 @@ impl Module for DelegatedModule {
 
         s
       }
-      None => compilation
-        .runtime_template
-        .throw_missing_module_error_block(&self.source_request),
+      None => runtime_template.throw_missing_module_error_block(&self.source_request),
     };
 
     let source_map = self.get_source_map_kind();
@@ -186,6 +176,9 @@ impl Module for DelegatedModule {
     };
 
     code_generation_result = code_generation_result.with_javascript(source);
+    code_generation_result
+      .runtime_requirements
+      .insert(*runtime_template.runtime_requirements());
 
     Ok(code_generation_result)
   }

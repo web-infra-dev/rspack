@@ -4,11 +4,10 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::Identifiable;
 use rspack_core::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo,
-  BuildMeta, BuildResult, ChunkGraph, CodeGenerationData, CodeGenerationResult, Compilation,
-  ConcatenationScope, Context, DependenciesBlock, DependencyId, DependencyRange, FactoryMeta,
-  LibIdentOptions, Module, ModuleFactoryCreateData, ModuleGraph, ModuleIdentifier, ModuleLayer,
-  ModuleType, RuntimeGlobals, RuntimeSpec, SourceType, TemplateContext, ValueCacheVersions,
-  impl_module_meta_info, module_update_hash,
+  BuildMeta, BuildResult, ChunkGraph, CodeGenerationResult, Compilation, ConcatenationScope,
+  Context, DependenciesBlock, DependencyId, DependencyRange, FactoryMeta, LibIdentOptions, Module,
+  ModuleFactoryCreateData, ModuleGraph, ModuleIdentifier, ModuleLayer, ModuleType, RuntimeGlobals,
+  RuntimeSpec, SourceType, ValueCacheVersions, impl_module_meta_info, module_update_hash,
   rspack_sources::{BoxSource, RawStringSource},
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
@@ -204,7 +203,7 @@ impl Module for LazyCompilationProxyModule {
     &self,
     compilation: &Compilation,
     _runtime: Option<&RuntimeSpec>,
-    mut concatenation_scope: Option<ConcatenationScope>,
+    _concatenation_scope: Option<ConcatenationScope>,
   ) -> Result<CodeGenerationResult> {
     let mut runtime_template = compilation
       .runtime_template
@@ -215,7 +214,6 @@ impl Module for LazyCompilationProxyModule {
     runtime_template
       .runtime_requirements_mut()
       .insert(RuntimeGlobals::REQUIRE);
-    let mut codegen_data = CodeGenerationData::default();
 
     let client_dep_id = self.dependencies[0];
     let module_graph = &compilation.get_module_graph();
@@ -251,22 +249,7 @@ impl Module for LazyCompilationProxyModule {
         .module_identifier_by_dependency_id(&dep_id)
         .expect("should have module");
 
-      let mut runtime_requirements = RuntimeGlobals::empty();
-      let mut template_ctx = TemplateContext {
-        compilation,
-        module: module_graph
-          .module_by_identifier(module)
-          .expect("should have module")
-          .as_ref(),
-        runtime_requirements: &mut runtime_requirements,
-        init_fragments: &mut vec![],
-        runtime: None,
-        concatenation_scope: concatenation_scope.as_mut(),
-        data: &mut codegen_data,
-        runtime_template: &mut runtime_template,
-      };
-
-      let res = RawStringSource::from(format!(
+      RawStringSource::from(format!(
         "{client}
         module.exports = {};
         if (module.hot) {{
@@ -277,8 +260,9 @@ impl Module for LazyCompilationProxyModule {
             module.hot.data.resolveSelf(module.exports);
         }}
         ",
-        compilation.runtime_template.module_namespace_promise(
-          &mut template_ctx,
+        runtime_template.module_namespace_promise(
+          compilation,
+          *module,
           &dep_id,
           Some(block_id),
           &self.resource,
@@ -289,13 +273,7 @@ impl Module for LazyCompilationProxyModule {
           ChunkGraph::get_module_id(&compilation.module_ids_artifact, *module)
             .expect("should have module id")
         ),
-      ));
-
-      runtime_template
-        .runtime_requirements_mut()
-        .extend(runtime_requirements);
-
-      res
+      ))
     } else {
       RawStringSource::from(format!(
         "{client}
@@ -312,8 +290,9 @@ impl Module for LazyCompilationProxyModule {
     };
 
     let mut codegen_result = CodeGenerationResult::default().with_javascript(Arc::new(source));
-    codegen_result.runtime_requirements = *runtime_template.runtime_requirements();
-    codegen_result.data = codegen_data;
+    codegen_result
+      .runtime_requirements
+      .extend(*runtime_template.runtime_requirements());
 
     Ok(codegen_result)
   }

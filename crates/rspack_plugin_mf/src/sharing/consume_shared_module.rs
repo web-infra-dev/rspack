@@ -195,6 +195,9 @@ impl Module for ConsumeSharedModule {
     _runtime: Option<&RuntimeSpec>,
     _: Option<ConcatenationScope>,
   ) -> Result<CodeGenerationResult> {
+    let mut runtime_template = compilation
+      .runtime_template
+      .create_module_codegen_runtime_template();
     let mut code_generation_result = CodeGenerationResult::default();
     code_generation_result
       .runtime_requirements
@@ -219,19 +222,9 @@ impl Module for ConsumeSharedModule {
     }
     let factory = self.options.import.as_ref().map(|fallback| {
       if self.options.eager {
-        compilation.runtime_template.sync_module_factory(
-          &self.get_dependencies()[0],
-          fallback,
-          compilation,
-          &mut code_generation_result.runtime_requirements,
-        )
+        runtime_template.sync_module_factory(&self.get_dependencies()[0], fallback, compilation)
       } else {
-        compilation.runtime_template.async_module_factory(
-          &self.get_blocks()[0],
-          fallback,
-          compilation,
-          &mut code_generation_result.runtime_requirements,
-        )
+        runtime_template.async_module_factory(&self.get_blocks()[0], fallback, compilation)
       }
     });
     code_generation_result
@@ -246,6 +239,9 @@ impl Module for ConsumeSharedModule {
         eager: self.options.eager,
         fallback: factory,
       });
+    code_generation_result
+      .runtime_requirements
+      .insert(*runtime_template.runtime_requirements());
     Ok(code_generation_result)
   }
 

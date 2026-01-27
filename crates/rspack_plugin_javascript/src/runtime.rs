@@ -106,6 +106,9 @@ pub async fn render_module(
   output_path: &str,
   hooks: &JavascriptModulesPluginHooks,
 ) -> Result<Option<(BoxSource, ChunkInitFragments, ChunkInitFragments)>> {
+  let mut runtime_template = compilation
+    .runtime_template
+    .create_module_codegen_runtime_template();
   let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
   let code_gen_result = compilation
     .code_generation_results
@@ -201,9 +204,7 @@ pub async fn render_module(
 
       let mut args = Vec::new();
       if need_module || need_exports || need_require {
-        let module_argument = compilation
-          .runtime_template
-          .render_module_argument(module.get_module_argument());
+        let module_argument = runtime_template.render_module_argument(module.get_module_argument());
         args.push(if need_module {
           module_argument
         } else {
@@ -212,9 +213,8 @@ pub async fn render_module(
       }
 
       if need_exports || need_require {
-        let exports_argument = compilation
-          .runtime_template
-          .render_exports_argument(module.get_exports_argument());
+        let exports_argument =
+          runtime_template.render_exports_argument(module.get_exports_argument());
         args.push(if need_exports {
           exports_argument
         } else {
@@ -222,11 +222,7 @@ pub async fn render_module(
         });
       }
       if need_require {
-        args.push(
-          compilation
-            .runtime_template
-            .render_runtime_globals(&RuntimeGlobals::REQUIRE),
-        );
+        args.push(runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE));
       }
 
       let mut container_sources = ConcatSource::default();

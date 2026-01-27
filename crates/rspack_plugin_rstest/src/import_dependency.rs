@@ -2,8 +2,8 @@ use rspack_cacheable::cacheable;
 use rspack_core::{
   AsyncDependenciesBlockIdentifier, ChunkGraph, Compilation, Dependency, DependencyCodeGeneration,
   DependencyId, DependencyTemplate, DependencyTemplateType, DependencyType, ExportsType,
-  FakeNamespaceObjectMode, ModuleDependency, ModuleGraph, RuntimeGlobals, TemplateContext,
-  TemplateReplaceSource, get_exports_type,
+  FakeNamespaceObjectMode, ModuleCodegenRuntimeTemplate, ModuleDependency, ModuleGraph,
+  RuntimeGlobals, TemplateContext, TemplateReplaceSource, get_exports_type,
 };
 use rspack_plugin_javascript::dependency::ImportDependency;
 
@@ -63,6 +63,7 @@ impl DependencyTemplate for ImportDependencyTemplate {
 
 pub fn module_id_rstest(
   compilation: &Compilation,
+  runtime_template: &mut ModuleCodegenRuntimeTemplate,
   id: &DependencyId,
   request: &str,
   weak: bool,
@@ -73,9 +74,7 @@ pub fn module_id_rstest(
     && let Some(module_id) =
       ChunkGraph::get_module_id(&compilation.module_ids_artifact, *module_identifier)
   {
-    compilation
-      .runtime_template
-      .module_id_expr(request, module_id)
+    runtime_template.module_id_expr(request, module_id)
   } else if weak {
     "null /* weak dependency, without id */".to_string()
   } else {
@@ -122,7 +121,7 @@ fn module_namespace_promise_rstest(
     &module.identifier(),
   );
 
-  let module_id_expr = module_id_rstest(compilation, dep_id, request, weak);
+  let module_id_expr = module_id_rstest(compilation, runtime_template, dep_id, request, weak);
 
   let final_require = if is_import_actual {
     format!(
