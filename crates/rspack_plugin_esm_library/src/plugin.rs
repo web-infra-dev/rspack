@@ -328,9 +328,10 @@ async fn after_code_generation(
 #[plugin_hook(CompilationAdditionalChunkRuntimeRequirements for EsmLibraryPlugin)]
 async fn additional_chunk_runtime_requirements(
   &self,
-  compilation: &mut Compilation,
+  compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
   runtime_requirements: &mut RuntimeGlobals,
+  _runtime_modules: &mut Vec<Box<dyn RuntimeModule>>,
 ) -> Result<()> {
   let info_map = self.concatenated_modules_map.read().await;
 

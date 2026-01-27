@@ -31,14 +31,24 @@ pub fn collect_assets_from_chunk(
 
   for cg in chunk.groups() {
     let group = compilation.chunk_group_by_ukey.expect_get(cg);
-    if let Some(name) = group.name() {
-      let skip = entry_point_names.contains(name);
-      if !skip {
-        for file in group.get_files(&compilation.chunk_by_ukey) {
+    let skip = group
+      .name()
+      .is_some_and(|name| entry_point_names.contains(name));
+    if !skip {
+      for chunk_ukey in &group.chunks {
+        let group_chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+        if let Some(group_chunk_name) = group_chunk.name()
+          && let Some(chunk_name) = chunk.name()
+          && group_chunk_name == chunk_name
+          && chunk_ukey != chunk_key
+        {
+          continue;
+        }
+        for file in group_chunk.files() {
           if file.ends_with(".css") {
             css_sync.insert(file.to_string());
-          } else if !is_hot_file(&file) {
-            js_sync.insert(file);
+          } else if !is_hot_file(file) {
+            js_sync.insert(file.clone());
           }
         }
       }
@@ -56,15 +66,15 @@ pub fn collect_assets_from_chunk(
     }
     for cg in async_chunk.groups() {
       let group = compilation.chunk_group_by_ukey.expect_get(cg);
-      if let Some(name) = group.name() {
-        let skip = entry_point_names.contains(name);
-        if !skip {
-          for file in group.get_files(&compilation.chunk_by_ukey) {
-            if file.ends_with(".css") {
-              css_async.insert(file.to_string());
-            } else if !is_hot_file(&file) {
-              js_async.insert(file);
-            }
+      let skip = group
+        .name()
+        .is_some_and(|name| entry_point_names.contains(name));
+      if !skip {
+        for file in group.get_files(&compilation.chunk_by_ukey) {
+          if file.ends_with(".css") {
+            css_async.insert(file.to_string());
+          } else if !is_hot_file(&file) {
+            js_async.insert(file);
           }
         }
       }

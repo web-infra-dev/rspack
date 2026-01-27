@@ -2,7 +2,7 @@ use std::hash::Hash;
 
 use rspack_core::{
   ChunkGraph, ChunkKind, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
-  CompilationParams, CompilerCompilation, Plugin, RuntimeGlobals, RuntimeVariable,
+  CompilationParams, CompilerCompilation, Plugin, RuntimeGlobals, RuntimeModule, RuntimeVariable,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt};
@@ -38,9 +38,10 @@ async fn compilation(
 #[plugin_hook(CompilationAdditionalChunkRuntimeRequirements for ArrayPushCallbackChunkFormatPlugin)]
 async fn additional_chunk_runtime_requirements(
   &self,
-  compilation: &mut Compilation,
+  compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
   runtime_requirements: &mut RuntimeGlobals,
+  _runtime_modules: &mut Vec<Box<dyn RuntimeModule>>,
 ) -> Result<()> {
   let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
 
