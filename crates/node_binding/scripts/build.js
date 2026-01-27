@@ -45,7 +45,6 @@ async function build() {
 		const features = [];
 		const envs = { ...process.env };
 		const use_build_std = values.profile === "release"
-				|| values.profile === "release-debug"
 				|| values.profile === "release-wasi"
 				|| values.profile === "profiling";
 
