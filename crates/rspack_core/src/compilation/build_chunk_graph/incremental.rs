@@ -310,7 +310,7 @@ impl CodeSplitter {
 
       for chunk_ukey in &cgm.chunks {
         let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
-        chunk_groups.extend(chunk.groups().clone());
+        chunk_groups.extend(chunk.groups().iter().copied());
       }
     }
     for group in chunk_groups {

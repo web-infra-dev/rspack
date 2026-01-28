@@ -900,7 +900,7 @@ impl Module for ConcatenatedModule {
         continue;
       };
       if info.has_ast {
-        all_used_names.extend(info.all_used_names.clone());
+        all_used_names.extend(info.all_used_names.iter().cloned());
       }
     }
 

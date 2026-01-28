@@ -67,7 +67,7 @@ impl Compiler {
       removed_files.extend(deleted_files.iter().map(|files| Path::new(files).into()));
 
       let mut all_files = modified_files.clone();
-      all_files.extend(removed_files.clone());
+      all_files.extend(removed_files.iter().cloned());
 
       self.plugin_driver.clear_cache(self.compilation.id());
 

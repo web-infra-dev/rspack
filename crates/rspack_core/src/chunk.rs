@@ -329,7 +329,9 @@ impl Chunk {
       group.insert_chunk(new_chunk.ukey, self.ukey);
       new_chunk.add_group(group.ukey);
     }
-    new_chunk.id_name_hints.extend(self.id_name_hints.clone());
+    new_chunk
+      .id_name_hints
+      .extend(self.id_name_hints.iter().cloned());
     new_chunk.runtime.extend(&self.runtime);
   }
 
@@ -618,12 +620,13 @@ impl Chunk {
       }
     }
 
-    for chunk_group_ukey in initial_queue.clone().iter() {
+    let initial_keys: Vec<_> = initial_queue.iter().copied().collect();
+    for chunk_group_ukey in initial_keys {
       add_to_queue(
         chunk_group_by_ukey,
         &mut queue,
         &mut initial_queue,
-        chunk_group_ukey,
+        &chunk_group_ukey,
       );
     }
 
@@ -895,13 +898,8 @@ impl Chunk {
     if include_direct_children {
       for chunk_ukey in self
         .get_sorted_groups_iter(&compilation.chunk_group_by_ukey)
-        .filter_map(|chunk_group_ukey| {
-          compilation
-            .chunk_group_by_ukey
-            .get(chunk_group_ukey)
-            .map(|g| g.chunks.clone())
-        })
-        .flatten()
+        .filter_map(|chunk_group_ukey| compilation.chunk_group_by_ukey.get(chunk_group_ukey))
+        .flat_map(|g| g.chunks.iter().copied())
       {
         add_child_ids_task.push((chunk_ukey, ChunkGroupOrderKey::Prefetch));
         add_child_ids_task.push((chunk_ukey, ChunkGroupOrderKey::Preload));

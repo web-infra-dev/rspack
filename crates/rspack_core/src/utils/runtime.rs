@@ -18,7 +18,7 @@ pub fn get_entry_runtime(
   if let Some(depend_on) = &options.depend_on {
     let mut result: RuntimeSpec = Default::default();
     let mut queue = vec![];
-    queue.extend(depend_on.clone());
+    queue.extend(depend_on.iter().cloned());
 
     let mut visited = HashSet::<String>::default();
 
