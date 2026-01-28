@@ -10,7 +10,6 @@ use rspack_paths::{Utf8Path, Utf8PathBuf};
 use rspack_sources::BoxSource;
 use rspack_tasks::{CompilerContext, within_compiler_context};
 use rspack_util::{node_path::NodePath, tracing_preset::TRACING_BENCH_TARGET};
-use rustc_hash::FxHashMap as HashMap;
 use tracing::instrument;
 
 pub use self::rebuild::CompilationRecords;
@@ -94,9 +93,6 @@ pub struct Compiler {
   pub resolver_factory: Arc<ResolverFactory>,
   pub loader_resolver_factory: Arc<ResolverFactory>,
   pub cache: Box<dyn Cache>,
-  /// emitted asset versions
-  /// the key of HashMap is filename, the value of HashMap is version
-  pub emitted_asset_versions: HashMap<String, String>,
   pub platform: Arc<CompilerPlatform>,
   compiler_context: Arc<CompilerContext>,
 }
@@ -191,7 +187,6 @@ impl Compiler {
       resolver_factory,
       loader_resolver_factory,
       cache,
-      emitted_asset_versions: Default::default(),
       input_filesystem,
       platform,
       compiler_context,
@@ -352,7 +347,6 @@ impl Compiler {
       .call(&mut self.compilation)
       .await?;
 
-    let mut new_emitted_asset_versions = HashMap::default();
     let emit_assets_incremental = self
       .compilation
       .incremental
@@ -364,15 +358,11 @@ impl Compiler {
         .assets()
         .iter()
         .for_each(|(filename, asset)| {
-          // collect version info to new_emitted_asset_versions
-          if emit_assets_incremental {
-            new_emitted_asset_versions.insert(filename.clone(), asset.info.version.clone());
-          }
-
           if emit_assets_incremental
-            && let Some(old_version) = self.emitted_asset_versions.get(filename)
-            && old_version.as_str() == asset.info.version
-            && !old_version.is_empty()
+            && !self
+              .compilation
+              .emit_asset_artifact
+              .has_version_changed(filename, &asset.info.version)
           {
             return;
           }
@@ -387,7 +377,22 @@ impl Compiler {
     })
     .await;
 
-    self.emitted_asset_versions = new_emitted_asset_versions;
+    // Update emitted asset versions after emit
+    if emit_assets_incremental {
+      let versions: Vec<_> = self
+        .compilation
+        .assets()
+        .iter()
+        .map(|(filename, asset)| (filename.clone(), asset.info.version.clone()))
+        .collect();
+
+      for (filename, version) in versions {
+        self
+          .compilation
+          .emit_asset_artifact
+          .set_version(filename, version);
+      }
+    }
 
     self
       .plugin_driver
@@ -483,7 +488,7 @@ impl Compiler {
       return Ok(());
     }
 
-    if self.emitted_asset_versions.is_empty() {
+    if self.compilation.emit_asset_artifact.is_empty() {
       match clean_options {
         CleanOptions::CleanAll(true) => {
           self.output_filesystem.remove_dir_all(output_path).await?;
@@ -514,7 +519,8 @@ impl Compiler {
     let assets = self.compilation.assets();
     join_all(
       self
-        .emitted_asset_versions
+        .compilation
+        .emit_asset_artifact
         .iter()
         .filter_map(|(filename, _version)| {
           if !assets.contains_key(filename) {

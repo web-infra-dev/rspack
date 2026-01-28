@@ -70,8 +70,8 @@ use crate::{
   CodeGenerationJob, CodeGenerationResult, CodeGenerationResults, CompilationLogger,
   CompilationLogging, CompilerOptions, CompilerPlatform, ConcatenationScope,
   DependenciesDiagnosticsArtifact, DependencyCodeGeneration, DependencyTemplate,
-  DependencyTemplateType, DependencyType, DerefOption, Entry, EntryData, EntryOptions,
-  EntryRuntime, Entrypoint, ExecuteModuleId, Filename, ImportPhase, ImportVarMap,
+  DependencyTemplateType, DependencyType, DerefOption, EmitAssetArtifact, Entry, EntryData,
+  EntryOptions, EntryRuntime, Entrypoint, ExecuteModuleId, Filename, ImportPhase, ImportVarMap,
   ImportedByDeferModulesArtifact, MemoryGCStorage, ModuleFactory, ModuleGraph,
   ModuleGraphCacheArtifact, ModuleIdentifier, ModuleIdsArtifact, ModuleStaticCacheArtifact,
   PathData, ProcessRuntimeRequirementsCacheArtifact, ResolverFactory, RuntimeGlobals,
@@ -220,7 +220,8 @@ pub struct Compilation {
   pub named_chunks: HashMap<String, ChunkUkey>,
   pub named_chunk_groups: HashMap<String, ChunkGroupUkey>,
   pub runtime_template: RuntimeTemplate,
-
+  // artifact for build_module_graph
+  pub build_module_graph_artifact: DerefOption<BuildModuleGraphArtifact>,
   // artifact for infer_async_modules_plugin
   pub async_modules_artifact: Arc<AtomicRefCell<AsyncModulesArtifact>>,
   // artifact for collect_dependencies_diagnostics
@@ -254,6 +255,8 @@ pub struct Compilation {
   // artifact for process runtime requirements cache
   pub process_runtime_requirements_cache_artifact: ProcessRuntimeRequirementsCacheArtifact,
   pub imported_by_defer_modules_artifact: ImportedByDeferModulesArtifact,
+  // artifact for emit_assets
+  pub emit_asset_artifact: EmitAssetArtifact,
 
   pub code_generated_modules: IdentifierSet,
   pub build_time_executed_modules: IdentifierSet,
@@ -277,7 +280,7 @@ pub struct Compilation {
 
   pub modified_files: ArcPathSet,
   pub removed_files: ArcPathSet,
-  pub build_module_graph_artifact: DerefOption<BuildModuleGraphArtifact>,
+  
   pub input_filesystem: Arc<dyn ReadableFileSystem>,
 
   pub intermediate_filesystem: Arc<dyn IntermediateFileSystem>,
@@ -395,6 +398,7 @@ impl Compilation {
       build_time_executed_modules: Default::default(),
       incremental,
       build_chunk_graph_artifact: Default::default(),
+      emit_asset_artifact: Default::default(),
 
       hash: None,
 
