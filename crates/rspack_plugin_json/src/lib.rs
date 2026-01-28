@@ -220,7 +220,8 @@ impl ParserAndGenerator for JsonParserAndGenerator {
           format!("var {NAMESPACE_OBJECT_EXPORT} = {json_expr}")
         } else {
           generate_context
-            .runtime_requirements
+            .runtime_template
+            .runtime_requirements_mut()
             .insert(RuntimeGlobals::MODULE);
           format!(r#"module.exports = {json_expr}"#)
         };

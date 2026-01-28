@@ -178,7 +178,7 @@ impl Module for DelegatedModule {
     code_generation_result = code_generation_result.with_javascript(source);
     code_generation_result
       .runtime_requirements
-      .insert(*runtime_template.runtime_requirements());
+      .extend(*runtime_template.runtime_requirements());
 
     Ok(code_generation_result)
   }

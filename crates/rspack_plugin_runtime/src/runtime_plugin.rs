@@ -82,6 +82,7 @@ const GLOBALS_ON_REQUIRE: &[RuntimeGlobals] = &[
   RuntimeGlobals::SYSTEM_CONTEXT,
   RuntimeGlobals::ON_CHUNKS_LOADED,
   RuntimeGlobals::MAKE_DEFERRED_NAMESPACE_OBJECT,
+  RuntimeGlobals::TO_BINARY,
 ];
 
 const MODULE_DEPENDENCIES: &[(RuntimeGlobals, RuntimeGlobals)] = &[

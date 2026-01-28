@@ -665,6 +665,10 @@ impl Module for NormalModule {
     runtime: Option<&RuntimeSpec>,
     mut concatenation_scope: Option<ConcatenationScope>,
   ) -> Result<CodeGenerationResult> {
+    let mut runtime_template = compilation
+      .runtime_template
+      .create_module_codegen_runtime_template();
+
     if let Some(error) = self.first_error() {
       let mut code_generation_result = CodeGenerationResult::default();
       let module_graph = compilation.get_module_graph();
@@ -681,6 +685,9 @@ impl Module for NormalModule {
           RawStringSource::from(format!("throw new Error({});\n", json!(error))).boxed(),
         );
         code_generation_result.concatenation_scope = concatenation_scope;
+        code_generation_result
+          .runtime_requirements
+          .extend(*runtime_template.runtime_requirements());
       }
       return Ok(code_generation_result);
     }
@@ -714,7 +721,7 @@ impl Module for NormalModule {
           self,
           &mut GenerateContext {
             compilation,
-            runtime_requirements: &mut code_generation_result.runtime_requirements,
+            runtime_template: &mut runtime_template,
             data: &mut code_generation_result.data,
             requested_source_type: *source_type,
             runtime,
@@ -725,6 +732,9 @@ impl Module for NormalModule {
       code_generation_result.add(*source_type, CachedSource::new(generation_result).boxed());
     }
     code_generation_result.concatenation_scope = concatenation_scope;
+    code_generation_result
+      .runtime_requirements
+      .extend(*runtime_template.runtime_requirements());
     Ok(code_generation_result)
   }
 

@@ -226,9 +226,7 @@ impl Module for LazyCompilationProxyModule {
 
     let client = format!(
       "var client = {}(\"{}\");\nvar data = {};",
-      compilation
-        .runtime_template
-        .render_runtime_globals(&RuntimeGlobals::REQUIRE),
+      runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
       ChunkGraph::get_module_id(&compilation.module_ids_artifact, *client_module)
         .expect("should have module id"),
       serde_json::to_string(&self.identifier).expect("should serialize identifier")

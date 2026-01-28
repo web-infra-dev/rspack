@@ -536,6 +536,7 @@ fn get_outgoing_async_modules(
   set
 }
 
+#[derive(Debug)]
 pub struct ModuleCodegenRuntimeTemplate {
   compiler_options: Arc<CompilerOptions>,
   runtime_requirements: RuntimeGlobals,

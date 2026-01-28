@@ -12,7 +12,8 @@ use indexmap::{IndexMap, IndexSet};
 use regex::{Captures, Regex};
 use rspack_core::{
   ChunkGraph, Compilation, CompilerOptions, CssExportsConvention, GenerateContext, LocalIdentName,
-  PathData, RESERVED_IDENTIFIER, ResourceData, RuntimeGlobals, RuntimeSpec, UsedNameItem,
+  ModuleCodegenRuntimeTemplate, PathData, RESERVED_IDENTIFIER, ResourceData, RuntimeGlobals,
+  RuntimeSpec, UsedNameItem,
   rspack_sources::{ConcatSource, RawStringSource},
   to_identifier,
 };
@@ -149,14 +150,14 @@ pub fn css_modules_exports_to_string<'a>(
   module: &dyn rspack_core::Module,
   compilation: &Compilation,
   runtime: Option<&RuntimeSpec>,
-  runtime_requirements: &mut RuntimeGlobals,
+  runtime_template: &mut ModuleCodegenRuntimeTemplate,
   ns_obj: &str,
   left: &str,
   right: &str,
   with_hmr: bool,
 ) -> Result<String> {
   let (decl_name, exports_string) =
-    stringified_exports(exports, compilation, runtime_requirements, module, runtime)?;
+    stringified_exports(exports, compilation, runtime_template, module, runtime)?;
 
   let hmr_code = if with_hmr {
     Cow::Owned(format!(
@@ -182,7 +183,7 @@ module.hot.dispose(function(data) {{ data.exports = stringified_exports; }});"
 pub fn stringified_exports<'a>(
   exports: IndexMap<&'a str, &'a IndexSet<CssExport>>,
   compilation: &Compilation,
-  runtime_requirements: &mut RuntimeGlobals,
+  runtime_template: &mut ModuleCodegenRuntimeTemplate,
   module: &dyn rspack_core::Module,
   runtime: Option<&RuntimeSpec>,
 ) -> Result<(&'static str, String)> {
@@ -247,12 +248,9 @@ pub fn stringified_exports<'a>(
                 .expect("should have module"),
             )
             .expect("should json stringify module id");
-            runtime_requirements.insert(RuntimeGlobals::REQUIRE);
             format!(
               "{}({from})[{}]",
-              compilation
-                .runtime_template
-                .render_runtime_globals(&RuntimeGlobals::REQUIRE),
+              runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
               from_used_name
             )
           }

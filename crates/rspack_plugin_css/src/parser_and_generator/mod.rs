@@ -520,15 +520,13 @@ impl ParserAndGenerator for CssParserAndGenerator {
     match generate_context.requested_source_type {
       SourceType::Css => {
         generate_context
-          .runtime_requirements
+          .runtime_template
+          .runtime_requirements_mut()
           .insert(RuntimeGlobals::HAS_CSS_MODULES);
 
         let mut source = ReplaceSource::new(source.clone());
         let compilation = generate_context.compilation;
         let mut init_fragments = ModuleInitFragments::default();
-        let mut runtime_template = compilation
-          .runtime_template
-          .create_module_codegen_runtime_template();
         let mut context = TemplateContext {
           compilation,
           module,
@@ -536,7 +534,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
           init_fragments: &mut init_fragments,
           concatenation_scope: generate_context.concatenation_scope.take(),
           data: generate_context.data,
-          runtime_template: &mut runtime_template,
+          runtime_template: &mut generate_context.runtime_template,
         };
 
         let module_graph = compilation.get_module_graph();
@@ -595,9 +593,6 @@ impl ParserAndGenerator for CssParserAndGenerator {
         };
 
         generate_context.concatenation_scope = context.concatenation_scope.take();
-        generate_context
-          .runtime_requirements
-          .insert(*runtime_template.runtime_requirements());
 
         Ok(source.boxed())
       }
@@ -670,7 +665,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
               module,
               generate_context.compilation,
               generate_context.runtime,
-              generate_context.runtime_requirements,
+              generate_context.runtime_template,
               &ns_obj,
               &left,
               &right,
@@ -691,11 +686,13 @@ impl ParserAndGenerator for CssParserAndGenerator {
           }
         };
         generate_context
-          .runtime_requirements
+          .runtime_template
+          .runtime_requirements_mut()
           .insert(RuntimeGlobals::MODULE);
         if self.es_module {
           generate_context
-            .runtime_requirements
+            .runtime_template
+            .runtime_requirements_mut()
             .insert(RuntimeGlobals::MAKE_NAMESPACE_OBJECT);
         }
         Ok(RawStringSource::from(exports).boxed())

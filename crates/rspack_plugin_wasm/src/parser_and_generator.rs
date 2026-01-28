@@ -132,11 +132,9 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
     let GenerateContext {
       compilation,
       runtime,
+      runtime_template,
       ..
     } = generate_context;
-    let mut runtime_template = compilation
-      .runtime_template
-      .create_module_codegen_runtime_template();
     let hash = module
       .build_info()
       .hash
@@ -146,11 +144,18 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
 
     match generate_context.requested_source_type {
       SourceType::JavaScript => {
-        let runtime_requirements = &mut generate_context.runtime_requirements;
-        runtime_requirements.insert(RuntimeGlobals::MODULE);
-        runtime_requirements.insert(RuntimeGlobals::MODULE_ID);
-        runtime_requirements.insert(RuntimeGlobals::EXPORTS);
-        runtime_requirements.insert(RuntimeGlobals::INSTANTIATE_WASM);
+        runtime_template
+          .runtime_requirements_mut()
+          .insert(RuntimeGlobals::MODULE);
+        runtime_template
+          .runtime_requirements_mut()
+          .insert(RuntimeGlobals::MODULE_ID);
+        runtime_template
+          .runtime_requirements_mut()
+          .insert(RuntimeGlobals::EXPORTS);
+        runtime_template
+          .runtime_requirements_mut()
+          .insert(RuntimeGlobals::INSTANTIATE_WASM);
 
         let mut dep_modules = IndexMap::<ModuleIdentifier, DepModule>::new();
         let mut promises: Vec<String> = vec![];
@@ -288,10 +293,6 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
             "{imports_code}{imports_compat_code}module.exports = {instantiate_call};"
           ))
         };
-
-        generate_context
-          .runtime_requirements
-          .insert(*runtime_template.runtime_requirements());
 
         Ok(source.boxed())
       }

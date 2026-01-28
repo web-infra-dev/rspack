@@ -160,7 +160,7 @@ fn first<C>(fragments: Vec<Box<dyn InitFragment<C>>>) -> Box<dyn InitFragment<C>
 pub trait InitFragmentRenderContext {
   fn add_runtime_requirements(&mut self, requirement: RuntimeGlobals);
   fn runtime_condition_expression(&mut self, runtime_condition: &RuntimeCondition) -> String;
-  fn runtime_template(&self) -> ModuleCodegenRuntimeTemplate;
+  fn runtime_template(&mut self) -> &mut ModuleCodegenRuntimeTemplate;
 }
 
 pub trait InitFragment<C>: IntoAny + DynHash + DynClone + Debug + Sync + Send {
@@ -262,27 +262,22 @@ pub type ChunkInitFragments = Vec<BoxChunkInitFragment>;
 
 impl InitFragmentRenderContext for GenerateContext<'_> {
   fn add_runtime_requirements(&mut self, requirement: RuntimeGlobals) {
-    self.runtime_requirements.insert(requirement);
+    self
+      .runtime_template
+      .runtime_requirements_mut()
+      .insert(requirement);
   }
 
   fn runtime_condition_expression(&mut self, runtime_condition: &RuntimeCondition) -> String {
-    let mut runtime_template = self.runtime_template();
-    let res = runtime_template.runtime_condition_expression(
+    self.runtime_template.runtime_condition_expression(
       &self.compilation.chunk_graph,
       Some(runtime_condition),
       self.runtime,
-    );
-    self
-      .runtime_requirements
-      .extend(*runtime_template.runtime_requirements());
-    res
+    )
   }
 
-  fn runtime_template(&self) -> ModuleCodegenRuntimeTemplate {
-    self
-      .compilation
-      .runtime_template
-      .create_module_codegen_runtime_template()
+  fn runtime_template(&mut self) -> &mut ModuleCodegenRuntimeTemplate {
+    &mut self.runtime_template
   }
 }
 
@@ -297,7 +292,7 @@ impl InitFragmentRenderContext for ChunkRenderContext {
     unreachable!("should not call runtime condition expression in chunk render context")
   }
 
-  fn runtime_template(&self) -> ModuleCodegenRuntimeTemplate {
+  fn runtime_template(&mut self) -> &mut ModuleCodegenRuntimeTemplate {
     unreachable!("should not call runtime template in chunk render context")
   }
 }
@@ -397,7 +392,6 @@ impl<C: InitFragmentRenderContext> InitFragment<C> for ESMExportInitFragment {
       ),
       end: None,
     };
-    context.add_runtime_requirements(*runtime_template.runtime_requirements());
     Ok(res)
   }
 

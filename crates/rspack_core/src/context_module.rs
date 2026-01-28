@@ -1099,9 +1099,6 @@ impl Module for ContextModule {
       self.get_source_string(compilation, &mut runtime_template),
       compilation,
     );
-    code_generation_result
-      .runtime_requirements
-      .insert(*runtime_template.runtime_requirements());
     code_generation_result.add(SourceType::JavaScript, source);
     let mut all_deps = self.get_dependencies().to_vec();
     let module_graph = compilation.get_module_graph();
@@ -1111,6 +1108,10 @@ impl Module for ContextModule {
         .expect("should have block in ContextModule code_generation");
       all_deps.extend(block.get_dependencies());
     }
+
+    code_generation_result
+      .runtime_requirements
+      .insert(*runtime_template.runtime_requirements());
 
     Ok(code_generation_result)
   }

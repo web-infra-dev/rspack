@@ -1764,7 +1764,9 @@ impl Module for ConcatenatedModule {
     let mut code_generation_result = CodeGenerationResult::default();
     code_generation_result.add(SourceType::JavaScript, CachedSource::new(result).boxed());
     code_generation_result.chunk_init_fragments = chunk_init_fragments;
-    code_generation_result.runtime_requirements = *runtime_template.runtime_requirements();
+    code_generation_result
+      .runtime_requirements
+      .extend(*runtime_template.runtime_requirements());
 
     if public_path_auto_replace {
       code_generation_result
