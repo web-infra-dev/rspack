@@ -25,10 +25,8 @@ function config(index, { concatenateModules } = {}) {
 									},
 									target: "esnext"
 								},
-								rspackExperiments: {
-									collectTypeScriptInfo: {
-										exportedEnum: true
-									}
+								collectTypeScriptInfo: {
+									exportedEnum: true
 								}
 							}
 						}
@@ -45,11 +43,9 @@ function config(index, { concatenateModules } = {}) {
 		],
 		optimization: {
 			concatenateModules,
-			moduleIds: "named"
+			moduleIds: "named",
+			inlineExports: true
 		},
-		experiments: {
-			inlineEnum: true
-		}
 	};
 }
 

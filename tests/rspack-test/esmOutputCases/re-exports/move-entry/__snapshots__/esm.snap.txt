@@ -1,0 +1,48 @@
+```mjs title=lib.mjs
+import * as __rspack_external_fs from "fs";
+
+// fs
+
+// ./lib.js
+// side effect
+console.log.bind(console)
+
+
+// re-export star from unknown
+
+
+export * from "fs";
+
+```
+
+```mjs title=main.mjs
+
+export * from "fs";
+export { a, b } from "./proxy-main.mjs";
+
+```
+
+```mjs title=proxy-main.mjs
+import "./lib.mjs";
+
+// ./index.js
+// normal export
+const index_a = (() => 42)()
+
+// inlined export
+const index_b = 1
+
+// re-export star
+
+
+
+it('should have correct exports', async () => {
+  const { a, b, readFile } = await import(/* webpackIgnore: true */ './main.mjs')
+  expect(a).toBe(42)
+  expect(b).toBe(1)
+
+  expect(typeof readFile).toBe('function')
+})
+export { index_a as a, index_b as b };
+
+```

@@ -7,8 +7,9 @@ __webpack_require__.add({
   \******************/
 (module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.a(module, async function (__rspack_load_async_deps, __rspack_async_done) { try {
+__webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  q: () => (demo)
+  demo: () => (demo)
 });
 /* import */ var _lib_defer_js__rspack_import_0 = __webpack_require__(/*! ./lib-defer.js */ "./lib-defer.js");
 /* import */ var _lib_js__rspack_import_1 = __webpack_require__(/*! ./lib.js */ "./lib.js");
@@ -21,7 +22,7 @@ it('should has correct exec order and export value', async () => {
 	expect(demo).toBe(84)
 })
 
-const demo = _lib_js__rspack_import_1/* .lib */.c + _lib_defer_js__rspack_import_0.v
+const demo = (/* inlined export .lib */42) + _lib_defer_js__rspack_import_0.v
 
 
 __rspack_async_done();
@@ -49,11 +50,8 @@ __rspack_async_done();
 /*!****************!*\
   !*** ./lib.js ***!
   \****************/
-(module, __webpack_exports__, __webpack_require__) {
+(module, __unused_rspack___webpack_exports__, __webpack_require__) {
 __webpack_require__.a(module, async function (__rspack_load_async_deps, __rspack_async_done) { try {
-__webpack_require__.d(__webpack_exports__, {
-  c: () => (lib)
-});
 await 42
 const lib = 42
 
@@ -64,9 +62,9 @@ __rspack_async_done();
 },
 });
 const index = await __webpack_require__("./index.js");
-var q = index.q;
+var demo = index.demo;
 
-export { q as demo };
+export { demo };
 
 ```
 
@@ -207,6 +205,16 @@ __webpack_require__.d = (exports, definition) => {
 // webpack/runtime/has_own_property
 (() => {
 __webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
+})();
+// webpack/runtime/make_namespace_object
+(() => {
+// define __esModule on exports
+__webpack_require__.r = (exports) => {
+	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+	}
+	Object.defineProperty(exports, '__esModule', { value: true });
+};
 })();
 
 export { __webpack_require__ };

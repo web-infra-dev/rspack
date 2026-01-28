@@ -113,6 +113,7 @@ fn add_dependencies(
     name,
     runtime: Some(runtime.into()),
     chunk_loading: Some(output_options.worker_chunk_loading.clone()),
+    wasm_loading: Some(output_options.worker_wasm_loading.clone()),
     async_chunks: None,
     public_path: None,
     base_uri: None,

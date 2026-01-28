@@ -58,11 +58,10 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
       Some(parser.source().clone()),
       statement.is_star_export(),
     );
-    if parser.compiler_options.experiments.lazy_barrel
-      && parser
-        .factory_meta
-        .and_then(|meta| meta.side_effect_free)
-        .unwrap_or_default()
+    if parser
+      .factory_meta
+      .and_then(|meta| meta.side_effect_free)
+      .unwrap_or_default()
     {
       side_effect_dep.set_lazy();
     }
@@ -114,11 +113,10 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
         settings.attributes,
         Some(parser.source().clone()),
       );
-      if parser.compiler_options.experiments.lazy_barrel
-        && parser
-          .factory_meta
-          .and_then(|meta| meta.side_effect_free)
-          .unwrap_or_default()
+      if parser
+        .factory_meta
+        .and_then(|meta| meta.side_effect_free)
+        .unwrap_or_default()
       {
         dep.set_lazy();
       }
@@ -133,9 +131,6 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
         .collected_typescript_info
         .as_ref()
         .and_then(|info| info.exported_enums.get(local_id).cloned());
-      if enum_value.is_some() && !parser.compiler_options.experiments.inline_enum {
-        parser.add_error(rspack_error::error!("inlineEnum is still an experimental feature. To continue using it, please enable 'experiments.inlineEnum'.").into());
-      }
       let variable = parser.get_tag_data(local_id, NESTED_IDENTIFIER_TAG);
 
       Box::new(ESMExportSpecifierDependency::new(
@@ -208,11 +203,10 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
     if !is_asi_safe {
       parser.set_asi_position(statement.span_hi());
     }
-    if parser.compiler_options.experiments.lazy_barrel
-      && parser
-        .factory_meta
-        .and_then(|meta| meta.side_effect_free)
-        .unwrap_or_default()
+    if parser
+      .factory_meta
+      .and_then(|meta| meta.side_effect_free)
+      .unwrap_or_default()
     {
       dep.set_lazy();
     }

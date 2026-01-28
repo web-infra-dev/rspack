@@ -20,12 +20,12 @@ rayon             = { workspace = true }
 rspack_core       = { workspace = true }
 rspack_dojang     = { workspace = true }
 rspack_error      = { workspace = true }
+rspack_hash       = { workspace = true }
 rspack_hook       = { workspace = true }
 rspack_paths      = { workspace = true }
 rspack_util       = { workspace = true }
 serde             = { workspace = true, features = ["derive"] }
 serde_json        = { workspace = true }
-sha2              = { workspace = true }
 sugar_path        = { workspace = true }
 swc_core          = { workspace = true }
 swc_html          = { workspace = true }

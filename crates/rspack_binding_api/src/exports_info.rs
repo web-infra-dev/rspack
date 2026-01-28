@@ -3,8 +3,7 @@ use std::ptr::NonNull;
 use napi::Either;
 use napi_derive::napi;
 use rspack_core::{
-  Compilation, ExportsInfo, ExportsInfoGetter, ModuleGraphMut, ModuleGraphRef,
-  PrefetchExportsInfoMode, RuntimeSpec,
+  Compilation, ExportsInfo, ExportsInfoGetter, ModuleGraph, PrefetchExportsInfoMode, RuntimeSpec,
 };
 use rspack_util::atom::Atom;
 
@@ -25,16 +24,17 @@ impl JsExportsInfo {
     }
   }
 
-  fn as_ref(&self) -> napi::Result<ModuleGraphRef<'static>> {
+  fn as_ref(&self) -> napi::Result<&'static ModuleGraph> {
     let compilation = unsafe { self.compilation.as_ref() };
     let module_graph = compilation.get_module_graph();
     Ok(module_graph)
   }
 
-  fn as_mut(&mut self) -> napi::Result<ModuleGraphMut<'static>> {
+  fn as_mut(&mut self) -> napi::Result<&'static mut ModuleGraph> {
     let compilation = unsafe { self.compilation.as_mut() };
-    let module_graph =
-      Compilation::get_make_module_graph_mut(&mut compilation.build_module_graph_artifact);
+    let module_graph = compilation
+      .build_module_graph_artifact
+      .get_module_graph_mut();
     Ok(module_graph)
   }
 }
@@ -50,9 +50,8 @@ impl JsExportsInfo {
     });
     let exports_info = ExportsInfoGetter::prefetch_used_info_without_name(
       &self.exports_info,
-      &module_graph,
+      module_graph,
       runtime.as_ref(),
-      false,
     );
     Ok(exports_info.is_used())
   }
@@ -66,9 +65,8 @@ impl JsExportsInfo {
     });
     let exports_info = ExportsInfoGetter::prefetch_used_info_without_name(
       &self.exports_info,
-      &module_graph,
+      module_graph,
       runtime.as_ref(),
-      false,
     );
     Ok(exports_info.is_module_used())
   }
@@ -83,7 +81,8 @@ impl JsExportsInfo {
     Ok(
       self
         .exports_info
-        .set_used_in_unknown_way(&mut module_graph, runtime.as_ref()),
+        .as_data_mut(module_graph)
+        .set_used_in_unknown_way(runtime.as_ref()),
     )
   }
 
@@ -107,7 +106,7 @@ impl JsExportsInfo {
     };
     let exports_info = ExportsInfoGetter::prefetch(
       &self.exports_info,
-      &module_graph,
+      module_graph,
       PrefetchExportsInfoMode::Nested(&names),
     );
     let used = exports_info.get_used(&names, runtime.as_ref());

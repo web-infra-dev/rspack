@@ -3,6 +3,7 @@ use std::{
   borrow::Cow,
   fmt::{Debug, Display, Formatter},
   hash::Hash,
+  rc::Rc,
   sync::Arc,
 };
 
@@ -10,7 +11,7 @@ use async_trait::async_trait;
 use json::JsonValue;
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
-  with::{AsInner, AsInnerConverter, AsOption, AsPreset, AsVec},
+  with::{AsInner, AsInnerConverter, AsMap, AsOption, AsPreset, AsVec},
 };
 use rspack_collections::{Identifiable, Identifier, IdentifierMap, IdentifierSet};
 use rspack_error::{Diagnosable, Result};
@@ -21,21 +22,23 @@ use rspack_sources::BoxSource;
 use rspack_util::{
   atom::Atom,
   ext::{AsAny, DynHash},
+  fx_hash::FxIndexMap,
   source_map::ModuleSourceMapConfig,
 };
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use serde::Serialize;
+use swc_core::atoms::Wtf8Atom;
 
 use crate::{
   AsyncDependenciesBlock, BindingCell, BoxDependency, BoxDependencyTemplate, BoxModuleDependency,
   ChunkGraph, ChunkUkey, CodeGenerationResult, CollectedTypeScriptInfo, Compilation,
   CompilationAsset, CompilationId, CompilerId, CompilerOptions, ConcatenationScope,
   ConnectionState, Context, ContextModule, DependenciesBlock, DependencyId, ExportProvided,
-  ExternalModule, ModuleGraph, ModuleGraphCacheArtifact, ModuleLayer, ModuleType, NormalModule,
-  PrefetchExportsInfoMode, RawModule, Resolve, ResolverFactory, RuntimeSpec, RuntimeTemplate,
-  SelfModule, SharedPluginDriver, SourceType, concatenated_module::ConcatenatedModule,
-  dependencies_block::dependencies_block_update_hash, get_target,
-  value_cache_versions::ValueCacheVersions,
+  ExternalModule, GetTargetResult, ModuleGraph, ModuleGraphCacheArtifact, ModuleLayer, ModuleType,
+  NormalModule, PrefetchExportsInfoMode, RawModule, Resolve, ResolverFactory, RuntimeSpec,
+  RuntimeTemplate, SelfModule, SharedPluginDriver, SourceType,
+  concatenated_module::ConcatenatedModule, dependencies_block::dependencies_block_update_hash,
+  get_target, value_cache_versions::ValueCacheVersions,
 };
 
 pub struct BuildContext {
@@ -46,6 +49,38 @@ pub struct BuildContext {
   pub runtime_template: Arc<RuntimeTemplate>,
   pub plugin_driver: SharedPluginDriver,
   pub fs: Arc<dyn ReadableFileSystem>,
+}
+
+#[cacheable]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum RscModuleType {
+  /// Represents a server entry module with "use server-entry" directive.
+  ///
+  /// Transformation flow:
+  /// 1. Original module with "use server-entry" is transformed into a proxy module
+  /// 2. The proxy module (with `module_type = ServerEntry`) imports the original implementation
+  /// 3. The original implementation module may resulting in `module_type = Client`
+  ///
+  /// Note: "use server" and "use client" directives can coexist in the same file.
+  ServerEntry,
+  Server,
+  Client,
+}
+
+#[cacheable]
+#[derive(Debug, Clone)]
+pub struct RscMeta {
+  pub module_type: RscModuleType,
+
+  #[cacheable(with=AsVec<AsPreset>)]
+  pub server_refs: Vec<Wtf8Atom>,
+
+  #[cacheable(with=AsVec<AsPreset>)]
+  pub client_refs: Vec<Wtf8Atom>,
+  pub is_cjs: bool,
+
+  #[cacheable(with=AsMap<AsPreset, AsPreset>)]
+  pub action_ids: FxIndexMap<Atom, Atom>,
 }
 
 #[cacheable]
@@ -73,7 +108,9 @@ pub struct BuildInfo {
   pub module_concatenation_bailout: Option<String>,
   pub assets: BindingCell<HashMap<String, CompilationAsset>>,
   pub module: bool,
+  pub inline_exports: bool,
   pub collected_typescript_info: Option<CollectedTypeScriptInfo>,
+  pub rsc: Option<RscMeta>,
   /// Stores external fields from the JS side (Record<string, any>),
   /// while other properties are stored in KnownBuildInfo.
   #[cacheable(with=AsPreset)]
@@ -101,7 +138,9 @@ impl Default for BuildInfo {
       module_concatenation_bailout: None,
       assets: Default::default(),
       module: false,
+      inline_exports: false,
       collected_typescript_info: None,
+      rsc: None,
       extras: Default::default(),
     }
   }
@@ -435,7 +474,9 @@ fn get_exports_type_impl(
           if matches!(export_info.provided(), Some(ExportProvided::NotProvided)) {
             handle_default(default_object)
           } else {
-            let Some(target) = get_target(export_info, mg) else {
+            let Some(GetTargetResult::Target(target)) =
+              get_target(export_info, mg, Rc::new(|_| true), &mut Default::default())
+            else {
               return ExportsType::Dynamic;
             };
             if target
@@ -456,8 +497,9 @@ fn get_exports_type_impl(
                 return ExportsType::Dynamic;
               };
               match target_exports_type {
-                BuildMetaExportsType::Flagged => ExportsType::Namespace,
-                BuildMetaExportsType::Namespace => ExportsType::Namespace,
+                BuildMetaExportsType::Flagged | BuildMetaExportsType::Namespace => {
+                  ExportsType::Namespace
+                }
                 BuildMetaExportsType::Default => handle_default(default_object),
                 _ => ExportsType::Dynamic,
               }

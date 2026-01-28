@@ -10,12 +10,13 @@ use winnow::prelude::*;
 use crate::{
   AssetInlineGeneratorOptions, AssetResourceGeneratorOptions, BoxLoader, BoxModule,
   CompilerOptions, Context, CssAutoGeneratorOptions, CssAutoParserOptions,
-  CssModuleGeneratorOptions, CssModuleParserOptions, Dependency, DependencyCategory, FactoryMeta,
-  FuncUseCtx, GeneratorOptions, ModuleExt, ModuleFactory, ModuleFactoryCreateData,
-  ModuleFactoryResult, ModuleIdentifier, ModuleLayer, ModuleRuleEffect, ModuleRuleEnforce,
-  ModuleRuleUse, ModuleRuleUseLoader, ModuleType, NormalModule, ParserAndGenerator, ParserOptions,
-  RawModule, Resolve, ResolveArgs, ResolveOptionsWithDependencyType, ResolveResult, Resolver,
-  ResolverFactory, ResourceData, ResourceParsedData, RunnerContext, SharedPluginDriver,
+  CssModuleGeneratorOptions, CssModuleParserOptions, Dependency, DependencyCategory,
+  DependencyType, FactoryMeta, FuncUseCtx, GeneratorOptions, ModuleExt, ModuleFactory,
+  ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, ModuleLayer, ModuleRuleEffect,
+  ModuleRuleEnforce, ModuleRuleUse, ModuleRuleUseLoader, ModuleType, NormalModule,
+  ParserAndGenerator, ParserOptions, RawModule, Resolve, ResolveArgs,
+  ResolveOptionsWithDependencyType, ResolveResult, Resolver, ResolverFactory, ResourceData,
+  ResourceParsedData, RunnerContext, RuntimeGlobals, SharedPluginDriver,
   diagnostics::EmptyDependency, module_rules_matcher, parse_resource, resolve,
   stringify_loaders_and_resource,
 };
@@ -30,6 +31,7 @@ define_hook!(NormalModuleFactoryCreateModule: SeriesBail(data: &mut ModuleFactor
 define_hook!(NormalModuleFactoryModule: Series(data: &mut ModuleFactoryCreateData, create_data: &mut NormalModuleCreateData, module: &mut BoxModule),tracing=false);
 define_hook!(NormalModuleFactoryParser: Series(module_type: &ModuleType, parser: &mut Box<dyn ParserAndGenerator>, parser_options: Option<&ParserOptions>),tracing=false);
 define_hook!(NormalModuleFactoryResolveLoader: SeriesBail(context: &Context, resolver: &Resolver, l: &ModuleRuleUseLoader) -> BoxLoader,tracing=false);
+define_hook!(NormalModuleFactoryAfterFactorize: Series(data: &mut ModuleFactoryCreateData, module: &mut BoxModule),tracing=false);
 
 pub enum NormalModuleFactoryResolveResult {
   Module(BoxModule),
@@ -52,6 +54,7 @@ pub struct NormalModuleFactoryHooks {
   /// So this hook is used to resolve inline loader (inline loader requests).
   // should move to ResolverFactory?
   pub resolve_loader: NormalModuleFactoryResolveLoaderHook,
+  pub after_factorize: NormalModuleFactoryAfterFactorizeHook,
 }
 
 #[derive(Debug)]
@@ -67,7 +70,16 @@ impl ModuleFactory for NormalModuleFactory {
     if let Some(before_resolve_data) = self.before_resolve(data).await? {
       return Ok(before_resolve_data);
     }
-    let factory_result = self.factorize(data).await?;
+    let mut factory_result = self.factorize(data).await?;
+
+    if let Some(module) = &mut factory_result.module {
+      self
+        .plugin_driver
+        .normal_module_factory_hooks
+        .after_factorize
+        .call(data, module)
+        .await?;
+    }
 
     Ok(factory_result)
   }
@@ -326,13 +338,30 @@ impl NormalModuleFactory {
             let ident = format!("{}/{}", &data.context, resource);
             let module_identifier = ModuleIdentifier::from(format!("ignored|{ident}"));
 
-            let mut raw_module = RawModule::new(
-              "/* (ignored) */".to_owned(),
-              module_identifier,
-              format!("{resource} (ignored)"),
-              Default::default(),
-            )
-            .boxed();
+            let mut raw_module = if matches!(
+              dependency_type,
+              DependencyType::CssUrl | DependencyType::NewUrl
+            ) {
+              // use RawModule instead of RawDataUrlModule
+              RawModule::new(
+                r#"/* (ignored-asset) */
+module.exports = "data:,";
+"#
+                .to_owned(),
+                module_identifier,
+                format!("{} (ignored-asset)", data.request),
+                RuntimeGlobals::MODULE,
+              )
+              .boxed()
+            } else {
+              RawModule::new(
+                "/* (ignored) */".to_owned(),
+                module_identifier,
+                format!("{} (ignored)", data.request),
+                Default::default(),
+              )
+              .boxed()
+            };
 
             raw_module.set_factory_meta(FactoryMeta {
               side_effect_free: Some(true),

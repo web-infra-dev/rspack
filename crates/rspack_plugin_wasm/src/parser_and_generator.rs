@@ -1,20 +1,12 @@
-use std::{
-  borrow::Cow,
-  collections::hash_map::DefaultHasher,
-  hash::{Hash, Hasher},
-};
+use std::borrow::Cow;
 
 use indexmap::IndexMap;
-use rspack_cacheable::{
-  cacheable, cacheable_dyn,
-  with::{AsInner, AsMap},
-};
+use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
-  AssetInfo, BoxDependency, BuildMetaExportsType, ChunkGraph, CodeGenerationData, Compilation,
-  Dependency, DependencyId, DependencyType, Filename, GenerateContext, ImportPhase, Module,
-  ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleInitFragments, NormalModule, ParseContext,
-  ParseResult, ParserAndGenerator, PathData, RuntimeGlobals, SourceType, StaticExportsDependency,
-  StaticExportsSpec, TemplateContext,
+  BoxDependency, BuildMetaExportsType, CodeGenerationData, Dependency, DependencyId,
+  DependencyType, GenerateContext, ImportPhase, Module, ModuleDependency, ModuleGraph,
+  ModuleIdentifier, ModuleInitFragments, ParseContext, ParseResult, ParserAndGenerator,
+  RuntimeGlobals, SourceType, StaticExportsDependency, StaticExportsSpec, TemplateContext,
   rspack_sources::{BoxSource, RawStringSource, Source, SourceExt},
 };
 use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
@@ -22,14 +14,11 @@ use rspack_util::{itoa, json_stringify};
 use swc_core::atoms::Atom;
 use wasmparser::{Import, Parser, Payload};
 
-use crate::{ModuleIdToFileName, dependency::WasmImportDependency};
+use crate::dependency::WasmImportDependency;
 
 #[cacheable]
 #[derive(Debug)]
-pub struct AsyncWasmParserAndGenerator {
-  #[cacheable(with=AsInner<AsMap>)]
-  pub(crate) module_id_to_filename: ModuleIdToFileName,
-}
+pub struct AsyncWasmParserAndGenerator;
 
 pub(crate) static WASM_SOURCE_TYPE: &[SourceType; 2] = &[SourceType::Wasm, SourceType::JavaScript];
 
@@ -145,17 +134,12 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
       runtime,
       ..
     } = generate_context;
-    let wasm_filename_template = &compilation.options.output.webassembly_module_filename;
-    let hash = hash_for_source(source);
-    let normal_module = module
-      .as_normal_module()
-      .expect("module should be a NormalModule in AsyncWasmParserAndGenerator::generate");
-    let wasm_path_with_info =
-      render_wasm_name(compilation, normal_module, wasm_filename_template, &hash).await?;
-
-    self
-      .module_id_to_filename
-      .insert(module.identifier(), wasm_path_with_info.clone());
+    let hash = module
+      .build_info()
+      .hash
+      .as_ref()
+      .map(|hash| hash.rendered(16))
+      .expect("should build info have hash");
 
     match generate_context.requested_source_type {
       SourceType::JavaScript => {
@@ -173,7 +157,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
         module
           .get_dependencies()
           .iter()
-          .map(|id| module_graph.dependency_by_id(id).expect("should be ok"))
+          .map(|id| module_graph.dependency_by_id(id))
           .filter(|dep| dep.dependency_type() == &DependencyType::WasmImport)
           .map(|dep| {
             (
@@ -275,11 +259,11 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
         };
 
         let instantiate_call = format!(
-          "{}(exports, module.id, {} {})",
+          r#"{}(exports, module.id, "{}" {})"#,
           compilation
             .runtime_template
             .render_runtime_globals(&RuntimeGlobals::INSTANTIATE_WASM),
-          serde_json::to_string(&hash).expect("should be ok"),
+          &hash,
           imports_obj.unwrap_or_default()
         );
 
@@ -328,31 +312,4 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
   ) -> Option<Cow<'static, str>> {
     Some("Module Concatenation is not implemented for AsyncWasmParserAndGenerator".into())
   }
-}
-
-async fn render_wasm_name(
-  compilation: &Compilation,
-  normal_module: &NormalModule,
-  wasm_filename_template: &Filename,
-  hash: &str,
-) -> Result<(String, AssetInfo)> {
-  compilation
-    .get_asset_path_with_info(
-      wasm_filename_template,
-      PathData::default()
-        .module_id_optional(
-          ChunkGraph::get_module_id(&compilation.module_ids_artifact, normal_module.id())
-            .map(|s| PathData::prepare_id(s.as_str()))
-            .as_deref(),
-        )
-        .content_hash(hash)
-        .hash(hash),
-    )
-    .await
-}
-
-fn hash_for_source(source: &BoxSource) -> String {
-  let mut hasher = DefaultHasher::new();
-  source.hash(&mut hasher);
-  format!("{:016x}", hasher.finish())
 }

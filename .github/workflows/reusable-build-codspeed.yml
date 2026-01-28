@@ -30,7 +30,7 @@ jobs:
           key: build-bench-${{ inputs.target }}
 
       - name: Install cargo-codspeed binary
-        uses: taiki-e/install-action@92e6dd1c202153a204d471a3c509bf1e03dcfa44 # v2
+        uses: taiki-e/install-action@dfcb1ee29051d97c8d0f2d437199570008fd5612 # v2
         with:
           tool: cargo-codspeed@2.10.1
 
@@ -39,7 +39,7 @@ jobs:
 
       - name: Build Benchmark
         env:
-          RUSTFLAGS: "--cfg codspeed"
+          RUSTFLAGS: '--cfg codspeed'
         run: cargo codspeed build --profile codspeed -p rspack_benchmark --features codspeed
 
       - name: Upload Artifact

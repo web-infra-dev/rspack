@@ -24,7 +24,6 @@ import { Tabs, Tab } from '@theme';
 
 ```js title="rspack.config.mjs"
 export default {
-  // ...
   devServer: {
     allowedHosts: [
       'host.com',
@@ -40,7 +39,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  // ...
   devServer: {
     // 这能达到和第一个示例相同的效果
     // 额外的好处是如果新的子域名需要访问开发服务器
@@ -149,7 +147,7 @@ export default {
   devServer: {
     client: {
       overlay: {
-        runtimeErrors: error => {
+        runtimeErrors: (error) => {
           if (error instanceof DOMException && error.name === 'AbortError') {
             return false;
           }
@@ -940,7 +938,6 @@ module.exports = {
 
 ```js title="rspack.config.mjs"
 export default {
-  // ...
   devServer: {
     setupMiddlewares: (middlewares, devServer) => {
       if (!devServer) {

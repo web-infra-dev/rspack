@@ -7,16 +7,19 @@ __webpack_require__.add({
   !*** ./index.js ***!
   \******************/
 (module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   fs: () => (/* reexport safe */ fs__rspack_import_0["default"]),
-  named: () => (/* reexport safe */ _lib__rspack_import_1.K),
+  named: () => (/* reexport safe */ (/* inlined export _lib__rspack_import_1 */42)),
   r: () => (/* reexport safe */ fs__rspack_import_0.readFile),
   readFile: () => (/* reexport safe */ fs__rspack_import_0.readFile),
-  starExports: () => (/* reexport safe */ _lib2__rspack_import_2.i)
+  starExports: () => (/* reexport safe */ (/* inlined export _lib2__rspack_import_2 */42))
 });
 /* import */ var fs__rspack_import_0 = __webpack_require__(/*! fs */ "fs");
-/* import */ var _lib__rspack_import_1 = __webpack_require__(/*! ./lib */ "./lib.js");
-/* import */ var _lib2__rspack_import_2 = __webpack_require__(/*! ./lib2 */ "./lib2.js");
+
+/* reexport */ var __rspack_reexport = {};
+/* reexport */ for( const __rspack_import_key in fs__rspack_import_0) if(["r","named","default","fs","starExports","readFile"].indexOf(__rspack_import_key) < 0) __rspack_reexport[__rspack_import_key] =() => fs__rspack_import_0[__rspack_import_key]
+/* reexport */ __webpack_require__.d(__webpack_exports__, __rspack_reexport);
 /* module decorator */ module = __webpack_require__.hmd(module);
 
 
@@ -43,34 +46,6 @@ it('should compile and import success', async () => {
 
 
 },
-"./lib.js"
-/*!****************!*\
-  !*** ./lib.js ***!
-  \****************/
-(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.d(__webpack_exports__, {
-  K: () => (named)
-});
-const named = 42
-
-/* should not exported */
-const namedUnused = 42
-
-
-
-},
-"./lib2.js"
-/*!*****************!*\
-  !*** ./lib2.js ***!
-  \*****************/
-(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.d(__webpack_exports__, {
-  i: () => (starExports)
-});
-const starExports = 42
-
-
-},
 "fs"
 /*!*********************!*\
   !*** external "fs" ***!
@@ -83,12 +58,14 @@ module.exports = __rspack_external_fs;
 },
 });
 const index = __webpack_require__("./index.js");
+var fs = index.fs;
 var named = index.named;
+var r = index.r;
+var readFile = index.readFile;
 var starExports = index.starExports;
 
-export { named, starExports };
+export { fs, named, r, readFile, starExports };
 export * from "fs";
-export { default as fs, readFile as r, readFile } from "fs";
 
 ```
 
@@ -153,6 +130,16 @@ __webpack_require__.hmd = (module) => {
 // webpack/runtime/has_own_property
 (() => {
 __webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
+})();
+// webpack/runtime/make_namespace_object
+(() => {
+// define __esModule on exports
+__webpack_require__.r = (exports) => {
+	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+	}
+	Object.defineProperty(exports, '__esModule', { value: true });
+};
 })();
 
 export { __webpack_require__ };

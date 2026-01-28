@@ -24,7 +24,6 @@ type CycleHookParams = (String, Vec<String>);
 #[napi(object, object_to_js = false)]
 pub struct RawCircularDependencyRspackPluginOptions {
   pub fail_on_error: Option<bool>,
-  pub allow_async_cycles: Option<bool>,
   #[napi(ts_type = "RegExp")]
   pub exclude: Option<RspackRegex>,
   #[napi(ts_type = "Array<[string | RegExp, string | RegExp]>")]
@@ -101,7 +100,6 @@ impl From<RawCircularDependencyRspackPluginOptions> for CircularDependencyRspack
 
     Self {
       fail_on_error: value.fail_on_error.unwrap_or(false),
-      allow_async_cycles: value.allow_async_cycles.unwrap_or(false),
       exclude: value.exclude,
       ignored_connections: value.ignored_connections.map(|connections| {
         connections

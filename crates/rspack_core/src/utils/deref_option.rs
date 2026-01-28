@@ -1,9 +1,15 @@
 use std::{
   fmt::Debug,
+  mem,
   ops::{Deref, DerefMut},
 };
 
-#[derive(Debug, Default)]
+use crate::{
+  ArtifactExt,
+  incremental::{Incremental, IncrementalPasses},
+};
+
+#[derive(Debug)]
 pub struct DerefOption<T>(Option<T>);
 
 impl<T> From<T> for DerefOption<T> {
@@ -14,6 +20,9 @@ impl<T> From<T> for DerefOption<T> {
 impl<T> DerefOption<T> {
   pub fn new(value: T) -> Self {
     Self(Some(value))
+  }
+  pub fn is_none(&self) -> bool {
+    self.0.is_none()
   }
   pub fn take(&mut self) -> T {
     self
@@ -30,6 +39,10 @@ impl<T> DerefOption<T> {
       other,
     );
   }
+
+  pub fn replace(&mut self, value: T) -> Option<T> {
+    self.0.replace(value)
+  }
 }
 impl<T> Deref for DerefOption<T> {
   type Target = T;
@@ -40,14 +53,21 @@ impl<T> Deref for DerefOption<T> {
       .unwrap_or_else(|| panic!("should set in compilation first"))
   }
 }
-impl<T> DerefMut for DerefOption<T>
-where
-  T: Debug,
-{
+impl<T> DerefMut for DerefOption<T> {
   fn deref_mut(&mut self) -> &mut Self::Target {
     self
       .0
       .as_mut()
       .unwrap_or_else(|| panic!("should set in compilation first"))
+  }
+}
+
+impl<T: ArtifactExt> ArtifactExt for DerefOption<T> {
+  const PASS: IncrementalPasses = T::PASS;
+
+  fn recover(incremental: &Incremental, new: &mut Self, old: &mut Self) {
+    if Self::should_recover(incremental) {
+      mem::swap(new, old);
+    }
   }
 }

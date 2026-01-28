@@ -205,7 +205,7 @@ export default {
 export default {
   optimization: {
     runtimeChunk: {
-      name: entrypoint => `runtime~${entrypoint.name}`,
+      name: (entrypoint) => `runtime~${entrypoint.name}`,
     },
   },
 };
@@ -241,7 +241,7 @@ export default {
 ## optimization.realContentHash
 
 <PropertyType
-  type="boolean | 'flag'"
+  type="boolean"
   defaultValueList={[
     { defaultValue: 'true', mode: 'production' },
     { defaultValue: 'false', mode: 'development' },
@@ -296,7 +296,7 @@ export default {
   ]}
 />
 
-如果你只希望 Rspack 使用手动指定的 `sideEffects` 标志（通过 `package.json` 和 `module.rule.sideEffects`），而不分析源代码，可以这样配置：
+如果你只希望 Rspack 使用手动指定的 `sideEffects` 标志（通过 `package.json` 和 `rules[].sideEffects`），而不分析源代码，可以这样配置：
 
 ```js title="rspack.config.mjs"
 export default {
@@ -307,7 +307,7 @@ export default {
 };
 ```
 
-配置为 `flag` 会让 Rspack 仅识别 package.json 中的 `sideEffects` 标志或者 [`module.rule.sideEffects`](/config/module#rulesideeffects)（模块配置中的规则），以跳过那些被标记为没有副作用但未被使用的模块。
+配置为 `flag` 会让 Rspack 仅识别 package.json 中的 `sideEffects` 标志或者 [`rules[].sideEffects`](/config/module-rules#rulessideeffects)（模块配置中的规则），以跳过那些被标记为没有副作用但未被使用的模块。
 
 配置为 `true` 会让 Rspack 除了识别用户主动标记以外，还会尝试分析未被标记的 module 源码是否包含副作用。
 
@@ -377,6 +377,64 @@ export default {
 | 'deterministic' | 使用哈希模块标识符作为标识符，以便从长期缓存中受益。在生产模式下，默认启用此选项。 |
 | true            | 与 'deterministic' 相同。                                                          |
 | false           | 保留原始名称。适用于可读性和调试。                                                 |
+
+## optimization.inlineExports
+
+<ApiMeta addedVersion="1.7.0" />
+
+<PropertyType
+  type="boolean"
+  defaultValueList={[
+    { defaultValue: 'true', mode: 'production' },
+    { defaultValue: 'false', mode: 'development' },
+  ]}
+/>
+
+对以下内容执行跨模块内联优化：
+
+1. 模块图叶子模块中导出的常量值：
+   - `null` 或 `undefined`
+   - `boolean` 值（`true` 或 `false`）
+   - 长度 \<= 6 的 `number`
+   - 长度 \<= 6 的 `string`
+
+2. 由 [`builtin:swc-loader collectTypeScriptInfo.exportedEnum`](/guide/features/builtin-swc-loader#collecttypescriptinfoexportedenum) 收集的导出 TypeScript 枚举
+
+这个优化有助于减少产物体积并可以提升运行时性能。
+
+常见的使用场景是 `constants.js` 文件：
+
+```js
+// constants.js
+export const A = true;
+export const B = 'hello';
+
+// index.js
+import { A, B } from './constants';
+console.log(A ? 1 : 2);
+console.log(B.length);
+```
+
+当启用 `inlineExports` 时，常量值将被内联到使用位置：
+
+```js
+// 由 Rspack 打包后的输出：output.js
+const __webpack_modules__ = {
+  './index.js': () => {
+    // 常量被直接内联
+    console.log(true ? 1 : 2);
+    console.log('hello'.length);
+    // 如果 constants.js 的所有导出都被内联，该模块将被优化掉，
+    // 不会出现在最终产物中
+  },
+};
+```
+
+:::tip
+由于此功能依赖模块导出使用信息（[optimization.usedExports](#optimizationusedexports)），建议仅在生产模式下启用，因为生产模式下 `usedExports` 默认启用。
+:::
+
+更多详情，请参考 [inline const 示例](https://github.com/rstackjs/rstack-examples/tree/main/rspack/inline-const)。
 
 ## optimization.innerGraph
 

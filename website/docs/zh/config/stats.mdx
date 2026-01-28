@@ -561,7 +561,6 @@ export default {
 - `'optional'`: 资源是否可选
 - `'identifier'`: 元素的标识符
 - `'index'`: 元素处理顺序
-- `'profile'`: 元素的处理耗时
 - `'issuer'`: 上游（issuer）的标识符
 - `'issuerId'`: 上游（issuer）的 ID
 - `'issuerName'`: 上游（issuer）的名称
@@ -575,7 +574,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  // ...
   stats: {
     preset: 'errors-only',
     reasons: true,

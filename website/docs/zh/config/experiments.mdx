@@ -18,7 +18,7 @@ import { Table } from '@builtIns';
 ## experiments.asyncWebAssembly
 
 - **类型：** `boolean`
-- **默认值：** `false`
+- **默认值：** `true`
 
 支持基于[新规范](https://github.com/WebAssembly/esm-integration)的 WebAssembly，这使 WebAssembly 模块成为异步模块。
 
@@ -29,8 +29,6 @@ export default {
   },
 };
 ```
-
-当设置 [experiments.futureDefaults](#experimentsfuturedefaults) 为 `true` 时，默认启用此功能。
 
 ## experiments.outputModule
 
@@ -49,19 +47,33 @@ export default {
 
 ## experiments.css
 
+<ApiMeta stability={Stability.Deprecated} />
+
 - **类型：** `boolean`
 - **默认值：** `false`
 
-启用原生 CSS 支持和 CSS 相关的 parser 和 generator options：
+:::warning 已弃用
+此选项在 Rspack 2.0 中已弃用。现在手动添加 CSS type 将模块标记为 CSS 模块。
+:::
 
-- [`module.parser["css/auto"]`](/config/module#moduleparsercssauto)
-- [`module.parser.css`](/config/module#moduleparsercss)
-- [`module.parser["css/module"]`](/config/module#moduleparsercssmodule)
-- [`module.generator["css/auto"]`](/config/module#modulegeneratorcssauto)
-- [`module.generator.css`](/config/module#modulegeneratorcss)
-- [`module.generator["css/module"]`](/config/module#modulegeneratorcssmodule)
+### 迁移
 
-基本示例：
+要在 Rspack 2.0 中使用 CSS，需要手动添加 CSS 规则到配置中：
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.css$/i,
+        type: 'css/auto',
+      },
+    ],
+  },
+};
+```
+
+### 旧用法（已弃用）
 
 ```js title="rspack.config.mjs"
 export default {
@@ -88,459 +100,9 @@ export default {
 
 ## experiments.incremental
 
-<ApiMeta addedVersion="1.1.0-beta.0" />
+<ApiMeta stability={Stability.Deprecated} />
 
-- **类型：** `boolean | 'none' | 'safe' | 'advance' | 'advance-silent' | Incremental`
-- **默认值：** `'advance-silent'`
-
-控制是否启用增量构建功能，该功能通过只重新构建变更的部分来显著加快重构建和热模块替换（HMR）的速度。提供两种配置方式：
-
-1. 预设配置：包括 `boolean | 'none' | 'safe' | 'advance' | 'advance-silent'`
-   - `false | 'none'`：关闭增量，不对任何阶段开启
-   - `'safe'`：开启 `make` 和 `emitAssets` 阶段的增量，这也是 Rspack 目前的默认行为
-   - `true | 'advance-silent'`：开启所有阶段的增量构建，最大程度优化重构建和 HMR 的性能。未来这些阶段稳定后，我们会将此选项作为 Rspack 的默认行为
-   - `'advance'`：功能同上，但会检测对增量构建不友好的情况，并发出警告提示用户（例如一些不正确的配置）。该选项可以帮助你排查潜在的影响增量构建性能的问题。
-2. 细粒度的对象配置：`Incremental`，允许精细控制各个构建阶段的增量功能是否开启
-
-   {/* prettier-ignore */}
-   <details>
-      <summary style={{ display: 'list-item' }}>`Incremental` 详细类型</summary>
-      <blockquote>
-        <p>
-        ```ts
-        type Incremental = {
-          // 是否在遇到对增量不友好的情况下抛出警告
-          silent?: boolean;
-          // 以下配置用来控制各个阶段的增量是否开启
-          make?: boolean;
-          inferAsyncModules?: boolean;
-          providedExports?: boolean;
-          dependenciesDiagnostics?: boolean;
-          sideEffects?: boolean;
-          buildChunkGraph?: boolean;
-          moduleIds?: boolean;
-          chunkIds?: boolean;
-          modulesHashes?: boolean;
-          modulesCodegen?: boolean;
-          modulesRuntimeRequirements?: boolean;
-          chunksRuntimeRequirements?: boolean;
-          chunksHashes?: boolean;
-          chunksRender?: boolean;
-          emitAssets?: boolean;
-        };
-        ```
-        </p>
-      </blockquote>
-    </details>
-
-通常情况下我们推荐使用预设的方式进行配置，详细的对象配置仅作为方便排查 bug 提供。
-
-增量构建主要用于优化重构建速度，对首次构建不会带来性能提升。不过，当持久化缓存可用时，即使是首次构建也会被视为重构建，从而能够利用增量构建提高性能。
-
-下表概述了不同场景下增量构建的效果：
-
-|  构建方式  | 增量提速 |
-| :--------: | :------: |
-|   热构建   |    ✅    |
-|   冷构建   |    ❌    |
-|   热启动   |    ✅    |
-|   冷启动   |    ❌    |
-| 重构建/HMR |    ✅    |
-
-Rspack 在 v1.4.0 后默认使用 `'advance-silent'` 开启所有阶段的增量构建；之前的版本默认使用 `'safe'` 仅开启 `make` 和 `emitAssets` 阶段的增量。
-
-## experiments.parallelLoader
-
-<ApiMeta addedVersion="1.3.1" />
-
-- **类型**: `boolean`
-- **默认值:** `false`
-
-开启并行 loader，你需要使用 [`Rule.use.parallel`](/config/module#ruleuseparallel) 手动为各个 loader 分别开启并行模式。开启后，对应的 loader 会被发送到 worker threads 执行。
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    rules: [
-      {
-        test: /\.less$/,
-        use: [
-          {
-            loader: 'less-loader',
-            parallel: true,
-            options: {
-              // loader options
-            },
-          },
-        ],
-      },
-    ],
-  },
-  experiments: {
-    parallelLoader: true,
-  },
-};
-```
-
-## experiments.rspackFuture
-
-- **类型：** `object`
-- **默认值：** 参考下方各项配置
-
-用于控制是否开启 Rspack 未来的默认行为，详情请参考[这里](https://github.com/web-infra-dev/rspack/pull/4107)。
-
-### rspackFuture.bundlerInfo
-
-<ApiMeta addedVersion="1.0.0" />
-
-- **类型：**
-
-  ```ts
-  type BundlerInfo = {
-    version?: string,
-    bundler?: string,
-    force?: ('version' | 'uniqueId')[] ｜ boolean;
-  };
-  ```
-
-用于在生成产物中注入当前使用的 Rspack 信息。其中：
-
-- `version`：用于指定 Rspack 版本，默认读取 `@rspack/core/package.json` 中的 `version` 字段。
-- `bundler`：用于指定打包工具名称，默认为 `rspack`
-- `force`：是否强制注入 Rspack 信息，会以运行时模块的形式加入到产物中，默认为 `true` 即强制注入，可通过数组选择强制注入的项目。
-
-#### 关闭默认注入
-
-可通过将 `force` 设定为 `false` 来关闭默认注入，此时仅在检测到代码中使用了 `__rspack_version__` 和 `__rspack_unique_id__` 时才会注入：
-
-- [`__rspack_version__`](/api/runtime-api/module-variables#__rspack_version__)：注入版本信息
-- [`__rspack_unique_id__`](/api/runtime-api/module-variables#__rspack_unique_id__)：注入打包工具唯一ID
-
-```js title="rspack.config.mjs"
-export default {
-  experiments: {
-    rspackFuture: {
-      bundlerInfo: { force: false },
-    },
-  },
-};
-```
-
-## experiments.cache
-
-<ApiMeta addedVersion="1.2.0-alpha.0" />
-
-- **类型：** `ExperimentCacheOptions`
-
-- **默认值：** production 模式 为 `false`, development 模式 为 `true`
-
-```ts
-type ExperimentCacheOptions =
-  | boolean
-  | {
-      type: 'memory';
-    }
-  | {
-      type: 'persistent';
-      buildDependencies?: string[];
-      version?: string;
-      snapshot?: {
-        immutablePaths?: Array<string | RegExp>;
-        unmanagedPaths?: Array<string | RegExp>;
-        managedPaths?: Array<string | RegExp>;
-      };
-      storage?: {
-        type: 'filesystem';
-        directory?: string;
-      };
-    };
-```
-
-控制实验性的缓存行为，此配置依赖全局开启缓存，需配置 [config.cache](/config/cache) 为 `true` 才有效。
-
-:::info Note
-production 模式下 `config.cache` 默认值为 `false`，这会导致此配置项失效，建议直接配置 `config.cache` 为 `true`。
-:::
-
-### 禁用缓存
-
-可以配置 `experiment.cache` 为 `false` 来禁用缓存，这与配置 [config.cache](/config/cache) 为 `false` 没有差别。
-
-```js title="rspack.config.mjs"
-export default {
-  cache: true,
-  experiments: {
-    cache: false,
-  },
-};
-```
-
-### 内存缓存
-
-可以配置 `experiment.cache` 为 `true` 或者 `{ "type": "memory" }` 来启动内存缓存。
-
-```js title="rspack.config.mjs"
-export default {
-  cache: true,
-  experiments: {
-    cache: true,
-  },
-};
-```
-
-### 持久化缓存
-
-可以配置 `experiment.cache` 为 `{ "type": "persistent" }` 来启用持久化缓存。
-
-```js title="rspack.config.mjs"
-export default {
-  cache: true,
-  experiments: {
-    cache: {
-      type: 'persistent',
-    },
-  },
-};
-```
-
-#### cache.buildDependencies
-
-- **类型：** `string[]`
-
-- **默认值：** `[]`
-
-`cache.buildDependencies` 是一个包含构建依赖的文件数组，Rspack 将使用其中每个文件的哈希值来使持久化缓存无效。
-
-:::tip
-推荐添加 \_\_filename 到 buildDependencies 中
-:::
-
-```js title="rspack.config.mjs"
-export default {
-  cache: true,
-  experiments: {
-    cache: {
-      type: 'persistent',
-      buildDependencies: [__filename, path.join(__dirname, './tsconfig.json')],
-    },
-  },
-};
-```
-
-#### cache.version
-
-- **类型：** `string`
-
-- **默认值：** `""`
-
-缓存数据的版本，不同版本缓存相互隔离。
-
-:::tip 持久化缓存失效
-
-除了 [buildDependencies](#cachebuilddependencies) 和 [version](#cacheversion) 配置会影响持久化缓存失效，Rspack 还会在以下字段变化时使持久化缓存失效。
-
-- [config.name](/config/other-options#name)
-- [config.mode](/config/mode#mode)
-
-:::
-
-#### cache.snapshot
-
-配置快照策略，Snapshot 用于在热启动时判断哪些文件在停机时被修改。支持以下配置:
-
-##### snapshot.immutablePaths
-
-- **类型：** `(RegExp | string)[]`
-
-- **默认值：** `[]`
-
-不可变文件的路径数组，这些文件的变动在热启动时会被忽略。
-
-##### snapshot.managedPaths
-
-- **类型：** `(RegExp | string)[]`
-
-- **默认值：** `[/\/node_modules\//]`
-
-由包管理器管理的路径数组，热启动时会通过 package.json 中的版本来判断是否修改。
-
-##### snapshot.unmanagedPaths
-
-- **类型：** `(RegExp | string)[]`
-
-- **默认值：** `[]`
-
-指定 `snapshot.managedPaths` 中不受包管理器管理的路径数组。
-
-#### cache.storage
-
-- **类型：** `{ type: 'filesystem', directory: string }`
-
-- **默认值：** `{ type: 'filesystem', directory: 'node_modules/.cache/rspack' }`
-
-配置缓存存储，目前仅支持文件系统存储，可以通过 `directory` 设置缓存路径，默认为 `node_modules/.cache/rspack`。
-
-```js title="rspack.config.mjs"
-export default {
-  cache: true,
-  experiments: {
-    cache: {
-      type: 'persistent',
-      storage: {
-        type: 'filesystem',
-        directory: 'node_modules/.cache/rspack',
-      },
-    },
-  },
-};
-```
-
-:::tip
-Rspack 会在 `storage.directory` 目录下基于 [config.name](/config/other-options#name)，[config.mode](/config/mode#mode)，[buildDependencies](#cachebuilddependencies)中的文件内容 和 [version](#cacheversion) 生成缓存文件夹。
-
-Rspack 会在启动时自动清理掉过长时间（7 天）没有访问的缓存文件夹。
-:::
-
-### 从 webpack config 迁移
-
-Rspack cache 配置与 webpack cache 配置的用法存在差异， 你可以参考以下步骤对 webpack cache 配置进行迁移。
-
-1. 根据 webpack 缓存类型，设置 Rspack 缓存类型，持久化缓存继续后续步骤，其他类型缓存到这一步即可。
-
-```diff title="rspack.config.mjs"
-export default {
-- cache: {
--   type: 'filesystem',
-- },
-+ cache: true,
-+ experiments: {
-+   cache: {
-+     type: 'persistent',
-+   },
-+ },
-};
-```
-
-2. 迁移 `cache.buildDependencies`
-
-```diff title="rspack.config.mjs"
-export default {
-- cache: {
--   buildDependencies: {
--     config: [__filename, path.join(__dirname, "package.json")],
--     ts: [path.join(__dirname, "tsconfig.json")]
--   }
-- },
-  experiments: {
-    cache: {
-      type: "persistent",
-+     buildDependencies: [
-+       __filename,
-+       path.join(__dirname, "package.json"),
-+       path.join(__dirname, "tsconfig.json")
-+     ]
-    },
-  },
-};
-```
-
-3. 迁移 `cache.version` & `cache.name`
-
-```diff title="rspack.config.mjs"
-export default {
-- cache: {
--   name: `${config.name}-${config.mode}-${otherFlags}`,
--   version: appVersion
-- },
-  experiments: {
-    cache: {
-      type: "persistent",
-+     version: `${config.name}-${config.mode}-${otherFlags}-${appVersion}`
-    },
-  },
-};
-```
-
-4. 迁移 `snapshot`
-
-```diff title="rspack.config.mjs"
-export default {
-- snapshot: {
--   immutablePaths: [path.join(__dirname, "constant")],
--   managedPaths: [path.join(__dirname, "node_modules")],
--   unmanagedPaths: []
-- },
-  experiments: {
-    cache: {
-      type: "persistent",
-+     snapshot: {
-+       immutablePaths: [path.join(__dirname, "constant")],
-+       managedPaths: [path.join(__dirname, "node_modules")],
-+       unmanagedPaths: []
-+     }
-    },
-  },
-};
-```
-
-5. 迁移 `cache.cacheDirectory`
-
-```diff title="rspack.config.mjs"
-export default {
-- cache: {
--   cacheDirectory: path.join(__dirname, "node_modules/.cache/test")
-- },
-  experiments: {
-    cache: {
-      type: "persistent",
-+     storage: {
-+       type: "filesystem",
-+       directory: path.join(__dirname, "node_modules/.cache/test")
-+     }
-    },
-  },
-};
-```
-
-示例代码:
-
-```js
-function transform(webpackConfig, rspackConfig) {
-  rspackConfig.experiments = rspackConfig.experiments || {};
-  if (webpackConfig.cache === undefined) {
-    webpackConfig.cache = webpackConfig.mode === 'development';
-  }
-  // 1. 如果使用禁用缓存，则直接配置 `experiments.cache` 为 `false`
-  if (webpackConfig.cache === false) {
-    rspackConfig.experiments.cache = false;
-    return;
-  }
-  // 2. 如果使用内存缓存，则直接配置 `experiments.cache` 为 `true`
-  if (webpackConfig.cache === true || webpackConfig.cache.type === 'memory') {
-    rspackConfig.experiments.cache = true;
-    return;
-  }
-  // 3. 持久化缓存 配置 `experiments.cache` 为 `{ type: "persistent" }`
-  rspackConfig.experiments.cache = { type: 'persistent' };
-  // 4. 从 webpack 配置中构建 `experiments.cache` 其他配置
-  rspackConfig.experiments.cache.buildDependencies = Object.values(
-    webpackConfig.cache.buildDependencies || {},
-  ).flat();
-  rspackConfig.experiments.cache.version = [
-    webpackConfig.cache.name,
-    webpackConfig.cache.version,
-  ].join();
-  rspackConfig.experiments.cache.snapshot = {
-    immutablePaths: webpackConfig.snapshot?.immutablePaths,
-    managedPaths: webpackConfig.snapshot?.managedPaths,
-    unmanagedPaths: webpackConfig.snapshot?.unmanagedPaths,
-  };
-  rspackConfig.experiments.cache.storage = {
-    type: 'filesystem',
-    directory: webpackConfig.cache?.cacheDirectory,
-  };
-}
-```
+此选项已移动至顶层 [`incremental`](/config/incremental)。
 
 ## experiments.buildHttp
 
@@ -638,7 +200,7 @@ export default {
   },
   plugins: [
     {
-      apply: compiler => {
+      apply: (compiler) => {
         compiler.hooks.beforeCompile.tap('SimpleInputFileSystem', () => {
           compiler.inputFileSystem = {
             readFile(path, cb) {
@@ -688,58 +250,6 @@ export default {
 
 当访问 `virtual_entry.js` 和 `src/another_virtual.js` 时，它们匹配了 `experiments.useInputFileSystem` 中的正则规则，Rspack 会通过 `VirtualModulesPlugin` 包装的输入文件系统读取它们；而像 `src/disk_file.js`，则会使用原生文件系统读取。
 
-## experiments.inlineConst
-
-<ApiMeta addedVersion="1.4.1" />
-
-- **类型：** `boolean`
-- **默认值：** `false`
-
-实验性功能 [`module.parser.javascript.inlineConst`](/config/module#moduleparserjavascriptinlineconst) 的开关，开启后会将位于模块图叶子节点的模块中的常量导出进行跨模块的 inline 优化。
-
-常见的优化场景为 `constants.js`，比如：
-
-```js
-// constants.js
-export const A = true;
-// index.js
-import { A } from './constants';
-console.log(A ? 1 : 2);
-
-// 经过打包后的结果 output.js
-const __webpack_modules__ = {
-  './index.js': __webpack_require__ => {
-    // 1. A 会被内联到使用的地方。
-    // 2. 如果 constants.js 的所有导出都被内联，则会把 constants.js 模块优化掉，constants.js 模块不会出现在产物中。
-    console.log(true ? 1 : 2);
-  },
-};
-```
-
-详细示例可参考：[inline const 示例](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/inline-const)
-
-## experiments.inlineEnum
-
-<ApiMeta addedVersion="1.4.1" />
-
-- **类型：** `boolean`
-- **默认值：** `false`
-
-实验性功能 [`builtin:swc-loader rspackExperiments.collectTypeScriptInfo.exportedEnum`](/guide/features/builtin-swc-loader#rspackexperimentscollecttypescriptinfoexportedenum) 的开关，开启后才能使用。
-
-详细示例可参考：[inline enum 示例](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/inline-enum)
-
-## experiments.typeReexportsPresence
-
-<ApiMeta addedVersion="1.4.1" />
-
-- **类型：** `boolean`
-- **默认值：** `false`
-
-实验性功能 [`module.parser.javascript.typeReexportsPresence`](/config/module#moduleparserjavascripttypereexportspresence) 的开关，开启后才能使用。
-
-详细示例可参考：[type reexports presence 示例](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/type-reexports-presence)
-
 ## experiments.nativeWatcher
 
 <ApiMeta addedVersion="1.4.7" />
@@ -765,48 +275,6 @@ export default {
 };
 ```
 
-## experiments.lazyBarrel
-
-<ApiMeta addedVersion="1.5.0" />
-
-- **类型：** `boolean`
-- **默认值：** `true` (v1.6.0 后默认开启)
-
-是否跳过无副作用的重导出模块（barrel file）中未被使用到的模块的构建，以优化构建性能。
-
-```js title="rspack.config.mjs"
-export default {
-  experiments: {
-    lazyBarrel: true,
-  },
-};
-```
-
-无副作用模块是指满足以下条件之一的模块：
-
-- 其所属包的 `package.json` 文件中声明了 `"sideEffects": false`，详见 [副作用分析](/guide/optimization/tree-shaking#副作用分析)
-- 通过 [module.rule.sideEffects](/config/optimization#optimizationsideeffects) 选项显式标记为 `false` 的模块
-
-:::info FAQ
-
-1. `lazyBarrel` 是否支持 CommonJS？
-
-   是的，理论上这个功能也可以支持 CommonJS，但在那之前我们需要先改进 Rspack 对 CJS 的 tree shaking 能力，特别是静态分析部分。所以目前我们只会支持 ESM，后续 PR 再支持 CJS。
-
-2. 为什么依赖 package.json 中的 `"sideEffects": false` 标记？Rspack 不能自动分析模块是否无副作用吗？
-
-   Rspack 当然具备分析模块是否无副作用的能力，这个能力已经被用在 `optimization.sideEffects` 来 tree shaking 无副作用的模块。但这些被分析出来的模块仍然需要检查它们的依赖是否有副作用：只有当所有依赖也都是无副作用时，该模块才能被认为是真正无副作用的。然而在 make 阶段，必须先构建依赖才能分析它们的副作用，而 `lazyBarrel` 正是为了避免构建这些依赖。package.json 中的 `"sideEffects": false` 或 `module.rule.sideEffects` 标记不需要检查依赖，它表示整个包都是无副作用的，所以 `lazyBarrel` 只能使用这个标记，而不是自动分析。
-
-3. 所以 `export * from "./x"` 不再是问题了？
-
-   不，`export * from "./x"` 对构建性能来说仍然是个不好的实践。`lazyBarrel` 只会在以下情况不构建 star re-export：当你导入一个 specifier 时，且这个无副作用的重导出模块（barrel file）的具名导出中包含该 specifier（`export { x as A } from "./a";`、`export * as A from "./a"`、`export { a, b }`、`export const A`、`export default A (the name is default)`），这意味着 star re-export 没有被使用。所以 Rspack 在以下情况仍然会构建 star re-export：
-   1. 重导出模块（barrel file）不是无副作用的
-   2. star re-export 被使用了
-
-:::
-
-> 更多详细内容可查看：[RFC: Lazy make for reexports in side effects free barrel file](https://github.com/web-infra-dev/rspack/discussions/11273)
-
 ## experiments.deferImport
 
 <ApiMeta addedVersion="1.6.0" />
@@ -823,93 +291,3 @@ export default {
   },
 };
 ```
-
-## experiments.topLevelAwait
-
-:::warning
-
-该配置项已经废弃，将在 Rspack v2.0 中被移除。
-
-未来 `Top-level await` 特性将会始终开启，请从 Rspack 配置中移除此选项。
-
-:::
-
-- **类型：** `boolean`
-- **默认值：** `true`
-
-开启打包 [Top-level await](https://github.com/tc39/proposal-top-level-await) 的支持，`Top-level await` 仅能在 [ModuleType](/config/module#ruletype) 为 `javascript/esm` 的模块中使用。
-
-默认开启，可通过该配置关闭：
-
-```js title="rspack.config.mjs"
-export default {
-  experiments: {
-    topLevelAwait: false,
-  },
-};
-```
-
-## experiments.lazyCompilation
-
-<ApiMeta deprecatedVersion="1.5.0" />
-
-:::warning
-
-该配置项已经废弃，请使用 [lazyCompilation](/config/lazy-compilation) 替代此项。
-
-:::
-
-## experiments.layers
-
-<ApiMeta deprecatedVersion="1.6.0" />
-
-- **类型：** `boolean`
-- **默认值：** `false`
-
-:::warning
-该配置项已经废弃，layers 特性已始终开启，请从 Rspack 配置项中移除此配置。
-:::
-
-控制是否启用 layer 功能，layer 可以为模块图中以一个模块作为起点的子图中的所有模块添加标识符前缀，用来与其他不同 layer 的模块进行区分，比如：
-
-`index.js` 模块的 layer 为默认的 `null`，其 `identifier` 为 `./index.js`，我们为其添加 `layer = 'client'`，其 `identifier` 会变成 `(client)/./index.js`，这时这两个不同 layer 的 `index.js` 会被区分为不同的模块，因为其唯一标识 `identifier` 不一样，最终产物中也会存在这两个模块的产物。
-
-模块默认的 layer 为 `null`，模块默认会继承其父模块的 layer，你可以通过 `entryOptions.layer` 为一个入口模块添加 layer，也可以通过 [`module.rule[].layer`](/config/module#rulelayer) 为匹配到的模块添加 layer，同时可以通过 [`module.rule[].issuerLayer`](/config/module#ruleissuerlayer) 根据父模块的 layer 进行匹配。
-
-```js title="rspack.config.mjs"
-export default {
-  experiments: {
-    layers: true,
-  },
-};
-```
-
-## experiments.parallelCodeSplitting
-
-<ApiMeta deprecatedVersion="1.6.2" />
-
-- **类型：** `boolean`
-- **默认值：** `false`
-
-开启后会启用新的多线程 code splitting 算法，如果你的项目中包含较多的动态引用，并且不包含循环 chunk，开启后可以显著降低 code splitting 阶段耗时。
-
-:::warning
-该选项已被废弃，在某些包含大量循环 chunk 的边缘情况下会出现严重的性能问题，我们会在未来改进 build_chunk_graph 的性能来替代该选项。
-:::
-
-```js title="rspack.config.mjs"
-export default {
-  experiments: {
-    parallelCodeSplitting: true,
-  },
-  optimization: {
-    removeAvailableModules: true,
-  },
-};
-```
-
-:::warning
-当启用 `parallelCodeSplitting` 时，请确保 `optimization.removeAvailableModules` 也被启用（从 1.3.0 版本起，这已默认启用）。
-
-这保持了与旧版本的 code splitting 算法的一致性，旧版算法在内部强制开启 `removeAvailableModules`，并且不受到 `optimization.removeAvailableModules` 控制。
-:::

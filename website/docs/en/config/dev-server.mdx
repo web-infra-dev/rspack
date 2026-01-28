@@ -149,7 +149,7 @@ export default {
   devServer: {
     client: {
       overlay: {
-        runtimeErrors: error => {
+        runtimeErrors: (error) => {
           if (error instanceof DOMException && error.name === 'AbortError') {
             return false;
           }
@@ -950,7 +950,6 @@ Provides the ability to execute a custom function and apply custom middleware(s)
 
 ```js title="rspack.config.mjs"
 export default {
-  // ...
   devServer: {
     setupMiddlewares: (middlewares, devServer) => {
       if (!devServer) {
@@ -1012,7 +1011,6 @@ To watch a single directory:
 
 ```js title="rspack.config.mjs"
 export default {
-  // ...
   devServer: {
     static: ['assets'],
   },
@@ -1023,7 +1021,6 @@ To watch multiple static directories:
 
 ```js title="rspack.config.mjs"
 export default {
-  // ...
   devServer: {
     static: ['assets', 'css'],
   },

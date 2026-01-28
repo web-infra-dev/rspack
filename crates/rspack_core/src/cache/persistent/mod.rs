@@ -1,6 +1,6 @@
-mod build_dependencies;
-mod cacheable_context;
-mod occasion;
+pub mod build_dependencies;
+pub mod codec;
+pub mod occasion;
 pub mod snapshot;
 pub mod storage;
 
@@ -9,29 +9,38 @@ use std::{
   sync::Arc,
 };
 
-pub use cacheable_context::{CacheableContext, FromContext};
+use rspack_cacheable::{
+  cacheable,
+  utils::PortablePath,
+  with::{As, AsVec},
+};
 use rspack_fs::{IntermediateFileSystem, ReadableFileSystem};
 use rspack_paths::ArcPathSet;
 use rspack_workspace::rspack_pkg_version;
 
 use self::{
   build_dependencies::{BuildDeps, BuildDepsOptions},
+  codec::CacheCodec,
   occasion::{MakeOccasion, MetaOccasion},
-  snapshot::{Snapshot, SnapshotOptions},
+  snapshot::{Snapshot, SnapshotOptions, SnapshotScope},
   storage::{Storage, StorageOptions, create_storage},
 };
 use super::Cache;
 use crate::{
   Compilation, CompilerOptions, Logger,
   compilation::build_module_graph::{BuildModuleGraphArtifact, BuildModuleGraphArtifactState},
+  incremental::Incremental,
 };
 
+#[cacheable]
 #[derive(Debug, Clone, Hash)]
 pub struct PersistentCacheOptions {
+  #[cacheable(with=AsVec<As<PortablePath>>)]
   pub build_dependencies: BuildDepsOptions,
   pub version: String,
   pub snapshot: SnapshotOptions,
   pub storage: StorageOptions,
+  pub portable: bool,
 }
 
 /// Persistent cache implementation
@@ -39,11 +48,11 @@ pub struct PersistentCacheOptions {
 pub struct PersistentCache {
   initialized: bool,
   build_deps: BuildDeps,
-  snapshot: Snapshot,
-  storage: Arc<dyn Storage>,
+  snapshot: Arc<Snapshot>,
   make_occasion: MakeOccasion,
   meta_occasion: MetaOccasion,
   async_mode: bool,
+  storage: Arc<dyn Storage>,
   // TODO replace to logger and output warnings directly.
   warnings: Vec<String>,
 }
@@ -57,36 +66,48 @@ impl PersistentCache {
     intermediate_filesystem: Arc<dyn IntermediateFileSystem>,
   ) -> Self {
     let async_mode = compiler_options.mode.is_development();
+    let project_root = if option.portable {
+      Some(compiler_options.context.as_path().to_path_buf())
+    } else {
+      None
+    };
+    let codec = Arc::new(CacheCodec::new(project_root));
+    // use codec.encode to transform the absolute path in option,
+    // it will ensure that same project in different directory have the same version.
+    let option_bytes = codec
+      .encode(option)
+      .expect("should persistent cache options can be serialized");
     let version = {
       let mut hasher = DefaultHasher::new();
       compiler_path.hash(&mut hasher);
-      option.hash(&mut hasher);
+      option_bytes.hash(&mut hasher);
       rspack_pkg_version!().hash(&mut hasher);
       compiler_options.name.hash(&mut hasher);
       compiler_options.mode.hash(&mut hasher);
       hex::encode(hasher.finish().to_ne_bytes())
     };
     let storage = create_storage(option.storage.clone(), version, intermediate_filesystem);
-    let context = Arc::new(CacheableContext {
-      options: compiler_options,
-      input_filesystem: input_filesystem.clone(),
-    });
-    let make_occasion = MakeOccasion::new(storage.clone(), context);
-    let meta_occasion = MetaOccasion::new(storage.clone());
+    let snapshot = Arc::new(Snapshot::new(
+      option.snapshot.clone(),
+      input_filesystem.clone(),
+      storage.clone(),
+      codec.clone(),
+    ));
+
     Self {
       initialized: false,
       build_deps: BuildDeps::new(
         &option.build_dependencies,
-        &option.snapshot,
-        input_filesystem.clone(),
+        input_filesystem,
+        snapshot.clone(),
         storage.clone(),
       ),
-      snapshot: Snapshot::new(option.snapshot.clone(), input_filesystem, storage.clone()),
-      storage,
-      make_occasion,
-      meta_occasion,
-      async_mode,
+      snapshot,
+      make_occasion: MakeOccasion::new(storage.clone(), codec.clone()),
+      meta_occasion: MetaOccasion::new(storage.clone(), codec),
       warnings: Default::default(),
+      async_mode,
+      storage,
     }
   }
 
@@ -133,14 +154,34 @@ impl Cache for PersistentCache {
     // rebuild will pass modified_files and removed_files from js side,
     // so only calculate them when build.
     if !compilation.is_rebuild {
-      let (is_hot_start, modified_paths, removed_paths, _) =
-        match self.snapshot.calc_modified_paths().await {
-          Ok(res) => res,
+      let mut is_hot_start = false;
+      let mut modified_paths = ArcPathSet::default();
+      let mut removed_paths = ArcPathSet::default();
+      let data = vec![
+        self.snapshot.calc_modified_paths(SnapshotScope::FILE).await,
+        self
+          .snapshot
+          .calc_modified_paths(SnapshotScope::CONTEXT)
+          .await,
+        self
+          .snapshot
+          .calc_modified_paths(SnapshotScope::MISSING)
+          .await,
+      ];
+      for item in data {
+        match item {
+          Ok((a, b, c, _)) => {
+            is_hot_start = is_hot_start || a;
+            modified_paths.extend(b);
+            removed_paths.extend(c);
+          }
           Err(err) => {
             self.warnings.push(err.to_string());
             return false;
           }
         };
+      }
+
       tracing::debug!("cache::snapshot recovery {modified_paths:?} {removed_paths:?}",);
       compilation.modified_files.extend(modified_paths);
       compilation.removed_files.extend(removed_paths);
@@ -155,31 +196,43 @@ impl Cache for PersistentCache {
 
     // save snapshot
     // TODO add a all_dependencies to collect dependencies
-    let (_, file_added, file_removed) = compilation.file_dependencies();
-    let (_, context_added, context_removed) = compilation.context_dependencies();
-    let (_, missing_added, missing_removed) = compilation.missing_dependencies();
-    let (_, build_added, _) = compilation.build_dependencies();
-    let modified_paths: ArcPathSet = compilation
-      .modified_files
-      .iter()
-      .chain(file_added)
-      .chain(missing_added)
-      .chain(context_added)
-      .cloned()
-      .collect();
-    let removed_paths: ArcPathSet = compilation
-      .removed_files
-      .iter()
-      .chain(file_removed)
-      .chain(context_removed)
-      .chain(missing_removed)
-      .cloned()
-      .collect();
-    self.snapshot.remove(removed_paths.into_iter());
-    self.snapshot.add(modified_paths.into_iter()).await;
+    let (_, file_added, file_updated, file_removed) = compilation.file_dependencies();
+    let (_, context_added, context_updated, context_removed) = compilation.context_dependencies();
+    let (_, missing_added, missing_updated, missing_removed) = compilation.missing_dependencies();
+    let (_, build_added, build_updated, _) = compilation.build_dependencies();
     self
-      .warnings
-      .extend(self.build_deps.add(build_added.cloned()).await);
+      .snapshot
+      .remove(SnapshotScope::FILE, file_removed.cloned());
+    self
+      .snapshot
+      .remove(SnapshotScope::CONTEXT, context_removed.cloned());
+    self
+      .snapshot
+      .remove(SnapshotScope::MISSING, missing_removed.cloned());
+    self
+      .snapshot
+      .add(SnapshotScope::FILE, file_added.chain(file_updated).cloned())
+      .await;
+    self
+      .snapshot
+      .add(
+        SnapshotScope::CONTEXT,
+        context_added.chain(context_updated).cloned(),
+      )
+      .await;
+    self
+      .snapshot
+      .add(
+        SnapshotScope::MISSING,
+        missing_added.chain(missing_updated).cloned(),
+      )
+      .await;
+    self.warnings.extend(
+      self
+        .build_deps
+        .add(build_added.chain(build_updated).cloned())
+        .await,
+    );
 
     self.save().await;
 
@@ -189,7 +242,11 @@ impl Cache for PersistentCache {
     }
   }
 
-  async fn before_build_module_graph(&mut self, make_artifact: &mut BuildModuleGraphArtifact) {
+  async fn before_build_module_graph(
+    &mut self,
+    make_artifact: &mut BuildModuleGraphArtifact,
+    _incremental: &Incremental,
+  ) {
     // TODO When does not need to pass variables through make_artifact.state, use compilation.is_rebuild to check
     if matches!(
       make_artifact.state,
@@ -202,7 +259,7 @@ impl Cache for PersistentCache {
     }
   }
 
-  async fn after_build_module_graph(&mut self, make_artifact: &BuildModuleGraphArtifact) {
+  async fn after_build_module_graph(&self, make_artifact: &BuildModuleGraphArtifact) {
     self.make_occasion.save(make_artifact);
   }
 }

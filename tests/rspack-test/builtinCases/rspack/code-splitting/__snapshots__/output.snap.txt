@@ -1,5 +1,5 @@
 ```js title=a_js.js
-(self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["a_js"], {
+(self["rspackChunk"] = self["rspackChunk"] || []).push([["a_js"], {
 "./a.js"() {
 console.log("a");
 
@@ -10,7 +10,7 @@ console.log("a");
 ```
 
 ```js title=b_js.js
-(self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["b_js"], {
+(self["rspackChunk"] = self["rspackChunk"] || []).push([["b_js"], {
 "./b.js"() {
 console.log("b");
 
@@ -21,7 +21,7 @@ console.log("b");
 ```
 
 ```js title=main.js
-(self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["main"], {
+(self["rspackChunk"] = self["rspackChunk"] || []).push([["main"], {
 "./index.js"(__unused_rspack_module, __unused_rspack_exports, __webpack_require__) {
 console.log("hello, world");
 __webpack_require__.e(/* import() */ "a_js").then(__webpack_require__.t.bind(__webpack_require__, "./a.js", 23));

@@ -14,7 +14,6 @@ import { ApiMeta } from '@components/ApiMeta.tsx';
 import { rspack } from '@rspack/core';
 
 export default {
-  // ...
   optimization: {
     minimizer: [
       new rspack.SwcJsMinimizerRspackPlugin({
@@ -162,7 +161,7 @@ type MinimizerOptions = {
 const defaultOptions = {
   minify: true,
   mangle: true,
-  ecma: 5,
+  ecma: 5, // 或由 Rspack target 推断出
   compress: {
     passes: 2,
   }
@@ -171,6 +170,12 @@ const defaultOptions = {
   },
 };
 ```
+
+:::tip 来自 Rspack target 的默认 ecma
+如果未指定 `ecma`，`SwcJsMinimizerRspackPlugin` 将自动从 Rspack 的 [`target`](/config/target) 配置中推断出默认值。否则，它默认为 `5`。
+
+这意味着你可以依赖 Rspack 的 `target` 配置，而无需在插件选项中手动指定相同的 ecma 版本。
+:::
 
 类似于 SWC 的 `jsc.minify` 选项，请参考 [SWC - Minification](https://swc.rs/docs/configuration/minification) 了解所有可用的选项。
 

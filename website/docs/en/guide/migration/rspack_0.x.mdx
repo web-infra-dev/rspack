@@ -10,11 +10,11 @@ In Rspack 1.x, we have aligned the default configuration values with those of We
 
 ### [Important] experiments.css
 
-The default value of [experiments.css](/config/experiments#experimentscss) has been changed from `true` to `false`.
+`experiments.css` has been deprecated and no longer enables default CSS processing.
 
-In Rspack 0.x, `experiments.css` was enabled by default, which means files ending with`*.css`were automatically treated as`type: 'css/auto'` without needing to manually include other loaders to process CSS files.
+In Rspack 0.x, `experiments.css` was enabled by default, which meant files ending with `*.css` were automatically treated as `type: 'css/auto'` and processed with built-in CSS logic.
 
-If you rely on the built-in feature to handle CSS files without using any loaders, or if you have used the following configuration to handle CSS files:
+Now, you must manually configure `module.rules` to handle CSS files. For example:
 
 ```js title="rspack.config.mjs"
 export default {
@@ -29,8 +29,6 @@ export default {
   },
 };
 ```
-
-Please note that you now need to manually enable `experiments.css`.
 
 ### [Important] optimization.concatenateModules
 
@@ -271,8 +269,8 @@ This change might cause some plugins to become unusable.
 Rspack supports the [NormalModuleFactory](/api/plugin-api/normal-module-factory-hooks)'s [resolve](/api/plugin-api/normal-module-factory-hooks#resolve) hook. In most cases, you can use this hook as a replacement for the `Resolver`'s `resolve` hook to achieve the same functionality.
 
 ```js
-compiler.hooks.normalModuleFactory.tap('PLUGIN', normalModuleFactory => {
-  normalModuleFactory.hooks.resolve.tap('PLUGIN', data => {
+compiler.hooks.normalModuleFactory.tap('PLUGIN', (normalModuleFactory) => {
+  normalModuleFactory.hooks.resolve.tap('PLUGIN', (data) => {
     // Redirect the module
     if (data.request === './foo.js') {
       data.request = './bar.js';

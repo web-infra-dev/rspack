@@ -60,7 +60,7 @@ Note that persistent cache is still in an experimental stage and currently only 
 
 If you encounter any issues while using persistent cache, please feel free to report them via GitHub Issues.
 
-> See [experiments.cache](/config/experiments#experimentscache) for more details.
+> See [cache](/config/cache) for more details.
 
 ### Yarn PnP
 
@@ -98,7 +98,7 @@ export default {
 
 Rspack v1.2 no longer watching the `node_modules` directory by default. This can greatly reduce the number of files to watch and improve performance.
 
-According to our [benchmark repo](https://github.com/rspack-contrib/build-tools-performance), this change will:
+According to our [benchmark repo](https://github.com/rstackjs/build-tools-performance), this change will:
 
 - Reduce memory usage by 120MB
 - Increase dev startup speed by 40%
@@ -120,7 +120,7 @@ export default {
 
 ### Reduced memory usage
 
-We have optimized the data structure used to store strings during the [rspack-sources](https://github.com/web-infra-dev/rspack-sources) computation process. Throughout the computation, all string data points to the string heap memory of the root node, effectively avoiding the generation of new string allocations during the computation.
+We have optimized the data structure used to store strings during the [rspack-sources](https://github.com/rstackjs/rspack-sources) computation process. Throughout the computation, all string data points to the string heap memory of the root node, effectively avoiding the generation of new string allocations during the computation.
 
 > See [perf: reduce memory consumption of CachedSource](https://github.com/web-infra-dev/rspack/pull/8666) for more details.
 
@@ -175,11 +175,11 @@ Rsbuild v1.2 has been released alongside Rspack v1.2, bringing several new featu
 
 In Rspack v1.2, the Rust crate `swc_core` has been upgraded to `10.1.0`. Users of the SWC Wasm plugin need to ensure version consistency with `swc_core` being used, otherwise, it may lead to unforeseen issues.
 
-For more details, see [FAQ - SWC plugin version unmatched](https://swc.rs/docs/plugin/selecting-swc-core).
+For more details, see [FAQ - SWC plugin version mismatch](https://swc.rs/docs/plugin/selecting-swc-core).
 
 ### Disable WarnCaseSensitiveModulesPlugin by default
 
-The [WarnCaseSensitiveModulesPlugin](/plugins/webpack/warn-case-sensitive-modules-plugin) is used to check the paths of modules and issue warnings for modules that conflict when their paths are all in lowercase. Rspack used to enable it by default, but since it is only a "linter" plugin and it has additional performance overhead especially in development mode. So now it is disabled by default.
+The [WarnCaseSensitiveModulesPlugin](/plugins/webpack/case-sensitive-plugin) is used to check the paths of modules and issue warnings for modules that conflict when their paths are all in lowercase. Rspack used to enable it by default, but since it is only a "linter" plugin and it has additional performance overhead especially in development mode. So now it is disabled by default.
 
 If you prefer to keep the previous behavior, you can set:
 

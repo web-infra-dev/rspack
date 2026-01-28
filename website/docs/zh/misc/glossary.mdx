@@ -33,7 +33,7 @@ Rspack 中的内置模块类型指的是那些不需要依赖 loader 和 plugin 
 - [资源模块](/guide/features/asset-module)
 - [CSS](/guide/tech/css)
 - [JSON](/guide/tech/json)
-- [Rule.type](/config/module#ruletype)
+- [rules[].type](/config/module-rules#rulestype)
 
 ## chunk
 
@@ -71,7 +71,7 @@ Loader 是用来转换模块内容的。例如，我们可以使用 loader 将 T
 
 模块类型是模块的一种属性，它们可以通过不同的方式进行解析和处理。我们可以通过指明模块的模块类型来告诉 Rspack 如何处理它们。例如，我们可以通过指定模块类型为 JavaScript 来告诉 Rspack 该模块是一个 JavaScript 模块，然后 Rspack 就会使用 JavaScript 解析器来解析该模块，如果指定的模块类型为 CSS，那么 Rspack 就会使用 CSS 解析器来解析该模块。
 
-- [Rule.type](/config/module#ruletype)
+- [rules[].type](/config/module-rules#rulestype)
 
 ## module specifier（模块标识符）
 

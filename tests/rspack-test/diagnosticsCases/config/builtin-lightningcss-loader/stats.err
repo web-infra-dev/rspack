@@ -1,10 +1,10 @@
 ERROR in ./index.js 1:1-21
   × Could not parse builtin:lightningcss-loader options
-   ╭─[8:14]
+   ╭─[8:15]
  6 │     "> 0.2%"
  7 │   ],
- 8 │   "draft": "xx"
-   ·               ▲
-   ·               ╰── invalid type: string "xx", expected struct Draft at line 8 column 15
+ 8 │   "drafts": "xx"
+   ·                ▲
+   ·                ╰── invalid type: string "xx", expected struct Draft at line 8 column 16
  9 │ }
    ╰────

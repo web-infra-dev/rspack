@@ -59,4 +59,4 @@ jobs:
         uses: ./.github/actions/binary-limit
         with:
           # 50k 50*1024
-          size-threshold: 51200
+          size-threshold: ${{ vars.SIZE_LIMIT_THRESHOLD || 51200 }}

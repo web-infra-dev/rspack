@@ -1,10 +1,12 @@
 use std::sync::Arc;
 
+use atomic_refcell::AtomicRefCell;
 use derive_more::Debug;
-use futures::{future::BoxFuture, lock::Mutex};
+use futures::future::BoxFuture;
 use rspack_core::{
   BoxDependency, Compilation, CompilationParams, CompilerCompilation, CompilerMake, Context,
   DependencyId, DependencyType, EntryDependency, EntryOptions, Plugin,
+  incremental::IncrementalPasses, internal,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -31,7 +33,7 @@ pub struct DynamicEntryPlugin {
   entry: EntryDynamic,
   // Need "cache" the dependency to tell incremental that this entry dependency is not changed
   // so it can be reused and skip the module make
-  imported_dependencies: Mutex<FxHashMap<Arc<str>, FxHashMap<EntryOptions, DependencyId>>>,
+  imported_dependencies: AtomicRefCell<FxHashMap<Arc<str>, FxHashMap<EntryOptions, DependencyId>>>,
 }
 
 impl DynamicEntryPlugin {
@@ -55,44 +57,63 @@ async fn make(&self, compilation: &mut Compilation) -> Result<()> {
   let entry_fn = &self.entry;
   let decs = entry_fn().await?;
 
-  let mut imported_dependencies = self.imported_dependencies.lock().await;
-  let mut next_imported_dependencies: FxHashMap<Arc<str>, FxHashMap<EntryOptions, DependencyId>> =
-    Default::default();
+  if compilation
+    .incremental
+    .mutations_readable(IncrementalPasses::BUILD_MODULE_GRAPH)
+  {
+    let mut imported_dependencies = self.imported_dependencies.borrow_mut();
+    let mut next_imported_dependencies: FxHashMap<Arc<str>, FxHashMap<EntryOptions, DependencyId>> =
+      Default::default();
 
-  for EntryDynamicResult { import, options } in decs {
-    for entry in import {
-      let module_graph = compilation.get_module_graph();
+    for EntryDynamicResult { import, options } in decs {
+      for entry in import {
+        let module_graph = compilation.get_module_graph();
 
-      let entry_dependency: BoxDependency = if let Some(map) =
-        imported_dependencies.get(entry.as_str())
-        && let Some(dependency_id) = map.get(&options)
-        && let Some(dependency) = module_graph.dependency_by_id(dependency_id)
-      {
-        next_imported_dependencies
-          .entry(entry.into())
-          .or_default()
-          .insert(options.clone(), *dependency_id);
-        dependency.clone()
-      } else {
-        let dependency: BoxDependency = Box::new(EntryDependency::new(
+        let entry_dependency: BoxDependency = if let Some(map) =
+          imported_dependencies.get(entry.as_str())
+          && let Some(dependency_id) = map.get(&options)
+          && let Some(dependency) = internal::try_dependency_by_id(module_graph, dependency_id)
+        {
+          next_imported_dependencies
+            .entry(entry.into())
+            .or_default()
+            .insert(options.clone(), *dependency_id);
+          dependency.clone()
+        } else {
+          let dependency: BoxDependency = Box::new(EntryDependency::new(
+            entry.clone(),
+            self.context.clone(),
+            options.layer.clone(),
+            false,
+          ));
+          next_imported_dependencies
+            .entry(entry.into())
+            .or_default()
+            .insert(options.clone(), *dependency.id());
+          dependency
+        };
+        compilation
+          .add_entry(entry_dependency, options.clone())
+          .await?;
+      }
+    }
+
+    *imported_dependencies = next_imported_dependencies;
+  } else {
+    for EntryDynamicResult { import, options } in decs {
+      for entry in import {
+        let entry_dependency: BoxDependency = Box::new(EntryDependency::new(
           entry.clone(),
           self.context.clone(),
           options.layer.clone(),
           false,
         ));
-        next_imported_dependencies
-          .entry(entry.into())
-          .or_default()
-          .insert(options.clone(), *dependency.id());
-        dependency
-      };
-      compilation
-        .add_entry(entry_dependency, options.clone())
-        .await?;
+        compilation
+          .add_entry(entry_dependency, options.clone())
+          .await?;
+      }
     }
   }
-
-  *imported_dependencies = next_imported_dependencies;
 
   Ok(())
 }

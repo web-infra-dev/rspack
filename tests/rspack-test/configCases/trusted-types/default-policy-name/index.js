@@ -20,7 +20,7 @@ it("should use default trusted types policy name", function () {
 		"https://test.cases/path/default-policy-name.web.js"
 	);
 	expect(createPolicySpy).toHaveBeenCalledWith(
-		"webpack",
+		"rspack",
 		expect.objectContaining({
 			createScriptURL: expect.anything()
 		})

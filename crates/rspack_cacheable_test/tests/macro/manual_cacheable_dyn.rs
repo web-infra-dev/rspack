@@ -1,9 +1,16 @@
-use rspack_cacheable::{r#dyn::VTablePtr, enable_cacheable as cacheable, from_bytes, to_bytes};
+use rspack_cacheable::{
+  CacheableContext, r#dyn::VTablePtr, enable_cacheable as cacheable, from_bytes, to_bytes,
+};
 
 #[test]
 #[cfg_attr(miri, ignore)]
 fn test_manual_cacheable_dyn_macro() {
   struct Context;
+  impl CacheableContext for Context {
+    fn project_root(&self) -> Option<&std::path::Path> {
+      None
+    }
+  }
 
   trait Animal: rspack_cacheable::r#dyn::SerializeDyn {
     fn color(&self) -> &str;
@@ -23,7 +30,7 @@ fn test_manual_cacheable_dyn_macro() {
         ptr_meta,
         traits::{ArchivePointee, LayoutRaw},
       },
-      DeserializeError, Deserializer, SerializeError, Serializer, Validator,
+      Deserializer, Error, Serializer, Validator,
       r#dyn::{ArchivedDynMetadata, DeserializeDyn, validation::CHECK_BYTES_REGISTRY},
     };
 
@@ -48,7 +55,7 @@ fn test_manual_cacheable_dyn_macro() {
     }
 
     impl SerializeUnsized<Serializer<'_>> for dyn Animal {
-      fn serialize_unsized(&self, serializer: &mut Serializer) -> Result<usize, SerializeError> {
+      fn serialize_unsized(&self, serializer: &mut Serializer) -> Result<usize, Error> {
         self.serialize_dyn(serializer)
       }
     }
@@ -75,7 +82,7 @@ fn test_manual_cacheable_dyn_macro() {
         &self,
         deserializer: &mut Deserializer,
         out: *mut dyn Animal,
-      ) -> Result<(), DeserializeError> {
+      ) -> Result<(), Error> {
         self.deserialize_dyn(deserializer, out)
       }
 
@@ -95,16 +102,13 @@ fn test_manual_cacheable_dyn_macro() {
     // CheckBytes
     unsafe impl CheckBytes<Validator<'_>> for dyn DeserializeAnimal {
       #[inline]
-      unsafe fn check_bytes(
-        value: *const Self,
-        context: &mut Validator,
-      ) -> Result<(), DeserializeError> {
+      unsafe fn check_bytes(value: *const Self, context: &mut Validator) -> Result<(), Error> {
         let vtable = VTablePtr::new(ptr_meta::metadata(value));
         if let Some(check_bytes_dyn) = CHECK_BYTES_REGISTRY.get(&vtable) {
           unsafe { check_bytes_dyn(value.cast(), context)? };
           Ok(())
         } else {
-          Err(DeserializeError::DynCheckBytesNotRegister)
+          Err(Error::DynCheckBytesNotRegister)
         }
       }
     }
@@ -137,7 +141,7 @@ fn test_manual_cacheable_dyn_macro() {
         inventory,
         rkyv::{ArchiveUnsized, Archived, Deserialize, DeserializeUnsized, ptr_meta},
       },
-      DeserializeError, Deserializer,
+      Deserializer, Error,
       r#dyn::{
         DeserializeDyn, DynEntry,
         validation::{CheckBytesEntry, default_check_bytes_dyn},
@@ -160,7 +164,7 @@ fn test_manual_cacheable_dyn_macro() {
         &self,
         deserializer: &mut Deserializer,
         out: *mut dyn Animal,
-      ) -> Result<(), DeserializeError> {
+      ) -> Result<(), Error> {
         unsafe {
           <Self as DeserializeUnsized<Dog, _>>::deserialize_unsized(self, deserializer, out.cast())
         }
@@ -199,7 +203,7 @@ fn test_manual_cacheable_dyn_macro() {
         inventory,
         rkyv::{ArchiveUnsized, Archived, Deserialize, DeserializeUnsized, ptr_meta},
       },
-      DeserializeError, Deserializer,
+      Deserializer, Error,
       r#dyn::{
         DeserializeDyn, DynEntry,
         validation::{CheckBytesEntry, default_check_bytes_dyn},
@@ -222,7 +226,7 @@ fn test_manual_cacheable_dyn_macro() {
         &self,
         deserializer: &mut Deserializer,
         out: *mut dyn Animal,
-      ) -> Result<(), DeserializeError> {
+      ) -> Result<(), Error> {
         unsafe {
           <Self as DeserializeUnsized<Cat, _>>::deserialize_unsized(self, deserializer, out.cast())
         }

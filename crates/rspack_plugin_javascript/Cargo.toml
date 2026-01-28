@@ -15,8 +15,6 @@ either = { workspace = true }
 fast-glob = { workspace = true }
 indexmap = { workspace = true }
 itertools = { workspace = true }
-linked_hash_set = { workspace = true }
-memchr = { workspace = true }
 num-bigint = { workspace = true }
 once_cell = { workspace = true }
 rayon = { workspace = true }

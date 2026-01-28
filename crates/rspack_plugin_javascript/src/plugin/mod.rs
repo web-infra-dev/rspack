@@ -400,6 +400,7 @@ var {} = {{}};
         let entries = compilation
           .chunk_graph
           .get_chunk_entry_modules_with_chunk_group_iterable(chunk_ukey);
+        let module_graph = compilation.get_module_graph();
         for (i, (module, entry)) in entries.iter().enumerate() {
           let chunk_group = compilation.chunk_group_by_ukey.expect_get(entry);
           let chunk_ids = chunk_group
@@ -419,7 +420,6 @@ var {} = {{}};
             allow_inline_startup = false;
           }
           if allow_inline_startup && {
-            let module_graph = compilation.get_module_graph();
             let module_graph_cache = &compilation.module_graph_cache_artifact;
             module_graph
               .get_incoming_connections_by_origin_module(module)
@@ -427,7 +427,7 @@ var {} = {{}};
               .any(|(origin_module, connections)| {
                 if let Some(origin_module) = origin_module {
                   connections.iter().any(|c| {
-                    c.is_target_active(&module_graph, Some(chunk.runtime()), module_graph_cache)
+                    c.is_target_active(module_graph, Some(chunk.runtime()), module_graph_cache)
                   }) && compilation
                     .chunk_graph
                     .get_module_runtimes_iter(*origin_module, &compilation.chunk_by_ukey)

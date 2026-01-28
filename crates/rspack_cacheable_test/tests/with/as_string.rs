@@ -1,8 +1,9 @@
 use std::path::PathBuf;
 
 use rspack_cacheable::{
-  DeserializeError, SerializeError, enable_cacheable as cacheable,
-  with::{AsString, AsStringConverter},
+  Error, enable_cacheable as cacheable,
+  utils::PortablePath,
+  with::{As, AsString, AsStringConverter},
 };
 
 #[cacheable(with=AsString)]
@@ -12,10 +13,10 @@ struct Regex {
   flags: String,
 }
 impl AsStringConverter for Regex {
-  fn to_string(&self) -> Result<String, SerializeError> {
+  fn to_string(&self) -> Result<String, Error> {
     Ok(format!("{}#{}", self.flags, self.source))
   }
-  fn from_str(s: &str) -> Result<Self, DeserializeError>
+  fn from_str(s: &str) -> Result<Self, Error>
   where
     Self: Sized,
   {
@@ -30,7 +31,7 @@ impl AsStringConverter for Regex {
 #[cacheable]
 #[derive(Debug, PartialEq, Eq)]
 struct Module {
-  #[cacheable(with=AsString)]
+  #[cacheable(with=As<PortablePath>)]
   path: PathBuf,
   #[cacheable(with=AsString)]
   regex: Regex,

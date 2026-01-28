@@ -173,7 +173,7 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
       }
       for dep_id in module.get_dependencies() {
         if !has_error && make_failed_dependencies.contains(dep_id) {
-          let dep = mg.dependency_by_id(dep_id).expect("should dep exist");
+          let dep = mg.dependency_by_id(dep_id);
           let diagnostics = FactorizeInfo::get_from(dep)
             .expect("should have factorize info")
             .diagnostics();
@@ -237,6 +237,7 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
         name: Some("build time".into()),
         runtime: Some("runtime".into()),
         chunk_loading: Some(crate::ChunkLoading::Disable),
+        wasm_loading: Some(crate::WasmLoading::Disable),
         async_chunks: Some(false),
         public_path,
         base_uri,

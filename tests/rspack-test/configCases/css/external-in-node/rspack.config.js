@@ -5,7 +5,12 @@ module.exports = {
 	context: path.join(__dirname, "../external"),
 	entry: "../external-in-node/index.js",
 	target: "node",
-	experiments: {
-		css: true
+	module: {
+		rules: [
+			{
+				test: /\.css$/,
+				type: "css/auto"
+			},
+		]
 	}
 };

@@ -81,18 +81,40 @@ export default {
 - `browserslist:/path/to/config` - 明确指定 browserslist 配置路径
 - `browserslist:/path/to/config:modern` - 明确指定 browserslist 的配置路径和环境
 
+### 限制说明
+
+Rspack 使用的是 [browserslist-rs](https://github.com/browserslist/browserslist-rs)。这是 Browserslist 的一个 Rust 实现，目前尚未完全支持 Browserslist 的所有特性。
+
+当前不支持的功能：
+
+- Baseline 查询，例如 `baseline widely available`
+- 自定义使用率查询，例如 `> 0.5% in my stats`
+- 基于覆盖率的使用率查询，例如 `cover 99.5% in my stats`
+
 ## Node.js 版本
 
 可以选择指定一个 node 或 electron 的版本。这在上表中用 [[X].Y] 表示。
 
 ```js title="rspack.config.mjs"
 export default {
-  // ...
   target: 'node18.12',
 };
 ```
 
 当 Rspack 生成运行时代码时，这有助于确定所能使用的 ES 特性（所有的代码块和模块都被运行时代码包裹）。
+
+## 内置 loader 和插件的默认 target
+
+Rspack 从 `target` 配置中推断出默认 targets，并将其提供给内置 loader 和插件。如果你没有在 loader 和 plugin 的选项中指定 targets，将使用由 `target` 配置推断出的 targets：
+
+- `builtin:swc-loader` 使用推断出的 targets 作为默认的 `env.targets` 或 `jsc.target`
+- `builtin:lightningcss-loader` 使用推断出的 targets 作为默认的 `targets`（仅适用于与 browserslist 相关的 targets，因为 Lightning CSS 仅支持浏览器 targets）
+- `SwcJsMinimizerRspackPlugin` 使用推断出的 targets 作为默认的 `ecma` 版本
+- `LightningCssMinimizerRspackPlugin` 使用推断出的 targets 作为默认的 `targets`（仅适用于与 browserslist 相关的 targets）
+
+这意味着你不再需要在多个地方手动配置相同的 targets。例如，如果你设置 `target: 'node18'`，loader 和插件将自动使用与 Node.js 18 兼容的设置。
+
+第三方 loader 和插件也可以访问 `compiler.target`，根据 Rspack 的 target 配置推断默认 targets。`compiler.target` 对象包含 `targets`（带有版本的平台名称）和 `esVersion`（ECMAScript 版本号）。
 
 ## target: false
 
@@ -100,7 +122,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  // ...
   target: false,
 };
 ```

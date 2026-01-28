@@ -24,15 +24,6 @@ impl LoaderImportDependency {
       factorize_info: Default::default(),
     }
   }
-
-  pub fn new_with_id(id: DependencyId, request: String, context: Context) -> Self {
-    Self {
-      request,
-      context,
-      id,
-      factorize_info: Default::default(),
-    }
-  }
 }
 
 impl PartialEq for LoaderImportDependency {

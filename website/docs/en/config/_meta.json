@@ -15,6 +15,7 @@
   "mode",
   "output",
   "module",
+  "module-rules",
   "resolve",
   "resolve-loader",
   "node",
@@ -25,11 +26,13 @@
   "devtool",
   "target",
   "watch",
+  "incremental",
   "externals",
   "performance",
   "lazy-compilation",
   "stats",
   "experiments",
   "infrastructure-logging",
-  "other-options"
+  "other-options",
+  "deprecated-options"
 ]

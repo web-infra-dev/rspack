@@ -38,7 +38,7 @@ Set `devtool: 'source-map'`, A full source map is emitted as a separate file. It
 
 It also supports combination with the following modifiers to improve performance and control source map generation.
 
-Performance optimization modifiers, to speed up the build, usually used in development environments:
+Performance optimization modifiers, to speed up the build, usually used in **development environments**:
 
 | Modifier | Effect                                                                                                                                         | Performance improvement |
 | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------- |
@@ -46,7 +46,13 @@ Performance optimization modifiers, to speed up the build, usually used in devel
 | cheap    | Maps line numbers only (no columns), ignores source maps from loaders                                                                          | ⚡⚡                    |
 | module   | Processes source maps from loaders to map to original code (line-only mapping)                                                                 | ⚡                      |
 
-Functional modifiers, to control source map generation, usually used in production environments:
+:::tip FAQ
+In production, it’s **expected** that no source map file is emitted when using the `cheap` modifier (e.g. `cheap-source-map` or `cheap-module-source-map`).
+
+This is because `cheap` only provides **line-level** mappings, while production builds are typically minified into a single line. In that case, a source map has little practical value.
+:::
+
+Functional modifiers, to control source map generation, usually used in **production environments**:
 
 | Modifier  | Effect                                                                                                                                       |
 | --------- | -------------------------------------------------------------------------------------------------------------------------------------------- |

@@ -2,8 +2,11 @@ use std::collections::HashMap;
 
 use itertools::Itertools;
 use rspack_collections::DatabaseItem;
-use rspack_core::{Chunk, CompilationChunkIds, Plugin, incremental::IncrementalPasses};
-use rspack_error::Result;
+use rspack_core::{
+  Chunk, ChunkByUkey, ChunkNamedIdArtifact, CompilationChunkIds, Plugin,
+  incremental::IncrementalPasses,
+};
+use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
 
 use crate::id_helpers::{assign_ascending_chunk_ids, compare_chunks_natural};
@@ -26,21 +29,27 @@ impl OccurrenceChunkIdsPlugin {
 }
 
 #[plugin_hook(CompilationChunkIds for OccurrenceChunkIdsPlugin)]
-async fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> Result<()> {
+async fn chunk_ids(
+  &self,
+  compilation: &rspack_core::Compilation,
+  chunk_by_ukey: &mut ChunkByUkey,
+  _named_chunk_ids_artifact: &mut ChunkNamedIdArtifact,
+  diagnostics: &mut Vec<Diagnostic>,
+) -> Result<()> {
   if let Some(diagnostic) = compilation.incremental.disable_passes(
     IncrementalPasses::CHUNK_IDS,
     "OccurrenceChunkIdsPlugin (optimization.chunkIds = \"size\")",
     "it requires calculating the id of all the chunks, which is a global effect",
   ) && let Some(diagnostic) = diagnostic
   {
-    compilation.push_diagnostic(diagnostic);
+    diagnostics.push(diagnostic);
   }
 
   let chunk_graph = &compilation.chunk_graph;
   let chunk_group_by_ukey = &compilation.chunk_group_by_ukey;
   let mut occurs_in_initial_chunks_map = HashMap::new();
 
-  for chunk in compilation.chunk_by_ukey.values() {
+  for chunk in chunk_by_ukey.values() {
     let mut occurs = 0;
     for chunk_group_ukey in chunk.groups() {
       if let Some(chunk_group) = chunk_group_by_ukey.get(chunk_group_ukey) {
@@ -57,8 +66,7 @@ async fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> Result<
   }
 
   let mut ordered_chunk_modules_cache = Default::default();
-  let chunks = compilation
-    .chunk_by_ukey
+  let chunks = chunk_by_ukey
     .values()
     .map(|chunk| chunk as &Chunk)
     .sorted_unstable_by(|a, b| {
@@ -88,7 +96,7 @@ async fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> Result<
     .map(|chunk| chunk.ukey())
     .collect::<Vec<_>>();
 
-  assign_ascending_chunk_ids(&chunks, compilation);
+  assign_ascending_chunk_ids(&chunks, chunk_by_ukey);
 
   Ok(())
 }

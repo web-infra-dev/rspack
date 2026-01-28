@@ -2,10 +2,14 @@ import path from 'node:path';
 import { pluginSass } from '@rsbuild/plugin-sass';
 import { defineConfig } from '@rspress/core';
 import { pluginAlgolia } from '@rspress/plugin-algolia';
+import { pluginClientRedirects } from '@rspress/plugin-client-redirects';
 import { pluginLlms } from '@rspress/plugin-llms';
 import { pluginRss } from '@rspress/plugin-rss';
 import { pluginSitemap } from '@rspress/plugin-sitemap';
-import { transformerNotationHighlight } from '@shikijs/transformers';
+import {
+  transformerNotationDiff,
+  transformerNotationHighlight,
+} from '@shikijs/transformers';
 import { pluginGoogleAnalytics } from 'rsbuild-plugin-google-analytics';
 import { pluginOpenGraph } from 'rsbuild-plugin-open-graph';
 import { pluginFontOpenSans } from 'rspress-plugin-font-open-sans';
@@ -26,7 +30,7 @@ export default defineConfig({
   globalStyles: path.join(__dirname, 'theme', 'index.css'),
   markdown: {
     shiki: {
-      transformers: [transformerNotationHighlight()],
+      transformers: [transformerNotationHighlight(), transformerNotationDiff()],
       langAlias: {
         ejs: 'js',
       },
@@ -40,6 +44,14 @@ export default defineConfig({
     exclude: ['**/types/*.mdx'],
   },
   plugins: [
+    pluginClientRedirects({
+      redirects: [
+        {
+          from: '/plugins/webpack/warn-case-sensitive-modules-plugin',
+          to: '/plugins/webpack/case-sensitive-plugin',
+        },
+      ],
+    }),
     pluginAlgolia(),
     pluginLlms(),
     pluginSitemap({

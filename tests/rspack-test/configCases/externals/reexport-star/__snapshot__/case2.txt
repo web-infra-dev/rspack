@@ -1,15 +1,13 @@
-export * from "external1-alias";
 import * as __rspack_external_external1_alias_bc4b12e4 from "external1-alias";
 
-;// CONCATENATED MODULE: external "external1-alias"
-
-;// CONCATENATED MODULE: ./case2.js
 
 
 
 
 
 
-var __webpack_exports__a = __rspack_external_external1_alias_bc4b12e4.a;
-var __webpack_exports__b = __rspack_external_external1_alias_bc4b12e4.b;
-export { __rspack_external_external1_alias_bc4b12e4 as n1, __webpack_exports__a as a, __webpack_exports__b as b };
+
+var a = __rspack_external_external1_alias_bc4b12e4.a;
+var b = __rspack_external_external1_alias_bc4b12e4.b;
+export { __rspack_external_external1_alias_bc4b12e4 as n1, a, b };
+export * from "external1-alias";

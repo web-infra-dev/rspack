@@ -1,0 +1,15 @@
+import { ApiMeta } from '../../../components/ApiMeta';
+
+# 废弃选项
+
+本页面列出了 Rspack 中已被废弃的配置选项。
+
+这些选项仅为向后兼容而保留，不应在新项目中使用。
+
+## rules[].loaders
+
+用于传递 Loader 包名与其选项的数组。
+
+:::warning
+该选项已被废弃，请改用 [rules[].use](/config/module-rules#rulesuse)。
+:::

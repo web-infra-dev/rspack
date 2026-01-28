@@ -8,15 +8,15 @@ Rspack 内置了一些高性能的插件，它们可以用于替代 webpack 生�
 
 包括：
 
-- [CircularDependencyRspackPlugin](/plugins/rspack/circular-dependency-rspack-plugin)
-- [CopyRspackPlugin](/plugins/rspack/copy-rspack-plugin)
-- [CssChunkingPlugin](/plugins/rspack/css-chunking-plugin)
-- [CssExtractRspackPlugin](/plugins/rspack/css-extract-rspack-plugin)
-- [HtmlRspackPlugin](/plugins/rspack/html-rspack-plugin)
-- [LightningCssMinimizerRspackPlugin](/plugins/rspack/lightning-css-minimizer-rspack-plugin)
-- [SubresourceIntegrityPlugin](/plugins/rspack/subresource-integrity-plugin)
-- [SwcJsMinimizerRspackPlugin](/plugins/rspack/swc-js-minimizer-rspack-plugin)
-- [VirtualModulesPlugin](/plugins/rspack/virtual-modules-plugin)
+- [CircularDependencyRspackPlugin](/plugins/rspack/circular-dependency-rspack-plugin)：检测循环依赖
+- [CopyRspackPlugin](/plugins/rspack/copy-rspack-plugin)：将文件或目录复制到构建产物
+- [CssChunkingPlugin](/plugins/rspack/css-chunking-plugin)：按导入顺序切分 CSS，避免样式顺序问题
+- [CssExtractRspackPlugin](/plugins/rspack/css-extract-rspack-plugin)：把样式抽取为独立 CSS 文件
+- [HtmlRspackPlugin](/plugins/rspack/html-rspack-plugin)：生成 HTML 并注入资源
+- [LightningCssMinimizerRspackPlugin](/plugins/rspack/lightning-css-minimizer-rspack-plugin)：用 Lightning CSS 压缩样式
+- [SubresourceIntegrityPlugin](/plugins/rspack/subresource-integrity-plugin)：启用子资源完整性（SRI）
+- [SwcJsMinimizerRspackPlugin](/plugins/rspack/swc-js-minimizer-rspack-plugin)：基于 SWC 压缩 JavaScript
+- [VirtualModulesPlugin](/plugins/rspack/virtual-modules-plugin)：在内存中创建和修改虚拟模块
 
 ## 内置插件（对齐 webpack）
 
@@ -30,6 +30,6 @@ Rspack 致力于兼容 webpack 生态内的插件，以便于使用社区中已�
 
 请查看 [插件兼容列表](/guide/compatibility/plugin) 获取经过我们兼容性测试的 webpack 插件清单。
 
-你还可以在 [awesome-rspack](https://github.com/web-infra-dev/awesome-rspack) 中查看社区提供的 Rspack 插件。
+你还可以在 [awesome-rstack](https://github.com/rstackjs/awesome-rstack) 中查看社区提供的 Rspack 插件。
 
 欢迎将你开发的插件添加到这个仓库中。

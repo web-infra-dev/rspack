@@ -19,7 +19,7 @@ pub use self::{
   parser::{
     AllowedMemberTypes, CallExpressionInfo, CallHooksName, DestructuringAssignmentProperties,
     DestructuringAssignmentProperty, ExportedVariableInfo, JavascriptParser, MemberExpressionInfo,
-    RootName, TagInfoData, TopLevelScope, estree::*,
+    RootName, TagInfoData, TopLevelScope, ast::*, estree::*,
   },
   util::*,
 };

@@ -91,7 +91,7 @@ async fn render_startup(
     .module_by_identifier(module)
     .expect("should have build meta");
   let exports_type = boxed_module.get_exports_type(
-    &module_graph,
+    module_graph,
     &compilation.module_graph_cache_artifact,
     boxed_module.build_info().strict,
   );
@@ -122,7 +122,7 @@ async fn render_startup(
         match used_name {
           UsedNameItem::Str(used_name) =>
             format!("{exports_name}{}", property_access(vec![used_name], 0)),
-          UsedNameItem::Inlined(inlined) => inlined.render(),
+          UsedNameItem::Inlined(inlined) => inlined.render(""),
         }
       )));
     }

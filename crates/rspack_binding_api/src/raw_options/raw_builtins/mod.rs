@@ -26,7 +26,7 @@ use std::cell::RefCell;
 
 use napi::{
   Either, Env, Unknown,
-  bindgen_prelude::{FromNapiValue, JsObjectValue, Object},
+  bindgen_prelude::{ClassInstance, FromNapiValue, JsObjectValue, Object},
 };
 use napi_derive::napi;
 use raw_dll::{RawDllReferenceAgencyPluginOptions, RawFlagAllModulesAsUsedPluginOptions};
@@ -42,6 +42,7 @@ use rspack_ids::{
 };
 use rspack_plugin_asset::AssetPlugin;
 use rspack_plugin_banner::BannerPlugin;
+use rspack_plugin_case_sensitive::CaseSensitivePlugin;
 use rspack_plugin_circular_dependencies::CircularDependencyRspackPlugin;
 use rspack_plugin_copy::{CopyRspackPlugin, CopyRspackPluginOptions};
 use rspack_plugin_css::CssPlugin;
@@ -84,6 +85,7 @@ use rspack_plugin_no_emit_on_errors::NoEmitOnErrorsPlugin;
 use rspack_plugin_real_content_hash::RealContentHashPlugin;
 use rspack_plugin_remove_duplicate_modules::RemoveDuplicateModulesPlugin;
 use rspack_plugin_remove_empty_chunks::RemoveEmptyChunksPlugin;
+use rspack_plugin_rsc::{RscClientPlugin, RscServerPlugin};
 use rspack_plugin_rslib::RslibPlugin;
 use rspack_plugin_runtime::{
   ArrayPushCallbackChunkFormatPlugin, BundlerInfoPlugin, ChunkPrefetchPreloadPlugin,
@@ -94,7 +96,6 @@ use rspack_plugin_schemes::{DataUriPlugin, FileUriPlugin};
 use rspack_plugin_size_limits::SizeLimitsPlugin;
 use rspack_plugin_sri::{SubresourceIntegrityPlugin, SubresourceIntegrityPluginOptions};
 use rspack_plugin_swc_js_minimizer::SwcJsMinimizerRspackPlugin;
-use rspack_plugin_warn_sensitive_module::WarnCaseSensitiveModulesPlugin;
 use rspack_plugin_wasm::{
   AsyncWasmPlugin, FetchCompileAsyncWasmPlugin, enable_wasm_loading_plugin,
 };
@@ -126,7 +127,10 @@ use self::{
 };
 use crate::{
   options::entry::JsEntryPluginOptions,
-  plugins::{JsLoaderRspackPlugin, JsLoaderRunnerGetter},
+  plugins::{
+    JsCoordinator, JsLoaderRspackPlugin, JsLoaderRunnerGetter, JsRscClientPluginOptions,
+    JsRscServerPluginOptions,
+  },
   raw_options::{
     RawDynamicEntryPluginOptions, RawEvalDevToolModulePluginOptions, RawExternalItemWrapper,
     RawExternalsPluginOptions, RawHttpExternalsRspackPluginOptions, RawSplitChunksOptions,
@@ -183,7 +187,7 @@ pub enum BuiltinPluginName {
   RealContentHashPlugin,
   RemoveEmptyChunksPlugin,
   EnsureChunkConditionsPlugin,
-  WarnCaseSensitiveModulesPlugin,
+  CaseSensitivePlugin,
   DataUriPlugin,
   FileUriPlugin,
   RuntimePlugin,
@@ -236,6 +240,10 @@ pub enum BuiltinPluginName {
   ModuleInfoHeaderPlugin,
   HttpUriPlugin,
   CssChunkingPlugin,
+
+  // react server components
+  RscServerPlugin,
+  RscClientPlugin,
 }
 
 #[doc(hidden)]
@@ -545,8 +553,8 @@ impl<'a> BuiltinPlugin<'a> {
       BuiltinPluginName::EnsureChunkConditionsPlugin => {
         plugins.push(EnsureChunkConditionsPlugin::default().boxed())
       }
-      BuiltinPluginName::WarnCaseSensitiveModulesPlugin => {
-        plugins.push(WarnCaseSensitiveModulesPlugin::default().boxed())
+      BuiltinPluginName::CaseSensitivePlugin => {
+        plugins.push(CaseSensitivePlugin::default().boxed())
       }
       BuiltinPluginName::DataUriPlugin => plugins.push(DataUriPlugin::default().boxed()),
       BuiltinPluginName::FileUriPlugin => plugins.push(FileUriPlugin::default().boxed()),
@@ -838,6 +846,16 @@ impl<'a> BuiltinPlugin<'a> {
         let options = downcast_into::<RawCssChunkingPluginOptions>(self.options)
           .map_err(|report| napi::Error::from_reason(report.to_string()))?;
         plugins.push(CssChunkingPlugin::new(options.into()).boxed());
+      }
+      BuiltinPluginName::RscServerPlugin => {
+        let options = &downcast_into::<JsRscServerPluginOptions>(self.options)
+          .map_err(|report| napi::Error::from_reason(report.to_string()))?;
+        plugins.push(RscServerPlugin::new(options.try_into()?).boxed());
+      }
+      BuiltinPluginName::RscClientPlugin => {
+        let options = &downcast_into::<JsRscClientPluginOptions>(self.options)
+          .map_err(|report| napi::Error::from_reason(report.to_string()))?;
+        plugins.push(RscClientPlugin::new(options.into()).boxed());
       }
     }
     Ok(())

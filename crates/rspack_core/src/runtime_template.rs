@@ -520,7 +520,7 @@ impl RuntimeTemplate {
     };
 
     let exports_type = get_exports_type(
-      &mg,
+      mg,
       &compilation.module_graph_cache_artifact,
       id,
       &module.identifier(),
@@ -663,14 +663,10 @@ impl RuntimeTemplate {
             !is_deferred,
             "can't inline the exports of defer imported module"
           );
-          return format!(
-            "{} {}",
-            to_normal_comment(&format!(
-              "inlined export {}",
-              property_access(export_name, 0)
-            )),
-            inlined.render()
-          );
+          return inlined.render(&to_normal_comment(&format!(
+            "inlined export {}",
+            property_access(export_name, 0)
+          )));
         }
         None => {
           return format!(
@@ -760,7 +756,7 @@ impl RuntimeTemplate {
     let opt_declaration = if update { "" } else { "var " };
 
     let exports_type = get_exports_type(
-      &mg,
+      mg,
       &compilation.module_graph_cache_artifact,
       id,
       &module.identifier(),
@@ -881,7 +877,7 @@ impl RuntimeTemplate {
 
     let promise = self.block_promise(block, runtime_requirements, compilation, message);
     let exports_type = get_exports_type(
-      &compilation.get_module_graph(),
+      compilation.get_module_graph(),
       &compilation.module_graph_cache_artifact,
       dep_id,
       &module.identifier(),
@@ -1374,14 +1370,11 @@ fn get_outgoing_async_modules(
     } else {
       for (module, connections) in mg.get_outcoming_connections_by_module(&module_identifier) {
         let is_esm = connections.iter().any(|connection| {
-          mg.dependency_by_id(&connection.dependency_id)
-            .map(|dep| {
-              matches!(
-                dep.dependency_type(),
-                DependencyType::EsmImport | DependencyType::EsmExportImport
-              )
-            })
-            .unwrap_or_default()
+          let dep = mg.dependency_by_id(&connection.dependency_id);
+          matches!(
+            dep.dependency_type(),
+            DependencyType::EsmImport | DependencyType::EsmExportImport
+          )
         });
         if is_esm {
           helper(
@@ -1402,7 +1395,7 @@ fn get_outgoing_async_modules(
   let mut visited = HashSet::default();
   helper(
     compilation,
-    &compilation.get_module_graph(),
+    compilation.get_module_graph(),
     module,
     &mut set,
     &mut visited,

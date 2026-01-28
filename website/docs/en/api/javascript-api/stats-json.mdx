@@ -245,14 +245,6 @@ type StatsModule = {
 
   // Source code
   source?: string | Buffer;
-
-  // The compilation time statistics for each phase (in milliseconds, need to enable `profile`)
-  profile?: {
-    // Finding the module
-    resolving: number;
-    // Compiling the module
-    building: number;
-  };
 };
 ```
 
@@ -296,7 +288,7 @@ type StatsChunkGroup = {
     prefetch?: Array<StatsChunkGroup>;
   };
   // Assets of ordered children chunk groups, order by preload/prefetch
-  children?: {
+  childAssets?: {
     // preload assets
     preload?: Array<string>;
     // prefetch assets

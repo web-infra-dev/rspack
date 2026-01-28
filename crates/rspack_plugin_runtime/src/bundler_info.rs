@@ -1,6 +1,6 @@
 use rspack_core::{
   ChunkUkey, Compilation, CompilationAdditionalTreeRuntimeRequirements,
-  CompilationRuntimeRequirementInTree, Plugin, RuntimeGlobals,
+  CompilationRuntimeRequirementInTree, Plugin, RuntimeGlobals, RuntimeModule,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -32,9 +32,10 @@ impl BundlerInfoPlugin {
 #[plugin_hook(CompilationAdditionalTreeRuntimeRequirements for BundlerInfoPlugin)]
 async fn additional_tree_runtime_requirements(
   &self,
-  _compilation: &mut Compilation,
+  _compilation: &Compilation,
   _chunk_ukey: &ChunkUkey,
   runtime_requirements: &mut RuntimeGlobals,
+  _runtime_modules: &mut Vec<Box<dyn RuntimeModule>>,
 ) -> Result<()> {
   if match &self.force {
     BundlerInfoForceMode::All => true,
@@ -59,31 +60,32 @@ async fn additional_tree_runtime_requirements(
 #[plugin_hook(CompilationRuntimeRequirementInTree for BundlerInfoPlugin)]
 async fn runtime_requirements_in_tree(
   &self,
-  compilation: &mut Compilation,
+  compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
   _all_runtime_requirements: &RuntimeGlobals,
   runtime_requirements: &RuntimeGlobals,
   _runtime_requirements_mut: &mut RuntimeGlobals,
+  runtime_modules_to_add: &mut Vec<(ChunkUkey, Box<dyn RuntimeModule>)>,
 ) -> Result<Option<()>> {
   if runtime_requirements.contains(RuntimeGlobals::RSPACK_VERSION) {
-    compilation.add_runtime_module(
-      chunk_ukey,
+    runtime_modules_to_add.push((
+      *chunk_ukey,
       Box::new(RspackVersionRuntimeModule::new(
         &compilation.runtime_template,
         self.version.clone(),
       )),
-    )?;
+    ));
   }
 
   if runtime_requirements.contains(RuntimeGlobals::RSPACK_UNIQUE_ID) {
-    compilation.add_runtime_module(
-      chunk_ukey,
+    runtime_modules_to_add.push((
+      *chunk_ukey,
       Box::new(RspackUniqueIdRuntimeModule::new(
         &compilation.runtime_template,
         self.bundler_name.clone(),
         self.version.clone(),
       )),
-    )?;
+    ));
   }
   Ok(None)
 }

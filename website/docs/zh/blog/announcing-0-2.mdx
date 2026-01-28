@@ -9,7 +9,7 @@ _2023 年 6 月 2 日_
 
 自 Rspack 0.1 版本发布的将近三个月以来，我们得到了非常多社区的关注和反馈，感谢大家对 Rspack 的支持。在 0.2 版本中，我们新增了诸多功能，如 realContentHash、DataURI、ESM format 的支持等，同时加强了与 webpack 的兼容性，并优化了诸多细节。
 
-另外，得益于对 webpack API 良好的兼容性，我们对于周边生态也完成了进一步的兼容，例如，测试完成了对 vue-loader 17（对应 Vue3）和 15（对应 Vue2）版本的兼容，现在大家可以尝试在 Vue2 / 3 项目中使用 Rspack 了。我们期待你在 0.2 版本中体验到这些全新的改进，并欢迎你随时给我们提供反馈。
+另外，得益于对 webpack API 良好的兼容性，我们对于周边生态也完成了进一步的兼容，例如，测试完成了对 vue-loader 17（对应 Vue 3）和 15（对应 Vue 2）版本的兼容，现在大家可以尝试在 Vue 2 / 3 项目中使用 Rspack 了。我们期待你在 0.2 版本中体验到这些全新的改进，并欢迎你随时给我们提供反馈。
 
 ## 主要功能更新
 
@@ -161,7 +161,7 @@ export default {
 ### node-loader
 
 当使用 Rspack 打包如 NestJS 等 Node 应用时，一个常见的需求就是打包一些包含 addon 的库，这些库里的 native 依赖无法直接被打包进 JS 里，因此需要特殊处理，Rspack 适配了 [node-loader](https://github.com/webpack-contrib/node-loader) 所以你可以使用 Rspack 去构建 node 应用了。
-Rspack 适配的 webpack 的 plugin 和 loader 远不仅此，我们在 [loader-compat](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/loader-compat) 和 [plugin-compat](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/plugin) 对已经适配的 plugin 和 loader 进行了追踪，如果你发现你使用的社区 plugin 和 loader 也已经兼容，欢迎提交给我们。
+Rspack 适配的 webpack 的 plugin 和 loader 远不仅此，我们在 [loader-compat](https://github.com/rstackjs/rstack-examples/tree/main/rspack/loader-compat) 和 [plugin-compat](https://github.com/rstackjs/rstack-examples/tree/main/rspack/plugin) 对已经适配的 plugin 和 loader 进行了追踪，如果你发现你使用的社区 plugin 和 loader 也已经兼容，欢迎提交给我们。
 
 ## 框架生态更新
 
@@ -181,11 +181,11 @@ Rspack 适配的 webpack 的 plugin 和 loader 远不仅此，我们在 [loader-
 
 ### Vue
 
-Rspack 0.2 已经完成了对 vue-loader 的兼容。对于 Vue3 项目，你可以使用 Rspack 原生的 CSS、TS 处理器提升 Vue 项目的编译速度，你仅需要将 vue-loader 升级到 17.2.2 以上的版本，并设置 `experimentalInlineMatchResource: true` 即可。对于 Vue3/Vue2 支持的更多信息请参考 [Vue](/guide/tech/vue)。
+Rspack 0.2 已经完成了对 vue-loader 的兼容。对于 Vue 3 项目，你可以使用 Rspack 原生的 CSS、TS 处理器提升 Vue 项目的编译速度，你仅需要将 vue-loader 升级到 17.2.2 以上的版本，并设置 `experimentalInlineMatchResource: true` 即可。对于 Vue 3/Vue 2 支持的更多信息请参考 [Vue](/guide/tech/vue)。
 
 ### Svelte
 
-得益于 Rspack 对 Loader API 的良好支持和 [svelte-loader](https://github.com/sveltejs/svelte-loader) 的优良设计，Rspack 已经完全适配了 [svelte-loader](https://github.com/sveltejs/svelte-loader)，因此你可以在 Rspack 直接使用 [svelte-loader](https://github.com/sveltejs/svelte-loader) 进行 svelte 应用的开发，你可以参考 [example-svelte](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/svelte) 完成 svelte-loader 相关配置。
+得益于 Rspack 对 Loader API 的良好支持和 [svelte-loader](https://github.com/sveltejs/svelte-loader) 的优良设计，Rspack 已经完全适配了 [svelte-loader](https://github.com/sveltejs/svelte-loader)，因此你可以在 Rspack 直接使用 [svelte-loader](https://github.com/sveltejs/svelte-loader) 进行 svelte 应用的开发，你可以参考 [example-svelte](https://github.com/rstackjs/rstack-examples/tree/main/rspack/svelte) 完成 svelte-loader 相关配置。
 
 ### Storybook
 
@@ -198,15 +198,6 @@ Rspack 0.2 已经完成了对 vue-loader 的兼容。对于 Vue3 项目，你可
 ### NestJS
 
 在 Rosa、Nx 和 Valor 的帮助下，Rspack 完成了对 NestJS 的编译支持，你可以使用 Rspack 打包 NestJS 应用，在实际项目中进行测试，Rspack 相比 webpack 版本有 5-10 倍的构建性能提升。
-
-## Benchmark
-
-添加与 esbuild 对比的 benchmark https://github.com/web-infra-dev/performance-compare
-
-<img
-  src="https://raw.githubusercontent.com/web-infra-dev/performance-compare/main/assets/benchmark.png"
-  alt="benchmark"
-></img>
 
 ## 开发指南
 

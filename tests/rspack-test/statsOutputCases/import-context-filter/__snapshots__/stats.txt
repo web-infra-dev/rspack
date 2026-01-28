@@ -2,7 +2,7 @@ asset entry.js xx KiB [emitted] (name: entry)
 asset 870.js xx bytes [emitted]
 asset 897.js xx bytes [emitted]
 asset 985.js xx bytes [emitted]
-runtime modules xx KiB 11 modules
+runtime modules xx KiB 10 modules
 cacheable modules xx bytes
   modules by path ./templates/*.js xx bytes
     ./templates/bar.js xx bytes [built] [code generated]

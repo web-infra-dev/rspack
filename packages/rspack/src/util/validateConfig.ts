@@ -1,98 +1,98 @@
-import { isAbsolute } from "node:path";
+import { isAbsolute } from 'node:path';
 import type {
-	Configuration,
-	ExternalItem,
-	ExternalItemUmdValue
-} from "../config";
+  Configuration,
+  ExternalItem,
+  ExternalItemUmdValue,
+} from '../config';
 
-const ERROR_PREFIX = "Invalid Rspack configuration:";
+const ERROR_PREFIX = 'Invalid Rspack configuration:';
 
 const validateContext = ({ context }: Configuration) => {
-	if (context && !isAbsolute(context)) {
-		throw new Error(
-			`${ERROR_PREFIX} "context" must be an absolute path, get "${context}".`
-		);
-	}
+  if (context && !isAbsolute(context)) {
+    throw new Error(
+      `${ERROR_PREFIX} "context" must be an absolute path, get "${context}".`,
+    );
+  }
 };
 
 const validateOutputPath = ({ output }: Configuration) => {
-	if (output?.path && !isAbsolute(output.path)) {
-		throw new Error(
-			`${ERROR_PREFIX} "output.path" must be an absolute path, get "${output.path}".`
-		);
-	}
+  if (output?.path && !isAbsolute(output.path)) {
+    throw new Error(
+      `${ERROR_PREFIX} "output.path" must be an absolute path, get "${output.path}".`,
+    );
+  }
 };
 
 const validateSplitChunks = ({ optimization }: Configuration) => {
-	if (optimization?.splitChunks) {
-		const { minChunks } = optimization.splitChunks;
-		if (minChunks !== undefined && minChunks < 1) {
-			throw new Error(
-				`${ERROR_PREFIX} "optimization.splitChunks.minChunks" must be greater than or equal to 1, get \`${minChunks}\`.`
-			);
-		}
-	}
+  if (optimization?.splitChunks) {
+    const { minChunks } = optimization.splitChunks;
+    if (minChunks !== undefined && minChunks < 1) {
+      throw new Error(
+        `${ERROR_PREFIX} "optimization.splitChunks.minChunks" must be greater than or equal to 1, get \`${minChunks}\`.`,
+      );
+    }
+  }
 };
 
 const validateExternalUmd = ({
-	output,
-	externals,
-	externalsType
+  output,
+  externals,
+  externalsType,
 }: Configuration) => {
-	let isLibraryUmd = false;
-	const library = output?.library;
+  let isLibraryUmd = false;
+  const library = output?.library;
 
-	if (typeof library === "object" && "type" in library) {
-		isLibraryUmd = library.type === "umd";
-	} else {
-		isLibraryUmd = output?.libraryTarget === "umd";
-	}
+  if (typeof library === 'object' && 'type' in library) {
+    isLibraryUmd = library.type === 'umd';
+  } else {
+    isLibraryUmd = false;
+  }
 
-	if (
-		!isLibraryUmd ||
-		(externalsType !== undefined && externalsType !== "umd")
-	) {
-		return;
-	}
+  if (
+    !isLibraryUmd ||
+    (externalsType !== undefined && externalsType !== 'umd')
+  ) {
+    return;
+  }
 
-	const checkExternalItem = (externalItem: ExternalItem | undefined) => {
-		if (typeof externalItem === "object" && externalItem !== null) {
-			for (const value of Object.values(externalItem)) {
-				checkExternalItemValue(value);
-			}
-		}
-	};
+  const checkExternalItem = (externalItem: ExternalItem | undefined) => {
+    if (typeof externalItem === 'object' && externalItem !== null) {
+      for (const value of Object.values(externalItem)) {
+        checkExternalItemValue(value);
+      }
+    }
+  };
 
-	const checkExternalItemValue = (value: ExternalItemUmdValue | undefined) => {
-		if (!value || typeof value !== "object") {
-			return;
-		}
+  const checkExternalItemValue = (value: ExternalItemUmdValue | undefined) => {
+    if (!value || typeof value !== 'object') {
+      return;
+    }
 
-		const requiredKeys = ["root", "commonjs", "commonjs2", "amd"] as const;
-		if (requiredKeys.some(key => value[key] === undefined)) {
-			throw new Error(
-				`${ERROR_PREFIX} External object must have "root", "commonjs", "commonjs2", "amd" properties when "libraryType" or "externalsType" is "umd", get: ${JSON.stringify(
-					value,
-					null,
-					2
-				)}.`
-			);
-		}
-	};
+    const requiredKeys = ['root', 'commonjs', 'commonjs2', 'amd'] as const;
+    if (requiredKeys.some((key) => value[key] === undefined)) {
+      throw new Error(
+        `${ERROR_PREFIX} External object must have "root", "commonjs", "commonjs2", "amd" properties when "libraryType" or "externalsType" is "umd", get: ${JSON.stringify(
+          value,
+          null,
+          2,
+        )}.`,
+      );
+    }
+  };
 
-	if (!Array.isArray(externals)) {
-		checkExternalItem(externals);
-	} else {
-		externals.forEach(external => checkExternalItem(external));
-	}
+  if (!Array.isArray(externals)) {
+    checkExternalItem(externals);
+  } else {
+    externals.forEach((external) => checkExternalItem(external));
+  }
 };
 
 /**
  * Performs configuration validation that cannot be covered by TypeScript types.
  */
 export function validateRspackConfig(config: Configuration) {
-	validateContext(config);
-	validateOutputPath(config);
-	validateSplitChunks(config);
-	validateExternalUmd(config);
+  validateContext(config);
+  validateOutputPath(config);
+  validateSplitChunks(config);
+  validateExternalUmd(config);
 }

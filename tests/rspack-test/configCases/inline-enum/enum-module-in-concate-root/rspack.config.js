@@ -1,13 +1,8 @@
 module.exports = {
-	entry: {
-		main: './index.js',
-	},
-	module: {
-    parser: {
-      javascript: {
-        inlineEnum: true,
-      },
-    },
+  entry: {
+    main: './index.js',
+  },
+  module: {
     rules: [
       {
         test: /\.ts/,
@@ -21,21 +16,17 @@ module.exports = {
                   syntax: "typescript",
                 }
               },
-              rspackExperiments: {
-                collectTypeScriptInfo: {
-                  exportedEnum: true,
-                },
+              collectTypeScriptInfo: {
+                exportedEnum: true,
               },
             },
           },
         ],
       },
     ],
-	},
-	optimization: {
-		concatenateModules: true,
-	},
-	experiments: {
-		inlineEnum: true,
-	}
+  },
+  optimization: {
+    concatenateModules: true,
+    inlineExports: true
+  },
 }

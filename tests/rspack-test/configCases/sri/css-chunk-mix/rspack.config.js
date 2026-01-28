@@ -1,4 +1,4 @@
-const { CssExtractRspackPlugin, experiments } = require("@rspack/core");
+const { CssExtractRspackPlugin, SubresourceIntegrityPlugin } = require("@rspack/core");
 const fs = require("fs");
 const path = require("path");
 
@@ -8,12 +8,9 @@ module.exports = (_, { testPath }) => ({
   output: {
     crossOriginLoading: "anonymous",
   },
-  experiments: {
-    css: true
-  },
   plugins: [
     new CssExtractRspackPlugin(),
-    new experiments.SubresourceIntegrityPlugin({
+    new SubresourceIntegrityPlugin({
       hashFuncNames: ["sha256", "sha384"],
     }),
     {
@@ -29,6 +26,10 @@ module.exports = (_, { testPath }) => ({
   ],
   module: {
     rules: [
+      {
+        test: /\.module\.css/,
+        type: "css/module"
+      },
       {
         test: /-extract\.module\.css$/,
         use: [

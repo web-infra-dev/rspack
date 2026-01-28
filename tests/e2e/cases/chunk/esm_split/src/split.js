@@ -1,1 +1,1 @@
-export const text = "Loaded";
+export const text = 'Loaded';

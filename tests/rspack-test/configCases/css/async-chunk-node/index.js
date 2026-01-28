@@ -1,15 +1,14 @@
 it("should allow to dynamic import a css module", async () => {
 	await import("../pseudo-export/style.module.css").then(x => {
-			expect(x).toEqual(
-				nsObj({
-					a: "a",
-					abc: "a b c",
-					// DIFF: comments are removed in rspack
-					comments: "abc      def",
-					whitespace: "abc\n\tdef",
-					default: "default"
-				})
-			);
+		expect(x).toEqual(
+			nsObj({
+				a: "a",
+				abc: "a b c",
+				comments: "abc      def",
+				whitespace: "abc\n\tdef",
+				default: "default"
+			})
+		);
 	});
 });
 

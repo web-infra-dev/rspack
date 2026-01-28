@@ -79,7 +79,6 @@ impl RuntimeModule for LoadScriptRuntimeModule {
       &self.template_id(TemplateId::CreateScript),
       Some(serde_json::json!({
         "_script_type": &compilation.options.output.script_type,
-        "_charset": compilation.options.output.charset,
         "_unique_prefix": unique_prefix.is_some(),
         "_with_fetch_priority": with_fetch_priority,
         "_with_create_script_url": self.with_create_script_url,

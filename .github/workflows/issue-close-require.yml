@@ -2,7 +2,7 @@ name: Issue Close Require
 
 on:
   schedule:
-    - cron: "0 0 * * *"
+    - cron: '0 0 * * *'
 
 permissions:
   contents: read
@@ -15,28 +15,28 @@ jobs:
     if: github.repository_owner == 'web-infra-dev'
     steps:
       - name: need reproduce
-        uses: actions-cool/issues-helper@9861779a695cf1898bd984c727f685f351cfc372 # v3
+        uses: actions-cool/issues-helper@e2ff99831a4f13625d35064e2b3dfe65c07a0396 # v3
         with:
-          actions: "close-issues"
-          labels: "need reproduction"
+          actions: 'close-issues'
+          labels: 'need reproduction'
           inactive-day: 14
           body: |
             Since the issue was labeled with `need reproduction`, but no response in 14 days. This issue will be closed. Feel free to comment and reopen it if you have any further questions.
 
       - name: need more info
-        uses: actions-cool/issues-helper@9861779a695cf1898bd984c727f685f351cfc372 # v3
+        uses: actions-cool/issues-helper@e2ff99831a4f13625d35064e2b3dfe65c07a0396 # v3
         with:
-          actions: "close-issues"
-          labels: "need more info"
+          actions: 'close-issues'
+          labels: 'need more info'
           inactive-day: 14
           body: |
             Since the issue was labeled with `need more info`, but no response in 14 days. This issue will be closed. Feel free to comment and reopen it if you have any further questions.
 
       - name: awaiting feedback
-        uses: actions-cool/issues-helper@9861779a695cf1898bd984c727f685f351cfc372 # v3
+        uses: actions-cool/issues-helper@e2ff99831a4f13625d35064e2b3dfe65c07a0396 # v3
         with:
-          actions: "close-issues"
-          labels: "awaiting more feedback"
+          actions: 'close-issues'
+          labels: 'awaiting more feedback'
           inactive-day: 14
           body: |
             Since the issue was labeled with `awaiting more feedback`, but no response in 14 days. This issue will be closed. Feel free to comment and reopen it if you have any further questions.

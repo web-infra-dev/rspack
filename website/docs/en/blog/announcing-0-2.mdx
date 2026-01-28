@@ -9,7 +9,7 @@ _June 02, 2023_
 
 It has been almost three months since the release of Rspack 0.1. We have received so much attention and feedback from the community, and we are grateful.
 
-In version 0.2, we have added many features, such as: realContentHash, DataURI, support for ESM format, strengthened compatibility with webpack, and optimized many details. In addition, thanks to compatibility with the webpack API, we have also further achieved compatibility with the surrounding ecosystem. Completing tests for compatibility with vue-loader versions 17 (corresponding to Vue3) and 15 (corresponding to Vue2). You can now try using Rspack in Vue2/3 projects.
+In version 0.2, we have added many features, such as: realContentHash, DataURI, support for ESM format, strengthened compatibility with webpack, and optimized many details. In addition, thanks to compatibility with the webpack API, we have also further achieved compatibility with the surrounding ecosystem. Completing tests for compatibility with vue-loader versions 17 (corresponding to Vue 3) and 15 (corresponding to Vue 2). You can now try using Rspack in Vue 2/3 projects.
 
 We look forward to you experiencing these new improvements in version 0.2, and welcome your feedback.
 
@@ -164,7 +164,7 @@ Although Rspack supports and enables the `experiments.css` feature of webpack by
 
 When using Rspack to package Node applications like NestJS, a common requirement is to package libraries containing addons. These libraries' native dependencies cannot be directly packaged into js, so they need special treatment. Rspack has adapted [node-loader](https://github.com/webpack-contrib/node-loader), so you can now use Rspack to build node applications.
 
-Rspack has additional adaptation of webpack's plugins. We have tracked the adapted plugins and loaders in [loader-compat](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/loader-compat) and [plugin-compat](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/plugin). If you find that a community plugin or loader you are using is also compatible, welcome to submit it to us so we can list it in our compatibility matrix.
+Rspack has additional adaptation of webpack's plugins. We have tracked the adapted plugins and loaders in [loader-compat](https://github.com/rstackjs/rstack-examples/tree/main/rspack/loader-compat) and [plugin-compat](https://github.com/rstackjs/rstack-examples/tree/main/rspack/plugin). If you find that a community plugin or loader you are using is also compatible, welcome to submit it to us so we can list it in our compatibility matrix.
 
 ## Framework ecosystem updates
 
@@ -184,11 +184,11 @@ Compared to previous versions using webpack, the current version's build speed c
 
 ### Vue
 
-Rspack 0.2 has achieved compatibility with vue-loader! For Vue3 projects, you can use Rspack's native CSS and TS processors to improve the compilation speed of Vue projects. All you need to do is upgrade vue-loader to version 17.2.2 or above and set `experimentalInlineMatchResource: true`. For more information on Vue3/Vue2 support, please refer to [guide-vue](/guide/tech/vue).
+Rspack 0.2 has achieved compatibility with vue-loader! For Vue 3 projects, you can use Rspack's native CSS and TS processors to improve the compilation speed of Vue projects. All you need to do is upgrade vue-loader to version 17.2.2 or above and set `experimentalInlineMatchResource: true`. For more information on Vue 3/Vue 2 support, please refer to [guide-vue](/guide/tech/vue).
 
 ### Svelte
 
-Thanks to Rspack's excellent support for the Loader API and the excellent design of [svelte-loader](https://github.com/sveltejs/svelte-loader), Rspack has fully adapted [svelte-loader](https://github.com/sveltejs/svelte-loader). Therefore, you can directly use [svelte-loader](https://github.com/sveltejs/svelte-loader) in Rspack for svelte application development. You can refer to [example-svelte](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/svelte) to complete the svelte-loader related configuration.
+Thanks to Rspack's excellent support for the Loader API and the excellent design of [svelte-loader](https://github.com/sveltejs/svelte-loader), Rspack has fully adapted [svelte-loader](https://github.com/sveltejs/svelte-loader). Therefore, you can directly use [svelte-loader](https://github.com/sveltejs/svelte-loader) in Rspack for svelte application development. You can refer to [example-svelte](https://github.com/rstackjs/rstack-examples/tree/main/rspack/svelte) to complete the svelte-loader related configuration.
 
 ### Storybook
 
@@ -201,15 +201,6 @@ With the help of the [Valor](https://valor-software.com/) team, Rspack has compl
 ### NestJS
 
 With the help of [Rosa](https://rosa.be/), [Nx](https://nx.dev/), and [Valor](https://valor-software.com/), Rspack has completed the compilation support for [NestJS](https://nestjs.com/). You can use Rspack to package NestJS applications, and in actual projects, tests have shown that Rspack has a 5-10 times build performance improvement compared to the webpack version.
-
-## Benchmark
-
-Added a benchmark comparison with esbuild. Please refer to the following link for more details: https://github.com/web-infra-dev/performance-compare
-
-<img
-  src="https://raw.githubusercontent.com/web-infra-dev/performance-compare/main/assets/benchmark.png"
-  alt="benchmark"
-></img>
 
 ## Dev guide
 

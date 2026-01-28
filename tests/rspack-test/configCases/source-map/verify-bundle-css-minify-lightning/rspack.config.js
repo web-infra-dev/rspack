@@ -9,7 +9,13 @@ module.exports = {
 			"css/auto": {
 				exportsOnly: false
 			}
-		}
+		},
+		rules: [
+			{
+				test: /\.css$/,
+				type: 'css/auto'
+			}
+		]
 	},
 	devtool: "source-map",
 	optimization: {

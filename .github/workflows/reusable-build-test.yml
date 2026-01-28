@@ -16,7 +16,7 @@ on:
 jobs:
   e2e:
     name: E2E Testing
-    if: inputs.target == 'x86_64-unknown-linux-gnu'
+    if: inputs.target == 'x86_64-unknown-linux-gnu' || inputs.target == 'wasm32-wasip1-threads'
     runs-on: ${{ fromJSON(inputs.runner) }}
     defaults:
       run:
@@ -51,6 +51,7 @@ jobs:
 
       - name: Run e2e
         uses: ./.github/actions/docker/run
+        if: inputs.target == 'x86_64-unknown-linux-gnu'
         with:
           # Jammy uses ubuntu 22.04
           # If this is to change, make sure to upgrade the ubuntu version in GitHub Actions
@@ -63,6 +64,22 @@ jobs:
             pnpm run build:js
             pnpm run test:e2e
 
+      - name: Run e2e for @rspack/browser
+        uses: ./.github/actions/docker/run
+        if: inputs.target == 'wasm32-wasip1-threads'
+        with:
+          # Jammy uses ubuntu 22.04
+          # If this is to change, make sure to upgrade the ubuntu version in GitHub Actions
+          image: mcr.microsoft.com/playwright:v1.57.0-jammy
+          # .cache is required by download artifact, and mount in ./.github/actions/docker/run
+          # .tool_cache is required by pnpm
+          options: -v ${{ runner.tool_cache }}:${{runner.tool_cache}}
+          script: |
+            export PATH=${{ steps.calculate-node-bin-path.outputs.path }}:$PATH
+            export WASM=1
+            pnpm run build:js
+            pnpm run test:e2e
+
   test:
     runs-on: ${{ fromJSON(inputs.runner) }}
     timeout-minutes: 60
@@ -70,8 +87,8 @@ jobs:
       fail-fast: false # wait for all test to finish for determining if it's node version based problem or general problem
       matrix:
         node: ${{ fromJSON(
-          inputs.target == 'wasm32-wasip1-threads'&& '[22]'
-          || contains(inputs.target, 'linux') && '[18, 20, 22]'
+          inputs.target == 'wasm32-wasip1-threads'&& '[24]'
+          || contains(inputs.target, 'linux') && '[20, 22, 24]'
           || '[22]') }}
     name: Test Node ${{ matrix.node }}
     defaults:
@@ -105,13 +122,22 @@ jobs:
       - name: Pnpm Install
         uses: ./.github/actions/pnpm/install-dependencies
         with:
-          save-if: ${{ github.ref_name == 'main' && matrix.node == '18' }}
+          save-if: ${{ github.ref_name == 'main' && matrix.node == '20' }}
 
       ### x86_64-unknown-linux-gnu
       - name: Test x86_64-unknown-linux-gnu
         timeout-minutes: 15 # Tests should finish within 15 mins, please fix your tests instead of changing this to a higher timeout.
         if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' }}
         run: pnpm run test:ci
+
+      - name: Upload linux test cache
+        if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' && matrix.node == '22' }}
+        uses: ./.github/actions/artifact/upload
+        with:
+          name: testCase-persistentCache-linux
+          path: tests/rspack-test/js/temp/**/.cache
+          force-use-github: true
+          include-hidden-files: true
 
       ### *-apple-darwin
       - name: Test apple-darwin
@@ -133,6 +159,15 @@ jobs:
         if: ${{ inputs.target == 'x86_64-pc-windows-msvc' }}
         run: pnpm run test:ci
 
+      - name: Upload windows test cache
+        if: ${{ inputs.target == 'x86_64-pc-windows-msvc' && matrix.node == '22' }}
+        uses: ./.github/actions/artifact/upload
+        with:
+          name: testCase-persistentCache-windows
+          path: tests/rspack-test/js/temp/**/.cache
+          force-use-github: true
+          include-hidden-files: true
+
       ### WASM
       - name: Test WASM
         timeout-minutes: 15 # Tests should finish within 15 mins, please fix your tests instead of changing this to a higher timeout.
@@ -140,4 +175,5 @@ jobs:
         env:
           NODE_NO_WARNINGS: 1
           WASM: 1
+          RSPACK_LOADER_WORKER_THREADS: 1
         run: pnpm run test:ci

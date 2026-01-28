@@ -110,7 +110,7 @@ fn get_size(module: &dyn Module, compilation: &Compilation) -> SplitChunkSizes {
   let module_graph = compilation.get_module_graph();
   SplitChunkSizes(
     module
-      .source_types(&module_graph)
+      .source_types(module_graph)
       .iter()
       .map(|ty| (*ty, module.size(Some(ty), Some(compilation))))
       .collect(),
@@ -124,18 +124,7 @@ fn hash_filename(filename: &str, options: &CompilerOptions) -> String {
   hash_digest.rendered(8).to_string()
 }
 
-static REPLACE_RELATIVE_PREFIX_REG: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r"^(\.\.?\/)+").expect("regexp init failed"));
-static REPLACE_ILLEGEL_LETTER_REG: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r"(^[.-]|[^a-zA-Z0-9_-])+").expect("regexp init failed"));
-
-fn request_to_id(req: &str) -> String {
-  let mut res = REPLACE_RELATIVE_PREFIX_REG.replace_all(req, "").to_string();
-  res = REPLACE_ILLEGEL_LETTER_REG
-    .replace_all(&res, "_")
-    .to_string();
-  res
-}
+use rspack_util::identifier::request_to_id;
 
 fn get_too_small_types(
   size: &SplitChunkSizes,
@@ -276,7 +265,7 @@ fn deterministic_grouping_for_modules(
 
   let items = compilation
     .chunk_graph
-    .get_chunk_modules(chunk, &module_graph);
+    .get_chunk_modules(chunk, module_graph);
 
   let mut nodes = items
     .into_iter()

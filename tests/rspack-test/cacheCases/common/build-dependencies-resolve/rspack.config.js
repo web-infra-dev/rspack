@@ -15,14 +15,12 @@ const projectPackageJson = path.join(__dirname, "package.json");
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	context: __dirname,
-	experiments: {
-		cache: {
-			type: "persistent",
-			buildDependencies: [buildDependency],
-			snapshot: {
-				immutablePaths: [path.join(__dirname, "./file.js")],
-				unmanagedPaths: [path.join(__dirname, "node_modules/lib")]
-			}
+	cache: {
+		type: "persistent",
+		buildDependencies: [buildDependency],
+		snapshot: {
+			immutablePaths: [path.join(__dirname, "./file.js")],
+			unmanagedPaths: [path.join(__dirname, "node_modules/lib")]
 		}
 	},
 	plugins: [

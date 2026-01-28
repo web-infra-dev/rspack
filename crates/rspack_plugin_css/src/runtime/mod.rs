@@ -133,8 +133,9 @@ impl RuntimeModule for CssLoadingRuntimeModule {
       }
 
       let environment = &compilation.options.output.environment;
+      let is_neutral_platform = compilation.platform.is_neutral();
       let with_prefetch = runtime_requirements.contains(RuntimeGlobals::PREFETCH_CHUNK_HANDLERS)
-        && environment.supports_document()
+        && (environment.supports_document() || is_neutral_platform)
         && chunk.has_child_by_order(
           compilation,
           &ChunkGroupOrderKey::Prefetch,
@@ -142,7 +143,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
           &chunk_has_css,
         );
       let with_preload = runtime_requirements.contains(RuntimeGlobals::PRELOAD_CHUNK_HANDLERS)
-        && environment.supports_document()
+        && (environment.supports_document() || is_neutral_platform)
         && chunk.has_child_by_order(
           compilation,
           &ChunkGroupOrderKey::Preload,
@@ -170,7 +171,6 @@ impl RuntimeModule for CssLoadingRuntimeModule {
         &self.template_id(TemplateId::CreateLink),
         Some(serde_json::json!({
           "_with_fetch_priority": with_fetch_priority,
-          "_charset": compilation.options.output.charset,
           "_cross_origin": match &compilation.options.output.cross_origin_loading {
             CrossOriginLoading::Disable => "".to_string(),
             CrossOriginLoading::Enable(cross_origin) => cross_origin.to_string(),
@@ -265,6 +265,7 @@ installedChunks[chunkId] = 0;
           &self.template_id(TemplateId::WithLoading),
           Some(serde_json::json!({
             "_css_matcher": &has_css_matcher.render("chunkId"),
+            "_is_neutral_platform": is_neutral_platform
           })),
         )?;
         source.push_str(&source_with_loading);
@@ -274,7 +275,6 @@ installedChunks[chunkId] = 0;
         let link_prefetch_raw = compilation.runtime_template.render(
           &self.template_id(TemplateId::WithPrefetchLink),
           Some(serde_json::json!({
-            "_charset": compilation.options.output.charset,
             "_cross_origin": compilation.options.output.cross_origin_loading.to_string(),
           })),
         )?;
@@ -297,6 +297,7 @@ installedChunks[chunkId] = 0;
           Some(serde_json::json!({
             "_css_matcher": &has_css_matcher.render("chunkId"),
             "_create_prefetch_link": &link_prefetch.code,
+            "_is_neutral_platform": is_neutral_platform
           })),
         )?;
         source.push_str(&source_with_prefetch);
@@ -306,7 +307,6 @@ installedChunks[chunkId] = 0;
         let link_preload_raw = compilation.runtime_template.render(
           &self.template_id(TemplateId::WithPreloadLink),
           Some(serde_json::json!({
-            "_charset": compilation.options.output.charset,
             "_cross_origin": compilation.options.output.cross_origin_loading.to_string(),
           })),
         )?;
@@ -329,15 +329,19 @@ installedChunks[chunkId] = 0;
           Some(serde_json::json!({
             "_css_matcher": &has_css_matcher.render("chunkId"),
             "_create_preload_link": &link_preload.code,
+            "_is_neutral_platform": is_neutral_platform
           })),
         )?;
         source.push_str(&source_with_preload);
       }
 
       if with_hmr {
-        let source_with_hmr = compilation
-          .runtime_template
-          .render(&self.template_id(TemplateId::WithHmr), None)?;
+        let source_with_hmr = compilation.runtime_template.render(
+          &self.template_id(TemplateId::WithHmr),
+          Some(serde_json::json!({
+            "_is_neutral_platform": is_neutral_platform
+          })),
+        )?;
         source.push_str(&source_with_hmr);
       }
 

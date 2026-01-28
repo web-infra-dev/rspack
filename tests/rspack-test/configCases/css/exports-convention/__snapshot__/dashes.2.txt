@@ -1,0 +1,14 @@
+Object {
+  btn--info_is-disabled_1: _style_module_css_dashes-btn--info_is-disabled_1,
+  btn-info-is-disabled: _style_module_css_dashes-btn-info_is-disabled,
+  btn-info-is-disabled-1: _style_module_css_dashes-btn--info_is-disabled_1,
+  btn-info_is-disabled: _style_module_css_dashes-btn-info_is-disabled,
+  class: _style_module_css_dashes-class,
+  default: _style_module_css_dashes-default,
+  foo: bar,
+  foo-bar: _style_module_css_dashes-foo_bar,
+  foo_bar: _style_module_css_dashes-foo_bar,
+  my-btn-info-is-disabled: value,
+  my-btn-info_is-disabled: value,
+  simple: _style_module_css_dashes-simple,
+}

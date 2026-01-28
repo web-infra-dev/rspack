@@ -6,8 +6,9 @@ use rspack_core::{
   RuntimeModuleStage, RuntimeTemplate, RuntimeVariable, compile_boolean_matcher,
   impl_runtime_module,
 };
+use rspack_plugin_javascript::impl_plugin_for_js_plugin::chunk_has_js;
 
-use super::utils::{chunk_has_js, get_output_dir};
+use super::utils::get_output_dir;
 use crate::{
   LinkPrefetchData, LinkPreloadData, RuntimeModuleChunkWrapper, RuntimePlugin,
   get_chunk_runtime_requirements,
@@ -152,8 +153,11 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
     let with_on_chunk_load = runtime_requirements.contains(RuntimeGlobals::ON_CHUNKS_LOADED);
     let with_hmr = runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS);
     let with_hmr_manifest = runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_MANIFEST);
+
+    let is_neutral_platform = compilation.platform.is_neutral();
+
     let with_prefetch = runtime_requirements.contains(RuntimeGlobals::PREFETCH_CHUNK_HANDLERS)
-      && compilation.options.output.environment.supports_document()
+      && (compilation.options.output.environment.supports_document() || is_neutral_platform)
       && chunk.has_child_by_order(
         compilation,
         &ChunkGroupOrderKey::Prefetch,
@@ -161,7 +165,7 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
         &chunk_has_js,
       );
     let with_preload = runtime_requirements.contains(RuntimeGlobals::PRELOAD_CHUNK_HANDLERS)
-      && compilation.options.output.environment.supports_document()
+      && (compilation.options.output.environment.supports_document() || is_neutral_platform)
       && chunk.has_child_by_order(
         compilation,
         &ChunkGroupOrderKey::Preload,
@@ -258,13 +262,11 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
 
     if !matches!(has_js_matcher, BooleanMatcher::Condition(false)) {
       let js_matcher = has_js_matcher.render("chunkId");
-      let charset = compilation.options.output.charset;
       let cross_origin_loading = &compilation.options.output.cross_origin_loading;
       if with_prefetch {
         let link_prefetch_code = compilation.runtime_template.render(
           &self.template(TemplateId::WithPrefetchLink),
           Some(serde_json::json!({
-            "_charset": charset,
             "_cross_origin": cross_origin_loading.to_string(),
           })),
         )?;
@@ -288,6 +290,7 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
           Some(serde_json::json!({
             "_link_prefetch": &res.code,
             "_js_matcher": &js_matcher,
+            "_is_neutral_platform": is_neutral_platform
           })),
         )?;
 
@@ -297,7 +300,6 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
         let link_preload_code = compilation.runtime_template.render(
           &self.template(TemplateId::WithPreloadLink),
           Some(serde_json::json!({
-            "_charset": charset,
             "_cross_origin": cross_origin_loading.to_string(),
           })),
         )?;
@@ -321,6 +323,7 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
           Some(serde_json::json!({
             "_js_matcher": &js_matcher,
             "_link_preload": &res.code,
+            "_is_neutral_platform": is_neutral_platform
           })),
         )?;
 

@@ -18,10 +18,8 @@ module.exports = {
 								},
 								target: "esnext"
 							},
-							rspackExperiments: {
-								collectTypeScriptInfo: {
-									exportedEnum: true
-								}
+							collectTypeScriptInfo: {
+								exportedEnum: true
 							}
 						}
 					}
@@ -30,9 +28,7 @@ module.exports = {
 		]
 	},
 	optimization: {
-		moduleIds: "named"
+		moduleIds: "named",
+		inlineExports: true
 	},
-	experiments: {
-		inlineEnum: true
-	}
 };

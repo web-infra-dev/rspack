@@ -41,7 +41,6 @@ pub struct OutputOptions {
   pub chunk_loading: ChunkLoading,
   pub chunk_loading_global: String,
   pub chunk_load_timeout: u32,
-  pub charset: bool,
   pub filename: Filename,
   pub chunk_filename: Filename,
   pub cross_origin_loading: CrossOriginLoading,
@@ -169,7 +168,8 @@ impl ChunkLoadingType {
   }
 }
 
-#[derive(Debug, Clone)]
+#[cacheable]
+#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub enum WasmLoading {
   Enable(WasmLoadingType),
   Disable,
@@ -184,10 +184,12 @@ impl From<&str> for WasmLoading {
   }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[cacheable]
+#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub enum WasmLoadingType {
   Fetch,
   AsyncNode,
+  Universal,
 }
 
 impl From<&str> for WasmLoadingType {
@@ -195,7 +197,10 @@ impl From<&str> for WasmLoadingType {
     match value {
       "fetch" => Self::Fetch,
       "async-node" => Self::AsyncNode,
-      _ => unreachable!("invalid wasm loading type: {value}, expect one of [fetch, async-node]",),
+      "universal" => Self::Universal,
+      _ => unreachable!(
+        "invalid wasm loading type: {value}, expect one of [fetch, async-node, universal]",
+      ),
     }
   }
 }
@@ -518,82 +523,86 @@ pub struct LibraryCustomUmdObject {
 
 #[derive(Debug, Default, Copy, Clone)]
 pub struct Environment {
-  pub r#const: Option<bool>,
-  pub method_shorthand: Option<bool>,
-  pub arrow_function: Option<bool>,
-  pub node_prefix_for_core_modules: Option<bool>,
-  pub async_function: Option<bool>,
-  pub big_int_literal: Option<bool>,
-  pub destructuring: Option<bool>,
-  pub document: Option<bool>,
-  pub dynamic_import: Option<bool>,
-  pub for_of: Option<bool>,
-  pub global_this: Option<bool>,
-  pub module: Option<bool>,
-  pub optional_chaining: Option<bool>,
-  pub template_literal: Option<bool>,
-  pub dynamic_import_in_worker: Option<bool>,
-  pub import_meta_dirname_and_filename: Option<bool>,
+  pub r#const: bool,
+  pub method_shorthand: bool,
+  pub arrow_function: bool,
+  pub node_prefix_for_core_modules: bool,
+  pub async_function: bool,
+  pub big_int_literal: bool,
+  pub destructuring: bool,
+  pub document: bool,
+  pub dynamic_import: bool,
+  pub for_of: bool,
+  pub global_this: bool,
+  pub module: bool,
+  pub optional_chaining: bool,
+  pub template_literal: bool,
+  pub dynamic_import_in_worker: bool,
+  pub import_meta_dirname_and_filename: bool,
 }
 
 impl Environment {
   pub fn supports_const(&self) -> bool {
-    self.r#const.unwrap_or_default()
+    self.r#const
   }
 
   pub fn supports_method_shorthand(&self) -> bool {
-    self.method_shorthand.unwrap_or_default()
+    self.method_shorthand
   }
 
   pub fn supports_arrow_function(&self) -> bool {
-    self.arrow_function.unwrap_or_default()
+    self.arrow_function
   }
 
   pub fn supports_node_prefix_for_core_modules(&self) -> bool {
-    self.node_prefix_for_core_modules.unwrap_or_default()
+    self.node_prefix_for_core_modules
+  }
+
+  pub fn supports_import_meta_dirname_and_filename(&self) -> bool {
+    self.import_meta_dirname_and_filename
   }
 
   pub fn supports_async_function(&self) -> bool {
-    self.async_function.unwrap_or_default()
+    self.async_function
   }
 
   pub fn supports_big_int_literal(&self) -> bool {
-    self.big_int_literal.unwrap_or_default()
+    self.big_int_literal
   }
 
   pub fn supports_destructuring(&self) -> bool {
-    self.destructuring.unwrap_or_default()
+    self.destructuring
   }
 
   pub fn supports_document(&self) -> bool {
-    self.document.unwrap_or_default()
+    self.document
   }
 
   pub fn supports_dynamic_import(&self) -> bool {
-    self.dynamic_import.unwrap_or_default()
+    self.dynamic_import
   }
 
   pub fn supports_dynamic_import_in_worker(&self) -> bool {
-    self.dynamic_import_in_worker.unwrap_or_default()
+    self.dynamic_import_in_worker
   }
 
   pub fn supports_for_of(&self) -> bool {
-    self.for_of.unwrap_or_default()
+    self.for_of
   }
 
   pub fn supports_global_this(&self) -> bool {
-    self.global_this.unwrap_or_default()
+    self.global_this
   }
 
   pub fn supports_module(&self) -> bool {
-    self.module.unwrap_or_default()
+    self.module
   }
 
   pub fn supports_optional_chaining(&self) -> bool {
-    self.optional_chaining.unwrap_or_default()
+    self.optional_chaining
   }
 
   pub fn supports_template_literal(&self) -> bool {
-    self.template_literal.unwrap_or_default()
+    self.template_literal
   }
 }

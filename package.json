@@ -1,6 +1,6 @@
 {
   "name": "monorepo",
-  "version": "1.6.7",
+  "version": "2.0.0-alpha.1",
   "license": "MIT",
   "description": "The fast Rust-based web bundler with webpack-compatible API",
   "private": true,
@@ -58,38 +58,39 @@
     "url": "https://github.com/web-infra-dev/rspack"
   },
   "engines": {
-    "pnpm": "10.24.0"
+    "pnpm": "10.26.2"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.3.8",
-    "@microsoft/api-extractor": "7.55.1",
-    "@microsoft/api-extractor-model": "7.32.1",
-    "@rslint/core": "0.1.13",
+    "@biomejs/biome": "^2.3.13",
+    "@microsoft/api-extractor": "7.55.2",
+    "@microsoft/api-extractor-model": "7.32.2",
+    "@rslint/core": "0.2.0",
     "@rspack/cli": "workspace:*",
+    "@rstest/core": "^0.8.1",
     "@taplo/cli": "^0.7.0",
     "@types/is-ci": "^3.0.4",
-    "@types/node": "^20.19.25",
+    "@types/node": "^20.19.30",
     "check-dependency-version-consistency": "^5.0.1",
-    "commander": "13.1.0",
+    "commander": "14.0.2",
     "cross-env": "^10.1.0",
     "husky": "^9.1.7",
     "is-ci": "4.1.0",
-    "@rstest/core": "^0.7.1",
     "lint-staged": "^16.2.7",
-    "prettier": "3.6.2",
+    "prettier": "3.7.4",
     "prettier-2": "npm:prettier@2.8.8",
     "rimraf": "^5.0.10",
     "typescript": "^5.9.3",
     "webpack": "5.102.1",
     "zx": "8.8.5"
   },
-  "packageManager": "pnpm@10.24.0",
+  "packageManager": "pnpm@10.26.2",
   "pnpm": {
     "patchedDependencies": {
       "webpack-sources@3.3.3": "patches/webpack-sources@3.3.3.patch"
     },
     "onlyBuiltDependencies": [
       "@biomejs/biome",
+      "@parcel/watcher",
       "@swc/core",
       "core-js",
       "es5-ext",

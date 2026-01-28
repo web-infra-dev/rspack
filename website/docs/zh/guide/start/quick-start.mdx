@@ -25,11 +25,8 @@ Rspack 支持使用 [Node.js](https://nodejs.org/)、[Deno](https://deno.com/) �
 
 :::tip 版本要求
 
-Rspack 对于 Node.js 的版本要求如下：
-
-- `@rspack/cli >= v1.0.0` 要求 Node.js 18.12.0 或更高版本。
-- `@rspack/core >= v1.5.0` 要求 Node.js 18.12.0 或更高版本。
-- `@rspack/core < v1.5.0` 要求 Node.js 16.0.0 或更高版本。
+- Rspack v2 要求 Node.js 20.19.0 或更高版本。
+- Rspack v1 要求 Node.js 18.12.0 或更高版本。
 
 :::
 
@@ -74,11 +71,11 @@ npx -y create-rsbuild -d my-app -t react
 
 我们提供了基于 Rsbuild 的在线示例，通过示例项目，你可以直观感受 Rspack 的构建性能和 Rsbuild 的开发体验：
 
-- [Rsbuild CodeSandbox 示例](https://codesandbox.io/p/github/rspack-contrib/rsbuild-codesandbox-example)
+- [Rsbuild CodeSandbox 示例](https://codesandbox.io/p/github/rstackjs/rsbuild-codesandbox-example)
 
 同时我们也提供了基于 Wasm 和 WebContainers 的 StackBlitz 在线示例：
 
-- [Rsbuild StackBlitz 示例](https://stackblitz.com/~/github.com/rspack-contrib/rsbuild-stackblitz-example)
+- [Rsbuild StackBlitz 示例](https://stackblitz.com/~/github.com/rstackjs/rsbuild-stackblitz-example)
 
 ## 手动安装
 
@@ -141,7 +138,7 @@ Rspack canary 版本的 scope 会带有 `-canary` 后缀。例如 `@rspack/core`
 }
 ```
 
-此外，Rspack 社区提供了 [install-rspack](https://github.com/rspack-contrib/install-rspack) 工具来方便地安装 canary 版本：
+此外，Rspack 社区提供了 [install-rspack](https://github.com/rstackjs/install-rspack) 工具来方便地安装 canary 版本：
 
 ```shell
 npx install-rspack --version latest # 安装当前的 latest 版本

@@ -1,175 +1,177 @@
-import path from "node:path";
-import type { Compiler } from "@rspack/core";
-import fs from "fs-extra";
-import { rimrafSync } from "rimraf";
+import path from 'node:path';
+import type { Compiler } from '@rspack/core';
+import fs from 'fs-extra';
+import { rimrafSync } from 'rimraf';
 
 async function loopFile(
-	dir: string,
-	callback: (filePath: string, content: string) => void
+  dir: string,
+  callback: (filePath: string, content: string) => void,
 ) {
-	const children = await fs.readdir(dir);
-	await Promise.all(
-		children.map(async filename => {
-			const filePath = path.join(dir, filename);
-			const stat = await fs.stat(filePath);
-			if (stat.isFile()) {
-				const content = await fs.readFile(filePath);
-				callback(filePath, content.toString());
-			} else if (stat.isDirectory()) {
-				return loopFile(filePath, callback);
-			}
-		})
-	);
+  const children = await fs.readdir(dir);
+  await Promise.all(
+    children.map(async (filename) => {
+      const filePath = path.join(dir, filename);
+      const stat = await fs.stat(filePath);
+      if (stat.isFile()) {
+        const content = await fs.readFile(filePath);
+        callback(filePath, content.toString());
+      } else if (stat.isDirectory()) {
+        return loopFile(filePath, callback);
+      }
+    }),
+  );
 }
 
-const PLUGIN_NAME = "HotUpdatePlugin";
+const PLUGIN_NAME = 'HotUpdatePlugin';
 const MAX_UPDATE_INDEX = 100;
 
 export class HotUpdatePlugin {
-	private initialized = false;
-	private updateIndex = 0;
-	private files: Record<string, string[]> = {};
-	constructor(
-		private projectDir: string,
-		private tempDir: string
-	) {}
+  private initialized = false;
+  private updateIndex = 0;
+  private files: Record<string, string[]> = {};
+  constructor(
+    private projectDir: string,
+    private tempDir: string,
+  ) {}
 
-	private getContent(filePath: string, index: number) {
-		const contents = this.files[filePath] || [];
-		let content =
-			contents[index] === undefined ? contents.at(-1) || "" : contents[index];
-		let command = "";
-		const matchResult = content.match(/^<(.+?)>([\w\W]*)$/);
-		if (matchResult) {
-			command = matchResult[1];
-			content = matchResult[2];
-		}
-		return {
-			content,
-			command
-		};
-	}
-	private async updateFiles() {
-		await Promise.all(
-			this.getModifiedFiles().map(async filePath => {
-				const { content, command } = this.getContent(
-					filePath,
-					this.updateIndex
-				);
-				// match command
-				if (command === "delete") {
-					await fs.remove(filePath);
-					return;
-				}
-				if (command === "force_write") {
-					await fs.writeFile(filePath, content);
-					return;
-				}
-				// default
-				const { content: oldContent } = this.getContent(
-					filePath,
-					this.updateIndex - 1
-				);
-				if (this.updateIndex !== 0 && content === oldContent) {
-					return;
-				}
-				await fs.writeFile(filePath, content);
-			})
-		);
-	}
+  private getContent(filePath: string, index: number) {
+    const contents = this.files[filePath] || [];
+    let content =
+      contents[index] === undefined ? contents.at(-1) || '' : contents[index];
+    let command = '';
+    const matchResult = content.match(/^<(.+?)>([\w\W]*)$/);
+    if (matchResult) {
+      command = matchResult[1];
+      content = matchResult[2];
+    }
+    return {
+      content,
+      command,
+    };
+  }
+  private async updateFiles() {
+    await Promise.all(
+      this.getModifiedFiles().map(async (filePath) => {
+        const { content, command } = this.getContent(
+          filePath,
+          this.updateIndex,
+        );
+        // match command
+        if (command === 'delete') {
+          await fs.remove(filePath);
+          return;
+        }
+        if (command === 'force_write') {
+          await fs.writeFile(filePath, content);
+          return;
+        }
+        // default
+        const { content: oldContent } = this.getContent(
+          filePath,
+          this.updateIndex - 1,
+        );
+        if (this.updateIndex !== 0 && content === oldContent) {
+          return;
+        }
+        await fs.writeFile(filePath, content);
+      }),
+    );
+  }
 
-	async initialize() {
-		if (this.initialized) {
-			return;
-		}
-		this.initialized = true;
-		rimrafSync(this.tempDir);
-		fs.copySync(this.projectDir, this.tempDir);
+  async initialize() {
+    if (this.initialized) {
+      return;
+    }
+    this.initialized = true;
+    rimrafSync(this.tempDir);
+    fs.copySync(this.projectDir, this.tempDir);
 
-		await loopFile(this.tempDir, (filePath, content) => {
-			const contents = content.split(/---+\r?\n/g);
-			if (contents.length > 1) {
-				this.files[filePath] = contents;
-			}
-		});
-		await this.updateFiles();
-	}
+    await loopFile(this.tempDir, (filePath, content) => {
+      const contents = content.split(/---+\r?\n/g);
+      if (contents.length > 1) {
+        this.files[filePath] = contents;
+      }
+    });
+    await this.updateFiles();
+  }
 
-	getModifiedFiles() {
-		return Object.keys(this.files);
-	}
+  getModifiedFiles() {
+    return Object.keys(this.files);
+  }
 
-	getUpdateIndex() {
-		return this.updateIndex;
-	}
-	getTotalUpdates() {
-		return Object.values(this.files).reduce((max, item) => {
-			return Math.max(max, item.length);
-		}, 1);
-	}
-	async goNext() {
-		if (this.updateIndex > MAX_UPDATE_INDEX) {
-			throw new Error("NEXT_* has been called more than the maximum times");
-		}
-		this.updateIndex++;
-		await this.updateFiles();
-	}
-	async moveTempDir() {
-		// generate next temp dir path.
-		const nextTempDir =
-			this.tempDir.replace(/(___[0-9]+)?[/\\]*$/, "") +
-			"___" +
-			this.updateIndex;
+  getUpdateIndex() {
+    return this.updateIndex;
+  }
+  getTotalUpdates() {
+    return Object.values(this.files).reduce((max, item) => {
+      return Math.max(max, item.length);
+    }, 1);
+  }
+  async goNext() {
+    if (this.updateIndex > MAX_UPDATE_INDEX) {
+      throw new Error('NEXT_* has been called more than the maximum times');
+    }
+    this.updateIndex++;
+    await this.updateFiles();
+  }
+  async moveTempDir() {
+    // generate next temp dir path.
+    const nextTempDir =
+      this.tempDir.replace(/(___[0-9]+)?[/\\]*$/, '') +
+      '___' +
+      this.updateIndex;
 
-		// update this.files.
-		for (const key of Object.keys(this.files)) {
-			const nextKey = key.replace(this.tempDir, nextTempDir);
-			this.files[nextKey] = this.files[key];
-			delete this.files[key];
-		}
+    // update this.files.
+    for (const key of Object.keys(this.files)) {
+      const nextKey = key.replace(this.tempDir, nextTempDir);
+      this.files[nextKey] = this.files[key];
+      delete this.files[key];
+    }
 
-		// move files.
-		rimrafSync(nextTempDir);
-		fs.renameSync(this.tempDir, nextTempDir);
-		this.tempDir = nextTempDir;
+    // move files.
+    rimrafSync(nextTempDir);
+    fs.renameSync(this.tempDir, nextTempDir);
+    this.tempDir = nextTempDir;
 
-		return this.tempDir;
-	}
+    return this.tempDir;
+  }
 
-	apply(compiler: Compiler) {
-		const RuntimeGlobals = compiler.rspack.RuntimeGlobals;
-		const options = compiler.options;
-		options.context = this.tempDir;
-		options.module.rules ??= [];
-		options.module.rules.push({
-			test: /\.(js|css|json)/,
-			use: [
-				{
-					loader: path.resolve(__dirname, "./loader.js")
-				}
-			]
-		});
-		let isRebuild = false;
-		compiler.hooks.beforeRun.tap(PLUGIN_NAME, () => {
-			compiler.modifiedFiles = new Set(
-				isRebuild ? this.getModifiedFiles() : []
-			);
-			isRebuild = true;
-		});
+  apply(compiler: Compiler) {
+    const RuntimeGlobals = compiler.rspack.RuntimeGlobals;
+    const options = compiler.options;
+    options.context = this.tempDir;
+    options.module.rules ??= [];
+    options.module.rules.push({
+      test: /\.(js|css|json)/,
+      use: [
+        {
+          loader: path.resolve(__dirname, './loader.js'),
+        },
+      ],
+    });
+    let isRebuild = false;
+    compiler.hooks.beforeRun.tap(PLUGIN_NAME, () => {
+      compiler.modifiedFiles = new Set(
+        isRebuild ? this.getModifiedFiles() : [],
+      );
+      isRebuild = true;
+    });
 
-		compiler.hooks.compilation.tap(PLUGIN_NAME, compilation => {
-			compilation.hooks.additionalTreeRuntimeRequirements.tap(
-				PLUGIN_NAME,
-				(_chunk: any, set: any) => {
-					set.add(compiler.rspack.RuntimeGlobals.moduleCache);
-				}
-			);
-			compilation.hooks.runtimeModule.tap(
-				PLUGIN_NAME,
-				(module: any, _set: any) => {
-					if (module.constructorName === "DefinePropertyGettersRuntimeModule") {
-						module.source.source = Buffer.from(
-							`
+    compiler.hooks.compilation.tap(PLUGIN_NAME, (compilation) => {
+      compilation.hooks.additionalTreeRuntimeRequirements.tap(
+        PLUGIN_NAME,
+        (_chunk: any, set: any) => {
+          set.add(compiler.rspack.RuntimeGlobals.moduleCache);
+        },
+      );
+      compilation.hooks.runtimeModule.tap(
+        PLUGIN_NAME,
+        (module: any, _set: any) => {
+          if (
+            module.constructor.name === 'DefinePropertyGettersRuntimeModule'
+          ) {
+            module.source.source = Buffer.from(
+              `
 										${RuntimeGlobals.definePropertyGetters} = function (exports, definition) {
 												for (var key in definition) {
 														if (${RuntimeGlobals.hasOwnProperty}(definition, key) && !${RuntimeGlobals.hasOwnProperty}(exports, key)) {
@@ -178,11 +180,11 @@ export class HotUpdatePlugin {
 												}
 										};
 										`,
-							"utf-8"
-						);
-					}
-				}
-			);
-		});
-	}
+              'utf-8',
+            );
+          }
+        },
+      );
+    });
+  }
 }

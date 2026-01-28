@@ -144,14 +144,10 @@ impl DependencyTemplate for CommonJsSelfReferenceDependencyTemplate {
 
     let used = if dep.names.is_empty() {
       let used_name = if dep.names.is_empty() {
-        let exports_info = ExportsInfoGetter::prefetch_used_info_without_name(
-          &module_graph.get_exports_info(&module.identifier()),
-          &module_graph,
-          *runtime,
-          false,
-        );
+        let exports_info_used =
+          module_graph.get_prefetched_exports_info_used(&module.identifier(), *runtime);
         ExportsInfoGetter::get_used_name(
-          GetUsedNameParam::WithoutNames(&exports_info),
+          GetUsedNameParam::WithoutNames(&exports_info_used),
           *runtime,
           &dep.names,
         )
@@ -202,7 +198,7 @@ impl DependencyTemplate for CommonJsSelfReferenceDependencyTemplate {
         UsedName::Normal(used) => format!("{}{}", base, property_access(used, 0)),
         // Export a inlinable const from cjs is not possible for now, so self reference a inlinable
         // const is also not possible for now, but we compat it here
-        UsedName::Inlined(inlined) => inlined.render(),
+        UsedName::Inlined(inlined) => inlined.render(""),
       },
       None,
     )

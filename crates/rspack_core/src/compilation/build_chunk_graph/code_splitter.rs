@@ -364,9 +364,7 @@ impl CodeSplitter {
         let module_graph = compilation.get_module_graph();
         let dep = module_graph.dependency_by_id(dep_id);
         let mut request = None;
-        if let Some(dep) = dep
-          && let Some(d) = dep.as_any().downcast_ref::<EntryDependency>()
-        {
+        if let Some(d) = dep.as_any().downcast_ref::<EntryDependency>() {
           request = Some(d.request().to_string());
         }
         request
@@ -400,13 +398,12 @@ impl CodeSplitter {
 
       if filename.has_hash_placeholder()
         && let Some(diagnostic) = compilation.incremental.disable_passes(
-          IncrementalPasses::CHUNKS_RENDER,
+          IncrementalPasses::CHUNK_ASSET,
           "Chunk filename that dependent on full hash",
           "chunk filename that dependent on full hash is not supported in incremental compilation",
         )
       {
         incremental_diagnostic = diagnostic;
-        compilation.chunk_render_artifact.clear();
       }
     }
 
@@ -707,9 +704,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     // Using this defer insertion strategies to workaround rustc borrow rules
     for assign_depths_map in assign_depths_maps {
       for (k, v) in assign_depths_map {
-        compilation
-          .get_seal_module_graph_mut()
-          .set_depth_if_lower(&k, v);
+        compilation.get_module_graph_mut().set_depth_if_lower(&k, v);
       }
     }
 
@@ -1165,10 +1160,8 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     }
 
     {
-      let mut module_graph = compilation.get_seal_module_graph_mut();
-      let module = module_graph
-        .module_graph_module_by_identifier_mut(&item.module)
-        .unwrap_or_else(|| panic!("No module found {:?}", &item.module));
+      let module_graph = compilation.get_module_graph_mut();
+      let module = module_graph.module_graph_module_by_identifier_mut(&item.module);
 
       if module.pre_order_index.is_none() {
         module.pre_order_index = Some(self.next_free_module_pre_order_index);
@@ -1210,10 +1203,8 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       chunk_group.next_post_order_index += 1;
     }
 
-    let mut module_graph = compilation.get_seal_module_graph_mut();
-    let module = module_graph
-      .module_graph_module_by_identifier_mut(&item.module)
-      .unwrap_or_else(|| panic!("no module found: {:?}", &item.module));
+    let module_graph = compilation.get_module_graph_mut();
+    let module = module_graph.module_graph_module_by_identifier_mut(&item.module);
 
     if module.post_order_index.is_none() {
       module.post_order_index = Some(self.next_free_module_post_order_index);
@@ -1684,7 +1675,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     }
 
     extract_block_modules(
-      module.get_root_block(&compilation.get_module_graph()),
+      module.get_root_block(compilation.get_module_graph()),
       runtime,
       compilation,
       &self.prepared_blocks_map,
@@ -1818,7 +1809,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
           let active_state = get_active_state_of_connections(
             connections,
             Some(&cgi.runtime),
-            &compilation.get_module_graph(),
+            compilation.get_module_graph(),
             &compilation.module_graph_cache_artifact,
           );
           if active_state.is_false() {
@@ -2049,13 +2040,13 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
 
         let mut deps = mg
           .get_outgoing_deps_in_order(module)
-          .filter_map(|dep_id| mg.dependency_by_id(dep_id))
+          .map(|dep_id| mg.dependency_by_id(dep_id))
           .filter(|dep| {
             dep.as_module_dependency().is_some() || dep.as_context_dependency().is_some()
           })
           .filter(|dep| !matches!(dep.as_module_dependency().map(|d| d.weak()), Some(true)))
           .collect::<Vec<_>>();
-        deps.sort_by_key(|a| a.source_order());
+        deps.sort_by_key(|a| (a.source_order().is_none(), a.source_order()));
 
         for dep in deps {
           let dep_id = dep.id();
@@ -2256,7 +2247,7 @@ fn extract_block_modules(
     let active_state = get_active_state_of_connections(
       connections,
       runtime.as_deref(),
-      &compilation.get_module_graph(),
+      compilation.get_module_graph(),
       &compilation.module_graph_cache_artifact,
     );
     modules.push((*module_identifier, active_state, connections.clone()));

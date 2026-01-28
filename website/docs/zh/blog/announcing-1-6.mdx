@@ -62,13 +62,13 @@ import('./module').then(({ value }) => {
 });
 
 // Case 4
-import('./module').then(mod => {
+import('./module').then((mod) => {
   const { value } = mod;
   console.log(value);
 });
 
 // Case 5
-import('./module').then(mod => {
+import('./module').then((mod) => {
   console.log(mod.value);
 });
 ```
@@ -198,7 +198,7 @@ export default {
 
 ### 提取 source map
 
-Rspack 现在支持通过 [Rule.extractSourceMap](/config/module#ruleextractsourcemap) 从文件中提取现有的源码映射数据（从它们的 `//# sourceMappingURL` 注释中）。这个功能对于保留第三方库提供的源码映射特别有用，确保即使在这些库被打包或转换时，调试信息仍然保持准确。
+Rspack 现在支持通过 [rules[].extractSourceMap](/config/module-rules#rulesextractsourcemap) 从文件中提取现有的源码映射数据（从它们的 `//# sourceMappingURL` 注释中）。这个功能对于保留第三方库提供的源码映射特别有用，确保即使在这些库被打包或转换时，调试信息仍然保持准确。
 
 这个功能可以作为 [source-map-loader](https://github.com/webpack-contrib/source-map-loader) 的内置替代方案，提供了更好的性能和与构建过程更紧密的集成。
 
@@ -223,7 +223,7 @@ Rspack 1.6 带来了多项性能优化，相较于 Rspack 1.5.0，性能提升�
 - 构建 10000 个 React 组件的速度提升 **11%**
 - 构建多个 UI 组件库的速度提升 **31%**（得益于默认启用的 barrel 文件优化）
 
-> 数据来源：[Rspack benchmark](https://github.com/rspack-contrib/build-tools-performance)
+> 数据来源：[Rspack benchmark](https://github.com/rstackjs/build-tools-performance)
 
 ## Rstack 进展
 
@@ -377,7 +377,7 @@ Rsdoctor 现支持在 Brief 模式下导出 [单一 JSON 报告文件](https://r
 
 ### next-rspack
 
-在 Next.js 16 中，next-rspack 已接入 Rspack 的 [定制 Rust binding 方案](https://github.com/rspack-contrib/rspack-binding-template)，带来了可观的性能提升：
+在 Next.js 16 中，next-rspack 已接入 Rspack 的 [定制 Rust binding 方案](https://github.com/rstackjs/rspack-binding-template)，带来了可观的性能提升：
 
 - build 性能提升 24%
 - dev 性能提升 10%

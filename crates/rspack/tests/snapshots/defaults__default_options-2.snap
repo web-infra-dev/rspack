@@ -4,6 +4,7 @@ expression: builder_context
 ---
 BuilderContext {
     plugins: [
+        AsyncWebAssemblyModulesPlugin,
         ArrayPushCallbackChunkFormatPlugin,
         EnableChunkLoadingPlugin(
             Jsonp,
@@ -29,6 +30,7 @@ BuilderContext {
                     ),
                     runtime: None,
                     chunk_loading: None,
+                    wasm_loading: None,
                     async_chunks: None,
                     public_path: None,
                     base_uri: None,
@@ -51,4 +53,24 @@ BuilderContext {
         EnsureChunkConditionsPlugin,
         WorkerPlugin,
     ],
+    platform: CompilerPlatform {
+        web: Some(
+            true,
+        ),
+        browser: Some(
+            true,
+        ),
+        webworker: Some(
+            false,
+        ),
+        node: Some(
+            false,
+        ),
+        nwjs: Some(
+            false,
+        ),
+        electron: Some(
+            false,
+        ),
+    },
 }

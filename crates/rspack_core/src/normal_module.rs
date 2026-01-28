@@ -301,24 +301,12 @@ impl NormalModule {
     &*self.inner().parser_and_generator
   }
 
-  pub fn parser_and_generator_mut(&mut self) -> &mut Box<dyn ParserAndGenerator> {
-    &mut self.inner_mut().parser_and_generator
-  }
-
   pub fn code_generation_dependencies(&self) -> &Option<Vec<BoxModuleDependency>> {
     &self.inner().code_generation_dependencies
   }
 
-  pub fn code_generation_dependencies_mut(&mut self) -> &mut Option<Vec<BoxModuleDependency>> {
-    &mut self.inner_mut().code_generation_dependencies
-  }
-
   pub fn presentational_dependencies(&self) -> &Option<Vec<BoxDependencyTemplate>> {
     &self.inner().presentational_dependencies
-  }
-
-  pub fn presentational_dependencies_mut(&mut self) -> &mut Option<Vec<BoxDependencyTemplate>> {
-    &mut self.inner_mut().presentational_dependencies
   }
 
   #[tracing::instrument(
@@ -684,7 +672,7 @@ impl Module for NormalModule {
       // If the module build failed and the module is able to emit JavaScript source,
       // we should emit an error message to the runtime, otherwise we do nothing.
       if self
-        .source_types(&module_graph)
+        .source_types(module_graph)
         .contains(&SourceType::JavaScript)
       {
         let error = error.render_report(compilation.options.stats.colors)?;
@@ -718,7 +706,7 @@ impl Module for NormalModule {
     }
 
     let module_graph = compilation.get_module_graph();
-    for source_type in self.source_types(&module_graph) {
+    for source_type in self.source_types(module_graph) {
       let generation_result = inner
         .parser_and_generator
         .generate(
@@ -762,7 +750,10 @@ impl Module for NormalModule {
 
   fn name_for_condition(&self) -> Option<Box<str>> {
     // Align with https://github.com/webpack/webpack/blob/8241da7f1e75c5581ba535d127fa66aeb9eb2ac8/lib/NormalModule.js#L375
-    let resource = self.inner().resource_data.resource();
+    let resource = self
+      .match_resource()
+      .unwrap_or_else(|| &self.inner().resource_data)
+      .resource();
     let idx = resource.find('?');
     if let Some(idx) = idx {
       Some(resource[..idx].into())
@@ -838,21 +829,20 @@ impl Module for NormalModule {
         module_chain.insert(self.identifier());
         let mut current = ConnectionState::Active(false);
         for dependency_id in self.get_dependencies().iter() {
-          if let Some(dependency) = module_graph.dependency_by_id(dependency_id) {
-            let state = dependency.get_module_evaluation_side_effects_state(
-              module_graph,
-              module_graph_cache,
-              module_chain,
-              connection_state_cache,
-            );
-            if matches!(state, ConnectionState::Active(true)) {
-              // TODO add optimization bailout
-              module_chain.remove(&self.identifier());
-              connection_state_cache.insert(self.inner().id, ConnectionState::Active(true));
-              return ConnectionState::Active(true);
-            } else if !matches!(state, ConnectionState::CircularConnection) {
-              current = current + state;
-            }
+          let dependency = module_graph.dependency_by_id(dependency_id);
+          let state = dependency.get_module_evaluation_side_effects_state(
+            module_graph,
+            module_graph_cache,
+            module_chain,
+            connection_state_cache,
+          );
+          if matches!(state, ConnectionState::Active(true)) {
+            // TODO add optimization bailout
+            module_chain.remove(&self.identifier());
+            connection_state_cache.insert(self.inner().id, ConnectionState::Active(true));
+            return ConnectionState::Active(true);
+          } else if !matches!(state, ConnectionState::CircularConnection) {
+            current = current + state;
           }
         }
         module_chain.remove(&self.identifier());

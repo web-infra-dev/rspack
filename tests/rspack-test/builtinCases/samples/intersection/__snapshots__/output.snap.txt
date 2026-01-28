@@ -1,5 +1,5 @@
 ```js title=a_js-_62a90.js
-(self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["a_js-_62a90"], {
+(self["rspackChunk"] = self["rspackChunk"] || []).push([["a_js-_62a90"], {
 "./a.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
@@ -26,7 +26,7 @@ console.log("i-1");
 ```
 
 ```js title=a_js-_62a91.js
-(self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["a_js-_62a91"], {
+(self["rspackChunk"] = self["rspackChunk"] || []).push([["a_js-_62a91"], {
 "./a.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
@@ -53,7 +53,7 @@ console.log("i-2");
 ```
 
 ```js title=index.js
-(self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["index"], {
+(self["rspackChunk"] = self["rspackChunk"] || []).push([["index"], {
 "./i-1.js"() {
 console.log("i-1");
 
@@ -87,7 +87,7 @@ var __webpack_exports__ = (__webpack_exec__("./index.js"));
 ```
 
 ```js title=index2.js
-(self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["index2"], {
+(self["rspackChunk"] = self["rspackChunk"] || []).push([["index2"], {
 "./i-2.js"() {
 console.log("i-2");
 

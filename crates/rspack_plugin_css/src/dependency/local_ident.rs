@@ -58,7 +58,7 @@ impl Dependency for CssLocalIdentDependency {
           .map(|name| {
             ExportNameOrSpec::ExportSpec(ExportSpec {
               name: name.as_str().into(),
-              can_mangle: Some(false),
+              can_mangle: Some(true),
               ..Default::default()
             })
           })

@@ -40,6 +40,23 @@ impl ExportInfoData {
     }
   }
 
+  pub fn is_used(&self, runtime: Option<&RuntimeSpec>) -> bool {
+    if !self.has_use_in_runtime_info() {
+      return true;
+    }
+    if let Some(global_used) = self.global_used() {
+      return global_used != UsageState::Unused;
+    }
+    let Some(used_in_runtime) = self.used_in_runtime() else {
+      return false;
+    };
+    let Some(runtime) = runtime else {
+      return !used_in_runtime.is_empty();
+    };
+
+    runtime.iter().any(|r| used_in_runtime.contains_key(r))
+  }
+
   pub fn get_used(&self, runtime: Option<&RuntimeSpec>) -> UsageState {
     if !self.has_use_in_runtime_info() {
       return UsageState::NoInfo;
@@ -89,7 +106,7 @@ impl ExportInfoData {
   pub fn get_rename_info(&self) -> Cow<'_, str> {
     match (self.used_name(), self.name()) {
       (Some(UsedNameItem::Inlined(inlined)), _) => {
-        return format!("inlined to {}", inlined.render()).into();
+        return format!("inlined to {}", inlined.render("")).into();
       }
       (Some(UsedNameItem::Str(used)), Some(name)) if used != name => {
         return format!("renamed to {used}").into();

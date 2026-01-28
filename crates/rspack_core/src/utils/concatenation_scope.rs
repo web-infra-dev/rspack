@@ -25,11 +25,6 @@ static MODULE_REFERENCE_REGEXP: LazyLock<Regex> = LazyLock::new(|| {
   .expect("should initialized regex")
 });
 
-static DYN_MODULE_REFERENCE_REGEXP: LazyLock<Regex> = LazyLock::new(|| {
-  Regex::new(r"^__rspack_module_dynamic_ref(\d+)_(true|false)_([\da-f]+|ns)$")
-    .expect("should initialized regex")
-});
-
 #[derive(Default, Debug, Clone)]
 pub struct ModuleReferenceOptions {
   pub ids: Vec<Atom>,
@@ -86,6 +81,27 @@ impl ConcatenationScope {
     raw_export_map.insert(export_name, symbol);
   }
 
+  pub fn register_namespace_import(
+    &mut self,
+    import_source: String,
+    attributes: Option<String>,
+    import_symbol: Atom,
+  ) -> &Atom {
+    let raw_import_map = self.current_module.import_map.get_or_insert_default();
+    let entry = raw_import_map
+      .entry((import_source, attributes))
+      .or_default();
+
+    if entry.namespace.is_none() {
+      entry.namespace = Some(import_symbol)
+    }
+
+    entry
+      .namespace
+      .as_ref()
+      .expect("should have namespace symbol")
+  }
+
   pub fn register_import(
     &mut self,
     import_source: String,
@@ -101,7 +117,7 @@ impl ConcatenationScope {
       return;
     };
 
-    entry.insert(import_symbol);
+    entry.specifiers.insert(import_symbol);
   }
 
   pub fn register_namespace_export(&mut self, symbol: &str) {
@@ -153,10 +169,6 @@ impl ConcatenationScope {
     module_ref
   }
 
-  pub fn is_module_reference(name: &str) -> bool {
-    MODULE_REFERENCE_REGEXP.is_match(name)
-  }
-
   pub fn match_module_reference(name: &str) -> Option<ModuleReferenceOptions> {
     if let Some(captures) = MODULE_REFERENCE_REGEXP.captures(name) {
       let index: usize = captures[1].parse().expect("");
@@ -205,32 +217,6 @@ impl ConcatenationScope {
     entry.insert((ref_string.clone(), id.clone()));
 
     ref_string
-  }
-
-  pub fn is_dynamic_module_reference(name: &str) -> bool {
-    DYN_MODULE_REFERENCE_REGEXP.is_match(name)
-  }
-
-  pub fn match_dynamic_module_reference(name: &str) -> Option<(usize, bool, Atom)> {
-    if let Some(captures) = DYN_MODULE_REFERENCE_REGEXP.captures(name) {
-      let index: usize = captures[1].parse().expect("parse index");
-      let already_in_chunk: bool = captures[2].parse().expect("parse in_chunk");
-      let id: Atom = Atom::from(
-        String::from_utf8(hex::decode(&captures[3]).expect("should parse success"))
-          .expect("should be utf8 string"),
-      );
-      Some((
-        index,
-        already_in_chunk,
-        if id == "default" {
-          DEFAULT_EXPORT.into()
-        } else {
-          id
-        },
-      ))
-    } else {
-      None
-    }
   }
 
   pub fn is_module_concatenated(&self, module: &ModuleIdentifier) -> bool {

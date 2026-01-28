@@ -17,7 +17,7 @@ In minor releases, Rspack may change the APIs of experimental features. If you'r
 ## experiments.asyncWebAssembly
 
 - **Type:** `boolean`
-- **Default:** `false`
+- **Default:** `true`
 
 Supports the new WebAssembly according to the [updated specification](https://github.com/WebAssembly/esm-integration), making WebAssembly modules async.
 
@@ -28,8 +28,6 @@ export default {
   },
 };
 ```
-
-This is enabled by default when [experiments.futureDefaults](#experimentsfuturedefaults) is set to `true`.
 
 ## experiments.outputModule
 
@@ -48,8 +46,14 @@ export default {
 
 ## experiments.css
 
+<ApiMeta stability={Stability.Deprecated} />
+
 - **Type:** `boolean`
 - **Default:** `false`
+
+:::warning Deprecated
+This option is deprecated since Rspack 2.0. Users now need to manually add CSS rules to enable CSS support. In a future version, Rspack will automatically add CSS-related default rules.
+:::
 
 When enabled, Rspack enables native CSS support and CSS-related parser and generator options.
 
@@ -60,7 +64,24 @@ When enabled, Rspack enables native CSS support and CSS-related parser and gener
 - [`module.generator.css`](/config/module#modulegeneratorcss)
 - [`module.generator["css/module"]`](/config/module#modulegeneratorcssmodule)
 
-Basic example:
+### Migration
+
+To use CSS in Rspack 2.0, you need to manually add CSS rules to your configuration:
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.css$/,
+        type: 'css/auto',
+      },
+    ],
+  },
+};
+```
+
+### Legacy usage (deprecated)
 
 ```js title="rspack.config.mjs"
 export default {
@@ -87,458 +108,9 @@ export default {
 
 ## experiments.incremental
 
-<ApiMeta addedVersion="1.1.0-beta.0" />
+<ApiMeta stability={Stability.Deprecated} />
 
-- **Type:** `boolean | 'none' | 'safe' | 'advance' | 'advance-silent' | Incremental`
-- **Default:** `'advance-silent'`
-
-Whether to enable incremental build, which significantly speeds up rebuilds and HMR by only rebuilding the changed parts. Two configuration ways are provided:
-
-1. Presets: including `boolean | 'none' | 'safe' | 'advance' | 'advance-silent'`
-   - `false | 'none'`: Disable incremental, and it will not be enabled for any stage.
-   - `'safe'`: Enable incremental for `make` and `emitAssets` stages, This is also the current default behavior of Rspack.
-   - `true | 'advance-silent'`: Enable incremental for all stages to maximize performance for rebuilds and HMR. After these stages become stable in the future, we will make this option the default behavior for Rspack.
-   - `'advance'`: The same as above, but it will detect cases that are unfriendly to incremental and throw warnings to users (e.g., incorrect configurations). This option can help you to identify potential issues affecting incremental build performance.
-2. **Detailed object configuration**: `Incremental`, which allows fine-grained control over whether the incremental is enabled for each stage.
-
-   {/* prettier-ignore */}
-   <details>
-      <summary style={{ display: 'list-item' }}>Detailed type of `Incremental`</summary>
-      <blockquote>
-        <p>
-        ```ts
-        type Incremental = {
-          // Whether to throw a warning when encountering situations that are not friendly for incremental.
-          silent?: boolean;
-          // The following configuration is used to control whether the incremental of each stage is enabled.
-          make?: boolean;
-          inferAsyncModules?: boolean;
-          providedExports?: boolean;
-          dependenciesDiagnostics?: boolean;
-          sideEffects?: boolean;
-          buildChunkGraph?: boolean;
-          moduleIds?: boolean;
-          chunkIds?: boolean;
-          modulesHashes?: boolean;
-          modulesCodegen?: boolean;
-          modulesRuntimeRequirements?: boolean;
-          chunksRuntimeRequirements?: boolean;
-          chunksHashes?: boolean;
-          chunksRender?: boolean;
-          emitAssets?: boolean;
-        };
-        ```
-        </p>
-      </blockquote>
-    </details>
-
-Usually, we recommend configuring in the preset way, and the detailed object configuration is only provided to facilitate bug troubleshooting.
-
-Incremental only improves the rebuild performance and have no impact on the initial build. However, when persistent cache is available, initial builds are also treated as rebuilds too, and can benefit from incremental for performance.
-
-The table below shows the results of incremental in different scenarios:
-
-| how to build | incremental speed up |
-| :----------: | :------------------: |
-|  hot build   |          ✅          |
-|  cold build  |          ❌          |
-|  hot start   |          ✅          |
-|  cold start  |          ❌          |
-| rebuild/HMR  |          ✅          |
-
-Starting from v1.4.0, Rspack enables incremental builds for all phases by default using `'advance-silent'` mode. In previous versions, it only activated incremental builds for the `make` and `emitAssets` phases by default with `'safe'` mode.
-
-## experiments.parallelLoader
-
-<ApiMeta addedVersion="1.3.1" />
-
-- **Type**: `boolean`
-- **Default:** `false`
-
-Enable parallel loader execution. You need to manually enable parallel mode for each loader using [`Rule.use.parallel`](/config/module#ruleuseparallel). When enabled, the corresponding loaders will be executed in worker threads.
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    rules: [
-      {
-        test: /\.less$/,
-        use: [
-          {
-            loader: 'less-loader',
-            parallel: true,
-            options: {
-              // loader options
-            },
-          },
-        ],
-      },
-    ],
-  },
-  experiments: {
-    parallelLoader: true,
-  },
-};
-```
-
-## experiments.rspackFuture
-
-- **Type:** `object`
-
-- **Default:** See options down below for details
-
-Used to control whether to enable Rspack future default options, check out the details [here](https://github.com/web-infra-dev/rspack/pull/4107).
-
-### rspackFuture.bundlerInfo
-
-<ApiMeta addedVersion="1.0.0" />
-
-- **Type**:
-
-  ```ts
-  type BundlerInfo = {
-    version?: string,
-    bundler?: string,
-    force?: ('version' | 'uniqueId')[] ｜ boolean;
-  };
-  ```
-
-Used to inject the currently used Rspack information into the generated asset:
-
-- `version`: Used to specify the Rspack version, defaults to the `version` field in `@rspack/core/package.json`.
-- `bundler`: Used to specify the name of the packaging tool, defaults to `rspack`.
-- `force`: Whether to force the injection of Rspack information, which will be added to chunk as a runtime module, and defaults to `true` to force injection. An array can be used to select the items to be forced injected.
-
-#### Disable default injection
-
-The default injection can be disabled by setting `force` to `false`. Then injection will only occur when `__rspack_version__` and `__rspack_unique_id__` are detected in the code:
-
-- [`__rspack_version__`](/api/runtime-api/module-variables#__rspack_version__): Inject version information.
-- [`__rspack_unique_id__`](/api/runtime-api/module-variables#__rspack_unique_id__): Inject the unique ID of the bundler.
-
-```js title="rspack.config.mjs"
-export default {
-  experiments: {
-    rspackFuture: { bundlerInfo: { force: false } },
-  },
-};
-```
-
-## experiments.cache
-
-<ApiMeta addedVersion="1.2.0-alpha.0" />
-
-- **Type:** `ExperimentCacheOptions`
-
-- **Default:** production mode is `false`, development mode is `true`
-
-```ts
-type ExperimentCacheOptions =
-  | boolean
-  | {
-      type: 'memory';
-    }
-  | {
-      type: 'persistent';
-      buildDependencies?: string[];
-      version?: string;
-      snapshot?: {
-        immutablePaths?: Array<string | RegExp>;
-        unmanagedPaths?: Array<string | RegExp>;
-        managedPaths?: Array<string | RegExp>;
-      };
-      storage?: {
-        type: 'filesystem';
-        directory?: string;
-      };
-    };
-```
-
-Control experimental caching behavior. This will only work if [config.cache](/config/cache) is set to `true`.
-
-:::info Note
-In production mode, the default value of `config.cache` is `false`, which will cause this configuration item invalid. It is recommended to directly configure `config.cache` to `true`.
-:::
-
-### Disable cache
-
-Configuring `experiment.cache` to `false` to disable cache, which is no different from configuring the [config.cache](/config/cache) to `false`.
-
-```js title="rspack.config.mjs"
-export default {
-  cache: true,
-  experiments: {
-    cache: false,
-  },
-};
-```
-
-### Memory cache
-
-Configuring `experiment.cache` to `true` or `{ "type": "memory" }` to enable memory cache.
-
-```js title="rspack.config.mjs"
-export default {
-  cache: true,
-  experiments: {
-    cache: true,
-  },
-};
-```
-
-### Persistent cache
-
-Configuring `experiment.cache` to `{ "type": "persistent" }` to enable persistent cache.
-
-```js title="rspack.config.mjs"
-export default {
-  cache: true,
-  experiments: {
-    cache: {
-      type: 'persistent',
-    },
-  },
-};
-```
-
-#### cache.buildDependencies
-
-- **Type:** `string[]`
-
-- **Default:** `[]`
-
-`cache.buildDependencies` is an array of files containing build dependencies, Rspack will use the hash of each of these files to invalidate the persistent cache.
-
-:::tip
-It's recommended to set `cache.buildDependencies`: [__filename] in your rspack configuration to get the latest configuration.
-:::
-
-```js title="rspack.config.mjs"
-export default {
-  cache: true,
-  experiments: {
-    cache: {
-      type: 'persistent',
-      buildDependencies: [__filename, path.join(__dirname, './tsconfig.json')],
-    },
-  },
-};
-```
-
-#### cache.version
-
-- **Type:** `string`
-
-- **Default:** `""`
-
-Cache versions, different versions of caches are isolated from each other.
-
-:::tip Persistent cache invalidation
-
-In addition to [buildDependencies](#cachebuilddependencies) and [version](#cacheversion) configurations that affect persistent cache invalidation, Rspack also invalidates persistent cache when the following fields change.
-
-- [config.name](/config/other-options#name)
-- [config.mode](/config/mode#mode)
-
-:::
-
-#### cache.snapshot
-
-Configure snapshot strategy. Snapshot is used to determine which files have been modified during shutdown. The following configurations are supported:
-
-##### snapshot.immutablePaths
-
-- **Type:** `(RegExp | string)[]`
-
-- **Default:** `[]`
-
-An array of paths to immutable files, changes to these paths will be ignored during hot restart.
-
-##### snapshot.managedPaths
-
-- **Type:** `(RegExp | string)[]`
-
-- **Default:** `[/\/node_modules\//]`
-
-An array of paths managed by the package manager. During hot start, it will determine whether to modify the path based on the version in package.json.
-
-##### snapshot.unmanagedPaths
-
-- **Type:** `(RegExp | string)[]`
-
-- **Default:** `[]`
-
-Specifies an array of paths in `snapshot.managedPaths` that are not managed by the package manager
-
-#### cache.storage
-
-- **Type:** `{ type: 'filesystem', directory: string }`
-
-- **Default:** `{ type: 'filesystem', directory: 'node_modules/.cache/rspack' }`
-
-Configure cache storage. Currently only file system storage is supported. The cache directory can be set through `directory`. The default is `node_modules/.cache/rspack`.
-
-```js title="rspack.config.mjs"
-export default {
-  cache: true,
-  experiments: {
-    cache: {
-      type: 'persistent',
-      storage: {
-        type: 'filesystem',
-        directory: 'node_modules/.cache/rspack',
-      },
-    },
-  },
-};
-```
-
-:::tip
-Rspack will generate a cache folder in the `storage.directory` based on [config.name](/config/other-options#name), [config.mode](/config/mode#mode), the file contents in [buildDependencies](#cachebuilddependencies) and [version](#cacheversion).
-
-Rspack will automatically clean up cache folders that have not been accessed for a long time (7 days) at startup.
-:::
-
-### Migrating from webpack config
-
-The Rspack cache configuration is different from the webpack cache configuration. You can refer to the following steps to migrate the webpack cache configuration.
-
-1. According to the cache type, set the Rspack cache type. Continue with the next step for persistent cache, and stop here for other types of cache.
-
-```diff title="rspack.config.mjs"
-export default {
-- cache: {
--   type: 'filesystem',
-- },
-+ cache: true,
-+ experiments: {
-+   cache: {
-+     type: 'persistent',
-+   },
-+ },
-};
-```
-
-2. Migrate `cache.buildDependencies`
-
-```diff title="rspack.config.mjs"
-export default {
-- cache: {
--   buildDependencies: {
--     config: [__filename, path.join(__dirname, "package.json")],
--     ts: [path.join(__dirname, "tsconfig.json")]
--   }
-- },
-  experiments: {
-    cache: {
-      type: "persistent",
-+     buildDependencies: [
-+       __filename,
-+       path.join(__dirname, "package.json"),
-+       path.join(__dirname, "tsconfig.json")
-+     ]
-    },
-  },
-};
-```
-
-3. Migrate `cache.version` and `cache.name`
-
-```diff title="rspack.config.mjs"
-export default {
-- cache: {
--   name: `${config.name}-${config.mode}-${otherFlags}`,
--   version: appVersion
-- },
-  experiments: {
-    cache: {
-      type: "persistent",
-+     version: `${config.name}-${config.mode}-${otherFlags}-${appVersion}`
-    },
-  },
-};
-```
-
-4. Migrate `snapshot`
-
-```diff title="rspack.config.mjs"
-export default {
-- snapshot: {
--   immutablePaths: [path.join(__dirname, "constant")],
--   managedPaths: [path.join(__dirname, "node_modules")],
--   unmanagedPaths: []
-- },
-  experiments: {
-    cache: {
-      type: "persistent",
-+     snapshot: {
-+       immutablePaths: [path.join(__dirname, "constant")],
-+       managedPaths: [path.join(__dirname, "node_modules")],
-+       unmanagedPaths: []
-+     }
-    },
-  },
-};
-```
-
-5. Migrate `cache.cacheDirectory`
-
-```diff title="rspack.config.mjs"
-export default {
-- cache: {
--   cacheDirectory: path.join(__dirname, "node_modules/.cache/test")
-- },
-  experiments: {
-    cache: {
-      type: "persistent",
-+     storage: {
-+       type: "filesystem",
-+       directory: path.join(__dirname, "node_modules/.cache/test")
-+     }
-    },
-  },
-};
-```
-
-Sample migration code:
-
-```js
-function transform(webpackConfig, rspackConfig) {
-  rspackConfig.experiments = rspackConfig.experiments || {};
-  if (webpackConfig.cache === undefined) {
-    webpackConfig.cache = webpackConfig.mode === 'development';
-  }
-  // 1. if using disable cache, just set `experiments.cache` = false
-  if (!webpackConfig.cache) {
-    rspackConfig.experiments.cache = false;
-    return;
-  }
-  // 2. if using memory cache, just set `experiments.cache` = true
-  if (webpackConfig.cache === true || webpackConfig.cache.type === 'memory') {
-    rspackConfig.experiments.cache = true;
-    return;
-  }
-  // 3. using persistent cache, set `experiments.cache` = { type: "persistent" }
-  rspackConfig.experiments.cache = { type: 'persistent' };
-  // 4. building `experiments.cache` from webpack config
-  rspackConfig.experiments.cache.buildDependencies = Object.values(
-    webpackConfig.cache.buildDependencies || {},
-  ).flat();
-  rspackConfig.experiments.cache.version = [
-    webpackConfig.cache.name,
-    webpackConfig.cache.version,
-  ].join();
-  rspackConfig.experiments.cache.snapshot = {
-    immutablePaths: webpackConfig.snapshot?.immutablePaths,
-    managedPaths: webpackConfig.snapshot?.managedPaths,
-    unmanagedPaths: webpackConfig.snapshot?.unmanagedPaths,
-  };
-  rspackConfig.experiments.cache.storage = {
-    type: 'filesystem',
-    directory: webpackConfig.cache?.cacheDirectory,
-  };
-}
-```
+This option has been moved to top-level [`incremental`](/config/incremental).
 
 ## experiments.buildHttp
 
@@ -641,7 +213,7 @@ export default {
   },
   plugins: [
     {
-      apply: compiler => {
+      apply: (compiler) => {
         compiler.hooks.beforeCompile.tap('SimpleInputFileSystem', () => {
           compiler.inputFileSystem = {
             readFile(path, cb) {
@@ -686,58 +258,6 @@ export default {
 When access to `virtual_entry.js` and `src/another_virtual.js` which match the regular expressions of `experiments.useInputFileSystem`,
 Rspack will use the input file system wrapped by `VirtualModulesPlugin`; other than that, `src/disk_file.js` will be accessed by the native file system.
 
-## experiments.inlineConst
-
-<ApiMeta addedVersion="1.4.1" />
-
-- **Type:** `boolean`
-- **Default:** `false`
-
-Whether to enable the experimental feature [`module.parser.javascript.inlineConst`](/config/module#moduleparserjavascriptinlineconst), which will perform cross-module inline optimization for constant exports in leaf modules of the module graph.
-
-A common optimization case is `constants.js`, for example:
-
-```js
-// constants.js
-export const A = true;
-// index.js
-import { A } from './constants';
-console.log(A ? 1 : 2);
-
-// Bundled by Rspack: output.js
-const __webpack_modules__ = {
-  './index.js': __webpack_require__ => {
-    // 1. A will be inlined at the usage sites.
-    // 2. If all exports from constants.js are inlined, the constants.js module will be optimized away and won't appear in the final output.
-    console.log(true ? 1 : 2);
-  },
-};
-```
-
-Please refer to [inline const example](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/inline-const)
-
-## experiments.inlineEnum
-
-<ApiMeta addedVersion="1.4.1" />
-
-- **Type:** `boolean`
-- **Default:** `false`
-
-The switch for the experimental feature [`builtin:swc-loader rspackExperiments.collectTypeScriptInfo.exportedEnum`](/guide/features/builtin-swc-loader#rspackexperimentscollecttypescriptinfoexportedenum). Must be enabled to use the feature.
-
-Please refer to [inline enum example](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/inline-enum) for more details.
-
-## experiments.typeReexportsPresence
-
-<ApiMeta addedVersion="1.4.1" />
-
-- **Type:** `boolean`
-- **Default:** `false`
-
-The switch for the experimental feature [`module.parser.javascript.typeReexportsPresence`](/config/module#moduleparserjavascripttypereexportspresence). Must be enabled to use the feature.
-
-Please refer to [type reexports presence example](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/type-reexports-presence) for more details.
-
 ## experiments.nativeWatcher
 
 <ApiMeta addedVersion="1.4.7" />
@@ -764,48 +284,6 @@ export default {
 };
 ```
 
-## experiments.lazyBarrel
-
-<ApiMeta addedVersion="1.5.0" />
-
-- **Type:** `boolean`
-- **Default:** `true` (enabled by default after v1.6.0)
-
-Whether to skip building unused re-export modules in side-effect-free barrel files to optimize build performance.
-
-```js title="rspack.config.mjs"
-export default {
-  experiments: {
-    lazyBarrel: true,
-  },
-};
-```
-
-A side-effect-free module is a module that meets one of the following conditions:
-
-- The `package.json` file of its package declares `"sideEffects": false`, see [Side effects analysis](/guide/optimization/tree-shaking#side-effects-analysis)
-- Modules explicitly marked as `false` through the [module.rule.sideEffects](/config/optimization#optimizationsideeffects) option
-
-:::info FAQ
-
-1. Can this also supports CommonJS?
-
-   Yes, theoretically this can also support CommonJS, but before that we need to improve Rspack's CJS tree shaking first, the static analyze part specifically, so currently we will only support ESM, and support CJS in the future PR.
-
-2. Why depend on `"sideEffects": false` in package.json, can Rspack automatically analyze a module is side effects free or not?
-
-   Rspack has the ability to analyze a module is side effects free or not of course, it's already used by `optimization.sideEffects` to tree shaking side effects free modules. But these analyzed modules still require checking whether their dependencies have side effects - only when all dependencies are also side effects free can the module be considered truly side effects free. However, during the make phase, dependencies must first be built before their side effects can be analyzed, and the `lazyBarrel` is intend to avoid to build those dependencies. `"sideEffects": false` in package.json or `module.rule.sideEffects` doesn't require dependency checking, as it signifies the entire package is side effects free. Therefore, `lazyBarrel` can only rely on this marker rather than automatic analysis.
-
-3. So `export * from "./x"` is not a problem any more?
-
-   No, `export * from "./x"` is still a bad practice for your build performance, `lazyBarrel` won't build the star re-export only when you import a specifier, and the side effects free barrel file's named exports contains the specifier (`export { x as A } from "./a";`, `export * as A from "./a"`, `export { a, b }`, `export const A`, `export default A (the name is default)`), which means the star re-export is not used. So Rspack will still build the star re-export if:
-   1. barrel file is not side effects free
-   2. the star re-export is used
-
-:::
-
-> For more details, see [RFC: Lazy make for reexports in side effects free barrel file](https://github.com/web-infra-dev/rspack/discussions/11273)
-
 ## experiments.deferImport
 
 <ApiMeta addedVersion="1.6.0" />
@@ -822,93 +300,3 @@ export default {
   },
 };
 ```
-
-## experiments.topLevelAwait
-
-:::warning
-
-This option has been deprecated and will be removed in Rspack v2.0.
-
-Top-level await will always be enabled in the future. Remove this option from your Rspack configuration.
-
-:::
-
-- **Type:** `boolean`
-- **Default:** `true`
-
-Enables support for [Top-level await](https://github.com/tc39/proposal-top-level-await). Top-level await can only be used in modules with [ModuleType](/config/module#ruletype) set to `javascript/esm`.
-
-Enabled by default. Can be disabled with this configuration:
-
-```js title="rspack.config.mjs"
-export default {
-  experiments: {
-    topLevelAwait: false,
-  },
-};
-```
-
-## experiments.lazyCompilation
-
-<ApiMeta deprecatedVersion="1.5.0" />
-
-:::warning
-
-This configuration has been deprecated. Please use [lazyCompilation](/config/lazy-compilation) instead.
-
-:::
-
-## experiments.layers
-
-<ApiMeta deprecatedVersion="1.6.0" />
-
-- **Type:** `boolean`
-- **Default:** `false`
-
-:::warning
-This option is deprecated. Layers are now always enabled. Remove this option from your Rspack configuration.
-:::
-
-Controls whether to enable the layer feature. Layers add an identifier prefix to all modules in a subgraph starting from a module in the module graph, to distinguish them from modules in different layers. For example:
-
-The `layer` of the `index.js` module is `null` by default, and its `identifier` is `./index.js`. If we set `layer = 'client'` for it, its `identifier` becomes `(client)/./index.js`. At this point, the `index.js` modules in these two different layers are treated as distinct modules, because their unique `identifier`s differ. The final output includes the artifacts of both modules.
-
-By default, a module's layer is `null`, and it inherits its parent module's layer. You can add a layer to an entry module using `entryOptions.layer`, and add a layer to matched modules using [`module.rule[].layer`](/config/module#rulelayer). Additionally, you can match based on the parent module's layer using [`module.rule[].issuerLayer`](/config/module#ruleissuerlayer).
-
-```js title="rspack.config.mjs"
-export default {
-  experiments: {
-    layers: true,
-  },
-};
-```
-
-## experiments.parallelCodeSplitting
-
-<ApiMeta deprecatedVersion="1.6.2" />
-
-- **Type:** `boolean`
-- **Default:** `false`
-
-Enabling this configuration will activate a new multi-threaded code splitting algorithm. If your project includes many dynamic imports and doesn't have cyclic chunks, this can greatly reduce the time spent on the code splitting process.
-
-:::warning
-This option is deprecated, it has a huge performance regression in some edge cases where the chunk graph has lots of cycles. We'll improve the performance of build_chunk_graph in the future instead.
-:::
-
-```js title="rspack.config.mjs"
-export default {
-  experiments: {
-    parallelCodeSplitting: true,
-  },
-  optimization: {
-    removeAvailableModules: true,
-  },
-};
-```
-
-:::warning
-When `parallelCodeSplitting` is enabled, ensure that 'optimization.removeAvailableModules' is also enabled (this has been enabled by default since version 1.3.0).
-
-This maintains consistency with the previous code splitting algorithm, which enforced `removeAvailableModules` internally and ignored the `optimization.removeAvailableModules` configuration.
-:::

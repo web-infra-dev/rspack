@@ -6,8 +6,8 @@ on:
       cargo-check-strategy:
         type: string
         required: false
-        default: "all"
-        description: "Strategy for cargo check: all (default) or separated"
+        default: 'all'
+        description: 'Strategy for cargo check: all (default) or separated'
 
 jobs:
   check-changed:
@@ -21,7 +21,7 @@ jobs:
       - uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3
         id: filter
         with:
-          predicate-quantifier: "every"
+          predicate-quantifier: 'every'
           filters: |
             code_changed:
               - "!**/*.md"
@@ -49,7 +49,7 @@ jobs:
 
       - name: Install cargo-binstall
         if: ${{ inputs.cargo-check-strategy == 'separated' }}
-        uses: cargo-bins/cargo-binstall@3fc81674af4165a753833a94cae9f91d8849049f # v1.16.2
+        uses: cargo-bins/cargo-binstall@80aaafe04903087c333980fa2686259ddd34b2d9 # v1.16.6
 
       - name: Install cargo-workspaces
         if: ${{ inputs.cargo-check-strategy == 'separated' }}
@@ -95,7 +95,7 @@ jobs:
         run: cargo codegen
 
       - name: Install cargo-deny
-        uses: taiki-e/install-action@92e6dd1c202153a204d471a3c509bf1e03dcfa44 # v2
+        uses: taiki-e/install-action@dfcb1ee29051d97c8d0f2d437199570008fd5612 # v2
         with:
           tool: cargo-deny@0.18.3
       - name: Check licenses
@@ -103,7 +103,7 @@ jobs:
           cargo deny --all-features check license bans
           cargo xtask deny-ext
 
-      - uses: cargo-bins/cargo-binstall@3fc81674af4165a753833a94cae9f91d8849049f # v1.16.2
+      - uses: cargo-bins/cargo-binstall@80aaafe04903087c333980fa2686259ddd34b2d9 # v1.16.6
       - run: cargo binstall --no-confirm cargo-shear@1.1.12 --force
       - run: cargo shear
 
@@ -183,7 +183,7 @@ jobs:
         rust_check,
         rust_unused_dependencies,
         rust_watcher_test,
-        check-changed
+        check-changed,
       ]
     if: ${{ always() && !cancelled() }}
     runs-on: ubuntu-latest

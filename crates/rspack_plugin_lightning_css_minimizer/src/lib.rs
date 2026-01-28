@@ -23,7 +23,7 @@ use rspack_core::{
 use rspack_error::{Diagnostic, Result, ToStringResultToRspackResultExt};
 use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
-use rspack_util::asset_condition::AssetConditions;
+use rspack_util::asset_condition::{AssetConditions, AssetConditionsObject, match_object};
 use thread_local::ThreadLocal;
 
 static CSS_ASSET_REGEXP: LazyLock<Regex> =
@@ -63,7 +63,7 @@ pub struct MinimizerOptions {
   pub targets: Option<Browsers>,
   pub include: Option<u32>,
   pub exclude: Option<u32>,
-  pub draft: Option<Draft>,
+  pub drafts: Option<Draft>,
   pub non_standard: Option<NonStandard>,
   pub pseudo_classes: Option<PseudoClasses>,
   pub unused_symbols: Vec<String>,
@@ -74,7 +74,7 @@ impl Hash for MinimizerOptions {
     self.error_recovery.hash(state);
     self.include.hash(state);
     self.exclude.hash(state);
-    self.draft.hash(state);
+    self.drafts.hash(state);
     self.non_standard.hash(state);
     self.unused_symbols.hash(state);
     if let Some(pseudo_classes) = &self.pseudo_classes {
@@ -104,25 +104,6 @@ pub struct LightningCssMinimizerRspackPlugin {
   options: PluginOptions,
 }
 
-pub fn match_object(obj: &PluginOptions, str: &str) -> bool {
-  if let Some(condition) = &obj.test
-    && !condition.try_match(str)
-  {
-    return false;
-  }
-  if let Some(condition) = &obj.include
-    && !condition.try_match(str)
-  {
-    return false;
-  }
-  if let Some(condition) = &obj.exclude
-    && condition.try_match(str)
-  {
-    return false;
-  }
-  true
-}
-
 impl LightningCssMinimizerRspackPlugin {
   pub fn new(options: PluginOptions) -> Self {
     Self::new_inner(options)
@@ -145,6 +126,11 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let options = &self.options;
   let minimizer_options = &self.options.minimizer_options;
   let all_warnings: RwLock<Vec<Diagnostic>> = Default::default();
+  let condition_object = AssetConditionsObject {
+    test: options.test.as_ref(),
+    include: options.include.as_ref(),
+    exclude: options.exclude.as_ref(),
+  };
 
   let tls: ThreadLocal<ObjectPool> = ThreadLocal::new();
   compilation
@@ -155,7 +141,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         return false;
       }
 
-      let is_matched = match_object(options, filename);
+      let is_matched = match_object(&condition_object, filename);
 
       if !is_matched || original.get_info().minimized.unwrap_or(false) {
         return false;
@@ -176,7 +162,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         let mut parser_flags = ParserFlags::empty();
         parser_flags.set(
           ParserFlags::CUSTOM_MEDIA,
-          matches!(&minimizer_options.draft, Some(draft) if draft.custom_media),
+          matches!(&minimizer_options.drafts, Some(drafts) if drafts.custom_media),
         );
         parser_flags.set(
           ParserFlags::DEEP_SELECTOR_COMBINATOR,

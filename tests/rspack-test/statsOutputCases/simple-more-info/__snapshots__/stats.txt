@@ -1,0 +1,5 @@
+PublicPath: auto
+asset bundle.js xx bytes [emitted] (name: main)
+./index.js xx bytes [built] [code generated]
+  entry ./index
+Rspack x.x.x compiled successfully in X s

@@ -36,6 +36,8 @@ Rspack is a high-performance JavaScript bundler written in Rust that offers stro
 - Update snapshots: `npm run test -- -u`
 - Filter tests: `npm run test -- -t configCases/asset`
 
+Depends on what you have modified, you need to rebuild by `pnpm run build:js` or `pnpm run build:binding:dev` or `pnpm run build:cli:dev` first, then run testing commands to verify the modification.
+
 ## Debugging
 
 - **VS Code**: `.vscode/launch.json` with `Debug Rspack` and `Attach` options

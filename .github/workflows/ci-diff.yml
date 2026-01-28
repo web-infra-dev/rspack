@@ -3,10 +3,19 @@ name: CI Diff
 on:
   pull_request:
     types: [opened, synchronize, reopened]
+    # Ignore md files in PR to skip workflow when only documentation changes
+    paths-ignore:
+      - '**/*.md'
+      - 'website/**'
 
   push:
     branches:
       - main
+      - v1.x
+    # Ignore md files in push to skip workflow when only documentation changes
+    paths-ignore:
+      - '**/*.md'
+      - 'website/**'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -30,8 +39,8 @@ jobs:
       prefer_docker: false
       ref: ${{ github.event.pull_request.head.sha }}
 
-  demo-test:
-    name: Demo Test
+  diff-projects:
+    name: Diff Benchmark Projects
     needs: build
     runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"') }}
     defaults:
@@ -65,7 +74,7 @@ jobs:
       - name: Clone build-tools-performance
         run: |
           cd ..
-          git clone https://github.com/rspack-contrib/build-tools-performance.git
+          git clone https://github.com/rstackjs/build-tools-performance.git
 
       - name: Link packages and install dependencies
         working-directory: ../build-tools-performance
@@ -81,8 +90,8 @@ jobs:
         run: RSDOCTOR=true CI=true pnpm run build:cases
 
       - name: Report Compressed Size
-        uses: web-infra-dev/rsdoctor-action@3576edf3ddc2c86c9651d4a916fad68013c4d6cd
+        uses: web-infra-dev/rsdoctor-action@5b30d999c6e0a7840df1445d222b020ef282ed6f
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          file_path: "../build-tools-performance/**/dist/rsdoctor-data.json"
-          target_branch: "main"
+          file_path: '../build-tools-performance/**/dist/rsdoctor-data.json'
+          target_branch: 'main'

@@ -1,0 +1,133 @@
+<e> [LogTestPlugin] Error
+PublicPath: auto
+asset main.js xx KiB {889} [emitted] (name: main)
+Entrypoint main xx KiB = main.js
+chunk {889} (runtime: main) main.js (main) xx bytes (javascript) xx bytes (runtime) [entry] [rendered]
+  > ./index main
+  ./.|sync [641] xx bytes {889} [depth 1] [dependent] [built] [code generated]
+    [no exports]
+    ModuleConcatenation bailout: Module Concatenation is not implemented for javascript/auto
+    commonjs require context . [237] ./index.js 2:1-16
+    commonjs require context . [237] ./index.js 3:1-16
+  ./a.js [670] xx bytes {889} [depth 1] [dependent] [built] [code generated]
+    [used exports unknown]
+    Statement with side_effects in source code at ./a.js<LINE_COL>-21
+    ModuleConcatenation bailout: Module is not an ECMAScript module
+    cjs self exports reference self [670] ./a.js
+    cjs require ./a [237] ./index.js 1:9-13
+  ./index.js [237] xx bytes {889} [depth 0] [built] [code generated] [2 warnings]
+    [no exports used]
+    Statement with side_effects in source code at ./index.js<LINE_COL>-15
+    ModuleConcatenation bailout: Module is not an ECMAScript module
+    entry ./index
+  
+
+LOG from LogTestPlugin
+<-> Group
+  <e> Error
+  <w> Warning
+  <i> Info
+      Log
+      Debug
+  <-> Collapsed group
+        Log inside collapsed group
+    <-> Inner group
+          Inner inner message
+      Log
+    End
+
+LOG from LogOtherTestPlugin
+    debug message only
+
+LOG from rspack.Compilation
+<t> finish modules: xx ms
+<t> optimize dependencies: xx ms
+<t> rebuild chunk graph: xx ms
+<t> optimize modules: xx ms
+<t> optimize chunks: xx ms
+<t> optimize tree: xx ms
+<t> optimize chunk modules: xx ms
+<t> module ids: xx ms
+<t> chunk ids: xx ms
+<t> optimize code generation: xx ms
+<t> code generation: xx ms
+<t> runtime requirements.modules: xx ms
+<t> runtime requirements.chunks: xx ms
+<t> runtime requirements.entries: xx ms
+<t> runtime requirements: xx ms
+<t> hashing: hash chunks: xx ms
+<t> hashing: hash runtime chunks: xx ms
+<t> hashing: process full hash chunks: xx ms
+<t> hashing: xx ms
+<t> create module assets: xx ms
+<t> create chunk assets: xx ms
+<t> process assets: xx ms
+<t> after process assets: xx ms
+<t> after seal: xx ms
+
+LOG from rspack.Compiler
+<t> make hook: xx ms
+<t> build module graph: xx ms
+<t> finish make hook: xx ms
+<t> finish compilation: xx ms
+<t> seal compilation: xx ms
+<t> emitAssets: xx ms
+
+LOG from rspack.EnsureChunkConditionsPlugin
+<t> ensure chunk conditions: xx ms
+
+LOG from rspack.ModuleConcatenationPlugin
+<t> select relevant modules: xx ms
+    0 potential root modules, 0 potential inner modules
+<t> sort relevant modules: xx ms
+<t> find modules to concatenate: xx ms
+    0 candidates were considered for adding (0 cached failure, 0 already in config, 0 invalid module, 0 incorrect chunks, 0 incorrect dependency, 0 incorrect chunks of importer, 0 incorrect module dependency, 0 incorrect runtime condition, 0 importer failed, 0 added)
+<t> sort concat configurations: xx ms
+
+LOG from rspack.RealContentHashPlugin
+<t> hash to asset names: xx ms
+
+LOG from rspack.RemoveEmptyChunksPlugin
+<t> remove empty chunks: xx ms
+
+LOG from rspack.SideEffectsFlagPlugin
+<t> prepare connections: xx ms
+<t> find optimizable connections: xx ms
+<t> do optimize connections: xx ms
+<t> update connections: xx ms
+    optimized 0 connections
+
+LOG from rspack.SplitChunksPlugin
+<t> prepare module data: xx ms
+<t> prepare cache groups: xx ms
+<t> process cache groups: xx ms
+<t> ensure max size fit: xx ms
+
+LOG from rspack.buildChunkGraph
+<t> prepare entrypoints: xx ms
+<t> process queue: xx ms
+<t> extend chunkGroup runtime: xx ms
+    6 queue items processed (3 blocks)
+    0 chunk groups connected
+    0 chunk groups processed for merging (0 module sets)
+    0 chunk group info updated (0 already connected chunk groups reconnected)
+
+WARNING in ./index.js 2:1-16
+  ⚠ Critical dependency: the request of a dependency is an expression
+   ╭─[2:8]
+ 1 │ require("./a");
+ 2 │ require(["./b"]);
+   ·         ───────
+ 3 │ require(["./c"]);
+   ╰────
+
+WARNING in ./index.js 3:1-16
+  ⚠ Critical dependency: the request of a dependency is an expression
+   ╭─[3:8]
+ 1 │ require("./a");
+ 2 │ require(["./b"]);
+ 3 │ require(["./c"]);
+   ·         ───────
+   ╰────
+
+1970-04-20 12<LINE_COL>: Rspack x.x.x compiled with 2 warnings in X s (802455ef60d99839)

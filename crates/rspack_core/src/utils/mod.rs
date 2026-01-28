@@ -1,11 +1,12 @@
 use std::cmp::Ordering;
 
+use itertools::Itertools;
 use rspack_collections::Identifier;
-use rspack_util::comparators::{compare_ids, compare_numbers};
+use rspack_util::comparators::compare_ids;
 
 use crate::{
-  BoxModule, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, Compilation,
-  ConcatenatedModule, ModuleGraph, ModuleIdentifier,
+  ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, Compilation, ConcatenatedModule,
+  ModuleGraph, ModuleIdentifier,
 };
 mod comment;
 mod compile_boolean_matcher;
@@ -27,7 +28,6 @@ mod memory_gc;
 mod module_rules;
 mod property_access;
 mod property_name;
-mod queue;
 mod remove_bom;
 mod runtime;
 mod source;
@@ -53,7 +53,6 @@ pub use self::{
   module_rules::*,
   property_access::*,
   property_name::*,
-  queue::*,
   remove_bom::*,
   runtime::*,
   source::*,
@@ -123,29 +122,15 @@ pub fn compare_chunk_group(
     Ordering::Greater => Ordering::Less,
     Ordering::Equal => compare_chunks_iterables(
       &compilation.chunk_graph,
-      &compilation.get_module_graph(),
+      compilation.get_module_graph(),
       chunks_a,
       chunks_b,
     ),
   }
 }
 
-pub fn compare_modules_by_pre_order_index_or_identifier(
-  module_graph: &ModuleGraph,
-  a: &Identifier,
-  b: &Identifier,
-) -> std::cmp::Ordering {
-  if let Some(a) = module_graph.get_pre_order_index(a)
-    && let Some(b) = module_graph.get_pre_order_index(b)
-  {
-    compare_numbers(a, b)
-  } else {
-    compare_ids(a, b)
-  }
-}
-
-pub fn compare_modules_by_identifier(a: &BoxModule, b: &BoxModule) -> std::cmp::Ordering {
-  compare_ids(&a.identifier(), &b.identifier())
+pub fn compare_modules_by_identifier(a: &Identifier, b: &Identifier) -> std::cmp::Ordering {
+  compare_ids(a, b)
 }
 
 /// # Returns
@@ -207,7 +192,7 @@ pub fn get_module_directives(
     })
 }
 
-pub fn compare_module_iterables(modules_a: &[&BoxModule], modules_b: &[&BoxModule]) -> Ordering {
+pub fn compare_module_iterables(modules_a: &[Identifier], modules_b: &[Identifier]) -> Ordering {
   let mut a_iter = modules_a.iter();
   let mut b_iter = modules_b.iter();
   loop {
@@ -263,14 +248,14 @@ pub fn compare_chunks_with_graph(
     return Ordering::Greater;
   }
 
-  let modules_a: Vec<&BoxModule> = modules_a
-    .iter()
-    .filter_map(|module_id| module_graph.module_by_identifier(module_id))
-    .collect();
-  let modules_b: Vec<&BoxModule> = modules_b
-    .iter()
-    .filter_map(|module_id| module_graph.module_by_identifier(module_id))
-    .collect();
+  let modules_a = modules_a
+    .into_iter()
+    .filter(|module_id| module_graph.module_by_identifier(module_id).is_some())
+    .collect_vec();
+  let modules_b = modules_b
+    .into_iter()
+    .filter(|module_id| module_graph.module_by_identifier(module_id).is_some())
+    .collect_vec();
   compare_module_iterables(&modules_a, &modules_b)
 }
 

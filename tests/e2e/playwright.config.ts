@@ -1,90 +1,89 @@
-import { defineConfig, devices } from "@playwright/test";
-import type { RspackOptions } from "./fixtures";
+import { defineConfig, devices } from '@playwright/test';
+import type { RspackOptions } from './fixtures';
 
-const TIMEOUT = 2 * 60 * 1000;
+const TIMEOUT = 60 * 1000;
 
 export default defineConfig<RspackOptions>({
-	// Look for test files in the "fixtures" directory, relative to this configuration file.
-	testDir: "./cases",
+  // Look for test files in the "fixtures" directory, relative to this configuration file.
+  testDir: process.env.WASM ? './browser-cases' : './cases',
 
-	//	globalSetup: require.resolve("./scripts/globalSetup"),
+  //	globalSetup: require.resolve("./scripts/globalSetup"),
 
-	// Run all tests in parallel.
-	//	fullyParallel: true,
+  // Run all tests in parallel.
+  //	fullyParallel: true,
 
-	// Fail the build on CI if you accidentally left test.only in the source code.
-	forbidOnly: !!process.env.CI,
-	build: {
-		external: ["**/moduleFederationDefaultRuntime.js"]
-	},
-	retries: 0,
+  // Fail the build on CI if you accidentally left test.only in the source code.
+  forbidOnly: !!process.env.CI,
+  build: {
+    external: ['**/moduleFederationDefaultRuntime.js'],
+  },
+  retries: 0,
 
-	// timeout 30s
-	timeout: TIMEOUT,
+  // timeout 30s
+  timeout: TIMEOUT,
 
-	// expect
-	expect: {
-		// auto-assertion could be used with HMR.
-		timeout: TIMEOUT
-	},
+  // expect
+  expect: {
+    // auto-assertion could be used with HMR.
+    timeout: TIMEOUT,
+  },
 
-	// Opt out of parallel tests on CI.
-	workers: process.env.CI ? 4 : undefined,
+  // Opt out of parallel tests on CI.
+  workers: process.env.CI ? 4 : undefined,
 
-	// Reporter to use
-	reporter: "html",
+  // Reporter to use
+  reporter: 'html',
 
-	use: {
-		// Base URL to use in actions like `await page.goto('/')`.
-		// baseURL: "http://127.0.0.1:3000",
+  use: {
+    // Base URL to use in actions like `await page.goto('/')`.
+    // baseURL: "http://127.0.0.1:3000",
 
-		// Collect trace when retrying the failed test.
-		trace: "on-first-retry"
-	},
-	// Configure projects for major browsers.
-	projects: [
-		{
-			name: "chromium",
-			use: {
-				rspackConfig: {
-					basePort: 8000,
-					handleConfig: (config: any) => {
-						return config;
-					}
-				},
-				...devices["Desktop Chrome"]
-			}
-		},
-		{
-			name: "chromium-incremental",
-			use: {
-				rspackConfig: {
-					basePort: 8200,
-					handleConfig: (config: any) => {
-						config.experiments ??= {};
-						if (config.experiments.incremental == undefined) {
-							config.experiments.incremental = true;
-						}
-						const cache = config.experiments.cache;
-						if (typeof cache === "object" && cache.type === "persistent") {
-							cache.storage = {
-								type: "filesystem",
-								...cache.storage,
-								//rewrite directory
-								directory: "node_modules/.cache/incremental"
-							};
-						}
-						return config;
-					}
-				},
-				...devices["Desktop Chrome"]
-			}
-		}
-	]
-	// Run your local dev server before starting the tests.
-	// webServer: {
-	//	 command: "npm run start",
-	//	 url: "http://127.0.0.1:3000",
-	//	 reuseExistingServer: !process.env.CI
-	// }
+    // Collect trace when retrying the failed test.
+    trace: 'on-first-retry',
+  },
+  // Configure projects for major browsers.
+  projects: [
+    {
+      name: 'chromium',
+      use: {
+        rspackConfig: {
+          basePort: 8000,
+          handleConfig: (config: any) => {
+            return config;
+          },
+        },
+        ...devices['Desktop Chrome'],
+      },
+    },
+    {
+      name: 'chromium-incremental',
+      use: {
+        rspackConfig: {
+          basePort: 8200,
+          handleConfig: (config: any) => {
+            if (config.incremental == undefined) {
+              config.incremental = true;
+            }
+            const cache = config.cache;
+            if (typeof cache === 'object' && cache.type === 'persistent') {
+              cache.storage = {
+                type: 'filesystem',
+                ...cache.storage,
+                //rewrite directory
+                directory: 'node_modules/.cache/incremental',
+              };
+            }
+            return config;
+          },
+        },
+        ...devices['Desktop Chrome'],
+      },
+    },
+  ],
+  // Run your local dev server before starting the tests.
+  // webServer: {
+  //	 command: "npm run start",
+  //	 url: "http://127.0.0.1:3000",
+  //	 reuseExistingServer: !process.env.CI
+  // }
 });

@@ -1,1 +1,1 @@
-console.log("Main monorepo file");
+console.log('Main monorepo file');

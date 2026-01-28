@@ -290,6 +290,9 @@ pub struct RawJavascriptParserOptions {
   pub import_meta: Option<bool>,
   /// This option is experimental in Rspack only and subject to change or be removed anytime.
   /// @experimental
+  pub require_alias: Option<bool>,
+  /// This option is experimental in Rspack only and subject to change or be removed anytime.
+  /// @experimental
   pub require_as_expression: Option<bool>,
   /// This option is experimental in Rspack only and subject to change or be removed anytime.
   /// @experimental
@@ -303,9 +306,6 @@ pub struct RawJavascriptParserOptions {
   /// @experimental
   pub import_dynamic: Option<bool>,
   pub commonjs_magic_comments: Option<bool>,
-  /// This option is experimental in Rspack only and subject to change or be removed anytime.
-  /// @experimental
-  pub inline_const: Option<bool>,
   /// This option is experimental in Rspack only and subject to change or be removed anytime.
   /// @experimental
   pub type_reexports_presence: Option<String>,
@@ -367,6 +367,7 @@ impl From<RawJavascriptParserOptions> for JavascriptParserOptions {
         .override_strict
         .map(|e| OverrideStrict::from(e.as_str())),
       import_meta: value.import_meta,
+      require_alias: value.require_alias,
       require_as_expression: value.require_as_expression,
       require_dynamic: value.require_dynamic,
       require_resolve: value.require_resolve,
@@ -389,7 +390,6 @@ impl From<RawJavascriptParserOptions> for JavascriptParserOptions {
       }),
       import_dynamic: value.import_dynamic,
       commonjs_magic_comments: value.commonjs_magic_comments,
-      inline_const: value.inline_const,
       jsx: value.jsx,
       defer_import: value.defer_import,
     }

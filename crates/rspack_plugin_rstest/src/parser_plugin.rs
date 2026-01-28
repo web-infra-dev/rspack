@@ -183,14 +183,9 @@ impl RstestParserPlugin {
 
   fn calc_mocked_target(&self, value: &str) -> Utf8PathBuf {
     // node:foo will be mocked to `__mocks__/foo`.
-    let path_buf = Utf8PathBuf::from(
-      value
-        .to_string()
-        .strip_prefix("node:")
-        .unwrap_or(value.as_ref())
-        .to_string(),
-    );
-    let is_relative_request = path_buf.to_string().starts_with("."); // TODO: consider alias?
+    let stripped = value.strip_prefix("node:").unwrap_or(value);
+    let path_buf = Utf8PathBuf::from(stripped);
+    let is_relative_request = stripped.starts_with('.'); // TODO: consider alias?
 
     if is_relative_request {
       // Mock relative request to alongside `__mocks__` directory.
@@ -598,15 +593,7 @@ impl RstestParserPlugin {
         );
         Some(false)
       }
-      // rs.importActual
-      ("rs", "importActual") | ("rstest", "importActual") => {
-        self.process_import_actual(parser, call_expr)
-      }
-      // rs.requireActual
-      ("rs", "requireActual") | ("rstest", "requireActual") => {
-        self.process_require_actual(parser, call_expr);
-        Some(false)
-      }
+      // rs.importActual and rs.requireActual are handled by call_member_chain hook
       // rs.importMock
       ("rs", "importMock") | ("rstest", "importMock") => self.load_mock(parser, call_expr, true),
       // rs.requireMock
@@ -711,6 +698,30 @@ impl JavascriptParserPlugin for RstestParserPlugin {
       }
     }
 
+    None
+  }
+
+  fn call_member_chain(
+    &self,
+    parser: &mut JavascriptParser,
+    call_expr: &CallExpr,
+    for_name: &str,
+    members: &[Atom],
+    _members_optionals: &[bool],
+    _member_ranges: &[Span],
+  ) -> Option<bool> {
+    // Handle rs.requireActual and rs.importActual calls in any context
+    if (for_name == "rs" || for_name == "rstest") && members.len() == 1 {
+      match members[0].as_str() {
+        "requireActual" => {
+          return self.process_require_actual(parser, call_expr);
+        }
+        "importActual" => {
+          return self.process_import_actual(parser, call_expr);
+        }
+        _ => {}
+      }
+    }
     None
   }
 

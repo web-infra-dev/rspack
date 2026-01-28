@@ -12,7 +12,6 @@ module.exports = {
 		minimize: true
 	},
 	experiments: {
-		topLevelAwait: true,
 		outputModule: true
 	}
 };

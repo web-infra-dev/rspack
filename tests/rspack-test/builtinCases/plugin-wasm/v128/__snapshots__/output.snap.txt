@@ -1,6 +1,6 @@
 ```js title=main.js
 "use strict";
-(self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["main"], {
+(self["rspackChunk"] = self["rspackChunk"] || []).push([["main"], {
 "./index.js"(module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.a(module, async function (__rspack_load_async_deps, __rspack_async_done) { try {
 __webpack_require__.r(__webpack_exports__);
@@ -15,7 +15,7 @@ __rspack_async_done();
 
 },
 "./v128.wasm"(module, exports, __webpack_require__) {
-module.exports = __webpack_require__.v(exports, module.id, "a92a2e151ead6e03" );
+module.exports = __webpack_require__.v(exports, module.id, "80508a12102fcf23" );
 
 },
 

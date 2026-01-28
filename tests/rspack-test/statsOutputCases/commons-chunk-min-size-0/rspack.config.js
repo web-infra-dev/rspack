@@ -9,8 +9,15 @@ module.exports = {
 			minSize: 0,
 			chunks: "all",
 			cacheGroups: {
-				"vendor-1": /modules[\\/][abc]/
+				"vendor-1": {
+					test: /modules[\\/][abc]/
+				}
 			}
 		}
+	},
+	stats: {
+		entrypoints: 'auto',
+		assets: true,
+		modules: true,
 	}
 };

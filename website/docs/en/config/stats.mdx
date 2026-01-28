@@ -561,7 +561,6 @@ For `assetsSort`, `chunksSort` and `modulesSort` there are several possible fiel
 - `'optional'`: whether the item is optional.
 - `'identifier'`: identifier of the item.
 - `'index'`: item's processing index.
-- `'profile'`: items's processing cost.
 - `'issuer'`: the identifier of the issuer.
 - `'issuerId'`: the id of the issuer.
 - `'issuerName'`: the name of the issuer.
@@ -575,7 +574,6 @@ For example, only the error and the reason why the module was introduced are out
 
 ```js title="rspack.config.mjs"
 export default {
-  // ...
   stats: {
     preset: 'errors-only',
     reasons: true,

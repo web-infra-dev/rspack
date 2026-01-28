@@ -3,13 +3,14 @@ mod module_graph;
 
 use std::sync::Arc;
 
+pub use module_graph::SCOPE;
 use rspack_collections::IdentifierSet;
 use rspack_error::Result;
 use rustc_hash::FxHashSet;
 
-use super::super::{Storage, cacheable_context::CacheableContext};
+use super::super::{Storage, codec::CacheCodec};
 use crate::{
-  FactorizeInfo, ModuleGraph,
+  FactorizeInfo,
   compilation::build_module_graph::{BuildModuleGraphArtifact, BuildModuleGraphArtifactState},
   utils::{FileCounter, ResourceId},
 };
@@ -17,13 +18,13 @@ use crate::{
 /// Make Occasion is used to save MakeArtifact
 #[derive(Debug)]
 pub struct MakeOccasion {
-  context: Arc<CacheableContext>,
+  codec: Arc<CacheCodec>,
   storage: Arc<dyn Storage>,
 }
 
 impl MakeOccasion {
-  pub fn new(storage: Arc<dyn Storage>, context: Arc<CacheableContext>) -> Self {
-    Self { storage, context }
+  pub fn new(storage: Arc<dyn Storage>, codec: Arc<CacheCodec>) -> Self {
+    Self { storage, codec }
   }
 
   #[tracing::instrument(name = "Cache::Occasion::Make::save", skip_all)]
@@ -31,7 +32,7 @@ impl MakeOccasion {
     let BuildModuleGraphArtifact {
       // write all of field here to avoid forget to update occasion when add new fields
       // for module graph
-      module_graph_partial,
+      module_graph,
       module_to_lazy_make,
       affected_modules,
       affected_dependencies,
@@ -51,7 +52,7 @@ impl MakeOccasion {
     need_update_modules.extend(affected_modules.active());
 
     // The updated dependencies should be synced to persistent cache.
-    let mg = ModuleGraph::new_ref([Some(module_graph_partial), None]);
+    let mg = module_graph;
     for dep_id in affected_dependencies.active() {
       if let Some(m) = mg.get_parent_module(dep_id) {
         need_update_modules.insert(*m);
@@ -59,22 +60,21 @@ impl MakeOccasion {
     }
 
     module_graph::save_module_graph(
-      module_graph_partial,
+      module_graph,
       module_to_lazy_make,
       affected_modules.removed(),
       &need_update_modules,
       &self.storage,
-      &self.context,
+      &self.codec,
     );
   }
 
   #[tracing::instrument(name = "Cache::Occasion::Make::recovery", skip_all)]
   pub async fn recovery(&self) -> Result<BuildModuleGraphArtifact> {
-    let (partial, module_to_lazy_make, entry_dependencies) =
-      module_graph::recovery_module_graph(&self.storage, &self.context).await?;
+    let (mg, module_to_lazy_make, entry_dependencies) =
+      module_graph::recovery_module_graph(&self.storage, &self.codec).await?;
 
     // regenerate statistical data
-    let mg = ModuleGraph::new_ref([Some(&partial), None]);
     // recovery make_failed_module
     let mut make_failed_module = IdentifierSet::default();
     // recovery *_dep
@@ -116,7 +116,7 @@ impl MakeOccasion {
       issuer_update_modules: Default::default(),
 
       state: BuildModuleGraphArtifactState::Initialized,
-      module_graph_partial: partial,
+      module_graph: mg,
       module_to_lazy_make,
 
       make_failed_module,

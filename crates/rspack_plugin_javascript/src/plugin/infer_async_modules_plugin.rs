@@ -1,9 +1,8 @@
-use linked_hash_set::LinkedHashSet;
 use rayon::prelude::*;
-use rspack_collections::{IdentifierMap, IdentifierSet};
+use rspack_collections::{IdentifierLinkedSet, IdentifierMap, IdentifierSet};
 use rspack_core::{
   AsyncModulesArtifact, Compilation, CompilationFinishModules, DependencyType, Logger, ModuleGraph,
-  ModuleIdentifier, Plugin,
+  Plugin,
   incremental::{IncrementalPasses, Mutation, Mutations},
 };
 use rspack_error::Result;
@@ -21,7 +20,7 @@ async fn finish_modules(
 ) -> Result<()> {
   if let Some(mutations) = compilation
     .incremental
-    .mutations_read(IncrementalPasses::INFER_ASYNC_MODULES)
+    .mutations_read(IncrementalPasses::FINISH_MODULES)
   {
     mutations
       .iter()
@@ -39,8 +38,8 @@ async fn finish_modules(
 
   let module_graph = compilation.get_module_graph();
   let modules = module_graph.modules();
-  let mut sync_modules = LinkedHashSet::default();
-  let mut async_modules = LinkedHashSet::default();
+  let mut sync_modules = IdentifierLinkedSet::default();
+  let mut async_modules = IdentifierLinkedSet::default();
   for (module_identifier, module) in modules {
     let build_meta = module.build_meta();
     if build_meta.has_top_level_await {
@@ -70,10 +69,10 @@ async fn finish_modules(
 
   if compilation
     .incremental
-    .mutations_readable(IncrementalPasses::INFER_ASYNC_MODULES)
+    .mutations_readable(IncrementalPasses::FINISH_MODULES)
     && let Some(mutations) = &mutations
   {
-    let logger = compilation.get_logger("rspack.incremental.inferAsyncModules");
+    let logger = compilation.get_logger("rspack.incremental.finishModules");
     logger.log(format!(
       "{} modules are updated by set_async",
       mutations.len()
@@ -92,7 +91,7 @@ async fn finish_modules(
 fn set_sync_modules(
   compilation: &Compilation,
   async_modules_artifact: &mut AsyncModulesArtifact,
-  modules: LinkedHashSet<ModuleIdentifier>,
+  modules: IdentifierLinkedSet,
   mutations: &mut Option<Mutations>,
 ) {
   let module_graph = compilation.get_module_graph();
@@ -142,15 +141,11 @@ fn set_sync_modules(
       module_graph
         .get_incoming_connections(&module)
         .filter(|con| {
-          module_graph
-            .dependency_by_id(&con.dependency_id)
-            .map(|dep| {
-              matches!(
-                dep.dependency_type(),
-                DependencyType::EsmImport | DependencyType::EsmExportImport
-              )
-            })
-            .unwrap_or_default()
+          let dep = module_graph.dependency_by_id(&con.dependency_id);
+          matches!(
+            dep.dependency_type(),
+            DependencyType::EsmImport | DependencyType::EsmExportImport
+          )
         })
         .for_each(|con| {
           if let Some(id) = con.original_module_identifier {
@@ -164,7 +159,7 @@ fn set_sync_modules(
 fn set_async_modules(
   compilation: &Compilation,
   async_modules_artifact: &mut AsyncModulesArtifact,
-  modules: LinkedHashSet<ModuleIdentifier>,
+  modules: IdentifierLinkedSet,
   mutations: &mut Option<Mutations>,
 ) {
   let mut queue = modules;
@@ -180,15 +175,11 @@ fn set_async_modules(
     module_graph
       .get_incoming_connections(&module)
       .filter(|con| {
-        module_graph
-          .dependency_by_id(&con.dependency_id)
-          .map(|dep| {
-            matches!(
-              dep.dependency_type(),
-              DependencyType::EsmImport | DependencyType::EsmExportImport
-            )
-          })
-          .unwrap_or_default()
+        let dep = module_graph.dependency_by_id(&con.dependency_id);
+        matches!(
+          dep.dependency_type(),
+          DependencyType::EsmImport | DependencyType::EsmExportImport
+        )
       })
       .for_each(|con| {
         if let Some(id) = con.original_module_identifier

@@ -17,10 +17,8 @@ module.exports = {
 								},
 								target: "esnext"
 							},
-							rspackExperiments: {
-								collectTypeScriptInfo: {
-									exportedEnum: "const-only"
-								}
+							collectTypeScriptInfo: {
+								exportedEnum: "const-only"
 							}
 						}
 					}
@@ -30,9 +28,7 @@ module.exports = {
 	},
 	optimization: {
 		moduleIds: "named",
-		concatenateModules: false
+		concatenateModules: false,
+		inlineExports: true
 	},
-	experiments: {
-		inlineEnum: true
-	}
 };

@@ -22,17 +22,14 @@ pub use dependencies_block::{
 mod fake_namespace_object;
 pub use fake_namespace_object::*;
 mod runtime_template;
-pub use runtime_template::*;
-mod module_profile;
-pub use module_profile::*;
 use rspack_collections::Database;
+pub use runtime_template::*;
 pub mod external_module;
 pub use external_module::*;
 mod logger;
 pub use logger::*;
 pub mod cache;
 mod normal_module;
-pub mod old_cache;
 mod raw_module;
 pub use raw_module::*;
 pub mod module;
@@ -196,6 +193,7 @@ pub enum ModuleType {
   AssetInline,
   AssetResource,
   AssetSource,
+  AssetBytes,
   Asset,
   Runtime,
   Remote,
@@ -207,10 +205,6 @@ pub enum ModuleType {
 }
 
 impl ModuleType {
-  pub fn is_css_like(&self) -> bool {
-    matches!(self, Self::Css | Self::CssModule | Self::CssAuto)
-  }
-
   pub fn is_js_like(&self) -> bool {
     matches!(
       self,
@@ -265,6 +259,7 @@ impl ModuleType {
       ModuleType::AssetSource => "asset/source",
       ModuleType::AssetResource => "asset/resource",
       ModuleType::AssetInline => "asset/inline",
+      ModuleType::AssetBytes => "asset/bytes",
       ModuleType::Runtime => "runtime",
       ModuleType::Remote => "remote-module",
       ModuleType::Fallback => "fallback-module",
@@ -305,6 +300,7 @@ impl From<&str> for ModuleType {
       "asset/resource" => Self::AssetResource,
       "asset/source" => Self::AssetSource,
       "asset/inline" => Self::AssetInline,
+      "asset/bytes" => Self::AssetBytes,
 
       custom => Self::Custom(custom.into()),
     }

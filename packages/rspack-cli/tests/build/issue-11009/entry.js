@@ -1,1 +1,1 @@
-export default "entry-issue-11009";
+export default 'entry-issue-11009';

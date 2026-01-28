@@ -24,10 +24,8 @@ module.exports = {
 								},
 								target: "esnext"
 							},
-							rspackExperiments: {
-								collectTypeScriptInfo: {
-									exportedEnum: true
-								}
+							collectTypeScriptInfo: {
+								exportedEnum: true
 							}
 						}
 					}
@@ -38,8 +36,6 @@ module.exports = {
 	optimization: {
 		chunkIds: 'named',
 		concatenateModules: false,
+		inlineExports: true
 	},
-	experiments: {
-		inlineEnum: true
-	}
 };

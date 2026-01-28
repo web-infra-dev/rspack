@@ -55,11 +55,12 @@ impl RuntimeModule for RemoteRuntimeModule {
     let mut chunk_to_remotes_mapping = FxHashMap::default();
     let mut id_to_remote_data_mapping = FxHashMap::default();
     let module_graph = compilation.get_module_graph();
+    // Match enhanced/webpack behavior: include all referenced chunks so async ones are mapped too
     for chunk in chunk.get_all_referenced_chunks(&compilation.chunk_group_by_ukey) {
       let modules = compilation.chunk_graph.get_chunk_modules_by_source_type(
         &chunk,
         SourceType::Remote,
-        &module_graph,
+        module_graph,
       );
       let mut remotes = Vec::new();
       for m in modules {

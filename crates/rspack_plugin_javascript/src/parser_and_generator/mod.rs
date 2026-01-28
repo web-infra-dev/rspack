@@ -90,7 +90,6 @@ impl JavaScriptParserAndGenerator {
     if let Some(dependency) = compilation
       .get_module_graph()
       .dependency_by_id(dependency_id)
-      .expect("should have dependency")
       .as_dependency_code_generation()
     {
       if let Some(template) = compilation.get_dependency_template(dependency) {

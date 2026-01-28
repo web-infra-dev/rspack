@@ -6,12 +6,9 @@ use rustc_hash::FxHashMap as HashMap;
 
 use super::BuildModuleGraphArtifact;
 use crate::{
-  Compilation, CompilationId, CompilerId, CompilerOptions, DependencyTemplate,
+  Compilation, CompilationId, CompilerId, CompilerOptions, CompilerPlatform, DependencyTemplate,
   DependencyTemplateType, DependencyType, ModuleFactory, ResolverFactory, RuntimeTemplate,
-  SharedPluginDriver,
-  incremental::Incremental,
-  module_graph::{ModuleGraph, ModuleGraphMut, ModuleGraphPartial},
-  old_cache::Cache as OldCache,
+  SharedPluginDriver, incremental::Incremental, module_graph::ModuleGraph,
 };
 
 #[derive(Debug)]
@@ -25,9 +22,9 @@ pub struct TaskContext {
   pub intermediate_fs: Arc<dyn IntermediateFileSystem>,
   pub output_fs: Arc<dyn WritableFileSystem>,
   pub compiler_options: Arc<CompilerOptions>,
+  pub platform: Arc<CompilerPlatform>,
   pub resolver_factory: Arc<ResolverFactory>,
   pub loader_resolver_factory: Arc<ResolverFactory>,
-  pub old_cache: Arc<OldCache>,
   pub dependency_factories: HashMap<DependencyType, Arc<dyn ModuleFactory>>,
   pub dependency_templates: HashMap<DependencyTemplateType, Arc<dyn DependencyTemplate>>,
   pub runtime_template: Arc<RuntimeTemplate>,
@@ -43,9 +40,9 @@ impl TaskContext {
       plugin_driver: compilation.plugin_driver.clone(),
       buildtime_plugin_driver: compilation.buildtime_plugin_driver.clone(),
       compiler_options: compilation.options.clone(),
+      platform: compilation.platform.clone(),
       resolver_factory: compilation.resolver_factory.clone(),
       loader_resolver_factory: compilation.loader_resolver_factory.clone(),
-      old_cache: compilation.old_cache.clone(),
       dependency_factories: compilation.dependency_factories.clone(),
       dependency_templates: compilation.dependency_templates.clone(),
       fs: compilation.input_filesystem.clone(),
@@ -57,8 +54,8 @@ impl TaskContext {
   }
 
   // TODO use module graph with make artifact
-  pub fn get_module_graph_mut(partial: &mut ModuleGraphPartial) -> ModuleGraphMut<'_> {
-    ModuleGraph::new_mut([None, None], partial)
+  pub fn get_module_graph_mut(artifact: &mut BuildModuleGraphArtifact) -> &mut ModuleGraph {
+    artifact.get_module_graph_mut()
   }
 
   // TODO remove it after incremental rebuild cover all stage
@@ -67,13 +64,13 @@ impl TaskContext {
     let mut compilation = Compilation::new(
       self.compiler_id,
       self.compiler_options.clone(),
+      self.platform.clone(),
       self.plugin_driver.clone(),
       self.buildtime_plugin_driver.clone(),
       self.resolver_factory.clone(),
       self.loader_resolver_factory.clone(),
       None,
-      self.old_cache.clone(),
-      Incremental::new_cold(self.compiler_options.experiments.incremental),
+      Incremental::new_cold(self.compiler_options.incremental),
       None,
       Default::default(),
       Default::default(),

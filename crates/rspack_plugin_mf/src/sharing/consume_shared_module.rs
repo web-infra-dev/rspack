@@ -6,7 +6,7 @@ use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo,
   BuildMeta, BuildResult, CodeGenerationResult, Compilation, ConcatenationScope, Context,
-  DependenciesBlock, DependencyId, FactoryMeta, LibIdentOptions, Module, ModuleGraph,
+  DependenciesBlock, DependencyId, ExportsType, FactoryMeta, LibIdentOptions, Module, ModuleGraph,
   ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType, impl_module_meta_info,
   impl_source_map_config, module_update_hash, rspack_sources::BoxSource,
 };
@@ -153,6 +153,15 @@ impl Module for ConsumeSharedModule {
 
   fn get_context(&self) -> Option<Box<Context>> {
     Some(Box::new(self.context.clone()))
+  }
+
+  fn get_exports_type(
+    &self,
+    _module_graph: &ModuleGraph,
+    _module_graph_cache: &rspack_core::ModuleGraphCacheArtifact,
+    _strict: bool,
+  ) -> ExportsType {
+    ExportsType::Dynamic
   }
 
   async fn build(

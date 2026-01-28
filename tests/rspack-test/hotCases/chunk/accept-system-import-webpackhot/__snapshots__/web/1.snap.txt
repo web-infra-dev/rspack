@@ -8,9 +8,9 @@
 - Bundle: chunk2_js.chunk.CURRENT_HASH.js
 - Bundle: chunk_js.chunk.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 51
-- Update: chunk2_js.LAST_HASH.hot-update.js, size: 274
-- Update: chunk_js.LAST_HASH.hot-update.js, size: 273
-- Update: main.LAST_HASH.hot-update.js, size: 182
+- Update: chunk2_js.LAST_HASH.hot-update.js, size: 273
+- Update: chunk_js.LAST_HASH.hot-update.js, size: 272
+- Update: main.LAST_HASH.hot-update.js, size: 181
 
 ## Manifest
 
@@ -35,7 +35,7 @@
 #### Changed Content
 ```js
 "use strict";
-self["webpackHotUpdate"]("chunk2_js", {
+self["rspackHotUpdate"]("chunk2_js", {
 "./file.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
@@ -62,7 +62,7 @@ var value = 2;
 #### Changed Content
 ```js
 "use strict";
-self["webpackHotUpdate"]("chunk_js", {
+self["rspackHotUpdate"]("chunk_js", {
 "./file.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
@@ -89,7 +89,7 @@ var value = 2;
 #### Changed Content
 ```js
 "use strict";
-self["webpackHotUpdate"]("main", {},function(__webpack_require__) {
+self["rspackHotUpdate"]("main", {},function(__webpack_require__) {
 // webpack/runtime/get_full_hash
 (() => {
 __webpack_require__.h = () => ("CURRENT_HASH")

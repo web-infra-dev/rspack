@@ -6,6 +6,8 @@ module.exports = {
 		filename: "bundle.js"
 	},
 	stats: {
+		assets: true,
+		modules: true,
 		excludeModules: ["node_modules", "exclude"],
 		excludeAssets: [/\.json/]
 	},

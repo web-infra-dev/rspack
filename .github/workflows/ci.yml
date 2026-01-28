@@ -7,7 +7,7 @@ on:
     inputs:
       debug_enabled:
         type: boolean
-        description: "Run the build with tmate debugging enabled (https://github.com/marketplace/actions/debugging-with-tmate)"
+        description: 'Run the build with tmate debugging enabled (https://github.com/marketplace/actions/debugging-with-tmate)'
         required: false
         default: false
   pull_request:
@@ -15,15 +15,16 @@ on:
   push:
     branches:
       - main
+      - v1.x
     paths-ignore:
-      - "**/*.md"
-      - "website/**"
+      - '**/*.md'
+      - 'website/**'
     tags-ignore:
-      - "**"
+      - '**'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
-  cancel-in-progress: ${{ github.ref_name != 'main' }}
+  cancel-in-progress: ${{ github.ref_name != 'main' && github.ref_name != 'v1.x' }}
 
 permissions:
   # Allow commenting on issues for `reusable-build.yml`
@@ -43,7 +44,7 @@ jobs:
       - uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3
         id: filter
         with:
-          predicate-quantifier: "every"
+          predicate-quantifier: 'every'
           filters: |
             code_changed:
               - "!**/*.md"
@@ -71,7 +72,7 @@ jobs:
     uses: ./.github/workflows/reusable-build.yml
     with:
       target: x86_64-pc-windows-msvc
-      profile: "dev"
+      profile: 'dev'
       runner: ${{ vars.WINDOWS_SELF_HOSTED_RUNNER_LABELS || '"windows-latest"' }}
       test-runner: '"windows-latest"'
       test: true
@@ -83,7 +84,7 @@ jobs:
     uses: ./.github/workflows/reusable-build.yml
     with:
       target: aarch64-apple-darwin
-      profile: "ci"
+      profile: 'ci'
       runner: ${{ vars.MAC_SELF_HOSTED_RUNNER_LABELS || '"macos-latest"' }}
       test-runner: ${{ '"macos-latest"' }}
       test: true
@@ -95,7 +96,7 @@ jobs:
     uses: ./.github/workflows/reusable-build.yml
     with:
       target: wasm32-wasip1-threads
-      profile: "ci"
+      profile: 'ci'
       runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
       test: true
 
@@ -116,6 +117,36 @@ jobs:
         if: ${{ github.event_name == 'pull_request' }}
         run: bash .github/actions/codspeed/check-comment.sh
 
+  check-cache:
+    name: Check Cache Portable
+    needs: [test-linux, test-windows]
+    runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"') }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+      - name: Install Rust Toolchain
+        uses: ./.github/actions/rustup
+        with:
+          key: test_cache
+          save-if: true
+      - name: Download linux cache
+        uses: ./.github/actions/artifact/download
+        with:
+          name: testCase-persistentCache-linux
+          path: ./cache-linux
+          force-use-github: true
+      - name: Download windows cache
+        uses: ./.github/actions/artifact/download
+        with:
+          name: testCase-persistentCache-windows
+          path: ./cache-windows
+          force-use-github: true
+      - name: Run compare kit
+        run: |
+          echo "success"
+          #  TODO open it after rspack portable cache implementation
+          # cargo run -p rspack_tools -- compare ./cache-linux ./cache-windows
+
   test_required_check:
     # this job will be used for GitHub actions to determine required job success or not;
     # When code changed, it will check if any of the test jobs failed.
@@ -129,7 +160,8 @@ jobs:
         test-mac,
         test-wasm,
         check-changed,
-        size-limit
+        size-limit,
+        check-cache,
       ]
     if: ${{ always() && !cancelled() }}
     runs-on: ubuntu-latest
@@ -139,13 +171,13 @@ jobs:
       - name: Test check
         if: ${{ needs.check-changed.outputs.code_changed == 'true'
           && github.event_name == 'pull_request'
-          && join(needs.*.result, ',')!='success,success,success,success,success,success,success' }}
+          && join(needs.*.result, ',')!='success,success,success,success,success,success,success,success' }}
         run: echo "Tess Failed" && exit 1
 
       - name: Test check
         if: ${{ needs.check-changed.outputs.code_changed == 'true'
           && github.event_name != 'pull_request'
-          && join(needs.*.result, ',')!='success,success,success,success,success,success,skipped' }}
+          && join(needs.*.result, ',')!='success,success,success,success,success,success,skipped,success' }}
         run: echo "Tess Failed" && exit 1
 
       - name: No check to Run test

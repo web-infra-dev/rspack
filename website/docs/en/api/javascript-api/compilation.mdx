@@ -37,11 +37,11 @@ You can get the current compilation object via [compiler.hooks.thisCompilation](
 ```js
 class ExamplePlugin {
   apply(compiler) {
-    compiler.hooks.thisCompilation.tap('ExamplePlugin', compilation => {
+    compiler.hooks.thisCompilation.tap('ExamplePlugin', (compilation) => {
       console.log('thisCompilation hook called:', compilation);
     });
 
-    compiler.hooks.compilation.tap('ExamplePlugin', compilation => {
+    compiler.hooks.compilation.tap('ExamplePlugin', (compilation) => {
       console.log('compilation hook called:', compilation);
     });
   }
@@ -65,7 +65,7 @@ emitAsset(
 The following code will add a new asset named `asset-name.js` and will not be compressed:
 
 ```js
-compiler.hooks.thisCompilation.tap('MyPlugin', compilation => {
+compiler.hooks.thisCompilation.tap('MyPlugin', (compilation) => {
   const { RawSource } = compiler.rspack.sources;
   compilation.hooks.processAssets.tap('MyPlugin', () => {
     const buffer = Buffer.from(
@@ -113,7 +113,7 @@ updateAsset(
 The following code replaces the content of `main.js` and not to minimize it:
 
 ```js
-compiler.hooks.thisCompilation.tap('MyPlugin', compilation => {
+compiler.hooks.thisCompilation.tap('MyPlugin', (compilation) => {
   const { RawSource } = compiler.rspack.sources;
   compilation.hooks.processAssets.tap('MyPlugin', () => {
     const updatedSource = new RawSource(
@@ -157,7 +157,7 @@ renameAsset(
 The following code renames the asset named `main.js` to `my-asset-name.js`:
 
 ```js
-compiler.hooks.thisCompilation.tap('MyPlugin', compilation => {
+compiler.hooks.thisCompilation.tap('MyPlugin', (compilation) => {
   compilation.hooks.processAssets.tap('MyPlugin', () => {
     compilation.renameAsset('main.js', 'my-asset-name.js');
   });
@@ -177,7 +177,7 @@ deleteAsset(
 The following code will delete the asset named `no-need.js`:
 
 ```js
-compiler.hooks.thisCompilation.tap('MyPlugin', compilation => {
+compiler.hooks.thisCompilation.tap('MyPlugin', (compilation) => {
   compilation.hooks.processAssets.tap('MyPlugin', () => {
     compilation.deleteAsset('no-need.js');
   });
@@ -199,7 +199,7 @@ getAssets(): ReadonlyArray<{
 The following code will print the total size of all assets:
 
 ```js
-compiler.hooks.compilation.tap('MyPlugin', compilation => {
+compiler.hooks.compilation.tap('MyPlugin', (compilation) => {
   compilation.hooks.processAssets.tap('MyPlugin', () => {
     const assets = compilation.getAssets();
     const totalSize = assets.reduce(
@@ -245,7 +245,7 @@ getAsset(
 The following code will print the size of the asset named `main.js`:
 
 ```js
-compiler.hooks.compilation.tap('MyPlugin', compilation => {
+compiler.hooks.compilation.tap('MyPlugin', (compilation) => {
   compilation.hooks.processAssets.tap('MyPlugin', () => {
     const assetSize = compilation.getAsset('main.js')?.source.size();
     console.log(`main size: ${assetSize}`);
@@ -382,7 +382,7 @@ getStats(): Stats;
 The following code prints the total number of modules:
 
 ```js
-compiler.hooks.emit.tapAsync('MyPlugin', compilation => {
+compiler.hooks.emit.tapAsync('MyPlugin', (compilation) => {
   const modules = compilation.getStats().toJson({ modules: true }).modules;
   console.log(`Total modules: ${modules.length}`);
 });
@@ -409,7 +409,7 @@ createChildCompiler(
 The following code will start a child compiler with `child-entry.js` as the entry, and output to `dist/child`:
 
 ```js
-compiler.hooks.make.tap('MyPlugin', compilation => {
+compiler.hooks.make.tap('MyPlugin', (compilation) => {
   const childCompiler = compilation.createChildCompiler(
     'ChildCompiler',
     {
@@ -469,7 +469,7 @@ export default {
           }
         }
 
-        compiler.hooks.thisCompilation.tap('CustomPlugin', compilation => {
+        compiler.hooks.thisCompilation.tap('CustomPlugin', (compilation) => {
           compilation.hooks.runtimeRequirementInTree
             .for(RuntimeGlobals.ensureChunkHandlers)
             .tap('CustomPlugin', (chunk, set) => {
@@ -506,9 +506,9 @@ rebuildModule(
 The following code will rebuild the module ending with `a.js`:
 
 ```js
-compiler.hooks.compilation.tap('MyPlugin', compilation => {
-  compilation.hooks.finishModules.tapPromise('MyPlugin', async modules => {
-    const oldModule = Array.from(modules).find(item =>
+compiler.hooks.compilation.tap('MyPlugin', (compilation) => {
+  compilation.hooks.finishModules.tapPromise('MyPlugin', async (modules) => {
+    const oldModule = Array.from(modules).find((item) =>
       item.resource.endsWith('a.js'),
     );
     compilation.rebuildModule(oldModule, (err, m) => {
@@ -539,7 +539,7 @@ getLogger(name: string | (() => string)): Logger;
 The following code prints the asset to the debug log in `processAssets`:
 
 ```js
-compiler.hooks.compilation.tap('MyPlugin', compilation => {
+compiler.hooks.compilation.tap('MyPlugin', (compilation) => {
   const logger = compilation.getLogger('MyPlugin');
 
   compilation.hooks.processAssets.tap('MyPlugin', () => {

@@ -47,6 +47,59 @@ The recommended approach is to use your package manager's workspace feature to s
 
 Define a field, such as `browser`, that should be parsed in accordance with [this specification](https://github.com/defunctzombie/package-browser-field-spec).
 
+## resolve.byDependency
+
+- **Type:** `Record<string, ResolveOptions>`
+
+Configure resolve options based on the dependency type, which describes how a module is referenced in source code, such as ES module imports, CommonJS `require`, or URL-based requests.
+
+It is useful when different request forms require different resolution strategies.
+
+Each key represents a dependency type, and the value is a set of standard `resolve` options applied only to requests of that type.
+
+### Dependency types
+
+Rspack supports the following dependency types:
+
+- `esm`: Modules referenced via `import` statements or dynamic `import()`.
+- `commonjs`: Modules referenced via CommonJS `require()`.
+- `amd`: Modules referenced using AMD-style definitions, such as `define()`.
+- `url`: Modules referenced via URLs, such as `new URL('./asset.png', import.meta.url)`.
+- `wasm`: WebAssembly modules referenced using ES module semantics.
+- `worker`: Modules referenced via `new Worker(new URL('./worker.js', import.meta.url))`.
+- `css-import`: CSS modules referenced via `@import`.
+- `unknown`: A fallback type used when the type cannot be determined.
+
+### Example
+
+```js title="rspack.config.mjs"
+export default {
+  resolve: {
+    byDependency: {
+      esm: {
+        mainFields: ['browser', 'module'],
+      },
+      commonjs: {
+        aliasFields: ['browser'],
+      },
+      url: {
+        preferRelative: true,
+      },
+    },
+  },
+};
+```
+
+In this example:
+
+- ES module references prioritize the `browser` and `module` fields.
+- CommonJS references read aliases from the `browser` field.
+- URL-based references prefer relative paths during resolution.
+
+:::tip
+The options defined in `resolve.byDependency` are merged with the top-level `resolve` configuration, with `resolve.byDependency` taking precedence.
+:::
+
 ## resolve.conditionNames
 
 - **Type:** `string[]`
@@ -304,7 +357,6 @@ You could use [node-polyfill-webpack-plugin](https://www.npmjs.com/package/node-
 import NodePolyfillPlugin from 'node-polyfill-webpack-plugin';
 
 export default {
-  // ...
   plugins: [new NodePolyfillPlugin()],
 };
 ```
@@ -484,7 +536,7 @@ export default {
 };
 ```
 
-[Click to see the example](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/basic-ts).
+[Click to see the example](https://github.com/rstackjs/rstack-examples/tree/main/rspack/basic-ts).
 
 ### resolve.tsConfig.configFile
 
@@ -533,12 +585,6 @@ Whether to resolve symlinks to their symlinked location.
 
 When enabled, symlinked resources are resolved to their real path, not their symlinked location. Note that this may cause module resolution to fail when using tools that symlink packages (like `npm link`).
 
-## resolve.byDependency
-
-- **Type:** `Record<string, Resolve>`.
-
-Customize the Resolve configuration based on the module type.
-
 ## resolve.pnp
 
 - **Type:** `boolean`
@@ -552,7 +598,6 @@ Example:
 
 ```js title="rspack.config.mjs"
 export default {
-  // ...
   resolve: {
     pnp: true,
   },

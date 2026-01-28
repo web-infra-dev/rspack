@@ -1,3 +1,3 @@
-import type { ChunkGroup } from "@rspack/binding";
+import type { ChunkGroup } from '@rspack/binding';
 
 export type Entrypoint = ChunkGroup;

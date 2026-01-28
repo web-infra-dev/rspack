@@ -5,7 +5,7 @@ use rayon::iter::{
   ParallelIterator,
 };
 use rspack_collections::{DatabaseItem, IdentifierSet};
-use rspack_error::{Diagnostic, Display, Result, StdioDisplayer, StringDisplayer};
+use rspack_error::{Diagnostic, Display, Result, StringDisplayer};
 use rustc_hash::FxHashMap as HashMap;
 
 mod utils;
@@ -28,19 +28,6 @@ pub struct Stats<'compilation> {
 impl<'compilation> Stats<'compilation> {
   pub fn new(compilation: &'compilation Compilation) -> Self {
     Self { compilation }
-  }
-
-  pub fn emit_diagnostics(&self) -> Result<()> {
-    let displayer = StdioDisplayer::default();
-    displayer.emit_batch_diagnostic(self.compilation.get_warnings())?;
-    displayer.emit_batch_diagnostic(self.compilation.get_errors())
-  }
-
-  pub fn emit_diagnostics_string(&self, sorted: bool) -> Result<String> {
-    let displayer = StringDisplayer::new(false, sorted);
-    let warnings = displayer.emit_batch_diagnostic(self.compilation.get_warnings())?;
-    let errors = displayer.emit_batch_diagnostic(self.compilation.get_errors())?;
-    Ok(format!("{warnings}{errors}"))
   }
 }
 
@@ -232,7 +219,7 @@ impl Stats<'_> {
       .par_bridge()
       .map(|module| {
         self.get_module(
-          &module_graph,
+          module_graph,
           module_graph_cache,
           module,
           false,
@@ -322,7 +309,7 @@ impl Stats<'_> {
         };
 
         let root_modules = chunk_graph
-          .get_chunk_root_modules(&c.ukey(), &module_graph, module_graph_cache)
+          .get_chunk_root_modules(&c.ukey(), module_graph, module_graph_cache)
           .into_iter()
           .collect::<IdentifierSet>();
 
@@ -337,12 +324,12 @@ impl Stats<'_> {
           let chunk_modules = self
             .compilation
             .chunk_graph
-            .get_chunk_modules(&c.ukey(), &module_graph);
+            .get_chunk_modules(&c.ukey(), module_graph);
           let mut chunk_modules = chunk_modules
             .into_iter()
             .map(|m| {
               self.get_module(
-                &module_graph,
+                module_graph,
                 module_graph_cache,
                 m,
                 false,
@@ -632,7 +619,7 @@ impl Stats<'_> {
 
         let module_trace = get_module_trace(
           module_identifier,
-          &module_graph,
+          module_graph,
           self.compilation,
           &self.compilation.options,
         );
@@ -690,7 +677,7 @@ impl Stats<'_> {
 
         let module_trace = get_module_trace(
           module_identifier,
-          &module_graph,
+          module_graph,
           self.compilation,
           &self.compilation.options,
         );
@@ -744,7 +731,7 @@ impl Stats<'_> {
   #[allow(clippy::too_many_arguments)]
   fn get_module<'a>(
     &'a self,
-    module_graph: &'a ModuleGraph<'a>,
+    module_graph: &'a ModuleGraph,
     module_graph_cache: &'a ModuleGraphCacheArtifact,
     module: &'a BoxModule,
     executed: bool,
@@ -824,7 +811,6 @@ impl Stats<'_> {
       assets: None,
       modules: None,
       source: None,
-      profile: None,
       orphan: None,
       provided_exports: None,
       used_exports: None,
@@ -891,15 +877,6 @@ impl Stats<'_> {
         .filter(|d| d.module_identifier.is_some_and(|id| id == identifier))
         .count() as u32;
 
-      let profile = if let Some(p) = mgm.profile()
-        && let Some(factory) = p.factory_duration()
-        && let Some(building) = p.building_duration()
-      {
-        Some(StatsModuleProfile { factory, building })
-      } else {
-        None
-      };
-
       stats.identifier = Some(identifier);
       stats.name = Some(module.readable_identifier(&self.compilation.options.context));
       stats.name_for_condition = module.name_for_condition().map(|n| n.to_string());
@@ -915,8 +892,6 @@ impl Stats<'_> {
       stats.failed = Some(errors > 0);
       stats.errors = Some(errors);
       stats.warnings = Some(warnings);
-
-      stats.profile = profile;
     }
 
     if options.ids {
@@ -1008,15 +983,14 @@ impl Stats<'_> {
             })
             .unzip();
           let dependency = module_graph.dependency_by_id(&connection.dependency_id);
-          let (r#type, user_request) =
-            if let Some(d) = dependency.and_then(|d| d.as_module_dependency()) {
-              (Some(d.dependency_type().as_str()), Some(d.user_request()))
-            } else if let Some(d) = dependency.and_then(|d| d.as_context_dependency()) {
-              (Some(d.dependency_type().as_str()), Some(d.request()))
-            } else {
-              (None, None)
-            };
-          let loc = dependency.and_then(|d| d.loc()).map(|l| l.to_string());
+          let (r#type, user_request) = if let Some(d) = dependency.as_module_dependency() {
+            (Some(d.dependency_type().as_str()), Some(d.user_request()))
+          } else if let Some(d) = dependency.as_context_dependency() {
+            (Some(d.dependency_type().as_str()), Some(d.request()))
+          } else {
+            (None, None)
+          };
+          let loc = dependency.loc().map(|l| l.to_string());
           let explanation = module_graph
             .get_dep_meta_if_existing(&connection.dependency_id)
             .and_then(|extra| extra.explanation);
@@ -1163,7 +1137,6 @@ impl Stats<'_> {
       assets: None,
       modules: None,
       source: None,
-      profile: None,
       orphan: None,
       provided_exports: None,
       used_exports: None,
@@ -1279,7 +1252,6 @@ impl Stats<'_> {
       assets: None,
       modules: None,
       source: None,
-      profile: None,
       orphan: None,
       provided_exports: None,
       used_exports: None,
@@ -1344,7 +1316,7 @@ impl Stats<'_> {
 
 pub fn create_stats_errors<'a>(
   compilation: &'a Compilation,
-  module_graph: &'a ModuleGraph<'a>,
+  module_graph: &'a ModuleGraph,
   diagnostics: &'a mut Vec<Diagnostic>,
   colored: bool,
 ) -> Vec<StatsError<'a>> {

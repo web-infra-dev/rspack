@@ -1,11 +1,6 @@
-import Markdown from 'markdown-to-jsx';
-import type { ReactNode } from 'react';
-import {
-  Table as ModernTable,
-  Td as ModernTableData,
-  Th as ModernTableHead,
-  Tr as ModernTableRow,
-} from './mdx-components';
+import { getCustomMDXComponent, Link } from '@rspress/core/theme';
+import Markdown, { type MarkdownToJSX } from 'markdown-to-jsx';
+import type { JSX, ReactNode } from 'react';
 
 interface TableProps {
   children?: ReactNode[];
@@ -20,6 +15,14 @@ interface TableProps {
   className?: string;
 }
 
+const MarkdownOptions = {
+  overrides: {
+    a: {
+      component: Link,
+    },
+  },
+} satisfies MarkdownToJSX.Options;
+
 // Use case example:
 //
 // import { Table } from '@builtIns';
@@ -31,12 +34,12 @@ interface TableProps {
 //   ]}
 //   body={[
 //     {
-//       name: 'Modern.js',
-//       description: 'A JavaScript framework for the modern web.',
+//       name: 'Foo',
+//       description: 'Description1',
 //     },
 //     {
-//       name: 'Modern.js Doc Tools',
-//       description: 'A tool for building documentation sites.',
+//       name: 'Bar',
+//       description: 'Description2',
 //     }
 //   ]}
 // />
@@ -46,45 +49,45 @@ export function Table(props: TableProps) {
   const compiledValue = body.map((item: any) => {
     for (const key of Object.keys(item)) {
       if (typeof item[key] === 'string') {
-        item[key] = <Markdown>{item[key]}</Markdown>;
+        item[key] = <Markdown options={MarkdownOptions}>{item[key]}</Markdown>;
       }
     }
     return item;
   });
 
+  const { table: Table } = getCustomMDXComponent();
+
   const renderHeaderItem = (name: string | JSX.Element) => {
     if (typeof name === 'string') {
-      return <Markdown>{name}</Markdown>;
+      return <Markdown options={MarkdownOptions}>{name}</Markdown>;
     }
     return name;
   };
 
   // generate table tag
   return (
-    <ModernTable style={tableStyle} className={props.className}>
+    <Table style={tableStyle} className={props.className}>
       <thead>
-        <ModernTableRow>
-          {header.map(item => (
-            <ModernTableHead key={item.key} style={item.style}>
+        <tr>
+          {header.map((item) => (
+            <th key={item.key} style={item.style}>
               {renderHeaderItem(item.name)}
-            </ModernTableHead>
+            </th>
           ))}
-        </ModernTableRow>
+        </tr>
       </thead>
       <tbody>
         {compiledValue.map((item: any, index: number) => {
           const key = `row-${index}`;
           return (
-            <ModernTableRow key={key}>
-              {header.map(headerItem => (
-                <ModernTableData key={headerItem.key}>
-                  {item[headerItem.key]}
-                </ModernTableData>
+            <tr key={key}>
+              {header.map((headerItem) => (
+                <td key={headerItem.key}>{item[headerItem.key]}</td>
               ))}
-            </ModernTableRow>
+            </tr>
           );
         })}
       </tbody>
-    </ModernTable>
+    </Table>
   );
 }

@@ -1,8 +1,9 @@
+use napi::Either;
 use napi_derive::napi;
 use rspack_browserslist::browserslist_to_lightningcss_targets;
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_plugin_lightning_css_minimizer::{
-  Draft, MinimizerOptions, NonStandard, PluginOptions, PseudoClasses,
+  Browsers, Draft, MinimizerOptions, NonStandard, PluginOptions, PseudoClasses,
 };
 
 use crate::asset_condition::{RawAssetConditions, into_asset_conditions};
@@ -24,11 +25,10 @@ pub struct RawLightningCssMinimizerRspackPluginOptions {
 #[napi(object)]
 pub struct RawLightningCssMinimizerOptions {
   pub error_recovery: bool,
-  pub targets: Option<Vec<String>>,
+  #[napi(ts_type = "string[] | RawLightningCssBrowsers")]
+  pub targets: Option<Either<Vec<String>, RawLightningCssBrowsers>>,
   pub include: Option<u32>,
   pub exclude: Option<u32>,
-  // TODO: deprecate `draft` in favor of `drafts`
-  pub draft: Option<RawDraft>,
   pub drafts: Option<RawDraft>,
   pub non_standard: Option<RawNonStandard>,
   pub pseudo_classes: Option<RawLightningCssPseudoClasses>,
@@ -37,7 +37,6 @@ pub struct RawLightningCssMinimizerOptions {
 
 #[derive(Debug)]
 #[napi(object)]
-#[allow(unused)]
 pub struct RawLightningCssBrowsers {
   pub android: Option<u32>,
   pub chrome: Option<u32>,
@@ -87,20 +86,28 @@ impl TryFrom<RawLightningCssMinimizerRspackPluginOptions> for PluginOptions {
         targets: value
           .minimizer_options
           .targets
-          .map(browserslist_to_lightningcss_targets)
+          .map(|targets| match targets {
+            Either::A(query) => browserslist_to_lightningcss_targets(query),
+            Either::B(browsers) => Ok(Some(Browsers {
+              android: browsers.android,
+              chrome: browsers.chrome,
+              edge: browsers.edge,
+              firefox: browsers.firefox,
+              ie: browsers.ie,
+              ios_saf: browsers.ios_saf,
+              opera: browsers.opera,
+              safari: browsers.safari,
+              samsung: browsers.samsung,
+            })),
+          })
           .transpose()
           .to_rspack_result_with_message(|e| format!("Failed to parse browserslist: {e}"))?
           .flatten(),
         include: value.minimizer_options.include,
         exclude: value.minimizer_options.exclude,
-        // We should use `drafts` if it is present, otherwise use `draft`
-        draft: value
-          .minimizer_options
-          .drafts
-          .or(value.minimizer_options.draft)
-          .map(|d| Draft {
-            custom_media: d.custom_media,
-          }),
+        drafts: value.minimizer_options.drafts.map(|d| Draft {
+          custom_media: d.custom_media,
+        }),
         non_standard: value.minimizer_options.non_standard.map(|n| NonStandard {
           deep_selector_combinator: n.deep_selector_combinator,
         }),

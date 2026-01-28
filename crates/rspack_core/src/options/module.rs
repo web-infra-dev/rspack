@@ -301,13 +301,13 @@ pub struct JavascriptParserOptions {
   pub worker: Option<Vec<String>>,
   pub override_strict: Option<OverrideStrict>,
   pub import_meta: Option<bool>,
+  pub require_alias: Option<bool>,
   pub require_as_expression: Option<bool>,
   pub require_dynamic: Option<bool>,
   pub require_resolve: Option<bool>,
   pub commonjs: Option<JavascriptParserCommonjsOptions>,
   pub import_dynamic: Option<bool>,
   pub commonjs_magic_comments: Option<bool>,
-  pub inline_const: Option<bool>,
   pub jsx: Option<bool>,
   pub defer_import: Option<bool>,
 }
@@ -498,13 +498,6 @@ impl GeneratorOptions {
       .get_asset()
       .and_then(|x| x.data_url.as_ref())
       .or_else(|| self.get_asset_inline().and_then(|x| x.data_url.as_ref()))
-  }
-
-  pub fn asset_emit(&self) -> Option<bool> {
-    self
-      .get_asset()
-      .and_then(|x| x.emit)
-      .or_else(|| self.get_asset_resource().and_then(|x| x.emit))
   }
 }
 

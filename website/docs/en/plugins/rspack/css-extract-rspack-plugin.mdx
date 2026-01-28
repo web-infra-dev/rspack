@@ -7,7 +7,7 @@ import { ApiMeta } from '@components/ApiMeta.tsx';
 
 Rspack is currently incompatible with [mini-css-extract-plugin](https://github.com/webpack/mini-css-extract-plugin), but you can use the CssExtractRspackPlugin as a replacement. It can be used with css-loader to extract CSS into separate files.
 
-> If your project does not depend on on css-loader and mini-css-extract-plugin, it is recommended to use Rspack's built-in CSS solution [experiments.css](/config/experiments#experimentscss), which offers better performance.
+> If your project does not depend on on css-loader and mini-css-extract-plugin, it is recommended to use Rspack's built-in CSS solution, which offers better performance.
 
 ## Example
 
@@ -197,7 +197,7 @@ interface LoaderOptions {
 
 ## Note
 
-Please note when enabling the built-in CSS support (`experiments.css`), Files ending with `.css` will be automatically treated as `css/auto` modules. If you want to use this plugin, make sure that the rule types with `CssExtractRspackPlugin.loader` set are all overridden by `javascript/auto` instead of the default `css/auto`.
+Please note that if you want to use this plugin and css together, it's recommended to explicitly set type to `javascript/auto`.
 
 For example:
 
@@ -218,9 +218,6 @@ export default {
         type: 'css/auto', // Handle with built-in CSS
       },
     ],
-  },
-  experiments: {
-    css: true,
   },
 };
 ```

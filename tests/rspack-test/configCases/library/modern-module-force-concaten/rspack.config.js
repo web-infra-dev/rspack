@@ -26,7 +26,7 @@ module.exports = {
 	output: {
 		filename: `[name].js`,
 		module: true,
-		libraryTarget: "modern-module",
+		library: { type: "modern-module" },
 		iife: false,
 		chunkFormat: "module"
 	},
@@ -34,8 +34,6 @@ module.exports = {
 		outputModule: true
 	},
 	optimization: {
-		concatenateModules: true,
-		avoidEntryIife: true,
 		minimize: false
 	},
 	plugins: [
@@ -74,7 +72,7 @@ module.exports = {
 						path.join(__dirname, "__snapshot__", "g.js.txt"),
 						"harmony export should concat, even with bailout reason"
 					);
-					expect(assets["h.js"]).toBeUndefined();
+					expect(assets["h.js"]).toBeDefined();
 				});
 			};
 			this.hooks.compilation.tap("testcase", handler);

@@ -6,11 +6,11 @@ Rspack 内置了对 JavaScript、CSS、JSON、静态资源等模块类型的支�
 
 Loader 是一种模块转换器，它将各种类型的模块转换为 Rspack 支持的类型。通过使用不同类型的 loader，你可以扩展 Rspack 来处理额外的模块类型，例如 JSX、Markdown、Sass、Less 等。
 
-当 Rspack 打包一个模块时，先通过 loader 对模块进行预处理，将它们转换为 Rspack 支持的模块类型，然后再根据 [Rule.type](/config/module#ruletype) 对模块进行后置处理。
+当 Rspack 打包一个模块时，先通过 loader 对模块进行预处理，将它们转换为 Rspack 支持的模块类型，然后再根据 [rules[].type](/config/module-rules#rulestype) 对模块进行后置处理。
 
 ## webpack loader 兼容
 
-Rspack 允许你使用社区中绝大多数的 webpack loaders。查看 [awesome-rspack - Rspack loaders](https://github.com/web-infra-dev/awesome-rspack?tab=readme-ov-file#rspack-loaders) 发现社区提供的 loaders。
+Rspack 允许你使用社区中绝大多数的 webpack loaders。查看 [awesome-rstack - Rspack loaders](https://github.com/rstackjs/awesome-rstack?tab=readme-ov-file#rspack-loaders) 发现社区提供的 loaders。
 
 如果你发现有 Rspack 不支持的 loader，欢迎通过 [GitHub Issues](https://github.com/web-infra-dev/rspack/issues) 与我们交流。
 
@@ -46,7 +46,7 @@ export default {
 
 ### 使用多个 Loader
 
-你可以对特定的 [Rule](/config/module#rule) 匹配项使用多个 loader 进行链式处理，loader 的执行顺序为**从右往左**。
+你可以对特定的 [Rule](/config/module-rules#rules) 匹配项使用多个 loader 进行链式处理，loader 的执行顺序为**从右往左**。
 
 例如，你可以使用 [less-loader](https://github.com/webpack/less-loader) 完成 Less 到 CSS 类型之间的转换，并对转换后的源码使用 [postcss-loader](https://github.com/webpack/postcss-loader) 进行二次转换，并最终交给 Rspack 的 CSS 后处理器，完成进一步处理：
 
@@ -73,7 +73,7 @@ export default {
 
 ### 传递配置项
 
-你可以使用 [Rule.use](/config/module#ruleuse) 给 loader 传递相关配置，例如：
+你可以使用 [rules[].use](/config/module-rules#rulesuse) 给 loader 传递相关配置，例如：
 
 ```js title="rspack.config.mjs"
 export default {

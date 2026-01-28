@@ -1,6 +1,5 @@
-use std::time::{SystemTime, UNIX_EPOCH};
-
 use rspack_paths::{Utf8Path, Utf8PathBuf};
+use rspack_util::current_time;
 use rustc_hash::FxHashSet as HashSet;
 
 use super::options::PackOptions;
@@ -39,13 +38,6 @@ impl RootMeta {
   pub fn get_path(dir: &Utf8Path) -> Utf8PathBuf {
     dir.join("storage_meta")
   }
-}
-
-pub fn current_time() -> u64 {
-  SystemTime::now()
-    .duration_since(UNIX_EPOCH)
-    .expect("should get current time")
-    .as_millis() as u64
 }
 
 #[derive(Debug, Default)]

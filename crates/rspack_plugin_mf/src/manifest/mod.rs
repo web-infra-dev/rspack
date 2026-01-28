@@ -29,7 +29,8 @@ use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_util::fx_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use utils::{
-  collect_expose_requirements, compose_id_with_separator, ensure_shared_entry, is_hot_file,
+  collect_entry_files, collect_expose_requirements, compose_id_with_separator,
+  ensure_configured_remotes, ensure_shared_entry, filter_assets, is_hot_file,
   parse_consume_shared_identifier, parse_provide_shared_identifier, record_shared_usage, strip_ext,
 };
 
@@ -92,6 +93,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     .keys()
     .map(|k| k.to_string())
     .collect();
+
   // Build metaData
   let container_name = self
     .options
@@ -99,6 +101,8 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     .clone()
     .filter(|s| !s.is_empty())
     .unwrap_or_else(|| compilation.options.output.unique_name.clone());
+
+  let entry_files = collect_entry_files(compilation, &container_name);
   let global_name = self
     .options
     .global_name
@@ -150,6 +154,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         let expose_name = expose.path.trim_start_matches("./").to_string();
         StatsExpose {
           path: expose.path.clone(),
+          file: String::new(),
           id: compose_id_with_separator(&container_name, &expose_name),
           name: expose_name,
           requires: Vec::new(),
@@ -166,7 +171,8 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         name: shared.name.clone(),
         version: shared.version.clone().unwrap_or_default(),
         requiredVersion: shared.required_version.clone(),
-        singleton: shared.singleton,
+        // default singleton to true when not provided by user
+        singleton: shared.singleton.or(Some(true)),
         assets: StatsAssetsGroup::default(),
         usedIn: Vec::new(),
       })
@@ -207,6 +213,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     };
 
     let mut exposes_map: HashMap<String, StatsExpose> = HashMap::default();
+    let mut expose_chunk_names: HashMap<String, String> = HashMap::default();
     let mut shared_map: HashMap<String, StatsShared> = HashMap::default();
     let mut shared_usage_links: Vec<(String, String)> = Vec::new();
     let mut shared_module_targets: HashMap<String, HashSet<ModuleIdentifier>> = HashMap::default();
@@ -246,20 +253,42 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         .downcast_ref::<ContainerEntryModule>()
       {
         container_entry_module = Some(module_identifier);
-        for (expose_key, options) in container_entry.exposes() {
+        let blocks = module.get_blocks();
+        for (index, (expose_key, options)) in container_entry.exposes().iter().enumerate() {
           let expose_name = expose_key.trim_start_matches("./").to_string();
           let Some(import) = options.import.iter().find(|request| !request.is_empty()) else {
             continue;
           };
           let id_comp = compose_id_with_separator(&container_name, &expose_name);
           let expose_file_key = strip_ext(import);
-          exposes_map.entry(expose_file_key).or_insert(StatsExpose {
-            path: expose_key.clone(),
-            id: id_comp,
-            name: expose_name,
-            requires: Vec::new(),
-            assets: StatsAssetsGroup::default(),
-          });
+          exposes_map
+            .entry(expose_file_key.clone())
+            .or_insert(StatsExpose {
+              path: expose_key.clone(),
+              file: String::new(),
+              id: id_comp,
+              name: expose_name,
+              requires: Vec::new(),
+              assets: StatsAssetsGroup::default(),
+            });
+
+          if let Some(block_id) = blocks.get(index)
+            && let Some(chunk_group) = compilation
+              .chunk_graph
+              .get_block_chunk_group(block_id, &compilation.chunk_group_by_ukey)
+            && let Some(chunk_key) = chunk_group.chunks.first()
+            && let Some(chunk) = compilation.chunk_by_ukey.get(chunk_key)
+            && let Some(name) = chunk.name()
+          {
+            expose_chunk_names.insert(expose_file_key.clone(), name.to_string());
+          }
+
+          if !expose_chunk_names.contains_key(&expose_file_key)
+            && let Some(n) = &options.name
+            && !n.is_empty()
+          {
+            expose_chunk_names.insert(expose_file_key, n.clone());
+          }
         }
         continue;
       }
@@ -277,6 +306,18 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           if entry.version.is_empty() {
             entry.version = ver;
           }
+          // overlay user-configured shared options (singleton/requiredVersion/version)
+          if let Some(opt) = self.options.shared.iter().find(|s| s.name == pkg) {
+            if let Some(singleton) = opt.singleton {
+              entry.singleton = Some(singleton);
+            }
+            if entry.requiredVersion.is_none() {
+              entry.requiredVersion = opt.required_version.clone();
+            }
+            if let Some(cfg_ver) = opt.version.clone().filter(|_| entry.version.is_empty()) {
+              entry.version = cfg_ver;
+            }
+          }
           let targets = shared_module_targets.entry(pkg.clone()).or_default();
           for connection in module_graph.get_outgoing_connections(&module_identifier) {
             let referenced = *connection.module_identifier();
@@ -292,7 +333,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
             &mut shared_usage_links,
             &pkg,
             &module_identifier,
-            &module_graph,
+            module_graph,
             compilation,
           );
         }
@@ -321,11 +362,24 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         if entry.requiredVersion.is_none() && required.is_some() {
           entry.requiredVersion = required;
         }
+        // overlay user-configured shared options
+        if let Some(opt) = self.options.shared.iter().find(|s| s.name == pkg) {
+          if let Some(singleton) = opt.singleton {
+            entry.singleton = Some(singleton);
+          }
+          // prefer parsed requiredVersion but fill from config if still None
+          if entry.requiredVersion.is_none() {
+            entry.requiredVersion = opt.required_version.clone();
+          }
+          if let Some(cfg_ver) = opt.version.clone().filter(|_| entry.version.is_empty()) {
+            entry.version = cfg_ver;
+          }
+        }
         record_shared_usage(
           &mut shared_usage_links,
           &pkg,
           &module_identifier,
-          &module_graph,
+          module_graph,
           compilation,
         );
       }
@@ -395,43 +449,43 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     }
 
     for (expose_file_key, expose) in exposes_map.iter_mut() {
-      let mut assets = if let Some(module_id) = module_ids_by_name.get(expose_file_key) {
-        collect_assets_for_module(compilation, module_id, &entry_point_names)
-          .unwrap_or_else(empty_assets_group)
-      } else if let Some(chunk_key) = compilation.named_chunks.get(expose_file_key) {
-        collect_assets_from_chunk(compilation, chunk_key, &entry_point_names)
-      } else {
-        empty_assets_group()
-      };
-      if !entry_name.is_empty() {
-        assets.js.sync.retain(|asset| asset != &entry_name);
-        assets.js.r#async.retain(|asset| asset != &entry_name);
-        assets.css.sync.retain(|asset| asset != &entry_name);
-        assets.css.r#async.retain(|asset| asset != &entry_name);
+      let mut assets = None;
+      if let Some(chunk_name) = expose_chunk_names.get(expose_file_key)
+        && let Some(chunk_key) = compilation.named_chunks.get(chunk_name)
+      {
+        assets = Some(collect_assets_from_chunk(
+          compilation,
+          chunk_key,
+          &entry_files,
+        ));
       }
-      assets
-        .js
-        .sync
-        .retain(|asset| !shared_asset_files.contains(asset));
-      assets
-        .js
-        .r#async
-        .retain(|asset| !shared_asset_files.contains(asset));
-      assets
-        .css
-        .sync
-        .retain(|asset| !shared_asset_files.contains(asset));
-      assets
-        .css
-        .r#async
-        .retain(|asset| !shared_asset_files.contains(asset));
+      if assets.is_none()
+        && let Some(chunk_key) = compilation.named_chunks.get(expose_file_key)
+      {
+        assets = Some(collect_assets_from_chunk(
+          compilation,
+          chunk_key,
+          &entry_files,
+        ));
+      }
+      if assets.is_none()
+        && let Some(module_id) = module_ids_by_name.get(expose_file_key)
+      {
+        assets = collect_assets_for_module(compilation, module_id, &entry_files);
+      }
+      let mut assets = assets.unwrap_or_else(empty_assets_group);
+      if let Some(path) = expose_module_paths.get(expose_file_key) {
+        expose.file = path.clone();
+      }
+      // Remove main entry files from assets
+      filter_assets(&mut assets, &entry_files, &shared_asset_files, true);
       normalize_assets_group(&mut assets);
       expose.assets = assets;
     }
 
     if let Some(module_id) = container_entry_module
       && let Some(mut entry_assets) =
-        collect_assets_for_module(compilation, &module_id, &entry_point_names)
+        collect_assets_for_module(compilation, &module_id, &entry_files)
     {
       entry_assets
         .js
@@ -441,6 +495,10 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         .css
         .sync
         .retain(|asset| !shared_asset_files.contains(asset));
+
+      // Remove main entry files from assets
+      filter_assets(&mut entry_assets, &entry_files, &shared_asset_files, false);
+
       normalize_assets_group(&mut entry_assets);
       for expose in exposes_map.values_mut() {
         let is_empty = expose.assets.js.sync.is_empty()
@@ -487,7 +545,17 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           (None, alias.clone())
         };
       let used_in =
-        collect_usage_files_for_module(compilation, &module_graph, &module_id, &entry_point_names);
+        collect_usage_files_for_module(compilation, module_graph, &module_id, &entry_point_names)
+          // keep only the file path, drop aggregated suffix like " + 1 modules"
+          .into_iter()
+          .map(|s| {
+            if let Some((before, _)) = s.split_once(" + ") {
+              before.to_string()
+            } else {
+              s
+            }
+          })
+          .collect();
       remote_list.push(StatsRemote {
         alias: alias.clone(),
         consumingFederationContainerName: container_name.clone(),
@@ -509,6 +577,14 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       .collect::<Vec<_>>();
     (exposes, shared, remote_list)
   };
+  // Ensure all configured remotes exist in stats, add missing with defaults
+  let mut remote_list = remote_list;
+  ensure_configured_remotes(
+    &mut remote_list,
+    &self.options.remote_alias_map,
+    &container_name,
+  );
+
   let stats_root = StatsRoot {
     id: container_name.clone(),
     name: container_name.clone(),

@@ -76,6 +76,12 @@ export default {
 
 SWC provides [jsc.target](https://swc.rs/docs/configuration/compilation#jsctarget) and [env.targets](https://swc.rs/docs/configuration/compilation#envtargets) to specify the target of JavaScript syntax lowering.
 
+:::tip Default target from Rspack
+If neither `env.targets` nor `jsc.target` is configured, `builtin:swc-loader` will automatically derive a default target from Rspack's [`target`](/config/target) configuration.
+
+This means you can rely on your Rspack `target` configuration without manually specifying the same targets in the loader options.
+:::
+
 #### jsc.target
 
 [jsc.target](https://swc.rs/docs/configuration/compilation#jsctarget) is used to specify the ECMA version, such as `es5`, `es2015`, `es2016`, etc.
@@ -173,7 +179,7 @@ export default {
 
 Note:
 
-- Make sure to [exclude](/config/module#ruleexclude) the `core-js` package, as `core-js` will not work properly if compiled by SWC.
+- Make sure to [exclude](/config/module-rules#rulesexclude) the `core-js` package, as `core-js` will not work properly if compiled by SWC.
 - When importing non-ES modules, add [isModule: 'unknown'](https://swc.rs/docs/configuration/compilation#ismodule) to allow SWC to correctly identify the module type.
 
 ## Type declaration
@@ -266,7 +272,7 @@ export default {
 };
 ```
 
-this is an [example](https://github.com/rspack-contrib/rstack-examples/blob/d4b8aaef9915ed0f540edbe504217c3d1afe8989/rspack/builtin-swc-loader/rspack.config.js#L45) of Wasm plugin usage.
+this is an [example](https://github.com/rstackjs/rstack-examples/blob/d4b8aaef9915ed0f540edbe504217c3d1afe8989/rspack/builtin-swc-loader/rspack.config.js#L45) of Wasm plugin usage.
 
 #### Set cache root
 
@@ -326,7 +332,6 @@ export default {
       {
         use: 'builtin:swc-loader',
         options: {
-          // ...
           rspackExperiments: {
             import: [
               {
@@ -359,7 +364,6 @@ export default {
       {
         use: 'builtin:swc-loader',
         options: {
-          // ...
           rspackExperiments: {
             import: [
               {
@@ -396,7 +400,6 @@ export default {
       {
         use: 'builtin:swc-loader',
         options: {
-          // ...
           rspackExperiments: {
             import: [
               {
@@ -430,7 +433,6 @@ export default {
       {
         use: 'builtin:swc-loader',
         options: {
-          // ...
           rspackExperiments: {
             import: [
               {
@@ -453,28 +455,28 @@ import Button from 'antd/es/button';
 import 'antd/es/button/style';
 ```
 
-### rspackExperiments.collectTypeScriptInfo
+### collectTypeScriptInfo
 
-<ApiMeta stability={Stability.Experimental} addedVersion="1.4.1" />
+<ApiMeta addedVersion="1.7.0" />
 
 Collects information from TypeScript's AST for consumption by subsequent Rspack processes, providing better TypeScript development experience and smaller output bundle size.
 
 To ensure the accuracy of the collected information, users must ensure that subsequent Normal Loaders after `builtin:swc-loader` do not modify the Abstract Syntax Tree (AST) corresponding to the collected information. This precaution is necessary to prevent discrepancies between the collected information and the actual code.
 
-#### rspackExperiments.collectTypeScriptInfo.typeExports
+#### collectTypeScriptInfo.typeExports
 
-<ApiMeta stability={Stability.Experimental} addedVersion="1.4.1" />
+<ApiMeta addedVersion="1.7.0" />
 
 - **Type:** `boolean`
 - **Default:** `false`
 
 Whether to collect type exports information for [`typeReexportsPresence`](/config/module#moduleparserjavascripttypereexportspresence). This is used to check type exports of submodules when running in `'tolerant'` mode.
 
-Please refer to [type reexports presence example](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/type-reexports-presence) for more details.
+Please refer to [type reexports presence example](https://github.com/rstackjs/rstack-examples/tree/main/rspack/type-reexports-presence) for more details.
 
-#### rspackExperiments.collectTypeScriptInfo.exportedEnum
+#### collectTypeScriptInfo.exportedEnum
 
-<ApiMeta stability={Stability.Experimental} addedVersion="1.4.1" />
+<ApiMeta addedVersion="1.7.0" />
 
 - **Type:** `boolean | 'const-only'`
 - **Default:** `false`
@@ -489,9 +491,6 @@ Whether to collect information about exported `enum`s, so Rspack can perform cro
 const isProduction = process.env.NODE_ENV === 'production';
 
 export default {
-  experiments: {
-    inlineEnum: true, // This is currently an experimental feature and requires explicit enabling
-  },
   module: {
     rules: [
       {
@@ -505,10 +504,8 @@ export default {
                   syntax: 'typescript',
                 },
               },
-              rspackExperiments: {
-                collectTypeScriptInfo: {
-                  exportedEnum: isProduction,
-                },
+              collectTypeScriptInfo: {
+                exportedEnum: isProduction,
               },
             },
           },
@@ -521,8 +518,8 @@ export default {
 
 Since this feature relies on module export usage information ([optimization.usedExports](/config/optimization#optimizationusedexports)), it is recommended to enable it only when `mode = "production"`.
 
-Please refer to [inline enum example](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/inline-enum) for more details.
+Please refer to [inline enum example](https://github.com/rstackjs/rstack-examples/tree/main/rspack/inline-enum) for more details.
 
 :::info
-By default, Rspack will perform inline optimization for all enums. To inline only `const enum`, use `'const-only'` and configure `transform.tsEnumIsMutable = true`. For detailed examples, refer to: [inline const enum example](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/inline-const-enum)
+By default, Rspack will perform inline optimization for all enums. To inline only `const enum`, use `'const-only'` and configure `transform.tsEnumIsMutable = true`. For detailed examples, refer to: [inline const enum example](https://github.com/rstackjs/rstack-examples/tree/main/rspack/inline-const-enum)
 :::

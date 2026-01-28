@@ -1,10 +1,9 @@
-[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
 asset common.js 1.11 MiB [emitted] (name: common) (id hint: vendors)
 asset pages/home.js xx KiB [emitted] (name: pages/home)
 asset runtime.js xx KiB [emitted] (name: runtime)
 asset main.js xx KiB [emitted] (name: main)
 Entrypoint main 1.12 MiB = runtime.js xx KiB common.js 1.11 MiB main.js xx KiB
-runtime modules xx KiB 14 modules
+runtime modules xx KiB 13 modules
 cacheable modules 1.12 MiB
   modules by path ../../../../node_modules/.pnpm/ 1.1 MiB
     modules by path ../../../../node_modules/<PNPM_INNER>/react/ xx KiB 4 modules
