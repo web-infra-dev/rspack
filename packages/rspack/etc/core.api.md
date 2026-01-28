@@ -1525,6 +1525,7 @@ export type ConsumesConfig = {
     shareScope?: string;
     singleton?: boolean;
     strictVersion?: boolean;
+    treeShakingMode?: 'server-calc' | 'runtime-infer';
 };
 
 // @public (undocumented)
@@ -1543,6 +1544,7 @@ class ConsumeSharedPlugin extends RspackBuiltinPlugin {
             packageName: string | undefined;
             singleton: boolean;
             eager: boolean;
+            treeShakingMode: "server-calc" | "runtime-infer" | undefined;
         }][];
         enhanced: boolean;
     };
@@ -3541,6 +3543,18 @@ type IntermediateFileSystemExtras = {
 };
 
 // @public (undocumented)
+type InternalManifestPluginOptions = {
+    name?: string;
+    globalName?: string;
+    filePath?: string;
+    disableAssetsAnalyze?: boolean;
+    fileName?: string;
+    remoteAliasMap?: RemoteAliasMap;
+    exposes?: ManifestExposeOption[];
+    shared?: ManifestSharedOption[];
+};
+
+// @public (undocumented)
 interface Invalid extends Node_4, HasSpan {
     // (undocumented)
     type: "Invalid";
@@ -4945,16 +4959,7 @@ type ModuleDeclaration = ImportDeclaration | ExportDeclaration | ExportNamedDecl
 type ModuleExportName = Identifier | StringLiteral;
 
 // @public (undocumented)
-type ModuleFederationManifestPluginOptions = {
-    name?: string;
-    globalName?: string;
-    filePath?: string;
-    disableAssetsAnalyze?: boolean;
-    fileName?: string;
-    remoteAliasMap?: RemoteAliasMap;
-    exposes?: ManifestExposeOption[];
-    shared?: ManifestSharedOption[];
-};
+type ModuleFederationManifestPluginOptions = boolean | Pick<InternalManifestPluginOptions, 'disableAssetsAnalyze' | 'filePath' | 'fileName'>;
 
 // @public (undocumented)
 class ModuleFederationPlugin {
@@ -4970,11 +4975,19 @@ export interface ModuleFederationPluginOptions extends Omit<ModuleFederationPlug
     // (undocumented)
     implementation?: string;
     // (undocumented)
-    manifest?: boolean | Omit<ModuleFederationManifestPluginOptions, 'remoteAliasMap' | 'globalName' | 'name' | 'exposes' | 'shared'>;
+    injectTreeShakingUsedExports?: boolean;
+    // (undocumented)
+    manifest?: ModuleFederationManifestPluginOptions;
     // (undocumented)
     runtimePlugins?: RuntimePlugins;
     // (undocumented)
     shareStrategy?: 'version-first' | 'loaded-first';
+    // (undocumented)
+    treeShakingSharedDir?: string;
+    // (undocumented)
+    treeShakingSharedExcludePlugins?: string[];
+    // (undocumented)
+    treeShakingSharedPlugins?: string[];
 }
 
 // @public (undocumented)
@@ -5368,6 +5381,9 @@ export type NoParseOption = NoParseOptionSingle | NoParseOptionSingle[];
 
 // @public (undocumented)
 type NoParseOptionSingle = string | RegExp | ((request: string) => boolean);
+
+// @public (undocumented)
+type NormalizedSharedOptions = [string, SharedConfig][];
 
 // @public (undocumented)
 type NormalizedStatsOptions = KnownNormalizedStatsOptions & Omit<StatsOptions, keyof KnownNormalizedStatsOptions> & Record<string, any>;
@@ -6149,6 +6165,7 @@ type ProvidesEnhancedExtraConfig = {
     singleton?: boolean;
     strictVersion?: boolean;
     requiredVersion?: false | string;
+    treeShakingMode?: 'server-calc' | 'runtime-infer';
 };
 
 // @public (undocumented)
@@ -6969,6 +6986,7 @@ declare namespace rspackExports {
         SharedItem,
         SharedObject,
         SharePluginOptions,
+        TreeshakingSharedPluginOptions,
         sharing,
         LightningcssFeatureOptions,
         LightningcssLoaderOptions,
@@ -7616,6 +7634,7 @@ export type SharedConfig = {
     singleton?: boolean;
     strictVersion?: boolean;
     version?: false | string;
+    treeShaking?: TreeShakingConfig;
 };
 
 // @public (undocumented)
@@ -7645,6 +7664,9 @@ type SharedOptimizationSplitChunksCacheGroup = {
 };
 
 // @public (undocumented)
+type ShareFallback = Record<string, [string, string, string][]>;
+
+// @public (undocumented)
 class SharePlugin {
     constructor(options: SharePluginOptions);
     // (undocumented)
@@ -7660,6 +7682,7 @@ class SharePlugin {
             singleton: boolean | undefined;
             packageName: string | undefined;
             eager: boolean | undefined;
+            treeShakingMode: "server-calc" | "runtime-infer" | undefined;
         };
     }[];
     // (undocumented)
@@ -7674,8 +7697,11 @@ class SharePlugin {
             singleton: boolean | undefined;
             requiredVersion: string | false | undefined;
             strictVersion: boolean | undefined;
+            treeShakingMode: "server-calc" | "runtime-infer" | undefined;
         };
     }[];
+    // (undocumented)
+    _sharedOptions: NormalizedSharedOptions;
     // (undocumented)
     _shareScope: string | undefined;
 }
@@ -7690,6 +7716,7 @@ export type SharePluginOptions = {
 // @public (undocumented)
 export const sharing: {
     ProvideSharedPlugin: typeof ProvideSharedPlugin;
+    TreeShakingSharedPlugin: typeof TreeShakingSharedPlugin;
     ConsumeSharedPlugin: typeof ConsumeSharedPlugin;
     SharePlugin: typeof SharePlugin;
 };
@@ -8769,6 +8796,38 @@ interface TransformConfig {
 
 // @public (undocumented)
 function transformSync(source: string, options?: Options): TransformOutput;
+
+// @public (undocumented)
+type TreeShakingConfig = {
+    usedExports?: string[];
+    mode?: 'server-calc' | 'runtime-infer';
+    filename?: string;
+};
+
+// @public (undocumented)
+class TreeShakingSharedPlugin {
+    constructor(options: TreeshakingSharedPluginOptions);
+    // (undocumented)
+    apply(compiler: Compiler): void;
+    // (undocumented)
+    get buildAssets(): ShareFallback;
+    // (undocumented)
+    mfConfig: ModuleFederationPluginOptions;
+    // (undocumented)
+    name: string;
+    // (undocumented)
+    outputDir: string;
+    // (undocumented)
+    secondary?: boolean;
+}
+
+// @public (undocumented)
+export interface TreeshakingSharedPluginOptions {
+    // (undocumented)
+    mfConfig: ModuleFederationPluginOptions;
+    // (undocumented)
+    secondary?: boolean;
+}
 
 // @public (undocumented)
 type TruePlusMinus = true | "+" | "-";

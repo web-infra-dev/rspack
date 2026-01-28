@@ -12,6 +12,7 @@ use super::{
   snapshot::{Snapshot, SnapshotScope},
   storage::Storage,
 };
+use crate::cache::persistent::CacheCodec;
 
 pub const SCOPE: &str = "build_dependencies";
 
@@ -40,6 +41,7 @@ impl BuildDeps {
     fs: Arc<dyn ReadableFileSystem>,
     snapshot: Arc<Snapshot>,
     storage: Arc<dyn Storage>,
+    _codec: Arc<CacheCodec>,
   ) -> Self {
     Self {
       added: Default::default(),

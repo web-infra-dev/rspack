@@ -5,6 +5,9 @@ module.exports = {
 	optimization: {
 		moduleIds: "named"
 	},
+	performance: {
+		hints: false
+	},
 	plugins: [
 		new SubresourceIntegrityPlugin(),
 		new container.ModuleFederationPlugin({

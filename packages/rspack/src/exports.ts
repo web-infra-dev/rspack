@@ -274,6 +274,7 @@ export const container = {
 import { ConsumeSharedPlugin } from './sharing/ConsumeSharedPlugin';
 import { ProvideSharedPlugin } from './sharing/ProvideSharedPlugin';
 import { SharePlugin } from './sharing/SharePlugin';
+import { TreeShakingSharedPlugin } from './sharing/TreeShakingSharedPlugin';
 
 export type {
   ConsumeSharedPluginOptions,
@@ -296,8 +297,10 @@ export type {
   SharedObject,
   SharePluginOptions,
 } from './sharing/SharePlugin';
+export type { TreeshakingSharedPluginOptions } from './sharing/TreeShakingSharedPlugin';
 export const sharing = {
   ProvideSharedPlugin,
+  TreeShakingSharedPlugin,
   ConsumeSharedPlugin,
   SharePlugin,
 };

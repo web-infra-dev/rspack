@@ -13,7 +13,7 @@
     "test:hot": "rstest --project hottest"
   },
   "devDependencies": {
-    "@module-federation/runtime-tools": "^0.22.0",
+    "@module-federation/runtime-tools": "0.0.0-feat-shared-treeshake-poc-20260114091859",
     "@rspack/binding-testing": "workspace:*",
     "@rspack/cli": "workspace:*",
     "@rspack/core": "workspace:*",
