@@ -189,135 +189,23 @@ pub fn try_extract_magic_comment(
   result
 }
 
-#[derive(Debug)]
-struct Location {
-  /// Start line
-  sl: u32,
-  /// Start column
-  sc: u32,
-  /// End line
-  el: u32,
-  /// End column
-  ec: u32,
-}
-
-impl Location {
-  /// Block comment should be within the location of the source location.
-  fn merge_with_block_comment_location(&self, block_comment: &Location) -> Self {
-    let sl = self.sl + block_comment.sl;
-    let sc = if block_comment.sl == 0 {
-      self.sc + block_comment.sc + 2 // Length of `/*`
-    } else {
-      block_comment.sc
-    };
-    let el = self.sl + block_comment.el;
-    let ec = if block_comment.el == 0 {
-      self.sc + block_comment.ec + 2 // Length of `/*`
-    } else {
-      block_comment.ec
-    };
-    Location { sl, sc, el, ec }
-  }
-}
-
-/// Convert a byte offset range [start, end) to a UTF-8 line/column location within `source`.
-/// - Lines are 0-based here to match internal `Location`.
-/// - Columns are 0-based and measured in UTF-8 bytes.
-fn byte_offset_to_location(source: &str, start: usize, end: usize) -> Location {
-  assert!(start <= end, "start must be <= end");
-  let bytes = source.as_bytes();
-  assert!(end <= bytes.len(), "end out of bounds");
-  assert!(start <= bytes.len(), "start out of bounds");
-
-  // Count newlines before start to get start line
-  let mut sl = 0usize;
-  let mut last_nl_pos = None;
-  for idx in memchr::memchr_iter(b'\n', &bytes[..start]) {
-    sl += 1;
-    last_nl_pos = Some(idx);
-  }
-  // Column is bytes since last newline (or from 0)
-  let line_start_byte = last_nl_pos.map(|p| p + 1).unwrap_or(0);
-  let sc = start - line_start_byte;
-
-  // Count newlines before end to get end line
-  let mut el = 0usize;
-  let mut last_nl_pos_end = None;
-  for idx in memchr::memchr_iter(b'\n', &bytes[..end]) {
-    el += 1;
-    last_nl_pos_end = Some(idx);
-  }
-  let end_line_start_byte = last_nl_pos_end.map(|p| p + 1).unwrap_or(0);
-  let ec = end - end_line_start_byte;
-
-  Location {
-    sl: sl as u32,
-    sc: sc as u32,
-    el: el as u32,
-    ec: ec as u32,
-  }
-}
-
 /// Convert match item to error span within the source
 ///
-/// # Panics
-///
-/// Panics if `comment_span` is out-of-bound of `source`.
-/// Panics if either `match_start` or `match_end` is out-of-bound of `comment_text`.
+/// For block comments like `/* webpack... */`, we calculate the absolute position
+/// by adding the comment's start position in source + 2 (for "/*") + match offset in comment text.
 fn match_item_to_error_span(
-  source: &str,
   comment_span: Span,
-  comment_text: &str,
   match_start: usize,
   match_end: usize,
 ) -> DependencyRange {
-  // SAFETY: `comment_span` is always within the bound of `source`.
-  let s_loc = byte_offset_to_location(
-    source,
-    comment_span.real_lo() as usize,
-    comment_span.real_hi() as usize,
-  );
+  // Block comment format: /* comment_text */
+  // The comment_text doesn't include the "/*" and "*/" delimiters
+  // So we need to add 2 bytes for "/*" to get the actual position in source
+  const BLOCK_COMMENT_START_LEN: usize = 2; // Length of "/*"
 
-  // SAFETY: `match_start` and `match_end` are within `comment_text`.
-  let c_loc = byte_offset_to_location(comment_text, match_start, match_end);
-
-  let Location { sl, sc, el, ec } = s_loc.merge_with_block_comment_location(&c_loc);
-
-  // Compute absolute byte offsets from (line, column) for start and end in `source`.
-  let bytes = source.as_bytes();
-  // Start line -> byte index
-  let start_line_byte = if sl == 0 {
-    0usize
-  } else {
-    let mut count = 0usize;
-    let mut pos = 0usize;
-    for idx in memchr::memchr_iter(b'\n', bytes) {
-      count += 1;
-      pos = idx + 1;
-      if count == sl as usize {
-        break;
-      }
-    }
-    pos
-  };
-  let start = start_line_byte + sc as usize;
-
-  // End line -> byte index
-  let end_line_byte = if el == 0 {
-    0usize
-  } else {
-    let mut count = 0usize;
-    let mut pos = 0usize;
-    for idx in memchr::memchr_iter(b'\n', bytes) {
-      count += 1;
-      pos = idx + 1;
-      if count == el as usize {
-        break;
-      }
-    }
-    pos
-  };
-  let end = end_line_byte + ec as usize;
+  let comment_start = comment_span.real_lo() as usize;
+  let start = comment_start + BLOCK_COMMENT_START_LEN + match_start;
+  let end = comment_start + BLOCK_COMMENT_START_LEN + match_end;
 
   DependencyRange::new(start as u32, end as u32)
 }
@@ -346,15 +234,7 @@ fn analyze_comments(
         let error_span = || {
           captures
             .name("_9")
-            .map(|item| {
-              match_item_to_error_span(
-                source,
-                comment.span,
-                &comment.text,
-                item.start(),
-                item.end(),
-              )
-            })
+            .map(|item| match_item_to_error_span(comment.span, item.start(), item.end()))
             .unwrap_or(error_span.into())
         };
         match item_name {

@@ -84,7 +84,8 @@ impl ParserAndGenerator for JsonParserAndGenerator {
       .map_err(|e| {
         match e {
           UnexpectedCharacter { ch, line, column } => {
-            let line_offset = byte_line_column_to_offset(source.as_ref(), line, 0).expect("TODO:");
+            let line_offset = byte_line_column_to_offset(source.as_ref(), line, 0)
+              .expect("Failed to convert line number to byte offset in JSON source");
             let start_offset = source[line_offset..]
               .chars()
               .take(column)

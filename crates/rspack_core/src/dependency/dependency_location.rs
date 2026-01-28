@@ -78,9 +78,6 @@ impl SourceLocation for &str {
       let p = SourcePosition { line: 1, column: 1 };
       return Some((p, p));
     }
-    if start_idx == end_idx {
-      // We still need line start to compute UTF-16 column. Fall through to single pass.
-    }
 
     let bytes = s.as_bytes();
 
