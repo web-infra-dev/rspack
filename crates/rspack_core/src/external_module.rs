@@ -884,7 +884,6 @@ impl Module for ExternalModule {
       runtime,
       concatenation_scope,
       runtime_template,
-      ..
     } = code_generation_context;
 
     let mut cgr = CodeGenerationResult::default();

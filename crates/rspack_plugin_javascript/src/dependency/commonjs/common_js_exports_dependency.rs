@@ -8,8 +8,7 @@ use rspack_core::{
   DependencyTemplateType, DependencyType, ExportNameOrSpec, ExportSpec, ExportsInfoGetter,
   ExportsOfExportsSpec, ExportsSpec, GetUsedNameParam, InitFragmentExt, InitFragmentKey,
   InitFragmentStage, ModuleGraph, ModuleGraphCacheArtifact, NormalInitFragment,
-  PrefetchExportsInfoMode, RuntimeGlobals, TemplateContext, TemplateReplaceSource, UsedName,
-  property_access,
+  PrefetchExportsInfoMode, TemplateContext, TemplateReplaceSource, UsedName, property_access,
 };
 use swc_core::atoms::Atom;
 

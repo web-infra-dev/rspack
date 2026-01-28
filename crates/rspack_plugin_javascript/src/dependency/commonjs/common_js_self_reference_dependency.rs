@@ -6,7 +6,7 @@ use rspack_core::{
   AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
   DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, ExportsInfoGetter,
   ExtendedReferencedExport, FactorizeInfo, GetUsedNameParam, ModuleDependency, ModuleGraph,
-  ModuleGraphCacheArtifact, PrefetchExportsInfoMode, RuntimeGlobals, RuntimeSpec, TemplateContext,
+  ModuleGraphCacheArtifact, PrefetchExportsInfoMode, RuntimeSpec, TemplateContext,
   TemplateReplaceSource, UsedName, property_access,
 };
 use swc_core::atoms::Atom;
