@@ -203,7 +203,7 @@ impl JavascriptParserPlugin for APIPlugin {
         parser.add_presentational_dependency(Box::new(ModuleArgumentDependency::new(
           None,
           ident.span.into(),
-          Some(parser.source.clone()),
+          Some(&parser.source),
         )));
         Some(true)
       }
@@ -430,7 +430,7 @@ impl JavascriptParserPlugin for APIPlugin {
       parser.add_presentational_dependency(Box::new(ModuleArgumentDependency::new(
         Some("id".into()),
         member_expr.span().into(),
-        Some(parser.source.clone()),
+        Some(&parser.source),
       )));
       return Some(true);
     }

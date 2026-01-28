@@ -1,6 +1,5 @@
 use std::{
   fmt::{self, Debug},
-  sync::Arc,
 };
 
 use rspack_cacheable::cacheable;
@@ -146,9 +145,6 @@ impl SourceLocation for &str {
     Some((start_pos, end_pos))
   }
 }
-
-/// Type alias for a shared reference to a `SourceLocation` trait object, typically used for source maps.
-pub type SharedSourceMap = Arc<str>;
 
 pub trait AsLoc {
   fn as_loc(&self) -> &dyn SourceLocation;

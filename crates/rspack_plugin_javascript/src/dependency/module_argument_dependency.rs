@@ -1,7 +1,7 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   Compilation, DependencyCodeGeneration, DependencyLocation, DependencyRange, DependencyTemplate,
-  DependencyTemplateType, RuntimeGlobals, RuntimeSpec, SharedSourceMap, TemplateContext,
+  DependencyTemplateType, RuntimeGlobals, RuntimeSpec, TemplateContext,
   TemplateReplaceSource,
 };
 use rspack_util::ext::DynHash;
@@ -18,9 +18,9 @@ impl ModuleArgumentDependency {
   pub fn new(
     id: Option<String>,
     range: DependencyRange,
-    source_map: Option<SharedSourceMap>,
+    source: Option<&str>,
   ) -> Self {
-    let loc = range.to_loc(source_map.as_deref());
+    let loc = range.to_loc(source);
     Self { id, range, loc }
   }
 

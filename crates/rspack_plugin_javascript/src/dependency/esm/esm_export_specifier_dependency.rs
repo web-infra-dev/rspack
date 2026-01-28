@@ -6,7 +6,7 @@ use rspack_core::{
   DependencyTemplateType, DependencyType, ESMExportInitFragment, EvaluatedInlinableValue,
   ExportNameOrSpec, ExportSpec, ExportSpecExports, ExportsInfoGetter, ExportsOfExportsSpec,
   ExportsSpec, GetUsedNameParam, LazyUntil, ModuleGraph, ModuleGraphCacheArtifact,
-  PrefetchExportsInfoMode, SharedSourceMap, TSEnumValue, TemplateContext, TemplateReplaceSource,
+  PrefetchExportsInfoMode, TSEnumValue, TemplateContext, TemplateReplaceSource,
   UsedName,
 };
 use swc_core::ecma::atoms::Atom;
@@ -35,9 +35,9 @@ impl ESMExportSpecifierDependency {
     inline: Option<EvaluatedInlinableValue>,
     enum_value: Option<TSEnumValue>,
     range: DependencyRange,
-    source_map: Option<SharedSourceMap>,
+    source: Option<&str>,
   ) -> Self {
-    let loc = range.to_loc(source_map.as_deref());
+    let loc = range.to_loc(source);
     Self {
       name,
       value,

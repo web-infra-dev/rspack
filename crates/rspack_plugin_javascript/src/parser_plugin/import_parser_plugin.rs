@@ -3,7 +3,7 @@ use std::borrow::Cow;
 use rspack_core::{
   AsyncDependenciesBlock, ChunkGroupOptions, ContextDependency, ContextNameSpaceObject,
   ContextOptions, DependencyCategory, DependencyRange, DependencyType, DynamicImportFetchPriority,
-  DynamicImportMode, GroupOptions, ImportAttributes, SharedSourceMap,
+  DynamicImportMode, GroupOptions, ImportAttributes,
 };
 use rspack_error::{Error, Severity};
 use rspack_util::{SpanExt, swc::get_swc_comments};
@@ -352,10 +352,9 @@ impl JavascriptParserPlugin for ImportParserPlugin {
             dyn_imported.span().hi,
           ),
         ));
-        let source_map: SharedSourceMap = parser.source().clone();
         let mut block = AsyncDependenciesBlock::new(
           *parser.module_identifier,
-          Into::<DependencyRange>::into(import_call_span).to_loc(Some(source_map.as_ref())),
+          Into::<DependencyRange>::into(import_call_span).to_loc(Some(parser.source())),
           None,
           vec![dep],
           Some(param.string().clone()),

@@ -55,7 +55,7 @@ impl JavascriptParser<'_> {
     self.add_presentational_dependency(Box::new(ModuleArgumentDependency::new(
       Some("hot".into()),
       span.into(),
-      Some(self.source().clone()),
+      Some(self.source()),
     )));
   }
 
@@ -68,7 +68,7 @@ impl JavascriptParser<'_> {
     self.add_presentational_dependency(Box::new(ModuleArgumentDependency::new(
       Some("hot.accept".into()),
       call_expr.callee.span().into(),
-      Some(self.source().clone()),
+      Some(self.source()),
     )));
     let dependencies = extract_deps(self, call_expr, create_dependency);
     if !dependencies.is_empty() {
@@ -83,7 +83,7 @@ impl JavascriptParser<'_> {
         range,
         callback_arg.is_some(),
         dependency_ids,
-        Some(self.source().clone()),
+        Some(self.source()),
       )));
       self.add_dependencies(dependencies);
       for arg in call_expr.args.iter().skip(1) {
@@ -104,7 +104,7 @@ impl JavascriptParser<'_> {
     self.add_presentational_dependency(Box::new(ModuleArgumentDependency::new(
       Some("hot.decline".into()),
       call_expr.callee.span().into(),
-      Some(self.source().clone()),
+      Some(self.source()),
     )));
     let dependencies = extract_deps(self, call_expr, create_dependency);
     self.add_dependencies(dependencies);

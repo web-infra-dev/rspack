@@ -1,8 +1,8 @@
-use rspack_cacheable::{cacheable, cacheable_dyn, with::Skip};
+use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AffectType, AsContextDependency, AsModuleDependency, Dependency, DependencyCodeGeneration,
   DependencyId, DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType,
-  SharedSourceMap, TemplateContext, TemplateReplaceSource,
+  TemplateContext, TemplateReplaceSource,
 };
 
 #[cacheable]
@@ -10,16 +10,16 @@ use rspack_core::{
 pub struct ImportMetaResolveHeaderDependency {
   id: DependencyId,
   range: DependencyRange,
-  #[cacheable(with=Skip)]
-  source_map: Option<SharedSourceMap>,
+  loc: Option<DependencyLocation>,
 }
 
 impl ImportMetaResolveHeaderDependency {
-  pub fn new(range: DependencyRange, source_map: Option<SharedSourceMap>) -> Self {
+  pub fn new(range: DependencyRange, source: Option<&str>) -> Self {
+    let loc = range.to_loc(source);
     Self {
       id: DependencyId::new(),
       range,
-      source_map,
+      loc,
     }
   }
 }
@@ -31,7 +31,7 @@ impl Dependency for ImportMetaResolveHeaderDependency {
   }
 
   fn loc(&self) -> Option<DependencyLocation> {
-    self.range.to_loc(self.source_map.as_deref())
+    self.loc.clone()
   }
 
   fn could_affect_referencing_module(&self) -> AffectType {

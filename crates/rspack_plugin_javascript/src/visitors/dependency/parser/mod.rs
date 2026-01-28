@@ -631,7 +631,7 @@ impl<'parser> JavascriptParser<'parser> {
     self.warning_diagnostics.extend(warnings);
   }
 
-  pub fn source(&self) -> &Arc<str> {
+  pub fn source(&self) -> &str {
     &self.source
   }
 

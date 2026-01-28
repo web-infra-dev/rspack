@@ -5,7 +5,7 @@ use itertools::Itertools;
 use rspack_core::{
   AsyncDependenciesBlock, BoxDependency, ConstDependency, ContextDependency, ContextMode,
   ContextNameSpaceObject, ContextOptions, Dependency, DependencyCategory, DependencyRange,
-  RuntimeGlobals, SharedSourceMap,
+  RuntimeGlobals,
 };
 use rspack_error::{Error, Severity};
 use rspack_util::{SpanExt, atom::Atom};
@@ -310,8 +310,7 @@ impl AMDRequireDependenciesBlockParserPlugin {
       error_callback_arg.map(|arg| arg.expr.span().into()),
     ));
 
-    let source_map: SharedSourceMap = parser.source().clone();
-    let block_loc = Into::<DependencyRange>::into(call_expr.span).to_loc(Some(source_map.as_ref()));
+    let block_loc = Into::<DependencyRange>::into(call_expr.span).to_loc(Some(parser.source()));
 
     if call_expr.args.len() == 1 {
       let mut block_deps: Vec<BoxDependency> = vec![dep];

@@ -7,7 +7,7 @@ use rspack_core::{
   DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
   ExportsInfoGetter, ExportsType, ExtendedReferencedExport, FactorizeInfo, GetUsedNameParam,
   ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, PrefetchExportsInfoMode, RuntimeGlobals,
-  RuntimeSpec, SharedSourceMap, TemplateContext, TemplateReplaceSource, UsedName, property_access,
+  RuntimeSpec, TemplateContext, TemplateReplaceSource, UsedName, property_access,
   to_normal_comment,
 };
 use swc_core::atoms::Atom;
@@ -35,9 +35,9 @@ impl CommonJsFullRequireDependency {
     is_call: bool,
     optional: bool,
     asi_safe: bool,
-    source_map: Option<SharedSourceMap>,
+    source: Option<&str>,
   ) -> Self {
-    let loc = range.to_loc(source_map.as_deref());
+    let loc = range.to_loc(source);
     Self {
       id: DependencyId::new(),
       request,

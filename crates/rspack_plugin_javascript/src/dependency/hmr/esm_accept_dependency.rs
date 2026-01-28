@@ -1,7 +1,7 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   DependencyCodeGeneration, DependencyId, DependencyLocation, DependencyRange, DependencyTemplate,
-  DependencyTemplateType, ImportPhase, RuntimeCondition, SharedSourceMap, TemplateContext,
+  DependencyTemplateType, ImportPhase, RuntimeCondition, TemplateContext,
   TemplateReplaceSource,
 };
 
@@ -21,9 +21,9 @@ impl ESMAcceptDependency {
     range: DependencyRange,
     has_callback: bool,
     dependency_ids: Vec<DependencyId>,
-    source_map: Option<SharedSourceMap>,
+    source: Option<&str>,
   ) -> Self {
-    let loc = range.to_loc(source_map.as_deref());
+    let loc = range.to_loc(source);
     Self {
       range,
       has_callback,
