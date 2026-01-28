@@ -546,7 +546,7 @@ impl ModuleCodegenRuntimeTemplate {
   pub fn new(compiler_options: Arc<CompilerOptions>) -> Self {
     Self {
       compiler_options,
-      runtime_requirements: RuntimeGlobals::empty(),
+      runtime_requirements: RuntimeGlobals::default(),
     }
   }
 
