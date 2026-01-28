@@ -14,8 +14,8 @@ use crate::{
   BuildResult, ChunkGraph, ChunkInitFragments, ChunkUkey, CodeGenerationDataUrl,
   CodeGenerationResult, Compilation, ConcatenationScope, Context, DependenciesBlock, DependencyId,
   ExternalType, FactoryMeta, ImportAttributes, InitFragmentExt, InitFragmentKey, InitFragmentStage,
-  LibIdentOptions, Module, ModuleCodeGenerationContext, ModuleGraph, ModuleType,
-  NAMESPACE_OBJECT_EXPORT, NormalInitFragment, PrefetchExportsInfoMode, RuntimeGlobals,
+  LibIdentOptions, Module, ModuleCodeGenerationContext, ModuleCodegenRuntimeTemplate, ModuleGraph,
+  ModuleType, NAMESPACE_OBJECT_EXPORT, NormalInitFragment, PrefetchExportsInfoMode, RuntimeGlobals,
   RuntimeSpec, SourceType, StaticExportsDependency, StaticExportsSpec, UsedExports,
   extract_url_and_global, impl_module_meta_info, module_update_hash, property_access,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
@@ -323,10 +323,8 @@ impl ExternalModule {
     external_type: &ExternalType,
     runtime: Option<&RuntimeSpec>,
     concatenation_scope: Option<&mut ConcatenationScope>,
-  ) -> Result<(BoxSource, ChunkInitFragments, RuntimeGlobals)> {
-    let mut runtime_template = compilation
-      .runtime_template
-      .create_module_codegen_runtime_template();
+    runtime_template: &mut ModuleCodegenRuntimeTemplate,
+  ) -> Result<(BoxSource, ChunkInitFragments)> {
     let mut chunk_init_fragments: ChunkInitFragments = Default::default();
     let supports_const = compilation.options.output.environment.supports_const();
     let resolved_external_type = self.resolve_external_type();
@@ -721,11 +719,7 @@ if(typeof {global} !== "undefined") return resolve();
         )
       }
     };
-    Ok((
-      RawStringSource::from(source).boxed(),
-      chunk_init_fragments,
-      *runtime_template.runtime_requirements(),
-    ))
+    Ok((RawStringSource::from(source).boxed(), chunk_init_fragments))
   }
 }
 
@@ -922,18 +916,16 @@ impl Module for ExternalModule {
         );
       }
       _ => {
-        let (source, chunk_init_fragments, runtime_requirements) = self.get_source(
+        let (source, chunk_init_fragments) = self.get_source(
           compilation,
           request,
           external_type,
           *runtime,
           concatenation_scope.as_mut(),
+          runtime_template,
         )?;
         cgr.add(SourceType::JavaScript, source);
         cgr.chunk_init_fragments = chunk_init_fragments;
-        runtime_template
-          .runtime_requirements_mut()
-          .insert(runtime_requirements);
       }
     };
     if concatenation_scope.is_none() {

@@ -137,7 +137,6 @@ impl DependencyTemplate for ModuleDecoratorDependencyTemplate {
     let module = module_graph
       .module_by_identifier(&module.identifier())
       .expect("should have mgm");
-    let module_argument = module.get_module_argument();
 
     // ref: tests/webpack-test/cases/scope-hoisting/issue-5096 will return a `null` as module id
     let module_id =
@@ -148,7 +147,7 @@ impl DependencyTemplate for ModuleDecoratorDependencyTemplate {
     init_fragments.push(Box::new(NormalInitFragment::new(
       format!(
         "/* module decorator */ {module} = {decorator}({module});\n",
-        module = runtime_template.render_module_argument(module_argument),
+        module = runtime_template.render_module_argument(module.get_module_argument()),
         decorator = runtime_template.render_runtime_globals(&dep.decorator),
       ),
       InitFragmentStage::StageProvides,

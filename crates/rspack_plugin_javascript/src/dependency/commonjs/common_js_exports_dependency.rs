@@ -199,10 +199,7 @@ impl DependencyTemplate for CommonJsExportsDependencyTemplate {
         runtime_template.render_module_argument(module_argument)
       )
     } else if dep.base.is_this() {
-      runtime_template
-        .runtime_requirements_mut()
-        .insert(RuntimeGlobals::THIS_AS_EXPORTS);
-      "this".to_string()
+      runtime_template.render_this_exports()
     } else {
       panic!("Unexpected base type");
     };

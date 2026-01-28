@@ -3,10 +3,10 @@ use std::borrow::Cow;
 use indexmap::IndexMap;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
-  BoxDependency, BuildMetaExportsType, Dependency, DependencyId, DependencyType, GenerateContext,
-  ImportPhase, Module, ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleInitFragments,
-  ParseContext, ParseResult, ParserAndGenerator, RuntimeGlobals, SourceType,
-  StaticExportsDependency, StaticExportsSpec,
+  BoxDependency, BuildMetaExportsType, Dependency, DependencyId, DependencyType, ExportsArgument,
+  GenerateContext, ImportPhase, Module, ModuleArgument, ModuleDependency, ModuleGraph,
+  ModuleIdentifier, ModuleInitFragments, ParseContext, ParseResult, ParserAndGenerator,
+  RuntimeGlobals, SourceType, StaticExportsDependency, StaticExportsSpec,
   rspack_sources::{BoxSource, RawStringSource, Source, SourceExt},
 };
 use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
@@ -144,19 +144,6 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
 
     match generate_context.requested_source_type {
       SourceType::JavaScript => {
-        runtime_template
-          .runtime_requirements_mut()
-          .insert(RuntimeGlobals::MODULE);
-        runtime_template
-          .runtime_requirements_mut()
-          .insert(RuntimeGlobals::MODULE_ID);
-        runtime_template
-          .runtime_requirements_mut()
-          .insert(RuntimeGlobals::EXPORTS);
-        runtime_template
-          .runtime_requirements_mut()
-          .insert(RuntimeGlobals::INSTANTIATE_WASM);
-
         let mut dep_modules = IndexMap::<ModuleIdentifier, DepModule>::new();
         let mut promises: Vec<String> = vec![];
 
@@ -259,9 +246,12 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
           None
         };
 
+        let module_argument = runtime_template.render_module_argument(ModuleArgument::Module);
+        let exports_argument = runtime_template.render_exports_argument(ExportsArgument::Exports);
         let instantiate_call = format!(
-          r#"{}(exports, module.id, "{}" {})"#,
+          r#"{}({exports_argument}, {}, "{}" {})"#,
           runtime_template.render_runtime_globals(&RuntimeGlobals::INSTANTIATE_WASM),
+          runtime_template.render_runtime_globals(&RuntimeGlobals::MODULE_ID),
           &hash,
           imports_obj.unwrap_or_default()
         );
@@ -272,7 +262,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
             "var __rspack_instantiate__ = function ([{promises}]) {{\n{imports_compat_code}return {instantiate_call};\n}}\n",
           );
           let async_dependencies = format!(
-"{}(module, async function (__rspack_load_async_deps, __rspack_async_done) {{
+"{}({module_argument}, async function (__rspack_load_async_deps, __rspack_async_done) {{
   try {{
 {imports_code}
     var __rspack_async_deps = __rspack_load_async_deps([{promises}]);
@@ -290,7 +280,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
           RawStringSource::from(format!("{decl}{async_dependencies}"))
         } else {
           RawStringSource::from(format!(
-            "{imports_code}{imports_compat_code}module.exports = {instantiate_call};"
+            "{imports_code}{imports_compat_code}{module_argument}.exports = {instantiate_call};"
           ))
         };
 

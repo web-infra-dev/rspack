@@ -831,9 +831,6 @@ impl ESMExportImportedSpecifierDependency {
       runtime_template,
       ..
     } = ctxt;
-    runtime_template
-      .runtime_requirements_mut()
-      .insert(RuntimeGlobals::EXPORTS);
     let module_id = ChunkGraph::get_module_id(&compilation.module_ids_artifact, target_module);
     let mode = render_make_deferred_namespace_mode_from_exports_type(exports_type);
     let mut export_map = vec![];
@@ -862,14 +859,6 @@ impl ESMExportImportedSpecifierDependency {
     value_key: ValueKey,
   ) -> ESMExportInitFragment {
     let return_value = Self::get_return_value(name.to_owned(), value_key);
-    ctxt
-      .runtime_template
-      .runtime_requirements_mut()
-      .insert(RuntimeGlobals::EXPORTS);
-    ctxt
-      .runtime_template
-      .runtime_requirements_mut()
-      .insert(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
     let mut export_map = vec![];
     export_map.push((key.into(), format!("/* {comment} */ {return_value}").into()));
     ESMExportInitFragment::new(ctxt.module.get_exports_argument(), export_map)
@@ -887,9 +876,6 @@ impl ESMExportImportedSpecifierDependency {
       runtime_template,
       ..
     } = ctxt;
-    runtime_template
-      .runtime_requirements_mut()
-      .insert(RuntimeGlobals::EXPORTS);
     let mut export_map = vec![];
     let value = format!(
       r"/* reexport fake namespace object from non-ESM */ {name}_namespace_cache || ({name}_namespace_cache = {}({name}{}))",
@@ -947,9 +933,6 @@ impl ESMExportImportedSpecifierDependency {
     } = ctxt;
     let return_value = Self::get_return_value(name.to_string(), value_key);
     let exports_name = module.get_exports_argument();
-    runtime_template
-      .runtime_requirements_mut()
-      .insert(RuntimeGlobals::EXPORTS);
     format!(
       "if({}({}, {})) {}({}, {{ {}: function() {{ return {}; }} }});\n",
       runtime_template.render_runtime_globals(&RuntimeGlobals::HAS_OWN_PROPERTY),

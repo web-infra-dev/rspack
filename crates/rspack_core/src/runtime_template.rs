@@ -587,6 +587,13 @@ impl ModuleCodegenRuntimeTemplate {
     }
   }
 
+  pub fn render_this_exports(&mut self) -> String {
+    self
+      .runtime_requirements
+      .insert(RuntimeGlobals::THIS_AS_EXPORTS);
+    "this".to_string()
+  }
+
   pub fn render_runtime_variable(&self, runtime_variable: &RuntimeVariable) -> String {
     runtime_variable_to_string(runtime_variable, &self.compiler_options)
   }

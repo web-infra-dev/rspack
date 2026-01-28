@@ -230,9 +230,6 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
         std::slice::from_ref(&JS_DEFAULT_KEYWORD),
       ) {
         if let UsedName::Normal(used) = used {
-          runtime_template
-            .runtime_requirements_mut()
-            .insert(RuntimeGlobals::EXPORTS);
           if supports_const {
             init_fragments.push(Box::new(ESMExportInitFragment::new(
               module.get_exports_argument(),

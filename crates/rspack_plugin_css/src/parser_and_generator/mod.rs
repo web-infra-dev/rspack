@@ -13,10 +13,10 @@ use rspack_cacheable::{
 use rspack_core::{
   BoxDependencyTemplate, BoxModuleDependency, BuildMetaDefaultObject, BuildMetaExportsType,
   ChunkGraph, Compilation, ConstDependency, CssExportsConvention, Dependency, DependencyId,
-  DependencyRange, DependencyType, GenerateContext, LocalIdentName, Module, ModuleGraph,
-  ModuleIdentifier, ModuleInitFragments, ModuleType, NormalModule, ParseContext, ParseResult,
-  ParserAndGenerator, PrefetchExportsInfoMode, RuntimeGlobals, RuntimeSpec, SourceType,
-  TemplateContext, UsageState,
+  DependencyRange, DependencyType, GenerateContext, LocalIdentName, Module, ModuleArgument,
+  ModuleGraph, ModuleIdentifier, ModuleInitFragments, ModuleType, NormalModule, ParseContext,
+  ParseResult, ParserAndGenerator, PrefetchExportsInfoMode, RuntimeGlobals, RuntimeSpec,
+  SourceType, TemplateContext, UsageState,
   diagnostics::map_box_diagnostics_to_module_parse_diagnostics,
   remove_bom,
   rspack_sources::{BoxSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt},
@@ -672,23 +672,22 @@ impl ParserAndGenerator for CssParserAndGenerator {
               with_hmr,
             )?
           } else {
+            let module_argument = generate_context
+              .runtime_template
+              .render_module_argument(ModuleArgument::Module);
             format!(
-              "{}{}module.exports = {{}}{};\n{}",
+              "{}{}{module_argument}.exports = {{}}{};\n{}",
               &ns_obj,
               &left,
               &right,
               if with_hmr {
-                "module.hot.accept();\n"
+                format!("{module_argument}.hot.accept();\n")
               } else {
                 Default::default()
               }
             )
           }
         };
-        generate_context
-          .runtime_template
-          .runtime_requirements_mut()
-          .insert(RuntimeGlobals::MODULE);
         if self.es_module {
           generate_context
             .runtime_template

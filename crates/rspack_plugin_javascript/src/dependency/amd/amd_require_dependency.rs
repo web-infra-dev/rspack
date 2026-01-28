@@ -115,10 +115,6 @@ impl DependencyTemplate for AMDRequireDependencyTemplate {
           .runtime_template
           .render_runtime_globals(&RuntimeGlobals::UNCAUGHT_ERROR_HANDLER),
       );
-      code_generatable_context
-        .runtime_template
-        .runtime_requirements_mut()
-        .insert(RuntimeGlobals::UNCAUGHT_ERROR_HANDLER);
       source.replace(dep.outer_range.start, array_range.start, &start_block, None);
       source.replace(array_range.end, dep.outer_range.end, &end_block, None);
       return;
@@ -138,10 +134,6 @@ impl DependencyTemplate for AMDRequireDependencyTemplate {
           .runtime_template
           .render_runtime_globals(&RuntimeGlobals::UNCAUGHT_ERROR_HANDLER),
       );
-      code_generatable_context
-        .runtime_template
-        .runtime_requirements_mut()
-        .insert(RuntimeGlobals::UNCAUGHT_ERROR_HANDLER);
       source.replace(
         dep.outer_range.start,
         function_range.start,
@@ -214,10 +206,6 @@ impl DependencyTemplate for AMDRequireDependencyTemplate {
           .runtime_template
           .render_runtime_globals(&RuntimeGlobals::UNCAUGHT_ERROR_HANDLER),
       );
-      code_generatable_context
-        .runtime_template
-        .runtime_requirements_mut()
-        .insert(RuntimeGlobals::UNCAUGHT_ERROR_HANDLER);
 
       source.replace(dep.outer_range.start, array_range.start, &start_block, None);
 
