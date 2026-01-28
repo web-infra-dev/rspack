@@ -636,7 +636,6 @@ impl ParserAndGenerator for CssParserAndGenerator {
           {
             (
               generate_context
-                .compilation
                 .runtime_template
                 .render_runtime_globals(&RuntimeGlobals::MAKE_NAMESPACE_OBJECT),
               "(".to_string(),
@@ -688,12 +687,6 @@ impl ParserAndGenerator for CssParserAndGenerator {
             )
           }
         };
-        if self.es_module {
-          generate_context
-            .runtime_template
-            .runtime_requirements_mut()
-            .insert(RuntimeGlobals::MAKE_NAMESPACE_OBJECT);
-        }
         Ok(RawStringSource::from(exports).boxed())
       }
       _ => panic!(

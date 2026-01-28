@@ -126,13 +126,6 @@ impl DependencyTemplate for ModuleDecoratorDependencyTemplate {
       ..
     } = code_generatable_context;
 
-    runtime_template
-      .runtime_requirements_mut()
-      .insert(RuntimeGlobals::MODULE_LOADED);
-    runtime_template
-      .runtime_requirements_mut()
-      .insert(RuntimeGlobals::MODULE_ID);
-
     let module_graph = compilation.get_module_graph();
     let module = module_graph
       .module_by_identifier(&module.identifier())

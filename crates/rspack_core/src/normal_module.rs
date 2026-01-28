@@ -701,13 +701,7 @@ impl Module for NormalModule {
     if !inner.parsed {
       runtime_template
         .runtime_requirements_mut()
-        .insert(RuntimeGlobals::MODULE);
-      runtime_template
-        .runtime_requirements_mut()
-        .insert(RuntimeGlobals::EXPORTS);
-      runtime_template
-        .runtime_requirements_mut()
-        .insert(RuntimeGlobals::THIS_AS_EXPORTS);
+        .insert(RuntimeGlobals::MODULE | RuntimeGlobals::EXPORTS | RuntimeGlobals::THIS_AS_EXPORTS);
     }
 
     let module_graph = compilation.get_module_graph();

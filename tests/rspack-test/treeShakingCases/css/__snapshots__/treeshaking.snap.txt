@@ -10,7 +10,7 @@ _index_module_css__rspack_import_0.compose;
 
 
 },
-"./index.module.css"(module, __unused_rspack_exports, __webpack_require__) {
+"./index.module.css"(module) {
 var exports = {
   "foo": "_939518936b36b260",
   "bar": "_5ddc1eb5f18d3113",

@@ -90,7 +90,9 @@ const MODULE_DEPENDENCIES: &[(RuntimeGlobals, RuntimeGlobals)] = &[
   (RuntimeGlobals::MODULE_ID, RuntimeGlobals::MODULE),
   (
     RuntimeGlobals::ESM_MODULE_DECORATOR,
-    RuntimeGlobals::MODULE.union(RuntimeGlobals::REQUIRE_SCOPE),
+    RuntimeGlobals::MODULE
+      .union(RuntimeGlobals::REQUIRE_SCOPE)
+      .union(RuntimeGlobals::MODULE_ID),
   ),
   (
     RuntimeGlobals::NODE_MODULE_DECORATOR,

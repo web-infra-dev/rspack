@@ -414,11 +414,7 @@ impl AwaitDependenciesInitFragment {
 }
 
 impl<C: InitFragmentRenderContext> InitFragment<C> for AwaitDependenciesInitFragment {
-  fn contents(self: Box<Self>, context: &mut C) -> Result<InitFragmentContents> {
-    context
-      .runtime_template()
-      .runtime_requirements_mut()
-      .insert(RuntimeGlobals::MODULE);
+  fn contents(self: Box<Self>, _context: &mut C) -> Result<InitFragmentContents> {
     if self.promises.is_empty() {
       Ok(InitFragmentContents {
         start: String::new(),
