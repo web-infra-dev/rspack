@@ -1,8 +1,6 @@
 asset main.js xx KiB [emitted] [big] (name: main)
-runtime modules xx bytes 1 module
-modules by path ./*.js xx KiB
-  ./index.js xx bytes [built] [code generated] [2 warnings]
-  ./a.js xx KiB [built] [code generated]
+./index.js xx bytes [built] [code generated] [2 warnings]
+./a.js xx KiB [built] [code generated]
 ./.|sync xx bytes [built] [code generated]
 
 WARNING in ⚠ asset size limit: The following asset(s) exceed the recommended size limit (xx KiB). This can impact web performance.Assets:

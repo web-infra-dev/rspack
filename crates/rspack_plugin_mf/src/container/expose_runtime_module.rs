@@ -70,10 +70,11 @@ impl RuntimeModule for ExposeRuntimeModule {
     let Some(data) = self.find_expose_data(&chunk_ukey, compilation) else {
       return Ok("".to_string());
     };
-    let module_map = data.module_map.render(compilation);
-    let require_name = compilation
+    let mut runtime_template = compilation
       .runtime_template
-      .render_runtime_globals(&RuntimeGlobals::REQUIRE);
+      .create_module_codegen_runtime_template();
+    let module_map = data.module_map.render(&mut runtime_template);
+    let require_name = runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE);
     let mut source = format!(
       r#"
     {require_name}.initializeExposesData = {{

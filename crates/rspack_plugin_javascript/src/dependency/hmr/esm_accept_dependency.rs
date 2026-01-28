@@ -69,7 +69,7 @@ impl DependencyTemplate for ESMAcceptDependencyTemplate {
       compilation,
       module,
       runtime,
-      runtime_requirements,
+      runtime_template,
       ..
     } = code_generatable_context;
 
@@ -91,11 +91,10 @@ impl DependencyTemplate for ESMAcceptDependencyTemplate {
       }
 
       let condition = {
-        compilation.runtime_template.runtime_condition_expression(
+        runtime_template.runtime_condition_expression(
           &compilation.chunk_graph,
           Some(&runtime_condition),
           *runtime,
-          runtime_requirements,
         )
       };
 
@@ -110,10 +109,9 @@ impl DependencyTemplate for ESMAcceptDependencyTemplate {
         phase,
         *runtime,
       );
-      let stmts = compilation.runtime_template.import_statement(
+      let stmts = runtime_template.import_statement(
         *module,
         compilation,
-        runtime_requirements,
         id,
         &import_var,
         module_dependency.request(),

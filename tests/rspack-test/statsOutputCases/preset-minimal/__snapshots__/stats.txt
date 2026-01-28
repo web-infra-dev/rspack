@@ -1,6 +1,6 @@
 <e> [LogTestPlugin] Error
 1 asset
-4 modules
+3 modules
 
 LOG from LogTestPlugin
 <e> Error

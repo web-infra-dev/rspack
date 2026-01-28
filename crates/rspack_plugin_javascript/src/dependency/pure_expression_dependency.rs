@@ -138,13 +138,11 @@ impl DependencyTemplate for PureExpressionDependencyTemplate {
       rspack_core::RuntimeCondition::Boolean(false) => None,
       rspack_core::RuntimeCondition::Spec(_spec) => Some(
         code_generatable_context
-          .compilation
           .runtime_template
           .runtime_condition_expression(
             &code_generatable_context.compilation.chunk_graph,
             Some(&runtime_condition),
             code_generatable_context.runtime,
-            code_generatable_context.runtime_requirements,
           ),
       ),
     };

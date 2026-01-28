@@ -6,7 +6,7 @@ use rspack_core::{
   DependencyId, DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType,
   DependencyType, ESMExportInitFragment, ExportNameOrSpec, ExportsInfoGetter, ExportsOfExportsSpec,
   ExportsSpec, ForwardId, GetUsedNameParam, ModuleGraph, ModuleGraphCacheArtifact,
-  PrefetchExportsInfoMode, RuntimeGlobals, TemplateContext, TemplateReplaceSource, UsedName,
+  PrefetchExportsInfoMode, SharedSourceMap, TemplateContext, TemplateReplaceSource, UsedName,
   property_access, rspack_sources::ReplacementEnforce,
 };
 use swc_core::atoms::Atom;
@@ -157,10 +157,10 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
     let TemplateContext {
       compilation,
       runtime,
-      runtime_requirements,
       module,
       init_fragments,
       concatenation_scope,
+      runtime_template,
       ..
     } = code_generatable_context;
 
@@ -230,7 +230,6 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
         std::slice::from_ref(&JS_DEFAULT_KEYWORD),
       ) {
         if let UsedName::Normal(used) = used {
-          runtime_requirements.insert(RuntimeGlobals::EXPORTS);
           if supports_const {
             init_fragments.push(Box::new(ESMExportInitFragment::new(
               module.get_exports_argument(),
@@ -248,9 +247,7 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
           } else {
             format!(
               r#"/* export default */ {}{} = "#,
-              compilation
-                .runtime_template
-                .render_exports_argument(module.get_exports_argument()),
+              runtime_template.render_exports_argument(module.get_exports_argument()),
               property_access(used, 0)
             )
           }

@@ -891,6 +891,9 @@ importers:
       react-refresh:
         specifier: ^0.18.0
         version: 0.18.0
+      react-server-dom-rspack:
+        specifier: 0.0.1-alpha.10
+        version: 0.0.1-alpha.10(@rspack/core@packages+rspack)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       rimraf:
         specifier: ^5.0.10
         version: 5.0.10
@@ -7038,6 +7041,14 @@ packages:
     peerDependenciesMeta:
       react-dom:
         optional: true
+
+  react-server-dom-rspack@0.0.1-alpha.10:
+    resolution: {integrity: sha512-OR0IMsnNUIERZHtvyjjtSCJbHJVL8Q7lTeN4onOViccpCQStA+qq79zxR2BHO6JAnqnVQRFpAO/zLY9I5Ikw+Q==}
+    engines: {node: '>=0.10.0'}
+    peerDependencies:
+      '@rspack/core': ^2.0.0-0
+      react: 19.3.0-canary-b49e2031-20260127
+      react-dom: 19.3.0-canary-b49e2031-20260127
 
   react@19.2.4:
     resolution: {integrity: sha512-9nfp2hYpCwOjAN+8TZFGhtWEwgvWHXqESH8qT89AT/lWklpLON22Lc8pEtnpsZz7VmawabSU0gCjnj8aC0euHQ==}
@@ -15009,6 +15020,12 @@ snapshots:
       react: 19.2.4
       set-cookie-parser: 2.7.2
     optionalDependencies:
+      react-dom: 19.2.4(react@19.2.4)
+
+  react-server-dom-rspack@0.0.1-alpha.10(@rspack/core@packages+rspack)(react-dom@19.2.4(react@19.2.4))(react@19.2.4):
+    dependencies:
+      '@rspack/core': link:packages/rspack
+      react: 19.2.4
       react-dom: 19.2.4(react@19.2.4)
 
   react@19.2.4: {}

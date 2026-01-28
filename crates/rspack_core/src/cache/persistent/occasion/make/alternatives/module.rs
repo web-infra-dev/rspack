@@ -9,8 +9,9 @@ use rspack_util::source_map::{ModuleSourceMapConfig, SourceMapKind};
 
 use crate::{
   AsyncDependenciesBlockIdentifier, BoxModule, BuildInfo, BuildMeta, CodeGenerationResult,
-  Compilation, ConcatenationScope, Context, DependenciesBlock, DependencyId, FactoryMeta, Module,
-  ModuleGraph, ModuleIdentifier, ModuleType, RuntimeSpec, SourceType, ValueCacheVersions,
+  Compilation, Context, DependenciesBlock, DependencyId, FactoryMeta, Module,
+  ModuleCodeGenerationContext, ModuleGraph, ModuleIdentifier, ModuleType, RuntimeSpec, SourceType,
+  ValueCacheVersions,
 };
 
 #[cacheable]
@@ -103,9 +104,7 @@ impl Module for TempModule {
 
   async fn code_generation(
     &self,
-    _compilation: &Compilation,
-    _runtime: Option<&RuntimeSpec>,
-    _concatenation_scope: Option<ConcatenationScope>,
+    _code_generation_context: &mut ModuleCodeGenerationContext,
   ) -> Result<CodeGenerationResult> {
     unreachable!()
   }

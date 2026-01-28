@@ -133,29 +133,20 @@ impl DependencyTemplate for URLDependencyTemplate {
       .expect("URLDependencyTemplate should be used for URLDependency");
     let TemplateContext {
       compilation,
-      runtime_requirements,
+      runtime_template,
       ..
     } = code_generatable_context;
 
-    runtime_requirements.insert(RuntimeGlobals::REQUIRE);
-
     match dep.mode {
       Some(JavascriptParserUrl::Relative) => {
-        runtime_requirements.insert(RuntimeGlobals::RELATIVE_URL);
         source.replace(
           dep.range.start,
           dep.range.end,
           format!(
             "/* asset import */ new {}({}({}))",
-            compilation
-              .runtime_template
-              .render_runtime_globals(&RuntimeGlobals::RELATIVE_URL),
-            compilation
-              .runtime_template
-              .render_runtime_globals(&RuntimeGlobals::REQUIRE),
-            compilation
-              .runtime_template
-              .module_id(compilation, &dep.id, &dep.request, false),
+            runtime_template.render_runtime_globals(&RuntimeGlobals::RELATIVE_URL),
+            runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
+            runtime_template.module_id(compilation, &dep.id, &dep.request, false),
           )
           .as_str(),
           None,
@@ -182,21 +173,14 @@ impl DependencyTemplate for URLDependencyTemplate {
         );
       }
       _ => {
-        runtime_requirements.insert(RuntimeGlobals::BASE_URI);
         source.replace(
           dep.range_url.start,
           dep.range_url.end,
           format!(
             "/* asset import */{}({}), {}",
-            compilation
-              .runtime_template
-              .render_runtime_globals(&RuntimeGlobals::REQUIRE),
-            compilation
-              .runtime_template
-              .module_id(compilation, &dep.id, &dep.request, false),
-            compilation
-              .runtime_template
-              .render_runtime_globals(&RuntimeGlobals::BASE_URI)
+            runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
+            runtime_template.module_id(compilation, &dep.id, &dep.request, false),
+            runtime_template.render_runtime_globals(&RuntimeGlobals::BASE_URI)
           )
           .as_str(),
           None,

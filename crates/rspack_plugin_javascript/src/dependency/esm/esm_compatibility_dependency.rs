@@ -37,12 +37,12 @@ impl DependencyTemplate for ESMCompatibilityDependencyTemplate {
     code_generatable_context: &mut TemplateContext,
   ) {
     let TemplateContext {
-      runtime_requirements,
       init_fragments,
       compilation,
       module,
       runtime,
       concatenation_scope,
+      runtime_template,
       ..
     } = code_generatable_context;
     if concatenation_scope.is_some() {
@@ -59,17 +59,11 @@ impl DependencyTemplate for ESMCompatibilityDependencyTemplate {
       .get_read_only_export_info(&name)
       .get_used(*runtime);
     if !matches!(used, UsageState::Unused) {
-      runtime_requirements.insert(RuntimeGlobals::MAKE_NAMESPACE_OBJECT);
-      runtime_requirements.insert(RuntimeGlobals::EXPORTS);
       init_fragments.push(Box::new(NormalInitFragment::new(
         format!(
           "{}({});\n",
-          compilation
-            .runtime_template
-            .render_runtime_globals(&RuntimeGlobals::MAKE_NAMESPACE_OBJECT),
-          compilation
-            .runtime_template
-            .render_exports_argument(module.get_exports_argument()),
+          runtime_template.render_runtime_globals(&RuntimeGlobals::MAKE_NAMESPACE_OBJECT),
+          runtime_template.render_exports_argument(module.get_exports_argument()),
         ),
         InitFragmentStage::StageESMExports,
         0,
@@ -82,15 +76,11 @@ impl DependencyTemplate for ESMCompatibilityDependencyTemplate {
       &compilation.async_modules_artifact.borrow(),
       &module.identifier(),
     ) {
-      runtime_requirements.insert(RuntimeGlobals::MODULE);
-      runtime_requirements.insert(RuntimeGlobals::ASYNC_MODULE);
       init_fragments.push(Box::new(NormalInitFragment::new(
         format!(
           "{}({}, async function (__rspack_load_async_deps, __rspack_async_done) {{ try {{\n",
-          compilation
-            .runtime_template
-            .render_runtime_globals(&RuntimeGlobals::ASYNC_MODULE),
-          compilation.runtime_template.render_module_argument(
+          runtime_template.render_runtime_globals(&RuntimeGlobals::ASYNC_MODULE),
+          runtime_template.render_module_argument(
             module_graph
               .module_by_identifier(&module.identifier())
               .expect("should have mgm")

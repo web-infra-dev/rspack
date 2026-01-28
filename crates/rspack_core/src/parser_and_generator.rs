@@ -16,9 +16,9 @@ use swc_core::{atoms::Atom, common::Span};
 use crate::{
   AsyncDependenciesBlock, BoxDependency, BoxDependencyTemplate, BoxLoader, BoxModuleDependency,
   BuildInfo, BuildMeta, ChunkGraph, CodeGenerationData, Compilation, CompilerOptions,
-  ConcatenationScope, Context, EvaluatedInlinableValue, FactoryMeta, Module, ModuleGraph,
-  ModuleIdentifier, ModuleLayer, ModuleType, NormalModule, ParserOptions, RuntimeGlobals,
-  RuntimeSpec, RuntimeTemplate, SourceType,
+  ConcatenationScope, Context, EvaluatedInlinableValue, FactoryMeta, Module,
+  ModuleCodegenRuntimeTemplate, ModuleGraph, ModuleIdentifier, ModuleLayer, ModuleType,
+  NormalModule, ParserOptions, RuntimeSpec, RuntimeTemplate, SourceType,
 };
 
 #[derive(Debug)]
@@ -114,7 +114,7 @@ pub struct ParseResult {
 #[derive(Debug)]
 pub struct GenerateContext<'a> {
   pub compilation: &'a Compilation,
-  pub runtime_requirements: &'a mut RuntimeGlobals,
+  pub runtime_template: &'a mut ModuleCodegenRuntimeTemplate,
   pub data: &'a mut CodeGenerationData,
   pub requested_source_type: SourceType,
   pub runtime: Option<&'a RuntimeSpec>,

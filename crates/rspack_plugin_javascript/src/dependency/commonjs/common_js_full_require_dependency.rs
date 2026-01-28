@@ -160,11 +160,10 @@ impl DependencyTemplate for CommonJsFullRequireDependencyTemplate {
     let TemplateContext {
       compilation,
       runtime,
-      runtime_requirements,
+      runtime_template,
       ..
     } = code_generatable_context;
     let module_graph = compilation.get_module_graph();
-    runtime_requirements.insert(RuntimeGlobals::REQUIRE);
 
     let require_expr = if let Some(imported_module) =
       module_graph.module_graph_module_by_dependency_id(&dep.id)
@@ -195,12 +194,8 @@ impl DependencyTemplate for CommonJsFullRequireDependencyTemplate {
         UsedName::Normal(used) => {
           format!(
             "{}({}){}{}",
-            compilation
-              .runtime_template
-              .render_runtime_globals(&RuntimeGlobals::REQUIRE),
-            compilation
-              .runtime_template
-              .module_id(compilation, &dep.id, &dep.request, false),
+            runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
+            runtime_template.module_id(compilation, &dep.id, &dep.request, false),
             to_normal_comment(&property_access(&dep.names, 0)),
             property_access(used, 0)
           )
@@ -217,12 +212,8 @@ impl DependencyTemplate for CommonJsFullRequireDependencyTemplate {
     } else {
       format!(
         r#"{}({})"#,
-        compilation
-          .runtime_template
-          .render_runtime_globals(&RuntimeGlobals::REQUIRE),
-        compilation
-          .runtime_template
-          .module_id(compilation, &dep.id, &dep.request, false)
+        runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
+        runtime_template.module_id(compilation, &dep.id, &dep.request, false)
       )
     };
 

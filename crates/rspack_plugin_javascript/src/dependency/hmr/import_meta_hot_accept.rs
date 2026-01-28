@@ -110,7 +110,6 @@ impl DependencyTemplate for ImportMetaHotAcceptDependencyTemplate {
       dep.range.start,
       dep.range.end,
       code_generatable_context
-        .compilation
         .runtime_template
         .module_id(
           code_generatable_context.compilation,
