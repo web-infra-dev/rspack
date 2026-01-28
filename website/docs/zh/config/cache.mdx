@@ -21,6 +21,7 @@ type CacheOptions =
       type: 'persistent';
       buildDependencies?: string[];
       version?: string;
+      portable?: boolean;
       snapshot?: {
         immutablePaths?: Array<string | RegExp>;
         unmanagedPaths?: Array<string | RegExp>;
@@ -110,6 +111,39 @@ export default {
 
 - [config.name](/config/other-options#name)
 - [config.mode](/config/mode#mode)
+
+:::
+
+### cache.portable
+
+- **类型：** `boolean`
+
+- **默认值：** `false`
+
+启用可移植缓存模式。启用后，生成的缓存内容可以在同一项目的不同平台和路径之间共享使用。
+
+可移植缓存构建在持久化缓存之上，通过在序列化和反序列化过程中转换平台特定的数据（例如，将绝对路径转换为相对路径），使缓存具有平台无关性。
+
+:::tip 使用场景
+
+典型的使用场景是在 CI 环境中，Windows、Linux 和 macOS 可以使用同一份缓存进行加速，而不需要生成三份独立的缓存副本。
+
+:::
+
+**示例：**
+
+```js title="rspack.config.mjs"
+export default {
+  cache: {
+    type: 'persistent',
+    portable: true,
+  },
+};
+```
+
+:::warning 限制
+
+项目目录之外的文件（`config.context` 之外）会被转换为相对路径。如果这些文件在新环境中不存在，将会触发相关模块的重新构建。
 
 :::
 

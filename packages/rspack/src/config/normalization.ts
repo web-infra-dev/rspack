@@ -301,6 +301,7 @@ export const getNormalizedRspackOptions = (
             cache.storage?.directory || 'node_modules/.cache/rspack',
           ),
         },
+        portable: cache.portable,
       };
     }),
     stats: nestedConfig(config.stats, (stats) => {
@@ -607,6 +608,7 @@ export type CacheNormalized =
         type: 'filesystem';
         directory: string;
       };
+      portable?: boolean;
     };
 
 export interface ExperimentsNormalized {

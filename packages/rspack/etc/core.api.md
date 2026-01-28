@@ -683,24 +683,23 @@ export type CacheNormalized = boolean | {
         type: 'filesystem';
         directory: string;
     };
+    portable?: boolean;
 };
 
 // @public
-export type CacheOptions = boolean | {
-    type: 'memory';
-} | {
-    type: 'persistent';
-    buildDependencies?: string[];
-    version?: string;
-    snapshot?: {
-        immutablePaths?: (string | RegExp)[];
-        unmanagedPaths?: (string | RegExp)[];
-        managedPaths?: (string | RegExp)[];
-    };
-    storage?: {
-        type: 'filesystem';
-        directory?: string;
-    };
+export type CacheOptions = boolean | MemoryCacheOptions | PersistentCacheOptions;
+
+// @public
+export type CacheSnapshotOptions = {
+    immutablePaths?: (string | RegExp)[];
+    unmanagedPaths?: (string | RegExp)[];
+    managedPaths?: (string | RegExp)[];
+};
+
+// @public
+export type CacheStorageOptions = {
+    type: 'filesystem';
+    directory?: string;
 };
 
 // @public (undocumented)
@@ -4879,6 +4878,11 @@ interface MemberExpression extends ExpressionBase {
     type: "MemberExpression";
 }
 
+// @public
+export type MemoryCacheOptions = {
+    type: 'memory';
+};
+
 // @public (undocumented)
 interface MetaProperty extends Node_4, HasSpan {
     // (undocumented)
@@ -5974,6 +5978,16 @@ type Performance_2 = false | {
 };
 export { Performance_2 as Performance }
 
+// @public
+export type PersistentCacheOptions = {
+    type: 'persistent';
+    buildDependencies?: string[];
+    version?: string;
+    snapshot?: CacheSnapshotOptions;
+    storage?: CacheStorageOptions;
+    portable?: boolean;
+};
+
 // @public (undocumented)
 export type PitchLoaderDefinitionFunction<OptionsType = {}, ContextAdditions = {}> = (this: LoaderContext<OptionsType> & ContextAdditions, remainingRequest: string, previousRequest: string, data: object) => string | void | Buffer | Promise<string | Buffer | void>;
 
@@ -6793,6 +6807,7 @@ type Rspack = typeof rspack_2 & typeof rspackExports & {
 // @public (undocumented)
 const rspack: Rspack;
 export default rspack;
+export { rspack as module.exports }
 export { rspack }
 
 // @public (undocumented)
@@ -7154,6 +7169,10 @@ declare namespace rspackExports {
         Node_2 as Node,
         Loader,
         SnapshotOptions,
+        CacheSnapshotOptions,
+        CacheStorageOptions,
+        PersistentCacheOptions,
+        MemoryCacheOptions,
         CacheOptions,
         StatsPresets,
         StatsColorOptions,

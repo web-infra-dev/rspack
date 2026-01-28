@@ -408,7 +408,7 @@ async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<B
   ) {
     return Ok(None);
   }
-  let request = dep.request();
+  let request = &data.request;
   let consumes = self.get_matched_consumes();
   if let Some(matched) = consumes.unresolved.get(request) {
     let module = self

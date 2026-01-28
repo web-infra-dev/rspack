@@ -242,7 +242,7 @@ async fn normal_module_factory_module(
   {
     return Ok(());
   }
-  let request = &create_data.raw_request;
+  let request = &data.request;
   {
     let match_provides = self.match_provides.read().await;
     if let Some(config) = match_provides.get(request) {

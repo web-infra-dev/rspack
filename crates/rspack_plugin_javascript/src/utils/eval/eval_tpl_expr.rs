@@ -28,11 +28,15 @@ fn get_simplified_template_result<'a>(
   for i in 0..node.quasis.len() {
     let quasi_expr = &node.quasis[i];
     let quasi = match kind {
-      TemplateStringKind::Cooked => quasi_expr
-        .cooked
-        .as_ref()
-        .and_then(|q| q.as_atom())
-        .expect("quasic should be not empty"),
+      TemplateStringKind::Cooked => {
+        // When template literals contain invalid escape sequences,
+        // the cooked value can be None. Fall back to raw in this case.
+        quasi_expr
+          .cooked
+          .as_ref()
+          .and_then(|q| q.as_atom())
+          .unwrap_or(&quasi_expr.raw)
+      }
       TemplateStringKind::Raw => &quasi_expr.raw,
     };
     if i > 0 {

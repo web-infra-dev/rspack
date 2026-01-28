@@ -21,6 +21,7 @@ type CacheOptions =
       type: 'persistent';
       buildDependencies?: string[];
       version?: string;
+      portable?: boolean;
       snapshot?: {
         immutablePaths?: Array<string | RegExp>;
         unmanagedPaths?: Array<string | RegExp>;
@@ -110,6 +111,39 @@ In addition to [buildDependencies](#cachebuilddependencies) and [version](#cache
 
 - [config.name](/config/other-options#name)
 - [config.mode](/config/mode#mode)
+
+:::
+
+### cache.portable
+
+- **Type:** `boolean`
+
+- **Default:** `false`
+
+Enable portable cache mode. When enabled, the generated cache content can be shared across different platforms and paths within the same project.
+
+Portable cache is built on top of persistent cache and makes the cache platform-independent by converting platform-specific data (e.g., absolute paths to relative paths) during serialization and deserialization.
+
+:::tip Use cases
+
+A typical use case is in CI environments where Windows, Linux, and macOS can share the same cache for acceleration without generating three separate cache copies.
+
+:::
+
+**Example:**
+
+```js title="rspack.config.mjs"
+export default {
+  cache: {
+    type: 'persistent',
+    portable: true,
+  },
+};
+```
+
+:::warning Limitations
+
+Files outside the project directory (outside `config.context`) will be converted to relative paths. If these files don't exist in the new environment, it will trigger a rebuild of the related modules.
 
 :::
 
