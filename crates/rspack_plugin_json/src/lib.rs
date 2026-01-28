@@ -106,7 +106,8 @@ impl ParserAndGenerator for JsonParserAndGenerator {
           ExceededDepthLimit | WrongType(_) | FailedUtf8Parsing => error!("{}", e),
           UnexpectedEndOfJson => {
             // End offset of json file
-            let offset = source.len();
+            let length = source.len();
+            let offset = if length > 0 { length - 1 } else { length };
             Error::from_string(
               Some(source.into_owned()),
               offset,
