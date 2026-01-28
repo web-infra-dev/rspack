@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use rspack_core::{
   ConstDependency, DependencyType, ExportPresenceMode, ImportAttributes, ImportPhase,
 };

@@ -1,8 +1,7 @@
 use napi::bindgen_prelude::*;
+use rspack_core::DependencyLocation;
 use rspack_error::{Diagnostic, Error as RspackError, Label, Severity};
-use rspack_util::location::{
-  v8_line_column_length_to_offset_length, v8_line_column_to_byte_location,
-};
+use rspack_util::location::{byte_line_column_to_offset};
 
 #[napi(object)]
 pub struct JsDiagnosticLocation {
@@ -47,21 +46,19 @@ pub fn format_diagnostic(diagnostic: JsDiagnostic) -> Result<External<Diagnostic
   if let Some(help) = help {
     error.help = Some(help);
   }
-  let mut loc = None;
+  let mut real_dependency_location = None;
   if let Some(ref source_code) = source_code {
     if let Some(location) = location {
-      loc = v8_line_column_to_byte_location(
-        &source_code,
+      real_dependency_location = DependencyLocation::from_byte_location(
+        source_code,
         location.line as usize,
         location.column as usize,
-        location.length as usize,
+        Some(location.length as usize),
       );
-      // TODO: Avoid redundant computation: location and (offset, length) are both derived from the same inputs.
-      let (offset, byte_length) = v8_line_column_length_to_offset_length(
+      let offset = byte_line_column_to_offset(
         &source_code,
         location.line as usize,
         location.column as usize,
-        location.length as usize,
       )
       .ok_or_else(|| {
         Error::new(
@@ -69,7 +66,7 @@ pub fn format_diagnostic(diagnostic: JsDiagnostic) -> Result<External<Diagnostic
           "Format diagnostic failed: Invalid location. Did you pass the correct line, column and length?",
         )
       })?;
-      let end_byte = offset.saturating_add(byte_length);
+      let end_byte = offset.saturating_add(location.length as usize);
       if end_byte > source_code.len() {
         return Err(Error::new(
           Status::Unknown,
@@ -85,7 +82,7 @@ pub fn format_diagnostic(diagnostic: JsDiagnostic) -> Result<External<Diagnostic
       error.labels = Some(vec![Label {
         name: location.text,
         offset,
-        len: byte_length,
+        len: location.length as usize,
       }]);
     }
   }
@@ -94,18 +91,7 @@ pub fn format_diagnostic(diagnostic: JsDiagnostic) -> Result<External<Diagnostic
 
   let mut diagnostic = Diagnostic::from(error);
   diagnostic.file = file.map(Into::into);
-  diagnostic.loc = loc.map(|l| {
-    rspack_core::DependencyLocation::Real(rspack_core::RealDependencyLocation {
-      start: rspack_core::SourcePosition {
-        line: l.sl as usize + 1,
-        column: l.sc as usize,
-      },
-      end: Some(rspack_core::SourcePosition {
-        line: l.el as usize + 1,
-        column: l.ec as usize,
-      }),
-    })
-  });
+  diagnostic.loc = real_dependency_location;
   diagnostic.module_identifier = module_identifier.map(Into::into);
   Ok(External::new(diagnostic))
 }

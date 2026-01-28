@@ -4080,6 +4080,7 @@ name = "rspack_location"
 version = "0.100.0-alpha.1"
 dependencies = [
  "itoa",
+ "memchr",
  "rspack_cacheable",
 ]
 
@@ -4501,6 +4502,7 @@ dependencies = [
  "fast-glob",
  "indexmap",
  "itertools 0.14.0",
+ "memchr",
  "num-bigint",
  "once_cell",
  "rayon",

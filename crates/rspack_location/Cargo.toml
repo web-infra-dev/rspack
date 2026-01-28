@@ -9,3 +9,4 @@ version.workspace = true
 [dependencies]
 itoa             = { workspace = true }
 rspack_cacheable = { workspace = true }
+memchr = { workspace = true }
