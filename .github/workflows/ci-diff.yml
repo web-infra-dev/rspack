@@ -74,7 +74,7 @@ jobs:
       - name: Clone build-tools-performance
         run: |
           cd ..
-          git clone https://github.com/rstackjs/build-tools-performance.git
+          git clone --single-branch --depth 1 -b v1 https://github.com/rstackjs/build-tools-performance.git
 
       - name: Link packages and install dependencies
         working-directory: ../build-tools-performance
