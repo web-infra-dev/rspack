@@ -6,11 +6,11 @@ chunk {889} (runtime: main) main.js (main) xx bytes [entry] [rendered]
   > ./index main
 ./index.js [237] xx bytes {889} [depth 0] [built] [code generated] [2 warnings]
   [no exports used]
-  Statement with side_effects in source code at ./index.js<LINE_COL>-15
+  Statement with side_effects in source code at ./index.js<LINE_COL>-16
   ModuleConcatenation bailout: Module is not an ECMAScript module
 ./a.js [670] xx bytes {889} [depth 1] [built] [code generated]
   [used exports unknown]
-  Statement with side_effects in source code at ./a.js<LINE_COL>-21
+  Statement with side_effects in source code at ./a.js<LINE_COL>-22
   ModuleConcatenation bailout: Module is not an ECMAScript module
 ./.|sync [641] xx bytes {889} [depth 1] [built] [code generated]
   [no exports]

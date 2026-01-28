@@ -18,7 +18,7 @@ it("should add all modules headers info above modules", () => {
   \\****************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module */
-/*! Statement with side_effects in source code at ./cjs.js:1:1-3:1 */    
+/*! Statement with side_effects in source code at ./cjs.js:1:1-3:2 */    
     `.trim())
 
   expect(content).toContain(`
