@@ -18,7 +18,6 @@ itertools = { workspace = true }
 num-bigint = { workspace = true }
 once_cell = { workspace = true }
 rayon = { workspace = true }
-memchr = { workspace = true }
 regex = { workspace = true }
 regress = { workspace = true, features = ["pattern"] }
 rspack_cacheable = { workspace = true }

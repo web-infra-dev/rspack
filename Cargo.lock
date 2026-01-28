@@ -4502,7 +4502,6 @@ dependencies = [
  "fast-glob",
  "indexmap",
  "itertools 0.14.0",
- "memchr",
  "num-bigint",
  "once_cell",
  "rayon",
