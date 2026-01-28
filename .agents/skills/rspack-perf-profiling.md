@@ -12,7 +12,6 @@ Profile Rspack builds on Linux using perf with DWARF call graphs, capture kernel
 
 ### 1) Build profiling-enabled binding (once per code change)
 ```sh
-cd /home/yj/github/rspack
 pnpm run build:binding:profiling
 ```
 
@@ -25,11 +24,14 @@ Optional: install vmlinux debug symbols or pass a vmlinux path to perf report.
 
 ### 3) Record perf profile (example: 10000 case)
 ```sh
-perf record -o /home/yj/github/rspack-ecosystem-benchmark/cases/10000/perf.data \
+# if benchmark repo isn't present yet
+git clone https://github.com/web-infra-dev/rspack-ecosystem-benchmark.git
+
+perf record -o ./rspack-ecosystem-benchmark/cases/10000/perf.data \
   -e cycles:uk -F 4000 --call-graph dwarf -- \
   node --perf-prof --perf-basic-prof --interpreted-frames-native-stack \
-  /home/yj/github/rspack/packages/rspack-cli/bin/rspack.js \
-  -c /home/yj/github/rspack-ecosystem-benchmark/cases/10000/rspack.config.js
+  ./packages/rspack-cli/bin/rspack.js \
+  -c ./rspack-ecosystem-benchmark/cases/10000/rspack.config.js
 ```
 Notes:
 - `cycles:uk` captures user + kernel cycles.
@@ -39,19 +41,19 @@ Notes:
 ### 4) Analyze perf.data (perf-based)
 Top hotspots (flat view):
 ```sh
-perf report -i /home/yj/github/rspack-ecosystem-benchmark/cases/10000/perf.data \
+perf report -i ./rspack-ecosystem-benchmark/cases/10000/perf.data \
   --stdio --no-children -g none --percent-limit 0.5 | head -n 100
 ```
 Callgraph (if needed):
 ```sh
-perf report -i /home/yj/github/rspack-ecosystem-benchmark/cases/10000/perf.data \
+perf report -i ./rspack-ecosystem-benchmark/cases/10000/perf.data \
   --stdio --no-children -g graph,0.5,caller,function,percent | head -n 120
 ```
 
 ### 5) Optional: import into samply with per-CPU threads
 ```sh
-samply import /home/yj/github/rspack-ecosystem-benchmark/cases/10000/perf.data \
-  --per-cpu-threads -o /home/yj/github/rspack-ecosystem-benchmark/cases/10000/perf.profile.json.gz \
+samply import ./rspack-ecosystem-benchmark/cases/10000/perf.data \
+  --per-cpu-threads -o ./rspack-ecosystem-benchmark/cases/10000/perf.profile.json.gz \
   --no-open
 ```
 Use this only for visualization; keep analysis perf-first.
