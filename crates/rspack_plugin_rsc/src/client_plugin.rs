@@ -48,7 +48,7 @@ fn extend_required_chunks(
     let Some(chunk_id) = chunk.id() else {
       continue;
     };
-    for file in chunk.files() {
+    for file in chunk.files().iter().filter(|f| f.ends_with(".js")) {
       if let Some(asset) = compilation.assets().get(file) {
         let asset_info = asset.get_info();
         if asset_info.hot_module_replacement.unwrap_or(false)
@@ -189,17 +189,15 @@ fn record_chunk_group(
       };
 
       if let Some(concatenated_module) = module.as_concatenated_module() {
-        for inner_module in concatenated_module.get_modules() {
-          record_module(
-            entry_name,
-            module_id,
-            &inner_module.id,
-            chunk_ukey,
-            compilation,
-            required_chunks,
-            plugin_state,
-          );
-        }
+        record_module(
+          entry_name,
+          module_id,
+          &concatenated_module.get_root(),
+          chunk_ukey,
+          compilation,
+          required_chunks,
+          plugin_state,
+        );
       } else {
         record_module(
           entry_name,
