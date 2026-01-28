@@ -340,6 +340,9 @@ impl Compiler {
     let output_path = Utf8Path::new(&output_path_str);
     self.run_clean_options(output_path).await?;
 
+    // EMIT_ASSETS pass - before hook
+    self.cache.before_emit_assets(&mut self.compilation).await;
+
     self
       .plugin_driver
       .compiler_hooks
@@ -393,6 +396,9 @@ impl Compiler {
           .set_version(filename, version);
       }
     }
+
+    // EMIT_ASSETS pass - after hook
+    self.cache.after_emit_assets(&self.compilation).await;
 
     self
       .plugin_driver

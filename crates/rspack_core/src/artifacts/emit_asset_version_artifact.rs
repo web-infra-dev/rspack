@@ -20,7 +20,7 @@ impl ArtifactExt for EmitAssetVersionArtifact {
   const PASS: IncrementalPasses = IncrementalPasses::EMIT_ASSETS;
   // shouldn't recover emitted asset versions since it's calculated from AssetInfo
   fn should_recover(_incremental: &crate::incremental::Incremental) -> bool {
-    return false;
+    false
   }
 }
 
