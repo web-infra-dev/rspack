@@ -376,6 +376,7 @@ export class Watching {
     this.callbacks = [];
 
     this.compiler.hooks.done.callAsync(stats, (err) => {
+      console.log('Compiler Done', this.compiler.context);
       if (err) return handleError(err, cbs);
       this.handler(null, stats);
 
@@ -420,6 +421,12 @@ export class Watching {
             compilation.__internal__removedMissingDependencies,
           );
 
+          console.log(
+            'start watch',
+            fileDependencies,
+            contextDependencies,
+            missingDependencies,
+          );
           this.watch(
             fileDependencies,
             contextDependencies,
