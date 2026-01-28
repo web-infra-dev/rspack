@@ -443,6 +443,8 @@ export class Watching {
     changedFiles?: ReadonlySet<string>,
     removedFiles?: ReadonlySet<string>,
   ) {
+    console.log('[merged with collected]', changedFiles);
+
     if (!this.#collectedChangedFiles || !this.#collectedRemovedFiles) {
       this.#collectedChangedFiles = new Set(changedFiles);
       this.#collectedRemovedFiles = new Set(removedFiles);
