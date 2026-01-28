@@ -65,9 +65,21 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
     let mut q = Queue::new();
     let mg = &mut module_graph;
 
+    let mut global_runtime: Option<RuntimeSpec> = if self.global {
+      None
+    } else {
+      let mut global_runtime = RuntimeSpec::default();
+      for block in module_graph.blocks().values() {
+        if let Some(GroupOptions::Entrypoint(options)) = block.get_group_options()
+          && let Some(runtime) = RuntimeSpec::from_entry_options(options)
+        {
+          global_runtime.extend(&runtime);
+        }
+      }
+      Some(global_runtime)
+    };
     // SAFETY: we can make sure that entries will not be used other place at the same time,
     // this take is aiming to avoid use self ref and mut ref at the same time;
-    let mut global_runtime: Option<RuntimeSpec> = None;
     let entries = &self.compilation.entries;
     for (entry_name, entry) in entries.iter() {
       let runtime = if self.global {
