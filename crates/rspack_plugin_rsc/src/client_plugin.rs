@@ -189,17 +189,15 @@ fn record_chunk_group(
       };
 
       if let Some(concatenated_module) = module.as_concatenated_module() {
-        for inner_module in concatenated_module.get_modules() {
-          record_module(
-            entry_name,
-            module_id,
-            &inner_module.id,
-            chunk_ukey,
-            compilation,
-            required_chunks,
-            plugin_state,
-          );
-        }
+        record_module(
+          entry_name,
+          module_id,
+          &concatenated_module.get_root(),
+          chunk_ukey,
+          compilation,
+          required_chunks,
+          plugin_state,
+        );
       } else {
         record_module(
           entry_name,
