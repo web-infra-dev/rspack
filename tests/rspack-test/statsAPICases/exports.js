@@ -197,7 +197,7 @@ module.exports = {
 			                Object {
 			                  active: false,
 			                  explanation: undefined,
-			                  loc: 1:1-24,
+			                  loc: 1:1-25,
 			                  moduleId: undefined,
 			                  moduleIdentifier: <TEST_ROOT>/fixtures/esm/abc.js,
 			                  moduleName: ./fixtures/esm/abc.js,
@@ -210,7 +210,7 @@ module.exports = {
 			                Object {
 			                  active: true,
 			                  explanation: undefined,
-			                  loc: 5:1,
+			                  loc: 5:1-2,
 			                  moduleId: undefined,
 			                  moduleIdentifier: <TEST_ROOT>/fixtures/esm/abc.js,
 			                  moduleName: ./fixtures/esm/abc.js,
@@ -275,7 +275,7 @@ module.exports = {
 			                Object {
 			                  active: false,
 			                  explanation: undefined,
-			                  loc: 2:1-20,
+			                  loc: 2:1-21,
 			                  moduleId: undefined,
 			                  moduleIdentifier: <TEST_ROOT>/fixtures/esm/abc.js,
 			                  moduleName: ./fixtures/esm/abc.js,
@@ -288,7 +288,7 @@ module.exports = {
 			                Object {
 			                  active: true,
 			                  explanation: undefined,
-			                  loc: 5:4,
+			                  loc: 5:4-5,
 			                  moduleId: undefined,
 			                  moduleIdentifier: <TEST_ROOT>/fixtures/esm/abc.js,
 			                  moduleName: ./fixtures/esm/abc.js,
@@ -353,7 +353,7 @@ module.exports = {
 			                Object {
 			                  active: false,
 			                  explanation: undefined,
-			                  loc: 3:1-25,
+			                  loc: 3:1-26,
 			                  moduleId: undefined,
 			                  moduleIdentifier: <TEST_ROOT>/fixtures/esm/abc.js,
 			                  moduleName: ./fixtures/esm/abc.js,
@@ -366,7 +366,7 @@ module.exports = {
 			                Object {
 			                  active: true,
 			                  explanation: undefined,
-			                  loc: 5:7,
+			                  loc: 5:7-8,
 			                  moduleId: undefined,
 			                  moduleIdentifier: <TEST_ROOT>/fixtures/esm/abc.js,
 			                  moduleName: ./fixtures/esm/abc.js,
@@ -624,7 +624,7 @@ module.exports = {
 			            Object {
 			              active: false,
 			              explanation: undefined,
-			              loc: 1:1-24,
+			              loc: 1:1-25,
 			              moduleId: undefined,
 			              moduleIdentifier: <TEST_ROOT>/fixtures/esm/abc.js,
 			              moduleName: ./fixtures/esm/abc.js,
@@ -637,7 +637,7 @@ module.exports = {
 			            Object {
 			              active: true,
 			              explanation: undefined,
-			              loc: 5:1,
+			              loc: 5:1-2,
 			              moduleId: undefined,
 			              moduleIdentifier: <TEST_ROOT>/fixtures/esm/abc.js,
 			              moduleName: ./fixtures/esm/abc.js,
@@ -702,7 +702,7 @@ module.exports = {
 			            Object {
 			              active: false,
 			              explanation: undefined,
-			              loc: 2:1-20,
+			              loc: 2:1-21,
 			              moduleId: undefined,
 			              moduleIdentifier: <TEST_ROOT>/fixtures/esm/abc.js,
 			              moduleName: ./fixtures/esm/abc.js,
@@ -715,7 +715,7 @@ module.exports = {
 			            Object {
 			              active: true,
 			              explanation: undefined,
-			              loc: 5:4,
+			              loc: 5:4-5,
 			              moduleId: undefined,
 			              moduleIdentifier: <TEST_ROOT>/fixtures/esm/abc.js,
 			              moduleName: ./fixtures/esm/abc.js,
@@ -780,7 +780,7 @@ module.exports = {
 			            Object {
 			              active: false,
 			              explanation: undefined,
-			              loc: 3:1-25,
+			              loc: 3:1-26,
 			              moduleId: undefined,
 			              moduleIdentifier: <TEST_ROOT>/fixtures/esm/abc.js,
 			              moduleName: ./fixtures/esm/abc.js,
@@ -793,7 +793,7 @@ module.exports = {
 			            Object {
 			              active: true,
 			              explanation: undefined,
-			              loc: 5:7,
+			              loc: 5:7-8,
 			              moduleId: undefined,
 			              moduleIdentifier: <TEST_ROOT>/fixtures/esm/abc.js,
 			              moduleName: ./fixtures/esm/abc.js,
@@ -884,7 +884,7 @@ module.exports = {
 			        Object {
 			          active: false,
 			          explanation: undefined,
-			          loc: 1:1-24,
+			          loc: 1:1-25,
 			          moduleId: undefined,
 			          moduleIdentifier: <TEST_ROOT>/fixtures/esm/abc.js,
 			          moduleName: ./fixtures/esm/abc.js,
@@ -897,7 +897,7 @@ module.exports = {
 			        Object {
 			          active: true,
 			          explanation: undefined,
-			          loc: 5:1,
+			          loc: 5:1-2,
 			          moduleId: undefined,
 			          moduleIdentifier: <TEST_ROOT>/fixtures/esm/abc.js,
 			          moduleName: ./fixtures/esm/abc.js,
@@ -962,7 +962,7 @@ module.exports = {
 			        Object {
 			          active: false,
 			          explanation: undefined,
-			          loc: 2:1-20,
+			          loc: 2:1-21,
 			          moduleId: undefined,
 			          moduleIdentifier: <TEST_ROOT>/fixtures/esm/abc.js,
 			          moduleName: ./fixtures/esm/abc.js,
@@ -975,7 +975,7 @@ module.exports = {
 			        Object {
 			          active: true,
 			          explanation: undefined,
-			          loc: 5:4,
+			          loc: 5:4-5,
 			          moduleId: undefined,
 			          moduleIdentifier: <TEST_ROOT>/fixtures/esm/abc.js,
 			          moduleName: ./fixtures/esm/abc.js,
@@ -1040,7 +1040,7 @@ module.exports = {
 			        Object {
 			          active: false,
 			          explanation: undefined,
-			          loc: 3:1-25,
+			          loc: 3:1-26,
 			          moduleId: undefined,
 			          moduleIdentifier: <TEST_ROOT>/fixtures/esm/abc.js,
 			          moduleName: ./fixtures/esm/abc.js,
@@ -1053,7 +1053,7 @@ module.exports = {
 			        Object {
 			          active: true,
 			          explanation: undefined,
-			          loc: 5:7,
+			          loc: 5:7-8,
 			          moduleId: undefined,
 			          moduleIdentifier: <TEST_ROOT>/fixtures/esm/abc.js,
 			          moduleName: ./fixtures/esm/abc.js,

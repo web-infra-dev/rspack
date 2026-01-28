@@ -35,18 +35,17 @@ pub fn byte_line_column_to_offset(source: &str, line: usize, column: usize) -> O
   // Slice of the line
   let line_slice = &source[line_start..line_end];
 
-  // Convert 1-based UTF-16 column to 0-based byte offset in line
   let mut utf16_units = 0usize;
   let mut byte_offset_in_line = 0usize;
   for ch in line_slice.chars() {
-    if utf16_units >= column - 1 {
+    if utf16_units >= column {
       break;
     }
     utf16_units += if (ch as u32) >= 0x1_0000 { 2 } else { 1 };
     byte_offset_in_line += ch.len_utf8();
   }
 
-  if utf16_units < column - 1 {
+  if utf16_units < column {
     return None;
   }
 

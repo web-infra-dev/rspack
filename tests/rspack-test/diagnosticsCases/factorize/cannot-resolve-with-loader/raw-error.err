@@ -1,6 +1,6 @@
 Array [
   Object {
-    loc: 2:9-13,
+    loc: 2:9-14,
     moduleIdentifier: <TEST_ROOT>/diagnosticsCases/factorize/cannot-resolve-with-loader/loader.js!<TEST_ROOT>/diagnosticsCases/factorize/cannot-resolve-with-loader/index.js,
     moduleName: ./index.js,
   },

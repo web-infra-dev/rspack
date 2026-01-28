@@ -16,7 +16,6 @@ ERROR in ./b.json
   ╰─▶   × JSON parse error: Unexpected end of JSON
          ╭────
        1 │ "测试utf8/"
-         ·           ▲
          ╰────
       
   help: 

@@ -1,19 +1,19 @@
 Entrypoint main xx KiB = default/main.js
 chunk (runtime: main) default/548.js (id hint: ) xx bytes <{889}> ={701}= ={742}= [rendered] split chunk (cache group: default)
-  > ./b ./index.js 2:1-47
-  > ./c ./index.js 3:1-47
+  > ./b ./index.js 2:1-48
+  > ./c ./index.js 3:1-48
   ./d.js xx bytes [built] [code generated]
   ./f.js xx bytes [built] [code generated]
 chunk (runtime: main) default/async-b.js (async-b) xx bytes <{889}> ={548}= [rendered]
-  > ./b ./index.js 2:1-47
+  > ./b ./index.js 2:1-48
   dependent modules xx bytes [dependent] 1 module
   ./b.js xx bytes [built] [code generated]
 chunk (runtime: main) default/async-a.js (async-a) xx bytes <{889}> [rendered]
-  > ./a ./index.js 1:1-47
+  > ./a ./index.js 1:1-48
   dependent modules xx bytes [dependent] 2 modules
   ./a.js xx bytes [built] [code generated]
 chunk (runtime: main) default/async-c.js (async-c) xx bytes <{889}> ={548}= [rendered]
-  > ./c ./index.js 3:1-47
+  > ./c ./index.js 3:1-48
   ./c.js xx bytes [built] [code generated]
 chunk (runtime: main) default/main.js (main) xx bytes (javascript) xx KiB (runtime) >{548}< >{701}< >{724}< >{742}< [entry] [rendered]
   > ./ main

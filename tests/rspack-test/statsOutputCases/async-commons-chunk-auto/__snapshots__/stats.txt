@@ -1,6 +1,6 @@
 disabled:
   chunk (runtime: a, main) disabled/async-g.js (async-g) xx bytes [rendered]
-    > ./g ./a.js 6:1-47
+    > ./g ./a.js 6:1-48
     dependent modules xx bytes [dependent] 1 module
     ./g.js xx bytes [built] [code generated]
   chunk (runtime: a) disabled/a.js (a) xx bytes (javascript) xx KiB (runtime) [entry] [rendered]
@@ -12,15 +12,15 @@ disabled:
     dependent modules xx bytes [dependent] 4 modules
     ./b.js xx bytes [built] [code generated]
   chunk (runtime: main) disabled/async-b.js (async-b) xx bytes [rendered]
-    > ./b ./index.js 2:1-47
+    > ./b ./index.js 2:1-48
     dependent modules xx bytes [dependent] 4 modules
     ./b.js xx bytes [built] [code generated]
   chunk (runtime: main) disabled/async-a.js (async-a) xx bytes [rendered]
-    > ./a ./index.js 1:1-47
+    > ./a ./index.js 1:1-48
     dependent modules xx bytes [dependent] 3 modules
     ./a.js + 1 modules xx bytes [code generated]
   chunk (runtime: main) disabled/async-c.js (async-c) xx bytes [rendered]
-    > ./c ./index.js 3:1-47
+    > ./c ./index.js 3:1-48
     dependent modules xx bytes [dependent] 3 modules
     ./c.js + 1 modules xx bytes [code generated]
   chunk (runtime: main) disabled/main.js (main) xx bytes (javascript) xx KiB (runtime) [entry] [rendered]
@@ -34,16 +34,16 @@ disabled:
 
 default:
   chunk (runtime: a, main) default/async-g.js (async-g) xx bytes [rendered]
-    > ./g ./a.js 6:1-47
+    > ./g ./a.js 6:1-48
     ./g.js xx bytes [built] [code generated]
   chunk (runtime: main) default/192.js (id hint: vendors) xx bytes [rendered] split chunk (cache group: defaultVendors)
-    > ./a ./index.js 1:1-47
-    > ./b ./index.js 2:1-47
+    > ./a ./index.js 1:1-48
+    > ./b ./index.js 2:1-48
     ./node_modules/y.js xx bytes [built] [code generated]
   chunk (runtime: main) default/266.js (id hint: ) xx bytes [rendered] split chunk (cache group: default)
-    > ./a ./index.js 1:1-47
-    > ./b ./index.js 2:1-47
-    > ./c ./index.js 3:1-47
+    > ./a ./index.js 1:1-48
+    > ./b ./index.js 2:1-48
+    > ./c ./index.js 3:1-48
     ./d.js xx bytes [built] [code generated]
   chunk (runtime: a) default/a.js (a) xx bytes (javascript) xx KiB (runtime) [entry] [rendered]
     > ./a a
@@ -54,26 +54,26 @@ default:
     dependent modules xx bytes [dependent] 4 modules
     ./b.js xx bytes [built] [code generated]
   chunk (runtime: main) default/async-b.js (async-b) xx bytes [rendered]
-    > ./b ./index.js 2:1-47
+    > ./b ./index.js 2:1-48
     ./b.js xx bytes [built] [code generated]
   chunk (runtime: main) default/async-a.js (async-a) xx bytes [rendered]
-    > ./a ./index.js 1:1-47
+    > ./a ./index.js 1:1-48
     ./a.js + 1 modules xx bytes [code generated]
   chunk (runtime: main) default/async-c.js (async-c) xx bytes [rendered]
-    > ./c ./index.js 3:1-47
+    > ./c ./index.js 3:1-48
     ./c.js xx bytes [built] [code generated]
   chunk (runtime: main) default/773.js (id hint: vendors) xx bytes [rendered] split chunk (cache group: defaultVendors)
-    > ./a ./index.js 1:1-47
-    > ./b ./index.js 2:1-47
-    > ./c ./index.js 3:1-47
+    > ./a ./index.js 1:1-48
+    > ./b ./index.js 2:1-48
+    > ./c ./index.js 3:1-48
     ./node_modules/x.js xx bytes [built] [code generated]
   chunk (runtime: a, main) default/828.js (id hint: ) xx bytes [rendered] split chunk (cache group: default)
-    > ./b ./index.js 2:1-47
-    > ./c ./index.js 3:1-47
-    > ./g ./a.js 6:1-47
+    > ./b ./index.js 2:1-48
+    > ./c ./index.js 3:1-48
+    > ./g ./a.js 6:1-48
     ./f.js xx bytes [built] [code generated]
   chunk (runtime: main) default/859.js (id hint: vendors) xx bytes [rendered] split chunk (cache group: defaultVendors)
-    > ./c ./index.js 3:1-47
+    > ./c ./index.js 3:1-48
     ./node_modules/z.js xx bytes [built] [code generated]
   chunk (runtime: main) default/main.js (main) xx bytes (javascript) xx KiB (runtime) [entry] [rendered]
     > ./ main
@@ -90,7 +90,7 @@ vendors:
   Entrypoint b xx KiB = vendors/vendors.js xx bytes vendors/b.js xx KiB
   Entrypoint c xx KiB = vendors/vendors.js xx bytes vendors/c.js xx KiB
   chunk (runtime: a, main) vendors/async-g.js (async-g) xx bytes [rendered]
-    > ./g ./a.js 6:1-47
+    > ./g ./a.js 6:1-48
     dependent modules xx bytes [dependent] 1 module
     ./g.js xx bytes [built] [code generated]
   chunk (runtime: a) vendors/a.js (a) xx bytes (javascript) xx KiB (runtime) [entry] [rendered]
@@ -109,15 +109,15 @@ vendors:
     ./node_modules/y.js xx bytes [built] [code generated]
     ./node_modules/z.js xx bytes [built] [code generated]
   chunk (runtime: main) vendors/async-b.js (async-b) xx bytes [rendered]
-    > ./b ./index.js 2:1-47
+    > ./b ./index.js 2:1-48
     dependent modules xx bytes [dependent] 4 modules
     ./b.js xx bytes [built] [code generated]
   chunk (runtime: main) vendors/async-a.js (async-a) xx bytes [rendered]
-    > ./a ./index.js 1:1-47
+    > ./a ./index.js 1:1-48
     dependent modules xx bytes [dependent] 3 modules
     ./a.js + 1 modules xx bytes [code generated]
   chunk (runtime: main) vendors/async-c.js (async-c) xx bytes [rendered]
-    > ./c ./index.js 3:1-47
+    > ./c ./index.js 3:1-48
     dependent modules xx bytes [dependent] 4 modules
     ./c.js xx bytes [built] [code generated]
   chunk (runtime: main) vendors/main.js (main) xx bytes (javascript) xx KiB (runtime) [entry] [rendered]
@@ -143,10 +143,10 @@ multiple-vendors:
   chunk (runtime: c) multiple-vendors/c.js (c) xx KiB [entry] [rendered]
     > ./c c
   chunk (runtime: a, b, c, main) multiple-vendors/libs.js (libs) (id hint: libs) xx bytes [initial] [rendered] split chunk (cache group: libs) (name: libs)
-    > ./a ./index.js 1:1-47
-    > ./b ./index.js 2:1-47
-    > ./c ./index.js 3:1-47
-    > ./g ./a.js 6:1-47
+    > ./a ./index.js 1:1-48
+    > ./b ./index.js 2:1-48
+    > ./c ./index.js 3:1-48
+    > ./g ./a.js 6:1-48
     > ./a a
     > ./b b
     > ./c c
@@ -164,8 +164,8 @@ all:
     > ./b b
     ./b.js xx bytes [built] [code generated]
   chunk (runtime: a, b, main) all/192.js (id hint: vendors) xx bytes [initial] [rendered] split chunk (cache group: vendors)
-    > ./a ./index.js 1:1-47
-    > ./b ./index.js 2:1-47
+    > ./a ./index.js 1:1-48
+    > ./b ./index.js 2:1-48
     > ./a a
     > ./b b
     ./node_modules/y.js xx bytes [built] [code generated]
@@ -179,7 +179,7 @@ all:
     > ./ main
     ./index.js xx bytes [built] [code generated]
   chunk (runtime: a, main) all/327.js (id hint: vendors) xx bytes [initial] [rendered] split chunk (cache group: vendors)
-    > ./a ./index.js 1:1-47
+    > ./a ./index.js 1:1-48
     > ./a a
     ./e.js xx bytes [built] [code generated]
   chunk (runtime: a) all/a.js (a) xx KiB [entry] [rendered]
@@ -187,35 +187,35 @@ all:
   chunk (runtime: b) all/b.js (b) xx KiB [entry] [rendered]
     > ./b b
   chunk (runtime: a, b, c, main) all/469.js (id hint: vendors) xx bytes [initial] [rendered] split chunk (cache group: vendors)
-    > ./a ./index.js 1:1-47
-    > ./b ./index.js 2:1-47
-    > ./c ./index.js 3:1-47
+    > ./a ./index.js 1:1-48
+    > ./b ./index.js 2:1-48
+    > ./c ./index.js 3:1-48
     > ./a a
     > ./b b
     > ./c c
     ./d.js xx bytes [built] [code generated]
     ./node_modules/x.js xx bytes [built] [code generated]
   chunk (runtime: main) all/635.js (id hint: vendors) xx bytes [rendered] split chunk (cache group: vendors)
-    > ./b ./index.js 2:1-47
+    > ./b ./index.js 2:1-48
     ./b.js xx bytes [built] [code generated]
   chunk (runtime: main) all/648.js (id hint: vendors) xx bytes [rendered] split chunk (cache group: vendors)
-    > ./a ./index.js 1:1-47
+    > ./a ./index.js 1:1-48
     ./a.js xx bytes [built] [code generated]
   chunk (runtime: main) all/650.js (id hint: vendors) xx bytes [rendered] split chunk (cache group: vendors)
-    > ./c ./index.js 3:1-47
+    > ./c ./index.js 3:1-48
     ./c.js xx bytes [built] [code generated]
   chunk (runtime: a, main) all/73.js (id hint: vendors) xx bytes [rendered] split chunk (cache group: vendors)
-    > ./g ./a.js 6:1-47
+    > ./g ./a.js 6:1-48
     ./g.js xx bytes [built] [code generated]
   chunk (runtime: a, b, c, main) all/828.js (id hint: vendors) xx bytes [initial] [rendered] split chunk (cache group: vendors)
-    > ./b ./index.js 2:1-47
-    > ./c ./index.js 3:1-47
-    > ./g ./a.js 6:1-47
+    > ./b ./index.js 2:1-48
+    > ./c ./index.js 3:1-48
+    > ./g ./a.js 6:1-48
     > ./b b
     > ./c c
     ./f.js xx bytes [built] [code generated]
   chunk (runtime: c, main) all/859.js (id hint: vendors) xx bytes [initial] [rendered] split chunk (cache group: vendors)
-    > ./c ./index.js 3:1-47
+    > ./c ./index.js 3:1-48
     > ./c c
     ./node_modules/z.js xx bytes [built] [code generated]
   chunk (runtime: main) all/main.js (main) xx KiB [entry] [rendered]

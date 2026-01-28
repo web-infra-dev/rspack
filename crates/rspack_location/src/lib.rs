@@ -82,7 +82,9 @@ impl RealDependencyLocation {
 
     // 3. Calculate the UTF-16 length of the start column.
     // This avoids the overhead of constructing the surrogate pair iterator and only performs numerical accumulation.
-    let start_line_slice = &source[line_start_offset..start_byte];
+    let Some(start_line_slice) = source.get(line_start_offset..start_byte) else {
+      return None;
+    };
     let start_utf16_col = start_line_slice.encode_utf16().count() + 1; // 1-based
 
     let start = SourcePosition {
@@ -99,7 +101,9 @@ impl RealDependencyLocation {
         return Some(Self { start, end: None });
       }
 
-      let span_slice = &source[start_byte..end_byte];
+      let Some(span_slice) = source.get(start_byte..end_byte) else {
+        return Some(Self { start, end: None });
+      };
       let newlines_in_span = memchr::memchr_iter(b'\n', span_slice.as_bytes()).count();
       
       let end_line = line + newlines_in_span;

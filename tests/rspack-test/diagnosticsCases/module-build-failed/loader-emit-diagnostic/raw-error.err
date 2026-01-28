@@ -9,28 +9,28 @@ Array [
   },
   Object {
     file: ./some-file.js,
-    loc: 1:1-4,
+    loc: 1:2-5,
     moduleIdentifier: <TEST_ROOT>/diagnosticsCases/module-build-failed/loader-emit-diagnostic/with-file.js!,
     moduleName: ./with-file.js!,
   },
   Object {
     file: ./some-file.js,
-    loc: 1:1-4,
+    loc: 1:2-5,
     moduleIdentifier: <TEST_ROOT>/diagnosticsCases/module-build-failed/loader-emit-diagnostic/with-file.js!<TEST_ROOT>/diagnosticsCases/module-build-failed/loader-emit-diagnostic/lib.js,
     moduleName: ./with-file.js!./lib.js,
   },
   Object {
-    loc: 1:1-4,
+    loc: 1:2-5,
     moduleIdentifier: <TEST_ROOT>/diagnosticsCases/module-build-failed/loader-emit-diagnostic/with-help.js!,
     moduleName: ./with-help.js!,
   },
   Object {
-    loc: 1:1-4,
+    loc: 1:2-5,
     moduleIdentifier: <TEST_ROOT>/diagnosticsCases/module-build-failed/loader-emit-diagnostic/with-location.js!,
     moduleName: ./with-location.js!,
   },
   Object {
-    loc: 1:0-13,
+    loc: 1:1-6,
     moduleIdentifier: <TEST_ROOT>/diagnosticsCases/module-build-failed/loader-emit-diagnostic/with-multi-byte-char.js!,
     moduleName: ./with-multi-byte-char.js!,
   },
@@ -40,12 +40,12 @@ Array [
     moduleName: ./with-multi-byte-char.js!,
   },
   Object {
-    loc: 1:0-2:4,
+    loc: 1:1-2:5,
     moduleIdentifier: <TEST_ROOT>/diagnosticsCases/module-build-failed/loader-emit-diagnostic/with-multiple-line.js!,
     moduleName: ./with-multiple-line.js!,
   },
   Object {
-    loc: 1:0-2:4,
+    loc: 1:1-2:5,
     moduleIdentifier: <TEST_ROOT>/diagnosticsCases/module-build-failed/loader-emit-diagnostic/with-multiple-line.js!,
     moduleName: ./with-multiple-line.js!,
   },
@@ -55,7 +55,7 @@ Array [
     moduleName: ./with-multiple-line.js!,
   },
   Object {
-    loc: 3:4,
+    loc: 3:5,
     moduleIdentifier: <TEST_ROOT>/diagnosticsCases/module-build-failed/loader-emit-diagnostic/with-multiple-line.js!,
     moduleName: ./with-multiple-line.js!,
   },

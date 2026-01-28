@@ -22,7 +22,7 @@ class Plugin {
 					  Object {
 					    loc: Object {
 					      end: Object {
-					        column: 13,
+					        column: 14,
 					        line: 1,
 					      },
 					      start: Object {
@@ -35,7 +35,7 @@ class Plugin {
 					  Object {
 					    loc: Object {
 					      end: Object {
-					        column: 13,
+					        column: 14,
 					        line: 2,
 					      },
 					      start: Object {
