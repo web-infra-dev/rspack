@@ -70,7 +70,7 @@ use crate::{
   CodeGenerationJob, CodeGenerationResult, CodeGenerationResults, CompilationLogger,
   CompilationLogging, CompilerOptions, CompilerPlatform, ConcatenationScope,
   DependenciesDiagnosticsArtifact, DependencyCodeGeneration, DependencyTemplate,
-  DependencyTemplateType, DependencyType, DerefOption, EmitAssetArtifact, Entry, EntryData,
+  DependencyTemplateType, DependencyType, DerefOption, EmitAssetVersionArtifact, Entry, EntryData,
   EntryOptions, EntryRuntime, Entrypoint, ExecuteModuleId, Filename, ImportPhase, ImportVarMap,
   ImportedByDeferModulesArtifact, MemoryGCStorage, ModuleFactory, ModuleGraph,
   ModuleGraphCacheArtifact, ModuleIdentifier, ModuleIdsArtifact, ModuleStaticCacheArtifact,
@@ -256,7 +256,7 @@ pub struct Compilation {
   pub process_runtime_requirements_cache_artifact: ProcessRuntimeRequirementsCacheArtifact,
   pub imported_by_defer_modules_artifact: ImportedByDeferModulesArtifact,
   // artifact for emit_assets
-  pub emit_asset_artifact: EmitAssetArtifact,
+  pub emit_asset_version_artifact: EmitAssetVersionArtifact,
 
   pub code_generated_modules: IdentifierSet,
   pub build_time_executed_modules: IdentifierSet,
@@ -280,7 +280,7 @@ pub struct Compilation {
 
   pub modified_files: ArcPathSet,
   pub removed_files: ArcPathSet,
-  
+
   pub input_filesystem: Arc<dyn ReadableFileSystem>,
 
   pub intermediate_filesystem: Arc<dyn IntermediateFileSystem>,
@@ -398,7 +398,7 @@ impl Compilation {
       build_time_executed_modules: Default::default(),
       incremental,
       build_chunk_graph_artifact: Default::default(),
-      emit_asset_artifact: Default::default(),
+      emit_asset_version_artifact: Default::default(),
 
       hash: None,
 

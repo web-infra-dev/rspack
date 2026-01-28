@@ -10,17 +10,21 @@ use crate::{ArtifactExt, incremental::IncrementalPasses};
 ///
 /// Similar to webpack's `comparedForEmitAssets` but version-based.
 #[derive(Debug, Default)]
-pub struct EmitAssetArtifact {
+pub struct EmitAssetVersionArtifact {
   /// Maps asset filename to its version string
   /// The key is the filename, the value is the version from AssetInfo
   emitted_asset_versions: HashMap<String, String>,
 }
 
-impl ArtifactExt for EmitAssetArtifact {
+impl ArtifactExt for EmitAssetVersionArtifact {
   const PASS: IncrementalPasses = IncrementalPasses::EMIT_ASSETS;
+  // shouldn't recover emitted asset versions since it's calculated from AssetInfo
+  fn should_recover(_incremental: &crate::incremental::Incremental) -> bool {
+    return false;
+  }
 }
 
-impl EmitAssetArtifact {
+impl EmitAssetVersionArtifact {
   pub fn new() -> Self {
     Self::default()
   }

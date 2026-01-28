@@ -361,7 +361,7 @@ impl Compiler {
           if emit_assets_incremental
             && !self
               .compilation
-              .emit_asset_artifact
+              .emit_asset_version_artifact
               .has_version_changed(filename, &asset.info.version)
           {
             return;
@@ -389,7 +389,7 @@ impl Compiler {
       for (filename, version) in versions {
         self
           .compilation
-          .emit_asset_artifact
+          .emit_asset_version_artifact
           .set_version(filename, version);
       }
     }
@@ -488,7 +488,7 @@ impl Compiler {
       return Ok(());
     }
 
-    if self.compilation.emit_asset_artifact.is_empty() {
+    if self.compilation.emit_asset_version_artifact.is_empty() {
       match clean_options {
         CleanOptions::CleanAll(true) => {
           self.output_filesystem.remove_dir_all(output_path).await?;
@@ -520,7 +520,7 @@ impl Compiler {
     join_all(
       self
         .compilation
-        .emit_asset_artifact
+        .emit_asset_version_artifact
         .iter()
         .filter_map(|(filename, _version)| {
           if !assets.contains_key(filename) {

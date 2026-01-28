@@ -190,14 +190,15 @@ impl Cache for MemoryCache {
     }
   }
 
-  // EMIT_ASSETS: emit_asset_artifact
+  // EMIT_ASSETS: emit_asset_version_artifact
+  // Note: EmitAssetVersionArtifact is transient, so this recovery will be a no-op
   async fn before_emit_assets(&mut self, compilation: &mut Compilation) {
     if let Some(old_compilation) = self.old_compilation.as_mut() {
       let incremental = &compilation.incremental;
       recover_artifact(
         incremental,
-        &mut compilation.emit_asset_artifact,
-        &mut old_compilation.emit_asset_artifact,
+        &mut compilation.emit_asset_version_artifact,
+        &mut old_compilation.emit_asset_version_artifact,
       );
     }
   }
