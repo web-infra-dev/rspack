@@ -18,10 +18,9 @@ pub struct EmitAssetVersionArtifact {
 
 impl ArtifactExt for EmitAssetVersionArtifact {
   const PASS: IncrementalPasses = IncrementalPasses::EMIT_ASSETS;
-  // shouldn't recover emitted asset versions since it's calculated from AssetInfo
-  fn should_recover(_incremental: &crate::incremental::Incremental) -> bool {
-    false
-  }
+  // Note: should_recover uses the default implementation which checks
+  // incremental.mutations_readable(EMIT_ASSETS). This allows the artifact
+  // to be recovered during rebuilds, maintaining version tracking across compilations.
 }
 
 impl EmitAssetVersionArtifact {
