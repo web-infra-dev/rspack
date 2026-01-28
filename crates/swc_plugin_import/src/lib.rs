@@ -180,7 +180,7 @@ pub fn plugin_import(
     if let Some(CustomTransform::Tpl(tpl)) = &item.custom_name {
       match Template::parse(tpl) {
         Ok(template) => {
-          renderer.register_template(item.library_name.clone() + CUSTOM_JS, template);
+          renderer.register_template(format!("{}{}", item.library_name, CUSTOM_JS), template);
         }
         Err(e) => {
           HANDLER.with(|handler| {
@@ -197,7 +197,10 @@ pub fn plugin_import(
     if let Some(CustomTransform::Tpl(tpl)) = &item.custom_style_name {
       match Template::parse(tpl) {
         Ok(template) => {
-          renderer.register_template(item.library_name.clone() + CUSTOM_STYLE_NAME, template);
+          renderer.register_template(
+            format!("{}{}", item.library_name, CUSTOM_STYLE_NAME),
+            template,
+          );
         }
         Err(e) => {
           HANDLER.with(|handler| {
@@ -214,7 +217,7 @@ pub fn plugin_import(
     if let Some(StyleConfig::Custom(CustomTransform::Tpl(tpl))) = &item.style {
       match Template::parse(tpl) {
         Ok(template) => {
-          renderer.register_template(item.library_name.clone() + CUSTOM_STYLE, template);
+          renderer.register_template(format!("{}{}", item.library_name, CUSTOM_STYLE), template);
         }
         Err(e) => {
           HANDLER.with(|handler| {
@@ -284,10 +287,7 @@ impl ImportPlugin<'_> {
       Ok(Some(format!(
         "{}/{}/{}",
         &config.library_name,
-        config
-          .library_directory
-          .as_ref()
-          .unwrap_or(&"lib".to_string()),
+        config.library_directory.as_deref().unwrap_or("lib"),
         transformed_name
       )))
     };

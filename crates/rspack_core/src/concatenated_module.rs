@@ -2446,7 +2446,7 @@ impl ConcatenatedModule {
       module_graph,
       module_graph_cache,
       info,
-      export_name.clone(),
+      export_name,
       module_to_info_map,
       runtime,
       as_call,
@@ -2938,7 +2938,7 @@ impl ConcatenatedModule {
                 mg_cache,
                 &ref_info.id(),
                 if let Some(reexport_export) = reexport.export {
-                  [reexport_export.clone(), export_name[1..].to_vec()].concat()
+                  [reexport_export, export_name[1..].to_vec()].concat()
                 } else {
                   export_name[1..].to_vec()
                 },

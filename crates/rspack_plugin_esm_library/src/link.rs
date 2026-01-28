@@ -129,12 +129,12 @@ impl EsmLibraryPlugin {
 
       ctx
         .exported_symbols
-        .insert(new_export.clone(), local.clone());
+        .insert(new_export.clone(), local);
       already_exported_names.insert(new_export.clone());
       already_exported_names.get(&new_export).cloned()
     } else {
       let already_exported_names = ctx.exports.entry(local.clone()).or_default();
-      ctx.exported_symbols.insert(exported.clone(), local.clone());
+      ctx.exported_symbols.insert(exported.clone(), local);
       already_exported_names.insert(exported.clone());
       already_exported_names.get(&exported).cloned()
     }
@@ -957,10 +957,10 @@ var {} = {{}};
         new_name
       } else {
         all_used_names.insert(symbol.clone());
-        symbol.clone()
+        symbol
       };
 
-      require_info.required_symbol = Some(new_name.clone());
+      require_info.required_symbol = Some(new_name);
     }
 
     require_info
@@ -1048,7 +1048,7 @@ var {} = {{}};
           let entry_chunk_link = link.get_mut_unwrap(&entry_chunk);
           entry_chunk_link.add_re_export(
             current_chunk,
-            exported.clone(),
+            exported,
             "default".to_string().into(),
           );
         }
@@ -1608,7 +1608,7 @@ var {} = {{}};
         .filter_map(|(ref_string, binding_ref)| match binding_ref {
           Ref::Symbol(symbol_ref) => Some((ref_string, symbol_ref)),
           Ref::Inline(inlined_string) => {
-            inline_refs.insert(ref_string.clone(), Ref::Inline(inlined_string));
+            inline_refs.insert(ref_string, Ref::Inline(inlined_string));
             None
           }
         })
@@ -2167,7 +2167,7 @@ var {} = {{}};
                 mg_cache,
                 &ref_info.id(),
                 if let Some(reexport_export) = reexport.export {
-                  [reexport_export.clone(), export_name[1..].to_vec()].concat()
+                  [reexport_export, export_name[1..].to_vec()].concat()
                 } else {
                   export_name[1..].to_vec()
                 },

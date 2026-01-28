@@ -144,7 +144,7 @@ impl ExternalInterop {
 
       self.default_access = Some(new_name.clone());
       used_names.insert(new_name.clone());
-      new_name.clone()
+      new_name
     }
   }
 
@@ -171,7 +171,7 @@ impl ExternalInterop {
       let local_name = find_new_name(atom, used_names, &vec![]);
       self
         .property_access
-        .insert(atom.clone(), local_name.clone());
+        .insert(atom.clone(), local_name);
       self
         .property_access
         .get(atom)
