@@ -51,7 +51,7 @@ const sharedConfig = defineProject({
 	],
 	slowTestThreshold: 5000,
 	// Retry on CI to reduce flakes
-	retry: process.env.CI ? 3 : 0,
+	retry: 0,
 	resolve: {
 		alias: {
 			// Fixed jest-serialize-path not working when non-ascii code contains.
@@ -117,6 +117,7 @@ export default defineConfig({
 	reporters: testFilter ? ['verbose'] : ['default'],
 	hideSkippedTests: true,
 	hideSkippedTestFiles: true,
+  maxConcurrency: 1,
 	pool: {
 		maxWorkers: process.env.WASM ? 1 : "80%",
 		execArgv: ['--no-warnings', '--expose-gc', '--max-old-space-size=8192', '--experimental-vm-modules'],
