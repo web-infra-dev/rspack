@@ -26,17 +26,28 @@ echo 1 | sudo tee /proc/sys/kernel/perf_event_paranoid
 
 Optional: install vmlinux debug symbols or pass a vmlinux path to perf report.
 
-### 3) Record perf profile (example: 10000 case)
+### 3) Record perf profile (example: react-10k case)
 
 ```sh
-# if benchmark repo isn't present yet
-git clone https://github.com/web-infra-dev/rspack-ecosystem-benchmark.git
+# if benchmark repo isn't present yet (clone alongside rspack, not inside it)
+git -c http.lowSpeedLimit=1 -c http.lowSpeedTime=600 \
+  clone https://github.com/rstackjs/build-tools-performance.git \
+  ../build-tools-performance
 
-perf record -o ./rspack-ecosystem-benchmark/cases/10000/perf.data \
-  -e cycles:uk -F 4000 --call-graph dwarf -- \
-  node --perf-prof --perf-basic-prof --interpreted-frames-native-stack \
-  ./packages/rspack-cli/bin/rspack.js \
-  -c ./rspack-ecosystem-benchmark/cases/10000/rspack.config.js
+# install benchmark deps (required for react-10k)
+pnpm -C ../build-tools-performance install
+
+# link local rspack core so cases can resolve @rspack/core
+pnpm -C ../build-tools-performance add -w @rspack/core@link:../rspack/packages/rspack
+
+(
+  cd ../build-tools-performance/cases/react-10k || exit 1
+  perf record -o ./perf.data \
+    -e cycles:uk -F 4000 --call-graph dwarf -- \
+    node --perf-prof --perf-basic-prof --interpreted-frames-native-stack \
+    ../../../rspack/packages/rspack-cli/bin/rspack.js \
+    -c ./rspack.config.mjs
+)
 ```
 
 Notes:
@@ -50,22 +61,22 @@ Notes:
 Top hotspots (flat view):
 
 ```sh
-perf report -i ./rspack-ecosystem-benchmark/cases/10000/perf.data \
+perf report -i ../build-tools-performance/cases/react-10k/perf.data \
   --stdio --no-children -g none --percent-limit 0.5 | head -n 100
 ```
 
 Callgraph (if needed):
 
 ```sh
-perf report -i ./rspack-ecosystem-benchmark/cases/10000/perf.data \
+perf report -i ../build-tools-performance/cases/react-10k/perf.data \
   --stdio --no-children -g graph,0.5,caller,function,percent | head -n 120
 ```
 
 ### 5) Optional: import into samply with per-CPU threads
 
 ```sh
-samply import ./rspack-ecosystem-benchmark/cases/10000/perf.data \
-  --per-cpu-threads -o ./rspack-ecosystem-benchmark/cases/10000/perf.profile.json.gz \
+samply import ../build-tools-performance/cases/react-10k/perf.data \
+  --per-cpu-threads -o ../build-tools-performance/cases/react-10k/perf.profile.json.gz \
   --no-open
 ```
 
