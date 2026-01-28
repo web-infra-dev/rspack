@@ -96,9 +96,9 @@ function applyHandler(options) {
 
 	var warnUnexpectedRequire = function warnUnexpectedRequire(module) {
 		console.warn(
-			"[HMR] unexpected require(" + module.id + ") to disposed module"
+			"[HMR] unexpected require(" + <%- MODULE_ID %> + ") to disposed module"
 		);
-		throw Error("RuntimeError: factory is undefined(" + module.id + ")");
+		throw Error("RuntimeError: factory is undefined(" + <%- MODULE_ID %> + ")");
 	};
 
 	for (var moduleId in currentUpdate) {

@@ -340,9 +340,7 @@ impl ESMImportSpecifierDependencyTemplate {
     code_generatable_context: &mut TemplateContext,
   ) -> String {
     let TemplateContext {
-      runtime,
       concatenation_scope,
-      module,
       ..
     } = code_generatable_context;
     if let Some(scope) = concatenation_scope
@@ -385,18 +383,21 @@ impl ESMImportSpecifierDependencyTemplate {
       let mg = code_generatable_context.compilation.get_module_graph();
       let target_module = mg.get_module_by_dependency_id(&dep.id);
       let import_var = code_generatable_context.compilation.get_import_var(
-        module.identifier(),
+        code_generatable_context.module.identifier(),
         target_module,
         dep.user_request(),
         dep.phase,
-        *runtime,
+        code_generatable_context.runtime,
       );
       esm_import_dependency_apply(dep, dep.source_order, dep.phase, code_generatable_context);
-      code_generatable_context
-        .compilation
+      let mut new_init_fragment = vec![];
+      let res = code_generatable_context
         .runtime_template
         .export_from_import(
-          code_generatable_context,
+          code_generatable_context.compilation,
+          &mut new_init_fragment,
+          code_generatable_context.module.identifier(),
+          code_generatable_context.runtime,
           true,
           &dep.request,
           &import_var,
@@ -406,7 +407,11 @@ impl ESMImportSpecifierDependencyTemplate {
           !dep.direct_import,
           Some(dep.shorthand || dep.asi_safe),
           dep.phase,
-        )
+        );
+      code_generatable_context
+        .init_fragments
+        .extend(new_init_fragment);
+      res
     }
   }
 

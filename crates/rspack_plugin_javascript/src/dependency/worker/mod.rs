@@ -135,7 +135,7 @@ impl DependencyTemplate for WorkerDependencyTemplate {
       .expect("WorkerDependencyTemplate should be used for WorkerDependency");
     let TemplateContext {
       compilation,
-      runtime_requirements,
+      runtime_template,
       ..
     } = code_generatable_context;
     let chunk_id = compilation
@@ -154,25 +154,15 @@ impl DependencyTemplate for WorkerDependencyTemplate {
     let worker_import_base_url = if !dep.public_path.is_empty() {
       format!("\"{}\"", dep.public_path)
     } else {
-      compilation
-        .runtime_template
-        .render_runtime_globals(&RuntimeGlobals::PUBLIC_PATH)
+      runtime_template.render_runtime_globals(&RuntimeGlobals::PUBLIC_PATH)
     };
-
-    runtime_requirements.insert(RuntimeGlobals::PUBLIC_PATH);
-    runtime_requirements.insert(RuntimeGlobals::BASE_URI);
-    runtime_requirements.insert(RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME);
 
     let mut worker_import_str = format!(
       "/* worker import */{} + {}({}), {}",
       worker_import_base_url,
-      compilation
-        .runtime_template
-        .render_runtime_globals(&RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME),
+      runtime_template.render_runtime_globals(&RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME),
       chunk_id,
-      compilation
-        .runtime_template
-        .render_runtime_globals(&RuntimeGlobals::BASE_URI)
+      runtime_template.render_runtime_globals(&RuntimeGlobals::BASE_URI)
     );
 
     if dep.need_new_url {

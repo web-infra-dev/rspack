@@ -82,6 +82,7 @@ const GLOBALS_ON_REQUIRE: &[RuntimeGlobals] = &[
   RuntimeGlobals::SYSTEM_CONTEXT,
   RuntimeGlobals::ON_CHUNKS_LOADED,
   RuntimeGlobals::MAKE_DEFERRED_NAMESPACE_OBJECT,
+  RuntimeGlobals::TO_BINARY,
 ];
 
 const MODULE_DEPENDENCIES: &[(RuntimeGlobals, RuntimeGlobals)] = &[
@@ -89,7 +90,9 @@ const MODULE_DEPENDENCIES: &[(RuntimeGlobals, RuntimeGlobals)] = &[
   (RuntimeGlobals::MODULE_ID, RuntimeGlobals::MODULE),
   (
     RuntimeGlobals::ESM_MODULE_DECORATOR,
-    RuntimeGlobals::MODULE.union(RuntimeGlobals::REQUIRE_SCOPE),
+    RuntimeGlobals::MODULE
+      .union(RuntimeGlobals::REQUIRE_SCOPE)
+      .union(RuntimeGlobals::MODULE_ID),
   ),
   (
     RuntimeGlobals::NODE_MODULE_DECORATOR,

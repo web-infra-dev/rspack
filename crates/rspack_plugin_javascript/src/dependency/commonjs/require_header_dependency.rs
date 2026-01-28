@@ -72,17 +72,12 @@ impl DependencyTemplate for RequireHeaderDependencyTemplate {
       .expect("RequireHeaderDependencyTemplate should only be used for RequireHeaderDependency");
 
     let TemplateContext {
-      runtime_requirements,
-      compilation,
-      ..
+      runtime_template, ..
     } = code_generatable_context;
-    runtime_requirements.insert(RuntimeGlobals::REQUIRE);
     source.replace(
       dep.range.start,
       dep.range.end,
-      &compilation
-        .runtime_template
-        .render_runtime_globals(&RuntimeGlobals::REQUIRE),
+      &runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
       None,
     );
   }

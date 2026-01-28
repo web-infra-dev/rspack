@@ -161,7 +161,7 @@ impl DependencyTemplate for ProvideDependencyTemplate {
     let TemplateContext {
       compilation,
       runtime,
-      runtime_requirements,
+      runtime_template,
       init_fragments,
       ..
     } = code_generatable_context;
@@ -195,13 +195,7 @@ impl DependencyTemplate for ProvideDependencyTemplate {
       format!(
         "/* provided dependency */ var {} = {}{};\n",
         dep.identifier,
-        compilation.runtime_template.module_raw(
-          compilation,
-          runtime_requirements,
-          dep.id(),
-          dep.request(),
-          dep.weak()
-        ),
+        runtime_template.module_raw(compilation, dep.id(), dep.request(), dep.weak()),
         path_to_string(used_name.as_ref())
       ),
       InitFragmentStage::StageProvides,

@@ -295,6 +295,9 @@ impl EsmLibraryPlugin {
           changed = true;
 
           let module_info = concate_modules_map[module_info_id].as_concatenated();
+          let mut runtime_template = compilation
+            .runtime_template
+            .create_module_codegen_runtime_template();
 
           let module_graph = compilation.get_module_graph();
           let box_module = module_graph
@@ -358,9 +361,7 @@ impl EsmLibraryPlugin {
               ns_obj.push(format!(
                 "\n  {}: {}",
                 property_name(&used_name).expect("should have property_name"),
-                compilation
-                  .runtime_template
-                  .returning_function(&binding.render(), "")
+                runtime_template.returning_function(&binding.render(), "")
               ));
             }
           }
@@ -369,9 +370,7 @@ impl EsmLibraryPlugin {
           let define_getters = if !ns_obj.is_empty() {
             format!(
               "{}({}, {{ {} }});\n",
-              compilation
-                .runtime_template
-                .render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS),
+              runtime_template.render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS),
               name,
               ns_obj.join(",")
             )
@@ -380,12 +379,6 @@ impl EsmLibraryPlugin {
           };
 
           let module_info = concate_modules_map[module_info_id].as_concatenated_mut();
-
-          if !ns_obj.is_empty() {
-            module_info
-              .runtime_requirements
-              .insert(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
-          }
 
           namespace_object_sources.insert(
             *module_info_id,
@@ -397,9 +390,7 @@ var {} = {{}};
 "#,
               module_readable_identifier,
               name,
-              compilation
-                .runtime_template
-                .render_runtime_globals(&RuntimeGlobals::MAKE_NAMESPACE_OBJECT),
+              runtime_template.render_runtime_globals(&RuntimeGlobals::MAKE_NAMESPACE_OBJECT),
               name,
               define_getters
             ),
@@ -407,7 +398,7 @@ var {} = {{}};
 
           module_info
             .runtime_requirements
-            .insert(RuntimeGlobals::MAKE_NAMESPACE_OBJECT);
+            .insert(*runtime_template.runtime_requirements());
         }
         if !changed {
           break;
