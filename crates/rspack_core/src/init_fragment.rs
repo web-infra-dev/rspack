@@ -158,7 +158,6 @@ fn first<C>(fragments: Vec<Box<dyn InitFragment<C>>>) -> Box<dyn InitFragment<C>
 }
 
 pub trait InitFragmentRenderContext {
-  fn add_runtime_requirements(&mut self, requirement: RuntimeGlobals);
   fn runtime_condition_expression(&mut self, runtime_condition: &RuntimeCondition) -> String;
   fn runtime_template(&mut self) -> &mut ModuleCodegenRuntimeTemplate;
 }
@@ -261,13 +260,6 @@ pub type ModuleInitFragments<'a> = Vec<BoxModuleInitFragment<'a>>;
 pub type ChunkInitFragments = Vec<BoxChunkInitFragment>;
 
 impl InitFragmentRenderContext for GenerateContext<'_> {
-  fn add_runtime_requirements(&mut self, requirement: RuntimeGlobals) {
-    self
-      .runtime_template
-      .runtime_requirements_mut()
-      .insert(requirement);
-  }
-
   fn runtime_condition_expression(&mut self, runtime_condition: &RuntimeCondition) -> String {
     self.runtime_template.runtime_condition_expression(
       &self.compilation.chunk_graph,
@@ -284,10 +276,6 @@ impl InitFragmentRenderContext for GenerateContext<'_> {
 pub struct ChunkRenderContext;
 
 impl InitFragmentRenderContext for ChunkRenderContext {
-  fn add_runtime_requirements(&mut self, _requirement: RuntimeGlobals) {
-    unreachable!("should not add runtime requirements in chunk render context")
-  }
-
   fn runtime_condition_expression(&mut self, _runtime_condition: &RuntimeCondition) -> String {
     unreachable!("should not call runtime condition expression in chunk render context")
   }
@@ -427,7 +415,10 @@ impl AwaitDependenciesInitFragment {
 
 impl<C: InitFragmentRenderContext> InitFragment<C> for AwaitDependenciesInitFragment {
   fn contents(self: Box<Self>, context: &mut C) -> Result<InitFragmentContents> {
-    context.add_runtime_requirements(RuntimeGlobals::MODULE);
+    context
+      .runtime_template()
+      .runtime_requirements_mut()
+      .insert(RuntimeGlobals::MODULE);
     if self.promises.is_empty() {
       Ok(InitFragmentContents {
         start: String::new(),
