@@ -1,18 +1,18 @@
 it("should add all modules headers info above modules", () => {
-    const fs = require("fs");
-    const path = require("path")
-    const content = fs.readFileSync(path.join(__dirname, "sut.js"), "utf-8");
+  const fs = require("fs");
+  const path = require("path")
+  const content = fs.readFileSync(path.join(__dirname, "sut.js"), "utf-8");
 
-    expect(content).toContain(`
+  expect(content).toContain(`
 /*!****************!*\\
   !*** ./sut.js ***!
   \\****************/
 /*! namespace exports */
 /*! runtime requirements: __webpack_require__ */
-/*! Statement with side_effects in source code at ./sut.js:3:1-28 */    
+/*! Statement with side_effects in source code at ./sut.js:3:1-29 */    
     `.trim())
 
-    expect(content).toContain(`
+  expect(content).toContain(`
 /*!****************!*\\
   !*** ./cjs.js ***!
   \\****************/
@@ -21,7 +21,7 @@ it("should add all modules headers info above modules", () => {
 /*! Statement with side_effects in source code at ./cjs.js:1:1-3:1 */    
     `.trim())
 
-    expect(content).toContain(`
+  expect(content).toContain(`
 /*!*****************!*\\
   !*** ./util.js ***!
   \\*****************/

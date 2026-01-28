@@ -1,7 +1,7 @@
 use napi::bindgen_prelude::*;
 use rspack_core::DependencyLocation;
 use rspack_error::{Diagnostic, Error as RspackError, Label, Severity};
-use rspack_util::location::{byte_line_column_to_offset};
+use rspack_util::location::byte_line_column_to_offset;
 
 #[napi(object)]
 pub struct JsDiagnosticLocation {
@@ -47,16 +47,17 @@ pub fn format_diagnostic(diagnostic: JsDiagnostic) -> Result<External<Diagnostic
     error.help = Some(help);
   }
   let mut real_dependency_location = None;
-  if let Some(ref source_code) = source_code {
-    if let Some(location) = location {
-      real_dependency_location = DependencyLocation::from_byte_location(
+  if let Some(ref source_code) = source_code
+    && let Some(location) = location
+  {
+    real_dependency_location = DependencyLocation::from_byte_location(
+      source_code,
+      location.line as usize,
+      location.column as usize,
+      Some(location.length as usize),
+    );
+    let offset = byte_line_column_to_offset(
         source_code,
-        location.line as usize,
-        location.column as usize,
-        Some(location.length as usize),
-      );
-      let offset = byte_line_column_to_offset(
-        &source_code,
         location.line as usize,
         location.column as usize,
       )
@@ -66,25 +67,24 @@ pub fn format_diagnostic(diagnostic: JsDiagnostic) -> Result<External<Diagnostic
           "Format diagnostic failed: Invalid location. Did you pass the correct line, column and length?",
         )
       })?;
-      let end_byte = offset.saturating_add(location.length as usize);
-      if end_byte > source_code.len() {
-        return Err(Error::new(
-          Status::Unknown,
-          "Format diagnostic failed: Invalid `length` in location.",
-        ));
-      }
-      if !source_code.is_char_boundary(offset) || !source_code.is_char_boundary(end_byte) {
-        return Err(Error::new(
-          Status::Unknown,
-          "Format diagnostic failed: Invalid char boundary. Did you pass the correct line, column and length?",
-        ));
-      }
-      error.labels = Some(vec![Label {
-        name: location.text,
-        offset,
-        len: location.length as usize,
-      }]);
+    let end_byte = offset.saturating_add(location.length as usize);
+    if end_byte > source_code.len() {
+      return Err(Error::new(
+        Status::Unknown,
+        "Format diagnostic failed: Invalid `length` in location.",
+      ));
     }
+    if !source_code.is_char_boundary(offset) || !source_code.is_char_boundary(end_byte) {
+      return Err(Error::new(
+        Status::Unknown,
+        "Format diagnostic failed: Invalid char boundary. Did you pass the correct line, column and length?",
+      ));
+    }
+    error.labels = Some(vec![Label {
+      name: location.text,
+      offset,
+      len: location.length as usize,
+    }]);
   }
 
   error.src = source_code;

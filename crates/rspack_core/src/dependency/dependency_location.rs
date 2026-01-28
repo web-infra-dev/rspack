@@ -1,6 +1,4 @@
-use std::{
-  fmt::{self, Debug},
-};
+use std::fmt::{self, Debug};
 
 use rspack_cacheable::cacheable;
 use rspack_location::{DependencyLocation, RealDependencyLocation, SourcePosition};
@@ -123,8 +121,8 @@ impl SourceLocation for &str {
     };
 
     // Compute line start byte offsets
-    let start_line_start_byte = last_nl_before_start.map(|p| p + 1).unwrap_or(0);
-    let end_line_start_byte = last_nl_before_end.map(|p| p + 1).unwrap_or(0);
+    let start_line_start_byte = last_nl_before_start.map_or(0, |p| p + 1);
+    let end_line_start_byte = last_nl_before_end.map_or(0, |p| p + 1);
 
     // UTF-16 columns are 1-based
     let start_seg = &s[start_line_start_byte..start_idx];

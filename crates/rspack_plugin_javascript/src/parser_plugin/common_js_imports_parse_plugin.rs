@@ -55,7 +55,7 @@ fn create_commonjs_require_context_dependency(
   let mut dep = CommonJsRequireContextDependency::new(
     options,
     DependencyRange::from(span)
-      .to_loc(Some(parser.source().as_ref()))
+      .to_loc(Some(parser.source()))
       .expect("Should get correct loc"),
     call_expr.span().into(),
     Some(arg_expr.span().into()),
@@ -399,7 +399,7 @@ impl CommonJsImportsParserPlugin {
         attributes: None,
       },
       DependencyRange::from(span)
-        .to_loc(Some(parser.source().as_ref()))
+        .to_loc(Some(parser.source()))
         .expect("Should get correct loc"),
       ident.span().into(),
       None,

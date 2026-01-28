@@ -8,8 +8,8 @@ use rspack_core::{
   DependencyId, DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType,
   DependencyType, ExportsInfoGetter, ExtendedReferencedExport, FactorizeInfo, GetUsedNameParam,
   InitFragmentKey, InitFragmentStage, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
-  NormalInitFragment, PrefetchExportsInfoMode, RuntimeSpec, TemplateContext,
-  TemplateReplaceSource, UsedName, create_exports_object_referenced,
+  NormalInitFragment, PrefetchExportsInfoMode, RuntimeSpec, TemplateContext, TemplateReplaceSource,
+  UsedName, create_exports_object_referenced,
 };
 use rspack_util::ext::DynHash;
 use swc_core::atoms::Atom;

@@ -6,8 +6,8 @@ use rspack_core::{
   DependencyId, DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType,
   DependencyType, ESMExportInitFragment, ExportNameOrSpec, ExportsInfoGetter, ExportsOfExportsSpec,
   ExportsSpec, ForwardId, GetUsedNameParam, ModuleGraph, ModuleGraphCacheArtifact,
-  PrefetchExportsInfoMode, RuntimeGlobals, TemplateContext, TemplateReplaceSource,
-  UsedName, property_access, rspack_sources::ReplacementEnforce,
+  PrefetchExportsInfoMode, RuntimeGlobals, TemplateContext, TemplateReplaceSource, UsedName,
+  property_access, rspack_sources::ReplacementEnforce,
 };
 use swc_core::atoms::Atom;
 

@@ -169,7 +169,7 @@ pub fn try_extract_magic_comment(
   let mut warning_diagnostics = Vec::new();
   parser.comments.with_leading(span.lo, |comments| {
     analyze_comments(
-      parser.source.as_ref(),
+      parser.source,
       comments,
       error_span,
       &mut warning_diagnostics,
@@ -178,7 +178,7 @@ pub fn try_extract_magic_comment(
   });
   parser.comments.with_trailing(span.hi, |comments| {
     analyze_comments(
-      parser.source.as_ref(),
+      parser.source,
       comments,
       error_span,
       &mut warning_diagnostics,

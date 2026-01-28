@@ -10,9 +10,9 @@ use rspack_core::{
   ExportsInfoGetter, ExportsType, ExtendedReferencedExport, FactorizeInfo, ForwardId,
   GetUsedNameParam, ImportAttributes, ImportPhase, JavascriptParserOptions, ModuleDependency,
   ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleReferenceOptions,
-  PrefetchExportsInfoMode, ReferencedExport, ResourceIdentifier, RuntimeSpec,
-  TemplateContext, TemplateReplaceSource, UsedByExports, UsedName,
-  create_exports_object_referenced, get_exports_type, property_access, to_normal_comment,
+  PrefetchExportsInfoMode, ReferencedExport, ResourceIdentifier, RuntimeSpec, TemplateContext,
+  TemplateReplaceSource, UsedByExports, UsedName, create_exports_object_referenced,
+  get_exports_type, property_access, to_normal_comment,
 };
 use rspack_error::Diagnostic;
 use rspack_util::json_stringify;

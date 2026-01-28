@@ -1,8 +1,7 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   DependencyCodeGeneration, DependencyId, DependencyLocation, DependencyRange, DependencyTemplate,
-  DependencyTemplateType, ImportPhase, RuntimeCondition, TemplateContext,
-  TemplateReplaceSource,
+  DependencyTemplateType, ImportPhase, RuntimeCondition, TemplateContext, TemplateReplaceSource,
 };
 
 use crate::dependency::import_emitted_runtime;

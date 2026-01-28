@@ -167,7 +167,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     };
 
     let source = remove_bom(source);
-    let source_string = source.source().into_string_lossy().into_owned();
+    let source_string = source.source().into_string_lossy();
 
     let comments = SwcComments::default();
     let target = ast::EsVersion::EsNext;
@@ -239,7 +239,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       ..
     } = match ast.visit(|program, _| {
       scan_dependencies(
-        Arc::from(source_string),
+        &source_string,
         program,
         resource_data,
         compiler_options,

@@ -6,8 +6,7 @@ use rspack_core::{
   DependencyTemplateType, DependencyType, ESMExportInitFragment, EvaluatedInlinableValue,
   ExportNameOrSpec, ExportSpec, ExportSpecExports, ExportsInfoGetter, ExportsOfExportsSpec,
   ExportsSpec, GetUsedNameParam, LazyUntil, ModuleGraph, ModuleGraphCacheArtifact,
-  PrefetchExportsInfoMode, TSEnumValue, TemplateContext, TemplateReplaceSource,
-  UsedName,
+  PrefetchExportsInfoMode, TSEnumValue, TemplateContext, TemplateReplaceSource, UsedName,
 };
 use swc_core::ecma::atoms::Atom;
 
