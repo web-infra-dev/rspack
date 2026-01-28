@@ -18,7 +18,7 @@ use crate::{
   BuildInfo, BuildMeta, ChunkGraph, CodeGenerationData, Compilation, CompilerOptions,
   ConcatenationScope, Context, EvaluatedInlinableValue, FactoryMeta, Module,
   ModuleCodegenRuntimeTemplate, ModuleGraph, ModuleIdentifier, ModuleLayer, ModuleType,
-  NormalModule, ParserOptions, RuntimeGlobals, RuntimeSpec, RuntimeTemplate, SourceType,
+  NormalModule, ParserOptions, RuntimeSpec, RuntimeTemplate, SourceType,
 };
 
 #[derive(Debug)]

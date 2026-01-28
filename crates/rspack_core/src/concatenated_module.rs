@@ -44,8 +44,8 @@ use crate::{
   ConnectionState, Context, DEFAULT_EXPORT, DEFAULT_EXPORT_ATOM, DependenciesBlock, DependencyId,
   DependencyType, ExportInfoHashKey, ExportProvided, ExportsArgument, ExportsInfoGetter,
   ExportsType, FactoryMeta, GetUsedNameParam, ImportedByDeferModulesArtifact, InitFragment,
-  InitFragmentStage, LibIdentOptions, Module, ModuleArgument, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, ModuleLayer,
+  InitFragmentStage, LibIdentOptions, Module, ModuleArgument, ModuleCodeGenerationContext,
+  ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, ModuleLayer,
   ModuleStaticCacheArtifact, ModuleType, NAMESPACE_OBJECT_EXPORT, ParserOptions,
   PrefetchExportsInfoMode, Resolve, RuntimeCondition, RuntimeGlobals, RuntimeSpec, SourceType,
   URLStaticMode, UsageState, UsedName, UsedNameItem, escape_identifier, filter_runtime,
@@ -814,25 +814,26 @@ impl Module for ConcatenatedModule {
   // #[tracing::instrument("ConcatenatedModule::code_generation", skip_all, fields(identifier = ?self.identifier()))]
   async fn code_generation(
     &self,
-    compilation: &Compilation,
-    generation_runtime: Option<&RuntimeSpec>,
-    _: Option<ConcatenationScope>,
+    code_generation_context: &mut ModuleCodeGenerationContext,
   ) -> Result<CodeGenerationResult> {
-    let mut runtime_template = compilation
-      .runtime_template
-      .create_module_codegen_runtime_template();
+    let ModuleCodeGenerationContext {
+      compilation,
+      runtime_template,
+      runtime,
+      ..
+    } = code_generation_context;
 
     let runtime = if let Some(self_runtime) = &self.runtime
-      && let Some(generation_runtime) = generation_runtime
+      && let Some(runtime) = runtime
     {
       Some(Cow::Owned(
-        generation_runtime
+        runtime
           .intersection(self_runtime)
           .copied()
           .collect::<RuntimeSpec>(),
       ))
     } else {
-      generation_runtime.map(Cow::Borrowed)
+      runtime.map(Cow::Borrowed)
     };
     let runtime = runtime.as_deref();
     let context = compilation.options.context.clone();
@@ -1764,9 +1765,6 @@ impl Module for ConcatenatedModule {
     let mut code_generation_result = CodeGenerationResult::default();
     code_generation_result.add(SourceType::JavaScript, CachedSource::new(result).boxed());
     code_generation_result.chunk_init_fragments = chunk_init_fragments;
-    code_generation_result
-      .runtime_requirements
-      .extend(*runtime_template.runtime_requirements());
 
     if public_path_auto_replace {
       code_generation_result
@@ -2284,17 +2282,27 @@ impl ConcatenatedModule {
       let module = module_graph
         .module_by_identifier(&module_id)
         .unwrap_or_else(|| panic!("should have module {module_id}"));
-      let codegen_res = module
-        .code_generation(compilation, runtime, Some(concatenation_scope))
-        .await?;
+
+      let mut runtime_template = compilation
+        .runtime_template
+        .create_module_codegen_runtime_template();
+      let mut code_generation_context = ModuleCodeGenerationContext {
+        compilation,
+        runtime,
+        concatenation_scope: Some(concatenation_scope),
+        runtime_template: &mut runtime_template,
+      };
+      let codegen_res = module.code_generation(&mut code_generation_context).await?;
 
       let CodeGenerationResult {
         mut inner,
         mut chunk_init_fragments,
-        runtime_requirements,
+        mut runtime_requirements,
         concatenation_scope,
         ..
       } = codegen_res;
+
+      runtime_requirements.extend(*runtime_template.runtime_requirements());
 
       if let Some(fragments) = codegen_res.data.get::<ChunkInitFragments>() {
         chunk_init_fragments.extend(fragments.iter().cloned());

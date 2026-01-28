@@ -277,7 +277,7 @@ impl InitFragmentRenderContext for GenerateContext<'_> {
   }
 
   fn runtime_template(&mut self) -> &mut ModuleCodegenRuntimeTemplate {
-    &mut self.runtime_template
+    self.runtime_template
   }
 }
 
@@ -363,7 +363,7 @@ impl ESMExportInitFragment {
 
 impl<C: InitFragmentRenderContext> InitFragment<C> for ESMExportInitFragment {
   fn contents(mut self: Box<Self>, context: &mut C) -> Result<InitFragmentContents> {
-    let mut runtime_template = context.runtime_template();
+    let runtime_template = context.runtime_template();
 
     self.export_map.sort_by(|a, b| a.0.cmp(&b.0));
     let exports = format!(

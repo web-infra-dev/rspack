@@ -1,5 +1,5 @@
 use super::*;
-use crate::logger::Logger;
+use crate::{ModuleCodeGenerationContext, logger::Logger};
 
 pub async fn code_generation_pass(
   compilation: &mut Compilation,
@@ -150,10 +150,23 @@ impl Compilation {
           let codegen_res = this
             .code_generate_cache_artifact
             .use_cache(&job, || async {
+              let mut runtime_template = this
+                .runtime_template
+                .create_module_codegen_runtime_template();
+              let mut code_generation_context = ModuleCodeGenerationContext {
+                compilation: this,
+                runtime: Some(&job.runtime),
+                concatenation_scope: job.scope.clone(),
+                runtime_template: &mut runtime_template,
+              };
+
               module
-                .code_generation(this, Some(&job.runtime), job.scope.clone())
+                .code_generation(&mut code_generation_context)
                 .await
                 .map(|mut codegen_res| {
+                  codegen_res
+                    .runtime_requirements
+                    .extend(*runtime_template.runtime_requirements());
                   codegen_res.set_hash(
                     &options.output.hash_function,
                     &options.output.hash_digest,

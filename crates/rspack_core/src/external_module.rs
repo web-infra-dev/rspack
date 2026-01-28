@@ -14,10 +14,10 @@ use crate::{
   BuildResult, ChunkGraph, ChunkInitFragments, ChunkUkey, CodeGenerationDataUrl,
   CodeGenerationResult, Compilation, ConcatenationScope, Context, DependenciesBlock, DependencyId,
   ExternalType, FactoryMeta, ImportAttributes, InitFragmentExt, InitFragmentKey, InitFragmentStage,
-  LibIdentOptions, Module, ModuleGraph, ModuleType, NAMESPACE_OBJECT_EXPORT, NormalInitFragment,
-  PrefetchExportsInfoMode, RuntimeGlobals, RuntimeSpec, SourceType, StaticExportsDependency,
-  StaticExportsSpec, UsedExports, extract_url_and_global, impl_module_meta_info,
-  module_update_hash, property_access,
+  LibIdentOptions, Module, ModuleCodeGenerationContext, ModuleGraph, ModuleType,
+  NAMESPACE_OBJECT_EXPORT, NormalInitFragment, PrefetchExportsInfoMode, RuntimeGlobals,
+  RuntimeSpec, SourceType, StaticExportsDependency, StaticExportsSpec, UsedExports,
+  extract_url_and_global, impl_module_meta_info, module_update_hash, property_access,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
   to_identifier,
 };
@@ -883,10 +883,16 @@ impl Module for ExternalModule {
   // #[tracing::instrument("ExternalModule::code_generation", skip_all, fields(identifier = ?self.identifier()))]
   async fn code_generation(
     &self,
-    compilation: &Compilation,
-    runtime: Option<&RuntimeSpec>,
-    mut concatenation_scope: Option<ConcatenationScope>,
+    code_generation_context: &mut ModuleCodeGenerationContext,
   ) -> Result<CodeGenerationResult> {
+    let ModuleCodeGenerationContext {
+      compilation,
+      runtime,
+      concatenation_scope,
+      runtime_template,
+      ..
+    } = code_generation_context;
+
     let mut cgr = CodeGenerationResult::default();
     let (request, external_type) = self.get_request_and_external_type();
     match self.external_type.as_str() {
@@ -920,18 +926,22 @@ impl Module for ExternalModule {
           compilation,
           request,
           external_type,
-          runtime,
+          *runtime,
           concatenation_scope.as_mut(),
         )?;
         cgr.add(SourceType::JavaScript, source);
         cgr.chunk_init_fragments = chunk_init_fragments;
-        cgr.runtime_requirements.insert(runtime_requirements);
+        runtime_template
+          .runtime_requirements_mut()
+          .insert(runtime_requirements);
       }
     };
     if concatenation_scope.is_none() {
-      cgr.runtime_requirements.insert(RuntimeGlobals::MODULE);
+      runtime_template
+        .runtime_requirements_mut()
+        .insert(RuntimeGlobals::MODULE);
     }
-    cgr.concatenation_scope = concatenation_scope;
+    cgr.concatenation_scope = std::mem::take(concatenation_scope);
     Ok(cgr)
   }
 

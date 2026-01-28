@@ -884,7 +884,6 @@ impl ESMExportImportedSpecifierDependency {
   ) -> (NormalInitFragment, ESMExportInitFragment) {
     let TemplateContext {
       module,
-      compilation,
       runtime_template,
       ..
     } = ctxt;

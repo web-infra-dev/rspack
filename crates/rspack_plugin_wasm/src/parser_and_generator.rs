@@ -229,7 +229,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
                   compilation,
                   &mut ModuleInitFragments::default(),
                   module.identifier(),
-                  runtime,
+                  *runtime,
                   true,
                   dep_module.request,
                   &dep_module.import_var,

@@ -28,10 +28,10 @@ use swc_core::atoms::Atom;
 use crate::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo,
   BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, BuildResult, ChunkGraph,
-  ChunkGroupOptions, CodeGenerationResult, Compilation, ConcatenationScope,
-  ContextElementDependency, DependenciesBlock, Dependency, DependencyCategory, DependencyId,
-  DependencyLocation, DynamicImportMode, ExportsType, FactoryMeta, FakeNamespaceObjectMode,
-  GroupOptions, ImportAttributes, LibIdentOptions, Module, ModuleArgument,
+  ChunkGroupOptions, CodeGenerationResult, Compilation, ContextElementDependency,
+  DependenciesBlock, Dependency, DependencyCategory, DependencyId, DependencyLocation,
+  DynamicImportMode, ExportsType, FactoryMeta, FakeNamespaceObjectMode, GroupOptions,
+  ImportAttributes, LibIdentOptions, Module, ModuleArgument, ModuleCodeGenerationContext,
   ModuleCodegenRuntimeTemplate, ModuleGraph, ModuleId, ModuleIdsArtifact, ModuleLayer, ModuleType,
   RealDependencyLocation, Resolve, RuntimeGlobals, RuntimeSpec, SourceType, contextify,
   get_exports_type_with_strict, impl_module_meta_info, module_update_hash, to_path,
@@ -1087,16 +1087,16 @@ impl Module for ContextModule {
   // #[tracing::instrument("ContextModule::code_generation", skip_all, fields(identifier = ?self.identifier()))]
   async fn code_generation(
     &self,
-    compilation: &Compilation,
-    _runtime: Option<&RuntimeSpec>,
-    _: Option<ConcatenationScope>,
+    code_generation_context: &mut ModuleCodeGenerationContext,
   ) -> Result<CodeGenerationResult> {
-    let mut runtime_template = compilation
-      .runtime_template
-      .create_module_codegen_runtime_template();
+    let ModuleCodeGenerationContext {
+      compilation,
+      runtime_template,
+      ..
+    } = code_generation_context;
     let mut code_generation_result = CodeGenerationResult::default();
     let source = self.get_source(
-      self.get_source_string(compilation, &mut runtime_template),
+      self.get_source_string(compilation, runtime_template),
       compilation,
     );
     code_generation_result.add(SourceType::JavaScript, source);
@@ -1108,10 +1108,6 @@ impl Module for ContextModule {
         .expect("should have block in ContextModule code_generation");
       all_deps.extend(block.get_dependencies());
     }
-
-    code_generation_result
-      .runtime_requirements
-      .insert(*runtime_template.runtime_requirements());
 
     Ok(code_generation_result)
   }

@@ -6,11 +6,11 @@ use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo,
   BuildMeta, BuildMetaExportsType, BuildResult, ChunkGroupOptions, CodeGenerationResult,
-  Compilation, ConcatenationScope, Context, DependenciesBlock, Dependency, DependencyId,
-  ExportsArgument, FactoryMeta, GroupOptions, LibIdentOptions, Module,
-  ModuleCodegenRuntimeTemplate, ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleType,
-  RuntimeGlobals, RuntimeSpec, SourceType, StaticExportsDependency, StaticExportsSpec,
-  impl_module_meta_info, impl_source_map_config, module_update_hash,
+  Compilation, Context, DependenciesBlock, Dependency, DependencyId, ExportsArgument, FactoryMeta,
+  GroupOptions, LibIdentOptions, Module, ModuleCodeGenerationContext, ModuleCodegenRuntimeTemplate,
+  ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec,
+  SourceType, StaticExportsDependency, StaticExportsSpec, impl_module_meta_info,
+  impl_source_map_config, module_update_hash,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
@@ -179,19 +179,20 @@ impl Module for ContainerEntryModule {
   // #[tracing::instrument("ContainerEntryModule::code_generation", skip_all, fields(identifier = ?self.identifier()))]
   async fn code_generation(
     &self,
-    compilation: &Compilation,
-    _runtime: Option<&RuntimeSpec>,
-    _: Option<ConcatenationScope>,
+    code_generation_context: &mut ModuleCodeGenerationContext,
   ) -> Result<CodeGenerationResult> {
-    let mut runtime_template = compilation
-      .runtime_template
-      .create_module_codegen_runtime_template();
+    let ModuleCodeGenerationContext {
+      compilation,
+      runtime_template,
+      ..
+    } = code_generation_context;
+
     let mut code_generation_result = CodeGenerationResult::default();
-    code_generation_result
-      .runtime_requirements
+    runtime_template
+      .runtime_requirements_mut()
       .insert(RuntimeGlobals::CURRENT_REMOTE_GET_SCOPE);
-    let module_map = ExposeModuleMap::new(compilation, self, &mut runtime_template);
-    let module_map_str = module_map.render(&mut runtime_template);
+    let module_map = ExposeModuleMap::new(compilation, self, runtime_template);
+    let module_map_str = module_map.render(runtime_template);
     let source = if self.enhanced {
       let define_property_getters =
         runtime_template.render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
@@ -271,9 +272,6 @@ var init = function(shareScope, initScope) {{
           share_scope: self.share_scope.clone(),
         });
     }
-    code_generation_result
-      .runtime_requirements
-      .insert(*runtime_template.runtime_requirements());
     Ok(code_generation_result)
   }
 

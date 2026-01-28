@@ -4,10 +4,11 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::Identifiable;
 use rspack_core::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo,
-  BuildMeta, BuildResult, ChunkGraph, CodeGenerationResult, Compilation, ConcatenationScope,
-  Context, DependenciesBlock, DependencyId, DependencyRange, FactoryMeta, LibIdentOptions, Module,
-  ModuleFactoryCreateData, ModuleGraph, ModuleIdentifier, ModuleLayer, ModuleType, RuntimeGlobals,
-  RuntimeSpec, SourceType, ValueCacheVersions, impl_module_meta_info, module_update_hash,
+  BuildMeta, BuildResult, ChunkGraph, CodeGenerationResult, Compilation, Context,
+  DependenciesBlock, DependencyId, DependencyRange, FactoryMeta, LibIdentOptions, Module,
+  ModuleArgument, ModuleCodeGenerationContext, ModuleFactoryCreateData, ModuleGraph,
+  ModuleIdentifier, ModuleLayer, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
+  ValueCacheVersions, impl_module_meta_info, module_update_hash,
   rspack_sources::{BoxSource, RawStringSource},
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
@@ -201,19 +202,13 @@ impl Module for LazyCompilationProxyModule {
   // #[tracing::instrument("LazyCompilationProxyModule::code_generation", skip_all, fields(identifier = ?self.identifier()))]
   async fn code_generation(
     &self,
-    compilation: &Compilation,
-    _runtime: Option<&RuntimeSpec>,
-    _concatenation_scope: Option<ConcatenationScope>,
+    code_generation_context: &mut ModuleCodeGenerationContext,
   ) -> Result<CodeGenerationResult> {
-    let mut runtime_template = compilation
-      .runtime_template
-      .create_module_codegen_runtime_template();
-    runtime_template
-      .runtime_requirements_mut()
-      .insert(RuntimeGlobals::MODULE);
-    runtime_template
-      .runtime_requirements_mut()
-      .insert(RuntimeGlobals::REQUIRE);
+    let ModuleCodeGenerationContext {
+      compilation,
+      runtime_template,
+      ..
+    } = code_generation_context;
 
     let client_dep_id = self.dependencies[0];
     let module_graph = &compilation.get_module_graph();
@@ -232,8 +227,10 @@ impl Module for LazyCompilationProxyModule {
       serde_json::to_string(&self.identifier).expect("should serialize identifier")
     );
 
+    let module_argument = runtime_template.render_module_argument(ModuleArgument::Module);
+
     let keep_active = format!(
-      "var dispose = client.activate({{ data: data, active: {}, module: module, onError: onError }})",
+      "var dispose = client.activate({{ data: data, active: {}, module: {module_argument}, onError: onError }})",
       block.is_some()
     );
 
@@ -249,13 +246,13 @@ impl Module for LazyCompilationProxyModule {
 
       RawStringSource::from(format!(
         "{client}
-        module.exports = {};
-        if (module.hot) {{
-          module.hot.accept();
-          module.hot.accept({}, function() {{ module.hot.invalidate(); }});
-          module.hot.dispose(function(data) {{ delete data.resolveSelf; }});
-          if (module.hot.data && module.hot.data.resolveSelf)
-            module.hot.data.resolveSelf(module.exports);
+        {module_argument}.exports = {};
+        if ({module_argument}.hot) {{
+          {module_argument}.hot.accept();
+          {module_argument}.hot.accept({}, function() {{ {module_argument}.hot.invalidate(); }});
+          {module_argument}.hot.dispose(function(data) {{ delete data.resolveSelf; }});
+          if ({module_argument}.hot.data && {module_argument}.hot.data.resolveSelf)
+            {module_argument}.hot.data.resolveSelf({module_argument}.exports);
         }}
         ",
         runtime_template.module_namespace_promise(
@@ -276,23 +273,18 @@ impl Module for LazyCompilationProxyModule {
       RawStringSource::from(format!(
         "{client}
         var resolveSelf, onError;
-        module.exports = new Promise(function(resolve, reject) {{ resolveSelf = resolve; onError = reject; }});
-        if (module.hot) {{
-          module.hot.accept();
-          if (module.hot.data && module.hot.data.resolveSelf) module.hot.data.resolveSelf(module.exports);
-          module.hot.dispose(function(data) {{ data.resolveSelf = resolveSelf; dispose(data); }});
+        {module_argument}.exports = new Promise(function(resolve, reject) {{ resolveSelf = resolve; onError = reject; }});
+        if ({module_argument}.hot) {{
+          {module_argument}.hot.accept();
+          if ({module_argument}.hot.data && {module_argument}.hot.data.resolveSelf) {module_argument}.hot.data.resolveSelf({module_argument}.exports);
+          {module_argument}.hot.dispose(function(data) {{ data.resolveSelf = resolveSelf; dispose(data); }});
         }}
         {keep_active}
       "
       ))
     };
 
-    let mut codegen_result = CodeGenerationResult::default().with_javascript(Arc::new(source));
-    codegen_result
-      .runtime_requirements
-      .extend(*runtime_template.runtime_requirements());
-
-    Ok(codegen_result)
+    Ok(CodeGenerationResult::default().with_javascript(Arc::new(source)))
   }
 
   async fn get_runtime_hash(

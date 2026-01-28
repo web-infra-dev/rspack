@@ -35,12 +35,12 @@ use tracing::{Instrument, info_span};
 use crate::{
   AsyncDependenciesBlockIdentifier, BoxDependencyTemplate, BoxLoader, BoxModule,
   BoxModuleDependency, BuildContext, BuildInfo, BuildMeta, BuildResult, ChunkGraph,
-  CodeGenerationResult, Compilation, ConcatenationScope, ConnectionState, Context,
-  DependenciesBlock, DependencyId, FactoryMeta, GenerateContext, GeneratorOptions, LibIdentOptions,
-  Module, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, ModuleLayer, ModuleType,
-  OutputOptions, ParseContext, ParseResult, ParserAndGenerator, ParserOptions, Resolve,
-  RspackLoaderRunnerPlugin, RunnerContext, RuntimeGlobals, RuntimeSpec, SourceType, contextify,
-  diagnostics::ModuleBuildError, get_context, module_update_hash,
+  CodeGenerationResult, Compilation, ConnectionState, Context, DependenciesBlock, DependencyId,
+  FactoryMeta, GenerateContext, GeneratorOptions, LibIdentOptions, Module,
+  ModuleCodeGenerationContext, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
+  ModuleLayer, ModuleType, OutputOptions, ParseContext, ParseResult, ParserAndGenerator,
+  ParserOptions, Resolve, RspackLoaderRunnerPlugin, RunnerContext, RuntimeGlobals, RuntimeSpec,
+  SourceType, contextify, diagnostics::ModuleBuildError, get_context, module_update_hash,
 };
 
 #[cacheable]
@@ -661,13 +661,14 @@ impl Module for NormalModule {
   // #[tracing::instrument("NormalModule::code_generation", skip_all, fields(identifier = ?self.identifier()))]
   async fn code_generation(
     &self,
-    compilation: &Compilation,
-    runtime: Option<&RuntimeSpec>,
-    mut concatenation_scope: Option<ConcatenationScope>,
+    code_generation_context: &mut ModuleCodeGenerationContext,
   ) -> Result<CodeGenerationResult> {
-    let mut runtime_template = compilation
-      .runtime_template
-      .create_module_codegen_runtime_template();
+    let ModuleCodeGenerationContext {
+      compilation,
+      runtime,
+      concatenation_scope,
+      runtime_template,
+    } = code_generation_context;
 
     if let Some(error) = self.first_error() {
       let mut code_generation_result = CodeGenerationResult::default();
@@ -684,10 +685,7 @@ impl Module for NormalModule {
           SourceType::JavaScript,
           RawStringSource::from(format!("throw new Error({});\n", json!(error))).boxed(),
         );
-        code_generation_result.concatenation_scope = concatenation_scope;
-        code_generation_result
-          .runtime_requirements
-          .extend(*runtime_template.runtime_requirements());
+        code_generation_result.concatenation_scope = std::mem::take(concatenation_scope);
       }
       return Ok(code_generation_result);
     }
@@ -701,14 +699,14 @@ impl Module for NormalModule {
 
     let mut code_generation_result = CodeGenerationResult::default();
     if !inner.parsed {
-      code_generation_result
-        .runtime_requirements
+      runtime_template
+        .runtime_requirements_mut()
         .insert(RuntimeGlobals::MODULE);
-      code_generation_result
-        .runtime_requirements
+      runtime_template
+        .runtime_requirements_mut()
         .insert(RuntimeGlobals::EXPORTS);
-      code_generation_result
-        .runtime_requirements
+      runtime_template
+        .runtime_requirements_mut()
         .insert(RuntimeGlobals::THIS_AS_EXPORTS);
     }
 
@@ -721,20 +719,17 @@ impl Module for NormalModule {
           self,
           &mut GenerateContext {
             compilation,
-            runtime_template: &mut runtime_template,
+            runtime_template,
             data: &mut code_generation_result.data,
             requested_source_type: *source_type,
-            runtime,
+            runtime: *runtime,
             concatenation_scope: concatenation_scope.as_mut(),
           },
         )
         .await?;
       code_generation_result.add(*source_type, CachedSource::new(generation_result).boxed());
     }
-    code_generation_result.concatenation_scope = concatenation_scope;
-    code_generation_result
-      .runtime_requirements
-      .extend(*runtime_template.runtime_requirements());
+    code_generation_result.concatenation_scope = std::mem::take(concatenation_scope);
     Ok(code_generation_result)
   }
 

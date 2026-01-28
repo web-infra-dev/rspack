@@ -1,7 +1,7 @@
 use rayon::prelude::*;
 use rspack_core::{
   ChunkGraph, ChunkInitFragments, ChunkUkey, CodeGenerationPublicPathAutoReplace, Compilation,
-  Module, RuntimeGlobals, SourceType,
+  Module, ModuleCodeGenerationContext, RuntimeGlobals, SourceType,
   chunk_graph_chunk::ChunkId,
   get_undo_path,
   rspack_sources::{BoxSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt},
@@ -364,7 +364,17 @@ pub async fn render_runtime_modules(
           if !(module.full_hash() || module.dependent_hash()) {
             sources.add(source.clone());
           } else {
-            let result = module.code_generation(compilation, None, None).await?;
+            let mut runtime_template = compilation
+              .runtime_template
+              .create_module_codegen_runtime_template();
+            let mut code_generation_context = ModuleCodeGenerationContext {
+              compilation,
+              runtime: None,
+              concatenation_scope: None,
+              runtime_template: &mut runtime_template,
+            };
+
+            let result = module.code_generation(&mut code_generation_context).await?;
             #[allow(clippy::unwrap_used)]
             let source = result.get(&SourceType::Runtime).unwrap();
             sources.add(source.clone());

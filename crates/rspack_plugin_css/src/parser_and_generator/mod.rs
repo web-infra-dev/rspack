@@ -534,7 +534,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
           init_fragments: &mut init_fragments,
           concatenation_scope: generate_context.concatenation_scope.take(),
           data: generate_context.data,
-          runtime_template: &mut generate_context.runtime_template,
+          runtime_template: generate_context.runtime_template,
         };
 
         let module_graph = compilation.get_module_graph();

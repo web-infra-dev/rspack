@@ -394,10 +394,10 @@ impl ESMImportSpecifierDependencyTemplate {
       let res = code_generatable_context
         .runtime_template
         .export_from_import(
-          &code_generatable_context.compilation,
+          code_generatable_context.compilation,
           &mut new_init_fragment,
           code_generatable_context.module.identifier(),
-          &code_generatable_context.runtime,
+          code_generatable_context.runtime,
           true,
           &dep.request,
           &import_var,

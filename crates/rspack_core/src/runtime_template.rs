@@ -1011,7 +1011,7 @@ impl ModuleCodegenRuntimeTemplate {
     compilation: &Compilation,
     init_fragments: &mut Vec<Box<dyn InitFragment<GenerateContext<'_>>>>,
     module_id: Identifier,
-    runtime: &Option<&RuntimeSpec>,
+    runtime: Option<&RuntimeSpec>,
     default_interop: bool,
     request: &str,
     import_var: &str,
@@ -1047,7 +1047,7 @@ impl ModuleCodegenRuntimeTemplate {
               &target_module_identifier,
               PrefetchExportsInfoMode::Nested(name),
             )),
-            *runtime,
+            runtime,
             name,
           ) else {
             return to_normal_comment(&format!(
@@ -1156,7 +1156,7 @@ impl ModuleCodegenRuntimeTemplate {
           &target_module_identifier,
           PrefetchExportsInfoMode::Nested(export_name),
         )),
-        *runtime,
+        runtime,
         export_name,
       ) {
         Some(UsedName::Normal(used_name)) => used_name,
@@ -1233,6 +1233,7 @@ impl ModuleCodegenRuntimeTemplate {
     }
   }
 
+  #[allow(clippy::too_many_arguments)]
   pub fn module_namespace_promise(
     &mut self,
     compilation: &Compilation,

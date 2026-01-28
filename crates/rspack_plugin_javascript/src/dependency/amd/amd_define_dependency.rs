@@ -298,7 +298,7 @@ impl DependencyTemplate for AMDDefineDependencyTemplate {
     let text = branch.get_content(
       &local_module_var,
       &dep.named_module,
-      &mut code_generatable_context.runtime_template,
+      code_generatable_context.runtime_template,
     );
     let definition = branch.get_definition(&local_module_var);
 

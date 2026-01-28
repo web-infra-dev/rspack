@@ -5,10 +5,11 @@ use rspack_cacheable::{cacheable, cacheable_dyn, with::Unsupported};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo,
-  BuildMeta, BuildResult, CodeGenerationResult, Compilation, ConcatenationScope, Context,
-  DependenciesBlock, DependencyId, ExportsType, FactoryMeta, LibIdentOptions, Module, ModuleGraph,
-  ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType, impl_module_meta_info,
-  impl_source_map_config, module_update_hash, rspack_sources::BoxSource,
+  BuildMeta, BuildResult, CodeGenerationResult, Compilation, Context,
+  DependenciesBlock, DependencyId, ExportsType, FactoryMeta, LibIdentOptions, Module,
+  ModuleCodeGenerationContext, ModuleGraph, ModuleIdentifier, ModuleType, RuntimeGlobals,
+  RuntimeSpec, SourceType, impl_module_meta_info, impl_source_map_config, module_update_hash,
+  rspack_sources::BoxSource,
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
 use rspack_hash::{RspackHash, RspackHashDigest};
@@ -191,17 +192,19 @@ impl Module for ConsumeSharedModule {
   // #[tracing::instrument("ConsumeSharedModule::code_generation", skip_all, fields(identifier = ?self.identifier()))]
   async fn code_generation(
     &self,
-    compilation: &Compilation,
-    _runtime: Option<&RuntimeSpec>,
-    _: Option<ConcatenationScope>,
+    code_generation_context: &mut ModuleCodeGenerationContext,
   ) -> Result<CodeGenerationResult> {
-    let mut runtime_template = compilation
-      .runtime_template
-      .create_module_codegen_runtime_template();
+    let ModuleCodeGenerationContext {
+      compilation,
+      runtime_template,
+      ..
+    } = code_generation_context;
+
     let mut code_generation_result = CodeGenerationResult::default();
-    code_generation_result
-      .runtime_requirements
+    runtime_template
+      .runtime_requirements_mut()
       .insert(RuntimeGlobals::SHARE_SCOPE_MAP);
+
     let mut function = String::from("loaders.load");
     let mut args = vec![
       json_stringify(&self.options.share_scope),
@@ -239,9 +242,6 @@ impl Module for ConsumeSharedModule {
         eager: self.options.eager,
         fallback: factory,
       });
-    code_generation_result
-      .runtime_requirements
-      .insert(*runtime_template.runtime_requirements());
     Ok(code_generation_result)
   }
 

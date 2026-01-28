@@ -34,11 +34,12 @@ use crate::{
   ChunkGraph, ChunkUkey, CodeGenerationResult, CollectedTypeScriptInfo, Compilation,
   CompilationAsset, CompilationId, CompilerId, CompilerOptions, ConcatenationScope,
   ConnectionState, Context, ContextModule, DependenciesBlock, DependencyId, ExportProvided,
-  ExternalModule, GetTargetResult, ModuleGraph, ModuleGraphCacheArtifact, ModuleLayer, ModuleType,
-  NormalModule, PrefetchExportsInfoMode, RawModule, Resolve, ResolverFactory, RuntimeSpec,
-  RuntimeTemplate, SelfModule, SharedPluginDriver, SourceType,
-  concatenated_module::ConcatenatedModule, dependencies_block::dependencies_block_update_hash,
-  get_target, value_cache_versions::ValueCacheVersions,
+  ExternalModule, GetTargetResult, ModuleCodegenRuntimeTemplate, ModuleGraph,
+  ModuleGraphCacheArtifact, ModuleLayer, ModuleType, NormalModule, PrefetchExportsInfoMode,
+  RawModule, Resolve, ResolverFactory, RuntimeSpec, RuntimeTemplate, SelfModule,
+  SharedPluginDriver, SourceType, concatenated_module::ConcatenatedModule,
+  dependencies_block::dependencies_block_update_hash, get_target,
+  value_cache_versions::ValueCacheVersions,
 };
 
 pub struct BuildContext {
@@ -248,6 +249,14 @@ pub struct FactoryMeta {
 pub type ModuleIdentifier = Identifier;
 pub type ResourceIdentifier = Identifier;
 
+#[derive(Debug)]
+pub struct ModuleCodeGenerationContext<'a> {
+  pub compilation: &'a Compilation,
+  pub runtime: Option<&'a RuntimeSpec>,
+  pub concatenation_scope: Option<ConcatenationScope>,
+  pub runtime_template: &'a mut ModuleCodegenRuntimeTemplate,
+}
+
 #[cacheable_dyn]
 #[async_trait]
 pub trait Module:
@@ -331,9 +340,7 @@ pub trait Module:
   /// to provide multiple code generation results for different `source_type`s.
   async fn code_generation(
     &self,
-    _compilation: &Compilation,
-    _runtime: Option<&RuntimeSpec>,
-    _concatenation_scope: Option<ConcatenationScope>,
+    _code_generation_context: &mut ModuleCodeGenerationContext,
   ) -> Result<CodeGenerationResult>;
 
   /// Name matched against bundle-splitting conditions.
@@ -814,9 +821,7 @@ mod test {
 
         async fn code_generation(
           &self,
-          _compilation: &Compilation,
-          _runtime: Option<&RuntimeSpec>,
-          _concatenation_scope: Option<ConcatenationScope>,
+          _code_generation_context: &mut ModuleCodeGenerationContext,
         ) -> Result<CodeGenerationResult> {
           unreachable!()
         }

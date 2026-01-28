@@ -5,10 +5,11 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
   AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo, BuildMeta, BuildResult,
-  CodeGenerationResult, Compilation, ConcatenationScope, Context, DependenciesBlock, DependencyId,
-  FactoryMeta, LibIdentOptions, Module, ModuleArgument, ModuleDependency, ModuleGraph, ModuleId,
-  ModuleType, RuntimeSpec, SourceType, StaticExportsDependency, StaticExportsSpec,
-  ValueCacheVersions, impl_module_meta_info, impl_source_map_config, module_update_hash,
+  CodeGenerationResult, Compilation, Context, DependenciesBlock, DependencyId, FactoryMeta,
+  LibIdentOptions, Module, ModuleArgument, ModuleCodeGenerationContext, ModuleDependency,
+  ModuleGraph, ModuleId, ModuleType, RuntimeSpec, SourceType, StaticExportsDependency,
+  StaticExportsSpec, ValueCacheVersions, impl_module_meta_info, impl_source_map_config,
+  module_update_hash,
   rspack_sources::{BoxSource, OriginalSource, RawStringSource},
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
@@ -117,13 +118,14 @@ impl Module for DelegatedModule {
 
   async fn code_generation(
     &self,
-    compilation: &Compilation,
-    _runtime: Option<&RuntimeSpec>,
-    _concatenation_scope: Option<ConcatenationScope>,
+    code_generation_context: &mut ModuleCodeGenerationContext,
   ) -> Result<CodeGenerationResult> {
-    let mut runtime_template = compilation
-      .runtime_template
-      .create_module_codegen_runtime_template();
+    let ModuleCodeGenerationContext {
+      compilation,
+      runtime_template,
+      ..
+    } = code_generation_context;
+
     let mut code_generation_result = CodeGenerationResult::default();
 
     let dep = self.dependencies[0];
@@ -176,9 +178,6 @@ impl Module for DelegatedModule {
     };
 
     code_generation_result = code_generation_result.with_javascript(source);
-    code_generation_result
-      .runtime_requirements
-      .extend(*runtime_template.runtime_requirements());
 
     Ok(code_generation_result)
   }
