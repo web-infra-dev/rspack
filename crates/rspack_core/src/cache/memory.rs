@@ -190,9 +190,16 @@ impl Cache for MemoryCache {
     }
   }
 
-  // FIXME: migrate emitted_asset_versions to EmitAssetArtifact for recovery
-  // EMIT_ASSETS: no artifacts to recover
-  async fn before_emit_assets(&mut self, _compilation: &mut Compilation) {
-    // No artifacts to recover for this phase
+  // EMIT_ASSETS: emit_asset_version_artifact
+  // Note: EmitAssetVersionArtifact is transient, so this recovery will be a no-op
+  async fn before_emit_assets(&mut self, compilation: &mut Compilation) {
+    if let Some(old_compilation) = self.old_compilation.as_mut() {
+      let incremental = &compilation.incremental;
+      recover_artifact(
+        incremental,
+        &mut compilation.emit_asset_version_artifact,
+        &mut old_compilation.emit_asset_version_artifact,
+      );
+    }
   }
 }
