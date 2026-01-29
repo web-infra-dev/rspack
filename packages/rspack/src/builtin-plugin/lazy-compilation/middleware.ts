@@ -7,7 +7,7 @@ import { BuiltinLazyCompilationPlugin } from './lazyCompilation';
 
 const require = createRequire(import.meta.url);
 
-export const LAZY_COMPILATION_PREFIX = '/lazy-compilation-using-';
+export const LAZY_COMPILATION_PREFIX = '/_rspack/lazy/trigger';
 
 const getDefaultClient = (compiler: Compiler): string =>
   require.resolve(

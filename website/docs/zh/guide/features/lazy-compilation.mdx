@@ -124,7 +124,7 @@ server.start();
 
 ## 自定义懒编译端点
 
-默认情况下，懒编译中间件使用 `/lazy-compilation-using-` 前缀来处理请求。如果你需要自定义这个前缀，可以使用 `prefix` 选项：
+默认情况下，懒编译中间件使用 `/_rspack/lazy/trigger` 前缀来处理请求。如果你需要自定义这个前缀，可以使用 `prefix` 选项：
 
 ```js title="rspack.config.mjs"
 import { defineConfig } from '@rspack/cli';

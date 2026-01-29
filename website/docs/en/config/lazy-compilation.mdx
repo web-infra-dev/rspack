@@ -45,7 +45,7 @@ type LazyCompilationOptions =
       serverUrl?: string;
       /**
        * Customize the prefix used for lazy compilation endpoint.
-       * @default "/lazy-compilation-using-"
+       * @default "/_rspack/lazy/trigger"
        */
       prefix?: string;
     };
@@ -107,9 +107,9 @@ export default {
 ### lazyCompilation.prefix
 
 - **Type:** `string`
-- **Default:** `'/lazy-compilation-using-'`
+- **Default:** `'/_rspack/lazy/trigger'`
 
-Customize the prefix used for lazy compilation endpoint. By default, the lazy compilation middleware uses the `/lazy-compilation-using-` prefix for handling requests.
+Customize the prefix used for lazy compilation endpoint. By default, the lazy compilation middleware uses the `/_rspack/lazy/trigger` prefix for handling requests.
 
 ```js title="rspack.config.mjs"
 export default {
