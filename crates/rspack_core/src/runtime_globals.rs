@@ -272,6 +272,8 @@ bitflags! {
 
     // react server component
     const RSC_MANIFEST = 1 << 74;
+
+    const MAKE_OPTIMIZED_DEFERRED_NAMESPACE_OBJECT = 1 << 75;
   }
 }
 
@@ -336,6 +338,7 @@ pub fn runtime_globals_to_string(
     RuntimeGlobals::MAKE_NAMESPACE_OBJECT => format!("{scope_name}.r"),
     RuntimeGlobals::MAKE_DEFERRED_NAMESPACE_OBJECT => format!("{scope_name}.z"),
     RuntimeGlobals::MAKE_DEFERRED_NAMESPACE_OBJECT_SYMBOL => format!("{scope_name}.zS"),
+    RuntimeGlobals::MAKE_OPTIMIZED_DEFERRED_NAMESPACE_OBJECT => format!("{scope_name}.zO"),
     RuntimeGlobals::EXPORTS => {
       runtime_variable_to_string(&RuntimeVariable::Exports, compiler_options)
     }
