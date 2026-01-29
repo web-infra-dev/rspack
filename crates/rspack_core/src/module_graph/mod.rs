@@ -533,6 +533,10 @@ impl ModuleGraph {
       .expect("should insert block before get it")
   }
 
+  pub fn blocks(&self) -> &HashMap<AsyncDependenciesBlockIdentifier, Box<AsyncDependenciesBlock>> {
+    &self.inner.blocks
+  }
+
   pub fn dependencies(&self) -> HashMap<DependencyId, &BoxDependency> {
     self
       .inner
@@ -550,7 +554,7 @@ impl ModuleGraph {
   ///
   /// **PREFERRED METHOD**: Use this for ALL internal Rust code including:
   /// - Core compilation logic
-  /// - All plugins (`rspack_plugin_*`)  
+  /// - All plugins (`rspack_plugin_*`)
   /// - Stats generation, code generation, runtime templates
   /// - Chunk graph building, export analysis
   /// - Module graph building operations
