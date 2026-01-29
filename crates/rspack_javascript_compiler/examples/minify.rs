@@ -4,10 +4,11 @@ fn main() {
   let source = "const a = 10;";
 
   let compiler = JavaScriptCompiler::new();
+  let options = Default::default();
   let output = compiler.minify(
     swc_core::common::FileName::Custom("test.js".to_string()),
     source,
-    Default::default(),
+    &options,
     None::<&dyn Fn(&swc_core::common::comments::SingleThreadedComments)>,
   );
 

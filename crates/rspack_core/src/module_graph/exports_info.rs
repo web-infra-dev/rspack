@@ -39,7 +39,7 @@ impl ModuleGraph {
   ) -> Option<PrefetchedExportsInfoWrapper<'b>> {
     self
       .module_graph_module_by_identifier(module_identifier)
-      .map(move |mgm| ExportsInfoGetter::prefetch(&mgm.exports, self, mode))
+      .map(move |mgm| ExportsInfoGetter::prefetch(mgm.exports, self, mode))
   }
 
   pub fn get_prefetched_exports_info<'b>(
@@ -48,7 +48,7 @@ impl ModuleGraph {
     mode: PrefetchExportsInfoMode<'b>,
   ) -> PrefetchedExportsInfoWrapper<'b> {
     let exports_info = self.get_exports_info(module_identifier);
-    ExportsInfoGetter::prefetch(&exports_info, self, mode)
+    ExportsInfoGetter::prefetch(exports_info, self, mode)
   }
 
   pub fn get_prefetched_exports_info_used(
@@ -59,7 +59,7 @@ impl ModuleGraph {
     self
       .module_graph_module_by_identifier(module_identifier)
       .map(move |mgm| {
-        ExportsInfoGetter::prefetch_used_info_without_name(&mgm.exports, self, runtime)
+        ExportsInfoGetter::prefetch_used_info_without_name(mgm.exports, self, runtime)
       })
       .expect("should have exports info")
   }

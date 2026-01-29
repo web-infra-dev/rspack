@@ -53,7 +53,7 @@ impl ChunkRenderCacheArtifact {
       return generator().await;
     };
     let cache_key = Identifier::from(content_hash.encoded());
-    if let Some(value) = storage.get(&cache_key) {
+    if let Some(value) = storage.get(cache_key) {
       Ok((value, Vec::new()))
     } else {
       let res = generator().await?;

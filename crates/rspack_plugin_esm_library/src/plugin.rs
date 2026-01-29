@@ -16,7 +16,8 @@ use rspack_core::{
   ConcatenationScope, DependencyType, ExternalModuleInfo, GetTargetResult, Logger,
   ModuleFactoryCreateData, ModuleGraph, ModuleIdentifier, ModuleInfo, ModuleType,
   NormalModuleFactoryAfterFactorize, NormalModuleFactoryParser, ParserAndGenerator, ParserOptions,
-  Plugin, PrefetchExportsInfoMode, RuntimeGlobals, RuntimeModule, get_target, is_esm_dep_like,
+  Plugin, PrefetchExportsInfoMode, ResolveFilterFnTy, RuntimeGlobals, RuntimeModule, get_target,
+  is_esm_dep_like,
   rspack_sources::{ReplaceSource, Source},
 };
 use rspack_error::{Diagnostic, Result};
@@ -150,6 +151,7 @@ async fn finish_modules(
         .get_prefetched_exports_info(module_identifier, PrefetchExportsInfoMode::Default);
 
       let relevant_exports = exports_info.get_relevant_exports(None);
+      let resolve_filter: ResolveFilterFnTy = Rc::new(|_| true);
       let unknown_exports = relevant_exports
         .iter()
         .filter(|export_info| {
@@ -158,7 +160,7 @@ async fn finish_modules(
               get_target(
                 export_info,
                 module_graph,
-                Rc::new(|_| true),
+                &resolve_filter,
                 &mut Default::default()
               ),
               Some(GetTargetResult::Target(_))

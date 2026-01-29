@@ -147,31 +147,31 @@ bitflags! {
 }
 
 impl DevtoolFlags {
-  pub(crate) fn source_map(&self) -> bool {
+  pub(crate) fn source_map(self) -> bool {
     self.contains(DevtoolFlags::SOURCE_MAP)
   }
 
-  pub(crate) fn hidden(&self) -> bool {
+  pub(crate) fn hidden(self) -> bool {
     self.contains(DevtoolFlags::HIDDEN)
   }
 
-  pub(crate) fn inline(&self) -> bool {
+  pub(crate) fn inline(self) -> bool {
     self.contains(DevtoolFlags::INLINE)
   }
 
-  pub(crate) fn eval(&self) -> bool {
+  pub(crate) fn eval(self) -> bool {
     self.contains(DevtoolFlags::EVAL)
   }
 
-  pub(crate) fn cheap(&self) -> bool {
+  pub(crate) fn cheap(self) -> bool {
     self.contains(DevtoolFlags::CHEAP)
   }
 
-  pub(crate) fn module(&self) -> bool {
+  pub(crate) fn module(self) -> bool {
     self.contains(DevtoolFlags::MODULE)
   }
 
-  pub(crate) fn nosources(&self) -> bool {
+  pub(crate) fn nosources(self) -> bool {
     self.contains(DevtoolFlags::NOSOURCES)
   }
 }

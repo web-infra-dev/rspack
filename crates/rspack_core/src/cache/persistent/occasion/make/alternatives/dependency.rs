@@ -12,7 +12,7 @@ pub struct TempDependency {
 }
 
 impl TempDependency {
-  pub fn transform_from(dep: OwnedOrRef<BoxDependency>) -> OwnedOrRef<BoxDependency> {
+  pub fn transform_from<'a>(dep: &OwnedOrRef<'a, BoxDependency>) -> OwnedOrRef<'a, BoxDependency> {
     OwnedOrRef::Owned(Box::new(TempDependency {
       id: *dep.as_ref().id(),
     }))

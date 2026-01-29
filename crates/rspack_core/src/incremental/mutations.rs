@@ -143,7 +143,7 @@ impl Mutations {
             _ => {}
           }
         }
-        compute_affected_modules_with_module_graph(module_graph, built_modules, built_dependencies)
+        compute_affected_modules_with_module_graph(module_graph, &built_modules, built_dependencies)
       })
       .clone()
   }
@@ -239,7 +239,7 @@ impl Mutations {
 #[tracing::instrument(skip_all)]
 fn compute_affected_modules_with_module_graph(
   module_graph: &ModuleGraph,
-  built_modules: IdentifierSet,
+  built_modules: &IdentifierSet,
   built_dependencies: UkeySet<DependencyId>,
 ) -> IdentifierSet {
   fn reduce_affect_type<'a>(dependencies: impl Iterator<Item = &'a BoxDependency>) -> AffectType {
@@ -297,7 +297,7 @@ fn compute_affected_modules_with_module_graph(
   let mut transitive_affected_modules: IdentifierSet = {
     let (direct_affected_modules, transitive_affected_modules) =
       get_direct_and_transitive_affected_modules(
-        &built_modules,
+        built_modules,
         &all_affected_modules,
         module_graph,
       );

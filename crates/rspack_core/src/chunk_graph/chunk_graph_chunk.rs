@@ -958,13 +958,14 @@ impl ChunkGraph {
     let chunk_overhead = options.chunk_overhead.unwrap_or(10000f64);
     let entry_chunk_multiplicator = options.entry_chunk_multiplicator.unwrap_or(10f64);
     let chunk = chunk_by_ukey.expect_get(chunk_ukey);
-    chunk_overhead
-      + modules_size
-        * (if chunk.can_be_initial(chunk_group_by_ukey) {
-          entry_chunk_multiplicator
-        } else {
-          1f64
-        })
+    modules_size.mul_add(
+      if chunk.can_be_initial(chunk_group_by_ukey) {
+        entry_chunk_multiplicator
+      } else {
+        1f64
+      },
+      chunk_overhead,
+    )
   }
 
   #[allow(clippy::too_many_arguments)]
@@ -998,15 +999,15 @@ impl ChunkGraph {
     let chunk_a = chunk_by_ukey.expect_get(chunk_a_ukey);
     let chunk_b = chunk_by_ukey.expect_get(chunk_b_ukey);
 
-    chunk_overhead
-      + modules_size
-        * (if chunk_a.can_be_initial(chunk_group_by_ukey)
-          || chunk_b.can_be_initial(chunk_group_by_ukey)
-        {
-          entry_chunk_multiplicator
-        } else {
-          1f64
-        })
+    modules_size.mul_add(
+      if chunk_a.can_be_initial(chunk_group_by_ukey) || chunk_b.can_be_initial(chunk_group_by_ukey)
+      {
+        entry_chunk_multiplicator
+      } else {
+        1f64
+      },
+      chunk_overhead,
+    )
   }
 
   pub fn integrate_chunks(
@@ -1125,6 +1126,6 @@ impl ChunkGraph {
 
         None
       })
-      .unwrap_or(module.source_types(module_graph).iter().copied().collect())
+      .unwrap_or_else(|| module.source_types(module_graph).iter().copied().collect())
   }
 }

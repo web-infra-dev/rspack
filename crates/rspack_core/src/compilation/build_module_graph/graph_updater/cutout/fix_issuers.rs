@@ -43,17 +43,17 @@ impl IssuerHelper {
   fn is_issuer(
     &mut self,
     mg: &ModuleGraph,
-    base_mid: &ModuleIdentifier,
-    check_mid: &ModuleIdentifier,
+    base_mid: ModuleIdentifier,
+    check_mid: ModuleIdentifier,
   ) -> IsIssuerResult {
     let mut checked_modules = IdentifierSet::default();
-    let mut current_module = *check_mid;
+    let mut current_module = check_mid;
     loop {
       if self.available_module.contains(&current_module) {
         self.available_module.extend(checked_modules);
         return IsIssuerResult::Ok;
       }
-      if checked_modules.contains(&current_module) || &current_module == base_mid {
+      if checked_modules.contains(&current_module) || current_module == base_mid {
         return IsIssuerResult::Cycle(checked_modules);
       }
       checked_modules.insert(current_module);
@@ -78,7 +78,7 @@ impl IssuerHelper {
   fn calc_issuer(
     &mut self,
     mg: &ModuleGraph,
-    base_mid: &ModuleIdentifier,
+    base_mid: ModuleIdentifier,
     parents: Vec<Option<ModuleIdentifier>>,
   ) -> CalcIssuerResult {
     let mut cycle_paths = IdentifierMap::default();
@@ -91,7 +91,7 @@ impl IssuerHelper {
       if cycle_paths.contains_key(&mid) {
         continue;
       }
-      match self.is_issuer(mg, base_mid, &mid) {
+      match self.is_issuer(mg, base_mid, mid) {
         IsIssuerResult::Ok => {
           return CalcIssuerResult::Ok(ModuleIssuer::Some(mid));
         }
@@ -218,7 +218,7 @@ impl FixIssuers {
     need_check_modules
       .into_iter()
       .filter_map(|mid| {
-        let Some(mgm) = try_get_module_graph_module_mut_by_identifier(module_graph, &mid) else {
+        let Some(mgm) = try_get_module_graph_module_mut_by_identifier(module_graph, mid) else {
           // no mgm means the module has been removed, ignored.
           return None;
         };
@@ -358,7 +358,7 @@ impl FixIssuers {
     let mut need_clean_cycle_modules: IdentifierMap<IdentifierMap<IdentifierSet>> =
       IdentifierMap::default();
     for (mid, parents) in need_check_available_modules {
-      match helper.calc_issuer(module_graph, &mid, parents) {
+      match helper.calc_issuer(module_graph, mid, parents) {
         CalcIssuerResult::Ok(issuer) => {
           let mgm = module_graph.module_graph_module_by_identifier_mut(&mid);
           artifact.issuer_update_modules.insert(mgm.module_identifier);
@@ -435,7 +435,7 @@ impl FixIssuers {
             .map(|item| item.original_module_identifier)
             .collect();
 
-          match helper.calc_issuer(module_graph, &mid, parents) {
+          match helper.calc_issuer(module_graph, mid, parents) {
             CalcIssuerResult::Ok(issuer) => {
               let mgm = module_graph.module_graph_module_by_identifier_mut(&mid);
               artifact.issuer_update_modules.insert(mgm.module_identifier);

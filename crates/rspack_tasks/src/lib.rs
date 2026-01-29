@@ -91,7 +91,7 @@ where
   F: Future + Send + 'static,
   F::Output: Send + 'static,
 {
-  let compiler_context = CURRENT_COMPILER_CONTEXT.get().clone();
+  let compiler_context = CURRENT_COMPILER_CONTEXT.get();
 
   tokio::spawn(CURRENT_COMPILER_CONTEXT.scope(compiler_context, future))
 }

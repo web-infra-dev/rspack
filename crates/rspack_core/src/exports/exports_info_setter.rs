@@ -3,16 +3,15 @@ use rustc_hash::FxHashSet;
 
 use crate::{
   CanInlineUse, DependencyId, ExportInfo, ExportInfoData, ExportProvided, ExportsInfoData,
-  Nullable, RuntimeSpec, UsageState,
+  Nullable, RuntimeSpec, UsageFilterFnTy, UsageState,
 };
 
 impl ExportsInfoData {
   pub fn set_used_for_side_effects_only(&mut self, runtime: Option<&RuntimeSpec>) -> bool {
-    self.side_effects_only_info_mut().set_used_conditionally(
-      Box::new(|value| value == &UsageState::Unused),
-      UsageState::Used,
-      runtime,
-    )
+    let condition: UsageFilterFnTy<UsageState> = Box::new(|value| value == &UsageState::Unused);
+    self
+      .side_effects_only_info_mut()
+      .set_used_conditionally(&condition, UsageState::Used, runtime)
   }
 
   pub fn set_all_known_exports_used(&mut self, runtime: Option<&RuntimeSpec>) -> bool {
@@ -125,17 +124,14 @@ impl ExportsInfoData {
 
   pub fn set_used_in_unknown_way(&mut self, runtime: Option<&RuntimeSpec>) -> bool {
     let mut changed = false;
+    let condition: UsageFilterFnTy<UsageState> = Box::new(|value| value < &UsageState::Unknown);
     for export_info in self.exports_mut().values_mut() {
       if export_info.set_used_in_unknown_way(runtime) {
         changed = true;
       }
     }
     let other_exports_info = self.other_exports_info_mut();
-    if other_exports_info.set_used_conditionally(
-      Box::new(|value| value < &UsageState::Unknown),
-      UsageState::Unknown,
-      runtime,
-    ) {
+    if other_exports_info.set_used_conditionally(&condition, UsageState::Unknown, runtime) {
       changed = true;
     }
     if other_exports_info.can_mangle_use() != Some(false) {

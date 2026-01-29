@@ -281,7 +281,7 @@ fn get_target_properties(target: &str, context: &Context) -> TargetProperties {
       panic!("No browserslist config found for target '{target}'. Please configure browserslist.");
     }
 
-    return super::browserslist_target::resolve(browsers);
+    return super::browserslist_target::resolve(&browsers);
   }
 
   // Handle web target

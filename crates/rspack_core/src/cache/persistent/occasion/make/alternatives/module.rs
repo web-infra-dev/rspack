@@ -25,7 +25,7 @@ pub struct TempModule {
 }
 
 impl TempModule {
-  pub fn transform_from(module: OwnedOrRef<BoxModule>) -> OwnedOrRef<BoxModule> {
+  pub fn transform_from<'a>(module: &OwnedOrRef<'a, BoxModule>) -> OwnedOrRef<'a, BoxModule> {
     let m = module.as_ref();
     OwnedOrRef::Owned(BoxModule::new(Box::new(Self {
       id: m.identifier(),

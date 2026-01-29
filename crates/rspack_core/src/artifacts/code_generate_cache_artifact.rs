@@ -54,7 +54,7 @@ impl CodeGenerateCacheArtifact {
     };
 
     let cache_key = Identifier::from(format!("{}|{}", job.module, job.hash.encoded()));
-    if let Some(value) = storage.get(&cache_key) {
+    if let Some(value) = storage.get(cache_key) {
       (Ok(value), true)
     } else {
       match generator().await {

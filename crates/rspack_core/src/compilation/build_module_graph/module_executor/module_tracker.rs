@@ -198,7 +198,7 @@ impl ModuleTracker {
   }
 
   /// Check if a dep_id is running
-  pub fn is_running(&self, dep_id: &DependencyId) -> bool {
-    self.entry_finish_tasks.contains_key(dep_id)
+  pub fn is_running(&self, dep_id: DependencyId) -> bool {
+    self.entry_finish_tasks.contains_key(&dep_id)
   }
 }

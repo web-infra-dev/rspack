@@ -128,7 +128,7 @@ async fn optimize_dependencies(
       .par_iter()
       .filter_map(|exports_info| {
         let exports_info_data =
-          ExportsInfoGetter::prefetch(exports_info, mg, PrefetchExportsInfoMode::Default);
+          ExportsInfoGetter::prefetch(*exports_info, mg, PrefetchExportsInfoMode::Default);
         let export_list = {
           // If there are other usage (e.g. `import { Kind } from './enum'; Kind;`) in any runtime,
           // then we cannot inline this export.

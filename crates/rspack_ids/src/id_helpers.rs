@@ -11,8 +11,8 @@ use itertools::{
 use rspack_collections::{DatabaseItem, Identifier, UkeyMap};
 use rspack_core::{
   BoxModule, Chunk, ChunkByUkey, ChunkGraph, ChunkGroupByUkey, ChunkNamedIdArtifact, ChunkUkey,
-  Compilation, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, ModuleIdsArtifact,
-  compare_runtime,
+  Compilation, ModuleGraph, ModuleGraphCacheArtifact, ModuleId, ModuleIdentifier,
+  ModuleIdsArtifact, compare_runtime,
 };
 use rspack_util::{
   comparators::{compare_ids, compare_numbers},
@@ -167,7 +167,8 @@ pub fn assign_ascending_module_ids(
       while used_ids.contains(&next_id.to_string()) {
         next_id += 1;
       }
-      ChunkGraph::set_module_id(module_ids, module.identifier(), next_id.to_string().into());
+      let module_id: ModuleId = next_id.to_string().into();
+      ChunkGraph::set_module_id(module_ids, module.identifier(), &module_id);
       next_id += 1;
     }
   };

@@ -13,7 +13,7 @@ pub static NAMESPACE_SYMBOL: &str = "mod";
 
 fn then_expr(
   code_generatable_context: &mut TemplateContext,
-  dep_id: &DependencyId,
+  dep_id: DependencyId,
   request: &str,
 ) -> String {
   let TemplateContext {
@@ -24,7 +24,7 @@ fn then_expr(
   } = code_generatable_context;
   if compilation
     .get_module_graph()
-    .module_identifier_by_dependency_id(dep_id)
+    .module_identifier_by_dependency_id(&dep_id)
     .is_none()
   {
     return runtime_template.missing_module_promise(request);
@@ -33,10 +33,10 @@ fn then_expr(
   let exports_type = get_exports_type(
     compilation.get_module_graph(),
     &compilation.module_graph_cache_artifact,
-    dep_id,
+    &dep_id,
     &module.identifier(),
   );
-  let module_id_expr = runtime_template.module_id(compilation, dep_id, request, false);
+  let module_id_expr = runtime_template.module_id(compilation, &dep_id, request, false);
 
   let mut fake_type = FakeNamespaceObjectMode::PROMISE_LIKE;
   let mut appending;
@@ -63,7 +63,7 @@ fn then_expr(
         &compilation.async_modules_artifact.borrow(),
         compilation
           .get_module_graph()
-          .module_identifier_by_dependency_id(dep_id)
+          .module_identifier_by_dependency_id(&dep_id)
           .expect("should have module"),
       ) {
         appending = format!(
@@ -181,7 +181,7 @@ impl DependencyTemplate for DynamicImportDependencyTemplate {
         import_dep.range.end,
         &format!(
           "{import_promise}{}",
-          then_expr(code_generatable_context, dep_id, request)
+          then_expr(code_generatable_context, *dep_id, request)
         ),
         None,
       );
@@ -199,7 +199,7 @@ impl DependencyTemplate for DynamicImportDependencyTemplate {
         import_dep.range.end,
         &format!(
           "{import_promise}{}",
-          then_expr(code_generatable_context, dep_id, request)
+          then_expr(code_generatable_context, *dep_id, request)
         ),
         None,
       );

@@ -306,7 +306,7 @@ fn create_object_for_exports_info(
           // avoid clone
           let temp = std::mem::replace(value, JsonValue::Null);
           let exports_info =
-            ExportsInfoGetter::prefetch(&exports_info, mg, PrefetchExportsInfoMode::Default);
+            ExportsInfoGetter::prefetch(exports_info, mg, PrefetchExportsInfoMode::Default);
           create_object_for_exports_info(temp, &exports_info, runtime, mg)
         } else {
           std::mem::replace(value, JsonValue::Null)
@@ -344,7 +344,7 @@ fn create_object_for_exports_info(
             && let Some(exports_info) = export_info.exports_info()
           {
             let exports_info =
-              ExportsInfoGetter::prefetch(&exports_info, mg, PrefetchExportsInfoMode::Default);
+              ExportsInfoGetter::prefetch(exports_info, mg, PrefetchExportsInfoMode::Default);
             Some(create_object_for_exports_info(
               item,
               &exports_info,

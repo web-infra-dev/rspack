@@ -567,7 +567,7 @@ impl ExternalModule {
 
                 concatenation_scope.register_namespace_import(
                   request.primary().to_string(),
-                  attributes.clone(),
+                  attributes,
                   format!("__rspack_external_{id}").into(),
                 );
                 concatenation_scope.register_namespace_export(&namespace_export_with_name);
@@ -575,7 +575,7 @@ impl ExternalModule {
               UsedExports::UsedNamespace(false) => {
                 concatenation_scope.register_import(
                   request.primary().to_string(),
-                  attributes.clone(),
+                  attributes,
                   None,
                 );
               }
@@ -587,7 +587,7 @@ impl ExternalModule {
                         "import * as __rspack_external_{} from {}{};\n",
                         id.clone(),
                         json_stringify(request.primary()),
-                        attributes.clone().unwrap_or_default()
+                        attributes.unwrap_or_default()
                       ),
                       InitFragmentStage::StageESMImports,
                       module_graph

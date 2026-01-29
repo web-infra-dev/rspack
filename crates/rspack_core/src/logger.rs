@@ -234,6 +234,7 @@ pub trait Logger {
   }
 }
 
+#[derive(Clone, Copy)]
 pub struct StartTime {
   label: &'static str,
   start: Instant,

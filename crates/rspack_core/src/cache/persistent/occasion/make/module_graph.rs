@@ -97,11 +97,11 @@ pub fn save_module_graph(
         Err(err) if err.to_string().contains("unsupported field") => {
           tracing::warn!("to bytes failed {:?}", err);
           // try use alternatives
-          node.module = TempModule::transform_from(node.module);
+          node.module = TempModule::transform_from(&node.module);
           node.dependencies = node
             .dependencies
             .into_iter()
-            .map(|(dep, _)| (TempDependency::transform_from(dep), None))
+            .map(|(dep, _)| (TempDependency::transform_from(&dep), None))
             .collect();
           node.blocks = vec![];
           if let Ok(bytes) = codec.encode(&node) {

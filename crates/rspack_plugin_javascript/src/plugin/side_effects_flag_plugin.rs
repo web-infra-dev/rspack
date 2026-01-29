@@ -6,8 +6,8 @@ use rspack_core::{
   BoxModule, Compilation, CompilationOptimizeDependencies, ConnectionState, DependencyExtraMeta,
   DependencyId, FactoryMeta, GetTargetResult, Logger, ModuleFactoryCreateData, ModuleGraph,
   ModuleGraphConnection, ModuleIdentifier, NormalModuleCreateData, NormalModuleFactoryModule,
-  Plugin, PrefetchExportsInfoMode, RayonConsumer, ResolvedExportInfoTarget, SideEffectsDoOptimize,
-  SideEffectsDoOptimizeMoveTarget, SideEffectsOptimizeArtifact,
+  Plugin, PrefetchExportsInfoMode, RayonConsumer, ResolveFilterFnTy, ResolvedExportInfoTarget,
+  SideEffectsDoOptimize, SideEffectsDoOptimizeMoveTarget, SideEffectsOptimizeArtifact,
   build_module_graph::BuildModuleGraphArtifact,
   can_move_target, get_target,
   incremental::{self, IncrementalPasses, Mutation},
@@ -351,13 +351,10 @@ fn can_optimize_connection(
       module_graph.get_prefetched_exports_info(&original_module, PrefetchExportsInfoMode::Default);
     let export_info = exports_info.get_export_info_without_mut_module_graph(name);
 
-    let target = can_move_target(
-      &export_info,
-      module_graph,
-      Rc::new(|target: &ResolvedExportInfoTarget| {
-        side_effects_state_map[&target.module] == ConnectionState::Active(false)
-      }),
-    )?;
+    let resolve_filter: ResolveFilterFnTy = Rc::new(|target: &ResolvedExportInfoTarget| {
+      side_effects_state_map[&target.module] == ConnectionState::Active(false)
+    });
+    let target = can_move_target(&export_info, module_graph, &resolve_filter)?;
     if !module_graph.can_update_module(&dependency_id, &target.module) {
       return None;
     }
@@ -398,12 +395,13 @@ fn can_optimize_connection(
     );
     let export_info = exports_info.get_export_info_without_mut_module_graph(&ids[0]);
 
+    let resolve_filter: ResolveFilterFnTy = Rc::new(|target: &ResolvedExportInfoTarget| {
+      side_effects_state_map[&target.module] == ConnectionState::Active(false)
+    });
     let Some(GetTargetResult::Target(target)) = get_target(
       &export_info,
       module_graph,
-      Rc::new(|target: &ResolvedExportInfoTarget| {
-        side_effects_state_map[&target.module] == ConnectionState::Active(false)
-      }),
+      &resolve_filter,
       &mut Default::default(),
     ) else {
       return None;

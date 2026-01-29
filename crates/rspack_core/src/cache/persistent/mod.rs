@@ -61,7 +61,7 @@ impl PersistentCache {
   pub fn new(
     compiler_path: &str,
     option: &PersistentCacheOptions,
-    compiler_options: Arc<CompilerOptions>,
+    compiler_options: &Arc<CompilerOptions>,
     input_filesystem: Arc<dyn ReadableFileSystem>,
     intermediate_filesystem: Arc<dyn IntermediateFileSystem>,
   ) -> Self {

@@ -922,7 +922,9 @@ impl CompilerOptionsBuilder {
         .insert("main".to_string(), EntryDescription::default());
     }
     self.entry.iter_mut().for_each(|(_, entry)| {
-      entry.import.get_or_insert(vec!["./src".to_string()]);
+      entry
+        .import
+        .get_or_insert_with(|| vec!["./src".to_string()]);
     });
 
     let devtool = f!(self.devtool.take(), || {
@@ -970,7 +972,7 @@ impl CompilerOptionsBuilder {
       async_web_assembly,
       css,
       &target_properties,
-      &mode,
+      mode,
     )?;
 
     // apply output defaults
@@ -1001,14 +1003,12 @@ impl CompilerOptionsBuilder {
         filename: (!inline).then_some(output.source_map_filename.as_str().to_string()),
         module_filename_template: output_builder
           .devtool_module_filename_template
-          .map(|t| rspack_plugin_devtool::ModuleFilenameTemplate::String(t.as_str().to_string()))
-          .clone(),
+          .map(|t| rspack_plugin_devtool::ModuleFilenameTemplate::String(t.as_str().to_string())),
         append: hidden.then_some(rspack_plugin_devtool::Append::Disabled),
         columns: !cheap,
         fallback_module_filename_template: output_builder
           .devtool_fallback_module_filename_template
-          .map(|t| rspack_plugin_devtool::ModuleFilenameTemplate::String(t.as_str().to_string()))
-          .clone(),
+          .map(|t| rspack_plugin_devtool::ModuleFilenameTemplate::String(t.as_str().to_string())),
         module: if module_maps { true } else { !cheap },
         namespace: output_builder.devtool_namespace.clone(),
         no_sources,
@@ -1035,8 +1035,7 @@ impl CompilerOptionsBuilder {
       let options = rspack_plugin_devtool::EvalDevToolModulePluginOptions {
         module_filename_template: output_builder
           .devtool_module_filename_template
-          .map(|t| rspack_plugin_devtool::ModuleFilenameTemplate::String(t.as_str().to_string()))
-          .clone(),
+          .map(|t| rspack_plugin_devtool::ModuleFilenameTemplate::String(t.as_str().to_string())),
         namespace: output_builder.devtool_namespace.clone(),
         source_url_comment: None,
       };
@@ -1681,9 +1680,9 @@ impl ModuleOptionsBuilder {
     async_web_assembly: bool,
     css: bool,
     target_properties: &TargetProperties,
-    mode: &Mode,
+    mode: Mode,
   ) -> Result<ModuleOptions> {
-    let parser = self.parser.get_or_insert(ParserOptionsMap::default());
+    let parser = self.parser.get_or_insert_with(ParserOptionsMap::default);
 
     if !parser.contains_key("asset") {
       parser.insert(
@@ -1741,7 +1740,9 @@ impl ModuleOptionsBuilder {
       );
     }
 
-    let generator = self.generator.get_or_insert(GeneratorOptionsMap::default());
+    let generator = self
+      .generator
+      .get_or_insert_with(GeneratorOptionsMap::default);
     if !generator.contains_key("json") {
       generator.insert(
         "json".to_string(),
@@ -1756,7 +1757,7 @@ impl ModuleOptionsBuilder {
         named_exports: Some(true),
         url: Some(true),
       });
-      parser.insert("css".to_string(), css_parser_options.clone());
+      parser.insert("css".to_string(), css_parser_options);
 
       let css_auto_parser_options = ParserOptions::CssAuto(CssAutoParserOptions {
         named_exports: Some(true),

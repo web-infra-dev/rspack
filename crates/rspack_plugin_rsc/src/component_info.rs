@@ -156,11 +156,8 @@ fn filter_client_components(
 
     if side_effect_free {
       let exports_info = module_graph.get_exports_info(&module.identifier());
-      let prefetched_exports_info = ExportsInfoGetter::prefetch(
-        &exports_info,
-        module_graph,
-        PrefetchExportsInfoMode::Default,
-      );
+      let prefetched_exports_info =
+        ExportsInfoGetter::prefetch(exports_info, module_graph, PrefetchExportsInfoMode::Default);
       let unused = !prefetched_exports_info.is_module_used(Some(runtime));
       if unused {
         return;

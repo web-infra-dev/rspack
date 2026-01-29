@@ -58,7 +58,7 @@ impl JavaScriptCompiler {
     &self,
     filename: FileName,
     source: S,
-    opts: JsMinifyOptions,
+    opts: &JsMinifyOptions,
     comments_op: Option<F>,
   ) -> Result<TransformOutput, BatchErrors>
   where
@@ -118,7 +118,7 @@ impl JavaScriptCompiler {
 
         let target = opts.ecma.clone().into();
         let program = self.parse_js(
-          fm.clone(),
+          &fm,
           target,
           Syntax::Es(EsSyntax {
             jsx: true,

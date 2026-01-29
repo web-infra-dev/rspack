@@ -8,7 +8,7 @@ use rspack_core::{
   ExportNameOrSpec, ExportProvided, ExportSpecExports, ExportsInfo, ExportsInfoData,
   ExportsOfExportsSpec, ExportsSpec, GetTargetResult, Logger, ModuleGraph,
   ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, Nullable, Plugin,
-  PrefetchExportsInfoMode, get_target,
+  PrefetchExportsInfoMode, ResolveFilterFnTy, get_target,
   incremental::{self, IncrementalPasses},
 };
 use rspack_error::Result;
@@ -699,7 +699,8 @@ fn find_target_exports_info(
 ) {
   let mut dependencies = vec![];
   // Recalculate target exportsInfo
-  let target = get_target(export_info, mg, Rc::new(|_| true), &mut Default::default());
+  let resolve_filter: ResolveFilterFnTy = Rc::new(|_| true);
+  let target = get_target(export_info, mg, &resolve_filter, &mut Default::default());
 
   let mut target_exports_info = None;
   if let Some(GetTargetResult::Target(target)) = target {

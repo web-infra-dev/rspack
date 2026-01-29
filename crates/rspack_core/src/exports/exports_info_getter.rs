@@ -10,7 +10,7 @@ use super::{
 };
 use crate::{ExportsInfoData, InlinedUsedName, ModuleGraph, RuntimeSpec, UsageKey, UsedExports};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub enum PrefetchExportsInfoMode<'a> {
   Default,            // prefetch with all export items
   Nested(&'a [Atom]), // prefetch with all export items and all the export items on its chain
@@ -56,7 +56,7 @@ impl<'a> PrefetchedExportsInfoWrapper<'a> {
           PrefetchExportsInfoMode::Full => PrefetchExportsInfoMode::Full,
         }
       } else {
-        self.mode.clone()
+        self.mode
       },
     }
   }
@@ -75,63 +75,63 @@ impl<'a> PrefetchedExportsInfoWrapper<'a> {
   }
 
   pub fn other_exports_info(&self) -> &ExportInfoData {
-    self.get_other_in_exports_info(&self.entry)
+    self.get_other_in_exports_info(self.entry)
   }
 
   pub fn side_effects_only_info(&self) -> &ExportInfoData {
-    self.get_side_effects_in_exports_info(&self.entry)
+    self.get_side_effects_in_exports_info(self.entry)
   }
 
   pub fn exports(&self) -> impl Iterator<Item = (&Atom, &ExportInfoData)> {
-    self.get_exports_in_exports_info(&self.entry)
+    self.get_exports_in_exports_info(self.entry)
   }
 
-  fn get_other_in_exports_info(&self, exports_info: &ExportsInfo) -> &ExportInfoData {
+  fn get_other_in_exports_info(&self, exports_info: ExportsInfo) -> &ExportInfoData {
     let data = self
       .exports
-      .get(exports_info)
+      .get(&exports_info)
       .expect("should have nested exports info");
     data.other_exports_info()
   }
 
-  fn get_side_effects_in_exports_info(&self, exports_info: &ExportsInfo) -> &ExportInfoData {
+  fn get_side_effects_in_exports_info(&self, exports_info: ExportsInfo) -> &ExportInfoData {
     let data = self
       .exports
-      .get(exports_info)
+      .get(&exports_info)
       .expect("should have nested exports info");
     data.side_effects_only_info()
   }
 
   fn get_exports_in_exports_info(
     &self,
-    exports_info: &ExportsInfo,
+    exports_info: ExportsInfo,
   ) -> impl Iterator<Item = (&Atom, &ExportInfoData)> {
     let data = self
       .exports
-      .get(exports_info)
+      .get(&exports_info)
       .expect("should have nested exports info");
     data.exports().iter()
   }
 
   fn get_named_export_in_exports_info(
     &self,
-    exports_info: &ExportsInfo,
+    exports_info: ExportsInfo,
     name: &Atom,
   ) -> Option<&ExportInfoData> {
     let data = self
       .exports
-      .get(exports_info)
+      .get(&exports_info)
       .expect("should have nested exports info");
     data.exports().get(name)
   }
 
   pub fn get_read_only_export_info(&self, name: &Atom) -> &ExportInfoData {
-    self.get_read_only_export_info_impl(&self.entry, name)
+    self.get_read_only_export_info_impl(self.entry, name)
   }
 
   fn get_read_only_export_info_impl(
     &self,
-    exports_info: &ExportsInfo,
+    exports_info: ExportsInfo,
     name: &Atom,
   ) -> &ExportInfoData {
     if let Some(export_info) = self.get_named_export_in_exports_info(exports_info, name) {
@@ -188,12 +188,12 @@ impl<'a> PrefetchedExportsInfoWrapper<'a> {
   }
 
   pub fn get_relevant_exports(&self, runtime: Option<&RuntimeSpec>) -> Vec<&ExportInfoData> {
-    self.get_relevant_exports_impl(&self.entry, runtime)
+    self.get_relevant_exports_impl(self.entry, runtime)
   }
 
   fn get_relevant_exports_impl(
     &self,
-    exports_info: &ExportsInfo,
+    exports_info: ExportsInfo,
     runtime: Option<&RuntimeSpec>,
   ) -> Vec<&ExportInfoData> {
     let mut list = vec![];
@@ -220,12 +220,12 @@ impl<'a> PrefetchedExportsInfoWrapper<'a> {
   }
 
   pub fn get_used_exports(&self, runtime: Option<&RuntimeSpec>) -> UsedExports {
-    self.get_used_exports_impl(&self.entry, runtime)
+    self.get_used_exports_impl(self.entry, runtime)
   }
 
   fn get_used_exports_impl(
     &self,
-    exports_info: &ExportsInfo,
+    exports_info: ExportsInfo,
     runtime: Option<&RuntimeSpec>,
   ) -> UsedExports {
     match self
@@ -269,10 +269,10 @@ impl<'a> PrefetchedExportsInfoWrapper<'a> {
   }
 
   pub fn get_provided_exports(&self) -> ProvidedExports {
-    self.get_provided_exports_impl(&self.entry)
+    self.get_provided_exports_impl(self.entry)
   }
 
-  fn get_provided_exports_impl(&self, exports_info: &ExportsInfo) -> ProvidedExports {
+  fn get_provided_exports_impl(&self, exports_info: ExportsInfo) -> ProvidedExports {
     match self.get_other_in_exports_info(exports_info).provided() {
       Some(ExportProvided::Unknown) => {
         return ProvidedExports::ProvidedAll;
@@ -290,7 +290,7 @@ impl<'a> PrefetchedExportsInfoWrapper<'a> {
     for (_, export_info) in self.get_exports_in_exports_info(exports_info) {
       match export_info.provided() {
         Some(ExportProvided::Provided | ExportProvided::Unknown) | None => {
-          ret.push(export_info.name().cloned().unwrap_or("".into()));
+          ret.push(export_info.name().cloned().unwrap_or_else(|| "".into()));
         }
         _ => {}
       }
@@ -299,13 +299,13 @@ impl<'a> PrefetchedExportsInfoWrapper<'a> {
   }
 
   pub fn get_export_info_without_mut_module_graph(&self, name: &Atom) -> Cow<'_, ExportInfoData> {
-    if let Some(export_info) = self.get_named_export_in_exports_info(&self.entry, name) {
+    if let Some(export_info) = self.get_named_export_in_exports_info(self.entry, name) {
       return Cow::Borrowed(export_info);
     }
     Cow::Owned(ExportInfoData::new(
       self.entry,
       Some(name.clone()),
-      Some(self.get_other_in_exports_info(&self.entry)),
+      Some(self.get_other_in_exports_info(self.entry)),
     ))
   }
 
@@ -463,17 +463,17 @@ impl ExportsInfoGetter {
    * if names is not provided, it will not pre-fetch any export info item
    */
   pub fn prefetch<'a>(
-    id: &ExportsInfo,
+    id: ExportsInfo,
     mg: &'a ModuleGraph,
     mode: PrefetchExportsInfoMode<'a>,
   ) -> PrefetchedExportsInfoWrapper<'a> {
     fn prefetch_exports<'a>(
-      id: &ExportsInfo,
+      id: ExportsInfo,
       mg: &'a ModuleGraph,
       res: &mut UkeyMap<ExportsInfo, &'a ExportsInfoData>,
       mode: PrefetchExportsInfoMode<'a>,
     ) {
-      if res.contains_key(id) {
+      if res.contains_key(&id) {
         return;
       }
 
@@ -507,29 +507,29 @@ impl ExportsInfoGetter {
         nested_exports.push((side_exports, PrefetchExportsInfoMode::Default));
       }
 
-      res.insert(*id, exports_info);
+      res.insert(id, exports_info);
 
       for (nested_exports_info, nested_mode) in nested_exports {
-        prefetch_exports(&nested_exports_info, mg, res, nested_mode);
+        prefetch_exports(nested_exports_info, mg, res, nested_mode);
       }
     }
 
     let mut res = UkeyMap::default();
-    prefetch_exports(id, mg, &mut res, mode.clone());
+    prefetch_exports(id, mg, &mut res, mode);
     PrefetchedExportsInfoWrapper {
       exports: Arc::new(res),
-      entry: *id,
+      entry: id,
       mode,
     }
   }
 
   pub fn prefetch_used_info_without_name(
-    id: &ExportsInfo,
+    id: ExportsInfo,
     mg: &ModuleGraph,
     runtime: Option<&RuntimeSpec>,
   ) -> PrefetchedExportsInfoUsed {
     fn is_exports_info_used(
-      info: &ExportsInfo,
+      info: ExportsInfo,
       runtime: Option<&RuntimeSpec>,
       mg: &ModuleGraph,
     ) -> bool {
@@ -629,6 +629,7 @@ impl ExportsInfoGetter {
   }
 }
 
+#[derive(Clone, Copy)]
 pub enum GetUsedNameParam<'a> {
   WithoutNames(&'a PrefetchedExportsInfoUsed),
   WithNames(&'a PrefetchedExportsInfoWrapper<'a>),

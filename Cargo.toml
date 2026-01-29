@@ -508,5 +508,35 @@ verbose_file_reads              = "warn"
 # https://github.com/rustwasm/wasm-bindgen/issues/3944
 #mem_forget                      = "warn"
 
+# performance - memory allocation optimization
+box_collection              = "warn"
+redundant_allocation        = "warn"
+redundant_clone             = "warn"
+unnecessary_to_owned        = "warn"
+useless_vec                 = "warn"
+
+# performance - function parameter optimization
+large_enum_variant          = "warn"
+needless_pass_by_value      = "warn"
+trivially_copy_pass_by_ref  = "warn"
+
+# performance - iterator optimization
+extend_with_drain           = "warn"
+iter_with_drain             = "warn"
+manual_find                 = "warn"
+
+# performance - string optimization
+string_add                  = "warn"
+string_add_assign           = "warn"
+
+# performance - function call optimization
+expect_fun_call             = "warn"
+or_fun_call                 = "warn"
+
+# performance - other optimizations
+manual_memcpy               = "warn"
+slow_vector_initialization  = "warn"
+suboptimal_flops            = "warn"
+
 [patch.crates-io]
 simd-adler32 = { git = "https://github.com/mcountryman/simd-adler32.git", rev = "b279034d9eb554c3e5e0af523db044f08d8297ba" }

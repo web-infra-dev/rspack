@@ -11,7 +11,8 @@ use super::context::{ExecutorTaskContext, ImportModuleMeta};
 use crate::{
   Chunk, ChunkGraph, ChunkKind, CodeGenerationDataAssetInfo, CodeGenerationDataFilename,
   CodeGenerationResult, CompilationAsset, CompilationAssets, EntryOptions, Entrypoint,
-  FactorizeInfo, ModuleCodeGenerationContext, ModuleType, PublicPath, RuntimeSpec, SourceType,
+  FactorizeInfo, ModuleCodeGenerationContext, ModuleId, ModuleType, PublicPath, RuntimeSpec,
+  SourceType,
   utils::task_loop::{Task, TaskResult, TaskType},
 };
 
@@ -56,7 +57,7 @@ pub struct ExecuteTask {
 }
 
 impl ExecuteTask {
-  pub fn finish_with_error(self, error: Error) {
+  pub fn finish_with_error(self, error: &Error) {
     let id = EXECUTE_MODULE_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
     self
       .result_sender
@@ -266,7 +267,8 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
     // Assign ids to modules and modules to the chunk
     for &m in &modules {
       chunk_graph.add_module(m);
-      ChunkGraph::set_module_id(&mut compilation.module_ids_artifact, m, m.as_str().into());
+      let module_id: ModuleId = m.as_str().into();
+      ChunkGraph::set_module_id(&mut compilation.module_ids_artifact, m, &module_id);
       chunk_graph.connect_chunk_and_module(chunk_ukey, m);
     }
 

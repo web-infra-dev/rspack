@@ -63,7 +63,7 @@ impl ProcessRuntimeRequirementsCacheArtifact {
       get_runtime_key(runtime)
     ));
 
-    if let Some(value) = storage.get(&cache_key) {
+    if let Some(value) = storage.get(cache_key) {
       Ok(value)
     } else {
       let res = generator().await?;

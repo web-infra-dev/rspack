@@ -218,8 +218,9 @@ where
   }
 
   fn overlay_filter<'a>(entry: (&'a K, &'a mut OverlayValue<V>)) -> Option<(&'a K, &'a mut V)> {
-    match entry.1 {
-      OverlayValue::Value(value) => Some((entry.0, value)),
+    let (key, value) = entry;
+    match value {
+      OverlayValue::Value(value) => Some((key, value)),
       OverlayValue::Tombstone => None,
     }
   }
@@ -243,10 +244,10 @@ where
     match self.overlay.as_mut() {
       Some(_) => {
         self.materialize_all();
-        let iter = self
-          .overlay()
-          .par_iter_mut()
-          .filter_map(Self::overlay_filter as fn(_) -> _);
+        let iter = self.overlay().par_iter_mut().filter_map(
+          Self::overlay_filter
+            as fn((&'data K, &'data mut OverlayValue<V>)) -> Option<(&'data K, &'data mut V)>,
+        );
         Either::Right(iter)
       }
       None => Either::Left(self.base.par_iter_mut()),

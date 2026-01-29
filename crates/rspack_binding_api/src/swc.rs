@@ -92,7 +92,7 @@ fn _minify(source: String, options: String) -> napi::Result<TransformOutput> {
     .minify(
       swc_core::common::FileName::Anon,
       source,
-      options,
+      &options,
       None::<&dyn Fn(&swc_core::common::comments::SingleThreadedComments)>,
     )
     .map(TransformOutput::from)
