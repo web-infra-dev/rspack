@@ -2694,7 +2694,7 @@ export type LazyCompilationOptions = {
   serverUrl?: string;
   /**
    * Customize the prefix used for lazy compilation endpoint.
-   * @default "/lazy-compilation-using-"
+   * @default "/_rspack/lazy/trigger"
    */
   prefix?: string;
 };
