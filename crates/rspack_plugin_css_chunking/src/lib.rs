@@ -73,7 +73,9 @@ struct ChunkState {
 }
 
 #[plugin_hook(CompilationOptimizeChunks for CssChunkingPlugin, stage = 5)]
-async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
+async fn optimize_chunks(&self, compilation: &Compilation) -> Result<Option<bool>> {
+  // SAFETY: optimize_chunks runs with exclusive access to the compilation.
+  let compilation = unsafe { compilation.as_mut() };
   let strict = self.strict;
 
   if self.once.load(Ordering::Relaxed) {

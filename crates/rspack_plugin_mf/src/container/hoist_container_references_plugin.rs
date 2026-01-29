@@ -136,7 +136,9 @@ async fn compilation(
 }
 
 #[plugin_hook(CompilationOptimizeChunks for HoistContainerReferencesPlugin, stage = Compilation::OPTIMIZE_CHUNKS_STAGE_ADVANCED + 1)]
-async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
+async fn optimize_chunks(&self, compilation: &Compilation) -> Result<Option<bool>> {
+  // SAFETY: optimize_chunks runs with exclusive access to the compilation.
+  let compilation = unsafe { compilation.as_mut() };
   // Helper: recursively collect all referenced modules
   fn get_all_referenced_modules(
     compilation: &Compilation,
