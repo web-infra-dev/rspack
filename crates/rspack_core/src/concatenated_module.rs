@@ -1595,13 +1595,14 @@ impl Module for ConcatenatedModule {
           &compilation.module_static_cache_artifact,
           &context,
         );
-        let loader = runtime_template.get_property_accessed_deferred_module(
+        let loader = runtime_template.get_optimized_deferred_module(
           module.get_exports_type(
             module_graph,
             &compilation.module_graph_cache_artifact,
             root_module.build_meta().strict_esm_module,
           ),
           &module_id,
+          // an async module will opt-out of the concat module optimization.
           Default::default(),
         );
         result.add(RawStringSource::from(format!(
