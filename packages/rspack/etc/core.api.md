@@ -1120,6 +1120,7 @@ export class Compilation {
         Iterable<Chunk>,
         Iterable<Module>
         ], void>;
+        beforeModuleIds: liteTapable.SyncHook<[Iterable<Module>]>;
         finishModules: liteTapable.AsyncSeriesHook<[Iterable<Module>], void>;
         chunkHash: liteTapable.SyncHook<[Chunk, Hash]>;
         chunkAsset: liteTapable.SyncHook<[Chunk, string]>;
