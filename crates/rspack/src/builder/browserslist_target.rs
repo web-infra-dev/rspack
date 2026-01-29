@@ -67,7 +67,7 @@ fn raw_checker(browsers: &[String], versions: &HashMap<&str, VersionRequirement>
 }
 
 /// Resolves target properties based on the provided browser list.
-pub fn resolve(browsers: Vec<String>) -> TargetProperties {
+pub fn resolve(browsers: &[String]) -> TargetProperties {
   let any_node = browsers.iter().any(|b| b.starts_with("node "));
   let any_browser = browsers.iter().any(|b| !b.starts_with("node "));
 
@@ -105,11 +105,11 @@ pub fn resolve(browsers: Vec<String>) -> TargetProperties {
       "node" => VersionRequirement::MajorMinor(12, 17),
   };
 
-  let es6_dynamic_import = raw_checker(&browsers, &es6_dynamic_import_versions);
+  let es6_dynamic_import = raw_checker(browsers, &es6_dynamic_import_versions);
 
   TargetProperties {
     r#const: Some(raw_checker(
-      &browsers,
+      browsers,
       &hashmap! {
           "chrome" => VersionRequirement::Major(49),
           "and_chr" => VersionRequirement::Major(49),
@@ -130,7 +130,7 @@ pub fn resolve(browsers: Vec<String>) -> TargetProperties {
       },
     )),
     arrow_function: Some(raw_checker(
-      &browsers,
+      browsers,
       &hashmap! {
           "chrome" => VersionRequirement::Major(45),
           "and_chr" => VersionRequirement::Major(45),
@@ -151,7 +151,7 @@ pub fn resolve(browsers: Vec<String>) -> TargetProperties {
       },
     )),
     for_of: Some(raw_checker(
-      &browsers,
+      browsers,
       &hashmap! {
           "chrome" => VersionRequirement::Major(38),
           "and_chr" => VersionRequirement::Major(38),
@@ -169,7 +169,7 @@ pub fn resolve(browsers: Vec<String>) -> TargetProperties {
       },
     )),
     destructuring: Some(raw_checker(
-      &browsers,
+      browsers,
       &hashmap! {
           "chrome" => VersionRequirement::Major(49),
           "and_chr" => VersionRequirement::Major(49),
@@ -187,7 +187,7 @@ pub fn resolve(browsers: Vec<String>) -> TargetProperties {
       },
     )),
     big_int_literal: Some(raw_checker(
-      &browsers,
+      browsers,
       &hashmap! {
           "chrome" => VersionRequirement::Major(67),
           "and_chr" => VersionRequirement::Major(67),
@@ -208,7 +208,7 @@ pub fn resolve(browsers: Vec<String>) -> TargetProperties {
       },
     )),
     module: Some(raw_checker(
-      &browsers,
+      browsers,
       &hashmap! {
           "chrome" => VersionRequirement::Major(61),
           "and_chr" => VersionRequirement::Major(61),
@@ -231,7 +231,7 @@ pub fn resolve(browsers: Vec<String>) -> TargetProperties {
     dynamic_import: Some(es6_dynamic_import),
     dynamic_import_in_worker: Some(es6_dynamic_import && !any_node),
     global_this: Some(raw_checker(
-      &browsers,
+      browsers,
       &hashmap! {
           "chrome" => VersionRequirement::Major(71),
           "and_chr" => VersionRequirement::Major(71),
@@ -249,7 +249,7 @@ pub fn resolve(browsers: Vec<String>) -> TargetProperties {
       },
     )),
     optional_chaining: Some(raw_checker(
-      &browsers,
+      browsers,
       &hashmap! {
           "chrome" => VersionRequirement::Major(80),
           "and_chr" => VersionRequirement::Major(80),
@@ -267,7 +267,7 @@ pub fn resolve(browsers: Vec<String>) -> TargetProperties {
       },
     )),
     template_literal: Some(raw_checker(
-      &browsers,
+      browsers,
       &hashmap! {
           "chrome" => VersionRequirement::Major(41),
           "and_chr" => VersionRequirement::Major(41),
@@ -288,7 +288,7 @@ pub fn resolve(browsers: Vec<String>) -> TargetProperties {
       },
     )),
     async_function: Some(raw_checker(
-      &browsers,
+      browsers,
       &hashmap! {
           "chrome" => VersionRequirement::Major(55),
           "and_chr" => VersionRequirement::Major(55),
@@ -325,7 +325,7 @@ pub fn resolve(browsers: Vec<String>) -> TargetProperties {
       node_property.unwrap_or(false)
         && !browsers.iter().any(|b| b.starts_with("node 15"))
         && raw_checker(
-          &browsers,
+          browsers,
           &hashmap! { "node" => VersionRequirement::MajorMinor(14, 18) },
         ),
     ),
@@ -355,7 +355,7 @@ mod tests {
     println!("browsers: {browsers:?}");
 
     // Resolve target properties
-    let properties = resolve(browsers);
+    let properties = resolve(&browsers);
 
     println!("prop: {properties:#?}")
   }
@@ -407,7 +407,7 @@ mod tests {
     for test_case in tests {
       let input: Vec<String> = test_case.iter().map(|s| (*s).to_string()).collect();
 
-      let targets = resolve(input.clone());
+      let targets = resolve(&input);
 
       results.push((test_case, targets));
     }

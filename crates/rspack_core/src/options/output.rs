@@ -403,7 +403,9 @@ impl PublicPath {
 
   pub fn ensure_ends_with_slash(public_path: String) -> String {
     if !public_path.is_empty() && !public_path.ends_with('/') {
-      public_path + "/"
+      let mut public_path = public_path;
+      public_path.push('/');
+      public_path
     } else {
       public_path
     }

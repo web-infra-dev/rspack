@@ -67,7 +67,12 @@ impl Plugin for DllReferenceAgencyPlugin {
 
     let external = ExternalItem::Object(external_item_object);
 
-    ExternalsPlugin::new(source_type.unwrap_or("var".into()), vec![external], false).apply(ctx)?;
+    ExternalsPlugin::new(
+      source_type.unwrap_or_else(|| "var".into()),
+      vec![external],
+      false,
+    )
+    .apply(ctx)?;
 
     DelegatedPlugin::new(DelegatedPluginOptions {
       source,

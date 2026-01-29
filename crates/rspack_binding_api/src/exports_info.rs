@@ -49,7 +49,7 @@ impl JsExportsInfo {
       Either::B(vec) => vec.into_iter().map(Into::into).collect(),
     });
     let exports_info = ExportsInfoGetter::prefetch_used_info_without_name(
-      &self.exports_info,
+      self.exports_info,
       module_graph,
       runtime.as_ref(),
     );
@@ -64,7 +64,7 @@ impl JsExportsInfo {
       Either::B(vec) => vec.into_iter().map(Into::into).collect(),
     });
     let exports_info = ExportsInfoGetter::prefetch_used_info_without_name(
-      &self.exports_info,
+      self.exports_info,
       module_graph,
       runtime.as_ref(),
     );
@@ -105,7 +105,7 @@ impl JsExportsInfo {
       Either::B(v) => v.into_iter().map(Into::into).collect::<Vec<_>>(),
     };
     let exports_info = ExportsInfoGetter::prefetch(
-      &self.exports_info,
+      self.exports_info,
       module_graph,
       PrefetchExportsInfoMode::Nested(&names),
     );

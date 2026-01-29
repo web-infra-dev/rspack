@@ -464,15 +464,16 @@ fn _merge_resolve(first: Resolve, second: Resolve) -> Resolve {
   }
 }
 
-fn normalize_string_array(a: Vec<String>, b: Vec<String>) -> Vec<String> {
-  b.into_iter().fold(vec![], |mut acc, item| {
-    if item.eq("...") {
-      acc.append(&mut a.clone());
+fn normalize_string_array(mut a: Vec<String>, b: Vec<String>) -> Vec<String> {
+  let mut acc = Vec::new();
+  for item in b {
+    if item == "..." {
+      acc.append(&mut a);
     } else {
       acc.push(item);
     }
-    acc
-  })
+  }
+  acc
 }
 
 fn extend_alias(a: Alias, b: Alias) -> Alias {

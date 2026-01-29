@@ -6,7 +6,7 @@ use rspack_core::{
   BuildMetaExportsType, ChunkGraph, ChunkInitFragments, ChunkUkey, Compilation, CompilationParams,
   CompilerCompilation, ExportInfo, ExportProvided, ExportsInfoGetter, GetTargetResult, Module,
   ModuleGraph, ModuleIdentifier, Plugin, PrefetchExportsInfoMode, PrefetchedExportsInfoWrapper,
-  UsageState, get_target,
+  ResolveFilterFnTy, UsageState, get_target,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
   to_comment_with_nl,
 };
@@ -75,10 +75,11 @@ fn print_exports_info_to_source<F>(
     let usage_info = export_info.get_used_info();
     let rename_info = export_info.get_rename_info();
 
+    let resolve_filter: ResolveFilterFnTy = Rc::new(|_| true);
     let target_desc = match get_target(
       export_info,
       module_graph,
-      Rc::new(|_| true),
+      &resolve_filter,
       &mut Default::default(),
     ) {
       Some(GetTargetResult::Target(resolve_target)) => {
@@ -100,7 +101,7 @@ fn print_exports_info_to_source<F>(
 
     source.add(RawStringSource::from(to_comment_with_nl(&export_str)));
 
-    if let Some(exports_info) = &export_info.exports_info() {
+    if let Some(exports_info) = export_info.exports_info() {
       let exports_info =
         ExportsInfoGetter::prefetch(exports_info, module_graph, PrefetchExportsInfoMode::Default);
       print_exports_info_to_source(
@@ -121,10 +122,11 @@ fn print_exports_info_to_source<F>(
   }
 
   if show_other_exports {
+    let resolve_filter: ResolveFilterFnTy = Rc::new(|_| true);
     let target = get_target(
       other_exports_info,
       module_graph,
-      Rc::new(|_| true),
+      &resolve_filter,
       &mut Default::default(),
     );
     if matches!(target, Some(GetTargetResult::Target(_)))

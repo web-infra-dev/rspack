@@ -8,7 +8,7 @@ use rspack_core::{
   ExportProvided, ExtendedReferencedExport, GetTargetResult, ImportedByDeferModulesArtifact,
   LibIdentOptions, Logger, Module, ModuleExt, ModuleGraph, ModuleGraphCacheArtifact,
   ModuleGraphConnection, ModuleGraphModule, ModuleIdentifier, Plugin, PrefetchExportsInfoMode,
-  ProvidedExports, RuntimeCondition, RuntimeSpec, SourceType,
+  ProvidedExports, ResolveFilterFnTy, RuntimeCondition, RuntimeSpec, SourceType,
   concatenated_module::{
     ConcatenatedInnerModule, ConcatenatedModule, RootModuleContext, is_esm_dep_like,
   },
@@ -903,6 +903,7 @@ impl ModuleConcatenationPlugin {
         let exports_info =
           module_graph.get_prefetched_exports_info(&module_id, PrefetchExportsInfoMode::Default);
         let relevant_exports = exports_info.get_relevant_exports(None);
+        let resolve_filter: ResolveFilterFnTy = Rc::new(|_| true);
         let unknown_exports = relevant_exports
           .iter()
           .filter(|export_info| {
@@ -911,7 +912,7 @@ impl ModuleConcatenationPlugin {
                 get_target(
                   export_info,
                   module_graph,
-                  Rc::new(|_| true),
+                  &resolve_filter,
                   &mut Default::default()
                 ),
                 Some(GetTargetResult::Target(_))

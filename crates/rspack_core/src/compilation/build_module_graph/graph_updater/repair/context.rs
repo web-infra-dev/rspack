@@ -63,7 +63,7 @@ impl TaskContext {
     let compiler_context = CURRENT_COMPILER_CONTEXT.get();
     let mut compilation = Compilation::new(
       self.compiler_id,
-      self.compiler_options.clone(),
+      &self.compiler_options,
       self.platform.clone(),
       self.plugin_driver.clone(),
       self.buildtime_plugin_driver.clone(),

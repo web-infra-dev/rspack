@@ -75,7 +75,7 @@ impl EsmLibraryPlugin {
   fn add_chunk_export(
     chunk: ChunkUkey,
     local: Atom,
-    exported: Atom,
+    exported: &Atom,
     chunk_exports: &mut UkeyMap<ChunkUkey, ExportsContext>,
     strict_exports: bool,
   ) -> Option<Atom> {
@@ -87,7 +87,7 @@ impl EsmLibraryPlugin {
         && !already_exported.is_empty()
       {
         if strict_exports {
-          if let Some(exported_local) = ctx.exported_symbols.get(&exported)
+          if let Some(exported_local) = ctx.exported_symbols.get(exported)
             && exported_local != &local
           {
             // already exported the symbol and not the same local symbol
@@ -95,13 +95,13 @@ impl EsmLibraryPlugin {
           }
           already_exported.insert(exported.clone());
           ctx.exported_symbols.insert(exported.clone(), local.clone());
-          return ctx.exported_symbols.get(&exported).cloned();
+          return ctx.exported_symbols.get(exported).cloned();
         } else {
           // not strict exports, we can export whatever we like
           return Some(
             already_exported
-              .get(&exported)
-              .unwrap_or(already_exported.iter().next().expect("should have export"))
+              .get(exported)
+              .unwrap_or_else(|| already_exported.iter().next().expect("should have export"))
               .clone(),
           );
         }
@@ -111,7 +111,7 @@ impl EsmLibraryPlugin {
     let ctx = chunk_exports.get_mut_unwrap(&chunk);
 
     // we've not exported this local symbol, check if we've already exported this symbol
-    if ctx.exported_symbols.contains_key(&exported) {
+    if ctx.exported_symbols.contains_key(exported) {
       // the name is already exported and we know the exported_local is not the same
       if strict_exports {
         return None;
@@ -127,16 +127,14 @@ impl EsmLibraryPlugin {
         new_export = format!("{exported}_{idx}").into();
       }
 
-      ctx
-        .exported_symbols
-        .insert(new_export.clone(), local);
+      ctx.exported_symbols.insert(new_export.clone(), local);
       already_exported_names.insert(new_export.clone());
       already_exported_names.get(&new_export).cloned()
     } else {
       let already_exported_names = ctx.exports.entry(local.clone()).or_default();
       ctx.exported_symbols.insert(exported.clone(), local);
       already_exported_names.insert(exported.clone());
-      already_exported_names.get(&exported).cloned()
+      already_exported_names.get(exported).cloned()
     }
   }
 
@@ -336,8 +334,8 @@ impl EsmLibraryPlugin {
                 None,
                 compilation.get_module_graph(),
                 &compilation.module_graph_cache_artifact,
-                module_info_id,
-                vec![export_info.name().cloned().unwrap_or("".into())],
+                *module_info_id,
+                vec![export_info.name().cloned().unwrap_or_else(|| "".into())],
                 &mut concate_modules_map,
                 &mut needed_namespace_objects,
                 false,
@@ -1028,6 +1026,7 @@ var {} = {{}};
     let module_info = concate_modules_map
       .get_mut(&entry_module)
       .expect("should have info");
+    let default_export: Atom = "default".into();
 
     match module_info {
       ModuleInfo::Concatenated(info) => {
@@ -1037,7 +1036,7 @@ var {} = {{}};
             .namespace_object_name
             .clone()
             .expect("should have namespace name"),
-          "default".to_string().into(),
+          &default_export,
           exports,
           entry_chunk == current_chunk,
         );
@@ -1046,11 +1045,7 @@ var {} = {{}};
           && let Some(exported) = exported
         {
           let entry_chunk_link = link.get_mut_unwrap(&entry_chunk);
-          entry_chunk_link.add_re_export(
-            current_chunk,
-            exported,
-            "default".to_string().into(),
-          );
+          entry_chunk_link.add_re_export(current_chunk, exported, default_export.clone());
         }
       }
       ModuleInfo::External(info) => {
@@ -1067,13 +1062,7 @@ var {} = {{}};
 
         required_info.default_access(&mut chunk_link.used_names);
         let symbol = required_info.default_exported(&mut chunk_link.used_names);
-        Self::add_chunk_export(
-          entry_chunk,
-          symbol,
-          "default".to_string().into(),
-          exports,
-          true,
-        );
+        Self::add_chunk_export(entry_chunk, symbol, &default_export, exports, true);
       }
     }
   }
@@ -1158,7 +1147,7 @@ var {} = {{}};
           None,
           module_graph,
           &compilation.module_graph_cache_artifact,
-          &entry_module,
+          entry_module,
           vec![name.clone()],
           concate_modules_map,
           needed_namespace_objects,
@@ -1196,7 +1185,7 @@ var {} = {{}};
                 let exported = Self::add_chunk_export(
                   entry_chunk,
                   export_name.clone(),
-                  name.clone(),
+                  &name,
                   exports,
                   keep_export_name,
                 );
@@ -1227,7 +1216,7 @@ var {} = {{}};
                 let exported = Self::add_chunk_export(
                   ref_chunk,
                   local_name.clone(),
-                  name.clone(),
+                  &name,
                   exports,
                   keep_export_name,
                 );
@@ -1267,13 +1256,7 @@ var {} = {{}};
               .decl_before_exports
               .insert(format!("var {new_name} = {inlined_value};\n"));
 
-            Self::add_chunk_export(
-              entry_chunk,
-              new_name,
-              name.clone(),
-              exports,
-              keep_export_name,
-            );
+            Self::add_chunk_export(entry_chunk, new_name, &name, exports, keep_export_name);
           }
         }
       }
@@ -1524,7 +1507,7 @@ var {} = {{}};
               Some(m),
               module_graph,
               &compilation.module_graph_cache_artifact,
-              ref_module,
+              *ref_module,
               options.ids.clone(),
               concate_modules_map,
               needed_namespace_objects,
@@ -1560,7 +1543,7 @@ var {} = {{}};
               None,
               module_graph,
               &compilation.module_graph_cache_artifact,
-              ref_module,
+              *ref_module,
               vec![ref_atom.clone()],
               concate_modules_map,
               needed_namespace_objects,
@@ -1582,7 +1565,7 @@ var {} = {{}};
                 let exported = Self::add_chunk_export(
                   ref_chunk,
                   symbol_binding.symbol.clone(),
-                  symbol_binding.symbol.clone(),
+                  &symbol_binding.symbol,
                   &mut exports,
                   false,
                 );
@@ -1662,7 +1645,7 @@ var {} = {{}};
           let exported = Self::add_chunk_export(
             ref_chunk,
             orig_symbol.clone(),
-            orig_symbol.clone(),
+            &orig_symbol,
             &mut exports,
             false,
           )
@@ -1841,7 +1824,7 @@ var {} = {{}};
     from: Option<ModuleIdentifier>,
     mg: &ModuleGraph,
     mg_cache: &ModuleGraphCacheArtifact,
-    info_id: &ModuleIdentifier,
+    info_id: ModuleIdentifier,
     mut export_name: Vec<Atom>,
     module_to_info_map: &mut IdentifierIndexMap<ModuleInfo>,
     needed_namespace_objects: &mut IdentifierIndexSet,
@@ -1854,10 +1837,10 @@ var {} = {{}};
     all_used_names: &mut FxHashSet<Atom>,
   ) -> Ref {
     let module = mg
-      .module_by_identifier(info_id)
+      .module_by_identifier(&info_id)
       .expect("should have module");
     let exports_type = module.get_exports_type(mg, mg_cache, strict_esm_module);
-    let info = &mut module_to_info_map[info_id];
+    let info = &mut module_to_info_map[&info_id];
 
     if export_name.is_empty() {
       match exports_type {
@@ -1866,7 +1849,7 @@ var {} = {{}};
           let symbol = match info {
             ModuleInfo::External(info) => {
               let required_info = Self::add_require(
-                *info_id,
+                info_id,
                 from,
                 Some(info.name.clone().expect("should have name")),
                 all_used_names,
@@ -1881,7 +1864,7 @@ var {} = {{}};
           };
 
           return Ref::Symbol(SymbolRef::new(
-            *info_id,
+            info_id,
             symbol,
             export_name.clone(),
             Arc::new(move |binding| binding.symbol.to_string()),
@@ -1892,7 +1875,7 @@ var {} = {{}};
           let symbol = match info {
             ModuleInfo::External(external_info) => {
               let required_info = Self::add_require(
-                *info_id,
+                info_id,
                 from,
                 Some(external_info.name.clone().expect("should have name")),
                 all_used_names,
@@ -1907,7 +1890,7 @@ var {} = {{}};
           };
 
           return Ref::Symbol(SymbolRef::new(
-            *info_id,
+            info_id,
             symbol,
             export_name.clone(),
             Arc::new(|binding| binding.symbol.to_string()),
@@ -1947,7 +1930,7 @@ var {} = {{}};
             let symbol = match info {
               ModuleInfo::External(info) => {
                 let required_info = Self::add_require(
-                  *info_id,
+                  info_id,
                   from,
                   Some(info.name.clone().expect("should have name")),
                   all_used_names,
@@ -1964,7 +1947,7 @@ var {} = {{}};
             export_name = export_name[1..].to_vec();
 
             return Ref::Symbol(SymbolRef::new(
-              *info_id,
+              info_id,
               symbol,
               export_name.clone(),
               Arc::new(move |binding| {
@@ -2004,10 +1987,10 @@ var {} = {{}};
     }
 
     let exports_info =
-      mg.get_prefetched_exports_info(info_id, PrefetchExportsInfoMode::Nested(&export_name));
+      mg.get_prefetched_exports_info(&info_id, PrefetchExportsInfoMode::Nested(&export_name));
 
     if export_name.is_empty() {
-      let info = module_to_info_map.get_mut_unwrap(info_id);
+      let info = module_to_info_map.get_mut_unwrap(&info_id);
       match info {
         ModuleInfo::Concatenated(info) => {
           needed_namespace_objects.insert(info.module);
@@ -2025,7 +2008,7 @@ var {} = {{}};
           return Ref::Symbol(SymbolRef::new(
             info.module,
             Self::add_require(
-              *info_id,
+              info_id,
               from,
               Some(info.name.clone().expect("should have symbol")),
               all_used_names,
@@ -2050,13 +2033,13 @@ var {} = {{}};
 
     already_visited.insert(export_info_hash_key);
 
-    let info = &module_to_info_map[info_id];
+    let info = &module_to_info_map[&info_id];
     match info {
       ModuleInfo::Concatenated(info) => {
         let export_id = export_name.first().cloned();
         if matches!(export_info.provided(), Some(ExportProvided::NotProvided)) {
           let info = module_to_info_map
-            .get_mut_unwrap(info_id)
+            .get_mut_unwrap(&info_id)
             .as_concatenated_mut();
           needed_namespace_objects.insert(info.module);
 
@@ -2124,10 +2107,12 @@ var {} = {{}};
           ));
         }
 
+        let valid_target_module_filter =
+          Arc::new(|module: &ModuleIdentifier| module_to_info_map.contains_key(module));
         let reexport = find_target(
           &export_info,
           mg,
-          Arc::new(|module: &ModuleIdentifier| module_to_info_map.contains_key(module)),
+          &valid_target_module_filter,
           &mut Default::default(),
         );
         match reexport {
@@ -2157,7 +2142,7 @@ var {} = {{}};
           FindTargetResult::ValidTarget(reexport) => {
             if let Some(ref_info) = module_to_info_map.get(&reexport.module) {
               let build_meta = mg
-                .module_by_identifier(info_id)
+                .module_by_identifier(&info_id)
                 .expect("should have module")
                 .build_meta();
 
@@ -2165,7 +2150,7 @@ var {} = {{}};
                 from,
                 mg,
                 mg_cache,
-                &ref_info.id(),
+                ref_info.id(),
                 if let Some(reexport_export) = reexport.export {
                   [reexport_export, export_name[1..].to_vec()].concat()
                 } else {
@@ -2231,7 +2216,7 @@ var {} = {{}};
             UsedName::Normal(used_name) => Ref::Symbol(SymbolRef::new(
               info.module,
               Self::add_require(
-                *info_id,
+                info_id,
                 from,
                 Some(info.name.clone().expect("should have symbol")),
                 all_used_names,

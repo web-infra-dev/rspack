@@ -256,7 +256,11 @@ fn render_template(
               .parent()
               // "" -> "", "folder" -> "folder/"
               .filter(|p| !p.as_str().is_empty())
-              .map(|p| p.as_str().to_owned() + "/")
+              .map(|p| {
+                let mut path = p.as_str().to_owned();
+                path.push('/');
+                path
+              })
               .unwrap_or_default(),
           )
         })

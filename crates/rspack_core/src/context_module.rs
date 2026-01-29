@@ -290,7 +290,7 @@ impl ContextModule {
     runtime_template: &mut ModuleCodegenRuntimeTemplate,
   ) -> String {
     if let FakeMapValue::Bit(bit) = fake_map {
-      return self.get_return(bit, async_module, runtime_template);
+      return self.get_return(*bit, async_module, runtime_template);
     }
     format!(
       "return {}(id, {}{});",
@@ -302,11 +302,11 @@ impl ContextModule {
 
   fn get_return(
     &self,
-    fake_map_bit: &FakeNamespaceObjectMode,
+    fake_map_bit: FakeNamespaceObjectMode,
     async_module: bool,
     runtime_template: &mut ModuleCodegenRuntimeTemplate,
   ) -> String {
-    if *fake_map_bit == FakeNamespaceObjectMode::NAMESPACE {
+    if fake_map_bit == FakeNamespaceObjectMode::NAMESPACE {
       return format!(
         "return {}(id);",
         runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
@@ -419,7 +419,7 @@ impl ContextModule {
       }
       ContextMode::LazyOnce => {
         if let Some(block) = self.get_blocks().first() {
-          self.get_lazy_once_source(compilation, block, runtime_template)
+          self.get_lazy_once_source(compilation, *block, runtime_template)
         } else {
           self.get_source_for_empty_async_context(compilation, runtime_template)
         }
@@ -614,13 +614,13 @@ impl ContextModule {
   fn get_lazy_once_source(
     &self,
     compilation: &Compilation,
-    block_id: &AsyncDependenciesBlockIdentifier,
+    block_id: AsyncDependenciesBlockIdentifier,
     runtime_template: &mut ModuleCodegenRuntimeTemplate,
   ) -> String {
     let mg = compilation.get_module_graph();
-    let block = mg.block_by_id_expect(block_id);
+    let block = mg.block_by_id_expect(&block_id);
     let dependencies = block.get_dependencies();
-    let promise = runtime_template.block_promise(Some(block_id), compilation, "lazy-once context");
+    let promise = runtime_template.block_promise(Some(&block_id), compilation, "lazy-once context");
     let map = self.get_user_request_map(dependencies, compilation);
     let fake_map = self.get_fake_map(dependencies, compilation);
     let then_function = if !matches!(

@@ -117,7 +117,7 @@ impl ModuleGraphCacheArtifactInner {
       return f();
     }
 
-    match self.get_side_effects_connection_state_cache.get(&key) {
+    match self.get_side_effects_connection_state_cache.get(key) {
       Some(value) => value,
       None => {
         let value = f();
@@ -155,7 +155,7 @@ impl ModuleGraphCacheArtifactInner {
       return f();
     }
 
-    match self.module_graph_hash_cache.get(&key) {
+    match self.module_graph_hash_cache.get(key) {
       Some(value) => value,
       None => {
         let value = f();
@@ -181,8 +181,8 @@ pub(super) mod module_graph_hash {
       self.cache.clear();
     }
 
-    pub fn get(&self, key: &ModuleIdentifier) -> Option<(u64, ExportsInfo, Vec<ExportsInfo>)> {
-      self.cache.get(key).map(|v| v.value().clone())
+    pub fn get(&self, key: ModuleIdentifier) -> Option<(u64, ExportsInfo, Vec<ExportsInfo>)> {
+      self.cache.get(&key).map(|v| v.value().clone())
     }
 
     pub fn set(&self, key: ModuleIdentifier, value: (u64, ExportsInfo, Vec<ExportsInfo>)) {
@@ -231,8 +231,8 @@ pub(super) mod get_side_effects_connection_state {
       self.cache.clear();
     }
 
-    pub fn get(&self, key: &ModuleIdentifier) -> Option<ConnectionState> {
-      self.cache.get(key).map(|v| *v.value())
+    pub fn get(&self, key: ModuleIdentifier) -> Option<ConnectionState> {
+      self.cache.get(&key).map(|v| *v.value())
     }
 
     pub fn set(&self, key: ModuleIdentifier, value: ConnectionState) {

@@ -363,12 +363,12 @@ impl Chunk {
     let mut visit_chunk_groups = UkeySet::default();
 
     fn add_chunks(
-      chunk_group_ukey: &ChunkGroupUkey,
+      chunk_group_ukey: ChunkGroupUkey,
       chunks: &mut UkeyIndexSet<ChunkUkey>,
       chunk_group_by_ukey: &ChunkGroupByUkey,
       visit_chunk_groups: &mut UkeySet<ChunkGroupUkey>,
     ) {
-      let group = chunk_group_by_ukey.expect_get(chunk_group_ukey);
+      let group = chunk_group_by_ukey.expect_get(&chunk_group_ukey);
 
       for chunk_ukey in group.chunks.iter() {
         chunks.insert(*chunk_ukey);
@@ -377,7 +377,7 @@ impl Chunk {
       for child_group_ukey in group.children.iter() {
         if visit_chunk_groups.insert(*child_group_ukey) {
           add_chunks(
-            child_group_ukey,
+            *child_group_ukey,
             chunks,
             chunk_group_by_ukey,
             visit_chunk_groups,
@@ -389,7 +389,7 @@ impl Chunk {
     for group_ukey in self.get_sorted_groups_iter(chunk_group_by_ukey) {
       visit_chunk_groups.insert(*group_ukey);
       add_chunks(
-        group_ukey,
+        *group_ukey,
         &mut chunks,
         chunk_group_by_ukey,
         &mut visit_chunk_groups,
@@ -407,12 +407,12 @@ impl Chunk {
     let mut visit_chunk_groups = UkeySet::default();
 
     fn add_chunks(
-      chunk_group_ukey: &ChunkGroupUkey,
+      chunk_group_ukey: ChunkGroupUkey,
       chunks: &mut UkeyIndexSet<ChunkUkey>,
       chunk_group_by_ukey: &ChunkGroupByUkey,
       visit_chunk_groups: &mut UkeySet<ChunkGroupUkey>,
     ) {
-      let group = chunk_group_by_ukey.expect_get(chunk_group_ukey);
+      let group = chunk_group_by_ukey.expect_get(&chunk_group_ukey);
 
       if group.is_initial() {
         for chunk_ukey in group.chunks.iter() {
@@ -422,7 +422,7 @@ impl Chunk {
         for child_group_ukey in group.children.iter() {
           if visit_chunk_groups.insert(*child_group_ukey) {
             add_chunks(
-              child_group_ukey,
+              *child_group_ukey,
               chunks,
               chunk_group_by_ukey,
               visit_chunk_groups,
@@ -434,7 +434,7 @@ impl Chunk {
 
     for group_ukey in self.get_sorted_groups_iter(chunk_group_by_ukey) {
       add_chunks(
-        group_ukey,
+        *group_ukey,
         &mut chunks,
         chunk_group_by_ukey,
         &mut visit_chunk_groups,
@@ -452,12 +452,12 @@ impl Chunk {
     let mut visit_chunk_groups = UkeySet::default();
 
     fn add_async_entrypoints(
-      chunk_group_ukey: &ChunkGroupUkey,
+      chunk_group_ukey: ChunkGroupUkey,
       async_entrypoints: &mut UkeyIndexSet<ChunkGroupUkey>,
       chunk_group_by_ukey: &ChunkGroupByUkey,
       visit_chunk_groups: &mut UkeySet<ChunkGroupUkey>,
     ) {
-      let group = chunk_group_by_ukey.expect_get(chunk_group_ukey);
+      let group = chunk_group_by_ukey.expect_get(&chunk_group_ukey);
 
       for chunk_ukey in group.async_entrypoints_iterable() {
         async_entrypoints.insert(*chunk_ukey);
@@ -466,7 +466,7 @@ impl Chunk {
       for child_group_ukey in group.children.iter() {
         if visit_chunk_groups.insert(*child_group_ukey) {
           add_async_entrypoints(
-            child_group_ukey,
+            *child_group_ukey,
             async_entrypoints,
             chunk_group_by_ukey,
             visit_chunk_groups,
@@ -477,7 +477,7 @@ impl Chunk {
 
     for group_ukey in self.get_sorted_groups_iter(chunk_group_by_ukey) {
       add_async_entrypoints(
-        group_ukey,
+        *group_ukey,
         &mut async_entrypoints,
         chunk_group_by_ukey,
         &mut visit_chunk_groups,
@@ -533,10 +533,10 @@ impl Chunk {
     fn check_chunks(
       chunk_group_by_ukey: &ChunkGroupByUkey,
       initial_chunks: &UkeySet<ChunkUkey>,
-      chunk_group_ukey: &ChunkGroupUkey,
+      chunk_group_ukey: ChunkGroupUkey,
       visit_chunk_groups: &mut UkeySet<ChunkGroupUkey>,
     ) -> bool {
-      let Some(chunk_group) = chunk_group_by_ukey.get(chunk_group_ukey) else {
+      let Some(chunk_group) = chunk_group_by_ukey.get(&chunk_group_ukey) else {
         return false;
       };
       for chunk_ukey in chunk_group.chunks.iter() {
@@ -550,7 +550,7 @@ impl Chunk {
           if check_chunks(
             chunk_group_by_ukey,
             initial_chunks,
-            group_ukey,
+            *group_ukey,
             visit_chunk_groups,
           ) {
             return true;
@@ -564,7 +564,7 @@ impl Chunk {
       if check_chunks(
         chunk_group_by_ukey,
         &initial_chunks,
-        group_ukey,
+        *group_ukey,
         &mut visit_chunk_groups,
       ) {
         return true;
@@ -600,9 +600,9 @@ impl Chunk {
       chunk_group_by_ukey: &ChunkGroupByUkey,
       queue: &mut UkeyIndexSet<ChunkGroupUkey>,
       initial_queue: &mut UkeyIndexSet<ChunkGroupUkey>,
-      chunk_group_ukey: &ChunkGroupUkey,
+      chunk_group_ukey: ChunkGroupUkey,
     ) {
-      if let Some(chunk_group) = chunk_group_by_ukey.get(chunk_group_ukey) {
+      if let Some(chunk_group) = chunk_group_by_ukey.get(&chunk_group_ukey) {
         for child_ukey in chunk_group
           .children
           .iter()
@@ -611,7 +611,7 @@ impl Chunk {
           if let Some(chunk_group) = chunk_group_by_ukey.get(child_ukey) {
             if chunk_group.is_initial() && !initial_queue.contains(&chunk_group.ukey) {
               initial_queue.insert(chunk_group.ukey);
-              add_to_queue(chunk_group_by_ukey, queue, initial_queue, &chunk_group.ukey);
+              add_to_queue(chunk_group_by_ukey, queue, initial_queue, chunk_group.ukey);
             } else {
               queue.insert(chunk_group.ukey);
             }
@@ -626,7 +626,7 @@ impl Chunk {
         chunk_group_by_ukey,
         &mut queue,
         &mut initial_queue,
-        &chunk_group_ukey,
+        chunk_group_ukey,
       );
     }
 
@@ -634,10 +634,10 @@ impl Chunk {
       chunk_group_by_ukey: &ChunkGroupByUkey,
       chunks: &mut UkeyIndexSet<ChunkUkey>,
       initial_chunks: &UkeySet<ChunkUkey>,
-      chunk_group_ukey: &ChunkGroupUkey,
+      chunk_group_ukey: ChunkGroupUkey,
       visit_chunk_groups: &mut UkeySet<ChunkGroupUkey>,
     ) {
-      if let Some(chunk_group) = chunk_group_by_ukey.get(chunk_group_ukey) {
+      if let Some(chunk_group) = chunk_group_by_ukey.get(&chunk_group_ukey) {
         for chunk_ukey in chunk_group.chunks.iter() {
           if !initial_chunks.contains(chunk_ukey) {
             chunks.insert(*chunk_ukey);
@@ -651,7 +651,7 @@ impl Chunk {
               chunk_group_by_ukey,
               chunks,
               initial_chunks,
-              group_ukey,
+              *group_ukey,
               visit_chunk_groups,
             );
           }
@@ -664,7 +664,7 @@ impl Chunk {
         chunk_group_by_ukey,
         &mut chunks,
         &initial_chunks,
-        group_ukey,
+        *group_ukey,
         &mut visit_chunk_groups,
       );
     }
@@ -878,12 +878,12 @@ impl Chunk {
   ) -> HashMap<ChunkGroupOrderKey, IndexMap<ChunkId, Vec<ChunkId>, BuildHasherDefault<FxHasher>>>
   {
     fn add_child_ids_by_orders_to_map<F: Fn(&ChunkUkey, &Compilation) -> bool>(
-      chunk_ukey: &ChunkUkey,
+      chunk_ukey: ChunkUkey,
       order: &ChunkGroupOrderKey,
       compilation: &Compilation,
       filter_fn: &F,
     ) -> Option<(ChunkId, Vec<ChunkId>)> {
-      let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+      let chunk = compilation.chunk_by_ukey.expect_get(&chunk_ukey);
       if let (Some(chunk_id), Some(child_chunk_ids)) = (
         chunk.id().cloned(),
         chunk.get_child_ids_by_order(order, compilation, filter_fn),
@@ -915,7 +915,7 @@ impl Chunk {
       .into_par_iter()
       .filter_map(|(chunk_ukey, order)| {
         let (chunk_id, child_ids) =
-          add_child_ids_by_orders_to_map(&chunk_ukey, &order, compilation, filter_fn)?;
+          add_child_ids_by_orders_to_map(chunk_ukey, &order, compilation, filter_fn)?;
         Some((order, chunk_id, child_ids))
       })
       .collect::<Vec<_>>();

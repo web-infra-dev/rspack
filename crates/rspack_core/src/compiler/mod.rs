@@ -147,12 +147,12 @@ impl Compiler {
     });
 
     let options = Arc::new(options);
-    let plugin_driver = PluginDriver::new(options.clone(), plugins, resolver_factory.clone());
+    let plugin_driver = PluginDriver::new(&options, plugins, resolver_factory.clone());
     let buildtime_plugin_driver =
-      PluginDriver::new(options.clone(), buildtime_plugins, resolver_factory.clone());
+      PluginDriver::new(&options, buildtime_plugins, resolver_factory.clone());
     let cache = new_cache(
       &compiler_path,
-      options.clone(),
+      &options,
       input_filesystem.clone(),
       intermediate_filesystem.clone(),
     );
@@ -160,14 +160,14 @@ impl Compiler {
     let module_executor = ModuleExecutor::default();
 
     let id = CompilerId::new();
-    let compiler_context = compiler_context.unwrap_or(Arc::new(CompilerContext::new()));
+    let compiler_context = compiler_context.unwrap_or_else(|| Arc::new(CompilerContext::new()));
     Self {
       id,
       compiler_path,
       options: options.clone(),
       compilation: Compilation::new(
         id,
-        options,
+        &options,
         platform.clone(),
         plugin_driver.clone(),
         buildtime_plugin_driver.clone(),
@@ -243,7 +243,7 @@ impl Compiler {
       &mut self.compilation,
       Compilation::new(
         self.id,
-        self.options.clone(),
+        &self.options,
         self.platform.clone(),
         self.plugin_driver.clone(),
         self.buildtime_plugin_driver.clone(),

@@ -36,8 +36,8 @@ impl<Item> MemoryGCStorage<Item>
 where
   Item: Clone + std::fmt::Debug + Send + Sync,
 {
-  pub(crate) fn get(&self, id: &Identifier) -> Option<Item> {
-    self.data.get_mut(id).map(|mut item| {
+  pub(crate) fn get(&self, id: Identifier) -> Option<Item> {
+    self.data.get_mut(&id).map(|mut item| {
       // Reset the generation to the current generation if the item is accessed
       item.generation = self.generation.load(Ordering::Relaxed);
       item.item.clone()

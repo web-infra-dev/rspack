@@ -6,9 +6,9 @@ use rspack_core::{
   AsyncDependenciesBlockIdentifier, BuildMetaExportsType, CanInlineUse, Compilation,
   CompilationOptimizeDependencies, ConnectionState, DependenciesBlock, DependencyId, ExportsInfo,
   ExportsInfoData, ExtendedReferencedExport, GroupOptions, ModuleGraph, ModuleGraphCacheArtifact,
-  ModuleIdentifier, Plugin, ReferencedExport, RuntimeSpec, SideEffectsOptimizeArtifact, UsageState,
-  build_module_graph::BuildModuleGraphArtifact, get_entry_runtime, incremental::IncrementalPasses,
-  is_exports_object_referenced, is_no_exports_referenced,
+  ModuleIdentifier, Plugin, ReferencedExport, RuntimeSpec, SideEffectsOptimizeArtifact,
+  UsageFilterFnTy, UsageState, build_module_graph::BuildModuleGraphArtifact, get_entry_runtime,
+  incremental::IncrementalPasses, is_exports_object_referenced, is_no_exports_referenced,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
@@ -399,8 +399,10 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
 
             let last_one = i == len - 1;
             if !last_one && let Some(nested_info) = export_info.exports_info() {
+              let condition: UsageFilterFnTy<UsageState> =
+                Box::new(|used| used == &UsageState::Unused);
               let changed_flag = export_info.set_used_conditionally(
-                Box::new(|used| used == &UsageState::Unused),
+                &condition,
                 UsageState::OnlyPropertiesUsed,
                 runtime.as_ref(),
               );
@@ -425,11 +427,9 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
               continue;
             }
 
-            let changed_flag = export_info.set_used_conditionally(
-              Box::new(|v| v != &UsageState::Used),
-              UsageState::Used,
-              runtime.as_ref(),
-            );
+            let condition: UsageFilterFnTy<UsageState> = Box::new(|v| v != &UsageState::Used);
+            let changed_flag =
+              export_info.set_used_conditionally(&condition, UsageState::Used, runtime.as_ref());
             if changed_flag {
               let current_module = if current_exports_info == mgm_exports_info {
                 Some(module_id)
@@ -731,11 +731,9 @@ fn process_referenced_module_without_nested(
           export_info.set_can_inline_use(Some(CanInlineUse::No));
         }
 
-        let changed_flag = export_info.set_used_conditionally(
-          Box::new(|v| v != &UsageState::Used),
-          UsageState::Used,
-          runtime.as_ref(),
-        );
+        let condition: UsageFilterFnTy<UsageState> = Box::new(|v| v != &UsageState::Used);
+        let changed_flag =
+          export_info.set_used_conditionally(&condition, UsageState::Used, runtime.as_ref());
         if changed_flag {
           queue.push((
             ModuleOrAsyncDependenciesBlock::Module(module_id),

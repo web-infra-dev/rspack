@@ -21,7 +21,11 @@ use rspack_sources::{
   BoxSource, CachedSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt,
 };
 use rspack_util::{
-  SpanExt, ext::DynHash, fx_hash::FxIndexMap, itoa, json_stringify, source_map::SourceMapKind,
+  SpanExt,
+  ext::DynHash,
+  fx_hash::{FxIndexMap, FxIndexSet},
+  itoa, json_stringify,
+  source_map::SourceMapKind,
   swc::join_atom,
 };
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
@@ -1278,7 +1282,7 @@ impl Module for ConcatenatedModule {
             compilation.get_module_graph(),
             &compilation.module_graph_cache_artifact,
             &compilation.module_static_cache_artifact,
-            referenced_info_id,
+            *referenced_info_id,
             export_name,
             &module_to_info_map,
             runtime,
@@ -1335,7 +1339,7 @@ impl Module for ConcatenatedModule {
     let mut exports_final_names: Vec<(String, String)> = vec![];
 
     for (_, export_info) in exports_info.exports() {
-      let name = export_info.name().cloned().unwrap_or("".into());
+      let name = export_info.name().cloned().unwrap_or_else(|| "".into());
       if matches!(export_info.provided(), Some(ExportProvided::NotProvided)) {
         continue;
       }
@@ -1354,7 +1358,7 @@ impl Module for ConcatenatedModule {
           compilation.get_module_graph(),
           &compilation.module_graph_cache_artifact,
           &compilation.module_static_cache_artifact,
-          &root_module_id,
+          root_module_id,
           [name.clone()].to_vec(),
           &module_to_info_map,
           runtime,
@@ -1519,8 +1523,8 @@ impl Module for ConcatenatedModule {
               compilation.get_module_graph(),
               &compilation.module_graph_cache_artifact,
               &compilation.module_static_cache_artifact,
-              module_info_id,
-              vec![export_info.name().cloned().unwrap_or("".into())],
+              *module_info_id,
+              vec![export_info.name().cloned().unwrap_or_else(|| "".into())],
               &module_to_info_map,
               runtime,
               false,
@@ -1595,6 +1599,7 @@ impl Module for ConcatenatedModule {
           &compilation.module_static_cache_artifact,
           &context,
         );
+        let async_deps = FxIndexSet::default();
         let loader = runtime_template.get_property_accessed_deferred_module(
           module.get_exports_type(
             module_graph,
@@ -1602,7 +1607,7 @@ impl Module for ConcatenatedModule {
             root_module.build_meta().strict_esm_module,
           ),
           &module_id,
-          Default::default(),
+          &async_deps,
         );
         result.add(RawStringSource::from(format!(
           "\n// DEFERRED EXTERNAL MODULE: {module_readable_identifier}\nvar {} = {loader};",
@@ -2014,7 +2019,7 @@ impl ConcatenatedModule {
           .par_iter()
           .map(|module| {
             let imports =
-              self.get_concatenated_imports(module, &root_module, runtime, mg, mg_cache);
+              self.get_concatenated_imports(*module, root_module, runtime, mg, mg_cache);
             (*module, imports)
           })
           .collect::<IdentifierMap<_>>();
@@ -2154,8 +2159,8 @@ impl ConcatenatedModule {
 
   fn get_concatenated_imports(
     &self,
-    module_id: &ModuleIdentifier,
-    root_module_id: &ModuleIdentifier,
+    module_id: ModuleIdentifier,
+    root_module_id: ModuleIdentifier,
     runtime: Option<&RuntimeSpec>,
     mg: &ModuleGraph,
     mg_cache: &ModuleGraphCacheArtifact,
@@ -2169,7 +2174,7 @@ impl ConcatenatedModule {
     }
 
     let mut connections: Vec<&ModuleGraphConnection> =
-      mg.get_ordered_outgoing_connections(module_id).collect();
+      mg.get_ordered_outgoing_connections(&module_id).collect();
     if module_id == root_module_id {
       for c in mg.get_outgoing_connections(&self.id) {
         connections.push(c);
@@ -2195,7 +2200,7 @@ impl ConcatenatedModule {
           return None;
         }
 
-        if !(connection.resolved_original_module_identifier == Some(*module_id)
+        if !(connection.resolved_original_module_identifier == Some(module_id)
           && connection.is_target_active(mg, self.runtime.as_ref(), mg_cache))
         {
           return None;
@@ -2431,7 +2436,7 @@ impl ConcatenatedModule {
     module_graph: &ModuleGraph,
     module_graph_cache: &ModuleGraphCacheArtifact,
     module_static_cache_artifact: &ModuleStaticCacheArtifact,
-    info: &ModuleIdentifier,
+    info: ModuleIdentifier,
     export_name: Vec<Atom>,
     module_to_info_map: &IdentifierIndexMap<ModuleInfo>,
     runtime: Option<&RuntimeSpec>,
@@ -2548,7 +2553,7 @@ impl ConcatenatedModule {
   fn get_final_binding(
     mg: &ModuleGraph,
     mg_cache: &ModuleGraphCacheArtifact,
-    info_id: &ModuleIdentifier,
+    info_id: ModuleIdentifier,
     mut export_name: Vec<Atom>,
     module_to_info_map: &IdentifierIndexMap<ModuleInfo>,
     runtime: Option<&RuntimeSpec>,
@@ -2559,7 +2564,7 @@ impl ConcatenatedModule {
     already_visited: &mut HashSet<ExportInfoHashKey>,
   ) -> FinalBindingResult {
     let info = module_to_info_map
-      .get(info_id)
+      .get(&info_id)
       .expect("should have module info");
 
     let module = mg
@@ -2582,7 +2587,7 @@ impl ConcatenatedModule {
             };
           return FinalBindingResult {
             binding: Binding::Raw(RawBinding {
-              info_id: *info_id,
+              info_id,
               raw_name: raw_name.cloned().expect("should have raw name"),
               ids: export_name.clone(),
               export_name,
@@ -2605,7 +2610,7 @@ impl ConcatenatedModule {
             };
           return FinalBindingResult {
             binding: Binding::Raw(RawBinding {
-              info_id: *info_id,
+              info_id,
               raw_name: raw_name.cloned().expect("should have raw name"),
               ids: export_name.clone(),
               export_name,
@@ -2629,7 +2634,7 @@ impl ConcatenatedModule {
           }
           Some("__esModule") => {
             return FinalBindingResult::from_binding(Binding::Raw(RawBinding {
-              info_id: *info_id,
+              info_id,
               raw_name: "/* __esModule */true".into(),
               ids: export_name[1..].to_vec(),
               export_name,
@@ -2655,7 +2660,7 @@ impl ConcatenatedModule {
               raw_name: "/* non-default import from default-exporting module */undefined".into(),
               ids: export_name.clone(),
               export_name,
-              info_id: *info_id,
+              info_id,
               comment: None,
             }));
           }
@@ -2674,7 +2679,7 @@ impl ConcatenatedModule {
                 raw_name: format!("{deferred_name}.a").into(),
                 ids: export_name.clone(),
                 export_name,
-                info_id: *info_id,
+                info_id,
                 comment: None,
               }));
             }
@@ -2684,7 +2689,7 @@ impl ConcatenatedModule {
                 raw_name: name.clone(),
                 ids: export_name.clone(),
                 export_name,
-                info_id: *info_id,
+                info_id,
                 comment: None,
               }));
             }
@@ -2708,7 +2713,7 @@ impl ConcatenatedModule {
                 raw_name: default_export.into(),
                 ids: export_name.clone(),
                 export_name,
-                info_id: *info_id,
+                info_id,
                 comment: None,
               }),
               interop_default_access_used: Some(true),
@@ -2723,7 +2728,7 @@ impl ConcatenatedModule {
               raw_name: "/* __esModule */true".into(),
               ids: export_name[1..].to_vec(),
               export_name,
-              info_id: *info_id,
+              info_id,
               comment: None,
             }));
           }
@@ -2890,10 +2895,12 @@ impl ConcatenatedModule {
           }));
         }
 
+        let valid_target_module_filter =
+          Arc::new(|module: &ModuleIdentifier| module_to_info_map.contains_key(module));
         let reexport = find_target(
           &export_info,
           mg,
-          Arc::new(|module: &ModuleIdentifier| module_to_info_map.contains_key(module)),
+          &valid_target_module_filter,
           &mut Default::default(),
         );
         match reexport {
@@ -2936,7 +2943,7 @@ impl ConcatenatedModule {
               return Self::get_final_binding(
                 mg,
                 mg_cache,
-                &ref_info.id(),
+                ref_info.id(),
                 if let Some(reexport_export) = reexport.export {
                   [reexport_export, export_name[1..].to_vec()].concat()
                 } else {

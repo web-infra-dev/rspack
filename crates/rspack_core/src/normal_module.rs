@@ -540,7 +540,7 @@ impl Module for NormalModule {
         GeneratorOptions::AssetResource(g) => g.binary,
         _ => None,
       })
-      .unwrap_or(inner.module_type.is_binary());
+      .unwrap_or_else(|| inner.module_type.is_binary());
 
     let content = if is_binary {
       Content::Buffer(loader_result.content.into_bytes())

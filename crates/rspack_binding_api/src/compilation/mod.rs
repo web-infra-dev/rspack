@@ -371,7 +371,7 @@ impl JsCompilation {
   pub fn rename_asset(&mut self, filename: String, new_name: String) -> Result<()> {
     let compilation = self.as_mut()?;
 
-    compilation.rename_asset(&filename, new_name);
+    compilation.rename_asset(&filename, &new_name);
     Ok(())
   }
 

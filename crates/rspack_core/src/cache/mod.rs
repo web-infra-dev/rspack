@@ -98,7 +98,7 @@ pub trait Cache: Debug + Send + Sync {
 
 pub fn new_cache(
   compiler_path: &str,
-  compiler_option: Arc<CompilerOptions>,
+  compiler_option: &Arc<CompilerOptions>,
   input_filesystem: Arc<dyn ReadableFileSystem>,
   intermediate_filesystem: Arc<dyn IntermediateFileSystem>,
 ) -> Box<dyn Cache> {
@@ -109,7 +109,7 @@ pub fn new_cache(
       let persistent = PersistentCache::new(
         compiler_path,
         option,
-        compiler_option.clone(),
+        compiler_option,
         input_filesystem,
         intermediate_filesystem,
       );

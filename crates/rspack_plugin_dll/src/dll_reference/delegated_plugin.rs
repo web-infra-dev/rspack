@@ -128,9 +128,10 @@ async fn nmf_module(
   _create_data: &mut NormalModuleCreateData,
   module: &mut BoxModule,
 ) -> Result<()> {
+  let fallback_context = Context::from("");
   if self.options.scope.is_none()
     && let Some(request) = module.lib_ident(LibIdentOptions {
-      context: self.options.context.as_ref().unwrap_or(&Context::from("")),
+      context: self.options.context.as_ref().unwrap_or(&fallback_context),
     })
     && let Some(resolved) = self.options.content.get(request.as_ref())
   {

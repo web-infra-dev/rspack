@@ -53,9 +53,9 @@ pub fn try_dependency_by_id<'a>(
 ///
 /// If you're unsure, use `module_graph_module_by_identifier_mut()` instead.
 #[inline]
-pub(crate) fn try_get_module_graph_module_mut_by_identifier<'a>(
-  module_graph: &'a mut ModuleGraph,
-  identifier: &ModuleIdentifier,
-) -> Option<&'a mut ModuleGraphModule> {
-  module_graph.inner.module_graph_modules.get_mut(identifier)
+pub(crate) fn try_get_module_graph_module_mut_by_identifier(
+  module_graph: &mut ModuleGraph,
+  identifier: ModuleIdentifier,
+) -> Option<&mut ModuleGraphModule> {
+  module_graph.inner.module_graph_modules.get_mut(&identifier)
 }

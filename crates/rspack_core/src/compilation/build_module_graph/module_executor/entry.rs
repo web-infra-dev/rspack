@@ -46,7 +46,7 @@ impl Task<ExecutorTaskContext> for EntryTask {
         // not exist, generate a new dependency
         let dep = Box::new(LoaderImportDependency::new(
           meta.request.clone(),
-          origin_module_context.unwrap_or(Context::from("")),
+          origin_module_context.unwrap_or_else(|| Context::from("")),
         ));
         let dep_id = *dep.id();
 
@@ -85,17 +85,18 @@ impl Task<ExecutorTaskContext> for EntryTask {
     // mark as executed
     executed_entry_deps.insert(dep_id);
 
-    if tracker.is_running(&dep_id) {
+    if tracker.is_running(dep_id) {
       let mg = origin_context.artifact.get_module_graph();
       // the module in module executor need to check.
       if mg
         .module_graph_module_by_identifier(&meta.origin_module_identifier)
         .is_some()
       {
-        execute_task.finish_with_error(rspack_error::error!(
+        let error = rspack_error::error!(
           "The added task is running, maybe have a circular build dependency. MetaInfo: {:?}",
           meta
-        ));
+        );
+        execute_task.finish_with_error(&error);
         return Ok(vec![]);
       }
     }

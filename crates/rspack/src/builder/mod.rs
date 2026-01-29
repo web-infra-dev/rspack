@@ -922,7 +922,9 @@ impl CompilerOptionsBuilder {
         .insert("main".to_string(), EntryDescription::default());
     }
     self.entry.iter_mut().for_each(|(_, entry)| {
-      entry.import.get_or_insert(vec!["./src".to_string()]);
+      entry
+        .import
+        .get_or_insert_with(|| vec!["./src".to_string()]);
     });
 
     let devtool = f!(self.devtool.take(), || {
@@ -970,7 +972,7 @@ impl CompilerOptionsBuilder {
       async_web_assembly,
       css,
       &target_properties,
-      &mode,
+      mode,
     )?;
 
     // apply output defaults
@@ -1678,9 +1680,9 @@ impl ModuleOptionsBuilder {
     async_web_assembly: bool,
     css: bool,
     target_properties: &TargetProperties,
-    mode: &Mode,
+    mode: Mode,
   ) -> Result<ModuleOptions> {
-    let parser = self.parser.get_or_insert(ParserOptionsMap::default());
+    let parser = self.parser.get_or_insert_with(ParserOptionsMap::default);
 
     if !parser.contains_key("asset") {
       parser.insert(
@@ -1738,7 +1740,9 @@ impl ModuleOptionsBuilder {
       );
     }
 
-    let generator = self.generator.get_or_insert(GeneratorOptionsMap::default());
+    let generator = self
+      .generator
+      .get_or_insert_with(GeneratorOptionsMap::default);
     if !generator.contains_key("json") {
       generator.insert(
         "json".to_string(),

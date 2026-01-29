@@ -247,10 +247,10 @@ impl ChunkGraph {
   pub fn set_module_id(
     module_ids: &mut ModuleIdsArtifact,
     module_identifier: ModuleIdentifier,
-    id: ModuleId,
+    id: &ModuleId,
   ) -> bool {
     if let Some(old_id) = module_ids.insert(module_identifier, id.clone()) {
-      old_id != id
+      old_id != *id
     } else {
       true
     }

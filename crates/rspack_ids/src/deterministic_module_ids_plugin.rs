@@ -1,7 +1,7 @@
 use rayon::prelude::*;
 use rspack_collections::IdentifierMap;
 use rspack_core::{
-  ChunkGraph, Compilation, CompilationModuleIds, ModuleIdsArtifact, Plugin,
+  ChunkGraph, Compilation, CompilationModuleIds, ModuleId, ModuleIdsArtifact, Plugin,
   incremental::IncrementalPasses,
 };
 use rspack_error::{Diagnostic, Result};
@@ -76,11 +76,8 @@ async fn module_ids(
         conflicts += 1;
         return false;
       }
-      ChunkGraph::set_module_id(
-        &mut module_ids_map,
-        module.identifier(),
-        id.to_string().into(),
-      );
+      let module_id: ModuleId = id.to_string().into();
+      ChunkGraph::set_module_id(&mut module_ids_map, module.identifier(), &module_id);
       true
     },
     &[usize::pow(10, max_length)],
