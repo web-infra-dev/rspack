@@ -67,30 +67,27 @@ impl Visit for TypeExportsCollector<'_> {
                 }));
             } else {
               for specifier in &named_export.specifiers {
-                match specifier {
-                  ExportSpecifier::Named(specifier) => {
-                    if specifier.is_type_only {
-                      self.type_exports.insert(
-                        specifier
-                          .exported
-                          .as_ref()
-                          .unwrap_or(&specifier.orig)
-                          .atom()
-                          .into_owned(),
-                      );
-                    } else if named_export.src.is_none() {
-                      self.export_idents.insert(
-                        specifier.orig.atom().into_owned(),
-                        specifier
-                          .exported
-                          .as_ref()
-                          .unwrap_or(&specifier.orig)
-                          .atom()
-                          .into_owned(),
-                      );
-                    }
+                if let ExportSpecifier::Named(specifier) = specifier {
+                  if specifier.is_type_only {
+                    self.type_exports.insert(
+                      specifier
+                        .exported
+                        .as_ref()
+                        .unwrap_or(&specifier.orig)
+                        .atom()
+                        .into_owned(),
+                    );
+                  } else if named_export.src.is_none() {
+                    self.export_idents.insert(
+                      specifier.orig.atom().into_owned(),
+                      specifier
+                        .exported
+                        .as_ref()
+                        .unwrap_or(&specifier.orig)
+                        .atom()
+                        .into_owned(),
+                    );
                   }
-                  _ => {}
                 }
               }
             }

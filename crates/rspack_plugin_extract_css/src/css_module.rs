@@ -108,9 +108,9 @@ impl Module for CssModule {
     let index_suffix = if self.identifier_index > 0 {
       let mut index_buffer = itoa::Buffer::new();
       let index_str = index_buffer.format(self.identifier_index);
-      format!("({})", index_str)
+      format!("({index_str})")
     } else {
-      "".into()
+      String::new()
     };
     std::borrow::Cow::Owned(format!(
       "css {}{}{}{}{}",
@@ -119,21 +119,21 @@ impl Module for CssModule {
       if let Some(layer) = &self.css_layer {
         format!(" (layer {layer})")
       } else {
-        "".into()
+        String::new()
       },
       if let Some(supports) = &self.supports
         && !supports.is_empty()
       {
         format!(" (supports {supports})")
       } else {
-        "".into()
+        String::new()
       },
       if let Some(media) = &self.media
         && !media.is_empty()
       {
         format!(" (media {media})")
       } else {
-        "".into()
+        String::new()
       }
     ))
   }

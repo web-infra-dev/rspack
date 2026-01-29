@@ -169,7 +169,7 @@ async fn render(
   let define = if let (Some(amd), Some(_)) = &(&names.amd, named_define) {
     format!(
       "define({}, {}, {amd_factory});\n",
-      library_name(&[amd.to_string()], chunk, compilation).await?,
+      library_name(&[amd.clone()], chunk, compilation).await?,
       externals_dep_array(&required_externals)?
     )
   } else {
@@ -184,7 +184,7 @@ async fn render(
   } else if let Some(root) = &names.root {
     library_name(root, chunk, compilation).await?
   } else {
-    "".to_string()
+    String::new()
   };
 
   let factory = if names.commonjs.is_some() || names.root.is_some() {
@@ -404,8 +404,7 @@ fn accessor_to_object_access<S: AsRef<str>>(accessor: impl IntoIterator<Item = S
         serde_json::to_string(s.as_ref()).expect("failed to serde_json::to_string")
       )
     })
-    .collect::<Vec<_>>()
-    .join("")
+    .collect::<String>()
 }
 
 fn accessor_access(base: Option<&str>, accessor: &[String]) -> String {
@@ -446,5 +445,5 @@ fn get_auxiliary_comment(t: &str, auxiliary_comment: Option<&LibraryAuxiliaryCom
   {
     return format!("\t// {value} \n");
   }
-  "".to_string()
+  String::new()
 }

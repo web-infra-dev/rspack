@@ -86,8 +86,7 @@ async fn chunk_ids(
     |chunk| {
       chunk_names
         .get(&chunk.ukey())
-        .expect("should have generated full chunk name")
-        .to_string()
+        .expect("should have generated full chunk name").clone()
     },
     |a, b| {
       compare_chunks_natural(

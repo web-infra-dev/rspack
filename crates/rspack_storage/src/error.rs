@@ -179,7 +179,7 @@ impl From<Error> for rspack_error::Error {
       value
         .r#type
         .as_ref()
-        .map_or("".to_string(), |t| t.to_string())
+        .map_or(String::new(), |t| t.to_string())
     ));
     error
   }

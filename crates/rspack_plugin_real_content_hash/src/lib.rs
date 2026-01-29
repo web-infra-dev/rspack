@@ -195,7 +195,7 @@ async fn inner_impl(compilation: &mut Compilation) -> Result<()> {
             unsafe { token.used((&hooks, &compilation, &batch_sources, old_hash, asset_names)) };
           s.spawn(
             |(hooks, compilation, batch_sources, old_hash, mut asset_names)| async move {
-              asset_names.sort();
+              asset_names.sort_unstable();
               let mut asset_contents = asset_names
                 .iter()
                 .filter_map(|name| batch_sources.get(&(old_hash.as_str(), name)))
@@ -220,7 +220,7 @@ async fn inner_impl(compilation: &mut Compilation) -> Result<()> {
                 new_hash.rendered(old_hash.len()).to_string()
               };
 
-              Ok((old_hash.to_string(), new_hash))
+              Ok((old_hash.clone(), new_hash))
             },
           );
         });

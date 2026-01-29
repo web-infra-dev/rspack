@@ -46,7 +46,7 @@ pub fn rsc_pass(
       ServerActionsConfig {
         is_react_server_layer,
         is_development: false,
-        hash_salt: "".to_string(),
+        hash_salt: String::new(),
       },
       comments,
       rsc_meta,

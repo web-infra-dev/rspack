@@ -24,10 +24,9 @@ fn add_attribute(
   cross_origin_loading: &CrossOriginLoading,
 ) -> String {
   format!(
-    r#"{}
-{tag}.integrity = {}[chunkId];
-{tag}.crossOrigin = '{}';"#,
-    code, variable_ref, cross_origin_loading
+    r#"{code}
+{tag}.integrity = {variable_ref}[chunkId];
+{tag}.crossOrigin = '{cross_origin_loading}';"#
   )
 }
 

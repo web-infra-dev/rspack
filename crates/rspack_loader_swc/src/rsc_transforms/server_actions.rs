@@ -1127,7 +1127,7 @@ impl<'a, C: Comments> VisitMut for ServerActions<'a, C> {
       if let Prop::KeyValue(KeyValueProp {
         key: PropName::Ident(ident_name),
         value,
-        ..
+        
       }) = &**prop
       {
         if matches!(**value, Expr::Arrow(_) | Expr::Fn(_)) {
@@ -1869,7 +1869,7 @@ impl<'a, C: Comments> VisitMut for ServerActions<'a, C> {
       (&attr.value, &attr.name)
     {
       match &container.expr {
-        JSXExpr::Expr(box Expr::Arrow(_)) | JSXExpr::Expr(box Expr::Fn(_)) => {
+        JSXExpr::Expr(box (Expr::Arrow(_) | Expr::Fn(_))) => {
           self.arrow_or_fn_expr_ident = Some(ident_name.clone().into());
         }
         _ => {}
@@ -1884,7 +1884,7 @@ impl<'a, C: Comments> VisitMut for ServerActions<'a, C> {
     let old_current_export_name = self.current_export_name.take();
     let old_arrow_or_fn_expr_ident = self.arrow_or_fn_expr_ident.take();
 
-    if let (Pat::Ident(ident), Some(box Expr::Arrow(_) | box Expr::Fn(_))) =
+    if let (Pat::Ident(ident), Some(box (Expr::Arrow(_) | Expr::Fn(_)))) =
       (&var_declarator.name, &var_declarator.init)
     {
       if self.in_module_level
@@ -1905,10 +1905,8 @@ impl<'a, C: Comments> VisitMut for ServerActions<'a, C> {
   fn visit_mut_assign_expr(&mut self, assign_expr: &mut AssignExpr) {
     let old_arrow_or_fn_expr_ident = self.arrow_or_fn_expr_ident.clone();
 
-    if let (
-      AssignTarget::Simple(SimpleAssignTarget::Ident(ident)),
-      box Expr::Arrow(_) | box Expr::Fn(_),
-    ) = (&assign_expr.left, &assign_expr.right)
+    if let (AssignTarget::Simple(SimpleAssignTarget::Ident(ident)),
+box (Expr::Arrow(_) | Expr::Fn(_))) = (&assign_expr.left, &assign_expr.right)
     {
       self.arrow_or_fn_expr_ident = Some(ident.id.clone());
     }
@@ -2360,7 +2358,7 @@ impl DirectiveVisitor<'_> {
             ..
           }),
         span,
-        ..
+        
       }) => {
         // Match `("use server")`.
         if value == "use server" || detect_similar_strings(&value.to_string_lossy(), "use server") {
@@ -2514,7 +2512,7 @@ impl From<Name> for Box<Expr> {
       prop,
       is_member,
       optional,
-    } in value.1.into_iter()
+    } in value.1
     {
       #[allow(clippy::replace_box)]
       if is_member {

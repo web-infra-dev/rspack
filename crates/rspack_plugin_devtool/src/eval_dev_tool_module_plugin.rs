@@ -43,7 +43,7 @@ pub struct EvalDevToolModulePlugin {
 
 impl EvalDevToolModulePlugin {
   pub fn new(options: EvalDevToolModulePluginOptions) -> Self {
-    let namespace = options.namespace.unwrap_or("".to_string());
+    let namespace = options.namespace.unwrap_or_default();
 
     let source_url_comment = options
       .source_url_comment

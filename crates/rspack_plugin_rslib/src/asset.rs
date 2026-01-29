@@ -35,8 +35,7 @@ impl ParserAndGenerator for RslibAssetParserAndGenerator {
         .0
         .parsed_asset_config
         .as_ref()
-        .map(|config| !config.is_inline() && !config.is_source())
-        .unwrap_or(false)
+        .is_some_and(|config| !config.is_inline() && !config.is_source())
     {
       return &[SourceType::JavaScript, SourceType::Asset];
     }

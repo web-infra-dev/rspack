@@ -158,10 +158,10 @@ fn build_server_manifest(
         if let Some(actions) = parse_action_entries(v.into_owned())? {
           for action in actions {
             server_actions.insert(
-              action.id.to_string(),
+              action.id.clone(),
               ManifestExport {
                 id: module_id.to_string(),
-                name: action.id.to_string(),
+                name: action.id.clone(),
                 // Server Action modules serve as endpoints rather than code splitting points,
                 // so ensuring chunk loading at runtime is unnecessary.
                 chunks: vec![],

@@ -208,7 +208,7 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
           );
           format!("{state_expression} = {state_expression} || ")
         }
-        false => "".to_string(),
+        false => String::new(),
       },
       &stringify_chunks(&initial_chunks, 0)
     ));

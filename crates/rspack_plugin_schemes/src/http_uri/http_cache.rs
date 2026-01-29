@@ -227,8 +227,7 @@ impl HttpCache {
     let integrity = compute_integrity(&content);
     let content_type = headers
       .get("content-type")
-      .unwrap_or(&"".to_string())
-      .to_string();
+      .unwrap_or(&String::new()).clone();
 
     let entry = LockfileEntry {
       resolved: url.to_string(),
@@ -252,12 +251,11 @@ impl HttpCache {
 
     if store_cache || store_lock {
       let should_update = cached_result
-        .map(|cached| {
+        .is_none_or(|cached| {
           valid_until > cached.meta.valid_until
             || etag != cached.meta.etag
             || integrity != cached.entry.integrity
-        })
-        .unwrap_or(true);
+        });
 
       if should_update {
         if store_cache {
@@ -438,7 +436,7 @@ pub async fn fetch_content(url: &str, options: &HttpUriPluginOptions) -> Result<
 fn parse_cache_control(cache_control: &Option<String>, request_time: u64) -> (bool, bool, u64) {
   cache_control
     .as_ref()
-    .map(|header| {
+    .map_or((true, true, 0), |header| {
       let pairs: HashMap<_, _> = header
         .split(',')
         .filter_map(|part| {
@@ -458,13 +456,11 @@ fn parse_cache_control(cache_control: &Option<String>, request_time: u64) -> (bo
         pairs
           .get("max-age")
           .and_then(|max_age| max_age.as_ref().and_then(|v| v.parse::<u64>().ok()))
-          .map(|seconds| request_time + seconds * 1000)
-          .unwrap_or(request_time)
+          .map_or(request_time, |seconds| request_time + seconds * 1000)
       };
 
       (store_lock, store_cache, valid_until)
     })
-    .unwrap_or((true, true, 0))
 }
 
 fn compute_integrity(content: &[u8]) -> String {

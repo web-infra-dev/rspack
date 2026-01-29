@@ -74,8 +74,7 @@ impl RealDependencyLocation {
 
     // Ensure start_byte doesn't cross into the next line (find the next newline of the current line).
     let current_line_end = memchr::memchr(b'\n', &bytes[line_start_offset..])
-      .map(|rel| line_start_offset + rel)
-      .unwrap_or(bytes.len());
+      .map_or(bytes.len(), |rel| line_start_offset + rel);
     if start_byte > current_line_end {
       return None;
     }
@@ -135,24 +134,24 @@ impl fmt::Display for RealDependencyLocation {
       let mut start_col_buffer = itoa::Buffer::new();
       let start_col = start_col_buffer.format(self.start.column);
       if self.start.line == end.line && self.start.column == end.column {
-        write!(f, "{}:{}", start_line, start_col)
+        write!(f, "{start_line}:{start_col}")
       } else if self.start.line == end.line {
         let mut end_col_buffer = itoa::Buffer::new();
         let end_col = end_col_buffer.format(end.column);
-        write!(f, "{}:{}-{}", start_line, start_col, end_col)
+        write!(f, "{start_line}:{start_col}-{end_col}")
       } else {
         let mut end_line_buffer = itoa::Buffer::new();
         let end_line = end_line_buffer.format(end.line);
         let mut end_col_buffer = itoa::Buffer::new();
         let end_col = end_col_buffer.format(end.column);
-        write!(f, "{}:{}-{}:{}", start_line, start_col, end_line, end_col)
+        write!(f, "{start_line}:{start_col}-{end_line}:{end_col}")
       }
     } else {
       let mut start_line_buffer = itoa::Buffer::new();
       let start_line = start_line_buffer.format(self.start.line);
       let mut start_col_buffer = itoa::Buffer::new();
       let start_col = start_col_buffer.format(self.start.column);
-      write!(f, "{}:{}", start_line, start_col)
+      write!(f, "{start_line}:{start_col}")
     }
   }
 }

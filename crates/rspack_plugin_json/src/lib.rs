@@ -46,8 +46,7 @@ impl ParserAndGenerator for JsonParserAndGenerator {
       .build_info()
       .json_data
       .as_ref()
-      .map(|data| stringify(data.clone()).len() as f64)
-      .unwrap_or(0.0)
+      .map_or(0.0, |data| stringify(data.clone()).len() as f64)
   }
 
   async fn parse<'a>(

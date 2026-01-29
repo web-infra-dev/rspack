@@ -546,7 +546,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
         let exported_content = if parsed_asset_config.is_bytes() {
           let mut encoded_source = base64::encode_to_string(source.buffer());
           if generate_context.requested_source_type == SourceType::CssUrl {
-            encoded_source = format!("data:application/octet-stream;base64,{}", encoded_source);
+            encoded_source = format!("data:application/octet-stream;base64,{encoded_source}");
             generate_context
               .data
               .insert(CodeGenerationDataUrl::new(encoded_source.clone()));

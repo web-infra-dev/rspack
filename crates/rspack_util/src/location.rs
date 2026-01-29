@@ -29,8 +29,7 @@ pub fn byte_line_column_to_offset(source: &str, line: usize, column: usize) -> O
 
   // End of line (exclusive)
   let line_end = memchr(b'\n', &bytes[line_start..])
-    .map(|rel| line_start + rel)
-    .unwrap_or(bytes.len());
+    .map_or(bytes.len(), |rel| line_start + rel);
 
   // Slice of the line
   let line_slice = &source[line_start..line_end];

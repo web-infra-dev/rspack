@@ -7,9 +7,9 @@
 
 const FNV_64_THRESHOLD: usize = 1 << 24;
 
-const FNV_OFFSET_32: u32 = 2166136261;
+const FNV_OFFSET_32: u32 = 2_166_136_261;
 
-const FNV_PRIME_32: u32 = 16777619;
+const FNV_PRIME_32: u32 = 16_777_619;
 
 const MASK_31: u32 = 0x7fffffff;
 

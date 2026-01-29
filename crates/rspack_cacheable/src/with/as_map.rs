@@ -121,7 +121,7 @@ where
     field: &ArchivedVec<RkyvEntry<WK::Archived, WV::Archived>>,
     deserializer: &mut D,
   ) -> Result<T> {
-    T::from(field.iter().map(|RkyvEntry { key, value, .. }| {
+    T::from(field.iter().map(|RkyvEntry { key, value,  }| {
       Ok((
         WK::deserialize_with(key, deserializer)?,
         WV::deserialize_with(value, deserializer)?,

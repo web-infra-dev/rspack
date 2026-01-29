@@ -102,7 +102,7 @@ impl Loader<RunnerContext> for ClientEntryLoader {
   ))]
   async fn run(&self, loader_context: &mut LoaderContext<RunnerContext>) -> Result<()> {
     let Some(loader_query) = loader_context.current_loader().query() else {
-      loader_context.finish_with("".to_string());
+      loader_context.finish_with(String::new());
       return Ok(());
     };
 
@@ -125,22 +125,20 @@ impl Loader<RunnerContext> for ClientEntryLoader {
         Ok(
           if client_component.ids.is_empty() || client_component.ids.iter().any(|id| id == "*") {
             if is_server {
-              format!("import(/* webpackMode: \"eager\" */ {});\n", import_path)
+              format!("import(/* webpackMode: \"eager\" */ {import_path});\n")
             } else {
-              format!("import({});\n", import_path)
+              format!("import({import_path});\n")
             }
           } else {
             let webpack_exports = simd_json::to_string(&client_component.ids).to_rspack_result()?;
 
             if is_server {
               format!(
-                "import(/* webpackMode: \"eager\" */ /* webpackExports: {} */ {});\n",
-                webpack_exports, import_path
+                "import(/* webpackMode: \"eager\" */ /* webpackExports: {webpack_exports} */ {import_path});\n"
               )
             } else {
               format!(
-                "import(/* webpackExports: {} */ {});\n",
-                webpack_exports, import_path
+                "import(/* webpackExports: {webpack_exports} */ {import_path});\n"
               )
             }
           },

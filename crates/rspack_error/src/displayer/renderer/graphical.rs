@@ -147,7 +147,7 @@ impl GraphicalReportHandler {
       let code = if let Some(code) = diagnostic.code() {
         format!("{code} ")
       } else {
-        "".to_string()
+        String::new()
       };
       let link = format!(
         "\u{1b}]8;;{}\u{1b}\\{}{}\u{1b}]8;;\u{1b}\\",
@@ -352,7 +352,7 @@ impl GraphicalReportHandler {
     // sorting is your friend
     let labels = labels
       .iter()
-      .zip(self.theme.styles.highlights.iter().cloned().cycle())
+      .zip(self.theme.styles.highlights.iter().copied().cycle())
       .map(|(label, st)| FancySpan::new(label.label().map(String::from), *label.inner(), st))
       .collect::<Vec<_>>();
 
@@ -374,9 +374,7 @@ impl GraphicalReportHandler {
     // numbers need!
     let linum_width = lines[..]
       .last()
-      .map(|line| line.line_number)
-      // It's possible for the source to be an empty string.
-      .unwrap_or(0)
+      .map_or(0, |line| line.line_number)
       .to_string()
       .len();
 
@@ -716,7 +714,7 @@ impl GraphicalReportHandler {
       f,
       "{} {}",
       self.theme.characters.hbar.style(hl.style),
-      hl.label().unwrap_or_else(|| "".into()),
+      hl.label().unwrap_or_default(),
     )?;
     Ok(())
   }

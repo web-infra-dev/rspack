@@ -318,16 +318,13 @@ impl Visit for ExportedEnumCollector<'_> {
             return;
           }
           for specifier in &named_export.specifiers {
-            match specifier {
-              ExportSpecifier::Named(specifier) => {
-                if specifier.is_type_only {
-                  continue;
-                }
-                self
-                  .export_idents
-                  .insert(specifier.orig.atom().into_owned());
+            if let ExportSpecifier::Named(specifier) = specifier {
+              if specifier.is_type_only {
+                continue;
               }
-              _ => {}
+              self
+                .export_idents
+                .insert(specifier.orig.atom().into_owned());
             }
           }
         }

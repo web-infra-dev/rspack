@@ -185,7 +185,7 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
         })
         .collect::<UkeyIndexSet<ChunkUkey>>();
       let (fake_filename, hash_len_map) =
-        get_filename_without_hash_length(&Filename::from(dynamic_filename.to_string()));
+        get_filename_without_hash_length(&Filename::from(dynamic_filename.clone()));
 
       let chunk_id = "\" + chunkId + \"";
       let chunk_name = stringify_dynamic_chunk_map(

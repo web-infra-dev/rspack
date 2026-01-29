@@ -134,7 +134,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       new_runtime = current_chunk
         .runtime()
         .intersection(&all_old_runtime)
-        .cloned()
+        .copied()
         .collect();
 
       if new_runtime.is_empty() {
@@ -283,7 +283,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 
       for entry in manifest {
         let filename = if entry.has_filename {
-          entry.filename.to_string()
+          entry.filename.clone()
         } else {
           compilation
             .get_path(

@@ -61,8 +61,7 @@ async fn module_ids(
     |m| {
       module_names
         .get(&m.identifier())
-        .expect("should have generated full module name")
-        .to_string()
+        .expect("should have generated full module name").clone()
     },
     |a, b| {
       compare_modules_by_pre_order_index_or_identifier(

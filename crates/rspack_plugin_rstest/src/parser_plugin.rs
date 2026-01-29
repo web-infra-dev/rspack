@@ -261,7 +261,7 @@ impl RstestParserPlugin {
 
           if let Some(mocked_target) = self.calc_mocked_target(&lit_str).as_std_path().to_str() {
             let dep = MockModuleIdDependency::new(
-              lit_str.to_string(),
+              lit_str.clone(),
               first_arg.span().into(),
               false,
               true,
@@ -320,7 +320,7 @@ impl RstestParserPlugin {
           }
 
           let module_dep = MockModuleIdDependency::new(
-            lit_str.to_string(),
+            lit_str.clone(),
             first_arg.span().into(),
             false,
             true,
@@ -564,22 +564,22 @@ impl RstestParserPlugin {
   ) -> Option<bool> {
     match (ident.sym.as_str(), prop.sym.as_str()) {
       // rs.mock
-      ("rs", "mock") | ("rstest", "mock") => {
+      ("rs" | "rstest", "mock") => {
         self.process_mock(parser, call_expr, true, true, MockMethod::Mock, true);
         Some(false)
       }
       // rs.mockRequire
-      ("rs", "mockRequire") | ("rstest", "mockRequire") => {
+      ("rs" | "rstest", "mockRequire") => {
         self.process_mock(parser, call_expr, true, false, MockMethod::Mock, true);
         Some(false)
       }
       // rs.doMock
-      ("rs", "doMock") | ("rstest", "doMock") => {
+      ("rs" | "rstest", "doMock") => {
         self.process_mock(parser, call_expr, false, true, MockMethod::DoMock, true);
         Some(false)
       }
       // rs.doMockRequire
-      ("rs", "doMockRequire") | ("rstest", "doMockRequire") => {
+      ("rs" | "rstest", "doMockRequire") => {
         self.process_mock(
           parser,
           call_expr,
@@ -592,23 +592,23 @@ impl RstestParserPlugin {
       }
       // rs.importActual and rs.requireActual are handled by call_member_chain hook
       // rs.importMock
-      ("rs", "importMock") | ("rstest", "importMock") => self.load_mock(parser, call_expr, true),
+      ("rs" | "rstest", "importMock") => self.load_mock(parser, call_expr, true),
       // rs.requireMock
-      ("rs", "requireMock") | ("rstest", "requireMock") => self.load_mock(parser, call_expr, false),
+      ("rs" | "rstest", "requireMock") => self.load_mock(parser, call_expr, false),
       // rs.unmock
-      ("rs", "unmock") | ("rstest", "unmock") => {
+      ("rs" | "rstest", "unmock") => {
         self.process_mock(parser, call_expr, true, true, MockMethod::Unmock, false);
         Some(true)
       }
       // rs.doUnmock
-      ("rs", "doUnmock") | ("rstest", "doUnmock") => {
+      ("rs" | "rstest", "doUnmock") => {
         self.process_mock(parser, call_expr, false, true, MockMethod::Unmock, false);
         Some(true)
       }
       // rs.resetModules
-      ("rs", "resetModules") | ("rstest", "resetModules") => self.reset_modules(parser, call_expr),
+      ("rs" | "rstest", "resetModules") => self.reset_modules(parser, call_expr),
       // rs.hoisted
-      ("rs", "hoisted") | ("rstest", "hoisted") => self.hoisted(parser, call_expr, statement_span),
+      ("rs" | "rstest", "hoisted") => self.hoisted(parser, call_expr, statement_span),
       _ => {
         // Not a mock module, continue.
         None

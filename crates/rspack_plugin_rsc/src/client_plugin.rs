@@ -104,7 +104,7 @@ fn record_module(
       .files()
       .iter()
       .filter(|file| file.ends_with(".css"))
-      .map(|file| format!("{}{}", prefix, file))
+      .map(|file| format!("{prefix}{file}"))
       .collect();
     if css_files.is_empty() {
       return;
@@ -243,7 +243,7 @@ async fn collect_entry_js_files(
     };
     let entry_js_files = plugin_state
       .entry_js_files
-      .entry(entry_name.to_string())
+      .entry(entry_name.clone())
       .or_default();
     let prefix = &plugin_state
       .module_loading
@@ -264,7 +264,7 @@ async fn collect_entry_js_files(
         !(asset_info.hot_module_replacement.unwrap_or(false)
           || asset_info.development.unwrap_or(false))
       })
-      .map(|file| format!("{}{}", prefix, file))
+      .map(|file| format!("{prefix}{file}"))
       .collect::<FxIndexSet<String>>();
   }
   Ok(())
@@ -402,8 +402,7 @@ impl RscClientPlugin {
 
         let is_client_loader = module
           .as_normal_module()
-          .map(|m| m.user_request().starts_with(CLIENT_ENTRY_LOADER_IDENTIFIER))
-          .unwrap_or(false);
+          .is_some_and(|m| m.user_request().starts_with(CLIENT_ENTRY_LOADER_IDENTIFIER));
         if !is_client_loader {
           continue;
         }
@@ -509,7 +508,7 @@ async fn make(&self, compilation: &mut Compilation) -> Result<()> {
       }
 
       let dependency = Box::new(EntryDependency::new(
-        import.to_string(),
+        import.clone(),
         context.clone(),
         None,
         false,

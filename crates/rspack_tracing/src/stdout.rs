@@ -54,9 +54,7 @@ fn format_timestamp_iso8601(micros: u64) -> String {
   let subsec_micros = (micros % 1_000_000) as u32;
   let nanos = subsec_micros * 1000;
 
-  DateTime::<Utc>::from_timestamp(secs, nanos)
-    .map(|dt| dt.to_rfc3339_opts(chrono::SecondsFormat::Micros, true))
-    .unwrap_or_else(|| "Invalid timestamp".to_string())
+  DateTime::<Utc>::from_timestamp(secs, nanos).map_or_else(|| "Invalid timestamp".to_string(), |dt| dt.to_rfc3339_opts(chrono::SecondsFormat::Micros, true))
 }
 
 #[derive(Default)]
@@ -161,8 +159,7 @@ impl Tracer for StdoutTracer {
                 // Lock the mutex to access the writer
                 let _ = writeln!(
                   writer.lock().expect("Failed to lock writer"),
-                  "{}",
-                  json_str
+                  "{json_str}"
                 );
               }
             }

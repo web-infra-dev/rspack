@@ -195,7 +195,7 @@ impl RuntimeModule for RequireChunkLoadingRuntimeModule {
             true => format!("{}();", compilation
                 .runtime_template
                 .render_runtime_globals(&RuntimeGlobals::ON_CHUNKS_LOADED)),
-            false => "".to_string(),
+            false => String::new(),
           }
         })),
       )?;
