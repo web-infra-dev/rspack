@@ -21,7 +21,7 @@ module.exports = function copyDiff(src, dest, initial) {
       } else {
         fs.writeFileSync(destFile, content);
         if (initial) {
-          const longTimeAgo = Date.now() - 1000 * 60 * 60 * 24;
+          const longTimeAgo = new Date(Date.now() - 1000 * 60 * 60 * 24);
           fs.utimesSync(destFile, longTimeAgo, longTimeAgo);
         }
       }

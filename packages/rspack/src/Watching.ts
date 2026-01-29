@@ -298,6 +298,11 @@ export class Watching {
         err: Error | null,
         _compilation: Compilation | undefined,
       ) => {
+        console.log(
+          'Compiler Done (additional pass)\n\n\n',
+          this.compiler.context,
+          '\n\n\n',
+        );
         if (err) return this._done(err);
 
         const compilation = _compilation!;
@@ -322,6 +327,7 @@ export class Watching {
         this._done(null, this.compiler._lastCompilation);
       };
 
+      console.log('\n\n\nStarting compilation in watch mode...');
       this.compiler.compile(onCompiled);
     });
   }
