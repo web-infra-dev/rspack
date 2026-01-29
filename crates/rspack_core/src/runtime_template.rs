@@ -632,49 +632,27 @@ impl ModuleCodegenRuntimeTemplate {
     }
   }
 
-  pub fn get_property_accessed_deferred_module(
+  pub fn get_optimized_deferred_module(
     &mut self,
     exports_type: ExportsType,
     module_id_expr: &str,
     async_deps: FxIndexSet<ModuleId>,
   ) -> String {
-    let is_async = !async_deps.is_empty();
-    let mut content = "{\nget a() {\n  ".to_string();
-    let namespace_or_dynamic =
-      matches!(exports_type, ExportsType::Namespace | ExportsType::Dynamic);
-    if namespace_or_dynamic {
-      content += "var exports = ";
-    } else {
-      content += "return ";
-    }
-    content += &self.render_runtime_globals(&RuntimeGlobals::REQUIRE);
-    content += "(";
-    content += module_id_expr;
-    content += ")";
-    if is_async {
-      content += "[";
-      content += &self.render_runtime_globals(&RuntimeGlobals::ASYNC_MODULE_EXPORT_SYMBOL);
-      content += "]";
-    }
-    content += ";\n";
-    if namespace_or_dynamic {
-      content += "  ";
-      if matches!(exports_type, ExportsType::Dynamic) {
-        content += "if (exports.__esModule) ";
-      }
-      content += "Object.defineProperty(this, \"a\", { value: exports });\n  ";
-      content += "return exports;\n";
-    }
-    content += "},\n";
-    if is_async {
-      content += "[";
-      content +=
-        &self.render_runtime_globals(&RuntimeGlobals::MAKE_DEFERRED_NAMESPACE_OBJECT_SYMBOL);
-      content += "]: ";
+    self
+      .runtime_requirements
+      .insert(RuntimeGlobals::MAKE_OPTIMIZED_DEFERRED_NAMESPACE_OBJECT);
+    let mode = render_make_deferred_namespace_mode_from_exports_type(exports_type);
+    let mut content = format!(
+      "{}({}, {}",
+      self.render_runtime_globals(&RuntimeGlobals::MAKE_OPTIMIZED_DEFERRED_NAMESPACE_OBJECT),
+      module_id_expr,
+      mode
+    );
+    if !async_deps.is_empty() {
+      content += ", ";
       content += &json_stringify(&async_deps);
-      content += ",\n";
     }
-    content += "}";
+    content += ")";
     content
   }
 
@@ -991,7 +969,7 @@ impl ModuleCodegenRuntimeTemplate {
       let async_deps = get_outgoing_async_modules(compilation, target_module.as_ref());
       let import_content = format!(
         "/* deferred import */{opt_declaration}{import_var} = {};\n",
-        self.get_property_accessed_deferred_module(exports_type, &module_id_expr, async_deps)
+        self.get_optimized_deferred_module(exports_type, &module_id_expr, async_deps)
       );
       return (import_content, String::new());
     }

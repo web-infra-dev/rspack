@@ -34,10 +34,10 @@ use crate::{
     GetChunkUpdateFilenameRuntimeModule, GetFullHashRuntimeModule, GetMainFilenameRuntimeModule,
     GetTrustedTypesPolicyRuntimeModule, GlobalRuntimeModule, HasOwnPropertyRuntimeModule,
     LoadScriptRuntimeModule, MakeDeferredNamespaceObjectRuntimeModule,
-    MakeNamespaceObjectRuntimeModule, NodeModuleDecoratorRuntimeModule, NonceRuntimeModule,
-    OnChunkLoadedRuntimeModule, PublicPathRuntimeModule, RelativeUrlRuntimeModule,
-    RuntimeIdRuntimeModule, SystemContextRuntimeModule, ToBinaryRuntimeModule, chunk_has_css,
-    is_enabled_for_chunk,
+    MakeNamespaceObjectRuntimeModule, MakeOptimizedDeferredNamespaceObjectRuntimeModule,
+    NodeModuleDecoratorRuntimeModule, NonceRuntimeModule, OnChunkLoadedRuntimeModule,
+    PublicPathRuntimeModule, RelativeUrlRuntimeModule, RuntimeIdRuntimeModule,
+    SystemContextRuntimeModule, ToBinaryRuntimeModule, chunk_has_css, is_enabled_for_chunk,
   },
 };
 
@@ -82,6 +82,7 @@ const GLOBALS_ON_REQUIRE: &[RuntimeGlobals] = &[
   RuntimeGlobals::SYSTEM_CONTEXT,
   RuntimeGlobals::ON_CHUNKS_LOADED,
   RuntimeGlobals::MAKE_DEFERRED_NAMESPACE_OBJECT,
+  RuntimeGlobals::MAKE_OPTIMIZED_DEFERRED_NAMESPACE_OBJECT,
   RuntimeGlobals::TO_BINARY,
 ];
 
@@ -135,11 +136,11 @@ const TREE_DEPENDENCIES: &[(RuntimeGlobals, RuntimeGlobals)] = &[
   ),
   (
     RuntimeGlobals::MAKE_DEFERRED_NAMESPACE_OBJECT,
-    RuntimeGlobals::DEFINE_PROPERTY_GETTERS
-      .union(RuntimeGlobals::MAKE_NAMESPACE_OBJECT)
-      .union(RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT)
-      .union(RuntimeGlobals::HAS_OWN_PROPERTY)
-      .union(RuntimeGlobals::REQUIRE),
+    RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT.union(RuntimeGlobals::REQUIRE),
+  ),
+  (
+    RuntimeGlobals::MAKE_OPTIMIZED_DEFERRED_NAMESPACE_OBJECT,
+    RuntimeGlobals::REQUIRE,
   ),
 ];
 
@@ -605,6 +606,16 @@ async fn runtime_requirements_in_tree(
           *chunk_ukey,
           MakeDeferredNamespaceObjectRuntimeModule::new(&compilation.runtime_template, *chunk_ukey)
             .boxed(),
+        ));
+      }
+      RuntimeGlobals::MAKE_OPTIMIZED_DEFERRED_NAMESPACE_OBJECT => {
+        runtime_modules_to_add.push((
+          *chunk_ukey,
+          MakeOptimizedDeferredNamespaceObjectRuntimeModule::new(
+            &compilation.runtime_template,
+            *chunk_ukey,
+          )
+          .boxed(),
         ));
       }
       RuntimeGlobals::TO_BINARY => {
