@@ -1,5 +1,5 @@
-ERROR in ./index.js 1:9-19
-  × JSON parse error: BOM character found in '<TEST_ROOT>/diagnosticsCases/factorize/cannot-resolve-with-bom/node_modules/bommodule/package.json'
+ERROR in ./index.js 1:9-20
+  × JSON parse error: expected value at line 1 column 1 in '<TEST_ROOT>/diagnosticsCases/factorize/cannot-resolve-with-bom/node_modules/bommodule/package.json'
    ╭─[1:0]
  1 │ ﻿{
    · ▲

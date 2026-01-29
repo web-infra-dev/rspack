@@ -1,36 +1,36 @@
 Entrypoint main xx KiB = main.js
 chunk (runtime: main) async-g.js (async-g) xx bytes <{889}> [rendered]
-  > ./g ./index.js 7:1-47
+  > ./g ./index.js 7:1-48
   dependent modules xx bytes [dependent] 1 module
   ./g.js xx bytes [built] [code generated]
 chunk (runtime: main) async-d.js (async-d) xx bytes <{889}> [rendered]
-  > ./d ./index.js 4:1-47
+  > ./d ./index.js 4:1-48
   dependent modules xx bytes [dependent] 1 module
   ./d.js xx bytes [built] [code generated]
 chunk (runtime: main) async-e.js (async-e) xx bytes <{889}> [rendered]
-  > ./e ./index.js 5:1-47
+  > ./e ./index.js 5:1-48
   dependent modules xx bytes [dependent] 1 module
   ./e.js xx bytes [built] [code generated]
 chunk (runtime: main) async-f.js (async-f) xx bytes <{889}> [rendered]
-  > ./f ./index.js 6:1-47
+  > ./f ./index.js 6:1-48
   dependent modules xx bytes [dependent] 1 module
   ./f.js xx bytes [built] [code generated]
 chunk (runtime: main) async-b.js (async-b) xx bytes <{889}> ={919}= [rendered]
-  > ./b ./index.js 2:1-47
+  > ./b ./index.js 2:1-48
   ./b.js xx bytes [built] [code generated]
 chunk (runtime: main) async-a.js (async-a) xx bytes <{889}> ={919}= [rendered]
-  > ./a ./index.js 1:1-47
+  > ./a ./index.js 1:1-48
   ./a.js xx bytes [built] [code generated]
 chunk (runtime: main) async-c.js (async-c) xx bytes <{889}> [rendered]
-  > ./c ./index.js 3:1-47
+  > ./c ./index.js 3:1-48
   dependent modules xx bytes [dependent] 1 module
   ./c.js xx bytes [built] [code generated]
 chunk (runtime: main) main.js (main) xx bytes (javascript) xx KiB (runtime) >{138}< >{543}< >{648}< >{681}< >{701}< >{724}< >{742}< >{919}< [entry] [rendered]
   > ./ main
   ./index.js xx bytes [built] [code generated]
 chunk (runtime: main) 919.js (id hint: ) xx bytes <{889}> ={701}= ={724}= [rendered] split chunk (cache group: default)
-  > ./a ./index.js 1:1-47
-  > ./b ./index.js 2:1-47
+  > ./a ./index.js 1:1-48
+  > ./b ./index.js 2:1-48
   ./x.js xx bytes [built] [code generated]
   ./y.js xx bytes [built] [code generated]
 Rspack x.x.x compiled successfully

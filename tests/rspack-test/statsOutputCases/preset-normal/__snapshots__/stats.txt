@@ -5,7 +5,7 @@ LOG from LogTestPlugin
 <i> Info
 + 12 hidden lines
 
-WARNING in ./index.js 2:1-16
+WARNING in ./index.js 2:1-17
   ⚠ Critical dependency: the request of a dependency is an expression
    ╭─[2:8]
  1 │ require("./a");
@@ -14,7 +14,7 @@ WARNING in ./index.js 2:1-16
  3 │ require(["./c"]);
    ╰────
 
-WARNING in ./index.js 3:1-16
+WARNING in ./index.js 3:1-17
   ⚠ Critical dependency: the request of a dependency is an expression
    ╭─[3:8]
  1 │ require("./a");

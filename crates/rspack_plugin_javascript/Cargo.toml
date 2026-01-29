@@ -20,7 +20,6 @@ once_cell = { workspace = true }
 rayon = { workspace = true }
 regex = { workspace = true }
 regress = { workspace = true, features = ["pattern"] }
-ropey = { workspace = true }
 rspack_cacheable = { workspace = true }
 rspack_collections = { workspace = true }
 rspack_core = { workspace = true }

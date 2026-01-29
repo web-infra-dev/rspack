@@ -2,7 +2,7 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsContextDependency, AsModuleDependency, Dependency, DependencyCodeGeneration, DependencyId,
   DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
-  SharedSourceMap, TemplateContext, TemplateReplaceSource,
+  TemplateContext, TemplateReplaceSource,
 };
 
 // Remove `export` label.
@@ -21,9 +21,9 @@ impl ESMExportHeaderDependency {
   pub fn new(
     range: DependencyRange,
     range_decl: Option<DependencyRange>,
-    source_map: Option<SharedSourceMap>,
+    source: Option<&str>,
   ) -> Self {
-    let loc = range.to_loc(source_map.as_ref());
+    let loc = range.to_loc(source);
     Self {
       range,
       range_decl,

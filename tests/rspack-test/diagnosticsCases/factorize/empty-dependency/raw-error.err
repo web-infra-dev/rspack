@@ -1,13 +1,13 @@
 Array [
   Object {
     code: Empty dependency,
-    loc: 1:9-10,
+    loc: 1:9-11,
     moduleIdentifier: <TEST_ROOT>/diagnosticsCases/factorize/empty-dependency/index.js,
     moduleName: ./index.js,
   },
   Object {
     code: Empty dependency,
-    loc: 2:1-9,
+    loc: 2:1-10,
     moduleIdentifier: <TEST_ROOT>/diagnosticsCases/factorize/empty-dependency/index.js,
     moduleName: ./index.js,
   },

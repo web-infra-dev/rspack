@@ -1,4 +1,4 @@
-ERROR in ./index.js 1:9-24
+ERROR in ./index.js 1:9-25
   × Module not found: Can't resolve 'does-not-exist' in '<TEST_ROOT>/statsOutputCases/preset-none-error'
    ╭────
  1 │ require('does-not-exist')

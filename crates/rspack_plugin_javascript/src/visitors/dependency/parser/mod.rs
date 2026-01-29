@@ -15,8 +15,6 @@ use std::{
 
 use bitflags::bitflags;
 pub use call_hooks_name::CallHooksName;
-use once_cell::unsync::OnceCell;
-use ropey::Rope;
 use rspack_cacheable::{
   cacheable,
   with::{AsCacheable, AsOption, AsPreset, AsVec},
@@ -327,7 +325,6 @@ pub struct JavascriptParser<'parser> {
   #[allow(clippy::vec_box)]
   blocks: Vec<Box<AsyncDependenciesBlock>>,
   // ===== inputs =======
-  source_rope: OnceCell<Rope>,
   pub(crate) source: &'parser str,
   pub parse_meta: ParseMeta,
   pub comments: Option<&'parser dyn Comments>,
@@ -500,7 +497,6 @@ impl<'parser> JavascriptParser<'parser> {
       last_esm_import_order: 0,
       comments,
       javascript_options,
-      source_rope: OnceCell::new(),
       source,
       errors,
       warning_diagnostics,
@@ -636,10 +632,6 @@ impl<'parser> JavascriptParser<'parser> {
 
   pub fn source(&self) -> &str {
     self.source
-  }
-
-  pub fn source_rope(&mut self) -> &Rope {
-    self.source_rope.get_or_init(|| Rope::from_str(self.source))
   }
 
   pub fn is_top_level_scope(&self) -> bool {

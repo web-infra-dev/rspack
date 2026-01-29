@@ -3,7 +3,6 @@ use std::hash::Hash;
 use itertools::Itertools;
 use rspack_core::{
   AsyncDependenciesBlock, ConstDependency, DependencyRange, EntryOptions, GroupOptions,
-  SharedSourceMap,
 };
 use rspack_hash::RspackHash;
 use rspack_util::SpanExt;
@@ -101,10 +100,9 @@ fn add_dependencies(
     parsed_path.range.into(),
     need_new_url,
   ));
-  let source_map: SharedSourceMap = parser.source_rope().clone();
   let mut block = AsyncDependenciesBlock::new(
     *parser.module_identifier,
-    Into::<DependencyRange>::into(span).to_loc(Some(&source_map)),
+    Into::<DependencyRange>::into(span).to_loc(Some(parser.source())),
     None,
     vec![dep],
     None,

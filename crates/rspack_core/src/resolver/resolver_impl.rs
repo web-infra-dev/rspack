@@ -8,7 +8,7 @@ use rspack_error::{Error, Severity, cyan, yellow};
 use rspack_fs::ReadableFileSystem;
 use rspack_loader_runner::DescriptionData;
 use rspack_paths::AssertUtf8;
-use rspack_util::location::try_line_column_length_to_offset_length;
+use rspack_util::location::byte_line_column_to_offset;
 use rustc_hash::FxHashSet as HashSet;
 
 use super::{ResolveResult, Resource, boxfs::BoxFS};
@@ -337,17 +337,13 @@ fn map_rspack_resolver_error(
     rspack_resolver::ResolveError::NotFound(_) => map_resolver_error(false, args),
     rspack_resolver::ResolveError::JSON(error) => {
       if let Some(content) = &error.content {
-        let rope = ropey::Rope::from(&**content);
-        let Some((offset, _)) =
-          try_line_column_length_to_offset_length(&rope, error.line, error.column, 0)
-        else {
+        let Some(offset) = byte_line_column_to_offset(content, error.line, error.column) else {
           return rspack_error::error!(format!(
             "JSON parse error: {:?} in '{}'",
             error,
             error.path.display()
           ));
         };
-        drop(rope);
 
         fn ceil_char_boundary(content: &str, mut index: usize) -> usize {
           if index > content.len() {

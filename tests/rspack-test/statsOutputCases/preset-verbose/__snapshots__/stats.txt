@@ -7,17 +7,17 @@ chunk {889} (runtime: main) main.js (main) xx bytes [entry] [rendered]
   ./.|sync [641] xx bytes {889} [depth 1] [dependent] [built] [code generated]
     [no exports]
     ModuleConcatenation bailout: Module Concatenation is not implemented for javascript/auto
-    commonjs require context . [237] ./index.js 2:1-16
-    commonjs require context . [237] ./index.js 3:1-16
+    commonjs require context . [237] ./index.js 2:1-17
+    commonjs require context . [237] ./index.js 3:1-17
   ./a.js [670] xx bytes {889} [depth 1] [dependent] [built] [code generated]
     [used exports unknown]
-    Statement with side_effects in source code at ./a.js<LINE_COL>-21
+    Statement with side_effects in source code at ./a.js<LINE_COL>-22
     ModuleConcatenation bailout: Module is not an ECMAScript module
     cjs self exports reference self [670] ./a.js
-    cjs require ./a [237] ./index.js 1:9-13
+    cjs require ./a [237] ./index.js 1:9-14
   ./index.js [237] xx bytes {889} [depth 0] [built] [code generated] [2 warnings]
     [no exports used]
-    Statement with side_effects in source code at ./index.js<LINE_COL>-15
+    Statement with side_effects in source code at ./index.js<LINE_COL>-16
     ModuleConcatenation bailout: Module is not an ECMAScript module
     entry ./index
   
@@ -112,7 +112,7 @@ LOG from rspack.buildChunkGraph
     0 chunk groups processed for merging (0 module sets)
     0 chunk group info updated (0 already connected chunk groups reconnected)
 
-WARNING in ./index.js 2:1-16
+WARNING in ./index.js 2:1-17
   ⚠ Critical dependency: the request of a dependency is an expression
    ╭─[2:8]
  1 │ require("./a");
@@ -121,7 +121,7 @@ WARNING in ./index.js 2:1-16
  3 │ require(["./c"]);
    ╰────
 
-WARNING in ./index.js 3:1-16
+WARNING in ./index.js 3:1-17
   ⚠ Critical dependency: the request of a dependency is an expression
    ╭─[3:8]
  1 │ require("./a");

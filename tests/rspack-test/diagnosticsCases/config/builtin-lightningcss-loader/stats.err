@@ -1,4 +1,4 @@
-ERROR in ./index.js 1:1-21
+ERROR in ./index.js 1:1-22
   × Could not parse builtin:lightningcss-loader options
    ╭─[8:15]
  6 │     "> 0.2%"

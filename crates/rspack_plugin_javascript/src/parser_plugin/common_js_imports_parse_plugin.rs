@@ -55,7 +55,7 @@ fn create_commonjs_require_context_dependency(
   let mut dep = CommonJsRequireContextDependency::new(
     options,
     DependencyRange::from(span)
-      .to_loc(Some(parser.source_rope()))
+      .to_loc(Some(parser.source()))
       .expect("Should get correct loc"),
     call_expr.span().into(),
     Some(arg_expr.span().into()),
@@ -183,7 +183,7 @@ impl CommonJsImportsParserPlugin {
     let param = parser.evaluate_expression(argument_expr);
     let require_resolve_header_dependency = Box::new(RequireResolveHeaderDependency::new(
       call_expr.callee.span().into(),
-      Some(parser.source_rope().clone()),
+      Some(parser.source()),
     ));
 
     if param.is_conditional() {
@@ -261,7 +261,7 @@ impl CommonJsImportsParserPlugin {
         is_call,
         parser.in_try,
         !parser.is_asi_position(member_expr.span_lo()),
-        Some(parser.source_rope().clone()),
+        Some(parser.source()),
       )
     })
   }
@@ -279,7 +279,7 @@ impl CommonJsImportsParserPlugin {
         range_expr,
         Some(span.into()),
         parser.in_try,
-        Some(parser.source_rope().clone()),
+        Some(parser.source()),
       );
       parser.add_dependency(Box::new(dep));
       true
@@ -327,10 +327,9 @@ impl CommonJsImportsParserPlugin {
       }
       if !is_expression {
         let range: DependencyRange = callee.span().into();
-        let source_rope = parser.source_rope().clone();
         parser.add_presentational_dependency(Box::new(RequireHeaderDependency::new(
           range,
-          Some(source_rope),
+          Some(parser.source()),
         )));
         return Some(true);
       }
@@ -361,10 +360,9 @@ impl CommonJsImportsParserPlugin {
       self.process_require_context(parser, call_expr, &param);
     } else {
       let range: DependencyRange = callee.span().into();
-      let source_rope = parser.source_rope().clone();
       parser.add_presentational_dependency(Box::new(RequireHeaderDependency::new(
         range,
-        Some(source_rope),
+        Some(parser.source()),
       )));
     }
     Some(true)
@@ -401,7 +399,7 @@ impl CommonJsImportsParserPlugin {
         attributes: None,
       },
       DependencyRange::from(span)
-        .to_loc(Some(parser.source_rope()))
+        .to_loc(Some(parser.source()))
         .expect("Should get correct loc"),
       ident.span().into(),
       None,
@@ -412,7 +410,7 @@ impl CommonJsImportsParserPlugin {
         "Critical dependency".into(),
         "require function is used in a way in which dependencies cannot be statically extracted"
           .to_string(),
-        parser.source.to_owned(),
+        parser.source.to_string(),
         ident.span().into(),
       );
       error.severity = Severity::Warning;

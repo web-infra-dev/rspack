@@ -1,4 +1,4 @@
-ERROR in ./index.js 1:1-19
+ERROR in ./index.js 1:1-20
   × Module not found: Can't resolve 'not-exist' in '<TEST_ROOT>/statsOutputCases/nonexistent-import-source-error'
    ╭────
  1 │ import "not-exist";

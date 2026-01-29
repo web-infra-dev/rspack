@@ -3,15 +3,15 @@ asset bundle.js xx KiB [emitted] (name: main)
 chunk (runtime: main) bundle.js (main) xx bytes [entry] [rendered]
   > ./index main
   ./.|sync xx bytes [dependent] [built] [code generated]
-    commonjs require context . ./index.js 2:1-16
-    commonjs require context . ./index.js 3:1-16
+    commonjs require context . ./index.js 2:1-17
+    commonjs require context . ./index.js 3:1-17
   ./a.js xx bytes [dependent] [built] [code generated]
     cjs self exports reference self ./a.js
-    cjs require ./a ./index.js 1:9-13
+    cjs require ./a ./index.js 1:9-14
   ./index.js xx bytes [built] [code generated] [2 warnings]
     entry ./index
 
-WARNING in ./index.js 2:1-16
+WARNING in ./index.js 2:1-17
   ⚠ Critical dependency: the request of a dependency is an expression
    ╭─[2:8]
  1 │ require("./a");
@@ -20,7 +20,7 @@ WARNING in ./index.js 2:1-16
  3 │ require(["./c"]);
    ╰────
 
-WARNING in ./index.js 3:1-16
+WARNING in ./index.js 3:1-17
   ⚠ Critical dependency: the request of a dependency is an expression
    ╭─[3:8]
  1 │ require("./a");
