@@ -11,7 +11,5 @@ module.exports = {
 		-   "cache": false,
 		+   "cache": true,
 		@@ ... @@
-		-     "unsafeCache": false,
-		+     "unsafeCache": /[\\\\/]node_modules[\\\\/]/,
 	`)
 };

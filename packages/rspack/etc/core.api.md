@@ -5084,7 +5084,6 @@ export type ModuleOptions = {
     parser?: ParserOptionsByModuleType;
     generator?: GeneratorOptionsByModuleType;
     noParse?: NoParseOption;
-    unsafeCache?: boolean | RegExp;
 };
 
 // @public (undocumented)
@@ -5099,8 +5098,6 @@ export interface ModuleOptionsNormalized {
     parser: ParserOptionsByModuleType;
     // (undocumented)
     rules: RuleSetRules;
-    // (undocumented)
-    unsafeCache?: boolean | RegExp;
 }
 
 // @public (undocumented)

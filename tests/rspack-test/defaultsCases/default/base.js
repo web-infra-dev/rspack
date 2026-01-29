@@ -272,7 +272,6 @@ module.exports = {
 			      },
 			    },
 			    rules: Array [],
-			    unsafeCache: false,
 			  },
 			  name: undefined,
 			  node: Object {

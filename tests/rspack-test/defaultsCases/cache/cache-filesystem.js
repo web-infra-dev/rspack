@@ -27,7 +27,5 @@ module.exports = {
 			+     "version": "",
 			+   },
 			@@ ... @@
-			-     "unsafeCache": false,
-			+     "unsafeCache": /[\\\\/]node_modules[\\\\/]/,
 		`)
 };
