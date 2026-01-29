@@ -266,7 +266,9 @@ var module = ({}[moduleId] = {{"#,
   ) -> Result<RenderBootstrapResult<'me>> {
     let runtime_requirements = ChunkGraph::get_chunk_runtime_requirements(compilation, chunk_ukey);
     let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
-    let runtime_template = &compilation.runtime_template;
+    let mut runtime_template = compilation
+      .runtime_template
+      .create_module_codegen_runtime_template();
     let module_factories = runtime_requirements.contains(RuntimeGlobals::MODULE_FACTORIES);
     let require_function = runtime_requirements.contains(RuntimeGlobals::REQUIRE);
     let module_cache = runtime_requirements.contains(RuntimeGlobals::MODULE_CACHE);
@@ -400,6 +402,7 @@ var {} = {{}};
         let entries = compilation
           .chunk_graph
           .get_chunk_entry_modules_with_chunk_group_iterable(chunk_ukey);
+        let module_graph = compilation.get_module_graph();
         for (i, (module, entry)) in entries.iter().enumerate() {
           let chunk_group = compilation.chunk_group_by_ukey.expect_get(entry);
           let chunk_ids = chunk_group
@@ -419,7 +422,6 @@ var {} = {{}};
             allow_inline_startup = false;
           }
           if allow_inline_startup && {
-            let module_graph = compilation.get_module_graph();
             let module_graph_cache = &compilation.module_graph_cache_artifact;
             module_graph
               .get_incoming_connections_by_origin_module(module)
@@ -427,7 +429,7 @@ var {} = {{}};
               .any(|(origin_module, connections)| {
                 if let Some(origin_module) = origin_module {
                   connections.iter().any(|c| {
-                    c.is_target_active(&module_graph, Some(chunk.runtime()), module_graph_cache)
+                    c.is_target_active(module_graph, Some(chunk.runtime()), module_graph_cache)
                   }) && compilation
                     .chunk_graph
                     .get_module_runtimes_iter(*origin_module, &compilation.chunk_by_ukey)
@@ -600,6 +602,7 @@ var {} = {{}};
           );
         }
         if runtime_requirements.contains(RuntimeGlobals::STARTUP) {
+          let exports = runtime_template.render_runtime_globals(&RuntimeGlobals::EXPORTS);
           allow_inline_startup = false;
           header.push(
             format!(
@@ -607,14 +610,8 @@ var {} = {{}};
 {} = {};
 "#,
               runtime_template.render_runtime_globals(&RuntimeGlobals::STARTUP),
-              compilation.runtime_template.basic_function(
-                "",
-                &format!(
-                  "{}\nreturn {}",
-                  buf2.join("\n"),
-                  runtime_template.render_runtime_globals(&RuntimeGlobals::EXPORTS)
-                )
-              )
+              runtime_template
+                .basic_function("", &format!("{}\nreturn {}", buf2.join("\n"), exports))
             )
             .into(),
           );
@@ -676,7 +673,9 @@ var {} = {{}};
     chunk_ukey: &ChunkUkey,
     output_path: &str,
   ) -> Result<BoxSource> {
-    let runtime_template = &compilation.runtime_template;
+    let mut runtime_template = compilation
+      .runtime_template
+      .create_module_codegen_runtime_template();
     let js_plugin_hooks = Self::get_compilation_hooks(compilation.id());
     let hooks = js_plugin_hooks
       .try_read()
@@ -954,9 +953,7 @@ var {} = {{}};
     {
       sources.add(RawStringSource::from(format!(
         "return {};\n",
-        compilation
-          .runtime_template
-          .render_runtime_variable(&RuntimeVariable::Exports)
+        runtime_template.render_runtime_variable(&RuntimeVariable::Exports)
       )));
     }
     if iife {

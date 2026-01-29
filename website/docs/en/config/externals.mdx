@@ -110,13 +110,13 @@ export default {
 ### object
 
 :::warning
-An object with `{ root, commonjs, commonjs2, amd, ... }` is only allowed for [`libraryTarget: 'umd'`](/config/output#outputlibrarytarget) and [`externalsType: 'umd'`](#externalstype). It's not allowed for other library targets.
+An object with `{ root, commonjs, commonjs2, amd, ... }` is only allowed for [`library.type: 'umd'`](/config/output#outputlibrarytarget) and [`externalsType: 'umd'`](#externalstype). It's not allowed for other library targets.
 :::
 
 ```js title="rspack.config.mjs"
 export default {
   externals: {
-    // When `libraryTarget: 'umd'` and `externalsType: 'umd'`, the following format must be strictly followed:
+    // When `library.type: 'umd'` and `externalsType: 'umd'`, the following format must be strictly followed:
     lodash: {
       root: '_', // indicates global variable
       commonjs: 'lodash',
@@ -149,7 +149,9 @@ Here're arguments the function can receive:
 The callback function takes three arguments:
 
 - `err` (`Error`): Used to indicate if there has been an error while externalizing the import. If there is an error, this should be the only parameter used.
-- `result` (`string | string[] | object`): Describes the external module with the other external formats ([`string`](#string), [`string[]`](#string-array), or [`object`](#object))
+- `result` (`string | string[] | object | boolean`): Describes the external module.
+  - `string | string[] | object`: Describes the external module with the other external formats ([`string`](#string), [`string[]`](#string-array), or [`object`](#object)).
+  - `boolean`: Passing `true` externalizes the dependency using the original request path as the external module name. Passing `false` tells Rspack to skip the remaining external configuration and bundle the dependency instead.
 - `type` (`string`): Optional parameter that indicates the module [external type](#externalstype) (if it has not already been indicated in the `result` parameter).
 
 As an example, to externalize all imports where the import path matches a regular expression you could do the following:
@@ -277,7 +279,7 @@ export default {
 - **Type:** `string`
 - **Default:** `'var'`
 
-Specify the default type of externals. `amd`, `umd`, `system` and `jsonp` externals **depend on the [`output.libraryTarget`](/config/output#outputlibrarytarget)** being set to the same value e.g. you can only consume `amd` externals within an `amd` library.
+Specify the default type of externals. `amd`, `umd`, `system` and `jsonp` externals **depend on the [`output.library.type`](/config/output#outputlibrarytype)** being set to the same value e.g. you can only consume `amd` externals within an `amd` library.
 
 Supported types:
 
@@ -429,7 +431,7 @@ Will generate into something like
 
 ```js
 var __webpack_modules__ = {
-  jquery: module => {
+  jquery: (module) => {
     module.exports = import('jquery');
   },
 };
@@ -480,7 +482,7 @@ import * as __rspack_external_lodash from 'lodash';
 const lodash = __rspack_external_jquery;
 
 var __webpack_modules__ = {
-  jquery: module => {
+  jquery: (module) => {
     module.exports = import('jquery');
   },
 };

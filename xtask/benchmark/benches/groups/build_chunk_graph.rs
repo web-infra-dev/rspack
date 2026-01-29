@@ -5,8 +5,9 @@ use criterion::criterion_group;
 use rspack::builder::Builder as _;
 use rspack_benchmark::Criterion;
 use rspack_core::{
-  Compilation, Compiler, DerefOption, Experiments, ModuleGraphPartial, Optimization,
-  build_chunk_graph, fast_set,
+  Compilation, Compiler, Optimization, build_chunk_graph,
+  build_module_graph::build_module_graph_pass,
+  fast_set,
   incremental::{Incremental, IncrementalOptions},
 };
 use rspack_error::Diagnostic;
@@ -117,7 +118,7 @@ pub fn build_chunk_graph_benchmark_inner(c: &mut Criterion) {
     .input_filesystem(fs.clone())
     .output_filesystem(fs.clone())
     .optimization(Optimization::builder().remove_available_modules(true))
-    .experiments(Experiments::builder().incremental(IncrementalOptions::empty_passes()))
+    .incremental(IncrementalOptions::empty_passes())
     .build()
     .unwrap();
 
@@ -135,8 +136,7 @@ pub fn build_chunk_graph_benchmark_inner(c: &mut Criterion) {
       compiler.resolver_factory.clone(),
       compiler.loader_resolver_factory.clone(),
       None,
-      compiler.old_cache.clone(),
-      Incremental::new_cold(compiler.options.experiments.incremental),
+      Incremental::new_cold(compiler.options.incremental),
       Some(Default::default()),
       Default::default(),
       Default::default(),
@@ -176,30 +176,38 @@ pub fn build_chunk_graph_benchmark_inner(c: &mut Criterion) {
       .call(&mut compiler.compilation)
       .await
       .unwrap();
-    compiler.compilation.build_module_graph().await.unwrap();
-    compiler.compilation.seal_module_graph_partial = Some(ModuleGraphPartial::default());
+    build_module_graph_pass(&mut compiler.compilation)
+      .await
+      .unwrap();
 
     let mut side_effects_optimize_artifact =
       compiler.compilation.side_effects_optimize_artifact.take();
     let mut diagnostics: Vec<Diagnostic> = vec![];
-
+    let mut build_module_graph_artifact = compiler.compilation.build_module_graph_artifact.take();
     while matches!(
       compiler
         .plugin_driver
         .compilation_hooks
         .optimize_dependencies
         .call(
-          &mut compiler.compilation,
+          &compiler.compilation,
           &mut side_effects_optimize_artifact,
+          &mut build_module_graph_artifact,
           &mut diagnostics
         )
         .await
         .unwrap(),
       Some(true)
     ) {}
+    compiler
+      .compilation
+      .build_module_graph_artifact
+      .replace(build_module_graph_artifact);
 
-    compiler.compilation.side_effects_optimize_artifact =
-      DerefOption::new(side_effects_optimize_artifact);
+    compiler
+      .compilation
+      .side_effects_optimize_artifact
+      .replace(side_effects_optimize_artifact);
     compiler.compilation.extend_diagnostics(diagnostics);
 
     compiler
@@ -210,7 +218,6 @@ pub fn build_chunk_graph_benchmark_inner(c: &mut Criterion) {
   });
 
   assert!(compiler.compilation.get_errors().next().is_none());
-  compiler.compilation.seal_module_graph_partial = Some(ModuleGraphPartial::default());
 
   c.bench_function("rust@build_chunk_graph", |b| {
     b.iter_with_setup_wrapper(|runner| {
@@ -233,5 +240,4 @@ fn reset_chunk_graph_state(compilation: &mut Compilation) {
   compilation.async_entrypoints = Default::default();
   compilation.named_chunk_groups = Default::default();
   compilation.named_chunks = Default::default();
-  compilation.seal_module_graph_partial = Some(ModuleGraphPartial::default());
 }

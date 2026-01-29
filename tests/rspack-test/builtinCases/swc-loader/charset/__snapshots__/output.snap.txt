@@ -1,5 +1,5 @@
 ```js title=a.js
-(self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["a"], {
+(self["rspackChunk"] = self["rspackChunk"] || []).push([["a"], {
 "./a.js"() {
 console.log("你好");
 
@@ -15,7 +15,7 @@ var __webpack_exports__ = (__webpack_exec__("./a.js"));
 ```
 
 ```js title=b.js
-(self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["b"], {
+(self["rspackChunk"] = self["rspackChunk"] || []).push([["b"], {
 "./b.js"() {
 console.log("\u4F60\u597D");
 

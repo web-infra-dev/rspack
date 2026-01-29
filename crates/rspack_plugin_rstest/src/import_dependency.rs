@@ -2,8 +2,8 @@ use rspack_cacheable::cacheable;
 use rspack_core::{
   AsyncDependenciesBlockIdentifier, ChunkGraph, Compilation, Dependency, DependencyCodeGeneration,
   DependencyId, DependencyTemplate, DependencyTemplateType, DependencyType, ExportsType,
-  FakeNamespaceObjectMode, ModuleDependency, ModuleGraph, RuntimeGlobals, TemplateContext,
-  TemplateReplaceSource, get_exports_type,
+  FakeNamespaceObjectMode, ModuleCodegenRuntimeTemplate, ModuleDependency, ModuleGraph,
+  RuntimeGlobals, TemplateContext, TemplateReplaceSource, get_exports_type,
 };
 use rspack_plugin_javascript::dependency::ImportDependency;
 
@@ -63,6 +63,7 @@ impl DependencyTemplate for ImportDependencyTemplate {
 
 pub fn module_id_rstest(
   compilation: &Compilation,
+  runtime_template: &mut ModuleCodegenRuntimeTemplate,
   id: &DependencyId,
   request: &str,
   weak: bool,
@@ -73,9 +74,7 @@ pub fn module_id_rstest(
     && let Some(module_id) =
       ChunkGraph::get_module_id(&compilation.module_ids_artifact, *module_identifier)
   {
-    compilation
-      .runtime_template
-      .module_id_expr(request, module_id)
+    runtime_template.module_id_expr(request, module_id)
   } else if weak {
     "null /* weak dependency, without id */".to_string()
   } else {
@@ -96,7 +95,7 @@ fn module_namespace_promise_rstest(
   is_import_actual: bool,
 ) -> String {
   let TemplateContext {
-    runtime_requirements,
+    runtime_template,
     compilation,
     module,
     ..
@@ -114,40 +113,30 @@ fn module_namespace_promise_rstest(
     );
   };
 
-  let promise =
-    compilation
-      .runtime_template
-      .block_promise(block, runtime_requirements, compilation, message);
+  let promise = runtime_template.block_promise(block, compilation, message);
   let exports_type = get_exports_type(
-    &compilation.get_module_graph(),
+    compilation.get_module_graph(),
     &compilation.module_graph_cache_artifact,
     dep_id,
     &module.identifier(),
   );
 
-  let module_id_expr = module_id_rstest(compilation, dep_id, request, weak);
+  let module_id_expr = module_id_rstest(compilation, runtime_template, dep_id, request, weak);
 
   let final_require = if is_import_actual {
     format!(
       "{}.rstest_import_actual",
-      compilation
-        .runtime_template
-        .render_runtime_globals(&RuntimeGlobals::REQUIRE),
+      runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
     )
   } else {
-    compilation
-      .runtime_template
-      .render_runtime_globals(&RuntimeGlobals::REQUIRE)
+    runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
   };
 
   let header = if weak {
-    runtime_requirements.insert(RuntimeGlobals::MODULE_FACTORIES);
     Some(format!(
       "if(!{}[{module_id_expr}]) {{\n {} \n}}",
-      compilation
-        .runtime_template
-        .render_runtime_globals(&RuntimeGlobals::MODULE_FACTORIES),
-      compilation.runtime_template.weak_error(request)
+      runtime_template.render_runtime_globals(&RuntimeGlobals::MODULE_FACTORIES),
+      runtime_template.weak_error(request)
     ))
   } else {
     None
@@ -159,16 +148,9 @@ fn module_namespace_promise_rstest(
       if let Some(header) = header {
         appending = format!(
           ".then(function() {{ {header}\nreturn {}}})",
-          compilation.runtime_template.module_raw(
-            compilation,
-            runtime_requirements,
-            dep_id,
-            request,
-            weak
-          )
+          runtime_template.module_raw(compilation, dep_id, request, weak)
         )
       } else {
-        runtime_requirements.insert(RuntimeGlobals::REQUIRE);
         appending = format!(".then({final_require}.bind({final_require}, {module_id_expr}))");
       }
     }
@@ -182,7 +164,6 @@ fn module_namespace_promise_rstest(
       ) {
         fake_type |= FakeNamespaceObjectMode::MERGE_PROPERTIES;
       }
-      runtime_requirements.insert(RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT);
       if ModuleGraph::is_async(
         &compilation.async_modules_artifact.borrow(),
         compilation
@@ -193,24 +174,15 @@ fn module_namespace_promise_rstest(
         if let Some(header) = header {
           appending = format!(
             ".then(function() {{\n {header}\nreturn {}\n}})",
-            compilation.runtime_template.module_raw(
-              compilation,
-              runtime_requirements,
-              dep_id,
-              request,
-              weak
-            )
+            runtime_template.module_raw(compilation, dep_id, request, weak)
           )
         } else {
-          runtime_requirements.insert(RuntimeGlobals::REQUIRE);
           appending = format!(".then({final_require}.bind({final_require}, {module_id_expr}))");
         }
         appending.push_str(
           format!(
             ".then(function(m){{\n return {}(m, {fake_type}) \n}})",
-            compilation
-              .runtime_template
-              .render_runtime_globals(&RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT)
+            runtime_template.render_runtime_globals(&RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT)
           )
           .as_str(),
         );
@@ -219,18 +191,13 @@ fn module_namespace_promise_rstest(
         if let Some(header) = header {
           let expr = format!(
             "{}({module_id_expr}, {fake_type}))",
-            compilation
-              .runtime_template
-              .render_runtime_globals(&RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT)
+            runtime_template.render_runtime_globals(&RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT)
           );
           appending = format!(".then(function() {{\n {header} return {expr};\n}})");
         } else {
-          runtime_requirements.insert(RuntimeGlobals::REQUIRE);
           appending = format!(
             ".then({}.bind({}, {module_id_expr}, {fake_type}))",
-            compilation
-              .runtime_template
-              .render_runtime_globals(&RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT),
+            runtime_template.render_runtime_globals(&RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT),
             final_require
           );
         }

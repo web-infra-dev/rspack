@@ -41,7 +41,7 @@ Rspack 1.4 已经正式发布！
 
 从 Rspack 1.4 开始，我们正式引入了 Wasm target 支持，这意味着 Rspack 现在可以在浏览器环境中运行，包括 [StackBlitz](https://stackblitz.com/)（[WebContainers](https://blog.stackblitz.com/posts/introducing-webcontainers/)）等在线平台。这使得开发者无需配置本地环境，即可快速创建原型、分享代码示例。
 
-你可以直接体验我们提供的 [在线示例](https://stackblitz.com/~/github.com/rspack-contrib/rsbuild-stackblitz-example)，也可以在 [这篇文档](/zh/guide/start/quick-start#使用-stackblitz-在线预览) 中了解 StackBlitz 的使用指南。
+你可以直接体验我们提供的 [在线示例](https://stackblitz.com/~/github.com/rstackjs/rsbuild-stackblitz-example)，也可以在 [这篇文档](/zh/guide/start/quick-start#使用-stackblitz-在线预览) 中了解 StackBlitz 的使用指南。
 
 <video
   src="https://assets.rspack.rs/rspack/assets/rspack-v1-4-wasm-target.mp4"
@@ -227,7 +227,7 @@ Rsbuild 1.4 已与 Rspack 1.4 同步发布，值得关注的特性有：
 
 #### Chrome DevTools 集成
 
-我们引入了全新的 [rsbuild-plugin-devtools-json](https://github.com/rspack-contrib/rsbuild-plugin-devtools-json) 插件，通过该插件，你可以无缝集成 Chrome DevTools 的 [自动工作区文件夹](https://chromium.googlesource.com/devtools/devtools-frontend/+/main/docs/ecosystem/automatic_workspace_folders.md) (Automatic Workspace Folders) 新特性。这意味着你可以在 DevTools 中直接修改和调试源代码，并将改动保存到本地文件系统。
+我们引入了全新的 [rsbuild-plugin-devtools-json](https://github.com/rstackjs/rsbuild-plugin-devtools-json) 插件，通过该插件，你可以无缝集成 Chrome DevTools 的 [自动工作区文件夹](https://chromium.googlesource.com/devtools/devtools-frontend/+/main/docs/ecosystem/automatic_workspace_folders.md) (Automatic Workspace Folders) 新特性。这意味着你可以在 DevTools 中直接修改和调试源代码，并将改动保存到本地文件系统。
 
 <img
   src="https://assets.rspack.rs/rspack/assets/rspack-v1-4-rsbuild-plugin-dev-tools-json.png"
@@ -277,7 +277,7 @@ Rslib 现在默认生成更简洁清晰、体积更小的 ESM 产物。
 
 #### 构建 Vue 组件库
 
-通过引入 [rsbuild-plugin-unplugin-vue](https://github.com/rspack-contrib/rsbuild-plugin-unplugin-vue) 插件，你可以使用 Rslib 生成 Vue 组件库的 bundleless 产物。
+通过引入 [rsbuild-plugin-unplugin-vue](https://github.com/rstackjs/rsbuild-plugin-unplugin-vue) 插件，你可以使用 Rslib 生成 Vue 组件库的 bundleless 产物。
 
 ```ts title="rslib.config.mjs"
 import { defineConfig } from '@rslib/core';
@@ -400,7 +400,7 @@ const middleware = experiments.lazyCompilationMiddleware(compiler);
 
 const server = new RspackDevServer(
   {
-    setupMiddlewares: other => [middleware, ...other],
+    setupMiddlewares: (other) => [middleware, ...other],
   },
   compiler,
 );

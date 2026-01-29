@@ -1,0 +1,14 @@
+Object {
+  btn--info_is-disabled_1: _style_module_css_camel-case-btn--info_is-disabled_1,
+  btn-info_is-disabled: _style_module_css_camel-case-btn-info_is-disabled,
+  btnInfoIsDisabled: _style_module_css_camel-case-btn-info_is-disabled,
+  btnInfoIsDisabled1: _style_module_css_camel-case-btn--info_is-disabled_1,
+  class: _style_module_css_camel-case-class,
+  default: _style_module_css_camel-case-default,
+  foo: bar,
+  fooBar: _style_module_css_camel-case-foo_bar,
+  foo_bar: _style_module_css_camel-case-foo_bar,
+  my-btn-info_is-disabled: value,
+  myBtnInfoIsDisabled: value,
+  simple: _style_module_css_camel-case-simple,
+}

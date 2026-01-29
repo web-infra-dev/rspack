@@ -1,15 +1,15 @@
 {
   "name": "@rspack/core",
-  "version": "1.7.0-beta.1",
+  "version": "2.0.0-alpha.1",
   "webpackVersion": "5.75.0",
   "license": "MIT",
   "description": "The fast Rust-based web bundler with webpack-compatible API",
-  "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "publishConfig": {
     "access": "public",
     "provenance": true
   },
+  "type": "module",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -23,15 +23,20 @@
   "scripts": {
     "prepare": "prebundle && node ./move-tinypool.js",
     "build": "rslib build",
-    "build:browser": "rslib build -c rslib.browser.config.mts",
+    "build:browser": "rslib build -c rslib.browser.config.ts",
     "dev": "rslib build --watch",
     "doc-coverage": "tsx ./scripts/check-documentation-coverage.ts",
     "api-extractor": "api-extractor run --verbose",
     "api-extractor:ci": "api-extractor run --verbose || diff temp/core.api.md etc/core.api.md"
   },
-  "files": ["dist", "hot", "compiled", "module.d.ts"],
+  "files": [
+    "dist",
+    "hot",
+    "compiled",
+    "module.d.ts"
+  ],
   "engines": {
-    "node": ">=18.12.0"
+    "node": "^20.19.0 || >=22.12.0"
   },
   "homepage": "https://rspack.rs",
   "bugs": "https://github.com/web-infra-dev/rspack/issues",
@@ -41,18 +46,19 @@
     "directory": "packages/rspack"
   },
   "devDependencies": {
-    "@ast-grep/napi": "^0.40.3",
+    "@ast-grep/napi": "^0.40.5",
     "@napi-rs/wasm-runtime": "1.0.7",
-    "@rsbuild/plugin-node-polyfill": "^1.4.2",
-    "@rslib/core": "0.18.6",
+    "@rsbuild/plugin-node-polyfill": "^1.4.3",
+    "@rslib/core": "0.19.3",
     "@swc/types": "0.1.25",
-    "@types/node": "^20.19.27",
+    "@types/node": "^20.19.30",
     "@types/watchpack": "^2.4.5",
     "browserslist-load-config": "^1.0.1",
+    "browserslist-to-es-version": "^1.4.1",
     "enhanced-resolve": "5.18.4",
     "glob-to-regexp": "^0.4.1",
-    "memfs": "4.51.1",
-    "prebundle": "^1.6.0",
+    "memfs": "4.53.0",
+    "prebundle": "^1.6.2",
     "tinypool": "^1.1.1",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
@@ -60,14 +66,17 @@
     "webpack-sources": "3.3.3"
   },
   "dependencies": {
-    "@module-federation/runtime-tools": "0.22.0",
     "@rspack/binding": "workspace:*",
     "@rspack/lite-tapable": "1.1.0"
   },
   "peerDependencies": {
+    "@module-federation/runtime-tools": ">=0.22.0",
     "@swc/helpers": ">=0.5.1"
   },
   "peerDependenciesMeta": {
+    "@module-federation/runtime-tools": {
+      "optional": true
+    },
     "@swc/helpers": {
       "optional": true
     }

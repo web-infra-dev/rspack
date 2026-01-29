@@ -3,7 +3,7 @@ use std::hash::Hash;
 use rspack_core::{
   ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements, CompilationParams,
   CompilerCompilation, ExternalModule, Filename, LibraryName, LibraryNonUmdObject, LibraryOptions,
-  LibraryType, PathData, Plugin, RuntimeGlobals, SourceType,
+  LibraryType, PathData, Plugin, RuntimeGlobals, RuntimeModule, SourceType,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
 };
 use rspack_error::{Result, error_bail};
@@ -189,9 +189,10 @@ async fn js_chunk_hash(
 #[plugin_hook(CompilationAdditionalChunkRuntimeRequirements for AmdLibraryPlugin)]
 async fn additional_chunk_runtime_requirements(
   &self,
-  compilation: &mut Compilation,
+  compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
   runtime_requirements: &mut RuntimeGlobals,
+  _runtime_modules: &mut Vec<Box<dyn RuntimeModule>>,
 ) -> Result<()> {
   if self
     .get_options_for_chunk(compilation, chunk_ukey)?

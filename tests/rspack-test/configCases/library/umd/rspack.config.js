@@ -1,8 +1,8 @@
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	output: {
-		libraryTarget: "umd",
 		library: {
+			type: "umd",
 			root: "testLibrary",
 			amd: "test-library",
 			commonjs: "test-library"

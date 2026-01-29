@@ -13,17 +13,20 @@ module.exports = {
 			+     "node": true,
 			+     "nwjs": true,
 			@@ ... @@
-			-   "lazyCompilation": Object {
-			-     "entries": false,
-			-     "imports": true,
-			-   },
-			+   "lazyCompilation": false,
-			@@ ... @@
 			-       "document": true,
 			+       "document": false,
 			@@ ... @@
 			-     "target": "web",
 			+     "target": "nwjs",
+			@@ ... @@
+			-         "exportsOnly": false,
+			+         "exportsOnly": true,
+			@@ ... @@
+			-         "exportsOnly": false,
+			+         "exportsOnly": true,
+			@@ ... @@
+			-         "exportsOnly": false,
+			+         "exportsOnly": true,
 			@@ ... @@
 			-     "__dirname": "warn-mock",
 			-     "__filename": "warn-mock",

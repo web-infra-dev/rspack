@@ -8,7 +8,12 @@ module.exports = {
 	node: {
 		__dirname: false
 	},
-	experiments: {
-		css: true
+	module: {
+		rules: [
+			{
+				test: /\.css$/,
+				type: "css/auto"
+			}
+		]
 	}
 };

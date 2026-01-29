@@ -4,10 +4,6 @@ import { ApiMeta } from '@components/ApiMeta.tsx';
 
 <ApiMeta addedVersion={'1.2.0'} />
 
-:::tip
-This plugin was renamed to `CaseSensitivePlugin` in v1.7.0. `WarnCaseSensitiveModulesPlugin` is deprecated and will be removed in a future release.
-:::
-
 Detect case sensitivity conflicts in referenced module names and emit warnings.
 
 Different operating systems may handle case sensitivity in file systems differently. When code references module names that differ only in case, this can lead to unexpected errors during cross-platform compilation. This plugin helps to avoid such situations.

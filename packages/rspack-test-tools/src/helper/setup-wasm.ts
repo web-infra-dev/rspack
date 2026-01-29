@@ -3,19 +3,19 @@
 // 2. Wasm target is a 32-bit platform, where all hash results are diffeference from the native targets.
 
 function toMatchSnapshot() {
-	return { pass: true, message: () => "" };
+  return { pass: true, message: () => '' };
 }
 
 function toMatchInlineSnapshot() {
-	return { pass: true, message: () => "" };
+  return { pass: true, message: () => '' };
 }
 
 function toMatchFileSnapshotSync() {
-	return { pass: true, message: () => "" };
+  return { pass: true, message: () => '' };
 }
 
 expect.extend({
-	toMatchSnapshot,
-	toMatchInlineSnapshot,
-	toMatchFileSnapshotSync
+  toMatchSnapshot,
+  toMatchInlineSnapshot,
+  toMatchFileSnapshotSync,
 });

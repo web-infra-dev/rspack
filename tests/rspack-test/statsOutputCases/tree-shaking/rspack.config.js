@@ -9,6 +9,7 @@ module.exports = {
 		concatenateModules: false
 	},
 	stats: {
+		assets: true,
 		chunkModules: false,
 		modules: true,
 		providedExports: true,

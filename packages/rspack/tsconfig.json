@@ -3,12 +3,13 @@
   "compilerOptions": {
     "outDir": "dist",
     "rootDir": "src",
+    "module": "ES2022",
+    "moduleResolution": "bundler",
     "lib": ["es2022", "dom"],
     "emitDeclarationOnly": true,
     "paths": {
       "watchpack": ["./compiled/watchpack"],
       "@swc/types": ["./compiled/@swc/types"],
-      "browserslist-load-config": ["./compiled/browserslist-load-config"],
       "webpack-sources": ["./compiled/webpack-sources"],
       "tinypool": ["./compiled/tinypool"]
     }

@@ -1,6 +1,6 @@
 {
   "name": "@rspack/binding",
-  "version": "1.7.0-beta.1",
+  "version": "2.0.0-alpha.1",
   "license": "MIT",
   "description": "Node binding for rspack",
   "main": "binding.js",
@@ -34,7 +34,7 @@
   "devDependencies": {
     "@napi-rs/cli": "3.0.4",
     "@napi-rs/wasm-runtime": "1.0.7",
-    "emnapi": "^1.7.1",
+    "emnapi": "^1.8.1",
     "typescript": "^5.9.3"
   },
   "napi": {
@@ -51,8 +51,7 @@
       "aarch64-unknown-linux-gnu",
       "aarch64-apple-darwin",
       "aarch64-unknown-linux-musl",
-      "aarch64-pc-windows-msvc",
-      "wasm32-wasip1-threads"
+      "aarch64-pc-windows-msvc"
     ],
     "wasm": {
       "initialMemory": 16384,

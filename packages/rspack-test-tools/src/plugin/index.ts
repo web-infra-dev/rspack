@@ -1,1 +1,1 @@
-export * from "./lazy-compilation-test-plugin";
+export * from './lazy-compilation-test-plugin';

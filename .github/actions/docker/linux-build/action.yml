@@ -10,21 +10,21 @@ inputs:
     required: true
     type: string
   profile:
-    default: "release"
+    default: 'release'
     required: false
     type: string
   options:
-    description: "Options for docker"
-    default: ""
+    description: 'Options for docker'
+    default: ''
     required: false
     type: string
   pre:
     required: false
-    default: ""
+    default: ''
     type: string
   post:
     required: false
-    default: ""
+    default: ''
     type: string
   plugin:
     required: false

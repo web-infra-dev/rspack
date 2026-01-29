@@ -248,10 +248,6 @@ Matches all modules that match this resource, and will match against layer of th
 
 For more information about layers, see the [Layer guide](/guide/features/layer).
 
-:::warning
-For version before v1.6.0, this configuration will only work if [experiments.layers = true](/config/deprecated-options#experimentslayers).
-:::
-
 A basic example:
 
 ```js title="rspack.config.mjs"
@@ -390,7 +386,7 @@ export default {
         test: /\.js$/,
         include: /node_modules/,
         descriptionData: {
-          name: packageJsonName => packageJsonName.includes('rspack'),
+          name: (packageJsonName) => packageJsonName.includes('rspack'),
         },
         // additional rule options...
       },
@@ -643,10 +639,6 @@ Used to mark the layer of the matching module. A group of modules could be unite
 
 For more information about layers, see the [Layer guide](/guide/features/layer).
 
-:::warning
-For version before v1.6.0, this configuration will only work if [experiments.layers = true](/config/deprecated-options#experimentslayers).
-:::
-
 ```js title="rspack.config.mjs"
 export default {
   module: {
@@ -713,7 +705,7 @@ export default {
       {
         test: /\.svg$/,
         type: 'asset',
-        use: info => [
+        use: (info) => [
           {
             loader: 'svgo-loader',
             options: {
@@ -764,9 +756,6 @@ export default {
       },
     ],
   },
-  experiments: {
-    parallelLoader: true,
-  },
 };
 ```
 
@@ -774,7 +763,6 @@ When multiple loaders within the same rule have `parallel` enabled, Rspack execu
 
 :::tip
 
-- This feature is experimental. It only takes effect when [experiments.parallelLoader](/config/experiments#experimentsparallelloader) is enabled.
 - The loader options must comply with the [HTML structured clone algorithm](https://nodejs.org/api/worker_threads.html#portpostmessagevalue-transferlist), otherwise transmission will fail.
 - In worker mode, most methods on `LoaderContext._compilation`, `LoaderContext._compiler`, `LoaderContext._module` are not supported.
 

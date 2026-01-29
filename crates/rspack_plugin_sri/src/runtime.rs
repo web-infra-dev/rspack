@@ -108,7 +108,7 @@ impl RuntimeModule for SRIHashVariableRuntimeModule {
       .filter(|c| {
         compilation
           .chunk_graph
-          .get_chunk_modules(c, &module_graph)
+          .get_chunk_modules(c, module_graph)
           .iter()
           .any(|m| {
             let result = compilation.code_generation_results.get_one(&m.identifier());
@@ -125,7 +125,7 @@ impl RuntimeModule for SRIHashVariableRuntimeModule {
         .filter(|c| {
           compilation
             .chunk_graph
-            .has_chunk_module_by_source_type(c, source_type, &module_graph)
+            .has_chunk_module_by_source_type(c, source_type, module_graph)
         })
         .map(|c| compilation.chunk_by_ukey.expect_get(c).expect_id())
         .filter(|c| include_chunks.contains_key(c))
@@ -248,19 +248,19 @@ pub async fn link_preload(&self, mut data: LinkPreloadData) -> Result<LinkPreloa
 #[plugin_hook(CompilationAdditionalTreeRuntimeRequirements for SubresourceIntegrityPlugin)]
 pub async fn handle_runtime(
   &self,
-  compilation: &mut Compilation,
+  compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
   runtime_requirements: &mut RuntimeGlobals,
+  runtime_modules: &mut Vec<Box<dyn RuntimeModule>>,
 ) -> Result<()> {
   runtime_requirements.insert(RuntimeGlobals::REQUIRE);
-  compilation.add_runtime_module(
-    chunk_ukey,
+  runtime_modules.push(
     SRIHashVariableRuntimeModule::new(
       &compilation.runtime_template,
       *chunk_ukey,
       self.options.hash_func_names.clone(),
     )
     .boxed(),
-  )?;
+  );
   Ok(())
 }

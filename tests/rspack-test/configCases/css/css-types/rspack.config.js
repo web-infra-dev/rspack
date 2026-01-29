@@ -14,7 +14,7 @@ module.exports = {
 			},
 			{
 				test: /\.global\.css$/i,
-				// CHANGE: not support css/global
+				// MAYBE: support css/global
 				// type: "css/global"
 				type: "css/auto"
 			},
@@ -28,7 +28,5 @@ module.exports = {
 			}
 		]
 	},
-	experiments: {
-		css: true
-	}
+
 };

@@ -1,3 +1,3 @@
-self.postMessage("__PLACEHOLDER__");
+self.postMessage('__PLACEHOLDER__');
 
-module.hot.accept();
+import.meta.webpackHot.accept();

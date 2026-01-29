@@ -1,6 +1,6 @@
 {
   "name": "@rspack/test-tools",
-  "version": "1.7.0-beta.1",
+  "version": "2.0.0-alpha.1",
   "license": "MIT",
   "description": "Test tools for rspack",
   "main": "dist/index.js",
@@ -23,7 +23,12 @@
     "api-extractor": "api-extractor run --verbose",
     "api-extractor:ci": "api-extractor run --verbose || diff temp/test-tools.api.md etc/test-tools.api.md"
   },
-  "files": ["client", "dist", "template", "rstest.d.ts"],
+  "files": [
+    "client",
+    "dist",
+    "template",
+    "rstest.d.ts"
+  ],
   "publishConfig": {
     "access": "public",
     "provenance": true
@@ -36,19 +41,19 @@
     "directory": "packages/rspack-test-tools"
   },
   "dependencies": {
-    "@babel/generator": "7.28.5",
-    "@babel/parser": "7.28.5",
-    "@babel/traverse": "7.28.5",
-    "@babel/types": "7.28.5",
+    "@babel/generator": "7.28.6",
+    "@babel/parser": "7.28.6",
+    "@babel/traverse": "7.28.6",
+    "@babel/types": "7.28.6",
     "cross-env": "^10.1.0",
     "filenamify": "4.3.0",
     "fs-extra": "^11.3.3",
-    "iconv-lite": "^0.7.1",
+    "iconv-lite": "^0.7.2",
     "javascript-stringify": "^2.1.0",
     "jest-diff": "^30.2.0",
     "jest-snapshot": "29.7.0",
     "jsdom": "^26.1.0",
-    "memfs": "4.51.1",
+    "memfs": "4.53.0",
     "path-serializer": "0.5.1",
     "pretty-format": "30.2.0",
     "rimraf": "^5.0.10",

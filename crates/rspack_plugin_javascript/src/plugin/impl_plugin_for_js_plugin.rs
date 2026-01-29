@@ -6,8 +6,8 @@ use rspack_core::{
   CompilationId, CompilationParams, CompilationRenderManifest, CompilerCompilation,
   ConstDependencyTemplate, DependencyType, IgnoreErrorModuleFactory, ManifestAssetType,
   ModuleGraph, ModuleType, ParserAndGenerator, PathData, Plugin, RenderManifestEntry,
-  RuntimeGlobals, RuntimeRequirementsDependencyTemplate, SelfModuleFactory, SourceType,
-  get_js_chunk_filename_template,
+  RuntimeGlobals, RuntimeModule, RuntimeRequirementsDependencyTemplate, SelfModuleFactory,
+  SourceType, get_js_chunk_filename_template,
   rspack_sources::{BoxSource, CachedSource, SourceExt},
 };
 use rspack_error::{Diagnostic, Result};
@@ -406,9 +406,10 @@ async fn compilation(
 #[plugin_hook(CompilationAdditionalTreeRuntimeRequirements for JsPlugin)]
 async fn additional_tree_runtime_requirements(
   &self,
-  compilation: &mut Compilation,
+  compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
   runtime_requirements: &mut RuntimeGlobals,
+  _runtime_modules: &mut Vec<Box<dyn RuntimeModule>>,
 ) -> Result<()> {
   if !runtime_requirements.contains(RuntimeGlobals::STARTUP_NO_DEFAULT)
     && compilation
@@ -460,7 +461,7 @@ async fn content_hash(
   let module_graph = compilation.get_module_graph();
   let mut ordered_modules = compilation
     .chunk_graph
-    .get_chunk_modules_identifier_by_source_type(chunk_ukey, SourceType::JavaScript, &module_graph);
+    .get_chunk_modules_identifier_by_source_type(chunk_ukey, SourceType::JavaScript, module_graph);
   // SAFETY: module identifier is unique
   ordered_modules.sort_unstable();
 
@@ -518,7 +519,7 @@ async fn render_manifest(
     && !chunk_has_runtime_or_js(
       chunk_ukey,
       &compilation.chunk_graph,
-      &compilation.get_module_graph(),
+      compilation.get_module_graph(),
     )
   {
     return Ok(());
@@ -658,7 +659,7 @@ pub fn chunk_has_js(chunk_ukey: &ChunkUkey, compilation: &Compilation) -> bool {
   compilation.chunk_graph.has_chunk_module_by_source_type(
     chunk_ukey,
     SourceType::JavaScript,
-    &compilation.get_module_graph(),
+    compilation.get_module_graph(),
   )
 }
 

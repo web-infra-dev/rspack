@@ -160,24 +160,19 @@ impl DependencyTemplate for CommonJsFullRequireDependencyTemplate {
     let TemplateContext {
       compilation,
       runtime,
-      runtime_requirements,
+      runtime_template,
       ..
     } = code_generatable_context;
     let module_graph = compilation.get_module_graph();
-    runtime_requirements.insert(RuntimeGlobals::REQUIRE);
 
     let require_expr = if let Some(imported_module) =
       module_graph.module_graph_module_by_dependency_id(&dep.id)
       && let used = {
         if dep.names.is_empty() {
-          let exports_info = ExportsInfoGetter::prefetch_used_info_without_name(
-            &module_graph.get_exports_info(&imported_module.module_identifier),
-            &module_graph,
-            *runtime,
-            false,
-          );
+          let exports_info_used = module_graph
+            .get_prefetched_exports_info_used(&imported_module.module_identifier, *runtime);
           ExportsInfoGetter::get_used_name(
-            GetUsedNameParam::WithoutNames(&exports_info),
+            GetUsedNameParam::WithoutNames(&exports_info_used),
             *runtime,
             &dep.names,
           )
@@ -195,22 +190,20 @@ impl DependencyTemplate for CommonJsFullRequireDependencyTemplate {
       }
       && let Some(used) = used
     {
-      let comment = to_normal_comment(&property_access(&dep.names, 0));
       let mut require_expr = match used {
         UsedName::Normal(used) => {
           format!(
             "{}({}){}{}",
-            compilation
-              .runtime_template
-              .render_runtime_globals(&RuntimeGlobals::REQUIRE),
-            compilation
-              .runtime_template
-              .module_id(compilation, &dep.id, &dep.request, false),
-            comment,
+            runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
+            runtime_template.module_id(compilation, &dep.id, &dep.request, false),
+            to_normal_comment(&property_access(&dep.names, 0)),
             property_access(used, 0)
           )
         }
-        UsedName::Inlined(inlined) => format!("{}{}", comment, inlined.render()),
+        UsedName::Inlined(inlined) => inlined.render(&to_normal_comment(&format!(
+          "inlined export {}",
+          property_access(&dep.names, 0)
+        ))),
       };
       if dep.asi_safe {
         require_expr = format!("({require_expr})");
@@ -219,12 +212,8 @@ impl DependencyTemplate for CommonJsFullRequireDependencyTemplate {
     } else {
       format!(
         r#"{}({})"#,
-        compilation
-          .runtime_template
-          .render_runtime_globals(&RuntimeGlobals::REQUIRE),
-        compilation
-          .runtime_template
-          .module_id(compilation, &dep.id, &dep.request, false)
+        runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
+        runtime_template.module_id(compilation, &dep.id, &dep.request, false)
       )
     };
 

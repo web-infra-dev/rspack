@@ -2,11 +2,11 @@
 module.exports = {
 	mode: "development",
 	output: {
-		filename: "bundle0.mjs"
+		filename: "bundle0.mjs",
+		module: true,
 	},
-	node: {
-		__dirname: false,
-		__filename: false
+	experiments: {
+		module: true,
 	},
 	devtool: "source-map"
 };

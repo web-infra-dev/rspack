@@ -10,7 +10,7 @@ use napi::{
   Env, JsValue,
   bindgen_prelude::{Buffer, FromNapiValue, Function, JsValuesTupleIntoVec, Promise, ToNapiValue},
 };
-use rspack_collections::IdentifierSet;
+use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   AfterResolveResult, AssetEmittedInfo, AsyncModulesArtifact, BeforeResolveResult, BindingCell,
   BoxModule, ChunkUkey, Compilation, CompilationAdditionalTreeRuntimeRequirements,
@@ -41,9 +41,10 @@ use rspack_core::{
   NormalModuleFactoryFactorizeHook, NormalModuleFactoryResolve,
   NormalModuleFactoryResolveForScheme, NormalModuleFactoryResolveForSchemeHook,
   NormalModuleFactoryResolveHook, NormalModuleFactoryResolveResult, ResourceData, RuntimeGlobals,
-  Scheme, build_module_graph::BuildModuleGraphArtifact, parse_resource,
+  RuntimeModule, Scheme, build_module_graph::BuildModuleGraphArtifact, parse_resource,
   rspack_sources::RawStringSource,
 };
+use rspack_error::Diagnostic;
 use rspack_hash::RspackHash;
 use rspack_hook::{Hook, Interceptor};
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
@@ -1228,7 +1229,11 @@ impl CompilationFinishModules for CompilationFinishModulesTap {
 
 #[async_trait]
 impl CompilationOptimizeModules for CompilationOptimizeModulesTap {
-  async fn run(&self, _compilation: &mut Compilation) -> rspack_error::Result<Option<bool>> {
+  async fn run(
+    &self,
+    _compilation: &Compilation,
+    _diagnostics: &mut Vec<rspack_error::Diagnostic>,
+  ) -> rspack_error::Result<Option<bool>> {
     self.function.call_with_sync(()).await
   }
 
@@ -1239,7 +1244,7 @@ impl CompilationOptimizeModules for CompilationOptimizeModulesTap {
 
 #[async_trait]
 impl CompilationAfterOptimizeModules for CompilationAfterOptimizeModulesTap {
-  async fn run(&self, _compilation: &mut Compilation) -> rspack_error::Result<()> {
+  async fn run(&self, _compilation: &Compilation) -> rspack_error::Result<()> {
     self.function.call_with_sync(()).await
   }
 
@@ -1250,7 +1255,7 @@ impl CompilationAfterOptimizeModules for CompilationAfterOptimizeModulesTap {
 
 #[async_trait]
 impl CompilationOptimizeTree for CompilationOptimizeTreeTap {
-  async fn run(&self, _compilation: &mut Compilation) -> rspack_error::Result<()> {
+  async fn run(&self, _compilation: &Compilation) -> rspack_error::Result<()> {
     self.function.call_with_promise(()).await
   }
 
@@ -1276,9 +1281,10 @@ impl CompilationAdditionalTreeRuntimeRequirements
 {
   async fn run(
     &self,
-    compilation: &mut Compilation,
+    compilation: &Compilation,
     chunk_ukey: &ChunkUkey,
     runtime_requirements: &mut RuntimeGlobals,
+    _runtime_modules: &mut Vec<Box<dyn RuntimeModule>>,
   ) -> rspack_error::Result<()> {
     let arg = JsAdditionalTreeRuntimeRequirementsArg {
       chunk: ChunkWrapper::new(*chunk_ukey, compilation),
@@ -1304,11 +1310,12 @@ impl CompilationAdditionalTreeRuntimeRequirements
 impl CompilationRuntimeRequirementInTree for CompilationRuntimeRequirementInTreeTap {
   async fn run(
     &self,
-    compilation: &mut Compilation,
+    compilation: &Compilation,
     chunk_ukey: &ChunkUkey,
     all_runtime_requirements: &RuntimeGlobals,
     runtime_requirements: &RuntimeGlobals,
     runtime_requirements_mut: &mut RuntimeGlobals,
+    _runtime_modules_to_add: &mut Vec<(ChunkUkey, Box<dyn RuntimeModule>)>,
   ) -> rspack_error::Result<Option<()>> {
     let arg = JsRuntimeRequirementInTreeArg {
       chunk: ChunkWrapper::new(*chunk_ukey, compilation),
@@ -1335,11 +1342,12 @@ impl CompilationRuntimeRequirementInTree for CompilationRuntimeRequirementInTree
 impl CompilationRuntimeModule for CompilationRuntimeModuleTap {
   async fn run(
     &self,
-    compilation: &mut Compilation,
+    compilation: &Compilation,
     m: &ModuleIdentifier,
     chunk_ukey: &ChunkUkey,
+    runtime_modules: &mut IdentifierMap<Box<dyn RuntimeModule>>,
   ) -> rspack_error::Result<()> {
-    let Some(module) = compilation.runtime_modules.get(m) else {
+    let Some(module) = runtime_modules.get(m) else {
       return Ok(());
     };
     let source_string = module.generate(compilation).await?;
@@ -1353,16 +1361,15 @@ impl CompilationRuntimeModule for CompilationRuntimeModuleTap {
           .as_str()
           .cow_replace(compilation.runtime_template.runtime_module_prefix(), "")
           .into_owned(),
+        stage: module.stage().into(),
+        isolate: module.should_isolate(),
       },
       chunk: ChunkWrapper::new(*chunk_ukey, compilation),
     };
     if let Some(module) = self.function.call_with_sync(arg).await?
       && let Some(source) = module.source
     {
-      let module = compilation
-        .runtime_modules
-        .get_mut(m)
-        .expect("should have module");
+      let module = runtime_modules.get_mut(m).expect("should have module");
       match source.source {
         napi::Either::A(string) => {
           module.set_custom_source(string);
@@ -1437,7 +1444,11 @@ impl CompilationProcessAssets for CompilationProcessAssetsTap {
 
 #[async_trait]
 impl CompilationAfterProcessAssets for CompilationAfterProcessAssetsTap {
-  async fn run(&self, compilation: &mut Compilation) -> rspack_error::Result<()> {
+  async fn run(
+    &self,
+    compilation: &Compilation,
+    _diagnostics: &mut Vec<Diagnostic>,
+  ) -> rspack_error::Result<()> {
     let compilation = JsCompilationWrapper::new(compilation);
     self.function.call_with_sync(compilation).await
   }
@@ -1460,7 +1471,7 @@ impl CompilationSeal for CompilationSealTap {
 
 #[async_trait]
 impl CompilationAfterSeal for CompilationAfterSealTap {
-  async fn run(&self, _compilation: &mut Compilation) -> rspack_error::Result<()> {
+  async fn run(&self, _compilation: &Compilation) -> rspack_error::Result<()> {
     self.function.call_with_promise(()).await
   }
 

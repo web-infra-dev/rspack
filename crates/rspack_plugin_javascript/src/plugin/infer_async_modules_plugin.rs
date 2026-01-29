@@ -20,7 +20,7 @@ async fn finish_modules(
 ) -> Result<()> {
   if let Some(mutations) = compilation
     .incremental
-    .mutations_read(IncrementalPasses::INFER_ASYNC_MODULES)
+    .mutations_read(IncrementalPasses::FINISH_MODULES)
   {
     mutations
       .iter()
@@ -69,10 +69,10 @@ async fn finish_modules(
 
   if compilation
     .incremental
-    .mutations_readable(IncrementalPasses::INFER_ASYNC_MODULES)
+    .mutations_readable(IncrementalPasses::FINISH_MODULES)
     && let Some(mutations) = &mutations
   {
-    let logger = compilation.get_logger("rspack.incremental.inferAsyncModules");
+    let logger = compilation.get_logger("rspack.incremental.finishModules");
     logger.log(format!(
       "{} modules are updated by set_async",
       mutations.len()
@@ -141,15 +141,11 @@ fn set_sync_modules(
       module_graph
         .get_incoming_connections(&module)
         .filter(|con| {
-          module_graph
-            .dependency_by_id(&con.dependency_id)
-            .map(|dep| {
-              matches!(
-                dep.dependency_type(),
-                DependencyType::EsmImport | DependencyType::EsmExportImport
-              )
-            })
-            .unwrap_or_default()
+          let dep = module_graph.dependency_by_id(&con.dependency_id);
+          matches!(
+            dep.dependency_type(),
+            DependencyType::EsmImport | DependencyType::EsmExportImport
+          )
         })
         .for_each(|con| {
           if let Some(id) = con.original_module_identifier {
@@ -179,15 +175,11 @@ fn set_async_modules(
     module_graph
       .get_incoming_connections(&module)
       .filter(|con| {
-        module_graph
-          .dependency_by_id(&con.dependency_id)
-          .map(|dep| {
-            matches!(
-              dep.dependency_type(),
-              DependencyType::EsmImport | DependencyType::EsmExportImport
-            )
-          })
-          .unwrap_or_default()
+        let dep = module_graph.dependency_by_id(&con.dependency_id);
+        matches!(
+          dep.dependency_type(),
+          DependencyType::EsmImport | DependencyType::EsmExportImport
+        )
       })
       .for_each(|con| {
         if let Some(id) = con.original_module_identifier

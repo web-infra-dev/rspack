@@ -1,19 +1,51 @@
-mod artifact;
 mod graph_updater;
 mod lazy_barrel_artifact;
 mod module_executor;
 
+use std::sync::atomic::Ordering;
+
 use rspack_error::Result;
+use rspack_util::tracing_preset::TRACING_BENCH_TARGET;
+use tracing::instrument;
 
 pub use self::{
-  artifact::{BuildModuleGraphArtifact, BuildModuleGraphArtifactState},
   graph_updater::{UpdateParam, update_module_graph},
   lazy_barrel_artifact::{
     ForwardId, ForwardedIdSet, HasLazyDependencies, LazyDependencies, LazyUntil, ModuleToLazyMake,
   },
   module_executor::{ExecuteModuleId, ExecutedRuntimeModule, ModuleExecutor},
 };
-use crate::Compilation;
+pub use crate::{BuildModuleGraphArtifact, BuildModuleGraphArtifactState};
+use crate::{Compilation, logger::Logger};
+
+pub async fn build_module_graph_pass(compilation: &mut Compilation) -> Result<()> {
+  let logger = compilation.get_logger("rspack.Compiler");
+  let start = logger.time("build module graph");
+  compilation.do_build_module_graph().await?;
+  logger.time_end(start);
+  Ok(())
+}
+
+impl Compilation {
+  #[instrument("Compilation:build_module_graph",target=TRACING_BENCH_TARGET, skip_all)]
+  async fn do_build_module_graph(&mut self) -> Result<()> {
+    // run module_executor
+    if let Some(module_executor) = &mut self.module_executor {
+      let mut module_executor = std::mem::take(module_executor);
+      module_executor.before_build_module_graph(self).await?;
+      self.module_executor = Some(module_executor);
+    }
+
+    let artifact = self.build_module_graph_artifact.take();
+    self
+      .build_module_graph_artifact
+      .replace(build_module_graph(self, artifact).await?);
+
+    self.in_finish_make.store(true, Ordering::Release);
+
+    Ok(())
+  }
+}
 
 /// make module graph, support incremental rebuild
 ///

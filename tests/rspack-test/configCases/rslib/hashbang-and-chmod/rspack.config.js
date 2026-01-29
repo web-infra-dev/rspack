@@ -3,21 +3,21 @@ const {
 } = require("@rspack/core");
 
 /** @type {import("@rspack/core").Configuration} */
-const baseConfig = {
+const baseConfig = (i, mjs = false) => ({
 	entry: {
-		index: "./index.js"
+		index: {import: "./index.js", filename: `bundle${i}${mjs ? '.mjs' : '.js'}`},
 	},
 	target: "node",
 	node: {
 		__filename: false,
 		__dirname: false
 	}
-};
+});
 
 module.exports = [
 	// CJS output
 	{
-		...baseConfig,
+		...baseConfig(0),
 		output: {
 			library: {
 				type: "commonjs"
@@ -25,9 +25,9 @@ module.exports = [
 		},
 		plugins: [new RslibPlugin()]
 	},
-	// ESM output (without EsmLibraryPlugin)
+	// ESM output
 	{
-		...baseConfig,
+		...baseConfig(1, true),
 		experiments: {
 			outputModule: true
 		},
@@ -41,23 +41,6 @@ module.exports = [
 			}
 		},
 		plugins: [new RslibPlugin()]
-	},
-	// ESM output (with EsmLibraryPlugin)
-	{
-		...baseConfig,
-		experiments: {
-			outputModule: true
-		},
-		externals: {
-			os: "module os"
-		},
-		output: {
-			module: true,
-			library: {
-				type: "modern-module"
-			}
-		},
-		plugins: [new RslibPlugin(), new EsmLibraryPlugin()]
 	},
 	// Test entry
 	{

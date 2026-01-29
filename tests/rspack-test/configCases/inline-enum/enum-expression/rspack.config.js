@@ -27,7 +27,7 @@ module.exports = {
 			}
 		]
 	},
-	experiments: {
-		inlineEnum: true
+	optimization: {
+		inlineExports: true
 	}
 };

@@ -10,13 +10,11 @@ const BuildDependency = path.join(__dirname, "./configs/index.js");
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	context: __dirname,
-	experiments: {
-		cache: {
-			type: "persistent",
-			buildDependencies: [BuildDependency],
-			snapshot: {
-				immutablePaths: [path.join(__dirname, "./file.js")]
-			}
+	cache: {
+		type: "persistent",
+		buildDependencies: [BuildDependency],
+		snapshot: {
+			immutablePaths: [path.join(__dirname, "./file.js")]
 		}
 	},
 	plugins: [

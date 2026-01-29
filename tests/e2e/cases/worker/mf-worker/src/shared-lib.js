@@ -1,3 +1,3 @@
 export function getValue() {
-	return "Shared value from library";
+  return 'Shared value from library';
 }

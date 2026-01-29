@@ -6,9 +6,10 @@ use regex::Regex;
 use rspack_core::{
   BuildMetaExportsType, Compilation, CompilationOptimizeCodeGeneration, ExportInfo, ExportProvided,
   ExportsInfo, ExportsInfoGetter, ModuleGraph, Plugin, PrefetchExportsInfoMode,
-  PrefetchedExportsInfoWrapper, UsageState, UsedNameItem, incremental::IncrementalPasses,
+  PrefetchedExportsInfoWrapper, UsageState, UsedNameItem,
+  build_module_graph::BuildModuleGraphArtifact, incremental::IncrementalPasses,
 };
-use rspack_error::Result;
+use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_ids::id_helpers::assign_deterministic_ids;
 use rspack_util::atom::Atom;
@@ -59,19 +60,22 @@ struct ExportInfoCache {
 }
 
 #[plugin_hook(CompilationOptimizeCodeGeneration for MangleExportsPlugin)]
-async fn optimize_code_generation(&self, compilation: &mut Compilation) -> Result<()> {
+async fn optimize_code_generation(
+  &self,
+  compilation: &Compilation,
+  build_module_graph_artifact: &mut BuildModuleGraphArtifact,
+  diagnostics: &mut Vec<Diagnostic>,
+) -> Result<()> {
   if let Some(diagnostic) = compilation.incremental.disable_passes(
     IncrementalPasses::MODULES_HASHES,
     "MangleExportsPlugin (optimization.mangleExports = true)",
     "it requires calculating the export names of all the modules, which is a global effect",
-  ) {
-    if let Some(diagnostic) = diagnostic {
-      compilation.push_diagnostic(diagnostic);
-    }
-    compilation.cgm_hash_artifact.clear();
+  ) && let Some(diagnostic) = diagnostic
+  {
+    diagnostics.push(diagnostic);
   }
 
-  let mut mg = compilation.get_seal_module_graph_mut();
+  let mg = build_module_graph_artifact.get_module_graph_mut();
   let modules = mg.modules();
 
   let mut exports_info_cache = FxHashMap::default();
@@ -96,7 +100,7 @@ async fn optimize_code_generation(&self, compilation: &mut Compilation) -> Resul
         let mut avoid_mangle_non_provided = !is_namespace;
         let deterministic = self.deterministic;
         let exports_info_data =
-          ExportsInfoGetter::prefetch(exports_info, &mg, PrefetchExportsInfoMode::Default);
+          ExportsInfoGetter::prefetch(exports_info, mg, PrefetchExportsInfoMode::Default);
         let export_list = {
           if !can_mangle(&exports_info_data) {
             return None;
@@ -188,7 +192,7 @@ async fn optimize_code_generation(&self, compilation: &mut Compilation) -> Resul
     let batch = tasks
       .into_par_iter()
       .map(|exports_info| {
-        mangle_exports_info(&mg, self.deterministic, exports_info, &exports_info_cache)
+        mangle_exports_info(mg, self.deterministic, exports_info, &exports_info_cache)
       })
       .collect::<Vec<_>>();
 

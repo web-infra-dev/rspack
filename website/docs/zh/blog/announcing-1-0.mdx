@@ -41,7 +41,7 @@ Rspack 是基于 Rust 编写的下一代 JavaScript 打包工具， 兼容 webpa
 
 作为基于 Rust 实现的 Bundler，性能始终是 Rspack 的一个核心指标。从 Rspack 0.1 发布以来，我们对 Rspack 做了大量的性能改进，优化各个场景下的性能表现，并支持了 [lazy compilation](/config/experiments#experimentslazycompilation) 等核心功能，以保障 Rspack 在大型项目中有更佳的性能。
 
-下图是 Rspack 0.1 与 Rspack 1.0 在 [benchmark](https://github.com/rspack-contrib/performance-compare) 中的 build 性能对比。可以看到，Rspack 在实现大量新特性的同时，也显著提升了构建性能：
+下图是 Rspack 0.1 与 Rspack 1.0 在 [benchmark](https://github.com/rstackjs/build-tools-performance) 中的 build 性能对比。可以看到，Rspack 在实现大量新特性的同时，也显著提升了构建性能：
 
 ![Rspack benchmark](https://assets.rspack.rs/rspack/assets/rspack-v1-0-benchmark.png)
 
@@ -178,7 +178,7 @@ Rspack 的发展离不开广大的社区贡献者和社区伙伴，这里特别�
 - 我们也与 SWC 团队合作，贡献了 Preact Refresh SWC 插件，并修复了若干个 SWC 的 transform 和 minify 的 bug，感谢 [kdy](https://github.com/kdy1) 给予的 review 意见。
 - Rspack 积极拥抱 [unplugin](https://github.com/unjs/unplugin) 的生态，完整支持了 unplugin API，感谢 [sxzz](https://github.com/sxzz) 的 review 意见和 [antfu](https://github.com/antfu) 的非凡创造力。
 
-同时我们也很欣喜地看到，Rspack 正在被应用或集成到更广泛的生态上，包括 [Bazel](https://medium.com/@yanirmanor/why-moving-to-rspack-and-how-to-use-it-with-bazel-9f66139fe493)、[Storybook](https://github.com/rspack-contrib/storybook-rsbuild)、[Electron](https://github.com/noshower/electron-forge-plugin-rspack) 等。
+同时我们也很欣喜地看到，Rspack 正在被应用或集成到更广泛的生态上，包括 [Bazel](https://medium.com/@yanirmanor/why-moving-to-rspack-and-how-to-use-it-with-bazel-9f66139fe493)、[Storybook](https://github.com/rstackjs/storybook-rsbuild)、[Electron](https://github.com/noshower/electron-forge-plugin-rspack) 等。
 
 最后，再次感谢所有为 Rspack 生态贡献过的开发者 ❤️：
 

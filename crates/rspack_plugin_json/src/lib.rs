@@ -13,8 +13,8 @@ use json::{
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, ExportsInfoGetter, GenerateContext,
-  Module, ModuleGraph, NAMESPACE_OBJECT_EXPORT, ParseOption, ParserAndGenerator, Plugin,
-  PrefetchExportsInfoMode, PrefetchedExportsInfoWrapper, RuntimeGlobals, RuntimeSpec, SourceType,
+  Module, ModuleArgument, ModuleGraph, NAMESPACE_OBJECT_EXPORT, ParseOption, ParserAndGenerator,
+  Plugin, PrefetchExportsInfoMode, PrefetchedExportsInfoWrapper, RuntimeSpec, SourceType,
   UsageState, UsedNameItem,
   diagnostics::ModuleParseError,
   rspack_sources::{BoxSource, RawStringSource, Source, SourceExt},
@@ -200,12 +200,7 @@ impl ParserAndGenerator for JsonParserAndGenerator {
               UsageState::Unused
             ) =>
           {
-            create_object_for_exports_info(
-              json_data.clone(),
-              &exports_info,
-              *runtime,
-              &module_graph,
-            )
+            create_object_for_exports_info(json_data.clone(), &exports_info, *runtime, module_graph)
           }
           _ => json_data.clone(),
         };
@@ -224,10 +219,12 @@ impl ParserAndGenerator for JsonParserAndGenerator {
           scope.register_namespace_export(NAMESPACE_OBJECT_EXPORT);
           format!("var {NAMESPACE_OBJECT_EXPORT} = {json_expr}")
         } else {
-          generate_context
-            .runtime_requirements
-            .insert(RuntimeGlobals::MODULE);
-          format!(r#"module.exports = {json_expr}"#)
+          format!(
+            r#"{}.exports = {json_expr}"#,
+            generate_context
+              .runtime_template
+              .render_module_argument(ModuleArgument::Module)
+          )
         };
         Ok(RawStringSource::from(content).boxed())
       }

@@ -1,3 +1,3 @@
 ```html title=output.html
-<!doctype html><html><head><meta charset="UTF-8"><title>Rspack App</title><script crossorigin integrity="sha512-Orikz3SNSn+AZ/83dHOamnEgt4/EwAPs7GkTrri81j23hMb7mU0Ql5E/88CAHP2fZSRCSRuEZIwfjE+1mhb00w==" src="/runtime.js"></script><script crossorigin integrity="sha512-Suo2rxdzKWBwd8QCzEYzbPxiEFqbi+tK1D9wIhKVSSj2w27IeZ97mKVFTeqHcgvDoAREm2wNE6YqasvTKx3b0Q==" src="/index.js"></script><link crossorigin href="/index.css" integrity="sha512-vjhejkvTX8D8jzzC5Lc9ToCtcEDb0/NqtYmEHOid+ycq64hvW+JTG7Dw/ACFP6rApgiYwVMbEt6Zfb8j4EoZTA==" rel="stylesheet"></head><body></body></html>
+<!doctype html><html><head><meta charset="UTF-8"><title>Rspack App</title><script src="/runtime.js"></script><script src="/index.js"></script><link href="/index.css" rel="stylesheet"></head><body></body></html>
 ```

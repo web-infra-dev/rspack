@@ -1,14 +1,14 @@
 import {
-	BuiltinPluginName,
-	type RawRuntimeChunkOptions
-} from "@rspack/binding";
+  BuiltinPluginName,
+  type RawRuntimeChunkOptions,
+} from '@rspack/binding';
 
-import { create } from "./base";
+import { create } from './base';
 
 export type RuntimeChunkPluginOptions = RawRuntimeChunkOptions;
 
 export const RuntimeChunkPlugin = create(
-	BuiltinPluginName.RuntimeChunkPlugin,
-	(options: RuntimeChunkPluginOptions): RawRuntimeChunkOptions => options,
-	"thisCompilation"
+  BuiltinPluginName.RuntimeChunkPlugin,
+  (options: RuntimeChunkPluginOptions): RawRuntimeChunkOptions => options,
+  'thisCompilation',
 );

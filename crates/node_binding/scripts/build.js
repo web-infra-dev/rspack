@@ -71,7 +71,7 @@ async function build() {
 			rustflags.push("-Zfmt-debug=none");
 		}
 		args.push("--no-dts-cache");
-		if (!values.profile || values.profile === "dev") {
+		if (!values.profile || values.profile === "dev" || values.profile === "release-debug") {
 			features.push("color-backtrace");
 		}
 		if (process.env.SFTRACE) {

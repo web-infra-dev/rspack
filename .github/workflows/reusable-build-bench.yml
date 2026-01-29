@@ -42,7 +42,7 @@ jobs:
           key: build-bench-${{ inputs.target }}
 
       - name: Install cargo-codspeed binary
-        uses: taiki-e/install-action@50cee16bd6b97b2579572f83cfa1c0a721b1e336 # v2
+        uses: taiki-e/install-action@dfcb1ee29051d97c8d0f2d437199570008fd5612 # v2
         with:
           tool: cargo-codspeed@2.10.1
 
@@ -79,6 +79,9 @@ jobs:
       - name: Run benchmark
         uses: ./.github/actions/codspeed
         timeout-minutes: 30
+        env:
+          RAYON_NUM_THREADS: 1
         with:
+          mode: 'simulation'
           run: pnpm run bench:ci
           token: ${{ secrets.CODSPEED_TOKEN }}

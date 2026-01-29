@@ -181,12 +181,10 @@ pub fn impl_runtime_module(
 
       async fn code_generation(
         &self,
-        compilation: &::rspack_core::Compilation,
-        _runtime: Option<&::rspack_core::RuntimeSpec>,
-        _: Option<::rspack_core::ConcatenationScope>,
+        code_generation_context: &mut ::rspack_core::ModuleCodeGenerationContext,
       ) -> rspack_error::Result<::rspack_core::CodeGenerationResult> {
         let mut result = ::rspack_core::CodeGenerationResult::default();
-        result.add(::rspack_core::SourceType::Runtime, self.get_generated_code(compilation).await?);
+        result.add(::rspack_core::SourceType::Runtime, self.get_generated_code(code_generation_context.compilation).await?);
         Ok(result)
       }
 

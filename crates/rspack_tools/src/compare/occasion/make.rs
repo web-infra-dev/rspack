@@ -4,9 +4,10 @@ pub use rspack_core::cache::persistent::occasion::make::SCOPE;
 use rspack_core::{
   DependencyId,
   build_module_graph::BuildModuleGraphArtifact,
-  cache::persistent::{CacheableContext, occasion::make::MakeOccasion, storage::Storage},
+  cache::persistent::{codec::CacheCodec, occasion::make::MakeOccasion, storage::Storage},
 };
 use rspack_error::Result;
+use rspack_paths::Utf8PathBuf;
 use rustc_hash::FxHashMap as HashMap;
 
 use crate::{debug_info::DebugInfo, utils::ensure_iter_equal};
@@ -29,9 +30,10 @@ pub async fn compare(
   ensure_iter_equal("Make module key", map1.keys(), map2.keys(), &debug_info)?;
 
   // Convert stored data to BuildModuleGraphArtifact using MakeOccasion's recovery ability
-  let context = Arc::new(CacheableContext);
-  let occasion1 = MakeOccasion::new(storage1.clone(), context.clone());
-  let occasion2 = MakeOccasion::new(storage2.clone(), context.clone());
+  // Use a dummy path for codec since we're only deserializing
+  let codec = Arc::new(CacheCodec::new(Some(Utf8PathBuf::from("/"))));
+  let occasion1 = MakeOccasion::new(storage1.clone(), codec.clone());
+  let occasion2 = MakeOccasion::new(storage2.clone(), codec.clone());
 
   let artifact1 = occasion1.recovery().await?;
   let artifact2 = occasion2.recovery().await?;
@@ -44,14 +46,14 @@ pub async fn compare(
 
 /// Comparator for BuildModuleGraphArtifacts
 struct ArtifactComparator<'a> {
-  mg1: rspack_core::ModuleGraphRef<'a>,
-  mg2: rspack_core::ModuleGraphRef<'a>,
+  mg1: &'a rspack_core::ModuleGraph,
+  mg2: &'a rspack_core::ModuleGraph,
 }
 
 impl<'a> ArtifactComparator<'a> {
   fn new(artifact1: &'a BuildModuleGraphArtifact, artifact2: &'a BuildModuleGraphArtifact) -> Self {
-    let mg1 = rspack_core::ModuleGraph::new_ref([Some(&artifact1.module_graph_partial), None]);
-    let mg2 = rspack_core::ModuleGraph::new_ref([Some(&artifact2.module_graph_partial), None]);
+    let mg1 = &artifact1.module_graph;
+    let mg2 = &artifact2.module_graph;
     Self { mg1, mg2 }
   }
 
@@ -187,14 +189,8 @@ impl<'a> ArtifactComparator<'a> {
     for (i, (dep_id1, dep_id2)) in deps1.iter().zip(deps2.iter()).enumerate() {
       let dep_debug_info = debug_info.with_field("dependency_index", &i.to_string());
 
-      let dep1 = self
-        .mg1
-        .dependency_by_id(dep_id1)
-        .expect("dependency should exist");
-      let dep2 = self
-        .mg2
-        .dependency_by_id(dep_id2)
-        .expect("dependency should exist");
+      let dep1 = self.mg1.dependency_by_id(dep_id1);
+      let dep2 = self.mg2.dependency_by_id(dep_id2);
 
       // Compare dependency types
       let type1 = dep1.dependency_type();

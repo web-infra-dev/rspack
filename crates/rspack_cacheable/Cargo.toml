@@ -19,12 +19,14 @@ inventory               = { workspace = true }
 json                    = { workspace = true }
 lightningcss            = { workspace = true }
 once_cell               = { workspace = true }
+regex                   = { workspace = true }
 rkyv                    = { workspace = true }
 rspack_cacheable_macros = { workspace = true }
 rspack_resolver         = { workspace = true }
 rspack_sources          = { workspace = true }
 serde_json              = { workspace = true }
 smol_str                = { workspace = true }
+sugar_path              = { workspace = true }
 swc_core                = { workspace = true, features = ["ecma_ast"] }
 ustr                    = { workspace = true }
 xxhash-rust             = { workspace = true, features = ["const_xxh64"] }

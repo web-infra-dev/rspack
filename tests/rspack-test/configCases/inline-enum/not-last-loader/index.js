@@ -8,6 +8,6 @@ it("should inline for enum when builtin:swc-loader is not the last loader", () =
   expect(E.B).toBe(1);
   // END:A
   const block = generated.match(/\/\/ START:A([\s\S]*)\/\/ END:A/)[1];
-  expect(block.includes(`(/* inlined export .E.A */ (0)).toBe(0)`)).toBe(true);
-  expect(block.includes(`(/* inlined export .E.B */ (1)).toBe(1)`)).toBe(true);
+  expect(block.includes(`((/* inlined export .E.A */0)).toBe(0)`)).toBe(true);
+  expect(block.includes(`((/* inlined export .E.B */1)).toBe(1)`)).toBe(true);
 })

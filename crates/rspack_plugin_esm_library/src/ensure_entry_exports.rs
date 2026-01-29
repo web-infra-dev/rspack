@@ -50,7 +50,7 @@ pub(crate) fn ensure_entry_exports(compilation: &mut Compilation) {
         let outgoings = module_graph.get_active_outcoming_connections_by_module(
           m,
           None,
-          &module_graph,
+          module_graph,
           &compilation.module_graph_cache_artifact,
         );
         for outgoing in outgoings.keys() {

@@ -9,7 +9,7 @@ use rustc_hash::FxHashSet as HashSet;
 
 use self::helper::{Helper, is_node_package_path};
 use super::{
-  snapshot::{Snapshot, SnapshotOptions},
+  snapshot::{Snapshot, SnapshotScope},
   storage::Storage,
 };
 
@@ -29,7 +29,7 @@ pub struct BuildDeps {
   /// The next time the add method is called, this path will be additionally added.
   pending: ArcPathSet,
   /// The snapshot which is used to save build dependencies.
-  snapshot: Snapshot,
+  snapshot: Arc<Snapshot>,
   storage: Arc<dyn Storage>,
   fs: Arc<dyn ReadableFileSystem>,
 }
@@ -37,19 +37,14 @@ pub struct BuildDeps {
 impl BuildDeps {
   pub fn new(
     options: &BuildDepsOptions,
-    snapshot_options: &SnapshotOptions,
     fs: Arc<dyn ReadableFileSystem>,
+    snapshot: Arc<Snapshot>,
     storage: Arc<dyn Storage>,
   ) -> Self {
     Self {
       added: Default::default(),
       pending: options.iter().map(|v| ArcPath::from(v.as_path())).collect(),
-      snapshot: Snapshot::new_with_scope(
-        SCOPE,
-        snapshot_options.clone(),
-        fs.clone(),
-        storage.clone(),
-      ),
+      snapshot,
       storage,
       fs,
     }
@@ -81,7 +76,10 @@ impl BuildDeps {
       }
     }
 
-    self.snapshot.add(new_deps.into_iter()).await;
+    self
+      .snapshot
+      .add(SnapshotScope::BUILD, new_deps.into_iter())
+      .await;
     helper.into_warnings()
   }
 
@@ -89,8 +87,10 @@ impl BuildDeps {
   ///
   /// If any build dependencies have changed, this method will reset storage.
   pub async fn validate(&mut self) -> Result<()> {
-    let (_, modified_files, removed_files, no_changed_files) =
-      self.snapshot.calc_modified_paths().await?;
+    let (_, modified_files, removed_files, no_changed_files) = self
+      .snapshot
+      .calc_modified_paths(SnapshotScope::BUILD)
+      .await?;
 
     if !modified_files.is_empty() || !removed_files.is_empty() {
       self.storage.reset().await;
@@ -112,9 +112,17 @@ mod test {
   use rspack_fs::{MemoryFileSystem, WritableFileSystem};
   use rspack_storage::Storage;
 
-  use super::{super::storage::MemoryStorage, BuildDeps, SCOPE, SnapshotOptions};
+  use super::{
+    super::{
+      codec::CacheCodec,
+      snapshot::{Snapshot, SnapshotOptions, SnapshotScope},
+      storage::MemoryStorage,
+    },
+    BuildDeps,
+  };
   #[tokio::test]
   async fn build_dependencies_test() {
+    let scope = SnapshotScope::BUILD.name();
     let fs = Arc::new(MemoryFileSystem::default());
     fs.create_dir_all("/configs/test".into()).await.unwrap();
     fs.write("/configs/a.js".into(), r#"console.log('a')"#.as_bytes())
@@ -149,15 +157,21 @@ mod test {
       .unwrap();
 
     let options = vec![PathBuf::from("/index.js"), PathBuf::from("/configs")];
-    let snapshot_options = SnapshotOptions::default();
     let storage = Arc::new(MemoryStorage::default());
-    let mut build_deps = BuildDeps::new(&options, &snapshot_options, fs.clone(), storage.clone());
+    let codec = Arc::new(CacheCodec::new(None));
+    let snapshot = Arc::new(Snapshot::new(
+      SnapshotOptions::default(),
+      fs.clone(),
+      storage.clone(),
+      codec,
+    ));
+    let mut build_deps = BuildDeps::new(&options, fs.clone(), snapshot.clone(), storage.clone());
     let warnings = build_deps.add(vec![].into_iter()).await;
     assert_eq!(warnings.len(), 1);
-    let data = storage.load(SCOPE).await.expect("should load success");
+    let data = storage.load(scope).await.expect("should load success");
     assert_eq!(data.len(), 9);
 
-    let mut build_deps = BuildDeps::new(&options, &snapshot_options, fs.clone(), storage.clone());
+    let mut build_deps = BuildDeps::new(&options, fs.clone(), snapshot.clone(), storage.clone());
     fs.write("/b.js".into(), r#"require("./c")"#.as_bytes())
       .await
       .unwrap();
@@ -166,11 +180,11 @@ mod test {
       .await
       .expect("should validate success");
 
-    let data = storage.load(SCOPE).await.expect("should load success");
+    let data = storage.load(scope).await.expect("should load success");
     assert_eq!(data.len(), 0);
     let warnings = build_deps.add(vec![].into_iter()).await;
     assert_eq!(warnings.len(), 0);
-    let data = storage.load(SCOPE).await.expect("should load success");
+    let data = storage.load(scope).await.expect("should load success");
     assert_eq!(data.len(), 10);
   }
 }

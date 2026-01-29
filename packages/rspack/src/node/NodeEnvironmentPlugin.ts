@@ -7,61 +7,61 @@
  * Copyright (c) JS Foundation and other contributors
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
-import fs from "node:fs";
+import fs from 'node:fs';
 // @ts-expect-error we directly import from enhanced-resolve inner js file to improve performance
-import CachedInputFileSystem from "enhanced-resolve/lib/CachedInputFileSystem";
+import CachedInputFileSystem from 'enhanced-resolve/lib/CachedInputFileSystem';
 
-import type { Compiler } from "..";
-import type { InfrastructureLogging } from "../config";
-import { createConsoleLogger } from "../logging/createConsoleLogger";
-import NativeWatchFileSystem from "../NativeWatchFileSystem";
-import type { InputFileSystem } from "../util/fs";
-import NodeWatchFileSystem from "./NodeWatchFileSystem";
-import nodeConsole from "./nodeConsole";
+import type { Compiler } from '..';
+import type { InfrastructureLogging } from '../config';
+import { createConsoleLogger } from '../logging/createConsoleLogger';
+import NativeWatchFileSystem from '../NativeWatchFileSystem';
+import type { InputFileSystem } from '../util/fs';
+import NodeWatchFileSystem from './NodeWatchFileSystem';
+import nodeConsole from './nodeConsole';
 
 export interface NodeEnvironmentPluginOptions {
-	infrastructureLogging: InfrastructureLogging;
+  infrastructureLogging: InfrastructureLogging;
 }
 
 export default class NodeEnvironmentPlugin {
-	options: NodeEnvironmentPluginOptions;
+  options: NodeEnvironmentPluginOptions;
 
-	constructor(options: NodeEnvironmentPluginOptions) {
-		this.options = options;
-	}
+  constructor(options: NodeEnvironmentPluginOptions) {
+    this.options = options;
+  }
 
-	apply(compiler: Compiler) {
-		const { infrastructureLogging } = this.options;
-		compiler.infrastructureLogger = createConsoleLogger({
-			level: infrastructureLogging.level || "info",
-			debug: infrastructureLogging.debug || false,
-			console:
-				infrastructureLogging.console ||
-				nodeConsole({
-					colors: infrastructureLogging.colors,
-					appendOnly: infrastructureLogging.appendOnly,
-					stream: infrastructureLogging.stream!
-				})
-		});
+  apply(compiler: Compiler) {
+    const { infrastructureLogging } = this.options;
+    compiler.infrastructureLogger = createConsoleLogger({
+      level: infrastructureLogging.level || 'info',
+      debug: infrastructureLogging.debug || false,
+      console:
+        infrastructureLogging.console ||
+        nodeConsole({
+          colors: infrastructureLogging.colors,
+          appendOnly: infrastructureLogging.appendOnly,
+          stream: infrastructureLogging.stream!,
+        }),
+    });
 
-		const inputFileSystem: InputFileSystem = new CachedInputFileSystem(
-			fs,
-			60000
-		);
-		compiler.inputFileSystem = inputFileSystem;
-		compiler.outputFileSystem = fs;
-		compiler.intermediateFileSystem = null;
+    const inputFileSystem: InputFileSystem = new CachedInputFileSystem(
+      fs,
+      60000,
+    );
+    compiler.inputFileSystem = inputFileSystem;
+    compiler.outputFileSystem = fs;
+    compiler.intermediateFileSystem = null;
 
-		if (compiler.options.experiments.nativeWatcher) {
-			compiler.watchFileSystem = new NativeWatchFileSystem(inputFileSystem);
-		} else {
-			compiler.watchFileSystem = new NodeWatchFileSystem(inputFileSystem);
-		}
-		compiler.hooks.beforeRun.tap("NodeEnvironmentPlugin", compiler => {
-			if (compiler.inputFileSystem === inputFileSystem) {
-				compiler.fsStartTime = Date.now();
-				inputFileSystem.purge?.();
-			}
-		});
-	}
+    if (compiler.options.experiments.nativeWatcher) {
+      compiler.watchFileSystem = new NativeWatchFileSystem(inputFileSystem);
+    } else {
+      compiler.watchFileSystem = new NodeWatchFileSystem(inputFileSystem);
+    }
+    compiler.hooks.beforeRun.tap('NodeEnvironmentPlugin', (compiler) => {
+      if (compiler.inputFileSystem === inputFileSystem) {
+        compiler.fsStartTime = Date.now();
+        inputFileSystem.purge?.();
+      }
+    });
+  }
 }

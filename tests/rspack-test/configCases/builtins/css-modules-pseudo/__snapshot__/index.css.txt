@@ -1,9 +1,9 @@
 Object {
-  bar: bd00b1e0e0954270-bar,
-  bav: bd00b1e0e0954270-bav,
-  foo: bd00b1e0e0954270-foo,
-  four: bd00b1e0e0954270-four,
-  one: bd00b1e0e0954270-one,
-  three: bd00b1e0e0954270-three,
-  two: bd00b1e0e0954270-two,
+  bar: _5dad3ebd4b914974,
+  bav: _63bcf8d98310c00c,
+  foo: _47d9af61f36d6346,
+  four: _48fb0c4ea02ebcd2,
+  one: _8404656162b1a0da,
+  three: _186133fccb509298,
+  two: _0af0c670506994ae,
 }

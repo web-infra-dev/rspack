@@ -1,29 +1,331 @@
+import { ApiMeta, Stability } from '../../../components/ApiMeta';
 import PropertyType from '@components/PropertyType';
 
 # Cache
 
+<ApiMeta addedVersion="2.0.0" />
+
 缓存：该选项可以开启或者关闭 Rspack 构建过程中对快照及中间产物的缓存，如果开启，在下次构建中可以使用它们来提升构建的速度。
 
-:::info 缓存类型
-Rspack 当前支持内存缓存（Memory Cache）和实验性的持久化缓存（Persistent Cache），更多细节参考 [Persistent Cache](/config/experiments#持久化缓存)。
-:::
+- **类型：** `CacheOptions`
 
-此配置当前仅支持控制是否进行缓存。
+- **默认值：** production 模式为 `false`, development 模式为 `true`
 
-<PropertyType
-  type="boolean"
-  defaultValueList={[
-    { defaultValue: 'false', mode: 'production' },
-    { defaultValue: 'true', mode: 'development' },
-  ]}
-/>
+```ts
+type CacheOptions =
+  | boolean
+  | {
+      type: 'memory';
+    }
+  | {
+      type: 'persistent';
+      buildDependencies?: string[];
+      version?: string;
+      portable?: boolean;
+      snapshot?: {
+        immutablePaths?: Array<string | RegExp>;
+        unmanagedPaths?: Array<string | RegExp>;
+        managedPaths?: Array<string | RegExp>;
+      };
+      storage?: {
+        type: 'filesystem';
+        directory?: string;
+      };
+    };
+```
 
-## 用法
+## 禁用缓存
 
-你可以在 Rspack 配置中直接设置 `cache` 来禁用缓存:
+可以配置 `cache` 为 `false` 来禁用缓存。
 
 ```js title="rspack.config.mjs"
 export default {
   cache: false,
 };
+```
+
+## 内存缓存
+
+可以配置 `cache` 为 `true` 或 `{ type: "memory" }` 来启用内存缓存。
+
+```js title="rspack.config.mjs"
+export default {
+  cache: true,
+};
+```
+
+或
+
+```js title="rspack.config.mjs"
+export default {
+  cache: {
+    type: 'memory',
+  },
+};
+```
+
+## 持久化缓存
+
+可以配置 `cache` 为 `{ type: "persistent" }` 来启用持久化缓存。
+
+```js title="rspack.config.mjs"
+export default {
+  cache: {
+    type: 'persistent',
+  },
+};
+```
+
+### cache.buildDependencies
+
+- **类型：** `string[]`
+
+- **默认值：** `[]`
+
+`cache.buildDependencies` 是一个包含构建依赖的文件数组，Rspack 会使用这些文件的哈希值来使持久化缓存失效。
+
+:::tip
+建议在 rspack 配置中设置 `cache.buildDependencies`: [__filename]，以获取最新的配置。
+:::
+
+```js title="rspack.config.mjs"
+export default {
+  cache: {
+    type: 'persistent',
+    buildDependencies: [__filename, path.join(__dirname, './tsconfig.json')],
+  },
+};
+```
+
+### cache.version
+
+- **类型：** `string`
+
+- **默认值:** `""`
+
+缓存版本，不同版本的缓存彼此隔离。
+
+:::tip 持久化缓存失效
+
+除了 [buildDependencies](#cachebuilddependencies) 和 [version](#cacheversion) 配置会影响持久化缓存失效外，以下字段变化时 Rspack 也会使持久化缓存失效。
+
+- [config.name](/config/other-options#name)
+- [config.mode](/config/mode#mode)
+
+:::
+
+### cache.portable
+
+- **类型：** `boolean`
+
+- **默认值：** `false`
+
+启用可移植缓存模式。启用后，生成的缓存内容可以在同一项目的不同平台和路径之间共享使用。
+
+可移植缓存构建在持久化缓存之上，通过在序列化和反序列化过程中转换平台特定的数据（例如，将绝对路径转换为相对路径），使缓存具有平台无关性。
+
+:::tip 使用场景
+
+典型的使用场景是在 CI 环境中，Windows、Linux 和 macOS 可以使用同一份缓存进行加速，而不需要生成三份独立的缓存副本。
+
+:::
+
+**示例：**
+
+```js title="rspack.config.mjs"
+export default {
+  cache: {
+    type: 'persistent',
+    portable: true,
+  },
+};
+```
+
+:::warning 限制
+
+项目目录之外的文件（`config.context` 之外）会被转换为相对路径。如果这些文件在新环境中不存在，将会触发相关模块的重新构建。
+
+:::
+
+### cache.snapshot
+
+配置快照策略。快照用于在关闭期间确定哪些文件已被修改。支持以下配置：
+
+#### snapshot.immutablePaths
+
+- **类型：** `(RegExp | string)[]`
+
+- **默认值：** `[]`
+
+不可变文件的路径数组，热重启期间对这些路径的更改将被忽略。
+
+#### snapshot.managedPaths
+
+- **类型：** `(RegExp | string)[]`
+
+- **默认值：** `[/[\\/]node_modules[\\/][^.]/]`
+
+包管理器管理的路径数组。在热启动时，将基于 package.json 中的版本来确定是否修改该路径。
+
+#### snapshot.unmanagedPaths
+
+- **类型：** `(RegExp | string)[]`
+
+- **默认值：** `[]`
+
+指定 `snapshot.managedPaths` 中不受包管理器管理的路径数组
+
+### cache.storage
+
+- **类型：** `{ type: 'filesystem', directory: string }`
+
+- **默认值：** `{ type: 'filesystem', directory: 'node_modules/.cache/rspack' }`
+
+配置缓存存储。目前仅支持文件系统存储。可通过 `directory` 设置缓存目录。默认为 `node_modules/.cache/rspack`。
+
+```js title="rspack.config.mjs"
+export default {
+  cache: {
+    type: 'persistent',
+    storage: {
+      type: 'filesystem',
+      directory: 'node_modules/.cache/rspack',
+    },
+  },
+};
+```
+
+:::tip
+Rspack 将基于 [config.name](/config/other-options#name)、[config.mode](/config/mode#mode)、[buildDependencies](#cachebuilddependencies) 中的文件内容和 [version](#cacheversion) 在 `storage.directory` 中生成缓存文件夹。
+
+Rspack 会在启动时自动清理长时间（7 天）未访问的缓存文件夹。
+:::
+
+## 从 webpack 配置迁移
+
+Rspack 的缓存配置与 webpack 的缓存配置不同。你可以参考以下步骤迁移 webpack 的缓存配置。
+
+1. 根据缓存类型，设置 Rspack 缓存类型。对于持久化缓存继续下一步，对于其他类型的缓存到此结束。
+
+```diff title="rspack.config.mjs"
+export default {
+- cache: {
+-   type: 'filesystem',
+- },
++ cache: {
++   type: 'persistent',
++ },
+};
+```
+
+2. 迁移 `cache.buildDependencies`
+
+```diff title="rspack.config.mjs"
+export default {
+- cache: {
+-   buildDependencies: {
+-     config: [__filename, path.join(__dirname, "package.json")],
+-     ts: [path.join(__dirname, "tsconfig.json")]
+-   }
+- },
++ cache: {
++   type: "persistent",
++   buildDependencies: [
++     __filename,
++     path.join(__dirname, "package.json"),
++     path.join(__dirname, "tsconfig.json")
++   ]
++ },
+};
+```
+
+3. 迁移 `cache.version` 和 `cache.name`
+
+```diff title="rspack.config.mjs"
+export default {
+- cache: {
+-   name: `${config.name}-${config.mode}-${otherFlags}`,
+-   version: appVersion
+- },
++ cache: {
++   type: "persistent",
++   version: `${config.name}-${config.mode}-${otherFlags}-${appVersion}`
++ },
+};
+```
+
+4. 迁移 `snapshot`
+
+```diff title="rspack.config.mjs"
+export default {
+- snapshot: {
+-   immutablePaths: [path.join(__dirname, "constant")],
+-   managedPaths: [path.join(__dirname, "node_modules")],
+-   unmanagedPaths: []
+- },
++ cache: {
++   type: "persistent",
++   snapshot: {
++     immutablePaths: [path.join(__dirname, "constant")],
++     managedPaths: [path.join(__dirname, "node_modules")],
++     unmanagedPaths: []
++   }
++ },
+};
+```
+
+5. 迁移 `cache.cacheDirectory`
+
+```diff title="rspack.config.mjs"
+export default {
+- cache: {
+-   cacheDirectory: path.join(__dirname, "node_modules/.cache/test")
+- },
++ cache: {
++   type: "persistent",
++   storage: {
++     type: "filesystem",
++     directory: path.join(__dirname, "node_modules/.cache/test")
++   }
++ },
+};
+```
+
+示例迁移代码：
+
+```js
+function transform(webpackConfig, rspackConfig) {
+  if (webpackConfig.cache === undefined) {
+    webpackConfig.cache = webpackConfig.mode === 'development';
+  }
+  // 1. 如果使用禁用缓存，只需设置 `cache` = false
+  if (!webpackConfig.cache) {
+    rspackConfig.cache = false;
+    return;
+  }
+  // 2. 如果使用内存缓存，只需设置 `cache` = true
+  if (webpackConfig.cache === true || webpackConfig.cache.type === 'memory') {
+    rspackConfig.cache = true;
+    return;
+  }
+  // 3. 使用持久化缓存，设置 `cache` = { type: "persistent" }
+  rspackConfig.cache = { type: 'persistent' };
+  // 4. 从 webpack 配置构建 `cache`
+  rspackConfig.cache.buildDependencies = Object.values(
+    webpackConfig.cache.buildDependencies || {},
+  ).flat();
+  rspackConfig.cache.version = [
+    webpackConfig.cache.name,
+    webpackConfig.cache.version,
+  ].join();
+  rspackConfig.cache.snapshot = {
+    immutablePaths: webpackConfig.snapshot?.immutablePaths,
+    managedPaths: webpackConfig.snapshot?.managedPaths,
+    unmanagedPaths: webpackConfig.snapshot?.unmanagedPaths,
+  };
+  rspackConfig.cache.storage = {
+    type: 'filesystem',
+    directory: webpackConfig.cache?.cacheDirectory,
+  };
+}
 ```

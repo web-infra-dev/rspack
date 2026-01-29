@@ -11,11 +11,11 @@ Rspack provides two solutions to support Vue:
 
 ## Vue 3
 
-Currently, Vue 3 is supported by Rspack. Please make sure your [vue-loader](https://github.com/vuejs/vue-loader) version is >= 17.2.2 and configure as follows:
+Currently, Vue 3 is supported by Rspack. Please make sure your [rspack-vue-loader](https://github.com/rstackjs/rspack-vue-loader) version is >= 17.2.2 and configure as follows:
 
 ```js title="rspack.config.mjs"
 import { defineConfig } from '@rspack/cli';
-import { VueLoaderPlugin } from 'vue-loader';
+import { VueLoaderPlugin } from 'rspack-vue-loader';
 
 export default defineConfig({
   plugins: [new VueLoaderPlugin()],
@@ -23,7 +23,7 @@ export default defineConfig({
     rules: [
       {
         test: /\.vue$/,
-        loader: 'vue-loader',
+        loader: 'rspack-vue-loader',
         options: {
           // Note, for the majority of features to be available, make sure this option is `true`
           experimentalInlineMatchResource: true,
@@ -65,9 +65,6 @@ export default {
       },
     ],
   },
-  experiments: {
-    css: false, // At this point, you need to turn off `experiments.css` to adapt to the internal processing logic of `vue-loader`
-  },
 };
 ```
 
@@ -81,13 +78,13 @@ Besides, as Rspack has built-in TS support, we also support `lang="ts"` configur
 </script>
 ```
 
-You can refer to the related example [example-vue3](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/vue).
+You can refer to the related example [example-vue3](https://github.com/rstackjs/rstack-examples/tree/main/rspack/vue).
 
 ## Vue 2
 
 Rspack has completed compatibility with Vue 2 (using vue-loader@15).
 
-Please make sure to turn off `experiments.css` when configuring Vue 2 projects or use `rules[].type = "javascript/auto"` in CSS-related rules:
+Please make sure to use `rules[].type = "javascript/auto"` in CSS-related rules:
 
 ```js title="rspack.config.mjs"
 export default {
@@ -120,7 +117,7 @@ export default {
 
 TypeScript is supported using Rspack's native `builtin:swc-loader`, see [this](/guide/features/builtin-swc-loader) for details.
 
-You can refer to the related example [example-vue2](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/vue2) and [example-vue2-ts](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/vue2-ts).
+You can refer to the related example [example-vue2](https://github.com/rstackjs/rstack-examples/tree/main/rspack/vue2) and [example-vue2-ts](https://github.com/rstackjs/rstack-examples/tree/main/rspack/vue2-ts).
 
 ## Vue 3 JSX
 
@@ -161,4 +158,4 @@ export default defineConfig({
 });
 ```
 
-Rspack provides a [example](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/vue3-jsx) of Vue JSX for reference.
+Rspack provides a [example](https://github.com/rstackjs/rstack-examples/tree/main/rspack/vue3-jsx) of Vue JSX for reference.

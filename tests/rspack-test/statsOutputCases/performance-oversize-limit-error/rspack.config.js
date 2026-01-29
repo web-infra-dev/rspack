@@ -6,6 +6,8 @@ module.exports = {
 		sec: "./index2"
 	},
 	stats: {
+		assets: true,
+		modules: true,
 		colors: true,
 		hash: false,
 		entrypoints: true

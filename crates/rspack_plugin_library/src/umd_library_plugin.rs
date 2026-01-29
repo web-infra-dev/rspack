@@ -4,7 +4,8 @@ use rspack_core::{
   Chunk, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements, CompilationParams,
   CompilerCompilation, ExternalModule, ExternalRequest, Filename, LibraryAuxiliaryComment,
   LibraryCustomUmdObject, LibraryName, LibraryNonUmdObject, LibraryOptions, LibraryType,
-  ModuleGraph, ModuleGraphCacheArtifact, PathData, Plugin, RuntimeGlobals, SourceType,
+  ModuleGraph, ModuleGraphCacheArtifact, PathData, Plugin, RuntimeGlobals, RuntimeModule,
+  SourceType,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt, error};
@@ -192,7 +193,7 @@ async fn render(
       exports[{}] = factory({});\n",
       get_auxiliary_comment("commonjs", auxiliary_comment),
       name,
-      externals_require_array("commonjs", &externals, &module_graph, module_graph_cache)?,
+      externals_require_array("commonjs", &externals, module_graph, module_graph_cache)?,
     );
     let root_code = format!(
       "{}
@@ -226,7 +227,7 @@ async fn render(
     } else {
       format!(
         "var a = typeof exports === 'object' ? factory({}) : factory({});\n",
-        externals_require_array("commonjs", &externals, &module_graph, module_graph_cache)?,
+        externals_require_array("commonjs", &externals, module_graph, module_graph_cache)?,
         externals_root_array(&externals)?
       )
     };
@@ -248,7 +249,7 @@ async fn render(
           module.exports = factory({});
       }}"#,
     get_auxiliary_comment("commonjs2", auxiliary_comment),
-    externals_require_array("commonjs2", &externals, &module_graph, module_graph_cache)?
+    externals_require_array("commonjs2", &externals, module_graph, module_graph_cache)?
   )));
   source.add(RawStringSource::from(format!(
     "else if(typeof define === 'function' && define.amd) {{
@@ -289,9 +290,10 @@ async fn js_chunk_hash(
 #[plugin_hook(CompilationAdditionalChunkRuntimeRequirements for UmdLibraryPlugin)]
 async fn additional_chunk_runtime_requirements(
   &self,
-  compilation: &mut Compilation,
+  compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
   runtime_requirements: &mut RuntimeGlobals,
+  _runtime_modules: &mut Vec<Box<dyn RuntimeModule>>,
 ) -> Result<()> {
   let Some(_) = self.get_options_for_chunk(compilation, chunk_ukey) else {
     return Ok(());

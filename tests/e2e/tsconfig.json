@@ -1,9 +1,18 @@
 {
   "extends": "../../tsconfig.base.json",
-  "include": ["custom.d.ts", "./scripts", "./fixtures", "./cases", "./utils"],
+  "include": [
+    "custom.d.ts",
+    "./scripts",
+    "./fixtures",
+    "./cases",
+    "./browser-cases",
+    "./utils"
+  ],
   "compilerOptions": {
     "strict": true,
     "baseUrl": ".",
+    "module": "ES2022",
+    "moduleResolution": "bundler",
     "paths": {
       "@/*": ["./*"]
     },

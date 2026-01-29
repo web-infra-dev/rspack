@@ -1,13 +1,14 @@
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	output: {
-		libraryTarget: "umd",
 		library: {
+			type: "umd",
 			root: "testLibrary[name]",
 			amd: "test-library-[name]",
-			commonjs: "test-library-[name]"
+			commonjs: "test-library-[name]",
+			umdNamedDefine: true
 		},
-		umdNamedDefine: true
+
 	},
 	externals: "module"
 };

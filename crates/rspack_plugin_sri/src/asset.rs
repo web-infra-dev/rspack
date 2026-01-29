@@ -87,6 +87,7 @@ See https://w3c.github.io/webappsec-subresource-integrity/#cross-origin-data-lea
             chunk_id,
             hash_funcs,
             &hash_by_placeholders,
+            compilation.options.output.hot_update_global.as_str(),
           )
         } else {
           ProcessChunkResult {
@@ -160,13 +161,14 @@ fn process_chunk_source(
   chunk_id: Option<&ChunkId>,
   hash_funcs: &Vec<SubresourceIntegrityHashFunction>,
   hash_by_placeholders: &HashMap<String, String>,
+  hot_update_global: &str,
 ) -> ProcessChunkResult {
   // generate new source
   let mut new_source = ReplaceSource::new(source.clone());
 
   let mut warnings = vec![];
   let source_content = source.source().into_string_lossy();
-  if source_content.contains("webpackHotUpdate") {
+  if source_content.contains(hot_update_global) {
     warnings.push("SubresourceIntegrity: SubResourceIntegrityPlugin may interfere with hot reloading. Consider disabling this plugin in development mode.".to_string());
   }
 
@@ -293,7 +295,11 @@ pub async fn handle_assets(&self, compilation: &mut Compilation) -> Result<()> {
 }
 
 #[plugin_hook(CompilationAfterProcessAssets for SubresourceIntegrityPlugin)]
-pub async fn detect_unresolved_integrity(&self, compilation: &mut Compilation) -> Result<()> {
+pub async fn detect_unresolved_integrity(
+  &self,
+  compilation: &Compilation,
+  diagnostics: &mut Vec<Diagnostic>,
+) -> Result<()> {
   let mut contain_unresolved_files = vec![];
   for chunk in compilation.chunk_by_ukey.values() {
     for file in chunk.files() {
@@ -309,7 +315,7 @@ pub async fn detect_unresolved_integrity(&self, compilation: &mut Compilation) -
   }
 
   for file in contain_unresolved_files {
-    compilation.push_diagnostic(Diagnostic::error(
+    diagnostics.push(Diagnostic::error(
       "SubresourceIntegrity".to_string(),
       format!("Asset {file} contains unresolved integrity placeholders"),
     ));

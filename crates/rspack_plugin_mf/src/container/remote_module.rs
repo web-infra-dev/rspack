@@ -5,10 +5,10 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
   AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo, BuildMeta, BuildResult,
-  ChunkGraph, CodeGenerationResult, Compilation, ConcatenationScope, Context, DependenciesBlock,
-  Dependency, DependencyId, FactoryMeta, LibIdentOptions, Module, ModuleGraph, ModuleIdentifier,
-  ModuleType, RuntimeSpec, SourceType, impl_module_meta_info, impl_source_map_config,
-  module_update_hash,
+  ChunkGraph, CodeGenerationResult, Compilation, Context, DependenciesBlock, Dependency,
+  DependencyId, ExportsType, FactoryMeta, LibIdentOptions, Module, ModuleCodeGenerationContext,
+  ModuleGraph, ModuleIdentifier, ModuleType, RuntimeSpec, SourceType, impl_module_meta_info,
+  impl_source_map_config, module_update_hash,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
@@ -140,6 +140,15 @@ impl Module for RemoteModule {
     Some(self.request.as_str().into())
   }
 
+  fn get_exports_type(
+    &self,
+    _module_graph: &ModuleGraph,
+    _module_graph_cache: &rspack_core::ModuleGraphCacheArtifact,
+    _strict: bool,
+  ) -> ExportsType {
+    ExportsType::Dynamic
+  }
+
   async fn build(
     &mut self,
     build_context: BuildContext,
@@ -187,15 +196,17 @@ impl Module for RemoteModule {
   // #[tracing::instrument("RemoteModule::code_generation", skip_all, fields(identifier = ?self.identifier()))]
   async fn code_generation(
     &self,
-    compilation: &Compilation,
-    _runtime: Option<&RuntimeSpec>,
-    _: Option<ConcatenationScope>,
+    code_generation_context: &mut ModuleCodeGenerationContext,
   ) -> Result<CodeGenerationResult> {
     let mut codegen = CodeGenerationResult::default();
-    let module_graph = compilation.get_module_graph();
+    let module_graph = code_generation_context.compilation.get_module_graph();
     let module = module_graph.get_module_by_dependency_id(&self.dependencies[0]);
-    let id = module
-      .and_then(|m| ChunkGraph::get_module_id(&compilation.module_ids_artifact, m.identifier()));
+    let id = module.and_then(|m| {
+      ChunkGraph::get_module_id(
+        &code_generation_context.compilation.module_ids_artifact,
+        m.identifier(),
+      )
+    });
     codegen.add(SourceType::Remote, RawStringSource::from_static("").boxed());
     codegen.data.insert(CodeGenerationDataShareInit {
       items: vec![ShareInitData {

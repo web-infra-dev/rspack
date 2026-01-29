@@ -205,7 +205,7 @@ export const RandomMemberList = ({ list = coreTeam }: { list?: Member[] }) => {
   return (
     <NoSSR>
       <div className={`${style.wrapper} rp-not-doc`}>
-        {randomList.map(item => (
+        {randomList.map((item) => (
           <div className={style.card} key={item.id}>
             <img className={style.avatar} src={item.avatar} alt="avatar" />
             <div className={style.name}>{item.name || item.id}</div>

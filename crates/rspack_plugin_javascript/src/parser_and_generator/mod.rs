@@ -90,7 +90,6 @@ impl JavaScriptParserAndGenerator {
     if let Some(dependency) = compilation
       .get_module_graph()
       .dependency_by_id(dependency_id)
-      .expect("should have dependency")
       .as_dependency_code_generation()
     {
       if let Some(template) = compilation.get_dependency_template(dependency) {
@@ -310,11 +309,11 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       let mut context = TemplateContext {
         compilation,
         module,
-        runtime_requirements: generate_context.runtime_requirements,
         init_fragments: &mut init_fragments,
         runtime: generate_context.runtime,
         concatenation_scope: generate_context.concatenation_scope.take(),
         data: generate_context.data,
+        runtime_template: generate_context.runtime_template,
       };
 
       module.get_dependencies().iter().for_each(|dependency_id| {

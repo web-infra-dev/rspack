@@ -340,9 +340,7 @@ impl ESMImportSpecifierDependencyTemplate {
     code_generatable_context: &mut TemplateContext,
   ) -> String {
     let TemplateContext {
-      runtime,
       concatenation_scope,
-      module,
       ..
     } = code_generatable_context;
     if let Some(scope) = concatenation_scope
@@ -385,18 +383,21 @@ impl ESMImportSpecifierDependencyTemplate {
       let mg = code_generatable_context.compilation.get_module_graph();
       let target_module = mg.get_module_by_dependency_id(&dep.id);
       let import_var = code_generatable_context.compilation.get_import_var(
-        module.identifier(),
+        code_generatable_context.module.identifier(),
         target_module,
         dep.user_request(),
         dep.phase,
-        *runtime,
+        code_generatable_context.runtime,
       );
       esm_import_dependency_apply(dep, dep.source_order, dep.phase, code_generatable_context);
-      code_generatable_context
-        .compilation
+      let mut new_init_fragment = vec![];
+      let res = code_generatable_context
         .runtime_template
         .export_from_import(
-          code_generatable_context,
+          code_generatable_context.compilation,
+          &mut new_init_fragment,
+          code_generatable_context.module.identifier(),
+          code_generatable_context.runtime,
           true,
           &dep.request,
           &import_var,
@@ -406,7 +407,11 @@ impl ESMImportSpecifierDependencyTemplate {
           !dep.direct_import,
           Some(dep.shorthand || dep.asi_safe),
           dep.phase,
-        )
+        );
+      code_generatable_context
+        .init_fragments
+        .extend(new_init_fragment);
+      res
     }
   }
 
@@ -436,7 +441,7 @@ impl ESMImportSpecifierDependencyTemplate {
       PrefetchExportsInfoMode::Nested(ids),
     );
     let exports_type = module.get_exports_type(
-      &mg,
+      mg,
       &code_generatable_context
         .compilation
         .module_graph_cache_artifact,
@@ -532,16 +537,16 @@ impl DependencyTemplate for ESMImportSpecifierDependencyTemplate {
       ..
     } = code_generatable_context;
     let module_graph = compilation.get_module_graph();
-    let ids = dep.get_ids(&module_graph);
+    let ids = dep.get_ids(module_graph);
     let connection = module_graph.connection_by_dependency_id(&dep.id);
     // Early return if target is not active and export is not inlined
     if let Some(con) = connection
       && !con.is_target_active(
-        &module_graph,
+        module_graph,
         *runtime,
         &compilation.module_graph_cache_artifact,
       )
-      && !is_export_inlined(&module_graph, con.module_identifier(), ids, *runtime)
+      && !is_export_inlined(module_graph, con.module_identifier(), ids, *runtime)
     {
       return;
     }
@@ -578,7 +583,7 @@ impl DependencyTemplate for ESMImportSpecifierDependencyTemplate {
           .and_then(|id| module_graph.module_by_identifier(id))
           .expect("should have parent module");
         let exports_type = module.get_exports_type(
-          &module_graph,
+          module_graph,
           &code_generatable_context
             .compilation
             .module_graph_cache_artifact,
@@ -641,9 +646,7 @@ impl DependencyConditionFn for ESMImportSpecifierDependencyCondition {
     module_graph: &ModuleGraph,
     _module_graph_cache: &ModuleGraphCacheArtifact,
   ) -> ConnectionState {
-    let dependency = module_graph
-      .dependency_by_id(&connection.dependency_id)
-      .expect("should have dependency");
+    let dependency = module_graph.dependency_by_id(&connection.dependency_id);
     let dependency = dependency
       .downcast_ref::<ESMImportSpecifierDependency>()
       .expect("should be ESMImportSpecifierDependency");

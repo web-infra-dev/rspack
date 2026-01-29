@@ -234,7 +234,7 @@ const componentsContext = import.meta.webpackContext('./components', {
   regExp: /\.js$/,
 });
 
-componentsContext.keys().forEach(fileName => {
+componentsContext.keys().forEach((fileName) => {
   const componentModule = componentsContext(fileName);
 
   // 在这里你可以使用你的模块，例如使用 console.log 输出
@@ -585,7 +585,7 @@ __webpack_require__.e = function (chunkId) {
 ```js
 const originalLoad = __webpack_chunk_load__;
 const publicPaths = ['a', 'b', 'c'];
-__webpack_chunk_load__ = async id => {
+__webpack_chunk_load__ = async (id) => {
   let error;
   for (const path of publicPaths) {
     __webpack_public_path__ = path;
@@ -597,7 +597,7 @@ __webpack_chunk_load__ = async id => {
   }
   throw error;
 };
-import('./module-a').then(moduleA => {
+import('./module-a').then((moduleA) => {
   // now webpack will use the custom __webpack_chunk_load__ to load chunk
 });
 ```
@@ -629,7 +629,7 @@ __webpack_require__.u = function (chunkId) {
 ```js
 const oldFn = __webpack_get_script_filename__;
 
-__webpack_get_script_filename__ = chunkId => {
+__webpack_get_script_filename__ = (chunkId) => {
   const filename = oldFn(chunkId);
   return filename + '.changed';
 };
@@ -655,7 +655,7 @@ __webpack_get_script_filename__ = chunkId => {
 
 <ApiMeta specific={['Rspack', 'Webpack']} />
 
-可在 `output.libraryTarget="system"` 时获取 System.js 上下文。
+可在 `output.library.type="system"` 时获取 System.js 上下文。
 
 ## Rspack
 
@@ -663,7 +663,7 @@ __webpack_get_script_filename__ = chunkId => {
 
 <ApiMeta specific={['Rspack']} />
 当前使用的 Rspack 版本，默认从 `@rspack/core/package.json` 读取。可以通过
-`experiments.rspackFuture.bundlerInfo.version` 修改。
+`output.bundlerInfo.version` 修改。
 
 <Columns>
 ```js title=源码
@@ -685,8 +685,8 @@ __webpack_require__.rv = '0.7.4';
 
 当前打包工具的 ID，值为 `{bundler}@{version}`。其中：
 
-- `bundler`：默认为 `"rspack"` 可以通过 [experiments.rspackFuture.bundlerInfo.bundler](/config/experiments#rspackfuturebundlerinfo) 修改。
-- `version`：默认从 `@rspack/core/package.json` 读取，可以通过 [experiments.rspackFuture.bundlerInfo.version](/config/experiments#rspackfuturebundlerinfo) 修改。
+- `bundler`：默认为 `"rspack"` 可以通过 [output.bundlerInfo.bundler](/config/output#outputbundlerinfo) 修改。
+- `version`：默认从 `@rspack/core/package.json` 读取，可以通过 [output.bundlerInfo.version](/config/output#outputbundlerinfo) 修改。
 
 <Columns>
 ```js title=源码

@@ -22,7 +22,7 @@ Now you can remove the webpack-related dependencies from your project:
 <PackageManagerTabs command="remove webpack webpack-cli webpack-dev-server" />
 
 :::tip
-In some cases, you will still need to keep `webpack` as a dev dependency, such as when using [vue-loader](https://github.com/vuejs/vue-loader).
+In some cases, you will still need to keep `webpack` as a dev dependency, such as when using [vue-loader](https://github.com/vuejs/vue-loader) (you can use [rspack-vue-loader](https://github.com/rstackjs/rspack-vue-loader) instead).
 
 This is because these packages directly `import` subpaths of webpack and couple with webpack. If you encounter this issue, you can provide feedback to the maintainers of these plugins, asking them if they can make `webpack` an optional dependency.
 :::
@@ -156,7 +156,7 @@ module.exports = {
 
 ### `fork-ts-checker-webpack-plugin`
 
-Use [ts-checker-rspack-plugin](https://github.com/rspack-contrib/ts-checker-rspack-plugin) instead of [fork-ts-checker-webpack-plugin](https://github.com/TypeStrong/fork-ts-checker-webpack-plugin):
+Use [ts-checker-rspack-plugin](https://github.com/rstackjs/ts-checker-rspack-plugin) instead of [fork-ts-checker-webpack-plugin](https://github.com/TypeStrong/fork-ts-checker-webpack-plugin):
 
 ```diff title="rspack.config.js"
 - const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');

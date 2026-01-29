@@ -7,8 +7,6 @@ use rspack_util::fx_hash::FxHashMap;
 use serde::Serialize;
 use sugar_path::SugarPath;
 
-use crate::sri::HtmlSriHashFunction;
-
 #[derive(Serialize, Debug, Clone, Copy, Default)]
 #[serde(rename_all = "snake_case")]
 pub enum HtmlInject {
@@ -167,9 +165,6 @@ pub struct HtmlRspackPluginOptions {
   pub exclude_chunks: Option<Vec<String>>,
   pub chunks_sort_mode: HtmlChunkSortMode,
 
-  /// hash func that used in subsource integrity
-  /// sha384, sha256 or sha512
-  pub sri: Option<HtmlSriHashFunction>,
   #[serde(default)]
   pub minify: Option<bool>,
   pub title: Option<String>,
@@ -211,7 +206,6 @@ impl Default for HtmlRspackPluginOptions {
       chunks: None,
       exclude_chunks: None,
       chunks_sort_mode: default_chunks_sort_mode(),
-      sri: None,
       minify: None,
       title: None,
       favicon: None,

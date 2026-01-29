@@ -19,17 +19,20 @@ module.exports = {
 			-     "web": true,
 			+     "web": false,
 			@@ ... @@
-			-   "lazyCompilation": Object {
-			-     "entries": false,
-			-     "imports": true,
-			-   },
-			+   "lazyCompilation": false,
-			@@ ... @@
 			-       "document": true,
 			+       "document": false,
 			@@ ... @@
 			-     "target": "web",
 			+     "target": "electron-main",
+			@@ ... @@
+			-         "exportsOnly": false,
+			+         "exportsOnly": true,
+			@@ ... @@
+			-         "exportsOnly": false,
+			+         "exportsOnly": true,
+			@@ ... @@
+			-         "exportsOnly": false,
+			+         "exportsOnly": true,
 			@@ ... @@
 			-     "__dirname": "warn-mock",
 			-     "__filename": "warn-mock",

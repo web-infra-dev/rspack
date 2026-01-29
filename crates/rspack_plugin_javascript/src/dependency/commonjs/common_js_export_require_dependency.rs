@@ -9,7 +9,7 @@ use rspack_core::{
   ExportProvided, ExportSpec, ExportsInfoGetter, ExportsOfExportsSpec, ExportsSpec, ExportsType,
   ExtendedReferencedExport, FactorizeInfo, GetUsedNameParam, ModuleDependency, ModuleGraph,
   ModuleGraphCacheArtifact, ModuleIdentifier, Nullable, PrefetchExportsInfoMode, ReferencedExport,
-  RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource, UsageState, UsedName,
+  RuntimeSpec, TemplateContext, TemplateReplaceSource, UsageState, UsedName,
   collect_referenced_export_items, create_exports_object_referenced, create_no_exports_referenced,
   property_access, to_normal_comment,
 };
@@ -434,7 +434,7 @@ impl DependencyTemplate for CommonJsExportRequireDependencyTemplate {
       compilation,
       module,
       runtime,
-      runtime_requirements,
+      runtime_template,
       ..
     } = code_generatable_context;
 
@@ -448,14 +448,9 @@ impl DependencyTemplate for CommonJsExportRequireDependencyTemplate {
     let module_argument = module.get_module_argument();
 
     let used = if dep.names.is_empty() {
-      let exports_info = ExportsInfoGetter::prefetch_used_info_without_name(
-        &mg.get_exports_info(&module.identifier()),
-        mg,
-        *runtime,
-        false,
-      );
+      let exports_info_used = mg.get_prefetched_exports_info_used(&module.identifier(), *runtime);
       ExportsInfoGetter::get_used_name(
-        GetUsedNameParam::WithoutNames(&exports_info),
+        GetUsedNameParam::WithoutNames(&exports_info_used),
         *runtime,
         &dep.names,
       )
@@ -472,21 +467,14 @@ impl DependencyTemplate for CommonJsExportRequireDependencyTemplate {
     };
 
     let base = if dep.base.is_exports() {
-      runtime_requirements.insert(RuntimeGlobals::EXPORTS);
-      compilation
-        .runtime_template
-        .render_exports_argument(exports_argument)
+      runtime_template.render_exports_argument(exports_argument)
     } else if dep.base.is_module_exports() {
-      runtime_requirements.insert(RuntimeGlobals::MODULE);
       format!(
         "{}.exports",
-        compilation
-          .runtime_template
-          .render_module_argument(module_argument)
+        runtime_template.render_module_argument(module_argument)
       )
     } else if dep.base.is_this() {
-      runtime_requirements.insert(RuntimeGlobals::THIS_AS_EXPORTS);
-      "this".to_string()
+      runtime_template.render_this_exports()
     } else {
       unreachable!()
     };
@@ -505,32 +493,22 @@ impl DependencyTemplate for CommonJsExportRequireDependencyTemplate {
         *runtime,
         ids,
       ) {
-      let comment = to_normal_comment(&property_access(ids, 0));
       match used_imported {
         UsedName::Normal(used_imported) => {
           format!(
             "{}{}{}",
-            compilation.runtime_template.module_raw(
-              compilation,
-              runtime_requirements,
-              &dep.id,
-              &dep.request,
-              false,
-            ),
-            comment,
+            runtime_template.module_raw(compilation, &dep.id, &dep.request, false,),
+            to_normal_comment(&property_access(ids, 0)),
             property_access(used_imported, 0)
           )
         }
-        UsedName::Inlined(inlined) => format!("{}{}", comment, inlined.render()),
+        UsedName::Inlined(inlined) => inlined.render(&to_normal_comment(&format!(
+          "inlined export {}",
+          property_access(ids, 0)
+        ))),
       }
     } else {
-      compilation.runtime_template.module_raw(
-        compilation,
-        runtime_requirements,
-        &dep.id,
-        &dep.request,
-        false,
-      )
+      runtime_template.module_raw(compilation, &dep.id, &dep.request, false)
     };
 
     if dep.base.is_expression() {

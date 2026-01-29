@@ -248,10 +248,6 @@ export default {
 
 更多关于 layer 的信息，请参考 [Layer 指南](/guide/features/layer)。
 
-:::warning
-对于 v1.6.0 之前的版本，只有在 [experiments.layers = true](/config/experiments#experimentslayers) 时该配置才会生效。
-:::
-
 一个基础示例：
 
 ```js title="rspack.config.mjs"
@@ -390,7 +386,7 @@ export default {
         test: /\.js$/,
         include: /node_modules/,
         descriptionData: {
-          name: packageJsonName => packageJsonName.includes('rspack'),
+          name: (packageJsonName) => packageJsonName.includes('rspack'),
         },
         // 其他 rule options...
       },
@@ -642,10 +638,6 @@ export default {
 
 更多关于 layer 的信息，请参考 [Layer 指南](/guide/features/layer)。
 
-:::warning
-对于 v1.6.0 之前的版本，只有在 [experiments.layers = true](/config/experiments#experimentslayers) 时该配置才会生效。
-:::
-
 ```js title="rspack.config.mjs"
 export default {
   module: {
@@ -713,7 +705,7 @@ export default {
       {
         test: /\.svg$/,
         type: 'asset',
-        use: info => [
+        use: (info) => [
           {
             loader: 'svgo-loader',
             options: {
@@ -764,9 +756,6 @@ export default {
       },
     ],
   },
-  experiments: {
-    parallelLoader: true,
-  },
 };
 ```
 
@@ -774,7 +763,6 @@ export default {
 
 :::tip
 
-- 由于当前功能是实验性特性，只有开启 [experiments.parallelLoader](/config/experiments#experimentsparallelloader) 时该配置才会生效。
 - loader 的选项需要满足 [HTML structured clone algorithm](https://nodejs.org/api/worker_threads.html#portpostmessagevalue-transferlist)，否则会发送失败。
 - 目前 loader 在 worker 中不支持 `LoaderContext._compilation`, `LoaderContext._compiler`, `LoaderContext._module` 上的大多数方法。
 

@@ -1,6 +1,6 @@
 use crate::{
   CacheOptions, Context, Experiments, Mode, ModuleOptions, NodeOption, Optimization, OutputOptions,
-  Resolve, StatsOptions,
+  Resolve, StatsOptions, incremental::IncrementalOptions,
 };
 
 #[derive(Debug)]
@@ -15,9 +15,9 @@ pub struct CompilerOptions {
   pub stats: StatsOptions,
   pub cache: CacheOptions,
   pub experiments: Experiments,
+  pub incremental: IncrementalOptions,
   pub node: Option<NodeOption>,
   pub optimization: Optimization,
-  pub profile: bool,
   pub amd: Option<String>,
   pub bail: bool,
   pub __references: References,

@@ -427,7 +427,7 @@ chunk baz
 ### splitChunks.defaultSizeTypes
 
 - **类型：** `string[]`
-- **默认值：** `["javascript", "unknown"]`，如果开启 `experiments.css` 还会包含 `"css"`
+- **默认值：** `["javascript", "css", "unknown"]`
 
 在计算 chunk 大小时的模块类型，默认只有 javascript 模块和内置的 css 模块的体积会被计算在内，例如配置 `minSize: 300` 时，javascript 模块和 css 模块的体积都需要满足要求才能拆分。
 

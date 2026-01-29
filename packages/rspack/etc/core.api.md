@@ -53,7 +53,7 @@ import { JsRsdoctorChunkGraph } from '@rspack/binding';
 import { JsRsdoctorModuleGraph } from '@rspack/binding';
 import { JsRsdoctorModuleIdsPatch } from '@rspack/binding';
 import { JsRsdoctorModuleSourcesPatch } from '@rspack/binding';
-import type { JsRuntimeModule } from '@rspack/binding';
+import type { JsSource } from '@rspack/binding';
 import type { JsStats } from '@rspack/binding';
 import type { JsStatsCompilation } from '@rspack/binding';
 import type { JsStatsError } from '@rspack/binding';
@@ -84,7 +84,6 @@ import { Server as Server_3 } from 'http';
 import { ServerOptions as ServerOptions_2 } from 'https';
 import { ServerResponse } from 'http';
 import { SourceMapDevToolPluginOptions } from '@rspack/binding';
-import sources = require('../compiled/webpack-sources');
 import { StatSyncFn } from 'fs';
 import type * as stream from 'node:stream';
 import { sync } from '@rspack/binding';
@@ -105,10 +104,10 @@ interface AdditionalData {
 }
 
 // @public (undocumented)
-type AffectedHooks = keyof Compiler["hooks"];
+type AffectedHooks = keyof Compiler['hooks'];
 
 // @public (undocumented)
-type AllowTarget = "web" | "webworker" | "es3" | "es5" | "es2015" | "es2016" | "es2017" | "es2018" | "es2019" | "es2020" | "es2021" | "es2022" | "es2023" | "es2024" | "es2025" | "node" | "async-node" | `node${number}` | `async-node${number}` | `node${number}.${number}` | `async-node${number}.${number}` | "electron-main" | `electron${number}-main` | `electron${number}.${number}-main` | "electron-renderer" | `electron${number}-renderer` | `electron${number}.${number}-renderer` | "electron-preload" | `electron${number}-preload` | `electron${number}.${number}-preload` | "nwjs" | `nwjs${number}` | `nwjs${number}.${number}` | "node-webkit" | `node-webkit${number}` | `node-webkit${number}.${number}` | "browserslist" | `browserslist:${string}`;
+type AllowTarget = 'web' | 'webworker' | 'es3' | 'es5' | 'es2015' | 'es2016' | 'es2017' | 'es2018' | 'es2019' | 'es2020' | 'es2021' | 'es2022' | 'es2023' | 'es2024' | 'es2025' | 'node' | 'async-node' | `node${number}` | `async-node${number}` | `node${number}.${number}` | `async-node${number}.${number}` | 'electron-main' | `electron${number}-main` | `electron${number}.${number}-main` | 'electron-renderer' | `electron${number}-renderer` | `electron${number}.${number}-renderer` | 'electron-preload' | `electron${number}-preload` | `electron${number}.${number}-preload` | 'nwjs' | `nwjs${number}` | `nwjs${number}.${number}` | 'node-webkit' | `node-webkit${number}` | `node-webkit${number}.${number}` | 'browserslist' | `browserslist:${string}`;
 
 // @public
 export type Amd = false | Record<string, any>;
@@ -128,8 +127,8 @@ export type AmdContainer = string;
 export const applyRspackOptionsBaseDefaults: (options: RspackOptionsNormalized) => void;
 
 // @public (undocumented)
-export const applyRspackOptionsDefaults: (options: RspackOptionsNormalized) => {
-    platform: false | {
+export const applyRspackOptionsDefaults: (options: RspackOptionsNormalized) => false | {
+    platform: {
         web: boolean | null | undefined;
         browser: boolean | null | undefined;
         webworker: boolean | null | undefined;
@@ -137,6 +136,8 @@ export const applyRspackOptionsDefaults: (options: RspackOptionsNormalized) => {
         nwjs: boolean | null | undefined;
         electron: boolean | null | undefined;
     };
+    esVersion: number | null | undefined;
+    targets: Record<string, string> | null | undefined;
 };
 
 // @public (undocumented)
@@ -227,7 +228,7 @@ export type AssetGeneratorDataUrlFunction = (content: Buffer, context: {
 
 // @public (undocumented)
 export type AssetGeneratorDataUrlOptions = {
-    encoding?: false | "base64";
+    encoding?: false | 'base64';
     mimetype?: string;
 };
 
@@ -249,7 +250,7 @@ export type AssetInlineGeneratorOptions = {
 export type AssetModuleFilename = Filename;
 
 // @public
-export type AssetModuleImportMode = "url" | "preserve";
+export type AssetModuleImportMode = 'url' | 'preserve';
 
 // @public
 export type AssetModuleOutputPath = Filename;
@@ -517,8 +518,40 @@ interface BreakStatement extends Node_4, HasSpan {
 type BufferCallback = (err: NodeJS.ErrnoException | null, data?: Buffer) => void;
 
 // @public (undocumented)
-type BufferEncodingOption = "buffer" | {
-    encoding: "buffer";
+interface BufferedMap {
+    	file: string;
+
+    	mappings?: Buffer_2;
+
+    	names: string[];
+
+    	sourceRoot?: string;
+
+    	sources: string[];
+
+    	sourcesContent?: ("" | Buffer_2)[];
+
+    	version: number;
+}
+
+// @public (undocumented)
+type BufferEncodingOption = 'buffer' | {
+    encoding: 'buffer';
+};
+
+// @public (undocumented)
+interface BufferEntry {
+    	// (undocumented)
+    bufferedMap?: null | BufferedMap;
+    	// (undocumented)
+    map?: null | RawSourceMap_2;
+}
+
+// @public
+export type BundlerInfoOptions = {
+    version?: string;
+    bundler?: string;
+    force?: boolean | ('version' | 'uniqueId')[];
 };
 
 // @public (undocumented)
@@ -558,6 +591,49 @@ class Cache_2 {
 }
 
 // @public (undocumented)
+interface CachedData {
+    	buffer: Buffer_2;
+
+    	hash?: (string | Buffer_2)[];
+
+    	maps: Map<string, BufferEntry>;
+
+    	size?: number;
+
+    	source?: boolean;
+}
+
+// @public (undocumented)
+class CachedSource extends Source {
+    	constructor(source: Source | (() => Source), cachedData?: CachedData);
+    	// (undocumented)
+    getCachedData(): CachedData;
+    	// (undocumented)
+    original(): Source;
+    	// (undocumented)
+    originalLazy(): Source | (() => Source);
+    	// (undocumented)
+    streamChunks(
+    		options: StreamChunksOptions,
+    		onChunk: (
+    			chunk: undefined | string,
+    			generatedLine: number,
+    			generatedColumn: number,
+    			sourceIndex: number,
+    			originalLine: number,
+    			originalColumn: number,
+    			nameIndex: number,
+    		) => void,
+    		onSource: (
+    			sourceIndex: number,
+    			source: null | string,
+    			sourceContent?: string,
+    		) => void,
+    		onName: (nameIndex: number, name: string) => void,
+    	): GeneratedSourceInfo;
+}
+
+// @public (undocumented)
 class CacheFacade {
     constructor(cache: Cache_2, name: string, hashFunction: string | HashConstructor);
     // (undocumented)
@@ -591,8 +667,40 @@ class CacheFacade {
 // @public (undocumented)
 type CacheHookMap = Map<string, SyncBailHook<[any[], StatsFactoryContext], any>[]>;
 
+// @public (undocumented)
+export type CacheNormalized = boolean | {
+    type: 'memory';
+} | {
+    type: 'persistent';
+    buildDependencies: string[];
+    version: string;
+    snapshot: {
+        immutablePaths: (string | RegExp)[];
+        unmanagedPaths: (string | RegExp)[];
+        managedPaths: (string | RegExp)[];
+    };
+    storage: {
+        type: 'filesystem';
+        directory: string;
+    };
+    portable?: boolean;
+};
+
 // @public
-export type CacheOptions = boolean;
+export type CacheOptions = boolean | MemoryCacheOptions | PersistentCacheOptions;
+
+// @public
+export type CacheSnapshotOptions = {
+    immutablePaths?: (string | RegExp)[];
+    unmanagedPaths?: (string | RegExp)[];
+    managedPaths?: (string | RegExp)[];
+};
+
+// @public
+export type CacheStorageOptions = {
+    type: 'filesystem';
+    directory?: string;
+};
 
 // @public (undocumented)
 type Callback_2 = (stats?: Stats | MultiStats) => any;
@@ -627,7 +735,7 @@ interface CallExpression extends ExpressionBase {
 type CallFn = (...args: any[]) => any;
 
 // @public (undocumented)
-const CaseSensitivePlugin: {
+export const CaseSensitivePlugin: {
     new (): {
         name: string;
         _args: [];
@@ -636,8 +744,6 @@ const CaseSensitivePlugin: {
         apply(compiler: Compiler): void;
     };
 };
-export { CaseSensitivePlugin }
-export { CaseSensitivePlugin as WarnCaseSensitiveModulesPlugin }
 
 // @public (undocumented)
 interface CatchClause extends Node_4, HasSpan {
@@ -670,7 +776,7 @@ export type ChunkLoading = false | ChunkLoadingType;
 export type ChunkLoadingGlobal = string;
 
 // @public
-export type ChunkLoadingType = LiteralUnion<"jsonp" | "import-scripts" | "require" | "async-node" | "import", string>;
+export type ChunkLoadingType = LiteralUnion<'jsonp' | 'import-scripts' | 'require' | 'async-node' | 'import', string>;
 
 // @public (undocumented)
 export type ChunkPathData = {
@@ -804,7 +910,7 @@ export type Clean = boolean | {
 
 // @public (undocumented)
 type ClientConfiguration = {
-    logging?: "none" | "error" | "warn" | "info" | "log" | "verbose" | undefined;
+    logging?: 'none' | 'error' | 'warn' | 'info' | 'log' | 'verbose' | undefined;
     overlay?: boolean | {
         warnings?: OverlayMessageOptions;
         errors?: OverlayMessageOptions;
@@ -815,6 +921,10 @@ type ClientConfiguration = {
     webSocketTransport?: string | undefined;
     webSocketURL?: string | WebSocketURL | undefined;
 };
+
+// @public (undocumented)
+class ClientPlugin extends RscClientPlugin {
+}
 
 // @public (undocumented)
 class CodeGenerationResult {
@@ -832,13 +942,20 @@ type CodeValuePrimitive = null | undefined | RegExp | Function | string | number
 // @public (undocumented)
 type CollectTypeScriptInfoOptions = {
     typeExports?: boolean;
-    exportedEnum?: boolean | "const-only";
+    exportedEnum?: boolean | 'const-only';
 };
 
 // @public (undocumented)
 interface CommonJsConfig extends BaseModuleConfig {
     // (undocumented)
     type: "commonjs";
+}
+
+// @public (undocumented)
+class CompatSource extends Source {
+    	constructor(sourceLike: SourceLike);
+    	// (undocumented)
+    static from(sourceLike: SourceLike): Source;
 }
 
 // @public (undocumented)
@@ -861,9 +978,9 @@ export class Compilation {
     // @internal
     __internal__hasAsset(name: string): boolean;
     // @internal
-    __internal__pushDiagnostic(diagnostic: ExternalObject<"Diagnostic">): void;
+    __internal__pushDiagnostic(diagnostic: ExternalObject<'Diagnostic'>): void;
     // @internal
-    __internal__pushDiagnostics(diagnostics: ExternalObject<"Diagnostic[]">): void;
+    __internal__pushDiagnostics(diagnostics: ExternalObject<'Diagnostic[]'>): void;
     // @internal
     __internal__pushRspackDiagnostic(diagnostic: binding.JsRspackDiagnostic): void;
     // (undocumented)
@@ -1026,7 +1143,7 @@ export class Compilation {
         Set<string>
         ]>;
         runtimeRequirementInTree: liteTapable.HookMap<liteTapable.SyncBailHook<[Chunk, Set<string>], void>>;
-        runtimeModule: liteTapable.SyncHook<[JsRuntimeModule, Chunk]>;
+        runtimeModule: liteTapable.SyncHook<[RuntimeModule, Chunk]>;
         seal: liteTapable.SyncHook<[]>;
         afterSeal: liteTapable.AsyncSeriesHook<[], void>;
         needAdditionalPass: liteTapable.SyncBailHook<[], boolean>;
@@ -1159,11 +1276,11 @@ export class Compiler {
     // (undocumented)
     context: string;
     // (undocumented)
-    contextTimestamps?: ReadonlyMap<string, FileSystemInfoEntry_2 | "ignore" | null>;
+    contextTimestamps?: ReadonlyMap<string, FileSystemInfoEntry_2 | 'ignore' | null>;
     // (undocumented)
     createChildCompiler(compilation: Compilation, compilerName: string, compilerIndex: number, outputOptions: OutputNormalized, plugins: RspackPluginInstance[]): Compiler;
     // (undocumented)
-    fileTimestamps?: ReadonlyMap<string, FileSystemInfoEntry_2 | "ignore" | null>;
+    fileTimestamps?: ReadonlyMap<string, FileSystemInfoEntry_2 | 'ignore' | null>;
     // (undocumented)
     fsStartTime?: number;
     // (undocumented)
@@ -1228,6 +1345,9 @@ export class Compiler {
     runAsChild(callback: (err?: null | Error, entries?: Chunk[], compilation?: Compilation) => any): void;
     // (undocumented)
     running: boolean;
+    // (undocumented)
+    get target(): ExtractedTargetProperties;
+    set target(target: ExtractedTargetProperties);
     // @internal
     unsafeFastDrop: boolean;
     // (undocumented)
@@ -1289,6 +1409,39 @@ interface ComputedPropName extends Node_4, HasSpan {
 }
 
 export { ConcatenatedModule }
+
+// @public (undocumented)
+class ConcatSource extends Source {
+    	constructor(...args: ConcatSourceChild[]);
+    	// (undocumented)
+    add(item: ConcatSourceChild): void;
+    	// (undocumented)
+    addAllSkipOptimizing(items: ConcatSourceChild[]): void;
+    	// (undocumented)
+    getChildren(): Source[];
+    	// (undocumented)
+    streamChunks(
+    		options: StreamChunksOptions,
+    		onChunk: (
+    			chunk: undefined | string,
+    			generatedLine: number,
+    			generatedColumn: number,
+    			sourceIndex: number,
+    			originalLine: number,
+    			originalColumn: number,
+    			nameIndex: number,
+    		) => void,
+    		onSource: (
+    			sourceIndex: number,
+    			source: null | string,
+    			sourceContent?: string,
+    		) => void,
+    		onName: (nameIndex: number, name: string) => void,
+    	): GeneratedSourceInfo;
+}
+
+// @public (undocumented)
+type ConcatSourceChild = string | Source | SourceLike;
 
 // @public (undocumented)
 interface ConditionalExpression extends ExpressionBase {
@@ -1560,6 +1713,15 @@ interface ContinueStatement extends Node_4, HasSpan {
 }
 
 // @public (undocumented)
+class Coordinator {
+    constructor();
+    // (undocumented)
+    applyClientCompiler(clientCompiler: Compiler): void;
+    // (undocumented)
+    applyServerCompiler(serverCompiler: Compiler): void;
+}
+
+// @public (undocumented)
 export const CopyRspackPlugin: {
     new (copy: CopyRspackPluginOptions): {
         name: string;
@@ -1572,7 +1734,7 @@ export const CopyRspackPlugin: {
 
 // @public (undocumented)
 export type CopyRspackPluginOptions = {
-    patterns: (string | (Pick<RawCopyPattern, "from"> & Partial<Omit<RawCopyPattern, "from">>))[];
+    patterns: (string | (Pick<RawCopyPattern, 'from'> & Partial<Omit<RawCopyPattern, 'from'>>))[];
 };
 
 // @public
@@ -1598,7 +1760,7 @@ type CreateReadStreamFSImplementation = FSImplementation & {
 type CreateStatsOptionsContext = KnownCreateStatsOptionsContext & Record<string, any>;
 
 // @public
-export type CrossOriginLoading = false | "anonymous" | "use-credentials";
+export type CrossOriginLoading = false | 'anonymous' | 'use-credentials';
 
 // @public
 export type CssAutoGeneratorOptions = {
@@ -1673,17 +1835,17 @@ export interface CssExtractRspackPluginOptions {
     // (undocumented)
     attributes?: Record<string, string>;
     // (undocumented)
-    chunkFilename?: RawCssExtractPluginOption["chunkFilename"];
+    chunkFilename?: RawCssExtractPluginOption['chunkFilename'];
     // (undocumented)
     enforceRelative?: boolean;
     // (undocumented)
-    filename?: RawCssExtractPluginOption["filename"];
+    filename?: RawCssExtractPluginOption['filename'];
     // (undocumented)
     ignoreOrder?: boolean;
     // (undocumented)
     insert?: string | ((linkTag: HTMLLinkElement) => void);
     // (undocumented)
-    linkType?: LiteralUnion<"text/css", string> | false;
+    linkType?: LiteralUnion<'text/css', string> | false;
     // (undocumented)
     pathinfo?: boolean;
     // (undocumented)
@@ -1697,7 +1859,7 @@ export type CssFilename = Filename;
 export type CssGeneratorEsModule = boolean;
 
 // @public (undocumented)
-export type CssGeneratorExportsConvention = "as-is" | "camel-case" | "camel-case-only" | "dashes" | "dashes-only";
+export type CssGeneratorExportsConvention = 'as-is' | 'camel-case' | 'camel-case-only' | 'dashes' | 'dashes-only';
 
 // @public (undocumented)
 export type CssGeneratorExportsOnly = boolean;
@@ -1795,13 +1957,13 @@ type DevMiddlewareOptions<RequestInternal extends IncomingMessage_2 = IncomingMe
     writeToDisk?: boolean | ((targetPath: string) => boolean) | undefined;
     methods?: string[] | undefined;
     headers?: any;
-    publicPath?: NonNullable<RspackConfiguration["output"]>["publicPath"];
-    stats?: RspackConfiguration["stats"];
+    publicPath?: NonNullable<RspackConfiguration['output']>['publicPath'];
+    stats?: RspackConfiguration['stats'];
     serverSideRender?: boolean | undefined;
     outputFileSystem?: OutputFileSystem_2 | undefined;
     index?: string | boolean | undefined;
     modifyResponseData?: ModifyResponseData<RequestInternal, ResponseInternal> | undefined;
-    etag?: "strong" | "weak" | undefined;
+    etag?: 'strong' | 'weak' | undefined;
     lastModified?: boolean | undefined;
     cacheControl?: string | number | boolean | {
         maxAge?: number;
@@ -1821,7 +1983,7 @@ type DevServerOptions<A extends BasicApplication = BasicApplication, S extends B
     ipc?: string | boolean | undefined;
     host?: string | undefined;
     port?: Port | undefined;
-    hot?: boolean | "only" | undefined;
+    hot?: boolean | 'only' | undefined;
     liveReload?: boolean | undefined;
     devMiddleware?: DevMiddlewareOptions | undefined;
     compress?: boolean | undefined;
@@ -1843,13 +2005,13 @@ type DevServerOptions<A extends BasicApplication = BasicApplication, S extends B
 };
 
 // @public (undocumented)
-export type DevTool = false | "eval" | `${DevToolPosition}${DevToolNoSources}${DevToolCheap}source-map${DevToolDebugIds}`;
+export type DevTool = false | 'eval' | `${DevToolPosition}${DevToolNoSources}${DevToolCheap}source-map${DevToolDebugIds}`;
 
 // @public (undocumented)
-type DevToolCheap = "cheap-" | "cheap-module-" | "";
+type DevToolCheap = 'cheap-' | 'cheap-module-' | '';
 
 // @public (undocumented)
-type DevToolDebugIds = "-debugids" | "";
+type DevToolDebugIds = '-debugids' | '';
 
 // @public
 export type DevtoolFallbackModuleFilenameTemplate = DevtoolModuleFilenameTemplate;
@@ -1861,10 +2023,10 @@ export type DevtoolModuleFilenameTemplate = string | ((context: ModuleFilenameTe
 export type DevtoolNamespace = string;
 
 // @public (undocumented)
-type DevToolNoSources = "nosources-" | "";
+type DevToolNoSources = 'nosources-' | '';
 
 // @public
-type DevToolPosition = "inline-" | "hidden-" | "eval-" | "";
+type DevToolPosition = 'inline-' | 'hidden-' | 'eval-' | '';
 
 // @public (undocumented)
 interface Diagnostic {
@@ -1875,7 +2037,7 @@ interface Diagnostic {
     // (undocumented)
     message: string;
     // (undocumented)
-    severity: "error" | "warning";
+    severity: 'error' | 'warning';
     // (undocumented)
     sourceCode?: string;
 }
@@ -1981,7 +2143,7 @@ export type DllReferencePluginOptions = {
     name?: string;
     scope?: string;
     sourceType?: DllReferencePluginOptionsSourceType;
-    type?: "require" | "object";
+    type?: 'require' | 'object';
 } | {
     content: DllReferencePluginOptionsContent;
     context?: string;
@@ -1989,7 +2151,7 @@ export type DllReferencePluginOptions = {
     name: string;
     scope?: string;
     sourceType?: DllReferencePluginOptionsSourceType;
-    type?: "require" | "object";
+    type?: 'require' | 'object';
 };
 
 // @public
@@ -2009,7 +2171,7 @@ export interface DllReferencePluginOptionsManifest {
 }
 
 // @public
-export type DllReferencePluginOptionsSourceType = "var" | "assign" | "this" | "window" | "global" | "commonjs" | "commonjs2" | "commonjs-module" | "amd" | "amd-require" | "umd" | "umd2" | "jsonp" | "system";
+export type DllReferencePluginOptionsSourceType = 'var' | 'assign' | 'this' | 'window' | 'global' | 'commonjs' | 'commonjs2' | 'commonjs-module' | 'amd' | 'amd-require' | 'umd' | 'umd2' | 'jsonp' | 'system';
 
 // @public (undocumented)
 interface DoWhileStatement extends Node_4, HasSpan {
@@ -2162,7 +2324,7 @@ export type EntryDescription = {
 };
 
 // @public (undocumented)
-export type EntryDescriptionNormalized = Pick<EntryDescription, "runtime" | "chunkLoading" | "wasmLoading" | "asyncChunks" | "publicPath" | "baseUri" | "filename" | "library" | "layer"> & {
+export type EntryDescriptionNormalized = Pick<EntryDescription, 'runtime' | 'chunkLoading' | 'wasmLoading' | 'asyncChunks' | 'publicPath' | 'baseUri' | 'filename' | 'library' | 'layer'> & {
     import?: string[];
     dependOn?: string[];
 };
@@ -2196,7 +2358,7 @@ export class EntryOptionPlugin {
 }
 
 // @public
-export type EntryOptions = Omit<EntryDescriptionNormalized, "import"> & {
+export type EntryOptions = Omit<EntryDescriptionNormalized, 'import'> & {
     name?: string;
 };
 
@@ -2263,6 +2425,7 @@ export type Environment = {
     document?: boolean;
     dynamicImport?: boolean;
     dynamicImportInWorker?: boolean;
+    importMetaDirnameAndFilename?: boolean;
     forOf?: boolean;
     globalThis?: boolean;
     methodShorthand?: boolean;
@@ -2291,21 +2454,6 @@ type ErrorWithDetails = Error & {
 interface Es6Config extends BaseModuleConfig {
     // (undocumented)
     type: "es6";
-}
-
-// @public (undocumented)
-class EsmLibraryPlugin {
-    constructor(options?: {
-        preserveModules?: string;
-    });
-    // (undocumented)
-    apply(compiler: Compiler): void;
-    // (undocumented)
-    options?: {
-        preserveModules?: string;
-    };
-    // (undocumented)
-    static PLUGIN_NAME: string;
 }
 
 // @public (undocumented)
@@ -2396,62 +2544,15 @@ interface ExecuteModuleContext {
     [key: string]: (id: string) => any;
 }
 
-// @public (undocumented)
-export type ExperimentCacheNormalized = boolean | {
-    type: "memory";
-} | {
-    type: "persistent";
-    buildDependencies: string[];
-    version: string;
-    snapshot: {
-        immutablePaths: (string | RegExp)[];
-        unmanagedPaths: (string | RegExp)[];
-        managedPaths: (string | RegExp)[];
-    };
-    storage: {
-        type: "filesystem";
-        directory: string;
-    };
-};
-
-// @public
-export type ExperimentCacheOptions = boolean | {
-    type: "memory";
-} | {
-    type: "persistent";
-    buildDependencies?: string[];
-    version?: string;
-    snapshot?: {
-        immutablePaths?: (string | RegExp)[];
-        unmanagedPaths?: (string | RegExp)[];
-        managedPaths?: (string | RegExp)[];
-    };
-    storage?: {
-        type: "filesystem";
-        directory?: string;
-    };
-};
-
 // @public
 export type Experiments = {
-    cache?: ExperimentCacheOptions;
-    lazyCompilation?: boolean | LazyCompilationOptions;
     asyncWebAssembly?: boolean;
     outputModule?: boolean;
-    topLevelAwait?: boolean;
     css?: boolean;
-    layers?: boolean;
-    incremental?: IncrementalPresets | Incremental;
     futureDefaults?: boolean;
-    rspackFuture?: RspackFutureOptions;
     buildHttp?: HttpUriOptions;
-    parallelLoader?: boolean;
     useInputFileSystem?: UseInputFileSystem;
     nativeWatcher?: boolean;
-    inlineConst?: boolean;
-    inlineEnum?: boolean;
-    typeReexportsPresence?: boolean;
-    lazyBarrel?: boolean;
     deferImport?: boolean;
 };
 
@@ -2465,14 +2566,10 @@ interface Experiments_2 {
     // (undocumented)
     CssChunkingPlugin: typeof CssChunkingPlugin;
     // (undocumented)
-    EsmLibraryPlugin: typeof EsmLibraryPlugin;
-    // (undocumented)
     globalTrace: {
-        register: (filter: string, layer: "logger" | "perfetto", output: string) => Promise<void>;
+        register: (filter: string, layer: 'logger' | 'perfetto', output: string) => Promise<void>;
         cleanup: () => Promise<void>;
     };
-    // @deprecated (undocumented)
-    lazyCompilationMiddleware: typeof lazyCompilationMiddleware;
     // (undocumented)
     RemoveDuplicateModulesPlugin: typeof RemoveDuplicateModulesPlugin;
     // (undocumented)
@@ -2483,13 +2580,13 @@ interface Experiments_2 {
         sync: typeof sync;
     };
     // (undocumented)
+    rsc: typeof rsc;
+    // (undocumented)
     RsdoctorPlugin: typeof RsdoctorPlugin;
     // (undocumented)
     RslibPlugin: typeof RslibPlugin;
     // (undocumented)
     RstestPlugin: typeof RstestPlugin;
-    // @deprecated (undocumented)
-    SubresourceIntegrityPlugin: typeof SubresourceIntegrityPlugin;
     // (undocumented)
     swc: {
         transform: typeof transform;
@@ -2508,37 +2605,15 @@ export interface ExperimentsNormalized {
     // (undocumented)
     buildHttp?: HttpUriPluginOptions;
     // (undocumented)
-    cache?: ExperimentCacheNormalized;
-    // (undocumented)
     css?: boolean;
     // (undocumented)
     deferImport?: boolean;
     // (undocumented)
     futureDefaults?: boolean;
     // (undocumented)
-    incremental?: false | Incremental;
-    // @deprecated (undocumented)
-    inlineConst?: boolean;
-    // @deprecated (undocumented)
-    inlineEnum?: boolean;
-    // @deprecated (undocumented)
-    layers?: boolean;
-    // @deprecated (undocumented)
-    lazyBarrel?: boolean;
-    // @deprecated (undocumented)
-    lazyCompilation?: false | LazyCompilationOptions;
-    // (undocumented)
     nativeWatcher?: boolean;
     // (undocumented)
     outputModule?: boolean;
-    // (undocumented)
-    parallelLoader?: boolean;
-    // (undocumented)
-    rspackFuture?: RspackFutureOptions;
-    // (undocumented)
-    topLevelAwait?: boolean;
-    // (undocumented)
-    typeReexportsPresence?: boolean;
     // (undocumented)
     useInputFileSystem?: false | RegExp[];
 }
@@ -2625,7 +2700,7 @@ class ExportsInfo {
 type ExportSpecifier = ExportNamespaceSpecifier | ExportDefaultSpecifier | NamedExportSpecifier;
 
 // @public (undocumented)
-type ExportsPresence = "error" | "warn" | "auto" | false;
+type ExportsPresence = 'error' | 'warn' | 'auto' | false;
 
 // @public (undocumented)
 export type Exposes = (ExposesItem | ExposesObject)[] | ExposesObject;
@@ -2704,7 +2779,7 @@ export type ExternalItemUmdValue = {
 // @public
 export type ExternalItemValue = string | boolean | string[] | ExternalItemUmdValue
 /**
-* when libraryTarget and externalsType is not 'umd'
+* when library.type and externalsType is not 'umd'
 */
 | ExternalItemObjectValue;
 
@@ -2735,7 +2810,7 @@ export type ExternalsPresets = {
 };
 
 // @public
-export type ExternalsType = "var" | "module" | "assign" | "this" | "window" | "self" | "global" | "commonjs" | "commonjs2" | "commonjs-module" | "commonjs-static" | "amd" | "amd-require" | "umd" | "umd2" | "jsonp" | "system" | "promise" | "import" | "module-import" | "script" | "node-commonjs" | "commonjs-import";
+export type ExternalsType = 'var' | 'module' | 'assign' | 'this' | 'window' | 'self' | 'global' | 'commonjs' | 'commonjs2' | 'commonjs-module' | 'commonjs-static' | 'amd' | 'amd-require' | 'umd' | 'umd2' | 'jsonp' | 'system' | 'promise' | 'import' | 'module-import' | 'script' | 'node-commonjs' | 'commonjs-import';
 
 // @public (undocumented)
 type ExtractCommentsBanner = string | boolean;
@@ -2753,6 +2828,12 @@ type ExtractCommentsObject = {
 type ExtractCommentsOptions = ExtractCommentsCondition | ExtractCommentsObject;
 
 // @public (undocumented)
+type ExtractedTargetProperties = {
+    esVersion?: number | null;
+    targets?: Record<string, string> | null;
+};
+
+// @public (undocumented)
 type ExtraPluginHookData = {
     plugin: {
         options: HtmlRspackPluginOptions;
@@ -2760,7 +2841,7 @@ type ExtraPluginHookData = {
 };
 
 // @public (undocumented)
-export type Falsy = false | "" | 0 | null | undefined;
+export type Falsy = false | '' | 0 | null | undefined;
 
 // @public (undocumented)
 const FetchCompileAsyncWasmPlugin: {
@@ -2882,17 +2963,26 @@ interface FunctionExpression extends Fn, ExpressionBase {
     type: "FunctionExpression";
 }
 
+// @public (undocumented)
+interface GeneratedSourceInfo {
+    	generatedColumn?: number;
+
+    	generatedLine?: number;
+
+    	source?: string;
+}
+
 // @public
 export type GeneratorOptionsByModuleType = GeneratorOptionsByModuleTypeKnown | GeneratorOptionsByModuleTypeUnknown;
 
 // @public (undocumented)
 export type GeneratorOptionsByModuleTypeKnown = {
     asset?: AssetGeneratorOptions;
-    "asset/inline"?: AssetInlineGeneratorOptions;
-    "asset/resource"?: AssetResourceGeneratorOptions;
+    'asset/inline'?: AssetInlineGeneratorOptions;
+    'asset/resource'?: AssetResourceGeneratorOptions;
     css?: CssGeneratorOptions;
-    "css/auto"?: CssAutoGeneratorOptions;
-    "css/module"?: CssModuleGeneratorOptions;
+    'css/auto'?: CssAutoGeneratorOptions;
+    'css/module'?: CssModuleGeneratorOptions;
     json?: JsonGeneratorOptions;
 };
 
@@ -2912,7 +3002,7 @@ export const getPnpDefault: () => boolean;
 export const getRawOptions: (options: RspackOptionsNormalized, compiler: Compiler) => RawOptions;
 
 // @public (undocumented)
-export function getRawResolve(resolve: Resolve): RawOptions["resolve"];
+export function getRawResolve(resolve: Resolve): RawOptions['resolve'];
 
 // @public (undocumented)
 interface GetterProperty extends PropBase, HasSpan {
@@ -2983,7 +3073,7 @@ export type HashDigest = string;
 export type HashDigestLength = number;
 
 // @public
-export type HashFunction = "md4" | "xxhash64" | "sha256";
+export type HashFunction = 'md4' | 'xxhash64' | 'sha256';
 
 // @public (undocumented)
 interface HashLike {
@@ -3069,7 +3159,6 @@ export type HotUpdateMainFilename = FilenameTemplate;
 
 // @public (undocumented)
 export const HtmlRspackPlugin: typeof HtmlRspackPluginImpl & {
-    getHooks: (compilation: Compilation) => HtmlRspackPluginHooks;
     getCompilationHooks: (compilation: Compilation) => HtmlRspackPluginHooks;
     createHtmlTagObject: (tagName: string, attributes?: Record<string, string | boolean>, innerHTML?: string) => JsHtmlPluginTag;
     version: number;
@@ -3115,17 +3204,16 @@ export type HtmlRspackPluginOptions = {
     template?: string;
     templateContent?: string | TemplateRenderFunction;
     templateParameters?: Record<string, string> | boolean | TemplateParamFunction;
-    inject?: boolean | "head" | "body";
+    inject?: boolean | 'head' | 'body';
     publicPath?: string;
     base?: string | {
         href?: string;
-        target?: "_self" | "_blank" | "_parent" | "_top";
+        target?: '_self' | '_blank' | '_parent' | '_top';
     };
-    scriptLoading?: "blocking" | "defer" | "module" | "systemjs-module";
+    scriptLoading?: 'blocking' | 'defer' | 'module' | 'systemjs-module';
     chunks?: string[];
     excludeChunks?: string[];
-    chunksSortMode?: "auto" | "manual";
-    sri?: "sha256" | "sha384" | "sha512";
+    chunksSortMode?: 'auto' | 'manual';
     minify?: boolean;
     favicon?: string;
     meta?: Record<string, string | Record<string, string>>;
@@ -3136,7 +3224,7 @@ export type HtmlRspackPluginOptions = {
 // @public (undocumented)
 interface HttpProxyMiddlewareOptions extends HttpProxyServerOptions {
     // (undocumented)
-    logLevel?: "debug" | "info" | "warn" | "error" | "silent";
+    logLevel?: 'debug' | 'info' | 'warn' | 'error' | 'silent';
     // (undocumented)
     logProvider?: LogProviderCallback;
     // (undocumented)
@@ -3157,8 +3245,8 @@ interface HttpProxyMiddlewareOptions extends HttpProxyServerOptions {
     } | ((path: string, req: Request_2) => string) | ((path: string, req: Request_2) => Promise<string>);
     // (undocumented)
     router?: {
-        [hostOrPath: string]: HttpProxyServerOptions["target"];
-    } | ((req: Request_2) => HttpProxyServerOptions["target"]) | ((req: Request_2) => Promise<HttpProxyServerOptions["target"]>);
+        [hostOrPath: string]: HttpProxyServerOptions['target'];
+    } | ((req: Request_2) => HttpProxyServerOptions['target']) | ((req: Request_2) => Promise<HttpProxyServerOptions['target']>);
 }
 
 // @public (undocumented)
@@ -3243,7 +3331,7 @@ type HttpUriPluginOptions = {
     lockfileLocation?: string;
     cacheLocation?: string | false;
     upgrade?: boolean;
-    httpClient?: RawHttpUriPluginOptions["httpClient"];
+    httpClient?: RawHttpUriPluginOptions['httpClient'];
 };
 
 // @public (undocumented)
@@ -3312,10 +3400,10 @@ export const IgnorePlugin: {
 
 // @public (undocumented)
 export type IgnorePluginOptions = {
-    resourceRegExp: NonNullable<RawIgnorePluginOptions["resourceRegExp"]>;
-    contextRegExp?: RawIgnorePluginOptions["contextRegExp"];
+    resourceRegExp: NonNullable<RawIgnorePluginOptions['resourceRegExp']>;
+    contextRegExp?: RawIgnorePluginOptions['contextRegExp'];
 } | {
-    checkResource: NonNullable<RawIgnorePluginOptions["checkResource"]>;
+    checkResource: NonNullable<RawIgnorePluginOptions['checkResource']>;
 };
 
 // @public
@@ -3389,11 +3477,9 @@ type IncomingMessage_2 = IncomingMessage;
 // @public
 export type Incremental = {
     silent?: boolean;
-    make?: boolean;
-    inferAsyncModules?: boolean;
-    providedExports?: boolean;
-    dependenciesDiagnostics?: boolean;
-    sideEffects?: boolean;
+    buildModuleGraph?: boolean;
+    finishModules?: boolean;
+    optimizeDependencies?: boolean;
     buildChunkGraph?: boolean;
     moduleIds?: boolean;
     chunkIds?: boolean;
@@ -3402,12 +3488,12 @@ export type Incremental = {
     modulesRuntimeRequirements?: boolean;
     chunksRuntimeRequirements?: boolean;
     chunksHashes?: boolean;
-    chunksRender?: boolean;
+    chunkAsset?: boolean;
     emitAssets?: boolean;
 };
 
 // @public
-export type IncrementalPresets = boolean | "none" | "safe" | "advance" | "advance-silent";
+export type IncrementalPresets = boolean | 'none' | 'safe' | 'advance' | 'advance-silent';
 
 // @public
 export type InfrastructureLogging = {
@@ -3415,7 +3501,7 @@ export type InfrastructureLogging = {
     colors?: boolean;
     console?: Console;
     debug?: boolean | FilterTypes;
-    level?: "none" | "error" | "warn" | "info" | "log" | "verbose";
+    level?: 'none' | 'error' | 'warn' | 'info' | 'log' | 'verbose';
     stream?: NodeJS.WritableStream;
 };
 
@@ -3539,7 +3625,7 @@ class JavascriptModulesPlugin extends RspackBuiltinPlugin {
 }
 
 // @public (undocumented)
-export type JavascriptParserCommonjsExports = boolean | "skipInEsm";
+export type JavascriptParserCommonjsExports = boolean | 'skipInEsm';
 
 // @public (undocumented)
 export type JavascriptParserCommonjsOption = boolean | {
@@ -3548,12 +3634,12 @@ export type JavascriptParserCommonjsOption = boolean | {
 
 // @public (undocumented)
 export type JavascriptParserOptions = {
-    dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once";
+    dynamicImportMode?: 'eager' | 'lazy' | 'weak' | 'lazy-once';
     dynamicImportPreload?: boolean | number;
     dynamicImportPrefetch?: boolean | number;
-    dynamicImportFetchPriority?: "low" | "high" | "auto";
+    dynamicImportFetchPriority?: 'low' | 'high' | 'auto';
     importMeta?: boolean;
-    url?: "relative" | "new-url-relative" | boolean;
+    url?: 'relative' | 'new-url-relative' | boolean;
     exprContextCritical?: boolean;
     unknownContextCritical?: boolean;
     wrappedContextCritical?: boolean;
@@ -3563,14 +3649,15 @@ export type JavascriptParserOptions = {
     reexportExportsPresence?: ExportsPresence;
     strictExportPresence?: boolean;
     worker?: string[] | boolean;
-    overrideStrict?: "strict" | "non-strict";
+    overrideStrict?: 'strict' | 'non-strict';
+    requireAlias?: boolean;
     requireAsExpression?: boolean;
     requireDynamic?: boolean;
     requireResolve?: boolean;
     commonjs?: JavascriptParserCommonjsOption;
     importDynamic?: boolean;
     commonjsMagicComments?: boolean;
-    typeReexportsPresence?: "no-tolerant" | "tolerant" | "tolerant-no-check";
+    typeReexportsPresence?: 'no-tolerant' | 'tolerant' | 'tolerant-no-check';
     jsx?: boolean;
     deferImport?: boolean;
 };
@@ -3650,7 +3737,7 @@ interface JsFormatOptions_2 {
     asciiOnly?: boolean;
     beautify?: boolean;
     braces?: boolean;
-    comments?: false | "some" | "all";
+    comments?: false | 'some' | 'all';
     ecma?: TerserEcmaVersion_2;
     indentLevel?: number;
     indentStart?: number;
@@ -3946,7 +4033,7 @@ interface KnownNormalizedStatsOptions {
     // (undocumented)
     depth: boolean;
     // (undocumented)
-    entrypoints: boolean | "auto";
+    entrypoints: boolean | 'auto';
     // (undocumented)
     errors: boolean;
     // (undocumented)
@@ -3954,7 +4041,7 @@ interface KnownNormalizedStatsOptions {
     // (undocumented)
     excludeAssets: ((value: string, asset: StatsAsset) => boolean)[];
     // (undocumented)
-    excludeModules: ((name: string, module: StatsModule, type: "module" | "chunk" | "root-of-chunk" | "nested") => boolean)[];
+    excludeModules: ((name: string, module: StatsModule, type: 'module' | 'chunk' | 'root-of-chunk' | 'nested') => boolean)[];
     // (undocumented)
     groupAssetsByEmitStatus: boolean;
     // (undocumented)
@@ -3978,7 +4065,7 @@ interface KnownNormalizedStatsOptions {
     // (undocumented)
     ids: boolean;
     // (undocumented)
-    logging: false | "none" | "error" | "warn" | "info" | "log" | "verbose";
+    logging: false | 'none' | 'error' | 'warn' | 'info' | 'log' | 'verbose';
     // (undocumented)
     loggingDebug: ((value: string) => boolean)[];
     // (undocumented)
@@ -4203,7 +4290,6 @@ type KnownStatsModule = {
     failed?: boolean;
     errors?: number;
     warnings?: number;
-    profile?: StatsProfile;
     reasons?: StatsModuleReason[];
     usedExports?: boolean | string[] | null;
     providedExports?: string[] | null;
@@ -4259,19 +4345,12 @@ type KnownStatsPrinterContext = {
     cyan?: (str: string) => string;
     formatFilename?: (file: string, oversize?: boolean) => string;
     formatModuleId?: (id: string) => string;
-    formatChunkId?: ((id: string, direction?: "parent" | "child" | "sibling") => string) | undefined;
+    formatChunkId?: ((id: string, direction?: 'parent' | 'child' | 'sibling') => string) | undefined;
     formatSize?: (size: number) => string;
     formatDateTime?: (dateTime: number) => string;
     formatFlag?: (flag: string) => string;
     formatTime?: (time: number, boldQuantity?: boolean) => string;
     chunkGroupKind?: string;
-};
-
-// @public (undocumented)
-type KnownStatsProfile = {
-    total: number;
-    resolving: number;
-    building: number;
 };
 
 // @public (undocumented)
@@ -4341,10 +4420,11 @@ export type LibraryOptions = {
     name?: LibraryName;
     type: LibraryType;
     umdNamedDefine?: UmdNamedDefine;
+    preserveModules?: string;
 };
 
 // @public
-export type LibraryType = LiteralUnion<"var" | "module" | "assign" | "assign-properties" | "this" | "window" | "self" | "global" | "commonjs" | "commonjs2" | "commonjs-module" | "commonjs-static" | "amd" | "amd-require" | "umd" | "umd2" | "jsonp" | "system", string>;
+export type LibraryType = LiteralUnion<'var' | 'module' | 'modern-module' | 'assign' | 'assign-properties' | 'this' | 'window' | 'self' | 'global' | 'commonjs' | 'commonjs2' | 'commonjs-module' | 'commonjs-static' | 'amd' | 'amd-require' | 'umd' | 'umd2' | 'jsonp' | 'system', string>;
 
 // @public (undocumented)
 export type LightningcssFeatureOptions = {
@@ -4380,7 +4460,6 @@ export type LightningcssLoaderOptions = {
     targets?: Targets | string[] | string;
     include?: LightningcssFeatureOptions;
     exclude?: LightningcssFeatureOptions;
-    draft?: Drafts;
     drafts?: Drafts;
     nonStandard?: NonStandard;
     pseudoClasses?: PseudoClasses;
@@ -4406,10 +4485,9 @@ export type LightningCssMinimizerRspackPluginOptions = {
     removeUnusedLocalIdents?: boolean;
     minimizerOptions?: {
         errorRecovery?: boolean;
-        targets?: string[] | string;
+        targets?: string[] | string | Targets;
         include?: LightningcssFeatureOptions;
         exclude?: LightningcssFeatureOptions;
-        draft?: Drafts;
         drafts?: Drafts;
         nonStandard?: NonStandard;
         pseudoClasses?: PseudoClasses;
@@ -4569,7 +4647,7 @@ class LoaderObject {
     // (undocumented)
     shouldYield(): boolean;
     // (undocumented)
-    type?: "module" | "commonjs";
+    type?: 'module' | 'commonjs';
 }
 
 // @public (undocumented)
@@ -4612,7 +4690,7 @@ export interface LogEntry {
 type LogFunction = (type: LogTypeEnum, args: any[]) => void;
 
 // @public (undocumented)
-type Logger = ReturnType<Compiler["getInfrastructureLogger"]>;
+type Logger = ReturnType<Compiler['getInfrastructureLogger']>;
 
 // @public (undocumented)
 class Logger_2 {
@@ -4800,6 +4878,11 @@ interface MemberExpression extends ExpressionBase {
     type: "MemberExpression";
 }
 
+// @public
+export type MemoryCacheOptions = {
+    type: 'memory';
+};
+
 // @public (undocumented)
 interface MetaProperty extends Node_4, HasSpan {
     // (undocumented)
@@ -4837,7 +4920,7 @@ function minifySync(source: string, options?: JsMinifyOptions): TransformOutput;
 type MkdirSync = (path: PathLike, options: MakeDirectoryOptions) => undefined | string;
 
 // @public
-export type Mode = "development" | "production" | "none";
+export type Mode = 'development' | 'production' | 'none';
 
 // @public (undocumented)
 type ModifyResponseData<RequestInternal extends IncomingMessage_2 = IncomingMessage_2, ResponseInternal extends ServerResponse_2 = ServerResponse_2> = (req: RequestInternal, res: ResponseInternal, data: Buffer | ReadStream, byteLength: number) => ResponseData;
@@ -4881,15 +4964,17 @@ class ModuleFederationPlugin {
 }
 
 // @public (undocumented)
-export interface ModuleFederationPluginOptions extends Omit<ModuleFederationPluginV1Options, "enhanced"> {
+export interface ModuleFederationPluginOptions extends Omit<ModuleFederationPluginV1Options, 'enhanced'> {
+    // (undocumented)
+    experiments?: ModuleFederationRuntimeExperimentsOptions;
     // (undocumented)
     implementation?: string;
     // (undocumented)
-    manifest?: boolean | Omit<ModuleFederationManifestPluginOptions, "remoteAliasMap" | "globalName" | "name" | "exposes" | "shared">;
+    manifest?: boolean | Omit<ModuleFederationManifestPluginOptions, 'remoteAliasMap' | 'globalName' | 'name' | 'exposes' | 'shared'>;
     // (undocumented)
     runtimePlugins?: RuntimePlugins;
     // (undocumented)
-    shareStrategy?: "version-first" | "loaded-first";
+    shareStrategy?: 'version-first' | 'loaded-first';
 }
 
 // @public (undocumented)
@@ -4921,6 +5006,12 @@ export interface ModuleFederationPluginV1Options {
     shared?: Shared;
     // (undocumented)
     shareScope?: string;
+}
+
+// @public (undocumented)
+interface ModuleFederationRuntimeExperimentsOptions {
+    // (undocumented)
+    asyncStartup?: boolean;
 }
 
 declare namespace ModuleFilenameHelpers {
@@ -5032,7 +5123,7 @@ export class MultiCompiler {
         run: liteTapable.MultiHook<liteTapable.AsyncSeriesHook<[Compiler]>>;
         watchClose: liteTapable.SyncHook<[]>;
         watchRun: liteTapable.MultiHook<liteTapable.AsyncSeriesHook<[Compiler]>>;
-        infrastructureLog: liteTapable.MultiHook<CompilerHooks["infrastructureLog"]>;
+        infrastructureLog: liteTapable.MultiHook<CompilerHooks['infrastructureLog']>;
     };
     // (undocumented)
     get inputFileSystem(): InputFileSystem;
@@ -5099,7 +5190,7 @@ export class MultiStats {
 }
 
 // @public (undocumented)
-export type MultiStatsOptions = Omit<StatsOptions, "children"> & {
+export type MultiStatsOptions = Omit<StatsOptions, 'children'> & {
     children?: StatsValue | (StatsValue | undefined)[];
 };
 
@@ -5123,7 +5214,7 @@ class MultiWatching {
 }
 
 // @public (undocumented)
-type MultiWatching_2 = MultiCompiler["watch"];
+type MultiWatching_2 = MultiCompiler['watch'];
 
 // @public
 export type Name = string;
@@ -5163,7 +5254,7 @@ const NativeSubresourceIntegrityPlugin: {
 };
 
 // @public (undocumented)
-type NativeSubresourceIntegrityPluginOptions = Omit<RawSubresourceIntegrityPluginOptions, "htmlPlugin"> & {
+type NativeSubresourceIntegrityPluginOptions = Omit<RawSubresourceIntegrityPluginOptions, 'htmlPlugin'> & {
     htmlPlugin: string | false;
 };
 
@@ -5228,9 +5319,9 @@ interface NodeNextConfig extends BaseModuleConfig {
 
 // @public
 export type NodeOptions = {
-    __dirname?: boolean | "warn-mock" | "mock" | "eval-only" | "node-module";
-    __filename?: boolean | "warn-mock" | "mock" | "eval-only" | "node-module";
-    global?: boolean | "warn";
+    __dirname?: boolean | 'warn-mock' | 'mock' | 'eval-only' | 'node-module';
+    __filename?: boolean | 'warn-mock' | 'mock' | 'eval-only' | 'node-module';
+    global?: boolean | 'warn';
 };
 
 // @public (undocumented)
@@ -5373,10 +5464,24 @@ interface ObjectPattern extends PatternBase {
 type ObjectPatternProperty = KeyValuePatternProperty | AssignmentPatternProperty | RestElement;
 
 // @public (undocumented)
+type OnChunk = (
+		chunk: undefined | string,
+		generatedLine: number,
+		generatedColumn: number,
+		sourceIndex: number,
+		originalLine: number,
+		originalColumn: number,
+		nameIndex: number,
+	) => void;
+
+// @public (undocumented)
 type OnCloseCallback = (proxyRes: Response_2, proxySocket: net.Socket, proxyHead: any) => void;
 
 // @public (undocumented)
 type OnErrorCallback = (err: Error, req: Request_2, res: Response_2, target?: string | Partial<url.Url>) => void;
+
+// @public (undocumented)
+type OnName = (nameIndex: number, name: string) => void;
 
 // @public (undocumented)
 type OnOpenCallback = (proxySocket: net.Socket) => void;
@@ -5389,6 +5494,13 @@ type OnProxyReqWsCallback = (proxyReq: http.ClientRequest, req: Request_2, socke
 
 // @public (undocumented)
 type OnProxyResCallback = (proxyRes: http.IncomingMessage, req: Request_2, res: Response_2) => void;
+
+// @public (undocumented)
+type OnSource = (
+		sourceIndex: number,
+		source: null | string,
+		sourceContent?: string,
+	) => void;
 
 // @public (undocumented)
 type Open = (file: PathLike, flags: undefined | string | number, callback: (arg0: null | NodeJS.ErrnoException, arg1?: number) => void) => void;
@@ -5407,22 +5519,22 @@ type OpenApp = {
 
 // @public (undocumented)
 export type Optimization = {
-    moduleIds?: "named" | "natural" | "deterministic";
-    chunkIds?: "natural" | "named" | "deterministic" | "size" | "total-size";
+    moduleIds?: 'named' | 'natural' | 'deterministic';
+    chunkIds?: 'natural' | 'named' | 'deterministic' | 'size' | 'total-size';
     minimize?: boolean;
-    minimizer?: ("..." | Plugin_2)[];
+    minimizer?: ('...' | Plugin_2)[];
     mergeDuplicateChunks?: boolean;
     splitChunks?: false | OptimizationSplitChunksOptions;
     runtimeChunk?: OptimizationRuntimeChunk;
     removeAvailableModules?: boolean;
     removeEmptyChunks?: boolean;
     realContentHash?: boolean;
-    sideEffects?: "flag" | boolean;
+    sideEffects?: 'flag' | boolean;
     providedExports?: boolean;
     concatenateModules?: boolean;
     innerGraph?: boolean;
-    usedExports?: "global" | boolean;
-    mangleExports?: "size" | "deterministic" | boolean;
+    usedExports?: 'global' | boolean;
+    mangleExports?: 'size' | 'deterministic' | boolean;
     inlineExports?: boolean;
     nodeEnv?: string | false;
     emitOnErrors?: boolean;
@@ -5430,7 +5542,7 @@ export type Optimization = {
 };
 
 // @public
-export type OptimizationRuntimeChunk = boolean | "single" | "multiple" | {
+export type OptimizationRuntimeChunk = boolean | 'single' | 'multiple' | {
     name?: string | ((value: {
         name: string;
     }) => string);
@@ -5461,7 +5573,7 @@ export type OptimizationSplitChunksCacheGroupTestFn = (module: Module, ctx: {
 }) => boolean;
 
 // @public (undocumented)
-type OptimizationSplitChunksChunks = "initial" | "async" | "all" | RegExp | ((chunk: Chunk) => boolean);
+type OptimizationSplitChunksChunks = 'initial' | 'async' | 'all' | RegExp | ((chunk: Chunk) => boolean);
 
 // @public (undocumented)
 type OptimizationSplitChunksName = string | false | OptimizationSplitChunksNameFunction;
@@ -5555,6 +5667,32 @@ interface Options extends Config_2 {
     swcrcRoots?: boolean | MatchPattern | MatchPattern[];
 }
 
+// @public (undocumented)
+class OriginalSource extends Source {
+    	constructor(value: string | Buffer_2, name: string);
+    	// (undocumented)
+    getName(): string;
+    	// (undocumented)
+    streamChunks(
+    		options: StreamChunksOptions,
+    		onChunk: (
+    			chunk: undefined | string,
+    			generatedLine: number,
+    			generatedColumn: number,
+    			sourceIndex: number,
+    			originalLine: number,
+    			originalColumn: number,
+    			nameIndex: number,
+    		) => void,
+    		onSource: (
+    			sourceIndex: number,
+    			source: null | string,
+    			sourceContent?: string,
+    		) => void,
+    		_onName: (nameIndex: number, name: string) => void,
+    	): GeneratedSourceInfo;
+}
+
 // @public
 const OriginEntryPlugin: {
     new (context: string, entry: string, options?: string | EntryOptions | undefined): {
@@ -5576,7 +5714,6 @@ export type Output = {
     chunkFilename?: ChunkFilename;
     crossOriginLoading?: CrossOriginLoading;
     cssFilename?: CssFilename;
-    cssHeadDataCompression?: boolean;
     cssChunkFilename?: CssChunkFilename;
     hotUpdateMainFilename?: HotUpdateMainFilename;
     hotUpdateChunkFilename?: HotUpdateChunkFilename;
@@ -5586,10 +5723,6 @@ export type Output = {
     chunkLoadingGlobal?: ChunkLoadingGlobal;
     enabledLibraryTypes?: EnabledLibraryTypes;
     library?: Library;
-    libraryExport?: LibraryExport;
-    libraryTarget?: LibraryType;
-    umdNamedDefine?: UmdNamedDefine;
-    auxiliaryComment?: AuxiliaryComment;
     module?: OutputModule;
     strictModuleExceptionHandling?: StrictModuleExceptionHandling;
     strictModuleErrorHandling?: StrictModuleErrorHandling;
@@ -5618,9 +5751,9 @@ export type Output = {
     devtoolModuleFilenameTemplate?: DevtoolModuleFilenameTemplate;
     devtoolFallbackModuleFilenameTemplate?: DevtoolFallbackModuleFilenameTemplate;
     chunkLoadTimeout?: number;
-    charset?: boolean;
     environment?: Environment;
     compareBeforeEmit?: boolean;
+    bundlerInfo?: BundlerInfoOptions;
 };
 
 // @public (undocumented)
@@ -5669,7 +5802,7 @@ export interface OutputNormalized {
     // (undocumented)
     asyncChunks?: boolean;
     // (undocumented)
-    charset?: boolean;
+    bundlerInfo?: BundlerInfoOptions;
     // (undocumented)
     chunkFilename?: ChunkFilename;
     // (undocumented)
@@ -5735,7 +5868,7 @@ export interface OutputNormalized {
     // (undocumented)
     path?: Path;
     // (undocumented)
-    pathinfo?: boolean | "verbose";
+    pathinfo?: boolean | 'verbose';
     // (undocumented)
     publicPath?: PublicPath;
     // (undocumented)
@@ -5789,12 +5922,12 @@ export type ParserOptionsByModuleType = ParserOptionsByModuleTypeKnown | ParserO
 export type ParserOptionsByModuleTypeKnown = {
     asset?: AssetParserOptions;
     css?: CssParserOptions;
-    "css/auto"?: CssAutoParserOptions;
-    "css/module"?: CssModuleParserOptions;
+    'css/auto'?: CssAutoParserOptions;
+    'css/module'?: CssModuleParserOptions;
     javascript?: JavascriptParserOptions;
-    "javascript/auto"?: JavascriptParserOptions;
-    "javascript/dynamic"?: JavascriptParserOptions;
-    "javascript/esm"?: JavascriptParserOptions;
+    'javascript/auto'?: JavascriptParserOptions;
+    'javascript/dynamic'?: JavascriptParserOptions;
+    'javascript/esm'?: JavascriptParserOptions;
     json?: JsonParserOptions;
 };
 
@@ -5819,7 +5952,7 @@ export type PathData = {
 };
 
 // @public
-export type Pathinfo = boolean | "verbose";
+export type Pathinfo = boolean | 'verbose';
 
 // @public (undocumented)
 type PathLike = string | Buffer | URL;
@@ -5839,11 +5972,21 @@ interface PatternBase extends Node_4, HasSpan {
 // @public
 type Performance_2 = false | {
     assetFilter?: (assetFilename: string) => boolean;
-    hints?: false | "warning" | "error";
+    hints?: false | 'warning' | 'error';
     maxAssetSize?: number;
     maxEntrypointSize?: number;
 };
 export { Performance_2 as Performance }
+
+// @public
+export type PersistentCacheOptions = {
+    type: 'persistent';
+    buildDependencies?: string[];
+    version?: string;
+    snapshot?: CacheSnapshotOptions;
+    storage?: CacheStorageOptions;
+    portable?: boolean;
+};
 
 // @public (undocumented)
 export type PitchLoaderDefinitionFunction<OptionsType = {}, ContextAdditions = {}> = (this: LoaderContext<OptionsType> & ContextAdditions, remainingRequest: string, previousRequest: string, data: object) => string | void | Buffer | Promise<string | Buffer | void>;
@@ -5889,7 +6032,35 @@ type PluginImportOptions = PluginImportConfig[];
 export type Plugins = Plugin_2[];
 
 // @public (undocumented)
-type Port = number | LiteralUnion<"auto", string>;
+type Port = number | LiteralUnion<'auto', string>;
+
+// @public (undocumented)
+class PrefixSource extends Source {
+    	constructor(prefix: string, source: string | Source | Buffer_2);
+    	// (undocumented)
+    getPrefix(): string;
+    	// (undocumented)
+    original(): Source;
+    	// (undocumented)
+    streamChunks(
+    		options: StreamChunksOptions,
+    		onChunk: (
+    			chunk: undefined | string,
+    			generatedLine: number,
+    			generatedColumn: number,
+    			sourceIndex: number,
+    			originalLine: number,
+    			originalColumn: number,
+    			nameIndex: number,
+    		) => void,
+    		onSource: (
+    			sourceIndex: number,
+    			source: null | string,
+    			sourceContent?: string,
+    		) => void,
+    		onName: (nameIndex: number, name: string) => void,
+    	): GeneratedSourceInfo;
+}
 
 // @public (undocumented)
 type PrintedElement = {
@@ -5921,9 +6092,6 @@ interface PrivateProperty extends ClassPropertyBase {
     type: "PrivateProperty";
 }
 
-// @public
-export type Profile = boolean;
-
 // @public (undocumented)
 type Program = Module_2 | Script;
 
@@ -5939,7 +6107,7 @@ export const ProgressPlugin: {
 };
 
 // @public (undocumented)
-export type ProgressPluginArgument = Partial<Omit<RawProgressPluginOptions, "handler">> | ((percentage: number, msg: string, ...args: string[]) => void) | undefined;
+export type ProgressPluginArgument = Partial<Omit<RawProgressPluginOptions, 'handler'>> | ((percentage: number, msg: string, ...args: string[]) => void) | undefined;
 
 // @public (undocumented)
 interface PropBase extends Node_4 {
@@ -5991,7 +6159,7 @@ class ProvideSharedPlugin<Enhanced extends boolean = false> extends RspackBuilti
     // (undocumented)
     name: BuiltinPluginName;
     // (undocumented)
-    _provides: [string, Omit<RawProvideOptions, "key">][];
+    _provides: [string, Omit<RawProvideOptions, 'key'>][];
     // (undocumented)
     raw(compiler: Compiler): BuiltinPlugin;
 }
@@ -6045,10 +6213,36 @@ interface PseudoClasses {
 }
 
 // @public
-export type PublicPath = LiteralUnion<"auto", string> | Exclude<Filename, string>;
+export type PublicPath = LiteralUnion<'auto', string> | Exclude<Filename, string>;
 
 // @public (undocumented)
 type Purge = (files?: string | string[] | Set<string>) => void;
+
+// @public (undocumented)
+class RawSource extends Source {
+    	constructor(value: string | Buffer_2, convertToString?: boolean);
+    	// (undocumented)
+    isBuffer(): boolean;
+    	// (undocumented)
+    streamChunks(
+    		options: StreamChunksOptions,
+    		onChunk: (
+    			chunk: undefined | string,
+    			generatedLine: number,
+    			generatedColumn: number,
+    			sourceIndex: number,
+    			originalLine: number,
+    			originalColumn: number,
+    			nameIndex: number,
+    		) => void,
+    		onSource: (
+    			sourceIndex: number,
+    			source: null | string,
+    			sourceContent?: string,
+    		) => void,
+    		onName: (nameIndex: number, name: string) => void,
+    	): GeneratedSourceInfo;
+}
 
 // @public (undocumented)
 export interface RawSourceMap {
@@ -6120,10 +6314,10 @@ type Readdir = {
         recursive?: boolean;
     } | BufferEncoding | null | undefined, callback: ReaddirStringCallback): void;
     (path: PathLike, options: {
-        encoding: "buffer";
+        encoding: 'buffer';
         withFileTypes?: false;
         recursive?: boolean;
-    } | "buffer", callback: ReaddirBufferCallback): void;
+    } | 'buffer', callback: ReaddirBufferCallback): void;
     (path: PathLike, callback: ReaddirStringCallback): void;
     (path: PathLike, options: (ObjectEncodingOptions & {
         withFileTypes: true;
@@ -6155,10 +6349,10 @@ type ReaddirSync = {
         recursive?: boolean;
     } | BufferEncoding | null): string[];
     (path: PathLike, options: {
-        encoding: "buffer";
+        encoding: 'buffer';
         withFileTypes?: false;
         recursive?: boolean;
-    } | "buffer"): Buffer[];
+    } | 'buffer'): Buffer[];
     (path: PathLike, options: (ObjectEncodingOptions & {
         withFileTypes?: false;
         recursive?: boolean;
@@ -6301,6 +6495,57 @@ const RemoveDuplicateModulesPlugin: {
 };
 
 // @public (undocumented)
+class Replacement {
+    	constructor(start: number, end: number, content: string, name?: string);
+    	// (undocumented)
+    content: string;
+    	// (undocumented)
+    end: number;
+    	// (undocumented)
+    index?: number;
+    	// (undocumented)
+    name?: string;
+    	// (undocumented)
+    start: number;
+}
+
+// @public (undocumented)
+class ReplaceSource extends Source {
+    	constructor(source: Source, name?: string);
+    	// (undocumented)
+    getName(): undefined | string;
+    	// (undocumented)
+    getReplacements(): Replacement[];
+    	// (undocumented)
+    insert(pos: number, newValue: string, name?: string): void;
+    	// (undocumented)
+    original(): Source;
+    	// (undocumented)
+    replace(start: number, end: number, newValue: string, name?: string): void;
+    	// (undocumented)
+    static Replacement: typeof Replacement;
+    	// (undocumented)
+    streamChunks(
+    		options: StreamChunksOptions,
+    		onChunk: (
+    			chunk: undefined | string,
+    			generatedLine: number,
+    			generatedColumn: number,
+    			sourceIndex: number,
+    			originalLine: number,
+    			originalColumn: number,
+    			nameIndex: number,
+    		) => void,
+    		onSource: (
+    			sourceIndex: number,
+    			source: null | string,
+    			sourceContent?: string,
+    		) => void,
+    		onName: (nameIndex: number, name: string) => void,
+    	): GeneratedSourceInfo;
+}
+
+// @public (undocumented)
 type Request_2 = IncomingMessage_2;
 
 // @public
@@ -6406,7 +6651,7 @@ type ResolverWithOptions = Resolver & WithOptions;
 // @public
 export type ResolveTsConfig = string | {
     configFile: string;
-    references?: string[] | "auto" | undefined;
+    references?: string[] | 'auto' | undefined;
 };
 
 // @public (undocumented)
@@ -6454,14 +6699,54 @@ type Rewrite = {
 type RewriteTo = (context: HistoryContext) => string;
 
 // @public (undocumented)
+const rsc: {
+    createPlugins: () => {
+        ServerPlugin: new (options?: Omit<RscClientPluginOptions, "coordinator">) => ServerPlugin;
+        ClientPlugin: new () => ClientPlugin;
+    };
+    Layers: {
+        readonly rsc: "react-server-components";
+        readonly ssr: "server-side-rendering";
+    };
+};
+
+// @public (undocumented)
+class RscClientPlugin extends RspackBuiltinPlugin {
+    constructor(options: RscClientPluginOptions);
+    // (undocumented)
+    name: string;
+    // (undocumented)
+    raw(compiler: Compiler): binding.BuiltinPlugin;
+}
+
+// @public (undocumented)
+type RscClientPluginOptions = {
+    coordinator: Coordinator;
+};
+
+// @public (undocumented)
+class RscServerPlugin extends RspackBuiltinPlugin {
+    constructor(options: RscServerPluginOptions);
+    // (undocumented)
+    name: string;
+    // (undocumented)
+    raw(compiler: Compiler): binding.BuiltinPlugin;
+}
+
+// @public (undocumented)
+type RscServerPluginOptions = {
+    coordinator: Coordinator;
+    onServerComponentChanges?: () => Promise<void>;
+};
+
+// @public (undocumented)
 const RsdoctorPlugin: typeof RsdoctorPluginImpl & {
-    getHooks: (compilation: Compilation) => RsdoctorPluginHooks;
     getCompilationHooks: (compilation: Compilation) => RsdoctorPluginHooks;
 };
 
 // @public (undocumented)
 export namespace RsdoctorPluginData {
-    export type { JsRsdoctorAsset as RsdoctorAsset, JsRsdoctorChunkGraph as RsdoctorChunkGraph, JsRsdoctorModuleGraph as RsdoctorModuleGraph, JsRsdoctorChunk as RsdoctorChunk, JsRsdoctorModule as RsdoctorModule, JsRsdoctorSideEffect as RsdoctorSideEffect, JsRsdoctorExportInfo as RsdoctorExportInfo, JsRsdoctorVariable as RsdoctorVariable, JsRsdoctorDependency as RsdoctorDependency, JsRsdoctorEntrypoint as RsdoctorEntrypoint, JsRsdoctorStatement as RsdoctorStatement, JsRsdoctorSourceRange as RsdoctorSourceRange, JsRsdoctorSourcePosition as RsdoctorSourcePosition, JsRsdoctorModuleGraphModule as RsdoctorModuleGraphModule, JsRsdoctorModuleIdsPatch as RsdoctorModuleIdsPatch, JsRsdoctorModuleOriginalSource as RsdoctorModuleOriginalSource, JsRsdoctorAssetPatch as RsdoctorAssetPatch, JsRsdoctorChunkAssets as RsdoctorChunkAssets, JsRsdoctorEntrypointAssets as RsdoctorEntrypointAssets, JsRsdoctorChunkModules as RsdoctorChunkModules, JsRsdoctorModuleSourcesPatch as RsdoctorModuleSourcesPatch };
+    export type { JsRsdoctorAsset as RsdoctorAsset, JsRsdoctorChunkGraph as RsdoctorChunkGraph, JsRsdoctorModuleGraph as RsdoctorModuleGraph, JsRsdoctorChunk as RsdoctorChunk, JsRsdoctorModule as RsdoctorModule, JsRsdoctorSideEffect as RsdoctorSideEffect, JsRsdoctorExportInfo as RsdoctorExportInfo, JsRsdoctorVariable as RsdoctorVariable, JsRsdoctorDependency as RsdoctorDependency, JsRsdoctorEntrypoint as RsdoctorEntrypoint, JsRsdoctorStatement as RsdoctorStatement, JsRsdoctorSourceRange as RsdoctorSourceRange, JsRsdoctorSourcePosition as RsdoctorSourcePosition, JsRsdoctorModuleGraphModule as RsdoctorModuleGraphModule, JsRsdoctorModuleIdsPatch as RsdoctorModuleIdsPatch, JsRsdoctorModuleOriginalSource as RsdoctorModuleOriginalSource, JsRsdoctorAssetPatch as RsdoctorAssetPatch, JsRsdoctorChunkAssets as RsdoctorChunkAssets, JsRsdoctorEntrypointAssets as RsdoctorEntrypointAssets, JsRsdoctorChunkModules as RsdoctorChunkModules, JsRsdoctorModuleSourcesPatch as RsdoctorModuleSourcesPatch, };
 }
 
 // @public (undocumented)
@@ -6494,8 +6779,8 @@ const RsdoctorPluginImpl: {
 
 // @public (undocumented)
 type RsdoctorPluginOptions = {
-    moduleGraphFeatures?: boolean | ("graph" | "ids" | "sources")[];
-    chunkGraphFeatures?: boolean | ("graph" | "assets")[];
+    moduleGraphFeatures?: boolean | ('graph' | 'ids' | 'sources')[];
+    chunkGraphFeatures?: boolean | ('graph' | 'assets')[];
     sourceMapFeatures?: {
         module?: boolean;
         cheap?: boolean;
@@ -6522,6 +6807,7 @@ type Rspack = typeof rspack_2 & typeof rspackExports & {
 // @public (undocumented)
 const rspack: Rspack;
 export default rspack;
+export { rspack as module.exports }
 export { rspack }
 
 // @public (undocumented)
@@ -6619,7 +6905,6 @@ declare namespace rspackExports {
         ProvidePluginOptions,
         BannerPlugin,
         CaseSensitivePlugin,
-        CaseSensitivePlugin as WarnCaseSensitiveModulesPlugin,
         DefinePlugin,
         DynamicEntryPlugin,
         EntryPlugin,
@@ -6736,7 +7021,7 @@ declare namespace rspackExports {
         EntryDescriptionNormalized,
         OutputNormalized,
         ModuleOptionsNormalized,
-        ExperimentCacheNormalized,
+        CacheNormalized,
         ExperimentsNormalized,
         IgnoreWarningsNormalized,
         OptimizationRuntimeChunkNormalized,
@@ -6884,6 +7169,10 @@ declare namespace rspackExports {
         Node_2 as Node,
         Loader,
         SnapshotOptions,
+        CacheSnapshotOptions,
+        CacheStorageOptions,
+        PersistentCacheOptions,
+        MemoryCacheOptions,
         CacheOptions,
         StatsPresets,
         StatsColorOptions,
@@ -6903,8 +7192,7 @@ declare namespace rspackExports {
         OptimizationSplitChunksCacheGroup,
         OptimizationSplitChunksOptions,
         Optimization,
-        ExperimentCacheOptions,
-        RspackFutureOptions,
+        BundlerInfoOptions,
         LazyCompilationOptions,
         Incremental,
         IncrementalPresets,
@@ -6916,7 +7204,6 @@ declare namespace rspackExports {
         DevServer,
         DevServerMiddleware,
         IgnoreWarnings,
-        Profile,
         Amd,
         Bail,
         Performance_2 as Performance,
@@ -6924,15 +7211,6 @@ declare namespace rspackExports {
         Configuration
     }
 }
-
-// @public
-export type RspackFutureOptions = {
-    bundlerInfo?: {
-        version?: string;
-        bundler?: string;
-        force?: boolean | ("version" | "uniqueId")[];
-    };
-};
 
 // @public (undocumented)
 export type RspackOptions = {
@@ -6964,11 +7242,11 @@ export type RspackOptions = {
     plugins?: Plugins;
     devServer?: DevServer;
     module?: ModuleOptions;
-    profile?: Profile;
     amd?: Amd;
     bail?: Bail;
     performance?: Performance_2;
     lazyCompilation?: boolean | LazyCompilationOptions;
+    incremental?: IncrementalPresets | Incremental;
 };
 
 // @public (undocumented)
@@ -6986,7 +7264,7 @@ export interface RspackOptionsNormalized {
     // (undocumented)
     bail?: Bail;
     // (undocumented)
-    cache?: CacheOptions;
+    cache?: CacheNormalized;
     // (undocumented)
     context?: Context;
     // (undocumented)
@@ -7007,6 +7285,8 @@ export interface RspackOptionsNormalized {
     externalsType?: ExternalsType;
     // (undocumented)
     ignoreWarnings?: IgnoreWarningsNormalized;
+    // (undocumented)
+    incremental?: false | Incremental;
     // (undocumented)
     infrastructureLogging: InfrastructureLogging;
     // (undocumented)
@@ -7029,8 +7309,6 @@ export interface RspackOptionsNormalized {
     performance?: Performance_2;
     // (undocumented)
     plugins: Plugins;
-    // (undocumented)
-    profile?: Profile;
     // (undocumented)
     resolve: Resolve;
     // (undocumented)
@@ -7142,14 +7420,14 @@ export type RuleSetRule = {
     generator?: Record<string, any>;
     resolve?: ResolveOptions;
     sideEffects?: boolean;
-    enforce?: "pre" | "post";
+    enforce?: 'pre' | 'post';
     oneOf?: (RuleSetRule | Falsy)[];
     rules?: (RuleSetRule | Falsy)[];
     extractSourceMap?: boolean;
 };
 
 // @public
-export type RuleSetRules = ("..." | RuleSetRule | Falsy)[];
+export type RuleSetRules = ('...' | RuleSetRule | Falsy)[];
 
 // @public (undocumented)
 export type RuleSetUse = RuleSetUseItem | RuleSetUseItem[] | ((data: RawFuncUseCtx) => RuleSetUseItem[]);
@@ -7169,7 +7447,7 @@ const RuntimeChunkPlugin: {
 };
 
 // @public (undocumented)
-export const RuntimeGlobals: Record<"publicPath" | "chunkName" | "moduleId" | "module" | "exports" | "require" | "global" | "system" | "requireScope" | "thisAsExports" | "returnExportsFromRuntime" | "moduleLoaded" | "entryModuleId" | "moduleCache" | "moduleFactories" | "moduleFactoriesAddOnly" | "ensureChunk" | "ensureChunkHandlers" | "ensureChunkIncludeEntries" | "prefetchChunk" | "prefetchChunkHandlers" | "preloadChunk" | "preloadChunkHandlers" | "definePropertyGetters" | "makeNamespaceObject" | "createFakeNamespaceObject" | "compatGetDefaultExport" | "harmonyModuleDecorator" | "nodeModuleDecorator" | "getFullHash" | "wasmInstances" | "instantiateWasm" | "uncaughtErrorHandler" | "scriptNonce" | "loadScript" | "createScript" | "createScriptUrl" | "getTrustedTypesPolicy" | "hasFetchPriority" | "runtimeId" | "getChunkScriptFilename" | "getChunkCssFilename" | "rspackVersion" | "hasCssModules" | "rspackUniqueId" | "getChunkUpdateScriptFilename" | "getChunkUpdateCssFilename" | "startup" | "startupNoDefault" | "startupOnlyAfter" | "startupOnlyBefore" | "chunkCallback" | "startupEntrypoint" | "startupChunkDependencies" | "onChunksLoaded" | "externalInstallChunk" | "interceptModuleExecution" | "shareScopeMap" | "initializeSharing" | "currentRemoteGetScope" | "getUpdateManifestFilename" | "hmrDownloadManifest" | "hmrDownloadUpdateHandlers" | "hmrModuleData" | "hmrInvalidateModuleHandlers" | "hmrRuntimeStatePrefix" | "amdDefine" | "amdOptions" | "hasOwnProperty" | "systemContext" | "baseURI" | "relativeUrl" | "asyncModule" | "asyncModuleExportSymbol" | "makeDeferredNamespaceObject" | "makeDeferredNamespaceObjectSymbol", string>;
+export const RuntimeGlobals: Record<"publicPath" | "chunkName" | "moduleId" | "module" | "require" | "global" | "system" | "exports" | "requireScope" | "thisAsExports" | "returnExportsFromRuntime" | "moduleLoaded" | "entryModuleId" | "moduleCache" | "moduleFactories" | "moduleFactoriesAddOnly" | "ensureChunk" | "ensureChunkHandlers" | "ensureChunkIncludeEntries" | "prefetchChunk" | "prefetchChunkHandlers" | "preloadChunk" | "preloadChunkHandlers" | "definePropertyGetters" | "makeNamespaceObject" | "createFakeNamespaceObject" | "compatGetDefaultExport" | "harmonyModuleDecorator" | "nodeModuleDecorator" | "getFullHash" | "wasmInstances" | "instantiateWasm" | "uncaughtErrorHandler" | "scriptNonce" | "loadScript" | "createScript" | "createScriptUrl" | "getTrustedTypesPolicy" | "hasFetchPriority" | "runtimeId" | "getChunkScriptFilename" | "getChunkCssFilename" | "rspackVersion" | "hasCssModules" | "rspackUniqueId" | "getChunkUpdateScriptFilename" | "getChunkUpdateCssFilename" | "startup" | "startupNoDefault" | "startupOnlyAfter" | "startupOnlyBefore" | "chunkCallback" | "startupEntrypoint" | "startupChunkDependencies" | "onChunksLoaded" | "externalInstallChunk" | "interceptModuleExecution" | "shareScopeMap" | "initializeSharing" | "currentRemoteGetScope" | "getUpdateManifestFilename" | "hmrDownloadManifest" | "hmrDownloadUpdateHandlers" | "hmrModuleData" | "hmrInvalidateModuleHandlers" | "hmrRuntimeStatePrefix" | "amdDefine" | "amdOptions" | "hasOwnProperty" | "systemContext" | "baseURI" | "relativeUrl" | "asyncModule" | "asyncModuleExportSymbol" | "makeDeferredNamespaceObject" | "makeDeferredNamespaceObjectSymbol", string>;
 
 // @public (undocumented)
 export class RuntimeModule {
@@ -7199,6 +7477,8 @@ export class RuntimeModule {
     // (undocumented)
     shouldIsolate(): boolean;
     // (undocumented)
+    get source(): JsSource | undefined;
+    // (undocumented)
     get stage(): RuntimeModuleStage;
     // (undocumented)
     static STAGE_ATTACH: RuntimeModuleStage;
@@ -7224,7 +7504,6 @@ enum RuntimeModuleStage {
 
 // @public (undocumented)
 export const RuntimePlugin: typeof RuntimePluginImpl & {
-    getHooks: (compilation: Compilation) => RuntimePluginHooks;
     getCompilationHooks: (compilation: Compilation) => RuntimePluginHooks;
 };
 
@@ -7262,7 +7541,7 @@ interface Script extends Node_4, HasSpan, HasInterpreter {
 }
 
 // @public (undocumented)
-export type ScriptType = false | "text/javascript" | "module";
+export type ScriptType = false | 'text/javascript' | 'module';
 
 // @public (undocumented)
 interface SequenceExpression extends ExpressionBase {
@@ -7291,17 +7570,22 @@ type ServerOptions = ServerOptions_2 & {
     spdy?: {
         plain?: boolean | undefined;
         ssl?: boolean | undefined;
-        "x-forwarded-for"?: string | undefined;
+        'x-forwarded-for'?: string | undefined;
         protocol?: string | undefined;
         protocols?: string[] | undefined;
     };
 };
 
 // @public (undocumented)
+class ServerPlugin extends RscServerPlugin {
+    constructor(options?: Omit<RscClientPluginOptions, 'coordinator'>);
+}
+
+// @public (undocumented)
 type ServerResponse_2 = ServerResponse;
 
 // @public (undocumented)
-type ServerType<A extends BasicApplication = BasicApplication, S extends BasicServer = Server_3<IncomingMessage, ServerResponse>> = LiteralUnion<"http" | "https" | "spdy" | "http2", string> | ((arg0: ServerOptions, arg1: A) => S);
+type ServerType<A extends BasicApplication = BasicApplication, S extends BasicServer = Server_3<IncomingMessage, ServerResponse>> = LiteralUnion<'http' | 'https' | 'spdy' | 'http2', string> | ((arg0: ServerOptions, arg1: A) => S);
 
 // @public (undocumented)
 type ServeStaticOptions = {
@@ -7411,6 +7695,11 @@ export const sharing: {
 };
 
 // @public (undocumented)
+class SizeOnlySource extends Source {
+    	constructor(size: number);
+}
+
+// @public (undocumented)
 export type SnapshotOptions = {};
 
 // @public (undocumented)
@@ -7438,6 +7727,21 @@ interface SourceAndMap {
 }
 
 // @public (undocumented)
+interface SourceLike {
+    	buffer?: () => Buffer_2;
+
+    	map?: (options?: MapOptions) => null | RawSourceMap_2;
+
+    	size?: () => number;
+
+    	source: () => SourceValue;
+
+    	sourceAndMap?: (options?: MapOptions) => SourceAndMap;
+
+    	updateHash?: (hash: HashLike) => void;
+}
+
+// @public (undocumented)
 export const SourceMapDevToolPlugin: {
     new (options: SourceMapDevToolPluginOptions): {
         name: string;
@@ -7453,6 +7757,75 @@ export { SourceMapDevToolPluginOptions }
 // @public
 export type SourceMapFilename = string;
 
+// @public (undocumented)
+class SourceMapSource extends Source {
+    	constructor(
+    		value: string | Buffer_2,
+    		name: string,
+    		sourceMap?: string | RawSourceMap_2 | Buffer_2,
+    		originalSource?: string | Buffer_2,
+    		innerSourceMap?: string | RawSourceMap_2 | Buffer_2,
+    		removeOriginalSource?: boolean,
+    	);
+    	// (undocumented)
+    getArgsAsBuffers(): [
+    		Buffer_2,
+    		string,
+    		Buffer_2,
+    		undefined | Buffer_2,
+    		undefined | Buffer_2,
+    		undefined | boolean,
+    	];
+    	// (undocumented)
+    streamChunks(
+    		options: StreamChunksOptions,
+    		onChunk: (
+    			chunk: undefined | string,
+    			generatedLine: number,
+    			generatedColumn: number,
+    			sourceIndex: number,
+    			originalLine: number,
+    			originalColumn: number,
+    			nameIndex: number,
+    		) => void,
+    		onSource: (
+    			sourceIndex: number,
+    			source: null | string,
+    			sourceContent?: string,
+    		) => void,
+    		onName: (nameIndex: number, name: string) => void,
+    	): GeneratedSourceInfo;
+}
+
+declare namespace sources {
+    export {
+        util_2 as util,
+        OnChunk,
+        OnName,
+        OnSource,
+        Source,
+        RawSource,
+        OriginalSource,
+        SourceMapSource,
+        CachedSource,
+        ConcatSource,
+        ReplaceSource,
+        PrefixSource,
+        SizeOnlySource,
+        CompatSource,
+        CachedData,
+        SourceLike,
+        ConcatSourceChild,
+        Replacement,
+        HashLike,
+        MapOptions,
+        RawSourceMap_2 as RawSourceMap,
+        SourceAndMap,
+        SourceValue,
+        GeneratedSourceInfo,
+        StreamChunksOptions
+    }
+}
 export { sources }
 
 // @public (undocumented)
@@ -7512,7 +7885,7 @@ type Static = {
     staticOptions?: ServeStaticOptions | undefined;
     watch?: boolean | (ChokidarWatchOptions & {
         aggregateTimeout?: number;
-        ignored?: ChokidarWatchOptions["ignored"];
+        ignored?: ChokidarWatchOptions['ignored'];
         poll?: number | boolean;
     }) | undefined;
 };
@@ -7595,7 +7968,7 @@ export enum StatsErrorCode {
 class StatsFactory {
     constructor();
     // (undocumented)
-    create(type: string, data: any, baseContext: Omit<StatsFactoryContext, "type">): any;
+    create(type: string, data: any, baseContext: Omit<StatsFactoryContext, 'type'>): any;
     // (undocumented)
     _forEachLevel(hookMap: HookMap<any>, cache: CacheHookMap, type: string, fn: CallFn): any;
     // (undocumented)
@@ -7647,7 +8020,7 @@ export type StatsOptions = {
     assets?: boolean;
     chunks?: boolean;
     modules?: boolean;
-    entrypoints?: boolean | "auto";
+    entrypoints?: boolean | 'auto';
     chunkGroups?: boolean;
     warnings?: boolean;
     warningsCount?: boolean;
@@ -7667,7 +8040,7 @@ export type StatsOptions = {
     moduleAssets?: boolean;
     nestedModules?: boolean;
     source?: boolean;
-    logging?: "none" | "error" | "warn" | "info" | "log" | "verbose" | boolean;
+    logging?: 'none' | 'error' | 'warn' | 'info' | 'log' | 'verbose' | boolean;
     loggingDebug?: boolean | FilterTypes;
     loggingTrace?: boolean;
     runtimeModules?: boolean;
@@ -7724,7 +8097,7 @@ export type StatsOptions = {
 type StatsOrBigIntStatsCallback = (err: NodeJS.ErrnoException | null, stats?: IStats | IBigIntStats) => void;
 
 // @public (undocumented)
-export type StatsPresets = "normal" | "none" | "verbose" | "errors-only" | "errors-warnings" | "minimal" | "detailed" | "summary";
+export type StatsPresets = 'normal' | 'none' | 'verbose' | 'errors-only' | 'errors-warnings' | 'minimal' | 'detailed' | 'summary';
 
 // @public (undocumented)
 class StatsPrinter {
@@ -7749,9 +8122,6 @@ class StatsPrinter {
 
 // @public (undocumented)
 type StatsPrinterContext = KnownStatsPrinterContext & Record<string, any>;
-
-// @public (undocumented)
-type StatsProfile = KnownStatsProfile & Record<string, any>;
 
 // @public
 export type StatsValue = boolean | StatsOptions | StatsPresets;
@@ -7785,6 +8155,16 @@ type StatSyncOptions = {
     bigint?: boolean;
     throwIfNoEntry?: boolean;
 };
+
+// @public (undocumented)
+interface StreamChunksOptions {
+    	// (undocumented)
+    columns?: boolean;
+    	// (undocumented)
+    finalSource?: boolean;
+    	// (undocumented)
+    source?: boolean;
+}
 
 // @public (undocumented)
 interface StreamOptions {
@@ -7829,7 +8209,7 @@ interface StringLiteral extends Node_4, HasSpan {
 type StringOrBufferCallback = (err: NodeJS.ErrnoException | null, data?: string | Buffer) => void;
 
 // @public (undocumented)
-type SubresourceIntegrityHashFunction = "sha256" | "sha384" | "sha512";
+type SubresourceIntegrityHashFunction = 'sha256' | 'sha384' | 'sha512';
 
 // @public (undocumented)
 export class SubresourceIntegrityPlugin extends NativeSubresourceIntegrityPlugin {
@@ -7845,7 +8225,7 @@ export type SubresourceIntegrityPluginOptions = {
     ...SubresourceIntegrityHashFunction[]
     ];
     htmlPlugin?: string | false;
-    enabled?: "auto" | boolean;
+    enabled?: 'auto' | boolean;
 };
 
 // @public (undocumented)
@@ -7905,11 +8285,11 @@ export type SwcLoaderModuleConfig = ModuleConfig;
 
 // @public (undocumented)
 export type SwcLoaderOptions = Config_2 & {
-    isModule?: boolean | "unknown";
+    isModule?: boolean | 'unknown';
     collectTypeScriptInfo?: CollectTypeScriptInfoOptions;
     rspackExperiments?: {
         import?: PluginImportOptions;
-        collectTypeScriptInfo?: CollectTypeScriptInfoOptions;
+        reactServerComponents?: boolean;
     };
 };
 
@@ -7967,23 +8347,23 @@ export type Target = false | AllowTarget | AllowTarget[];
 // @public (undocumented)
 interface Targets {
     // (undocumented)
-    android?: number;
+    android?: string;
     // (undocumented)
-    chrome?: number;
+    chrome?: string;
     // (undocumented)
-    edge?: number;
+    edge?: string;
     // (undocumented)
-    firefox?: number;
+    firefox?: string;
     // (undocumented)
-    ie?: number;
+    ie?: string;
     // (undocumented)
-    ios_saf?: number;
+    ios_saf?: string;
     // (undocumented)
-    opera?: number;
+    opera?: string;
     // (undocumented)
-    safari?: number;
+    safari?: string;
     // (undocumented)
-    samsung?: number;
+    samsung?: string;
 }
 
 // @public
@@ -8396,7 +8776,7 @@ type TruePlusMinus = true | "+" | "-";
 // @public
 export type TrustedTypes = {
     policyName?: string;
-    onPolicyCreationFailure?: "continue" | "stop";
+    onPolicyCreationFailure?: 'continue' | 'stop';
 };
 
 // @public (undocumented)
@@ -9136,6 +9516,25 @@ export const util: {
 };
 
 // @public (undocumented)
+namespace util_2 {
+    		// (undocumented)
+    namespace stringBufferUtils {
+        			let // (undocumented)
+        disableDualStringBufferCaching: () => void;
+        			let // (undocumented)
+        enableDualStringBufferCaching: () => void;
+        			let // (undocumented)
+        internString: (str: string) => string;
+        			let // (undocumented)
+        isDualStringBufferCachingEnabled: () => boolean;
+        			let // (undocumented)
+        enterStringInterningRange: () => void;
+        			let // (undocumented)
+        exitStringInterningRange: () => void;
+        		}
+    	}
+
+// @public (undocumented)
 export class ValidationError extends Error {
     constructor(message: string);
 }
@@ -9197,7 +9596,7 @@ export const wasm: Wasm;
 export type WasmLoading = false | WasmLoadingType;
 
 // @public
-export type WasmLoadingType = LiteralUnion<"fetch-streaming" | "fetch" | "async-node", string>;
+export type WasmLoadingType = LiteralUnion<'fetch-streaming' | 'fetch' | 'async-node', string>;
 
 // @public (undocumented)
 type WasmPlugin = [wasmPackage: string, config: Record<string, any>];
@@ -9214,9 +9613,9 @@ interface Watcher {
     // (undocumented)
     getAggregatedRemovals?(): Set<string>;
     // (undocumented)
-    getContextTimeInfoEntries?(): Map<string, FileSystemInfoEntry | "ignore">;
+    getContextTimeInfoEntries?(): Map<string, FileSystemInfoEntry | 'ignore'>;
     // (undocumented)
-    getFileTimeInfoEntries?(): Map<string, FileSystemInfoEntry | "ignore">;
+    getFileTimeInfoEntries?(): Map<string, FileSystemInfoEntry | 'ignore'>;
     // (undocumented)
     getInfo(): WatcherInfo;
     // (undocumented)
@@ -9245,9 +9644,9 @@ interface WatcherInfo {
     // (undocumented)
     changes: Set<string>;
     // (undocumented)
-    contextTimeInfoEntries: Map<string, FileSystemInfoEntry | "ignore">;
+    contextTimeInfoEntries: Map<string, FileSystemInfoEntry | 'ignore'>;
     // (undocumented)
-    fileTimeInfoEntries: Map<string, FileSystemInfoEntry | "ignore">;
+    fileTimeInfoEntries: Map<string, FileSystemInfoEntry | 'ignore'>;
     // (undocumented)
     removals: Set<string>;
 }
@@ -9257,7 +9656,7 @@ type WatchFiles = {
     paths: string | string[];
     options?: (ChokidarWatchOptions & {
         aggregateTimeout?: number;
-        ignored?: ChokidarWatchOptions["ignored"];
+        ignored?: ChokidarWatchOptions['ignored'];
         poll?: number | boolean;
     }) | undefined;
 };
@@ -9274,7 +9673,7 @@ export interface WatchFileSystem {
     }, missing: Iterable<string> & {
         added?: Iterable<String>;
         removed?: Iterable<String>;
-    }, startTime: number, options: WatchOptions, callback: (error: Error | null, fileTimeInfoEntries: Map<string, FileSystemInfoEntry | "ignore">, contextTimeInfoEntries: Map<string, FileSystemInfoEntry | "ignore">, changedFiles: Set<string>, removedFiles: Set<string>) => void, callbackUndelayed: (fileName: string, changeTime: number) => void): Watcher;
+    }, startTime: number, options: WatchOptions, callback: (error: Error | null, fileTimeInfoEntries: Map<string, FileSystemInfoEntry | 'ignore'>, contextTimeInfoEntries: Map<string, FileSystemInfoEntry | 'ignore'>, changedFiles: Set<string>, removedFiles: Set<string>) => void, callbackUndelayed: (fileName: string, changeTime: number) => void): Watcher;
 }
 
 // @public (undocumented)

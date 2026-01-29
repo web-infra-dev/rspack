@@ -176,7 +176,7 @@ For example, `output.filename` option accepts a function, which will be called d
 ```js title="rspack.config.mjs"
 export default {
   output: {
-    filename: pathData => {
+    filename: (pathData) => {
       return pathData.chunk.name === 'main' ? '[name].js' : '[name]/[name].js';
     },
   },

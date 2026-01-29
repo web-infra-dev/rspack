@@ -1,65 +1,65 @@
-import * as path from "node:path";
-import { fileURLToPath } from "node:url";
-import * as core from "@actions/core";
-import { parse } from "semver";
+import * as path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import * as core from '@actions/core';
+import { parse } from 'semver';
 
-import { getLastVersion, getPkgName } from "./version.mjs";
+import { getLastVersion, getPkgName } from './version.mjs';
 
 const __filename = path.resolve(fileURLToPath(import.meta.url));
 const __dirname = path.dirname(__filename);
 
 export async function publish_handler(mode, options) {
-	console.log("options:", options);
-	const npmrcPath = `${process.env.HOME}/.npmrc`;
-	const root = process.cwd();
-	const version = await getLastVersion(root);
-	const name = await getPkgName(root);
+  console.log('options:', options);
+  const npmrcPath = `${process.env.HOME}/.npmrc`;
+  const root = process.cwd();
+  const version = await getLastVersion(root);
+  const name = await getPkgName(root);
 
-	const npmTag = options.tag;
-	const parsedVersion = parse(version);
+  const npmTag = options.tag;
+  const parsedVersion = parse(version);
 
-	if (
-		npmTag === "latest" &&
-		parsedVersion.prerelease.length > 0 &&
-		name.startsWith("@rspack/")
-	) {
-		throw Error("Latest tag cannot be prerelease version");
-	}
+  if (
+    npmTag === 'latest' &&
+    parsedVersion.prerelease.length > 0 &&
+    name.startsWith('@rspack/')
+  ) {
+    throw Error('Latest tag cannot be prerelease version');
+  }
 
-	if (fs.existsSync(npmrcPath)) {
-		console.info("Found existing .npmrc file");
-	} else {
-		console.info("No .npmrc file found, creating one");
+  if (fs.existsSync(npmrcPath)) {
+    console.info('Found existing .npmrc file');
+  } else {
+    console.info('No .npmrc file found, creating one');
 
-		fs.writeFileSync(
-			npmrcPath,
-			`//registry.npmjs.org/:_authToken=${process.env.NPM_TOKEN}`
-		);
-	}
+    fs.writeFileSync(
+      npmrcPath,
+      `//registry.npmjs.org/:_authToken=${process.env.NPM_TOKEN}`,
+    );
+  }
 
-	await publish(options);
+  await publish(options);
 
-	core.setOutput("version", version);
-	core.notice(`Version: ${version}`);
-	// write version to workspace directory
-	fs.writeFileSync(path.resolve(__dirname, "../..", "version_output"), version);
-	/**
-	 * @Todo test stable release later
-	 */
-	if (options.pushTags) {
-		console.info("git config user");
-		await $`git config --global --add safe.directory /github/workspace`;
-		await $`git config --global user.name "github-actions[bot]"`;
-		await $`git config --global user.email "github-actions[bot]@users.noreply.github.com"`;
-		console.info("git commit all...");
-		await $`git status`;
-		await $`git tag v${version} -m v${version} `;
-		await $`git push origin --follow-tags`;
-	}
+  core.setOutput('version', version);
+  core.notice(`Version: ${version}`);
+  // write version to workspace directory
+  fs.writeFileSync(path.resolve(__dirname, '../..', 'version_output'), version);
+  /**
+   * @Todo test stable release later
+   */
+  if (options.pushTags) {
+    console.info('git config user');
+    await $`git config --global --add safe.directory /github/workspace`;
+    await $`git config --global user.name "github-actions[bot]"`;
+    await $`git config --global user.email "github-actions[bot]@users.noreply.github.com"`;
+    console.info('git commit all...');
+    await $`git status`;
+    await $`git tag v${version} -m v${version} `;
+    await $`git push origin --follow-tags`;
+  }
 }
 
 async function publish(options) {
-	await $`pnpm publish -r ${options.dryRun ? "--dry-run" : ""} --tag ${
-		options.tag
-	} --no-git-checks --provenance`;
+  await $`pnpm publish -r ${options.dryRun ? '--dry-run' : ''} --tag ${
+    options.tag
+  } --no-git-checks --provenance`;
 }

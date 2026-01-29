@@ -76,6 +76,12 @@ export default {
 
 SWC 提供了 [jsc.target](https://swc.rs/docs/configuration/compilation#jsctarget) 和 [env.targets](https://swc.rs/docs/configuration/compilation#envtargets) 来指定 JavaScript 语法降级的目标。
 
+:::tip 来自 Rspack 的默认 target
+如果既未配置 `env.targets` 也未配置 `jsc.target`，`builtin:swc-loader` 将自动从 Rspack 的 [`target`](/config/target) 配置中推断出默认 target。
+
+这意味着你可以依赖 Rspack 的 `target` 配置，而无需在 loader 选项中手动指定相同的 target。
+:::
+
 #### jsc.target
 
 [jsc.target](https://swc.rs/docs/configuration/compilation#jsctarget) 用于指定 ECMA 版本，例如 `es5`，`es2015`，`es2016` 等。
@@ -266,7 +272,7 @@ Rspack 支持在 `builtin:swc-loader` 里加载 SWC 的 Wasm 插件, 你可以�
 }
 ```
 
-这是 Wasm 插件的一个[示例](https://github.com/rspack-contrib/rstack-examples/blob/d4b8aaef9915ed0f540edbe504217c3d1afe8989/rspack/builtin-swc-loader/rspack.config.js#L45)。
+这是 Wasm 插件的一个[示例](https://github.com/rstackjs/rstack-examples/blob/d4b8aaef9915ed0f540edbe504217c3d1afe8989/rspack/builtin-swc-loader/rspack.config.js#L45)。
 
 #### 设置缓存目录
 
@@ -460,10 +466,6 @@ import 'antd/es/button/style';
 
 为了保证收集到的信息的准确性，用户需要确保 `builtin:swc-loader` 后续的 Normal Loader 不会去修改这些已经被收集到的相关信息对应的 AST，以免导致收集到的信息和实际的代码不一致的情况。
 
-:::tip
-在 Rspack 1.7 之前的版本中，可以使用 [rspackExperiments.collectTypeScriptInfo](/config/deprecated-options#experimentscollecttypescriptinfo) 选项。
-:::
-
 #### collectTypeScriptInfo.typeExports
 
 <ApiMeta addedVersion="1.7.0" />
@@ -473,7 +475,7 @@ import 'antd/es/button/style';
 
 是否收集类型导出信息，提供给 [`typeReexportsPresence`](/config/module#moduleparserjavascripttypereexportspresence) 使用，用于 `'tolerant'` 模式下检查子模块的类型导出。
 
-详细示例可参考：[type reexports presence 示例](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/type-reexports-presence)
+详细示例可参考：[type reexports presence 示例](https://github.com/rstackjs/rstack-examples/tree/main/rspack/type-reexports-presence)
 
 #### collectTypeScriptInfo.exportedEnum
 
@@ -492,9 +494,6 @@ import 'antd/es/button/style';
 const isProduction = process.env.NODE_ENV === 'production';
 
 export default {
-  experiments: {
-    inlineEnum: true, // 目前为实验性功能，需开启此选项
-  },
   module: {
     rules: [
       {
@@ -522,8 +521,8 @@ export default {
 
 由于该功能依赖模块导出的使用信息（[optimization.usedExports](/config/optimization#optimizationusedexports)），所以建议仅在 `mode = "production"` 时开启该功能。
 
-详细示例可参考：[inline enum 示例](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/inline-enum)
+详细示例可参考：[inline enum 示例](https://github.com/rstackjs/rstack-examples/tree/main/rspack/inline-enum)
 
 :::info
-默认会对所有 `enum` 进行内联优化，若仅对 `const enum` 进行内联请使用 `'const-only'` 并配置 `transform.tsEnumIsMutable = true`，详细示例可参考：[inline const enum 示例](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/inline-const-enum)
+默认会对所有 `enum` 进行内联优化，若仅对 `const enum` 进行内联请使用 `'const-only'` 并配置 `transform.tsEnumIsMutable = true`，详细示例可参考：[inline const enum 示例](https://github.com/rstackjs/rstack-examples/tree/main/rspack/inline-const-enum)
 :::

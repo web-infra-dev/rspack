@@ -11,11 +11,11 @@ Rspack 提供两种方案来支持 Vue：
 
 ## Vue 3
 
-目前，Rspack 已经完成了对 Vue 3 的支持，请确保你的 [vue-loader](https://github.com/vuejs/vue-loader) 版本 >= 17.2.2，并进行如下配置：
+目前，Rspack 已经完成了对 Vue 3 的支持，请确保你的 [rspack-vue-loader](https://github.com/rstackjs/rspack-vue-loader) 版本 >= 17.2.2，并进行如下配置：
 
 ```js title="rspack.config.mjs"
 import { defineConfig } from '@rspack/cli';
-import { VueLoaderPlugin } from 'vue-loader';
+import { VueLoaderPlugin } from 'rspack-vue-loader';
 
 export default defineConfig({
   plugins: [new VueLoaderPlugin()],
@@ -23,7 +23,7 @@ export default defineConfig({
     rules: [
       {
         test: /\.vue$/,
-        loader: 'vue-loader',
+        loader: 'rspack-vue-loader',
         options: {
           // 注意，为了绝大多数功能的可用性，请确保该选项为 `true`
           experimentalInlineMatchResource: true,
@@ -65,9 +65,6 @@ export default {
       },
     ],
   },
-  experiments: {
-    css: false, // 此时需要关闭 `experiments.css` 以适配 `vue-loader` 内部处理逻辑
-  },
 };
 ```
 
@@ -81,13 +78,11 @@ export default {
 </script>
 ```
 
-相关示例可以参考 [example-vue3](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/vue)。
+相关示例可以参考 [example-vue3](https://github.com/rstackjs/rstack-examples/tree/main/rspack/vue)。
 
 ## Vue 2
 
 Rspack 已经完成对 Vue 2（使用 vue-loader@15）的兼容。
-
-请确保在配置 Vue 2 项目时关闭 `experiments.css` 或在 CSS 相关的规则中使用 `rules[].type = "javascript/auto"`：
 
 ```js title="rspack.config.mjs"
 export default {
@@ -120,7 +115,7 @@ export default {
 
 TypeScript 语法是通过 Rspack 内置的 `builtin:swc-loader` 进行支持的，点击[这里](/guide/features/builtin-swc-loader)查看更多信息。
 
-相关示例可以参考：[example-vue2](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/vue2) 和 [example-vue2-ts](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/vue2-ts)。
+相关示例可以参考：[example-vue2](https://github.com/rstackjs/rstack-examples/tree/main/rspack/vue2) 和 [example-vue2-ts](https://github.com/rstackjs/rstack-examples/tree/main/rspack/vue2-ts)。
 
 ## Vue 3 JSX
 
@@ -161,4 +156,4 @@ export default defineConfig({
 });
 ```
 
-Rspack 提供了一个 Vue JSX 的[示例](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/vue3-jsx)可供参考。
+Rspack 提供了一个 Vue JSX 的[示例](https://github.com/rstackjs/rstack-examples/tree/main/rspack/vue3-jsx)可供参考。

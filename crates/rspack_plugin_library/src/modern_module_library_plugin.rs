@@ -156,11 +156,11 @@ impl ModernModuleLibraryPlugin {
         });
 
       for dep_id in module.get_dependencies() {
-        if let Some(export_dep) = mg.dependency_by_id(dep_id)
-          && let Some(reexport_dep) = export_dep
-            .as_any()
-            .downcast_ref::<ESMExportImportedSpecifierDependency>()
-          && self.reexport_star_from_external_module(reexport_dep, &mg)
+        let export_dep = mg.dependency_by_id(dep_id);
+        if let Some(reexport_dep) = export_dep
+          .as_any()
+          .downcast_ref::<ESMExportImportedSpecifierDependency>()
+          && self.reexport_star_from_external_module(reexport_dep, mg)
         {
           let reexport_connection = mg.connection_by_dependency_id(&reexport_dep.id);
           if let Some(reexport_connection) = reexport_connection {
@@ -176,12 +176,12 @@ impl ModernModuleLibraryPlugin {
                 let reexport_star_count = connections
                   .iter()
                   .filter(|c| {
-                    if let Some(dep) = mg.dependency_by_id(c)
-                      && let Some(dep) = dep
-                        .as_any()
-                        .downcast_ref::<ESMExportImportedSpecifierDependency>()
+                    let dep = mg.dependency_by_id(c);
+                    if let Some(dep) = dep
+                      .as_any()
+                      .downcast_ref::<ESMExportImportedSpecifierDependency>()
                     {
-                      return self.reexport_star_from_external_module(dep, &mg);
+                      return self.reexport_star_from_external_module(dep, mg);
                     }
 
                     false
@@ -191,16 +191,11 @@ impl ModernModuleLibraryPlugin {
                 let side_effect_count = connections
                   .iter()
                   .filter(|c| {
-                    if let Some(dep) = mg.dependency_by_id(c)
-                      && dep
-                        .as_any()
-                        .downcast_ref::<ESMImportSideEffectDependency>()
-                        .is_some()
-                    {
-                      return true;
-                    }
-
-                    false
+                    let dep = mg.dependency_by_id(c);
+                    dep
+                      .as_any()
+                      .downcast_ref::<ESMImportSideEffectDependency>()
+                      .is_some()
                   })
                   .count();
 
@@ -230,8 +225,9 @@ impl ModernModuleLibraryPlugin {
       }
     }
 
-    let mut mg =
-      Compilation::get_make_module_graph_mut(&mut compilation.build_module_graph_artifact);
+    let mg = compilation
+      .build_module_graph_artifact
+      .get_module_graph_mut();
     for dep in deps_to_replace {
       let dep_id = dep.id();
       external_connections.remove(dep_id);
@@ -278,7 +274,7 @@ async fn render_startup(
     .module_by_identifier(module_id)
     .expect("should have module");
   let exports_type = module.get_exports_type(
-    &module_graph,
+    module_graph,
     &compilation.module_graph_cache_artifact,
     module.build_meta().strict_esm_module,
   );
@@ -339,7 +335,7 @@ async fn render_startup(
 
       source.add(RawStringSource::from(format!(
         "var {var_name} = {};\n",
-        inlined.render()
+        inlined.render("")
       )));
 
       exports.push((var_name, Some(info_name.to_string())));

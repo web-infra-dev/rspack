@@ -4,9 +4,9 @@
 use tracing::instrument;
 
 use crate::{Compilation, incremental::IncrementalPasses};
-pub(crate) mod artifact;
 pub(crate) mod code_splitter;
 pub(crate) mod incremental;
+pub(crate) mod pass;
 
 #[instrument("Compilation:build_chunk_graph", skip_all)]
 pub fn build_chunk_graph(compilation: &mut Compilation) -> rspack_error::Result<()> {

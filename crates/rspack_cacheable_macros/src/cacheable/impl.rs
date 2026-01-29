@@ -63,14 +63,14 @@ pub fn impl_cacheable(tokens: TokenStream, args: CacheableArgs) -> TokenStream {
   let bounds = if visitor.omit_bounds {
     quote! {
         #[rkyv(serialize_bounds(
-            __S: #crate_path::__private::rkyv::ser::Writer + #crate_path::__private::rkyv::ser::Allocator + #crate_path::__private::rkyv::rancor::Fallible<Error = #crate_path::SerializeError>,
+            __S: #crate_path::__private::rkyv::ser::Writer + #crate_path::__private::rkyv::ser::Allocator + #crate_path::__private::rkyv::rancor::Fallible<Error = #crate_path::Error>,
         ))]
         #[rkyv(deserialize_bounds(
-            __D: #crate_path::__private::rkyv::rancor::Fallible<Error = #crate_path::DeserializeError>
+            __D: #crate_path::__private::rkyv::rancor::Fallible<Error = #crate_path::Error>
         ))]
         #[rkyv(bytecheck(
             bounds(
-                __C: #crate_path::__private::rkyv::validation::ArchiveContext + #crate_path::__private::rkyv::rancor::Fallible<Error = #crate_path::DeserializeError>,
+                __C: #crate_path::__private::rkyv::validation::ArchiveContext + #crate_path::__private::rkyv::rancor::Fallible<Error = #crate_path::Error>,
             )
         ))]
     }

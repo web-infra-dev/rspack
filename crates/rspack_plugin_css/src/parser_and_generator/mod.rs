@@ -13,10 +13,10 @@ use rspack_cacheable::{
 use rspack_core::{
   BoxDependencyTemplate, BoxModuleDependency, BuildMetaDefaultObject, BuildMetaExportsType,
   ChunkGraph, Compilation, ConstDependency, CssExportsConvention, Dependency, DependencyId,
-  DependencyRange, DependencyType, GenerateContext, LocalIdentName, Module, ModuleGraph,
-  ModuleIdentifier, ModuleInitFragments, ModuleType, NormalModule, ParseContext, ParseResult,
-  ParserAndGenerator, PrefetchExportsInfoMode, RuntimeGlobals, RuntimeSpec, SourceType,
-  TemplateContext, UsageState,
+  DependencyRange, DependencyType, GenerateContext, LocalIdentName, Module, ModuleArgument,
+  ModuleGraph, ModuleIdentifier, ModuleInitFragments, ModuleType, NormalModule, ParseContext,
+  ParseResult, ParserAndGenerator, PrefetchExportsInfoMode, RuntimeGlobals, RuntimeSpec,
+  SourceType, TemplateContext, UsageState,
   diagnostics::map_box_diagnostics_to_module_parse_diagnostics,
   remove_bom,
   rspack_sources::{BoxSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt},
@@ -100,9 +100,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
     let no_need_js = module_graph
       .get_incoming_connections(&module.identifier())
       .all(|conn| {
-        let dep = module_graph
-          .dependency_by_id(&conn.dependency_id)
-          .expect("if have dependency id, certainly has dependency value");
+        let dep = module_graph.dependency_by_id(&conn.dependency_id);
         matches!(
           dep.dependency_type(),
           DependencyType::CssImport | DependencyType::EsmImport
@@ -522,7 +520,8 @@ impl ParserAndGenerator for CssParserAndGenerator {
     match generate_context.requested_source_type {
       SourceType::Css => {
         generate_context
-          .runtime_requirements
+          .runtime_template
+          .runtime_requirements_mut()
           .insert(RuntimeGlobals::HAS_CSS_MODULES);
 
         let mut source = ReplaceSource::new(source.clone());
@@ -531,18 +530,16 @@ impl ParserAndGenerator for CssParserAndGenerator {
         let mut context = TemplateContext {
           compilation,
           module,
-          runtime_requirements: generate_context.runtime_requirements,
           runtime: generate_context.runtime,
           init_fragments: &mut init_fragments,
           concatenation_scope: generate_context.concatenation_scope.take(),
           data: generate_context.data,
+          runtime_template: generate_context.runtime_template,
         };
 
         let module_graph = compilation.get_module_graph();
         module.get_dependencies().iter().for_each(|id| {
-          let dep = module_graph
-            .dependency_by_id(id)
-            .expect("should have dependency");
+          let dep = module_graph.dependency_by_id(id);
 
           if let Some(dependency) = dep.as_dependency_code_generation() {
             if let Some(template) = compilation.get_dependency_template(dependency) {
@@ -557,9 +554,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
         });
 
         for conn in module_graph.get_incoming_connections(&module.identifier()) {
-          let Some(dep) = module_graph.dependency_by_id(&conn.dependency_id) else {
-            continue;
-          };
+          let dep = module_graph.dependency_by_id(&conn.dependency_id);
 
           if matches!(dep.dependency_type(), DependencyType::CssImport) {
             let Some(css_import_dep) = dep.downcast_ref::<CssImportDependency>() else {
@@ -614,12 +609,12 @@ impl ParserAndGenerator for CssParserAndGenerator {
                 local_names,
                 module.identifier(),
                 generate_context.runtime,
-                &mg,
+                mg,
               );
               generate_context.data.insert(unused_exports);
             }
             let exports =
-              get_used_exports(exports, module.identifier(), generate_context.runtime, &mg);
+              get_used_exports(exports, module.identifier(), generate_context.runtime, mg);
 
             css_modules_exports_to_concatenate_module_string(
               exports,
@@ -641,7 +636,6 @@ impl ParserAndGenerator for CssParserAndGenerator {
           {
             (
               generate_context
-                .compilation
                 .runtime_template
                 .render_runtime_globals(&RuntimeGlobals::MAKE_NAMESPACE_OBJECT),
               "(".to_string(),
@@ -657,46 +651,42 @@ impl ParserAndGenerator for CssParserAndGenerator {
                 local_names,
                 module.identifier(),
                 generate_context.runtime,
-                &mg,
+                mg,
               );
               generate_context.data.insert(unused_exports);
             }
 
             let exports =
-              get_used_exports(exports, module.identifier(), generate_context.runtime, &mg);
+              get_used_exports(exports, module.identifier(), generate_context.runtime, mg);
 
             css_modules_exports_to_string(
               exports,
               module,
               generate_context.compilation,
-              generate_context.runtime_requirements,
+              generate_context.runtime,
+              generate_context.runtime_template,
               &ns_obj,
               &left,
               &right,
               with_hmr,
             )?
           } else {
+            let module_argument = generate_context
+              .runtime_template
+              .render_module_argument(ModuleArgument::Module);
             format!(
-              "{}{}module.exports = {{}}{};\n{}",
+              "{}{}{module_argument}.exports = {{}}{};\n{}",
               &ns_obj,
               &left,
               &right,
               if with_hmr {
-                "module.hot.accept();\n"
+                format!("{module_argument}.hot.accept();\n")
               } else {
                 Default::default()
               }
             )
           }
         };
-        generate_context
-          .runtime_requirements
-          .insert(RuntimeGlobals::MODULE);
-        if self.es_module {
-          generate_context
-            .runtime_requirements
-            .insert(RuntimeGlobals::MAKE_NAMESPACE_OBJECT);
-        }
         Ok(RawStringSource::from(exports).boxed())
       }
       _ => panic!(

@@ -70,7 +70,7 @@ impl DependencyTemplate for ESMAcceptDependencyTemplate {
       compilation,
       module,
       runtime,
-      runtime_requirements,
+      runtime_template,
       ..
     } = code_generatable_context;
 
@@ -78,9 +78,7 @@ impl DependencyTemplate for ESMAcceptDependencyTemplate {
     let module_graph = compilation.get_module_graph();
     let module_identifier = module.identifier();
     dep.dependency_ids.iter().for_each(|id| {
-      let dependency = module_graph
-        .dependency_by_id(id)
-        .expect("should have dependency");
+      let dependency = module_graph.dependency_by_id(id);
       let target_module = module_graph.get_module_by_dependency_id(dependency.id());
       let runtime_condition = match target_module {
         Some(target_module) => {
@@ -94,11 +92,10 @@ impl DependencyTemplate for ESMAcceptDependencyTemplate {
       }
 
       let condition = {
-        compilation.runtime_template.runtime_condition_expression(
+        runtime_template.runtime_condition_expression(
           &compilation.chunk_graph,
           Some(&runtime_condition),
           *runtime,
-          runtime_requirements,
         )
       };
 
@@ -113,10 +110,9 @@ impl DependencyTemplate for ESMAcceptDependencyTemplate {
         phase,
         *runtime,
       );
-      let stmts = compilation.runtime_template.import_statement(
+      let stmts = runtime_template.import_statement(
         *module,
         compilation,
-        runtime_requirements,
         id,
         &import_var,
         module_dependency.request(),

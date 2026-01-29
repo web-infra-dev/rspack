@@ -76,6 +76,11 @@ impl FileCounter {
     self.incremental_info.added().iter()
   }
 
+  /// Updated files compared to the `files()` when call reset_incremental_info
+  pub fn updated_files(&self) -> impl Iterator<Item = &ArcPath> {
+    self.incremental_info.updated().iter()
+  }
+
   /// Removed files compared to the `files()` when call reset_incremental_info
   pub fn removed_files(&self) -> impl Iterator<Item = &ArcPath> {
     self.incremental_info.removed().iter()

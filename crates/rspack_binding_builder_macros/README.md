@@ -8,7 +8,7 @@ This crate is used for creating a custom binding. It is not intended to be used 
 
 ## Guide
 
-[Rspack Custom binding](https://rspack-contrib.github.io/rspack-rust-book/custom-binding/getting-started/index.html)
+[Rspack Custom binding](https://rstackjs.github.io/rspack-rust-book/custom-binding/getting-started/index.html)
 
 ## Usage
 
@@ -65,7 +65,7 @@ impl rspack_core::Plugin for MyBannerPlugin {
 The `registerMyBannerPlugin` function will be exposed to the final N-API binding.
 
 ```js
-const { registerMyBannerPlugin } = require("your-custom-binding");
+const { registerMyBannerPlugin } = require('your-custom-binding');
 
 const plugin = registerMyBannerPlugin();
 ```
@@ -73,8 +73,8 @@ const plugin = registerMyBannerPlugin();
 To actually use the plugin, you need to wrap it with `require('@rspack/core').experiments.createNativePlugin`:
 
 ```js
-require("@rspack/core").experiments.createNativePlugin(
-	"MyBannerPlugin",
-	options => options
+require('@rspack/core').experiments.createNativePlugin(
+  'MyBannerPlugin',
+  (options) => options,
 );
 ```

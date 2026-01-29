@@ -1,3 +1,3 @@
-import "./blue.css";
+import './blue.css';
 
 module.hot.accept();

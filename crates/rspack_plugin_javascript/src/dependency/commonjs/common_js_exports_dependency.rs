@@ -8,8 +8,7 @@ use rspack_core::{
   DependencyTemplateType, DependencyType, ExportNameOrSpec, ExportSpec, ExportsInfoGetter,
   ExportsOfExportsSpec, ExportsSpec, GetUsedNameParam, InitFragmentExt, InitFragmentKey,
   InitFragmentStage, ModuleGraph, ModuleGraphCacheArtifact, NormalInitFragment,
-  PrefetchExportsInfoMode, RuntimeGlobals, TemplateContext, TemplateReplaceSource, UsedName,
-  property_access,
+  PrefetchExportsInfoMode, TemplateContext, TemplateReplaceSource, UsedName, property_access,
 };
 use swc_core::atoms::Atom;
 
@@ -159,7 +158,7 @@ impl DependencyTemplate for CommonJsExportsDependencyTemplate {
       module,
       runtime,
       init_fragments,
-      runtime_requirements,
+      runtime_template,
       ..
     } = code_generatable_context;
 
@@ -169,14 +168,10 @@ impl DependencyTemplate for CommonJsExportsDependencyTemplate {
       .expect("should have mgm");
 
     let used = if dep.names.is_empty() {
-      let exports_info = ExportsInfoGetter::prefetch_used_info_without_name(
-        &module_graph.get_exports_info(&module.identifier()),
-        &module_graph,
-        *runtime,
-        false,
-      );
+      let exports_info_used =
+        module_graph.get_prefetched_exports_info_used(&module.identifier(), *runtime);
       ExportsInfoGetter::get_used_name(
-        GetUsedNameParam::WithoutNames(&exports_info),
+        GetUsedNameParam::WithoutNames(&exports_info_used),
         *runtime,
         &dep.names,
       )
@@ -196,21 +191,14 @@ impl DependencyTemplate for CommonJsExportsDependencyTemplate {
     let module_argument = module.get_module_argument();
 
     let base = if dep.base.is_exports() {
-      runtime_requirements.insert(RuntimeGlobals::EXPORTS);
-      compilation
-        .runtime_template
-        .render_exports_argument(exports_argument)
+      runtime_template.render_exports_argument(exports_argument)
     } else if dep.base.is_module_exports() {
-      runtime_requirements.insert(RuntimeGlobals::MODULE);
       format!(
         "{}.exports",
-        compilation
-          .runtime_template
-          .render_module_argument(module_argument)
+        runtime_template.render_module_argument(module_argument)
       )
     } else if dep.base.is_this() {
-      runtime_requirements.insert(RuntimeGlobals::THIS_AS_EXPORTS);
-      "this".to_string()
+      runtime_template.render_this_exports()
     } else {
       panic!("Unexpected base type");
     };

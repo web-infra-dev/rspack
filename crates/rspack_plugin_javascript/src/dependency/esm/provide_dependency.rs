@@ -161,7 +161,7 @@ impl DependencyTemplate for ProvideDependencyTemplate {
     let TemplateContext {
       compilation,
       runtime,
-      runtime_requirements,
+      runtime_template,
       init_fragments,
       ..
     } = code_generatable_context;
@@ -172,14 +172,10 @@ impl DependencyTemplate for ProvideDependencyTemplate {
     };
 
     let used_name = if dep.ids.is_empty() {
-      let exports_info = ExportsInfoGetter::prefetch_used_info_without_name(
-        &module_graph.get_exports_info(con.module_identifier()),
-        &module_graph,
-        *runtime,
-        false,
-      );
+      let exports_info_used =
+        module_graph.get_prefetched_exports_info_used(con.module_identifier(), *runtime);
       ExportsInfoGetter::get_used_name(
-        GetUsedNameParam::WithoutNames(&exports_info),
+        GetUsedNameParam::WithoutNames(&exports_info_used),
         *runtime,
         &dep.ids,
       )
@@ -199,13 +195,7 @@ impl DependencyTemplate for ProvideDependencyTemplate {
       format!(
         "/* provided dependency */ var {} = {}{};\n",
         dep.identifier,
-        compilation.runtime_template.module_raw(
-          compilation,
-          runtime_requirements,
-          dep.id(),
-          dep.request(),
-          dep.weak()
-        ),
+        runtime_template.module_raw(compilation, dep.id(), dep.request(), dep.weak()),
         path_to_string(used_name.as_ref())
       ),
       InitFragmentStage::StageProvides,

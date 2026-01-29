@@ -433,7 +433,7 @@ chunk baz
 ### splitChunks.defaultSizeTypes
 
 - **Type:** `string[]`
-- **Default:** `["javascript", "unknown"]`, and if `experiments.css` is enabled, it will also include `"css"`
+- **Default:** `["javascript", "css", "unknown"]`
 
 When calculating the size of chunks, only the sizes of javascript modules and built-in css modules are taken into account by default. For example, when configuring `minSize: 300`, both javascript modules and css modules need to meet the requirement in order to be split.
 

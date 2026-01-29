@@ -1,16 +1,16 @@
 import {
-	BuiltinPluginName,
-	type RawHttpExternalsRspackPluginOptions
-} from "@rspack/binding";
+  BuiltinPluginName,
+  type RawHttpExternalsRspackPluginOptions,
+} from '@rspack/binding';
 
-import { create } from "./base";
+import { create } from './base';
 
 export const HttpExternalsRspackPlugin = create(
-	BuiltinPluginName.HttpExternalsRspackPlugin,
-	(css: boolean, webAsync: boolean): RawHttpExternalsRspackPluginOptions => {
-		return {
-			css,
-			webAsync
-		};
-	}
+  BuiltinPluginName.HttpExternalsRspackPlugin,
+  (css: boolean, webAsync: boolean): RawHttpExternalsRspackPluginOptions => {
+    return {
+      css,
+      webAsync,
+    };
+  },
 );

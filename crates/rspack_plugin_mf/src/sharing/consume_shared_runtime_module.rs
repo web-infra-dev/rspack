@@ -101,13 +101,14 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
         ));
       }
     };
+    // Match enhanced/webpack behavior: include all referenced chunks so async ones are mapped too
     for chunk in chunk.get_all_referenced_chunks(&compilation.chunk_group_by_ukey) {
       let modules = compilation
         .chunk_graph
         .get_chunk_modules_identifier_by_source_type(
           &chunk,
           SourceType::ConsumeShared,
-          &module_graph,
+          module_graph,
         );
       let chunk = compilation.chunk_by_ukey.expect_get(&chunk);
       let mut ids = vec![];
@@ -131,7 +132,7 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
         .get_chunk_modules_identifier_by_source_type(
           &chunk,
           SourceType::ConsumeShared,
-          &module_graph,
+          module_graph,
         );
       let chunk = compilation.chunk_by_ukey.expect_get(&chunk);
       for mid in modules {

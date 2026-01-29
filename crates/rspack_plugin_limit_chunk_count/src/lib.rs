@@ -82,7 +82,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
   let mut remaining_chunks_to_merge = (chunks_ukeys.len() - max_chunks) as i64;
 
   // order chunks in a deterministic way
-  chunks_ukeys.sort_by(|a, b| compare_chunks_with_graph(chunk_graph, &module_graph, a, b));
+  chunks_ukeys.sort_by(|a, b| compare_chunks_with_graph(chunk_graph, module_graph, a, b));
 
   // create a lazy sorted data structure to keep all combinations
   // this is large. Size = chunks * (chunks - 1) / 2
@@ -113,7 +113,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
         &chunk_size_option,
         chunk_by_ukey,
         chunk_group_by_ukey,
-        &module_graph,
+        module_graph,
         compilation,
       );
       let a_size = chunk_graph.get_chunk_size(
@@ -121,7 +121,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
         &chunk_size_option,
         chunk_by_ukey,
         chunk_group_by_ukey,
-        &module_graph,
+        module_graph,
         compilation,
       );
       let b_size = chunk_graph.get_chunk_size(
@@ -129,7 +129,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
         &chunk_size_option,
         chunk_by_ukey,
         chunk_group_by_ukey,
-        &module_graph,
+        module_graph,
         compilation,
       );
 
@@ -205,7 +205,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
         &b,
         &mut new_chunk_by_ukey,
         &mut new_chunk_group_by_ukey,
-        &module_graph,
+        module_graph,
       );
       integrated_chunks.insert(a);
       new_chunk_by_ukey.remove(&b);
@@ -255,7 +255,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
               &chunk_size_option,
               chunk_by_ukey,
               chunk_group_by_ukey,
-              &module_graph,
+              module_graph,
               compilation,
             );
             combination.a = a;
@@ -276,7 +276,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
               &chunk_size_option,
               chunk_by_ukey,
               chunk_group_by_ukey,
-              &module_graph,
+              module_graph,
               compilation,
             );
             combination.b = a;

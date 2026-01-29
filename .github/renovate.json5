@@ -1,145 +1,145 @@
 {
-	$schema: "https://docs.renovatebot.com/renovate-schema.json",
-	timezone: "Asia/Shanghai",
-	extends: [":dependencyDashboard", "helpers:pinGitHubActionDigests"],
-	schedule: ["before 8am on wednesday"],
-	enabledManagers: ["github-actions", "cargo", "npm"],
-	ignorePaths: [
-		"**/fixtures/**",
-		"**/no-override-loaded/**",
-		"**/share-plugin-dual-mode/**",
-		"**/resolve-plugin-context/**"
-	],
-	labels: ["dependencies"],
-	packageRules: [
-		// manually update peer dependencies
-		{
-			depTypeList: ["peerDependencies"],
-			enabled: false
-		},
-		{
-			matchPackagePatterns: ["*"],
-			semanticCommitType: "chore",
-			// always bump package.json
-			rangeStrategy: "bump"
-		},
-		{
-			groupName: "patch crates",
-			matchManagers: ["cargo"],
-			excludePackagePrefixes: ["swc", "napi"],
-			excludePackageNames: [
-				"ustr",
-				"textwrap",
-				"owo-colors",
-				"miette",
-				"rkyv",
-				"rspack_resolver",
-				"inventory"
-			],
-			matchUpdateTypes: ["patch"]
-		},
-		{
-			groupName: "swc",
-			matchManagers: ["cargo"],
-			matchPackagePrefixes: ["swc"]
-		},
-		{
-			groupName: "napi",
-			matchPackagePrefixes: ["napi", "@napi-rs/"]
-		},
-		// Rspack npm packages
-		{
-			groupName: "Rspack",
-			matchManagers: ["npm"],
-			matchPackageNames: ["/^@rspack/"]
-		},
-		// Babel npm packages
-		{
-			groupName: "babel",
-			matchManagers: ["npm"],
-			matchPackageNames: ["/babel/"]
-		},
-		// React npm packages
-		{
-			groupName: "React",
-			matchManagers: ["npm"],
-			matchPackageNames: ["/react/"]
-		},
-		// SWC npm packages
-		{
-			groupName: "SWC",
-			matchManagers: ["npm"],
-			matchPackageNames: ["/^@swc/"]
-		},
-		// Rspack crates
-		{
-			groupName: "crate rspack_resolver",
-			matchManagers: ["cargo"],
-			matchPackageNames: ["rspack_resolver"]
-		},
-		{
-			groupName: "ignored crates",
-			matchManagers: ["cargo"],
-			matchPackageNames: [
-				"ustr",
-				"textwrap",
-				"owo-colors",
-				"miette",
-				"rkyv",
-				"inventory"
-			],
-			enabled: false
-		},
-		{
-			groupName: "ignored indexmap",
-			matchManagers: ["cargo"],
-			matchFileNames: ["crates/rspack_plugin_css/Cargo.toml"],
-			matchPackageNames: ["indexmap"],
-			enabled: false
-		},
-		{
-			groupName: "patch npm dependencies",
-			matchManagers: ["npm"],
-			matchDepTypes: ["dependencies", "devDependencies"],
-			excludePackagePrefixes: ["webpack"],
-			excludePackageNames: ["typescript", "@playwright/test", "@rslint/core"],
-			// bump major and minor in a separate PR
-			matchUpdateTypes: ["patch"]
-		},
-		{
-			// should update the playwright image in .github/workflows/reusable-build.yml
-			groupName: "playwright",
-			matchManagers: ["npm"],
-			matchPackagePrefixes: ["@playwright/test"]
-		},
-		// Disable Node.js updates
-		{
-			groupName: "node",
-			matchPackageNames: ["node"],
-			enabled: false
-		},
-		{
-			groupName: "github-actions",
-			matchManagers: ["github-actions"],
-			excludePackageNames: [
-				"actions/upload-artifact",
-				"actions/download-artifact",
-				"lynx-infra/download-artifact",
-				"lynx-infra/upload-artifact",
-				"rspack-contrib/rust-cache"
-			]
-		},
-		{
-			groupName: "manually managed github-actions",
-			matchManagers: ["github-actions"],
-			matchPackageNames: [
-				"actions/upload-artifact",
-				"actions/download-artifact",
-				"lynx-infra/download-artifact",
-				"lynx-infra/upload-artifact",
-				"rspack-contrib/rust-cache"
-			],
-			enabled: false
-		}
-	]
+  $schema: 'https://docs.renovatebot.com/renovate-schema.json',
+  timezone: 'Asia/Shanghai',
+  extends: [':dependencyDashboard', 'helpers:pinGitHubActionDigests'],
+  schedule: ['before 8am on wednesday'],
+  enabledManagers: ['github-actions', 'cargo', 'npm'],
+  ignorePaths: [
+    '**/fixtures/**',
+    '**/no-override-loaded/**',
+    '**/share-plugin-dual-mode/**',
+    '**/resolve-plugin-context/**',
+  ],
+  labels: ['dependencies'],
+  packageRules: [
+    // manually update peer dependencies
+    {
+      depTypeList: ['peerDependencies'],
+      enabled: false,
+    },
+    {
+      matchPackagePatterns: ['*'],
+      semanticCommitType: 'chore',
+      // always bump package.json
+      rangeStrategy: 'bump',
+    },
+    {
+      groupName: 'patch crates',
+      matchManagers: ['cargo'],
+      excludePackagePrefixes: ['swc', 'napi'],
+      excludePackageNames: [
+        'ustr',
+        'textwrap',
+        'owo-colors',
+        'miette',
+        'rkyv',
+        'rspack_resolver',
+        'inventory',
+      ],
+      matchUpdateTypes: ['patch'],
+    },
+    {
+      groupName: 'swc',
+      matchManagers: ['cargo'],
+      matchPackagePrefixes: ['swc'],
+    },
+    {
+      groupName: 'napi',
+      matchPackagePrefixes: ['napi', '@napi-rs/'],
+    },
+    // Rspack npm packages
+    {
+      groupName: 'Rspack',
+      matchManagers: ['npm'],
+      matchPackageNames: ['/^@rspack/'],
+    },
+    // Babel npm packages
+    {
+      groupName: 'babel',
+      matchManagers: ['npm'],
+      matchPackageNames: ['/babel/'],
+    },
+    // React npm packages
+    {
+      groupName: 'React',
+      matchManagers: ['npm'],
+      matchPackageNames: ['/react/'],
+    },
+    // SWC npm packages
+    {
+      groupName: 'SWC',
+      matchManagers: ['npm'],
+      matchPackageNames: ['/^@swc/'],
+    },
+    // Rspack crates
+    {
+      groupName: 'crate rspack_resolver',
+      matchManagers: ['cargo'],
+      matchPackageNames: ['rspack_resolver'],
+    },
+    {
+      groupName: 'ignored crates',
+      matchManagers: ['cargo'],
+      matchPackageNames: [
+        'ustr',
+        'textwrap',
+        'owo-colors',
+        'miette',
+        'rkyv',
+        'inventory',
+      ],
+      enabled: false,
+    },
+    {
+      groupName: 'ignored indexmap',
+      matchManagers: ['cargo'],
+      matchFileNames: ['crates/rspack_plugin_css/Cargo.toml'],
+      matchPackageNames: ['indexmap'],
+      enabled: false,
+    },
+    {
+      groupName: 'patch npm dependencies',
+      matchManagers: ['npm'],
+      matchDepTypes: ['dependencies', 'devDependencies'],
+      excludePackagePrefixes: ['webpack'],
+      excludePackageNames: ['typescript', '@playwright/test', '@rslint/core'],
+      // bump major and minor in a separate PR
+      matchUpdateTypes: ['patch'],
+    },
+    {
+      // should update the playwright image in .github/workflows/reusable-build.yml
+      groupName: 'playwright',
+      matchManagers: ['npm'],
+      matchPackagePrefixes: ['@playwright/test'],
+    },
+    // Disable Node.js updates
+    {
+      groupName: 'node',
+      matchPackageNames: ['node'],
+      enabled: false,
+    },
+    {
+      groupName: 'github-actions',
+      matchManagers: ['github-actions'],
+      excludePackageNames: [
+        'actions/upload-artifact',
+        'actions/download-artifact',
+        'lynx-infra/download-artifact',
+        'lynx-infra/upload-artifact',
+        'rstackjs/rust-cache',
+      ],
+    },
+    {
+      groupName: 'manually managed github-actions',
+      matchManagers: ['github-actions'],
+      matchPackageNames: [
+        'actions/upload-artifact',
+        'actions/download-artifact',
+        'lynx-infra/download-artifact',
+        'lynx-infra/upload-artifact',
+        'rstackjs/rust-cache',
+      ],
+      enabled: false,
+    },
+  ],
 }

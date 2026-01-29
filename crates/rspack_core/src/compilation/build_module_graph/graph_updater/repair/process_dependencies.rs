@@ -4,7 +4,7 @@ use rustc_hash::FxHashMap as HashMap;
 
 use super::{TaskContext, factorize::FactorizeTask};
 use crate::{
-  ContextDependency, DependencyId, Module, ModuleIdentifier, ModuleProfile,
+  ContextDependency, DependencyId, Module, ModuleIdentifier,
   utils::task_loop::{Task, TaskResult, TaskType},
 };
 
@@ -28,19 +28,19 @@ impl Task<TaskContext> for ProcessDependenciesTask {
       from_unlazy,
     } = *self;
     let mut sorted_dependencies = HashMap::default();
-    let module_graph =
-      &mut TaskContext::get_module_graph_mut(&mut context.artifact.module_graph_partial);
 
-    for dependency_id in dependencies {
-      // Some dependencies here will not trigger the factorize task, so add all dependencies here.
+    // First mark all dependencies as added
+    for dependency_id in &dependencies {
       context
         .artifact
         .affected_dependencies
-        .mark_as_add(&dependency_id);
+        .mark_as_add(dependency_id);
+    }
 
-      let dependency = module_graph
-        .dependency_by_id(&dependency_id)
-        .expect("should have dependency");
+    let module_graph = &mut context.artifact.module_graph;
+
+    for dependency_id in dependencies {
+      let dependency = module_graph.dependency_by_id(&dependency_id);
       // FIXME: now only module/context dependency can put into resolve queue.
       // FIXME: should align webpack
       let resource_identifier = if let Some(module_dependency) = dependency.as_module_dependency() {
@@ -76,10 +76,6 @@ impl Task<TaskContext> for ProcessDependenciesTask {
 
     let mut res: Vec<Box<dyn Task<TaskContext>>> = vec![];
     for dependencies in sorted_dependencies.into_values() {
-      let current_profile = context
-        .compiler_options
-        .profile
-        .then(ModuleProfile::default);
       let original_module_source = module_graph
         .module_by_identifier(&original_module_identifier)
         .and_then(|m| m.as_normal_module())
@@ -112,7 +108,6 @@ impl Task<TaskContext> for ProcessDependenciesTask {
         dependencies,
         resolve_options: module.get_resolve_options(),
         options: context.compiler_options.clone(),
-        current_profile,
         resolver_factory: context.resolver_factory.clone(),
         from_unlazy,
       }));

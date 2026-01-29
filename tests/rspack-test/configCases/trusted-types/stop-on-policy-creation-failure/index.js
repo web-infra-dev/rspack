@@ -7,7 +7,7 @@ it("should stop if policy fails to be created", function () {
 	};
 
 	const createPolicySpy = rstest.spyOn(window.trustedTypes, "createPolicy");
-	const consoleWarn = rstest.spyOn(console, "warn").mockImplementation(() => {});
+	const consoleWarn = rstest.spyOn(console, "warn").mockImplementation(() => { });
 
 	let promise;
 	try {
@@ -21,7 +21,7 @@ it("should stop if policy fails to be created", function () {
 	// Unlike in the other test cases, we expect the failure above to prevent any scripts from being added to the document head
 	expect(document.head._children.length).toBe(0);
 	expect(createPolicySpy).toHaveBeenCalledWith(
-		"webpack",
+		"rspack",
 		expect.objectContaining({
 			createScriptURL: expect.anything()
 		})

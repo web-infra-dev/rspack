@@ -8,7 +8,12 @@ module.exports = {
 		minimize: true,
 		minimizer: [new rspack.LightningCssMinimizerRspackPlugin()]
 	},
-	experiments: {
-		css: true
+	module: {
+		rules: [
+			{
+				test: /\.css$/,
+				type: "css/auto"
+			}
+		]
 	}
 };

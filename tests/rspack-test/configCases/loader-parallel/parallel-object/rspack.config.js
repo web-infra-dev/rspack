@@ -8,7 +8,7 @@ module.exports = {
 					{
 						loader: "./unclonable.js",
 						options: {
-							notclonable() {}
+							notclonable() { }
 						}
 					},
 					{
@@ -20,7 +20,4 @@ module.exports = {
 			}
 		]
 	},
-	experiments: {
-		parallelLoader: true
-	}
 };

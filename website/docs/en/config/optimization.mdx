@@ -207,7 +207,7 @@ Setting it to `true` or `'multiple'` will add an additional chunk containing onl
 export default {
   optimization: {
     runtimeChunk: {
-      name: entrypoint => `runtime~${entrypoint.name}`,
+      name: (entrypoint) => `runtime~${entrypoint.name}`,
     },
   },
 };
@@ -243,7 +243,7 @@ Imported modules are initialized for each runtime chunk separately, so if you in
 ## optimization.realContentHash
 
 <PropertyType
-  type="boolean | 'flag'"
+  type="boolean"
   defaultValueList={[
     { defaultValue: 'true', mode: 'production' },
     { defaultValue: 'false', mode: 'development' },
@@ -441,7 +441,7 @@ const __webpack_modules__ = {
 Since this feature relies on module export usage information ([optimization.usedExports](#optimizationusedexports)), it is recommended to enable it only in production mode where `usedExports` is enabled by default.
 :::
 
-For more details, refer to the [inline const example](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/inline-const).
+For more details, refer to the [inline const example](https://github.com/rstackjs/rstack-examples/tree/main/rspack/inline-const).
 
 ## optimization.innerGraph
 

@@ -76,6 +76,12 @@ export default {
 
 SWC provides [jsc.target](https://swc.rs/docs/configuration/compilation#jsctarget) and [env.targets](https://swc.rs/docs/configuration/compilation#envtargets) to specify the target of JavaScript syntax lowering.
 
+:::tip Default target from Rspack
+If neither `env.targets` nor `jsc.target` is configured, `builtin:swc-loader` will automatically derive a default target from Rspack's [`target`](/config/target) configuration.
+
+This means you can rely on your Rspack `target` configuration without manually specifying the same targets in the loader options.
+:::
+
 #### jsc.target
 
 [jsc.target](https://swc.rs/docs/configuration/compilation#jsctarget) is used to specify the ECMA version, such as `es5`, `es2015`, `es2016`, etc.
@@ -266,7 +272,7 @@ export default {
 };
 ```
 
-this is an [example](https://github.com/rspack-contrib/rstack-examples/blob/d4b8aaef9915ed0f540edbe504217c3d1afe8989/rspack/builtin-swc-loader/rspack.config.js#L45) of Wasm plugin usage.
+this is an [example](https://github.com/rstackjs/rstack-examples/blob/d4b8aaef9915ed0f540edbe504217c3d1afe8989/rspack/builtin-swc-loader/rspack.config.js#L45) of Wasm plugin usage.
 
 #### Set cache root
 
@@ -457,10 +463,6 @@ Collects information from TypeScript's AST for consumption by subsequent Rspack 
 
 To ensure the accuracy of the collected information, users must ensure that subsequent Normal Loaders after `builtin:swc-loader` do not modify the Abstract Syntax Tree (AST) corresponding to the collected information. This precaution is necessary to prevent discrepancies between the collected information and the actual code.
 
-:::tip
-Before Rspack 1.7, the [rspackExperiments.collectTypeScriptInfo](/config/deprecated-options#experimentscollecttypescriptinfo) option could be used.
-:::
-
 #### collectTypeScriptInfo.typeExports
 
 <ApiMeta addedVersion="1.7.0" />
@@ -470,7 +472,7 @@ Before Rspack 1.7, the [rspackExperiments.collectTypeScriptInfo](/config/depreca
 
 Whether to collect type exports information for [`typeReexportsPresence`](/config/module#moduleparserjavascripttypereexportspresence). This is used to check type exports of submodules when running in `'tolerant'` mode.
 
-Please refer to [type reexports presence example](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/type-reexports-presence) for more details.
+Please refer to [type reexports presence example](https://github.com/rstackjs/rstack-examples/tree/main/rspack/type-reexports-presence) for more details.
 
 #### collectTypeScriptInfo.exportedEnum
 
@@ -489,9 +491,6 @@ Whether to collect information about exported `enum`s, so Rspack can perform cro
 const isProduction = process.env.NODE_ENV === 'production';
 
 export default {
-  experiments: {
-    inlineEnum: true, // This is currently an experimental feature and requires explicit enabling
-  },
   module: {
     rules: [
       {
@@ -519,8 +518,8 @@ export default {
 
 Since this feature relies on module export usage information ([optimization.usedExports](/config/optimization#optimizationusedexports)), it is recommended to enable it only when `mode = "production"`.
 
-Please refer to [inline enum example](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/inline-enum) for more details.
+Please refer to [inline enum example](https://github.com/rstackjs/rstack-examples/tree/main/rspack/inline-enum) for more details.
 
 :::info
-By default, Rspack will perform inline optimization for all enums. To inline only `const enum`, use `'const-only'` and configure `transform.tsEnumIsMutable = true`. For detailed examples, refer to: [inline const enum example](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/inline-const-enum)
+By default, Rspack will perform inline optimization for all enums. To inline only `const enum`, use `'const-only'` and configure `transform.tsEnumIsMutable = true`. For detailed examples, refer to: [inline const enum example](https://github.com/rstackjs/rstack-examples/tree/main/rspack/inline-const-enum)
 :::

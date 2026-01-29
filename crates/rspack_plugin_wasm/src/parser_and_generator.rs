@@ -3,10 +3,10 @@ use std::borrow::Cow;
 use indexmap::IndexMap;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
-  BoxDependency, BuildMetaExportsType, CodeGenerationData, Dependency, DependencyId,
-  DependencyType, GenerateContext, ImportPhase, Module, ModuleDependency, ModuleGraph,
+  BoxDependency, BuildMetaExportsType, Dependency, DependencyId, DependencyType, ExportsArgument,
+  GenerateContext, ImportPhase, Module, ModuleArgument, ModuleDependency, ModuleGraph,
   ModuleIdentifier, ModuleInitFragments, ParseContext, ParseResult, ParserAndGenerator,
-  RuntimeGlobals, SourceType, StaticExportsDependency, StaticExportsSpec, TemplateContext,
+  RuntimeGlobals, SourceType, StaticExportsDependency, StaticExportsSpec,
   rspack_sources::{BoxSource, RawStringSource, Source, SourceExt},
 };
 use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
@@ -132,6 +132,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
     let GenerateContext {
       compilation,
       runtime,
+      runtime_template,
       ..
     } = generate_context;
     let hash = module
@@ -143,12 +144,6 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
 
     match generate_context.requested_source_type {
       SourceType::JavaScript => {
-        let runtime_requirements = &mut generate_context.runtime_requirements;
-        runtime_requirements.insert(RuntimeGlobals::MODULE);
-        runtime_requirements.insert(RuntimeGlobals::MODULE_ID);
-        runtime_requirements.insert(RuntimeGlobals::EXPORTS);
-        runtime_requirements.insert(RuntimeGlobals::INSTANTIATE_WASM);
-
         let mut dep_modules = IndexMap::<ModuleIdentifier, DepModule>::new();
         let mut promises: Vec<String> = vec![];
 
@@ -157,7 +152,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
         module
           .get_dependencies()
           .iter()
-          .map(|id| module_graph.dependency_by_id(id).expect("should be ok"))
+          .map(|id| module_graph.dependency_by_id(id))
           .filter(|dep| dep.dependency_type() == &DependencyType::WasmImport)
           .map(|dep| {
             (
@@ -196,10 +191,9 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
         let (imports_code, imports_compat_code): (Vec<String>, Vec<String>) = dep_modules
           .iter()
           .map(|(_, dep_module)| {
-            compilation.runtime_template.import_statement(
+            runtime_template.import_statement(
               module,
               compilation,
-              runtime_requirements,
               &dep_module.deps[0].0,
               &dep_module.import_var,
               dep_module.request,
@@ -211,15 +205,6 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
         let imports_code = imports_code.join("");
         let imports_compat_code = imports_compat_code.join("");
 
-        let mut template_context = TemplateContext {
-          compilation,
-          module,
-          runtime_requirements,
-          init_fragments: &mut ModuleInitFragments::default(),
-          runtime: *runtime,
-          concatenation_scope: None,
-          data: &mut CodeGenerationData::default(),
-        };
         let import_obj_request_items = dep_modules
           .into_values()
           .map(|dep_module| {
@@ -227,8 +212,11 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
               .deps
               .into_iter()
               .map(|(dep_id, export_name)| {
-                let export = compilation.runtime_template.export_from_import(
-                  &mut template_context,
+                let export = runtime_template.export_from_import(
+                  compilation,
+                  &mut ModuleInitFragments::default(),
+                  module.identifier(),
+                  *runtime,
                   true,
                   dep_module.request,
                   &dep_module.import_var,
@@ -258,25 +246,23 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
           None
         };
 
+        let module_argument = runtime_template.render_module_argument(ModuleArgument::Module);
+        let exports_argument = runtime_template.render_exports_argument(ExportsArgument::Exports);
         let instantiate_call = format!(
-          r#"{}(exports, module.id, "{}" {})"#,
-          compilation
-            .runtime_template
-            .render_runtime_globals(&RuntimeGlobals::INSTANTIATE_WASM),
+          r#"{}({exports_argument}, {}, "{}" {})"#,
+          runtime_template.render_runtime_globals(&RuntimeGlobals::INSTANTIATE_WASM),
+          runtime_template.render_runtime_globals(&RuntimeGlobals::MODULE_ID),
           &hash,
           imports_obj.unwrap_or_default()
         );
 
         let source = if !promises.is_empty() {
-          generate_context
-            .runtime_requirements
-            .insert(RuntimeGlobals::ASYNC_MODULE);
           let promises = promises.join(", ");
           let decl = format!(
             "var __rspack_instantiate__ = function ([{promises}]) {{\n{imports_compat_code}return {instantiate_call};\n}}\n",
           );
           let async_dependencies = format!(
-"{}(module, async function (__rspack_load_async_deps, __rspack_async_done) {{
+"{}({module_argument}, async function (__rspack_load_async_deps, __rspack_async_done) {{
   try {{
 {imports_code}
     var __rspack_async_deps = __rspack_load_async_deps([{promises}]);
@@ -288,13 +274,13 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
   }} catch(e) {{ __rspack_async_done(e); }}
 }}, 1);
 ",
-            compilation.runtime_template.render_runtime_globals(&RuntimeGlobals::ASYNC_MODULE),
+            runtime_template.render_runtime_globals(&RuntimeGlobals::ASYNC_MODULE),
           );
 
           RawStringSource::from(format!("{decl}{async_dependencies}"))
         } else {
           RawStringSource::from(format!(
-            "{imports_code}{imports_compat_code}module.exports = {instantiate_call};"
+            "{imports_code}{imports_compat_code}{module_argument}.exports = {instantiate_call};"
           ))
         };
 

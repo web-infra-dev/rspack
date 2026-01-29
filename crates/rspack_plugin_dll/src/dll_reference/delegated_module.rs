@@ -5,10 +5,11 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
   AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo, BuildMeta, BuildResult,
-  CodeGenerationResult, Compilation, ConcatenationScope, Context, DependenciesBlock, DependencyId,
-  FactoryMeta, LibIdentOptions, Module, ModuleDependency, ModuleGraph, ModuleId, ModuleType,
-  RuntimeGlobals, RuntimeSpec, SourceType, StaticExportsDependency, StaticExportsSpec,
-  ValueCacheVersions, impl_module_meta_info, impl_source_map_config, module_update_hash,
+  CodeGenerationResult, Compilation, Context, DependenciesBlock, DependencyId, FactoryMeta,
+  LibIdentOptions, Module, ModuleArgument, ModuleCodeGenerationContext, ModuleDependency,
+  ModuleGraph, ModuleId, ModuleType, RuntimeSpec, SourceType, StaticExportsDependency,
+  StaticExportsSpec, ValueCacheVersions, impl_module_meta_info, impl_source_map_config,
+  module_update_hash,
   rspack_sources::{BoxSource, OriginalSource, RawStringSource},
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
@@ -117,37 +118,30 @@ impl Module for DelegatedModule {
 
   async fn code_generation(
     &self,
-    compilation: &Compilation,
-    _runtime: Option<&RuntimeSpec>,
-    _concatenation_scope: Option<ConcatenationScope>,
+    code_generation_context: &mut ModuleCodeGenerationContext,
   ) -> Result<CodeGenerationResult> {
-    let mut runtime_requirements = RuntimeGlobals::default();
-    runtime_requirements.insert(RuntimeGlobals::REQUIRE);
-    runtime_requirements.insert(RuntimeGlobals::MODULE);
-    let mut code_generation_result = CodeGenerationResult {
-      runtime_requirements,
-      ..Default::default()
-    };
+    let ModuleCodeGenerationContext {
+      compilation,
+      runtime_template,
+      ..
+    } = code_generation_context;
+
+    let mut code_generation_result = CodeGenerationResult::default();
 
     let dep = self.dependencies[0];
     let mg = compilation.get_module_graph();
     let source_module = mg.get_module_by_dependency_id(&dep);
     let dependency = mg
       .dependency_by_id(&dep)
-      .and_then(|dep| dep.downcast_ref::<DelegatedSourceDependency>())
+      .downcast_ref::<DelegatedSourceDependency>()
       .expect("Should be module dependency");
 
     let str = match source_module {
       Some(_) => {
         let mut s = format!(
-          "module.exports = ({})",
-          compilation.runtime_template.module_raw(
-            compilation,
-            &mut code_generation_result.runtime_requirements,
-            &dep,
-            dependency.request(),
-            false,
-          )
+          "{}.exports = ({})",
+          runtime_template.render_module_argument(ModuleArgument::Module),
+          runtime_template.module_raw(compilation, &dep, dependency.request(), false,)
         );
 
         let request = json_stringify(
@@ -171,9 +165,7 @@ impl Module for DelegatedModule {
 
         s
       }
-      None => compilation
-        .runtime_template
-        .throw_missing_module_error_block(&self.source_request),
+      None => runtime_template.throw_missing_module_error_block(&self.source_request),
     };
 
     let source_map = self.get_source_map_kind();

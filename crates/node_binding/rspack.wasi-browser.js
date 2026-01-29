@@ -85,6 +85,7 @@ export const JsCompilation = __napiModule.exports.JsCompilation
 export const JsCompiler = __napiModule.exports.JsCompiler
 export const JsContextModuleFactoryAfterResolveData = __napiModule.exports.JsContextModuleFactoryAfterResolveData
 export const JsContextModuleFactoryBeforeResolveData = __napiModule.exports.JsContextModuleFactoryBeforeResolveData
+export const JsCoordinator = __napiModule.exports.JsCoordinator
 export const JsDependencies = __napiModule.exports.JsDependencies
 export const JsEntries = __napiModule.exports.JsEntries
 export const JsExportsInfo = __napiModule.exports.JsExportsInfo

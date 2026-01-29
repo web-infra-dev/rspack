@@ -7,7 +7,7 @@
 - Bundle: bundle.js
 - Bundle: common_js_2.chunk.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
-- Update: main.LAST_HASH.hot-update.js, size: 42292
+- Update: main.LAST_HASH.hot-update.js, size: 42288
 
 ## Manifest
 
@@ -36,7 +36,7 @@
 #### Changed Content
 ```js
 "use strict";
-self["webpackHotUpdate"]("main", {
+self["rspackHotUpdate"]("main", {
 "./module.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
@@ -760,7 +760,7 @@ function loadUpdateChunk(chunkId, updatedModulesList) {
 	});
 }
 
-self["webpackHotUpdate"] = (chunkId, moreModules, runtime) => {
+self["rspackHotUpdate"] = (chunkId, moreModules, runtime) => {
 	for (var moduleId in moreModules) {
 		if (__webpack_require__.o(moreModules, moduleId)) {
 			currentUpdate[moduleId] = moreModules[moduleId];
@@ -1277,7 +1277,7 @@ var __rspack_jsonp = (parentChunkLoadingFunction, data) => {
 	
 };
 
-var chunkLoadingGlobal = self["webpackChunk"] = self["webpackChunk"] || [];
+var chunkLoadingGlobal = self["rspackChunk"] = self["rspackChunk"] || [];
 chunkLoadingGlobal.forEach(__rspack_jsonp.bind(null, 0));
 chunkLoadingGlobal.push = __rspack_jsonp.bind(null, chunkLoadingGlobal.push.bind(chunkLoadingGlobal));
 

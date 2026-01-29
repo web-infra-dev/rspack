@@ -1,1 +1,1 @@
-console.log("CONFIG");
+console.log('CONFIG');

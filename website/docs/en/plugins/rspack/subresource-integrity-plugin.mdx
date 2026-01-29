@@ -2,9 +2,11 @@ import { ApiMeta } from '@components/ApiMeta.tsx';
 
 # SubresourceIntegrityPlugin
 
-<ApiMeta specific={['Rspack']} addedVersion="1.2.4" />
+<ApiMeta specific={['Rspack']} addedVersion="1.7.0" />
 
 The `rspack.SubresourceIntegrityPlugin` is a plugin for enabling Subresource Integrity in Rspack.
+
+> In versions 1.2.4 to 1.6.8, you can use `rspack.experiments.SubresourceIntegrityPlugin`.
 
 ## What is SRI
 
@@ -133,10 +135,10 @@ With [`html-webpack-plugin`](https://github.com/jantimon/html-webpack-plugin), y
 The `integrity` can also be obtained from `stats.assets`. For example:
 
 ```js
-compiler.plugin('done', stats => {
+compiler.plugin('done', (stats) => {
   const integrityValues = stats
     .toJson()
-    .assets.map(asset => [asset.name, asset.integrity]);
+    .assets.map((asset) => [asset.name, asset.integrity]);
 });
 ```
 

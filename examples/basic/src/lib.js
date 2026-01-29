@@ -1,1 +1,1 @@
-console.log("Debugging Rspack");
+console.log('Debugging Rspack');

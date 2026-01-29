@@ -30,6 +30,7 @@ module.exports = (_, { testPath }) => ({
     rules: [
       {
         test: /\.css$/,
+				type: "javascript/auto",
         use: [
           CssExtractRspackPlugin.loader,
           {

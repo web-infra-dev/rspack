@@ -106,16 +106,13 @@ async fn emit(&self, compilation: &mut Compilation) -> Result<()> {
 
     let mut manifest_content: DllManifestContent = HashMap::default();
 
-    for module in chunk_graph.get_ordered_chunk_modules(&chunk.ukey(), &module_graph) {
+    for module in chunk_graph.get_ordered_chunk_modules(&chunk.ukey(), module_graph) {
       if self.options.entry_only.unwrap_or_default()
         && !some_in_iterable(
           module_graph.get_incoming_connections(&module.identifier()),
           |conn| {
             let dep = module_graph.dependency_by_id(&conn.dependency_id);
-
-            dep
-              .map(|dep| dep.is::<EntryDependency>())
-              .unwrap_or_default()
+            dep.is::<EntryDependency>()
           },
         )
       {

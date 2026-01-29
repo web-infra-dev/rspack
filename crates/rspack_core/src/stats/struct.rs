@@ -170,7 +170,6 @@ pub struct StatsModule<'a> {
   pub assets: Option<Vec<&'a str>>,
   pub modules: Option<Vec<StatsModule<'a>>>,
   pub source: Option<&'a BoxSource>,
-  pub profile: Option<StatsModuleProfile>,
   pub orphan: Option<bool>,
   pub provided_exports: Option<Vec<Atom>>,
   pub used_exports: Option<StatsUsedExports>,

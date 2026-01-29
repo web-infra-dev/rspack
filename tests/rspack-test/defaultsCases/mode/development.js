@@ -14,11 +14,14 @@ module.exports = {
 			-   "devtool": false,
 			+   "devtool": "eval",
 			@@ ... @@
-			-     "cache": false,
-			+     "cache": true,
-			@@ ... @@
 			-   "mode": "none",
 			+   "mode": "development",
+			@@ ... @@
+			-         "localIdentName": "[fullhash]",
+			+         "localIdentName": "[id]-[local]",
+			@@ ... @@
+			-         "localIdentName": "[fullhash]",
+			+         "localIdentName": "[id]-[local]",
 			@@ ... @@
 			-         "exportsDepth": 9007199254740991,
 			+         "exportsDepth": 1,
@@ -33,6 +36,9 @@ module.exports = {
 			-     "nodeEnv": false,
 			+     "moduleIds": "named",
 			+     "nodeEnv": "development",
+			@@ ... @@
+			-           "production",
+			+           "development",
 			@@ ... @@
 			-       "production",
 			+       "development",

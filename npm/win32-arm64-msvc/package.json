@@ -1,6 +1,6 @@
 {
   "name": "@rspack/binding-win32-arm64-msvc",
-  "version": "1.7.0-beta.1",
+  "version": "2.0.0-alpha.1",
   "license": "MIT",
   "description": "Node binding for rspack",
   "main": "rspack.win32-arm64-msvc.node",
@@ -13,8 +13,14 @@
   },
   "publishConfig": {
     "access": "public",
-    "os": ["win32"],
-    "cpu": ["arm64"]
+    "os": [
+      "win32"
+    ],
+    "cpu": [
+      "arm64"
+    ]
   },
-  "files": ["rspack.win32-arm64-msvc.node"]
+  "files": [
+    "rspack.win32-arm64-msvc.node"
+  ]
 }

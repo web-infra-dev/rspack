@@ -6,9 +6,7 @@ module.exports = {
 	},
 	mode: "production",
 	optimization: {
-		mangleExports: "size"
+		mangleExports: "size",
+		inlineExports: false
 	},
-	experiments: {
-		inlineConst: false
-	}
 };

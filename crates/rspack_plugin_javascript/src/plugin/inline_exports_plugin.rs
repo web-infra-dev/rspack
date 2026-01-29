@@ -4,7 +4,8 @@ use rspack_core::{
   Compilation, CompilationOptimizeDependencies, Dependency, DependencyId, ExportMode,
   ExportProvided, ExportsInfo, ExportsInfoGetter, GetUsedNameParam, ModuleGraph,
   ModuleGraphConnection, ModuleIdentifier, Plugin, PrefetchExportsInfoMode, RuntimeSpec,
-  SideEffectsOptimizeArtifact, UsageState, UsedName, UsedNameItem, incremental::IncrementalPasses,
+  SideEffectsOptimizeArtifact, UsageState, UsedName, UsedNameItem,
+  build_module_graph::BuildModuleGraphArtifact, incremental::IncrementalPasses,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
@@ -27,13 +28,12 @@ pub fn is_export_inlined(
   runtime: Option<&RuntimeSpec>,
 ) -> bool {
   let used_name = if ids.is_empty() {
-    let exports_info = ExportsInfoGetter::prefetch_used_info_without_name(
-      &mg.get_exports_info(module),
-      mg,
+    let exports_info_used = mg.get_prefetched_exports_info_used(module, runtime);
+    ExportsInfoGetter::get_used_name(
+      GetUsedNameParam::WithoutNames(&exports_info_used),
       runtime,
-      false,
-    );
-    ExportsInfoGetter::get_used_name(GetUsedNameParam::WithoutNames(&exports_info), runtime, ids)
+      ids,
+    )
   } else {
     let exports_info = mg.get_prefetched_exports_info(module, PrefetchExportsInfoMode::Nested(ids));
     ExportsInfoGetter::get_used_name(GetUsedNameParam::WithNames(&exports_info), runtime, ids)
@@ -69,7 +69,7 @@ pub fn connection_active_inline_value_for_esm_export_imported_specifier(
     return true;
   };
   let module = connection.module_identifier();
-  let exports_info = mg.get_exports_info(module).as_data(mg);
+  let exports_info = mg.get_exports_info_data(module);
   if exports_info.other_exports_info().get_used(runtime) != UsageState::Unused {
     return true;
   }
@@ -96,8 +96,9 @@ pub struct InlineExportsPlugin;
 #[plugin_hook(CompilationOptimizeDependencies for InlineExportsPlugin, stage = 100)]
 async fn optimize_dependencies(
   &self,
-  compilation: &mut Compilation,
+  compilation: &Compilation,
   _side_effect_optimize_artifact: &mut SideEffectsOptimizeArtifact,
+  build_module_graph_artifact: &mut BuildModuleGraphArtifact,
   diagnostics: &mut Vec<Diagnostic>,
 ) -> Result<Option<bool>> {
   if let Some(diagnostic) = compilation.incremental.disable_passes(
@@ -106,10 +107,9 @@ async fn optimize_dependencies(
     "it requires calculating the export names of all the modules, which is a global effect",
   ) {
     diagnostics.extend(diagnostic);
-    compilation.cgm_hash_artifact.clear();
   }
 
-  let mut mg = compilation.get_seal_module_graph_mut();
+  let mg = build_module_graph_artifact.get_module_graph_mut();
   let modules = mg.modules();
 
   let mut visited: FxHashSet<ExportsInfo> = FxHashSet::default();
@@ -128,7 +128,7 @@ async fn optimize_dependencies(
       .par_iter()
       .filter_map(|exports_info| {
         let exports_info_data =
-          ExportsInfoGetter::prefetch(exports_info, &mg, PrefetchExportsInfoMode::Default);
+          ExportsInfoGetter::prefetch(exports_info, mg, PrefetchExportsInfoMode::Default);
         let export_list = {
           // If there are other usage (e.g. `import { Kind } from './enum'; Kind;`) in any runtime,
           // then we cannot inline this export.
@@ -168,7 +168,7 @@ async fn optimize_dependencies(
           .into_iter()
           .filter_map(|(export_info, nested_exports_info, do_inline)| {
             if do_inline {
-              let data = export_info.as_data_mut(&mut mg);
+              let data = export_info.as_data_mut(mg);
               data.set_used_name(UsedNameItem::Inlined(
                 data
                   .can_inline_provide()

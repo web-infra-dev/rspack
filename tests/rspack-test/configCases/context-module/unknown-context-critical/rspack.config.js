@@ -4,7 +4,9 @@ module.exports = {
 	module: {
 		parser: {
 			javascript: {
-				unknownContextCritical: true
+				unknownContextCritical: true,
+				requireAlias: true,
+				requireAsExpression: true
 			}
 		}
 	}

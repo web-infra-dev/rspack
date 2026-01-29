@@ -1,5 +1,5 @@
 ```js title=main.js
-(self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["main"], {
+(self["rspackChunk"] = self["rspackChunk"] || []).push([["main"], {
 "./index.js": (function (__unused_rspack_module, __unused_rspack_exports, __webpack_require__) {
 __webpack_require__("./source/index.js");
 

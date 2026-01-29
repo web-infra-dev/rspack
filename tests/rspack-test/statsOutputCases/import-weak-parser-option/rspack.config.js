@@ -10,5 +10,9 @@ module.exports = {
 				dynamicImportMode: "weak"
 			}
 		}
+	},
+	stats: {
+		assets: true,
+		modules: true,
 	}
 };

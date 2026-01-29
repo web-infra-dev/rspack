@@ -1,7 +1,4 @@
 var link = document.createElement('link');
-<% if (_charset) { %>
-link.charset = 'utf-8';
-<% } %>
 <% if (_cross_origin != "") { %>
 link.crossOrigin = '<%- _cross_origin %>';
 <% } %>

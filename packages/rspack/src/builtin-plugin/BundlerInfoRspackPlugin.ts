@@ -1,23 +1,23 @@
 import {
-	BuiltinPluginName,
-	type RawBundlerInfoPluginOptions
-} from "@rspack/binding";
+  BuiltinPluginName,
+  type RawBundlerInfoPluginOptions,
+} from '@rspack/binding';
 
-import { create } from "./base";
+import { create } from './base';
 
 export type BundleInfoOptions = {
-	version?: string;
-	bundler?: string;
-	force?: boolean | string[];
+  version?: string;
+  bundler?: string;
+  force?: boolean | string[];
 };
 
 export const BundlerInfoRspackPlugin = create(
-	BuiltinPluginName.BundlerInfoRspackPlugin,
-	(options: BundleInfoOptions): RawBundlerInfoPluginOptions => {
-		return {
-			version: options.version || "unknown",
-			bundler: options.bundler || "rspack",
-			force: options.force ?? true
-		};
-	}
+  BuiltinPluginName.BundlerInfoRspackPlugin,
+  (options: BundleInfoOptions): RawBundlerInfoPluginOptions => {
+    return {
+      version: options.version || 'unknown',
+      bundler: options.bundler || 'rspack',
+      force: options.force ?? true,
+    };
+  },
 );

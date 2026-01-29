@@ -8,11 +8,10 @@ use rspack_tasks::within_compiler_context;
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::{
-  ChunkGraph, ChunkKind, Compilation, Compiler, DerefOption, RuntimeSpec,
+  ChunkGraph, ChunkKind, Compilation, Compiler, RuntimeSpec,
   chunk_graph_chunk::ChunkId,
   chunk_graph_module::ModuleId,
   compilation::build_module_graph::ModuleExecutor,
-  fast_set,
   incremental::{Incremental, IncrementalPasses},
 };
 
@@ -22,13 +21,33 @@ impl Compiler {
     changed_files: std::collections::HashSet<String>,
     deleted_files: std::collections::HashSet<String>,
   ) -> Result<()> {
-    within_compiler_context(
+    match within_compiler_context(
       self.compiler_context.clone(),
       self.rebuild_inner(changed_files, deleted_files),
     )
-    .await?;
-    Ok(())
+    .await
+    {
+      Ok(_) => {
+        self
+          .plugin_driver
+          .compiler_hooks
+          .done
+          .call(&self.compilation)
+          .await?;
+        Ok(())
+      }
+      Err(e) => {
+        self
+          .plugin_driver
+          .compiler_hooks
+          .failed
+          .call(&self.compilation)
+          .await?;
+        Err(e)
+      }
+    }
   }
+
   #[tracing::instrument("Compiler:rebuild", skip_all, fields(
     compiler.changed_files = ?changed_files.iter().cloned().collect::<Vec<_>>(),
     compiler.deleted_files = ?deleted_files.iter().cloned().collect::<Vec<_>>()
@@ -50,14 +69,9 @@ impl Compiler {
       let mut all_files = modified_files.clone();
       all_files.extend(removed_files.clone());
 
-      self.old_cache.end_idle();
-      // self
-      //   .old_cache
-      //   .set_modified_files(all_files.into_iter().collect());
-
       self.plugin_driver.clear_cache(self.compilation.id());
 
-      let mut new_compilation = Compilation::new(
+      let mut next_compilation = Compilation::new(
         self.id,
         self.options.clone(),
         self.platform.clone(),
@@ -66,8 +80,7 @@ impl Compiler {
         self.resolver_factory.clone(),
         self.loader_resolver_factory.clone(),
         Some(records),
-        self.old_cache.clone(),
-        Incremental::new_hot(self.options.experiments.incremental),
+        Incremental::new_hot(self.options.incremental),
         Some(ModuleExecutor::default()),
         modified_files,
         removed_files,
@@ -77,115 +90,26 @@ impl Compiler {
         true,
         self.compiler_context.clone(),
       );
-      new_compilation.hot_index = self.compilation.hot_index + 1;
+      next_compilation.hot_index = self.compilation.hot_index + 1;
 
-      if new_compilation
+      if next_compilation
         .incremental
-        .mutations_readable(IncrementalPasses::MAKE)
+        .mutations_readable(IncrementalPasses::BUILD_MODULE_GRAPH)
       {
-        // copy field from old compilation
-        // build_module_graph stage used
-        self
-          .compilation
-          .swap_build_module_graph_artifact_with_compilation(&mut new_compilation);
-
-        // seal stage used
-        new_compilation.build_chunk_graph_artifact =
-          std::mem::take(&mut self.compilation.build_chunk_graph_artifact);
-
         // reuse module executor
-        new_compilation.module_executor = std::mem::take(&mut self.compilation.module_executor);
+        next_compilation.module_executor = std::mem::take(&mut self.compilation.module_executor);
       }
-      if new_compilation
-        .incremental
-        .mutations_readable(IncrementalPasses::INFER_ASYNC_MODULES)
-      {
-        new_compilation.async_modules_artifact =
-          std::mem::take(&mut self.compilation.async_modules_artifact);
-      }
-      if new_compilation
-        .incremental
-        .mutations_readable(IncrementalPasses::DEPENDENCIES_DIAGNOSTICS)
-      {
-        new_compilation.dependencies_diagnostics_artifact =
-          std::mem::take(&mut self.compilation.dependencies_diagnostics_artifact);
-      }
-      if new_compilation
-        .incremental
-        .mutations_readable(IncrementalPasses::SIDE_EFFECTS)
-      {
-        new_compilation.side_effects_optimize_artifact =
-          DerefOption::new(self.compilation.side_effects_optimize_artifact.take());
-      }
-      if new_compilation
-        .incremental
-        .mutations_readable(IncrementalPasses::MODULE_IDS)
-      {
-        new_compilation.module_ids_artifact =
-          std::mem::take(&mut self.compilation.module_ids_artifact);
-      }
-      if new_compilation
-        .incremental
-        .mutations_readable(IncrementalPasses::CHUNK_IDS)
-      {
-        new_compilation.named_chunk_ids_artifact =
-          std::mem::take(&mut self.compilation.named_chunk_ids_artifact);
-      }
-      if new_compilation
-        .incremental
-        .mutations_readable(IncrementalPasses::MODULES_HASHES)
-      {
-        new_compilation.cgm_hash_artifact = std::mem::take(&mut self.compilation.cgm_hash_artifact);
-      }
-      if new_compilation
-        .incremental
-        .mutations_readable(IncrementalPasses::MODULES_CODEGEN)
-      {
-        new_compilation.code_generation_results =
-          std::mem::take(&mut self.compilation.code_generation_results);
-      }
-      if new_compilation
-        .incremental
-        .mutations_readable(IncrementalPasses::MODULES_RUNTIME_REQUIREMENTS)
-      {
-        new_compilation.cgm_runtime_requirements_artifact =
-          std::mem::take(&mut self.compilation.cgm_runtime_requirements_artifact);
-      }
-      if new_compilation
-        .incremental
-        .mutations_readable(IncrementalPasses::CHUNKS_RUNTIME_REQUIREMENTS)
-      {
-        new_compilation.cgc_runtime_requirements_artifact =
-          std::mem::take(&mut self.compilation.cgc_runtime_requirements_artifact);
-      }
-      if new_compilation
-        .incremental
-        .mutations_readable(IncrementalPasses::CHUNKS_HASHES)
-      {
-        new_compilation.chunk_hashes_artifact =
-          std::mem::take(&mut self.compilation.chunk_hashes_artifact);
-      }
-      if new_compilation
-        .incremental
-        .mutations_readable(IncrementalPasses::CHUNKS_RENDER)
-      {
-        new_compilation.chunk_render_artifact =
-          std::mem::take(&mut self.compilation.chunk_render_artifact);
-      }
-      new_compilation.chunk_render_cache_artifact =
-        std::mem::take(&mut self.compilation.chunk_render_cache_artifact);
-      new_compilation
-        .chunk_render_cache_artifact
-        .start_next_generation();
+
+      // Store old compilation in cache for artifact recovery during run_passes
+      // The cache hooks will recover artifacts based on their associated incremental passes
+      let old_compilation = std::mem::replace(&mut self.compilation, next_compilation);
+      self.cache.store_old_compilation(Box::new(old_compilation));
 
       // FOR BINDING SAFETY:
       // Update `compilation` for each rebuild.
       // Make sure `thisCompilation` hook was called before any other hooks that leverage `JsCompilation`.
-      fast_set(&mut self.compilation, new_compilation);
       self.cache.before_compile(&mut self.compilation).await;
       self.compile().await?;
-
-      self.old_cache.begin_idle();
     }
 
     self.compile_done().await?;

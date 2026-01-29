@@ -1,6 +1,6 @@
 ```js title=main.js
 "use strict";
-(self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["main"], {
+(self["rspackChunk"] = self["rspackChunk"] || []).push([["main"], {
 "./index.js"(__unused_rspack_module, __unused_rspack___webpack_exports__, __webpack_require__) {
 /* import */ var _index_module_css__rspack_import_0 = __webpack_require__("./index.module.css");
 
@@ -10,11 +10,11 @@ _index_module_css__rspack_import_0.compose;
 
 
 },
-"./index.module.css"(module, __unused_rspack_exports, __webpack_require__) {
+"./index.module.css"(module) {
 var exports = {
-  "foo": "__rspack_test__-_6ec1c834ac8cc99e-foo",
-  "bar": "__rspack_test__-_6ec1c834ac8cc99e-bar",
-  "compose": "__rspack_test__-_6ec1c834ac8cc99e-compose" + " " + "__rspack_test__-_6ec1c834ac8cc99e-bar",
+  "foo": "_939518936b36b260",
+  "bar": "_5ddc1eb5f18d3113",
+  "compose": "f15aeea3766a46b5" + " " + "_5ddc1eb5f18d3113",
 };
 
 module.exports = exports;
