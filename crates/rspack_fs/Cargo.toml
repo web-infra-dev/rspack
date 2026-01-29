@@ -19,3 +19,6 @@ tracing      = { workspace = true }
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
 tokio = { workspace = true, features = ["rt", "macros", "sync", "fs"] }
+
+[lints]
+workspace = true

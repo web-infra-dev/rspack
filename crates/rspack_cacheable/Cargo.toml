@@ -31,6 +31,5 @@ swc_core                = { workspace = true, features = ["ecma_ast"] }
 ustr                    = { workspace = true }
 xxhash-rust             = { workspace = true, features = ["const_xxh64"] }
 
-[lints.rust.unexpected_cfgs]
-check-cfg = ['cfg(allocative)']
-level     = "warn"
+[lints]
+workspace = true

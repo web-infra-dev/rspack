@@ -139,3 +139,6 @@ parking_lot = { version = "=0.12.5", features = ["nightly"] }
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
 rspack_tracing = { workspace = true }
 sftrace-setup  = { workspace = true, optional = true }
+
+[lints]
+workspace = true

@@ -100,14 +100,14 @@ impl<'a> ExportedEnumCollector<'a> {
       {
         EnumMemberValue::Number(f64::INFINITY)
       }
-      Expr::Ident(ident) => existing_enum_members
-        .get(ident.sym.borrow())
-        .map(|value| match value {
+      Expr::Ident(ident) => existing_enum_members.get(ident.sym.borrow()).map_or_else(
+        || EnumMemberValue::Unknown,
+        |value| match value {
           EnumMemberValue::String(s) => EnumMemberValue::String(s.clone()),
           EnumMemberValue::Number(n) => EnumMemberValue::Number(*n),
           _ => EnumMemberValue::Unknown,
-        })
-        .unwrap_or_else(|| EnumMemberValue::Unknown),
+        },
+      ),
       Expr::Paren(e) => self.evaluate_expr(&e.expr, enum_id, existing_enum_members),
       Expr::Unary(e) => self.evaluate_unary(e, enum_id, existing_enum_members),
       Expr::Bin(e) => self.evaluate_bin(e, enum_id, existing_enum_members),
@@ -293,7 +293,7 @@ fn js_number_to_uint32(n: f64) -> u32 {
   }
 
   // pow(2, 32) = 4294967296
-  n.trunc().rem_euclid(4294967296.0) as u32
+  n.trunc().rem_euclid(4_294_967_296.0) as u32
 }
 
 fn js_number_to_int32(n: f64) -> i32 {
@@ -327,7 +327,7 @@ impl Visit for ExportedEnumCollector<'_> {
                   .export_idents
                   .insert(specifier.orig.atom().into_owned());
               }
-              _ => continue,
+              _ => {}
             }
           }
         }

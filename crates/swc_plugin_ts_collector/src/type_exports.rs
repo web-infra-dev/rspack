@@ -90,7 +90,7 @@ impl Visit for TypeExportsCollector<'_> {
                       );
                     }
                   }
-                  _ => continue,
+                  _ => {}
                 }
               }
             }

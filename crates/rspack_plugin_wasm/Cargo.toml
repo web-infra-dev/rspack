@@ -26,3 +26,6 @@ wasmparser         = { workspace = true }
 
 [package.metadata.cargo-shear]
 ignored = ["tracing", "rspack_hash", "tokio"]
+
+[lints]
+workspace = true
