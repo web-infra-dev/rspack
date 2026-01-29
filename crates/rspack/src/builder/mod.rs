@@ -43,14 +43,15 @@ use rspack_core::{
   CssExportsConvention, CssGeneratorOptions, CssModuleGeneratorOptions, CssModuleParserOptions,
   CssParserOptions, DynamicImportMode, EntryDescription, EntryOptions, EntryRuntime, Environment,
   Experiments, ExternalItem, ExternalType, Filename, GeneratorOptions, GeneratorOptionsMap,
-  JavascriptParserCommonjsExportsOption, JavascriptParserCommonjsOptions, JavascriptParserOptions,
-  JavascriptParserOrder, JavascriptParserUrl, JsonGeneratorOptions, JsonParserOptions, LibraryName,
-  LibraryNonUmdObject, LibraryOptions, LibraryType, MangleExportsOption, Mode, ModuleNoParseRules,
-  ModuleOptions, ModuleRule, ModuleRuleEffect, ModuleType, NodeDirnameOption, NodeFilenameOption,
-  NodeGlobalOption, NodeOption, Optimization, OutputOptions, ParseOption, ParserOptions,
-  ParserOptionsMap, PathInfo, PublicPath, Resolve, RuleSetCondition, RuleSetLogicalConditions,
-  SideEffectOption, StatsOptions, TrustedTypes, UnsafeCachePredicate, UsedExportsOption,
-  WasmLoading, WasmLoadingType, incremental::IncrementalOptions,
+  ImportMeta, JavascriptParserCommonjsExportsOption, JavascriptParserCommonjsOptions,
+  JavascriptParserOptions, JavascriptParserOrder, JavascriptParserUrl, JsonGeneratorOptions,
+  JsonParserOptions, LibraryName, LibraryNonUmdObject, LibraryOptions, LibraryType,
+  MangleExportsOption, Mode, ModuleNoParseRules, ModuleOptions, ModuleRule, ModuleRuleEffect,
+  ModuleType, NodeDirnameOption, NodeFilenameOption, NodeGlobalOption, NodeOption, Optimization,
+  OutputOptions, ParseOption, ParserOptions, ParserOptionsMap, PathInfo, PublicPath, Resolve,
+  RuleSetCondition, RuleSetLogicalConditions, SideEffectOption, StatsOptions, TrustedTypes,
+  UnsafeCachePredicate, UsedExportsOption, WasmLoading, WasmLoadingType,
+  incremental::IncrementalOptions,
 };
 use rspack_error::{Error, Result};
 use rspack_fs::{IntermediateFileSystem, ReadableFileSystem, WritableFileSystem};
@@ -1711,7 +1712,13 @@ impl ModuleOptionsBuilder {
           wrapped_context_reg_exp: Some(RspackRegex::new(".*").expect("should initialize `Regex`")),
           strict_export_presence: Some(false),
           worker: Some(vec!["...".to_string()]),
-          import_meta: Some(true),
+          import_meta: target_properties.module.map(|val| {
+            if val {
+              ImportMeta::PreserveUnknown
+            } else {
+              ImportMeta::Auto
+            }
+          }),
           require_alias: Some(true),
           require_as_expression: Some(false),
           require_dynamic: Some(true),
