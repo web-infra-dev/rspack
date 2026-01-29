@@ -1,7 +1,8 @@
 use rspack_collections::Identifier;
 use rspack_core::{
-  ChunkUkey, Compilation, OutputOptions, PathData, RuntimeModule, RuntimeModuleStage,
-  RuntimeTemplate, SourceType, get_js_chunk_filename_template, get_undo_path, impl_runtime_module,
+  ChunkUkey, Compilation, OutputOptions, PathData, RuntimeGlobals, RuntimeModule,
+  RuntimeModuleStage, RuntimeTemplate, SourceType, get_js_chunk_filename_template, get_undo_path,
+  impl_runtime_module,
 };
 
 #[impl_runtime_module]
@@ -75,6 +76,14 @@ impl RuntimeModule for AutoPublicPathRuntimeModule {
       &filename,
       &compilation.options.output,
     )
+  }
+
+  fn additional_runtime_requirements(
+    &self,
+    _compilation: &Compilation,
+    _runtime_requirements: &RuntimeGlobals,
+  ) -> RuntimeGlobals {
+    RuntimeGlobals::GLOBAL
   }
 }
 

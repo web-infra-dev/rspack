@@ -10,16 +10,18 @@ use crate::get_chunk_runtime_requirements;
 pub struct EnsureChunkRuntimeModule {
   id: Identifier,
   chunk: Option<ChunkUkey>,
+  has_async_chunks: bool,
 }
 
 impl EnsureChunkRuntimeModule {
-  pub fn new(runtime_template: &RuntimeTemplate) -> Self {
+  pub fn new(runtime_template: &RuntimeTemplate, has_async_chunks: bool) -> Self {
     Self::with_default(
       Identifier::from(format!(
         "{}ensure_chunk",
         runtime_template.runtime_module_prefix()
       )),
       None,
+      has_async_chunks,
     )
   }
 }
@@ -84,5 +86,17 @@ impl RuntimeModule for EnsureChunkRuntimeModule {
 
   fn attach(&mut self, chunk: ChunkUkey) {
     self.chunk = Some(chunk);
+  }
+
+  fn additional_runtime_requirements(
+    &self,
+    _compilation: &Compilation,
+    _runtime_requirements: &RuntimeGlobals,
+  ) -> RuntimeGlobals {
+    if self.has_async_chunks {
+      RuntimeGlobals::ENSURE_CHUNK_HANDLERS
+    } else {
+      RuntimeGlobals::default()
+    }
   }
 }

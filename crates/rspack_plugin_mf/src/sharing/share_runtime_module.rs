@@ -151,6 +151,14 @@ impl RuntimeModule for ShareRuntimeModule {
   fn attach(&mut self, chunk: ChunkUkey) {
     self.chunk = Some(chunk);
   }
+
+  fn additional_runtime_requirements(
+    &self,
+    _compilation: &Compilation,
+    _runtime_requirements: &RuntimeGlobals,
+  ) -> RuntimeGlobals {
+    RuntimeGlobals::SHARE_SCOPE_MAP | RuntimeGlobals::REQUIRE | RuntimeGlobals::HAS_OWN_PROPERTY
+  }
 }
 
 #[derive(Debug, Clone)]

@@ -6,7 +6,8 @@ use rspack_cacheable::with::Unsupported;
 use rspack_collections::{DatabaseItem, Identifier, UkeyIndexMap, UkeyIndexSet};
 use rspack_core::{
   Chunk, ChunkGraph, ChunkUkey, Compilation, Filename, PathData, RuntimeGlobals, RuntimeModule,
-  RuntimeTemplate, SourceType, get_filename_without_hash_length, impl_runtime_module,
+  RuntimeTemplate, SourceType, get_filename_without_hash_length, has_hash_placeholder,
+  impl_runtime_module,
 };
 use rspack_util::itoa;
 use rustc_hash::FxHashMap;
@@ -398,5 +399,21 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
 
   fn attach(&mut self, chunk: ChunkUkey) {
     self.chunk = Some(chunk);
+  }
+
+  fn additional_runtime_requirements(
+    &self,
+    compilation: &Compilation,
+    _runtime_requirements: &RuntimeGlobals,
+  ) -> RuntimeGlobals {
+    if (self.source_type == SourceType::JavaScript
+      && has_hash_placeholder(compilation.options.output.chunk_filename.as_str()))
+      || (self.source_type == SourceType::Css
+        && has_hash_placeholder(compilation.options.output.css_chunk_filename.as_str()))
+    {
+      RuntimeGlobals::GET_FULL_HASH
+    } else {
+      RuntimeGlobals::default()
+    }
   }
 }

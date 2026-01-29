@@ -1,5 +1,7 @@
 use rspack_collections::Identifier;
-use rspack_core::{Compilation, RuntimeModule, RuntimeTemplate, impl_runtime_module};
+use rspack_core::{
+  Compilation, RuntimeGlobals, RuntimeModule, RuntimeTemplate, impl_runtime_module,
+};
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -33,5 +35,13 @@ impl RuntimeModule for CreateFakeNamespaceObjectRuntimeModule {
     let source = compilation.runtime_template.render(&self.id, None)?;
 
     Ok(source)
+  }
+
+  fn additional_runtime_requirements(
+    &self,
+    _compilation: &Compilation,
+    _runtime_requirements: &RuntimeGlobals,
+  ) -> RuntimeGlobals {
+    RuntimeGlobals::MAKE_NAMESPACE_OBJECT | RuntimeGlobals::DEFINE_PROPERTY_GETTERS
   }
 }
