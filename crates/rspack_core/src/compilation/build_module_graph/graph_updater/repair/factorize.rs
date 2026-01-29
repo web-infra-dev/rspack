@@ -129,7 +129,7 @@ impl Task<TaskContext> for FactorizeTask {
           .iter()
           .map(|dep| *dep.id())
           .collect(),
-        Default::default(),
+        create_data.file_dependencies,
         Default::default(),
         Default::default(),
       )
