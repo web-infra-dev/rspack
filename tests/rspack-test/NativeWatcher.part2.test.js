@@ -18,7 +18,7 @@ describeByWalk(
 			// Exclude r-z
 			/^[r-z]/,
 			// Exclude flaky tests
-			/skip-building-chunk-graph/
+			// /skip-building-chunk-graph/
 		]
 	}
 );

@@ -35,29 +35,62 @@ impl DiskWatcher {
           let paths = &event.paths;
 
           if paths.is_empty() {
+            println!(
+              "[WATCHER_DEBUG] DiskWatcher - Received event with no paths: {:?}",
+              event.kind
+            );
             return; // Ignore events with no paths
           }
 
           let kind = match event.kind {
-            EventKind::Create(_) => FsEventKind::Create,
+            EventKind::Create(_) => {
+              println!(
+                "[WATCHER_DEBUG] DiskWatcher - Create event for {} paths",
+                paths.len()
+              );
+              FsEventKind::Create
+            }
             EventKind::Modify(
               ModifyKind::Data(_) | ModifyKind::Any | ModifyKind::Name(_) | ModifyKind::Metadata(_),
-            ) => FsEventKind::Change,
-            EventKind::Remove(_) => FsEventKind::Remove,
+            ) => {
+              println!(
+                "[WATCHER_DEBUG] DiskWatcher - Modify event ({:?}) for {} paths",
+                event.kind,
+                paths.len()
+              );
+              FsEventKind::Change
+            }
+            EventKind::Remove(_) => {
+              println!(
+                "[WATCHER_DEBUG] DiskWatcher - Remove event for {} paths",
+                paths.len()
+              );
+              FsEventKind::Remove
+            }
             // TODO: handle this case /path/to/index.js -> /path/to/index.js.map
             // path/to/index.js should be removed, and path/to/index.js.map should be changed
             // Now /path/to/index.js and /path/to/index.js.map will both be changed
-            _ => return, // Ignore other kinds of events
+            _ => {
+              println!(
+                "[WATCHER_DEBUG] DiskWatcher - Ignoring event kind: {:?}",
+                event.kind
+              );
+              return; // Ignore other kinds of events
+            }
           };
           let paths = event.paths.into_iter().map(ArcPath::from);
           for path in paths {
+            println!(
+              "[WATCHER_DEBUG] DiskWatcher - Triggering {:?} for path: {:?}",
+              kind, path
+            );
             trigger.on_event(&path, kind);
           }
         }
 
         Err(e) => {
           // Handle error, e.g., log it or notify the user
-          eprintln!("Error in file watcher: {e:?}",);
+          println!("[WATCHER_DEBUG] DiskWatcher - ERROR in file watcher: {e:?}");
         }
       },
       config,
@@ -81,6 +114,11 @@ impl DiskWatcher {
   ) -> rspack_error::Result<()> {
     let patterns: HashSet<WatchPattern> = patterns.collect();
 
+    println!(
+      "[WATCHER_DEBUG] DiskWatcher::watch() - Updating watch patterns, {} new patterns",
+      patterns.len()
+    );
+
     let already_watched_paths = self
       .watch_patterns
       .iter()
@@ -92,6 +130,10 @@ impl DiskWatcher {
     for pattern in already_watched_paths.difference(&current_should_watch_paths) {
       // If the path is no longer in the patterns to watch, unwatch it
       if let Some(watcher) = &mut self.inner {
+        println!(
+          "[WATCHER_DEBUG] DiskWatcher::watch() - Unwatching path: {:?}",
+          pattern
+        );
         // Currently, we unwatch the path even if it might still be in other patterns, as we lack a way to track paths precisely.
         // The `notify` crate automatically removes the watch path when it is removed internally.
         // If we attempt to unwatch the path again, it may return an error.
@@ -99,6 +141,10 @@ impl DiskWatcher {
         if let Err(e) = watcher.unwatch(pattern)
           && !matches!(e.kind, notify::ErrorKind::WatchNotFound)
         {
+          println!(
+            "[WATCHER_DEBUG] DiskWatcher::watch() - ERROR unwatching path {:?}: {}",
+            pattern, e
+          );
           return Err(rspack_error::error!(e.to_string()));
         }
       }
@@ -110,12 +156,31 @@ impl DiskWatcher {
       }
 
       if let Some(watcher) = &mut self.inner {
-        watcher
-          .watch(&pattern.path, pattern.mode)
-          .map_err(|e| rspack_error::error!(e.to_string()))?;
+        println!(
+          "[WATCHER_DEBUG] DiskWatcher::watch() - Watching path: {:?}, mode: {:?}",
+          pattern.path, pattern.mode
+        );
+        watcher.watch(&pattern.path, pattern.mode).map_err(|e| {
+          println!(
+            "[WATCHER_DEBUG] DiskWatcher::watch() - ERROR watching path {:?}: {}",
+            pattern.path, e
+          );
+          rspack_error::error!(e.to_string())
+        })?;
       }
 
       self.watch_patterns.insert(pattern);
+    }
+
+    println!(
+      "[WATCHER_DEBUG] DiskWatcher::watch() - Now watching {} paths total",
+      self.watch_patterns.len()
+    );
+    for pattern in &self.watch_patterns {
+      println!(
+        "[WATCHER_DEBUG]   - {:?} ({:?})",
+        pattern.path, pattern.mode
+      );
     }
 
     Ok(())

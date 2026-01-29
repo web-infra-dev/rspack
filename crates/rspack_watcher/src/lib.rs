@@ -178,12 +178,28 @@ impl FsWatcher {
     missing: (impl Iterator<Item = ArcPath>, impl Iterator<Item = ArcPath>),
     start_time: SystemTime,
   ) -> Result<()> {
+    println!(
+      "[WATCHER_DEBUG] FsWatcher::wait_for_event() - Starting, start_time: {:?}",
+      start_time
+    );
+
+    println!("[WATCHER_DEBUG] FsWatcher::wait_for_event() - Step 1: Updating path manager");
     self.path_manager.update(files, directories, missing)?;
+
+    println!("[WATCHER_DEBUG] FsWatcher::wait_for_event() - Step 2: Starting scanner (async)");
     self.scanner.scan(start_time);
 
+    println!("[WATCHER_DEBUG] FsWatcher::wait_for_event() - Step 3: Analyzing watch patterns");
     let watch_patterns = self.analyzer.analyze(self.path_manager.access());
+    println!(
+      "[WATCHER_DEBUG] FsWatcher::wait_for_event() - Found {} watch patterns",
+      watch_patterns.len()
+    );
+
+    println!("[WATCHER_DEBUG] FsWatcher::wait_for_event() - Step 4: Setting up disk watcher");
     self.disk_watcher.watch(watch_patterns.into_iter())?;
 
+    println!("[WATCHER_DEBUG] FsWatcher::wait_for_event() - Complete");
     Ok(())
   }
 }
