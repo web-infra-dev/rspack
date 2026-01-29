@@ -17,6 +17,14 @@ on:
       - '**/*.md'
       - 'website/**'
 
+  workflow_dispatch:
+    inputs:
+      target_branch:
+        description: 'Target branch to compare against'
+        required: false
+        default: 'main'
+        type: string
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
@@ -90,8 +98,8 @@ jobs:
         run: RSDOCTOR=true CI=true pnpm run build:cases
 
       - name: Report Compressed Size
-        uses: web-infra-dev/rsdoctor-action@5b30d999c6e0a7840df1445d222b020ef282ed6f
+        uses: web-infra-dev/rsdoctor-action@71406dd7d0b4815e7e1be27928961544ed618530
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           file_path: '../build-tools-performance/**/dist/rsdoctor-data.json'
-          target_branch: 'main'
+          target_branch: ${{ inputs.target_branch || 'main' }}
