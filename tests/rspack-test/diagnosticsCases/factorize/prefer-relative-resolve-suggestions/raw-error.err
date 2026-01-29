@@ -1,6 +1,6 @@
 Array [
   Object {
-    loc: 1:1-15,
+    loc: 1:1-16,
     moduleIdentifier: javascript/esm|<TEST_ROOT>/diagnosticsCases/factorize/prefer-relative-resolve-suggestions/index.js,
     moduleName: ./index.js,
   },

@@ -21,10 +21,10 @@ cacheable modules xx KiB
       + 4 modules
     code generated modules xx bytes [code generated]
       ./first.js xx bytes [built] [code generated]
-        Statement with side_effects in source code at ./first.js<LINE_COL>-60
+        Statement with side_effects in source code at ./first.js<LINE_COL>-61
         ModuleConcatenation bailout: Module is an entry point
       ./second.js xx bytes [built] [code generated]
-        Statement with side_effects in source code at ./second.js<LINE_COL>-62
+        Statement with side_effects in source code at ./second.js<LINE_COL>-63
         ModuleConcatenation bailout: Module is an entry point
       ./lazy_shared.js xx bytes [built] [code generated]
         ModuleConcatenation bailout: Cannot concat with <TEST_ROOT>/statsOutputCases/scope-hoisting-multi/common_lazy_shared.js: Module ./common_lazy_shared.js is referenced from different chunks by these modules: ./lazy_first.js, ./lazy_second.js

@@ -1,6 +1,6 @@
 Array [
   Object {
-    loc: 1:1-32,
+    loc: 1:1-33,
     moduleIdentifier: <TEST_ROOT>/diagnosticsCases/config/pnp-disable/index.js,
     moduleName: ./index.js,
   },

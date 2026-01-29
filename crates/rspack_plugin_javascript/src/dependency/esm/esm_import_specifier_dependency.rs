@@ -10,9 +10,9 @@ use rspack_core::{
   ExportsInfoGetter, ExportsType, ExtendedReferencedExport, FactorizeInfo, ForwardId,
   GetUsedNameParam, ImportAttributes, ImportPhase, JavascriptParserOptions, ModuleDependency,
   ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleReferenceOptions,
-  PrefetchExportsInfoMode, ReferencedExport, ResourceIdentifier, RuntimeSpec, SharedSourceMap,
-  TemplateContext, TemplateReplaceSource, UsedByExports, UsedName,
-  create_exports_object_referenced, get_exports_type, property_access, to_normal_comment,
+  PrefetchExportsInfoMode, ReferencedExport, ResourceIdentifier, RuntimeSpec, TemplateContext,
+  TemplateReplaceSource, UsedByExports, UsedName, create_exports_object_referenced,
+  get_exports_type, property_access, to_normal_comment,
 };
 use rspack_error::Diagnostic;
 use rspack_util::json_stringify;
@@ -72,11 +72,11 @@ impl ESMImportSpecifierDependency {
     referenced_properties_in_destructuring: Option<DestructuringAssignmentProperties>,
     phase: ImportPhase,
     attributes: Option<ImportAttributes>,
-    source_map: Option<SharedSourceMap>,
+    source: Option<&str>,
   ) -> Self {
     let resource_identifier =
       create_resource_identifier_for_esm_dependency(&request, attributes.as_ref());
-    let loc = range.to_loc(source_map.as_ref());
+    let loc = range.to_loc(source);
     Self {
       id: DependencyId::new(),
       request,

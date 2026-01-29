@@ -3449,16 +3449,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "ropey"
-version = "1.6.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "93411e420bcd1a75ddd1dc3caf18c23155eda2c090631a85af21ba19e97093b5"
-dependencies = [
- "smallvec",
- "str_indices",
-]
-
-[[package]]
 name = "rspack"
 version = "0.100.0-alpha.1"
 dependencies = [
@@ -3587,7 +3577,6 @@ dependencies = [
  "parking_lot",
  "rayon",
  "regex",
- "ropey",
  "rspack_allocator",
  "rspack_browser",
  "rspack_browserslist",
@@ -3815,6 +3804,7 @@ dependencies = [
  "indoc",
  "itertools 0.14.0",
  "json",
+ "memchr",
  "mime_guess",
  "napi",
  "num-bigint",
@@ -3824,7 +3814,6 @@ dependencies = [
  "rayon",
  "regex",
  "rkyv 0.8.8",
- "ropey",
  "rspack_cacheable",
  "rspack_collections",
  "rspack_dojang",
@@ -4091,6 +4080,7 @@ name = "rspack_location"
 version = "0.100.0-alpha.1"
 dependencies = [
  "itoa",
+ "memchr",
  "rspack_cacheable",
 ]
 
@@ -4517,7 +4507,6 @@ dependencies = [
  "rayon",
  "regex",
  "regress",
- "ropey",
  "rspack_cacheable",
  "rspack_collections",
  "rspack_core",
@@ -4548,7 +4537,6 @@ dependencies = [
  "async-trait",
  "cow-utils",
  "json",
- "ropey",
  "rspack_cacheable",
  "rspack_core",
  "rspack_error",
@@ -4602,7 +4590,6 @@ dependencies = [
  "parcel_sourcemap",
  "rayon",
  "regex",
- "ropey",
  "rspack_core",
  "rspack_error",
  "rspack_hash",
@@ -5187,9 +5174,9 @@ dependencies = [
  "dashmap 6.1.0",
  "indexmap",
  "itoa",
+ "memchr",
  "once_cell",
  "regex",
- "ropey",
  "rspack-allocative",
  "rspack_cacheable",
  "rspack_paths",
@@ -5617,12 +5604,6 @@ name = "static_assertions"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
-
-[[package]]
-name = "str_indices"
-version = "0.4.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d08889ec5408683408db66ad89e0e1f93dff55c73a4ccc71c427d5b277ee47e6"
 
 [[package]]
 name = "string_enum"

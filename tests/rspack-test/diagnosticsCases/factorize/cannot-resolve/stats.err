@@ -1,4 +1,4 @@
-ERROR in ./index.js 1:1-12
+ERROR in ./index.js 1:1-13
   × Module not found: Can't resolve './a' in '<TEST_ROOT>/diagnosticsCases/factorize/cannot-resolve'
    ╭────
  1 │ import "./a"

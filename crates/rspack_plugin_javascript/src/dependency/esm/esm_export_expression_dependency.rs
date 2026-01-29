@@ -6,8 +6,8 @@ use rspack_core::{
   DependencyId, DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType,
   DependencyType, ESMExportInitFragment, ExportNameOrSpec, ExportsInfoGetter, ExportsOfExportsSpec,
   ExportsSpec, ForwardId, GetUsedNameParam, ModuleGraph, ModuleGraphCacheArtifact,
-  PrefetchExportsInfoMode, SharedSourceMap, TemplateContext, TemplateReplaceSource, UsedName,
-  property_access, rspack_sources::ReplacementEnforce,
+  PrefetchExportsInfoMode, TemplateContext, TemplateReplaceSource, UsedName, property_access,
+  rspack_sources::ReplacementEnforce,
 };
 use swc_core::atoms::Atom;
 
@@ -55,9 +55,9 @@ impl ESMExportExpressionDependency {
     range_stmt: DependencyRange,
     prefix: String,
     declaration: Option<DeclarationId>,
-    source_map: Option<SharedSourceMap>,
+    source: Option<&str>,
   ) -> Self {
-    let loc = range.to_loc(source_map.as_ref());
+    let loc = range.to_loc(source);
     Self {
       id: DependencyId::default(),
       range,

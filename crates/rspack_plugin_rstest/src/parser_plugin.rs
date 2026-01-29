@@ -1,7 +1,6 @@
 use camino::Utf8PathBuf;
 use rspack_core::{
   AsyncDependenciesBlock, ConstDependency, DependencyRange, ImportAttributes, RuntimeGlobals,
-  SharedSourceMap,
 };
 use rspack_plugin_javascript::{
   JavascriptParserPlugin,
@@ -87,12 +86,12 @@ impl RstestParserPlugin {
             range_expr,
             Some(call_expr.span.into()),
             parser.in_try,
-            Some(parser.source_rope().clone()),
+            Some(parser.source()),
           );
           parser.add_dependency(Box::new(dep));
 
           let range: DependencyRange = call_expr.callee.span().into();
-          let source_rope = parser.source_rope().clone();
+          let source_rope = parser.source();
           parser.add_presentational_dependency(Box::new(RequireHeaderDependency::new(
             range,
             Some(source_rope),
@@ -112,7 +111,7 @@ impl RstestParserPlugin {
           create_traceable_error(
             "Invalid function call".into(),
             "`rs.requireActual` function expects 1 argument".into(),
-            parser.source().to_owned(),
+            parser.source().to_string(),
             call_expr.span.into(),
           )
           .into(),
@@ -152,10 +151,9 @@ impl RstestParserPlugin {
             ),
           ));
 
-          let source_map: SharedSourceMap = parser.source_rope().clone();
           let block = AsyncDependenciesBlock::new(
             *parser.module_identifier,
-            Into::<DependencyRange>::into(call_expr.span).to_loc(Some(&source_map)),
+            Into::<DependencyRange>::into(call_expr.span).to_loc(Some(parser.source())),
             None,
             vec![dep],
             Some(lit.value.to_string_lossy().to_string()),
@@ -170,7 +168,7 @@ impl RstestParserPlugin {
           create_traceable_error(
             "Invalid function call".into(),
             "`rs.importActual` function expects 1 argument".into(),
-            parser.source().to_owned(),
+            parser.source().to_string(),
             call_expr.span.into(),
           )
           .into(),
@@ -347,7 +345,7 @@ impl RstestParserPlugin {
             create_traceable_error(
               "Invalid function call".into(),
               "`rs.mock` function expects a string literal as the first argument".into(),
-              parser.source().to_owned(),
+              parser.source().to_string(),
               call_expr.span.into(),
             )
             .into(),
@@ -359,7 +357,7 @@ impl RstestParserPlugin {
           create_traceable_error(
             "Invalid function call".into(),
             "`rs.mock` function expects 1 or 2 arguments".into(),
-            parser.source().to_owned(),
+            parser.source().to_string(),
             call_expr.span.into(),
           )
           .into(),
@@ -402,7 +400,7 @@ impl RstestParserPlugin {
           create_traceable_error(
             "Invalid function call".into(),
             "`rs.hoisted` function expects 1 argument".into(),
-            parser.source().to_owned(),
+            parser.source().to_string(),
             call_expr.span.into(),
           )
           .into(),
@@ -433,7 +431,7 @@ impl RstestParserPlugin {
           create_traceable_error(
             "Invalid function call".into(),
             "`rs.resetModules` function expects 0 arguments".into(),
-            parser.source().to_owned(),
+            parser.source().to_string(),
             call_expr.span.into(),
           )
           .into(),
@@ -477,10 +475,9 @@ impl RstestParserPlugin {
                   ),
                 ));
 
-                let source_map: SharedSourceMap = parser.source_rope().clone();
                 let block = AsyncDependenciesBlock::new(
                   *parser.module_identifier,
-                  Into::<DependencyRange>::into(call_expr.span).to_loc(Some(&source_map)),
+                  Into::<DependencyRange>::into(call_expr.span).to_loc(Some(parser.source())),
                   None,
                   vec![dep],
                   Some(mocked_target.to_string()),
@@ -495,11 +492,11 @@ impl RstestParserPlugin {
                   first_arg.span().into(),
                   Some(call_expr.span.into()),
                   parser.in_try,
-                  Some(parser.source_rope().clone()),
+                  Some(parser.source()),
                 );
 
                 let range: DependencyRange = call_expr.callee.span().into();
-                let source_rope = parser.source_rope().clone();
+                let source_rope = parser.source();
                 parser.add_presentational_dependency(Box::new(RequireHeaderDependency::new(
                   range,
                   Some(source_rope),
@@ -521,7 +518,7 @@ impl RstestParserPlugin {
           create_traceable_error(
             "Invalid function call".into(),
             "`rs.importMock` or `rs.requireMock` function expects 1 argument".into(),
-            parser.source().to_owned(),
+            parser.source().to_string(),
             call_expr.span.into(),
           )
           .into(),

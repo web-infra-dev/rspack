@@ -20,7 +20,7 @@ use rspack_core::{
   rspack_sources::{BoxSource, RawStringSource, Source, SourceExt},
 };
 use rspack_error::{Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray, error};
-use rspack_util::itoa;
+use rspack_util::{itoa, location::byte_line_column_to_offset};
 
 use crate::json_exports_dependency::JsonExportsDependency;
 
@@ -84,8 +84,8 @@ impl ParserAndGenerator for JsonParserAndGenerator {
       .map_err(|e| {
         match e {
           UnexpectedCharacter { ch, line, column } => {
-            let rope = ropey::Rope::from_str(&source);
-            let line_offset = rope.try_line_to_byte(line - 1).expect("TODO:");
+            let line_offset = byte_line_column_to_offset(source.as_ref(), line, 0)
+              .expect("Failed to convert line number to byte offset in JSON source");
             let start_offset = source[line_offset..]
               .chars()
               .take(column)

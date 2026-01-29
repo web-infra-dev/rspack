@@ -1,4 +1,4 @@
-WARNING in ./bar.js 4:1-28
+WARNING in ./bar.js 4:1-29
   ⚠ ESModulesLinkingWarning: The requested module './result.js' contains conflicting star exports for the name 'b' with the previous requested module './foo.js'
    ╭─[4:0]
  2 │ 

@@ -1,11 +1,11 @@
 Array [
   Object {
-    loc: 1:1-23,
+    loc: 1:1-24,
     moduleIdentifier: builtin:swc-loader??ruleSet[1].rules[0].use[0]!<TEST_ROOT>/diagnosticsCases/factorize/cannot-resolve-with-concatenate-conflict/node_modules/some-module/a.ts,
     moduleName: ./node_modules/some-module/a.ts,
   },
   Object {
-    loc: 2:1-23,
+    loc: 2:1-24,
     moduleIdentifier: builtin:swc-loader??ruleSet[1].rules[0].use[0]!<TEST_ROOT>/diagnosticsCases/factorize/cannot-resolve-with-concatenate-conflict/node_modules/some-module/a.ts,
     moduleName: ./node_modules/some-module/a.ts,
   },

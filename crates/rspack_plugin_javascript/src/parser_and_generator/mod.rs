@@ -167,7 +167,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     };
 
     let source = remove_bom(source);
-    let source_string = source.source().into_string_lossy().into_owned();
+    let source_string = source.source().into_string_lossy();
 
     let comments = SwcComments::default();
     let target = ast::EsVersion::EsNext;

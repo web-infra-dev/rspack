@@ -1,72 +1,58 @@
-use std::fmt::Display;
+use memchr::{memchr, memchr_iter};
 
-#[derive(Debug)]
-pub struct Location {
-  /// Start line, 0-based
-  pub sl: u32,
-  /// Start column, 0-based
-  pub sc: u32,
-  /// End line, 0-based
-  pub el: u32,
-  /// End column, 0-based
-  pub ec: u32,
-}
-
-impl Display for Location {
-  /// Print location in human readable format
-  ///
-  /// Lines are 1-based, columns are 0-based
-  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    if self.sl == self.el {
-      if self.sc == self.ec {
-        return write!(f, "{}:{}", self.sl + 1, self.sc);
-      }
-      return write!(f, "{}:{}-{}", self.sl + 1, self.sc, self.ec);
-    }
-    write!(f, "{}:{}-{}:{}", self.sl + 1, self.sc, self.el + 1, self.ec)
+/// Convert byte line, column, length to offset
+/// - line is 1-based in bytes
+/// - column is 0-based in bytes
+pub fn byte_line_column_to_offset(source: &str, line: usize, column: usize) -> Option<usize> {
+  if line == 0 {
+    return None;
   }
-}
 
-/// Convert line, column, length to a [`Location`]
-///
-/// Line are 1-based, column are 0-based in bytes
-///
-/// Return `None` if any value is out of bounds
-pub fn try_line_column_length_to_location(
-  rope: &ropey::Rope,
-  line: usize,
-  column: usize,
-  length: usize,
-) -> Option<Location> {
-  let sl = line.saturating_sub(1);
-  let sc = column;
+  let bytes = source.as_bytes();
+  let target_line = line - 1;
 
-  let sb = rope.try_line_to_byte(sl).ok()?;
-  let end_byte = sb + sc + length;
-  let el = rope.try_byte_to_line(end_byte).ok()?;
-  let ec = end_byte - rope.try_line_to_byte(el).ok()?;
+  // Find start of target line with memchr
+  let line_start = if target_line == 0 {
+    0
+  } else {
+    let mut count = 0usize;
+    let mut pos = None;
+    for idx in memchr_iter(b'\n', bytes) {
+      count += 1;
+      if count == target_line {
+        pos = Some(idx + 1);
+        break;
+      }
+    }
+    pos?
+  };
 
-  Some(Location {
-    sl: sl as u32,
-    sc: sc as u32,
-    el: el as u32,
-    ec: ec as u32,
-  })
-}
+  // End of line (exclusive)
+  let line_end = memchr(b'\n', &bytes[line_start..])
+    .map(|rel| line_start + rel)
+    .unwrap_or(bytes.len());
 
-/// Convert line, column, length to a (offset, length)
-///
-/// Offset is 0-based in bytes
-///
-/// Return `None` if any value is out of bounds
-pub fn try_line_column_length_to_offset_length(
-  rope: &ropey::Rope,
-  line: usize,
-  column: usize,
-  length: usize,
-) -> Option<(usize, usize)> {
-  let line = line.saturating_sub(1);
-  let sb = rope.try_line_to_byte(line).ok()?;
-  let offset = sb + column;
-  Some((offset, length))
+  // Slice of the line
+  let line_slice = &source[line_start..line_end];
+
+  let mut utf16_units = 0usize;
+  let mut byte_offset_in_line = 0usize;
+  for ch in line_slice.chars() {
+    if utf16_units >= column {
+      break;
+    }
+    utf16_units += if (ch as u32) >= 0x1_0000 { 2 } else { 1 };
+    byte_offset_in_line += ch.len_utf8();
+  }
+
+  if utf16_units < column {
+    return None;
+  }
+
+  let offset = line_start + byte_offset_in_line;
+  if offset > bytes.len() {
+    return None;
+  }
+
+  Some(offset)
 }
