@@ -389,6 +389,26 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
       afterSeal: new liteTapable.AsyncSeriesHook([]),
       needAdditionalPass: new liteTapable.SyncBailHook([]),
     };
+
+    // Wrap hooks with a Proxy to provide helpful error messages when
+    // webpack plugins try to access hooks that don't exist in rspack
+    const availableHooks = Object.keys(this.hooks);
+    this.hooks = new Proxy(this.hooks, {
+      get(target, prop, receiver) {
+        const value = Reflect.get(target, prop, receiver);
+        if (value === undefined && typeof prop === 'string') {
+          const hooksList = availableHooks.join(', ');
+          throw new Error(
+            `Compilation.hooks.${prop} is not supported in rspack. ` +
+              `This typically happens when using webpack plugins that rely on webpack-specific hooks. ` +
+              `Consider using an rspack-compatible alternative or removing the incompatible plugin.\n\n` +
+              `Available compilation hooks: ${hooksList}`,
+          );
+        }
+        return value;
+      },
+    });
+
     this.compiler = compiler;
     this.resolverFactory = compiler.resolverFactory;
     this.inputFileSystem = compiler.inputFileSystem;

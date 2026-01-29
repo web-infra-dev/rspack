@@ -260,6 +260,25 @@ class Compiler {
       additionalPass: new liteTapable.AsyncSeriesHook([]),
     };
 
+    // Wrap hooks with a Proxy to provide helpful error messages when
+    // webpack plugins try to access hooks that don't exist in rspack
+    const availableCompilerHooks = Object.keys(this.hooks);
+    this.hooks = new Proxy(this.hooks, {
+      get(target, prop, receiver) {
+        const value = Reflect.get(target, prop, receiver);
+        if (value === undefined && typeof prop === 'string') {
+          const hooksList = availableCompilerHooks.join(', ');
+          throw new Error(
+            `Compiler.hooks.${prop} is not supported in rspack. ` +
+              `This typically happens when using webpack plugins that rely on webpack-specific hooks. ` +
+              `Consider using an rspack-compatible alternative or removing the incompatible plugin.\n\n` +
+              `Available compiler hooks: ${hooksList}`,
+          );
+        }
+        return value;
+      },
+    });
+
     const compilerRuntimeGlobals = createCompilerRuntimeGlobals(options);
     const compilerFn = function (...params: Parameters<typeof rspackFn>) {
       return rspackFn(...params);
