@@ -41,6 +41,7 @@ pub struct PersistentCacheOptions {
   pub snapshot: SnapshotOptions,
   pub storage: StorageOptions,
   pub portable: bool,
+  pub readonly: bool,
 }
 
 /// Persistent cache implementation
@@ -49,6 +50,7 @@ pub struct PersistentCache {
   initialized: bool,
   valid: bool,
 
+  readonly: bool,
   build_deps: BuildDeps,
   snapshot: Arc<Snapshot>,
   make_occasion: MakeOccasion,
@@ -99,10 +101,12 @@ impl PersistentCache {
     Self {
       initialized: false,
       valid: false,
+      readonly: option.readonly,
       build_deps: BuildDeps::new(
         &option.build_dependencies,
         input_filesystem,
         snapshot.clone(),
+        option.readonly,
       ),
       snapshot,
       make_occasion: MakeOccasion::new(storage.clone(), codec.clone()),
@@ -205,49 +209,51 @@ impl Cache for PersistentCache {
       self.valid = true;
     }
     // save meta
-    self.meta_occasion.save();
+    if !self.readonly {
+      self.meta_occasion.save();
 
-    // save snapshot
-    // TODO add a all_dependencies to collect dependencies
-    let (_, file_added, file_updated, file_removed) = compilation.file_dependencies();
-    let (_, context_added, context_updated, context_removed) = compilation.context_dependencies();
-    let (_, missing_added, missing_updated, missing_removed) = compilation.missing_dependencies();
-    let (_, build_added, build_updated, _) = compilation.build_dependencies();
-    self
-      .snapshot
-      .remove(SnapshotScope::FILE, file_removed.cloned());
-    self
-      .snapshot
-      .remove(SnapshotScope::CONTEXT, context_removed.cloned());
-    self
-      .snapshot
-      .remove(SnapshotScope::MISSING, missing_removed.cloned());
-    self
-      .snapshot
-      .add(SnapshotScope::FILE, file_added.chain(file_updated).cloned())
-      .await;
-    self
-      .snapshot
-      .add(
-        SnapshotScope::CONTEXT,
-        context_added.chain(context_updated).cloned(),
-      )
-      .await;
-    self
-      .snapshot
-      .add(
-        SnapshotScope::MISSING,
-        missing_added.chain(missing_updated).cloned(),
-      )
-      .await;
-    self.warnings.extend(
+      // save snapshot
+      // TODO add a all_dependencies to collect dependencies
+      let (_, file_added, file_updated, file_removed) = compilation.file_dependencies();
+      let (_, context_added, context_updated, context_removed) = compilation.context_dependencies();
+      let (_, missing_added, missing_updated, missing_removed) = compilation.missing_dependencies();
+      let (_, build_added, build_updated, _) = compilation.build_dependencies();
       self
-        .build_deps
-        .add(build_added.chain(build_updated).cloned())
-        .await,
-    );
+        .snapshot
+        .remove(SnapshotScope::FILE, file_removed.cloned());
+      self
+        .snapshot
+        .remove(SnapshotScope::CONTEXT, context_removed.cloned());
+      self
+        .snapshot
+        .remove(SnapshotScope::MISSING, missing_removed.cloned());
+      self
+        .snapshot
+        .add(SnapshotScope::FILE, file_added.chain(file_updated).cloned())
+        .await;
+      self
+        .snapshot
+        .add(
+          SnapshotScope::CONTEXT,
+          context_added.chain(context_updated).cloned(),
+        )
+        .await;
+      self
+        .snapshot
+        .add(
+          SnapshotScope::MISSING,
+          missing_added.chain(missing_updated).cloned(),
+        )
+        .await;
+      self.warnings.extend(
+        self
+          .build_deps
+          .add(build_added.chain(build_updated).cloned())
+          .await,
+      );
 
-    self.save().await;
+      self.save().await;
+    }
 
     let logger = compilation.get_logger("rspack.persistentCache");
     for msg in std::mem::take(&mut self.warnings) {
@@ -275,6 +281,8 @@ impl Cache for PersistentCache {
   }
 
   async fn after_build_module_graph(&self, make_artifact: &BuildModuleGraphArtifact) {
-    self.make_occasion.save(make_artifact);
+    if !self.readonly {
+      self.make_occasion.save(make_artifact);
+    }
   }
 }

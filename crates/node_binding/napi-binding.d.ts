@@ -1852,6 +1852,7 @@ export interface RawCacheOptionsPersistent {
   snapshot?: RawSnapshotOptions
   storage?: RawStorageOptions
   portable?: boolean
+  readonly?: boolean
 }
 
 export interface RawCircularDependencyRspackPluginOptions {
