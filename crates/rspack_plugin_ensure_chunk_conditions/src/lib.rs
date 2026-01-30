@@ -99,7 +99,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
   let mut chunk_graph = std::mem::take(&mut compilation.chunk_graph);
   for (module_id, chunks) in source_module_chunks {
     for chunk in chunks {
-      chunk_graph.disconnect_chunk_and_module(&chunk, module_id.clone());
+      chunk_graph.disconnect_chunk_and_module(&chunk, module_id);
     }
   }
 

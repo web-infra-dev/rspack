@@ -515,7 +515,7 @@ var {} = {{}};
                     runtime_template.render_runtime_globals(&RuntimeGlobals::EXPORTS)
                   )
                 } else {
-                  "".to_string()
+                  String::new()
                 },
                 runtime_template.render_runtime_globals(&RuntimeGlobals::ON_CHUNKS_LOADED),
                 stringify_array(&chunk_ids),
@@ -533,7 +533,7 @@ var {} = {{}};
                     runtime_template.render_runtime_globals(&RuntimeGlobals::EXPORTS)
                   )
                 } else {
-                  "".to_string()
+                  String::new()
                 },
                 runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
               )

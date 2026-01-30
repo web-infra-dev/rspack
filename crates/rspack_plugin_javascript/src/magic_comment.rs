@@ -402,7 +402,7 @@ fn analyze_comments(
                 item_value_match
                   .as_str()
                   .split(',')
-                  .try_fold("".to_string(), |acc, item| {
+                  .try_fold(String::new(), |acc, item| {
                     EXPORT_NAME_REGEXP
                       .captures(item.trim())
                       .and_then(|matched| matched.get(1).map(|x| x.as_str()))
@@ -511,7 +511,7 @@ mod tests_extract_regex {
       Some((
         "webpackInclude".to_string(),
         "abc".to_string(),
-        "".to_string()
+        String::new()
       ))
     );
     assert_eq!(
@@ -543,7 +543,7 @@ mod tests_extract_regex {
       Some((
         "webpackInclude".to_string(),
         "components[\\/][^\\/]+\\.vue$".to_string(),
-        "".to_string()
+        String::new()
       ))
     );
     assert_eq!(
@@ -551,7 +551,7 @@ mod tests_extract_regex {
       Some((
         "webpackInclude".to_string(),
         "components[/\\][^/\\]+\\.vue$".to_string(),
-        "".to_string()
+        String::new()
       ))
     );
     assert_eq!(
@@ -559,7 +559,7 @@ mod tests_extract_regex {
       Some((
         "webpackInclude".to_string(),
         "^.{2,}$".to_string(),
-        "".to_string()
+        String::new()
       ))
     );
     assert_eq!(
@@ -567,7 +567,7 @@ mod tests_extract_regex {
       Some((
         "webpackInclude".to_string(),
         "^.{2,}$".to_string(),
-        "".to_string()
+        String::new()
       ))
     );
     // https://github.com/web-infra-dev/rspack/issues/10195
@@ -578,7 +578,7 @@ mod tests_extract_regex {
       Some((
         "webpackInclude".to_string(),
         "(?!.*node_modules)(?:\\/src\\/(?!\\.)(?=.)[^/]*?\\.stories\\.tsx)$".to_string(),
-        "".to_string()
+        String::new()
       ))
     );
   }

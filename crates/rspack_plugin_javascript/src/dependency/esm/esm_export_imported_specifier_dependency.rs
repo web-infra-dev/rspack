@@ -881,7 +881,7 @@ impl ESMExportImportedSpecifierDependency {
       r"/* reexport fake namespace object from non-ESM */ {name}_namespace_cache || ({name}_namespace_cache = {}({name}{}))",
       runtime_template.render_runtime_globals(&RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT),
       if fake_type == 0 {
-        "".to_string()
+        String::new()
       } else {
         format!(", {fake_type}")
       }

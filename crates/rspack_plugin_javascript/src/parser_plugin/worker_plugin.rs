@@ -65,7 +65,7 @@ fn parse_new_worker_options_from_comments(
   let comments = try_extract_magic_comment(parser, diagnostic_span, span);
   if comments.get_ignore().is_some() || comments.get_chunk_name().is_some() {
     Some(ParsedNewWorkerImportOptions {
-      name: comments.get_chunk_name().map(|name| name.to_string()),
+      name: comments.get_chunk_name().map(|name| name.clone()),
       ignored: comments.get_ignore(),
     })
   } else {

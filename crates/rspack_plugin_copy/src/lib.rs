@@ -199,7 +199,7 @@ impl CopyRspackPlugin {
                   "Run copy to fn error".into(),
                   e.to_string(),
                 ));
-              "".to_string()
+              String::new()
             }
           }
         }

@@ -88,8 +88,7 @@ impl SizeLimitsPlugin {
     let asset_list: String = detail
       .iter()
       .map(|(name, size)| format!("\n  {} ({})", name, format_size(*size)))
-      .collect::<Vec<String>>()
-      .join("");
+      .collect::<String>();
     let title = String::from("assets over size limit warning");
     let message = format!(
       "asset size limit: The following asset(s) exceed the recommended size limit ({}). This can impact web performance.\nAssets:{}",
@@ -120,8 +119,7 @@ impl SizeLimitsPlugin {
             .join("\n")
         )
       })
-      .collect::<Vec<_>>()
-      .join("");
+      .collect::<String>();
     let title = String::from("entrypoints over size limit warning");
     let message = format!(
       "entrypoint size limit: The following entrypoint(s) combined asset size exceeds the recommended limit ({}). This can impact web performance.\nEntrypoints:{}",

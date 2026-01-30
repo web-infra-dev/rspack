@@ -44,7 +44,7 @@ pub fn create_context_dependency(
         data.query.unwrap_or_default(),
         data.fragment.unwrap_or_default(),
       ),
-      None => (postfix_raw.to_string(), String::new(), String::new()),
+      None => (postfix_raw.into_owned(), String::new(), String::new()),
     };
 
     // When there are more than two quasis, the generated RegExp can be more precise
@@ -55,7 +55,7 @@ pub fn create_context_dependency(
         .map(|q| quote_meta(q.string().as_str()) + wrapped_context_reg_exp)
         .join("")
     } else {
-      "".to_string()
+      String::new()
     };
 
     let reg = format!(
@@ -148,7 +148,7 @@ pub fn create_context_dependency(
         data.query.unwrap_or_default(),
         data.fragment.unwrap_or_default(),
       ),
-      None => (postfix_raw.to_string(), String::new(), String::new()),
+      None => (postfix_raw.into_owned(), String::new(), String::new()),
     };
 
     let reg = format!(

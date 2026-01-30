@@ -136,7 +136,7 @@ impl ModuleConcatenationPlugin {
         let reason = self.get_inner_bailout_reason(id);
         let reason_with_prefix = match reason {
           Some(reason) => format!(": {}", *reason),
-          None => "".to_string(),
+          None => String::new(),
         };
         if id == &module {
           format_bailout_reason(&format!("Cannot concat with {module}{reason_with_prefix}"))

@@ -46,8 +46,8 @@ fn test_preset_lightningcss_multiple_browsers() {
 fn test_preset_lightningcss_large_versions() {
   let config = Config {
     browsers: Browsers {
-      chrome: Some(999999),
-      firefox: Some(123456),
+      chrome: Some(999_999),
+      firefox: Some(123_456),
       ..Default::default()
     },
   };

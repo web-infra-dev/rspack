@@ -114,7 +114,7 @@ pub fn unquoted_stringify(chunk_id: Option<&ChunkId>, str: &str) -> String {
   {
     return "\" + chunkId + \"".to_string();
   }
-  let result = serde_json::to_string(&str).expect("invalid json to_string");
+  let result = serde_json::to_string(&str).expect("invalid json");
   result[1..result.len() - 1].to_string()
 }
 
@@ -141,7 +141,7 @@ where
       } else {
         result.insert(
           chunk_id.as_str(),
-          serde_json::to_string(&value).expect("invalid json to_string"),
+          serde_json::to_string(&value).expect("invalid json"),
         );
         last_key = Some(chunk_id.as_str());
         entries += 1;
@@ -156,14 +156,11 @@ where
       if use_id {
         format!(
           "(chunkId === {} ? {} : chunkId)",
-          serde_json::to_string(&last_key).expect("invalid json to_string"),
-          result.get(last_key).expect("cannot find last key value")
+          serde_json::to_string(&last_key).expect("invalid json"),
+          result.get(last_key).expect("cannot find last key")
         )
       } else {
-        result
-          .get(last_key)
-          .expect("cannot find last key value")
-          .clone()
+        result.get(last_key).expect("cannot find last key").clone()
       }
     } else {
       unreachable!();

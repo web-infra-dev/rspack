@@ -152,7 +152,6 @@ async fn run_loaders_impl<Context: Send>(
         if cx.content.is_some() {
           cx.state.transition(State::Normal);
           cx.loader_index -= 1;
-          continue;
         }
       }
       State::ProcessResource => {
@@ -503,7 +502,7 @@ mod test {
           .get::<&str>()
           .unwrap();
         assert_eq!(*data, "additional-data");
-        loader_context.finish_with(("".to_string(), None, None));
+        loader_context.finish_with((String::new(), None, None));
         Ok(())
       }
     }
@@ -521,7 +520,7 @@ mod test {
       async fn run(&self, loader_context: &mut LoaderContext<()>) -> Result<()> {
         let mut additional_data: AdditionalData = Default::default();
         additional_data.insert("additional-data");
-        loader_context.finish_with(("".to_string(), None, Some(additional_data)));
+        loader_context.finish_with((String::new(), None, Some(additional_data)));
         Ok(())
       }
     }
