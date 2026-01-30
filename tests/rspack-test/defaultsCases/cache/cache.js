@@ -4,12 +4,11 @@ module.exports = {
 	options: () => ({ cache: true }),
 	diff: e =>
 		e.toMatchInlineSnapshot(`
-		- Expected
-		+ Received
+			- Expected
+			+ Received
 
-		@@ ... @@
-		-   "cache": false,
-		+   "cache": true,
-		@@ ... @@
-	`)
+			@@ ... @@
+			-   "cache": false,
+			+   "cache": true,
+		`)
 };

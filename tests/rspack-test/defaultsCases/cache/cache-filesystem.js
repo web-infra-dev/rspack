@@ -26,6 +26,5 @@ module.exports = {
 			+     "type": "persistent",
 			+     "version": "",
 			+   },
-			@@ ... @@
 		`)
 };
