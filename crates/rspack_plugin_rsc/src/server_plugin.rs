@@ -272,6 +272,11 @@ impl RscServerPlugin {
     let included_dependencies: Vec<(DependencyId, RuntimeSpec)> = add_ssr_modules_list
       .iter()
       .map(|injected| (*injected.add_entry.0.id(), injected.runtime.clone()))
+      .chain(
+        add_action_entry_list
+          .iter()
+          .map(|injected| (*injected.add_entry.0.id(), injected.runtime.clone())),
+      )
       .collect();
     let add_include_args: Vec<(BoxDependency, EntryOptions)> = add_ssr_modules_list
       .into_iter()
