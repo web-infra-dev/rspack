@@ -14,8 +14,8 @@ var rspackDefer = <%- DEFERRED_MODULES_ASYNC_TRANSITIVE_DEPENDENCIES_SYMBOL %> =
 	}
 }
 var resolveQueue = <%- basicFunction("queue") %> {
-    if (queue && queue.d < 1) {
-        queue.d = 1;
+	if (queue && queue.d < 1) {
+		queue.d = 1;
     	queue.forEach(<%- expressionFunction("fn.r--", "fn") %>);
 		queue.forEach(<%- expressionFunction("fn.r-- ? fn.r++ : fn()", "fn") %>);
 	}
