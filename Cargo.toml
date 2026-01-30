@@ -495,6 +495,37 @@ unreadable_literal           = "warn"
 verbose_bit_mask             = "warn"
 zero_sized_map_values        = "warn"
 
+# performance
+perf = "warn"
+# performance - memory allocation optimization
+box_collection       = "warn"
+redundant_allocation = "warn"
+redundant_clone      = "warn"
+unnecessary_to_owned = "warn"
+useless_vec          = "warn"
+
+# performance - function parameter optimization
+large_enum_variant         = "warn"
+needless_pass_by_value     = "warn"
+trivially_copy_pass_by_ref = "warn"
+
+# performance - iterator optimization
+extend_with_drain = "warn"
+iter_with_drain   = "warn"
+manual_find       = "warn"
+
+# performance - string optimization
+string_add        = "warn"
+string_add_assign = "warn"
+
+# performance - function call optimization
+expect_fun_call = "warn"
+or_fun_call     = "warn"
+
+# performance - other optimizations
+manual_memcpy              = "warn"
+slow_vector_initialization = "warn"
+suboptimal_flops           = "warn"
 # restriction
 empty_drop                      = "warn"
 float_cmp_const                 = "warn"

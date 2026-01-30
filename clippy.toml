@@ -1,6 +1,14 @@
 allow-dbg-in-tests    = true
 allow-unwrap-in-tests = true
 
+# Performance thresholds
+# Warn for types larger than 128 bytes passed by value
+pass-by-value-size-limit = 128
+# Warn for types larger than 1024 bytes on the stack
+array-size-threshold = 524288  # 512KB
+# Warn for types larger than 64 bytes returned in Result/Option
+trivial-copy-size-limit = 64
+
 disallowed-methods = [
   
   { path = "str::to_ascii_lowercase", reason = "To avoid memory allocation, use `cow_utils::CowUtils::cow_to_ascii_lowercase` instead." },
