@@ -1,3 +1,5 @@
+#![allow(clippy::ref_option_ref)]
+
 use indoc::formatdoc;
 use rspack_collections::Identifier;
 use rspack_core::{
@@ -31,6 +33,7 @@ where
   }
 }
 
+#[allow(clippy::ref_option_ref)]
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 struct RscManifest<'a> {

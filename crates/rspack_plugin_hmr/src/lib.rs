@@ -200,11 +200,6 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         }
       } else {
         for removed in removed_from_runtime.iter() {
-          for runtime in runtimes.values() {
-            if runtime.contains(removed) {
-              continue;
-            }
-          }
           if let Some(content) = hot_update_main_content_by_runtime.get_mut(removed) {
             content.removed_modules.insert(old_module_id.clone());
           }

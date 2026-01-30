@@ -366,12 +366,14 @@ fn can_optimize_connection(
     let processed_ids = target
       .export
       .as_ref()
-      .map(|item| {
-        let mut ret = Vec::from_iter(item.iter().cloned());
-        ret.extend_from_slice(ids.get(1..).unwrap_or_default());
-        ret
-      })
-      .unwrap_or_else(|| ids.get(1..).unwrap_or_default().to_vec());
+      .map_or_else(
+        || ids.get(1..).unwrap_or_default().to_vec(),
+        |item| {
+          let mut ret = item.clone();
+          ret.extend_from_slice(ids.get(1..).unwrap_or_default());
+          ret
+        },
+      );
     let need_move_target = match export_info {
       Cow::Borrowed(export_info) => Some(SideEffectsDoOptimizeMoveTarget {
         export_info: export_info.id(),
@@ -413,13 +415,13 @@ fn can_optimize_connection(
       return None;
     }
 
-    let processed_ids = target
-      .export
-      .map(|mut item| {
+    let processed_ids = target.export.map_or_else(
+      || ids[1..].to_vec(),
+      |mut item| {
         item.extend_from_slice(&ids[1..]);
         item
-      })
-      .unwrap_or_else(|| ids[1..].to_vec());
+      },
+    );
 
     return Some(SideEffectsDoOptimize {
       ids: processed_ids,

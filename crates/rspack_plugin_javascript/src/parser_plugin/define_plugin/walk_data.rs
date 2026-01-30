@@ -401,7 +401,7 @@ impl WalkData {
 
     fn walk_object(obj: &Map<String, Value>, prefix: Cow<str>, walk_data: &mut WalkData) {
       obj.iter().for_each(|(key, code)| {
-        walk_code(code, prefix.clone(), Cow::Owned(key.to_string()), walk_data)
+        walk_code(code, prefix.clone(), Cow::Owned(key.clone()), walk_data)
       })
     }
 

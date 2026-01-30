@@ -50,18 +50,15 @@ fn create_import_meta_context_dependency(
     let regexp = get_regex_by_obj_prop(obj, "regExp");
     let regexp_span = regexp.map(|r| r.span().into());
     let regexp = regexp
-      .map(|regexp| RspackRegex::try_from(regexp).expect("reg failed"))
-      .unwrap_or(RspackRegex::new(reg).expect("reg failed"));
+      .map_or(RspackRegex::new(reg).expect("reg failed"), |regexp| RspackRegex::try_from(regexp).expect("reg failed"));
     let include = get_regex_by_obj_prop(obj, "include")
       .map(|regexp| RspackRegex::try_from(regexp).expect("reg failed"));
     let exclude = get_regex_by_obj_prop(obj, "exclude")
       .map(|regexp| RspackRegex::try_from(regexp).expect("reg failed"));
     let mode = get_literal_str_by_obj_prop(obj, "mode")
-      .map(|s| s.value.to_string_lossy().as_ref().into())
-      .unwrap_or(ContextMode::Sync);
+      .map_or(ContextMode::Sync, |s| s.value.to_string_lossy().as_ref().into());
     let recursive = get_bool_by_obj_prop(obj, "recursive")
-      .map(|bool| bool.value)
-      .unwrap_or(true);
+      .is_none_or(|bool| bool.value);
     ContextOptions {
       reg_exp: clean_regexp_in_context_module(regexp, regexp_span, parser),
       include,

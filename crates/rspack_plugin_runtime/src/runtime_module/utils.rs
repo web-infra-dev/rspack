@@ -35,7 +35,7 @@ pub fn get_initial_chunk_ids(
 }
 
 pub fn stringify_chunks(chunks: &HashSet<ChunkId>, value: u8) -> String {
-  let mut v = Vec::from_iter(chunks.iter());
+  let mut v = chunks.iter().collect::<Vec<_>>();
   v.sort_unstable();
 
   format!(

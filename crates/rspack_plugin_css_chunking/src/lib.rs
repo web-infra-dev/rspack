@@ -310,9 +310,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
               None => {
                 // New chunk group, can add it, but should we?
                 // We only add that if below min size
-                if current_size < self.min_size {
-                  continue;
-                } else {
+                if current_size >= self.min_size {
                   continue 'outer;
                 }
               }

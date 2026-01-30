@@ -187,13 +187,13 @@ impl RstestParserPlugin {
 
     if is_relative_request {
       // Mock relative request to alongside `__mocks__` directory.
-      path_buf
-        .parent()
-        .map(|p| {
+      path_buf.parent().map_or_else(
+        || Utf8PathBuf::from("__mocks__").join(&path_buf),
+        |p| {
           p.join("__mocks__")
             .join(path_buf.file_name().unwrap_or_default())
-        })
-        .unwrap_or_else(|| Utf8PathBuf::from("__mocks__").join(path_buf))
+        },
+      )
     } else {
       // Mock non-relative request to `manual_mock_root` directory.
       Utf8PathBuf::from(&self.manual_mock_root).join(&path_buf)

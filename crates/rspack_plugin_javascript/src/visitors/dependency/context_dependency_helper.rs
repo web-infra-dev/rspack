@@ -37,7 +37,7 @@ pub fn create_context_dependency(
       Cow::Owned(String::new())
     };
 
-    let (context, prefix) = split_context_from_prefix(prefix_raw.to_string());
+    let (context, prefix) = split_context_from_prefix(prefix_raw.clone());
     let (postfix, query, fragment) = match parse_resource(&postfix_raw) {
       Some(data) => (
         data.path.as_str().to_string(),

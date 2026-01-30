@@ -155,7 +155,7 @@ impl DroppedCommentsPreserver {
       .known_spans
       .iter()
       .max_by_key(|span| span.hi)
-      .cloned()
+      .copied()
       .unwrap_or(DUMMY_SP);
 
     self.comments.add_trailing_comments(

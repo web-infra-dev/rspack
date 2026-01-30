@@ -211,7 +211,7 @@ impl CopyRspackPlugin {
         .to_string_lossy()
         .to_string()
     } else {
-      "".into()
+      String::new()
     };
 
     let to_type = if let Some(to_type) = pattern.to_type.as_ref() {

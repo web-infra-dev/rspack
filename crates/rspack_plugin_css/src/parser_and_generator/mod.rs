@@ -406,7 +406,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
             dependencies.push(Box::new(dep));
           } else if from.is_none() {
             dependencies.push(Box::new(CssSelfReferenceLocalIdentDependency::new(
-              names.to_vec(),
+              names.clone(),
               vec![],
             )));
           }

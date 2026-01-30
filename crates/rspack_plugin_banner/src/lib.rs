@@ -102,7 +102,7 @@ impl BannerPlugin {
   }
 
   fn update_source(&self, comment: String, old: BoxSource, footer: Option<bool>) -> BoxSource {
-    let old_source = old.to_owned();
+    let old_source = old.clone();
 
     if let Some(footer) = footer
       && footer

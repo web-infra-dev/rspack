@@ -130,9 +130,7 @@ impl ESMExportImportedSpecifierDependency {
   }
 
   pub fn get_ids<'a>(&'a self, mg: &'a ModuleGraph) -> &'a [Atom] {
-    mg.get_dep_meta_if_existing(&self.id)
-      .map(|meta| meta.ids.as_slice())
-      .unwrap_or_else(|| self.ids.as_slice())
+    mg.get_dep_meta_if_existing(&self.id).map_or_else(|| self.ids.as_slice(), |meta| meta.ids.as_slice())
   }
 
   pub fn get_mode(
@@ -141,7 +139,7 @@ impl ESMExportImportedSpecifierDependency {
     runtime: Option<&RuntimeSpec>,
     module_graph_cache: &ModuleGraphCacheArtifact,
   ) -> ExportMode {
-    let key = (self.id, runtime.map(|r| get_runtime_key(r).to_string()));
+    let key = (self.id, runtime.map(|r| get_runtime_key(r).clone()));
     module_graph_cache.cached_get_mode(key, || {
       self.get_mode_inner(module_graph, module_graph_cache, runtime)
     })
@@ -664,7 +662,7 @@ impl ESMExportImportedSpecifierDependency {
           .expect("should have imported module identifier");
         let exports_info =
           mg.get_prefetched_exports_info(&module_identifier, PrefetchExportsInfoMode::Default);
-        for item in mode.items.into_iter() {
+        for item in mode.items {
           let NormalReexportItem {
             name,
             ids,
@@ -931,7 +929,7 @@ impl ESMExportImportedSpecifierDependency {
       runtime_template,
       ..
     } = ctxt;
-    let return_value = Self::get_return_value(name.to_string(), value_key);
+    let return_value = Self::get_return_value(name.clone(), value_key);
     let exports_name = module.get_exports_argument();
     format!(
       "if({}({}, {})) {}({}, {{ {}: function() {{ return {}; }} }});\n",

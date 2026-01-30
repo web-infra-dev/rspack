@@ -70,7 +70,7 @@ fn is_callable(expr: &Expr) -> bool {
   is_unbound_function_expression(expr) || is_bound_function_expression(expr)
 }
 
-/// define('ui/foo/bar', ['./baz', '../qux'], ...);
+/// `define('ui/foo/bar', ['./baz', '../qux'], ...);`
 /// - 'ui/foo/baz'
 /// - 'ui/qux'
 fn lookup<'a>(parent: &str, module: &'a str) -> Cow<'a, str> {
@@ -107,8 +107,7 @@ fn get_lit_str(expr: &Expr) -> Option<Atom> {
 fn get_ident_name(pat: &Pat) -> Atom {
   pat
     .as_ident()
-    .map(|ident| ident.sym.clone())
-    .unwrap_or("".into())
+    .map_or("".into(), |ident| ident.sym.clone())
 }
 
 impl AMDDefineDependencyParserPlugin {

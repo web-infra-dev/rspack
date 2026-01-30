@@ -169,7 +169,7 @@ async fn render(
   let define = if let (Some(amd), Some(_)) = &(&names.amd, named_define) {
     format!(
       "define({}, {}, {amd_factory});\n",
-      library_name(&[amd.clone()], chunk, compilation).await?,
+      library_name(std::slice::from_ref(amd), chunk, compilation).await?,
       externals_dep_array(&required_externals)?
     )
   } else {

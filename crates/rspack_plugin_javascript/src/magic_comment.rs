@@ -234,8 +234,7 @@ fn analyze_comments(
         let error_span = || {
           captures
             .name("_9")
-            .map(|item| match_item_to_error_span(comment.span, item.start(), item.end()))
-            .unwrap_or(error_span.into())
+            .map_or(error_span.into(), |item| match_item_to_error_span(comment.span, item.start(), item.end()))
         };
         match item_name {
           "webpackChunkName" => {

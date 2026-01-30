@@ -97,8 +97,7 @@ impl JavascriptParserPlugin for InitializeEvaluating {
         let regexp = eval_regexp_to_regexp(&raw.0, &raw.1);
         Cow::Owned(
           regexp
-            .replace(param.string().as_ref(), arg2.string())
-            .to_owned(),
+            .replace(param.string().as_ref(), arg2.string()).clone(),
         )
       };
       res.set_string(s.to_string());
@@ -119,7 +118,7 @@ impl JavascriptParserPlugin for InitializeEvaluating {
           continue;
         }
         let mut new_string = if arg_expr.is_string() {
-          arg_expr.string().to_string()
+          arg_expr.string().clone()
         } else {
           format!("{}", arg_expr.number())
         };
@@ -133,9 +132,7 @@ impl JavascriptParserPlugin for InitializeEvaluating {
         eval.set_string(new_string);
         eval.set_side_effects(
           string_suffix
-            .as_ref()
-            .map(|s| s.could_have_side_effects())
-            .unwrap_or_else(|| arg_expr.could_have_side_effects()),
+            .as_ref().map_or_else(|| arg_expr.could_have_side_effects(), |s| s.could_have_side_effects()),
         );
         string_suffix = Some(eval);
       }
@@ -184,9 +181,7 @@ impl JavascriptParserPlugin for InitializeEvaluating {
         eval.set_string(new_string);
         eval.set_side_effects(
           string_suffix
-            .as_ref()
-            .map(|s| s.could_have_side_effects())
-            .unwrap_or_else(|| param.could_have_side_effects()),
+            .as_ref().map_or_else(|| param.could_have_side_effects(), |s| s.could_have_side_effects()),
         );
         return Some(eval);
       }

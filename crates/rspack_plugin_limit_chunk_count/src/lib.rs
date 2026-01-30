@@ -188,7 +188,6 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
             }
             modified_chunks.insert(a);
             modified_chunks.insert(b);
-            continue;
           }
         }
         if let Some(group) = chunk_group_by_ukey.get(&group_ukey) {

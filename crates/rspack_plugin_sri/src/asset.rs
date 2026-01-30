@@ -335,14 +335,7 @@ pub async fn update_hash(
     .read()
     .await
     .iter()
-    .filter_map(|(k, v)| {
-      if v == old_hash {
-        Some(k.clone())
-      } else {
-        None
-      }
-    })
-    .next();
+    .find_map(|(k, v)| if v == old_hash { Some(k.clone()) } else { None });
   if let (Some(key), Some(asset)) = (key, assets.first()) {
     let content = asset.source().into_string_lossy();
     let new_integrity = compute_integrity(&self.options.hash_func_names, content.as_ref());

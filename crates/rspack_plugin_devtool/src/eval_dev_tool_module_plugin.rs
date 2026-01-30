@@ -262,9 +262,7 @@ fn encode_uri(string: &str) -> Cow<'_, str> {
       .is_some();
     if is_unescape {
       match r {
-        Cow::Borrowed(_) => {
-          continue;
-        }
+        Cow::Borrowed(_) => {}
         Cow::Owned(mut inner) => {
           inner.push(c);
           r = Cow::Owned(inner);

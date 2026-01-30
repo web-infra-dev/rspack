@@ -368,7 +368,6 @@ fn deterministic_grouping_for_modules(
 
         group.key = group.nodes.first().map(|n| n.key.clone());
         results.push(group);
-        continue;
       } else {
         let mut pos = left;
         let mut best = -1;

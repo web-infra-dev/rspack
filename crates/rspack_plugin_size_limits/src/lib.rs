@@ -134,8 +134,8 @@ impl SizeLimitsPlugin {
 #[plugin_hook(CompilerAfterEmit for SizeLimitsPlugin)]
 async fn after_emit(&self, compilation: &mut Compilation) -> Result<()> {
   let hints = &self.options.hints;
-  let max_asset_size = self.options.max_asset_size.unwrap_or(250000.0);
-  let max_entrypoint_size = self.options.max_entrypoint_size.unwrap_or(250000.0);
+  let max_asset_size = self.options.max_asset_size.unwrap_or(250_000.0);
+  let max_entrypoint_size = self.options.max_entrypoint_size.unwrap_or(250_000.0);
   let mut checked_assets: HashMap<String, bool> = HashMap::default();
   let mut checked_chunk_groups: HashMap<ChunkGroupUkey, bool> = HashMap::default();
 

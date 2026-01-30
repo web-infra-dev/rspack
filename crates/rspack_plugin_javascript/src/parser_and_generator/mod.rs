@@ -236,7 +236,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       presentational_dependencies,
       mut warning_diagnostics,
       mut side_effects_item,
-      ..
+      
     } = match ast.visit(|program, _| {
       scan_dependencies(
         &source_string,

@@ -25,7 +25,7 @@ impl JavascriptParserPlugin for IsIncludedPlugin {
 
     parser.add_dependency(Box::new(IsIncludeDependency::new(
       (expr.span().real_lo(), expr.span().real_hi()).into(),
-      request.string().to_string(),
+      request.string().clone(),
     )));
 
     Some(true)

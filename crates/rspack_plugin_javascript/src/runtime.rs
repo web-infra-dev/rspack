@@ -403,7 +403,7 @@ pub async fn render_runtime_modules(
 }
 
 pub fn stringify_chunks_to_array(chunks: &HashSet<ChunkId>) -> String {
-  let mut v = Vec::from_iter(chunks.iter());
+  let mut v = chunks.iter().collect::<Vec<_>>();
   v.sort_unstable();
 
   format!(
