@@ -116,8 +116,8 @@ __webpack_require__.zT = (asyncDeps) => {
 	}
 }
 var resolveQueue = (queue) => {
-    if (queue && queue.d < 1) {
-        queue.d = 1;
+	if (queue && queue.d < 1) {
+		queue.d = 1;
     	queue.forEach((fn) => (fn.r--));
 		queue.forEach((fn) => (fn.r-- ? fn.r++ : fn()));
 	}
