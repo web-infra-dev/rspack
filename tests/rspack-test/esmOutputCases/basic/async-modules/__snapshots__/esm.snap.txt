@@ -106,10 +106,19 @@ var rspackExports = __webpack_require__.aE = hasSymbol ? Symbol("rspack exports"
 var rspackError = hasSymbol ? Symbol("rspack error") : "__rspack_error";
 var rspackDone = hasSymbol ? Symbol("rspack done") : "__rspack_done";
 var rspackDefer = __webpack_require__.zS = hasSymbol ? Symbol("rspack defer") : "__rspack_defer";
+__webpack_require__.zT = (asyncDeps) => {
+	var hasUnresolvedAsyncSubgraph = asyncDeps.some((id) => {
+		var cache = __webpack_module_cache__[id];
+		return !cache || cache[rspackDone] === false;
+	});
+	if (hasUnresolvedAsyncSubgraph) {
+		return ({ then(onFulfilled, onRejected) { return Promise.all(asyncDeps.map(__webpack_require__)).then(onFulfilled, onRejected) } });
+	}
+}
 var resolveQueue = (queue) => {
-  if (queue && queue.d < 1) {
-    queue.d = 1;
-    queue.forEach((fn) => (fn.r--));
+    if (queue && queue.d < 1) {
+        queue.d = 1;
+    	queue.forEach((fn) => (fn.r--));
 		queue.forEach((fn) => (fn.r-- ? fn.r++ : fn()));
 	}
 }
@@ -117,16 +126,12 @@ var wrapDeps = (deps) => {
 	return deps.map((dep) => {
 		if (dep !== null && typeof dep === "object") {
 			if(!dep[rspackQueues] && dep[rspackDefer]) {
-				var asyncDeps = dep[rspackDefer];
-				var hasUnresolvedAsyncSubgraph = asyncDeps.some((id) => {
-					var cache = __webpack_module_cache__[id];
-					return !cache || cache[rspackDone] === false;
-				});
-				if (hasUnresolvedAsyncSubgraph) {
+				var asyncDeps = __webpack_require__.zT(dep[rspackDefer]);
+				if (asyncDeps) {
 					var d = dep;
 					dep = {
-						then(callback) {
-							Promise.all(asyncDeps.map(__webpack_require__)).then(() => (callback(d)))
+						then(onFulfilled, onRejected) {
+							asyncDeps.then(() => (onFulfilled(d)), onRejected);
 						}
 					};
 				} else return dep;
