@@ -1123,11 +1123,15 @@ impl JavascriptParser<'_> {
           let evaluated_callee = self.evaluate_expression(callee);
           if evaluated_callee.is_identifier() {
             let members = evaluated_callee
-              .members().map_or_else(|| Cow::Owned(Vec::new()), Cow::Borrowed);
-            let members_optionals = evaluated_callee
-              .members_optionals().map_or_else(|| Cow::Owned(members.iter().map(|_| false).collect::<Vec<_>>()), Cow::Borrowed);
+              .members()
+              .map_or_else(|| Cow::Owned(Vec::new()), Cow::Borrowed);
+            let members_optionals = evaluated_callee.members_optionals().map_or_else(
+              || Cow::Owned(members.iter().map(|_| false).collect::<Vec<_>>()),
+              Cow::Borrowed,
+            );
             let member_ranges = evaluated_callee
-              .member_ranges().map_or_else(|| Cow::Owned(Vec::new()), Cow::Borrowed);
+              .member_ranges()
+              .map_or_else(|| Cow::Owned(Vec::new()), Cow::Borrowed);
             let drive = self.plugin_drive.clone();
             if evaluated_callee
               .root_info()

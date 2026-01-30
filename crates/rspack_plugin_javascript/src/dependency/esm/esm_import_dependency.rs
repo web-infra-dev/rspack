@@ -186,8 +186,7 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
   } = code_generatable_context;
 
   // https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/dependencies/HarmonyImportDependency.js#L282-L285
-  let module_key = target_module
-    .map_or(module_dependency.request(), |m| m.identifier().as_str());
+  let module_key = target_module.map_or(module_dependency.request(), |m| m.identifier().as_str());
   let key = format!(
     "{}ESM import {module_key}",
     match phase {

@@ -943,11 +943,9 @@ impl<'a, C: Comments> VisitMut for ServerActions<'a, C> {
         &self.declared_idents[..declared_idents_until],
       );
 
-      let new_expr = Box::new(self.maybe_hoist_and_create_proxy_for_server_action_function(
-        child_names,
-        f,
-        fn_name,
-      ));
+      let new_expr = Box::new(
+        self.maybe_hoist_and_create_proxy_for_server_action_function(child_names, f, fn_name),
+      );
 
       if self.is_default_export() {
         // This function expression is also the default export:
@@ -1131,7 +1129,6 @@ impl<'a, C: Comments> VisitMut for ServerActions<'a, C> {
       if let Prop::KeyValue(KeyValueProp {
         key: PropName::Ident(ident_name),
         value,
-        
       }) = &**prop
       {
         if matches!(**value, Expr::Arrow(_) | Expr::Fn(_)) {
@@ -1871,9 +1868,10 @@ impl<'a, C: Comments> VisitMut for ServerActions<'a, C> {
 
     if let (Some(JSXAttrValue::JSXExprContainer(container)), JSXAttrName::Ident(ident_name)) =
       (&attr.value, &attr.name)
-      && let JSXExpr::Expr(box (Expr::Arrow(_) | Expr::Fn(_))) = &container.expr {
-        self.arrow_or_fn_expr_ident = Some(ident_name.clone().into());
-      }
+      && let JSXExpr::Expr(box (Expr::Arrow(_) | Expr::Fn(_))) = &container.expr
+    {
+      self.arrow_or_fn_expr_ident = Some(ident_name.clone().into());
+    }
 
     attr.visit_mut_children_with(self);
     self.arrow_or_fn_expr_ident = old_arrow_or_fn_expr_ident;
@@ -1904,8 +1902,10 @@ impl<'a, C: Comments> VisitMut for ServerActions<'a, C> {
   fn visit_mut_assign_expr(&mut self, assign_expr: &mut AssignExpr) {
     let old_arrow_or_fn_expr_ident = self.arrow_or_fn_expr_ident.clone();
 
-    if let (AssignTarget::Simple(SimpleAssignTarget::Ident(ident)),
-box (Expr::Arrow(_) | Expr::Fn(_))) = (&assign_expr.left, &assign_expr.right)
+    if let (
+      AssignTarget::Simple(SimpleAssignTarget::Ident(ident)),
+      box (Expr::Arrow(_) | Expr::Fn(_)),
+    ) = (&assign_expr.left, &assign_expr.right)
     {
       self.arrow_or_fn_expr_ident = Some(ident.id.clone());
     }
@@ -2357,7 +2357,6 @@ impl DirectiveVisitor<'_> {
             ..
           }),
         span,
-        
       }) => {
         // Match `("use server")`.
         if value == "use server" || detect_similar_strings(&value.to_string_lossy(), "use server") {

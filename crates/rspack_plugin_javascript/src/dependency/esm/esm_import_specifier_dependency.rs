@@ -102,7 +102,8 @@ impl ESMImportSpecifierDependency {
   }
 
   pub fn get_ids<'a>(&'a self, mg: &'a ModuleGraph) -> &'a [Atom] {
-    mg.get_dep_meta_if_existing(&self.id).map_or_else(|| self.ids.as_slice(), |meta| meta.ids.as_slice())
+    mg.get_dep_meta_if_existing(&self.id)
+      .map_or_else(|| self.ids.as_slice(), |meta| meta.ids.as_slice())
   }
 
   pub fn get_referenced_exports_in_destructuring(

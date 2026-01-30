@@ -88,10 +88,7 @@ fn get_remote_entry_name(compilation: &Compilation, container_name: &str) -> Opt
 #[plugin_hook(CompilationProcessAssets for ModuleFederationManifestPlugin)]
 async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   // Prepare entrypoint names
-  let entry_point_names: HashSet<String> = compilation
-    .entrypoints
-    .keys().cloned()
-    .collect();
+  let entry_point_names: HashSet<String> = compilation.entrypoints.keys().cloned().collect();
 
   // Build metaData
   let container_name = self
@@ -138,7 +135,8 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         .options
         .output
         .library
-        .as_ref().map_or_else(|| "global".to_string(), |l| l.library_type.clone()),
+        .as_ref()
+        .map_or_else(|| "global".to_string(), |l| l.library_type.clone()),
     },
     r#type: None,
   };

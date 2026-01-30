@@ -227,7 +227,8 @@ impl HttpCache {
     let integrity = compute_integrity(&content);
     let content_type = headers
       .get("content-type")
-      .unwrap_or(&String::new()).clone();
+      .unwrap_or(&String::new())
+      .clone();
 
     let entry = LockfileEntry {
       resolved: url.to_string(),
@@ -250,12 +251,11 @@ impl HttpCache {
     };
 
     if store_cache || store_lock {
-      let should_update = cached_result
-        .is_none_or(|cached| {
-          valid_until > cached.meta.valid_until
-            || etag != cached.meta.etag
-            || integrity != cached.entry.integrity
-        });
+      let should_update = cached_result.is_none_or(|cached| {
+        valid_until > cached.meta.valid_until
+          || etag != cached.meta.etag
+          || integrity != cached.entry.integrity
+      });
 
       if should_update {
         if store_cache {
@@ -434,33 +434,31 @@ pub async fn fetch_content(url: &str, options: &HttpUriPluginOptions) -> Result<
 }
 
 fn parse_cache_control(cache_control: &Option<String>, request_time: u64) -> (bool, bool, u64) {
-  cache_control
-    .as_ref()
-    .map_or((true, true, 0), |header| {
-      let pairs: HashMap<_, _> = header
-        .split(',')
-        .filter_map(|part| {
-          let mut parts = part.splitn(2, '=');
-          Some((
-            parts.next()?.trim().cow_to_ascii_lowercase(),
-            parts.next().map(|v| v.trim().to_string()),
-          ))
-        })
-        .collect();
+  cache_control.as_ref().map_or((true, true, 0), |header| {
+    let pairs: HashMap<_, _> = header
+      .split(',')
+      .filter_map(|part| {
+        let mut parts = part.splitn(2, '=');
+        Some((
+          parts.next()?.trim().cow_to_ascii_lowercase(),
+          parts.next().map(|v| v.trim().to_string()),
+        ))
+      })
+      .collect();
 
-      let store_lock = !pairs.contains_key("no-cache");
-      let store_cache = !pairs.contains_key("no-cache");
-      let valid_until = if pairs.contains_key("must-revalidate") {
-        0
-      } else {
-        pairs
-          .get("max-age")
-          .and_then(|max_age| max_age.as_ref().and_then(|v| v.parse::<u64>().ok()))
-          .map_or(request_time, |seconds| request_time + seconds * 1000)
-      };
+    let store_lock = !pairs.contains_key("no-cache");
+    let store_cache = !pairs.contains_key("no-cache");
+    let valid_until = if pairs.contains_key("must-revalidate") {
+      0
+    } else {
+      pairs
+        .get("max-age")
+        .and_then(|max_age| max_age.as_ref().and_then(|v| v.parse::<u64>().ok()))
+        .map_or(request_time, |seconds| request_time + seconds * 1000)
+    };
 
-      (store_lock, store_cache, valid_until)
-    })
+    (store_lock, store_cache, valid_until)
+  })
 }
 
 fn compute_integrity(content: &[u8]) -> String {

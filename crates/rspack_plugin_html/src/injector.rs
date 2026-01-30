@@ -46,7 +46,8 @@ impl VisitMut for AssetInjector<'_> {
                 tag
                   .inner_html
                   .as_ref()
-                  .unwrap_or_else(|| panic!("should have title content")).clone(),
+                  .unwrap_or_else(|| panic!("should have title content"))
+                  .clone(),
               ),
               raw: None,
             })];

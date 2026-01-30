@@ -225,7 +225,8 @@ fn get_asset_path(src: &str, public_path: &str) -> String {
   let decoded_src = urlencoding::decode(src)
     .expect("Failed to decode asset path")
     .to_string();
-  pathdiff::diff_paths(&decoded_src, public_path).map_or_else(|| decoded_src.clone(), |p| p.to_string_lossy().into_owned())
+  pathdiff::diff_paths(&decoded_src, public_path)
+    .map_or_else(|| decoded_src.clone(), |p| p.to_string_lossy().into_owned())
 }
 
 async fn get_integrity_checksum_for_asset(

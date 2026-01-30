@@ -400,9 +400,9 @@ impl WalkData {
     }
 
     fn walk_object(obj: &Map<String, Value>, prefix: Cow<str>, walk_data: &mut WalkData) {
-      obj.iter().for_each(|(key, code)| {
-        walk_code(code, prefix.clone(), Cow::Owned(key.clone()), walk_data)
-      })
+      obj
+        .iter()
+        .for_each(|(key, code)| walk_code(code, prefix.clone(), Cow::Owned(key.clone()), walk_data))
     }
 
     let object = definitions.clone().into_iter().collect();

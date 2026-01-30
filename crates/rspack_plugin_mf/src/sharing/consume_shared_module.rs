@@ -45,7 +45,8 @@ impl ConsumeSharedModule {
       &options.share_key,
       options
         .required_version
-        .as_ref().map_or_else(|| "*".to_string(), |v| v.to_string()),
+        .as_ref()
+        .map_or_else(|| "*".to_string(), |v| v.to_string()),
       if options.strict_version {
         " (strict)"
       } else {

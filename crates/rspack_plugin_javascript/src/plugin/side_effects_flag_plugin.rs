@@ -363,17 +363,14 @@ fn can_optimize_connection(
     }
 
     let ids = dep.get_ids(module_graph);
-    let processed_ids = target
-      .export
-      .as_ref()
-      .map_or_else(
-        || ids.get(1..).unwrap_or_default().to_vec(),
-        |item| {
-          let mut ret = item.clone();
-          ret.extend_from_slice(ids.get(1..).unwrap_or_default());
-          ret
-        },
-      );
+    let processed_ids = target.export.as_ref().map_or_else(
+      || ids.get(1..).unwrap_or_default().to_vec(),
+      |item| {
+        let mut ret = item.clone();
+        ret.extend_from_slice(ids.get(1..).unwrap_or_default());
+        ret
+      },
+    );
     let need_move_target = match export_info {
       Cow::Borrowed(export_info) => Some(SideEffectsDoOptimizeMoveTarget {
         export_info: export_info.id(),

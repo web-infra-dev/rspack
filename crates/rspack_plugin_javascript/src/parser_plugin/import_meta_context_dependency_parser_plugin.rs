@@ -49,16 +49,17 @@ fn create_import_meta_context_dependency(
   let context_options = if let Some(obj) = node.args.get(1).and_then(|arg| arg.expr.as_object()) {
     let regexp = get_regex_by_obj_prop(obj, "regExp");
     let regexp_span = regexp.map(|r| r.span().into());
-    let regexp = regexp
-      .map_or(RspackRegex::new(reg).expect("reg failed"), |regexp| RspackRegex::try_from(regexp).expect("reg failed"));
+    let regexp = regexp.map_or(RspackRegex::new(reg).expect("reg failed"), |regexp| {
+      RspackRegex::try_from(regexp).expect("reg failed")
+    });
     let include = get_regex_by_obj_prop(obj, "include")
       .map(|regexp| RspackRegex::try_from(regexp).expect("reg failed"));
     let exclude = get_regex_by_obj_prop(obj, "exclude")
       .map(|regexp| RspackRegex::try_from(regexp).expect("reg failed"));
-    let mode = get_literal_str_by_obj_prop(obj, "mode")
-      .map_or(ContextMode::Sync, |s| s.value.to_string_lossy().as_ref().into());
-    let recursive = get_bool_by_obj_prop(obj, "recursive")
-      .is_none_or(|bool| bool.value);
+    let mode = get_literal_str_by_obj_prop(obj, "mode").map_or(ContextMode::Sync, |s| {
+      s.value.to_string_lossy().as_ref().into()
+    });
+    let recursive = get_bool_by_obj_prop(obj, "recursive").is_none_or(|bool| bool.value);
     ContextOptions {
       reg_exp: clean_regexp_in_context_module(regexp, regexp_span, parser),
       include,

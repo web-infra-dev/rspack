@@ -67,9 +67,7 @@ fn print_exports_info_to_source<F>(
 
   // print the exports
   for export_info in &printed_exports {
-    let export_name: String = export_info
-      .name()
-      .map_or("null".into(), |n| n.to_string());
+    let export_name: String = export_info.name().map_or("null".into(), |n| n.to_string());
     let provide_info = export_info.get_provided_info();
     let usage_info = export_info.get_used_info();
     let rename_info = export_info.get_rename_info();

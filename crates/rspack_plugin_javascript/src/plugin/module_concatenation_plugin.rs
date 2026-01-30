@@ -378,8 +378,10 @@ impl ModuleConcatenationPlugin {
       let mut incoming_connections_from_modules = HashMap::default();
       for (origin_module, connections) in incomings.iter() {
         if let Some(origin_module) = origin_module {
-          let number_of_chunks = module_cache
-            .get(origin_module).map_or_else(|| chunk_graph.get_number_of_module_chunks(*origin_module), |m| m.number_of_chunks);
+          let number_of_chunks = module_cache.get(origin_module).map_or_else(
+            || chunk_graph.get_number_of_module_chunks(*origin_module),
+            |m| m.number_of_chunks,
+          );
 
           if number_of_chunks == 0 {
             // Ignore connection from orphan modules

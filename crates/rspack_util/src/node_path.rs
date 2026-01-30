@@ -226,9 +226,7 @@ impl NodePath for Utf8PathBuf {
 
     // in general, a separator is needed if the rightmost byte is not a separator
     let buf = self.as_os_str().as_encoded_bytes();
-    let need_sep = buf
-      .last()
-      .is_some_and(|c| !is_posix_path_separator(c))
+    let need_sep = buf.last().is_some_and(|c| !is_posix_path_separator(c))
       && path
         .as_bytes()
         .first()

@@ -383,7 +383,8 @@ impl JavascriptParserPlugin for InnerGraphPlugin {
       && let Some(fn_decl) = stmt.as_function_decl()
     {
       let name = &fn_decl
-        .ident().map_or_else(|| DEFAULT_STAR_JS_WORD.clone(), |ident| ident.sym.clone());
+        .ident()
+        .map_or_else(|| DEFAULT_STAR_JS_WORD.clone(), |ident| ident.sym.clone());
       let fn_variable = Self::tag_top_level_symbol(parser, name);
 
       parser
@@ -415,7 +416,8 @@ impl JavascriptParserPlugin for InnerGraphPlugin {
       )
     {
       let name = &class_decl
-        .ident().map_or_else(|| DEFAULT_STAR_JS_WORD.clone(), |ident| ident.sym.clone());
+        .ident()
+        .map_or_else(|| DEFAULT_STAR_JS_WORD.clone(), |ident| ident.sym.clone());
       let class_variable = Self::tag_top_level_symbol(parser, name);
       parser
         .inner_graph

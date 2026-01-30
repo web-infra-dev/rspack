@@ -24,8 +24,7 @@ static WINDOWS_PATH_SEPARATOR: &[char] = &['/', '\\'];
 /// ```
 fn split_at_query_mark(path: &str) -> (&str, Option<&str>) {
   let query_mark_pos = path.find('?');
-  query_mark_pos
-    .map_or((path, None), |pos| (&path[..pos], Some(&path[pos..])))
+  query_mark_pos.map_or((path, None), |pos| (&path[..pos], Some(&path[pos..])))
 }
 
 // Port from https://github.com/webpack/webpack/blob/4b4ca3bb53f36a5b8fc6bc1bd976ed7af161bd80/lib/util/identifier.js#L30

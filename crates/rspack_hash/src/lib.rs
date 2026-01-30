@@ -21,9 +21,7 @@ impl From<&str> for HashFunction {
       "xxhash64" => HashFunction::Xxhash64,
       "md4" => HashFunction::MD4,
       "sha256" => HashFunction::SHA256,
-      _ => panic!(
-        "Unsupported hash function: '{value}'. Expected one of: xxhash64, md4, sha256"
-      ),
+      _ => panic!("Unsupported hash function: '{value}'. Expected one of: xxhash64, md4, sha256"),
     }
   }
 }

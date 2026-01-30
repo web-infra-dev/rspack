@@ -105,9 +105,7 @@ fn get_lit_str(expr: &Expr) -> Option<Atom> {
 }
 
 fn get_ident_name(pat: &Pat) -> Atom {
-  pat
-    .as_ident()
-    .map_or("".into(), |ident| ident.sym.clone())
+  pat.as_ident().map_or("".into(), |ident| ident.sym.clone())
 }
 
 impl AMDDefineDependencyParserPlugin {
