@@ -54,11 +54,7 @@ impl RuntimeModule for ChunkPrefetchPreloadFunctionRuntimeModule {
     Ok(source)
   }
 
-  fn additional_runtime_requirements(
-    &self,
-    _compilation: &Compilation,
-    _runtime_requirements: &RuntimeGlobals,
-  ) -> RuntimeGlobals {
+  fn additional_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
     self.runtime_handlers
   }
 }

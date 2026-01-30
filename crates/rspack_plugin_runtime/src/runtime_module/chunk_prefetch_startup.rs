@@ -1,7 +1,8 @@
 use itertools::Itertools;
 use rspack_collections::Identifier;
 use rspack_core::{
-  ChunkUkey, Compilation, RuntimeModule, RuntimeModuleStage, RuntimeTemplate, impl_runtime_module,
+  ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleStage, RuntimeTemplate,
+  impl_runtime_module,
 };
 
 #[impl_runtime_module]
@@ -94,5 +95,9 @@ impl RuntimeModule for ChunkPrefetchStartupRuntimeModule {
 
   fn stage(&self) -> RuntimeModuleStage {
     RuntimeModuleStage::Trigger
+  }
+
+  fn additional_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
+    RuntimeGlobals::EXPORTS | RuntimeGlobals::PREFETCH_CHUNK | RuntimeGlobals::ON_CHUNKS_LOADED
   }
 }

@@ -264,4 +264,8 @@ impl RuntimeModule for RequireChunkLoadingRuntimeModule {
   fn stage(&self) -> RuntimeModuleStage {
     RuntimeModuleStage::Attach
   }
+
+  fn additional_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
+    RuntimeGlobals::MODULE_FACTORIES_ADD_ONLY | RuntimeGlobals::HAS_OWN_PROPERTY
+  }
 }

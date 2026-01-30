@@ -275,7 +275,10 @@ impl Compilation {
         .map_err(|e| {
           e.wrap_err("caused by plugins in Compilation.hooks.additionalChunkRuntimeRequirements")
         })?;
+
       for module in additional_runtime_modules {
+        let additional_runtime_requirements = module.additional_runtime_requirements(self);
+        set.extend(additional_runtime_requirements);
         self.add_runtime_module(&chunk_ukey, module)?;
       }
 
@@ -343,6 +346,8 @@ impl Compilation {
           e.wrap_err("caused by plugins in Compilation.hooks.additionalTreeRuntimeRequirements")
         })?;
       for module in additional_runtime_modules {
+        let additional_runtime_requirements = module.additional_runtime_requirements(&self);
+        all_runtime_requirements.extend(additional_runtime_requirements);
         self.add_runtime_module(&entry_ukey, module)?;
       }
 
@@ -368,6 +373,12 @@ impl Compilation {
             .map_err(|e| {
               e.wrap_err("caused by plugins in Compilation.hooks.runtimeRequirementInTree")
             })?;
+
+          for runtime_module in runtime_modules_to_add.iter() {
+            let additional_runtime_requirements =
+              runtime_module.1.additional_runtime_requirements(&self);
+            runtime_requirements_to_add.extend(additional_runtime_requirements);
+          }
           runtime_requirements_to_add = runtime_requirements_to_add
             .difference(all_runtime_requirements.intersection(runtime_requirements_to_add));
           if runtime_requirements_to_add.is_empty() {

@@ -37,11 +37,7 @@ impl RuntimeModule for CreateFakeNamespaceObjectRuntimeModule {
     Ok(source)
   }
 
-  fn additional_runtime_requirements(
-    &self,
-    _compilation: &Compilation,
-    _runtime_requirements: &RuntimeGlobals,
-  ) -> RuntimeGlobals {
+  fn additional_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
     RuntimeGlobals::MAKE_NAMESPACE_OBJECT | RuntimeGlobals::DEFINE_PROPERTY_GETTERS
   }
 }

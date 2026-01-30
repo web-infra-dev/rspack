@@ -350,6 +350,7 @@ pub const REQUIRE_SCOPE_GLOBALS: LazyLock<RuntimeGlobals> = LazyLock::new(|| {
     | RuntimeGlobals::STARTUP
     | RuntimeGlobals::MAKE_NAMESPACE_OBJECT
     | RuntimeGlobals::MAKE_DEFERRED_NAMESPACE_OBJECT
+    | RuntimeGlobals::MAKE_OPTIMIZED_DEFERRED_NAMESPACE_OBJECT
     | RuntimeGlobals::COMPAT_GET_DEFAULT_EXPORT
     | RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT
     | RuntimeGlobals::ESM_MODULE_DECORATOR
@@ -472,7 +473,10 @@ pub fn runtime_globals_to_string(
 
     RuntimeGlobals::RSC_MANIFEST => "rscM",
     RuntimeGlobals::TO_BINARY => "tb",
-    _ => unreachable!(),
+    _ => {
+      println!("unreachable runtime_globals: {:?}", runtime_globals);
+      unreachable!()
+    }
   };
   if REQUIRE_SCOPE_GLOBALS.contains(*runtime_globals) {
     let require = runtime_variable_to_string(&RuntimeVariable::Require, compiler_options);

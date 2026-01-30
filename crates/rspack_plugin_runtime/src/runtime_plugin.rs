@@ -501,13 +501,6 @@ async fn runtime_requirements_in_tree(
       }
       _ => {}
     }
-
-    for runtime_module in runtime_modules_to_add.iter() {
-      let additional_runtime_requirements = runtime_module
-        .1
-        .additional_runtime_requirements(compilation, runtime_requirements);
-      runtime_requirements_mut.extend(additional_runtime_requirements);
-    }
   }
 
   Ok(None)

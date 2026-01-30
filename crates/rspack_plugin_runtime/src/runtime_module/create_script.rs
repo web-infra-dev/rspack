@@ -42,11 +42,7 @@ impl RuntimeModule for CreateScriptRuntimeModule {
     Ok(source)
   }
 
-  fn additional_runtime_requirements(
-    &self,
-    compilation: &Compilation,
-    _runtime_requirements: &RuntimeGlobals,
-  ) -> RuntimeGlobals {
+  fn additional_runtime_requirements(&self, compilation: &Compilation) -> RuntimeGlobals {
     if compilation.options.output.trusted_types.is_some() {
       RuntimeGlobals::GET_TRUSTED_TYPES_POLICY
     } else {

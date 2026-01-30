@@ -52,11 +52,7 @@ impl RuntimeModule for MakeDeferredNamespaceObjectRuntimeModule {
     Ok(source)
   }
 
-  fn additional_runtime_requirements(
-    &self,
-    _compilation: &Compilation,
-    _runtime_requirements: &RuntimeGlobals,
-  ) -> RuntimeGlobals {
+  fn additional_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
     RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT
       | RuntimeGlobals::REQUIRE
       | RuntimeGlobals::ASYNC_MODULE_EXPORT_SYMBOL

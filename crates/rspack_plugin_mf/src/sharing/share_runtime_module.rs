@@ -152,11 +152,7 @@ impl RuntimeModule for ShareRuntimeModule {
     self.chunk = Some(chunk);
   }
 
-  fn additional_runtime_requirements(
-    &self,
-    _compilation: &Compilation,
-    _runtime_requirements: &RuntimeGlobals,
-  ) -> RuntimeGlobals {
+  fn additional_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
     RuntimeGlobals::SHARE_SCOPE_MAP | RuntimeGlobals::REQUIRE | RuntimeGlobals::HAS_OWN_PROPERTY
   }
 }

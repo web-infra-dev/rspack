@@ -401,11 +401,7 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
     self.chunk = Some(chunk);
   }
 
-  fn additional_runtime_requirements(
-    &self,
-    compilation: &Compilation,
-    _runtime_requirements: &RuntimeGlobals,
-  ) -> RuntimeGlobals {
+  fn additional_runtime_requirements(&self, compilation: &Compilation) -> RuntimeGlobals {
     if (self.source_type == SourceType::JavaScript
       && has_hash_placeholder(compilation.options.output.chunk_filename.as_str()))
       || (self.source_type == SourceType::Css

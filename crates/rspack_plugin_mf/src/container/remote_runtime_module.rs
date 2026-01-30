@@ -132,6 +132,15 @@ impl RuntimeModule for RemoteRuntimeModule {
   fn attach(&mut self, chunk: ChunkUkey) {
     self.chunk = Some(chunk);
   }
+
+  fn additional_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
+    RuntimeGlobals::REQUIRE
+      | RuntimeGlobals::HAS_OWN_PROPERTY
+      | RuntimeGlobals::MODULE_FACTORIES_ADD_ONLY
+      | RuntimeGlobals::INITIALIZE_SHARING
+      | RuntimeGlobals::SHARE_SCOPE_MAP
+      | RuntimeGlobals::MODULE
+  }
 }
 
 #[derive(Debug, Serialize)]

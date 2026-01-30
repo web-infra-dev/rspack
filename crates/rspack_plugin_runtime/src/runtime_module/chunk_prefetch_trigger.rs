@@ -4,8 +4,8 @@ use indexmap::IndexMap;
 use rspack_cacheable::with::AsMap;
 use rspack_collections::Identifier;
 use rspack_core::{
-  Compilation, RuntimeModule, RuntimeModuleStage, RuntimeTemplate, chunk_graph_chunk::ChunkId,
-  impl_runtime_module,
+  Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleStage, RuntimeTemplate,
+  chunk_graph_chunk::ChunkId, impl_runtime_module,
 };
 use rustc_hash::FxHasher;
 
@@ -57,5 +57,9 @@ impl RuntimeModule for ChunkPrefetchTriggerRuntimeModule {
 
   fn stage(&self) -> RuntimeModuleStage {
     RuntimeModuleStage::Trigger
+  }
+
+  fn additional_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
+    RuntimeGlobals::PREFETCH_CHUNK
   }
 }

@@ -51,4 +51,10 @@ impl RuntimeModule for MakeOptimizedDeferredNamespaceObjectRuntimeModule {
 
     Ok(source)
   }
+
+  fn additional_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
+    RuntimeGlobals::ASYNC_MODULE_EXPORT_SYMBOL
+      | RuntimeGlobals::REQUIRE
+      | RuntimeGlobals::MAKE_DEFERRED_NAMESPACE_OBJECT_SYMBOL
+  }
 }

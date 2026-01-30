@@ -1,5 +1,7 @@
 use rspack_collections::Identifier;
-use rspack_core::{Compilation, RuntimeModule, RuntimeTemplate, impl_runtime_module};
+use rspack_core::{
+  Compilation, RuntimeGlobals, RuntimeModule, RuntimeTemplate, impl_runtime_module,
+};
 use rspack_util::test::is_hot_test;
 
 #[impl_runtime_module]
@@ -39,5 +41,13 @@ impl RuntimeModule for HotModuleReplacementRuntimeModule {
     )?;
 
     Ok(content)
+  }
+
+  fn additional_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
+    RuntimeGlobals::MODULE_CACHE
+      | RuntimeGlobals::INTERCEPT_MODULE_EXECUTION
+      | RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS
+      | RuntimeGlobals::HMR_DOWNLOAD_MANIFEST
+      | RuntimeGlobals::MODULE_ID
   }
 }

@@ -111,15 +111,10 @@ async fn runtime_requirements_in_tree(
   chunk_ukey: &ChunkUkey,
   _all_runtime_requirements: &RuntimeGlobals,
   runtime_requirements: &RuntimeGlobals,
-  runtime_requirements_mut: &mut RuntimeGlobals,
+  _runtime_requirements_mut: &mut RuntimeGlobals,
   runtime_modules_to_add: &mut Vec<(ChunkUkey, Box<dyn RuntimeModule>)>,
 ) -> Result<Option<()>> {
   if runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS) {
-    runtime_requirements_mut.insert(RuntimeGlobals::MODULE);
-    runtime_requirements_mut.insert(RuntimeGlobals::MODULE_FACTORIES_ADD_ONLY);
-    runtime_requirements_mut.insert(RuntimeGlobals::HAS_OWN_PROPERTY);
-    runtime_requirements_mut.insert(RuntimeGlobals::INITIALIZE_SHARING);
-    runtime_requirements_mut.insert(RuntimeGlobals::SHARE_SCOPE_MAP);
     runtime_modules_to_add.push((
       *chunk_ukey,
       Box::new(RemoteRuntimeModule::new(

@@ -88,11 +88,7 @@ impl RuntimeModule for GetMainFilenameRuntimeModule {
     self.chunk = Some(chunk);
   }
 
-  fn additional_runtime_requirements(
-    &self,
-    compilation: &Compilation,
-    _runtime_requirements: &RuntimeGlobals,
-  ) -> RuntimeGlobals {
+  fn additional_runtime_requirements(&self, compilation: &Compilation) -> RuntimeGlobals {
     if has_hash_placeholder(compilation.options.output.hot_update_main_filename.as_str()) {
       RuntimeGlobals::GET_FULL_HASH
     } else {

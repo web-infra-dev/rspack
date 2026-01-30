@@ -434,15 +434,9 @@ async fn additional_tree_runtime_requirements(
   &self,
   compilation: &Compilation,
   _chunk_ukey: &ChunkUkey,
-  runtime_requirements: &mut RuntimeGlobals,
+  _runtime_requirements: &mut RuntimeGlobals,
   runtime_modules: &mut Vec<Box<dyn RuntimeModule>>,
 ) -> Result<()> {
-  // TODO: the hmr runtime is depend on module.id, but webpack not add it.
-  runtime_requirements.insert(RuntimeGlobals::MODULE_ID);
-  runtime_requirements.insert(RuntimeGlobals::HMR_DOWNLOAD_MANIFEST);
-  runtime_requirements.insert(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS);
-  runtime_requirements.insert(RuntimeGlobals::INTERCEPT_MODULE_EXECUTION);
-  runtime_requirements.insert(RuntimeGlobals::MODULE_CACHE);
   runtime_modules
     .push(HotModuleReplacementRuntimeModule::new(&compilation.runtime_template).boxed());
 

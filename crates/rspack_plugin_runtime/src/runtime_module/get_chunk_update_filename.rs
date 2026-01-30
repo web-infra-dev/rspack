@@ -85,11 +85,7 @@ impl RuntimeModule for GetChunkUpdateFilenameRuntimeModule {
     self.chunk = Some(chunk);
   }
 
-  fn additional_runtime_requirements(
-    &self,
-    compilation: &Compilation,
-    _runtime_requirements: &RuntimeGlobals,
-  ) -> RuntimeGlobals {
+  fn additional_runtime_requirements(&self, compilation: &Compilation) -> RuntimeGlobals {
     if has_hash_placeholder(
       compilation
         .options

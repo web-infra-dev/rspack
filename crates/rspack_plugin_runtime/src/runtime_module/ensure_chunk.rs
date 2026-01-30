@@ -88,11 +88,7 @@ impl RuntimeModule for EnsureChunkRuntimeModule {
     self.chunk = Some(chunk);
   }
 
-  fn additional_runtime_requirements(
-    &self,
-    _compilation: &Compilation,
-    _runtime_requirements: &RuntimeGlobals,
-  ) -> RuntimeGlobals {
+  fn additional_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
     if self.has_async_chunks {
       RuntimeGlobals::ENSURE_CHUNK_HANDLERS
     } else {
