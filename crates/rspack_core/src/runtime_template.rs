@@ -1228,18 +1228,16 @@ impl ModuleCodegenRuntimeTemplate {
     request: &str,
     message: &str,
     weak: bool,
+    phase: ImportPhase,
   ) -> String {
-    if compilation
-      .get_module_graph()
-      .module_identifier_by_dependency_id(dep_id)
-      .is_none()
-    {
+    let mg = compilation.get_module_graph();
+    let Some(target_module) = mg.get_module_by_dependency_id(dep_id) else {
       return self.missing_module_promise(request);
     };
 
     let promise = self.block_promise(block, compilation, message);
     let exports_type = get_exports_type(
-      compilation.get_module_graph(),
+      mg,
       &compilation.module_graph_cache_artifact,
       dep_id,
       &module_id,
@@ -1257,8 +1255,73 @@ impl ModuleCodegenRuntimeTemplate {
     } else {
       None
     };
-    let mut fake_type = FakeNamespaceObjectMode::PROMISE_LIKE;
+
     let mut appending;
+
+    if phase.is_defer() && !target_module.build_meta().has_top_level_await {
+      let mode = render_make_deferred_namespace_mode_from_exports_type(exports_type);
+      let async_deps = get_outgoing_async_modules(compilation, target_module.as_ref());
+      if !async_deps.is_empty() {
+        if let Some(header) = header {
+          let rendered_async_deps_fn = self.render_runtime_globals(
+            &RuntimeGlobals::DEFERRED_MODULES_ASYNC_TRANSITIVE_DEPENDENCIES,
+          );
+          appending = format!(
+            ".then({})",
+            self.basic_function(
+              "",
+              &format!(
+                "{header}\nreturn {}({})",
+                &rendered_async_deps_fn,
+                json_stringify(&async_deps)
+              )
+            )
+          );
+        } else {
+          let rendered_async_deps_fn = self.render_runtime_globals(
+            &RuntimeGlobals::DEFERRED_MODULES_ASYNC_TRANSITIVE_DEPENDENCIES,
+          );
+          appending = format!(
+            ".then({})",
+            self.returning_function(
+              &format!(
+                "{}({})",
+                &rendered_async_deps_fn,
+                json_stringify(&async_deps)
+              ),
+              ""
+            )
+          );
+        }
+        appending.push_str(&format!(
+          ".then({}.bind({}, {module_id_expr}, {mode}))",
+          self.render_runtime_globals(&RuntimeGlobals::MAKE_DEFERRED_NAMESPACE_OBJECT),
+          self.render_runtime_globals(&RuntimeGlobals::REQUIRE)
+        ));
+      } else if let Some(header) = header {
+        let rendered_async_deps_fn =
+          self.render_runtime_globals(&RuntimeGlobals::MAKE_DEFERRED_NAMESPACE_OBJECT);
+        appending = format!(
+          ".then({})",
+          self.basic_function(
+            "",
+            &format!(
+              "{header}\nreturn {}({module_id_expr}, {mode});",
+              &rendered_async_deps_fn
+            )
+          )
+        );
+      } else {
+        appending = format!(
+          ".then({}.bind({}, {module_id_expr}, {mode}))",
+          self.render_runtime_globals(&RuntimeGlobals::MAKE_DEFERRED_NAMESPACE_OBJECT),
+          self.render_runtime_globals(&RuntimeGlobals::REQUIRE)
+        );
+      }
+      return format!("{promise}{appending}");
+    }
+
+    let mut fake_type = FakeNamespaceObjectMode::PROMISE_LIKE;
     match exports_type {
       ExportsType::Namespace => {
         if let Some(header) = header {

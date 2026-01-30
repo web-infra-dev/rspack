@@ -3,7 +3,7 @@ use std::borrow::Cow;
 use rspack_core::{
   AsyncDependenciesBlock, ChunkGroupOptions, ContextDependency, ContextNameSpaceObject,
   ContextOptions, DependencyCategory, DependencyRange, DependencyType, DynamicImportFetchPriority,
-  DynamicImportMode, GroupOptions, ImportAttributes,
+  DynamicImportMode, GroupOptions, ImportAttributes, ImportPhase,
 };
 use rspack_error::{Error, Severity};
 use rspack_util::{SpanExt, swc::get_swc_comments};
@@ -321,6 +321,16 @@ impl JavascriptParserPlugin for ImportParserPlugin {
       parser.add_warning(error.into());
     }
 
+    let phase: ImportPhase = node
+      .callee
+      .as_import()
+      .expect("should be import")
+      .phase
+      .into();
+    if phase.is_defer() && !parser.compiler_options.experiments.defer_import {
+      parser.add_error(rspack_error::error!("deferImport is still an experimental feature. To continue using it, please enable 'experiments.deferImport'.").into());
+    }
+
     let attributes = get_attributes_from_call_expr(node);
     let param = parser.evaluate_expression(dyn_imported.expr.as_ref());
 
@@ -331,6 +341,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
           import_call_span.into(),
           exports,
           attributes,
+          phase,
         );
         let dep_idx = parser.next_dependency_idx();
         parser.add_dependency(Box::new(dep));
@@ -345,6 +356,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
           import_call_span.into(),
           exports,
           attributes,
+          phase,
           parser.in_try,
           get_swc_comments(
             parser.comments,
@@ -376,6 +388,10 @@ impl JavascriptParserPlugin for ImportParserPlugin {
     } else {
       if matches!(parser.javascript_options.import_dynamic, Some(false)) {
         return None;
+      }
+
+      if phase.is_defer() {
+        parser.add_error(rspack_error::error!("import.defer() is not yet supported for ContextModule (the import path is a dynamic expression).").into());
       }
 
       let ContextModuleScanResult {
