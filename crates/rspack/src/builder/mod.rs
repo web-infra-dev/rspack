@@ -49,8 +49,8 @@ use rspack_core::{
   ModuleOptions, ModuleRule, ModuleRuleEffect, ModuleType, NodeDirnameOption, NodeFilenameOption,
   NodeGlobalOption, NodeOption, Optimization, OutputOptions, ParseOption, ParserOptions,
   ParserOptionsMap, PathInfo, PublicPath, Resolve, RuleSetCondition, RuleSetLogicalConditions,
-  SideEffectOption, StatsOptions, TrustedTypes, UnsafeCachePredicate, UsedExportsOption,
-  WasmLoading, WasmLoadingType, incremental::IncrementalOptions,
+  SideEffectOption, StatsOptions, TrustedTypes, UsedExportsOption, WasmLoading, WasmLoadingType,
+  incremental::IncrementalOptions,
 };
 use rspack_error::{Error, Result};
 use rspack_fs::{IntermediateFileSystem, ReadableFileSystem, WritableFileSystem};
@@ -1605,8 +1605,6 @@ pub struct ModuleOptionsBuilder {
   generator: Option<GeneratorOptionsMap>,
   /// Keep module mechanism of the matched modules as-is, such as module.exports, require, import.
   no_parse: Option<ModuleNoParseRules>,
-  #[debug(skip)]
-  unsafe_cache: Option<UnsafeCachePredicate>,
 }
 
 impl From<ModuleOptions> for ModuleOptionsBuilder {
@@ -1616,7 +1614,6 @@ impl From<ModuleOptions> for ModuleOptionsBuilder {
       parser: value.parser,
       generator: value.generator,
       no_parse: value.no_parse,
-      unsafe_cache: value.unsafe_cache,
     }
   }
 }
@@ -1628,7 +1625,6 @@ impl From<&mut ModuleOptionsBuilder> for ModuleOptionsBuilder {
       parser: value.parser.take(),
       generator: value.generator.take(),
       no_parse: value.no_parse.take(),
-      unsafe_cache: value.unsafe_cache.take(),
     }
   }
 }
@@ -1819,7 +1815,6 @@ impl ModuleOptionsBuilder {
       parser: self.parser.take(),
       generator: self.generator.take(),
       no_parse: self.no_parse.take(),
-      unsafe_cache: self.unsafe_cache.take(),
     })
   }
 }
