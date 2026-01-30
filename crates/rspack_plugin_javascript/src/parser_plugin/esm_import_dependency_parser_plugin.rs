@@ -198,7 +198,7 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
     let settings = ESMSpecifierData::downcast(tag_info.data.clone()?);
     let referenced_properties_in_destructuring = parser
       .destructuring_assignment_properties
-      .get(&ident.span())
+      .get(ident.span())
       .cloned();
     let dep = ESMImportSpecifierDependency::new(
       settings.source,
@@ -321,7 +321,7 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
     ids.extend(non_optional_members.iter().cloned());
     let referenced_properties_in_destructuring = parser
       .destructuring_assignment_properties
-      .get(&member_expr.span())
+      .get(member_expr.span())
       .cloned();
     let dep = ESMImportSpecifierDependency::new(
       settings.source,

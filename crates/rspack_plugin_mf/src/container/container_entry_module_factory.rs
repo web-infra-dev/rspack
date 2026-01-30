@@ -18,7 +18,7 @@ impl ModuleFactory for ContainerEntryModuleFactory {
       .expect("dependency of ContainerEntryModuleFactory should be ContainerEntryDependency");
     Ok(ModuleFactoryResult::new_with_module(
       ContainerEntryModule::new(
-        dep.name.clone(),
+        dep.name.as_str(),
         dep.exposes.clone(),
         dep.share_scope.clone(),
         dep.enhanced,

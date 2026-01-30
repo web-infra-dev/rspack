@@ -80,6 +80,7 @@ impl ReadFileChunkLoadingRuntimeModule {
 }
 
 #[allow(clippy::enum_variant_names)]
+#[derive(Clone, Copy)]
 enum TemplateId {
   Raw,
   WithOnChunkLoad,

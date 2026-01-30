@@ -61,7 +61,7 @@ impl JavascriptParserPlugin for SideEffectsParserPlugin {
     if !parser.is_top_level_scope() {
       return None;
     }
-    self.analyze_stmt_side_effects(&stmt, parser);
+    self.analyze_stmt_side_effects(stmt, parser);
     None
   }
 }
@@ -105,7 +105,7 @@ fn is_pure_call_expr(
 }
 
 impl SideEffectsParserPlugin {
-  fn analyze_stmt_side_effects(&self, stmt: &Statement, parser: &mut JavascriptParser) {
+  fn analyze_stmt_side_effects(&self, stmt: Statement, parser: &mut JavascriptParser) {
     if parser.side_effects_item.is_some() {
       return;
     }

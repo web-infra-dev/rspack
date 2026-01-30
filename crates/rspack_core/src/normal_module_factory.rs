@@ -517,9 +517,9 @@ module.exports = "data:,";
       self.calculate_parser_and_generator_options(&resolved_module_rules);
     let (resolved_parser_options, resolved_generator_options) = self
       .merge_global_parser_and_generator_options(
-        &resolved_module_type,
-        resolved_parser_options,
-        resolved_generator_options,
+        resolved_module_type,
+        resolved_parser_options.as_ref(),
+        resolved_generator_options.as_ref(),
       );
     let resolved_side_effects = self.calculate_side_effects(&resolved_module_rules);
     let resolved_extract_source_map = self.calculate_extract_source_map(&resolved_module_rules);
@@ -690,9 +690,9 @@ module.exports = "data:,";
 
   fn merge_global_parser_and_generator_options(
     &self,
-    module_type: &ModuleType,
-    parser: Option<ParserOptions>,
-    generator: Option<GeneratorOptions>,
+    module_type: ModuleType,
+    parser: Option<&ParserOptions>,
+    generator: Option<&GeneratorOptions>,
   ) -> (Option<ParserOptions>, Option<GeneratorOptions>) {
     let global_parser = self.options.module.parser.as_ref().and_then(|p| {
       let options = p.get(module_type.as_str());
@@ -778,42 +778,42 @@ module.exports = "data:,";
         _ => options.cloned(),
       }
     });
-    let parser = rspack_util::merge_from_optional_with(
-      global_parser,
-      parser.as_ref(),
-      |global, local| match (global, local) {
-        (ParserOptions::Asset(a), ParserOptions::Asset(b)) => ParserOptions::Asset(a.merge_from(b)),
-        (ParserOptions::Css(a), ParserOptions::Css(b)) => ParserOptions::Css(a.merge_from(b)),
-        (ParserOptions::CssAuto(a), ParserOptions::CssAuto(b)) => {
-          ParserOptions::CssAuto(a.merge_from(b))
+    let parser =
+      rspack_util::merge_from_optional_with(global_parser, parser, |global, local| {
+        match (global, local) {
+          (ParserOptions::Asset(a), ParserOptions::Asset(b)) => {
+            ParserOptions::Asset(a.merge_from(b))
+          }
+          (ParserOptions::Css(a), ParserOptions::Css(b)) => ParserOptions::Css(a.merge_from(b)),
+          (ParserOptions::CssAuto(a), ParserOptions::CssAuto(b)) => {
+            ParserOptions::CssAuto(a.merge_from(b))
+          }
+          (ParserOptions::CssModule(a), ParserOptions::CssModule(b)) => {
+            ParserOptions::CssModule(a.merge_from(b))
+          }
+          (
+            ParserOptions::Javascript(a),
+            ParserOptions::JavascriptAuto(b)
+            | ParserOptions::JavascriptDynamic(b)
+            | ParserOptions::JavascriptEsm(b),
+          ) => ParserOptions::Javascript(a.merge_from(b)),
+          (ParserOptions::Json(a), ParserOptions::Json(b)) => ParserOptions::Json(a.merge_from(b)),
+          (global, _) => global,
         }
-        (ParserOptions::CssModule(a), ParserOptions::CssModule(b)) => {
-          ParserOptions::CssModule(a.merge_from(b))
+      });
+    let generator =
+      rspack_util::merge_from_optional_with(global_generator, generator, |global, local| {
+        match (&global, local) {
+          (GeneratorOptions::Asset(_), GeneratorOptions::Asset(_))
+          | (GeneratorOptions::AssetInline(_), GeneratorOptions::AssetInline(_))
+          | (GeneratorOptions::AssetResource(_), GeneratorOptions::AssetResource(_))
+          | (GeneratorOptions::Css(_), GeneratorOptions::Css(_))
+          | (GeneratorOptions::CssAuto(_), GeneratorOptions::CssAuto(_))
+          | (GeneratorOptions::CssModule(_), GeneratorOptions::CssModule(_))
+          | (GeneratorOptions::Json(_), GeneratorOptions::Json(_)) => global.merge_from(local),
+          _ => global,
         }
-        (
-          ParserOptions::Javascript(a),
-          ParserOptions::JavascriptAuto(b)
-          | ParserOptions::JavascriptDynamic(b)
-          | ParserOptions::JavascriptEsm(b),
-        ) => ParserOptions::Javascript(a.merge_from(b)),
-        (ParserOptions::Json(a), ParserOptions::Json(b)) => ParserOptions::Json(a.merge_from(b)),
-        (global, _) => global,
-      },
-    );
-    let generator = rspack_util::merge_from_optional_with(
-      global_generator,
-      generator.as_ref(),
-      |global, local| match (&global, local) {
-        (GeneratorOptions::Asset(_), GeneratorOptions::Asset(_))
-        | (GeneratorOptions::AssetInline(_), GeneratorOptions::AssetInline(_))
-        | (GeneratorOptions::AssetResource(_), GeneratorOptions::AssetResource(_))
-        | (GeneratorOptions::Css(_), GeneratorOptions::Css(_))
-        | (GeneratorOptions::CssAuto(_), GeneratorOptions::CssAuto(_))
-        | (GeneratorOptions::CssModule(_), GeneratorOptions::CssModule(_))
-        | (GeneratorOptions::Json(_), GeneratorOptions::Json(_)) => global.merge_from(local),
-        _ => global,
-      },
-    );
+      });
     (parser, generator)
   }
 

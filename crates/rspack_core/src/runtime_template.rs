@@ -35,9 +35,9 @@ pub struct RuntimeTemplate {
 static RUNTIME_GLOBALS_PATTERN: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"\$\$RUNTIME_GLOBAL_(.*?)\$\$").expect("failed to create regex"));
 
-fn replace_runtime_globals(template: String, runtime_globals: &Map<String, Value>) -> String {
+fn replace_runtime_globals(template: &str, runtime_globals: &Map<String, Value>) -> String {
   RUNTIME_GLOBALS_PATTERN
-    .replace_all(&template, |caps: &Captures| {
+    .replace_all(template, |caps: &Captures| {
       let name = caps.get(1).expect("name should be a string").as_str();
       runtime_globals
         .get(name)
@@ -64,7 +64,7 @@ impl RuntimeTemplate {
         .map(|(name, value)| {
           (
             name.to_string(),
-            Value::String(runtime_globals_to_string(&value, &compiler_options)),
+            Value::String(runtime_globals_to_string(value, &compiler_options)),
           )
         })
         .collect::<Map<String, Value>>(),
@@ -77,7 +77,7 @@ impl RuntimeTemplate {
     dojang.functions.insert(
       "basicFunction".into(),
       FunctionContainer::F1(Box::new(move |args: Operand| {
-        dojang_basic_function(args, &runtime_globals_cloned, &compiler_options_cloned)
+        dojang_basic_function(&args, &runtime_globals_cloned, &compiler_options_cloned)
       })),
     );
 
@@ -87,8 +87,8 @@ impl RuntimeTemplate {
       "returningFunction".into(),
       FunctionContainer::F2(Box::new(move |args: Operand, return_value: Operand| {
         dojang_returning_function(
-          args,
-          return_value,
+          &args,
+          &return_value,
           &runtime_globals_cloned,
           &compiler_options_cloned,
         )
@@ -101,8 +101,8 @@ impl RuntimeTemplate {
       "expressionFunction".into(),
       FunctionContainer::F2(Box::new(move |args: Operand, expression: Operand| {
         dojang_expression_function(
-          args,
-          expression,
+          &args,
+          &expression,
           &runtime_globals_cloned,
           &compiler_options_cloned,
         )
@@ -124,7 +124,7 @@ impl RuntimeTemplate {
       FunctionContainer::F2(Box::new(move |items: Operand, value: Operand| {
         dojang_array_destructure(
           items,
-          value,
+          &value,
           &runtime_globals_cloned,
           &compiler_options_cloned,
         )
@@ -226,11 +226,11 @@ impl RuntimeTemplate {
   }
 
   pub fn render_runtime_globals(&self, runtime_globals: &RuntimeGlobals) -> String {
-    runtime_globals_to_string(runtime_globals, &self.compiler_options)
+    runtime_globals_to_string(*runtime_globals, &self.compiler_options)
   }
 
   pub fn render_runtime_variable(&self, runtime_variable: &RuntimeVariable) -> String {
-    runtime_variable_to_string(runtime_variable, &self.compiler_options)
+    runtime_variable_to_string(*runtime_variable, &self.compiler_options)
   }
 
   pub fn runtime_module_prefix(&self) -> &'static str {
@@ -243,18 +243,16 @@ impl RuntimeTemplate {
 }
 
 fn to_string(val: &Operand, runtime_globals: &Map<String, Value>) -> String {
-  replace_runtime_globals(
-    match val {
-      Operand::Value(val) => val.as_str().unwrap_or_default().to_string(),
-      _ => String::default(),
-    },
-    runtime_globals,
-  )
+  let value = match val {
+    Operand::Value(val) => val.as_str().unwrap_or_default().to_string(),
+    _ => String::default(),
+  };
+  replace_runtime_globals(&value, runtime_globals)
 }
 
 fn join_to_string(val: &Operand, sep: &str, runtime_globals: &Map<String, Value>) -> String {
   replace_runtime_globals(
-    match val {
+    &match val {
       Operand::Array(items) => items
         .iter()
         .map(|item| to_string(item, runtime_globals))
@@ -266,7 +264,7 @@ fn join_to_string(val: &Operand, sep: &str, runtime_globals: &Map<String, Value>
 }
 
 fn dojang_basic_function(
-  args: Operand,
+  args: &Operand,
   runtime_globals: &Map<String, Value>,
   compiler_options: &Arc<CompilerOptions>,
 ) -> Operand {
@@ -277,19 +275,19 @@ fn dojang_basic_function(
   {
     Operand::Value(Value::from(format!(
       r#"({}) =>"#,
-      join_to_string(&args, ", ", runtime_globals)
+      join_to_string(args, ", ", runtime_globals)
     )))
   } else {
     Operand::Value(Value::from(format!(
       r#"function({})"#,
-      join_to_string(&args, ", ", runtime_globals)
+      join_to_string(args, ", ", runtime_globals)
     )))
   }
 }
 
 fn dojang_returning_function(
-  return_value: Operand,
-  args: Operand,
+  return_value: &Operand,
+  args: &Operand,
   runtime_globals: &Map<String, Value>,
   compiler_options: &Arc<CompilerOptions>,
 ) -> Operand {
@@ -300,21 +298,21 @@ fn dojang_returning_function(
   {
     Operand::Value(Value::from(format!(
       "({}) => ({})",
-      join_to_string(&args, ", ", runtime_globals),
-      to_string(&return_value, runtime_globals)
+      join_to_string(args, ", ", runtime_globals),
+      to_string(return_value, runtime_globals)
     )))
   } else {
     Operand::Value(Value::from(format!(
       "function({}) {{ return {}; }}",
-      join_to_string(&args, ", ", runtime_globals),
-      to_string(&return_value, runtime_globals)
+      join_to_string(args, ", ", runtime_globals),
+      to_string(return_value, runtime_globals)
     )))
   }
 }
 
 fn dojang_expression_function(
-  expression: Operand,
-  args: Operand,
+  expression: &Operand,
+  args: &Operand,
   runtime_globals: &Map<String, Value>,
   compiler_options: &Arc<CompilerOptions>,
 ) -> Operand {
@@ -325,14 +323,14 @@ fn dojang_expression_function(
   {
     Operand::Value(Value::from(format!(
       "({}) => ({})",
-      join_to_string(&args, ", ", runtime_globals),
-      to_string(&expression, runtime_globals)
+      join_to_string(args, ", ", runtime_globals),
+      to_string(expression, runtime_globals)
     )))
   } else {
     Operand::Value(Value::from(format!(
       "function({}) {{ {}; }}",
-      join_to_string(&args, ", ", runtime_globals),
-      to_string(&expression, runtime_globals)
+      join_to_string(args, ", ", runtime_globals),
+      to_string(expression, runtime_globals)
     )))
   }
 }
@@ -351,7 +349,7 @@ fn dojang_empty_function(compiler_options: &Arc<CompilerOptions>) -> Operand {
 
 fn dojang_array_destructure(
   items: Operand,
-  value: Operand,
+  value: &Operand,
   runtime_globals: &Map<String, Value>,
   compiler_options: &Arc<CompilerOptions>,
 ) -> Operand {
@@ -359,10 +357,10 @@ fn dojang_array_destructure(
     Operand::Value(Value::from(format!(
       "var [{}] = {};",
       join_to_string(&items, ", ", runtime_globals),
-      to_string(&value, runtime_globals)
+      to_string(value, runtime_globals)
     )))
   } else {
-    let value_name = to_string(&value, runtime_globals);
+    let value_name = to_string(value, runtime_globals);
     let items = match items {
       Operand::Array(items) => items
         .iter()
@@ -560,7 +558,7 @@ impl ModuleCodegenRuntimeTemplate {
 
   pub fn render_runtime_globals(&mut self, runtime_globals: &RuntimeGlobals) -> String {
     self.runtime_requirements.insert(*runtime_globals);
-    runtime_globals_to_string(runtime_globals, &self.compiler_options)
+    runtime_globals_to_string(*runtime_globals, &self.compiler_options)
   }
 
   pub fn define_es_module_flag_statement(&mut self, exports_argument: ExportsArgument) -> String {
@@ -595,7 +593,7 @@ impl ModuleCodegenRuntimeTemplate {
   }
 
   pub fn render_runtime_variable(&self, runtime_variable: &RuntimeVariable) -> String {
-    runtime_variable_to_string(runtime_variable, &self.compiler_options)
+    runtime_variable_to_string(*runtime_variable, &self.compiler_options)
   }
 
   pub fn returning_function(&self, return_value: &str, args: &str) -> String {
@@ -636,7 +634,7 @@ impl ModuleCodegenRuntimeTemplate {
     &mut self,
     exports_type: ExportsType,
     module_id_expr: &str,
-    async_deps: FxIndexSet<ModuleId>,
+    async_deps: &FxIndexSet<ModuleId>,
   ) -> String {
     self
       .runtime_requirements
@@ -697,11 +695,10 @@ impl ModuleCodegenRuntimeTemplate {
       false,
     );
 
-    compile_boolean_matcher_from_lists(
-      positive_runtime_ids.into_iter().collect::<Vec<_>>(),
-      negative_runtime_ids.into_iter().collect::<Vec<_>>(),
-    )
-    .render(
+    let positive_runtime_ids = positive_runtime_ids.into_iter().collect::<Vec<_>>();
+    let negative_runtime_ids = negative_runtime_ids.into_iter().collect::<Vec<_>>();
+
+    compile_boolean_matcher_from_lists(&positive_runtime_ids, &negative_runtime_ids).render(
       self
         .render_runtime_globals(&RuntimeGlobals::RUNTIME_ID)
         .as_str(),
@@ -723,7 +720,7 @@ impl ModuleCodegenRuntimeTemplate {
     message: &str,
   ) -> String {
     let Some(block) = block else {
-      let comment = self.comment(CommentOptions {
+      let comment = self.comment(&CommentOptions {
         request: None,
         chunk_name: None,
         message: Some(message),
@@ -734,7 +731,7 @@ impl ModuleCodegenRuntimeTemplate {
       .chunk_graph
       .get_block_chunk_group(block, &compilation.chunk_group_by_ukey);
     let Some(chunk_group) = chunk_group else {
-      let comment = self.comment(CommentOptions {
+      let comment = self.comment(&CommentOptions {
         request: None,
         chunk_name: None,
         message: Some(message),
@@ -742,7 +739,7 @@ impl ModuleCodegenRuntimeTemplate {
       return format!("Promise.resolve({})", comment.trim());
     };
     if chunk_group.chunks.is_empty() {
-      let comment = self.comment(CommentOptions {
+      let comment = self.comment(&CommentOptions {
         request: None,
         chunk_name: None,
         message: Some(message),
@@ -751,7 +748,7 @@ impl ModuleCodegenRuntimeTemplate {
     }
     let mg = compilation.get_module_graph();
     let block = mg.block_by_id_expect(block);
-    let comment = self.comment(CommentOptions {
+    let comment = self.comment(&CommentOptions {
       request: None,
       chunk_name: block.get_group_options().and_then(|o| o.name()),
       message: Some(message),
@@ -819,7 +816,7 @@ impl ModuleCodegenRuntimeTemplate {
   }
 
   // add a comment
-  fn comment(&self, comment_options: CommentOptions) -> String {
+  fn comment(&self, comment_options: &CommentOptions) -> String {
     let used_pathinfo = matches!(
       self.compiler_options.output.pathinfo,
       PathInfo::Bool(true) | PathInfo::String(_)
@@ -878,7 +875,7 @@ impl ModuleCodegenRuntimeTemplate {
   pub fn module_id_expr(&self, request: &str, module_id: &ModuleId) -> String {
     format!(
       "{}{}",
-      self.comment(CommentOptions {
+      self.comment(&CommentOptions {
         request: Some(request),
         ..Default::default()
       }),
@@ -969,7 +966,7 @@ impl ModuleCodegenRuntimeTemplate {
       let async_deps = get_outgoing_async_modules(compilation, target_module.as_ref());
       let import_content = format!(
         "/* deferred import */{opt_declaration}{import_var} = {};\n",
-        self.get_optimized_deferred_module(exports_type, &module_id_expr, async_deps)
+        self.get_optimized_deferred_module(exports_type, &module_id_expr, &async_deps)
       );
       return (import_content, String::new());
     }
@@ -1035,10 +1032,12 @@ impl ModuleCodegenRuntimeTemplate {
             runtime,
             name,
           ) else {
-            return to_normal_comment(&format!(
+            let mut value = to_normal_comment(&format!(
               "unused export {}",
               property_access(export_name, 0)
-            )) + "undefined";
+            ));
+            value.push_str("undefined");
+            return value;
           };
           let UsedName::Normal(used) = used else {
             unreachable!("can't inline the exports of defer imported module")

@@ -7,8 +7,11 @@ pub const NUMBER_OF_IDENTIFIER_CONTINUATION_CHARS: u32 = NUMBER_OF_IDENTIFIER_ST
 pub fn number_to_identifier(mut n: u32) -> String {
   if n >= NUMBER_OF_IDENTIFIER_START_CHARS {
     // use multiple letters
-    return number_to_identifier(n % NUMBER_OF_IDENTIFIER_START_CHARS)
-      + number_to_identifier_continuation(n / NUMBER_OF_IDENTIFIER_START_CHARS).as_str();
+    let mut result = number_to_identifier(n % NUMBER_OF_IDENTIFIER_START_CHARS);
+    result.push_str(&number_to_identifier_continuation(
+      n / NUMBER_OF_IDENTIFIER_START_CHARS,
+    ));
+    return result;
   }
 
   // lower case
@@ -37,8 +40,11 @@ pub fn number_to_identifier(mut n: u32) -> String {
 pub fn number_to_identifier_continuation(mut n: u32) -> String {
   if n >= NUMBER_OF_IDENTIFIER_CONTINUATION_CHARS {
     // use multiple letters
-    return number_to_identifier_continuation(n % NUMBER_OF_IDENTIFIER_CONTINUATION_CHARS)
-      + number_to_identifier_continuation(n / NUMBER_OF_IDENTIFIER_CONTINUATION_CHARS).as_str();
+    let mut result = number_to_identifier_continuation(n % NUMBER_OF_IDENTIFIER_CONTINUATION_CHARS);
+    result.push_str(&number_to_identifier_continuation(
+      n / NUMBER_OF_IDENTIFIER_CONTINUATION_CHARS,
+    ));
+    return result;
   }
 
   // lower case

@@ -67,8 +67,11 @@ use rspack_plugin_ignore::IgnorePlugin;
 use rspack_plugin_javascript::{
   FlagDependencyExportsPlugin, FlagDependencyUsagePlugin, InferAsyncModulesPlugin,
   InlineExportsPlugin, JsPlugin, MangleExportsPlugin, ModuleConcatenationPlugin,
-  SideEffectsFlagPlugin, api_plugin::APIPlugin, define_plugin::DefinePlugin,
-  provide_plugin::ProvidePlugin, url_plugin::URLPlugin,
+  SideEffectsFlagPlugin,
+  api_plugin::APIPlugin,
+  define_plugin::{DefinePlugin, DefineValue},
+  provide_plugin::ProvidePlugin,
+  url_plugin::URLPlugin,
 };
 use rspack_plugin_json::JsonPlugin;
 use rspack_plugin_library::enable_library_plugin;
@@ -301,11 +304,9 @@ impl<'a> BuiltinPlugin<'a> {
     match name {
       // webpack also have these plugins
       BuiltinPluginName::DefinePlugin => {
-        let plugin = DefinePlugin::new(
-          downcast_into(self.options)
-            .map_err(|report| napi::Error::from_reason(report.to_string()))?,
-        )
-        .boxed();
+        let definitions: DefineValue = downcast_into(self.options)
+          .map_err(|report| napi::Error::from_reason(report.to_string()))?;
+        let plugin = DefinePlugin::new(&definitions).boxed();
         plugins.push(plugin);
       }
       BuiltinPluginName::ProvidePlugin => {
@@ -393,12 +394,14 @@ impl<'a> BuiltinPlugin<'a> {
       BuiltinPluginName::ElectronTargetPlugin => {
         let context = downcast_into::<String>(self.options)
           .map_err(|report| napi::Error::from_reason(report.to_string()))?;
-        electron_target_plugin(context.into(), plugins);
+        let context: ElectronTargetContext = context.into();
+        electron_target_plugin(&context, plugins);
       }
       BuiltinPluginName::EnableChunkLoadingPlugin => {
         let chunk_loading_type = downcast_into::<String>(self.options)
           .map_err(|report| napi::Error::from_reason(report.to_string()))?;
-        enable_chunk_loading_plugin(chunk_loading_type.as_str().into(), plugins);
+        let chunk_loading_type: ChunkLoadingType = chunk_loading_type.as_str().into();
+        enable_chunk_loading_plugin(&chunk_loading_type, plugins);
       }
       BuiltinPluginName::EnableLibraryPlugin => {
         let library_type = downcast_into::<String>(self.options)
@@ -408,9 +411,8 @@ impl<'a> BuiltinPlugin<'a> {
       BuiltinPluginName::EnableWasmLoadingPlugin => {
         let wasm_loading_type = downcast_into::<String>(self.options)
           .map_err(|report| napi::Error::from_reason(report.to_string()))?;
-        plugins.push(enable_wasm_loading_plugin(
-          wasm_loading_type.as_str().into(),
-        ));
+        let wasm_loading_type: WasmLoadingType = wasm_loading_type.as_str().into();
+        plugins.push(enable_wasm_loading_plugin(&wasm_loading_type));
       }
       BuiltinPluginName::FetchCompileAsyncWasmPlugin => {
         plugins.push(FetchCompileAsyncWasmPlugin::default().boxed());
@@ -580,7 +582,7 @@ impl<'a> BuiltinPlugin<'a> {
             .map_err(|report| napi::Error::from_reason(report.to_string()))?
             .into();
         plugins.push(
-          SourceMapDevToolModuleOptionsPlugin::new(SourceMapDevToolModuleOptionsPluginOptions {
+          SourceMapDevToolModuleOptionsPlugin::new(&SourceMapDevToolModuleOptionsPluginOptions {
             module: options.module,
             cheap: !options.columns,
           })
@@ -594,7 +596,7 @@ impl<'a> BuiltinPlugin<'a> {
             .map_err(|report| napi::Error::from_reason(report.to_string()))?
             .into();
         plugins.push(
-          SourceMapDevToolModuleOptionsPlugin::new(SourceMapDevToolModuleOptionsPluginOptions {
+          SourceMapDevToolModuleOptionsPlugin::new(&SourceMapDevToolModuleOptionsPluginOptions {
             module: options.module,
             cheap: !options.columns,
           })

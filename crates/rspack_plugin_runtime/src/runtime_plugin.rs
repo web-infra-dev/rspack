@@ -145,7 +145,7 @@ const TREE_DEPENDENCIES: &[(RuntimeGlobals, RuntimeGlobals)] = &[
 ];
 
 fn handle_require_scope_globals(
-  runtime_requirements: &RuntimeGlobals,
+  runtime_requirements: RuntimeGlobals,
   runtime_requirements_mut: &mut RuntimeGlobals,
 ) {
   if GLOBALS_ON_REQUIRE
@@ -157,7 +157,7 @@ fn handle_require_scope_globals(
 }
 
 fn handle_dependency_globals(
-  runtime_requirements: &RuntimeGlobals,
+  runtime_requirements: RuntimeGlobals,
   runtime_requirements_mut: &mut RuntimeGlobals,
   dependencies: &[(RuntimeGlobals, RuntimeGlobals)],
 ) {
@@ -227,9 +227,9 @@ async fn runtime_requirements_in_module(
   runtime_requirements: &RuntimeGlobals,
   runtime_requirements_mut: &mut RuntimeGlobals,
 ) -> Result<Option<()>> {
-  handle_require_scope_globals(runtime_requirements, runtime_requirements_mut);
+  handle_require_scope_globals(*runtime_requirements, runtime_requirements_mut);
   handle_dependency_globals(
-    runtime_requirements,
+    *runtime_requirements,
     runtime_requirements_mut,
     MODULE_DEPENDENCIES,
   );
@@ -272,9 +272,9 @@ async fn runtime_requirements_in_tree(
     runtime_requirements_mut.insert(RuntimeGlobals::GET_FULL_HASH);
   }
 
-  handle_require_scope_globals(runtime_requirements, runtime_requirements_mut);
+  handle_require_scope_globals(*runtime_requirements, runtime_requirements_mut);
   handle_dependency_globals(
-    runtime_requirements,
+    *runtime_requirements,
     runtime_requirements_mut,
     TREE_DEPENDENCIES,
   );
@@ -388,7 +388,6 @@ async fn runtime_requirements_in_tree(
                   &compilation.options.output,
                   &compilation.chunk_group_by_ukey,
                 )
-                .clone()
               })
             },
           )

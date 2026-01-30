@@ -529,7 +529,7 @@ impl Plugin for RsdoctorPlugin {
       .after_process_assets
       .tap(after_process_assets::new(self));
 
-    SourceMapDevToolModuleOptionsPlugin::new(SourceMapDevToolModuleOptionsPluginOptions {
+    SourceMapDevToolModuleOptionsPlugin::new(&SourceMapDevToolModuleOptionsPluginOptions {
       cheap: self.options.source_map_features.cheap,
       module: self.options.source_map_features.module,
     })

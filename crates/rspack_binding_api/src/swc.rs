@@ -66,7 +66,7 @@ fn _transform(source: String, options: String) -> napi::Result<TransformOutput> 
         options.filename.clone().into(),
       ))),
       comments,
-      options,
+      &options,
       Some(module_source_map_kind),
       |_, _| {},
       |_| noop_pass(),

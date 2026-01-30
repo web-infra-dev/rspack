@@ -32,6 +32,7 @@ impl ModuleGraph {
       .expect("should have exports info")
   }
 
+  #[allow(clippy::needless_pass_by_value)]
   pub fn get_prefetched_exports_info_optional<'b>(
     &'b self,
     module_identifier: &ModuleIdentifier,
@@ -39,16 +40,17 @@ impl ModuleGraph {
   ) -> Option<PrefetchedExportsInfoWrapper<'b>> {
     self
       .module_graph_module_by_identifier(module_identifier)
-      .map(move |mgm| ExportsInfoGetter::prefetch(&mgm.exports, self, mode))
+      .map(move |mgm| ExportsInfoGetter::prefetch(mgm.exports, self, &mode))
   }
 
+  #[allow(clippy::needless_pass_by_value)]
   pub fn get_prefetched_exports_info<'b>(
     &'b self,
     module_identifier: &ModuleIdentifier,
     mode: PrefetchExportsInfoMode<'b>,
   ) -> PrefetchedExportsInfoWrapper<'b> {
     let exports_info = self.get_exports_info(module_identifier);
-    ExportsInfoGetter::prefetch(&exports_info, self, mode)
+    ExportsInfoGetter::prefetch(exports_info, self, &mode)
   }
 
   pub fn get_prefetched_exports_info_used(

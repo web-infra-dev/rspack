@@ -64,7 +64,7 @@ pub fn get_name(keys: &PackKeys, _: &PackContents) -> String {
   format!("{:016x}", hasher.finish())
 }
 
-pub fn choose_bucket(key: &[u8], total: &usize) -> usize {
+pub fn choose_bucket(key: &[u8], total: usize) -> usize {
   let num = key.iter().fold(0_usize, |acc, i| acc + *i as usize);
   num % total
 }
@@ -177,7 +177,7 @@ pub mod test_pack_utils {
     Removed,
   }
 
-  pub fn mock_updates(start: usize, end: usize, length: usize, value: UpdateVal) -> ScopeUpdate {
+  pub fn mock_updates(start: usize, end: usize, length: usize, value: &UpdateVal) -> ScopeUpdate {
     let mut updates = HashMap::default();
     for i in start..end {
       updates.insert(
@@ -294,7 +294,7 @@ pub mod test_pack_utils {
         SplitPackStrategy::new(
           root.join("cache"),
           root.join("temp"),
-          fs.clone(),
+          fs,
           Some(1_usize),
           Some(2_usize),
         )

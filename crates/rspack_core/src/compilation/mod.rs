@@ -315,7 +315,7 @@ impl Compilation {
   #[allow(clippy::too_many_arguments)]
   pub fn new(
     compiler_id: CompilerId,
-    options: Arc<CompilerOptions>,
+    options: &Arc<CompilerOptions>,
     platform: Arc<CompilerPlatform>,
     plugin_driver: SharedPluginDriver,
     buildtime_plugin_driver: SharedPluginDriver,
@@ -388,9 +388,9 @@ impl Compilation {
           CacheOptions::Persistent(_) => 1,
         },
       )),
-      code_generate_cache_artifact: CodeGenerateCacheArtifact::new(&options),
+      code_generate_cache_artifact: CodeGenerateCacheArtifact::new(options),
       process_runtime_requirements_cache_artifact: ProcessRuntimeRequirementsCacheArtifact::new(
-        &options,
+        options,
       ),
       build_time_executed_modules: Default::default(),
       incremental,
@@ -838,8 +838,9 @@ impl Compilation {
     }
   }
 
-  pub fn rename_asset(&mut self, filename: &str, new_name: String) {
+  pub fn rename_asset(&mut self, filename: &str, new_name: &str) {
     if let Some(asset) = self.assets.remove(filename) {
+      let new_name = new_name.to_string();
       // Update related in all other assets
       if let Some(related_in_info) = self.assets_related_in.get(filename) {
         for name in related_in_info {
@@ -1360,7 +1361,9 @@ impl AssetInfo {
     // "another" first fields
     self.minimized = another.minimized;
 
-    self.source_filename = another.source_filename.or(self.source_filename.take());
+    self.source_filename = another
+      .source_filename
+      .or_else(|| self.source_filename.take());
     self.version = another.version;
     self.related.merge_another(another.related);
 
@@ -1372,7 +1375,9 @@ impl AssetInfo {
     // self.module_hash.extend(another.module_hash.iter().cloned());
 
     // old first fields or truthy first fields
-    self.javascript_module = another.javascript_module.or(self.javascript_module.take());
+    self.javascript_module = another
+      .javascript_module
+      .or_else(|| self.javascript_module.take());
     self.immutable = another.immutable.or(self.immutable);
     self.development = another.development.or(self.development);
     self.hot_module_replacement = another

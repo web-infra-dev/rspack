@@ -3,5 +3,5 @@ use rspack_plugin_runtime::{ArrayPushCallbackChunkFormatPlugin, enable_chunk_loa
 
 pub fn web_worker_template_plugin(plugins: &mut Vec<BoxPlugin>) {
   plugins.push(ArrayPushCallbackChunkFormatPlugin::default().boxed());
-  enable_chunk_loading_plugin(ChunkLoadingType::ImportScripts, plugins);
+  enable_chunk_loading_plugin(&ChunkLoadingType::ImportScripts, plugins);
 }

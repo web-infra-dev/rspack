@@ -149,7 +149,7 @@ impl DependencyTemplate for AMDRequireContextDependencyTemplate {
       dep,
       source,
       code_generatable_context,
-      &dep.range,
+      dep.range,
       Some(&dep.range),
     );
   }

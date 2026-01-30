@@ -52,7 +52,11 @@ pub fn create_context_dependency(
     let inner_quasis = if quasis.len() > 1 {
       quasis[1..quasis.len() - 1]
         .iter()
-        .map(|q| quote_meta(q.string().as_str()) + wrapped_context_reg_exp)
+        .map(|q| {
+          let mut part = quote_meta(q.string().as_str());
+          part.push_str(wrapped_context_reg_exp);
+          part
+        })
         .join("")
     } else {
       String::new()

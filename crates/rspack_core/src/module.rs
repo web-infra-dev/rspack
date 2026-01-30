@@ -36,7 +36,7 @@ use crate::{
   ConnectionState, Context, ContextModule, DependenciesBlock, DependencyId, ExportProvided,
   ExternalModule, GetTargetResult, ModuleCodegenRuntimeTemplate, ModuleGraph,
   ModuleGraphCacheArtifact, ModuleLayer, ModuleType, NormalModule, PrefetchExportsInfoMode,
-  RawModule, Resolve, ResolverFactory, RuntimeSpec, RuntimeTemplate, SelfModule,
+  RawModule, Resolve, ResolveFilterFnTy, ResolverFactory, RuntimeSpec, RuntimeTemplate, SelfModule,
   SharedPluginDriver, SourceType, concatenated_module::ConcatenatedModule,
   dependencies_block::dependencies_block_update_hash, get_target,
   value_cache_versions::ValueCacheVersions,
@@ -463,7 +463,7 @@ fn get_exports_type_impl(
       if strict {
         ExportsType::DefaultWithNamed
       } else {
-        fn handle_default(default_object: &BuildMetaDefaultObject) -> ExportsType {
+        fn handle_default(default_object: BuildMetaDefaultObject) -> ExportsType {
           match default_object {
             BuildMetaDefaultObject::Redirect => ExportsType::DefaultWithNamed,
             BuildMetaDefaultObject::RedirectWarn { .. } => ExportsType::DefaultWithNamed,
@@ -479,10 +479,11 @@ fn get_exports_type_impl(
           .map(|info| info.get_read_only_export_info(&name))
         {
           if matches!(export_info.provided(), Some(ExportProvided::NotProvided)) {
-            handle_default(default_object)
+            handle_default(*default_object)
           } else {
+            let resolve_filter: ResolveFilterFnTy<'_> = Rc::new(|_| true);
             let Some(GetTargetResult::Target(target)) =
-              get_target(export_info, mg, Rc::new(|_| true), &mut Default::default())
+              get_target(export_info, mg, &resolve_filter, &mut Default::default())
             else {
               return ExportsType::Dynamic;
             };
@@ -507,7 +508,7 @@ fn get_exports_type_impl(
                 BuildMetaExportsType::Flagged | BuildMetaExportsType::Namespace => {
                   ExportsType::Namespace
                 }
-                BuildMetaExportsType::Default => handle_default(default_object),
+                BuildMetaExportsType::Default => handle_default(*default_object),
                 _ => ExportsType::Dynamic,
               }
             } else {

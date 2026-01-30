@@ -305,11 +305,11 @@ impl Default for RuntimeGlobals {
 }
 
 pub fn runtime_globals_to_string(
-  runtime_globals: &RuntimeGlobals,
+  runtime_globals: RuntimeGlobals,
   compiler_options: &CompilerOptions,
 ) -> String {
-  let scope_name = runtime_variable_to_string(&RuntimeVariable::Require, compiler_options);
-  match *runtime_globals {
+  let scope_name = runtime_variable_to_string(RuntimeVariable::Require, compiler_options);
+  match runtime_globals {
     RuntimeGlobals::REQUIRE_SCOPE => format!("{scope_name}.*"),
     RuntimeGlobals::MODULE => "module".to_string(),
     RuntimeGlobals::MODULE_ID => "module.id".to_string(),
@@ -361,7 +361,7 @@ pub fn runtime_globals_to_string(
     RuntimeGlobals::MAKE_DEFERRED_NAMESPACE_OBJECT_SYMBOL => format!("{scope_name}.zS"),
     RuntimeGlobals::MAKE_OPTIMIZED_DEFERRED_NAMESPACE_OBJECT => format!("{scope_name}.zO"),
     RuntimeGlobals::EXPORTS => {
-      runtime_variable_to_string(&RuntimeVariable::Exports, compiler_options)
+      runtime_variable_to_string(RuntimeVariable::Exports, compiler_options)
     }
     RuntimeGlobals::COMPAT_GET_DEFAULT_EXPORT => format!("{scope_name}.n"),
     RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT => format!("{scope_name}.t"),
@@ -405,11 +405,11 @@ pub enum RuntimeVariable {
 }
 
 pub fn runtime_variable_to_string(
-  runtime_variable: &RuntimeVariable,
+  runtime_variable: RuntimeVariable,
   _compiler_options: &CompilerOptions,
 ) -> String {
   // TODO: use compiler options to get runtime variable names
-  match *runtime_variable {
+  match runtime_variable {
     RuntimeVariable::Require => "__webpack_require__".to_string(),
     RuntimeVariable::Modules => "__webpack_modules__".to_string(),
     RuntimeVariable::ModuleCache => "__webpack_module_cache__".to_string(),

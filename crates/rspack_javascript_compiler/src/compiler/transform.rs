@@ -61,9 +61,10 @@ impl JavaScriptCompiler {
     P: Pass + 'a,
     S: Into<String>,
   {
-    let fm = self
-      .cm
-      .new_source_file(filename.unwrap_or(Arc::new(FileName::Anon)), source.into());
+    let fm = self.cm.new_source_file(
+      filename.unwrap_or_else(|| Arc::new(FileName::Anon)),
+      source.into(),
+    );
     let javascript_transformer =
       JavaScriptTransformer::new(self.cm.clone(), fm, comments, self, options)?;
 
@@ -170,7 +171,7 @@ impl<'a> JavaScriptTransformer<'a> {
 
   fn parse_js(
     &self,
-    fm: Arc<SourceFile>,
+    fm: &Arc<SourceFile>,
     handler: &Handler,
     target: EsVersion,
     syntax: Syntax,
@@ -182,14 +183,14 @@ impl<'a> JavaScriptTransformer<'a> {
 
     let program_result = match is_module {
       IsModule::Bool(true) => {
-        parse_file_as_module(&fm, syntax, target, comments, &mut errors).map(Program::Module)
+        parse_file_as_module(fm, syntax, target, comments, &mut errors).map(Program::Module)
       }
       IsModule::Bool(false) => {
-        parse_file_as_script(&fm, syntax, target, comments, &mut errors).map(Program::Script)
+        parse_file_as_script(fm, syntax, target, comments, &mut errors).map(Program::Script)
       }
-      IsModule::Unknown => parse_file_as_program(&fm, syntax, target, comments, &mut errors),
+      IsModule::Unknown => parse_file_as_program(fm, syntax, target, comments, &mut errors),
       IsModule::CommonJS => {
-        parse_file_as_commonjs(&fm, syntax, target, comments, &mut errors).map(Program::Script)
+        parse_file_as_commonjs(fm, syntax, target, comments, &mut errors).map(Program::Script)
       }
     };
 
@@ -228,7 +229,7 @@ impl<'a> JavaScriptTransformer<'a> {
           &self.fm.name,
           move |syntax, target, is_module| {
             self.parse_js(
-              self.fm.clone(),
+              &self.fm,
               handler,
               target,
               syntax,

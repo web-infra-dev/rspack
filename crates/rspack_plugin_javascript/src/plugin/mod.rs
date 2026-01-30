@@ -76,20 +76,20 @@ struct RenameModuleCache {
 }
 
 impl RenameModuleCache {
-  pub fn get_inlined_info(&self, ident: &Identifier) -> Option<Arc<WithHash<InlinedModuleInfo>>> {
+  pub fn get_inlined_info(&self, ident: Identifier) -> Option<Arc<WithHash<InlinedModuleInfo>>> {
     self
       .inlined_modules_to_info
-      .get(ident)
+      .get(&ident)
       .map(|info| info.clone())
   }
 
   pub fn get_non_inlined_idents(
     &self,
-    ident: &Identifier,
+    ident: Identifier,
   ) -> Option<Arc<WithHash<Vec<ConcatenatedModuleIdent>>>> {
     self
       .non_inlined_modules_through_idents
-      .get(ident)
+      .get(&ident)
       .map(|idents| idents.clone())
   }
 }
@@ -936,7 +936,11 @@ var {} = {{}};
       .next_back()
     {
       let mut render_source = RenderSource {
-        source: RawStringSource::from(startup.join("\n") + "\n").boxed(),
+        source: {
+          let mut startup_source = startup.join("\n");
+          startup_source.push('\n');
+          RawStringSource::from(startup_source).boxed()
+        },
       };
       hooks
         .render_startup
@@ -1074,7 +1078,7 @@ var {} = {{}};
 
             if is_inlined_module {
               if let Some(ident_info_with_hash) =
-                self.rename_module_cache.get_inlined_info(&m.identifier())
+                self.rename_module_cache.get_inlined_info(m.identifier())
                 && let (Some(hash_current), Some(hash_cache)) = (
                   m.build_info().hash.as_ref(),
                   ident_info_with_hash.hash.as_ref(),
@@ -1087,7 +1091,7 @@ var {} = {{}};
               }
             } else if let Some(idents_with_hash) = self
               .rename_module_cache
-              .get_non_inlined_idents(&m.identifier())
+              .get_non_inlined_idents(m.identifier())
               && let (Some(hash_current), Some(hash_cache)) =
                 (m.build_info().hash.as_ref(), idents_with_hash.hash.as_ref())
               && *hash_current == *hash_cache

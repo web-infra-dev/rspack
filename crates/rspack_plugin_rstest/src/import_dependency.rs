@@ -48,7 +48,7 @@ impl DependencyTemplate for ImportDependencyTemplate {
       range.end,
       module_namespace_promise_rstest(
         code_generatable_context,
-        dep.id(),
+        *dep.id(),
         block,
         dep.request(),
         dep.dependency_type().as_str(),
@@ -64,13 +64,13 @@ impl DependencyTemplate for ImportDependencyTemplate {
 pub fn module_id_rstest(
   compilation: &Compilation,
   runtime_template: &mut ModuleCodegenRuntimeTemplate,
-  id: &DependencyId,
+  id: DependencyId,
   request: &str,
   weak: bool,
 ) -> String {
   if let Some(module_identifier) = compilation
     .get_module_graph()
-    .module_identifier_by_dependency_id(id)
+    .module_identifier_by_dependency_id(&id)
     && let Some(module_id) =
       ChunkGraph::get_module_id(&compilation.module_ids_artifact, *module_identifier)
   {
@@ -87,7 +87,7 @@ pub fn module_id_rstest(
 // To support use `__webpack_require__.import_actual` for `importActual`.
 fn module_namespace_promise_rstest(
   code_generatable_context: &mut TemplateContext,
-  dep_id: &DependencyId,
+  dep_id: DependencyId,
   block: Option<&AsyncDependenciesBlockIdentifier>,
   request: &str,
   message: &str,
@@ -102,7 +102,7 @@ fn module_namespace_promise_rstest(
   } = code_generatable_context;
   if compilation
     .get_module_graph()
-    .module_identifier_by_dependency_id(dep_id)
+    .module_identifier_by_dependency_id(&dep_id)
     .is_none()
   {
     return format!(
@@ -117,7 +117,7 @@ fn module_namespace_promise_rstest(
   let exports_type = get_exports_type(
     compilation.get_module_graph(),
     &compilation.module_graph_cache_artifact,
-    dep_id,
+    &dep_id,
     &module.identifier(),
   );
 
@@ -148,7 +148,7 @@ fn module_namespace_promise_rstest(
       if let Some(header) = header {
         appending = format!(
           ".then(function() {{ {header}\nreturn {}}})",
-          runtime_template.module_raw(compilation, dep_id, request, weak)
+          runtime_template.module_raw(compilation, &dep_id, request, weak)
         )
       } else {
         appending = format!(".then({final_require}.bind({final_require}, {module_id_expr}))");
@@ -168,13 +168,13 @@ fn module_namespace_promise_rstest(
         &compilation.async_modules_artifact.borrow(),
         compilation
           .get_module_graph()
-          .module_identifier_by_dependency_id(dep_id)
+          .module_identifier_by_dependency_id(&dep_id)
           .expect("should have module"),
       ) {
         if let Some(header) = header {
           appending = format!(
             ".then(function() {{\n {header}\nreturn {}\n}})",
-            runtime_template.module_raw(compilation, dep_id, request, weak)
+            runtime_template.module_raw(compilation, &dep_id, request, weak)
           )
         } else {
           appending = format!(".then({final_require}.bind({final_require}, {module_id_expr}))");

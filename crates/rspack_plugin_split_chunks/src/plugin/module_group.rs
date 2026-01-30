@@ -68,13 +68,13 @@ pub(crate) struct Combinator {
 
 impl Combinator {
   fn group_chunks_by_exports(
-    module_identifier: &ModuleIdentifier,
+    module_identifier: ModuleIdentifier,
     module_chunks: impl Iterator<Item = ChunkUkey>,
     module_graph: &ModuleGraph,
     chunk_by_ukey: &ChunkByUkey,
   ) -> Vec<UkeySet<ChunkUkey>> {
-    let exports_info =
-      module_graph.get_prefetched_exports_info(module_identifier, PrefetchExportsInfoMode::Default);
+    let exports_info = module_graph
+      .get_prefetched_exports_info(&module_identifier, PrefetchExportsInfoMode::Default);
     let mut grouped_by_used_exports: FxHashMap<UsageKey, UkeySet<ChunkUkey>> = Default::default();
     let mut runtime_key_map = RuntimeKeyMap::default();
     for chunk_ukey in module_chunks {
@@ -133,7 +133,7 @@ impl Combinator {
 
   fn get_combinations(
     chunk_sets_in_graph: FxHashMap<ChunksKey, UkeySet<ChunkUkey>>,
-    chunk_sets_by_count: UkeyIndexMap<u32, Vec<UkeySet<ChunkUkey>>>,
+    chunk_sets_by_count: &UkeyIndexMap<u32, Vec<UkeySet<ChunkUkey>>>,
   ) -> FxHashMap<ChunksKey, Vec<UkeySet<ChunkUkey>>> {
     chunk_sets_in_graph
       .into_par_iter()
@@ -188,7 +188,7 @@ impl Combinator {
 
     chunk_sets_by_count.sort_keys();
 
-    self.combinations = Self::get_combinations(chunk_sets_in_graph, chunk_sets_by_count);
+    self.combinations = Self::get_combinations(chunk_sets_in_graph, &chunk_sets_by_count);
   }
 
   pub(crate) fn prepare_group_by_used_exports(
@@ -203,7 +203,7 @@ impl Combinator {
       .par_iter()
       .filter_map(|module| {
         let grouped_chunks = Self::group_chunks_by_exports(
-          module,
+          *module,
           module_chunks
             .get(module)
             .expect("should have module chunks")
@@ -251,7 +251,7 @@ impl Combinator {
 
     self.used_exports_combinations = Self::get_combinations(
       used_exports_chunk_sets_in_graph,
-      used_exports_chunk_sets_by_count,
+      &used_exports_chunk_sets_by_count,
     );
   }
 }

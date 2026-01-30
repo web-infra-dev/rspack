@@ -196,13 +196,13 @@ impl NormalModule {
   }
 
   fn create_id<'request>(
-    module_type: &ModuleType,
+    module_type: ModuleType,
     layer: Option<&ModuleLayer>,
     request: &'request str,
   ) -> Cow<'request, str> {
     if let Some(layer) = layer {
       format!("{module_type}|{request}|{layer}").into()
-    } else if *module_type == ModuleType::JsAuto {
+    } else if module_type == ModuleType::JsAuto {
       request.into()
     } else {
       format!("{module_type}|{request}").into()
@@ -227,7 +227,7 @@ impl NormalModule {
     extract_source_map: Option<bool>,
   ) -> Self {
     let module_type = module_type.into();
-    let id = Self::create_id(&module_type, layer.as_ref(), &request);
+    let id = Self::create_id(module_type, layer.as_ref(), &request);
     Self::Owned(Box::new(NormalModuleInner {
       blocks: Vec::new(),
       dependencies: Vec::new(),
@@ -540,7 +540,7 @@ impl Module for NormalModule {
         GeneratorOptions::AssetResource(g) => g.binary,
         _ => None,
       })
-      .unwrap_or(inner.module_type.is_binary());
+      .unwrap_or_else(|| inner.module_type.is_binary());
 
     let content = if is_binary {
       Content::Buffer(loader_result.content.into_bytes())

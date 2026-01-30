@@ -24,12 +24,12 @@ bitflags! {
 }
 
 impl Branch {
-  pub fn get_definition(&self, local_module_var: &Option<String>) -> String {
+  pub fn get_definition(self, local_module_var: &Option<String>) -> String {
     let name = match local_module_var {
       Some(name) => name,
       None => "XXX",
     };
-    match *self {
+    match self {
       f if f == Branch::F => "var __rspack_amd_exports;".to_string(),
       o if o == Branch::O => String::new(),
       o_f if o_f == (Branch::O | Branch::F) => {
@@ -65,7 +65,7 @@ impl Branch {
   }
 
   pub fn get_content(
-    &self,
+    self,
     local_module_var: &Option<String>,
     named_module: &Option<Atom>,
     runtime_template: &mut ModuleCodegenRuntimeTemplate,
@@ -78,7 +78,7 @@ impl Branch {
       Some(name) => name,
       None => "YYY",
     };
-    match *self {
+    match self {
       f if f == Branch::F => {
         format!(
           "!(__rspack_amd_exports = (#).call({exports}, {require}, {exports}, {module}),

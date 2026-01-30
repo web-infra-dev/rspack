@@ -41,8 +41,8 @@ pub struct DefinePlugin {
 }
 
 impl DefinePlugin {
-  pub fn new(definitions: DefineValue) -> Self {
-    Self::new_inner(Arc::new(WalkData::new(&definitions)))
+  pub fn new(definitions: &DefineValue) -> Self {
+    Self::new_inner(Arc::new(WalkData::new(definitions)))
   }
 }
 

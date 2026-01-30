@@ -63,8 +63,9 @@ pub fn get_terminal_binding(
   if export_info.terminal_binding() {
     return Some(TerminalBinding::ExportInfo(export_info.id()));
   }
+  let resolve_filter: ResolveFilterFnTy<'_> = Rc::new(|_| true);
   let Some(GetTargetResult::Target(target)) =
-    get_target(export_info, mg, Rc::new(|_| true), &mut Default::default())
+    get_target(export_info, mg, &resolve_filter, &mut Default::default())
   else {
     return None;
   };
@@ -72,7 +73,7 @@ pub fn get_terminal_binding(
   let Some(export) = target.export else {
     return Some(TerminalBinding::ExportsInfo(exports_info));
   };
-  ExportsInfoGetter::prefetch(&exports_info, mg, PrefetchExportsInfoMode::Nested(&export))
+  ExportsInfoGetter::prefetch(exports_info, mg, &PrefetchExportsInfoMode::Nested(&export))
     .get_read_only_export_info_recursive(&export)
     .map(|data| TerminalBinding::ExportInfo(data.id()))
 }
@@ -80,7 +81,7 @@ pub fn get_terminal_binding(
 pub fn find_target(
   export_info: &ExportInfoData,
   mg: &ModuleGraph,
-  valid_target_module_filter: Arc<impl Fn(&ModuleIdentifier) -> bool>,
+  valid_target_module_filter: &Arc<impl Fn(&ModuleIdentifier) -> bool>,
   visited: &mut HashSet<ExportInfoHashKey>,
 ) -> FindTargetResult {
   if !export_info.target_is_set() || export_info.target().is_empty() {
@@ -107,7 +108,7 @@ pub fn find_target(
       .unwrap_or_default(),
   };
   loop {
-    if valid_target_module_filter(&target.module) {
+    if (valid_target_module_filter.as_ref())(&target.module) {
       return FindTargetResult::ValidTarget(target);
     }
     let name = &target.export.as_ref().expect("should have export")[0];
@@ -119,12 +120,7 @@ pub fn find_target(
       return FindTargetResult::NoTarget;
     }
     visited.insert(export_info_hash_key);
-    let new_target = find_target(
-      &export_info,
-      mg,
-      valid_target_module_filter.clone(),
-      visited,
-    );
+    let new_target = find_target(&export_info, mg, valid_target_module_filter, visited);
     let new_target = match new_target {
       FindTargetResult::NoTarget => return FindTargetResult::InvalidTarget(target),
       FindTargetResult::InvalidTarget(module) => return FindTargetResult::InvalidTarget(module),
@@ -161,7 +157,7 @@ pub fn find_target(
 pub fn get_target(
   export_info: &ExportInfoData,
   mg: &ModuleGraph,
-  resolve_filter: ResolveFilterFnTy,
+  resolve_filter: &ResolveFilterFnTy,
   already_visited: &mut HashSet<ExportInfoHashKey>,
 ) -> Option<GetTargetResult> {
   if !export_info.target_is_set() || export_info.target().is_empty() {
@@ -178,11 +174,11 @@ pub fn get_target(
     dependency: item.dependency,
     export: item.export.clone(),
   });
-  let target = resolve_target(values.next()?, already_visited, resolve_filter.clone(), mg);
+  let target = resolve_target(values.next()?, already_visited, resolve_filter, mg);
 
   if let Some(GetTargetResult::Target(target)) = &target {
     for val in values {
-      let resolved_target = resolve_target(val, already_visited, resolve_filter.clone(), mg);
+      let resolved_target = resolve_target(val, already_visited, resolve_filter, mg);
       let Some(GetTargetResult::Target(resolved_target)) = &resolved_target else {
         return resolved_target;
       };
@@ -198,7 +194,7 @@ pub fn get_target(
 fn resolve_target(
   input_target: UnResolvedExportInfoTarget,
   already_visited: &mut HashSet<ExportInfoHashKey>,
-  resolve_filter: ResolveFilterFnTy,
+  resolve_filter: &ResolveFilterFnTy,
   mg: &ModuleGraph,
 ) -> Option<GetTargetResult> {
   let mut target = ResolvedExportInfoTarget {
@@ -213,7 +209,7 @@ fn resolve_target(
   if target.export.is_none() {
     return Some(GetTargetResult::Target(target));
   }
-  if !resolve_filter(&target) {
+  if !(resolve_filter.as_ref())(&target) {
     return Some(GetTargetResult::Target(target));
   }
   loop {
@@ -228,12 +224,7 @@ fn resolve_target(
     if already_visited.contains(&maybe_export_info_hash_key) {
       return Some(GetTargetResult::Circular);
     }
-    let new_target = get_target(
-      &maybe_export_info,
-      mg,
-      resolve_filter.clone(),
-      already_visited,
-    );
+    let new_target = get_target(&maybe_export_info, mg, resolve_filter, already_visited);
 
     match new_target {
       Some(GetTargetResult::Circular) => {
@@ -260,7 +251,7 @@ fn resolve_target(
         }
       }
     }
-    if !resolve_filter(&target) {
+    if !(resolve_filter.as_ref())(&target) {
       return Some(GetTargetResult::Target(target));
     }
     already_visited.insert(maybe_export_info_hash_key);
@@ -270,7 +261,7 @@ fn resolve_target(
 pub fn can_move_target(
   export_info: &ExportInfoData,
   mg: &ModuleGraph,
-  resolve_filter: ResolveFilterFnTy,
+  resolve_filter: &ResolveFilterFnTy,
 ) -> Option<ResolvedExportInfoTarget> {
   let Some(GetTargetResult::Target(target)) =
     get_target(export_info, mg, resolve_filter, &mut Default::default())

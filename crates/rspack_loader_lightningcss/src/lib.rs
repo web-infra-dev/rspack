@@ -122,7 +122,7 @@ impl LightningCssLoader {
     // }
 
     let mut stylesheet = to_static(
-      stylesheet,
+      &stylesheet,
       ParserOptions {
         filename: filename.clone(),
         css_modules: None,
@@ -279,7 +279,7 @@ impl Loader<RunnerContext> for LightningCssLoader {
 }
 
 pub fn to_static(
-  stylesheet: StyleSheet,
+  stylesheet: &StyleSheet,
   options: ParserOptions<'static, 'static>,
 ) -> StyleSheet<'static, 'static> {
   let sources = stylesheet.sources.clone();

@@ -51,7 +51,7 @@ impl RstestPlugin {
 
   fn update_source(
     &self,
-    old: BoxSource,
+    old: &BoxSource,
     replace_map: &std::collections::HashMap<String, MockFlagPos>,
   ) -> BoxSource {
     let old_source = old.clone();
@@ -230,7 +230,7 @@ async fn mock_hoist_process_assets(&self, compilation: &mut Compilation) -> Resu
         }
       }
 
-      let new = self.update_source(old, &pos_map);
+      let new = self.update_source(&old, &pos_map);
       Ok((new, info))
     });
   }

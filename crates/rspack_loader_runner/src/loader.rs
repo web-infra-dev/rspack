@@ -156,7 +156,10 @@ pub trait DisplayWithSuffix: Display {
     if s.is_empty() {
       return suffix.to_string();
     }
-    self.to_string() + "!" + suffix
+    let mut combined = s;
+    combined.push('!');
+    combined.push_str(suffix);
+    combined
   }
 }
 

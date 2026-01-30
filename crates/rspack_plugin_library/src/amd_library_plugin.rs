@@ -64,7 +64,7 @@ impl AmdLibraryPlugin {
   fn get_options_for_chunk<'a>(
     &self,
     compilation: &'a Compilation,
-    chunk_ukey: &'a ChunkUkey,
+    chunk_ukey: ChunkUkey,
   ) -> Result<Option<AmdLibraryPluginParsed<'a>>> {
     get_options_for_chunk(compilation, chunk_ukey)
       .filter(|library| library.library_type == self.library_type)
@@ -93,7 +93,7 @@ async fn render(
   chunk_ukey: &ChunkUkey,
   render_source: &mut RenderSource,
 ) -> Result<()> {
-  let Some(options) = self.get_options_for_chunk(compilation, chunk_ukey)? else {
+  let Some(options) = self.get_options_for_chunk(compilation, *chunk_ukey)? else {
     return Ok(());
   };
   let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
@@ -170,7 +170,7 @@ async fn js_chunk_hash(
   chunk_ukey: &ChunkUkey,
   hasher: &mut RspackHash,
 ) -> Result<()> {
-  let Some(options) = self.get_options_for_chunk(compilation, chunk_ukey)? else {
+  let Some(options) = self.get_options_for_chunk(compilation, *chunk_ukey)? else {
     return Ok(());
   };
   PLUGIN_NAME.hash(hasher);
@@ -195,7 +195,7 @@ async fn additional_chunk_runtime_requirements(
   _runtime_modules: &mut Vec<Box<dyn RuntimeModule>>,
 ) -> Result<()> {
   if self
-    .get_options_for_chunk(compilation, chunk_ukey)?
+    .get_options_for_chunk(compilation, *chunk_ukey)?
     .is_none()
   {
     return Ok(());

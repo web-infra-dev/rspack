@@ -220,8 +220,8 @@ async fn render_chunk(
         .expect_get(entry)
         .get_runtime_chunk(&compilation.chunk_group_by_ukey);
       let chunks = get_all_chunks(
-        entry,
-        &runtime_chunk,
+        *entry,
+        runtime_chunk,
         None,
         &compilation.chunk_group_by_ukey,
       );

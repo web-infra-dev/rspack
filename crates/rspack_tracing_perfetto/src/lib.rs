@@ -212,7 +212,7 @@ where
 
     attrs.record(&mut visitor);
     let (custom_scope_packet, process_uuid) =
-      create_scope_sliced_packet(user_process_name.unwrap_or(DEFAULT_PROCESS_NAME.to_string()));
+      create_scope_sliced_packet(user_process_name.as_deref().unwrap_or(DEFAULT_PROCESS_NAME));
 
     // resolve the optional track descriptor for this span (either inherited from parent or user set, or None)
     let span_track_descriptor = user_track_name
@@ -314,7 +314,7 @@ where
       })
       .flatten();
     let (custom_scope_packet, process_uuid) =
-      create_scope_sliced_packet(user_process_name.unwrap_or(DEFAULT_PROCESS_NAME.to_string()));
+      create_scope_sliced_packet(user_process_name.as_deref().unwrap_or(DEFAULT_PROCESS_NAME));
     let event_track_descriptor = user_track_name
       .map(|name| {
         create_track_descriptor(

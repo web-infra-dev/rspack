@@ -97,9 +97,12 @@ fn print_exports_info_to_source<F>(
 
     source.add(RawStringSource::from(to_comment_with_nl(&export_str)));
 
-    if let Some(exports_info) = &export_info.exports_info() {
-      let exports_info =
-        ExportsInfoGetter::prefetch(exports_info, module_graph, PrefetchExportsInfoMode::Default);
+    if let Some(exports_info) = export_info.exports_info() {
+      let exports_info = ExportsInfoGetter::prefetch(
+        exports_info,
+        module_graph,
+        &PrefetchExportsInfoMode::Default,
+      );
       print_exports_info_to_source(
         source,
         &format!("{ident}  "),

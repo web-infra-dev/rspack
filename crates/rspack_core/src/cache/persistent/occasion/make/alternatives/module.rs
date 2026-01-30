@@ -25,6 +25,7 @@ pub struct TempModule {
 }
 
 impl TempModule {
+  #[allow(clippy::needless_pass_by_value)]
   pub fn transform_from(module: OwnedOrRef<BoxModule>) -> OwnedOrRef<BoxModule> {
     let m = module.as_ref();
     OwnedOrRef::Owned(BoxModule::new(Box::new(Self {

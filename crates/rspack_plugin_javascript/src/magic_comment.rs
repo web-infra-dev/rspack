@@ -232,16 +232,17 @@ fn analyze_comments(
       if let Some(item_name_match) = captures.name("_0") {
         let item_name = item_name_match.as_str();
         let error_span = || {
-          captures.name("_9").map_or(error_span.into(), |item| {
-            match_item_to_error_span(comment.span, item.start(), item.end())
-          })
+          captures.name("_9").map_or_else(
+            || error_span.into(),
+            |item| match_item_to_error_span(comment.span, item.start(), item.end()),
+          )
         };
         match item_name {
           "webpackChunkName" => {
             if let Some(item_value_match) = captures
               .name("_1")
-              .or(captures.name("_2"))
-              .or(captures.name("_3"))
+              .or_else(|| captures.name("_2"))
+              .or_else(|| captures.name("_3"))
             {
               result.insert(
                 RspackComment::ChunkName,
@@ -259,7 +260,7 @@ fn analyze_comments(
             );
           }
           "webpackPrefetch" => {
-            if let Some(item_value_match) = captures.name("_4").or(captures.name("_5")) {
+            if let Some(item_value_match) = captures.name("_4").or_else(|| captures.name("_5")) {
               result.insert(
                 RspackComment::Prefetch,
                 item_value_match.as_str().to_string(),
@@ -276,7 +277,7 @@ fn analyze_comments(
             );
           }
           "webpackPreload" => {
-            if let Some(item_value_match) = captures.name("_4").or(captures.name("_5")) {
+            if let Some(item_value_match) = captures.name("_4").or_else(|| captures.name("_5")) {
               result.insert(
                 RspackComment::Preload,
                 item_value_match.as_str().to_string(),
@@ -309,8 +310,8 @@ fn analyze_comments(
           "webpackMode" => {
             if let Some(item_value_match) = captures
               .name("_1")
-              .or(captures.name("_2"))
-              .or(captures.name("_3"))
+              .or_else(|| captures.name("_2"))
+              .or_else(|| captures.name("_3"))
             {
               result.insert(RspackComment::Mode, item_value_match.as_str().to_string());
               continue;
@@ -327,8 +328,8 @@ fn analyze_comments(
           "webpackFetchPriority" => {
             if let Some(item_value_match) = captures
               .name("_1")
-              .or(captures.name("_2"))
-              .or(captures.name("_3"))
+              .or_else(|| captures.name("_2"))
+              .or_else(|| captures.name("_3"))
             {
               let priority = item_value_match.as_str();
               if priority == "low" || priority == "high" || priority == "auto" {
@@ -388,8 +389,8 @@ fn analyze_comments(
           "webpackExports" => {
             if let Some(item_value_match) = captures
               .name("_1")
-              .or(captures.name("_2"))
-              .or(captures.name("_3"))
+              .or_else(|| captures.name("_2"))
+              .or_else(|| captures.name("_3"))
             {
               result.insert(
                 RspackComment::Exports,

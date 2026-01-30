@@ -258,7 +258,7 @@ impl StartTimeAggregate {
     }
   }
 
-  pub fn end(&mut self, start: StartTime) {
+  pub fn end(&mut self, start: &StartTime) {
     if start.label == self.label {
       self.duration += start.elapsed();
     } else {

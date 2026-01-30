@@ -151,7 +151,6 @@ impl ModuleFilenameHelpers {
         let hash = get_hash(&identifier, output_options);
 
         let resource = short_identifier
-          .clone()
           .split('!')
           .next_back()
           .unwrap_or("")

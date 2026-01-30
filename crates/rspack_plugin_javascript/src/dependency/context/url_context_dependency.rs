@@ -156,7 +156,7 @@ impl DependencyTemplate for URLContextDependencyTemplate {
       dep,
       source,
       code_generatable_context,
-      &dep.range,
+      dep.range,
       Some(&dep.value_range),
     );
   }

@@ -85,7 +85,7 @@ fn assign_named_module_ids(
     } else if items.len() == 1 && !used_ids.contains_key(&name.as_str().into()) {
       let item = items[0];
       let name: ModuleId = name.into();
-      if ChunkGraph::set_module_id(module_ids, item, name.clone())
+      if ChunkGraph::set_module_id(module_ids, item, &name)
         && let Some(mutations) = mutations
       {
         mutations.add(Mutation::ModuleSetId { module: item });
@@ -105,7 +105,7 @@ fn assign_named_module_ids(
           formatted_name = format!("{name}{}", i_buffer.format(i));
         }
         let name: ModuleId = formatted_name.into();
-        if ChunkGraph::set_module_id(module_ids, item, name.clone())
+        if ChunkGraph::set_module_id(module_ids, item, &name)
           && let Some(mutations) = mutations
         {
           mutations.add(Mutation::ModuleSetId { module: item });
@@ -206,7 +206,8 @@ async fn module_ids(
         next_id += 1;
         id = next_id.to_string();
       }
-      if ChunkGraph::set_module_id(&mut module_ids, module, id.into())
+      let module_id: ModuleId = id.into();
+      if ChunkGraph::set_module_id(&mut module_ids, module, &module_id)
         && let Some(mutations) = &mut mutations
       {
         mutations.add(Mutation::ModuleSetId { module });

@@ -52,7 +52,7 @@ impl<F: LazyCompilationTestCheck> LazyCompilationTest<F> {
   ) -> bool {
     match self {
       LazyCompilationTest::Regex(regex) => {
-        regex.test(&module.name_for_condition().unwrap_or("".into()))
+        regex.test(&module.name_for_condition().unwrap_or_else(|| "".into()))
       }
       LazyCompilationTest::Fn(f) => f.test(compiler_id, compilation_id, module).await,
     }

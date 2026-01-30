@@ -914,7 +914,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
 
       let mut ctx = (0, 0, Default::default());
       for root in roots {
-        self.calculate_order_index(root, runtime.clone(), &mut visited, &mut ctx, compilation);
+        self.calculate_order_index(root, &runtime, &mut visited, &mut ctx, compilation);
 
         let chunk_group = compilation
           .chunk_group_by_ukey
@@ -999,7 +999,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
   fn calculate_order_index(
     &mut self,
     module_identifier: ModuleIdentifier,
-    runtime: Arc<RuntimeSpec>,
+    runtime: &Arc<RuntimeSpec>,
     visited: &mut IdentifierSet,
     ctx: &mut (usize, usize, IndexMap<ModuleIdentifier, (usize, usize)>),
     compilation: &Compilation,
@@ -1008,7 +1008,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       return;
     }
     let block_modules =
-      self.get_block_modules(module_identifier.into(), Some(runtime.clone()), compilation);
+      self.get_block_modules(module_identifier.into(), Some(runtime), compilation);
 
     let indices = ctx.2.entry(module_identifier).or_default();
 
@@ -1020,7 +1020,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         continue;
       }
 
-      self.calculate_order_index(*module, runtime.clone(), visited, ctx, compilation);
+      self.calculate_order_index(*module, runtime, visited, ctx, compilation);
     }
 
     let indices = ctx.2.entry(module_identifier).or_default();
@@ -1241,13 +1241,13 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       }
     }
 
-    let chunk_group_info = self.chunk_group_infos.expect_get(&item.chunk_group_info);
+    let runtime = self
+      .chunk_group_infos
+      .expect_get(&item.chunk_group_info)
+      .runtime
+      .clone();
 
-    let modules = self.get_block_modules(
-      item.block.into(),
-      Some(chunk_group_info.runtime.clone()),
-      compilation,
-    );
+    let modules = self.get_block_modules(item.block.into(), Some(&runtime), compilation);
 
     for (module, active_state, _) in modules.iter() {
       if active_state.is_true() {
@@ -1289,17 +1289,18 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
 
     self.stat_processed_blocks += 1;
 
-    let chunk_group_info = self
-      .chunk_group_infos
-      .get(&item.chunk_group_info)
-      .expect("should have cgi");
-    let min_available_modules = chunk_group_info.min_available_modules.clone();
+    let (min_available_modules, runtime) = {
+      let chunk_group_info = self
+        .chunk_group_infos
+        .get(&item.chunk_group_info)
+        .expect("should have cgi");
+      (
+        chunk_group_info.min_available_modules.clone(),
+        chunk_group_info.runtime.clone(),
+      )
+    };
 
-    let block_modules = self.get_block_modules(
-      item.block,
-      Some(chunk_group_info.runtime.clone()),
-      compilation,
-    );
+    let block_modules = self.get_block_modules(item.block, Some(&runtime), compilation);
 
     for (module, active_state, connections) in block_modules.iter().rev() {
       if compilation
@@ -1662,12 +1663,13 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
   fn get_block_modules(
     &mut self,
     module: DependenciesBlockIdentifier,
-    runtime: Option<Arc<RuntimeSpec>>,
+    runtime: Option<&Arc<RuntimeSpec>>,
     compilation: &Compilation,
   ) -> Arc<Vec<(ModuleIdentifier, ConnectionState, Vec<DependencyId>)>> {
+    let runtime_key = runtime.cloned();
     let runtime_map = self
       .block_modules_runtime_map
-      .entry(runtime.clone())
+      .entry(runtime_key.clone())
       .or_default();
 
     if let Some(modules) = runtime_map.get(&module) {
@@ -1676,7 +1678,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
 
     extract_block_modules(
       module.get_root_block(compilation.get_module_graph()),
-      runtime,
+      runtime_key.as_deref(),
       compilation,
       &self.prepared_blocks_map,
       &self.prepared_connection_map,
@@ -2160,27 +2162,27 @@ pub(crate) enum DependenciesBlockIdentifier {
 }
 
 impl DependenciesBlockIdentifier {
-  pub fn get_root_block<'a>(&'a self, module_graph: &'a ModuleGraph) -> ModuleIdentifier {
+  pub fn get_root_block(self, module_graph: &ModuleGraph) -> ModuleIdentifier {
     match self {
-      DependenciesBlockIdentifier::Module(m) => *m,
+      DependenciesBlockIdentifier::Module(m) => m,
       DependenciesBlockIdentifier::AsyncDependenciesBlock(id) => *module_graph
-        .block_by_id(id)
+        .block_by_id(&id)
         .expect("should have block")
         .parent(),
     }
   }
 
-  pub fn get_blocks(&self, compilation: &Compilation) -> Vec<AsyncDependenciesBlockIdentifier> {
+  pub fn get_blocks(self, compilation: &Compilation) -> Vec<AsyncDependenciesBlockIdentifier> {
     match self {
       DependenciesBlockIdentifier::Module(m) => compilation
         .get_module_graph()
-        .module_by_identifier(m)
+        .module_by_identifier(&m)
         .expect("should have module")
         .get_blocks()
         .to_vec(),
       DependenciesBlockIdentifier::AsyncDependenciesBlock(a) => compilation
         .get_module_graph()
-        .block_by_id(a)
+        .block_by_id(&a)
         .expect("should have block")
         .get_blocks()
         .to_vec(),
@@ -2216,7 +2218,7 @@ pub(crate) struct LeaveModule {
 
 fn extract_block_modules(
   module: ModuleIdentifier,
-  runtime: Option<Arc<RuntimeSpec>>,
+  runtime: Option<&RuntimeSpec>,
   compilation: &Compilation,
   prepared_blocks_map: &HashMap<DependenciesBlockIdentifier, Vec<AsyncDependenciesBlockIdentifier>>,
   prepared_connection_map: &IdentifierMap<PreparedBlockConnectionMap>,
@@ -2246,7 +2248,7 @@ fn extract_block_modules(
       .expect("should have modules in block_modules_runtime_map");
     let active_state = get_active_state_of_connections(
       connections,
-      runtime.as_deref(),
+      runtime,
       compilation.get_module_graph(),
       &compilation.module_graph_cache_artifact,
     );

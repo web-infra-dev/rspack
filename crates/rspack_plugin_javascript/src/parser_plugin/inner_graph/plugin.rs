@@ -125,15 +125,15 @@ impl InnerGraphPlugin {
     }
   }
 
-  pub fn for_each_statement(parser: &mut JavascriptParser, stmt_span: &Span) {
+  pub fn for_each_statement(parser: &mut JavascriptParser, stmt_span: Span) {
     if let Some(v) = parser
       .inner_graph
       .statement_with_top_level_symbol
-      .get(stmt_span)
+      .get(&stmt_span)
     {
       parser.inner_graph.set_top_level_symbol(Some(v.clone()));
 
-      if let Some(pure_part) = parser.inner_graph.statement_pure_part.get(stmt_span) {
+      if let Some(pure_part) = parser.inner_graph.statement_pure_part.get(&stmt_span) {
         let pure_part_start = pure_part.real_lo();
         let pure_part_end = pure_part.real_hi();
         Self::on_usage(
@@ -551,7 +551,7 @@ impl JavascriptParserPlugin for InnerGraphPlugin {
 
     parser.inner_graph.set_top_level_symbol(None);
 
-    Self::for_each_statement(parser, &stmt.span());
+    Self::for_each_statement(parser, stmt.span());
 
     None
   }
@@ -584,10 +584,10 @@ impl JavascriptParserPlugin for InnerGraphPlugin {
     if let ModuleDecl::ExportDefaultDecl(default_decl) = stmt {
       match &default_decl.decl {
         DefaultDecl::Class(class) => {
-          Self::for_each_statement(parser, &class.span());
+          Self::for_each_statement(parser, class.span());
         }
         DefaultDecl::Fn(f) => {
-          Self::for_each_statement(parser, &f.span());
+          Self::for_each_statement(parser, f.span());
         }
         DefaultDecl::TsInterfaceDecl(_) => unreachable!(),
       }

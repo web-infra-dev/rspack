@@ -98,13 +98,13 @@ impl JavaScriptCompiler {
   /// Parses JavaScript code from a source file into an [SwcProgram].
   pub fn parse_js(
     &self,
-    fm: Arc<SourceFile>,
+    fm: &Arc<SourceFile>,
     target: EsVersion,
     syntax: Syntax,
     is_module: IsModule,
     comments: Option<&dyn Comments>,
   ) -> Result<SwcProgram, BatchErrors> {
-    let lexer = Lexer::new(syntax, target, SourceFileInput::from(&*fm), comments);
+    let lexer = Lexer::new(syntax, target, SourceFileInput::from(&**fm), comments);
     parse_with_lexer(lexer, is_module, false)
       .map(|(program, _)| program)
       .map_err(|errs| {

@@ -137,13 +137,13 @@ impl CopyRspackPlugin {
 
   fn get_content_hash(
     source: &BoxSource,
-    function: &HashFunction,
-    digest: &HashDigest,
+    function: HashFunction,
+    digest: HashDigest,
     salt: &HashSalt,
   ) -> RspackHashDigest {
-    let mut hasher = RspackHash::with_salt(function, salt);
+    let mut hasher = RspackHash::with_salt(&function, salt);
     source.buffer().hash(&mut hasher);
-    hasher.digest(digest)
+    hasher.digest(&digest)
   }
 
   #[allow(clippy::too_many_arguments)]
@@ -205,11 +205,7 @@ impl CopyRspackPlugin {
         }
       };
 
-      to.clone()
-        .as_path()
-        .normalize()
-        .to_string_lossy()
-        .to_string()
+      to.as_path().normalize().to_string_lossy().to_string()
     } else {
       String::new()
     };
@@ -307,8 +303,8 @@ impl CopyRspackPlugin {
 
       let content_hash = Self::get_content_hash(
         &source,
-        &compilation.options.output.hash_function,
-        &compilation.options.output.hash_digest,
+        compilation.options.output.hash_function,
+        compilation.options.output.hash_digest,
         &compilation.options.output.hash_salt,
       );
       let content_hash = content_hash.rendered(compilation.options.output.hash_digest_length);
@@ -421,7 +417,10 @@ impl CopyRspackPlugin {
       FromType::File => {
         logger.debug(format!("added '{abs_from}' as a file dependency"));
         file_dependencies.insert(abs_from.clone().into_std_path_buf());
-        context = abs_from.parent().unwrap_or(Utf8Path::new("")).into();
+        context = abs_from
+          .parent()
+          .unwrap_or_else(|| Utf8Path::new(""))
+          .into();
 
         if dot_enable.is_none() {
           dot_enable = Some(true);

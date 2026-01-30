@@ -37,6 +37,7 @@ impl LoadScriptRuntimeModule {
   }
 }
 
+#[derive(Clone, Copy)]
 enum TemplateId {
   Raw,
   CreateScript,

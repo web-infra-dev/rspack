@@ -186,7 +186,8 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
   } = code_generatable_context;
 
   // https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/dependencies/HarmonyImportDependency.js#L282-L285
-  let module_key = target_module.map_or(module_dependency.request(), |m| m.identifier().as_str());
+  let module_key =
+    target_module.map_or_else(|| module_dependency.request(), |m| m.identifier().as_str());
   let key = format!(
     "{}ESM import {module_key}",
     match phase {
@@ -236,7 +237,7 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
       None,
       runtime_condition.clone(),
     )));
-    init_fragments.push(AwaitDependenciesInitFragment::new_single(import_var.clone()).boxed());
+    init_fragments.push(AwaitDependenciesInitFragment::new_single(import_var).boxed());
     init_fragments.push(Box::new(ConditionalInitFragment::new(
       content.1,
       InitFragmentStage::StageAsyncESMImports,
@@ -250,7 +251,7 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
       format!("{}{}", content.0, content.1),
       InitFragmentStage::StageESMImports,
       source_order,
-      InitFragmentKey::ESMImport(key.clone()),
+      InitFragmentKey::ESMImport(key),
       None,
       runtime_condition,
     )));
@@ -367,7 +368,7 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
         }
         if find_type_exports_from_outgoings(
           module_graph,
-          &imported_module_identifier,
+          imported_module_identifier,
           &ids[0],
           &mut IdentifierSet::default(),
         ) {
@@ -477,13 +478,13 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
 
 fn find_type_exports_from_outgoings(
   mg: &ModuleGraph,
-  module_identifier: &ModuleIdentifier,
+  module_identifier: ModuleIdentifier,
   export_name: &Atom,
   visited: &mut IdentifierSet,
 ) -> bool {
-  visited.insert(*module_identifier);
+  visited.insert(module_identifier);
   let module = mg
-    .module_by_identifier(module_identifier)
+    .module_by_identifier(&module_identifier)
     .expect("should have module");
   // bailout the check of this export chain if there is a module that not transpiled from
   // typescript, we only support that the export chain is all transpiled typescript, if not
@@ -494,7 +495,7 @@ fn find_type_exports_from_outgoings(
   if info.type_exports.contains(export_name) {
     return true;
   }
-  for connection in mg.get_outgoing_connections(module_identifier) {
+  for connection in mg.get_outgoing_connections(&module_identifier) {
     if visited.contains(connection.module_identifier()) {
       continue;
     }
@@ -505,7 +506,7 @@ fn find_type_exports_from_outgoings(
     ) {
       continue;
     }
-    if find_type_exports_from_outgoings(mg, connection.module_identifier(), export_name, visited) {
+    if find_type_exports_from_outgoings(mg, *connection.module_identifier(), export_name, visited) {
       return true;
     }
   }

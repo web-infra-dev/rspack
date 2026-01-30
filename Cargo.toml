@@ -496,7 +496,7 @@ verbose_bit_mask             = "warn"
 zero_sized_map_values        = "warn"
 
 # performance
-perf = "warn"
+perf = { level = "warn", priority = -1 }
 # performance - memory allocation optimization
 box_collection       = "warn"
 redundant_allocation = "warn"

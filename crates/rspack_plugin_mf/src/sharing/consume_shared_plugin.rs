@@ -138,7 +138,7 @@ async fn get_description_file(
 }
 
 fn get_required_version_from_description_file(
-  data: serde_json::Value,
+  data: &serde_json::Value,
   package_name: &str,
 ) -> Option<ConsumeVersion> {
   let data = data.as_object()?;
@@ -270,7 +270,7 @@ impl ConsumeSharedPlugin {
           Some(|data: Option<serde_json::Value>| {
             if let Some(data) = data {
               let name_matches = data.get("name").and_then(|n| n.as_str()) == Some(package_name);
-              let version_matches = get_required_version_from_description_file(data, package_name)
+              let version_matches = get_required_version_from_description_file(&data, package_name)
                 .is_some_and(|version| matches!(version, ConsumeVersion::Version(_)));
               name_matches || version_matches
             } else {
@@ -287,7 +287,7 @@ impl ConsumeSharedPlugin {
             // Package self-referencing
             return None;
           }
-          return get_required_version_from_description_file(data, package_name);
+          return get_required_version_from_description_file(&data, package_name);
         } else {
           if let Some(file_paths) = checked_description_file_paths
             && !file_paths.is_empty()
@@ -426,9 +426,17 @@ async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<B
           &data.context,
           request,
           Arc::new(ConsumeOptions {
-            import: options.import.as_ref().map(|i| i.to_owned() + remainder),
+            import: options.import.as_ref().map(|i| {
+              let mut import = i.to_owned();
+              import.push_str(remainder);
+              import
+            }),
             import_resolved: options.import_resolved.clone(),
-            share_key: options.share_key.clone() + remainder,
+            share_key: {
+              let mut share_key = options.share_key.clone();
+              share_key.push_str(remainder);
+              share_key
+            },
             share_scope: options.share_scope.clone(),
             required_version: options.required_version.clone(),
             package_name: options.package_name.clone(),

@@ -58,7 +58,7 @@ pub fn ecma_parse_error_deduped_to_rspack_error(
     Some(source),
     span.real_lo() as usize,
     span.real_hi() as usize,
-    "JavaScript parse error".into(),
+    "JavaScript parse error",
     message,
   )
 }

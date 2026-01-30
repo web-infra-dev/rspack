@@ -45,6 +45,7 @@ impl EmbedFederationRuntimeModule {
   }
 }
 
+#[derive(Clone, Copy)]
 enum TemplateId {
   Async,
   Sync,

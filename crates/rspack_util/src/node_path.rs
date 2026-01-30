@@ -2,16 +2,16 @@ use std::borrow::Cow;
 
 use rspack_paths::{Utf8Path, Utf8PathBuf};
 
-fn is_path_separator(byte: &u8) -> bool {
-  *byte == b'/' || *byte == b'\\'
+fn is_path_separator(byte: u8) -> bool {
+  byte == b'/' || byte == b'\\'
 }
 
-fn is_posix_path_separator(byte: &u8) -> bool {
-  *byte == b'/'
+fn is_posix_path_separator(byte: u8) -> bool {
+  byte == b'/'
 }
 
-fn is_windows_device_root(byte: &u8) -> bool {
-  (*byte >= b'A' && *byte <= b'Z') || (*byte >= b'a' && *byte <= b'z')
+fn is_windows_device_root(byte: u8) -> bool {
+  byte.is_ascii_uppercase() || byte.is_ascii_lowercase()
 }
 
 // Resolves . and .. elements in a path with directory names
@@ -19,7 +19,7 @@ fn normalize_string(
   path: impl AsRef<[u8]>,
   allow_above_root: bool,
   separator: u8,
-  is_path_separator: &dyn Fn(&u8) -> bool,
+  is_path_separator: &dyn Fn(u8) -> bool,
 ) -> String {
   let path = path.as_ref();
 
@@ -27,15 +27,15 @@ fn normalize_string(
   let mut last_segment_length = 0;
   let mut last_slash = -1;
   let mut dots = 0;
-  let mut code = &b'\0';
+  let mut code = b'\0';
 
   for (i, ch) in path.iter().enumerate().chain(Some((path.len(), &b'\0'))) {
     if i < path.len() {
-      code = ch;
+      code = *ch;
     } else if is_path_separator(code) {
       break;
     } else {
-      code = &b'/';
+      code = b'/';
     }
 
     if is_path_separator(code) {
@@ -84,7 +84,7 @@ fn normalize_string(
       }
       last_slash = i as isize;
       dots = 0;
-    } else if *code == b'.' && dots != -1 {
+    } else if code == b'.' && dots != -1 {
       dots += 1;
     } else {
       dots = -1;
@@ -226,11 +226,11 @@ impl NodePath for Utf8PathBuf {
 
     // in general, a separator is needed if the rightmost byte is not a separator
     let buf = self.as_os_str().as_encoded_bytes();
-    let need_sep = buf.last().is_some_and(|c| !is_posix_path_separator(c))
+    let need_sep = buf.last().is_some_and(|c| !is_posix_path_separator(*c))
       && path
         .as_bytes()
         .first()
-        .is_some_and(|c| !is_posix_path_separator(c));
+        .is_some_and(|c| !is_posix_path_separator(*c));
 
     let mut string = self.as_str().to_string();
     if need_sep {
@@ -253,11 +253,11 @@ impl NodePath for Utf8PathBuf {
 
     // in general, a separator is needed if the rightmost byte is not a separator
     let buf = self.as_os_str().as_encoded_bytes();
-    let need_sep = buf.last().is_some_and(|c| !is_path_separator(c))
+    let need_sep = buf.last().is_some_and(|c| !is_path_separator(*c))
       && path
         .as_bytes()
         .first()
-        .is_some_and(|c| !is_path_separator(c));
+        .is_some_and(|c| !is_path_separator(*c));
 
     let mut joined = self.to_string();
     if need_sep {
@@ -282,12 +282,12 @@ impl NodePath for Utf8PathBuf {
     let mut needs_replace = true;
     let mut slash_count = 0;
 
-    if is_path_separator(&first_part[0]) {
+    if is_path_separator(first_part[0]) {
       slash_count += 1;
-      if first_part.len() > 1 && is_path_separator(&first_part[1]) {
+      if first_part.len() > 1 && is_path_separator(first_part[1]) {
         slash_count += 1;
         if first_part.len() > 2 {
-          if is_path_separator(&first_part[2]) {
+          if is_path_separator(first_part[2]) {
             slash_count += 1;
           } else {
             // We matched a UNC path in the first part
@@ -303,7 +303,7 @@ impl NodePath for Utf8PathBuf {
         && joined
           .as_bytes()
           .get(slash_count)
-          .is_some_and(is_path_separator)
+          .is_some_and(|c| is_path_separator(*c))
       {
         slash_count += 1;
       }
@@ -373,7 +373,7 @@ impl NodePath for Utf8PathBuf {
     let mut root_end = 0;
     let mut device = None;
     let mut is_absolute = false;
-    let code = &path.as_bytes()[0];
+    let code = path.as_bytes()[0];
 
     // Try to match a root
     if len == 1 {
@@ -390,12 +390,16 @@ impl NodePath for Utf8PathBuf {
       // path of some kind (UNC or otherwise)
       is_absolute = true;
 
-      if path.as_bytes().get(1).is_some_and(is_path_separator) {
+      if path
+        .as_bytes()
+        .get(1)
+        .is_some_and(|c| is_path_separator(*c))
+      {
         // Matched double path separator at beginning
         let mut j = 2;
         let mut last = j;
         // Match 1 or more non-path separators
-        while j < len && !is_path_separator(&path.as_bytes()[j]) {
+        while j < len && !is_path_separator(path.as_bytes()[j]) {
           j += 1;
         }
         if j < len && j != last {
@@ -403,14 +407,14 @@ impl NodePath for Utf8PathBuf {
           // Matched!
           last = j;
           // Match 1 or more path separators
-          while j < len && is_path_separator(&path.as_bytes()[j]) {
+          while j < len && is_path_separator(path.as_bytes()[j]) {
             j += 1;
           }
           if j < len && j != last {
             // Matched!
             last = j;
             // Match 1 or more non-path separators
-            while j < len && !is_path_separator(&path.as_bytes()[j]) {
+            while j < len && !is_path_separator(path.as_bytes()[j]) {
               j += 1;
             }
             if j < len || j != last {
@@ -434,11 +438,16 @@ impl NodePath for Utf8PathBuf {
       } else {
         root_end = 1;
       }
-    } else if is_windows_device_root(&path.as_bytes()[0]) && path.as_bytes().get(1) == Some(&b':') {
+    } else if is_windows_device_root(path.as_bytes()[0]) && path.as_bytes().get(1) == Some(&b':') {
       // Possible device root
       device = Some(Cow::from(&path[0..2]));
       root_end = 2;
-      if path.len() > 2 && path.as_bytes().get(2).is_some_and(is_path_separator) {
+      if path.len() > 2
+        && path
+          .as_bytes()
+          .get(2)
+          .is_some_and(|c| is_path_separator(*c))
+      {
         // Treat separator following drive name as an absolute path indicator
         is_absolute = true;
         root_end = 3;
@@ -455,7 +464,12 @@ impl NodePath for Utf8PathBuf {
       tail = ".".to_string();
     }
 
-    if !tail.is_empty() && path.as_bytes().last().is_some_and(is_path_separator) {
+    if !tail.is_empty()
+      && path
+        .as_bytes()
+        .last()
+        .is_some_and(|c| is_path_separator(*c))
+    {
       tail.push('\\');
     }
 
@@ -465,14 +479,19 @@ impl NodePath for Utf8PathBuf {
       // `tail` has not become something that Windows might interpret as an
       // absolute path. See CVE-2024-36139.
       if tail.len() >= 2
-        && is_windows_device_root(&tail.as_bytes()[0])
+        && is_windows_device_root(tail.as_bytes()[0])
         && tail.as_bytes().get(1) == Some(&b':')
       {
         return Utf8PathBuf::from(format!(".\\{tail}"));
       }
       let mut index = path.find(':');
       while let Some(i) = index {
-        if i == path.len() - 1 || path.as_bytes().get(i + 1).is_some_and(is_path_separator) {
+        if i == path.len() - 1
+          || path
+            .as_bytes()
+            .get(i + 1)
+            .is_some_and(|c| is_path_separator(*c))
+        {
           return Utf8PathBuf::from(format!(".\\{tail}"));
         }
         index = path[i + 1..].find(':').map(|next| next + i + 1);
@@ -511,14 +530,14 @@ impl NodePath for Utf8PathBuf {
     let bytes = path.as_bytes();
 
     // Mirrors Node.js `path.win32.isAbsolute`: first separator is absolute.
-    if is_path_separator(&bytes[0]) {
+    if is_path_separator(bytes[0]) {
       return true;
     }
 
     if path.len() > 2
-      && is_windows_device_root(&bytes[0])
+      && is_windows_device_root(bytes[0])
       && bytes[1] == b':'
-      && is_path_separator(&bytes[2])
+      && is_path_separator(bytes[2])
     {
       return true;
     }

@@ -87,7 +87,7 @@ impl Dependency for ImportEagerDependency {
     _runtime: Option<&rspack_core::RuntimeSpec>,
   ) -> Vec<rspack_core::ExtendedReferencedExport> {
     create_import_dependency_referenced_exports(
-      &self.id,
+      self.id,
       &self.referenced_exports,
       module_graph,
       module_graph_cache,

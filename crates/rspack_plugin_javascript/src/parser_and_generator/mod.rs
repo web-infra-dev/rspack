@@ -29,7 +29,7 @@ use crate::{
   visitors::{ScanDependenciesResult, scan_dependencies, semicolon, swc_visitor::resolver},
 };
 
-fn module_type_to_is_module(value: &ModuleType) -> IsModule {
+fn module_type_to_is_module(value: ModuleType) -> IsModule {
   // parser options align with webpack
   match value {
     ModuleType::JsEsm => IsModule::Bool(true),
@@ -62,34 +62,34 @@ impl JavaScriptParserAndGenerator {
   fn source_block(
     &self,
     compilation: &Compilation,
-    block_id: &AsyncDependenciesBlockIdentifier,
+    block_id: AsyncDependenciesBlockIdentifier,
     source: &mut TemplateReplaceSource,
     context: &mut TemplateContext,
   ) {
     let module_graph = compilation.get_module_graph();
     let block = module_graph
-      .block_by_id(block_id)
+      .block_by_id(&block_id)
       .expect("should have block");
     //    let block = block_id.expect_get(compilation);
     block.get_dependencies().iter().for_each(|dependency_id| {
-      self.source_dependency(compilation, dependency_id, source, context)
+      self.source_dependency(compilation, *dependency_id, source, context)
     });
     block
       .get_blocks()
       .iter()
-      .for_each(|block_id| self.source_block(compilation, block_id, source, context));
+      .for_each(|block_id| self.source_block(compilation, *block_id, source, context));
   }
 
   fn source_dependency(
     &self,
     compilation: &Compilation,
-    dependency_id: &DependencyId,
+    dependency_id: DependencyId,
     source: &mut TemplateReplaceSource,
     context: &mut TemplateContext,
   ) {
     if let Some(dependency) = compilation
       .get_module_graph()
-      .dependency_by_id(dependency_id)
+      .dependency_by_id(&dependency_id)
       .as_dependency_code_generation()
     {
       if let Some(template) = compilation.get_dependency_template(dependency) {
@@ -202,7 +202,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     let (mut ast, tokens) = match javascript_compiler.parse_with_lexer(
       &source_string,
       parser_lexer,
-      module_type_to_is_module(module_type),
+      module_type_to_is_module(*module_type),
       Some(comments.clone()),
       true,
     ) {
@@ -316,7 +316,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       };
 
       module.get_dependencies().iter().for_each(|dependency_id| {
-        self.source_dependency(compilation, dependency_id, &mut source, &mut context)
+        self.source_dependency(compilation, *dependency_id, &mut source, &mut context)
       });
 
       if let Some(dependencies) = module.get_presentational_dependencies() {
@@ -335,7 +335,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       module
         .get_blocks()
         .iter()
-        .for_each(|block_id| self.source_block(compilation, block_id, &mut source, &mut context));
+        .for_each(|block_id| self.source_block(compilation, *block_id, &mut source, &mut context));
       generate_context.concatenation_scope = context.concatenation_scope.take();
       render_init_fragments(source.boxed(), init_fragments, generate_context)
     } else {

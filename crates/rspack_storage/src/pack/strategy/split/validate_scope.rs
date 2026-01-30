@@ -246,7 +246,7 @@ mod tests {
         pack_size: 100,
       });
       let mut mock_scope = PackScope::empty("scope_name", scope_path.clone(), pack_options.clone());
-      let updates = mock_updates(0, 100, 30, UpdateVal::Value("val".to_string()));
+      let updates = mock_updates(0, 100, 30, &UpdateVal::Value("val".to_string()));
       strategy
         .update_scope(&mut mock_scope, updates)
         .await

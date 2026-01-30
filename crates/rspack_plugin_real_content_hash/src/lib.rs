@@ -92,7 +92,7 @@ async fn inner_impl(compilation: &mut Compilation) -> Result<()> {
       hash_to_asset_names
         .entry(hash)
         .and_modify(|names| names.push(name))
-        .or_insert(vec![name]);
+        .or_insert_with(|| vec![name]);
     }
   }
   logger.time_end(start);

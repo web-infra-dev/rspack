@@ -73,12 +73,12 @@ pub fn create_event(
 
 // write a custom scope to the trace, more info see https://perfetto.dev/docs/reference/synthetic-track-event#custom-scoped-slices
 // it will only create a packet if the scope name is not already registered
-pub fn create_scope_sliced_packet(scope_name: String) -> (Option<TracePacket>, u64) {
+pub fn create_scope_sliced_packet(scope_name: &str) -> (Option<TracePacket>, u64) {
   // allocate a new uuid for the scope name if it is not already registered
   if let Some(uuid) = CUSTOM_SCOPE_NAMES
     .lock()
     .expect("lock failed")
-    .get(&scope_name)
+    .get(scope_name)
   {
     return (None, *uuid);
   }
@@ -86,7 +86,7 @@ pub fn create_scope_sliced_packet(scope_name: String) -> (Option<TracePacket>, u
   CUSTOM_SCOPE_NAMES
     .lock()
     .expect("lock failed")
-    .insert(scope_name.clone(), uuid);
+    .insert(scope_name.to_string(), uuid);
 
   let track_descriptor = create_track_descriptor(
     uuid,              // uuid

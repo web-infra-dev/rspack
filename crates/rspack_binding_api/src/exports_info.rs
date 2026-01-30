@@ -105,9 +105,9 @@ impl JsExportsInfo {
       Either::B(v) => v.into_iter().map(Into::into).collect::<Vec<_>>(),
     };
     let exports_info = ExportsInfoGetter::prefetch(
-      &self.exports_info,
+      self.exports_info,
       module_graph,
-      PrefetchExportsInfoMode::Nested(&names),
+      &PrefetchExportsInfoMode::Nested(&names),
     );
     let used = exports_info.get_used(&names, runtime.as_ref());
     Ok(used as u32)

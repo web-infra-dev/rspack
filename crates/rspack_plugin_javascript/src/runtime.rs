@@ -409,7 +409,9 @@ pub fn stringify_chunks_to_array(chunks: &HashSet<ChunkId>) -> String {
   format!(
     r#"[{}]"#,
     v.iter().fold(String::new(), |prev, cur| {
-      prev + format!(r#""{cur}","#).as_str()
+      let mut prev = prev;
+      prev.push_str(&format!(r#""{cur}","#));
+      prev
     })
   )
 }

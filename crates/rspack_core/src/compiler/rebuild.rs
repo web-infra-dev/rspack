@@ -73,7 +73,7 @@ impl Compiler {
 
       let mut next_compilation = Compilation::new(
         self.id,
-        self.options.clone(),
+        &self.options,
         self.platform.clone(),
         self.plugin_driver.clone(),
         self.buildtime_plugin_driver.clone(),

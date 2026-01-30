@@ -48,7 +48,7 @@ impl VisitMut for FieldAttrVisitor {
 }
 
 /// impl #[cacheable] without with args
-pub fn impl_cacheable(tokens: TokenStream, args: CacheableArgs) -> TokenStream {
+pub fn impl_cacheable(tokens: TokenStream, args: &CacheableArgs) -> TokenStream {
   let mut input = parse_macro_input!(tokens as Item);
 
   let mut visitor = FieldAttrVisitor::default();

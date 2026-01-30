@@ -234,7 +234,7 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
     if root_name == expr_name::IMPORT_META {
       let destructuring_assignment_properties = parser
         .destructuring_assignment_properties
-        .get(&span)
+        .get(span)
         .cloned();
 
       if let Some(referenced_properties_in_destructuring) = destructuring_assignment_properties {

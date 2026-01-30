@@ -101,7 +101,7 @@ impl BannerPlugin {
     }
   }
 
-  fn update_source(&self, comment: String, old: BoxSource, footer: Option<bool>) -> BoxSource {
+  fn update_source(&self, comment: String, old: &BoxSource, footer: Option<bool>) -> BoxSource {
     let old_source = old.clone();
 
     if let Some(footer) = footer
@@ -193,7 +193,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 
   for (file, comment) in updates {
     let _res = compilation.update_asset(file.as_str(), |old, info| {
-      let new = self.update_source(comment, old, self.config.footer);
+      let new = self.update_source(comment, &old, self.config.footer);
       Ok((new, info))
     });
   }

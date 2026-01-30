@@ -128,7 +128,7 @@ impl AssignLibraryPlugin {
   fn get_options_for_chunk<'a>(
     &self,
     compilation: &'a Compilation,
-    chunk_ukey: &ChunkUkey,
+    chunk_ukey: ChunkUkey,
   ) -> Result<Option<AssignLibraryPluginParsed<'a>>> {
     get_options_for_chunk(compilation, chunk_ukey)
       .filter(|library| library.library_type == self.options.library_type)
@@ -215,7 +215,7 @@ async fn render(
   chunk_ukey: &ChunkUkey,
   render_source: &mut RenderSource,
 ) -> Result<()> {
-  let Some(options) = self.get_options_for_chunk(compilation, chunk_ukey)? else {
+  let Some(options) = self.get_options_for_chunk(compilation, *chunk_ukey)? else {
     return Ok(());
   };
   if self.options.declare {
@@ -246,7 +246,7 @@ async fn render_startup(
   module: &ModuleIdentifier,
   render_source: &mut RenderSource,
 ) -> Result<()> {
-  let Some(options) = self.get_options_for_chunk(compilation, chunk_ukey)? else {
+  let Some(options) = self.get_options_for_chunk(compilation, *chunk_ukey)? else {
     return Ok(());
   };
   let mut source = ConcatSource::default();
@@ -355,7 +355,7 @@ async fn js_chunk_hash(
   chunk_ukey: &ChunkUkey,
   hasher: &mut RspackHash,
 ) -> Result<()> {
-  let Some(options) = self.get_options_for_chunk(compilation, chunk_ukey)? else {
+  let Some(options) = self.get_options_for_chunk(compilation, *chunk_ukey)? else {
     return Ok(());
   };
   PLUGIN_NAME.hash(hasher);
@@ -383,7 +383,7 @@ async fn embed_in_runtime_bailout(
   module: &BoxModule,
   chunk: &Chunk,
 ) -> Result<Option<String>> {
-  let Some(options) = self.get_options_for_chunk(compilation, &chunk.ukey())? else {
+  let Some(options) = self.get_options_for_chunk(compilation, chunk.ukey())? else {
     return Ok(None);
   };
   let codegen = compilation
@@ -418,7 +418,7 @@ async fn strict_runtime_bailout(
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
 ) -> Result<Option<String>> {
-  let Some(options) = self.get_options_for_chunk(compilation, chunk_ukey)? else {
+  let Some(options) = self.get_options_for_chunk(compilation, *chunk_ukey)? else {
     return Ok(None);
   };
   if self.options.declare
@@ -525,7 +525,7 @@ async fn additional_chunk_runtime_requirements(
   _runtime_modules: &mut Vec<Box<dyn RuntimeModule>>,
 ) -> Result<()> {
   if self
-    .get_options_for_chunk(compilation, chunk_ukey)?
+    .get_options_for_chunk(compilation, *chunk_ukey)?
     .is_none()
   {
     return Ok(());

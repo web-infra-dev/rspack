@@ -269,7 +269,11 @@ async fn normal_module_factory_module(
       self
         .provide_shared_module(
           request,
-          &(config.share_key.clone() + remainder),
+          &{
+            let mut share_key = config.share_key.clone();
+            share_key.push_str(remainder);
+            share_key
+          },
           &config.share_scope,
           config.version.as_ref(),
           config.eager,

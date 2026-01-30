@@ -12,6 +12,7 @@ pub struct TempDependency {
 }
 
 impl TempDependency {
+  #[allow(clippy::needless_pass_by_value)]
   pub fn transform_from(dep: OwnedOrRef<BoxDependency>) -> OwnedOrRef<BoxDependency> {
     OwnedOrRef::Owned(Box::new(TempDependency {
       id: *dep.as_ref().id(),

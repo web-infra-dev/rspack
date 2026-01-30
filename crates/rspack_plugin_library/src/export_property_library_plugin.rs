@@ -48,7 +48,7 @@ impl ExportPropertyLibraryPlugin {
   fn get_options_for_chunk<'a>(
     &self,
     compilation: &'a Compilation,
-    chunk_ukey: &'a ChunkUkey,
+    chunk_ukey: ChunkUkey,
   ) -> Option<ExportPropertyLibraryPluginParsed<'a>> {
     get_options_for_chunk(compilation, chunk_ukey)
       .filter(|library| library.library_type == self.library_type)
@@ -77,7 +77,7 @@ async fn render_startup(
   _module: &ModuleIdentifier,
   render_source: &mut RenderSource,
 ) -> Result<()> {
-  let Some(options) = self.get_options_for_chunk(compilation, chunk_ukey) else {
+  let Some(options) = self.get_options_for_chunk(compilation, *chunk_ukey) else {
     return Ok(());
   };
   if let Some(export) = options.export {
@@ -100,7 +100,7 @@ async fn js_chunk_hash(
   chunk_ukey: &ChunkUkey,
   hasher: &mut RspackHash,
 ) -> Result<()> {
-  let Some(options) = self.get_options_for_chunk(compilation, chunk_ukey) else {
+  let Some(options) = self.get_options_for_chunk(compilation, *chunk_ukey) else {
     return Ok(());
   };
   if let Some(export) = &options.export {
@@ -205,7 +205,7 @@ async fn additional_chunk_runtime_requirements(
   _runtime_modules: &mut Vec<Box<dyn RuntimeModule>>,
 ) -> Result<()> {
   if self
-    .get_options_for_chunk(compilation, chunk_ukey)
+    .get_options_for_chunk(compilation, *chunk_ukey)
     .is_none()
   {
     return Ok(());

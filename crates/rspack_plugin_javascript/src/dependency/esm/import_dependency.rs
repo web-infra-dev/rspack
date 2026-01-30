@@ -14,7 +14,7 @@ use swc_core::ecma::atoms::Atom;
 use super::create_resource_identifier_for_esm_dependency;
 
 pub fn create_import_dependency_referenced_exports(
-  dependency_id: &DependencyId,
+  dependency_id: DependencyId,
   referenced_exports: &Option<Vec<Vec<Atom>>>,
   mg: &ModuleGraph,
   mg_cache: &ModuleGraphCacheArtifact,
@@ -26,14 +26,14 @@ pub fn create_import_dependency_referenced_exports(
         && first == "default"
       {
         let Some(strict) = mg
-          .get_parent_module(dependency_id)
+          .get_parent_module(&dependency_id)
           .and_then(|id| mg.module_by_identifier(id))
           .map(|m| m.build_meta().strict_esm_module)
         else {
           return create_exports_object_referenced();
         };
         let Some(imported_module) = mg
-          .module_identifier_by_dependency_id(dependency_id)
+          .module_identifier_by_dependency_id(&dependency_id)
           .and_then(|id| mg.module_by_identifier(id))
         else {
           return create_exports_object_referenced();
@@ -136,7 +136,7 @@ impl Dependency for ImportDependency {
     _runtime: Option<&rspack_core::RuntimeSpec>,
   ) -> Vec<rspack_core::ExtendedReferencedExport> {
     create_import_dependency_referenced_exports(
-      &self.id,
+      self.id,
       &self.referenced_exports,
       module_graph,
       module_graph_cache,

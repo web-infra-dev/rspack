@@ -234,7 +234,7 @@ impl Stats<'_> {
       .compilation
       .runtime_modules
       .par_iter()
-      .map(|(identifier, module)| self.get_runtime_module(identifier, module, options))
+      .map(|(identifier, module)| self.get_runtime_module(*identifier, module, options))
       .collect::<Result<Vec<_>>>()?;
     modules.extend(runtime_modules);
 
@@ -271,7 +271,7 @@ impl Stats<'_> {
         .par_bridge()
         .map(|item| {
           let (id, module) = item.pair();
-          self.get_executed_runtime_module(id, module, options)
+          self.get_executed_runtime_module(*id, module, options)
         })
         .collect::<Result<_>>()?;
       modules.extend(runtime_modules);
@@ -455,11 +455,11 @@ impl Stats<'_> {
   fn get_chunk_group<'a>(
     &'a self,
     name: &'a str,
-    ukey: &ChunkGroupUkey,
+    ukey: ChunkGroupUkey,
     chunk_group_auxiliary: bool,
     chunk_group_children: bool,
   ) -> StatsChunkGroup<'a> {
-    let cg = self.compilation.chunk_group_by_ukey.expect_get(ukey);
+    let cg = self.compilation.chunk_group_by_ukey.expect_get(&ukey);
     let chunks: Vec<&'a str> = cg
       .chunks
       .iter()
@@ -570,7 +570,7 @@ impl Stats<'_> {
       .entrypoints
       .par_iter()
       .map(|(name, ukey)| {
-        self.get_chunk_group(name, ukey, chunk_group_auxiliary, chunk_group_children)
+        self.get_chunk_group(name, *ukey, chunk_group_auxiliary, chunk_group_children)
       })
       .collect()
   }
@@ -585,7 +585,7 @@ impl Stats<'_> {
       .named_chunk_groups
       .par_iter()
       .map(|(name, ukey)| {
-        self.get_chunk_group(name, ukey, chunk_group_auxiliary, chunk_group_children)
+        self.get_chunk_group(name, *ukey, chunk_group_auxiliary, chunk_group_children)
       })
       .collect();
     named_chunk_groups.sort_by_cached_key(|e| e.name.to_string());
@@ -1103,12 +1103,15 @@ impl Stats<'_> {
 
   fn get_executed_runtime_module(
     &self,
-    identifier: &ModuleIdentifier,
+    identifier: ModuleIdentifier,
     module: &ExecutedRuntimeModule,
     options: &ExtendedStatsOptions,
   ) -> Result<StatsModule<'_>> {
     let built = false;
-    let code_generated = self.compilation.code_generated_modules.contains(identifier);
+    let code_generated = self
+      .compilation
+      .code_generated_modules
+      .contains(&identifier);
 
     let mut stats = StatsModule {
       r#type: "module",
@@ -1197,14 +1200,14 @@ impl Stats<'_> {
 
   fn get_runtime_module<'a>(
     &'a self,
-    identifier: &ModuleIdentifier,
+    identifier: ModuleIdentifier,
     module: &'a BoxRuntimeModule,
     options: &ExtendedStatsOptions,
   ) -> Result<StatsModule<'a>> {
     let mut chunks: Vec<&str> = self
       .compilation
       .chunk_graph
-      .get_module_chunks(*identifier)
+      .get_module_chunks(identifier)
       .iter()
       .filter_map(|k| {
         self
@@ -1218,11 +1221,14 @@ impl Stats<'_> {
     chunks.sort_unstable();
 
     let built = false;
-    let code_generated = self.compilation.code_generated_modules.contains(identifier);
+    let code_generated = self
+      .compilation
+      .code_generated_modules
+      .contains(&identifier);
     let size = self
       .compilation
       .runtime_modules_code_generation_source
-      .get(identifier)
+      .get(&identifier)
       .map_or(0 as f64, |source| source.size() as f64);
 
     let mut stats = StatsModule {
@@ -1270,7 +1276,7 @@ impl Stats<'_> {
       let orphan = self
         .compilation
         .chunk_graph
-        .get_number_of_module_chunks(*identifier)
+        .get_number_of_module_chunks(identifier)
         == 0;
 
       stats.identifier = Some(module.identifier());

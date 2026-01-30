@@ -468,7 +468,7 @@ mod tests {
         0_usize,
         &options,
         packs,
-        mock_updates(0, 50, 10, UpdateVal::Value("val".into())),
+        mock_updates(0, 50, 10, &UpdateVal::Value("val".into())),
       )
       .await?;
     assert_eq!(res.new_packs.len(), 1);
@@ -484,7 +484,7 @@ mod tests {
         1_usize,
         &options,
         packs,
-        mock_updates(50, 100, 10, UpdateVal::Value("val".into())),
+        mock_updates(50, 100, 10, &UpdateVal::Value("val".into())),
       )
       .await?;
     assert_eq!(res.new_packs.len(), 1);
@@ -501,7 +501,7 @@ mod tests {
         2_usize,
         &options,
         packs,
-        mock_updates(100, 190, 10, UpdateVal::Value("val".into())),
+        mock_updates(100, 190, 10, &UpdateVal::Value("val".into())),
       )
       .await?;
     assert_eq!(res.new_packs.len(), 1);
@@ -517,7 +517,7 @@ mod tests {
         3_usize,
         &options,
         packs,
-        mock_updates(190, 200, 10, UpdateVal::Value("val".into())),
+        mock_updates(190, 200, 10, &UpdateVal::Value("val".into())),
       )
       .await?;
     assert_eq!(res.new_packs.len(), 1);
@@ -528,8 +528,8 @@ mod tests {
     packs = update_packs(res);
 
     // long item pack
-    let mut updates = mock_updates(0, 1, 1200, UpdateVal::Value("val".into()));
-    updates.extend(mock_updates(1, 2, 900, UpdateVal::Value("val".into())));
+    let mut updates = mock_updates(0, 1, 1200, &UpdateVal::Value("val".into()));
+    updates.extend(mock_updates(1, 2, 900, &UpdateVal::Value("val".into())));
     let res = strategy
       .update_packs(dir.clone(), 4_usize, &options, packs, updates)
       .await?;
@@ -547,7 +547,7 @@ mod tests {
         5_usize,
         &options,
         packs,
-        mock_updates(100, 130, 10, UpdateVal::Removed),
+        mock_updates(100, 130, 10, &UpdateVal::Removed),
       )
       .await?;
     assert_eq!(res.new_packs.len(), 1);

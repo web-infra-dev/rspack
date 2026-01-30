@@ -72,13 +72,13 @@ fn extend_required_chunks(
 fn record_module(
   entry_name: &str,
   module_id: &ModuleId,
-  module_identifier: &ModuleIdentifier,
-  chunk_ukey: &ChunkUkey,
+  module_identifier: ModuleIdentifier,
+  chunk_ukey: ChunkUkey,
   compilation: &Compilation,
   required_chunks: &[String],
   plugin_state: &mut PluginState,
 ) {
-  let Some(module) = compilation.module_by_identifier(module_identifier) else {
+  let Some(module) = compilation.module_by_identifier(&module_identifier) else {
     return;
   };
 
@@ -89,7 +89,7 @@ fn record_module(
 
   if is_css_mod(module.as_ref()) {
     let (Some(chunk), Some(entry_css_imports)) = (
-      compilation.chunk_by_ukey.get(chunk_ukey),
+      compilation.chunk_by_ukey.get(&chunk_ukey),
       plugin_state.entry_css_imports.get(entry_name),
     ) else {
       return;
@@ -128,7 +128,7 @@ fn record_module(
 
   let is_async = ModuleGraph::is_async(
     &compilation.async_modules_artifact.borrow(),
-    module_identifier,
+    &module_identifier,
   );
   plugin_state.client_modules.insert(
     resource.to_string(),
@@ -192,8 +192,8 @@ fn record_chunk_group(
         record_module(
           entry_name,
           module_id,
-          &concatenated_module.get_root(),
-          chunk_ukey,
+          concatenated_module.get_root(),
+          *chunk_ukey,
           compilation,
           required_chunks,
           plugin_state,
@@ -202,8 +202,8 @@ fn record_chunk_group(
         record_module(
           entry_name,
           module_id,
-          module_identifier,
-          chunk_ukey,
+          *module_identifier,
+          *chunk_ukey,
           compilation,
           required_chunks,
           plugin_state,
@@ -272,11 +272,11 @@ async fn collect_entry_js_files(
 
 fn collect_actions(
   module_graph: &ModuleGraph,
-  module_identifier: &ModuleIdentifier,
+  module_identifier: ModuleIdentifier,
   collected_actions: &mut FxHashMap<String, Vec<ActionIdNamePair>>,
   visited_modules: &mut FxHashSet<ModuleIdentifier>,
 ) {
-  let module = match module_graph.module_by_identifier(module_identifier) {
+  let module = match module_graph.module_by_identifier(&module_identifier) {
     Some(m) => m,
     None => return,
   };
@@ -286,10 +286,10 @@ fn collect_actions(
     return;
   }
 
-  if visited_modules.contains(module_identifier) {
+  if visited_modules.contains(&module_identifier) {
     return;
   }
-  visited_modules.insert(*module_identifier);
+  visited_modules.insert(module_identifier);
 
   if let Some(action_ids) = module.build_info().rsc.as_ref().map(|rsc| &rsc.action_ids) {
     let pairs = action_ids
@@ -301,13 +301,13 @@ fn collect_actions(
   }
 
   // Collect used exported actions transversely.
-  for dependency_id in module_graph.get_outgoing_deps_in_order(module_identifier) {
+  for dependency_id in module_graph.get_outgoing_deps_in_order(&module_identifier) {
     let Some(resolved_module) = module_graph.get_resolved_module(dependency_id) else {
       continue;
     };
     collect_actions(
       module_graph,
-      resolved_module,
+      *resolved_module,
       collected_actions,
       visited_modules,
     );
@@ -336,7 +336,7 @@ fn collect_client_actions_from_dependencies(
       };
       collect_actions(
         module_graph,
-        module_identifier,
+        *module_identifier,
         &mut collected_actions,
         &mut visited_modules,
       );

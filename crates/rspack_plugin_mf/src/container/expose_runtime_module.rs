@@ -30,10 +30,10 @@ impl ExposeRuntimeModule {
 impl ExposeRuntimeModule {
   fn find_expose_data<'a>(
     &self,
-    chunk_ukey: &ChunkUkey,
+    chunk_ukey: ChunkUkey,
     compilation: &'a Compilation,
   ) -> Option<&'a CodeGenerationDataExpose> {
-    let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+    let chunk = compilation.chunk_by_ukey.expect_get(&chunk_ukey);
     let module_graph = compilation.get_module_graph();
     for c in chunk.get_all_initial_chunks(&compilation.chunk_group_by_ukey) {
       let chunk = compilation.chunk_by_ukey.expect_get(&c);
@@ -67,7 +67,7 @@ impl RuntimeModule for ExposeRuntimeModule {
     let chunk_ukey = self
       .chunk
       .expect("should have chunk in <ExposeRuntimeModule as RuntimeModule>::generate");
-    let Some(data) = self.find_expose_data(&chunk_ukey, compilation) else {
+    let Some(data) = self.find_expose_data(chunk_ukey, compilation) else {
       return Ok(String::new());
     };
     let mut runtime_template = compilation

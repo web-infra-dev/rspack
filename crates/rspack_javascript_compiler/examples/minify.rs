@@ -7,7 +7,7 @@ fn main() {
   let output = compiler.minify(
     swc_core::common::FileName::Custom("test.js".to_string()),
     source,
-    Default::default(),
+    &Default::default(),
     None::<&dyn Fn(&swc_core::common::comments::SingleThreadedComments)>,
   );
 

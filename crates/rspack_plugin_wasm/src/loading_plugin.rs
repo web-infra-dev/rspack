@@ -7,7 +7,7 @@ use rspack_hook::{plugin, plugin_hook};
 
 use crate::runtime::AsyncWasmLoadingRuntimeModule;
 
-pub fn enable_wasm_loading_plugin(wasm_loading_type: WasmLoadingType) -> BoxPlugin {
+pub fn enable_wasm_loading_plugin(wasm_loading_type: &WasmLoadingType) -> BoxPlugin {
   match wasm_loading_type {
     WasmLoadingType::Fetch => FetchCompileAsyncWasmPlugin::default().boxed(),
     WasmLoadingType::AsyncNode => ReadFileCompileAsyncWasmPlugin::new().boxed(),

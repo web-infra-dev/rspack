@@ -37,6 +37,7 @@ impl ConsumeSharedRuntimeModule {
   }
 }
 
+#[derive(Clone, Copy)]
 enum TemplateId {
   Common,
   Initial,

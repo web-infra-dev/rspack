@@ -11,8 +11,8 @@ use itertools::{
 use rspack_collections::{DatabaseItem, Identifier, UkeyMap};
 use rspack_core::{
   BoxModule, Chunk, ChunkByUkey, ChunkGraph, ChunkGroupByUkey, ChunkNamedIdArtifact, ChunkUkey,
-  Compilation, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, ModuleIdsArtifact,
-  compare_runtime,
+  Compilation, ModuleGraph, ModuleGraphCacheArtifact, ModuleId, ModuleIdentifier,
+  ModuleIdsArtifact, compare_runtime,
 };
 use rspack_util::{
   comparators::{compare_ids, compare_numbers},
@@ -26,7 +26,7 @@ use rustc_hash::{FxHashSet, FxHasher};
 #[allow(clippy::collapsible_else_if)]
 pub fn get_used_module_ids_and_modules(
   compilation: &Compilation,
-  filter: Option<Box<dyn Fn(&BoxModule) -> bool>>,
+  filter: Option<&dyn Fn(&BoxModule) -> bool>,
 ) -> (FxHashSet<String>, Vec<ModuleIdentifier>) {
   let chunk_graph = &compilation.chunk_graph;
   let mut modules = vec![];
@@ -50,7 +50,7 @@ pub fn get_used_module_ids_and_modules(
       if let Some(module_id) = module_id {
         used_ids.insert(module_id.to_string());
       } else {
-        if filter.as_ref().is_none_or(|f| (f)(module))
+        if filter.is_none_or(|f| f(module))
           && chunk_graph.get_number_of_module_chunks(module.identifier()) != 0
         {
           modules.push(module.identifier());
@@ -167,7 +167,8 @@ pub fn assign_ascending_module_ids(
       while used_ids.contains(&next_id.to_string()) {
         next_id += 1;
       }
-      ChunkGraph::set_module_id(module_ids, module.identifier(), next_id.to_string().into());
+      let module_id: ModuleId = next_id.to_string().into();
+      ChunkGraph::set_module_id(module_ids, module.identifier(), &module_id);
       next_id += 1;
     }
   };

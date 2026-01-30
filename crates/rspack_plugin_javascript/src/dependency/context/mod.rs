@@ -84,7 +84,7 @@ fn context_dependency_template_as_require_call(
   dep: &dyn ContextDependency,
   source: &mut TemplateReplaceSource,
   code_generatable_context: &mut TemplateContext,
-  range: &DependencyRange,
+  range: DependencyRange,
   value_range: Option<&DependencyRange>,
 ) {
   let TemplateContext {
@@ -117,7 +117,7 @@ fn context_dependency_template_as_id(
   dep: &dyn ContextDependency,
   source: &mut TemplateReplaceSource,
   code_generatable_context: &mut TemplateContext,
-  range: &DependencyRange,
+  range: DependencyRange,
 ) {
   let TemplateContext {
     compilation,

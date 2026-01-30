@@ -108,7 +108,7 @@ impl DependencyTemplate for AMDRequireDependencyTemplate {
     if let Some(array_range) = &dep.array_range
       && dep.function_range.is_none()
     {
-      let start_block = promise + ".then(function() {";
+      let start_block = format!("{promise}.then(function() {{");
       let end_block = format!(
         ";}})['catch']({})",
         code_generatable_context
@@ -124,7 +124,7 @@ impl DependencyTemplate for AMDRequireDependencyTemplate {
     if let Some(function_range) = &dep.function_range
       && dep.array_range.is_none()
     {
-      let start_block = promise + ".then((";
+      let start_block = format!("{promise}.then((");
       let end_block = format!(
         ").bind(exports, {}, exports, module))['catch']({})",
         code_generatable_context
@@ -149,7 +149,7 @@ impl DependencyTemplate for AMDRequireDependencyTemplate {
       && let Some(function_range) = &dep.function_range
       && let Some(error_callback_range) = &dep.error_callback_range
     {
-      let start_block = promise + ".then(function() { ";
+      let start_block = format!("{promise}.then(function() {{ ");
       let error_range_block = if dep.function_bind_this {
         "}.bind(this))['catch']("
       } else {
@@ -194,7 +194,7 @@ impl DependencyTemplate for AMDRequireDependencyTemplate {
     if let Some(array_range) = &dep.array_range
       && let Some(function_range) = &dep.function_range
     {
-      let start_block = promise + ".then(function() { ";
+      let start_block = format!("{promise}.then(function() {{ ");
       let end_block = format!(
         "}}{})['catch']({})",
         if dep.function_bind_this {

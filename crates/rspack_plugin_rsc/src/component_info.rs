@@ -33,13 +33,13 @@ pub struct ComponentInfo {
 pub fn collect_component_info_from_entry_denendency(
   compilation: &Compilation,
   runtime: &RuntimeSpec,
-  dependency_id: &DependencyId,
+  dependency_id: DependencyId,
 ) -> ComponentInfo {
   let mut component_info: ComponentInfo = Default::default();
 
   let module_graph = compilation.get_module_graph();
   let Some(resolved_module) = module_graph
-    .get_resolved_module(dependency_id)
+    .get_resolved_module(&dependency_id)
     .and_then(|identifier| compilation.module_by_identifier(identifier))
   else {
     return component_info;
@@ -157,9 +157,9 @@ fn filter_client_components(
     if side_effect_free {
       let exports_info = module_graph.get_exports_info(&module.identifier());
       let prefetched_exports_info = ExportsInfoGetter::prefetch(
-        &exports_info,
+        exports_info,
         module_graph,
-        PrefetchExportsInfoMode::Default,
+        &PrefetchExportsInfoMode::Default,
       );
       let unused = !prefetched_exports_info.is_module_used(Some(runtime));
       if unused {

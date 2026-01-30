@@ -100,6 +100,7 @@ fn create_require_resolve_context_dependency(
   RequireResolveContextDependency::new(options, range, parser.in_try)
 }
 
+#[derive(Clone, Copy)]
 enum CallOrNewExpr<'a> {
   Call(&'a CallExpr),
   New(&'a NewExpr),
@@ -120,7 +121,7 @@ impl CallOrNewExpr<'_> {
     }
   }
 
-  pub fn span(&self) -> Span {
+  pub fn span(self) -> Span {
     match self {
       CallOrNewExpr::Call(call_expr) => call_expr.span,
       CallOrNewExpr::New(new_expr) => new_expr.span,

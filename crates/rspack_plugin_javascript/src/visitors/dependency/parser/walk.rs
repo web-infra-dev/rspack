@@ -225,7 +225,7 @@ impl JavascriptParser<'_> {
   fn walk_catch_clause(&mut self, catch_clause: &CatchClause) {
     self.in_block_scope(|this| {
       if let Some(param) = &catch_clause.param {
-        this.enter_pattern(Cow::Borrowed(param), |this, ident| {
+        this.enter_pattern(param, |this, ident| {
           this.define_variable(ident.sym.clone());
         });
         this.walk_pattern(param)
@@ -420,7 +420,7 @@ impl JavascriptParser<'_> {
       Expr::Cond(expr) => self.walk_conditional_expression(expr),
       Expr::Fn(expr) => self.walk_function_expression(expr),
       Expr::Ident(expr) => self.walk_identifier(expr),
-      Expr::MetaProp(expr) => self.walk_meta_property(expr),
+      Expr::MetaProp(expr) => self.walk_meta_property(*expr),
       Expr::Member(expr) => self.walk_member_expression(expr),
       Expr::New(expr) => self.walk_new_expression(expr),
       Expr::Object(expr) => self.walk_object_expression(expr),
@@ -428,7 +428,7 @@ impl JavascriptParser<'_> {
       Expr::Seq(expr) => self.walk_sequence_expression(expr),
       Expr::TaggedTpl(expr) => self.walk_tagged_template_expression(expr),
       Expr::Tpl(expr) => self.walk_template_expression(expr),
-      Expr::This(expr) => self.walk_this_expression(expr),
+      Expr::This(expr) => self.walk_this_expression(*expr),
       Expr::Unary(expr) => self.walk_unary_expression(expr),
       Expr::Update(expr) => self.walk_update_expression(expr),
       Expr::Yield(expr) => self.walk_yield_expression(expr),
@@ -487,9 +487,9 @@ impl JavascriptParser<'_> {
     self.walk_expression(&expr.arg)
   }
 
-  fn walk_this_expression(&mut self, expr: &ThisExpr) {
+  fn walk_this_expression(&mut self, expr: ThisExpr) {
     "this".call_hooks_name(self, |this, for_name| {
-      this.plugin_drive.clone().this(this, expr, for_name)
+      this.plugin_drive.clone().this(this, &expr, for_name)
     });
   }
 
@@ -752,7 +752,7 @@ impl JavascriptParser<'_> {
     }
   }
 
-  fn walk_meta_property(&mut self, expr: &MetaPropExpr) {
+  fn walk_meta_property(&mut self, expr: MetaPropExpr) {
     let Some(root_name) = expr.get_root_name() else {
       unreachable!()
     };
@@ -1273,37 +1273,32 @@ impl JavascriptParser<'_> {
         return;
       }
       self.walk_expression(&expr.right);
-      self.enter_pattern(
-        Cow::Owned(warp_ident_to_pat(ident.clone().into())),
-        |this, ident| {
-          if !ident
-            .sym
-            .call_hooks_name(this, |this, for_name| {
-              this.plugin_drive.clone().assign(this, expr, for_name)
-            })
-            .unwrap_or_default()
-          {
-            // webpack use `walk_expression`, `walk_expression` just walk down the ast, so it's ok to use `walk_identifier`
-            this.walk_identifier(ident);
-          }
-        },
-      );
+      let pattern = warp_ident_to_pat(ident.clone().into());
+      self.enter_pattern(&pattern, |this, ident| {
+        if !ident
+          .sym
+          .call_hooks_name(this, |this, for_name| {
+            this.plugin_drive.clone().assign(this, expr, for_name)
+          })
+          .unwrap_or_default()
+        {
+          // webpack use `walk_expression`, `walk_expression` just walk down the ast, so it's ok to use `walk_identifier`
+          this.walk_identifier(ident);
+        }
+      });
     } else if let Some(pat) = expr.left.as_pat() {
       self.walk_expression(&expr.right);
-      self.enter_assign_target_pattern(
-        Cow::Borrowed(pat),
-        |this: &mut JavascriptParser<'_>, ident| {
-          if !ident
-            .sym
-            .call_hooks_name(this, |this, for_name| {
-              this.plugin_drive.clone().assign(this, expr, for_name)
-            })
-            .unwrap_or_default()
-          {
-            this.define_variable(ident.sym.clone());
-          }
-        },
-      );
+      self.enter_assign_target_pattern(pat, |this: &mut JavascriptParser<'_>, ident| {
+        if !ident
+          .sym
+          .call_hooks_name(this, |this, for_name| {
+            this.plugin_drive.clone().assign(this, expr, for_name)
+          })
+          .unwrap_or_default()
+        {
+          this.define_variable(ident.sym.clone());
+        }
+      });
       self.walk_assign_target_pattern(pat);
     } else if let Some(SimpleAssignTarget::Member(member)) = expr.left.as_simple() {
       if let Some(MemberExpressionInfo::Expression(expr_name)) =

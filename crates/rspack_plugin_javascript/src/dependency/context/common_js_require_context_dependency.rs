@@ -163,7 +163,7 @@ impl DependencyTemplate for CommonJsRequireContextDependencyTemplate {
       dep,
       source,
       code_generatable_context,
-      &dep.range,
+      dep.range,
       dep.value_range.as_ref(),
     );
   }

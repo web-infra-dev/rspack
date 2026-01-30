@@ -56,7 +56,7 @@ impl SystemLibraryPlugin {
   fn get_options_for_chunk<'a>(
     &self,
     compilation: &'a Compilation,
-    chunk_ukey: &'a ChunkUkey,
+    chunk_ukey: ChunkUkey,
   ) -> Result<Option<SystemLibraryPluginParsed<'a>>> {
     get_options_for_chunk(compilation, chunk_ukey)
       .filter(|library| library.library_type == "system")
@@ -85,7 +85,7 @@ async fn render(
   chunk_ukey: &ChunkUkey,
   render_source: &mut RenderSource,
 ) -> Result<()> {
-  let Some(options) = self.get_options_for_chunk(compilation, chunk_ukey)? else {
+  let Some(options) = self.get_options_for_chunk(compilation, *chunk_ukey)? else {
     return Ok(());
   };
   // system-named-assets-path is not supported
@@ -184,7 +184,7 @@ async fn js_chunk_hash(
   chunk_ukey: &ChunkUkey,
   hasher: &mut RspackHash,
 ) -> Result<()> {
-  let Some(options) = self.get_options_for_chunk(compilation, chunk_ukey)? else {
+  let Some(options) = self.get_options_for_chunk(compilation, *chunk_ukey)? else {
     return Ok(());
   };
   PLUGIN_NAME.hash(hasher);
@@ -202,7 +202,7 @@ async fn additional_chunk_runtime_requirements(
   runtime_requirements: &mut RuntimeGlobals,
   _runtime_modules: &mut Vec<Box<dyn RuntimeModule>>,
 ) -> Result<()> {
-  let Some(_) = self.get_options_for_chunk(compilation, chunk_ukey)? else {
+  let Some(_) = self.get_options_for_chunk(compilation, *chunk_ukey)? else {
     return Ok(());
   };
   runtime_requirements.insert(RuntimeGlobals::RETURN_EXPORTS_FROM_RUNTIME);

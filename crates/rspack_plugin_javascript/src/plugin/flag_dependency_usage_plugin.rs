@@ -411,8 +411,10 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
 
             let last_one = i == len - 1;
             if !last_one && let Some(nested_info) = export_info.exports_info() {
+              let used_if: Box<dyn Fn(&UsageState) -> bool> =
+                Box::new(|used| used == &UsageState::Unused);
               let changed_flag = export_info.set_used_conditionally(
-                Box::new(|used| used == &UsageState::Unused),
+                &used_if,
                 UsageState::OnlyPropertiesUsed,
                 runtime.as_ref(),
               );
@@ -437,11 +439,9 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
               continue;
             }
 
-            let changed_flag = export_info.set_used_conditionally(
-              Box::new(|v| v != &UsageState::Used),
-              UsageState::Used,
-              runtime.as_ref(),
-            );
+            let used_if: Box<dyn Fn(&UsageState) -> bool> = Box::new(|v| v != &UsageState::Used);
+            let changed_flag =
+              export_info.set_used_conditionally(&used_if, UsageState::Used, runtime.as_ref());
             if changed_flag {
               let current_module = if current_exports_info == mgm_exports_info {
                 Some(module_id)
@@ -743,11 +743,9 @@ fn process_referenced_module_without_nested(
           export_info.set_can_inline_use(Some(CanInlineUse::No));
         }
 
-        let changed_flag = export_info.set_used_conditionally(
-          Box::new(|v| v != &UsageState::Used),
-          UsageState::Used,
-          runtime.as_ref(),
-        );
+        let used_if: Box<dyn Fn(&UsageState) -> bool> = Box::new(|v| v != &UsageState::Used);
+        let changed_flag =
+          export_info.set_used_conditionally(&used_if, UsageState::Used, runtime.as_ref());
         if changed_flag {
           queue.push((
             ModuleOrAsyncDependenciesBlock::Module(module_id),

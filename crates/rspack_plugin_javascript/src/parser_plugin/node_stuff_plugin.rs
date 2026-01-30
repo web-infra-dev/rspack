@@ -32,7 +32,7 @@ enum NodeMetaProperty {
 
 impl NodeMetaProperty {
   /// Returns the mock value for this property
-  fn mock_value(&self) -> &'static str {
+  fn mock_value(self) -> &'static str {
     match self {
       NodeMetaProperty::Filename => MOCK_FILENAME,
       NodeMetaProperty::Dirname => MOCK_DIRNAME,
@@ -40,7 +40,7 @@ impl NodeMetaProperty {
   }
 
   /// Returns the import.meta property name
-  fn import_meta_name(&self) -> &'static str {
+  fn import_meta_name(self) -> &'static str {
     match self {
       NodeMetaProperty::Filename => "import.meta.filename",
       NodeMetaProperty::Dirname => "import.meta.dirname",
@@ -48,7 +48,7 @@ impl NodeMetaProperty {
   }
 
   /// Returns the CJS equivalent variable name
-  fn cjs_name(&self) -> &'static str {
+  fn cjs_name(self) -> &'static str {
     match self {
       NodeMetaProperty::Filename => "__filename",
       NodeMetaProperty::Dirname => "__dirname",
@@ -56,7 +56,7 @@ impl NodeMetaProperty {
   }
 
   /// Returns the warning code for this property
-  fn warning_code(&self) -> &'static str {
+  fn warning_code(self) -> &'static str {
     match self {
       NodeMetaProperty::Filename => "NODE_IMPORT_META_FILENAME",
       NodeMetaProperty::Dirname => "NODE_IMPORT_META_DIRNAME",
@@ -64,7 +64,7 @@ impl NodeMetaProperty {
   }
 
   /// Returns the warning message for this property
-  fn warning_message(&self) -> String {
+  fn warning_message(self) -> String {
     match self {
       NodeMetaProperty::Filename => format!(
         "\"{}\" is used and has been mocked. Remove it from your code, or set `{}` to disable this warning.",
@@ -80,7 +80,7 @@ impl NodeMetaProperty {
   }
 
   /// Returns the runtime expression for NodeModule mode
-  fn node_module_runtime_expr(&self) -> &'static str {
+  fn node_module_runtime_expr(self) -> &'static str {
     match self {
       NodeMetaProperty::Filename => "__rspack_fileURLToPath(import.meta.url)",
       NodeMetaProperty::Dirname => "__rspack_dirname(__rspack_fileURLToPath(import.meta.url))",
@@ -88,7 +88,7 @@ impl NodeMetaProperty {
   }
 
   /// Returns whether dirname is disabled based on node options
-  fn is_disabled(&self, node_option: &rspack_core::NodeOption) -> bool {
+  fn is_disabled(self, node_option: &rspack_core::NodeOption) -> bool {
     match self {
       NodeMetaProperty::Filename => matches!(node_option.filename, NodeFilenameOption::False),
       NodeMetaProperty::Dirname => matches!(node_option.dirname, NodeDirnameOption::False),
@@ -96,7 +96,7 @@ impl NodeMetaProperty {
   }
 
   /// Check if the option is Mock
-  fn is_mock(&self, node_option: &rspack_core::NodeOption) -> bool {
+  fn is_mock(self, node_option: &rspack_core::NodeOption) -> bool {
     match self {
       NodeMetaProperty::Filename => matches!(node_option.filename, NodeFilenameOption::Mock),
       NodeMetaProperty::Dirname => matches!(node_option.dirname, NodeDirnameOption::Mock),
@@ -104,7 +104,7 @@ impl NodeMetaProperty {
   }
 
   /// Check if the option is WarnMock
-  fn is_warn_mock(&self, node_option: &rspack_core::NodeOption) -> bool {
+  fn is_warn_mock(self, node_option: &rspack_core::NodeOption) -> bool {
     match self {
       NodeMetaProperty::Filename => matches!(node_option.filename, NodeFilenameOption::WarnMock),
       NodeMetaProperty::Dirname => matches!(node_option.dirname, NodeDirnameOption::WarnMock),
@@ -112,7 +112,7 @@ impl NodeMetaProperty {
   }
 
   /// Check if the option is True
-  fn is_true(&self, node_option: &rspack_core::NodeOption) -> bool {
+  fn is_true(self, node_option: &rspack_core::NodeOption) -> bool {
     match self {
       NodeMetaProperty::Filename => matches!(node_option.filename, NodeFilenameOption::True),
       NodeMetaProperty::Dirname => matches!(node_option.dirname, NodeDirnameOption::True),
@@ -120,7 +120,7 @@ impl NodeMetaProperty {
   }
 
   /// Check if the option is EvalOnly
-  fn is_eval_only(&self, node_option: &rspack_core::NodeOption) -> bool {
+  fn is_eval_only(self, node_option: &rspack_core::NodeOption) -> bool {
     match self {
       NodeMetaProperty::Filename => matches!(node_option.filename, NodeFilenameOption::EvalOnly),
       NodeMetaProperty::Dirname => matches!(node_option.dirname, NodeDirnameOption::EvalOnly),
@@ -128,7 +128,7 @@ impl NodeMetaProperty {
   }
 
   /// Check if the option is NodeModule
-  fn is_node_module(&self, node_option: &rspack_core::NodeOption) -> bool {
+  fn is_node_module(self, node_option: &rspack_core::NodeOption) -> bool {
     match self {
       NodeMetaProperty::Filename => matches!(node_option.filename, NodeFilenameOption::NodeModule),
       NodeMetaProperty::Dirname => matches!(node_option.dirname, NodeDirnameOption::NodeModule),

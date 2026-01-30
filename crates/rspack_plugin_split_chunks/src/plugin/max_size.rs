@@ -255,7 +255,7 @@ fn get_key(module: &dyn Module, delimiter: &str, compilation: &Compilation) -> S
 
 fn deterministic_grouping_for_modules(
   compilation: &Compilation,
-  chunk: &ChunkUkey,
+  chunk: ChunkUkey,
   allow_max_size: &SplitChunkSizes,
   min_size: &SplitChunkSizes,
   delimiter: &str,
@@ -265,7 +265,7 @@ fn deterministic_grouping_for_modules(
 
   let items = compilation
     .chunk_graph
-    .get_chunk_modules(chunk, module_graph);
+    .get_chunk_modules(&chunk, module_graph);
 
   let mut nodes = items
     .into_iter()
@@ -595,7 +595,7 @@ impl SplitChunksPlugin {
         } = &info;
         let results = deterministic_grouping_for_modules(
           compilation_ref,
-          chunk,
+          *chunk,
           allow_max_size,
           min_size,
           automatic_name_delimiter,

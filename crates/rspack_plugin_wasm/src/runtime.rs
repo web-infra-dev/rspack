@@ -71,7 +71,7 @@ impl RuntimeModule for AsyncWasmLoadingRuntimeModule {
     // Even use content hash when [hash] in webpack
     let hash = match hash_len_map
       .get("[contenthash]")
-      .or(hash_len_map.get("[hash]"))
+      .or_else(|| hash_len_map.get("[hash]"))
     {
       Some(hash_len) => {
         let mut hash_len_buffer = itoa::Buffer::new();

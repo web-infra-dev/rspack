@@ -230,7 +230,7 @@ impl MockMethodDependencyTemplate {
         mock_method,
         hoist_flag.expect("hoist_flag should be Some when should_hoist is true"),
         request,
-        &callee_range,
+        callee_range,
       );
     } else if should_hoist {
       // Case 2: Standalone call with hoisting (e.g., `rs.hoisted(...)` or `rs.mock(...)`)
@@ -242,12 +242,12 @@ impl MockMethodDependencyTemplate {
         mock_method,
         hoist_flag.expect("hoist_flag should be Some when should_hoist is true"),
         request,
-        &callee_range,
+        callee_range,
       );
     } else {
       // Case 3: No hoisting needed (e.g., `rs.doMock(...)`)
       // Just replace the callee
-      Self::transform_without_hoist(source, require_name, mock_method, &callee_range);
+      Self::transform_without_hoist(source, require_name, mock_method, callee_range);
     }
   }
 
@@ -261,7 +261,7 @@ impl MockMethodDependencyTemplate {
     mock_method: &str,
     flag: &str,
     request: &str,
-    callee_range: &DependencyRange,
+    callee_range: DependencyRange,
   ) {
     let stmt_range: DependencyRange = dep
       .statement_span
@@ -305,7 +305,7 @@ impl MockMethodDependencyTemplate {
     mock_method: &str,
     flag: &str,
     request: &str,
-    callee_range: &DependencyRange,
+    callee_range: DependencyRange,
   ) {
     // Comment out original callee and add HOIST_START + runtime method
     source.replace(callee_range.start, callee_range.start, "/* ", None);
@@ -333,7 +333,7 @@ impl MockMethodDependencyTemplate {
     source: &mut TemplateReplaceSource,
     require_name: &str,
     mock_method: &str,
-    callee_range: &DependencyRange,
+    callee_range: DependencyRange,
   ) {
     source.replace(callee_range.start, callee_range.start, "/* ", None);
     source.replace(

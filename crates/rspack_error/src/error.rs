@@ -103,9 +103,11 @@ impl Error {
     src: Option<String>,
     start: usize,
     end: usize,
-    title: String,
-    message: String,
+    title: impl Into<String>,
+    message: impl Into<String>,
   ) -> Self {
+    let title = title.into();
+    let message = message.into();
     let mut error = Error::error(format!("{title}: {message}"));
     error.src = src;
     error.labels = Some(vec![Label {

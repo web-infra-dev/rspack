@@ -55,15 +55,15 @@ impl ImportsReferencesState {
     self.inner.insert(import, ImportReferences::default());
   }
 
-  fn get_import(&self, import: &Span) -> Option<&ImportReferences> {
-    self.inner.get(import)
+  fn get_import(&self, import: Span) -> Option<&ImportReferences> {
+    self.inner.get(&import)
   }
 
-  fn get_import_mut(&mut self, import: &Span) -> Option<&mut ImportReferences> {
-    self.inner.get_mut(import)
+  fn get_import_mut(&mut self, import: Span) -> Option<&mut ImportReferences> {
+    self.inner.get_mut(&import)
   }
 
-  fn get_import_mut_expect(&mut self, import: &Span) -> &mut ImportReferences {
+  fn get_import_mut_expect(&mut self, import: Span) -> &mut ImportReferences {
     self.get_import_mut(import).expect("should get import")
   }
 
@@ -158,10 +158,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
       .definitions_db
       .expect_get_tag_info(parser.current_tag_info?);
     let data = ImportTagData::downcast(tag_info.data.clone()?);
-    if let Some(keys) = parser
-      .destructuring_assignment_properties
-      .get(&ident.span())
-    {
+    if let Some(keys) = parser.destructuring_assignment_properties.get(ident.span()) {
       let mut refs = Vec::new();
       keys.traverse_on_leaf(&mut |stack| {
         refs.push(stack.iter().map(|p| p.id.clone()).collect());
@@ -169,13 +166,13 @@ impl JavascriptParserPlugin for ImportParserPlugin {
       for ids in refs {
         parser
           .dynamic_import_references
-          .get_import_mut_expect(&data.import_span)
+          .get_import_mut_expect(data.import_span)
           .add_reference(ids);
       }
     } else {
       parser
         .dynamic_import_references
-        .get_import_mut_expect(&data.import_span)
+        .get_import_mut_expect(data.import_span)
         .add_reference(vec![]);
     }
     Some(true)
@@ -200,7 +197,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
     let ids = get_non_optional_part(members, members_optionals);
     parser
       .dynamic_import_references
-      .get_import_mut_expect(&data.import_span)
+      .get_import_mut_expect(data.import_span)
       .add_reference(ids.to_vec());
     Some(true)
   }
@@ -229,7 +226,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
     }
     parser
       .dynamic_import_references
-      .get_import_mut_expect(&data.import_span)
+      .get_import_mut_expect(data.import_span)
       .add_reference(ids.to_vec());
     parser.walk_expr_or_spread(&expr.args);
     Some(true)
@@ -264,8 +261,8 @@ impl JavascriptParserPlugin for ImportParserPlugin {
       return None;
     }
 
-    let mode = magic_comment_options.get_mode().map_or(
-      dynamic_import_mode.expect("should have dynamic_import_mode"),
+    let mode = magic_comment_options.get_mode().map_or_else(
+      || dynamic_import_mode.expect("should have dynamic_import_mode"),
       |x| DynamicImportMode::from(x.as_str()),
     );
     let chunk_name = magic_comment_options.get_chunk_name().map(|x| x.to_owned());
@@ -292,10 +289,10 @@ impl JavascriptParserPlugin for ImportParserPlugin {
 
     let referenced_in_destructuring = parser
       .destructuring_assignment_properties
-      .get(&import_call_span);
+      .get(import_call_span);
     let referenced_in_member = parser
       .dynamic_import_references
-      .get_import(&import_call_span);
+      .get_import(import_call_span);
     let referenced_fulfilled_ns_obj =
       import_then.and_then(|import_then| get_fulfilled_callback_namespace_obj(import_then));
     if let Some(keys) = referenced_in_destructuring {
@@ -396,7 +393,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
           include,
           exclude,
           category: DependencyCategory::Esm,
-          request: format!("{}{}{}", context.clone(), query, fragment),
+          request: format!("{context}{query}{fragment}"),
           context,
           namespace_object: if parser.build_meta.strict_esm_module {
             ContextNameSpaceObject::Strict
@@ -440,7 +437,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
 
     if let Some(import_references) = parser
       .dynamic_import_references
-      .get_import_mut(&import_call_span)
+      .get_import_mut(import_call_span)
     {
       import_references.dep_locator = Some(dep_locator);
     }
@@ -565,7 +562,7 @@ fn walk_import_then_fulfilled_callback(
             .add_import(import_call.span());
           let import_references = parser
             .dynamic_import_references
-            .get_import_mut_expect(&import_call.span());
+            .get_import_mut_expect(import_call.span());
           let mut refs = Vec::new();
           keys.traverse_on_leaf(&mut |stack| {
             refs.push(stack.iter().map(|p| p.id.clone()).collect());

@@ -57,7 +57,10 @@ where
 {
   let mut map = s.serialize_map(Some(x.len()))?;
   for attr in x {
-    let attr_value = attr.attr_value.clone().unwrap_or("true".to_string());
+    let attr_value = attr
+      .attr_value
+      .clone()
+      .unwrap_or_else(|| "true".to_string());
     map.serialize_entry(&attr.attr_name, &attr_value)?;
   }
   map.end()

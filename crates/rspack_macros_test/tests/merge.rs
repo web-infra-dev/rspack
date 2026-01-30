@@ -23,14 +23,19 @@ mod enum_fields {
       three: "three".to_string(),
     };
     let t2 = Test::C;
-    let t3 = MergeFrom::merge_from(t1.clone(), &t2);
+    let t3 = MergeFrom::merge_from(t1, &t2);
     assert_eq!(t3, t2);
+    let t1 = Test::A {
+      one: "one".to_string(),
+      two: "two".to_string(),
+      three: "three".to_string(),
+    };
     let t4 = Test::A {
       one: "1".to_string(),
       two: "2".to_string(),
       three: "3".to_string(),
     };
-    let t5 = MergeFrom::merge_from(t1.clone(), &t4);
+    let t5 = MergeFrom::merge_from(t1, &t4);
     assert!(matches!(t5, Test::A { one, two, three } if one == "1" && two == "2" && three == "3"));
   }
 }
@@ -58,7 +63,7 @@ mod enum_base {
       three: "three".to_string(),
     };
     let t2 = Test::C;
-    let t3 = MergeFrom::merge_from(t1.clone(), &t2);
+    let t3 = MergeFrom::merge_from(t1, &t2);
     assert!(
       matches!(t3, Test::A { one, two, three } if one == "one" && two == "two" && three == "three")
     );

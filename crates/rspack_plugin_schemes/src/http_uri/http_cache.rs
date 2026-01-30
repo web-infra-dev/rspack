@@ -94,10 +94,11 @@ impl HttpCache {
   ) -> Self {
     let cache_location = cache_location.map(PathBuf::from);
     let lockfile_path = lockfile_location.map(PathBuf::from);
+    let lockfile_cache = LockfileCache::new(lockfile_path, filesystem.clone());
     HttpCache {
       cache_location,
-      lockfile_cache: LockfileCache::new(lockfile_path, filesystem.clone()),
-      filesystem: filesystem.clone(),
+      lockfile_cache,
+      filesystem,
       http_client,
     }
   }
@@ -177,8 +178,7 @@ impl HttpCache {
           match Url::parse(url) {
             Ok(base_url) => base_url
               .join(&location)
-              .map(|u| u.to_string())
-              .unwrap_or(location.clone()),
+              .map_or_else(|_| location.clone(), |u| u.to_string()),
             Err(_) => location.clone(), // Can't resolve, use as is
           }
         }

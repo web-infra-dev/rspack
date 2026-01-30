@@ -11,7 +11,7 @@ use rspack_hook::{plugin, plugin_hook};
 
 use crate::id_helpers::{assign_ascending_chunk_ids, compare_chunks_natural};
 
-#[derive(Debug)]
+#[derive(Clone, Copy, Debug)]
 pub struct OccurrenceChunkIdsPluginOptions {
   pub prioritise_initial: bool,
 }

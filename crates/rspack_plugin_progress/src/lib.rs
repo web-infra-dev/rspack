@@ -179,7 +179,7 @@ impl ProgressPlugin {
         if options.profile {
           self.default_handler(percent, msg, state_items, time).await;
         } else {
-          self.progress_bar_handler(percent, msg, state_items);
+          self.progress_bar_handler(percent, msg, &state_items);
         }
       }
     };
@@ -216,7 +216,10 @@ impl ProgressPlugin {
           }
           .as_millis();
           let report_state = if i > 0 {
-            last_state_info[i - 1].value.clone() + " > " + last_state_info[i].value.clone().as_str()
+            let mut state = last_state_info[i - 1].value.clone();
+            state.push_str(" > ");
+            state.push_str(&last_state_info[i].value);
+            state
           } else {
             last_state_info[i].value.clone()
           };
@@ -259,9 +262,13 @@ impl ProgressPlugin {
     }
   }
 
-  fn progress_bar_handler(&self, percent: f64, msg: String, state_items: Vec<String>) {
+  fn progress_bar_handler(&self, percent: f64, msg: String, state_items: &[String]) {
     if let Some(progress_bar) = &self.progress_bar {
-      let msg = msg + " " + state_items.join(" ").as_str();
+      let mut msg = msg;
+      if !state_items.is_empty() {
+        msg.push(' ');
+        msg.push_str(&state_items.join(" "));
+      }
       if percent == 1.0 {
         progress_bar.finish_with_message(msg);
       } else {
@@ -275,7 +282,7 @@ impl ProgressPlugin {
     let number_of_sealing_hooks = 38;
     self
       .handler(
-        0.7 + 0.25 * (index as f64 / number_of_sealing_hooks as f64),
+        0.25f64.mul_add(index as f64 / number_of_sealing_hooks as f64, 0.7),
         "sealing".to_string(),
         vec![name.to_string()],
         None,

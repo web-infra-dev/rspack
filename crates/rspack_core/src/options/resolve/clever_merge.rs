@@ -464,10 +464,11 @@ fn _merge_resolve(first: Resolve, second: Resolve) -> Resolve {
   }
 }
 
+#[allow(clippy::needless_pass_by_value)]
 fn normalize_string_array(a: Vec<String>, b: Vec<String>) -> Vec<String> {
-  b.into_iter().fold(vec![], |mut acc, item| {
-    if item.eq("...") {
-      acc.append(&mut a.clone());
+  b.into_iter().fold(Vec::new(), |mut acc, item| {
+    if item == "..." {
+      acc.extend(a.iter().cloned());
     } else {
       acc.push(item);
     }

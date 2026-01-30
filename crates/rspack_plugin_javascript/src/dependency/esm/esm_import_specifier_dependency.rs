@@ -357,14 +357,16 @@ impl ESMImportSpecifierDependencyTemplate {
         )
       } else if dep.namespace_object_as_context && ids.len() == 1 {
         // ConcatenationScope::create_module_reference(&dep, module, options)
-        scope.create_module_reference(
+        let mut reference = scope.create_module_reference(
           con.module_identifier(),
           &ModuleReferenceOptions {
             asi_safe: Some(dep.asi_safe),
             deferred_import: dep.phase.is_defer(),
             ..Default::default()
           },
-        ) + property_access(ids, 0).as_str()
+        );
+        reference.push_str(&property_access(ids, 0));
+        reference
       } else {
         scope.create_module_reference(
           con.module_identifier(),

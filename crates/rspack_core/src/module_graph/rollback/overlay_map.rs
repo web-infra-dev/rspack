@@ -217,6 +217,7 @@ where
     self.overlay.get_or_insert_with(HashMap::default)
   }
 
+  #[allow(clippy::needless_pass_by_value)]
   fn overlay_filter<'a>(entry: (&'a K, &'a mut OverlayValue<V>)) -> Option<(&'a K, &'a mut V)> {
     match entry.1 {
       OverlayValue::Value(value) => Some((entry.0, value)),

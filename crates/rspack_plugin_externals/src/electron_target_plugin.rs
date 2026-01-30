@@ -24,7 +24,7 @@ impl From<String> for ElectronTargetContext {
   }
 }
 
-pub fn electron_target_plugin(context: ElectronTargetContext, plugins: &mut Vec<BoxPlugin>) {
+pub fn electron_target_plugin(context: &ElectronTargetContext, plugins: &mut Vec<BoxPlugin>) {
   plugins.push(
     ExternalsPlugin::new(
       "node-commonjs".to_string(),

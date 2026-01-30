@@ -6,8 +6,8 @@ use rspack_core::{
   BoxModule, Compilation, CompilationOptimizeDependencies, ConnectionState, DependencyExtraMeta,
   DependencyId, FactoryMeta, GetTargetResult, Logger, ModuleFactoryCreateData, ModuleGraph,
   ModuleGraphConnection, ModuleIdentifier, NormalModuleCreateData, NormalModuleFactoryModule,
-  Plugin, PrefetchExportsInfoMode, RayonConsumer, ResolvedExportInfoTarget, SideEffectsDoOptimize,
-  SideEffectsDoOptimizeMoveTarget, SideEffectsOptimizeArtifact,
+  Plugin, PrefetchExportsInfoMode, RayonConsumer, ResolveFilterFnTy, ResolvedExportInfoTarget,
+  SideEffectsDoOptimize, SideEffectsDoOptimizeMoveTarget, SideEffectsOptimizeArtifact,
   build_module_graph::BuildModuleGraphArtifact,
   can_move_target, get_target,
   incremental::{self, IncrementalPasses, Mutation},
@@ -66,7 +66,9 @@ fn glob_match_with_normalized_pattern(pattern: &str, string: &str) -> bool {
   let normalized_glob = if trim_start.contains('/') {
     trim_start.to_string()
   } else {
-    String::from("**/") + trim_start
+    let mut normalized = String::from("**/");
+    normalized.push_str(trim_start);
+    normalized
   };
   fast_glob::glob_match(&normalized_glob, string.trim_start_matches("./"))
 }
@@ -195,11 +197,11 @@ async fn optimize_dependencies(
     });
 
     fn affected_incoming_modules(
-      module: &ModuleIdentifier,
+      module: ModuleIdentifier,
       module_graph: &ModuleGraph,
       modules: &mut IdentifierSet,
     ) {
-      for connection in module_graph.get_incoming_connections(module) {
+      for connection in module_graph.get_incoming_connections(&module) {
         let Some(original_module) = connection.original_module_identifier else {
           continue;
         };
@@ -208,7 +210,7 @@ async fn optimize_dependencies(
         }
         let dep = module_graph.dependency_by_id(&connection.dependency_id);
         if dep.is::<ESMExportImportedSpecifierDependency>() && modules.insert(original_module) {
-          affected_incoming_modules(&original_module, module_graph, modules);
+          affected_incoming_modules(original_module, module_graph, modules);
         }
       }
     }
@@ -218,7 +220,7 @@ async fn optimize_dependencies(
       |mut modules, mutation| match mutation {
         Mutation::ModuleAdd { module } | Mutation::ModuleUpdate { module } => {
           if modules.insert(*module) {
-            affected_incoming_modules(module, module_graph, &mut modules);
+            affected_incoming_modules(*module, module_graph, &mut modules);
           }
           modules.extend(
             module_graph
@@ -351,13 +353,10 @@ fn can_optimize_connection(
       module_graph.get_prefetched_exports_info(&original_module, PrefetchExportsInfoMode::Default);
     let export_info = exports_info.get_export_info_without_mut_module_graph(name);
 
-    let target = can_move_target(
-      &export_info,
-      module_graph,
-      Rc::new(|target: &ResolvedExportInfoTarget| {
-        side_effects_state_map[&target.module] == ConnectionState::Active(false)
-      }),
-    )?;
+    let resolve_filter: ResolveFilterFnTy<'_> = Rc::new(|target: &ResolvedExportInfoTarget| {
+      side_effects_state_map[&target.module] == ConnectionState::Active(false)
+    });
+    let target = can_move_target(&export_info, module_graph, &resolve_filter)?;
     if !module_graph.can_update_module(&dependency_id, &target.module) {
       return None;
     }
@@ -397,12 +396,13 @@ fn can_optimize_connection(
     );
     let export_info = exports_info.get_export_info_without_mut_module_graph(&ids[0]);
 
+    let resolve_filter: ResolveFilterFnTy<'_> = Rc::new(|target: &ResolvedExportInfoTarget| {
+      side_effects_state_map[&target.module] == ConnectionState::Active(false)
+    });
     let Some(GetTargetResult::Target(target)) = get_target(
       &export_info,
       module_graph,
-      Rc::new(|target: &ResolvedExportInfoTarget| {
-        side_effects_state_map[&target.module] == ConnectionState::Active(false)
-      }),
+      &resolve_filter,
       &mut Default::default(),
     ) else {
       return None;

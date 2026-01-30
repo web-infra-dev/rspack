@@ -41,12 +41,15 @@ pub fn stringify_chunks(chunks: &HashSet<ChunkId>, value: u8) -> String {
   format!(
     r#"{{{}}}"#,
     v.iter().fold(String::new(), |prev, cur| {
-      prev
-        + format!(
+      let mut next = prev;
+      next.push_str(
+        format!(
           r#"{}: {value},"#,
           serde_json::to_string(cur).expect("chunk to_string failed")
         )
-        .as_str()
+        .as_str(),
+      );
+      next
     })
   )
 }
@@ -202,13 +205,16 @@ fn stringify_map<T: std::fmt::Display>(map: &HashMap<&str, T>) -> String {
       .keys()
       .sorted_unstable()
       .fold(String::new(), |prev, cur| {
-        prev
-          + format!(
+        let mut next = prev;
+        next.push_str(
+          format!(
             r#"{}: {},"#,
             serde_json::to_string(cur).expect("json stringify failed"),
             map.get(cur).expect("get key from map")
           )
-          .as_str()
+          .as_str(),
+        );
+        next
       })
   )
 }

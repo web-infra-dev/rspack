@@ -30,7 +30,7 @@ const FILE_NAME: &str = "__filename";
 const IMPORT_META_DIRNAME: &str = "import.meta.dirname";
 const IMPORT_META_FILENAME: &str = "import.meta.filename";
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Clone, Copy)]
 enum ModulePathType {
   DirName,
   FileName,

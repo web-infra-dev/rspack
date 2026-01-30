@@ -16,7 +16,7 @@ pub fn cacheable(
   if args.with.is_some() {
     impl_cacheable_with(tokens, args)
   } else {
-    impl_cacheable(tokens, args)
+    impl_cacheable(tokens, &args)
   }
 }
 

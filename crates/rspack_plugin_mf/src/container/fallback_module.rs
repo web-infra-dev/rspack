@@ -97,7 +97,7 @@ impl Module for FallbackModule {
   impl_module_meta_info!();
 
   fn size(&self, _source_type: Option<&SourceType>, _compilation: Option<&Compilation>) -> f64 {
-    self.requests.len() as f64 * 5.0 + 42.0
+    (self.requests.len() as f64).mul_add(5.0, 42.0)
   }
 
   fn module_type(&self) -> &ModuleType {

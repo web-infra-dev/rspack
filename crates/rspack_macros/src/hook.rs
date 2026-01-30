@@ -93,7 +93,7 @@ impl DefineHookInput {
       .collect::<Result<Punctuated<&Ident, Comma>>>()?;
     let hook_name = Ident::new(&format!("{trait_name}Hook"), trait_name.span());
     let hook_name_lit_str = LitStr::new(&hook_name.to_string(), trait_name.span());
-    let call_body = exec_kind.body(arg_names);
+    let call_body = exec_kind.body(&arg_names);
     let call_body = if tracing.is_none_or(|bool_lit| bool_lit.value) {
       let tracing_span_name = LitStr::new(&format!("hook:{trait_name}"), trait_name.span());
       quote! {
@@ -210,7 +210,7 @@ impl ExecKind {
     }
   }
 
-  pub fn body(&self, args: Punctuated<&Ident, Comma>) -> TokenStream {
+  pub fn body(&self, args: &Punctuated<&Ident, Comma>) -> TokenStream {
     let additional_taps = self.additional_taps();
     match self {
       Self::Series => {

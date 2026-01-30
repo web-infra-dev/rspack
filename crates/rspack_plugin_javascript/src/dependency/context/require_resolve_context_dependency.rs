@@ -132,6 +132,6 @@ impl DependencyTemplate for RequireResolveContextDependencyTemplate {
       .downcast_ref::<RequireResolveContextDependency>()
       .expect("RequireResolveContextDependencyTemplate should be used for RequireResolveContextDependency");
 
-    context_dependency_template_as_id(dep, source, code_generatable_context, &dep.range);
+    context_dependency_template_as_id(dep, source, code_generatable_context, dep.range);
   }
 }

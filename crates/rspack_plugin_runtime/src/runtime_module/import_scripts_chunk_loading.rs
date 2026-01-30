@@ -75,6 +75,7 @@ impl ImportScriptsChunkLoadingRuntimeModule {
   }
 }
 
+#[derive(Clone, Copy)]
 enum TemplateId {
   Raw,
   WithHmr,

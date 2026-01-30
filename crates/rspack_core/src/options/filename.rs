@@ -84,7 +84,7 @@ impl Filename {
         Cow::Owned(filename_fn.call(&options, asset_info.as_deref()).await?)
       }
     };
-    Ok(render_template(template, options, asset_info))
+    Ok(render_template(template, &options, asset_info))
   }
 }
 
@@ -196,7 +196,7 @@ pub fn has_content_hash_placeholder(template: &str) -> bool {
 
 fn render_template(
   template: Cow<str>,
-  options: PathData,
+  options: &PathData,
   mut asset_info: Option<&mut AssetInfo>,
 ) -> String {
   let mut t = template;
@@ -256,7 +256,11 @@ fn render_template(
               .parent()
               // "" -> "", "folder" -> "folder/"
               .filter(|p| !p.as_str().is_empty())
-              .map(|p| p.as_str().to_owned() + "/")
+              .map(|p| {
+                let mut value = p.as_str().to_owned();
+                value.push('/');
+                value
+              })
               .unwrap_or_default(),
           )
         })

@@ -30,7 +30,7 @@ pub struct PluginDriver {
 
 impl PluginDriver {
   pub fn new(
-    options: Arc<CompilerOptions>,
+    options: &Arc<CompilerOptions>,
     plugins: Vec<Box<dyn Plugin>>,
     resolver_factory: Arc<ResolverFactory>,
   ) -> Arc<Self> {
@@ -49,7 +49,7 @@ impl PluginDriver {
       context_module_factory_hooks: &mut context_module_factory_hooks,
       normal_module_hooks: &mut normal_module_hooks,
       concatenated_module_hooks: &mut concatenated_module_hooks,
-      compiler_options: &options,
+      compiler_options: options,
     };
     for plugin in &plugins {
       plugin.apply(&mut apply_context).expect("TODO:");

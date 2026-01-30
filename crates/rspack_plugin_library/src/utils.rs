@@ -48,18 +48,18 @@ pub fn external_module_names(
   inner_external_arguments(modules, compilation)
 }
 
-pub fn get_options_for_chunk<'a>(
-  compilation: &'a Compilation,
-  chunk_ukey: &ChunkUkey,
-) -> Option<&'a LibraryOptions> {
+pub fn get_options_for_chunk(
+  compilation: &Compilation,
+  chunk_ukey: ChunkUkey,
+) -> Option<&LibraryOptions> {
   if compilation
     .chunk_graph
-    .get_number_of_entry_modules(chunk_ukey)
+    .get_number_of_entry_modules(&chunk_ukey)
     == 0
   {
     return None;
   }
-  let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+  let chunk = compilation.chunk_by_ukey.expect_get(&chunk_ukey);
   chunk
     .get_entry_options(&compilation.chunk_group_by_ukey)
     .and_then(|options| options.library.as_ref())

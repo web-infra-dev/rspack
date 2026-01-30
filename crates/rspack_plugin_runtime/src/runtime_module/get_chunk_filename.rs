@@ -234,7 +234,7 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
       );
       let full_hash = match hash_len_map
         .get("[fullhash]")
-        .or(hash_len_map.get("[hash]"))
+        .or_else(|| hash_len_map.get("[hash]"))
       {
         Some(hash_len) => {
           let mut hash_len_buffer = itoa::Buffer::new();
@@ -323,7 +323,7 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
           });
         let full_hash = match hash_len_map
           .get("[fullhash]")
-          .or(hash_len_map.get("[hash]"))
+          .or_else(|| hash_len_map.get("[hash]"))
         {
           Some(hash_len) => {
             let mut hash_len_buffer = itoa::Buffer::new();

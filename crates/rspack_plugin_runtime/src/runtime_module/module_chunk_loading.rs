@@ -79,6 +79,7 @@ impl ModuleChunkLoadingRuntimeModule {
   }
 }
 
+#[derive(Clone, Copy)]
 enum TemplateId {
   Raw,
   WithLoading,

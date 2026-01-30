@@ -301,7 +301,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         let mut output = match javascript_compiler.minify(
           swc_core::common::FileName::Custom(filename.to_string()),
           input,
-          js_minify_options,
+          &js_minify_options,
           Some(comments_op),
         ) {
             Ok(r) => r,

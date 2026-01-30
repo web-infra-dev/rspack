@@ -10,14 +10,14 @@ use super::{
 
 pub fn collect_assets_from_chunk(
   compilation: &Compilation,
-  chunk_key: &rspack_core::ChunkUkey,
+  chunk_key: rspack_core::ChunkUkey,
   entry_point_names: &HashSet<String>,
 ) -> StatsAssetsGroup {
   let mut js_sync = HashSet::<String>::default();
   let mut js_async = HashSet::<String>::default();
   let mut css_sync = HashSet::<String>::default();
   let mut css_async = HashSet::<String>::default();
-  let Some(chunk) = compilation.chunk_by_ukey.get(chunk_key) else {
+  let Some(chunk) = compilation.chunk_by_ukey.get(&chunk_key) else {
     return empty_assets_group();
   };
 
@@ -40,7 +40,7 @@ pub fn collect_assets_from_chunk(
         if let Some(group_chunk_name) = group_chunk.name()
           && let Some(chunk_name) = chunk.name()
           && group_chunk_name == chunk_name
-          && chunk_ukey != chunk_key
+          && chunk_ukey != &chunk_key
         {
           continue;
         }
@@ -120,16 +120,16 @@ pub fn normalize_assets_group(group: &mut StatsAssetsGroup) {
 
 pub fn collect_assets_for_module(
   compilation: &Compilation,
-  module_identifier: &ModuleIdentifier,
+  module_identifier: ModuleIdentifier,
   entry_point_names: &HashSet<String>,
 ) -> Option<StatsAssetsGroup> {
   let chunk_graph = &compilation.chunk_graph;
-  if chunk_graph.get_number_of_module_chunks(*module_identifier) == 0 {
+  if chunk_graph.get_number_of_module_chunks(module_identifier) == 0 {
     return None;
   }
   let mut result = empty_assets_group();
-  for chunk_ukey in chunk_graph.get_module_chunks(*module_identifier) {
-    let chunk_assets = collect_assets_from_chunk(compilation, chunk_ukey, entry_point_names);
+  for chunk_ukey in chunk_graph.get_module_chunks(module_identifier) {
+    let chunk_assets = collect_assets_from_chunk(compilation, *chunk_ukey, entry_point_names);
     merge_assets_group(&mut result, chunk_assets);
   }
   normalize_assets_group(&mut result);
@@ -139,11 +139,11 @@ pub fn collect_assets_for_module(
 pub fn collect_usage_files_for_module(
   compilation: &Compilation,
   module_graph: &ModuleGraph,
-  module_identifier: &ModuleIdentifier,
+  module_identifier: ModuleIdentifier,
   entry_point_names: &HashSet<String>,
 ) -> Vec<String> {
   let mut files = HashSet::default();
-  for connection in module_graph.get_incoming_connections(module_identifier) {
+  for connection in module_graph.get_incoming_connections(&module_identifier) {
     let origin_identifier = connection
       .original_module_identifier
       .or(connection.resolved_original_module_identifier);
@@ -157,7 +157,7 @@ pub fn collect_usage_files_for_module(
       files.insert(path);
       continue;
     }
-    if let Some(assets) = collect_assets_for_module(compilation, &origin, entry_point_names) {
+    if let Some(assets) = collect_assets_for_module(compilation, origin, entry_point_names) {
       files.extend(assets.js.sync);
       files.extend(assets.js.r#async);
     } else if let Some(origin_module) = module_graph.module_by_identifier(&origin) {

@@ -130,7 +130,7 @@ impl ExportInfoData {
 
   pub fn set_used_conditionally(
     &mut self,
-    condition: UsageFilterFnTy<UsageState>,
+    condition: &UsageFilterFnTy<UsageState>,
     new_value: UsageState,
     runtime: Option<&RuntimeSpec>,
   ) -> bool {
@@ -179,11 +179,8 @@ impl ExportInfoData {
   pub fn set_used_in_unknown_way(&mut self, runtime: Option<&RuntimeSpec>) -> bool {
     let mut changed = false;
 
-    if self.set_used_conditionally(
-      Box::new(|value| value < &UsageState::Unknown),
-      UsageState::Unknown,
-      runtime,
-    ) {
+    let condition: UsageFilterFnTy<UsageState> = Box::new(|value| value < &UsageState::Unknown);
+    if self.set_used_conditionally(&condition, UsageState::Unknown, runtime) {
       changed = true;
     }
     if self.can_mangle_use() != Some(false) {

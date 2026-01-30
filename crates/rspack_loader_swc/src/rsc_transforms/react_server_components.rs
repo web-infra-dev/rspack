@@ -503,6 +503,7 @@ impl Visit for ReactServerComponentValidator {
 
 /// Runs react server component transform for the module proxy, as well as
 /// running assertion.
+#[allow(clippy::needless_pass_by_value)]
 pub fn server_components(
   filename: Arc<FileName>,
   config: Config,

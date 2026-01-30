@@ -141,7 +141,9 @@ impl HttpUriPlugin {
     let context = get_resource_context(&resolved_result.entry.resolved);
     resource_data.set_context(context);
     resource_data.set_resource(url.to_string());
-    resource_data.set_path(url.origin().ascii_serialization() + url.path());
+    let mut path = url.origin().ascii_serialization();
+    path.push_str(url.path());
+    resource_data.set_path(path);
     if let Some(query) = url.query() {
       resource_data.set_query(query.to_string());
     }

@@ -83,7 +83,7 @@ impl ScopeWriteStrategy for SplitPackStrategy {
     let bucket_updates = updates
       .into_par_iter()
       .map(|(key, value)| {
-        let bucket_id = choose_bucket(&key, &scope.options.bucket_size);
+        let bucket_id = choose_bucket(&key, scope.options.bucket_size);
         (bucket_id, key, value)
       })
       .collect::<Vec<_>>()
@@ -396,7 +396,7 @@ mod tests {
     start: usize,
     end: usize,
   ) -> Result<()> {
-    let updates = mock_updates(start, end, 8, UpdateVal::Value("val".into()));
+    let updates = mock_updates(start, end, 8, &UpdateVal::Value("val".into()));
     strategy.update_scope(scope, updates).await?;
     let contents = scope
       .get_contents()
@@ -427,7 +427,7 @@ mod tests {
     start: usize,
     end: usize,
   ) -> Result<()> {
-    let updates = mock_updates(start, end, 24, UpdateVal::Value("val".into()));
+    let updates = mock_updates(start, end, 24, &UpdateVal::Value("val".into()));
     let pre_item_count = scope.get_contents().len();
     strategy.update_scope(scope, updates).await?;
     let contents = scope
@@ -453,7 +453,7 @@ mod tests {
   }
 
   async fn test_update_value(scope: &mut PackScope, strategy: &SplitPackStrategy) -> Result<()> {
-    let updates = mock_updates(0, 1, 8, UpdateVal::Value("new".into()));
+    let updates = mock_updates(0, 1, 8, &UpdateVal::Value("new".into()));
     let pre_item_count = scope.get_contents().len();
     strategy.update_scope(scope, updates).await?;
     let contents = scope
@@ -474,7 +474,7 @@ mod tests {
   }
 
   async fn test_remove_value(scope: &mut PackScope, strategy: &SplitPackStrategy) -> Result<()> {
-    let updates = mock_updates(1, 2, 8, UpdateVal::Removed);
+    let updates = mock_updates(1, 2, 8, &UpdateVal::Removed);
     let pre_item_count = scope.get_contents().len();
     strategy.update_scope(scope, updates).await?;
     let contents = scope

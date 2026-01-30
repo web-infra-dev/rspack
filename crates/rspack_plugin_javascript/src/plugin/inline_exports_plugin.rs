@@ -14,9 +14,9 @@ use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::dependency::{ESMExportImportedSpecifierDependency, ESMImportSpecifierDependency};
 
-fn inline_enabled(dependency_id: &DependencyId, mg: &ModuleGraph) -> bool {
+fn inline_enabled(dependency_id: DependencyId, mg: &ModuleGraph) -> bool {
   let module = mg
-    .get_module_by_dependency_id(dependency_id)
+    .get_module_by_dependency_id(&dependency_id)
     .expect("should have target module");
   module.build_info().inline_exports
 }
@@ -47,7 +47,7 @@ pub fn connection_active_inline_value_for_esm_import_specifier(
   runtime: Option<&RuntimeSpec>,
   mg: &ModuleGraph,
 ) -> bool {
-  if !inline_enabled(dependency.id(), mg) {
+  if !inline_enabled(*dependency.id(), mg) {
     return true;
   }
   let module = connection.module_identifier();
@@ -62,7 +62,7 @@ pub fn connection_active_inline_value_for_esm_export_imported_specifier(
   runtime: Option<&RuntimeSpec>,
   mg: &ModuleGraph,
 ) -> bool {
-  if !inline_enabled(dependency.id(), mg) {
+  if !inline_enabled(*dependency.id(), mg) {
     return true;
   }
   let ExportMode::NormalReexport(mode) = mode else {
@@ -128,7 +128,7 @@ async fn optimize_dependencies(
       .par_iter()
       .filter_map(|exports_info| {
         let exports_info_data =
-          ExportsInfoGetter::prefetch(exports_info, mg, PrefetchExportsInfoMode::Default);
+          ExportsInfoGetter::prefetch(*exports_info, mg, &PrefetchExportsInfoMode::Default);
         let export_list = {
           // If there are other usage (e.g. `import { Kind } from './enum'; Kind;`) in any runtime,
           // then we cannot inline this export.

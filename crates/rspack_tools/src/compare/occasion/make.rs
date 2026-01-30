@@ -90,7 +90,7 @@ impl<'a> ArtifactComparator<'a> {
       )?;
 
       // Compare module relations (and verify dep_id_map)
-      self.compare_module_relations(module_id, &module_debug_info, &dep_id_map)?;
+      self.compare_module_relations(*module_id, &module_debug_info, &dep_id_map)?;
     }
 
     // Second pass: Compare BuildInfo using the DependencyId mapping
@@ -109,13 +109,13 @@ impl<'a> ArtifactComparator<'a> {
   /// Compare module's outgoing connections (downstream modules) and verify dep_id_map
   fn compare_module_relations(
     &self,
-    module_id: &rspack_core::ModuleIdentifier,
+    module_id: rspack_core::ModuleIdentifier,
     debug_info: &DebugInfo,
     dep_id_map: &HashMap<DependencyId, DependencyId>,
   ) -> Result<()> {
     // Get outgoing connections for this module from both graphs
-    let connections1: Vec<_> = self.mg1.get_outgoing_connections(module_id).collect();
-    let connections2: Vec<_> = self.mg2.get_outgoing_connections(module_id).collect();
+    let connections1: Vec<_> = self.mg1.get_outgoing_connections(&module_id).collect();
+    let connections2: Vec<_> = self.mg2.get_outgoing_connections(&module_id).collect();
 
     // Extract downstream module identifiers
     let downstream1: Vec<_> = connections1

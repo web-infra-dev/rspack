@@ -24,6 +24,7 @@ impl EnsureChunkRuntimeModule {
   }
 }
 
+#[derive(Clone, Copy)]
 enum TemplateId {
   Raw,
   WithInline,

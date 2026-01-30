@@ -1,5 +1,3 @@
-use std::borrow::Cow;
-
 use swc_core::{
   common::Spanned,
   ecma::ast::{
@@ -186,7 +184,7 @@ impl JavascriptParser<'_> {
         .pre_declarator(self, declarator, decl)
         .unwrap_or_default()
       {
-        self.enter_pattern(Cow::Borrowed(&declarator.name), |this, ident| {
+        self.enter_pattern(&declarator.name, |this, ident| {
           this.define_variable(ident.sym.clone());
         });
       }

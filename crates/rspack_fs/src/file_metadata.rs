@@ -78,7 +78,7 @@ impl FilePermissions {
           Some(self.0)
         }
 
-        pub fn from_std(perm: Permissions) -> Self {
+        pub fn from_std(perm: &Permissions) -> Self {
           use std::os::unix::fs::PermissionsExt;
           Self(perm.mode())
         }
@@ -96,7 +96,7 @@ impl FilePermissions {
           None
         }
 
-        pub fn from_std(_perm: Permissions) -> Self {
+        pub fn from_std(_perm: &Permissions) -> Self {
           Self()
         }
 

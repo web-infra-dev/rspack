@@ -251,7 +251,7 @@ impl Compilation {
         .map(|chunk| {
           chunk
             .name()
-            .or(chunk.id().map(|id| id.as_str()))
+            .or_else(|| chunk.id().map(|id| id.as_str()))
             .unwrap_or("no id chunk")
         })
         .join(", ");

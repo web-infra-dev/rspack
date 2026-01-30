@@ -13,21 +13,21 @@ use rspack_hook::{plugin, plugin_hook};
 
 fn add_to_set_map(
   map: &mut UkeyMap<ChunkUkey, UkeySet<ChunkCombinationUkey>>,
-  key: &ChunkUkey,
+  key: ChunkUkey,
   value: ChunkCombinationUkey,
 ) {
-  if map.get(key).is_none() {
+  if map.get(&key).is_none() {
     let mut set = UkeySet::default();
     set.insert(value);
-    map.insert(*key, set);
+    map.insert(key, set);
   } else {
-    let set = map.get_mut(key);
+    let set = map.get_mut(&key);
     if let Some(set) = set {
       set.insert(value);
     } else {
       let mut set = UkeySet::default();
       set.insert(value);
-      map.insert(*key, set);
+      map.insert(key, set);
     }
   }
 }
@@ -146,8 +146,8 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
         b_size,
       };
 
-      add_to_set_map(&mut combinations_by_chunk, a, c.ukey);
-      add_to_set_map(&mut combinations_by_chunk, b, c.ukey);
+      add_to_set_map(&mut combinations_by_chunk, *a, c.ukey);
+      add_to_set_map(&mut combinations_by_chunk, *b, c.ukey);
       combinations.add(c);
     }
   }
@@ -160,7 +160,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
   let mut modified_chunks: UkeySet<ChunkUkey> = UkeySet::default();
 
   while let Some(combination_ukey) = combinations.pop_first() {
-    let combination = combinations.get_mut(&combination_ukey);
+    let combination = combinations.get_mut(combination_ukey);
     combination.deleted = true;
     let a = combination.a;
     let b = combination.b;
@@ -224,12 +224,12 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
       let a_combinations = combinations_by_chunk.get_mut(&a);
       if let Some(a_combinations) = a_combinations {
         for ukey in a_combinations.clone() {
-          let combination = combinations.get_mut(&ukey);
+          let combination = combinations.get_mut(ukey);
           if combination.deleted {
             continue;
           }
           combination.deleted = true;
-          combinations.delete(&ukey);
+          combinations.delete(ukey);
         }
       }
 
@@ -237,14 +237,14 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
       let b_combinations = combinations_by_chunk.get(&b);
       if let Some(b_combinations) = b_combinations {
         for ukey in b_combinations {
-          let combination = combinations.get_mut(ukey);
+          let combination = combinations.get_mut(*ukey);
           if combination.deleted {
             continue;
           }
           if combination.a == b {
             if !chunk_graph.can_chunks_be_integrated(&a, &b, chunk_by_ukey, chunk_group_by_ukey) {
               combination.deleted = true;
-              combinations.delete(ukey);
+              combinations.delete(*ukey);
               continue;
             }
             // Update size
@@ -265,7 +265,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
           } else if combination.b == b {
             if !chunk_graph.can_chunks_be_integrated(&b, &a, chunk_by_ukey, chunk_group_by_ukey) {
               combination.deleted = true;
-              combinations.delete(ukey);
+              combinations.delete(*ukey);
               continue;
             }
             // Update size

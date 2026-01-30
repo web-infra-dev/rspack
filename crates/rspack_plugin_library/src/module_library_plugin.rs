@@ -38,7 +38,7 @@ impl ModuleLibraryPlugin {
   fn get_options_for_chunk(
     &self,
     compilation: &Compilation,
-    chunk_ukey: &ChunkUkey,
+    chunk_ukey: ChunkUkey,
   ) -> Result<Option<()>> {
     get_options_for_chunk(compilation, chunk_ukey)
       .filter(|library| library.library_type == "module")
@@ -68,7 +68,7 @@ async fn render_startup(
   module: &ModuleIdentifier,
   render_source: &mut RenderSource,
 ) -> Result<()> {
-  let Some(_) = self.get_options_for_chunk(compilation, chunk_ukey)? else {
+  let Some(_) = self.get_options_for_chunk(compilation, *chunk_ukey)? else {
     return Ok(());
   };
   let exports_name = compilation
@@ -150,7 +150,7 @@ async fn js_chunk_hash(
   chunk_ukey: &ChunkUkey,
   hasher: &mut RspackHash,
 ) -> Result<()> {
-  let Some(_) = self.get_options_for_chunk(compilation, chunk_ukey)? else {
+  let Some(_) = self.get_options_for_chunk(compilation, *chunk_ukey)? else {
     return Ok(());
   };
   PLUGIN_NAME.hash(hasher);

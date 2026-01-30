@@ -57,10 +57,14 @@ pub fn clean_base64(value: &str) -> Option<Cow<'_, str>> {
   }
   let pad_len = 4 - remainder;
   if pad_len == 1 {
-    return Some(Cow::from(value + "="));
+    let mut padded = value;
+    padded.push('=');
+    return Some(Cow::from(padded));
   }
   if pad_len == 2 {
-    return Some(Cow::from(value + "=="));
+    let mut padded = value;
+    padded.push_str("==");
+    return Some(Cow::from(padded));
   }
   // modify: add this case on the original base64clean js function
   // why Buffer.from("abcd?#iefix", "base64") => "abcdiefi"?

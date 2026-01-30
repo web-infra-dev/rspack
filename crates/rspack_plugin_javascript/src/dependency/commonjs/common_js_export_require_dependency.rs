@@ -68,11 +68,11 @@ impl CommonJsExportRequireDependency {
     mg: &ModuleGraph,
     mg_cache: &ModuleGraphCacheArtifact,
     runtime: Option<&RuntimeSpec>,
-    imported_module: &ModuleIdentifier,
+    imported_module: ModuleIdentifier,
   ) -> Option<FxHashSet<Atom>> {
     let ids = self.get_ids(mg);
     let mut imported_exports_info =
-      Some(mg.get_prefetched_exports_info(imported_module, PrefetchExportsInfoMode::Nested(ids)));
+      Some(mg.get_prefetched_exports_info(&imported_module, PrefetchExportsInfoMode::Nested(ids)));
 
     if !ids.is_empty() {
       let Some(nested_exports_info) = &imported_exports_info else {
@@ -83,7 +83,7 @@ impl CommonJsExportRequireDependency {
         .map(|data| data.id());
 
       imported_exports_info =
-        nested.map(|id| ExportsInfoGetter::prefetch(&id, mg, PrefetchExportsInfoMode::Default));
+        nested.map(|id| ExportsInfoGetter::prefetch(id, mg, &PrefetchExportsInfoMode::Default));
     }
 
     let mut exports_info = Some(
@@ -102,7 +102,7 @@ impl CommonJsExportRequireDependency {
         .get_nested_exports_info(Some(&self.names))
         .map(|data| data.id());
       exports_info =
-        nested.map(|id| ExportsInfoGetter::prefetch(&id, mg, PrefetchExportsInfoMode::Default));
+        nested.map(|id| ExportsInfoGetter::prefetch(id, mg, &PrefetchExportsInfoMode::Default));
     };
 
     let no_extra_exports = imported_exports_info.as_ref().is_some_and(|data| {
@@ -122,7 +122,7 @@ impl CommonJsExportRequireDependency {
     }
 
     let is_namespace_import = matches!(
-      mg.module_by_identifier(imported_module)
+      mg.module_by_identifier(&imported_module)
         .expect("Should get imported module")
         .get_exports_type(mg, mg_cache, false),
       ExportsType::Namespace
@@ -237,7 +237,7 @@ impl Dependency for CommonJsExportRequireDependency {
     } else if self.names.is_empty() {
       let from = mg.connection_by_dependency_id(&self.id)?;
       if let Some(reexport_info) =
-        self.get_star_reexports(mg, mg_cache, None, from.module_identifier())
+        self.get_star_reexports(mg, mg_cache, None, *from.module_identifier())
       {
         Some(ExportsSpec {
           exports: ExportsOfExportsSpec::Names(

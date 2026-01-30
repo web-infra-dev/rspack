@@ -20,10 +20,10 @@ impl<'a> CycleDetector<'a> {
     Self { module_map }
   }
 
-  fn get_module(&self, id: &ModuleIdentifier) -> &GraphModule {
+  fn get_module(&self, id: ModuleIdentifier) -> &GraphModule {
     self
       .module_map
-      .get(id)
+      .get(&id)
       .expect("Module map should only contain references to existing modules")
   }
 
@@ -53,7 +53,7 @@ impl<'a> CycleDetector<'a> {
     found_cycles: &mut Vec<Vec<ModuleIdentifier>>,
   ) {
     current_path.push(current_module_id);
-    for target_id in self.get_module(&current_module_id).dependencies.keys() {
+    for target_id in self.get_module(current_module_id).dependencies.keys() {
       // If the current path already contains the dependent module, then it
       // creates a cycle and doesn't need to be traversed further. Otherwise,
       // recurse through that dependency to keep searching.
@@ -382,7 +382,7 @@ async fn optimize_modules(
     for module_id in entry_modules {
       // Only consider entrypoint modules coming from existing source code.
       // This skips internal things like runtime and generated chunks.
-      if !detector.get_module(&module_id).is_source {
+      if !detector.get_module(module_id).is_source {
         continue;
       };
 

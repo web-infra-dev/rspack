@@ -240,7 +240,7 @@ impl ReadableFileSystem for NativeFileSystem {
             for path in zip.dirs.iter().chain(zip.files.keys()) {
               let pathbuf = PathBuf::from(path);
               if let Some(file_name) = pathbuf.file_name() {
-                let parent_path = pathbuf.parent().unwrap_or(Path::new("."));
+                let parent_path = pathbuf.parent().unwrap_or_else(|| Path::new("."));
                 if Path::new(&info.zip_path) == parent_path {
                   res.push(file_name.to_string_lossy().to_string());
                 }
@@ -267,7 +267,7 @@ impl ReadableFileSystem for NativeFileSystem {
   #[instrument(skip(self), level = "debug")]
   async fn permissions(&self, path: &Utf8Path) -> Result<Option<FilePermissions>> {
     let meta = tokio::fs::metadata(path).await.to_fs_result()?;
-    Ok(Some(FilePermissions::from_std(meta.permissions())))
+    Ok(Some(FilePermissions::from_std(&meta.permissions())))
   }
 }
 

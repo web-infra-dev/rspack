@@ -127,7 +127,7 @@ impl BuilderContext {
         plugins.push(rspack_plugin_externals::node_target_plugin())
       }
       BuiltinPluginOptions::ElectronTargetPlugin(context) => {
-        rspack_plugin_externals::electron_target_plugin(context, &mut plugins)
+        rspack_plugin_externals::electron_target_plugin(&context, &mut plugins)
       }
       BuiltinPluginOptions::HttpExternalsRspackPlugin((css, web_async)) => {
         plugins.push(rspack_plugin_externals::http_externals_rspack_plugin(
@@ -149,11 +149,11 @@ impl BuilderContext {
         plugins.push(rspack_plugin_runtime::ModuleChunkFormatPlugin::default().boxed());
       }
       BuiltinPluginOptions::EnableChunkLoadingPlugin(chunk_loading_type) => {
-        rspack_plugin_runtime::enable_chunk_loading_plugin(chunk_loading_type, &mut plugins);
+        rspack_plugin_runtime::enable_chunk_loading_plugin(&chunk_loading_type, &mut plugins);
       }
       BuiltinPluginOptions::EnableWasmLoadingPlugin(wasm_loading_type) => {
         plugins.push(rspack_plugin_wasm::enable_wasm_loading_plugin(
-          wasm_loading_type,
+          &wasm_loading_type,
         ));
       }
 
@@ -169,7 +169,7 @@ impl BuilderContext {
       BuiltinPluginOptions::SourceMapDevToolPlugin(options) => {
         plugins.push(
           rspack_plugin_devtool::SourceMapDevToolModuleOptionsPlugin::new(
-            rspack_plugin_devtool::SourceMapDevToolModuleOptionsPluginOptions {
+            &rspack_plugin_devtool::SourceMapDevToolModuleOptionsPluginOptions {
               module: options.module,
               cheap: !options.columns,
             },
@@ -181,7 +181,7 @@ impl BuilderContext {
       BuiltinPluginOptions::EvalSourceMapDevToolPlugin(options) => {
         plugins.push(
           rspack_plugin_devtool::SourceMapDevToolModuleOptionsPlugin::new(
-            rspack_plugin_devtool::SourceMapDevToolModuleOptionsPluginOptions {
+            &rspack_plugin_devtool::SourceMapDevToolModuleOptionsPluginOptions {
               module: options.module,
               cheap: !options.columns,
             },
@@ -315,7 +315,7 @@ impl BuilderContext {
 
       // Define and optimization plugins
       BuiltinPluginOptions::DefinePlugin(values) => {
-        plugins.push(rspack_plugin_javascript::define_plugin::DefinePlugin::new(values).boxed())
+        plugins.push(rspack_plugin_javascript::define_plugin::DefinePlugin::new(&values).boxed())
       }
       BuiltinPluginOptions::AnyMinimizerRspackPlugin(plugin) => plugins.push(plugin),
 

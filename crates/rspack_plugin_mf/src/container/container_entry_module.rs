@@ -41,12 +41,12 @@ pub struct ContainerEntryModule {
 
 impl ContainerEntryModule {
   pub fn new(
-    name: String,
+    name: &str,
     exposes: Vec<(String, ExposeOptions)>,
     share_scope: String,
     enhanced: bool,
   ) -> Self {
-    let lib_ident = format!("webpack/container/entry/{}", &name);
+    let lib_ident = format!("webpack/container/entry/{name}");
     Self {
       blocks: Vec::new(),
       dependencies: Vec::new(),

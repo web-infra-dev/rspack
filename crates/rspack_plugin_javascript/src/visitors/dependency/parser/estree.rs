@@ -211,7 +211,7 @@ impl Spanned for ExportDefaultDeclaration<'_> {
 }
 
 impl ExportDefaultDeclaration<'_> {
-  fn declaration_span(&self) -> Span {
+  fn declaration_span(self) -> Span {
     match self {
       ExportDefaultDeclaration::Decl(decl) => decl.decl.span(),
       ExportDefaultDeclaration::Expr(expr) => expr.expr.span(),

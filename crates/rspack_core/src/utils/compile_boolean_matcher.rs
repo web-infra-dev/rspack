@@ -26,8 +26,8 @@ fn to_simple_string(input: &str) -> String {
 }
 
 pub fn compile_boolean_matcher_from_lists(
-  positive_items: Vec<String>,
-  negative_items: Vec<String>,
+  positive_items: &[String],
+  negative_items: &[String],
 ) -> BooleanMatcher {
   if positive_items.is_empty() {
     BooleanMatcher::Matcher(Box::new(|_| "false".to_string()))
@@ -73,11 +73,11 @@ pub fn compile_boolean_matcher(map: &HashMap<String, bool>) -> BooleanMatcher {
     return BooleanMatcher::Condition(true);
   }
 
-  compile_boolean_matcher_from_lists(positive_items, negative_items)
+  compile_boolean_matcher_from_lists(&positive_items, &negative_items)
 }
 
 /// AOT regex optimization, copy from webpack https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/util/compileBooleanMatcher.js#L134-L233
-pub(crate) fn items_to_regexp(items_arr: Vec<String>) -> String {
+pub(crate) fn items_to_regexp(items_arr: &[String]) -> String {
   if items_arr.len() == 1 {
     return quote_meta(&items_arr[0]);
   }
@@ -123,20 +123,21 @@ pub(crate) fn items_to_regexp(items_arr: Vec<String>) -> String {
     let suffix = get_common_suffix(items.iter().map(|item| &item[prefix.len()..]));
 
     if !prefix.is_empty() || !suffix.is_empty() {
+      let stripped = items
+        .iter()
+        .map(|item| {
+          item
+            .strip_prefix(prefix)
+            .expect("should strip prefix")
+            .strip_suffix(&suffix)
+            .expect("should strip suffix")
+            .to_string()
+        })
+        .collect::<Vec<_>>();
       return format!(
         "{}{}{}",
         quote_meta(prefix),
-        items_to_regexp(
-          items
-            .iter()
-            .map(|item| item
-              .strip_prefix(prefix)
-              .expect("should strip prefix")
-              .strip_suffix(&suffix)
-              .expect("should strip suffix")
-              .to_string())
-            .collect::<Vec<_>>()
-        ),
+        items_to_regexp(&stripped),
         quote_meta(suffix)
       );
     }
@@ -156,12 +157,10 @@ pub(crate) fn items_to_regexp(items_arr: Vec<String>) -> String {
           .expect("should have last char since b is not empty"),
       )
     {
+      let stripped = vec![a[0..a.len() - 1].to_string(), b[0..b.len() - 1].to_string()];
       return format!(
         "{}{}",
-        items_to_regexp(vec![
-          a[0..a.len() - 1].to_string(),
-          b[0..b.len() - 1].to_string()
-        ]),
+        items_to_regexp(&stripped),
         quote_meta(&a[a.len() - 1..])
       );
     }
@@ -196,19 +195,18 @@ pub(crate) fn items_to_regexp(items_arr: Vec<String>) -> String {
 
   for prefixed_items in prefixed {
     let prefix = get_common_prefix(prefixed_items.iter().map(|item| item.as_str()));
-    finished_items.push(format!(
-      "{}{}",
-      quote_meta(prefix),
-      items_to_regexp(
-        prefixed_items
-          .iter()
-          .map(|item| item
+    finished_items.push(format!("{}{}", quote_meta(prefix), {
+      let stripped = prefixed_items
+        .iter()
+        .map(|item| {
+          item
             .strip_prefix(prefix)
             .expect("should strip prefix")
-            .to_string())
-          .collect::<Vec<_>>()
-      )
-    ));
+            .to_string()
+        })
+        .collect::<Vec<_>>();
+      items_to_regexp(&stripped)
+    }));
   }
 
   // Find common suffix: (a1|b1|c1|d1|e2) => ((a|b|c|d)1|e2)
@@ -252,15 +250,18 @@ pub(crate) fn items_to_regexp(items_arr: Vec<String>) -> String {
     let suffix = get_common_suffix(suffixed_items.iter().map(|item| item.as_str()));
     finished_items.push(format!(
       "{}{}",
-      items_to_regexp(
-        suffixed_items
+      {
+        let stripped = suffixed_items
           .iter()
-          .map(|item| item
-            .strip_suffix(&suffix)
-            .expect("should strip suffix")
-            .to_string())
-          .collect::<Vec<_>>()
-      ),
+          .map(|item| {
+            item
+              .strip_suffix(&suffix)
+              .expect("should strip suffix")
+              .to_string()
+          })
+          .collect::<Vec<_>>();
+        items_to_regexp(&stripped)
+      },
       quote_meta(suffix)
     ));
   }

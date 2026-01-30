@@ -47,9 +47,8 @@ impl<T: JsValue<'static>> Clone for ThreadsafeJsValueRef<T> {
 
 impl<T: JsValue<'static>> FromNapiValue for ThreadsafeJsValueRef<T> {
   unsafe fn from_napi_value(env: sys::napi_env, napi_val: sys::napi_value) -> Result<Self> {
-    Self::new(Env::from(env), unsafe {
-      T::from_napi_value(env, napi_val)
-    }?)
+    let value = unsafe { T::from_napi_value(env, napi_val) }?;
+    Self::new(Env::from(env), &value)
   }
 }
 
@@ -62,8 +61,8 @@ impl<T: ToNapiValue + JsValue<'static>> ToNapiValue for ThreadsafeJsValueRef<T> 
 }
 
 impl<T: JsValue<'static>> ThreadsafeJsValueRef<T> {
-  pub fn new(env: Env, value: T) -> Result<Self> {
-    let js_ref = Ref::new(&env, &value)?;
+  pub fn new(env: Env, value: &T) -> Result<Self> {
+    let js_ref = Ref::new(&env, value)?;
 
     Ok(Self {
       inner: Arc::new(ThreadsafeJsValueRefHandle::new(env, js_ref)?),

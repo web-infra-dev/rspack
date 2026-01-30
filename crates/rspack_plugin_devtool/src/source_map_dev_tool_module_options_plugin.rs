@@ -20,7 +20,7 @@ pub struct SourceMapDevToolModuleOptionsPlugin {
 }
 
 impl SourceMapDevToolModuleOptionsPlugin {
-  pub fn new(options: SourceMapDevToolModuleOptionsPluginOptions) -> Self {
+  pub fn new(options: &SourceMapDevToolModuleOptionsPluginOptions) -> Self {
     Self::new_inner(options.module, options.cheap)
   }
 }

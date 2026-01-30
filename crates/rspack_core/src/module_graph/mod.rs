@@ -256,7 +256,7 @@ impl ModuleGraph {
     // remove outgoing from original module graph module
     if let Some(original_module_identifier) = &original_module_identifier
       && let Some(mgm) =
-        try_get_module_graph_module_mut_by_identifier(self, original_module_identifier)
+        try_get_module_graph_module_mut_by_identifier(self, *original_module_identifier)
     {
       mgm.remove_outgoing_connection(dep_id);
       if force {
@@ -265,7 +265,7 @@ impl ModuleGraph {
     }
     // remove incoming from module graph module
     if let Some(module_identifier) = &module_identifier
-      && let Some(mgm) = try_get_module_graph_module_mut_by_identifier(self, module_identifier)
+      && let Some(mgm) = try_get_module_graph_module_mut_by_identifier(self, *module_identifier)
     {
       mgm.remove_incoming_connection(dep_id);
     }

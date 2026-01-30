@@ -157,7 +157,7 @@ pub fn ensure_shared_entry<'a>(
 pub fn record_shared_usage(
   shared_usage_links: &mut Vec<(String, String)>,
   pkg: &str,
-  module_identifier: &ModuleIdentifier,
+  module_identifier: ModuleIdentifier,
   module_graph: &ModuleGraph,
   compilation: &Compilation,
 ) {
@@ -168,7 +168,7 @@ pub fn record_shared_usage(
       s.to_string()
     }
   }
-  if let Some(issuer_module) = module_graph.get_issuer(module_identifier) {
+  if let Some(issuer_module) = module_graph.get_issuer(&module_identifier) {
     let issuer_name = issuer_module
       .readable_identifier(&compilation.options.context)
       .to_string();
@@ -177,7 +177,7 @@ pub fn record_shared_usage(
       shared_usage_links.push((pkg.to_string(), key));
     }
   }
-  if let Some(mgm) = module_graph.module_graph_module_by_identifier(module_identifier) {
+  if let Some(mgm) = module_graph.module_graph_module_by_identifier(&module_identifier) {
     for dep_id in mgm.incoming_connections() {
       let Some(connection) = module_graph.connection_by_dependency_id(dep_id) else {
         continue;

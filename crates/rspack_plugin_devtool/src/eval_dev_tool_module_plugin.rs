@@ -47,7 +47,7 @@ impl EvalDevToolModulePlugin {
 
     let source_url_comment = options
       .source_url_comment
-      .unwrap_or("\n//# sourceURL=[url]".to_string());
+      .unwrap_or_else(|| "\n//# sourceURL=[url]".to_string());
 
     let module_filename_template =
       options

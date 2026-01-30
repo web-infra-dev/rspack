@@ -78,7 +78,7 @@ fn is_always_different(a: Option<bool>, b: Option<bool>) -> bool {
 #[inline]
 fn handle_strict_equality_comparison<'a>(
   eql: bool,
-  left: BasicEvaluatedExpression<'a>,
+  left: &BasicEvaluatedExpression<'a>,
   expr: &'a BinExpr,
   scanner: &mut JavascriptParser,
 ) -> Option<BasicEvaluatedExpression<'a>> {
@@ -101,7 +101,7 @@ fn handle_strict_equality_comparison<'a>(
   } else if left.is_array() && right.is_array() {
     common(res)
   } else if left.is_template_string() && right.is_template_string() {
-    handle_template_string_compare(&left, &right, res, eql)
+    handle_template_string_compare(left, &right, res, eql)
   } else if is_always_different(left.as_bool(), right.as_bool())
     || is_always_different(left.as_nullish(), right.as_nullish())
   {
@@ -123,7 +123,7 @@ fn handle_strict_equality_comparison<'a>(
 #[inline(always)]
 fn handle_abstract_equality_comparison<'a>(
   eql: bool,
-  left: BasicEvaluatedExpression<'a>,
+  left: &BasicEvaluatedExpression<'a>,
   expr: &'a BinExpr,
   scanner: &mut JavascriptParser,
 ) -> Option<BasicEvaluatedExpression<'a>> {
@@ -143,7 +143,7 @@ fn handle_abstract_equality_comparison<'a>(
     res.set_side_effects(left.could_have_side_effects() || right.could_have_side_effects());
     Some(res)
   } else if left.is_template_string() && right.is_template_string() {
-    handle_template_string_compare(&left, &right, res, eql)
+    handle_template_string_compare(left, &right, res, eql)
   } else {
     None
   }
@@ -151,7 +151,7 @@ fn handle_abstract_equality_comparison<'a>(
 
 #[inline(always)]
 fn handle_nullish_coalescing<'a>(
-  left: BasicEvaluatedExpression<'a>,
+  left: &BasicEvaluatedExpression<'a>,
   expr: &'a BinExpr,
   scanner: &mut JavascriptParser,
 ) -> Option<BasicEvaluatedExpression<'a>> {
@@ -176,7 +176,7 @@ fn handle_nullish_coalescing<'a>(
 
 #[inline(always)]
 fn handle_logical_or<'a>(
-  left: BasicEvaluatedExpression<'a>,
+  left: &BasicEvaluatedExpression<'a>,
   expr: &'a BinExpr,
   scanner: &mut JavascriptParser,
 ) -> Option<BasicEvaluatedExpression<'a>> {
@@ -211,7 +211,7 @@ fn handle_logical_or<'a>(
 
 #[inline(always)]
 fn handle_logical_and<'a>(
-  left: BasicEvaluatedExpression<'a>,
+  left: &BasicEvaluatedExpression<'a>,
   expr: &'a BinExpr,
   scanner: &mut JavascriptParser,
 ) -> Option<BasicEvaluatedExpression<'a>> {
@@ -246,7 +246,7 @@ fn handle_logical_and<'a>(
 
 #[inline(always)]
 fn handle_add<'a>(
-  left: BasicEvaluatedExpression<'a>,
+  left: &BasicEvaluatedExpression<'a>,
   expr: &'a BinExpr,
   scanner: &mut JavascriptParser,
 ) -> Option<BasicEvaluatedExpression<'a>> {
@@ -277,14 +277,14 @@ fn handle_add<'a>(
       )
     } else if right.is_wrapped() {
       res.set_wrapped(
-        Some(left),
+        Some(left.clone()),
         right.postfix.map(|postfix| *postfix),
         right
           .wrapped_inner_expressions
           .expect("wrapped_inner_expressions must be exists under wrapped"),
       );
     } else {
-      res.set_wrapped(Some(left), None, vec![right])
+      res.set_wrapped(Some(left.clone()), None, vec![right])
     }
   } else if left.is_number() {
     if right.is_string() {
@@ -306,10 +306,11 @@ fn handle_add<'a>(
       let mut right_postfix = BasicEvaluatedExpression::with_range(range.0, range.1);
       right_postfix.set_string(format!("{}{}", postfix.string(), right.string()));
       res.set_wrapped(
-        left.prefix.map(|prefix| *prefix),
+        left.prefix.as_ref().map(|prefix| (**prefix).clone()),
         Some(right_postfix),
         left
           .wrapped_inner_expressions
+          .clone()
           .expect("wrapped_inner_expressions must be exists under wrapped"),
       )
     } else if let Some(postfix) = &left.postfix
@@ -320,18 +321,20 @@ fn handle_add<'a>(
       let mut right_postfix = BasicEvaluatedExpression::with_range(range.0, range.1);
       right_postfix.set_string(format!("{}{}", postfix.string(), right.number()));
       res.set_wrapped(
-        left.prefix.map(|prefix| *prefix),
+        left.prefix.as_ref().map(|prefix| (**prefix).clone()),
         Some(right_postfix),
         left
           .wrapped_inner_expressions
+          .clone()
           .expect("wrapped_inner_expressions must be exists under wrapped"),
       )
     } else if right.is_string() {
       res.set_wrapped(
-        left.prefix.map(|prefix| *prefix),
+        left.prefix.as_ref().map(|prefix| (**prefix).clone()),
         Some(right),
         left
           .wrapped_inner_expressions
+          .clone()
           .expect("wrapped_inner_expressions must be exists under wrapped"),
       );
     } else if right.is_number() {
@@ -339,19 +342,20 @@ fn handle_add<'a>(
       let mut postfix = BasicEvaluatedExpression::with_range(range.0, range.1);
       postfix.set_string(right.number().to_string());
       res.set_wrapped(
-        left.prefix.map(|prefix| *prefix),
+        left.prefix.as_ref().map(|prefix| (**prefix).clone()),
         Some(postfix),
         left
           .wrapped_inner_expressions
+          .clone()
           .expect("wrapped_inner_expressions must be exists under wrapped"),
       )
     } else if right.is_wrapped() {
       let inner_expressions = if let Some(mut left_inner_expression) =
-        left.wrapped_inner_expressions
+        left.wrapped_inner_expressions.clone()
         && let Some(mut right_inner_expression) = right.wrapped_inner_expressions
       {
-        if let Some(postfix) = left.postfix {
-          left_inner_expression.push(*postfix);
+        if let Some(postfix) = left.postfix.as_ref() {
+          left_inner_expression.push((**postfix).clone());
         }
         if let Some(prefix) = right.prefix {
           left_inner_expression.push(*prefix);
@@ -362,30 +366,34 @@ fn handle_add<'a>(
         vec![]
       };
       res.set_wrapped(
-        left.prefix.map(|prefix| *prefix),
+        left.prefix.as_ref().map(|prefix| (**prefix).clone()),
         right.postfix.map(|postfix| *postfix),
         inner_expressions,
       );
     } else {
       let inner_expressions =
-        if let Some(mut left_inner_expression) = left.wrapped_inner_expressions {
-          if let Some(postfix) = left.postfix {
-            left_inner_expression.push(*postfix);
+        if let Some(mut left_inner_expression) = left.wrapped_inner_expressions.clone() {
+          if let Some(postfix) = left.postfix.as_ref() {
+            left_inner_expression.push((**postfix).clone());
           }
           left_inner_expression.push(right);
           left_inner_expression
         } else {
           vec![]
         };
-      res.set_wrapped(left.prefix.map(|prefix| *prefix), None, inner_expressions)
+      res.set_wrapped(
+        left.prefix.as_ref().map(|prefix| (**prefix).clone()),
+        None,
+        inner_expressions,
+      )
     }
   } else if right.is_string() {
-    res.set_wrapped(None, Some(right), vec![left]);
+    res.set_wrapped(None, Some(right), vec![left.clone()]);
   } else if right.is_wrapped() {
     let mut inner_expressions = if let Some(right_prefix) = right.prefix {
-      vec![left, *right_prefix]
+      vec![left.clone(), *right_prefix]
     } else {
-      vec![left]
+      vec![left.clone()]
     };
     if let Some(mut right_inner_expressions) = right.wrapped_inner_expressions {
       inner_expressions.append(&mut right_inner_expressions)
@@ -404,7 +412,7 @@ fn handle_add<'a>(
 
 #[inline(always)]
 pub fn handle_const_operation<'a>(
-  left: BasicEvaluatedExpression<'a>,
+  left: &BasicEvaluatedExpression<'a>,
   expr: &'a BinExpr,
   scanner: &mut JavascriptParser,
 ) -> Option<BasicEvaluatedExpression<'a>> {
@@ -516,15 +524,15 @@ pub fn eval_binary_expression<'a>(
   while let Some(expr) = stack.pop() {
     let left = evaluated.unwrap_or_else(|| scanner.evaluate_expression(&expr.left));
     evaluated = match expr.op {
-      BinaryOp::EqEq => handle_abstract_equality_comparison(true, left, expr, scanner),
-      BinaryOp::NotEq => handle_abstract_equality_comparison(false, left, expr, scanner),
-      BinaryOp::EqEqEq => handle_strict_equality_comparison(true, left, expr, scanner),
-      BinaryOp::NotEqEq => handle_strict_equality_comparison(false, left, expr, scanner),
-      BinaryOp::LogicalAnd => handle_logical_and(left, expr, scanner),
-      BinaryOp::LogicalOr => handle_logical_or(left, expr, scanner),
-      BinaryOp::NullishCoalescing => handle_nullish_coalescing(left, expr, scanner),
-      BinaryOp::Add => handle_add(left, expr, scanner),
-      _ => handle_const_operation(left, expr, scanner),
+      BinaryOp::EqEq => handle_abstract_equality_comparison(true, &left, expr, scanner),
+      BinaryOp::NotEq => handle_abstract_equality_comparison(false, &left, expr, scanner),
+      BinaryOp::EqEqEq => handle_strict_equality_comparison(true, &left, expr, scanner),
+      BinaryOp::NotEqEq => handle_strict_equality_comparison(false, &left, expr, scanner),
+      BinaryOp::LogicalAnd => handle_logical_and(&left, expr, scanner),
+      BinaryOp::LogicalOr => handle_logical_or(&left, expr, scanner),
+      BinaryOp::NullishCoalescing => handle_nullish_coalescing(&left, expr, scanner),
+      BinaryOp::Add => handle_add(&left, expr, scanner),
+      _ => handle_const_operation(&left, expr, scanner),
     }
     .or_else(|| {
       Some(BasicEvaluatedExpression::with_range(

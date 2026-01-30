@@ -137,7 +137,7 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
         export_name.clone(),
         if let Some(variable) = variable {
           let data = NestedRequireData::downcast(variable);
-          data.name.clone().into()
+          data.name.into()
         } else {
           local_id.clone()
         },

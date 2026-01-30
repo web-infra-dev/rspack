@@ -90,7 +90,7 @@ impl<T: 'static + JsValuesTupleIntoVec, R> ThreadsafeFunction<T, R> {
               let raw_env = env.raw();
               let return_value = o.raw();
               unsafe { D::from_napi_value(raw_env, return_value) }
-                .map_err(|e| pretty_type_error(o, e))
+                .map_err(|e| pretty_type_error(o, &e))
             }
           };
           tx.send(r)
@@ -152,7 +152,7 @@ impl<T: 'static + JsValuesTupleIntoVec, R> TypeName for ThreadsafeFunction<T, R>
   }
 }
 
-fn pretty_type_error(return_value: Unknown, error: napi::Error) -> rspack_error::Error {
+fn pretty_type_error(return_value: Unknown, error: &napi::Error) -> rspack_error::Error {
   let expected_type = match error.status {
     Status::ObjectExpected => "object",
     Status::StringExpected => "string",

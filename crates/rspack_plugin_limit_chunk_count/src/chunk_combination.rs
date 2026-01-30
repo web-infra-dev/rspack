@@ -71,8 +71,8 @@ impl ChunkCombinationBucket {
     }
   }
 
-  pub fn get_mut(&mut self, ukey: &ChunkCombinationUkey) -> &mut ChunkCombination {
-    self.combinations_by_ukey.expect_get_mut(ukey)
+  pub fn get_mut(&mut self, ukey: ChunkCombinationUkey) -> &mut ChunkCombination {
+    self.combinations_by_ukey.expect_get_mut(&ukey)
   }
 
   pub fn add(&mut self, combination: ChunkCombination) {
@@ -125,9 +125,9 @@ impl ChunkCombinationBucket {
     self.sorted_combinations.pop()
   }
 
-  pub fn delete(&mut self, combination: &ChunkCombinationUkey) {
+  pub fn delete(&mut self, combination: ChunkCombinationUkey) {
     self.out_of_date = true;
-    self.sorted_combinations.retain(|ukey| ukey != combination);
+    self.sorted_combinations.retain(|ukey| *ukey != combination);
   }
 
   pub fn update(&mut self) {
@@ -364,33 +364,33 @@ mod test {
 
     assert_eq!(combinations.pop_first().unwrap(), combination_0);
 
-    combinations.delete(&combination_1);
-    combinations.delete(&combination_3);
-    combinations.delete(&combination_6);
-    combinations.delete(&combination_10);
+    combinations.delete(combination_1);
+    combinations.delete(combination_3);
+    combinations.delete(combination_6);
+    combinations.delete(combination_10);
 
-    let c = combinations.get_mut(&combination_2);
+    let c = combinations.get_mut(combination_2);
     c.a = chunk_1;
     c.integrated_size = 10074_f64;
     c.a_size = 10044_f64;
     c.size_diff = 10000_f64;
     combinations.update();
 
-    let c = combinations.get_mut(&combination_4);
+    let c = combinations.get_mut(combination_4);
     c.a = chunk_1;
     c.integrated_size = 10074_f64;
     c.a_size = 10044_f64;
     c.size_diff = 10000_f64;
     combinations.update();
 
-    let c = combinations.get_mut(&combination_7);
+    let c = combinations.get_mut(combination_7);
     c.a = chunk_1;
     c.integrated_size = 10066_f64;
     c.a_size = 10044_f64;
     c.size_diff = 10000_f64;
     combinations.update();
 
-    let c = combinations.get_mut(&combination_8);
+    let c = combinations.get_mut(combination_8);
     c.a = chunk_1;
     c.integrated_size = 11450_f64;
     c.a_size = 10044_f64;

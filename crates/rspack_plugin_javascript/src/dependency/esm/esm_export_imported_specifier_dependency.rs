@@ -696,10 +696,10 @@ impl ESMExportImportedSpecifierDependency {
             };
             let stmt = self.get_conditional_reexport_statement(
               ctxt,
-              name,
+              &name,
               &import_var,
-              ids[0].clone(),
-              ValueKey::UsedName(UsedName::Normal(ids)),
+              &ids[0],
+              ValueKey::UsedName(UsedName::Normal(ids.clone())),
             );
             let is_async = ModuleGraph::is_async(
               &compilation.async_modules_artifact.borrow(),
@@ -917,9 +917,9 @@ impl ESMExportImportedSpecifierDependency {
   fn get_conditional_reexport_statement(
     &self,
     ctxt: &mut TemplateContext<'_, '_, '_>,
-    key: Atom,
+    key: &Atom,
     name: &String,
-    first_value_key: Atom,
+    first_value_key: &Atom,
     value_key: ValueKey,
   ) -> String {
     if matches!(value_key, ValueKey::False) {
@@ -939,7 +939,7 @@ impl ESMExportImportedSpecifierDependency {
       serde_json::to_string(&first_value_key.to_string()).expect("should serialize to string"),
       runtime_template.render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS),
       runtime_template.render_exports_argument(exports_name),
-      property_name(&key).expect("should have property_name"),
+      property_name(key).expect("should have property_name"),
       return_value
     )
   }
@@ -1566,7 +1566,7 @@ impl DependencyTemplate for ESMExportImportedSpecifierDependencyTemplate {
     if let Some(scope) = concatenation_scope {
       if let ExportMode::ReexportUndefined(mode) = mode {
         scope.register_raw_export(
-          mode.name.clone(),
+          mode.name,
           String::from("/* reexport non-default export from non-ESM */ undefined"),
         );
       };

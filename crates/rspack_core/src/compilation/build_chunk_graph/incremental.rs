@@ -401,7 +401,7 @@ impl CodeSplitter {
       || !self.hit_cache(
         cache,
         &cgi.runtime,
-        cgi.min_available_modules.clone(),
+        &cgi.min_available_modules,
         block.get_group_options(),
       )
     {
@@ -735,7 +735,7 @@ impl CodeSplitter {
     &self,
     cache: &ChunkCreateData,
     runtime: &RuntimeSpec,
-    new_available_modules: Arc<BigUint>,
+    new_available_modules: &Arc<BigUint>,
     options: Option<&GroupOptions>,
   ) -> bool {
     cache.can_rebuild
@@ -747,9 +747,9 @@ impl CodeSplitter {
   pub fn available_modules_affected(
     &self,
     cache: &ChunkCreateData,
-    new_available_modules: Arc<BigUint>,
+    new_available_modules: &Arc<BigUint>,
   ) -> bool {
-    if new_available_modules == cache.available_modules {
+    if *new_available_modules == cache.available_modules {
       return false;
     }
 

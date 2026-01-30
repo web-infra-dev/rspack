@@ -59,7 +59,7 @@ impl ModernModuleLibraryPlugin {
   fn get_options_for_chunk(
     &self,
     compilation: &Compilation,
-    chunk_ukey: &ChunkUkey,
+    chunk_ukey: ChunkUkey,
   ) -> Result<Option<()>> {
     get_options_for_chunk(compilation, chunk_ukey)
       .filter(|library| library.library_type == "modern-module")
@@ -263,7 +263,7 @@ async fn render_startup(
   let mut exports_with_property_access = vec![];
   let mut exports_with_inlined = vec![];
 
-  let Some(_) = self.get_options_for_chunk(compilation, chunk_ukey)? else {
+  let Some(_) = self.get_options_for_chunk(compilation, *chunk_ukey)? else {
     return Ok(());
   };
 
@@ -438,7 +438,7 @@ async fn js_chunk_hash(
   chunk_ukey: &ChunkUkey,
   hasher: &mut RspackHash,
 ) -> Result<()> {
-  let Some(_) = self.get_options_for_chunk(compilation, chunk_ukey)? else {
+  let Some(_) = self.get_options_for_chunk(compilation, *chunk_ukey)? else {
     return Ok(());
   };
   PLUGIN_NAME.hash(hasher);

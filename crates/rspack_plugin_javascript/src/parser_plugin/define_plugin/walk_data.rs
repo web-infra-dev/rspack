@@ -196,7 +196,8 @@ pub struct WalkData {
 impl WalkData {
   pub fn new(definitions: &DefineValue) -> Self {
     let mut data = Self::default();
-    data.setup_value_cache(definitions.iter(), "".into());
+    let prefix = "";
+    data.setup_value_cache(definitions.iter(), prefix);
     data.setup_record(definitions);
     data
   }
@@ -204,7 +205,7 @@ impl WalkData {
   fn setup_value_cache<'d, 's>(
     &mut self,
     definitions: impl Iterator<Item = (&'d String, &'d Value)>,
-    prefix: Cow<'s, str>,
+    prefix: &'s str,
   ) {
     definitions.for_each(|(key, value)| {
       let name = format!("{prefix}{key}");
@@ -220,7 +221,8 @@ impl WalkData {
         self.tiling_definitions.insert(name, value_str);
       }
       if let Some(value) = value.as_object() {
-        self.setup_value_cache(value.iter(), Cow::Owned(format!("{prefix}{key}.")))
+        let next_prefix = format!("{prefix}{key}.");
+        self.setup_value_cache(value.iter(), &next_prefix);
       } else if let Some(value) = value.as_array() {
         let indexes = (0..value.len())
           .map(|index| {
@@ -229,13 +231,14 @@ impl WalkData {
           })
           .collect_vec();
         let iter = indexes.iter().zip(value.iter());
-        self.setup_value_cache(iter, Cow::Owned(format!("{prefix}{key}.")))
+        let next_prefix = format!("{prefix}{key}.");
+        self.setup_value_cache(iter, &next_prefix);
       }
     });
   }
 
   fn setup_record(&mut self, definitions: &DefineValue) {
-    fn apply_define_key(prefix: Cow<str>, key: Cow<str>, walk_data: &mut WalkData) {
+    fn apply_define_key(prefix: &str, key: &str, walk_data: &mut WalkData) {
       let splitted: Vec<&str> = key.split('.').collect();
       if !splitted.is_empty() {
         let iter = (0..splitted.len() - 1).map(|i| {
@@ -368,7 +371,7 @@ impl WalkData {
             let code = code_to_string(
               &record.object,
               Some(!parser.is_asi_position(span.lo)),
-              parser.destructuring_assignment_properties.get(&span),
+              parser.destructuring_assignment_properties.get(span),
             );
             parser.add_presentational_dependency(Box::new(gen_const_dep(
               parser, code, for_name, start, end,
@@ -379,33 +382,37 @@ impl WalkData {
       walk_data.object_define_record.insert(key, define_record);
     }
 
-    fn walk_code(code: &Value, prefix: Cow<str>, key: Cow<str>, walk_data: &mut WalkData) {
-      let prefix_for_object = || Cow::Owned(format!("{prefix}{key}."));
+    fn walk_code(code: &Value, prefix: &str, key: &str, walk_data: &mut WalkData) {
+      let prefix_for_object = || format!("{prefix}{key}.");
       if let Some(array) = code.as_array() {
-        walk_array(array, prefix_for_object(), walk_data);
+        let object_prefix = prefix_for_object();
+        walk_array(array, &object_prefix, walk_data);
         apply_array_define(Cow::Owned(format!("{prefix}{key}")), array, walk_data);
       } else if let Some(obj) = code.as_object() {
-        walk_object(obj, prefix_for_object(), walk_data);
+        let object_prefix = prefix_for_object();
+        walk_object(obj, &object_prefix, walk_data);
         apply_object_define(Cow::Owned(format!("{prefix}{key}")), obj, walk_data);
       } else {
-        apply_define_key(prefix.clone(), Cow::Owned(key.to_string()), walk_data);
+        apply_define_key(prefix, key, walk_data);
         apply_define(Cow::Owned(format!("{prefix}{key}")), code, walk_data);
       }
     }
 
-    fn walk_array(arr: &[Value], prefix: Cow<str>, walk_data: &mut WalkData) {
+    fn walk_array(arr: &[Value], prefix: &str, walk_data: &mut WalkData) {
       arr.iter().enumerate().for_each(|(key, code)| {
-        walk_code(code, prefix.clone(), Cow::Owned(key.to_string()), walk_data)
+        let key = key.to_string();
+        walk_code(code, prefix, &key, walk_data)
       })
     }
 
-    fn walk_object(obj: &Map<String, Value>, prefix: Cow<str>, walk_data: &mut WalkData) {
+    fn walk_object(obj: &Map<String, Value>, prefix: &str, walk_data: &mut WalkData) {
       obj
         .iter()
-        .for_each(|(key, code)| walk_code(code, prefix.clone(), Cow::Owned(key.clone()), walk_data))
+        .for_each(|(key, code)| walk_code(code, prefix, key, walk_data))
     }
 
     let object = definitions.clone().into_iter().collect();
-    walk_object(&object, "".into(), self);
+    let prefix = "";
+    walk_object(&object, prefix, self);
   }
 }

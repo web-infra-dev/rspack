@@ -105,7 +105,9 @@ fn get_lit_str(expr: &Expr) -> Option<Atom> {
 }
 
 fn get_ident_name(pat: &Pat) -> Atom {
-  pat.as_ident().map_or("".into(), |ident| ident.sym.clone())
+  pat
+    .as_ident()
+    .map_or_else(|| "".into(), |ident| ident.sym.clone())
 }
 
 impl AMDDefineDependencyParserPlugin {
@@ -214,8 +216,7 @@ impl AMDDefineDependencyParserPlugin {
       } else if let Some(local_module) = parser.get_local_module_mut(
         &named_module
           .as_ref()
-          .map(|parent| lookup(parent, param_str))
-          .unwrap_or(param_str.into()),
+          .map_or_else(|| param_str.into(), |parent| lookup(parent, param_str)),
       ) {
         local_module.flag_used();
         let dep = Box::new(LocalModuleDependency::new(

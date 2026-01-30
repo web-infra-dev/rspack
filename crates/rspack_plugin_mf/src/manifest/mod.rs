@@ -257,7 +257,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           let expose_file_key = strip_ext(import);
           exposes_map
             .entry(expose_file_key.clone())
-            .or_insert(StatsExpose {
+            .or_insert_with(|| StatsExpose {
               path: expose_key.clone(),
               file: String::new(),
               id: id_comp,
@@ -326,7 +326,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           record_shared_usage(
             &mut shared_usage_links,
             &pkg,
-            &module_identifier,
+            module_identifier,
             module_graph,
             compilation,
           );
@@ -372,7 +372,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         record_shared_usage(
           &mut shared_usage_links,
           &pkg,
-          &module_identifier,
+          module_identifier,
           module_graph,
           compilation,
         );
@@ -424,7 +424,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         .entry(pkg)
         .or_insert_with(empty_assets_group);
       for chunk_ukey in chunk_ids {
-        let chunk_assets = collect_assets_from_chunk(compilation, &chunk_ukey, &entry_point_names);
+        let chunk_assets = collect_assets_from_chunk(compilation, chunk_ukey, &entry_point_names);
         entry.js.sync.extend(chunk_assets.js.sync);
         entry.css.sync.extend(chunk_assets.css.sync);
       }
@@ -449,7 +449,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       {
         assets = Some(collect_assets_from_chunk(
           compilation,
-          chunk_key,
+          *chunk_key,
           &entry_files,
         ));
       }
@@ -458,14 +458,14 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       {
         assets = Some(collect_assets_from_chunk(
           compilation,
-          chunk_key,
+          *chunk_key,
           &entry_files,
         ));
       }
       if assets.is_none()
         && let Some(module_id) = module_ids_by_name.get(expose_file_key)
       {
-        assets = collect_assets_for_module(compilation, module_id, &entry_files);
+        assets = collect_assets_for_module(compilation, *module_id, &entry_files);
       }
       let mut assets = assets.unwrap_or_else(empty_assets_group);
       if let Some(path) = expose_module_paths.get(expose_file_key) {
@@ -479,7 +479,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 
     if let Some(module_id) = container_entry_module
       && let Some(mut entry_assets) =
-        collect_assets_for_module(compilation, &module_id, &entry_files)
+        collect_assets_for_module(compilation, module_id, &entry_files)
     {
       entry_assets
         .js
@@ -539,7 +539,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           (None, alias.clone())
         };
       let used_in =
-        collect_usage_files_for_module(compilation, module_graph, &module_id, &entry_point_names)
+        collect_usage_files_for_module(compilation, module_graph, module_id, &entry_point_names)
           // keep only the file path, drop aggregated suffix like " + 1 modules"
           .into_iter()
           .map(|s| {
@@ -582,7 +582,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let stats_root = StatsRoot {
     id: container_name.clone(),
     name: container_name.clone(),
-    metaData: meta.clone(),
+    metaData: meta,
     shared,
     remotes: remote_list.clone(),
     exposes: exposes.clone(),

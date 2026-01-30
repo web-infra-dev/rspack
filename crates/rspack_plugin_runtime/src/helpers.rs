@@ -34,9 +34,9 @@ pub fn update_hash_for_entry_startup(
       .map(|e| e.get_runtime_chunk(&compilation.chunk_group_by_ukey))
     {
       for chunk_ukey in get_all_chunks(
-        entry,
-        chunk,
-        Some(&runtime_chunk),
+        *entry,
+        *chunk,
+        Some(runtime_chunk),
         &compilation.chunk_group_by_ukey,
       ) {
         if let Some(chunk) = compilation.chunk_by_ukey.get(&chunk_ukey) {
@@ -48,26 +48,26 @@ pub fn update_hash_for_entry_startup(
 }
 
 pub fn get_all_chunks(
-  entrypoint: &ChunkGroupUkey,
-  exclude_chunk1: &ChunkUkey,
-  exclude_chunk2: Option<&ChunkUkey>,
+  entrypoint: ChunkGroupUkey,
+  exclude_chunk1: ChunkUkey,
+  exclude_chunk2: Option<ChunkUkey>,
   chunk_group_by_ukey: &ChunkGroupByUkey,
 ) -> UkeyIndexSet<ChunkUkey> {
   fn add_chunks(
     chunk_group_by_ukey: &ChunkGroupByUkey,
     chunks: &mut UkeyIndexSet<ChunkUkey>,
-    entrypoint_ukey: &ChunkGroupUkey,
-    exclude_chunk1: &ChunkUkey,
-    exclude_chunk2: Option<&ChunkUkey>,
+    entrypoint_ukey: ChunkGroupUkey,
+    exclude_chunk1: ChunkUkey,
+    exclude_chunk2: Option<ChunkUkey>,
     visit_chunk_groups: &mut UkeyIndexSet<ChunkGroupUkey>,
   ) {
-    if let Some(entrypoint) = chunk_group_by_ukey.get(entrypoint_ukey) {
+    if let Some(entrypoint) = chunk_group_by_ukey.get(&entrypoint_ukey) {
       for chunk in &entrypoint.chunks {
-        if chunk == exclude_chunk1 {
+        if *chunk == exclude_chunk1 {
           continue;
         }
         if let Some(exclude_chunk2) = exclude_chunk2
-          && chunk == exclude_chunk2
+          && *chunk == exclude_chunk2
         {
           continue;
         }
@@ -85,7 +85,7 @@ pub fn get_all_chunks(
           add_chunks(
             chunk_group_by_ukey,
             chunks,
-            &chunk_group.ukey,
+            chunk_group.ukey,
             exclude_chunk1,
             exclude_chunk2,
             visit_chunk_groups,
@@ -211,9 +211,9 @@ pub fn generate_entry_startup(
       .map(|e| e.get_runtime_chunk(&compilation.chunk_group_by_ukey))
     {
       let chunks = get_all_chunks(
-        entry,
-        chunk,
-        Some(&runtime_chunk),
+        *entry,
+        *chunk,
+        Some(runtime_chunk),
         &compilation.chunk_group_by_ukey,
       );
       chunks_ids.extend(
