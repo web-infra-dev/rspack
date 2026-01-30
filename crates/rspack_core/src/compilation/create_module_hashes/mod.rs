@@ -1,7 +1,30 @@
-use super::*;
-use crate::logger::Logger;
+use async_trait::async_trait;
 
-pub async fn create_module_hashes_pass(compilation: &mut Compilation) -> Result<()> {
+use super::*;
+use crate::{cache::Cache, compilation::pass::PassExt, logger::Logger};
+
+pub struct CreateModuleHashesPass;
+
+#[async_trait]
+impl PassExt for CreateModuleHashesPass {
+  fn name(&self) -> &'static str {
+    "create module hashes"
+  }
+
+  async fn before_pass(&self, compilation: &mut Compilation, cache: &mut dyn Cache) {
+    cache.before_modules_hashes(compilation).await;
+  }
+
+  async fn run_pass(&self, compilation: &mut Compilation) -> Result<()> {
+    create_module_hashes_pass_impl(compilation).await
+  }
+
+  async fn after_pass(&self, compilation: &Compilation, cache: &mut dyn Cache) {
+    cache.after_modules_hashes(compilation).await;
+  }
+}
+
+async fn create_module_hashes_pass_impl(compilation: &mut Compilation) -> Result<()> {
   // Check if MODULES_HASHES pass is disabled, and clear artifact if needed
   if !compilation
     .incremental

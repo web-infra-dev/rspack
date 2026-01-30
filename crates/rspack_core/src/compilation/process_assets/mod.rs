@@ -1,19 +1,26 @@
+use async_trait::async_trait;
+
 use super::*;
-use crate::logger::Logger;
+use crate::{compilation::pass::PassExt, logger::Logger};
 
-pub async fn process_assets_pass(
-  compilation: &mut Compilation,
-  plugin_driver: SharedPluginDriver,
-) -> Result<()> {
-  let logger = compilation.get_logger("rspack.Compilation");
-  let start = logger.time("process assets");
-  compilation.process_assets(plugin_driver.clone()).await?;
-  logger.time_end(start);
+pub struct ProcessAssetsPass;
 
-  let start = logger.time("after process assets");
-  compilation.after_process_assets(plugin_driver).await?;
-  logger.time_end(start);
-  Ok(())
+#[async_trait]
+impl PassExt for ProcessAssetsPass {
+  fn name(&self) -> &'static str {
+    "process assets"
+  }
+
+  async fn run_pass(&self, compilation: &mut Compilation) -> Result<()> {
+    let plugin_driver = compilation.plugin_driver.clone();
+    compilation.process_assets(plugin_driver.clone()).await?;
+
+    let logger = compilation.get_logger("rspack.Compilation");
+    let start = logger.time("after process assets");
+    compilation.after_process_assets(plugin_driver).await?;
+    logger.time_end(start);
+    Ok(())
+  }
 }
 
 impl Compilation {

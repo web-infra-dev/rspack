@@ -1,12 +1,32 @@
-use super::*;
-use crate::{ModuleCodeGenerationContext, logger::Logger};
+use async_trait::async_trait;
 
-pub async fn code_generation_pass(
-  compilation: &mut Compilation,
-  plugin_driver: SharedPluginDriver,
-) -> Result<()> {
-  let logger = compilation.get_logger("rspack.Compilation");
-  let start = logger.time("code generation");
+use super::*;
+use crate::{
+  ModuleCodeGenerationContext, cache::Cache, compilation::pass::PassExt, logger::Logger,
+};
+
+pub struct CodeGenerationPass;
+
+#[async_trait]
+impl PassExt for CodeGenerationPass {
+  fn name(&self) -> &'static str {
+    "code generation"
+  }
+
+  async fn before_pass(&self, compilation: &mut Compilation, cache: &mut dyn Cache) {
+    cache.before_modules_codegen(compilation).await;
+  }
+
+  async fn run_pass(&self, compilation: &mut Compilation) -> Result<()> {
+    code_generation_pass_impl(compilation).await
+  }
+
+  async fn after_pass(&self, compilation: &Compilation, cache: &mut dyn Cache) {
+    cache.after_modules_codegen(compilation).await;
+  }
+}
+
+async fn code_generation_pass_impl(compilation: &mut Compilation) -> Result<()> {
   let code_generation_modules = if let Some(mutations) = compilation
     .incremental
     .mutations_read(IncrementalPasses::MODULES_CODEGEN)
@@ -50,7 +70,9 @@ pub async fn code_generation_pass(
   compilation.code_generation(code_generation_modules).await?;
 
   let mut diagnostics = vec![];
-  plugin_driver
+  compilation
+    .plugin_driver
+    .clone()
     .compilation_hooks
     .after_code_generation
     .call(compilation, &mut diagnostics)
@@ -58,7 +80,6 @@ pub async fn code_generation_pass(
     .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.afterCodeGeneration"))?;
   compilation.extend_diagnostics(diagnostics);
 
-  logger.time_end(start);
   Ok(())
 }
 
