@@ -1,5 +1,5 @@
 it("should compile", async () => {
-	const logs = global.__configCases__deferImport__proposal = [];
+	const logs = global.__configCases__defer_import_async_in_graph_dynamic_import = [];
 
 	let mod = import("./entry.js");
 	expect(mod).toBeInstanceOf(Promise);
