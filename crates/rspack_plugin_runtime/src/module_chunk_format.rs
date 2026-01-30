@@ -271,7 +271,7 @@ async fn render_chunk(
                 .render_runtime_variable(&RuntimeVariable::Exports)
             )
           } else {
-            "".to_string()
+            String::new()
           },
           compilation
             .runtime_template
@@ -326,7 +326,7 @@ async fn render_chunk(
 }
 
 fn render_chunk_import(named_import: &str, import_source: &str) -> String {
-  format!("import * as {} from '{}';\n", named_import, import_source)
+  format!("import * as {named_import} from '{import_source}';\n")
 }
 #[plugin_hook(JavascriptModulesRenderStartup for ModuleChunkFormatPlugin)]
 async fn render_startup(
@@ -361,7 +361,7 @@ async fn render_startup(
 
       let dependant_chunk = compilation.chunk_by_ukey.expect_get(&ck);
 
-      let named_import = format!("__rspack_imports_{}", index);
+      let named_import = format!("__rspack_imports_{index}");
 
       let dependant_chunk_name = get_chunk_output_name(dependant_chunk, compilation).await?;
 

@@ -54,7 +54,7 @@ impl RstestPlugin {
     old: BoxSource,
     replace_map: &std::collections::HashMap<String, MockFlagPos>,
   ) -> BoxSource {
-    let old_source = old.to_owned();
+    let old_source = old.clone();
     let mut replace = ReplaceSource::new(old_source);
 
     for (mocked_id, pos) in replace_map {

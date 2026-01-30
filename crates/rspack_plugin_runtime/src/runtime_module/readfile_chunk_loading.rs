@@ -191,7 +191,7 @@ impl RuntimeModule for ReadFileChunkLoadingRuntimeModule {
         Some(serde_json::json!({
           "_with_on_chunk_loaded": match with_on_chunk_load {
             true => format!("{}();", compilation.runtime_template.render_runtime_globals(&RuntimeGlobals::ON_CHUNKS_LOADED)),
-            false => "".to_string(),
+            false => String::new(),
           }
         })),
       )?;

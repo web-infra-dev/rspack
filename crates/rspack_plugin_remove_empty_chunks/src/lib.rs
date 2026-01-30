@@ -26,14 +26,14 @@ impl RemoveEmptyChunksPlugin {
       .map(|chunk| chunk.ukey())
       .collect::<Vec<_>>();
 
-    empty_chunks.iter().for_each(|chunk_ukey| {
+    for chunk_ukey in empty_chunks.iter() {
       if let Some(mut chunk) = compilation.chunk_by_ukey.remove(chunk_ukey) {
         chunk_graph.disconnect_chunk(&mut chunk, &mut compilation.chunk_group_by_ukey);
         if let Some(mut mutations) = compilation.incremental.mutations_write() {
           mutations.add(Mutation::ChunkRemove { chunk: *chunk_ukey });
         }
       }
-    });
+    }
 
     logger.time_end(start);
   }

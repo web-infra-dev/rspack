@@ -88,8 +88,7 @@ impl SizeLimitsPlugin {
     let asset_list: String = detail
       .iter()
       .map(|(name, size)| format!("\n  {} ({})", name, format_size(*size)))
-      .collect::<Vec<String>>()
-      .join("");
+      .collect::<String>();
     let title = String::from("assets over size limit warning");
     let message = format!(
       "asset size limit: The following asset(s) exceed the recommended size limit ({}). This can impact web performance.\nAssets:{}",
@@ -120,8 +119,7 @@ impl SizeLimitsPlugin {
             .join("\n")
         )
       })
-      .collect::<Vec<_>>()
-      .join("");
+      .collect::<String>();
     let title = String::from("entrypoints over size limit warning");
     let message = format!(
       "entrypoint size limit: The following entrypoint(s) combined asset size exceeds the recommended limit ({}). This can impact web performance.\nEntrypoints:{}",
@@ -136,8 +134,8 @@ impl SizeLimitsPlugin {
 #[plugin_hook(CompilerAfterEmit for SizeLimitsPlugin)]
 async fn after_emit(&self, compilation: &mut Compilation) -> Result<()> {
   let hints = &self.options.hints;
-  let max_asset_size = self.options.max_asset_size.unwrap_or(250000.0);
-  let max_entrypoint_size = self.options.max_entrypoint_size.unwrap_or(250000.0);
+  let max_asset_size = self.options.max_asset_size.unwrap_or(250_000.0);
+  let max_entrypoint_size = self.options.max_entrypoint_size.unwrap_or(250_000.0);
   let mut checked_assets: HashMap<String, bool> = HashMap::default();
   let mut checked_chunk_groups: HashMap<ChunkGroupUkey, bool> = HashMap::default();
 

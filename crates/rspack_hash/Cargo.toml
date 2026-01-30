@@ -12,3 +12,6 @@ rspack_cacheable = { workspace = true }
 sha2             = { workspace = true }
 smol_str         = { workspace = true }
 xxhash-rust      = { workspace = true, features = ["xxh64"] }
+
+[lints]
+workspace = true

@@ -23,3 +23,6 @@ tokio        = { workspace = true, features = ["time"] }
 tracing      = { workspace = true }
 
 [dev-dependencies]
+
+[lints]
+workspace = true

@@ -187,11 +187,11 @@ async fn process_tag(
     let protocol_relative_public_path = HTTP_PROTOCOL_REGEX.replace(public_path, "").to_string();
     let protocol_relative_tag_src = HTTP_PROTOCOL_REGEX.replace(&tag_src, "").to_string();
     if protocol_relative_tag_src.starts_with(&protocol_relative_public_path) {
-      let tag_src_with_scheme = format!("http:{}", protocol_relative_tag_src);
+      let tag_src_with_scheme = format!("http:{protocol_relative_tag_src}");
       let public_path_with_scheme = if protocol_relative_public_path.starts_with("//") {
-        format!("http:{}", protocol_relative_public_path)
+        format!("http:{protocol_relative_public_path}")
       } else {
-        protocol_relative_public_path.to_string()
+        protocol_relative_public_path.clone()
       };
       get_asset_path(&tag_src_with_scheme, &public_path_with_scheme)
     } else {
@@ -226,8 +226,7 @@ fn get_asset_path(src: &str, public_path: &str) -> String {
     .expect("Failed to decode asset path")
     .to_string();
   pathdiff::diff_paths(&decoded_src, public_path)
-    .map(|p| p.to_string_lossy().into_owned())
-    .unwrap_or_else(|| decoded_src.to_string())
+    .map_or_else(|| decoded_src.clone(), |p| p.to_string_lossy().into_owned())
 }
 
 async fn get_integrity_checksum_for_asset(

@@ -31,14 +31,14 @@ impl Branch {
     };
     match *self {
       f if f == Branch::F => "var __rspack_amd_exports;".to_string(),
-      o if o == Branch::O => "".to_string(),
+      o if o == Branch::O => String::new(),
       o_f if o_f == (Branch::O | Branch::F) => {
         "var __rspack_amd_factory, __rspack_amd_exports;".to_string()
       }
       a_f if a_f == (Branch::A | Branch::F) => {
         "var __rspack_amd_deps, __rspack_amd_exports;".to_string()
       }
-      a_o if a_o == (Branch::A | Branch::O) => "".to_string(),
+      a_o if a_o == (Branch::A | Branch::O) => String::new(),
       a_o_f if a_o_f == (Branch::A | Branch::O | Branch::F) => {
         "var __rspack_amd_factory, __rspack_amd_deps, __rspack_amd_exports;".to_string()
       }
@@ -60,7 +60,7 @@ impl Branch {
       l_a_o_f if l_a_o_f == (Branch::L | Branch::A | Branch::O | Branch::F) => {
         format!("var {name}array, {name}factory, {name}exports, {name};")
       }
-      _ => "".to_string(),
+      _ => String::new(),
     }
   }
 
@@ -142,7 +142,7 @@ impl Branch {
 			({local_module_var} = {local_module_var}factory)
 		))",
       ),
-      _ => "".to_string(),
+      _ => String::new(),
     }
   }
 }

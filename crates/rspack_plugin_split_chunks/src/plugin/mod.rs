@@ -92,7 +92,7 @@ impl SplitChunksPlugin {
     let start = logger.time("prepare cache groups");
     let mut priority_cache_groups = vec![];
 
-    for (priority, cache_groups) in self
+    for (priority, cache_groups) in &self
       .cache_groups
       .iter()
       .enumerate()
@@ -105,7 +105,6 @@ impl SplitChunksPlugin {
         v => v,
       })
       .chunk_by(|v| v.cache_group.priority)
-      .into_iter()
     {
       priority_cache_groups.push((priority, cache_groups.into_iter().collect::<Vec<_>>()));
     }

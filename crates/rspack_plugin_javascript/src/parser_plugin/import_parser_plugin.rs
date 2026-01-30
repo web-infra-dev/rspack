@@ -264,10 +264,10 @@ impl JavascriptParserPlugin for ImportParserPlugin {
       return None;
     }
 
-    let mode = magic_comment_options
-      .get_mode()
-      .map(|x| DynamicImportMode::from(x.as_str()))
-      .unwrap_or(dynamic_import_mode.expect("should have dynamic_import_mode"));
+    let mode = magic_comment_options.get_mode().map_or(
+      dynamic_import_mode.expect("should have dynamic_import_mode"),
+      |x| DynamicImportMode::from(x.as_str()),
+    );
     let chunk_name = magic_comment_options.get_chunk_name().map(|x| x.to_owned());
     let chunk_prefetch = magic_comment_options
       .get_prefetch()

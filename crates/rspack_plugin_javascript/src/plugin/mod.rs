@@ -1,12 +1,13 @@
 use std::{
   borrow::Cow,
-  collections::{HashMap, HashSet, hash_map::Entry},
+  collections::{HashMap, hash_map::Entry},
   hash::Hash,
   ops::Deref,
   sync::{Arc, LazyLock, RwLock as SyncRwLock},
 };
 
 use rayon::prelude::*;
+use rustc_hash::FxHashSet as HashSet;
 pub mod api_plugin;
 mod drive;
 mod flag_dependency_exports_plugin;
@@ -515,7 +516,7 @@ var {} = {{}};
                     runtime_template.render_runtime_globals(&RuntimeGlobals::EXPORTS)
                   )
                 } else {
-                  "".to_string()
+                  String::new()
                 },
                 runtime_template.render_runtime_globals(&RuntimeGlobals::ON_CHUNKS_LOADED),
                 stringify_array(&chunk_ids),
@@ -533,7 +534,7 @@ var {} = {{}};
                     runtime_template.render_runtime_globals(&RuntimeGlobals::EXPORTS)
                   )
                 } else {
-                  "".to_string()
+                  String::new()
                 },
                 runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
               )
@@ -1008,7 +1009,8 @@ var {} = {{}};
 
     let mut inlined_modules_to_info: IdentifierMap<InlinedModuleInfo> = IdentifierMap::default();
     let mut non_inlined_module_through_idents: Vec<ConcatenatedModuleIdent> = Vec::new();
-    let mut all_used_names = HashSet::from_iter(RESERVED_NAMES.iter().map(|item| Atom::new(*item)));
+    let mut all_used_names: HashSet<Atom> =
+      RESERVED_NAMES.iter().map(|item| Atom::new(*item)).collect();
     let mut renamed_inline_modules: IdentifierMap<Arc<dyn Source>> = IdentifierMap::default();
 
     let render_module_results = rspack_futures::scope::<_, _>(|token| {
@@ -1060,7 +1062,7 @@ var {} = {{}};
           Ok(RenameInfoPatch {
             inlined_modules_to_info: IdentifierMap::default(),
             non_inlined_module_through_idents: Vec::new(),
-            all_used_names: HashSet::from_iter(RESERVED_NAMES.iter().map(|item| Atom::new(*item))),
+            all_used_names: RESERVED_NAMES.iter().map(|item| Atom::new(*item)).collect(),
           })
         },
         |mut acc, (rendered_module, m)| {
@@ -1206,7 +1208,7 @@ var {} = {{}};
           Ok(RenameInfoPatch {
             inlined_modules_to_info: IdentifierMap::default(),
             non_inlined_module_through_idents: Vec::new(),
-            all_used_names: HashSet::from_iter(RESERVED_NAMES.iter().map(|item| Atom::new(*item))),
+            all_used_names: RESERVED_NAMES.iter().map(|item| Atom::new(*item)).collect(),
           })
         },
         |acc, chunk| match acc {

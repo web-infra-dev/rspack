@@ -45,6 +45,5 @@ signal-hook  = { workspace = true, optional = true }
 debug_tool = ["signal-hook"]                                                         # only used for local debug and  should not be enabled in production release
 plugin     = ["anyhow", "once_cell", "wasmtime", "wasi-common", "swc_plugin_runner"]
 
-[lints.rust.unexpected_cfgs]
-check-cfg = ['cfg(allocative)']
-level     = "warn"
+[lints]
+workspace = true

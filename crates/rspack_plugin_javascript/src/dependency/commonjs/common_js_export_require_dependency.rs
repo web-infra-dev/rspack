@@ -189,8 +189,7 @@ impl CommonJsExportRequireDependency {
 
   pub fn get_ids<'a>(&'a self, mg: &'a ModuleGraph) -> &'a [Atom] {
     mg.get_dep_meta_if_existing(&self.id)
-      .map(|meta| meta.ids.as_slice())
-      .unwrap_or_else(|| self.ids.as_slice())
+      .map_or_else(|| self.ids.as_slice(), |meta| meta.ids.as_slice())
   }
 }
 

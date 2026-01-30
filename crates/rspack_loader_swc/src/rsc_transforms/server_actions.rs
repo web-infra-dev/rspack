@@ -258,7 +258,7 @@ impl<'a, C: Comments> ServerActions<'a, C> {
         if let Pat::Rest(_) = param.pat {
           // If there's a ...rest argument, we set the rest args bit
           // to 1 and set the arg mask to 0b111111.
-          arg_mask = 0b111111;
+          arg_mask = 0b11_1111;
           rest_args = 0b1;
           break;
         }
@@ -274,7 +274,7 @@ impl<'a, C: Comments> ServerActions<'a, C> {
     } else {
       // If we can't determine the arguments (e.g. not statically analyzable),
       // we assume all arguments are used.
-      arg_mask = 0b111111;
+      arg_mask = 0b11_1111;
       rest_args = 0b1;
     }
 
@@ -377,7 +377,7 @@ impl<'a, C: Comments> ServerActions<'a, C> {
     &mut self,
     ids_from_closure: Vec<Name>,
     arrow: &mut ArrowExpr,
-  ) -> Box<Expr> {
+  ) -> Expr {
     let mut new_params: Vec<Param> = vec![];
 
     if !ids_from_closure.is_empty() {
@@ -524,10 +524,10 @@ impl<'a, C: Comments> ServerActions<'a, C> {
       })));
 
     if ids_from_closure.is_empty() {
-      Box::new(action_ident.clone().into())
+      Expr::Ident(action_ident.clone())
     } else {
       self.has_server_reference_with_bound_args = true;
-      Box::new(bind_args_to_ident(
+      bind_args_to_ident(
         action_ident.clone(),
         ids_from_closure
           .iter()
@@ -535,7 +535,7 @@ impl<'a, C: Comments> ServerActions<'a, C> {
           .map(|id| Some(id.as_arg()))
           .collect(),
         action_id.clone(),
-      ))
+      )
     }
   }
 
@@ -544,7 +544,7 @@ impl<'a, C: Comments> ServerActions<'a, C> {
     ids_from_closure: Vec<Name>,
     function: &mut Function,
     fn_name: Option<Ident>,
-  ) -> Box<Expr> {
+  ) -> Expr {
     let mut new_params: Vec<Param> = vec![];
 
     if !ids_from_closure.is_empty() {
@@ -668,10 +668,10 @@ impl<'a, C: Comments> ServerActions<'a, C> {
       })));
 
     if ids_from_closure.is_empty() {
-      Box::new(action_ident.clone().into())
+      Expr::Ident(action_ident.clone())
     } else {
       self.has_server_reference_with_bound_args = true;
-      Box::new(bind_args_to_ident(
+      bind_args_to_ident(
         action_ident.clone(),
         ids_from_closure
           .iter()
@@ -679,7 +679,7 @@ impl<'a, C: Comments> ServerActions<'a, C> {
           .map(|id| Some(id.as_arg()))
           .collect(),
         action_id.clone(),
-      ))
+      )
     }
   }
 
@@ -943,8 +943,9 @@ impl<'a, C: Comments> VisitMut for ServerActions<'a, C> {
         &self.declared_idents[..declared_idents_until],
       );
 
-      let new_expr =
-        self.maybe_hoist_and_create_proxy_for_server_action_function(child_names, f, fn_name);
+      let new_expr = Box::new(
+        self.maybe_hoist_and_create_proxy_for_server_action_function(child_names, f, fn_name),
+      );
 
       if self.is_default_export() {
         // This function expression is also the default export:
@@ -1087,8 +1088,9 @@ impl<'a, C: Comments> VisitMut for ServerActions<'a, C> {
         &self.declared_idents[..declared_idents_until],
       );
 
-      self.rewrite_expr_to_proxy_expr =
-        Some(self.maybe_hoist_and_create_proxy_for_server_action_arrow_expr(child_names, a));
+      self.rewrite_expr_to_proxy_expr = Some(Box::new(
+        self.maybe_hoist_and_create_proxy_for_server_action_arrow_expr(child_names, a),
+      ));
     }
   }
 
@@ -1127,7 +1129,6 @@ impl<'a, C: Comments> VisitMut for ServerActions<'a, C> {
       if let Prop::KeyValue(KeyValueProp {
         key: PropName::Ident(ident_name),
         value,
-        ..
       }) = &**prop
       {
         if matches!(**value, Expr::Arrow(_) | Expr::Fn(_)) {
@@ -1867,13 +1868,9 @@ impl<'a, C: Comments> VisitMut for ServerActions<'a, C> {
 
     if let (Some(JSXAttrValue::JSXExprContainer(container)), JSXAttrName::Ident(ident_name)) =
       (&attr.value, &attr.name)
+      && let JSXExpr::Expr(box (Expr::Arrow(_) | Expr::Fn(_))) = &container.expr
     {
-      match &container.expr {
-        JSXExpr::Expr(box Expr::Arrow(_)) | JSXExpr::Expr(box Expr::Fn(_)) => {
-          self.arrow_or_fn_expr_ident = Some(ident_name.clone().into());
-        }
-        _ => {}
-      }
+      self.arrow_or_fn_expr_ident = Some(ident_name.clone().into());
     }
 
     attr.visit_mut_children_with(self);
@@ -1884,7 +1881,7 @@ impl<'a, C: Comments> VisitMut for ServerActions<'a, C> {
     let old_current_export_name = self.current_export_name.take();
     let old_arrow_or_fn_expr_ident = self.arrow_or_fn_expr_ident.take();
 
-    if let (Pat::Ident(ident), Some(box Expr::Arrow(_) | box Expr::Fn(_))) =
+    if let (Pat::Ident(ident), Some(box (Expr::Arrow(_) | Expr::Fn(_)))) =
       (&var_declarator.name, &var_declarator.init)
     {
       if self.in_module_level
@@ -1907,7 +1904,7 @@ impl<'a, C: Comments> VisitMut for ServerActions<'a, C> {
 
     if let (
       AssignTarget::Simple(SimpleAssignTarget::Ident(ident)),
-      box Expr::Arrow(_) | box Expr::Fn(_),
+      box (Expr::Arrow(_) | Expr::Fn(_)),
     ) = (&assign_expr.left, &assign_expr.right)
     {
       self.arrow_or_fn_expr_ident = Some(ident.id.clone());
@@ -2360,7 +2357,6 @@ impl DirectiveVisitor<'_> {
             ..
           }),
         span,
-        ..
       }) => {
         // Match `("use server")`.
         if value == "use server" || detect_similar_strings(&value.to_string_lossy(), "use server") {
@@ -2514,7 +2510,7 @@ impl From<Name> for Box<Expr> {
       prop,
       is_member,
       optional,
-    } in value.1.into_iter()
+    } in value.1
     {
       #[allow(clippy::replace_box)]
       if is_member {

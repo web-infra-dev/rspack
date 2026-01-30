@@ -93,7 +93,7 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
           json_stringify(&data.share_scope),
           json_stringify(&data.share_key),
           json_stringify(&data.import),
-          json_stringify(&data.required_version.as_ref().map(|v| v.to_string()).unwrap_or_else(|| "*".to_string())),
+          json_stringify(&data.required_version.as_ref().map_or_else(|| "*".to_string(), |v| v.to_string())),
           json_stringify(&data.strict_version),
           json_stringify(&data.singleton),
           json_stringify(&data.eager),
@@ -166,12 +166,8 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
       .render_runtime_globals(&RuntimeGlobals::REQUIRE);
     let mut source = format!(
       r#"
-{require_name}.consumesLoadingData = {{ chunkMapping: {chunk_mapping}, moduleIdToConsumeDataMapping: {module_to_consume_data_mapping}, initialConsumes: {initial_consumes_json} }};
+{require_name}.consumesLoadingData = {{ chunkMapping: {chunk_mapping}, moduleIdToConsumeDataMapping: {module_id_to_consume_data_mapping}, initialConsumes: {initial_consumes_json} }};
 "#,
-      require_name = require_name,
-      chunk_mapping = chunk_mapping,
-      module_to_consume_data_mapping = module_id_to_consume_data_mapping,
-      initial_consumes_json = initial_consumes_json,
     );
     if self.enhanced {
       if ChunkGraph::get_chunk_runtime_requirements(compilation, &chunk_ukey)

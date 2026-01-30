@@ -209,7 +209,7 @@ impl CommonJsImportsParserPlugin {
   ) -> bool {
     if param.is_string() {
       parser.add_dependency(Box::new(RequireResolveDependency::new(
-        param.string().to_string(),
+        param.string().clone(),
         param.range().into(),
         weak,
         parser.in_try,
@@ -275,7 +275,7 @@ impl CommonJsImportsParserPlugin {
     param.is_string().then(|| {
       let range_expr: DependencyRange = param.range().into();
       let dep = CommonJsRequireDependency::new(
-        param.string().to_string(),
+        param.string().clone(),
         range_expr,
         Some(span.into()),
         parser.in_try,

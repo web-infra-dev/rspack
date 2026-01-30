@@ -103,7 +103,7 @@ pub struct BatchFSError {
 impl From<FSError> for BatchFSError {
   fn from(error: FSError) -> Self {
     Self {
-      message: "".to_string(),
+      message: String::new(),
       join_error: None,
       errors: vec![Box::new(error)],
     }

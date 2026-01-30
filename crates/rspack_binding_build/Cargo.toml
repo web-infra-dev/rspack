@@ -12,3 +12,6 @@ version.workspace       = true
 
 [dependencies]
 napi-build = { workspace = true }
+
+[lints]
+workspace = true

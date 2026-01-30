@@ -26,3 +26,6 @@ swc_core = { workspace = true, features = [
   "__utils",
   "ecma_preset_env",
 ] }
+
+[lints]
+workspace = true

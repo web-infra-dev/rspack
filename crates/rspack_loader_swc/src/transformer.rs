@@ -12,13 +12,6 @@ macro_rules! either {
       Either::Right(noop_pass())
     }
   };
-  ($config:expr, $f:expr, $enabled:expr) => {
-    if $enabled {
-      either!($config, $f)
-    } else {
-      Either::Right(noop())
-    }
-  };
 }
 
 #[allow(clippy::too_many_arguments)]

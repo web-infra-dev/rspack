@@ -7,15 +7,15 @@
 
 const FNV_64_THRESHOLD: usize = 1 << 24;
 
-const FNV_OFFSET_32: u32 = 2166136261;
+const FNV_OFFSET_32: u32 = 2_166_136_261;
 
-const FNV_PRIME_32: u32 = 16777619;
+const FNV_PRIME_32: u32 = 16_777_619;
 
-const MASK_31: u32 = 0x7fffffff;
+const MASK_31: u32 = 0x7fff_ffff;
 
-const FNV_OFFSET_64: u64 = 0xCBF29CE484222325;
+const FNV_OFFSET_64: u64 = 0xCBF2_9CE4_8422_2325;
 
-const FNV_PRIME_64: u64 = 0x100000001B3;
+const FNV_PRIME_64: u64 = 0x0100_0000_01B3;
 
 fn fnv1a32(s: &str) -> u32 {
   let mut hash = FNV_OFFSET_32;
@@ -72,19 +72,23 @@ fn test_number_hash() {
     ("君が笑ってると、僕もうれしくなるんだ。", 100usize, 1usize),
     ("🤣👉🤡", 100usize, 53usize),
     // range = 10 * (1 << 24)
-    ("Hello, world!", 167772160usize, 77102068usize),
+    ("Hello, world!", 167_772_160_usize, 77_102_068_usize),
     (
       "You are right, but Rspack is a next-generation super fast bundler developed by the WebInfra team. Written in Rust, it make your build fly like rocket. With perfect support for Webpack ecosystem, it not only fast, but also friendly. Using Rspack, you can build faster and go home earlier.",
-      167772160usize,
-      42705789usize,
+      167_772_160_usize,
+      42_705_789_usize,
     ),
-    ("我能吞下玻璃而不伤身体", 167772160usize, 63515641usize),
+    (
+      "我能吞下玻璃而不伤身体",
+      167_772_160_usize,
+      63_515_641_usize,
+    ),
     (
       "君が笑ってると、僕もうれしくなるんだ。",
-      167772160usize,
-      111837237usize,
+      167_772_160_usize,
+      111_837_237_usize,
     ),
-    ("🤣👉🤡", 167772160usize, 93616649usize),
+    ("🤣👉🤡", 167_772_160_usize, 93_616_649_usize),
   ];
 
   for (s, range, hash) in test_cases.iter() {

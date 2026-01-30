@@ -155,7 +155,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
         );
 
       if !with_hmr && !with_loading {
-        return Ok("".to_string());
+        return Ok(String::new());
       }
 
       let mut source = String::new();
@@ -175,8 +175,8 @@ impl RuntimeModule for CssLoadingRuntimeModule {
         Some(serde_json::json!({
           "_with_fetch_priority": with_fetch_priority,
           "_cross_origin": match &compilation.options.output.cross_origin_loading {
-            CrossOriginLoading::Disable => "".to_string(),
-            CrossOriginLoading::Enable(cross_origin) => cross_origin.to_string(),
+            CrossOriginLoading::Disable => String::new(),
+            CrossOriginLoading::Enable(cross_origin) => cross_origin.clone(),
           },
           "_unique_name": unique_name,
         })),
@@ -207,8 +207,7 @@ installedChunks[chunkId] = 0;
 {}"#,
           with_hmr
             .then_some(format!(
-              "var moduleIds = [];\nif(target == {})",
-              module_factories
+              "var moduleIds = [];\nif(target == {module_factories})"
             ))
             .unwrap_or_default(),
           if with_hmr {
@@ -240,8 +239,7 @@ installedChunks[chunkId] = 0;
                 id
               )
             })
-            .collect::<Vec<_>>()
-            .join(""),
+            .collect::<String>(),
         )
       } else {
         Cow::Borrowed("// no initial css")

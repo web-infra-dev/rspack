@@ -11,3 +11,6 @@ version.workspace = true
 [dependencies]
 rspack_core           = { workspace = true }
 rspack_plugin_runtime = { workspace = true }
+
+[lints]
+workspace = true

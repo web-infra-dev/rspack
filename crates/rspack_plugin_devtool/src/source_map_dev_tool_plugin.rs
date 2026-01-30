@@ -181,7 +181,7 @@ impl SourceMapDevToolPlugin {
       options.file_context,
       module_filename_template,
       fallback_module_filename_template,
-      options.namespace.unwrap_or("".to_string()),
+      options.namespace.unwrap_or_default(),
       options.columns,
       options.no_sources,
       options.public_path,
@@ -271,7 +271,7 @@ impl SourceMapDevToolPlugin {
                   None => SourceReference::Source(Arc::from(source_name)),
                 }
               } else {
-                SourceReference::Source(Arc::from(source_name.to_string()))
+                SourceReference::Source(Arc::from(source_name.clone()))
               }
             })
             .collect::<Vec<_>>();
@@ -362,7 +362,7 @@ impl SourceMapDevToolPlugin {
                     )
                   }));
 
-                let filename = Filename::from(plugin.namespace.to_string());
+                let filename = Filename::from(plugin.namespace.clone());
                 let namespace = compilation.get_path(&filename, path_data).await?;
 
                 let source_name = ModuleFilenameHelpers::create_filename_of_string_template(
@@ -516,12 +516,10 @@ impl SourceMapDevToolPlugin {
               .get(source_reference)
               .unwrap_or_else(|| {
                 panic!(
-                  "SourceMapDevToolPlugin: missing source name for reference '{:?}' in asset '{}'.",
-                  source_reference, asset_filename
+                  "SourceMapDevToolPlugin: missing source name for reference '{source_reference:?}' in asset '{asset_filename}'."
                 )
               })
-              .0
-              .to_string()
+              .0.clone()
           })
           .collect::<Vec<_>>(),
       );
@@ -697,7 +695,7 @@ impl SourceMapDevToolPlugin {
                     ])
                     .boxed(),
                   );
-                  asset.info.related.source_map = Some(source_map_filename.to_string());
+                  asset.info.related.source_map = Some(source_map_filename.clone());
                 } else {
                   asset.source = Some(source.clone());
                 }
@@ -712,7 +710,7 @@ impl SourceMapDevToolPlugin {
                 );
                 Ok(MappedAsset {
                   asset: (asset_filename, asset),
-                  source_map: Some((source_map_filename.to_string(), source_map_asset)),
+                  source_map: Some((source_map_filename.clone(), source_map_asset)),
                 })
               } else {
                 let current_source_mapping_url_comment = current_source_mapping_url_comment.expect(
@@ -772,11 +770,11 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   for chunk in compilation.chunk_by_ukey.values() {
     for file in chunk.files() {
       file_to_chunk.insert(file, chunk);
-      file_to_chunk_ukey.insert(file.to_string(), chunk.ukey());
+      file_to_chunk_ukey.insert(file.clone(), chunk.ukey());
     }
     for file in chunk.auxiliary_files() {
       file_to_chunk.insert(file, chunk);
-      file_to_chunk_ukey.insert(file.to_string(), chunk.ukey());
+      file_to_chunk_ukey.insert(file.clone(), chunk.ukey());
     }
   }
 
@@ -813,18 +811,18 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     if let Some(asset) = compilation.assets_mut().remove(source_filename.as_ref()) {
       source_asset.info = asset.info;
       if let Some((ref source_map_filename, _)) = source_map {
-        source_asset.info.related.source_map = Some(source_map_filename.to_string());
+        source_asset.info.related.source_map = Some(source_map_filename.clone());
       }
     }
 
     let chunk_ukey = file_to_chunk_ukey.get(source_filename.as_ref());
     compilation.emit_asset(source_filename.to_string(), source_asset);
     if let Some((source_map_filename, source_map_asset)) = source_map {
-      compilation.emit_asset(source_map_filename.to_string(), source_map_asset);
+      compilation.emit_asset(source_map_filename.clone(), source_map_asset);
 
       let chunk = chunk_ukey.map(|ukey| compilation.chunk_by_ukey.expect_get_mut(ukey));
       if let Some(chunk) = chunk {
-        chunk.add_auxiliary_file(source_map_filename.to_string());
+        chunk.add_auxiliary_file(source_map_filename.clone());
       }
     }
   }

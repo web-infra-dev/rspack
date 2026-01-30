@@ -254,7 +254,7 @@ impl CssPlugin {
 
     let mut source = ConcatSource::default();
 
-    for module_source in module_sources.into_iter() {
+    for module_source in module_sources {
       source.add(module_source?);
     }
 
