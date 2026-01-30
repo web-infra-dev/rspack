@@ -104,7 +104,6 @@ export const applyRspackOptionsDefaults = (
   applySnapshotDefaults(options.snapshot, { production });
 
   applyModuleDefaults(options.module, {
-    cache: !!options.cache,
     asyncWebAssembly: options.experiments.asyncWebAssembly!,
     targetProperties,
     mode: options.mode,
@@ -298,14 +297,12 @@ const applyJsonGeneratorOptionsDefaults = (
 const applyModuleDefaults = (
   module: ModuleOptions,
   {
-    cache,
     asyncWebAssembly,
     targetProperties,
     mode,
     uniqueName,
     deferImport,
   }: {
-    cache: boolean;
     asyncWebAssembly: boolean;
     targetProperties: false | TargetProperties;
     mode?: Mode;
