@@ -388,7 +388,6 @@ async fn runtime_requirements_in_tree(
                   &compilation.options.output,
                   &compilation.chunk_group_by_ukey,
                 )
-                .clone()
               })
             },
           )

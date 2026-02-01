@@ -672,14 +672,14 @@ impl ModuleConcatenationPlugin {
         &compilation.module_static_cache_artifact,
         &compilation.options.context,
       ),
-      name_for_condition: box_module.name_for_condition().clone(),
+      name_for_condition: box_module.name_for_condition(),
       lib_indent: box_module
         .lib_ident(LibIdentOptions {
           context: compilation.options.context.as_str(),
         })
         .map(|id| id.to_string()),
       layer: box_module.get_layer().cloned(),
-      resolve_options: box_module.get_resolve_options().clone(),
+      resolve_options: box_module.get_resolve_options(),
       code_generation_dependencies: box_module
         .get_code_generation_dependencies()
         .map(|deps| deps.to_vec()),
@@ -1451,14 +1451,14 @@ async fn create_concatenated_module(
       &compilation.module_static_cache_artifact,
       &compilation.options.context,
     ),
-    name_for_condition: box_module.name_for_condition().clone(),
+    name_for_condition: box_module.name_for_condition(),
     lib_indent: box_module
       .lib_ident(LibIdentOptions {
         context: compilation.options.context.as_str(),
       })
       .map(|id| id.to_string()),
     layer: box_module.get_layer().cloned(),
-    resolve_options: box_module.get_resolve_options().clone(),
+    resolve_options: box_module.get_resolve_options(),
     code_generation_dependencies: box_module
       .get_code_generation_dependencies()
       .map(|deps| deps.to_vec()),

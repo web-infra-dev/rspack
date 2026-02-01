@@ -128,7 +128,7 @@ See https://w3c.github.io/webappsec-subresource-integrity/#cross-origin-data-lea
               should_warn_content_hash = true;
             }
 
-            let mut new_info = info.clone();
+            let mut new_info = info;
             new_info.content_hash.insert(integrity);
             Ok((Arc::new(source), new_info))
           })

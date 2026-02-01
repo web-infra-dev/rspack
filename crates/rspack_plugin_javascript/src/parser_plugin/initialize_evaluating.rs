@@ -95,11 +95,7 @@ impl JavascriptParserPlugin for InitializeEvaluating {
       } else {
         let raw = arg1.regexp();
         let regexp = eval_regexp_to_regexp(&raw.0, &raw.1);
-        Cow::Owned(
-          regexp
-            .replace(param.string().as_ref(), arg2.string())
-            .clone(),
-        )
+        Cow::Owned(regexp.replace(param.string().as_ref(), arg2.string()))
       };
       res.set_string(s.to_string());
       res.set_side_effects(param.could_have_side_effects());

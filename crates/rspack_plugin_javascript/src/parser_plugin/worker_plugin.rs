@@ -219,7 +219,7 @@ fn handle_worker<'a>(
       return None;
     }
 
-    if let Some(name) = import_options.and_then(|options| options.name.clone()) {
+    if let Some(name) = import_options.and_then(|options| options.name) {
       if let Some(options) = &mut options {
         options.name = Some(name);
       } else {

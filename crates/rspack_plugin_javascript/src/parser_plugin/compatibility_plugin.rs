@@ -241,7 +241,7 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
       deps.push(Box::new(ConstDependency::new(
         nested_require_data.loc,
         if shorthand {
-          format!("{}: {}", ident.sym, name.clone()).into()
+          format!("{}: {}", ident.sym, name).into()
         } else {
           name.clone().into()
         },
@@ -254,9 +254,9 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
     deps.push(Box::new(ConstDependency::new(
       ident.span.into(),
       if parser.in_short_hand {
-        format!("{}: {}", ident.sym, name.clone()).into()
+        format!("{}: {}", ident.sym, name).into()
       } else {
-        name.clone().into()
+        name.into()
       },
       None,
     )));

@@ -236,7 +236,7 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
       None,
       runtime_condition.clone(),
     )));
-    init_fragments.push(AwaitDependenciesInitFragment::new_single(import_var.clone()).boxed());
+    init_fragments.push(AwaitDependenciesInitFragment::new_single(import_var).boxed());
     init_fragments.push(Box::new(ConditionalInitFragment::new(
       content.1,
       InitFragmentStage::StageAsyncESMImports,
@@ -250,7 +250,7 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
       format!("{}{}", content.0, content.1),
       InitFragmentStage::StageESMImports,
       source_order,
-      InitFragmentKey::ESMImport(key.clone()),
+      InitFragmentKey::ESMImport(key),
       None,
       runtime_condition,
     )));

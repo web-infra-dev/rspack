@@ -31,7 +31,7 @@ impl<'a> HtmlCompiler<'a> {
 
   pub fn parse_file(&self, path: &str, source: String) -> Result<TWithDiagnosticArray<Document>> {
     let cm = Lrc::new(SourceMap::new(FilePathMapping::empty()));
-    let fm = cm.new_source_file(Arc::new(FileName::Custom(path.to_string())), source.clone());
+    let fm = cm.new_source_file(Arc::new(FileName::Custom(path.to_string())), source);
 
     let mut errors = vec![];
     let document = parse_file_as_document(fm.as_ref(), ParserConfig::default(), &mut errors);

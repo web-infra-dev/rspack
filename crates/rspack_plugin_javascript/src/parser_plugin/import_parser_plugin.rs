@@ -396,7 +396,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
           include,
           exclude,
           category: DependencyCategory::Esm,
-          request: format!("{}{}{}", context.clone(), query, fragment),
+          request: format!("{context}{query}{fragment}"),
           context,
           namespace_object: if parser.build_meta.strict_esm_module {
             ContextNameSpaceObject::Strict

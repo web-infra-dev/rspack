@@ -911,7 +911,7 @@ impl Plugin for AssetPlugin {
           .and_then(|x| x.emit);
 
         Box::new(AssetParserAndGenerator::with_auto(
-          data_url_condition.clone(),
+          data_url_condition,
           emit.unwrap_or(true),
         ))
       }),

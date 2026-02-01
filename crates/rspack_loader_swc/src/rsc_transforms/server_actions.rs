@@ -394,7 +394,7 @@ impl<'a, C: Comments> ServerActions<'a, C> {
     }
 
     let action_name = self.gen_action_ident();
-    let action_ident = Ident::new(action_name.clone(), arrow.span, self.private_ctxt);
+    let action_ident = Ident::new(action_name, arrow.span, self.private_ctxt);
     let action_id = self.generate_server_reference_id(
       &ModuleExportName::Ident(action_ident.clone()),
       Some(&new_params),
@@ -524,17 +524,17 @@ impl<'a, C: Comments> ServerActions<'a, C> {
       })));
 
     if ids_from_closure.is_empty() {
-      Expr::Ident(action_ident.clone())
+      Expr::Ident(action_ident)
     } else {
       self.has_server_reference_with_bound_args = true;
       bind_args_to_ident(
-        action_ident.clone(),
+        action_ident,
         ids_from_closure
           .iter()
           .cloned()
           .map(|id| Some(id.as_arg()))
           .collect(),
-        action_id.clone(),
+        action_id,
       )
     }
   }
@@ -559,7 +559,7 @@ impl<'a, C: Comments> ServerActions<'a, C> {
     new_params.append(&mut function.params);
 
     let action_name: Atom = self.gen_action_ident();
-    let mut action_ident = Ident::new(action_name.clone(), function.span, self.private_ctxt);
+    let mut action_ident = Ident::new(action_name, function.span, self.private_ctxt);
     if action_ident.span.lo == self.start_pos {
       action_ident.span = Span::dummy_with_cmt();
     }
@@ -668,17 +668,17 @@ impl<'a, C: Comments> ServerActions<'a, C> {
       })));
 
     if ids_from_closure.is_empty() {
-      Expr::Ident(action_ident.clone())
+      Expr::Ident(action_ident)
     } else {
       self.has_server_reference_with_bound_args = true;
       bind_args_to_ident(
-        action_ident.clone(),
+        action_ident,
         ids_from_closure
           .iter()
           .cloned()
           .map(|id| Some(id.as_arg()))
           .collect(),
-        action_id.clone(),
+        action_id,
       )
     }
   }
@@ -716,7 +716,7 @@ impl<'a, C: Comments> ServerActions<'a, C> {
       self.server_reference_exports.push(ServerReferenceExport {
         ident: fn_name.clone(),
         export_name: export_name.clone(),
-        reference_id: reference_id.clone(),
+        reference_id,
       });
     } else if self.is_default_export() {
       let action_ident = Ident::new(self.gen_action_ident(), span, self.private_ctxt);
@@ -730,7 +730,7 @@ impl<'a, C: Comments> ServerActions<'a, C> {
       self.server_reference_exports.push(ServerReferenceExport {
         ident: action_ident.clone(),
         export_name: export_name.clone(),
-        reference_id: reference_id.clone(),
+        reference_id,
       });
 
       // For the server layer, also hoist the function and rewrite the default export.
@@ -825,8 +825,8 @@ impl<'a, C: Comments> VisitMut for ServerActions<'a, C> {
 
       self.server_reference_exports.push(ServerReferenceExport {
         ident: action_ident.clone(),
-        export_name: export_name.clone(),
-        reference_id: action_id.clone(),
+        export_name,
+        reference_id: action_id,
       });
 
       self
@@ -1146,7 +1146,7 @@ impl<'a, C: Comments> VisitMut for ServerActions<'a, C> {
         self.rewrite_expr_to_proxy_expr = None;
         self.current_export_name = None;
         n.visit_mut_children_with(self);
-        self.current_export_name = old_current_export_name.clone();
+        self.current_export_name = old_current_export_name;
         self.this_status = old_this_status;
 
         if let Some(expr) = self.rewrite_expr_to_proxy_expr.take() {
@@ -2072,7 +2072,7 @@ fn annotate_ident_as_server_reference(ident: Ident, action_id: Atom, original_sp
       },
       ExprOrSpread {
         spread: None,
-        expr: Box::new(action_id.clone().into()),
+        expr: Box::new(action_id.into()),
       },
       ExprOrSpread {
         spread: None,
