@@ -205,11 +205,7 @@ impl CopyRspackPlugin {
         }
       };
 
-      to.clone()
-        .as_path()
-        .normalize()
-        .to_string_lossy()
-        .to_string()
+      to.as_path().normalize().to_string_lossy().to_string()
     } else {
       String::new()
     };

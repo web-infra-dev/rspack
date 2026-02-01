@@ -461,7 +461,7 @@ impl RscServerPlugin {
     }
 
     let ssr_entry_dependency = EntryDependency::new(
-      client_server_loader.clone(),
+      client_server_loader,
       compilation.options.context.clone(),
       Some(LAYERS_NAMES.server_side_rendering.to_string()),
       false,
@@ -472,7 +472,7 @@ impl RscServerPlugin {
       add_entry: (
         Box::new(ssr_entry_dependency),
         EntryOptions {
-          name: Some(entry_name.clone()),
+          name: Some(entry_name),
           ..Default::default()
         },
       ),
@@ -527,7 +527,7 @@ impl RscServerPlugin {
       add_entry: (
         Box::new(action_entry_dep),
         EntryOptions {
-          name: Some(entry_name.clone()),
+          name: Some(entry_name),
           layer: Some(layer),
           ..Default::default()
         },

@@ -582,7 +582,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let stats_root = StatsRoot {
     id: container_name.clone(),
     name: container_name.clone(),
-    metaData: meta.clone(),
+    metaData: meta,
     shared,
     remotes: remote_list.clone(),
     exposes: exposes.clone(),

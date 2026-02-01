@@ -191,7 +191,7 @@ async fn process_tag(
       let public_path_with_scheme = if protocol_relative_public_path.starts_with("//") {
         format!("http:{protocol_relative_public_path}")
       } else {
-        protocol_relative_public_path.clone()
+        protocol_relative_public_path
       };
       get_asset_path(&tag_src_with_scheme, &public_path_with_scheme)
     } else {

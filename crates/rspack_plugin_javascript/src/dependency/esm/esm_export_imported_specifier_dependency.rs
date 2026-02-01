@@ -1566,7 +1566,7 @@ impl DependencyTemplate for ESMExportImportedSpecifierDependencyTemplate {
     if let Some(scope) = concatenation_scope {
       if let ExportMode::ReexportUndefined(mode) = mode {
         scope.register_raw_export(
-          mode.name.clone(),
+          mode.name,
           String::from("/* reexport non-default export from non-ESM */ undefined"),
         );
       };
