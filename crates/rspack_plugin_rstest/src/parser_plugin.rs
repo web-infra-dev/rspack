@@ -15,7 +15,7 @@ use rspack_plugin_javascript::{
 use rspack_util::{SpanExt, atom::Atom, json_stringify, swc::get_swc_comments};
 use swc_core::{
   common::{Span, Spanned},
-  ecma::ast::{CallExpr, Ident, MemberExpr, UnaryExpr},
+  ecma::ast::{CallExpr, Callee, Ident, MemberExpr, UnaryExpr},
 };
 
 static RSTEST_MOCK_FIRST_ARG_TAG: &str = "strip the import call from the first arg of mock series";
@@ -705,21 +705,31 @@ impl JavascriptParserPlugin for RstestParserPlugin {
     &self,
     parser: &mut JavascriptParser,
     call_expr: &CallExpr,
-    for_name: &str,
+    _for_name: &str,
     members: &[Atom],
     _members_optionals: &[bool],
     _member_ranges: &[Span],
   ) -> Option<bool> {
-    // Handle rs.requireActual and rs.importActual calls in any context
-    if (for_name == "rs" || for_name == "rstest") && members.len() == 1 {
-      match members[0].as_str() {
-        "requireActual" => {
-          return self.process_require_actual(parser, call_expr);
+    // Handle rs.requireActual and rs.importActual calls
+    // Extract the variable name from call_expr.callee to handle both:
+    // 1. Global variables: rs.importActual() or rstest.importActual()
+    // 2. ESM imports: import { rs } from '@rstest/core'; rs.importActual()
+    if members.len() == 1
+      && let Callee::Expr(callee) = &call_expr.callee
+      && let Some(member_expr) = callee.as_member()
+      && let Some(ident) = member_expr.obj.as_ident()
+    {
+      let var_name = ident.sym.as_str();
+      if var_name == "rs" || var_name == "rstest" {
+        match members[0].as_str() {
+          "requireActual" => {
+            return self.process_require_actual(parser, call_expr);
+          }
+          "importActual" => {
+            return self.process_import_actual(parser, call_expr);
+          }
+          _ => {}
         }
-        "importActual" => {
-          return self.process_import_actual(parser, call_expr);
-        }
-        _ => {}
       }
     }
     None
