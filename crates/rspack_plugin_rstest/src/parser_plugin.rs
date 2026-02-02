@@ -568,6 +568,14 @@ impl RstestParserPlugin {
     prop: &swc_core::ecma::ast::IdentName,
     statement_span: Option<Span>,
   ) -> Option<bool> {
+    // Check if this is a global variable (free variable) or an ESM import
+    let is_global = !parser.is_variable_defined(&ident.sym);
+    
+    // Skip global variables if globals option is disabled
+    if is_global && !self.globals {
+      return None;
+    }
+
     match (ident.sym.as_str(), prop.sym.as_str()) {
       // rs.mock
       ("rs" | "rstest", "mock") => {
