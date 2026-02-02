@@ -278,6 +278,7 @@ async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<
     module_graph,
     chunk_graph,
     &compilation.options.context,
+    &compilation,
   ));
 
   {
@@ -439,147 +440,19 @@ async fn after_code_generation(
     compilation,
   );
 
-  // 1. Collect Module Graph (Moved from optimize_chunk_modules)
-  if self.has_module_graph_feature(RsdoctorPluginModuleGraphFeature::ModuleGraph) {
-    let mut rsd_modules = HashMap::default();
-    let mut rsd_dependencies = HashMap::default();
-
-    let chunk_graph = &compilation.chunk_graph;
-    let chunk_by_ukey = &compilation.chunk_by_ukey;
-
-    // 1.1 collect modules
-    rsd_modules.extend(collect_modules(
-      &modules,
-      &module_graph,
-      chunk_graph,
-      &compilation.options.context,
-      compilation,
-    ));
-
+  tokio::spawn(async move {
+    match hooks
+      .borrow()
+      .module_sources
+      .call(&mut RsdoctorModuleSourcesPatch {
+        module_original_sources: rsd_module_original_sources,
+      })
+      .await
     {
-      let mut module_ukey_map = MODULE_UKEY_MAP
-        .get_mut(&compilation.id())
-        .expect("should have module ukey map");
-      for (module_id, module) in rsd_modules.iter() {
-        module_ukey_map.insert(*module_id, module.ukey);
-      }
-    }
-
-    let module_ukey_map = MODULE_UKEY_MAP
-      .get(&compilation.id())
-      .expect("should have module ukey map");
-    // 1.2 collect concatenate children
-    let (child_map, parent_map) = collect_concatenated_modules(&modules);
-    for (module_id, children) in child_map {
-      if let Some(rsd_module) = rsd_modules.get_mut(&module_id) {
-        rsd_module.modules.extend(
-          children
-            .iter()
-            .filter_map(|i| module_ukey_map.get(i).copied())
-            .collect::<HashSet<_>>(),
-        );
-      }
-    }
-
-    // 1.3 collect concatenate parents
-    for (module_id, parents) in parent_map {
-      if let Some(rsd_module) = rsd_modules.get_mut(&module_id) {
-        rsd_module.belong_modules.extend(
-          parents
-            .iter()
-            .filter_map(|i| module_ukey_map.get(i).copied())
-            .collect::<HashSet<_>>(),
-        );
-      }
-    }
-
-    // 1.4 collect module dependencies
-    let dependency_infos = collect_module_dependencies(&modules, &module_ukey_map, &module_graph);
-    for (origin_module_id, dependencies) in dependency_infos {
-      for (dep_module_id, (dep_id, dependency)) in dependencies {
-        if let Some(rsd_module) = rsd_modules.get_mut(&dep_module_id) {
-          rsd_module.imported.insert(dependency.module);
-        }
-        if let Some(rsd_module) = rsd_modules.get_mut(&origin_module_id) {
-          rsd_module.dependencies.insert(dependency.ukey);
-        }
-        rsd_dependencies.insert(dep_id, dependency);
-      }
-    }
-
-    // 1.5 Rsdoctor module add issuer_path
-    for (module_id, _) in modules.iter() {
-      let mut issuer_path = Vec::new();
-      let mut current_issuer = module_graph.get_issuer(module_id);
-
-      while let Some(i) = current_issuer {
-        if let Some(rsd_module) = rsd_modules.get_mut(&i.identifier()) {
-          let module_ukey = rsd_module.ukey;
-
-          issuer_path.push(RsdoctorStatsModuleIssuer {
-            ukey: Some(module_ukey),
-          });
-        }
-
-        current_issuer = module_graph.get_issuer(&i.identifier());
-      }
-
-      if let Some(rsd_module) = rsd_modules.get_mut(module_id) {
-        rsd_module.issuer_path = Some(issuer_path);
-        let bailout_reason = module_graph.get_optimization_bailout(module_id);
-        rsd_module.bailout_reason = bailout_reason.iter().map(|s| s.to_string()).collect();
-      }
-    }
-
-    // 1.6 collect chunk modules
-    let chunk_modules =
-      collect_chunk_modules(chunk_by_ukey, &module_ukey_map, chunk_graph, &module_graph);
-
-    let module_graph_hook = hooks.clone();
-    tokio::spawn(async move {
-      match module_graph_hook
-        .borrow()
-        .module_graph
-        .call(&mut RsdoctorModuleGraph {
-          modules: rsd_modules.into_values().collect::<Vec<_>>(),
-          dependencies: rsd_dependencies.into_values().collect::<Vec<_>>(),
-          chunk_modules,
-        })
-        .await
-      {
-        Ok(_) => {}
-        Err(e) => panic!("rsdoctor send module graph failed: {e}"),
-      };
-    });
-  }
-
-  // 2. Collect Module Sources
-  if self.has_module_graph_feature(RsdoctorPluginModuleGraphFeature::ModuleSources) {
-    let rsd_module_original_sources = collect_module_original_sources(
-      &modules,
-      &MODULE_UKEY_MAP
-        .get(&compilation.id())
-        .expect("should have module ukey map"),
-      &module_graph,
-      compilation,
-    );
-
-    let module_sources_hook = hooks.clone();
-    tokio::spawn(async move {
-      match module_sources_hook
-        .borrow()
-        .module_sources
-        .call(&mut RsdoctorModuleSourcesPatch {
-          module_original_sources: rsd_module_original_sources,
-        })
-        .await
-      {
-        Ok(_) => {}
-        Err(e) => panic!("rsdoctor send module sources failed: {e}"),
-      };
-    });
-  }
-
+      Ok(_) => {}
+      Err(e) => panic!("rsdoctor send module sources failed: {e}"),
+    };
+  });
   Ok(())
 }
 
