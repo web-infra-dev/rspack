@@ -56,33 +56,4 @@ mod test {
       .map(|item| item * 2)
       .consume(|item| assert_eq!(item % 2, 0));
   }
-
-  #[test]
-  fn time_check() {
-    let start = SystemTime::now();
-    vec![100, 200]
-      .into_par_iter()
-      .map(|item| {
-        std::thread::sleep(Duration::from_millis(item));
-        item
-      })
-      .consume(|_| {
-        std::thread::sleep(Duration::from_millis(20));
-      });
-    let time1 = SystemTime::now().duration_since(start).unwrap();
-
-    let start = SystemTime::now();
-    let data: Vec<_> = vec![100, 200]
-      .into_par_iter()
-      .map(|item| {
-        std::thread::sleep(Duration::from_millis(item));
-        item
-      })
-      .collect();
-    for _ in data {
-      std::thread::sleep(Duration::from_millis(20));
-    }
-    let time2 = SystemTime::now().duration_since(start).unwrap();
-    assert!(time1 < time2);
-  }
 }

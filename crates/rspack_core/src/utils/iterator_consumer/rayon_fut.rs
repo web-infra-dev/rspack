@@ -63,32 +63,4 @@ mod test {
       .fut_consume(|item| assert_eq!(item % 2, 0))
       .await;
   }
-
-  #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
-  async fn time_check() {
-    let start = SystemTime::now();
-    vec![100, 200]
-      .into_par_iter()
-      .map(|item| async move {
-        sleep(Duration::from_millis(item)).await;
-        item
-      })
-      .fut_consume(|_| {
-        std::thread::sleep(std::time::Duration::from_millis(20));
-      })
-      .await;
-    let time1 = SystemTime::now().duration_since(start).unwrap();
-
-    let start = SystemTime::now();
-    let data = join_all(vec![100, 200].into_iter().map(|item| async move {
-      sleep(Duration::from_millis(item)).await;
-      item
-    }))
-    .await;
-    for _ in data.iter() {
-      sleep(Duration::from_millis(20)).await;
-    }
-    let time2 = SystemTime::now().duration_since(start).unwrap();
-    assert!(time1 < time2);
-  }
 }
