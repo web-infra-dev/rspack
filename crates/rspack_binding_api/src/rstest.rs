@@ -17,9 +17,6 @@ pub struct RawRstestPluginOptions {
   // This allows rstest to dynamically load modules (e.g., wasm) at runtime.
   // Example: [".wasm"] to preserve wasm URL expressions.
   pub preserve_new_url: Option<Vec<String>>,
-  // Whether to handle global `rs` and `rstest` variables.
-  // When false, only ESM imported variables are processed. Default is true.
-  pub globals: Option<bool>,
 }
 
 impl From<RawRstestPluginOptions> for RstestPluginOptions {
@@ -30,7 +27,6 @@ impl From<RawRstestPluginOptions> for RstestPluginOptions {
       import_meta_path_name: value.import_meta_path_name,
       manual_mock_root: value.manual_mock_root,
       preserve_new_url: value.preserve_new_url.unwrap_or_default(),
-      globals: value.globals.unwrap_or(true),
     }
   }
 }
