@@ -135,13 +135,13 @@ rkyv      = { version = "=0.8.8", default-features = false, features = ["std", "
 
 # Must be pinned with the same swc versions
 pnp                 = { version = "0.12.8", default-features = false }
-swc                 = { version = "53.0.0", default-features = false }
+swc                 = { version = "54.0.0", default-features = false }
 swc_config          = { version = "3.1.2", default-features = false }
-swc_core            = { version = "55.0.0", default-features = false, features = ["parallel_rayon"] }
-swc_ecma_minifier   = { version = "43.0.0", default-features = false }
+swc_core            = { version = "56.0.0", default-features = false, features = ["parallel_rayon"] }
+swc_ecma_minifier   = { version = "44.0.0", default-features = false }
 swc_error_reporters = { version = "20.0.0", default-features = false }
 swc_html            = { version = "30.0.0", default-features = false }
-swc_html_minifier   = { version = "43.0.0", default-features = false }
+swc_html_minifier   = { version = "44.0.0", default-features = false }
 swc_node_comments   = { version = "18.0.0", default-features = false }
 swc_plugin_runner   = { version = "24.0.0", default-features = false }
 
@@ -509,7 +509,7 @@ verbose_file_reads              = "warn"
 #mem_forget                      = "warn"
 
 # performance
-redundant_clone                 = "warn"
+redundant_clone = "warn"
 
 [patch.crates-io]
 simd-adler32 = { git = "https://github.com/mcountryman/simd-adler32.git", rev = "b279034d9eb554c3e5e0af523db044f08d8297ba" }
