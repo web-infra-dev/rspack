@@ -446,7 +446,7 @@ const getNormalizedIncrementalOptions = (
       buildModuleGraph: true,
       finishModules: false,
       optimizeDependencies: false,
-      buildChunkGraph: false,
+      buildChunkGraph: true,
       moduleIds: false,
       chunkIds: false,
       modulesHashes: false,
