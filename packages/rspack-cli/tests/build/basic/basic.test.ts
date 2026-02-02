@@ -3,7 +3,7 @@ import { readFile, run, runWatch } from '../../utils/test-utils';
 
 describe('build command', () => {
   it.concurrent('it should work ', async () => {
-    const { exitCode, stderr, stdout } = await run(__dirname, []);
+    const { exitCode, stderr, stdout } = await run(__dirname, [], false);
     expect(exitCode).toBe(0);
     expect(stderr).toBeFalsy();
     expect(stdout).toBeTruthy();
@@ -11,10 +11,11 @@ describe('build command', () => {
   it.concurrent(
     'should work without command and options (default command)',
     async () => {
-      const { exitCode, stderr, stdout } = await run(__dirname, [
-        '--mode',
-        'development',
-      ]);
+      const { exitCode, stderr, stdout } = await run(
+        __dirname,
+        ['--mode', 'development'],
+        false,
+      );
 
       expect(exitCode).toBe(0);
       expect(stderr).toBeFalsy();
@@ -22,10 +23,11 @@ describe('build command', () => {
     },
   );
   it.concurrent('should work with configuration return function', async () => {
-    const { exitCode, stderr, stdout } = await run(__dirname, [
-      '--config',
-      './entry.function.js',
-    ]);
+    const { exitCode, stderr, stdout } = await run(
+      __dirname,
+      ['--config', './entry.function.js'],
+      false,
+    );
     expect(exitCode).toBe(0);
     expect(stderr).toBeFalsy();
     expect(stdout).toBeTruthy();
@@ -33,7 +35,11 @@ describe('build command', () => {
   it.concurrent(
     'should pass env.RSPACK_BUILD and env.RSPACK_BUNDLE for function configuration on build mode',
     async () => {
-      const { stdout } = await run(__dirname, ['--config', './entry.env.js']);
+      const { stdout } = await run(
+        __dirname,
+        ['--config', './entry.env.js'],
+        false,
+      );
       expect(stdout).toContain('RSPACK_BUILD=true');
       expect(stdout).toContain('RSPACK_BUNDLE=true');
       expect(stdout).not.toContain('RSPACK_WATCH=true');
@@ -57,32 +63,38 @@ describe('build command', () => {
     },
   );
   it.concurrent('should work with configuration return promise', async () => {
-    const { exitCode, stderr, stdout } = await run(__dirname, [
-      '--config',
-      './entry.promise.js',
-    ]);
+    const { exitCode, stderr, stdout } = await run(
+      __dirname,
+      ['--config', './entry.promise.js'],
+      false,
+    );
     expect(exitCode).toBe(0);
     expect(stderr).toBeFalsy();
     expect(stdout).toBeTruthy();
   });
   it.concurrent('should work with mjs configuration ', async () => {
-    const { exitCode, stderr, stdout } = await run(__dirname, [
-      '--config',
-      './entry.config.mjs',
-    ]);
+    const { exitCode, stderr, stdout } = await run(
+      __dirname,
+      ['--config', './entry.config.mjs'],
+      false,
+    );
     expect(exitCode).toBe(0);
     expect(stderr).toBeFalsy();
     expect(stdout).toBeTruthy();
   });
   it('entry option should have higher priority than config', async () => {
-    const { exitCode, stderr, stdout } = await run(__dirname, [
-      '--entry',
-      './src/other.js',
-      '--config',
-      './entry.config.js',
-      '--output-path',
-      'dist/priority',
-    ]);
+    const { exitCode, stderr, stdout } = await run(
+      __dirname,
+      [
+        '--entry',
+        './src/other.js',
+        '--config',
+        './entry.config.js',
+        '--output-path',
+        'dist/priority',
+      ],
+      false,
+    );
     const mainJs = await readFile(
       resolve(__dirname, 'dist/priority/main.js'),
       'utf-8',
@@ -98,12 +110,11 @@ describe('build command', () => {
   it.each(['-o', '--output-path', '--outputPath'])(
     'output-path option %s should have higher priority than config',
     async (command) => {
-      const { exitCode, stderr, stdout } = await run(__dirname, [
-        command,
-        'dist/public',
-        '--config',
-        './entry.config.js',
-      ]);
+      const { exitCode, stderr, stdout } = await run(
+        __dirname,
+        [command, 'dist/public', '--config', './entry.config.js'],
+        false,
+      );
       const mainJs = await readFile(
         resolve(__dirname, 'dist/public/main.js'),
         'utf-8',
@@ -126,15 +137,14 @@ describe('build command', () => {
   ])(
     'devtool option %s should have higher priority than config',
     async (command, option) => {
-      const { exitCode, stderr, stdout } = await run(__dirname, [
-        command,
-        option,
-        '--config',
-        './entry.config.js',
-      ]);
+      const { exitCode, stderr, stdout } = await run(
+        __dirname,
+        [command, option, '--config', './entry.config.js'],
+        false,
+      );
 
       const mainJs = await readFile(
-        resolve(__dirname, 'dist/public/main.js'),
+        resolve(__dirname, 'dist/main.js'),
         'utf-8',
       );
 

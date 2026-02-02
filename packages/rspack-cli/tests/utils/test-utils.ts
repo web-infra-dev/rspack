@@ -84,8 +84,30 @@ const createProcess = (cwd, args, options, env) => {
  * @param {Object<string, any>} options Options for tests
  * @returns {Promise}
  */
-const run = async (cwd, args: string[] = [], options = {}, env = {}) => {
-  return createProcess(cwd, args, options, env);
+const run = async (
+  cwd,
+  args: string[] = [],
+  options = {},
+  env = {},
+  ignoreKilled = true,
+) => {
+  const result = await createProcess(cwd, args, options, env);
+
+  if (!ignoreKilled && result.exitCode === undefined && result.signal) {
+    console.error('🔍 DIAGNOSIS: Process was killed by signal', args.join(' '));
+
+    if (result.stdout) {
+      console.error('STDOUT:');
+      console.error(result.stdout);
+    }
+
+    if (result.stderr) {
+      console.error('STDERR');
+      console.error(result.stderr);
+    }
+  }
+
+  return result;
 };
 
 /**
