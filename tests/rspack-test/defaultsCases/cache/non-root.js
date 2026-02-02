@@ -17,6 +17,7 @@ module.exports = {
 			-   "cache": false,
 			+   "cache": Object {
 			+     "buildDependencies": Array [],
+			+     "portable": undefined,
 			+     "snapshot": Object {
 			+       "immutablePaths": Array [],
 			+       "managedPaths": Array [
@@ -31,8 +32,5 @@ module.exports = {
 			+     "type": "persistent",
 			+     "version": "",
 			+   },
-			@@ ... @@
-			-     "unsafeCache": false,
-			+     "unsafeCache": /[\\\\/]node_modules[\\\\/]/,
 		`)
 };

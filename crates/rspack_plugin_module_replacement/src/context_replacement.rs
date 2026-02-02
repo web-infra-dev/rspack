@@ -110,7 +110,7 @@ async fn cmf_after_resolve(&self, mut result: AfterResolveResult) -> Result<Afte
               ContextElementDependency {
                 id: DependencyId::new(),
                 request,
-                user_request: key.to_string(),
+                user_request: key.clone(),
                 category: options.context_options.category,
                 context: options.resource.clone().into(),
                 layer: options.layer.clone(),

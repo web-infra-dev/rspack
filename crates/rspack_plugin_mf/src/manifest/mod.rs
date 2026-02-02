@@ -88,11 +88,7 @@ fn get_remote_entry_name(compilation: &Compilation, container_name: &str) -> Opt
 #[plugin_hook(CompilationProcessAssets for ModuleFederationManifestPlugin, stage = 0)]
 async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   // Prepare entrypoint names
-  let entry_point_names: HashSet<String> = compilation
-    .entrypoints
-    .keys()
-    .map(|k| k.to_string())
-    .collect();
+  let entry_point_names: HashSet<String> = compilation.entrypoints.keys().cloned().collect();
 
   // Build metaData
   let container_name = self
@@ -140,8 +136,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         .output
         .library
         .as_ref()
-        .map(|l| l.library_type.clone())
-        .unwrap_or_else(|| "global".to_string()),
+        .map_or_else(|| "global".to_string(), |l| l.library_type.clone()),
     },
     r#type: None,
   };
@@ -204,13 +199,12 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     let should_collect_module = |module_id: &ModuleIdentifier| -> bool {
       module_graph
         .module_by_identifier(module_id)
-        .map(|module| {
+        .is_some_and(|module| {
           !matches!(
             module.module_type(),
             ModuleType::ProvideShared | ModuleType::ConsumeShared | ModuleType::Runtime
           )
         })
-        .unwrap_or(false)
     };
 
     let mut exposes_map: HashMap<String, StatsExpose> = HashMap::default();
@@ -221,7 +215,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     let mut module_ids_by_name: HashMap<String, ModuleIdentifier> = HashMap::default();
     let mut remote_module_ids: Vec<ModuleIdentifier> = Vec::new();
     let mut container_entry_module: Option<ModuleIdentifier> = None;
-    for (_, module) in module_graph.modules().into_iter() {
+    for (_, module) in module_graph.modules() {
       let module_identifier = module.identifier();
       if let Some(path) = module_source_path(module, compilation) {
         let stripped = strip_ext(&path);
@@ -231,7 +225,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
             .or_insert(module_identifier);
           if !stripped.starts_with("./") {
             module_ids_by_name
-              .entry(format!("./{}", stripped))
+              .entry(format!("./{stripped}"))
               .or_insert(module_identifier);
           }
           if let Some(file_name) = Path::new(&stripped).file_name().and_then(|f| f.to_str()) {
@@ -241,7 +235,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
             let file_base = strip_ext(file_name);
             if !file_base.is_empty() {
               module_ids_by_name
-                .entry(file_base.to_string())
+                .entry(file_base.clone())
                 .or_insert(module_identifier);
             }
           }
@@ -589,7 +583,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let stats_root = StatsRoot {
     id: container_name.clone(),
     name: container_name.clone(),
-    metaData: meta.clone(),
+    metaData: meta,
     shared,
     remotes: remote_list.clone(),
     exposes: exposes.clone(),

@@ -87,7 +87,7 @@ async fn chunk_ids(
       chunk_names
         .get(&chunk.ukey())
         .expect("should have generated full chunk name")
-        .to_string()
+        .clone()
     },
     |a, b| {
       compare_chunks_natural(
@@ -115,10 +115,10 @@ async fn chunk_ids(
     salt,
   );
 
-  chunk_key_to_id.into_iter().for_each(|(chunk_ukey, id)| {
+  for (chunk_ukey, id) in chunk_key_to_id {
     let chunk = chunk_by_ukey.expect_get_mut(&chunk_ukey);
     chunk.set_id(id.to_string());
-  });
+  }
 
   Ok(())
 }

@@ -3,7 +3,7 @@ orphan modules xx bytes [orphan] 2 modules
 runtime modules xx bytes 1 module
 ./index.js + 1 modules xx bytes [code generated]
 
-WARNING in ./index.js 3:13-14
+WARNING in ./index.js 3:13-15
   ⚠ ESModulesLinkingWarning: export 'bb' (imported as 'bb') was not found in './a' (possible exports: a)
    ╭─[3:12]
  1 │ import { bb } from "./a";

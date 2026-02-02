@@ -3,7 +3,7 @@ use std::borrow::Cow;
 use rspack_core::{
   AsyncDependenciesBlock, ChunkGroupOptions, ContextDependency, ContextNameSpaceObject,
   ContextOptions, DependencyCategory, DependencyRange, DependencyType, DynamicImportFetchPriority,
-  DynamicImportMode, GroupOptions, ImportAttributes, SharedSourceMap,
+  DynamicImportMode, GroupOptions, ImportAttributes, ImportPhase,
 };
 use rspack_error::{Error, Severity};
 use rspack_util::{SpanExt, swc::get_swc_comments};
@@ -264,10 +264,10 @@ impl JavascriptParserPlugin for ImportParserPlugin {
       return None;
     }
 
-    let mode = magic_comment_options
-      .get_mode()
-      .map(|x| DynamicImportMode::from(x.as_str()))
-      .unwrap_or(dynamic_import_mode.expect("should have dynamic_import_mode"));
+    let mode = magic_comment_options.get_mode().map_or(
+      dynamic_import_mode.expect("should have dynamic_import_mode"),
+      |x| DynamicImportMode::from(x.as_str()),
+    );
     let chunk_name = magic_comment_options.get_chunk_name().map(|x| x.to_owned());
     let chunk_prefetch = magic_comment_options
       .get_prefetch()
@@ -313,12 +313,22 @@ impl JavascriptParserPlugin for ImportParserPlugin {
       let mut error: Error = create_traceable_error(
         "Useless magic comments".into(),
         "You don't need `webpackExports` if the usage of dynamic import is statically analyse-able. You can safely remove the `webpackExports` magic comment.".into(),
-        parser.source.to_owned(),
+        parser.source.to_string(),
         import_call_span.into(),
       );
       error.severity = Severity::Warning;
       error.hide_stack = Some(true);
       parser.add_warning(error.into());
+    }
+
+    let phase: ImportPhase = node
+      .callee
+      .as_import()
+      .expect("should be import")
+      .phase
+      .into();
+    if phase.is_defer() && !parser.compiler_options.experiments.defer_import {
+      parser.add_error(rspack_error::error!("deferImport is still an experimental feature. To continue using it, please enable 'experiments.deferImport'.").into());
     }
 
     let attributes = get_attributes_from_call_expr(node);
@@ -331,6 +341,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
           import_call_span.into(),
           exports,
           attributes,
+          phase,
         );
         let dep_idx = parser.next_dependency_idx();
         parser.add_dependency(Box::new(dep));
@@ -345,6 +356,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
           import_call_span.into(),
           exports,
           attributes,
+          phase,
           parser.in_try,
           get_swc_comments(
             parser.comments,
@@ -352,10 +364,9 @@ impl JavascriptParserPlugin for ImportParserPlugin {
             dyn_imported.span().hi,
           ),
         ));
-        let source_map: SharedSourceMap = parser.source_rope().clone();
         let mut block = AsyncDependenciesBlock::new(
           *parser.module_identifier,
-          Into::<DependencyRange>::into(import_call_span).to_loc(Some(&source_map)),
+          Into::<DependencyRange>::into(import_call_span).to_loc(Some(parser.source())),
           None,
           vec![dep],
           Some(param.string().clone()),
@@ -379,6 +390,10 @@ impl JavascriptParserPlugin for ImportParserPlugin {
         return None;
       }
 
+      if phase.is_defer() {
+        parser.add_error(rspack_error::error!("import.defer() is not yet supported for ContextModule (the import path is a dynamic expression).").into());
+      }
+
       let ContextModuleScanResult {
         context,
         reg,
@@ -397,7 +412,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
           include,
           exclude,
           category: DependencyCategory::Esm,
-          request: format!("{}{}{}", context.clone(), query, fragment),
+          request: format!("{context}{query}{fragment}"),
           context,
           namespace_object: if parser.build_meta.strict_esm_module {
             ContextNameSpaceObject::Strict

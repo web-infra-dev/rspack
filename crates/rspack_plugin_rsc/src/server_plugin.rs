@@ -195,7 +195,7 @@ impl RscServerPlugin {
 
     for (entry_name, entry_data) in &compilation.entries {
       let runtime = get_entry_runtime(entry_name, &entry_data.options, &compilation.entries);
-      runtime_per_entry.insert(entry_name.to_string(), runtime.clone());
+      runtime_per_entry.insert(entry_name.clone(), runtime.clone());
 
       let mut action_entry_imports: FxHashMap<String, Vec<ActionIdNamePair>> = Default::default();
       let mut client_entries_to_inject = Vec::new();
@@ -208,7 +208,7 @@ impl RscServerPlugin {
       }
       if !component_info.client_component_imports.is_empty() {
         client_entries_to_inject.push(ClientEntry {
-          entry_name: entry_name.to_string(),
+          entry_name: entry_name.clone(),
           runtime: runtime.clone(),
           client_imports: component_info.client_component_imports,
           css_imports: component_info.css_imports,
@@ -220,7 +220,7 @@ impl RscServerPlugin {
         let plugin_state = plugin_states.entry(compilation.compiler_id()).or_default();
 
         for client_entry_to_inject in client_entries_to_inject {
-          let entry_name = client_entry_to_inject.entry_name.to_string();
+          let entry_name = client_entry_to_inject.entry_name.clone();
           let Some(injected) = self
             .inject_client_entry_and_ssr_modules(
               compilation,
@@ -245,7 +245,7 @@ impl RscServerPlugin {
 
       if !action_entry_imports.is_empty() {
         server_actions_per_entry
-          .entry(entry_name.to_string())
+          .entry(entry_name.clone())
           .or_default()
           .extend(action_entry_imports);
       }
@@ -272,6 +272,11 @@ impl RscServerPlugin {
     let included_dependencies: Vec<(DependencyId, RuntimeSpec)> = add_ssr_modules_list
       .iter()
       .map(|injected| (*injected.add_entry.0.id(), injected.runtime.clone()))
+      .chain(
+        add_action_entry_list
+          .iter()
+          .map(|injected| (*injected.add_entry.0.id(), injected.runtime.clone())),
+      )
       .collect();
     let add_include_args: Vec<(BoxDependency, EntryOptions)> = add_ssr_modules_list
       .into_iter()
@@ -449,14 +454,14 @@ impl RscServerPlugin {
     // Inject the entry to the client compiler.
     plugin_state
       .injected_client_entries
-      .insert(entry_name.to_string(), client_browser_loader);
+      .insert(entry_name.clone(), client_browser_loader);
 
     if !should_inject_ssr_modules {
       return None;
     }
 
     let ssr_entry_dependency = EntryDependency::new(
-      client_server_loader.to_string(),
+      client_server_loader,
       compilation.options.context.clone(),
       Some(LAYERS_NAMES.server_side_rendering.to_string()),
       false,
@@ -467,7 +472,7 @@ impl RscServerPlugin {
       add_entry: (
         Box::new(ssr_entry_dependency),
         EntryOptions {
-          name: Some(entry_name.to_string()),
+          name: Some(entry_name),
           ..Default::default()
         },
       ),
@@ -494,7 +499,7 @@ impl RscServerPlugin {
 
     for actions_from_module in actions.values() {
       for (id, _) in actions_from_module {
-        created_action_ids.insert(format!("{}@{}", entry_name, id));
+        created_action_ids.insert(format!("{entry_name}@{id}"));
       }
     }
 
@@ -513,7 +518,7 @@ impl RscServerPlugin {
     let action_entry_dep = EntryDependency::new(
       action_entry_loader,
       compilation.options.context.clone(),
-      Some(layer.to_string()),
+      Some(layer.clone()),
       false,
     );
 
@@ -522,7 +527,7 @@ impl RscServerPlugin {
       add_entry: (
         Box::new(action_entry_dep),
         EntryOptions {
-          name: Some(entry_name.to_string()),
+          name: Some(entry_name),
           layer: Some(layer),
           ..Default::default()
         },

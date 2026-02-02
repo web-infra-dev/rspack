@@ -1,0 +1,27 @@
+<%- MAKE_OPTIMIZED_DEFERRED_NAMESPACE_OBJECT %> = function(moduleId, mode, asyncDeps) {
+	// mode: 0 => namespace (esm)
+	// mode: 1 => default-only (esm strict cjs)
+	// mode: 2 => default-with-named (esm-cjs compat)
+	// mode: 3 => dynamic (if exports has __esModule, then esm, otherwise default-with-named)
+	var r = this;
+	<% if (_has_async) { %>
+	var isAsync = asyncDeps && asyncDeps.length;
+	<% } %>
+	var obj = {
+		get a() {
+			var exports = r(moduleId);
+			<% if (_has_async) { %>
+			if (isAsync) exports = exports[<%- ASYNC_MODULE_EXPORT_SYMBOL %>];
+			<% } %>
+			// if exportsType is "namespace" we can generate the most optimized code,
+			// on the second access, we can avoid trigger the getter.
+			// we can also do this if exportsType is "dynamic" and there is a "__esModule" property on it.
+			if (mode == 0 || (mode == 3 && exports.__esModule)) Object.defineProperty(this, "a", { value: exports });
+			return exports;
+		}
+	};
+	<% if (_has_async) { %>
+	if(isAsync) obj[<%- DEFERRED_MODULES_ASYNC_TRANSITIVE_DEPENDENCIES_SYMBOL %>] = asyncDeps;
+	<% } %>
+	return obj;
+};

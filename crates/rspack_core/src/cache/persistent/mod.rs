@@ -40,6 +40,7 @@ pub struct PersistentCacheOptions {
   pub version: String,
   pub snapshot: SnapshotOptions,
   pub storage: StorageOptions,
+  pub portable: bool,
 }
 
 /// Persistent cache implementation
@@ -65,7 +66,12 @@ impl PersistentCache {
     intermediate_filesystem: Arc<dyn IntermediateFileSystem>,
   ) -> Self {
     let async_mode = compiler_options.mode.is_development();
-    let codec = Arc::new(CacheCodec::new(None));
+    let project_root = if option.portable {
+      Some(compiler_options.context.as_path().to_path_buf())
+    } else {
+      None
+    };
+    let codec = Arc::new(CacheCodec::new(project_root));
     // use codec.encode to transform the absolute path in option,
     // it will ensure that same project in different directory have the same version.
     let option_bytes = codec

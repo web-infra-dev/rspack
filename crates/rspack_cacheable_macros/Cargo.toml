@@ -20,3 +20,6 @@ syn = { workspace = true, features = [
   "clone-impls",
   "proc-macro",
 ] }
+
+[lints]
+workspace = true

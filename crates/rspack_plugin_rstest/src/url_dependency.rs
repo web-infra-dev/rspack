@@ -8,7 +8,7 @@ use rspack_plugin_javascript::dependency::{URLDependency, URLDependencyTemplate}
 #[cacheable]
 #[derive(Debug, Default)]
 pub struct RstestUrlDependencyTemplate {
-  /// List of extensions to preserve (e.g., [".wasm", ".node"])
+  /// List of extensions to preserve (e.g., `[".wasm", ".node"]`)
   preserve_extensions: Vec<String>,
 }
 

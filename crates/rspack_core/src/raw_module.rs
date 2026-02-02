@@ -12,8 +12,8 @@ use rspack_sources::{BoxSource, OriginalSource, RawStringSource, SourceExt};
 use rspack_util::source_map::{ModuleSourceMapConfig, SourceMapKind};
 
 use crate::{
-  BuildInfo, BuildMeta, CodeGenerationResult, Compilation, ConcatenationScope, ConnectionState,
-  Context, DependenciesBlock, DependencyId, FactoryMeta, Module, ModuleGraph,
+  BuildInfo, BuildMeta, CodeGenerationResult, Compilation, ConnectionState, Context,
+  DependenciesBlock, DependencyId, FactoryMeta, Module, ModuleCodeGenerationContext, ModuleGraph,
   ModuleGraphCacheArtifact, ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
   dependencies_block::AsyncDependenciesBlockIdentifier, impl_module_meta_info, module_update_hash,
 };
@@ -120,12 +120,13 @@ impl Module for RawModule {
   // #[tracing::instrument("RawModule::code_generation", skip_all, fields(identifier = ?self.identifier()))]
   async fn code_generation(
     &self,
-    _compilation: &crate::Compilation,
-    _runtime: Option<&RuntimeSpec>,
-    _: Option<ConcatenationScope>,
+    code_generation_context: &mut ModuleCodeGenerationContext,
   ) -> Result<CodeGenerationResult> {
     let mut cgr = CodeGenerationResult::default();
-    cgr.runtime_requirements.insert(self.runtime_requirements);
+    code_generation_context
+      .runtime_template
+      .runtime_requirements_mut()
+      .insert(self.runtime_requirements);
     if self.get_source_map_kind().enabled() {
       cgr.add(
         SourceType::JavaScript,

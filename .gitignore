@@ -188,3 +188,12 @@ CLAUDE.local.md
 # Demo projects cloned during CI
 rspack-diff-minimal/
 rstack-examples/
+
+
+# ignore known coding agent folders which should link to .agents locally
+.claude
+.cursor
+.continue
+.windsurf
+.aider
+.codex

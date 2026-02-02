@@ -16,7 +16,7 @@ impl JavascriptParserPlugin for HashbangParserPlugin {
     let normalized_hashbang = if hashbang.starts_with("#!") {
       hashbang.to_string()
     } else {
-      format!("#!{}", hashbang)
+      format!("#!{hashbang}")
     };
 
     // Store hashbang in build_info for later use during rendering

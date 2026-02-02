@@ -16,13 +16,12 @@ pub fn get_module_resource<'a>(module: &'a dyn Module) -> Cow<'a, str> {
     let resource_resolved_data = module.resource_resolved_data();
     let mod_path = resource_resolved_data
       .path()
-      .map(|path| path.as_str())
-      .unwrap_or("");
+      .map_or("", |path| path.as_str());
     let mod_query = resource_resolved_data.query().unwrap_or("");
     // We have to always use the resolved request here to make sure the
     // server and client are using the same module path (required by RSC), as
     // the server compiler and client compiler have different resolve configs.
-    Cow::Owned(format!("{}{}", mod_path, mod_query))
+    Cow::Owned(format!("{mod_path}{mod_query}"))
   } else if let Some(module) = module.as_context_module() {
     Cow::Borrowed(module.identifier().as_str())
   } else {

@@ -49,8 +49,8 @@ use rspack_core::{
   ModuleOptions, ModuleRule, ModuleRuleEffect, ModuleType, NodeDirnameOption, NodeFilenameOption,
   NodeGlobalOption, NodeOption, Optimization, OutputOptions, ParseOption, ParserOptions,
   ParserOptionsMap, PathInfo, PublicPath, Resolve, RuleSetCondition, RuleSetLogicalConditions,
-  SideEffectOption, StatsOptions, TrustedTypes, UnsafeCachePredicate, UsedExportsOption,
-  WasmLoading, WasmLoadingType, incremental::IncrementalOptions,
+  SideEffectOption, StatsOptions, TrustedTypes, UsedExportsOption, WasmLoading, WasmLoadingType,
+  incremental::IncrementalOptions,
 };
 use rspack_error::{Error, Result};
 use rspack_fs::{IntermediateFileSystem, ReadableFileSystem, WritableFileSystem};
@@ -1001,14 +1001,12 @@ impl CompilerOptionsBuilder {
         filename: (!inline).then_some(output.source_map_filename.as_str().to_string()),
         module_filename_template: output_builder
           .devtool_module_filename_template
-          .map(|t| rspack_plugin_devtool::ModuleFilenameTemplate::String(t.as_str().to_string()))
-          .clone(),
+          .map(|t| rspack_plugin_devtool::ModuleFilenameTemplate::String(t.as_str().to_string())),
         append: hidden.then_some(rspack_plugin_devtool::Append::Disabled),
         columns: !cheap,
         fallback_module_filename_template: output_builder
           .devtool_fallback_module_filename_template
-          .map(|t| rspack_plugin_devtool::ModuleFilenameTemplate::String(t.as_str().to_string()))
-          .clone(),
+          .map(|t| rspack_plugin_devtool::ModuleFilenameTemplate::String(t.as_str().to_string())),
         module: if module_maps { true } else { !cheap },
         namespace: output_builder.devtool_namespace.clone(),
         no_sources,
@@ -1035,8 +1033,7 @@ impl CompilerOptionsBuilder {
       let options = rspack_plugin_devtool::EvalDevToolModulePluginOptions {
         module_filename_template: output_builder
           .devtool_module_filename_template
-          .map(|t| rspack_plugin_devtool::ModuleFilenameTemplate::String(t.as_str().to_string()))
-          .clone(),
+          .map(|t| rspack_plugin_devtool::ModuleFilenameTemplate::String(t.as_str().to_string())),
         namespace: output_builder.devtool_namespace.clone(),
         source_url_comment: None,
       };
@@ -1605,8 +1602,6 @@ pub struct ModuleOptionsBuilder {
   generator: Option<GeneratorOptionsMap>,
   /// Keep module mechanism of the matched modules as-is, such as module.exports, require, import.
   no_parse: Option<ModuleNoParseRules>,
-  #[debug(skip)]
-  unsafe_cache: Option<UnsafeCachePredicate>,
 }
 
 impl From<ModuleOptions> for ModuleOptionsBuilder {
@@ -1616,7 +1611,6 @@ impl From<ModuleOptions> for ModuleOptionsBuilder {
       parser: value.parser,
       generator: value.generator,
       no_parse: value.no_parse,
-      unsafe_cache: value.unsafe_cache,
     }
   }
 }
@@ -1628,7 +1622,6 @@ impl From<&mut ModuleOptionsBuilder> for ModuleOptionsBuilder {
       parser: value.parser.take(),
       generator: value.generator.take(),
       no_parse: value.no_parse.take(),
-      unsafe_cache: value.unsafe_cache.take(),
     }
   }
 }
@@ -1756,7 +1749,7 @@ impl ModuleOptionsBuilder {
         named_exports: Some(true),
         url: Some(true),
       });
-      parser.insert("css".to_string(), css_parser_options.clone());
+      parser.insert("css".to_string(), css_parser_options);
 
       let css_auto_parser_options = ParserOptions::CssAuto(CssAutoParserOptions {
         named_exports: Some(true),
@@ -1819,7 +1812,6 @@ impl ModuleOptionsBuilder {
       parser: self.parser.take(),
       generator: self.generator.take(),
       no_parse: self.no_parse.take(),
-      unsafe_cache: self.unsafe_cache.take(),
     })
   }
 }

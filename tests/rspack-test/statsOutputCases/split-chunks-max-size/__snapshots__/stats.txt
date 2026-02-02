@@ -277,20 +277,20 @@ zero-min:
 max-async-size:
   Entrypoint main xx KiB = max-async-size-main.js
   chunk (runtime: main) max-async-size-async-b~77b81ee8.js (async-b~77b81ee8) xx KiB <{889}> ={440}= ={627}= ={755}= [rendered]
-    > ./b ./async/index.js 10:3-49
-    > ./a ./async/index.js 9:3-49
+    > ./b ./async/index.js 10:3-50
+    > ./a ./async/index.js 9:3-50
     ./very-big.js?3 xx KiB [built] [code generated]
   chunk (runtime: main) max-async-size-async-b~131c667d.js (async-b~131c667d) xx KiB <{889}> ={284}= ={627}= ={755}= [rendered]
-    > ./b ./async/index.js 10:3-49
-    > ./a ./async/index.js 9:3-49
+    > ./b ./async/index.js 10:3-50
+    > ./a ./async/index.js 9:3-50
     ./very-big.js?2 xx KiB [built] [code generated]
   chunk (runtime: main) max-async-size-async-b~2e0c1aa9.js (async-b~2e0c1aa9) xx KiB <{889}> ={284}= ={440}= ={755}= [rendered]
-    > ./b ./async/index.js 10:3-49
-    > ./a ./async/index.js 9:3-49
+    > ./b ./async/index.js 10:3-50
+    > ./a ./async/index.js 9:3-50
     ./very-big.js?1 xx KiB [built] [code generated]
   chunk (runtime: main) max-async-size-async-b~0.js (async-b~0) xx bytes <{889}> ={284}= ={440}= ={627}= [rendered]
-    > ./b ./async/index.js 10:3-49
-    > ./a ./async/index.js 9:3-49
+    > ./b ./async/index.js 10:3-50
+    > ./a ./async/index.js 9:3-50
     dependent modules xx bytes [dependent] 9 modules
     cacheable modules xx bytes
       ./async/a.js xx bytes [built] [code generated]

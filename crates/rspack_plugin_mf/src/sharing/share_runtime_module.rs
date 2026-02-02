@@ -78,7 +78,7 @@ impl RuntimeModule for ShareRuntimeModule {
     }
     let scope_to_data_init = init_per_scope
       .into_iter()
-      .sorted_unstable_by_key(|(scope, _)| scope.to_string())
+      .sorted_unstable_by_key(|(scope, _)| scope.clone())
       .map(|(scope, stages)| {
         let stages: Vec<String> = stages
           .into_iter()
@@ -112,7 +112,7 @@ impl RuntimeModule for ShareRuntimeModule {
               stage += " }";
               stage
             }
-            _ => "".to_string(),
+            _ => String::new(),
           })
           .collect();
         format!("{}: [{}]", json_stringify(&scope), stages.join(", "))

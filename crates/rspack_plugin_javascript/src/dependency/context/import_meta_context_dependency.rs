@@ -145,17 +145,12 @@ impl DependencyTemplate for ImportMetaContextDependencyTemplate {
 
     let TemplateContext {
       compilation,
-      runtime_requirements,
+      runtime_template,
       ..
     } = code_generatable_context;
 
-    let content = compilation.runtime_template.module_raw(
-      compilation,
-      runtime_requirements,
-      &dep.id,
-      &dep.options.request,
-      dep.optional,
-    );
+    let content =
+      runtime_template.module_raw(compilation, &dep.id, &dep.options.request, dep.optional);
     source.replace(dep.range.start, dep.range.end, &content, None);
   }
 }

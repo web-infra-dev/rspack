@@ -229,7 +229,6 @@ function getRawModule(
     parser: getRawParserOptionsMap(module.parser),
     generator: getRawGeneratorOptionsMap(module.generator),
     noParse: module.noParse,
-    unsafeCache: module.unsafeCache,
   };
 }
 

@@ -146,14 +146,16 @@ impl LightningCssLoader {
         .config
         .include
         .as_ref()
-        .map(|include| Features::from_bits_truncate(*include))
-        .unwrap_or(Features::empty()),
+        .map_or(Features::empty(), |include| {
+          Features::from_bits_truncate(*include)
+        }),
       exclude: self
         .config
         .exclude
         .as_ref()
-        .map(|exclude| Features::from_bits_truncate(*exclude))
-        .unwrap_or(Features::empty()),
+        .map_or(Features::empty(), |exclude| {
+          Features::from_bits_truncate(*exclude)
+        }),
     };
 
     let unused_symbols = self
@@ -241,7 +243,7 @@ impl LightningCssLoader {
         source_map
           .get_sources_content()
           .iter()
-          .map(|source_content| Arc::from(source_content.to_string()))
+          .map(|source_content| Arc::from(source_content.clone()))
           .collect::<Vec<_>>(),
         source_map
           .get_names()

@@ -194,7 +194,7 @@ impl HtmlTemplate {
   }
 
   pub async fn render(&mut self, config: &HtmlRspackPluginOptions) -> Result<String> {
-    let parameters = self.parameters.to_owned().expect("should have parameters");
+    let parameters = self.parameters.clone().expect("should have parameters");
     match &self.render {
       TemplateRender::Template(content) => {
         // process with template parameters
@@ -268,7 +268,7 @@ pub fn render_tag(op: Operand) -> Operand {
         .iter()
         .map(|val| match render_tag(val.to_owned()) {
           Operand::Value(val) => val.as_str().unwrap_or_default().to_string(),
-          _ => "".to_string(),
+          _ => String::new(),
         })
         .join(""),
     )),

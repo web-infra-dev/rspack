@@ -32,8 +32,8 @@ impl ScopeValidateStrategy for SplitPackStrategy {
       .filter(|(_, pack)| !pack.loaded())
       .map(|(pack_meta, pack)| {
         let strategy = self.clone();
-        let path = pack.path.to_owned();
-        let hash = pack_meta.hash.to_owned();
+        let path = pack.path.clone();
+        let hash = pack_meta.hash.clone();
         let keys = pack.keys.expect_value().to_owned();
         tokio::spawn(async move {
           match strategy

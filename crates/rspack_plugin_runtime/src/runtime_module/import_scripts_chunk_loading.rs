@@ -47,7 +47,7 @@ impl ImportScriptsChunkLoadingRuntimeModule {
       format!(
         "self.location + {}",
         serde_json::to_string(&if root_output_dir.is_empty() {
-          "".to_string()
+          String::new()
         } else {
           format!("/../{root_output_dir}")
         })

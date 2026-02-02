@@ -9,10 +9,10 @@ default:
     > ./b b
     ./b.js xx bytes [built] [code generated]
   chunk (runtime: a, b) 773.js (id hint: vendors) xx bytes <{364}> ={341}= ={907}= [initial] [rendered] split chunk (cache group: defaultVendors)
-    > ./c ./b.js 1:1-41
+    > ./c ./b.js 1:1-42
     > ./a a
     ./node_modules/x.js xx bytes [built] [code generated]
   chunk (runtime: b) c.js (c) xx bytes <{364}> ={773}= [rendered]
-    > ./c ./b.js 1:1-41
+    > ./c ./b.js 1:1-42
     ./c.js xx bytes [built] [code generated]
   default (Rspack x.x.x) compiled successfully

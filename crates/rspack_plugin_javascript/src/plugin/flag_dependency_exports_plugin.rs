@@ -105,7 +105,7 @@ impl<'a> FlagDependencyExportsState<'a> {
         .map(|(module_id, mut exports_info, exports_specs)| {
           let mut changed = false;
           let mut dependencies = vec![];
-          for (dep_id, exports_spec) in exports_specs.into_iter() {
+          for (dep_id, exports_spec) in exports_specs {
             let (is_changed, changed_dependencies) = process_exports_spec_without_nested(
               self.mg,
               &module_id,
@@ -134,7 +134,7 @@ impl<'a> FlagDependencyExportsState<'a> {
       // serializing the merging of exports specs to nested exports info data
       for (module_id, (exports_specs, _)) in has_nested_specs {
         let mut changed = false;
-        for (dep_id, exports_spec) in exports_specs.into_iter() {
+        for (dep_id, exports_spec) in exports_specs {
           let (is_changed, changed_dependencies) =
             process_exports_spec(self.mg, &module_id, dep_id, &exports_spec);
           changed |= is_changed;

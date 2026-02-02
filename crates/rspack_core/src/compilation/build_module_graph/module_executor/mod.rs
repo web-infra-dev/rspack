@@ -71,7 +71,7 @@ impl ModuleExecutor {
     };
     let (event_sender, event_receiver) = unbounded_channel();
     let (stop_sender, stop_receiver) = oneshot::channel();
-    self.event_sender = Some(event_sender.clone());
+    self.event_sender = Some(event_sender);
     self.stop_receiver = Some(stop_receiver);
     // avoid coop budget consumed to zero cause hang risk
     // related to https://tokio.rs/blog/2020-04-preemption

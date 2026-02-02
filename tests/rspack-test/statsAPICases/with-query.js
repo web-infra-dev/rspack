@@ -132,7 +132,7 @@ module.exports = {
 			            Object {
 			              active: true,
 			              explanation: undefined,
-			              loc: 2:10-14,
+			              loc: 2:10-15,
 			              moduleId: 679,
 			              moduleIdentifier: <TEST_ROOT>/fixtures/c.js?c=3,
 			              moduleName: ./fixtures/c.js?c=3,
@@ -263,7 +263,7 @@ module.exports = {
 			          name: ./fixtures/abc-query.js,
 			          nameForCondition: <TEST_ROOT>/fixtures/abc-query.js,
 			          optimizationBailout: Array [
-			            Statement with side_effects in source code at ./fixtures/abc-query.js<LINE_COL>-31,
+			            Statement with side_effects in source code at ./fixtures/abc-query.js<LINE_COL>-32,
 			            ModuleConcatenation bailout: Module is not an ECMAScript module,
 			          ],
 			          optional: false,
@@ -462,7 +462,7 @@ module.exports = {
 			      name: ./fixtures/abc-query.js,
 			      nameForCondition: <TEST_ROOT>/fixtures/abc-query.js,
 			      optimizationBailout: Array [
-			        Statement with side_effects in source code at ./fixtures/abc-query.js<LINE_COL>-31,
+			        Statement with side_effects in source code at ./fixtures/abc-query.js<LINE_COL>-32,
 			        ModuleConcatenation bailout: Module is not an ECMAScript module,
 			      ],
 			      optional: false,
@@ -722,7 +722,7 @@ module.exports = {
 			        Object {
 			          active: true,
 			          explanation: undefined,
-			          loc: 2:10-14,
+			          loc: 2:10-15,
 			          moduleId: 679,
 			          moduleIdentifier: <TEST_ROOT>/fixtures/c.js?c=3,
 			          moduleName: ./fixtures/c.js?c=3,

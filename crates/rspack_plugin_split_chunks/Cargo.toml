@@ -25,3 +25,6 @@ rspack_regex       = { workspace = true }
 rspack_util        = { workspace = true }
 rustc-hash         = { workspace = true }
 tracing            = { workspace = true }
+
+[lints]
+workspace = true

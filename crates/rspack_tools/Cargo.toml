@@ -21,3 +21,6 @@ rspack_fs        = { workspace = true }
 rspack_paths     = { workspace = true }
 rustc-hash       = { workspace = true }
 tokio            = { workspace = true }
+
+[lints]
+workspace = true

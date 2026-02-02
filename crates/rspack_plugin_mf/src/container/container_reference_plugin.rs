@@ -84,17 +84,17 @@ async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<B
                 let fallback_suffix = if i > 0 {
                   let mut i_buffer = itoa::Buffer::new();
                   let i_str = i_buffer.format(i);
-                  format!("/fallback-{}", i_str)
+                  format!("/fallback-{i_str}")
                 } else {
                   Default::default()
                 };
-                format!("webpack/container/reference/{}{}", key, fallback_suffix)
+                format!("webpack/container/reference/{key}{fallback_suffix}")
               }
             })
             .collect(),
           format!(".{internal_request}"),
           config.share_scope.clone(),
-          key.to_string(),
+          key.clone(),
         )
         .boxed();
         return Ok(Some(remote));

@@ -11,7 +11,7 @@ use super::context::{ExecutorTaskContext, ImportModuleMeta};
 use crate::{
   Chunk, ChunkGraph, ChunkKind, CodeGenerationDataAssetInfo, CodeGenerationDataFilename,
   CodeGenerationResult, CompilationAsset, CompilationAssets, EntryOptions, Entrypoint,
-  FactorizeInfo, ModuleType, PublicPath, RuntimeSpec, SourceType,
+  FactorizeInfo, ModuleCodeGenerationContext, ModuleType, PublicPath, RuntimeSpec, SourceType,
   utils::task_loop::{Task, TaskResult, TaskType},
 };
 
@@ -311,8 +311,18 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
         .get(runtime_id)
         .expect("runtime module exist");
 
+      let mut runtime_template = compilation
+        .runtime_template
+        .create_module_codegen_runtime_template();
+      let mut code_generation_context = ModuleCodeGenerationContext {
+        compilation: &compilation,
+        runtime: None,
+        concatenation_scope: None,
+        runtime_template: &mut runtime_template,
+      };
+
       let result = runtime_module
-        .code_generation(&compilation, None, None)
+        .code_generation(&mut code_generation_context)
         .await?;
       #[allow(clippy::unwrap_used)]
       let runtime_module_source = result.get(&SourceType::Runtime).unwrap();

@@ -75,7 +75,7 @@ pub fn clean_regexp_in_context_module(
       let mut error = create_traceable_error(
         "Critical dependency".into(),
         "Contexts can't use RegExps with the 'g' or 'y' flags".to_string(),
-        parser.source.to_owned(),
+        parser.source.to_string(),
         error_span,
       );
       error.severity = Severity::Warning;

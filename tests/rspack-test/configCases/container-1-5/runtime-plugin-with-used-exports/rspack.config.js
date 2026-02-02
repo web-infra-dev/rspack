@@ -22,7 +22,8 @@ module.exports = {
 				}
 			},
 			runtimePlugins: [
-				path.resolve(__dirname, "runtime-plugin.js")
+  			path.resolve(__dirname, "runtime-plugin.js"),
+				path.resolve(__dirname, "runtime-plugin-esm.js")
 			]
 		})
 	]

@@ -104,7 +104,6 @@ export const applyRspackOptionsDefaults = (
   applySnapshotDefaults(options.snapshot, { production });
 
   applyModuleDefaults(options.module, {
-    cache: !!options.cache,
     asyncWebAssembly: options.experiments.asyncWebAssembly!,
     targetProperties,
     mode: options.mode,
@@ -233,7 +232,7 @@ const applyIncrementalDefaults = (options: RspackOptionsNormalized) => {
     D(options.incremental, 'buildModuleGraph', true);
     D(options.incremental, 'finishModules', true);
     D(options.incremental, 'optimizeDependencies', true);
-    D(options.incremental, 'buildChunkGraph', false);
+    D(options.incremental, 'buildChunkGraph', true);
     D(options.incremental, 'moduleIds', true);
     D(options.incremental, 'chunkIds', true);
     D(options.incremental, 'modulesHashes', true);
@@ -298,14 +297,12 @@ const applyJsonGeneratorOptionsDefaults = (
 const applyModuleDefaults = (
   module: ModuleOptions,
   {
-    cache,
     asyncWebAssembly,
     targetProperties,
     mode,
     uniqueName,
     deferImport,
   }: {
-    cache: boolean;
     asyncWebAssembly: boolean;
     targetProperties: false | TargetProperties;
     mode?: Mode;
@@ -315,13 +312,6 @@ const applyModuleDefaults = (
 ) => {
   assertNotNill(module.parser);
   assertNotNill(module.generator);
-
-  // IGNORE(module.unsafeCache): Unlike webpack, when true, Rust side uses a built-in predicate that matches node_modules paths for better performance.
-  if (cache) {
-    D(module, 'unsafeCache', /[\\/]node_modules[\\/]/);
-  } else {
-    D(module, 'unsafeCache', false);
-  }
 
   // IGNORE(module.parser): already check to align in 2024.6.27
   F(module.parser, ASSET_MODULE_TYPE, () => ({}));

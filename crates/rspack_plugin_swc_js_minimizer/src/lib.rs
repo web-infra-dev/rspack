@@ -291,7 +291,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
                   filename.to_string(),
                   ExtractedCommentsInfo {
                     source: RawStringSource::from(extracted_comments.join("\n\n")).boxed(),
-                    comments_file_name: extract_comments.filename.to_string(),
+                    comments_file_name: extract_comments.filename.clone(),
                   },
                 );
             }

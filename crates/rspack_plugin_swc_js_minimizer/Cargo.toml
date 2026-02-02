@@ -36,3 +36,6 @@ swc_core = { workspace = true, features = [
 swc_ecma_minifier = { workspace = true, features = ["concurrent"] }
 thread_local = { workspace = true }
 tracing = { workspace = true }
+
+[lints]
+workspace = true

@@ -3,21 +3,21 @@ Chunk Group async-b xx bytes = a-681.js xx bytes a-async-b.js xx bytes
 Chunk Group async-c xx KiB = a-vendors.js xx bytes a-async-c.js xx bytes
 Chunk Group main xx KiB = a-main.js
 chunk (runtime: main) a-vendors.js (vendors) (id hint: vendors) xx bytes [rendered] split chunk (cache group: vendors) (name: vendors)
-  > ./c ./index.js 3:1-47
+  > ./c ./index.js 3:1-48
   ./node_modules/x.js xx bytes [built] [code generated]
   ./node_modules/y.js xx bytes [built] [code generated]
 chunk (runtime: main) a-681.js (id hint: ) xx bytes [rendered] split chunk (cache group: default)
-  > ./a ./index.js 1:1-47
-  > ./b ./index.js 2:1-47
+  > ./a ./index.js 1:1-48
+  > ./b ./index.js 2:1-48
   ./shared.js xx bytes [built] [code generated]
 chunk (runtime: main) a-async-b.js (async-b) xx bytes [rendered]
-  > ./b ./index.js 2:1-47
+  > ./b ./index.js 2:1-48
   ./b.js xx bytes [built] [code generated]
 chunk (runtime: main) a-async-a.js (async-a) xx bytes [rendered]
-  > ./a ./index.js 1:1-47
+  > ./a ./index.js 1:1-48
   ./a.js xx bytes [built] [code generated]
 chunk (runtime: main) a-async-c.js (async-c) xx bytes [rendered]
-  > ./c ./index.js 3:1-47
+  > ./c ./index.js 3:1-48
   ./c.js xx bytes [built] [code generated]
 chunk (runtime: main) a-main.js (main) xx bytes (javascript) xx KiB (runtime) [entry] [rendered]
   > ./ main
@@ -29,21 +29,21 @@ Chunk Group async-a xx bytes = b-681.js xx bytes b-async-a.js xx bytes
 Chunk Group async-b xx bytes = b-681.js xx bytes b-async-b.js xx bytes
 Chunk Group async-c xx KiB = b-vendors.js xx bytes b-async-c.js xx bytes
 chunk (runtime: main) b-vendors.js (vendors) (id hint: vendors) xx bytes [rendered] split chunk (cache group: vendors) (name: vendors)
-  > ./c ./index.js 3:1-47
+  > ./c ./index.js 3:1-48
   ./node_modules/x.js xx bytes [built] [code generated]
   ./node_modules/y.js xx bytes [built] [code generated]
 chunk (runtime: main) b-681.js (id hint: ) xx bytes [rendered] split chunk (cache group: default)
-  > ./a ./index.js 1:1-47
-  > ./b ./index.js 2:1-47
+  > ./a ./index.js 1:1-48
+  > ./b ./index.js 2:1-48
   ./shared.js xx bytes [built] [code generated]
 chunk (runtime: main) b-async-b.js (async-b) xx bytes [rendered]
-  > ./b ./index.js 2:1-47
+  > ./b ./index.js 2:1-48
   ./b.js xx bytes [built] [code generated]
 chunk (runtime: main) b-async-a.js (async-a) xx bytes [rendered]
-  > ./a ./index.js 1:1-47
+  > ./a ./index.js 1:1-48
   ./a.js xx bytes [built] [code generated]
 chunk (runtime: main) b-async-c.js (async-c) xx bytes [rendered]
-  > ./c ./index.js 3:1-47
+  > ./c ./index.js 3:1-48
   ./c.js xx bytes [built] [code generated]
 chunk (runtime: main) b-main.js (main) xx bytes (javascript) xx KiB (runtime) [entry] [rendered]
   > ./ main

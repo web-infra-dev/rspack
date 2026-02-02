@@ -1,16 +1,16 @@
 Array [
   Object {
-    loc: 1:1-21,
+    loc: 1:1-22,
     moduleIdentifier: <TEST_ROOT>/diagnosticsCases/factorize/resolve-extensions-error/err/index.js,
     moduleName: ./err/index.js,
   },
   Object {
-    loc: 2:1-16,
+    loc: 2:1-17,
     moduleIdentifier: <TEST_ROOT>/diagnosticsCases/factorize/resolve-extensions-error/index.js,
     moduleName: ./index.js,
   },
   Object {
-    loc: 3:1-20,
+    loc: 3:1-21,
     moduleIdentifier: <TEST_ROOT>/diagnosticsCases/factorize/resolve-extensions-error/index.js,
     moduleName: ./index.js,
   },

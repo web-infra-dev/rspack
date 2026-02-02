@@ -23,7 +23,7 @@ use rspack_core::{
   JavascriptParserOrder, JavascriptParserUrl, JsonGeneratorOptions, JsonParserOptions,
   ModuleNoParseRule, ModuleNoParseRules, ModuleNoParseTestFn, ModuleOptions, ModuleRule,
   ModuleRuleEffect, ModuleRuleEnforce, ModuleRuleUse, ModuleRuleUseLoader, OverrideStrict,
-  ParseOption, ParserOptions, ParserOptionsMap, TypeReexportPresenceMode, UnsafeCachePredicate,
+  ParseOption, ParserOptions, ParserOptionsMap, TypeReexportPresenceMode,
 };
 use rspack_error::error;
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
@@ -826,8 +826,6 @@ pub struct RawModuleOptions {
   )]
   #[debug(skip)]
   pub no_parse: Option<RawModuleNoParseRules>,
-  #[napi(ts_type = "boolean | RegExp")]
-  pub unsafe_cache: Option<Either<bool, RspackRegex>>,
 }
 
 #[derive(Debug, Clone)]
@@ -990,24 +988,6 @@ impl TryFrom<RawModuleOptions> for ModuleOptions {
       .map(|rule| rule.try_into())
       .collect::<rspack_error::Result<Vec<ModuleRule>>>()?;
 
-    let unsafe_cache: Option<UnsafeCachePredicate> =
-      value.unsafe_cache.and_then(|either| match either {
-        Either::A(true) => Some(Box::new(|module: &dyn rspack_core::Module| {
-          let name = module.name_for_condition();
-          Box::pin(async move { Ok(true) }) as BoxFuture<'static, rspack_error::Result<bool>>
-        }) as UnsafeCachePredicate),
-        Either::A(false) => None,
-        Either::B(regex) => {
-          let regex = Arc::from(regex);
-          Some(Box::new(move |module: &dyn rspack_core::Module| {
-            let name = module.name_for_condition();
-            let regex = regex.clone();
-            Box::pin(async move { Ok(name.is_some_and(|name| regex.test(name.as_ref()))) })
-              as BoxFuture<'static, rspack_error::Result<bool>>
-          }) as UnsafeCachePredicate)
-        }
-      });
-
     Ok(ModuleOptions {
       rules,
       parser: value
@@ -1029,7 +1009,6 @@ impl TryFrom<RawModuleOptions> for ModuleOptions {
       no_parse: value
         .no_parse
         .map(|x| RawModuleNoParseRulesWrapper(x).into()),
-      unsafe_cache,
     })
   }
 }

@@ -105,7 +105,7 @@ async fn render(
     let name_str = serde_json::to_string(&name).to_rspack_result()?;
     format!("{name_str}, ")
   } else {
-    "".to_string()
+    String::new()
   };
 
   let module_graph = compilation.get_module_graph();
@@ -135,13 +135,11 @@ async fn render(
   let external_var_declarations = external_arguments
     .iter()
     .map(|name| format!("var {name} = {{}};\n"))
-    .collect::<Vec<_>>()
-    .join("");
+    .collect::<String>();
   let external_var_initialization = external_arguments
     .iter()
     .map(|name| format!("Object.defineProperty( {name} , \"__esModule\", {{ value: true }});\n"))
-    .collect::<Vec<_>>()
-    .join("");
+    .collect::<String>();
   let setters = external_arguments
     .iter()
     .map(|name| {

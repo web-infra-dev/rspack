@@ -19,6 +19,7 @@ pub struct RawCacheOptionsPersistent {
   pub version: Option<String>,
   pub snapshot: Option<RawSnapshotOptions>,
   pub storage: Option<RawStorageOptions>,
+  pub portable: Option<bool>,
 }
 
 impl From<RawCacheOptionsPersistent> for PersistentCacheOptions {
@@ -33,6 +34,7 @@ impl From<RawCacheOptionsPersistent> for PersistentCacheOptions {
       version: value.version.unwrap_or_default(),
       snapshot: value.snapshot.unwrap_or_default().into(),
       storage: value.storage.unwrap_or_default().into(),
+      portable: value.portable.unwrap_or_default(),
     }
   }
 }

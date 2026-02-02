@@ -94,7 +94,7 @@ class ServerPlugin {
       }
     );
 
-    compiler.hooks.done.tap("ServerPlugin", (stats, callback) => {
+    compiler.hooks.done.tapAsync("ServerPlugin", (stats, callback) => {
       const s = this.server;
       if (s && --this.refs === 0) {
         this.server = undefined;

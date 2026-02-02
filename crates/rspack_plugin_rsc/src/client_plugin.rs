@@ -48,7 +48,7 @@ fn extend_required_chunks(
     let Some(chunk_id) = chunk.id() else {
       continue;
     };
-    for file in chunk.files() {
+    for file in chunk.files().iter().filter(|f| f.ends_with(".js")) {
       if let Some(asset) = compilation.assets().get(file) {
         let asset_info = asset.get_info();
         if asset_info.hot_module_replacement.unwrap_or(false)
@@ -104,7 +104,7 @@ fn record_module(
       .files()
       .iter()
       .filter(|file| file.ends_with(".css"))
-      .map(|file| format!("{}{}", prefix, file))
+      .map(|file| format!("{prefix}{file}"))
       .collect();
     if css_files.is_empty() {
       return;
@@ -189,17 +189,15 @@ fn record_chunk_group(
       };
 
       if let Some(concatenated_module) = module.as_concatenated_module() {
-        for inner_module in concatenated_module.get_modules() {
-          record_module(
-            entry_name,
-            module_id,
-            &inner_module.id,
-            chunk_ukey,
-            compilation,
-            required_chunks,
-            plugin_state,
-          );
-        }
+        record_module(
+          entry_name,
+          module_id,
+          &concatenated_module.get_root(),
+          chunk_ukey,
+          compilation,
+          required_chunks,
+          plugin_state,
+        );
       } else {
         record_module(
           entry_name,
@@ -245,7 +243,7 @@ async fn collect_entry_js_files(
     };
     let entry_js_files = plugin_state
       .entry_js_files
-      .entry(entry_name.to_string())
+      .entry(entry_name.clone())
       .or_default();
     let prefix = &plugin_state
       .module_loading
@@ -266,7 +264,7 @@ async fn collect_entry_js_files(
         !(asset_info.hot_module_replacement.unwrap_or(false)
           || asset_info.development.unwrap_or(false))
       })
-      .map(|file| format!("{}{}", prefix, file))
+      .map(|file| format!("{prefix}{file}"))
       .collect::<FxIndexSet<String>>();
   }
   Ok(())
@@ -404,8 +402,7 @@ impl RscClientPlugin {
 
         let is_client_loader = module
           .as_normal_module()
-          .map(|m| m.user_request().starts_with(CLIENT_ENTRY_LOADER_IDENTIFIER))
-          .unwrap_or(false);
+          .is_some_and(|m| m.user_request().starts_with(CLIENT_ENTRY_LOADER_IDENTIFIER));
         if !is_client_loader {
           continue;
         }
@@ -511,7 +508,7 @@ async fn make(&self, compilation: &mut Compilation) -> Result<()> {
       }
 
       let dependency = Box::new(EntryDependency::new(
-        import.to_string(),
+        import.clone(),
         context.clone(),
         None,
         false,

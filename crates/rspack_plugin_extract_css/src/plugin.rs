@@ -139,7 +139,7 @@ impl PluginCssExtract {
       .map(|module| (module.identifier(), IdentifierSet::default()))
       .collect();
 
-    let mut groups = chunk.groups().iter().cloned().collect::<Vec<_>>();
+    let mut groups = chunk.groups().iter().copied().collect::<Vec<_>>();
     groups.sort_by(|a, b| {
       let a = compilation.chunk_group_by_ukey.expect_get(a);
       let b = compilation.chunk_group_by_ukey.expect_get(b);
@@ -213,7 +213,7 @@ impl PluginCssExtract {
           let failed_deps = deps
             .iter()
             .filter(|dep| !used_modules.contains(dep))
-            .cloned()
+            .copied()
             .collect::<Vec<_>>();
 
           let failed_count = failed_deps.len();
@@ -332,7 +332,7 @@ impl PluginCssExtract {
           .expect("should have module");
 
         let mut diagnostic = Diagnostic::warn(
-          "".into(),
+          String::new(),
           format!(
             r#"chunk {} [{PLUGIN_NAME}]
 Conflicting order. Following module has been added:

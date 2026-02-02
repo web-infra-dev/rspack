@@ -40,7 +40,7 @@ impl JavascriptParserPlugin for InlineConstPlugin {
               break;
             }
           }
-          ModuleItem::Stmt(_) => continue,
+          ModuleItem::Stmt(_) => {}
         }
       }
     }

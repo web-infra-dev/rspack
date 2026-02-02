@@ -128,7 +128,7 @@ pub fn collect_entrypoints(
         ukey.to_owned(),
         RsdoctorEntrypoint {
           ukey: ukey.as_u32() as RsdoctorEntrypointUkey,
-          name: name.to_string(),
+          name: name.clone(),
           chunks,
         },
       )
@@ -161,10 +161,10 @@ pub fn collect_assets(
         })
         .unwrap_or_default();
       (
-        path.to_string(),
+        path.clone(),
         RsdoctorAsset {
           ukey: asset_ukey_counter.fetch_add(1, std::sync::atomic::Ordering::Relaxed),
-          path: path.to_string(),
+          path: path.clone(),
           chunks,
           size: asset
             .get_source()

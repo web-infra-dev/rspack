@@ -32,3 +32,6 @@ tracing     = { workspace = true }
 
 [build-dependencies]
 rspack_binding_build = { workspace = true }
+
+[lints]
+workspace = true

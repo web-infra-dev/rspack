@@ -256,7 +256,6 @@ export const getNormalizedRspackOptions = (
       ),
       defaultRules: optionalNestedArray(module.defaultRules, (r) => [...r]),
       rules: nestedArray(module.rules, (r) => [...r]),
-      unsafeCache: module.unsafeCache,
     })),
     target: config.target,
     externals: config.externals,
@@ -301,6 +300,7 @@ export const getNormalizedRspackOptions = (
             cache.storage?.directory || 'node_modules/.cache/rspack',
           ),
         },
+        portable: cache.portable,
       };
     }),
     stats: nestedConfig(config.stats, (stats) => {
@@ -446,7 +446,7 @@ const getNormalizedIncrementalOptions = (
       buildModuleGraph: true,
       finishModules: false,
       optimizeDependencies: false,
-      buildChunkGraph: false,
+      buildChunkGraph: true,
       moduleIds: false,
       chunkIds: false,
       modulesHashes: false,
@@ -586,7 +586,6 @@ export interface ModuleOptionsNormalized {
   parser: ParserOptionsByModuleType;
   generator: GeneratorOptionsByModuleType;
   noParse?: NoParseOption;
-  unsafeCache?: boolean | RegExp;
 }
 
 export type CacheNormalized =
@@ -607,6 +606,7 @@ export type CacheNormalized =
         type: 'filesystem';
         directory: string;
       };
+      portable?: boolean;
     };
 
 export interface ExperimentsNormalized {

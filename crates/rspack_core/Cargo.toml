@@ -24,6 +24,7 @@ indexmap = { workspace = true, features = ["rayon"] }
 indoc = { workspace = true }
 itertools = { workspace = true }
 json = { workspace = true }
+memchr = { workspace = true }
 mime_guess = { workspace = true }
 napi = { workspace = true, optional = true }
 num-bigint = { workspace = true }
@@ -32,7 +33,6 @@ paste = { workspace = true }
 rayon = { workspace = true }
 regex = { workspace = true }
 rkyv = { workspace = true, optional = true }
-ropey = { workspace = true }
 rspack_cacheable = { workspace = true }
 rspack_collections = { workspace = true }
 rspack_dojang = { workspace = true }

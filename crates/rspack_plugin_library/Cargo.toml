@@ -38,3 +38,6 @@ swc_core = { workspace = true, features = [
 
 [package.metadata.cargo-shear]
 ignored = ["tracing"]
+
+[lints]
+workspace = true

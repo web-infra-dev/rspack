@@ -3,16 +3,19 @@
 
 use tracing::instrument;
 
-use crate::{Compilation, incremental::IncrementalPasses};
+use crate::Compilation;
 pub(crate) mod code_splitter;
 pub(crate) mod incremental;
 pub(crate) mod pass;
 
 #[instrument("Compilation:build_chunk_graph", skip_all)]
 pub fn build_chunk_graph(compilation: &mut Compilation) -> rspack_error::Result<()> {
-  let enable_incremental = compilation
-    .incremental
-    .mutations_readable(IncrementalPasses::BUILD_CHUNK_GRAPH);
+  // TODO: heuristic incremental update is temporarily disabled
+  // Original code:
+  // let enable_incremental = compilation
+  //   .incremental
+  //   .mutations_readable(IncrementalPasses::BUILD_CHUNK_GRAPH);
+  let enable_incremental = false;
   let mut splitter = if enable_incremental {
     std::mem::take(
       &mut compilation

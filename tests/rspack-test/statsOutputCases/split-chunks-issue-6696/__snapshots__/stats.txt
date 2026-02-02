@@ -4,11 +4,11 @@ default:
     > ./ main
     ./node_modules/y.js xx bytes [built] [code generated]
   chunk (runtime: main) async-b.js (async-b) xx bytes <{545}> <{889}> [rendered]
-    > ./b ./index.js 3:1-47
+    > ./b ./index.js 3:1-48
     dependent modules xx bytes [dependent] 1 module
     ./b.js xx bytes [built] [code generated]
   chunk (runtime: main) async-a.js (async-a) xx bytes <{545}> <{889}> [rendered]
-    > ./a ./index.js 2:1-47
+    > ./a ./index.js 2:1-48
     dependent modules xx bytes [dependent] 1 module
     ./a.js xx bytes [built] [code generated]
   chunk (runtime: main) main.js (main) xx bytes (javascript) xx KiB (runtime) ={545}= >{701}< >{724}< [entry] [rendered]

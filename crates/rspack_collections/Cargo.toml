@@ -18,6 +18,5 @@ rspack_cacheable = { workspace = true }
 serde            = { workspace = true, features = ["derive"] }
 ustr             = { workspace = true, features = ["serde"] }
 
-[lints.rust.unexpected_cfgs]
-check-cfg = ['cfg(allocative)']
-level     = "warn"
+[lints]
+workspace = true

@@ -199,19 +199,15 @@ impl CopyRspackPlugin {
                   "Run copy to fn error".into(),
                   e.to_string(),
                 ));
-              "".to_string()
+              String::new()
             }
           }
         }
       };
 
-      to.clone()
-        .as_path()
-        .normalize()
-        .to_string_lossy()
-        .to_string()
+      to.as_path().normalize().to_string_lossy().to_string()
     } else {
-      "".into()
+      String::new()
     };
 
     let to_type = if let Some(to_type) = pattern.to_type.as_ref() {

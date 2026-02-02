@@ -1,6 +1,6 @@
 Array [
   Object {
-    loc: 4:11-28,
+    loc: 4:11-29,
     moduleIdentifier: <TEST_ROOT>/diagnosticsCases/factorize/missing-module/index.js,
     moduleName: ./index.js,
   },

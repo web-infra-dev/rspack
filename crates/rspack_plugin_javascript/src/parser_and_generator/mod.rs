@@ -167,7 +167,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     };
 
     let source = remove_bom(source);
-    let source_string = source.source().into_string_lossy().into_owned();
+    let source_string = source.source().into_string_lossy();
 
     let comments = SwcComments::default();
     let target = ast::EsVersion::EsNext;
@@ -236,7 +236,6 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       presentational_dependencies,
       mut warning_diagnostics,
       mut side_effects_item,
-      ..
     } = match ast.visit(|program, _| {
       scan_dependencies(
         &source_string,
@@ -309,11 +308,11 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       let mut context = TemplateContext {
         compilation,
         module,
-        runtime_requirements: generate_context.runtime_requirements,
         init_fragments: &mut init_fragments,
         runtime: generate_context.runtime,
         concatenation_scope: generate_context.concatenation_scope.take(),
         data: generate_context.data,
+        runtime_template: generate_context.runtime_template,
       };
 
       module.get_dependencies().iter().for_each(|dependency_id| {

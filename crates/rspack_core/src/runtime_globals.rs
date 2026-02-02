@@ -6,273 +6,297 @@ use crate::CompilerOptions;
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
 pub struct RuntimeGlobals(u128);
 
-bitflags! {
-  impl RuntimeGlobals: u128 {
-    const REQUIRE_SCOPE = 1 << 0;
-
-    /**
-     * the internal module object
-     */
-    const MODULE = 1 << 1;
-
-    /**
-     * the internal module object
-     */
-    const MODULE_ID = 1 << 2;
-
-    /**
-     * the internal require function
-     */
-    const REQUIRE = 1 << 3;
-
-    /**
-     * the module cache
-     */
-    const MODULE_CACHE = 1 << 4;
-
-    /**
-     * the chunk ensure function
-     */
-    const ENSURE_CHUNK = 1 << 5;
-
-    /**
-     * an object with handlers to ensure a chunk
-     */
-    const ENSURE_CHUNK_HANDLERS = 1 << 6;
-
-    /**
-     * the bundle public path
-     */
-    const PUBLIC_PATH = 1 << 7;
-
-    /**
-     * the filename of the script part of the chunk
-     */
-    const GET_CHUNK_SCRIPT_FILENAME = 1 << 8;
-
-    /**
-     * the filename of the css part of the chunk
-     */
-    const GET_CHUNK_CSS_FILENAME = 1 << 9;
-
-    /**
-     * function to load a script tag.
-     * Arguments: (url: string, done: (event) => void), key?: string | number, chunkId?: string | number) => void
-     * done function is called when loading has finished or timeout occurred.
-     * It will attach to existing script tags with data-webpack == uniqueName + ":" + key or src == url.
-     */
-    const LOAD_SCRIPT = 1 << 10;
-
-    /**
-     * the shorthand for Object.prototype.hasOwnProperty
-     * using of it decreases the compiled bundle size
-     */
-    const HAS_OWN_PROPERTY = 1 << 11;
-
-    /**
-     * the module functions, with only write access
-     */
-    const MODULE_FACTORIES_ADD_ONLY = 1 << 12;
-
-    /**
-     * register deferred code, which will run when certain
-     * chunks are loaded.
-     * Signature: (chunkIds: Id[], fn: () => any, priority: int >= 0 = 0) => any
-     * Returned value will be returned directly when all chunks are already loaded
-     * When (priority & 1) it will wait for all other handlers with lower priority to
-     * be executed before itself is executed
-     */
-    const ON_CHUNKS_LOADED = 1 << 13;
-
-    /**
-     * global callback functions for installing chunks
-     */
-    const CHUNK_CALLBACK = 1 << 14;
-
-    /**
-     * the module functions
-     */
-    const MODULE_FACTORIES = 1 << 15;
-
-    /**
-     * interceptor for module executions
-     */
-    const INTERCEPT_MODULE_EXECUTION = 1 << 16;
-
-    /**
-     * function downloading the update manifest
-     */
-    const HMR_DOWNLOAD_MANIFEST = 1 << 17;
-
-    /**
-     * array with handler functions to download chunk updates
-     */
-    const HMR_DOWNLOAD_UPDATE_HANDLERS = 1 << 18;
+macro_rules! define_runtime_globals {
+  (@step ($val:expr) ({$($acc:tt)*}) ($(#[$($attr:tt)+])* const $name:ident; $($rest:tt)*)) => {
+    define_runtime_globals! {
+      @step ($val << 1) ({
+        $($acc)*
+        $(#[$($attr)+])*
+        const $name = $val;
+      }) ($($rest)*)
+    }
+  };
+  (@step ($val:expr) ({$($acc:tt)*}) ()) => {
+    bitflags! {
+      impl RuntimeGlobals: u128 {
+        $($acc)*
+      }
+    }
+  };
+  ($($rest:tt)*) => {
+    define_runtime_globals! {
+      @step (1u128) ({}) ($($rest)*)
+    }
+  };
+}
+
+define_runtime_globals! {
+  const REQUIRE_SCOPE;
+
+  /**
+   * the internal module object
+   */
+  const MODULE;
+
+  /**
+   * the internal module object
+   */
+  const MODULE_ID;
+
+  /**
+   * the internal require function
+   */
+  const REQUIRE;
+
+  /**
+   * the module cache
+   */
+  const MODULE_CACHE;
+
+  /**
+   * the chunk ensure function
+   */
+  const ENSURE_CHUNK;
+
+  /**
+   * an object with handlers to ensure a chunk
+   */
+  const ENSURE_CHUNK_HANDLERS;
+
+  /**
+   * the bundle public path
+   */
+  const PUBLIC_PATH;
+
+  /**
+   * the filename of the script part of the chunk
+   */
+  const GET_CHUNK_SCRIPT_FILENAME;
+
+  /**
+   * the filename of the css part of the chunk
+   */
+  const GET_CHUNK_CSS_FILENAME;
+
+  /**
+   * function to load a script tag.
+   * Arguments: (url: string, done: (event) => void), key?: string | number, chunkId?: string | number) => void
+   * done function is called when loading has finished or timeout occurred.
+   * It will attach to existing script tags with data-webpack == uniqueName + ":" + key or src == url.
+   */
+  const LOAD_SCRIPT;
+
+  /**
+   * the shorthand for Object.prototype.hasOwnProperty
+   * using of it decreases the compiled bundle size
+   */
+  const HAS_OWN_PROPERTY;
+
+  /**
+   * the module functions, with only write access
+   */
+  const MODULE_FACTORIES_ADD_ONLY;
+
+  /**
+   * register deferred code, which will run when certain
+   * chunks are loaded.
+   * Signature: (chunkIds: Id[], fn: () => any, priority: int >= 0 = 0) => any
+   * Returned value will be returned directly when all chunks are already loaded
+   * When (priority & 1) it will wait for all other handlers with lower priority to
+   * be executed before itself is executed
+   */
+  const ON_CHUNKS_LOADED;
+
+  /**
+   * global callback functions for installing chunks
+   */
+  const CHUNK_CALLBACK;
+
+  /**
+   * the module functions
+   */
+  const MODULE_FACTORIES;
+
+  /**
+   * interceptor for module executions
+   */
+  const INTERCEPT_MODULE_EXECUTION;
+
+  /**
+   * function downloading the update manifest
+   */
+  const HMR_DOWNLOAD_MANIFEST;
+
+  /**
+   * array with handler functions to download chunk updates
+   */
+  const HMR_DOWNLOAD_UPDATE_HANDLERS;
 
-    const HMR_INVALIDATE_MODULE_HANDLERS = 1 << 19;
+  const HMR_INVALIDATE_MODULE_HANDLERS;
 
-    /**
-     * the filename of the HMR manifest
-     */
-    const GET_UPDATE_MANIFEST_FILENAME = 1 << 20;
+  /**
+   * the filename of the HMR manifest
+   */
+  const GET_UPDATE_MANIFEST_FILENAME;
 
-    /**
-     * the filename of the script part of the hot update chunk
-     */
-    const GET_CHUNK_UPDATE_SCRIPT_FILENAME = 1 << 21;
+  /**
+   * the filename of the script part of the hot update chunk
+   */
+  const GET_CHUNK_UPDATE_SCRIPT_FILENAME;
 
-    /**
-     * the filename of the css part of the hot update chunk
-     */
-    const GET_CHUNK_UPDATE_CSS_FILENAME = 1 << 22;
+  /**
+   * the filename of the css part of the hot update chunk
+   */
+  const GET_CHUNK_UPDATE_CSS_FILENAME;
 
-    /**
-     * object with all hmr module data for all modules
-     */
-    const HMR_MODULE_DATA = 1 << 23;
+  /**
+   * object with all hmr module data for all modules
+   */
+  const HMR_MODULE_DATA;
 
-    /**
-     * the prefix for storing state of runtime modules when hmr is enabled
-     */
-    const HMR_RUNTIME_STATE_PREFIX = 1 << 24;
+  /**
+   * the prefix for storing state of runtime modules when hmr is enabled
+   */
+  const HMR_RUNTIME_STATE_PREFIX;
 
-    /**
-     * method to install a chunk that was loaded somehow
-     * Signature: ({ id, ids, modules, runtime }) => void
-     */
-    const EXTERNAL_INSTALL_CHUNK = 1 << 25;
+  /**
+   * method to install a chunk that was loaded somehow
+   * Signature: ({ id, ids, modules, runtime }) => void
+   */
+  const EXTERNAL_INSTALL_CHUNK;
 
-    /**
-     * the webpack hash
-     */
-    const GET_FULL_HASH = 1 << 26;
+  /**
+   * the webpack hash
+   */
+  const GET_FULL_HASH;
 
-    /**
-     * the global object
-     */
-    const GLOBAL = 1 << 27;
+  /**
+   * the global object
+   */
+  const GLOBAL;
 
-    /**
-     * runtime need to return the exports of the last entry module
-     */
-    const RETURN_EXPORTS_FROM_RUNTIME = 1 << 28;
+  /**
+   * runtime need to return the exports of the last entry module
+   */
+  const RETURN_EXPORTS_FROM_RUNTIME;
 
-    /**
-     * instantiate a wasm instance from module exports object, id, hash and importsObject
-     */
-    const INSTANTIATE_WASM = 1 << 29;
+  /**
+   * instantiate a wasm instance from module exports object, id, hash and importsObject
+   */
+  const INSTANTIATE_WASM;
 
-    /**
-     * Creates an async module. The body function must be a async function.
-     * "module.exports" will be decorated with an AsyncModulePromise.
-     * The body function will be called.
-     * To handle async dependencies correctly do this: "([a, b, c] = await handleDependencies([a, b, c]));".
-     * If "hasAwaitAfterDependencies" is truthy, "handleDependencies()" must be called at the end of the body function.
-     * Signature: function(
-     * module: Module,
-     * body: (handleDependencies: (deps: AsyncModulePromise[]) => Promise<any[]> & () => void,
-     * hasAwaitAfterDependencies?: boolean
-     * ) => void
-     */
-    const ASYNC_MODULE = 1 << 30;
+  /**
+   * Creates an async module. The body function must be a async function.
+   * "module.exports" will be decorated with an AsyncModulePromise.
+   * The body function will be called.
+   * To handle async dependencies correctly do this: "([a, b, c] = await handleDependencies([a, b, c]));".
+   * If "hasAwaitAfterDependencies" is truthy, "handleDependencies()" must be called at the end of the body function.
+   * Signature: function(
+   * module: Module,
+   * body: (handleDependencies: (deps: AsyncModulePromise[]) => Promise<any[]> & () => void,
+   * hasAwaitAfterDependencies?: boolean
+   * ) => void
+   */
+  const ASYNC_MODULE;
 
-    /**
-     * the baseURI of current document
-     */
-    const BASE_URI = 1 << 31;
+  /**
+   * the baseURI of current document
+   */
+  const BASE_URI;
 
-    const MODULE_LOADED = 1 << 32;
+  const MODULE_LOADED;
 
-    const STARTUP_ENTRYPOINT = 1 << 33;
-    const STARTUP_CHUNK_DEPENDENCIES = 1 << 34;
+  const STARTUP_ENTRYPOINT;
+  const STARTUP_CHUNK_DEPENDENCIES;
 
-    const CREATE_SCRIPT_URL = 1 << 35;
+  const CREATE_SCRIPT_URL;
 
-    const CREATE_SCRIPT = 1 << 36;
+  const CREATE_SCRIPT;
 
-    const GET_TRUSTED_TYPES_POLICY = 1 << 37;
+  const GET_TRUSTED_TYPES_POLICY;
 
-    const DEFINE_PROPERTY_GETTERS = 1 << 38;
+  const DEFINE_PROPERTY_GETTERS;
 
-    const ENTRY_MODULE_ID = 1 << 39;
+  const ENTRY_MODULE_ID;
 
-    const STARTUP_NO_DEFAULT = 1 << 40;
+  const STARTUP_NO_DEFAULT;
 
-    const ENSURE_CHUNK_INCLUDE_ENTRIES = 1 << 41;
+  const ENSURE_CHUNK_INCLUDE_ENTRIES;
 
-    const STARTUP = 1 << 42;
+  const STARTUP;
 
-    const MAKE_NAMESPACE_OBJECT = 1 << 43;
+  const MAKE_NAMESPACE_OBJECT;
 
-    const EXPORTS = 1 << 44;
+  const EXPORTS;
 
-    const COMPAT_GET_DEFAULT_EXPORT = 1 << 45;
+  const COMPAT_GET_DEFAULT_EXPORT;
 
-    const CREATE_FAKE_NAMESPACE_OBJECT = 1 << 46;
+  const CREATE_FAKE_NAMESPACE_OBJECT;
 
-    const NODE_MODULE_DECORATOR = 1 << 47;
+  const NODE_MODULE_DECORATOR;
 
-    const ESM_MODULE_DECORATOR = 1 << 48;
+  const ESM_MODULE_DECORATOR;
 
-    /**
-     * the System.register context object
-     */
-    const SYSTEM_CONTEXT = 1 << 49;
+  /**
+   * the System.register context object
+   */
+  const SYSTEM_CONTEXT;
 
-    const THIS_AS_EXPORTS = 1 << 50;
+  const THIS_AS_EXPORTS;
 
-    const CURRENT_REMOTE_GET_SCOPE = 1 << 51;
+  const CURRENT_REMOTE_GET_SCOPE;
 
-    const SHARE_SCOPE_MAP = 1 << 52;
+  const SHARE_SCOPE_MAP;
 
-    const INITIALIZE_SHARING = 1 << 53;
+  const INITIALIZE_SHARING;
 
-    const SCRIPT_NONCE = 1 << 54;
+  const SCRIPT_NONCE;
 
-    const RELATIVE_URL = 1 << 55;
+  const RELATIVE_URL;
 
-    const CHUNK_NAME = 1 << 56;
+  const CHUNK_NAME;
 
-    const RUNTIME_ID = 1 << 57;
+  const RUNTIME_ID;
 
-    // prefetch and preload
-    const PREFETCH_CHUNK = 1 << 58;
+  // prefetch and preload
+  const PREFETCH_CHUNK;
 
-    const PREFETCH_CHUNK_HANDLERS = 1 << 59;
+  const PREFETCH_CHUNK_HANDLERS;
 
-    const PRELOAD_CHUNK = 1 << 60;
+  const PRELOAD_CHUNK;
 
-    const PRELOAD_CHUNK_HANDLERS = 1 << 61;
+  const PRELOAD_CHUNK_HANDLERS;
 
-    const UNCAUGHT_ERROR_HANDLER = 1 << 62;
+  const UNCAUGHT_ERROR_HANDLER;
 
-    // rspack only
-    const RSPACK_VERSION = 1 << 63;
+  // rspack only
+  const RSPACK_VERSION;
 
-    const HAS_CSS_MODULES = 1 << 64;
+  const HAS_CSS_MODULES;
 
-    // rspack only
-    const RSPACK_UNIQUE_ID = 1 << 65;
+  // rspack only
+  const RSPACK_UNIQUE_ID;
 
-    const HAS_FETCH_PRIORITY = 1 << 66;
+  const HAS_FETCH_PRIORITY;
 
-    // amd module support
-    const AMD_DEFINE = 1 << 67;
-    const AMD_OPTIONS = 1 << 68;
+  // amd module support
+  const AMD_DEFINE;
+  const AMD_OPTIONS;
 
-    const TO_BINARY = 1 << 69;
+  const TO_BINARY;
 
-    // defer import support
-    const ASYNC_MODULE_EXPORT_SYMBOL = 1 << 70;
-    const MAKE_DEFERRED_NAMESPACE_OBJECT = 1 << 71;
-    const MAKE_DEFERRED_NAMESPACE_OBJECT_SYMBOL = 1 << 72;
+  // defer import support
+  const ASYNC_MODULE_EXPORT_SYMBOL;
+  const MAKE_DEFERRED_NAMESPACE_OBJECT;
+  const MAKE_OPTIMIZED_DEFERRED_NAMESPACE_OBJECT;
+  const DEFERRED_MODULES_ASYNC_TRANSITIVE_DEPENDENCIES;
+  const DEFERRED_MODULES_ASYNC_TRANSITIVE_DEPENDENCIES_SYMBOL;
 
-    // rspack only
-    const ASYNC_STARTUP = 1 << 73;
+  // rspack only
+  const ASYNC_STARTUP;
 
-    // react server component
-    const RSC_MANIFEST = 1 << 74;
-  }
+  // react server component
+  const RSC_MANIFEST;
 }
 
 impl Default for RuntimeGlobals {
@@ -335,7 +359,11 @@ pub fn runtime_globals_to_string(
     RuntimeGlobals::STARTUP => format!("{scope_name}.x"),
     RuntimeGlobals::MAKE_NAMESPACE_OBJECT => format!("{scope_name}.r"),
     RuntimeGlobals::MAKE_DEFERRED_NAMESPACE_OBJECT => format!("{scope_name}.z"),
-    RuntimeGlobals::MAKE_DEFERRED_NAMESPACE_OBJECT_SYMBOL => format!("{scope_name}.zS"),
+    RuntimeGlobals::MAKE_OPTIMIZED_DEFERRED_NAMESPACE_OBJECT => format!("{scope_name}.zO"),
+    RuntimeGlobals::DEFERRED_MODULES_ASYNC_TRANSITIVE_DEPENDENCIES => format!("{scope_name}.zT"),
+    RuntimeGlobals::DEFERRED_MODULES_ASYNC_TRANSITIVE_DEPENDENCIES_SYMBOL => {
+      format!("{scope_name}.zS")
+    }
     RuntimeGlobals::EXPORTS => {
       runtime_variable_to_string(&RuntimeVariable::Exports, compiler_options)
     }

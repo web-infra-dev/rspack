@@ -89,18 +89,12 @@ fn context_dependency_template_as_require_call(
 ) {
   let TemplateContext {
     compilation,
-    runtime_requirements,
+    runtime_template,
     ..
   } = code_generatable_context;
   let id = dep.id();
 
-  let mut expr = compilation.runtime_template.module_raw(
-    compilation,
-    runtime_requirements,
-    id,
-    dep.request(),
-    false,
-  );
+  let mut expr = runtime_template.module_raw(compilation, id, dep.request(), false);
 
   if compilation
     .get_module_graph()
@@ -127,14 +121,13 @@ fn context_dependency_template_as_id(
 ) {
   let TemplateContext {
     compilation,
-    runtime_requirements,
+    runtime_template,
     ..
   } = code_generatable_context;
   let id = dep.id();
 
-  let expr = compilation.runtime_template.module_raw(
+  let expr = runtime_template.module_raw(
     compilation,
-    runtime_requirements,
     id,
     dep.request(),
     dep.options().mode == ContextMode::Weak,

@@ -1,7 +1,7 @@
 use camino::Utf8PathBuf;
 use rspack_core::{
-  AsyncDependenciesBlock, ConstDependency, DependencyRange, ImportAttributes, RuntimeGlobals,
-  SharedSourceMap,
+  AsyncDependenciesBlock, ConstDependency, DependencyRange, ImportAttributes, ImportPhase,
+  RuntimeGlobals,
 };
 use rspack_plugin_javascript::{
   JavascriptParserPlugin,
@@ -87,12 +87,12 @@ impl RstestParserPlugin {
             range_expr,
             Some(call_expr.span.into()),
             parser.in_try,
-            Some(parser.source_rope().clone()),
+            Some(parser.source()),
           );
           parser.add_dependency(Box::new(dep));
 
           let range: DependencyRange = call_expr.callee.span().into();
-          let source_rope = parser.source_rope().clone();
+          let source_rope = parser.source();
           parser.add_presentational_dependency(Box::new(RequireHeaderDependency::new(
             range,
             Some(source_rope),
@@ -112,7 +112,7 @@ impl RstestParserPlugin {
           create_traceable_error(
             "Invalid function call".into(),
             "`rs.requireActual` function expects 1 argument".into(),
-            parser.source().to_owned(),
+            parser.source().to_string(),
             call_expr.span.into(),
           )
           .into(),
@@ -144,6 +144,7 @@ impl RstestParserPlugin {
             call_expr.span.into(),
             None,
             Some(attrs),
+            ImportPhase::Evaluation,
             parser.in_try,
             get_swc_comments(
               parser.comments,
@@ -152,10 +153,9 @@ impl RstestParserPlugin {
             ),
           ));
 
-          let source_map: SharedSourceMap = parser.source_rope().clone();
           let block = AsyncDependenciesBlock::new(
             *parser.module_identifier,
-            Into::<DependencyRange>::into(call_expr.span).to_loc(Some(&source_map)),
+            Into::<DependencyRange>::into(call_expr.span).to_loc(Some(parser.source())),
             None,
             vec![dep],
             Some(lit.value.to_string_lossy().to_string()),
@@ -170,7 +170,7 @@ impl RstestParserPlugin {
           create_traceable_error(
             "Invalid function call".into(),
             "`rs.importActual` function expects 1 argument".into(),
-            parser.source().to_owned(),
+            parser.source().to_string(),
             call_expr.span.into(),
           )
           .into(),
@@ -189,13 +189,13 @@ impl RstestParserPlugin {
 
     if is_relative_request {
       // Mock relative request to alongside `__mocks__` directory.
-      path_buf
-        .parent()
-        .map(|p| {
+      path_buf.parent().map_or_else(
+        || Utf8PathBuf::from("__mocks__").join(&path_buf),
+        |p| {
           p.join("__mocks__")
             .join(path_buf.file_name().unwrap_or_default())
-        })
-        .unwrap_or_else(|| Utf8PathBuf::from("__mocks__").join(path_buf))
+        },
+      )
     } else {
       // Mock non-relative request to `manual_mock_root` directory.
       Utf8PathBuf::from(&self.manual_mock_root).join(&path_buf)
@@ -263,7 +263,7 @@ impl RstestParserPlugin {
 
           if let Some(mocked_target) = self.calc_mocked_target(&lit_str).as_std_path().to_str() {
             let dep = MockModuleIdDependency::new(
-              lit_str.to_string(),
+              lit_str.clone(),
               first_arg.span().into(),
               false,
               true,
@@ -322,7 +322,7 @@ impl RstestParserPlugin {
           }
 
           let module_dep = MockModuleIdDependency::new(
-            lit_str.to_string(),
+            lit_str.clone(),
             first_arg.span().into(),
             false,
             true,
@@ -347,7 +347,7 @@ impl RstestParserPlugin {
             create_traceable_error(
               "Invalid function call".into(),
               "`rs.mock` function expects a string literal as the first argument".into(),
-              parser.source().to_owned(),
+              parser.source().to_string(),
               call_expr.span.into(),
             )
             .into(),
@@ -359,7 +359,7 @@ impl RstestParserPlugin {
           create_traceable_error(
             "Invalid function call".into(),
             "`rs.mock` function expects 1 or 2 arguments".into(),
-            parser.source().to_owned(),
+            parser.source().to_string(),
             call_expr.span.into(),
           )
           .into(),
@@ -402,7 +402,7 @@ impl RstestParserPlugin {
           create_traceable_error(
             "Invalid function call".into(),
             "`rs.hoisted` function expects 1 argument".into(),
-            parser.source().to_owned(),
+            parser.source().to_string(),
             call_expr.span.into(),
           )
           .into(),
@@ -433,7 +433,7 @@ impl RstestParserPlugin {
           create_traceable_error(
             "Invalid function call".into(),
             "`rs.resetModules` function expects 0 arguments".into(),
-            parser.source().to_owned(),
+            parser.source().to_string(),
             call_expr.span.into(),
           )
           .into(),
@@ -469,6 +469,7 @@ impl RstestParserPlugin {
                   call_expr.span.into(),
                   None,
                   Some(attrs),
+                  ImportPhase::Evaluation,
                   parser.in_try,
                   get_swc_comments(
                     parser.comments,
@@ -477,10 +478,9 @@ impl RstestParserPlugin {
                   ),
                 ));
 
-                let source_map: SharedSourceMap = parser.source_rope().clone();
                 let block = AsyncDependenciesBlock::new(
                   *parser.module_identifier,
-                  Into::<DependencyRange>::into(call_expr.span).to_loc(Some(&source_map)),
+                  Into::<DependencyRange>::into(call_expr.span).to_loc(Some(parser.source())),
                   None,
                   vec![dep],
                   Some(mocked_target.to_string()),
@@ -495,11 +495,11 @@ impl RstestParserPlugin {
                   first_arg.span().into(),
                   Some(call_expr.span.into()),
                   parser.in_try,
-                  Some(parser.source_rope().clone()),
+                  Some(parser.source()),
                 );
 
                 let range: DependencyRange = call_expr.callee.span().into();
-                let source_rope = parser.source_rope().clone();
+                let source_rope = parser.source();
                 parser.add_presentational_dependency(Box::new(RequireHeaderDependency::new(
                   range,
                   Some(source_rope),
@@ -521,7 +521,7 @@ impl RstestParserPlugin {
           create_traceable_error(
             "Invalid function call".into(),
             "`rs.importMock` or `rs.requireMock` function expects 1 argument".into(),
-            parser.source().to_owned(),
+            parser.source().to_string(),
             call_expr.span.into(),
           )
           .into(),
@@ -567,22 +567,22 @@ impl RstestParserPlugin {
   ) -> Option<bool> {
     match (ident.sym.as_str(), prop.sym.as_str()) {
       // rs.mock
-      ("rs", "mock") | ("rstest", "mock") => {
+      ("rs" | "rstest", "mock") => {
         self.process_mock(parser, call_expr, true, true, MockMethod::Mock, true);
         Some(false)
       }
       // rs.mockRequire
-      ("rs", "mockRequire") | ("rstest", "mockRequire") => {
+      ("rs" | "rstest", "mockRequire") => {
         self.process_mock(parser, call_expr, true, false, MockMethod::Mock, true);
         Some(false)
       }
       // rs.doMock
-      ("rs", "doMock") | ("rstest", "doMock") => {
+      ("rs" | "rstest", "doMock") => {
         self.process_mock(parser, call_expr, false, true, MockMethod::DoMock, true);
         Some(false)
       }
       // rs.doMockRequire
-      ("rs", "doMockRequire") | ("rstest", "doMockRequire") => {
+      ("rs" | "rstest", "doMockRequire") => {
         self.process_mock(
           parser,
           call_expr,
@@ -595,23 +595,23 @@ impl RstestParserPlugin {
       }
       // rs.importActual and rs.requireActual are handled by call_member_chain hook
       // rs.importMock
-      ("rs", "importMock") | ("rstest", "importMock") => self.load_mock(parser, call_expr, true),
+      ("rs" | "rstest", "importMock") => self.load_mock(parser, call_expr, true),
       // rs.requireMock
-      ("rs", "requireMock") | ("rstest", "requireMock") => self.load_mock(parser, call_expr, false),
+      ("rs" | "rstest", "requireMock") => self.load_mock(parser, call_expr, false),
       // rs.unmock
-      ("rs", "unmock") | ("rstest", "unmock") => {
+      ("rs" | "rstest", "unmock") => {
         self.process_mock(parser, call_expr, true, true, MockMethod::Unmock, false);
         Some(true)
       }
       // rs.doUnmock
-      ("rs", "doUnmock") | ("rstest", "doUnmock") => {
+      ("rs" | "rstest", "doUnmock") => {
         self.process_mock(parser, call_expr, false, true, MockMethod::Unmock, false);
         Some(true)
       }
       // rs.resetModules
-      ("rs", "resetModules") | ("rstest", "resetModules") => self.reset_modules(parser, call_expr),
+      ("rs" | "rstest", "resetModules") => self.reset_modules(parser, call_expr),
       // rs.hoisted
-      ("rs", "hoisted") | ("rstest", "hoisted") => self.hoisted(parser, call_expr, statement_span),
+      ("rs" | "rstest", "hoisted") => self.hoisted(parser, call_expr, statement_span),
       _ => {
         // Not a mock module, continue.
         None

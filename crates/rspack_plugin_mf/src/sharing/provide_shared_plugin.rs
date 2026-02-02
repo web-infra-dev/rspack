@@ -191,11 +191,11 @@ async fn compilation(
   let mut prefix_match_provides = self.prefix_match_provides.write().await;
   for (request, config) in &self.provides {
     if RELATIVE_REQUEST.is_match(request) || ABSOLUTE_REQUEST.is_match(request) {
-      resolved_provide_map.insert(request.to_string(), config.to_versioned());
+      resolved_provide_map.insert(request.clone(), config.to_versioned());
     } else if request.ends_with('/') {
-      prefix_match_provides.insert(request.to_string(), config.clone());
+      prefix_match_provides.insert(request.clone(), config.clone());
     } else {
-      match_provides.insert(request.to_string(), config.clone());
+      match_provides.insert(request.clone(), config.clone());
     }
   }
   Ok(())
@@ -211,10 +211,10 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
     .map(|(resource, config)| {
       (
         Box::new(ProvideSharedDependency::new(
-          config.share_scope.to_string(),
-          config.share_key.to_string(),
+          config.share_scope.clone(),
+          config.share_key.clone(),
           config.version.clone(),
-          resource.to_string(),
+          resource.clone(),
           config.eager,
           config.singleton,
           config.required_version.clone(),
@@ -249,7 +249,7 @@ async fn normal_module_factory_module(
   {
     return Ok(());
   }
-  let request = &create_data.raw_request;
+  let request = &data.request;
   {
     let match_provides = self.match_provides.read().await;
     if let Some(config) = match_provides.get(request) {
@@ -277,7 +277,7 @@ async fn normal_module_factory_module(
       self
         .provide_shared_module(
           request,
-          &(config.share_key.to_string() + remainder),
+          &(config.share_key.clone() + remainder),
           &config.share_scope,
           config.version.as_ref(),
           config.eager,

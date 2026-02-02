@@ -31,6 +31,5 @@ tracing    = { workspace = true }
 [package.metadata.cargo-shear]
 ignored = ["tracing", "tokio"]
 
-[lints.rust.unexpected_cfgs]
-check-cfg = ['cfg(allocative)']
-level     = "warn"
+[lints]
+workspace = true

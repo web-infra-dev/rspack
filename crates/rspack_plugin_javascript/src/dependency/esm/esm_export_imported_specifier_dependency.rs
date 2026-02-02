@@ -20,10 +20,10 @@ use rspack_core::{
   InitFragmentKey, InitFragmentStage, JavascriptParserOptions, LazyUntil, ModuleDependency,
   ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, NormalInitFragment, NormalReexportItem,
   PrefetchExportsInfoMode, PrefetchedExportsInfoWrapper, ResourceIdentifier, RuntimeCondition,
-  RuntimeGlobals, RuntimeSpec, SharedSourceMap, StarReexportsInfo, TemplateContext,
-  TemplateReplaceSource, UsageState, UsedName, collect_referenced_export_items,
-  create_exports_object_referenced, create_no_exports_referenced, filter_runtime, get_exports_type,
-  get_runtime_key, get_terminal_binding, property_access, property_name,
+  RuntimeGlobals, RuntimeSpec, StarReexportsInfo, TemplateContext, TemplateReplaceSource,
+  UsageState, UsedName, collect_referenced_export_items, create_exports_object_referenced,
+  create_no_exports_referenced, filter_runtime, get_exports_type, get_runtime_key,
+  get_terminal_binding, property_access, property_name,
   render_make_deferred_namespace_mode_from_exports_type, to_normal_comment,
 };
 use rspack_error::{Diagnostic, Error, Severity};
@@ -75,11 +75,11 @@ impl ESMExportImportedSpecifierDependency {
     export_presence_mode: ExportPresenceMode,
     phase: ImportPhase,
     attributes: Option<ImportAttributes>,
-    source_map: Option<SharedSourceMap>,
+    source: Option<&str>,
   ) -> Self {
     let resource_identifier =
       create_resource_identifier_for_esm_dependency(&request, attributes.as_ref());
-    let loc = range.to_loc(source_map.as_ref());
+    let loc = range.to_loc(source);
     Self {
       id: DependencyId::new(),
       source_order,
@@ -131,8 +131,7 @@ impl ESMExportImportedSpecifierDependency {
 
   pub fn get_ids<'a>(&'a self, mg: &'a ModuleGraph) -> &'a [Atom] {
     mg.get_dep_meta_if_existing(&self.id)
-      .map(|meta| meta.ids.as_slice())
-      .unwrap_or_else(|| self.ids.as_slice())
+      .map_or_else(|| self.ids.as_slice(), |meta| meta.ids.as_slice())
   }
 
   pub fn get_mode(
@@ -141,7 +140,7 @@ impl ESMExportImportedSpecifierDependency {
     runtime: Option<&RuntimeSpec>,
     module_graph_cache: &ModuleGraphCacheArtifact,
   ) -> ExportMode {
-    let key = (self.id, runtime.map(|r| get_runtime_key(r).to_string()));
+    let key = (self.id, runtime.map(|r| get_runtime_key(r).clone()));
     module_graph_cache.cached_get_mode(key, || {
       self.get_mode_inner(module_graph, module_graph_cache, runtime)
     })
@@ -484,8 +483,8 @@ impl ESMExportImportedSpecifierDependency {
   pub fn add_export_fragments(&self, ctxt: &mut TemplateContext, mode: ExportMode) {
     let TemplateContext {
       module,
-      runtime_requirements,
       runtime,
+      runtime_template,
       ..
     } = ctxt;
     let compilation = ctxt.compilation;
@@ -664,7 +663,7 @@ impl ESMExportImportedSpecifierDependency {
           .expect("should have imported module identifier");
         let exports_info =
           mg.get_prefetched_exports_info(&module_identifier, PrefetchExportsInfoMode::Default);
-        for item in mode.items.into_iter() {
+        for item in mode.items {
           let NormalReexportItem {
             name,
             ids,
@@ -785,9 +784,6 @@ impl ESMExportImportedSpecifierDependency {
             &format!("function(key) {{ return {import_var}[key]; }}.bind(0, __rspack_import_key)");
         }
 
-        runtime_requirements.insert(RuntimeGlobals::EXPORTS);
-        runtime_requirements.insert(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
-
         let module = mg
           .module_by_identifier(&module.identifier())
           .expect("should have module graph module");
@@ -802,12 +798,8 @@ impl ESMExportImportedSpecifierDependency {
               r#"{content}
 /* reexport */ {}({}, __rspack_reexport);
 "#,
-              compilation
-                .runtime_template
-                .render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS),
-              compilation
-                .runtime_template
-                .render_exports_argument(exports_name),
+              runtime_template.render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS),
+              runtime_template.render_exports_argument(exports_name),
             ),
             if is_async {
               InitFragmentStage::StageAsyncESMImports
@@ -833,19 +825,15 @@ impl ESMExportImportedSpecifierDependency {
     exports_type: ExportsType,
   ) -> (NormalInitFragment, ESMExportInitFragment) {
     let TemplateContext {
-      runtime_requirements,
       module,
       compilation,
+      runtime_template,
       ..
     } = ctxt;
-    runtime_requirements.insert(RuntimeGlobals::EXPORTS);
-    runtime_requirements.insert(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
-    runtime_requirements.insert(RuntimeGlobals::MAKE_DEFERRED_NAMESPACE_OBJECT);
     let module_id = ChunkGraph::get_module_id(&compilation.module_ids_artifact, target_module);
     let mode = render_make_deferred_namespace_mode_from_exports_type(exports_type);
     let mut export_map = vec![];
-    export_map.push((key.into(), format!("/* reexport deferred namespace object */ {name}_deferred_namespace_cache || ({name}_deferred_namespace_cache = {}({}, {}))", compilation
-                .runtime_template
+    export_map.push((key.into(), format!("/* reexport deferred namespace object */ {name}_deferred_namespace_cache || ({name}_deferred_namespace_cache = {}({}, {}))", runtime_template
                 .render_runtime_globals(&RuntimeGlobals::MAKE_DEFERRED_NAMESPACE_OBJECT), json_stringify(&module_id), mode).into()));
     let cache_var = format!("var {name}_deferred_namespace_cache;\n");
 
@@ -869,17 +857,10 @@ impl ESMExportImportedSpecifierDependency {
     name: &str,
     value_key: ValueKey,
   ) -> ESMExportInitFragment {
-    let TemplateContext {
-      runtime_requirements,
-      module,
-      ..
-    } = ctxt;
     let return_value = Self::get_return_value(name.to_owned(), value_key);
-    runtime_requirements.insert(RuntimeGlobals::EXPORTS);
-    runtime_requirements.insert(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
     let mut export_map = vec![];
     export_map.push((key.into(), format!("/* {comment} */ {return_value}").into()));
-    ESMExportInitFragment::new(module.get_exports_argument(), export_map)
+    ESMExportInitFragment::new(ctxt.module.get_exports_argument(), export_map)
   }
 
   fn get_reexport_fake_namespace_object_fragments(
@@ -890,22 +871,16 @@ impl ESMExportImportedSpecifierDependency {
     fake_type: u8,
   ) -> (NormalInitFragment, ESMExportInitFragment) {
     let TemplateContext {
-      runtime_requirements,
       module,
-      compilation,
+      runtime_template,
       ..
     } = ctxt;
-    runtime_requirements.insert(RuntimeGlobals::EXPORTS);
-    runtime_requirements.insert(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
-    runtime_requirements.insert(RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT);
     let mut export_map = vec![];
     let value = format!(
       r"/* reexport fake namespace object from non-ESM */ {name}_namespace_cache || ({name}_namespace_cache = {}({name}{}))",
-      compilation
-        .runtime_template
-        .render_runtime_globals(&RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT),
+      runtime_template.render_runtime_globals(&RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT),
       if fake_type == 0 {
-        "".to_string()
+        String::new()
       } else {
         format!(", {fake_type}")
       }
@@ -952,28 +927,18 @@ impl ESMExportImportedSpecifierDependency {
     }
     let TemplateContext {
       module,
-      runtime_requirements,
-      compilation,
+      runtime_template,
       ..
     } = ctxt;
-    let return_value = Self::get_return_value(name.to_string(), value_key);
+    let return_value = Self::get_return_value(name.clone(), value_key);
     let exports_name = module.get_exports_argument();
-    runtime_requirements.insert(RuntimeGlobals::EXPORTS);
-    runtime_requirements.insert(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
-    runtime_requirements.insert(RuntimeGlobals::HAS_OWN_PROPERTY);
     format!(
       "if({}({}, {})) {}({}, {{ {}: function() {{ return {}; }} }});\n",
-      compilation
-        .runtime_template
-        .render_runtime_globals(&RuntimeGlobals::HAS_OWN_PROPERTY),
+      runtime_template.render_runtime_globals(&RuntimeGlobals::HAS_OWN_PROPERTY),
       name,
       serde_json::to_string(&first_value_key.to_string()).expect("should serialize to string"),
-      compilation
-        .runtime_template
-        .render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS),
-      compilation
-        .runtime_template
-        .render_exports_argument(exports_name),
+      runtime_template.render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS),
+      runtime_template.render_exports_argument(exports_name),
       property_name(&key).expect("should have property_name"),
       return_value
     )
@@ -1601,7 +1566,7 @@ impl DependencyTemplate for ESMExportImportedSpecifierDependencyTemplate {
     if let Some(scope) = concatenation_scope {
       if let ExportMode::ReexportUndefined(mode) = mode {
         scope.register_raw_export(
-          mode.name.clone(),
+          mode.name,
           String::from("/* reexport non-default export from non-ESM */ undefined"),
         );
       };

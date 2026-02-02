@@ -79,7 +79,7 @@ impl<'a> ArtifactComparator<'a> {
       let module2 = modules2
         .get(module_id)
         .expect("module should exist in both graphs");
-      let module_debug_info = debug_info.with_field("module", &format!("{:?}", module_id));
+      let module_debug_info = debug_info.with_field("module", &format!("{module_id:?}"));
 
       // Compare dependencies and build mapping
       self.compare_module_dependencies_and_build_map(
@@ -98,7 +98,7 @@ impl<'a> ArtifactComparator<'a> {
       let module2 = modules2
         .get(&module_id)
         .expect("module should exist in both graphs");
-      let module_debug_info = debug_info.with_field("module", &format!("{:?}", module_id));
+      let module_debug_info = debug_info.with_field("module", &format!("{module_id:?}"));
 
       self.compare_module_build_info(module1, module2, &module_debug_info, &dep_id_map)?;
     }

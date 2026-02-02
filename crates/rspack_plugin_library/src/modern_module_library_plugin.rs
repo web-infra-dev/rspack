@@ -109,7 +109,7 @@ impl ModernModuleLibraryPlugin {
       })
       .collect::<HashSet<_>>();
 
-    for module_id in unconcatenated_module_ids.into_iter() {
+    for module_id in unconcatenated_module_ids {
       let chunk_runtime = compilation
         .chunk_graph
         .get_module_runtimes_iter(*module_id, &compilation.chunk_by_ukey)
@@ -311,7 +311,7 @@ async fn render_startup(
         } else if info_name == final_name {
           exports.push((info_name.to_string(), None));
         } else {
-          exports.push((final_name.to_string(), Some(info_name.to_string())));
+          exports.push((final_name.clone(), Some(info_name.to_string())));
         }
       }
     }
