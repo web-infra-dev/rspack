@@ -3239,7 +3239,7 @@ impl NewConcatenatedModuleIdent {
 }
 
 /// This function ports [crate::utils::IdentCollector].
-/// A a faster preorder visit based on the node array **has been tried** in https://github.com/web-infra-dev/rspack/pull/12369,
+/// A faster preorder visit based on the node array **has been tried** in https://github.com/web-infra-dev/rspack/pull/12369,
 /// which depends on `free_node` during parsing.
 /// However, a better mutability story on swc_experimental is designing and `free_node` is removed temporarily.
 /// Once it's finished, this function will be reverted back.
