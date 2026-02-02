@@ -85,6 +85,7 @@ const esm = i => ({
 	...common,
 	...entry(i),
 	output: {
+		module: true,
 		filename: `${i}/[name].mjs`,
 		chunkFilename: `${i}/[name].mjs`,
 		cssFilename: `${i}/[name].css`,
@@ -92,9 +93,6 @@ const esm = i => ({
 		assetModuleFilename: `${i}/[name][ext][query]`,
 		module: true
 	},
-	experiments: {
-		outputModule: true,
-	}
 });
 
 const node = i => ({

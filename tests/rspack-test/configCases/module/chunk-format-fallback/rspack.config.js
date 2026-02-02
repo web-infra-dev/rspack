@@ -9,14 +9,14 @@ module.exports = {
 		}
 	},
 	output: {
+		module: true,
 		filename: "[name].mjs"
 	},
 	optimization: {
 		runtimeChunk: "single"
 	},
 	experiments: {
-		outputModule: true
-	},
+		},
 	mode: "development",
 	devtool: false
 };

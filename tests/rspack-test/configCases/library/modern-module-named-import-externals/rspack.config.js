@@ -10,8 +10,7 @@ module.exports = {
 		chunkFormat: "module"
 	},
 	experiments: {
-		outputModule: true
-	},
+		},
 	resolve: {
 		extensions: [".js"]
 	},

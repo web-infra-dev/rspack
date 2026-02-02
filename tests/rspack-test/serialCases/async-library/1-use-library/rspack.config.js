@@ -4,6 +4,7 @@ var path = require("path");
 module.exports = (env, { testPath }) => ({
 	target: "node14",
 	output: {
+		module: true,
 		chunkLoading: "import"
 	},
 	resolve: {
@@ -12,6 +13,5 @@ module.exports = (env, { testPath }) => ({
 		}
 	},
 	experiments: {
-		outputModule: true
-	}
+		}
 });

@@ -43,8 +43,7 @@ module.exports = [
 			}
 		},
 		experiments: {
-			outputModule: true
-		},
+			},
 		plugins: [
 			new RslibPlugin({
 				interceptApiPlugin: true

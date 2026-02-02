@@ -1,6 +1,7 @@
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	output: {
+		module: true,
 		filename: "[name].mjs",
 		library: {
 			type: "module"
@@ -8,8 +9,7 @@ module.exports = {
 	},
 	target: ["web", "node"],
 	experiments: {
-		outputModule: true
-	},
+		},
 	optimization: {
 		minimize: true,
 		runtimeChunk: "single",

@@ -29,8 +29,7 @@ module.exports = [
 	{
 		...baseConfig(1, true),
 		experiments: {
-			outputModule: true
-		},
+			},
 		externals: {
 			os: "module os"
 		},

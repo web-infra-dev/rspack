@@ -1,7 +1,9 @@
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
-	experiments: {
-		outputModule: true
+	output: {
+		module: true
 	},
+	experiments: {
+		},
 	target: "node14"
 };

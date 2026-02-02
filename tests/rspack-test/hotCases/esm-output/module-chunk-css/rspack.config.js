@@ -2,8 +2,7 @@
 module.exports = {
 	mode: "development",
 	experiments: {
-		outputModule: true
-	},
+		},
 	module: {
 		rules: [
 			{

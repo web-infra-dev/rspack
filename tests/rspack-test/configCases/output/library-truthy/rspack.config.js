@@ -10,6 +10,5 @@ module.exports = {
 		avoidEntryIife: true
 	},
 	experiments: {
-		outputModule: true
-	}
+		}
 };

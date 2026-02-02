@@ -32,18 +32,9 @@ export default {
 
 ## experiments.outputModule
 
-- **类型：** `boolean`
-- **默认值：** `false`
+<ApiMeta stability={Stability.Removed} />
 
-开启之后，将尽可能输出符合 ECMAScript 语法的代码。例如，使用 `import()` 加载 chunk，使用 ESM exports 等等。
-
-```js title="rspack.config.mjs"
-export default {
-  experiments: {
-    outputModule: true,
-  },
-};
-```
+该选项已被移除，请使用 [`output.module`](/config/output#outputmodule)。
 
 ## experiments.css
 

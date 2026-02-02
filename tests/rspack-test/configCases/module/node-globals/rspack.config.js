@@ -10,7 +10,6 @@ module.exports = {
 		module: true
 	},
 	experiments: {
-		outputModule: true
-	},
+		},
 	target: "node14"
 };

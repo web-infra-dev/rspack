@@ -35,8 +35,7 @@ module.exports = [
 	{
 		...baseConfig(1, true),
 		experiments: {
-			outputModule: true
-		},
+			},
 		externals: {
 			react: "module react"
 		},
@@ -52,8 +51,7 @@ module.exports = [
 	{
 		...baseConfig(2, true),
 		experiments: {
-			outputModule: true
-		},
+			},
 		externals: {
 			react: "module react"
 		},

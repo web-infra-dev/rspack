@@ -373,7 +373,7 @@ jq('.my-element').animate(/* ... */);
 
 将 externals 的默认类型指定为 `'module'`。Rspack 将为模块中使用的 externals 生成类似 `import * as X from '...'` 的代码。
 
-确保开启了 [`experiments.outputModule`](/config/experiments#experimentsoutputmodule)，否则 Rspack 会抛出错误。
+确保开启了 [`output.module`](/config/output#outputmodule)。
 
 **示例**
 
@@ -384,8 +384,8 @@ jq('.my-element').animate(/* ... */);
 
 ```js title="rspack.config.mjs"
 export default {
-  experiments: {
-    outputModule: true,
+  output: {
+    module: true,
   },
   externalsType: 'module',
   externals: {

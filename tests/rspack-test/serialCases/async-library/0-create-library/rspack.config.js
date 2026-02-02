@@ -2,6 +2,7 @@
 module.exports = {
 	entry: "./a.js",
 	output: {
+		module: true,
 		filename: "lib.js",
 		library: {
 			type: "module"
@@ -12,6 +13,5 @@ module.exports = {
 		minimize: true
 	},
 	experiments: {
-		outputModule: true
-	}
+		}
 };

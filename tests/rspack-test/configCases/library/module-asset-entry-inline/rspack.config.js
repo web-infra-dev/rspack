@@ -8,6 +8,7 @@ module.exports = {
 	},
 	mode: "development",
 	output: {
+		module: true,
 		filename: `[name].js`,
 		module: true,
 		library: {
@@ -26,8 +27,7 @@ module.exports = {
 		]
 	},
 	experiments: {
-		outputModule: true
-	},
+		},
 	optimization: {
 		concatenateModules: false,
 		avoidEntryIife: true,

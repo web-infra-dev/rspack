@@ -6,8 +6,7 @@ module.exports = {
 		module: true
 	},
 	experiments: {
-		outputModule: true
-	},
+		},
 	target: "es2020",
 	optimization: {
 		splitChunks: {

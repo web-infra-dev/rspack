@@ -40,8 +40,7 @@ config.push(
 			module: true
 		},
 		experiments: {
-			outputModule: true
-		},
+			},
 		plugins: [
 			new DefinePlugin({
 				NODE_VALUE: typeof value === "boolean" ? value : JSON.stringify(value),
@@ -66,8 +65,7 @@ config.push(
 			}
 		},
 		experiments: {
-			outputModule: true
-		},
+			},
 		plugins: [
 			new DefinePlugin({
 				NODE_VALUE: typeof value === "boolean" ? value : JSON.stringify(value),
@@ -97,8 +95,7 @@ config.push({
 		module: true
 	},
 	experiments: {
-		outputModule: true
-	}
+		}
 });
 
 config.push({
@@ -115,8 +112,7 @@ config.push({
 		}
 	},
 	experiments: {
-		outputModule: true
-	}
+		}
 });
 
 config.push({
@@ -127,8 +123,7 @@ config.push({
 		module: true
 	},
 	experiments: {
-		outputModule: true
-	}
+		}
 });
 
 config.push({
@@ -145,8 +140,7 @@ config.push({
 		module: true
 	},
 	experiments: {
-		outputModule: true
-	}
+		}
 });
 
 module.exports = config;

@@ -10,6 +10,5 @@ module.exports = {
 		concatenateModules: true
 	},
 	experiments: {
-		outputModule: true
-	}
+		}
 };

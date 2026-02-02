@@ -21,6 +21,7 @@ module.exports = {
 	},
 	target: "node14",
 	output: {
+		module: true,
 		filename: "[name].mjs",
 		module: true,
 		library: {
@@ -30,8 +31,7 @@ module.exports = {
 	externals: "./imported.mjs",
 	externalsType: "module",
 	experiments: {
-		outputModule: true
-	},
+		},
 	optimization: {
 		concatenateModules: true
 	}

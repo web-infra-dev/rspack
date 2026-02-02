@@ -4,9 +4,9 @@
 module.exports = {
 	entry: "./index.js",
 	experiments: {
-		outputModule: true
-	},
+		},
 	output: {
+		module: true,
 		chunkFormat: "module",
 		library: {
 			type: "module"

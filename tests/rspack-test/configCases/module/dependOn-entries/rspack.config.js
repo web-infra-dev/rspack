@@ -14,6 +14,7 @@ module.exports = () => ({
 		shared: "./common.js"
 	},
 	output: {
+		module: true,
 		filename: "[name].mjs",
 		library: {
 			type: "module"
@@ -21,8 +22,7 @@ module.exports = () => ({
 	},
 	target: ["web", "es2020"],
 	experiments: {
-		outputModule: true
-	},
+		},
 	optimization: {
 		minimize: false,
 		runtimeChunk: false,

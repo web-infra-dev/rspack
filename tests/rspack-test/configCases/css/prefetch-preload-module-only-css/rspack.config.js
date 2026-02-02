@@ -1,9 +1,6 @@
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	entry: "./index.mjs",
-	experiments: {
-		outputModule: true,
-	},
 	module: {
 		rules: [
 			{
@@ -15,6 +12,7 @@ module.exports = {
 	name: "esm",
 	target: "web",
 	output: {
+		module: true,
 		publicPath: "",
 		module: true,
 		filename: "bundle0.mjs",

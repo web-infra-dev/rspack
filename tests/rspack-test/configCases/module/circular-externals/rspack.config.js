@@ -7,8 +7,7 @@ const path = require("path");
 module.exports = {
 	entry: "./index.js",
 	experiments: {
-		outputModule: true
-	},
+		},
 	output: {
 		module: true,
 		library: {

@@ -7,9 +7,9 @@ module.exports = {
 		minimize: false
 	},
 	experiments: {
-		outputModule: true
-	},
+		},
 	output: {
+		module: true,
 		library: {
 			type: "module"
 		},

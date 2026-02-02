@@ -7,7 +7,4 @@ module.exports = {
 		chunkFormat: "module",
 		filename: "[name].mjs"
 	},
-	experiments: {
-		outputModule: true
-	}
 };

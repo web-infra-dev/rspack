@@ -14,7 +14,4 @@ module.exports = {
 		"externals-2/foo": "fs?1"
 	},
 	externalsType: "module",
-	experiments: {
-		outputModule: true
-	}
 };

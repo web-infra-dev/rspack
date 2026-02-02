@@ -119,7 +119,6 @@ export const applyRspackOptionsDefaults = (
       (typeof target === 'string' && target.startsWith('browserslist')) ||
       (Array.isArray(target) &&
         target.some((target) => target.startsWith('browserslist'))),
-    outputModule: options.experiments.outputModule,
     entry: options.entry,
   });
 
@@ -499,13 +498,11 @@ const applyOutputDefaults = (
   options: RspackOptionsNormalized,
   {
     context,
-    outputModule,
     targetProperties: tp,
     isAffectedByBrowserslist,
     entry,
   }: {
     context: Context;
-    outputModule?: boolean;
     targetProperties: false | TargetProperties;
     isAffectedByBrowserslist: boolean;
     entry: EntryNormalized;
@@ -553,7 +550,39 @@ const applyOutputDefaults = (
     }
   });
   F(output, 'devtoolNamespace', () => output.uniqueName);
-  F(output, 'module', () => !!outputModule);
+  if (output.library) {
+    F(output.library, 'type', () => (output.module ? 'modern-module' : 'var'));
+  }
+  const forEachEntry = (fn: (desc: EntryDescriptionNormalized) => void) => {
+    if (typeof entry === 'function') {
+      return;
+    }
+    for (const name of Object.keys(entry)) {
+      fn(entry[name]);
+    }
+  };
+  A(output, 'enabledLibraryTypes', () => {
+    const enabledLibraryTypes = [];
+    if (output.library) {
+      enabledLibraryTypes.push(output.library.type);
+    }
+    forEachEntry((desc) => {
+      if (desc.library) {
+        enabledLibraryTypes.push(desc.library.type);
+      }
+    });
+    if (enabledLibraryTypes.includes('modern-module')) {
+      applyLimits(options);
+    }
+    return enabledLibraryTypes;
+  });
+  D(
+    output,
+    'module',
+    ['modern-module', 'module'].some((ty) =>
+      output.enabledLibraryTypes!.includes(ty),
+    ),
+  );
 
   const environment = output.environment!;
 
@@ -684,9 +713,7 @@ const applyOutputDefaults = (
   // IGNORE(output.hashDigestLength): xxhash64 uses 16-bit hash
   D(output, 'hashDigestLength', 16);
   D(output, 'strictModuleErrorHandling', false);
-  if (output.library) {
-    F(output.library, 'type', () => (output.module ? 'module' : 'var'));
-  }
+
   F(output, 'chunkFormat', () => {
     if (tp) {
       const helpMessage = isAffectedByBrowserslist
@@ -809,29 +836,6 @@ const applyOutputDefaults = (
     D(trustedTypes, 'onPolicyCreationFailure', 'stop');
   }
 
-  const forEachEntry = (fn: (desc: EntryDescriptionNormalized) => void) => {
-    if (typeof entry === 'function') {
-      return;
-    }
-    for (const name of Object.keys(entry)) {
-      fn(entry[name]);
-    }
-  };
-  A(output, 'enabledLibraryTypes', () => {
-    const enabledLibraryTypes = [];
-    if (output.library) {
-      enabledLibraryTypes.push(output.library.type);
-    }
-    forEachEntry((desc) => {
-      if (desc.library) {
-        enabledLibraryTypes.push(desc.library.type);
-      }
-    });
-    if (enabledLibraryTypes.includes('modern-module')) {
-      applyLimits(options);
-    }
-    return enabledLibraryTypes;
-  });
   A(output, 'enabledChunkLoadingTypes', () => {
     const enabledChunkLoadingTypes = new Set<string>();
     if (output.chunkLoading) {

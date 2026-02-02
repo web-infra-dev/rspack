@@ -31,18 +31,9 @@ export default {
 
 ## experiments.outputModule
 
-- **Type:** `boolean`
-- **Default:** `false`
+<ApiMeta stability={Stability.Removed} />
 
-When enabled, Rspack outputs ECMAScript module syntax whenever possible. For example, `import()` to load chunks, ESM exports to expose chunk data, and more.
-
-```js title="rspack.config.mjs"
-export default {
-  experiments: {
-    outputModule: true,
-  },
-};
-```
+This option is removed in favor of [`output.module`](/config/output#outputmodule).
 
 ## experiments.css
 

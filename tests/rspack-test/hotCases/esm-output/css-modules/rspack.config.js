@@ -3,8 +3,7 @@ module.exports = {
 	mode: "development",
 	target: "web",
 	experiments: {
-		outputModule: true
-	},
+		},
 	module: {
 		rules: [
 			{

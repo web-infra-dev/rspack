@@ -10,6 +10,7 @@ module.exports = {
 		m: "./m.js"
 	},
 	output: {
+		module: true,
 		filename: "[name].mjs",
 		chunkFormat: "module",
 		chunkLoading: "import",
@@ -18,8 +19,7 @@ module.exports = {
 		}
 	},
 	experiments: {
-		outputModule: true
-	},
+		},
 	plugins: [
 		{
 			apply(compiler) {

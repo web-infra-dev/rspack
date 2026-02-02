@@ -17,6 +17,5 @@ module.exports = {
 		runtimeChunk: "single"
 	},
 	experiments: {
-		outputModule: true
-	}
+		}
 };

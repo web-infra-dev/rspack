@@ -44,8 +44,7 @@ module.exports = [
 			}
 		},
 		experiments: {
-			outputModule: true
-		},
+			},
 		optimization: {
 			// minimize: false
 		},

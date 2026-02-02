@@ -14,8 +14,7 @@ module.exports = (env, { testPath }) => [
 			}
 		},
 		experiments: {
-			outputModule: true
-		},
+			},
 		plugins: [
 			{
 				apply(compiler) {
@@ -37,7 +36,7 @@ module.exports = (env, { testPath }) => [
 			filename: "test.mjs",
 			module: true
 		},
-		experiments: { outputModule: true },
+		experiments: { },
 		externals: {
 			lib: path.resolve(testPath, "./lib.mjs")
 		},

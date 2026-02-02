@@ -12,6 +12,5 @@ module.exports = {
 		filename: "bundle.mjs"
 	},
 	experiments: {
-		outputModule: true
-	}
+		}
 };

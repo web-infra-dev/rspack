@@ -22,9 +22,6 @@ module.exports = [
 			external1: "module external1-alias",
 			external2: "module-import external2-alias"
 		},
-		experiments: {
-			outputModule: true
-		},
 		optimization: {
 			avoidEntryIife: true
 		}

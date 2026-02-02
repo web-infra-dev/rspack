@@ -12,8 +12,7 @@ module.exports = (env, { testPath }) => [
 			publicPath: "auto"
 		},
 		experiments: {
-			outputModule: true
-		}
+			}
 	},
 	{
 		devtool: false,
@@ -24,8 +23,7 @@ module.exports = (env, { testPath }) => [
 			chunkFilename: "async/[id].bundle1.mjs"
 		},
 		experiments: {
-			outputModule: true
-		}
+			}
 	},
 	{
 		devtool: false,
@@ -37,8 +35,7 @@ module.exports = (env, { testPath }) => [
 			chunkFilename: "async/[id].bundle2.mjs"
 		},
 		experiments: {
-			outputModule: true
-		}
+			}
 	},
 	{
 		devtool: false,
@@ -51,8 +48,7 @@ module.exports = (env, { testPath }) => [
 			chunkFilename: "async/[id].bundle3.mjs"
 		},
 		experiments: {
-			outputModule: true
-		}
+			}
 	},
 	{
 		devtool: false,
@@ -62,8 +58,7 @@ module.exports = (env, { testPath }) => [
 			publicPath: ""
 		},
 		experiments: {
-			outputModule: true
-		}
+			}
 	},
 	{
 		devtool: false,
@@ -74,8 +69,7 @@ module.exports = (env, { testPath }) => [
 			chunkFilename: "async/[id].bundle5.mjs"
 		},
 		experiments: {
-			outputModule: true
-		}
+			}
 	},
 	{
 		devtool: false,
@@ -87,8 +81,7 @@ module.exports = (env, { testPath }) => [
 			chunkFilename: "async/[id].bundle6.mjs"
 		},
 		experiments: {
-			outputModule: true
-		}
+			}
 	},
 	{
 		devtool: false,
@@ -101,8 +94,7 @@ module.exports = (env, { testPath }) => [
 			chunkFilename: "async/[id].bundle7.mjs"
 		},
 		experiments: {
-			outputModule: true
-		}
+			}
 	},
 	{
 		devtool: false,
@@ -112,8 +104,7 @@ module.exports = (env, { testPath }) => [
 			publicPath: "https://example.com/public/path/"
 		},
 		experiments: {
-			outputModule: true
-		}
+			}
 	},
 	{
 		devtool: false,
@@ -124,8 +115,7 @@ module.exports = (env, { testPath }) => [
 			chunkFilename: "async/[id].bundle9.mjs"
 		},
 		experiments: {
-			outputModule: true
-		}
+			}
 	},
 	{
 		devtool: false,
@@ -137,8 +127,7 @@ module.exports = (env, { testPath }) => [
 			chunkFilename: "async/[id].bundle10.mjs"
 		},
 		experiments: {
-			outputModule: true
-		}
+			}
 	},
 	{
 		devtool: false,
@@ -151,8 +140,7 @@ module.exports = (env, { testPath }) => [
 			chunkFilename: "async/[id].bundle11.mjs"
 		},
 		experiments: {
-			outputModule: true
-		}
+			}
 	},
 	{
 		devtool: false,
@@ -165,8 +153,7 @@ module.exports = (env, { testPath }) => [
 			chunkFilename: "async/[id].bundle12.mjs"
 		},
 		experiments: {
-			outputModule: true
-		}
+			}
 	},
 	{
 		devtool: false,
@@ -179,8 +166,7 @@ module.exports = (env, { testPath }) => [
 			chunkFilename: "async/[id].bundle13.mjs"
 		},
 		experiments: {
-			outputModule: true
-		}
+			}
 	},
 	{
 		devtool: false,
@@ -192,8 +178,7 @@ module.exports = (env, { testPath }) => [
 			chunkFilename: "js/[id].bundle14.mjs"
 		},
 		experiments: {
-			outputModule: true
-		}
+			}
 	},
 	{
 		devtool: false,
@@ -206,7 +191,6 @@ module.exports = (env, { testPath }) => [
 			chunkFilename: "js/[id].bundle15.mjs"
 		},
 		experiments: {
-			outputModule: true
-		}
+			}
 	}
 ];

@@ -962,7 +962,6 @@ impl CompilerOptionsBuilder {
         .push(BuiltinPluginOptions::CssModulesPlugin);
     }
     let future_defaults = expect!(experiments_builder.future_defaults);
-    let output_module = expect!(experiments_builder.output_module);
 
     // apply module defaults
     let module = f!(self.module.take(), ModuleOptions::builder).build(
@@ -979,7 +978,7 @@ impl CompilerOptionsBuilder {
     let output = output_builder.build(
       builder_context,
       &context,
-      output_module,
+      false,
       Some(&target_properties),
       is_affected_by_browserslist,
       development,
@@ -1149,7 +1148,7 @@ impl CompilerOptionsBuilder {
 
     // apply node defaults
     let node = f!(self.node.take(), <Option<NodeOption>>::builder)
-      .build(&target_properties, output_module)?;
+      .build(&target_properties, output.module)?;
 
     // apply optimization defaults
     let optimization = f!(self.optimization.take(), Optimization::builder).build(
@@ -3672,8 +3671,6 @@ impl OptimizationOptionsBuilder {
 /// [`Experiments`]: rspack_core::options::Experiments
 #[derive(Debug, Default)]
 pub struct ExperimentsBuilder {
-  /// Whether to enable output module.
-  output_module: Option<bool>,
   /// Whether to enable future defaults.
   future_defaults: Option<bool>,
   /// Whether to enable css.
@@ -3686,7 +3683,6 @@ pub struct ExperimentsBuilder {
 impl From<Experiments> for ExperimentsBuilder {
   fn from(value: Experiments) -> Self {
     ExperimentsBuilder {
-      output_module: None,
       future_defaults: None,
       css: Some(value.css),
       async_web_assembly: None,
@@ -3697,7 +3693,6 @@ impl From<Experiments> for ExperimentsBuilder {
 impl From<&mut ExperimentsBuilder> for ExperimentsBuilder {
   fn from(value: &mut ExperimentsBuilder) -> Self {
     ExperimentsBuilder {
-      output_module: value.output_module.take(),
       future_defaults: value.future_defaults.take(),
       css: value.css.take(),
       async_web_assembly: value.async_web_assembly.take(),
@@ -3737,7 +3732,6 @@ impl ExperimentsBuilder {
     let future_defaults = w!(self.future_defaults, false);
     w!(self.css, *future_defaults);
     w!(self.async_web_assembly, true);
-    w!(self.output_module, false);
 
     Ok(Experiments {
       css: d!(self.css, false),

@@ -7,6 +7,7 @@ module.exports = {
 		index: "./img.png"
 	},
 	output: {
+		module: true,
 		filename: `[name].js`,
 		chunkFilename: `async.js`,
 		module: true,
@@ -28,9 +29,6 @@ module.exports = {
 				}
 			}
 		]
-	},
-	experiments: {
-		outputModule: true
 	},
 	optimization: {
 		concatenateModules: true,

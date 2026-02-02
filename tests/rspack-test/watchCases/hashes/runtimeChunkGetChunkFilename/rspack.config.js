@@ -5,6 +5,7 @@ module.exports = {
 		entry2: "./index2.js"
 	},
 	output: {
+		module: true,
 		chunkLoading: "import",
 		chunkFormat: "module",
 		filename: "[name].[contenthash:8].js",
@@ -13,9 +14,6 @@ module.exports = {
 	optimization: {
 		runtimeChunk: true,
 		minimize: false
-	},
-	experiments: {
-		outputModule: true
 	},
 	module: {
 		rules: [
