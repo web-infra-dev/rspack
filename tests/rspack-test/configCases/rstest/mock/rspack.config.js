@@ -154,6 +154,7 @@ const rstestEntry = entry => {
 		plugins: [
 			new RstestSimpleRuntimePlugin(),
 			new RstestPlugin({
+				globals: true,
 				injectModulePathName: true,
 				hoistMockModule: true,
 				importMetaPathName: true,

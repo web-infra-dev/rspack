@@ -29,6 +29,9 @@ pub struct RstestPluginOptions {
   pub import_meta_path_name: bool,
   pub manual_mock_root: String,
   pub preserve_new_url: Vec<String>,
+  /// Whether to handle global `rs` and `rstest` variables.
+  /// When false, only ESM imported variables are processed.
+  pub globals: bool,
 }
 
 #[derive(Debug)]
@@ -108,6 +111,7 @@ async fn nmf_parser(
       self.options.hoist_mock_module,
       self.options.import_meta_path_name,
       self.options.manual_mock_root.clone(),
+      self.options.globals,
     )) as BoxJavascriptParserPlugin);
   }
 

@@ -42,6 +42,9 @@ pub struct RstestParserPlugin {
   pub hoist_mock_module: bool,
   pub import_meta_path_name: bool,
   pub manual_mock_root: String,
+  /// Whether to handle global `rs` and `rstest` variables.
+  /// When false, only ESM imported variables are processed.
+  pub globals: bool,
 }
 
 trait JavascriptParserExt<'a> {
@@ -60,12 +63,14 @@ impl RstestParserPlugin {
     hoist_mock_module: bool,
     import_meta_path_name: bool,
     manual_mock_root: String,
+    globals: bool,
   ) -> Self {
     Self {
       module_path_name,
       hoist_mock_module,
       import_meta_path_name,
       manual_mock_root,
+      globals,
     }
   }
 
@@ -707,22 +712,10 @@ impl JavascriptParserPlugin for RstestParserPlugin {
     _members_optionals: &[bool],
     _member_ranges: &[Span],
   ) -> Option<bool> {
-    // Handle rs.requireActual and rs.importActual calls in any context
-    // First, check for free variables (global rs or rstest)
-    if (for_name == "rs" || for_name == "rstest") && members.len() == 1 {
-      match members[0].as_str() {
-        "requireActual" => {
-          return self.process_require_actual(parser, call_expr);
-        }
-        "importActual" => {
-          return self.process_import_actual(parser, call_expr);
-        }
-        _ => {}
-      }
-    }
-
-    // Handle ESM imports: import { rs } from '@rstest/core' or import { rstest } from '@rstest/core'
-    // When for_name is the ESM specifier tag, extract the variable name from call_expr directly
+    // Handle rs.requireActual and rs.importActual calls
+    // Extract the variable name from call_expr.callee to handle both:
+    // 1. Global variables: rs.importActual() or rstest.importActual()
+    // 2. ESM imports: import { rs } from '@rstest/core'; rs.importActual()
     if members.len() == 1 {
       if let Callee::Expr(callee) = &call_expr.callee
         && let Some(member_expr) = callee.as_member()
@@ -730,6 +723,15 @@ impl JavascriptParserPlugin for RstestParserPlugin {
       {
         let var_name = ident.sym.as_str();
         if var_name == "rs" || var_name == "rstest" {
+          // Check if this is a global variable (for_name matches var_name)
+          // or ESM import (for_name is the ESM specifier tag)
+          let is_global = for_name == var_name;
+
+          // Skip global variables if globals option is disabled
+          if is_global && !self.globals {
+            return None;
+          }
+
           match members[0].as_str() {
             "requireActual" => {
               return self.process_require_actual(parser, call_expr);
