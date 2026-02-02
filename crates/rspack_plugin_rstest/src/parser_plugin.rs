@@ -58,6 +58,7 @@ impl<'a> JavascriptParserExt<'a> for JavascriptParser<'a> {
 }
 
 impl RstestParserPlugin {
+  #[allow(clippy::fn_params_excessive_bools)]
   pub fn new(
     module_path_name: bool,
     hoist_mock_module: bool,
@@ -716,31 +717,30 @@ impl JavascriptParserPlugin for RstestParserPlugin {
     // Extract the variable name from call_expr.callee to handle both:
     // 1. Global variables: rs.importActual() or rstest.importActual()
     // 2. ESM imports: import { rs } from '@rstest/core'; rs.importActual()
-    if members.len() == 1 {
-      if let Callee::Expr(callee) = &call_expr.callee
-        && let Some(member_expr) = callee.as_member()
-        && let Some(ident) = member_expr.obj.as_ident()
-      {
-        let var_name = ident.sym.as_str();
-        if var_name == "rs" || var_name == "rstest" {
-          // Check if this is a global variable (for_name matches var_name)
-          // or ESM import (for_name is the ESM specifier tag)
-          let is_global = for_name == var_name;
+    if members.len() == 1
+      && let Callee::Expr(callee) = &call_expr.callee
+      && let Some(member_expr) = callee.as_member()
+      && let Some(ident) = member_expr.obj.as_ident()
+    {
+      let var_name = ident.sym.as_str();
+      if var_name == "rs" || var_name == "rstest" {
+        // Check if this is a global variable (for_name matches var_name)
+        // or ESM import (for_name is the ESM specifier tag)
+        let is_global = for_name == var_name;
 
-          // Skip global variables if globals option is disabled
-          if is_global && !self.globals {
-            return None;
-          }
+        // Skip global variables if globals option is disabled
+        if is_global && !self.globals {
+          return None;
+        }
 
-          match members[0].as_str() {
-            "requireActual" => {
-              return self.process_require_actual(parser, call_expr);
-            }
-            "importActual" => {
-              return self.process_import_actual(parser, call_expr);
-            }
-            _ => {}
+        match members[0].as_str() {
+          "requireActual" => {
+            return self.process_require_actual(parser, call_expr);
           }
+          "importActual" => {
+            return self.process_import_actual(parser, call_expr);
+          }
+          _ => {}
         }
       }
     }
