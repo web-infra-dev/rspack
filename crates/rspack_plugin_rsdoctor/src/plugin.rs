@@ -9,7 +9,7 @@ use rspack_collections::Identifier;
 use rspack_core::{
   ChunkGroupUkey, Compilation, CompilationAfterCodeGeneration, CompilationAfterProcessAssets,
   CompilationId, CompilationModuleIds, CompilationOptimizeChunkModules, CompilationOptimizeChunks,
-  CompilationParams, CompilerCompilation, ModuleIdsArtifact, Plugin,
+  CompilationParams, CompilerAfterEmit, CompilerCompilation, ModuleIdsArtifact, Plugin,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
@@ -22,9 +22,9 @@ use rspack_util::fx_hash::FxDashMap;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use crate::{
-  EntrypointUkey, ModuleUkey, RsdoctorAssetPatch, RsdoctorChunkGraph, RsdoctorModuleGraph,
-  RsdoctorModuleIdsPatch, RsdoctorModuleSourcesPatch, RsdoctorPluginHooks,
-  RsdoctorStatsModuleIssuer,
+  EntrypointUkey, ModuleUkey, RsdoctorAssetPatch, RsdoctorChunkGraph, RsdoctorJsonAssetSize,
+  RsdoctorJsonAssetSizesPatch, RsdoctorModuleGraph, RsdoctorModuleIdsPatch,
+  RsdoctorModuleSourcesPatch, RsdoctorPluginHooks, RsdoctorStatsModuleIssuer,
   chunk_graph::{
     collect_assets, collect_chunk_assets, collect_chunk_dependencies, collect_chunk_modules,
     collect_chunks, collect_entrypoint_assets, collect_entrypoints,
@@ -43,6 +43,8 @@ pub type SendAssets =
   Arc<dyn Fn(RsdoctorAssetPatch) -> BoxFuture<'static, Result<()>> + Send + Sync>;
 pub type SendModuleSources =
   Arc<dyn Fn(RsdoctorModuleIdsPatch) -> BoxFuture<'static, Result<()>> + Send + Sync>;
+pub type SendJsonAssetSizes =
+  Arc<dyn Fn(RsdoctorJsonAssetSizesPatch) -> BoxFuture<'static, Result<()>> + Send + Sync>;
 
 /// Safety with [atomic_refcell::AtomicRefCell]:
 ///
@@ -61,6 +63,14 @@ static MODULE_UKEY_MAP: LazyLock<FxDashMap<CompilationId, HashMap<Identifier, Mo
 static ENTRYPOINT_UKEY_MAP: LazyLock<
   FxDashMap<CompilationId, HashMap<ChunkGroupUkey, EntrypointUkey>>,
 > = LazyLock::new(FxDashMap::default);
+
+#[cfg_attr(allocative, allocative::root)]
+static MODULE_PATH_MAP: LazyLock<FxDashMap<CompilationId, HashMap<String, ModuleUkey>>> =
+  LazyLock::new(FxDashMap::default);
+
+#[cfg_attr(allocative, allocative::root)]
+static MODULE_GRAPH_MAP: LazyLock<FxDashMap<CompilationId, RsdoctorModuleGraph>> =
+  LazyLock::new(FxDashMap::default);
 
 #[derive(Debug, Hash, PartialEq, Eq)]
 pub enum RsdoctorPluginModuleGraphFeature {
@@ -284,8 +294,11 @@ async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<
     let mut module_ukey_map = MODULE_UKEY_MAP
       .get_mut(&compilation.id())
       .expect("should have module ukey map");
+    let mut module_path_map = MODULE_PATH_MAP.entry(compilation.id()).or_default();
     for (module_id, module) in rsd_modules.iter() {
       module_ukey_map.insert(*module_id, module.ukey);
+      // Save module path to ukey mapping for JSON size update
+      module_path_map.insert(module.path.clone(), module.ukey);
     }
   }
 
@@ -359,15 +372,20 @@ async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<
   let chunk_modules =
     collect_chunk_modules(chunk_by_ukey, &module_ukey_map, chunk_graph, module_graph);
 
+  // Save module graph for later JSON size update
+  let mut module_graph_data = RsdoctorModuleGraph {
+    modules: rsd_modules.into_values().collect::<Vec<_>>(),
+    dependencies: rsd_dependencies.into_values().collect::<Vec<_>>(),
+    chunk_modules: chunk_modules.clone(),
+  };
+
+  MODULE_GRAPH_MAP.insert(compilation.id(), module_graph_data.clone());
+
   tokio::spawn(async move {
     match hooks
       .borrow()
       .module_graph
-      .call(&mut RsdoctorModuleGraph {
-        modules: rsd_modules.into_values().collect::<Vec<_>>(),
-        dependencies: rsd_dependencies.into_values().collect::<Vec<_>>(),
-        chunk_modules,
-      })
+      .call(&mut module_graph_data)
       .await
     {
       Ok(_) => {}
@@ -500,6 +518,88 @@ async fn after_process_assets(
   Ok(())
 }
 
+#[plugin_hook(CompilerAfterEmit for RsdoctorPlugin)]
+async fn after_emit(&self, compilation: &mut Compilation) -> Result<()> {
+  let hooks = RsdoctorPlugin::get_compilation_hooks(compilation.id());
+
+  // Collect JSON file sizes
+  let mut json_assets = Vec::new();
+  let mut json_size_map: HashMap<String, i32> = HashMap::default();
+
+  for (path, asset) in compilation.assets().iter() {
+    // Check if the file is a JSON file
+    if path.ends_with(".json") {
+      let size = asset
+        .get_source()
+        .map(|source| source.size())
+        .unwrap_or_default() as i32;
+
+      json_assets.push(RsdoctorJsonAssetSize {
+        path: path.clone(),
+        size,
+      });
+
+      // Store JSON file size by path for module graph update
+      json_size_map.insert(path.clone(), size);
+    }
+  }
+
+  // Update module graph with JSON file sizes
+  if !json_size_map.is_empty()
+    && self.has_module_graph_feature(RsdoctorPluginModuleGraphFeature::ModuleGraph)
+  {
+    if let Some(mut module_graph_data) = MODULE_GRAPH_MAP.get_mut(&compilation.id()) {
+      let module_path_map = MODULE_PATH_MAP
+        .get(&compilation.id())
+        .expect("should have module path map");
+
+      // Update module sizes for JSON files
+      for (json_path, json_size) in json_size_map.iter() {
+        // Try to find matching module by path
+        if let Some(&module_ukey) = module_path_map.get(json_path) {
+          // Update the module size in the saved module graph
+          if let Some(module) = module_graph_data
+            .modules
+            .iter_mut()
+            .find(|m| m.ukey == module_ukey)
+          {
+            module.size = Some(*json_size);
+          }
+        }
+      }
+
+      // Re-send updated module graph
+      let mut updated_module_graph = module_graph_data.clone();
+      let hooks_clone = hooks.clone();
+      tokio::spawn(async move {
+        match hooks_clone
+          .borrow()
+          .module_graph
+          .call(&mut updated_module_graph)
+          .await
+        {
+          Ok(_) => {}
+          Err(e) => panic!("rsdoctor send updated module graph failed: {e}"),
+        };
+      });
+    }
+  }
+
+  tokio::spawn(async move {
+    match hooks
+      .borrow()
+      .json_asset_sizes
+      .call(&mut RsdoctorJsonAssetSizesPatch { json_assets })
+      .await
+    {
+      Ok(_) => {}
+      Err(e) => panic!("rsdoctor send json asset sizes failed: {e}"),
+    };
+  });
+
+  Ok(())
+}
+
 impl Plugin for RsdoctorPlugin {
   fn name(&self) -> &'static str {
     "rsdoctor"
@@ -528,6 +628,8 @@ impl Plugin for RsdoctorPlugin {
       .compilation_hooks
       .after_process_assets
       .tap(after_process_assets::new(self));
+
+    ctx.compiler_hooks.after_emit.tap(after_emit::new(self));
 
     SourceMapDevToolModuleOptionsPlugin::new(SourceMapDevToolModuleOptionsPluginOptions {
       cheap: self.options.source_map_features.cheap,

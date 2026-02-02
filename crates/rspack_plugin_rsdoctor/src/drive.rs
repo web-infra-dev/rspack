@@ -3,8 +3,8 @@ use rspack_hook::define_hook;
 use rspack_util::allocative;
 
 use crate::{
-  RsdoctorAssetPatch, RsdoctorChunkGraph, RsdoctorModuleGraph, RsdoctorModuleIdsPatch,
-  RsdoctorModuleSourcesPatch,
+  RsdoctorAssetPatch, RsdoctorChunkGraph, RsdoctorJsonAssetSizesPatch, RsdoctorModuleGraph,
+  RsdoctorModuleIdsPatch, RsdoctorModuleSourcesPatch,
 };
 
 define_hook!(RsdoctorPluginModuleGraph: SeriesBail(data: &mut RsdoctorModuleGraph) -> bool);
@@ -12,6 +12,7 @@ define_hook!(RsdoctorPluginChunkGraph: SeriesBail(data: &mut RsdoctorChunkGraph)
 define_hook!(RsdoctorPluginModuleIds: SeriesBail(data: &mut RsdoctorModuleIdsPatch) -> bool);
 define_hook!(RsdoctorPluginModuleSources: SeriesBail(data: &mut RsdoctorModuleSourcesPatch) -> bool);
 define_hook!(RsdoctorPluginAssets: SeriesBail(data: &mut RsdoctorAssetPatch) -> bool);
+define_hook!(RsdoctorPluginJsonAssetSizes: SeriesBail(data: &mut RsdoctorJsonAssetSizesPatch) -> bool);
 
 #[derive(Debug, Default)]
 #[cfg_attr(allocative, derive(allocative::Allocative))]
@@ -26,4 +27,6 @@ pub struct RsdoctorPluginHooks {
   pub module_sources: RsdoctorPluginModuleSourcesHook,
   #[cfg_attr(allocative, allocative(skip))]
   pub assets: RsdoctorPluginAssetsHook,
+  #[cfg_attr(allocative, allocative(skip))]
+  pub json_asset_sizes: RsdoctorPluginJsonAssetSizesHook,
 }

@@ -5,11 +5,12 @@ use napi_derive::napi;
 use rspack_plugin_rsdoctor::{
   RsdoctorAsset, RsdoctorAssetPatch, RsdoctorChunk, RsdoctorChunkAssets, RsdoctorChunkGraph,
   RsdoctorChunkModules, RsdoctorDependency, RsdoctorEntrypoint, RsdoctorEntrypointAssets,
-  RsdoctorExportInfo, RsdoctorModule, RsdoctorModuleGraph, RsdoctorModuleGraphModule,
-  RsdoctorModuleId, RsdoctorModuleIdsPatch, RsdoctorModuleOriginalSource,
-  RsdoctorModuleSourcesPatch, RsdoctorPluginChunkGraphFeature, RsdoctorPluginModuleGraphFeature,
-  RsdoctorPluginOptions, RsdoctorPluginSourceMapFeature, RsdoctorSideEffect,
-  RsdoctorSourcePosition, RsdoctorSourceRange, RsdoctorStatement, RsdoctorVariable,
+  RsdoctorExportInfo, RsdoctorJsonAssetSize, RsdoctorJsonAssetSizesPatch, RsdoctorModule,
+  RsdoctorModuleGraph, RsdoctorModuleGraphModule, RsdoctorModuleId, RsdoctorModuleIdsPatch,
+  RsdoctorModuleOriginalSource, RsdoctorModuleSourcesPatch, RsdoctorPluginChunkGraphFeature,
+  RsdoctorPluginModuleGraphFeature, RsdoctorPluginOptions, RsdoctorPluginSourceMapFeature,
+  RsdoctorSideEffect, RsdoctorSourcePosition, RsdoctorSourceRange, RsdoctorStatement,
+  RsdoctorVariable,
 };
 
 #[napi(object)]
@@ -28,6 +29,7 @@ pub struct JsRsdoctorModule {
   pub chunks: Vec<i32>,
   pub issuer_path: Vec<i32>,
   pub bailout_reason: Vec<String>,
+  pub size: Option<i32>,
 }
 
 impl From<RsdoctorModule> for JsRsdoctorModule {
@@ -51,6 +53,7 @@ impl From<RsdoctorModule> for JsRsdoctorModule {
         .filter_map(|i| i.ukey)
         .collect::<Vec<_>>(),
       bailout_reason: value.bailout_reason.into_iter().collect::<Vec<_>>(),
+      size: value.size,
     }
   }
 }
@@ -456,6 +459,34 @@ pub struct RawRsdoctorPluginOptions {
 pub struct JsRsdoctorSourceMapFeatures {
   pub cheap: Option<bool>,
   pub module: Option<bool>,
+}
+
+#[napi(object)]
+pub struct JsRsdoctorJsonAssetSize {
+  pub path: String,
+  pub size: i32,
+}
+
+impl From<RsdoctorJsonAssetSize> for JsRsdoctorJsonAssetSize {
+  fn from(value: RsdoctorJsonAssetSize) -> Self {
+    JsRsdoctorJsonAssetSize {
+      path: value.path,
+      size: value.size,
+    }
+  }
+}
+
+#[napi(object)]
+pub struct JsRsdoctorJsonAssetSizesPatch {
+  pub json_assets: Vec<JsRsdoctorJsonAssetSize>,
+}
+
+impl From<RsdoctorJsonAssetSizesPatch> for JsRsdoctorJsonAssetSizesPatch {
+  fn from(value: RsdoctorJsonAssetSizesPatch) -> Self {
+    JsRsdoctorJsonAssetSizesPatch {
+      json_assets: value.json_assets.into_iter().map(|j| j.into()).collect(),
+    }
+  }
 }
 
 impl From<RawRsdoctorPluginOptions> for RsdoctorPluginOptions {

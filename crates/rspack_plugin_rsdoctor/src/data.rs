@@ -2,7 +2,7 @@ use rspack_collections::Identifier;
 use rspack_core::DependencyType;
 use rustc_hash::FxHashSet as HashSet;
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub enum ModuleKind {
   #[default]
   Normal,
@@ -28,12 +28,12 @@ pub type ExportInfoUkey = i32;
 pub type VariableUkey = i32;
 pub type SideEffectUkey = i32;
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct RsdoctorStatsModuleIssuer {
   pub ukey: Option<ModuleUkey>,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct RsdoctorModule {
   pub ukey: ModuleUkey,
   pub identifier: Identifier,
@@ -48,9 +48,10 @@ pub struct RsdoctorModule {
   pub belong_modules: HashSet<ModuleUkey>,
   pub issuer_path: Option<Vec<RsdoctorStatsModuleIssuer>>,
   pub bailout_reason: HashSet<String>,
+  pub size: Option<i32>,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct RsdoctorDependency {
   pub ukey: DependencyUkey,
   pub kind: DependencyType,
@@ -159,7 +160,7 @@ pub struct RsdoctorSourcePosition {
   pub index: Option<i32>,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct RsdoctorModuleGraph {
   pub modules: Vec<RsdoctorModule>,
   pub dependencies: Vec<RsdoctorDependency>,
@@ -183,7 +184,7 @@ pub struct RsdoctorModuleSourcesPatch {
   pub module_original_sources: Vec<RsdoctorModuleOriginalSource>,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct RsdoctorChunkModules {
   pub chunk: ChunkUkey,
   pub modules: Vec<ModuleUkey>,
@@ -206,4 +207,15 @@ pub struct RsdoctorModuleOriginalSource {
   pub module: ModuleUkey,
   pub source: String,
   pub size: i32,
+}
+
+#[derive(Debug, Default, Clone)]
+pub struct RsdoctorJsonAssetSize {
+  pub path: String,
+  pub size: i32,
+}
+
+#[derive(Debug, Default)]
+pub struct RsdoctorJsonAssetSizesPatch {
+  pub json_assets: Vec<RsdoctorJsonAssetSize>,
 }
