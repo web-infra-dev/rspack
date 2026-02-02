@@ -55,7 +55,6 @@ impl<'a> JavascriptParserExt<'a> for JavascriptParser<'a> {
 }
 
 impl RstestParserPlugin {
-  #[allow(clippy::fn_params_excessive_bools)]
   pub fn new(
     module_path_name: bool,
     hoist_mock_module: bool,
@@ -730,7 +729,6 @@ impl JavascriptParserPlugin for RstestParserPlugin {
         }
       }
     }
-
     None
   }
 
