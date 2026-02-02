@@ -203,6 +203,15 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
   fn attach(&mut self, chunk: ChunkUkey) {
     self.chunk = Some(chunk);
   }
+
+  fn additional_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
+    RuntimeGlobals::MODULE
+      | RuntimeGlobals::MODULE_CACHE
+      | RuntimeGlobals::MODULE_FACTORIES_ADD_ONLY
+      | RuntimeGlobals::SHARE_SCOPE_MAP
+      | RuntimeGlobals::INITIALIZE_SHARING
+      | RuntimeGlobals::HAS_OWN_PROPERTY
+  }
 }
 
 #[derive(Debug, Clone)]

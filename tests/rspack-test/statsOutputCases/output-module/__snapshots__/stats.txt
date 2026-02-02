@@ -1,6 +1,6 @@
 asset main.mjs xx KiB [emitted] [javascript module] (name: main)
 asset 753.mjs xx bytes [emitted] [javascript module]
-runtime modules xx KiB 9 modules
+runtime modules xx KiB 6 modules
 orphan modules xx bytes [orphan] 2 modules
 cacheable modules xx bytes
   ./index.js + 1 modules xx bytes [code generated]

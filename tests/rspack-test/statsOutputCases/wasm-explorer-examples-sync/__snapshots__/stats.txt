@@ -21,7 +21,7 @@ chunk (runtime: main) 304f41ed8aa46cbb.module.wasm, 549.bundle.js, 5fde5d910acc4
   ./tests.js xx KiB [built] [code generated]
 chunk (runtime: main) bundle.js (main) xx bytes (javascript) xx KiB (runtime) [entry] [rendered]
   ./index.js xx bytes [built] [code generated]
-runtime modules xx KiB 12 modules
+runtime modules xx KiB 11 modules
 cacheable modules xx KiB (wasm) xx KiB (javascript)
   webassembly modules xx KiB (wasm) xx bytes (javascript)
     ./Q_rsqrt.wasm xx bytes (wasm) xx bytes (javascript) [built] [code generated]

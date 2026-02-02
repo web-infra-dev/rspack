@@ -12,25 +12,6 @@ use rustc_hash::FxHashMap;
 
 use crate::chunk::ChunkWrapper;
 
-type RuntimeGlobalMap = (
-  FxHashMap<RuntimeGlobals, String>,
-  FxHashMap<&'static str, RuntimeGlobals>,
-);
-
-static RUNTIME_GLOBAL_MAP: LazyLock<RuntimeGlobalMap> = LazyLock::new(|| {
-  let mut to_js_map = FxHashMap::default();
-  let mut from_js_map = FxHashMap::default();
-
-  for (name, value) in RuntimeGlobals::all().iter_names() {
-    to_js_map.insert(value, name.to_lower_camel_case());
-    from_js_map.insert(name, value);
-  }
-
-  to_js_map.shrink_to_fit();
-  from_js_map.shrink_to_fit();
-  (to_js_map, from_js_map)
-});
-
 #[napi(object, object_from_js = false)]
 pub struct JsAdditionalTreeRuntimeRequirementsArg {
   #[napi(ts_type = "Chunk")]
@@ -46,16 +27,12 @@ pub struct JsRuntimeGlobals {
 
 impl From<RuntimeGlobals> for JsRuntimeGlobals {
   fn from(value: RuntimeGlobals) -> Self {
-    let mut runtime_globals = vec![];
-
-    for (item, js_name) in RUNTIME_GLOBAL_MAP.0.iter() {
-      if value.contains(*item) {
-        runtime_globals.push(js_name.into());
-      }
-    }
-
     Self {
-      value: runtime_globals,
+      value: value
+        .to_names()
+        .into_iter()
+        .map(|name| name.to_lower_camel_case())
+        .collect::<Vec<_>>(),
     }
   }
 }
@@ -68,18 +45,13 @@ pub struct JsAdditionalTreeRuntimeRequirementsResult {
 
 impl JsAdditionalTreeRuntimeRequirementsResult {
   pub fn as_runtime_globals(&self) -> RuntimeGlobals {
-    let mut runtime_requirements = RuntimeGlobals::default();
-
-    for item in self.runtime_requirements.value.iter() {
-      let snake_case = item.to_snake_case();
-      let name = snake_case.cow_to_ascii_uppercase();
-
-      if let Some(item) = RUNTIME_GLOBAL_MAP.1.get(name.as_ref()) {
-        runtime_requirements.extend(*item);
-      }
-    }
-
-    runtime_requirements
+    let names = self
+      .runtime_requirements
+      .value
+      .iter()
+      .map(|name| name.to_snake_case().cow_to_ascii_uppercase().to_string())
+      .collect::<Vec<_>>();
+    RuntimeGlobals::from_names(&names)
   }
 }
 
@@ -99,20 +71,13 @@ pub struct JsRuntimeRequirementInTreeResult {
 
 impl JsRuntimeRequirementInTreeResult {
   pub fn as_runtime_globals(&self) -> RuntimeGlobals {
-    let mut runtime_requirements = RuntimeGlobals::default();
-
-    for item in self.all_runtime_requirements.value.iter() {
-      let snake_name = item.to_snake_case();
-
-      if let Some(item) = RUNTIME_GLOBAL_MAP
-        .1
-        .get(snake_name.cow_to_ascii_uppercase().as_ref())
-      {
-        runtime_requirements.extend(*item);
-      }
-    }
-
-    runtime_requirements
+    let names = self
+      .all_runtime_requirements
+      .value
+      .iter()
+      .map(|name| name.to_snake_case().cow_to_ascii_uppercase().to_string())
+      .collect::<Vec<_>>();
+    RuntimeGlobals::from_names(&names)
   }
 }
 

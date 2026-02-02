@@ -1,3 +1,5 @@
+use std::sync::LazyLock;
+
 use rspack_collections::{DatabaseItem, Identifier};
 use rspack_core::{
   BooleanMatcher, Chunk, ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
@@ -7,9 +9,56 @@ use rspack_plugin_javascript::impl_plugin_for_js_plugin::chunk_has_js;
 
 use super::{generate_javascript_hmr_runtime, utils::get_output_dir};
 use crate::{
-  get_chunk_runtime_requirements,
+  extract_runtime_globals_from_ejs, get_chunk_runtime_requirements,
   runtime_module::utils::{get_initial_chunk_ids, stringify_chunks},
 };
+
+const REQUIRE_CHUNK_LOADING_TEMPLATE: &str = include_str!("runtime/require_chunk_loading.ejs");
+const REQUIRE_CHUNK_LOADING_WITH_LOADING_TEMPLATE: &str =
+  include_str!("runtime/require_chunk_loading_with_loading.ejs");
+const REQUIRE_CHUNK_LOADING_WITH_LOADING_MATCHER_TEMPLATE: &str =
+  include_str!("runtime/require_chunk_loading_with_loading_matcher.ejs");
+const REQUIRE_CHUNK_LOADING_WITH_ON_CHUNK_LOAD_TEMPLATE: &str =
+  include_str!("runtime/require_chunk_loading_with_on_chunk_load.ejs");
+const REQUIRE_CHUNK_LOADING_WITH_EXTERNAL_INSTALL_CHUNK_TEMPLATE: &str =
+  include_str!("runtime/require_chunk_loading_with_external_install_chunk.ejs");
+const REQUIRE_CHUNK_LOADING_WITH_HMR_TEMPLATE: &str =
+  include_str!("runtime/require_chunk_loading_with_hmr.ejs");
+const REQUIRE_CHUNK_LOADING_WITH_HMR_MANIFEST_TEMPLATE: &str =
+  include_str!("runtime/require_chunk_loading_with_hmr_manifest.ejs");
+const JAVASCRIPT_HOT_MODULE_REPLACEMENT_TEMPLATE: &str =
+  include_str!("runtime/javascript_hot_module_replacement.ejs");
+
+const REQUIRE_CHUNK_LOADING_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
+  LazyLock::new(|| extract_runtime_globals_from_ejs(REQUIRE_CHUNK_LOADING_TEMPLATE));
+const REQUIRE_CHUNK_LOADING_WITH_LOADING_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
+  LazyLock::new(|| extract_runtime_globals_from_ejs(REQUIRE_CHUNK_LOADING_WITH_LOADING_TEMPLATE));
+const REQUIRE_CHUNK_LOADING_WITH_LOADING_MATCHER_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
+  LazyLock::new(|| {
+    extract_runtime_globals_from_ejs(REQUIRE_CHUNK_LOADING_WITH_LOADING_MATCHER_TEMPLATE)
+  });
+const REQUIRE_CHUNK_LOADING_WITH_ON_CHUNK_LOAD_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
+  LazyLock::new(|| {
+    extract_runtime_globals_from_ejs(REQUIRE_CHUNK_LOADING_WITH_ON_CHUNK_LOAD_TEMPLATE)
+  });
+const REQUIRE_CHUNK_LOADING_WITH_EXTERNAL_INSTALL_CHUNK_RUNTIME_REQUIREMENTS: LazyLock<
+  RuntimeGlobals,
+> = LazyLock::new(|| {
+  extract_runtime_globals_from_ejs(REQUIRE_CHUNK_LOADING_WITH_EXTERNAL_INSTALL_CHUNK_TEMPLATE)
+});
+const REQUIRE_CHUNK_LOADING_WITH_HMR_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
+  LazyLock::new(|| extract_runtime_globals_from_ejs(REQUIRE_CHUNK_LOADING_WITH_HMR_TEMPLATE));
+const REQUIRE_CHUNK_LOADING_WITH_HMR_MANIFEST_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
+  LazyLock::new(|| {
+    extract_runtime_globals_from_ejs(REQUIRE_CHUNK_LOADING_WITH_HMR_MANIFEST_TEMPLATE)
+  });
+const JAVASCRIPT_HOT_MODULE_REPLACEMENT_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
+  LazyLock::new(|| {
+    let mut res = extract_runtime_globals_from_ejs(JAVASCRIPT_HOT_MODULE_REPLACEMENT_TEMPLATE);
+    // ensure chunk handlers is optional
+    res.remove(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
+    res
+  });
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -75,6 +124,32 @@ impl RequireChunkLoadingRuntimeModule {
       TemplateId::HmrRuntime => format!("{}_hmr_runtime", &base_id),
     }
   }
+
+  pub fn get_runtime_requirements_basic() -> RuntimeGlobals {
+    *REQUIRE_CHUNK_LOADING_RUNTIME_REQUIREMENTS
+  }
+
+  pub fn get_runtime_requirements_with_loading() -> RuntimeGlobals {
+    *REQUIRE_CHUNK_LOADING_WITH_LOADING_RUNTIME_REQUIREMENTS
+      | *REQUIRE_CHUNK_LOADING_WITH_LOADING_MATCHER_RUNTIME_REQUIREMENTS
+  }
+
+  pub fn get_runtime_requirements_with_on_chunk_load() -> RuntimeGlobals {
+    *REQUIRE_CHUNK_LOADING_WITH_ON_CHUNK_LOAD_RUNTIME_REQUIREMENTS
+  }
+
+  pub fn get_runtime_requirements_with_hmr() -> RuntimeGlobals {
+    *REQUIRE_CHUNK_LOADING_WITH_HMR_RUNTIME_REQUIREMENTS
+      | *JAVASCRIPT_HOT_MODULE_REPLACEMENT_RUNTIME_REQUIREMENTS
+  }
+
+  pub fn get_runtime_requirements_with_hmr_manifest() -> RuntimeGlobals {
+    *REQUIRE_CHUNK_LOADING_WITH_HMR_MANIFEST_RUNTIME_REQUIREMENTS
+  }
+
+  pub fn get_runtime_requirements_with_external_install_chunk() -> RuntimeGlobals {
+    *REQUIRE_CHUNK_LOADING_WITH_EXTERNAL_INSTALL_CHUNK_RUNTIME_REQUIREMENTS
+  }
 }
 
 #[allow(clippy::enum_variant_names)]
@@ -98,36 +173,36 @@ impl RuntimeModule for RequireChunkLoadingRuntimeModule {
   fn template(&self) -> Vec<(String, String)> {
     vec![
       (
+        self.template_id(TemplateId::Raw),
+        REQUIRE_CHUNK_LOADING_TEMPLATE.to_string(),
+      ),
+      (
         self.template_id(TemplateId::WithLoading),
-        include_str!("runtime/require_chunk_loading_with_loading.ejs").to_string(),
+        REQUIRE_CHUNK_LOADING_WITH_LOADING_TEMPLATE.to_string(),
       ),
       (
         self.template_id(TemplateId::WithLoadingMatcher),
-        include_str!("runtime/require_chunk_loading_with_loading_matcher.ejs").to_string(),
+        REQUIRE_CHUNK_LOADING_WITH_LOADING_MATCHER_TEMPLATE.to_string(),
       ),
       (
         self.template_id(TemplateId::WithOnChunkLoad),
-        include_str!("runtime/require_chunk_loading_with_on_chunk_load.ejs").to_string(),
-      ),
-      (
-        self.template_id(TemplateId::Raw),
-        include_str!("runtime/require_chunk_loading.ejs").to_string(),
+        REQUIRE_CHUNK_LOADING_WITH_ON_CHUNK_LOAD_TEMPLATE.to_string(),
       ),
       (
         self.template_id(TemplateId::WithExternalInstallChunk),
-        include_str!("runtime/require_chunk_loading_with_external_install_chunk.ejs").to_string(),
+        REQUIRE_CHUNK_LOADING_WITH_EXTERNAL_INSTALL_CHUNK_TEMPLATE.to_string(),
       ),
       (
         self.template_id(TemplateId::WithHmr),
-        include_str!("runtime/require_chunk_loading_with_hmr.ejs").to_string(),
+        REQUIRE_CHUNK_LOADING_WITH_HMR_TEMPLATE.to_string(),
       ),
       (
         self.template_id(TemplateId::WithHmrManifest),
-        include_str!("runtime/require_chunk_loading_with_hmr_manifest.ejs").to_string(),
+        REQUIRE_CHUNK_LOADING_WITH_HMR_MANIFEST_TEMPLATE.to_string(),
       ),
       (
         self.template_id(TemplateId::HmrRuntime),
-        include_str!("runtime/javascript_hot_module_replacement.ejs").to_string(),
+        JAVASCRIPT_HOT_MODULE_REPLACEMENT_TEMPLATE.to_string(),
       ),
     ]
   }

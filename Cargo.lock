@@ -4924,6 +4924,7 @@ dependencies = [
  "futures",
  "indexmap",
  "itertools 0.14.0",
+ "regex",
  "rspack_cacheable",
  "rspack_collections",
  "rspack_core",

@@ -1,6 +1,7 @@
 use std::sync::LazyLock;
 
 use bitflags::bitflags;
+use rustc_hash::FxHashMap;
 
 use crate::CompilerOptions;
 
@@ -525,5 +526,47 @@ mod test {
     assert_eq!(flags.len(), 2);
     assert_eq!(flags[0], RuntimeGlobals::PUBLIC_PATH);
     assert_eq!(flags[1], RuntimeGlobals::GET_CHUNK_CSS_FILENAME);
+  }
+}
+
+type RuntimeGlobalMap = (
+  FxHashMap<RuntimeGlobals, &'static str>,
+  FxHashMap<&'static str, RuntimeGlobals>,
+);
+
+static RUNTIME_GLOBAL_MAP: LazyLock<RuntimeGlobalMap> = LazyLock::new(|| {
+  let mut to_js_map = FxHashMap::default();
+  let mut from_js_map = FxHashMap::default();
+
+  for (name, value) in RuntimeGlobals::all().iter_names() {
+    to_js_map.insert(value, name);
+    from_js_map.insert(name, value);
+  }
+
+  to_js_map.shrink_to_fit();
+  from_js_map.shrink_to_fit();
+  (to_js_map, from_js_map)
+});
+
+impl RuntimeGlobals {
+  pub fn to_names(&self) -> Vec<&'static str> {
+    let mut res = vec![];
+
+    for (item, js_name) in RUNTIME_GLOBAL_MAP.0.iter() {
+      if self.contains(*item) {
+        res.push(*js_name);
+      }
+    }
+    res
+  }
+  pub fn from_names(names: &[String]) -> Self {
+    let mut res = Self::empty();
+
+    for name in names {
+      if let Some(value) = RUNTIME_GLOBAL_MAP.1.get(name.as_str()) {
+        res.insert(*value);
+      }
+    }
+    res
   }
 }
