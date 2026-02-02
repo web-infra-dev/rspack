@@ -47,6 +47,8 @@ pub struct PersistentCacheOptions {
 #[derive(Debug)]
 pub struct PersistentCache {
   initialized: bool,
+  valid: bool,
+
   build_deps: BuildDeps,
   snapshot: Arc<Snapshot>,
   make_occasion: MakeOccasion,
@@ -96,11 +98,11 @@ impl PersistentCache {
 
     Self {
       initialized: false,
+      valid: false,
       build_deps: BuildDeps::new(
         &option.build_dependencies,
         input_filesystem,
         snapshot.clone(),
-        storage.clone(),
       ),
       snapshot,
       make_occasion: MakeOccasion::new(storage.clone(), codec.clone()),
@@ -117,8 +119,14 @@ impl PersistentCache {
     }
     self.initialized = true;
 
-    if let Err(err) = self.build_deps.validate().await {
-      self.warnings.push(err.to_string());
+    match self.build_deps.validate().await {
+      Ok(success) => {
+        self.valid = success;
+      }
+      Err(err) => {
+        self.valid = false;
+        self.warnings.push(err.to_string());
+      }
     }
     if let Err(err) = self.meta_occasion.recovery().await {
       self.warnings.push(err.to_string());
@@ -153,7 +161,7 @@ impl Cache for PersistentCache {
 
     // rebuild will pass modified_files and removed_files from js side,
     // so only calculate them when build.
-    if !compilation.is_rebuild {
+    if self.valid && !compilation.is_rebuild {
       let mut is_hot_start = false;
       let mut modified_paths = ArcPathSet::default();
       let mut removed_paths = ArcPathSet::default();
@@ -191,6 +199,11 @@ impl Cache for PersistentCache {
   }
 
   async fn after_compile(&mut self, compilation: &Compilation) {
+    if !self.valid {
+      // reset before save write data
+      self.storage.reset().await;
+      self.valid = true;
+    }
     // save meta
     self.meta_occasion.save();
 
@@ -248,10 +261,12 @@ impl Cache for PersistentCache {
     _incremental: &Incremental,
   ) {
     // TODO When does not need to pass variables through make_artifact.state, use compilation.is_rebuild to check
-    if matches!(
-      make_artifact.state,
-      BuildModuleGraphArtifactState::Uninitialized
-    ) {
+    if self.valid
+      && matches!(
+        make_artifact.state,
+        BuildModuleGraphArtifactState::Uninitialized
+      )
+    {
       match self.make_occasion.recovery().await {
         Ok(artifact) => *make_artifact = artifact,
         Err(err) => self.warnings.push(err.to_string()),
