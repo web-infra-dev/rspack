@@ -1112,6 +1112,15 @@ export interface JsRsdoctorExportInfo {
   sideEffects: Array<number>
 }
 
+export interface JsRsdoctorJsonAssetSize {
+  path: string
+  size: number
+}
+
+export interface JsRsdoctorJsonAssetSizesPatch {
+  jsonAssets: Array<JsRsdoctorJsonAssetSize>
+}
+
 export interface JsRsdoctorModule {
   ukey: number
   identifier: string
@@ -1126,6 +1135,7 @@ export interface JsRsdoctorModule {
   chunks: Array<number>
   issuerPath: Array<number>
   bailoutReason: Array<string>
+  size?: number
 }
 
 export interface JsRsdoctorModuleGraph {
