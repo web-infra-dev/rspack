@@ -1,5 +1,5 @@
 use napi::Either;
-use rspack_core::{Reflector, WeakBindingCell};
+use rspack_core::Reflector;
 use rustc_hash::FxHashMap;
 
 use crate::{module::ModuleObjectRef, runtime::JsRuntimeSpec, source::JsSourceToJs};
@@ -7,12 +7,12 @@ use crate::{module::ModuleObjectRef, runtime::JsRuntimeSpec, source::JsSourceToJ
 // Map<string, Source>
 #[napi]
 pub struct Sources {
-  i: WeakBindingCell<FxHashMap<rspack_core::SourceType, rspack_core::rspack_sources::BoxSource>>,
+  i: Reflector<FxHashMap<rspack_core::SourceType, rspack_core::rspack_sources::BoxSource>>,
 }
 
 impl Sources {
   pub fn new(
-    i: WeakBindingCell<FxHashMap<rspack_core::SourceType, rspack_core::rspack_sources::BoxSource>>,
+    i: Reflector<FxHashMap<rspack_core::SourceType, rspack_core::rspack_sources::BoxSource>>,
   ) -> Self {
     Self { i }
   }
@@ -49,11 +49,11 @@ impl Sources {
 
 #[napi]
 pub struct CodeGenerationResult {
-  i: WeakBindingCell<rspack_core::CodeGenerationResult>,
+  i: Reflector<rspack_core::CodeGenerationResult>,
 }
 
 impl CodeGenerationResult {
-  pub fn new(i: WeakBindingCell<rspack_core::CodeGenerationResult>) -> Self {
+  pub fn new(i: Reflector<rspack_core::CodeGenerationResult>) -> Self {
     Self { i }
   }
 
@@ -73,14 +73,17 @@ impl CodeGenerationResult {
 #[napi]
 impl CodeGenerationResult {
   #[napi(getter, ts_return_type = "Sources")]
-  pub fn sources(&self) -> napi::Result<Reflector> {
+  pub fn sources(
+    &self,
+  ) -> napi::Result<Reflector<FxHashMap<rspack_core::SourceType, rspack_core::rspack_sources::BoxSource>>>
+  {
     self.with_ref(|i| Ok(i.inner.reflector()))
   }
 }
 
 #[napi]
 pub struct CodeGenerationResults {
-  i: WeakBindingCell<rspack_core::CodeGenerationResults>,
+  i: Reflector<rspack_core::CodeGenerationResults>,
 }
 
 impl CodeGenerationResults {
@@ -99,7 +102,7 @@ impl CodeGenerationResults {
 
 #[napi]
 impl CodeGenerationResults {
-  pub fn new(i: WeakBindingCell<rspack_core::CodeGenerationResults>) -> Self {
+  pub fn new(i: Reflector<rspack_core::CodeGenerationResults>) -> Self {
     Self { i }
   }
 
@@ -107,7 +110,7 @@ impl CodeGenerationResults {
     ts_args_type = "module: Module, runtime: string | string[] | undefined",
     ts_return_type = "CodeGenerationResult"
   )]
-  pub fn get(&self, module: ModuleObjectRef, runtime: JsRuntimeSpec) -> napi::Result<Reflector> {
+  pub fn get(&self, module: ModuleObjectRef, runtime: JsRuntimeSpec) -> napi::Result<Reflector<rspack_core::CodeGenerationResult>> {
     self.with_ref(|code_generation_results| {
       let rt: Option<rspack_core::RuntimeSpec> = runtime.map(|val| match val {
         Either::A(str) => std::iter::once(str).map(Into::into).collect(),

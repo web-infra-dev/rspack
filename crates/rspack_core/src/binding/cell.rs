@@ -11,10 +11,17 @@
 #[cfg(feature = "napi")]
 mod napi_binding {
   use std::{
+    alloc::Layout,
     any::{Any, TypeId},
     hash::{Hash, Hasher},
+    hint,
+    marker::CoercePointee,
     ops::{Deref, DerefMut},
-    sync::{Arc, Weak},
+    ptr::{self, NonNull},
+    sync::atomic::{
+      AtomicUsize,
+      Ordering::{Acquire, Relaxed, Release},
+    },
   };
 
   use derive_more::Debug;
@@ -32,289 +39,343 @@ mod napi_binding {
     with_thread_local_allocator,
   };
 
-  pub struct WeakBindingCell<T: ?Sized> {
-    ptr: *mut T,
-    heap: Weak<Heap>,
+  /// A soft limit on the amount of references that may be made to an `BindingCell`.
+  ///
+  /// Going above this limit will abort your program (although not
+  /// necessarily) at _exactly_ `MAX_REFCOUNT + 1` references.
+  /// Trying to go above it might call a `panic` (if not actually going above it).
+  ///
+  /// This is a global invariant, and also applies when using a compare-exchange loop.
+  const MAX_REFCOUNT: usize = (isize::MAX) as usize;
+
+  /// The error in case either counter reaches above `MAX_REFCOUNT`, and we can `panic` safely.
+  const INTERNAL_OVERFLOW_ERROR: &str = "BindingCell counter overflow";
+
+  fn is_dangling<T: ?Sized>(ptr: *const T) -> bool {
+    (ptr.cast::<()>()).addr() == usize::MAX
   }
 
-  impl<T: ?Sized> WeakBindingCell<T> {
+  /// Helper type to allow accessing the reference counts without
+  /// making any assertions about the data field.
+  struct WeakInner<'a> {
+    weak: &'a AtomicUsize,
+    strong: &'a AtomicUsize,
+  }
+
+  pub struct Reflector<T: ?Sized + 'static> {
+    ptr: NonNull<BindingCellInner<T>>,
+  }
+
+  impl<T: ?Sized> Reflector<T> {
     pub fn upgrade(&self) -> Option<BindingCell<T>> {
-      self.heap.upgrade().map(|heap| BindingCell {
-        ptr: self.ptr,
-        heap,
-      })
+      #[inline]
+      fn checked_increment(n: usize) -> Option<usize> {
+        // Any write of 0 we can observe leaves the field in permanently zero state.
+        if n == 0 {
+          return None;
+        }
+        // See comments in `Arc::clone` for why we do this (for `mem::forget`).
+        assert!(n <= MAX_REFCOUNT, "{}", INTERNAL_OVERFLOW_ERROR);
+        Some(n + 1)
+      }
+
+      // We use a CAS loop to increment the strong count instead of a
+      // fetch_add as this function should never take the reference count
+      // from zero to one.
+      //
+      // Relaxed is fine for the failure case because we don't have any expectations about the new state.
+      // Acquire is necessary for the success case to synchronise with `BindingCell::new_cyclic`, when the inner
+      // value can be initialized after `Weak` references have already been created. In that case, we
+      // expect to observe the fully initialized value.
+      if self
+        .inner()?
+        .strong
+        .fetch_update(Acquire, Relaxed, checked_increment)
+        .is_ok()
+      {
+        // SAFETY: pointer is not null, verified in checked_increment
+        unsafe { Some(BindingCell::from_inner(self.ptr)) }
+      } else {
+        None
+      }
+    }
+
+    /// Returns `None` when the pointer is dangling and there is no allocated `BindingCellInner`,
+    /// (i.e., when this `Weak` was created by `Weak::new`).
+    #[inline]
+    fn inner(&self) -> Option<WeakInner<'_>> {
+      let ptr = self.ptr.as_ptr();
+      if is_dangling(ptr) {
+        None
+      } else {
+        // We are careful to *not* create a reference covering the "data" field, as
+        // the field may be mutated concurrently (for example, if the last `BindingCell`
+        // is dropped, the data field will be dropped in-place).
+        Some(unsafe {
+          WeakInner {
+            strong: &(*ptr).strong,
+            weak: &(*ptr).weak,
+          }
+        })
+      }
     }
   }
 
-  #[derive(Default, Debug, Clone)]
-  pub struct Reflector {
-    heap: Weak<Heap>,
-  }
-
-  impl Reflector {
+  impl<T: ?Sized> Reflector<T> {
     pub fn set_jsobject(&self, env: &Env, object: Object) -> napi::Result<()> {
-      let heap = self.heap.upgrade().ok_or_else(|| {
+      let binding = self.upgrade().ok_or_else(|| {
         napi::Error::new(
           napi::Status::GenericFailure,
           "Failed to upgrade weak reference to heap",
         )
       })?;
 
-      heap.jsobject.get_or_try_init(|| match &heap.variant {
-        HeapVariant::AssetInfo(_asset_info) => ThreadsafeOneShotRef::new(env.raw(), object),
-        _ => unreachable!(),
+      let inner = binding.inner();
+      inner.jsobject.get_or_try_init(|| {
+        if inner.data.type_id() == TypeId::of::<AssetInfo>() {
+          ThreadsafeOneShotRef::new(env.raw(), object)
+        } else {
+          unreachable!()
+        }
       })?;
       Ok(())
     }
   }
 
-  impl ToNapiValue for Reflector {
+  impl<T: 'static> ToNapiValue for Reflector<T> {
     unsafe fn to_napi_value(
       raw_env: napi::sys::napi_env,
       val: Self,
     ) -> napi::Result<napi::sys::napi_value> {
       with_thread_local_allocator(|allocator| {
-        let heap = val.heap.upgrade().ok_or_else(|| {
+        let binding = val.upgrade().ok_or_else(|| {
           napi::Error::new(
             napi::Status::GenericFailure,
-            "Failed to upgrade weak reference to heap",
+            "Failed to upgrade weak reference to BindingCell",
           )
         })?;
 
-        let raw_ref = heap.jsobject.get_or_try_init(|| match &heap.variant {
-          HeapVariant::AssetInfo(asset_info) => {
-            let binding_cell = BindingCell {
-              ptr: asset_info.as_ref() as *const AssetInfo as *mut AssetInfo,
-              heap: heap.clone(),
+        let type_id = binding.as_ref().type_id();
+        let raw_ref = binding.inner().jsobject.get_or_try_init(|| {
+          if type_id == TypeId::of::<AssetInfo>() {
+            let binding = BindingCell {
+              ptr: binding.ptr.cast::<BindingCellInner<AssetInfo>>(),
             };
-            let napi_val = allocator.allocate_asset_info(raw_env, &binding_cell)?;
+            let napi_val = allocator.allocate_asset_info(raw_env, &binding)?;
             let target = Object::from_raw(raw_env, napi_val);
             ThreadsafeOneShotRef::new(raw_env, target)
-          }
-          HeapVariant::CodeGenerationResult(code_generation_result) => {
-            let binding_cell = BindingCell {
-              ptr: code_generation_result.as_ref() as *const CodeGenerationResult
-                as *mut CodeGenerationResult,
-              heap: heap.clone(),
+          } else if type_id == TypeId::of::<CodeGenerationResult>() {
+            let binding = BindingCell {
+              ptr: binding.ptr.cast::<BindingCellInner<CodeGenerationResult>>(),
             };
-            let napi_val = allocator.allocate_code_generation_result(raw_env, &binding_cell)?;
+            let napi_val = allocator.allocate_code_generation_result(raw_env, &binding)?;
             let target = Object::from_raw(raw_env, napi_val);
             ThreadsafeOneShotRef::new(raw_env, target)
-          }
-          HeapVariant::Sources(sources) => {
-            let binding_cell = BindingCell {
-              ptr: sources.as_ref() as *const FxHashMap<SourceType, BoxSource>
-                as *mut FxHashMap<SourceType, BoxSource>,
-              heap: heap.clone(),
+          } else if type_id == TypeId::of::<FxHashMap<SourceType, BoxSource>>() {
+            let binding = BindingCell {
+              ptr: binding
+                .ptr
+                .cast::<BindingCellInner<FxHashMap<SourceType, BoxSource>>>(),
             };
-            let napi_val = allocator.allocate_sources(raw_env, &binding_cell)?;
+            let napi_val = allocator.allocate_sources(raw_env, &binding)?;
             let target = Object::from_raw(raw_env, napi_val);
             ThreadsafeOneShotRef::new(raw_env, target)
-          }
-          HeapVariant::CodeGenerationResults(code_generation_results) => {
-            let binding_cell = BindingCell {
-              ptr: code_generation_results.as_ref() as *const CodeGenerationResults
-                as *mut CodeGenerationResults,
-              heap: heap.clone(),
+          } else if type_id == TypeId::of::<CodeGenerationResults>() {
+            let binding = BindingCell {
+              ptr: binding
+                .ptr
+                .cast::<BindingCellInner<CodeGenerationResults>>(),
             };
-            let napi_val = allocator.allocate_code_generation_results(raw_env, &binding_cell)?;
+            let napi_val = allocator.allocate_code_generation_results(raw_env, &binding)?;
             let target = Object::from_raw(raw_env, napi_val);
             ThreadsafeOneShotRef::new(raw_env, target)
-          }
-          HeapVariant::Assets(assets) => {
-            let binding_cell = BindingCell {
-              ptr: assets.as_ref() as *const FxHashMap<String, CompilationAsset>
-                as *mut FxHashMap<String, CompilationAsset>,
-              heap: heap.clone(),
+          } else if type_id == TypeId::of::<FxHashMap<String, CompilationAsset>>() {
+            let binding = BindingCell {
+              ptr: binding
+                .ptr
+                .cast::<BindingCellInner<FxHashMap<String, CompilationAsset>>>(),
             };
-            let napi_val = allocator.allocate_assets(raw_env, &binding_cell)?;
+            let napi_val = allocator.allocate_assets(raw_env, &binding)?;
             let target = Object::from_raw(raw_env, napi_val);
             ThreadsafeOneShotRef::new(raw_env, target)
+          } else {
+            unreachable!()
           }
         })?;
 
         let result = unsafe { ToNapiValue::to_napi_value(raw_env, raw_ref)? };
 
-        match &heap.variant {
-          HeapVariant::AssetInfo(asset_info) => {
-            let binding_cell = BindingCell {
-              ptr: asset_info.as_ref() as *const AssetInfo as *mut AssetInfo,
-              heap: heap.clone(),
-            };
-            let napi_val = allocator.allocate_asset_info(raw_env, &binding_cell)?;
-            let new_object = Object::from_raw(raw_env, napi_val);
-            let mut original_object = Object::from_raw(raw_env, result);
-            object_assign(&mut original_object, &new_object)?;
-            Ok(result)
-          }
-          _ => Ok(result),
+        if type_id == TypeId::of::<AssetInfo>() {
+          let binding = BindingCell {
+            ptr: binding.ptr.cast::<BindingCellInner<AssetInfo>>(),
+          };
+          let napi_val = allocator.allocate_asset_info(raw_env, &binding)?;
+          let new_object = Object::from_raw(raw_env, napi_val);
+          let mut original_object = Object::from_raw(raw_env, result);
+          object_assign(&mut original_object, &new_object)?;
         }
+        Ok(result)
       })
     }
   }
 
-  pub trait Reflectable {
-    fn reflector(&self) -> Reflector;
-  }
+  impl<T: ?Sized> Drop for Reflector<T> {
+    fn drop(&mut self) {
+      // If we find out that we were the last weak pointer, then its time to
+      // deallocate the data entirely. See the discussion in BindingCell::drop() about
+      // the memory orderings
+      //
+      // It's not necessary to check for the locked state here, because the
+      // weak count can only be locked if there was precisely one weak ref,
+      // meaning that drop could only subsequently run ON that remaining weak
+      // ref, which can only happen after the lock is released.
+      let inner = if let Some(inner) = self.inner() {
+        inner
+      } else {
+        return;
+      };
 
-  // The reason HeapVariant does not use the generic type T is that for types requiring the implementation of the Reflectable trait,
-  // the implementation of Reflectable needs to use the concrete type T, which prevents the trait from inheriting the Reflectable trait.
-  #[derive(Debug)]
-  enum HeapVariant {
-    AssetInfo(Box<AssetInfo>),
-    CodeGenerationResults(Box<CodeGenerationResults>),
-    CodeGenerationResult(Box<CodeGenerationResult>),
-    Sources(Box<FxHashMap<SourceType, BoxSource>>),
-    Assets(Box<FxHashMap<String, CompilationAsset>>),
-  }
+      if inner.weak.fetch_sub(1, Release) == 1 {
+        inner.weak.load(Acquire);
 
-  #[derive(Debug)]
-  struct Heap {
-    variant: HeapVariant,
-    #[debug(skip)]
-    jsobject: OnceCell<ThreadsafeOneShotRef>,
-  }
-
-  unsafe impl Send for Heap {}
-  unsafe impl Sync for Heap {}
-
-  #[derive(Debug)]
-  pub struct BindingCell<T: ?Sized> {
-    ptr: *mut T,
-    heap: Arc<Heap>,
-  }
-
-  impl<T: ?Sized> BindingCell<T> {
-    pub fn reflector(&self) -> Reflector {
-      Reflector {
-        heap: Arc::downgrade(&self.heap),
+        let raw_ptr: *mut BindingCellInner<T> = self.ptr.as_ptr();
+        unsafe { std::alloc::dealloc(raw_ptr as *mut u8, Layout::for_value_raw(raw_ptr)) }
       }
     }
   }
 
-  impl<T: ?Sized> Reflectable for BindingCell<T> {
-    fn reflector(&self) -> Reflector {
-      Reflector {
-        heap: Arc::downgrade(&self.heap),
+  #[derive(Debug)]
+  struct BindingCellInner<T: ?Sized + 'static> {
+    strong: AtomicUsize,
+    // the value usize::MAX acts as a sentinel for temporarily "locking" the
+    // ability to upgrade weak pointers or downgrade strong ones; this is used
+    // to avoid races in `make_mut` and `get_mut`.
+    weak: AtomicUsize,
+    #[debug(skip)]
+    jsobject: OnceCell<ThreadsafeOneShotRef>,
+    data: T,
+  }
+
+  #[derive(CoercePointee, Debug)]
+  #[repr(transparent)]
+  pub struct BindingCell<T: ?Sized + 'static> {
+    ptr: NonNull<BindingCellInner<T>>,
+  }
+
+  impl<T: ?Sized> BindingCell<T> {
+    /// Creates a new [`Reflector`] pointer to this allocation.
+    pub fn reflector(&self) -> Reflector<T> {
+      // This Relaxed is OK because we're checking the value in the CAS
+      // below.
+      let mut cur = self.inner().weak.load(Relaxed);
+
+      loop {
+        // check if the weak counter is currently "locked"; if so, spin.
+        if cur == usize::MAX {
+          hint::spin_loop();
+          cur = self.inner().weak.load(Relaxed);
+          continue;
+        }
+
+        // We can't allow the refcount to increase much past `MAX_REFCOUNT`.
+        assert!(cur <= MAX_REFCOUNT, "{}", INTERNAL_OVERFLOW_ERROR);
+
+        // NOTE: this code currently ignores the possibility of overflow
+        // into usize::MAX; in general both Rc and BindingCell need to be adjusted
+        // to deal with overflow.
+
+        // Unlike with Clone(), we need this to be an Acquire read to
+        // synchronize with the write coming from `is_unique`, so that the
+        // events prior to that write happen before this read.
+        match self
+          .inner()
+          .weak
+          .compare_exchange_weak(cur, cur + 1, Acquire, Relaxed)
+        {
+          Ok(_) => {
+            // Make sure we do not create a dangling Weak
+            debug_assert!(!is_dangling(self.ptr.as_ptr()));
+            return Reflector { ptr: self.ptr };
+          }
+          Err(old) => cur = old,
+        }
       }
+    }
+
+    // Non-inlined part of `drop`.
+    #[inline(never)]
+    unsafe fn drop_slow(&mut self) {
+      // Drop the weak ref collectively held by all strong references when this
+      // variable goes out of scope. This ensures that the memory is deallocated
+      // even if the destructor of `T` panics.
+      // Take a reference to `self.alloc` instead of cloning because 1. it'll last long
+      // enough, and 2. you should be able to drop `BindingCell`s with unclonable allocators
+      let _weak = Reflector { ptr: self.ptr };
+
+      // Destroy the data at this time, even though we must not free the box
+      // allocation itself (there might still be weak pointers lying around).
+      // We cannot use `get_mut_unchecked` here, because `self.alloc` is borrowed.
+      unsafe { ptr::drop_in_place(&mut (*self.ptr.as_ptr()).data) };
+    }
+
+    #[inline]
+    fn inner(&self) -> &BindingCellInner<T> {
+      // This unsafety is ok because while this arc is alive we're guaranteed
+      // that the inner pointer is valid. Furthermore, we know that the
+      // `BindingCellInner` structure itself is `Sync` because the inner data is
+      // `Sync` as well, so we're ok loaning out an immutable pointer to these
+      // contents.
+      unsafe { self.ptr.as_ref() }
+    }
+
+    #[inline]
+    fn inner_mut(&mut self) -> &mut BindingCellInner<T> {
+      // This unsafety is ok because while this arc is alive we're guaranteed
+      // that the inner pointer is valid. Furthermore, we know that the
+      // `BindingCellInner` structure itself is `Sync` because the inner data is
+      // `Sync` as well, so we're ok loaning out an immutable pointer to these
+      // contents.
+      unsafe { self.ptr.as_mut() }
+    }
+
+    #[inline]
+    unsafe fn from_inner(ptr: NonNull<BindingCellInner<T>>) -> Self {
+      Self { ptr }
     }
   }
 
   unsafe impl<T: ?Sized + Send> Send for BindingCell<T> {}
   unsafe impl<T: ?Sized + Sync> Sync for BindingCell<T> {}
 
-  impl BindingCell<AssetInfo> {
-    pub fn new(asset_info: AssetInfo) -> Self {
-      let boxed = Box::new(asset_info);
-      let ptr = boxed.as_ref() as *const AssetInfo as *mut AssetInfo;
-      let heap = Arc::new(Heap {
-        variant: HeapVariant::AssetInfo(boxed),
-        jsobject: Default::default(),
+  impl<T> BindingCell<T> {
+    pub fn new(data: T) -> Self {
+      // Start the weak pointer count as 1 which is the weak pointer that's
+      // held by all the strong pointers (kinda), see std/rc.rs for more info
+      let x = Box::new(BindingCellInner {
+        strong: AtomicUsize::new(1),
+        weak: AtomicUsize::new(1),
+        jsobject: OnceCell::default(),
+        data,
       });
-      Self { ptr, heap }
+      unsafe { Self::from_inner(Box::leak(x).into()) }
     }
   }
 
-  impl From<AssetInfo> for BindingCell<AssetInfo> {
-    fn from(asset_info: AssetInfo) -> Self {
-      Self::new(asset_info)
-    }
-  }
-
-  impl BindingCell<CodeGenerationResults> {
-    pub fn new(code_generation_results: CodeGenerationResults) -> Self {
-      let boxed = Box::new(code_generation_results);
-      let ptr = boxed.as_ref() as *const CodeGenerationResults as *mut CodeGenerationResults;
-      let heap = Arc::new(Heap {
-        variant: HeapVariant::CodeGenerationResults(boxed),
-        jsobject: Default::default(),
-      });
-      Self { ptr, heap }
-    }
-  }
-
-  impl From<CodeGenerationResults> for BindingCell<CodeGenerationResults> {
-    fn from(code_generation_results: CodeGenerationResults) -> Self {
-      Self::new(code_generation_results)
-    }
-  }
-
-  impl BindingCell<CodeGenerationResult> {
-    pub fn new(code_generation_result: CodeGenerationResult) -> Self {
-      let boxed = Box::new(code_generation_result);
-      let ptr = boxed.as_ref() as *const CodeGenerationResult as *mut CodeGenerationResult;
-      let heap = Arc::new(Heap {
-        variant: HeapVariant::CodeGenerationResult(boxed),
-        jsobject: Default::default(),
-      });
-      Self { ptr, heap }
-    }
-  }
-
-  impl From<CodeGenerationResult> for BindingCell<CodeGenerationResult> {
-    fn from(code_generation_result: CodeGenerationResult) -> Self {
-      Self::new(code_generation_result)
-    }
-  }
-
-  impl BindingCell<FxHashMap<SourceType, BoxSource>> {
-    pub fn new(sources: FxHashMap<SourceType, BoxSource>) -> Self {
-      let boxed = Box::new(sources);
-      let ptr = boxed.as_ref() as *const FxHashMap<SourceType, BoxSource>
-        as *mut FxHashMap<SourceType, BoxSource>;
-      let heap = Arc::new(Heap {
-        variant: HeapVariant::Sources(boxed),
-        jsobject: Default::default(),
-      });
-      Self { ptr, heap }
-    }
-  }
-
-  impl From<FxHashMap<SourceType, BoxSource>> for BindingCell<FxHashMap<SourceType, BoxSource>> {
-    fn from(sources: FxHashMap<SourceType, BoxSource>) -> Self {
-      Self::new(sources)
-    }
-  }
-
-  impl BindingCell<FxHashMap<String, CompilationAsset>> {
-    pub fn new(assets: FxHashMap<String, CompilationAsset>) -> Self {
-      let boxed = Box::new(assets);
-      let ptr = boxed.as_ref() as *const FxHashMap<String, CompilationAsset>
-        as *mut FxHashMap<String, CompilationAsset>;
-      let heap = Arc::new(Heap {
-        variant: HeapVariant::Assets(boxed),
-        jsobject: Default::default(),
-      });
-      Self { ptr, heap }
-    }
-  }
-
-  impl From<FxHashMap<String, CompilationAsset>>
-    for BindingCell<FxHashMap<String, CompilationAsset>>
-  {
-    fn from(assets: FxHashMap<String, CompilationAsset>) -> Self {
-      Self::new(assets)
-    }
-  }
-
-  impl<T: ?Sized> BindingCell<T> {
-    pub fn downgrade(&self) -> WeakBindingCell<T> {
-      WeakBindingCell {
-        ptr: self.ptr,
-        heap: Arc::downgrade(&self.heap),
-      }
+  impl<T> From<T> for BindingCell<T> {
+    fn from(value: T) -> Self {
+      Self::new(value)
     }
   }
 
   impl<T: ?Sized> AsRef<T> for BindingCell<T> {
     fn as_ref(&self) -> &T {
-      unsafe { &*self.ptr }
+      &self.inner().data
     }
   }
 
   impl<T: ?Sized> AsMut<T> for BindingCell<T> {
     fn as_mut(&mut self) -> &mut T {
-      unsafe { &mut *self.ptr }
+      &mut self.inner_mut().data
     }
   }
 
@@ -322,20 +383,20 @@ mod napi_binding {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
-      unsafe { &*self.ptr }
+      &self.inner().data
     }
   }
 
   impl<T: ?Sized> DerefMut for BindingCell<T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
-      unsafe { &mut *self.ptr }
+      &mut self.inner_mut().data
     }
   }
 
-  impl<T: Clone + Into<BindingCell<T>>> Clone for BindingCell<T> {
+  impl<T: Clone> Clone for BindingCell<T> {
     fn clone(&self) -> Self {
       let val = self.as_ref().clone();
-      val.into()
+      Self::new(val)
     }
   }
 
@@ -353,10 +414,56 @@ mod napi_binding {
 
   impl<T: ?Sized + Eq> Eq for BindingCell<T> {}
 
-  impl<T: Default + Into<BindingCell<T>>> Default for BindingCell<T> {
+  impl<T: Default> Default for BindingCell<T> {
     fn default() -> Self {
       let value: T = Default::default();
-      value.into()
+      Self::new(value)
+    }
+  }
+
+  impl<T: ?Sized> Drop for BindingCell<T> {
+    #[inline]
+    fn drop(&mut self) {
+      // Because `fetch_sub` is already atomic, we do not need to synchronize
+      // with other threads unless we are going to delete the object. This
+      // same logic applies to the below `fetch_sub` to the `weak` count.
+      if self.inner().strong.fetch_sub(1, Release) != 1 {
+        return;
+      }
+
+      // This fence is needed to prevent reordering of use of the data and
+      // deletion of the data. Because it is marked `Release`, the decreasing
+      // of the reference count synchronizes with this `Acquire` fence. This
+      // means that use of the data happens before decreasing the reference
+      // count, which happens before this fence, which happens before the
+      // deletion of the data.
+      //
+      // As explained in the [Boost documentation][1],
+      //
+      // > It is important to enforce any possible access to the object in one
+      // > thread (through an existing reference) to *happen before* deleting
+      // > the object in a different thread. This is achieved by a "release"
+      // > operation after dropping a reference (any access to the object
+      // > through this reference must obviously happened before), and an
+      // > "acquire" operation before deleting the object.
+      //
+      // In particular, while the contents of an BindingCell are usually immutable, it's
+      // possible to have interior writes to something like a Mutex<T>. Since a
+      // Mutex is not acquired when it is deleted, we can't rely on its
+      // synchronization logic to make writes in thread A visible to a destructor
+      // running in thread B.
+      //
+      // Also note that the Acquire fence here could probably be replaced with an
+      // Acquire load, which could improve performance in highly-contended
+      // situations. See [2].
+      //
+      // [1]: (www.boost.org/doc/libs/1_55_0/doc/html/atomic/usage_examples.html)
+      // [2]: (https://github.com/rust-lang/rust/pull/41714)
+      self.inner().strong.load(Acquire);
+
+      unsafe {
+        self.drop_slow();
+      }
     }
   }
 
@@ -389,42 +496,9 @@ mod napi_binding {
     D::Error: rkyv::rancor::Source,
   {
     fn deserialize(&self, deserializer: &mut D) -> Result<BindingCell<T>, D::Error> {
-      let boxed: Box<T> = self.deserialize(deserializer)?;
-      let type_id = boxed.type_id();
-
-      macro_rules! deserialize_variant {
-        ($type_id:expr, $boxed:expr, $variant:path, $target:ty) => {
-          if $type_id == TypeId::of::<Box<$target>>() {
-            let ptr = Box::into_raw($boxed);
-            let boxed = unsafe { Box::from_raw(ptr as *mut $target) };
-            return Ok(BindingCell {
-              ptr,
-              heap: Arc::new(Heap {
-                variant: $variant(boxed),
-                jsobject: OnceCell::default(),
-              }),
-            });
-          }
-        };
-      }
-
-      deserialize_variant!(type_id, boxed, HeapVariant::AssetInfo, AssetInfo);
-      deserialize_variant!(
-        type_id,
-        boxed,
-        HeapVariant::CodeGenerationResults,
-        CodeGenerationResults
-      );
-      deserialize_variant!(
-        type_id,
-        boxed,
-        HeapVariant::CodeGenerationResult,
-        CodeGenerationResult
-      );
-      deserialize_variant!(type_id, boxed, HeapVariant::Sources, FxHashMap<SourceType, BoxSource>);
-      deserialize_variant!(type_id, boxed, HeapVariant::Assets, FxHashMap<String, CompilationAsset>);
-
-      unreachable!()
+      // let boxed: Box<T> = self.deserialize(deserializer)?;
+      // Ok(BindingCell::new(*boxed))
+      todo!()
     }
   }
 }

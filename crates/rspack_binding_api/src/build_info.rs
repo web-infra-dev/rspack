@@ -6,7 +6,7 @@ use napi::{
     Array, FromNapiMutRef, FromNapiValue, JsObjectValue, Object, ToNapiValue, WeakReference,
   },
 };
-use rspack_core::WeakBindingCell;
+use rspack_core::Reflector;
 use rspack_napi::unknown_to_json_value;
 use rustc_hash::{FxHashMap, FxHashSet};
 
@@ -24,11 +24,11 @@ define_symbols! {
 // Record<string, Source>
 #[napi]
 pub struct Assets {
-  i: WeakBindingCell<FxHashMap<String, rspack_core::CompilationAsset>>,
+  i: Reflector<FxHashMap<String, rspack_core::CompilationAsset>>,
 }
 
 impl Assets {
-  pub fn new(i: WeakBindingCell<FxHashMap<String, rspack_core::CompilationAsset>>) -> Self {
+  pub fn new(i: Reflector<FxHashMap<String, rspack_core::CompilationAsset>>) -> Self {
     Self { i }
   }
 
