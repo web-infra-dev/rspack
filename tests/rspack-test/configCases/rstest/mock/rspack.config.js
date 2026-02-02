@@ -182,6 +182,7 @@ module.exports = [
 		}
 	},
 	rstestEntry("./mockFirstArgIsImport.js"),
+	rstestEntry("./globals/importActual.js"),
 	{
 		...rstestEntry("./hoisted.js"),
 		externals: {
