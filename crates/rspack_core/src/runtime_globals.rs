@@ -288,8 +288,9 @@ define_runtime_globals! {
   // defer import support
   const ASYNC_MODULE_EXPORT_SYMBOL;
   const MAKE_DEFERRED_NAMESPACE_OBJECT;
-  const MAKE_DEFERRED_NAMESPACE_OBJECT_SYMBOL;
   const MAKE_OPTIMIZED_DEFERRED_NAMESPACE_OBJECT;
+  const DEFERRED_MODULES_ASYNC_TRANSITIVE_DEPENDENCIES;
+  const DEFERRED_MODULES_ASYNC_TRANSITIVE_DEPENDENCIES_SYMBOL;
 
   // rspack only
   const ASYNC_STARTUP;
@@ -358,8 +359,11 @@ pub fn runtime_globals_to_string(
     RuntimeGlobals::STARTUP => format!("{scope_name}.x"),
     RuntimeGlobals::MAKE_NAMESPACE_OBJECT => format!("{scope_name}.r"),
     RuntimeGlobals::MAKE_DEFERRED_NAMESPACE_OBJECT => format!("{scope_name}.z"),
-    RuntimeGlobals::MAKE_DEFERRED_NAMESPACE_OBJECT_SYMBOL => format!("{scope_name}.zS"),
     RuntimeGlobals::MAKE_OPTIMIZED_DEFERRED_NAMESPACE_OBJECT => format!("{scope_name}.zO"),
+    RuntimeGlobals::DEFERRED_MODULES_ASYNC_TRANSITIVE_DEPENDENCIES => format!("{scope_name}.zT"),
+    RuntimeGlobals::DEFERRED_MODULES_ASYNC_TRANSITIVE_DEPENDENCIES_SYMBOL => {
+      format!("{scope_name}.zS")
+    }
     RuntimeGlobals::EXPORTS => {
       runtime_variable_to_string(&RuntimeVariable::Exports, compiler_options)
     }

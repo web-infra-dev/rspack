@@ -21,7 +21,7 @@
 		}
 	};
 	<% if (_has_async) { %>
-	if(isAsync) obj[<%- MAKE_DEFERRED_NAMESPACE_OBJECT_SYMBOL %>] = asyncDeps;
+	if(isAsync) obj[<%- DEFERRED_MODULES_ASYNC_TRANSITIVE_DEPENDENCIES_SYMBOL %>] = asyncDeps;
 	<% } %>
 	return obj;
 };

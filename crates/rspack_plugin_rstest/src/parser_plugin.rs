@@ -1,6 +1,7 @@
 use camino::Utf8PathBuf;
 use rspack_core::{
-  AsyncDependenciesBlock, ConstDependency, DependencyRange, ImportAttributes, RuntimeGlobals,
+  AsyncDependenciesBlock, ConstDependency, DependencyRange, ImportAttributes, ImportPhase,
+  RuntimeGlobals,
 };
 use rspack_plugin_javascript::{
   JavascriptParserPlugin,
@@ -143,6 +144,7 @@ impl RstestParserPlugin {
             call_expr.span.into(),
             None,
             Some(attrs),
+            ImportPhase::Evaluation,
             parser.in_try,
             get_swc_comments(
               parser.comments,
@@ -467,6 +469,7 @@ impl RstestParserPlugin {
                   call_expr.span.into(),
                   None,
                   Some(attrs),
+                  ImportPhase::Evaluation,
                   parser.in_try,
                   get_swc_comments(
                     parser.comments,
