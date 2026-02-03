@@ -363,8 +363,8 @@ importers:
   packages/rspack:
     dependencies:
       '@module-federation/runtime-tools':
-        specifier: 0.24.0
-        version: 0.24.0
+        specifier: 0.0.0-fix-loop-load-20260203135642
+        version: 0.0.0-fix-loop-load-20260203135642
       '@rspack/binding':
         specifier: workspace:*
         version: link:../../crates/node_binding
@@ -383,7 +383,7 @@ importers:
         version: 1.0.7
       '@rsbuild/plugin-node-polyfill':
         specifier: ^1.4.3
-        version: 1.4.3(@rsbuild/core@2.0.0-beta.0(@module-federation/runtime-tools@0.24.0)(core-js@3.47.0))
+        version: 1.4.3(@rsbuild/core@2.0.0-beta.0(@module-federation/runtime-tools@0.0.0-fix-loop-load-20260203135642)(core-js@3.47.0))
       '@rslib/core':
         specifier: 0.19.3
         version: 0.19.3(@microsoft/api-extractor@7.55.2(@types/node@20.19.30))(typescript@5.9.3)
@@ -661,8 +661,8 @@ importers:
         specifier: ^7.28.5
         version: 7.28.5(@babel/core@7.28.6)
       '@module-federation/runtime-tools':
-        specifier: 0.24.0
-        version: 0.24.0
+        specifier: 0.0.0-fix-loop-load-20260203135642
+        version: 0.0.0-fix-loop-load-20260203135642
       '@playwright/test':
         specifier: 1.57.0
         version: 1.57.0
@@ -736,8 +736,8 @@ importers:
         specifier: ^7.28.5
         version: 7.28.5(@babel/core@7.28.6)
       '@module-federation/runtime-tools':
-        specifier: 0.24.0
-        version: 0.24.0
+        specifier: 0.0.0-fix-loop-load-20260203135642
+        version: 0.0.0-fix-loop-load-20260203135642
       '@rspack/binding-testing':
         specifier: workspace:*
         version: link:../../crates/rspack_binding_builder_testing
@@ -2398,11 +2398,17 @@ packages:
   '@microsoft/tsdoc@0.16.0':
     resolution: {integrity: sha512-xgAyonlVVS+q7Vc7qLW0UrJU7rSFcETRWsqdXZtjzRU8dF+6CkozTK4V4y1LwOX7j8r/vHphjDeMeGI4tNGeGA==}
 
+  '@module-federation/error-codes@0.0.0-fix-loop-load-20260203135642':
+    resolution: {integrity: sha512-hyGxZ/7MNl4zx4YpdjfUHsioIpe8kVYT5HBHf6AhPOnkghrjRSnl2VEXKX51rNeMFEckgGiZfnkAJxIPa+Bd7A==}
+
   '@module-federation/error-codes@0.22.0':
     resolution: {integrity: sha512-xF9SjnEy7vTdx+xekjPCV5cIHOGCkdn3pIxo9vU7gEZMIw0SvAEdsy6Uh17xaCpm8V0FWvR0SZoK9Ik6jGOaug==}
 
   '@module-federation/error-codes@0.24.0':
     resolution: {integrity: sha512-T6rRYTHOZtFyni9ffZjfj5YbUDpQ7TAhP9TW0o2PVLk2ss3nmqWe6ZtN4o9PVt5wFOdktlE5p8+P+t1pAuKXPw==}
+
+  '@module-federation/runtime-core@0.0.0-fix-loop-load-20260203135642':
+    resolution: {integrity: sha512-CqJHB4xW/ZlfYYeGbRO8t9hFnPHOjEGG67qrODS72lMx5lWm1aFlao32ZWr8VGUiU+/f7iDzILKXpdMPBGWkDw==}
 
   '@module-federation/runtime-core@0.22.0':
     resolution: {integrity: sha512-GR1TcD6/s7zqItfhC87zAp30PqzvceoeDGYTgF3Vx2TXvsfDrhP6Qw9T4vudDQL3uJRne6t7CzdT29YyVxlgIA==}
@@ -2410,11 +2416,17 @@ packages:
   '@module-federation/runtime-core@0.24.0':
     resolution: {integrity: sha512-f5kQZRfw00qK/KjyLuxbgtbYMPTMl7Dt4egRCgctSjVJZHibtL8BRLUr1Clf+Zr19Uhan2s90fo1Xs6rqgzvng==}
 
+  '@module-federation/runtime-tools@0.0.0-fix-loop-load-20260203135642':
+    resolution: {integrity: sha512-0DcSPhKaaBp9dROvSqtEhJw+28F65oA6E3kLCPgcKWyFeM7wE6Sz20QV/PszsAq7Y1VRWzK5B2EpE5D6bbixTQ==}
+
   '@module-federation/runtime-tools@0.22.0':
     resolution: {integrity: sha512-4ScUJ/aUfEernb+4PbLdhM/c60VHl698Gn1gY21m9vyC1Ucn69fPCA1y2EwcCB7IItseRMoNhdcWQnzt/OPCNA==}
 
   '@module-federation/runtime-tools@0.24.0':
     resolution: {integrity: sha512-3kffMSJBqV9M4HJ6a2+I8P/03PdeTD3mBLZ71czzmYtDpYPe7GGjpiSlJebW+dUYrlMeqWG4tKM20xWNfaj4QQ==}
+
+  '@module-federation/runtime@0.0.0-fix-loop-load-20260203135642':
+    resolution: {integrity: sha512-fh6kQmwSAiW/G4jMIjKZ/hIHJ/2RuK9yJmYRdPq3yGyH9tUU9p4TG+ZaY2BXreXTRHEqmeWUbpA149jDurXpIg==}
 
   '@module-federation/runtime@0.22.0':
     resolution: {integrity: sha512-38g5iPju2tPC3KHMPxRKmy4k4onNp6ypFPS1eKGsNLUkXgHsPMBFqAjDw96iEcjri91BrahG4XcdyKi97xZzlA==}
@@ -2422,11 +2434,17 @@ packages:
   '@module-federation/runtime@0.24.0':
     resolution: {integrity: sha512-fZYLS3S0CwTP9SYiFmchPM1JZPqbR9GpiI4egSWsPrub53znMBMVtf4DAKfcpQFaaKTjsUZs1RxXmCyt30Uqzg==}
 
+  '@module-federation/sdk@0.0.0-fix-loop-load-20260203135642':
+    resolution: {integrity: sha512-wUzh3cMd4raAsIon3zWvtG1egpY4s+iQrc95ykQ6Let54SagqH7KWTCGpPOdOskBjqpE5Ska6BPwzpUImOgPRw==}
+
   '@module-federation/sdk@0.22.0':
     resolution: {integrity: sha512-x4aFNBKn2KVQRuNVC5A7SnrSCSqyfIWmm1DvubjbO9iKFe7ith5niw8dqSFBekYBg2Fwy+eMg4sEFNVvCAdo6g==}
 
   '@module-federation/sdk@0.24.0':
     resolution: {integrity: sha512-3AxOPr3uKxLcT2Ek2ne3+5cUDrQ/0Ncoz3t2hgFqmHcZ+6sTPcEmS7Sr0T04yRCM/Dyv3TrJR8EebevRtILc2A==}
+
+  '@module-federation/webpack-bundler-runtime@0.0.0-fix-loop-load-20260203135642':
+    resolution: {integrity: sha512-SnrQcdJkl/L27MEcDuaq42l6dC1sobvtSHEE9qMjE6CMUhhQE5O8ZQqoQRR9nw1RiiO+5NqFBPlyRicVh/YJqQ==}
 
   '@module-federation/webpack-bundler-runtime@0.22.0':
     resolution: {integrity: sha512-aM8gCqXu+/4wBmJtVeMeeMN5guw3chf+2i6HajKtQv7SJfxV/f4IyNQJUeUQu9HfiAZHjqtMV5Lvq/Lvh8LdyA==}
@@ -9693,9 +9711,17 @@ snapshots:
 
   '@microsoft/tsdoc@0.16.0': {}
 
+  '@module-federation/error-codes@0.0.0-fix-loop-load-20260203135642': {}
+
   '@module-federation/error-codes@0.22.0': {}
 
-  '@module-federation/error-codes@0.24.0': {}
+  '@module-federation/error-codes@0.24.0':
+    optional: true
+
+  '@module-federation/runtime-core@0.0.0-fix-loop-load-20260203135642':
+    dependencies:
+      '@module-federation/error-codes': 0.0.0-fix-loop-load-20260203135642
+      '@module-federation/sdk': 0.0.0-fix-loop-load-20260203135642
 
   '@module-federation/runtime-core@0.22.0':
     dependencies:
@@ -9706,6 +9732,12 @@ snapshots:
     dependencies:
       '@module-federation/error-codes': 0.24.0
       '@module-federation/sdk': 0.24.0
+    optional: true
+
+  '@module-federation/runtime-tools@0.0.0-fix-loop-load-20260203135642':
+    dependencies:
+      '@module-federation/runtime': 0.0.0-fix-loop-load-20260203135642
+      '@module-federation/webpack-bundler-runtime': 0.0.0-fix-loop-load-20260203135642
 
   '@module-federation/runtime-tools@0.22.0':
     dependencies:
@@ -9716,6 +9748,13 @@ snapshots:
     dependencies:
       '@module-federation/runtime': 0.24.0
       '@module-federation/webpack-bundler-runtime': 0.24.0
+    optional: true
+
+  '@module-federation/runtime@0.0.0-fix-loop-load-20260203135642':
+    dependencies:
+      '@module-federation/error-codes': 0.0.0-fix-loop-load-20260203135642
+      '@module-federation/runtime-core': 0.0.0-fix-loop-load-20260203135642
+      '@module-federation/sdk': 0.0.0-fix-loop-load-20260203135642
 
   '@module-federation/runtime@0.22.0':
     dependencies:
@@ -9728,10 +9767,19 @@ snapshots:
       '@module-federation/error-codes': 0.24.0
       '@module-federation/runtime-core': 0.24.0
       '@module-federation/sdk': 0.24.0
+    optional: true
+
+  '@module-federation/sdk@0.0.0-fix-loop-load-20260203135642': {}
 
   '@module-federation/sdk@0.22.0': {}
 
-  '@module-federation/sdk@0.24.0': {}
+  '@module-federation/sdk@0.24.0':
+    optional: true
+
+  '@module-federation/webpack-bundler-runtime@0.0.0-fix-loop-load-20260203135642':
+    dependencies:
+      '@module-federation/runtime': 0.0.0-fix-loop-load-20260203135642
+      '@module-federation/sdk': 0.0.0-fix-loop-load-20260203135642
 
   '@module-federation/webpack-bundler-runtime@0.22.0':
     dependencies:
@@ -9742,6 +9790,7 @@ snapshots:
     dependencies:
       '@module-federation/runtime': 0.24.0
       '@module-federation/sdk': 0.24.0
+    optional: true
 
   '@napi-rs/cli@3.0.4(@emnapi/runtime@1.5.0)(@types/node@20.19.30)(emnapi@1.8.1(node-addon-api@7.1.1))':
     dependencies:
@@ -10209,6 +10258,18 @@ snapshots:
       core-js: 3.47.0
       jiti: 2.6.1
 
+  '@rsbuild/core@2.0.0-beta.0(@module-federation/runtime-tools@0.0.0-fix-loop-load-20260203135642)(core-js@3.47.0)':
+    dependencies:
+      '@rspack/core': 2.0.0-alpha.1(@module-federation/runtime-tools@0.0.0-fix-loop-load-20260203135642)(@swc/helpers@0.5.18)
+      '@rspack/lite-tapable': 1.1.0
+      '@swc/helpers': 0.5.18
+      jiti: 2.6.1
+    optionalDependencies:
+      core-js: 3.47.0
+    transitivePeerDependencies:
+      - '@module-federation/runtime-tools'
+    optional: true
+
   '@rsbuild/core@2.0.0-beta.0(@module-federation/runtime-tools@0.24.0)(core-js@3.47.0)':
     dependencies:
       '@rspack/core': 2.0.0-alpha.1(@module-federation/runtime-tools@0.24.0)(@swc/helpers@0.5.18)
@@ -10220,7 +10281,7 @@ snapshots:
     transitivePeerDependencies:
       - '@module-federation/runtime-tools'
 
-  '@rsbuild/plugin-node-polyfill@1.4.3(@rsbuild/core@2.0.0-beta.0(@module-federation/runtime-tools@0.24.0)(core-js@3.47.0))':
+  '@rsbuild/plugin-node-polyfill@1.4.3(@rsbuild/core@2.0.0-beta.0(@module-federation/runtime-tools@0.0.0-fix-loop-load-20260203135642)(core-js@3.47.0))':
     dependencies:
       assert: 2.1.0
       browserify-zlib: 0.2.0
@@ -10246,7 +10307,7 @@ snapshots:
       util: 0.12.5
       vm-browserify: 1.1.2
     optionalDependencies:
-      '@rsbuild/core': 2.0.0-beta.0(@module-federation/runtime-tools@0.24.0)(core-js@3.47.0)
+      '@rsbuild/core': 2.0.0-beta.0(@module-federation/runtime-tools@0.0.0-fix-loop-load-20260203135642)(core-js@3.47.0)
 
   '@rsbuild/plugin-react@1.4.5(@rsbuild/core@2.0.0-beta.0(@module-federation/runtime-tools@0.24.0)(core-js@3.47.0))':
     dependencies:
@@ -10399,6 +10460,15 @@ snapshots:
       '@rspack/lite-tapable': 1.1.0
     optionalDependencies:
       '@swc/helpers': 0.5.18
+
+  '@rspack/core@2.0.0-alpha.1(@module-federation/runtime-tools@0.0.0-fix-loop-load-20260203135642)(@swc/helpers@0.5.18)':
+    dependencies:
+      '@rspack/binding': 2.0.0-alpha.1
+      '@rspack/lite-tapable': 1.1.0
+    optionalDependencies:
+      '@module-federation/runtime-tools': 0.0.0-fix-loop-load-20260203135642
+      '@swc/helpers': 0.5.18
+    optional: true
 
   '@rspack/core@2.0.0-alpha.1(@module-federation/runtime-tools@0.24.0)(@swc/helpers@0.5.18)':
     dependencies:
