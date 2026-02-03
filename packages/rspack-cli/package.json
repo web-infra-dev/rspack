@@ -1,6 +1,6 @@
 {
   "name": "@rspack/cli",
-  "version": "2.0.0-alpha.2",
+  "version": "2.0.0-beta.0",
   "description": "CLI for rspack",
   "homepage": "https://rspack.rs",
   "bugs": "https://github.com/web-infra-dev/rspack/issues",
