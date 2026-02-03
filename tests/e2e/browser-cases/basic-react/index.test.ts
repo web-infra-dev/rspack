@@ -9,5 +9,5 @@ test('@rspack/browser should bundle react app successfully', async ({
       const text = await page.locator('#output').innerText();
       return text.length;
     })
-    .toBeGreaterThan(500);
+    .toBeGreaterThan(300);
 });

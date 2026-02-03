@@ -123,4 +123,10 @@ impl RuntimeModule for StartupChunkDependenciesRuntimeModule {
   fn attach(&mut self, chunk: ChunkUkey) {
     self.chunk = Some(chunk);
   }
+
+  fn additional_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
+    RuntimeGlobals::STARTUP
+      | RuntimeGlobals::ENSURE_CHUNK
+      | RuntimeGlobals::ENSURE_CHUNK_INCLUDE_ENTRIES
+  }
 }

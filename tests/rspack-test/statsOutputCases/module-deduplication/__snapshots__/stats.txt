@@ -1,6 +1,6 @@
 asset e2.js xx KiB [emitted] (name: e2)
-asset e3.js xx KiB [emitted] (name: e3)
 asset e1.js xx KiB [emitted] (name: e1)
+asset e3.js xx KiB [emitted] (name: e3)
 asset 825.js xx bytes [emitted]
 asset 996.js xx bytes [emitted]
 asset 396.js xx bytes [emitted]

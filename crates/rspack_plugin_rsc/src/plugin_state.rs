@@ -1,4 +1,4 @@
-use atomic_refcell::AtomicRefCell;
+use dashmap::DashMap;
 use once_cell::sync::Lazy;
 use rspack_collections::IdentifierSet;
 use rspack_core::CompilerId;
@@ -49,5 +49,4 @@ impl PluginState {
   }
 }
 
-pub static PLUGIN_STATES: Lazy<AtomicRefCell<FxHashMap<CompilerId, PluginState>>> =
-  Lazy::new(Default::default);
+pub static PLUGIN_STATES: Lazy<DashMap<CompilerId, PluginState>> = Lazy::new(Default::default);

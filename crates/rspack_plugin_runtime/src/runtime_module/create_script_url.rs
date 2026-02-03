@@ -1,5 +1,7 @@
 use rspack_collections::Identifier;
-use rspack_core::{Compilation, RuntimeModule, RuntimeTemplate, impl_runtime_module};
+use rspack_core::{
+  Compilation, RuntimeGlobals, RuntimeModule, RuntimeTemplate, impl_runtime_module,
+};
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -38,5 +40,13 @@ impl RuntimeModule for CreateScriptUrlRuntimeModule {
     )?;
 
     Ok(source)
+  }
+
+  fn additional_runtime_requirements(&self, compilation: &Compilation) -> RuntimeGlobals {
+    if compilation.options.output.trusted_types.is_some() {
+      RuntimeGlobals::GET_TRUSTED_TYPES_POLICY
+    } else {
+      RuntimeGlobals::default()
+    }
   }
 }

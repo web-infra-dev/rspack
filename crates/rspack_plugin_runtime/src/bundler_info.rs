@@ -40,18 +40,16 @@ async fn additional_tree_runtime_requirements(
   if match &self.force {
     BundlerInfoForceMode::All => true,
     BundlerInfoForceMode::Partial(s) => s.get("version").is_some(),
-    BundlerInfoForceMode::Auto => runtime_requirements.contains(RuntimeGlobals::RSPACK_VERSION),
+    _ => false,
   } {
-    runtime_requirements.insert(RuntimeGlobals::REQUIRE);
     runtime_requirements.insert(RuntimeGlobals::RSPACK_VERSION);
   }
 
   if match &self.force {
     BundlerInfoForceMode::All => true,
     BundlerInfoForceMode::Partial(s) => s.get("uniqueId").is_some(),
-    BundlerInfoForceMode::Auto => runtime_requirements.contains(RuntimeGlobals::RSPACK_UNIQUE_ID),
+    _ => false,
   } {
-    runtime_requirements.insert(RuntimeGlobals::REQUIRE);
     runtime_requirements.insert(RuntimeGlobals::RSPACK_UNIQUE_ID);
   }
   Ok(())
