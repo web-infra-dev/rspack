@@ -7,10 +7,9 @@ module.exports = {
 		minimize: false
 	},
 	output: {
-		module: true,
+		filename: '[name].mjs',
 		library: {
 			type: "module"
 		},
-		module: true
 	}
 };

@@ -8,7 +8,6 @@ module.exports = {
 	},
 	mode: "development",
 	output: {
-		module: true,
 		filename: `[name].js`,
 		module: true,
 		library: {

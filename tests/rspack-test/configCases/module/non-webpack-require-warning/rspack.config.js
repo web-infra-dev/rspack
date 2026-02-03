@@ -36,8 +36,6 @@ module.exports = [
 			module: true
 		},
 		target: "web",
-		experiments: {
-			},
 		plugins: [
 			new webpack.BannerPlugin({
 				raw: true,

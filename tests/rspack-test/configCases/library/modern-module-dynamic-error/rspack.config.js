@@ -8,7 +8,6 @@ module.exports = {
 		module: true,
 		filename: `[name].js`,
 		chunkFilename: `async.js`,
-		module: true,
 		library: {
 			type: "modern-module"
 		},

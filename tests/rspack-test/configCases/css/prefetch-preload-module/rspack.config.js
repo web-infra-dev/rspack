@@ -14,7 +14,6 @@ module.exports = {
 	output: {
 		module: true,
 		publicPath: "",
-		module: true,
 		filename: "bundle0.mjs",
 		chunkFilename: "[name].mjs",
 		crossOriginLoading: "anonymous",

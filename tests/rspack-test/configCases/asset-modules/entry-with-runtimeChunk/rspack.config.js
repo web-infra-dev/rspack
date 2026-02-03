@@ -85,7 +85,6 @@ const esm = i => ({
 	...common,
 	...entry(i),
 	output: {
-		module: true,
 		filename: `${i}/[name].mjs`,
 		chunkFilename: `${i}/[name].mjs`,
 		cssFilename: `${i}/[name].css`,
