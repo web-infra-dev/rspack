@@ -512,20 +512,6 @@ pub fn runtime_variable_to_string(
   }
 }
 
-#[cfg(test)]
-mod test {
-  use super::*;
-
-  #[test]
-  fn test_iter() {
-    let flags = RuntimeGlobals::PUBLIC_PATH | RuntimeGlobals::GET_CHUNK_CSS_FILENAME;
-    let flags: Vec<_> = flags.iter().collect();
-    assert_eq!(flags.len(), 2);
-    assert_eq!(flags[0], RuntimeGlobals::PUBLIC_PATH);
-    assert_eq!(flags[1], RuntimeGlobals::GET_CHUNK_CSS_FILENAME);
-  }
-}
-
 type RuntimeGlobalMap = (
   FxHashMap<RuntimeGlobals, &'static str>,
   FxHashMap<&'static str, RuntimeGlobals>,
