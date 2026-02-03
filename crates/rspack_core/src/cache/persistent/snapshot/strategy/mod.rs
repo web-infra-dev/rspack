@@ -11,6 +11,7 @@ use self::{
   hash_helper::{ContentHash, HashHelper},
   package_helper::PackageHelper,
 };
+use super::SnapshotOptions;
 
 /// Snapshot check strategy
 #[cacheable]
@@ -72,16 +73,17 @@ pub enum ValidateResult {
 
 pub struct StrategyHelper {
   fs: Arc<dyn ReadableFileSystem>,
-  package_helper: PackageHelper,
+  package_helper: Arc<PackageHelper>,
   hash_helper: HashHelper,
 }
 
 impl StrategyHelper {
-  pub fn new(fs: Arc<dyn ReadableFileSystem>) -> Self {
+  pub fn new(fs: Arc<dyn ReadableFileSystem>, snapshot_options: Arc<SnapshotOptions>) -> Self {
+    let package_helper = Arc::new(PackageHelper::new(fs.clone()));
     Self {
       fs: fs.clone(),
-      package_helper: PackageHelper::new(fs.clone()),
-      hash_helper: HashHelper::new(fs),
+      hash_helper: HashHelper::new(fs, snapshot_options, package_helper.clone()),
+      package_helper,
     }
   }
 
@@ -202,7 +204,7 @@ mod tests {
       .unwrap();
 
     let strategy = Strategy::PackageVersion("1.0.0".into());
-    let helper = StrategyHelper::new(fs.clone());
+    let helper = StrategyHelper::new(fs.clone(), Default::default());
     assert!(matches!(
       helper
         .validate(&ArcPath::from("/packages/lib/file.js"), &strategy)
@@ -210,7 +212,7 @@ mod tests {
       ValidateResult::NoChanged
     ));
 
-    let helper = StrategyHelper::new(fs.clone());
+    let helper = StrategyHelper::new(fs.clone(), Default::default());
     fs.write(
       "/packages/lib/package.json".into(),
       r#"{"version": "1.2.0"}"#.as_bytes(),
@@ -224,7 +226,7 @@ mod tests {
       ValidateResult::Modified
     ));
 
-    let helper = StrategyHelper::new(fs.clone());
+    let helper = StrategyHelper::new(fs.clone(), Default::default());
     fs.remove_file("/packages/lib/package.json".into())
       .await
       .unwrap();
@@ -245,7 +247,7 @@ mod tests {
       .unwrap();
 
     std::thread::sleep(std::time::Duration::from_millis(100));
-    let helper = StrategyHelper::new(fs.clone());
+    let helper = StrategyHelper::new(fs.clone(), Default::default());
     let strategy = helper.file_hash(&ArcPath::from("/file1.js")).await;
     assert!(matches!(
       helper
@@ -255,7 +257,7 @@ mod tests {
     ));
 
     std::thread::sleep(std::time::Duration::from_millis(100));
-    let helper = StrategyHelper::new(fs.clone());
+    let helper = StrategyHelper::new(fs.clone(), Default::default());
     fs.write("/file1.js".into(), "abc".as_bytes())
       .await
       .unwrap();
@@ -267,7 +269,7 @@ mod tests {
     ));
 
     std::thread::sleep(std::time::Duration::from_millis(100));
-    let helper = StrategyHelper::new(fs.clone());
+    let helper = StrategyHelper::new(fs.clone(), Default::default());
     fs.write("/file1.js".into(), "abcd".as_bytes())
       .await
       .unwrap();
@@ -279,7 +281,7 @@ mod tests {
     ));
 
     std::thread::sleep(std::time::Duration::from_millis(100));
-    let helper = StrategyHelper::new(fs.clone());
+    let helper = StrategyHelper::new(fs.clone(), Default::default());
     fs.remove_file("/file1.js".into()).await.unwrap();
     assert!(matches!(
       helper
@@ -297,7 +299,7 @@ mod tests {
       .await
       .unwrap();
 
-    let helper = StrategyHelper::new(fs.clone());
+    let helper = StrategyHelper::new(fs.clone(), Default::default());
     let strategy = Strategy::Missing;
     assert!(matches!(
       helper

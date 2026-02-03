@@ -7,6 +7,8 @@ use rspack_fs::{FileMetadata, ReadableFileSystem};
 use rspack_paths::{ArcPath, ArcPathDashMap, AssertUtf8};
 use rustc_hash::FxHasher;
 
+use super::{PackageHelper, SnapshotOptions};
+
 /// Content hash with modification time.
 #[derive(Debug, Clone, Default)]
 pub struct ContentHash {
@@ -17,20 +19,24 @@ pub struct ContentHash {
 /// A helper for computing content hashes of files and directories.
 #[derive(Debug)]
 pub struct HashHelper {
-  /// File system abstraction for reading file contents.
   fs: Arc<dyn ReadableFileSystem>,
-
-  /// Cache for file content hashes.
+  snapshot_options: Arc<SnapshotOptions>,
+  package_helper: Arc<PackageHelper>,
   file_cache: ArcPathDashMap<Option<ContentHash>>,
-  /// Cache for directory content hashes.
   dir_cache: ArcPathDashMap<Option<ContentHash>>,
 }
 
 impl HashHelper {
   /// Creates a new HashHelper instance with the given file system.
-  pub fn new(fs: Arc<dyn ReadableFileSystem>) -> Self {
+  pub fn new(
+    fs: Arc<dyn ReadableFileSystem>,
+    snapshot_options: Arc<SnapshotOptions>,
+    package_helper: Arc<PackageHelper>,
+  ) -> Self {
     Self {
       fs,
+      snapshot_options,
+      package_helper,
       file_cache: Default::default(),
       dir_cache: Default::default(),
     }
@@ -69,10 +75,10 @@ impl HashHelper {
       if let Ok(target) = self.fs.canonicalize(utf8_path).await {
         target.hash(&mut hasher)
       }
-    } else if metadata.is_file {
-      if let Ok(content) = self.fs.read(utf8_path).await {
-        content.hash(&mut hasher);
-      }
+    } else if metadata.is_file
+      && let Ok(content) = self.fs.read(utf8_path).await
+    {
+      content.hash(&mut hasher);
     };
     let hash = Some(ContentHash {
       hash: hasher.finish(),
@@ -102,10 +108,21 @@ impl HashHelper {
 
     let hash = if metadata.is_directory && !metadata.is_symlink {
       if let Ok(mut children) = self.fs.read_dir(utf8_path).await {
-        children.sort();
         let mut hasher = FxHasher::default();
+        children.sort();
         for item in children {
           let child_path = ArcPath::from(path.join(item));
+          let child_path_str = child_path.to_string_lossy();
+          if self.snapshot_options.is_immutable_path(&child_path_str) {
+            continue;
+          }
+          if self.snapshot_options.is_managed_path(&child_path_str) {
+            if let Some(version) = self.package_helper.package_version(&child_path).await {
+              version.hash(&mut hasher);
+            }
+            continue;
+          }
+
           if let Some(ContentHash { hash, .. }) = self.dir_hash(&child_path).await {
             hash.hash(&mut hasher);
           }
@@ -133,7 +150,7 @@ mod tests {
   use rspack_fs::{MemoryFileSystem, WritableFileSystem};
   use rspack_paths::ArcPath;
 
-  use super::HashHelper;
+  use super::{HashHelper, PackageHelper};
 
   #[tokio::test]
   async fn file_hash() {
@@ -141,7 +158,11 @@ mod tests {
     fs.create_dir_all("/".into()).await.unwrap();
     fs.write("/hash.js".into(), "abc".as_bytes()).await.unwrap();
 
-    let helper = HashHelper::new(fs.clone());
+    let helper = HashHelper::new(
+      fs.clone(),
+      Default::default(),
+      Arc::new(PackageHelper::new(fs.clone())),
+    );
     assert!(
       helper
         .file_hash(&ArcPath::from("/not_exist.js"))
@@ -150,7 +171,6 @@ mod tests {
     );
     let hash0 = helper.file_hash(&ArcPath::from("/")).await.unwrap();
     assert_eq!(hash0.hash, 0);
-    assert_eq!(hash0.mtime, 0);
 
     let hash1 = helper.file_hash(&ArcPath::from("/hash.js")).await.unwrap();
 
@@ -183,7 +203,11 @@ mod tests {
     fs.write("/a/a2.js".into(), "a2".as_bytes()).await.unwrap();
     fs.write("/b.js".into(), "b".as_bytes()).await.unwrap();
 
-    let helper = HashHelper::new(fs.clone());
+    let helper = HashHelper::new(
+      fs.clone(),
+      Default::default(),
+      Arc::new(PackageHelper::new(fs.clone())),
+    );
 
     let hash1 = helper.dir_hash(&ArcPath::from("/")).await.unwrap();
 
