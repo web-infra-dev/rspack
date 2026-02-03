@@ -37,7 +37,11 @@ static JAVASCRIPT_HOT_MODULE_REPLACEMENT_TEMPLATE: &str =
   include_str!("runtime/javascript_hot_module_replacement.ejs");
 
 static MODULE_CHUNK_LOADING_BASIC_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
-  LazyLock::new(|| extract_runtime_globals_from_ejs(MODULE_CHUNK_LOADING_TEMPLATE));
+  LazyLock::new(|| {
+    let mut res = extract_runtime_globals_from_ejs(MODULE_CHUNK_LOADING_TEMPLATE);
+    res.remove(RuntimeGlobals::ON_CHUNKS_LOADED);
+    res
+  });
 static MODULE_CHUNK_LOADING_WITH_LOADING_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
   LazyLock::new(|| extract_runtime_globals_from_ejs(MODULE_CHUNK_LOADING_WITH_LOADING_TEMPLATE));
 static MODULE_CHUNK_LOADING_WITH_PREFETCH_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
