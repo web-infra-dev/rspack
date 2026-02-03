@@ -832,7 +832,7 @@ export type ResolveOptions = {
   /** enable Yarn PnP */
   pnp?: boolean;
   /** Path to PnP manifest file */
-  pnpManifest?: string;
+  pnpManifest?: string | false;
 };
 
 /** Used to configure the Rspack module resolution */

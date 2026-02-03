@@ -1,10 +1,9 @@
 use hashlink::LinkedHashMap;
-use rspack_paths::Utf8PathBuf;
 
 use super::{
   Alias, AliasFields, ByDependency, ConditionNames, DependencyCategoryStr, DescriptionFiles,
   EnforceExtension, ExportsFields, ExtensionAlias, Extensions, Fallback, FullySpecified,
-  ImportsFields, MainFields, MainFiles, Modules, PreferAbsolute, PreferRelative, Resolve,
+  ImportsFields, MainFields, MainFiles, Modules, PnpManifest, PreferAbsolute, PreferRelative, Resolve,
   Restrictions, Roots, Symlink, TsconfigOptions,
   value_type::{GetValueType, ValueType},
 };
@@ -73,7 +72,7 @@ struct ResolveWithEntry {
   restrictions: Entry<Restrictions>,
   roots: Entry<Roots>,
   pnp: Entry<bool>,
-  pnp_manifest: Entry<Utf8PathBuf>,
+  pnp_manifest: Entry<PnpManifest>,
 }
 
 fn parse_resolve(resolve: Resolve) -> ResolveWithEntry {

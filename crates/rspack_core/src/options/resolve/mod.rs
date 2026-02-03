@@ -6,7 +6,7 @@ use std::borrow::Cow;
 use hashlink::LinkedHashMap;
 use rspack_cacheable::{
   cacheable,
-  with::{AsCacheable, AsMap, AsOption, AsPreset, AsRefStr, AsTuple2, AsVec},
+  with::{AsCacheable, AsMap, AsPreset, AsRefStr, AsTuple2, AsVec},
 };
 use rspack_paths::Utf8PathBuf;
 use rspack_regex::RspackRegex;
@@ -56,6 +56,20 @@ impl value_type::GetValueType for Alias {
 pub enum Restriction {
   Path(String),
   Regex(RspackRegex),
+}
+
+#[cacheable]
+#[derive(Debug, Clone, Hash, PartialEq, Eq, Default)]
+pub enum PnpManifest {
+  #[default]
+  Disabled,
+  Path(#[cacheable(with=AsPreset)] Utf8PathBuf),
+}
+
+impl value_type::GetValueType for PnpManifest {
+  fn get_value_type(&self) -> value_type::ValueType {
+    value_type::ValueType::Atom
+  }
 }
 
 pub(super) type Extensions = Vec<String>;
@@ -139,8 +153,7 @@ pub struct Resolve {
   /// If set, Yarn PnP resolution will be supported.
   pub pnp: Option<bool>,
   /// Path to PnP manifest file
-  #[cacheable(with=AsOption<AsPreset>)]
-  pub pnp_manifest: Option<Utf8PathBuf>,
+  pub pnp_manifest: Option<PnpManifest>,
   /// Whether to parse [module.builtinModules](https://nodejs.org/api/module.html#modulebuiltinmodules) or not.
   pub builtin_modules: bool,
 }

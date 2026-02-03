@@ -1,8 +1,8 @@
 use napi::Either;
 use napi_derive::napi;
 use rspack_core::{
-  Alias, AliasMap, ByDependency, DependencyCategory, Resolve, ResolveOptionsWithDependencyType,
-  Restriction, TsconfigOptions, TsconfigReferences,
+  Alias, AliasMap, ByDependency, DependencyCategory, PnpManifest, Resolve,
+  ResolveOptionsWithDependencyType, Restriction, TsconfigOptions, TsconfigReferences,
 };
 use rspack_error::error;
 use rspack_regex::RspackRegex;
@@ -56,7 +56,8 @@ pub struct RawResolveOptions {
   pub restrictions: Option<Vec<Either<String, RspackRegex>>>,
   pub roots: Option<Vec<String>>,
   pub pnp: Option<bool>,
-  pub pnp_manifest: Option<String>,
+  #[napi(ts_type = "string | false")]
+  pub pnp_manifest: Option<Either<String, bool>>,
 }
 
 fn normalize_alias(
@@ -176,7 +177,10 @@ impl TryFrom<RawResolveOptions> for Resolve {
       description_files,
       imports_fields,
       pnp,
-      pnp_manifest: pnp_manifest.map(Into::into),
+      pnp_manifest: pnp_manifest.map(|m| match m {
+        Either::A(p) => rspack_core::PnpManifest::Path(p.into()),
+        Either::B(_) => rspack_core::PnpManifest::Disabled,
+      }),
       builtin_modules: false,
     })
   }
@@ -240,7 +244,8 @@ pub struct RawResolveOptionsWithDependencyType {
   pub dependency_type: Option<String>,
   pub resolve_to_context: Option<bool>,
   pub pnp: Option<bool>,
-  pub pnp_manifest: Option<String>,
+  #[napi(ts_type = "string | false")]
+  pub pnp_manifest: Option<Either<String, bool>>,
 }
 
 pub fn normalize_raw_resolve_options_with_dependency_type(
@@ -297,7 +302,10 @@ pub fn normalize_raw_resolve_options_with_dependency_type(
         condition_names: raw.condition_names,
         tsconfig,
         pnp: raw.pnp,
-        pnp_manifest: raw.pnp_manifest.map(Into::into),
+        pnp_manifest: raw.pnp_manifest.map(|m| match m {
+          Either::A(p) => rspack_core::PnpManifest::Path(p.into()),
+          Either::B(_) => rspack_core::PnpManifest::Disabled,
+        }),
         modules: raw.modules,
         fallback: normalize_alias(raw.fallback)?,
         fully_specified: raw.fully_specified,

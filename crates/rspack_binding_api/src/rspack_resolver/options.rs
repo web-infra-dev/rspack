@@ -161,7 +161,8 @@ pub struct NapiResolveOptions {
   /// Path to PnP manifest file
   ///
   /// Default `None`
-  pub pnp_manifest: Option<String>,
+  #[napi(ts_type = "string | false")]
+  pub pnp_manifest: Option<Either<String, bool>>,
 }
 
 #[napi]
