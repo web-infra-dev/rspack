@@ -173,6 +173,7 @@ function defaultOptions(
       bundlerInfo: {
         force: false,
       },
+      ...(compilerOptions?.module ? { module: true } : {}),
     },
     resolve: {
       modules: ['web_modules', 'node_modules'],
@@ -228,13 +229,11 @@ function defaultOptions(
         });
       }),
     experiments: {
-      css: false,
       asyncWebAssembly: true,
       // CHANGE: rspack does not support `backCompat` yet.
       // backCompat: false,
       // CHANGE: Rspack enables `css` by default.
       // Turning off here to fallback to webpack's default css processing logic.
-      ...(compilerOptions?.module ? { outputModule: true } : {}),
     },
   } as RspackOptions;
 }

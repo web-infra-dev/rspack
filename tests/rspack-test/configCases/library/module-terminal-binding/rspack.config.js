@@ -6,13 +6,10 @@ module.exports = {
 	optimization: {
 		minimize: false
 	},
-	experiments: {
-		outputModule: true
-	},
 	output: {
+		filename: '[name].mjs',
 		library: {
 			type: "module"
 		},
-		module: true
 	}
 };

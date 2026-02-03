@@ -19,9 +19,6 @@ module.exports = {
 		filename: '[name].mjs',
 		chunkFormat: "module"
 	},
-	experiments: {
-		outputModule: true
-	},
 	resolve: {
 		extensions: [".ts"]
 	},

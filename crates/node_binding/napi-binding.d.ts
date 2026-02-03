@@ -2816,6 +2816,7 @@ export interface RawRstestPluginOptions {
   hoistMockModule: boolean
   manualMockRoot: string
   preserveNewUrl?: Array<string>
+  globals?: boolean
 }
 
 export interface RawRuleSetCondition {

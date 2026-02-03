@@ -38,9 +38,6 @@ module.exports = [
 	// ESM output
 	{
 		...baseConfig(1, true),
-		experiments: {
-			outputModule: true
-		},
 		externals: {
 			os: "module os"
 		},
@@ -59,8 +56,5 @@ module.exports = [
 		output: {
 			module: true,
 		},
-		experiments: {
-			outputModule: true,
-		}
 	}
 ];

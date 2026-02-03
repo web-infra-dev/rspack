@@ -16,7 +16,4 @@ module.exports = {
 	optimization: {
 		runtimeChunk: "single"
 	},
-	experiments: {
-		outputModule: true
-	}
 };
