@@ -1,10 +1,19 @@
+use std::sync::LazyLock;
+
 use rspack_collections::Identifier;
 use rspack_core::{
   ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeTemplate, RuntimeVariable,
   impl_runtime_module,
 };
 
-use crate::get_chunk_runtime_requirements;
+use crate::{extract_runtime_globals_from_ejs, get_chunk_runtime_requirements};
+
+static MAKE_OPTIMIZED_DEFERRED_NAMESPACE_OBJECT_TEMPLATE: &str =
+  include_str!("runtime/make_optimized_deferred_namespace_object.ejs");
+static MAKE_OPTIMIZED_DEFERRED_NAMESPACE_OBJECT_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
+  LazyLock::new(|| {
+    extract_runtime_globals_from_ejs(MAKE_OPTIMIZED_DEFERRED_NAMESPACE_OBJECT_TEMPLATE)
+  });
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -34,7 +43,7 @@ impl RuntimeModule for MakeOptimizedDeferredNamespaceObjectRuntimeModule {
   fn template(&self) -> Vec<(String, String)> {
     vec![(
       self.id.to_string(),
-      include_str!("runtime/make_optimized_deferred_namespace_object.ejs").to_string(),
+      MAKE_OPTIMIZED_DEFERRED_NAMESPACE_OBJECT_TEMPLATE.to_string(),
     )]
   }
 
@@ -50,5 +59,9 @@ impl RuntimeModule for MakeOptimizedDeferredNamespaceObjectRuntimeModule {
     )?;
 
     Ok(source)
+  }
+
+  fn additional_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
+    *MAKE_OPTIMIZED_DEFERRED_NAMESPACE_OBJECT_RUNTIME_REQUIREMENTS
   }
 }

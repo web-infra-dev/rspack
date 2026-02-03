@@ -1,4 +1,4 @@
-use std::ptr::NonNull;
+use std::{ptr::NonNull, sync::LazyLock};
 
 use rspack_collections::{DatabaseItem, Identifier};
 use rspack_core::{
@@ -11,12 +11,62 @@ use rspack_plugin_javascript::impl_plugin_for_js_plugin::chunk_has_js;
 use super::utils::get_output_dir;
 use crate::{
   LinkPrefetchData, LinkPreloadData, RuntimeModuleChunkWrapper, RuntimePlugin,
-  get_chunk_runtime_requirements,
+  extract_runtime_globals_from_ejs, get_chunk_runtime_requirements,
   runtime_module::{
     generate_javascript_hmr_runtime,
     utils::{get_initial_chunk_ids, stringify_chunks},
   },
 };
+
+static MODULE_CHUNK_LOADING_TEMPLATE: &str = include_str!("runtime/module_chunk_loading.ejs");
+static MODULE_CHUNK_LOADING_WITH_LOADING_TEMPLATE: &str =
+  include_str!("runtime/module_chunk_loading_with_loading.ejs");
+static MODULE_CHUNK_LOADING_WITH_PREFETCH_TEMPLATE: &str =
+  include_str!("runtime/module_chunk_loading_with_prefetch.ejs");
+static MODULE_CHUNK_LOADING_WITH_PREFETCH_LINK_TEMPLATE: &str =
+  include_str!("runtime/module_chunk_loading_with_prefetch_link.ejs");
+static MODULE_CHUNK_LOADING_WITH_PRELOAD_TEMPLATE: &str =
+  include_str!("runtime/module_chunk_loading_with_preload.ejs");
+static MODULE_CHUNK_LOADING_WITH_PRELOAD_LINK_TEMPLATE: &str =
+  include_str!("runtime/module_chunk_loading_with_preload_link.ejs");
+static MODULE_CHUNK_LOADING_WITH_HMR_TEMPLATE: &str =
+  include_str!("runtime/module_chunk_loading_with_hmr.ejs");
+static MODULE_CHUNK_LOADING_WITH_HMR_MANIFEST_TEMPLATE: &str =
+  include_str!("runtime/module_chunk_loading_with_hmr_manifest.ejs");
+static JAVASCRIPT_HOT_MODULE_REPLACEMENT_TEMPLATE: &str =
+  include_str!("runtime/javascript_hot_module_replacement.ejs");
+
+static MODULE_CHUNK_LOADING_BASIC_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
+  LazyLock::new(|| {
+    let mut res = extract_runtime_globals_from_ejs(MODULE_CHUNK_LOADING_TEMPLATE);
+    res.remove(RuntimeGlobals::ON_CHUNKS_LOADED);
+    res
+  });
+static MODULE_CHUNK_LOADING_WITH_LOADING_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
+  LazyLock::new(|| extract_runtime_globals_from_ejs(MODULE_CHUNK_LOADING_WITH_LOADING_TEMPLATE));
+static MODULE_CHUNK_LOADING_WITH_PREFETCH_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
+  LazyLock::new(|| {
+    extract_runtime_globals_from_ejs(MODULE_CHUNK_LOADING_WITH_PREFETCH_TEMPLATE)
+      | extract_runtime_globals_from_ejs(MODULE_CHUNK_LOADING_WITH_PREFETCH_LINK_TEMPLATE)
+  });
+static MODULE_CHUNK_LOADING_WITH_PRELOAD_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
+  LazyLock::new(|| {
+    extract_runtime_globals_from_ejs(MODULE_CHUNK_LOADING_WITH_PRELOAD_TEMPLATE)
+      | extract_runtime_globals_from_ejs(MODULE_CHUNK_LOADING_WITH_PRELOAD_LINK_TEMPLATE)
+  });
+static MODULE_CHUNK_LOADING_WITH_HMR_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
+  LazyLock::new(|| extract_runtime_globals_from_ejs(MODULE_CHUNK_LOADING_WITH_HMR_TEMPLATE));
+static MODULE_CHUNK_LOADING_WITH_HMR_MANIFEST_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
+  LazyLock::new(|| {
+    extract_runtime_globals_from_ejs(MODULE_CHUNK_LOADING_WITH_HMR_MANIFEST_TEMPLATE)
+  });
+static JAVASCRIPT_HOT_MODULE_REPLACEMENT_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
+  LazyLock::new(|| {
+    let mut res = extract_runtime_globals_from_ejs(JAVASCRIPT_HOT_MODULE_REPLACEMENT_TEMPLATE);
+    // ensure chunk handlers is optional
+    res.remove(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
+    res
+  });
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -34,6 +84,26 @@ impl ModuleChunkLoadingRuntimeModule {
       )),
       None,
     )
+  }
+
+  pub fn get_runtime_requirements_basic() -> RuntimeGlobals {
+    *MODULE_CHUNK_LOADING_BASIC_RUNTIME_REQUIREMENTS
+  }
+  pub fn get_runtime_requirements_with_loading() -> RuntimeGlobals {
+    *MODULE_CHUNK_LOADING_WITH_LOADING_RUNTIME_REQUIREMENTS
+  }
+  pub fn get_runtime_requirements_with_prefetch() -> RuntimeGlobals {
+    *MODULE_CHUNK_LOADING_WITH_PREFETCH_RUNTIME_REQUIREMENTS
+  }
+  pub fn get_runtime_requirements_with_preload() -> RuntimeGlobals {
+    *MODULE_CHUNK_LOADING_WITH_PRELOAD_RUNTIME_REQUIREMENTS
+  }
+  pub fn get_runtime_requirements_with_hmr() -> RuntimeGlobals {
+    *MODULE_CHUNK_LOADING_WITH_HMR_RUNTIME_REQUIREMENTS
+      | *JAVASCRIPT_HOT_MODULE_REPLACEMENT_RUNTIME_REQUIREMENTS
+  }
+  pub fn get_runtime_requirements_with_hmr_manifest() -> RuntimeGlobals {
+    *MODULE_CHUNK_LOADING_WITH_HMR_MANIFEST_RUNTIME_REQUIREMENTS
   }
 }
 
@@ -101,39 +171,39 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
     vec![
       (
         self.template(TemplateId::Raw),
-        include_str!("runtime/module_chunk_loading.ejs").to_string(),
+        MODULE_CHUNK_LOADING_TEMPLATE.to_string(),
       ),
       (
         self.template(TemplateId::WithLoading),
-        include_str!("runtime/module_chunk_loading_with_loading.ejs").to_string(),
+        MODULE_CHUNK_LOADING_WITH_LOADING_TEMPLATE.to_string(),
       ),
       (
         self.template(TemplateId::WithPrefetch),
-        include_str!("runtime/module_chunk_loading_with_prefetch.ejs").to_string(),
+        MODULE_CHUNK_LOADING_WITH_PREFETCH_TEMPLATE.to_string(),
       ),
       (
         self.template(TemplateId::WithPrefetchLink),
-        include_str!("runtime/module_chunk_loading_with_prefetch_link.ejs").to_string(),
+        MODULE_CHUNK_LOADING_WITH_PREFETCH_LINK_TEMPLATE.to_string(),
       ),
       (
         self.template(TemplateId::WithPreload),
-        include_str!("runtime/module_chunk_loading_with_preload.ejs").to_string(),
+        MODULE_CHUNK_LOADING_WITH_PRELOAD_TEMPLATE.to_string(),
       ),
       (
         self.template(TemplateId::WithPreloadLink),
-        include_str!("runtime/module_chunk_loading_with_preload_link.ejs").to_string(),
+        MODULE_CHUNK_LOADING_WITH_PRELOAD_LINK_TEMPLATE.to_string(),
       ),
       (
         self.template(TemplateId::WithHMR),
-        include_str!("runtime/module_chunk_loading_with_hmr.ejs").to_string(),
+        MODULE_CHUNK_LOADING_WITH_HMR_TEMPLATE.to_string(),
       ),
       (
         self.template(TemplateId::WithHMRManifest),
-        include_str!("runtime/module_chunk_loading_with_hmr_manifest.ejs").to_string(),
+        MODULE_CHUNK_LOADING_WITH_HMR_MANIFEST_TEMPLATE.to_string(),
       ),
       (
         self.template(TemplateId::HmrRuntime),
-        include_str!("runtime/javascript_hot_module_replacement.ejs").to_string(),
+        JAVASCRIPT_HOT_MODULE_REPLACEMENT_TEMPLATE.to_string(),
       ),
     ]
   }

@@ -15,6 +15,7 @@ rspack_hash              = { workspace = true }
 rspack_hook              = { workspace = true }
 rspack_plugin_css        = { workspace = true }
 rspack_plugin_javascript = { workspace = true }
+rspack_plugin_runtime    = { workspace = true }
 rspack_util              = { workspace = true }
 
 async-trait = { workspace = true }
