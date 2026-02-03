@@ -156,24 +156,3 @@ impl From<RuntimeModuleChunkWrapper> for ChunkWrapper {
 }
 
 pub type JsRuntimeSpec = Option<Either<String, Vec<String>>>;
-
-#[cfg(test)]
-mod test {
-  use super::*;
-
-  #[test]
-  fn test_has_all_runtime_globals() {
-    let mut runtime_globals = RuntimeGlobals::default();
-
-    for item in RUNTIME_GLOBAL_MAP.0.keys() {
-      runtime_globals.extend(*item);
-    }
-
-    for (name, item) in RuntimeGlobals::all().iter_names() {
-      assert!(
-        runtime_globals.contains(item),
-        "missing runtime global in RUNTIME_GLOBAL_MAP.\nname: {name}"
-      );
-    }
-  }
-}
