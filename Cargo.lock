@@ -4833,6 +4833,7 @@ version = "0.100.0-alpha.1"
 dependencies = [
  "async-trait",
  "atomic_refcell",
+ "dashmap 6.1.0",
  "derive_more",
  "form_urlencoded",
  "futures",
