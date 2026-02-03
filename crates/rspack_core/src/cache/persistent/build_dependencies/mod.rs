@@ -28,7 +28,6 @@ pub struct BuildDeps {
   /// The snapshot which is used to save build dependencies.
   snapshot: Arc<Snapshot>,
   fs: Arc<dyn ReadableFileSystem>,
-  readonly: bool,
 }
 
 impl BuildDeps {
@@ -36,14 +35,12 @@ impl BuildDeps {
     options: &BuildDepsOptions,
     fs: Arc<dyn ReadableFileSystem>,
     snapshot: Arc<Snapshot>,
-    readonly: bool,
   ) -> Self {
     Self {
       added: Default::default(),
       pending: options.iter().map(|v| ArcPath::from(v.as_path())).collect(),
       snapshot,
       fs,
-      readonly,
     }
   }
 
@@ -161,14 +158,14 @@ mod test {
       codec,
     ));
 
-    let mut build_deps = BuildDeps::new(&options, fs.clone(), snapshot.clone(), false);
+    let mut build_deps = BuildDeps::new(&options, fs.clone(), snapshot.clone());
 
     let warnings = build_deps.add(vec![].into_iter()).await;
     assert_eq!(warnings.len(), 1);
     let data = storage.load(scope).await.expect("should load success");
     assert_eq!(data.len(), 9);
 
-    let mut build_deps = BuildDeps::new(&options, fs.clone(), snapshot.clone(), false);
+    let mut build_deps = BuildDeps::new(&options, fs.clone(), snapshot.clone());
 
     fs.write("/b.js".into(), r#"require("./c")"#.as_bytes())
       .await
