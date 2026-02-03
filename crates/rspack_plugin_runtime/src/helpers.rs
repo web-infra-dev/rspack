@@ -382,14 +382,7 @@ static EJS_RUNTIME_GLOBALS_RE: LazyLock<Regex> = LazyLock::new(|| {
 pub fn extract_runtime_globals_from_ejs(ejs_content: &str) -> RuntimeGlobals {
   let names = EJS_RUNTIME_GLOBALS_RE
     .captures_iter(ejs_content)
-    .map(|cap| {
-      let name = cap[1].to_string();
-      if &name == "MODULE_FATORIES" {
-        "MODULE_FACTORIES_ADD_ONLY".to_string()
-      } else {
-        name
-      }
-    })
+    .map(|cap| cap[1].to_string())
     // script nonce is always optional
     .filter(|name| name.as_str() != "SCRIPT_NONCE")
     .collect_vec();
