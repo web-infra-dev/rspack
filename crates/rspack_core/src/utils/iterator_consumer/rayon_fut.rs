@@ -47,11 +47,7 @@ where
 
 #[cfg(test)]
 mod test {
-  use std::time::SystemTime;
-
-  use futures::future::join_all;
   use rayon::prelude::*;
-  use tokio::time::{Duration, sleep};
 
   use super::RayonFutureConsumer;
 

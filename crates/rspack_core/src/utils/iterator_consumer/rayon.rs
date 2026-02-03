@@ -43,8 +43,6 @@ where
 
 #[cfg(test)]
 mod test {
-  use std::time::{Duration, SystemTime};
-
   use rayon::prelude::*;
 
   use super::RayonConsumer;

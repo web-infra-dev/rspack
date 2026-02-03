@@ -45,11 +45,6 @@ where
 
 #[cfg(test)]
 mod test {
-  use std::time::SystemTime;
-
-  use futures::future::join_all;
-  use tokio::time::{Duration, sleep};
-
   use super::FutureConsumer;
 
   #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
