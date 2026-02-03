@@ -560,24 +560,24 @@ pub trait ModuleExt {
 
 impl<T: Module> ModuleExt for T {
   fn boxed(self) -> BoxModule {
-    BoxModule(Box::new(self))
+    BoxModule(BindingCell::new(self))
   }
 }
 
 /// A newtype wrapper around `Box<dyn Module>` for improved type safety.
 #[cacheable(with=AsInner)]
 #[repr(transparent)]
-pub struct BoxModule(Box<dyn Module>);
+pub struct BoxModule(BindingCell<dyn Module>);
 
 impl BoxModule {
   /// Create a new BoxModule from a boxed Module trait object.
-  pub fn new(module: Box<dyn Module>) -> Self {
+  pub fn new(module: BindingCell<dyn Module>) -> Self {
     BoxModule(module)
   }
 }
 
 impl AsInnerConverter for BoxModule {
-  type Inner = Box<dyn Module>;
+  type Inner = BindingCell<dyn Module>;
 
   fn to_inner(&self) -> &Self::Inner {
     &self.0
@@ -589,7 +589,7 @@ impl AsInnerConverter for BoxModule {
 }
 
 impl std::ops::Deref for BoxModule {
-  type Target = Box<dyn Module>;
+  type Target = BindingCell<dyn Module>;
 
   fn deref(&self) -> &Self::Target {
     &self.0
@@ -602,8 +602,8 @@ impl std::ops::DerefMut for BoxModule {
   }
 }
 
-impl From<Box<dyn Module>> for BoxModule {
-  fn from(inner: Box<dyn Module>) -> Self {
+impl From<BindingCell<dyn Module>> for BoxModule {
+  fn from(inner: BindingCell<dyn Module>) -> Self {
     BoxModule(inner)
   }
 }
@@ -804,7 +804,7 @@ mod test {
         }
 
         async fn build(
-          &mut self,
+          self: BindingCell<Self>,
           _build_context: BuildContext,
           _compilation: Option<&Compilation>,
         ) -> Result<BuildResult> {
