@@ -6,12 +6,10 @@ module.exports = {
 		main: "./index.js"
 	},
 	output: {
+		module: true,
 		library: {
 			type: "module"
 		}
-	},
-	experiments: {
-		outputModule: true
 	},
 	plugins: [
 		new CopyRspackPlugin({

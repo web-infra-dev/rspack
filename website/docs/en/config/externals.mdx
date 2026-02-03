@@ -373,7 +373,7 @@ jq('.my-element').animate(/* ... */);
 
 Specify the default type of externals as `'module'`. Rspack will generate code like `import * as X from '...'` for externals used in a module.
 
-Make sure to enable [`experiments.outputModule`](/config/experiments#experimentsoutputmodule) first, otherwise Rspack will throw errors.
+Make sure to enable [`output.module`](/config/output#outputmodule).
 
 **Example**
 
@@ -384,8 +384,8 @@ jq('.my-element').animate(/* ... */);
 
 ```js title="rspack.config.mjs"
 export default {
-  experiments: {
-    outputModule: true,
+  output: {
+    module: true,
   },
   externalsType: 'module',
   externals: {
@@ -451,8 +451,6 @@ Note that there will be an `import()` statement in the output bundle.
 ### externalsType['module-import']
 
 Specify the default type of externals as `'module-import'`. This combines [`'module'`](#externalstypemodule) and [`'import'`](#externalstypeimport). Rspack will automatically detect the type of import syntax, setting it to `'module'` for static imports and `'import'` for dynamic imports.
-
-Make sure to enable [`experiments.outputModule`](/config/#experimentsoutputmodule) first if static imports exist, otherwise Rspack will throw errors.
 
 **Example**
 
@@ -587,9 +585,6 @@ jq('.my-element').animate(/* ... */);
 
 ```js title="rspack.config.mjs"
 export default {
-  experiments: {
-    outputModule: true,
-  },
   externalsType: 'node-commonjs',
   externals: {
     jquery: 'jquery',

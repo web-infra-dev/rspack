@@ -117,9 +117,6 @@ const defaultOptions = (
     fs: 'module-import fs',
     path: 'module-import path',
   },
-  experiments: {
-    outputModule: true,
-  },
 });
 
 export function createEsmOutputCase(name: string, src: string, dist: string) {

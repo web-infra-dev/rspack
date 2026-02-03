@@ -9,7 +9,7 @@ const remoteContext = path.resolve(__dirname, "../0-container-full");
 // Reuse the real remote container config so the case exercises emitted remotes.
 const remoteConfigs = require("../0-container-full/rspack.config.js").map(
 	config => {
-		const isModule = config.experiments && config.experiments.outputModule;
+		const isModule = config.output?.module;
 		return {
 			...config,
 			context: remoteContext,
@@ -74,9 +74,6 @@ module.exports = [
 	},
 	{
 		...common,
-		experiments: {
-			outputModule: true
-		},
 		output: {
 			filename: "module/[name].mjs",
 			uniqueName: "4-async-startup-runtime-chunk-single-mjs"

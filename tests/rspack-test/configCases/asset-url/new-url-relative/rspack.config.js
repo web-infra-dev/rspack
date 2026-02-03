@@ -31,9 +31,7 @@ const common = {
 			}
 		}
 	},
-	experiments: {
-		outputModule: true,
-	},
+
 }
 
 module.exports = [
@@ -44,6 +42,7 @@ module.exports = [
 			concatenateModules: true,
 		},
 		output: {
+			module: true,
 			filename: `[name]-0.mjs`
 		},
 		plugins: [
@@ -59,6 +58,7 @@ module.exports = [
 			concatenateModules: false,
 		},
 		output: {
+			module: true,
 			filename: `[name]-1.mjs`
 		},
 		plugins: [

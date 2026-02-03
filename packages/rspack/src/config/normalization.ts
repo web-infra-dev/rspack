@@ -611,7 +611,6 @@ export type CacheNormalized =
 
 export interface ExperimentsNormalized {
   asyncWebAssembly?: boolean;
-  outputModule?: boolean;
   css?: boolean;
   futureDefaults?: boolean;
   buildHttp?: HttpUriPluginOptions;

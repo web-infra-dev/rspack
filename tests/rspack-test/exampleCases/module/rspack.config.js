@@ -9,7 +9,4 @@ module.exports = {
 		usedExports: true,
 		concatenateModules: true
 	},
-	experiments: {
-		outputModule: true
-	}
 };

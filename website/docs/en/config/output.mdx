@@ -1083,9 +1083,6 @@ These options will result in a bundle that comes with a complete header to ensur
 ```js title="rspack.config.mjs"
 export default {
   // …
-  experiments: {
-    outputModule: true,
-  },
   output: {
     library: {
       // do not specify a `name` here
@@ -1102,9 +1099,6 @@ Output ES modules.
 ```js title="rspack.config.mjs"
 export default {
   // …
-  experiments: {
-    outputModule: true,
-  },
   output: {
     library: {
       // do not specify a `name` here
@@ -1115,8 +1109,6 @@ export default {
 ```
 
 This configuration generates tree-shakable and code-splitting available output for ES Modules.
-
-However this feature is still experimental and not fully supported yet, so make sure to enable [`experiments.outputModule`](/config/experiments#experimentsoutputmodule) beforehand.
 
 ##### type: 'commonjs2'
 
@@ -1573,18 +1565,15 @@ module.exports = {
 - **Type:** `boolean`
 - **Default:** `false`
 
-Output JavaScript files as module type. Disabled by default as it's an experimental feature. To use it, you must set [`experiments.outputModule`](/config/experiments#experimentsoutputmodule) to `true`.
+Output JavaScript files as module type.
 
 When enabled, Rspack will set [`output.iife`](#outputiife) to `false`, [`output.scriptType`](#outputscripttype) to `'module'` and `terserOptions.module` to `true` internally.
 
-If you're using Rspack to compile a library to be consumed by others, make sure to set [`output.library.type`](#outputlibrarytype) to `'module'` when `output.module` is `true`.
+If you set [`output.library.type`](#outputlibrarytype) to 'module' or 'modern-module', Rspack will set `output.module` to `true` for you automatically.
 
 ```js title="rspack.config.mjs"
 export default {
   //...
-  experiments: {
-    outputModule: true,
-  },
   output: {
     module: true,
   },

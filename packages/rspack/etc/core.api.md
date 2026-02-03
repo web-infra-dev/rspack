@@ -2547,7 +2547,6 @@ interface ExecuteModuleContext {
 // @public
 export type Experiments = {
     asyncWebAssembly?: boolean;
-    outputModule?: boolean;
     css?: boolean;
     futureDefaults?: boolean;
     buildHttp?: HttpUriOptions;
@@ -2612,8 +2611,6 @@ export interface ExperimentsNormalized {
     futureDefaults?: boolean;
     // (undocumented)
     nativeWatcher?: boolean;
-    // (undocumented)
-    outputModule?: boolean;
     // (undocumented)
     useInputFileSystem?: false | RegExp[];
 }

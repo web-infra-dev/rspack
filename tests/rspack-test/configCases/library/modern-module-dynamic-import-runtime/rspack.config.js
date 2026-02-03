@@ -20,9 +20,6 @@ const basic = {
 		jquery: "jquery-alias"
 	},
 	externalsType: "module-import",
-	experiments: {
-		outputModule: true
-	},
 	plugins: [
 		new rspack.experiments.RslibPlugin()
 	],
@@ -54,8 +51,5 @@ module.exports = [
 			module: true,
 			filename: "index.mjs"
 		},
-		experiments: {
-			outputModule: true
-		}
 	}
 ];
