@@ -12,7 +12,7 @@ use std::{
 use rspack_cacheable::{
   cacheable,
   utils::PortablePath,
-  with::{As, AsVec},
+  with::{As, AsVec, Skip},
 };
 use rspack_fs::{IntermediateFileSystem, ReadableFileSystem};
 use rspack_paths::ArcPathSet;
@@ -41,6 +41,7 @@ pub struct PersistentCacheOptions {
   pub snapshot: SnapshotOptions,
   pub storage: StorageOptions,
   pub portable: bool,
+  #[cacheable(with=Skip)]
   pub readonly: bool,
 }
 
@@ -203,13 +204,14 @@ impl Cache for PersistentCache {
   }
 
   async fn after_compile(&mut self, compilation: &Compilation) {
-    if !self.valid {
-      // reset before save write data
-      self.storage.reset().await;
-      self.valid = true;
-    }
-    // save meta
+    // skip storage reset and save if cache is readonly
     if !self.readonly {
+      if !self.valid {
+        // reset before save write data
+        self.storage.reset().await;
+        self.valid = true;
+      }
+      // save meta
       self.meta_occasion.save();
 
       // save snapshot
