@@ -13,40 +13,40 @@ use crate::{
   runtime_module::utils::{get_initial_chunk_ids, stringify_chunks},
 };
 
-const READFILE_CHUNK_LOADING_WITH_ON_CHUNK_LOAD_TEMPLATE: &str =
+static READFILE_CHUNK_LOADING_WITH_ON_CHUNK_LOAD_TEMPLATE: &str =
   include_str!("runtime/readfile_chunk_loading_with_on_chunk_load.ejs");
-const READFILE_CHUNK_LOADING_TEMPLATE: &str = include_str!("runtime/readfile_chunk_loading.ejs");
-const READFILE_CHUNK_LOADING_WITH_LOADING_TEMPLATE: &str =
+static READFILE_CHUNK_LOADING_TEMPLATE: &str = include_str!("runtime/readfile_chunk_loading.ejs");
+static READFILE_CHUNK_LOADING_WITH_LOADING_TEMPLATE: &str =
   include_str!("runtime/readfile_chunk_loading_with_loading.ejs");
-const READFILE_CHUNK_LOADING_WITH_EXTERNAL_INSTALL_CHUNK_TEMPLATE: &str =
+static READFILE_CHUNK_LOADING_WITH_EXTERNAL_INSTALL_CHUNK_TEMPLATE: &str =
   include_str!("runtime/readfile_chunk_loading_with_external_install_chunk.ejs");
-const READFILE_CHUNK_LOADING_WITH_HMR_TEMPLATE: &str =
+static READFILE_CHUNK_LOADING_WITH_HMR_TEMPLATE: &str =
   include_str!("runtime/readfile_chunk_loading_with_hmr.ejs");
-const READFILE_CHUNK_LOADING_WITH_HMR_MANIFEST_TEMPLATE: &str =
+static READFILE_CHUNK_LOADING_WITH_HMR_MANIFEST_TEMPLATE: &str =
   include_str!("runtime/readfile_chunk_loading_with_hmr_manifest.ejs");
-const JAVASCRIPT_HOT_MODULE_REPLACEMENT_TEMPLATE: &str =
+static JAVASCRIPT_HOT_MODULE_REPLACEMENT_TEMPLATE: &str =
   include_str!("runtime/javascript_hot_module_replacement.ejs");
 
-const READFILE_CHUNK_LOADING_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
+static READFILE_CHUNK_LOADING_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
   LazyLock::new(|| extract_runtime_globals_from_ejs(READFILE_CHUNK_LOADING_TEMPLATE));
-const READFILE_CHUNK_LOADING_WITH_ON_CHUNK_LOAD_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
+static READFILE_CHUNK_LOADING_WITH_ON_CHUNK_LOAD_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
   LazyLock::new(|| {
     extract_runtime_globals_from_ejs(READFILE_CHUNK_LOADING_WITH_ON_CHUNK_LOAD_TEMPLATE)
   });
-const READFILE_CHUNK_LOADING_WITH_LOADING_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
+static READFILE_CHUNK_LOADING_WITH_LOADING_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
   LazyLock::new(|| extract_runtime_globals_from_ejs(READFILE_CHUNK_LOADING_WITH_LOADING_TEMPLATE));
-const READFILE_CHUNK_LOADING_WITH_EXTERNAL_INSTALL_CHUNK_RUNTIME_REQUIREMENTS: LazyLock<
+static READFILE_CHUNK_LOADING_WITH_EXTERNAL_INSTALL_CHUNK_RUNTIME_REQUIREMENTS: LazyLock<
   RuntimeGlobals,
 > = LazyLock::new(|| {
   extract_runtime_globals_from_ejs(READFILE_CHUNK_LOADING_WITH_EXTERNAL_INSTALL_CHUNK_TEMPLATE)
 });
-const READFILE_CHUNK_LOADING_WITH_HMR_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
+static READFILE_CHUNK_LOADING_WITH_HMR_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
   LazyLock::new(|| extract_runtime_globals_from_ejs(READFILE_CHUNK_LOADING_WITH_HMR_TEMPLATE));
-const READFILE_CHUNK_LOADING_WITH_HMR_MANIFEST_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
+static READFILE_CHUNK_LOADING_WITH_HMR_MANIFEST_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
   LazyLock::new(|| {
     extract_runtime_globals_from_ejs(READFILE_CHUNK_LOADING_WITH_HMR_MANIFEST_TEMPLATE)
   });
-const JAVASCRIPT_HOT_MODULE_REPLACEMENT_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
+static JAVASCRIPT_HOT_MODULE_REPLACEMENT_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
   LazyLock::new(|| {
     let mut res = extract_runtime_globals_from_ejs(JAVASCRIPT_HOT_MODULE_REPLACEMENT_TEMPLATE);
     // ensure chunk handlers is optional

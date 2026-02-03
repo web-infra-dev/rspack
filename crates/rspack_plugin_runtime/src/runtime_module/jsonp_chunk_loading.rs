@@ -14,51 +14,51 @@ use crate::{
   runtime_module::utils::{get_initial_chunk_ids, stringify_chunks},
 };
 
-const JSONP_CHUNK_LOADING_TEMPLATE: &str = include_str!("runtime/jsonp_chunk_loading.ejs");
-const JSONP_CHUNK_LOADING_WITH_PREFETCH_TEMPLATE: &str =
+static JSONP_CHUNK_LOADING_TEMPLATE: &str = include_str!("runtime/jsonp_chunk_loading.ejs");
+static JSONP_CHUNK_LOADING_WITH_PREFETCH_TEMPLATE: &str =
   include_str!("runtime/jsonp_chunk_loading_with_prefetch.ejs");
-const JSONP_CHUNK_LOADING_WITH_PREFETCH_LINK_TEMPLATE: &str =
+static JSONP_CHUNK_LOADING_WITH_PREFETCH_LINK_TEMPLATE: &str =
   include_str!("runtime/jsonp_chunk_loading_with_prefetch_link.ejs");
-const JSONP_CHUNK_LOADING_WITH_PRELOAD_TEMPLATE: &str =
+static JSONP_CHUNK_LOADING_WITH_PRELOAD_TEMPLATE: &str =
   include_str!("runtime/jsonp_chunk_loading_with_preload.ejs");
-const JSONP_CHUNK_LOADING_WITH_PRELOAD_LINK_TEMPLATE: &str =
+static JSONP_CHUNK_LOADING_WITH_PRELOAD_LINK_TEMPLATE: &str =
   include_str!("runtime/jsonp_chunk_loading_with_preload_link.ejs");
-const JSONP_CHUNK_LOADING_WITH_HMR_TEMPLATE: &str =
+static JSONP_CHUNK_LOADING_WITH_HMR_TEMPLATE: &str =
   include_str!("runtime/jsonp_chunk_loading_with_hmr.ejs");
-const JSONP_CHUNK_LOADING_WITH_HMR_MANIFEST_TEMPLATE: &str =
+static JSONP_CHUNK_LOADING_WITH_HMR_MANIFEST_TEMPLATE: &str =
   include_str!("runtime/jsonp_chunk_loading_with_hmr_manifest.ejs");
-const JSONP_CHUNK_LOADING_WITH_ON_CHUNK_LOAD_TEMPLATE: &str =
+static JSONP_CHUNK_LOADING_WITH_ON_CHUNK_LOAD_TEMPLATE: &str =
   include_str!("runtime/jsonp_chunk_loading_with_on_chunk_load.ejs");
-const JSONP_CHUNK_LOADING_WITH_CALLBACK_TEMPLATE: &str =
+static JSONP_CHUNK_LOADING_WITH_CALLBACK_TEMPLATE: &str =
   include_str!("runtime/jsonp_chunk_loading_with_callback.ejs");
-const JAVASCRIPT_HOT_MODULE_REPLACEMENT_TEMPLATE: &str =
+static JAVASCRIPT_HOT_MODULE_REPLACEMENT_TEMPLATE: &str =
   include_str!("runtime/javascript_hot_module_replacement.ejs");
 
-const JSONP_CHUNK_LOADING_BASIC_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
+static JSONP_CHUNK_LOADING_BASIC_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
   LazyLock::new(|| extract_runtime_globals_from_ejs(JSONP_CHUNK_LOADING_TEMPLATE));
-const JSONP_CHUNK_LOADING_WITH_PREFETCH_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
+static JSONP_CHUNK_LOADING_WITH_PREFETCH_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
   LazyLock::new(|| {
     extract_runtime_globals_from_ejs(JSONP_CHUNK_LOADING_WITH_PREFETCH_TEMPLATE)
       | extract_runtime_globals_from_ejs(JSONP_CHUNK_LOADING_WITH_PREFETCH_LINK_TEMPLATE)
   });
-const JSONP_CHUNK_LOADING_WITH_PRELOAD_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
+static JSONP_CHUNK_LOADING_WITH_PRELOAD_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
   LazyLock::new(|| {
     extract_runtime_globals_from_ejs(JSONP_CHUNK_LOADING_WITH_PRELOAD_TEMPLATE)
       | extract_runtime_globals_from_ejs(JSONP_CHUNK_LOADING_WITH_PRELOAD_LINK_TEMPLATE)
   });
-const JSONP_CHUNK_LOADING_WITH_HMR_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
+static JSONP_CHUNK_LOADING_WITH_HMR_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
   LazyLock::new(|| extract_runtime_globals_from_ejs(JSONP_CHUNK_LOADING_WITH_HMR_TEMPLATE));
-const JSONP_CHUNK_LOADING_WITH_HMR_MANIFEST_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
+static JSONP_CHUNK_LOADING_WITH_HMR_MANIFEST_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
   LazyLock::new(|| {
     extract_runtime_globals_from_ejs(JSONP_CHUNK_LOADING_WITH_HMR_MANIFEST_TEMPLATE)
   });
-const JSONP_CHUNK_LOADING_WITH_ON_CHUNK_LOAD_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
+static JSONP_CHUNK_LOADING_WITH_ON_CHUNK_LOAD_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
   LazyLock::new(|| {
     extract_runtime_globals_from_ejs(JSONP_CHUNK_LOADING_WITH_ON_CHUNK_LOAD_TEMPLATE)
   });
-const JSONP_CHUNK_LOADING_WITH_CALLBACK_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
+static JSONP_CHUNK_LOADING_WITH_CALLBACK_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
   LazyLock::new(|| extract_runtime_globals_from_ejs(JSONP_CHUNK_LOADING_WITH_CALLBACK_TEMPLATE));
-const JAVASCRIPT_HOT_MODULE_REPLACEMENT_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
+static JAVASCRIPT_HOT_MODULE_REPLACEMENT_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
   LazyLock::new(|| {
     let mut res = extract_runtime_globals_from_ejs(JAVASCRIPT_HOT_MODULE_REPLACEMENT_TEMPLATE);
     // ensure chunk handlers is optional

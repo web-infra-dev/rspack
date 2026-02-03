@@ -346,7 +346,7 @@ impl Compilation {
           e.wrap_err("caused by plugins in Compilation.hooks.additionalTreeRuntimeRequirements")
         })?;
       for module in additional_runtime_modules {
-        let additional_runtime_requirements = module.additional_runtime_requirements(&self);
+        let additional_runtime_requirements = module.additional_runtime_requirements(self);
         all_runtime_requirements.extend(additional_runtime_requirements);
         self.add_runtime_module(&entry_ukey, module)?;
       }
@@ -376,7 +376,7 @@ impl Compilation {
 
           for runtime_module in runtime_modules_to_add.iter() {
             let additional_runtime_requirements =
-              runtime_module.1.additional_runtime_requirements(&self);
+              runtime_module.1.additional_runtime_requirements(self);
             runtime_requirements_to_add.extend(additional_runtime_requirements);
           }
           runtime_requirements_to_add = runtime_requirements_to_add

@@ -9,8 +9,8 @@ use rspack_core::{
 
 use crate::extract_runtime_globals_from_ejs;
 
-const CHUNK_PREFETCH_STARTUP_TEMPLATE: &str = include_str!("runtime/chunk_prefetch_startup.ejs");
-const CHUNK_PREFETCH_STARTUP_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
+static CHUNK_PREFETCH_STARTUP_TEMPLATE: &str = include_str!("runtime/chunk_prefetch_startup.ejs");
+static CHUNK_PREFETCH_STARTUP_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
   LazyLock::new(|| extract_runtime_globals_from_ejs(CHUNK_PREFETCH_STARTUP_TEMPLATE));
 
 #[impl_runtime_module]

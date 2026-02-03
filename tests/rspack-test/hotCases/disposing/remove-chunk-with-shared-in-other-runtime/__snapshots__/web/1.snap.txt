@@ -8,7 +8,7 @@
 - Bundle: chunk1_js.chunk.CURRENT_HASH.js
 - Manifest: [runtime of chunk2_js].LAST_HASH.hot-update.json, size: 60
 - Manifest: main.LAST_HASH.hot-update.json, size: 41
-- Update: main.LAST_HASH.hot-update.js, size: 18382
+- Update: main.LAST_HASH.hot-update.js, size: 18496
 
 ## Manifest
 
@@ -639,6 +639,7 @@ __webpack_require__.hmrM = () => {
 		}
 	);
 };
+__webpack_require__.O.j = (chunkId) => (installedChunks[chunkId] === 0);
 // install a JSONP callback for chunk loading
 var __rspack_jsonp = (parentChunkLoadingFunction, data) => {
 	var [chunkIds, moreModules, runtime] = data;
@@ -664,6 +665,8 @@ var __rspack_jsonp = (parentChunkLoadingFunction, data) => {
 		}
 		installedChunks[chunkId] = 0;
 	}
+	
+	return __webpack_require__.O(result);
 	
 };
 

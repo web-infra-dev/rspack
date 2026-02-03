@@ -13,8 +13,8 @@ use rustc_hash::FxHashMap;
 use super::provide_shared_plugin::ProvideVersion;
 use crate::{ConsumeVersion, utils::json_stringify};
 
-const INITIALIZE_SHARING_TEMPLATE: &str = include_str!("./initializeSharing.ejs");
-const INITIALIZE_SHARING_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
+static INITIALIZE_SHARING_TEMPLATE: &str = include_str!("./initializeSharing.ejs");
+static INITIALIZE_SHARING_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
   LazyLock::new(|| extract_runtime_globals_from_ejs(INITIALIZE_SHARING_TEMPLATE));
 
 #[impl_runtime_module]

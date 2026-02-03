@@ -7,8 +7,8 @@ use rspack_core::{
 use rspack_plugin_runtime::extract_runtime_globals_from_ejs;
 use rspack_util::test::is_hot_test;
 
-const HOT_MODULE_REPLACEMENT_TEMPLATE: &str = include_str!("runtime/hot_module_replacement.ejs");
-const HOT_MODULE_REPLACEMENT_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
+static HOT_MODULE_REPLACEMENT_TEMPLATE: &str = include_str!("runtime/hot_module_replacement.ejs");
+static HOT_MODULE_REPLACEMENT_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
   LazyLock::new(|| extract_runtime_globals_from_ejs(HOT_MODULE_REPLACEMENT_TEMPLATE));
 
 #[impl_runtime_module]

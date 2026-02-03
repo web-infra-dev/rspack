@@ -7,9 +7,9 @@ use rspack_core::{
 
 use crate::extract_runtime_globals_from_ejs;
 
-const COMPAT_GET_DEFAULT_EXPORT_TEMPLATE: &str =
+static COMPAT_GET_DEFAULT_EXPORT_TEMPLATE: &str =
   include_str!("runtime/compat_get_default_export.ejs");
-const COMPAT_GET_DEFAULT_EXPORT_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
+static COMPAT_GET_DEFAULT_EXPORT_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
   LazyLock::new(|| extract_runtime_globals_from_ejs(COMPAT_GET_DEFAULT_EXPORT_TEMPLATE));
 
 #[impl_runtime_module]

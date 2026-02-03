@@ -8,9 +8,9 @@ use rspack_core::{
 
 use crate::{extract_runtime_globals_from_ejs, get_chunk_runtime_requirements};
 
-const MAKE_DEFERRED_NAMESPACE_OBJECT_TEMPLATE: &str =
+static MAKE_DEFERRED_NAMESPACE_OBJECT_TEMPLATE: &str =
   include_str!("runtime/make_deferred_namespace_object.ejs");
-const MAKE_DEFERRED_NAMESPACE_OBJECT_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
+static MAKE_DEFERRED_NAMESPACE_OBJECT_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
   LazyLock::new(|| extract_runtime_globals_from_ejs(MAKE_DEFERRED_NAMESPACE_OBJECT_TEMPLATE));
 
 #[impl_runtime_module]

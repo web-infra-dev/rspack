@@ -12,8 +12,8 @@ use serde::Serialize;
 use super::remote_module::RemoteModule;
 use crate::utils::json_stringify;
 
-const REMOTES_LOADING_TEMPLATE: &str = include_str!("./remotesLoading.ejs");
-const REMOTES_LOADING_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
+static REMOTES_LOADING_TEMPLATE: &str = include_str!("./remotesLoading.ejs");
+static REMOTES_LOADING_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
   LazyLock::new(|| extract_runtime_globals_from_ejs(REMOTES_LOADING_TEMPLATE));
 
 #[impl_runtime_module]

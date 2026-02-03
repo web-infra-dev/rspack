@@ -308,7 +308,7 @@ impl Default for RuntimeGlobals {
   }
 }
 
-pub const REQUIRE_SCOPE_GLOBALS: LazyLock<RuntimeGlobals> = LazyLock::new(|| {
+pub static REQUIRE_SCOPE_GLOBALS: LazyLock<RuntimeGlobals> = LazyLock::new(|| {
   RuntimeGlobals::REQUIRE_SCOPE
     | RuntimeGlobals::MODULE_CACHE
     | RuntimeGlobals::ENSURE_CHUNK
@@ -378,7 +378,7 @@ pub const REQUIRE_SCOPE_GLOBALS: LazyLock<RuntimeGlobals> = LazyLock::new(|| {
     | RuntimeGlobals::DEFERRED_MODULES_ASYNC_TRANSITIVE_DEPENDENCIES_SYMBOL
 });
 
-pub const MODULE_GLOBALS: LazyLock<RuntimeGlobals> =
+pub static MODULE_GLOBALS: LazyLock<RuntimeGlobals> =
   LazyLock::new(|| RuntimeGlobals::MODULE_ID | RuntimeGlobals::MODULE_LOADED);
 
 pub fn runtime_globals_to_string(
@@ -474,10 +474,7 @@ pub fn runtime_globals_to_string(
 
     RuntimeGlobals::RSC_MANIFEST => "rscM",
     RuntimeGlobals::TO_BINARY => "tb",
-    _ => {
-      println!("unreachable runtime_globals: {:?}", runtime_globals);
-      unreachable!()
-    }
+    _ => unreachable!(),
   };
   if REQUIRE_SCOPE_GLOBALS.contains(*runtime_globals) {
     let require = runtime_variable_to_string(&RuntimeVariable::Require, compiler_options);

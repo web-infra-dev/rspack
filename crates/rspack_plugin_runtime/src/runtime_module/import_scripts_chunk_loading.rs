@@ -13,33 +13,33 @@ use crate::{
   runtime_module::utils::{get_initial_chunk_ids, stringify_chunks},
 };
 
-const IMPORT_SCRIPTS_CHUNK_LOADING_TEMPLATE: &str =
+static IMPORT_SCRIPTS_CHUNK_LOADING_TEMPLATE: &str =
   include_str!("runtime/import_scripts_chunk_loading.ejs");
-const IMPORT_SCRIPTS_CHUNK_LOADING_WITH_LOADING_TEMPLATE: &str =
+static IMPORT_SCRIPTS_CHUNK_LOADING_WITH_LOADING_TEMPLATE: &str =
   include_str!("runtime/import_scripts_chunk_loading_with_loading.ejs");
-const IMPORT_SCRIPTS_CHUNK_LOADING_WITH_HMR_TEMPLATE: &str =
+static IMPORT_SCRIPTS_CHUNK_LOADING_WITH_HMR_TEMPLATE: &str =
   include_str!("runtime/import_scripts_chunk_loading_with_hmr.ejs");
-const IMPORT_SCRIPTS_CHUNK_LOADING_WITH_HMR_MANIFEST_TEMPLATE: &str =
+static IMPORT_SCRIPTS_CHUNK_LOADING_WITH_HMR_MANIFEST_TEMPLATE: &str =
   include_str!("runtime/import_scripts_chunk_loading_with_hmr_manifest.ejs");
-const JAVASCRIPT_HOT_MODULE_REPLACEMENT_TEMPLATE: &str =
+static JAVASCRIPT_HOT_MODULE_REPLACEMENT_TEMPLATE: &str =
   include_str!("runtime/javascript_hot_module_replacement.ejs");
 
-const IMPORT_SCRIPTS_CHUNK_LOADING_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
+static IMPORT_SCRIPTS_CHUNK_LOADING_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
   LazyLock::new(|| extract_runtime_globals_from_ejs(IMPORT_SCRIPTS_CHUNK_LOADING_TEMPLATE));
-const IMPORT_SCRIPTS_CHUNK_LOADING_WITH_LOADING_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
+static IMPORT_SCRIPTS_CHUNK_LOADING_WITH_LOADING_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
   LazyLock::new(|| {
     extract_runtime_globals_from_ejs(IMPORT_SCRIPTS_CHUNK_LOADING_WITH_LOADING_TEMPLATE)
   });
-const IMPORT_SCRIPTS_CHUNK_LOADING_WITH_HMR_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
+static IMPORT_SCRIPTS_CHUNK_LOADING_WITH_HMR_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
   LazyLock::new(|| {
     extract_runtime_globals_from_ejs(IMPORT_SCRIPTS_CHUNK_LOADING_WITH_HMR_TEMPLATE)
   });
-const IMPORT_SCRIPTS_CHUNK_LOADING_WITH_HMR_MANIFEST_RUNTIME_REQUIREMENTS: LazyLock<
+static IMPORT_SCRIPTS_CHUNK_LOADING_WITH_HMR_MANIFEST_RUNTIME_REQUIREMENTS: LazyLock<
   RuntimeGlobals,
 > = LazyLock::new(|| {
   extract_runtime_globals_from_ejs(IMPORT_SCRIPTS_CHUNK_LOADING_WITH_HMR_MANIFEST_TEMPLATE)
 });
-const JAVASCRIPT_HOT_MODULE_REPLACEMENT_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
+static JAVASCRIPT_HOT_MODULE_REPLACEMENT_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
   LazyLock::new(|| {
     let mut res = extract_runtime_globals_from_ejs(JAVASCRIPT_HOT_MODULE_REPLACEMENT_TEMPLATE);
     // ensure chunk handlers is optional

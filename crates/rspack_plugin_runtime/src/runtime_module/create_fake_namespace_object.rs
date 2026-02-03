@@ -7,9 +7,9 @@ use rspack_core::{
 
 use crate::extract_runtime_globals_from_ejs;
 
-const CREATE_FAKE_NAMESPACE_OBJECT_TEMPLATE: &str =
+static CREATE_FAKE_NAMESPACE_OBJECT_TEMPLATE: &str =
   include_str!("runtime/create_fake_namespace_object.ejs");
-const CREATE_FAKE_NAMESPACE_OBJECT_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
+static CREATE_FAKE_NAMESPACE_OBJECT_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
   LazyLock::new(|| extract_runtime_globals_from_ejs(CREATE_FAKE_NAMESPACE_OBJECT_TEMPLATE));
 
 #[impl_runtime_module]

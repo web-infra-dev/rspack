@@ -390,10 +390,8 @@ pub fn extract_runtime_globals_from_ejs(ejs_content: &str) -> RuntimeGlobals {
         name
       }
     })
-    .filter(|name| match name.as_str() {
-      "SCRIPT_NONCE" => false,
-      _ => true,
-    })
+    // script nonce is always optional
+    .filter(|name| name.as_str() != "SCRIPT_NONCE")
     .collect_vec();
   RuntimeGlobals::from_names(&names)
 }

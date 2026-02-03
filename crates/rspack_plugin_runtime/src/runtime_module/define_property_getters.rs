@@ -7,8 +7,8 @@ use rspack_core::{
 
 use crate::extract_runtime_globals_from_ejs;
 
-const DEFINE_PROPERTY_GETTERS_TEMPLATE: &str = include_str!("runtime/define_property_getters.ejs");
-const DEFINE_PROPERTY_GETTERS_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
+static DEFINE_PROPERTY_GETTERS_TEMPLATE: &str = include_str!("runtime/define_property_getters.ejs");
+static DEFINE_PROPERTY_GETTERS_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
   LazyLock::new(|| extract_runtime_globals_from_ejs(DEFINE_PROPERTY_GETTERS_TEMPLATE));
 
 #[impl_runtime_module]

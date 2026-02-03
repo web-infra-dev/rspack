@@ -18,45 +18,45 @@ use crate::{
   },
 };
 
-const MODULE_CHUNK_LOADING_TEMPLATE: &str = include_str!("runtime/module_chunk_loading.ejs");
-const MODULE_CHUNK_LOADING_WITH_LOADING_TEMPLATE: &str =
+static MODULE_CHUNK_LOADING_TEMPLATE: &str = include_str!("runtime/module_chunk_loading.ejs");
+static MODULE_CHUNK_LOADING_WITH_LOADING_TEMPLATE: &str =
   include_str!("runtime/module_chunk_loading_with_loading.ejs");
-const MODULE_CHUNK_LOADING_WITH_PREFETCH_TEMPLATE: &str =
+static MODULE_CHUNK_LOADING_WITH_PREFETCH_TEMPLATE: &str =
   include_str!("runtime/module_chunk_loading_with_prefetch.ejs");
-const MODULE_CHUNK_LOADING_WITH_PREFETCH_LINK_TEMPLATE: &str =
+static MODULE_CHUNK_LOADING_WITH_PREFETCH_LINK_TEMPLATE: &str =
   include_str!("runtime/module_chunk_loading_with_prefetch_link.ejs");
-const MODULE_CHUNK_LOADING_WITH_PRELOAD_TEMPLATE: &str =
+static MODULE_CHUNK_LOADING_WITH_PRELOAD_TEMPLATE: &str =
   include_str!("runtime/module_chunk_loading_with_preload.ejs");
-const MODULE_CHUNK_LOADING_WITH_PRELOAD_LINK_TEMPLATE: &str =
+static MODULE_CHUNK_LOADING_WITH_PRELOAD_LINK_TEMPLATE: &str =
   include_str!("runtime/module_chunk_loading_with_preload_link.ejs");
-const MODULE_CHUNK_LOADING_WITH_HMR_TEMPLATE: &str =
+static MODULE_CHUNK_LOADING_WITH_HMR_TEMPLATE: &str =
   include_str!("runtime/module_chunk_loading_with_hmr.ejs");
-const MODULE_CHUNK_LOADING_WITH_HMR_MANIFEST_TEMPLATE: &str =
+static MODULE_CHUNK_LOADING_WITH_HMR_MANIFEST_TEMPLATE: &str =
   include_str!("runtime/module_chunk_loading_with_hmr_manifest.ejs");
-const JAVASCRIPT_HOT_MODULE_REPLACEMENT_TEMPLATE: &str =
+static JAVASCRIPT_HOT_MODULE_REPLACEMENT_TEMPLATE: &str =
   include_str!("runtime/javascript_hot_module_replacement.ejs");
 
-const MODULE_CHUNK_LOADING_BASIC_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
+static MODULE_CHUNK_LOADING_BASIC_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
   LazyLock::new(|| extract_runtime_globals_from_ejs(MODULE_CHUNK_LOADING_TEMPLATE));
-const MODULE_CHUNK_LOADING_WITH_LOADING_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
+static MODULE_CHUNK_LOADING_WITH_LOADING_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
   LazyLock::new(|| extract_runtime_globals_from_ejs(MODULE_CHUNK_LOADING_WITH_LOADING_TEMPLATE));
-const MODULE_CHUNK_LOADING_WITH_PREFETCH_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
+static MODULE_CHUNK_LOADING_WITH_PREFETCH_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
   LazyLock::new(|| {
     extract_runtime_globals_from_ejs(MODULE_CHUNK_LOADING_WITH_PREFETCH_TEMPLATE)
       | extract_runtime_globals_from_ejs(MODULE_CHUNK_LOADING_WITH_PREFETCH_LINK_TEMPLATE)
   });
-const MODULE_CHUNK_LOADING_WITH_PRELOAD_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
+static MODULE_CHUNK_LOADING_WITH_PRELOAD_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
   LazyLock::new(|| {
     extract_runtime_globals_from_ejs(MODULE_CHUNK_LOADING_WITH_PRELOAD_TEMPLATE)
       | extract_runtime_globals_from_ejs(MODULE_CHUNK_LOADING_WITH_PRELOAD_LINK_TEMPLATE)
   });
-const MODULE_CHUNK_LOADING_WITH_HMR_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
+static MODULE_CHUNK_LOADING_WITH_HMR_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
   LazyLock::new(|| extract_runtime_globals_from_ejs(MODULE_CHUNK_LOADING_WITH_HMR_TEMPLATE));
-const MODULE_CHUNK_LOADING_WITH_HMR_MANIFEST_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
+static MODULE_CHUNK_LOADING_WITH_HMR_MANIFEST_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
   LazyLock::new(|| {
     extract_runtime_globals_from_ejs(MODULE_CHUNK_LOADING_WITH_HMR_MANIFEST_TEMPLATE)
   });
-const JAVASCRIPT_HOT_MODULE_REPLACEMENT_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
+static JAVASCRIPT_HOT_MODULE_REPLACEMENT_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
   LazyLock::new(|| {
     let mut res = extract_runtime_globals_from_ejs(JAVASCRIPT_HOT_MODULE_REPLACEMENT_TEMPLATE);
     // ensure chunk handlers is optional

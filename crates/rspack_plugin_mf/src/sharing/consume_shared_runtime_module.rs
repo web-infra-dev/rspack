@@ -11,14 +11,14 @@ use rustc_hash::FxHashMap;
 use super::consume_shared_plugin::ConsumeVersion;
 use crate::utils::json_stringify;
 
-const CONSUMES_COMMON_TEMPLATE: &str = include_str!("./consumesCommon.ejs");
-const CONSUMES_INITIAL_TEMPLATE: &str = include_str!("./consumesInitial.ejs");
-const CONSUMES_LOADING_TEMPLATE: &str = include_str!("./consumesLoading.ejs");
-const CONSUMES_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
+static CONSUMES_COMMON_TEMPLATE: &str = include_str!("./consumesCommon.ejs");
+static CONSUMES_INITIAL_TEMPLATE: &str = include_str!("./consumesInitial.ejs");
+static CONSUMES_LOADING_TEMPLATE: &str = include_str!("./consumesLoading.ejs");
+static CONSUMES_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
   LazyLock::new(|| extract_runtime_globals_from_ejs(CONSUMES_COMMON_TEMPLATE));
-const CONSUMES_INITIAL_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
+static CONSUMES_INITIAL_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
   LazyLock::new(|| extract_runtime_globals_from_ejs(CONSUMES_INITIAL_TEMPLATE));
-const CONSUMES_LOADING_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> = LazyLock::new(|| {
+static CONSUMES_LOADING_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> = LazyLock::new(|| {
   let mut res = extract_runtime_globals_from_ejs(CONSUMES_LOADING_TEMPLATE);
   // ensure chunk handlers is optional
   res.remove(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
