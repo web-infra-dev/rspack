@@ -36,7 +36,8 @@ impl HashHelper {
     }
   }
 
-  /// Calculate file hash, return default for non-files.
+  /// Computes content hash for a file.
+  /// Returns None if the file does not exist.
   async fn inner_file_hash(
     &self,
     path: &ArcPath,
@@ -57,28 +58,26 @@ impl HashHelper {
       metadata
     };
 
-    let hash = if metadata.is_file && !metadata.is_symlink {
-      if let Ok(content) = self.fs.read(utf8_path).await {
-        // mtime is the larger of ctime and mtime
-        let mtime = if metadata.ctime_ms > metadata.mtime_ms {
-          metadata.ctime_ms
-        } else {
-          metadata.mtime_ms
-        };
-        let mut hasher = FxHasher::default();
-        content.hash(&mut hasher);
-        Some(ContentHash {
-          hash: hasher.finish(),
-          mtime,
-        })
-      } else {
-        None
-      }
+    // mtime is the larger of ctime and mtime
+    let mtime = if metadata.ctime_ms > metadata.mtime_ms {
+      metadata.ctime_ms
     } else {
-      // directory & symlink
-      Some(ContentHash::default())
+      metadata.mtime_ms
     };
-
+    let mut hasher = FxHasher::default();
+    if metadata.is_symlink {
+      if let Ok(target) = self.fs.canonicalize(utf8_path).await {
+        target.hash(&mut hasher)
+      }
+    } else if metadata.is_file {
+      if let Ok(content) = self.fs.read(utf8_path).await {
+        content.hash(&mut hasher);
+      }
+    };
+    let hash = Some(ContentHash {
+      hash: hasher.finish(),
+      mtime,
+    });
     self.file_cache.insert(path.into(), hash.clone());
     hash
   }

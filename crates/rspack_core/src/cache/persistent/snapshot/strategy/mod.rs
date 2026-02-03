@@ -113,7 +113,7 @@ impl StrategyHelper {
     if let Some(ContentHash { hash, mtime }) = self.hash_helper.file_hash(path).await {
       Strategy::FileHash { mtime, hash }
     } else {
-      Strategy::Failed
+      Strategy::Missing
     }
   }
 
