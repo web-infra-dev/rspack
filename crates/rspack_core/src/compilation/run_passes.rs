@@ -30,16 +30,6 @@ impl Compilation {
 
     finish_module_graph_pass(self).await?;
 
-    // FINISH_MODULES pass
-    cache.before_finish_modules(self).await;
-    // finish_modules will set exports_info for build_module_graph_artifact so we have to put it here
-    // @FIXME: after split exports_info from module graph, we can move it after build_module_graph_pass
-    finish_modules_pass(self).await?;
-    cache.after_finish_modules(self).await;
-
-    // This is the end of first pass of build module graph which will be recovered for next compilation
-    // add a checkpoint here since we may modify module graph later in incremental compilation
-    // and we can recover to this checkpoint in the future
     cache
       .after_build_module_graph(&self.build_module_graph_artifact)
       .await;
@@ -50,6 +40,12 @@ impl Compilation {
       self.build_module_graph_artifact.module_graph.checkpoint();
     }
     // #endregion Build Module Graph First Pass Finished here and will be use to recover for next compilation
+
+    // FINISH_MODULES pass
+    cache.before_finish_modules(self).await;
+    // finish_modules will set exports_info for build_module_graph_artifact so we have to put it here
+    finish_modules_pass(self).await?;
+    cache.after_finish_modules(self).await;
 
     if !self.options.mode.is_development() {
       self.module_static_cache_artifact.freeze();
