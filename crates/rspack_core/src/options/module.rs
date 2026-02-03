@@ -331,11 +331,60 @@ pub struct AssetParserDataUrlOptions {
   pub max_size: Option<f64>,
 }
 
+/// Context passed to the CSS parser import filter function
+pub struct CssParserImportContext {
+  pub url: String,
+  pub media: Option<String>,
+  pub resource_path: String,
+  pub supports: Option<String>,
+  pub layer: Option<String>,
+}
+
+pub type CssParserImportFn =
+  Arc<dyn Fn(CssParserImportContext) -> BoxFuture<'static, Result<bool>> + Sync + Send>;
+
+#[cacheable]
+pub enum CssParserImport {
+  Bool(bool),
+  Func(#[cacheable(with=Unsupported)] CssParserImportFn),
+}
+
+impl Default for CssParserImport {
+  fn default() -> Self {
+    Self::Bool(true)
+  }
+}
+
+impl fmt::Debug for CssParserImport {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    match self {
+      Self::Bool(b) => write!(f, "CssParserImport::Bool({b})"),
+      Self::Func(_) => write!(f, "CssParserImport::Func(...)"),
+    }
+  }
+}
+
+impl Clone for CssParserImport {
+  fn clone(&self) -> Self {
+    match self {
+      Self::Bool(b) => Self::Bool(*b),
+      Self::Func(f) => Self::Func(f.clone()),
+    }
+  }
+}
+
+impl MergeFrom for CssParserImport {
+  fn merge_from(self, other: &Self) -> Self {
+    other.clone()
+  }
+}
+
 #[cacheable]
 #[derive(Debug, Clone, MergeFrom)]
 pub struct CssParserOptions {
   pub named_exports: Option<bool>,
   pub url: Option<bool>,
+  pub resolve_import: Option<CssParserImport>,
 }
 
 #[cacheable]
@@ -343,6 +392,7 @@ pub struct CssParserOptions {
 pub struct CssAutoParserOptions {
   pub named_exports: Option<bool>,
   pub url: Option<bool>,
+  pub resolve_import: Option<CssParserImport>,
 }
 
 impl From<CssParserOptions> for CssAutoParserOptions {
@@ -350,6 +400,7 @@ impl From<CssParserOptions> for CssAutoParserOptions {
     Self {
       named_exports: value.named_exports,
       url: value.url,
+      resolve_import: value.resolve_import,
     }
   }
 }
@@ -359,6 +410,7 @@ impl From<CssParserOptions> for CssAutoParserOptions {
 pub struct CssModuleParserOptions {
   pub named_exports: Option<bool>,
   pub url: Option<bool>,
+  pub resolve_import: Option<CssParserImport>,
 }
 
 impl From<CssParserOptions> for CssModuleParserOptions {
@@ -366,6 +418,7 @@ impl From<CssParserOptions> for CssModuleParserOptions {
     Self {
       named_exports: value.named_exports,
       url: value.url,
+      resolve_import: value.resolve_import,
     }
   }
 }

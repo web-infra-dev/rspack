@@ -1774,6 +1774,7 @@ export type CssAutoGeneratorOptions = {
 export type CssAutoParserOptions = {
     namedExports?: CssParserNamedExports;
     url?: CssParserUrl;
+    resolveImport?: CssParserResolveImport;
 };
 
 // @public
@@ -1880,6 +1881,7 @@ export type CssModuleGeneratorOptions = CssAutoGeneratorOptions;
 export type CssModuleParserOptions = {
     namedExports?: CssParserNamedExports;
     url?: CssParserUrl;
+    resolveImport?: CssParserResolveImport;
 };
 
 // @public (undocumented)
@@ -1889,6 +1891,19 @@ export type CssParserNamedExports = boolean;
 export type CssParserOptions = {
     namedExports?: CssParserNamedExports;
     url?: CssParserUrl;
+    resolveImport?: CssParserResolveImport;
+};
+
+// @public (undocumented)
+export type CssParserResolveImport = boolean | ((context: CssParserResolveImportContext) => boolean);
+
+// @public (undocumented)
+export type CssParserResolveImportContext = {
+    url: string;
+    media: string | undefined;
+    resourcePath: string;
+    supports: string | undefined;
+    layer: string | undefined;
 };
 
 // @public (undocumented)
@@ -7117,6 +7132,8 @@ declare namespace rspackExports {
         AssetParserOptions,
         CssParserNamedExports,
         CssParserUrl,
+        CssParserResolveImportContext,
+        CssParserResolveImport,
         CssParserOptions,
         CssAutoParserOptions,
         CssModuleParserOptions,

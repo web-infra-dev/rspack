@@ -520,6 +520,7 @@ impl Plugin for CssPlugin {
           es_module: g.es_module.expect("should have es_module"),
           hot: false,
           url: p.url.expect("should have url"),
+          resolve_import: p.resolve_import.clone().unwrap_or_default(),
         }) as Box<dyn ParserAndGenerator>
       }),
     );
@@ -549,6 +550,7 @@ impl Plugin for CssPlugin {
           es_module: g.es_module.expect("should have es_module"),
           hot: false,
           url: p.url.expect("should have url"),
+          resolve_import: p.resolve_import.clone().unwrap_or_default(),
         }) as Box<dyn ParserAndGenerator>
       }),
     );
@@ -578,6 +580,7 @@ impl Plugin for CssPlugin {
           es_module: g.es_module.expect("should have es_module"),
           hot: false,
           url: p.url.expect("should have url"),
+          resolve_import: p.resolve_import.clone().unwrap_or_default(),
         }) as Box<dyn ParserAndGenerator>
       }),
     );
