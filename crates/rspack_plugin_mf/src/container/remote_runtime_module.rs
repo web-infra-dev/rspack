@@ -1,13 +1,20 @@
+use std::sync::LazyLock;
+
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
   ChunkGraph, ChunkUkey, Compilation, DependenciesBlock, ModuleId, RuntimeGlobals, RuntimeModule,
   RuntimeModuleStage, RuntimeTemplate, SourceType, impl_runtime_module,
 };
+use rspack_plugin_runtime::extract_runtime_globals_from_ejs;
 use rustc_hash::FxHashMap;
 use serde::Serialize;
 
 use super::remote_module::RemoteModule;
 use crate::utils::json_stringify;
+
+const REMOTES_LOADING_TEMPLATE: &str = include_str!("./remotesLoading.ejs");
+const REMOTES_LOADING_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
+  LazyLock::new(|| extract_runtime_globals_from_ejs(REMOTES_LOADING_TEMPLATE));
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -41,10 +48,7 @@ impl RuntimeModule for RemoteRuntimeModule {
   }
 
   fn template(&self) -> Vec<(String, String)> {
-    vec![(
-      self.id.to_string(),
-      include_str!("./remotesLoading.ejs").to_string(),
-    )]
+    vec![(self.id.to_string(), REMOTES_LOADING_TEMPLATE.to_string())]
   }
 
   async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
@@ -134,12 +138,7 @@ impl RuntimeModule for RemoteRuntimeModule {
   }
 
   fn additional_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
-    RuntimeGlobals::REQUIRE
-      | RuntimeGlobals::HAS_OWN_PROPERTY
-      | RuntimeGlobals::MODULE_FACTORIES_ADD_ONLY
-      | RuntimeGlobals::INITIALIZE_SHARING
-      | RuntimeGlobals::SHARE_SCOPE_MAP
-      | RuntimeGlobals::MODULE
+    *REMOTES_LOADING_RUNTIME_REQUIREMENTS
   }
 }
 

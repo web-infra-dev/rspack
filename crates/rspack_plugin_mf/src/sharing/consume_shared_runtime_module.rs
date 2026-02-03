@@ -1,12 +1,29 @@
+use std::sync::LazyLock;
+
 use rspack_collections::Identifier;
 use rspack_core::{
   Chunk, ChunkGraph, ChunkUkey, Compilation, ModuleIdentifier, RuntimeGlobals, RuntimeModule,
   RuntimeModuleStage, RuntimeTemplate, SourceType, impl_runtime_module,
 };
+use rspack_plugin_runtime::extract_runtime_globals_from_ejs;
 use rustc_hash::FxHashMap;
 
 use super::consume_shared_plugin::ConsumeVersion;
 use crate::utils::json_stringify;
+
+const CONSUMES_COMMON_TEMPLATE: &str = include_str!("./consumesCommon.ejs");
+const CONSUMES_INITIAL_TEMPLATE: &str = include_str!("./consumesInitial.ejs");
+const CONSUMES_LOADING_TEMPLATE: &str = include_str!("./consumesLoading.ejs");
+const CONSUMES_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
+  LazyLock::new(|| extract_runtime_globals_from_ejs(CONSUMES_COMMON_TEMPLATE));
+const CONSUMES_INITIAL_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
+  LazyLock::new(|| extract_runtime_globals_from_ejs(CONSUMES_INITIAL_TEMPLATE));
+const CONSUMES_LOADING_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> = LazyLock::new(|| {
+  let mut res = extract_runtime_globals_from_ejs(CONSUMES_LOADING_TEMPLATE);
+  // ensure chunk handlers is optional
+  res.remove(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
+  res
+});
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -57,15 +74,15 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
     vec![
       (
         self.get_template_id(TemplateId::Common),
-        include_str!("./consumesCommon.ejs").to_string(),
+        CONSUMES_COMMON_TEMPLATE.to_string(),
       ),
       (
         self.get_template_id(TemplateId::Initial),
-        include_str!("./consumesInitial.ejs").to_string(),
+        CONSUMES_INITIAL_TEMPLATE.to_string(),
       ),
       (
         self.get_template_id(TemplateId::Loading),
-        include_str!("./consumesLoading.ejs").to_string(),
+        CONSUMES_LOADING_TEMPLATE.to_string(),
       ),
     ]
   }
@@ -205,12 +222,9 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
   }
 
   fn additional_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
-    RuntimeGlobals::MODULE
-      | RuntimeGlobals::MODULE_CACHE
-      | RuntimeGlobals::MODULE_FACTORIES_ADD_ONLY
-      | RuntimeGlobals::SHARE_SCOPE_MAP
-      | RuntimeGlobals::INITIALIZE_SHARING
-      | RuntimeGlobals::HAS_OWN_PROPERTY
+    *CONSUMES_RUNTIME_REQUIREMENTS
+      | *CONSUMES_INITIAL_RUNTIME_REQUIREMENTS
+      | *CONSUMES_LOADING_RUNTIME_REQUIREMENTS
   }
 }
 

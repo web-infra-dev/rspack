@@ -1,4 +1,4 @@
-use std::hash::BuildHasherDefault;
+use std::{hash::BuildHasherDefault, sync::LazyLock};
 
 use indexmap::IndexMap;
 use rspack_cacheable::with::AsMap;
@@ -8,6 +8,12 @@ use rspack_core::{
   chunk_graph_chunk::ChunkId, impl_runtime_module,
 };
 use rustc_hash::FxHasher;
+
+use crate::extract_runtime_globals_from_ejs;
+
+const CHUNK_PREFETCH_TRIGGER_TEMPLATE: &str = include_str!("runtime/chunk_prefetch_trigger.ejs");
+const CHUNK_PREFETCH_TRIGGER_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
+  LazyLock::new(|| extract_runtime_globals_from_ejs(CHUNK_PREFETCH_TRIGGER_TEMPLATE));
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -41,7 +47,7 @@ impl RuntimeModule for ChunkPrefetchTriggerRuntimeModule {
   fn template(&self) -> Vec<(String, String)> {
     vec![(
       self.id.to_string(),
-      include_str!("runtime/chunk_prefetch_trigger.ejs").to_string(),
+      CHUNK_PREFETCH_TRIGGER_TEMPLATE.to_string(),
     )]
   }
 
@@ -60,6 +66,6 @@ impl RuntimeModule for ChunkPrefetchTriggerRuntimeModule {
   }
 
   fn additional_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
-    RuntimeGlobals::PREFETCH_CHUNK
+    *CHUNK_PREFETCH_TRIGGER_RUNTIME_REQUIREMENTS
   }
 }

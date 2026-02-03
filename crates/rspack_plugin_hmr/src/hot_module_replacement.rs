@@ -1,8 +1,15 @@
+use std::sync::LazyLock;
+
 use rspack_collections::Identifier;
 use rspack_core::{
   Compilation, RuntimeGlobals, RuntimeModule, RuntimeTemplate, impl_runtime_module,
 };
+use rspack_plugin_runtime::extract_runtime_globals_from_ejs;
 use rspack_util::test::is_hot_test;
+
+const HOT_MODULE_REPLACEMENT_TEMPLATE: &str = include_str!("runtime/hot_module_replacement.ejs");
+const HOT_MODULE_REPLACEMENT_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
+  LazyLock::new(|| extract_runtime_globals_from_ejs(HOT_MODULE_REPLACEMENT_TEMPLATE));
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -28,7 +35,7 @@ impl RuntimeModule for HotModuleReplacementRuntimeModule {
   fn template(&self) -> Vec<(String, String)> {
     vec![(
       self.id.to_string(),
-      include_str!("runtime/hot_module_replacement.ejs").to_string(),
+      HOT_MODULE_REPLACEMENT_TEMPLATE.to_string(),
     )]
   }
 
@@ -44,10 +51,6 @@ impl RuntimeModule for HotModuleReplacementRuntimeModule {
   }
 
   fn additional_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
-    RuntimeGlobals::MODULE_CACHE
-      | RuntimeGlobals::INTERCEPT_MODULE_EXECUTION
-      | RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS
-      | RuntimeGlobals::HMR_DOWNLOAD_MANIFEST
-      | RuntimeGlobals::MODULE_ID
+    *HOT_MODULE_REPLACEMENT_RUNTIME_REQUIREMENTS
   }
 }

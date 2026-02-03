@@ -1,9 +1,17 @@
+use std::sync::LazyLock;
+
 use itertools::Itertools;
 use rspack_collections::Identifier;
 use rspack_core::{
   ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleStage, RuntimeTemplate,
   impl_runtime_module,
 };
+
+use crate::extract_runtime_globals_from_ejs;
+
+const CHUNK_PREFETCH_STARTUP_TEMPLATE: &str = include_str!("runtime/chunk_prefetch_startup.ejs");
+const CHUNK_PREFETCH_STARTUP_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
+  LazyLock::new(|| extract_runtime_globals_from_ejs(CHUNK_PREFETCH_STARTUP_TEMPLATE));
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -42,7 +50,7 @@ impl RuntimeModule for ChunkPrefetchStartupRuntimeModule {
   fn template(&self) -> Vec<(String, String)> {
     vec![(
       self.id.to_string(),
-      include_str!("runtime/chunk_prefetch_startup.ejs").to_string(),
+      CHUNK_PREFETCH_STARTUP_TEMPLATE.to_string(),
     )]
   }
 
@@ -98,6 +106,6 @@ impl RuntimeModule for ChunkPrefetchStartupRuntimeModule {
   }
 
   fn additional_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
-    RuntimeGlobals::EXPORTS | RuntimeGlobals::PREFETCH_CHUNK | RuntimeGlobals::ON_CHUNKS_LOADED
+    *CHUNK_PREFETCH_STARTUP_RUNTIME_REQUIREMENTS
   }
 }

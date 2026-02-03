@@ -1,7 +1,16 @@
+use std::sync::LazyLock;
+
 use rspack_collections::Identifier;
 use rspack_core::{
   Compilation, RuntimeGlobals, RuntimeModule, RuntimeTemplate, impl_runtime_module,
 };
+
+use crate::extract_runtime_globals_from_ejs;
+
+const CREATE_FAKE_NAMESPACE_OBJECT_TEMPLATE: &str =
+  include_str!("runtime/create_fake_namespace_object.ejs");
+const CREATE_FAKE_NAMESPACE_OBJECT_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
+  LazyLock::new(|| extract_runtime_globals_from_ejs(CREATE_FAKE_NAMESPACE_OBJECT_TEMPLATE));
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -27,7 +36,7 @@ impl RuntimeModule for CreateFakeNamespaceObjectRuntimeModule {
   fn template(&self) -> Vec<(String, String)> {
     vec![(
       self.id.to_string(),
-      include_str!("runtime/create_fake_namespace_object.ejs").to_string(),
+      CREATE_FAKE_NAMESPACE_OBJECT_TEMPLATE.to_string(),
     )]
   }
 
@@ -38,6 +47,6 @@ impl RuntimeModule for CreateFakeNamespaceObjectRuntimeModule {
   }
 
   fn additional_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
-    RuntimeGlobals::MAKE_NAMESPACE_OBJECT | RuntimeGlobals::DEFINE_PROPERTY_GETTERS
+    *CREATE_FAKE_NAMESPACE_OBJECT_RUNTIME_REQUIREMENTS
   }
 }

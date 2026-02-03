@@ -1,7 +1,15 @@
+use std::sync::LazyLock;
+
 use rspack_collections::Identifier;
 use rspack_core::{
   Compilation, RuntimeGlobals, RuntimeModule, RuntimeTemplate, impl_runtime_module,
 };
+
+use crate::extract_runtime_globals_from_ejs;
+
+const DEFINE_PROPERTY_GETTERS_TEMPLATE: &str = include_str!("runtime/define_property_getters.ejs");
+const DEFINE_PROPERTY_GETTERS_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
+  LazyLock::new(|| extract_runtime_globals_from_ejs(DEFINE_PROPERTY_GETTERS_TEMPLATE));
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -27,7 +35,7 @@ impl RuntimeModule for DefinePropertyGettersRuntimeModule {
   fn template(&self) -> Vec<(String, String)> {
     vec![(
       self.id.to_string(),
-      include_str!("runtime/define_property_getters.ejs").to_string(),
+      DEFINE_PROPERTY_GETTERS_TEMPLATE.to_string(),
     )]
   }
 
@@ -38,6 +46,6 @@ impl RuntimeModule for DefinePropertyGettersRuntimeModule {
   }
 
   fn additional_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
-    RuntimeGlobals::HAS_OWN_PROPERTY
+    *DEFINE_PROPERTY_GETTERS_RUNTIME_REQUIREMENTS
   }
 }
