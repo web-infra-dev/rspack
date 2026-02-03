@@ -1,7 +1,6 @@
 use camino::Utf8PathBuf;
 use rspack_core::{
   AsyncDependenciesBlock, ConstDependency, DependencyRange, ImportAttributes, ImportPhase,
-  RuntimeGlobals,
 };
 use rspack_plugin_javascript::{
   JavascriptParserPlugin,
@@ -429,9 +428,7 @@ impl RstestParserPlugin {
           call_expr.callee.span().into(),
           format!(
             "{}.rstest_reset_modules",
-            parser
-              .runtime_template
-              .render_runtime_globals(&RuntimeGlobals::REQUIRE)
+            parser.parser_runtime_requirements.require
           )
           .into(),
           None,

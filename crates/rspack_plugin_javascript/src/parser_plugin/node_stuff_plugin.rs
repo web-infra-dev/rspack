@@ -1,6 +1,6 @@
 use rspack_core::{
   CachedConstDependency, ConstDependency, NodeDirnameOption, NodeFilenameOption, NodeGlobalOption,
-  RuntimeGlobals, get_context, parse_resource,
+  RuntimeGlobals, RuntimeRequirementsDependency, get_context, parse_resource,
 };
 use rspack_error::{Diagnostic, cyan, yellow};
 use rspack_util::SpanExt;
@@ -529,13 +529,9 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
         NodeGlobalOption::True | NodeGlobalOption::Warn
       )
     {
-      parser.add_presentational_dependency(Box::new(ConstDependency::new(
+      parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
         ident.span.into(),
-        parser
-          .runtime_template
-          .render_runtime_globals(&RuntimeGlobals::GLOBAL)
-          .into(),
-        Some(RuntimeGlobals::GLOBAL),
+        RuntimeGlobals::GLOBAL,
       )));
       return Some(true);
     }
@@ -555,13 +551,9 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
         NodeGlobalOption::True | NodeGlobalOption::Warn
       )
     {
-      parser.add_presentational_dependency(Box::new(ConstDependency::new(
+      parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
         expr.span().into(),
-        parser
-          .runtime_template
-          .render_runtime_globals(&RuntimeGlobals::GLOBAL)
-          .into(),
-        Some(RuntimeGlobals::GLOBAL),
+        RuntimeGlobals::GLOBAL,
       )));
       return Some(false);
     }

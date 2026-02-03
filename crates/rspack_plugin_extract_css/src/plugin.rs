@@ -507,7 +507,7 @@ async fn runtime_requirement_in_tree(
   chunk_ukey: &ChunkUkey,
   _all_runtime_requirements: &RuntimeGlobals,
   runtime_requirements: &RuntimeGlobals,
-  runtime_requirements_mut: &mut RuntimeGlobals,
+  _runtime_requirements_mut: &mut RuntimeGlobals,
   runtime_modules_to_add: &mut Vec<(ChunkUkey, Box<dyn RuntimeModule>)>,
 ) -> Result<Option<()>> {
   // different from webpack, Rspack can invoke this multiple times,
@@ -525,12 +525,6 @@ async fn runtime_requirement_in_tree(
   let has_hot_update = runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS);
 
   if has_hot_update || runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS) {
-    if self.options.chunk_filename.has_hash_placeholder() {
-      runtime_requirements_mut.insert(RuntimeGlobals::GET_FULL_HASH);
-    }
-
-    runtime_requirements_mut.insert(RuntimeGlobals::PUBLIC_PATH);
-
     let filename = self.options.filename.clone();
     let chunk_filename = self.options.chunk_filename.clone();
 

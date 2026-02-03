@@ -1,6 +1,6 @@
 use rspack_core::{
-  ConstDependency, ContextDependency, ContextMode, ContextNameSpaceObject, ContextOptions,
-  DependencyCategory, JavascriptParserUrl, RuntimeGlobals,
+  ContextDependency, ContextMode, ContextNameSpaceObject, ContextOptions, DependencyCategory,
+  JavascriptParserUrl, RuntimeGlobals, RuntimeRequirementsDependency,
 };
 use rspack_util::SpanExt;
 use swc_core::{
@@ -136,13 +136,9 @@ impl JavascriptParserPlugin for URLPlugin {
       {
         return None;
       }
-      parser.add_presentational_dependency(Box::new(ConstDependency::new(
+      parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
         arg2.span().into(),
-        parser
-          .runtime_template
-          .render_runtime_globals(&RuntimeGlobals::BASE_URI)
-          .into(),
-        Some(RuntimeGlobals::BASE_URI),
+        RuntimeGlobals::BASE_URI,
       )));
       return Some(true);
     }

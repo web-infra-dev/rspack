@@ -1,7 +1,6 @@
 use std::borrow::Cow;
 
 use itertools::Itertools as _;
-use regex::Regex;
 use rspack_core::{ConstDependency, RuntimeGlobals};
 use serde_json::{Value, json};
 
@@ -28,14 +27,13 @@ pub fn gen_const_dep(
     )
   };
 
-  let require_name = parser
-    .runtime_template
-    .render_runtime_globals(&RuntimeGlobals::REQUIRE);
-  let require_function_regex = Regex::new(&format!("{}\\s*(!?\\.)", &require_name))
-    .expect("should init `REQUIRE_FUNCTION_REGEX`");
-  if require_function_regex.is_match(&code) {
+  if parser
+    .parser_runtime_requirements
+    .require_regex
+    .is_match(&code)
+  {
     to_const_dep(Some(RuntimeGlobals::REQUIRE))
-  } else if code.contains(&require_name) {
+  } else if code.contains(&parser.parser_runtime_requirements.require) {
     to_const_dep(Some(RuntimeGlobals::REQUIRE_SCOPE))
   } else {
     to_const_dep(None)

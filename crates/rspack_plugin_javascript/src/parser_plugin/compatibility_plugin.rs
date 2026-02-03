@@ -1,6 +1,4 @@
-use rspack_core::{
-  BoxDependencyTemplate, ConstDependency, ContextDependency, DependencyRange, RuntimeGlobals,
-};
+use rspack_core::{BoxDependencyTemplate, ConstDependency, ContextDependency, DependencyRange};
 use rspack_util::{SpanExt, itoa};
 use swc_core::{
   atoms::Atom,
@@ -106,11 +104,7 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
   ) -> Option<bool> {
     let ident = decl.name.as_ident()?;
 
-    if ident.sym.as_str()
-      == parser
-        .runtime_template
-        .render_runtime_globals(&RuntimeGlobals::REQUIRE)
-    {
+    if ident.sym.as_str() == &parser.parser_runtime_requirements.require {
       let start = ident.span().real_lo();
       let end = ident.span().real_hi();
       self.tag_nested_require_data(
@@ -128,11 +122,7 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
         end,
       );
       return Some(true);
-    } else if ident.sym
-      == parser
-        .runtime_template
-        .render_runtime_globals(&RuntimeGlobals::EXPORTS)
-    {
+    } else if ident.sym.as_str() == &parser.parser_runtime_requirements.exports {
       self.tag_nested_require_data(
         parser,
         ident.sym.clone(),
@@ -153,11 +143,7 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
     ident: &swc_core::ecma::ast::Ident,
     for_name: &str,
   ) -> Option<bool> {
-    if for_name
-      == parser
-        .runtime_template
-        .render_runtime_globals(&RuntimeGlobals::EXPORTS)
-    {
+    if for_name == &parser.parser_runtime_requirements.exports {
       self.tag_nested_require_data(
         parser,
         ident.sym.clone(),
@@ -167,11 +153,7 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
         ident.span().real_hi(),
       );
       return Some(true);
-    } else if for_name
-      == parser
-        .runtime_template
-        .render_runtime_globals(&RuntimeGlobals::REQUIRE)
-    {
+    } else if for_name == &parser.parser_runtime_requirements.require {
       let start = ident.span().real_lo();
       let end = ident.span().real_hi();
       self.tag_nested_require_data(
@@ -197,11 +179,7 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
     let fn_decl = stmt.as_function_decl()?;
     let ident = fn_decl.ident()?;
     let name = &ident.sym;
-    if *name
-      != parser
-        .runtime_template
-        .render_runtime_globals(&RuntimeGlobals::REQUIRE)
-    {
+    if name.as_str() != &parser.parser_runtime_requirements.require {
       None
     } else {
       self.tag_nested_require_data(
