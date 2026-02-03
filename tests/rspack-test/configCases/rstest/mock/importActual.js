@@ -5,6 +5,10 @@ rstest.mock('./src/foo')
 
 const getActual = () => rstest.importActual('./src/foo');
 
+afterEach(() => {
+	rstest.doUnmock('./src/foo')
+})
+
 it('importActual should works', async () => {
 	expect(foo).toBe('mocked_foo')
 	expect((await getActual()).value).toBe('foo')

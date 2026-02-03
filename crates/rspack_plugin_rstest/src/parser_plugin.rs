@@ -43,6 +43,9 @@ pub struct RstestParserPlugin {
   pub hoist_mock_module: bool,
   pub import_meta_path_name: bool,
   pub manual_mock_root: String,
+  /// Whether to handle global `rs` and `rstest` variables.
+  /// When false, only ESM imported variables are processed.
+  pub globals: bool,
 }
 
 trait JavascriptParserExt<'a> {
@@ -61,12 +64,14 @@ impl RstestParserPlugin {
     hoist_mock_module: bool,
     import_meta_path_name: bool,
     manual_mock_root: String,
+    globals: bool,
   ) -> Self {
     Self {
       module_path_name,
       hoist_mock_module,
       import_meta_path_name,
       manual_mock_root,
+      globals,
     }
   }
 
@@ -565,6 +570,14 @@ impl RstestParserPlugin {
     prop: &swc_core::ecma::ast::IdentName,
     statement_span: Option<Span>,
   ) -> Option<bool> {
+    // Check if this is a global variable (free variable) or an ESM import
+    let is_global = !parser.is_variable_defined(&ident.sym);
+
+    // Skip global variables if globals option is disabled
+    if is_global && !self.globals {
+      return None;
+    }
+
     match (ident.sym.as_str(), prop.sym.as_str()) {
       // rs.mock
       ("rs" | "rstest", "mock") => {
@@ -705,7 +718,7 @@ impl JavascriptParserPlugin for RstestParserPlugin {
     &self,
     parser: &mut JavascriptParser,
     call_expr: &CallExpr,
-    _for_name: &str,
+    for_name: &str,
     members: &[Atom],
     _members_optionals: &[bool],
     _member_ranges: &[Span],
@@ -721,6 +734,14 @@ impl JavascriptParserPlugin for RstestParserPlugin {
     {
       let var_name = ident.sym.as_str();
       if var_name == "rs" || var_name == "rstest" {
+        // Check if this is a global variable (for_name matches var_name)
+        // or ESM import (for_name is the ESM specifier tag)
+        let is_global = for_name == var_name;
+
+        // Skip global variables if globals option is disabled
+        if is_global && !self.globals {
+          return None;
+        }
         match members[0].as_str() {
           "requireActual" => {
             return self.process_require_actual(parser, call_expr);
