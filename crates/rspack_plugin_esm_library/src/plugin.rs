@@ -1,6 +1,5 @@
 use std::{
   path::PathBuf,
-  rc::Rc,
   sync::{Arc, LazyLock},
 };
 
@@ -13,10 +12,10 @@ use rspack_core::{
   CompilationAfterCodeGeneration, CompilationConcatenationScope, CompilationFinishModules,
   CompilationOptimizeChunks, CompilationParams, CompilationProcessAssets,
   CompilationRuntimeRequirementInTree, CompilerCompilation, ConcatenatedModuleInfo,
-  ConcatenationScope, DependencyType, ExternalModuleInfo, GetTargetResult, Logger,
-  ModuleFactoryCreateData, ModuleGraph, ModuleIdentifier, ModuleInfo, ModuleType,
-  NormalModuleFactoryAfterFactorize, NormalModuleFactoryParser, ParserAndGenerator, ParserOptions,
-  Plugin, PrefetchExportsInfoMode, RuntimeGlobals, RuntimeModule, get_target, is_esm_dep_like,
+  ConcatenationScope, DependencyType, ExternalModuleInfo, Logger, ModuleFactoryCreateData,
+  ModuleGraph, ModuleIdentifier, ModuleInfo, ModuleType, NormalModuleFactoryAfterFactorize,
+  NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, Plugin, RuntimeGlobals,
+  RuntimeModule, is_esm_dep_like,
   rspack_sources::{ReplaceSource, Source},
 };
 use rspack_error::{Diagnostic, Result};
@@ -142,38 +141,6 @@ async fn finish_modules(
         "module {module_identifier} is referenced by non esm dependency"
       ));
       should_scope_hoisting = false;
-    }
-
-    // if we reach here, check exports info
-    if should_scope_hoisting {
-      let exports_info = module_graph
-        .get_prefetched_exports_info(module_identifier, PrefetchExportsInfoMode::Default);
-
-      let relevant_exports = exports_info.get_relevant_exports(None);
-      let unknown_exports = relevant_exports
-        .iter()
-        .filter(|export_info| {
-          export_info.is_reexport()
-            && !matches!(
-              get_target(
-                export_info,
-                module_graph,
-                Rc::new(|_| true),
-                &mut Default::default()
-              ),
-              Some(GetTargetResult::Target(_))
-            )
-        })
-        .copied()
-        .collect::<Vec<_>>();
-
-      if !unknown_exports.is_empty() {
-        logger.debug(format!(
-          "module {module_identifier} has unknown reexport: {:?}",
-          unknown_exports.iter().map(|e| e.name()).collect::<Vec<_>>()
-        ));
-        should_scope_hoisting = false;
-      }
     }
 
     if should_scope_hoisting {
