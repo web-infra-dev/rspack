@@ -4,7 +4,11 @@ rstest.mock('../src/foo')
 
 const getGlobalActual = () => rstest.importActual('../src/foo');
 
-it('importActual from global scope should works', async () => {
+afterEach(() => {
+	rstest.doUnmock('../src/foo')
+})
+
+it('importActual from global scope should work', async () => {
 	expect(foo).toBe('mocked_foo')
 	const originalFoo = await rstest.importActual('../src/foo')
 	expect(originalFoo.value).toBe('foo')
