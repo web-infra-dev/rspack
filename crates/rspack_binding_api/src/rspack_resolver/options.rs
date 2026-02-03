@@ -162,7 +162,7 @@ pub struct NapiResolveOptions {
   ///
   /// Default `None`
   #[napi(ts_type = "string | false")]
-  pub pnp_manifest: Option<Either<String, bool>>,
+  pub pnp_manifest: Option<Either<String, ()>>,
 }
 
 #[napi]

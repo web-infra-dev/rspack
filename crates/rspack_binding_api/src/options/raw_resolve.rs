@@ -57,7 +57,7 @@ pub struct RawResolveOptions {
   pub roots: Option<Vec<String>>,
   pub pnp: Option<bool>,
   #[napi(ts_type = "string | false")]
-  pub pnp_manifest: Option<Either<String, bool>>,
+  pub pnp_manifest: Option<Either<String, ()>>,
 }
 
 fn normalize_alias(
@@ -245,7 +245,7 @@ pub struct RawResolveOptionsWithDependencyType {
   pub resolve_to_context: Option<bool>,
   pub pnp: Option<bool>,
   #[napi(ts_type = "string | false")]
-  pub pnp_manifest: Option<Either<String, bool>>,
+  pub pnp_manifest: Option<Either<String, ()>>,
 }
 
 pub fn normalize_raw_resolve_options_with_dependency_type(

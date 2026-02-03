@@ -663,9 +663,9 @@ export default {
 
 使用此选项指定 PnP 清单文件的路径。
 
-- `undefined`: 如果启用 `resolve.pnp` 且未提供此选项，Rspack 将尝试查找最近的 `.pnp.cjs` 文件作为 PnP manifest 文件路径。
-- `string`: 强制 Rspack resolver 使用指定的 PnP manifest 文件路径。
-- `false`: 用于支持禁用了 globalCache 的交叉引用项目。
+- `undefined`: 如果启用 `resolve.pnp` 且未提供此选项，Rspack 将尝试查找最近的 `.pnp.cjs` 文件作为 PnP 清单文件路径。
+- `string`: 强制 Rspack resolver 使用指定的 PnP 清单文件路径。
+- `false`: 不使用全局 PnP 清单，而是分别在每个项目中解析 PnP 清单。这可以支持禁用了 `enableGlobalCache` 的交叉引用项目。
 
 示例：
 
