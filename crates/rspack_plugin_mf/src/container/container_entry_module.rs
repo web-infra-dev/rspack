@@ -316,12 +316,13 @@ impl Module for ContainerEntryModule {
           __webpack_require__.federation = {{ instance: undefined,bundlerRuntime: undefined }}
           var factory = ()=>{factory};
           var initShareContainer = {init_share_container_fn};
-    {runtime}(exports, {{ 
+    {runtime}({exports}, {{ 
         get: function() {{ return factory;}},
         init: function() {{ return initShareContainer;}}
     }});
     "#,
         runtime = runtime_template.render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS),
+        exports = runtime_template.render_exports_argument(ExportsArgument::Exports),
         factory = factory,
         init_share_container_fn = init_share_container_fn
       );

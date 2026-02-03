@@ -16,7 +16,7 @@
     "@rspack/browser": "workspace:*",
     "@rspack/dev-server": "~1.2.1",
     "@rspack/plugin-react-refresh": "^1.6.0",
-    "@module-federation/runtime-tools": "0.0.0-feat-shared-treeshake-poc-20260114091859",
+    "@module-federation/runtime-tools": "0.24.0",
     "@swc/helpers": "0.5.18",
     "@types/fs-extra": "11.0.4",
     "babel-loader": "^10.0.0",

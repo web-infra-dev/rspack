@@ -162,10 +162,15 @@ The SharedConfig can include the following sub-options:
 - singleton: Ensure that shared modules are only loaded once between different versions, following the singleton pattern. This is necessary for libraries designed to run as singletons, such as React, as it can prevent various issues caused by instantiating multiple library instances.
 - strictVersion: Used to strengthen `requiredVersion`. If set to `true`, the shared module must match the version specified in requiredVersion exactly, otherwise an error will be reported and the module will not be loaded. If set to `false`, it can tolerate imprecise matching.
 - version: Explicitly set the version of the shared module. By default, the version in `package.json` will be used.
+- treeShaking: Configure the treeshaking behavior of shared dependencies. By enabling treeshaking for shared dependencies, the size of shared dependencies can be reduced. Only effective when using Rspack as the build tool.
+  - usedExports: Manually **add** export members used by shared dependencies.
+  - mode: Configure the loading strategy for treeshaking.
+    - `runtime-infer`: Infer based on the consumer's `usedExports`. If the provider's `usedExports` match the consumer's `usedExports`, the provider's `shared` will be used; otherwise, the consumer's own `shared` will be used. If neither condition is met, the full version is used.
+    - `server-calc`: Decide whether to load shared dependencies based on the snapshot sent by the server.
 
 ### manifest
 
-<ApiMeta addedVersion="1.6.0-beta.0" />
+<ApiMeta addedVersion="1.6.1" />
 
 - Type:
   ```ts
@@ -189,6 +194,73 @@ When enabled, the plugin emits both `mf-manifest.json` and `mf-stats.json` (you 
 - `filePath`: Target directory for the manifest files. Applies to both manifest and stats outputs.
 - `fileName`: Manifest file name. When set, the stats file automatically appends a `-stats` suffix (for example, `fileName: 'mf.json'` produces `mf.json` and `mf-stats.json`). All files are emitted into the directory defined by `filePath` (if provided).
 - `disableAssetsAnalyze`: Disables asset analysis. When `true`, the manifest omits the `shared` and `exposes` fields, and the `remotes` entries will not include asset information.
+
+### injectTreeShakingUsedExports
+
+<ApiMeta addedVersion="2.0.0" />
+
+Whether to inject the exports used by shared into the bundler runtime.
+
+- Type: `boolean`
+- Required: No
+- Default: `undefined`
+
+This option is used to control whether to inject the actual used export information of shared modules into the bundler runtime for more precise dependency management and optimization.
+
+If you are using mode as 'server-calc', it is recommended to set this option to `false`.
+
+### treeShakingDir
+
+Directory for outputting tree shaking shared fallback resources.
+
+- Type: `string`
+- Required: No
+- Default: `undefined`
+
+When shared dependency tree shaking is enabled, Module Federation splits unused shared module exports. This option specifies the output directory for these fallback resources.
+
+### treeShakingSharedExcludePlugins
+
+Configure plugin names to exclude during the shared dependency tree shaking/fallback build process.
+
+- Type: `string[]`
+- Required: No
+- Default: `['HtmlWebpackPlugin','HtmlRspackPlugin']`
+
+Allows users to specify a set of plugin names that will be ignored or not involved in processing during the shared dependency tree shaking/fallback build process.
+
+### treeShakingSharedPlugins
+
+Allows users to explicitly specify which plugins should participate in the second treeshaking process for shared modules.
+
+- Type: `string[]`
+- Required: No
+- Default: `undefined`
+
+If `shared.treeShaking.mode` is set to 'server-calc', then in the deployment service, the shared dependencies that need tree shaking will be rebuilt. At this time, only shared dependencies are built, and the original project's build configuration will not be loaded.
+If your project has special build configurations, such as setting externals, you can integrate these build configurations into an NPM Package, and then fill in the name and version of this plugin in `treeShakingSharedPlugins`, so that it can participate in the treeshaking process of shared modules in the second treeshaking process.
+
+For example, a plugin `my-build-plugin` is provided, which sets `externals`:
+
+```ts title='my-build-plugin'
+class MyBuildPlugin {
+  apply(compiler) {
+    compiler.options.externals = {
+      react: 'React',
+    };
+  }
+}
+export default MyBuildPlugin;
+```
+
+Publish this plugin version as `0.0.2`, then you only need to fill in the plugin name and version in `treeShakingSharedPlugins`:
+
+```ts title='module-federation.config.ts'
+export default {
+  // ...
+  treeShakingSharedPlugins: ['my-build-plugin@0.0.2'],
+};
+```
 
 ## FAQ
 

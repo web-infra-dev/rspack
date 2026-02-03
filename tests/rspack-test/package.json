@@ -15,7 +15,7 @@
   "devDependencies": {
     "@babel/core": "^7.28.6",
     "@babel/preset-react": "^7.28.5",
-    "@module-federation/runtime-tools": "0.0.0-feat-shared-treeshake-poc-20260114091859",
+    "@module-federation/runtime-tools": "0.24.0",
     "@rspack/binding-testing": "workspace:*",
     "@rspack/cli": "workspace:*",
     "@rspack/core": "workspace:*",
