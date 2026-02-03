@@ -663,10 +663,14 @@ export default {
 
 ## resolve.pnpManifest
 
-- **Type:** `string`
-- **Default:** the closest `.pnp.cjs` file
+- **Type:** `undefined | string | false`
+- **Default:** `undefined`
 
-The path to the PnP manifest file. Rspack will attempt to find the closest `.pnp.cjs` file if `resolve.pnp` is enabled and this option is not provided.
+Use this option to specify the path to the PnP manifest file.
+
+- `undefined`: Rspack will attempt to find the closest `.pnp.cjs` file if `resolve.pnp` is enabled and this option is not provided.
+- `string`: Force Rspack resolver to stick to the pnp manifest file path.
+- `false`: For support cross-referenced enableGlobalCache disabled projects.
 
 Example:
 
