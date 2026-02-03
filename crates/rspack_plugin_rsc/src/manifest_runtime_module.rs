@@ -85,8 +85,7 @@ impl RuntimeModule for RscManifestRuntimeModule {
       return Ok(String::new());
     };
 
-    let mut plugin_states = PLUGIN_STATES.borrow_mut();
-    let plugin_state = plugin_states.get_mut(&server_compiler_id).ok_or_else(|| {
+    let mut plugin_state = PLUGIN_STATES.get_mut(&server_compiler_id).ok_or_else(|| {
       rspack_error::error!(
         "Failed to find RSC plugin state for compiler (ID: {}).",
         server_compiler_id.as_u32()
