@@ -6,8 +6,6 @@ const path = require("path");
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	entry: "./index.js",
-	experiments: {
-		},
 	output: {
 		module: true,
 		library: {

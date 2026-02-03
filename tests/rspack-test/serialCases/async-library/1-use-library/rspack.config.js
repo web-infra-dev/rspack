@@ -12,6 +12,4 @@ module.exports = (env, { testPath }) => ({
 			library: path.resolve(testPath, "../0-create-library/lib.js")
 		}
 	},
-	experiments: {
-		}
 });

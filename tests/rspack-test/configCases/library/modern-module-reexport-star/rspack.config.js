@@ -2,8 +2,6 @@ const path = require("path");
 
 /**@type {import('@rspack/core').Configuration} */
 const config = {
-	experiments: {
-		},
 	context: __dirname,
 	mode: "development",
 	output: {

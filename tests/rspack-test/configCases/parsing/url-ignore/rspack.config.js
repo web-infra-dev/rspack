@@ -4,7 +4,5 @@ module.exports = {
 		module: true,
 		publicPath: "/public/"
 	},
-	experiments: {
-		},
 	target: "web"
 };

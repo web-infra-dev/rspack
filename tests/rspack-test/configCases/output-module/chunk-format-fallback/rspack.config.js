@@ -13,8 +13,6 @@ module.exports = {
 	optimization: {
 		runtimeChunk: "single"
 	},
-	experiments: {
-		},
 	mode: "development",
 	devtool: false
 };

@@ -5,7 +5,5 @@ module.exports = {
 	output: {
 		module: true
 	},
-	experiments: {
-		},
 	target: "node14"
 };

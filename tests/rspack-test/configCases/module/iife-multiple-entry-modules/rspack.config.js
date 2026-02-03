@@ -10,8 +10,6 @@ module.exports = [
 		optimization: {
 			concatenateModules: true
 		},
-		experiments: {
-			},
 		target: "es2020"
 	},
 	{

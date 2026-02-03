@@ -9,8 +9,6 @@ module.exports = {
 			type: "module"
 		}
 	},
-	experiments: {
-		},
 	optimization: {
 		runtimeChunk: true
 	}

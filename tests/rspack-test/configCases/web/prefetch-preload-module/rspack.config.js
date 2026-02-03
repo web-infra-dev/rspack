@@ -1,8 +1,6 @@
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	entry: "./index.mjs",
-	experiments: {
-		},
 	name: "esm",
 	target: "web",
 	output: {

@@ -22,8 +22,6 @@ module.exports = {
 		filename: "[name].mjs"
 	},
 	externals: "./imported.mjs",
-	experiments: {
-		},
 	optimization: {
 		concatenateModules: true
 	}

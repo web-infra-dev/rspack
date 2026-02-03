@@ -25,8 +25,6 @@ module.exports = {
 	},
 	externalsType: "module",
 	externals: ["externals0", "externals1"],
-	experiments: {
-		},
 	module: {
 		rules: [
 			{

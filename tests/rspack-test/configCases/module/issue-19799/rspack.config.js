@@ -13,8 +13,6 @@ module.exports = (env, { testPath }) => [
 				type: "module"
 			}
 		},
-		experiments: {
-			},
 		plugins: [
 			{
 				apply(compiler) {

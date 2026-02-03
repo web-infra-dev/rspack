@@ -42,8 +42,6 @@ module.exports = [
 				type: "modern-module"
 			}
 		},
-		experiments: {
-			},
 		plugins: [
 			new RslibPlugin({
 				interceptApiPlugin: true

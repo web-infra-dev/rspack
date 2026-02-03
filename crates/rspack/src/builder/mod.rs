@@ -978,7 +978,7 @@ impl CompilerOptionsBuilder {
     let output = output_builder.build(
       builder_context,
       &context,
-      false,
+      output_builder.module.unwrap_or_default(),
       Some(&target_properties),
       is_affected_by_browserslist,
       development,

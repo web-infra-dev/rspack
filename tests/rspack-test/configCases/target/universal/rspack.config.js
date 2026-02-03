@@ -8,8 +8,6 @@ module.exports = {
 		}
 	},
 	target: ["web", "node"],
-	experiments: {
-		},
 	optimization: {
 		minimize: true,
 		runtimeChunk: "single",

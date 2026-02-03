@@ -7,7 +7,5 @@ module.exports = [
 			module: true,
 			filename: "web-[name].mjs"
 		},
-		experiments: {
-			}
 	}
 ];

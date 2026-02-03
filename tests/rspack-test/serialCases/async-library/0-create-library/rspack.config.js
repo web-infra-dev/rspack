@@ -12,6 +12,4 @@ module.exports = {
 	optimization: {
 		minimize: true
 	},
-	experiments: {
-		}
 };

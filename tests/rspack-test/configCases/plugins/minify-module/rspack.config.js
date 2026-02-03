@@ -20,8 +20,6 @@ module.exports = [
 			module: true,
 			filename: "[name].mjs"
 		},
-		experiments: {
-			},
 		target: "es2022",
 		externalsPresets: { web: true },
 		optimization: {

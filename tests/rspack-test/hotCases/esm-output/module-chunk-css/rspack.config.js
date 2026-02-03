@@ -1,8 +1,6 @@
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	mode: "development",
-	experiments: {
-		},
 	module: {
 		rules: [
 			{

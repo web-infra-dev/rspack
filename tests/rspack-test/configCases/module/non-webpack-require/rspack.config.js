@@ -5,8 +5,6 @@ const webpack = require("@rspack/core");
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	target: ["node", "es2020"],
-	experiments: {
-		},
 	output: {
 		module: true,
 		iife: true

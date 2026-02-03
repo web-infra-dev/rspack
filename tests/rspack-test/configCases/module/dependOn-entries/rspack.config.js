@@ -21,8 +21,6 @@ module.exports = () => ({
 		}
 	},
 	target: ["web", "es2020"],
-	experiments: {
-		},
 	optimization: {
 		minimize: false,
 		runtimeChunk: false,

@@ -3,8 +3,6 @@
  */
 module.exports = {
 	entry: "./index.js",
-	experiments: {
-		},
 	output: {
 		module: true,
 		chunkFormat: "module",

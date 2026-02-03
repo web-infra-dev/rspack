@@ -9,8 +9,6 @@ module.exports = [
 			module: true
 		},
 		target: ["node"],
-		experiments: {
-			},
 		plugins: [
 			{
 				apply(compiler) {

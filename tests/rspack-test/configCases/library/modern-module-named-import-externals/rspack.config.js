@@ -9,8 +9,6 @@ module.exports = {
 		filename: "[name].js",
 		chunkFormat: "module"
 	},
-	experiments: {
-		},
 	resolve: {
 		extensions: [".js"]
 	},

@@ -18,8 +18,6 @@ module.exports = {
 			type: "module"
 		}
 	},
-	experiments: {
-		},
 	plugins: [
 		{
 			apply(compiler) {

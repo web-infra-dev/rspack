@@ -7,6 +7,4 @@ module.exports = {
 	},
 	devtool: "eval-source-map",
 	target: "node",
-	experiments: {
-		}
 };

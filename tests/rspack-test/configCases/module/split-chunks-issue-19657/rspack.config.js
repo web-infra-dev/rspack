@@ -3,8 +3,6 @@
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	mode: "development",
-	experiments: {
-		},
 	output: {
 		module: true,
 		chunkFormat: "module",

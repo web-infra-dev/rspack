@@ -39,8 +39,6 @@ config.push(
 		output: {
 			module: true
 		},
-		experiments: {
-			},
 		plugins: [
 			new DefinePlugin({
 				NODE_VALUE: typeof value === "boolean" ? value : JSON.stringify(value),

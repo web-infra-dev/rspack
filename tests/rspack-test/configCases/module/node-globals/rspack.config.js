@@ -9,7 +9,5 @@ module.exports = {
 		filename: "[name].mjs",
 		module: true
 	},
-	experiments: {
-		},
 	target: "node14"
 };

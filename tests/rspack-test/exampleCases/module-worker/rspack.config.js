@@ -13,6 +13,4 @@ module.exports = {
 		chunkIds: "deterministic" // To keep filename consistent between different modes (for example building only)
 	},
 	target: "browserslist: last 2 Chrome versions",
-	experiments: {
-		}
 };

@@ -30,8 +30,6 @@ module.exports = {
 		iife: false,
 		chunkFormat: "module"
 	},
-	experiments: {
-		},
 	optimization: {
 		minimize: false
 	},

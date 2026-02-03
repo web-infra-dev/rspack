@@ -101,8 +101,6 @@ module.exports = [
 		},
 	},
 	{
-		experiments: {
-			},
 		name: "test-output",
 		entry: "./test.js",
 		output: {

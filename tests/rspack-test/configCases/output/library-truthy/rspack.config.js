@@ -8,7 +8,5 @@ module.exports = {
 	optimization: {
 		runtimeChunk: false,
 		avoidEntryIife: true
-	},
-	experiments: {
-		}
+	}
 };

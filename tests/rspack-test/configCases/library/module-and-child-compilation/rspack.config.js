@@ -19,6 +19,4 @@ module.exports = {
 			}
 		]
 	},
-	experiments: {
-		}
 };

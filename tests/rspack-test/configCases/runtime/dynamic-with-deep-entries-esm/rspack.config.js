@@ -18,6 +18,4 @@ module.exports = {
 			name: entrypoint => `runtime/${entrypoint.name.replace(/^\/+/g, "")}`
 		}
 	},
-	experiments: {
-		}
 };

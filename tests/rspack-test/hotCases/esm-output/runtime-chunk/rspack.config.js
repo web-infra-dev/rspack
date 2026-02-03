@@ -1,8 +1,6 @@
 /** @type {import("../../../../types").Configuration} */
 module.exports = {
 	mode: "development",
-	experiments: {
-		},
 	output: {
 		module: true,
 		chunkFormat: "module",

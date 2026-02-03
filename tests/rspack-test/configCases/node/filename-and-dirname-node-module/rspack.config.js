@@ -3,8 +3,6 @@
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	target: "node",
-	experiments: {
-		},
 	output: {
 		module: true,
 		importMetaName: "custom"

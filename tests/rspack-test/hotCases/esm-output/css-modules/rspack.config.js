@@ -2,8 +2,6 @@
 module.exports = {
 	mode: "development",
 	target: "web",
-	experiments: {
-		},
 	module: {
 		rules: [
 			{
