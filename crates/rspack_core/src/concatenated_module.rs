@@ -30,7 +30,9 @@ use swc_core::{
   common::{FileName, Spanned, SyntaxContext},
   ecma::visit::swc_ecma_ast,
 };
-use swc_experimental_ecma_ast::{Ast, ClassExpr, EsVersion, Ident, NodeIdTrait, NodeKind};
+use swc_experimental_ecma_ast::{
+  Ast, ClassExpr, EsVersion, Ident, ObjectPatProp, Prop, Visit, VisitWith,
+};
 use swc_experimental_ecma_parser::{EsSyntax, Parser, StringSource, Syntax};
 use swc_experimental_ecma_semantic::resolver::{Semantic, resolver};
 use swc_node_comments::SwcComments;
@@ -2366,7 +2368,7 @@ impl ConcatenatedModule {
       let ast = &ret.ast;
 
       let semantic = resolver(ret.root, ast);
-      let ids = collect_ident(ast, &semantic);
+      let ids = collect_ident(ast, ret.root);
 
       module_info.module_ctxt = semantic.top_level_scope_id().to_ctxt();
       module_info.global_ctxt = semantic.unresolved_scope_id().to_ctxt();
@@ -3236,33 +3238,83 @@ impl NewConcatenatedModuleIdent {
   }
 }
 
-fn collect_ident(ast: &Ast, semantic: &Semantic) -> Vec<NewConcatenatedModuleIdent> {
-  let mut ids = Vec::new();
-  for (node_id, node) in ast.nodes() {
-    if node.kind() == NodeKind::Ident {
-      let ident = Ident::from_node_id(node_id, ast);
-      let parent_id = semantic.parent_node(node_id);
-      let (shorthand, is_class_expr_with_ident) = match ast.get_node(parent_id).kind() {
-        NodeKind::BindingIdent => {
-          let parent_id = semantic.parent_node(parent_id);
-          (
-            ast.get_node(parent_id).kind() == NodeKind::AssignPatProp,
-            false,
-          )
-        }
-        NodeKind::ClassExpr => {
-          let class_expr = ClassExpr::from_node_id(parent_id, ast);
-          (false, class_expr.class(ast).super_class(ast).is_some())
-        }
-        NodeKind::ObjectLit => (true, false),
-        _ => (false, false),
-      };
-      ids.push(NewConcatenatedModuleIdent {
-        id: ident,
-        shorthand,
-        is_class_expr_with_ident,
+/// This function ports [crate::utils::IdentCollector].
+/// A faster preorder visit based on the node array **has been tried** in https://github.com/web-infra-dev/rspack/pull/12369,
+/// which depends on `free_node` during parsing.
+/// However, a better mutability story on swc_experimental is designing and `free_node` is removed temporarily.
+/// Once it's finished, this function will be reverted back.
+fn collect_ident(
+  ast: &Ast,
+  root: swc_experimental_ecma_ast::Module,
+) -> Vec<NewConcatenatedModuleIdent> {
+  struct IdentCollector<'a> {
+    ast: &'a Ast,
+    ids: Vec<NewConcatenatedModuleIdent>,
+  }
+
+  impl Visit for IdentCollector<'_> {
+    fn ast(&self) -> &Ast {
+      self.ast
+    }
+
+    fn visit_ident(&mut self, node: Ident) {
+      self.ids.push(NewConcatenatedModuleIdent {
+        id: node,
+        shorthand: false,
+        is_class_expr_with_ident: false,
       });
     }
+
+    fn visit_object_pat_prop(&mut self, n: ObjectPatProp) {
+      match n {
+        ObjectPatProp::Assign(assign) => {
+          self.ids.push(NewConcatenatedModuleIdent {
+            id: assign.key(self.ast).id(self.ast),
+            shorthand: true,
+            is_class_expr_with_ident: false,
+          });
+          assign.value(self.ast).visit_with(self);
+        }
+        ObjectPatProp::KeyValue(_) | ObjectPatProp::Rest(_) => {
+          n.visit_children_with(self);
+        }
+      }
+    }
+
+    fn visit_prop(&mut self, node: Prop) {
+      match node {
+        Prop::Shorthand(node) => {
+          self.ids.push(NewConcatenatedModuleIdent {
+            id: node,
+            shorthand: true,
+            is_class_expr_with_ident: false,
+          });
+        }
+        _ => {
+          node.visit_children_with(self);
+        }
+      }
+    }
+
+    /// https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/ConcatenatedModule.js#L1173-L1197
+    fn visit_class_expr(&mut self, node: ClassExpr) {
+      if let Some(ident) = node.ident(self.ast)
+        && node.class(self.ast).super_class(self.ast).is_some()
+      {
+        self.ids.push(NewConcatenatedModuleIdent {
+          id: ident,
+          shorthand: false,
+          is_class_expr_with_ident: true,
+        });
+      }
+      node.class(self.ast).visit_with(self);
+    }
   }
-  ids
+
+  let mut collector = IdentCollector {
+    ast,
+    ids: Vec::new(),
+  };
+  collector.visit_module(root);
+  collector.ids
 }

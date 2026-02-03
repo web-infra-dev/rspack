@@ -259,6 +259,7 @@ skip = [
 skip-tree = [
     #"ansi_term@0.11.0", # will be skipped along with _all_ of its direct and transitive dependencies
     #{ crate = "ansi_term@0.11.0", depth = 20 },
+    { crate = "icu_normalizer", reason = "external dependency (between swc crate and url crate)"},
 ]
 
 [bans.workspace-dependencies]
