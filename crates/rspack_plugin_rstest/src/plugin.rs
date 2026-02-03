@@ -105,11 +105,13 @@ async fn nmf_parser(
     && let Some(parser) = parser.downcast_mut::<JavaScriptParserAndGenerator>()
   {
     parser.add_parser_plugin(Box::new(RstestParserPlugin::new(
-      self.options.module_path_name,
-      self.options.hoist_mock_module,
-      self.options.import_meta_path_name,
-      self.options.manual_mock_root.clone(),
-      self.options.globals,
+      crate::parser_plugin::RstestParserPluginOptions {
+        module_path_name: self.options.module_path_name,
+        hoist_mock_module: self.options.hoist_mock_module,
+        import_meta_path_name: self.options.import_meta_path_name,
+        manual_mock_root: self.options.manual_mock_root.clone(),
+        globals: self.options.globals,
+      },
     )) as BoxJavascriptParserPlugin);
   }
 

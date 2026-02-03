@@ -37,8 +37,8 @@ enum ModulePathType {
   FileName,
 }
 
-#[derive(Debug, Default)]
-pub struct RstestParserPlugin {
+#[derive(Debug, Clone)]
+pub struct RstestParserPluginOptions {
   pub module_path_name: bool,
   pub hoist_mock_module: bool,
   pub import_meta_path_name: bool,
@@ -46,6 +46,23 @@ pub struct RstestParserPlugin {
   /// Whether to handle global `rs` and `rstest` variables.
   /// When false, only ESM imported variables are processed.
   pub globals: bool,
+}
+
+impl Default for RstestParserPluginOptions {
+  fn default() -> Self {
+    Self {
+      module_path_name: false,
+      hoist_mock_module: false,
+      import_meta_path_name: false,
+      manual_mock_root: String::new(),
+      globals: true,
+    }
+  }
+}
+
+#[derive(Debug, Default)]
+pub struct RstestParserPlugin {
+  options: RstestParserPluginOptions,
 }
 
 trait JavascriptParserExt<'a> {
@@ -59,20 +76,8 @@ impl<'a> JavascriptParserExt<'a> for JavascriptParser<'a> {
 }
 
 impl RstestParserPlugin {
-  pub fn new(
-    module_path_name: bool,
-    hoist_mock_module: bool,
-    import_meta_path_name: bool,
-    manual_mock_root: String,
-    globals: bool,
-  ) -> Self {
-    Self {
-      module_path_name,
-      hoist_mock_module,
-      import_meta_path_name,
-      manual_mock_root,
-      globals,
-    }
+  pub fn new(options: RstestParserPluginOptions) -> Self {
+    Self { options }
   }
 
   fn process_require_actual(
@@ -203,7 +208,7 @@ impl RstestParserPlugin {
       )
     } else {
       // Mock non-relative request to `manual_mock_root` directory.
-      Utf8PathBuf::from(&self.manual_mock_root).join(&path_buf)
+      Utf8PathBuf::from(&self.options.manual_mock_root).join(&path_buf)
     }
   }
 
@@ -574,7 +579,7 @@ impl RstestParserPlugin {
     let is_global = !parser.is_variable_defined(&ident.sym);
 
     // Skip global variables if globals option is disabled
-    if is_global && !self.globals {
+    if is_global && !self.options.globals {
       return None;
     }
 
@@ -678,7 +683,7 @@ impl JavascriptParserPlugin for RstestParserPlugin {
       _ => return None,
     };
 
-    if !self.hoist_mock_module {
+    if !self.options.hoist_mock_module {
       return None;
     }
 
@@ -739,7 +744,7 @@ impl JavascriptParserPlugin for RstestParserPlugin {
         let is_global = for_name == var_name;
 
         // Skip global variables if globals option is disabled
-        if is_global && !self.globals {
+        if is_global && !self.options.globals {
           return None;
         }
         match members[0].as_str() {
@@ -762,7 +767,7 @@ impl JavascriptParserPlugin for RstestParserPlugin {
     _ident: &Ident,
     for_name: &str,
   ) -> Option<bool> {
-    if self.module_path_name {
+    if self.options.module_path_name {
       match for_name {
         DIR_NAME => {
           parser.add_presentational_dependency(Box::new(ModulePathNameDependency::new(
@@ -789,7 +794,7 @@ impl JavascriptParserPlugin for RstestParserPlugin {
     expr: &'a UnaryExpr,
     for_name: &str,
   ) -> Option<utils::eval::BasicEvaluatedExpression<'a>> {
-    if self.import_meta_path_name {
+    if self.options.import_meta_path_name {
       let mut evaluated = None;
       if for_name == IMPORT_META_DIRNAME || for_name == IMPORT_META_FILENAME {
         evaluated = Some("string".to_string());
@@ -808,7 +813,7 @@ impl JavascriptParserPlugin for RstestParserPlugin {
     start: u32,
     end: u32,
   ) -> Option<eval::BasicEvaluatedExpression<'static>> {
-    if self.import_meta_path_name {
+    if self.options.import_meta_path_name {
       if for_name == IMPORT_META_DIRNAME {
         return Some(eval::evaluate_to_string(
           self.process_import_meta(parser, ModulePathType::DirName),
@@ -834,7 +839,7 @@ impl JavascriptParserPlugin for RstestParserPlugin {
     unary_expr: &UnaryExpr,
     for_name: &str,
   ) -> Option<bool> {
-    if self.import_meta_path_name {
+    if self.options.import_meta_path_name {
       if for_name == IMPORT_META_DIRNAME || for_name == IMPORT_META_FILENAME {
         parser.add_presentational_dependency(Box::new(ConstDependency::new(
           unary_expr.span().into(),
@@ -856,7 +861,7 @@ impl JavascriptParserPlugin for RstestParserPlugin {
     member_expr: &MemberExpr,
     for_name: &str,
   ) -> Option<bool> {
-    if self.import_meta_path_name {
+    if self.options.import_meta_path_name {
       if for_name == IMPORT_META_DIRNAME {
         let result = self.process_import_meta(parser, ModulePathType::DirName);
         parser.add_presentational_dependency(Box::new(ConstDependency::new(
