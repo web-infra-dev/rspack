@@ -166,10 +166,7 @@ async fn optimize_dependencies(
             }
             let share_key_part = parts[1];
             let share_key_end = if let Some(stripped) = share_key_part.strip_prefix('@') {
-              stripped
-                .find('@')
-                .map(|i| i + 1)
-                .unwrap_or(share_key_part.len())
+              stripped.find('@').map_or(share_key_part.len(), |i| i + 1)
             } else {
               share_key_part.find('@').unwrap_or(share_key_part.len())
             };

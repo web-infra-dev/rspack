@@ -262,13 +262,11 @@ impl Module for ContainerEntryModule {
         if let Some(dependency) = dependency
           .as_any()
           .downcast_ref::<ContainerExposedDependency>()
+          && *dependency.dependency_type() == DependencyType::ShareContainerFallback
         {
-          if *dependency.dependency_type() == DependencyType::ShareContainerFallback {
-            let request: &str = dependency.user_request();
-            let module_expr =
-              runtime_template.module_raw(compilation, dependency_id, request, false);
-            factory = runtime_template.returning_function(&module_expr, "");
-          }
+          let request: &str = dependency.user_request();
+          let module_expr = runtime_template.module_raw(compilation, dependency_id, request, false);
+          factory = runtime_template.returning_function(&module_expr, "");
         }
       }
 
@@ -303,9 +301,7 @@ impl Module for ContainerEntryModule {
         {federation_global}.installInitialConsumes = {install_initial_consumes_fn};
         
         return {federation_global}.installInitialConsumes();
-      "#,
-        federation_global = federation_global,
-        install_initial_consumes_fn = install_initial_consumes_fn
+      "#
       );
       let init_share_container_fn =
         runtime_template.basic_function("mfInstance, bundlerRuntime", &init_body);

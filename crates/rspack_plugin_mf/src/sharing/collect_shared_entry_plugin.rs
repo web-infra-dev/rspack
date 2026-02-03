@@ -103,7 +103,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let mut ordered_requests: FxHashMap<String, Vec<[String; 2]>> = FxHashMap::default();
   let mut share_scopes: FxHashMap<String, String> = FxHashMap::default();
 
-  for (_id, module) in module_graph.modules().into_iter() {
+  for (_id, module) in module_graph.modules() {
     let module_type = module.module_type();
     if !matches!(module_type, rspack_core::ModuleType::ConsumeShared) {
       continue;
@@ -167,7 +167,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           let version = self
             .infer_version(&resource)
             .await
-            .unwrap_or_else(|| "".to_string());
+            .unwrap_or_else(String::new);
           let pair = [resource, version];
           if !reqs.iter().any(|p| p[0] == pair[0] && p[1] == pair[1]) {
             reqs.push(pair);
@@ -185,10 +185,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   // Build asset content
   let mut shared: FxHashMap<&str, CollectSharedEntryAssetItem<'_>> = FxHashMap::default();
   for (share_key, requests) in ordered_requests.iter() {
-    let scope = share_scopes
-      .get(share_key)
-      .map(|s| s.as_str())
-      .unwrap_or("");
+    let scope = share_scopes.get(share_key).map_or("", |s| s.as_str());
     shared.insert(
       share_key.as_str(),
       CollectSharedEntryAssetItem {

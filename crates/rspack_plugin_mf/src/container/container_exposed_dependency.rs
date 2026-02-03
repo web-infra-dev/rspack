@@ -29,7 +29,7 @@ impl ContainerExposedDependency {
   }
 
   pub fn new_shared_fallback(request: String) -> Self {
-    let resource_identifier = format!("share-container-fallback:{}", request).into();
+    let resource_identifier = format!("share-container-fallback:{request}").into();
     Self {
       id: DependencyId::new(),
       request,

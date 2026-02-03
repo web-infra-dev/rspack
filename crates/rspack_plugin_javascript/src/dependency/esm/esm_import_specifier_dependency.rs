@@ -121,7 +121,7 @@ impl ESMImportSpecifierDependency {
       && id == "default"
     {
       match exports_type {
-        Some(ExportsType::DefaultOnly) | Some(ExportsType::DefaultWithNamed) => {
+        Some(ExportsType::DefaultOnly | ExportsType::DefaultWithNamed) => {
           if ids.len() == 1 {
             return self.get_referenced_exports_in_destructuring(None);
           }

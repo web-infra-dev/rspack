@@ -298,17 +298,11 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
         )
         .await;
 
-      match referenced_exports_result {
-        Some(mut referenced_exports) => {
-          if let Some(new_referenced_exports) =
-            merge_referenced_exports(old_referenced_exports, referenced_exports)
-          {
-            map.insert(module_id, new_referenced_exports);
-          }
-        }
-        None => {
-          continue;
-        }
+      if let Some(mut referenced_exports) = referenced_exports_result
+        && let Some(new_referenced_exports) =
+          merge_referenced_exports(old_referenced_exports, referenced_exports)
+      {
+        map.insert(module_id, new_referenced_exports);
       }
     }
 

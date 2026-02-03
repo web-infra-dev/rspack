@@ -165,15 +165,27 @@ mod test {
       SnapshotOptions::default(),
       fs.clone(),
       storage.clone(),
-      codec,
+      codec.clone(),
     ));
-    let mut build_deps = BuildDeps::new(&options, fs.clone(), snapshot.clone(), storage.clone());
+    let mut build_deps = BuildDeps::new(
+      &options,
+      fs.clone(),
+      snapshot.clone(),
+      storage.clone(),
+      codec.clone(),
+    );
     let warnings = build_deps.add(vec![].into_iter()).await;
     assert_eq!(warnings.len(), 1);
     let data = storage.load(scope).await.expect("should load success");
     assert_eq!(data.len(), 9);
 
-    let mut build_deps = BuildDeps::new(&options, fs.clone(), snapshot.clone(), storage.clone());
+    let mut build_deps = BuildDeps::new(
+      &options,
+      fs.clone(),
+      snapshot.clone(),
+      storage.clone(),
+      codec,
+    );
     fs.write("/b.js".into(), r#"require("./c")"#.as_bytes())
       .await
       .unwrap();

@@ -70,9 +70,7 @@ impl RuntimeModule for SharedUsedExportsOptimizerRuntimeModule {
       r#"
 if(!{federation_global}){{return;}}
 {federation_global}.usedExports = {used_exports_json};
-"#,
-      federation_global = federation_global,
-      used_exports_json = used_exports_json
+"#
     ))
   }
 }
