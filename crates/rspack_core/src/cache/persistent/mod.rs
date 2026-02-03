@@ -50,7 +50,6 @@ pub struct PersistentCacheOptions {
 pub struct PersistentCache {
   initialized: bool,
   valid: bool,
-
   readonly: bool,
   build_deps: BuildDeps,
   snapshot: Arc<Snapshot>,
