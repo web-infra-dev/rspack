@@ -39,7 +39,7 @@ module.exports = {
 			  externalsType: var,
 			  ignoreWarnings: undefined,
 			  incremental: Object {
-			    buildChunkGraph: false,
+			    buildChunkGraph: true,
 			    buildModuleGraph: true,
 			    chunkAsset: true,
 			    chunkIds: true,

@@ -1,7 +1,7 @@
 use rspack_collections::Identifier;
 use rspack_core::{
   ChunkUkey, Compilation, Filename, PathData, RuntimeGlobals, RuntimeModule, RuntimeTemplate,
-  SourceType, impl_runtime_module,
+  SourceType, has_hash_placeholder, impl_runtime_module,
 };
 
 #[impl_runtime_module]
@@ -86,5 +86,13 @@ impl RuntimeModule for GetMainFilenameRuntimeModule {
 
   fn attach(&mut self, chunk: ChunkUkey) {
     self.chunk = Some(chunk);
+  }
+
+  fn additional_runtime_requirements(&self, compilation: &Compilation) -> RuntimeGlobals {
+    if has_hash_placeholder(compilation.options.output.hot_update_main_filename.as_str()) {
+      RuntimeGlobals::GET_FULL_HASH
+    } else {
+      RuntimeGlobals::default()
+    }
   }
 }

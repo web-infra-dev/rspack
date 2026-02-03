@@ -2799,11 +2799,6 @@ export type Experiments = {
    */
   asyncWebAssembly?: boolean;
   /**
-   * Enable output as ES module.
-   * @default false
-   */
-  outputModule?: boolean;
-  /**
    * Enable CSS support.
    *
    * @description

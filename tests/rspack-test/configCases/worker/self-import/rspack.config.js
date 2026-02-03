@@ -28,8 +28,8 @@ module.exports = [
 	},
 	{
 		target: "web",
-		experiments: {
-			outputModule: true
+		output: {
+			module: true
 		},
 		plugins: [
 			// TODO: support type: "module" injection
@@ -41,13 +41,11 @@ module.exports = [
 	{
 		target: "web",
 		output: {
-			filename: "[name].bundle3.mjs"
+			filename: "[name].bundle3.mjs",
+			module: true,
 		},
 		optimization: {
 			runtimeChunk: "single"
-		},
-		experiments: {
-			outputModule: true
 		},
 		plugins: [
 			// TODO: support type: "module" injection

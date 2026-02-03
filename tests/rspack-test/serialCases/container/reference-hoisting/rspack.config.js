@@ -53,9 +53,6 @@ module.exports = [
 			main: "./index.js",
 			other: "./index-2.js"
 		},
-		experiments: {
-			outputModule: true
-		},
 		optimization: {
 			runtimeChunk: "single",
 			moduleIds: "named"

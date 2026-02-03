@@ -1,7 +1,7 @@
   function loadUpdateChunk(chunkId, updatedModulesList) {
     return new Promise( <%- basicFunction("resolve, reject")  %> {
       // start update chunk loading
-      var url = <%- PUBLIC_PATH %> +<%- GET_CHUNK_UPDATE_SCRIPT_FILENAME %>(chunkId);
+      var url = <%- PUBLIC_PATH %> + <%- GET_CHUNK_UPDATE_SCRIPT_FILENAME %>(chunkId);
       var onResolve = <%- basicFunction("obj") %> {
         var updatedModules = obj.<%- _modules %>;
         var updatedRuntime = obj.__rspack_esm_runtime;

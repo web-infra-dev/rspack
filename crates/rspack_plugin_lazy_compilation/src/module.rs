@@ -5,8 +5,8 @@ use rspack_collections::Identifiable;
 use rspack_core::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo,
   BuildMeta, BuildResult, ChunkGraph, CodeGenerationResult, Compilation, Context,
-  DependenciesBlock, DependencyId, DependencyRange, FactoryMeta, LibIdentOptions, Module,
-  ModuleArgument, ModuleCodeGenerationContext, ModuleFactoryCreateData, ModuleGraph,
+  DependenciesBlock, DependencyId, DependencyRange, FactoryMeta, ImportPhase, LibIdentOptions,
+  Module, ModuleArgument, ModuleCodeGenerationContext, ModuleFactoryCreateData, ModuleGraph,
   ModuleIdentifier, ModuleLayer, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
   ValueCacheVersions, impl_module_meta_info, module_update_hash,
   rspack_sources::{BoxSource, RawStringSource},
@@ -262,7 +262,8 @@ impl Module for LazyCompilationProxyModule {
           Some(block_id),
           &self.resource,
           "import()",
-          false
+          false,
+          ImportPhase::Evaluation,
         ),
         json_stringify(
           ChunkGraph::get_module_id(&compilation.module_ids_artifact, *module)

@@ -43,9 +43,6 @@ module.exports = [
 				type: "modern-module"
 			}
 		},
-		experiments: {
-			outputModule: true
-		},
 		optimization: {
 			// minimize: false
 		},

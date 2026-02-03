@@ -16,6 +16,7 @@ module.exports = {
 		entry: "./entry.js"
 	},
 	output: {
+		module: true,
 		clean: true,
 		filename: "[name].mjs",
 		library: {
@@ -24,9 +25,6 @@ module.exports = {
 	},
 	externalsType: "module",
 	externals: ["externals0", "externals1"],
-	experiments: {
-		outputModule: true
-	},
 	module: {
 		rules: [
 			{

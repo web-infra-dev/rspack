@@ -3,7 +3,7 @@
 	// mode: 1 => default-only (esm strict cjs)
 	// mode: 2 => default-with-named (esm-cjs compat)
 	// mode: 3 => dynamic (if exports has __esModule, then esm, otherwise default-with-named)
-	var r = this;
+	var r = <%- REQUIRE %>;
 	<% if (_has_async) { %>
 	var isAsync = asyncDeps && asyncDeps.length;
 	<% } %>
@@ -21,7 +21,7 @@
 		}
 	};
 	<% if (_has_async) { %>
-	if(isAsync) obj[<%- MAKE_DEFERRED_NAMESPACE_OBJECT_SYMBOL %>] = asyncDeps;
+	if(isAsync) obj[<%- DEFERRED_MODULES_ASYNC_TRANSITIVE_DEPENDENCIES_SYMBOL %>] = asyncDeps;
 	<% } %>
 	return obj;
 };

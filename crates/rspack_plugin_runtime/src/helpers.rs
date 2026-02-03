@@ -1,5 +1,7 @@
-use std::hash::Hash;
+use std::{hash::Hash, sync::LazyLock};
 
+use itertools::Itertools;
+use regex::Regex;
 use rspack_collections::{IdentifierLinkedMap, UkeyIndexSet};
 use rspack_core::{
   Chunk, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, Compilation, PathData,
@@ -365,4 +367,125 @@ pub fn get_chunk_runtime_requirements<'a>(
   chunk_ukey: &ChunkUkey,
 ) -> &'a RuntimeGlobals {
   ChunkGraph::get_chunk_runtime_requirements(compilation, chunk_ukey)
+}
+
+/// Regex to match EJS `<%- RUNTIME_GLOBALS %>` where the identifier is uppercase (RuntimeGlobals enum style).
+static EJS_RUNTIME_GLOBALS_RE: LazyLock<Regex> = LazyLock::new(|| {
+  Regex::new(r"<%\-\s*([A-Z][A-Z0-9_]*)\s*%>").expect("invalid EJS runtime globals regex")
+});
+
+/// Extracts all RuntimeGlobals references from an EJS template string.
+///
+/// Matches patterns like `<%- PUBLIC_PATH %>` or `<%- GET_CHUNK_SCRIPT_FILENAME %>`
+/// where the identifier is uppercase letters, digits and underscores (RuntimeGlobals enum variant naming).
+/// Does not match other EJS placeholders such as `<%- basicFunction(...) %>` or `<%- _modules %>`.
+pub fn extract_runtime_globals_from_ejs(ejs_content: &str) -> RuntimeGlobals {
+  let names = EJS_RUNTIME_GLOBALS_RE
+    .captures_iter(ejs_content)
+    .map(|cap| cap[1].to_string())
+    // script nonce is always optional
+    .filter(|name| name.as_str() != "SCRIPT_NONCE")
+    .collect_vec();
+  RuntimeGlobals::from_names(&names)
+}
+
+#[cfg(test)]
+mod tests {
+  use super::{RuntimeGlobals, extract_runtime_globals_from_ejs};
+
+  fn expected_globals(names: &[&str]) -> RuntimeGlobals {
+    let names: Vec<String> = names.iter().map(|s| (*s).to_string()).collect();
+    RuntimeGlobals::from_names(&names)
+  }
+
+  #[test]
+  fn test_extract_runtime_globals_empty() {
+    assert!(extract_runtime_globals_from_ejs("").is_empty());
+    assert!(extract_runtime_globals_from_ejs("plain text").is_empty());
+  }
+
+  #[test]
+  fn test_extract_runtime_globals_single() {
+    assert_eq!(
+      extract_runtime_globals_from_ejs("<%- PUBLIC_PATH %>"),
+      expected_globals(&["PUBLIC_PATH"])
+    );
+    assert_eq!(
+      extract_runtime_globals_from_ejs("var x = <%- REQUIRE %>;"),
+      expected_globals(&["REQUIRE"])
+    );
+  }
+
+  #[test]
+  fn test_extract_runtime_globals_multiple_unique() {
+    let ejs = r#"link.href = <%- PUBLIC_PATH %> + <%- GET_CHUNK_SCRIPT_FILENAME %>(chunkId);
+    if (<%- HAS_OWN_PROPERTY %>(installedChunks, chunkId)) {}"#;
+    assert_eq!(
+      extract_runtime_globals_from_ejs(ejs),
+      expected_globals(&[
+        "PUBLIC_PATH",
+        "GET_CHUNK_SCRIPT_FILENAME",
+        "HAS_OWN_PROPERTY"
+      ])
+    );
+  }
+
+  #[test]
+  fn test_extract_runtime_globals_deduplicate() {
+    let ejs = "<%- REQUIRE %>; <%- PUBLIC_PATH %>; <%- REQUIRE %>; <%- PUBLIC_PATH %>";
+    assert_eq!(
+      extract_runtime_globals_from_ejs(ejs),
+      expected_globals(&["REQUIRE", "PUBLIC_PATH"])
+    );
+  }
+
+  #[test]
+  fn test_extract_runtime_globals_with_spaces() {
+    assert_eq!(
+      extract_runtime_globals_from_ejs("<%-  ENSURE_CHUNK  %>"),
+      expected_globals(&["ENSURE_CHUNK"])
+    );
+  }
+
+  #[test]
+  fn test_extract_runtime_globals_ignore_non_globals() {
+    // Should not match: lowercase, underscore prefix, function calls
+    let ejs = r#"<%- basicFunction("resolve, reject")  %>
+    <%- _modules %>
+    <%- _cross_origin %>
+    <%- MODULE_CACHE %>"#;
+    assert_eq!(
+      extract_runtime_globals_from_ejs(ejs),
+      expected_globals(&["MODULE_CACHE"])
+    );
+  }
+
+  #[test]
+  fn test_extract_runtime_globals_uppercase_with_underscores() {
+    let ejs = "<%- GET_CHUNK_UPDATE_SCRIPT_FILENAME %> <%- HMR_DOWNLOAD_UPDATE_HANDLERS %>";
+    assert_eq!(
+      extract_runtime_globals_from_ejs(ejs),
+      expected_globals(&[
+        "GET_CHUNK_UPDATE_SCRIPT_FILENAME",
+        "HMR_DOWNLOAD_UPDATE_HANDLERS"
+      ])
+    );
+  }
+
+  #[test]
+  fn test_extract_runtime_globals_real_ejs_snippet() {
+    let ejs = r#"var installChunk = <%- basicFunction("data") %> {
+    var <%- _modules %> = data.<%- _modules %>;
+    for (moduleId in <%- _modules %>) {
+        if (<%- HAS_OWN_PROPERTY %>(<%- _modules %>, moduleId)) {
+            <%- MODULE_FACTORIES %>[moduleId] = <%- _modules %>[moduleId];
+        }
+    }
+    if (__rspack_esm_runtime) __rspack_esm_runtime(<%- REQUIRE %>);
+};"#;
+    assert_eq!(
+      extract_runtime_globals_from_ejs(ejs),
+      expected_globals(&["HAS_OWN_PROPERTY", "MODULE_FACTORIES", "REQUIRE"])
+    );
+  }
 }

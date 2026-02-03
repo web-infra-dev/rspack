@@ -24,14 +24,11 @@ module.exports = {
 		path: "node-commonjs path"
 	},
 	output: {
-		filename: `[name].js`,
 		module: true,
+		filename: `[name].js`,
 		library: { type: "modern-module" },
 		iife: false,
 		chunkFormat: "module"
-	},
-	experiments: {
-		outputModule: true
 	},
 	optimization: {
 		minimize: false

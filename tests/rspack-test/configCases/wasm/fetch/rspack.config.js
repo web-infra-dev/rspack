@@ -17,7 +17,6 @@ module.exports = [
 			webassemblyModuleFilename: "[id].[hash].module.async.wasm"
 		},
 		experiments: {
-			outputModule: true,
 			asyncWebAssembly: true
 		}
 	},

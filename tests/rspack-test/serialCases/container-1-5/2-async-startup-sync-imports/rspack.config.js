@@ -45,10 +45,8 @@ module.exports = [
 	},
 	{
 		...common,
-		experiments: {
-			outputModule: true
-		},
 		output: {
+			module: true,
 			filename: "module/[name].mjs",
 			uniqueName: "2-async-startup-sync-imports-mjs"
 		},

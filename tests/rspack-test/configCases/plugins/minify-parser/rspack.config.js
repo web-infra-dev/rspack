@@ -12,9 +12,6 @@ module.exports = [
 		},
 		externalsType: "module",
 		externals: ["./a.json"],
-		experiments: {
-			outputModule: true
-		},
 		optimization: {
 			minimize: true,
 			minimizer: [new rspack.SwcJsMinimizerRspackPlugin()]

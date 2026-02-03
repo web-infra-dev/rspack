@@ -475,15 +475,9 @@ async fn additional_tree_runtime_requirements(
   &self,
   compilation: &Compilation,
   _chunk_ukey: &ChunkUkey,
-  runtime_requirements: &mut RuntimeGlobals,
+  _runtime_requirements: &mut RuntimeGlobals,
   runtime_modules: &mut Vec<Box<dyn RuntimeModule>>,
 ) -> Result<()> {
-  runtime_requirements.insert(RuntimeGlobals::MODULE);
-  runtime_requirements.insert(RuntimeGlobals::MODULE_CACHE);
-  runtime_requirements.insert(RuntimeGlobals::MODULE_FACTORIES_ADD_ONLY);
-  runtime_requirements.insert(RuntimeGlobals::SHARE_SCOPE_MAP);
-  runtime_requirements.insert(RuntimeGlobals::INITIALIZE_SHARING);
-  runtime_requirements.insert(RuntimeGlobals::HAS_OWN_PROPERTY);
   runtime_modules.push(Box::new(ConsumeSharedRuntimeModule::new(
     &compilation.runtime_template,
     self.options.enhanced,

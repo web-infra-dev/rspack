@@ -11,6 +11,7 @@ version.workspace = true
 allocative               = { workspace = true, optional = true }
 async-trait              = { workspace = true }
 atomic_refcell           = { workspace = true }
+dashmap                  = { workspace = true }
 derive_more              = { workspace = true }
 form_urlencoded          = { workspace = true }
 futures                  = { workspace = true }

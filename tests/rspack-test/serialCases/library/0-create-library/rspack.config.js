@@ -6,7 +6,8 @@ module.exports = (env, { testPath }) => [
 		output: {
 			uniqueName: "esm",
 			filename: "esm.js",
-			library: { type: "module" }
+			library: { type: "module" },
+			module: true
 		},
 		target: "node14",
 		resolve: {
@@ -15,15 +16,13 @@ module.exports = (env, { testPath }) => [
 				"external-named": "./non-external-named"
 			}
 		},
-		experiments: {
-			outputModule: true
-		}
 	},
 	{
 		output: {
 			uniqueName: "modern-module",
 			filename: "modern-module.js",
-			library: { type: "modern-module" }
+			library: { type: "modern-module" },
+			module: true
 		},
 		target: "node14",
 		resolve: {
@@ -31,9 +30,6 @@ module.exports = (env, { testPath }) => [
 				external: "./non-external",
 				"external-named": "./non-external-named"
 			}
-		},
-		experiments: {
-			outputModule: true
 		},
 		optimization: {
 			avoidEntryIife: true
@@ -43,7 +39,8 @@ module.exports = (env, { testPath }) => [
 		output: {
 			uniqueName: "esm-runtimeChunk",
 			filename: "esm-runtimeChunk/[name].js",
-			library: { type: "module" }
+			library: { type: "module" },
+			module: true
 		},
 		target: "node14",
 		resolve: {
@@ -55,9 +52,6 @@ module.exports = (env, { testPath }) => [
 		optimization: {
 			runtimeChunk: "single"
 		},
-		experiments: {
-			outputModule: true
-		}
 	},
 	{
 		output: {

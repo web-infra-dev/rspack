@@ -446,7 +446,7 @@ const getNormalizedIncrementalOptions = (
       buildModuleGraph: true,
       finishModules: false,
       optimizeDependencies: false,
-      buildChunkGraph: false,
+      buildChunkGraph: true,
       moduleIds: false,
       chunkIds: false,
       modulesHashes: false,
@@ -611,7 +611,6 @@ export type CacheNormalized =
 
 export interface ExperimentsNormalized {
   asyncWebAssembly?: boolean;
-  outputModule?: boolean;
   css?: boolean;
   futureDefaults?: boolean;
   buildHttp?: HttpUriPluginOptions;
