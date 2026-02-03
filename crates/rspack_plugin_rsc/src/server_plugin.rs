@@ -223,7 +223,7 @@ impl RscServerPlugin {
               compilation,
               client_entry_to_inject,
               component_info.should_inject_ssr_modules,
-              &mut *plugin_state,
+              &mut plugin_state,
             )
             .await
           else {

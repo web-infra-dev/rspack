@@ -555,12 +555,12 @@ async fn after_process_assets(
 
   let start = logger.time("create client reference manifest");
   self
-    .traverse_modules(compilation, &mut *plugin_state)
+    .traverse_modules(compilation, &mut plugin_state)
     .await?;
   logger.time_end(start);
 
   let start = logger.time("record entry js files");
-  collect_entry_js_files(compilation, &mut *plugin_state).await?;
+  collect_entry_js_files(compilation, &mut plugin_state).await?;
   logger.time_end(start);
 
   for (entry_name, client_entries) in self.client_entries_per_entry.borrow().iter() {
