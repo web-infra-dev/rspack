@@ -12,12 +12,12 @@ use std::{borrow::Cow, hash::Hash, sync::LazyLock};
 use regex::Regex;
 use rspack_collections::{DatabaseItem, UkeyMap};
 use rspack_core::{
-  ChunkUkey, Compilation, CompilerOptions, DEFAULT_DELIMITER, Module, ModuleIdentifier, SourceType,
-  incremental::Mutation,
+  BoxModule, ChunkUkey, Compilation, CompilerOptions, DEFAULT_DELIMITER, Module, ModuleIdentifier,
+  SourceType, incremental::Mutation,
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_hash::{RspackHash, RspackHashDigest};
-use rspack_util::identifier::make_paths_relative;
+use rspack_util::identifier::{make_paths_relative, request_to_id};
 use rustc_hash::FxHashSet;
 
 use super::MaxSizeSetting;
@@ -123,8 +123,6 @@ fn hash_filename(filename: &str, options: &CompilerOptions) -> String {
   let hash_digest: RspackHashDigest = filename_hash.digest(&options.output.hash_digest);
   hash_digest.rendered(8).to_string()
 }
-
-use rspack_util::identifier::request_to_id;
 
 fn get_too_small_types(
   size: &SplitChunkSizes,
@@ -255,21 +253,15 @@ fn get_key(module: &dyn Module, delimiter: &str, compilation: &Compilation) -> S
 
 fn deterministic_grouping_for_modules(
   compilation: &Compilation,
-  chunk: &ChunkUkey,
+  items: &[&BoxModule],
   allow_max_size: &SplitChunkSizes,
   min_size: &SplitChunkSizes,
   delimiter: &str,
 ) -> Vec<Group> {
   let mut results: Vec<Group> = Default::default();
-  let module_graph = compilation.get_module_graph();
-
-  let items = compilation
-    .build_chunk_graph_artifact
-    .chunk_graph
-    .get_chunk_modules(chunk, module_graph);
 
   let mut nodes = items
-    .into_iter()
+    .iter()
     .map(|module| {
       let module: &dyn Module = module.as_ref();
 
@@ -475,258 +467,107 @@ impl SplitChunksPlugin {
   pub(super) async fn ensure_max_size_fit(
     &self,
     compilation: &mut Compilation,
-    max_size_setting_map: &UkeyMap<ChunkUkey, MaxSizeSetting>,
+    chunk_to_max_size: &UkeyMap<ChunkUkey, MaxSizeSetting>,
   ) -> Result<()> {
-    let fallback_cache_group = &self.fallback_cache_group;
-    let chunk_group_db = &compilation.build_chunk_graph_artifact.chunk_group_by_ukey;
-    let compilation_ref = &*compilation;
+    let mut chunk_with_max_size: Vec<ChunkWithSizeInfo> = Default::default();
 
-    let chunks_with_size_info_results = rspack_futures::scope::<_, Result<_>>(|token| {
-      compilation_ref
-        .build_chunk_graph_artifact
-        .chunk_by_ukey
-        .values()
-        .for_each(|chunk| {
-        let s = unsafe {
-          token.used((
-            &*compilation,
-            chunk,
-            fallback_cache_group,
-            chunk_group_db,
-            &max_size_setting_map,
-          ))
-        };
-        s.spawn(
-          move |(
-            compilation,
-            chunk,
-            fallback_cache_group,
-            chunk_group_db,
-            max_size_setting_map,
-          )| async move {
-            let max_size_setting = max_size_setting_map.get(&chunk.ukey());
-            tracing::trace!(
-              "max_size_setting : {max_size_setting:#?} for {:?}",
-              chunk.ukey()
-            );
-
-            if max_size_setting.is_none()
-              && !(if fallback_cache_group.chunks_filter.is_func() {
-              fallback_cache_group.chunks_filter.test_func(&chunk.ukey(), compilation).await?
-            } else {
-              fallback_cache_group.chunks_filter.test_internal(&chunk.ukey(), compilation)
-            })
-            {
-              tracing::debug!("Chunk({:?}) skips `maxSize` checking. Reason: max_size_setting.is_none() and chunks_filter is false", chunk.chunk_reason());
-              return Ok(None);
-            }
-
-            let min_size = max_size_setting
-              .map_or(&fallback_cache_group.min_size, |s| &s.min_size);
-            let max_async_size = max_size_setting
-              .map_or(&fallback_cache_group.max_async_size, |s| &s.max_async_size);
-            let max_initial_size: &SplitChunkSizes = max_size_setting
-              .map_or(&fallback_cache_group.max_initial_size, |s| &s.max_initial_size);
-            let automatic_name_delimiter = max_size_setting
-              .map_or(&fallback_cache_group.automatic_name_delimiter, |s| &s.automatic_name_delimiter);
-
-            let mut allow_max_size = if chunk.is_only_initial(chunk_group_db) {
-              Cow::Borrowed(max_initial_size)
-            } else if chunk.can_be_initial(chunk_group_db) {
-              let mut sizes = SplitChunkSizes::empty();
-              sizes.combine_with(max_async_size, &f64::min);
-              sizes.combine_with(max_initial_size, &f64::min);
-              Cow::Owned(sizes)
-            } else {
-              Cow::Borrowed(max_async_size)
-            };
-
-            // Fast path
-            if allow_max_size.is_empty() {
-              tracing::debug!(
-                "Chunk({:?}) skips the `maxSize` checking. Reason: allow_max_size is empty",
-                chunk.chunk_reason()
-              );
-              return Ok(None);
-            }
-
-            let mut is_invalid = false;
-            allow_max_size.iter().for_each(|(ty, ty_max_size)| {
-              if let Some(ty_min_size) = min_size.get(ty)
-                && ty_min_size > ty_max_size {
-                  is_invalid = true;
-                  tracing::warn!(
-                    "minSize({}) should not be bigger than maxSize({})",
-                    ty_min_size,
-                    ty_max_size
-                  );
-                }
-            });
-            if is_invalid {
-              allow_max_size.to_mut().combine_with(min_size, &f64::max);
-            }
-
-            Ok(Some(ChunkWithSizeInfo {
-              allow_max_size: allow_max_size.into_owned(),
-              min_size: min_size.clone(),
-              chunk: chunk.ukey(),
-              automatic_name_delimiter: automatic_name_delimiter.clone(),
-            }))
-          },
-        );
+    chunk_to_max_core(chunk_to_max_size, &mut |chunk, info| {
+      chunk_with_max_size.push(ChunkWithSizeInfo {
+        chunk,
+        allow_max_size: info.max_initial_size.clone(),
+        min_size: info.min_size.clone(),
+        automatic_name_delimiter: info.automatic_name_delimiter.clone(),
       });
-    })
-    .await
-    .into_iter()
-    .map(|r| r.to_rspack_result())
-    .collect::<Result<Vec<_>>>()?;
+      chunk_with_max_size.push(ChunkWithSizeInfo {
+        chunk,
+        allow_max_size: info.max_async_size.clone(),
+        min_size: info.min_size.clone(),
+        automatic_name_delimiter: info.automatic_name_delimiter.clone(),
+      });
+    });
 
-    let mut chunks_with_size_info = vec![];
+    chunk_with_max_size.retain(|info| {
+      !info.allow_max_size.is_empty() && info.allow_max_size.non_zero_values().next().is_some()
+    });
 
-    for result in chunks_with_size_info_results {
-      if let Some(info) = result? {
-        chunks_with_size_info.push(info);
-      }
+    if chunk_with_max_size.is_empty() {
+      return Ok(());
     }
 
-    let infos_with_results = chunks_with_size_info
+    let mut chunk_with_max_size = chunk_with_max_size
       .into_iter()
-      .filter_map(|info| {
-        let ChunkWithSizeInfo {
-          chunk,
-          allow_max_size,
-          min_size,
-          automatic_name_delimiter,
-        } = &info;
-        let results = deterministic_grouping_for_modules(
-          compilation_ref,
-          chunk,
-          allow_max_size,
-          min_size,
-          automatic_name_delimiter,
-        );
-
-        if results.len() <= 1 {
-          tracing::debug!(
-            "Chunk({chunk:?}) skips the `maxSize` checking. Reason: results.len({:?}) <= 1",
-            results.len(),
-          );
-          return None;
-        }
-
-        Some((info, results))
+      .map(|info| {
+        let chunk = compilation.chunk_by_ukey.expect_get(&info.chunk);
+        let is_initial = chunk.can_be_initial(&compilation.chunk_group_by_ukey);
+        (info, chunk, is_initial)
       })
       .collect::<Vec<_>>();
 
-    infos_with_results.into_iter().for_each(|(info, results)| {
-      let last_index = results.len() - 1;
-      results.into_iter().enumerate().for_each(|(index, group)| {
-        let group_key = if let Some(key) = group.key {
-          if self.hide_path_info {
-            hash_filename(&key, &compilation.options)
-          } else {
-            key
-          }
-        } else {
-          index.to_string()
-        };
-        let chunk = compilation
-          .build_chunk_graph_artifact
-          .chunk_by_ukey
-          .expect_get_mut(&info.chunk);
-        let delimiter = max_size_setting_map
-          .get(&chunk.ukey())
-          .map_or(DEFAULT_DELIMITER, |s| s.automatic_name_delimiter.as_str());
-        let mut name = chunk
-          .name()
-          .map(|name| format!("{name}{delimiter}{group_key}"));
+    chunk_with_max_size.sort_unstable_by(|a, b| a.0.chunk.cmp(&b.0.chunk));
 
-        if let Some(n) = name.clone()
-          && n.len() > 100
-        {
-          let s = &n[0..100];
-          let k = hash_filename(&n, &compilation.options);
-          name = Some(format!("{s}{delimiter}{k}"));
+    for (info, chunk, is_initial) in chunk_with_max_size.into_iter() {
+      let Some(max_size_info) = info.allow_max_size.max_size(is_initial) else {
+        continue;
+      };
+
+      let groups = deterministic_grouping_for_modules(
+        compilation,
+        &chunk.get_modules(&compilation.chunk_graph),
+        max_size_info,
+        &info.min_size,
+        &info.automatic_name_delimiter,
+      );
+
+      chunk_with_max_core(chunk_to_max_size, &mut |chunk, max_size_setting| {
+        let chunk = compilation.chunk_by_ukey.expect_get(&chunk);
+        chunk.set_max_size(Some(max_size_setting.max_initial_size.clone()));
+        chunk.set_max_async_size(Some(max_size_setting.max_async_size.clone()));
+      });
+
+      if groups.len() == 1 {
+        continue;
+      }
+
+      let new_chunk_ids = groups
+        .into_iter()
+        .filter_map(|group| {
+          let chunk_modules = chunk.get_modules(&compilation.chunk_graph);
+          let items = chunk_modules
+            .iter()
+            .filter(|module| group.nodes.iter().any(|n| &n.module == module.identifier()))
+            .cloned()
+            .collect::<Vec<_>>();
+
+          if items.is_empty() {
+            return None;
+          }
+
+          let first_node = group.nodes.into_iter().next().expect("should have at least one node");
+          let key = group.key.unwrap_or(first_node.key);
+
+          Some((items, key))
+        })
+        .collect::<Vec<_>>();
+
+      if new_chunk_ids.is_empty() {
+        continue;
+      }
+
+      for (modules, key) in new_chunk_ids {
+        let (chunk_ukey, created) = chunk.create_detached_chunk(&mut compilation.chunk_by_ukey);
+        if created && let Some(mut mutations) = compilation.incremental.mutations_write() {
+          mutations.add(Mutation::ChunkDetached { chunk: chunk_ukey });
         }
+        let chunk = compilation.chunk_by_ukey.expect_get_mut(&chunk_ukey);
+        chunk.add_group_parent(&info.chunk, &mut compilation.chunk_group_by_ukey);
+        chunk.set_name(Some(key));
+        chunk.set_filename_template(Some(info.automatic_name_delimiter.clone()));
+        chunk.set_max_size(Some(info.allow_max_size.clone()));
+        chunk.connect_modules(modules, &mut compilation.chunk_graph);
+      }
+    }
 
-        if index != last_index {
-          let old_chunk = chunk.ukey();
-          let new_chunk_ukey = if let Some(name) = name {
-            let (new_chunk_ukey, created) = Compilation::add_named_chunk(
-              name,
-              &mut compilation.build_chunk_graph_artifact.chunk_by_ukey,
-              &mut compilation.build_chunk_graph_artifact.named_chunks,
-            );
-            if created && let Some(mut mutations) = compilation.incremental.mutations_write() {
-              mutations.add(Mutation::ChunkAdd {
-                chunk: new_chunk_ukey,
-              });
-            }
-            new_chunk_ukey
-          } else {
-            let new_chunk_ukey =
-              Compilation::add_chunk(&mut compilation.build_chunk_graph_artifact.chunk_by_ukey);
-            if let Some(mut mutations) = compilation.incremental.mutations_write() {
-              mutations.add(Mutation::ChunkAdd {
-                chunk: new_chunk_ukey,
-              });
-            }
-            new_chunk_ukey
-          };
-
-          let [Some(new_part), Some(chunk)] = compilation
-            .build_chunk_graph_artifact
-            .chunk_by_ukey
-            .get_many_mut([&new_chunk_ukey, &old_chunk])
-          else {
-            panic!("split_from_original_chunks failed")
-          };
-          let new_part_ukey = new_part.ukey();
-          chunk.split(
-            new_part,
-            &mut compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
-          );
-          *new_part.chunk_reason_mut() = chunk.chunk_reason().map(ToString::to_string);
-          if chunk.filename_template().is_some() {
-            new_part.set_filename_template(chunk.filename_template().cloned());
-          }
-          if let Some(mut mutations) = compilation.incremental.mutations_write() {
-            mutations.add(Mutation::ChunkSplit {
-              from: old_chunk,
-              to: new_chunk_ukey,
-            });
-          }
-
-          group.nodes.iter().for_each(|module| {
-            compilation
-              .build_chunk_graph_artifact
-              .chunk_graph
-              .add_chunk(new_part_ukey);
-
-            if let Some(module) = compilation.module_by_identifier(&module.module)
-              && module
-                .chunk_condition(&new_part_ukey, compilation)
-                .is_some_and(|condition| !condition)
-            {
-              return;
-            }
-
-            // Add module to new chunk
-            compilation
-              .build_chunk_graph_artifact
-              .chunk_graph
-              .connect_chunk_and_module(new_part_ukey, module.module);
-            // Remove module from used chunks
-            compilation
-              .build_chunk_graph_artifact
-              .chunk_graph
-              .disconnect_chunk_and_module(&old_chunk, module.module)
-          })
-        } else {
-          chunk.set_name(name);
-        }
-      })
-    });
     Ok(())
   }
 }
+

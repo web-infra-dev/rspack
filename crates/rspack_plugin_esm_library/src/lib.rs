@@ -7,5 +7,6 @@ mod plugin;
 mod preserve_modules;
 mod render;
 mod runtime;
-
+mod split_chunks;
 pub use plugin::EsmLibraryPlugin;
+pub use split_chunks::{GetNameGetter, ModuleFilter, ModuleTypeFilter};

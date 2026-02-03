@@ -1,0 +1,19 @@
+LOG from LogTestPlugin
+<-> Group
+  <i> Info
+      Log
+  <+> Collapsed group
+      Log
+    End
++ 6 hidden lines
+
+LOG from rspack.SideEffectsFlagPlugin
+    optimized 0 connections
+
+LOG from rspack.buildChunkGraph
+    2 queue items processed (1 blocks)
+    0 chunk groups connected
+    0 chunk groups processed for merging (0 module sets)
+    0 chunk group info updated (0 already connected chunk groups reconnected)
+
+Rspack x.x.x compiled successfully in X s

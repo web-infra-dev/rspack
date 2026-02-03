@@ -33,7 +33,7 @@ export class SplitChunksPlugin extends RspackBuiltinPlugin {
   }
 }
 
-function toRawSplitChunksOptions(
+export function toRawSplitChunksOptions(
   sc: false | OptimizationSplitChunksOptions,
   compiler: Compiler,
 ): RawSplitChunksOptions | undefined {
