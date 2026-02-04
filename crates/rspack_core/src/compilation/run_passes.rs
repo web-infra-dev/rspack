@@ -54,11 +54,16 @@ impl Compilation {
       Box::new(ProcessAssetsPass),
       Box::new(AfterSealPass),
     ];
-    self.module_static_cache.unfreeze();
+    if !self.options.mode.is_development() {
+      self.module_static_cache.unfreeze();
+    }
+    
     for pass in &passes {
       pass.run(self, cache).await?;
     }
-    self.module_static_cache.freeze();
+    if !self.options.mode.is_development() {
+      self.module_static_cache.unfreeze();
+    }
 
     // Add checkpoint after build module graph phase (special handling)
     if self
