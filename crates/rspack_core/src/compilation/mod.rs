@@ -12,7 +12,6 @@ mod create_module_hashes;
 mod finish_make;
 mod finish_module_graph;
 mod finish_modules;
-mod freeze_module_static_cache;
 mod make;
 mod module_ids;
 mod optimize_chunk_modules;
@@ -76,7 +75,7 @@ use crate::{
   DependencyTemplateType, DependencyType, DerefOption, Entry, EntryData, EntryOptions,
   EntryRuntime, Entrypoint, ExecuteModuleId, Filename, ImportPhase, ImportVarMap,
   ImportedByDeferModulesArtifact, MemoryGCStorage, ModuleFactory, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleIdentifier, ModuleIdsArtifact, ModuleStaticCacheArtifact,
+  ModuleGraphCacheArtifact, ModuleIdentifier, ModuleIdsArtifact, ModuleStaticCache,
   PathData, ProcessRuntimeRequirementsCacheArtifact, ResolverFactory, RuntimeGlobals,
   RuntimeKeyMap, RuntimeMode, RuntimeModule, RuntimeSpec, RuntimeSpecMap, RuntimeTemplate,
   SharedPluginDriver, SideEffectsOptimizeArtifact, SourceType, Stats, ValueCacheVersions,
@@ -248,8 +247,8 @@ pub struct Compilation {
   pub chunk_render_artifact: ChunkRenderArtifact,
   // artifact for caching get_mode
   pub module_graph_cache_artifact: ModuleGraphCacheArtifact,
-  // artifact for caching module static info
-  pub module_static_cache_artifact: ModuleStaticCacheArtifact,
+  // transient cache for module static info
+  pub module_static_cache: ModuleStaticCache,
   // artifact for chunk render cache
   pub chunk_render_cache_artifact: ChunkRenderCacheArtifact,
   // artifact for code generate cache
@@ -382,7 +381,7 @@ impl Compilation {
       chunk_hashes_artifact: Default::default(),
       chunk_render_artifact: Default::default(),
       module_graph_cache_artifact: Default::default(),
-      module_static_cache_artifact: Default::default(),
+      module_static_cache: Default::default(),
       code_generated_modules: Default::default(),
       chunk_render_cache_artifact: ChunkRenderCacheArtifact::new(MemoryGCStorage::new(
         match &options.cache {

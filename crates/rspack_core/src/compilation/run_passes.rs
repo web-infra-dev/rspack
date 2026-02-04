@@ -9,7 +9,6 @@ use super::{
   create_hash::CreateHashPass,
   create_module_assets::CreateModuleAssetsPass,
   create_module_hashes::CreateModuleHashesPass,
-  freeze_module_static_cache::{FreezeModuleStaticCachePass, UnfreezeModuleStaticCachePass},
   module_ids::ModuleIdsPass,
   optimize_chunk_modules::OptimizeChunkModulesPass,
   optimize_chunks::OptimizeChunksPass,
@@ -23,7 +22,7 @@ use super::{
   seal::SealPass,
   *,
 };
-use crate::{Compilation, SharedPluginDriver, cache::Cache, incremental::IncrementalPasses};
+use crate::{Compilation, SharedPluginDriver, cache::Cache, compilation, incremental::IncrementalPasses};
 
 impl Compilation {
   pub async fn run_passes(
@@ -34,8 +33,6 @@ impl Compilation {
     let passes: Vec<Box<dyn PassExt>> = vec![
       // Phase 1: Build Module Graph
       Box::new(BuildModuleGraphPhasePass),
-      // Freeze module static cache (if not development mode)
-      Box::new(FreezeModuleStaticCachePass),
       // Phase 2: Seal & Optimize
       Box::new(SealPass),
       Box::new(OptimizeDependenciesPass),
@@ -56,13 +53,12 @@ impl Compilation {
       Box::new(CreateChunkAssetsPass),
       Box::new(ProcessAssetsPass),
       Box::new(AfterSealPass),
-      // Unfreeze module static cache (if not development mode)
-      Box::new(UnfreezeModuleStaticCachePass),
     ];
-
+    self.module_static_cache.unfreeze();
     for pass in &passes {
       pass.run(self, cache).await?;
     }
+    self.module_static_cache.freeze();
 
     // Add checkpoint after build module graph phase (special handling)
     if self

@@ -2,11 +2,13 @@ use std::{fmt, sync::Arc};
 mod artifacts;
 mod binding;
 mod compilation;
+mod transient_cache;
 
 mod exports;
 mod value_cache_versions;
 pub use artifacts::*;
 pub use binding::*;
+pub use transient_cache::*;
 pub use compilation::{
   build_module_graph::{ExecuteModuleId, ForwardId, LazyUntil},
   *,

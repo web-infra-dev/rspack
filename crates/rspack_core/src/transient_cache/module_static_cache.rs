@@ -6,16 +6,16 @@ use std::sync::{
 use readable_identifier::*;
 use rustc_hash::FxHashMap as HashMap;
 
-pub type ModuleStaticCacheArtifact = Arc<ModuleStaticCacheArtifactInner>;
+pub type ModuleStaticCache = Arc<ModuleStaticCacheInner>;
 
 /// This cache is used to cache the information of modules that are not changed after `make`.
 #[derive(Debug, Default)]
-pub struct ModuleStaticCacheArtifactInner {
+pub struct ModuleStaticCacheInner {
   freezed: AtomicBool,
   readable_identifier_cache: ReadableIdentifierCache,
 }
 
-impl ModuleStaticCacheArtifactInner {
+impl ModuleStaticCacheInner {
   pub fn freeze(&self) {
     // Only cache the readable identifier of compilation context
     self.readable_identifier_cache.freeze();
