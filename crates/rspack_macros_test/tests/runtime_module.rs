@@ -1,6 +1,5 @@
 use std::marker::PhantomData;
 
-use rspack_collections::Identifier;
 use rspack_core::{Compilation, RuntimeModule, rspack_sources::Source};
 use rspack_macros::impl_runtime_module;
 
