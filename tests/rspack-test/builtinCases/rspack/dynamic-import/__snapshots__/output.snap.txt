@@ -36,11 +36,15 @@ const b = "b";
 var map = {
   "./a.js": [
     "./child/a.js",
-    "child_a_js"
+    [
+      "child_a_js"
+    ]
   ],
   "./b.js": [
     "./child/b.js",
-    "child_b_js"
+    [
+      "child_b_js"
+    ]
   ]
 };
 function __rspack_async_context(req) {
@@ -53,7 +57,7 @@ function __rspack_async_context(req) {
   }
 
   var ids = map[req], id = ids[0];
-  return __webpack_require__.e(ids[1]).then(function() {
+  return __webpack_require__.e(ids[1][0]).then(function() {
     return __webpack_require__(id);
   });
 }
