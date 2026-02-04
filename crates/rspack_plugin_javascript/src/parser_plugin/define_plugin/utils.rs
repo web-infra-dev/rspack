@@ -1,7 +1,9 @@
 use std::borrow::Cow;
 
 use itertools::Itertools as _;
-use rspack_core::{ConstDependency, RuntimeGlobals};
+use rspack_core::{
+  BoxDependencyTemplate, ConstDependency, RuntimeGlobals, RuntimeRequirementsDependency,
+};
 use serde_json::{Value, json};
 
 use crate::visitors::{DestructuringAssignmentProperties, JavascriptParser};
@@ -12,7 +14,7 @@ pub fn gen_const_dep(
   for_name: &str,
   start: u32,
   end: u32,
-) -> ConstDependency {
+) -> Vec<BoxDependencyTemplate> {
   let code = if parser.in_short_hand {
     format!("{for_name}: {code}")
   } else {
@@ -20,11 +22,17 @@ pub fn gen_const_dep(
   };
 
   let to_const_dep = |requirements: Option<RuntimeGlobals>| {
-    ConstDependency::new(
+    let mut res: Vec<BoxDependencyTemplate> = vec![];
+    res.push(Box::new(ConstDependency::new(
       (start, end).into(),
       code.clone().into_boxed_str(),
-      requirements,
-    )
+    )));
+    if let Some(requirements) = requirements {
+      res.push(Box::new(RuntimeRequirementsDependency::add_only(
+        requirements,
+      )));
+    }
+    res
   };
 
   if parser

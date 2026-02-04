@@ -33,7 +33,6 @@ impl JavascriptParserPlugin for ConstPlugin {
         parser.add_presentational_dependency(Box::new(ConstDependency::new(
           param.range().into(),
           format!(" {bool}").into(),
-          None,
         )));
       } else {
         parser.walk_expression(&expression.test);
@@ -42,13 +41,11 @@ impl JavascriptParserPlugin for ConstPlugin {
         parser.add_presentational_dependency(Box::new(ConstDependency::new(
           expression.alt.span().into(),
           "0".into(),
-          None,
         )));
       } else {
         parser.add_presentational_dependency(Box::new(ConstDependency::new(
           expression.cons.span().into(),
           "0".into(),
-          None,
         )));
       }
       Some(bool)

@@ -16,7 +16,6 @@ impl JavascriptParserPlugin for ESMTopLevelThisParserPlugin {
       parser.add_presentational_dependency(Box::new(ConstDependency::new(
         expr.span.into(),
         "undefined".into(),
-        None,
       )));
       true
     })

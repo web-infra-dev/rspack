@@ -32,11 +32,7 @@ fn expression_not_supported(
   error.hide_stack = Some(true);
   (
     error,
-    Box::new(ConstDependency::new(
-      expr_span.into(),
-      "(void 0)".into(),
-      None,
-    )),
+    Box::new(ConstDependency::new(expr_span.into(), "(void 0)".into())),
   )
 }
 
@@ -151,7 +147,6 @@ impl JavascriptParserPlugin for APIPlugin {
           serde_json::to_string(&parser.module_layer)
             .expect("should stringify JSON")
             .into(),
-          None,
         )));
         Some(true)
       }
@@ -201,7 +196,6 @@ impl JavascriptParserPlugin for APIPlugin {
         parser.add_presentational_dependency(Box::new(ConstDependency::new(
           ident.span.into(),
           content,
-          None,
         )));
         Some(true)
       }

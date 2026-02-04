@@ -464,7 +464,6 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
           serde_json::to_string(&dirname)
             .expect("should render dirname")
             .into(),
-          None,
         )));
         return Some(true);
       }
@@ -519,7 +518,6 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
           serde_json::to_string(&filename)
             .expect("should render filename")
             .into(),
-          None,
         )));
         return Some(true);
       }
@@ -647,7 +645,6 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
     parser.add_presentational_dependency(Box::new(ConstDependency::new(
       unary_expr.span().into(),
       "'string'".into(),
-      None,
     )));
     Some(true)
   }
@@ -808,7 +805,6 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
     parser.add_presentational_dependency(Box::new(ConstDependency::new(
       member_expr.span().into(),
       replacement.into(),
-      None,
     )));
     Some(true)
   }

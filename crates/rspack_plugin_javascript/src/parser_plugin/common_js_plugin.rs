@@ -40,7 +40,6 @@ impl JavascriptParserPlugin for CommonJsPlugin {
       parser.add_presentational_dependency(Box::new(ConstDependency::new(
         expr.span.into(),
         "'object'".into(),
-        None,
       )));
       Some(true)
     } else {

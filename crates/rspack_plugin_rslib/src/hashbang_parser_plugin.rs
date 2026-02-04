@@ -36,7 +36,6 @@ impl JavascriptParserPlugin for HashbangParserPlugin {
     parser.add_presentational_dependency(Box::new(ConstDependency::new(
       (0, replace_len).into(),
       "".into(),
-      None,
     )));
 
     None

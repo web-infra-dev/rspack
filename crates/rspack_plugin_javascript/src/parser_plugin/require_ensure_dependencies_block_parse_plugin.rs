@@ -46,7 +46,6 @@ impl JavascriptParserPlugin for RequireEnsureDependenciesBlockParserPlugin {
       parser.add_presentational_dependency(Box::new(ConstDependency::new(
         expr.span().into(),
         "'function'".into(),
-        None,
       )));
       true
     })

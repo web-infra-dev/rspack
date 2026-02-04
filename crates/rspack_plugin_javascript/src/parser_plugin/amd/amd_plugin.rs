@@ -29,7 +29,6 @@ impl JavascriptParserPlugin for AMDParserPlugin {
       parser.add_presentational_dependency(Box::new(ConstDependency::new(
         call_expr.span.into(),
         "undefined".into(),
-        None,
       )));
       return Some(true);
     }
@@ -46,7 +45,6 @@ impl JavascriptParserPlugin for AMDParserPlugin {
       parser.add_presentational_dependency(Box::new(ConstDependency::new(
         expr.span.into(),
         "\"0.0.0\"".into(),
-        None,
       )));
       return Some(true);
     }
@@ -84,7 +82,6 @@ impl JavascriptParserPlugin for AMDParserPlugin {
       parser.add_presentational_dependency(Box::new(ConstDependency::new(
         expr.span.into(),
         "\"function\"".into(),
-        None,
       )));
       return Some(true);
     }
@@ -93,7 +90,6 @@ impl JavascriptParserPlugin for AMDParserPlugin {
       parser.add_presentational_dependency(Box::new(ConstDependency::new(
         expr.span.into(),
         "\"object\"".into(),
-        None,
       )));
       return Some(true);
     }
