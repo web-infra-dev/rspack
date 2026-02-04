@@ -22,19 +22,19 @@ module.exports = {
       apply(compiler) {
         let shouldRebuildFile = true;
         if (index == 0) {
-          compiler.options.cache.readonly == false;
+          compiler.options.cache.readonly = false;
           shouldRebuildFile = true;
         } else if (index == 1) {
-          compiler.options.cache.readonly == true;
+          compiler.options.cache.readonly = true;
           shouldRebuildFile = true;
         } else if (index == 2) {
-          compiler.options.cache.readonly == true;
+          compiler.options.cache.readonly = true;
           shouldRebuildFile = false;
         } else if (index == 3) {
-          compiler.options.cache.readonly == false;
+          compiler.options.cache.readonly = false;
           shouldRebuildFile = true;
         } else if (index == 4) {
-          compiler.options.cache.readonly == true;
+          compiler.options.cache.readonly = true;
           shouldRebuildFile = false;
         }
 
