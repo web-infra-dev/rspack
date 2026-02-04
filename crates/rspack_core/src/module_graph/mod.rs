@@ -96,7 +96,7 @@ pub(crate) struct ModuleGraphData {
   connections: rollback::OverlayMap<DependencyId, ModuleGraphConnection>,
   // ExportsInfoData indexed by ExportsInfo id
   // modified here https://github.com/web-infra-dev/rspack/blob/9ae2f0f3be22370197cd9ed3308982f84f2bb738/crates/rspack_plugin_javascript/src/plugin/side_effects_flag_plugin.rs#L332
-  exports_info_map: rollback::OverlayMap<ExportsInfo, ExportsInfoData>,
+  pub exports_info_map: HashMap<ExportsInfo, ExportsInfoData>,
 
   /***************** only Modified during Seal Phase ********************/
   // setting here https://github.com/web-infra-dev/rspack/blob/9ae2f0f3be22370197cd9ed3308982f84f2bb738/crates/rspack_plugin_javascript/src/plugin/side_effects_flag_plugin.rs#L318
@@ -107,8 +107,7 @@ impl ModuleGraphData {
     self.modules.checkpoint();
     self.module_graph_modules.checkpoint();
     self.connections.checkpoint();
-
-    self.exports_info_map.checkpoint();
+    dbg!(&self.exports_info_map);
 
     // exports_info_map and dep_meta_map are not used for build_module_graph
   }
@@ -117,7 +116,7 @@ impl ModuleGraphData {
     self.modules.reset();
     self.module_graph_modules.reset();
     self.connections.reset();
-    self.exports_info_map.reset();
+    self.exports_info_map.clear();
     // reset data to save memory
     self.dep_meta_map.clear();
   }
@@ -125,7 +124,7 @@ impl ModuleGraphData {
 
 #[derive(Debug, Default)]
 pub struct ModuleGraph {
-  pub(super) inner: ModuleGraphData,
+  pub inner: ModuleGraphData,
 }
 impl ModuleGraph {
   // checkpoint
