@@ -89,11 +89,11 @@ const run = async (
   args: string[] = [],
   options = {},
   env = {},
-  ignoreKilled = true,
+  diagnoseKilledProcess = false,
 ) => {
   const result = await createProcess(cwd, args, options, env);
 
-  if (!ignoreKilled && result.exitCode === undefined && result.signal) {
+  if (diagnoseKilledProcess && result.exitCode === undefined && result.signal) {
     console.error('🔍 DIAGNOSIS: Process was killed by signal', args.join(' '));
 
     if (result.stdout) {
