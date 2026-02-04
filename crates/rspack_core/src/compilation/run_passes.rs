@@ -53,7 +53,7 @@ impl Compilation {
       pass.run(self, cache).await?;
     }
     if !self.options.mode.is_development() {
-      self.module_static_cache.unfreeze();
+      self.module_static_cache.freeze();
     }
 
     Ok(())
