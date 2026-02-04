@@ -107,7 +107,10 @@ impl TryFrom<RawResolveOptions> for Resolve {
 
   fn try_from(value: RawResolveOptions) -> Result<Self, Self::Error> {
     let pnp = value.pnp;
-    let pnp_manifest = value.pnp_manifest;
+    let pnp_manifest = value.pnp_manifest.map(|m| match m {
+        Either::A(p) => rspack_core::PnpManifest::Path(p.into()),
+        Either::B(_) => rspack_core::PnpManifest::Disabled,
+      });
     let prefer_relative = value.prefer_relative;
     let prefer_absolute = value.prefer_absolute;
     let extensions = value.extensions;
@@ -177,10 +180,7 @@ impl TryFrom<RawResolveOptions> for Resolve {
       description_files,
       imports_fields,
       pnp,
-      pnp_manifest: pnp_manifest.map(|m| match m {
-        Either::A(p) => rspack_core::PnpManifest::Path(p.into()),
-        Either::B(_) => rspack_core::PnpManifest::Disabled,
-      }),
+      pnp_manifest,
       builtin_modules: false,
     })
   }
@@ -258,6 +258,12 @@ pub fn normalize_raw_resolve_options_with_dependency_type(
         Some(config) => Some(TsconfigOptions::try_from(config)?),
         None => None,
       };
+
+      let pnp_manifest = raw.pnp_manifest.map(|m| match m {
+          Either::A(p) => rspack_core::PnpManifest::Path(p.into()),
+          Either::B(_) => rspack_core::PnpManifest::Disabled,
+        });
+
       let exports_fields = raw
         .exports_fields
         .map(|v| v.into_iter().map(|s| vec![s]).collect());
@@ -302,10 +308,7 @@ pub fn normalize_raw_resolve_options_with_dependency_type(
         condition_names: raw.condition_names,
         tsconfig,
         pnp: raw.pnp,
-        pnp_manifest: raw.pnp_manifest.map(|m| match m {
-          Either::A(p) => rspack_core::PnpManifest::Path(p.into()),
-          Either::B(_) => rspack_core::PnpManifest::Disabled,
-        }),
+        pnp_manifest,
         modules: raw.modules,
         fallback: normalize_alias(raw.fallback)?,
         fully_specified: raw.fully_specified,
