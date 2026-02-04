@@ -375,44 +375,6 @@ impl ChunkLinkContext {
     }
   }
 
-  pub fn add_re_export_from_request(
-    &mut self,
-    request: String,
-    imported_name: Atom,
-    export_name: Atom,
-  ) {
-    self.exported_symbols.insert(export_name.clone());
-
-    self
-      .re_exports
-      .entry(ReExportFrom::Request(request))
-      .or_default()
-      .entry(imported_name)
-      .or_default()
-      .insert(export_name);
-  }
-
-  pub fn add_re_export(&mut self, chunk: ChunkUkey, local_name: Atom, export_name: Atom) -> &Atom {
-    let export_name = if self.exported_symbols.insert(export_name.clone()) {
-      export_name
-    } else {
-      let new_name = find_new_name(&local_name, &self.used_names, &vec![]);
-      self.used_names.insert(new_name.clone());
-      self.exported_symbols.insert(new_name.clone());
-      new_name
-    };
-
-    let set = self
-      .re_exports
-      .entry(ReExportFrom::Chunk(chunk))
-      .or_default()
-      .entry(local_name)
-      .or_default();
-
-    set.insert(export_name.clone());
-    set.get(&export_name).expect("should have inserted")
-  }
-
   pub fn exports(&self) -> &FxHashMap<Atom, FxIndexSet<Atom>> {
     &self.exports
   }
@@ -423,5 +385,11 @@ impl ChunkLinkContext {
 
   pub fn re_exports(&self) -> &FxIndexMap<ReExportFrom, FxHashMap<Atom, FxHashSet<Atom>>> {
     &self.re_exports
+  }
+
+  pub fn re_exports_mut(
+    &mut self,
+  ) -> &mut FxIndexMap<ReExportFrom, FxHashMap<Atom, FxHashSet<Atom>>> {
+    &mut self.re_exports
   }
 }
