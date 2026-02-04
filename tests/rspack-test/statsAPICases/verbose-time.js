@@ -40,6 +40,7 @@ module.exports = {
 			<t> create module assets: X ms
 			<t> create chunk assets: X ms
 			<t> process assets: X ms
+			<t> after process assets: X ms
 			<t> after seal: X ms
 
 			LOG from rspack.Compiler

@@ -1,13 +1,13 @@
 use async_trait::async_trait;
 use rspack_error::Result;
 
+use super::build_module_graph_pass;
 use crate::{
   Compilation,
   cache::Cache,
   compilation::{
-    build_module_graph::build_module_graph_pass, finish_make::finish_make_pass,
-    finish_module_graph::finish_module_graph_pass, finish_modules::finish_modules_pass,
-    make::make_hook_pass, pass::PassExt,
+    finish_make::finish_make_pass, finish_module_graph::finish_module_graph_pass,
+    finish_modules::finish_modules_pass, make::make_hook_pass, pass::PassExt,
   },
 };
 
@@ -61,7 +61,7 @@ impl PassExt for BuildModuleGraphPhasePass {
 
     // Sub-phase: finish module graph
     finish_module_graph_pass(compilation).await?;
-
+    // FIXME: this is a workaround and after we move exports_info from module graph we can move finish_modules into separate pass
     // Sub-phase: finish_modules (with inline cache handling)
     cache.before_finish_modules(compilation).await;
     finish_modules_pass(compilation).await?;

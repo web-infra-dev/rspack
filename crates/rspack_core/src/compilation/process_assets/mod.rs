@@ -13,9 +13,7 @@ impl PassExt for ProcessAssetsPass {
 
   async fn run_pass(&self, compilation: &mut Compilation) -> Result<()> {
     let plugin_driver = compilation.plugin_driver.clone();
-    compilation.process_assets(plugin_driver.clone()).await?;
-    compilation.after_process_assets(plugin_driver).await?;
-    Ok(())
+    compilation.process_assets(plugin_driver).await
   }
 }
 
@@ -28,19 +26,5 @@ impl Compilation {
       .call(self)
       .await
       .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.processAssets"))
-  }
-
-  #[instrument("Compilation:after_process_assets", skip_all)]
-  async fn after_process_assets(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
-    let mut diagnostics: Vec<Diagnostic> = vec![];
-
-    let res = plugin_driver
-      .compilation_hooks
-      .after_process_assets
-      .call(self, &mut diagnostics)
-      .await;
-
-    self.extend_diagnostics(diagnostics);
-    res
   }
 }

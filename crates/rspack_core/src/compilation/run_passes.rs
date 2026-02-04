@@ -1,7 +1,7 @@
 use super::{
-  after_seal::AfterSealPass, assign_runtime_ids::AssignRuntimeIdsPass,
-  build_chunk_graph::pass::BuildChunkGraphPass,
-  build_module_graph_phase_pass::BuildModuleGraphPhasePass, chunk_ids::ChunkIdsPass,
+  after_process_assets::AfterProcessAssetsPass, after_seal::AfterSealPass,
+  assign_runtime_ids::AssignRuntimeIdsPass, build_chunk_graph::pass::BuildChunkGraphPass,
+  build_module_graph::pass::BuildModuleGraphPhasePass, chunk_ids::ChunkIdsPass,
   code_generation::CodeGenerationPass, create_chunk_assets::CreateChunkAssetsPass,
   create_hash::CreateHashPass, create_module_assets::CreateModuleAssetsPass,
   create_module_hashes::CreateModuleHashesPass, module_ids::ModuleIdsPass,
@@ -11,9 +11,7 @@ use super::{
   optimize_tree::OptimizeTreePass, pass::PassExt, process_assets::ProcessAssetsPass,
   runtime_requirements::RuntimeRequirementsPass, seal::SealPass, *,
 };
-use crate::{
-  Compilation, SharedPluginDriver, cache::Cache,
-};
+use crate::{Compilation, SharedPluginDriver, cache::Cache};
 
 impl Compilation {
   pub async fn run_passes(
@@ -43,6 +41,7 @@ impl Compilation {
       Box::new(CreateModuleAssetsPass),
       Box::new(CreateChunkAssetsPass),
       Box::new(ProcessAssetsPass),
+      Box::new(AfterProcessAssetsPass),
       Box::new(AfterSealPass),
     ];
     if !self.options.mode.is_development() {

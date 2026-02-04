@@ -1,8 +1,8 @@
+mod after_process_assets;
 mod after_seal;
 mod assign_runtime_ids;
 pub mod build_chunk_graph;
 pub mod build_module_graph;
-mod build_module_graph_phase_pass;
 mod chunk_ids;
 mod code_generation;
 mod create_chunk_assets;

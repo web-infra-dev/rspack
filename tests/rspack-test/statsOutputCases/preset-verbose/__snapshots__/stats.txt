@@ -67,6 +67,7 @@ LOG from rspack.Compilation
 <t> create module assets: xx ms
 <t> create chunk assets: xx ms
 <t> process assets: xx ms
+<t> after process assets: xx ms
 <t> after seal: xx ms
 
 LOG from rspack.Compiler
