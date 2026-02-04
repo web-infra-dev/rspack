@@ -1,4 +1,4 @@
-use std::{collections::BTreeMap, hash::Hash, sync::atomic::Ordering::Relaxed};
+use std::{collections::BTreeMap, hash::Hash, sync::atomic::Ordering::Relaxed, u32};
 
 use rspack_cacheable::cacheable;
 use rspack_collections::{Ukey, impl_item_ukey};
@@ -19,7 +19,9 @@ impl ExportsInfo {
   pub fn new() -> Self {
     Self(NEXT_EXPORTS_INFO_UKEY.fetch_add(1, Relaxed).into())
   }
-
+  pub fn uninit() -> Self {
+    Self(Ukey::new(u32::MAX))
+  }
   pub fn as_data<'a>(&self, mg: &'a ModuleGraph) -> &'a ExportsInfoData {
     mg.get_exports_info_by_id(self)
   }

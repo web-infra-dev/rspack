@@ -12,7 +12,7 @@ use super::{
   optimize_tree::optimize_tree_pass, process_assets::process_assets_pass,
   runtime_requirements::runtime_requirements_pass, seal::seal_pass, *,
 };
-use crate::{Compilation, SharedPluginDriver, cache::Cache};
+use crate::{Compilation, ExportsInfoData, SharedPluginDriver, cache::Cache};
 
 impl Compilation {
   pub async fn run_passes(
@@ -40,6 +40,25 @@ impl Compilation {
       self.build_module_graph_artifact.module_graph.checkpoint();
     }
     // #endregion Build Module Graph First Pass Finished here and will be use to recover for next compilation
+    
+    // bind_exports info to module_graph_module
+    let modules = self.build_module_graph_artifact.get_module_graph().modules().keys().copied().collect::<Vec<_>>();
+    for module_id in modules {
+      let exports_info = ExportsInfoData::default();
+      let id = exports_info.id();
+      {
+          self
+          .build_module_graph_artifact
+          .get_module_graph_mut().set_exports_info(id, exports_info);
+      }
+      
+      let mgm =  self
+          .build_module_graph_artifact
+          .get_module_graph_mut().module_graph_module_by_identifier_mut(&module_id);  
+      mgm.exports = id;
+    }
+    
+    
 
     // FINISH_MODULES pass
     cache.before_finish_modules(self).await;

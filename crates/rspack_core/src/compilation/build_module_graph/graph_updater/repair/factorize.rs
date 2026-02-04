@@ -5,14 +5,10 @@ use rspack_sources::BoxSource;
 
 use super::{TaskContext, add::AddTask};
 use crate::{
-  BoxDependency, CompilationId, CompilerId, CompilerOptions, Context, ExportsInfoData,
-  FactorizeInfo, ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier,
-  ModuleLayer, Resolve, ResolverFactory,
-  module_graph::ModuleGraphModule,
-  utils::{
+  BoxDependency, CompilationId, CompilerId, CompilerOptions, Context, ExportsInfo, ExportsInfoData, FactorizeInfo, ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, ModuleLayer, Resolve, ResolverFactory, module_graph::ModuleGraphModule, utils::{
     ResourceId,
     task_loop::{Task, TaskResult, TaskType},
-  },
+  }
 };
 
 #[derive(Debug)]
@@ -120,12 +116,10 @@ impl Task<TaskContext> for FactorizeTask {
       create_data.context_dependencies,
       create_data.missing_dependencies,
     );
-    let exports_info = ExportsInfoData::default();
     Ok(vec![Box::new(FactorizeResultTask {
       original_module_identifier: self.original_module_identifier,
       factory_result,
       dependencies: create_data.dependencies,
-      exports_info_related: exports_info,
       factorize_info,
       from_unlazy: self.from_unlazy,
     })])
@@ -139,7 +133,6 @@ pub struct FactorizeResultTask {
   /// Result will be available if [crate::ModuleFactory::create] returns `Ok`.
   pub factory_result: Option<ModuleFactoryResult>,
   pub dependencies: Vec<BoxDependency>,
-  pub exports_info_related: ExportsInfoData,
   pub factorize_info: FactorizeInfo,
   pub from_unlazy: bool,
 }
@@ -154,7 +147,6 @@ impl Task<TaskContext> for FactorizeResultTask {
       original_module_identifier,
       factory_result,
       mut dependencies,
-      exports_info_related,
       mut factorize_info,
       from_unlazy,
     } = *self;
@@ -213,10 +205,9 @@ impl Task<TaskContext> for FactorizeResultTask {
       return Ok(vec![]);
     };
     let module_identifier = module.identifier();
-    let mut mgm = ModuleGraphModule::new(module.identifier(), exports_info_related.id());
+    let mut mgm = ModuleGraphModule::new(module.identifier(), ExportsInfo::uninit());
     mgm.set_issuer_if_unset(original_module_identifier);
 
-    module_graph.set_exports_info(exports_info_related.id(), exports_info_related);
     tracing::trace!("Module created: {}", &module_identifier);
 
     Ok(vec![Box::new(AddTask {

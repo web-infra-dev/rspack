@@ -9,4 +9,7 @@ export default defineConfig({
   output: {
     path: path.resolve(import.meta.dirname, 'dist'),
   },
+  cache: {
+    type: 'persistent',
+  },
 });
