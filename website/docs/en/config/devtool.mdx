@@ -14,7 +14,7 @@ Use the [SourceMapDevToolPlugin](/plugins/webpack/source-map-dev-tool-plugin) or
 type Devtool = 'string' | false;
 ```
 
-- **Default:** `cheap-module-source-map` in development mode and `source-map` in production mode
+- **Default:** `cheap-module-source-map` in development mode and `false` in production mode
 
 ## Configuration guide
 
@@ -69,13 +69,9 @@ We expect a certain pattern when validate devtool name, pay attention and don't 
 
 The following options are ideal for development:
 
-`eval` - Each module is executed with `eval()` and `//# sourceURL`. This is pretty fast. The main disadvantage is that it doesn't display line numbers correctly since it gets mapped to transpiled code instead of the original code (No source maps from Loaders).
+`cheap-source-map` - A source map is emitted as a separate file, it is "cheap" because it doesn't have column mappings, it only maps line numbers. It ignores source maps from Loaders and only display transpiled code similar to the eval devtool.
 
-`eval-source-map` - Each module is executed with `eval()` and a source map is added as a DataUrl to the `eval()`. Initially it is slow, but it provides fast rebuild speed and yields real files. Line numbers are correctly mapped since it gets mapped to the original code. It yields the best quality source maps for development.
-
-`eval-cheap-source-map` - Similar to `eval-source-map`, each module is executed with `eval()`. It is "cheap" because it doesn't have column mappings, it only maps line numbers. It ignores source maps from Loaders and only display transpiled code similar to the eval devtool.
-
-`eval-cheap-module-source-map` - Similar to `eval-cheap-source-map`, however, in this case source maps from Loaders are processed for better results. However Loader source maps are simplified to a single mapping per line.
+`cheap-module-source-map` - Similar to `cheap-source-map`, however, in this case source maps from Loaders are processed for better results. However Loader source maps are simplified to a single mapping per line.
 
 ### Production
 

@@ -14,7 +14,7 @@ import WebpackLicense from '@components/WebpackLicense';
 type Devtool = 'string' | false;
 ```
 
-- **默认值：** development 模式为 `cheap-module-source-map`，production 模式 为 `source-map`
+- **默认值：** development 模式为 `cheap-module-source-map`，production 模式 为 `false`
 
 ## 决策指南
 
@@ -69,13 +69,9 @@ type Devtool = 'string' | false;
 
 以下选项非常适合开发环境：
 
-`eval` - 每个模块都使用 `eval()` 执行，并且都有 `//# sourceURL`。优点是构建性能极快，缺点是，不会映射到源代码。
+`cheap-source-map` - source map 作为一个单独的文件生成，不计算列映射，只是映射行。忽略源自 loader 的 source map，仅映射到转译后的代码。
 
-`eval-source-map` - 每个模块使用 `eval()` 执行，并且将模块 source map 转换为 DataUrl 后添加到 `eval()` 中，避免 chunk 级 source map 合并计算。
-
-`eval-cheap-source-map` - 类似 `eval-source-map`，每个模块使用 `eval()` 执行。source map 不计算列映射，只是映射行。忽略源自 loader 的 source map，仅映射到转译后的代码。
-
-`eval-cheap-module-source-map` - 类似 `eval-cheap-source-map`，并且，但会处理源自 loader 的 source map，映射到源代码。然而，source map 不计算列映射，只是映射行。
+`cheap-module-source-map` - 类似 `cheap-source-map`，并且，但会处理源自 loader 的 source map，映射到源代码。然而，source map 不计算列映射，只是映射行。
 
 ### 生产环境
 
