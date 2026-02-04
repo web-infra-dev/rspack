@@ -15,7 +15,7 @@ test('asset emitted hook should only emit modified assets', async ({
     return content.replace('__ROOT_TEXT__', '__OTHER_TEXT__');
   });
   await expect(page.locator('#root')).toHaveText('__OTHER_TEXT____FOO_VALUE__');
-  expect(assets).toEqual(['main.js']);
+  expect(assets.sort()).toEqual(['main.js', 'main.js.map']);
 
   // reset assets
   assets.length = 0;
@@ -26,7 +26,12 @@ test('asset emitted hook should only emit modified assets', async ({
   });
   await expect(page.locator('#root')).toHaveText('__OTHER_TEXT____VALUE__');
   // main.js contains runtime module, so it should also emit
-  expect(assets.sort()).toEqual(['main.js', 'src_foo_js.js']);
+  expect(assets.sort()).toEqual([
+    'main.js',
+    'main.js.map',
+    'src_foo_js.js',
+    'src_foo_js.js.map',
+  ]);
 
   // check dist dir
   // the outputFileSystem can contain only one main hot-update.js
@@ -53,7 +58,7 @@ test('asset emitted should not emit removed assets', async ({
     return 'document.getElementById("root").innerText = "__ROOT_TEXT__"';
   });
   await expect(page.locator('#root')).toHaveText('__ROOT_TEXT__');
-  expect(assets).toEqual(['main.js']);
+  expect(assets.sort()).toEqual(['main.js', 'main.js.map']);
 
   // check dist dir
   const files = rspack.compiler.outputFileSystem.readdirSync(

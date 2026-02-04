@@ -162,7 +162,7 @@ export class RspackCLI {
 
       // false is also a valid value for sourcemap, so don't override it
       if (typeof item.devtool === 'undefined') {
-        item.devtool = isBuild ? 'source-map' : 'cheap-module-source-map';
+        item.devtool = isBuild ? false : 'cheap-module-source-map';
       }
       // The CLI flag has a higher priority than the default devtool and devtool from the config.
       if (typeof options.devtool !== 'undefined') {
