@@ -150,7 +150,21 @@ mod tests {
   use rspack_fs::{MemoryFileSystem, WritableFileSystem};
   use rspack_paths::ArcPath;
 
-  use super::{HashHelper, PackageHelper};
+  use super::{
+    super::super::super::snapshot::PathMatcher, HashHelper, PackageHelper, SnapshotOptions,
+  };
+
+  fn new_helper(fs: Arc<MemoryFileSystem>) -> HashHelper {
+    HashHelper::new(
+      fs.clone(),
+      Arc::new(SnapshotOptions::new(
+        vec![PathMatcher::String("immutable".into())],
+        vec![],
+        vec![PathMatcher::String("node_modules".into())],
+      )),
+      Arc::new(PackageHelper::new(fs)),
+    )
+  }
 
   #[tokio::test]
   async fn file_hash() {
@@ -158,35 +172,35 @@ mod tests {
     fs.create_dir_all("/".into()).await.unwrap();
     fs.write("/hash.js".into(), "abc".as_bytes()).await.unwrap();
 
-    let helper = HashHelper::new(
-      fs.clone(),
-      Default::default(),
-      Arc::new(PackageHelper::new(fs.clone())),
-    );
+    let helper = new_helper(fs.clone());
     assert!(
       helper
         .file_hash(&ArcPath::from("/not_exist.js"))
         .await
         .is_none()
     );
+    // check directory
     let hash0 = helper.file_hash(&ArcPath::from("/")).await.unwrap();
     assert_eq!(hash0.hash, 0);
 
     let hash1 = helper.file_hash(&ArcPath::from("/hash.js")).await.unwrap();
 
-    helper.file_cache.clear();
     std::thread::sleep(std::time::Duration::from_millis(100));
+    // do nothing
+    let helper = new_helper(fs.clone());
     let hash2 = helper.file_hash(&ArcPath::from("/hash.js")).await.unwrap();
     assert_eq!(hash1.hash, hash2.hash);
     assert_eq!(hash1.mtime, hash2.mtime);
 
-    helper.file_cache.clear();
+    // same content
+    let helper = new_helper(fs.clone());
     fs.write("/hash.js".into(), "abc".as_bytes()).await.unwrap();
     let hash3 = helper.file_hash(&ArcPath::from("/hash.js")).await.unwrap();
     assert_eq!(hash1.hash, hash3.hash);
     assert!(hash1.mtime < hash3.mtime);
 
-    helper.file_cache.clear();
+    // diff content
+    let helper = new_helper(fs.clone());
     fs.write("/hash.js".into(), "abcd".as_bytes())
       .await
       .unwrap();
@@ -199,39 +213,106 @@ mod tests {
   async fn dir_hash() {
     let fs = Arc::new(MemoryFileSystem::default());
     fs.create_dir_all("/a".into()).await.unwrap();
+    fs.create_dir_all("/node_modules/lib".into()).await.unwrap();
     fs.write("/a/a1.js".into(), "a1".as_bytes()).await.unwrap();
     fs.write("/a/a2.js".into(), "a2".as_bytes()).await.unwrap();
     fs.write("/b.js".into(), "b".as_bytes()).await.unwrap();
+    fs.write("/immutable.js".into(), "immut".as_bytes())
+      .await
+      .unwrap();
+    fs.write(
+      "/node_modules/lib/index.js".into(),
+      "const a = 1".as_bytes(),
+    )
+    .await
+    .unwrap();
+    fs.write(
+      "/node_modules/lib/package.json".into(),
+      r#"{"version": "0.0.1"}"#.as_bytes(),
+    )
+    .await
+    .unwrap();
 
-    let helper = HashHelper::new(
-      fs.clone(),
-      Default::default(),
-      Arc::new(PackageHelper::new(fs.clone())),
-    );
-
+    let helper = new_helper(fs.clone());
     let hash1 = helper.dir_hash(&ArcPath::from("/")).await.unwrap();
+    assert_eq!(hash1.mtime, 0);
 
-    helper.file_cache.clear();
-    helper.dir_cache.clear();
     std::thread::sleep(std::time::Duration::from_millis(100));
+
+    // do nothing
+    let helper = new_helper(fs.clone());
     let hash2 = helper.dir_hash(&ArcPath::from("/")).await.unwrap();
     assert_eq!(hash1.hash, hash2.hash);
-    assert_eq!(hash1.mtime, 0);
     assert_eq!(hash2.mtime, 0);
 
-    helper.file_cache.clear();
-    helper.dir_cache.clear();
     std::thread::sleep(std::time::Duration::from_millis(100));
+
+    // do something will not update hash
+    let helper = new_helper(fs.clone());
+    // write same content
     fs.write("/a/a2.js".into(), "a2".as_bytes()).await.unwrap();
+    // edit immutable file
+    fs.write("/immutable.js".into(), "next".as_bytes())
+      .await
+      .unwrap();
+    // edit node_modules file
+    fs.write(
+      "/node_modules/lib/index.js".into(),
+      "const a = 2".as_bytes(),
+    )
+    .await
+    .unwrap();
+    // update package.json
+    fs.write(
+      "/node_modules/lib/package.json".into(),
+      r#"{"version": "0.0.2"}"#.as_bytes(),
+    )
+    .await
+    .unwrap();
     let hash3 = helper.dir_hash(&ArcPath::from("/")).await.unwrap();
-    assert_eq!(hash1.hash, hash3.hash);
+    assert_eq!(hash2.hash, hash3.hash);
     assert_eq!(hash3.mtime, 0);
 
-    helper.file_cache.clear();
-    helper.dir_cache.clear();
+    // update file content
+    let helper = new_helper(fs.clone());
     fs.write("/a/a2.js".into(), "a2a".as_bytes()).await.unwrap();
     let hash4 = helper.dir_hash(&ArcPath::from("/")).await.unwrap();
-    assert_ne!(hash1.hash, hash4.hash);
+    assert_ne!(hash3.hash, hash4.hash);
     assert_eq!(hash4.mtime, 0);
+
+    // node_modules lib test
+    let helper = new_helper(fs.clone());
+    let hash1 = helper
+      .dir_hash(&ArcPath::from("/node_modules/lib/"))
+      .await
+      .unwrap();
+
+    // update lib content
+    let helper = new_helper(fs.clone());
+    fs.write(
+      "/node_modules/lib/index.js".into(),
+      "const a = 3".as_bytes(),
+    )
+    .await
+    .unwrap();
+    let hash2 = helper
+      .dir_hash(&ArcPath::from("/node_modules/lib/"))
+      .await
+      .unwrap();
+    assert_eq!(hash1.hash, hash2.hash);
+
+    // update package.json
+    let helper = new_helper(fs.clone());
+    fs.write(
+      "/node_modules/lib/package.json".into(),
+      r#"{"version": "0.0.3"}"#.as_bytes(),
+    )
+    .await
+    .unwrap();
+    let hash2 = helper
+      .dir_hash(&ArcPath::from("/node_modules/lib/"))
+      .await
+      .unwrap();
+    assert_ne!(hash1.hash, hash2.hash);
   }
 }
