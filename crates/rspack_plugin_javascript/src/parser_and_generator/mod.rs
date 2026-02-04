@@ -257,7 +257,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     });
 
     let unresolved_mark = ast.get_context().unresolved_mark;
-    let parser_runtime_requirements = ParserRuntimeRequirementsData::new(&runtime_template);
+    let parser_runtime_requirements = ParserRuntimeRequirementsData::new(runtime_template);
 
     let ScanDependenciesResult {
       dependencies,
