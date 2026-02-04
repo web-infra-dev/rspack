@@ -14,15 +14,20 @@ module.exports = {
 		).toBeEquivalentStatsStringWith(`
 			LOG from rspack.Compilation
 			<t> finish modules: X ms
+			<t> build module graph: X ms
+			<t> seal: X ms
 			<t> optimize dependencies: X ms
 			<t> rebuild chunk graph: X ms
+			<t> build chunk graph: X ms
 			<t> optimize modules: X ms
 			<t> optimize chunks: X ms
 			<t> optimize tree: X ms
 			<t> optimize chunk modules: X ms
 			<t> module ids: X ms
 			<t> chunk ids: X ms
+			<t> assign runtime ids: X ms
 			<t> optimize code generation: X ms
+			<t> create module hashes: X ms
 			<t> code generation: X ms
 			<t> runtime requirements.modules: X ms
 			<t> runtime requirements.chunks: X ms
@@ -35,7 +40,6 @@ module.exports = {
 			<t> create module assets: X ms
 			<t> create chunk assets: X ms
 			<t> process assets: X ms
-			<t> after process assets: X ms
 			<t> after seal: X ms
 
 			LOG from rspack.Compiler
