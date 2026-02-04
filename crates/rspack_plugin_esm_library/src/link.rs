@@ -455,12 +455,8 @@ var {} = {{}};
       let default_object = module.build_meta().default_object;
 
       let info = &mut concate_modules_map[id];
-      let readable_identifier = get_cached_readable_identifier(
-        id,
-        module_graph,
-        &compilation.module_static_cache,
-        context,
-      );
+      let readable_identifier =
+        get_cached_readable_identifier(id, module_graph, &compilation.module_static_cache, context);
 
       if let ModuleInfo::Concatenated(concate_info) = info {
         let mut internal_names = FxHashMap::default();

@@ -66,7 +66,17 @@ impl PassExt for BuildModuleGraphPhasePass {
     cache.before_finish_modules(compilation).await;
     finish_modules_pass(compilation).await?;
     cache.after_finish_modules(compilation).await;
-
+    // Add checkpoint if incremental build is enabled
+    use crate::incremental::IncrementalPasses;
+    if compilation
+      .incremental
+      .passes_enabled(IncrementalPasses::BUILD_MODULE_GRAPH)
+    {
+      compilation
+        .build_module_graph_artifact
+        .module_graph
+        .checkpoint();
+    }
     Ok(())
   }
 
@@ -74,16 +84,5 @@ impl PassExt for BuildModuleGraphPhasePass {
     cache
       .after_build_module_graph(&compilation.build_module_graph_artifact)
       .await;
-
-    // Add checkpoint if incremental build is enabled
-    use crate::incremental::IncrementalPasses;
-    if compilation
-      .incremental
-      .passes_enabled(IncrementalPasses::BUILD_MODULE_GRAPH)
-    {
-      // Note: We need a mutable reference here. Since after_pass only takes &Compilation,
-      // we can't checkpoint here. The checkpoint logic will be handled in run_passes after this pass.
-      // This is noted for implementation in run_passes.rs
-    }
   }
 }

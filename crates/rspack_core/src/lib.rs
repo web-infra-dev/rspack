@@ -8,12 +8,12 @@ mod exports;
 mod value_cache_versions;
 pub use artifacts::*;
 pub use binding::*;
-pub use transient_cache::*;
 pub use compilation::{
   build_module_graph::{ExecuteModuleId, ForwardId, LazyUntil},
   *,
 };
 pub use exports::*;
+pub use transient_cache::*;
 pub use value_cache_versions::ValueCacheVersions;
 mod dependencies_block;
 pub mod diagnostics;

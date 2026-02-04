@@ -1,28 +1,19 @@
 use super::{
-  after_seal::AfterSealPass,
-  assign_runtime_ids::AssignRuntimeIdsPass,
+  after_seal::AfterSealPass, assign_runtime_ids::AssignRuntimeIdsPass,
   build_chunk_graph::pass::BuildChunkGraphPass,
-  build_module_graph_phase_pass::BuildModuleGraphPhasePass,
-  chunk_ids::ChunkIdsPass,
-  code_generation::CodeGenerationPass,
-  create_chunk_assets::CreateChunkAssetsPass,
-  create_hash::CreateHashPass,
-  create_module_assets::CreateModuleAssetsPass,
-  create_module_hashes::CreateModuleHashesPass,
-  module_ids::ModuleIdsPass,
-  optimize_chunk_modules::OptimizeChunkModulesPass,
-  optimize_chunks::OptimizeChunksPass,
+  build_module_graph_phase_pass::BuildModuleGraphPhasePass, chunk_ids::ChunkIdsPass,
+  code_generation::CodeGenerationPass, create_chunk_assets::CreateChunkAssetsPass,
+  create_hash::CreateHashPass, create_module_assets::CreateModuleAssetsPass,
+  create_module_hashes::CreateModuleHashesPass, module_ids::ModuleIdsPass,
+  optimize_chunk_modules::OptimizeChunkModulesPass, optimize_chunks::OptimizeChunksPass,
   optimize_code_generation::OptimizeCodeGenerationPass,
-  optimize_dependencies::OptimizeDependenciesPass,
-  optimize_modules::OptimizeModulesPass,
-  optimize_tree::OptimizeTreePass,
-  pass::PassExt,
-  process_assets::ProcessAssetsPass,
-  runtime_requirements::RuntimeRequirementsPass,
-  seal::SealPass,
-  *,
+  optimize_dependencies::OptimizeDependenciesPass, optimize_modules::OptimizeModulesPass,
+  optimize_tree::OptimizeTreePass, pass::PassExt, process_assets::ProcessAssetsPass,
+  runtime_requirements::RuntimeRequirementsPass, seal::SealPass, *,
 };
-use crate::{Compilation, SharedPluginDriver, cache::Cache, compilation, incremental::IncrementalPasses};
+use crate::{
+  Compilation, SharedPluginDriver, cache::Cache,
+};
 
 impl Compilation {
   pub async fn run_passes(
@@ -57,20 +48,12 @@ impl Compilation {
     if !self.options.mode.is_development() {
       self.module_static_cache.unfreeze();
     }
-    
+
     for pass in &passes {
       pass.run(self, cache).await?;
     }
     if !self.options.mode.is_development() {
       self.module_static_cache.unfreeze();
-    }
-
-    // Add checkpoint after build module graph phase (special handling)
-    if self
-      .incremental
-      .passes_enabled(IncrementalPasses::BUILD_MODULE_GRAPH)
-    {
-      self.build_module_graph_artifact.module_graph.checkpoint();
     }
 
     Ok(())
