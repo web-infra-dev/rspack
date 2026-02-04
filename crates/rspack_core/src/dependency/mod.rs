@@ -230,6 +230,14 @@ impl ImportPhase {
   pub fn is_defer(&self) -> bool {
     matches!(self, ImportPhase::Defer)
   }
+
+  pub fn as_str(&self) -> &'static str {
+    match self {
+      ImportPhase::Evaluation => "evaluation",
+      ImportPhase::Source => "source",
+      ImportPhase::Defer => "defer",
+    }
+  }
 }
 
 impl From<swc_core::ecma::ast::ImportPhase> for ImportPhase {

@@ -190,6 +190,7 @@ impl AMDRequireDependenciesBlockParserPlugin {
       end: call_span.real_hi(),
       referenced_exports: None,
       attributes: None,
+      phase: None,
     };
     let mut dep = AMDRequireContextDependency::new(options, param_range.into(), parser.in_try);
     *dep.critical_mut() = result.critical;
