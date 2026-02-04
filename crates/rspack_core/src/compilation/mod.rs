@@ -1,3 +1,4 @@
+mod after_process_assets;
 mod after_seal;
 mod assign_runtime_ids;
 pub mod build_chunk_graph;
@@ -19,6 +20,7 @@ mod optimize_code_generation;
 mod optimize_dependencies;
 mod optimize_modules;
 mod optimize_tree;
+pub mod pass;
 mod process_assets;
 mod run_passes;
 mod runtime_requirements;
@@ -73,10 +75,10 @@ use crate::{
   DependencyTemplateType, DependencyType, DerefOption, Entry, EntryData, EntryOptions,
   EntryRuntime, Entrypoint, ExecuteModuleId, Filename, ImportPhase, ImportVarMap,
   ImportedByDeferModulesArtifact, MemoryGCStorage, ModuleFactory, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleIdentifier, ModuleIdsArtifact, ModuleStaticCacheArtifact,
-  PathData, ProcessRuntimeRequirementsCacheArtifact, ResolverFactory, RuntimeGlobals,
-  RuntimeKeyMap, RuntimeMode, RuntimeModule, RuntimeSpec, RuntimeSpecMap, RuntimeTemplate,
-  SharedPluginDriver, SideEffectsOptimizeArtifact, SourceType, Stats, ValueCacheVersions,
+  ModuleGraphCacheArtifact, ModuleIdentifier, ModuleIdsArtifact, ModuleStaticCache, PathData,
+  ProcessRuntimeRequirementsCacheArtifact, ResolverFactory, RuntimeGlobals, RuntimeKeyMap,
+  RuntimeMode, RuntimeModule, RuntimeSpec, RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver,
+  SideEffectsOptimizeArtifact, SourceType, Stats, ValueCacheVersions,
   compilation::build_module_graph::{
     BuildModuleGraphArtifact, ModuleExecutor, UpdateParam, update_module_graph,
   },
@@ -245,8 +247,8 @@ pub struct Compilation {
   pub chunk_render_artifact: ChunkRenderArtifact,
   // artifact for caching get_mode
   pub module_graph_cache_artifact: ModuleGraphCacheArtifact,
-  // artifact for caching module static info
-  pub module_static_cache_artifact: ModuleStaticCacheArtifact,
+  // transient cache for module static info
+  pub module_static_cache: ModuleStaticCache,
   // artifact for chunk render cache
   pub chunk_render_cache_artifact: ChunkRenderCacheArtifact,
   // artifact for code generate cache
@@ -379,7 +381,7 @@ impl Compilation {
       chunk_hashes_artifact: Default::default(),
       chunk_render_artifact: Default::default(),
       module_graph_cache_artifact: Default::default(),
-      module_static_cache_artifact: Default::default(),
+      module_static_cache: Default::default(),
       code_generated_modules: Default::default(),
       chunk_render_cache_artifact: ChunkRenderCacheArtifact::new(MemoryGCStorage::new(
         match &options.cache {

@@ -1,15 +1,21 @@
-use super::*;
-use crate::logger::Logger;
+use async_trait::async_trait;
 
-pub async fn after_seal_pass(
-  compilation: &mut Compilation,
-  plugin_driver: SharedPluginDriver,
-) -> Result<()> {
-  let logger = compilation.get_logger("rspack.Compilation");
-  let start = logger.time("after seal");
-  compilation.after_seal(plugin_driver).await?;
-  logger.time_end(start);
-  Ok(())
+use super::*;
+use crate::compilation::pass::PassExt;
+
+pub struct AfterSealPass;
+
+#[async_trait]
+impl PassExt for AfterSealPass {
+  fn name(&self) -> &'static str {
+    "after seal"
+  }
+
+  async fn run_pass(&self, compilation: &mut Compilation) -> Result<()> {
+    let plugin_driver = compilation.plugin_driver.clone();
+    compilation.after_seal(plugin_driver).await?;
+    Ok(())
+  }
 }
 
 impl Compilation {

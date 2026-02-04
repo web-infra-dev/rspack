@@ -1,15 +1,21 @@
-use super::*;
-use crate::logger::Logger;
+use async_trait::async_trait;
 
-pub async fn create_module_assets_pass(
-  compilation: &mut Compilation,
-  plugin_driver: SharedPluginDriver,
-) -> Result<()> {
-  let logger = compilation.get_logger("rspack.Compilation");
-  let start = logger.time("create module assets");
-  compilation.create_module_assets(plugin_driver).await;
-  logger.time_end(start);
-  Ok(())
+use super::*;
+use crate::compilation::pass::PassExt;
+
+pub struct CreateModuleAssetsPass;
+
+#[async_trait]
+impl PassExt for CreateModuleAssetsPass {
+  fn name(&self) -> &'static str {
+    "create module assets"
+  }
+
+  async fn run_pass(&self, compilation: &mut Compilation) -> Result<()> {
+    let plugin_driver = compilation.plugin_driver.clone();
+    compilation.create_module_assets(plugin_driver).await;
+    Ok(())
+  }
 }
 
 impl Compilation {

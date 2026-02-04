@@ -1,21 +1,37 @@
+use async_trait::async_trait;
+
 use super::*;
-use crate::{ModuleCodeGenerationContext, logger::Logger};
+use crate::{
+  ModuleCodeGenerationContext, cache::Cache, compilation::pass::PassExt, logger::Logger,
+};
 
 pub struct ChunkHashResult {
   pub hash: RspackHashDigest,
   pub content_hash: ChunkContentHash,
 }
 
-pub async fn create_hash_pass(
-  compilation: &mut Compilation,
-  plugin_driver: SharedPluginDriver,
-) -> Result<()> {
-  let logger = compilation.get_logger("rspack.Compilation");
-  let start = logger.time("hashing");
-  compilation.create_hash(plugin_driver).await?;
-  compilation.runtime_modules_code_generation().await?;
-  logger.time_end(start);
-  Ok(())
+pub struct CreateHashPass;
+
+#[async_trait]
+impl PassExt for CreateHashPass {
+  fn name(&self) -> &'static str {
+    "hashing"
+  }
+
+  async fn before_pass(&self, compilation: &mut Compilation, cache: &mut dyn Cache) {
+    cache.before_chunks_hashes(compilation).await;
+  }
+
+  async fn run_pass(&self, compilation: &mut Compilation) -> Result<()> {
+    let plugin_driver = compilation.plugin_driver.clone();
+    compilation.create_hash(plugin_driver).await?;
+    compilation.runtime_modules_code_generation().await?;
+    Ok(())
+  }
+
+  async fn after_pass(&self, compilation: &Compilation, cache: &mut dyn Cache) {
+    cache.after_chunks_hashes(compilation).await;
+  }
 }
 
 impl Compilation {

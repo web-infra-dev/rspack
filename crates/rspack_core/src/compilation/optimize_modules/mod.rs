@@ -1,32 +1,40 @@
+use async_trait::async_trait;
+
 use super::*;
-use crate::logger::Logger;
+use crate::compilation::pass::PassExt;
 
-pub async fn optimize_modules_pass(
-  compilation: &mut Compilation,
-  plugin_driver: SharedPluginDriver,
-) -> Result<()> {
-  let logger = compilation.get_logger("rspack.Compilation");
-  let start = logger.time("optimize modules");
+pub struct OptimizeModulesPass;
 
-  let mut diagnostics = vec![];
-  while matches!(
-    plugin_driver
+#[async_trait]
+impl PassExt for OptimizeModulesPass {
+  fn name(&self) -> &'static str {
+    "optimize modules"
+  }
+
+  async fn run_pass(&self, compilation: &mut Compilation) -> Result<()> {
+    let mut diagnostics = vec![];
+    while matches!(
+      compilation
+        .plugin_driver
+        .clone()
+        .compilation_hooks
+        .optimize_modules
+        .call(compilation, &mut diagnostics)
+        .await
+        .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.optimizeModules"))?,
+      Some(true)
+    ) {}
+    compilation.extend_diagnostics(diagnostics);
+
+    compilation
+      .plugin_driver
+      .clone()
       .compilation_hooks
-      .optimize_modules
-      .call(compilation, &mut diagnostics)
+      .after_optimize_modules
+      .call(compilation)
       .await
-      .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.optimizeModules"))?,
-    Some(true)
-  ) {}
-  compilation.extend_diagnostics(diagnostics);
+      .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.afterOptimizeModules"))?;
 
-  let result = plugin_driver
-    .compilation_hooks
-    .after_optimize_modules
-    .call(compilation)
-    .await
-    .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.afterOptimizeModules"));
-
-  logger.time_end(start);
-  result
+    Ok(())
+  }
 }

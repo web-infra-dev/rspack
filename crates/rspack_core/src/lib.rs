@@ -2,6 +2,7 @@ use std::{fmt, sync::Arc};
 mod artifacts;
 mod binding;
 mod compilation;
+mod transient_cache;
 
 mod exports;
 mod value_cache_versions;
@@ -12,6 +13,7 @@ pub use compilation::{
   *,
 };
 pub use exports::*;
+pub use transient_cache::*;
 pub use value_cache_versions::ValueCacheVersions;
 mod dependencies_block;
 pub mod diagnostics;

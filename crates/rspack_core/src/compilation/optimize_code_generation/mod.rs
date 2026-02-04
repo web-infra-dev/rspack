@@ -1,31 +1,37 @@
+use async_trait::async_trait;
+
 use super::*;
-use crate::logger::Logger;
+use crate::compilation::pass::PassExt;
 
-pub async fn optimize_code_generation_pass(
-  compilation: &mut Compilation,
-  plugin_driver: SharedPluginDriver,
-) -> Result<()> {
-  let logger = compilation.get_logger("rspack.Compilation");
-  let start = logger.time("optimize code generation");
+pub struct OptimizeCodeGenerationPass;
 
-  let mut build_module_graph_artifact = compilation.build_module_graph_artifact.take();
-  let mut diagnostics = vec![];
-  plugin_driver
-    .compilation_hooks
-    .optimize_code_generation
-    .call(
-      compilation,
-      &mut build_module_graph_artifact,
-      &mut diagnostics,
-    )
-    .await
-    .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.optimizeCodeGeneration"))?;
+#[async_trait]
+impl PassExt for OptimizeCodeGenerationPass {
+  fn name(&self) -> &'static str {
+    "optimize code generation"
+  }
 
-  compilation
-    .build_module_graph_artifact
-    .replace(build_module_graph_artifact);
-  compilation.extend_diagnostics(diagnostics);
+  async fn run_pass(&self, compilation: &mut Compilation) -> Result<()> {
+    let mut build_module_graph_artifact = compilation.build_module_graph_artifact.take();
+    let mut diagnostics = vec![];
+    compilation
+      .plugin_driver
+      .clone()
+      .compilation_hooks
+      .optimize_code_generation
+      .call(
+        compilation,
+        &mut build_module_graph_artifact,
+        &mut diagnostics,
+      )
+      .await
+      .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.optimizeCodeGeneration"))?;
 
-  logger.time_end(start);
-  Ok(())
+    compilation
+      .build_module_graph_artifact
+      .replace(build_module_graph_artifact);
+    compilation.extend_diagnostics(diagnostics);
+
+    Ok(())
+  }
 }
