@@ -80,7 +80,7 @@ These two plugins internally schedule the build processes of the Client Compiler
 
 ### Configure JSX/TSX
 
-Add `builtin:swc-loader` to process `.jsx` and `.tsx` files. The `rspackExperiments.reactServerComponent`s option must be enabled to turn on Rspack's support for RSC syntax.
+Add `builtin:swc-loader` to process `.jsx` and `.tsx` files. The `rspackExperiments.reactServerComponents` option must be enabled to turn on Rspack's support for RSC syntax.
 
 ```js title="rspack.config.mjs"
 const jsxRule = {
@@ -150,6 +150,8 @@ To use RSC features, you must explicitly assign RSC components to `Layers.rsc`. 
 If you need Server-Side Rendering, you can use `Layers.ssr` to identify the SSR entry. SSR is optional; if no modules are assigned to `Layers.ssr`, Rspack will skip the generation of SSR artifacts.
 
 ```js title="rspack.config.mjs"
+import path from 'node:path';
+
 const ssrEntry = path.resolve(
   import.meta.dirname,
   'src/framework/entry.ssr.tsx',

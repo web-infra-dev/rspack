@@ -147,9 +147,11 @@ RSC 插件也依赖 loader 识别的指令信息，来区分客户端组件和�
 
 为了使用 RSC 功能，你必须将 RSC 组件明确设置为 `Layers.rsc`。只有被标记为 `Layers.rsc` 的模块，Loader 才会将其内部的 `"use client"` 指令转换为客户端引用（Client Reference）。
 
-如果你需要服务端渲染，可以通过 `Layers.ssr` 来标识 SSR 入口。SSR 是可选的，若无模块被分配至该 `Layers.rsc`，Rspack 会跳过 SSR 产物的生成。
+如果你需要服务端渲染，可以通过 `Layers.ssr` 来标识 SSR 入口。SSR 是可选的，若无模块被分配至该 `Layers.ssr`，Rspack 会跳过 SSR 产物的生成。
 
 ```js title="rspack.config.mjs"
+import path from 'node:path';
+
 const ssrEntry = path.resolve(
   import.meta.dirname,
   'src/framework/entry.ssr.tsx',
