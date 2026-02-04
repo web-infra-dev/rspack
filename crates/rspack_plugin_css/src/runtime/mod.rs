@@ -42,9 +42,7 @@ static CSS_LOADING_WITH_PRELOAD_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
 
 #[impl_runtime_module]
 #[derive(Debug)]
-pub struct CssLoadingRuntimeModule {
-  id: Identifier,
-}
+pub struct CssLoadingRuntimeModule {}
 
 impl CssLoadingRuntimeModule {
   pub fn get_runtime_requirements_basic() -> RuntimeGlobals {
@@ -66,10 +64,7 @@ impl CssLoadingRuntimeModule {
 
 impl CssLoadingRuntimeModule {
   pub fn new(runtime_template: &RuntimeTemplate) -> Self {
-    Self::with_default(Identifier::from(format!(
-      "{}css_loading",
-      runtime_template.runtime_module_prefix()
-    )))
+    Self::with_default(runtime_template)
   }
 
   fn template_id(&self, id: TemplateId) -> String {
@@ -101,10 +96,6 @@ enum TemplateId {
 
 #[async_trait::async_trait]
 impl RuntimeModule for CssLoadingRuntimeModule {
-  fn name(&self) -> Identifier {
-    self.id
-  }
-
   fn template(&self) -> Vec<(String, String)> {
     vec![
       (

@@ -8,25 +8,16 @@ use crate::get_chunk_runtime_requirements;
 
 #[impl_runtime_module]
 #[derive(Debug)]
-pub struct GetTrustedTypesPolicyRuntimeModule {
-  id: Identifier,
-}
+pub struct GetTrustedTypesPolicyRuntimeModule {}
 
 impl GetTrustedTypesPolicyRuntimeModule {
   pub fn new(runtime_template: &RuntimeTemplate) -> Self {
-    Self::with_default(Identifier::from(format!(
-      "{}get_trusted_types_policy",
-      runtime_template.runtime_module_prefix()
-    )))
+    Self::with_default(runtime_template)
   }
 }
 
 #[async_trait::async_trait]
 impl RuntimeModule for GetTrustedTypesPolicyRuntimeModule {
-  fn name(&self) -> Identifier {
-    self.id
-  }
-
   fn template(&self) -> Vec<(String, String)> {
     vec![(
       self.id.to_string(),

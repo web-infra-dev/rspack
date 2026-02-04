@@ -9,7 +9,6 @@ use rspack_util::itoa;
 #[impl_runtime_module]
 #[derive(Debug)]
 pub struct AsyncWasmLoadingRuntimeModule {
-  id: Identifier,
   generate_load_binary_code: String,
   generate_before_load_binary_code: String,
   generate_before_instantiate_streaming: String,
@@ -23,10 +22,7 @@ impl AsyncWasmLoadingRuntimeModule {
     supports_streaming: bool,
   ) -> Self {
     Self::with_default(
-      Identifier::from(format!(
-        "{}async_wasm_loading",
-        runtime_template.runtime_module_prefix()
-      )),
+      runtime_template,
       generate_load_binary_code,
       Default::default(),
       Default::default(),
@@ -42,10 +38,7 @@ impl AsyncWasmLoadingRuntimeModule {
     supports_streaming: bool,
   ) -> Self {
     Self::with_default(
-      Identifier::from(format!(
-        "{}async_wasm_loading",
-        runtime_template.runtime_module_prefix()
-      )),
+      runtime_template,
       generate_load_binary_code,
       generate_before_load_binary_code,
       generate_before_instantiate_streaming,
@@ -56,9 +49,6 @@ impl AsyncWasmLoadingRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for AsyncWasmLoadingRuntimeModule {
-  fn name(&self) -> Identifier {
-    self.id
-  }
   async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
     let (fake_filename, hash_len_map) =
       get_filename_without_hash_length(&compilation.options.output.webassembly_module_filename);

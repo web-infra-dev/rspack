@@ -5,25 +5,16 @@ use rspack_core::{
 
 #[impl_runtime_module]
 #[derive(Debug)]
-pub struct CreateScriptUrlRuntimeModule {
-  id: Identifier,
-}
+pub struct CreateScriptUrlRuntimeModule {}
 
 impl CreateScriptUrlRuntimeModule {
   pub fn new(runtime_template: &RuntimeTemplate) -> Self {
-    Self::with_default(Identifier::from(format!(
-      "{}create_script_url",
-      runtime_template.runtime_module_prefix()
-    )))
+    Self::with_default(runtime_template)
   }
 }
 
 #[async_trait::async_trait]
 impl RuntimeModule for CreateScriptUrlRuntimeModule {
-  fn name(&self) -> Identifier {
-    self.id
-  }
-
   fn template(&self) -> Vec<(String, String)> {
     vec![(
       self.id.to_string(),

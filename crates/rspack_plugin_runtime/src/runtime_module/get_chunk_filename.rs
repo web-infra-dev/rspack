@@ -20,7 +20,6 @@ type GetFilenameForChunk = Box<dyn Fn(&Chunk, &Compilation) -> Option<Filename> 
 
 #[impl_runtime_module]
 pub struct GetChunkFilenameRuntimeModule {
-  id: Identifier,
   #[cacheable(with=Unsupported)]
   content_type: &'static str,
   source_type: SourceType,
@@ -59,11 +58,9 @@ impl GetChunkFilenameRuntimeModule {
     all_chunks: F,
     filename_for_chunk: T,
   ) -> Self {
-    Self::with_default(
-      Identifier::from(format!(
-        "{}get {name} chunk filename",
-        runtime_template.runtime_module_prefix()
-      )),
+    Self::with_name(
+      runtime_template,
+      &format!("get {name} chunk filename"),
       content_type,
       source_type,
       global,
@@ -75,10 +72,6 @@ impl GetChunkFilenameRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for GetChunkFilenameRuntimeModule {
-  fn name(&self) -> Identifier {
-    self.id
-  }
-
   fn template(&self) -> Vec<(String, String)> {
     vec![(
       self.id.to_string(),

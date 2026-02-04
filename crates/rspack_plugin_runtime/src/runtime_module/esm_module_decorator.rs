@@ -3,25 +3,16 @@ use rspack_core::{Compilation, RuntimeModule, RuntimeTemplate, impl_runtime_modu
 
 #[impl_runtime_module]
 #[derive(Debug)]
-pub struct ESMModuleDecoratorRuntimeModule {
-  id: Identifier,
-}
+pub struct ESMModuleDecoratorRuntimeModule {}
 
 impl ESMModuleDecoratorRuntimeModule {
   pub fn new(runtime_template: &RuntimeTemplate) -> Self {
-    Self::with_default(Identifier::from(format!(
-      "{}esm_module_decorator",
-      runtime_template.runtime_module_prefix()
-    )))
+    Self::with_default(runtime_template)
   }
 }
 
 #[async_trait::async_trait]
 impl RuntimeModule for ESMModuleDecoratorRuntimeModule {
-  fn name(&self) -> Identifier {
-    self.id
-  }
-
   fn template(&self) -> Vec<(String, String)> {
     vec![(
       self.id.to_string(),

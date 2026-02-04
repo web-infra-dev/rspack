@@ -14,6 +14,11 @@ pub fn impl_runtime_module(
   if let syn::Fields::Named(ref mut fields) = input.fields {
     fields.named.push(
       syn::Field::parse_named
+        .parse2(quote! { pub id: ::rspack_collections::Identifier })
+        .expect("Failed to parse new field for id"),
+    );
+    fields.named.push(
+      syn::Field::parse_named
         .parse2(quote! { pub chunk: Option<::rspack_core::ChunkUkey> })
         .expect("Failed to parse new field for chunk"),
     );
@@ -46,23 +51,39 @@ pub fn impl_runtime_module(
   let field_tys: Vec<&syn::Type> = origin_fields.iter().map(|field| &field.ty).collect();
   let with_default = quote! {
     #[allow(clippy::too_many_arguments)]
-    fn with_default(#(#field_names: #field_tys,)*) -> Self {
+    fn with_default(runtime_template: &::rspack_core::RuntimeTemplate, #(#field_names: #field_tys,)*) -> Self {
       Self {
         source_map_kind: ::rspack_util::source_map::SourceMapKind::empty(),
         custom_source: None,
         cached_generated_code: Default::default(),
         chunk: None,
+        id: runtime_template.create_runtime_module_identifier(stringify!(#name)),
         #(#field_names,)*
       }
     }
   };
 
+  let with_name = quote! {
+    #[allow(clippy::too_many_arguments)]
+    fn with_name(runtime_template: &::rspack_core::RuntimeTemplate, name: &str, #(#field_names: #field_tys,)*) -> Self {
+      Self {
+        source_map_kind: ::rspack_util::source_map::SourceMapKind::empty(),
+        custom_source: None,
+        cached_generated_code: Default::default(),
+        chunk: None,
+        id: runtime_template.create_custom_runtime_module_identifier(name),
+        #(#field_names,)*
+      }
+    }
+  };
   quote! {
     #[rspack_cacheable::cacheable]
     #input
 
     impl #impl_generics #name #ty_generics #where_clause {
       #with_default
+
+      #with_name
 
       async fn get_generated_code(
         &self,
@@ -108,8 +129,15 @@ pub fn impl_runtime_module(
       }
     }
 
+    impl #impl_generics ::rspack_core::NamedRuntimeModule for #name #ty_generics #where_clause {
+      fn name(&self) -> ::rspack_collections::Identifier {
+        self.id
+      }
+    }
+
     impl #impl_generics rspack_collections::Identifiable for #name #ty_generics #where_clause {
       fn identifier(&self) -> rspack_collections::Identifier {
+        use rspack_core::NamedRuntimeModule;
         self.name()
       }
     }
@@ -162,6 +190,7 @@ pub fn impl_runtime_module(
       }
 
       fn readable_identifier(&self, _context: &::rspack_core::Context) -> std::borrow::Cow<str> {
+        use rspack_core::NamedRuntimeModule;
         self.name().as_str().into()
       }
 
@@ -206,6 +235,7 @@ pub fn impl_runtime_module(
         runtime: Option<&::rspack_core::RuntimeSpec>,
       ) -> rspack_error::Result<::rspack_hash::RspackHashDigest> {
         use rspack_util::ext::DynHash;
+        use rspack_core::NamedRuntimeModule;
         let mut hasher = rspack_hash::RspackHash::from(&compilation.options.output);
         self.name().dyn_hash(&mut hasher);
         self.stage().dyn_hash(&mut hasher);

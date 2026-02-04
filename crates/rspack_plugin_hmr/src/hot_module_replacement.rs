@@ -13,25 +13,16 @@ static HOT_MODULE_REPLACEMENT_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
 
 #[impl_runtime_module]
 #[derive(Debug)]
-pub struct HotModuleReplacementRuntimeModule {
-  id: Identifier,
-}
+pub struct HotModuleReplacementRuntimeModule {}
 
 impl HotModuleReplacementRuntimeModule {
   pub fn new(runtime_template: &RuntimeTemplate) -> Self {
-    Self::with_default(Identifier::from(format!(
-      "{}hot_module_replacement",
-      runtime_template.runtime_module_prefix()
-    )))
+    Self::with_default(runtime_template)
   }
 }
 
 #[async_trait::async_trait]
 impl RuntimeModule for HotModuleReplacementRuntimeModule {
-  fn name(&self) -> Identifier {
-    self.id
-  }
-
   fn template(&self) -> Vec<(String, String)> {
     vec![(
       self.id.to_string(),

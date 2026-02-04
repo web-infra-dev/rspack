@@ -33,7 +33,6 @@ fn add_attribute(
 #[impl_runtime_module]
 #[derive(Debug)]
 struct SRIHashVariableRuntimeModule {
-  id: Identifier,
   hash_funcs: Vec<SubresourceIntegrityHashFunction>,
 }
 
@@ -42,22 +41,12 @@ impl SRIHashVariableRuntimeModule {
     runtime_template: &RuntimeTemplate,
     hash_funcs: Vec<SubresourceIntegrityHashFunction>,
   ) -> Self {
-    Self::with_default(
-      Identifier::from(format!(
-        "{}sri_hash_variable",
-        runtime_template.runtime_module_prefix()
-      )),
-      hash_funcs,
-    )
+    Self::with_default(runtime_template, hash_funcs)
   }
 }
 
 #[async_trait::async_trait]
 impl RuntimeModule for SRIHashVariableRuntimeModule {
-  fn name(&self) -> Identifier {
-    self.id
-  }
-
   async fn generate(&self, compilation: &Compilation) -> Result<String> {
     let Some(chunk) = self
       .chunk

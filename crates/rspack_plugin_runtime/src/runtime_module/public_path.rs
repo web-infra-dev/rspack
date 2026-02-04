@@ -7,28 +7,17 @@ use rspack_core::{
 #[impl_runtime_module]
 #[derive(Debug)]
 pub struct PublicPathRuntimeModule {
-  id: Identifier,
   public_path: Box<Filename>,
 }
 
 impl PublicPathRuntimeModule {
   pub fn new(runtime_template: &RuntimeTemplate, public_path: Box<Filename>) -> Self {
-    Self::with_default(
-      Identifier::from(format!(
-        "{}public_path",
-        runtime_template.runtime_module_prefix()
-      )),
-      public_path,
-    )
+    Self::with_default(runtime_template, public_path)
   }
 }
 
 #[async_trait::async_trait]
 impl RuntimeModule for PublicPathRuntimeModule {
-  fn name(&self) -> Identifier {
-    self.id
-  }
-
   async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
     Ok(format!(
       "{} = \"{}\";",

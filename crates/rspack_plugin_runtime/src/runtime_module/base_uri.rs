@@ -5,16 +5,11 @@ use rspack_core::{
 
 #[impl_runtime_module]
 #[derive(Debug)]
-pub struct BaseUriRuntimeModule {
-  id: Identifier,
-}
+pub struct BaseUriRuntimeModule {}
 
 impl BaseUriRuntimeModule {
   pub fn new(runtime_template: &RuntimeTemplate) -> Self {
-    Self::with_default(Identifier::from(format!(
-      "{}base_uri",
-      runtime_template.runtime_module_prefix()
-    )))
+    Self::with_default(runtime_template)
   }
 }
 
@@ -35,9 +30,5 @@ impl RuntimeModule for BaseUriRuntimeModule {
         .render_runtime_globals(&RuntimeGlobals::BASE_URI),
       base_uri
     ))
-  }
-
-  fn name(&self) -> Identifier {
-    self.id
   }
 }

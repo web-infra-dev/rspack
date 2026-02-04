@@ -18,7 +18,6 @@ use crate::plugin::{InsertType, SOURCE_TYPE};
 #[impl_runtime_module]
 #[derive(Debug)]
 pub(crate) struct CssLoadingRuntimeModule {
-  id: Identifier,
   attributes: FxHashMap<String, String>,
   link_type: Option<String>,
   insert: InsertType,
@@ -31,11 +30,9 @@ impl CssLoadingRuntimeModule {
     link_type: Option<String>,
     insert: InsertType,
   ) -> Self {
-    Self::with_default(
-      Identifier::from(format!(
-        "{}css loading",
-        runtime_template.runtime_module_prefix()
-      )),
+    Self::with_name(
+      runtime_template,
+      "css loading",
       attributes,
       link_type,
       insert,
@@ -77,10 +74,6 @@ enum TemplateId {
 
 #[async_trait::async_trait]
 impl RuntimeModule for CssLoadingRuntimeModule {
-  fn name(&self) -> rspack_collections::Identifier {
-    self.id
-  }
-
   fn stage(&self) -> RuntimeModuleStage {
     RuntimeModuleStage::Attach
   }

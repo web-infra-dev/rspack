@@ -24,7 +24,6 @@ pub struct EmbedFederationRuntimeModuleOptions {
 #[impl_runtime_module]
 #[derive(Debug)]
 pub struct EmbedFederationRuntimeModule {
-  id: Identifier,
   options: EmbedFederationRuntimeModuleOptions,
 }
 
@@ -33,13 +32,7 @@ impl EmbedFederationRuntimeModule {
     runtime_template: &RuntimeTemplate,
     options: EmbedFederationRuntimeModuleOptions,
   ) -> Self {
-    Self::with_default(
-      Identifier::from(format!(
-        "{}embed_federation_runtime",
-        runtime_template.runtime_module_prefix()
-      )),
-      options,
-    )
+    Self::with_name(runtime_template, "embed_federation_runtime", options)
   }
 }
 
@@ -59,10 +52,6 @@ impl EmbedFederationRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for EmbedFederationRuntimeModule {
-  fn name(&self) -> Identifier {
-    self.id
-  }
-
   fn template(&self) -> Vec<(String, String)> {
     vec![
       (

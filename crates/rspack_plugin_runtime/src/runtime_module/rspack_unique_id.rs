@@ -6,7 +6,6 @@ use rspack_core::{
 #[impl_runtime_module]
 #[derive(Debug)]
 pub struct RspackUniqueIdRuntimeModule {
-  id: Identifier,
   bundler_name: String,
   bundler_version: String,
 }
@@ -17,14 +16,7 @@ impl RspackUniqueIdRuntimeModule {
     bundler_name: String,
     bundler_version: String,
   ) -> Self {
-    Self::with_default(
-      Identifier::from(format!(
-        "{}rspack_unique_id",
-        runtime_template.runtime_module_prefix()
-      )),
-      bundler_name,
-      bundler_version,
-    )
+    Self::with_default(runtime_template, bundler_name, bundler_version)
   }
 }
 
@@ -32,9 +24,6 @@ impl RspackUniqueIdRuntimeModule {
 impl RuntimeModule for RspackUniqueIdRuntimeModule {
   fn stage(&self) -> RuntimeModuleStage {
     RuntimeModuleStage::Attach
-  }
-  fn name(&self) -> Identifier {
-    self.id
   }
   fn template(&self) -> Vec<(String, String)> {
     vec![(

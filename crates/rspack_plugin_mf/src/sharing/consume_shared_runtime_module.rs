@@ -28,19 +28,12 @@ static CONSUMES_LOADING_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> = LazyLoc
 #[impl_runtime_module]
 #[derive(Debug)]
 pub struct ConsumeSharedRuntimeModule {
-  id: Identifier,
   enhanced: bool,
 }
 
 impl ConsumeSharedRuntimeModule {
   pub fn new(runtime_template: &RuntimeTemplate, enhanced: bool) -> Self {
-    Self::with_default(
-      Identifier::from(format!(
-        "{}consumes_loading",
-        runtime_template.runtime_module_prefix()
-      )),
-      enhanced,
-    )
+    Self::with_name(runtime_template, "consumes_loading", enhanced)
   }
 
   fn get_template_id(&self, template_id: TemplateId) -> String {
@@ -60,10 +53,6 @@ enum TemplateId {
 
 #[async_trait::async_trait]
 impl RuntimeModule for ConsumeSharedRuntimeModule {
-  fn name(&self) -> Identifier {
-    self.id
-  }
-
   fn stage(&self) -> RuntimeModuleStage {
     RuntimeModuleStage::Attach
   }

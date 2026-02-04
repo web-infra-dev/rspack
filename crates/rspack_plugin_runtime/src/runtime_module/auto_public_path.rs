@@ -14,25 +14,16 @@ static AUTO_PUBLIC_PATH_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
 
 #[impl_runtime_module]
 #[derive(Debug)]
-pub struct AutoPublicPathRuntimeModule {
-  id: Identifier,
-}
+pub struct AutoPublicPathRuntimeModule {}
 
 impl AutoPublicPathRuntimeModule {
   pub fn new(runtime_template: &RuntimeTemplate) -> Self {
-    Self::with_default(Identifier::from(format!(
-      "{}auto_public_path",
-      runtime_template.runtime_module_prefix()
-    )))
+    Self::with_default(runtime_template)
   }
 }
 
 #[async_trait::async_trait]
 impl RuntimeModule for AutoPublicPathRuntimeModule {
-  fn name(&self) -> Identifier {
-    self.id
-  }
-
   fn stage(&self) -> RuntimeModuleStage {
     RuntimeModuleStage::Attach
   }

@@ -4,7 +4,7 @@ use indoc::formatdoc;
 use rspack_collections::Identifier;
 use rspack_core::{
   ChunkGraph, Compilation, Module, ModuleGraph, ModuleId, ModuleIdentifier, RuntimeModule,
-  RuntimeModuleStage, impl_runtime_module,
+  RuntimeModuleStage, RuntimeTemplate, impl_runtime_module,
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_util::fx_hash::FxIndexSet;
@@ -51,22 +51,16 @@ struct RscManifest<'a> {
 
 #[impl_runtime_module]
 #[derive(Debug)]
-pub struct RscManifestRuntimeModule {
-  id: Identifier,
-}
+pub struct RscManifestRuntimeModule {}
 
 impl RscManifestRuntimeModule {
-  pub fn new() -> Self {
-    Self::with_default(Identifier::from("webpack/runtime/rsc_manifest"))
+  pub fn new(runtime_template: &RuntimeTemplate) -> Self {
+    Self::with_default(runtime_template)
   }
 }
 
 #[async_trait::async_trait]
 impl RuntimeModule for RscManifestRuntimeModule {
-  fn name(&self) -> Identifier {
-    self.id
-  }
-
   fn stage(&self) -> RuntimeModuleStage {
     RuntimeModuleStage::Attach
   }

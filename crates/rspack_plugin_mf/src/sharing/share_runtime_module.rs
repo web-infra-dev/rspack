@@ -20,28 +20,17 @@ static INITIALIZE_SHARING_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
 #[impl_runtime_module]
 #[derive(Debug)]
 pub struct ShareRuntimeModule {
-  id: Identifier,
   enhanced: bool,
 }
 
 impl ShareRuntimeModule {
   pub fn new(runtime_template: &RuntimeTemplate, enhanced: bool) -> Self {
-    Self::with_default(
-      Identifier::from(format!(
-        "{}sharing",
-        runtime_template.runtime_module_prefix()
-      )),
-      enhanced,
-    )
+    Self::with_name(runtime_template, "sharing", enhanced)
   }
 }
 
 #[async_trait::async_trait]
 impl RuntimeModule for ShareRuntimeModule {
-  fn name(&self) -> Identifier {
-    self.id
-  }
-
   fn template(&self) -> Vec<(String, String)> {
     vec![(self.id.to_string(), INITIALIZE_SHARING_TEMPLATE.to_string())]
   }

@@ -5,25 +5,16 @@ use rspack_core::{
 
 #[impl_runtime_module]
 #[derive(Debug)]
-pub struct ChunkNameRuntimeModule {
-  id: Identifier,
-}
+pub struct ChunkNameRuntimeModule {}
 
 impl ChunkNameRuntimeModule {
   pub fn new(runtime_template: &RuntimeTemplate) -> Self {
-    Self::with_default(Identifier::from(format!(
-      "{}chunk_name",
-      runtime_template.runtime_module_prefix()
-    )))
+    Self::with_default(runtime_template)
   }
 }
 
 #[async_trait::async_trait]
 impl RuntimeModule for ChunkNameRuntimeModule {
-  fn name(&self) -> Identifier {
-    self.id
-  }
-
   async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
     if let Some(chunk_ukey) = self.chunk {
       let chunk = compilation.chunk_by_ukey.expect_get(&chunk_ukey);

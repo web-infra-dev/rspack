@@ -4,11 +4,12 @@ use async_trait::async_trait;
 use rspack_cacheable::cacheable;
 use rspack_collections::Identifier;
 
-use crate::{ChunkUkey, Compilation, Module, RuntimeGlobals};
+use crate::{ChunkUkey, Compilation, Module, RuntimeGlobals, RuntimeTemplate};
 
 #[async_trait]
-pub trait RuntimeModule: Module + CustomSourceRuntimeModule + AttachableRuntimeModule {
-  fn name(&self) -> Identifier;
+pub trait RuntimeModule:
+  Module + CustomSourceRuntimeModule + AttachableRuntimeModule + NamedRuntimeModule
+{
   fn stage(&self) -> RuntimeModuleStage {
     RuntimeModuleStage::Normal
   }
@@ -41,6 +42,11 @@ pub trait RuntimeModule: Module + CustomSourceRuntimeModule + AttachableRuntimeM
 #[async_trait]
 pub trait AttachableRuntimeModule {
   fn attach(&mut self, chunk: ChunkUkey);
+}
+
+#[async_trait]
+pub trait NamedRuntimeModule {
+  fn name(&self) -> Identifier;
 }
 
 #[async_trait]

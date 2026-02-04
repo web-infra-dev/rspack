@@ -16,28 +16,17 @@ static MAKE_DEFERRED_NAMESPACE_OBJECT_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlob
 #[impl_runtime_module]
 #[derive(Debug)]
 pub struct MakeDeferredNamespaceObjectRuntimeModule {
-  id: Identifier,
   chunk_ukey: ChunkUkey,
 }
 
 impl MakeDeferredNamespaceObjectRuntimeModule {
   pub fn new(runtime_template: &RuntimeTemplate, chunk_ukey: ChunkUkey) -> Self {
-    Self::with_default(
-      Identifier::from(format!(
-        "{}make_deferred_namespace_object",
-        runtime_template.runtime_module_prefix()
-      )),
-      chunk_ukey,
-    )
+    Self::with_default(runtime_template, chunk_ukey)
   }
 }
 
 #[async_trait::async_trait]
 impl RuntimeModule for MakeDeferredNamespaceObjectRuntimeModule {
-  fn name(&self) -> Identifier {
-    self.id
-  }
-
   fn template(&self) -> Vec<(String, String)> {
     vec![(
       self.id.to_string(),

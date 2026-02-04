@@ -62,16 +62,11 @@ static JAVASCRIPT_HOT_MODULE_REPLACEMENT_RUNTIME_REQUIREMENTS: LazyLock<RuntimeG
 
 #[impl_runtime_module]
 #[derive(Debug)]
-pub struct RequireChunkLoadingRuntimeModule {
-  id: Identifier,
-}
+pub struct RequireChunkLoadingRuntimeModule {}
 
 impl RequireChunkLoadingRuntimeModule {
   pub fn new(runtime_template: &RuntimeTemplate) -> Self {
-    Self::with_default(Identifier::from(format!(
-      "{}require_chunk_loading",
-      runtime_template.runtime_module_prefix()
-    )))
+    Self::with_default(runtime_template)
   }
   fn generate_base_uri(
     &self,
@@ -162,10 +157,6 @@ enum TemplateId {
 
 #[async_trait::async_trait]
 impl RuntimeModule for RequireChunkLoadingRuntimeModule {
-  fn name(&self) -> Identifier {
-    self.id
-  }
-
   fn template(&self) -> Vec<(String, String)> {
     vec![
       (

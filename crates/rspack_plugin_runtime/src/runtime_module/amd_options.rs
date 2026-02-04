@@ -6,28 +6,17 @@ use rspack_core::{
 #[impl_runtime_module]
 #[derive(Debug)]
 pub struct AmdOptionsRuntimeModule {
-  id: Identifier,
   options: String,
 }
 
 impl AmdOptionsRuntimeModule {
   pub fn new(runtime_template: &RuntimeTemplate, options: String) -> Self {
-    Self::with_default(
-      Identifier::from(format!(
-        "{}amd_options",
-        runtime_template.runtime_module_prefix()
-      )),
-      options,
-    )
+    Self::with_default(runtime_template, options)
   }
 }
 
 #[async_trait::async_trait]
 impl RuntimeModule for AmdOptionsRuntimeModule {
-  fn name(&self) -> Identifier {
-    self.id
-  }
-
   async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
     Ok(format!(
       "{} = {}",

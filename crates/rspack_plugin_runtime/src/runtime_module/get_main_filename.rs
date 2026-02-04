@@ -7,7 +7,6 @@ use rspack_core::{
 #[impl_runtime_module]
 #[derive(Debug)]
 pub struct GetMainFilenameRuntimeModule {
-  id: Identifier,
   global: RuntimeGlobals,
   filename: Filename,
 }
@@ -19,11 +18,9 @@ impl GetMainFilenameRuntimeModule {
     global: RuntimeGlobals,
     filename: Filename,
   ) -> Self {
-    Self::with_default(
-      Identifier::from(format!(
-        "{}get_main_filename/{content_type}",
-        runtime_template.runtime_module_prefix()
-      )),
+    Self::with_name(
+      runtime_template,
+      &format!("get_main_filename/{content_type}"),
       global,
       filename,
     )
@@ -32,10 +29,6 @@ impl GetMainFilenameRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for GetMainFilenameRuntimeModule {
-  fn name(&self) -> Identifier {
-    self.id
-  }
-
   async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
     if let Some(chunk_ukey) = self.chunk {
       let chunk = compilation.chunk_by_ukey.expect_get(&chunk_ukey);

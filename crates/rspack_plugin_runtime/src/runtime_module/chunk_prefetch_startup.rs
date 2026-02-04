@@ -16,7 +16,6 @@ static CHUNK_PREFETCH_STARTUP_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
 #[impl_runtime_module]
 #[derive(Debug)]
 pub struct ChunkPrefetchStartupRuntimeModule {
-  id: Identifier,
   startup_chunks: Vec<(Vec<ChunkUkey>, Vec<ChunkUkey>)>,
 }
 
@@ -25,22 +24,12 @@ impl ChunkPrefetchStartupRuntimeModule {
     runtime_template: &RuntimeTemplate,
     startup_chunks: Vec<(Vec<ChunkUkey>, Vec<ChunkUkey>)>,
   ) -> Self {
-    Self::with_default(
-      Identifier::from(format!(
-        "{}chunk_prefetch_startup",
-        runtime_template.runtime_module_prefix()
-      )),
-      startup_chunks,
-    )
+    Self::with_default(runtime_template, startup_chunks)
   }
 }
 
 #[async_trait::async_trait]
 impl RuntimeModule for ChunkPrefetchStartupRuntimeModule {
-  fn name(&self) -> Identifier {
-    self.id
-  }
-
   fn template(&self) -> Vec<(String, String)> {
     vec![(
       self.id.to_string(),

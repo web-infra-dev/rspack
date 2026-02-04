@@ -9,17 +9,12 @@ use crate::utils::json_stringify;
 
 #[impl_runtime_module]
 #[derive(Debug)]
-pub struct ExposeRuntimeModule {
-  id: Identifier,
-}
+pub struct ExposeRuntimeModule {}
 
 impl ExposeRuntimeModule {
   #[allow(clippy::new_without_default)]
   pub fn new(runtime_template: &RuntimeTemplate) -> Self {
-    Self::with_default(Identifier::from(format!(
-      "{}initialize_exposes",
-      runtime_template.runtime_module_prefix()
-    )))
+    Self::with_name(runtime_template, "initialize_exposes")
   }
 }
 
@@ -51,10 +46,6 @@ impl ExposeRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for ExposeRuntimeModule {
-  fn name(&self) -> Identifier {
-    self.id
-  }
-
   fn stage(&self) -> RuntimeModuleStage {
     RuntimeModuleStage::Attach
   }

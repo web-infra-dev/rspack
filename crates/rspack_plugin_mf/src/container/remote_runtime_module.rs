@@ -19,28 +19,17 @@ static REMOTES_LOADING_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
 #[impl_runtime_module]
 #[derive(Debug)]
 pub struct RemoteRuntimeModule {
-  id: Identifier,
   enhanced: bool,
 }
 
 impl RemoteRuntimeModule {
   pub fn new(runtime_template: &RuntimeTemplate, enhanced: bool) -> Self {
-    Self::with_default(
-      Identifier::from(format!(
-        "{}remotes_loading",
-        runtime_template.runtime_module_prefix()
-      )),
-      enhanced,
-    )
+    Self::with_name(runtime_template, "remotes_loading", enhanced)
   }
 }
 
 #[async_trait::async_trait]
 impl RuntimeModule for RemoteRuntimeModule {
-  fn name(&self) -> Identifier {
-    self.id
-  }
-
   fn stage(&self) -> RuntimeModuleStage {
     RuntimeModuleStage::Attach
   }

@@ -8,29 +8,23 @@ use async_trait::async_trait;
 use rspack_collections::{DatabaseItem, Identifier};
 use rspack_core::{
   BooleanMatcher, Chunk, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
-  compile_boolean_matcher, get_js_chunk_filename_template, get_undo_path, impl_runtime_module,
+  RuntimeTemplate, compile_boolean_matcher, get_js_chunk_filename_template, get_undo_path,
+  impl_runtime_module,
 };
 use rspack_error::Result;
 use rspack_plugin_javascript::impl_plugin_for_js_plugin::chunk_has_js;
 
 #[impl_runtime_module]
 #[derive(Debug)]
-pub struct FederationDataRuntimeModule {
-  id: Identifier,
-}
+pub struct FederationDataRuntimeModule {}
 
-impl Default for FederationDataRuntimeModule {
-  fn default() -> Self {
-    Self::with_default(Identifier::from("module_federation/runtime"))
+impl FederationDataRuntimeModule {
+  pub fn new(runtime_template: &RuntimeTemplate) -> Self {
+    Self::with_name(runtime_template, "module_federation/runtime")
   }
 }
-
 #[async_trait]
 impl RuntimeModule for FederationDataRuntimeModule {
-  fn name(&self) -> Identifier {
-    self.id
-  }
-
   fn stage(&self) -> RuntimeModuleStage {
     RuntimeModuleStage::Normal
   }

@@ -7,25 +7,16 @@ use rspack_core::{
 // TODO workaround for get_chunk_update_filename
 #[impl_runtime_module]
 #[derive(Debug)]
-pub struct GetChunkUpdateFilenameRuntimeModule {
-  id: Identifier,
-}
+pub struct GetChunkUpdateFilenameRuntimeModule {}
 
 impl GetChunkUpdateFilenameRuntimeModule {
   pub fn new(runtime_template: &RuntimeTemplate) -> Self {
-    Self::with_default(Identifier::from(format!(
-      "{}get_chunk_update_filename",
-      runtime_template.runtime_module_prefix()
-    )))
+    Self::with_default(runtime_template)
   }
 }
 
 #[async_trait::async_trait]
 impl RuntimeModule for GetChunkUpdateFilenameRuntimeModule {
-  fn name(&self) -> Identifier {
-    self.id
-  }
-
   fn template(&self) -> Vec<(String, String)> {
     vec![(
       self.id.to_string(),
