@@ -76,6 +76,7 @@ fn create_import_meta_context_dependency(
       end: node.span().real_hi(),
       referenced_exports: None,
       attributes: None,
+      phase: None,
     }
   } else {
     ContextOptions {
@@ -94,6 +95,7 @@ fn create_import_meta_context_dependency(
       end: node.span().real_hi(),
       referenced_exports: None,
       attributes: None,
+      phase: None,
     }
   };
   Some(ImportMetaContextDependency::new(

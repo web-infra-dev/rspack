@@ -390,10 +390,6 @@ impl JavascriptParserPlugin for ImportParserPlugin {
         return None;
       }
 
-      if phase.is_defer() {
-        parser.add_error(rspack_error::error!("import.defer() is not yet supported for ContextModule (the import path is a dynamic expression).").into());
-      }
-
       let ContextModuleScanResult {
         context,
         reg,
@@ -430,6 +426,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
           end: import_call_span.real_hi(),
           referenced_exports: exports,
           attributes,
+          phase: Some(phase),
         },
         import_call_span.into(),
         dyn_imported.span().into(),

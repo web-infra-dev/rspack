@@ -200,6 +200,7 @@ impl JavascriptParserPlugin for URLPlugin {
       end: expr.span().real_hi(),
       referenced_exports: None,
       attributes: None,
+      phase: None,
     };
 
     let mut dep = URLContextDependency::new(
