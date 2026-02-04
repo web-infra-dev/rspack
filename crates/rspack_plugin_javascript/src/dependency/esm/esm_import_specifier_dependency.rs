@@ -235,41 +235,30 @@ impl Dependency for ESMImportSpecifierDependency {
     module_graph_cache: &ModuleGraphCacheArtifact,
     _runtime: Option<&RuntimeSpec>,
   ) -> Vec<ExtendedReferencedExport> {
-    let ids = self.get_ids(module_graph);
+    let mut ids = self.get_ids(module_graph);
+    // namespace import
     if ids.is_empty() {
       return self.get_referenced_exports_in_destructuring(None);
     }
 
-    let exports_type = if let Some(id) = ids.first()
+    let mut namespace_object_as_context = self.namespace_object_as_context;
+    if let Some(id) = ids.first()
       && id == "default"
     {
       let parent_module = module_graph
         .get_parent_module(&self.id)
         .expect("should have parent module");
-      Some(get_exports_type(
-        module_graph,
-        module_graph_cache,
-        &self.id,
-        parent_module,
-      ))
-    } else {
-      None
-    };
-
-    let mut ids = ids;
-    let mut namespace_object_as_context = self.namespace_object_as_context;
-    if let Some(id) = ids.first()
-      && id == "default"
-    {
+      let exports_type =
+        get_exports_type(module_graph, module_graph_cache, &self.id, parent_module);
       match exports_type {
-        Some(ExportsType::DefaultOnly | ExportsType::DefaultWithNamed) => {
+        ExportsType::DefaultOnly | ExportsType::DefaultWithNamed => {
           if ids.len() == 1 {
             return self.get_referenced_exports_in_destructuring(None);
           }
           ids = &ids[1..];
           namespace_object_as_context = true;
         }
-        Some(ExportsType::Dynamic) => {
+        ExportsType::Dynamic => {
           return create_exports_object_referenced();
         }
         _ => {}
