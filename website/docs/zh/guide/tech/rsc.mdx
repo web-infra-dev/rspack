@@ -13,7 +13,7 @@ Rspack 提供两种方案来支持 React 服务器组件：
 
 ## 示例
 
-[rspack-rsc-examples](https://github.com/SyMind/rspack-rsc-examples) 仓库包含了使用 Rspack 构建 React 服务器组件应用的完整示例。
+[rspack-rsc-examples](https://github.com/rstackjs/rspack-rsc-examples) 仓库包含了使用 Rspack 构建 React 服务器组件应用的完整示例。
 
 ## 安装依赖
 
@@ -143,7 +143,7 @@ RSC 插件也依赖 loader 识别的指令信息，来区分客户端组件和�
 
 ### 配置 layer
 
-在 Server Compiler 中，Rspack 利用 [layer](/config/experiments#experimentslayers) 标识属于服务器组件（RSC）环境的模块。
+在 Server Compiler 中，Rspack 利用 [layer](/guide/features/layer) 标识属于服务器组件（RSC）环境的模块。
 
 为了使用 RSC 功能，你必须将 RSC 组件明确设置为 `Layers.rsc`。只有被标记为 `Layers.rsc` 的模块，Loader 才会将其内部的 `"use client"` 指令转换为客户端引用（Client Reference）。
 

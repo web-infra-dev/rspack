@@ -13,7 +13,7 @@ Rspack provides two solutions to support React Server Components:
 
 ## Example
 
-The [rspack-rsc-examples](https://github.com/SyMind/rspack-rsc-examples) repository contains full examples of building React Server Component applications using Rspack.
+The [rspack-rsc-examples](https://github.com/rstackjs/rspack-rsc-examples) repository contains full examples of building React Server Component applications using Rspack.
 
 ## Install dependencies
 
@@ -143,7 +143,7 @@ The RSC plugins also rely on the directive information identified by the loader 
 
 ### Configure layer
 
-In the Server Compiler, Rspack uses [layer](/config/experiments#experimentslayers) to identify modules that belong to the Server Component (RSC) environment.
+In the Server Compiler, Rspack uses [layer](/guide/features/layer) to identify modules that belong to the Server Component (RSC) environment.
 
 To use RSC features, you must explicitly assign RSC components to `Layers.rsc`. The Loader will only transform `"use client"` directives into Client References for modules marked with `Layers.rsc`.
 
