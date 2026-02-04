@@ -3,13 +3,7 @@ import { readFile, run, runWatch } from '../../utils/test-utils';
 
 describe('build command', () => {
   it.concurrent('it should work ', async () => {
-    const { exitCode, stderr, stdout } = await run(
-      __dirname,
-      [],
-      {},
-      {},
-      false,
-    );
+    const { exitCode, stderr, stdout } = await run(__dirname, [], {}, {}, true);
     expect(exitCode).toBe(0);
     expect(stderr).toBeFalsy();
     expect(stdout).toBeTruthy();
@@ -22,7 +16,7 @@ describe('build command', () => {
         ['--mode', 'development'],
         {},
         {},
-        false,
+        true,
       );
 
       expect(exitCode).toBe(0);
@@ -36,7 +30,7 @@ describe('build command', () => {
       ['--config', './entry.function.js'],
       {},
       {},
-      false,
+      true,
     );
     expect(exitCode).toBe(0);
     expect(stderr).toBeFalsy();
@@ -50,7 +44,7 @@ describe('build command', () => {
         ['--config', './entry.env.js'],
         {},
         {},
-        false,
+        true,
       );
       expect(stdout).toContain('RSPACK_BUILD=true');
       expect(stdout).toContain('RSPACK_BUNDLE=true');
@@ -80,7 +74,7 @@ describe('build command', () => {
       ['--config', './entry.promise.js'],
       {},
       {},
-      false,
+      true,
     );
     expect(exitCode).toBe(0);
     expect(stderr).toBeFalsy();
@@ -92,7 +86,7 @@ describe('build command', () => {
       ['--config', './entry.config.mjs'],
       {},
       {},
-      false,
+      true,
     );
     expect(exitCode).toBe(0);
     expect(stderr).toBeFalsy();
@@ -111,7 +105,7 @@ describe('build command', () => {
       ],
       {},
       {},
-      false,
+      true,
     );
     const mainJs = await readFile(
       resolve(__dirname, 'dist/priority/main.js'),
@@ -133,7 +127,7 @@ describe('build command', () => {
         [command, 'dist/public', '--config', './entry.config.js'],
         {},
         {},
-        false,
+        true,
       );
       const mainJs = await readFile(
         resolve(__dirname, 'dist/public/main.js'),
@@ -162,7 +156,7 @@ describe('build command', () => {
         [command, option, '--config', './entry.config.js'],
         {},
         {},
-        false,
+        true,
       );
 
       const mainJs = await readFile(
