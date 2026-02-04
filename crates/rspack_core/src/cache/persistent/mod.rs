@@ -101,7 +101,6 @@ impl PersistentCache {
         input_filesystem,
         snapshot.clone(),
         storage.clone(),
-        codec.clone(),
       ),
       snapshot,
       make_occasion: MakeOccasion::new(storage.clone(), codec.clone()),
