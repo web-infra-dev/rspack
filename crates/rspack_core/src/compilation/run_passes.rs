@@ -46,14 +46,14 @@ impl Compilation {
       Box::new(AfterSealPass),
     ];
     if !self.options.mode.is_development() {
-      self.module_static_cache.unfreeze();
+      self.module_static_cache.enable_new_cache();
     }
 
     for pass in &passes {
       pass.run(self, cache).await?;
     }
     if !self.options.mode.is_development() {
-      self.module_static_cache.freeze();
+      self.module_static_cache.disable_cache();
     }
 
     Ok(())
