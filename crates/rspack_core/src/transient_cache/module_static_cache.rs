@@ -6,31 +6,33 @@ use std::sync::{
 use readable_identifier::*;
 use rustc_hash::FxHashMap as HashMap;
 
-pub type ModuleStaticCacheArtifact = Arc<ModuleStaticCacheArtifactInner>;
+pub type ModuleStaticCache = Arc<ModuleStaticCacheInner>;
 
 /// This cache is used to cache the information of modules that are not changed after `make`.
 #[derive(Debug, Default)]
-pub struct ModuleStaticCacheArtifactInner {
-  freezed: AtomicBool,
+pub struct ModuleStaticCacheInner {
+  /// this is a fast-path check to avoid hash check
+  cache_enabled: AtomicBool,
   readable_identifier_cache: ReadableIdentifierCache,
 }
 
-impl ModuleStaticCacheArtifactInner {
-  pub fn freeze(&self) {
+impl ModuleStaticCacheInner {
+  pub fn enable_new_cache(&self) {
     // Only cache the readable identifier of compilation context
-    self.readable_identifier_cache.freeze();
-    self.freezed.store(true, Ordering::Release);
+    self.cache_enabled.store(true, Ordering::Release);
+    self.readable_identifier_cache.clear();
   }
 
-  pub fn unfreeze(&self) {
-    self.freezed.store(false, Ordering::Release);
+  pub fn disable_cache(&self) {
+    self.cache_enabled.store(false, Ordering::Release);
+    self.readable_identifier_cache.clear();
   }
   pub fn cached_readable_identifier<F: FnOnce() -> String>(
     &self,
     key: ReadableIdentifierCacheKey,
     f: F,
   ) -> String {
-    if !self.freezed.load(Ordering::Acquire) {
+    if !self.cache_enabled.load(Ordering::Acquire) {
       return f();
     }
 
@@ -58,7 +60,7 @@ pub(super) mod readable_identifier {
   }
 
   impl ReadableIdentifierCache {
-    pub fn freeze(&self) {
+    pub fn clear(&self) {
       self.cache.write().expect("should get lock").clear();
     }
 

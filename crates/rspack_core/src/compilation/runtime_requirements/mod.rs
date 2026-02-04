@@ -1,12 +1,33 @@
-use super::*;
-use crate::logger::Logger;
+use async_trait::async_trait;
 
-pub async fn runtime_requirements_pass(
-  compilation: &mut Compilation,
-  plugin_driver: SharedPluginDriver,
-) -> Result<()> {
-  let logger = compilation.get_logger("rspack.Compilation");
-  let start = logger.time("runtime requirements");
+use super::*;
+use crate::{cache::Cache, compilation::pass::PassExt, logger::Logger};
+
+pub struct RuntimeRequirementsPass;
+
+#[async_trait]
+impl PassExt for RuntimeRequirementsPass {
+  fn name(&self) -> &'static str {
+    "runtime requirements"
+  }
+
+  async fn before_pass(&self, compilation: &mut Compilation, cache: &mut dyn Cache) {
+    cache.before_modules_runtime_requirements(compilation).await;
+    cache.before_chunks_runtime_requirements(compilation).await;
+  }
+
+  async fn run_pass(&self, compilation: &mut Compilation) -> Result<()> {
+    runtime_requirements_pass_impl(compilation).await
+  }
+
+  async fn after_pass(&self, compilation: &Compilation, cache: &mut dyn Cache) {
+    cache.after_modules_runtime_requirements(compilation).await;
+    cache.after_chunks_runtime_requirements(compilation).await;
+  }
+}
+
+async fn runtime_requirements_pass_impl(compilation: &mut Compilation) -> Result<()> {
+  let plugin_driver = compilation.plugin_driver.clone();
   let process_runtime_requirements_modules = if let Some(mutations) = compilation
     .incremental
     .mutations_read(IncrementalPasses::MODULES_RUNTIME_REQUIREMENTS)
@@ -105,7 +126,6 @@ pub async fn runtime_requirements_pass(
       plugin_driver.clone(),
     )
     .await?;
-  logger.time_end(start);
   Ok(())
 }
 

@@ -274,7 +274,7 @@ impl ModuleConcatenationPlugin {
       let module_readable_identifier = get_cached_readable_identifier(
         module_id,
         module_graph,
-        &compilation.module_static_cache_artifact,
+        &compilation.module_static_cache,
         &compilation.options.context,
       );
 
@@ -448,7 +448,7 @@ impl ModuleConcatenationPlugin {
               get_cached_readable_identifier(
                 mid,
                 module_graph,
-                &compilation.module_static_cache_artifact,
+                &compilation.module_static_cache,
                 &compilation.options.context,
               )
             })
@@ -487,7 +487,7 @@ impl ModuleConcatenationPlugin {
               let readable_identifier = get_cached_readable_identifier(
                 origin_module,
                 module_graph,
-                &compilation.module_static_cache_artifact,
+                &compilation.module_static_cache,
                 &compilation.options.context,
               );
               let mut names = connections
@@ -564,7 +564,7 @@ impl ModuleConcatenationPlugin {
                   let readable_identifier = get_cached_readable_identifier(
                     origin_module,
                     module_graph,
-                    &compilation.module_static_cache_artifact,
+                    &compilation.module_static_cache,
                     &compilation.options.context,
                   );
                   format!(
@@ -669,7 +669,7 @@ impl ModuleConcatenationPlugin {
       readable_identifier: get_cached_readable_identifier(
         &root_module_id,
         module_graph,
-        &compilation.module_static_cache_artifact,
+        &compilation.module_static_cache,
         &compilation.options.context,
       ),
       name_for_condition: box_module.name_for_condition(),
@@ -714,7 +714,7 @@ impl ModuleConcatenationPlugin {
           shorten_id: get_cached_readable_identifier(
             id,
             module_graph,
-            &compilation.module_static_cache_artifact,
+            &compilation.module_static_cache,
             &compilation.options.context,
           ),
         }
@@ -1044,7 +1044,7 @@ impl ModuleConcatenationPlugin {
 
     let module_graph = compilation.get_module_graph();
     let module_graph_cache = &compilation.module_graph_cache_artifact;
-    let module_static_cache_artifact = &compilation.module_static_cache_artifact;
+    let module_static_cache = &compilation.module_static_cache;
     let compilation_context = &compilation.options.context;
     let cache_modules = relevant_modules
       .iter()
@@ -1074,7 +1074,7 @@ impl ModuleConcatenationPlugin {
         let _ = get_cached_readable_identifier(
           &module_id,
           module_graph,
-          module_static_cache_artifact,
+          module_static_cache,
           compilation_context,
         );
 
@@ -1448,7 +1448,7 @@ async fn create_concatenated_module(
     readable_identifier: get_cached_readable_identifier(
       &root_module_id,
       module_graph,
-      &compilation.module_static_cache_artifact,
+      &compilation.module_static_cache,
       &compilation.options.context,
     ),
     name_for_condition: box_module.name_for_condition(),
@@ -1493,7 +1493,7 @@ async fn create_concatenated_module(
         shorten_id: get_cached_readable_identifier(
           id,
           module_graph,
-          &compilation.module_static_cache_artifact,
+          &compilation.module_static_cache,
           &compilation.options.context,
         ),
       }
