@@ -73,7 +73,7 @@ impl ImportMetaPlugin {
     if param.is_string() {
       let (start, end) = param.range();
       parser.add_dependency(Box::new(ImportMetaResolveDependency::new(
-        param.string().to_string(),
+        param.string().clone(),
         (start, end - 1).into(),
         parser.in_try,
       )));

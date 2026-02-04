@@ -1,3 +1,5 @@
+use std::sync::LazyLock;
+
 use hashlink::{LinkedHashMap, LinkedHashSet};
 use itertools::Itertools;
 use rspack_collections::Identifier;
@@ -5,10 +7,15 @@ use rspack_core::{
   ChunkUkey, Compilation, ModuleId, RuntimeGlobals, RuntimeModule, RuntimeTemplate, SourceType,
   impl_runtime_module,
 };
+use rspack_plugin_runtime::extract_runtime_globals_from_ejs;
 use rustc_hash::FxHashMap;
 
 use super::provide_shared_plugin::ProvideVersion;
 use crate::{ConsumeVersion, utils::json_stringify};
+
+static INITIALIZE_SHARING_TEMPLATE: &str = include_str!("./initializeSharing.ejs");
+static INITIALIZE_SHARING_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
+  LazyLock::new(|| extract_runtime_globals_from_ejs(INITIALIZE_SHARING_TEMPLATE));
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -38,10 +45,7 @@ impl RuntimeModule for ShareRuntimeModule {
   }
 
   fn template(&self) -> Vec<(String, String)> {
-    vec![(
-      self.id.to_string(),
-      include_str!("./initializeSharing.ejs").to_string(),
-    )]
+    vec![(self.id.to_string(), INITIALIZE_SHARING_TEMPLATE.to_string())]
   }
 
   async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
@@ -78,7 +82,7 @@ impl RuntimeModule for ShareRuntimeModule {
     }
     let scope_to_data_init = init_per_scope
       .into_iter()
-      .sorted_unstable_by_key(|(scope, _)| scope.to_string())
+      .sorted_unstable_by_key(|(scope, _)| scope.clone())
       .map(|(scope, stages)| {
         let stages: Vec<String> = stages
           .into_iter()
@@ -111,7 +115,7 @@ impl RuntimeModule for ShareRuntimeModule {
               stage += " }";
               stage
             }
-            _ => "".to_string(),
+            _ => String::new(),
           })
           .collect();
         format!("{}: [{}]", json_stringify(&scope), stages.join(", "))
@@ -150,6 +154,10 @@ impl RuntimeModule for ShareRuntimeModule {
 
   fn attach(&mut self, chunk: ChunkUkey) {
     self.chunk = Some(chunk);
+  }
+
+  fn additional_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
+    *INITIALIZE_SHARING_RUNTIME_REQUIREMENTS
   }
 }
 

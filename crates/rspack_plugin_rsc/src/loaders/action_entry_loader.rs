@@ -87,7 +87,7 @@ impl Loader<RunnerContext> for ActionEntryLoader {
   ))]
   async fn run(&self, loader_context: &mut LoaderContext<RunnerContext>) -> Result<()> {
     let Some(loader_query) = loader_context.current_loader().query() else {
-      loader_context.finish_with("".to_string());
+      loader_context.finish_with(String::new());
       return Ok(());
     };
 

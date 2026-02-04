@@ -121,7 +121,7 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
           let start_str = start_buffer.format(start);
           let mut end_buffer = itoa::Buffer::new();
           let end_str = end_buffer.format(end);
-          format!("__nested_rspack_require_{}_{}__", start_str, end_str)
+          format!("__nested_rspack_require_{start_str}_{end_str}__")
         },
         parser.in_short_hand,
         start,
@@ -182,7 +182,7 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
           let start_str = start_buffer.format(start);
           let mut end_buffer = itoa::Buffer::new();
           let end_str = end_buffer.format(end);
-          format!("__nested_rspack_require_{}_{}__", start_str, end_str)
+          format!("__nested_rspack_require_{start_str}_{end_str}__")
         },
         parser.in_short_hand,
         start,
@@ -210,7 +210,7 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
         {
           let mut lo_buffer = itoa::Buffer::new();
           let lo_str = lo_buffer.format(fn_decl.span().real_lo());
-          format!("__nested_rspack_require_{}__", lo_str)
+          format!("__nested_rspack_require_{lo_str}__")
         },
         parser.in_short_hand,
         ident.span().real_lo(),
@@ -241,7 +241,7 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
       deps.push(Box::new(ConstDependency::new(
         nested_require_data.loc,
         if shorthand {
-          format!("{}: {}", ident.sym, name.clone()).into()
+          format!("{}: {}", ident.sym, name).into()
         } else {
           name.clone().into()
         },
@@ -254,9 +254,9 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
     deps.push(Box::new(ConstDependency::new(
       ident.span.into(),
       if parser.in_short_hand {
-        format!("{}: {}", ident.sym, name.clone()).into()
+        format!("{}: {}", ident.sym, name).into()
       } else {
-        name.clone().into()
+        name.into()
       },
       None,
     )));

@@ -57,7 +57,7 @@ pub struct ESMImportSpecifierDependency {
 }
 
 impl ESMImportSpecifierDependency {
-  #[allow(clippy::too_many_arguments)]
+  #[allow(clippy::too_many_arguments, clippy::fn_params_excessive_bools)]
   pub fn new(
     request: Atom,
     name: Atom,
@@ -103,8 +103,7 @@ impl ESMImportSpecifierDependency {
 
   pub fn get_ids<'a>(&'a self, mg: &'a ModuleGraph) -> &'a [Atom] {
     mg.get_dep_meta_if_existing(&self.id)
-      .map(|meta| meta.ids.as_slice())
-      .unwrap_or_else(|| self.ids.as_slice())
+      .map_or_else(|| self.ids.as_slice(), |meta| meta.ids.as_slice())
   }
 
   pub fn get_referenced_exports_in_destructuring(

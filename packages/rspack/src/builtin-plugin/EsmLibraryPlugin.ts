@@ -14,9 +14,6 @@ export function applyLimits(options: RspackOptionsNormalized) {
   // chunk rendering is handled by EsmLibraryPlugin
   options.output.chunkFormat = false;
 
-  // mark output is module
-  options.output.module = true;
-
   if (options.output.chunkLoading && options.output.chunkLoading !== 'import') {
     options.output.chunkLoading = 'import';
   }

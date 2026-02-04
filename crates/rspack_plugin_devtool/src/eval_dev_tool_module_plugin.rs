@@ -43,7 +43,7 @@ pub struct EvalDevToolModulePlugin {
 
 impl EvalDevToolModulePlugin {
   pub fn new(options: EvalDevToolModulePluginOptions) -> Self {
-    let namespace = options.namespace.unwrap_or("".to_string());
+    let namespace = options.namespace.unwrap_or_default();
 
     let source_url_comment = options
       .source_url_comment
@@ -262,9 +262,7 @@ fn encode_uri(string: &str) -> Cow<'_, str> {
       .is_some();
     if is_unescape {
       match r {
-        Cow::Borrowed(_) => {
-          continue;
-        }
+        Cow::Borrowed(_) => {}
         Cow::Owned(mut inner) => {
           inner.push(c);
           r = Cow::Owned(inner);

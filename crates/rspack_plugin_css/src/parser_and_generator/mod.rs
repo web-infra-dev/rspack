@@ -406,7 +406,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
             dependencies.push(Box::new(dep));
           } else if from.is_none() {
             dependencies.push(Box::new(CssSelfReferenceLocalIdentDependency::new(
-              names.iter().map(|s| s.to_string()).collect(),
+              names.clone(),
               vec![],
             )));
           }
@@ -438,7 +438,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
                     .get_mut(local_class.as_str())
                     .expect("composes local class must already added to exports")
                     .insert(CssExport {
-                      ident: convention_name.to_string(),
+                      ident: convention_name.clone(),
                       orig_name: name.clone(),
                       from: from
                         .filter(|f| *f != "global")
@@ -642,7 +642,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
               ")".to_string(),
             )
           } else {
-            ("".to_string(), "".to_string(), "".to_string())
+            (String::new(), String::new(), String::new())
           };
           if let Some(exports) = &self.exports {
             if let Some(local_names) = &self.local_names {
@@ -766,11 +766,11 @@ fn get_unused_local_ident(
     |mut map, (name, css_exports)| {
       css_exports.iter().for_each(|css_export| {
         if let Some(set) = map.get_mut(css_export.orig_name.as_str()) {
-          set.insert(Atom::from(name.to_string()));
+          set.insert(Atom::from(name.clone()));
         } else {
           map.insert(
             &css_export.orig_name,
-            FxHashSet::from_iter([Atom::from(name.to_string())]),
+            FxHashSet::from_iter([Atom::from(name.clone())]),
           );
         }
       });

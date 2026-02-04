@@ -104,7 +104,7 @@ fn record_module(
       .files()
       .iter()
       .filter(|file| file.ends_with(".css"))
-      .map(|file| format!("{}{}", prefix, file))
+      .map(|file| format!("{prefix}{file}"))
       .collect();
     if css_files.is_empty() {
       return;
@@ -243,7 +243,7 @@ async fn collect_entry_js_files(
     };
     let entry_js_files = plugin_state
       .entry_js_files
-      .entry(entry_name.to_string())
+      .entry(entry_name.clone())
       .or_default();
     let prefix = &plugin_state
       .module_loading
@@ -264,7 +264,7 @@ async fn collect_entry_js_files(
         !(asset_info.hot_module_replacement.unwrap_or(false)
           || asset_info.development.unwrap_or(false))
       })
-      .map(|file| format!("{}{}", prefix, file))
+      .map(|file| format!("{prefix}{file}"))
       .collect::<FxIndexSet<String>>();
   }
   Ok(())
@@ -402,8 +402,7 @@ impl RscClientPlugin {
 
         let is_client_loader = module
           .as_normal_module()
-          .map(|m| m.user_request().starts_with(CLIENT_ENTRY_LOADER_IDENTIFIER))
-          .unwrap_or(false);
+          .is_some_and(|m| m.user_request().starts_with(CLIENT_ENTRY_LOADER_IDENTIFIER));
         if !is_client_loader {
           continue;
         }
@@ -472,8 +471,7 @@ async fn make(&self, compilation: &mut Compilation) -> Result<()> {
   let server_compiler_id = self.coordinator.get_server_compiler_id().await?;
   *self.server_compiler_id.borrow_mut() = Some(server_compiler_id);
 
-  let plugin_states = PLUGIN_STATES.borrow_mut();
-  let plugin_state = plugin_states.get(&server_compiler_id).ok_or_else(|| {
+  let plugin_state = PLUGIN_STATES.get(&server_compiler_id).ok_or_else(|| {
     rspack_error::error!(
       "RscClientPlugin: Plugin state not found in make hook for compiler {:#?}.",
       compilation.compiler_id()
@@ -509,7 +507,7 @@ async fn make(&self, compilation: &mut Compilation) -> Result<()> {
       }
 
       let dependency = Box::new(EntryDependency::new(
-        import.to_string(),
+        import.clone(),
         context.clone(),
         None,
         false,
@@ -546,8 +544,7 @@ async fn after_process_assets(
 
   let server_compiler_id = self.coordinator.get_server_compiler_id().await?;
 
-  let mut plugin_states = PLUGIN_STATES.borrow_mut();
-  let Some(plugin_state) = plugin_states.get_mut(&server_compiler_id) else {
+  let Some(mut plugin_state) = PLUGIN_STATES.get_mut(&server_compiler_id) else {
     return Err(rspack_error::error!(
       "Failed to find plugin state for server compiler (ID: {}). \
      The server compiler may not have properly collected client entry information, \
@@ -557,11 +554,13 @@ async fn after_process_assets(
   };
 
   let start = logger.time("create client reference manifest");
-  self.traverse_modules(compilation, plugin_state).await?;
+  self
+    .traverse_modules(compilation, &mut plugin_state)
+    .await?;
   logger.time_end(start);
 
   let start = logger.time("record entry js files");
-  collect_entry_js_files(compilation, plugin_state).await?;
+  collect_entry_js_files(compilation, &mut plugin_state).await?;
   logger.time_end(start);
 
   for (entry_name, client_entries) in self.client_entries_per_entry.borrow().iter() {

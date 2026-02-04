@@ -65,7 +65,7 @@ fn parse_new_worker_options_from_comments(
   let comments = try_extract_magic_comment(parser, diagnostic_span, span);
   if comments.get_ignore().is_some() || comments.get_chunk_name().is_some() {
     Some(ParsedNewWorkerImportOptions {
-      name: comments.get_chunk_name().map(|name| name.to_string()),
+      name: comments.get_chunk_name().cloned(),
       ignored: comments.get_ignore(),
     })
   } else {
@@ -219,7 +219,7 @@ fn handle_worker<'a>(
       return None;
     }
 
-    if let Some(name) = import_options.and_then(|options| options.name.clone()) {
+    if let Some(name) = import_options.and_then(|options| options.name) {
       if let Some(options) = &mut options {
         options.name = Some(name);
       } else {
@@ -524,8 +524,7 @@ fn worker_from(mut input: &str) -> winnow::ModalResult<((&str, bool), &str)> {
   let ident_and_call = token::take_while(1.., |c: char| !c.is_space()).map(|ident: &str| {
     ident
       .strip_suffix("()")
-      .map(|ident| (ident, true))
-      .unwrap_or((ident, false))
+      .map_or((ident, false), |ident| (ident, true))
   });
 
   let mut parser = separated_pair(

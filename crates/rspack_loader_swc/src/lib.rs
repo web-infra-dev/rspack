@@ -203,7 +203,7 @@ impl SwcLoader {
                 .to_string_lossy()
                 .into_owned()
             } else {
-              source.to_string()
+              source.clone()
             }
           })
           .collect::<Vec<_>>(),

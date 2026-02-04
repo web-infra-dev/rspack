@@ -231,7 +231,7 @@ impl AMDRequireDependenciesBlockParserPlugin {
         return Some(result.map(|item| item.expect("")).join("|"));
       }
     } else if param.is_string() {
-      return Some(param.string().to_string());
+      return Some(param.string().clone());
     }
     None
   }

@@ -17,3 +17,6 @@ rspack_browser = { workspace = true, optional = true }
 rspack_error   = { workspace = true }
 serde_json     = { workspace = true }
 tokio          = { workspace = true, features = ["sync"] }
+
+[lints]
+workspace = true

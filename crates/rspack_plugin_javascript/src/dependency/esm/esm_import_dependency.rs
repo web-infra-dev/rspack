@@ -186,9 +186,7 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
   } = code_generatable_context;
 
   // https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/dependencies/HarmonyImportDependency.js#L282-L285
-  let module_key = target_module
-    .map(|m| m.identifier().as_str())
-    .unwrap_or(module_dependency.request());
+  let module_key = target_module.map_or(module_dependency.request(), |m| m.identifier().as_str());
   let key = format!(
     "{}ESM import {module_key}",
     match phase {
@@ -234,11 +232,11 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
       content.0,
       InitFragmentStage::StageESMImports,
       source_order,
-      InitFragmentKey::ESMImport(key.to_string()),
+      InitFragmentKey::ESMImport(key.clone()),
       None,
       runtime_condition.clone(),
     )));
-    init_fragments.push(AwaitDependenciesInitFragment::new_single(import_var.to_string()).boxed());
+    init_fragments.push(AwaitDependenciesInitFragment::new_single(import_var).boxed());
     init_fragments.push(Box::new(ConditionalInitFragment::new(
       content.1,
       InitFragmentStage::StageAsyncESMImports,
@@ -252,7 +250,7 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
       format!("{}{}", content.0, content.1),
       InitFragmentStage::StageESMImports,
       source_order,
-      InitFragmentKey::ESMImport(key.to_string()),
+      InitFragmentKey::ESMImport(key),
       None,
       runtime_condition,
     )));

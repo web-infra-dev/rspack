@@ -150,7 +150,7 @@ impl InnerGraphPlugin {
       return;
     }
     let state: &mut super::state::InnerGraphState = &mut parser.inner_graph;
-    let mut non_terminal = HashSet::from_iter(state.inner_graph.keys().cloned());
+    let mut non_terminal: HashSet<TopLevelSymbol> = state.inner_graph.keys().cloned().collect();
     let mut processed: HashMap<TopLevelSymbol, HashSet<InnerGraphMapSetValue>> = HashMap::default();
 
     while !non_terminal.is_empty() {
@@ -255,7 +255,7 @@ impl InnerGraphPlugin {
       let used_by_exports = if let Some(usage) = usage {
         match usage {
           InnerGraphMapValue::Set(set) => {
-            let finalized_set = HashSet::from_iter(set.iter().map(|item| item.to_atom().clone()));
+            let finalized_set = set.iter().map(|item| item.to_atom().clone()).collect();
             UsedByExports::Set(finalized_set)
           }
           InnerGraphMapValue::True => UsedByExports::Bool(true),
@@ -384,8 +384,7 @@ impl JavascriptParserPlugin for InnerGraphPlugin {
     {
       let name = &fn_decl
         .ident()
-        .map(|ident| ident.sym.clone())
-        .unwrap_or_else(|| DEFAULT_STAR_JS_WORD.clone());
+        .map_or_else(|| DEFAULT_STAR_JS_WORD.clone(), |ident| ident.sym.clone());
       let fn_variable = Self::tag_top_level_symbol(parser, name);
 
       parser
@@ -418,8 +417,7 @@ impl JavascriptParserPlugin for InnerGraphPlugin {
     {
       let name = &class_decl
         .ident()
-        .map(|ident| ident.sym.clone())
-        .unwrap_or_else(|| DEFAULT_STAR_JS_WORD.clone());
+        .map_or_else(|| DEFAULT_STAR_JS_WORD.clone(), |ident| ident.sym.clone());
       let class_variable = Self::tag_top_level_symbol(parser, name);
       parser
         .inner_graph

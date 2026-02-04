@@ -20,7 +20,7 @@ impl ReactDirectivesParserPlugin {
         break;
       }
 
-      let directive = format!("\"{}\"", value);
+      let directive = format!("\"{value}\"");
       directives.push((directive, expr_stmt.span));
     }
   }

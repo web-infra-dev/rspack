@@ -100,16 +100,16 @@ impl AssignLibraryPlugin {
     if matches!(self.options.unnamed, Unnamed::Error) {
       if !matches!(
         library.name,
-        Some(LibraryName::NonUmdObject(LibraryNonUmdObject::Array(_)))
-          | Some(LibraryName::NonUmdObject(LibraryNonUmdObject::String(_)))
+        Some(LibraryName::NonUmdObject(
+          LibraryNonUmdObject::Array(_) | LibraryNonUmdObject::String(_)
+        ))
       ) {
         error_bail!("Library name must be a string or string array. {COMMON_LIBRARY_NAME_MESSAGE}")
       }
     } else if let Some(name) = &library.name
       && !matches!(
         name,
-        LibraryName::NonUmdObject(LibraryNonUmdObject::Array(_))
-          | LibraryName::NonUmdObject(LibraryNonUmdObject::String(_))
+        LibraryName::NonUmdObject(LibraryNonUmdObject::Array(_) | LibraryNonUmdObject::String(_))
       )
     {
       error_bail!(

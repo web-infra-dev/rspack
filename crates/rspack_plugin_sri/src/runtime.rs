@@ -24,10 +24,9 @@ fn add_attribute(
   cross_origin_loading: &CrossOriginLoading,
 ) -> String {
   format!(
-    r#"{}
-{tag}.integrity = {}[chunkId];
-{tag}.crossOrigin = '{}';"#,
-    code, variable_ref, cross_origin_loading
+    r#"{code}
+{tag}.integrity = {variable_ref}[chunkId];
+{tag}.crossOrigin = '{cross_origin_loading}';"#
   )
 }
 
@@ -155,6 +154,10 @@ impl RuntimeModule for SRIHashVariableRuntimeModule {
 
     Ok(code.join("\n"))
   }
+
+  fn additional_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
+    RuntimeGlobals::REQUIRE_SCOPE
+  }
 }
 
 fn generate_sri_hash_placeholders(
@@ -250,10 +253,9 @@ pub async fn handle_runtime(
   &self,
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
-  runtime_requirements: &mut RuntimeGlobals,
+  _runtime_requirements: &mut RuntimeGlobals,
   runtime_modules: &mut Vec<Box<dyn RuntimeModule>>,
 ) -> Result<()> {
-  runtime_requirements.insert(RuntimeGlobals::REQUIRE);
   runtime_modules.push(
     SRIHashVariableRuntimeModule::new(
       &compilation.runtime_template,

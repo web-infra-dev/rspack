@@ -2,14 +2,12 @@
 module.exports = {
 	entry: './index.js',
 	output: {
+		module: true,
 		library: {
 			type: "module"
 		}
 	},
 	target: ["web", "es2020"],
-	experiments: {
-		outputModule: true
-	},
 	optimization: {
 		minimize: false,
 		concatenateModules: true,

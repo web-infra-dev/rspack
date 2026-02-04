@@ -46,6 +46,7 @@ swc_core = { workspace = true, features = [
   "ecma_transforms_compat",
   "ecma_transforms_typescript",
   "base",
+  "base_module",
   "ecma_quote",
 ] }
 swc_node_comments = { workspace = true }
@@ -57,6 +58,5 @@ winnow = { workspace = true }
 [package.metadata.cargo-shear]
 ignored = ["tracing"]
 
-[lints.rust.unexpected_cfgs]
-check-cfg = ['cfg(allocative)']
-level     = "warn"
+[lints]
+workspace = true

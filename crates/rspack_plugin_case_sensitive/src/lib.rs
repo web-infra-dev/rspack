@@ -46,8 +46,7 @@ impl CaseSensitivePlugin {
     format!(
       r#"Prevent writing to file that only differs in casing or query string from already written file.
 This will lead to a race-condition and corrupted files on case-insensitive file systems.
-{}"#,
-      filenames_str
+{filenames_str}"#
     )
   }
 }

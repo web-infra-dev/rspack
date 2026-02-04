@@ -1,4 +1,4 @@
-# Rspack - GitHub Copilot Instructions
+# Rspack
 
 ## Project Overview
 
@@ -33,8 +33,7 @@ Rspack is a high-performance JavaScript bundler written in Rust that offers stro
 - `pnpm run test:e2e` - E2E tests
 - `pnpm run test:base` - Integration tests (in `tests/rspack-test`)
 - `pnpm run test:hot` - HMR tests
-- Update snapshots: `npm run test -- -u`
-- Filter tests: `npm run test -- -t configCases/asset`
+- `cd tests/rspack-test && pnpm run test -t "configCases/asset"` - Run filtered tests
 
 Depends on what you have modified, you need to rebuild by `pnpm run build:js` or `pnpm run build:binding:dev` or `pnpm run build:cli:dev` first, then run testing commands to verify the modification.
 

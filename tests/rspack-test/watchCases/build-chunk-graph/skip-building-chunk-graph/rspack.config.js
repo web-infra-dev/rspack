@@ -5,9 +5,6 @@ module.exports = {
 		usedExports: false,
 		innerGraph: true
 	},
-	incremental: {
-		buildChunkGraph: false
-	},
 	module: {
 		rules: [
 			{

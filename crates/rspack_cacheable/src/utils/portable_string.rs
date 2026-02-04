@@ -93,9 +93,9 @@ impl PortableString {
         .to_slash_lossy()
         .to_string();
       let portable_path = if relative_path.is_empty() || relative_path == "." {
-        format!("{}/", PROJECT_ROOT_PLACEHOLDER)
+        format!("{PROJECT_ROOT_PLACEHOLDER}/")
       } else {
-        format!("{}/{}/", PROJECT_ROOT_PLACEHOLDER, relative_path)
+        format!("{PROJECT_ROOT_PLACEHOLDER}/{relative_path}/")
       };
       result.push_str(&portable_path);
 

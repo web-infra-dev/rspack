@@ -7,8 +7,5 @@ module.exports = {
 		filename: "[name].mjs",
 		module: true
 	},
-	experiments: {
-		outputModule: true
-	},
 	target: "node14"
 };

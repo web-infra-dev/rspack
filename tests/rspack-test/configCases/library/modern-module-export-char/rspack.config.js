@@ -11,9 +11,6 @@ module.exports = {
 		chunkFormat: "module"
 	},
 	externalsType: "module-import",
-	experiments: {
-		outputModule: true
-	},
 	externals: "external-module",
 	optimization: {
 		runtimeChunk: false

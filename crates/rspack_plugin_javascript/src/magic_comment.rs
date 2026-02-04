@@ -232,10 +232,9 @@ fn analyze_comments(
       if let Some(item_name_match) = captures.name("_0") {
         let item_name = item_name_match.as_str();
         let error_span = || {
-          captures
-            .name("_9")
-            .map(|item| match_item_to_error_span(comment.span, item.start(), item.end()))
-            .unwrap_or(error_span.into())
+          captures.name("_9").map_or(error_span.into(), |item| {
+            match_item_to_error_span(comment.span, item.start(), item.end())
+          })
         };
         match item_name {
           "webpackChunkName" => {
@@ -402,7 +401,7 @@ fn analyze_comments(
                 item_value_match
                   .as_str()
                   .split(',')
-                  .try_fold("".to_string(), |acc, item| {
+                  .try_fold(String::new(), |acc, item| {
                     EXPORT_NAME_REGEXP
                       .captures(item.trim())
                       .and_then(|matched| matched.get(1).map(|x| x.as_str()))
@@ -511,7 +510,7 @@ mod tests_extract_regex {
       Some((
         "webpackInclude".to_string(),
         "abc".to_string(),
-        "".to_string()
+        String::new()
       ))
     );
     assert_eq!(
@@ -543,7 +542,7 @@ mod tests_extract_regex {
       Some((
         "webpackInclude".to_string(),
         "components[\\/][^\\/]+\\.vue$".to_string(),
-        "".to_string()
+        String::new()
       ))
     );
     assert_eq!(
@@ -551,7 +550,7 @@ mod tests_extract_regex {
       Some((
         "webpackInclude".to_string(),
         "components[/\\][^/\\]+\\.vue$".to_string(),
-        "".to_string()
+        String::new()
       ))
     );
     assert_eq!(
@@ -559,7 +558,7 @@ mod tests_extract_regex {
       Some((
         "webpackInclude".to_string(),
         "^.{2,}$".to_string(),
-        "".to_string()
+        String::new()
       ))
     );
     assert_eq!(
@@ -567,7 +566,7 @@ mod tests_extract_regex {
       Some((
         "webpackInclude".to_string(),
         "^.{2,}$".to_string(),
-        "".to_string()
+        String::new()
       ))
     );
     // https://github.com/web-infra-dev/rspack/issues/10195
@@ -578,7 +577,7 @@ mod tests_extract_regex {
       Some((
         "webpackInclude".to_string(),
         "(?!.*node_modules)(?:\\/src\\/(?!\\.)(?=.)[^/]*?\\.stories\\.tsx)$".to_string(),
-        "".to_string()
+        String::new()
       ))
     );
   }

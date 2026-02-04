@@ -39,6 +39,7 @@ module.exports = [
 	{
 		entry: "./index",
 		mode: "development",
+		devtool: 'eval',
 		target: "web",
 		output: {
 			filename: "no-warning.dev-web.js"
@@ -51,6 +52,7 @@ module.exports = [
 	{
 		entry: "./index",
 		mode: "development",
+		devtool: 'eval',
 		target: "node",
 		output: {
 			filename: "no-warning.dev-node.js"
@@ -63,6 +65,7 @@ module.exports = [
 	{
 		entry: "./index",
 		mode: "development",
+		devtool: 'eval',
 		target: "web",
 		performance: {
 			maxAssetSize: 100

@@ -81,7 +81,7 @@ impl Combinator {
       let chunk = chunk_by_ukey.expect_get(&chunk_ukey);
       let runtime = chunk.runtime();
       let usage_key = runtime_key_map
-        .entry(get_runtime_key(runtime).to_string())
+        .entry(get_runtime_key(runtime).clone())
         .or_insert_with(|| exports_info.get_usage_key(Some(runtime)))
         .clone();
 
@@ -208,7 +208,7 @@ impl Combinator {
             .get(module)
             .expect("should have module chunks")
             .iter()
-            .cloned(),
+            .copied(),
           module_graph,
           chunk_by_ukey,
         );
@@ -560,7 +560,7 @@ async fn merge_matched_item_into_module_group_map(
   // `Module`s with the same chunk_name would be merged togother.
   // `Module`s could be in different `ModuleGroup`s.
   let chunk_name = match &cache_group.name {
-    ChunkNameGetter::String(name) => Some(name.to_string()),
+    ChunkNameGetter::String(name) => Some(name.clone()),
     ChunkNameGetter::Disabled => None,
     ChunkNameGetter::Fn(f) => {
       let ctx = ChunkNameGetterFnCtx {

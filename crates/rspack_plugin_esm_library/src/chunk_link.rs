@@ -144,7 +144,7 @@ impl ExternalInterop {
 
       self.default_access = Some(new_name.clone());
       used_names.insert(new_name.clone());
-      new_name.clone()
+      new_name
     }
   }
 
@@ -169,9 +169,7 @@ impl ExternalInterop {
   pub fn property_access(&mut self, atom: &Atom, used_names: &mut FxHashSet<Atom>) -> Atom {
     self.property_access.get(atom).cloned().unwrap_or_else(|| {
       let local_name = find_new_name(atom, used_names, &vec![]);
-      self
-        .property_access
-        .insert(atom.clone(), local_name.clone());
+      self.property_access.insert(atom.clone(), local_name);
       self
         .property_access
         .get(atom)

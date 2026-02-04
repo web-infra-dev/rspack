@@ -5,7 +5,7 @@ use rspack_cacheable::{
 use rspack_core::{
   AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
   DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, FactorizeInfo,
-  ImportAttributes, ModuleDependency, ModuleGraphCacheArtifact, ResourceIdentifier,
+  ImportAttributes, ImportPhase, ModuleDependency, ModuleGraphCacheArtifact, ResourceIdentifier,
   TemplateContext, TemplateReplaceSource,
 };
 use swc_core::ecma::atoms::Atom;
@@ -25,6 +25,7 @@ pub struct ImportEagerDependency {
   #[cacheable(with=AsOption<AsVec<AsVec<AsPreset>>>)]
   referenced_exports: Option<Vec<Vec<Atom>>>,
   attributes: Option<ImportAttributes>,
+  phase: ImportPhase,
   resource_identifier: ResourceIdentifier,
   factorize_info: FactorizeInfo,
 }
@@ -35,6 +36,7 @@ impl ImportEagerDependency {
     range: DependencyRange,
     referenced_exports: Option<Vec<Vec<Atom>>>,
     attributes: Option<ImportAttributes>,
+    phase: ImportPhase,
   ) -> Self {
     let resource_identifier =
       create_resource_identifier_for_esm_dependency(request.as_str(), attributes.as_ref());
@@ -44,6 +46,7 @@ impl ImportEagerDependency {
       id: DependencyId::new(),
       referenced_exports,
       attributes,
+      phase,
       resource_identifier,
       factorize_info: Default::default(),
     }
@@ -74,6 +77,10 @@ impl Dependency for ImportEagerDependency {
 
   fn get_attributes(&self) -> Option<&ImportAttributes> {
     self.attributes.as_ref()
+  }
+
+  fn get_phase(&self) -> ImportPhase {
+    self.phase
   }
 
   fn range(&self) -> Option<DependencyRange> {
@@ -164,6 +171,7 @@ impl DependencyTemplate for ImportEagerDependencyTemplate {
           &dep.request,
           dep.dependency_type().as_str(),
           false,
+          dep.get_phase(),
         )
         .as_str(),
       None,

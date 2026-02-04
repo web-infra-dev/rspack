@@ -57,7 +57,7 @@ impl EvalSourceMapDevToolPlugin {
           "webpack://[namespace]/[resource-path]?[hash]".to_string(),
         ));
 
-    let namespace = options.namespace.unwrap_or("".to_string());
+    let namespace = options.namespace.unwrap_or_default();
 
     Self::new_inner(
       options.columns,
@@ -154,7 +154,7 @@ async fn render_module_content(
               None => SourceReference::Source(Arc::from(source)),
             }
           } else {
-            SourceReference::Source(Arc::from(source.to_string()))
+            SourceReference::Source(Arc::from(source.clone()))
           }
         });
         let path_data = PathData::default()

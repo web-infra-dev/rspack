@@ -92,7 +92,7 @@ impl Debug for Content {
     let mut content = f.debug_struct("Content");
 
     let s = match self {
-      Self::String(s) => s.to_string(),
+      Self::String(s) => s.clone(),
       Self::Buffer(b) => String::from_utf8_lossy(b).to_string(),
     };
 

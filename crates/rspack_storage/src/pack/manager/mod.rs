@@ -258,7 +258,7 @@ async fn update_scopes(
       .iter_mut()
       .filter_map(|(name, scope)| {
         updates
-          .remove(name.to_string().as_str())
+          .remove(name.clone().as_str())
           .and_then(|scope_update| {
             if scope_update.is_empty() {
               None

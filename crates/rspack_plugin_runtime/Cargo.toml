@@ -14,6 +14,7 @@ derive_more              = { workspace = true, features = ["debug"] }
 futures                  = { workspace = true }
 indexmap                 = { workspace = true }
 itertools                = { workspace = true }
+regex                    = { workspace = true }
 rspack_cacheable         = { workspace = true }
 rspack_collections       = { workspace = true }
 rspack_core              = { workspace = true }
@@ -31,6 +32,5 @@ tracing    = { workspace = true }
 [package.metadata.cargo-shear]
 ignored = ["tracing", "tokio"]
 
-[lints.rust.unexpected_cfgs]
-check-cfg = ['cfg(allocative)']
-level     = "warn"
+[lints]
+workspace = true

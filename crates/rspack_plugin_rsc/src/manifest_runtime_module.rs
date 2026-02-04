@@ -1,3 +1,5 @@
+#![allow(clippy::ref_option_ref)]
+
 use indoc::formatdoc;
 use rspack_collections::Identifier;
 use rspack_core::{
@@ -31,6 +33,7 @@ where
   }
 }
 
+#[allow(clippy::ref_option_ref)]
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 struct RscManifest<'a> {
@@ -82,8 +85,7 @@ impl RuntimeModule for RscManifestRuntimeModule {
       return Ok(String::new());
     };
 
-    let mut plugin_states = PLUGIN_STATES.borrow_mut();
-    let plugin_state = plugin_states.get_mut(&server_compiler_id).ok_or_else(|| {
+    let mut plugin_state = PLUGIN_STATES.get_mut(&server_compiler_id).ok_or_else(|| {
       rspack_error::error!(
         "Failed to find RSC plugin state for compiler (ID: {}).",
         server_compiler_id.as_u32()
@@ -158,10 +160,10 @@ fn build_server_manifest(
         if let Some(actions) = parse_action_entries(v.into_owned())? {
           for action in actions {
             server_actions.insert(
-              action.id.to_string(),
+              action.id.clone(),
               ManifestExport {
                 id: module_id.to_string(),
-                name: action.id.to_string(),
+                name: action.id.clone(),
                 // Server Action modules serve as endpoints rather than code splitting points,
                 // so ensuring chunk loading at runtime is unnecessary.
                 chunks: vec![],

@@ -1,4 +1,4 @@
-use std::{borrow::Cow, ptr::NonNull};
+use std::{borrow::Cow, ptr::NonNull, sync::LazyLock};
 
 use rspack_collections::Identifier;
 use rspack_core::{
@@ -7,15 +7,62 @@ use rspack_core::{
 };
 use rspack_plugin_runtime::{
   CreateLinkData, LinkPrefetchData, LinkPreloadData, RuntimeModuleChunkWrapper, RuntimePlugin,
-  chunk_has_css, get_chunk_runtime_requirements, stringify_chunks,
+  chunk_has_css, extract_runtime_globals_from_ejs, get_chunk_runtime_requirements,
+  stringify_chunks,
 };
 use rustc_hash::FxHashSet as HashSet;
+
+static CSS_LOADING_TEMPLATE: &str = include_str!("./css_loading.ejs");
+static CSS_LOADING_CREATE_LINK_TEMPLATE: &str = include_str!("./css_loading_create_link.ejs");
+static CSS_LOADING_WITH_HMR_TEMPLATE: &str = include_str!("./css_loading_with_hmr.ejs");
+static CSS_LOADING_WITH_LOADING_TEMPLATE: &str = include_str!("./css_loading_with_loading.ejs");
+static CSS_LOADING_WITH_PREFETCH_TEMPLATE: &str = include_str!("./css_loading_with_prefetch.ejs");
+static CSS_LOADING_WITH_PREFETCH_LINK_TEMPLATE: &str =
+  include_str!("./css_loading_with_prefetch_link.ejs");
+static CSS_LOADING_WITH_PRELOAD_TEMPLATE: &str = include_str!("./css_loading_with_preload.ejs");
+static CSS_LOADING_WITH_PRELOAD_LINK_TEMPLATE: &str =
+  include_str!("./css_loading_with_preload_link.ejs");
+
+static CSS_LOADING_BASIC_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
+  LazyLock::new(|| extract_runtime_globals_from_ejs(CSS_LOADING_TEMPLATE));
+static CSS_LOADING_WITH_LOADING_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
+  LazyLock::new(|| extract_runtime_globals_from_ejs(CSS_LOADING_WITH_LOADING_TEMPLATE));
+static CSS_LOADING_WITH_HMR_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
+  LazyLock::new(|| extract_runtime_globals_from_ejs(CSS_LOADING_WITH_HMR_TEMPLATE));
+static CSS_LOADING_WITH_PREFETCH_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
+  LazyLock::new(|| {
+    extract_runtime_globals_from_ejs(CSS_LOADING_WITH_PREFETCH_TEMPLATE)
+      | extract_runtime_globals_from_ejs(CSS_LOADING_WITH_PREFETCH_LINK_TEMPLATE)
+  });
+static CSS_LOADING_WITH_PRELOAD_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
+  LazyLock::new(|| {
+    extract_runtime_globals_from_ejs(CSS_LOADING_WITH_PRELOAD_TEMPLATE)
+      | extract_runtime_globals_from_ejs(CSS_LOADING_WITH_PRELOAD_LINK_TEMPLATE)
+  });
 
 #[impl_runtime_module]
 #[derive(Debug)]
 pub struct CssLoadingRuntimeModule {
   id: Identifier,
   chunk: Option<ChunkUkey>,
+}
+
+impl CssLoadingRuntimeModule {
+  pub fn get_runtime_requirements_basic() -> RuntimeGlobals {
+    *CSS_LOADING_BASIC_RUNTIME_REQUIREMENTS
+  }
+  pub fn get_runtime_requirements_with_loading() -> RuntimeGlobals {
+    *CSS_LOADING_WITH_LOADING_RUNTIME_REQUIREMENTS
+  }
+  pub fn get_runtime_requirements_with_hmr() -> RuntimeGlobals {
+    *CSS_LOADING_WITH_HMR_RUNTIME_REQUIREMENTS
+  }
+  pub fn get_runtime_requirements_with_prefetch() -> RuntimeGlobals {
+    *CSS_LOADING_WITH_PREFETCH_RUNTIME_REQUIREMENTS
+  }
+  pub fn get_runtime_requirements_with_preload() -> RuntimeGlobals {
+    *CSS_LOADING_WITH_PRELOAD_RUNTIME_REQUIREMENTS
+  }
 }
 
 impl CssLoadingRuntimeModule {
@@ -66,35 +113,35 @@ impl RuntimeModule for CssLoadingRuntimeModule {
     vec![
       (
         self.template_id(TemplateId::Raw),
-        include_str!("./css_loading.ejs").to_string(),
+        CSS_LOADING_TEMPLATE.to_string(),
       ),
       (
         self.template_id(TemplateId::CreateLink),
-        include_str!("./css_loading_create_link.ejs").to_string(),
+        CSS_LOADING_CREATE_LINK_TEMPLATE.to_string(),
       ),
       (
         self.template_id(TemplateId::WithHmr),
-        include_str!("./css_loading_with_hmr.ejs").to_string(),
+        CSS_LOADING_WITH_HMR_TEMPLATE.to_string(),
       ),
       (
         self.template_id(TemplateId::WithLoading),
-        include_str!("./css_loading_with_loading.ejs").to_string(),
+        CSS_LOADING_WITH_LOADING_TEMPLATE.to_string(),
       ),
       (
         self.template_id(TemplateId::WithPrefetch),
-        include_str!("./css_loading_with_prefetch.ejs").to_string(),
+        CSS_LOADING_WITH_PREFETCH_TEMPLATE.to_string(),
       ),
       (
         self.template_id(TemplateId::WithPrefetchLink),
-        include_str!("./css_loading_with_prefetch_link.ejs").to_string(),
+        CSS_LOADING_WITH_PREFETCH_LINK_TEMPLATE.to_string(),
       ),
       (
         self.template_id(TemplateId::WithPreload),
-        include_str!("./css_loading_with_preload.ejs").to_string(),
+        CSS_LOADING_WITH_PRELOAD_TEMPLATE.to_string(),
       ),
       (
         self.template_id(TemplateId::WithPreloadLink),
-        include_str!("./css_loading_with_preload_link.ejs").to_string(),
+        CSS_LOADING_WITH_PRELOAD_LINK_TEMPLATE.to_string(),
       ),
     ]
   }
@@ -155,7 +202,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
         );
 
       if !with_hmr && !with_loading {
-        return Ok("".to_string());
+        return Ok(String::new());
       }
 
       let mut source = String::new();
@@ -175,8 +222,8 @@ impl RuntimeModule for CssLoadingRuntimeModule {
         Some(serde_json::json!({
           "_with_fetch_priority": with_fetch_priority,
           "_cross_origin": match &compilation.options.output.cross_origin_loading {
-            CrossOriginLoading::Disable => "".to_string(),
-            CrossOriginLoading::Enable(cross_origin) => cross_origin.to_string(),
+            CrossOriginLoading::Disable => String::new(),
+            CrossOriginLoading::Enable(cross_origin) => cross_origin.clone(),
           },
           "_unique_name": unique_name,
         })),
@@ -207,8 +254,7 @@ installedChunks[chunkId] = 0;
 {}"#,
           with_hmr
             .then_some(format!(
-              "var moduleIds = [];\nif(target == {})",
-              module_factories
+              "var moduleIds = [];\nif(target == {module_factories})"
             ))
             .unwrap_or_default(),
           if with_hmr {
@@ -240,8 +286,7 @@ installedChunks[chunkId] = 0;
                 id
               )
             })
-            .collect::<Vec<_>>()
-            .join(""),
+            .collect::<String>(),
         )
       } else {
         Cow::Borrowed("// no initial css")

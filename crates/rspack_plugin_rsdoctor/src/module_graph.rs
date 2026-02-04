@@ -66,7 +66,7 @@ pub fn collect_modules(
           } else {
             ModuleKind::Normal
           },
-          layer: module.get_layer().map(|layer| layer.to_string()),
+          layer: module.get_layer().cloned(),
           dependencies: HashSet::default(),
           imported: HashSet::default(),
           modules: HashSet::default(),

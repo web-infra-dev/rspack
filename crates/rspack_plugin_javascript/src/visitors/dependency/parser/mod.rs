@@ -901,11 +901,13 @@ impl<'parser> JavascriptParser<'parser> {
         members.reverse();
         members_optionals.reverse();
         member_ranges.reverse();
+        let root_name_for_info = root_name.clone();
         Some(MemberExpressionInfo::Call(CallExpressionInfo {
           call: expr,
-          root_info: root_info
-            .map(|i| ExportedVariableInfo::VariableInfo(i.id()))
-            .unwrap_or_else(|| ExportedVariableInfo::Name(root_name)),
+          root_info: root_info.map_or_else(
+            || ExportedVariableInfo::Name(root_name_for_info),
+            |i| ExportedVariableInfo::VariableInfo(i.id()),
+          ),
           callee_members: root_members,
           members,
           members_optionals,
@@ -927,11 +929,13 @@ impl<'parser> JavascriptParser<'parser> {
         members.reverse();
         members_optionals.reverse();
         member_ranges.reverse();
+        let root_name_for_info = root_name.clone();
         Some(MemberExpressionInfo::Expression(ExpressionExpressionInfo {
           name,
-          root_info: root_info
-            .map(|i| ExportedVariableInfo::VariableInfo(i.id()))
-            .unwrap_or_else(|| ExportedVariableInfo::Name(root_name)),
+          root_info: root_info.map_or_else(
+            || ExportedVariableInfo::Name(root_name_for_info),
+            |i| ExportedVariableInfo::VariableInfo(i.id()),
+          ),
           members,
           members_optionals,
           member_ranges,

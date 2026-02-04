@@ -79,36 +79,19 @@ impl EsmLibraryPlugin {
     chunk_exports: &mut UkeyMap<ChunkUkey, ExportsContext>,
     strict_exports: bool,
   ) -> Option<Atom> {
-    {
-      let ctx = chunk_exports.get_mut_unwrap(&chunk);
-
-      // check if we've already exported this local symbol
-      if let Some(already_exported) = ctx.exports.get_mut(&local)
-        && !already_exported.is_empty()
-      {
-        if strict_exports {
-          if let Some(exported_local) = ctx.exported_symbols.get(&exported)
-            && exported_local != &local
-          {
-            // already exported the symbol and not the same local symbol
-            return None;
-          }
-          already_exported.insert(exported.clone());
-          ctx.exported_symbols.insert(exported.clone(), local.clone());
-          return ctx.exported_symbols.get(&exported).cloned();
-        } else {
-          // not strict exports, we can export whatever we like
-          return Some(
-            already_exported
-              .get(&exported)
-              .unwrap_or(already_exported.iter().next().expect("should have export"))
-              .clone(),
-          );
-        }
-      }
-    }
-
     let ctx = chunk_exports.get_mut_unwrap(&chunk);
+    if !strict_exports
+      && let Some(already_exported_names) = ctx.exports.get(&local)
+      && !already_exported_names.is_empty()
+    {
+      return Some(
+        already_exported_names
+          .iter()
+          .next()
+          .expect("should have export name")
+          .clone(),
+      );
+    }
 
     // we've not exported this local symbol, check if we've already exported this symbol
     if ctx.exported_symbols.contains_key(&exported) {
@@ -127,14 +110,12 @@ impl EsmLibraryPlugin {
         new_export = format!("{exported}_{idx}").into();
       }
 
-      ctx
-        .exported_symbols
-        .insert(new_export.clone(), local.clone());
+      ctx.exported_symbols.insert(new_export.clone(), local);
       already_exported_names.insert(new_export.clone());
       already_exported_names.get(&new_export).cloned()
     } else {
       let already_exported_names = ctx.exports.entry(local.clone()).or_default();
-      ctx.exported_symbols.insert(exported.clone(), local.clone());
+      ctx.exported_symbols.insert(exported.clone(), local);
       already_exported_names.insert(exported.clone());
       already_exported_names.get(&exported).cloned()
     }
@@ -957,10 +938,10 @@ var {} = {{}};
         new_name
       } else {
         all_used_names.insert(symbol.clone());
-        symbol.clone()
+        symbol
       };
 
-      require_info.required_symbol = Some(new_name.clone());
+      require_info.required_symbol = Some(new_name);
     }
 
     require_info
@@ -1046,11 +1027,7 @@ var {} = {{}};
           && let Some(exported) = exported
         {
           let entry_chunk_link = link.get_mut_unwrap(&entry_chunk);
-          entry_chunk_link.add_re_export(
-            current_chunk,
-            exported.clone(),
-            "default".to_string().into(),
-          );
+          entry_chunk_link.add_re_export(current_chunk, exported, "default".to_string().into());
         }
       }
       ModuleInfo::External(info) => {
@@ -1198,10 +1175,10 @@ var {} = {{}};
                   export_name.clone(),
                   name.clone(),
                   exports,
-                  keep_export_name,
+                  true,
                 );
 
-                if exported.is_none() && keep_export_name {
+                if exported.is_none() {
                   errors.push(
                     rspack_error::error!(
                       "Entry {entry_module} has conflict exports: {name} has already been exported"
@@ -1229,10 +1206,10 @@ var {} = {{}};
                   local_name.clone(),
                   name.clone(),
                   exports,
-                  keep_export_name,
+                  ref_chunk == entry_chunk,
                 );
 
-                if exported.is_none() && keep_export_name {
+                if exported.is_none() && ref_chunk == entry_chunk {
                   errors.push(
                     rspack_error::error!(
                       "Entry {entry_module} has conflict exports: {name} has already been exported"
@@ -1267,13 +1244,7 @@ var {} = {{}};
               .decl_before_exports
               .insert(format!("var {new_name} = {inlined_value};\n"));
 
-            Self::add_chunk_export(
-              entry_chunk,
-              new_name,
-              name.clone(),
-              exports,
-              keep_export_name,
-            );
+            Self::add_chunk_export(entry_chunk, new_name, name.clone(), exports, true);
           }
         }
       }
@@ -1608,7 +1579,7 @@ var {} = {{}};
         .filter_map(|(ref_string, binding_ref)| match binding_ref {
           Ref::Symbol(symbol_ref) => Some((ref_string, symbol_ref)),
           Ref::Inline(inlined_string) => {
-            inline_refs.insert(ref_string.clone(), Ref::Inline(inlined_string));
+            inline_refs.insert(ref_string, Ref::Inline(inlined_string));
             None
           }
         })
@@ -2167,7 +2138,7 @@ var {} = {{}};
                 mg_cache,
                 &ref_info.id(),
                 if let Some(reexport_export) = reexport.export {
-                  [reexport_export.clone(), export_name[1..].to_vec()].concat()
+                  [reexport_export, export_name[1..].to_vec()].concat()
                 } else {
                   export_name[1..].to_vec()
                 },

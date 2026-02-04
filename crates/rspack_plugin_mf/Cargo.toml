@@ -17,6 +17,7 @@ rspack_hash              = { workspace = true }
 rspack_hook              = { workspace = true }
 rspack_loader_runner     = { workspace = true }
 rspack_plugin_javascript = { workspace = true }
+rspack_plugin_runtime    = { workspace = true }
 rspack_util              = { workspace = true }
 
 async-trait = { workspace = true }
@@ -33,6 +34,5 @@ tracing     = { workspace = true }
 [package.metadata.cargo-shear]
 ignored = ["tracing", "rspack_hash"]
 
-[lints.rust.unexpected_cfgs]
-check-cfg = ['cfg(allocative)']
-level     = "warn"
+[lints]
+workspace = true

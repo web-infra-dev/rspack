@@ -39,7 +39,7 @@ pub async fn code_generation_pass(
     ));
     modules
   } else {
-    compilation.code_generation_results = Default::default();
+    *compilation.code_generation_results = Default::default();
     compilation
       .get_module_graph()
       .modules()

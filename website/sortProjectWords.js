@@ -1,4 +1,5 @@
-const fs = require('node:fs');
+import fs from 'node:fs';
+
 const words = fs
   .readFileSync('./project-words.txt', { encoding: 'utf-8' })
   .split('\n')

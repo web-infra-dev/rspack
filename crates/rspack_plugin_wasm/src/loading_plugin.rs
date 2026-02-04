@@ -175,9 +175,9 @@ var wasmUrl = $PATH;"#
   // Generate load binary code: use fetch in browser, fs.readFile in Node.js
   let generate_load_binary_code = format!(
     r#"(useFetch
-  ? fetch(new URL(wasmUrl, {0}.url))
+  ? fetch(new URL(wasmUrl, {import_meta_name}.url))
   : Promise.all([import('fs'), import('url')]).then(([{{ readFile }}, {{ URL }}]) => new Promise((resolve, reject) => {{
-      readFile(new URL(wasmUrl, {0}.url), (err, buffer) => {{
+      readFile(new URL(wasmUrl, {import_meta_name}.url), (err, buffer) => {{
         if (err) return reject(err);
 
         // Fake fetch response
@@ -185,8 +185,7 @@ var wasmUrl = $PATH;"#
           arrayBuffer() {{ return buffer; }}
         }});
       }});
-    }})))"#,
-    import_meta_name
+    }})))"#
   );
 
   // Generate before instantiate streaming: return fallback if not useFetch

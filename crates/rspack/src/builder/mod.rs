@@ -49,8 +49,8 @@ use rspack_core::{
   ModuleOptions, ModuleRule, ModuleRuleEffect, ModuleType, NodeDirnameOption, NodeFilenameOption,
   NodeGlobalOption, NodeOption, Optimization, OutputOptions, ParseOption, ParserOptions,
   ParserOptionsMap, PathInfo, PublicPath, Resolve, RuleSetCondition, RuleSetLogicalConditions,
-  SideEffectOption, StatsOptions, TrustedTypes, UnsafeCachePredicate, UsedExportsOption,
-  WasmLoading, WasmLoadingType, incremental::IncrementalOptions,
+  SideEffectOption, StatsOptions, TrustedTypes, UsedExportsOption, WasmLoading, WasmLoadingType,
+  incremental::IncrementalOptions,
 };
 use rspack_error::{Error, Result};
 use rspack_fs::{IntermediateFileSystem, ReadableFileSystem, WritableFileSystem};
@@ -962,7 +962,6 @@ impl CompilerOptionsBuilder {
         .push(BuiltinPluginOptions::CssModulesPlugin);
     }
     let future_defaults = expect!(experiments_builder.future_defaults);
-    let output_module = expect!(experiments_builder.output_module);
 
     // apply module defaults
     let module = f!(self.module.take(), ModuleOptions::builder).build(
@@ -979,7 +978,7 @@ impl CompilerOptionsBuilder {
     let output = output_builder.build(
       builder_context,
       &context,
-      output_module,
+      output_builder.module.unwrap_or_default(),
       Some(&target_properties),
       is_affected_by_browserslist,
       development,
@@ -1001,14 +1000,12 @@ impl CompilerOptionsBuilder {
         filename: (!inline).then_some(output.source_map_filename.as_str().to_string()),
         module_filename_template: output_builder
           .devtool_module_filename_template
-          .map(|t| rspack_plugin_devtool::ModuleFilenameTemplate::String(t.as_str().to_string()))
-          .clone(),
+          .map(|t| rspack_plugin_devtool::ModuleFilenameTemplate::String(t.as_str().to_string())),
         append: hidden.then_some(rspack_plugin_devtool::Append::Disabled),
         columns: !cheap,
         fallback_module_filename_template: output_builder
           .devtool_fallback_module_filename_template
-          .map(|t| rspack_plugin_devtool::ModuleFilenameTemplate::String(t.as_str().to_string()))
-          .clone(),
+          .map(|t| rspack_plugin_devtool::ModuleFilenameTemplate::String(t.as_str().to_string())),
         module: if module_maps { true } else { !cheap },
         namespace: output_builder.devtool_namespace.clone(),
         no_sources,
@@ -1035,8 +1032,7 @@ impl CompilerOptionsBuilder {
       let options = rspack_plugin_devtool::EvalDevToolModulePluginOptions {
         module_filename_template: output_builder
           .devtool_module_filename_template
-          .map(|t| rspack_plugin_devtool::ModuleFilenameTemplate::String(t.as_str().to_string()))
-          .clone(),
+          .map(|t| rspack_plugin_devtool::ModuleFilenameTemplate::String(t.as_str().to_string())),
         namespace: output_builder.devtool_namespace.clone(),
         source_url_comment: None,
       };
@@ -1152,7 +1148,7 @@ impl CompilerOptionsBuilder {
 
     // apply node defaults
     let node = f!(self.node.take(), <Option<NodeOption>>::builder)
-      .build(&target_properties, output_module)?;
+      .build(&target_properties, output.module)?;
 
     // apply optimization defaults
     let optimization = f!(self.optimization.take(), Optimization::builder).build(
@@ -1605,8 +1601,6 @@ pub struct ModuleOptionsBuilder {
   generator: Option<GeneratorOptionsMap>,
   /// Keep module mechanism of the matched modules as-is, such as module.exports, require, import.
   no_parse: Option<ModuleNoParseRules>,
-  #[debug(skip)]
-  unsafe_cache: Option<UnsafeCachePredicate>,
 }
 
 impl From<ModuleOptions> for ModuleOptionsBuilder {
@@ -1616,7 +1610,6 @@ impl From<ModuleOptions> for ModuleOptionsBuilder {
       parser: value.parser,
       generator: value.generator,
       no_parse: value.no_parse,
-      unsafe_cache: value.unsafe_cache,
     }
   }
 }
@@ -1628,7 +1621,6 @@ impl From<&mut ModuleOptionsBuilder> for ModuleOptionsBuilder {
       parser: value.parser.take(),
       generator: value.generator.take(),
       no_parse: value.no_parse.take(),
-      unsafe_cache: value.unsafe_cache.take(),
     }
   }
 }
@@ -1756,7 +1748,7 @@ impl ModuleOptionsBuilder {
         named_exports: Some(true),
         url: Some(true),
       });
-      parser.insert("css".to_string(), css_parser_options.clone());
+      parser.insert("css".to_string(), css_parser_options);
 
       let css_auto_parser_options = ParserOptions::CssAuto(CssAutoParserOptions {
         named_exports: Some(true),
@@ -1819,7 +1811,6 @@ impl ModuleOptionsBuilder {
       parser: self.parser.take(),
       generator: self.generator.take(),
       no_parse: self.no_parse.take(),
-      unsafe_cache: self.unsafe_cache.take(),
     })
   }
 }
@@ -3680,8 +3671,6 @@ impl OptimizationOptionsBuilder {
 /// [`Experiments`]: rspack_core::options::Experiments
 #[derive(Debug, Default)]
 pub struct ExperimentsBuilder {
-  /// Whether to enable output module.
-  output_module: Option<bool>,
   /// Whether to enable future defaults.
   future_defaults: Option<bool>,
   /// Whether to enable css.
@@ -3694,7 +3683,6 @@ pub struct ExperimentsBuilder {
 impl From<Experiments> for ExperimentsBuilder {
   fn from(value: Experiments) -> Self {
     ExperimentsBuilder {
-      output_module: None,
       future_defaults: None,
       css: Some(value.css),
       async_web_assembly: None,
@@ -3705,7 +3693,6 @@ impl From<Experiments> for ExperimentsBuilder {
 impl From<&mut ExperimentsBuilder> for ExperimentsBuilder {
   fn from(value: &mut ExperimentsBuilder) -> Self {
     ExperimentsBuilder {
-      output_module: value.output_module.take(),
       future_defaults: value.future_defaults.take(),
       css: value.css.take(),
       async_web_assembly: value.async_web_assembly.take(),
@@ -3745,7 +3732,6 @@ impl ExperimentsBuilder {
     let future_defaults = w!(self.future_defaults, false);
     w!(self.css, *future_defaults);
     w!(self.async_web_assembly, true);
-    w!(self.output_module, false);
 
     Ok(Experiments {
       css: d!(self.css, false),

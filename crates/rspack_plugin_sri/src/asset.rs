@@ -91,7 +91,7 @@ See https://w3c.github.io/webappsec-subresource-integrity/#cross-origin-data-lea
           )
         } else {
           ProcessChunkResult {
-            file: file.to_string(),
+            file: file.clone(),
             source: None,
             warnings: vec![format!("No asset found for source path '{}'", file)],
             placeholder: None,
@@ -128,7 +128,7 @@ See https://w3c.github.io/webappsec-subresource-integrity/#cross-origin-data-lea
               should_warn_content_hash = true;
             }
 
-            let mut new_info = info.clone();
+            let mut new_info = info;
             new_info.content_hash.insert(integrity);
             Ok((Arc::new(source), new_info))
           })
@@ -177,8 +177,7 @@ fn process_chunk_source(
     if let Some(m) = caps.get(0) {
       let replacement = hash_by_placeholders
         .get(m.as_str())
-        .map(|i| i.as_str())
-        .unwrap_or(m.as_str());
+        .map_or(m.as_str(), |i| i.as_str());
       new_source.replace(m.start() as u32, m.end() as u32, replacement, None);
     }
   }
@@ -309,7 +308,7 @@ pub async fn detect_unresolved_integrity(
           .into_string_lossy()
           .contains(PLACEHOLDER_PREFIX)
       {
-        contain_unresolved_files.push(file.to_string());
+        contain_unresolved_files.push(file.clone());
       }
     }
   }
@@ -336,14 +335,7 @@ pub async fn update_hash(
     .read()
     .await
     .iter()
-    .filter_map(|(k, v)| {
-      if v == old_hash {
-        Some(k.to_string())
-      } else {
-        None
-      }
-    })
-    .next();
+    .find_map(|(k, v)| if v == old_hash { Some(k.clone()) } else { None });
   if let (Some(key), Some(asset)) = (key, assets.first()) {
     let content = asset.source().into_string_lossy();
     let new_integrity = compute_integrity(&self.options.hash_func_names, content.as_ref());

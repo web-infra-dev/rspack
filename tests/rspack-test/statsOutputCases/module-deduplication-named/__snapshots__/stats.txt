@@ -1,6 +1,6 @@
-asset e3.js xx KiB [emitted] (name: e3)
 asset e1.js xx KiB [emitted] (name: e1)
 asset e2.js xx KiB [emitted] (name: e2)
+asset e3.js xx KiB [emitted] (name: e3)
 asset async2.js xx bytes [emitted] (name: async2)
 asset async3.js xx bytes [emitted] (name: async3)
 asset async1.js xx bytes [emitted] (name: async1)

@@ -1,8 +1,17 @@
+use std::sync::LazyLock;
+
 use rspack_collections::Identifier;
 use rspack_core::{
-  ChunkUkey, Compilation, OutputOptions, PathData, RuntimeModule, RuntimeModuleStage,
-  RuntimeTemplate, SourceType, get_js_chunk_filename_template, get_undo_path, impl_runtime_module,
+  ChunkUkey, Compilation, OutputOptions, PathData, RuntimeGlobals, RuntimeModule,
+  RuntimeModuleStage, RuntimeTemplate, SourceType, get_js_chunk_filename_template, get_undo_path,
+  impl_runtime_module,
 };
+
+use crate::extract_runtime_globals_from_ejs;
+
+static AUTO_PUBLIC_PATH_TEMPLATE: &str = include_str!("runtime/auto_public_path.ejs");
+static AUTO_PUBLIC_PATH_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
+  LazyLock::new(|| extract_runtime_globals_from_ejs(AUTO_PUBLIC_PATH_TEMPLATE));
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -38,10 +47,7 @@ impl RuntimeModule for AutoPublicPathRuntimeModule {
   }
 
   fn template(&self) -> Vec<(String, String)> {
-    vec![(
-      self.id.to_string(),
-      include_str!("runtime/auto_public_path.ejs").to_string(),
-    )]
+    vec![(self.id.to_string(), AUTO_PUBLIC_PATH_TEMPLATE.to_string())]
   }
 
   async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
@@ -75,6 +81,10 @@ impl RuntimeModule for AutoPublicPathRuntimeModule {
       &filename,
       &compilation.options.output,
     )
+  }
+
+  fn additional_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
+    *AUTO_PUBLIC_PATH_RUNTIME_REQUIREMENTS
   }
 }
 
