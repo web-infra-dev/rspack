@@ -104,7 +104,7 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
   ) -> Option<bool> {
     let ident = decl.name.as_ident()?;
 
-    if ident.sym.as_str() == &parser.parser_runtime_requirements.require {
+    if ident.sym.as_str() == parser.parser_runtime_requirements.require {
       let start = ident.span().real_lo();
       let end = ident.span().real_hi();
       self.tag_nested_require_data(
@@ -122,7 +122,7 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
         end,
       );
       return Some(true);
-    } else if ident.sym.as_str() == &parser.parser_runtime_requirements.exports {
+    } else if ident.sym.as_str() == parser.parser_runtime_requirements.exports {
       self.tag_nested_require_data(
         parser,
         ident.sym.clone(),
@@ -143,7 +143,7 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
     ident: &swc_core::ecma::ast::Ident,
     for_name: &str,
   ) -> Option<bool> {
-    if for_name == &parser.parser_runtime_requirements.exports {
+    if for_name == parser.parser_runtime_requirements.exports {
       self.tag_nested_require_data(
         parser,
         ident.sym.clone(),
@@ -153,7 +153,7 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
         ident.span().real_hi(),
       );
       return Some(true);
-    } else if for_name == &parser.parser_runtime_requirements.require {
+    } else if for_name == parser.parser_runtime_requirements.require {
       let start = ident.span().real_lo();
       let end = ident.span().real_hi();
       self.tag_nested_require_data(
@@ -179,7 +179,7 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
     let fn_decl = stmt.as_function_decl()?;
     let ident = fn_decl.ident()?;
     let name = &ident.sym;
-    if name.as_str() != &parser.parser_runtime_requirements.require {
+    if name.as_str() != parser.parser_runtime_requirements.require {
       None
     } else {
       self.tag_nested_require_data(
