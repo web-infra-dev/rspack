@@ -32,6 +32,7 @@ module.exports = [
 	{
 		name: "development",
 		mode: "development",
+		devtool: 'eval',
 		entry: {
 			main: "./"
 		},
