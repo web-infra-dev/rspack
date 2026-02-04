@@ -11,19 +11,15 @@ use crate::utils::json_stringify;
 #[derive(Debug)]
 pub struct ExposeRuntimeModule {
   id: Identifier,
-  chunk: Option<ChunkUkey>,
 }
 
 impl ExposeRuntimeModule {
   #[allow(clippy::new_without_default)]
   pub fn new(runtime_template: &RuntimeTemplate) -> Self {
-    Self::with_default(
-      Identifier::from(format!(
-        "{}initialize_exposes",
-        runtime_template.runtime_module_prefix()
-      )),
-      None,
-    )
+    Self::with_default(Identifier::from(format!(
+      "{}initialize_exposes",
+      runtime_template.runtime_module_prefix()
+    )))
   }
 }
 
@@ -92,9 +88,5 @@ impl RuntimeModule for ExposeRuntimeModule {
       "{require_name}.initContainer = {require_name}.initContainer || function() {{ throw new Error(\"should have {require_name}.initContainer\") }};",
     );
     Ok(source)
-  }
-
-  fn attach(&mut self, chunk: ChunkUkey) {
-    self.chunk = Some(chunk);
   }
 }

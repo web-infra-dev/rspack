@@ -3,7 +3,7 @@ use std::iter;
 use itertools::Itertools;
 use rspack_collections::Identifier;
 use rspack_core::{
-  ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeTemplate, impl_runtime_module,
+  Compilation, RuntimeGlobals, RuntimeModule, RuntimeTemplate, impl_runtime_module,
 };
 
 #[impl_runtime_module]
@@ -11,7 +11,6 @@ use rspack_core::{
 pub struct StartupChunkDependenciesRuntimeModule {
   id: Identifier,
   async_chunk_loading: bool,
-  chunk: Option<ChunkUkey>,
 }
 
 impl StartupChunkDependenciesRuntimeModule {
@@ -22,7 +21,6 @@ impl StartupChunkDependenciesRuntimeModule {
         runtime_template.runtime_module_prefix()
       )),
       async_chunk_loading,
-      None,
     )
   }
 }
@@ -118,10 +116,6 @@ impl RuntimeModule for StartupChunkDependenciesRuntimeModule {
     } else {
       unreachable!("should have chunk for StartupChunkDependenciesRuntimeModule")
     }
-  }
-
-  fn attach(&mut self, chunk: ChunkUkey) {
-    self.chunk = Some(chunk);
   }
 
   fn additional_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {

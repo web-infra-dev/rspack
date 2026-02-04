@@ -2,7 +2,7 @@ use std::{borrow::Cow, ptr::NonNull, sync::LazyLock};
 
 use rspack_collections::Identifier;
 use rspack_core::{
-  BooleanMatcher, ChunkGroupOrderKey, ChunkUkey, Compilation, CrossOriginLoading, RuntimeGlobals,
+  BooleanMatcher, ChunkGroupOrderKey, Compilation, CrossOriginLoading, RuntimeGlobals,
   RuntimeModule, RuntimeModuleStage, RuntimeTemplate, compile_boolean_matcher, impl_runtime_module,
 };
 use rspack_plugin_runtime::{
@@ -44,7 +44,6 @@ static CSS_LOADING_WITH_PRELOAD_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
 #[derive(Debug)]
 pub struct CssLoadingRuntimeModule {
   id: Identifier,
-  chunk: Option<ChunkUkey>,
 }
 
 impl CssLoadingRuntimeModule {
@@ -67,13 +66,10 @@ impl CssLoadingRuntimeModule {
 
 impl CssLoadingRuntimeModule {
   pub fn new(runtime_template: &RuntimeTemplate) -> Self {
-    Self::with_default(
-      Identifier::from(format!(
-        "{}css_loading",
-        runtime_template.runtime_module_prefix()
-      )),
-      None,
-    )
+    Self::with_default(Identifier::from(format!(
+      "{}css_loading",
+      runtime_template.runtime_module_prefix()
+    )))
   }
 
   fn template_id(&self, id: TemplateId) -> String {
@@ -393,10 +389,6 @@ installedChunks[chunkId] = 0;
     } else {
       unreachable!("should attach chunk for css_loading")
     }
-  }
-
-  fn attach(&mut self, chunk: ChunkUkey) {
-    self.chunk = Some(chunk);
   }
 
   fn stage(&self) -> RuntimeModuleStage {

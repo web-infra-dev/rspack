@@ -14,6 +14,11 @@ pub fn impl_runtime_module(
   if let syn::Fields::Named(ref mut fields) = input.fields {
     fields.named.push(
       syn::Field::parse_named
+        .parse2(quote! { pub chunk: Option<::rspack_core::ChunkUkey> })
+        .expect("Failed to parse new field for chunk"),
+    );
+    fields.named.push(
+      syn::Field::parse_named
         .parse2(quote! { pub source_map_kind: ::rspack_util::source_map::SourceMapKind })
         .expect("Failed to parse new field for source_map_kind"),
     );
@@ -46,6 +51,7 @@ pub fn impl_runtime_module(
         source_map_kind: ::rspack_util::source_map::SourceMapKind::empty(),
         custom_source: None,
         cached_generated_code: Default::default(),
+        chunk: None,
         #(#field_names,)*
       }
     }
@@ -93,6 +99,12 @@ pub fn impl_runtime_module(
       }
       fn get_constructor_name(&self) -> String {
         String::from(stringify!(#name))
+      }
+    }
+
+    impl #impl_generics ::rspack_core::AttachableRuntimeModule for #name #ty_generics #where_clause {
+      fn attach(&mut self, chunk: ::rspack_core::ChunkUkey) -> () {
+        self.chunk = Some(chunk);
       }
     }
 

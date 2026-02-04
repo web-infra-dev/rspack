@@ -7,7 +7,7 @@
 use rspack_cacheable::cacheable;
 use rspack_collections::Identifier;
 use rspack_core::{
-  ChunkUkey, Compilation, DependencyId, RuntimeModule, RuntimeModuleStage, RuntimeTemplate,
+  Compilation, DependencyId, RuntimeModule, RuntimeModuleStage, RuntimeTemplate,
   impl_runtime_module,
 };
 use rspack_error::Result;
@@ -25,7 +25,6 @@ pub struct EmbedFederationRuntimeModuleOptions {
 #[derive(Debug)]
 pub struct EmbedFederationRuntimeModule {
   id: Identifier,
-  chunk: Option<ChunkUkey>,
   options: EmbedFederationRuntimeModuleOptions,
 }
 
@@ -39,7 +38,6 @@ impl EmbedFederationRuntimeModule {
         "{}embed_federation_runtime",
         runtime_template.runtime_module_prefix()
       )),
-      None,
       options,
     )
   }
@@ -150,10 +148,6 @@ impl RuntimeModule for EmbedFederationRuntimeModule {
         })),
       )?)
     }
-  }
-
-  fn attach(&mut self, chunk: ChunkUkey) {
-    self.chunk = Some(chunk);
   }
 
   fn stage(&self) -> RuntimeModuleStage {

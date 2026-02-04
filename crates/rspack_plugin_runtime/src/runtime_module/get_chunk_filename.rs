@@ -21,7 +21,6 @@ type GetFilenameForChunk = Box<dyn Fn(&Chunk, &Compilation) -> Option<Filename> 
 #[impl_runtime_module]
 pub struct GetChunkFilenameRuntimeModule {
   id: Identifier,
-  chunk: Option<ChunkUkey>,
   #[cacheable(with=Unsupported)]
   content_type: &'static str,
   source_type: SourceType,
@@ -65,7 +64,6 @@ impl GetChunkFilenameRuntimeModule {
         "{}get {name} chunk filename",
         runtime_template.runtime_module_prefix()
       )),
-      None,
       content_type,
       source_type,
       global,
@@ -395,10 +393,6 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
     })))?;
 
     Ok(source)
-  }
-
-  fn attach(&mut self, chunk: ChunkUkey) {
-    self.chunk = Some(chunk);
   }
 
   fn additional_runtime_requirements(&self, compilation: &Compilation) -> RuntimeGlobals {

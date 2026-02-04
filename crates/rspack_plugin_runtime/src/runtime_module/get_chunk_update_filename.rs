@@ -1,6 +1,6 @@
 use rspack_collections::Identifier;
 use rspack_core::{
-  ChunkUkey, Compilation, PathData, RuntimeGlobals, RuntimeModule, RuntimeTemplate, SourceType,
+  Compilation, PathData, RuntimeGlobals, RuntimeModule, RuntimeTemplate, SourceType,
   has_hash_placeholder, impl_runtime_module,
 };
 
@@ -9,18 +9,14 @@ use rspack_core::{
 #[derive(Debug)]
 pub struct GetChunkUpdateFilenameRuntimeModule {
   id: Identifier,
-  chunk: Option<ChunkUkey>,
 }
 
 impl GetChunkUpdateFilenameRuntimeModule {
   pub fn new(runtime_template: &RuntimeTemplate) -> Self {
-    Self::with_default(
-      Identifier::from(format!(
-        "{}get_chunk_update_filename",
-        runtime_template.runtime_module_prefix()
-      )),
-      None,
-    )
+    Self::with_default(Identifier::from(format!(
+      "{}get_chunk_update_filename",
+      runtime_template.runtime_module_prefix()
+    )))
   }
 }
 
@@ -79,10 +75,6 @@ impl RuntimeModule for GetChunkUpdateFilenameRuntimeModule {
     } else {
       unreachable!("should attach chunk for get_main_filename")
     }
-  }
-
-  fn attach(&mut self, chunk: ChunkUkey) {
-    self.chunk = Some(chunk);
   }
 
   fn additional_runtime_requirements(&self, compilation: &Compilation) -> RuntimeGlobals {

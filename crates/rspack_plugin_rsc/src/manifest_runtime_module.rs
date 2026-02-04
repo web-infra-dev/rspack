@@ -3,8 +3,8 @@
 use indoc::formatdoc;
 use rspack_collections::Identifier;
 use rspack_core::{
-  ChunkGraph, ChunkUkey, Compilation, Module, ModuleGraph, ModuleId, ModuleIdentifier,
-  RuntimeModule, RuntimeModuleStage, impl_runtime_module,
+  ChunkGraph, Compilation, Module, ModuleGraph, ModuleId, ModuleIdentifier, RuntimeModule,
+  RuntimeModuleStage, impl_runtime_module,
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_util::fx_hash::FxIndexSet;
@@ -53,12 +53,11 @@ struct RscManifest<'a> {
 #[derive(Debug)]
 pub struct RscManifestRuntimeModule {
   id: Identifier,
-  chunk_ukey: Option<ChunkUkey>,
 }
 
 impl RscManifestRuntimeModule {
   pub fn new() -> Self {
-    Self::with_default(Identifier::from("webpack/runtime/rsc_manifest"), None)
+    Self::with_default(Identifier::from("webpack/runtime/rsc_manifest"))
   }
 }
 
@@ -76,7 +75,7 @@ impl RuntimeModule for RscManifestRuntimeModule {
     let server_compiler_id = compilation.compiler_id();
 
     let Some(entry_name) = self
-      .chunk_ukey
+      .chunk
       .as_ref()
       .and_then(|chunk_ukey| compilation.chunk_by_ukey.get(chunk_ukey))
       .and_then(|chunk| chunk.get_entry_options(&compilation.chunk_group_by_ukey))
@@ -116,10 +115,6 @@ impl RuntimeModule for RscManifestRuntimeModule {
       "#,
       to_json_string_literal(&rsc_manifest).to_rspack_result()?,
     })
-  }
-
-  fn attach(&mut self, chunk_ukey: ChunkUkey) {
-    self.chunk_ukey = Some(chunk_ukey);
   }
 }
 

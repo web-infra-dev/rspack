@@ -2,7 +2,7 @@ use std::sync::LazyLock;
 
 use rspack_collections::Identifier;
 use rspack_core::{
-  Chunk, ChunkGraph, ChunkUkey, Compilation, ModuleIdentifier, RuntimeGlobals, RuntimeModule,
+  Chunk, ChunkGraph, Compilation, ModuleIdentifier, RuntimeGlobals, RuntimeModule,
   RuntimeModuleStage, RuntimeTemplate, SourceType, impl_runtime_module,
 };
 use rspack_plugin_runtime::extract_runtime_globals_from_ejs;
@@ -29,7 +29,6 @@ static CONSUMES_LOADING_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> = LazyLoc
 #[derive(Debug)]
 pub struct ConsumeSharedRuntimeModule {
   id: Identifier,
-  chunk: Option<ChunkUkey>,
   enhanced: bool,
 }
 
@@ -40,7 +39,6 @@ impl ConsumeSharedRuntimeModule {
         "{}consumes_loading",
         runtime_template.runtime_module_prefix()
       )),
-      None,
       enhanced,
     )
   }
@@ -215,10 +213,6 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
         .render(&self.get_template_id(TemplateId::Loading), None)?;
     }
     Ok(source)
-  }
-
-  fn attach(&mut self, chunk: ChunkUkey) {
-    self.chunk = Some(chunk);
   }
 
   fn additional_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {

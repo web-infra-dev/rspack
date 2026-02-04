@@ -2,7 +2,7 @@ use std::{ptr::NonNull, sync::LazyLock};
 
 use rspack_collections::{DatabaseItem, Identifier};
 use rspack_core::{
-  BooleanMatcher, Chunk, ChunkGroupOrderKey, ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule,
+  BooleanMatcher, Chunk, ChunkGroupOrderKey, Compilation, RuntimeGlobals, RuntimeModule,
   RuntimeModuleStage, RuntimeTemplate, compile_boolean_matcher, impl_runtime_module,
 };
 use rspack_plugin_javascript::impl_plugin_for_js_plugin::chunk_has_js;
@@ -74,18 +74,14 @@ static JAVASCRIPT_HOT_MODULE_REPLACEMENT_RUNTIME_REQUIREMENTS: LazyLock<RuntimeG
 #[derive(Debug)]
 pub struct JsonpChunkLoadingRuntimeModule {
   id: Identifier,
-  chunk: Option<ChunkUkey>,
 }
 
 impl JsonpChunkLoadingRuntimeModule {
   pub fn new(runtime_template: &RuntimeTemplate) -> Self {
-    Self::with_default(
-      Identifier::from(format!(
-        "{}jsonp_chunk_loading",
-        runtime_template.runtime_module_prefix()
-      )),
-      None,
-    )
+    Self::with_default(Identifier::from(format!(
+      "{}jsonp_chunk_loading",
+      runtime_template.runtime_module_prefix()
+    )))
   }
 
   pub fn get_runtime_requirements_basic() -> RuntimeGlobals {
@@ -433,10 +429,6 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
     }
 
     Ok(source)
-  }
-
-  fn attach(&mut self, chunk: ChunkUkey) {
-    self.chunk = Some(chunk);
   }
 
   fn stage(&self) -> RuntimeModuleStage {

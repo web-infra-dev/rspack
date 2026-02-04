@@ -1,8 +1,8 @@
 use cow_utils::CowUtils;
 use rspack_collections::Identifier;
 use rspack_core::{
-  ChunkUkey, Compilation, PathData, RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
-  RuntimeTemplate, get_filename_without_hash_length, impl_runtime_module,
+  Compilation, PathData, RuntimeGlobals, RuntimeModule, RuntimeModuleStage, RuntimeTemplate,
+  get_filename_without_hash_length, impl_runtime_module,
 };
 use rspack_util::itoa;
 
@@ -14,7 +14,6 @@ pub struct AsyncWasmLoadingRuntimeModule {
   generate_before_load_binary_code: String,
   generate_before_instantiate_streaming: String,
   supports_streaming: bool,
-  chunk: ChunkUkey,
 }
 
 impl AsyncWasmLoadingRuntimeModule {
@@ -22,7 +21,6 @@ impl AsyncWasmLoadingRuntimeModule {
     runtime_template: &RuntimeTemplate,
     generate_load_binary_code: String,
     supports_streaming: bool,
-    chunk: ChunkUkey,
   ) -> Self {
     Self::with_default(
       Identifier::from(format!(
@@ -33,7 +31,6 @@ impl AsyncWasmLoadingRuntimeModule {
       Default::default(),
       Default::default(),
       supports_streaming,
-      chunk,
     )
   }
 
@@ -43,7 +40,6 @@ impl AsyncWasmLoadingRuntimeModule {
     generate_before_load_binary_code: String,
     generate_before_instantiate_streaming: String,
     supports_streaming: bool,
-    chunk: ChunkUkey,
   ) -> Self {
     Self::with_default(
       Identifier::from(format!(
@@ -54,7 +50,6 @@ impl AsyncWasmLoadingRuntimeModule {
       generate_before_load_binary_code,
       generate_before_instantiate_streaming,
       supports_streaming,
-      chunk,
     )
   }
 }
@@ -81,7 +76,9 @@ impl RuntimeModule for AsyncWasmLoadingRuntimeModule {
       None => "\" + wasmModuleHash + \"".to_string(),
     };
 
-    let chunk = compilation.chunk_by_ukey.expect_get(&self.chunk);
+    let chunk = compilation
+      .chunk_by_ukey
+      .expect_get(self.chunk.as_ref().expect("should attached chunk"));
     let path = compilation
       .get_path(
         &fake_filename,

@@ -34,14 +34,12 @@ fn add_attribute(
 #[derive(Debug)]
 struct SRIHashVariableRuntimeModule {
   id: Identifier,
-  chunk: ChunkUkey,
   hash_funcs: Vec<SubresourceIntegrityHashFunction>,
 }
 
 impl SRIHashVariableRuntimeModule {
   pub fn new(
     runtime_template: &RuntimeTemplate,
-    chunk: ChunkUkey,
     hash_funcs: Vec<SubresourceIntegrityHashFunction>,
   ) -> Self {
     Self::with_default(
@@ -49,7 +47,6 @@ impl SRIHashVariableRuntimeModule {
         "{}sri_hash_variable",
         runtime_template.runtime_module_prefix()
       )),
-      chunk,
       hash_funcs,
     )
   }
@@ -62,7 +59,11 @@ impl RuntimeModule for SRIHashVariableRuntimeModule {
   }
 
   async fn generate(&self, compilation: &Compilation) -> Result<String> {
-    let Some(chunk) = compilation.chunk_by_ukey.get(&self.chunk) else {
+    let Some(chunk) = self
+      .chunk
+      .as_ref()
+      .and_then(|c| compilation.chunk_by_ukey.get(c))
+    else {
       return Err(error!(
         "Generate sri runtime module failed: chunk not found"
       ));
@@ -105,19 +106,22 @@ impl RuntimeModule for SRIHashVariableRuntimeModule {
       ),
     ];
 
-    let all_chunks = find_chunks(&self.chunk, compilation)
-      .into_iter()
-      .filter(|c| {
-        compilation
-          .chunk_graph
-          .get_chunk_modules(c, module_graph)
-          .iter()
-          .any(|m| {
-            let result = compilation.code_generation_results.get_one(&m.identifier());
-            result.inner.values().any(|v| v.size() != 0)
-          })
-      })
-      .collect::<Vec<_>>();
+    let all_chunks = find_chunks(
+      self.chunk.as_ref().expect("should attached chunk"),
+      compilation,
+    )
+    .into_iter()
+    .filter(|c| {
+      compilation
+        .chunk_graph
+        .get_chunk_modules(c, module_graph)
+        .iter()
+        .any(|m| {
+          let result = compilation.code_generation_results.get_one(&m.identifier());
+          result.inner.values().any(|v| v.size() != 0)
+        })
+    })
+    .collect::<Vec<_>>();
 
     let mut code = vec![];
 
@@ -255,14 +259,13 @@ pub async fn link_preload(&self, mut data: LinkPreloadData) -> Result<LinkPreloa
 pub async fn handle_runtime(
   &self,
   compilation: &Compilation,
-  chunk_ukey: &ChunkUkey,
+  _chunk_ukey: &ChunkUkey,
   _runtime_requirements: &mut RuntimeGlobals,
   runtime_modules: &mut Vec<Box<dyn RuntimeModule>>,
 ) -> Result<()> {
   runtime_modules.push(
     SRIHashVariableRuntimeModule::new(
       &compilation.runtime_template,
-      *chunk_ukey,
       self.options.hash_func_names.clone(),
     )
     .boxed(),

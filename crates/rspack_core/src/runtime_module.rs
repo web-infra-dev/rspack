@@ -7,9 +7,8 @@ use rspack_collections::Identifier;
 use crate::{ChunkUkey, Compilation, Module, RuntimeGlobals};
 
 #[async_trait]
-pub trait RuntimeModule: Module + CustomSourceRuntimeModule {
+pub trait RuntimeModule: Module + CustomSourceRuntimeModule + AttachableRuntimeModule {
   fn name(&self) -> Identifier;
-  fn attach(&mut self, _chunk: ChunkUkey) {}
   fn stage(&self) -> RuntimeModuleStage {
     RuntimeModuleStage::Normal
   }
@@ -37,6 +36,11 @@ pub trait RuntimeModule: Module + CustomSourceRuntimeModule {
   fn additional_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
     RuntimeGlobals::default()
   }
+}
+
+#[async_trait]
+pub trait AttachableRuntimeModule {
+  fn attach(&mut self, chunk: ChunkUkey);
 }
 
 #[async_trait]

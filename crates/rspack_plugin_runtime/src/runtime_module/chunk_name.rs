@@ -1,33 +1,25 @@
 use rspack_collections::Identifier;
 use rspack_core::{
-  ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeTemplate, impl_runtime_module,
+  Compilation, RuntimeGlobals, RuntimeModule, RuntimeTemplate, impl_runtime_module,
 };
 
 #[impl_runtime_module]
 #[derive(Debug)]
 pub struct ChunkNameRuntimeModule {
   id: Identifier,
-  chunk: Option<ChunkUkey>,
 }
 
 impl ChunkNameRuntimeModule {
   pub fn new(runtime_template: &RuntimeTemplate) -> Self {
-    Self::with_default(
-      Identifier::from(format!(
-        "{}chunk_name",
-        runtime_template.runtime_module_prefix()
-      )),
-      None,
-    )
+    Self::with_default(Identifier::from(format!(
+      "{}chunk_name",
+      runtime_template.runtime_module_prefix()
+    )))
   }
 }
 
 #[async_trait::async_trait]
 impl RuntimeModule for ChunkNameRuntimeModule {
-  fn attach(&mut self, chunk: ChunkUkey) {
-    self.chunk = Some(chunk);
-  }
-
   fn name(&self) -> Identifier {
     self.id
   }

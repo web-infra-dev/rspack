@@ -1,6 +1,6 @@
 use rspack_collections::Identifier;
 use rspack_core::{
-  ChunkUkey, Compilation, OnPolicyCreationFailure, RuntimeGlobals, RuntimeModule, RuntimeTemplate,
+  Compilation, OnPolicyCreationFailure, RuntimeGlobals, RuntimeModule, RuntimeTemplate,
   impl_runtime_module,
 };
 
@@ -10,18 +10,14 @@ use crate::get_chunk_runtime_requirements;
 #[derive(Debug)]
 pub struct GetTrustedTypesPolicyRuntimeModule {
   id: Identifier,
-  chunk: Option<ChunkUkey>,
 }
 
 impl GetTrustedTypesPolicyRuntimeModule {
   pub fn new(runtime_template: &RuntimeTemplate) -> Self {
-    Self::with_default(
-      Identifier::from(format!(
-        "{}get_trusted_types_policy",
-        runtime_template.runtime_module_prefix()
-      )),
-      None,
-    )
+    Self::with_default(Identifier::from(format!(
+      "{}get_trusted_types_policy",
+      runtime_template.runtime_module_prefix()
+    )))
   }
 }
 
@@ -63,9 +59,5 @@ impl RuntimeModule for GetTrustedTypesPolicyRuntimeModule {
     )?;
 
     Ok(source)
-  }
-
-  fn attach(&mut self, chunk: ChunkUkey) {
-    self.chunk = Some(chunk);
   }
 }

@@ -2,8 +2,8 @@ use std::sync::LazyLock;
 
 use rspack_collections::{DatabaseItem, Identifier};
 use rspack_core::{
-  Chunk, ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
-  RuntimeTemplate, compile_boolean_matcher, impl_runtime_module,
+  Chunk, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleStage, RuntimeTemplate,
+  compile_boolean_matcher, impl_runtime_module,
 };
 use rspack_plugin_javascript::impl_plugin_for_js_plugin::chunk_has_js;
 
@@ -51,7 +51,6 @@ static JAVASCRIPT_HOT_MODULE_REPLACEMENT_RUNTIME_REQUIREMENTS: LazyLock<RuntimeG
 #[derive(Debug, Default)]
 pub struct ImportScriptsChunkLoadingRuntimeModule {
   id: Identifier,
-  chunk: Option<ChunkUkey>,
   with_create_script_url: bool,
 }
 
@@ -62,7 +61,6 @@ impl ImportScriptsChunkLoadingRuntimeModule {
         "{}import_scripts_chunk_loading",
         runtime_template.runtime_module_prefix()
       )),
-      None,
       with_create_script_url,
     )
   }
@@ -267,10 +265,6 @@ impl RuntimeModule for ImportScriptsChunkLoadingRuntimeModule {
     }
 
     Ok(source)
-  }
-
-  fn attach(&mut self, chunk: ChunkUkey) {
-    self.chunk = Some(chunk);
   }
 
   fn stage(&self) -> RuntimeModuleStage {

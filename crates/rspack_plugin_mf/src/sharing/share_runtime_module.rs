@@ -4,7 +4,7 @@ use hashlink::{LinkedHashMap, LinkedHashSet};
 use itertools::Itertools;
 use rspack_collections::Identifier;
 use rspack_core::{
-  ChunkUkey, Compilation, ModuleId, RuntimeGlobals, RuntimeModule, RuntimeTemplate, SourceType,
+  Compilation, ModuleId, RuntimeGlobals, RuntimeModule, RuntimeTemplate, SourceType,
   impl_runtime_module,
 };
 use rspack_plugin_runtime::extract_runtime_globals_from_ejs;
@@ -21,7 +21,6 @@ static INITIALIZE_SHARING_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
 #[derive(Debug)]
 pub struct ShareRuntimeModule {
   id: Identifier,
-  chunk: Option<ChunkUkey>,
   enhanced: bool,
 }
 
@@ -32,7 +31,6 @@ impl ShareRuntimeModule {
         "{}sharing",
         runtime_template.runtime_module_prefix()
       )),
-      None,
       enhanced,
     )
   }
@@ -150,10 +148,6 @@ impl RuntimeModule for ShareRuntimeModule {
       unique_name = json_stringify(&compilation.options.output.unique_name),
       initialize_sharing_impl = initialize_sharing_impl,
     ))
-  }
-
-  fn attach(&mut self, chunk: ChunkUkey) {
-    self.chunk = Some(chunk);
   }
 
   fn additional_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
