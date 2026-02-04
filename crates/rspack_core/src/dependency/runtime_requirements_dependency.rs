@@ -37,6 +37,7 @@ impl DependencyCodeGeneration for RuntimeRequirementsDependency {
   ) {
     self.range.dyn_hash(hasher);
     self.runtime_requirements.dyn_hash(hasher);
+    self.mode.dyn_hash(hasher);
   }
 }
 
