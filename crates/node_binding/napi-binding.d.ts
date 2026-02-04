@@ -717,6 +717,14 @@ export interface JsBeforeEmitData {
   uid?: number
 }
 
+export interface JsBeforeModuleIdsArg {
+  modules: Array<JsModuleForIds>
+}
+
+export interface JsBeforeModuleIdsResult {
+  assignments: Record<string, string>
+}
+
 export interface JsBuildMeta {
   strictEsmModule?: boolean
   hasTopLevelAwait?: boolean
@@ -978,6 +986,10 @@ export interface JsModuleDescriptor {
   identifier: string
   name: string
   id?: string | number | null
+}
+
+export interface JsModuleForIds {
+  identifier: string
 }
 
 export interface JsNormalModuleFactoryCreateModuleArgs {
@@ -2966,39 +2978,40 @@ export declare enum RegisterJsTapKind {
   CompilationAfterOptimizeModules = 14,
   CompilationOptimizeTree = 15,
   CompilationOptimizeChunkModules = 16,
-  CompilationAdditionalTreeRuntimeRequirements = 17,
-  CompilationRuntimeRequirementInTree = 18,
-  CompilationRuntimeModule = 19,
-  CompilationChunkHash = 20,
-  CompilationChunkAsset = 21,
-  CompilationProcessAssets = 22,
-  CompilationAfterProcessAssets = 23,
-  CompilationSeal = 24,
-  CompilationAfterSeal = 25,
-  NormalModuleFactoryBeforeResolve = 26,
-  NormalModuleFactoryFactorize = 27,
-  NormalModuleFactoryResolve = 28,
-  NormalModuleFactoryAfterResolve = 29,
-  NormalModuleFactoryCreateModule = 30,
-  NormalModuleFactoryResolveForScheme = 31,
-  ContextModuleFactoryBeforeResolve = 32,
-  ContextModuleFactoryAfterResolve = 33,
-  JavascriptModulesChunkHash = 34,
-  HtmlPluginBeforeAssetTagGeneration = 35,
-  HtmlPluginAlterAssetTags = 36,
-  HtmlPluginAlterAssetTagGroups = 37,
-  HtmlPluginAfterTemplateExecution = 38,
-  HtmlPluginBeforeEmit = 39,
-  HtmlPluginAfterEmit = 40,
-  RuntimePluginCreateScript = 41,
-  RuntimePluginCreateLink = 42,
-  RuntimePluginLinkPreload = 43,
-  RuntimePluginLinkPrefetch = 44,
-  RsdoctorPluginModuleGraph = 45,
-  RsdoctorPluginChunkGraph = 46,
-  RsdoctorPluginModuleIds = 47,
-  RsdoctorPluginModuleSources = 48,
-  RsdoctorPluginAssets = 49
+  CompilationBeforeModuleIds = 17,
+  CompilationAdditionalTreeRuntimeRequirements = 18,
+  CompilationRuntimeRequirementInTree = 19,
+  CompilationRuntimeModule = 20,
+  CompilationChunkHash = 21,
+  CompilationChunkAsset = 22,
+  CompilationProcessAssets = 23,
+  CompilationAfterProcessAssets = 24,
+  CompilationSeal = 25,
+  CompilationAfterSeal = 26,
+  NormalModuleFactoryBeforeResolve = 27,
+  NormalModuleFactoryFactorize = 28,
+  NormalModuleFactoryResolve = 29,
+  NormalModuleFactoryAfterResolve = 30,
+  NormalModuleFactoryCreateModule = 31,
+  NormalModuleFactoryResolveForScheme = 32,
+  ContextModuleFactoryBeforeResolve = 33,
+  ContextModuleFactoryAfterResolve = 34,
+  JavascriptModulesChunkHash = 35,
+  HtmlPluginBeforeAssetTagGeneration = 36,
+  HtmlPluginAlterAssetTags = 37,
+  HtmlPluginAlterAssetTagGroups = 38,
+  HtmlPluginAfterTemplateExecution = 39,
+  HtmlPluginBeforeEmit = 40,
+  HtmlPluginAfterEmit = 41,
+  RuntimePluginCreateScript = 42,
+  RuntimePluginCreateLink = 43,
+  RuntimePluginLinkPreload = 44,
+  RuntimePluginLinkPrefetch = 45,
+  RsdoctorPluginModuleGraph = 46,
+  RsdoctorPluginChunkGraph = 47,
+  RsdoctorPluginModuleIds = 48,
+  RsdoctorPluginModuleSources = 49,
+  RsdoctorPluginAssets = 50
 }
 
 export interface RegisterJsTaps {
@@ -3022,6 +3035,7 @@ export interface RegisterJsTaps {
   registerCompilationAfterOptimizeModulesTaps: (stages: Array<number>) => Array<{ function: (() => void); stage: number; }>
   registerCompilationOptimizeTreeTaps: (stages: Array<number>) => Array<{ function: (() => Promise<void>); stage: number; }>
   registerCompilationOptimizeChunkModulesTaps: (stages: Array<number>) => Array<{ function: (() => Promise<boolean | undefined>); stage: number; }>
+  registerCompilationBeforeModuleIdsTaps: (stages: Array<number>) => Array<{ function: ((arg: JsBeforeModuleIdsArg) => JsBeforeModuleIdsResult); stage: number; }>
   registerCompilationChunkHashTaps: (stages: Array<number>) => Array<{ function: ((arg: Chunk) => Buffer); stage: number; }>
   registerCompilationChunkAssetTaps: (stages: Array<number>) => Array<{ function: ((arg: JsChunkAssetArgs) => void); stage: number; }>
   registerCompilationProcessAssetsTaps: (stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => Promise<void>); stage: number; }>
