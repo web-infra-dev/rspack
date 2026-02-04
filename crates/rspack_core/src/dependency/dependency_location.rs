@@ -7,7 +7,7 @@ use rspack_util::SpanExt;
 /// Represents a range in a dependency, typically used for tracking the span of code in a source file.
 /// It stores the start and end positions (as offsets) of the range, typically using base-0 indexing.
 #[cacheable]
-#[derive(Debug, Clone, Copy, Hash, Eq, PartialEq)]
+#[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Default)]
 pub struct DependencyRange {
   pub end: u32,
   pub start: u32,

@@ -223,7 +223,6 @@ impl ParserAndGenerator for CssParserAndGenerator {
             presentational_dependencies.push(Box::new(ConstDependency::new(
               (range.start, range.end).into(),
               "".into(),
-              None,
             )));
             continue;
           }
@@ -252,7 +251,6 @@ impl ParserAndGenerator for CssParserAndGenerator {
           .push(Box::new(ConstDependency::new(
             (range.start, range.end).into(),
             content.into(),
-            None,
           ))),
         css_module_lexer::Dependency::LocalClass { name, range, .. }
         | css_module_lexer::Dependency::LocalId { name, range, .. } => {

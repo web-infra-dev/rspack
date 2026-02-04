@@ -35,9 +35,10 @@ use crate::{
     ModuleHotAcceptDependencyTemplate, ModuleHotDeclineDependencyTemplate,
     ProvideDependencyTemplate, PureExpressionDependencyTemplate, RequireContextDependencyTemplate,
     RequireEnsureDependencyTemplate, RequireHeaderDependencyTemplate,
-    RequireResolveContextDependencyTemplate, RequireResolveDependencyTemplate,
-    RequireResolveHeaderDependencyTemplate, URLContextDependencyTemplate, URLDependencyTemplate,
-    WorkerDependencyTemplate, amd_define_dependency::AMDDefineDependencyTemplate,
+    RequireMainDependencyTemplate, RequireResolveContextDependencyTemplate,
+    RequireResolveDependencyTemplate, RequireResolveHeaderDependencyTemplate,
+    URLContextDependencyTemplate, URLDependencyTemplate, WorkerDependencyTemplate,
+    amd_define_dependency::AMDDefineDependencyTemplate,
     amd_require_array_dependency::AMDRequireArrayDependencyTemplate,
     amd_require_dependency::AMDRequireDependencyTemplate,
     amd_require_item_dependency::AMDRequireItemDependencyTemplate,
@@ -394,6 +395,10 @@ async fn compilation(
   compilation.set_dependency_template(
     RuntimeRequirementsDependencyTemplate::template_type(),
     Arc::new(RuntimeRequirementsDependencyTemplate::default()),
+  );
+  compilation.set_dependency_template(
+    RequireMainDependencyTemplate::template_type(),
+    Arc::new(RequireMainDependencyTemplate::default()),
   );
   // Rstest
   compilation.set_dependency_factory(

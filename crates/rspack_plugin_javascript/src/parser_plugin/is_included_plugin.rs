@@ -41,7 +41,6 @@ impl JavascriptParserPlugin for IsIncludedPlugin {
       parser.add_presentational_dependency(Box::new(ConstDependency::new(
         (expr.span().real_lo(), expr.span().real_hi()).into(),
         "'function'".into(),
-        None,
       )));
       true
     })

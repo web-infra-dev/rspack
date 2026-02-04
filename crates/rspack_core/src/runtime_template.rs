@@ -138,14 +138,6 @@ impl RuntimeTemplate {
     }
   }
 
-  pub fn clone_without_dojang(&self) -> Arc<Self> {
-    Arc::new(Self {
-      compiler_options: self.compiler_options.clone(),
-      runtime_globals: self.runtime_globals.clone(),
-      dojang: None,
-    })
-  }
-
   pub fn add_templates(&mut self, templates: Vec<(String, String)>) {
     for (key, template) in templates {
       if !self
@@ -560,6 +552,10 @@ impl ModuleCodegenRuntimeTemplate {
 
   pub fn render_runtime_globals(&mut self, runtime_globals: &RuntimeGlobals) -> String {
     self.runtime_requirements.insert(*runtime_globals);
+    runtime_globals_to_string(runtime_globals, &self.compiler_options)
+  }
+
+  pub fn render_runtime_globals_without_adding(&self, runtime_globals: &RuntimeGlobals) -> String {
     runtime_globals_to_string(runtime_globals, &self.compiler_options)
   }
 

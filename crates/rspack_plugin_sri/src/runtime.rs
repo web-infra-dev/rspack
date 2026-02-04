@@ -84,19 +84,22 @@ impl RuntimeModule for SRIHashVariableRuntimeModule {
 
     let module_graph = compilation.get_module_graph();
 
+    let runtime_template = compilation
+      .runtime_template
+      .create_module_codegen_runtime_template();
     let source_types = vec![
       (
         SourceType::JavaScript,
-        get_hash_variable(&compilation.runtime_template, SourceType::JavaScript),
+        get_hash_variable(&runtime_template, SourceType::JavaScript),
       ),
       (
         SourceType::Css,
-        get_hash_variable(&compilation.runtime_template, SourceType::Css),
+        get_hash_variable(&runtime_template, SourceType::Css),
       ),
       (
         SourceType::Custom("css/mini-extract".into()),
         get_hash_variable(
-          &compilation.runtime_template,
+          &runtime_template,
           SourceType::Custom("css/mini-extract".into()),
         ),
       ),

@@ -435,7 +435,6 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
       parser.add_presentational_dependency(Box::new(ConstDependency::new(
         expr.span().into(),
         "undefined".into(),
-        None,
       )));
       Some(false)
     } else {
@@ -508,7 +507,6 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
       parser.add_presentational_dependency(Box::new(ConstDependency::new(
         expr.span().into(),
         "'function'".into(),
-        None,
       )));
       Some(true)
     } else {
@@ -621,7 +619,6 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
       parser.add_presentational_dependency(Box::new(ConstDependency::new(
         (0, 0).into(),
         "var require;".into(),
-        None,
       )));
       return Some(true);
     }

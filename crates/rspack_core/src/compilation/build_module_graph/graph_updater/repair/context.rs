@@ -27,7 +27,7 @@ pub struct TaskContext {
   pub loader_resolver_factory: Arc<ResolverFactory>,
   pub dependency_factories: HashMap<DependencyType, Arc<dyn ModuleFactory>>,
   pub dependency_templates: HashMap<DependencyTemplateType, Arc<dyn DependencyTemplate>>,
-  pub runtime_template: Arc<RuntimeTemplate>,
+  pub runtime_template: RuntimeTemplate,
 
   pub artifact: BuildModuleGraphArtifact,
 }
@@ -48,7 +48,7 @@ impl TaskContext {
       fs: compilation.input_filesystem.clone(),
       intermediate_fs: compilation.intermediate_filesystem.clone(),
       output_fs: compilation.output_filesystem.clone(),
-      runtime_template: compilation.runtime_template.clone_without_dojang(),
+      runtime_template: RuntimeTemplate::new(compilation.options.clone()),
       artifact,
     }
   }

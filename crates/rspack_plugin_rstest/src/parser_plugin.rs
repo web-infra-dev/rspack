@@ -1,7 +1,6 @@
 use camino::Utf8PathBuf;
 use rspack_core::{
   AsyncDependenciesBlock, ConstDependency, DependencyRange, ImportAttributes, ImportPhase,
-  RuntimeGlobals,
 };
 use rspack_plugin_javascript::{
   JavascriptParserPlugin,
@@ -111,7 +110,6 @@ impl RstestParserPlugin {
           parser.add_presentational_dependency(Box::new(ConstDependency::new(
             range,
             ".rstest_require_actual".into(),
-            None,
           )));
 
           return Some(true);
@@ -429,12 +427,9 @@ impl RstestParserPlugin {
           call_expr.callee.span().into(),
           format!(
             "{}.rstest_reset_modules",
-            parser
-              .runtime_template
-              .render_runtime_globals(&RuntimeGlobals::REQUIRE)
+            parser.parser_runtime_requirements.require
           )
           .into(),
-          None,
         )));
         Some(true)
       }
@@ -844,7 +839,6 @@ impl JavascriptParserPlugin for RstestParserPlugin {
         parser.add_presentational_dependency(Box::new(ConstDependency::new(
           unary_expr.span().into(),
           "'string'".into(),
-          None,
         )));
         return Some(true);
       } else {
@@ -867,7 +861,6 @@ impl JavascriptParserPlugin for RstestParserPlugin {
         parser.add_presentational_dependency(Box::new(ConstDependency::new(
           member_expr.span().into(),
           result.into(),
-          None,
         )));
         return Some(true);
       } else if for_name == IMPORT_META_FILENAME {
@@ -875,7 +868,6 @@ impl JavascriptParserPlugin for RstestParserPlugin {
         parser.add_presentational_dependency(Box::new(ConstDependency::new(
           member_expr.span().into(),
           result.into(),
-          None,
         )));
         return Some(true);
       } else {

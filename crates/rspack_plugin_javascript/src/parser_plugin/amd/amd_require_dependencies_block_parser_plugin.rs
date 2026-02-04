@@ -3,9 +3,9 @@ use std::{borrow::Cow, iter};
 use either::Either;
 use itertools::Itertools;
 use rspack_core::{
-  AsyncDependenciesBlock, BoxDependency, ConstDependency, ContextDependency, ContextMode,
-  ContextNameSpaceObject, ContextOptions, Dependency, DependencyCategory, DependencyRange,
-  RuntimeGlobals,
+  AsyncDependenciesBlock, BoxDependency, ContextDependency, ContextMode, ContextNameSpaceObject,
+  ContextOptions, Dependency, DependencyCategory, DependencyRange, RuntimeGlobals,
+  RuntimeRequirementsDependency,
 };
 use rspack_error::{Error, Severity};
 use rspack_util::{SpanExt, atom::Atom};
@@ -76,11 +76,7 @@ impl AMDRequireDependenciesBlockParserPlugin {
       let array = param.array();
       for request in array.iter() {
         if request == "require" {
-          deps.push(AMDRequireArrayItem::String(
-            parser
-              .runtime_template
-              .render_runtime_globals(&RuntimeGlobals::REQUIRE),
-          ));
+          deps.push(AMDRequireArrayItem::Require);
         } else if request == "exports" || request == "module" {
           deps.push(AMDRequireArrayItem::String(request.into()));
         } else if let Some(local_module) = parser.get_local_module_mut(request) {
@@ -126,27 +122,21 @@ impl AMDRequireDependenciesBlockParserPlugin {
       let range = param.range();
 
       if param_str == "require" {
-        let dep = Box::new(ConstDependency::new(
+        let dep = Box::new(RuntimeRequirementsDependency::new(
           range.into(),
-          parser
-            .runtime_template
-            .render_runtime_globals(&RuntimeGlobals::REQUIRE)
-            .into(),
-          Some(RuntimeGlobals::REQUIRE),
+          RuntimeGlobals::REQUIRE,
         ));
         parser.add_presentational_dependency(dep);
       } else if param_str == "module" {
-        let dep = Box::new(ConstDependency::new(
+        let dep = Box::new(RuntimeRequirementsDependency::new(
           range.into(),
-          "module".into(),
-          Some(RuntimeGlobals::MODULE),
+          RuntimeGlobals::MODULE,
         ));
         parser.add_presentational_dependency(dep);
       } else if param_str == "exports" {
-        let dep = Box::new(ConstDependency::new(
+        let dep = Box::new(RuntimeRequirementsDependency::new(
           range.into(),
-          "exports".into(),
-          Some(RuntimeGlobals::EXPORTS),
+          RuntimeGlobals::EXPORTS,
         ));
         parser.add_presentational_dependency(dep);
       } else if let Some(local_module) = parser.get_local_module_mut(param_str) {
