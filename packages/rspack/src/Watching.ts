@@ -298,6 +298,11 @@ export class Watching {
         err: Error | null,
         _compilation: Compilation | undefined,
       ) => {
+        console.log(
+          'Compiler Done (additional pass)\n\n\n',
+          this.compiler.context,
+          '\n\n\n',
+        );
         if (err) return this._done(err);
 
         const compilation = _compilation!;
@@ -322,6 +327,7 @@ export class Watching {
         this._done(null, this.compiler._lastCompilation);
       };
 
+      console.log('\n\n\nStarting compilation in watch mode...');
       this.compiler.compile(onCompiled);
     });
   }
@@ -376,6 +382,7 @@ export class Watching {
     this.callbacks = [];
 
     this.compiler.hooks.done.callAsync(stats, (err) => {
+      console.log('Compiler Done', this.compiler.context);
       if (err) return handleError(err, cbs);
       this.handler(null, stats);
 
@@ -420,6 +427,12 @@ export class Watching {
             compilation.__internal__removedMissingDependencies,
           );
 
+          console.log(
+            'start watch',
+            fileDependencies,
+            contextDependencies,
+            missingDependencies,
+          );
           this.watch(
             fileDependencies,
             contextDependencies,
@@ -436,6 +449,8 @@ export class Watching {
     changedFiles?: ReadonlySet<string>,
     removedFiles?: ReadonlySet<string>,
   ) {
+    console.log('[merged with collected]', changedFiles);
+
     if (!this.#collectedChangedFiles || !this.#collectedRemovedFiles) {
       this.#collectedChangedFiles = new Set(changedFiles);
       this.#collectedRemovedFiles = new Set(removedFiles);

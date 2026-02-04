@@ -836,6 +836,14 @@ class Compiler {
         return callback(error);
       }
       if (!this.#initial) {
+        console.log(
+          '[JS Compiler]',
+          this.context,
+          'rebuild with',
+          this.modifiedFiles,
+          this.removedFiles,
+        );
+
         instance!.rebuild(
           Array.from(this.modifiedFiles || []),
           Array.from(this.removedFiles || []),

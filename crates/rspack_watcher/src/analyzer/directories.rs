@@ -15,10 +15,22 @@ pub struct WatcherDirectoriesAnalyzer;
 
 impl Analyzer for WatcherDirectoriesAnalyzer {
   fn analyze<'a>(&self, path_accessor: PathAccessor<'a>) -> Vec<WatchPattern> {
-    self
+    println!("[WATCHER_DEBUG] WatcherDirectoriesAnalyzer::analyze() - Starting (Linux strategy)");
+    let patterns = self
       .find_watch_directories(path_accessor)
       .into_iter()
-      .collect()
+      .collect::<Vec<_>>();
+    println!(
+      "[WATCHER_DEBUG] WatcherDirectoriesAnalyzer::analyze() - Generated {} watch patterns",
+      patterns.len()
+    );
+    for pattern in &patterns {
+      println!(
+        "[WATCHER_DEBUG]   - Pattern: {:?}, mode: {:?}",
+        pattern.path, pattern.mode
+      );
+    }
+    patterns
   }
 }
 
@@ -48,6 +60,7 @@ impl WatcherDirectoriesAnalyzer {
 
   /// Finds the deepest existing directory path and its depth.
   fn find_exists_path(&self, path: ArcPath) -> Option<(ArcPath, u32)> {
+    let original_path = path.clone();
     let mut current = path;
     let mut deep = 0u32;
     // Traverse up the path until we find a directory that exists
@@ -56,9 +69,22 @@ impl WatcherDirectoriesAnalyzer {
       if let Some(parent) = current.parent() {
         current = ArcPath::from(parent);
       } else {
+        println!(
+          "[WATCHER_DEBUG] WatcherDirectoriesAnalyzer::find_exists_path() - No existing parent found for: {:?}",
+          original_path
+        );
         return None; // No parent exists
       }
     }
+    let mode = if deep >= DIRECTORY_WATCH_DEPTH {
+      "Recursive"
+    } else {
+      "NonRecursive"
+    };
+    println!(
+      "[WATCHER_DEBUG] WatcherDirectoriesAnalyzer::find_exists_path() - Path: {:?} -> Watching: {:?}, depth: {}, mode: {}",
+      original_path, current, deep, mode
+    );
     Some((current, deep))
   }
 }
