@@ -3,8 +3,8 @@ use std::sync::{Arc, RwLock};
 use rspack_core::{
   AsyncDependenciesBlockIdentifier, ChunkUkey, Compilation,
   CompilationAdditionalTreeRuntimeRequirements, CompilationDependencyReferencedExports,
-  CompilationOptimizeDependencies, CompilationProcessAssets, DependenciesBlock, DependencyId,
-  DependencyType, ExportsType, ExtendedReferencedExport, Module, ModuleGraph, ModuleIdentifier,
+  CompilationOptimizeDependencies, CompilationProcessAssets, DependenciesBlock, Dependency,
+  DependencyId, DependencyType, ExtendedReferencedExport, Module, ModuleGraph, ModuleIdentifier,
   Plugin, RuntimeGlobals, RuntimeModule, RuntimeModuleExt, RuntimeSpec,
   SideEffectsOptimizeArtifact,
   build_module_graph::BuildModuleGraphArtifact,
@@ -442,9 +442,10 @@ async fn dependency_referenced_exports(
     {
       final_exports = esm_dep.get_referenced_exports_in_destructuring(Some(ids));
     } else {
-      final_exports = esm_dep.get_esm_import_specifier_referenced_exports(
+      final_exports = esm_dep.get_referenced_exports(
         module_graph,
-        Some(ExportsType::DefaultWithNamed),
+        &compilation.module_graph_cache_artifact,
+        _runtime,
       );
     }
   }

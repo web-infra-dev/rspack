@@ -283,7 +283,6 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
         runtime,
       );
 
-      // 直接使用 await 调用异步钩子
       self
         .compilation
         .plugin_driver

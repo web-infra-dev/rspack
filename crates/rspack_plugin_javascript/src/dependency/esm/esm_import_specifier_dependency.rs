@@ -106,44 +106,7 @@ impl ESMImportSpecifierDependency {
       .map_or_else(|| self.ids.as_slice(), |meta| meta.ids.as_slice())
   }
 
-  pub fn get_esm_import_specifier_referenced_exports(
-    &self,
-    module_graph: &ModuleGraph,
-    exports_type: Option<ExportsType>,
-  ) -> Vec<ExtendedReferencedExport> {
-    let mut ids = self.get_ids(module_graph);
-    if ids.is_empty() {
-      return self.get_referenced_exports_in_destructuring(None);
-    }
-
-    let mut namespace_object_as_context = self.namespace_object_as_context;
-    if let Some(id) = ids.first()
-      && id == "default"
-    {
-      match exports_type {
-        Some(ExportsType::DefaultOnly | ExportsType::DefaultWithNamed) => {
-          if ids.len() == 1 {
-            return self.get_referenced_exports_in_destructuring(None);
-          }
-          ids = &ids[1..];
-          namespace_object_as_context = true;
-        }
-        Some(ExportsType::Dynamic) => {
-          return create_exports_object_referenced();
-        }
-        _ => {}
-      }
-    }
-
-    if self.call && !self.direct_import && (namespace_object_as_context || ids.len() > 1) {
-      if ids.len() == 1 {
-        return create_exports_object_referenced();
-      }
-      // remove last one
-      ids = &ids[..ids.len() - 1];
-    }
-    self.get_referenced_exports_in_destructuring(Some(ids))
-  }
+  // Removed get_esm_import_specifier_referenced_exports
 
   pub fn get_referenced_exports_in_destructuring(
     &self,
@@ -295,7 +258,34 @@ impl Dependency for ESMImportSpecifierDependency {
       None
     };
 
-    self.get_esm_import_specifier_referenced_exports(module_graph, exports_type)
+    let mut ids = ids;
+    let mut namespace_object_as_context = self.namespace_object_as_context;
+    if let Some(id) = ids.first()
+      && id == "default"
+    {
+      match exports_type {
+        Some(ExportsType::DefaultOnly | ExportsType::DefaultWithNamed) => {
+          if ids.len() == 1 {
+            return self.get_referenced_exports_in_destructuring(None);
+          }
+          ids = &ids[1..];
+          namespace_object_as_context = true;
+        }
+        Some(ExportsType::Dynamic) => {
+          return create_exports_object_referenced();
+        }
+        _ => {}
+      }
+    }
+
+    if self.call && !self.direct_import && (namespace_object_as_context || ids.len() > 1) {
+      if ids.len() == 1 {
+        return create_exports_object_referenced();
+      }
+      // remove last one
+      ids = &ids[..ids.len() - 1];
+    }
+    self.get_referenced_exports_in_destructuring(Some(ids))
   }
 
   fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
