@@ -81,7 +81,9 @@ export const applyRspackOptionsDefaults = (
     }
   }
 
-  F(options, 'devtool', () => (development ? 'eval' : false));
+  F(options, 'devtool', () =>
+    development ? 'cheap-module-source-map' : false,
+  );
   D(options, 'watch', false);
   // IGNORE(lazyCompilation): Unlike webpack where lazyCompilation is configured under experiments, Rspack exposes this option at the configuration root level.
   D(options, 'lazyCompilation', false);
