@@ -5,7 +5,7 @@
 //! that federation runtime needs to operate correctly.
 
 use async_trait::async_trait;
-use rspack_collections::{DatabaseItem, Identifier};
+use rspack_collections::DatabaseItem;
 use rspack_core::{
   BooleanMatcher, Chunk, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
   RuntimeTemplate, compile_boolean_matcher, get_js_chunk_filename_template, get_undo_path,

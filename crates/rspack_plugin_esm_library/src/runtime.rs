@@ -1,6 +1,5 @@
 use rspack_core::{
-  Compilation, ModuleIdentifier, RuntimeGlobals, RuntimeModule, RuntimeTemplate,
-  impl_runtime_module,
+  Compilation, RuntimeGlobals, RuntimeModule, RuntimeTemplate, impl_runtime_module,
 };
 
 #[impl_runtime_module]

@@ -1,7 +1,6 @@
 #![allow(clippy::ref_option_ref)]
 
 use indoc::formatdoc;
-use rspack_collections::Identifier;
 use rspack_core::{
   ChunkGraph, Compilation, Module, ModuleGraph, ModuleId, ModuleIdentifier, RuntimeModule,
   RuntimeModuleStage, RuntimeTemplate, impl_runtime_module,

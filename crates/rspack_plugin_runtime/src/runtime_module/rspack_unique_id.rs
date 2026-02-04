@@ -1,4 +1,3 @@
-use rspack_collections::Identifier;
 use rspack_core::{
   Compilation, RuntimeModule, RuntimeModuleStage, RuntimeTemplate, impl_runtime_module,
 };

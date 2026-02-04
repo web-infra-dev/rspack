@@ -1,7 +1,7 @@
 use std::ptr::NonNull;
 
 use itertools::Itertools;
-use rspack_collections::{Identifier, UkeySet};
+use rspack_collections::UkeySet;
 use rspack_core::{
   BooleanMatcher, ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
   RuntimeTemplate, compile_boolean_matcher, impl_runtime_module,

@@ -1,6 +1,5 @@
 use std::sync::LazyLock;
 
-use rspack_collections::Identifier;
 use rspack_core::{
   Compilation, OutputOptions, PathData, RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
   RuntimeTemplate, SourceType, get_js_chunk_filename_template, get_undo_path, impl_runtime_module,

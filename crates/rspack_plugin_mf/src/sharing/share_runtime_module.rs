@@ -2,7 +2,6 @@ use std::sync::LazyLock;
 
 use hashlink::{LinkedHashMap, LinkedHashSet};
 use itertools::Itertools;
-use rspack_collections::Identifier;
 use rspack_core::{
   Compilation, ModuleId, RuntimeGlobals, RuntimeModule, RuntimeTemplate, SourceType,
   impl_runtime_module,

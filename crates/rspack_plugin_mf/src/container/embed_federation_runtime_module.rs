@@ -5,7 +5,6 @@
 //! checks that intercepts and modifies the startup execution order.
 
 use rspack_cacheable::cacheable;
-use rspack_collections::Identifier;
 use rspack_core::{
   Compilation, DependencyId, RuntimeModule, RuntimeModuleStage, RuntimeTemplate,
   impl_runtime_module,

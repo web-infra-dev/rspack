@@ -1,7 +1,6 @@
 use std::sync::LazyLock;
 
 use itertools::Itertools;
-use rspack_collections::Identifier;
 use rspack_core::{
   ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleStage, RuntimeTemplate,
   impl_runtime_module,

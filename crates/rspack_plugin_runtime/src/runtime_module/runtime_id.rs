@@ -1,5 +1,4 @@
 use itertools::Itertools;
-use rspack_collections::Identifier;
 use rspack_core::{
   Compilation, RuntimeGlobals, RuntimeModule, RuntimeTemplate, impl_runtime_module,
 };

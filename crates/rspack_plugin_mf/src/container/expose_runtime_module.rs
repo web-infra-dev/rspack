@@ -1,4 +1,3 @@
-use rspack_collections::Identifier;
 use rspack_core::{
   ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleStage, RuntimeTemplate,
   SourceType, impl_runtime_module,

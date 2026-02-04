@@ -1,5 +1,4 @@
 use cow_utils::CowUtils;
-use rspack_collections::Identifier;
 use rspack_core::{
   Compilation, PathData, RuntimeGlobals, RuntimeModule, RuntimeModuleStage, RuntimeTemplate,
   get_filename_without_hash_length, impl_runtime_module,

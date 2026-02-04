@@ -4,7 +4,7 @@ use async_trait::async_trait;
 use rspack_cacheable::cacheable;
 use rspack_collections::Identifier;
 
-use crate::{ChunkUkey, Compilation, Module, RuntimeGlobals, RuntimeTemplate};
+use crate::{ChunkUkey, Compilation, Module, RuntimeGlobals};
 
 #[async_trait]
 pub trait RuntimeModule:

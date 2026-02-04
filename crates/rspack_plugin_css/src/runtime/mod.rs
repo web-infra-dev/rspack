@@ -1,6 +1,5 @@
 use std::{borrow::Cow, ptr::NonNull, sync::LazyLock};
 
-use rspack_collections::Identifier;
 use rspack_core::{
   BooleanMatcher, ChunkGroupOrderKey, Compilation, CrossOriginLoading, RuntimeGlobals,
   RuntimeModule, RuntimeModuleStage, RuntimeTemplate, compile_boolean_matcher, impl_runtime_module,

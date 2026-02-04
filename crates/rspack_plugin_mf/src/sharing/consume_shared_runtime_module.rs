@@ -1,6 +1,5 @@
 use std::sync::LazyLock;
 
-use rspack_collections::Identifier;
 use rspack_core::{
   Chunk, ChunkGraph, Compilation, ModuleIdentifier, RuntimeGlobals, RuntimeModule,
   RuntimeModuleStage, RuntimeTemplate, SourceType, impl_runtime_module,

@@ -2,7 +2,6 @@ use std::{hash::BuildHasherDefault, sync::LazyLock};
 
 use indexmap::IndexMap;
 use rspack_cacheable::with::AsMap;
-use rspack_collections::Identifier;
 use rspack_core::{
   Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleStage, RuntimeTemplate,
   chunk_graph_chunk::ChunkId, impl_runtime_module,

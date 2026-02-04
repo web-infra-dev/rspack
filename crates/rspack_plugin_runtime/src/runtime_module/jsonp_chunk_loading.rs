@@ -1,6 +1,6 @@
 use std::{ptr::NonNull, sync::LazyLock};
 
-use rspack_collections::{DatabaseItem, Identifier};
+use rspack_collections::DatabaseItem;
 use rspack_core::{
   BooleanMatcher, Chunk, ChunkGroupOrderKey, Compilation, RuntimeGlobals, RuntimeModule,
   RuntimeModuleStage, RuntimeTemplate, compile_boolean_matcher, impl_runtime_module,
