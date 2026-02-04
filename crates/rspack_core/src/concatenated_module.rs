@@ -1431,7 +1431,10 @@ impl Module for ConcatenatedModule {
         .exports_definitions
         .call(
           &mut exports_final_names,
-          compilation.chunk_graph.is_entry_module(&self.id),
+          compilation
+            .build_chunk_graph_artifact
+            .chunk_graph
+            .is_entry_module(&self.id),
         )
         .await?;
 
@@ -1682,7 +1685,7 @@ impl Module for ConcatenatedModule {
             )));
 
             let condition = runtime_template.runtime_condition_expression(
-              &compilation.chunk_graph,
+              &compilation.build_chunk_graph_artifact.chunk_graph,
               Some(&reference_info.runtime_condition),
               runtime,
             );

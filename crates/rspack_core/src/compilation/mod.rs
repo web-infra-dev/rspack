@@ -207,11 +207,6 @@ pub struct Compilation {
   pub runtime_modules: IdentifierMap<Box<dyn RuntimeModule>>,
   pub runtime_modules_hash: IdentifierMap<RspackHashDigest>,
   pub runtime_modules_code_generation_source: IdentifierMap<BoxSource>,
-  pub chunk_graph: ChunkGraph,
-  pub chunk_by_ukey: ChunkByUkey,
-  pub chunk_group_by_ukey: ChunkGroupByUkey,
-  pub entrypoints: IndexMap<String, ChunkGroupUkey>,
-  pub async_entrypoints: Vec<ChunkGroupUkey>,
   assets: CompilationAssets,
   assets_related_in: HashMap<String, HashSet<String>>,
   pub emitted_assets: DashSet<String, BuildHasherDefault<FxHasher>>,
@@ -221,8 +216,6 @@ pub struct Compilation {
   pub buildtime_plugin_driver: SharedPluginDriver,
   pub resolver_factory: Arc<ResolverFactory>,
   pub loader_resolver_factory: Arc<ResolverFactory>,
-  pub named_chunks: HashMap<String, ChunkUkey>,
-  pub named_chunk_groups: HashMap<String, ChunkGroupUkey>,
   pub runtime_template: RuntimeTemplate,
 
   // artifact for infer_async_modules_plugin
@@ -349,13 +342,8 @@ impl Compilation {
       runtime_modules: Default::default(),
       runtime_modules_hash: Default::default(),
       runtime_modules_code_generation_source: Default::default(),
-      chunk_by_ukey: Default::default(),
-      chunk_group_by_ukey: Default::default(),
       entries: Default::default(),
       global_entry: Default::default(),
-      chunk_graph: Default::default(),
-      entrypoints: Default::default(),
-      async_entrypoints: Default::default(),
       assets: Default::default(),
       assets_related_in: Default::default(),
       emitted_assets: Default::default(),
@@ -365,8 +353,6 @@ impl Compilation {
       buildtime_plugin_driver,
       resolver_factory,
       loader_resolver_factory,
-      named_chunks: Default::default(),
-      named_chunk_groups: Default::default(),
 
       async_modules_artifact: Arc::new(AtomicRefCell::new(AsyncModulesArtifact::default())),
       imported_by_defer_modules_artifact: Default::default(),
@@ -835,10 +821,14 @@ impl Compilation {
       if let Some(source_map) = &asset.info.related.source_map {
         self.delete_asset(source_map);
       }
-      self.chunk_by_ukey.iter_mut().for_each(|(_, chunk)| {
-        chunk.remove_file(filename);
-        chunk.remove_auxiliary_file(filename);
-      });
+      self
+        .build_chunk_graph_artifact
+        .chunk_by_ukey
+        .iter_mut()
+        .for_each(|(_, chunk)| {
+          chunk.remove_file(filename);
+          chunk.remove_auxiliary_file(filename);
+        });
     }
   }
 
@@ -857,15 +847,19 @@ impl Compilation {
 
       self.assets.insert(new_name.clone(), asset);
 
-      self.chunk_by_ukey.iter_mut().for_each(|(_, chunk)| {
-        if chunk.remove_file(filename) {
-          chunk.add_file(new_name.clone());
-        }
+      self
+        .build_chunk_graph_artifact
+        .chunk_by_ukey
+        .iter_mut()
+        .for_each(|(_, chunk)| {
+          if chunk.remove_file(filename) {
+            chunk.add_file(new_name.clone());
+          }
 
-        if chunk.remove_auxiliary_file(filename) {
-          chunk.add_auxiliary_file(new_name.clone());
-        }
-      });
+          if chunk.remove_auxiliary_file(filename) {
+            chunk.add_auxiliary_file(new_name.clone());
+          }
+        });
     }
   }
 
@@ -875,6 +869,7 @@ impl Compilation {
   // over chunk_by_ukey to reduce traversal frequency and improve performance.
   pub fn par_rename_assets(&mut self, renames: Vec<(String, String)>) {
     self
+      .build_chunk_graph_artifact
       .chunk_by_ukey
       .values_mut()
       .par_bridge()
@@ -917,7 +912,7 @@ impl Compilation {
   }
 
   pub fn entrypoints(&self) -> &IndexMap<String, ChunkGroupUkey> {
-    &self.entrypoints
+    &self.build_chunk_graph_artifact.entrypoints
   }
 
   pub fn push_diagnostic(&mut self, diagnostic: Diagnostic) {
@@ -1065,24 +1060,52 @@ impl Compilation {
   }
 
   pub fn entrypoint_by_name(&self, name: &str) -> &Entrypoint {
-    let ukey = self.entrypoints.get(name).expect("entrypoint not found");
-    self.chunk_group_by_ukey.expect_get(ukey)
+    let ukey = self
+      .build_chunk_graph_artifact
+      .entrypoints
+      .get(name)
+      .expect("entrypoint not found");
+    self
+      .build_chunk_graph_artifact
+      .chunk_group_by_ukey
+      .expect_get(ukey)
   }
 
   pub fn entrypoint_by_name_mut(&mut self, name: &str) -> &mut Entrypoint {
-    let ukey = self.entrypoints.get(name).expect("entrypoint not found");
-    self.chunk_group_by_ukey.expect_get_mut(ukey)
+    let ukey = self
+      .build_chunk_graph_artifact
+      .entrypoints
+      .get(name)
+      .expect("entrypoint not found");
+    self
+      .build_chunk_graph_artifact
+      .chunk_group_by_ukey
+      .expect_get_mut(ukey)
   }
 
   pub fn get_chunk_graph_entries(&self) -> impl Iterator<Item = ChunkUkey> + use<'_> {
-    let entries = self.entrypoints.values().map(|entrypoint_ukey| {
-      let entrypoint = self.chunk_group_by_ukey.expect_get(entrypoint_ukey);
-      entrypoint.get_runtime_chunk(&self.chunk_group_by_ukey)
-    });
-    let async_entries = self.async_entrypoints.iter().map(|entrypoint_ukey| {
-      let entrypoint = self.chunk_group_by_ukey.expect_get(entrypoint_ukey);
-      entrypoint.get_runtime_chunk(&self.chunk_group_by_ukey)
-    });
+    let entries = self
+      .build_chunk_graph_artifact
+      .entrypoints
+      .values()
+      .map(|entrypoint_ukey| {
+        let entrypoint = self
+          .build_chunk_graph_artifact
+          .chunk_group_by_ukey
+          .expect_get(entrypoint_ukey);
+        entrypoint.get_runtime_chunk(&self.build_chunk_graph_artifact.chunk_group_by_ukey)
+      });
+    let async_entries = self
+      .build_chunk_graph_artifact
+      .async_entrypoints
+      .iter()
+      .map(|entrypoint_ukey| {
+        let entrypoint = self
+          .build_chunk_graph_artifact
+          .chunk_group_by_ukey
+          .expect_get(entrypoint_ukey);
+        entrypoint.get_runtime_chunk(&self.build_chunk_graph_artifact.chunk_group_by_ukey)
+      });
     entries.chain(async_entries)
   }
   pub fn add_runtime_module(
@@ -1091,7 +1114,10 @@ impl Compilation {
     mut module: Box<dyn RuntimeModule>,
   ) -> Result<()> {
     // add chunk runtime to prefix module identifier to avoid multiple entry runtime modules conflict
-    let chunk = self.chunk_by_ukey.expect_get(chunk_ukey);
+    let chunk = self
+      .build_chunk_graph_artifact
+      .chunk_by_ukey
+      .expect_get(chunk_ukey);
     let runtime_module_identifier = ModuleIdentifier::from(format!(
       "{}/{}",
       get_runtime_key(chunk.runtime()),
@@ -1099,12 +1125,17 @@ impl Compilation {
     ));
     module.attach(*chunk_ukey);
 
-    self.chunk_graph.add_module(runtime_module_identifier);
+    self
+      .build_chunk_graph_artifact
+      .chunk_graph
+      .add_module(runtime_module_identifier);
     self.runtime_template.add_templates(module.template());
     self
+      .build_chunk_graph_artifact
       .chunk_graph
       .connect_chunk_and_module(*chunk_ukey, runtime_module_identifier);
     self
+      .build_chunk_graph_artifact
       .chunk_graph
       .connect_chunk_and_runtime_module(*chunk_ukey, runtime_module_identifier);
 

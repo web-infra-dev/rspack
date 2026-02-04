@@ -67,7 +67,12 @@ impl CssPlugin {
     let mut modules_by_chunk_group = chunk
       .groups()
       .iter()
-      .map(|group| compilation.chunk_group_by_ukey.expect_get(group))
+      .map(|group| {
+        compilation
+          .build_chunk_graph_artifact
+          .chunk_group_by_ukey
+          .expect_get(group)
+      })
       .map(|chunk_group| {
         let mut indexed_modules = modules_list
           .clone()

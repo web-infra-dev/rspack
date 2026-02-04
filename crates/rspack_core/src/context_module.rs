@@ -519,14 +519,14 @@ impl ContextModule {
     let mut items = block_and_first_dependency_list
       .filter_map(|(b, d)| {
         let chunks: Vec<_> = compilation
-          .chunk_graph
-          .get_block_chunk_group(&b.identifier(), &compilation.chunk_group_by_ukey)
+          .build_chunk_graph_artifact.chunk_graph
+          .get_block_chunk_group(&b.identifier(), &compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
           .expect("should have block chunk group")
           .chunks
           .iter()
           .map(|c| {
             compilation
-              .chunk_by_ukey
+              .build_chunk_graph_artifact.chunk_by_ukey
               .expect_get(c)
               .id()
               .expect("should have chunk id in code generation")

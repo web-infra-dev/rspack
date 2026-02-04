@@ -48,7 +48,7 @@ impl PassExt for OptimizeDependenciesPass {
     Ok(())
   }
 
-  async fn after_pass(&self, compilation: &Compilation, cache: &mut dyn Cache) {
+  async fn after_pass(&self, compilation: &mut Compilation, cache: &mut dyn Cache) {
     cache.after_optimize_dependencies(compilation).await;
   }
 }

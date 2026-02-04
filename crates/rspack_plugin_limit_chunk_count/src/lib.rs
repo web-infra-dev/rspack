@@ -62,6 +62,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
   }
 
   let mut chunks_ukeys = compilation
+    .build_chunk_graph_artifact
     .chunk_by_ukey
     .keys()
     .copied()
@@ -70,14 +71,19 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
     return Ok(None);
   }
 
-  let chunk_by_ukey = &compilation.chunk_by_ukey.clone();
-  let chunk_group_by_ukey = &compilation.chunk_group_by_ukey.clone();
-  let chunk_graph = &compilation.chunk_graph.clone();
-  let mut new_chunk_by_ukey = std::mem::take(&mut compilation.chunk_by_ukey);
-  let mut new_chunk_group_by_ukey = std::mem::take(&mut compilation.chunk_group_by_ukey);
-  let mut new_chunk_graph = std::mem::take(&mut compilation.chunk_graph);
+  let chunk_by_ukey = &compilation.build_chunk_graph_artifact.chunk_by_ukey.clone();
+  let chunk_group_by_ukey = &compilation
+    .build_chunk_graph_artifact
+    .chunk_group_by_ukey
+    .clone();
+  let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph.clone();
+  let mut new_chunk_by_ukey =
+    std::mem::take(&mut compilation.build_chunk_graph_artifact.chunk_by_ukey);
+  let mut new_chunk_group_by_ukey =
+    std::mem::take(&mut compilation.build_chunk_graph_artifact.chunk_group_by_ukey);
+  let mut new_chunk_graph = std::mem::take(&mut compilation.build_chunk_graph_artifact.chunk_graph);
 
-  //    let chunk_graph = &compilation.chunk_graph.clone();
+  //    let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph.clone();
   let module_graph = compilation.get_module_graph();
   let mut remaining_chunks_to_merge = (chunks_ukeys.len() - max_chunks) as i64;
 
@@ -294,9 +300,9 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
     }
   }
 
-  compilation.chunk_by_ukey = new_chunk_by_ukey;
-  compilation.chunk_group_by_ukey = new_chunk_group_by_ukey;
-  compilation.chunk_graph = new_chunk_graph;
+  compilation.build_chunk_graph_artifact.chunk_by_ukey = new_chunk_by_ukey;
+  compilation.build_chunk_graph_artifact.chunk_group_by_ukey = new_chunk_group_by_ukey;
+  compilation.build_chunk_graph_artifact.chunk_graph = new_chunk_graph;
 
   if let Some(mut mutations) = compilation.incremental.mutations_write() {
     // ChunkRemove mutations must be added last because a chunk can be removed after another chunk

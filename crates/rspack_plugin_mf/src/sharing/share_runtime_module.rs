@@ -52,15 +52,24 @@ impl RuntimeModule for ShareRuntimeModule {
     let chunk_ukey = self
       .chunk
       .expect("should have chunk in <ShareRuntimeModule as RuntimeModule>::generate");
-    let chunk = compilation.chunk_by_ukey.expect_get(&chunk_ukey);
+    let chunk = compilation
+      .build_chunk_graph_artifact
+      .chunk_by_ukey
+      .expect_get(&chunk_ukey);
     let module_graph = compilation.get_module_graph();
     let mut init_per_scope: FxHashMap<
       String,
       LinkedHashMap<DataInitStage, LinkedHashSet<DataInitInfo>>,
     > = FxHashMap::default();
-    for c in chunk.get_all_referenced_chunks(&compilation.chunk_group_by_ukey) {
-      let chunk = compilation.chunk_by_ukey.expect_get(&c);
+    for c in
+      chunk.get_all_referenced_chunks(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
+    {
+      let chunk = compilation
+        .build_chunk_graph_artifact
+        .chunk_by_ukey
+        .expect_get(&c);
       let mut modules = compilation
+        .build_chunk_graph_artifact
         .chunk_graph
         .get_chunk_modules_identifier_by_source_type(&c, SourceType::ShareInit, module_graph);
       modules.sort_unstable();

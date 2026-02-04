@@ -51,13 +51,17 @@ async fn additional_chunk_runtime_requirements(
   runtime_requirements: &mut RuntimeGlobals,
   _runtime_modules: &mut Vec<Box<dyn RuntimeModule>>,
 ) -> Result<()> {
-  let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+  let chunk = compilation
+    .build_chunk_graph_artifact
+    .chunk_by_ukey
+    .expect_get(chunk_ukey);
 
-  if chunk.has_runtime(&compilation.chunk_group_by_ukey) {
+  if chunk.has_runtime(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey) {
     return Ok(());
   }
 
   if compilation
+    .build_chunk_graph_artifact
     .chunk_graph
     .get_number_of_entry_modules(chunk_ukey)
     > 0
@@ -75,8 +79,11 @@ async fn js_chunk_hash(
   chunk_ukey: &ChunkUkey,
   hasher: &mut RspackHash,
 ) -> Result<()> {
-  let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
-  if chunk.has_runtime(&compilation.chunk_group_by_ukey) {
+  let chunk = compilation
+    .build_chunk_graph_artifact
+    .chunk_by_ukey
+    .expect_get(chunk_ukey);
+  if chunk.has_runtime(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey) {
     return Ok(());
   }
 
@@ -86,6 +93,7 @@ async fn js_chunk_hash(
     hasher,
     compilation,
     compilation
+      .build_chunk_graph_artifact
       .chunk_graph
       .get_chunk_entry_modules_with_chunk_group_iterable(chunk_ukey),
     chunk_ukey,
@@ -104,9 +112,12 @@ async fn compilation_dependent_full_hash(
     return Ok(None);
   }
 
-  let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+  let chunk = compilation
+    .build_chunk_graph_artifact
+    .chunk_by_ukey
+    .expect_get(chunk_ukey);
 
-  if !chunk.has_entry_module(&compilation.chunk_graph) {
+  if !chunk.has_entry_module(&compilation.build_chunk_graph_artifact.chunk_graph) {
     return Ok(None);
   }
 
@@ -125,7 +136,10 @@ async fn render_chunk(
   render_source: &mut RenderSource,
 ) -> Result<()> {
   let hooks = JsPlugin::get_compilation_hooks(compilation.id());
-  let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+  let chunk = compilation
+    .build_chunk_graph_artifact
+    .chunk_by_ukey
+    .expect_get(chunk_ukey);
   let base_chunk_output_name = get_chunk_output_name(chunk, compilation).await?;
 
   let chunk_id_json_string = json_stringify(chunk.expect_id());
@@ -147,6 +161,7 @@ async fn render_chunk(
   sources.add(RawStringSource::from_static(";\n"));
 
   if compilation
+    .build_chunk_graph_artifact
     .chunk_graph
     .has_chunk_runtime_modules(chunk_ukey)
   {
@@ -162,7 +177,7 @@ async fn render_chunk(
     return Ok(());
   }
 
-  if chunk.has_entry_module(&compilation.chunk_graph) {
+  if chunk.has_entry_module(&compilation.build_chunk_graph_artifact.chunk_graph) {
     let runtime_chunk_output_name = get_runtime_chunk_output_name(compilation, chunk_ukey).await?;
     sources.add(RawStringSource::from(format!(
       "import {{ {} }} from '{}';\n",
@@ -178,6 +193,7 @@ async fn render_chunk(
     )));
 
     let entries = compilation
+      .build_chunk_graph_artifact
       .chunk_graph
       .get_chunk_entry_modules_with_chunk_group_iterable(chunk_ukey);
 
@@ -215,14 +231,15 @@ async fn render_chunk(
       let module_id = ChunkGraph::get_module_id(&compilation.module_ids_artifact, *module)
         .expect("should have module id");
       let runtime_chunk = compilation
+        .build_chunk_graph_artifact
         .chunk_group_by_ukey
         .expect_get(entry)
-        .get_runtime_chunk(&compilation.chunk_group_by_ukey);
+        .get_runtime_chunk(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey);
       let chunks = get_all_chunks(
         entry,
         &runtime_chunk,
         None,
-        &compilation.chunk_group_by_ukey,
+        &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
       );
 
       for chunk_ukey in chunks.iter() {
@@ -235,7 +252,10 @@ async fn render_chunk(
         }
         loaded_chunks.insert(*chunk_ukey);
         let index = loaded_chunks.len();
-        let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+        let chunk = compilation
+          .build_chunk_graph_artifact
+          .chunk_by_ukey
+          .expect_get(chunk_ukey);
         let other_chunk_output_name = get_chunk_output_name(chunk, compilation).await?;
         let mut index_buffer = itoa::Buffer::new();
         let index_str = index_buffer.format(index);
@@ -335,19 +355,24 @@ async fn render_startup(
   _module: &ModuleIdentifier,
   render_source: &mut RenderSource,
 ) -> Result<()> {
-  let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+  let chunk = compilation
+    .build_chunk_graph_artifact
+    .chunk_by_ukey
+    .expect_get(chunk_ukey);
   let entries_count = compilation
+    .build_chunk_graph_artifact
     .chunk_graph
     .get_number_of_entry_modules(chunk_ukey);
-  let has_runtime = chunk.has_runtime(&compilation.chunk_group_by_ukey);
+  let has_runtime = chunk.has_runtime(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey);
 
   if entries_count > 0 && has_runtime {
     let dependent_chunks = compilation
+      .build_chunk_graph_artifact
       .chunk_graph
       .get_chunk_entry_dependent_chunks_iterable(
         chunk_ukey,
-        &compilation.chunk_by_ukey,
-        &compilation.chunk_group_by_ukey,
+        &compilation.build_chunk_graph_artifact.chunk_by_ukey,
+        &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
       );
 
     let base_chunk_output_name = get_chunk_output_name(chunk, compilation).await?;
@@ -358,7 +383,10 @@ async fn render_startup(
         continue;
       }
 
-      let dependant_chunk = compilation.chunk_by_ukey.expect_get(&ck);
+      let dependant_chunk = compilation
+        .build_chunk_graph_artifact
+        .chunk_by_ukey
+        .expect_get(&ck);
 
       let named_import = format!("__rspack_imports_{index}");
 

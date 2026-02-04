@@ -152,27 +152,32 @@ impl RuntimeModule for CssLoadingRuntimeModule {
       let mut runtime_template = compilation
         .runtime_template
         .create_module_codegen_runtime_template();
-      let chunk = compilation.chunk_by_ukey.expect_get(&chunk_ukey);
+      let chunk = compilation
+        .build_chunk_graph_artifact
+        .chunk_by_ukey
+        .expect_get(&chunk_ukey);
       let runtime_requirements = get_chunk_runtime_requirements(compilation, &chunk_ukey);
 
       let unique_name = &compilation.options.output.unique_name;
       let with_hmr = runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS);
 
-      let condition_map =
-        compilation
-          .chunk_graph
-          .get_chunk_condition_map(&chunk_ukey, compilation, chunk_has_css);
+      let condition_map = compilation
+        .build_chunk_graph_artifact
+        .chunk_graph
+        .get_chunk_condition_map(&chunk_ukey, compilation, chunk_has_css);
       let has_css_matcher = compile_boolean_matcher(&condition_map);
 
       let with_loading = runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS)
         && !matches!(has_css_matcher, BooleanMatcher::Condition(false));
       let with_fetch_priority = runtime_requirements.contains(RuntimeGlobals::HAS_FETCH_PRIORITY);
 
-      let initial_chunks = chunk.get_all_initial_chunks(&compilation.chunk_group_by_ukey);
+      let initial_chunks =
+        chunk.get_all_initial_chunks(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey);
       let mut initial_chunk_ids = HashSet::default();
 
       for chunk_ukey in initial_chunks.iter() {
         let id = compilation
+          .build_chunk_graph_artifact
           .chunk_by_ukey
           .expect_get(chunk_ukey)
           .expect_id()

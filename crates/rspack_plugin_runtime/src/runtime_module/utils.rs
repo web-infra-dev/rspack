@@ -14,14 +14,21 @@ pub fn get_initial_chunk_ids(
   filter_fn: impl Fn(&ChunkUkey, &Compilation) -> bool,
 ) -> HashSet<ChunkId> {
   match chunk {
-    Some(chunk_ukey) => match compilation.chunk_by_ukey.get(&chunk_ukey) {
+    Some(chunk_ukey) => match compilation
+      .build_chunk_graph_artifact
+      .chunk_by_ukey
+      .get(&chunk_ukey)
+    {
       Some(chunk) => {
         let mut js_chunks = chunk
-          .get_all_initial_chunks(&compilation.chunk_group_by_ukey)
+          .get_all_initial_chunks(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
           .iter()
           .filter(|key| !(chunk_ukey.eq(key) || filter_fn(key, compilation)))
           .map(|chunk_ukey| {
-            let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+            let chunk = compilation
+              .build_chunk_graph_artifact
+              .chunk_by_ukey
+              .expect_get(chunk_ukey);
             chunk.expect_id().clone()
           })
           .collect::<HashSet<_>>();
@@ -52,11 +59,10 @@ pub fn stringify_chunks(chunks: &HashSet<ChunkId>, value: u8) -> String {
 }
 
 pub fn chunk_has_css(chunk: &ChunkUkey, compilation: &Compilation) -> bool {
-  compilation.chunk_graph.has_chunk_module_by_source_type(
-    chunk,
-    SourceType::Css,
-    compilation.get_module_graph(),
-  )
+  compilation
+    .build_chunk_graph_artifact
+    .chunk_graph
+    .has_chunk_module_by_source_type(chunk, SourceType::Css, compilation.get_module_graph())
 }
 
 pub async fn get_output_dir(
@@ -67,7 +73,7 @@ pub async fn get_output_dir(
   let filename = get_js_chunk_filename_template(
     chunk,
     &compilation.options.output,
-    &compilation.chunk_group_by_ukey,
+    &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
   );
   let output_dir = compilation
     .get_path(
@@ -99,9 +105,12 @@ pub fn is_enabled_for_chunk(
   compilation: &Compilation,
 ) -> bool {
   let chunk_loading = compilation
+    .build_chunk_graph_artifact
     .chunk_by_ukey
     .get(chunk_ukey)
-    .and_then(|chunk| chunk.get_entry_options(&compilation.chunk_group_by_ukey))
+    .and_then(|chunk| {
+      chunk.get_entry_options(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
+    })
     .and_then(|options| options.chunk_loading.as_ref())
     .unwrap_or(&compilation.options.output.chunk_loading);
   chunk_loading == expected

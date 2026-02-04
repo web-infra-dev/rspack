@@ -54,7 +54,7 @@ See https://w3c.github.io/webappsec-subresource-integrity/#cross-origin-data-lea
   for batch in batches {
     let chunks = batch
       .into_iter()
-      .filter_map(|c| compilation.chunk_by_ukey.get(&c))
+      .filter_map(|c| compilation.build_chunk_graph_artifact.chunk_by_ukey.get(&c))
       .collect::<Vec<_>>();
 
     let results = chunks
@@ -209,18 +209,26 @@ fn digest_chunks(compilation: &Compilation) -> Vec<Vec<ChunkUkey>> {
         continue;
       }
       visited_chunk_groups.insert(chunk_group);
-      if let Some(chunk_group) = compilation.chunk_group_by_ukey.get(chunk_group) {
+      if let Some(chunk_group) = compilation
+        .build_chunk_graph_artifact
+        .chunk_group_by_ukey
+        .get(chunk_group)
+      {
         batch_chunk_groups.extend(chunk_group.children.iter());
         batch_chunk_groups.extend(chunk_group.async_entrypoints_iterable());
         for chunk_ukey in chunk_group.chunks.iter() {
           if visited_chunks.contains(chunk_ukey) {
             continue;
           }
-          let Some(chunk) = compilation.chunk_by_ukey.get(chunk_ukey) else {
+          let Some(chunk) = compilation
+            .build_chunk_graph_artifact
+            .chunk_by_ukey
+            .get(chunk_ukey)
+          else {
             continue;
           };
           visited_chunks.insert(*chunk_ukey);
-          if chunk.has_runtime(&compilation.chunk_group_by_ukey) {
+          if chunk.has_runtime(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey) {
             chunk_runtime_batch.push(*chunk_ukey);
           } else {
             chunk_batch.push(*chunk_ukey);
@@ -300,7 +308,11 @@ pub async fn detect_unresolved_integrity(
   diagnostics: &mut Vec<Diagnostic>,
 ) -> Result<()> {
   let mut contain_unresolved_files = vec![];
-  for chunk in compilation.chunk_by_ukey.values() {
+  for chunk in compilation
+    .build_chunk_graph_artifact
+    .chunk_by_ukey
+    .values()
+  {
     for file in chunk.files() {
       if let Some(source) = compilation.assets().get(file).and_then(|a| a.get_source())
         && source

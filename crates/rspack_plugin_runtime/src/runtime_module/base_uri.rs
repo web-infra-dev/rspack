@@ -27,8 +27,15 @@ impl RuntimeModule for BaseUriRuntimeModule {
   async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
     let base_uri = self
       .chunk
-      .and_then(|ukey| compilation.chunk_by_ukey.get(&ukey))
-      .and_then(|chunk| chunk.get_entry_options(&compilation.chunk_group_by_ukey))
+      .and_then(|ukey| {
+        compilation
+          .build_chunk_graph_artifact
+          .chunk_by_ukey
+          .get(&ukey)
+      })
+      .and_then(|chunk| {
+        chunk.get_entry_options(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
+      })
       .and_then(|options| options.base_uri.as_ref())
       .and_then(|base_uri| serde_json::to_string(base_uri).ok())
       .unwrap_or_else(|| "undefined".to_string());

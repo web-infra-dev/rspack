@@ -201,9 +201,9 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
 
   let hooks = RsdoctorPlugin::get_compilation_hooks(compilation.id());
 
-  let chunk_by_ukey = &compilation.chunk_by_ukey;
-  let chunk_group_by_ukey = &compilation.chunk_group_by_ukey;
-  let chunk_graph = &compilation.chunk_graph;
+  let chunk_by_ukey = &compilation.build_chunk_graph_artifact.chunk_by_ukey;
+  let chunk_group_by_ukey = &compilation.build_chunk_graph_artifact.chunk_group_by_ukey;
+  let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
   let chunks = chunk_by_ukey.iter().collect::<HashMap<_, _>>();
 
   let mut rsd_chunks = HashMap::default();
@@ -224,7 +224,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
 
   // 3. collect entrypoints
   rsd_entrypoints.extend(collect_entrypoints(
-    &compilation.entrypoints,
+    &compilation.build_chunk_graph_artifact.entrypoints,
     &rsd_chunks,
     chunk_group_by_ukey,
   ));
@@ -268,8 +268,8 @@ async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<
   let mut rsd_dependencies = HashMap::default();
 
   let module_graph = compilation.get_module_graph();
-  let chunk_graph = &compilation.chunk_graph;
-  let chunk_by_ukey = &compilation.chunk_by_ukey;
+  let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
+  let chunk_by_ukey = &compilation.build_chunk_graph_artifact.chunk_by_ukey;
   let modules = module_graph.modules();
 
   // 1. collect modules
@@ -467,12 +467,12 @@ async fn after_process_assets(
 
   let hooks = RsdoctorPlugin::get_compilation_hooks(compilation.id());
 
-  let chunk_by_ukey = &compilation.chunk_by_ukey;
-  let chunk_group_by_ukey = &compilation.chunk_group_by_ukey;
+  let chunk_by_ukey = &compilation.build_chunk_graph_artifact.chunk_by_ukey;
+  let chunk_group_by_ukey = &compilation.build_chunk_graph_artifact.chunk_group_by_ukey;
   let rsd_assets = collect_assets(compilation.assets(), chunk_by_ukey);
   let rsd_chunk_assets = collect_chunk_assets(chunk_by_ukey, &rsd_assets);
   let rsd_entrypoint_assets = collect_entrypoint_assets(
-    &compilation.entrypoints,
+    &compilation.build_chunk_graph_artifact.entrypoints,
     &rsd_assets,
     &ENTRYPOINT_UKEY_MAP
       .get(&compilation.id())

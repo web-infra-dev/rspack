@@ -219,7 +219,10 @@ async fn render(
     return Ok(());
   };
   if self.options.declare {
-    let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+    let chunk = compilation
+      .build_chunk_graph_artifact
+      .chunk_by_ukey
+      .expect_get(chunk_ukey);
     let base = &self
       .get_resolved_full_name(&options, compilation, chunk)
       .await?[0];
@@ -251,7 +254,10 @@ async fn render_startup(
   };
   let mut source = ConcatSource::default();
   source.add(render_source.source.clone());
-  let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+  let chunk = compilation
+    .build_chunk_graph_artifact
+    .chunk_by_ukey
+    .expect_get(chunk_ukey);
   let full_name_resolved = self
     .get_resolved_full_name(&options, compilation, chunk)
     .await?;
@@ -359,7 +365,10 @@ async fn js_chunk_hash(
     return Ok(());
   };
   PLUGIN_NAME.hash(hasher);
-  let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+  let chunk = compilation
+    .build_chunk_graph_artifact
+    .chunk_by_ukey
+    .expect_get(chunk_ukey);
   let full_resolved_name = self
     .get_resolved_full_name(&options, compilation, chunk)
     .await?;

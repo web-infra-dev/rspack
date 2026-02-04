@@ -31,7 +31,10 @@ use crate::{
 
 #[inline]
 fn get_chunk(compilation: &Compilation, chunk_ukey: ChunkUkey) -> &Chunk {
-  compilation.chunk_by_ukey.expect_get(&chunk_ukey)
+  compilation
+    .build_chunk_graph_artifact
+    .chunk_by_ukey
+    .expect_get(&chunk_ukey)
 }
 
 use crate::{EsmLibraryPlugin, dependency::dyn_import::NAMESPACE_SYMBOL};
@@ -41,13 +44,19 @@ static AUTO_PUBLIC_PATH_PLACEHOLDER_RE: Lazy<Regex> =
 
 impl EsmLibraryPlugin {
   pub(crate) fn get_runtime_chunk(chunk_ukey: ChunkUkey, compilation: &Compilation) -> ChunkUkey {
-    let chunk = compilation.chunk_by_ukey.expect_get(&chunk_ukey);
+    let chunk = compilation
+      .build_chunk_graph_artifact
+      .chunk_by_ukey
+      .expect_get(&chunk_ukey);
     let group = chunk
       .groups()
       .iter()
       .next()
       .expect("should have at least one group");
-    let group = compilation.chunk_group_by_ukey.expect_get(group);
+    let group = compilation
+      .build_chunk_graph_artifact
+      .chunk_group_by_ukey
+      .expect_get(group);
     let mut stack = vec![group];
     let mut visited = UkeySet::default();
 
@@ -57,14 +66,16 @@ impl EsmLibraryPlugin {
       }
 
       if group.kind.is_entrypoint() {
-        return group.get_runtime_chunk(&compilation.chunk_group_by_ukey);
+        return group
+          .get_runtime_chunk(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey);
       }
 
-      stack.extend(
-        group
-          .parents_iterable()
-          .map(|group| compilation.chunk_group_by_ukey.expect_get(group)),
-      );
+      stack.extend(group.parents_iterable().map(|group| {
+        compilation
+          .build_chunk_graph_artifact
+          .chunk_group_by_ukey
+          .expect_get(group)
+      }));
     }
 
     unreachable!("chunk should have at least one ancestor that is entrypoint")
@@ -96,7 +107,7 @@ impl EsmLibraryPlugin {
     let filename_template = get_js_chunk_filename_template(
       chunk,
       &compilation.options.output,
-      &compilation.chunk_group_by_ukey,
+      &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
     );
 
     asset_info.set_javascript_module(true);
@@ -182,7 +193,7 @@ impl EsmLibraryPlugin {
       *ChunkGraph::get_chunk_runtime_requirements(compilation, chunk_ukey);
 
     // render webpack runtime
-    if chunk.has_runtime(&compilation.chunk_group_by_ukey) {
+    if chunk.has_runtime(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey) {
       asset_info
         .extras
         .insert(RSPACK_ESM_RUNTIME_CHUNK.into(), "true".into());
@@ -209,6 +220,7 @@ var {} = {{}};
 
       // EXPORT_WEBPACK_REQUIRE_RUNTIME_MODULE runtime will export __webpack_require__ already
       if !compilation
+        .build_chunk_graph_artifact
         .chunk_graph
         .get_chunk_runtime_modules_iterable(chunk_ukey)
         .any(|m| m.contains(EXPORT_REQUIRE_RUNTIME_MODULE_ID))
@@ -347,7 +359,10 @@ var {} = {{}};
     if !runtime_requirements.is_empty() {
       let runtime_chunk = Self::get_runtime_chunk(*chunk_ukey, compilation);
       if &runtime_chunk != chunk_ukey && runtime_requirements.contains(RuntimeGlobals::REQUIRE) {
-        let runtime_chunk = compilation.chunk_by_ukey.expect_get(&runtime_chunk);
+        let runtime_chunk = compilation
+          .build_chunk_graph_artifact
+          .chunk_by_ukey
+          .expect_get(&runtime_chunk);
 
         import_source.add(RawStringSource::from(format!(
           "import {{ {} }} from \"__RSPACK_ESM_CHUNK_{}\";\n",
@@ -392,7 +407,10 @@ var {} = {{}};
       {
         continue;
       }
-      let chunk = compilation.chunk_by_ukey.expect_get(chunk);
+      let chunk = compilation
+        .build_chunk_graph_artifact
+        .chunk_by_ukey
+        .expect_get(chunk);
 
       import_source.add(RawStringSource::from(format!(
         "import {}\"__RSPACK_ESM_CHUNK_{}\";\n",
@@ -536,7 +554,10 @@ var {} = {{}};
           .join(", "),
         match re_export_from {
           crate::chunk_link::ReExportFrom::Chunk(chunk_ukey) => {
-            let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+            let chunk = compilation
+              .build_chunk_graph_artifact
+              .chunk_by_ukey
+              .expect_get(chunk_ukey);
             Cow::Owned(format!("__RSPACK_ESM_CHUNK_{}", chunk.expect_id().as_str()))
           }
           crate::chunk_link::ReExportFrom::Request(request) => {

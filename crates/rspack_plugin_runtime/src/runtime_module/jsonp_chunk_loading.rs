@@ -115,7 +115,7 @@ impl JsonpChunkLoadingRuntimeModule {
 impl JsonpChunkLoadingRuntimeModule {
   fn generate_base_uri(&self, chunk: &Chunk, compilation: &Compilation) -> String {
     let base_uri = chunk
-      .get_entry_options(&compilation.chunk_group_by_ukey)
+      .get_entry_options(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
       .and_then(|options| options.base_uri.as_ref())
       .and_then(|base_uri| serde_json::to_string(base_uri).ok())
       .unwrap_or_else(|| "document.baseURI || self.location.href".to_string());
@@ -213,6 +213,7 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
 
   async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
     let chunk = compilation
+      .build_chunk_graph_artifact
       .chunk_by_ukey
       .expect_get(&self.chunk.expect("The chunk should be attached"));
 
@@ -245,10 +246,10 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
 
     let hooks = RuntimePlugin::get_compilation_hooks(compilation.id());
 
-    let condition_map =
-      compilation
-        .chunk_graph
-        .get_chunk_condition_map(&chunk.ukey(), compilation, chunk_has_js);
+    let condition_map = compilation
+      .build_chunk_graph_artifact
+      .chunk_graph
+      .get_chunk_condition_map(&chunk.ukey(), compilation, chunk_has_js);
     let has_js_matcher = compile_boolean_matcher(&condition_map);
     let initial_chunks = get_initial_chunk_ids(self.chunk, compilation, chunk_has_js);
 

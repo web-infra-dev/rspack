@@ -30,7 +30,7 @@ pub trait PassExt: Send + Sync {
   async fn before_pass(&self, _compilation: &mut Compilation, _cache: &mut dyn Cache) {}
 
   /// Called after run_pass succeeds. For cache save.
-  async fn after_pass(&self, _compilation: &Compilation, _cache: &mut dyn Cache) {}
+  async fn after_pass(&self, _compilation: &mut Compilation, _cache: &mut dyn Cache) {}
 
   /// Whether this pass is enabled for this compilation.
   fn is_enabled(&self, _compilation: &Compilation) -> bool {

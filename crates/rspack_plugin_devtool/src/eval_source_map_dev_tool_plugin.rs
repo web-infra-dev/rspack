@@ -103,7 +103,10 @@ async fn render_module_content(
   _init_fragments: &mut ChunkInitFragments,
 ) -> Result<()> {
   let output_options = &compilation.options.output;
-  let chunk = compilation.chunk_by_ukey.expect_get(chunk);
+  let chunk = compilation
+    .build_chunk_graph_artifact
+    .chunk_by_ukey
+    .expect_get(chunk);
   let module_hash = compilation
     .code_generation_results
     .get_hash(&module.identifier(), Some(chunk.runtime()))

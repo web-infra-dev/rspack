@@ -121,7 +121,13 @@ impl Module for FallbackModule {
   }
 
   fn chunk_condition(&self, chunk: &ChunkUkey, compilation: &Compilation) -> Option<bool> {
-    Some(compilation.chunk_graph.get_number_of_entry_modules(chunk) > 0)
+    Some(
+      compilation
+        .build_chunk_graph_artifact
+        .chunk_graph
+        .get_number_of_entry_modules(chunk)
+        > 0,
+    )
   }
 
   async fn build(

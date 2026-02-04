@@ -132,6 +132,7 @@ async fn js_chunk_hash(
   hasher: &mut RspackHash,
 ) -> Result<()> {
   for identifier in compilation
+    .build_chunk_graph_artifact
     .chunk_graph
     .get_chunk_runtime_modules_iterable(chunk_ukey)
   {
@@ -186,8 +187,12 @@ async fn runtime_requirements_in_tree(
   }
 
   if runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK) {
-    let c = compilation.chunk_by_ukey.expect_get(chunk_ukey);
-    let has_async_chunks = c.has_async_chunks(&compilation.chunk_group_by_ukey);
+    let c = compilation
+      .build_chunk_graph_artifact
+      .chunk_by_ukey
+      .expect_get(chunk_ukey);
+    let has_async_chunks =
+      c.has_async_chunks(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey);
     runtime_modules_to_add.push((
       *chunk_ukey,
       EnsureChunkRuntimeModule::new(&compilation.runtime_template, has_async_chunks).boxed(),
@@ -195,9 +200,12 @@ async fn runtime_requirements_in_tree(
   }
 
   let library_type = {
-    let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+    let chunk = compilation
+      .build_chunk_graph_artifact
+      .chunk_by_ukey
+      .expect_get(chunk_ukey);
     chunk
-      .get_entry_options(&compilation.chunk_group_by_ukey)
+      .get_entry_options(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
       .and_then(|options| options.library.as_ref())
       .or(compilation.options.output.library.as_ref())
       .map(|library| library.library_type.clone())
@@ -221,9 +229,10 @@ async fn runtime_requirements_in_tree(
       }
       RuntimeGlobals::PUBLIC_PATH => {
         let public_path = compilation
+          .build_chunk_graph_artifact
           .chunk_by_ukey
           .expect_get(chunk_ukey)
-          .get_entry_options(&compilation.chunk_group_by_ukey)
+          .get_entry_options(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
           .and_then(|options| options.public_path.clone())
           .unwrap_or_else(|| compilation.options.output.public_path.clone());
         match &public_path {
@@ -262,7 +271,7 @@ async fn runtime_requirements_in_tree(
                 get_js_chunk_filename_template(
                   chunk,
                   &compilation.options.output,
-                  &compilation.chunk_group_by_ukey,
+                  &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
                 )
               })
             },
@@ -289,7 +298,7 @@ async fn runtime_requirements_in_tree(
                 get_css_chunk_filename_template(
                   chunk,
                   &compilation.options.output,
-                  &compilation.chunk_group_by_ukey,
+                  &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
                 )
                 .clone()
               })

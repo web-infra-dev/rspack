@@ -62,17 +62,24 @@ impl RuntimeModule for SRIHashVariableRuntimeModule {
   }
 
   async fn generate(&self, compilation: &Compilation) -> Result<String> {
-    let Some(chunk) = compilation.chunk_by_ukey.get(&self.chunk) else {
+    let Some(chunk) = compilation
+      .build_chunk_graph_artifact
+      .chunk_by_ukey
+      .get(&self.chunk)
+    else {
       return Err(error!(
         "Generate sri runtime module failed: chunk not found"
       ));
     };
 
     let include_chunks = chunk
-      .get_all_async_chunks(&compilation.chunk_group_by_ukey)
+      .get_all_async_chunks(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
       .iter()
       .filter_map(|c| {
-        let chunk = compilation.chunk_by_ukey.get(c)?;
+        let chunk = compilation
+          .build_chunk_graph_artifact
+          .chunk_by_ukey
+          .get(c)?;
         let id = chunk.id()?;
         let rendered_hash = chunk.rendered_hash(
           &compilation.chunk_hashes_artifact,
@@ -109,6 +116,7 @@ impl RuntimeModule for SRIHashVariableRuntimeModule {
       .into_iter()
       .filter(|c| {
         compilation
+          .build_chunk_graph_artifact
           .chunk_graph
           .get_chunk_modules(c, module_graph)
           .iter()
@@ -126,10 +134,17 @@ impl RuntimeModule for SRIHashVariableRuntimeModule {
         .iter()
         .filter(|c| {
           compilation
+            .build_chunk_graph_artifact
             .chunk_graph
             .has_chunk_module_by_source_type(c, source_type, module_graph)
         })
-        .map(|c| compilation.chunk_by_ukey.expect_get(c).expect_id())
+        .map(|c| {
+          compilation
+            .build_chunk_graph_artifact
+            .chunk_by_ukey
+            .expect_get(c)
+            .expect_id()
+        })
         .filter(|c| include_chunks.contains_key(c))
         .collect::<Vec<_>>();
 

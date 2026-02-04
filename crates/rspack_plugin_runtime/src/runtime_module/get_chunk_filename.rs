@@ -95,31 +95,42 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
   async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
     let chunks = self
       .chunk
-      .and_then(|chunk_ukey| compilation.chunk_by_ukey.get(&chunk_ukey))
+      .and_then(|chunk_ukey| {
+        compilation
+          .build_chunk_graph_artifact
+          .chunk_by_ukey
+          .get(&chunk_ukey)
+      })
       .map(|chunk| {
         let runtime_requirements = get_chunk_runtime_requirements(compilation, &chunk.ukey());
         if (self.all_chunks)(runtime_requirements) {
-          chunk.get_all_referenced_chunks(&compilation.chunk_group_by_ukey)
+          chunk
+            .get_all_referenced_chunks(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
         } else {
-          let mut chunks = chunk.get_all_async_chunks(&compilation.chunk_group_by_ukey);
+          let mut chunks =
+            chunk.get_all_async_chunks(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey);
 
           if ChunkGraph::get_tree_runtime_requirements(compilation, &chunk.ukey())
             .contains(RuntimeGlobals::ENSURE_CHUNK_INCLUDE_ENTRIES)
           {
             chunks.extend(
               compilation
+                .build_chunk_graph_artifact
                 .chunk_graph
                 .get_runtime_chunk_dependent_chunks_iterable(
                   &chunk.ukey(),
-                  &compilation.chunk_by_ukey,
-                  &compilation.chunk_group_by_ukey,
+                  &compilation.build_chunk_graph_artifact.chunk_by_ukey,
+                  &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
                 ),
             );
           }
-          for entrypoint in
-            chunk.get_all_referenced_async_entrypoints(&compilation.chunk_group_by_ukey)
-          {
-            let entrypoint = compilation.chunk_group_by_ukey.expect_get(&entrypoint);
+          for entrypoint in chunk.get_all_referenced_async_entrypoints(
+            &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
+          ) {
+            let entrypoint = compilation
+              .build_chunk_graph_artifact
+              .chunk_group_by_ukey
+              .expect_get(&entrypoint);
             chunks.insert(entrypoint.get_entrypoint_chunk());
           }
           chunks
@@ -135,7 +146,12 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
     if let Some(chunks) = chunks {
       chunks
         .iter()
-        .filter_map(|chunk_ukey| compilation.chunk_by_ukey.get(chunk_ukey))
+        .filter_map(|chunk_ukey| {
+          compilation
+            .build_chunk_graph_artifact
+            .chunk_by_ukey
+            .get(chunk_ukey)
+        })
         .for_each(|chunk| {
           let filename = (self.filename_for_chunk)(chunk, compilation);
 

@@ -54,7 +54,7 @@ pub trait Cache: Debug + Send + Sync {
 
   // BUILD_CHUNK_GRAPH hooks
   async fn before_build_chunk_graph(&mut self, _compilation: &mut Compilation) {}
-  async fn after_build_chunk_graph(&self, _compilation: &Compilation) {}
+  async fn after_build_chunk_graph(&mut self, _compilation: &mut Compilation) {}
 
   // MODULE_IDS hooks
   async fn before_module_ids(&mut self, _compilation: &mut Compilation) {}

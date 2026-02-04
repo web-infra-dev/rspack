@@ -96,9 +96,13 @@ async fn render(
   let Some(options) = self.get_options_for_chunk(compilation, chunk_ukey)? else {
     return Ok(());
   };
-  let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+  let chunk = compilation
+    .build_chunk_graph_artifact
+    .chunk_by_ukey
+    .expect_get(chunk_ukey);
   let module_graph = compilation.get_module_graph();
   let modules = compilation
+    .build_chunk_graph_artifact
     .chunk_graph
     .get_chunk_modules_identifier(chunk_ukey)
     .iter()
@@ -115,7 +119,9 @@ async fn render(
   let externals_deps_array = externals_dep_array(&modules)?;
   let external_arguments = external_arguments(&modules, compilation);
   let mut fn_start = format!("function({external_arguments}){{\n");
-  if compilation.options.output.iife || !chunk.has_runtime(&compilation.chunk_group_by_ukey) {
+  if compilation.options.output.iife
+    || !chunk.has_runtime(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
+  {
     fn_start.push_str(" return ");
   }
   let mut source = ConcatSource::default();

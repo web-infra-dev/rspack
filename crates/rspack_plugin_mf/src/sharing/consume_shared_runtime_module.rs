@@ -91,7 +91,10 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
     let chunk_ukey = self
       .chunk
       .expect("should have chunk in <ConsumeSharedRuntimeModule as RuntimeModule>::generate");
-    let chunk = compilation.chunk_by_ukey.expect_get(&chunk_ukey);
+    let chunk = compilation
+      .build_chunk_graph_artifact
+      .chunk_by_ukey
+      .expect_get(&chunk_ukey);
     let module_graph = compilation.get_module_graph();
     let mut chunk_to_module_mapping = FxHashMap::default();
     let mut module_id_to_consume_data_mapping = FxHashMap::default();
@@ -119,15 +122,21 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
       }
     };
     // Match enhanced/webpack behavior: include all referenced chunks so async ones are mapped too
-    for chunk in chunk.get_all_referenced_chunks(&compilation.chunk_group_by_ukey) {
+    for chunk in
+      chunk.get_all_referenced_chunks(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
+    {
       let modules = compilation
+        .build_chunk_graph_artifact
         .chunk_graph
         .get_chunk_modules_identifier_by_source_type(
           &chunk,
           SourceType::ConsumeShared,
           module_graph,
         );
-      let chunk = compilation.chunk_by_ukey.expect_get(&chunk);
+      let chunk = compilation
+        .build_chunk_graph_artifact
+        .chunk_by_ukey
+        .expect_get(&chunk);
       let mut ids = vec![];
       for mid in modules {
         add_module(mid, chunk, &mut ids);
@@ -143,15 +152,21 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
         ids,
       );
     }
-    for chunk in chunk.get_all_initial_chunks(&compilation.chunk_group_by_ukey) {
+    for chunk in
+      chunk.get_all_initial_chunks(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
+    {
       let modules = compilation
+        .build_chunk_graph_artifact
         .chunk_graph
         .get_chunk_modules_identifier_by_source_type(
           &chunk,
           SourceType::ConsumeShared,
           module_graph,
         );
-      let chunk = compilation.chunk_by_ukey.expect_get(&chunk);
+      let chunk = compilation
+        .build_chunk_graph_artifact
+        .chunk_by_ukey
+        .expect_get(&chunk);
       for mid in modules {
         add_module(mid, chunk, &mut initial_consumes);
       }

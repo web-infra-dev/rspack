@@ -25,7 +25,7 @@ impl PassExt for ChunkIdsPass {
     }
 
     let mut diagnostics = vec![];
-    let mut chunk_by_ukey = mem::take(&mut compilation.chunk_by_ukey);
+    let mut chunk_by_ukey = mem::take(&mut compilation.build_chunk_graph_artifact.chunk_by_ukey);
     let mut named_chunk_ids_artifact = mem::take(&mut compilation.named_chunk_ids_artifact);
     compilation
       .plugin_driver
@@ -40,13 +40,13 @@ impl PassExt for ChunkIdsPass {
       )
       .await
       .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.chunkIds"))?;
-    compilation.chunk_by_ukey = chunk_by_ukey;
+    compilation.build_chunk_graph_artifact.chunk_by_ukey = chunk_by_ukey;
     compilation.named_chunk_ids_artifact = named_chunk_ids_artifact;
     compilation.extend_diagnostics(diagnostics);
     Ok(())
   }
 
-  async fn after_pass(&self, compilation: &Compilation, cache: &mut dyn Cache) {
+  async fn after_pass(&self, compilation: &mut Compilation, cache: &mut dyn Cache) {
     cache.after_chunk_ids(compilation).await;
   }
 }

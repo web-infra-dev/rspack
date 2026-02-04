@@ -78,8 +78,15 @@ impl RuntimeModule for RscManifestRuntimeModule {
     let Some(entry_name) = self
       .chunk_ukey
       .as_ref()
-      .and_then(|chunk_ukey| compilation.chunk_by_ukey.get(chunk_ukey))
-      .and_then(|chunk| chunk.get_entry_options(&compilation.chunk_group_by_ukey))
+      .and_then(|chunk_ukey| {
+        compilation
+          .build_chunk_graph_artifact
+          .chunk_by_ukey
+          .get(chunk_ukey)
+      })
+      .and_then(|chunk| {
+        chunk.get_entry_options(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
+      })
       .and_then(|entry_options| entry_options.name.as_ref())
     else {
       return Ok(String::new());

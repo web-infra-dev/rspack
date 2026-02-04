@@ -43,14 +43,16 @@ impl RuntimeModule for StartupChunkDependenciesRuntimeModule {
   async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
     if let Some(chunk_ukey) = self.chunk {
       let chunk_ids = compilation
+        .build_chunk_graph_artifact
         .chunk_graph
         .get_chunk_entry_dependent_chunks_iterable(
           &chunk_ukey,
-          &compilation.chunk_by_ukey,
-          &compilation.chunk_group_by_ukey,
+          &compilation.build_chunk_graph_artifact.chunk_by_ukey,
+          &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
         )
         .map(|chunk_ukey| {
           compilation
+            .build_chunk_graph_artifact
             .chunk_by_ukey
             .expect_get(&chunk_ukey)
             .expect_id()
