@@ -15,6 +15,6 @@ cacheable modules 1.12 MiB
       ../../../../node_modules/<PNPM_INNER>/scheduler/cjs/scheduler.development.js xx KiB [built] [code generated]
   modules by path ./src/ xx KiB
     ./src/index.js xx bytes [built] [code generated]
-    ./src/pages|lazy|/^\.\/.*$/|referencedExports: default|chunkName: pages/[request]|groupOptions: {}|namespace object xx bytes [built] [code generated]
+    ./src/pages|lazy|/^\.\/.*$/|referencedExports: default|chunkName: pages/[request]|groupOptions: {}|namespace object|importPhase: evaluation xx bytes [built] [code generated]
     ./src/pages/home.js xx KiB [built] [code generated]
 Rspack x.x.x compiled successfully in X s
