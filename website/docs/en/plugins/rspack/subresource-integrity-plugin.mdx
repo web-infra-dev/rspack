@@ -135,7 +135,7 @@ With [`html-webpack-plugin`](https://github.com/jantimon/html-webpack-plugin), y
 The `integrity` can also be obtained from `stats.assets`. For example:
 
 ```js
-compiler.plugin('done', (stats) => {
+compiler.hooks.done.tap('MyPlugin', (stats) => {
   const integrityValues = stats
     .toJson()
     .assets.map((asset) => [asset.name, asset.integrity]);
