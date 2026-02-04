@@ -5,8 +5,8 @@ use rspack_cacheable::{
 use rspack_core::{
   AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
   DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, ExportsType,
-  ExtendedReferencedExport, FactorizeInfo, ImportAttributes, ModuleDependency, ModuleGraph,
-  ModuleGraphCacheArtifact, ReferencedExport, ResourceIdentifier, TemplateContext,
+  ExtendedReferencedExport, FactorizeInfo, ImportAttributes, ImportPhase, ModuleDependency,
+  ModuleGraph, ModuleGraphCacheArtifact, ReferencedExport, ResourceIdentifier, TemplateContext,
   TemplateReplaceSource, create_exports_object_referenced,
 };
 use swc_core::ecma::atoms::Atom;
@@ -68,6 +68,7 @@ pub struct ImportDependency {
   #[cacheable(with=AsOption<AsVec<AsVec<AsPreset>>>)]
   referenced_exports: Option<Vec<Vec<Atom>>>,
   attributes: Option<ImportAttributes>,
+  phase: ImportPhase,
   pub comments: Vec<(bool, String)>,
   resource_identifier: ResourceIdentifier,
   factorize_info: FactorizeInfo,
@@ -80,6 +81,7 @@ impl ImportDependency {
     range: DependencyRange,
     referenced_exports: Option<Vec<Vec<Atom>>>,
     attributes: Option<ImportAttributes>,
+    phase: ImportPhase,
     optional: bool,
     comments: Vec<(bool, String)>,
   ) -> Self {
@@ -91,6 +93,7 @@ impl ImportDependency {
       id: DependencyId::new(),
       referenced_exports,
       attributes,
+      phase,
       resource_identifier,
       factorize_info: Default::default(),
       optional,
@@ -123,6 +126,10 @@ impl Dependency for ImportDependency {
 
   fn get_attributes(&self) -> Option<&ImportAttributes> {
     self.attributes.as_ref()
+  }
+
+  fn get_phase(&self) -> ImportPhase {
+    self.phase
   }
 
   fn range(&self) -> Option<DependencyRange> {
@@ -217,6 +224,7 @@ impl DependencyTemplate for ImportDependencyTemplate {
           dep.request(),
           dep.dependency_type().as_str(),
           false,
+          dep.get_phase(),
         )
         .as_str(),
       None,

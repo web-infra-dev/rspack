@@ -1075,9 +1075,6 @@ require('MyLibrary').doSomething();
 ```js title="rspack.config.mjs"
 export default {
   // …
-  experiments: {
-    outputModule: true,
-  },
   output: {
     library: {
       // 不要指定 `name`
@@ -1094,9 +1091,6 @@ export default {
 ```js title="rspack.config.mjs"
 export default {
   // …
-  experiments: {
-    outputModule: true,
-  },
   output: {
     library: {
       // 不要指定 `name`
@@ -1107,8 +1101,6 @@ export default {
 ```
 
 这项配置将生成支持 tree-shaking 和 code-splitting 的 ES 模块输出。
-
-但这个特性仍然是实验性的，还没有完全支持，所以在使用之前确保启用了 [`experiments.outputModule`](/config/experiments#experimentsoutputmodule)。
 
 ##### type: 'commonjs2'
 
@@ -1569,7 +1561,7 @@ module.exports = {
 
 当启用时，Rspack 会将 [`output.iife`](#outputiife) 设置为 `false`， [`output.scriptType`](#outputscripttype) 设置为 `'module'`。
 
-如果你正在使用 Rspack 编译一个供他人使用的库，请确保在 `output.module` 为 `true` 时将 [`output.library.type`](#outputlibrarytype) 设置为 `'module'`。
+配置 [`output.library.type`](#outputlibrarytype) 为 'module' 或 'modern-module' 会自动将 `output.module` 设为 `true`。
 
 ```js title="rspack.config.mjs"
 export default {

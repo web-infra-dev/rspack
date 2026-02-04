@@ -70,7 +70,11 @@ impl CodeSplittingCache {
     let module_graph = this_compilation.get_module_graph();
     let module_graph_cache = &this_compilation.module_graph_cache_artifact;
     let affected_modules = mutations.get_affected_modules_with_module_graph(module_graph);
-    let previous_modules_map = &self.code_splitter.block_modules_runtime_map;
+    let previous_modules_map = &this_compilation
+      .build_chunk_graph_artifact
+      .code_splitting_cache
+      .code_splitter
+      .block_modules_runtime_map;
 
     if previous_modules_map.is_empty() {
       logger.log("no cache detected, rebuilding chunk graph");
@@ -179,12 +183,13 @@ where
   let incremental_code_splitting = compilation
     .incremental
     .passes_enabled(IncrementalPasses::BUILD_CHUNK_GRAPH);
-  let no_change = compilation
-    .build_chunk_graph_artifact
-    .code_splitting_cache
-    .can_skip_rebuilding(compilation);
+  let no_change = incremental_code_splitting
+    && compilation
+      .build_chunk_graph_artifact
+      .code_splitting_cache
+      .can_skip_rebuilding(compilation);
 
-  if incremental_code_splitting || no_change {
+  if no_change {
     let cache = &mut compilation.build_chunk_graph_artifact.code_splitting_cache;
     rayon::scope(|s| {
       s.spawn(|_| compilation.chunk_by_ukey = cache.chunk_by_ukey.clone());
@@ -242,8 +247,7 @@ pub struct BuildChunkGraphArtifact {
 
 impl ArtifactExt for BuildChunkGraphArtifact {
   const PASS: IncrementalPasses = IncrementalPasses::BUILD_CHUNK_GRAPH;
-  // FIXME: BuildChunkGraphArtifact is controlled by BUILD_MODULE_GRAPH PASS currently because it enables no_change optimization when BUILD_MODULE_GRAPH is enabled.
   fn should_recover(incremental: &crate::incremental::Incremental) -> bool {
-    incremental.passes_enabled(IncrementalPasses::BUILD_MODULE_GRAPH)
+    incremental.passes_enabled(IncrementalPasses::BUILD_CHUNK_GRAPH)
   }
 }

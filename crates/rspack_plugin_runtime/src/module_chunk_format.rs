@@ -62,7 +62,6 @@ async fn additional_chunk_runtime_requirements(
     .get_number_of_entry_modules(chunk_ukey)
     > 0
   {
-    runtime_requirements.insert(RuntimeGlobals::REQUIRE);
     runtime_requirements.insert(RuntimeGlobals::EXTERNAL_INSTALL_CHUNK);
   }
 

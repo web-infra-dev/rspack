@@ -10,15 +10,13 @@ module.exports = {
 		m: "./m.js"
 	},
 	output: {
+		module: true,
 		filename: "[name].mjs",
 		chunkFormat: "module",
 		chunkLoading: "import",
 		library: {
 			type: "module"
 		}
-	},
-	experiments: {
-		outputModule: true
 	},
 	plugins: [
 		{

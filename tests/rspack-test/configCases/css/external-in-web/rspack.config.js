@@ -17,14 +17,4 @@ module.exports = [
 			]
 		}
 	},
-	// {
-	// 	target: "web",
-	// 	optimization: {
-	// 		chunkIds: "named"
-	// 	},
-	// 	experiments: {
-	// 		css: true,
-	// 		outputModule: true
-	// 	}
-	// }
 ];

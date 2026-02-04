@@ -449,9 +449,12 @@ impl CodeSplitter {
 
   #[instrument(skip_all)]
   pub fn update_with_compilation(&mut self, compilation: &mut Compilation) -> Result<()> {
-    let enable_incremental = compilation
-      .incremental
-      .mutations_readable(IncrementalPasses::BUILD_CHUNK_GRAPH);
+    // TODO: heuristic incremental update is temporarily disabled
+    // Original code:
+    // let enable_incremental = compilation
+    //   .incremental
+    //   .mutations_readable(IncrementalPasses::BUILD_CHUNK_GRAPH);
+    let enable_incremental = false;
 
     // This optimization is from  https://github.com/webpack/webpack/pull/18090 by https://github.com/dmichon-msft
     // Thanks!

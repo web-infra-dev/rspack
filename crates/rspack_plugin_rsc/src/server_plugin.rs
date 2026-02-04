@@ -93,12 +93,11 @@ async fn this_compilation(
 ) -> Result<()> {
   // Initialize or reset the plugin state for the current compilation.
   // If a state already exists, clear it; otherwise, insert a default state.
-  let mut plugin_states = PLUGIN_STATES.borrow_mut();
-  match plugin_states.entry(compilation.compiler_id()) {
-    std::collections::hash_map::Entry::Occupied(mut occupied_entry) => {
+  match PLUGIN_STATES.entry(compilation.compiler_id()) {
+    dashmap::Entry::Occupied(mut occupied_entry) => {
       occupied_entry.get_mut().clear();
     }
-    std::collections::hash_map::Entry::Vacant(vacant_entry) => {
+    dashmap::Entry::Vacant(vacant_entry) => {
       vacant_entry.insert(Default::default());
     }
   };
@@ -113,8 +112,7 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
   let logger = compilation.get_logger("rspack.RscServerPlugin");
 
   {
-    let mut plugin_states = PLUGIN_STATES.borrow_mut();
-    let plugin_state = plugin_states.entry(compilation.compiler_id()).or_default();
+    let mut plugin_state = PLUGIN_STATES.entry(compilation.compiler_id()).or_default();
 
     let start = logger.time("track server component changes");
     let mut prev_server_component_hashes = self.prev_server_component_hashes.borrow_mut();
@@ -216,8 +214,7 @@ impl RscServerPlugin {
       }
 
       {
-        let mut plugin_states = PLUGIN_STATES.borrow_mut();
-        let plugin_state = plugin_states.entry(compilation.compiler_id()).or_default();
+        let mut plugin_state = PLUGIN_STATES.entry(compilation.compiler_id()).or_default();
 
         for client_entry_to_inject in client_entries_to_inject {
           let entry_name = client_entry_to_inject.entry_name.clone();
@@ -226,7 +223,7 @@ impl RscServerPlugin {
               compilation,
               client_entry_to_inject,
               component_info.should_inject_ssr_modules,
-              plugin_state,
+              &mut plugin_state,
             )
             .await
           else {
@@ -310,8 +307,7 @@ impl RscServerPlugin {
       .await?;
 
     let mut added_client_action_entry_list: Vec<InjectedActionEntry> = Vec::new();
-    let plugin_states = PLUGIN_STATES.borrow_mut();
-    let plugin_state = plugin_states
+    let plugin_state = PLUGIN_STATES
       .get(&compilation.compiler_id())
       .ok_or_else(|| {
         rspack_error::error!(
@@ -539,8 +535,7 @@ impl RscServerPlugin {
 #[plugin_hook(CompilerDone for RscServerPlugin)]
 async fn done(&self, compilation: &Compilation) -> Result<()> {
   if let Some(on_server_component_changes) = self.on_server_component_changes.as_ref() {
-    let plugin_states = PLUGIN_STATES.borrow();
-    let plugin_state = plugin_states
+    let plugin_state = PLUGIN_STATES
       .get(&compilation.compiler_id())
       .ok_or_else(|| {
         rspack_error::error!(

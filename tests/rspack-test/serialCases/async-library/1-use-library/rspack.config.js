@@ -4,6 +4,7 @@ var path = require("path");
 module.exports = (env, { testPath }) => ({
 	target: "node14",
 	output: {
+		module: true,
 		chunkLoading: "import"
 	},
 	resolve: {
@@ -11,7 +12,4 @@ module.exports = (env, { testPath }) => ({
 			library: path.resolve(testPath, "../0-create-library/lib.js")
 		}
 	},
-	experiments: {
-		outputModule: true
-	}
 });

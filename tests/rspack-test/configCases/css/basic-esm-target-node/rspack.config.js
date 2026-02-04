@@ -2,9 +2,6 @@
 module.exports = {
 	target: "node",
 	mode: "development",
-	experiments: {
-		outputModule: true,
-	},
 	module: {
 		rules: [
 			{

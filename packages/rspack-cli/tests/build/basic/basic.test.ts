@@ -3,7 +3,13 @@ import { readFile, run, runWatch } from '../../utils/test-utils';
 
 describe('build command', () => {
   it.concurrent('it should work ', async () => {
-    const { exitCode, stderr, stdout } = await run(__dirname, [], false);
+    const { exitCode, stderr, stdout } = await run(
+      __dirname,
+      [],
+      {},
+      {},
+      false,
+    );
     expect(exitCode).toBe(0);
     expect(stderr).toBeFalsy();
     expect(stdout).toBeTruthy();

@@ -1,9 +1,6 @@
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	entry: "./index.mjs",
-	experiments: {
-		outputModule: true,
-	},
 	module: {
 		rules: [
 			{

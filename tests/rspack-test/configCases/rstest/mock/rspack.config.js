@@ -136,7 +136,7 @@ __webpack_require__.rstest_hoisted = (fn) => {
 	}
 }
 
-const rstestEntry = entry => {
+const rstestEntry = (entry, rstestPluginOptions = {}) => {
 	return {
 		entry,
 		target: "node",
@@ -157,7 +157,8 @@ const rstestEntry = entry => {
 				injectModulePathName: true,
 				hoistMockModule: true,
 				importMetaPathName: true,
-				manualMockRoot: path.resolve(__dirname, "__mocks__")
+				manualMockRoot: path.resolve(__dirname, "__mocks__"),
+				...rstestPluginOptions,
 			})
 		]
 	};
@@ -182,6 +183,8 @@ module.exports = [
 		}
 	},
 	rstestEntry("./mockFirstArgIsImport.js"),
+	rstestEntry("./globals/importActual.js"),
+	rstestEntry("./globals-false/importActual.js", { globals: false }),
 	{
 		...rstestEntry("./hoisted.js"),
 		externals: {

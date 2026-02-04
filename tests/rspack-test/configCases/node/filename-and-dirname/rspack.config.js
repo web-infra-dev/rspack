@@ -39,9 +39,6 @@ config.push(
 		output: {
 			module: true
 		},
-		experiments: {
-			outputModule: true
-		},
 		plugins: [
 			new DefinePlugin({
 				NODE_VALUE: typeof value === "boolean" ? value : JSON.stringify(value),
@@ -64,9 +61,6 @@ config.push(
 			environment: {
 				importMetaDirnameAndFilename: true
 			}
-		},
-		experiments: {
-			outputModule: true
 		},
 		plugins: [
 			new DefinePlugin({
@@ -96,9 +90,6 @@ config.push({
 	output: {
 		module: true
 	},
-	experiments: {
-		outputModule: true
-	}
 });
 
 config.push({
@@ -114,9 +105,6 @@ config.push({
 			}
 		}
 	},
-	experiments: {
-		outputModule: true
-	}
 });
 
 config.push({
@@ -126,9 +114,6 @@ config.push({
 	output: {
 		module: true
 	},
-	experiments: {
-		outputModule: true
-	}
 });
 
 config.push({
@@ -144,9 +129,6 @@ config.push({
 	output: {
 		module: true
 	},
-	experiments: {
-		outputModule: true
-	}
 });
 
 module.exports = config;

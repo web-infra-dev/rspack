@@ -1,4 +1,7 @@
+use std::sync::LazyLock;
+
 use bitflags::bitflags;
+use rustc_hash::FxHashMap;
 
 use crate::CompilerOptions;
 
@@ -288,8 +291,9 @@ define_runtime_globals! {
   // defer import support
   const ASYNC_MODULE_EXPORT_SYMBOL;
   const MAKE_DEFERRED_NAMESPACE_OBJECT;
-  const MAKE_DEFERRED_NAMESPACE_OBJECT_SYMBOL;
   const MAKE_OPTIMIZED_DEFERRED_NAMESPACE_OBJECT;
+  const DEFERRED_MODULES_ASYNC_TRANSITIVE_DEPENDENCIES;
+  const DEFERRED_MODULES_ASYNC_TRANSITIVE_DEPENDENCIES_SYMBOL;
 
   // rspack only
   const ASYNC_STARTUP;
@@ -304,94 +308,183 @@ impl Default for RuntimeGlobals {
   }
 }
 
+pub static REQUIRE_SCOPE_GLOBALS: LazyLock<RuntimeGlobals> = LazyLock::new(|| {
+  RuntimeGlobals::REQUIRE_SCOPE
+    | RuntimeGlobals::MODULE_CACHE
+    | RuntimeGlobals::ENSURE_CHUNK
+    | RuntimeGlobals::ENSURE_CHUNK_HANDLERS
+    | RuntimeGlobals::PUBLIC_PATH
+    | RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME
+    | RuntimeGlobals::GET_CHUNK_CSS_FILENAME
+    | RuntimeGlobals::LOAD_SCRIPT
+    | RuntimeGlobals::HAS_OWN_PROPERTY
+    | RuntimeGlobals::MODULE_FACTORIES_ADD_ONLY
+    | RuntimeGlobals::ON_CHUNKS_LOADED
+    | RuntimeGlobals::MODULE_FACTORIES
+    | RuntimeGlobals::INTERCEPT_MODULE_EXECUTION
+    | RuntimeGlobals::HMR_DOWNLOAD_MANIFEST
+    | RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS
+    | RuntimeGlobals::HMR_INVALIDATE_MODULE_HANDLERS
+    | RuntimeGlobals::HMR_MODULE_DATA
+    | RuntimeGlobals::HMR_RUNTIME_STATE_PREFIX
+    | RuntimeGlobals::GET_UPDATE_MANIFEST_FILENAME
+    | RuntimeGlobals::GET_CHUNK_UPDATE_SCRIPT_FILENAME
+    | RuntimeGlobals::GET_CHUNK_UPDATE_CSS_FILENAME
+    | RuntimeGlobals::AMD_DEFINE
+    | RuntimeGlobals::AMD_OPTIONS
+    | RuntimeGlobals::EXTERNAL_INSTALL_CHUNK
+    | RuntimeGlobals::GET_FULL_HASH
+    | RuntimeGlobals::GLOBAL
+    | RuntimeGlobals::INSTANTIATE_WASM
+    | RuntimeGlobals::ASYNC_MODULE
+    | RuntimeGlobals::ASYNC_MODULE_EXPORT_SYMBOL
+    | RuntimeGlobals::BASE_URI
+    | RuntimeGlobals::STARTUP_ENTRYPOINT
+    | RuntimeGlobals::STARTUP_CHUNK_DEPENDENCIES
+    | RuntimeGlobals::CREATE_SCRIPT_URL
+    | RuntimeGlobals::CREATE_SCRIPT
+    | RuntimeGlobals::GET_TRUSTED_TYPES_POLICY
+    | RuntimeGlobals::DEFINE_PROPERTY_GETTERS
+    | RuntimeGlobals::ENTRY_MODULE_ID
+    | RuntimeGlobals::STARTUP_NO_DEFAULT
+    | RuntimeGlobals::ENSURE_CHUNK_INCLUDE_ENTRIES
+    | RuntimeGlobals::STARTUP
+    | RuntimeGlobals::MAKE_NAMESPACE_OBJECT
+    | RuntimeGlobals::MAKE_DEFERRED_NAMESPACE_OBJECT
+    | RuntimeGlobals::MAKE_OPTIMIZED_DEFERRED_NAMESPACE_OBJECT
+    | RuntimeGlobals::COMPAT_GET_DEFAULT_EXPORT
+    | RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT
+    | RuntimeGlobals::ESM_MODULE_DECORATOR
+    | RuntimeGlobals::NODE_MODULE_DECORATOR
+    | RuntimeGlobals::SYSTEM_CONTEXT
+    | RuntimeGlobals::CURRENT_REMOTE_GET_SCOPE
+    | RuntimeGlobals::SHARE_SCOPE_MAP
+    | RuntimeGlobals::INITIALIZE_SHARING
+    | RuntimeGlobals::SCRIPT_NONCE
+    | RuntimeGlobals::RELATIVE_URL
+    | RuntimeGlobals::CHUNK_NAME
+    | RuntimeGlobals::RUNTIME_ID
+    | RuntimeGlobals::PREFETCH_CHUNK
+    | RuntimeGlobals::PREFETCH_CHUNK_HANDLERS
+    | RuntimeGlobals::PRELOAD_CHUNK
+    | RuntimeGlobals::PRELOAD_CHUNK_HANDLERS
+    | RuntimeGlobals::UNCAUGHT_ERROR_HANDLER
+    | RuntimeGlobals::RSPACK_VERSION
+    | RuntimeGlobals::RSPACK_UNIQUE_ID
+    | RuntimeGlobals::ASYNC_STARTUP
+    | RuntimeGlobals::RSC_MANIFEST
+    | RuntimeGlobals::TO_BINARY
+    | RuntimeGlobals::DEFERRED_MODULES_ASYNC_TRANSITIVE_DEPENDENCIES
+    | RuntimeGlobals::DEFERRED_MODULES_ASYNC_TRANSITIVE_DEPENDENCIES_SYMBOL
+});
+
+pub static MODULE_GLOBALS: LazyLock<RuntimeGlobals> =
+  LazyLock::new(|| RuntimeGlobals::MODULE_ID | RuntimeGlobals::MODULE_LOADED);
+
 pub fn runtime_globals_to_string(
   runtime_globals: &RuntimeGlobals,
   compiler_options: &CompilerOptions,
 ) -> String {
-  let scope_name = runtime_variable_to_string(&RuntimeVariable::Require, compiler_options);
-  match *runtime_globals {
-    RuntimeGlobals::REQUIRE_SCOPE => format!("{scope_name}.*"),
-    RuntimeGlobals::MODULE => "module".to_string(),
-    RuntimeGlobals::MODULE_ID => "module.id".to_string(),
-    RuntimeGlobals::MODULE_LOADED => "module.loaded".to_string(),
-    RuntimeGlobals::REQUIRE => scope_name,
-    RuntimeGlobals::MODULE_CACHE => format!("{scope_name}.c"),
-    RuntimeGlobals::ENSURE_CHUNK => format!("{scope_name}.e"),
-    RuntimeGlobals::ENSURE_CHUNK_HANDLERS => format!("{scope_name}.f"),
-    RuntimeGlobals::PUBLIC_PATH => format!("{scope_name}.p"),
-    RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME => format!("{scope_name}.u"),
-    RuntimeGlobals::GET_CHUNK_CSS_FILENAME => format!("{scope_name}.k"),
-    RuntimeGlobals::LOAD_SCRIPT => format!("{scope_name}.l"),
-    RuntimeGlobals::HAS_OWN_PROPERTY => format!("{scope_name}.o"),
-    RuntimeGlobals::MODULE_FACTORIES_ADD_ONLY => format!("{scope_name}.m (add only)"),
-    RuntimeGlobals::ON_CHUNKS_LOADED => format!("{scope_name}.O"),
-    RuntimeGlobals::CHUNK_CALLBACK => "global chunk callback".to_string(),
-    RuntimeGlobals::MODULE_FACTORIES => format!("{scope_name}.m"),
-    RuntimeGlobals::INTERCEPT_MODULE_EXECUTION => format!("{scope_name}.i"),
-    RuntimeGlobals::HMR_DOWNLOAD_MANIFEST => format!("{scope_name}.hmrM"),
-    RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS => format!("{scope_name}.hmrC"),
-    RuntimeGlobals::HMR_INVALIDATE_MODULE_HANDLERS => format!("{scope_name}.hmrI"),
-    RuntimeGlobals::HMR_MODULE_DATA => format!("{scope_name}.hmrD"),
-    RuntimeGlobals::HMR_RUNTIME_STATE_PREFIX => format!("{scope_name}.hmrS"),
-    RuntimeGlobals::GET_UPDATE_MANIFEST_FILENAME => format!("{scope_name}.hmrF"),
-    RuntimeGlobals::GET_CHUNK_UPDATE_SCRIPT_FILENAME => format!("{scope_name}.hu"),
-    RuntimeGlobals::GET_CHUNK_UPDATE_CSS_FILENAME => format!("{scope_name}.hk"),
-    RuntimeGlobals::AMD_DEFINE => format!("{scope_name}.amdD"),
-    RuntimeGlobals::AMD_OPTIONS => format!("{scope_name}.amdO"),
-    RuntimeGlobals::EXTERNAL_INSTALL_CHUNK => format!("{scope_name}.C"),
-    RuntimeGlobals::GET_FULL_HASH => format!("{scope_name}.h"),
-    RuntimeGlobals::GLOBAL => format!("{scope_name}.g"),
-    RuntimeGlobals::RETURN_EXPORTS_FROM_RUNTIME => "return-exports-from-runtime".to_string(),
-    RuntimeGlobals::INSTANTIATE_WASM => format!("{scope_name}.v"),
-    RuntimeGlobals::ASYNC_MODULE => format!("{scope_name}.a"),
-    RuntimeGlobals::ASYNC_MODULE_EXPORT_SYMBOL => format!("{scope_name}.aE"),
-    RuntimeGlobals::BASE_URI => format!("{scope_name}.b"),
-    RuntimeGlobals::STARTUP_ENTRYPOINT => format!("{scope_name}.X"),
-    RuntimeGlobals::STARTUP_CHUNK_DEPENDENCIES => format!("{scope_name}.x (chunk dependencies)"),
-    RuntimeGlobals::CREATE_SCRIPT_URL => format!("{scope_name}.tu"),
-    RuntimeGlobals::CREATE_SCRIPT => format!("{scope_name}.ts"),
-    RuntimeGlobals::GET_TRUSTED_TYPES_POLICY => format!("{scope_name}.tt"),
-    RuntimeGlobals::DEFINE_PROPERTY_GETTERS => format!("{scope_name}.d"),
-    RuntimeGlobals::ENTRY_MODULE_ID => format!("{scope_name}.s"),
-    RuntimeGlobals::STARTUP_NO_DEFAULT => format!("{scope_name}.x (no default handler)"),
-    RuntimeGlobals::ENSURE_CHUNK_INCLUDE_ENTRIES => format!("{scope_name}.f (include entries)"),
-    RuntimeGlobals::STARTUP => format!("{scope_name}.x"),
-    RuntimeGlobals::MAKE_NAMESPACE_OBJECT => format!("{scope_name}.r"),
-    RuntimeGlobals::MAKE_DEFERRED_NAMESPACE_OBJECT => format!("{scope_name}.z"),
-    RuntimeGlobals::MAKE_DEFERRED_NAMESPACE_OBJECT_SYMBOL => format!("{scope_name}.zS"),
-    RuntimeGlobals::MAKE_OPTIMIZED_DEFERRED_NAMESPACE_OBJECT => format!("{scope_name}.zO"),
-    RuntimeGlobals::EXPORTS => {
-      runtime_variable_to_string(&RuntimeVariable::Exports, compiler_options)
-    }
-    RuntimeGlobals::COMPAT_GET_DEFAULT_EXPORT => format!("{scope_name}.n"),
-    RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT => format!("{scope_name}.t"),
-    RuntimeGlobals::ESM_MODULE_DECORATOR => format!("{scope_name}.hmd"),
-    RuntimeGlobals::NODE_MODULE_DECORATOR => format!("{scope_name}.nmd"),
-    RuntimeGlobals::SYSTEM_CONTEXT => format!("{scope_name}.y"),
-    RuntimeGlobals::THIS_AS_EXPORTS => "top-level-this-exports".to_string(),
-    RuntimeGlobals::CURRENT_REMOTE_GET_SCOPE => format!("{scope_name}.R"),
-    RuntimeGlobals::SHARE_SCOPE_MAP => format!("{scope_name}.S"),
-    RuntimeGlobals::INITIALIZE_SHARING => format!("{scope_name}.I"),
-    RuntimeGlobals::SCRIPT_NONCE => format!("{scope_name}.nc"),
-    RuntimeGlobals::RELATIVE_URL => format!("{scope_name}.U"),
-    RuntimeGlobals::CHUNK_NAME => format!("{scope_name}.cn"),
-    RuntimeGlobals::RUNTIME_ID => format!("{scope_name}.j"),
-    RuntimeGlobals::PREFETCH_CHUNK => format!("{scope_name}.E"),
-    RuntimeGlobals::PREFETCH_CHUNK_HANDLERS => format!("{scope_name}.F"),
-    RuntimeGlobals::PRELOAD_CHUNK => format!("{scope_name}.G"),
-    RuntimeGlobals::PRELOAD_CHUNK_HANDLERS => format!("{scope_name}.H"),
-    RuntimeGlobals::UNCAUGHT_ERROR_HANDLER => format!("{scope_name}.oe"),
-    // rspack only
-    RuntimeGlobals::RSPACK_VERSION => format!("{scope_name}.rv"),
-    RuntimeGlobals::RSPACK_UNIQUE_ID => format!("{scope_name}.ruid"),
-    RuntimeGlobals::HAS_CSS_MODULES => "has css modules".to_string(),
-    RuntimeGlobals::ASYNC_STARTUP => format!("{scope_name}.asyncStartup"),
-    RuntimeGlobals::HAS_FETCH_PRIORITY => "has fetch priority".to_string(),
-
-    RuntimeGlobals::RSC_MANIFEST => format!("{scope_name}.rscM"),
-    RuntimeGlobals::TO_BINARY => format!("{scope_name}.tb"),
-    _ => unreachable!(),
+  if runtime_globals == &RuntimeGlobals::EXPORTS {
+    return runtime_variable_to_string(&RuntimeVariable::Exports, compiler_options);
   }
+
+  if runtime_globals == &RuntimeGlobals::REQUIRE {
+    return runtime_variable_to_string(&RuntimeVariable::Require, compiler_options);
+  }
+
+  if runtime_globals == &RuntimeGlobals::MODULE {
+    return "module".to_string();
+  }
+
+  let name = match *runtime_globals {
+    RuntimeGlobals::REQUIRE_SCOPE => "*",
+    RuntimeGlobals::MODULE_ID => "id",
+    RuntimeGlobals::MODULE_LOADED => "loaded",
+    RuntimeGlobals::MODULE_CACHE => "c",
+    RuntimeGlobals::ENSURE_CHUNK => "e",
+    RuntimeGlobals::ENSURE_CHUNK_HANDLERS => "f",
+    RuntimeGlobals::PUBLIC_PATH => "p",
+    RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME => "u",
+    RuntimeGlobals::GET_CHUNK_CSS_FILENAME => "k",
+    RuntimeGlobals::LOAD_SCRIPT => "l",
+    RuntimeGlobals::HAS_OWN_PROPERTY => "o",
+    RuntimeGlobals::MODULE_FACTORIES_ADD_ONLY => "m (add only)",
+    RuntimeGlobals::ON_CHUNKS_LOADED => "O",
+    RuntimeGlobals::CHUNK_CALLBACK => "global chunk callback",
+    RuntimeGlobals::MODULE_FACTORIES => "m",
+    RuntimeGlobals::INTERCEPT_MODULE_EXECUTION => "i",
+    RuntimeGlobals::HMR_DOWNLOAD_MANIFEST => "hmrM",
+    RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS => "hmrC",
+    RuntimeGlobals::HMR_INVALIDATE_MODULE_HANDLERS => "hmrI",
+    RuntimeGlobals::HMR_MODULE_DATA => "hmrD",
+    RuntimeGlobals::HMR_RUNTIME_STATE_PREFIX => "hmrS",
+    RuntimeGlobals::GET_UPDATE_MANIFEST_FILENAME => "hmrF",
+    RuntimeGlobals::GET_CHUNK_UPDATE_SCRIPT_FILENAME => "hu",
+    RuntimeGlobals::GET_CHUNK_UPDATE_CSS_FILENAME => "hk",
+    RuntimeGlobals::AMD_DEFINE => "amdD",
+    RuntimeGlobals::AMD_OPTIONS => "amdO",
+    RuntimeGlobals::EXTERNAL_INSTALL_CHUNK => "C",
+    RuntimeGlobals::GET_FULL_HASH => "h",
+    RuntimeGlobals::GLOBAL => "g",
+    RuntimeGlobals::RETURN_EXPORTS_FROM_RUNTIME => "return-exports-from-runtime",
+    RuntimeGlobals::INSTANTIATE_WASM => "v",
+    RuntimeGlobals::ASYNC_MODULE => "a",
+    RuntimeGlobals::ASYNC_MODULE_EXPORT_SYMBOL => "aE",
+    RuntimeGlobals::BASE_URI => "b",
+    RuntimeGlobals::STARTUP_ENTRYPOINT => "X",
+    RuntimeGlobals::STARTUP_CHUNK_DEPENDENCIES => "x (chunk dependencies)",
+    RuntimeGlobals::CREATE_SCRIPT_URL => "tu",
+    RuntimeGlobals::CREATE_SCRIPT => "ts",
+    RuntimeGlobals::GET_TRUSTED_TYPES_POLICY => "tt",
+    RuntimeGlobals::DEFINE_PROPERTY_GETTERS => "d",
+    RuntimeGlobals::ENTRY_MODULE_ID => "s",
+    RuntimeGlobals::STARTUP_NO_DEFAULT => "x (no default handler)",
+    RuntimeGlobals::ENSURE_CHUNK_INCLUDE_ENTRIES => "f (include entries)",
+    RuntimeGlobals::STARTUP => "x",
+    RuntimeGlobals::MAKE_NAMESPACE_OBJECT => "r",
+    RuntimeGlobals::MAKE_DEFERRED_NAMESPACE_OBJECT => "z",
+    RuntimeGlobals::MAKE_OPTIMIZED_DEFERRED_NAMESPACE_OBJECT => "zO",
+    RuntimeGlobals::DEFERRED_MODULES_ASYNC_TRANSITIVE_DEPENDENCIES => "zT",
+    RuntimeGlobals::DEFERRED_MODULES_ASYNC_TRANSITIVE_DEPENDENCIES_SYMBOL => "zS",
+    RuntimeGlobals::COMPAT_GET_DEFAULT_EXPORT => "n",
+    RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT => "t",
+    RuntimeGlobals::ESM_MODULE_DECORATOR => "hmd",
+    RuntimeGlobals::NODE_MODULE_DECORATOR => "nmd",
+    RuntimeGlobals::SYSTEM_CONTEXT => "y",
+    RuntimeGlobals::THIS_AS_EXPORTS => "top-level-this-exports",
+    RuntimeGlobals::CURRENT_REMOTE_GET_SCOPE => "R",
+    RuntimeGlobals::SHARE_SCOPE_MAP => "S",
+    RuntimeGlobals::INITIALIZE_SHARING => "I",
+    RuntimeGlobals::SCRIPT_NONCE => "nc",
+    RuntimeGlobals::RELATIVE_URL => "U",
+    RuntimeGlobals::CHUNK_NAME => "cn",
+    RuntimeGlobals::RUNTIME_ID => "j",
+    RuntimeGlobals::PREFETCH_CHUNK => "E",
+    RuntimeGlobals::PREFETCH_CHUNK_HANDLERS => "F",
+    RuntimeGlobals::PRELOAD_CHUNK => "G",
+    RuntimeGlobals::PRELOAD_CHUNK_HANDLERS => "H",
+    RuntimeGlobals::UNCAUGHT_ERROR_HANDLER => "oe",
+    // rspack only
+    RuntimeGlobals::RSPACK_VERSION => "rv",
+    RuntimeGlobals::RSPACK_UNIQUE_ID => "ruid",
+    RuntimeGlobals::HAS_CSS_MODULES => "has css modules",
+    RuntimeGlobals::ASYNC_STARTUP => "asyncStartup",
+    RuntimeGlobals::HAS_FETCH_PRIORITY => "has fetch priority",
+
+    RuntimeGlobals::RSC_MANIFEST => "rscM",
+    RuntimeGlobals::TO_BINARY => "tb",
+    _ => unreachable!(),
+  };
+  if REQUIRE_SCOPE_GLOBALS.contains(*runtime_globals) {
+    let require = runtime_variable_to_string(&RuntimeVariable::Require, compiler_options);
+    return format!("{require}.{name}");
+  }
+  if MODULE_GLOBALS.contains(*runtime_globals) {
+    let module = runtime_globals_to_string(&RuntimeGlobals::MODULE, compiler_options);
+    return format!("{module}.{name}");
+  }
+  name.to_string()
 }
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
@@ -419,16 +512,44 @@ pub fn runtime_variable_to_string(
   }
 }
 
-#[cfg(test)]
-mod test {
-  use super::*;
+type RuntimeGlobalMap = (
+  FxHashMap<RuntimeGlobals, &'static str>,
+  FxHashMap<&'static str, RuntimeGlobals>,
+);
 
-  #[test]
-  fn test_iter() {
-    let flags = RuntimeGlobals::PUBLIC_PATH | RuntimeGlobals::GET_CHUNK_CSS_FILENAME;
-    let flags: Vec<_> = flags.iter().collect();
-    assert_eq!(flags.len(), 2);
-    assert_eq!(flags[0], RuntimeGlobals::PUBLIC_PATH);
-    assert_eq!(flags[1], RuntimeGlobals::GET_CHUNK_CSS_FILENAME);
+static RUNTIME_GLOBAL_MAP: LazyLock<RuntimeGlobalMap> = LazyLock::new(|| {
+  let mut to_js_map = FxHashMap::default();
+  let mut from_js_map = FxHashMap::default();
+
+  for (name, value) in RuntimeGlobals::all().iter_names() {
+    to_js_map.insert(value, name);
+    from_js_map.insert(name, value);
+  }
+
+  to_js_map.shrink_to_fit();
+  from_js_map.shrink_to_fit();
+  (to_js_map, from_js_map)
+});
+
+impl RuntimeGlobals {
+  pub fn to_names(&self) -> Vec<&'static str> {
+    let mut res = vec![];
+
+    for (item, js_name) in RUNTIME_GLOBAL_MAP.0.iter() {
+      if self.contains(*item) {
+        res.push(*js_name);
+      }
+    }
+    res
+  }
+  pub fn from_names(names: &[String]) -> Self {
+    let mut res = Self::empty();
+
+    for name in names {
+      if let Some(value) = RUNTIME_GLOBAL_MAP.1.get(name.as_str()) {
+        res.insert(*value);
+      }
+    }
+    res
   }
 }

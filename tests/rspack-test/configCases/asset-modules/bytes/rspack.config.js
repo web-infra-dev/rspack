@@ -6,7 +6,6 @@ module.exports = [
 		name: "web",
 		mode: "development",
 		target: "web",
-
 		module: {
 			rules: [
 				{
@@ -41,8 +40,8 @@ module.exports = [
 		name: "universal",
 		mode: "development",
 		target: ["web", "node"],
-		experiments: {
-			outputModule: true,
+		output: {
+			module: true
 		},
 		module: {
 			rules: [

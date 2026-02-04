@@ -12,6 +12,9 @@ const config = o => ({
 		"module-import-url": "module-import url",
 		url: "node-commonjs url"
 	},
+	output: {
+		module: true,
+	},
 	optimization: {
 		concatenateModules: true,
 		usedExports: true,
@@ -19,9 +22,6 @@ const config = o => ({
 		mangleExports: true
 	},
 	target: "node14",
-	experiments: {
-		outputModule: true
-	}
 });
 
 module.exports = [config(false), config(true)];
