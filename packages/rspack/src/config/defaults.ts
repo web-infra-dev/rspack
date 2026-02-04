@@ -81,6 +81,7 @@ export const applyRspackOptionsDefaults = (
     }
   }
 
+  // IGNORE(devtool): Rspack use cheap-module-source-map by default
   F(options, 'devtool', () =>
     development ? 'cheap-module-source-map' : false,
   );

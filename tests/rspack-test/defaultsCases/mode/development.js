@@ -12,7 +12,7 @@ module.exports = {
 			+   "cache": true,
 			@@ ... @@
 			-   "devtool": false,
-			+   "devtool": "eval",
+			+   "devtool": "cheap-module-source-map",
 			@@ ... @@
 			-   "mode": "none",
 			+   "mode": "development",
