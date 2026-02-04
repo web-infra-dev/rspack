@@ -101,7 +101,7 @@ impl DependencyTemplate for RuntimeRequirementsDependencyTemplate {
       .render_runtime_globals(&dep.runtime_requirements);
 
     if matches!(dep.mode, RuntimeRequirementsDependencyMode::Call) {
-      content = format!("{}()", content);
+      content = format!("{content}()");
     }
 
     source.replace(dep.range.start, dep.range.end, &content, None);
