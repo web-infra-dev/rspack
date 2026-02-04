@@ -1433,11 +1433,6 @@ export type ModuleOptions = {
 
   /** Keep module mechanism of the matched modules as-is, such as module.exports, require, import. */
   noParse?: NoParseOption;
-
-  /**
-   * Cache the resolving of module requests.
-   */
-  unsafeCache?: boolean | RegExp;
 };
 
 //#endregion
@@ -2803,11 +2798,6 @@ export type Experiments = {
    * @default false
    */
   asyncWebAssembly?: boolean;
-  /**
-   * Enable output as ES module.
-   * @default false
-   */
-  outputModule?: boolean;
   /**
    * Enable CSS support.
    *

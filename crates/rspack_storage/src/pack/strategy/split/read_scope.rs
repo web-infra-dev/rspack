@@ -250,7 +250,7 @@ async fn read_contents(
     .into_iter()
     .map(|i| {
       let strategy = strategy.to_owned();
-      let path = i.1.path.to_owned();
+      let path = i.1.path.clone();
       tokio::spawn(async move { strategy.read_pack_contents(&path).await })
         .map_err(|e| Error::from_error(Some(ErrorType::Load), Some(scope.name), Box::new(e)))
     })

@@ -29,3 +29,6 @@ ustr                     = { workspace = true }
 
 [package.metadata.cargo-shear]
 ignored = ["tracing", "tokio"]
+
+[lints]
+workspace = true

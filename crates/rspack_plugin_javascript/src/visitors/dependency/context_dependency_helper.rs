@@ -37,14 +37,14 @@ pub fn create_context_dependency(
       Cow::Owned(String::new())
     };
 
-    let (context, prefix) = split_context_from_prefix(prefix_raw.to_string());
+    let (context, prefix) = split_context_from_prefix(prefix_raw.clone());
     let (postfix, query, fragment) = match parse_resource(&postfix_raw) {
       Some(data) => (
         data.path.as_str().to_string(),
         data.query.unwrap_or_default(),
         data.fragment.unwrap_or_default(),
       ),
-      None => (postfix_raw.to_string(), String::new(), String::new()),
+      None => (postfix_raw.into_owned(), String::new(), String::new()),
     };
 
     // When there are more than two quasis, the generated RegExp can be more precise
@@ -55,7 +55,7 @@ pub fn create_context_dependency(
         .map(|q| quote_meta(q.string().as_str()) + wrapped_context_reg_exp)
         .join("")
     } else {
-      "".to_string()
+      String::new()
     };
 
     let reg = format!(
@@ -101,7 +101,7 @@ pub fn create_context_dependency(
       let mut warn: Diagnostic = Diagnostic::from(create_traceable_error(
         "Critical dependency".into(),
         "a part of the request of a dependency is an expression".to_string(),
-        parser.source.to_owned(),
+        parser.source.to_string(),
         param.range().into(),
       ));
       warn.severity = Severity::Warning;
@@ -148,7 +148,7 @@ pub fn create_context_dependency(
         data.query.unwrap_or_default(),
         data.fragment.unwrap_or_default(),
       ),
-      None => (postfix_raw.to_string(), String::new(), String::new()),
+      None => (postfix_raw.into_owned(), String::new(), String::new()),
     };
 
     let reg = format!(
@@ -169,7 +169,7 @@ pub fn create_context_dependency(
       let mut warn: Diagnostic = Diagnostic::from(create_traceable_error(
         "Critical dependency".into(),
         "a part of the request of a dependency is an expression".to_string(),
-        parser.source.to_owned(),
+        parser.source.to_string(),
         param.range().into(),
       ));
       warn.severity = Severity::Warning;
@@ -198,7 +198,7 @@ pub fn create_context_dependency(
       let mut warn: Diagnostic = Diagnostic::from(create_traceable_error(
         "Critical dependency".into(),
         "the request of a dependency is an expression".to_string(),
-        parser.source.to_owned(),
+        parser.source.to_string(),
         param.range().into(),
       ));
       warn.severity = Severity::Warning;

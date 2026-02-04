@@ -34,9 +34,6 @@ module.exports = [
 	// ESM output (without EsmLibraryPlugin)
 	{
 		...baseConfig(1, true),
-		experiments: {
-			outputModule: true
-		},
 		externals: {
 			react: "module react"
 		},
@@ -51,9 +48,6 @@ module.exports = [
 	// ESM output (with EsmLibraryPlugin)
 	{
 		...baseConfig(2, true),
-		experiments: {
-			outputModule: true
-		},
 		externals: {
 			react: "module react"
 		},

@@ -1,3 +1,5 @@
+#![allow(clippy::ref_option_ref)]
+
 use indoc::formatdoc;
 use rspack_collections::Identifier;
 use rspack_core::{
@@ -31,6 +33,7 @@ where
   }
 }
 
+#[allow(clippy::ref_option_ref)]
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 struct RscManifest<'a> {
@@ -82,8 +85,7 @@ impl RuntimeModule for RscManifestRuntimeModule {
       return Ok(String::new());
     };
 
-    let mut plugin_states = PLUGIN_STATES.borrow_mut();
-    let plugin_state = plugin_states.get_mut(&server_compiler_id).ok_or_else(|| {
+    let mut plugin_state = PLUGIN_STATES.get_mut(&server_compiler_id).ok_or_else(|| {
       rspack_error::error!(
         "Failed to find RSC plugin state for compiler (ID: {}).",
         server_compiler_id.as_u32()
@@ -127,41 +129,43 @@ fn build_server_manifest(
 ) -> Result<()> {
   let module_graph = compilation.get_module_graph();
 
-  for module in module_graph.modules().values() {
-    let module_id =
-      match ChunkGraph::get_module_id(&compilation.module_ids_artifact, module.identifier()) {
-        Some(id) => id,
-        None => continue,
+  let mut record_module =
+    |module_identifier: &ModuleIdentifier, module_id: &ModuleId| -> Result<()> {
+      let Some(module) = module_graph.module_by_identifier(module_identifier) else {
+        return Ok(());
+      };
+      let Some(normal_module) = module.as_normal_module() else {
+        return Ok(());
       };
 
-    let Some(normal_module) = module.as_normal_module() else {
-      continue;
-    };
+      let request = normal_module.request();
+      if !request.starts_with(ACTION_ENTRY_LOADER_IDENTIFIER) {
+        return Ok(());
+      }
 
-    let request = normal_module.request();
-    if !request.starts_with(ACTION_ENTRY_LOADER_IDENTIFIER) {
-      continue;
-    }
+      let loader_query = request
+        .split_once('?')
+        .map(|x| x.1)
+        .unwrap_or_default()
+        .rsplit_once('!')
+        .map(|x| x.0)
+        .unwrap_or_default();
 
-    let loader_query = request
-      .split_once('?')
-      .map(|x| x.1)
-      .unwrap_or_default()
-      .rsplit_once('!')
-      .map(|x| x.0)
-      .unwrap_or_default();
-    let loader_options = form_urlencoded::parse(loader_query.as_bytes());
+      let loader_options = form_urlencoded::parse(loader_query.as_bytes());
+      for (k, v) in loader_options {
+        if k != "actions" {
+          continue;
+        }
 
-    for (k, v) in loader_options {
-      if k == "actions" {
         if let Some(actions) = parse_action_entries(v.into_owned())? {
           for action in actions {
             server_actions.insert(
-              action.id.to_string(),
+              action.id.clone(),
               ManifestExport {
                 id: module_id.to_string(),
-                name: action.id.to_string(),
-                // Server Action modules serve as endpoints rather than code splitting points, so ensuring chunk loading at runtime is unnecessary.
+                name: action.id.clone(),
+                // Server Action modules serve as endpoints rather than code splitting points,
+                // so ensuring chunk loading at runtime is unnecessary.
                 chunks: vec![],
                 r#async: Some(ModuleGraph::is_async(
                   &compilation.async_modules_artifact.borrow(),
@@ -173,53 +177,28 @@ fn build_server_manifest(
         }
         break;
       }
+
+      Ok(())
+    };
+
+  for module in module_graph.modules().values() {
+    let module_id =
+      match ChunkGraph::get_module_id(&compilation.module_ids_artifact, module.identifier()) {
+        Some(id) => id,
+        None => continue,
+      };
+
+    if let Some(concatenated_module) = module.as_concatenated_module() {
+      for inner_module in concatenated_module.get_modules() {
+        record_module(&inner_module.id, module_id)?;
+      }
+      continue;
     }
+
+    record_module(&module.identifier(), module_id)?;
   }
 
   Ok(())
-}
-
-fn record_module(
-  compilation: &Compilation,
-  client_modules: &FxHashMap<String, ManifestExport>,
-  module_graph: &ModuleGraph,
-  module_identifier: &ModuleIdentifier,
-  module_id: &ModuleId,
-  server_consumer_module_map: &mut FxHashMap<String, ManifestNode>,
-) {
-  let Some(module) = module_graph.module_by_identifier(module_identifier) else {
-    return;
-  };
-  let Some(normal_module) = module.as_normal_module() else {
-    return;
-  };
-
-  if normal_module
-    .get_layer()
-    .is_none_or(|layer| layer != LAYERS_NAMES.server_side_rendering)
-  {
-    return;
-  }
-
-  let resource = get_module_resource(module.as_ref());
-  if resource.is_empty() {
-    return;
-  }
-
-  let manifest_export = ManifestExport {
-    id: module_id.to_string(),
-    name: "*".to_string(),
-    chunks: vec![],
-    r#async: Some(ModuleGraph::is_async(
-      &compilation.async_modules_artifact.borrow(),
-      &module.identifier(),
-    )),
-  };
-  let mut node = FxHashMap::default();
-  node.insert("*".to_string(), manifest_export);
-  if let Some(export) = client_modules.get(resource.as_ref()) {
-    server_consumer_module_map.insert(export.id.clone(), node);
-  }
 }
 
 fn build_server_consumer_module_map(
@@ -229,6 +208,45 @@ fn build_server_consumer_module_map(
   let mut server_consumer_module_map: FxHashMap<String, ManifestNode> = Default::default();
   let module_graph = compilation.get_module_graph();
   let chunk_modules = ChunkModules::new(compilation, module_graph);
+
+  let mut record_module = |module_identifier: &ModuleIdentifier, module_id: &ModuleId| {
+    let Some(module) = module_graph.module_by_identifier(module_identifier) else {
+      return;
+    };
+    let Some(normal_module) = module.as_normal_module() else {
+      return;
+    };
+
+    if normal_module
+      .get_layer()
+      .is_none_or(|layer| layer != LAYERS_NAMES.server_side_rendering)
+    {
+      return;
+    }
+
+    let resource = get_module_resource(module.as_ref());
+    if resource.is_empty() {
+      return;
+    }
+
+    let manifest_export = ManifestExport {
+      id: module_id.to_string(),
+      name: "*".to_string(),
+      chunks: vec![],
+      r#async: Some(ModuleGraph::is_async(
+        &compilation.async_modules_artifact.borrow(),
+        &module.identifier(),
+      )),
+    };
+
+    let mut node = FxHashMap::default();
+    node.insert("*".to_string(), manifest_export);
+
+    if let Some(export) = client_modules.get(resource.as_ref()) {
+      server_consumer_module_map.insert(export.id.clone(), node);
+    }
+  };
+
   for (module_identifier, module_id) in chunk_modules {
     let Some(module) = module_graph.module_by_identifier(&module_identifier) else {
       continue;
@@ -236,24 +254,10 @@ fn build_server_consumer_module_map(
 
     if let Some(concatenated_module) = module.as_concatenated_module() {
       for inner_module in concatenated_module.get_modules() {
-        record_module(
-          compilation,
-          client_modules,
-          module_graph,
-          &inner_module.id,
-          &module_id,
-          &mut server_consumer_module_map,
-        );
+        record_module(&inner_module.id, &module_id);
       }
     } else {
-      record_module(
-        compilation,
-        client_modules,
-        module_graph,
-        &module_identifier,
-        &module_id,
-        &mut server_consumer_module_map,
-      );
+      record_module(&module_identifier, &module_id);
     }
   }
   server_consumer_module_map

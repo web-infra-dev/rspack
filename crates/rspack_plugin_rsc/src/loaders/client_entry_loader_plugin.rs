@@ -47,7 +47,7 @@ pub(crate) async fn resolve_loader(
 ) -> Result<Option<BoxLoader>> {
   let loader_request = &l.loader;
   if loader_request.starts_with(CLIENT_ENTRY_LOADER_IDENTIFIER) {
-    let loader = Arc::new(ClientEntryLoader::new().with_identifier(loader_request.to_string()));
+    let loader = Arc::new(ClientEntryLoader::new().with_identifier(loader_request.clone()));
     return Ok(Some(loader));
   }
   Ok(None)

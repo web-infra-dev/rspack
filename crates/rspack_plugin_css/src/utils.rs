@@ -12,7 +12,8 @@ use indexmap::{IndexMap, IndexSet};
 use regex::{Captures, Regex};
 use rspack_core::{
   ChunkGraph, Compilation, CompilerOptions, CssExportsConvention, GenerateContext, LocalIdentName,
-  PathData, RESERVED_IDENTIFIER, ResourceData, RuntimeGlobals, RuntimeSpec, UsedNameItem,
+  ModuleArgument, ModuleCodegenRuntimeTemplate, PathData, RESERVED_IDENTIFIER, ResourceData,
+  RuntimeGlobals, RuntimeSpec, UsedNameItem,
   rspack_sources::{ConcatSource, RawStringSource},
   to_identifier,
 };
@@ -149,31 +150,33 @@ pub fn css_modules_exports_to_string<'a>(
   module: &dyn rspack_core::Module,
   compilation: &Compilation,
   runtime: Option<&RuntimeSpec>,
-  runtime_requirements: &mut RuntimeGlobals,
+  runtime_template: &mut ModuleCodegenRuntimeTemplate,
   ns_obj: &str,
   left: &str,
   right: &str,
   with_hmr: bool,
 ) -> Result<String> {
   let (decl_name, exports_string) =
-    stringified_exports(exports, compilation, runtime_requirements, module, runtime)?;
+    stringified_exports(exports, compilation, runtime_template, module, runtime)?;
+
+  let module_argument = runtime_template.render_module_argument(ModuleArgument::Module);
 
   let hmr_code = if with_hmr {
     Cow::Owned(format!(
       "// only invalidate when locals change
 var stringified_exports = JSON.stringify({decl_name});
-if (module.hot.data && module.hot.data.exports && module.hot.data.exports != stringified_exports) {{
-  module.hot.invalidate();
+if ({module_argument}.hot.data && {module_argument}.hot.data.exports && {module_argument}.hot.data.exports != stringified_exports) {{
+  {module_argument}.hot.invalidate();
 }} else {{
-  module.hot.accept(); 
+  {module_argument}.hot.accept(); 
 }}
-module.hot.dispose(function(data) {{ data.exports = stringified_exports; }});"
+{module_argument}.hot.dispose(function(data) {{ data.exports = stringified_exports; }});"
     ))
   } else {
     Cow::Borrowed("")
   };
   let mut code =
-    format!("{exports_string}\n{hmr_code}\n{ns_obj}{left}module.exports = {decl_name}",);
+    format!("{exports_string}\n{hmr_code}\n{ns_obj}{left}{module_argument}.exports = {decl_name}",);
   code += right;
   code += ";\n";
   Ok(code)
@@ -182,7 +185,7 @@ module.hot.dispose(function(data) {{ data.exports = stringified_exports; }});"
 pub fn stringified_exports<'a>(
   exports: IndexMap<&'a str, &'a IndexSet<CssExport>>,
   compilation: &Compilation,
-  runtime_requirements: &mut RuntimeGlobals,
+  runtime_template: &mut ModuleCodegenRuntimeTemplate,
   module: &dyn rspack_core::Module,
   runtime: Option<&RuntimeSpec>,
 ) -> Result<(&'static str, String)> {
@@ -247,12 +250,9 @@ pub fn stringified_exports<'a>(
                 .expect("should have module"),
             )
             .expect("should json stringify module id");
-            runtime_requirements.insert(RuntimeGlobals::REQUIRE);
             format!(
               "{}({from})[{}]",
-              compilation
-                .runtime_template
-                .render_runtime_globals(&RuntimeGlobals::REQUIRE),
+              runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
               from_used_name
             )
           }
@@ -372,7 +372,7 @@ pub fn css_modules_exports_to_concatenate_module_string<'a>(
     while used_identifiers.contains(&identifier) {
       let mut i_buffer = itoa::Buffer::new();
       let i_str = i_buffer.format(i);
-      identifier = Cow::Owned(format!("{identifier}{}", i_str));
+      identifier = Cow::Owned(format!("{identifier}{i_str}"));
       i += 1;
     }
     // TODO: conditional support `const or var` after we finished runtimeTemplate utils

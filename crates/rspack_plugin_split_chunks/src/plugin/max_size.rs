@@ -368,7 +368,6 @@ fn deterministic_grouping_for_modules(
 
         group.key = group.nodes.first().map(|n| n.key.clone());
         results.push(group);
-        continue;
       } else {
         let mut pos = left;
         let mut best = -1;
@@ -518,17 +517,13 @@ impl SplitChunksPlugin {
             }
 
             let min_size = max_size_setting
-              .map(|s| &s.min_size)
-              .unwrap_or(&fallback_cache_group.min_size);
+              .map_or(&fallback_cache_group.min_size, |s| &s.min_size);
             let max_async_size = max_size_setting
-              .map(|s| &s.max_async_size)
-              .unwrap_or(&fallback_cache_group.max_async_size);
+              .map_or(&fallback_cache_group.max_async_size, |s| &s.max_async_size);
             let max_initial_size: &SplitChunkSizes = max_size_setting
-              .map(|s| &s.max_initial_size)
-              .unwrap_or(&fallback_cache_group.max_initial_size);
+              .map_or(&fallback_cache_group.max_initial_size, |s| &s.max_initial_size);
             let automatic_name_delimiter = max_size_setting
-              .map(|s| &s.automatic_name_delimiter)
-              .unwrap_or(&fallback_cache_group.automatic_name_delimiter);
+              .map_or(&fallback_cache_group.automatic_name_delimiter, |s| &s.automatic_name_delimiter);
 
             let mut allow_max_size = if chunk.is_only_initial(chunk_group_db) {
               Cow::Borrowed(max_initial_size)
@@ -633,8 +628,7 @@ impl SplitChunksPlugin {
         let chunk = compilation.chunk_by_ukey.expect_get_mut(&info.chunk);
         let delimiter = max_size_setting_map
           .get(&chunk.ukey())
-          .map(|s| s.automatic_name_delimiter.as_str())
-          .unwrap_or(DEFAULT_DELIMITER);
+          .map_or(DEFAULT_DELIMITER, |s| s.automatic_name_delimiter.as_str());
         let mut name = chunk
           .name()
           .map(|name| format!("{name}{delimiter}{group_key}"));

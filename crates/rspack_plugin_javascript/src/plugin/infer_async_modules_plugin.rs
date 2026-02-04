@@ -163,7 +163,7 @@ fn set_async_modules(
   mutations: &mut Option<Mutations>,
 ) {
   let mut queue = modules;
-  let mut visited = IdentifierSet::from_iter(queue.iter().copied());
+  let mut visited: IdentifierSet = queue.iter().copied().collect();
 
   while let Some(module) = queue.pop_front() {
     if ModuleGraph::set_async(async_modules_artifact, module, true)

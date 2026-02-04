@@ -136,7 +136,7 @@ async fn render(
     let mut new_source = ConcatSource::default();
 
     if let Some(hashbang) = hashbang {
-      new_source.add(RawStringSource::from(format!("{}\n", hashbang)));
+      new_source.add(RawStringSource::from(format!("{hashbang}\n")));
     }
 
     if let Some(directives) = directives {
@@ -144,12 +144,12 @@ async fn render(
       if let Some(rest) = original_source_str.strip_prefix(use_strict_prefix) {
         new_source.add(RawStringSource::from(use_strict_prefix));
         for directive in directives {
-          new_source.add(RawStringSource::from(format!("{}\n", directive)));
+          new_source.add(RawStringSource::from(format!("{directive}\n")));
         }
         new_source.add(RawStringSource::from(rest));
       } else {
         for directive in directives {
-          new_source.add(RawStringSource::from(format!("{}\n", directive)));
+          new_source.add(RawStringSource::from(format!("{directive}\n")));
         }
         new_source.add(render_source.source.clone());
       }

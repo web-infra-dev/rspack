@@ -1109,9 +1109,6 @@ pub enum ModuleRuleEnforce {
   Pre,
 }
 
-pub type UnsafeCachePredicate =
-  Box<dyn Fn(&dyn Module) -> BoxFuture<'static, Result<bool>> + Sync + Send>;
-
 // BE CAREFUL:
 // Add more fields to this struct should result in adding new fields to options builder.
 // `impl From<ModuleOptions> for ModuleOptionsBuilder` should be updated.
@@ -1121,6 +1118,4 @@ pub struct ModuleOptions {
   pub parser: Option<ParserOptionsMap>,
   pub generator: Option<GeneratorOptionsMap>,
   pub no_parse: Option<ModuleNoParseRules>,
-  #[debug(skip)]
-  pub unsafe_cache: Option<UnsafeCachePredicate>,
 }

@@ -1,12 +1,29 @@
+use std::sync::LazyLock;
+
 use rspack_collections::Identifier;
 use rspack_core::{
   Chunk, ChunkGraph, ChunkUkey, Compilation, ModuleIdentifier, RuntimeGlobals, RuntimeModule,
   RuntimeModuleStage, RuntimeTemplate, SourceType, impl_runtime_module,
 };
+use rspack_plugin_runtime::extract_runtime_globals_from_ejs;
 use rustc_hash::FxHashMap;
 
 use super::consume_shared_plugin::ConsumeVersion;
 use crate::utils::json_stringify;
+
+static CONSUMES_COMMON_TEMPLATE: &str = include_str!("./consumesCommon.ejs");
+static CONSUMES_INITIAL_TEMPLATE: &str = include_str!("./consumesInitial.ejs");
+static CONSUMES_LOADING_TEMPLATE: &str = include_str!("./consumesLoading.ejs");
+static CONSUMES_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
+  LazyLock::new(|| extract_runtime_globals_from_ejs(CONSUMES_COMMON_TEMPLATE));
+static CONSUMES_INITIAL_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
+  LazyLock::new(|| extract_runtime_globals_from_ejs(CONSUMES_INITIAL_TEMPLATE));
+static CONSUMES_LOADING_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> = LazyLock::new(|| {
+  let mut res = extract_runtime_globals_from_ejs(CONSUMES_LOADING_TEMPLATE);
+  // ensure chunk handlers is optional
+  res.remove(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
+  res
+});
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -57,15 +74,15 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
     vec![
       (
         self.get_template_id(TemplateId::Common),
-        include_str!("./consumesCommon.ejs").to_string(),
+        CONSUMES_COMMON_TEMPLATE.to_string(),
       ),
       (
         self.get_template_id(TemplateId::Initial),
-        include_str!("./consumesInitial.ejs").to_string(),
+        CONSUMES_INITIAL_TEMPLATE.to_string(),
       ),
       (
         self.get_template_id(TemplateId::Loading),
-        include_str!("./consumesLoading.ejs").to_string(),
+        CONSUMES_LOADING_TEMPLATE.to_string(),
       ),
     ]
   }
@@ -93,7 +110,7 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
           json_stringify(&data.share_scope),
           json_stringify(&data.share_key),
           json_stringify(&data.import),
-          json_stringify(&data.required_version.as_ref().map(|v| v.to_string()).unwrap_or_else(|| "*".to_string())),
+          json_stringify(&data.required_version.as_ref().map_or_else(|| "*".to_string(), |v| v.to_string())),
           json_stringify(&data.strict_version),
           json_stringify(&data.singleton),
           json_stringify(&data.eager),
@@ -166,12 +183,8 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
       .render_runtime_globals(&RuntimeGlobals::REQUIRE);
     let mut source = format!(
       r#"
-{require_name}.consumesLoadingData = {{ chunkMapping: {chunk_mapping}, moduleIdToConsumeDataMapping: {module_to_consume_data_mapping}, initialConsumes: {initial_consumes_json} }};
+{require_name}.consumesLoadingData = {{ chunkMapping: {chunk_mapping}, moduleIdToConsumeDataMapping: {module_id_to_consume_data_mapping}, initialConsumes: {initial_consumes_json} }};
 "#,
-      require_name = require_name,
-      chunk_mapping = chunk_mapping,
-      module_to_consume_data_mapping = module_id_to_consume_data_mapping,
-      initial_consumes_json = initial_consumes_json,
     );
     if self.enhanced {
       if ChunkGraph::get_chunk_runtime_requirements(compilation, &chunk_ukey)
@@ -206,6 +219,12 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
 
   fn attach(&mut self, chunk: ChunkUkey) {
     self.chunk = Some(chunk);
+  }
+
+  fn additional_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
+    *CONSUMES_RUNTIME_REQUIREMENTS
+      | *CONSUMES_INITIAL_RUNTIME_REQUIREMENTS
+      | *CONSUMES_LOADING_RUNTIME_REQUIREMENTS
   }
 }
 

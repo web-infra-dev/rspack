@@ -184,7 +184,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           let mut stylesheet = StyleSheet::parse(
             &input,
             ParserOptions {
-              filename: filename.to_string(),
+              filename: filename.clone(),
               css_modules: None,
               source_index: 0,
               error_recovery: minimizer_options.error_recovery,
@@ -199,13 +199,11 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
             include: minimizer_options
               .include
               .as_ref()
-              .map(|include| Features::from_bits_truncate(*include))
-              .unwrap_or(Features::empty()),
+              .map_or(Features::empty(), |include| Features::from_bits_truncate(*include)),
             exclude: minimizer_options
               .exclude
               .as_ref()
-              .map(|exclude| Features::from_bits_truncate(*exclude))
-              .unwrap_or(Features::empty()),
+              .map_or(Features::empty(), |exclude| Features::from_bits_truncate(*exclude)),
           };
           let mut unused_symbols = HashSet::from_iter(minimizer_options.unused_symbols.clone());
           if self.options.remove_unused_local_idents

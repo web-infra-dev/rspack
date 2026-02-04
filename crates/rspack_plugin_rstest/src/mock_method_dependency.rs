@@ -100,7 +100,7 @@ impl DependencyTemplate for MockMethodDependencyTemplate {
   ) {
     let TemplateContext {
       init_fragments,
-      compilation,
+      runtime_template,
       ..
     } = code_generatable_context;
     let dep = dep
@@ -109,9 +109,7 @@ impl DependencyTemplate for MockMethodDependencyTemplate {
       .expect("MockMethodDependencyTemplate can only be applied to MockMethodDependency");
 
     let request = &dep.request;
-    let require_name = compilation
-      .runtime_template
-      .render_runtime_globals(&RuntimeGlobals::REQUIRE);
+    let require_name = runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE);
 
     let hoist_flag = Self::get_hoist_flag(&dep.method);
     let mock_method = Self::get_mock_method(&dep.method);

@@ -21,9 +21,6 @@ module.exports = (env, { testPath }) => {
 			chunkFormat: "module",
 			filename: "[name].mjs"
 		},
-		experiments: {
-			outputModule: true
-		},
 		optimization: {
 			minimize: true,
 			concatenateModules: true

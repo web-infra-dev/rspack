@@ -189,84 +189,24 @@ pub fn try_extract_magic_comment(
   result
 }
 
-#[derive(Debug)]
-struct Location {
-  /// Start line
-  sl: u32,
-  /// Start column
-  sc: u32,
-  /// End line
-  el: u32,
-  /// End column
-  ec: u32,
-}
-
-impl Location {
-  /// Block comment should be within the location of the source location.
-  fn merge_with_block_comment_location(&self, block_comment: &Location) -> Self {
-    let sl = self.sl + block_comment.sl;
-    let sc = if block_comment.sl == 0 {
-      self.sc + block_comment.sc + 2 // Length of `/*`
-    } else {
-      block_comment.sc
-    };
-    let el = self.sl + block_comment.el;
-    let ec = if block_comment.el == 0 {
-      self.sc + block_comment.ec + 2 // Length of `/*`
-    } else {
-      block_comment.ec
-    };
-    Location { sl, sc, el, ec }
-  }
-}
-
-/// # Panics
-///
-/// Panics if `start` or `end` is out-of-bound.
-fn byte_offset_to_location(rope: &ropey::Rope, start: usize, end: usize) -> Location {
-  let char_index = rope.byte_to_char(start);
-  let sl = rope.char_to_line(char_index);
-  let sc = char_index - rope.line_to_char(sl);
-
-  let char_index = rope.byte_to_char(end);
-  let el = rope.char_to_line(char_index);
-  let ec = char_index - rope.line_to_char(el);
-
-  Location {
-    sl: sl as u32,
-    sc: sc as u32,
-    el: el as u32,
-    ec: ec as u32,
-  }
-}
-
 /// Convert match item to error span within the source
 ///
-/// # Panics
-///
-/// Panics if `comment_span` is out-of-bound of `source`.
-/// Panics if either `match_start` or `match_end` is out-of-bound of `comment_text`.
+/// For block comments like `/* webpack... */`, we calculate the absolute position
+/// by adding the comment's start position in source + 2 (for "/*") + match offset in comment text.
 fn match_item_to_error_span(
-  source: &str,
   comment_span: Span,
-  comment_text: &str,
   match_start: usize,
   match_end: usize,
 ) -> DependencyRange {
-  let s = ropey::Rope::from_str(source);
-  // SAFETY: `comment_span` is always within the bound of `source`.
-  let s_loc = byte_offset_to_location(
-    &s,
-    comment_span.real_lo() as usize,
-    comment_span.real_hi() as usize,
-  );
-  let c = ropey::Rope::from_str(comment_text);
-  // SAFETY: `match_start` or `match_end` is always within the bound of `comment_text`.
-  let c_loc = byte_offset_to_location(&c, match_start, match_end);
+  // Block comment format: /* comment_text */
+  // The comment_text doesn't include the "/*" and "*/" delimiters
+  // So we need to add 2 bytes for "/*" to get the actual position in source
+  const BLOCK_COMMENT_START_LEN: usize = 2; // Length of "/*"
 
-  let Location { sl, sc, el, ec } = s_loc.merge_with_block_comment_location(&c_loc);
-  let start = s.line_to_byte(sl as usize) + sc as usize;
-  let end = s.line_to_byte(el as usize) + ec as usize;
+  let comment_start = comment_span.real_lo() as usize;
+  let start = comment_start + BLOCK_COMMENT_START_LEN + match_start;
+  let end = comment_start + BLOCK_COMMENT_START_LEN + match_end;
+
   DependencyRange::new(start as u32, end as u32)
 }
 
@@ -292,18 +232,9 @@ fn analyze_comments(
       if let Some(item_name_match) = captures.name("_0") {
         let item_name = item_name_match.as_str();
         let error_span = || {
-          captures
-            .name("_9")
-            .map(|item| {
-              match_item_to_error_span(
-                source,
-                comment.span,
-                &comment.text,
-                item.start(),
-                item.end(),
-              )
-            })
-            .unwrap_or(error_span.into())
+          captures.name("_9").map_or(error_span.into(), |item| {
+            match_item_to_error_span(comment.span, item.start(), item.end())
+          })
         };
         match item_name {
           "webpackChunkName" => {
@@ -470,7 +401,7 @@ fn analyze_comments(
                 item_value_match
                   .as_str()
                   .split(',')
-                  .try_fold("".to_string(), |acc, item| {
+                  .try_fold(String::new(), |acc, item| {
                     EXPORT_NAME_REGEXP
                       .captures(item.trim())
                       .and_then(|matched| matched.get(1).map(|x| x.as_str()))
@@ -579,7 +510,7 @@ mod tests_extract_regex {
       Some((
         "webpackInclude".to_string(),
         "abc".to_string(),
-        "".to_string()
+        String::new()
       ))
     );
     assert_eq!(
@@ -611,7 +542,7 @@ mod tests_extract_regex {
       Some((
         "webpackInclude".to_string(),
         "components[\\/][^\\/]+\\.vue$".to_string(),
-        "".to_string()
+        String::new()
       ))
     );
     assert_eq!(
@@ -619,7 +550,7 @@ mod tests_extract_regex {
       Some((
         "webpackInclude".to_string(),
         "components[/\\][^/\\]+\\.vue$".to_string(),
-        "".to_string()
+        String::new()
       ))
     );
     assert_eq!(
@@ -627,7 +558,7 @@ mod tests_extract_regex {
       Some((
         "webpackInclude".to_string(),
         "^.{2,}$".to_string(),
-        "".to_string()
+        String::new()
       ))
     );
     assert_eq!(
@@ -635,7 +566,7 @@ mod tests_extract_regex {
       Some((
         "webpackInclude".to_string(),
         "^.{2,}$".to_string(),
-        "".to_string()
+        String::new()
       ))
     );
     // https://github.com/web-infra-dev/rspack/issues/10195
@@ -646,7 +577,7 @@ mod tests_extract_regex {
       Some((
         "webpackInclude".to_string(),
         "(?!.*node_modules)(?:\\/src\\/(?!\\.)(?=.)[^/]*?\\.stories\\.tsx)$".to_string(),
-        "".to_string()
+        String::new()
       ))
     );
   }

@@ -21,7 +21,7 @@ pub fn track_server_component_changes(
     visited_modules.clear();
 
     let changed_server_components = changed_server_components_per_entry
-      .entry(entry_name.to_string())
+      .entry(entry_name.clone())
       .or_default();
 
     let entry_dependency_id = entry_data.dependencies[0];

@@ -15,6 +15,7 @@ pub trait CallHooksName {
     F: Fn(&mut JavascriptParser, &str) -> Option<T>;
 }
 
+#[allow(unused_lifetimes)]
 impl CallHooksName for Atom {
   fn call_hooks_name<'parser, F, T>(&self, parser: &mut JavascriptParser, hook_call: F) -> Option<T>
   where
@@ -38,7 +39,7 @@ impl CallHooksName for &str {
     Atom::from(*self).call_hooks_name(parser, hook_call)
   }
 }
-
+#[allow(unused_lifetimes)]
 impl CallHooksName for String {
   fn call_hooks_name<'parser, F, T>(&self, parser: &mut JavascriptParser, hook_call: F) -> Option<T>
   where
@@ -47,7 +48,7 @@ impl CallHooksName for String {
     self.as_str().call_hooks_name(parser, hook_call)
   }
 }
-
+#[allow(unused_lifetimes)]
 impl CallHooksName for ExportedVariableInfo {
   fn call_hooks_name<'parser, F, T>(
     &self,
@@ -63,7 +64,7 @@ impl CallHooksName for ExportedVariableInfo {
     }
   }
 }
-
+#[allow(unused_lifetimes)]
 impl CallHooksName for MemberExpr {
   fn call_hooks_name<'parser, F, T>(&self, parser: &mut JavascriptParser, hook_call: F) -> Option<T>
   where
@@ -83,7 +84,7 @@ impl CallHooksName for MemberExpr {
     }
   }
 }
-
+#[allow(unused_lifetimes)]
 impl CallHooksName for OptChainExpr {
   fn call_hooks_name<'parser, F, T>(&self, parser: &mut JavascriptParser, hook_call: F) -> Option<T>
   where

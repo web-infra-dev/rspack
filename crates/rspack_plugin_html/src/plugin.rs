@@ -281,7 +281,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       .borrow()
       .after_emit
       .call(AfterEmitData {
-        output_name: html_asset.0.to_string(),
+        output_name: html_asset.0.clone(),
         compilation_id: compilation.id(),
         uid: config.uid,
       })

@@ -39,8 +39,7 @@ impl Dependency for JsonExportsDependency {
   ) -> Option<ExportsSpec> {
     Some(ExportsSpec {
       exports: get_exports_from_data(&self.data, self.exports_depth, 1)
-        .map(ExportsOfExportsSpec::Names)
-        .unwrap_or(ExportsOfExportsSpec::NoExports),
+        .map_or(ExportsOfExportsSpec::NoExports, ExportsOfExportsSpec::Names),
       ..Default::default()
     })
   }

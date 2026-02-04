@@ -6,10 +6,11 @@ use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo,
   BuildMeta, BuildMetaExportsType, BuildResult, ChunkGroupOptions, CodeGenerationResult,
-  Compilation, ConcatenationScope, Context, DependenciesBlock, Dependency, DependencyId,
-  FactoryMeta, GroupOptions, LibIdentOptions, Module, ModuleDependency, ModuleGraph,
-  ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType, StaticExportsDependency,
-  StaticExportsSpec, impl_module_meta_info, impl_source_map_config, module_update_hash,
+  Compilation, Context, DependenciesBlock, Dependency, DependencyId, ExportsArgument, FactoryMeta,
+  GroupOptions, LibIdentOptions, Module, ModuleCodeGenerationContext, ModuleCodegenRuntimeTemplate,
+  ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec,
+  SourceType, StaticExportsDependency, StaticExportsSpec, impl_module_meta_info,
+  impl_source_map_config, module_update_hash,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
@@ -178,57 +179,42 @@ impl Module for ContainerEntryModule {
   // #[tracing::instrument("ContainerEntryModule::code_generation", skip_all, fields(identifier = ?self.identifier()))]
   async fn code_generation(
     &self,
-    compilation: &Compilation,
-    _runtime: Option<&RuntimeSpec>,
-    _: Option<ConcatenationScope>,
+    code_generation_context: &mut ModuleCodeGenerationContext,
   ) -> Result<CodeGenerationResult> {
-    let mut code_generation_result = CodeGenerationResult::default();
-    code_generation_result
-      .runtime_requirements
-      .insert(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
-    code_generation_result
-      .runtime_requirements
-      .insert(RuntimeGlobals::EXPORTS);
-    code_generation_result
-      .runtime_requirements
-      .insert(RuntimeGlobals::REQUIRE);
-    code_generation_result
-      .runtime_requirements
-      .insert(RuntimeGlobals::CURRENT_REMOTE_GET_SCOPE);
-    let module_map = ExposeModuleMap::new(
+    let ModuleCodeGenerationContext {
       compilation,
-      self,
-      &mut code_generation_result.runtime_requirements,
-    );
-    let module_map_str = module_map.render(compilation);
+      runtime_template,
+      ..
+    } = code_generation_context;
+
+    let mut code_generation_result = CodeGenerationResult::default();
+    runtime_template
+      .runtime_requirements_mut()
+      .insert(RuntimeGlobals::CURRENT_REMOTE_GET_SCOPE);
+    let module_map = ExposeModuleMap::new(compilation, self, runtime_template);
+    let module_map_str = module_map.render(runtime_template);
     let source = if self.enhanced {
+      let define_property_getters =
+        runtime_template.render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
+      let get_container = format!(
+        "{}.getContainer",
+        runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
+      );
+      let init_container = format!(
+        "{}.initContainer",
+        runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
+      );
+
       format!(
         r#"
-{}(exports, {{
+{}({}, {{
 	get: {},
 	init: {}
 }});"#,
-        compilation
-          .runtime_template
-          .render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS),
-        compilation.runtime_template.returning_function(
-          &format!(
-            "{}.getContainer",
-            compilation
-              .runtime_template
-              .render_runtime_globals(&RuntimeGlobals::REQUIRE)
-          ),
-          ""
-        ),
-        compilation.runtime_template.returning_function(
-          &format!(
-            "{}.initContainer",
-            compilation
-              .runtime_template
-              .render_runtime_globals(&RuntimeGlobals::REQUIRE)
-          ),
-          ""
-        ),
+        define_property_getters,
+        runtime_template.render_exports_argument(ExportsArgument::Exports),
+        runtime_template.returning_function(&get_container, ""),
+        runtime_template.returning_function(&init_container, ""),
       )
     } else {
       format!(
@@ -252,32 +238,27 @@ var init = function(shareScope, initScope) {{
   {share_scope_map}[name] = shareScope;
   return {initialize_sharing}(name, initScope);
 }}
-{define_property_getters}(exports, {{
+{define_property_getters}({exports}, {{
 	get: {export_get},
 	init: {export_init}
 }});"#,
-        current_remote_get_scope = compilation
-          .runtime_template
-          .render_runtime_globals(&RuntimeGlobals::CURRENT_REMOTE_GET_SCOPE),
-        has_own_property = compilation
-          .runtime_template
-          .render_runtime_globals(&RuntimeGlobals::HAS_OWN_PROPERTY),
-        share_scope_map = compilation
-          .runtime_template
-          .render_runtime_globals(&RuntimeGlobals::SHARE_SCOPE_MAP),
+        exports = runtime_template.render_exports_argument(ExportsArgument::Exports),
+        current_remote_get_scope =
+          runtime_template.render_runtime_globals(&RuntimeGlobals::CURRENT_REMOTE_GET_SCOPE),
+        has_own_property =
+          runtime_template.render_runtime_globals(&RuntimeGlobals::HAS_OWN_PROPERTY),
+        share_scope_map = runtime_template.render_runtime_globals(&RuntimeGlobals::SHARE_SCOPE_MAP),
         share_scope = json_stringify(&self.share_scope),
-        initialize_sharing = compilation
-          .runtime_template
-          .render_runtime_globals(&RuntimeGlobals::INITIALIZE_SHARING),
-        define_property_getters = compilation
-          .runtime_template
-          .render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS),
-        get_scope_reject = compilation.runtime_template.basic_function(
+        initialize_sharing =
+          runtime_template.render_runtime_globals(&RuntimeGlobals::INITIALIZE_SHARING),
+        define_property_getters =
+          runtime_template.render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS),
+        get_scope_reject = runtime_template.basic_function(
           "",
           r#"throw new Error('Module "' + module + '" does not exist in container.');"#
         ),
-        export_get = compilation.runtime_template.returning_function("get", ""),
-        export_init = compilation.runtime_template.returning_function("init", ""),
+        export_get = runtime_template.returning_function("get", ""),
+        export_init = runtime_template.returning_function("init", ""),
       )
     };
     code_generation_result =
@@ -314,7 +295,7 @@ impl ExposeModuleMap {
   pub fn new(
     compilation: &Compilation,
     container_entry_module: &ContainerEntryModule,
-    runtime_requirements: &mut RuntimeGlobals,
+    runtime_template: &mut ModuleCodegenRuntimeTemplate,
   ) -> Self {
     let mut module_map = vec![];
     let module_graph = compilation.get_module_graph();
@@ -337,39 +318,22 @@ impl ExposeModuleMap {
         .clone()
         .any(|(_, module, _, _)| module.is_none())
       {
-        compilation
-          .runtime_template
-          .throw_missing_module_error_block(
-            &modules_iter
-              .map(|(_, _, request, _)| request)
-              .collect::<Vec<&str>>()
-              .join(", "),
-          )
+        runtime_template.throw_missing_module_error_block(
+          &modules_iter
+            .map(|(_, _, request, _)| request)
+            .collect::<Vec<&str>>()
+            .join(", "),
+        )
       } else {
-        let block_promise = compilation.runtime_template.block_promise(
-          Some(block_id),
-          runtime_requirements,
-          compilation,
-          "",
-        );
-        let module_raw = compilation.runtime_template.returning_function(
-          &compilation.runtime_template.returning_function(
-            &modules_iter
-              .map(|(_, _, request, dependency_id)| {
-                compilation.runtime_template.module_raw(
-                  compilation,
-                  runtime_requirements,
-                  dependency_id,
-                  request,
-                  false,
-                )
-              })
-              .collect::<Vec<_>>()
-              .join(", "),
-            "",
-          ),
-          "",
-        );
+        let block_promise = runtime_template.block_promise(Some(block_id), compilation, "");
+        let modules = modules_iter
+          .map(|(_, _, request, dependency_id)| {
+            runtime_template.module_raw(compilation, dependency_id, request, false)
+          })
+          .collect::<Vec<_>>()
+          .join(", ");
+        let module_raw = runtime_template
+          .returning_function(&runtime_template.returning_function(&modules, ""), "");
         format!("return {block_promise}.then({module_raw});")
       };
       module_map.push((name.to_string(), str));
@@ -377,7 +341,7 @@ impl ExposeModuleMap {
     Self(module_map)
   }
 
-  pub fn render(&self, compilation: &Compilation) -> String {
+  pub fn render(&self, runtime_template: &mut ModuleCodegenRuntimeTemplate) -> String {
     let module_map = self
       .0
       .iter()
@@ -385,7 +349,7 @@ impl ExposeModuleMap {
         format!(
           "{}: {},",
           json_stringify(name),
-          compilation.runtime_template.basic_function("", factory)
+          runtime_template.basic_function("", factory)
         )
       })
       .collect::<Vec<_>>()

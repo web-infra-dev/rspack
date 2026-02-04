@@ -22,7 +22,7 @@ cacheable modules xx KiB
   ./index.js xx bytes [built] [code generated]
     [no exports]
     [no exports used]
-    Statement with side_effects in source code at ./index.js<LINE_COL>-30
+    Statement with side_effects in source code at ./index.js<LINE_COL>-31
     ModuleConcatenation bailout: Module is an entry point
     ModuleConcatenation bailout: Cannot concat with <TEST_ROOT>/statsOutputCases/side-effects-optimization/node_modules/big-module/a.js because of <TEST_ROOT>/statsOutputCases/side-effects-optimization/node_modules/big-module/index.js: Reexports in this module do not have a static target (huh : used in main)
     ModuleConcatenation bailout: Cannot concat with <TEST_ROOT>/statsOutputCases/side-effects-optimization/node_modules/big-module/index.js: Reexports in this module do not have a static target (huh : used in main)

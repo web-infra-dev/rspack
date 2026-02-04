@@ -1,5 +1,7 @@
 use rspack_collections::Identifier;
-use rspack_core::{Compilation, RuntimeModule, RuntimeTemplate, impl_runtime_module};
+use rspack_core::{
+  Compilation, RuntimeGlobals, RuntimeModule, RuntimeTemplate, impl_runtime_module,
+};
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -39,5 +41,11 @@ impl RuntimeModule for StartupEntrypointRuntimeModule {
 
   async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
     compilation.runtime_template.render(&self.id, None)
+  }
+
+  fn additional_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
+    RuntimeGlobals::REQUIRE
+      | RuntimeGlobals::ENSURE_CHUNK
+      | RuntimeGlobals::ENSURE_CHUNK_INCLUDE_ENTRIES
   }
 }

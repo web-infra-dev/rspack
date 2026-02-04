@@ -37,11 +37,11 @@ module.exports = {
 							Array [
 							  Object {
 							    path: a.js,
-							    size: 4003,
+							    size: 4239,
 							  },
 							  Object {
 							    path: b.js,
-							    size: 4003,
+							    size: 4239,
 							  },
 							  Object {
 							    path: c_js.js,

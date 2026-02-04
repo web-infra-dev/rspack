@@ -1,12 +1,13 @@
 use std::{
   borrow::Cow,
-  collections::{HashMap, HashSet, hash_map::Entry},
+  collections::{HashMap, hash_map::Entry},
   hash::Hash,
   ops::Deref,
   sync::{Arc, LazyLock, RwLock as SyncRwLock},
 };
 
 use rayon::prelude::*;
+use rustc_hash::FxHashSet as HashSet;
 pub mod api_plugin;
 mod drive;
 mod flag_dependency_exports_plugin;
@@ -266,7 +267,9 @@ var module = ({}[moduleId] = {{"#,
   ) -> Result<RenderBootstrapResult<'me>> {
     let runtime_requirements = ChunkGraph::get_chunk_runtime_requirements(compilation, chunk_ukey);
     let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
-    let runtime_template = &compilation.runtime_template;
+    let mut runtime_template = compilation
+      .runtime_template
+      .create_module_codegen_runtime_template();
     let module_factories = runtime_requirements.contains(RuntimeGlobals::MODULE_FACTORIES);
     let require_function = runtime_requirements.contains(RuntimeGlobals::REQUIRE);
     let module_cache = runtime_requirements.contains(RuntimeGlobals::MODULE_CACHE);
@@ -513,7 +516,7 @@ var {} = {{}};
                     runtime_template.render_runtime_globals(&RuntimeGlobals::EXPORTS)
                   )
                 } else {
-                  "".to_string()
+                  String::new()
                 },
                 runtime_template.render_runtime_globals(&RuntimeGlobals::ON_CHUNKS_LOADED),
                 stringify_array(&chunk_ids),
@@ -531,7 +534,7 @@ var {} = {{}};
                     runtime_template.render_runtime_globals(&RuntimeGlobals::EXPORTS)
                   )
                 } else {
-                  "".to_string()
+                  String::new()
                 },
                 runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
               )
@@ -600,6 +603,7 @@ var {} = {{}};
           );
         }
         if runtime_requirements.contains(RuntimeGlobals::STARTUP) {
+          let exports = runtime_template.render_runtime_globals(&RuntimeGlobals::EXPORTS);
           allow_inline_startup = false;
           header.push(
             format!(
@@ -607,14 +611,8 @@ var {} = {{}};
 {} = {};
 "#,
               runtime_template.render_runtime_globals(&RuntimeGlobals::STARTUP),
-              compilation.runtime_template.basic_function(
-                "",
-                &format!(
-                  "{}\nreturn {}",
-                  buf2.join("\n"),
-                  runtime_template.render_runtime_globals(&RuntimeGlobals::EXPORTS)
-                )
-              )
+              runtime_template
+                .basic_function("", &format!("{}\nreturn {}", buf2.join("\n"), exports))
             )
             .into(),
           );
@@ -676,7 +674,9 @@ var {} = {{}};
     chunk_ukey: &ChunkUkey,
     output_path: &str,
   ) -> Result<BoxSource> {
-    let runtime_template = &compilation.runtime_template;
+    let mut runtime_template = compilation
+      .runtime_template
+      .create_module_codegen_runtime_template();
     let js_plugin_hooks = Self::get_compilation_hooks(compilation.id());
     let hooks = js_plugin_hooks
       .try_read()
@@ -954,9 +954,7 @@ var {} = {{}};
     {
       sources.add(RawStringSource::from(format!(
         "return {};\n",
-        compilation
-          .runtime_template
-          .render_runtime_variable(&RuntimeVariable::Exports)
+        runtime_template.render_runtime_variable(&RuntimeVariable::Exports)
       )));
     }
     if iife {
@@ -1011,7 +1009,8 @@ var {} = {{}};
 
     let mut inlined_modules_to_info: IdentifierMap<InlinedModuleInfo> = IdentifierMap::default();
     let mut non_inlined_module_through_idents: Vec<ConcatenatedModuleIdent> = Vec::new();
-    let mut all_used_names = HashSet::from_iter(RESERVED_NAMES.iter().map(|item| Atom::new(*item)));
+    let mut all_used_names: HashSet<Atom> =
+      RESERVED_NAMES.iter().map(|item| Atom::new(*item)).collect();
     let mut renamed_inline_modules: IdentifierMap<Arc<dyn Source>> = IdentifierMap::default();
 
     let render_module_results = rspack_futures::scope::<_, _>(|token| {
@@ -1063,7 +1062,7 @@ var {} = {{}};
           Ok(RenameInfoPatch {
             inlined_modules_to_info: IdentifierMap::default(),
             non_inlined_module_through_idents: Vec::new(),
-            all_used_names: HashSet::from_iter(RESERVED_NAMES.iter().map(|item| Atom::new(*item))),
+            all_used_names: RESERVED_NAMES.iter().map(|item| Atom::new(*item)).collect(),
           })
         },
         |mut acc, (rendered_module, m)| {
@@ -1209,7 +1208,7 @@ var {} = {{}};
           Ok(RenameInfoPatch {
             inlined_modules_to_info: IdentifierMap::default(),
             non_inlined_module_through_idents: Vec::new(),
-            all_used_names: HashSet::from_iter(RESERVED_NAMES.iter().map(|item| Atom::new(*item))),
+            all_used_names: RESERVED_NAMES.iter().map(|item| Atom::new(*item)).collect(),
           })
         },
         |acc, chunk| match acc {

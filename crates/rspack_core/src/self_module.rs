@@ -11,8 +11,8 @@ use rspack_util::source_map::SourceMapKind;
 
 use crate::{
   AsyncDependenciesBlockIdentifier, BuildInfo, BuildMeta, ChunkUkey, CodeGenerationResult,
-  Compilation, ConcatenationScope, Context, DependenciesBlock, DependencyId, FactoryMeta,
-  LibIdentOptions, Module, ModuleGraph, ModuleIdentifier, ModuleType, RuntimeSpec, SourceType,
+  Compilation, Context, DependenciesBlock, DependencyId, FactoryMeta, LibIdentOptions, Module,
+  ModuleCodeGenerationContext, ModuleGraph, ModuleIdentifier, ModuleType, RuntimeSpec, SourceType,
   impl_module_meta_info,
 };
 
@@ -112,9 +112,7 @@ impl Module for SelfModule {
   // #[tracing::instrument("SelfModule::code_generation", skip_all, fields(identifier = ?self.identifier()))]
   async fn code_generation(
     &self,
-    _compilation: &Compilation,
-    _runtime: Option<&RuntimeSpec>,
-    _: Option<ConcatenationScope>,
+    _code_generation_context: &mut ModuleCodeGenerationContext,
   ) -> Result<CodeGenerationResult> {
     Ok(CodeGenerationResult::default())
   }

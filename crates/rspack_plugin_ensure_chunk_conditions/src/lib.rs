@@ -26,7 +26,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
         .chunk_graph
         .get_module_chunks(module.identifier())
         .iter()
-        .flat_map(|chunk| {
+        .filter_map(|chunk| {
           if matches!(module.chunk_condition(chunk, compilation), Some(false)) {
             return Some(chunk.to_owned());
           }
@@ -99,7 +99,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
   let mut chunk_graph = std::mem::take(&mut compilation.chunk_graph);
   for (module_id, chunks) in source_module_chunks {
     for chunk in chunks {
-      chunk_graph.disconnect_chunk_and_module(&chunk, module_id.to_owned());
+      chunk_graph.disconnect_chunk_and_module(&chunk, module_id);
     }
   }
 

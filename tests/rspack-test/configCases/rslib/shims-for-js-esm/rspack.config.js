@@ -12,9 +12,6 @@ module.exports = {
 		__filename: 'node-module',
 		__dirname: 'node-module'
 	},
-	experiments: {
-		outputModule: true,
-	},
 	optimization: {
 		concatenateModules: false
 	},

@@ -13,10 +13,10 @@ use rspack_cacheable::{
 use rspack_core::{
   BoxDependencyTemplate, BoxModuleDependency, BuildMetaDefaultObject, BuildMetaExportsType,
   ChunkGraph, Compilation, ConstDependency, CssExportsConvention, Dependency, DependencyId,
-  DependencyRange, DependencyType, GenerateContext, LocalIdentName, Module, ModuleGraph,
-  ModuleIdentifier, ModuleInitFragments, ModuleType, NormalModule, ParseContext, ParseResult,
-  ParserAndGenerator, PrefetchExportsInfoMode, RuntimeGlobals, RuntimeSpec, SourceType,
-  TemplateContext, UsageState,
+  DependencyRange, DependencyType, GenerateContext, LocalIdentName, Module, ModuleArgument,
+  ModuleGraph, ModuleIdentifier, ModuleInitFragments, ModuleType, NormalModule, ParseContext,
+  ParseResult, ParserAndGenerator, PrefetchExportsInfoMode, RuntimeGlobals, RuntimeSpec,
+  SourceType, TemplateContext, UsageState,
   diagnostics::map_box_diagnostics_to_module_parse_diagnostics,
   remove_bom,
   rspack_sources::{BoxSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt},
@@ -406,7 +406,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
             dependencies.push(Box::new(dep));
           } else if from.is_none() {
             dependencies.push(Box::new(CssSelfReferenceLocalIdentDependency::new(
-              names.iter().map(|s| s.to_string()).collect(),
+              names.clone(),
               vec![],
             )));
           }
@@ -438,7 +438,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
                     .get_mut(local_class.as_str())
                     .expect("composes local class must already added to exports")
                     .insert(CssExport {
-                      ident: convention_name.to_string(),
+                      ident: convention_name.clone(),
                       orig_name: name.clone(),
                       from: from
                         .filter(|f| *f != "global")
@@ -520,7 +520,8 @@ impl ParserAndGenerator for CssParserAndGenerator {
     match generate_context.requested_source_type {
       SourceType::Css => {
         generate_context
-          .runtime_requirements
+          .runtime_template
+          .runtime_requirements_mut()
           .insert(RuntimeGlobals::HAS_CSS_MODULES);
 
         let mut source = ReplaceSource::new(source.clone());
@@ -529,11 +530,11 @@ impl ParserAndGenerator for CssParserAndGenerator {
         let mut context = TemplateContext {
           compilation,
           module,
-          runtime_requirements: generate_context.runtime_requirements,
           runtime: generate_context.runtime,
           init_fragments: &mut init_fragments,
           concatenation_scope: generate_context.concatenation_scope.take(),
           data: generate_context.data,
+          runtime_template: generate_context.runtime_template,
         };
 
         let module_graph = compilation.get_module_graph();
@@ -635,14 +636,13 @@ impl ParserAndGenerator for CssParserAndGenerator {
           {
             (
               generate_context
-                .compilation
                 .runtime_template
                 .render_runtime_globals(&RuntimeGlobals::MAKE_NAMESPACE_OBJECT),
               "(".to_string(),
               ")".to_string(),
             )
           } else {
-            ("".to_string(), "".to_string(), "".to_string())
+            (String::new(), String::new(), String::new())
           };
           if let Some(exports) = &self.exports {
             if let Some(local_names) = &self.local_names {
@@ -664,34 +664,29 @@ impl ParserAndGenerator for CssParserAndGenerator {
               module,
               generate_context.compilation,
               generate_context.runtime,
-              generate_context.runtime_requirements,
+              generate_context.runtime_template,
               &ns_obj,
               &left,
               &right,
               with_hmr,
             )?
           } else {
+            let module_argument = generate_context
+              .runtime_template
+              .render_module_argument(ModuleArgument::Module);
             format!(
-              "{}{}module.exports = {{}}{};\n{}",
+              "{}{}{module_argument}.exports = {{}}{};\n{}",
               &ns_obj,
               &left,
               &right,
               if with_hmr {
-                "module.hot.accept();\n"
+                format!("{module_argument}.hot.accept();\n")
               } else {
                 Default::default()
               }
             )
           }
         };
-        generate_context
-          .runtime_requirements
-          .insert(RuntimeGlobals::MODULE);
-        if self.es_module {
-          generate_context
-            .runtime_requirements
-            .insert(RuntimeGlobals::MAKE_NAMESPACE_OBJECT);
-        }
         Ok(RawStringSource::from(exports).boxed())
       }
       _ => panic!(
@@ -771,11 +766,11 @@ fn get_unused_local_ident(
     |mut map, (name, css_exports)| {
       css_exports.iter().for_each(|css_export| {
         if let Some(set) = map.get_mut(css_export.orig_name.as_str()) {
-          set.insert(Atom::from(name.to_string()));
+          set.insert(Atom::from(name.clone()));
         } else {
           map.insert(
             &css_export.orig_name,
-            FxHashSet::from_iter([Atom::from(name.to_string())]),
+            FxHashSet::from_iter([Atom::from(name.clone())]),
           );
         }
       });

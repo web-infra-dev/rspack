@@ -63,11 +63,23 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
         .insert(mgm.exports, mgm.module_identifier);
     }
     let mut q = Queue::new();
-    let mg = &mut module_graph;
+    let mg = &mut *module_graph;
 
+    let mut global_runtime: Option<RuntimeSpec> = if self.global {
+      None
+    } else {
+      let mut global_runtime = RuntimeSpec::default();
+      for block in module_graph.blocks().values() {
+        if let Some(GroupOptions::Entrypoint(options)) = block.get_group_options()
+          && let Some(runtime) = RuntimeSpec::from_entry_options(options)
+        {
+          global_runtime.extend(&runtime);
+        }
+      }
+      Some(global_runtime)
+    };
     // SAFETY: we can make sure that entries will not be used other place at the same time,
     // this take is aiming to avoid use self ref and mut ref at the same time;
-    let mut global_runtime: Option<RuntimeSpec> = None;
     let entries = &self.compilation.entries;
     for (entry_name, entry) in entries.iter() {
       let runtime = if self.global {
@@ -262,7 +274,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
     );
     q.extend(async_blocks);
 
-    for (dep_id, module_id) in dependencies.into_iter() {
+    for (dep_id, module_id) in dependencies {
       let old_referenced_exports = map.remove(&module_id);
       let Some(referenced_exports) = get_dependency_referenced_exports(
         dep_id,
@@ -437,7 +449,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
                 self
                   .exports_info_module_map
                   .get(&current_exports_info)
-                  .cloned()
+                  .copied()
               };
               if let Some(current_module) = current_module {
                 queue.push((
@@ -549,7 +561,7 @@ fn merge_referenced_exports(
         .collect::<HashMap<_, _>>(),
     };
 
-    for mut item in referenced_exports.into_iter() {
+    for mut item in referenced_exports {
       match item {
         ExtendedReferencedExport::Array(ref arr) => {
           let key = join_atom(arr.iter(), "\n");

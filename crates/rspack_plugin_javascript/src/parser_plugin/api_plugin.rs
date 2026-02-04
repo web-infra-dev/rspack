@@ -200,11 +200,10 @@ impl JavascriptParserPlugin for APIPlugin {
         Some(true)
       }
       API_MODULE => {
-        let source_rope = parser.source_rope().clone();
         parser.add_presentational_dependency(Box::new(ModuleArgumentDependency::new(
           None,
           ident.span.into(),
-          Some(source_rope),
+          Some(parser.source),
         )));
         Some(true)
       }
@@ -428,11 +427,10 @@ impl JavascriptParserPlugin for APIPlugin {
         RuntimeGlobals::MODULE_ID,
       )));
 
-      let source_rope = parser.source_rope().clone();
       parser.add_presentational_dependency(Box::new(ModuleArgumentDependency::new(
         Some("id".into()),
         member_expr.span().into(),
-        Some(source_rope),
+        Some(parser.source),
       )));
       return Some(true);
     }

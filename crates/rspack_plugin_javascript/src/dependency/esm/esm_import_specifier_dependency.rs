@@ -10,9 +10,9 @@ use rspack_core::{
   ExportsInfoGetter, ExportsType, ExtendedReferencedExport, FactorizeInfo, ForwardId,
   GetUsedNameParam, ImportAttributes, ImportPhase, JavascriptParserOptions, ModuleDependency,
   ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleReferenceOptions,
-  PrefetchExportsInfoMode, ReferencedExport, ResourceIdentifier, RuntimeSpec, SharedSourceMap,
-  TemplateContext, TemplateReplaceSource, UsedByExports, UsedName,
-  create_exports_object_referenced, get_exports_type, property_access, to_normal_comment,
+  PrefetchExportsInfoMode, ReferencedExport, ResourceIdentifier, RuntimeSpec, TemplateContext,
+  TemplateReplaceSource, UsedByExports, UsedName, create_exports_object_referenced,
+  get_exports_type, property_access, to_normal_comment,
 };
 use rspack_error::Diagnostic;
 use rspack_util::json_stringify;
@@ -57,7 +57,7 @@ pub struct ESMImportSpecifierDependency {
 }
 
 impl ESMImportSpecifierDependency {
-  #[allow(clippy::too_many_arguments)]
+  #[allow(clippy::too_many_arguments, clippy::fn_params_excessive_bools)]
   pub fn new(
     request: Atom,
     name: Atom,
@@ -72,11 +72,11 @@ impl ESMImportSpecifierDependency {
     referenced_properties_in_destructuring: Option<DestructuringAssignmentProperties>,
     phase: ImportPhase,
     attributes: Option<ImportAttributes>,
-    source_map: Option<SharedSourceMap>,
+    source: Option<&str>,
   ) -> Self {
     let resource_identifier =
       create_resource_identifier_for_esm_dependency(&request, attributes.as_ref());
-    let loc = range.to_loc(source_map.as_ref());
+    let loc = range.to_loc(source);
     Self {
       id: DependencyId::new(),
       request,
@@ -103,8 +103,7 @@ impl ESMImportSpecifierDependency {
 
   pub fn get_ids<'a>(&'a self, mg: &'a ModuleGraph) -> &'a [Atom] {
     mg.get_dep_meta_if_existing(&self.id)
-      .map(|meta| meta.ids.as_slice())
-      .unwrap_or_else(|| self.ids.as_slice())
+      .map_or_else(|| self.ids.as_slice(), |meta| meta.ids.as_slice())
   }
 
   pub fn get_referenced_exports_in_destructuring(
@@ -340,9 +339,7 @@ impl ESMImportSpecifierDependencyTemplate {
     code_generatable_context: &mut TemplateContext,
   ) -> String {
     let TemplateContext {
-      runtime,
       concatenation_scope,
-      module,
       ..
     } = code_generatable_context;
     if let Some(scope) = concatenation_scope
@@ -385,18 +382,21 @@ impl ESMImportSpecifierDependencyTemplate {
       let mg = code_generatable_context.compilation.get_module_graph();
       let target_module = mg.get_module_by_dependency_id(&dep.id);
       let import_var = code_generatable_context.compilation.get_import_var(
-        module.identifier(),
+        code_generatable_context.module.identifier(),
         target_module,
         dep.user_request(),
         dep.phase,
-        *runtime,
+        code_generatable_context.runtime,
       );
       esm_import_dependency_apply(dep, dep.source_order, dep.phase, code_generatable_context);
-      code_generatable_context
-        .compilation
+      let mut new_init_fragment = vec![];
+      let res = code_generatable_context
         .runtime_template
         .export_from_import(
-          code_generatable_context,
+          code_generatable_context.compilation,
+          &mut new_init_fragment,
+          code_generatable_context.module.identifier(),
+          code_generatable_context.runtime,
           true,
           &dep.request,
           &import_var,
@@ -406,7 +406,11 @@ impl ESMImportSpecifierDependencyTemplate {
           !dep.direct_import,
           Some(dep.shorthand || dep.asi_safe),
           dep.phase,
-        )
+        );
+      code_generatable_context
+        .init_fragments
+        .extend(new_init_fragment);
+      res
     }
   }
 

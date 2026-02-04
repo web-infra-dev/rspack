@@ -15,7 +15,7 @@ use rustc_hash::FxHasher;
 use swc_core::ecma::atoms::Atom;
 
 use crate::{
-  ExportsArgument, GenerateContext, RuntimeCondition, RuntimeGlobals, RuntimeTemplate,
+  ExportsArgument, GenerateContext, ModuleCodegenRuntimeTemplate, RuntimeCondition, RuntimeGlobals,
   merge_runtime, property_name,
 };
 
@@ -158,9 +158,8 @@ fn first<C>(fragments: Vec<Box<dyn InitFragment<C>>>) -> Box<dyn InitFragment<C>
 }
 
 pub trait InitFragmentRenderContext {
-  fn add_runtime_requirements(&mut self, requirement: RuntimeGlobals);
   fn runtime_condition_expression(&mut self, runtime_condition: &RuntimeCondition) -> String;
-  fn runtime_template(&self) -> &RuntimeTemplate;
+  fn runtime_template(&mut self) -> &mut ModuleCodegenRuntimeTemplate;
 }
 
 pub trait InitFragment<C>: IntoAny + DynHash + DynClone + Debug + Sync + Send {
@@ -261,39 +260,27 @@ pub type ModuleInitFragments<'a> = Vec<BoxModuleInitFragment<'a>>;
 pub type ChunkInitFragments = Vec<BoxChunkInitFragment>;
 
 impl InitFragmentRenderContext for GenerateContext<'_> {
-  fn add_runtime_requirements(&mut self, requirement: RuntimeGlobals) {
-    self.runtime_requirements.insert(requirement);
-  }
-
   fn runtime_condition_expression(&mut self, runtime_condition: &RuntimeCondition) -> String {
-    self
-      .compilation
-      .runtime_template
-      .runtime_condition_expression(
-        &self.compilation.chunk_graph,
-        Some(runtime_condition),
-        self.runtime,
-        self.runtime_requirements,
-      )
+    self.runtime_template.runtime_condition_expression(
+      &self.compilation.chunk_graph,
+      Some(runtime_condition),
+      self.runtime,
+    )
   }
 
-  fn runtime_template(&self) -> &RuntimeTemplate {
-    &self.compilation.runtime_template
+  fn runtime_template(&mut self) -> &mut ModuleCodegenRuntimeTemplate {
+    self.runtime_template
   }
 }
 
 pub struct ChunkRenderContext;
 
 impl InitFragmentRenderContext for ChunkRenderContext {
-  fn add_runtime_requirements(&mut self, _requirement: RuntimeGlobals) {
-    unreachable!("should not add runtime requirements in chunk render context")
-  }
-
   fn runtime_condition_expression(&mut self, _runtime_condition: &RuntimeCondition) -> String {
     unreachable!("should not call runtime condition expression in chunk render context")
   }
 
-  fn runtime_template(&self) -> &RuntimeTemplate {
+  fn runtime_template(&mut self) -> &mut ModuleCodegenRuntimeTemplate {
     unreachable!("should not call runtime template in chunk render context")
   }
 }
@@ -364,8 +351,8 @@ impl ESMExportInitFragment {
 
 impl<C: InitFragmentRenderContext> InitFragment<C> for ESMExportInitFragment {
   fn contents(mut self: Box<Self>, context: &mut C) -> Result<InitFragmentContents> {
-    context.add_runtime_requirements(RuntimeGlobals::EXPORTS);
-    context.add_runtime_requirements(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
+    let runtime_template = context.runtime_template();
+
     self.export_map.sort_by(|a, b| a.0.cmp(&b.0));
     let exports = format!(
       "{{\n  {}\n}}",
@@ -377,26 +364,23 @@ impl<C: InitFragmentRenderContext> InitFragment<C> for ESMExportInitFragment {
           Ok(format!(
             "{}: {}",
             prop,
-            context.runtime_template().returning_function(&s.1, "")
+            runtime_template.returning_function(&s.1, "")
           ))
         })
         .collect::<Result<Vec<_>>>()?
         .join(",\n  ")
     );
 
-    Ok(InitFragmentContents {
+    let res = InitFragmentContents {
       start: format!(
         "{}({}, {});\n",
-        context
-          .runtime_template()
-          .render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS),
-        context
-          .runtime_template()
-          .render_exports_argument(self.exports_argument),
+        runtime_template.render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS),
+        runtime_template.render_exports_argument(self.exports_argument),
         exports
       ),
       end: None,
-    })
+    };
+    Ok(res)
   }
 
   fn stage(&self) -> InitFragmentStage {
@@ -430,8 +414,7 @@ impl AwaitDependenciesInitFragment {
 }
 
 impl<C: InitFragmentRenderContext> InitFragment<C> for AwaitDependenciesInitFragment {
-  fn contents(self: Box<Self>, context: &mut C) -> Result<InitFragmentContents> {
-    context.add_runtime_requirements(RuntimeGlobals::MODULE);
+  fn contents(self: Box<Self>, _context: &mut C) -> Result<InitFragmentContents> {
     if self.promises.is_empty() {
       Ok(InitFragmentContents {
         start: String::new(),

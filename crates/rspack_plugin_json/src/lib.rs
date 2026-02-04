@@ -13,14 +13,14 @@ use json::{
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, ExportsInfoGetter, GenerateContext,
-  Module, ModuleGraph, NAMESPACE_OBJECT_EXPORT, ParseOption, ParserAndGenerator, Plugin,
-  PrefetchExportsInfoMode, PrefetchedExportsInfoWrapper, RuntimeGlobals, RuntimeSpec, SourceType,
+  Module, ModuleArgument, ModuleGraph, NAMESPACE_OBJECT_EXPORT, ParseOption, ParserAndGenerator,
+  Plugin, PrefetchExportsInfoMode, PrefetchedExportsInfoWrapper, RuntimeSpec, SourceType,
   UsageState, UsedNameItem,
   diagnostics::ModuleParseError,
   rspack_sources::{BoxSource, RawStringSource, Source, SourceExt},
 };
 use rspack_error::{Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray, error};
-use rspack_util::itoa;
+use rspack_util::{itoa, location::byte_line_column_to_offset};
 
 use crate::json_exports_dependency::JsonExportsDependency;
 
@@ -46,8 +46,7 @@ impl ParserAndGenerator for JsonParserAndGenerator {
       .build_info()
       .json_data
       .as_ref()
-      .map(|data| stringify(data.clone()).len() as f64)
-      .unwrap_or(0.0)
+      .map_or(0.0, |data| stringify(data.clone()).len() as f64)
   }
 
   async fn parse<'a>(
@@ -84,8 +83,8 @@ impl ParserAndGenerator for JsonParserAndGenerator {
       .map_err(|e| {
         match e {
           UnexpectedCharacter { ch, line, column } => {
-            let rope = ropey::Rope::from_str(&source);
-            let line_offset = rope.try_line_to_byte(line - 1).expect("TODO:");
+            let line_offset = byte_line_column_to_offset(source.as_ref(), line, 0)
+              .expect("Failed to convert line number to byte offset in JSON source");
             let start_offset = source[line_offset..]
               .chars()
               .take(column)
@@ -219,10 +218,12 @@ impl ParserAndGenerator for JsonParserAndGenerator {
           scope.register_namespace_export(NAMESPACE_OBJECT_EXPORT);
           format!("var {NAMESPACE_OBJECT_EXPORT} = {json_expr}")
         } else {
-          generate_context
-            .runtime_requirements
-            .insert(RuntimeGlobals::MODULE);
-          format!(r#"module.exports = {json_expr}"#)
+          format!(
+            r#"{}.exports = {json_expr}"#,
+            generate_context
+              .runtime_template
+              .render_module_argument(ModuleArgument::Module)
+          )
         };
         Ok(RawStringSource::from(content).boxed())
       }

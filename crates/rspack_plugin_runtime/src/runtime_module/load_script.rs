@@ -114,6 +114,14 @@ impl RuntimeModule for LoadScriptRuntimeModule {
 
     Ok(render_source)
   }
+
+  fn additional_runtime_requirements(&self, compilation: &Compilation) -> RuntimeGlobals {
+    if compilation.options.output.trusted_types.is_some() {
+      RuntimeGlobals::CREATE_SCRIPT_URL
+    } else {
+      RuntimeGlobals::default()
+    }
+  }
 }
 
 impl LoadScriptRuntimeModule {

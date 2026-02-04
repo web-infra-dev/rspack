@@ -26,8 +26,5 @@ module.exports = {
 			+     "type": "persistent",
 			+     "version": "",
 			+   },
-			@@ ... @@
-			-     "unsafeCache": false,
-			+     "unsafeCache": /[\\\\/]node_modules[\\\\/]/,
 		`)
 };

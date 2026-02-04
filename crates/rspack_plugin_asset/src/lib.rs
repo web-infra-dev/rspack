@@ -9,8 +9,9 @@ use rspack_core::{
   CodeGenerationDataAssetInfo, CodeGenerationDataFilename, CodeGenerationDataUrl,
   CodeGenerationPublicPathAutoReplace, Compilation, CompilationRenderManifest, CompilerOptions,
   DependencyType, Filename, GenerateContext, GeneratorOptions, ManifestAssetType, Module,
-  ModuleGraph, NAMESPACE_OBJECT_EXPORT, NormalModule, ParseContext, ParserAndGenerator, PathData,
-  Plugin, PublicPath, RenderManifestEntry, ResourceData, RuntimeGlobals, RuntimeSpec, SourceType,
+  ModuleArgument, ModuleGraph, NAMESPACE_OBJECT_EXPORT, NormalModule, ParseContext,
+  ParserAndGenerator, PathData, Plugin, PublicPath, RenderManifestEntry, ResourceData,
+  RuntimeGlobals, RuntimeSpec, SourceType,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
 };
 use rspack_error::{
@@ -545,21 +546,15 @@ impl ParserAndGenerator for AssetParserAndGenerator {
         let exported_content = if parsed_asset_config.is_bytes() {
           let mut encoded_source = base64::encode_to_string(source.buffer());
           if generate_context.requested_source_type == SourceType::CssUrl {
-            encoded_source = format!("data:application/octet-stream;base64,{}", encoded_source);
+            encoded_source = format!("data:application/octet-stream;base64,{encoded_source}");
             generate_context
               .data
               .insert(CodeGenerationDataUrl::new(encoded_source.clone()));
             serde_json::to_string(&encoded_source).to_rspack_result()?
           } else {
-            generate_context
-              .runtime_requirements
-              .insert(RuntimeGlobals::REQUIRE_SCOPE);
-            generate_context
-              .runtime_requirements
-              .insert(RuntimeGlobals::TO_BINARY);
             format!(
               "{}({})",
-              compilation
+              generate_context
                 .runtime_template
                 .render_runtime_globals(&RuntimeGlobals::TO_BINARY),
               serde_json::to_string(&encoded_source).to_rspack_result()?
@@ -640,12 +635,9 @@ impl ParserAndGenerator for AssetParserAndGenerator {
             serde_json::to_string(&format!("{public_path}{original_filename}"))
               .to_rspack_result()?
           } else {
-            generate_context
-              .runtime_requirements
-              .insert(RuntimeGlobals::PUBLIC_PATH);
             format!(
               r#"{} + "{}""#,
-              compilation
+              generate_context
                 .runtime_template
                 .render_runtime_globals(&RuntimeGlobals::PUBLIC_PATH),
               original_filename
@@ -703,12 +695,14 @@ impl ParserAndGenerator for AssetParserAndGenerator {
               );
             }
           } else {
-            generate_context
-              .runtime_requirements
-              .insert(RuntimeGlobals::MODULE);
             return Ok(
-              RawStringSource::from(format!(r#"module.exports = require({exported_content});"#))
-                .boxed(),
+              RawStringSource::from(format!(
+                r#"{module}.exports = require({exported_content});"#,
+                module = generate_context
+                  .runtime_template
+                  .render_module_argument(ModuleArgument::Module)
+              ))
+              .boxed(),
             );
           }
         };
@@ -724,11 +718,15 @@ impl ParserAndGenerator for AssetParserAndGenerator {
             .boxed(),
           )
         } else {
-          generate_context
-            .runtime_requirements
-            .insert(RuntimeGlobals::MODULE);
-
-          Ok(RawStringSource::from(format!(r#"module.exports = {exported_content};"#)).boxed())
+          Ok(
+            RawStringSource::from(format!(
+              r#"{module}.exports = {exported_content};"#,
+              module = generate_context
+                .runtime_template
+                .render_module_argument(ModuleArgument::Module)
+            ))
+            .boxed(),
+          )
         }
       }
       SourceType::Asset => {
@@ -913,7 +911,7 @@ impl Plugin for AssetPlugin {
           .and_then(|x| x.emit);
 
         Box::new(AssetParserAndGenerator::with_auto(
-          data_url_condition.clone(),
+          data_url_condition,
           emit.unwrap_or(true),
         ))
       }),

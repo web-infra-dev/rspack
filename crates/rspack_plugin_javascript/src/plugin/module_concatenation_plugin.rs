@@ -136,7 +136,7 @@ impl ModuleConcatenationPlugin {
         let reason = self.get_inner_bailout_reason(id);
         let reason_with_prefix = match reason {
           Some(reason) => format!(": {}", *reason),
-          None => "".to_string(),
+          None => String::new(),
         };
         if id == &module {
           format_bailout_reason(&format!("Cannot concat with {module}{reason_with_prefix}"))
@@ -378,10 +378,10 @@ impl ModuleConcatenationPlugin {
       let mut incoming_connections_from_modules = HashMap::default();
       for (origin_module, connections) in incomings.iter() {
         if let Some(origin_module) = origin_module {
-          let number_of_chunks = module_cache
-            .get(origin_module)
-            .map(|m| m.number_of_chunks)
-            .unwrap_or_else(|| chunk_graph.get_number_of_module_chunks(*origin_module));
+          let number_of_chunks = module_cache.get(origin_module).map_or_else(
+            || chunk_graph.get_number_of_module_chunks(*origin_module),
+            |m| m.number_of_chunks,
+          );
 
           if number_of_chunks == 0 {
             // Ignore connection from orphan modules
@@ -672,14 +672,14 @@ impl ModuleConcatenationPlugin {
         &compilation.module_static_cache_artifact,
         &compilation.options.context,
       ),
-      name_for_condition: box_module.name_for_condition().clone(),
+      name_for_condition: box_module.name_for_condition(),
       lib_indent: box_module
         .lib_ident(LibIdentOptions {
           context: compilation.options.context.as_str(),
         })
         .map(|id| id.to_string()),
       layer: box_module.get_layer().cloned(),
-      resolve_options: box_module.get_resolve_options().clone(),
+      resolve_options: box_module.get_resolve_options(),
       code_generation_dependencies: box_module
         .get_code_generation_dependencies()
         .map(|deps| deps.to_vec()),
@@ -925,8 +925,7 @@ impl ModuleConcatenationPlugin {
             .map(|export_info| {
               let name = export_info
                 .name()
-                .map(|name| name.to_string())
-                .unwrap_or("other exports".to_string());
+                .map_or("other exports".to_string(), |name| name.to_string());
               format!("{} : {}", name, export_info.get_used_info())
             })
             .collect::<Vec<String>>()
@@ -956,8 +955,7 @@ impl ModuleConcatenationPlugin {
             .map(|export_info| {
               let name = export_info
                 .name()
-                .map(|name| name.to_string())
-                .unwrap_or("other exports".to_string());
+                .map_or("other exports".to_string(), |name| name.to_string());
               format!(
                 "{} : {} and {}",
                 name,
@@ -1023,8 +1021,7 @@ impl ModuleConcatenationPlugin {
     let mut possible_len_buffer = itoa::Buffer::new();
     let possible_len_str = possible_len_buffer.format(possible_inners.len());
     logger.debug(format!(
-      "{} potential root modules, {} potential inner modules",
-      relevant_len_str, possible_len_str,
+      "{relevant_len_str} potential root modules, {possible_len_str} potential inner modules",
     ));
 
     let start = logger.time("sort relevant modules");
@@ -1179,9 +1176,8 @@ impl ModuleConcatenationPlugin {
       while let Some(imp) = candidates.pop_front() {
         if candidates_visited.contains(&imp) {
           continue;
-        } else {
-          candidates_visited.insert(imp);
         }
+        candidates_visited.insert(imp);
         import_candidates.clear();
         match Self::try_to_add(
           compilation,
@@ -1243,8 +1239,7 @@ impl ModuleConcatenationPlugin {
       let mut empty_configs_buffer = itoa::Buffer::new();
       let empty_configs_str = empty_configs_buffer.format(stats_empty_configurations);
       logger.debug(format!(
-        "{} successful concat configurations (avg size: {}), {} bailed out completely",
-        concat_len_str, avg_size_str, empty_configs_str
+        "{concat_len_str} successful concat configurations (avg size: {avg_size_str}), {empty_configs_str} bailed out completely"
       ));
     }
 
@@ -1275,18 +1270,7 @@ impl ModuleConcatenationPlugin {
     let mut added_buffer = itoa::Buffer::new();
     let added_str = added_buffer.format(statistics.added);
     logger.debug(format!(
-        "{} candidates were considered for adding ({} cached failure, {} already in config, {} invalid module, {} incorrect chunks, {} incorrect dependency, {} incorrect chunks of importer, {} incorrect module dependency, {} incorrect runtime condition, {} importer failed, {} added)",
-        candidates_str,
-        cached_str,
-        already_in_config_str,
-        invalid_module_str,
-        incorrect_chunks_str,
-        incorrect_dependency_str,
-        incorrect_chunks_of_importer_str,
-        incorrect_module_dependency_str,
-        incorrect_runtime_condition_str,
-        importer_failed_str,
-        added_str
+        "{candidates_str} candidates were considered for adding ({cached_str} cached failure, {already_in_config_str} already in config, {invalid_module_str} invalid module, {incorrect_chunks_str} incorrect chunks, {incorrect_dependency_str} incorrect dependency, {incorrect_chunks_of_importer_str} incorrect chunks of importer, {incorrect_module_dependency_str} incorrect module dependency, {incorrect_runtime_condition_str} incorrect runtime condition, {importer_failed_str} importer failed, {added_str} added)"
     ));
 
     // Copy from  https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/ModuleConcatenationPlugin.js#L368-L371
@@ -1467,14 +1451,14 @@ async fn create_concatenated_module(
       &compilation.module_static_cache_artifact,
       &compilation.options.context,
     ),
-    name_for_condition: box_module.name_for_condition().clone(),
+    name_for_condition: box_module.name_for_condition(),
     lib_indent: box_module
       .lib_ident(LibIdentOptions {
         context: compilation.options.context.as_str(),
       })
       .map(|id| id.to_string()),
     layer: box_module.get_layer().cloned(),
-    resolve_options: box_module.get_resolve_options().clone(),
+    resolve_options: box_module.get_resolve_options(),
     code_generation_dependencies: box_module
       .get_code_generation_dependencies()
       .map(|deps| deps.to_vec()),

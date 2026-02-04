@@ -18,8 +18,5 @@ module.exports = (env, { testPath }) => [
 			concatenateModules: true,
 			avoidEntryIife: true
 		},
-		experiments: {
-			outputModule: true
-		}
 	}
 ];

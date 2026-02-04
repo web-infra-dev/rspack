@@ -134,7 +134,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       new_runtime = current_chunk
         .runtime()
         .intersection(&all_old_runtime)
-        .cloned()
+        .copied()
         .collect();
 
       if new_runtime.is_empty() {
@@ -200,11 +200,6 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         }
       } else {
         for removed in removed_from_runtime.iter() {
-          for runtime in runtimes.values() {
-            if runtime.contains(removed) {
-              continue;
-            }
-          }
           if let Some(content) = hot_update_main_content_by_runtime.get_mut(removed) {
             content.removed_modules.insert(old_module_id.clone());
           }
@@ -283,7 +278,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 
       for entry in manifest {
         let filename = if entry.has_filename {
-          entry.filename.to_string()
+          entry.filename.clone()
         } else {
           compilation
             .get_path(
@@ -439,15 +434,9 @@ async fn additional_tree_runtime_requirements(
   &self,
   compilation: &Compilation,
   _chunk_ukey: &ChunkUkey,
-  runtime_requirements: &mut RuntimeGlobals,
+  _runtime_requirements: &mut RuntimeGlobals,
   runtime_modules: &mut Vec<Box<dyn RuntimeModule>>,
 ) -> Result<()> {
-  // TODO: the hmr runtime is depend on module.id, but webpack not add it.
-  runtime_requirements.insert(RuntimeGlobals::MODULE_ID);
-  runtime_requirements.insert(RuntimeGlobals::HMR_DOWNLOAD_MANIFEST);
-  runtime_requirements.insert(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS);
-  runtime_requirements.insert(RuntimeGlobals::INTERCEPT_MODULE_EXECUTION);
-  runtime_requirements.insert(RuntimeGlobals::MODULE_CACHE);
   runtime_modules
     .push(HotModuleReplacementRuntimeModule::new(&compilation.runtime_template).boxed());
 

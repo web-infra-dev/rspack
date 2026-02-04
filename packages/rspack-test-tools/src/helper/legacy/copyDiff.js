@@ -9,8 +9,21 @@ module.exports = function copyDiff(src, dest, initial) {
   for (const filename of files) {
     const srcFile = path.join(src, filename);
     const destFile = path.join(dest, filename);
-    const directory = fs.statSync(srcFile).isDirectory();
-    if (directory) {
+    const stats = fs.lstatSync(srcFile);
+    if (stats.isSymbolicLink()) {
+      const linkTarget = fs.readlinkSync(srcFile);
+      if (fs.existsSync(destFile)) {
+        const destStats = fs.lstatSync(destFile);
+        if (destStats.isSymbolicLink()) {
+          fs.unlinkSync(destFile);
+        } else if (destStats.isDirectory()) {
+          rimrafSync(destFile);
+        } else {
+          fs.unlinkSync(destFile);
+        }
+      }
+      fs.symlinkSync(linkTarget, destFile);
+    } else if (stats.isDirectory()) {
       copyDiff(srcFile, destFile, initial);
     } else {
       const content = fs.readFileSync(srcFile);

@@ -46,7 +46,7 @@ pub fn collect_assets_from_chunk(
         }
         for file in group_chunk.files() {
           if file.ends_with(".css") {
-            css_sync.insert(file.to_string());
+            css_sync.insert(file.clone());
           } else if !is_hot_file(file) {
             js_sync.insert(file.clone());
           }
@@ -72,7 +72,7 @@ pub fn collect_assets_from_chunk(
       if !skip {
         for file in group.get_files(&compilation.chunk_by_ukey) {
           if file.ends_with(".css") {
-            css_async.insert(file.to_string());
+            css_async.insert(file.clone());
           } else if !is_hot_file(&file) {
             js_async.insert(file);
           }

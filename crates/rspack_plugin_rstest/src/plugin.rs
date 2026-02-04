@@ -29,6 +29,7 @@ pub struct RstestPluginOptions {
   pub import_meta_path_name: bool,
   pub manual_mock_root: String,
   pub preserve_new_url: Vec<String>,
+  pub globals: bool,
 }
 
 #[derive(Debug)]
@@ -54,7 +55,7 @@ impl RstestPlugin {
     old: BoxSource,
     replace_map: &std::collections::HashMap<String, MockFlagPos>,
   ) -> BoxSource {
-    let old_source = old.to_owned();
+    let old_source = old.clone();
     let mut replace = ReplaceSource::new(old_source);
 
     for (mocked_id, pos) in replace_map {
@@ -104,10 +105,13 @@ async fn nmf_parser(
     && let Some(parser) = parser.downcast_mut::<JavaScriptParserAndGenerator>()
   {
     parser.add_parser_plugin(Box::new(RstestParserPlugin::new(
-      self.options.module_path_name,
-      self.options.hoist_mock_module,
-      self.options.import_meta_path_name,
-      self.options.manual_mock_root.clone(),
+      crate::parser_plugin::RstestParserPluginOptions {
+        module_path_name: self.options.module_path_name,
+        hoist_mock_module: self.options.hoist_mock_module,
+        import_meta_path_name: self.options.import_meta_path_name,
+        manual_mock_root: self.options.manual_mock_root.clone(),
+        globals: self.options.globals,
+      },
     )) as BoxJavascriptParserPlugin);
   }
 

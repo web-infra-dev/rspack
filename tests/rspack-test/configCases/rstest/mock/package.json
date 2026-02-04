@@ -1,6 +1,6 @@
 {
   "private": true,
   "dependencies": {
-    "lodash-es": "^4.17.22"
+    "lodash-es": "^4.17.23"
   }
 }

@@ -131,8 +131,6 @@ impl Tracer for PerfettoTracer {
           );
           trace.packet.push(packet);
           self.write_log(&mut trace, Some(desc));
-        } else {
-          continue;
         }
       } else if event.ph == "P" || event.ph == "X" {
         let uuid = self

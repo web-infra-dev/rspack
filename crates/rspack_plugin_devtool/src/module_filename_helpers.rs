@@ -16,14 +16,14 @@ use crate::{ModuleFilenameTemplateFn, ModuleFilenameTemplateFnCtx, SourceReferen
 fn get_before(s: &str, token: &str) -> String {
   match s.rfind(token) {
     Some(idx) => s[..idx].to_string(),
-    None => "".to_string(),
+    None => String::new(),
   }
 }
 
 fn get_after(s: &str, token: &str) -> String {
   s.find(token)
     .map(|idx| s[idx..].to_string())
-    .unwrap_or("".to_string())
+    .unwrap_or_default()
 }
 
 fn get_hash(text: &str, output_options: &OutputOptions) -> String {
@@ -116,7 +116,7 @@ impl ModuleFilenameHelpers {
           .next_back()
           .unwrap_or("")
           .to_string();
-        let relative_resource_path = Some(resource.to_string());
+        let relative_resource_path = Some(resource.clone());
 
         let loaders = get_before(&short_identifier, "!");
         let all_loaders = get_before(&identifier, "!");
@@ -151,7 +151,6 @@ impl ModuleFilenameHelpers {
         let hash = get_hash(&identifier, output_options);
 
         let resource = short_identifier
-          .clone()
           .split('!')
           .next_back()
           .unwrap_or("")
@@ -175,7 +174,7 @@ impl ModuleFilenameHelpers {
         ModuleFilenameTemplateFnCtx {
           short_identifier,
           identifier,
-          module_id: "".to_string(),
+          module_id: String::new(),
           absolute_resource_path,
           relative_resource_path,
           hash,

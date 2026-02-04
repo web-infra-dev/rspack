@@ -92,9 +92,6 @@ const esm = i => ({
 		assetModuleFilename: `${i}/[name][ext][query]`,
 		module: true
 	},
-	experiments: {
-		outputModule: true,
-	}
 });
 
 const node = i => ({

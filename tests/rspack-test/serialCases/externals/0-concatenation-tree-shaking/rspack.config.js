@@ -15,9 +15,6 @@ module.exports = {
 	optimization: {
 		avoidEntryIife: true
 	},
-	experiments: {
-		outputModule: true
-	},
 	plugins: [
 		new rspack.CopyRspackPlugin({
 			patterns: ["./externals/**/*"]

@@ -1,15 +1,13 @@
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	output: {
+		module: true,
 		filename: "[name].mjs",
 		chunkFormat: "module",
 		chunkLoading: "import",
 		library: {
 			type: "module"
 		}
-	},
-	experiments: {
-		outputModule: true
 	},
 	optimization: {
 		runtimeChunk: true

@@ -3,7 +3,6 @@ import { pluginSass } from '@rsbuild/plugin-sass';
 import { defineConfig } from '@rspress/core';
 import { pluginAlgolia } from '@rspress/plugin-algolia';
 import { pluginClientRedirects } from '@rspress/plugin-client-redirects';
-import { pluginLlms } from '@rspress/plugin-llms';
 import { pluginRss } from '@rspress/plugin-rss';
 import { pluginSitemap } from '@rspress/plugin-sitemap';
 import {
@@ -36,6 +35,7 @@ export default defineConfig({
       },
     },
   },
+  llms: true,
   search: {
     codeBlocks: true,
   },
@@ -53,7 +53,6 @@ export default defineConfig({
       ],
     }),
     pluginAlgolia(),
-    pluginLlms(),
     pluginSitemap({
       siteUrl: PUBLISH_URL,
     }),

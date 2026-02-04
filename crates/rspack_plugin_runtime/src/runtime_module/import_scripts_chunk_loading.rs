@@ -1,3 +1,5 @@
+use std::sync::LazyLock;
+
 use rspack_collections::{DatabaseItem, Identifier};
 use rspack_core::{
   Chunk, ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
@@ -7,9 +9,43 @@ use rspack_plugin_javascript::impl_plugin_for_js_plugin::chunk_has_js;
 
 use super::{generate_javascript_hmr_runtime, utils::get_output_dir};
 use crate::{
-  get_chunk_runtime_requirements,
+  extract_runtime_globals_from_ejs, get_chunk_runtime_requirements,
   runtime_module::utils::{get_initial_chunk_ids, stringify_chunks},
 };
+
+static IMPORT_SCRIPTS_CHUNK_LOADING_TEMPLATE: &str =
+  include_str!("runtime/import_scripts_chunk_loading.ejs");
+static IMPORT_SCRIPTS_CHUNK_LOADING_WITH_LOADING_TEMPLATE: &str =
+  include_str!("runtime/import_scripts_chunk_loading_with_loading.ejs");
+static IMPORT_SCRIPTS_CHUNK_LOADING_WITH_HMR_TEMPLATE: &str =
+  include_str!("runtime/import_scripts_chunk_loading_with_hmr.ejs");
+static IMPORT_SCRIPTS_CHUNK_LOADING_WITH_HMR_MANIFEST_TEMPLATE: &str =
+  include_str!("runtime/import_scripts_chunk_loading_with_hmr_manifest.ejs");
+static JAVASCRIPT_HOT_MODULE_REPLACEMENT_TEMPLATE: &str =
+  include_str!("runtime/javascript_hot_module_replacement.ejs");
+
+static IMPORT_SCRIPTS_CHUNK_LOADING_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
+  LazyLock::new(|| extract_runtime_globals_from_ejs(IMPORT_SCRIPTS_CHUNK_LOADING_TEMPLATE));
+static IMPORT_SCRIPTS_CHUNK_LOADING_WITH_LOADING_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
+  LazyLock::new(|| {
+    extract_runtime_globals_from_ejs(IMPORT_SCRIPTS_CHUNK_LOADING_WITH_LOADING_TEMPLATE)
+  });
+static IMPORT_SCRIPTS_CHUNK_LOADING_WITH_HMR_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
+  LazyLock::new(|| {
+    extract_runtime_globals_from_ejs(IMPORT_SCRIPTS_CHUNK_LOADING_WITH_HMR_TEMPLATE)
+  });
+static IMPORT_SCRIPTS_CHUNK_LOADING_WITH_HMR_MANIFEST_RUNTIME_REQUIREMENTS: LazyLock<
+  RuntimeGlobals,
+> = LazyLock::new(|| {
+  extract_runtime_globals_from_ejs(IMPORT_SCRIPTS_CHUNK_LOADING_WITH_HMR_MANIFEST_TEMPLATE)
+});
+static JAVASCRIPT_HOT_MODULE_REPLACEMENT_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
+  LazyLock::new(|| {
+    let mut res = extract_runtime_globals_from_ejs(JAVASCRIPT_HOT_MODULE_REPLACEMENT_TEMPLATE);
+    // ensure chunk handlers is optional
+    res.remove(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
+    res
+  });
 
 #[impl_runtime_module]
 #[derive(Debug, Default)]
@@ -47,7 +83,7 @@ impl ImportScriptsChunkLoadingRuntimeModule {
       format!(
         "self.location + {}",
         serde_json::to_string(&if root_output_dir.is_empty() {
-          "".to_string()
+          String::new()
         } else {
           format!("/../{root_output_dir}")
         })
@@ -68,15 +104,34 @@ impl ImportScriptsChunkLoadingRuntimeModule {
 
     match id {
       TemplateId::Raw => base_id.to_string(),
+      TemplateId::WithLoading => format!("{base_id}_with_loading"),
       TemplateId::WithHmr => format!("{base_id}_with_hmr"),
       TemplateId::WithHmrManifest => format!("{base_id}_with_hmr_manifest"),
       TemplateId::HmrRuntime => format!("{base_id}_hmr_runtime"),
     }
   }
+
+  pub fn get_runtime_requirements_basic() -> RuntimeGlobals {
+    *IMPORT_SCRIPTS_CHUNK_LOADING_RUNTIME_REQUIREMENTS
+  }
+
+  pub fn get_runtime_requirements_with_loading() -> RuntimeGlobals {
+    *IMPORT_SCRIPTS_CHUNK_LOADING_WITH_LOADING_RUNTIME_REQUIREMENTS
+  }
+
+  pub fn get_runtime_requirements_with_hmr() -> RuntimeGlobals {
+    *IMPORT_SCRIPTS_CHUNK_LOADING_WITH_HMR_RUNTIME_REQUIREMENTS
+      | *JAVASCRIPT_HOT_MODULE_REPLACEMENT_RUNTIME_REQUIREMENTS
+  }
+
+  pub fn get_runtime_requirements_with_hmr_manifest() -> RuntimeGlobals {
+    *IMPORT_SCRIPTS_CHUNK_LOADING_WITH_HMR_MANIFEST_RUNTIME_REQUIREMENTS
+  }
 }
 
 enum TemplateId {
   Raw,
+  WithLoading,
   WithHmr,
   WithHmrManifest,
   HmrRuntime,
@@ -93,6 +148,10 @@ impl RuntimeModule for ImportScriptsChunkLoadingRuntimeModule {
       (
         self.template_id(TemplateId::Raw),
         include_str!("runtime/import_scripts_chunk_loading.ejs").to_string(),
+      ),
+      (
+        self.template_id(TemplateId::WithLoading),
+        include_str!("runtime/import_scripts_chunk_loading_with_loading.ejs").to_string(),
       ),
       (
         self.template_id(TemplateId::WithHmr),
@@ -165,13 +224,21 @@ impl RuntimeModule for ImportScriptsChunkLoadingRuntimeModule {
             "{}[\"{}\"]",
             &compilation.options.output.global_object, &compilation.options.output.chunk_loading_global
           ),
-          "_js_matcher": has_js_matcher.render("chunkId"),
-          "_with_create_script_url": self.with_create_script_url,
-          "_with_loading": with_loading,
         })),
       )?;
 
       // If chunkId not corresponding chunkName will skip load it.
+      source.push_str(&render_source);
+    }
+
+    if with_loading {
+      let render_source = compilation.runtime_template.render(
+        &self.template_id(TemplateId::WithLoading),
+        Some(serde_json::json!({
+          "_js_matcher": has_js_matcher.render("chunkId"),
+          "_with_create_script_url": self.with_create_script_url,
+        })),
+      )?;
       source.push_str(&render_source);
     }
 

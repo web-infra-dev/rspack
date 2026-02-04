@@ -8,8 +8,8 @@ use rspack_core::{
   DependencyId, DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType,
   DependencyType, ExportsInfoGetter, ExtendedReferencedExport, FactorizeInfo, GetUsedNameParam,
   InitFragmentKey, InitFragmentStage, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
-  NormalInitFragment, PrefetchExportsInfoMode, RuntimeSpec, SharedSourceMap, TemplateContext,
-  TemplateReplaceSource, UsedName, create_exports_object_referenced,
+  NormalInitFragment, PrefetchExportsInfoMode, RuntimeSpec, TemplateContext, TemplateReplaceSource,
+  UsedName, create_exports_object_referenced,
 };
 use rspack_util::ext::DynHash;
 use swc_core::atoms::Atom;
@@ -34,9 +34,9 @@ impl ProvideDependency {
     request: Atom,
     identifier: String,
     ids: Vec<Atom>,
-    source_map: Option<SharedSourceMap>,
+    source: Option<&str>,
   ) -> Self {
-    let loc = range.to_loc(source_map.as_ref());
+    let loc = range.to_loc(source);
     Self {
       range,
       request,
@@ -161,7 +161,7 @@ impl DependencyTemplate for ProvideDependencyTemplate {
     let TemplateContext {
       compilation,
       runtime,
-      runtime_requirements,
+      runtime_template,
       init_fragments,
       ..
     } = code_generatable_context;
@@ -195,13 +195,7 @@ impl DependencyTemplate for ProvideDependencyTemplate {
       format!(
         "/* provided dependency */ var {} = {}{};\n",
         dep.identifier,
-        compilation.runtime_template.module_raw(
-          compilation,
-          runtime_requirements,
-          dep.id(),
-          dep.request(),
-          dep.weak()
-        ),
+        runtime_template.module_raw(compilation, dep.id(), dep.request(), dep.weak()),
         path_to_string(used_name.as_ref())
       ),
       InitFragmentStage::StageProvides,

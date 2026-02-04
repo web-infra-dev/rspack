@@ -8,4 +8,8 @@ version.workspace = true
 
 [dependencies]
 itoa             = { workspace = true }
+memchr           = { workspace = true }
 rspack_cacheable = { workspace = true }
+
+[lints]
+workspace = true

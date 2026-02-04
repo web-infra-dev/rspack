@@ -104,7 +104,6 @@ export const applyRspackOptionsDefaults = (
   applySnapshotDefaults(options.snapshot, { production });
 
   applyModuleDefaults(options.module, {
-    cache: !!options.cache,
     asyncWebAssembly: options.experiments.asyncWebAssembly!,
     targetProperties,
     mode: options.mode,
@@ -120,7 +119,6 @@ export const applyRspackOptionsDefaults = (
       (typeof target === 'string' && target.startsWith('browserslist')) ||
       (Array.isArray(target) &&
         target.some((target) => target.startsWith('browserslist'))),
-    outputModule: options.experiments.outputModule,
     entry: options.entry,
   });
 
@@ -233,7 +231,7 @@ const applyIncrementalDefaults = (options: RspackOptionsNormalized) => {
     D(options.incremental, 'buildModuleGraph', true);
     D(options.incremental, 'finishModules', true);
     D(options.incremental, 'optimizeDependencies', true);
-    D(options.incremental, 'buildChunkGraph', false);
+    D(options.incremental, 'buildChunkGraph', true);
     D(options.incremental, 'moduleIds', true);
     D(options.incremental, 'chunkIds', true);
     D(options.incremental, 'modulesHashes', true);
@@ -298,14 +296,12 @@ const applyJsonGeneratorOptionsDefaults = (
 const applyModuleDefaults = (
   module: ModuleOptions,
   {
-    cache,
     asyncWebAssembly,
     targetProperties,
     mode,
     uniqueName,
     deferImport,
   }: {
-    cache: boolean;
     asyncWebAssembly: boolean;
     targetProperties: false | TargetProperties;
     mode?: Mode;
@@ -315,13 +311,6 @@ const applyModuleDefaults = (
 ) => {
   assertNotNill(module.parser);
   assertNotNill(module.generator);
-
-  // IGNORE(module.unsafeCache): Unlike webpack, when true, Rust side uses a built-in predicate that matches node_modules paths for better performance.
-  if (cache) {
-    D(module, 'unsafeCache', /[\\/]node_modules[\\/]/);
-  } else {
-    D(module, 'unsafeCache', false);
-  }
 
   // IGNORE(module.parser): already check to align in 2024.6.27
   F(module.parser, ASSET_MODULE_TYPE, () => ({}));
@@ -509,13 +498,11 @@ const applyOutputDefaults = (
   options: RspackOptionsNormalized,
   {
     context,
-    outputModule,
     targetProperties: tp,
     isAffectedByBrowserslist,
     entry,
   }: {
     context: Context;
-    outputModule?: boolean;
     targetProperties: false | TargetProperties;
     isAffectedByBrowserslist: boolean;
     entry: EntryNormalized;
@@ -563,7 +550,39 @@ const applyOutputDefaults = (
     }
   });
   F(output, 'devtoolNamespace', () => output.uniqueName);
-  F(output, 'module', () => !!outputModule);
+  if (output.library) {
+    F(output.library, 'type', () => (output.module ? 'modern-module' : 'var'));
+  }
+  const forEachEntry = (fn: (desc: EntryDescriptionNormalized) => void) => {
+    if (typeof entry === 'function') {
+      return;
+    }
+    for (const name of Object.keys(entry)) {
+      fn(entry[name]);
+    }
+  };
+  A(output, 'enabledLibraryTypes', () => {
+    const enabledLibraryTypes = [];
+    if (output.library) {
+      enabledLibraryTypes.push(output.library.type);
+    }
+    forEachEntry((desc) => {
+      if (desc.library) {
+        enabledLibraryTypes.push(desc.library.type);
+      }
+    });
+    if (enabledLibraryTypes.includes('modern-module')) {
+      applyLimits(options);
+    }
+    return enabledLibraryTypes;
+  });
+  D(
+    output,
+    'module',
+    ['modern-module', 'module'].some((ty) =>
+      output.enabledLibraryTypes!.includes(ty),
+    ),
+  );
 
   const environment = output.environment!;
 
@@ -694,9 +713,7 @@ const applyOutputDefaults = (
   // IGNORE(output.hashDigestLength): xxhash64 uses 16-bit hash
   D(output, 'hashDigestLength', 16);
   D(output, 'strictModuleErrorHandling', false);
-  if (output.library) {
-    F(output.library, 'type', () => (output.module ? 'module' : 'var'));
-  }
+
   F(output, 'chunkFormat', () => {
     if (tp) {
       const helpMessage = isAffectedByBrowserslist
@@ -819,29 +836,6 @@ const applyOutputDefaults = (
     D(trustedTypes, 'onPolicyCreationFailure', 'stop');
   }
 
-  const forEachEntry = (fn: (desc: EntryDescriptionNormalized) => void) => {
-    if (typeof entry === 'function') {
-      return;
-    }
-    for (const name of Object.keys(entry)) {
-      fn(entry[name]);
-    }
-  };
-  A(output, 'enabledLibraryTypes', () => {
-    const enabledLibraryTypes = [];
-    if (output.library) {
-      enabledLibraryTypes.push(output.library.type);
-    }
-    forEachEntry((desc) => {
-      if (desc.library) {
-        enabledLibraryTypes.push(desc.library.type);
-      }
-    });
-    if (enabledLibraryTypes.includes('modern-module')) {
-      applyLimits(options);
-    }
-    return enabledLibraryTypes;
-  });
   A(output, 'enabledChunkLoadingTypes', () => {
     const enabledChunkLoadingTypes = new Set<string>();
     if (output.chunkLoading) {

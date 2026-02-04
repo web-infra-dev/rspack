@@ -5,7 +5,7 @@ modules with errors xx bytes [errors]
 ./index.js xx bytes [built] [code generated]
 ./inner.js xx bytes [built] [code generated]
 
-ERROR in ./not-existing.js 1:9-24
+ERROR in ./not-existing.js 1:9-25
   × Module not found: Can't resolve 'does-not-exist' in '<TEST_ROOT>/statsOutputCases/module-trace-enabled-in-error'
    ╭────
  1 │ require('does-not-exist')

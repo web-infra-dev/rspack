@@ -108,7 +108,6 @@ impl DependencyTemplate for ModuleDecoratorDependencyTemplate {
   fn render(
     &self,
     dep: &dyn DependencyCodeGeneration,
-
     _source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {
@@ -120,23 +119,17 @@ impl DependencyTemplate for ModuleDecoratorDependencyTemplate {
       );
 
     let TemplateContext {
-      runtime_requirements,
       init_fragments,
       compilation,
       module,
+      runtime_template,
       ..
     } = code_generatable_context;
-
-    runtime_requirements.insert(RuntimeGlobals::MODULE_LOADED);
-    runtime_requirements.insert(RuntimeGlobals::MODULE_ID);
-    runtime_requirements.insert(RuntimeGlobals::MODULE);
-    runtime_requirements.insert(dep.decorator);
 
     let module_graph = compilation.get_module_graph();
     let module = module_graph
       .module_by_identifier(&module.identifier())
       .expect("should have mgm");
-    let module_argument = module.get_module_argument();
 
     // ref: tests/webpack-test/cases/scope-hoisting/issue-5096 will return a `null` as module id
     let module_id =
@@ -147,12 +140,8 @@ impl DependencyTemplate for ModuleDecoratorDependencyTemplate {
     init_fragments.push(Box::new(NormalInitFragment::new(
       format!(
         "/* module decorator */ {module} = {decorator}({module});\n",
-        module = compilation
-          .runtime_template
-          .render_module_argument(module_argument),
-        decorator = compilation
-          .runtime_template
-          .render_runtime_globals(&dep.decorator),
+        module = runtime_template.render_module_argument(module.get_module_argument()),
+        decorator = runtime_template.render_runtime_globals(&dep.decorator),
       ),
       InitFragmentStage::StageProvides,
       0,

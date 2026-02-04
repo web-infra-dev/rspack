@@ -110,16 +110,12 @@ impl DependencyTemplate for AMDRequireItemDependencyTemplate {
       return;
     };
     // ModuleDependencyTemplateAsRequireId
-    let content = code_generatable_context
-      .compilation
-      .runtime_template
-      .module_raw(
-        code_generatable_context.compilation,
-        code_generatable_context.runtime_requirements,
-        &dep.id,
-        &dep.request,
-        dep.weak(),
-      );
+    let content = code_generatable_context.runtime_template.module_raw(
+      code_generatable_context.compilation,
+      &dep.id,
+      &dep.request,
+      dep.weak(),
+    );
     source.replace(range.start, range.end, &content, None);
   }
 }

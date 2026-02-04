@@ -68,12 +68,13 @@ impl RuntimeModule for ExposeRuntimeModule {
       .chunk
       .expect("should have chunk in <ExposeRuntimeModule as RuntimeModule>::generate");
     let Some(data) = self.find_expose_data(&chunk_ukey, compilation) else {
-      return Ok("".to_string());
+      return Ok(String::new());
     };
-    let module_map = data.module_map.render(compilation);
-    let require_name = compilation
+    let mut runtime_template = compilation
       .runtime_template
-      .render_runtime_globals(&RuntimeGlobals::REQUIRE);
+      .create_module_codegen_runtime_template();
+    let module_map = data.module_map.render(&mut runtime_template);
+    let require_name = runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE);
     let mut source = format!(
       r#"
     {require_name}.initializeExposesData = {{
@@ -86,11 +87,9 @@ impl RuntimeModule for ExposeRuntimeModule {
     );
     source += &format!(
       "{require_name}.getContainer = {require_name}.getContainer || function() {{ throw new Error(\"should have {require_name}.getContainer\") }};",
-      require_name = require_name,
     );
     source += &format!(
       "{require_name}.initContainer = {require_name}.initContainer || function() {{ throw new Error(\"should have {require_name}.initContainer\") }};",
-      require_name = require_name,
     );
     Ok(source)
   }

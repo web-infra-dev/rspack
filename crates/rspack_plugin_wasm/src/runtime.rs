@@ -76,7 +76,7 @@ impl RuntimeModule for AsyncWasmLoadingRuntimeModule {
       Some(hash_len) => {
         let mut hash_len_buffer = itoa::Buffer::new();
         let hash_len_str = hash_len_buffer.format(*hash_len);
-        format!("\" + wasmModuleHash.slice(0, {}) + \"", hash_len_str)
+        format!("\" + wasmModuleHash.slice(0, {hash_len_str}) + \"")
       }
       None => "\" + wasmModuleHash + \"".to_string(),
     };

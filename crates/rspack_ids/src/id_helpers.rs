@@ -69,7 +69,7 @@ pub fn get_short_module_name(module: &BoxModule, context: &str) -> String {
   if let Some(name_for_condition) = name_for_condition {
     return avoid_number(&make_paths_relative(context, &name_for_condition)).to_string();
   };
-  "".to_string()
+  String::new()
 }
 
 fn avoid_number(s: &str) -> Cow<'_, str> {

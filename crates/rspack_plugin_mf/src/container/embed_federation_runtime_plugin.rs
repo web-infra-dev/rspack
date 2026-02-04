@@ -119,7 +119,7 @@ async fn runtime_requirement_in_tree(
       .lock()
       .expect("Failed to lock collected_dependency_ids")
       .iter()
-      .cloned()
+      .copied()
       .collect::<Vec<DependencyId>>();
 
     let emro = EmbedFederationRuntimeModuleOptions {
@@ -190,7 +190,7 @@ async fn render_startup(
     .lock()
     .expect("Failed to lock collected_dependency_ids")
     .iter()
-    .cloned()
+    .copied()
     .collect::<Vec<DependencyId>>();
   let has_federation_deps = !collected_deps.is_empty();
 

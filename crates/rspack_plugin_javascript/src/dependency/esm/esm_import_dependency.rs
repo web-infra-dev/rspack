@@ -9,8 +9,7 @@ use rspack_core::{
   ImportAttributes, ImportPhase, InitFragmentExt, InitFragmentKey, InitFragmentStage, LazyUntil,
   ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
   PrefetchExportsInfoMode, ProvidedExports, ResourceIdentifier, RuntimeCondition, RuntimeSpec,
-  SharedSourceMap, SourceType, TemplateContext, TemplateReplaceSource, TypeReexportPresenceMode,
-  filter_runtime,
+  SourceType, TemplateContext, TemplateReplaceSource, TypeReexportPresenceMode, filter_runtime,
 };
 use rspack_error::{Diagnostic, Error, Severity};
 use swc_core::ecma::atoms::Atom;
@@ -83,12 +82,12 @@ impl ESMImportSideEffectDependency {
     dependency_type: DependencyType,
     phase: ImportPhase,
     attributes: Option<ImportAttributes>,
-    source_map: Option<SharedSourceMap>,
+    source: Option<&str>,
     star_export: bool,
   ) -> Self {
     let resource_identifier =
       create_resource_identifier_for_esm_dependency(&request, attributes.as_ref());
-    let loc = range.to_loc(source_map.as_ref());
+    let loc = range.to_loc(source);
     Self {
       id: DependencyId::new(),
       source_order,
@@ -120,7 +119,7 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
     compilation,
     module,
     runtime,
-    runtime_requirements,
+    runtime_template,
     ..
   } = code_generatable_context;
   // Only available when module factorization is successful.
@@ -170,10 +169,9 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
     phase,
     *runtime,
   );
-  let content: (String, String) = compilation.runtime_template.import_statement(
+  let content: (String, String) = runtime_template.import_statement(
     *module,
     compilation,
-    runtime_requirements,
     module_dependency.id(),
     &import_var,
     module_dependency.request(),
@@ -188,9 +186,7 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
   } = code_generatable_context;
 
   // https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/dependencies/HarmonyImportDependency.js#L282-L285
-  let module_key = target_module
-    .map(|m| m.identifier().as_str())
-    .unwrap_or(module_dependency.request());
+  let module_key = target_module.map_or(module_dependency.request(), |m| m.identifier().as_str());
   let key = format!(
     "{}ESM import {module_key}",
     match phase {
@@ -236,11 +232,11 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
       content.0,
       InitFragmentStage::StageESMImports,
       source_order,
-      InitFragmentKey::ESMImport(key.to_string()),
+      InitFragmentKey::ESMImport(key.clone()),
       None,
       runtime_condition.clone(),
     )));
-    init_fragments.push(AwaitDependenciesInitFragment::new_single(import_var.to_string()).boxed());
+    init_fragments.push(AwaitDependenciesInitFragment::new_single(import_var).boxed());
     init_fragments.push(Box::new(ConditionalInitFragment::new(
       content.1,
       InitFragmentStage::StageAsyncESMImports,
@@ -254,7 +250,7 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
       format!("{}{}", content.0, content.1),
       InitFragmentStage::StageESMImports,
       source_order,
-      InitFragmentKey::ESMImport(key.to_string()),
+      InitFragmentKey::ESMImport(key),
       None,
       runtime_condition,
     )));

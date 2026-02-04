@@ -108,13 +108,12 @@ impl DependencyTemplate for IsIncludedDependencyTemplate {
     let included = compilation
       .get_module_graph()
       .connection_by_dependency_id(&dep.id)
-      .map(|connection| {
+      .is_some_and(|connection| {
         compilation
           .chunk_graph
           .get_number_of_module_chunks(*connection.module_identifier())
           > 0
-      })
-      .unwrap_or(false);
+      });
 
     source.replace(
       dep.range.start,

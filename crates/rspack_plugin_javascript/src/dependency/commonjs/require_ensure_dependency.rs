@@ -87,24 +87,17 @@ impl DependencyTemplate for RequireEnsureDependencyTemplate {
 
     let module_graph = code_generatable_context.compilation.get_module_graph();
     let block = module_graph.get_parent_block(&dep.id);
-    let promise = code_generatable_context
-      .compilation
-      .runtime_template
-      .block_promise(
-        block,
-        code_generatable_context.runtime_requirements,
-        code_generatable_context.compilation,
-        dep.dependency_type().as_str(),
-      );
+    let promise = code_generatable_context.runtime_template.block_promise(
+      block,
+      code_generatable_context.compilation,
+      dep.dependency_type().as_str(),
+    );
     source.replace(
       dep.range.start,
       dep.content_range.start,
       &format!("{promise}.then(("),
       None,
     );
-    code_generatable_context
-      .runtime_requirements
-      .insert(RuntimeGlobals::REQUIRE);
     if let Some(error_handler_range) = &dep.error_handler_range {
       source.replace(
         dep.content_range.end,
@@ -112,7 +105,6 @@ impl DependencyTemplate for RequireEnsureDependencyTemplate {
         &format!(
           ").bind(null, {}))['catch'](",
           code_generatable_context
-            .compilation
             .runtime_template
             .render_runtime_globals(&RuntimeGlobals::REQUIRE)
         ),
@@ -120,20 +112,15 @@ impl DependencyTemplate for RequireEnsureDependencyTemplate {
       );
       source.replace(error_handler_range.end, dep.range.end, ")", None);
     } else {
-      code_generatable_context
-        .runtime_requirements
-        .insert(RuntimeGlobals::UNCAUGHT_ERROR_HANDLER);
       source.replace(
         dep.content_range.end,
         dep.range.end,
         &format!(
           ").bind(null, {}))['catch']({})",
           code_generatable_context
-            .compilation
             .runtime_template
             .render_runtime_globals(&RuntimeGlobals::REQUIRE),
           code_generatable_context
-            .compilation
             .runtime_template
             .render_runtime_globals(&RuntimeGlobals::UNCAUGHT_ERROR_HANDLER)
         ),

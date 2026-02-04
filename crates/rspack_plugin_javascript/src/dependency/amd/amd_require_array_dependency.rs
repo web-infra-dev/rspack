@@ -87,11 +87,9 @@ impl AMDRequireArrayDependency {
           .downcast_ref::<AMDRequireItemDependency>()
           .expect("should have AMDRequireItemDependency");
         code_generatable_context
-          .compilation
           .runtime_template
           .module_raw(
             code_generatable_context.compilation,
-            code_generatable_context.runtime_requirements,
             dep_id,
             dep.request(),
             dep.weak(),
