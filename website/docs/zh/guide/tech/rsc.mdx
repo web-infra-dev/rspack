@@ -25,10 +25,14 @@ React 服务器组件依赖于 React 19 的新架构。请确保 react 和 react
 
 ## 基本概念
 
-服务器组件包含需要在服务器端和浏览器端分别执行的代码。为了构建适配这两种不同运行时环境的产物，Rspack 需要启动两个 Compiler 实例：
+React 服务器组件应用涉及跨越服务器和客户端的混合渲染流程。为了支持这种架构，Rspack 需要启动两个 Compiler 实例进行构建，下图展示了整体的构建流程：
 
-- Client Compiler (target: 'web')： 负责生成运行在浏览器的代码。它主要打包 客户端组件（Client Components），以及应用所需的 CSS 和静态资源，处理组件的水合（Hydration）逻辑。
-- Server Compiler (target: 'node')： 负责生成运行在服务器的代码。它负责预渲染服务器组件（Server Components），并打包 Server Actions 的执行逻辑，同时处理服务端渲染（SSR）相关的代码。
+![RSC Build Flow](https://assets.rspack.rs/rspack/assets/rspack-rsc-build-flow.jpg)
+
+- **Client Compiler** (`target: 'web'`)： 负责生成运行在浏览器的代码。它主要打包客户端组件，以及应用所需的 CSS 和静态资源，处理组件的水合（Hydration）逻辑。
+- **Server Compiler** (`target: 'node'`)： 负责生成运行在服务器的代码。它负责预渲染 React 服务器组件，并打包 Server Actions 的执行逻辑，同时处理服务端渲染（SSR）相关的代码。
+
+在配置文件中，对应于两个 Compiler 配置：
 
 ```js title="rspack.config.mjs"
 export default [
@@ -47,12 +51,12 @@ export default [
 
 ### 配置插件
 
-Rspack 通过一对协同工作的插件来支持服务器组件。你需要调用 `rsc.createPlugins` 生成对应的 `ServerPlugin` 和 `ClientPlugin`，并将它们分别配置到对应的 Compiler 中：
+Rspack 通过一对协同工作的插件来支持 React 服务器组件。你需要调用 `rsc.createPlugins` 生成 `ServerPlugin` 和 `ClientPlugin`，并将它们分别配置到对应的 Compiler 中：
 
 ```js title="rspack.config.mjs"
 import { experiments } from '@rspack/core';
 
-// 创建成对的 RSC 插件
+// 创建一对 RSC 插件
 const { createPlugins, Layers } = experiments.rsc;
 const { ServerPlugin, ClientPlugin } = createPlugins();
 
@@ -72,11 +76,11 @@ export default [
 ];
 ```
 
-这两个插件会在内部协调 Client Compiler 和 Server Compiler 的构建流程，建立通信机制以同步编译状态和模块信息（例如处理客户端组件的模块映射清单）。
+这两个插件会在内部调度 Client Compiler 和 Server Compiler 的构建流程，建立通信机制以同步编译状态、模块信息，处理客户端组件、生成资源清单。
 
-### 配置 loader
+### 配置 JSX/TSX
 
-需要配置 `builtin:swc-loader` 来处理 `.jsx` 和 `.tsx` 文件。必须开启 `rspackExperiments.reactServerComponents` 选项，这会启用 Rspack 对 RSC 语法的支持。
+添加 `builtin:swc-loader` 来处理 `.jsx` 和 `.tsx` 文件。必须开启 `rspackExperiments.reactServerComponents` 选项，这会启用 Rspack 对 RSC 语法的支持。
 
 ```js title="rspack.config.mjs"
 const jsxRule = {
@@ -133,17 +137,17 @@ export default [
 ];
 ```
 
-loader 会识别 `"use client"` 和 `"use server"` 指令，仅模块为 `Layers.rsc` layer 时，会利用 `react-server-dom-rspack`，将包含这些指令的模块转换为 React 运行时所需的客户端引用（Client Reference）或服务端引用（Server Reference）。
+loader 会识别 `"use client"` 和 `"use server"` 指令，仅模块为 `Layers.rsc` layer 时，会使用 `react-server-dom-rspack`，将包含这些指令的模块转换为 React 运行时需要的客户端引用（Client Reference）或服务端引用（Server Reference）。
 
-RSC 插件依赖 loader 扫描到的指令信息，以此来区分客户端组件和服务器组件。
+RSC 插件也依赖 loader 识别的指令信息，来区分客户端组件和服务器组件。
 
 ### 配置 layer
 
-在 Server Compiler 中，Rspack 利用 `layer` 来标识属于 React 服务器组件（RSC）环境的模块。
+在 Server Compiler 中，Rspack 利用 `[layer](/config/experiments#experimentslayers)` 标识属于服务器组件（RSC）环境的模块。
 
-为了启用 RSC 功能，你必须将 RSC 根组件以及 RSC 运行时（如 `react-server-dom-rspack/server`）明确分配给 `Layers.rsc`。只有被标记为 `Layers.rsc` 的模块，Loader 才会将其内部的 `"use client"` 指令转换为客户端引用（Client Reference）。
+为了使用 RSC 功能，你必须将 RSC 组件明确设置为 `Layers.rsc`。只有被标记为 `Layers.rsc` 的模块，Loader 才会将其内部的 `"use client"` 指令转换为客户端引用（Client Reference）。
 
-同时，如果你需要支持服务端渲染（SSR），则可以通过 `Layers.ssr` 来标识 SSR 入口。SSR 是可选的，若无模块被分配至该 layer，Rspack 会自动跳过 SSR 产物的生成。
+如果你需要服务端渲染（SSR），可以通过 `Layers.ssr` 来标识 SSR 入口。SSR 是可选的，若无模块被分配至该 `Layers.rsc`，Rspack 会跳过 SSR 产物的生成。
 
 ```js title="rspack.config.mjs"
 const ssrEntry = path.resolve(
@@ -190,7 +194,7 @@ export default [
 
 ## 开发服务器
 
-由于 RSC 架构需要同时处理客户端和服务器端的构建与 HMR 流程，Rspack 内置的 Dev Server 无法直接满足需求。你需要搭建一个自定义的开发服务器来实现以下核心功能：
+RSC 架构需要同时处理客户端和服务器端的构建与 HMR 流程，Rspack 内置的 Dev Server 无法满足需求。你需要搭建一个自定义的开发服务器来实现以下核心功能：
 
-- 服务隔离与重启：将服务端产物运行在独立的上下文（如 Worker Threads 或子进程）中。确保当服务端代码更新时，能够干净地销毁旧服务实例并重启执行新代码。
-- 协同 HMR：监听服务端组件的变更，通过 WebSocket 等通信机制通知前端触发 RSC 重新请求，从而实时更新页面内容。
+- **服务执行与重启**：将服务端产物运行在独立的上下文（如 Worker Threads 或子进程）中。确保当服务端代码更新时，能够干净地销毁旧服务实例并重启执行新代码。
+- **协同 HMR**：监听服务端组件的变更，通过 WebSocket 等通信机制通知浏览器触发 RSC 重新请求，更新页面内容。
