@@ -25,7 +25,7 @@ tracing            = { workspace = true }
 wasmparser         = { workspace = true }
 
 [package.metadata.cargo-shear]
-ignored = ["tracing", "rspack_hash", "rspack-collections", "tokio"]
+ignored = ["tracing", "rspack_hash", "rspack_collections", "tokio"]
 
 [lints]
 workspace = true

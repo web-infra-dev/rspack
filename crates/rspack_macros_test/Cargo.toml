@@ -23,7 +23,7 @@ tracing            = { workspace = true }
 trybuild           = { workspace = true }
 
 [package.metadata.cargo-shear]
-ignored = ["tracing", "rspack_cacheable", "async-trait", "rspack_hash", "tokio"]
+ignored = ["tracing", "rspack_cacheable", "rspack_collections", "async-trait", "rspack_hash", "tokio"]
 
 [lints]
 workspace = true
