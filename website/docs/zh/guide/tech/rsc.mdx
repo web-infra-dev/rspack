@@ -20,12 +20,12 @@ Rspack 提供两种方案来支持 React 服务器组件：
 <PackageManagerTabs command="install react react-dom react-server-dom-rspack" />
 
 :::tip
-React 服务器组件依赖于 React 19 的新架构。请确保 react 和 react-dom 的版本均为 v19.1.0 或更高。
+React 服务器组件依赖于 React 19 的新架构。请确保 `react` 和 `react-dom` 的版本均为 v19.1.0 或更高。
 :::
 
 ## 基本概念
 
-React 服务器组件应用涉及跨越服务器和客户端的混合渲染流程。为了支持这种架构，Rspack 需要启动两个 Compiler 实例进行构建，下图展示了整体的构建流程：
+React 服务器组件产物需要在服务器和浏览器两种环境中协同运行。为了支持这种架构，Rspack 需要启动两个 Compiler 实例分别构建服务端和浏览器端的产物，下图展示了整体的构建流程：
 
 ![RSC Build Flow](https://assets.rspack.rs/rspack/assets/rspack-rsc-build-flow.jpg)
 
@@ -143,11 +143,11 @@ RSC 插件也依赖 loader 识别的指令信息，来区分客户端组件和�
 
 ### 配置 layer
 
-在 Server Compiler 中，Rspack 利用 `[layer](/config/experiments#experimentslayers)` 标识属于服务器组件（RSC）环境的模块。
+在 Server Compiler 中，Rspack 利用 [layer](/config/experiments#experimentslayers) 标识属于服务器组件（RSC）环境的模块。
 
 为了使用 RSC 功能，你必须将 RSC 组件明确设置为 `Layers.rsc`。只有被标记为 `Layers.rsc` 的模块，Loader 才会将其内部的 `"use client"` 指令转换为客户端引用（Client Reference）。
 
-如果你需要服务端渲染（SSR），可以通过 `Layers.ssr` 来标识 SSR 入口。SSR 是可选的，若无模块被分配至该 `Layers.rsc`，Rspack 会跳过 SSR 产物的生成。
+如果你需要服务端渲染，可以通过 `Layers.ssr` 来标识 SSR 入口。SSR 是可选的，若无模块被分配至该 `Layers.rsc`，Rspack 会跳过 SSR 产物的生成。
 
 ```js title="rspack.config.mjs"
 const ssrEntry = path.resolve(
@@ -170,7 +170,7 @@ export default [
           resource: ssrEntry,
           layer: Layers.ssr,
         },
-        // 为所有位于 rsc layer 下的模块，并配置 conditionNames
+        // 为所有位于 rsc layer 下的模块，并配置 resolve.conditionNames
         {
           resource: rscEntry,
           layer: Layers.rsc,
@@ -194,7 +194,26 @@ export default [
 
 ## 开发服务器
 
-RSC 架构需要同时处理客户端和服务器端的构建与 HMR 流程，Rspack 内置的 Dev Server 无法满足需求。你需要搭建一个自定义的开发服务器来实现以下核心功能：
+RSC 需要同时处理客户端和服务器端的构建、响应 RSC 请求和服务器组件 HMR，Rspack 内置的 Dev Server 无法满足需求。你需要实现一个自定义开发服务器，以实现以下核心功能：
 
-- **服务执行与重启**：将服务端产物运行在独立的上下文（如 Worker Threads 或子进程）中。确保当服务端代码更新时，能够干净地销毁旧服务实例并重启执行新代码。
-- **协同 HMR**：监听服务端组件的变更，通过 WebSocket 等通信机制通知浏览器触发 RSC 重新请求，更新页面内容。
+- **响应 RSC 请求**：拦截并处理客户端发起的 RSC 请求，调用 Server Compiler 生成的产物执行渲染逻辑，并返回序列化的 RSC Payload（或 HTML 流）。
+- **服务端运行时管理**：将服务端产物运行在独立的上下文（如 Worker Threads 或子进程）中，以保证环境隔离。同时确保在服务端代码更新时，能够清理旧实例并重启以执行新代码。
+- **服务器组件 HMR**：服务端组件的构建变更后，通过 WebSocket 等通信机制通知浏览器。浏览器接收到信号后，应触发 RSC 重新请求，更新页面内容。
+
+为实现服务器组件 HMR，Rspack 在 `ServerPlugin` 中暴露了 `onServerComponentChanges` 钩子。你可以利用此回调监听服务器组件的构建变更，并向客户端发送更新信号：
+
+```js title="rspack.config.mjs"
+export default [
+  // ...
+  {
+    target: 'node',
+    plugins: [
+      new ServerPlugin({
+        onServerComponentChanges() {
+          // 调用自定义 Server 的方法通知客户端刷新
+        },
+      }),
+    ],
+  },
+];
+```
