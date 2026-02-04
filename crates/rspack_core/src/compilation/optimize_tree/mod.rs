@@ -1,20 +1,26 @@
+use async_trait::async_trait;
+
 use super::*;
-use crate::logger::Logger;
+use crate::compilation::pass::PassExt;
 
-pub async fn optimize_tree_pass(
-  compilation: &mut Compilation,
-  plugin_driver: SharedPluginDriver,
-) -> Result<()> {
-  let logger = compilation.get_logger("rspack.Compilation");
-  let start = logger.time("optimize tree");
+pub struct OptimizeTreePass;
 
-  let result = plugin_driver
-    .compilation_hooks
-    .optimize_tree
-    .call(compilation)
-    .await
-    .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.optimizeTree"));
+#[async_trait]
+impl PassExt for OptimizeTreePass {
+  fn name(&self) -> &'static str {
+    "optimize tree"
+  }
 
-  logger.time_end(start);
-  result
+  async fn run_pass(&self, compilation: &mut Compilation) -> Result<()> {
+    compilation
+      .plugin_driver
+      .clone()
+      .compilation_hooks
+      .optimize_tree
+      .call(compilation)
+      .await
+      .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.optimizeTree"))?;
+
+    Ok(())
+  }
 }

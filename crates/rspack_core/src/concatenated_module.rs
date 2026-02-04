@@ -48,11 +48,11 @@ use crate::{
   ExportsType, FactoryMeta, GetUsedNameParam, ImportedByDeferModulesArtifact, InitFragment,
   InitFragmentStage, LibIdentOptions, Module, ModuleArgument, ModuleCodeGenerationContext,
   ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, ModuleLayer,
-  ModuleStaticCacheArtifact, ModuleType, NAMESPACE_OBJECT_EXPORT, ParserOptions,
-  PrefetchExportsInfoMode, Resolve, RuntimeCondition, RuntimeGlobals, RuntimeSpec, SourceType,
-  URLStaticMode, UsageState, UsedName, UsedNameItem, escape_identifier, filter_runtime,
-  find_target, get_runtime_key, impl_source_map_config, merge_runtime_condition,
-  merge_runtime_condition_non_false, module_update_hash, property_access, property_name,
+  ModuleStaticCache, ModuleType, NAMESPACE_OBJECT_EXPORT, ParserOptions, PrefetchExportsInfoMode,
+  Resolve, RuntimeCondition, RuntimeGlobals, RuntimeSpec, SourceType, URLStaticMode, UsageState,
+  UsedName, UsedNameItem, escape_identifier, filter_runtime, find_target, get_runtime_key,
+  impl_source_map_config, merge_runtime_condition, merge_runtime_condition_non_false,
+  module_update_hash, property_access, property_name,
   render_make_deferred_namespace_mode_from_exports_type, reserved_names::RESERVED_NAMES,
   subtract_runtime_condition, to_identifier_with_escaped, to_normal_comment,
 };
@@ -928,7 +928,7 @@ impl Module for ConcatenatedModule {
         let readable_identifier = get_cached_readable_identifier(
           &info.id(),
           module_graph,
-          &compilation.module_static_cache_artifact,
+          &compilation.module_static_cache,
           &context,
         );
         let splitted_readable_identifier = split_readable_identifier(&readable_identifier);
@@ -977,7 +977,7 @@ impl Module for ConcatenatedModule {
       let readable_identifier = get_cached_readable_identifier(
         &info.id(),
         module_graph,
-        &compilation.module_static_cache_artifact,
+        &compilation.module_static_cache,
         &context,
       );
       let exports_type: BuildMetaExportsType = module.build_meta().exports_type;
@@ -1279,7 +1279,7 @@ impl Module for ConcatenatedModule {
           let final_name = Self::get_final_name(
             compilation.get_module_graph(),
             &compilation.module_graph_cache_artifact,
-            &compilation.module_static_cache_artifact,
+            &compilation.module_static_cache,
             referenced_info_id,
             export_name,
             &module_to_info_map,
@@ -1355,7 +1355,7 @@ impl Module for ConcatenatedModule {
         let final_name = Self::get_final_name(
           compilation.get_module_graph(),
           &compilation.module_graph_cache_artifact,
-          &compilation.module_static_cache_artifact,
+          &compilation.module_static_cache,
           &root_module_id,
           [name.clone()].to_vec(),
           &module_to_info_map,
@@ -1498,7 +1498,7 @@ impl Module for ConcatenatedModule {
         let module_readable_identifier = get_cached_readable_identifier(
           module_info_id,
           module_graph,
-          &compilation.module_static_cache_artifact,
+          &compilation.module_static_cache,
           &context,
         );
         let strict_esm_module = box_module.build_meta().strict_esm_module;
@@ -1520,7 +1520,7 @@ impl Module for ConcatenatedModule {
             let final_name = Self::get_final_name(
               compilation.get_module_graph(),
               &compilation.module_graph_cache_artifact,
-              &compilation.module_static_cache_artifact,
+              &compilation.module_static_cache,
               module_info_id,
               vec![export_info.name().cloned().unwrap_or("".into())],
               &module_to_info_map,
@@ -1594,7 +1594,7 @@ impl Module for ConcatenatedModule {
         let module_readable_identifier = get_cached_readable_identifier(
           &info.module,
           module_graph,
-          &compilation.module_static_cache_artifact,
+          &compilation.module_static_cache,
           &context,
         );
         let loader = runtime_template.get_optimized_deferred_module(
@@ -1652,7 +1652,7 @@ impl Module for ConcatenatedModule {
       let module_readable_identifier = get_cached_readable_identifier(
         &module_info_id,
         module_graph,
-        &compilation.module_static_cache_artifact,
+        &compilation.module_static_cache,
         &context,
       );
 
@@ -1714,7 +1714,7 @@ impl Module for ConcatenatedModule {
               get_cached_readable_identifier(
                 &info.module,
                 module_graph,
-                &compilation.module_static_cache_artifact,
+                &compilation.module_static_cache,
                 &context,
               ),
               info.name.as_ref().expect("should have name"),
@@ -2433,7 +2433,7 @@ impl ConcatenatedModule {
   fn get_final_name(
     module_graph: &ModuleGraph,
     module_graph_cache: &ModuleGraphCacheArtifact,
-    module_static_cache_artifact: &ModuleStaticCacheArtifact,
+    module_static_cache: &ModuleStaticCache,
     info: &ModuleIdentifier,
     export_name: Vec<Atom>,
     module_to_info_map: &IdentifierIndexMap<ModuleInfo>,
@@ -2497,7 +2497,7 @@ impl ConcatenatedModule {
             get_cached_readable_identifier(
               &info.module,
               module_graph,
-              module_static_cache_artifact,
+              module_static_cache,
               context
             ),
             info
@@ -3188,10 +3188,10 @@ impl FinalNameResult {
 pub fn get_cached_readable_identifier(
   mid: &ModuleIdentifier,
   mg: &ModuleGraph,
-  module_static_cache_artifact: &ModuleStaticCacheArtifact,
+  module_static_cache: &ModuleStaticCache,
   compilation_context: &Context,
 ) -> String {
-  module_static_cache_artifact.cached_readable_identifier((*mid, None), || {
+  module_static_cache.cached_readable_identifier((*mid, None), || {
     let module = mg.module_by_identifier(mid).expect("should have module");
     module.readable_identifier(compilation_context).to_string()
   })

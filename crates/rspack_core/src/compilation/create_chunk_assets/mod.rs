@@ -1,15 +1,29 @@
-use super::*;
-use crate::logger::Logger;
+use async_trait::async_trait;
 
-pub async fn create_chunk_assets_pass(
-  compilation: &mut Compilation,
-  plugin_driver: SharedPluginDriver,
-) -> Result<()> {
-  let logger = compilation.get_logger("rspack.Compilation");
-  let start = logger.time("create chunk assets");
-  compilation.create_chunk_assets(plugin_driver).await?;
-  logger.time_end(start);
-  Ok(())
+use super::*;
+use crate::{cache::Cache, compilation::pass::PassExt, logger::Logger};
+
+pub struct CreateChunkAssetsPass;
+
+#[async_trait]
+impl PassExt for CreateChunkAssetsPass {
+  fn name(&self) -> &'static str {
+    "create chunk assets"
+  }
+
+  async fn before_pass(&self, compilation: &mut Compilation, cache: &mut dyn Cache) {
+    cache.before_chunk_asset(compilation).await;
+  }
+
+  async fn run_pass(&self, compilation: &mut Compilation) -> Result<()> {
+    let plugin_driver = compilation.plugin_driver.clone();
+    compilation.create_chunk_assets(plugin_driver).await?;
+    Ok(())
+  }
+
+  async fn after_pass(&self, compilation: &Compilation, cache: &mut dyn Cache) {
+    cache.after_chunk_asset(compilation).await;
+  }
 }
 
 impl Compilation {

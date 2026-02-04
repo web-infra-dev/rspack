@@ -55,6 +55,7 @@ module.exports = [{
   options(context) {
     return {
       mode: "development",
+      devtool: 'eval',
       entry: {
         footerFile: context.getDist("footerFile.js")
       },

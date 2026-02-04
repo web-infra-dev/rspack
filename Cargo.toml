@@ -31,7 +31,7 @@ camino              = { version = "1.2.2", default-features = false }
 cargo_toml          = { version = "0.21.0", default-features = false }
 cfg-if              = { version = "1.0.4", default-features = false }
 chrono              = { version = "0.4.43", default-features = false }
-clap                = { version = "4.5.55", default-features = false }
+clap                = { version = "4.5.57", default-features = false }
 color-backtrace     = { version = "0.7.2", default-features = false, features = ["use-backtrace-crate"] }
 concat-string       = { version = "1.0.1", default-features = false }
 cow-utils           = { version = "0.1.3", default-features = false }
@@ -78,8 +78,8 @@ proc-macro2         = { version = "1.0.106", default-features = false }
 prost               = { version = "0.13", default-features = false }
 quote               = { version = "1.0.44", default-features = false }
 rayon               = { version = "1.11.0", default-features = false }
-regex               = { version = "1.12.2", default-features = false }
-regex-syntax        = { version = "0.8.8", default-features = false, features = ["std"] }
+regex               = { version = "1.12.3", default-features = false }
+regex-syntax        = { version = "0.8.9", default-features = false, features = ["std"] }
 regress             = { version = "0.10.5", default-features = false, features = ["pattern"] }
 rspack_resolver     = { features = ["package_json_raw_json_api", "yarn_pnp"], version = "0.6.6", default-features = false }
 rspack_sources      = { version = "=0.4.17", default-features = false }
@@ -103,7 +103,7 @@ tokio               = { version = "1.48.0", default-features = false, features =
 toml                = { version = "0.8.19", default-features = false, features = ["parse", "display"] }
 tracing             = { version = "0.1.44", default-features = false, features = ["max_level_trace", "release_max_level_trace"] }
 tracing-subscriber  = { version = "0.3.22", default-features = false, features = ["fmt", "registry"] }
-trybuild            = { version = "1.0.114", default-features = false, features = ["diff"] }
+trybuild            = { version = "1.0.115", default-features = false, features = ["diff"] }
 unicase             = { version = "2.8.1", default-features = false }
 unicode-width       = { version = "0.2.2", default-features = false }
 url                 = { version = "2.5.8", default-features = false }

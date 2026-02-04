@@ -1,5 +1,7 @@
+use async_trait::async_trait;
+
 use super::*;
-use crate::logger::Logger;
+use crate::{cache::Cache, compilation::pass::PassExt};
 
 /// Collects module identifiers that need ID assignment.
 /// A module needs an ID if:
@@ -24,49 +26,60 @@ fn get_modules_needing_ids(
     .collect()
 }
 
-pub async fn module_ids_pass(
-  compilation: &mut Compilation,
-  plugin_driver: SharedPluginDriver,
-) -> Result<()> {
-  let logger = compilation.get_logger("rspack.Compilation");
-  let start = logger.time("module ids");
+pub struct ModuleIdsPass;
 
-  // Check if MODULE_IDS pass is disabled, and clear artifact if needed
-  if !compilation
-    .incremental
-    .passes_enabled(IncrementalPasses::MODULE_IDS)
-  {
-    compilation.module_ids_artifact.clear();
+#[async_trait]
+impl PassExt for ModuleIdsPass {
+  fn name(&self) -> &'static str {
+    "module ids"
   }
 
-  let mut module_ids_artifact = mem::take(&mut compilation.module_ids_artifact);
+  async fn before_pass(&self, compilation: &mut Compilation, cache: &mut dyn Cache) {
+    cache.before_module_ids(compilation).await;
+  }
 
-  // Call beforeModuleIds hook - allows plugins to assign custom IDs
-  let modules_needing_ids = get_modules_needing_ids(compilation, &module_ids_artifact);
-  plugin_driver
-    .compilation_hooks
-    .before_module_ids
-    .call(compilation, &modules_needing_ids, &mut module_ids_artifact)
-    .await
-    .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.beforeModuleIds"))?;
+  async fn run_pass(&self, compilation: &mut Compilation) -> Result<()> {
+    // Check if MODULE_IDS pass is disabled, and clear artifact if needed
+    if !compilation
+      .incremental
+      .passes_enabled(IncrementalPasses::MODULE_IDS)
+    {
+      compilation.module_ids_artifact.clear();
+    }
 
-  // Put artifact back so moduleIds plugins can see custom IDs from beforeModuleIds
-  // when they call get_used_module_ids_and_modules
-  compilation.module_ids_artifact = module_ids_artifact;
+    let mut module_ids_artifact = mem::take(&mut compilation.module_ids_artifact);
 
-  // Call moduleIds hook - built-in ID assignment for remaining modules
-  // Pass a reference to compilation's artifact directly so plugins can read AND write to it
-  let mut module_ids_artifact = mem::take(&mut compilation.module_ids_artifact);
-  let mut diagnostics = vec![];
-  plugin_driver
-    .compilation_hooks
-    .module_ids
-    .call(compilation, &mut module_ids_artifact, &mut diagnostics)
-    .await
-    .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.moduleIds"))?;
+    // Call beforeModuleIds hook - allows plugins to assign custom IDs
+    let modules_needing_ids = get_modules_needing_ids(compilation, &module_ids_artifact);
+    compilation
+      .plugin_driver
+      .clone()
+      .compilation_hooks
+      .before_module_ids
+      .call(compilation, &modules_needing_ids, &mut module_ids_artifact)
+      .await
+      .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.beforeModuleIds"))?;
 
-  compilation.module_ids_artifact = module_ids_artifact;
-  compilation.extend_diagnostics(diagnostics);
-  logger.time_end(start);
-  Ok(())
+    // Put artifact back so moduleIds plugins can see custom IDs from beforeModuleIds
+    // when they call get_used_module_ids_and_modules
+    compilation.module_ids_artifact = module_ids_artifact;
+
+    let mut diagnostics = vec![];
+    let mut module_ids_artifact = mem::take(&mut compilation.module_ids_artifact);
+    compilation
+      .plugin_driver
+      .clone()
+      .compilation_hooks
+      .module_ids
+      .call(compilation, &mut module_ids_artifact, &mut diagnostics)
+      .await
+      .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.moduleIds"))?;
+    compilation.module_ids_artifact = module_ids_artifact;
+    compilation.extend_diagnostics(diagnostics);
+    Ok(())
+  }
+
+  async fn after_pass(&self, compilation: &Compilation, cache: &mut dyn Cache) {
+    cache.after_module_ids(compilation).await;
+  }
 }

@@ -41,15 +41,20 @@ LOG from LogOtherTestPlugin
 
 LOG from rspack.Compilation
 <t> finish modules: xx ms
+<t> build module graph: xx ms
+<t> seal: xx ms
 <t> optimize dependencies: xx ms
 <t> rebuild chunk graph: xx ms
+<t> build chunk graph: xx ms
 <t> optimize modules: xx ms
 <t> optimize chunks: xx ms
 <t> optimize tree: xx ms
 <t> optimize chunk modules: xx ms
 <t> module ids: xx ms
 <t> chunk ids: xx ms
+<t> assign runtime ids: xx ms
 <t> optimize code generation: xx ms
+<t> create module hashes: xx ms
 <t> code generation: xx ms
 <t> runtime requirements.modules: xx ms
 <t> runtime requirements.chunks: xx ms

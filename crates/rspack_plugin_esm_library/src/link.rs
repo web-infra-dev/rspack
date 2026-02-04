@@ -194,7 +194,7 @@ impl EsmLibraryPlugin {
         let readable_identifier = get_cached_readable_identifier(
           &info.id(),
           module_graph,
-          &compilation.module_static_cache_artifact,
+          &compilation.module_static_cache,
           &compilation.options.context,
         );
         let splitted_readable_identifier: Vec<String> =
@@ -455,12 +455,8 @@ var {} = {{}};
       let default_object = module.build_meta().default_object;
 
       let info = &mut concate_modules_map[id];
-      let readable_identifier = get_cached_readable_identifier(
-        id,
-        module_graph,
-        &compilation.module_static_cache_artifact,
-        context,
-      );
+      let readable_identifier =
+        get_cached_readable_identifier(id, module_graph, &compilation.module_static_cache, context);
 
       if let ModuleInfo::Concatenated(concate_info) = info {
         let mut internal_names = FxHashMap::default();
@@ -640,7 +636,7 @@ var {} = {{}};
         let readable_identifier = get_cached_readable_identifier(
           external_module,
           module_graph,
-          &compilation.module_static_cache_artifact,
+          &compilation.module_static_cache,
           context,
         );
 
@@ -1235,7 +1231,7 @@ var {} = {{}};
               &escaped_identifiers[&get_cached_readable_identifier(
                 &entry_module,
                 module_graph,
-                &compilation.module_static_cache_artifact,
+                &compilation.module_static_cache,
                 context,
               )],
             );
@@ -1608,7 +1604,7 @@ var {} = {{}};
           let readable_identifier = get_cached_readable_identifier(
             &m,
             module_graph,
-            &compilation.module_static_cache_artifact,
+            &compilation.module_static_cache,
             context,
           );
           let (orig_symbol, local_symbol) = if all_used_names.contains(&symbol) {
