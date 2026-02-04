@@ -18,6 +18,7 @@ module.exports = {
 			+   "cache": Object {
 			+     "buildDependencies": Array [],
 			+     "portable": undefined,
+			+     "readonly": undefined,
 			+     "snapshot": Object {
 			+       "immutablePaths": Array [],
 			+       "managedPaths": Array [
