@@ -134,7 +134,6 @@ fn add_dependencies(
     parser.add_presentational_dependency(Box::new(ConstDependency::new(
       (range.0, range.0).into(),
       "Object.assign({}, ".into(),
-      None,
     )));
     parser.add_presentational_dependency(Box::new(ConstDependency::new(
       (range.1, range.1).into(),
@@ -147,7 +146,6 @@ fn add_dependencies(
         }
       )
       .into(),
-      None,
     )));
   }
 }

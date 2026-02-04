@@ -5,7 +5,8 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AffectType, AsContextDependency, AsModuleDependency, Dependency, DependencyCategory,
   DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
-  DependencyTemplateType, DependencyType, ModuleDependency, TemplateContext, TemplateReplaceSource,
+  DependencyTemplateType, DependencyType, ModuleDependency, RuntimeGlobals, TemplateContext,
+  TemplateReplaceSource,
 };
 
 use super::amd_require_item_dependency::AMDRequireItemDependency;
@@ -13,6 +14,7 @@ use super::amd_require_item_dependency::AMDRequireItemDependency;
 #[cacheable]
 #[derive(Debug, Clone)]
 pub enum AMDRequireArrayItem {
+  Require,
   String(String),
   LocalModuleDependency { local_module_variable_name: String },
   AMDRequireItemDependency { dep_id: DependencyId },
@@ -76,6 +78,10 @@ impl AMDRequireArrayDependency {
     code_generatable_context: &mut TemplateContext,
   ) -> Cow<'a, str> {
     match dep {
+      AMDRequireArrayItem::Require => code_generatable_context
+        .runtime_template
+        .render_runtime_globals(&RuntimeGlobals::REQUIRE)
+        .into(),
       AMDRequireArrayItem::String(name) => name.into(),
       AMDRequireArrayItem::LocalModuleDependency {
         local_module_variable_name,

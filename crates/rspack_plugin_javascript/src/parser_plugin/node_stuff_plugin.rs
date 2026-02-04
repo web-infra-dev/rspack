@@ -1,6 +1,6 @@
 use rspack_core::{
   CachedConstDependency, ConstDependency, NodeDirnameOption, NodeFilenameOption, NodeGlobalOption,
-  RuntimeGlobals, get_context, parse_resource,
+  RuntimeGlobals, RuntimeRequirementsDependency, get_context, parse_resource,
 };
 use rspack_error::{Diagnostic, cyan, yellow};
 use rspack_util::SpanExt;
@@ -464,7 +464,6 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
           serde_json::to_string(&dirname)
             .expect("should render dirname")
             .into(),
-          None,
         )));
         return Some(true);
       }
@@ -519,7 +518,6 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
           serde_json::to_string(&filename)
             .expect("should render filename")
             .into(),
-          None,
         )));
         return Some(true);
       }
@@ -529,13 +527,9 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
         NodeGlobalOption::True | NodeGlobalOption::Warn
       )
     {
-      parser.add_presentational_dependency(Box::new(ConstDependency::new(
+      parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
         ident.span.into(),
-        parser
-          .runtime_template
-          .render_runtime_globals(&RuntimeGlobals::GLOBAL)
-          .into(),
-        Some(RuntimeGlobals::GLOBAL),
+        RuntimeGlobals::GLOBAL,
       )));
       return Some(true);
     }
@@ -555,13 +549,9 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
         NodeGlobalOption::True | NodeGlobalOption::Warn
       )
     {
-      parser.add_presentational_dependency(Box::new(ConstDependency::new(
+      parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
         expr.span().into(),
-        parser
-          .runtime_template
-          .render_runtime_globals(&RuntimeGlobals::GLOBAL)
-          .into(),
-        Some(RuntimeGlobals::GLOBAL),
+        RuntimeGlobals::GLOBAL,
       )));
       return Some(false);
     }
@@ -655,7 +645,6 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
     parser.add_presentational_dependency(Box::new(ConstDependency::new(
       unary_expr.span().into(),
       "'string'".into(),
-      None,
     )));
     Some(true)
   }
@@ -816,7 +805,6 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
     parser.add_presentational_dependency(Box::new(ConstDependency::new(
       member_expr.span().into(),
       replacement.into(),
-      None,
     )));
     Some(true)
   }

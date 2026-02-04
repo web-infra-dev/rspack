@@ -1,8 +1,9 @@
 use std::borrow::Cow;
 
 use rspack_core::{
-  BuildMetaDefaultObject, BuildMetaExportsType, ConstDependency, ContextDependency, ContextMode,
-  ContextNameSpaceObject, ContextOptions, Dependency, DependencyCategory, RuntimeGlobals,
+  BoxDependencyTemplate, BuildMetaDefaultObject, BuildMetaExportsType, ContextDependency,
+  ContextMode, ContextNameSpaceObject, ContextOptions, Dependency, DependencyCategory,
+  RuntimeGlobals, RuntimeRequirementsDependency,
 };
 use rspack_util::{SpanExt, atom::Atom};
 use rustc_hash::FxHashMap;
@@ -138,11 +139,7 @@ impl AMDDefineDependencyParserPlugin {
       for (i, request) in array.iter().enumerate() {
         if request == "require" {
           identifiers.insert(i, REQUIRE.into());
-          deps.push(AMDRequireArrayItem::String(
-            parser
-              .runtime_template
-              .render_runtime_globals(&RuntimeGlobals::REQUIRE),
-          ));
+          deps.push(AMDRequireArrayItem::Require);
         } else if request == "exports" {
           identifiers.insert(i, EXPORTS.into());
           deps.push(AMDRequireArrayItem::String(request.into()));
@@ -190,26 +187,20 @@ impl AMDDefineDependencyParserPlugin {
       let param_str = param.string();
       let range = param.range();
 
-      let dep = if param_str == "require" {
-        Box::new(ConstDependency::new(
+      let dep: BoxDependencyTemplate = if param_str == "require" {
+        Box::new(RuntimeRequirementsDependency::new(
           range.into(),
-          parser
-            .runtime_template
-            .render_runtime_globals(&RuntimeGlobals::REQUIRE)
-            .into(),
-          Some(RuntimeGlobals::REQUIRE),
+          RuntimeGlobals::REQUIRE,
         ))
       } else if param_str == "exports" {
-        Box::new(ConstDependency::new(
+        Box::new(RuntimeRequirementsDependency::new(
           range.into(),
-          EXPORTS.into(),
-          Some(RuntimeGlobals::EXPORTS),
+          RuntimeGlobals::EXPORTS,
         ))
       } else if param_str == "module" {
-        Box::new(ConstDependency::new(
+        Box::new(RuntimeRequirementsDependency::new(
           range.into(),
-          MODULE.into(),
-          Some(RuntimeGlobals::MODULE),
+          RuntimeGlobals::MODULE,
         ))
       } else if let Some(local_module) = parser.get_local_module_mut(
         &named_module

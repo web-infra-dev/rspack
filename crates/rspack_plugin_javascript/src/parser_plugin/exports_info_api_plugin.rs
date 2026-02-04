@@ -46,7 +46,7 @@ impl JavascriptParserPlugin for ExportsInfoApiPlugin {
     for_name: &str,
   ) -> Option<bool> {
     if for_name == EXPORTS_INFO {
-      let dep = Box::new(ConstDependency::new(expr.span.into(), "true".into(), None));
+      let dep = Box::new(ConstDependency::new(expr.span.into(), "true".into()));
       parser.add_presentational_dependency(dep);
       Some(true)
     } else {

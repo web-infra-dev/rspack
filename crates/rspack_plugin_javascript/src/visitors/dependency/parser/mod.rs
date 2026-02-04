@@ -23,7 +23,7 @@ use rspack_core::{
   AsyncDependenciesBlock, BoxDependency, BoxDependencyTemplate, BuildInfo, BuildMeta,
   CompilerOptions, DependencyRange, FactoryMeta, JavascriptParserCommonjsExportsOption,
   JavascriptParserOptions, ModuleIdentifier, ModuleLayer, ModuleType, ParseMeta, ResourceData,
-  RuntimeTemplate, SideEffectsBailoutItemWithSpan,
+  SideEffectsBailoutItemWithSpan,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_util::{SpanExt, fx_hash::FxIndexSet};
@@ -44,6 +44,7 @@ use swc_core::{
 use crate::{
   BoxJavascriptParserPlugin,
   dependency::local_module::LocalModule,
+  parser_and_generator::ParserRuntimeRequirementsData,
   parser_plugin::{
     self, ImportsReferencesState, InnerGraphState, JavaScriptParserPluginDrive,
     JavascriptParserPlugin,
@@ -334,7 +335,7 @@ pub struct JavascriptParser<'parser> {
   pub resource_data: &'parser ResourceData,
   pub(crate) compiler_options: &'parser CompilerOptions,
   pub(crate) javascript_options: &'parser JavascriptParserOptions,
-  pub runtime_template: &'parser RuntimeTemplate,
+  pub parser_runtime_requirements: &'parser ParserRuntimeRequirementsData,
   pub module_type: &'parser ModuleType,
   pub(crate) module_layer: Option<&'parser ModuleLayer>,
   pub module_identifier: &'parser ModuleIdentifier,
@@ -381,7 +382,7 @@ impl<'parser> JavascriptParser<'parser> {
     unresolved_mark: Mark,
     parser_plugins: &'parser mut Vec<BoxJavascriptParserPlugin>,
     parse_meta: ParseMeta,
-    runtime_template: &'parser RuntimeTemplate,
+    parser_runtime_requirements: &'parser ParserRuntimeRequirementsData,
   ) -> Self {
     let warning_diagnostics: Vec<Diagnostic> = Vec::with_capacity(4);
     let errors = Vec::with_capacity(4);
@@ -533,7 +534,7 @@ impl<'parser> JavascriptParser<'parser> {
       local_modules: Default::default(),
       has_inlinable_const_decls: true,
       side_effects_item: None,
-      runtime_template,
+      parser_runtime_requirements,
     }
   }
 

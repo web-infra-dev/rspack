@@ -182,7 +182,6 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
         parser.add_presentational_dependency(Box::new(ConstDependency::new(
           unary_expr.span().into(),
           "'object'".into(),
-          None,
         )));
         Some(true)
       }
@@ -190,7 +189,6 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
         parser.add_presentational_dependency(Box::new(ConstDependency::new(
           unary_expr.span().into(),
           "'string'".into(),
-          None,
         )));
         Some(true)
       }
@@ -198,7 +196,6 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
         parser.add_presentational_dependency(Box::new(ConstDependency::new(
           unary_expr.span().into(),
           "'function'".into(),
-          None,
         )));
         Some(true)
       }
@@ -206,7 +203,6 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
         parser.add_presentational_dependency(Box::new(ConstDependency::new(
           unary_expr.span().into(),
           "'number'".into(),
-          None,
         )));
         Some(true)
       }
@@ -264,7 +260,6 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
         parser.add_presentational_dependency(Box::new(ConstDependency::new(
           span.into(),
           format!("({{{}}})", content.join(",")).into(),
-          None,
         )));
         Some(true)
       } else {
@@ -287,7 +282,6 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
         parser.add_presentational_dependency(Box::new(ConstDependency::new(
           span.into(),
           content.into(),
-          None,
         )));
         Some(true)
       }
@@ -307,7 +301,6 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
       parser.add_presentational_dependency(Box::new(ConstDependency::new(
         member_expr.span().into(),
         format!("'{}'", self.import_meta_url(parser)).into(),
-        None,
       )));
       Some(true)
     } else if for_name == expr_name::IMPORT_META_VERSION {
@@ -315,7 +308,6 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
       parser.add_presentational_dependency(Box::new(ConstDependency::new(
         member_expr.span().into(),
         self.import_meta_version().into(),
-        None,
       )));
       Some(true)
     } else {
@@ -359,7 +351,7 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
                 .get(1)
                 .is_some_and(|optional| *optional)
             {
-              ConstDependency::new(expr.span().into(), "undefined".into(), None)
+              ConstDependency::new(expr.span().into(), "undefined".into())
             } else {
               ConstDependency::new(
                 expr.span().into(),
@@ -368,11 +360,10 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
                     &members.members.iter().map(|x| x.to_string()).collect_vec(),
                   )
                   .into(),
-                None,
               )
             }
           } else {
-            ConstDependency::new(expr.span().into(), "undefined".into(), None)
+            ConstDependency::new(expr.span().into(), "undefined".into())
           };
 
           parser.add_presentational_dependency(Box::new(dep));
@@ -402,7 +393,6 @@ impl JavascriptParserPlugin for ImportMetaDisabledPlugin {
       parser.add_presentational_dependency(Box::new(ConstDependency::new(
         span.into(),
         import_meta_name.into(),
-        None,
       )));
       Some(true)
     } else {

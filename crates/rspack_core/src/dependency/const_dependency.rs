@@ -3,8 +3,8 @@ use rspack_util::ext::DynHash;
 
 use super::DependencyRange;
 use crate::{
-  Compilation, DependencyCodeGeneration, DependencyTemplate, DependencyTemplateType,
-  RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource,
+  Compilation, DependencyCodeGeneration, DependencyTemplate, DependencyTemplateType, RuntimeSpec,
+  TemplateContext, TemplateReplaceSource,
 };
 
 #[cacheable]
@@ -13,20 +13,11 @@ pub struct ConstDependency {
   pub range: DependencyRange,
   #[cacheable(with=AsRefStr)]
   pub content: Box<str>,
-  pub runtime_requirements: Option<RuntimeGlobals>,
 }
 
 impl ConstDependency {
-  pub fn new(
-    range: DependencyRange,
-    content: Box<str>,
-    runtime_requirements: Option<RuntimeGlobals>,
-  ) -> Self {
-    Self {
-      range,
-      content,
-      runtime_requirements,
-    }
+  pub fn new(range: DependencyRange, content: Box<str>) -> Self {
+    Self { range, content }
   }
 }
 
@@ -44,7 +35,6 @@ impl DependencyCodeGeneration for ConstDependency {
   ) {
     self.range.dyn_hash(hasher);
     self.content.dyn_hash(hasher);
-    self.runtime_requirements.dyn_hash(hasher);
   }
 }
 
@@ -63,19 +53,13 @@ impl DependencyTemplate for ConstDependencyTemplate {
     &self,
     dep: &dyn DependencyCodeGeneration,
     source: &mut TemplateReplaceSource,
-    code_generatable_context: &mut TemplateContext,
+    _code_generatable_context: &mut TemplateContext,
   ) {
     let dep = dep
       .as_any()
       .downcast_ref::<ConstDependency>()
       .expect("ConstDependencyTemplate should be used for ConstDependency");
 
-    if let Some(runtime_requirements) = &dep.runtime_requirements {
-      code_generatable_context
-        .runtime_template
-        .runtime_requirements_mut()
-        .extend(*runtime_requirements);
-    }
     source.replace(dep.range.start, dep.range.end, dep.content.as_ref(), None);
   }
 }

@@ -7,6 +7,7 @@ mod module_decorator_dependency;
 mod require_ensure_dependency;
 mod require_ensure_item_dependency;
 mod require_header_dependency;
+mod require_main_dependency;
 mod require_resolve_dependency;
 mod require_resolve_header_dependency;
 
@@ -31,6 +32,7 @@ pub use module_decorator_dependency::{
 pub use require_ensure_dependency::{RequireEnsureDependency, RequireEnsureDependencyTemplate};
 pub use require_ensure_item_dependency::RequireEnsureItemDependency;
 pub use require_header_dependency::{RequireHeaderDependency, RequireHeaderDependencyTemplate};
+pub use require_main_dependency::{RequireMainDependency, RequireMainDependencyTemplate};
 pub use require_resolve_dependency::{RequireResolveDependency, RequireResolveDependencyTemplate};
 pub use require_resolve_header_dependency::{
   RequireResolveHeaderDependency, RequireResolveHeaderDependencyTemplate,

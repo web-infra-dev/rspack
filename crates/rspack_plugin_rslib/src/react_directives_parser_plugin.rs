@@ -56,11 +56,7 @@ impl JavascriptParserPlugin for ReactDirectivesParserPlugin {
     );
 
     for (_, span) in directives {
-      parser.add_presentational_dependency(Box::new(ConstDependency::new(
-        span.into(),
-        "".into(),
-        None,
-      )));
+      parser.add_presentational_dependency(Box::new(ConstDependency::new(span.into(), "".into())));
     }
 
     None

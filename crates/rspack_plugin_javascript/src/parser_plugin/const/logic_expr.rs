@@ -28,7 +28,6 @@ pub fn expression_logic_operator(scanner: &mut JavascriptParser, expr: &BinExpr)
       scanner.add_presentational_dependency(Box::new(ConstDependency::new(
         param.range().into(),
         format!(" {boolean}").into(),
-        None,
       )));
     } else {
       scanner.walk_expression(&expr.left);
@@ -38,7 +37,6 @@ pub fn expression_logic_operator(scanner: &mut JavascriptParser, expr: &BinExpr)
       scanner.add_presentational_dependency(Box::new(ConstDependency::new(
         (expr.right.span().real_lo(), expr.right.span().real_hi()).into(),
         "0".into(),
-        None,
       )));
     }
     Some(keep_right)
@@ -49,13 +47,11 @@ pub fn expression_logic_operator(scanner: &mut JavascriptParser, expr: &BinExpr)
         scanner.add_presentational_dependency(Box::new(ConstDependency::new(
           param.range().into(),
           " null".into(),
-          None,
         )));
       } else {
         scanner.add_presentational_dependency(Box::new(ConstDependency::new(
           (expr.right.span().real_lo(), expr.right.span().real_hi()).into(),
           "0".into(),
-          None,
         )));
         scanner.walk_expression(&expr.left);
       }

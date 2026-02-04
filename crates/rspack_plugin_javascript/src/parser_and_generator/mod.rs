@@ -1,11 +1,13 @@
 use std::{borrow::Cow, sync::Arc};
 
+use regex::Regex;
 use rspack_cacheable::{cacheable, cacheable_dyn, with::Skip};
 use rspack_core::{
   AsyncDependenciesBlockIdentifier, BuildMetaExportsType, COLLECTED_TYPESCRIPT_INFO_PARSE_META_KEY,
   ChunkGraph, CollectedTypeScriptInfo, Compilation, DependenciesBlock, DependencyId,
-  DependencyRange, GenerateContext, Module, ModuleGraph, ModuleType, ParseContext, ParseResult,
-  ParserAndGenerator, SideEffectsBailoutItem, SourceType, TemplateContext, TemplateReplaceSource,
+  DependencyRange, GenerateContext, Module, ModuleCodegenRuntimeTemplate, ModuleGraph, ModuleType,
+  ParseContext, ParseResult, ParserAndGenerator, RuntimeGlobals, SideEffectsBailoutItem,
+  SourceType, TemplateContext, TemplateReplaceSource,
   diagnostics::map_box_diagnostics_to_module_parse_diagnostics,
   remove_bom, render_init_fragments,
   rspack_sources::{BoxSource, ReplaceSource, Source, SourceExt},
@@ -35,6 +37,32 @@ fn module_type_to_is_module(value: &ModuleType) -> IsModule {
     ModuleType::JsEsm => IsModule::Bool(true),
     ModuleType::JsDynamic => IsModule::Bool(false),
     _ => IsModule::Unknown,
+  }
+}
+
+#[derive(Debug)]
+pub struct ParserRuntimeRequirementsData {
+  pub module: String,
+  pub exports: String,
+  pub require: String,
+  pub require_regex: Regex,
+}
+
+impl ParserRuntimeRequirementsData {
+  pub fn new(runtime_template: &ModuleCodegenRuntimeTemplate) -> Self {
+    let require_name =
+      runtime_template.render_runtime_globals_without_adding(&RuntimeGlobals::REQUIRE);
+    let module_name =
+      runtime_template.render_runtime_globals_without_adding(&RuntimeGlobals::MODULE);
+    let exports_name =
+      runtime_template.render_runtime_globals_without_adding(&RuntimeGlobals::EXPORTS);
+    Self {
+      require_regex: Regex::new(&format!("{}\\s*(!?\\.)", &require_name))
+        .expect("should init `REQUIRE_FUNCTION_REGEX`"),
+      module: module_name,
+      exports: exports_name,
+      require: require_name,
+    }
   }
 }
 
@@ -229,6 +257,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     });
 
     let unresolved_mark = ast.get_context().unresolved_mark;
+    let parser_runtime_requirements = ParserRuntimeRequirementsData::new(runtime_template);
 
     let ScanDependenciesResult {
       dependencies,
@@ -253,7 +282,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         unresolved_mark,
         &mut self.parser_plugins,
         parse_meta,
-        runtime_template,
+        &parser_runtime_requirements,
       )
     }) {
       Ok(result) => result,

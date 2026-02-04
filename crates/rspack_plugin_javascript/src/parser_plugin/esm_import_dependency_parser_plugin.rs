@@ -74,7 +74,6 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
       } else {
         "".into()
       },
-      None,
     )));
     parser.unset_asi_position(import_decl.span_hi());
     Some(true)
