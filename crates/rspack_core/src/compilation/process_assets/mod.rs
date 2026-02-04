@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 
 use super::*;
-use crate::{compilation::pass::PassExt, logger::Logger};
+use crate::compilation::pass::PassExt;
 
 pub struct ProcessAssetsPass;
 
@@ -14,11 +14,7 @@ impl PassExt for ProcessAssetsPass {
   async fn run_pass(&self, compilation: &mut Compilation) -> Result<()> {
     let plugin_driver = compilation.plugin_driver.clone();
     compilation.process_assets(plugin_driver.clone()).await?;
-
-    let logger = compilation.get_logger("rspack.Compilation");
-    let start = logger.time("after process assets");
     compilation.after_process_assets(plugin_driver).await?;
-    logger.time_end(start);
     Ok(())
   }
 }
