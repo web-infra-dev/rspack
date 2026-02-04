@@ -106,8 +106,6 @@ impl ESMImportSpecifierDependency {
       .map_or_else(|| self.ids.as_slice(), |meta| meta.ids.as_slice())
   }
 
-  // Removed get_esm_import_specifier_referenced_exports
-
   pub fn get_referenced_exports_in_destructuring(
     &self,
     ids: Option<&[Atom]>,
