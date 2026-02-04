@@ -1,4 +1,7 @@
-use std::{borrow::Cow, sync::Arc};
+use std::{
+  borrow::Cow,
+  sync::{Arc, LazyLock},
+};
 
 use regex::Regex;
 use rspack_cacheable::{cacheable, cacheable_dyn, with::Skip};
@@ -45,8 +48,12 @@ pub struct ParserRuntimeRequirementsData {
   pub module: String,
   pub exports: String,
   pub require: String,
-  pub require_regex: Regex,
+  pub require_regex: &'static LazyLock<Regex>,
 }
+
+static LEGACY_REQUIRE_REGEX: LazyLock<Regex> = LazyLock::new(|| {
+  Regex::new("__webpack_require__\\s*(!?\\.)").expect("should init `REQUIRE_FUNCTION_REGEX`")
+});
 
 impl ParserRuntimeRequirementsData {
   pub fn new(runtime_template: &ModuleCodegenRuntimeTemplate) -> Self {
@@ -57,8 +64,7 @@ impl ParserRuntimeRequirementsData {
     let exports_name =
       runtime_template.render_runtime_globals_without_adding(&RuntimeGlobals::EXPORTS);
     Self {
-      require_regex: Regex::new(&format!("{}\\s*(!?\\.)", &require_name))
-        .expect("should init `REQUIRE_FUNCTION_REGEX`"),
+      require_regex: &LEGACY_REQUIRE_REGEX,
       module: module_name,
       exports: exports_name,
       require: require_name,
