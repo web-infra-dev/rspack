@@ -14,6 +14,8 @@ describe('build command', () => {
       const { exitCode, stderr, stdout } = await run(
         __dirname,
         ['--mode', 'development'],
+        {},
+        {},
         false,
       );
 
@@ -26,6 +28,8 @@ describe('build command', () => {
     const { exitCode, stderr, stdout } = await run(
       __dirname,
       ['--config', './entry.function.js'],
+      {},
+      {},
       false,
     );
     expect(exitCode).toBe(0);
@@ -38,6 +42,8 @@ describe('build command', () => {
       const { stdout } = await run(
         __dirname,
         ['--config', './entry.env.js'],
+        {},
+        {},
         false,
       );
       expect(stdout).toContain('RSPACK_BUILD=true');
@@ -66,6 +72,8 @@ describe('build command', () => {
     const { exitCode, stderr, stdout } = await run(
       __dirname,
       ['--config', './entry.promise.js'],
+      {},
+      {},
       false,
     );
     expect(exitCode).toBe(0);
@@ -76,6 +84,8 @@ describe('build command', () => {
     const { exitCode, stderr, stdout } = await run(
       __dirname,
       ['--config', './entry.config.mjs'],
+      {},
+      {},
       false,
     );
     expect(exitCode).toBe(0);
@@ -93,6 +103,8 @@ describe('build command', () => {
         '--output-path',
         'dist/priority',
       ],
+      {},
+      {},
       false,
     );
     const mainJs = await readFile(
@@ -113,6 +125,8 @@ describe('build command', () => {
       const { exitCode, stderr, stdout } = await run(
         __dirname,
         [command, 'dist/public', '--config', './entry.config.js'],
+        {},
+        {},
         false,
       );
       const mainJs = await readFile(
@@ -140,6 +154,8 @@ describe('build command', () => {
       const { exitCode, stderr, stdout } = await run(
         __dirname,
         [command, option, '--config', './entry.config.js'],
+        {},
+        {},
         false,
       );
 
