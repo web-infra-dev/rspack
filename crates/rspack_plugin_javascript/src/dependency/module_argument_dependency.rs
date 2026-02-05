@@ -1,7 +1,8 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   Compilation, DependencyCodeGeneration, DependencyLocation, DependencyRange, DependencyTemplate,
-  DependencyTemplateType, RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource,
+  DependencyTemplateType, InitFragmentExt, InitFragmentKey, InitFragmentStage, ModuleArgument,
+  NormalInitFragment, RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource,
 };
 use rspack_util::ext::DynHash;
 
@@ -67,16 +68,17 @@ impl DependencyTemplate for ModuleArgumentDependencyTemplate {
       compilation,
       module,
       runtime_template,
+      init_fragments,
       ..
     } = code_generatable_context;
 
-    let module_argument = runtime_template.render_module_argument(
-      compilation
-        .get_module_graph()
-        .module_by_identifier(&module.identifier())
-        .expect("should have mgm")
-        .get_module_argument(),
-    );
+    let module_argument_value = compilation
+      .get_module_graph()
+      .module_by_identifier(&module.identifier())
+      .expect("should have mgm")
+      .get_module_argument();
+
+    let module_argument = runtime_template.render_module_argument(module_argument_value);
 
     let content = if let Some(id) = &dep.id {
       match id.as_str() {
@@ -89,9 +91,52 @@ impl DependencyTemplate for ModuleArgumentDependencyTemplate {
         _ => {}
       };
 
-      format!("{module_argument}.{id}")
+      // Check if there's a collision (user declared "module" at top level)
+      // In that case, module_argument will be RspackModule instead of Module
+      if module_argument_value == ModuleArgument::RspackModule {
+        // There's a collision - user declared "module", so we need to use an internal variable
+        let internal_var = format!("__webpack_internal_module_{id}__");
+        
+        // Add init fragment to declare the internal variable
+        init_fragments.push(
+          NormalInitFragment::new(
+            format!("var {internal_var} = {module_argument}.{id};\n"),
+            InitFragmentStage::StageConstants,
+            0,
+            InitFragmentKey::Const(internal_var.clone()),
+            None,
+          )
+          .boxed(),
+        );
+        
+        internal_var
+      } else {
+        // No collision - use normal approach
+        format!("{module_argument}.{id}")
+      }
     } else {
-      module_argument
+      // For __webpack_module__ without property access
+      if module_argument_value == ModuleArgument::RspackModule {
+        // There's a collision
+        let internal_var = "__webpack_internal_module__".to_string();
+        
+        // Add init fragment to declare the internal variable
+        init_fragments.push(
+          NormalInitFragment::new(
+            format!("var {internal_var} = {module_argument};\n"),
+            InitFragmentStage::StageConstants,
+            0,
+            InitFragmentKey::Const(internal_var.clone()),
+            None,
+          )
+          .boxed(),
+        );
+        
+        internal_var
+      } else {
+        // No collision
+        module_argument
+      }
     };
 
     source.replace(dep.range.start, dep.range.end, content.as_str(), None);
