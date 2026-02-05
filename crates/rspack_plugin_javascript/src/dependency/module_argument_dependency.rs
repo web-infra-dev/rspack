@@ -95,7 +95,11 @@ impl DependencyTemplate for ModuleArgumentDependencyTemplate {
       // In that case, module_argument will be RspackModule instead of Module
       if module_argument_value == ModuleArgument::RspackModule {
         // There's a collision - user declared "module", so we need to use an internal variable
-        let internal_var = format!("__webpack_internal_module_{id}__");
+        let internal_var = match id.as_str() {
+          "id" => "__webpack_internal_module_id__",
+          "loaded" => "__webpack_internal_module_loaded__",
+          _ => "__webpack_internal_module_property__",
+        };
         
         // Add init fragment to declare the internal variable
         init_fragments.push(
@@ -103,13 +107,13 @@ impl DependencyTemplate for ModuleArgumentDependencyTemplate {
             format!("var {internal_var} = {module_argument}.{id};\n"),
             InitFragmentStage::StageConstants,
             0,
-            InitFragmentKey::Const(internal_var.clone()),
+            InitFragmentKey::Const(internal_var.to_string()),
             None,
           )
           .boxed(),
         );
         
-        internal_var
+        internal_var.to_string()
       } else {
         // No collision - use normal approach
         format!("{module_argument}.{id}")
