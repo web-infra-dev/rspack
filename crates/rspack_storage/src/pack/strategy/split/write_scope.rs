@@ -1,4 +1,3 @@
-use async_trait::async_trait;
 use futures::future::join_all;
 use itertools::Itertools;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
@@ -17,18 +16,17 @@ use crate::{
   fs::BatchFSError,
   pack::{
     data::{Pack, PackScope},
-    strategy::{PackWriteStrategy, ScopeUpdate, ScopeWriteStrategy, WriteScopeResult},
+    strategy::{ScopeUpdate, WriteScopeResult},
   },
 };
 
-#[async_trait]
-impl ScopeWriteStrategy for SplitPackStrategy {
-  async fn before_all(&self, scopes: &mut HashMap<String, PackScope>) -> Result<()> {
+impl SplitPackStrategy {
+  pub async fn before_all(&self, scopes: &mut HashMap<String, PackScope>) -> Result<()> {
     prepare_scope_dirs(scopes, &self.root, &self.temp_root, self.fs.clone()).await?;
     Ok(())
   }
 
-  async fn merge_changed(&self, changed: WriteScopeResult) -> Result<()> {
+  pub async fn merge_changed(&self, changed: WriteScopeResult) -> Result<()> {
     // remove files with `.lock`
     write_lock(
       "remove.lock",
@@ -63,7 +61,7 @@ impl ScopeWriteStrategy for SplitPackStrategy {
     Ok(())
   }
 
-  async fn after_all(&self, scopes: &mut HashMap<String, PackScope>) -> Result<()> {
+  pub async fn after_all(&self, scopes: &mut HashMap<String, PackScope>) -> Result<()> {
     for scope in scopes.values_mut() {
       flag_scope_wrote(scope);
     }
@@ -71,7 +69,7 @@ impl ScopeWriteStrategy for SplitPackStrategy {
     Ok(())
   }
 
-  async fn update_scope(&self, scope: &mut PackScope, updates: ScopeUpdate) -> Result<()> {
+  pub async fn update_scope(&self, scope: &mut PackScope, updates: ScopeUpdate) -> Result<()> {
     if !scope.loaded() {
       panic!("scope not loaded, run `load` first");
     }
@@ -162,7 +160,7 @@ impl ScopeWriteStrategy for SplitPackStrategy {
     Ok(())
   }
 
-  async fn release_scope(&self, scope: &mut PackScope) -> Result<()> {
+  pub async fn release_scope(&self, scope: &mut PackScope) -> Result<()> {
     if let Some(release_generation) = self.release_generation {
       let meta = scope.meta.expect_value();
       let packs = scope.packs.expect_value_mut();
@@ -179,7 +177,7 @@ impl ScopeWriteStrategy for SplitPackStrategy {
     Ok(())
   }
 
-  async fn optimize_scope(&self, scope: &mut PackScope) -> Result<()> {
+  pub async fn optimize_scope(&self, scope: &mut PackScope) -> Result<()> {
     if !scope.loaded() {
       panic!("scope not loaded, run `load` first");
     }
@@ -237,7 +235,7 @@ impl ScopeWriteStrategy for SplitPackStrategy {
     Ok(())
   }
 
-  async fn write_packs(&self, scope: &mut PackScope) -> Result<WriteScopeResult> {
+  pub async fn write_packs(&self, scope: &mut PackScope) -> Result<WriteScopeResult> {
     let removed_files = std::mem::take(&mut scope.removed);
     let packs = scope.packs.take_value().expect("should have scope packs");
     let meta = scope.meta.expect_value_mut();
@@ -286,7 +284,7 @@ impl ScopeWriteStrategy for SplitPackStrategy {
     })
   }
 
-  async fn write_meta(&self, scope: &mut PackScope) -> Result<WriteScopeResult> {
+  pub async fn write_meta(&self, scope: &mut PackScope) -> Result<WriteScopeResult> {
     let meta = scope.meta.expect_value();
     let path = redirect_to_path(&meta.path, &self.root, &self.temp_root)?;
     self
@@ -380,12 +378,9 @@ mod tests {
     pack::{
       SplitPackStrategy,
       data::{PackOptions, PackScope},
-      strategy::{
-        ScopeReadStrategy, ScopeWriteStrategy,
-        split::util::test_pack_utils::{
-          UpdateVal, clean_strategy, count_bucket_packs, count_scope_packs, create_strategies,
-          get_bucket_pack_sizes, mock_updates, save_scope,
-        },
+      strategy::split::util::test_pack_utils::{
+        UpdateVal, clean_strategy, count_bucket_packs, count_scope_packs, create_strategies,
+        get_bucket_pack_sizes, mock_updates, save_scope,
       },
     },
   };

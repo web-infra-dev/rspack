@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use async_trait::async_trait;
 use futures::future::join_all;
 use itertools::Itertools;
 use rspack_paths::{Utf8Path, Utf8PathBuf};
@@ -13,7 +12,7 @@ use crate::{
   pack::{
     ScopeUpdate,
     data::{Pack, PackFileMeta, PackOptions},
-    strategy::{PackReadStrategy, PackWriteStrategy, UpdatePacksResult, split::util::get_name},
+    strategy::{UpdatePacksResult, split::util::get_name},
   },
 };
 
@@ -36,9 +35,8 @@ impl PartialEq for PackItemCandidate {
   }
 }
 
-#[async_trait]
-impl PackWriteStrategy for SplitPackStrategy {
-  async fn optimize_packs(
+impl SplitPackStrategy {
+  pub async fn optimize_packs(
     &self,
     dir: Utf8PathBuf,
     options: &PackOptions,
@@ -59,7 +57,7 @@ impl PackWriteStrategy for SplitPackStrategy {
     })
   }
 
-  async fn update_packs(
+  pub async fn update_packs(
     &self,
     dir: Utf8PathBuf,
     generation: usize,
@@ -172,7 +170,7 @@ impl PackWriteStrategy for SplitPackStrategy {
     })
   }
 
-  async fn write_pack(&self, pack: &Pack) -> Result<()> {
+  pub async fn write_pack(&self, pack: &Pack) -> Result<()> {
     let path = redirect_to_path(&pack.path, &self.root, &self.temp_root)?;
     let keys = pack.keys.expect_value();
     let contents = pack.contents.expect_value();
@@ -393,7 +391,7 @@ mod tests {
     pack::{
       data::{Pack, PackFileMeta, PackOptions},
       strategy::{
-        PackWriteStrategy, SplitPackStrategy, UpdatePacksResult,
+        SplitPackStrategy, UpdatePacksResult,
         split::{
           handle_file::redirect_to_path,
           util::test_pack_utils::{UpdateVal, clean_strategy, create_strategies, mock_updates},

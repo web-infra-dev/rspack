@@ -85,8 +85,7 @@ pub mod test_pack_utils {
     pack::{
       data::{PackOptions, PackScope, current_time},
       strategy::{
-        ScopeUpdate, ScopeWriteStrategy, SplitPackStrategy, WriteScopeResult,
-        split::handle_file::prepare_scope,
+        ScopeUpdate, SplitPackStrategy, WriteScopeResult, split::handle_file::prepare_scope,
       },
     },
   };

@@ -1,16 +1,14 @@
-use async_trait::async_trait;
 use futures::{TryFutureExt, future::join_all};
 use itertools::Itertools;
 
 use super::{SplitPackStrategy, util::get_indexed_packs};
 use crate::{
   error::{Error, ErrorType, Result, ValidateResult},
-  pack::{data::PackScope, strategy::ScopeValidateStrategy},
+  pack::data::PackScope,
 };
 
-#[async_trait]
-impl ScopeValidateStrategy for SplitPackStrategy {
-  async fn validate_meta(&self, scope: &mut PackScope) -> Result<ValidateResult> {
+impl SplitPackStrategy {
+  pub async fn validate_meta(&self, scope: &mut PackScope) -> Result<ValidateResult> {
     let meta = scope.meta.expect_value();
 
     if meta.bucket_size != scope.options.bucket_size {
@@ -21,10 +19,10 @@ impl ScopeValidateStrategy for SplitPackStrategy {
       return Ok(ValidateResult::invalid("`options.packSize` changed"));
     }
 
-    return Ok(ValidateResult::Valid);
+    Ok(ValidateResult::Valid)
   }
 
-  async fn validate_packs(&self, scope: &mut PackScope) -> Result<ValidateResult> {
+  pub async fn validate_packs(&self, scope: &mut PackScope) -> Result<ValidateResult> {
     let (_, pack_list) = get_indexed_packs(scope, None);
 
     let tasks = pack_list
@@ -60,7 +58,7 @@ impl ScopeValidateStrategy for SplitPackStrategy {
       .collect::<Vec<_>>();
     invalid_packs.sort_by(|a, b| a.path.cmp(&b.path));
     if invalid_packs.is_empty() {
-      return Ok(ValidateResult::Valid);
+      Ok(ValidateResult::Valid)
     } else {
       let invalid_pack_paths = invalid_packs
         .iter()
@@ -87,7 +85,7 @@ mod tests {
     pack::{
       data::{PackOptions, PackScope, RootMeta, ScopeMeta},
       strategy::{
-        ScopeReadStrategy, ScopeValidateStrategy, ScopeWriteStrategy, SplitPackStrategy,
+        SplitPackStrategy,
         split::{
           handle_file::prepare_scope,
           util::{
