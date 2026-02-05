@@ -107,6 +107,11 @@ function compatibleFetch(
         });
       });
 
+      req.setTimeout(30000, () => {
+        console.error(`[HTTP-CLIENT-FETCH] Request timeout (30s): ${url}`);
+        req.destroy(new Error(`Request timeout: ${url}`));
+      });
+
       req.on('error', (e) => {
         console.error(`[HTTP-CLIENT-FETCH] Request error: ${url}`, e);
         reject(e);
@@ -118,13 +123,21 @@ function compatibleFetch(
           `[HTTP-CLIENT-FETCH] Socket info: connecting=${socket.connecting}, destroyed=${socket.destroyed}, pending=${socket.pending}`,
         );
 
+        if (!socket.connecting && !socket.readable && socket.destroyed) {
+          console.error(`[HTTP-CLIENT-FETCH] Socket already destroyed: ${url}`);
+          req.destroy(new Error(`Socket already destroyed for ${url}`));
+          return;
+        }
+
+        socket.setTimeout(30000);
+
         socket.on('connect', () => {
           console.log(`[HTTP-CLIENT-FETCH] Socket connected: ${url}`);
         });
 
         socket.on('timeout', () => {
           console.error(`[HTTP-CLIENT-FETCH] Socket timeout: ${url}`);
-          socket.destroy();
+          req.destroy(new Error(`Socket timeout: ${url}`));
         });
 
         socket.on('end', () => {
