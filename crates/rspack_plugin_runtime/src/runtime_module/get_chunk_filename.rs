@@ -3,7 +3,7 @@ use std::{cmp::Ordering, fmt};
 use indexmap::IndexMap;
 use itertools::Itertools;
 use rspack_cacheable::with::Unsupported;
-use rspack_collections::{DatabaseItem, Identifier, UkeyIndexMap, UkeyIndexSet};
+use rspack_collections::{DatabaseItem, UkeyIndexMap, UkeyIndexSet};
 use rspack_core::{
   Chunk, ChunkGraph, ChunkUkey, Compilation, Filename, PathData, RuntimeGlobals, RuntimeModule,
   RuntimeTemplate, SourceType, get_filename_without_hash_length, has_hash_placeholder,
@@ -20,8 +20,6 @@ type GetFilenameForChunk = Box<dyn Fn(&Chunk, &Compilation) -> Option<Filename> 
 
 #[impl_runtime_module]
 pub struct GetChunkFilenameRuntimeModule {
-  id: Identifier,
-  chunk: Option<ChunkUkey>,
   #[cacheable(with=Unsupported)]
   content_type: &'static str,
   source_type: SourceType,
@@ -60,12 +58,9 @@ impl GetChunkFilenameRuntimeModule {
     all_chunks: F,
     filename_for_chunk: T,
   ) -> Self {
-    Self::with_default(
-      Identifier::from(format!(
-        "{}get {name} chunk filename",
-        runtime_template.runtime_module_prefix()
-      )),
-      None,
+    Self::with_name(
+      runtime_template,
+      &format!("get {name} chunk filename"),
       content_type,
       source_type,
       global,
@@ -77,10 +72,6 @@ impl GetChunkFilenameRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for GetChunkFilenameRuntimeModule {
-  fn name(&self) -> Identifier {
-    self.id
-  }
-
   fn template(&self) -> Vec<(String, String)> {
     vec![(
       self.id.to_string(),
@@ -395,10 +386,6 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
     })))?;
 
     Ok(source)
-  }
-
-  fn attach(&mut self, chunk: ChunkUkey) {
-    self.chunk = Some(chunk);
   }
 
   fn additional_runtime_requirements(&self, compilation: &Compilation) -> RuntimeGlobals {

@@ -19,6 +19,7 @@ dyn-clone = { workspace = true }
 either = { workspace = true }
 futures = { workspace = true }
 hashlink = { workspace = true }
+heck = { workspace = true }
 hex = { workspace = true }
 indexmap = { workspace = true, features = ["rayon"] }
 indoc = { workspace = true }

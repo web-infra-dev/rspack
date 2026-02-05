@@ -772,6 +772,7 @@ pub struct JsAddingRuntimeModule {
 impl From<JsAddingRuntimeModule> for RuntimeModuleFromJs {
   fn from(value: JsAddingRuntimeModule) -> Self {
     Self {
+      chunk: None,
       id: Identifier::from(value.name),
       full_hash: value.full_hash,
       dependent_hash: value.dependent_hash,

@@ -2,9 +2,8 @@ use std::sync::LazyLock;
 
 use hashlink::{LinkedHashMap, LinkedHashSet};
 use itertools::Itertools;
-use rspack_collections::Identifier;
 use rspack_core::{
-  ChunkUkey, Compilation, ModuleId, RuntimeGlobals, RuntimeModule, RuntimeTemplate, SourceType,
+  Compilation, ModuleId, RuntimeGlobals, RuntimeModule, RuntimeTemplate, SourceType,
   impl_runtime_module,
 };
 use rspack_plugin_runtime::extract_runtime_globals_from_ejs;
@@ -20,30 +19,17 @@ static INITIALIZE_SHARING_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
 #[impl_runtime_module]
 #[derive(Debug)]
 pub struct ShareRuntimeModule {
-  id: Identifier,
-  chunk: Option<ChunkUkey>,
   enhanced: bool,
 }
 
 impl ShareRuntimeModule {
   pub fn new(runtime_template: &RuntimeTemplate, enhanced: bool) -> Self {
-    Self::with_default(
-      Identifier::from(format!(
-        "{}sharing",
-        runtime_template.runtime_module_prefix()
-      )),
-      None,
-      enhanced,
-    )
+    Self::with_name(runtime_template, "sharing", enhanced)
   }
 }
 
 #[async_trait::async_trait]
 impl RuntimeModule for ShareRuntimeModule {
-  fn name(&self) -> Identifier {
-    self.id
-  }
-
   fn template(&self) -> Vec<(String, String)> {
     vec![(self.id.to_string(), INITIALIZE_SHARING_TEMPLATE.to_string())]
   }
@@ -92,11 +78,12 @@ impl RuntimeModule for ShareRuntimeModule {
             DataInitInfo::ExternalModuleId(Some(id)) => json_stringify(&id),
             DataInitInfo::ProvideSharedInfo(info) => {
               let mut stage = format!(
-                "{{ name: {}, version: {}, factory: {}, eager: {}",
+                "{{ name: {}, version: {}, factory: {}, eager: {}, treeShakingMode: {}",
                 json_stringify(&info.name),
                 json_stringify(&info.version.to_string()),
                 info.factory,
                 if info.eager { "1" } else { "0" },
+                json_stringify(&info.tree_shaking_mode),
               );
               if self.enhanced {
                 if let Some(singleton) = info.singleton {
@@ -152,10 +139,6 @@ impl RuntimeModule for ShareRuntimeModule {
     ))
   }
 
-  fn attach(&mut self, chunk: ChunkUkey) {
-    self.chunk = Some(chunk);
-  }
-
   fn additional_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
     *INITIALIZE_SHARING_RUNTIME_REQUIREMENTS
   }
@@ -190,4 +173,5 @@ pub struct ProvideSharedInfo {
   pub singleton: Option<bool>,
   pub required_version: Option<ConsumeVersion>,
   pub strict_version: Option<bool>,
+  pub tree_shaking_mode: Option<String>,
 }

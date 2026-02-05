@@ -51,6 +51,7 @@ fn create_commonjs_require_context_dependency(
     end: span.real_hi(),
     referenced_exports: None,
     attributes: None,
+    phase: None,
   };
   let mut dep = CommonJsRequireContextDependency::new(
     options,
@@ -96,6 +97,7 @@ fn create_require_resolve_context_dependency(
     end,
     referenced_exports: None,
     attributes: None,
+    phase: None,
   };
   RequireResolveContextDependency::new(options, range, parser.in_try)
 }
@@ -397,6 +399,7 @@ impl CommonJsImportsParserPlugin {
         end,
         referenced_exports: None,
         attributes: None,
+        phase: None,
       },
       DependencyRange::from(span)
         .to_loc(Some(parser.source()))

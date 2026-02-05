@@ -4,6 +4,7 @@ use std::{
 };
 
 use cow_utils::CowUtils;
+use heck::ToSnakeCase;
 use itertools::Itertools;
 use regex::{Captures, Regex};
 use rspack_collections::Identifier;
@@ -229,6 +230,23 @@ impl RuntimeTemplate {
     "webpack/runtime/"
   }
 
+  pub fn create_runtime_module_identifier(&self, name: &str) -> Identifier {
+    let module_name = if let Some(name) = name.strip_suffix("RuntimeModule") {
+      name
+    } else {
+      name
+    };
+    Identifier::from(format!(
+      "{}{}",
+      self.runtime_module_prefix(),
+      module_name.to_snake_case()
+    ))
+  }
+
+  pub fn create_custom_runtime_module_identifier(&self, custom: &str) -> Identifier {
+    Identifier::from(format!("{}{custom}", self.runtime_module_prefix()))
+  }
+
   pub fn create_module_codegen_runtime_template(&self) -> ModuleCodegenRuntimeTemplate {
     ModuleCodegenRuntimeTemplate::new(self.compiler_options.clone())
   }
@@ -430,10 +448,10 @@ where
 
 pub fn render_make_deferred_namespace_mode_from_exports_type(exports_type: ExportsType) -> String {
   match exports_type {
-    ExportsType::Namespace => "0".to_string(),
-    ExportsType::DefaultOnly => "1".to_string(),
+    ExportsType::Namespace => "8".to_string(),
+    ExportsType::DefaultOnly => "0".to_string(),
     ExportsType::DefaultWithNamed => "2".to_string(),
-    ExportsType::Dynamic => "3".to_string(),
+    ExportsType::Dynamic => "6".to_string(),
   }
 }
 
@@ -465,7 +483,7 @@ pub fn get_exports_type_with_strict(
     .get_exports_type(module_graph, module_graph_cache, strict)
 }
 
-fn get_outgoing_async_modules(
+pub fn get_outgoing_async_modules(
   compilation: &Compilation,
   module: &dyn Module,
 ) -> FxIndexSet<ModuleId> {
@@ -1255,7 +1273,10 @@ impl ModuleCodegenRuntimeTemplate {
     let mut appending;
 
     if phase.is_defer() && !target_module.build_meta().has_top_level_await {
-      let mode = render_make_deferred_namespace_mode_from_exports_type(exports_type);
+      let mode = format!(
+        "{} | 16",
+        render_make_deferred_namespace_mode_from_exports_type(exports_type)
+      );
       let async_deps = get_outgoing_async_modules(compilation, target_module.as_ref());
       if !async_deps.is_empty() {
         if let Some(header) = header {

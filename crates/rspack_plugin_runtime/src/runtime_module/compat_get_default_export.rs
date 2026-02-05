@@ -1,6 +1,5 @@
 use std::sync::LazyLock;
 
-use rspack_collections::Identifier;
 use rspack_core::{
   Compilation, RuntimeGlobals, RuntimeModule, RuntimeTemplate, impl_runtime_module,
 };
@@ -14,25 +13,16 @@ static COMPAT_GET_DEFAULT_EXPORT_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> 
 
 #[impl_runtime_module]
 #[derive(Debug)]
-pub struct CompatGetDefaultExportRuntimeModule {
-  id: Identifier,
-}
+pub struct CompatGetDefaultExportRuntimeModule {}
 
 impl CompatGetDefaultExportRuntimeModule {
   pub fn new(runtime_template: &RuntimeTemplate) -> Self {
-    Self::with_default(Identifier::from(format!(
-      "{}compat_get_default_export",
-      runtime_template.runtime_module_prefix()
-    )))
+    Self::with_default(runtime_template)
   }
 }
 
 #[async_trait::async_trait]
 impl RuntimeModule for CompatGetDefaultExportRuntimeModule {
-  fn name(&self) -> Identifier {
-    self.id
-  }
-
   fn template(&self) -> Vec<(String, String)> {
     vec![(
       self.id.to_string(),

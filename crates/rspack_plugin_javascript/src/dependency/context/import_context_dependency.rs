@@ -1,4 +1,5 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
+use rspack_collections::Identifier;
 use rspack_core::{
   AsModuleDependency, ContextDependency, ContextOptions, Dependency, DependencyCategory,
   DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
@@ -11,6 +12,16 @@ use swc_core::atoms::Atom;
 use super::{
   context_dependency_template_as_require_call, create_resource_identifier_for_context_dependency,
 };
+
+fn create_resource_identifier(options: &ContextOptions) -> Identifier {
+  let mut resource_identifier =
+    create_resource_identifier_for_context_dependency(None, options).to_string();
+  if let Some(attributes) = &options.attributes {
+    resource_identifier
+      .push_str(&serde_json::to_string(attributes).expect("json stringify failed"));
+  }
+  resource_identifier.into()
+}
 
 #[cacheable]
 #[derive(Debug, Clone)]
@@ -32,26 +43,21 @@ impl ImportContextDependency {
     value_range: DependencyRange,
     optional: bool,
   ) -> Self {
-    let mut resource_identifier =
-      create_resource_identifier_for_context_dependency(None, &options).to_string();
-    if let Some(attributes) = &options.attributes {
-      resource_identifier
-        .push_str(&serde_json::to_string(attributes).expect("json stringify failed"));
-    }
     Self {
-      options,
+      id: DependencyId::new(),
+      resource_identifier: create_resource_identifier(&options),
       range,
       value_range,
-      id: DependencyId::new(),
-      resource_identifier: resource_identifier.into(),
       optional,
       critical: None,
       factorize_info: Default::default(),
+      options,
     }
   }
 
   pub fn set_referenced_exports(&mut self, referenced_exports: Vec<Vec<Atom>>) {
     self.options.referenced_exports = Some(referenced_exports);
+    self.resource_identifier = create_resource_identifier(&self.options);
   }
 }
 

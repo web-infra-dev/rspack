@@ -68,7 +68,7 @@ impl Snapshot {
 
   #[tracing::instrument("Cache::Snapshot::add", skip_all)]
   pub async fn add(&self, scope: SnapshotScope, paths: impl Iterator<Item = ArcPath>) {
-    let helper = Arc::new(StrategyHelper::new(self.fs.clone()));
+    let helper = Arc::new(StrategyHelper::new(self.fs.clone(), self.options.clone()));
     let codec = self.codec.clone();
     // TODO merge package version file
     paths
@@ -109,7 +109,7 @@ impl Snapshot {
     let mut modified_path = ArcPathSet::default();
     let mut deleted_path = ArcPathSet::default();
     let mut no_change_path = ArcPathSet::default();
-    let helper = Arc::new(StrategyHelper::new(self.fs.clone()));
+    let helper = Arc::new(StrategyHelper::new(self.fs.clone(), self.options.clone()));
     let codec = self.codec.clone();
 
     let data = self.storage.load(scope.name()).await?;

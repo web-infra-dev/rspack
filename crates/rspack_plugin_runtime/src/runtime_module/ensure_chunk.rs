@@ -1,6 +1,5 @@
-use rspack_collections::Identifier;
 use rspack_core::{
-  ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeTemplate, impl_runtime_module,
+  Compilation, RuntimeGlobals, RuntimeModule, RuntimeTemplate, impl_runtime_module,
 };
 
 use crate::get_chunk_runtime_requirements;
@@ -8,21 +7,12 @@ use crate::get_chunk_runtime_requirements;
 #[impl_runtime_module]
 #[derive(Debug)]
 pub struct EnsureChunkRuntimeModule {
-  id: Identifier,
-  chunk: Option<ChunkUkey>,
   has_async_chunks: bool,
 }
 
 impl EnsureChunkRuntimeModule {
   pub fn new(runtime_template: &RuntimeTemplate, has_async_chunks: bool) -> Self {
-    Self::with_default(
-      Identifier::from(format!(
-        "{}ensure_chunk",
-        runtime_template.runtime_module_prefix()
-      )),
-      None,
-      has_async_chunks,
-    )
+    Self::with_default(runtime_template, has_async_chunks)
   }
 }
 
@@ -42,10 +32,6 @@ impl EnsureChunkRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for EnsureChunkRuntimeModule {
-  fn name(&self) -> Identifier {
-    self.id
-  }
-
   fn template(&self) -> Vec<(String, String)> {
     vec![
       (
@@ -82,10 +68,6 @@ impl RuntimeModule for EnsureChunkRuntimeModule {
     };
 
     Ok(source)
-  }
-
-  fn attach(&mut self, chunk: ChunkUkey) {
-    self.chunk = Some(chunk);
   }
 
   fn additional_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {

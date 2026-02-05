@@ -47,11 +47,6 @@ return module.exports;
 // expose the modules object (__webpack_modules__)
 __webpack_require__.m = __webpack_modules__;
 
-// esm library register module runtime
-(() => {
-__webpack_require__.add = function registerModules(modules) { Object.assign(__webpack_require__.m, modules) }
-
-})();
 // webpack/runtime/esm_module_decorator
 (() => {
 __webpack_require__.hmd = (module) => {
@@ -65,6 +60,11 @@ __webpack_require__.hmd = (module) => {
   });
   return module;
 };
+})();
+// webpack/runtime/esm_register_module
+(() => {
+__webpack_require__.add = function registerModules(modules) { Object.assign(__webpack_require__.m, modules) }
+
 })();
 // webpack/runtime/make_namespace_object
 (() => {

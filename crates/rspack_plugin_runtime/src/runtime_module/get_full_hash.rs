@@ -1,27 +1,17 @@
-use rspack_collections::Identifier;
 use rspack_core::{Compilation, RuntimeModule, RuntimeTemplate, impl_runtime_module};
 
 #[impl_runtime_module]
 #[derive(Debug)]
-pub struct GetFullHashRuntimeModule {
-  id: Identifier,
-}
+pub struct GetFullHashRuntimeModule {}
 
 impl GetFullHashRuntimeModule {
   pub fn new(runtime_template: &RuntimeTemplate) -> Self {
-    Self::with_default(Identifier::from(format!(
-      "{}get_full_hash",
-      runtime_template.runtime_module_prefix()
-    )))
+    Self::with_default(runtime_template)
   }
 }
 
 #[async_trait::async_trait]
 impl RuntimeModule for GetFullHashRuntimeModule {
-  fn name(&self) -> Identifier {
-    self.id
-  }
-
   fn template(&self) -> Vec<(String, String)> {
     vec![(
       self.id.to_string(),

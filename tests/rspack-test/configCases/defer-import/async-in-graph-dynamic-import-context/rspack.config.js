@@ -3,11 +3,12 @@
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	target: [`async-node${process.versions.node.split(".").map(Number)[0]}`],
-	entry: ["../defer-runtime/all-native-syntax.js"],
-	optimization: {
-		concatenateModules: false
-	},
+	mode: "none",
 	experiments: {
 		deferImport: true
+	},
+	optimization: {
+		moduleIds: "named",
+		chunkIds: "named"
 	}
 };

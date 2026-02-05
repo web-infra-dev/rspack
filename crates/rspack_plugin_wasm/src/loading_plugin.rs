@@ -45,7 +45,6 @@ async fn fetch_compile_async_wasm_plugin_runtime_requirements_in_tree(
           .render_runtime_globals(&RuntimeGlobals::PUBLIC_PATH)
       ),
       true,
-      *chunk_ukey,
     )
     .boxed(),
   ));
@@ -108,7 +107,6 @@ async fn read_file_compile_async_wasm_plugin_runtime_requirements_in_tree(
         include_str!("runtime/read_file_compile_async_wasm.js").to_string()
       },
       false,
-      *chunk_ukey,
     )
     .boxed(),
   ));
@@ -202,7 +200,6 @@ var wasmUrl = $PATH;"#
       generate_before_load_binary_code,
       generate_before_instantiate_streaming,
       true, // supports_streaming
-      *chunk_ukey,
     )
     .boxed(),
   ));

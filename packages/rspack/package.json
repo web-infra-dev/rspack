@@ -70,7 +70,7 @@
     "@rspack/lite-tapable": "1.1.0"
   },
   "peerDependencies": {
-    "@module-federation/runtime-tools": ">=0.22.0",
+    "@module-federation/runtime-tools": "0.24.1",
     "@swc/helpers": ">=0.5.1"
   },
   "peerDependenciesMeta": {

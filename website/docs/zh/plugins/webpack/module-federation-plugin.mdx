@@ -146,6 +146,10 @@ export default {
     singleton?: boolean;
     strictVersion?: boolean;
     version?: false | string;
+    treeShaking?: {
+      mode: 'runtime-infer' | 'server-calc';
+      usedExports?: string[];
+    };
   }
   ```
 
@@ -162,10 +166,15 @@ export default {
 - singleton：确保共享模块在不同版本间只会被加载一次，遵守单例模式。这对于一些设计为单例运行的库（如 React）是很有必要的，因为这样可以避免由于实例化了多个库实例而导致的各种问题。
 - strictVersion：用来强化 `requiredVersion`。如果设置为 `true`，那么必须精确地匹配 `requiredVersion` 中规定的版本，否则共享模块会报错并且不会加载该模块。如果设置为 `false`，那么可以容忍不精确的匹配。
 - version：显式地设置共享模块的版本。默认会使用 `package.json` 中的版本。
+- treeShaking：配置 shared 依赖的 treeshaking 行为。通过开启 shared 依赖的 treeshaking，可以减少共享依赖的体积。
+  - usedExports：手动**添加**共享依赖被使用的导出成员。
+  - mode：配置 treeshaking 的加载策略。
+    - `runtime-infer`: 根据消费方的 `usedExports` 进行推断，如果提供方的 `usedExports` 符合当前消费方的 `usedExports`，那么就会使用提供方的 `shared`，否则会使用消费方自身的 `shared`，如果都不满足，就使用全量的。
+    - `server-calc`: 根据服务端下发的 snapshot 来决定是否加载共享依赖。
 
 ### manifest
 
-<ApiMeta addedVersion="1.6.0-beta.0" />
+<ApiMeta addedVersion="1.6.1" />
 
 - 类型：
   ```ts
@@ -187,6 +196,73 @@ export default {
 - filePath：manifest 文件路径，设置后同时作用于 stats 。
 - fileName：manifest 文件名称，如果设置了 `fileName`，对应的 stats 文件名会自动附加 `-stats` 后缀（例如 `fileName: 'mf.json'` 时会同时生成 `mf.json` 与 `mf-stats.json`）。所有文件都会写入 `filePath`（若配置）指定的子目录。
 - disableAssetsAnalyze：禁用产物分析，如果设置为 true ，那么 manifest 中将不会有 shared 、exposes 字段，且 remotes 中也不会有 assets 。
+
+### injectTreeShakingUsedExports
+
+<ApiMeta addedVersion="2.0.0" />
+
+是否将 shared 使用的 exports 注入到 bundler runtime 中。
+
+- 类型：`boolean`
+- 是否必填：否
+- 默认值：`undefined`
+
+此选项用于控制是否将共享模块中实际使用的导出信息注入到打包器的运行时中，以便进行更精确的依赖管理和优化。
+
+如果你使用的是 mode 为 'server-calc'，那么推荐将此选项设置为 `false`。
+
+### treeShakingDir
+
+用于输出 tree shaking 共享 fallback 资源的目录。
+
+- 类型：`string`
+- 是否必填：否
+- 默认值：`undefined`
+
+当启用共享依赖 tree shaking 功能时，Module Federation 会将未使用的共享模块导出拆分出来。该选项指定了这些 fallback 资源的输出目录。
+
+### treeShakingSharedExcludePlugins
+
+配置在构建共享依赖 tree shaking/fallback 过程中需要排除的插件名称。
+
+- 类型：`string[]`
+- 是否必填：否
+- 默认值：`['HtmlWebpackPlugin','HtmlRspackPlugin']`
+
+允许用户指定一组插件名称，这些插件在构建共享依赖 tree shaking/fallback 过程 时将被忽略或不参与处理。
+
+### treeShakingSharedPlugins
+
+允许用户显式指定哪些插件应该参与 shared 模块的第二次 treeshaking 过程。
+
+- 类型：`string[]`
+- 是否必填：否
+- 默认值：`undefined`
+
+如果设置了 `shared.treeShaking.mode` 为 'server-calc'，那么在部署服务中，会重新构建需要 tree shaking 的共享依赖，此时仅构建共享依赖，不会加载原项目的构建配置。
+如果你的项目有特殊的构建配置，例如设置了 externals ，那么你可以把这些构建配置集成到一个 NPM Package ，然后在 `treeShakingSharedPlugins` 中填写此插件的名称和版本，这样就可以在第二次 treeshaking 过程中参与 shared 模块的 treeshaking 过程。
+
+例如提供了一个插件 `my-build-plugin`，它会设置 `externals`：
+
+```ts title='my-build-plugin'
+class MyBuildPlugin {
+  apply(compiler) {
+    compiler.options.externals = {
+      react: 'React',
+    };
+  }
+}
+export default MyBuildPlugin;
+```
+
+将此插件发布的版本为 `0.0.2` ，那么此时只需要在 `treeShakingSharedPlugins` 中填写插件的名称和版本即可：
+
+```ts title='module-federation.config.ts'
+export default {
+  // ...
+  treeShakingSharedPlugins: ['my-build-plugin@0.0.2'],
+};
+```
 
 ## 常见问题
 

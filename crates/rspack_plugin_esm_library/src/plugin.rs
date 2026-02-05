@@ -32,7 +32,7 @@ use tokio::sync::RwLock;
 use crate::{
   chunk_link::ChunkLinkContext, dependency::dyn_import::DynamicImportDependencyTemplate,
   ensure_entry_exports::ensure_entry_exports, esm_lib_parser_plugin::EsmLibParserPlugin,
-  preserve_modules::preserve_modules, runtime::RegisterModuleRuntime,
+  preserve_modules::preserve_modules, runtime::EsmRegisterModuleRuntimeModule,
 };
 
 pub static RSPACK_ESM_RUNTIME_CHUNK: &str = "RSPACK_ESM_RUNTIME";
@@ -362,7 +362,7 @@ async fn additional_chunk_runtime_requirements(
 #[plugin_hook(CompilationRuntimeRequirementInTree for EsmLibraryPlugin)]
 async fn runtime_requirements_in_tree(
   &self,
-  _compilation: &Compilation,
+  compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
   _all_runtime_requirements: &RuntimeGlobals,
   runtime_requirements: &RuntimeGlobals,
@@ -370,7 +370,12 @@ async fn runtime_requirements_in_tree(
   runtime_modules_to_add: &mut Vec<(ChunkUkey, Box<dyn RuntimeModule>)>,
 ) -> Result<Option<()>> {
   if runtime_requirements.contains(RuntimeGlobals::REQUIRE) {
-    runtime_modules_to_add.push((*chunk_ukey, Box::new(RegisterModuleRuntime::default())));
+    runtime_modules_to_add.push((
+      *chunk_ukey,
+      Box::new(EsmRegisterModuleRuntimeModule::new(
+        &compilation.runtime_template,
+      )),
+    ));
   }
 
   Ok(None)

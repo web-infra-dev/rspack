@@ -6,42 +6,42 @@ const root = path.resolve(__dirname, "../../");
 process.env.NO_COLOR = '1';
 
 const setupFilesAfterEnv = [
-	"@rspack/test-tools/setup-env",
-	"@rspack/test-tools/setup-expect",
-	"./expects/stats-string-comparator.js",
+  "@rspack/test-tools/setup-env",
+  "@rspack/test-tools/setup-expect",
+  "./expects/stats-string-comparator.js",
 ];
 
 const wasmConfig = process.env.WASM && defineProject({
-	setupFiles: [...setupFilesAfterEnv, "@rspack/test-tools/setup-wasm"],
-	exclude: [
-		// Skip because they rely on snapshots
-		"Diagnostics.test.js",
-		"Error.test.js",
-		"StatsAPI.test.js",
-		"StatsOutput.test.js",
-		// Skip because the loader can not be loaded in CI
-		"Hot*.test.js",
+  setupFiles: [...setupFilesAfterEnv, "@rspack/test-tools/setup-wasm"],
+  exclude: [
+    // Skip because they rely on snapshots
+    "Diagnostics.test.js",
+    "Error.test.js",
+    "StatsAPI.test.js",
+    "StatsOutput.test.js",
+    // Skip because the loader can not be loaded in CI
+    "Hot*.test.js",
 
-		// Skip temporarily and should investigate in the future
-		"Cache.test.js",
-		"Compiler.test.js",
-		"MultiCompiler.test.js",
-		"Serial.test.js",
-		"Defaults.test.js",
-		"Example.test.js",
-		"Incremental-*.test.js",
-		"NativeWatcher*.test.js",
-	],
-	maxConcurrency: 1,
+    // Skip temporarily and should investigate in the future
+    "Cache.test.js",
+    "Compiler.test.js",
+    "MultiCompiler.test.js",
+    "Serial.test.js",
+    "Defaults.test.js",
+    "Example.test.js",
+    "Incremental-*.test.js",
+    "NativeWatcher*.test.js",
+  ],
+  maxConcurrency: 1,
 });
 
 const testFilter = process.argv.includes("--test") || process.argv.includes("-t")
-				? process.argv[
-				(process.argv.includes("-t")
-					? process.argv.indexOf("-t")
-					: process.argv.indexOf("--test")) + 1
-				]
-				: undefined;
+  ? process.argv[
+  (process.argv.includes("-t")
+    ? process.argv.indexOf("-t")
+    : process.argv.indexOf("--test")) + 1
+  ]
+  : undefined;
 
 const sharedConfig = defineProject({
 	setupFiles: setupFilesAfterEnv,

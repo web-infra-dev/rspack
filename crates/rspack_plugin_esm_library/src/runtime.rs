@@ -1,13 +1,15 @@
 use rspack_core::{
-  Compilation, ModuleIdentifier, RuntimeGlobals, RuntimeModule, RuntimeTemplate,
-  impl_runtime_module,
+  Compilation, RuntimeGlobals, RuntimeModule, RuntimeTemplate, impl_runtime_module,
 };
 
 #[impl_runtime_module]
-#[derive(Default, Debug)]
-pub(crate) struct RegisterModuleRuntime {}
+#[derive(Debug)]
+pub(crate) struct EsmRegisterModuleRuntimeModule {}
 
-impl RegisterModuleRuntime {
+impl EsmRegisterModuleRuntimeModule {
+  pub(crate) fn new(runtime_template: &RuntimeTemplate) -> Self {
+    Self::with_default(runtime_template)
+  }
   pub(crate) fn runtime_id(runtime_template: &RuntimeTemplate) -> String {
     format!(
       "{}.add",
@@ -17,11 +19,7 @@ impl RegisterModuleRuntime {
 }
 
 #[async_trait::async_trait]
-impl RuntimeModule for RegisterModuleRuntime {
-  fn name(&self) -> ModuleIdentifier {
-    "esm library register module runtime".into()
-  }
-
+impl RuntimeModule for EsmRegisterModuleRuntimeModule {
   async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
     Ok(format!(
       "{} = function registerModules(modules) {{ Object.assign({}, modules) }}\n",

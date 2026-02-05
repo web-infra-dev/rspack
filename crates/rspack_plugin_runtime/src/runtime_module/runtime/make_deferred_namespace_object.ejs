@@ -1,18 +1,12 @@
 <%- MAKE_DEFERRED_NAMESPACE_OBJECT %> = <%- basicFunction("moduleId, mode") %> {
-  // mode: 0 => namespace (esm)
-  // mode: 1 => default-only (esm strict cjs)
-  // mode: 2 => default-with-named (esm-cjs compat)
-  // mode: 3 => dynamic (if exports has __esModule, then esm, otherwise default-with-named)
   var cachedModule = <%- _module_cache %>[moduleId];
   if (cachedModule && cachedModule.error === undefined) {
     var exports = cachedModule.exports;
     <% if (_has_async) { %>
     if (<%- ASYNC_MODULE_EXPORT_SYMBOL %> in exports) exports = exports[<%- ASYNC_MODULE_EXPORT_SYMBOL %>];
     <% } %>
-    if (mode == 0) return exports;
-    if (mode == 1) return <%- CREATE_FAKE_NAMESPACE_OBJECT %>(exports);
-    if (mode == 2) return <%- CREATE_FAKE_NAMESPACE_OBJECT %>(exports, 2);
-    if (mode == 3) return <%- CREATE_FAKE_NAMESPACE_OBJECT %>(exports, 6);
+    if (mode & 8) return exports;
+    return <%- CREATE_FAKE_NAMESPACE_OBJECT %>(exports, mode);
   }
   var init = <%- basicFunction("") %> {
     ns = <%- REQUIRE %>(moduleId);
@@ -20,7 +14,7 @@
     if (<%- ASYNC_MODULE_EXPORT_SYMBOL %> in ns) ns = ns[<%- ASYNC_MODULE_EXPORT_SYMBOL %>];
     <% } %>
     init = null;
-    if (mode == 0 || mode == 3 && ns.__esModule && typeof ns === 'object') {
+    if (mode & 8 || mode & 4 && ns.__esModule && typeof ns === 'object') {
       delete handler.defineProperty;
       delete handler.deleteProperty;
       delete handler.set;
@@ -28,12 +22,8 @@
       delete handler.has;
       delete handler.ownKeys;
       delete handler.getOwnPropertyDescriptor;
-    } else if (mode == 1) {
-      ns = <%- CREATE_FAKE_NAMESPACE_OBJECT %>(ns);
-    } else if (mode == 2) {
-      ns = <%- CREATE_FAKE_NAMESPACE_OBJECT %>(ns, 2);
-    } else if (mode == 3) {
-      ns = <%- CREATE_FAKE_NAMESPACE_OBJECT %>(ns, 6);
+    } else {
+      ns = <%- CREATE_FAKE_NAMESPACE_OBJECT %>(ns, mode);
     }
   };
   var ns = __rspack_deferred_exports[moduleId] || (__rspack_deferred_exports[moduleId] = { __proto__: null });
@@ -64,13 +54,13 @@
     },
     getOwnPropertyDescriptor: <%- basicFunction("_, name") %> {
     	switch (name) {
-    		case "__esModule": return { value: true, configurable: !!mode };
-    		case Symbol.toStringTag: return { value: "Deferred Module", configurable: !!mode };
+    		case "__esModule": return { value: true, configurable: !(mode & 8) };
+    		case Symbol.toStringTag: return { value: "Deferred Module", configurable: !(mode & 8) };
     		case "then": return undefined;
     	}
     	if (init) init();
     	var desc = Reflect.getOwnPropertyDescriptor(ns, name);
-    	if (mode == 2 && name == "default" && !desc) {
+    	if (mode & 2 && name == "default" && !desc) {
     		desc = { value: ns, configurable: true };
     	}
     	return desc;

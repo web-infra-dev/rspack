@@ -38,7 +38,7 @@ url                             = { workspace = true }
 urlencoding                     = { workspace = true }
 
 [package.metadata.cargo-shear]
-ignored = ["tracing", "async-trait", "rspack_hash", "tokio"]
+ignored = ["tracing", "async-trait", "rspack_hash", "rspack_collections", "tokio"]
 
 [lints]
 workspace = true

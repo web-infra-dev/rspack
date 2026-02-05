@@ -36,6 +36,7 @@ pub struct ConsumeOptions {
   pub strict_version: bool,
   pub singleton: bool,
   pub eager: bool,
+  pub tree_shaking_mode: Option<String>,
 }
 
 #[cacheable]
@@ -54,21 +55,21 @@ impl fmt::Display for ConsumeVersion {
   }
 }
 
-static RELATIVE_REQUEST: LazyLock<Regex> =
+pub static RELATIVE_REQUEST: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"^\.\.?(\/|$)").expect("Invalid regex"));
-static ABSOLUTE_REQUEST: LazyLock<Regex> =
+pub static ABSOLUTE_REQUEST: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"^(\/|[A-Za-z]:\\|\\\\)").expect("Invalid regex"));
-static PACKAGE_NAME: LazyLock<Regex> =
+pub static PACKAGE_NAME: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"^((?:@[^\\/]+[\\/])?[^\\/]+)").expect("Invalid regex"));
 
 #[derive(Debug)]
-struct MatchedConsumes {
-  resolved: FxHashMap<String, Arc<ConsumeOptions>>,
-  unresolved: FxHashMap<String, Arc<ConsumeOptions>>,
-  prefixed: FxHashMap<String, Arc<ConsumeOptions>>,
+pub struct MatchedConsumes {
+  pub resolved: FxHashMap<String, Arc<ConsumeOptions>>,
+  pub unresolved: FxHashMap<String, Arc<ConsumeOptions>>,
+  pub prefixed: FxHashMap<String, Arc<ConsumeOptions>>,
 }
 
-async fn resolve_matched_configs(
+pub async fn resolve_matched_configs(
   compilation: &mut Compilation,
   resolver: Arc<Resolver>,
   configs: &[(String, Arc<ConsumeOptions>)],
@@ -104,7 +105,7 @@ async fn resolve_matched_configs(
   }
 }
 
-async fn get_description_file(
+pub async fn get_description_file(
   fs: Arc<dyn ReadableFileSystem>,
   mut dir: &Utf8Path,
   satisfies_description_file_data: Option<impl Fn(Option<serde_json::Value>) -> bool>,
@@ -137,7 +138,7 @@ async fn get_description_file(
   }
 }
 
-fn get_required_version_from_description_file(
+pub fn get_required_version_from_description_file(
   data: serde_json::Value,
   package_name: &str,
 ) -> Option<ConsumeVersion> {
@@ -368,6 +369,7 @@ impl ConsumeSharedPlugin {
         strict_version: config.strict_version,
         singleton: config.singleton,
         eager: config.eager,
+        tree_shaking_mode: config.tree_shaking_mode.clone(),
       },
     )
   }
@@ -404,12 +406,15 @@ async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<B
     .expect("should be module dependency");
   if matches!(
     dep.dependency_type(),
-    DependencyType::ConsumeSharedFallback | DependencyType::ProvideModuleForShared
+    DependencyType::ConsumeSharedFallback
+      | DependencyType::ProvideModuleForShared
+      | DependencyType::ShareContainerFallback
   ) {
     return Ok(None);
   }
   let request = &data.request;
   let consumes = self.get_matched_consumes();
+
   if let Some(matched) = consumes.unresolved.get(request) {
     let module = self
       .create_consume_shared_module(&data.context, request, matched.clone(), |d| {
@@ -435,6 +440,7 @@ async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<B
             strict_version: options.strict_version,
             singleton: options.singleton,
             eager: options.eager,
+            tree_shaking_mode: options.tree_shaking_mode.clone(),
           }),
           |d| data.diagnostics.push(d),
         )
@@ -453,12 +459,15 @@ async fn create_module(
 ) -> Result<Option<BoxModule>> {
   if matches!(
     data.dependencies[0].dependency_type(),
-    DependencyType::ConsumeSharedFallback | DependencyType::ProvideModuleForShared
+    DependencyType::ConsumeSharedFallback
+      | DependencyType::ProvideModuleForShared
+      | DependencyType::ShareContainerFallback
   ) {
     return Ok(None);
   }
   let resource = create_data.resource_resolve_data.resource();
   let consumes = self.get_matched_consumes();
+
   if let Some(options) = consumes.resolved.get(resource) {
     let module = self
       .create_consume_shared_module(&data.context, resource, options.clone(), |d| {
