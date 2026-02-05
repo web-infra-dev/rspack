@@ -1,4 +1,3 @@
-use rspack_collections::Identifier;
 use rspack_core::{
   Compilation, RuntimeGlobals, RuntimeModule, RuntimeTemplate, impl_runtime_module,
 };
@@ -6,7 +5,6 @@ use rspack_core::{
 #[impl_runtime_module]
 #[derive(Debug)]
 pub struct ChunkPrefetchPreloadFunctionRuntimeModule {
-  id: Identifier,
   runtime_function: RuntimeGlobals,
   runtime_handlers: RuntimeGlobals,
 }
@@ -18,11 +16,9 @@ impl ChunkPrefetchPreloadFunctionRuntimeModule {
     runtime_function: RuntimeGlobals,
     runtime_handlers: RuntimeGlobals,
   ) -> Self {
-    Self::with_default(
-      Identifier::from(format!(
-        "{}chunk_prefetch_function/{child_type}",
-        runtime_template.runtime_module_prefix()
-      )),
+    Self::with_name(
+      runtime_template,
+      child_type,
       runtime_function,
       runtime_handlers,
     )
@@ -31,10 +27,6 @@ impl ChunkPrefetchPreloadFunctionRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for ChunkPrefetchPreloadFunctionRuntimeModule {
-  fn name(&self) -> Identifier {
-    self.id
-  }
-
   fn template(&self) -> Vec<(String, String)> {
     vec![(
       self.id.to_string(),

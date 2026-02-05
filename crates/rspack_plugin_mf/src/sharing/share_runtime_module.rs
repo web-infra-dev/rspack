@@ -2,9 +2,8 @@ use std::sync::LazyLock;
 
 use hashlink::{LinkedHashMap, LinkedHashSet};
 use itertools::Itertools;
-use rspack_collections::Identifier;
 use rspack_core::{
-  ChunkUkey, Compilation, ModuleId, RuntimeGlobals, RuntimeModule, RuntimeTemplate, SourceType,
+  Compilation, ModuleId, RuntimeGlobals, RuntimeModule, RuntimeTemplate, SourceType,
   impl_runtime_module,
 };
 use rspack_plugin_runtime::extract_runtime_globals_from_ejs;
@@ -20,30 +19,17 @@ static INITIALIZE_SHARING_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
 #[impl_runtime_module]
 #[derive(Debug)]
 pub struct ShareRuntimeModule {
-  id: Identifier,
-  chunk: Option<ChunkUkey>,
   enhanced: bool,
 }
 
 impl ShareRuntimeModule {
   pub fn new(runtime_template: &RuntimeTemplate, enhanced: bool) -> Self {
-    Self::with_default(
-      Identifier::from(format!(
-        "{}sharing",
-        runtime_template.runtime_module_prefix()
-      )),
-      None,
-      enhanced,
-    )
+    Self::with_name(runtime_template, "sharing", enhanced)
   }
 }
 
 #[async_trait::async_trait]
 impl RuntimeModule for ShareRuntimeModule {
-  fn name(&self) -> Identifier {
-    self.id
-  }
-
   fn template(&self) -> Vec<(String, String)> {
     vec![(self.id.to_string(), INITIALIZE_SHARING_TEMPLATE.to_string())]
   }
@@ -150,10 +136,6 @@ impl RuntimeModule for ShareRuntimeModule {
       unique_name = json_stringify(&compilation.options.output.unique_name),
       initialize_sharing_impl = initialize_sharing_impl,
     ))
-  }
-
-  fn attach(&mut self, chunk: ChunkUkey) {
-    self.chunk = Some(chunk);
   }
 
   fn additional_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {

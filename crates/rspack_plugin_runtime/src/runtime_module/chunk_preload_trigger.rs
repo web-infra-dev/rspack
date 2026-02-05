@@ -2,7 +2,6 @@ use std::{hash::BuildHasherDefault, sync::LazyLock};
 
 use indexmap::IndexMap;
 use rspack_cacheable::with::AsMap;
-use rspack_collections::Identifier;
 use rspack_core::{
   Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleStage, RuntimeTemplate,
   chunk_graph_chunk::ChunkId, impl_runtime_module,
@@ -18,7 +17,6 @@ static CHUNK_PRELOAD_TRIGGER_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
 #[impl_runtime_module]
 #[derive(Debug)]
 pub struct ChunkPreloadTriggerRuntimeModule {
-  id: Identifier,
   #[cacheable(with=AsMap)]
   chunk_map: IndexMap<ChunkId, Vec<ChunkId>, BuildHasherDefault<FxHasher>>,
 }
@@ -28,22 +26,12 @@ impl ChunkPreloadTriggerRuntimeModule {
     runtime_template: &RuntimeTemplate,
     chunk_map: IndexMap<ChunkId, Vec<ChunkId>, BuildHasherDefault<FxHasher>>,
   ) -> Self {
-    Self::with_default(
-      Identifier::from(format!(
-        "{}chunk_preload_trigger",
-        runtime_template.runtime_module_prefix()
-      )),
-      chunk_map,
-    )
+    Self::with_default(runtime_template, chunk_map)
   }
 }
 
 #[async_trait::async_trait]
 impl RuntimeModule for ChunkPreloadTriggerRuntimeModule {
-  fn name(&self) -> Identifier {
-    self.id
-  }
-
   fn template(&self) -> Vec<(String, String)> {
     vec![(
       self.id.to_string(),
