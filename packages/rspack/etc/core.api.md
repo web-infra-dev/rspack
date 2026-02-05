@@ -9564,7 +9564,7 @@ export type UseInputFileSystem = false | RegExp[];
 
 // @public (undocumented)
 export const util: {
-    createHash: (algorithm: "debug" | "xxhash64" | "md4" | "native-md4" | (string & {}) | (new () => Hash)) => Hash;
+    createHash: (algorithm: "xxhash64" | "md4" | "native-md4" | (string & {}) | (new () => Hash)) => Hash;
     cleverMerge: <First, Second>(first: First, second: Second) => First | Second | (First & Second);
 };
 
