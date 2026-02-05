@@ -164,6 +164,18 @@ impl BuildChunkGraphArtifact {
 
     true
   }
+
+  fn reset_for_rebuild(&mut self) {
+    self.chunk_by_ukey = Default::default();
+    self.chunk_graph = Default::default();
+    self.chunk_group_by_ukey = Default::default();
+    self.entrypoints.clear();
+    self.async_entrypoints.clear();
+    self.named_chunk_groups.clear();
+    self.named_chunks.clear();
+    self.code_splitter = Default::default();
+    self.module_idx.clear();
+  }
 }
 
 #[instrument(name = "Compilation:code_splitting",target=TRACING_BENCH_TARGET, skip_all)]
@@ -201,6 +213,9 @@ where
 
     return Ok(());
   }
+
+  // Cache is not used, clear recovered artifact to avoid stale chunk graph data.
+  compilation.build_chunk_graph_artifact.reset_for_rebuild();
 
   let compilation = task(compilation).await?;
   let mg = compilation.get_module_graph();
