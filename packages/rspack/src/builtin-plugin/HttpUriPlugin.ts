@@ -114,12 +114,29 @@ function compatibleFetch(
 
       req.on('socket', (socket) => {
         console.log(`[HTTP-CLIENT-FETCH] Socket assigned: ${url}`);
+        console.log(
+          `[HTTP-CLIENT-FETCH] Socket info: connecting=${socket.connecting}, destroyed=${socket.destroyed}, pending=${socket.pending}`,
+        );
+
+        socket.on('connect', () => {
+          console.log(`[HTTP-CLIENT-FETCH] Socket connected: ${url}`);
+        });
+
+        socket.on('timeout', () => {
+          console.error(`[HTTP-CLIENT-FETCH] Socket timeout: ${url}`);
+          socket.destroy();
+        });
+
         socket.on('end', () => {
           console.log(`[HTTP-CLIENT-FETCH] Socket ended: ${url}`);
         });
-        socket.on('close', () => {
-          console.log(`[HTTP-CLIENT-FETCH] Socket closed: ${url}`);
+
+        socket.on('close', (hadError) => {
+          console.log(
+            `[HTTP-CLIENT-FETCH] Socket closed: ${url}, hadError=${hadError}`,
+          );
         });
+
         socket.on('error', (e) => {
           console.error(`[HTTP-CLIENT-FETCH] Socket error: ${url}`, e);
         });
