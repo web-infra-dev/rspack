@@ -11,6 +11,14 @@ module.exports = {
   },
   plugins: [
     serverPlugin,
+    {
+      apply(compiler){
+        compiler.hooks.done.tap('test', (s)=>{
+          console.log(s.toJson())
+
+        })
+      }
+    }
   ],
   experiments: {
     buildHttp: {

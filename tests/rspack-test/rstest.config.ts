@@ -51,7 +51,7 @@ const sharedConfig = defineProject({
 	],
 	slowTestThreshold: 5000,
 	// Retry on CI to reduce flakes
-	retry: process.env.CI ? 3 : 0,
+	retry: 0,
 	resolve: {
 		alias: {
 			// Fixed jest-serialize-path not working when non-ascii code contains.
@@ -84,7 +84,7 @@ const sharedConfig = defineProject({
 		RSPACK_DEV: 'false',
 		RSPACK_EXPERIMENTAL: 'true',
 		RSPACK_CONFIG_VALIDATE: "strict",
-		testFilter,	
+		testFilter,
 		printLogger: process.env.DEBUG === "test" ? 'true' : 'false',
 		__TEST_PATH__: __dirname,
 		__TEST_FIXTURES_PATH__: path.resolve(__dirname, "fixtures"),
@@ -122,4 +122,3 @@ export default defineConfig({
 		execArgv: ['--no-warnings', '--expose-gc', '--max-old-space-size=8192', '--experimental-vm-modules'],
 	},
 });
-
