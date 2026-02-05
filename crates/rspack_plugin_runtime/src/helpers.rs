@@ -5,7 +5,7 @@ use regex::Regex;
 use rspack_collections::{IdentifierLinkedMap, UkeyIndexSet};
 use rspack_core::{
   Chunk, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, Compilation, PathData,
-  RuntimeGlobals, RuntimeVariable, SourceType, get_js_chunk_filename_template,
+  RuntimeCodeTemplate, RuntimeGlobals, RuntimeVariable, SourceType, get_js_chunk_filename_template,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
 };
 use rspack_error::{Result, error};
@@ -207,6 +207,7 @@ pub fn generate_entry_startup(
   chunk: &ChunkUkey,
   entries: &IdentifierLinkedMap<ChunkGroupUkey>,
   passive: bool,
+  runtime_template: &RuntimeCodeTemplate<'_>,
 ) -> BoxSource {
   let mut module_id_exprs = vec![];
   let mut chunks_ids = HashSet::default();
@@ -259,29 +260,19 @@ pub fn generate_entry_startup(
   let mut source = String::default();
   source.push_str(&format!(
     "var {} = function(moduleId) {{ return {}({} = moduleId) }}\n",
-    compilation
-      .runtime_template
-      .render_runtime_variable(&RuntimeVariable::StartupExec),
-    compilation
-      .runtime_template
-      .render_runtime_globals(&RuntimeGlobals::REQUIRE),
-    compilation
-      .runtime_template
-      .render_runtime_globals(&RuntimeGlobals::ENTRY_MODULE_ID)
+    runtime_template.render_runtime_variable(&RuntimeVariable::StartupExec),
+    runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
+    runtime_template.render_runtime_globals(&RuntimeGlobals::ENTRY_MODULE_ID)
   ));
 
-  let exports_name = compilation
-    .runtime_template
-    .render_runtime_variable(&RuntimeVariable::Exports);
+  let exports_name = runtime_template.render_runtime_variable(&RuntimeVariable::Exports);
 
   let module_ids_code = &module_id_exprs
     .iter()
     .map(|module_id_expr| {
       format!(
         "{}({module_id_expr})",
-        compilation
-          .runtime_template
-          .render_runtime_variable(&RuntimeVariable::StartupExec)
+        runtime_template.render_runtime_variable(&RuntimeVariable::StartupExec)
       )
     })
     .collect::<Vec<_>>()
@@ -296,9 +287,7 @@ pub fn generate_entry_startup(
         // Ensure STARTUP_ENTRYPOINT wrappers run even without dependent chunks (e.g. async startup).
         source.push_str(&format!(
           "var {exports_name} = {}(0, [], function() {{\n        return {};\n      }});\n",
-          compilation
-            .runtime_template
-            .render_runtime_globals(&RuntimeGlobals::STARTUP_ENTRYPOINT),
+          runtime_template.render_runtime_globals(&RuntimeGlobals::STARTUP_ENTRYPOINT),
           module_ids_code
         ));
       }
@@ -312,13 +301,9 @@ pub fn generate_entry_startup(
         return {};
       }});\n",
       if passive {
-        compilation
-          .runtime_template
-          .render_runtime_globals(&RuntimeGlobals::ON_CHUNKS_LOADED)
+        runtime_template.render_runtime_globals(&RuntimeGlobals::ON_CHUNKS_LOADED)
       } else {
-        compilation
-          .runtime_template
-          .render_runtime_globals(&RuntimeGlobals::STARTUP_ENTRYPOINT)
+        runtime_template.render_runtime_globals(&RuntimeGlobals::STARTUP_ENTRYPOINT)
       },
       stringify_chunks_to_array(&chunks_ids),
       module_ids_code
@@ -326,9 +311,7 @@ pub fn generate_entry_startup(
     if passive {
       source.push_str(&format!(
         "var {exports_name} = {}();\n",
-        compilation
-          .runtime_template
-          .render_runtime_globals(&RuntimeGlobals::ON_CHUNKS_LOADED)
+        runtime_template.render_runtime_globals(&RuntimeGlobals::ON_CHUNKS_LOADED)
       ));
     }
   }

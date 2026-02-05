@@ -2289,9 +2289,7 @@ impl ConcatenatedModule {
         .module_by_identifier(&module_id)
         .unwrap_or_else(|| panic!("should have module {module_id}"));
 
-      let mut runtime_template = compilation
-        .runtime_template
-        .create_module_codegen_runtime_template();
+      let mut runtime_template = compilation.runtime_template.create_module_code_template();
       let mut code_generation_context = ModuleCodeGenerationContext {
         compilation,
         runtime,

@@ -6,7 +6,7 @@
 
 use rspack_cacheable::cacheable;
 use rspack_core::{
-  Compilation, DependencyId, RuntimeModule, RuntimeModuleStage, RuntimeTemplate,
+  DependencyId, RuntimeModule, RuntimeModuleGenerateContext, RuntimeModuleStage, RuntimeTemplate,
   impl_runtime_module,
 };
 use rspack_error::Result;
@@ -64,7 +64,8 @@ impl RuntimeModule for EmbedFederationRuntimeModule {
     ]
   }
 
-  async fn generate(&self, compilation: &Compilation) -> Result<String> {
+  async fn generate(&self, context: &RuntimeModuleGenerateContext<'_>) -> Result<String> {
+    let compilation = context.compilation;
     let chunk_ukey = self
       .chunk
       .expect("Chunk should be attached to RuntimeModule");
@@ -91,9 +92,7 @@ impl RuntimeModule for EmbedFederationRuntimeModule {
 
     // Generate module execution code for each federation runtime dependency
     let mut module_executions = String::with_capacity(federation_runtime_modules.len() * 64);
-    let mut runtime_template = compilation
-      .runtime_template
-      .create_module_codegen_runtime_template();
+    let mut runtime_template = compilation.runtime_template.create_module_code_template();
 
     for dep_id in federation_runtime_modules {
       let module_str = runtime_template.module_raw(compilation, &dep_id, "", false);
@@ -120,7 +119,7 @@ impl RuntimeModule for EmbedFederationRuntimeModule {
         .collect::<Vec<_>>();
       let entry_chunk_ids_literal =
         serde_json::to_string(&entry_chunk_ids).expect("Invalid json to string");
-      Ok(compilation.runtime_template.render(
+      Ok(context.runtime_template.render(
         &self.template_id(TemplateId::Async),
         Some(serde_json::json!({
           "_module_executions": module_executions,
@@ -132,7 +131,7 @@ impl RuntimeModule for EmbedFederationRuntimeModule {
         return Ok("// Federation runtime entry modules not found in this chunk.".into());
       }
       // Sync startup: keep the legacy prevStartup wrapper for minimal surface area.
-      Ok(compilation.runtime_template.render(
+      Ok(context.runtime_template.render(
         &self.template_id(TemplateId::Sync),
         Some(serde_json::json!({
           "_module_executions": module_executions,

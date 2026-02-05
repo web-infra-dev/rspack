@@ -14,11 +14,10 @@ use crate::{
   BuildResult, ChunkGraph, ChunkInitFragments, ChunkUkey, CodeGenerationDataUrl,
   CodeGenerationResult, Compilation, ConcatenationScope, Context, DependenciesBlock, DependencyId,
   ExternalType, FactoryMeta, ImportAttributes, InitFragmentExt, InitFragmentKey, InitFragmentStage,
-  LibIdentOptions, Module, ModuleArgument, ModuleCodeGenerationContext,
-  ModuleCodegenRuntimeTemplate, ModuleGraph, ModuleType, NAMESPACE_OBJECT_EXPORT,
-  NormalInitFragment, PrefetchExportsInfoMode, RuntimeGlobals, RuntimeSpec, SourceType,
-  StaticExportsDependency, StaticExportsSpec, UsedExports, extract_url_and_global,
-  impl_module_meta_info, module_update_hash, property_access,
+  LibIdentOptions, Module, ModuleArgument, ModuleCodeGenerationContext, ModuleCodeTemplate,
+  ModuleGraph, ModuleType, NAMESPACE_OBJECT_EXPORT, NormalInitFragment, PrefetchExportsInfoMode,
+  RuntimeGlobals, RuntimeSpec, SourceType, StaticExportsDependency, StaticExportsSpec, UsedExports,
+  extract_url_and_global, impl_module_meta_info, module_update_hash, property_access,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
   to_identifier,
 };
@@ -85,7 +84,7 @@ impl ExternalRequestValue {
 fn get_namespace_object_export(
   concatenation_scope: Option<&mut ConcatenationScope>,
   supports_const: bool,
-  runtime_template: &mut ModuleCodegenRuntimeTemplate,
+  runtime_template: &mut ModuleCodeTemplate,
 ) -> String {
   if let Some(concatenation_scope) = concatenation_scope {
     concatenation_scope.register_namespace_export(NAMESPACE_OBJECT_EXPORT);
@@ -327,7 +326,7 @@ impl ExternalModule {
     external_type: &ExternalType,
     runtime: Option<&RuntimeSpec>,
     concatenation_scope: Option<&mut ConcatenationScope>,
-    runtime_template: &mut ModuleCodegenRuntimeTemplate,
+    runtime_template: &mut ModuleCodeTemplate,
   ) -> Result<(BoxSource, ChunkInitFragments)> {
     let mut chunk_init_fragments: ChunkInitFragments = Default::default();
     let supports_const = compilation.options.output.environment.supports_const();

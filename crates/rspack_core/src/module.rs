@@ -34,9 +34,9 @@ use crate::{
   ChunkGraph, ChunkUkey, CodeGenerationResult, CollectedTypeScriptInfo, Compilation,
   CompilationAsset, CompilationId, CompilerId, CompilerOptions, ConcatenationScope,
   ConnectionState, Context, ContextModule, DependenciesBlock, DependencyId, ExportProvided,
-  ExternalModule, GetTargetResult, ModuleCodegenRuntimeTemplate, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleLayer, ModuleType, NormalModule, PrefetchExportsInfoMode,
-  RawModule, Resolve, ResolverFactory, RuntimeSpec, SelfModule, SharedPluginDriver, SourceType,
+  ExternalModule, GetTargetResult, ModuleCodeTemplate, ModuleGraph, ModuleGraphCacheArtifact,
+  ModuleLayer, ModuleType, NormalModule, PrefetchExportsInfoMode, RawModule, Resolve,
+  ResolverFactory, RuntimeSpec, SelfModule, SharedPluginDriver, SourceType,
   concatenated_module::ConcatenatedModule, dependencies_block::dependencies_block_update_hash,
   get_target, value_cache_versions::ValueCacheVersions,
 };
@@ -46,7 +46,7 @@ pub struct BuildContext {
   pub compilation_id: CompilationId,
   pub compiler_options: Arc<CompilerOptions>,
   pub resolver_factory: Arc<ResolverFactory>,
-  pub runtime_template: ModuleCodegenRuntimeTemplate,
+  pub runtime_template: ModuleCodeTemplate,
   pub plugin_driver: SharedPluginDriver,
   pub fs: Arc<dyn ReadableFileSystem>,
 }
@@ -253,7 +253,7 @@ pub struct ModuleCodeGenerationContext<'a> {
   pub compilation: &'a Compilation,
   pub runtime: Option<&'a RuntimeSpec>,
   pub concatenation_scope: Option<ConcatenationScope>,
-  pub runtime_template: &'a mut ModuleCodegenRuntimeTemplate,
+  pub runtime_template: &'a mut ModuleCodeTemplate,
 }
 
 #[cacheable_dyn]

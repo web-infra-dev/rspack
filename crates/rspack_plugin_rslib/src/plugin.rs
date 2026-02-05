@@ -4,11 +4,7 @@ use std::{
 };
 
 use rspack_core::{
-  AssetEmittedInfo, BuildModuleGraphArtifact, ChunkUkey, Compilation,
-  CompilationOptimizeDependencies, CompilationParams, CompilerAssetEmitted, CompilerCompilation,
-  DependencyType, ModuleType, NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, Plugin,
-  SideEffectsOptimizeArtifact, get_module_directives, get_module_hashbang,
-  rspack_sources::{ConcatSource, RawStringSource, Source, SourceExt},
+  AssetEmittedInfo, BuildModuleGraphArtifact, ChunkUkey, Compilation, CompilationOptimizeDependencies, CompilationParams, CompilerAssetEmitted, CompilerCompilation, DependencyType, ModuleType, NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, Plugin, RuntimeCodeTemplate, SideEffectsOptimizeArtifact, get_module_directives, get_module_hashbang, rspack_sources::{ConcatSource, RawStringSource, Source, SourceExt}
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
@@ -116,6 +112,7 @@ async fn render(
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
   render_source: &mut RenderSource,
+  _runtime_template: &RuntimeCodeTemplate<'_>,
 ) -> Result<()> {
   // NOTE: This function handles hashbang and directives for non new ESM library formats.
   // Similar logic exists in rspack_plugin_esm_library/src/render.rs for ESM format,

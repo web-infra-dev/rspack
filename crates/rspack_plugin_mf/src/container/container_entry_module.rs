@@ -8,9 +8,9 @@ use rspack_core::{
   BuildMeta, BuildMetaExportsType, BuildResult, ChunkGroupOptions, CodeGenerationResult,
   Compilation, Context, DependenciesBlock, Dependency, DependencyId, DependencyType,
   ExportsArgument, FactoryMeta, GroupOptions, LibIdentOptions, Module, ModuleCodeGenerationContext,
-  ModuleCodegenRuntimeTemplate, ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleType,
-  RuntimeGlobals, RuntimeSpec, SourceType, StaticExportsDependency, StaticExportsSpec,
-  impl_module_meta_info, impl_source_map_config, module_update_hash,
+  ModuleCodeTemplate, ModuleDependency, ModuleGraph,
+  ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType, StaticExportsDependency,
+  StaticExportsSpec, impl_module_meta_info, impl_source_map_config, module_update_hash,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
@@ -439,7 +439,7 @@ impl ExposeModuleMap {
   pub fn new(
     compilation: &Compilation,
     container_entry_module: &ContainerEntryModule,
-    runtime_template: &mut ModuleCodegenRuntimeTemplate,
+    runtime_template: &mut ModuleCodeTemplate,
   ) -> Self {
     let mut module_map = vec![];
     let module_graph = compilation.get_module_graph();
@@ -485,7 +485,7 @@ impl ExposeModuleMap {
     Self(module_map)
   }
 
-  pub fn render(&self, runtime_template: &mut ModuleCodegenRuntimeTemplate) -> String {
+  pub fn render(&self, runtime_template: &mut ModuleCodeTemplate) -> String {
     let module_map = self
       .0
       .iter()

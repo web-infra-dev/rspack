@@ -42,8 +42,8 @@ use rspack_core::{
   NormalModuleFactoryFactorize, NormalModuleFactoryFactorizeHook, NormalModuleFactoryResolve,
   NormalModuleFactoryResolveForScheme, NormalModuleFactoryResolveForSchemeHook,
   NormalModuleFactoryResolveHook, NormalModuleFactoryResolveResult, ResourceData, RuntimeGlobals,
-  RuntimeModule, Scheme, build_module_graph::BuildModuleGraphArtifact, parse_resource,
-  rspack_sources::RawStringSource,
+  RuntimeModule, RuntimeModuleGenerateContext, Scheme,
+  build_module_graph::BuildModuleGraphArtifact, parse_resource, rspack_sources::RawStringSource,
 };
 use rspack_error::Diagnostic;
 use rspack_hash::RspackHash;
@@ -1417,7 +1417,12 @@ impl CompilationRuntimeModule for CompilationRuntimeModuleTap {
     let Some(module) = runtime_modules.get(m) else {
       return Ok(());
     };
-    let source_string = module.generate(compilation).await?;
+    let runtime_template = compilation.runtime_template.create_runtime_code_template();
+    let context = RuntimeModuleGenerateContext {
+      compilation,
+      runtime_template: &runtime_template,
+    };
+    let source_string = module.generate(&context).await?;
     let arg = JsRuntimeModuleArg {
       module: JsRuntimeModule {
         source: Some(JsSourceToJs::from(source_string)),

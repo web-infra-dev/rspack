@@ -8,18 +8,7 @@ use atomic_refcell::AtomicRefCell;
 use regex::Regex;
 use rspack_collections::{Identifiable, Identifier, IdentifierIndexMap, IdentifierSet, UkeyMap};
 use rspack_core::{
-  ApplyContext, AssetInfo, AsyncModulesArtifact, BoxModule, BuildModuleGraphArtifact, ChunkUkey,
-  Compilation, CompilationAdditionalChunkRuntimeRequirements,
-  CompilationAdditionalTreeRuntimeRequirements, CompilationAfterCodeGeneration,
-  CompilationConcatenationScope, CompilationFinishModules, CompilationOptimizeChunks,
-  CompilationOptimizeDependencies, CompilationParams, CompilationProcessAssets,
-  CompilationRuntimeRequirementInTree, CompilerCompilation, ConcatenatedModuleInfo,
-  ConcatenationScope, DependencyType, ExternalModuleInfo, GetTargetResult, Logger,
-  ModuleFactoryCreateData, ModuleIdentifier, ModuleInfo, ModuleType,
-  NormalModuleFactoryAfterFactorize, NormalModuleFactoryParser, ParserAndGenerator, ParserOptions,
-  Plugin, PrefetchExportsInfoMode, RuntimeGlobals, RuntimeModule, SideEffectsOptimizeArtifact,
-  get_target, is_esm_dep_like,
-  rspack_sources::{ReplaceSource, Source},
+  ApplyContext, AssetInfo, AsyncModulesArtifact, BoxModule, BuildModuleGraphArtifact, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements, CompilationAdditionalTreeRuntimeRequirements, CompilationAfterCodeGeneration, CompilationConcatenationScope, CompilationFinishModules, CompilationOptimizeChunks, CompilationOptimizeDependencies, CompilationParams, CompilationProcessAssets, CompilationRuntimeRequirementInTree, CompilerCompilation, ConcatenatedModuleInfo, ConcatenationScope, DependencyType, ExternalModuleInfo, GetTargetResult, Logger, ModuleFactoryCreateData, ModuleIdentifier, ModuleInfo, ModuleType, NormalModuleFactoryAfterFactorize, NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, Plugin, PrefetchExportsInfoMode, RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule, SideEffectsOptimizeArtifact, get_target, is_esm_dep_like, rspack_sources::{ReplaceSource, Source}
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
@@ -93,8 +82,11 @@ async fn render_chunk_content(
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
   asset_info: &mut AssetInfo,
+  runtime_template: &RuntimeCodeTemplate<'_>,
 ) -> Result<Option<RenderSource>> {
-  self.render_chunk(compilation, chunk_ukey, asset_info).await
+  self
+    .render_chunk(compilation, chunk_ukey, asset_info, runtime_template)
+    .await
 }
 
 #[plugin_hook(CompilationFinishModules for EsmLibraryPlugin, stage = 100)]
