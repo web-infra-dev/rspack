@@ -46,7 +46,7 @@ module.exports = [
 				      "code": "Error",
 				      "message": "  ⚠ test push",
 				      "moduleTrace": Array [],
-				      "stack": "Error: test push    at <TEST_ROOT>/errorCases/warning-modify.js<LINE_COL>    at Object.fn (<RSPACK_ROOT>/dist/index.js<LINE_COL>)    at next (<ROOT>/node_modules/<PNPM_INNER>/@rspack/lite-tapable/dist/index.js<LINE_COL>)    at AsyncSeriesHook.callAsyncStageRange (<ROOT>/node_modules/<PNPM_INNER>/@rspack/lite-tapable/dist/index.js<LINE_COL>)    at AsyncSeriesHook.callAsync (<ROOT>/node_modules/<PNPM_INNER>/@rspack/lite-tapable/dist/index.js<LINE_COL>)    at <RSPACK_ROOT>/dist/index.js<LINE_COL>",
+				      "stack": "Error: test push    at <TEST_ROOT>/errorCases/warning-modify.js<LINE_COL>    at Object.fn (<RSPACK_ROOT>/dist/index.js<LINE_COL>)    at next (<RSPACK_ROOT>/dist/index.js<LINE_COL>)    at AsyncSeriesHook.callAsyncStageRange (<RSPACK_ROOT>/dist/index.js<LINE_COL>)    at AsyncSeriesHook.callAsync (<RSPACK_ROOT>/dist/index.js<LINE_COL>)    at <RSPACK_ROOT>/dist/index.js<LINE_COL>",
 				    },
 				    Object {
 				      "code": "ModuleParseWarning",
@@ -88,13 +88,13 @@ module.exports = [
 				      "code": "Error",
 				      "message": "  ⚠ warning 1",
 				      "moduleTrace": Array [],
-				      "stack": "Error: warning 1    at <TEST_ROOT>/errorCases/warning-modify.js<LINE_COL>    at Object.fn (<RSPACK_ROOT>/dist/index.js<LINE_COL>)    at next (<ROOT>/node_modules/<PNPM_INNER>/@rspack/lite-tapable/dist/index.js<LINE_COL>)    at AsyncSeriesHook.callAsyncStageRange (<ROOT>/node_modules/<PNPM_INNER>/@rspack/lite-tapable/dist/index.js<LINE_COL>)    at AsyncSeriesHook.callAsync (<ROOT>/node_modules/<PNPM_INNER>/@rspack/lite-tapable/dist/index.js<LINE_COL>)    at <RSPACK_ROOT>/dist/index.js<LINE_COL>",
+				      "stack": "Error: warning 1    at <TEST_ROOT>/errorCases/warning-modify.js<LINE_COL>    at Object.fn (<RSPACK_ROOT>/dist/index.js<LINE_COL>)    at next (<RSPACK_ROOT>/dist/index.js<LINE_COL>)    at AsyncSeriesHook.callAsyncStageRange (<RSPACK_ROOT>/dist/index.js<LINE_COL>)    at AsyncSeriesHook.callAsync (<RSPACK_ROOT>/dist/index.js<LINE_COL>)    at <RSPACK_ROOT>/dist/index.js<LINE_COL>",
 				    },
 				    Object {
 				      "code": "Error",
 				      "message": "  ⚠ warning 2",
 				      "moduleTrace": Array [],
-				      "stack": "Error: warning 2    at <TEST_ROOT>/errorCases/warning-modify.js<LINE_COL>    at Object.fn (<RSPACK_ROOT>/dist/index.js<LINE_COL>)    at next (<ROOT>/node_modules/<PNPM_INNER>/@rspack/lite-tapable/dist/index.js<LINE_COL>)    at AsyncSeriesHook.callAsyncStageRange (<ROOT>/node_modules/<PNPM_INNER>/@rspack/lite-tapable/dist/index.js<LINE_COL>)    at AsyncSeriesHook.callAsync (<ROOT>/node_modules/<PNPM_INNER>/@rspack/lite-tapable/dist/index.js<LINE_COL>)    at <RSPACK_ROOT>/dist/index.js<LINE_COL>",
+				      "stack": "Error: warning 2    at <TEST_ROOT>/errorCases/warning-modify.js<LINE_COL>    at Object.fn (<RSPACK_ROOT>/dist/index.js<LINE_COL>)    at next (<RSPACK_ROOT>/dist/index.js<LINE_COL>)    at AsyncSeriesHook.callAsyncStageRange (<RSPACK_ROOT>/dist/index.js<LINE_COL>)    at AsyncSeriesHook.callAsync (<RSPACK_ROOT>/dist/index.js<LINE_COL>)    at <RSPACK_ROOT>/dist/index.js<LINE_COL>",
 				    },
 				  ],
 				}
@@ -128,7 +128,7 @@ module.exports = [
 				      "code": "Error",
 				      "message": "  ⚠ test unshift",
 				      "moduleTrace": Array [],
-				      "stack": "Error: test unshift    at <TEST_ROOT>/errorCases/warning-modify.js<LINE_COL>    at Object.fn (<RSPACK_ROOT>/dist/index.js<LINE_COL>)    at next (<ROOT>/node_modules/<PNPM_INNER>/@rspack/lite-tapable/dist/index.js<LINE_COL>)    at AsyncSeriesHook.callAsyncStageRange (<ROOT>/node_modules/<PNPM_INNER>/@rspack/lite-tapable/dist/index.js<LINE_COL>)    at AsyncSeriesHook.callAsync (<ROOT>/node_modules/<PNPM_INNER>/@rspack/lite-tapable/dist/index.js<LINE_COL>)    at <RSPACK_ROOT>/dist/index.js<LINE_COL>",
+				      "stack": "Error: test unshift    at <TEST_ROOT>/errorCases/warning-modify.js<LINE_COL>    at Object.fn (<RSPACK_ROOT>/dist/index.js<LINE_COL>)    at next (<RSPACK_ROOT>/dist/index.js<LINE_COL>)    at AsyncSeriesHook.callAsyncStageRange (<RSPACK_ROOT>/dist/index.js<LINE_COL>)    at AsyncSeriesHook.callAsync (<RSPACK_ROOT>/dist/index.js<LINE_COL>)    at <RSPACK_ROOT>/dist/index.js<LINE_COL>",
 				    },
 				  ],
 				}
@@ -158,7 +158,7 @@ module.exports = [
 				      "code": "Error",
 				      "message": "  ⚠ test splice",
 				      "moduleTrace": Array [],
-				      "stack": "Error: test splice    at <TEST_ROOT>/errorCases/warning-modify.js<LINE_COL>    at Object.fn (<RSPACK_ROOT>/dist/index.js<LINE_COL>)    at next (<ROOT>/node_modules/<PNPM_INNER>/@rspack/lite-tapable/dist/index.js<LINE_COL>)    at AsyncSeriesHook.callAsyncStageRange (<ROOT>/node_modules/<PNPM_INNER>/@rspack/lite-tapable/dist/index.js<LINE_COL>)    at AsyncSeriesHook.callAsync (<ROOT>/node_modules/<PNPM_INNER>/@rspack/lite-tapable/dist/index.js<LINE_COL>)    at <RSPACK_ROOT>/dist/index.js<LINE_COL>",
+				      "stack": "Error: test splice    at <TEST_ROOT>/errorCases/warning-modify.js<LINE_COL>    at Object.fn (<RSPACK_ROOT>/dist/index.js<LINE_COL>)    at next (<RSPACK_ROOT>/dist/index.js<LINE_COL>)    at AsyncSeriesHook.callAsyncStageRange (<RSPACK_ROOT>/dist/index.js<LINE_COL>)    at AsyncSeriesHook.callAsync (<RSPACK_ROOT>/dist/index.js<LINE_COL>)    at <RSPACK_ROOT>/dist/index.js<LINE_COL>",
 				    },
 				  ],
 				}
@@ -188,7 +188,7 @@ module.exports = [
 				      "code": "Error",
 				      "message": "  ⚠ test splice",
 				      "moduleTrace": Array [],
-				      "stack": "Error: test splice    at <TEST_ROOT>/errorCases/warning-modify.js<LINE_COL>    at Object.fn (<RSPACK_ROOT>/dist/index.js<LINE_COL>)    at next (<ROOT>/node_modules/<PNPM_INNER>/@rspack/lite-tapable/dist/index.js<LINE_COL>)    at AsyncSeriesHook.callAsyncStageRange (<ROOT>/node_modules/<PNPM_INNER>/@rspack/lite-tapable/dist/index.js<LINE_COL>)    at AsyncSeriesHook.callAsync (<ROOT>/node_modules/<PNPM_INNER>/@rspack/lite-tapable/dist/index.js<LINE_COL>)    at <RSPACK_ROOT>/dist/index.js<LINE_COL>",
+				      "stack": "Error: test splice    at <TEST_ROOT>/errorCases/warning-modify.js<LINE_COL>    at Object.fn (<RSPACK_ROOT>/dist/index.js<LINE_COL>)    at next (<RSPACK_ROOT>/dist/index.js<LINE_COL>)    at AsyncSeriesHook.callAsyncStageRange (<RSPACK_ROOT>/dist/index.js<LINE_COL>)    at AsyncSeriesHook.callAsync (<RSPACK_ROOT>/dist/index.js<LINE_COL>)    at <RSPACK_ROOT>/dist/index.js<LINE_COL>",
 				    },
 				    Object {
 				      "code": "ModuleParseWarning",

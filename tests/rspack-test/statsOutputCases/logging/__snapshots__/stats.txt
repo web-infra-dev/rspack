@@ -19,9 +19,9 @@ LOG from LogOtherTestPlugin
 LOG from <TEST_ROOT>/statsOutputCases/logging/index.js
 <e> An error
 |     at Object.fn (<RSPACK_ROOT>/dist/index.js<LINE_COL>)
-|     at SyncBailHook.callAsyncStageRange (<ROOT>/node_modules/<PNPM_INNER>/@rspack/lite-tapable/dist/index.js<LINE_COL>)
-|     at SyncBailHook.callStageRange (<ROOT>/node_modules/<PNPM_INNER>/@rspack/lite-tapable/dist/index.js<LINE_COL>)
-|     at SyncBailHook.call (<ROOT>/node_modules/<PNPM_INNER>/@rspack/lite-tapable/dist/index.js<LINE_COL>)
+|     at SyncBailHook.callAsyncStageRange (<RSPACK_ROOT>/dist/index.js<LINE_COL>)
+|     at SyncBailHook.callStageRange (<RSPACK_ROOT>/dist/index.js<LINE_COL>)
+|     at SyncBailHook.call (<RSPACK_ROOT>/dist/index.js<LINE_COL>)
 |     at <RSPACK_ROOT>/dist/index.js<LINE_COL>
 |     at StatsFactory._forEachLevel (<RSPACK_ROOT>/dist/index.js<LINE_COL>)
 |     at StatsFactory._create (<RSPACK_ROOT>/dist/index.js<LINE_COL>)
@@ -39,9 +39,9 @@ LOG from <TEST_ROOT>/statsOutputCases/logging/index.js
 |     at onMessage (<ROOT>/node_modules/<PNPM_INNER>/tinypool/dist/entry/process.js<LINE_COL>)
 <w> A warning
 |     at Object.fn (<RSPACK_ROOT>/dist/index.js<LINE_COL>)
-|     at SyncBailHook.callAsyncStageRange (<ROOT>/node_modules/<PNPM_INNER>/@rspack/lite-tapable/dist/index.js<LINE_COL>)
-|     at SyncBailHook.callStageRange (<ROOT>/node_modules/<PNPM_INNER>/@rspack/lite-tapable/dist/index.js<LINE_COL>)
-|     at SyncBailHook.call (<ROOT>/node_modules/<PNPM_INNER>/@rspack/lite-tapable/dist/index.js<LINE_COL>)
+|     at SyncBailHook.callAsyncStageRange (<RSPACK_ROOT>/dist/index.js<LINE_COL>)
+|     at SyncBailHook.callStageRange (<RSPACK_ROOT>/dist/index.js<LINE_COL>)
+|     at SyncBailHook.call (<RSPACK_ROOT>/dist/index.js<LINE_COL>)
 |     at <RSPACK_ROOT>/dist/index.js<LINE_COL>
 |     at StatsFactory._forEachLevel (<RSPACK_ROOT>/dist/index.js<LINE_COL>)
 |     at StatsFactory._create (<RSPACK_ROOT>/dist/index.js<LINE_COL>)

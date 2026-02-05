@@ -368,9 +368,6 @@ importers:
       '@rspack/binding':
         specifier: workspace:*
         version: link:../../crates/node_binding
-      '@rspack/lite-tapable':
-        specifier: 1.1.0
-        version: 1.1.0
       '@swc/helpers':
         specifier: '>=0.5.1'
         version: 0.5.18
@@ -387,6 +384,9 @@ importers:
       '@rslib/core':
         specifier: 0.19.4
         version: 0.19.4(@microsoft/api-extractor@7.55.2(@types/node@20.19.31))(typescript@5.9.3)
+      '@rspack/lite-tapable':
+        specifier: 1.1.0
+        version: 1.1.0
       '@swc/types':
         specifier: 0.1.25
         version: 0.1.25
