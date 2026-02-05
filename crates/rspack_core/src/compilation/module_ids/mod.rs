@@ -12,7 +12,7 @@ fn get_modules_needing_ids(
   compilation: &Compilation,
   module_ids_artifact: &ModuleIdsArtifact,
 ) -> IdentifierSet {
-  let chunk_graph = &compilation.chunk_graph;
+  let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
   compilation
     .get_module_graph()
     .modules()
@@ -79,7 +79,7 @@ impl PassExt for ModuleIdsPass {
     Ok(())
   }
 
-  async fn after_pass(&self, compilation: &Compilation, cache: &mut dyn Cache) {
+  async fn after_pass(&self, compilation: &mut Compilation, cache: &mut dyn Cache) {
     cache.after_module_ids(compilation).await;
   }
 }

@@ -80,7 +80,7 @@ impl PassExt for BuildModuleGraphPhasePass {
     Ok(())
   }
 
-  async fn after_pass(&self, compilation: &Compilation, cache: &mut dyn Cache) {
+  async fn after_pass(&self, compilation: &mut Compilation, cache: &mut dyn Cache) {
     cache
       .after_build_module_graph(&compilation.build_module_graph_artifact)
       .await;

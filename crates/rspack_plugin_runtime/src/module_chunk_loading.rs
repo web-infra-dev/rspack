@@ -26,8 +26,12 @@ async fn additional_tree_runtime_requirements(
   let is_enabled_for_chunk = is_enabled_for_chunk(chunk_ukey, &chunk_loading_value, compilation);
   if is_enabled_for_chunk
     && compilation
+      .build_chunk_graph_artifact
       .chunk_graph
-      .has_chunk_entry_dependent_chunks(chunk_ukey, &compilation.chunk_group_by_ukey)
+      .has_chunk_entry_dependent_chunks(
+        chunk_ukey,
+        &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
+      )
   {
     runtime_requirements.insert(RuntimeGlobals::ASYNC_STARTUP);
   }
@@ -46,8 +50,12 @@ async fn runtime_requirements_in_tree(
 ) -> Result<Option<()>> {
   let chunk_loading_value = ChunkLoading::Enable(ChunkLoadingType::Import);
   if compilation
+    .build_chunk_graph_artifact
     .chunk_graph
-    .has_chunk_entry_dependent_chunks(chunk_ukey, &compilation.chunk_group_by_ukey)
+    .has_chunk_entry_dependent_chunks(
+      chunk_ukey,
+      &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
+    )
   {
     runtime_requirements_mut.insert(RuntimeGlobals::EXTERNAL_INSTALL_CHUNK);
   }

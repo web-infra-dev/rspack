@@ -42,7 +42,11 @@ fn extend_required_chunks(
   required_chunks: &mut Vec<String>,
 ) {
   for chunk_ukey in &chunk_group.chunks {
-    let Some(chunk) = compilation.chunk_by_ukey.get(chunk_ukey) else {
+    let Some(chunk) = compilation
+      .build_chunk_graph_artifact
+      .chunk_by_ukey
+      .get(chunk_ukey)
+    else {
       continue;
     };
     let Some(chunk_id) = chunk.id() else {
@@ -89,7 +93,10 @@ fn record_module(
 
   if is_css_mod(module.as_ref()) {
     let (Some(chunk), Some(entry_css_imports)) = (
-      compilation.chunk_by_ukey.get(chunk_ukey),
+      compilation
+        .build_chunk_graph_artifact
+        .chunk_by_ukey
+        .get(chunk_ukey),
       plugin_state.entry_css_imports.get(entry_name),
     ) else {
       return;
@@ -173,6 +180,7 @@ fn record_chunk_group(
     checked_chunks.insert(*chunk_ukey);
 
     let chunk_modules = compilation
+      .build_chunk_graph_artifact
       .chunk_graph
       .get_chunk_modules_identifier(chunk_ukey);
     for module_identifier in chunk_modules {
@@ -214,7 +222,11 @@ fn record_chunk_group(
 
   // Walk through all children chunk groups too.
   for child_ukey in chunk_group.children_iterable() {
-    let Some(child) = compilation.chunk_group_by_ukey.get(child_ukey) else {
+    let Some(child) = compilation
+      .build_chunk_graph_artifact
+      .chunk_group_by_ukey
+      .get(child_ukey)
+    else {
       continue;
     };
     let start_len = required_chunks.len();
@@ -237,8 +249,12 @@ async fn collect_entry_js_files(
   compilation: &Compilation,
   plugin_state: &mut PluginState,
 ) -> Result<()> {
-  for (entry_name, chunk_group_ukey) in &compilation.entrypoints {
-    let Some(chunk_group) = compilation.chunk_group_by_ukey.get(chunk_group_ukey) else {
+  for (entry_name, chunk_group_ukey) in &compilation.build_chunk_graph_artifact.entrypoints {
+    let Some(chunk_group) = compilation
+      .build_chunk_graph_artifact
+      .chunk_group_by_ukey
+      .get(chunk_group_ukey)
+    else {
       continue;
     };
     let entry_js_files = plugin_state
@@ -252,7 +268,7 @@ async fn collect_entry_js_files(
       .prefix;
 
     *entry_js_files = chunk_group
-      .get_files(&compilation.chunk_by_ukey)
+      .get_files(&compilation.build_chunk_graph_artifact.chunk_by_ukey)
       .into_iter()
       .filter(|chunk_file| chunk_file.ends_with(".js"))
       .filter(|chunk_file| {
@@ -418,8 +434,12 @@ impl RscClientPlugin {
     let mut checked_chunk_groups: FxHashSet<ChunkGroupUkey> = Default::default();
     let mut checked_chunks: FxHashSet<ChunkUkey> = Default::default();
 
-    for (entry_name, entrypoint_ukey) in &compilation.entrypoints {
-      let Some(entrypoint) = compilation.chunk_group_by_ukey.get(entrypoint_ukey) else {
+    for (entry_name, entrypoint_ukey) in &compilation.build_chunk_graph_artifact.entrypoints {
+      let Some(entrypoint) = compilation
+        .build_chunk_graph_artifact
+        .chunk_group_by_ukey
+        .get(entrypoint_ukey)
+      else {
         continue;
       };
 

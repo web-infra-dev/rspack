@@ -535,7 +535,7 @@ pub fn module_update_hash(
   compilation: &Compilation,
   runtime: Option<&RuntimeSpec>,
 ) {
-  let chunk_graph = &compilation.chunk_graph;
+  let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
   chunk_graph
     .get_module_graph_hash(module, compilation, runtime)
     .dyn_hash(hasher);

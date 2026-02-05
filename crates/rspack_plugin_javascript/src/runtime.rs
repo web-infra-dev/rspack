@@ -109,7 +109,10 @@ pub async fn render_module(
   let mut runtime_template = compilation
     .runtime_template
     .create_module_codegen_runtime_template();
-  let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+  let chunk = compilation
+    .build_chunk_graph_artifact
+    .chunk_by_ukey
+    .expect_get(chunk_ukey);
   let code_gen_result = compilation
     .code_generation_results
     .get(&module.identifier(), Some(chunk.runtime()));
@@ -327,6 +330,7 @@ pub async fn render_runtime_modules(
   let mut sources = ConcatSource::default();
   let runtime_module_sources = rspack_futures::scope::<_, Result<_>>(|token| {
     compilation
+      .build_chunk_graph_artifact
       .chunk_graph
       .get_chunk_runtime_modules_in_order(chunk_ukey, compilation)
       .map(|(identifier, runtime_module)| {

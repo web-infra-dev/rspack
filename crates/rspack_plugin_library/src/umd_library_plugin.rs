@@ -107,10 +107,14 @@ async fn render(
     .output
     .environment
     .supports_arrow_function();
-  let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+  let chunk = compilation
+    .build_chunk_graph_artifact
+    .chunk_by_ukey
+    .expect_get(chunk_ukey);
   let module_graph = compilation.get_module_graph();
   let module_graph_cache = &compilation.module_graph_cache_artifact;
   let modules = compilation
+    .build_chunk_graph_artifact
     .chunk_graph
     .get_chunk_modules_identifier(chunk_ukey)
     .iter()

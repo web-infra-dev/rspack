@@ -25,7 +25,10 @@ impl RuntimeModule for GetChunkUpdateFilenameRuntimeModule {
 
   async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
     if let Some(chunk_ukey) = self.chunk {
-      let chunk = compilation.chunk_by_ukey.expect_get(&chunk_ukey);
+      let chunk = compilation
+        .build_chunk_graph_artifact
+        .chunk_by_ukey
+        .expect_get(&chunk_ukey);
       let filename = compilation
         .get_path(
           &compilation.options.output.hot_update_chunk_filename,

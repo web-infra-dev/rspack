@@ -64,7 +64,11 @@ async fn render_module_content(
   render_source: &mut RenderSource,
   _init_fragments: &mut ChunkInitFragments,
 ) -> Result<()> {
-  let runtime = compilation.chunk_by_ukey.expect_get(chunk_ukey).runtime();
+  let runtime = compilation
+    .build_chunk_graph_artifact
+    .chunk_by_ukey
+    .expect_get(chunk_ukey)
+    .runtime();
   let module_graph = compilation.get_module_graph();
   let codegen_result = compilation
     .code_generation_results

@@ -47,13 +47,17 @@ async fn additional_chunk_runtime_requirements(
   runtime_requirements: &mut RuntimeGlobals,
   _runtime_modules: &mut Vec<Box<dyn RuntimeModule>>,
 ) -> Result<()> {
-  let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+  let chunk = compilation
+    .build_chunk_graph_artifact
+    .chunk_by_ukey
+    .expect_get(chunk_ukey);
 
-  if chunk.has_runtime(&compilation.chunk_group_by_ukey) {
+  if chunk.has_runtime(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey) {
     return Ok(());
   }
 
   if compilation
+    .build_chunk_graph_artifact
     .chunk_graph
     .get_number_of_entry_modules(chunk_ukey)
     > 0
@@ -73,8 +77,11 @@ async fn js_chunk_hash(
   chunk_ukey: &ChunkUkey,
   hasher: &mut RspackHash,
 ) -> Result<()> {
-  let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
-  if chunk.has_runtime(&compilation.chunk_group_by_ukey) {
+  let chunk = compilation
+    .build_chunk_graph_artifact
+    .chunk_by_ukey
+    .expect_get(chunk_ukey);
+  if chunk.has_runtime(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey) {
     return Ok(());
   }
 
@@ -84,6 +91,7 @@ async fn js_chunk_hash(
     hasher,
     compilation,
     compilation
+      .build_chunk_graph_artifact
       .chunk_graph
       .get_chunk_entry_modules_with_chunk_group_iterable(chunk_ukey),
     chunk_ukey,
@@ -98,8 +106,11 @@ async fn compilation_dependent_full_hash(
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
 ) -> Result<Option<bool>> {
-  let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
-  if chunk.has_entry_module(&compilation.chunk_graph)
+  let chunk = compilation
+    .build_chunk_graph_artifact
+    .chunk_by_ukey
+    .expect_get(chunk_ukey);
+  if chunk.has_entry_module(&compilation.build_chunk_graph_artifact.chunk_graph)
     && runtime_chunk_has_hash(compilation, chunk_ukey).await?
   {
     return Ok(Some(true));
@@ -115,7 +126,10 @@ async fn render_chunk(
   render_source: &mut RenderSource,
 ) -> Result<()> {
   let hooks = JsPlugin::get_compilation_hooks(compilation.id());
-  let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+  let chunk = compilation
+    .build_chunk_graph_artifact
+    .chunk_by_ukey
+    .expect_get(chunk_ukey);
   let base_chunk_output_name = get_chunk_output_name(chunk, compilation).await?;
   let mut sources = ConcatSource::default();
   sources.add(RawStringSource::from(format!(
@@ -126,6 +140,7 @@ async fn render_chunk(
   sources.add(render_source.source.clone());
   sources.add(RawStringSource::from_static(";\n"));
   if compilation
+    .build_chunk_graph_artifact
     .chunk_graph
     .has_chunk_runtime_modules(chunk_ukey)
   {
@@ -134,7 +149,7 @@ async fn render_chunk(
     sources.add(RawStringSource::from_static(";\n"));
   }
 
-  if chunk.has_entry_module(&compilation.chunk_graph) {
+  if chunk.has_entry_module(&compilation.build_chunk_graph_artifact.chunk_graph) {
     let runtime_chunk_output_name = get_runtime_chunk_output_name(compilation, chunk_ukey).await?;
     sources.add(RawStringSource::from(format!(
       r#"// load runtime
@@ -158,6 +173,7 @@ var {} = require({});
     )));
 
     let entries = compilation
+      .build_chunk_graph_artifact
       .chunk_graph
       .get_chunk_entry_modules_with_chunk_group_iterable(chunk_ukey);
     let start_up_source = generate_entry_startup(compilation, chunk_ukey, entries, false);

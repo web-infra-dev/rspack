@@ -262,7 +262,7 @@ pub type ChunkInitFragments = Vec<BoxChunkInitFragment>;
 impl InitFragmentRenderContext for GenerateContext<'_> {
   fn runtime_condition_expression(&mut self, runtime_condition: &RuntimeCondition) -> String {
     self.runtime_template.runtime_condition_expression(
-      &self.compilation.chunk_graph,
+      &self.compilation.build_chunk_graph_artifact.chunk_graph,
       Some(runtime_condition),
       self.runtime,
     )

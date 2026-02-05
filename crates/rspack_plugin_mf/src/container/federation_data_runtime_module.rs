@@ -31,6 +31,7 @@ impl RuntimeModule for FederationDataRuntimeModule {
 
   async fn generate(&self, compilation: &Compilation) -> Result<String> {
     let chunk = compilation
+      .build_chunk_graph_artifact
       .chunk_by_ukey
       .expect_get(&self.chunk.expect("The chunk should be attached."));
     Ok(federation_runtime_template(chunk, compilation).await)
@@ -45,10 +46,10 @@ pub async fn federation_runtime_template(chunk: &Chunk, compilation: &Compilatio
       .render_runtime_globals(&RuntimeGlobals::REQUIRE)
   );
 
-  let condition_map =
-    compilation
-      .chunk_graph
-      .get_chunk_condition_map(&chunk.ukey(), compilation, chunk_has_js);
+  let condition_map = compilation
+    .build_chunk_graph_artifact
+    .chunk_graph
+    .get_chunk_condition_map(&chunk.ukey(), compilation, chunk_has_js);
   let has_js_matcher = compile_boolean_matcher(&condition_map);
 
   let chunk_matcher = if matches!(has_js_matcher, BooleanMatcher::Condition(false)) {
@@ -69,7 +70,7 @@ chunkMatcher: function(chunkId) {{
     let filename = get_js_chunk_filename_template(
       chunk,
       &compilation.options.output,
-      &compilation.chunk_group_by_ukey,
+      &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
     );
     let output_name = compilation
       .get_path(&filename, Default::default())

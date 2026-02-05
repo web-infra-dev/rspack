@@ -36,18 +36,31 @@ pub fn ensure_configured_remotes(
 
 pub fn collect_entry_files(compilation: &Compilation, container_name: &str) -> HashSet<String> {
   let mut entry_files = HashSet::default();
-  for (name, entrypoint_ukey) in &compilation.entrypoints {
+  for (name, entrypoint_ukey) in &compilation.build_chunk_graph_artifact.entrypoints {
     if name == container_name {
       continue;
     }
-    let entrypoint = compilation.chunk_group_by_ukey.expect_get(entrypoint_ukey);
+    let entrypoint = compilation
+      .build_chunk_graph_artifact
+      .chunk_group_by_ukey
+      .expect_get(entrypoint_ukey);
     for chunk_ukey in &entrypoint.chunks {
-      if let Some(chunk) = compilation.chunk_by_ukey.get(chunk_ukey) {
+      if let Some(chunk) = compilation
+        .build_chunk_graph_artifact
+        .chunk_by_ukey
+        .get(chunk_ukey)
+      {
         for file in chunk.files() {
           entry_files.insert(file.clone());
         }
-        for async_chunk_ukey in chunk.get_all_async_chunks(&compilation.chunk_group_by_ukey) {
-          if let Some(async_chunk) = compilation.chunk_by_ukey.get(&async_chunk_ukey) {
+        for async_chunk_ukey in
+          chunk.get_all_async_chunks(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
+        {
+          if let Some(async_chunk) = compilation
+            .build_chunk_graph_artifact
+            .chunk_by_ukey
+            .get(&async_chunk_ukey)
+          {
             let mut should_filter = false;
             if let Some(chunk_name) = async_chunk.name()
               && chunk_name.contains(name)
@@ -71,8 +84,13 @@ pub fn collect_entry_files(compilation: &Compilation, container_name: &str) -> H
         }
       }
     }
-    let runtime_chunk_ukey = entrypoint.get_runtime_chunk(&compilation.chunk_group_by_ukey);
-    if let Some(chunk) = compilation.chunk_by_ukey.get(&runtime_chunk_ukey) {
+    let runtime_chunk_ukey =
+      entrypoint.get_runtime_chunk(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey);
+    if let Some(chunk) = compilation
+      .build_chunk_graph_artifact
+      .chunk_by_ukey
+      .get(&runtime_chunk_ukey)
+    {
       for file in chunk.files() {
         entry_files.insert(file.clone());
       }

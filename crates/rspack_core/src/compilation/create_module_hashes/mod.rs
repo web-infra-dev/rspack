@@ -19,7 +19,7 @@ impl PassExt for CreateModuleHashesPass {
     create_module_hashes_pass_impl(compilation).await
   }
 
-  async fn after_pass(&self, compilation: &Compilation, cache: &mut dyn Cache) {
+  async fn after_pass(&self, compilation: &mut Compilation, cache: &mut dyn Cache) {
     cache.after_modules_hashes(compilation).await;
   }
 }
@@ -51,8 +51,9 @@ async fn create_module_hashes_pass_impl(compilation: &mut Compilation) -> Result
     let mg = compilation.get_module_graph();
     for mi in mg.modules().keys() {
       let module_runtimes = compilation
+        .build_chunk_graph_artifact
         .chunk_graph
-        .get_module_runtimes(*mi, &compilation.chunk_by_ukey);
+        .get_module_runtimes(*mi, &compilation.build_chunk_graph_artifact.chunk_by_ukey);
       let module_runtime_keys = module_runtimes
         .values()
         .map(get_runtime_key)
@@ -125,8 +126,8 @@ impl Compilation {
   #[instrument("Compilation:create_module_hashes", skip_all)]
   pub async fn create_module_hashes(&mut self, modules: IdentifierSet) -> Result<()> {
     let mg = self.get_module_graph();
-    let chunk_graph = &self.chunk_graph;
-    let chunk_by_ukey = &self.chunk_by_ukey;
+    let chunk_graph = &self.build_chunk_graph_artifact.chunk_graph;
+    let chunk_by_ukey = &self.build_chunk_graph_artifact.chunk_by_ukey;
 
     let results = rspack_futures::scope::<_, Result<_>>(|token| {
       for module_identifier in modules {

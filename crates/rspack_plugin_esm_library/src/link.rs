@@ -139,10 +139,14 @@ impl EsmLibraryPlugin {
 
     // initialize data for link chunks
     let mut link: UkeyMap<ChunkUkey, ChunkLinkContext> = compilation
+      .build_chunk_graph_artifact
       .chunk_by_ukey
       .keys()
       .map(|ukey| {
-        let modules = compilation.chunk_graph.get_chunk_modules_identifier(ukey);
+        let modules = compilation
+          .build_chunk_graph_artifact
+          .chunk_graph
+          .get_chunk_modules_identifier(ukey);
 
         let mut decl_modules = IdentifierIndexSet::default();
         let mut hoisted_modules = IdentifierIndexSet::default();
@@ -399,7 +403,10 @@ var {} = {{}};
   }
 
   pub fn get_module_chunk(m: ModuleIdentifier, compilation: &Compilation) -> ChunkUkey {
-    let chunks = compilation.chunk_graph.get_module_chunks(m);
+    let chunks = compilation
+      .build_chunk_graph_artifact
+      .chunk_graph
+      .get_module_chunks(m);
     if chunks.is_empty() {
       panic!("module {m} is not in any chunk");
     }
@@ -659,17 +666,25 @@ var {} = {{}};
     let mut outputs = UkeyMap::<ChunkUkey, String>::default();
     let concate_modules_map = orig_concate_modules_map.clone();
     for m in concate_modules_map.keys() {
-      if compilation.chunk_graph.get_module_chunks(*m).is_empty() {
+      if compilation
+        .build_chunk_graph_artifact
+        .chunk_graph
+        .get_module_chunks(*m)
+        .is_empty()
+      {
         // orphan module
         continue;
       }
 
       let chunk_ukey = Self::get_module_chunk(*m, compilation);
-      let chunk = compilation.chunk_by_ukey.expect_get(&chunk_ukey);
+      let chunk = compilation
+        .build_chunk_graph_artifact
+        .chunk_by_ukey
+        .expect_get(&chunk_ukey);
       let filename_template = get_js_chunk_filename_template(
         chunk,
         &compilation.options.output,
-        &compilation.chunk_group_by_ukey,
+        &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
       );
 
       let output_path = compilation
@@ -697,7 +712,12 @@ var {} = {{}};
 
     let map = rspack_futures::scope::<_, _>(|token| {
       for (m, info) in concate_modules_map {
-        if compilation.chunk_graph.get_module_chunks(m).is_empty() {
+        if compilation
+          .build_chunk_graph_artifact
+          .chunk_graph
+          .get_module_chunks(m)
+          .is_empty()
+        {
           // orphan module
           continue;
         }
@@ -1304,11 +1324,13 @@ var {} = {{}};
     // checker issue, so put chunk_link.exports, chunk_link.imports and
     // chunk_link.required ahead.
     let mut exports = compilation
+      .build_chunk_graph_artifact
       .chunk_by_ukey
       .keys()
       .map(|chunk| (*chunk, Default::default()))
       .collect::<UkeyMap<ChunkUkey, ExportsContext>>();
     let mut imports = compilation
+      .build_chunk_graph_artifact
       .chunk_by_ukey
       .keys()
       .map(|chunk| (*chunk, Default::default()))
@@ -1318,8 +1340,11 @@ var {} = {{}};
     let mut required = UkeyMap::<ChunkUkey, IdentifierIndexMap<ExternalInterop>>::default();
 
     // link entry direct exports
-    for (entry_name, entrypoint_ukey) in compilation.entrypoints.iter() {
-      let entrypoint = compilation.chunk_group_by_ukey.expect_get(entrypoint_ukey);
+    for (entry_name, entrypoint_ukey) in compilation.build_chunk_graph_artifact.entrypoints.iter() {
+      let entrypoint = compilation
+        .build_chunk_graph_artifact
+        .chunk_group_by_ukey
+        .expect_get(entrypoint_ukey);
       let entry_chunk_ukey = entrypoint.get_entrypoint_chunk();
       let needed_namespace = needed_namespace_objects_by_ukey
         .entry(entry_chunk_ukey)

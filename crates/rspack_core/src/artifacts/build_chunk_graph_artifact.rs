@@ -1,3 +1,5 @@
+use std::mem;
+
 use futures::Future;
 use indexmap::IndexMap;
 use rspack_collections::{IdentifierIndexMap, IdentifierMap};
@@ -14,19 +16,19 @@ use crate::{
 };
 
 #[derive(Debug, Default)]
-pub struct CodeSplittingCache {
-  chunk_by_ukey: ChunkByUkey,
-  chunk_graph: ChunkGraph,
-  chunk_group_by_ukey: ChunkGroupByUkey,
-  entrypoints: IndexMap<String, ChunkGroupUkey>,
-  async_entrypoints: Vec<ChunkGroupUkey>,
-  named_chunk_groups: HashMap<String, ChunkGroupUkey>,
-  named_chunks: HashMap<String, ChunkUkey>,
+pub struct BuildChunkGraphArtifact {
+  pub chunk_by_ukey: ChunkByUkey,
+  pub chunk_graph: ChunkGraph,
+  pub chunk_group_by_ukey: ChunkGroupByUkey,
+  pub entrypoints: IndexMap<String, ChunkGroupUkey>,
+  pub async_entrypoints: Vec<ChunkGroupUkey>,
+  pub named_chunk_groups: HashMap<String, ChunkGroupUkey>,
+  pub named_chunks: HashMap<String, ChunkUkey>,
   pub(crate) code_splitter: CodeSplitter,
-  pub(crate) module_idx: IdentifierMap<(u32, u32)>,
+  pub module_idx: IdentifierMap<(u32, u32)>,
 }
 
-impl CodeSplittingCache {
+impl BuildChunkGraphArtifact {
   // we can skip rebuilding chunk graph if none of modules
   // has changed its outgoings
   // we don't need to check if module has changed its incomings
@@ -41,7 +43,6 @@ impl CodeSplittingCache {
     if !this_compilation.entries.keys().eq(
       this_compilation
         .build_chunk_graph_artifact
-        .code_splitting_cache
         .entrypoints
         .keys(),
     ) {
@@ -72,7 +73,6 @@ impl CodeSplittingCache {
     let affected_modules = mutations.get_affected_modules_with_module_graph(module_graph);
     let previous_modules_map = &this_compilation
       .build_chunk_graph_artifact
-      .code_splitting_cache
       .code_splitter
       .block_modules_runtime_map;
 
@@ -164,6 +164,18 @@ impl CodeSplittingCache {
 
     true
   }
+
+  fn reset_for_rebuild(&mut self) {
+    self.chunk_by_ukey = Default::default();
+    self.chunk_graph = Default::default();
+    self.chunk_group_by_ukey = Default::default();
+    self.entrypoints.clear();
+    self.async_entrypoints.clear();
+    self.named_chunk_groups.clear();
+    self.named_chunks.clear();
+    self.code_splitter = Default::default();
+    self.module_idx.clear();
+  }
 }
 
 #[instrument(name = "Compilation:code_splitting",target=TRACING_BENCH_TARGET, skip_all)]
@@ -186,46 +198,26 @@ where
   let no_change = incremental_code_splitting
     && compilation
       .build_chunk_graph_artifact
-      .code_splitting_cache
       .can_skip_rebuilding(compilation);
 
   if no_change {
-    let cache = &mut compilation.build_chunk_graph_artifact.code_splitting_cache;
-    rayon::scope(|s| {
-      s.spawn(|_| compilation.chunk_by_ukey = cache.chunk_by_ukey.clone());
-      s.spawn(|_| compilation.chunk_graph = cache.chunk_graph.clone());
-      s.spawn(|_| compilation.chunk_group_by_ukey = cache.chunk_group_by_ukey.clone());
-      s.spawn(|_| compilation.entrypoints = cache.entrypoints.clone());
-      s.spawn(|_| compilation.async_entrypoints = cache.async_entrypoints.clone());
-      s.spawn(|_| compilation.named_chunk_groups = cache.named_chunk_groups.clone());
-      s.spawn(|_| compilation.named_chunks = cache.named_chunks.clone());
-    });
-
-    if no_change {
-      let module_idx = cache.module_idx.clone();
-      let module_graph = compilation.get_module_graph_mut();
-      for (m, (pre, post)) in module_idx {
-        let mgm = module_graph.module_graph_module_by_identifier_mut(&m);
-        mgm.pre_order_index = Some(pre);
-        mgm.post_order_index = Some(post);
-      }
-
-      return Ok(());
+    let module_idx = &compilation.build_chunk_graph_artifact.module_idx;
+    let module_graph = compilation
+      .build_module_graph_artifact
+      .get_module_graph_mut();
+    for (m, (pre, post)) in module_idx.iter() {
+      let mgm = module_graph.module_graph_module_by_identifier_mut(m);
+      mgm.pre_order_index = Some(*pre);
+      mgm.post_order_index = Some(*post);
     }
+
+    return Ok(());
   }
 
-  let compilation = task(compilation).await?;
-  let cache = &mut compilation.build_chunk_graph_artifact.code_splitting_cache;
-  rayon::scope(|s| {
-    s.spawn(|_| cache.chunk_by_ukey = compilation.chunk_by_ukey.clone());
-    s.spawn(|_| cache.chunk_graph = compilation.chunk_graph.clone());
-    s.spawn(|_| cache.chunk_group_by_ukey = compilation.chunk_group_by_ukey.clone());
-    s.spawn(|_| cache.entrypoints = compilation.entrypoints.clone());
-    s.spawn(|_| cache.async_entrypoints = compilation.async_entrypoints.clone());
-    s.spawn(|_| cache.named_chunk_groups = compilation.named_chunk_groups.clone());
-    s.spawn(|_| cache.named_chunks = compilation.named_chunks.clone());
-  });
+  // Cache is not used, clear recovered artifact to avoid stale chunk graph data.
+  compilation.build_chunk_graph_artifact.reset_for_rebuild();
 
+  let compilation = task(compilation).await?;
   let mg = compilation.get_module_graph();
   let mut map = IdentifierMap::default();
   for (mid, mgm) in mg.module_graph_modules() {
@@ -235,19 +227,29 @@ where
 
     map.insert(mid, (pre, post));
   }
-  let cache = &mut compilation.build_chunk_graph_artifact.code_splitting_cache;
-  cache.module_idx = map;
+  compilation.build_chunk_graph_artifact.module_idx = map;
   Ok(())
-}
-
-#[derive(Debug, Default)]
-pub struct BuildChunkGraphArtifact {
-  pub code_splitting_cache: CodeSplittingCache,
 }
 
 impl ArtifactExt for BuildChunkGraphArtifact {
   const PASS: IncrementalPasses = IncrementalPasses::BUILD_CHUNK_GRAPH;
   fn should_recover(incremental: &crate::incremental::Incremental) -> bool {
     incremental.passes_enabled(IncrementalPasses::BUILD_CHUNK_GRAPH)
+  }
+  fn recover(_incremental: &crate::incremental::Incremental, new: &mut Self, old: &mut Self) {
+    new.code_splitter = mem::take(&mut old.code_splitter);
+    rayon::scope(|s| {
+      s.spawn(|_| new.chunk_by_ukey = old.chunk_by_ukey.clone());
+      s.spawn(|_| new.chunk_graph = old.chunk_graph.clone());
+      s.spawn(|_| new.chunk_group_by_ukey = old.chunk_group_by_ukey.clone());
+
+      s.spawn(|_| new.async_entrypoints = old.async_entrypoints.clone());
+      s.spawn(|_| new.named_chunk_groups = old.named_chunk_groups.clone());
+      s.spawn(|_| new.named_chunks = old.named_chunks.clone());
+      s.spawn(|_| {
+        new.entrypoints = old.entrypoints.clone();
+        new.module_idx = old.module_idx.clone();
+      });
+    });
   }
 }

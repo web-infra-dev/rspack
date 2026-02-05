@@ -45,8 +45,8 @@ async fn chunk_ids(
     diagnostics.push(diagnostic);
   }
 
-  let chunk_graph = &compilation.chunk_graph;
-  let chunk_group_by_ukey = &compilation.chunk_group_by_ukey;
+  let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
+  let chunk_group_by_ukey = &compilation.build_chunk_graph_artifact.chunk_group_by_ukey;
   let mut occurs_in_initial_chunks_map = HashMap::new();
 
   for chunk in chunk_by_ukey.values() {
@@ -86,7 +86,7 @@ async fn chunk_ids(
 
       compare_chunks_natural(
         chunk_graph,
-        &compilation.chunk_group_by_ukey,
+        &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
         &compilation.module_ids_artifact,
         a,
         b,

@@ -115,13 +115,21 @@ pub fn compare_chunk_group(
   ukey_b: &ChunkGroupUkey,
   compilation: &Compilation,
 ) -> Ordering {
-  let chunks_a = &compilation.chunk_group_by_ukey.expect_get(ukey_a).chunks;
-  let chunks_b = &compilation.chunk_group_by_ukey.expect_get(ukey_b).chunks;
+  let chunks_a = &compilation
+    .build_chunk_graph_artifact
+    .chunk_group_by_ukey
+    .expect_get(ukey_a)
+    .chunks;
+  let chunks_b = &compilation
+    .build_chunk_graph_artifact
+    .chunk_group_by_ukey
+    .expect_get(ukey_b)
+    .chunks;
   match chunks_a.len().cmp(&chunks_b.len()) {
     Ordering::Less => Ordering::Greater,
     Ordering::Greater => Ordering::Less,
     Ordering::Equal => compare_chunks_iterables(
-      &compilation.chunk_graph,
+      &compilation.build_chunk_graph_artifact.chunk_graph,
       compilation.get_module_graph(),
       chunks_a,
       chunks_b,
