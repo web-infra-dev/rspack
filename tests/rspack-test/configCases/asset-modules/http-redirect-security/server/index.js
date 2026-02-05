@@ -3,71 +3,106 @@ const http = require("http");
  * @returns {import("http").Server} server instance
  */
 function createServer() {
+  const activeConnections = new Set();
+
   const server = http.createServer((req, res) => {
     const url = new URL(req.url, `http://${req.headers.host}`);
+    const reqId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
-    console.log("<", url.pathname);
+    console.log(`[${reqId}] <`, url.pathname);
+
+    req.on('error', (err) => {
+      console.error(`[${reqId}] request error:`, err.message);
+    });
+
+    res.on('error', (err) => {
+      console.error(`[${reqId}] response error:`, err.message);
+    });
+
+    res.on('finish', () => {
+      console.log(`[${reqId}] response finished`);
+    });
 
     if (url.pathname === "/redirect-to-disallowed") {
       res.writeHead(302, { "Location": "https://evil.com/malicious.js" });
-      console.log(">", url.pathname);
+      console.log(`[${reqId}] >`, url.pathname);
       res.end();
       return;
     }
 
     if (url.pathname === "/redirect-to-non-http") {
       res.writeHead(302, { "Location": "ftp://example.com/file.js" });
-      console.log(">", url.pathname);
+      console.log(`[${reqId}] >`, url.pathname);
       res.end();
       return;
     }
 
     if (url.pathname === "/redirect-chain") {
       res.writeHead(302, { "Location": "/redirect-chain-1" });
-      console.log(">", url.pathname);
+      console.log(`[${reqId}] >`, url.pathname);
       res.end();
       return;
     }
 
     if (url.pathname === "/redirect-chain-1") {
       res.writeHead(302, { "Location": "/redirect-chain-2" });
-      console.log(">", url.pathname);
+      console.log(`[${reqId}] >`, url.pathname);
       res.end();
       return;
     }
 
     if (url.pathname === "/redirect-chain-2") {
       res.writeHead(302, { "Location": "/redirect-chain-3" });
-      console.log(">", url.pathname);
+      console.log(`[${reqId}] >`, url.pathname);
       res.end();
       return;
     }
 
     if (url.pathname === "/redirect-chain-3") {
       res.writeHead(302, { "Location": "/redirect-chain-4" });
-      console.log(">", url.pathname);
+      console.log(`[${reqId}] >`, url.pathname);
       res.end();
       return;
     }
 
     if (url.pathname === "/redirect-chain-4") {
       res.writeHead(302, { "Location": "/redirect-chain-5" });
-      console.log(">", url.pathname);
+      console.log(`[${reqId}] >`, url.pathname);
       res.end();
       return;
     }
 
     if (url.pathname === "/redirect-chain-5") {
       res.writeHead(302, { "Location": "/redirect-chain-6" });
-      console.log(">", url.pathname);
+      console.log(`[${reqId}] >`, url.pathname);
       res.end();
       return;
     }
 
     res.writeHead(404);
-    console.log(">", url.pathname, "404");
+    console.log(`[${reqId}] >`, url.pathname, "404");
     res.end("Not found");
   });
+
+  server.on('connection', (socket) => {
+    const connId = `conn-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    activeConnections.add(socket);
+    console.log(`[${connId}] connection opened, total: ${activeConnections.size}`);
+
+    socket.on('close', () => {
+      activeConnections.delete(socket);
+      console.log(`[${connId}] connection closed, remaining: ${activeConnections.size}`);
+    });
+
+    socket.on('error', (err) => {
+      console.error(`[${connId}] socket error:`, err.message);
+    });
+  });
+
+  server.on('error', (err) => {
+    console.error('server error:', err.message);
+  });
+
   return server;
 }
 
@@ -109,9 +144,18 @@ class ServerPlugin {
       const s = this.server;
       if (s && --this.refs === 0) {
         this.server = undefined;
-        console.log("server closing")
-        s.close(callback);
+        console.log("server closing, current refs:", this.refs);
+
+        s.close((err) => {
+          if (err) {
+            console.error("server close error:", err.message);
+          } else {
+            console.log("server closed successfully");
+          }
+          callback(err);
+        });
       } else {
+        console.log("keeping server alive, current refs:", this.refs);
         callback();
       }
     });
