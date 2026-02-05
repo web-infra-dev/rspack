@@ -1,20 +1,14 @@
-use rspack_collections::Identifier;
 use rspack_core::{
   Compilation, RuntimeModule, RuntimeTemplate, RuntimeVariable, impl_runtime_module,
 };
 
 #[impl_runtime_module]
 #[derive(Debug)]
-pub struct AsyncRuntimeModule {
-  id: Identifier,
-}
+pub struct AsyncRuntimeModule {}
 
 impl AsyncRuntimeModule {
   pub fn new(runtime_template: &RuntimeTemplate) -> Self {
-    Self::with_default(Identifier::from(format!(
-      "{}async_module",
-      runtime_template.runtime_module_prefix()
-    )))
+    Self::with_name(runtime_template, "async_module")
   }
 }
 
@@ -27,10 +21,6 @@ impl RuntimeModule for AsyncRuntimeModule {
         "_module_cache": compilation.runtime_template.render_runtime_variable(&RuntimeVariable::ModuleCache),
       })),
     )
-  }
-
-  fn name(&self) -> Identifier {
-    self.id
   }
 
   fn template(&self) -> Vec<(String, String)> {

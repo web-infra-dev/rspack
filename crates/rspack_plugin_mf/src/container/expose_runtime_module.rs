@@ -1,4 +1,3 @@
-use rspack_collections::Identifier;
 use rspack_core::{
   ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleStage, RuntimeTemplate,
   SourceType, impl_runtime_module,
@@ -9,21 +8,12 @@ use crate::utils::json_stringify;
 
 #[impl_runtime_module]
 #[derive(Debug)]
-pub struct ExposeRuntimeModule {
-  id: Identifier,
-  chunk: Option<ChunkUkey>,
-}
+pub struct ExposeRuntimeModule {}
 
 impl ExposeRuntimeModule {
   #[allow(clippy::new_without_default)]
   pub fn new(runtime_template: &RuntimeTemplate) -> Self {
-    Self::with_default(
-      Identifier::from(format!(
-        "{}initialize_exposes",
-        runtime_template.runtime_module_prefix()
-      )),
-      None,
-    )
+    Self::with_name(runtime_template, "initialize_exposes")
   }
 }
 
@@ -55,10 +45,6 @@ impl ExposeRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for ExposeRuntimeModule {
-  fn name(&self) -> Identifier {
-    self.id
-  }
-
   fn stage(&self) -> RuntimeModuleStage {
     RuntimeModuleStage::Attach
   }
@@ -92,9 +78,5 @@ impl RuntimeModule for ExposeRuntimeModule {
       "{require_name}.initContainer = {require_name}.initContainer || function() {{ throw new Error(\"should have {require_name}.initContainer\") }};",
     );
     Ok(source)
-  }
-
-  fn attach(&mut self, chunk: ChunkUkey) {
-    self.chunk = Some(chunk);
   }
 }

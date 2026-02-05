@@ -1,8 +1,7 @@
 use std::sync::LazyLock;
 
-use rspack_collections::Identifier;
 use rspack_core::{
-  Chunk, ChunkGraph, ChunkUkey, Compilation, ModuleIdentifier, RuntimeGlobals, RuntimeModule,
+  Chunk, ChunkGraph, Compilation, ModuleIdentifier, RuntimeGlobals, RuntimeModule,
   RuntimeModuleStage, RuntimeTemplate, SourceType, impl_runtime_module,
 };
 use rspack_plugin_runtime::extract_runtime_globals_from_ejs;
@@ -28,21 +27,12 @@ static CONSUMES_LOADING_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> = LazyLoc
 #[impl_runtime_module]
 #[derive(Debug)]
 pub struct ConsumeSharedRuntimeModule {
-  id: Identifier,
-  chunk: Option<ChunkUkey>,
   enhanced: bool,
 }
 
 impl ConsumeSharedRuntimeModule {
   pub fn new(runtime_template: &RuntimeTemplate, enhanced: bool) -> Self {
-    Self::with_default(
-      Identifier::from(format!(
-        "{}consumes_loading",
-        runtime_template.runtime_module_prefix()
-      )),
-      None,
-      enhanced,
-    )
+    Self::with_name(runtime_template, "consumes_loading", enhanced)
   }
 
   fn get_template_id(&self, template_id: TemplateId) -> String {
@@ -62,10 +52,6 @@ enum TemplateId {
 
 #[async_trait::async_trait]
 impl RuntimeModule for ConsumeSharedRuntimeModule {
-  fn name(&self) -> Identifier {
-    self.id
-  }
-
   fn stage(&self) -> RuntimeModuleStage {
     RuntimeModuleStage::Attach
   }
@@ -216,10 +202,6 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
         .render(&self.get_template_id(TemplateId::Loading), None)?;
     }
     Ok(source)
-  }
-
-  fn attach(&mut self, chunk: ChunkUkey) {
-    self.chunk = Some(chunk);
   }
 
   fn additional_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {

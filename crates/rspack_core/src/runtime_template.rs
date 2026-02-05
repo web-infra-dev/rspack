@@ -4,6 +4,7 @@ use std::{
 };
 
 use cow_utils::CowUtils;
+use heck::ToSnakeCase;
 use itertools::Itertools;
 use regex::{Captures, Regex};
 use rspack_collections::Identifier;
@@ -227,6 +228,23 @@ impl RuntimeTemplate {
 
   pub fn runtime_module_prefix(&self) -> &'static str {
     "webpack/runtime/"
+  }
+
+  pub fn create_runtime_module_identifier(&self, name: &str) -> Identifier {
+    let module_name = if let Some(name) = name.strip_suffix("RuntimeModule") {
+      name
+    } else {
+      name
+    };
+    Identifier::from(format!(
+      "{}{}",
+      self.runtime_module_prefix(),
+      module_name.to_snake_case()
+    ))
+  }
+
+  pub fn create_custom_runtime_module_identifier(&self, custom: &str) -> Identifier {
+    Identifier::from(format!("{}{custom}", self.runtime_module_prefix()))
   }
 
   pub fn create_module_codegen_runtime_template(&self) -> ModuleCodegenRuntimeTemplate {

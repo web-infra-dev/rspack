@@ -1,8 +1,8 @@
 use std::sync::LazyLock;
 
-use rspack_collections::{Identifiable, Identifier};
+use rspack_collections::Identifiable;
 use rspack_core::{
-  ChunkGraph, ChunkUkey, Compilation, DependenciesBlock, ModuleId, RuntimeGlobals, RuntimeModule,
+  ChunkGraph, Compilation, DependenciesBlock, ModuleId, RuntimeGlobals, RuntimeModule,
   RuntimeModuleStage, RuntimeTemplate, SourceType, impl_runtime_module,
 };
 use rspack_plugin_runtime::extract_runtime_globals_from_ejs;
@@ -19,30 +19,17 @@ static REMOTES_LOADING_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
 #[impl_runtime_module]
 #[derive(Debug)]
 pub struct RemoteRuntimeModule {
-  id: Identifier,
-  chunk: Option<ChunkUkey>,
   enhanced: bool,
 }
 
 impl RemoteRuntimeModule {
   pub fn new(runtime_template: &RuntimeTemplate, enhanced: bool) -> Self {
-    Self::with_default(
-      Identifier::from(format!(
-        "{}remotes_loading",
-        runtime_template.runtime_module_prefix()
-      )),
-      None,
-      enhanced,
-    )
+    Self::with_name(runtime_template, "remotes_loading", enhanced)
   }
 }
 
 #[async_trait::async_trait]
 impl RuntimeModule for RemoteRuntimeModule {
-  fn name(&self) -> Identifier {
-    self.id
-  }
-
   fn stage(&self) -> RuntimeModuleStage {
     RuntimeModuleStage::Attach
   }
@@ -131,10 +118,6 @@ impl RuntimeModule for RemoteRuntimeModule {
       id_to_remote_data_mapping = json_stringify(&id_to_remote_data_mapping),
       remotes_loading_impl = remotes_loading_impl,
     ))
-  }
-
-  fn attach(&mut self, chunk: ChunkUkey) {
-    self.chunk = Some(chunk);
   }
 
   fn additional_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
