@@ -353,7 +353,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 )]
 async fn additional_tree_runtime_requirements(
   &self,
-  _compilation: &Compilation,
+  compilation: &Compilation,
   _chunk_ukey: &ChunkUkey,
   runtime_requirements: &mut RuntimeGlobals,
   runtime_modules: &mut Vec<Box<dyn RuntimeModule>>,
@@ -364,13 +364,16 @@ async fn additional_tree_runtime_requirements(
 
   runtime_requirements.insert(RuntimeGlobals::RUNTIME_ID);
   runtime_modules.push(
-    SharedUsedExportsOptimizerRuntimeModule::new(Arc::new(
-      self
-        .shared_referenced_exports
-        .read()
-        .expect("lock poisoned")
-        .clone(),
-    ))
+    SharedUsedExportsOptimizerRuntimeModule::new(
+      &compilation.runtime_template,
+      Arc::new(
+        self
+          .shared_referenced_exports
+          .read()
+          .expect("lock poisoned")
+          .clone(),
+      ),
+    )
     .boxed(),
   );
 

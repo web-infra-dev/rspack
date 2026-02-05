@@ -1,9 +1,9 @@
 use std::{collections::BTreeMap, sync::Arc};
 
 use async_trait::async_trait;
-use rspack_collections::Identifier;
 use rspack_core::{
-  ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleStage, impl_runtime_module,
+  Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleStage, RuntimeTemplate,
+  impl_runtime_module,
 };
 use rspack_error::{Result, error};
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -11,17 +11,18 @@ use rustc_hash::{FxHashMap, FxHashSet};
 #[impl_runtime_module]
 #[derive(Debug)]
 pub struct SharedUsedExportsOptimizerRuntimeModule {
-  id: Identifier,
-  chunk: Option<ChunkUkey>,
   // Keep type consistent with plugin: FxHashMap<String, FxHashSet<String>>
   shared_used_exports: Arc<FxHashMap<String, FxHashSet<String>>>,
 }
 
 impl SharedUsedExportsOptimizerRuntimeModule {
-  pub fn new(shared_used_exports: Arc<FxHashMap<String, FxHashSet<String>>>) -> Self {
-    Self::with_default(
-      Identifier::from("module_federation/shared_used_exports"),
-      None,
+  pub fn new(
+    runtime_template: &RuntimeTemplate,
+    shared_used_exports: Arc<FxHashMap<String, FxHashSet<String>>>,
+  ) -> Self {
+    Self::with_name(
+      runtime_template,
+      "module_federation/shared_used_exports",
       shared_used_exports,
     )
   }
@@ -29,14 +30,6 @@ impl SharedUsedExportsOptimizerRuntimeModule {
 
 #[async_trait]
 impl RuntimeModule for SharedUsedExportsOptimizerRuntimeModule {
-  fn name(&self) -> Identifier {
-    self.id
-  }
-
-  fn attach(&mut self, chunk: ChunkUkey) {
-    self.chunk = Some(chunk);
-  }
-
   fn stage(&self) -> RuntimeModuleStage {
     RuntimeModuleStage::Attach
   }

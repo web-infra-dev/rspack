@@ -88,7 +88,7 @@ async fn additional_tree_runtime_requirements(
   if let Some(name) = chunk.name()
     && name == self.options.name
   {
-    runtime_modules.push(ShareContainerRuntimeModule::new().boxed());
+    runtime_modules.push(ShareContainerRuntimeModule::new(&compilation.runtime_template).boxed());
   }
   Ok(())
 }
