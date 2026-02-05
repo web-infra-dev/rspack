@@ -121,63 +121,6 @@ class BulkUpdateDecorator extends Hash {
   }
 }
 
-class DebugHash extends Hash {
-  string: string;
-
-  constructor() {
-    super();
-    this.string = '';
-  }
-
-  /**
-   * Update hash {@link https://nodejs.org/api/crypto.html#crypto_hash_update_data_inputencoding}
-   * @param data data
-   * @param inputEncoding data encoding
-   * @returns updated hash
-   */
-  update(data: string, inputEncoding: string): this;
-  update(data: Buffer): this;
-  update(data: string | Buffer): this {
-    let normalizedData: string;
-    if (Buffer.isBuffer(data)) {
-      normalizedData = data.toString('utf-8');
-    } else {
-      normalizedData = data;
-    }
-
-    if (normalizedData.startsWith('debug-digest-')) {
-      normalizedData = Buffer.from(
-        normalizedData.slice('debug-digest-'.length),
-        'hex',
-      ).toString();
-    }
-
-    this.string += `[${normalizedData}](${new Error().stack?.split('\n', 3)[2]})\n`;
-    return this;
-  }
-
-  /**
-   * Calculates the digest without encoding
-   * @returns {Buffer} digest
-   */
-  digest(): Buffer;
-  /**
-   * Calculates the digest with encoding
-   * @param encoding encoding of the return value
-   * @returns {string} digest
-   */
-  digest(encoding: string): string;
-  /**
-   * Calculates the digest {@link https://nodejs.org/api/crypto.html#crypto_hash_digest_encoding}
-   * @param {string=} encoding encoding of the return value
-   * @returns {string|Buffer} digest
-   */
-  digest(encoding?: string): string | Buffer {
-    const result = `debug-digest-${Buffer.from(this.string).toString('hex')}`;
-    return encoding ? result : Buffer.from(result);
-  }
-}
-
 class WasmHashAdapter extends Hash {
   private wasmHash: any;
 
@@ -231,7 +174,6 @@ class WasmHashAdapter extends Hash {
  */
 export const createHash = (
   algorithm:
-    | 'debug'
     | 'xxhash64'
     | 'md4'
     | 'native-md4'
@@ -242,9 +184,6 @@ export const createHash = (
     return new BulkUpdateDecorator(() => new algorithm());
   }
   switch (algorithm) {
-    // TODO add non-cryptographic algorithm here
-    case 'debug':
-      return new DebugHash();
     case 'xxhash64': {
       const hash = createXXHash64();
       return new WasmHashAdapter(hash);
