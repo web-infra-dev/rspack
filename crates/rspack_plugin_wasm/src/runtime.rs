@@ -65,7 +65,8 @@ impl RuntimeModule for AsyncWasmLoadingRuntimeModule {
       None => "\" + wasmModuleHash + \"".to_string(),
     };
 
-    let chunk = compilation.build_chunk_graph_artifact
+    let chunk = compilation
+      .build_chunk_graph_artifact
       .chunk_by_ukey
       .expect_get(self.chunk.as_ref().expect("should attached chunk"));
     let path = compilation
