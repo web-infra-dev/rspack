@@ -99,6 +99,10 @@ pub enum DependencyType {
   ContainerExposed,
   /// container entry,
   ContainerEntry,
+  /// share container entry
+  ShareContainerEntry,
+  /// share container fallback
+  ShareContainerFallback,
   /// remote to external,
   RemoteToExternal,
   /// fallback
@@ -185,6 +189,8 @@ impl DependencyType {
       DependencyType::ImportMetaResolve => "import.meta.resolve",
       DependencyType::ContainerExposed => "container exposed",
       DependencyType::ContainerEntry => "container entry",
+      DependencyType::ShareContainerEntry => "share container entry",
+      DependencyType::ShareContainerFallback => "share container fallback",
       DependencyType::DllEntry => "dll entry",
       DependencyType::RemoteToExternal => "remote to external",
       DependencyType::RemoteToFallback => "fallback",

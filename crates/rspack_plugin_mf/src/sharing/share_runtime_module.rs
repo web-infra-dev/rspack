@@ -78,11 +78,12 @@ impl RuntimeModule for ShareRuntimeModule {
             DataInitInfo::ExternalModuleId(Some(id)) => json_stringify(&id),
             DataInitInfo::ProvideSharedInfo(info) => {
               let mut stage = format!(
-                "{{ name: {}, version: {}, factory: {}, eager: {}",
+                "{{ name: {}, version: {}, factory: {}, eager: {}, treeShakingMode: {}",
                 json_stringify(&info.name),
                 json_stringify(&info.version.to_string()),
                 info.factory,
                 if info.eager { "1" } else { "0" },
+                json_stringify(&info.tree_shaking_mode),
               );
               if self.enhanced {
                 if let Some(singleton) = info.singleton {
@@ -172,4 +173,5 @@ pub struct ProvideSharedInfo {
   pub singleton: Option<bool>,
   pub required_version: Option<ConsumeVersion>,
   pub strict_version: Option<bool>,
+  pub tree_shaking_mode: Option<String>,
 }
