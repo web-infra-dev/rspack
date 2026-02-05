@@ -129,15 +129,20 @@ function compatibleFetch(
           return;
         }
 
-        socket.setTimeout(30000);
+        if (!socket.timeout) {
+          socket.setTimeout(30000);
+        }
+
+        const originalTimeoutHandler = socket.listeners('timeout')[0];
+        if (!originalTimeoutHandler) {
+          socket.on('timeout', () => {
+            console.error(`[HTTP-CLIENT-FETCH] Socket timeout: ${url}`);
+            req.destroy(new Error(`Socket timeout: ${url}`));
+          });
+        }
 
         socket.on('connect', () => {
           console.log(`[HTTP-CLIENT-FETCH] Socket connected: ${url}`);
-        });
-
-        socket.on('timeout', () => {
-          console.error(`[HTTP-CLIENT-FETCH] Socket timeout: ${url}`);
-          req.destroy(new Error(`Socket timeout: ${url}`));
         });
 
         socket.on('end', () => {
