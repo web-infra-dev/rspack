@@ -63,40 +63,67 @@ function compatibleFetch(
 
   return new Promise<{ res: IncomingMessage; body: Buffer }>(
     (resolve, reject) => {
-      send
-        .get(url, options, (res) => {
-          // align with https://github.com/webpack/webpack/blob/dec18718be5dfba28f067fb3827dd620a1f33667/lib/schemes/HttpUriPlugin.js#L807
-          const contentEncoding = res.headers['content-encoding'];
-          /** @type {Readable} */
-          let stream = res;
-          if (contentEncoding === 'gzip') {
-            stream = stream.pipe(createGunzip()) as IncomingMessage;
-          } else if (contentEncoding === 'br') {
-            stream = stream.pipe(createBrotliDecompress()) as IncomingMessage;
-          } else if (contentEncoding === 'deflate') {
-            stream = stream.pipe(createInflate()) as IncomingMessage;
+      console.log(`[HTTP-CLIENT-FETCH] Starting request: ${url}`);
+      const req = send.get(url, options, (res) => {
+        console.log(
+          `[HTTP-CLIENT-FETCH] Response received: ${url}, status: ${res.statusCode}`,
+        );
+        // align with https://github.com/webpack/webpack/blob/dec18718be5dfba28f067fb3827dd620a1f33667/lib/schemes/HttpUriPlugin.js#L807
+        const contentEncoding = res.headers['content-encoding'];
+        /** @type {Readable} */
+        let stream = res;
+        if (contentEncoding === 'gzip') {
+          stream = stream.pipe(createGunzip()) as IncomingMessage;
+        } else if (contentEncoding === 'br') {
+          stream = stream.pipe(createBrotliDecompress()) as IncomingMessage;
+        } else if (contentEncoding === 'deflate') {
+          stream = stream.pipe(createInflate()) as IncomingMessage;
+        }
+        const chunks: Buffer[] = [];
+        stream.on('data', (chunk) => {
+          chunks.push(chunk);
+        });
+        stream.on('end', () => {
+          console.log(
+            `[HTTP-CLIENT-FETCH] Stream ended: ${url}, chunks: ${chunks.length}`,
+          );
+          const bodyBuffer = Buffer.concat(chunks);
+          if (!res.complete) {
+            console.error(
+              `[HTTP-CLIENT-FETCH] Request terminated early: ${url}`,
+            );
+            reject(new Error(`${url} request was terminated early`));
+            return;
           }
-          const chunks: Buffer[] = [];
-          stream.on('data', (chunk) => {
-            chunks.push(chunk);
+          console.log(`[HTTP-CLIENT-FETCH] Request complete: ${url}`);
+          resolve({
+            res,
+            body: bodyBuffer,
           });
-          stream.on('end', () => {
-            const bodyBuffer = Buffer.concat(chunks);
-            if (!res.complete) {
-              reject(new Error(`${url} request was terminated early`));
-              return;
-            }
-            resolve({
-              res,
-              body: bodyBuffer,
-            });
-          });
-          stream.on('error', (e) => {
-            console.log('stream error happens', e);
-            reject(e);
-          });
-        })
-        .on('error', reject);
+        });
+        stream.on('error', (e) => {
+          console.error(`[HTTP-CLIENT-FETCH] Stream error: ${url}`, e);
+          reject(e);
+        });
+      });
+
+      req.on('error', (e) => {
+        console.error(`[HTTP-CLIENT-FETCH] Request error: ${url}`, e);
+        reject(e);
+      });
+
+      req.on('socket', (socket) => {
+        console.log(`[HTTP-CLIENT-FETCH] Socket assigned: ${url}`);
+        socket.on('end', () => {
+          console.log(`[HTTP-CLIENT-FETCH] Socket ended: ${url}`);
+        });
+        socket.on('close', () => {
+          console.log(`[HTTP-CLIENT-FETCH] Socket closed: ${url}`);
+        });
+        socket.on('error', (e) => {
+          console.error(`[HTTP-CLIENT-FETCH] Socket error: ${url}`, e);
+        });
+      });
     },
   );
 }
@@ -105,25 +132,47 @@ const defaultHttpClientForNode = async (
   url: string,
   headers: Record<string, string>,
 ) => {
+  const startTime = Date.now();
+  console.log(`[HTTP-CLIENT] Request start: ${url} at ${startTime}`);
+
   // Return a promise that resolves to the response
   // setting redirect: "manual" to prevent automatic redirection which will break the redirect logic in rust plugin
   // webpack use require('http').get while rspack use fetch which treats redirect differently
-  const { res, body } = await compatibleFetch(url, { headers });
-  const responseHeaders: Record<string, string> = {};
-  for (const [key, value] of Object.entries(res.headers)) {
-    if (Array.isArray(value)) {
-      responseHeaders[key] = value.join(', ');
-    } else {
-      responseHeaders[key] = value!;
+  try {
+    const { res, body } = await compatibleFetch(url, { headers });
+    const duration = Date.now() - startTime;
+    console.log(`[HTTP-CLIENT] Response received: ${url}`);
+    console.log(
+      `[HTTP-CLIENT]   Status: ${res.statusCode}, Duration: ${duration}ms`,
+    );
+    console.log(`[HTTP-CLIENT]   Body size: ${body.length} bytes`);
+    if (res.statusCode && res.statusCode >= 300 && res.statusCode < 400) {
+      console.log(`[HTTP-CLIENT]   Redirect to: ${res.headers.location}`);
     }
-  }
+    const responseHeaders: Record<string, string> = {};
+    for (const [key, value] of Object.entries(res.headers)) {
+      if (Array.isArray(value)) {
+        responseHeaders[key] = value.join(', ');
+      } else {
+        responseHeaders[key] = value!;
+      }
+    }
 
-  // Return the standardized format
-  return {
-    status: res.statusCode!,
-    headers: responseHeaders,
-    body: Buffer.from(body),
-  };
+    console.log(`[HTTP-CLIENT] Request complete: ${url}`);
+
+    // Return the standardized format
+    return {
+      status: res.statusCode!,
+      headers: responseHeaders,
+      body: Buffer.from(body),
+    };
+  } catch (error) {
+    const duration = Date.now() - startTime;
+    console.error(`[HTTP-CLIENT] Request failed: ${url}`);
+    console.error(`[HTTP-CLIENT]   Error: ${error}`);
+    console.error(`[HTTP-CLIENT]   Duration: ${duration}ms`);
+    throw error;
+  }
 };
 
 /**
