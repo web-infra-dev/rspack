@@ -176,7 +176,7 @@ mod tests {
   async fn test_flush_packs_mtime(
     scope_path: Utf8PathBuf,
     strategy: &SplitPackStrategy,
-    fs: Arc<dyn FileSystem>,
+    fs: Arc<FileSystem>,
     options: Arc<PackOptions>,
     files: HashSet<Utf8PathBuf>,
   ) -> Result<()> {

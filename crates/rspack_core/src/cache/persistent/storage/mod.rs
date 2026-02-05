@@ -7,7 +7,7 @@ pub use memory::MemoryStorage;
 use rspack_cacheable::{cacheable, utils::PortablePath, with::As};
 use rspack_fs::IntermediateFileSystem;
 pub use rspack_storage::Storage;
-use rspack_storage::{BridgeFileSystem, PackStorage, PackStorageOptions};
+use rspack_storage::{FileSystem, PackStorage, PackStorageOptions};
 
 /// Storage Options
 ///
@@ -36,7 +36,7 @@ pub fn create_storage(
         bucket_size: 20,
         pack_size: 500 * 1024,
         expire: 7 * 24 * 60 * 60 * 1000,
-        fs: Arc::new(BridgeFileSystem(fs)),
+        fs: Arc::new(FileSystem(fs)),
         fresh_generation: Some(1),
         release_generation: Some(2),
         version,
