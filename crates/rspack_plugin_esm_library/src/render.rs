@@ -750,21 +750,19 @@ var {} = {{}};
         && let Some((in_same_chunk, binding_ref)) = chunk_link.dyn_refs.get(atom.as_str())
       {
         let final_name = match binding_ref {
-          Ref::Symbol(symbol_ref) => Cow::Owned(symbol_ref.render()),
+          Ref::Symbol(symbol_ref) => Cow::Owned(if *in_same_chunk {
+            symbol_ref.render()
+          } else {
+            format!("{NAMESPACE_SYMBOL}.{}", symbol_ref.render())
+          }),
           Ref::Inline(inline) => Cow::Borrowed(inline),
-        };
-
-        let final_name = if *in_same_chunk {
-          final_name.into_owned()
-        } else {
-          format!("{NAMESPACE_SYMBOL}.{final_name}")
         };
 
         for ref_atom in refs {
           let name = if ref_atom.shorthand {
             Cow::Owned(format!("{}: {}", &ref_atom.id.sym, final_name.as_str()))
           } else {
-            Cow::Borrowed(&final_name)
+            final_name.clone()
           };
           source.replace(
             ref_atom.id.span.real_lo(),
