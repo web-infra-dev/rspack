@@ -31,7 +31,7 @@ use crate::{
 
 #[derive(Debug, Clone)]
 pub struct SplitPackStrategy {
-  pub fs: Arc<dyn FileSystem>,
+  pub fs: Arc<FileSystem>,
   pub root: Arc<Utf8PathBuf>,
   pub temp_root: Arc<Utf8PathBuf>,
   pub fresh_generation: Option<usize>,
@@ -42,7 +42,7 @@ impl SplitPackStrategy {
   pub fn new(
     root: Utf8PathBuf,
     temp_root: Utf8PathBuf,
-    fs: Arc<dyn FileSystem>,
+    fs: Arc<FileSystem>,
     fresh_generation: Option<usize>,
     release_generation: Option<usize>,
   ) -> Self {

@@ -331,7 +331,7 @@ mod tests {
   use rustc_hash::FxHashMap as HashMap;
 
   use crate::{
-    BridgeFileSystem, FileSystem, ItemKey, ItemValue,
+    FileSystem, ItemKey, ItemValue,
     error::Result,
     pack::{
       data::{PackOptions, RootOptions},
@@ -362,11 +362,7 @@ mod tests {
     )
   }
 
-  async fn test_cold_start(
-    root: &Utf8Path,
-    temp: &Utf8Path,
-    fs: Arc<dyn FileSystem>,
-  ) -> Result<()> {
+  async fn test_cold_start(root: &Utf8Path, temp: &Utf8Path, fs: Arc<FileSystem>) -> Result<()> {
     let root_options = Arc::new(RootOptions {
       expire: 60000,
       root: root.parent().expect("should get parent").to_path_buf(),
@@ -420,7 +416,7 @@ mod tests {
     Ok(())
   }
 
-  async fn test_hot_start(root: &Utf8Path, temp: &Utf8Path, fs: Arc<dyn FileSystem>) -> Result<()> {
+  async fn test_hot_start(root: &Utf8Path, temp: &Utf8Path, fs: Arc<FileSystem>) -> Result<()> {
     let root_options = Arc::new(RootOptions {
       expire: 60000,
       root: root.parent().expect("should get parent").to_path_buf(),
@@ -489,11 +485,7 @@ mod tests {
     Ok(())
   }
 
-  async fn test_invalid_start(
-    root: &Utf8Path,
-    temp: &Utf8Path,
-    fs: Arc<dyn FileSystem>,
-  ) -> Result<()> {
+  async fn test_invalid_start(root: &Utf8Path, temp: &Utf8Path, fs: Arc<FileSystem>) -> Result<()> {
     let root_options = Arc::new(RootOptions {
       expire: 60000,
       root: root.parent().expect("should get parent").to_path_buf(),
@@ -540,7 +532,7 @@ mod tests {
     Ok(())
   }
 
-  async fn test_clean(root: &Utf8Path, temp: &Utf8Path, fs: Arc<dyn FileSystem>) -> Result<()> {
+  async fn test_clean(root: &Utf8Path, temp: &Utf8Path, fs: Arc<FileSystem>) -> Result<()> {
     let root_options = Arc::new(RootOptions {
       expire: 60000,
       root: root.parent().expect("should get parent").to_path_buf(),
@@ -570,7 +562,7 @@ mod tests {
   }
 
   async fn test_manager() -> Result<()> {
-    let fs = Arc::new(BridgeFileSystem(Arc::new(MemoryFileSystem::default())));
+    let fs = Arc::new(FileSystem(Arc::new(MemoryFileSystem::default())));
     let root = Utf8PathBuf::from("/cache/test_manager");
     let temp = Utf8PathBuf::from("/temp/test_manager");
     test_cold_start(&root, &temp, fs.clone()).await?;

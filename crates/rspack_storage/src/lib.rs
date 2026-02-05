@@ -5,7 +5,7 @@ mod pack;
 use std::sync::Arc;
 
 pub use error::Result;
-pub use fs::{BridgeFileSystem, FSError, FSOperation, FSResult, FileSystem, Reader, Writer};
+pub use fs::{FSError, FSOperation, FSResult, FileSystem, Reader, Writer};
 pub use pack::{PackStorage, PackStorageOptions};
 use tokio::sync::oneshot::Receiver;
 

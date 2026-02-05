@@ -26,7 +26,7 @@ pub struct PackStorage {
 pub struct PackStorageOptions {
   pub root: PathBuf,
   pub temp_root: PathBuf,
-  pub fs: Arc<dyn FileSystem>,
+  pub fs: Arc<FileSystem>,
   pub bucket_size: usize,
   pub pack_size: usize,
   pub expire: u64,

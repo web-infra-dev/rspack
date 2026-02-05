@@ -5,71 +5,90 @@ mod test_storage_lock {
     sync::{Arc, atomic::AtomicUsize},
   };
 
-  use rspack_fs::{FileMetadata, MemoryFileSystem, NativeFileSystem};
-  use rspack_paths::{AssertUtf8, Utf8Path, Utf8PathBuf};
-  use rspack_storage::{
-    BridgeFileSystem, FSError, FSOperation, FSResult, FileSystem, PackStorage, PackStorageOptions,
-    Reader, Result, Storage, Writer,
+  use rspack_fs::{
+    FileMetadata, IntermediateFileSystem, IntermediateFileSystemExtras, MemoryFileSystem,
+    NativeFileSystem, ReadStream, WritableFileSystem, WriteStream,
   };
-  use rustc_hash::FxHashSet as HashSet;
+  use rspack_paths::{AssertUtf8, Utf8Path, Utf8PathBuf};
+  use rspack_storage::{FileSystem, PackStorage, PackStorageOptions, Result, Storage};
 
   #[derive(Debug)]
   pub struct MockFileSystem {
-    pub fs: Arc<dyn FileSystem>,
+    pub fs: Arc<dyn IntermediateFileSystem>,
     pub moved: AtomicUsize,
     pub break_on: usize,
   }
 
   #[async_trait::async_trait]
-  impl FileSystem for MockFileSystem {
-    async fn exists(&self, path: &Utf8Path) -> FSResult<bool> {
-      self.fs.exists(path).await
+  impl WritableFileSystem for MockFileSystem {
+    async fn create_dir(&self, dir: &Utf8Path) -> rspack_fs::Result<()> {
+      self.fs.create_dir(dir).await
     }
 
-    async fn remove_dir(&self, path: &Utf8Path) -> FSResult<()> {
-      self.fs.remove_dir(path).await
+    async fn create_dir_all(&self, dir: &Utf8Path) -> rspack_fs::Result<()> {
+      self.fs.create_dir_all(dir).await
     }
 
-    async fn ensure_dir(&self, path: &Utf8Path) -> FSResult<()> {
-      self.fs.ensure_dir(path).await
+    async fn write(&self, file: &Utf8Path, data: &[u8]) -> rspack_fs::Result<()> {
+      self.fs.write(file, data).await
     }
 
-    async fn write_file(&self, path: &Utf8Path) -> FSResult<Writer> {
-      self.fs.write_file(path).await
+    async fn remove_file(&self, file: &Utf8Path) -> rspack_fs::Result<()> {
+      self.fs.remove_file(file).await
     }
 
-    async fn read_file(&self, path: &Utf8Path) -> FSResult<Reader> {
-      self.fs.read_file(path).await
+    async fn remove_dir_all(&self, dir: &Utf8Path) -> rspack_fs::Result<()> {
+      self.fs.remove_dir_all(dir).await
     }
 
-    async fn read_dir(&self, path: &Utf8Path) -> FSResult<HashSet<String>> {
-      self.fs.read_dir(path).await
+    async fn read_dir(&self, dir: &Utf8Path) -> rspack_fs::Result<Vec<String>> {
+      self.fs.read_dir(dir).await
     }
 
-    async fn metadata(&self, path: &Utf8Path) -> FSResult<FileMetadata> {
-      self.fs.metadata(path).await
+    async fn read_file(&self, file: &Utf8Path) -> rspack_fs::Result<Vec<u8>> {
+      self.fs.read_file(file).await
     }
 
-    async fn remove_file(&self, path: &Utf8Path) -> FSResult<()> {
-      self.fs.remove_file(path).await
+    async fn stat(&self, file: &Utf8Path) -> rspack_fs::Result<FileMetadata> {
+      self.fs.stat(file).await
     }
 
-    async fn move_file(&self, from: &Utf8Path, to: &Utf8Path) -> FSResult<()> {
+    async fn set_permissions(
+      &self,
+      path: &Utf8Path,
+      perm: rspack_fs::FilePermissions,
+    ) -> rspack_fs::Result<()> {
+      self.fs.set_permissions(path, perm).await
+    }
+  }
+
+  #[async_trait::async_trait]
+  impl IntermediateFileSystemExtras for MockFileSystem {
+    async fn rename(&self, from: &Utf8Path, to: &Utf8Path) -> rspack_fs::Result<()> {
       let moved = self.moved.load(std::sync::atomic::Ordering::Relaxed);
       if moved == self.break_on {
-        Err(FSError::from_message(
-          from,
-          FSOperation::Move,
-          "move failed".to_string(),
-        ))
+        Err(rspack_fs::Error::Io(std::io::Error::other("move failed")))
       } else {
         self
           .moved
           .store(moved + 1, std::sync::atomic::Ordering::Relaxed);
-        self.fs.move_file(from, to).await
+        self.fs.rename(from, to).await
       }
     }
+
+    async fn create_read_stream(&self, file: &Utf8Path) -> rspack_fs::Result<Box<dyn ReadStream>> {
+      self.fs.create_read_stream(file).await
+    }
+
+    async fn create_write_stream(
+      &self,
+      file: &Utf8Path,
+    ) -> rspack_fs::Result<Box<dyn WriteStream>> {
+      self.fs.create_write_stream(file).await
+    }
   }
+
+  impl IntermediateFileSystem for MockFileSystem {}
 
   pub fn get_native_path(p: &str) -> (PathBuf, PathBuf) {
     let base = std::env::temp_dir()
@@ -87,7 +106,7 @@ mod test_storage_lock {
     version: &str,
     root: &Utf8PathBuf,
     temp_root: &Utf8PathBuf,
-    fs: Arc<dyn FileSystem>,
+    fs: Arc<FileSystem>,
   ) -> Result<()> {
     let storage = PackStorage::new(PackStorageOptions {
       version: version.to_string(),
@@ -124,7 +143,7 @@ mod test_storage_lock {
     version: &str,
     root: &Utf8PathBuf,
     temp_root: &Utf8PathBuf,
-    fs: Arc<dyn FileSystem>,
+    fs: Arc<FileSystem>,
   ) -> Result<()> {
     let storage = PackStorage::new(PackStorageOptions {
       version: version.to_string(),
@@ -146,7 +165,7 @@ mod test_storage_lock {
     version: &str,
     root: &Utf8PathBuf,
     temp_root: &Utf8PathBuf,
-    fs: Arc<dyn FileSystem>,
+    fs: Arc<FileSystem>,
   ) -> Result<()> {
     let storage = PackStorage::new(PackStorageOptions {
       version: version.to_string(),
@@ -170,20 +189,21 @@ mod test_storage_lock {
   #[tokio::test]
   #[cfg_attr(miri, ignore)]
   async fn test_consume_lock() -> Result<()> {
-    let cases = [
+    let cases: [(_, Arc<dyn IntermediateFileSystem>); 2] = [
       (
         get_native_path("test_lock_native"),
-        Arc::new(BridgeFileSystem(Arc::new(NativeFileSystem::new(false)))),
+        Arc::new(NativeFileSystem::new(false)),
       ),
       (
         get_memory_path("test_lock_memory"),
-        Arc::new(BridgeFileSystem(Arc::new(MemoryFileSystem::default()))),
+        Arc::new(MemoryFileSystem::default()),
       ),
     ];
 
-    for ((root, temp_root), fs) in cases {
+    for ((root, temp_root), base_fs) in cases {
       let root = root.assert_utf8();
       let temp_root = temp_root.assert_utf8();
+      let fs = Arc::new(FileSystem(base_fs.clone()));
       fs.remove_dir(&root).await.expect("should remove root");
       fs.remove_dir(&temp_root)
         .await
@@ -193,11 +213,11 @@ mod test_storage_lock {
         "xxx",
         &root,
         &temp_root,
-        Arc::new(MockFileSystem {
-          fs: fs.clone(),
+        Arc::new(FileSystem(Arc::new(MockFileSystem {
+          fs: base_fs.clone(),
           moved: AtomicUsize::new(0),
           break_on: 3,
-        }),
+        }))),
       )
       .await?;
 
@@ -205,11 +225,11 @@ mod test_storage_lock {
         "xxx",
         &root,
         &temp_root,
-        Arc::new(MockFileSystem {
-          fs: fs.clone(),
+        Arc::new(FileSystem(Arc::new(MockFileSystem {
+          fs: base_fs.clone(),
           moved: AtomicUsize::new(0),
           break_on: 9999,
-        }),
+        }))),
       )
       .await?;
     }
@@ -219,20 +239,21 @@ mod test_storage_lock {
   #[tokio::test]
   #[cfg_attr(miri, ignore)]
   async fn test_consume_lock_failed() -> Result<()> {
-    let cases = [
+    let cases: [(_, Arc<dyn IntermediateFileSystem>); 2] = [
       (
         get_native_path("test_lock_fail_native"),
-        Arc::new(BridgeFileSystem(Arc::new(NativeFileSystem::new(false)))),
+        Arc::new(NativeFileSystem::new(false)),
       ),
       (
         get_memory_path("test_lock_fail_memory"),
-        Arc::new(BridgeFileSystem(Arc::new(MemoryFileSystem::default()))),
+        Arc::new(MemoryFileSystem::default()),
       ),
     ];
 
-    for ((root, temp_root), fs) in cases {
+    for ((root, temp_root), base_fs) in cases {
       let root = root.assert_utf8();
       let temp_root = temp_root.assert_utf8();
+      let fs = Arc::new(FileSystem(base_fs.clone()));
       fs.remove_dir(&root).await.expect("should remove root");
       fs.remove_dir(&temp_root)
         .await
@@ -242,11 +263,11 @@ mod test_storage_lock {
         "xxx",
         &root,
         &temp_root,
-        Arc::new(MockFileSystem {
-          fs: fs.clone(),
+        Arc::new(FileSystem(Arc::new(MockFileSystem {
+          fs: base_fs.clone(),
           moved: AtomicUsize::new(0),
           break_on: 3,
-        }),
+        }))),
       )
       .await?;
 
@@ -254,11 +275,11 @@ mod test_storage_lock {
         "xxx",
         &root,
         &temp_root.join("other"),
-        Arc::new(MockFileSystem {
-          fs: fs.clone(),
+        Arc::new(FileSystem(Arc::new(MockFileSystem {
+          fs: base_fs.clone(),
           moved: AtomicUsize::new(0),
           break_on: 9999,
-        }),
+        }))),
       )
       .await?;
     }

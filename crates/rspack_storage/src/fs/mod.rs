@@ -7,19 +7,6 @@ use rspack_fs::{FileMetadata, IntermediateFileSystem, ReadStream, WriteStream};
 use rspack_paths::{Utf8Path, Utf8PathBuf};
 use rustc_hash::FxHashSet as HashSet;
 
-#[async_trait::async_trait]
-pub trait FileSystem: std::fmt::Debug + Sync + Send {
-  async fn exists(&self, path: &Utf8Path) -> FSResult<bool>;
-  async fn remove_dir(&self, path: &Utf8Path) -> FSResult<()>;
-  async fn ensure_dir(&self, path: &Utf8Path) -> FSResult<()>;
-  async fn write_file(&self, path: &Utf8Path) -> FSResult<Writer>;
-  async fn read_file(&self, path: &Utf8Path) -> FSResult<Reader>;
-  async fn read_dir(&self, path: &Utf8Path) -> FSResult<HashSet<String>>;
-  async fn metadata(&self, path: &Utf8Path) -> FSResult<FileMetadata>;
-  async fn remove_file(&self, path: &Utf8Path) -> FSResult<()>;
-  async fn move_file(&self, from: &Utf8Path, to: &Utf8Path) -> FSResult<()>;
-}
-
 #[derive(Debug)]
 pub struct Writer {
   path: Utf8PathBuf,
@@ -116,11 +103,10 @@ impl Reader {
 }
 
 #[derive(Debug)]
-pub struct BridgeFileSystem(pub Arc<dyn IntermediateFileSystem>);
+pub struct FileSystem(pub Arc<dyn IntermediateFileSystem>);
 
-#[async_trait::async_trait]
-impl FileSystem for BridgeFileSystem {
-  async fn exists(&self, path: &Utf8Path) -> FSResult<bool> {
+impl FileSystem {
+  pub async fn exists(&self, path: &Utf8Path) -> FSResult<bool> {
     match self.metadata(path).await {
       Ok(_) => Ok(true),
       Err(e) => {
@@ -133,7 +119,7 @@ impl FileSystem for BridgeFileSystem {
     }
   }
 
-  async fn remove_dir(&self, path: &Utf8Path) -> FSResult<()> {
+  pub async fn remove_dir(&self, path: &Utf8Path) -> FSResult<()> {
     if self.exists(path).await? {
       self
         .0
@@ -144,7 +130,7 @@ impl FileSystem for BridgeFileSystem {
     Ok(())
   }
 
-  async fn ensure_dir(&self, path: &Utf8Path) -> FSResult<()> {
+  pub async fn ensure_dir(&self, path: &Utf8Path) -> FSResult<()> {
     self
       .0
       .create_dir_all(path)
@@ -153,7 +139,7 @@ impl FileSystem for BridgeFileSystem {
     Ok(())
   }
 
-  async fn write_file(&self, path: &Utf8Path) -> FSResult<Writer> {
+  pub async fn write_file(&self, path: &Utf8Path) -> FSResult<Writer> {
     if self.exists(path).await? {
       self.remove_file(path).await?;
     }
@@ -173,7 +159,7 @@ impl FileSystem for BridgeFileSystem {
     })
   }
 
-  async fn read_file(&self, path: &Utf8Path) -> FSResult<Reader> {
+  pub async fn read_file(&self, path: &Utf8Path) -> FSResult<Reader> {
     let stream = self
       .0
       .create_read_stream(path)
@@ -185,7 +171,7 @@ impl FileSystem for BridgeFileSystem {
     })
   }
 
-  async fn read_dir(&self, path: &Utf8Path) -> FSResult<HashSet<String>> {
+  pub async fn read_dir(&self, path: &Utf8Path) -> FSResult<HashSet<String>> {
     let files = self
       .0
       .read_dir(path)
@@ -194,7 +180,7 @@ impl FileSystem for BridgeFileSystem {
     Ok(files.into_iter().collect::<HashSet<_>>())
   }
 
-  async fn metadata(&self, path: &Utf8Path) -> FSResult<FileMetadata> {
+  pub async fn metadata(&self, path: &Utf8Path) -> FSResult<FileMetadata> {
     let res = self
       .0
       .stat(path)
@@ -203,7 +189,7 @@ impl FileSystem for BridgeFileSystem {
     Ok(res)
   }
 
-  async fn remove_file(&self, path: &Utf8Path) -> FSResult<()> {
+  pub async fn remove_file(&self, path: &Utf8Path) -> FSResult<()> {
     if self.exists(path).await? {
       self
         .0
@@ -214,7 +200,7 @@ impl FileSystem for BridgeFileSystem {
     Ok(())
   }
 
-  async fn move_file(&self, from: &Utf8Path, to: &Utf8Path) -> FSResult<()> {
+  pub async fn move_file(&self, from: &Utf8Path, to: &Utf8Path) -> FSResult<()> {
     if self.exists(from).await? {
       self
         .ensure_dir(to.parent().expect("should have parent"))
@@ -236,14 +222,13 @@ mod tests {
   use rspack_fs::MemoryFileSystem;
   use rspack_paths::Utf8PathBuf;
 
-  use super::{BridgeFileSystem, FSResult};
-  use crate::FileSystem;
+  use super::{FSResult, FileSystem};
 
   fn get_path(p: &str) -> Utf8PathBuf {
     Utf8PathBuf::from(p)
   }
 
-  async fn test_create_dir(fs: &BridgeFileSystem) -> FSResult<()> {
+  async fn test_create_dir(fs: &FileSystem) -> FSResult<()> {
     fs.ensure_dir(&get_path("/parent/from")).await?;
     fs.ensure_dir(&get_path("/parent/to")).await?;
 
@@ -256,7 +241,7 @@ mod tests {
     Ok(())
   }
 
-  async fn test_write_file(fs: &BridgeFileSystem) -> FSResult<()> {
+  async fn test_write_file(fs: &FileSystem) -> FSResult<()> {
     let mut writer = fs.write_file(&get_path("/parent/from/file.txt")).await?;
 
     writer.write_line("hello").await?;
@@ -273,7 +258,7 @@ mod tests {
     Ok(())
   }
 
-  async fn test_read_file(fs: &BridgeFileSystem) -> FSResult<()> {
+  async fn test_read_file(fs: &FileSystem) -> FSResult<()> {
     let mut reader = fs.read_file(&get_path("/parent/from/file.txt")).await?;
 
     assert_eq!(reader.read_line().await?, "hello");
@@ -282,7 +267,7 @@ mod tests {
     Ok(())
   }
 
-  async fn test_move_file(fs: &BridgeFileSystem) -> FSResult<()> {
+  async fn test_move_file(fs: &FileSystem) -> FSResult<()> {
     fs.move_file(
       &get_path("/parent/from/file.txt"),
       &get_path("/parent/to/file.txt"),
@@ -295,13 +280,13 @@ mod tests {
     Ok(())
   }
 
-  async fn test_remove_file(fs: &BridgeFileSystem) -> FSResult<()> {
+  async fn test_remove_file(fs: &FileSystem) -> FSResult<()> {
     fs.remove_file(&get_path("/parent/to/file.txt")).await?;
     assert!(!fs.exists(&get_path("/parent/to/file.txt")).await?);
     Ok(())
   }
 
-  async fn test_remove_dir(fs: &BridgeFileSystem) -> FSResult<()> {
+  async fn test_remove_dir(fs: &FileSystem) -> FSResult<()> {
     fs.remove_dir(&get_path("/parent/from")).await?;
     fs.remove_dir(&get_path("/parent/to")).await?;
     assert!(!fs.exists(&get_path("/parent/from")).await?);
@@ -309,7 +294,7 @@ mod tests {
     Ok(())
   }
 
-  async fn test_error(fs: &BridgeFileSystem) -> FSResult<()> {
+  async fn test_error(fs: &FileSystem) -> FSResult<()> {
     match fs.metadata(&get_path("/parent/from/not_exist.txt")).await {
       Ok(_) => panic!("should error"),
       Err(e) => assert_eq!(
@@ -321,7 +306,7 @@ mod tests {
     Ok(())
   }
 
-  async fn test_memory_fs(fs: &BridgeFileSystem) -> FSResult<()> {
+  async fn test_memory_fs(fs: &FileSystem) -> FSResult<()> {
     test_create_dir(fs).await?;
     test_write_file(fs).await?;
     test_read_file(fs).await?;
@@ -336,7 +321,7 @@ mod tests {
   #[tokio::test]
   #[cfg_attr(miri, ignore)]
   async fn should_storage_bridge_fs_work() -> FSResult<()> {
-    let fs = BridgeFileSystem(Arc::new(MemoryFileSystem::default()));
+    let fs = FileSystem(Arc::new(MemoryFileSystem::default()));
 
     test_memory_fs(&fs).await?;
     Ok(())

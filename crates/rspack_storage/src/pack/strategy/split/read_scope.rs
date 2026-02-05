@@ -91,7 +91,7 @@ impl SplitPackStrategy {
 async fn read_scope_meta(
   scope: &'static str,
   path: &Utf8Path,
-  fs: Arc<dyn FileSystem>,
+  fs: Arc<FileSystem>,
 ) -> Result<Option<ScopeMeta>> {
   if !fs.exists(path).await? {
     return Ok(None);
@@ -294,7 +294,7 @@ mod tests {
     },
   };
 
-  async fn mock_scope(path: &Utf8Path, fs: &dyn FileSystem, options: &PackOptions) -> Result<()> {
+  async fn mock_scope(path: &Utf8Path, fs: &FileSystem, options: &PackOptions) -> Result<()> {
     mock_scope_meta_file(&ScopeMeta::get_path(path), fs, options, 3).await?;
     for bucket_id in 0..options.bucket_size {
       for pack_no in 0..3 {
