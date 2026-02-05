@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use async_trait::async_trait;
 use futures::{TryFutureExt, future::join_all};
 use itertools::Itertools;
 use rspack_paths::{Utf8Path, Utf8PathBuf};
@@ -11,13 +10,12 @@ use crate::{
   error::{Error, ErrorType, Result},
   pack::{
     data::{Pack, PackFileMeta, PackKeys, PackScope, ScopeMeta},
-    strategy::{PackMainContents, PackReadStrategy, ScopeReadStrategy},
+    strategy::PackMainContents,
   },
 };
 
-#[async_trait]
-impl ScopeReadStrategy for SplitPackStrategy {
-  async fn ensure_meta(&self, scope: &mut PackScope) -> Result<()> {
+impl SplitPackStrategy {
+  pub async fn ensure_meta(&self, scope: &mut PackScope) -> Result<()> {
     if !scope.meta.loaded() {
       let meta_path = ScopeMeta::get_path(&scope.path);
       let meta = read_scope_meta(scope.name, &meta_path, self.fs.clone())
@@ -28,7 +26,7 @@ impl ScopeReadStrategy for SplitPackStrategy {
     Ok(())
   }
 
-  async fn ensure_packs(&self, scope: &mut PackScope) -> Result<()> {
+  pub async fn ensure_packs(&self, scope: &mut PackScope) -> Result<()> {
     self.ensure_meta(scope).await?;
 
     if !scope.packs.loaded() {
@@ -52,7 +50,7 @@ impl ScopeReadStrategy for SplitPackStrategy {
     Ok(())
   }
 
-  async fn ensure_keys(&self, scope: &mut PackScope) -> Result<()> {
+  pub async fn ensure_keys(&self, scope: &mut PackScope) -> Result<()> {
     self.ensure_packs(scope).await?;
 
     let read_key_results = read_keys(scope, self).await?;
@@ -68,7 +66,7 @@ impl ScopeReadStrategy for SplitPackStrategy {
     Ok(())
   }
 
-  async fn ensure_contents(&self, scope: &mut PackScope) -> Result<()> {
+  pub async fn ensure_contents(&self, scope: &mut PackScope) -> Result<()> {
     self.ensure_keys(scope).await?;
 
     let read_content_results = read_contents(scope, self).await?;
@@ -85,7 +83,7 @@ impl ScopeReadStrategy for SplitPackStrategy {
     Ok(())
   }
 
-  fn get_path(&self, str: &str) -> Utf8PathBuf {
+  pub fn get_path(&self, str: &str) -> Utf8PathBuf {
     self.root.join(str)
   }
 }
@@ -288,7 +286,7 @@ mod tests {
     pack::{
       data::{PackOptions, PackScope, ScopeMeta},
       strategy::{
-        ScopeReadStrategy, SplitPackStrategy,
+        SplitPackStrategy,
         split::util::test_pack_utils::{
           clean_strategy, create_strategies, mock_pack_file, mock_scope_meta_file,
         },

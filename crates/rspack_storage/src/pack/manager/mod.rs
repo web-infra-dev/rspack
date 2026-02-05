@@ -10,7 +10,7 @@ use tokio::sync::{Mutex, oneshot, oneshot::Receiver};
 use super::{
   ScopeUpdates,
   data::{PackOptions, PackScope, RootMeta, RootMetaState, RootOptions},
-  strategy::{ScopeStrategy, WriteScopeResult},
+  strategy::{SplitPackStrategy, WriteScopeResult},
 };
 use crate::{
   ItemPairs, Result,
@@ -23,7 +23,7 @@ type ScopeMap = HashMap<String, PackScope>;
 pub struct ScopeManager {
   pub root_options: Arc<RootOptions>,
   pub pack_options: Arc<PackOptions>,
-  pub strategy: Arc<dyn ScopeStrategy>,
+  pub strategy: Arc<SplitPackStrategy>,
   pub scopes: Arc<Mutex<ScopeMap>>,
   pub root_meta: Arc<Mutex<RootMetaState>>,
   pub queue: TaskQueue,
@@ -33,7 +33,7 @@ impl ScopeManager {
   pub fn new(
     root_options: Arc<RootOptions>,
     pack_options: Arc<PackOptions>,
-    strategy: Arc<dyn ScopeStrategy>,
+    strategy: Arc<SplitPackStrategy>,
   ) -> Self {
     ScopeManager {
       root_options,
@@ -241,7 +241,7 @@ async fn update_scopes(
   scopes: &mut ScopeMap,
   mut updates: ScopeUpdates,
   pack_options: Arc<PackOptions>,
-  strategy: &dyn ScopeStrategy,
+  strategy: &SplitPackStrategy,
 ) -> Result<()> {
   for (scope_name, _) in updates.iter() {
     scopes.entry(scope_name.to_string()).or_insert_with(|| {
@@ -280,7 +280,7 @@ async fn update_scopes(
 async fn save_scopes(
   mut scopes: ScopeMap,
   root_meta: &RootMeta,
-  strategy: &dyn ScopeStrategy,
+  strategy: &SplitPackStrategy,
   root_options: &RootOptions,
 ) -> Result<ScopeMap> {
   scopes.retain(|_, scope| scope.loaded());

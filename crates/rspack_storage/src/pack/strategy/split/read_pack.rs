@@ -1,21 +1,16 @@
 use std::sync::Arc;
 
-use async_trait::async_trait;
 use rspack_paths::Utf8Path;
 
 use super::SplitPackStrategy;
 use crate::{
   FSError, FSOperation,
   error::Result,
-  pack::{
-    data::PackKeys,
-    strategy::{PackMainContents, PackReadStrategy},
-  },
+  pack::{data::PackKeys, strategy::PackMainContents},
 };
 
-#[async_trait]
-impl PackReadStrategy for SplitPackStrategy {
-  async fn read_pack_keys(&self, path: &Utf8Path) -> Result<Option<PackKeys>> {
+impl SplitPackStrategy {
+  pub async fn read_pack_keys(&self, path: &Utf8Path) -> Result<Option<PackKeys>> {
     if !self.fs.exists(path).await? {
       return Ok(None);
     }
@@ -50,7 +45,7 @@ impl PackReadStrategy for SplitPackStrategy {
     Ok(Some(keys))
   }
 
-  async fn read_pack_contents(&self, path: &Utf8Path) -> Result<Option<PackMainContents>> {
+  pub async fn read_pack_contents(&self, path: &Utf8Path) -> Result<Option<PackMainContents>> {
     if !self.fs.exists(path).await? {
       return Ok(None);
     }
@@ -126,7 +121,7 @@ mod tests {
   use crate::{
     error::Result,
     pack::strategy::{
-      PackReadStrategy, ScopeReadStrategy, SplitPackStrategy,
+      SplitPackStrategy,
       split::util::test_pack_utils::{clean_strategy, create_strategies, mock_pack_file},
     },
   };
