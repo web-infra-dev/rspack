@@ -63,11 +63,7 @@ function compatibleFetch(
 
   return new Promise<{ res: IncomingMessage; body: Buffer }>(
     (resolve, reject) => {
-      console.log(`[HTTP-CLIENT-FETCH] Starting request: ${url}`);
       const req = send.get(url, options, (res) => {
-        console.log(
-          `[HTTP-CLIENT-FETCH] Response received: ${url}, status: ${res.statusCode}`,
-        );
         // align with https://github.com/webpack/webpack/blob/dec18718be5dfba28f067fb3827dd620a1f33667/lib/schemes/HttpUriPlugin.js#L807
         const contentEncoding = res.headers['content-encoding'];
         /** @type {Readable} */
@@ -84,47 +80,31 @@ function compatibleFetch(
           chunks.push(chunk);
         });
         stream.on('end', () => {
-          console.log(
-            `[HTTP-CLIENT-FETCH] Stream ended: ${url}, chunks: ${chunks.length}`,
-          );
           const bodyBuffer = Buffer.concat(chunks);
           if (!res.complete) {
-            console.error(
-              `[HTTP-CLIENT-FETCH] Request terminated early: ${url}`,
-            );
             reject(new Error(`${url} request was terminated early`));
             return;
           }
-          console.log(`[HTTP-CLIENT-FETCH] Request complete: ${url}`);
           resolve({
             res,
             body: bodyBuffer,
           });
         });
         stream.on('error', (e) => {
-          console.error(`[HTTP-CLIENT-FETCH] Stream error: ${url}`, e);
           reject(e);
         });
       });
 
       req.setTimeout(30000, () => {
-        console.error(`[HTTP-CLIENT-FETCH] Request timeout (30s): ${url}`);
         req.destroy(new Error(`Request timeout: ${url}`));
       });
 
       req.on('error', (e) => {
-        console.error(`[HTTP-CLIENT-FETCH] Request error: ${url}`, e);
         reject(e);
       });
 
       req.on('socket', (socket) => {
-        console.log(`[HTTP-CLIENT-FETCH] Socket assigned: ${url}`);
-        console.log(
-          `[HTTP-CLIENT-FETCH] Socket info: connecting=${socket.connecting}, destroyed=${socket.destroyed}, pending=${socket.pending}`,
-        );
-
         if (!socket.connecting && !socket.readable && socket.destroyed) {
-          console.error(`[HTTP-CLIENT-FETCH] Socket already destroyed: ${url}`);
           req.destroy(new Error(`Socket already destroyed for ${url}`));
           return;
         }
@@ -136,28 +116,9 @@ function compatibleFetch(
         const originalTimeoutHandler = socket.listeners('timeout')[0];
         if (!originalTimeoutHandler) {
           socket.on('timeout', () => {
-            console.error(`[HTTP-CLIENT-FETCH] Socket timeout: ${url}`);
             req.destroy(new Error(`Socket timeout: ${url}`));
           });
         }
-
-        socket.on('connect', () => {
-          console.log(`[HTTP-CLIENT-FETCH] Socket connected: ${url}`);
-        });
-
-        socket.on('end', () => {
-          console.log(`[HTTP-CLIENT-FETCH] Socket ended: ${url}`);
-        });
-
-        socket.on('close', (hadError) => {
-          console.log(
-            `[HTTP-CLIENT-FETCH] Socket closed: ${url}, hadError=${hadError}`,
-          );
-        });
-
-        socket.on('error', (e) => {
-          console.error(`[HTTP-CLIENT-FETCH] Socket error: ${url}`, e);
-        });
       });
     },
   );
@@ -167,47 +128,25 @@ const defaultHttpClientForNode = async (
   url: string,
   headers: Record<string, string>,
 ) => {
-  const startTime = Date.now();
-  console.log(`[HTTP-CLIENT] Request start: ${url} at ${startTime}`);
-
   // Return a promise that resolves to the response
   // setting redirect: "manual" to prevent automatic redirection which will break the redirect logic in rust plugin
   // webpack use require('http').get while rspack use fetch which treats redirect differently
-  try {
-    const { res, body } = await compatibleFetch(url, { headers });
-    const duration = Date.now() - startTime;
-    console.log(`[HTTP-CLIENT] Response received: ${url}`);
-    console.log(
-      `[HTTP-CLIENT]   Status: ${res.statusCode}, Duration: ${duration}ms`,
-    );
-    console.log(`[HTTP-CLIENT]   Body size: ${body.length} bytes`);
-    if (res.statusCode && res.statusCode >= 300 && res.statusCode < 400) {
-      console.log(`[HTTP-CLIENT]   Redirect to: ${res.headers.location}`);
+  const { res, body } = await compatibleFetch(url, { headers });
+  const responseHeaders: Record<string, string> = {};
+  for (const [key, value] of Object.entries(res.headers)) {
+    if (Array.isArray(value)) {
+      responseHeaders[key] = value.join(', ');
+    } else {
+      responseHeaders[key] = value!;
     }
-    const responseHeaders: Record<string, string> = {};
-    for (const [key, value] of Object.entries(res.headers)) {
-      if (Array.isArray(value)) {
-        responseHeaders[key] = value.join(', ');
-      } else {
-        responseHeaders[key] = value!;
-      }
-    }
-
-    console.log(`[HTTP-CLIENT] Request complete: ${url}`);
-
-    // Return the standardized format
-    return {
-      status: res.statusCode!,
-      headers: responseHeaders,
-      body: Buffer.from(body),
-    };
-  } catch (error) {
-    const duration = Date.now() - startTime;
-    console.error(`[HTTP-CLIENT] Request failed: ${url}`);
-    console.error(`[HTTP-CLIENT]   Error: ${error}`);
-    console.error(`[HTTP-CLIENT]   Duration: ${duration}ms`);
-    throw error;
   }
+
+  // Return the standardized format
+  return {
+    status: res.statusCode!,
+    headers: responseHeaders,
+    body: Buffer.from(body),
+  };
 };
 
 /**
