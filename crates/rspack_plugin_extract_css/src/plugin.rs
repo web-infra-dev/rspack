@@ -584,7 +584,6 @@ async fn runtime_requirement_in_tree(
       *chunk_ukey,
       Box::new(CssLoadingRuntimeModule::new(
         &compilation.runtime_template,
-        *chunk_ukey,
         self.options.attributes.clone(),
         self.options.link_type.clone(),
         self.options.insert.clone(),

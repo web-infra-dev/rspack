@@ -1,6 +1,5 @@
 use std::ptr::NonNull;
 
-use rspack_collections::Identifier;
 use rspack_core::{
   ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeTemplate, impl_runtime_module,
 };
@@ -12,7 +11,6 @@ use crate::{
 #[impl_runtime_module]
 #[derive(Debug)]
 pub struct LoadScriptRuntimeModule {
-  id: Identifier,
   unique_name: String,
   with_create_script_url: bool,
   chunk_ukey: ChunkUkey,
@@ -26,10 +24,7 @@ impl LoadScriptRuntimeModule {
     chunk_ukey: ChunkUkey,
   ) -> Self {
     Self::with_default(
-      Identifier::from(format!(
-        "{}load_script",
-        runtime_template.runtime_module_prefix()
-      )),
+      runtime_template,
       unique_name,
       with_create_script_url,
       chunk_ukey,
@@ -44,10 +39,6 @@ enum TemplateId {
 
 #[async_trait::async_trait]
 impl RuntimeModule for LoadScriptRuntimeModule {
-  fn name(&self) -> Identifier {
-    self.id
-  }
-
   fn template(&self) -> Vec<(String, String)> {
     vec![
       (

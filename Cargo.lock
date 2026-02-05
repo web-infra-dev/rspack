@@ -3877,6 +3877,7 @@ dependencies = [
  "either",
  "futures",
  "hashlink",
+ "heck",
  "hex",
  "indexmap",
  "indoc",

@@ -51,13 +51,15 @@ impl ModuleFederationRuntimePlugin {
 #[plugin_hook(CompilationAdditionalTreeRuntimeRequirements for ModuleFederationRuntimePlugin)]
 async fn additional_tree_runtime_requirements(
   &self,
-  _compilation: &Compilation,
+  compilation: &Compilation,
   _chunk_ukey: &ChunkUkey,
   _runtime_requirements: &mut RuntimeGlobals,
   runtime_modules: &mut Vec<Box<dyn RuntimeModule>>,
 ) -> Result<()> {
   // Add base FederationRuntimeModule which is responsible for providing bundler data to the runtime.
-  runtime_modules.push(Box::<FederationDataRuntimeModule>::default());
+  runtime_modules.push(Box::new(FederationDataRuntimeModule::new(
+    &compilation.runtime_template,
+  )));
 
   Ok(())
 }

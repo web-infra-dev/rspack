@@ -1,7 +1,7 @@
 use std::ptr::NonNull;
 
 use itertools::Itertools;
-use rspack_collections::{Identifier, UkeySet};
+use rspack_collections::UkeySet;
 use rspack_core::{
   BooleanMatcher, ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
   RuntimeTemplate, compile_boolean_matcher, impl_runtime_module,
@@ -18,8 +18,6 @@ use crate::plugin::{InsertType, SOURCE_TYPE};
 #[impl_runtime_module]
 #[derive(Debug)]
 pub(crate) struct CssLoadingRuntimeModule {
-  id: Identifier,
-  chunk: ChunkUkey,
   attributes: FxHashMap<String, String>,
   link_type: Option<String>,
   insert: InsertType,
@@ -28,17 +26,13 @@ pub(crate) struct CssLoadingRuntimeModule {
 impl CssLoadingRuntimeModule {
   pub(crate) fn new(
     runtime_template: &RuntimeTemplate,
-    chunk: ChunkUkey,
     attributes: FxHashMap<String, String>,
     link_type: Option<String>,
     insert: InsertType,
   ) -> Self {
-    Self::with_default(
-      Identifier::from(format!(
-        "{}css loading",
-        runtime_template.runtime_module_prefix()
-      )),
-      chunk,
+    Self::with_name(
+      runtime_template,
+      "css loading",
       attributes,
       link_type,
       insert,
@@ -52,7 +46,7 @@ impl CssLoadingRuntimeModule {
     let chunk = compilation
       .build_chunk_graph_artifact
       .chunk_by_ukey
-      .expect_get(&self.chunk);
+      .expect_get(self.chunk.as_ref().expect("should attached chunk"));
 
     for chunk in
       chunk.get_all_async_chunks(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
@@ -83,10 +77,6 @@ enum TemplateId {
 
 #[async_trait::async_trait]
 impl RuntimeModule for CssLoadingRuntimeModule {
-  fn name(&self) -> rspack_collections::Identifier {
-    self.id
-  }
-
   fn stage(&self) -> RuntimeModuleStage {
     RuntimeModuleStage::Attach
   }
@@ -130,13 +120,16 @@ impl RuntimeModule for CssLoadingRuntimeModule {
 
   async fn generate(&self, compilation: &rspack_core::Compilation) -> Result<String> {
     let runtime_hooks = RuntimePlugin::get_compilation_hooks(compilation.id());
-    let runtime_requirements = get_chunk_runtime_requirements(compilation, &self.chunk);
+    let runtime_requirements = get_chunk_runtime_requirements(
+      compilation,
+      self.chunk.as_ref().expect("should attached chunk"),
+    );
 
     let with_loading = runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS) && {
       let chunk = compilation
         .build_chunk_graph_artifact
         .chunk_by_ukey
-        .expect_get(&self.chunk);
+        .expect_get(self.chunk.as_ref().expect("should attached chunk"));
 
       chunk
         .get_all_async_chunks(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
@@ -158,7 +151,11 @@ impl RuntimeModule for CssLoadingRuntimeModule {
     let condition_map = compilation
       .build_chunk_graph_artifact
       .chunk_graph
-      .get_chunk_condition_map(&self.chunk, compilation, chunk_has_css);
+      .get_chunk_condition_map(
+        self.chunk.as_ref().expect("should attached chunk"),
+        compilation,
+        chunk_has_css,
+      );
     let has_css_matcher = compile_boolean_matcher(&condition_map);
 
     let with_prefetch = runtime_requirements.contains(RuntimeGlobals::PREFETCH_CHUNK_HANDLERS);
@@ -188,7 +185,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
       .call(CreateLinkData {
         code: create_link_raw,
         chunk: RuntimeModuleChunkWrapper {
-          chunk_ukey: self.chunk,
+          chunk_ukey: self.chunk.expect("should attached chunk"),
           compilation_id: compilation.id(),
           compilation: NonNull::from(compilation),
         },
@@ -221,7 +218,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
         let chunk = compilation
           .build_chunk_graph_artifact
           .chunk_by_ukey
-          .expect_get(&self.chunk);
+          .expect_get(self.chunk.as_ref().expect("should attached chunk"));
         let loading = compilation.runtime_template.render(
           &self.template_id(TemplateId::WithLoading),
           Some(serde_json::json!({
@@ -279,7 +276,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
         .call(LinkPrefetchData {
           code: link_prefetch_raw,
           chunk: RuntimeModuleChunkWrapper {
-            chunk_ukey: self.chunk,
+            chunk_ukey: self.chunk.expect("should attached chunk"),
             compilation_id: compilation.id(),
             compilation: NonNull::from(compilation),
           },
@@ -313,7 +310,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
         .call(LinkPreloadData {
           code: link_preload_raw,
           chunk: RuntimeModuleChunkWrapper {
-            chunk_ukey: self.chunk,
+            chunk_ukey: self.chunk.expect("should attached chunk"),
             compilation_id: compilation.id(),
             compilation: NonNull::from(compilation),
           },

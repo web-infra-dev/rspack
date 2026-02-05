@@ -26,7 +26,7 @@ use swc_core::common::sync::Lazy;
 use crate::{
   chunk_link::{ChunkLinkContext, ReExportFrom, Ref},
   plugin::RSPACK_ESM_RUNTIME_CHUNK,
-  runtime::RegisterModuleRuntime,
+  runtime::EsmRegisterModuleRuntimeModule,
 };
 
 #[inline]
@@ -169,7 +169,7 @@ impl EsmLibraryPlugin {
         // __webpack_require__.add({ "./src/main.js"(require, exports) { ... } })
         decl_source.add(RawStringSource::from(format!(
           "{}({{\n",
-          RegisterModuleRuntime::runtime_id(&compilation.runtime_template)
+          EsmRegisterModuleRuntimeModule::runtime_id(&compilation.runtime_template)
         )));
         decl_source.add(decl_inner);
         decl_source.add(RawStringSource::from_static("});\n"));

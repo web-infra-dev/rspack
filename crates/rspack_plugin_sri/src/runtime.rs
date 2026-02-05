@@ -1,4 +1,3 @@
-use rspack_collections::Identifier;
 use rspack_core::{
   ChunkUkey, Compilation, CompilationAdditionalTreeRuntimeRequirements, CrossOriginLoading,
   ManifestAssetType, RuntimeGlobals, RuntimeModule, RuntimeModuleExt, RuntimeTemplate, SourceType,
@@ -33,39 +32,25 @@ fn add_attribute(
 #[impl_runtime_module]
 #[derive(Debug)]
 struct SRIHashVariableRuntimeModule {
-  id: Identifier,
-  chunk: ChunkUkey,
   hash_funcs: Vec<SubresourceIntegrityHashFunction>,
 }
 
 impl SRIHashVariableRuntimeModule {
   pub fn new(
     runtime_template: &RuntimeTemplate,
-    chunk: ChunkUkey,
     hash_funcs: Vec<SubresourceIntegrityHashFunction>,
   ) -> Self {
-    Self::with_default(
-      Identifier::from(format!(
-        "{}sri_hash_variable",
-        runtime_template.runtime_module_prefix()
-      )),
-      chunk,
-      hash_funcs,
-    )
+    Self::with_default(runtime_template, hash_funcs)
   }
 }
 
 #[async_trait::async_trait]
 impl RuntimeModule for SRIHashVariableRuntimeModule {
-  fn name(&self) -> Identifier {
-    self.id
-  }
-
   async fn generate(&self, compilation: &Compilation) -> Result<String> {
-    let Some(chunk) = compilation
-      .build_chunk_graph_artifact
-      .chunk_by_ukey
-      .get(&self.chunk)
+    let Some(chunk) = self
+      .chunk
+      .as_ref()
+      .and_then(|c| compilation.build_chunk_graph_artifact.chunk_by_ukey.get(c))
     else {
       return Err(error!(
         "Generate sri runtime module failed: chunk not found"
@@ -112,20 +97,23 @@ impl RuntimeModule for SRIHashVariableRuntimeModule {
       ),
     ];
 
-    let all_chunks = find_chunks(&self.chunk, compilation)
-      .into_iter()
-      .filter(|c| {
-        compilation
-          .build_chunk_graph_artifact
-          .chunk_graph
-          .get_chunk_modules(c, module_graph)
-          .iter()
-          .any(|m| {
-            let result = compilation.code_generation_results.get_one(&m.identifier());
-            result.inner.values().any(|v| v.size() != 0)
-          })
-      })
-      .collect::<Vec<_>>();
+    let all_chunks = find_chunks(
+      self.chunk.as_ref().expect("should attached chunk"),
+      compilation,
+    )
+    .into_iter()
+    .filter(|c| {
+      compilation
+        .build_chunk_graph_artifact
+        .chunk_graph
+        .get_chunk_modules(c, module_graph)
+        .iter()
+        .any(|m| {
+          let result = compilation.code_generation_results.get_one(&m.identifier());
+          result.inner.values().any(|v| v.size() != 0)
+        })
+    })
+    .collect::<Vec<_>>();
 
     let mut code = vec![];
 
@@ -270,14 +258,13 @@ pub async fn link_preload(&self, mut data: LinkPreloadData) -> Result<LinkPreloa
 pub async fn handle_runtime(
   &self,
   compilation: &Compilation,
-  chunk_ukey: &ChunkUkey,
+  _chunk_ukey: &ChunkUkey,
   _runtime_requirements: &mut RuntimeGlobals,
   runtime_modules: &mut Vec<Box<dyn RuntimeModule>>,
 ) -> Result<()> {
   runtime_modules.push(
     SRIHashVariableRuntimeModule::new(
       &compilation.runtime_template,
-      *chunk_ukey,
       self.options.hash_func_names.clone(),
     )
     .boxed(),

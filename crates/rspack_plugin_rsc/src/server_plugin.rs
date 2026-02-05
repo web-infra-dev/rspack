@@ -131,7 +131,7 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
 #[plugin_hook(CompilationRuntimeRequirementInTree for RscServerPlugin)]
 async fn runtime_requirements_in_tree(
   &self,
-  _compilation: &Compilation,
+  compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
   _all_runtime_requirements: &RuntimeGlobals,
   runtime_requirements: &RuntimeGlobals,
@@ -139,7 +139,10 @@ async fn runtime_requirements_in_tree(
   runtime_modules_to_add: &mut Vec<(ChunkUkey, Box<dyn RuntimeModule>)>,
 ) -> Result<Option<()>> {
   if runtime_requirements.contains(RuntimeGlobals::RSC_MANIFEST) {
-    runtime_modules_to_add.push((*chunk_ukey, Box::new(RscManifestRuntimeModule::new())));
+    runtime_modules_to_add.push((
+      *chunk_ukey,
+      Box::new(RscManifestRuntimeModule::new(&compilation.runtime_template)),
+    ));
   }
   Ok(None)
 }

@@ -1,4 +1,3 @@
-use rspack_collections::Identifier;
 use rspack_core::{
   Compilation, RuntimeGlobals, RuntimeModule, RuntimeTemplate, impl_runtime_module,
 };
@@ -7,26 +6,16 @@ pub static EXPORT_REQUIRE_RUNTIME_MODULE_ID: &str = "export_webpack_require";
 
 #[impl_runtime_module]
 #[derive(Debug)]
-pub struct ExportRequireRuntimeModule {
-  id: Identifier,
-}
+pub struct ExportRequireRuntimeModule {}
 
 impl ExportRequireRuntimeModule {
   pub fn new(runtime_template: &RuntimeTemplate) -> Self {
-    Self::with_default(Identifier::from(format!(
-      "{}{}",
-      runtime_template.runtime_module_prefix(),
-      EXPORT_REQUIRE_RUNTIME_MODULE_ID
-    )))
+    Self::with_name(runtime_template, EXPORT_REQUIRE_RUNTIME_MODULE_ID)
   }
 }
 
 #[async_trait::async_trait]
 impl RuntimeModule for ExportRequireRuntimeModule {
-  fn name(&self) -> Identifier {
-    self.id
-  }
-
   async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
     let require_name = compilation
       .runtime_template

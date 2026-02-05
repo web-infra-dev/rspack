@@ -1,8 +1,8 @@
 use std::{ptr::NonNull, sync::LazyLock};
 
-use rspack_collections::{DatabaseItem, Identifier};
+use rspack_collections::DatabaseItem;
 use rspack_core::{
-  BooleanMatcher, Chunk, ChunkGroupOrderKey, ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule,
+  BooleanMatcher, Chunk, ChunkGroupOrderKey, Compilation, RuntimeGlobals, RuntimeModule,
   RuntimeModuleStage, RuntimeTemplate, RuntimeVariable, compile_boolean_matcher,
   impl_runtime_module,
 };
@@ -70,20 +70,11 @@ static JAVASCRIPT_HOT_MODULE_REPLACEMENT_RUNTIME_REQUIREMENTS: LazyLock<RuntimeG
 
 #[impl_runtime_module]
 #[derive(Debug)]
-pub struct ModuleChunkLoadingRuntimeModule {
-  id: Identifier,
-  chunk: Option<ChunkUkey>,
-}
+pub struct ModuleChunkLoadingRuntimeModule {}
 
 impl ModuleChunkLoadingRuntimeModule {
   pub fn new(runtime_template: &RuntimeTemplate) -> Self {
-    Self::with_default(
-      Identifier::from(format!(
-        "{}module_chunk_loading",
-        runtime_template.runtime_module_prefix()
-      )),
-      None,
-    )
+    Self::with_default(runtime_template)
   }
 
   pub fn get_runtime_requirements_basic() -> RuntimeGlobals {
@@ -163,10 +154,6 @@ enum TemplateId {
 
 #[async_trait::async_trait]
 impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
-  fn name(&self) -> Identifier {
-    self.id
-  }
-
   fn template(&self) -> Vec<(String, String)> {
     vec![
       (
@@ -465,10 +452,6 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
     }
 
     Ok(source)
-  }
-
-  fn attach(&mut self, chunk: ChunkUkey) {
-    self.chunk = Some(chunk);
   }
 
   fn stage(&self) -> RuntimeModuleStage {

@@ -1,8 +1,7 @@
 use std::sync::LazyLock;
 
-use rspack_collections::Identifier;
 use rspack_core::{
-  Chunk, ChunkGraph, ChunkUkey, Compilation, ModuleIdentifier, RuntimeGlobals, RuntimeModule,
+  Chunk, ChunkGraph, Compilation, ModuleIdentifier, RuntimeGlobals, RuntimeModule,
   RuntimeModuleStage, RuntimeTemplate, SourceType, impl_runtime_module,
 };
 use rspack_plugin_runtime::extract_runtime_globals_from_ejs;
@@ -28,21 +27,12 @@ static CONSUMES_LOADING_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> = LazyLoc
 #[impl_runtime_module]
 #[derive(Debug)]
 pub struct ConsumeSharedRuntimeModule {
-  id: Identifier,
-  chunk: Option<ChunkUkey>,
   enhanced: bool,
 }
 
 impl ConsumeSharedRuntimeModule {
   pub fn new(runtime_template: &RuntimeTemplate, enhanced: bool) -> Self {
-    Self::with_default(
-      Identifier::from(format!(
-        "{}consumes_loading",
-        runtime_template.runtime_module_prefix()
-      )),
-      None,
-      enhanced,
-    )
+    Self::with_name(runtime_template, "consumes_loading", enhanced)
   }
 
   fn get_template_id(&self, template_id: TemplateId) -> String {
@@ -62,10 +52,6 @@ enum TemplateId {
 
 #[async_trait::async_trait]
 impl RuntimeModule for ConsumeSharedRuntimeModule {
-  fn name(&self) -> Identifier {
-    self.id
-  }
-
   fn stage(&self) -> RuntimeModuleStage {
     RuntimeModuleStage::Attach
   }
@@ -109,7 +95,7 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
         .get(&module, Some(chunk.runtime()));
       if let Some(data) = code_gen.data.get::<CodeGenerationDataConsumeShared>() {
         module_id_to_consume_data_mapping.insert(id, format!(
-          "{{ shareScope: {}, shareKey: {}, import: {}, requiredVersion: {}, strictVersion: {}, singleton: {}, eager: {}, fallback: {} }}",
+          "{{ shareScope: {}, shareKey: {}, import: {}, requiredVersion: {}, strictVersion: {}, singleton: {}, eager: {}, fallback: {}, treeShakingMode: {} }}",
           json_stringify(&data.share_scope),
           json_stringify(&data.share_key),
           json_stringify(&data.import),
@@ -118,6 +104,7 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
           json_stringify(&data.singleton),
           json_stringify(&data.eager),
           data.fallback.as_deref().unwrap_or("undefined"),
+          json_stringify(&data.tree_shaking_mode),
         ));
       }
     };
@@ -232,10 +219,6 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
     Ok(source)
   }
 
-  fn attach(&mut self, chunk: ChunkUkey) {
-    self.chunk = Some(chunk);
-  }
-
   fn additional_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
     *CONSUMES_RUNTIME_REQUIREMENTS
       | *CONSUMES_INITIAL_RUNTIME_REQUIREMENTS
@@ -253,4 +236,5 @@ pub struct CodeGenerationDataConsumeShared {
   pub singleton: bool,
   pub eager: bool,
   pub fallback: Option<String>,
+  pub tree_shaking_mode: Option<String>,
 }

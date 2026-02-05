@@ -1,38 +1,24 @@
 use std::iter;
 
 use itertools::Itertools;
-use rspack_collections::Identifier;
 use rspack_core::{
-  ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeTemplate, impl_runtime_module,
+  Compilation, RuntimeGlobals, RuntimeModule, RuntimeTemplate, impl_runtime_module,
 };
 
 #[impl_runtime_module]
 #[derive(Debug)]
 pub struct StartupChunkDependenciesRuntimeModule {
-  id: Identifier,
   async_chunk_loading: bool,
-  chunk: Option<ChunkUkey>,
 }
 
 impl StartupChunkDependenciesRuntimeModule {
   pub fn new(runtime_template: &RuntimeTemplate, async_chunk_loading: bool) -> Self {
-    Self::with_default(
-      Identifier::from(format!(
-        "{}startup_chunk_dependencies",
-        runtime_template.runtime_module_prefix()
-      )),
-      async_chunk_loading,
-      None,
-    )
+    Self::with_default(runtime_template, async_chunk_loading)
   }
 }
 
 #[async_trait::async_trait]
 impl RuntimeModule for StartupChunkDependenciesRuntimeModule {
-  fn name(&self) -> Identifier {
-    self.id
-  }
-
   fn template(&self) -> Vec<(String, String)> {
     vec![(
       self.id.to_string(),
@@ -120,10 +106,6 @@ impl RuntimeModule for StartupChunkDependenciesRuntimeModule {
     } else {
       unreachable!("should have chunk for StartupChunkDependenciesRuntimeModule")
     }
-  }
-
-  fn attach(&mut self, chunk: ChunkUkey) {
-    self.chunk = Some(chunk);
   }
 
   fn additional_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {

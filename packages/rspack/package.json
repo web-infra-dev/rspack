@@ -49,6 +49,7 @@
     "@ast-grep/napi": "^0.40.5",
     "@napi-rs/wasm-runtime": "1.0.7",
     "@rsbuild/plugin-node-polyfill": "^1.4.3",
+    "@rspack/lite-tapable": "1.1.0",
     "@rslib/core": "0.19.4",
     "@swc/types": "0.1.25",
     "@types/node": "^20.19.31",
@@ -66,11 +67,10 @@
     "webpack-sources": "3.3.3"
   },
   "dependencies": {
-    "@rspack/binding": "workspace:*",
-    "@rspack/lite-tapable": "1.1.0"
+    "@rspack/binding": "workspace:*"
   },
   "peerDependencies": {
-    "@module-federation/runtime-tools": ">=0.22.0",
+    "@module-federation/runtime-tools": "0.24.1",
     "@swc/helpers": ">=0.5.1"
   },
   "peerDependenciesMeta": {

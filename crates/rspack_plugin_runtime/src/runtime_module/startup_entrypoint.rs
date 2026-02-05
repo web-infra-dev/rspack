@@ -1,4 +1,3 @@
-use rspack_collections::Identifier;
 use rspack_core::{
   Compilation, RuntimeGlobals, RuntimeModule, RuntimeTemplate, impl_runtime_module,
 };
@@ -6,28 +5,17 @@ use rspack_core::{
 #[impl_runtime_module]
 #[derive(Debug)]
 pub struct StartupEntrypointRuntimeModule {
-  id: Identifier,
   async_chunk_loading: bool,
 }
 
 impl StartupEntrypointRuntimeModule {
   pub fn new(runtime_template: &RuntimeTemplate, async_chunk_loading: bool) -> Self {
-    Self::with_default(
-      Identifier::from(format!(
-        "{}startup_entrypoint",
-        runtime_template.runtime_module_prefix()
-      )),
-      async_chunk_loading,
-    )
+    Self::with_default(runtime_template, async_chunk_loading)
   }
 }
 
 #[async_trait::async_trait]
 impl RuntimeModule for StartupEntrypointRuntimeModule {
-  fn name(&self) -> Identifier {
-    self.id
-  }
-
   fn template(&self) -> Vec<(String, String)> {
     vec![(
       self.id.to_string(),

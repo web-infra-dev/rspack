@@ -1,10 +1,8 @@
 use std::sync::LazyLock;
 
-use rspack_collections::Identifier;
 use rspack_core::{
-  ChunkUkey, Compilation, OutputOptions, PathData, RuntimeGlobals, RuntimeModule,
-  RuntimeModuleStage, RuntimeTemplate, SourceType, get_js_chunk_filename_template, get_undo_path,
-  impl_runtime_module,
+  Compilation, OutputOptions, PathData, RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
+  RuntimeTemplate, SourceType, get_js_chunk_filename_template, get_undo_path, impl_runtime_module,
 };
 
 use crate::extract_runtime_globals_from_ejs;
@@ -15,33 +13,16 @@ static AUTO_PUBLIC_PATH_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
 
 #[impl_runtime_module]
 #[derive(Debug)]
-pub struct AutoPublicPathRuntimeModule {
-  id: Identifier,
-  chunk: Option<ChunkUkey>,
-}
+pub struct AutoPublicPathRuntimeModule {}
 
 impl AutoPublicPathRuntimeModule {
   pub fn new(runtime_template: &RuntimeTemplate) -> Self {
-    Self::with_default(
-      Identifier::from(format!(
-        "{}auto_public_path",
-        runtime_template.runtime_module_prefix()
-      )),
-      None,
-    )
+    Self::with_default(runtime_template)
   }
 }
 
 #[async_trait::async_trait]
 impl RuntimeModule for AutoPublicPathRuntimeModule {
-  fn name(&self) -> Identifier {
-    self.id
-  }
-
-  fn attach(&mut self, chunk: ChunkUkey) {
-    self.chunk = Some(chunk);
-  }
-
   fn stage(&self) -> RuntimeModuleStage {
     RuntimeModuleStage::Attach
   }

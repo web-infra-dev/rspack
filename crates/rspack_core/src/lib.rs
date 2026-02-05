@@ -122,6 +122,7 @@ pub enum SourceType {
   Remote,
   ShareInit,
   ConsumeShared,
+  ShareContainerShared,
   Custom(#[cacheable(with=AsPreset)] Ustr),
   #[default]
   Unknown,
@@ -141,6 +142,7 @@ impl std::fmt::Display for SourceType {
       SourceType::Remote => write!(f, "remote"),
       SourceType::ShareInit => write!(f, "share-init"),
       SourceType::ConsumeShared => write!(f, "consume-shared"),
+      SourceType::ShareContainerShared => write!(f, "share-container-shared"),
       SourceType::Unknown => write!(f, "unknown"),
       SourceType::CssImport => write!(f, "css-import"),
       SourceType::Custom(source_type) => f.write_str(source_type),
@@ -160,6 +162,7 @@ impl From<&str> for SourceType {
       "remote" => Self::Remote,
       "share-init" => Self::ShareInit,
       "consume-shared" => Self::ConsumeShared,
+      "share-container-shared" => Self::ShareContainerShared,
       "unknown" => Self::Unknown,
       "css-import" => Self::CssImport,
       other => SourceType::Custom(other.into()),
@@ -175,6 +178,7 @@ impl From<&ModuleType> for SourceType {
       ModuleType::WasmSync | ModuleType::WasmAsync => Self::Wasm,
       ModuleType::Asset | ModuleType::AssetInline | ModuleType::AssetResource => Self::Asset,
       ModuleType::ConsumeShared => Self::ConsumeShared,
+      ModuleType::ShareContainerShared => Self::ShareContainerShared,
       _ => Self::Unknown,
     }
   }
@@ -202,6 +206,7 @@ pub enum ModuleType {
   Fallback,
   ProvideShared,
   ConsumeShared,
+  ShareContainerShared,
   SelfReference,
   Custom(#[cacheable(with=AsPreset)] Ustr),
 }
@@ -267,6 +272,7 @@ impl ModuleType {
       ModuleType::Fallback => "fallback-module",
       ModuleType::ProvideShared => "provide-module",
       ModuleType::ConsumeShared => "consume-shared-module",
+      ModuleType::ShareContainerShared => "share-container-shared-module",
       ModuleType::SelfReference => "self-reference-module",
 
       ModuleType::Custom(custom) => custom.as_str(),
