@@ -49,7 +49,7 @@ export default [
 ];
 ```
 
-### 配置插件
+## 配置插件
 
 Rspack 通过一对协同工作的插件来支持 React 服务器组件。你需要调用 `rsc.createPlugins` 生成 `ServerPlugin` 和 `ClientPlugin`，并将它们分别配置到对应的 Compiler 中：
 
@@ -78,9 +78,9 @@ export default [
 
 这两个插件会在内部调度 Client Compiler 和 Server Compiler 的构建流程，建立通信机制以同步编译状态、模块信息，处理客户端组件、生成资源清单。
 
-### 配置 JSX/TSX
+## 配置 JSX/TSX
 
-添加 `builtin:swc-loader` 来处理 `.jsx` 和 `.tsx` 文件。必须开启 `rspackExperiments.reactServerComponents` 选项，这会启用 Rspack 对 RSC 语法的支持。
+添加 `builtin:swc-loader` 来处理 `.jsx` 和 `.tsx` 文件。必须开启 `rspackExperiments.reactServerComponents` 选项，启用 Rspack 对 RSC 语法的支持。
 
 ```js title="rspack.config.mjs"
 const jsxRule = {
@@ -137,11 +137,18 @@ export default [
 ];
 ```
 
-loader 会识别 `"use client"` 和 `"use server"` 指令，仅模块为 `Layers.rsc` layer 时，会使用 `react-server-dom-rspack`，将包含这些指令的模块转换为 React 运行时需要的客户端引用（Client Reference）或服务端引用（Server Reference）。
+Loader 会根据模块所属的 layer 对 `"use client"` 和 `"use server"` 指令执行不同的转换逻辑：
 
-RSC 插件也依赖 loader 识别的指令信息，来区分客户端组件和服务器组件。
+1. 当模块属于 `Layers.rsc`（服务器组件环境）时，会调用 `react-server-dom-rspack` 进行转换：
+   - `"use client"` 模块被转换为客户端引用（Client Reference）。
+   - `"use server"` 模块被注册为 Server Action，使其能够响应来自客户端的远程调用。
 
-### 配置 layer
+2. 当模块不属于 `Layers.rsc`（如客户端或 SSR 环境）时：
+   - `"use server"`：模块会转换为服务端引用（Server Reference）。
+
+RSC 插件也会利用 loader 识别出的指令信息，区分客户端组件和服务器组件。
+
+## 配置 layer
 
 在 Server Compiler 中，Rspack 利用 [layer](/guide/features/layer) 标识属于服务器组件（RSC）环境的模块。
 
@@ -192,6 +199,64 @@ export default [
     // ...
   },
 ];
+```
+
+## 页面或路由入口
+
+`"use server-entry"` 是 Rspack 引入的一个特有指令，主要面向框架开发者，用于将服务器组件标记为页面或路由的逻辑入口。
+
+Rspack 编译 `"use server-entry"` 组件时，会生成浏览器初始化 RSC 应用所需的完整资源，并直接在导出的组件上挂载静态属性来记录这些信息：
+
+- **entryJsFiles**：启动脚本。对应 Client Compiler 中同名构建入口的产物，负责在浏览器端初始化 React 运行时和渲染流程。
+- **entryCssFiles**：样式资源。Rspack 会收集该服务器组件及其子服务器组件树中依赖的所有 CSS 文件。
+
+![RSC Server Entry](https://assets.rspack.rs/rspack/assets/rspack-rsc-server-entry.jpg)
+
+```tsx title="Todos.tsx"
+'use server-entry';
+
+import './Todos.css';
+import { Dialog } from './Dialog';
+import { TodoDetail } from './TodoDetail';
+import { TodoCreate } from './TodoCreate';
+import { TodoList } from './TodoList';
+
+export async function Todos({ id }: { id?: number }) {
+  // ...组件逻辑
+}
+```
+
+在服务端运行时，你可以直接访问这些挂载在组件上的静态属性，来构建 HTML 头部资源：
+
+```tsx title="entry.rsc.tsx"
+import type { ServerEntry } from 'react-server-dom-rspack/server.node';
+
+const { Todos } = await import('../Todos.tsx');
+const serverEntry = Todos as ServerEntry<typeof Todos>;
+
+const root = (
+  <>
+    {/* 读取组件上的静态属性，注入当前路由的 CSS */}
+    {serverEntry.entryCssFiles
+      ? serverEntry.entryCssFiles.map((href) => (
+          <link
+            key={href}
+            rel="stylesheet"
+            href={href}
+            precedence="default"
+          ></link>
+        ))
+      : null}
+    <Todos id={id} />
+  </>
+);
+
+const response = await handleRequest({
+  request,
+  getRoot: () => root,
+  bootstrapScripts: serverEntry.entryJsFiles, // 读取组件上的静态属性，作为启动脚本
+  nonce,
+});
 ```
 
 ## 开发服务器

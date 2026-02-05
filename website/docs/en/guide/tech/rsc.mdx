@@ -49,7 +49,7 @@ export default [
 ];
 ```
 
-### Configure plugin
+## Configure plugin
 
 Rspack supports React Server Components through a pair of coordinating plugins. You need to call `rsc.createPlugins` to generate `ServerPlugin` and `ClientPlugin`, and configure them into their respective Compilers:
 
@@ -78,7 +78,7 @@ export default [
 
 These two plugins internally schedule the build processes of the Client Compiler and Server Compiler, establishing a communication mechanism to synchronize compilation states and module information, handle client components, and generate resource manifests.
 
-### Configure JSX/TSX
+## Configure JSX/TSX
 
 Add `builtin:swc-loader` to process `.jsx` and `.tsx` files. The `rspackExperiments.reactServerComponents` option must be enabled to turn on Rspack's support for RSC syntax.
 
@@ -137,11 +137,18 @@ export default [
 ];
 ```
 
-The loader identifies `"use client"` and `"use server"` directives. Only when the module belongs to the `Layers.rsc` layer, it uses `react-server-dom-rspack` to transform modules containing these directives into the Client References or Server References required by the React runtime.
+The loader executes different transformation logic for `"use client"` and `"use server"` directives based on the `layer` to which the module belongs:
 
-The RSC plugins also rely on the directive information identified by the loader to distinguish between Client Components and Server Components.
+1. **When the module belongs to `Layers.rsc` (Server Component environment)**, `react-server-dom-rspack` is invoked for transformation:
+   - Modules with `"use client"` are transformed into **Client References**.
+   - Modules with `"use server"` are registered as **Server Actions**, enabling them to respond to remote calls from the client.
 
-### Configure layer
+2. **When the module does not belong to `Layers.rsc` (e.g., client or SSR environments)**:
+   - `"use server"`: The module is transformed into a **Server Reference**.
+
+The RSC plugin also utilizes the directive information identified by the loader to distinguish between Client Components and Server Components.
+
+## Configure layer
 
 In the Server Compiler, Rspack uses [layer](/guide/features/layer) to identify modules that belong to the Server Component (RSC) environment.
 
@@ -192,6 +199,65 @@ export default [
     // ...
   },
 ];
+```
+
+## Server Entry
+
+`"use server-entry"` is a specific directive introduced by Rspack, designed primarily for framework developers. It is used to mark a Server Component as the logical entry point for a page or route.
+
+When compiling a component with `"use server-entry"`, Rspack generates the complete set of resources required to initialize the RSC application in the browser and records this information by mounting static properties directly onto the exported component:
+
+- **entryJsFiles**: Bootstrap scripts. These correspond to the output of the build entry with the same name in the Client Compiler. They are responsible for initializing the React runtime and rendering flow on the browser side.
+- **entryCssFiles**: Style resources. Rspack collects all CSS files depended upon by this Server Component and its descendant component tree.
+
+![RSC Server Entry](https://assets.rspack.rs/rspack/assets/rspack-rsc-server-entry.jpg)
+
+```tsx title="Todos.tsx"
+'use server-entry';
+
+import './Todos.css';
+import { Dialog } from './Dialog';
+import { TodoDetail } from './TodoDetail';
+import { TodoCreate } from './TodoCreate';
+import { TodoList } from './TodoList';
+
+export async function Todos({ id }: { id?: number }) {
+  // ...component logic
+}
+```
+
+During the server runtime, you can directly access these static properties mounted on the component to construct HTML head resources:
+
+```tsx title="entry.rsc.tsx"
+import type { ServerEntry } from 'react-server-dom-rspack/server.node';
+
+const { Todos } = await import('../Todos.tsx');
+const serverEntry = Todos as ServerEntry<typeof Todos>;
+
+const root = (
+  <>
+    {/* Read static properties from the component to inject CSS for the current route */}
+    {serverEntry.entryCssFiles
+      ? serverEntry.entryCssFiles.map((href) => (
+          <link
+            key={href}
+            rel="stylesheet"
+            href={href}
+            precedence="default"
+          ></link>
+        ))
+      : null}
+    <Todos id={id} />
+  </>
+);
+
+const response = await handleRequest({
+  request,
+  getRoot: () => root,
+  // Read static properties from the component to use as bootstrap scripts
+  bootstrapScripts: serverEntry.entryJsFiles,
+  nonce,
+});
 ```
 
 ## Dev server
