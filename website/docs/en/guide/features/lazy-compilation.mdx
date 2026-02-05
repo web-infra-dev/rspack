@@ -122,7 +122,7 @@ server.start();
 
 ## Customizing lazy compilation endpoint
 
-By default, the lazy compilation middleware uses the `/lazy-compilation-using-` prefix for handling requests. If you need to customize this prefix, you can use the `prefix` option:
+By default, the lazy compilation middleware uses the `/_rspack/lazy/trigger` prefix for handling requests. If you need to customize this prefix, you can use the `prefix` option:
 
 ```js title="rspack.config.mjs"
 import { defineConfig } from '@rspack/cli';
