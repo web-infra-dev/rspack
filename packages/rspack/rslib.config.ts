@@ -167,8 +167,26 @@ const codmodPlugin: RsbuildPlugin = {
   },
 };
 
+// Remove `export { rspack as 'module.exports' };` to avoid parsing errors in older TypeScript versions (e.g. TS 5.0)
+const removeDtsExportPlugin: RsbuildPlugin = {
+  name: 'remove-dts-export',
+  setup(api) {
+    api.onAfterBuild(async () => {
+      const dtsPath = path.resolve(import.meta.dirname, 'dist/index.d.ts');
+      if (fs.existsSync(dtsPath)) {
+        const content = await fs.promises.readFile(dtsPath, 'utf-8');
+        const newContent = content.replace(
+          "export { rspack as 'module.exports' };",
+          '',
+        );
+        await fs.promises.writeFile(dtsPath, newContent);
+      }
+    });
+  },
+};
+
 export default defineConfig({
-  plugins: [mfRuntimePlugin, codmodPlugin],
+  plugins: [mfRuntimePlugin, codmodPlugin, removeDtsExportPlugin],
   lib: [
     merge(commonLibConfig, {
       dts: {
