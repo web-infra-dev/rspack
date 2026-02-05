@@ -91,6 +91,10 @@ function compatibleFetch(
               body: bodyBuffer,
             });
           });
+          stream.on('error', (e) => {
+            console.log('stream error happens', e);
+            reject(e);
+          });
         })
         .on('error', reject);
     },
