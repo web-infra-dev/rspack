@@ -132,17 +132,17 @@ async fn optimize_dependencies(
   build_module_graph_artifact: &mut BuildModuleGraphArtifact,
   _diagnostics: &mut Vec<Diagnostic>,
 ) -> Result<Option<bool>> {
-  let module_ids: Vec<_> = {
+  // Collect module info first to minimize lock contention
+  let module_infos: Vec<_> = {
     let module_graph = build_module_graph_artifact.get_module_graph();
-    module_graph.modules().keys().copied().collect()
-  };
-  self.apply_custom_exports();
-  for module_id in module_ids {
-    let module_graph = build_module_graph_artifact.get_module_graph();
-    let share_info = {
-      let module = module_graph.module_by_identifier(&module_id);
-      module.and_then(|module| {
+    let module_ids: Vec<_> = module_graph.modules().keys().copied().collect();
+
+    module_ids
+      .into_iter()
+      .filter_map(|module_id| {
+        let module = module_graph.module_by_identifier(&module_id)?;
         let module_type = module.module_type();
+
         if !matches!(
           module_type,
           rspack_core::ModuleType::ConsumeShared
@@ -151,12 +151,11 @@ async fn optimize_dependencies(
         ) {
           return None;
         }
+
         let mut modules_to_process = Vec::new();
         let share_key = match module_type {
           rspack_core::ModuleType::ConsumeShared => {
             let consume_shared_module = module.as_any().downcast_ref::<ConsumeSharedModule>()?;
-            // Use the readable_identifier to extract the share key
-            // The share key is part of the identifier string in format "consume shared module ({share_scope}) {share_key}@..."
             let identifier =
               consume_shared_module.readable_identifier(&rspack_core::Context::default());
             let identifier_str = identifier.to_string();
@@ -204,61 +203,71 @@ async fn optimize_dependencies(
           }
           _ => return None,
         };
-        Some((share_key, modules_to_process))
-      })
-    };
 
-    let (share_key, modules_to_process) = match share_info {
-      Some(result) => result,
-      None => continue,
-    };
-
-    if share_key.is_empty() {
-      continue;
-    }
-
-    // Get the runtime referenced exports for this share key
-    let runtime_reference_exports = {
-      self
-        .shared_referenced_exports
-        .read()
-        .expect("lock poisoned")
-        .get(&share_key)
-        .cloned()
-    };
-    // Check if this share key is in our shared map and has tree_shaking enabled
-    if !self.shared_map.contains_key(&share_key) {
-      continue;
-    }
-    if let Some(runtime_reference_exports) = runtime_reference_exports {
-      if runtime_reference_exports.is_empty() {
-        continue;
-      }
-
-      let real_shared_identifier = modules_to_process.first().copied();
-
-      // Check if the real shared module is side effect free
-      if let Some(real_shared_identifier) = real_shared_identifier {
-        let is_side_effect_free = {
-          module_graph
-            .module_by_identifier(&real_shared_identifier)
-            .and_then(|module| module.factory_meta().and_then(|meta| meta.side_effect_free))
-            .unwrap_or(false)
-        };
-
-        if !is_side_effect_free {
-          // Clear referenced exports for this share_key when module is not side-effect free
-          if let Ok(mut shared_referenced_exports) = self.shared_referenced_exports.write()
-            && let Some(set) = shared_referenced_exports.get_mut(&share_key)
-          {
-            set.clear();
-          }
-          continue;
+        if share_key.is_empty() || !self.shared_map.contains_key(&share_key) {
+          return None;
         }
 
-        let module_graph_mut = build_module_graph_artifact.get_module_graph_mut();
-        module_graph_mut.active_all_exports_info();
-        // mark used for collected modules
+        let real_shared_identifier = modules_to_process.first().copied()?;
+        let is_side_effect_free = module_graph
+          .module_by_identifier(&real_shared_identifier)
+          .and_then(|m| m.factory_meta().and_then(|meta| meta.side_effect_free))
+          .unwrap_or(false);
+
+        Some((
+          share_key,
+          modules_to_process,
+          real_shared_identifier,
+          is_side_effect_free,
+        ))
+      })
+      .collect()
+  };
+
+  self.apply_custom_exports();
+
+  // Get runtime referenced exports
+  let runtime_refs: FxHashMap<String, FxHashSet<String>> = {
+    let guard = self
+      .shared_referenced_exports
+      .read()
+      .expect("lock poisoned");
+    guard.clone()
+  };
+
+  // Batch mutations to minimize write lock time
+  let mutations: Vec<_> = module_infos
+    .into_iter()
+    .filter_map(
+      |(share_key, modules_to_process, real_shared_identifier, is_side_effect_free)| {
+        let runtime_reference_exports = runtime_refs.get(&share_key)?;
+
+        if runtime_reference_exports.is_empty() {
+          return None;
+        }
+
+        if !is_side_effect_free {
+          return Some((share_key, None, vec![]));
+        }
+
+        Some((share_key, Some(real_shared_identifier), modules_to_process))
+      },
+    )
+    .collect();
+
+  // Apply all mutations in a single write lock
+  if !mutations.is_empty() {
+    let module_graph_mut = build_module_graph_artifact.get_module_graph_mut();
+    module_graph_mut.active_all_exports_info();
+
+    for (share_key, real_shared_id, modules_to_process) in mutations {
+      if let Some(real_shared_identifier) = real_shared_id {
+        let runtime_reference_exports = match runtime_refs.get(&share_key) {
+          Some(refs) => refs,
+          None => continue,
+        };
+
+        // Mark used for collected modules
         for module_id in &modules_to_process {
           let exports_info = module_graph_mut.get_exports_info(module_id);
           let exports_info_data = exports_info.as_data_mut(module_graph_mut);
@@ -266,13 +275,12 @@ async fn optimize_dependencies(
           for export_name in runtime_reference_exports.iter() {
             let export_atom = Atom::from(export_name.as_str());
             if let Some(export_info) = exports_info_data.named_exports_mut(&export_atom) {
-              // export_info.set_used(rspack_core::UsageState::Used, Some(&runtime_spec));
               export_info.set_used(rspack_core::UsageState::Used, None);
             }
           }
         }
 
-        // find if can update real share module
+        // Check if can update real share module
         let exports_info = module_graph_mut.get_exports_info(&real_shared_identifier);
         let exports_info_data = exports_info.as_data_mut(module_graph_mut);
         let can_update_module_used_stage = {
@@ -280,7 +288,6 @@ async fn optimize_dependencies(
           if exports_view.is_empty() {
             false
           } else {
-            // Check if all used exports are in the runtime_reference_exports set
             exports_view.iter().all(|(name, export_info)| {
               let used = export_info.get_used(None);
               if used != rspack_core::UsageState::Unknown && used != rspack_core::UsageState::Unused
@@ -292,9 +299,8 @@ async fn optimize_dependencies(
             })
           }
         };
+
         if can_update_module_used_stage {
-          // mark used exports per runtime
-          // Mark used exports
           for export_info in exports_info_data.exports_mut().values_mut() {
             export_info.set_used_conditionally(
               Box::new(|used| *used == rspack_core::UsageState::Unknown),
@@ -303,6 +309,13 @@ async fn optimize_dependencies(
             );
             export_info.set_can_mangle_provide(Some(false));
             export_info.set_can_mangle_use(Some(false));
+          }
+        }
+      } else {
+        // Clear referenced exports for side-effect modules
+        if let Ok(mut shared_referenced_exports) = self.shared_referenced_exports.write() {
+          if let Some(set) = shared_referenced_exports.get_mut(&share_key) {
+            set.clear();
           }
         }
       }
