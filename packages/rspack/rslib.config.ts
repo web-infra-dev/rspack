@@ -167,7 +167,7 @@ const codmodPlugin: RsbuildPlugin = {
   },
 };
 
-// Remove `export { rspack as 'module.exports' };` to avoid parsing errors in older TypeScript versions (e.g. TS 5.0)
+// Remove `export { rspack as 'module.exports' };` to avoid parsing errors with TypeScript < 5.6.2
 const removeDtsExportPlugin: RsbuildPlugin = {
   name: 'remove-dts-export',
   setup(api) {
