@@ -28,26 +28,34 @@ pub fn collect_json_module_sizes(
       continue;
     }
 
-    if let Some(json_data) = module.build_info().json_data.as_ref() {
-      let exports_info =
-        module_graph.get_prefetched_exports_info(module_id, PrefetchExportsInfoMode::Default);
+    let Some(json_data) = module.build_info().json_data.as_ref() else {
+      continue;
+    };
 
-      let final_json = match json_data {
-        json::JsonValue::Object(_) | json::JsonValue::Array(_)
-          if matches!(
-            exports_info.other_exports_info().get_used(None),
-            UsageState::Unused
-          ) =>
-        {
+    let exports_info =
+      module_graph.get_prefetched_exports_info(module_id, PrefetchExportsInfoMode::Default);
+
+    let final_json = match json_data {
+      json::JsonValue::Object(_) | json::JsonValue::Array(_) => {
+        let needs_tree_shaking = exports_info.other_exports_info().get_used(None)
+          == UsageState::Unused
+          || exports_info.exports().any(|(_, info)| {
+            let used = info.get_used(None);
+            used == UsageState::Unused || used == UsageState::OnlyPropertiesUsed
+          });
+
+        if needs_tree_shaking {
           create_object_for_exports_info(json_data.clone(), &exports_info, None, module_graph)
+        } else {
+          json_data.clone()
         }
-        _ => json_data.clone(),
-      };
+      }
+      _ => json_data.clone(),
+    };
 
-      let json_str = json::stringify(final_json);
-      let size = "module.exports = ".len() + json_str.len();
-      json_sizes.insert(module_id.to_string(), size as i32);
-    }
+    let json_str = json::stringify(final_json);
+    let size = ("module.exports = ".len() + json_str.len()) as i32;
+    json_sizes.insert(module_id.to_string(), size);
   }
 
   json_sizes

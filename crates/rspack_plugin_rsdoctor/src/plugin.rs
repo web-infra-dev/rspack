@@ -261,7 +261,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
 }
 
 #[plugin_hook(CompilationOptimizeChunkModules for RsdoctorPlugin, stage = -1)]
-async fn pre_optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
+async fn collect_json_sizes(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
   if !self.has_module_graph_feature(RsdoctorPluginModuleGraphFeature::ModuleSources) {
     return Ok(None);
   }
@@ -269,7 +269,6 @@ async fn pre_optimize_chunk_modules(&self, compilation: &mut Compilation) -> Res
   let module_graph = compilation.get_module_graph();
   let modules = module_graph.modules();
 
-  // collect JSON module's size（including: tree shaking）
   let json_sizes = collect_json_module_sizes(&modules, module_graph);
 
   JSON_MODULE_SIZE_MAP.insert(compilation.id(), json_sizes);
@@ -538,11 +537,11 @@ impl Plugin for RsdoctorPlugin {
 
   fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
     ctx.compiler_hooks.compilation.tap(compilation::new(self));
-    // Collect the size of the JSON module before concatenation
+    // Collect JSON module sizes before concatenation (after tree-shaking)
     ctx
       .compilation_hooks
       .optimize_chunk_modules
-      .tap(pre_optimize_chunk_modules::new(self));
+      .tap(collect_json_sizes::new(self));
     // Collect module information after concatenation
     ctx
       .compilation_hooks
