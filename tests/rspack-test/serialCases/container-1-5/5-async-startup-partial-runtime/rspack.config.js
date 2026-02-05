@@ -9,7 +9,7 @@ const remoteContext = path.resolve(__dirname, '../0-container-full');
 // Reuse the real remote container config so the case exercises emitted remotes.
 const remoteConfigs = require('../0-container-full/rspack.config.js').map(
 	config => {
-		const isModule = config.experiments;
+		const isModule = config.output.module;
 		return {
 			...config,
 			context: remoteContext,
