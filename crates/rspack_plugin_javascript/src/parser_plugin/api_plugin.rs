@@ -165,7 +165,7 @@ impl JavascriptParserPlugin for APIPlugin {
         Some(true)
       }
       API_CHUNK_LOAD => {
-        parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::call(
+        parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
           ident.span.into(),
           RuntimeGlobals::ENSURE_CHUNK,
         )));
