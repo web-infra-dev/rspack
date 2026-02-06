@@ -50,7 +50,7 @@ mod simple {
 mod sync_series {
   use super::*;
 
-  define_hook!(Render: SyncSeries(compilation: &Compilation, source: &mut Source));
+  define_hook!(Render: Sync(compilation: &Compilation, source: &mut Source));
 
   struct Compilation {
     id: u32,
