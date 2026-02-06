@@ -36,7 +36,6 @@ use std::{
   },
 };
 
-use atomic_refcell::AtomicRefCell;
 use dashmap::DashSet;
 use futures::future::BoxFuture;
 use indexmap::IndexMap;
@@ -227,9 +226,9 @@ pub struct Compilation {
   pub runtime_template: RuntimeTemplate,
 
   // artifact for infer_async_modules_plugin
-  pub async_modules_artifact: Arc<AtomicRefCell<AsyncModulesArtifact>>,
+  pub async_modules_artifact: StealCell<AsyncModulesArtifact>,
   // artifact for collect_dependencies_diagnostics
-  pub dependencies_diagnostics_artifact: Arc<AtomicRefCell<DependenciesDiagnosticsArtifact>>,
+  pub dependencies_diagnostics_artifact: StealCell<DependenciesDiagnosticsArtifact>,
   // artifact for side_effects_flag_plugin
   pub side_effects_optimize_artifact: StealCell<SideEffectsOptimizeArtifact>,
   // artifact for module_ids
@@ -362,11 +361,9 @@ impl Compilation {
       resolver_factory,
       loader_resolver_factory,
 
-      async_modules_artifact: Arc::new(AtomicRefCell::new(AsyncModulesArtifact::default())),
+      async_modules_artifact: StealCell::new(AsyncModulesArtifact::default()),
       imported_by_defer_modules_artifact: Default::default(),
-      dependencies_diagnostics_artifact: Arc::new(AtomicRefCell::new(
-        DependenciesDiagnosticsArtifact::default(),
-      )),
+      dependencies_diagnostics_artifact: StealCell::new(DependenciesDiagnosticsArtifact::default()),
       side_effects_optimize_artifact: StealCell::new(Default::default()),
       module_ids_artifact: Default::default(),
       named_chunk_ids_artifact: Default::default(),
