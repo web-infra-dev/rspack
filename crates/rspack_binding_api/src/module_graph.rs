@@ -28,7 +28,7 @@ impl JsModuleGraph {
 
   fn as_ref(&self) -> napi::Result<(&'static Compilation, &'static ModuleGraph)> {
     let compilation = unsafe { self.compilation.as_ref() };
-    if compilation.build_module_graph_artifact.is_none() {
+    if compilation.build_module_graph_artifact.is_stolen() {
       return Err(napi::Error::from_reason(
         "ModuleGraph is not available during module graph building phase".to_string(),
       ));
