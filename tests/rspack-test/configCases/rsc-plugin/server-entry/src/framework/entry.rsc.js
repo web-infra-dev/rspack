@@ -5,7 +5,7 @@ export const renderRscStream = () => {
     return renderToReadableStream(<App />);
 };
 
-it('should preserve all server actions in production build', async () => {
+it('should expose entry JS and CSS files for server entries', async () => {
     expect(App.entryJsFiles).toBeDefined();
     expect(App.entryCssFiles).toBeDefined();
 
