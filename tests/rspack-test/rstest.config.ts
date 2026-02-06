@@ -69,6 +69,8 @@ const sharedConfig = defineProject({
     externals: [/.*/],
   },
   passWithNoTests: true,
+  hideSkippedTests: true,
+  hideSkippedTestFiles: true,
   snapshotFormat: {
     escapeString: true,
     printBasicPrototype: true
@@ -115,8 +117,6 @@ export default defineConfig({
     },
   }],
   reporters: testFilter ? ['verbose'] : ['default'],
-  hideSkippedTests: true,
-  hideSkippedTestFiles: true,
   pool: {
     maxWorkers: process.env.WASM ? 1 : "80%",
     execArgv: ['--no-warnings', '--expose-gc', '--max-old-space-size=8192', '--experimental-vm-modules'],
