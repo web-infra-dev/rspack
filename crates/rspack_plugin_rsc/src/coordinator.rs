@@ -1,8 +1,7 @@
-use atomic_refcell::AtomicRefCell;
 use futures::future::BoxFuture;
 use rspack_core::CompilerId;
 use rspack_error::Result;
-use tokio::sync::Notify;
+use tokio::sync::{Mutex, Notify};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum State {
@@ -28,7 +27,7 @@ type GetServerCompilerId = Box<dyn Fn() -> BoxFuture<'static, Result<CompilerId>
 /// The coordinator manages state transitions and synchronization between compilers
 /// to maintain the correct build sequence for React Server Components.
 pub struct Coordinator {
-  state: AtomicRefCell<State>,
+  state: Mutex<State>,
   state_notify: Notify,
   get_server_compiler_id: GetServerCompilerId,
 }
@@ -36,7 +35,7 @@ pub struct Coordinator {
 impl Coordinator {
   pub fn new(get_server_compiler_id: GetServerCompilerId) -> Self {
     Self {
-      state: AtomicRefCell::new(State::Idle),
+      state: Mutex::new(State::Idle),
       state_notify: Default::default(),
       get_server_compiler_id,
     }
@@ -49,7 +48,7 @@ impl Coordinator {
   async fn wait_for(&self, mut predicate: impl FnMut(State) -> bool) -> Result<()> {
     loop {
       {
-        let state = *self.state.borrow();
+        let state = *self.state.lock().await;
         if predicate(state) {
           return Ok(());
         }
@@ -62,7 +61,7 @@ impl Coordinator {
   }
 
   async fn transition(&self, expected: State, next: State, context: &'static str) -> Result<()> {
-    let mut state = self.state.borrow_mut();
+    let mut state = self.state.lock().await;
     if *state == State::Failed {
       return Ok(());
     }
@@ -81,7 +80,7 @@ impl Coordinator {
   }
 
   async fn set_if_current(&self, current: State, next: State) -> bool {
-    let mut state = self.state.borrow_mut();
+    let mut state = self.state.lock().await;
     if *state == current {
       *state = next;
       self.state_notify.notify_waiters();
@@ -163,7 +162,7 @@ impl Coordinator {
       }
 
       {
-        let state = *self.state.borrow();
+        let state = *self.state.lock().await;
         match state {
           State::ServerEntriesDone | State::ClientEntriesCompiling => {
             // fallthrough to wait below
@@ -195,7 +194,7 @@ impl Coordinator {
   }
 
   pub async fn failed(&self) -> Result<()> {
-    let mut state = self.state.borrow_mut();
+    let mut state = self.state.lock().await;
     *state = State::Failed;
     self.state_notify.notify_waiters();
     Ok(())

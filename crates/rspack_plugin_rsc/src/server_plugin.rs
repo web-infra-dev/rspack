@@ -207,7 +207,9 @@ impl RscServerPlugin {
       for (dep, actions) in component_info.action_imports {
         action_entry_imports.insert(dep, actions);
       }
-      if !component_info.client_component_imports.is_empty() {
+      if !component_info.client_component_imports.is_empty()
+        || !component_info.css_imports.is_empty()
+      {
         client_entries_to_inject.push(ClientEntry {
           entry_name: entry_name.clone(),
           runtime: runtime.clone(),
