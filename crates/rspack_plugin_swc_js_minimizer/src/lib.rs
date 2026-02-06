@@ -1,4 +1,5 @@
 use std::{
+  cell::Cell,
   collections::HashMap,
   hash::Hash,
   path::Path,
@@ -163,7 +164,10 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 
   let (tx, rx) = mpsc::channel::<Vec<Diagnostic>>();
   // collect all extracted comments info
-  let all_extracted_comments = Mutex::new(HashMap::new());
+  let all_extracted_comments = options
+    .extract_comments
+    .as_ref()
+    .map(|_| Mutex::new(HashMap::new()));
   let extract_comments_condition = options
     .extract_comments
     .as_ref()
@@ -239,6 +243,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         });
 
         let javascript_compiler = JavaScriptCompiler::new();
+        let has_extracted_comments = Cell::new(false);
         let comments_op = |comments: &SingleThreadedComments| {
           if let Some(ref extract_comments) = extract_comments_option {
             let mut extracted_comments = vec![];
@@ -283,17 +288,20 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 
             // if not matched comments, we don't need to emit .License.txt file
             if !extracted_comments.is_empty() {
+              has_extracted_comments.set(true);
               extracted_comments.sort();
-              all_extracted_comments
-                .lock()
-                .expect("all_extract_comments lock failed")
-                .insert(
-                  filename.to_string(),
-                  ExtractedCommentsInfo {
-                    source: RawStringSource::from(extracted_comments.join("\n\n")).boxed(),
-                    comments_file_name: extract_comments.filename.clone(),
-                  },
-                );
+              if let Some(all_extracted_comments) = &all_extracted_comments {
+                all_extracted_comments
+                  .lock()
+                  .expect("all_extract_comments lock failed")
+                  .insert(
+                    filename.to_string(),
+                    ExtractedCommentsInfo {
+                      source: RawStringSource::from(extracted_comments.join("\n\n")).boxed(),
+                      comments_file_name: extract_comments.filename.clone(),
+                    },
+                  );
+              }
             }
           }
         };
@@ -316,10 +324,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
             },
         };
 
-        let banner = if all_extracted_comments
-          .lock()
-          .expect("all_extract_comments lock failed")
-          .contains_key(filename) {
+        let banner = if has_extracted_comments.get() {
             extract_comments_option.and_then(|option| option.banner)
           } else {
             None
@@ -399,23 +404,25 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   compilation.extend_diagnostics(rx.into_iter().flatten().collect::<Vec<_>>());
 
   // write all extracted comments to assets
-  all_extracted_comments
-    .lock()
-    .expect("all_extracted_comments lock failed")
-    .clone()
-    .into_iter()
-    .for_each(|(_, comments)| {
-      compilation.emit_asset(
-        comments.comments_file_name,
-        CompilationAsset::new(
-          Some(comments.source),
-          AssetInfo {
-            minimized: Some(true),
-            ..Default::default()
-          },
-        ),
-      )
-    });
+  if let Some(all_extracted_comments) = &all_extracted_comments {
+    all_extracted_comments
+      .lock()
+      .expect("all_extracted_comments lock failed")
+      .clone()
+      .into_iter()
+      .for_each(|(_, comments)| {
+        compilation.emit_asset(
+          comments.comments_file_name,
+          CompilationAsset::new(
+            Some(comments.source),
+            AssetInfo {
+              minimized: Some(true),
+              ..Default::default()
+            },
+          ),
+        )
+      });
+  }
 
   Ok(())
 }
