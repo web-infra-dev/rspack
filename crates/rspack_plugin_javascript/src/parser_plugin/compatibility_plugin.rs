@@ -12,20 +12,20 @@ use crate::{
   visitors::{JavascriptParser, Statement, TagInfoData, VariableDeclaration, expr_name},
 };
 
-pub const NESTED_IDENTIFIER_TAG: &str = "_identifier__nested_rspack_identifier__";
+pub(super) const NESTED_IDENTIFIER_TAG: &str = "_identifier__nested_rspack_identifier__";
 
 #[derive(Debug, Clone)]
-pub struct NestedRequireData {
+pub(super) struct NestedRequireData {
   pub name: String,
   update: bool,
   loc: DependencyRange,
   in_short_hand: bool,
 }
 
-pub struct CompatibilityPlugin;
+pub(crate) struct CompatibilityPlugin;
 
 impl CompatibilityPlugin {
-  pub fn browserify_require_handler(
+  pub(crate) fn browserify_require_handler(
     &self,
     parser: &mut JavascriptParser,
     expr: &CallExpr,

@@ -5,7 +5,7 @@ use crate::utils::task_loop::{Task, TaskResult, TaskType};
 
 /// Event for CtrlTask
 #[derive(Debug)]
-pub enum Event {
+pub(super) enum Event {
   /// Trigger a import module task
   ImportModule(EntryTask),
   /// Stop
@@ -14,7 +14,7 @@ pub enum Event {
 
 /// A background task to make task loop without exit and dynamically add entry tasks.
 #[derive(Debug)]
-pub struct CtrlTask {
+pub(super) struct CtrlTask {
   pub event_receiver: UnboundedReceiver<Event>,
 }
 

@@ -24,7 +24,7 @@ bitflags! {
 }
 
 impl Branch {
-  pub fn get_definition(&self, local_module_var: &Option<String>) -> String {
+  pub(crate) fn get_definition(&self, local_module_var: &Option<String>) -> String {
     let name = match local_module_var {
       Some(name) => name,
       None => "XXX",
@@ -64,7 +64,7 @@ impl Branch {
     }
   }
 
-  pub fn get_content(
+  pub(crate) fn get_content(
     &self,
     local_module_var: &Option<String>,
     named_module: &Option<Atom>,

@@ -13,7 +13,7 @@ const INDEXOF_METHOD_NAME: &str = "indexOf";
 const SPLIT_METHOD_NAME: &str = "split";
 // TODO: substr, substring
 
-pub struct InitializeEvaluating;
+pub(crate) struct InitializeEvaluating;
 
 impl JavascriptParserPlugin for InitializeEvaluating {
   fn evaluate_call_expression_member<'a>(

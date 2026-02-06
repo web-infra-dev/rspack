@@ -7,14 +7,14 @@ use super::{FsEvent, FsEventKind, PathManager};
 use crate::EventBatch;
 
 // Scanner will scann the path whether it is exist or not in disk on initialization
-pub struct Scanner {
+pub(crate) struct Scanner {
   path_manager: Arc<PathManager>,
   tx: Option<UnboundedSender<EventBatch>>,
 }
 
 impl Scanner {
   /// Creates a new `Scanner` that will send events to the provided sender when paths are scanned.
-  pub fn new(tx: UnboundedSender<EventBatch>, path_manager: Arc<PathManager>) -> Self {
+  pub(crate) fn new(tx: UnboundedSender<EventBatch>, path_manager: Arc<PathManager>) -> Self {
     Self {
       path_manager,
       tx: Some(tx),
@@ -23,7 +23,7 @@ impl Scanner {
 
   /// Scans the registered paths and sends delete events for any files or directories that no longer exist.
   /// align watchpack action: https://github.com/webpack/watchpack/blob/v2.4.4/lib/DirectoryWatcher.js#L565-L568
-  pub fn scan(&self, start_time: SystemTime) {
+  pub(crate) fn scan(&self, start_time: SystemTime) {
     if let Some(tx) = self.tx.clone() {
       let accessor = self.path_manager.access();
       // only apply for added files
@@ -55,7 +55,7 @@ impl Scanner {
     }
   }
 
-  pub fn close(&mut self) {
+  pub(crate) fn close(&mut self) {
     // Close the scanner by dropping the sender
     self.tx.take();
   }

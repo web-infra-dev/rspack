@@ -50,7 +50,7 @@ pub struct EmbedFederationRuntimePlugin {
 }
 
 impl EmbedFederationRuntimePlugin {
-  pub fn new(experiments: ModuleFederationRuntimeExperimentsOptions) -> Self {
+  pub(crate) fn new(experiments: ModuleFederationRuntimeExperimentsOptions) -> Self {
     Self::new_inner(experiments, Arc::new(Mutex::new(FxHashSet::default())))
   }
 }

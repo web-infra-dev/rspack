@@ -39,7 +39,7 @@ pub struct ProvideOptions {
 }
 
 #[derive(Debug, Clone)]
-pub struct VersionedProvideOptions {
+pub(crate) struct VersionedProvideOptions {
   pub share_key: String,
   pub share_scope: String,
   pub version: ProvideVersion,

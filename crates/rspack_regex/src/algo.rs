@@ -5,8 +5,8 @@ use regress::Match;
 use rspack_error::{Error, error};
 
 #[derive(Clone)]
-pub struct HashRegressRegex {
-  pub regex: regress::Regex,
+pub(crate) struct HashRegressRegex {
+  regex: regress::Regex,
   expr: String,
   flags: String,
 }
@@ -44,7 +44,7 @@ impl HashRegressRegex {
 }
 
 #[derive(Clone, Debug, Hash)]
-pub enum Algo {
+pub(crate) enum Algo {
   /// Regress is considered having the same behaviors as RegExp in JS.
   /// But Regress has poor performance. To improve performance of regex matching,
   /// we would try to use some fast algo to do matching, when we detect some special pattern.

@@ -1,1 +1,1 @@
-pub mod js_string_ext;
+pub(crate) mod js_string_ext;

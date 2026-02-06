@@ -16,7 +16,7 @@ use crate::{
 };
 
 #[derive(Debug)]
-pub struct FactorizeTask {
+pub(crate) struct FactorizeTask {
   pub compiler_id: CompilerId,
   pub compilation_id: CompilationId,
   pub module_factory: Arc<dyn ModuleFactory>,
@@ -133,7 +133,7 @@ impl Task<TaskContext> for FactorizeTask {
 }
 
 #[derive(Debug)]
-pub struct FactorizeResultTask {
+pub(crate) struct FactorizeResultTask {
   //  pub dependency: DependencyId,
   pub original_module_identifier: Option<ModuleIdentifier>,
   /// Result will be available if [crate::ModuleFactory::create] returns `Ok`.

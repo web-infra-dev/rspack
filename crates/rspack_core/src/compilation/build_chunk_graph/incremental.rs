@@ -16,7 +16,7 @@ use crate::{
 };
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
-pub enum ChunkReCreation {
+pub(crate) enum ChunkReCreation {
   Entry {
     name: String,
     depend_on: Option<Vec<String>>,
@@ -25,7 +25,7 @@ pub enum ChunkReCreation {
 }
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
-pub struct NormalChunkRecreation {
+pub(crate) struct NormalChunkRecreation {
   pub block: AsyncDependenciesBlockIdentifier,
   module: ModuleIdentifier,
   pub cgi: CgiUkey,
@@ -33,7 +33,11 @@ pub struct NormalChunkRecreation {
 }
 
 impl ChunkReCreation {
-  pub fn rebuild(self, splitter: &mut CodeSplitter, compilation: &mut Compilation) -> Result<()> {
+  pub(crate) fn rebuild(
+    self,
+    splitter: &mut CodeSplitter,
+    compilation: &mut Compilation,
+  ) -> Result<()> {
     match self {
       ChunkReCreation::Entry {
         name: entry,
@@ -391,7 +395,11 @@ impl CodeSplitter {
     Ok(())
   }
 
-  pub fn recover_from_cache(&mut self, cgi_ukey: CgiUkey, compilation: &mut Compilation) -> bool {
+  pub(crate) fn recover_from_cache(
+    &mut self,
+    cgi_ukey: CgiUkey,
+    compilation: &mut Compilation,
+  ) -> bool {
     if !compilation
       .incremental
       .mutations_readable(IncrementalPasses::BUILD_CHUNK_GRAPH)
@@ -492,7 +500,7 @@ impl CodeSplitter {
   }
 
   #[instrument(skip_all)]
-  pub fn update_with_compilation(&mut self, compilation: &mut Compilation) -> Result<()> {
+  pub(crate) fn update_with_compilation(&mut self, compilation: &mut Compilation) -> Result<()> {
     // TODO: heuristic incremental update is temporarily disabled
     // Original code:
     // let enable_incremental = compilation
@@ -745,7 +753,7 @@ impl CodeSplitter {
     Ok(())
   }
 
-  pub fn update_cache(&mut self, compilation: &Compilation) {
+  pub(crate) fn update_cache(&mut self, compilation: &Compilation) {
     let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
 
     self.chunk_caches.clear();
@@ -803,7 +811,7 @@ impl CodeSplitter {
     }
   }
 
-  pub fn hit_cache(
+  pub(crate) fn hit_cache(
     &self,
     cache: &ChunkCreateData,
     runtime: &RuntimeSpec,
@@ -816,7 +824,7 @@ impl CodeSplitter {
       && is_runtime_equal(runtime, &cache.runtime)
   }
 
-  pub fn available_modules_affected(
+  pub(crate) fn available_modules_affected(
     &self,
     cache: &ChunkCreateData,
     new_available_modules: Arc<BigUint>,
@@ -864,7 +872,7 @@ struct CacheResult {
 }
 
 #[derive(Debug, Clone)]
-pub struct ChunkCreateData {
+pub(crate) struct ChunkCreateData {
   // input
   available_modules: Arc<BigUint>,
   options: Option<GroupOptions>,

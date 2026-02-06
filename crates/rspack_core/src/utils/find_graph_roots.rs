@@ -26,7 +26,7 @@ impl<T: Hash + Eq + Copy> ItemUkey for CycleUkey<T> {
 }
 
 impl<T: Hash + Eq + Copy> CycleUkey<T> {
-  pub fn new() -> Self {
+  pub(crate) fn new() -> Self {
     Self(
       NEXT_CYCLE_UKEY
         .fetch_add(1, std::sync::atomic::Ordering::Relaxed)
@@ -63,7 +63,7 @@ static NEXT_NODE_UKEY: AtomicU32 = AtomicU32::new(0);
 struct NodeUkey<T: Hash + Eq + Copy>(Ukey, std::marker::PhantomData<Node<T>>);
 
 impl<T: Hash + Eq + Copy> NodeUkey<T> {
-  pub fn new() -> Self {
+  pub(crate) fn new() -> Self {
     Self(
       NEXT_NODE_UKEY
         .fetch_add(1, std::sync::atomic::Ordering::Relaxed)

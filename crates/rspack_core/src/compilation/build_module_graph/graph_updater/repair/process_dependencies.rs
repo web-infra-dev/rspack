@@ -9,7 +9,7 @@ use crate::{
 };
 
 #[derive(Debug)]
-pub struct ProcessDependenciesTask {
+pub(crate) struct ProcessDependenciesTask {
   pub original_module_identifier: ModuleIdentifier,
   pub dependencies: Vec<DependencyId>,
   pub from_unlazy: bool,

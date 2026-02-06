@@ -10,7 +10,7 @@ use super::delegated_module::DelegatedModule;
 use crate::DllManifestContent;
 
 #[derive(Debug)]
-pub struct DelegatedPluginOptions {
+pub(crate) struct DelegatedPluginOptions {
   pub source: String,
 
   pub context: Option<Context>,
@@ -33,7 +33,7 @@ pub struct DelegatedPlugin {
 }
 
 impl DelegatedPlugin {
-  pub fn new(options: DelegatedPluginOptions) -> Self {
+  pub(crate) fn new(options: DelegatedPluginOptions) -> Self {
     Self::new_inner(options)
   }
 }

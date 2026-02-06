@@ -27,7 +27,7 @@ enum FileType {
 }
 
 impl FileType {
-  pub fn new_dir() -> FileType {
+  pub(crate) fn new_dir() -> FileType {
     let now = current_time();
     FileType::Dir(FileMetadata {
       is_file: false,
@@ -40,7 +40,7 @@ impl FileType {
     })
   }
 
-  pub fn new_file(content: Vec<u8>) -> FileType {
+  pub(crate) fn new_file(content: Vec<u8>) -> FileType {
     let now = current_time();
     FileType::File {
       metadata: FileMetadata {
@@ -56,7 +56,7 @@ impl FileType {
     }
   }
 
-  pub fn metadata(&self) -> &FileMetadata {
+  pub(crate) fn metadata(&self) -> &FileMetadata {
     match self {
       Self::Dir(metadata) => metadata,
       Self::File { metadata, .. } => metadata,

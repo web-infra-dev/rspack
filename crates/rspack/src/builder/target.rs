@@ -463,7 +463,7 @@ fn get_target_properties(target: &str, context: &Context) -> TargetProperties {
   panic!("Unknown target {target}");
 }
 
-pub fn get_targets_properties(targets: &[String], context: &Context) -> TargetProperties {
+pub(super) fn get_targets_properties(targets: &[String], context: &Context) -> TargetProperties {
   merge_target_properties(
     &targets
       .iter()

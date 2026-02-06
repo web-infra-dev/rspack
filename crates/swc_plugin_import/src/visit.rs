@@ -5,10 +5,10 @@ use swc_core::ecma::{
 };
 
 #[derive(Default)]
-pub struct IdentComponent {
-  pub ident_set: HashSet<Id>,
-  pub type_ident_set: HashSet<Id>,
-  pub in_ts_type_ref: bool,
+pub(crate) struct IdentComponent {
+  pub(crate) ident_set: HashSet<Id>,
+  pub(crate) type_ident_set: HashSet<Id>,
+  pub(crate) in_ts_type_ref: bool,
 }
 
 ///

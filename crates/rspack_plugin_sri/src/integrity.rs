@@ -26,7 +26,7 @@ impl TryFrom<String> for SubresourceIntegrityHashFunction {
   }
 }
 
-pub fn compute_integrity(
+pub(crate) fn compute_integrity(
   hash_func_names: &Vec<SubresourceIntegrityHashFunction>,
   source: &str,
 ) -> String {

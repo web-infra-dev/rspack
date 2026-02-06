@@ -28,7 +28,7 @@ enum SideEffects {
 }
 
 impl SideEffects {
-  pub fn from_description(description: &serde_json::Value) -> Option<Self> {
+  pub(crate) fn from_description(description: &serde_json::Value) -> Option<Self> {
     description.get("sideEffects").and_then(|value| {
       if let Some(b) = value.as_bool() {
         Some(SideEffects::Bool(b))

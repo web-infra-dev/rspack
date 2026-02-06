@@ -18,7 +18,7 @@ use crate::{
   visitors::{JavascriptParser, Statement},
 };
 
-pub struct RequireEnsureDependenciesBlockParserPlugin;
+pub(crate) struct RequireEnsureDependenciesBlockParserPlugin;
 
 impl JavascriptParserPlugin for RequireEnsureDependenciesBlockParserPlugin {
   fn evaluate_typeof<'a>(

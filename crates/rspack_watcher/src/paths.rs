@@ -56,12 +56,12 @@ impl<'a> PathAccessor<'a> {
   }
 
   /// Returns references to the sets of files, including added and removed files.
-  pub fn files(&self) -> (&'a ArcPathDashSet, &'a ArcPathDashSet, &'a ArcPathDashSet) {
+  pub(crate) fn files(&self) -> (&'a ArcPathDashSet, &'a ArcPathDashSet, &'a ArcPathDashSet) {
     (&self.files.all, &self.files.added, &self.files.removed)
   }
 
   /// Returns references to the set of directories, including added and removed directories.
-  pub fn directories(&self) -> (&'a ArcPathDashSet, &'a ArcPathDashSet, &'a ArcPathDashSet) {
+  pub(crate) fn directories(&self) -> (&'a ArcPathDashSet, &'a ArcPathDashSet, &'a ArcPathDashSet) {
     (
       &self.directories.all,
       &self.directories.added,
@@ -70,7 +70,7 @@ impl<'a> PathAccessor<'a> {
   }
 
   /// Returns references to the set of missing paths, including added and removed missing paths.
-  pub fn missing(&self) -> (&'a ArcPathDashSet, &'a ArcPathDashSet, &'a ArcPathDashSet) {
+  pub(crate) fn missing(&self) -> (&'a ArcPathDashSet, &'a ArcPathDashSet, &'a ArcPathDashSet) {
     (
       &self.missing.all,
       &self.missing.added,
@@ -79,7 +79,7 @@ impl<'a> PathAccessor<'a> {
   }
 
   /// Returns an iterator that combines all files, directories, and missing paths into a single sequence.
-  pub fn all(&self) -> impl Iterator<Item = ArcPath> + '_ {
+  pub(crate) fn all(&self) -> impl Iterator<Item = ArcPath> + '_ {
     All::new(&self.files.all, &self.directories.all, &self.missing.all)
   }
 }
@@ -190,7 +190,7 @@ pub(crate) struct PathManager {
 
 impl PathManager {
   /// Create a new `PathManager` with an optional ignored paths filter.
-  pub fn new(ignored: FsWatcherIgnored) -> Self {
+  pub(crate) fn new(ignored: FsWatcherIgnored) -> Self {
     Self {
       files: PathTracker::default(),
       directories: PathTracker::default(),
@@ -200,14 +200,14 @@ impl PathManager {
   }
 
   /// Reset the state of the `PathManager`, clearing all tracked paths.
-  pub fn reset(&self) {
+  pub(crate) fn reset(&self) {
     self.files.reset();
     self.directories.reset();
     self.missing.reset();
   }
 
   /// Update the paths, directories, and missing paths in the `PathManager`.
-  pub fn update(
+  pub(crate) fn update(
     &self,
     files: (impl Iterator<Item = ArcPath>, impl Iterator<Item = ArcPath>),
     directories: (impl Iterator<Item = ArcPath>, impl Iterator<Item = ArcPath>),
@@ -221,7 +221,7 @@ impl PathManager {
   }
 
   /// Create a new `PathAccessor` to access the current state of paths, directories, and missing paths.
-  pub fn access(&self) -> PathAccessor<'_> {
+  pub(crate) fn access(&self) -> PathAccessor<'_> {
     PathAccessor::new(self)
   }
 }

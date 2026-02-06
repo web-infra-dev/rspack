@@ -12,13 +12,13 @@ use crate::{dependency::ProvideDependency, visitors::JavascriptParser};
 const SOURCE_DOT: &str = r#"."#;
 const MODULE_DOT: &str = r#"_dot_"#;
 
-pub struct ProvideParserPlugin {
+pub(super) struct ProvideParserPlugin {
   provide: Arc<ProvideValue>,
   names: Arc<HashSet<String>>,
 }
 
 impl ProvideParserPlugin {
-  pub fn new(provide: Arc<ProvideValue>, names: Arc<HashSet<String>>) -> Self {
+  pub(super) fn new(provide: Arc<ProvideValue>, names: Arc<HashSet<String>>) -> Self {
     Self { provide, names }
   }
 

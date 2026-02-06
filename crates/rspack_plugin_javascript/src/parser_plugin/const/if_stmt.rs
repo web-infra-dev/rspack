@@ -137,7 +137,7 @@ fn get_hoisted_declarations<'a>(
   declarations
 }
 
-pub fn statement_if(scanner: &mut JavascriptParser, stmt: &IfStmt) -> Option<bool> {
+pub(super) fn statement_if(scanner: &mut JavascriptParser, stmt: &IfStmt) -> Option<bool> {
   let param = scanner.evaluate_expression(&stmt.test);
   let boolean = param.as_bool()?;
   if !param.could_have_side_effects() {

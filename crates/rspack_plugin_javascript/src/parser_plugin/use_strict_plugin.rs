@@ -4,7 +4,7 @@ use swc_core::atoms::wtf8::Wtf8;
 use super::JavascriptParserPlugin;
 use crate::visitors::JavascriptParser;
 
-pub struct UseStrictPlugin;
+pub(crate) struct UseStrictPlugin;
 
 impl JavascriptParserPlugin for UseStrictPlugin {
   fn program(

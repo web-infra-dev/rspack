@@ -2,7 +2,8 @@ use std::sync::Arc;
 
 mod error;
 use error::FsResultToStorageFsResult;
-pub use error::{BatchFSError, BatchFSResult, FSError, FSOperation, FSResult};
+pub(crate) use error::{BatchFSError, BatchFSResult};
+pub use error::{FSError, FSOperation, FSResult};
 use rspack_fs::{FileMetadata, IntermediateFileSystem, ReadStream, WriteStream};
 use rspack_paths::{Utf8Path, Utf8PathBuf};
 use rustc_hash::FxHashSet as HashSet;

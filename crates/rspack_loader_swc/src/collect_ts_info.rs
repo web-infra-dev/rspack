@@ -11,7 +11,7 @@ use swc_core::{
 
 use crate::options::{CollectTypeScriptInfoOptions, CollectingEnumKind};
 
-pub fn collect_typescript_info(
+pub(crate) fn collect_typescript_info(
   program: &Program,
   unresolved_ctxt: SyntaxContext,
   options: &CollectTypeScriptInfoOptions,

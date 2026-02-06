@@ -5,7 +5,7 @@ use swc_core::ecma::{
 
 /// A swc visitor to collect import/require
 #[derive(Debug, Default)]
-pub struct DependencyVisitor {
+pub(super) struct DependencyVisitor {
   pub requests: Vec<String>,
 }
 

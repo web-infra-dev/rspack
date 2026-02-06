@@ -23,7 +23,7 @@ fn transform_like_babel_plugin_import(s: &str, sym: &str, f: &mut fmt::Formatter
   Ok(())
 }
 
-pub struct AsLegacyKebabCase<T: AsRef<str>>(pub T);
+struct AsLegacyKebabCase<T: AsRef<str>>(pub T);
 
 impl<T: AsRef<str>> fmt::Display for AsLegacyKebabCase<T> {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -31,7 +31,7 @@ impl<T: AsRef<str>> fmt::Display for AsLegacyKebabCase<T> {
   }
 }
 
-pub struct AsLegacySnakeCase<T: AsRef<str>>(pub T);
+struct AsLegacySnakeCase<T: AsRef<str>>(pub T);
 
 impl<T: AsRef<str>> fmt::Display for AsLegacySnakeCase<T> {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -48,7 +48,7 @@ impl<T: AsRef<str>> fmt::Display for AsLegacySnakeCase<T> {
 // );
 // ```
 // it won't be `impl` for `str` as it's not strict name convention
-pub fn identifier_to_legacy_kebab_case(s: &str) -> String {
+pub(crate) fn identifier_to_legacy_kebab_case(s: &str) -> String {
   AsLegacyKebabCase(s).to_string()
 }
 
@@ -61,7 +61,7 @@ pub fn identifier_to_legacy_kebab_case(s: &str) -> String {
 // );
 // ```
 // it won't be `impl` for `str` as it's not strict name convention
-pub fn identifier_to_legacy_snake_case(s: &str) -> String {
+pub(crate) fn identifier_to_legacy_snake_case(s: &str) -> String {
   AsLegacySnakeCase(s).to_string()
 }
 

@@ -11,7 +11,7 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use crate::{debug_info::DebugInfo, utils::ensure_iter_equal};
 
-pub fn find_relative_cache_path(root_path: &Utf8PathBuf) -> HashSet<String> {
+pub(crate) fn find_relative_cache_path(root_path: &Utf8PathBuf) -> HashSet<String> {
   let fs = NativeFileSystem::new(false);
   let mut relative_paths = HashSet::default();
   let mut queue = VecDeque::new();
@@ -42,7 +42,7 @@ pub fn find_relative_cache_path(root_path: &Utf8PathBuf) -> HashSet<String> {
 
 /// Load all version storages from a directory path
 /// Returns a HashMap where key is version name and value is Storage
-pub fn load_storages_from_path(path: &Utf8PathBuf) -> HashMap<String, Arc<dyn Storage>> {
+pub(crate) fn load_storages_from_path(path: &Utf8PathBuf) -> HashMap<String, Arc<dyn Storage>> {
   let fs = Arc::new(NativeFileSystem::new(false));
   let mut storages = HashMap::default();
 

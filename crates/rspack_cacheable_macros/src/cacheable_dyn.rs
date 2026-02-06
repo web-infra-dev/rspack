@@ -3,7 +3,7 @@ use quote::quote;
 use syn::{GenericParam, Ident, ItemImpl, ItemTrait, Type, parse_quote, spanned::Spanned};
 
 /// For trait definition: `pub trait Iterator { ... }`
-pub fn impl_trait(mut input: ItemTrait) -> TokenStream {
+pub(crate) fn impl_trait(mut input: ItemTrait) -> TokenStream {
   let trait_ident = &input.ident;
   let trait_vis = &input.vis;
   let generic_params = input.generics.params.iter().map(|p| {
@@ -138,7 +138,7 @@ pub fn impl_trait(mut input: ItemTrait) -> TokenStream {
 
 /// For impl block providing trait or associated items: `impl<A> Trait
 /// for Data<A> { ... }`.
-pub fn impl_impl(mut input: ItemImpl) -> TokenStream {
+pub(crate) fn impl_impl(mut input: ItemImpl) -> TokenStream {
   if input.generics.type_params().next().is_some() {
     // not support for generics
     input.items.push(parse_quote! {
@@ -235,6 +235,6 @@ pub fn impl_impl(mut input: ItemImpl) -> TokenStream {
 }
 
 /// impl cacheable dyn when disable
-pub fn disable_cacheable_dyn(input: TokenStream) -> TokenStream {
+pub(crate) fn disable_cacheable_dyn(input: TokenStream) -> TokenStream {
   input
 }

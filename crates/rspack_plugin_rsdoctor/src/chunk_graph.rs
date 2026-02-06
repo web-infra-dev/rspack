@@ -15,7 +15,7 @@ use crate::{
   RsdoctorEntrypointAssets,
 };
 
-pub fn collect_chunks(
+pub(crate) fn collect_chunks(
   chunks: &HashMap<&ChunkUkey, &Chunk>,
   chunk_graph: &ChunkGraph,
   chunk_group_by_ukey: &ChunkGroupByUkey,
@@ -53,7 +53,7 @@ pub fn collect_chunks(
     .collect::<HashMap<_, _>>()
 }
 
-pub fn collect_chunk_dependencies(
+pub(crate) fn collect_chunk_dependencies(
   chunks: &HashMap<&ChunkUkey, &Chunk>,
   rsd_chunks: &HashMap<ChunkUkey, RsdoctorChunk>,
   chunk_group_by_ukey: &ChunkGroupByUkey,
@@ -106,7 +106,7 @@ pub fn collect_chunk_dependencies(
     .collect::<HashMap<_, _>>()
 }
 
-pub fn collect_entrypoints(
+pub(crate) fn collect_entrypoints(
   entrypoints: &IndexMap<String, ChunkGroupUkey>,
   rsd_chunks: &HashMap<ChunkUkey, RsdoctorChunk>,
   chunk_group_by_ukey: &ChunkGroupByUkey,
@@ -136,7 +136,7 @@ pub fn collect_entrypoints(
     .collect::<HashMap<_, _>>()
 }
 
-pub fn collect_assets(
+pub(crate) fn collect_assets(
   assets: &HashMap<String, CompilationAsset>,
   chunk_by_ukey: &ChunkByUkey,
 ) -> HashMap<String, RsdoctorAsset> {
@@ -176,7 +176,7 @@ pub fn collect_assets(
     .collect::<HashMap<_, _>>()
 }
 
-pub fn collect_chunk_modules(
+pub(crate) fn collect_chunk_modules(
   chunk_by_ukey: &ChunkByUkey,
   module_ukeys: &HashMap<Identifier, RsdoctorChunkUkey>,
   chunk_graph: &ChunkGraph,
@@ -216,7 +216,7 @@ pub fn collect_chunk_modules(
     .collect::<Vec<_>>()
 }
 
-pub fn collect_chunk_assets(
+pub(crate) fn collect_chunk_assets(
   chunk_by_ukey: &ChunkByUkey,
   rsd_assets: &HashMap<String, RsdoctorAsset>,
 ) -> Vec<RsdoctorChunkAssets> {
@@ -234,7 +234,7 @@ pub fn collect_chunk_assets(
     .collect::<Vec<_>>()
 }
 
-pub fn collect_entrypoint_assets(
+pub(crate) fn collect_entrypoint_assets(
   entrypoints: &IndexMap<String, ChunkGroupUkey>,
   rsd_assets: &HashMap<String, RsdoctorAsset>,
   entrypoint_ukey_map: &HashMap<ChunkGroupUkey, RsdoctorEntrypointUkey>,

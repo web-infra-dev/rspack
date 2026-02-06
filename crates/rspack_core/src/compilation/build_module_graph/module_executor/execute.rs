@@ -40,7 +40,7 @@ pub struct ExecuteModuleResult {
   pub id: ExecuteModuleId,
 }
 
-pub type ExecuteResultSender = Sender<(
+pub(super) type ExecuteResultSender = Sender<(
   ExecuteModuleResult,
   CompilationAssets,
   IdentifierSet,
@@ -48,7 +48,7 @@ pub type ExecuteResultSender = Sender<(
 )>;
 
 #[derive(Debug)]
-pub struct ExecuteTask {
+pub(super) struct ExecuteTask {
   pub meta: ImportModuleMeta,
   pub public_path: Option<PublicPath>,
   pub base_uri: Option<String>,
@@ -56,7 +56,7 @@ pub struct ExecuteTask {
 }
 
 impl ExecuteTask {
-  pub fn finish_with_error(self, error: Error) {
+  pub(super) fn finish_with_error(self, error: Error) {
     let id = EXECUTE_MODULE_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
     self
       .result_sender

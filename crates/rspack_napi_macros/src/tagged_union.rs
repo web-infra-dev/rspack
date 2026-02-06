@@ -2,7 +2,7 @@ use proc_macro2::{Ident, Span, TokenStream};
 use quote::quote;
 use syn::{Fields, ItemEnum, Variant};
 
-pub fn expand(tokens: TokenStream) -> TokenStream {
+pub(crate) fn expand(tokens: TokenStream) -> TokenStream {
   let mut item = match syn::parse2::<ItemEnum>(tokens) {
     Ok(v) => v,
     Err(err) => return err.into_compile_error(),

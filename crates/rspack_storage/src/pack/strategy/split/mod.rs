@@ -31,7 +31,7 @@ use crate::{
 };
 
 #[derive(Debug, Clone)]
-pub struct SplitPackStrategy {
+pub(crate) struct SplitPackStrategy {
   pub fs: Arc<dyn FileSystem>,
   pub root: Arc<Utf8PathBuf>,
   pub temp_root: Arc<Utf8PathBuf>,
@@ -40,7 +40,7 @@ pub struct SplitPackStrategy {
 }
 
 impl SplitPackStrategy {
-  pub fn new(
+  pub(crate) fn new(
     root: Utf8PathBuf,
     temp_root: Utf8PathBuf,
     fs: Arc<dyn FileSystem>,
@@ -56,7 +56,7 @@ impl SplitPackStrategy {
     }
   }
 
-  pub async fn get_pack_hash(
+  pub(crate) async fn get_pack_hash(
     &self,
     path: &Utf8Path,
     keys: &PackKeys,

@@ -23,11 +23,11 @@ struct FlagDependencyExportsState<'a> {
 }
 
 impl<'a> FlagDependencyExportsState<'a> {
-  pub fn new(mg: &'a mut ModuleGraph, mg_cache: &'a ModuleGraphCacheArtifact) -> Self {
+  pub(crate) fn new(mg: &'a mut ModuleGraph, mg_cache: &'a ModuleGraphCacheArtifact) -> Self {
     Self { mg, mg_cache }
   }
 
-  pub fn apply(&mut self, modules: IdentifierSet) {
+  pub(crate) fn apply(&mut self, modules: IdentifierSet) {
     // initialize the exports info data and their provided info for all modules
     for module_id in &modules {
       let exports_type_unset = self
@@ -415,7 +415,7 @@ struct ParsedExportSpec<'a> {
 }
 
 impl<'a> ParsedExportSpec<'a> {
-  pub fn new(
+  pub(crate) fn new(
     export_name_or_spec: &'a ExportNameOrSpec,
     global_export_info: &'a DefaultExportInfo,
   ) -> Self {

@@ -97,12 +97,12 @@ fn gen_dynamic_module(
   ctx.push((format!("/src/dynamic-{depth}.js").as_str().into(), code));
   true
 }
-pub fn build_chunk_graph_benchmark(c: &mut Criterion) {
+pub(crate) fn build_chunk_graph_benchmark(c: &mut Criterion) {
   within_compiler_context_for_testing_sync(|| {
     build_chunk_graph_benchmark_inner(c);
   })
 }
-pub fn build_chunk_graph_benchmark_inner(c: &mut Criterion) {
+pub(crate) fn build_chunk_graph_benchmark_inner(c: &mut Criterion) {
   let rt = Builder::new_multi_thread()
     .build()
     .expect("should not fail to build tokio runtime");

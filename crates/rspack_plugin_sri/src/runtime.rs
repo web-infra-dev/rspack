@@ -36,7 +36,7 @@ struct SRIHashVariableRuntimeModule {
 }
 
 impl SRIHashVariableRuntimeModule {
-  pub fn new(
+  pub(crate) fn new(
     runtime_template: &RuntimeTemplate,
     hash_funcs: Vec<SubresourceIntegrityHashFunction>,
   ) -> Self {

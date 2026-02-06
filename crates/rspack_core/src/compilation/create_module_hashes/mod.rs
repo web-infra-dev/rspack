@@ -3,7 +3,7 @@ use async_trait::async_trait;
 use super::*;
 use crate::{cache::Cache, compilation::pass::PassExt, logger::Logger};
 
-pub struct CreateModuleHashesPass;
+pub(super) struct CreateModuleHashesPass;
 
 #[async_trait]
 impl PassExt for CreateModuleHashesPass {

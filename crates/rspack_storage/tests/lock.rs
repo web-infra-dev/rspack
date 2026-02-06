@@ -14,7 +14,7 @@ mod test_storage_lock {
   use rustc_hash::FxHashSet as HashSet;
 
   #[derive(Debug)]
-  pub struct MockFileSystem {
+  pub(crate) struct MockFileSystem {
     pub fs: Arc<dyn FileSystem>,
     pub moved: AtomicUsize,
     pub break_on: usize,
@@ -71,14 +71,14 @@ mod test_storage_lock {
     }
   }
 
-  pub fn get_native_path(p: &str) -> (PathBuf, PathBuf) {
+  pub(crate) fn get_native_path(p: &str) -> (PathBuf, PathBuf) {
     let base = std::env::temp_dir()
       .join("rspack_test/storage/test_storage_lock")
       .join(p);
     (base.join("cache"), base.join("temp"))
   }
 
-  pub fn get_memory_path(p: &str) -> (PathBuf, PathBuf) {
+  pub(crate) fn get_memory_path(p: &str) -> (PathBuf, PathBuf) {
     let base = PathBuf::from("/rspack_test/storage/test_storage_lock/").join(p);
     (base.join("cache"), base.join("temp"))
   }

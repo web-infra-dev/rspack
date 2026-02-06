@@ -5,7 +5,7 @@ use crate::{
   ModuleCodeGenerationContext, cache::Cache, compilation::pass::PassExt, logger::Logger,
 };
 
-pub struct CodeGenerationPass;
+pub(super) struct CodeGenerationPass;
 
 #[async_trait]
 impl PassExt for CodeGenerationPass {

@@ -11,7 +11,7 @@ use crate::{dependency::ExportInfoDependency, visitors::JavascriptParser};
 
 const EXPORTS_INFO: &str = "__webpack_exports_info__";
 
-pub struct ExportsInfoApiPlugin;
+pub(crate) struct ExportsInfoApiPlugin;
 
 impl JavascriptParserPlugin for ExportsInfoApiPlugin {
   fn member_chain(

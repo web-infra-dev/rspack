@@ -67,7 +67,7 @@ fn raw_checker(browsers: &[String], versions: &HashMap<&str, VersionRequirement>
 }
 
 /// Resolves target properties based on the provided browser list.
-pub fn resolve(browsers: Vec<String>) -> TargetProperties {
+pub(super) fn resolve(browsers: Vec<String>) -> TargetProperties {
   let any_node = browsers.iter().any(|b| b.starts_with("node "));
   let any_browser = browsers.iter().any(|b| !b.starts_with("node "));
 

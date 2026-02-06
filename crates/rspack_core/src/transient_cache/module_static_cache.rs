@@ -52,24 +52,24 @@ pub(super) mod readable_identifier {
   use crate::ModuleIdentifier;
 
   // When using compilation context, the context string should be `None`
-  pub type ReadableIdentifierCacheKey = (ModuleIdentifier, Option<String>);
+  pub(crate) type ReadableIdentifierCacheKey = (ModuleIdentifier, Option<String>);
 
   #[derive(Debug, Default)]
-  pub struct ReadableIdentifierCache {
+  pub(crate) struct ReadableIdentifierCache {
     cache: RwLock<HashMap<ReadableIdentifierCacheKey, String>>,
   }
 
   impl ReadableIdentifierCache {
-    pub fn clear(&self) {
+    pub(crate) fn clear(&self) {
       self.cache.write().expect("should get lock").clear();
     }
 
-    pub fn get(&self, key: &ReadableIdentifierCacheKey) -> Option<String> {
+    pub(crate) fn get(&self, key: &ReadableIdentifierCacheKey) -> Option<String> {
       let inner = self.cache.read().expect("should get lock");
       inner.get(key).cloned()
     }
 
-    pub fn set(&self, key: ReadableIdentifierCacheKey, value: String) {
+    pub(crate) fn set(&self, key: ReadableIdentifierCacheKey, value: String) {
       self
         .cache
         .write()

@@ -2,7 +2,7 @@ use rspack_core::ConstDependency;
 use rspack_plugin_javascript::{JavascriptParserPlugin, visitors::JavascriptParser};
 use swc_core::ecma::ast::Program;
 
-pub struct HashbangParserPlugin;
+pub(crate) struct HashbangParserPlugin;
 
 impl JavascriptParserPlugin for HashbangParserPlugin {
   fn program(&self, parser: &mut JavascriptParser, ast: &Program) -> Option<bool> {

@@ -17,7 +17,7 @@ pub(crate) struct IndexedCacheGroup<'a> {
 }
 
 impl<'a> IndexedCacheGroup<'a> {
-  pub fn compare_by_priority(&self, other: &Self) -> Ordering {
+  pub(crate) fn compare_by_priority(&self, other: &Self) -> Ordering {
     self
       .cache_group
       .priority
@@ -25,7 +25,7 @@ impl<'a> IndexedCacheGroup<'a> {
       .unwrap_or(Ordering::Equal)
   }
 
-  pub fn compare_by_index(&self, other: &Self) -> Ordering {
+  pub(crate) fn compare_by_index(&self, other: &Self) -> Ordering {
     self.cache_group_index.cmp(&other.cache_group_index)
   }
 }
@@ -60,7 +60,7 @@ pub(crate) struct ModuleGroup {
 }
 
 impl ModuleGroup {
-  pub fn new(
+  pub(crate) fn new(
     chunk_name: Option<String>,
     cache_group_index: usize,
     cache_group: &CacheGroup,
@@ -79,7 +79,7 @@ impl ModuleGroup {
     }
   }
 
-  pub fn get_source_types_modules(
+  pub(crate) fn get_source_types_modules(
     &self,
     ty: &[SourceType],
     module_sizes: &ModuleSizes,
@@ -108,30 +108,30 @@ impl ModuleGroup {
     }
   }
 
-  pub fn add_module(&mut self, module: ModuleIdentifier) {
+  pub(crate) fn add_module(&mut self, module: ModuleIdentifier) {
     if self.modules.insert(module) {
       self.added.push(module);
     }
   }
 
-  pub fn remove_module(&mut self, module: ModuleIdentifier) {
+  pub(crate) fn remove_module(&mut self, module: ModuleIdentifier) {
     if self.modules.remove(&module) {
       self.removed.push(module);
     }
   }
 
-  pub fn get_cache_group<'a>(&self, cache_groups: &'a [CacheGroup]) -> &'a CacheGroup {
+  pub(crate) fn get_cache_group<'a>(&self, cache_groups: &'a [CacheGroup]) -> &'a CacheGroup {
     &cache_groups[self.cache_group_index]
   }
 
-  pub fn get_total_size(&self) -> f64 {
+  pub(crate) fn get_total_size(&self) -> f64 {
     if !self.added.is_empty() || !self.removed.is_empty() {
       unreachable!("should update sizes before get total size");
     }
     self.total_size
   }
 
-  pub fn get_sizes(&mut self, module_sizes: &ModuleSizes) -> SplitChunkSizes {
+  pub(crate) fn get_sizes(&mut self, module_sizes: &ModuleSizes) -> SplitChunkSizes {
     if !self.added.is_empty() {
       let added = std::mem::take(&mut self.added);
       for module in added {

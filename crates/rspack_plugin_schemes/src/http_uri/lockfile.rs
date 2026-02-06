@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 use tokio::sync::Mutex;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct LockfileEntry {
+pub(super) struct LockfileEntry {
   pub resolved: String,
   pub integrity: String,
   pub content_type: String,
@@ -21,20 +21,20 @@ pub struct LockfileEntry {
 }
 
 #[derive(Debug, Clone)]
-pub struct Lockfile {
+pub(super) struct Lockfile {
   version: u8,
   entries: HashMap<String, LockfileEntry>,
 }
 
 impl Lockfile {
-  pub fn new() -> Self {
+  pub(super) fn new() -> Self {
     Lockfile {
       version: 1,
       entries: HashMap::new(),
     }
   }
 
-  pub fn parse(content: &str) -> Result<Self, String> {
+  pub(super) fn parse(content: &str) -> Result<Self, String> {
     let data: serde_json::Value = serde_json::from_str(content).map_err(|e| e.to_string())?;
 
     let version = data.get("version").and_then(|v| v.as_u64()).unwrap_or(1);
@@ -82,7 +82,7 @@ impl Lockfile {
     Ok(lockfile)
   }
 
-  pub fn to_json_string(&self) -> Result<String, serde_json::Error> {
+  pub(super) fn to_json_string(&self) -> Result<String, serde_json::Error> {
     let json = serde_json::json!({
         "version": self.version,
         "entries": self.entries
@@ -90,18 +90,18 @@ impl Lockfile {
     serde_json::to_string_pretty(&json)
   }
 
-  pub fn get_entry(&self, resource: &str) -> Option<&LockfileEntry> {
+  pub(super) fn get_entry(&self, resource: &str) -> Option<&LockfileEntry> {
     self.entries.get(resource)
   }
 
-  pub fn entries_mut(&mut self) -> &mut HashMap<String, LockfileEntry> {
+  pub(super) fn entries_mut(&mut self) -> &mut HashMap<String, LockfileEntry> {
     &mut self.entries
   }
 }
 
 #[async_trait]
 #[allow(dead_code)]
-pub trait LockfileAsync {
+pub(super) trait LockfileAsync {
   async fn read_from_file_async<
     P: AsRef<Path> + Send,
     F: WritableFileSystem + Send + Sync + ?Sized,
@@ -158,14 +158,14 @@ impl LockfileAsync for Lockfile {
 }
 
 #[derive(Debug)]
-pub struct LockfileCache {
+pub(super) struct LockfileCache {
   lockfile: Arc<Mutex<Lockfile>>,
   lockfile_path: Option<PathBuf>,
   filesystem: Arc<dyn WritableFileSystem + Send + Sync>,
 }
 
 impl LockfileCache {
-  pub fn new(
+  pub(super) fn new(
     lockfile_path: Option<PathBuf>,
     filesystem: Arc<dyn WritableFileSystem + Send + Sync>,
   ) -> Self {
@@ -176,7 +176,7 @@ impl LockfileCache {
     }
   }
 
-  pub async fn get_lockfile(&self) -> io::Result<Arc<Mutex<Lockfile>>> {
+  pub(super) async fn get_lockfile(&self) -> io::Result<Arc<Mutex<Lockfile>>> {
     let mut lockfile = self.lockfile.lock().await;
 
     if let Some(lockfile_path) = &self.lockfile_path {
@@ -196,7 +196,7 @@ impl LockfileCache {
     Ok(self.lockfile.clone())
   }
 
-  pub async fn save_lockfile(&self) -> io::Result<()> {
+  pub(super) async fn save_lockfile(&self) -> io::Result<()> {
     let lockfile = self.lockfile.lock().await;
 
     if let Some(lockfile_path) = &self.lockfile_path {

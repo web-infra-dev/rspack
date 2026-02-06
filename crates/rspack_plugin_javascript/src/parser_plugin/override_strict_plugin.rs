@@ -5,7 +5,7 @@ use super::JavascriptParserPlugin;
 use crate::visitors::JavascriptParser;
 
 #[derive(Default)]
-pub struct OverrideStrictPlugin;
+pub(crate) struct OverrideStrictPlugin;
 
 impl JavascriptParserPlugin for OverrideStrictPlugin {
   fn program(&self, parser: &mut JavascriptParser, _: &Program) -> Option<bool> {

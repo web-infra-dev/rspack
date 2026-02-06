@@ -24,19 +24,19 @@ use rustc_hash::FxHashSet as HashSet;
 
 use crate::parser_and_generator::CssExport;
 
-pub const AUTO_PUBLIC_PATH_PLACEHOLDER: &str = "__RSPACK_PLUGIN_CSS_AUTO_PUBLIC_PATH__";
-pub static LEADING_DIGIT_REGEX: LazyLock<Regex> =
+pub(crate) const AUTO_PUBLIC_PATH_PLACEHOLDER: &str = "__RSPACK_PLUGIN_CSS_AUTO_PUBLIC_PATH__";
+pub(crate) static LEADING_DIGIT_REGEX: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"^((-?[0-9])|--)").expect("Invalid regexp"));
 
 #[derive(Debug, Clone)]
-pub struct LocalIdentOptions<'a> {
+pub(crate) struct LocalIdentOptions<'a> {
   relative_resource: String,
   local_name_ident: &'a LocalIdentName,
   compiler_options: &'a CompilerOptions,
 }
 
 impl<'a> LocalIdentOptions<'a> {
-  pub fn new(
+  pub(crate) fn new(
     resource_data: &ResourceData,
     local_name_ident: &'a LocalIdentName,
     compiler_options: &'a CompilerOptions,
@@ -50,7 +50,7 @@ impl<'a> LocalIdentOptions<'a> {
     }
   }
 
-  pub async fn get_local_ident(&self, local: &str) -> Result<String> {
+  pub(crate) async fn get_local_ident(&self, local: &str) -> Result<String> {
     let output = &self.compiler_options.output;
     let hash = {
       let mut hasher = RspackHash::with_salt(&output.hash_function, &output.hash_salt);
@@ -104,7 +104,10 @@ struct LocalIdentNameRenderOptions<'a> {
 }
 
 impl LocalIdentNameRenderOptions<'_> {
-  pub async fn render_local_ident_name(self, local_ident_name: &LocalIdentName) -> Result<String> {
+  pub(crate) async fn render_local_ident_name(
+    self,
+    local_ident_name: &LocalIdentName,
+  ) -> Result<String> {
     let raw = local_ident_name
       .template
       .render(self.path_data, None)
@@ -123,7 +126,7 @@ impl LocalIdentNameRenderOptions<'_> {
 static UNESCAPE_CSS_IDENT_REGEX: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"([^a-zA-Z0-9_\u0081-\uffff-])").expect("invalid regex"));
 
-pub fn escape_css(s: &str) -> Cow<'_, str> {
+pub(crate) fn escape_css(s: &str) -> Cow<'_, str> {
   UNESCAPE_CSS_IDENT_REGEX.replace_all(s, |s: &Captures| format!("\\{}", &s[0]))
 }
 
@@ -145,7 +148,7 @@ pub(crate) fn export_locals_convention(
 }
 
 #[allow(clippy::too_many_arguments)]
-pub fn css_modules_exports_to_string<'a>(
+pub(crate) fn css_modules_exports_to_string<'a>(
   exports: IndexMap<&'a str, &'a IndexSet<CssExport>>,
   module: &dyn rspack_core::Module,
   compilation: &Compilation,
@@ -182,7 +185,7 @@ if ({module_argument}.hot.data && {module_argument}.hot.data.exports && {module_
   Ok(code)
 }
 
-pub fn stringified_exports<'a>(
+pub(crate) fn stringified_exports<'a>(
   exports: IndexMap<&'a str, &'a IndexSet<CssExport>>,
   compilation: &Compilation,
   runtime_template: &mut ModuleCodegenRuntimeTemplate,
@@ -276,7 +279,7 @@ pub fn stringified_exports<'a>(
   ))
 }
 
-pub fn css_modules_exports_to_concatenate_module_string<'a>(
+pub(crate) fn css_modules_exports_to_concatenate_module_string<'a>(
   exports: IndexMap<&'a str, &'a IndexSet<CssExport>>,
   module: &dyn rspack_core::Module,
   generate_context: &mut GenerateContext,
@@ -397,7 +400,7 @@ static UNESCAPE: LazyLock<Regex> =
 static DATA: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^(?i)data:").expect("Invalid RegExp"));
 
 // `\/foo` in css should be treated as `foo` in js
-pub fn unescape(s: &str) -> Cow<'_, str> {
+pub(crate) fn unescape(s: &str) -> Cow<'_, str> {
   UNESCAPE.replace_all(s.as_ref(), |caps: &Captures| {
     caps
       .get(0)
@@ -425,7 +428,7 @@ static QUOTATION_REGEX: LazyLock<Regex> =
 static APOSTROPHE_REGEX: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r#"[\n'\\]"#).expect("Invalid Regexp"));
 
-pub fn css_escape_string(s: &str) -> String {
+pub(crate) fn css_escape_string(s: &str) -> String {
   let mut count_white_or_bracket = 0;
   let mut count_quotation = 0;
   let mut count_apostrophe = 0;
@@ -454,7 +457,7 @@ pub fn css_escape_string(s: &str) -> String {
   }
 }
 
-pub fn normalize_url(s: &str) -> String {
+pub(crate) fn normalize_url(s: &str) -> String {
   let result = STRING_MULTILINE.replace_all(s, "");
   let result = TRIM_WHITE_SPACES.replace_all(&result, "");
   let result = unescape(&result);
@@ -472,7 +475,7 @@ pub fn normalize_url(s: &str) -> String {
 }
 
 #[allow(clippy::rc_buffer)]
-pub fn css_parsing_traceable_error(
+pub(crate) fn css_parsing_traceable_error(
   source_code: Arc<String>,
   start: css_module_lexer::Pos,
   end: css_module_lexer::Pos,
@@ -493,7 +496,7 @@ pub fn css_parsing_traceable_error(
   error
 }
 
-pub fn replace_module_request_prefix<'s>(
+pub(crate) fn replace_module_request_prefix<'s>(
   specifier: &'s str,
   diagnostics: &mut Vec<Diagnostic>,
   source_code: impl Fn() -> Arc<String>,

@@ -1,5 +1,5 @@
 mod dependency;
 mod module;
 
-pub use dependency::TempDependency;
-pub use module::TempModule;
+pub(super) use dependency::TempDependency;
+pub(super) use module::TempModule;

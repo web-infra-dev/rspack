@@ -5,7 +5,7 @@ use syn::{
   parse::{Parse, ParseStream},
 };
 
-pub struct RegisterPluginInput {
+pub(crate) struct RegisterPluginInput {
   name: LitStr,
   plugin: Expr,
 }
@@ -20,7 +20,7 @@ impl Parse for RegisterPluginInput {
 }
 
 impl RegisterPluginInput {
-  pub fn expand(self) -> TokenStream {
+  pub(crate) fn expand(self) -> TokenStream {
     let RegisterPluginInput { name, plugin } = self;
 
     let plugin_register_ident: Ident =

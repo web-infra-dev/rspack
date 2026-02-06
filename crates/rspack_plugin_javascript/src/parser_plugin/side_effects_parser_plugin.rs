@@ -303,7 +303,7 @@ pub fn is_pure_expression<'a>(
   unresolved_ctxt: SyntaxContext,
   comments: Option<&'a dyn Comments>,
 ) -> bool {
-  pub fn _is_pure_expression<'a>(
+  pub(crate) fn _is_pure_expression<'a>(
     parser: &mut JavascriptParser,
     expr: &'a Expr,
     unresolved_ctxt: SyntaxContext,

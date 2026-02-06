@@ -9,12 +9,12 @@ use crate::{BuildMeta, Module};
 /// If a module rebuild failed, its build meta will be reset.
 /// This toolkit will restore build meta from successful build to keep importing state.
 #[derive(Debug, Default)]
-pub struct FixBuildMeta {
+pub(super) struct FixBuildMeta {
   origin_module_build_meta: IdentifierMap<BuildMeta>,
 }
 
 impl FixBuildMeta {
-  pub fn analyze_force_build_modules(
+  pub(super) fn analyze_force_build_modules(
     &mut self,
     artifact: &BuildModuleGraphArtifact,
     ids: &IdentifierSet,
@@ -30,7 +30,7 @@ impl FixBuildMeta {
     }
   }
 
-  pub fn fix_artifact(self, artifact: &mut BuildModuleGraphArtifact) {
+  pub(super) fn fix_artifact(self, artifact: &mut BuildModuleGraphArtifact) {
     let module_graph = artifact.get_module_graph_mut();
     for (id, build_meta) in self.origin_module_build_meta {
       if let Some(module) = module_graph.module_by_identifier_mut(&id)

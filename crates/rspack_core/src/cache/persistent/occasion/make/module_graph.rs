@@ -35,7 +35,7 @@ struct Node<'a> {
 }
 
 #[tracing::instrument("Cache::Occasion::Make::ModuleGraph::save", skip_all)]
-pub fn save_module_graph(
+pub(super) fn save_module_graph(
   mg: &ModuleGraph,
   module_to_lazy_make: &ModuleToLazyMake,
   removed_modules: &IdentifierSet,
@@ -125,7 +125,7 @@ pub fn save_module_graph(
 }
 
 #[tracing::instrument("Cache::Occasion::Make::ModuleGraph::recovery", skip_all)]
-pub async fn recovery_module_graph(
+pub(super) async fn recovery_module_graph(
   storage: &Arc<dyn Storage>,
   codec: &CacheCodec,
 ) -> Result<(ModuleGraph, ModuleToLazyMake, HashSet<DependencyId>)> {

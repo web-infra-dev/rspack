@@ -10,7 +10,7 @@ use super::{
 
 const HOT_UPDATE_SUFFIX: &str = ".hot-update";
 
-pub fn ensure_configured_remotes(
+pub(super) fn ensure_configured_remotes(
   remote_list: &mut Vec<StatsRemote>,
   remote_alias_map: &std::collections::HashMap<String, RemoteAliasTarget>,
   container_name: &str,
@@ -34,7 +34,10 @@ pub fn ensure_configured_remotes(
   }
 }
 
-pub fn collect_entry_files(compilation: &Compilation, container_name: &str) -> HashSet<String> {
+pub(super) fn collect_entry_files(
+  compilation: &Compilation,
+  container_name: &str,
+) -> HashSet<String> {
   let mut entry_files = HashSet::default();
   for (name, entrypoint_ukey) in &compilation.build_chunk_graph_artifact.entrypoints {
     if name == container_name {
@@ -99,7 +102,7 @@ pub fn collect_entry_files(compilation: &Compilation, container_name: &str) -> H
   entry_files
 }
 
-pub fn filter_assets(
+pub(super) fn filter_assets(
   assets: &mut StatsAssetsGroup,
   entry_files: &HashSet<String>,
   shared_asset_files: &HashSet<String>,
@@ -129,15 +132,15 @@ pub fn filter_assets(
   }
 }
 
-pub fn compose_id_with_separator(container: &str, name: &str) -> String {
+pub(super) fn compose_id_with_separator(container: &str, name: &str) -> String {
   format!("{container}:{name}")
 }
 
-pub fn is_hot_file(file: &str) -> bool {
+pub(super) fn is_hot_file(file: &str) -> bool {
   file.contains(HOT_UPDATE_SUFFIX)
 }
 
-pub fn strip_ext(path: &str) -> String {
+pub(super) fn strip_ext(path: &str) -> String {
   match Path::new(path).extension() {
     Some(_) => path
       .trim_end_matches(
@@ -153,7 +156,7 @@ pub fn strip_ext(path: &str) -> String {
   }
 }
 
-pub fn ensure_shared_entry<'a>(
+pub(super) fn ensure_shared_entry<'a>(
   shared_map: &'a mut HashMap<String, StatsShared>,
   container_name: &str,
   pkg: &str,
@@ -173,7 +176,7 @@ pub fn ensure_shared_entry<'a>(
     })
 }
 
-pub fn record_shared_usage(
+pub(super) fn record_shared_usage(
   shared_usage_links: &mut Vec<(String, String)>,
   pkg: &str,
   module_identifier: &ModuleIdentifier,
@@ -218,7 +221,7 @@ pub fn record_shared_usage(
   }
 }
 
-pub fn parse_provide_shared_identifier(identifier: &str) -> Option<(String, String)> {
+pub(super) fn parse_provide_shared_identifier(identifier: &str) -> Option<(String, String)> {
   let (before_request, _) = identifier.split_once(" = ")?;
   let token = before_request.split_whitespace().last()?;
   // For scoped packages like @scope/pkg@1.0.0, split at the LAST '@'
@@ -226,7 +229,9 @@ pub fn parse_provide_shared_identifier(identifier: &str) -> Option<(String, Stri
   Some((name.to_string(), version.to_string()))
 }
 
-pub fn parse_consume_shared_identifier(identifier: &str) -> Option<(String, Option<String>)> {
+pub(super) fn parse_consume_shared_identifier(
+  identifier: &str,
+) -> Option<(String, Option<String>)> {
   let (_, rest) = identifier.split_once(") ")?;
   let token = rest.split_whitespace().next()?;
   // For scoped packages like @scope/pkg@1.0.0, split at the LAST '@'
@@ -240,7 +245,7 @@ pub fn parse_consume_shared_identifier(identifier: &str) -> Option<(String, Opti
   Some((name.to_string(), required))
 }
 
-pub fn collect_expose_requirements(
+pub(super) fn collect_expose_requirements(
   shared_map: &mut HashMap<String, StatsShared>,
   exposes_map: &mut HashMap<String, StatsExpose>,
   links: Vec<(String, String)>,

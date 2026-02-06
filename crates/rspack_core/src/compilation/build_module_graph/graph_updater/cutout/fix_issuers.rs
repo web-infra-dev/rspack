@@ -106,7 +106,7 @@ impl IssuerHelper {
 
 /// A toolkit for cutout to fix module graph issuers and clean isolated modules.
 #[derive(Debug, Default)]
-pub struct FixIssuers {
+pub(super) struct FixIssuers {
   /// Collect issuer of force_build_module.
   force_build_module_issuers: IdentifierMap<ModuleIssuer>,
   /// Collect the module whose issuer need to be checked for availability.
@@ -119,7 +119,7 @@ impl FixIssuers {
   /// This function will
   /// 1. save the issuer of force_build_module to self.force_build_module_issuers.
   /// 2. add force_build_module and the child module whose issuer is this force_build_module to self.need_check_modules.
-  pub fn analyze_force_build_modules(
+  pub(super) fn analyze_force_build_modules(
     &mut self,
     artifact: &BuildModuleGraphArtifact,
     ids: &IdentifierSet,
@@ -162,7 +162,7 @@ impl FixIssuers {
   ///
   /// If the target module issuer is the same as the current dependency original module,
   /// this function will add the dependency target module to self.need_check_modules
-  pub fn analyze_force_build_dependencies(
+  pub(super) fn analyze_force_build_dependencies(
     &mut self,
     artifact: &BuildModuleGraphArtifact,
     ids: &HashSet<DependencyId>,
@@ -194,7 +194,7 @@ impl FixIssuers {
   }
 
   /// Add module to self.need_check_modules.
-  pub fn add_need_check_module(&mut self, module_identifier: ModuleIdentifier) {
+  pub(super) fn add_need_check_module(&mut self, module_identifier: ModuleIdentifier) {
     self.need_check_modules.insert(module_identifier);
   }
 
@@ -516,7 +516,7 @@ impl FixIssuers {
   }
 
   /// fix artifact module graph issuers
-  pub fn fix_artifact(self, artifact: &mut BuildModuleGraphArtifact) {
+  pub(super) fn fix_artifact(self, artifact: &mut BuildModuleGraphArtifact) {
     let mut need_update_issuer_modules = self.apply_force_build_module_issuer(artifact);
 
     let mut helper = IssuerHelper::default();

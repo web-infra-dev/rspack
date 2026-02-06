@@ -8,7 +8,7 @@ use serde_json::{Value, json};
 
 use crate::visitors::{DestructuringAssignmentProperties, JavascriptParser};
 
-pub fn gen_const_dep(
+pub(super) fn gen_const_dep(
   parser: &JavascriptParser,
   code: Cow<str>,
   for_name: &str,
@@ -48,7 +48,7 @@ pub fn gen_const_dep(
   }
 }
 
-pub fn code_to_string<'a>(
+pub(super) fn code_to_string<'a>(
   code: &'a Value,
   asi_safe: Option<bool>,
   obj_keys: Option<&DestructuringAssignmentProperties>,

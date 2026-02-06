@@ -5,7 +5,7 @@ use crate::{compilation::build_module_graph::BuildModuleGraphArtifact, increment
 ///
 /// Disable cache will clean the corresponding artifact before target step run.
 #[derive(Debug)]
-pub struct DisableCache;
+pub(super) struct DisableCache;
 
 #[async_trait::async_trait]
 impl Cache for DisableCache {

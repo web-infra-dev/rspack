@@ -6,7 +6,7 @@ use rustc_hash::{FxHashMap, FxHasher};
 
 use crate::constants::LAYERS_NAMES;
 
-pub fn track_server_component_changes(
+pub(crate) fn track_server_component_changes(
   compilation: &Compilation,
   prev_server_component_hashes: &mut IdentifierMap<u64>,
 ) -> FxHashMap<String, IdentifierSet> {

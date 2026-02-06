@@ -3,7 +3,7 @@ use rspack_error::Result;
 use super::*;
 use crate::logger::Logger;
 
-pub async fn finish_modules_pass(compilation: &mut Compilation) -> Result<()> {
+pub(super) async fn finish_modules_pass(compilation: &mut Compilation) -> Result<()> {
   let dependencies_diagnostics_artifact = compilation.dependencies_diagnostics_artifact.clone();
   let async_modules_artifact = compilation.async_modules_artifact.clone();
   let diagnostics = compilation

@@ -26,7 +26,7 @@ use crate::{
   },
 };
 
-pub struct ESMExportDependencyParserPlugin;
+pub(crate) struct ESMExportDependencyParserPlugin;
 
 impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
   fn export(&self, parser: &mut JavascriptParser, statement: ExportLocal) -> Option<bool> {

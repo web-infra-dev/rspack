@@ -227,7 +227,7 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
 }
 
 #[derive(Debug, Clone)]
-pub struct CodeGenerationDataConsumeShared {
+pub(crate) struct CodeGenerationDataConsumeShared {
   pub share_scope: String,
   pub share_key: String,
   pub import: Option<String>,

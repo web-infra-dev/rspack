@@ -9,7 +9,7 @@ use crate::{
 };
 
 #[derive(Debug)]
-pub struct AddTask {
+pub(crate) struct AddTask {
   pub original_module_identifier: Option<ModuleIdentifier>,
   pub module: BoxModule,
   pub module_graph_module: Box<ModuleGraphModule>,

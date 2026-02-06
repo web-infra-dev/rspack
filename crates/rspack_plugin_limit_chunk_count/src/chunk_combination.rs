@@ -6,12 +6,12 @@ use rspack_core::ChunkUkey;
 static NEXT_CHUNK_COMBINATION_UKEY: AtomicU32 = AtomicU32::new(0);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct ChunkCombinationUkey(Ukey, std::marker::PhantomData<ChunkCombination>);
+pub(crate) struct ChunkCombinationUkey(Ukey, std::marker::PhantomData<ChunkCombination>);
 
 impl_item_ukey!(ChunkCombinationUkey);
 
 impl ChunkCombinationUkey {
-  pub fn new() -> Self {
+  pub(crate) fn new() -> Self {
     Self(
       NEXT_CHUNK_COMBINATION_UKEY
         .fetch_add(1, std::sync::atomic::Ordering::Relaxed)
@@ -21,7 +21,7 @@ impl ChunkCombinationUkey {
   }
 }
 
-pub struct ChunkCombination {
+pub(crate) struct ChunkCombination {
   pub ukey: ChunkCombinationUkey,
   pub deleted: bool,
   pub size_diff: f64,
@@ -56,14 +56,14 @@ impl Hash for ChunkCombination {
   }
 }
 
-pub struct ChunkCombinationBucket {
+pub(crate) struct ChunkCombinationBucket {
   combinations_by_ukey: Database<ChunkCombination>,
   sorted_combinations: Vec<ChunkCombinationUkey>,
   out_of_date: bool,
 }
 
 impl ChunkCombinationBucket {
-  pub fn new() -> Self {
+  pub(crate) fn new() -> Self {
     Self {
       combinations_by_ukey: Default::default(),
       sorted_combinations: vec![],
@@ -71,11 +71,11 @@ impl ChunkCombinationBucket {
     }
   }
 
-  pub fn get_mut(&mut self, ukey: &ChunkCombinationUkey) -> &mut ChunkCombination {
+  pub(crate) fn get_mut(&mut self, ukey: &ChunkCombinationUkey) -> &mut ChunkCombination {
     self.combinations_by_ukey.expect_get_mut(ukey)
   }
 
-  pub fn add(&mut self, combination: ChunkCombination) {
+  pub(crate) fn add(&mut self, combination: ChunkCombination) {
     self.sorted_combinations.push(combination.ukey);
     self.combinations_by_ukey.add(combination);
     self.out_of_date = true;
@@ -118,19 +118,19 @@ impl ChunkCombinationBucket {
     self.out_of_date = false;
   }
 
-  pub fn pop_first(&mut self) -> Option<ChunkCombinationUkey> {
+  pub(crate) fn pop_first(&mut self) -> Option<ChunkCombinationUkey> {
     if self.out_of_date {
       self.sort_combinations();
     }
     self.sorted_combinations.pop()
   }
 
-  pub fn delete(&mut self, combination: &ChunkCombinationUkey) {
+  pub(crate) fn delete(&mut self, combination: &ChunkCombinationUkey) {
     self.out_of_date = true;
     self.sorted_combinations.retain(|ukey| ukey != combination);
   }
 
-  pub fn update(&mut self) {
+  pub(crate) fn update(&mut self) {
     self.out_of_date = true;
   }
 }

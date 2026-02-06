@@ -12,7 +12,7 @@ use crate::{
 };
 
 #[derive(Debug)]
-pub struct TaskContext {
+pub(crate) struct TaskContext {
   pub compiler_id: CompilerId,
   // compilation info
   pub compilation_id: CompilationId,
@@ -33,7 +33,7 @@ pub struct TaskContext {
 }
 
 impl TaskContext {
-  pub fn new(compilation: &Compilation, artifact: BuildModuleGraphArtifact) -> Self {
+  pub(crate) fn new(compilation: &Compilation, artifact: BuildModuleGraphArtifact) -> Self {
     Self {
       compiler_id: compilation.compiler_id(),
       compilation_id: compilation.id(),
@@ -54,12 +54,12 @@ impl TaskContext {
   }
 
   // TODO use module graph with make artifact
-  pub fn get_module_graph_mut(artifact: &mut BuildModuleGraphArtifact) -> &mut ModuleGraph {
+  pub(crate) fn get_module_graph_mut(artifact: &mut BuildModuleGraphArtifact) -> &mut ModuleGraph {
     artifact.get_module_graph_mut()
   }
 
   // TODO remove it after incremental rebuild cover all stage
-  pub fn transform_to_temp_compilation(&mut self) -> Compilation {
+  pub(crate) fn transform_to_temp_compilation(&mut self) -> Compilation {
     let compiler_context = CURRENT_COMPILER_CONTEXT.get();
     let mut compilation = Compilation::new(
       self.compiler_id,
@@ -87,7 +87,7 @@ impl TaskContext {
     compilation
   }
 
-  pub fn recovery_from_temp_compilation(&mut self, mut compilation: Compilation) {
+  pub(crate) fn recovery_from_temp_compilation(&mut self, mut compilation: Compilation) {
     compilation.swap_build_module_graph_artifact(&mut self.artifact);
   }
 }

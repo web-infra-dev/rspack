@@ -13,7 +13,7 @@ use crate::{
 
 /// A task for generate import module entry.
 #[derive(Debug)]
-pub struct EntryTask {
+pub(super) struct EntryTask {
   pub meta: ImportModuleMeta,
   pub origin_module_context: Option<Context>,
   pub execute_task: ExecuteTask,

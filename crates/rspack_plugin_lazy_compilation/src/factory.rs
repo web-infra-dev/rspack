@@ -13,7 +13,7 @@ pub(crate) struct LazyCompilationDependencyFactory {
 }
 
 impl LazyCompilationDependencyFactory {
-  pub fn new(normal_module_factory: Arc<NormalModuleFactory>) -> Self {
+  pub(crate) fn new(normal_module_factory: Arc<NormalModuleFactory>) -> Self {
     Self {
       normal_module_factory,
     }

@@ -35,7 +35,7 @@ use crate::{
   preserve_modules::preserve_modules, runtime::EsmRegisterModuleRuntimeModule,
 };
 
-pub static RSPACK_ESM_RUNTIME_CHUNK: &str = "RSPACK_ESM_RUNTIME";
+pub(crate) static RSPACK_ESM_RUNTIME_CHUNK: &str = "RSPACK_ESM_RUNTIME";
 
 #[plugin]
 #[derive(Debug, Default)]

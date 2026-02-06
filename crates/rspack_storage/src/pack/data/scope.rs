@@ -57,7 +57,7 @@ impl ScopeMetaState {
   }
 }
 
-pub type ScopePacks = Vec<Vec<Pack>>;
+pub(super) type ScopePacks = Vec<Vec<Pack>>;
 
 #[derive(Debug, Default)]
 pub enum ScopePacksState {

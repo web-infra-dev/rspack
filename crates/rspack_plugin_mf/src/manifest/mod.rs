@@ -11,11 +11,12 @@ use asset::{
   collect_assets_for_module, collect_assets_from_chunk, collect_usage_files_for_module,
   empty_assets_group, module_source_path, normalize_assets_group,
 };
+pub use data::StatsBuildInfo;
+pub(crate) use data::StatsRoot;
 use data::{
   BasicStatsMetaData, ManifestExpose, ManifestRemote, ManifestRoot, ManifestShared,
   RemoteEntryMeta, StatsAssetsGroup, StatsExpose, StatsRemote, StatsShared,
 };
-pub use data::{StatsBuildInfo, StatsRoot};
 pub use options::{
   ManifestExposeOption, ManifestSharedOption, ModuleFederationManifestPluginOptions,
   RemoteAliasTarget,

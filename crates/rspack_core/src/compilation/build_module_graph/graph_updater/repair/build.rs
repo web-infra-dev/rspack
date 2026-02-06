@@ -18,7 +18,7 @@ use crate::{
 };
 
 #[derive(Debug)]
-pub struct BuildTask {
+pub(crate) struct BuildTask {
   pub compiler_id: CompilerId,
   pub compilation_id: CompilationId,
   pub module: BoxModule,

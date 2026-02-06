@@ -14,15 +14,15 @@ use crate::{
   },
 };
 
-pub const INLINABLE_CONST_TAG: &str = "inlinable const";
+pub(super) const INLINABLE_CONST_TAG: &str = "inlinable const";
 
 #[derive(Debug, Clone)]
-pub struct InlinableConstData {
+pub(super) struct InlinableConstData {
   pub value: EvaluatedInlinableValue,
 }
 
 #[derive(Default)]
-pub struct InlineConstPlugin;
+pub(crate) struct InlineConstPlugin;
 
 impl JavascriptParserPlugin for InlineConstPlugin {
   fn program(&self, parser: &mut JavascriptParser, program: &Program) -> Option<bool> {

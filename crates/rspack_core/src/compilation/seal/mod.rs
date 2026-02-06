@@ -3,7 +3,7 @@ use rspack_error::Result;
 
 use crate::{Compilation, compilation::pass::PassExt};
 
-pub struct SealPass;
+pub(super) struct SealPass;
 
 #[async_trait]
 impl PassExt for SealPass {

@@ -2,7 +2,7 @@ use rspack_error::Result;
 
 use crate::{Compilation, SharedPluginDriver, logger::Logger};
 
-pub async fn finish_make_pass(
+pub(super) async fn finish_make_pass(
   compilation: &mut Compilation,
   plugin_driver: SharedPluginDriver,
 ) -> Result<()> {

@@ -3131,7 +3131,7 @@ struct FinalBindingResult {
 }
 
 impl FinalBindingResult {
-  pub fn from_binding(binding: Binding) -> Self {
+  pub(crate) fn from_binding(binding: Binding) -> Self {
     Self {
       binding,
       interop_namespace_object_used: None,
@@ -3142,7 +3142,7 @@ impl FinalBindingResult {
     }
   }
 
-  pub fn get_info_id(&self) -> Identifier {
+  pub(crate) fn get_info_id(&self) -> Identifier {
     match &self.binding {
       Binding::Raw(raw) => raw.info_id,
       Binding::Symbol(symbol) => symbol.info_id,

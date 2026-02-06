@@ -8,7 +8,7 @@ use rspack_error::Result;
 use rspack_util::test::is_hot_test;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
-pub fn get_initial_chunk_ids(
+pub(crate) fn get_initial_chunk_ids(
   chunk: Option<ChunkUkey>,
   compilation: &Compilation,
   filter_fn: impl Fn(&ChunkUkey, &Compilation) -> bool,
@@ -65,7 +65,7 @@ pub fn chunk_has_css(chunk: &ChunkUkey, compilation: &Compilation) -> bool {
     .has_chunk_module_by_source_type(chunk, SourceType::Css, compilation.get_module_graph())
 }
 
-pub async fn get_output_dir(
+pub(crate) async fn get_output_dir(
   chunk: &Chunk,
   compilation: &Compilation,
   enforce_relative: bool,
@@ -116,7 +116,7 @@ pub fn is_enabled_for_chunk(
   chunk_loading == expected
 }
 
-pub fn unquoted_stringify(chunk_id: Option<&ChunkId>, str: &str) -> String {
+pub(crate) fn unquoted_stringify(chunk_id: Option<&ChunkId>, str: &str) -> String {
   if let Some(chunk_id) = chunk_id
     && str.len() >= 5
     && str == chunk_id.as_str()
@@ -127,7 +127,7 @@ pub fn unquoted_stringify(chunk_id: Option<&ChunkId>, str: &str) -> String {
   result[1..result.len() - 1].to_string()
 }
 
-pub fn stringify_dynamic_chunk_map<F>(
+pub(crate) fn stringify_dynamic_chunk_map<F>(
   f: F,
   chunks: &UkeyIndexSet<ChunkUkey>,
   chunk_map: &UkeyIndexMap<ChunkUkey, &Chunk>,
@@ -182,7 +182,7 @@ where
   format!("\" + {content} + \"")
 }
 
-pub fn stringify_static_chunk_map(filename: &String, chunk_ids: &[&str]) -> String {
+pub(crate) fn stringify_static_chunk_map(filename: &String, chunk_ids: &[&str]) -> String {
   let condition = if chunk_ids.len() == 1 {
     format!(
       "chunkId === {}",
@@ -222,7 +222,7 @@ fn stringify_map<T: std::fmt::Display>(map: &HashMap<&str, T>) -> String {
   )
 }
 
-pub fn generate_javascript_hmr_runtime(
+pub(crate) fn generate_javascript_hmr_runtime(
   key: &str,
   method: &str,
   runtime_template: &RuntimeTemplate,

@@ -21,7 +21,7 @@ pub trait DependenciesBlock {
   fn get_dependencies(&self) -> &[DependencyId];
 }
 
-pub fn dependencies_block_update_hash(
+pub(crate) fn dependencies_block_update_hash(
   deps: &[DependencyId],
   blocks: &[AsyncDependenciesBlockIdentifier],
   hasher: &mut dyn std::hash::Hasher,

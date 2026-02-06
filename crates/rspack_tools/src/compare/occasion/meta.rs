@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use rspack_cacheable::{cacheable, from_bytes};
-pub use rspack_core::cache::persistent::occasion::meta::SCOPE;
+pub(crate) use rspack_core::cache::persistent::occasion::meta::SCOPE;
 use rspack_core::cache::persistent::storage::Storage;
 use rspack_error::Result;
 
@@ -15,7 +15,7 @@ struct Meta {
 }
 
 /// Compare meta scope data between two storages
-pub async fn compare(
+pub(crate) async fn compare(
   storage1: Arc<dyn Storage>,
   storage2: Arc<dyn Storage>,
   debug_info: DebugInfo,

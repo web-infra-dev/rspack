@@ -1,7 +1,7 @@
 use rspack_macros::{plugin, plugin_hook};
 
 mod mock_hook {
-  pub trait Series<T, R> {
+  pub(crate) trait Series<T, R> {
     fn run(&self, a: T) -> R;
     fn stage(&self) -> i32 {
       0
@@ -11,9 +11,9 @@ mod mock_hook {
 
 mod mock_core {
   #[derive(Debug)]
-  pub struct Compilation;
+  pub(crate) struct Compilation;
 
-  pub const BASIC_STAGE: i32 = 20;
+  pub(crate) const BASIC_STAGE: i32 = 20;
 }
 
 mod named_struct {

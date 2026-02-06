@@ -29,7 +29,7 @@ use swc_core::{
 
 #[derive(Clone, Debug, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct Config {
+pub(crate) struct Config {
   pub is_react_server_layer: bool,
   pub is_development: bool,
   pub hash_salt: String,
@@ -97,7 +97,7 @@ enum ServerActionsErrorKind {
   },
 }
 
-pub fn server_actions<C: Comments>(
+pub(crate) fn server_actions<C: Comments>(
   file_name: String,
   config: Config,
   comments: C,

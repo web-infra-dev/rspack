@@ -3,7 +3,7 @@ use async_trait::async_trait;
 use super::*;
 use crate::{cache::Cache, compilation::pass::PassExt};
 
-pub struct ChunkIdsPass;
+pub(super) struct ChunkIdsPass;
 
 #[async_trait]
 impl PassExt for ChunkIdsPass {

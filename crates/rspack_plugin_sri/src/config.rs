@@ -46,7 +46,7 @@ pub struct SubresourceIntegrityPluginOptions {
   pub integrity_callback: Option<IntegrityCallbackFn>,
 }
 
-pub type ArcFs = Arc<dyn WritableFileSystem + Send + Sync>;
+pub(crate) type ArcFs = Arc<dyn WritableFileSystem + Send + Sync>;
 
 #[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct SRICompilationContext {

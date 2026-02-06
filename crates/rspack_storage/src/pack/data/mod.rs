@@ -3,8 +3,8 @@ mod options;
 mod pack;
 mod scope;
 
-pub use meta::{PackFileMeta, RootMeta, RootMetaFrom, ScopeMeta};
-pub use options::{PackOptions, RootOptions};
-pub use pack::{Pack, PackContents, PackGenerations, PackKeys};
-pub use rspack_util::current_time;
-pub use scope::{PackScope, RootMetaState};
+pub(super) use meta::{PackFileMeta, RootMeta, RootMetaFrom, ScopeMeta};
+pub(super) use options::{PackOptions, RootOptions};
+pub(super) use pack::{Pack, PackContents, PackGenerations, PackKeys};
+pub(super) use rspack_util::current_time;
+pub(super) use scope::{PackScope, RootMetaState};

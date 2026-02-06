@@ -43,7 +43,7 @@ pub(crate) struct CssModule {
 }
 
 impl CssModule {
-  pub fn new(dep: CssDependency) -> Self {
+  pub(crate) fn new(dep: CssDependency) -> Self {
     let mut identifier_index_buffer = itoa::Buffer::new();
     let identifier_index_str = identifier_index_buffer.format(dep.identifier_index);
     let identifier__ = format!(

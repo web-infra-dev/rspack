@@ -1,5 +1,5 @@
 mod cutout;
-pub mod repair;
+pub(super) mod repair;
 
 use rspack_collections::IdentifierSet;
 use rspack_error::Result;

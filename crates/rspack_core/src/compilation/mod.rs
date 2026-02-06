@@ -428,16 +428,6 @@ impl Compilation {
     self.compiler_id
   }
 
-  pub fn recover_module_graph_to_new_compilation(&mut self, new_compilation: &mut Compilation) {
-    self
-      .build_module_graph_artifact
-      .get_module_graph_mut()
-      .reset();
-    std::mem::swap(
-      &mut self.build_module_graph_artifact,
-      &mut new_compilation.build_module_graph_artifact,
-    );
-  }
   pub fn swap_build_module_graph_artifact(&mut self, make_artifact: &mut BuildModuleGraphArtifact) {
     self.build_module_graph_artifact.swap(make_artifact);
   }

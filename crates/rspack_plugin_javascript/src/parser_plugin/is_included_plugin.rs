@@ -10,7 +10,7 @@ use crate::{dependency::IsIncludeDependency, visitors::JavascriptParser};
 
 const IS_INCLUDED: &str = "__webpack_is_included__";
 
-pub struct IsIncludedPlugin;
+pub(crate) struct IsIncludedPlugin;
 
 impl JavascriptParserPlugin for IsIncludedPlugin {
   fn call(&self, parser: &mut JavascriptParser, expr: &CallExpr, name: &str) -> Option<bool> {

@@ -14,7 +14,7 @@ use swc_core::{
   common::FileName,
   ecma::{ast::EsVersion, parser::Syntax},
 };
-pub use utils::is_node_package_path;
+pub(super) use utils::is_node_package_path;
 
 use self::visitor::DependencyVisitor;
 use crate::{Resolve as ResolveOption, ResolveInnerError, ResolveResult, Resolver};
@@ -24,13 +24,13 @@ use crate::{Resolve as ResolveOption, ResolveInnerError, ResolveResult, Resolver
 /// The toolkit will use ast to analyze the build dependency files and resolve the requests in them,
 /// treat the files associated with the requests as build dependency files,
 /// and continue processing them until all dependency files are calculated.
-pub struct Helper {
+pub(super) struct Helper {
   resolver: Resolver,
   warnings: Vec<String>,
 }
 
 impl Helper {
-  pub fn new(fs: Arc<dyn ReadableFileSystem>) -> Self {
+  pub(super) fn new(fs: Arc<dyn ReadableFileSystem>) -> Self {
     Helper {
       resolver: Resolver::new(
         ResolveOption {
@@ -160,7 +160,7 @@ impl Helper {
   /// Resolve a path.
   ///
   /// Use the corresponding resolve method according to the type of input file.
-  pub async fn resolve(&mut self, path: &Utf8Path) -> Option<HashSet<Utf8PathBuf>> {
+  pub(super) async fn resolve(&mut self, path: &Utf8Path) -> Option<HashSet<Utf8PathBuf>> {
     let metadata = match self.resolver.inner_fs().metadata(path).await {
       Ok(metadata) => metadata,
       Err(err) => {
@@ -181,7 +181,7 @@ impl Helper {
   }
 
   /// Get all warnings.
-  pub fn into_warnings(self) -> Vec<String> {
+  pub(super) fn into_warnings(self) -> Vec<String> {
     self.warnings
   }
 }

@@ -76,14 +76,17 @@ struct RenameModuleCache {
 }
 
 impl RenameModuleCache {
-  pub fn get_inlined_info(&self, ident: &Identifier) -> Option<Arc<WithHash<InlinedModuleInfo>>> {
+  pub(crate) fn get_inlined_info(
+    &self,
+    ident: &Identifier,
+  ) -> Option<Arc<WithHash<InlinedModuleInfo>>> {
     self
       .inlined_modules_to_info
       .get(ident)
       .map(|info| info.clone())
   }
 
-  pub fn get_non_inlined_idents(
+  pub(crate) fn get_non_inlined_idents(
     &self,
     ident: &Identifier,
   ) -> Option<Arc<WithHash<Vec<ConcatenatedModuleIdent>>>> {

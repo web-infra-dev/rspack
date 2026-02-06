@@ -13,7 +13,7 @@ use crate::{BuildDependency, Compilation, ResourceId, internal};
 /// This toolkit can remove useless module and dependency through `UpdateParam` and
 /// do some post-processing on module graph like clean up isolated module.
 #[derive(Debug, Default)]
-pub struct Cutout {
+pub(super) struct Cutout {
   fix_issuers: FixIssuers,
   fix_build_meta: FixBuildMeta,
 }
@@ -25,7 +25,7 @@ impl Cutout {
   /// the dependencyId and original module identifier of breaking point in the module graph.
   /// If we have a module graph like "A -> B -> C -> D", and the modules to remove are C and D,
   /// it will return the dependency of B->C.
-  pub fn cutout_artifact(
+  pub(super) fn cutout_artifact(
     &mut self,
     compilation: &Compilation,
     artifact: &mut BuildModuleGraphArtifact,
@@ -156,7 +156,7 @@ impl Cutout {
   }
 
   /// Fix artifact, the last step to incrementally update MakeArtifact.
-  pub fn fix_artifact(self, artifact: &mut BuildModuleGraphArtifact) {
+  pub(super) fn fix_artifact(self, artifact: &mut BuildModuleGraphArtifact) {
     let Self {
       fix_issuers,
       fix_build_meta,

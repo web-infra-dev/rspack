@@ -18,12 +18,12 @@ use crate::{
   },
 };
 
-pub struct JavaScriptParserPluginDrive {
+pub(crate) struct JavaScriptParserPluginDrive {
   plugins: Vec<BoxJavascriptParserPlugin>,
 }
 
 impl JavaScriptParserPluginDrive {
-  pub fn new(plugins: Vec<BoxJavascriptParserPlugin>) -> Self {
+  pub(crate) fn new(plugins: Vec<BoxJavascriptParserPlugin>) -> Self {
     Self { plugins }
   }
 }

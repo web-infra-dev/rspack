@@ -8,14 +8,14 @@ use rspack_error::{Error, Result};
 use crate::MappedAsset;
 
 #[derive(Debug, Clone)]
-pub struct MappedAssetsCache(DashMap<Arc<str>, MappedAsset>);
+pub(crate) struct MappedAssetsCache(DashMap<Arc<str>, MappedAsset>);
 
 impl MappedAssetsCache {
-  pub fn new() -> Self {
+  pub(crate) fn new() -> Self {
     Self(DashMap::new())
   }
 
-  pub async fn use_cache<'a, Assets, Handle, Return>(
+  pub(crate) async fn use_cache<'a, Assets, Handle, Return>(
     &self,
     assets: Assets,
     map_assets: Handle,

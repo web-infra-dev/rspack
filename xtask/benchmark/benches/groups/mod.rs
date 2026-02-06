@@ -1,2 +1,2 @@
-pub mod build_chunk_graph;
-pub mod bundle;
+pub(crate) mod build_chunk_graph;
+pub(crate) mod bundle;

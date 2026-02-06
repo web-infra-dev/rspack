@@ -12,7 +12,7 @@ use crate::paths::PathAccessor;
 /// The `WatcherRootAnalyzer` is an implementation of the `Analyzer` trait that
 /// analyzes the root directory of the file system and determines the common root
 /// path to be watched.
-pub struct WatcherRootAnalyzer {
+pub(super) struct WatcherRootAnalyzer {
   path_tree: PathTree,
 }
 
@@ -46,7 +46,7 @@ struct PathTree {
 }
 
 impl PathTree {
-  pub fn find_common_root(&self) -> Option<ArcPath> {
+  pub(crate) fn find_common_root(&self) -> Option<ArcPath> {
     let root = self.find_root()?;
     Some(self.find_common_root_recursive(root))
   }
@@ -70,7 +70,7 @@ impl PathTree {
     }
   }
 
-  pub fn update_paths(&self, added_paths: &ArcPathDashSet, removed_paths: &ArcPathDashSet) {
+  pub(crate) fn update_paths(&self, added_paths: &ArcPathDashSet, removed_paths: &ArcPathDashSet) {
     for added in added_paths.iter() {
       self.add_path(added.deref());
     }
@@ -79,12 +79,12 @@ impl PathTree {
     }
   }
 
-  pub fn add_path(&self, path: &ArcPath) {
+  pub(crate) fn add_path(&self, path: &ArcPath) {
     self.inner.entry(path.clone()).or_default();
     self.add_path_recursive(path);
   }
 
-  pub fn remove_path(&self, path: &ArcPath) {
+  pub(crate) fn remove_path(&self, path: &ArcPath) {
     if let Some(node) = self.inner.get(path) {
       node.children.remove(path);
     }

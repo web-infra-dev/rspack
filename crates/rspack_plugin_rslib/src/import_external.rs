@@ -7,7 +7,7 @@ use crate::import_dependency::RslibImportDependency;
 /// Replaces ImportDependency instances with RslibImportDependency for external modules.
 /// This function iterates through all modules and their blocks to find ImportDependencies
 /// that point to external modules, then creates RslibImportDependency replacements.
-pub fn replace_import_dependencies_for_external_modules(
+pub(crate) fn replace_import_dependencies_for_external_modules(
   compilation: &mut Compilation,
 ) -> Result<()> {
   let mg = compilation.get_module_graph();

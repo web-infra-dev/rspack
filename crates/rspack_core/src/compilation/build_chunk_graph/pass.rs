@@ -6,7 +6,7 @@ use crate::{
   logger::Logger, use_code_splitting_cache,
 };
 
-pub struct BuildChunkGraphPass;
+pub(crate) struct BuildChunkGraphPass;
 
 #[async_trait]
 impl PassExt for BuildChunkGraphPass {

@@ -30,7 +30,7 @@ use crate::{
   },
 };
 
-pub struct AMDDefineDependencyParserPlugin;
+pub(crate) struct AMDDefineDependencyParserPlugin;
 
 fn is_unbound_function_expression(expr: &Expr) -> bool {
   expr.is_fn_expr() || expr.is_arrow()

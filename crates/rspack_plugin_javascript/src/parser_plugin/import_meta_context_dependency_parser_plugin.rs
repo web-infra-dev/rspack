@@ -105,7 +105,7 @@ fn create_import_meta_context_dependency(
   ))
 }
 
-pub struct ImportMetaContextDependencyParserPlugin;
+pub(crate) struct ImportMetaContextDependencyParserPlugin;
 
 impl JavascriptParserPlugin for ImportMetaContextDependencyParserPlugin {
   fn evaluate_identifier(

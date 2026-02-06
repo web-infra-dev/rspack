@@ -8,14 +8,14 @@ mod test_storage_multi {
     BridgeFileSystem, FileSystem, PackStorage, PackStorageOptions, Result, Storage,
   };
 
-  pub fn get_native_path(p: &str) -> (PathBuf, PathBuf) {
+  pub(crate) fn get_native_path(p: &str) -> (PathBuf, PathBuf) {
     let base = std::env::temp_dir()
       .join("rspack_test/storage/test_storage_build")
       .join(p);
     (base.join("cache"), base.join("temp"))
   }
 
-  pub fn get_memory_path(p: &str) -> (PathBuf, PathBuf) {
+  pub(crate) fn get_memory_path(p: &str) -> (PathBuf, PathBuf) {
     let base = PathBuf::from("/rspack_test/storage/test_storage_build/").join(p);
     (base.join("cache"), base.join("temp"))
   }

@@ -4,7 +4,7 @@ use syn::{
   parse::{Parse, ParseStream, Parser},
 };
 
-pub fn expand_struct(mut input: syn::ItemStruct) -> proc_macro::TokenStream {
+pub(crate) fn expand_struct(mut input: syn::ItemStruct) -> proc_macro::TokenStream {
   let ident = &input.ident;
   let inner_ident = plugin_inner_ident(ident);
   let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
@@ -95,7 +95,7 @@ fn plugin_inner_ident(ident: &syn::Ident) -> syn::Ident {
   syn::Ident::new(&inner_name, ident.span())
 }
 
-pub struct HookArgs {
+pub(crate) struct HookArgs {
   trait_: syn::Path,
   name: syn::Ident,
   stage: Option<syn::Expr>,
@@ -139,7 +139,7 @@ impl Parse for HookArgs {
   }
 }
 
-pub fn expand_fn(args: HookArgs, input: syn::ItemFn) -> proc_macro::TokenStream {
+pub(crate) fn expand_fn(args: HookArgs, input: syn::ItemFn) -> proc_macro::TokenStream {
   let HookArgs {
     name,
     trait_,

@@ -22,7 +22,7 @@ pub(crate) struct ImportMap {
 #[allow(unused)]
 impl ImportMap {
   /// Returns true if `e` is an import of `orig_name` from `module`.
-  pub fn is_import(&self, e: &Expr, module: &str, orig_name: &str) -> bool {
+  pub(super) fn is_import(&self, e: &Expr, module: &str, orig_name: &str) -> bool {
     match e {
       Expr::Ident(i) => {
         if let Some((i_src, i_sym)) = self.imports.get(&i.to_id()) {
@@ -52,7 +52,7 @@ impl ImportMap {
     }
   }
 
-  pub fn analyze(m: &Module) -> Self {
+  pub(super) fn analyze(m: &Module) -> Self {
     let mut data = ImportMap::default();
 
     m.visit_with(&mut Analyzer { data: &mut data });

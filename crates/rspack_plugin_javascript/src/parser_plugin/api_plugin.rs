@@ -56,16 +56,16 @@ const API_VERSION: &str = "__rspack_version__";
 const API_UNIQUE_ID: &str = "__rspack_unique_id__";
 const API_RSC_MANIFEST: &str = "__rspack_rsc_manifest__";
 
-pub struct APIPluginOptions {
+pub(super) struct APIPluginOptions {
   module: bool,
 }
 
-pub struct APIPlugin {
+pub(crate) struct APIPlugin {
   options: APIPluginOptions,
 }
 
 impl APIPlugin {
-  pub fn new(module: bool) -> Self {
+  pub(crate) fn new(module: bool) -> Self {
     let options = APIPluginOptions { module };
     Self { options }
   }

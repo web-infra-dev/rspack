@@ -5,7 +5,7 @@ use rspack_core::{
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 
-pub fn externals_dep_array(modules: &[&ExternalModule]) -> Result<String> {
+pub(crate) fn externals_dep_array(modules: &[&ExternalModule]) -> Result<String> {
   let value = modules
     .iter()
     .map(|m| {
@@ -37,18 +37,18 @@ fn inner_external_arguments(modules: &[&ExternalModule], compilation: &Compilati
     .collect::<Vec<_>>()
 }
 
-pub fn external_arguments(modules: &[&ExternalModule], compilation: &Compilation) -> String {
+pub(crate) fn external_arguments(modules: &[&ExternalModule], compilation: &Compilation) -> String {
   inner_external_arguments(modules, compilation).join(", ")
 }
 
-pub fn external_module_names(
+pub(crate) fn external_module_names(
   modules: &[&ExternalModule],
   compilation: &Compilation,
 ) -> Vec<String> {
   inner_external_arguments(modules, compilation)
 }
 
-pub fn get_options_for_chunk<'a>(
+pub(crate) fn get_options_for_chunk<'a>(
   compilation: &'a Compilation,
   chunk_ukey: &ChunkUkey,
 ) -> Option<&'a LibraryOptions> {
@@ -70,4 +70,4 @@ pub fn get_options_for_chunk<'a>(
     .or(compilation.options.output.library.as_ref())
 }
 
-pub const COMMON_LIBRARY_NAME_MESSAGE: &str = "Common configuration options that specific library names are 'output.library[.name]', 'entry.xyz.library[.name]', 'ModuleFederationPlugin.name' and 'ModuleFederationPlugin.library[.name]'.";
+pub(crate) const COMMON_LIBRARY_NAME_MESSAGE: &str = "Common configuration options that specific library names are 'output.library[.name]', 'entry.xyz.library[.name]', 'ModuleFederationPlugin.name' and 'ModuleFederationPlugin.library[.name]'.";

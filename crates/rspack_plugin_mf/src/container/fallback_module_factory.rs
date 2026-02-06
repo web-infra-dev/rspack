@@ -5,7 +5,7 @@ use rspack_error::Result;
 use super::{fallback_dependency::FallbackDependency, fallback_module::FallbackModule};
 
 #[derive(Debug)]
-pub struct FallbackModuleFactory;
+pub(crate) struct FallbackModuleFactory;
 
 #[async_trait]
 impl ModuleFactory for FallbackModuleFactory {

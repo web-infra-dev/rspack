@@ -4,7 +4,7 @@ use rspack_error::Result;
 use super::*;
 use crate::compilation::pass::PassExt;
 
-pub struct AssignRuntimeIdsPass;
+pub(super) struct AssignRuntimeIdsPass;
 
 #[async_trait]
 impl PassExt for AssignRuntimeIdsPass {

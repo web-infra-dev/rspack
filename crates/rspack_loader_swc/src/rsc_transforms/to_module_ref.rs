@@ -172,7 +172,7 @@ fn to_cjs_client_entry(resource: &str, client_refs: &[Wtf8Atom]) -> Result<Strin
   Ok(cjs_source)
 }
 
-pub fn to_module_ref(module: &NormalModule) -> Result<Option<String>> {
+pub(crate) fn to_module_ref(module: &NormalModule) -> Result<Option<String>> {
   let is_react_server_layer = module
     .get_layer()
     .is_some_and(|layer| layer == "react-server-components");

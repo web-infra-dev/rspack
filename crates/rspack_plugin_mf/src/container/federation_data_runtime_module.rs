@@ -38,7 +38,10 @@ impl RuntimeModule for FederationDataRuntimeModule {
   }
 }
 
-pub async fn federation_runtime_template(chunk: &Chunk, compilation: &Compilation) -> String {
+pub(crate) async fn federation_runtime_template(
+  chunk: &Chunk,
+  compilation: &Compilation,
+) -> String {
   let federation_global = format!(
     "{}.federation",
     compilation

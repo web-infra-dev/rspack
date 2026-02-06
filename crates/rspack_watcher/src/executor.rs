@@ -31,7 +31,7 @@ impl FilesData {
 /// aggregating file change and delete events, and invoking the provided event handler after
 /// a configurable aggregate timeout. It receives events from a channel, tracks changed and
 /// deleted files, and coordinates the event handling logic.
-pub struct Executor {
+pub(crate) struct Executor {
   aggregate_timeout: u32,
   rx: ThreadSafetyReceiver<EventBatch>,
   files_data: ThreadSafety<FilesData>,
@@ -66,7 +66,7 @@ enum ExecEvent {
 
 impl Executor {
   /// Create a new `WatcherExecutor` with the given receiver and optional aggregate timeout.
-  pub fn new(rx: UnboundedReceiver<EventBatch>, aggregate_timeout: Option<u32>) -> Self {
+  pub(crate) fn new(rx: UnboundedReceiver<EventBatch>, aggregate_timeout: Option<u32>) -> Self {
     let (exec_aggregate_tx, exec_aggregate_rx) = mpsc::unbounded_channel::<ExecAggregateEvent>();
     let (exec_tx, exec_rx) = mpsc::unbounded_channel::<ExecEvent>();
 
@@ -87,7 +87,7 @@ impl Executor {
   }
 
   /// Pause the aggregate executor, it will not execute the event handler until resume.
-  pub fn pause(&self) {
+  pub(crate) fn pause(&self) {
     self
       .paused
       .store(true, std::sync::atomic::Ordering::Relaxed);
@@ -115,12 +115,12 @@ impl Executor {
   }
 
   /// Abort all executor and close the receiver.
-  pub async fn close(&mut self) {
+  pub(crate) async fn close(&mut self) {
     self.abort().await;
   }
 
   /// Execute the watcher executor loop.
-  pub async fn wait_for_execute(
+  pub(crate) async fn wait_for_execute(
     &mut self,
     event_aggregate_handler: Box<dyn EventAggregateHandler + Send>,
     event_handler: Box<dyn EventHandler + Send>,

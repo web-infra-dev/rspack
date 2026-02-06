@@ -13,7 +13,7 @@ use swc_core::ecma::atoms::Atom;
 
 use super::create_resource_identifier_for_esm_dependency;
 
-pub fn create_import_dependency_referenced_exports(
+pub(super) fn create_import_dependency_referenced_exports(
   dependency_id: &DependencyId,
   referenced_exports: &Option<Vec<Vec<Atom>>>,
   mg: &ModuleGraph,

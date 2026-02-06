@@ -8,7 +8,7 @@ use super::{
 use crate::utils::task_loop::{Task, TaskResult, TaskType};
 
 /// Transform tasks with TaskContext to tasks with ExecutorTaskContext.
-pub fn overwrite_tasks(
+pub(super) fn overwrite_tasks(
   tasks: Vec<Box<dyn Task<TaskContext>>>,
 ) -> Vec<Box<dyn Task<ExecutorTaskContext>>> {
   tasks
@@ -21,7 +21,7 @@ pub fn overwrite_tasks(
 ///
 /// This task will intercept the result of the inner task and trigger tracker.on_*
 #[derive(Debug)]
-pub struct OverwriteTask(Box<dyn Task<TaskContext>>);
+pub(super) struct OverwriteTask(Box<dyn Task<TaskContext>>);
 
 #[async_trait::async_trait]
 impl Task<ExecutorTaskContext> for OverwriteTask {

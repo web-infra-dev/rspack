@@ -9,9 +9,9 @@ use rspack_core::{
 
 use crate::{SubresourceIntegrityHashFunction, integrity::compute_integrity};
 
-pub const PLACEHOLDER_PREFIX: &str = "*-*-*-CHUNK-SRI-HASH-";
+pub(crate) const PLACEHOLDER_PREFIX: &str = "*-*-*-CHUNK-SRI-HASH-";
 
-pub static PLACEHOLDER_REGEX: LazyLock<regex::Regex> = LazyLock::new(|| {
+pub(crate) static PLACEHOLDER_REGEX: LazyLock<regex::Regex> = LazyLock::new(|| {
   let escaped_prefix = regex::escape(PLACEHOLDER_PREFIX);
   regex::Regex::new(&format!(
     r"{escaped_prefix}[a-zA-Z0-9=/+]+(\s+sha\d{{3}}-[a-zA-Z0-9=/+]+)*"
@@ -19,7 +19,7 @@ pub static PLACEHOLDER_REGEX: LazyLock<regex::Regex> = LazyLock::new(|| {
   .expect("should initialize `Regex`")
 });
 
-pub fn get_hash_variable(
+pub(crate) fn get_hash_variable(
   runtime_template: &ModuleCodegenRuntimeTemplate,
   source_type: SourceType,
 ) -> String {
@@ -35,7 +35,7 @@ pub fn get_hash_variable(
   }
 }
 
-pub fn find_chunks(chunk: &ChunkUkey, compilation: &Compilation) -> IndexSet<ChunkUkey> {
+pub(crate) fn find_chunks(chunk: &ChunkUkey, compilation: &Compilation) -> IndexSet<ChunkUkey> {
   let mut all_chunks = IndexSet::default();
   let mut visited_groups = IndexSet::default();
   recurse_chunk(chunk, &mut all_chunks, &mut visited_groups, compilation);
@@ -89,7 +89,7 @@ fn recurse_chunk(
   }
 }
 
-pub fn make_placeholder(
+pub(crate) fn make_placeholder(
   asset_type: ManifestAssetType,
   hash_funcs: &Vec<SubresourceIntegrityHashFunction>,
   id: &str,
@@ -103,10 +103,10 @@ pub fn make_placeholder(
   )
 }
 
-pub fn normalize_path(path: &str) -> Cow<'_, str> {
+pub(crate) fn normalize_path(path: &str) -> Cow<'_, str> {
   path.split('?').next().unwrap_or("").cow_replace('\\', "/")
 }
 
-pub fn use_any_hash(info: &AssetInfo) -> bool {
+pub(crate) fn use_any_hash(info: &AssetInfo) -> bool {
   !info.chunk_hash.is_empty() || !info.full_hash.is_empty() || !info.content_hash.is_empty()
 }

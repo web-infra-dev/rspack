@@ -104,7 +104,7 @@ impl LazyCompilationProxyModule {
     }
   }
 
-  pub fn invalid(&mut self) {
+  pub(crate) fn invalid(&mut self) {
     self.need_build = true;
   }
 }

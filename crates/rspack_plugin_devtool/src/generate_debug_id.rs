@@ -2,7 +2,7 @@ use std::hash::Hasher;
 
 use rspack_hash::{HashDigest, HashFunction, RspackHash};
 
-pub fn generate_debug_id(filename: &str, source: &[u8]) -> String {
+pub(crate) fn generate_debug_id(filename: &str, source: &[u8]) -> String {
   let mut hasher = RspackHash::new(&HashFunction::Xxhash64);
   hasher.write(source);
   let source_hash = hasher.digest(&HashDigest::Hex);

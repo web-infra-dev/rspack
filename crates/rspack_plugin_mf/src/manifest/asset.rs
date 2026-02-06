@@ -8,7 +8,7 @@ use super::{
   utils::is_hot_file,
 };
 
-pub fn collect_assets_from_chunk(
+pub(super) fn collect_assets_from_chunk(
   compilation: &Compilation,
   chunk_key: &rspack_core::ChunkUkey,
   entry_point_names: &HashSet<String>,
@@ -111,21 +111,21 @@ pub fn collect_assets_from_chunk(
   }
 }
 
-pub fn merge_assets_group(target: &mut StatsAssetsGroup, source: StatsAssetsGroup) {
+pub(super) fn merge_assets_group(target: &mut StatsAssetsGroup, source: StatsAssetsGroup) {
   target.js.sync.extend(source.js.sync);
   target.js.r#async.extend(source.js.r#async);
   target.css.sync.extend(source.css.sync);
   target.css.r#async.extend(source.css.r#async);
 }
 
-pub fn empty_assets_group() -> StatsAssetsGroup {
+pub(super) fn empty_assets_group() -> StatsAssetsGroup {
   StatsAssetsGroup {
     js: AssetsSplit::default(),
     css: AssetsSplit::default(),
   }
 }
 
-pub fn normalize_assets_group(group: &mut StatsAssetsGroup) {
+pub(super) fn normalize_assets_group(group: &mut StatsAssetsGroup) {
   group.js.sync.sort();
   group.js.sync.dedup();
   group.js.r#async.sort();
@@ -136,7 +136,7 @@ pub fn normalize_assets_group(group: &mut StatsAssetsGroup) {
   group.css.r#async.dedup();
 }
 
-pub fn collect_assets_for_module(
+pub(super) fn collect_assets_for_module(
   compilation: &Compilation,
   module_identifier: &ModuleIdentifier,
   entry_point_names: &HashSet<String>,
@@ -154,7 +154,7 @@ pub fn collect_assets_for_module(
   Some(result)
 }
 
-pub fn collect_usage_files_for_module(
+pub(super) fn collect_usage_files_for_module(
   compilation: &Compilation,
   module_graph: &ModuleGraph,
   module_identifier: &ModuleIdentifier,
@@ -187,7 +187,7 @@ pub fn collect_usage_files_for_module(
   collected
 }
 
-pub fn module_source_path(module: &BoxModule, compilation: &Compilation) -> Option<String> {
+pub(super) fn module_source_path(module: &BoxModule, compilation: &Compilation) -> Option<String> {
   if let Some(normal_module) = module.as_ref().as_any().downcast_ref::<NormalModule>()
     && let Some(path) = normal_module.resource_resolved_data().path()
   {

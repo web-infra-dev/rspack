@@ -11,14 +11,14 @@ use super::{PackageHelper, SnapshotOptions};
 
 /// Content hash with modification time.
 #[derive(Debug, Clone, Default)]
-pub struct ContentHash {
+pub(super) struct ContentHash {
   pub hash: u64,
   pub mtime: u64,
 }
 
 /// A helper for computing content hashes of files and directories.
 #[derive(Debug)]
-pub struct HashHelper {
+pub(super) struct HashHelper {
   fs: Arc<dyn ReadableFileSystem>,
   snapshot_options: Arc<SnapshotOptions>,
   package_helper: Arc<PackageHelper>,
@@ -28,7 +28,7 @@ pub struct HashHelper {
 
 impl HashHelper {
   /// Creates a new HashHelper instance with the given file system.
-  pub fn new(
+  pub(super) fn new(
     fs: Arc<dyn ReadableFileSystem>,
     snapshot_options: Arc<SnapshotOptions>,
     package_helper: Arc<PackageHelper>,
@@ -89,13 +89,13 @@ impl HashHelper {
   }
 
   /// Get file content hash.
-  pub async fn file_hash(&self, path: &ArcPath) -> Option<ContentHash> {
+  pub(super) async fn file_hash(&self, path: &ArcPath) -> Option<ContentHash> {
     self.inner_file_hash(path, None).await
   }
 
   /// Get directory content hash recursively.
   #[async_recursion::async_recursion]
-  pub async fn dir_hash(&self, path: &ArcPath) -> Option<ContentHash> {
+  pub(super) async fn dir_hash(&self, path: &ArcPath) -> Option<ContentHash> {
     if let Some(hash) = self.dir_cache.get(path) {
       return hash.clone();
     }

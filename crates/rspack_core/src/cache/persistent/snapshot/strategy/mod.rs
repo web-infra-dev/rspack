@@ -62,7 +62,7 @@ impl PartialEq for Strategy {
 
 /// Validate Result
 #[derive(Debug)]
-pub enum ValidateResult {
+pub(super) enum ValidateResult {
   /// The target file has been deleted
   Deleted,
   /// The target file has been modified
@@ -71,14 +71,17 @@ pub enum ValidateResult {
   NoChanged,
 }
 
-pub struct StrategyHelper {
+pub(super) struct StrategyHelper {
   fs: Arc<dyn ReadableFileSystem>,
   package_helper: Arc<PackageHelper>,
   hash_helper: HashHelper,
 }
 
 impl StrategyHelper {
-  pub fn new(fs: Arc<dyn ReadableFileSystem>, snapshot_options: Arc<SnapshotOptions>) -> Self {
+  pub(super) fn new(
+    fs: Arc<dyn ReadableFileSystem>,
+    snapshot_options: Arc<SnapshotOptions>,
+  ) -> Self {
     let package_helper = Arc::new(PackageHelper::new(fs.clone()));
     Self {
       fs: fs.clone(),
@@ -102,7 +105,7 @@ impl StrategyHelper {
   }
 
   /// get path file package version strategy
-  pub async fn package_version(&self, path: &ArcPath) -> Option<Strategy> {
+  pub(super) async fn package_version(&self, path: &ArcPath) -> Option<Strategy> {
     self
       .package_helper
       .package_version(path)
@@ -111,7 +114,7 @@ impl StrategyHelper {
   }
 
   /// get path file hash strategy
-  pub async fn file_hash(&self, path: &ArcPath) -> Strategy {
+  pub(super) async fn file_hash(&self, path: &ArcPath) -> Strategy {
     if let Some(ContentHash { hash, mtime }) = self.hash_helper.file_hash(path).await {
       Strategy::FileHash { mtime, hash }
     } else {
@@ -120,7 +123,7 @@ impl StrategyHelper {
   }
 
   /// get path context hash strategy
-  pub async fn dir_hash(&self, path: &ArcPath) -> Strategy {
+  pub(super) async fn dir_hash(&self, path: &ArcPath) -> Strategy {
     if let Some(ContentHash { hash, .. }) = self.hash_helper.dir_hash(path).await {
       Strategy::DirHash { hash }
     } else {
@@ -129,7 +132,7 @@ impl StrategyHelper {
   }
 
   /// validate path file by target strategy
-  pub async fn validate(&self, path: &ArcPath, strategy: &Strategy) -> ValidateResult {
+  pub(super) async fn validate(&self, path: &ArcPath, strategy: &Strategy) -> ValidateResult {
     match strategy {
       Strategy::PackageVersion(version) => {
         let Some(ref cur_version) = self.package_helper.package_version(path).await else {

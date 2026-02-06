@@ -38,7 +38,7 @@ impl Visit for NestedNewUrlVisitor {
   }
 }
 
-pub fn is_meta_url(parser: &mut JavascriptParser, expr: &MemberExpr) -> bool {
+pub(super) fn is_meta_url(parser: &mut JavascriptParser, expr: &MemberExpr) -> bool {
   let chain = parser.extract_member_expression_chain(ExprRef::Member(expr));
   if let ExprRef::MetaProp(meta) = chain.object {
     return meta.kind == MetaPropKind::ImportMeta
@@ -48,7 +48,7 @@ pub fn is_meta_url(parser: &mut JavascriptParser, expr: &MemberExpr) -> bool {
   false
 }
 
-pub fn get_url_request(
+pub(super) fn get_url_request(
   parser: &mut JavascriptParser,
   expr: &NewExpr,
 ) -> Option<(String, u32, u32)> {
@@ -99,7 +99,7 @@ pub fn get_url_request(
   None
 }
 
-pub struct URLPlugin {
+pub(crate) struct URLPlugin {
   pub mode: Option<JavascriptParserUrl>,
 }
 

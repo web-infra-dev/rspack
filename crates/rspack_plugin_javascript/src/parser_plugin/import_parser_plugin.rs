@@ -46,12 +46,12 @@ fn tag_dynamic_import_referenced(
 }
 
 #[derive(Debug, Default)]
-pub struct ImportsReferencesState {
+pub(crate) struct ImportsReferencesState {
   inner: FxHashMap<Span, ImportReferences>,
 }
 
 impl ImportsReferencesState {
-  pub fn add_import(&mut self, import: Span) {
+  pub(crate) fn add_import(&mut self, import: Span) {
     self.inner.insert(import, ImportReferences::default());
   }
 
@@ -84,7 +84,7 @@ struct ImportReferences {
 }
 
 impl ImportReferences {
-  pub fn add_reference(&mut self, reference: Vec<Atom>) {
+  pub(crate) fn add_reference(&mut self, reference: Vec<Atom>) {
     self.references.push(reference);
   }
 }
@@ -101,7 +101,7 @@ struct ImportTagData {
   import_span: Span,
 }
 
-pub struct ImportParserPlugin;
+pub(crate) struct ImportParserPlugin;
 
 impl JavascriptParserPlugin for ImportParserPlugin {
   fn can_collect_destructuring_assignment_properties(

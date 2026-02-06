@@ -2,6 +2,7 @@
 #![allow(deprecated)]
 #![allow(unused)]
 #![allow(trivial_numeric_casts)]
+#![allow(unreachable_pub)] // `#[napi]` requires `pub` for JS exports in private Rust modules.
 
 //! `rspack_binding_api` is the core binding layer in the Rspack project, responsible for exposing Rspack core functionality written in Rust to JavaScript/TypeScript environments. It provides complete API interfaces for compilation, building, module processing, and other functionalities.
 //!

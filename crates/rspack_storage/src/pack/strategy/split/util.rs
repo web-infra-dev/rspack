@@ -5,10 +5,10 @@ use rustc_hash::FxHasher;
 
 use crate::pack::data::{Pack, PackContents, PackFileMeta, PackKeys, PackScope};
 
-pub type PackIndexList = Vec<(usize, usize)>;
-pub type PackInfoList<'a> = Vec<(&'a PackFileMeta, &'a Pack)>;
+pub(super) type PackIndexList = Vec<(usize, usize)>;
+pub(super) type PackInfoList<'a> = Vec<(&'a PackFileMeta, &'a Pack)>;
 
-pub fn flag_scope_wrote(scope: &mut PackScope) {
+pub(super) fn flag_scope_wrote(scope: &mut PackScope) {
   let scope_meta = scope.meta.expect_value_mut();
   for bucket in scope_meta.packs.iter_mut() {
     for pack in bucket {
@@ -17,7 +17,7 @@ pub fn flag_scope_wrote(scope: &mut PackScope) {
   }
 }
 
-pub fn get_indexed_packs<'a>(
+pub(super) fn get_indexed_packs<'a>(
   scope: &'a PackScope,
   filter: Option<&dyn Fn(&'a Pack, &'a PackFileMeta) -> bool>,
 ) -> (PackIndexList, PackInfoList<'a>) {
@@ -54,7 +54,7 @@ pub fn get_indexed_packs<'a>(
     .unzip()
 }
 
-pub fn get_name(keys: &PackKeys, _: &PackContents) -> String {
+pub(super) fn get_name(keys: &PackKeys, _: &PackContents) -> String {
   let mut hasher = FxHasher::default();
   for k in keys {
     hasher.write(k);
@@ -64,13 +64,13 @@ pub fn get_name(keys: &PackKeys, _: &PackContents) -> String {
   format!("{:016x}", hasher.finish())
 }
 
-pub fn choose_bucket(key: &[u8], total: &usize) -> usize {
+pub(super) fn choose_bucket(key: &[u8], total: &usize) -> usize {
   let num = key.iter().fold(0_usize, |acc, i| acc + *i as usize);
   num % total
 }
 
 #[cfg(test)]
-pub mod test_pack_utils {
+pub(super) mod test_pack_utils {
   use std::sync::Arc;
 
   use itertools::Itertools;
@@ -91,7 +91,7 @@ pub mod test_pack_utils {
     },
   };
 
-  pub async fn mock_root_meta_file(path: &Utf8Path, fs: &dyn FileSystem) -> Result<()> {
+  pub(crate) async fn mock_root_meta_file(path: &Utf8Path, fs: &dyn FileSystem) -> Result<()> {
     fs.ensure_dir(path.parent().expect("should have parent"))
       .await?;
     let mut writer = fs.write_file(path).await?;
@@ -102,7 +102,7 @@ pub mod test_pack_utils {
     Ok(())
   }
 
-  pub async fn mock_scope_meta_file(
+  pub(crate) async fn mock_scope_meta_file(
     path: &Utf8Path,
     fs: &dyn FileSystem,
     options: &PackOptions,
@@ -137,7 +137,7 @@ pub mod test_pack_utils {
     Ok(())
   }
 
-  pub async fn mock_pack_file(
+  pub(crate) async fn mock_pack_file(
     path: &Utf8Path,
     unique_id: &str,
     item_count: usize,
@@ -172,12 +172,17 @@ pub mod test_pack_utils {
     Ok(())
   }
 
-  pub enum UpdateVal {
+  pub(crate) enum UpdateVal {
     Value(String),
     Removed,
   }
 
-  pub fn mock_updates(start: usize, end: usize, length: usize, value: UpdateVal) -> ScopeUpdate {
+  pub(crate) fn mock_updates(
+    start: usize,
+    end: usize,
+    length: usize,
+    value: UpdateVal,
+  ) -> ScopeUpdate {
     let mut updates = HashMap::default();
     for i in start..end {
       updates.insert(
@@ -198,10 +203,10 @@ pub mod test_pack_utils {
     updates
   }
 
-  pub fn count_scope_packs(scope: &PackScope) -> usize {
+  pub(crate) fn count_scope_packs(scope: &PackScope) -> usize {
     scope.packs.expect_value().iter().flatten().count()
   }
-  pub fn count_bucket_packs(scope: &PackScope) -> Vec<usize> {
+  pub(crate) fn count_bucket_packs(scope: &PackScope) -> Vec<usize> {
     scope
       .packs
       .expect_value()
@@ -209,7 +214,7 @@ pub mod test_pack_utils {
       .map(|i| i.len())
       .collect_vec()
   }
-  pub fn get_bucket_pack_sizes(scope: &PackScope) -> Vec<usize> {
+  pub(crate) fn get_bucket_pack_sizes(scope: &PackScope) -> Vec<usize> {
     let mut res = scope
       .meta
       .expect_value()
@@ -222,7 +227,7 @@ pub mod test_pack_utils {
     res
   }
 
-  pub async fn clean_strategy(strategy: &SplitPackStrategy) {
+  pub(crate) async fn clean_strategy(strategy: &SplitPackStrategy) {
     strategy
       .fs
       .remove_dir(&strategy.root)
@@ -235,7 +240,7 @@ pub mod test_pack_utils {
       .expect("should remove dir");
   }
 
-  pub async fn flush_file_mtime(path: &Utf8Path, fs: Arc<dyn FileSystem>) -> Result<()> {
+  pub(crate) async fn flush_file_mtime(path: &Utf8Path, fs: Arc<dyn FileSystem>) -> Result<()> {
     let content = fs.read_file(path).await?.read_to_end().await?;
     let mut writer = fs.write_file(path).await?;
     writer.write_all(&content).await?;
@@ -244,7 +249,7 @@ pub mod test_pack_utils {
     Ok(())
   }
 
-  pub async fn save_scope(
+  pub(crate) async fn save_scope(
     scope: &mut PackScope,
     strategy: &SplitPackStrategy,
   ) -> Result<WriteScopeResult> {
@@ -266,18 +271,18 @@ pub mod test_pack_utils {
     Ok(changed)
   }
 
-  pub fn get_native_path(p: &str) -> Utf8PathBuf {
+  pub(crate) fn get_native_path(p: &str) -> Utf8PathBuf {
     std::env::temp_dir()
       .join("./rspack_test/storage/pack_strategy/")
       .join(p)
       .assert_utf8()
   }
 
-  pub fn get_memory_path(p: &str) -> Utf8PathBuf {
+  pub(crate) fn get_memory_path(p: &str) -> Utf8PathBuf {
     Utf8PathBuf::from("/pack_strategy/").join(p)
   }
 
-  pub fn create_strategies(case: &str) -> Vec<SplitPackStrategy> {
+  pub(crate) fn create_strategies(case: &str) -> Vec<SplitPackStrategy> {
     let fs = [
       (
         Arc::new(BridgeFileSystem(Arc::new(MemoryFileSystem::default()))),

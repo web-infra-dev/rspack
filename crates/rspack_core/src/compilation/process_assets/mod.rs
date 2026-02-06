@@ -3,7 +3,7 @@ use async_trait::async_trait;
 use super::*;
 use crate::compilation::pass::PassExt;
 
-pub struct ProcessAssetsPass;
+pub(super) struct ProcessAssetsPass;
 
 #[async_trait]
 impl PassExt for ProcessAssetsPass {

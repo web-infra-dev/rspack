@@ -10,7 +10,7 @@ use crate::{
 /// The memory cache stores the old compilation to recover artifacts
 /// during incremental rebuilds.
 #[derive(Debug, Default)]
-pub struct MemoryCache {
+pub(super) struct MemoryCache {
   // this is used to recover from last compilation if the artifact is recoverable
   old_compilation: Option<Box<Compilation>>,
 

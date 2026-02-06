@@ -37,7 +37,7 @@ enum ModulePathType {
 }
 
 #[derive(Debug, Clone)]
-pub struct RstestParserPluginOptions {
+pub(crate) struct RstestParserPluginOptions {
   pub module_path_name: bool,
   pub hoist_mock_module: bool,
   pub import_meta_path_name: bool,
@@ -60,7 +60,7 @@ impl Default for RstestParserPluginOptions {
 }
 
 #[derive(Debug, Default)]
-pub struct RstestParserPlugin {
+pub(crate) struct RstestParserPlugin {
   options: RstestParserPluginOptions,
 }
 
@@ -75,7 +75,7 @@ impl<'a> JavascriptParserExt<'a> for JavascriptParser<'a> {
 }
 
 impl RstestParserPlugin {
-  pub fn new(options: RstestParserPluginOptions) -> Self {
+  pub(crate) fn new(options: RstestParserPluginOptions) -> Self {
     Self { options }
   }
 

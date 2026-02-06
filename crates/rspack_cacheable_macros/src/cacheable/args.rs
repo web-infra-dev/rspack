@@ -10,10 +10,10 @@ mod kw {
 }
 
 /// #[cacheable] type-only args
-pub struct CacheableArgs {
-  pub crate_path: syn::Path,
-  pub with: Option<syn::Type>,
-  pub hashable: bool,
+pub(super) struct CacheableArgs {
+  pub(super) crate_path: syn::Path,
+  pub(super) with: Option<syn::Type>,
+  pub(super) hashable: bool,
 }
 
 impl Parse for CacheableArgs {

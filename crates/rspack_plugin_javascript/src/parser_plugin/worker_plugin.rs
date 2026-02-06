@@ -234,7 +234,7 @@ fn handle_worker<'a>(
   }
 }
 
-pub struct WorkerPlugin {
+pub(crate) struct WorkerPlugin {
   new_syntax: FxHashSet<String>,
   call_syntax: FxHashSet<String>,
   from_new_syntax: FxHashSet<(String, String)>,
@@ -256,7 +256,7 @@ struct WorkerSpecifierData {
 }
 
 impl WorkerPlugin {
-  pub fn new(syntax_list: &[String]) -> Self {
+  pub(crate) fn new(syntax_list: &[String]) -> Self {
     let mut this = Self {
       new_syntax: FxHashSet::default(),
       call_syntax: FxHashSet::default(),

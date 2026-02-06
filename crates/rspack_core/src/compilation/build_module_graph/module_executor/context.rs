@@ -15,7 +15,7 @@ pub struct ImportModuleMeta {
 
 /// A task context for module executor.
 #[derive(Debug)]
-pub struct ExecutorTaskContext {
+pub(super) struct ExecutorTaskContext {
   /// The make task context.
   pub origin_context: TaskContext,
   /// module tracker.
