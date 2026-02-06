@@ -18,8 +18,8 @@ module.exports = {
   },
   plugins: [
     new RsdoctorPlugin({
-      moduleGraphFeatures: ["sources"], // Enable module sources feature to collect JSON sizes
-      // chunkGraphFeatures: false
+      moduleGraphFeatures: true, // Enable module sources feature to collect JSON sizes
+      chunkGraphFeatures: true
     })
   ]
 };
