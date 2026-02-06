@@ -18,7 +18,6 @@ allocative = [
   "rspack_tracing_perfetto/allocative",
 ]
 browser = ["dep:rspack_browser", "rspack_napi/browser"]
-color-backtrace = ["dep:color-backtrace"]
 debug_tool = ["rspack_core/debug_tool"]
 plugin = ["rspack_loader_swc/plugin", "rspack_util/plugin"]
 sftrace-setup = ["dep:sftrace-setup", "rspack_allocator/sftrace-setup"]
@@ -59,8 +58,6 @@ tracy-client            = { workspace = true, optional = true }
 
 napi        = { workspace = true, features = ["async", "tokio_rt", "serde-json", "anyhow", "napi7", "compat-mode"] }
 napi-derive = { workspace = true, features = ["compat-mode"] }
-
-color-backtrace = { workspace = true, optional = true }
 
 derive_more                            = { workspace = true, features = ["debug"] }
 futures                                = { workspace = true }

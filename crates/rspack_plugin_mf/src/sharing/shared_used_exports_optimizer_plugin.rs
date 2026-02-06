@@ -380,8 +380,8 @@ async fn additional_tree_runtime_requirements(
   Ok(())
 }
 
-#[plugin_hook(CompilationDependencyReferencedExports for SharedUsedExportsOptimizerPlugin)]
-async fn dependency_referenced_exports(
+#[plugin_hook(CompilationDependencyReferencedExports for SharedUsedExportsOptimizerPlugin,tracing=false)]
+fn dependency_referenced_exports(
   &self,
   compilation: &Compilation,
   dependency_id: &DependencyId,

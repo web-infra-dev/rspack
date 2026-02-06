@@ -111,60 +111,30 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
       }
 
       self.compilation.module_graph_cache_artifact.freeze();
+      let compilation = self.compilation;
+      let module_graph = self.build_module_graph_artifact.get_module_graph();
 
       // collect referenced exports from modules by calling `dependency.get_referenced_exports`
       // and also added referenced modules to queue for further processing
-      let batch_res = {
-        let compilation = self.compilation;
-        let module_graph = self.build_module_graph_artifact.get_module_graph();
-        let global = self.global;
-
-        rspack_futures::scope::<_, _>(|token| {
-          for (block_id, runtime, force_side_effects) in batch {
-            // SAFETY: await immediately and trust caller to poll future entirely
-            let s = unsafe {
-              token.used((
-                compilation,
-                module_graph,
-                block_id,
-                runtime,
-                force_side_effects,
-                global,
-              ))
-            };
-            s.spawn(
-              |(
-                compilation,
-                module_graph,
-                block_id,
-                runtime,
-                force_side_effects,
-                global,
-              )| async move {
-                let (referenced_exports, module_tasks) = Self::process_module(
-                  compilation,
-                  module_graph,
-                  block_id,
-                  runtime.as_ref(),
-                  force_side_effects,
-                  global,
-                )
-                .await;
-                (
-                  runtime,
-                  force_side_effects,
-                  referenced_exports,
-                  module_tasks,
-                )
-              },
-            );
-          }
+      let batch_res = batch
+        .into_par_iter()
+        .map(|(block_id, runtime, force_side_effects)| {
+          let (referenced_exports, module_tasks) = Self::process_module(
+            compilation,
+            module_graph,
+            block_id,
+            runtime.as_ref(),
+            force_side_effects,
+            self.global,
+          );
+          (
+            runtime,
+            force_side_effects,
+            referenced_exports,
+            module_tasks,
+          )
         })
-        .await
-        .into_iter()
-        .map(|res| res.expect("flag dependency usage task failed"))
-        .collect::<Vec<_>>()
-      };
+        .collect::<Vec<_>>();
 
       let mut nested_tasks = vec![];
       let mut non_nested_tasks: IdentifierMap<Vec<NonNestedTask>> = IdentifierMap::default();
@@ -290,7 +260,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
     }
   }
 
-  async fn process_module(
+  fn process_module(
     compilation: &Compilation,
     module_graph: &ModuleGraph,
     block_id: ModuleOrAsyncDependenciesBlock,
@@ -333,8 +303,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
           &referenced_exports_result,
           runtime,
           Some(module_graph),
-        )
-        .await;
+        );
 
       if let Some(mut referenced_exports) = referenced_exports_result
         && let Some(new_referenced_exports) =
