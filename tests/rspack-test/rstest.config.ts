@@ -108,6 +108,26 @@ export default defineConfig({
   projects: [{
     extends: sharedConfig,
     name: 'base',
+    exclude: [
+      'NativeWatcher*.test.js',
+      'Watch.part*.test.js',
+    ],
+  }, {
+    extends: sharedConfig,
+    name: 'watch',
+    include: [
+      'Watch.part*.test.js',
+    ],
+    retry: 0,
+    maxConcurrency: 1,
+  }, {
+    extends: sharedConfig,
+    name: 'nativeWatcher',
+    include: [
+      'NativeWatcher*.test.js',
+    ],
+    retry: 0,
+    maxConcurrency: 1,
   }, {
     extends: sharedConfig,
     name: 'hottest',
