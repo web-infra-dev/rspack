@@ -110,6 +110,7 @@ impl DependencyTemplate for IsIncludedDependencyTemplate {
       .connection_by_dependency_id(&dep.id)
       .is_some_and(|connection| {
         compilation
+          .build_chunk_graph_artifact
           .chunk_graph
           .get_number_of_module_chunks(*connection.module_identifier())
           > 0

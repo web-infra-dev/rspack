@@ -13,6 +13,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
   let logger = compilation.get_logger(self.name());
   let start = logger.time("ensure chunk conditions");
   compilation
+    .build_chunk_graph_artifact
     .chunk_graph
     .generate_dot(compilation, "before-ensure-chunk-conditions")
     .await;
@@ -23,6 +24,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
     .iter()
     .for_each(|(module_id, module)| {
       let source_chunks = compilation
+        .build_chunk_graph_artifact
         .chunk_graph
         .get_module_chunks(module.identifier())
         .iter()
@@ -52,7 +54,11 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
     let mut target_chunks = HashSet::default();
     for chunk_key in chunk_keys {
       adjust_chunk_size += 1;
-      if let Some(chunk) = compilation.chunk_by_ukey.get(chunk_key) {
+      if let Some(chunk) = compilation
+        .build_chunk_graph_artifact
+        .chunk_by_ukey
+        .get(chunk_key)
+      {
         let mut chunk_group_keys = chunk.groups().iter().collect::<Vec<_>>();
         visited_chunk_group_keys.clear();
         'out: while let Some(chunk_group_key) = chunk_group_keys.pop() {
@@ -60,7 +66,11 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
             continue;
           }
           visited_chunk_group_keys.insert(chunk_group_key);
-          if let Some(chunk_group) = compilation.chunk_group_by_ukey.get(chunk_group_key) {
+          if let Some(chunk_group) = compilation
+            .build_chunk_graph_artifact
+            .chunk_group_by_ukey
+            .get(chunk_group_key)
+          {
             adjust_chunk_group_size += 1;
             for chunk in &chunk_group.chunks {
               adjust_chunk_in_chunk_group_size += 1;
@@ -96,7 +106,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
     adjust_chunk_in_chunk_group_size = adjust_chunk_in_chunk_group_size,
 
   );
-  let mut chunk_graph = std::mem::take(&mut compilation.chunk_graph);
+  let mut chunk_graph = std::mem::take(&mut compilation.build_chunk_graph_artifact.chunk_graph);
   for (module_id, chunks) in source_module_chunks {
     for chunk in chunks {
       chunk_graph.disconnect_chunk_and_module(&chunk, module_id);
@@ -108,7 +118,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
       chunk_graph.connect_chunk_and_module(chunk, module_id);
     }
   }
-  compilation.chunk_graph = chunk_graph;
+  compilation.build_chunk_graph_artifact.chunk_graph = chunk_graph;
 
   logger.time_end(start);
 

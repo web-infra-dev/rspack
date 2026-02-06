@@ -109,7 +109,8 @@ impl Cache for MixedCache {
     self.persistent.before_build_chunk_graph(compilation).await;
   }
 
-  async fn after_build_chunk_graph(&self, compilation: &Compilation) {
+  async fn after_build_chunk_graph(&mut self, compilation: &mut Compilation) {
+    self.memory.after_build_chunk_graph(compilation).await;
     self.persistent.after_build_chunk_graph(compilation).await;
   }
 

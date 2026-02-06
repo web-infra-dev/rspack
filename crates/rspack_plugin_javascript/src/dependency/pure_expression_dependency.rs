@@ -140,7 +140,10 @@ impl DependencyTemplate for PureExpressionDependencyTemplate {
         code_generatable_context
           .runtime_template
           .runtime_condition_expression(
-            &code_generatable_context.compilation.chunk_graph,
+            &code_generatable_context
+              .compilation
+              .build_chunk_graph_artifact
+              .chunk_graph,
             Some(&runtime_condition),
             code_generatable_context.runtime,
           ),

@@ -111,8 +111,12 @@ impl ModernModuleLibraryPlugin {
 
     for module_id in unconcatenated_module_ids {
       let chunk_runtime = compilation
+        .build_chunk_graph_artifact
         .chunk_graph
-        .get_module_runtimes_iter(*module_id, &compilation.chunk_by_ukey)
+        .get_module_runtimes_iter(
+          *module_id,
+          &compilation.build_chunk_graph_artifact.chunk_by_ukey,
+        )
         .fold(RuntimeSpec::default(), |mut acc, r| {
           acc.extend(r);
           acc
@@ -253,7 +257,10 @@ async fn render_startup(
   module_id: &ModuleIdentifier,
   render_source: &mut RenderSource,
 ) -> Result<()> {
-  let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+  let chunk = compilation
+    .build_chunk_graph_artifact
+    .chunk_by_ukey
+    .expect_get(chunk_ukey);
   let codegen = compilation
     .code_generation_results
     .get(module_id, Some(chunk.runtime()));

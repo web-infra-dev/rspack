@@ -217,7 +217,10 @@ async fn chunk_ids(
           named_chunk_ids_artifact.remove(chunk);
         }
         Mutation::ModuleSetId { module } => {
-          let chunks = compilation.chunk_graph.get_module_chunks(*module);
+          let chunks = compilation
+            .build_chunk_graph_artifact
+            .chunk_graph
+            .get_module_chunks(*module);
           affected_chunks.extend(chunks.iter().copied());
         }
         _ => {}
@@ -269,8 +272,8 @@ async fn chunk_ids(
   let unnamed_chunks = assign_named_chunk_ids(
     chunks,
     chunk_by_ukey,
-    &compilation.chunk_graph,
-    &compilation.chunk_group_by_ukey,
+    &compilation.build_chunk_graph_artifact.chunk_graph,
+    &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
     &compilation.module_ids_artifact,
     context,
     module_graph,

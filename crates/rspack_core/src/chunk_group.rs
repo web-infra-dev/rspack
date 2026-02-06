@@ -283,6 +283,7 @@ impl ChunkGroup {
       .iter()
       .filter_map(|chunk| {
         compilation
+          .build_chunk_graph_artifact
           .chunk_by_ukey
           .get(chunk)
           .and_then(|item| item.id())
@@ -335,7 +336,11 @@ impl ChunkGroup {
     for order_key in orders {
       let mut list = vec![];
       for child_ukey in &self.children {
-        let Some(child_group) = compilation.chunk_group_by_ukey.get(child_ukey) else {
+        let Some(child_group) = compilation
+          .build_chunk_graph_artifact
+          .chunk_group_by_ukey
+          .get(child_ukey)
+        else {
           continue;
         };
         if let Some(order) = child_group

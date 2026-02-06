@@ -100,7 +100,10 @@ async fn render_startup(
       continue;
     };
 
-    let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+    let chunk = compilation
+      .build_chunk_graph_artifact
+      .chunk_by_ukey
+      .expect_get(chunk_ukey);
     let info_name = export_info.name().expect("should have name");
     let used_name = export_info
       .get_used_name(Some(info_name), Some(chunk.runtime()))

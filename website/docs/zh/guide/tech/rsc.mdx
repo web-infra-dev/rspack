@@ -1,0 +1,286 @@
+import { PackageManagerTabs } from '@theme';
+
+# React 服务器组件
+
+React 服务器组件是一种新型的组件，它在打包之前，在独立于客户端应用程序或 SSR 服务器的环境中提前渲染。Rspack v2.0.0 及更高版本已内置对服务器组件的完整支持。
+
+## 如何使用
+
+Rspack 提供两种方案来支持 React 服务器组件：
+
+- **使用 Rsbuild**：Rsbuild 提供对 React 服务器组件开箱即用的支持，能够快速创建一个 React 服务器组件项目，详见 [rsbuild-plugin-rsc](https://github.com/rstackjs/rsbuild-plugin-rsc)。
+- **手动配置 Rspack**：你可以参考当前文档，手动添加 React 服务器组件相关的配置。
+
+## 示例
+
+[rspack-rsc-examples](https://github.com/rstackjs/rspack-rsc-examples) 仓库包含了使用 Rspack 构建 React 服务器组件应用的完整示例。
+
+## 安装依赖
+
+<PackageManagerTabs command="install react react-dom react-server-dom-rspack" />
+
+:::tip
+React 服务器组件依赖于 React 19 的新架构。请确保 `react` 和 `react-dom` 的版本均为 v19.1.0 或更高。
+:::
+
+## 基本概念
+
+React 服务器组件产物需要在服务器和浏览器两种环境中协同运行。为了支持这种架构，Rspack 需要启动两个 Compiler 实例分别构建服务端和浏览器端的产物，下图展示了整体的构建流程：
+
+![RSC Build Flow](https://assets.rspack.rs/rspack/assets/rspack-rsc-build-flow.jpg)
+
+- **Client Compiler** (`target: 'web'`)： 负责生成运行在浏览器的代码。它主要打包客户端组件，以及应用所需的 CSS 和静态资源，处理组件的水合（Hydration）逻辑。
+- **Server Compiler** (`target: 'node'`)： 负责生成运行在服务器的代码。它负责预渲染 React 服务器组件，并打包 Server Actions 的执行逻辑，同时处理服务端渲染（SSR）相关的代码。
+
+在配置文件中，对应于两个 Compiler 配置：
+
+```js title="rspack.config.mjs"
+export default [
+  // Client Compiler：构建浏览器端资源
+  {
+    target: 'web',
+    // ...客户端特定配置
+  },
+  // Server Compiler：构建 RSC Payload 和 Server Actions
+  {
+    target: 'node',
+    // ...服务端特定配置
+  },
+];
+```
+
+## 配置插件
+
+Rspack 通过一对协同工作的插件来支持 React 服务器组件。你需要调用 `rsc.createPlugins` 生成 `ServerPlugin` 和 `ClientPlugin`，并将它们分别配置到对应的 Compiler 中：
+
+```js title="rspack.config.mjs"
+import { experiments } from '@rspack/core';
+
+// 创建一对 RSC 插件
+const { createPlugins, Layers } = experiments.rsc;
+const { ServerPlugin, ClientPlugin } = createPlugins();
+
+export default [
+  {
+    // Client Compiler
+    target: 'web',
+    plugins: [new ClientPlugin()],
+    // ...客户端特定配置
+  },
+  {
+    // Server Compiler
+    target: 'node',
+    plugins: [new ServerPlugin()],
+    // ...服务端特定配置
+  },
+];
+```
+
+这两个插件会在内部调度 Client Compiler 和 Server Compiler 的构建流程，建立通信机制以同步编译状态、模块信息，处理客户端组件、生成资源清单。
+
+## 配置 JSX/TSX
+
+添加 `builtin:swc-loader` 来处理 `.jsx` 和 `.tsx` 文件。必须开启 `rspackExperiments.reactServerComponents` 选项，启用 Rspack 对 RSC 语法的支持。
+
+```js title="rspack.config.mjs"
+const jsxRule = {
+  test: /\.jsx$/,
+  use: {
+    loader: 'builtin:swc-loader',
+    options: {
+      jsc: {
+        parser: {
+          syntax: 'ecmascript',
+          jsx: true,
+        },
+      },
+    },
+    rspackExperiments: {
+      reactServerComponents: true,
+    },
+  },
+  type: 'javascript/auto',
+};
+
+const tsxRule = {
+  test: /\.tsx$/,
+  use: {
+    loader: 'builtin:swc-loader',
+    options: {
+      jsc: {
+        parser: {
+          syntax: 'typescript',
+          tsx: true,
+        },
+      },
+    },
+    rspackExperiments: {
+      reactServerComponents: true,
+    },
+  },
+  type: 'javascript/auto',
+};
+
+export default [
+  {
+    target: 'web',
+    module: {
+      rules: [jsxRule, tsxRule],
+    },
+  },
+  {
+    target: 'node',
+    module: {
+      rules: [jsxRule, tsxRule],
+    },
+  },
+];
+```
+
+Loader 会根据模块所属的 layer 对 `"use client"` 和 `"use server"` 指令执行不同的转换逻辑：
+
+1. 当模块属于 `Layers.rsc`（服务器组件环境）时，会调用 `react-server-dom-rspack` 进行转换：
+   - `"use client"` 模块被转换为客户端引用（Client Reference）。
+   - `"use server"` 模块被注册为 Server Action，使其能够响应来自客户端的远程调用。
+
+2. 当模块不属于 `Layers.rsc`（如客户端或 SSR 环境）时：
+   - `"use server"`：模块会转换为服务端引用（Server Reference）。
+
+RSC 插件也会利用 loader 识别出的指令信息，区分客户端组件和服务器组件。
+
+## 配置 layer
+
+在 Server Compiler 中，Rspack 利用 [layer](/guide/features/layer) 标识属于服务器组件（RSC）环境的模块。
+
+为了使用 RSC 功能，你必须将 RSC 组件明确设置为 `Layers.rsc`。只有被标记为 `Layers.rsc` 的模块，Loader 才会将其内部的 `"use client"` 指令转换为客户端引用（Client Reference）。
+
+如果你需要服务端渲染，可以通过 `Layers.ssr` 来标识 SSR 入口。SSR 是可选的，若无模块被分配至该 `Layers.ssr`，Rspack 会跳过 SSR 产物的生成。
+
+```js title="rspack.config.mjs"
+import path from 'node:path';
+
+const ssrEntry = path.resolve(
+  import.meta.dirname,
+  'src/framework/entry.ssr.tsx',
+);
+const rscEntry = path.resolve(
+  import.meta.dirname,
+  'src/framework/entry.rsc.tsx',
+);
+
+export default [
+  // ...
+  {
+    target: 'node',
+    module: {
+      rules: [
+        // 将 SSR 入口分配给 Layers.ssr
+        {
+          resource: ssrEntry,
+          layer: Layers.ssr,
+        },
+        // 为所有位于 rsc layer 下的模块，并配置 resolve.conditionNames
+        {
+          resource: rscEntry,
+          layer: Layers.rsc,
+          resolve: {
+            conditionNames: ['react-server', '...'],
+          },
+        },
+        {
+          issuerLayer: Layers.rsc,
+          exclude: ssrEntry,
+          resolve: {
+            conditionNames: ['react-server', '...'],
+          },
+        },
+      ],
+    },
+    // ...
+  },
+];
+```
+
+## 页面或路由入口
+
+`"use server-entry"` 是 Rspack 引入的一个特有指令，主要面向框架开发者，用于将服务器组件标记为页面或路由的逻辑入口。
+
+Rspack 编译 `"use server-entry"` 组件时，会生成浏览器初始化 RSC 应用所需的完整资源，并直接在导出的组件上挂载静态属性来记录这些信息：
+
+- **entryJsFiles**：启动脚本。对应 Client Compiler 中同名构建入口的产物，负责在浏览器端初始化 React 运行时和渲染流程。
+- **entryCssFiles**：样式资源。Rspack 会收集该服务器组件及其子服务器组件树中依赖的所有 CSS 文件。
+
+![RSC Server Entry](https://assets.rspack.rs/rspack/assets/rspack-rsc-server-entry.jpg)
+
+```tsx title="Todos.tsx"
+'use server-entry';
+
+import './Todos.css';
+import { Dialog } from './Dialog';
+import { TodoDetail } from './TodoDetail';
+import { TodoCreate } from './TodoCreate';
+import { TodoList } from './TodoList';
+
+export async function Todos({ id }: { id?: number }) {
+  // ...组件逻辑
+}
+```
+
+在服务端运行时，你可以直接访问这些挂载在组件上的静态属性，来构建 HTML 头部资源：
+
+```tsx title="entry.rsc.tsx"
+import type { ServerEntry } from 'react-server-dom-rspack/server.node';
+
+const { Todos } = await import('../Todos.tsx');
+const serverEntry = Todos as ServerEntry<typeof Todos>;
+
+const root = (
+  <>
+    {/* 读取组件上的静态属性，注入当前路由的 CSS */}
+    {serverEntry.entryCssFiles
+      ? serverEntry.entryCssFiles.map((href) => (
+          <link
+            key={href}
+            rel="stylesheet"
+            href={href}
+            precedence="default"
+          ></link>
+        ))
+      : null}
+    <Todos id={id} />
+  </>
+);
+
+const response = await handleRequest({
+  request,
+  getRoot: () => root,
+  bootstrapScripts: serverEntry.entryJsFiles, // 读取组件上的静态属性，作为启动脚本
+  nonce,
+});
+```
+
+## 开发服务器
+
+RSC 需要同时处理客户端和服务器端的构建、响应 RSC 请求和服务器组件 HMR，Rspack 内置的 Dev Server 无法满足需求。你需要实现一个自定义开发服务器，以实现以下核心功能：
+
+- **响应 RSC 请求**：拦截并处理客户端发起的 RSC 请求，调用 Server Compiler 生成的产物执行渲染逻辑，并返回序列化的 RSC Payload（或 HTML 流）。
+- **服务端运行时管理**：将服务端产物运行在独立的上下文（如 Worker Threads 或子进程）中，以保证环境隔离。同时确保在服务端代码更新时，能够清理旧实例并重启以执行新代码。
+- **服务器组件 HMR**：服务端组件的构建变更后，通过 WebSocket 等通信机制通知浏览器。浏览器接收到信号后，应触发 RSC 重新请求，更新页面内容。
+
+为实现服务器组件 HMR，Rspack 在 `ServerPlugin` 中暴露了 `onServerComponentChanges` 钩子。你可以利用此回调监听服务器组件的构建变更，并向客户端发送更新信号：
+
+```js title="rspack.config.mjs"
+export default [
+  // ...
+  {
+    target: 'node',
+    plugins: [
+      new ServerPlugin({
+        onServerComponentChanges() {
+          // 调用自定义 Server 的方法通知客户端刷新
+        },
+      }),
+    ],
+  },
+];
+```

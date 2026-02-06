@@ -116,7 +116,10 @@ async fn render(
   // NOTE: This function handles hashbang and directives for non new ESM library formats.
   // Similar logic exists in rspack_plugin_esm_library/src/render.rs for ESM format,
   // as that plugin's render path is used instead when ESM library plugin is enabled.
-  let entry_modules = compilation.chunk_graph.get_chunk_entry_modules(chunk_ukey);
+  let entry_modules = compilation
+    .build_chunk_graph_artifact
+    .chunk_graph
+    .get_chunk_entry_modules(chunk_ukey);
   if entry_modules.is_empty() {
     return Ok(());
   }

@@ -146,9 +146,12 @@ async fn universal_compile_async_wasm_plugin_runtime_requirements_in_tree(
     return Ok(None);
   }
 
-  let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+  let chunk = compilation
+    .build_chunk_graph_artifact
+    .chunk_by_ukey
+    .expect_get(chunk_ukey);
   let wasm_loading = chunk
-    .get_entry_options(&compilation.chunk_group_by_ukey)
+    .get_entry_options(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
     .and_then(|options| options.wasm_loading.clone())
     .unwrap_or_else(|| compilation.options.output.wasm_loading.clone());
 

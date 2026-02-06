@@ -47,8 +47,7 @@ impl RuntimeModule for ChunkPrefetchStartupRuntimeModule {
           .iter()
           .filter_map(|c| {
             if c.to_owned().eq(&chunk_ukey) {
-              compilation
-                .chunk_by_ukey
+              compilation.build_chunk_graph_artifact.chunk_by_ukey
                 .expect_get(c)
                 .id()
             } else {
@@ -60,8 +59,7 @@ impl RuntimeModule for ChunkPrefetchStartupRuntimeModule {
         let child_chunk_ids = child_chunks
           .iter()
           .filter_map(|c| {
-            compilation
-              .chunk_by_ukey
+            compilation.build_chunk_graph_artifact.chunk_by_ukey
               .expect_get(c)
               .id()
           })

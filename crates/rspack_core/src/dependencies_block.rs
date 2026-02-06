@@ -165,8 +165,12 @@ impl AsyncDependenciesBlock {
   ) {
     self.group_options.dyn_hash(hasher);
     if let Some(chunk_group) = compilation
+      .build_chunk_graph_artifact
       .chunk_graph
-      .get_block_chunk_group(&self.id, &compilation.chunk_group_by_ukey)
+      .get_block_chunk_group(
+        &self.id,
+        &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
+      )
     {
       chunk_group.id(compilation).dyn_hash(hasher);
     }

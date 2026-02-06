@@ -43,13 +43,17 @@ async fn additional_chunk_runtime_requirements(
   runtime_requirements: &mut RuntimeGlobals,
   _runtime_modules: &mut Vec<Box<dyn RuntimeModule>>,
 ) -> Result<()> {
-  let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+  let chunk = compilation
+    .build_chunk_graph_artifact
+    .chunk_by_ukey
+    .expect_get(chunk_ukey);
 
-  if chunk.has_runtime(&compilation.chunk_group_by_ukey) {
+  if chunk.has_runtime(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey) {
     return Ok(());
   }
 
   if compilation
+    .build_chunk_graph_artifact
     .chunk_graph
     .get_number_of_entry_modules(chunk_ukey)
     > 0
@@ -70,8 +74,11 @@ async fn js_chunk_hash(
   chunk_ukey: &ChunkUkey,
   hasher: &mut RspackHash,
 ) -> Result<()> {
-  let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
-  if chunk.has_runtime(&compilation.chunk_group_by_ukey) {
+  let chunk = compilation
+    .build_chunk_graph_artifact
+    .chunk_by_ukey
+    .expect_get(chunk_ukey);
+  if chunk.has_runtime(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey) {
     return Ok(());
   }
 
@@ -85,6 +92,7 @@ async fn js_chunk_hash(
     hasher,
     compilation,
     compilation
+      .build_chunk_graph_artifact
       .chunk_graph
       .get_chunk_entry_modules_with_chunk_group_iterable(chunk_ukey),
     chunk_ukey,
@@ -101,8 +109,12 @@ async fn render_chunk(
   render_source: &mut RenderSource,
 ) -> Result<()> {
   let hooks = JsPlugin::get_compilation_hooks(compilation.id());
-  let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+  let chunk = compilation
+    .build_chunk_graph_artifact
+    .chunk_by_ukey
+    .expect_get(chunk_ukey);
   let has_runtime_modules = compilation
+    .build_chunk_graph_artifact
     .chunk_graph
     .has_chunk_runtime_modules(chunk_ukey);
   let global_object = &compilation.options.output.global_object;
@@ -134,7 +146,7 @@ async fn render_chunk(
       serde_json::to_string(chunk.expect_id()).expect("json stringify failed"),
     )));
     source.add(render_source.source.clone());
-    let has_entry = chunk.has_entry_module(&compilation.chunk_graph);
+    let has_entry = chunk.has_entry_module(&compilation.build_chunk_graph_artifact.chunk_graph);
     if has_entry || has_runtime_modules {
       source.add(RawStringSource::from_static(","));
       source.add(RawStringSource::from(format!(
@@ -148,6 +160,7 @@ async fn render_chunk(
       }
       if has_entry {
         let entries = compilation
+          .build_chunk_graph_artifact
           .chunk_graph
           .get_chunk_entry_modules_with_chunk_group_iterable(chunk_ukey);
         let runtime_requirements =

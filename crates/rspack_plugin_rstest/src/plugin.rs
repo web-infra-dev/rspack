@@ -178,9 +178,13 @@ struct MockFlagPos {
 
 #[plugin_hook(CompilationProcessAssets for RstestPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_ADDITIONAL)]
 async fn mock_hoist_process_assets(&self, compilation: &mut Compilation) -> Result<()> {
-  let mut files = Vec::with_capacity(compilation.chunk_by_ukey.len());
+  let mut files = Vec::with_capacity(compilation.build_chunk_graph_artifact.chunk_by_ukey.len());
 
-  for chunk in compilation.chunk_by_ukey.values() {
+  for chunk in compilation
+    .build_chunk_graph_artifact
+    .chunk_by_ukey
+    .values()
+  {
     for file in chunk.files() {
       files.push(file.clone());
     }

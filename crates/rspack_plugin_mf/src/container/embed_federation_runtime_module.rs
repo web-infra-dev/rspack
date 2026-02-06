@@ -79,6 +79,7 @@ impl RuntimeModule for EmbedFederationRuntimeModule {
       for dep_id in collected_deps.iter() {
         if let Some(module_dyn) = module_graph.get_module_by_dependency_id(dep_id) {
           let is_in_chunk = compilation
+            .build_chunk_graph_artifact
             .chunk_graph
             .is_module_in_chunk(&module_dyn.identifier(), chunk_ukey);
           if is_in_chunk {
@@ -103,12 +104,14 @@ impl RuntimeModule for EmbedFederationRuntimeModule {
 
     if self.options.experiments.async_startup {
       let entry_chunk_ids = compilation
+        .build_chunk_graph_artifact
         .chunk_by_ukey
         .expect_get(&chunk_ukey)
-        .get_all_initial_chunks(&compilation.chunk_group_by_ukey)
+        .get_all_initial_chunks(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
         .into_iter()
         .map(|chunk_ukey| {
           compilation
+            .build_chunk_graph_artifact
             .chunk_by_ukey
             .expect_get(&chunk_ukey)
             .expect_id()

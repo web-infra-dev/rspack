@@ -5,9 +5,6 @@ const baseConfig = {
 	mode: "production",
 	context: __dirname,
 	entry: "./index.jsx",
-	experiments: {
-		"outputModule": true
-	},
 	externalsType: "module-import",
 	externals: {
 		'react': 'react',

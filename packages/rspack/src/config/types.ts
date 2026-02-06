@@ -537,7 +537,6 @@ export type Output = {
 
   /**
    * Output JavaScript files as module type.
-   * Disabled by default as it's an experimental feature. To use it, you must set experiments.outputModule to true.
    * @default false
    */
   module?: OutputModule;

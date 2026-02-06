@@ -25,6 +25,7 @@ impl PassExt for BuildChunkGraphPass {
       let start = logger.time("rebuild chunk graph");
       build_chunk_graph(compilation)?;
       compilation
+        .build_chunk_graph_artifact
         .chunk_graph
         .generate_dot(compilation, "after-code-splitting")
         .await;
@@ -35,7 +36,7 @@ impl PassExt for BuildChunkGraphPass {
     Ok(())
   }
 
-  async fn after_pass(&self, compilation: &Compilation, cache: &mut dyn Cache) {
+  async fn after_pass(&self, compilation: &mut Compilation, cache: &mut dyn Cache) {
     cache.after_build_chunk_graph(compilation).await;
   }
 }

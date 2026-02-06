@@ -20,7 +20,7 @@ impl PassExt for RuntimeRequirementsPass {
     runtime_requirements_pass_impl(compilation).await
   }
 
-  async fn after_pass(&self, compilation: &Compilation, cache: &mut dyn Cache) {
+  async fn after_pass(&self, compilation: &mut Compilation, cache: &mut dyn Cache) {
     cache.after_modules_runtime_requirements(compilation).await;
     cache.after_chunks_runtime_requirements(compilation).await;
   }
@@ -108,16 +108,26 @@ async fn runtime_requirements_pass_impl(compilation: &mut Compilation) -> Result
     }
     compilation
       .cgc_runtime_requirements_artifact
-      .retain(|chunk, _| compilation.chunk_by_ukey.contains(chunk));
+      .retain(|chunk, _| {
+        compilation
+          .build_chunk_graph_artifact
+          .chunk_by_ukey
+          .contains(chunk)
+      });
     let logger = compilation.get_logger("rspack.incremental.chunksRuntimeRequirements");
     logger.log(format!(
       "{} chunks are affected, {} in total",
       affected_chunks.len(),
-      compilation.chunk_by_ukey.len()
+      compilation.build_chunk_graph_artifact.chunk_by_ukey.len()
     ));
     affected_chunks
   } else {
-    compilation.chunk_by_ukey.keys().copied().collect()
+    compilation
+      .build_chunk_graph_artifact
+      .chunk_by_ukey
+      .keys()
+      .copied()
+      .collect()
   };
   compilation
     .process_chunks_runtime_requirements(
@@ -185,14 +195,13 @@ impl Compilation {
     let module_results = rspack_futures::scope::<_, Result<_>>(|token| {
       modules
         .into_iter()
-        .filter(|module| self.chunk_graph.get_number_of_module_chunks(*module) > 0)
+        .filter(|module| self.build_chunk_graph_artifact.chunk_graph.get_number_of_module_chunks(*module) > 0)
         .for_each(|module| {
           let s = unsafe { token.used((&self, &plugin_driver)) };
           s.spawn(move |(compilation, plugin_driver)| async move {
             let mut map = RuntimeSpecMap::new();
-            let runtimes = compilation
-              .chunk_graph
-              .get_module_runtimes_iter(module, &compilation.chunk_by_ukey);
+            let runtimes = compilation.build_chunk_graph_artifact.chunk_graph
+              .get_module_runtimes_iter(module, &compilation.build_chunk_graph_artifact.chunk_by_ukey);
             for runtime in runtimes {
               let runtime_requirements = compilation
                 .process_runtime_requirements_cache_artifact
@@ -272,8 +281,15 @@ impl Compilation {
       .par_bridge()
       .map(|chunk_ukey| {
         let mut set = RuntimeGlobals::default();
-        for mid in self.chunk_graph.get_chunk_modules_identifier(chunk_ukey) {
-          let chunk = self.chunk_by_ukey.expect_get(chunk_ukey);
+        for mid in self
+          .build_chunk_graph_artifact
+          .chunk_graph
+          .get_chunk_modules_identifier(chunk_ukey)
+        {
+          let chunk = self
+            .build_chunk_graph_artifact
+            .chunk_by_ukey
+            .expect_get(chunk_ukey);
           if let Some(runtime_requirements) =
             ChunkGraph::get_module_runtime_requirements(self, *mid, chunk.runtime())
           {
@@ -342,9 +358,12 @@ impl Compilation {
       let mut all_runtime_requirements = RuntimeGlobals::default();
       let mut runtime_modules_to_add: Vec<(ChunkUkey, Box<dyn RuntimeModule>)> = Vec::new();
 
-      let entry = self.chunk_by_ukey.expect_get(&entry_ukey);
+      let entry = self
+        .build_chunk_graph_artifact
+        .chunk_by_ukey
+        .expect_get(&entry_ukey);
       for chunk_ukey in entry
-        .get_all_referenced_chunks(&self.chunk_group_by_ukey)
+        .get_all_referenced_chunks(&self.build_chunk_graph_artifact.chunk_group_by_ukey)
         .iter()
       {
         let runtime_requirements = ChunkGraph::get_chunk_runtime_requirements(self, chunk_ukey);
@@ -421,6 +440,7 @@ impl Compilation {
     let mut runtime_modules = mem::take(&mut self.runtime_modules);
     for entry_ukey in &entries {
       let runtime_module_ids: Vec<_> = self
+        .build_chunk_graph_artifact
         .chunk_graph
         .get_chunk_runtime_modules_iterable(entry_ukey)
         .copied()

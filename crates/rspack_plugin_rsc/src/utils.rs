@@ -53,7 +53,12 @@ pub struct ChunkModules<'a> {
 
 impl<'a> ChunkModules<'a> {
   pub fn new(compilation: &'a Compilation, module_graph: &'a ModuleGraph) -> Self {
-    let chunk_groups_iter = Box::new(compilation.chunk_group_by_ukey.iter());
+    let chunk_groups_iter = Box::new(
+      compilation
+        .build_chunk_graph_artifact
+        .chunk_group_by_ukey
+        .iter(),
+    );
     Self {
       compilation,
       module_graph,
@@ -120,6 +125,7 @@ impl<'a> Iterator for ChunkModules<'a> {
 
           let chunk_modules = self
             .compilation
+            .build_chunk_graph_artifact
             .chunk_graph
             .get_chunk_modules_identifier(chunk_ukey);
 
