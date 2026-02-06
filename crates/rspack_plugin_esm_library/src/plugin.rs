@@ -8,15 +8,17 @@ use atomic_refcell::AtomicRefCell;
 use regex::Regex;
 use rspack_collections::{Identifiable, Identifier, IdentifierIndexMap, IdentifierSet, UkeyMap};
 use rspack_core::{
-  ApplyContext, AssetInfo, AsyncModulesArtifact, BoxModule, ChunkUkey, Compilation,
-  CompilationAdditionalChunkRuntimeRequirements, CompilationAdditionalTreeRuntimeRequirements,
-  CompilationAfterCodeGeneration, CompilationConcatenationScope, CompilationFinishModules,
-  CompilationOptimizeChunks, CompilationParams, CompilationProcessAssets,
+  ApplyContext, AssetInfo, AsyncModulesArtifact, BoxModule, BuildModuleGraphArtifact, ChunkUkey,
+  Compilation, CompilationAdditionalChunkRuntimeRequirements,
+  CompilationAdditionalTreeRuntimeRequirements, CompilationAfterCodeGeneration,
+  CompilationConcatenationScope, CompilationFinishModules, CompilationOptimizeChunks,
+  CompilationOptimizeDependencies, CompilationParams, CompilationProcessAssets,
   CompilationRuntimeRequirementInTree, CompilerCompilation, ConcatenatedModuleInfo,
   ConcatenationScope, DependencyType, ExternalModuleInfo, GetTargetResult, Logger,
   ModuleFactoryCreateData, ModuleIdentifier, ModuleInfo, ModuleType,
   NormalModuleFactoryAfterFactorize, NormalModuleFactoryParser, ParserAndGenerator, ParserOptions,
-  Plugin, PrefetchExportsInfoMode, RuntimeGlobals, RuntimeModule, get_target, is_esm_dep_like,
+  Plugin, PrefetchExportsInfoMode, RuntimeGlobals, RuntimeModule, SideEffectsOptimizeArtifact,
+  get_target, is_esm_dep_like,
   rspack_sources::{ReplaceSource, Source},
 };
 use rspack_error::{Diagnostic, Result};
@@ -25,6 +27,7 @@ use rspack_plugin_javascript::{
   JavascriptModulesRenderChunkContent, JsPlugin, RenderSource,
   dependency::ImportDependencyTemplate, parser_and_generator::JavaScriptParserAndGenerator,
 };
+use rspack_plugin_rslib::dyn_import_external::cutout_dyn_import_external;
 use rspack_util::fx_hash::FxHashMap;
 use sugar_path::SugarPath;
 use tokio::sync::RwLock;
@@ -556,6 +559,18 @@ async fn after_factorize(
   Ok(())
 }
 
+#[plugin_hook(CompilationOptimizeDependencies for EsmLibraryPlugin)]
+async fn optimize_dependencies(
+  &self,
+  _compilation: &Compilation,
+  _side_effects_optimize_artifact: &mut SideEffectsOptimizeArtifact,
+  build_module_graph_artifact: &mut BuildModuleGraphArtifact,
+  _diagnostics: &mut Vec<Diagnostic>,
+) -> Result<Option<bool>> {
+  cutout_dyn_import_external(build_module_graph_artifact);
+  Ok(None)
+}
+
 impl Plugin for EsmLibraryPlugin {
   fn apply(&self, ctx: &mut ApplyContext) -> Result<()> {
     ctx.compiler_hooks.compilation.tap(compilation::new(self));
@@ -599,6 +614,11 @@ impl Plugin for EsmLibraryPlugin {
       .compilation_hooks
       .optimize_chunks
       .tap(optimize_chunks::new(self));
+
+    ctx
+      .compilation_hooks
+      .optimize_dependencies
+      .tap(optimize_dependencies::new(self));
 
     ctx.normal_module_factory_hooks.parser.tap(parse::new(self));
     ctx

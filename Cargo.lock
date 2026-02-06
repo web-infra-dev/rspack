@@ -4447,6 +4447,7 @@ dependencies = [
  "rspack_hook",
  "rspack_javascript_compiler",
  "rspack_plugin_javascript",
+ "rspack_plugin_rslib",
  "rspack_plugin_runtime",
  "rspack_util",
  "serde",
