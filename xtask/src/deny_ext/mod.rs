@@ -236,10 +236,10 @@ fn find_workspace_root() -> anyhow::Result<std::path::PathBuf> {
 }
 
 #[derive(Debug, Args)]
-pub struct DenyExtCmd;
+pub(crate) struct DenyExtCmd;
 
 impl DenyExtCmd {
-  pub fn run(self) -> anyhow::Result<()> {
+  pub(crate) fn run(self) -> anyhow::Result<()> {
     println!("Checking workspace dependencies...");
 
     enforce_workspace_version()?;

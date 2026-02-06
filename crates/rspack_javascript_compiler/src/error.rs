@@ -12,10 +12,10 @@ use swc_core::common::{
 };
 
 #[derive(Debug, PartialEq, Eq, Hash)]
-pub struct EcmaError(String, Span);
+pub(crate) struct EcmaError(String, Span);
 
 #[derive(Debug)]
-pub struct EcmaErrorsDeduped(Vec<EcmaError>);
+pub(crate) struct EcmaErrorsDeduped(Vec<EcmaError>);
 
 impl IntoIterator for EcmaErrorsDeduped {
   type Item = EcmaError;
@@ -46,11 +46,11 @@ impl DedupEcmaErrors for Vec<swc_core::ecma::parser::error::Error> {
   }
 }
 
-pub trait DedupEcmaErrors {
+pub(crate) trait DedupEcmaErrors {
   fn dedup_ecma_errors(self) -> EcmaErrorsDeduped;
 }
 
-pub fn ecma_parse_error_deduped_to_rspack_error(
+pub(crate) fn ecma_parse_error_deduped_to_rspack_error(
   EcmaError(message, span): EcmaError,
   source: String,
 ) -> Error {
@@ -113,7 +113,7 @@ impl Emitter for RspackErrorEmitter {
 /// # Returns
 ///
 /// A result containing either the return value of the closure or a BatchErrors if errors occurred.
-pub fn with_rspack_error_handler<F, Ret>(
+pub(crate) fn with_rspack_error_handler<F, Ret>(
   title: String,
   cm: Arc<SourceMap>,
   op: F,

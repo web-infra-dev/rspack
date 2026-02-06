@@ -4,11 +4,11 @@ mod logic_expr;
 use rspack_core::{CachedConstDependency, ConstDependency};
 use swc_core::common::Spanned;
 
-pub use self::logic_expr::is_logic_op;
+pub(crate) use self::logic_expr::is_logic_op;
 use super::JavascriptParserPlugin;
 use crate::{utils::eval::evaluate_to_string, visitors::JavascriptParser};
 
-pub struct ConstPlugin;
+pub(crate) struct ConstPlugin;
 
 const RESOURCE_FRAGMENT: &str = "__resourceFragment";
 const RESOURCE_QUERY: &str = "__resourceQuery";

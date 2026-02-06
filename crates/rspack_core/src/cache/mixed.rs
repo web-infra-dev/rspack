@@ -13,13 +13,13 @@ use crate::{
 /// - Fast rebuilds using in-memory cache
 /// - Cache persistence across process restarts using disk storage
 #[derive(Debug)]
-pub struct MixedCache {
+pub(super) struct MixedCache {
   persistent: PersistentCache,
   memory: MemoryCache,
 }
 
 impl MixedCache {
-  pub fn new(persistent: PersistentCache) -> Self {
+  pub(super) fn new(persistent: PersistentCache) -> Self {
     Self {
       persistent,
       memory: MemoryCache::default(),

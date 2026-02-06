@@ -40,7 +40,7 @@ type BlockConnectionMap = HashMap<
 >;
 
 #[derive(Debug, Clone, Default)]
-pub struct ChunkGroupInfo {
+pub(crate) struct ChunkGroupInfo {
   pub initialized: bool,
   pub ukey: CgiUkey,
   pub chunk_group: ChunkGroupUkey,
@@ -77,7 +77,7 @@ impl DatabaseItem for ChunkGroupInfo {
 }
 
 impl ChunkGroupInfo {
-  pub fn new(
+  pub(crate) fn new(
     chunk_group: ChunkGroupUkey,
     runtime: Arc<RuntimeSpec>,
     chunk_loading: bool,
@@ -133,7 +133,7 @@ impl ChunkGroupInfo {
 static NEXT_CGI_UKEY: AtomicU32 = AtomicU32::new(0);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct CgiUkey(Ukey, std::marker::PhantomData<ChunkGroupInfo>);
+pub(crate) struct CgiUkey(Ukey, std::marker::PhantomData<ChunkGroupInfo>);
 
 impl Default for CgiUkey {
   fn default() -> Self {
@@ -144,7 +144,7 @@ impl Default for CgiUkey {
 impl_item_ukey!(CgiUkey);
 
 impl CgiUkey {
-  pub fn new() -> Self {
+  pub(crate) fn new() -> Self {
     Self(
       NEXT_CGI_UKEY
         .fetch_add(1, std::sync::atomic::Ordering::Relaxed)
@@ -330,7 +330,7 @@ fn get_active_state_of_connections(
 }
 
 impl CodeSplitter {
-  pub fn get_module_ordinal(&self, module_id: ModuleIdentifier) -> u64 {
+  pub(crate) fn get_module_ordinal(&self, module_id: ModuleIdentifier) -> u64 {
     *self.ordinal_by_module.get(&module_id).unwrap_or_else(|| {
       panic!(
         "expected a module ordinal for identifier '{}', but none was found.",
@@ -339,7 +339,7 @@ impl CodeSplitter {
     })
   }
 
-  pub fn prepare_entry_input(
+  pub(crate) fn prepare_entry_input(
     &mut self,
     name: &str,
     compilation: &mut Compilation,
@@ -526,7 +526,7 @@ impl CodeSplitter {
     Ok((entrypoint_ukey, modules))
   }
 
-  pub fn set_entry_runtime_and_depend_on(
+  pub(crate) fn set_entry_runtime_and_depend_on(
     &mut self,
     name: &str,
     compilation: &mut Compilation,
@@ -712,7 +712,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     Ok(())
   }
 
-  pub fn prepare_input_entrypoints_and_modules(
+  pub(crate) fn prepare_input_entrypoints_and_modules(
     &mut self,
     all_modules: &Vec<ModuleIdentifier>,
     compilation: &mut Compilation,
@@ -769,7 +769,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     Ok(input_entrypoints_and_modules)
   }
 
-  pub fn prepare_entries(
+  pub(crate) fn prepare_entries(
     &mut self,
     input_entrypoints_and_modules: UkeyIndexMap<ChunkGroupUkey, Vec<ModuleIdentifier>>,
     compilation: &mut Compilation,
@@ -851,7 +851,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
   }
 
   // #[tracing::instrument(skip_all)]
-  pub fn split(&mut self, compilation: &mut Compilation) -> Result<()> {
+  pub(crate) fn split(&mut self, compilation: &mut Compilation) -> Result<()> {
     let logger = compilation.get_logger("rspack.buildChunkGraph");
 
     // pop() is used to read from the queue
@@ -2137,7 +2137,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     }
   }
 
-  pub fn prepare(
+  pub(crate) fn prepare(
     &mut self,
     all_modules: &Vec<ModuleIdentifier>,
     compilation: &Compilation,
@@ -2271,7 +2271,7 @@ pub(crate) enum DependenciesBlockIdentifier {
 }
 
 impl DependenciesBlockIdentifier {
-  pub fn get_root_block<'a>(&'a self, module_graph: &'a ModuleGraph) -> ModuleIdentifier {
+  pub(crate) fn get_root_block<'a>(&'a self, module_graph: &'a ModuleGraph) -> ModuleIdentifier {
     match self {
       DependenciesBlockIdentifier::Module(m) => *m,
       DependenciesBlockIdentifier::AsyncDependenciesBlock(id) => *module_graph
@@ -2281,7 +2281,10 @@ impl DependenciesBlockIdentifier {
     }
   }
 
-  pub fn get_blocks(&self, compilation: &Compilation) -> Vec<AsyncDependenciesBlockIdentifier> {
+  pub(crate) fn get_blocks(
+    &self,
+    compilation: &Compilation,
+  ) -> Vec<AsyncDependenciesBlockIdentifier> {
     match self {
       DependenciesBlockIdentifier::Module(m) => compilation
         .get_module_graph()
@@ -2298,7 +2301,7 @@ impl DependenciesBlockIdentifier {
     }
   }
 
-  pub fn as_async(self) -> Option<AsyncDependenciesBlockIdentifier> {
+  pub(crate) fn as_async(self) -> Option<AsyncDependenciesBlockIdentifier> {
     if let DependenciesBlockIdentifier::AsyncDependenciesBlock(id) = self {
       Some(id)
     } else {

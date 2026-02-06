@@ -381,7 +381,7 @@ pub static REQUIRE_SCOPE_GLOBALS: LazyLock<RuntimeGlobals> = LazyLock::new(|| {
 pub static MODULE_GLOBALS: LazyLock<RuntimeGlobals> =
   LazyLock::new(|| RuntimeGlobals::MODULE_ID | RuntimeGlobals::MODULE_LOADED);
 
-pub fn runtime_globals_to_string(
+pub(crate) fn runtime_globals_to_string(
   runtime_globals: &RuntimeGlobals,
   compiler_options: &CompilerOptions,
 ) -> String {
@@ -497,7 +497,7 @@ pub enum RuntimeVariable {
   StartupExec,
 }
 
-pub fn runtime_variable_to_string(
+pub(crate) fn runtime_variable_to_string(
   runtime_variable: &RuntimeVariable,
   _compiler_options: &CompilerOptions,
 ) -> String {

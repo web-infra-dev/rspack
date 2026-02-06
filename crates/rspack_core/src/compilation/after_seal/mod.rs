@@ -3,7 +3,7 @@ use async_trait::async_trait;
 use super::*;
 use crate::compilation::pass::PassExt;
 
-pub struct AfterSealPass;
+pub(super) struct AfterSealPass;
 
 #[async_trait]
 impl PassExt for AfterSealPass {

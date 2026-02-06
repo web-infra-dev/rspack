@@ -10,7 +10,7 @@ type BoxTask = Box<dyn Task<ExecutorTaskContext>>;
 
 /// Tracks whether a module and its submodules have been built.
 #[derive(Debug, Default)]
-pub struct ModuleTracker {
+pub(super) struct ModuleTracker {
   /// A map to record unfinished modules and its unfinished submodules count.
   ///
   /// If a module not in this map, it means the module and its submodules have already been built.
@@ -133,7 +133,7 @@ impl ModuleTracker {
   }
 
   /// Handle factorize task failed.
-  pub fn on_factorize_failed(
+  pub(super) fn on_factorize_failed(
     &mut self,
     context: &mut TaskContext,
     origin_mid: Option<ModuleIdentifier>,
@@ -143,7 +143,7 @@ impl ModuleTracker {
   }
 
   /// Handle add task with resolved module.
-  pub fn on_add_resolved_module(
+  pub(super) fn on_add_resolved_module(
     &mut self,
     context: &mut TaskContext,
     origin_mid: Option<ModuleIdentifier>,
@@ -157,13 +157,13 @@ impl ModuleTracker {
   }
 
   /// Handle add task with module need build
-  pub fn on_add(&mut self, mid: ModuleIdentifier) {
+  pub(super) fn on_add(&mut self, mid: ModuleIdentifier) {
     // will build module
     self.unfinished_module.insert(mid, usize::MAX);
   }
 
   /// Handle process dependencies task.
-  pub fn on_process_dependencies(
+  pub(super) fn on_process_dependencies(
     &mut self,
     context: &mut TaskContext,
     mid: ModuleIdentifier,
@@ -178,7 +178,12 @@ impl ModuleTracker {
   }
 
   /// Handle entry task.
-  pub fn on_entry(&mut self, is_new: bool, dep_id: DependencyId, task: BoxTask) -> Vec<BoxTask> {
+  pub(super) fn on_entry(
+    &mut self,
+    is_new: bool,
+    dep_id: DependencyId,
+    task: BoxTask,
+  ) -> Vec<BoxTask> {
     match self.entry_finish_tasks.entry(dep_id) {
       Entry::Occupied(mut entry) => {
         entry.get_mut().push(task);
@@ -198,7 +203,7 @@ impl ModuleTracker {
   }
 
   /// Check if a dep_id is running
-  pub fn is_running(&self, dep_id: &DependencyId) -> bool {
+  pub(super) fn is_running(&self, dep_id: &DependencyId) -> bool {
     self.entry_finish_tasks.contains_key(dep_id)
   }
 }

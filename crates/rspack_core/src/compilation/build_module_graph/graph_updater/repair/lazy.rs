@@ -6,7 +6,7 @@ use crate::{
 };
 
 #[derive(Debug)]
-pub struct ProcessUnlazyDependenciesTask {
+pub(crate) struct ProcessUnlazyDependenciesTask {
   pub forwarded_ids: ForwardedIdSet,
   pub original_module_identifier: ModuleIdentifier,
 }

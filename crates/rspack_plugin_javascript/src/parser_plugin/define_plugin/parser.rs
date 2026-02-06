@@ -17,14 +17,14 @@ use crate::{
   visitors::{AllowedMemberTypes, JavascriptParser, MemberExpressionInfo},
 };
 
-pub struct DefineParserPlugin {
+pub(super) struct DefineParserPlugin {
   recurse: AtomicBool,
   recurse_typeof: AtomicBool,
   walk_data: Arc<WalkData>,
 }
 
 impl DefineParserPlugin {
-  pub fn new(walk_data: Arc<WalkData>) -> Self {
+  pub(super) fn new(walk_data: Arc<WalkData>) -> Self {
     Self {
       recurse: AtomicBool::new(false),
       recurse_typeof: AtomicBool::new(false),

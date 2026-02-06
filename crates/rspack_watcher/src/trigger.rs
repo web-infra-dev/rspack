@@ -10,7 +10,7 @@ use crate::{EventBatch, paths::PathManager};
 ///
 /// This struct is typically used to determine which registered dependencies (files, directories,
 /// or missing paths) are related to a specific filesystem path, such as when handling file system events.
-pub struct DependencyFinder<'a> {
+pub(crate) struct DependencyFinder<'a> {
   /// Reference to the set of registered file paths.
   pub files: &'a ArcPathDashSet,
   /// Reference to the set of registered directory paths.
@@ -25,7 +25,7 @@ impl<'a> DependencyFinder<'a> {
   /// This method checks if the path is a directory or file and then determines if it is registered
   /// in the dependency sets. If it is a directory, it also recursively adds all parent directories
   /// that are registered as directories or missing.
-  pub fn find_associated_event(
+  pub(crate) fn find_associated_event(
     &self,
     path: &ArcPath,
     kind: FsEventKind,
@@ -86,7 +86,7 @@ impl<'a> DependencyFinder<'a> {
 
 /// `Trigger` is responsible for sending file system events to the event channel
 /// when a relevant file or directory change is detected.
-pub struct Trigger {
+pub(crate) struct Trigger {
   /// Shared reference to the path register, which tracks watched files/directories/missing.
   path_manager: Arc<PathManager>,
   /// Sender for communicating file system events to the watcher executor.
@@ -95,7 +95,7 @@ pub struct Trigger {
 
 impl Trigger {
   /// Create a new `Trigger` with the given path register and event sender.
-  pub fn new(path_manager: Arc<PathManager>, tx: UnboundedSender<EventBatch>) -> Self {
+  pub(crate) fn new(path_manager: Arc<PathManager>, tx: UnboundedSender<EventBatch>) -> Self {
     Self { path_manager, tx }
   }
 
@@ -112,7 +112,7 @@ impl Trigger {
   /// If the file `/path/to/file.js` is changed, the trigger will send an event for the following paths:
   /// - `/path`
   /// - `/path/to`
-  pub fn on_event(&self, path: &ArcPath, kind: FsEventKind) {
+  pub(crate) fn on_event(&self, path: &ArcPath, kind: FsEventKind) {
     let finder = self.finder();
     let associated_event = finder.find_associated_event(path, kind);
     self.trigger_events(associated_event);

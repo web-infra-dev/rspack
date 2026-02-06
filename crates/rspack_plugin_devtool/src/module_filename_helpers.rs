@@ -39,7 +39,7 @@ fn get_hash(text: &str, output_options: &OutputOptions) -> String {
   buf
 }
 
-pub struct ModuleFilenameHelpers;
+pub(crate) struct ModuleFilenameHelpers;
 
 // sources in a source map should be relative/URL-style (not absolute filesystem paths)
 fn resolve_relative_resource_path(
@@ -189,7 +189,7 @@ impl ModuleFilenameHelpers {
     }
   }
 
-  pub async fn create_filename_of_fn_template(
+  pub(crate) async fn create_filename_of_fn_template(
     source_reference: &SourceReference,
     compilation: &Compilation,
     module_filename_template: &ModuleFilenameTemplateFn,
@@ -208,7 +208,7 @@ impl ModuleFilenameHelpers {
     module_filename_template(ctx).await
   }
 
-  pub fn create_filename_of_string_template(
+  pub(crate) fn create_filename_of_string_template(
     source_reference: &SourceReference,
     compilation: &Compilation,
     module_filename_template: &str,
@@ -227,7 +227,7 @@ impl ModuleFilenameHelpers {
     template_replace(module_filename_template, &ctx)
   }
 
-  pub fn replace_duplicates<F>(filenames: Vec<String>, mut fn_replace: F) -> Vec<String>
+  pub(crate) fn replace_duplicates<F>(filenames: Vec<String>, mut fn_replace: F) -> Vec<String>
   where
     F: FnMut(String, usize, usize) -> String,
   {

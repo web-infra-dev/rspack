@@ -13,12 +13,12 @@ use simd_json::{
 use crate::constants::CSS_REGEX;
 
 #[derive(Debug, Deserialize, Serialize)]
-pub struct ClientEntry {
+pub(crate) struct ClientEntry {
   pub request: String,
   pub ids: Vec<String>,
 }
 
-pub const CLIENT_ENTRY_LOADER_IDENTIFIER: &str = "builtin:rsc-client-entry-loader";
+pub(crate) const CLIENT_ENTRY_LOADER_IDENTIFIER: &str = "builtin:rsc-client-entry-loader";
 
 #[cacheable]
 #[derive(Debug)]
@@ -54,12 +54,12 @@ fn parse_client_entry_from_value(object: &BorrowedValue) -> Option<ClientEntry> 
 }
 
 #[derive(Debug, Default)]
-pub struct ParsedClientEntries {
+pub(crate) struct ParsedClientEntries {
   pub modules: Vec<ClientEntry>,
   pub is_server: bool,
 }
 
-pub fn parse_client_entries(query: &str) -> Result<ParsedClientEntries> {
+pub(crate) fn parse_client_entries(query: &str) -> Result<ParsedClientEntries> {
   let loader_options = form_urlencoded::parse(query.as_bytes());
   let mut modules: Vec<ClientEntry> = vec![];
   let mut is_server: bool = false;

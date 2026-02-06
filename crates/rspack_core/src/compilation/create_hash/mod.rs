@@ -5,12 +5,12 @@ use crate::{
   ModuleCodeGenerationContext, cache::Cache, compilation::pass::PassExt, logger::Logger,
 };
 
-pub struct ChunkHashResult {
+pub(super) struct ChunkHashResult {
   pub hash: RspackHashDigest,
   pub content_hash: ChunkContentHash,
 }
 
-pub struct CreateHashPass;
+pub(super) struct CreateHashPass;
 
 #[async_trait]
 impl PassExt for CreateHashPass {

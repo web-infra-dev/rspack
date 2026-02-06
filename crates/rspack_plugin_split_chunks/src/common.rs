@@ -11,7 +11,7 @@ use rspack_error::Result;
 use rspack_regex::RspackRegex;
 use rustc_hash::{FxHashMap, FxHashSet};
 
-pub type ChunkFilterFunc =
+pub(crate) type ChunkFilterFunc =
   Arc<dyn Fn(&ChunkUkey, &Compilation) -> BoxFuture<'static, Result<bool>> + Sync + Send>;
 
 #[derive(Clone)]

@@ -6,16 +6,16 @@ mod to_module_ref;
 
 use std::{cell::RefCell, rc::Rc, sync::Arc};
 
-pub use react_server_components::{Config, Options, server_components};
+pub(crate) use react_server_components::{Config, Options, server_components};
 use rspack_core::{LoaderContext, Module, RscMeta, RunnerContext};
-pub use server_actions::{Config as ServerActionsConfig, server_actions};
+pub(crate) use server_actions::{Config as ServerActionsConfig, server_actions};
 use swc_core::{
   common::{FileName, comments::SingleThreadedComments},
   ecma::ast::Pass,
 };
-pub use to_module_ref::to_module_ref;
+pub(crate) use to_module_ref::to_module_ref;
 
-pub fn rsc_pass(
+pub(crate) fn rsc_pass(
   loader_context: &mut LoaderContext<RunnerContext>,
   filename: Arc<FileName>,
   resource_path: &str,

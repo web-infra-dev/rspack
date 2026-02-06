@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
-pub struct StatsAssetsGroup {
+pub(crate) struct StatsAssetsGroup {
   #[serde(default)]
   pub js: AssetsSplit,
   #[serde(default)]
@@ -9,7 +9,7 @@ pub struct StatsAssetsGroup {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
-pub struct AssetsSplit {
+pub(crate) struct AssetsSplit {
   #[serde(default)]
   pub sync: Vec<String>,
   #[serde(default)]
@@ -29,7 +29,7 @@ pub struct StatsBuildInfo {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct StatsExpose {
+pub(crate) struct StatsExpose {
   pub path: String,
   #[serde(default)]
   pub file: String,
@@ -42,7 +42,7 @@ pub struct StatsExpose {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct StatsShared {
+pub(crate) struct StatsShared {
   pub id: String,
   pub name: String,
   pub version: String,
@@ -59,7 +59,7 @@ pub struct StatsShared {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct StatsRemote {
+pub(crate) struct StatsRemote {
   pub alias: String,
   pub consumingFederationContainerName: String,
   pub federationContainerName: String,
@@ -71,7 +71,7 @@ pub struct StatsRemote {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct BasicStatsMetaData {
+pub(crate) struct BasicStatsMetaData {
   pub name: String,
   pub globalName: String,
   #[serde(rename = "buildInfo", skip_serializing_if = "Option::is_none")]
@@ -85,7 +85,7 @@ pub struct BasicStatsMetaData {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
-pub struct RemoteEntryMeta {
+pub(crate) struct RemoteEntryMeta {
   #[serde(default)]
   pub name: String,
   #[serde(default)]
@@ -95,7 +95,7 @@ pub struct RemoteEntryMeta {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct StatsRoot {
+pub(crate) struct StatsRoot {
   pub id: String,
   pub name: String,
   pub metaData: BasicStatsMetaData,
@@ -108,7 +108,7 @@ pub struct StatsRoot {
 }
 
 #[derive(Debug, Serialize, Clone)]
-pub struct ManifestExpose {
+pub(super) struct ManifestExpose {
   pub id: String,
   pub name: String,
   pub path: String,
@@ -116,7 +116,7 @@ pub struct ManifestExpose {
 }
 
 #[derive(Debug, Serialize, Clone)]
-pub struct ManifestShared {
+pub(super) struct ManifestShared {
   pub id: String,
   pub name: String,
   pub version: String,
@@ -129,7 +129,7 @@ pub struct ManifestShared {
 }
 
 #[derive(Debug, Serialize, Clone)]
-pub struct ManifestRemote {
+pub(super) struct ManifestRemote {
   pub federationContainerName: String,
   pub moduleName: String,
   pub alias: String,
@@ -138,7 +138,7 @@ pub struct ManifestRemote {
 }
 
 #[derive(Debug, Serialize, Clone)]
-pub struct ManifestRoot {
+pub(super) struct ManifestRoot {
   pub id: String,
   pub name: String,
   pub metaData: BasicStatsMetaData,

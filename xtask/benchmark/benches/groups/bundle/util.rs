@@ -10,14 +10,14 @@ use rspack_regex::RspackRegex;
 use serde_json::json;
 
 // Because `CompilerBuilder` is not `Clone`
-pub type CompilerBuilderGenerator = Arc<dyn Fn() -> CompilerBuilder + Send + Sync>;
+pub(crate) type CompilerBuilderGenerator = Arc<dyn Fn() -> CompilerBuilder + Send + Sync>;
 
-pub struct BuilderOptions {
+pub(crate) struct BuilderOptions {
   pub project: &'static str,
   pub entry: &'static str,
 }
 
-pub fn basic_compiler_builder(options: BuilderOptions) -> CompilerBuilder {
+pub(crate) fn basic_compiler_builder(options: BuilderOptions) -> CompilerBuilder {
   let mut builder = Compiler::builder();
 
   let dir = PathBuf::from(env!("CARGO_WORKSPACE_DIR"))
@@ -67,7 +67,7 @@ pub fn basic_compiler_builder(options: BuilderOptions) -> CompilerBuilder {
   builder
 }
 
-pub fn derive_projects(
+pub(crate) fn derive_projects(
   projects: Vec<(&'static str, CompilerBuilderGenerator)>,
 ) -> Vec<(String, CompilerBuilderGenerator)> {
   projects

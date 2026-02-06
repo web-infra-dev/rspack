@@ -5,7 +5,7 @@ use syn::{
   spanned::Spanned,
 };
 
-pub fn expand_merge_from_derive(input: DeriveInput) -> Result<TokenStream> {
+pub(crate) fn expand_merge_from_derive(input: DeriveInput) -> Result<TokenStream> {
   let name = input.ident;
   let generics = add_trait_bounds(input.generics);
   let mut chose_base = None;

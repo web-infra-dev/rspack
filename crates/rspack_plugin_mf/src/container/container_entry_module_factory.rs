@@ -11,7 +11,7 @@ use super::{
 };
 
 #[derive(Debug)]
-pub struct ContainerEntryModuleFactory;
+pub(crate) struct ContainerEntryModuleFactory;
 
 #[async_trait]
 impl ModuleFactory for ContainerEntryModuleFactory {

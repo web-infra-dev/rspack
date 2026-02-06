@@ -9,13 +9,13 @@ use serde::{Deserialize, Serialize};
 use simd_json::base::{ValueAsArray, ValueAsObject, ValueAsScalar};
 
 #[derive(Debug, Deserialize, Serialize)]
-pub struct ActionEntry {
+pub(crate) struct ActionEntry {
   pub id: String,
   pub path: Arc<str>,
   pub exported_name: String,
 }
 
-pub const ACTION_ENTRY_LOADER_IDENTIFIER: &str = "builtin:rsc-action-entry-loader";
+pub(crate) const ACTION_ENTRY_LOADER_IDENTIFIER: &str = "builtin:rsc-action-entry-loader";
 
 #[cacheable]
 #[derive(Debug)]
@@ -39,7 +39,7 @@ impl ActionEntryLoader {
   }
 }
 
-pub fn parse_action_entries(v: String) -> Result<Option<Vec<ActionEntry>>> {
+pub(crate) fn parse_action_entries(v: String) -> Result<Option<Vec<ActionEntry>>> {
   let mut action_entries = vec![];
 
   let mut bytes = v.into_bytes();

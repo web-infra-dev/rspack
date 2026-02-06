@@ -4,7 +4,7 @@ use rustc_hash::FxHashSet;
 use super::{JavascriptParserPlugin, TopLevelSymbol};
 use crate::visitors::JavascriptParser;
 
-pub struct JavascriptMetaInfoPlugin;
+pub(crate) struct JavascriptMetaInfoPlugin;
 
 impl JavascriptParserPlugin for JavascriptMetaInfoPlugin {
   fn call(

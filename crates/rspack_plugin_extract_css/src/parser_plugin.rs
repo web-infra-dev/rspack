@@ -19,7 +19,7 @@ pub struct CssExtractJsonData {
 }
 
 #[derive(Debug, Default)]
-pub struct PluginCssExtractParserPlugin {
+pub(crate) struct PluginCssExtractParserPlugin {
   cache: FxDashMap<String, Vec<BoxDependency>>,
 }
 

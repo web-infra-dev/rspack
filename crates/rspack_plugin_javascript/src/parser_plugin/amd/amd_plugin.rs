@@ -11,7 +11,7 @@ use crate::{
   visitors::JavascriptParser,
 };
 
-pub struct AMDParserPlugin;
+pub(crate) struct AMDParserPlugin;
 
 const DEFINE: &str = "define";
 const REQUIRE: &str = "require";

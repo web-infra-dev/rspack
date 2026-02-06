@@ -3,7 +3,7 @@ mod split;
 use async_trait::async_trait;
 use rspack_paths::{Utf8Path, Utf8PathBuf};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
-pub use split::SplitPackStrategy;
+pub(super) use split::SplitPackStrategy;
 
 use super::data::{
   Pack, PackContents, PackFileMeta, PackGenerations, PackKeys, PackOptions, PackScope, RootMeta,
@@ -14,7 +14,7 @@ use crate::{
   error::{Result, ValidateResult},
 };
 
-pub struct UpdatePacksResult {
+pub(super) struct UpdatePacksResult {
   pub new_packs: Vec<(PackFileMeta, Pack)>,
   pub remain_packs: Vec<(PackFileMeta, Pack)>,
   pub removed_files: Vec<Utf8PathBuf>,
@@ -48,19 +48,19 @@ pub trait RootStrategy {
 }
 
 #[derive(Debug, Default)]
-pub struct PackMainContents {
+pub(super) struct PackMainContents {
   pub contents: PackContents,
   pub generations: PackGenerations,
 }
 
 #[async_trait]
-pub trait PackReadStrategy {
+pub(super) trait PackReadStrategy {
   async fn read_pack_keys(&self, path: &Utf8Path) -> Result<Option<PackKeys>>;
   async fn read_pack_contents(&self, path: &Utf8Path) -> Result<Option<PackMainContents>>;
 }
 
 #[async_trait]
-pub trait PackWriteStrategy {
+pub(super) trait PackWriteStrategy {
   async fn update_packs(
     &self,
     dir: Utf8PathBuf,
@@ -106,7 +106,7 @@ impl WriteScopeResult {
   }
 }
 
-pub type ScopeUpdate = HashMap<ItemKey, Option<ItemValue>>;
+pub(super) type ScopeUpdate = HashMap<ItemKey, Option<ItemValue>>;
 #[async_trait]
 pub trait ScopeWriteStrategy {
   async fn update_scope(&self, scope: &mut PackScope, updates: ScopeUpdate) -> Result<()>;

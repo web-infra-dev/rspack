@@ -16,7 +16,7 @@ use rspack_watcher::{EventAggregateHandler, EventHandler, FsWatcher};
 use tempfile::TempDir;
 use tokio::sync::RwLock;
 
-pub struct TestHelper {
+pub(crate) struct TestHelper {
   /// Temporary directory for testing
   temp_dir: ManuallyDrop<TempDir>,
   /// Canonicalized path of the temporary directory
@@ -29,13 +29,13 @@ pub struct TestHelper {
 }
 
 #[derive(Debug, Clone)]
-pub struct AggregatedEvent {
+pub(crate) struct AggregatedEvent {
   pub changed_files: FxHashSet<String>,
   pub deleted_files: FxHashSet<String>,
 }
 
 impl AggregatedEvent {
-  pub fn assert_changed(&self, expected: impl AsRef<str>) {
+  pub(crate) fn assert_changed(&self, expected: impl AsRef<str>) {
     assert!(
       self
         .changed_files
@@ -47,7 +47,7 @@ impl AggregatedEvent {
     );
   }
 
-  pub fn assert_deleted(&self, expected: impl AsRef<str>) {
+  pub(crate) fn assert_deleted(&self, expected: impl AsRef<str>) {
     assert!(
       self
         .deleted_files
@@ -61,13 +61,13 @@ impl AggregatedEvent {
 }
 
 #[derive(Debug, Clone)]
-pub enum ChangedEvent {
+pub(crate) enum ChangedEvent {
   Changed(String),
   Deleted(String),
 }
 
 impl ChangedEvent {
-  pub fn assert_changed(&self, expected: impl AsRef<str>) {
+  pub(crate) fn assert_changed(&self, expected: impl AsRef<str>) {
     match self {
       ChangedEvent::Changed(path) => assert_eq!(
         path,
@@ -83,7 +83,7 @@ impl ChangedEvent {
     }
   }
 
-  pub fn assert_deleted(&self, expected: impl AsRef<str>) {
+  pub(crate) fn assert_deleted(&self, expected: impl AsRef<str>) {
     match self {
       ChangedEvent::Deleted(path) => assert_eq!(
         path,
@@ -99,7 +99,7 @@ impl ChangedEvent {
     }
   }
 
-  pub fn assert_path(&self, expected: impl AsRef<str>) {
+  pub(crate) fn assert_path(&self, expected: impl AsRef<str>) {
     match self {
       ChangedEvent::Changed(path) | ChangedEvent::Deleted(path) => assert_eq!(
         path,
@@ -112,13 +112,13 @@ impl ChangedEvent {
   }
 }
 
-pub enum Event {
+pub(crate) enum Event {
   Aggregated(AggregatedEvent),
   Changed(ChangedEvent),
 }
 
 #[derive(Debug)]
-pub struct WatchResult {
+pub(crate) struct WatchResult {
   pub aggregated_events: Vec<AggregatedEvent>,
   pub changed_events: Vec<ChangedEvent>,
 }
@@ -133,7 +133,7 @@ static TOKIO_RUNTIME: std::sync::LazyLock<tokio::runtime::Runtime> =
 
 impl TestHelper {
   /// Creates a new `TestHelper` instance
-  pub fn new(watcher: impl FnOnce() -> FsWatcher) -> Self {
+  pub(crate) fn new(watcher: impl FnOnce() -> FsWatcher) -> Self {
     let temp_dir = TempDir::new().expect("Failed to create temp dir");
     let canonicalized_temp_dir = temp_dir.path().canonicalize().unwrap();
     let watcher = watcher();
@@ -144,11 +144,11 @@ impl TestHelper {
     }
   }
 
-  pub fn join(&self, name: &str) -> Utf8PathBuf {
+  pub(crate) fn join(&self, name: &str) -> Utf8PathBuf {
     Utf8PathBuf::from(self.canonicalized_temp_dir.join(name).to_str().unwrap())
   }
 
-  pub fn file(&self, name: &str) {
+  pub(crate) fn file(&self, name: &str) {
     let path = self.join(name);
     std::fs::write(
       path,
@@ -163,7 +163,7 @@ impl TestHelper {
     .unwrap();
   }
 
-  pub fn collect_events(
+  pub(crate) fn collect_events(
     &self,
     rx: Receiver<Event>,
     mut on_changed: impl FnMut(&ChangedEvent, &mut bool),
@@ -189,7 +189,7 @@ impl TestHelper {
     }
   }
 
-  pub fn tick(&self, f: impl FnOnce()) {
+  pub(crate) fn tick(&self, f: impl FnOnce()) {
     std::thread::sleep(std::time::Duration::from_millis(200));
     f();
   }
@@ -197,7 +197,7 @@ impl TestHelper {
   /// Watches the specified files, directories, and missing paths.
   ///
   /// All paths are relative to the temporary directory.
-  pub fn watch(
+  pub(crate) fn watch(
     &mut self,
     files: (impl Iterator<Item = ArcPath>, impl Iterator<Item = ArcPath>),
     directories: (impl Iterator<Item = ArcPath>, impl Iterator<Item = ArcPath>),

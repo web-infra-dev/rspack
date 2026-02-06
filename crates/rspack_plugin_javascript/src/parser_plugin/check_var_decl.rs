@@ -33,7 +33,7 @@ fn is_reserved_word_in_strict(word: &str) -> bool {
   STRICT_MODE_RESERVED_WORDS.contains(word)
 }
 
-pub struct CheckVarDeclaratorIdent;
+pub(crate) struct CheckVarDeclaratorIdent;
 
 impl CheckVarDeclaratorIdent {
   fn check_ident(&self, parser: &mut JavascriptParser, ident: &Ident) {

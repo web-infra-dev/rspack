@@ -55,21 +55,21 @@ impl fmt::Display for ConsumeVersion {
   }
 }
 
-pub static RELATIVE_REQUEST: LazyLock<Regex> =
+pub(crate) static RELATIVE_REQUEST: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"^\.\.?(\/|$)").expect("Invalid regex"));
-pub static ABSOLUTE_REQUEST: LazyLock<Regex> =
+pub(crate) static ABSOLUTE_REQUEST: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"^(\/|[A-Za-z]:\\|\\\\)").expect("Invalid regex"));
-pub static PACKAGE_NAME: LazyLock<Regex> =
+pub(crate) static PACKAGE_NAME: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"^((?:@[^\\/]+[\\/])?[^\\/]+)").expect("Invalid regex"));
 
 #[derive(Debug)]
-pub struct MatchedConsumes {
+pub(crate) struct MatchedConsumes {
   pub resolved: FxHashMap<String, Arc<ConsumeOptions>>,
   pub unresolved: FxHashMap<String, Arc<ConsumeOptions>>,
   pub prefixed: FxHashMap<String, Arc<ConsumeOptions>>,
 }
 
-pub async fn resolve_matched_configs(
+pub(crate) async fn resolve_matched_configs(
   compilation: &mut Compilation,
   resolver: Arc<Resolver>,
   configs: &[(String, Arc<ConsumeOptions>)],
@@ -105,7 +105,7 @@ pub async fn resolve_matched_configs(
   }
 }
 
-pub async fn get_description_file(
+pub(crate) async fn get_description_file(
   fs: Arc<dyn ReadableFileSystem>,
   mut dir: &Utf8Path,
   satisfies_description_file_data: Option<impl Fn(Option<serde_json::Value>) -> bool>,
@@ -138,7 +138,7 @@ pub async fn get_description_file(
   }
 }
 
-pub fn get_required_version_from_description_file(
+pub(crate) fn get_required_version_from_description_file(
   data: serde_json::Value,
   package_name: &str,
 ) -> Option<ConsumeVersion> {

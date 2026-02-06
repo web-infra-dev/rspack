@@ -16,7 +16,7 @@ use tokio::sync::oneshot::Receiver;
 
 use crate::{FileSystem, ItemKey, ItemPairs, ItemValue, Storage, error::Result};
 
-pub type ScopeUpdates = HashMap<&'static str, ScopeUpdate>;
+pub(crate) type ScopeUpdates = HashMap<&'static str, ScopeUpdate>;
 #[derive(Debug)]
 pub struct PackStorage {
   pub manager: ScopeManager,

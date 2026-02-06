@@ -172,20 +172,23 @@ pub(super) mod module_graph_hash {
   use crate::{ExportsInfo, ModuleIdentifier};
 
   #[derive(Debug, Default)]
-  pub struct ModuleGraphHashCache {
+  pub(crate) struct ModuleGraphHashCache {
     cache: IdentifierDashMap<(u64, ExportsInfo, Vec<ExportsInfo>)>,
   }
 
   impl ModuleGraphHashCache {
-    pub fn freeze(&self) {
+    pub(crate) fn freeze(&self) {
       self.cache.clear();
     }
 
-    pub fn get(&self, key: &ModuleIdentifier) -> Option<(u64, ExportsInfo, Vec<ExportsInfo>)> {
+    pub(crate) fn get(
+      &self,
+      key: &ModuleIdentifier,
+    ) -> Option<(u64, ExportsInfo, Vec<ExportsInfo>)> {
       self.cache.get(key).map(|v| v.value().clone())
     }
 
-    pub fn set(&self, key: ModuleIdentifier, value: (u64, ExportsInfo, Vec<ExportsInfo>)) {
+    pub(crate) fn set(&self, key: ModuleIdentifier, value: (u64, ExportsInfo, Vec<ExportsInfo>)) {
       self.cache.insert(key, value);
     }
   }
@@ -194,23 +197,30 @@ pub(super) mod concatenated_module_entries {
   use super::*;
   use crate::ModuleIdentifier;
 
-  pub type ConcatenatedModuleEntriesCacheKey = (ModuleIdentifier, Option<RuntimeKey>);
+  pub(crate) type ConcatenatedModuleEntriesCacheKey = (ModuleIdentifier, Option<RuntimeKey>);
 
   #[derive(Debug, Default)]
-  pub struct ConcatenatedModuleEntriesCache {
+  pub(crate) struct ConcatenatedModuleEntriesCache {
     cache: dashmap::DashMap<ConcatenatedModuleEntriesCacheKey, Vec<ConcatenationEntry>>,
   }
 
   impl ConcatenatedModuleEntriesCache {
-    pub fn freeze(&self) {
+    pub(crate) fn freeze(&self) {
       self.cache.clear();
     }
 
-    pub fn get(&self, key: &ConcatenatedModuleEntriesCacheKey) -> Option<Vec<ConcatenationEntry>> {
+    pub(crate) fn get(
+      &self,
+      key: &ConcatenatedModuleEntriesCacheKey,
+    ) -> Option<Vec<ConcatenationEntry>> {
       self.cache.get(key).map(|v| v.value().clone())
     }
 
-    pub fn set(&self, key: ConcatenatedModuleEntriesCacheKey, value: Vec<ConcatenationEntry>) {
+    pub(crate) fn set(
+      &self,
+      key: ConcatenatedModuleEntriesCacheKey,
+      value: Vec<ConcatenationEntry>,
+    ) {
       self.cache.insert(key, value);
     }
   }
@@ -222,20 +232,20 @@ pub(super) mod get_side_effects_connection_state {
   use crate::{ConnectionState, ModuleIdentifier};
 
   #[derive(Debug, Default)]
-  pub struct GetSideEffectsConnectionStateCache {
+  pub(crate) struct GetSideEffectsConnectionStateCache {
     cache: IdentifierDashMap<ConnectionState>,
   }
 
   impl GetSideEffectsConnectionStateCache {
-    pub fn freeze(&self) {
+    pub(crate) fn freeze(&self) {
       self.cache.clear();
     }
 
-    pub fn get(&self, key: &ModuleIdentifier) -> Option<ConnectionState> {
+    pub(crate) fn get(&self, key: &ModuleIdentifier) -> Option<ConnectionState> {
       self.cache.get(key).map(|v| *v.value())
     }
 
-    pub fn set(&self, key: ModuleIdentifier, value: ConnectionState) {
+    pub(crate) fn set(&self, key: ModuleIdentifier, value: ConnectionState) {
       self.cache.insert(key, value);
     }
   }
@@ -244,23 +254,23 @@ pub(super) mod get_side_effects_connection_state {
 pub(super) mod get_exports_type {
   use crate::{ExportsType, ModuleIdentifier};
 
-  pub type GetExportsTypeCacheKey = (ModuleIdentifier, bool);
+  pub(crate) type GetExportsTypeCacheKey = (ModuleIdentifier, bool);
 
   #[derive(Debug, Default)]
-  pub struct GetExportsTypeCache {
+  pub(crate) struct GetExportsTypeCache {
     cache: dashmap::DashMap<GetExportsTypeCacheKey, ExportsType>,
   }
 
   impl GetExportsTypeCache {
-    pub fn freeze(&self) {
+    pub(crate) fn freeze(&self) {
       self.cache.clear();
     }
 
-    pub fn get(&self, key: &GetExportsTypeCacheKey) -> Option<ExportsType> {
+    pub(crate) fn get(&self, key: &GetExportsTypeCacheKey) -> Option<ExportsType> {
       self.cache.get(key).map(|x| *x)
     }
 
-    pub fn set(&self, key: GetExportsTypeCacheKey, value: ExportsType) {
+    pub(crate) fn set(&self, key: GetExportsTypeCacheKey, value: ExportsType) {
       self.cache.insert(key, value);
     }
   }
@@ -269,24 +279,24 @@ pub(super) mod get_exports_type {
 pub(super) mod get_mode {
   use super::*;
 
-  pub type GetModeCacheKey = (DependencyId, Option<RuntimeKey>);
+  pub(crate) type GetModeCacheKey = (DependencyId, Option<RuntimeKey>);
 
   #[derive(Debug, Default)]
-  pub struct GetModeCache {
+  pub(crate) struct GetModeCache {
     cache: RwLock<HashMap<GetModeCacheKey, ExportMode>>,
   }
 
   impl GetModeCache {
-    pub fn freeze(&self) {
+    pub(crate) fn freeze(&self) {
       self.cache.write().expect("should get lock").clear();
     }
 
-    pub fn get(&self, key: &GetModeCacheKey) -> Option<ExportMode> {
+    pub(crate) fn get(&self, key: &GetModeCacheKey) -> Option<ExportMode> {
       let inner = self.cache.read().expect("should get lock");
       inner.get(key).cloned()
     }
 
-    pub fn set(&self, key: GetModeCacheKey, value: ExportMode) {
+    pub(crate) fn set(&self, key: GetModeCacheKey, value: ExportMode) {
       self
         .cache
         .write()
@@ -309,19 +319,19 @@ pub(super) mod determine_export_assignments {
     All(ModuleIdentifier),
     Other(DependencyId),
   }
-  pub type DetermineExportAssignmentsValue = (Vec<Atom>, Vec<usize>);
+  pub(crate) type DetermineExportAssignmentsValue = (Vec<Atom>, Vec<usize>);
 
   #[derive(Debug, Default)]
-  pub struct DetermineExportAssignmentsCache {
+  pub(crate) struct DetermineExportAssignmentsCache {
     cache: RwLock<HashMap<DetermineExportAssignmentsKey, DetermineExportAssignmentsValue>>,
   }
 
   impl DetermineExportAssignmentsCache {
-    pub fn freeze(&self) {
+    pub(crate) fn freeze(&self) {
       self.cache.write().expect("should get lock").clear();
     }
 
-    pub fn get(
+    pub(crate) fn get(
       &self,
       key: &DetermineExportAssignmentsKey,
     ) -> Option<DetermineExportAssignmentsValue> {
@@ -329,7 +339,11 @@ pub(super) mod determine_export_assignments {
       inner.get(key).cloned()
     }
 
-    pub fn set(&self, key: DetermineExportAssignmentsKey, value: DetermineExportAssignmentsValue) {
+    pub(crate) fn set(
+      &self,
+      key: DetermineExportAssignmentsKey,
+      value: DetermineExportAssignmentsValue,
+    ) {
       self
         .cache
         .write()

@@ -403,7 +403,7 @@ fn handle_add<'a>(
 }
 
 #[inline(always)]
-pub fn handle_const_operation<'a>(
+pub(super) fn handle_const_operation<'a>(
   left: BasicEvaluatedExpression<'a>,
   expr: &'a BinExpr,
   scanner: &mut JavascriptParser,

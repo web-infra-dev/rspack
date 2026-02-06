@@ -3,7 +3,7 @@ use rspack_core::ConstDependency;
 use super::JavascriptParserPlugin;
 use crate::visitors::JavascriptParser;
 
-pub struct ESMTopLevelThisParserPlugin;
+pub(crate) struct ESMTopLevelThisParserPlugin;
 
 impl JavascriptParserPlugin for ESMTopLevelThisParserPlugin {
   fn this(

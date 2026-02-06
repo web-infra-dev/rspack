@@ -86,10 +86,10 @@ pub const fn rspack_workspace_version() -> &'static str {{
 }
 
 #[derive(Debug, Args)]
-pub struct CodegenCmd;
+pub(crate) struct CodegenCmd;
 
 impl CodegenCmd {
-  pub fn run(self) -> Result<()> {
+  pub(crate) fn run(self) -> Result<()> {
     run_impl()
   }
 }

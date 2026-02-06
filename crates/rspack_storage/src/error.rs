@@ -32,7 +32,7 @@ impl ValidateResult {
 }
 
 #[derive(Debug)]
-pub enum ErrorReason {
+pub(crate) enum ErrorReason {
   Reason(String),
   Detail(InvalidDetail),
   Error(Box<dyn std::error::Error + Send + Sync>),

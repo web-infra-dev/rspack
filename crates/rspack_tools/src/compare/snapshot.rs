@@ -12,7 +12,7 @@ use crate::{debug_info::DebugInfo, utils::ensure_iter_equal};
 
 /// Compare snapshot scope data between two storages
 #[allow(dead_code)]
-pub async fn compare(
+pub(super) async fn compare(
   scope: SnapshotScope,
   storage1: Arc<dyn Storage>,
   storage2: Arc<dyn Storage>,

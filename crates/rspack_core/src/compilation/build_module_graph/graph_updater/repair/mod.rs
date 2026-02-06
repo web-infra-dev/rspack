@@ -1,9 +1,9 @@
-pub mod add;
-pub mod build;
-pub mod context;
-pub mod factorize;
-pub mod lazy;
-pub mod process_dependencies;
+pub(crate) mod add;
+pub(crate) mod build;
+pub(crate) mod context;
+pub(crate) mod factorize;
+pub(crate) mod lazy;
+pub(crate) mod process_dependencies;
 
 use rspack_error::Result;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
@@ -15,7 +15,7 @@ use crate::{
   utils::task_loop::{Task, run_task_loop},
 };
 
-pub async fn repair(
+pub(crate) async fn repair(
   compilation: &Compilation,
   mut artifact: BuildModuleGraphArtifact,
   build_dependencies: HashSet<BuildDependency>,

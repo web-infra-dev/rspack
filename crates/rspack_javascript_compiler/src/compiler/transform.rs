@@ -84,7 +84,7 @@ struct JavaScriptTransformer<'a> {
 const SWC_MIETTE_DIAGNOSTIC_CODE: &str = "Builtin swc-loader error";
 
 impl<'a> JavaScriptTransformer<'a> {
-  pub fn new(
+  pub(crate) fn new(
     cm: Arc<SourceMap>,
     fm: Arc<SourceFile>,
     comments: std::rc::Rc<SingleThreadedComments>,
@@ -329,7 +329,7 @@ impl<'a> JavaScriptTransformer<'a> {
     result.map(|_| diagnostics)
   }
 
-  pub fn input_source_map(
+  pub(crate) fn input_source_map(
     &self,
     input_src_map: &InputSourceMap,
   ) -> Result<Option<sourcemap::SourceMap>, anyhow::Error> {

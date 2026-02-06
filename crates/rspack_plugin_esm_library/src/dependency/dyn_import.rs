@@ -9,7 +9,7 @@ use rspack_plugin_javascript::dependency::ImportDependency;
 
 use crate::EsmLibraryPlugin;
 
-pub static NAMESPACE_SYMBOL: &str = "mod";
+pub(crate) static NAMESPACE_SYMBOL: &str = "mod";
 
 fn then_expr(
   code_generatable_context: &mut TemplateContext,
@@ -94,7 +94,7 @@ fn then_expr(
 }
 
 #[derive(Debug, Default)]
-pub struct DynamicImportDependencyTemplate;
+pub(crate) struct DynamicImportDependencyTemplate;
 
 impl DependencyTemplate for DynamicImportDependencyTemplate {
   fn render(

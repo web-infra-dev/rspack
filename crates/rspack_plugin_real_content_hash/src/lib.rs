@@ -312,7 +312,7 @@ enum AssetDataContent {
 }
 
 impl AssetData {
-  pub fn new(source: BoxSource, info: &AssetInfo, hash_ac: &AhoCorasick) -> Self {
+  pub(crate) fn new(source: BoxSource, info: &AssetInfo, hash_ac: &AhoCorasick) -> Self {
     let mut own_hashes = HashSet::default();
     let mut referenced_hashes = HashSet::default();
     let content = if let SourceValue::String(content) = source.source() {
@@ -339,7 +339,7 @@ impl AssetData {
     }
   }
 
-  pub fn compute_new_source(
+  pub(crate) fn compute_new_source(
     &self,
     without_own: bool,
     hash_to_new_hash: &HashMap<String, String>,
@@ -384,7 +384,7 @@ struct OrderedHashesBuilder<'a> {
 }
 
 impl<'a> OrderedHashesBuilder<'a> {
-  pub fn new(
+  pub(crate) fn new(
     hash_to_asset_names: &'a HashMap<&'a str, Vec<&'a str>>,
     assets_data: &'a HashMap<&'a str, AssetData>,
   ) -> Self {
@@ -394,7 +394,7 @@ impl<'a> OrderedHashesBuilder<'a> {
     }
   }
 
-  pub fn build(&self) -> (IndexSet<String>, HashMap<String, HashSet<String>>) {
+  pub(crate) fn build(&self) -> (IndexSet<String>, HashMap<String, HashSet<String>>) {
     let mut ordered_hashes = IndexSet::default();
     let mut hash_dependencies = HashMap::default();
     for hash in self.hash_to_asset_names.keys() {

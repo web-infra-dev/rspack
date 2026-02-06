@@ -11,7 +11,7 @@ use crate::parser_plugin::inner_graph::plugin::{
 
 /// The operation to be performed when processing inner graph usage.
 #[derive(Debug, Clone)]
-pub enum InnerGraphUsageOperation {
+pub(crate) enum InnerGraphUsageOperation {
   /// Create PureExpressionDependency with the given range
   PureExpression(DependencyRange),
   /// Set used_by_exports on ESMImportSpecifierDependency at the given dependency index
@@ -21,7 +21,7 @@ pub enum InnerGraphUsageOperation {
 }
 
 #[derive(Default)]
-pub struct InnerGraphState {
+pub(crate) struct InnerGraphState {
   pub(crate) inner_graph: HashMap<TopLevelSymbol, InnerGraphMapValue>,
   pub(crate) usage_map: HashMap<TopLevelSymbol, Vec<InnerGraphUsageOperation>>,
   current_top_level_symbol: Option<TopLevelSymbol>,
@@ -35,29 +35,29 @@ pub struct InnerGraphState {
 }
 
 impl InnerGraphState {
-  pub fn new() -> Self {
+  pub(crate) fn new() -> Self {
     Self {
       ..Default::default()
     }
   }
 
-  pub fn enable(&mut self) {
+  pub(crate) fn enable(&mut self) {
     self.enable = true;
   }
 
-  pub fn bailout(&mut self) {
+  pub(crate) fn bailout(&mut self) {
     self.enable = false;
   }
 
-  pub fn is_enabled(&self) -> bool {
+  pub(crate) fn is_enabled(&self) -> bool {
     self.enable
   }
 
-  pub fn set_top_level_symbol(&mut self, symbol: Option<TopLevelSymbol>) {
+  pub(crate) fn set_top_level_symbol(&mut self, symbol: Option<TopLevelSymbol>) {
     self.current_top_level_symbol = symbol;
   }
 
-  pub fn get_top_level_symbol(&self) -> Option<TopLevelSymbol> {
+  pub(crate) fn get_top_level_symbol(&self) -> Option<TopLevelSymbol> {
     if self.is_enabled() {
       self.current_top_level_symbol.clone()
     } else {
@@ -65,7 +65,7 @@ impl InnerGraphState {
     }
   }
 
-  pub fn add_usage(&mut self, symbol: TopLevelSymbol, usage: InnerGraphMapUsage) {
+  pub(crate) fn add_usage(&mut self, symbol: TopLevelSymbol, usage: InnerGraphMapUsage) {
     if !self.is_enabled() {
       return;
     }

@@ -28,7 +28,7 @@ define_hook!(AddFederationRuntimeDependencyHook: Series(dependency: &FederationR
 define_hook!(AddRemoteDependencyHook: Series(dependency: &dyn Dependency));
 
 #[cfg_attr(allocative, derive(allocative::Allocative))]
-pub struct FederationModulesPluginCompilationHooks {
+pub(crate) struct FederationModulesPluginCompilationHooks {
   #[cfg_attr(allocative, allocative(skip))]
   pub add_container_entry_dependency: Arc<TokioMutex<AddContainerEntryDependencyHookHook>>,
   #[cfg_attr(allocative, allocative(skip))]
@@ -62,11 +62,11 @@ pub struct FederationModulesPlugin;
 
 impl FederationModulesPlugin {
   #[allow(dead_code)]
-  pub fn new() -> Self {
+  pub(crate) fn new() -> Self {
     Self::new_inner()
   }
 
-  pub fn get_compilation_hooks(
+  pub(crate) fn get_compilation_hooks(
     compilation: &Compilation,
   ) -> Arc<FederationModulesPluginCompilationHooks> {
     let key = compilation.id();
@@ -80,7 +80,7 @@ impl FederationModulesPlugin {
       .clone()
   }
 
-  pub fn get_compilation_hooks_by_id(
+  pub(crate) fn get_compilation_hooks_by_id(
     compilation_id: CompilationId,
   ) -> Arc<FederationModulesPluginCompilationHooks> {
     let mut map = FEDERATION_MODULES_PLUGIN_HOOKS_MAP

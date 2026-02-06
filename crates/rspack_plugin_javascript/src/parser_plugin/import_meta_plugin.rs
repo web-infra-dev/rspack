@@ -18,7 +18,7 @@ use crate::{
   },
 };
 
-pub struct ImportMetaPlugin;
+pub(crate) struct ImportMetaPlugin;
 
 impl ImportMetaPlugin {
   fn import_meta_url(&self, parser: &JavascriptParser) -> String {
@@ -377,7 +377,7 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
 }
 
 // use when parser.import_meta is false
-pub struct ImportMetaDisabledPlugin;
+pub(crate) struct ImportMetaDisabledPlugin;
 
 impl JavascriptParserPlugin for ImportMetaDisabledPlugin {
   fn meta_property(

@@ -3,7 +3,7 @@ use async_trait::async_trait;
 use super::*;
 use crate::compilation::pass::PassExt;
 
-pub struct OptimizeChunkModulesPass;
+pub(super) struct OptimizeChunkModulesPass;
 
 #[async_trait]
 impl PassExt for OptimizeChunkModulesPass {

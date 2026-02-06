@@ -4,7 +4,7 @@ const ESCAPE_STRING_LENGTH: usize = 3;
 const U2028: &str = "\\u2028";
 const U2029: &str = "\\u2029";
 
-pub fn escape_json(input: &str) -> Cow<'_, str> {
+pub(crate) fn escape_json(input: &str) -> Cow<'_, str> {
   let mut vec = input
     .match_indices('\u{2028}')
     .chain(input.match_indices('\u{2029}'))

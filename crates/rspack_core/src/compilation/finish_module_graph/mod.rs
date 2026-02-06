@@ -8,7 +8,7 @@ use crate::{
   Compilation, compilation::build_module_graph::finish_build_module_graph, logger::Logger,
 };
 
-pub async fn finish_module_graph_pass(compilation: &mut Compilation) -> Result<()> {
+pub(super) async fn finish_module_graph_pass(compilation: &mut Compilation) -> Result<()> {
   let logger = compilation.get_logger("rspack.Compiler");
   let start = logger.time("finish compilation");
   compilation.finish_build_module_graph().await?;

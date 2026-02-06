@@ -256,12 +256,12 @@ fn handle_access_export(
   Some(true)
 }
 
-pub struct CommonJsExportsParserPlugin {
+pub(crate) struct CommonJsExportsParserPlugin {
   skip_in_esm: bool,
 }
 
 impl CommonJsExportsParserPlugin {
-  pub fn new(skip_in_esm: bool) -> Self {
+  pub(crate) fn new(skip_in_esm: bool) -> Self {
     Self { skip_in_esm }
   }
 

@@ -19,12 +19,12 @@ use crate::{
   },
 };
 
-pub struct ESMImportDependencyParserPlugin;
+pub(crate) struct ESMImportDependencyParserPlugin;
 
-pub const ESM_SPECIFIER_TAG: &str = "_identifier__esm_specifier_tag__";
+pub(super) const ESM_SPECIFIER_TAG: &str = "_identifier__esm_specifier_tag__";
 
 #[derive(Debug, Clone)]
-pub struct ESMSpecifierData {
+pub(super) struct ESMSpecifierData {
   pub name: Atom,
   pub source: Atom,
   pub ids: Vec<Atom>,

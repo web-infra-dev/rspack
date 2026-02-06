@@ -433,10 +433,10 @@ var init = function(shareScope, initScope) {{
 impl_empty_diagnosable_trait!(ContainerEntryModule);
 
 #[derive(Debug, Clone)]
-pub struct ExposeModuleMap(Vec<(String, String)>);
+pub(crate) struct ExposeModuleMap(Vec<(String, String)>);
 
 impl ExposeModuleMap {
-  pub fn new(
+  pub(crate) fn new(
     compilation: &Compilation,
     container_entry_module: &ContainerEntryModule,
     runtime_template: &mut ModuleCodegenRuntimeTemplate,
@@ -485,7 +485,7 @@ impl ExposeModuleMap {
     Self(module_map)
   }
 
-  pub fn render(&self, runtime_template: &mut ModuleCodegenRuntimeTemplate) -> String {
+  pub(crate) fn render(&self, runtime_template: &mut ModuleCodegenRuntimeTemplate) -> String {
     let module_map = self
       .0
       .iter()
@@ -507,7 +507,7 @@ impl ExposeModuleMap {
 }
 
 #[derive(Debug, Clone)]
-pub struct CodeGenerationDataExpose {
+pub(crate) struct CodeGenerationDataExpose {
   pub module_map: ExposeModuleMap,
   pub share_scope: String,
 }

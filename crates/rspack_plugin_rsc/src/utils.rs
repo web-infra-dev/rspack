@@ -11,7 +11,7 @@ use urlencoding::encode;
 
 use crate::constants::CSS_REGEX;
 
-pub fn get_module_resource<'a>(module: &'a dyn Module) -> Cow<'a, str> {
+pub(crate) fn get_module_resource<'a>(module: &'a dyn Module) -> Cow<'a, str> {
   if let Some(module) = module.as_normal_module() {
     let resource_resolved_data = module.resource_resolved_data();
     let mod_path = resource_resolved_data
@@ -29,7 +29,7 @@ pub fn get_module_resource<'a>(module: &'a dyn Module) -> Cow<'a, str> {
   }
 }
 
-pub fn is_css_mod(module: &dyn Module) -> bool {
+pub(crate) fn is_css_mod(module: &dyn Module) -> bool {
   if matches!(
     module.module_type(),
     ModuleType::Css | ModuleType::CssModule | ModuleType::CssAuto
@@ -40,7 +40,7 @@ pub fn is_css_mod(module: &dyn Module) -> bool {
   CSS_REGEX.is_match(resource.as_ref())
 }
 
-pub struct ChunkModules<'a> {
+pub(crate) struct ChunkModules<'a> {
   compilation: &'a Compilation,
   module_graph: &'a ModuleGraph,
   chunk_groups_iter: Box<dyn Iterator<Item = (&'a ChunkGroupUkey, &'a ChunkGroup)> + 'a>,
@@ -52,7 +52,7 @@ pub struct ChunkModules<'a> {
 }
 
 impl<'a> ChunkModules<'a> {
-  pub fn new(compilation: &'a Compilation, module_graph: &'a ModuleGraph) -> Self {
+  pub(crate) fn new(compilation: &'a Compilation, module_graph: &'a ModuleGraph) -> Self {
     let chunk_groups_iter = Box::new(
       compilation
         .build_chunk_graph_artifact
@@ -160,11 +160,11 @@ impl<'a> Iterator for ChunkModules<'a> {
 /// Example:
 /// - input:  `{"a":1}`
 /// - output: "\"{\\\"a\\\":1}\""
-pub fn to_json_string_literal<T: ?Sized + Serialize>(value: &T) -> Result<String> {
+pub(crate) fn to_json_string_literal<T: ?Sized + Serialize>(value: &T) -> Result<String> {
   serde_json::to_string(&serde_json::to_string(value).to_rspack_result()?).to_rspack_result()
 }
 
-pub fn encode_uri_path(file: &str) -> String {
+pub(crate) fn encode_uri_path(file: &str) -> String {
   file
     .split('/')
     .map(|p| encode(p).into_owned())

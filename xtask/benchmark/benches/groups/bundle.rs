@@ -6,9 +6,9 @@ use tokio::runtime;
 
 use crate::groups::bundle::util::{CompilerBuilderGenerator, derive_projects};
 
-pub mod basic_react;
-pub mod threejs;
-pub mod util;
+pub(crate) mod basic_react;
+pub(crate) mod threejs;
+pub(crate) mod util;
 
 criterion_group!(bundle, bundle_benchmark);
 

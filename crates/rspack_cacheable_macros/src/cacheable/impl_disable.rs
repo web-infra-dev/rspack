@@ -42,7 +42,7 @@ impl VisitMut for FieldAttrVisitor {
 }
 
 /// impl cacheable when disable
-pub fn impl_disable_cacheable(tokens: TokenStream, args: CacheableArgs) -> TokenStream {
+pub(super) fn impl_disable_cacheable(tokens: TokenStream, args: CacheableArgs) -> TokenStream {
   let mut input = parse_macro_input!(tokens as Item);
   let mut visitor = FieldAttrVisitor { with_info: vec![] };
   visitor.visit_item_mut(&mut input);

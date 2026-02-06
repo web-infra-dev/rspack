@@ -61,7 +61,7 @@ impl DependencyTemplate for ImportDependencyTemplate {
   }
 }
 
-pub fn module_id_rstest(
+pub(crate) fn module_id_rstest(
   compilation: &Compilation,
   runtime_template: &mut ModuleCodegenRuntimeTemplate,
   id: &DependencyId,

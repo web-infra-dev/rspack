@@ -26,7 +26,7 @@ use crate::{
 };
 
 #[derive(Hash, PartialEq, Eq, Clone, Debug)]
-pub enum InnerGraphMapSetValue {
+pub(crate) enum InnerGraphMapSetValue {
   TopLevel(TopLevelSymbol),
   Str(Atom),
 }
@@ -52,7 +52,7 @@ impl InnerGraphMapSetValue {
 }
 
 #[derive(Default, Clone, PartialEq, Eq, Debug)]
-pub enum InnerGraphMapValue {
+pub(crate) enum InnerGraphMapValue {
   Set(HashSet<InnerGraphMapSetValue>),
   True,
   #[default]
@@ -60,17 +60,17 @@ pub enum InnerGraphMapValue {
 }
 
 #[derive(PartialEq, Eq, Debug)]
-pub enum InnerGraphMapUsage {
+pub(crate) enum InnerGraphMapUsage {
   TopLevel(TopLevelSymbol),
   Value(Atom),
   True,
 }
 
-pub struct InnerGraphPlugin {
+pub(crate) struct InnerGraphPlugin {
   unresolved_context: SyntaxContext,
 }
 
-pub static TOP_LEVEL_SYMBOL: &str = "inner graph top level symbol";
+pub(crate) static TOP_LEVEL_SYMBOL: &str = "inner graph top level symbol";
 static TOP_LEVEL_SYMBOL_ID: AtomicUsize = AtomicUsize::new(1);
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
@@ -80,14 +80,14 @@ pub(crate) struct TopLevelSymbol {
 }
 
 impl TopLevelSymbol {
-  pub fn new(name: Atom) -> Self {
+  pub(crate) fn new(name: Atom) -> Self {
     Self {
       name,
       id: TOP_LEVEL_SYMBOL_ID.fetch_add(1, Ordering::Relaxed),
     }
   }
 
-  pub fn global() -> Self {
+  pub(crate) fn global() -> Self {
     Self {
       name: Atom::from(""),
       id: 0,
@@ -100,13 +100,13 @@ impl TopLevelSymbol {
 }
 
 impl InnerGraphPlugin {
-  pub fn new(unresolved_mark: Mark) -> Self {
+  pub(crate) fn new(unresolved_mark: Mark) -> Self {
     Self {
       unresolved_context: SyntaxContext::empty().apply_mark(unresolved_mark),
     }
   }
 
-  pub fn for_each_expression(parser: &mut JavascriptParser, for_name: &str) {
+  pub(crate) fn for_each_expression(parser: &mut JavascriptParser, for_name: &str) {
     if !parser.inner_graph.is_enabled() || for_name != TOP_LEVEL_SYMBOL {
       return;
     }
@@ -125,7 +125,7 @@ impl InnerGraphPlugin {
     }
   }
 
-  pub fn for_each_statement(parser: &mut JavascriptParser, stmt_span: &Span) {
+  pub(crate) fn for_each_statement(parser: &mut JavascriptParser, stmt_span: &Span) {
     if let Some(v) = parser
       .inner_graph
       .statement_with_top_level_symbol
@@ -144,7 +144,7 @@ impl InnerGraphPlugin {
     }
   }
 
-  pub fn infer_dependency_usage(parser: &mut JavascriptParser) {
+  pub(crate) fn infer_dependency_usage(parser: &mut JavascriptParser) {
     // fun will reference it self
     if !parser.inner_graph.is_enabled() {
       return;
@@ -297,7 +297,11 @@ impl InnerGraphPlugin {
     }
   }
 
-  pub fn add_variable_usage(parser: &mut JavascriptParser, name: &Atom, usage: InnerGraphMapUsage) {
+  pub(crate) fn add_variable_usage(
+    parser: &mut JavascriptParser,
+    name: &Atom,
+    usage: InnerGraphMapUsage,
+  ) {
     let symbol = parser
       .get_tag_data(name, TOP_LEVEL_SYMBOL)
       .map(TopLevelSymbol::downcast)
@@ -306,7 +310,7 @@ impl InnerGraphPlugin {
     parser.inner_graph.add_usage(symbol, usage);
   }
 
-  pub fn on_usage(parser: &mut JavascriptParser, operation: InnerGraphUsageOperation) {
+  pub(crate) fn on_usage(parser: &mut JavascriptParser, operation: InnerGraphUsageOperation) {
     if parser.inner_graph.is_enabled()
       && let Some(symbol) = parser.inner_graph.get_top_level_symbol()
     {
@@ -322,7 +326,7 @@ impl InnerGraphPlugin {
     // When inner graph is disabled, we skip adding PureExpressionDependency (same as None)
   }
 
-  pub fn tag_top_level_symbol(
+  pub(crate) fn tag_top_level_symbol(
     parser: &mut crate::visitors::JavascriptParser,
     name: &Atom,
   ) -> TopLevelSymbol {

@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 pub mod minify;
 pub mod parse;
-pub mod stringify;
+pub(crate) mod stringify;
 pub mod transform;
 
 use rspack_sources::SourceMap;

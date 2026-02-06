@@ -11,7 +11,7 @@ use crate::{
   visitors::{JavascriptParser, clean_regexp_in_context_module},
 };
 
-pub struct RequireContextDependencyParserPlugin;
+pub(crate) struct RequireContextDependencyParserPlugin;
 
 const DEFAULT_REGEXP_STR: &str = r"^\.\/.*$";
 

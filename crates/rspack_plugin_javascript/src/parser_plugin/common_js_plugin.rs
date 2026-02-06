@@ -7,7 +7,7 @@ use crate::{
   visitors::{JavascriptParser, expr_name},
 };
 
-pub struct CommonJsPlugin;
+pub(crate) struct CommonJsPlugin;
 
 impl JavascriptParserPlugin for CommonJsPlugin {
   fn evaluate_identifier(

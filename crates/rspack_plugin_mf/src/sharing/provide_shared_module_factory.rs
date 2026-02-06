@@ -11,7 +11,7 @@ use super::{
 };
 
 #[derive(Debug, Default)]
-pub struct ProvideSharedModuleFactory {
+pub(crate) struct ProvideSharedModuleFactory {
   diagnostics: Vec<Diagnostic>,
 }
 

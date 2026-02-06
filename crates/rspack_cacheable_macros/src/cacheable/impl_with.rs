@@ -14,7 +14,7 @@ impl VisitMut for CleanFieldAttrVisitor {
 }
 
 /// impl #[cacheable] with `with` args
-pub fn impl_cacheable_with(tokens: TokenStream, args: CacheableArgs) -> TokenStream {
+pub(super) fn impl_cacheable_with(tokens: TokenStream, args: CacheableArgs) -> TokenStream {
   let mut input = parse_macro_input!(tokens as Item);
 
   let mut visitor = CleanFieldAttrVisitor;

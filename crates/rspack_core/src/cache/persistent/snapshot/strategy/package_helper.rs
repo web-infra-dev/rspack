@@ -5,14 +5,14 @@ use rspack_paths::{ArcPath, ArcPathDashMap, AssertUtf8};
 
 /// A helper for finding package.json versions in directory hierarchies.
 #[derive(Debug)]
-pub struct PackageHelper {
+pub(super) struct PackageHelper {
   fs: Arc<dyn ReadableFileSystem>,
   version_cache: ArcPathDashMap<Option<String>>,
 }
 
 impl PackageHelper {
   /// Creates a new PackageHelper instance with the given file system.
-  pub fn new(fs: Arc<dyn ReadableFileSystem>) -> Self {
+  pub(super) fn new(fs: Arc<dyn ReadableFileSystem>) -> Self {
     Self {
       fs,
       version_cache: Default::default(),
@@ -21,7 +21,7 @@ impl PackageHelper {
 
   /// Finds the package.json version for the given path by traversing up the directory tree.
   #[async_recursion::async_recursion]
-  pub async fn package_version(&self, path: &ArcPath) -> Option<String> {
+  pub(super) async fn package_version(&self, path: &ArcPath) -> Option<String> {
     if let Some(version) = self.version_cache.get(path) {
       return version.clone();
     }

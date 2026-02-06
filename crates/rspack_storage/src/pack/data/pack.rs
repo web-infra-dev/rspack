@@ -4,9 +4,9 @@ use rspack_paths::Utf8PathBuf;
 
 use crate::{ItemKey, ItemValue};
 
-pub type PackKeys = Vec<Arc<ItemKey>>;
-pub type PackContents = Vec<Arc<ItemValue>>;
-pub type PackGenerations = Vec<usize>;
+pub(crate) type PackKeys = Vec<Arc<ItemKey>>;
+pub(crate) type PackContents = Vec<Arc<ItemValue>>;
+pub(crate) type PackGenerations = Vec<usize>;
 
 #[derive(Debug, Default)]
 pub enum PackKeysState {

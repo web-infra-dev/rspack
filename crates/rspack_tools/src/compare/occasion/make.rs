@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-pub use rspack_core::cache::persistent::occasion::make::SCOPE;
+pub(crate) use rspack_core::cache::persistent::occasion::make::SCOPE;
 use rspack_core::{
   DependencyId,
   build_module_graph::BuildModuleGraphArtifact,
@@ -13,7 +13,7 @@ use rustc_hash::FxHashMap as HashMap;
 use crate::{debug_info::DebugInfo, utils::ensure_iter_equal};
 
 /// Compare make scope data between two storages
-pub async fn compare(
+pub(crate) async fn compare(
   storage1: Arc<dyn Storage>,
   storage2: Arc<dyn Storage>,
   debug_info: DebugInfo,

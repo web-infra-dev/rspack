@@ -38,7 +38,7 @@ fn is_reserved_param(pat: &Pat) -> bool {
     .is_some_and(|ident| RESERVED_NAMES.contains(&ident.id.sym.as_str()))
 }
 
-pub struct AMDRequireDependenciesBlockParserPlugin;
+pub(crate) struct AMDRequireDependenciesBlockParserPlugin;
 
 impl JavascriptParserPlugin for AMDRequireDependenciesBlockParserPlugin {
   fn call(

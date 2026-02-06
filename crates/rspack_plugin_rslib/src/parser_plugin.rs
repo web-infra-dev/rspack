@@ -2,12 +2,12 @@ use rspack_plugin_javascript::{JavascriptParserPlugin, visitors::JavascriptParse
 use swc_core::ecma::ast::MemberExpr;
 
 #[derive(PartialEq, Debug, Default)]
-pub struct RslibParserPlugin {
+pub(crate) struct RslibParserPlugin {
   pub intercept_api_plugin: bool,
 }
 
 impl RslibParserPlugin {
-  pub fn new(intercept_api_plugin: bool) -> Self {
+  pub(crate) fn new(intercept_api_plugin: bool) -> Self {
     Self {
       intercept_api_plugin,
     }

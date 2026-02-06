@@ -60,7 +60,7 @@ fn test_manual_cacheable_dyn_macro() {
       }
     }
 
-    pub trait DeserializeAnimal: DeserializeDyn<dyn Animal> + Portable {}
+    pub(crate) trait DeserializeAnimal: DeserializeDyn<dyn Animal> + Portable {}
     unsafe impl ptr_meta::Pointee for dyn DeserializeAnimal {
       type Metadata = ptr_meta::DynMetadata<Self>;
     }

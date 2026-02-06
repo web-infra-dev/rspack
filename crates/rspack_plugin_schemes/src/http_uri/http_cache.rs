@@ -15,7 +15,7 @@ use super::lockfile::{LockfileCache, LockfileEntry};
 use crate::http_uri::HttpUriPluginOptions;
 
 /// This enum is used for avoiding [Buffer::to_vec] overhead
-pub enum BufferOrBytes {
+pub(super) enum BufferOrBytes {
   Buffer(Buffer),
   Bytes(Vec<u8>),
 }
@@ -41,7 +41,7 @@ pub trait HttpClient: Send + Sync + std::fmt::Debug {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct FetchResultMeta {
+pub(super) struct FetchResultMeta {
   store_cache: bool,
   store_lock: bool,
   valid_until: u64,
@@ -50,7 +50,7 @@ pub struct FetchResultMeta {
 }
 
 #[derive(Clone)]
-pub struct ContentFetchResult {
+pub(super) struct ContentFetchResult {
   pub(crate) entry: LockfileEntry,
   content: BufferOrBytes,
   meta: FetchResultMeta,
@@ -58,7 +58,7 @@ pub struct ContentFetchResult {
 
 impl ContentFetchResult {
   #[inline(always)]
-  pub fn content(&self) -> &[u8] {
+  pub(super) fn content(&self) -> &[u8] {
     match &self.content {
       BufferOrBytes::Buffer(buffer) => buffer.as_ref(),
       BufferOrBytes::Bytes(items) => items.as_ref(),
@@ -67,18 +67,18 @@ impl ContentFetchResult {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct RedirectFetchResult {
+pub(super) struct RedirectFetchResult {
   pub(crate) location: String,
   meta: FetchResultMeta,
 }
 
-pub enum FetchResultType {
+pub(super) enum FetchResultType {
   Content(ContentFetchResult),
   #[allow(dead_code)]
   Redirect(RedirectFetchResult),
 }
 
-pub struct HttpCache {
+pub(super) struct HttpCache {
   cache_location: Option<PathBuf>,
   lockfile_cache: LockfileCache,
   filesystem: Arc<dyn WritableFileSystem + Send + Sync>,
@@ -86,7 +86,7 @@ pub struct HttpCache {
 }
 
 impl HttpCache {
-  pub fn new(
+  pub(super) fn new(
     cache_location: Option<String>,
     lockfile_location: Option<String>,
     filesystem: Arc<dyn WritableFileSystem + Send + Sync>,
@@ -102,7 +102,7 @@ impl HttpCache {
     }
   }
 
-  pub async fn fetch_content(
+  pub(super) async fn fetch_content(
     &self,
     url: &str,
     options: &HttpUriPluginOptions,
@@ -422,7 +422,10 @@ impl HttpCache {
   }
 }
 
-pub async fn fetch_content(url: &str, options: &HttpUriPluginOptions) -> Result<FetchResultType> {
+pub(super) async fn fetch_content(
+  url: &str,
+  options: &HttpUriPluginOptions,
+) -> Result<FetchResultType> {
   let http_cache = HttpCache::new(
     options.cache_location.clone(),
     options.lockfile_location.clone(),

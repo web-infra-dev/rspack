@@ -19,7 +19,7 @@ use rspack_util::{json_stringify, source_map::ModuleSourceMapConfig};
 use super::delegated_source_dependency::DelegatedSourceDependency;
 use crate::{DllManifestContentItem, DllManifestContentItemExports};
 
-pub type SourceRequest = String;
+pub(crate) type SourceRequest = String;
 
 #[impl_source_map_config]
 #[cacheable]

@@ -3,10 +3,10 @@ use rspack_core::{
   UsedByExports,
 };
 
-pub mod plugin;
-pub mod state;
+pub(super) mod plugin;
+pub(super) mod state;
 
-pub fn connection_active_used_by_exports(
+pub(crate) fn connection_active_used_by_exports(
   connection: &ModuleGraphConnection,
   runtime: Option<&RuntimeSpec>,
   mg: &ModuleGraph,

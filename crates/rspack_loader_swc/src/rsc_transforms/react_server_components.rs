@@ -25,14 +25,14 @@ use super::{cjs_finder::contains_cjs, import_analyzer::ImportMap};
 
 #[derive(Clone, Debug, Deserialize)]
 #[serde(untagged)]
-pub enum Config {
+pub(crate) enum Config {
   All,
   WithOptions(Options),
 }
 
 #[derive(Clone, Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct Options {
+pub(crate) struct Options {
   pub is_react_server_layer: bool,
   pub enable_server_entry: bool,
 }
@@ -386,7 +386,7 @@ struct ReactServerComponentValidator {
 }
 
 impl ReactServerComponentValidator {
-  pub fn new(is_react_server_layer: bool, filename: String) -> Self {
+  pub(crate) fn new(is_react_server_layer: bool, filename: String) -> Self {
     Self {
       is_react_server_layer,
       filepath: filename,
@@ -503,7 +503,7 @@ impl Visit for ReactServerComponentValidator {
 
 /// Runs react server component transform for the module proxy, as well as
 /// running assertion.
-pub fn server_components(
+pub(crate) fn server_components(
   filename: Arc<FileName>,
   config: Config,
   rsc_meta: &RefCell<Option<RscMeta>>,

@@ -19,7 +19,7 @@ pub enum NormalModuleReplacer {
   Fn(NormalModuleReplacerFn),
 }
 
-pub type NormalModuleReplacerFn = Box<
+pub(crate) type NormalModuleReplacerFn = Box<
   dyn for<'a> Fn(
       &'a mut ModuleFactoryCreateData,
       Option<&'a mut NormalModuleCreateData>,

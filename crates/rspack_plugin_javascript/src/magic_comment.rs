@@ -15,7 +15,7 @@ use swc_core::common::{
 use crate::visitors::{JavascriptParser, create_traceable_error};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum RspackComment {
+pub(crate) enum RspackComment {
   ChunkName,
   Prefetch,
   Preload,
@@ -30,7 +30,7 @@ pub enum RspackComment {
 }
 
 #[derive(Debug)]
-pub struct RspackCommentMap(FxHashMap<RspackComment, String>);
+pub(crate) struct RspackCommentMap(FxHashMap<RspackComment, String>);
 
 impl RspackCommentMap {
   fn new() -> Self {
@@ -41,23 +41,23 @@ impl RspackCommentMap {
     self.0.insert(key, value);
   }
 
-  pub fn get_mode(&self) -> Option<&String> {
+  pub(crate) fn get_mode(&self) -> Option<&String> {
     self.0.get(&RspackComment::Mode)
   }
 
-  pub fn get_chunk_name(&self) -> Option<&String> {
+  pub(crate) fn get_chunk_name(&self) -> Option<&String> {
     self.0.get(&RspackComment::ChunkName)
   }
 
-  pub fn get_prefetch(&self) -> Option<&String> {
+  pub(crate) fn get_prefetch(&self) -> Option<&String> {
     self.0.get(&RspackComment::Prefetch)
   }
 
-  pub fn get_preload(&self) -> Option<&String> {
+  pub(crate) fn get_preload(&self) -> Option<&String> {
     self.0.get(&RspackComment::Preload)
   }
 
-  pub fn get_ignore(&self) -> Option<bool> {
+  pub(crate) fn get_ignore(&self) -> Option<bool> {
     self.0.get(&RspackComment::Ignore).and_then(|item| {
       if item == "true" {
         Some(true)
@@ -69,11 +69,11 @@ impl RspackCommentMap {
     })
   }
 
-  pub fn get_fetch_priority(&self) -> Option<&String> {
+  pub(crate) fn get_fetch_priority(&self) -> Option<&String> {
     self.0.get(&RspackComment::FetchPriority)
   }
 
-  pub fn get_include(&self) -> Option<RspackRegex> {
+  pub(crate) fn get_include(&self) -> Option<RspackRegex> {
     self.0.get(&RspackComment::IncludeRegexp).map(|expr| {
       let flags = self
         .0
@@ -88,7 +88,7 @@ impl RspackCommentMap {
     })
   }
 
-  pub fn get_exclude(&self) -> Option<RspackRegex> {
+  pub(crate) fn get_exclude(&self) -> Option<RspackRegex> {
     self.0.get(&RspackComment::ExcludeRegexp).map(|expr| {
       let flags = self
         .0
@@ -103,7 +103,7 @@ impl RspackCommentMap {
     })
   }
 
-  pub fn get_exports(&self) -> Option<Vec<String>> {
+  pub(crate) fn get_exports(&self) -> Option<Vec<String>> {
     self.0.get(&RspackComment::Exports).map(|expr| {
       expr
         .split(',')
@@ -160,7 +160,7 @@ static MAGIC_COMMENT_REGEXP: LazyLock<regex::Regex> = LazyLock::new(|| {
 static EXPORT_NAME_REGEXP: LazyLock<regex::Regex> =
   LazyLock::new(|| regex::Regex::new(r#"^["`'](\w+)["`']$"#).expect("invalid regex"));
 
-pub fn try_extract_magic_comment(
+pub(crate) fn try_extract_magic_comment(
   parser: &mut JavascriptParser,
   error_span: Span,
   span: Span,

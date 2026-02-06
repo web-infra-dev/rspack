@@ -40,7 +40,7 @@ impl ModernModuleLibraryPlugin {
     Ok(())
   }
 
-  pub fn reexport_star_from_external_module(
+  pub(crate) fn reexport_star_from_external_module(
     &self,
     dep: &ESMExportImportedSpecifierDependency,
     mg: &ModuleGraph,
@@ -364,15 +364,15 @@ async fn render_startup(
   Ok(())
 }
 
-pub fn render_as_default_only_export(exports: &[(String, Option<String>)]) -> String {
+pub(crate) fn render_as_default_only_export(exports: &[(String, Option<String>)]) -> String {
   render_as_default_export_impl(exports)
 }
 
-pub fn render_as_named_exports(exports: &[(String, Option<String>)]) -> String {
+pub(crate) fn render_as_named_exports(exports: &[(String, Option<String>)]) -> String {
   render_as_named_exports_impl(exports, false)
 }
 
-pub fn render_as_default_with_named_exports(exports: &[(String, Option<String>)]) -> String {
+pub(crate) fn render_as_default_with_named_exports(exports: &[(String, Option<String>)]) -> String {
   format!(
     "{}\n{}",
     render_as_named_exports_impl(exports, true),
@@ -407,7 +407,7 @@ fn render_as_named_exports_impl(
   )
 }
 
-pub fn render_as_default_export_impl(exports: &[(String, Option<String>)]) -> String {
+pub(crate) fn render_as_default_export_impl(exports: &[(String, Option<String>)]) -> String {
   if let Some((local, _)) = exports
     .iter()
     .find(|(_, exported)| matches!(exported.as_deref(), Some("default")))

@@ -8,7 +8,7 @@ use r#impl::impl_cacheable;
 use impl_disable::impl_disable_cacheable;
 use impl_with::impl_cacheable_with;
 
-pub fn cacheable(
+pub(crate) fn cacheable(
   args: proc_macro::TokenStream,
   tokens: proc_macro::TokenStream,
 ) -> proc_macro::TokenStream {
@@ -20,7 +20,7 @@ pub fn cacheable(
   }
 }
 
-pub fn disable_cacheable(
+pub(crate) fn disable_cacheable(
   args: proc_macro::TokenStream,
   tokens: proc_macro::TokenStream,
 ) -> proc_macro::TokenStream {

@@ -2,17 +2,17 @@ use browserslist::Opts;
 
 /// Configuration parsed from input string and context directory
 #[derive(Debug, Default)]
-pub struct BrowserslistHandlerConfig<'a> {
+struct BrowserslistHandlerConfig<'a> {
   /// Optional absolute path to config file
-  pub config_path: Option<String>,
+  config_path: Option<String>,
   /// Optional environment name
-  pub env: Option<String>,
+  env: Option<String>,
   /// Optional environment name or query string
-  pub env_or_query: Option<String>,
+  env_or_query: Option<String>,
   /// Optional query string
-  pub query: Option<String>,
+  query: Option<String>,
   /// Context directory path, used for Browserslist Opts.path to locate config
-  pub context: &'a str,
+  context: &'a str,
 }
 
 /// Parse input string and context directory (as &str) to extract config path, env, or query.
@@ -26,7 +26,7 @@ pub struct BrowserslistHandlerConfig<'a> {
 /// # Returns
 ///
 /// * `BrowserslistHandlerConfig` struct with parsed fields and context path
-pub fn parse<'a>(input: Option<&str>, context: &'a str) -> BrowserslistHandlerConfig<'a> {
+fn parse<'a>(input: Option<&str>, context: &'a str) -> BrowserslistHandlerConfig<'a> {
   let Some(input) = input else {
     return BrowserslistHandlerConfig {
       context,

@@ -4,9 +4,9 @@ use clap::Args;
 use toml::Value;
 
 #[derive(Debug, Args)]
-pub struct ReleaseCheckCmd;
+pub(crate) struct ReleaseCheckCmd;
 impl ReleaseCheckCmd {
-  pub fn run(self) -> anyhow::Result<()> {
+  pub(crate) fn run(self) -> anyhow::Result<()> {
     run_inner()
   }
 }

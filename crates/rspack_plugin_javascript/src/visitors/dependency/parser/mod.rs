@@ -1,6 +1,6 @@
-pub mod ast;
+pub(super) mod ast;
 mod call_hooks_name;
-pub mod estree;
+pub(super) mod estree;
 mod walk;
 mod walk_block_pre;
 mod walk_module_pre;
@@ -199,7 +199,7 @@ pub enum TopLevelScope {
 }
 
 #[derive(Debug, Clone, Copy)]
-pub struct StatementPath {
+pub(crate) struct StatementPath {
   span: Span,
 }
 
@@ -301,16 +301,16 @@ impl DestructuringAssignmentProperties {
 }
 
 #[derive(Debug, Default)]
-pub struct DestructuringAssignmentPropertiesMap {
+pub(crate) struct DestructuringAssignmentPropertiesMap {
   inner: FxHashMap<Span, DestructuringAssignmentProperties>,
 }
 
 impl DestructuringAssignmentPropertiesMap {
-  pub fn add(&mut self, span: Span, props: DestructuringAssignmentProperties) {
+  pub(crate) fn add(&mut self, span: Span, props: DestructuringAssignmentProperties) {
     self.inner.entry(span).or_default().extend(props)
   }
 
-  pub fn get(&self, span: &Span) -> Option<&DestructuringAssignmentProperties> {
+  pub(crate) fn get(&self, span: &Span) -> Option<&DestructuringAssignmentProperties> {
     self.inner.get(span)
   }
 }

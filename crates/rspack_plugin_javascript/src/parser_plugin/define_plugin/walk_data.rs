@@ -53,7 +53,7 @@ type OnTypeof = dyn Fn(&DefineRecord, &mut JavascriptParser, u32 /* start */, u3
   + Send
   + Sync;
 
-pub struct DefineRecord {
+pub(super) struct DefineRecord {
   code: Value,
   pub on_evaluate_identifier: Option<Box<OnEvaluateIdentifier>>,
   pub on_evaluate_typeof: Option<Box<OnEvaluateTypeof>>,
@@ -124,7 +124,7 @@ impl DefineRecord {
 }
 
 #[derive(Default)]
-pub struct ObjectDefineRecord {
+pub(super) struct ObjectDefineRecord {
   object: Value,
   pub on_evaluate_identifier: Option<Box<OnObjectEvaluateIdentifier>>,
   pub on_expression: Option<Box<OnObjectExpression>>,
@@ -184,7 +184,7 @@ impl ObjectDefineRecord {
 }
 
 #[derive(Debug, Default)]
-pub struct WalkData {
+pub(super) struct WalkData {
   pub tiling_definitions: FxHashMap<String, String>,
   pub diagnostics: Vec<Diagnostic>,
   pub can_rename: FxHashMap<Arc<str>, Option<Arc<str>>>,
@@ -194,7 +194,7 @@ pub struct WalkData {
 }
 
 impl WalkData {
-  pub fn new(definitions: &DefineValue) -> Self {
+  pub(super) fn new(definitions: &DefineValue) -> Self {
     let mut data = Self::default();
     data.setup_value_cache(definitions.iter(), "".into());
     data.setup_record(definitions);

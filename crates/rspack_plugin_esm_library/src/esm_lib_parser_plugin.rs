@@ -2,7 +2,7 @@ use rspack_core::DependencyType;
 use rspack_plugin_javascript::{
   JavascriptParserPlugin, dependency::ESMCompatibilityDependency, visitors::JavascriptParser,
 };
-pub struct EsmLibParserPlugin;
+pub(crate) struct EsmLibParserPlugin;
 
 impl JavascriptParserPlugin for EsmLibParserPlugin {
   fn finish(&self, parser: &mut JavascriptParser) -> Option<bool> {

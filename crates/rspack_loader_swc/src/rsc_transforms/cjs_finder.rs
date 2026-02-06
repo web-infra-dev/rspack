@@ -7,7 +7,7 @@ use swc_core::ecma::{
   visit::{Visit, VisitWith},
 };
 
-pub fn contains_cjs(m: &Module) -> bool {
+pub(super) fn contains_cjs(m: &Module) -> bool {
   let mut v = CjsFinder::default();
   m.visit_with(&mut v);
   v.found && !v.is_esm

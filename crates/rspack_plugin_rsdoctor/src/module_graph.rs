@@ -16,7 +16,7 @@ use crate::{
   RsdoctorModuleOriginalSource,
 };
 
-pub fn collect_modules(
+pub(crate) fn collect_modules(
   modules: &IdentifierMap<&BoxModule>,
   module_graph: &ModuleGraph,
   chunk_graph: &ChunkGraph,
@@ -80,7 +80,7 @@ pub fn collect_modules(
     .collect::<HashMap<_, _>>()
 }
 
-pub fn collect_concatenated_modules(
+pub(crate) fn collect_concatenated_modules(
   modules: &IdentifierMap<&BoxModule>,
 ) -> (
   HashMap<Identifier, HashSet<Identifier>>,
@@ -120,7 +120,7 @@ pub fn collect_concatenated_modules(
   (children_map, parent_map)
 }
 
-pub fn collect_module_original_sources(
+pub(crate) fn collect_module_original_sources(
   modules: &IdentifierMap<&BoxModule>,
   module_ukeys: &HashMap<Identifier, ModuleUkey>,
   module_graph: &ModuleGraph,
@@ -169,7 +169,7 @@ pub fn collect_module_original_sources(
     .collect::<Vec<_>>()
 }
 
-pub fn collect_module_dependencies(
+pub(crate) fn collect_module_dependencies(
   modules: &IdentifierMap<&BoxModule>,
   module_ukeys: &HashMap<Identifier, ModuleUkey>,
   module_graph: &ModuleGraph,
@@ -222,7 +222,7 @@ pub fn collect_module_dependencies(
     .collect::<HashMap<_, _>>()
 }
 
-pub fn collect_module_ids(
+pub(crate) fn collect_module_ids(
   modules: &IdentifierMap<&BoxModule>,
   module_ukeys: &HashMap<Identifier, ModuleUkey>,
   module_ids: &ModuleIdsArtifact,

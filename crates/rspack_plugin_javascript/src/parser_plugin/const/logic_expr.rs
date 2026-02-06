@@ -7,14 +7,17 @@ use swc_core::{
 
 use crate::visitors::JavascriptParser;
 
-pub fn is_logic_op(op: BinaryOp) -> bool {
+pub(crate) fn is_logic_op(op: BinaryOp) -> bool {
   matches!(
     op,
     BinaryOp::LogicalAnd | BinaryOp::LogicalOr | BinaryOp::NullishCoalescing
   )
 }
 
-pub fn expression_logic_operator(scanner: &mut JavascriptParser, expr: &BinExpr) -> Option<bool> {
+pub(super) fn expression_logic_operator(
+  scanner: &mut JavascriptParser,
+  expr: &BinExpr,
+) -> Option<bool> {
   if expr.op == BinaryOp::LogicalAnd || expr.op == BinaryOp::LogicalOr {
     let param = scanner.evaluate_expression(&expr.left);
     let boolean = param.as_bool();

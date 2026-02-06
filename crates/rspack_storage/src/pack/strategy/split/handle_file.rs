@@ -11,7 +11,7 @@ use crate::{
   pack::data::{PackScope, RootMeta, RootOptions, ScopeMeta, current_time},
 };
 
-pub async fn prepare_scope(
+pub(super) async fn prepare_scope(
   scope_path: &Utf8Path,
   root: &Utf8Path,
   temp_root: &Utf8Path,
@@ -24,7 +24,7 @@ pub async fn prepare_scope(
   Ok(())
 }
 
-pub async fn prepare_scope_dirs(
+pub(super) async fn prepare_scope_dirs(
   scopes: &HashMap<String, PackScope>,
   root: &Utf8Path,
   temp_root: &Utf8Path,
@@ -48,7 +48,7 @@ pub async fn prepare_scope_dirs(
   .map(|_| ())
 }
 
-pub async fn remove_files(
+pub(super) async fn remove_files(
   files: HashSet<Utf8PathBuf>,
   fs: Arc<dyn FileSystem>,
 ) -> BatchFSResult<()> {
@@ -67,7 +67,7 @@ pub async fn remove_files(
   .map(|_| ())
 }
 
-pub async fn write_lock(
+pub(super) async fn write_lock(
   lock_file: &str,
   files: &HashSet<Utf8PathBuf>,
   root: &Utf8Path,
@@ -86,7 +86,7 @@ pub async fn write_lock(
   Ok(())
 }
 
-pub async fn remove_lock(
+pub(super) async fn remove_lock(
   lock_file: &str,
   root: &Utf8Path,
   fs: Arc<dyn FileSystem>,
@@ -96,7 +96,7 @@ pub async fn remove_lock(
   Ok(())
 }
 
-pub async fn move_files(
+pub(super) async fn move_files(
   files: HashSet<Utf8PathBuf>,
   root: &Utf8Path,
   temp_root: &Utf8Path,
@@ -171,7 +171,7 @@ async fn recovery_lock(
   Ok(files[2..].to_vec())
 }
 
-pub async fn recovery_move_lock(
+pub(super) async fn recovery_move_lock(
   root: &Utf8Path,
   temp_root: &Utf8Path,
   fs: Arc<dyn FileSystem>,
@@ -193,7 +193,7 @@ pub async fn recovery_move_lock(
   Ok(())
 }
 
-pub async fn recovery_remove_lock(
+pub(super) async fn recovery_remove_lock(
   root: &Utf8Path,
   temp_root: &Utf8Path,
   fs: Arc<dyn FileSystem>,
@@ -213,7 +213,7 @@ pub async fn recovery_remove_lock(
   Ok(())
 }
 
-pub async fn walk_dir(
+pub(super) async fn walk_dir(
   root: &Utf8Path,
   fs: Arc<dyn FileSystem>,
 ) -> BatchFSResult<HashSet<Utf8PathBuf>> {
@@ -243,7 +243,11 @@ pub async fn walk_dir(
   Ok(files)
 }
 
-pub fn redirect_to_path(path: &Utf8Path, src: &Utf8Path, dist: &Utf8Path) -> FSResult<Utf8PathBuf> {
+pub(super) fn redirect_to_path(
+  path: &Utf8Path,
+  src: &Utf8Path,
+  dist: &Utf8Path,
+) -> FSResult<Utf8PathBuf> {
   let relative_path = path
     .strip_prefix(src)
     .map_err(|e| FSError::from_message(path, FSOperation::Redirect, format!("{e}")))?;
@@ -276,7 +280,7 @@ async fn try_remove_scope_files(scope: &PackScope, fs: Arc<dyn FileSystem>) -> B
   Ok(())
 }
 
-pub async fn remove_unused_scope_files(
+pub(super) async fn remove_unused_scope_files(
   scopes: &HashMap<String, PackScope>,
   fs: Arc<dyn FileSystem>,
 ) -> BatchFSResult<()> {
@@ -304,7 +308,7 @@ async fn try_remove_scope(name: &str, dir: &Utf8Path, fs: Arc<dyn FileSystem>) -
   Ok(())
 }
 
-pub async fn remove_unused_scopes(
+pub(super) async fn remove_unused_scopes(
   root: &Utf8Path,
   root_meta: &RootMeta,
   fs: Arc<dyn FileSystem>,
@@ -368,7 +372,7 @@ async fn try_remove_version(
   }
 }
 
-pub async fn remove_expired_versions(
+pub(super) async fn remove_expired_versions(
   root: &Utf8Path,
   root_options: &RootOptions,
   fs: Arc<dyn FileSystem>,

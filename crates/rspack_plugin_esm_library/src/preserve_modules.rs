@@ -9,7 +9,7 @@ use swc_core::common::sync::Lazy;
 
 use crate::EsmLibraryPlugin;
 
-pub fn entry_modules(compilation: &Compilation) -> FxHashMap<String, IdentifierSet> {
+pub(crate) fn entry_modules(compilation: &Compilation) -> FxHashMap<String, IdentifierSet> {
   let module_graph = compilation.get_module_graph();
   compilation
     .entries
@@ -33,7 +33,7 @@ pub fn entry_modules(compilation: &Compilation) -> FxHashMap<String, IdentifierS
     .collect()
 }
 
-pub fn entry_name_for_module(
+pub(crate) fn entry_name_for_module(
   entry_modules: &FxHashMap<String, IdentifierSet>,
 ) -> IdentifierMap<FxHashSet<String>> {
   let mut entry_name_for_module: IdentifierMap<FxHashSet<String>> = IdentifierMap::default();
@@ -49,7 +49,7 @@ pub fn entry_name_for_module(
 }
 
 #[allow(clippy::unwrap_used)]
-pub async fn preserve_modules(
+pub(crate) async fn preserve_modules(
   root: &Path,
   compilation: &mut Compilation,
 ) -> Vec<rspack_error::Diagnostic> {

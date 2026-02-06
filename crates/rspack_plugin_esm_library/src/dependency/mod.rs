@@ -1,1 +1,1 @@
-pub mod dyn_import;
+pub(crate) mod dyn_import;

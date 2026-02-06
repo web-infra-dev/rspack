@@ -7,10 +7,10 @@ use rustc_hash::FxHashMap;
 
 use crate::reference_manifest::{ManifestExport, ModuleLoading, ServerReferenceManifest};
 
-pub type ActionIdNamePair = (Atom, Atom);
+pub(crate) type ActionIdNamePair = (Atom, Atom);
 
 #[derive(Debug, Default)]
-pub struct PluginState {
+pub(crate) struct PluginState {
   pub module_loading: Option<ModuleLoading>,
   pub injected_client_entries: FxHashMap<String, String>,
   pub client_modules: FxHashMap<String, ManifestExport>,
@@ -35,7 +35,7 @@ pub struct PluginState {
 }
 
 impl PluginState {
-  pub fn clear(&mut self) {
+  pub(crate) fn clear(&mut self) {
     self.module_loading = None;
     self.injected_client_entries.clear();
     self.client_modules.clear();
@@ -49,4 +49,5 @@ impl PluginState {
   }
 }
 
-pub static PLUGIN_STATES: Lazy<DashMap<CompilerId, PluginState>> = Lazy::new(Default::default);
+pub(crate) static PLUGIN_STATES: Lazy<DashMap<CompilerId, PluginState>> =
+  Lazy::new(Default::default);

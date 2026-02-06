@@ -20,4 +20,4 @@ pub(crate) trait Analyzer: Default {
 pub type RecommendedAnalyzer = root::WatcherRootAnalyzer;
 
 #[cfg(not(any(target_os = "macos", target_os = "windows")))]
-pub type RecommendedAnalyzer = directories::WatcherDirectoriesAnalyzer;
+pub(crate) type RecommendedAnalyzer = directories::WatcherDirectoriesAnalyzer;

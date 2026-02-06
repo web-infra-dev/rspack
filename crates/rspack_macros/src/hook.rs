@@ -7,7 +7,7 @@ use syn::{
   token::Comma,
 };
 
-pub struct DefineHookInput {
+pub(crate) struct DefineHookInput {
   trait_name: Ident,
   args: Punctuated<PatType, Comma>,
   exec_kind: ExecKind,
@@ -73,7 +73,7 @@ impl Parse for DefineHookInput {
 }
 
 impl DefineHookInput {
-  pub fn expand(self) -> Result<TokenStream> {
+  pub(crate) fn expand(self) -> Result<TokenStream> {
     let DefineHookInput {
       trait_name,
       args,
@@ -170,7 +170,7 @@ enum ExecKind {
 }
 
 impl ExecKind {
-  pub fn parse_ret(input: ParseStream) -> Result<Option<TypePath>> {
+  fn parse_ret(input: ParseStream) -> Result<Option<TypePath>> {
     Ok(if input.peek(Token![->]) {
       <Token![->]>::parse(input)?;
       let ret = TypePath::parse(input)?;
@@ -180,7 +180,7 @@ impl ExecKind {
     })
   }
 
-  pub fn return_type(&self) -> TokenStream {
+  fn return_type(&self) -> TokenStream {
     match self {
       Self::SeriesBail { ret } => {
         if let Some(ret) = ret {
@@ -210,7 +210,7 @@ impl ExecKind {
     }
   }
 
-  pub fn body(&self, args: Punctuated<&Ident, Comma>) -> TokenStream {
+  fn body(&self, args: Punctuated<&Ident, Comma>) -> TokenStream {
     let additional_taps = self.additional_taps();
     match self {
       Self::Series => {

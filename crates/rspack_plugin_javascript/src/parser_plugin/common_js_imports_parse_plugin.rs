@@ -108,21 +108,21 @@ enum CallOrNewExpr<'a> {
 }
 
 impl CallOrNewExpr<'_> {
-  pub fn callee(&self) -> Option<&Expr> {
+  pub(crate) fn callee(&self) -> Option<&Expr> {
     match self {
       CallOrNewExpr::Call(call_expr) => call_expr.callee.as_expr().map(|e| &**e),
       CallOrNewExpr::New(new_expr) => Some(&new_expr.callee),
     }
   }
 
-  pub fn args(&self) -> Option<&[ExprOrSpread]> {
+  pub(crate) fn args(&self) -> Option<&[ExprOrSpread]> {
     match self {
       CallOrNewExpr::Call(call_expr) => Some(&call_expr.args),
       CallOrNewExpr::New(new_expr) => new_expr.args.as_deref(),
     }
   }
 
-  pub fn span(&self) -> Span {
+  pub(crate) fn span(&self) -> Span {
     match self {
       CallOrNewExpr::Call(call_expr) => call_expr.span,
       CallOrNewExpr::New(new_expr) => new_expr.span,
@@ -130,7 +130,7 @@ impl CallOrNewExpr<'_> {
   }
 }
 
-pub struct CommonJsImportsParserPlugin;
+pub(crate) struct CommonJsImportsParserPlugin;
 
 impl CommonJsImportsParserPlugin {
   fn has_ignore_comment(parser: &mut JavascriptParser, error_span: Span, span: Span) -> bool {

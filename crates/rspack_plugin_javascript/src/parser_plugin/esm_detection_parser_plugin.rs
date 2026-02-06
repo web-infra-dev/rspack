@@ -40,7 +40,7 @@ impl JavascriptParser<'_> {
 }
 
 #[derive(Default)]
-pub struct ESMDetectionParserPlugin;
+pub(crate) struct ESMDetectionParserPlugin;
 
 // nonHarmonyIdentifiers
 fn is_non_esm_identifier(name: &str) -> bool {

@@ -11,7 +11,7 @@ use crate::paths::PathAccessor;
 /// This is typically used on platforms where recursive watching is not
 /// available or not desired, so each directory is watched separately.
 #[derive(Default)]
-pub struct WatcherDirectoriesAnalyzer;
+pub(crate) struct WatcherDirectoriesAnalyzer;
 
 impl Analyzer for WatcherDirectoriesAnalyzer {
   fn analyze<'a>(&self, path_accessor: PathAccessor<'a>) -> Vec<WatchPattern> {

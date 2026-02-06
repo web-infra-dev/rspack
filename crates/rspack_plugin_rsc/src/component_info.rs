@@ -18,19 +18,19 @@ use crate::{
 };
 
 // { [client import path]: [exported names] }
-pub type ClientComponentImports = FxHashMap<String, FxHashSet<String>>;
+pub(crate) type ClientComponentImports = FxHashMap<String, FxHashSet<String>>;
 // { [server entry path]: [css imports] }
-pub type CssImports = FxHashMap<String, FxIndexSet<String>>;
+pub(crate) type CssImports = FxHashMap<String, FxIndexSet<String>>;
 
 #[derive(Debug, Default)]
-pub struct ComponentInfo {
+pub(crate) struct ComponentInfo {
   pub should_inject_ssr_modules: bool,
   pub css_imports: CssImports,
   pub client_component_imports: ClientComponentImports,
   pub action_imports: Vec<(String, Vec<ActionIdNamePair>)>,
 }
 
-pub fn collect_component_info_from_entry_denendency(
+pub(crate) fn collect_component_info_from_entry_denendency(
   compilation: &Compilation,
   runtime: &RuntimeSpec,
   dependency_id: &DependencyId,

@@ -1,7 +1,7 @@
 use quote::quote;
 use syn::{Fields, ItemStruct, parse_macro_input};
 
-pub fn field_names(
+pub(crate) fn field_names(
   _args: proc_macro::TokenStream,
   tokens: proc_macro::TokenStream,
 ) -> proc_macro::TokenStream {

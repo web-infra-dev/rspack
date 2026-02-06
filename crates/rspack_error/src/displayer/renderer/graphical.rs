@@ -29,7 +29,7 @@ See [`set_hook()`](crate::set_hook) for more details on customizing your global
 printer.
 */
 #[derive(Debug, Clone)]
-pub struct GraphicalReportHandler {
+pub(super) struct GraphicalReportHandler {
   pub(crate) links: LinkStyle,
   pub(crate) termwidth: usize,
   pub(crate) theme: GraphicalTheme,
@@ -49,7 +49,7 @@ pub(crate) enum LinkStyle {
 impl GraphicalReportHandler {
   /// Create a new `GraphicalReportHandler` with the default
   /// [`GraphicalTheme`]. This will use both unicode characters and colors.
-  pub fn new() -> Self {
+  pub(super) fn new() -> Self {
     Self {
       links: LinkStyle::Link,
       termwidth: 200,
@@ -62,7 +62,7 @@ impl GraphicalReportHandler {
   }
 
   ///Create a new `GraphicalReportHandler` with a given [`GraphicalTheme`].
-  pub fn new_themed(theme: GraphicalTheme) -> Self {
+  pub(super) fn new_themed(theme: GraphicalTheme) -> Self {
     Self {
       links: LinkStyle::Link,
       termwidth: 200,
@@ -75,32 +75,32 @@ impl GraphicalReportHandler {
   }
 
   /// Set the displayed tab width in spaces.
-  pub fn tab_width(mut self, width: usize) -> Self {
+  pub(super) fn tab_width(mut self, width: usize) -> Self {
     self.tab_width = width;
     self
   }
 
   /// Include the cause chain of the top-level error in the graphical output,
   /// if available.
-  pub fn with_cause_chain(mut self) -> Self {
+  pub(super) fn with_cause_chain(mut self) -> Self {
     self.with_cause_chain = true;
     self
   }
 
   /// Set a theme for this handler.
-  pub fn with_theme(mut self, theme: GraphicalTheme) -> Self {
+  pub(super) fn with_theme(mut self, theme: GraphicalTheme) -> Self {
     self.theme = theme;
     self
   }
 
   /// Sets the width to wrap the report at.
-  pub fn with_width(mut self, width: usize) -> Self {
+  pub(super) fn with_width(mut self, width: usize) -> Self {
     self.termwidth = width;
     self
   }
 
   /// Sets the number of lines of context to show around each error.
-  pub fn with_context_lines(mut self, lines: usize) -> Self {
+  pub(super) fn with_context_lines(mut self, lines: usize) -> Self {
     self.context_lines = lines;
     self
   }
@@ -116,7 +116,11 @@ impl GraphicalReportHandler {
   /// Render a [`Diagnostic`]. This function is mostly internal and meant to
   /// be called by the toplevel [`ReportHandler`] handler, but is made public
   /// to make it easier (possible) to test in isolation from global state.
-  pub fn render_report(&self, f: &mut impl fmt::Write, diagnostic: &dyn Diagnostic) -> fmt::Result {
+  pub(super) fn render_report(
+    &self,
+    f: &mut impl fmt::Write,
+    diagnostic: &dyn Diagnostic,
+  ) -> fmt::Result {
     // CHANGE: skip, `render_header` is not used in rspack
     // self.render_header(f, diagnostic)?;
     self.render_causes(f, diagnostic)?;

@@ -26,7 +26,7 @@ fn get_modules_needing_ids(
     .collect()
 }
 
-pub struct ModuleIdsPass;
+pub(super) struct ModuleIdsPass;
 
 #[async_trait]
 impl PassExt for ModuleIdsPass {

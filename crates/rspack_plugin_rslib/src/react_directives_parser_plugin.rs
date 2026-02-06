@@ -2,7 +2,7 @@ use rspack_core::ConstDependency;
 use rspack_plugin_javascript::{JavascriptParserPlugin, visitors::JavascriptParser};
 use swc_core::ecma::ast::{Expr, Lit, ModuleItem, Program, Stmt};
 
-pub struct ReactDirectivesParserPlugin;
+pub(crate) struct ReactDirectivesParserPlugin;
 
 impl ReactDirectivesParserPlugin {
   fn process_statements<'a, I>(stmts: I, directives: &mut Vec<(String, swc_core::common::Span)>)

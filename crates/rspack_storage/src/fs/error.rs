@@ -5,9 +5,9 @@ use rspack_paths::Utf8Path;
 use tokio::task::JoinError;
 
 pub type FSResult<T> = Result<T, FSError>;
-pub type BatchFSResult<T> = Result<T, BatchFSError>;
+pub(crate) type BatchFSResult<T> = Result<T, BatchFSError>;
 
-pub trait FsResultToStorageFsResult<T> {
+pub(super) trait FsResultToStorageFsResult<T> {
   fn to_storage_fs_result(self, path: &Utf8Path, opt: FSOperation) -> FSResult<T>;
 }
 

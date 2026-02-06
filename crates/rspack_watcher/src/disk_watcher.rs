@@ -8,7 +8,7 @@ use crate::{FsEventKind, WatchPattern, trigger};
 
 /// `DiskWatcher` is responsible for managing the underlying file system watcher
 /// and keeping track of the currently watched paths.
-pub struct DiskWatcher {
+pub(crate) struct DiskWatcher {
   /// The actual file system watcher from the `notify` crate.
   inner: Option<RecommendedWatcher>,
   /// A set of pattern that are currently being watched.
@@ -17,7 +17,7 @@ pub struct DiskWatcher {
 
 impl DiskWatcher {
   /// Creates a new `DiskWatcher` with the given configuration and trigger.
-  pub fn new(
+  pub(crate) fn new(
     follow_symlinks: bool,
     poll_interval: Option<u32>,
     trigger: Arc<trigger::Trigger>,
@@ -75,7 +75,7 @@ impl DiskWatcher {
   /// # Returns
   ///
   /// * `rspack_error::Result<()>` - Ok if successful, otherwise an error.
-  pub fn watch(
+  pub(crate) fn watch(
     &mut self,
     patterns: impl Iterator<Item = WatchPattern>,
   ) -> rspack_error::Result<()> {
@@ -121,7 +121,7 @@ impl DiskWatcher {
     Ok(())
   }
 
-  pub fn close(&mut self) {
+  pub(crate) fn close(&mut self) {
     // the trigger.tx is dropped in the FsWatcher
     std::mem::drop(self.inner.take());
   }
