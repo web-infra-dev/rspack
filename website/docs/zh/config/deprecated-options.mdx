@@ -1,10 +1,54 @@
-import { ApiMeta } from '../../../components/ApiMeta';
+import { ApiMeta, Stability } from '../../../components/ApiMeta';
 
 # 废弃选项
 
 本页面列出了 Rspack 中已被废弃的配置选项。
 
 这些选项仅为向后兼容而保留，不应在新项目中使用。
+
+## experiments.css
+
+<ApiMeta stability={Stability.Deprecated} />
+
+- **类型：** `boolean`
+- **默认值：** `false`
+
+:::warning 已弃用
+此选项在 Rspack 2.0 中已弃用。现在手动添加 CSS type 将模块标记为 CSS 模块。
+:::
+
+### 迁移
+
+要在 Rspack 2.0 中使用 CSS，需要手动添加 CSS 规则到配置中：
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.css$/i,
+        type: 'css/auto',
+      },
+    ],
+  },
+};
+```
+
+### 旧用法（已弃用）
+
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    css: true,
+  },
+};
+```
+
+## experiments.incremental
+
+<ApiMeta stability={Stability.Deprecated} />
+
+此选项已移动至顶层 [`incremental`](/config/incremental)。
 
 ## rules[].loaders
 
