@@ -34,12 +34,10 @@ impl<T> StealCell<T> {
 
   #[track_caller]
   pub fn steal(&mut self) -> T {
-    self.0.take().unwrap_or_else(|| {
-      panic!(
-        "attempt to steal from stolen value: {}",
-        type_name::<T>()
-      )
-    })
+    self
+      .0
+      .take()
+      .unwrap_or_else(|| panic!("attempt to steal from stolen value: {}", type_name::<T>()))
   }
 }
 
@@ -195,9 +193,7 @@ mod tests {
       passes: IncrementalPasses::all(),
     });
 
-    assert!(!<StealCell<NeverRecoverArtifact> as ArtifactExt>::should_recover(
-      &incremental
-    ));
+    assert!(!<StealCell<NeverRecoverArtifact> as ArtifactExt>::should_recover(&incremental));
   }
 
   #[test]
@@ -207,8 +203,6 @@ mod tests {
       passes: IncrementalPasses::empty(),
     });
 
-    assert!(<StealCell<AlwaysRecoverArtifact> as ArtifactExt>::should_recover(
-      &incremental
-    ));
+    assert!(<StealCell<AlwaysRecoverArtifact> as ArtifactExt>::should_recover(&incremental));
   }
 }
