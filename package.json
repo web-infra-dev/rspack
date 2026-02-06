@@ -66,7 +66,7 @@
     "@microsoft/api-extractor-model": "7.32.2",
     "@rslint/core": "0.2.0",
     "@rspack/cli": "workspace:*",
-    "@rstest/core": "^0.8.2",
+    "@rstest/core": "^0.8.3",
     "@taplo/cli": "^0.7.0",
     "@types/is-ci": "^3.0.4",
     "@types/node": "^20.19.31",
