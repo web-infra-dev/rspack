@@ -3868,7 +3868,6 @@ dependencies = [
  "anymap3",
  "async-recursion",
  "async-trait",
- "atomic_refcell",
  "bitflags 2.9.1",
  "cow-utils",
  "dashmap 6.1.0",
