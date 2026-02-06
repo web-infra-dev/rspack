@@ -141,7 +141,10 @@ impl ModulesContainer for MatchGroup {
 
 fn get_module_deps(module: ModuleIdentifier, module_graph: &ModuleGraph) -> Vec<ModuleIdentifier> {
   module_graph
-    .get_outgoing_deps_in_order(&module)
+    .module_by_identifier(&module)
+    .expect("should have module")
+    .get_dependencies()
+    .iter()
     .filter_map(|dep_id| module_graph.module_identifier_by_dependency_id(dep_id))
     .copied()
     .collect()
@@ -188,7 +191,7 @@ async fn matches_module_to_cache_group(
 }
 
 pub(crate) async fn split(groups: &[CacheGroup], compilation: &mut Compilation) -> Result<()> {
-  let modules = compilation.chunk_graph.modules();
+  let modules = compilation.build_chunk_graph_artifact.chunk_graph.modules();
   let results: Vec<std::result::Result<_, _>> = rspack_futures::scope::<_, Result<_>>(|token| {
     modules.iter().copied().for_each(|module_identifier| {
       // SAFETY: `groups` and `compilation` outlive the scope and are only read (not mutated) concurrently.
@@ -208,10 +211,11 @@ pub(crate) async fn split(groups: &[CacheGroup], compilation: &mut Compilation) 
             ChunkNameGetter::String(name) => Some((Either::Left(name.clone()), module_identifier)),
             ChunkNameGetter::Disabled => Some((Either::Right(index), module_identifier)),
             ChunkNameGetter::Fn(func) => {
-              if let Ok(Some(name)) = func(ChunkNameGetterFnCtx {
+              let name_res = func(ChunkNameGetterFnCtx {
                 module,
                 compilation,
                 chunks: &compilation
+                  .build_chunk_graph_artifact
                   .chunk_graph
                   .get_module_chunks(module_identifier)
                   .iter()
@@ -219,11 +223,12 @@ pub(crate) async fn split(groups: &[CacheGroup], compilation: &mut Compilation) 
                   .collect(),
                 cache_group_key: &group.key,
               })
-              .await
-              {
-                Some((Either::Left(name), module_identifier))
-              } else {
-                Some((Either::Right(index), module_identifier))
+              .await;
+
+              match name_res {
+                Ok(Some(name)) => Some((Either::Left(name), module_identifier)),
+                Ok(None) => Some((Either::Right(index), module_identifier)),
+                Err(err) => return Err(err),
               }
             }
           });
@@ -234,7 +239,7 @@ pub(crate) async fn split(groups: &[CacheGroup], compilation: &mut Compilation) 
   })
   .await;
 
-  let modules = compilation.chunk_graph.modules();
+  let modules = compilation.build_chunk_graph_artifact.chunk_graph.modules();
   let mut modules_in_group: IdentifierIndexSet =
     IdentifierIndexSet::with_capacity_and_hasher(modules.len(), BuildHasherDefault::default());
   let mut group_modules: HashMap<Either<String, usize>, MatchGroup> =
@@ -263,32 +268,38 @@ pub(crate) async fn split(groups: &[CacheGroup], compilation: &mut Compilation) 
   // module is guaranteed to be exist in only one group
   // we should merge modules' dependencies into the same group
   let module_graph = compilation.get_module_graph();
-  group_modules.par_iter_mut().for_each(|(_, match_group)| {
-    for m in match_group.modules.clone() {
-      // merge dependencies
+  let mut group_order = group_modules.keys().cloned().collect::<Vec<_>>();
+  group_order.sort_by(|a, b| match (a, b) {
+    (Either::Left(la), Either::Left(lb)) => la.cmp(lb),
+    (Either::Right(ra), Either::Right(rb)) => ra.cmp(rb),
+    (Either::Left(_), Either::Right(_)) => std::cmp::Ordering::Less,
+    (Either::Right(_), Either::Left(_)) => std::cmp::Ordering::Greater,
+  });
 
-      let mut stack = get_module_deps(m, module_graph);
-      while let Some(m) = stack.pop() {
-        // if module is already in any group, skip
-        if modules_in_group.contains(&m) {
+  for key in group_order {
+    let Some(match_group) = group_modules.get_mut(&key) else {
+      continue;
+    };
+
+    let mut stack: Vec<_> = match_group.modules.iter().copied().collect();
+    while let Some(module_identifier) = stack.pop() {
+      for dep in get_module_deps(module_identifier, module_graph) {
+        if !modules_in_group.insert(dep) {
           continue;
         }
-
-        // if module is already in the group, skip
-        if !match_group.add_module(m) {
+        if !match_group.add_module(dep) {
           continue;
         }
-
-        stack.extend(get_module_deps(m, module_graph));
+        stack.push(dep);
       }
     }
-  });
+  }
 
   let module_sizes = get_module_sizes(modules.par_iter().copied(), compilation);
 
   // ensure min size fit
   let group_modules = group_modules
-    .into_par_iter()
+    .into_iter()
     .filter_map(|(index_or_name, mut match_group)| {
       if let Either::Right(index) = &index_or_name {
         let min_size = &groups[*index].min_size;
@@ -302,6 +313,7 @@ pub(crate) async fn split(groups: &[CacheGroup], compilation: &mut Compilation) 
     .collect::<Vec<_>>();
 
   let mut splitted_modules = IdentifierSet::default();
+  let entry_modules = compilation.entry_modules();
   for (index_or_name, mut match_group) in group_modules {
     match_group
       .modules
@@ -320,8 +332,8 @@ pub(crate) async fn split(groups: &[CacheGroup], compilation: &mut Compilation) 
     let chunk_ukey = if let Some(chunk_name) = chunk_name {
       let (ukey, created) = Compilation::add_named_chunk(
         chunk_name.clone(),
-        &mut compilation.chunk_by_ukey,
-        &mut compilation.named_chunks,
+        &mut compilation.build_chunk_graph_artifact.chunk_by_ukey,
+        &mut compilation.build_chunk_graph_artifact.named_chunks,
       );
 
       if !created {
@@ -334,12 +346,18 @@ pub(crate) async fn split(groups: &[CacheGroup], compilation: &mut Compilation) 
 
       ukey
     } else {
-      Compilation::add_chunk(&mut compilation.chunk_by_ukey)
+      Compilation::add_chunk(&mut compilation.build_chunk_graph_artifact.chunk_by_ukey)
     };
 
-    compilation.chunk_graph.add_chunk(chunk_ukey);
+    compilation
+      .build_chunk_graph_artifact
+      .chunk_graph
+      .add_chunk(chunk_ukey);
 
-    let chunk = compilation.chunk_by_ukey.expect_get_mut(&chunk_ukey);
+    let chunk = compilation
+      .build_chunk_graph_artifact
+      .chunk_by_ukey
+      .expect_get_mut(&chunk_ukey);
     if let Some(filename_template) = match_group.filename_template {
       chunk.set_filename_template(Some(filename_template));
     }
@@ -348,10 +366,11 @@ pub(crate) async fn split(groups: &[CacheGroup], compilation: &mut Compilation) 
       chunk.add_id_name_hints(name_hint);
     }
 
-    let entry_modules = compilation.entry_modules();
-
     for m in &match_group.modules {
-      let chunks = compilation.chunk_graph.get_module_chunks(*m);
+      let chunks = compilation
+        .build_chunk_graph_artifact
+        .chunk_graph
+        .get_module_chunks(*m);
       if chunks.is_empty() {
         continue;
       }
@@ -359,34 +378,46 @@ pub(crate) async fn split(groups: &[CacheGroup], compilation: &mut Compilation) 
       let orig_chunk = EsmLibraryPlugin::get_module_chunk(*m, compilation);
 
       compilation
+        .build_chunk_graph_artifact
         .chunk_graph
         .connect_chunk_and_module(chunk_ukey, *m);
 
       compilation
+        .build_chunk_graph_artifact
         .chunk_graph
         .disconnect_chunk_and_module(&orig_chunk, *m);
 
       if entry_modules.contains(m) {
         compilation
+          .build_chunk_graph_artifact
           .chunk_graph
           .disconnect_chunk_and_entry_module(&orig_chunk, *m);
 
-        let entrypoints = compilation.chunk_by_ukey.expect_get(&orig_chunk).groups();
+        let entrypoints = compilation
+          .build_chunk_graph_artifact
+          .chunk_by_ukey
+          .expect_get(&orig_chunk)
+          .groups();
         for entrypoint in entrypoints {
           compilation
+            .build_chunk_graph_artifact
             .chunk_graph
             .connect_chunk_and_entry_module(chunk_ukey, *m, *entrypoint);
         }
       }
 
       let [Some(chunk), Some(orig_chunk)] = compilation
+        .build_chunk_graph_artifact
         .chunk_by_ukey
         .get_many_mut([&chunk_ukey, &orig_chunk])
       else {
         unreachable!()
       };
 
-      orig_chunk.split(chunk, &mut compilation.chunk_group_by_ukey);
+      orig_chunk.split(
+        chunk,
+        &mut compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
+      );
     }
 
     splitted_modules.extend(match_group.modules.clone());

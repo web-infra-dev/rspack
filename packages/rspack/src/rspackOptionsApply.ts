@@ -314,7 +314,7 @@ export class RspackOptionsApply {
         enableLibSplitChunks = true;
         new EsmLibraryPlugin({
           preserveModules: options.output.library?.preserveModules,
-          splitChunks: options.optimization.splitChunks || undefined,
+          splitChunks: options.optimization.splitChunks,
         }).apply(compiler);
       } else {
         for (const type of options.output.enabledLibraryTypes) {

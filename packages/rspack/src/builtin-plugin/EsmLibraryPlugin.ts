@@ -49,12 +49,12 @@ export class EsmLibraryPlugin {
   static PLUGIN_NAME = 'EsmLibraryPlugin';
   options: {
     preserveModules?: string;
-    splitChunks?: OptimizationSplitChunksOptions;
+    splitChunks?: OptimizationSplitChunksOptions | false;
   };
 
   constructor(options?: {
     preserveModules?: string;
-    splitChunks?: OptimizationSplitChunksOptions;
+    splitChunks?: OptimizationSplitChunksOptions | false;
   }) {
     this.options = options ?? {};
   }
