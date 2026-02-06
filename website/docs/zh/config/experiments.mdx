@@ -232,3 +232,25 @@ export default {
   },
 };
 ```
+
+:::info 注意
+目前在使用 `output.module: true` 时，对 external 模块使用 `defer import` 语法会被编译为普通的 `import` 语法。
+
+例如，当 `jquery` 配置为 external 时：
+
+```js
+import defer * as $ from 'jquery';
+```
+
+将会生成：
+
+```js
+import * as __WEBPACK_EXTERNAL_MODULE_jquery__ from 'jquery';
+```
+
+这是因为目前尚未有运行时支持 `defer import` 语法。未来当更多运行时支持该语法后，Rspack 将会根据 target 配置决定是否保留 `defer import` 语法，生成如下代码：
+
+```js
+import defer * as __WEBPACK_EXTERNAL_MODULE_jquery__ from 'jquery';
+```
+:::
