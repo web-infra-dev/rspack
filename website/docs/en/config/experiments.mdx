@@ -245,12 +245,13 @@ import defer * as $ from 'jquery';
 It will generate:
 
 ```js
-import * as __WEBPACK_EXTERNAL_MODULE_jquery__ from 'jquery';
+import * as __rspack_external_jquery from 'jquery';
 ```
 
 This is because `defer import` syntax is not yet supported by any runtime. In the future, Rspack will support preserving `defer import` syntax based on the target configuration, generating the following code:
 
 ```js
-import defer * as __WEBPACK_EXTERNAL_MODULE_jquery__ from 'jquery';
+import defer * as __rspack_external_jquery from 'jquery';
 ```
+
 :::
