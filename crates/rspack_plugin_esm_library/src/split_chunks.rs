@@ -2,7 +2,7 @@ use std::{hash::BuildHasherDefault, sync::Arc};
 
 use futures::future::BoxFuture;
 use rayon::{iter::Either, prelude::*};
-use rspack_collections::IdentifierSet;
+use rspack_collections::{IdentifierIndexSet, IdentifierSet};
 use rspack_core::{
   BoxModule, Compilation, Filename, Module, ModuleGraph, ModuleIdentifier, SourceType,
 };
@@ -235,8 +235,8 @@ pub(crate) async fn split(groups: &[CacheGroup], compilation: &mut Compilation) 
   .await;
 
   let modules = compilation.chunk_graph.modules();
-  let mut modules_in_group: IdentifierSet =
-    IdentifierSet::with_capacity_and_hasher(modules.len(), BuildHasherDefault::default());
+  let mut modules_in_group: IdentifierIndexSet =
+    IdentifierIndexSet::with_capacity_and_hasher(modules.len(), BuildHasherDefault::default());
   let mut group_modules: HashMap<Either<String, usize>, MatchGroup> =
     HashMap::with_capacity_and_hasher(results.len(), Default::default());
 

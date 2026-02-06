@@ -12,7 +12,7 @@ impl<'a> From<RawSplitChunksOptions<'a>> for Vec<CacheGroup> {
   fn from(value: RawSplitChunksOptions<'a>) -> Self {
     let mut groups = rspack_plugin_split_chunks::PluginOptions::from(value).cache_groups;
 
-    groups.sort_by(|a, b| a.priority.total_cmp(&b.priority));
+    groups.sort_by(|a, b| b.priority.total_cmp(&a.priority));
 
     groups
   }
