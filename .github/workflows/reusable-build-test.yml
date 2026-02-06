@@ -126,6 +126,8 @@ jobs:
 
       ### x86_64-unknown-linux-gnu
       - name: Test x86_64-unknown-linux-gnu
+        env:
+          RUST_BACKTRACE: full
         timeout-minutes: 15 # Tests should finish within 15 mins, please fix your tests instead of changing this to a higher timeout.
         if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' }}
         run: pnpm run test:ci
