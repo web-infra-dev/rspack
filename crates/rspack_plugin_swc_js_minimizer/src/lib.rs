@@ -226,7 +226,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
               let dir = Path::new(filename).parent().expect("should has parent");
               let raw = Path::new(&comments_filename).strip_prefix(dir).expect("should has common prefix").to_string_lossy();
               let relative = raw.cow_replace('\\', "/");
-              Some(format!("/*! For license information please see {relative} */"))
+              Some(format!("/*! LICENSE: {relative} */"))
             },
             OptionWrapper::Disabled => None,
             OptionWrapper::Custom(value) => Some(format!("/*! {value} */"))
