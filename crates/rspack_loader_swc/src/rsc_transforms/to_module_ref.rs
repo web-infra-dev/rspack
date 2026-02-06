@@ -3,7 +3,7 @@ use rspack_core::{Module, NormalModule, RscModuleType};
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 use swc::atoms::Wtf8Atom;
 
-fn to_cjs_server_entry(resource: &str, server_refs: &[Wtf8Atom]) -> String {
+fn to_cjs_server_entry(resource: &str, server_refs: &[Wtf8Atom]) -> Result<String> {
   let mut cjs_source =
     "const { createServerEntry } = require(\"react-server-dom-rspack/server\");\n".to_string();
 
@@ -12,35 +12,38 @@ fn to_cjs_server_entry(resource: &str, server_refs: &[Wtf8Atom]) -> String {
       Some("default") => {
         cjs_source.push_str(&formatdoc! {
           r#"
-            const _default = require("{resource}?rsc-server-entry-proxy=true");
+            const _default = require({request});
             module.exports = createServerEntry(
               _default,
-              "{resource}",
+              {resource}
             );
           "#,
-          resource = resource
+          request = serde_json::to_string(&format!("{resource}?rsc-server-entry-proxy=true")).to_rspack_result()?,
+          resource = serde_json::to_string(&resource).to_rspack_result()?
         });
       }
       Some(ident) => {
         cjs_source.push_str(&formatdoc! {
           r#"
-            const _original_{ident} = require("{resource}?rsc-server-entry-proxy=true").{ident};
+            const _original_{ident} = require({request}).{ident};
             exports.{ident} = createServerEntry(
               _original_{ident},
-              "{resource}",
+              {resource}
             );
           "#,
           ident = ident,
-          resource = resource
+          request = serde_json::to_string(&format!("{resource}?rsc-server-entry-proxy=true")).to_rspack_result()?,
+          resource = serde_json::to_string(&resource).to_rspack_result()?
         });
       }
       _ => {}
     }
   }
-  cjs_source
+
+  Ok(cjs_source)
 }
 
-fn to_esm_server_entry(resource: &str, server_refs: &[Wtf8Atom]) -> String {
+fn to_esm_server_entry(resource: &str, server_refs: &[Wtf8Atom]) -> Result<String> {
   let mut esm_source =
     "import { createServerEntry } from \"react-server-dom-rspack/server\";\n".to_string();
 
@@ -49,45 +52,51 @@ fn to_esm_server_entry(resource: &str, server_refs: &[Wtf8Atom]) -> String {
       Some("default") => {
         esm_source.push_str(&formatdoc! {
           r#"
-            import _default from "{resource}?rsc-server-entry-proxy=true";
+            import _default from {request};
             export default createServerEntry(
               _default,
-              "{resource}",
-            )
+              {resource}
+            );
           "#,
-          resource = resource
+          request = serde_json::to_string(&format!("{resource}?rsc-server-entry-proxy=true")).to_rspack_result()?,
+          resource = serde_json::to_string(&resource).to_rspack_result()?
         });
       }
       Some(ident) => {
         esm_source.push_str(&formatdoc! {
           r#"
-            import {{ {ident} as _original_{ident} }} from "{resource}?rsc-server-entry-proxy=true";
+            import {{ {ident} as _original_{ident} }} from {request};
             export const {ident} = createServerEntry(
               _original_{ident},
-              "{resource}",
-            )
+              {resource}
+            );
           "#,
           ident = ident,
-          resource = resource,
+          request = serde_json::to_string(&format!("{resource}?rsc-server-entry-proxy=true")).to_rspack_result()?,
+          resource = serde_json::to_string(&resource).to_rspack_result()?
         });
       }
       _ => {}
     }
   }
-  esm_source
+
+  Ok(esm_source)
 }
 
 fn to_esm_client_entry(resource: &str, client_refs: &[Wtf8Atom]) -> Result<String> {
   let mut esm_source =
     String::from("import { registerClientReference } from \"react-server-dom-rspack/server\"\n");
 
-  let call_error = format!(
+  let resource_literal = serde_json::to_string(resource).to_rspack_result()?;
+
+  let call_error_literal = serde_json::to_string(&format!(
     "Attempted to call the default export of {} from \
     the server, but it's on the client. It's not possible to invoke a \
     client function from the server, it can only be rendered as a \
     Component or passed to props of a Client Component.",
-    serde_json::to_string(resource).to_rspack_result()?
-  );
+    resource_literal
+  ))
+  .to_rspack_result()?;
 
   for client_ref in client_refs {
     match client_ref.as_str() {
@@ -96,12 +105,12 @@ fn to_esm_client_entry(resource: &str, client_refs: &[Wtf8Atom]) -> Result<Strin
           r#"
             export default registerClientReference(
             function() {{ throw new Error({call_error}) }},
-              "{resource}",
-              "default",
+              {resource},
+              "default"
             )
           "#,
-          resource = resource,
-          call_error = serde_json::to_string(&call_error).to_rspack_result()?
+          resource = resource_literal,
+          call_error = call_error_literal
         });
       }
       Some(ident) => {
@@ -109,18 +118,19 @@ fn to_esm_client_entry(resource: &str, client_refs: &[Wtf8Atom]) -> Result<Strin
           r#"
             export const {ident} = registerClientReference(
             function() {{ throw new Error({call_error}) }},
-              "{resource}",
+              {resource},
               "{ident}",
             )
           "#,
           ident = ident,
-          resource = resource,
-          call_error = serde_json::to_string(&call_error).to_rspack_result()?
+          resource = resource_literal,
+          call_error = call_error_literal
         });
       }
       _ => {}
     }
   }
+
   Ok(esm_source)
 }
 
@@ -129,13 +139,16 @@ fn to_cjs_client_entry(resource: &str, client_refs: &[Wtf8Atom]) -> Result<Strin
     "const { registerClientReference } = require(\"react-server-dom-rspack/server\");\n",
   );
 
-  let call_error = format!(
+  let resource_literal = serde_json::to_string(resource).to_rspack_result()?;
+
+  let call_error_literal = serde_json::to_string(&format!(
     "Attempted to call the default export of {} from \
     the server, but it's on the client. It's not possible to invoke a \
     client function from the server, it can only be rendered as a \
     Component or passed to props of a Client Component.",
-    serde_json::to_string(resource).to_rspack_result()?
-  );
+    resource_literal
+  ))
+  .to_rspack_result()?;
 
   for client_ref in client_refs {
     match client_ref.as_str() {
@@ -144,12 +157,12 @@ fn to_cjs_client_entry(resource: &str, client_refs: &[Wtf8Atom]) -> Result<Strin
           r#"
             module.exports = registerClientReference(
               function() {{ throw new Error({call_error}) }},
-              "{resource}",
+              {resource},
               "default",
             );
           "#,
-          resource = resource,
-          call_error = serde_json::to_string(&call_error).to_rspack_result()?
+          resource = resource_literal,
+          call_error = call_error_literal
         });
       }
       Some(ident) => {
@@ -157,13 +170,13 @@ fn to_cjs_client_entry(resource: &str, client_refs: &[Wtf8Atom]) -> Result<Strin
           r#"
             exports.{ident} = registerClientReference(
               function() {{ throw new Error({call_error}) }},
-              "{resource}",
+              {resource},
               "{ident}",
             );
           "#,
           ident = ident,
-          resource = resource,
-          call_error = serde_json::to_string(&call_error).to_rspack_result()?
+          resource = resource_literal,
+          call_error = call_error_literal
         });
       }
       _ => {}
@@ -196,9 +209,9 @@ pub fn to_module_ref(module: &NormalModule) -> Result<Option<String>> {
       ));
     }
     if rsc.is_cjs {
-      return Ok(Some(to_cjs_server_entry(resource, &rsc.server_refs)));
+      return Ok(Some(to_cjs_server_entry(resource, &rsc.server_refs)?));
     } else {
-      return Ok(Some(to_esm_server_entry(resource, &rsc.server_refs)));
+      return Ok(Some(to_esm_server_entry(resource, &rsc.server_refs)?));
     }
   }
 
