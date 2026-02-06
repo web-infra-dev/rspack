@@ -9,7 +9,7 @@ module.exports = {
   module: {
     rules: [
       {
-        test: /readonly\/file\.js/,
+        test: /file\.js$/,
         use: {
           loader: './loader.js',
           options: { count: 0 },
