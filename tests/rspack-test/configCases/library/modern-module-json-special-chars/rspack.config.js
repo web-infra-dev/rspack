@@ -1,4 +1,4 @@
-module.exports ={
+module.exports = {
 entry: {
 main: {import: './index.js', filename: 'bundle.mjs'},
 json: {import: './data.json', filename: 'json.mjs'},
