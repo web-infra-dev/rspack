@@ -90,11 +90,10 @@ fn to_esm_client_entry(resource: &str, client_refs: &[Wtf8Atom]) -> Result<Strin
   let resource_literal = serde_json::to_string(resource).to_rspack_result()?;
 
   let call_error_literal = serde_json::to_string(&format!(
-    "Attempted to call the default export of {} from \
+    "Attempted to call the default export of {resource_literal} from \
     the server, but it's on the client. It's not possible to invoke a \
     client function from the server, it can only be rendered as a \
-    Component or passed to props of a Client Component.",
-    resource_literal
+    Component or passed to props of a Client Component."
   ))
   .to_rspack_result()?;
 
@@ -142,11 +141,10 @@ fn to_cjs_client_entry(resource: &str, client_refs: &[Wtf8Atom]) -> Result<Strin
   let resource_literal = serde_json::to_string(resource).to_rspack_result()?;
 
   let call_error_literal = serde_json::to_string(&format!(
-    "Attempted to call the default export of {} from \
+    "Attempted to call the default export of {resource_literal} from \
     the server, but it's on the client. It's not possible to invoke a \
     client function from the server, it can only be rendered as a \
-    Component or passed to props of a Client Component.",
-    resource_literal
+    Component or passed to props of a Client Component."
   ))
   .to_rspack_result()?;
 
