@@ -347,12 +347,11 @@ impl JavascriptParserPlugin for APIPlugin {
     _declaration: VariableDeclaration<'_>,
   ) -> Option<bool> {
     // Check if we're at top level scope and the declarator is a simple identifier named "module"
-    if parser.is_top_level_scope() {
-      if let Pat::Ident(ident) = &declarator.name {
-        if ident.id.sym.as_ref() == "module" {
-          parser.build_info.module_argument = ModuleArgument::RspackModule;
-        }
-      }
+    if parser.is_top_level_scope()
+      && let Pat::Ident(ident) = &declarator.name
+      && ident.id.sym.as_ref() == "module"
+    {
+      parser.build_info.module_argument = ModuleArgument::RspackModule;
     }
     None
   }
@@ -363,18 +362,18 @@ impl JavascriptParserPlugin for APIPlugin {
       match stmt {
         Statement::Fn(fn_decl) => {
           // Check for function declaration named "module"
-          if let Some(ident) = fn_decl.ident() {
-            if ident.sym.as_ref() == "module" {
-              parser.build_info.module_argument = ModuleArgument::RspackModule;
-            }
+          if let Some(ident) = fn_decl.ident()
+            && ident.sym.as_ref() == "module"
+          {
+            parser.build_info.module_argument = ModuleArgument::RspackModule;
           }
         }
         Statement::Class(class_decl) => {
           // Check for class declaration named "module"
-          if let Some(ident) = class_decl.ident() {
-            if ident.sym.as_ref() == "module" {
-              parser.build_info.module_argument = ModuleArgument::RspackModule;
-            }
+          if let Some(ident) = class_decl.ident()
+            && ident.sym.as_ref() == "module"
+          {
+            parser.build_info.module_argument = ModuleArgument::RspackModule;
           }
         }
         _ => {}

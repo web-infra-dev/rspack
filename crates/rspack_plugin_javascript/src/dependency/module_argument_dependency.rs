@@ -100,7 +100,7 @@ impl DependencyTemplate for ModuleArgumentDependencyTemplate {
           "loaded" => "__webpack_internal_module_loaded__",
           _ => "__webpack_internal_module_property__",
         };
-        
+
         // Add init fragment to declare the internal variable
         init_fragments.push(
           NormalInitFragment::new(
@@ -112,7 +112,7 @@ impl DependencyTemplate for ModuleArgumentDependencyTemplate {
           )
           .boxed(),
         );
-        
+
         internal_var.to_string()
       } else {
         // No collision - use normal approach
@@ -123,7 +123,7 @@ impl DependencyTemplate for ModuleArgumentDependencyTemplate {
       if module_argument_value == ModuleArgument::RspackModule {
         // There's a collision
         let internal_var = "__webpack_internal_module__".to_string();
-        
+
         // Add init fragment to declare the internal variable
         init_fragments.push(
           NormalInitFragment::new(
@@ -135,7 +135,7 @@ impl DependencyTemplate for ModuleArgumentDependencyTemplate {
           )
           .boxed(),
         );
-        
+
         internal_var
       } else {
         // No collision
