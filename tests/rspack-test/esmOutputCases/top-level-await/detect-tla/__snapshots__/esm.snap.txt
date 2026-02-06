@@ -1,0 +1,22 @@
+```mjs title=async_js.mjs
+// ./async.js
+const value = () => 42
+export { value };
+
+```
+
+```mjs title=main.mjs
+// ./index.js
+function cb(v) {
+  return v
+}
+
+const index_mod = await import("./async_js.mjs").then((mod) => ({ value: mod.value }))
+const {value: value} = cb(index_mod);
+
+it('should have correct value', () => {
+  expect(value()).toBe(42);
+})
+
+
+```
