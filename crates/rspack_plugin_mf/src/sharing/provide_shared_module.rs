@@ -7,8 +7,8 @@ use rspack_core::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo,
   BuildMeta, BuildResult, CodeGenerationResult, Compilation, Context, DependenciesBlock,
   DependencyId, FactoryMeta, LibIdentOptions, Module, ModuleCodeGenerationContext, ModuleGraph,
-  ModuleIdentifier, ModuleLayer, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType, impl_module_meta_info,
-  impl_source_map_config, module_update_hash, rspack_sources::BoxSource,
+  ModuleIdentifier, ModuleLayer, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
+  impl_module_meta_info, impl_source_map_config, module_update_hash, rspack_sources::BoxSource,
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
 use rspack_hash::{RspackHash, RspackHashDigest};
@@ -223,23 +223,23 @@ impl Module for ProvideSharedModule {
         } else {
           self.share_scope.clone()
         }
-          .iter()
-          .map(|scope| ShareInitData {
-            share_scope: scope.clone(),
-            init_stage: 10,
-            init: DataInitInfo::ProvideSharedInfo(ProvideSharedInfo {
-              name: self.name.clone(),
-              version: self.version.clone(),
-              factory: factory.clone(),
-              eager: self.eager,
-              singleton: self.singleton,
-              strict_version: self.strict_version,
-              required_version: self.required_version.clone(),
-              layer: self.layer.clone(),
-              tree_shaking_mode: self.tree_shaking_mode.clone(),
-            }),
-          })
-          .collect(),
+        .iter()
+        .map(|scope| ShareInitData {
+          share_scope: scope.clone(),
+          init_stage: 10,
+          init: DataInitInfo::ProvideSharedInfo(ProvideSharedInfo {
+            name: self.name.clone(),
+            version: self.version.clone(),
+            factory: factory.clone(),
+            eager: self.eager,
+            singleton: self.singleton,
+            strict_version: self.strict_version,
+            required_version: self.required_version.clone(),
+            layer: self.layer.clone(),
+            tree_shaking_mode: self.tree_shaking_mode.clone(),
+          }),
+        })
+        .collect(),
       });
     Ok(code_generation_result)
   }
