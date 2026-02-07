@@ -14,7 +14,7 @@ import { isRequiredVersion } from './utils';
 
 export type ConsumeSharedPluginOptions = {
   consumes: Consumes;
-  shareScope?: string;
+  shareScope?: string | string[];
   enhanced?: boolean;
 };
 export type Consumes = (ConsumesItem | ConsumesObject)[] | ConsumesObject;
@@ -25,10 +25,13 @@ export type ConsumesObject = {
 export type ConsumesConfig = {
   eager?: boolean;
   import?: false | ConsumesItem;
+  issuerLayer?: string;
+  layer?: string;
   packageName?: string;
+  request?: string;
   requiredVersion?: false | string;
   shareKey?: string;
-  shareScope?: string;
+  shareScope?: string | string[];
   singleton?: boolean;
   strictVersion?: boolean;
   treeShakingMode?: 'server-calc' | 'runtime-infer';
@@ -36,7 +39,8 @@ export type ConsumesConfig = {
 
 export function normalizeConsumeShareOptions(
   consumes: Consumes,
-  shareScope?: string,
+  shareScope?: string | string[],
+  enhanced?: boolean,
 ) {
   return parseOptions(
     consumes,
@@ -54,6 +58,9 @@ export function normalizeConsumeShareOptions(
               strictVersion: false,
               singleton: false,
               eager: false,
+              issuerLayer: undefined,
+              layer: undefined,
+              request: key,
               treeShakingMode: undefined,
             }
           : // key is a request/key
@@ -67,24 +74,33 @@ export function normalizeConsumeShareOptions(
               packageName: undefined,
               singleton: false,
               eager: false,
+              issuerLayer: undefined,
+              layer: undefined,
+              request: key,
               treeShakingMode: undefined,
             };
       return result;
     },
-    (item, key) => ({
-      import: item.import === false ? undefined : item.import || key,
-      shareScope: item.shareScope || shareScope || 'default',
-      shareKey: item.shareKey || key,
-      requiredVersion: item.requiredVersion,
-      strictVersion:
-        typeof item.strictVersion === 'boolean'
-          ? item.strictVersion
-          : item.import !== false && !item.singleton,
-      packageName: item.packageName,
-      singleton: !!item.singleton,
-      eager: !!item.eager,
-      treeShakingMode: item.treeShakingMode,
-    }),
+    (item, key) => {
+      const request = item.request || key;
+      return {
+        import: item.import === false ? undefined : item.import || request,
+        shareScope: item.shareScope || shareScope || 'default',
+        shareKey: item.shareKey || request,
+        requiredVersion: item.requiredVersion,
+        strictVersion:
+          typeof item.strictVersion === 'boolean'
+            ? item.strictVersion
+            : item.import !== false && !item.singleton,
+        packageName: item.packageName,
+        singleton: !!item.singleton,
+        eager: !!item.eager,
+        issuerLayer: enhanced ? item.issuerLayer : undefined,
+        layer: enhanced ? item.layer : undefined,
+        request,
+        treeShakingMode: item.treeShakingMode,
+      };
+    },
   );
 }
 
@@ -98,6 +114,7 @@ export class ConsumeSharedPlugin extends RspackBuiltinPlugin {
       consumes: normalizeConsumeShareOptions(
         options.consumes,
         options.shareScope,
+        options.enhanced,
       ),
       enhanced: options.enhanced ?? false,
     };

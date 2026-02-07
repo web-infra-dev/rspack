@@ -18,7 +18,7 @@ export type ContainerPluginOptions = {
   library?: LibraryOptions;
   name: string;
   runtime?: EntryRuntime;
-  shareScope?: string;
+  shareScope?: string | string[];
   enhanced?: boolean;
 };
 export type Exposes = (ExposesItem | ExposesObject)[] | ExposesObject;

@@ -19,7 +19,7 @@ use super::{
 #[derive(Debug)]
 pub struct ContainerPluginOptions {
   pub name: String,
-  pub share_scope: String,
+  pub share_scope: Vec<String>,
   pub library: LibraryOptions,
   pub runtime: Option<EntryRuntime>,
   pub filename: Option<Filename>,

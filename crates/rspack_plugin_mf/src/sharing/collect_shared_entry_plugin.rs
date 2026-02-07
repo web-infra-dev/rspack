@@ -5,8 +5,7 @@ use std::{
 
 use regex::Regex;
 use rspack_core::{
-  Compilation, CompilationAsset, CompilationProcessAssets, Context, DependenciesBlock, Module,
-  Plugin,
+  Compilation, CompilationAsset, CompilationProcessAssets, DependenciesBlock, Plugin,
   rspack_sources::{RawStringSource, SourceExt},
 };
 use rspack_error::Result;
@@ -113,30 +112,8 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       .as_any()
       .downcast_ref::<super::consume_shared_module::ConsumeSharedModule>()
     {
-      // Parse share_scope and share_key from readable_identifier
-      let ident = consume.readable_identifier(&Context::default()).to_string();
-      // Format: "consume shared module ({scope}) {share_key}@..."
-      let (scope, key) = {
-        let mut scope = String::new();
-        let mut key = String::new();
-        if let Some(start) = ident.find("(")
-          && let Some(end) = ident.find(")")
-          && end > start
-        {
-          scope = ident[start + 1..end].to_string();
-        }
-        if let Some(pos) = ident.find(") ") {
-          let rest = &ident[pos + 2..];
-          // Limit to the segment before any suffixes like " (strict)", " (fallback: ...)" or " (eager)"
-          let suffix_start = rest.find(" (").unwrap_or(rest.len());
-          let head = &rest[..suffix_start];
-          // Use the LAST '@' within the head to split "{share_key}@{version}",
-          // so scoped names like "@scope/pkg@1.0.0" are handled correctly.
-          let at = head.rfind('@').unwrap_or(head.len());
-          key = head[..at].to_string();
-        }
-        (scope, key)
-      };
+      let key = consume.share_key();
+      let scope = consume.share_scope().join("|");
       if key.is_empty() {
         continue;
       }
@@ -158,7 +135,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       }
 
       // Add real module resource paths to the map and infer version
-      let mut reqs = ordered_requests.remove(&key).unwrap_or_default();
+      let mut reqs = ordered_requests.remove(key).unwrap_or_default();
       for target_id in target_modules {
         if let Some(target) = module_graph.module_by_identifier(&target_id)
           && let Some(name) = target.name_for_condition()
@@ -175,9 +152,9 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         }
       }
       reqs.sort_by(|a, b| a[0].cmp(&b[0]).then(a[1].cmp(&b[1])));
-      ordered_requests.insert(key.clone(), reqs);
+      ordered_requests.insert(key.to_string(), reqs);
       if !scope.is_empty() {
-        share_scopes.insert(key.clone(), scope);
+        share_scopes.insert(key.to_string(), scope);
       }
     }
   }
