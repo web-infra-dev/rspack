@@ -95,7 +95,7 @@ const run = async (
 ): Promise<any> => {
   const result = await createProcess(cwd, args, options, env);
 
-  if (diagnoseKilledProcess && result.exitCode === undefined && result.signal) {
+  if (diagnoseKilledProcess && result.exitCode === undefined) {
     console.error(
       `🔍 DIAGNOSIS: Process(${args.join(' ')}) was killed by signal(${result.signal})`,
     );
