@@ -13,6 +13,13 @@ This document explains how Module Federation (MF) works in Rspack end-to-end, in
 - Manifest generation pipeline.
 - Test coverage map for critical behavior.
 
+Branch update reflected in this revision (`feat/mf-layers`):
+
+- `shareScope` now flows as `string | string[]` through JS options, NAPI bindings, and Rust MF internals.
+- Layer-aware sharing fields (`request`, `issuerLayer`, `layer`) are now preserved through JS normalization and Rust consume/provide pipelines.
+- Enhanced runtime path is array-scope aware; legacy non-enhanced runtime keeps scalar share-scope behavior.
+- `container-1-5/*-layers-full` scenarios are now part of the documented verification surface.
+
 ## 1) Mental Model
 
 Rspack MF has two stacked layers:
@@ -341,6 +348,12 @@ Defined in `crates/rspack_binding_api/src/raw_options/raw_builtins/raw_mf.rs`:
 
 These convert into Rust plugin option structs in `rspack_plugin_mf`.
 
+Current bridge behavior (important for layered MF):
+
+- Share scope fields use `RawShareScope = Either<String, Vec<String>>`.
+- Bridge conversion normalizes scopes to `Vec<String>` and defaults to `["default"]` when empty.
+- Raw consume/provide payloads now carry optional `request`, `issuer_layer`, and `layer`.
+
 ### 5.2 Builtin enum and switch
 
 - Builtin names exposed in `crates/node_binding/napi-binding.d.ts` (`BuiltinPluginName`).
@@ -372,7 +385,9 @@ File: `crates/rspack_plugin_mf/src/container/container_plugin.rs`
     - For share-container entry: creates fallback dep and static exports.
   - Codegen phase:
     - Normal mode (non-enhanced): emits internal `moduleMap`, `get`, `init`, and `definePropertyGetters` wiring.
+    - Non-enhanced container init keeps legacy scalar behavior (`first share scope` with fallback to `"default"`).
     - Enhanced mode: exports wrappers to `__webpack_require__.getContainer` and `__webpack_require__.initContainer`, and stores `CodeGenerationDataExpose` for runtime module consumption.
+    - Enhanced expose data keeps `shareScope` as array-capable metadata.
     - Share-container mode: emits share-container-specific init/factory bootstrap.
 
 #### 6.1.3 `ExposeRuntimeModule`
@@ -381,7 +396,7 @@ File: `container/expose_runtime_module.rs`
 
 - Finds `CodeGenerationDataExpose` from expose modules in initial chunks.
 - Emits:
-  - `__webpack_require__.initializeExposesData = { moduleMap, shareScope }`
+  - `__webpack_require__.initializeExposesData = { moduleMap, shareScope }` where `shareScope` is array-capable in enhanced mode.
   - fallback guards for `__webpack_require__.getContainer` and `__webpack_require__.initContainer`
 
 ### 6.2 Remote/reference subsystem
@@ -409,6 +424,7 @@ File: `container/remote_module.rs`
 - Codegen phase:
   - Adds empty `SourceType::Remote` source.
   - Adds `SourceType::ShareInit` data (`DataInitInfo::ExternalModuleId`) at stage 20 for sharing init ordering.
+  - Emits one share-init item per configured scope (defaults to `default` when none is configured).
 
 #### 6.2.3 `RemoteRuntimeModule`
 
@@ -418,6 +434,9 @@ File: `container/remote_runtime_module.rs`
   - `chunkMapping` (chunk -> remote module ids)
   - `moduleIdToRemoteDataMapping` (`shareScope`, `name`, `externalModuleId`, `remoteName`)
 - Emits `__webpack_require__.remotesLoadingData = {...}`.
+- Share scope serialization is mode-aware:
+  - enhanced: emits `shareScope` as scalar-or-array payload for runtime-tools compatibility.
+  - non-enhanced: emits single scalar scope for legacy `remotesLoading.ejs` contract.
 - Enhanced mode: emits stub for `__webpack_require__.f.remotes` (expected to be provided by bundler runtime).
 - Non-enhanced: emits full remotes loader implementation from `remotesLoading.ejs`.
 
@@ -454,19 +473,23 @@ File: `container/remote_runtime_module.rs`
 `provide_shared_plugin.rs`:
 
 - Classifies provides into resolved/unresolved/prefix maps.
+- Matching keys now incorporate layer when present (`(layer)request` lookup shape).
 - Infers version from package metadata when missing.
 - Adds include entries in `finish_make` as `ProvideSharedDependency`.
 
 `provide_shared_module.rs`:
 
 - Builds fallback dependency to actual shared module (`ProvideForSharedDependency`), eager or async.
-- Emits `CodeGenerationDataShareInit` with `ProvideSharedInfo` at init stage 10.
+- Keeps layered and unlayered identities distinct in module/resource identifiers.
+- Emits `CodeGenerationDataShareInit` with `ProvideSharedInfo` at init stage 10, including optional `layer`.
 
 #### 6.3.3 `ConsumeSharedPlugin` + `ConsumeSharedModule`
 
 `consume_shared_plugin.rs`:
 
 - Resolves consume configs into resolved/unresolved/prefix categories.
+- Matching uses `request` identity (not only map key alias), and supports issuer-layer-qualified lookups.
+- Layered matching prefers exact layer-qualified entry and falls back to unlayered match when appropriate.
 - Infers `requiredVersion` from nearest package.json dependency fields when not configured.
 - Intercepts requests in factorize/create-module hooks to produce `ConsumeSharedModule`.
 - Adds `ConsumeSharedRuntimeModule` in additional tree runtime requirements.
@@ -474,7 +497,8 @@ File: `container/remote_runtime_module.rs`
 `consume_shared_module.rs`:
 
 - Optional fallback dependency (eager or async block).
-- Emits `CodeGenerationDataConsumeShared` with share key/scope/version flags and fallback factory.
+- Fallback dependency carries optional layer via `Dependency::get_layer`.
+- Emits `CodeGenerationDataConsumeShared` with share key/scope/version flags, optional `layer`, and fallback factory.
 
 #### 6.3.4 `ConsumeSharedRuntimeModule`
 
@@ -485,6 +509,7 @@ File: `consume_shared_runtime_module.rs`
   - `moduleIdToConsumeDataMapping`
   - `initialConsumes`
 - Emits `__webpack_require__.consumesLoadingData = {...}`.
+- Runtime payload now includes layer-aware fields (`layer`) and array-capable share-scope data.
 - Enhanced mode: stubs `__webpack_require__.f.consumes` if needed.
 - Non-enhanced mode: emits `consumesCommon.ejs`, `consumesInitial.ejs`, `consumesLoading.ejs`.
 
@@ -610,6 +635,13 @@ The generated `entryRuntime` executes default runtime code which:
    - `__webpack_require__.federation.instance = bundlerRuntime.init(...)`
 5. Installs eager initial consumes when present.
 
+Additional enhanced-runtime compatibility logic:
+
+- Normalizes incoming share scopes to array form (`toScopeArray`) and re-emits runtime shape as needed (`toRuntimeScope`).
+- Expands remote entries with multi-scope config into per-scope runtime records for bundler-runtime compatibility.
+- Preserves layer in consume handler share metadata (`shareInfo.shareConfig.layer`).
+- Ensures sharing init for relevant scopes runs before consume handlers in enhanced mode for cases where fallback/load ordering would otherwise race.
+
 Guard condition:
 
 - Runs when `(__webpack_require__.initializeSharingData || __webpack_require__.initializeExposesData) && __webpack_require__.federation`.
@@ -638,7 +670,17 @@ Guard condition:
 
 ### 8.4 `shared`, `shareScope`
 
-- JS: normalized into consume/provide configs.
+- JS API surface accepts `shareScope?: string | string[]` for:
+  - `ModuleFederationPluginV1Options`
+  - `ContainerPluginOptions`
+  - `ContainerReferencePluginOptions` / `RemotesConfig`
+  - `SharePluginOptions`, `ConsumesConfig`, `ProvidesConfig`
+- JS normalization now preserves layered sharing fields:
+  - consume path: `request`, `issuerLayer`, `layer`
+  - provide path: `request`, `layer`
+- `ConsumeSharedPlugin` fallback import semantics use request-aware defaults:
+  - `request = item.request || key`
+  - `import = item.import === false ? undefined : item.import || request`
 - Rust provide path: `ProvideSharedPlugin` -> `ProvideSharedModule` -> share-init stage 10.
 - Rust consume path: `ConsumeSharedPlugin` -> `ConsumeSharedModule` -> `ConsumeSharedRuntimeModule`.
 - Rust share runtime: `ShareRuntimeModule` aggregates share-init data and initializes share scope map.
@@ -692,6 +734,9 @@ Key differences:
 - Remotes/consumes loading:
   - enhanced: stubs `__webpack_require__.f.remotes/consumes` and delegates to bundler runtime.
   - non-enhanced: emits full local loader implementations.
+- Multi-scope handling:
+  - enhanced: supports array-capable share scope payloads end-to-end.
+  - non-enhanced: intentionally keeps legacy scalar contracts (single emitted scope for remotes loading and container init path).
 
 ## 10) Manifest Pipeline
 
@@ -750,7 +795,7 @@ Key differences:
 
 - `tests/rspack-test/configCases/container-1-5/share-strategy/*`
 - `tests/rspack-test/configCases/container-1-5/provide-sharing-extra-data/*`
-- `tests/rspack-test/serialCases/container/module-federation-with-shareScope/*`
+- `tests/rspack-test/serialCases/container-1-5/module-federation-with-shareScope/*`
 
 ### 11.5 Tree-shaking shared
 
@@ -767,6 +812,18 @@ Key differences:
 
 - `tests/rspack-test/serialCases/container-1-5/multiple-runtime-chunk/*`
 - `tests/rspack-test/serialCases/container-1-5/chunk-matcher/*`
+
+### 11.8 Layered federation and multi-scope coverage
+
+- `tests/rspack-test/serialCases/container-1-5/1-layers-full/*`
+- `tests/rspack-test/serialCases/container-1-5/2-layers-full/*`
+- `tests/rspack-test/serialCases/container-1-5/3-layers-full/*`
+- `tests/rspack-test/serialCases/container-1-5/4-layers-full/*`
+- `tests/rspack-test/serialCases/container-1-5/5-layers-full/*`
+- `tests/rspack-test/serialCases/container-1-5/6-layers-full/*`
+- `tests/rspack-test/serialCases/container-1-5/7-layers-full/*`
+- `tests/rspack-test/serialCases/container-1-5/8-layers-full/*`
+- `tests/rspack-test/configCases/sharing/tree-shaking-shared/*`
 
 ## 12) Notable Nuances / Gotchas
 
@@ -788,6 +845,10 @@ Key differences:
 
 6. Enhanced/non-enhanced split is intentional:
 - In enhanced mode many runtime functions are expected from bundler runtime and only guarded stubs are emitted by Rust runtime modules.
+
+7. Scope-array compatibility is mode-sensitive:
+- Enhanced runtime paths are array-capable for share scopes.
+- Non-enhanced runtime paths intentionally remain scalar to preserve legacy templates/contracts.
 
 ## 13) Quick “Where To Debug What” Guide
 
