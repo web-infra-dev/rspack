@@ -4,7 +4,7 @@ use rspack_core::{
   AsyncDependenciesBlockIdentifier, ChunkUkey, Compilation,
   CompilationAdditionalTreeRuntimeRequirements, CompilationDependencyReferencedExports,
   CompilationOptimizeDependencies, CompilationProcessAssets, DependenciesBlock, Dependency,
-  DependencyId, DependencyType, ExtendedReferencedExport, Module, ModuleGraph, ModuleIdentifier,
+  DependencyId, DependencyType, ExtendedReferencedExport, ModuleGraph, ModuleIdentifier,
   Plugin, RuntimeGlobals, RuntimeModule, RuntimeModuleExt, RuntimeSpec,
   SideEffectsOptimizeArtifact,
   build_module_graph::BuildModuleGraphArtifact,
@@ -155,22 +155,7 @@ async fn optimize_dependencies(
         let share_key = match module_type {
           rspack_core::ModuleType::ConsumeShared => {
             let consume_shared_module = module.as_any().downcast_ref::<ConsumeSharedModule>()?;
-            // Use the readable_identifier to extract the share key
-            // The share key is part of the identifier string in format "consume shared module ({share_scope}) {share_key}@..."
-            let identifier =
-              consume_shared_module.readable_identifier(&rspack_core::Context::default());
-            let identifier_str = identifier.to_string();
-            let parts: Vec<&str> = identifier_str.split(") ").collect();
-            if parts.len() < 2 {
-              return None;
-            }
-            let share_key_part = parts[1];
-            let share_key_end = if let Some(stripped) = share_key_part.strip_prefix('@') {
-              stripped.find('@').map_or(share_key_part.len(), |i| i + 1)
-            } else {
-              share_key_part.find('@').unwrap_or(share_key_part.len())
-            };
-            let sk: String = share_key_part[..share_key_end].to_string();
+            let sk = consume_shared_module.share_key().to_string();
             collect_processed_modules(
               module_graph,
               consume_shared_module.get_blocks(),

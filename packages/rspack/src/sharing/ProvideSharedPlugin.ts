@@ -13,7 +13,7 @@ import { ShareRuntimePlugin } from './ShareRuntimePlugin';
 
 export type ProvideSharedPluginOptions<Enhanced extends boolean = false> = {
   provides: Provides<Enhanced>;
-  shareScope?: string;
+  shareScope?: string | string[];
   enhanced?: Enhanced;
 };
 export type Provides<Enhanced extends boolean> =
@@ -28,8 +28,10 @@ export type ProvidesConfig<Enhanced extends boolean> = Enhanced extends true
   : ProvidesV1Config;
 type ProvidesV1Config = {
   eager?: boolean;
+  layer?: string;
+  request?: string;
   shareKey: string;
-  shareScope?: string;
+  shareScope?: string | string[];
   version?: false | string;
 };
 type ProvidesEnhancedConfig = ProvidesV1Config & ProvidesEnhancedExtraConfig;
@@ -45,7 +47,7 @@ type ProvidesEnhancedExtraConfig = {
 
 export function normalizeProvideShareOptions<Enhanced extends boolean = false>(
   options: Provides<Enhanced>,
-  shareScope?: string,
+  shareScope?: string | string[],
   enhanced?: boolean,
 ) {
   return parseOptions(
@@ -56,14 +58,19 @@ export function normalizeProvideShareOptions<Enhanced extends boolean = false>(
         shareKey: item,
         version: undefined,
         shareScope: shareScope || 'default',
+        layer: undefined,
+        request: item,
         eager: false,
       };
     },
-    (item) => {
+    (item, key) => {
+      const request = item.request || key;
       const raw = {
-        shareKey: item.shareKey,
+        shareKey: item.shareKey || request,
         version: item.version,
         shareScope: item.shareScope || shareScope || 'default',
+        layer: enhanced ? item.layer : undefined,
+        request,
         eager: !!item.eager,
       };
       if (enhanced) {

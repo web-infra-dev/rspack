@@ -7,7 +7,7 @@ use rspack_core::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo,
   BuildMeta, BuildResult, CodeGenerationResult, Compilation, Context, DependenciesBlock,
   DependencyId, ExportsType, FactoryMeta, LibIdentOptions, Module, ModuleCodeGenerationContext,
-  ModuleGraph, ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
+  ModuleGraph, ModuleIdentifier, ModuleLayer, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
   impl_module_meta_info, impl_source_map_config, module_update_hash, rspack_sources::BoxSource,
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
@@ -18,7 +18,7 @@ use super::{
   consume_shared_fallback_dependency::ConsumeSharedFallbackDependency,
   consume_shared_runtime_module::CodeGenerationDataConsumeShared,
 };
-use crate::{ConsumeOptions, utils::json_stringify};
+use crate::{ConsumeOptions, ConsumeVersion, utils::json_stringify};
 
 #[impl_source_map_config]
 #[cacheable]
@@ -40,8 +40,13 @@ pub struct ConsumeSharedModule {
 impl ConsumeSharedModule {
   pub fn new(context: Context, options: ConsumeOptions) -> Self {
     let identifier = format!(
-      "consume shared module ({}) {}@{}{}{}{}{}",
-      &options.share_scope,
+      "consume shared module ({}){} {}@{}{}{}{}{}",
+      options.share_scope.join("|"),
+      options
+        .layer
+        .as_ref()
+        .map(|layer| format!(" ({layer})"))
+        .unwrap_or_default(),
       &options.share_key,
       options
         .required_version
@@ -73,8 +78,13 @@ impl ConsumeSharedModule {
       dependencies: Vec::new(),
       identifier: ModuleIdentifier::from(identifier.as_ref()),
       lib_ident: format!(
-        "webpack/sharing/consume/{}/{}{}",
-        &options.share_scope,
+        "{}webpack/sharing/consume/{}/{}{}",
+        options
+          .layer
+          .as_ref()
+          .map(|layer| format!("({layer})/"))
+          .unwrap_or_default(),
+        options.share_scope.join("|"),
         &options.share_key,
         options
           .import
@@ -90,6 +100,25 @@ impl ConsumeSharedModule {
       build_meta: Default::default(),
       source_map_kind: SourceMapKind::empty(),
     }
+  }
+
+  pub fn share_key(&self) -> &str {
+    &self.options.share_key
+  }
+
+  pub fn share_scope(&self) -> &[String] {
+    &self.options.share_scope
+  }
+
+  pub fn required_version(&self) -> Option<&ConsumeVersion> {
+    self
+      .options
+      .required_version
+      .as_ref()
+      .and_then(|version| match version {
+        ConsumeVersion::Version(_) => Some(version),
+        ConsumeVersion::False => None,
+      })
   }
 }
 
@@ -150,6 +179,10 @@ impl Module for ConsumeSharedModule {
     Some(self.lib_ident.as_str().into())
   }
 
+  fn get_layer(&self) -> Option<&ModuleLayer> {
+    self.options.layer.as_ref()
+  }
+
   fn get_context(&self) -> Option<Box<Context>> {
     Some(Box::new(self.context.clone()))
   }
@@ -171,7 +204,10 @@ impl Module for ConsumeSharedModule {
     let mut blocks = vec![];
     let mut dependencies = vec![];
     if let Some(fallback) = &self.options.import {
-      let dep = Box::new(ConsumeSharedFallbackDependency::new(fallback.to_owned()));
+      let dep = Box::new(ConsumeSharedFallbackDependency::new(
+        fallback.to_owned(),
+        self.options.layer.clone(),
+      ));
       if self.options.eager {
         dependencies.push(dep as BoxDependency);
       } else {
@@ -221,13 +257,28 @@ impl Module for ConsumeSharedModule {
     } else if self.options.singleton {
       function += "Singleton";
     }
-    let factory = self.options.import.as_ref().map(|fallback| {
+    let factory = if let Some(fallback) = self.options.import.as_ref() {
       if self.options.eager {
-        runtime_template.sync_module_factory(&self.get_dependencies()[0], fallback, compilation)
+        Some(runtime_template.sync_module_factory(
+          &self.get_dependencies()[0],
+          fallback,
+          compilation,
+        ))
       } else {
-        runtime_template.async_module_factory(&self.get_blocks()[0], fallback, compilation)
+        Some(runtime_template.async_module_factory(
+          &self.get_blocks()[0],
+          fallback,
+          compilation,
+        ))
       }
-    });
+    } else {
+      // Keep parity with enhanced/webpack output: import:false still emits a fallback getter
+      // that throws a deterministic error when the shared entry is unavailable.
+      Some(format!(
+        "() => () => {{ throw new Error({}) }}",
+        json_stringify(&format!("Can not get '{}'", self.options.share_key))
+      ))
+    };
     code_generation_result
       .data
       .insert(CodeGenerationDataConsumeShared {
@@ -238,6 +289,7 @@ impl Module for ConsumeSharedModule {
         strict_version: self.options.strict_version,
         singleton: self.options.singleton,
         eager: self.options.eager,
+        layer: self.options.layer.clone(),
         fallback: factory,
         tree_shaking_mode: self.options.tree_shaking_mode.clone(),
       });

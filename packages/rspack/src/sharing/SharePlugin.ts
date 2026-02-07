@@ -5,7 +5,7 @@ import { ProvideSharedPlugin } from './ProvideSharedPlugin';
 import { isRequiredVersion } from './utils';
 
 export type SharePluginOptions = {
-  shareScope?: string;
+  shareScope?: string | string[];
   shared: Shared;
   enhanced: boolean;
 };
@@ -23,10 +23,13 @@ export type TreeShakingConfig = {
 export type SharedConfig = {
   eager?: boolean;
   import?: false | SharedItem;
+  issuerLayer?: string;
+  layer?: string;
   packageName?: string;
+  request?: string;
   requiredVersion?: false | string;
   shareKey?: string;
-  shareScope?: string;
+  shareScope?: string | string[];
   singleton?: boolean;
   strictVersion?: boolean;
   version?: false | string;
@@ -60,6 +63,7 @@ export function normalizeSharedOptions(
 
 export function createProvideShareOptions(
   normalizedSharedOptions: NormalizedSharedOptions,
+  enhanced: boolean,
 ) {
   return normalizedSharedOptions
     .filter(([, options]) => options.import !== false)
@@ -72,6 +76,8 @@ export function createProvideShareOptions(
         singleton: options.singleton,
         requiredVersion: options.requiredVersion,
         strictVersion: options.strictVersion,
+        layer: enhanced ? options.layer : undefined,
+        request: options.request || options.import || key,
         treeShakingMode: options.treeShaking?.mode,
       },
     }));
@@ -79,6 +85,7 @@ export function createProvideShareOptions(
 
 export function createConsumeShareOptions(
   normalizedSharedOptions: NormalizedSharedOptions,
+  enhanced: boolean,
 ) {
   return normalizedSharedOptions.map(([key, options]) => ({
     [key]: {
@@ -90,6 +97,9 @@ export function createConsumeShareOptions(
       singleton: options.singleton,
       packageName: options.packageName,
       eager: options.eager,
+      issuerLayer: enhanced ? options.issuerLayer : undefined,
+      layer: enhanced ? options.layer : undefined,
+      request: options.request || key,
       treeShakingMode: options.treeShaking?.mode,
     },
   }));
@@ -102,13 +112,14 @@ export class SharePlugin {
   _sharedOptions;
 
   constructor(options: SharePluginOptions) {
+    const enhanced = options.enhanced ?? false;
     const sharedOptions = normalizeSharedOptions(options.shared);
-    const consumes = createConsumeShareOptions(sharedOptions);
-    const provides = createProvideShareOptions(sharedOptions);
+    const consumes = createConsumeShareOptions(sharedOptions, enhanced);
+    const provides = createProvideShareOptions(sharedOptions, enhanced);
     this._shareScope = options.shareScope;
     this._consumes = consumes;
     this._provides = provides;
-    this._enhanced = options.enhanced ?? false;
+    this._enhanced = enhanced;
     this._sharedOptions = sharedOptions;
   }
 

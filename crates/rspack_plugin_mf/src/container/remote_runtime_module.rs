@@ -65,7 +65,16 @@ impl RuntimeModule for RemoteRuntimeModule {
         let name = m.internal_request.as_str();
         let id = ChunkGraph::get_module_id(&compilation.module_ids_artifact, m.identifier())
           .expect("should have module_id at <RemoteRuntimeModule as RuntimeModule>::generate");
-        let share_scope = m.share_scope.as_str();
+        let share_scope = if self.enhanced {
+          ShareScopeData::Multiple(m.share_scope.as_slice())
+        } else {
+          ShareScopeData::Single(
+            m.share_scope
+              .first()
+              .map(String::as_str)
+              .unwrap_or("default"),
+          )
+        };
         let dep = m.get_dependencies()[0];
         let external_module = module_graph
           .get_module_by_dependency_id(&dep)
@@ -135,8 +144,15 @@ impl RuntimeModule for RemoteRuntimeModule {
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 struct RemoteData<'a> {
-  share_scope: &'a str,
+  share_scope: ShareScopeData<'a>,
   name: &'a str,
   external_module_id: &'a ModuleId,
   remote_name: &'a str,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(untagged)]
+enum ShareScopeData<'a> {
+  Single(&'a str),
+  Multiple(&'a [String]),
 }
