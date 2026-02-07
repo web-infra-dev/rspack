@@ -50,7 +50,9 @@ fn create_lookup_key_for_sharing(request: &str, layer: Option<&str>) -> String {
 }
 
 fn strip_lookup_layer_prefix(lookup: &str) -> &str {
-  if lookup.starts_with('(') && let Some(index) = lookup.find(')') {
+  if lookup.starts_with('(')
+    && let Some(index) = lookup.find(')')
+  {
     return &lookup[index + 1..];
   }
   lookup
@@ -105,10 +107,8 @@ pub async fn resolve_matched_configs(
         compilation.push_diagnostic(error!("Can't resolve shared module {request}").into());
         continue;
       };
-      let resource_key = create_lookup_key_for_sharing(
-        resource.path.as_str(),
-        config.issuer_layer.as_deref(),
-      );
+      let resource_key =
+        create_lookup_key_for_sharing(resource.path.as_str(), config.issuer_layer.as_deref());
       resolved.insert(resource_key, config.clone());
       compilation
         .file_dependencies
@@ -465,8 +465,7 @@ async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<B
       .request
       .as_deref()
       .unwrap_or_else(|| strip_lookup_layer_prefix(prefix));
-    if request.starts_with(lookup) {
-      let remainder = &request[lookup.len()..];
+    if let Some(remainder) = request.strip_prefix(lookup) {
       let module = self
         .create_consume_shared_module(
           &data.context,

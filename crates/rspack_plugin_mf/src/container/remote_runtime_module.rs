@@ -68,12 +68,7 @@ impl RuntimeModule for RemoteRuntimeModule {
         let share_scope = if self.enhanced {
           ShareScopeData::Multiple(m.share_scope.as_slice())
         } else {
-          ShareScopeData::Single(
-            m.share_scope
-              .first()
-              .map(String::as_str)
-              .unwrap_or("default"),
-          )
+          ShareScopeData::Single(m.share_scope.first().map_or("default", String::as_str))
         };
         let dep = m.get_dependencies()[0];
         let external_module = module_graph
