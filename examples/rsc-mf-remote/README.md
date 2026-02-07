@@ -35,6 +35,7 @@ Currently, server actions must be defined in a separate file. Inline server acti
 ### src/framework/entry.rsc.tsx
 
 This module handles RSC rendering and server action execution on the server using `react-server-dom-rspack/server.node`. It exports a request handler that:
+
 - Differentiates between RSC fetch requests, SSR requests, and action calls
 - Handles server actions by decoding the request and executing the action
 - Renders the React tree to an RSC stream using `renderToReadableStream`
