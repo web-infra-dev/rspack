@@ -257,28 +257,13 @@ impl Module for ConsumeSharedModule {
     } else if self.options.singleton {
       function += "Singleton";
     }
-    let factory = if let Some(fallback) = self.options.import.as_ref() {
+    let factory = self.options.import.as_ref().map(|fallback| {
       if self.options.eager {
-        Some(runtime_template.sync_module_factory(
-          &self.get_dependencies()[0],
-          fallback,
-          compilation,
-        ))
+        runtime_template.sync_module_factory(&self.get_dependencies()[0], fallback, compilation)
       } else {
-        Some(runtime_template.async_module_factory(
-          &self.get_blocks()[0],
-          fallback,
-          compilation,
-        ))
+        runtime_template.async_module_factory(&self.get_blocks()[0], fallback, compilation)
       }
-    } else {
-      // Keep parity with enhanced/webpack output: import:false still emits a fallback getter
-      // that throws a deterministic error when the shared entry is unavailable.
-      Some(format!(
-        "() => () => {{ throw new Error({}) }}",
-        json_stringify(&format!("Can not get '{}'", self.options.share_key))
-      ))
-    };
+    });
     code_generation_result
       .data
       .insert(CodeGenerationDataConsumeShared {
