@@ -62,6 +62,7 @@ impl From<RawContainerPluginOptions> for ContainerPluginOptions {
 pub struct RawExposeOptions {
   pub key: String,
   pub name: Option<String>,
+  pub layer: Option<String>,
   pub import: Vec<String>,
 }
 
@@ -71,6 +72,7 @@ impl From<RawExposeOptions> for (String, ExposeOptions) {
       value.key,
       ExposeOptions {
         name: value.name,
+        layer: value.layer,
         import: value.import,
       },
     )
@@ -358,6 +360,7 @@ impl From<RawModuleFederationRuntimePluginOptions> for ModuleFederationRuntimePl
 pub struct RawModuleFederationRuntimeExperimentsOptions {
   #[napi(js_name = "asyncStartup")]
   pub async_startup: Option<bool>,
+  pub rsc: Option<bool>,
 }
 
 impl From<RawModuleFederationRuntimeExperimentsOptions>
@@ -366,6 +369,7 @@ impl From<RawModuleFederationRuntimeExperimentsOptions>
   fn from(value: RawModuleFederationRuntimeExperimentsOptions) -> Self {
     Self {
       async_startup: value.async_startup.unwrap_or(false),
+      rsc: value.rsc.unwrap_or(false),
     }
   }
 }

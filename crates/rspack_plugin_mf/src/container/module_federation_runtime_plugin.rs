@@ -34,6 +34,8 @@ pub struct ModuleFederationRuntimePluginOptions {
 pub struct ModuleFederationRuntimeExperimentsOptions {
   #[serde(default)]
   pub async_startup: bool,
+  #[serde(default)]
+  pub rsc: bool,
 }
 
 #[plugin]

@@ -30,6 +30,7 @@ export type ExposesObject = {
 export type ExposesConfig = {
   import: ExposesItem | ExposesItems;
   name?: string;
+  layer?: string;
 };
 
 export class ContainerPlugin extends RspackBuiltinPlugin {
@@ -52,10 +53,12 @@ export class ContainerPlugin extends RspackBuiltinPlugin {
         (item) => ({
           import: Array.isArray(item) ? item : [item],
           name: undefined,
+          layer: undefined,
         }),
         (item) => ({
           import: Array.isArray(item.import) ? item.import : [item.import],
           name: item.name || undefined,
+          layer: item.layer || undefined,
         }),
       ),
       enhanced: options.enhanced ?? false,

@@ -1597,6 +1597,7 @@ class ContainerPlugin extends RspackBuiltinPlugin {
         exposes: [string, {
             import: string[];
             name: string | undefined;
+            layer: string | undefined;
         }][];
         enhanced: boolean;
     };
@@ -2715,6 +2716,7 @@ export type Exposes = (ExposesItem | ExposesObject)[] | ExposesObject;
 export type ExposesConfig = {
     import: ExposesItem | ExposesItems;
     name?: string;
+    layer?: string;
 };
 
 // @public (undocumented)
@@ -5029,6 +5031,8 @@ export interface ModuleFederationPluginV1Options {
 interface ModuleFederationRuntimeExperimentsOptions {
     // (undocumented)
     asyncStartup?: boolean;
+    // (undocumented)
+    rsc?: boolean;
 }
 
 declare namespace ModuleFilenameHelpers {

@@ -15,6 +15,34 @@ Rspack 提供两种方案来支持 React 服务器组件：
 
 [rspack-rsc-examples](https://github.com/rstackjs/rspack-rsc-examples) 仓库包含了使用 Rspack 构建 React 服务器组件应用的完整示例。
 
+## 与 Module Federation 集成
+
+Rspack 通过 `ModuleFederationPlugin.experiments.rsc` 提供一等的 Module Federation + RSC 集成能力。
+
+服务端构建要求：
+
+- `target` 必须包含 `async-node`
+- `ModuleFederationPlugin.experiments.asyncStartup` 必须为 `true`
+- `ModuleFederationPlugin.runtimePlugins` 必须包含 `@module-federation/node/runtimePlugin`
+
+最小化服务端配置：
+
+```js title="rspack.config.mjs"
+new rspack.container.ModuleFederationPlugin({
+  // ...
+  runtimePlugins: [require.resolve('@module-federation/node/runtimePlugin')],
+  experiments: {
+    asyncStartup: true,
+    rsc: true,
+  },
+});
+```
+
+Rspack 仓库中提供了 host/remote 示例：
+
+- [examples/rsc-mf-host](https://github.com/web-infra-dev/rspack/tree/main/examples/rsc-mf-host)
+- [examples/rsc-mf-remote](https://github.com/web-infra-dev/rspack/tree/main/examples/rsc-mf-remote)
+
 ## 安装依赖
 
 <PackageManagerTabs command="install react react-dom react-server-dom-rspack" />

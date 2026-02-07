@@ -2182,6 +2182,7 @@ export interface RawExperiments {
 export interface RawExposeOptions {
   key: string
   name?: string
+  layer?: string
   import: Array<string>
 }
 
@@ -2506,6 +2507,7 @@ export interface RawModuleFederationManifestPluginOptions {
 
 export interface RawModuleFederationRuntimeExperimentsOptions {
   asyncStartup?: boolean
+  rsc?: boolean
 }
 
 export interface RawModuleFederationRuntimePluginOptions {

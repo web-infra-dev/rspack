@@ -45,6 +45,34 @@ Provide a path as the implementation for Module Federation 1.5 runtime, which de
 
 Provide the plugin required to run Module Federation 1.5, which can extend the behavior and capabilities of Module Federation.
 
+### experiments.rsc
+
+<ApiMeta addedVersion="2.0.0" />
+
+- Type: `boolean`
+- Default: `false`
+
+Enable first-class Module Federation + React Server Components runtime wiring.
+
+When enabled for Node builds, Rspack validates and requires:
+
+- `target` includes `"async-node"`
+- `experiments.asyncStartup` is `true`
+- `runtimePlugins` includes `@module-federation/node/runtimePlugin`
+
+Rspack does not auto-inject `@module-federation/node/runtimePlugin`; keep it in user config.
+
+```js title="rspack.config.mjs"
+new rspack.container.ModuleFederationPlugin({
+  // ...
+  runtimePlugins: [require.resolve('@module-federation/node/runtimePlugin')],
+  experiments: {
+    asyncStartup: true,
+    rsc: true,
+  },
+});
+```
+
 ### name
 
 - Type: `string`

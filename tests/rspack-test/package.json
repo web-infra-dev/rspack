@@ -13,6 +13,7 @@
     "test:hot": "rstest --project hottest"
   },
   "devDependencies": {
+    "@module-federation/node": "^2.7.31",
     "@babel/core": "^7.29.0",
     "@babel/preset-react": "^7.28.5",
     "@module-federation/runtime-tools": "0.24.1",
