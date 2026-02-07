@@ -4,14 +4,17 @@ use super::*;
 use crate::logger::Logger;
 
 pub async fn finish_modules_pass(compilation: &mut Compilation) -> Result<()> {
-  let dependencies_diagnostics_artifact = compilation.dependencies_diagnostics_artifact.clone();
-  let async_modules_artifact = compilation.async_modules_artifact.clone();
+  let mut dependencies_diagnostics_artifact = compilation.dependencies_diagnostics_artifact.steal();
+  let mut async_modules_artifact = compilation.async_modules_artifact.steal();
   let diagnostics = compilation
     .finish_modules_inner(
-      &mut dependencies_diagnostics_artifact.borrow_mut(),
-      &mut async_modules_artifact.borrow_mut(),
+      &mut dependencies_diagnostics_artifact,
+      &mut async_modules_artifact,
     )
-    .await?;
+    .await;
+  compilation.dependencies_diagnostics_artifact = dependencies_diagnostics_artifact.into();
+  compilation.async_modules_artifact = async_modules_artifact.into();
+  let diagnostics = diagnostics?;
   compilation.extend_diagnostics(diagnostics);
 
   Ok(())

@@ -12,7 +12,7 @@ impl PassExt for OptimizeCodeGenerationPass {
   }
 
   async fn run_pass(&self, compilation: &mut Compilation) -> Result<()> {
-    let mut build_module_graph_artifact = compilation.build_module_graph_artifact.take();
+    let mut build_module_graph_artifact = compilation.build_module_graph_artifact.steal();
     let mut diagnostics = vec![];
     compilation
       .plugin_driver
@@ -27,9 +27,7 @@ impl PassExt for OptimizeCodeGenerationPass {
       .await
       .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.optimizeCodeGeneration"))?;
 
-    compilation
-      .build_module_graph_artifact
-      .replace(build_module_graph_artifact);
+    compilation.build_module_graph_artifact = build_module_graph_artifact.into();
     compilation.extend_diagnostics(diagnostics);
 
     Ok(())

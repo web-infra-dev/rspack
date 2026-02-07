@@ -23,10 +23,9 @@ impl Compilation {
   pub async fn finish_build_module_graph(&mut self) -> Result<()> {
     self.in_finish_make.store(false, Ordering::Release);
     // clean up the entry deps
-    let make_artifact = self.build_module_graph_artifact.take();
-    self
-      .build_module_graph_artifact
-      .replace(finish_build_module_graph(self, make_artifact).await?);
+    let make_artifact = self.build_module_graph_artifact.steal();
+    let make_artifact = finish_build_module_graph(self, make_artifact).await?;
+    self.build_module_graph_artifact = make_artifact.into();
     // sync assets to module graph from module_executor
     if let Some(module_executor) = &mut self.module_executor {
       let mut module_executor = std::mem::take(module_executor);
