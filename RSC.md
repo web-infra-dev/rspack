@@ -95,10 +95,17 @@ RSC in this repo is implemented as a coordinated multi-compiler pipeline (server
 - `with-concatenated-module` verifies manifest correctness with module concatenation + action loading + consumer module map (`/Users/zackjackson/rspack/tests/rspack-test/configCases/rsc-plugin/with-concatenated-module/src/framework/entry.rsc.js:11`).
 - All three fixtures use dual compiler configs, `experiments.rsc.createPlugins()`, layer assignment, and SWC `reactServerComponents` enablement (`/Users/zackjackson/rspack/tests/rspack-test/configCases/rsc-plugin/*/rspack.config.js`).
 
-## 13) Notable Coverage Gaps (From Current Tree)
+## 13) Examples and E2E Sample Locations
 
-- I did not find dedicated Rust unit tests for `/Users/zackjackson/rspack/crates/rspack_loader_swc/src/rsc_transforms/*` or `/Users/zackjackson/rspack/crates/rspack_plugin_rsc/src/*`.
-- No direct config-case coverage for coordinator invalid transition errors, `onServerComponentChanges` callback behavior, or directive error-path diagnostics.
-- Current SWC `server_actions` pass is called with `is_development: false` and empty `hash_salt` in this path (`/Users/zackjackson/rspack/crates/rspack_loader_swc/src/rsc_transforms/mod.rs:46`).
+- In-repo runnable RSC sample fixtures are the `configCases/rsc-plugin` cases:
+  - `/Users/zackjackson/rspack/tests/rspack-test/configCases/rsc-plugin/server-entry`
+  - `/Users/zackjackson/rspack/tests/rspack-test/configCases/rsc-plugin/server-actions-production`
+  - `/Users/zackjackson/rspack/tests/rspack-test/configCases/rsc-plugin/with-concatenated-module`
+- Main docs walkthrough and configuration guide:
+  - `/Users/zackjackson/rspack/website/docs/en/guide/tech/rsc.mdx`
+  - `/Users/zackjackson/rspack/website/docs/zh/guide/tech/rsc.mdx`
+- External full app examples referenced by docs:
+  - `https://github.com/rstackjs/rspack-rsc-examples`
+- Dedicated `tests/e2e` RSC cases are not present in this repo snapshot; the primary automated RSC validation here is under `tests/rspack-test/configCases/rsc-plugin`.
 
-I did not run builds/tests here; this is a static code-path audit of the current repo state.
+This is a static code-path map of how RSC is implemented and wired in the current repo snapshot.
