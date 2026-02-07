@@ -360,8 +360,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         continue;
       }
 
-      if matches!(module_type, ModuleType::ConsumeShared)
-      {
+      if matches!(module_type, ModuleType::ConsumeShared) {
         let Some(consume_shared_module) = module
           .as_ref()
           .as_any()
