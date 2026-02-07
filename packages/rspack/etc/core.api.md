@@ -1520,10 +1520,13 @@ export type Consumes = (ConsumesItem | ConsumesObject)[] | ConsumesObject;
 export type ConsumesConfig = {
     eager?: boolean;
     import?: false | ConsumesItem;
+    issuerLayer?: string;
+    layer?: string;
     packageName?: string;
+    request?: string;
     requiredVersion?: false | string;
     shareKey?: string;
-    shareScope?: string;
+    shareScope?: string | string[];
     singleton?: boolean;
     strictVersion?: boolean;
     treeShakingMode?: 'server-calc' | 'runtime-infer';
@@ -1538,13 +1541,16 @@ class ConsumeSharedPlugin extends RspackBuiltinPlugin {
     _options: {
         consumes: [string, {
             import: string | undefined;
-            shareScope: string;
+            shareScope: string | string[];
             shareKey: string;
             requiredVersion: string | false | undefined;
             strictVersion: boolean;
             packageName: string | undefined;
             singleton: boolean;
             eager: boolean;
+            issuerLayer: string | undefined;
+            layer: string | undefined;
+            request: string;
             treeShakingMode: "server-calc" | "runtime-infer" | undefined;
         }][];
         enhanced: boolean;
@@ -1556,7 +1562,7 @@ class ConsumeSharedPlugin extends RspackBuiltinPlugin {
 // @public (undocumented)
 export type ConsumeSharedPluginOptions = {
     consumes: Consumes;
-    shareScope?: string;
+    shareScope?: string | string[];
     enhanced?: boolean;
 };
 
@@ -1584,7 +1590,7 @@ class ContainerPlugin extends RspackBuiltinPlugin {
     // (undocumented)
     _options: {
         name: string;
-        shareScope: string;
+        shareScope: string | string[];
         library: LibraryOptions;
         runtime: EntryRuntime | undefined;
         filename: string | undefined;
@@ -1605,7 +1611,7 @@ export type ContainerPluginOptions = {
     library?: LibraryOptions;
     name: string;
     runtime?: EntryRuntime;
-    shareScope?: string;
+    shareScope?: string | string[];
     enhanced?: boolean;
 };
 
@@ -1619,7 +1625,7 @@ class ContainerReferencePlugin extends RspackBuiltinPlugin {
         remoteType: ExternalsType;
         remotes: [string, {
             external: string[];
-            shareScope: string;
+            shareScope: string | string[];
         }][];
         enhanced: boolean;
     };
@@ -1631,7 +1637,7 @@ class ContainerReferencePlugin extends RspackBuiltinPlugin {
 export type ContainerReferencePluginOptions = {
     remoteType: ExternalsType;
     remotes: Remotes;
-    shareScope?: string;
+    shareScope?: string | string[];
     enhanced?: boolean;
 };
 
@@ -5016,7 +5022,7 @@ export interface ModuleFederationPluginV1Options {
     // (undocumented)
     shared?: Shared;
     // (undocumented)
-    shareScope?: string;
+    shareScope?: string | string[];
 }
 
 // @public (undocumented)
@@ -6179,7 +6185,7 @@ class ProvideSharedPlugin<Enhanced extends boolean = false> extends RspackBuilti
 // @public (undocumented)
 export type ProvideSharedPluginOptions<Enhanced extends boolean = false> = {
     provides: Provides<Enhanced>;
-    shareScope?: string;
+    shareScope?: string | string[];
     enhanced?: Enhanced;
 };
 
@@ -6194,8 +6200,10 @@ export type ProvidesObject<Enhanced extends boolean> = {
 // @public (undocumented)
 type ProvidesV1Config = {
     eager?: boolean;
+    layer?: string;
+    request?: string;
     shareKey: string;
-    shareScope?: string;
+    shareScope?: string | string[];
     version?: false | string;
 };
 
@@ -6481,7 +6489,7 @@ export type Remotes = (RemotesItem | RemotesObject)[] | RemotesObject;
 // @public (undocumented)
 export type RemotesConfig = {
     external: RemotesItem | RemotesItems;
-    shareScope?: string;
+    shareScope?: string | string[];
 };
 
 // @public (undocumented)
@@ -7621,10 +7629,13 @@ export type Shared = (SharedItem | SharedObject)[] | SharedObject;
 export type SharedConfig = {
     eager?: boolean;
     import?: false | SharedItem;
+    issuerLayer?: string;
+    layer?: string;
     packageName?: string;
+    request?: string;
     requiredVersion?: false | string;
     shareKey?: string;
-    shareScope?: string;
+    shareScope?: string | string[];
     singleton?: boolean;
     strictVersion?: boolean;
     version?: false | string;
@@ -7670,12 +7681,15 @@ class SharePlugin {
         [x: string]: {
             import: string | false | undefined;
             shareKey: string;
-            shareScope: string | undefined;
+            shareScope: string | string[] | undefined;
             requiredVersion: string | false | undefined;
             strictVersion: boolean | undefined;
             singleton: boolean | undefined;
             packageName: string | undefined;
             eager: boolean | undefined;
+            issuerLayer: string | undefined;
+            layer: string | undefined;
+            request: string;
             treeShakingMode: "server-calc" | "runtime-infer" | undefined;
         };
     }[];
@@ -7685,24 +7699,26 @@ class SharePlugin {
     _provides: {
         [x: string]: {
             shareKey: string;
-            shareScope: string | undefined;
+            shareScope: string | string[] | undefined;
             version: string | false | undefined;
             eager: boolean | undefined;
             singleton: boolean | undefined;
             requiredVersion: string | false | undefined;
             strictVersion: boolean | undefined;
+            layer: string | undefined;
+            request: string;
             treeShakingMode: "server-calc" | "runtime-infer" | undefined;
         };
     }[];
     // (undocumented)
     _sharedOptions: NormalizedSharedOptions;
     // (undocumented)
-    _shareScope: string | undefined;
+    _shareScope: string | string[] | undefined;
 }
 
 // @public (undocumented)
 export type SharePluginOptions = {
-    shareScope?: string;
+    shareScope?: string | string[];
     shared: Shared;
     enhanced: boolean;
 };
