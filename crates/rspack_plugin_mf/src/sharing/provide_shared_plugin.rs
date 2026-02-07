@@ -147,7 +147,7 @@ impl ProvideSharedPlugin {
       self.resolved_provide_map.write().await.insert(
         lookup_key.clone(),
         VersionedProvideOptions {
-          request: Some(key.to_string()),
+          request: Some(resource.to_string()),
           layer: layer.clone(),
           share_key: share_key.to_string(),
           share_scope: share_scope.to_vec(),
@@ -167,7 +167,7 @@ impl ProvideSharedPlugin {
         self.resolved_provide_map.write().await.insert(
           lookup_key.clone(),
           VersionedProvideOptions {
-            request: Some(key.to_string()),
+            request: Some(resource.to_string()),
             layer: layer.clone(),
             share_key: share_key.to_string(),
             share_scope: share_scope.to_vec(),
