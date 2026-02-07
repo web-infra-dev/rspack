@@ -828,25 +828,32 @@ Key differences:
 ## 12) Notable Nuances / Gotchas
 
 1. Runtime tools dependency:
+
 - `@module-federation/runtime-tools` is optional peer in package metadata, but MF v1.5 runtime path will throw at build time if it cannot resolve and no `implementation` override is provided.
 
 2. Option naming mismatch in docs vs code:
+
 - Code uses `treeShakingSharedDir` (`ModuleFederationPluginOptions`), while docs currently show a section named `treeShakingDir`.
 
 3. Manifest docs vs current behavior:
+
 - Current tests/code for `disableAssetsAnalyze` keep `shared` and `exposes` entries but with empty asset lists (not fully omitted structures).
 
 4. Remote alias map derivation:
+
 - JS normalization for manifest alias mapping only includes remotes where a single script-style remote target provides both `entry` and `name`.
 
 5. Internal `ContainerPlugin` default library type:
+
 - Direct internal `ContainerPlugin` wrapper defaults to `global` if used directly.
 - MF public flow through `ModuleFederationPluginV1` defaults to `var`.
 
 6. Enhanced/non-enhanced split is intentional:
+
 - In enhanced mode many runtime functions are expected from bundler runtime and only guarded stubs are emitted by Rust runtime modules.
 
 7. Scope-array compatibility is mode-sensitive:
+
 - Enhanced runtime paths are array-capable for share scopes.
 - Non-enhanced runtime paths intentionally remain scalar to preserve legacy templates/contracts.
 

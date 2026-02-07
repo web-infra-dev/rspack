@@ -79,7 +79,9 @@ fn create_lookup_key_for_sharing(request: &str, layer: Option<&str>) -> String {
 }
 
 fn strip_lookup_layer_prefix(lookup: &str) -> &str {
-  if lookup.starts_with('(') && let Some(index) = lookup.find(')') {
+  if lookup.starts_with('(')
+    && let Some(index) = lookup.find(')')
+  {
     return &lookup[index + 1..];
   }
   lookup
@@ -274,7 +276,10 @@ async fn normal_module_factory_module(
 ) -> Result<()> {
   let resource = create_data.resource_resolve_data.resource();
   let resource_data = &create_data.resource_resolve_data;
-  let effective_layer = module.get_layer().cloned().or_else(|| data.issuer_layer.clone());
+  let effective_layer = module
+    .get_layer()
+    .cloned()
+    .or_else(|| data.issuer_layer.clone());
   let resource_lookup = create_lookup_key_for_sharing(resource, effective_layer.as_deref());
   let fallback_resource_lookup = create_lookup_key_for_sharing(resource, None);
   if self
@@ -332,8 +337,7 @@ async fn normal_module_factory_module(
       .request
       .as_deref()
       .unwrap_or_else(|| strip_lookup_layer_prefix(prefix_lookup));
-    if request.starts_with(prefix) {
-      let remainder = &request[prefix.len()..];
+    if let Some(remainder) = request.strip_prefix(prefix) {
       self
         .provide_shared_module(
           request,

@@ -168,6 +168,7 @@ Use one logical app, but with per-plane federation contracts:
 ### 14.4 Concrete implementation touchpoints
 
 1. Add layer-aware sharing config end-to-end.
+
 - Extend shared option types with layer gating (for example `layer`, `issuerLayer`) in:
   - `/Users/zackjackson/rspack/packages/rspack/src/sharing/SharePlugin.ts`
 - Carry those fields through raw binding option structs in:
@@ -177,6 +178,7 @@ Use one logical app, but with per-plane federation contracts:
   - `/Users/zackjackson/rspack/crates/rspack_plugin_mf/src/sharing/provide_shared_plugin.rs`
 
 2. Teach RSC manifest/resource collection about federated modules.
+
 - Introduce a stable synthetic resource identity for remote modules (for example `mf://<remote>/<request>`) in:
   - `/Users/zackjackson/rspack/crates/rspack_plugin_rsc/src/utils.rs`
 - Ensure collection paths no longer skip federated modules by empty resource checks:
@@ -185,6 +187,7 @@ Use one logical app, but with per-plane federation contracts:
   - `/Users/zackjackson/rspack/crates/rspack_plugin_rsc/src/manifest_runtime_module.rs`
 
 3. Add host/remote RSC manifest bridge.
+
 - Remote side should expose its RSC manifest data (`__webpack_require__.rscM`) through a known federated export or runtime hook.
 - Host server runtime should merge remote manifest data into its working manifest before resolving client references/actions.
 - Most natural insertion points:
@@ -193,6 +196,7 @@ Use one logical app, but with per-plane federation contracts:
   - `/Users/zackjackson/rspack/packages/rspack/src/container/ModuleFederationManifestPlugin.ts` (optional metadata extension)
 
 4. Namespace action IDs at federation boundary.
+
 - Server action IDs are deterministic hashes from SWC transform:
   - `/Users/zackjackson/rspack/crates/rspack_loader_swc/src/rsc_transforms/server_actions.rs`
 - Add a remote namespace at host merge/dispatch layer (for example `<remote>::<actionId>`) to avoid cross-remote collisions.
@@ -217,20 +221,24 @@ Use one logical app, but with per-plane federation contracts:
 ### 14.7 Tests and samples to use/extend
 
 RSC baseline fixtures:
+
 - `/Users/zackjackson/rspack/tests/rspack-test/configCases/rsc-plugin/server-entry`
 - `/Users/zackjackson/rspack/tests/rspack-test/configCases/rsc-plugin/server-actions-production`
 - `/Users/zackjackson/rspack/tests/rspack-test/configCases/rsc-plugin/with-concatenated-module`
 
 MF layer/shareScope baselines:
+
 - `/Users/zackjackson/rspack/tests/rspack-test/serialCases/container-1-5/5-layers-full`
 - `/Users/zackjackson/rspack/tests/rspack-test/serialCases/container-1-5/6-layers-full`
 - `/Users/zackjackson/rspack/tests/rspack-test/serialCases/container-1-5/7-layers-full`
 - `/Users/zackjackson/rspack/tests/rspack-test/serialCases/container-1-5/8-layers-full`
 
 MF e2e baselines:
+
 - `/Users/zackjackson/rspack/tests/e2e/cases/module-federation`
 
 Recommended new tests:
+
 1. Host SSR consumes remote RSC client boundary; verify merged manifest resolves remote client module IDs.
 2. Host triggers remote server action; verify action loads and executes through merged action manifest.
 3. Same shared package in different layers/scopes does not cross-contaminate (client vs ssr vs rsc).

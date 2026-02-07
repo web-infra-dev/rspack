@@ -317,7 +317,8 @@ export default function () {
           promises: targetPromises,
           chunkMapping: consumesLoadingChunkMapping,
           moduleToHandlerMapping:
-            __webpack_require__.federation.consumesLoadingModuleToHandlerMapping,
+            __webpack_require__.federation
+              .consumesLoadingModuleToHandlerMapping,
           installedModules: consumesLoadinginstalledModules,
           webpackRequire: __webpack_require__,
         });
@@ -325,7 +326,8 @@ export default function () {
         const initPromises = [];
         const initScopeSet = new Set();
         for (const moduleId of consumeModuleIds) {
-          const consumeData = consumesLoadingModuleToConsumeDataMapping[moduleId];
+          const consumeData =
+            consumesLoadingModuleToConsumeDataMapping[moduleId];
           if (!consumeData) continue;
           if (consumeData.import == null || consumeData.layer == null) {
             for (const scope of toScopeArray(consumeData.shareScope)) {
