@@ -31,17 +31,19 @@ struct ProcessChunkResult {
 
 fn process_chunks(
   hash_funcs: &Vec<SubresourceIntegrityHashFunction>,
-  compilation: &mut Compilation,
+  compilation: &Compilation,
+  artifact: &mut rspack_core::ProcessAssetsArtifact,
+  build_chunk_graph_artifact: &rspack_core::BuildChunkGraphArtifact,
 ) -> HashMap<String, String> {
   let mut hash_by_placeholders = HashMap::default();
   let mut integrities = HashMap::default();
-  let batches = digest_chunks(compilation);
+  let batches = digest_chunks(compilation, build_chunk_graph_artifact);
 
   if matches!(
     compilation.options.output.cross_origin_loading,
     CrossOriginLoading::Disable
   ) {
-    compilation.push_diagnostic(Diagnostic::warn(
+    artifact.diagnostics.push(Diagnostic::warn(
       "SubresourceIntegrity".to_string(),
       r#"SRI requires a cross-origin policy, defaulting to "anonymous". 
 Set "output.crossOriginLoading" option to a value other than "false"
@@ -54,7 +56,7 @@ See https://w3c.github.io/webappsec-subresource-integrity/#cross-origin-data-lea
   for batch in batches {
     let chunks = batch
       .into_iter()
-      .filter_map(|c| compilation.build_chunk_graph_artifact.chunk_by_ukey.get(&c))
+      .filter_map(|c| build_chunk_graph_artifact.chunk_by_ukey.get(&c))
       .collect::<Vec<_>>();
 
     let results = chunks
@@ -104,7 +106,7 @@ See https://w3c.github.io/webappsec-subresource-integrity/#cross-origin-data-lea
     let mut should_warn_content_hash = false;
     for result in results {
       for warning in result.warnings {
-        compilation.push_diagnostic(Diagnostic::warn(
+        artifact.diagnostics.push(Diagnostic::warn(
           "SubresourceIntegrity".to_string(),
           warning,
         ));
@@ -122,8 +124,7 @@ See https://w3c.github.io/webappsec-subresource-integrity/#cross-origin-data-lea
       let real_content_hash = compilation.options.optimization.real_content_hash;
 
       if let Some(source) = result.source
-        && let Some(error) = compilation
-          .update_asset(&result.file, |_, info| {
+        && let Some(error) = rspack_core::update_asset(&mut artifact.assets, &result.file, |_, info| {
             if use_any_hash(&info) && (info.content_hash.is_empty() || !real_content_hash) {
               should_warn_content_hash = true;
             }
@@ -134,14 +135,14 @@ See https://w3c.github.io/webappsec-subresource-integrity/#cross-origin-data-lea
           })
           .err()
       {
-        compilation.push_diagnostic(Diagnostic::error(
+        artifact.diagnostics.push(Diagnostic::error(
           "SubresourceIntegrity".to_string(),
           format!("Failed to update asset '{}': {}", result.file, error),
         ));
       }
     }
     if should_warn_content_hash {
-      compilation.push_diagnostic(Diagnostic::warn(
+      artifact.diagnostics.push(Diagnostic::warn(
         "SubresourceIntegrity".to_string(),
         r#"Using [hash], [fullhash], [modulehash], or [chunkhash] can be risky
 with SRI. The same applies to [contenthash] when "optimization.realContentHash" option is disabled. 
@@ -195,7 +196,7 @@ fn process_chunk_source(
   }
 }
 
-fn digest_chunks(compilation: &Compilation) -> Vec<Vec<ChunkUkey>> {
+fn digest_chunks(compilation: &Compilation, build_chunk_graph_artifact: &rspack_core::BuildChunkGraphArtifact) -> Vec<Vec<ChunkUkey>> {
   let mut batches = vec![];
   let mut visited_chunk_groups = HashSet::default();
   let mut visited_chunks = HashSet::default();
@@ -209,8 +210,7 @@ fn digest_chunks(compilation: &Compilation) -> Vec<Vec<ChunkUkey>> {
         continue;
       }
       visited_chunk_groups.insert(chunk_group);
-      if let Some(chunk_group) = compilation
-        .build_chunk_graph_artifact
+      if let Some(chunk_group) = build_chunk_graph_artifact
         .chunk_group_by_ukey
         .get(chunk_group)
       {
@@ -220,15 +220,14 @@ fn digest_chunks(compilation: &Compilation) -> Vec<Vec<ChunkUkey>> {
           if visited_chunks.contains(chunk_ukey) {
             continue;
           }
-          let Some(chunk) = compilation
-            .build_chunk_graph_artifact
+          let Some(chunk) = build_chunk_graph_artifact
             .chunk_by_ukey
             .get(chunk_ukey)
           else {
             continue;
           };
           visited_chunks.insert(*chunk_ukey);
-          if chunk.has_runtime(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey) {
+          if chunk.has_runtime(&build_chunk_graph_artifact.chunk_group_by_ukey) {
             chunk_runtime_batch.push(*chunk_ukey);
           } else {
             chunk_batch.push(*chunk_ukey);
@@ -269,8 +268,8 @@ async fn add_minssing_integrities(
 }
 
 #[plugin_hook(CompilationProcessAssets for SubresourceIntegrityPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_OPTIMIZE_INLINE - 1)]
-pub async fn handle_assets(&self, compilation: &mut Compilation) -> Result<()> {
-  let integrities = process_chunks(&self.options.hash_func_names, compilation);
+pub async fn handle_assets(&self, compilation: &Compilation, artifact: &mut rspack_core::ProcessAssetsArtifact, build_chunk_graph_artifact: &mut rspack_core::BuildChunkGraphArtifact) -> Result<()> {
+  let integrities = process_chunks(&self.options.hash_func_names, compilation, artifact, build_chunk_graph_artifact);
   let compilation_integrities =
     SubresourceIntegrityPlugin::get_compilation_integrities_mut(compilation.id());
   compilation_integrities.write().await.extend(integrities);

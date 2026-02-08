@@ -7,7 +7,8 @@ use cow_utils::CowUtils;
 use futures::future::BoxFuture;
 use regex::Regex;
 use rspack_core::{
-  Chunk, Compilation, CompilationProcessAssets, Filename, Logger, PathData, Plugin,
+  Chunk, Compilation, CompilationProcessAssets,
+  Filename, Logger, PathData, Plugin,
   rspack_sources::{BoxSource, ConcatSource, RawStringSource, SourceExt},
   to_comment,
 };
@@ -125,7 +126,7 @@ impl BannerPlugin {
 }
 
 #[plugin_hook(CompilationProcessAssets for BannerPlugin, stage = self.config.stage.unwrap_or(Compilation::PROCESS_ASSETS_STAGE_ADDITIONS))]
-async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
+async fn process_assets(&self, compilation: &Compilation, artifact: &mut rspack_core::ProcessAssetsArtifact, build_chunk_graph_artifact: &mut rspack_core::BuildChunkGraphArtifact) -> Result<()> {
   let logger = compilation.get_logger("rspack.BannerPlugin");
   let start = logger.time("add banner");
   let mut updates = vec![];
@@ -136,13 +137,12 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   };
 
   // filter file
-  for chunk in compilation
-    .build_chunk_graph_artifact
+  for chunk in build_chunk_graph_artifact
     .chunk_by_ukey
     .values()
   {
     let can_be_initial =
-      chunk.can_be_initial(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey);
+      chunk.can_be_initial(&build_chunk_graph_artifact.chunk_group_by_ukey);
 
     if let Some(entry_only) = self.config.entry_only
       && entry_only
@@ -197,7 +197,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   }
 
   for (file, comment) in updates {
-    let _res = compilation.update_asset(file.as_str(), |old, info| {
+    let _res = rspack_core::update_asset(&mut artifact.assets, &file, |old, info| {
       let new = self.update_source(comment, old, self.config.footer);
       Ok((new, info))
     });

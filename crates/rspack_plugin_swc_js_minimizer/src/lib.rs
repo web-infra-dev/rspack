@@ -157,7 +157,7 @@ async fn js_chunk_hash(
 }
 
 #[plugin_hook(CompilationProcessAssets for SwcJsMinimizerRspackPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_OPTIMIZE_SIZE)]
-async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
+async fn process_assets(&self, compilation: &Compilation, artifact: &mut rspack_core::ProcessAssetsArtifact, _build_chunk_graph_artifact: &mut rspack_core::BuildChunkGraphArtifact) -> Result<()> {
   let options = &self.options;
   let minimizer_options = &self.options.minimizer_options;
 
@@ -175,8 +175,8 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let enter_span = tracing::Span::current();
 
   let tls: ThreadLocal<ObjectPool> = ThreadLocal::new();
-  compilation
-    .assets_mut()
+  artifact
+    .assets
     .par_iter_mut()
     .filter(|(filename, original)| {
       // propagate span in rayon to keep parent relation
@@ -396,7 +396,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 
       Ok(())
   })?;
-  compilation.extend_diagnostics(rx.into_iter().flatten().collect::<Vec<_>>());
+  artifact.diagnostics.extend(rx.into_iter().flatten());
 
   // write all extracted comments to assets
   all_extracted_comments
@@ -405,7 +405,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     .clone()
     .into_iter()
     .for_each(|(_, comments)| {
-      compilation.emit_asset(
+      artifact.assets.insert(
         comments.comments_file_name,
         CompilationAsset::new(
           Some(comments.source),
@@ -414,7 +414,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
             ..Default::default()
           },
         ),
-      )
+      );
     });
 
   Ok(())

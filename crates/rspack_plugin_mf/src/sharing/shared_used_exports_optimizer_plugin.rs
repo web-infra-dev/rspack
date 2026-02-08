@@ -313,14 +313,14 @@ async fn optimize_dependencies(
 }
 
 #[plugin_hook(CompilationProcessAssets for SharedUsedExportsOptimizerPlugin, stage = 1)]
-async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
+async fn process_assets(&self, _compilation: &Compilation, artifact: &mut rspack_core::ProcessAssetsArtifact, _build_chunk_graph_artifact: &mut rspack_core::BuildChunkGraphArtifact) -> Result<()> {
   let file_names = vec![
     self.stats_file_name.clone(),
     self.manifest_file_name.clone(),
   ];
   for file_name in file_names {
     if let Some(file_name) = &file_name
-      && let Some(file) = compilation.assets().get(file_name)
+      && let Some(file) = artifact.assets.get(file_name)
       && let Some(source) = file.get_source()
       && let SourceValue::String(content) = source.source()
       && let Ok(mut stats_root) = serde_json::from_str::<StatsRoot>(&content)
@@ -339,7 +339,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       let updated_content = serde_json::to_string_pretty(&stats_root)
         .map_err(|e| rspack_error::error!("Failed to serialize stats root: {}", e))?;
 
-      compilation.update_asset(file_name, |_, info| {
+      rspack_core::update_asset(&mut artifact.assets, file_name, |_, info| {
         Ok((RawStringSource::from(updated_content).boxed(), info))
       })?;
     }

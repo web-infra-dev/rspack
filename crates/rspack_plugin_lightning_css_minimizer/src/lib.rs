@@ -122,7 +122,7 @@ async fn chunk_hash(
 }
 
 #[plugin_hook(CompilationProcessAssets for LightningCssMinimizerRspackPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_OPTIMIZE_SIZE)]
-async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
+async fn process_assets(&self, _compilation: &Compilation, artifact: &mut rspack_core::ProcessAssetsArtifact, _build_chunk_graph_artifact: &mut rspack_core::BuildChunkGraphArtifact) -> Result<()> {
   let options = &self.options;
   let minimizer_options = &self.options.minimizer_options;
   let all_warnings: RwLock<Vec<Diagnostic>> = Default::default();
@@ -133,8 +133,8 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   };
 
   let tls: ThreadLocal<ObjectPool> = ThreadLocal::new();
-  compilation
-    .assets_mut()
+  artifact
+    .assets
     .par_iter_mut()
     .filter(|(filename, original)| {
       if !CSS_ASSET_REGEXP.is_match(filename) {
@@ -283,7 +283,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       Ok(())
     }).map_err(MinifyError)?;
 
-  compilation.extend_diagnostics(all_warnings.into_inner().expect("should lock"));
+  artifact.diagnostics.extend(all_warnings.into_inner().expect("should lock"));
 
   Ok(())
 }

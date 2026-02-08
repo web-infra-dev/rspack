@@ -148,7 +148,7 @@ async fn runtime_requirements_in_tree(
 }
 
 #[plugin_hook(CompilationProcessAssets for RscServerPlugin)]
-async fn process_assets(&self, _compilation: &mut Compilation) -> Result<()> {
+async fn process_assets(&self, _compilation: &Compilation, _artifact: &mut rspack_core::ProcessAssetsArtifact, _build_chunk_graph_artifact: &mut rspack_core::BuildChunkGraphArtifact) -> Result<()> {
   self.coordinator.idle().await?;
   Ok(())
 }

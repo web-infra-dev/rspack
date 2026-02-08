@@ -22,6 +22,7 @@ mod optimize_modules;
 mod optimize_tree;
 pub mod pass;
 mod process_assets;
+pub use process_assets::ProcessAssetsArtifact;
 mod run_passes;
 mod runtime_requirements;
 mod seal;
@@ -128,7 +129,7 @@ define_hook!(CompilationContentHash: Series(compilation: &Compilation, chunk_uke
 define_hook!(CompilationDependentFullHash: SeriesBail(compilation: &Compilation, chunk_ukey: &ChunkUkey) -> bool);
 define_hook!(CompilationRenderManifest: Series(compilation: &Compilation, chunk_ukey: &ChunkUkey, manifest: &mut Vec<RenderManifestEntry>, diagnostics: &mut Vec<Diagnostic>),tracing=false);
 define_hook!(CompilationChunkAsset: Series(compilation: &Compilation, chunk_ukey: &ChunkUkey, filename: &str));
-define_hook!(CompilationProcessAssets: Series(compilation: &mut Compilation));
+define_hook!(CompilationProcessAssets: Series(compilation: &Compilation, artifact: &mut ProcessAssetsArtifact, build_chunk_graph_artifact: &mut BuildChunkGraphArtifact));
 define_hook!(CompilationAfterProcessAssets: Series(compilation: &Compilation, diagnostics: &mut Vec<Diagnostic>));
 define_hook!(CompilationAfterSeal: Series(compilation: &Compilation),tracing=true);
 
@@ -1233,6 +1234,104 @@ impl Compilation {
 }
 
 pub type CompilationAssets = HashMap<String, CompilationAsset>;
+
+/// Standalone `emit_asset` for use in process_assets plugins where `&Compilation` is immutable.
+/// Similar to `Compilation::emit_asset` but operates directly on extracted `assets` and `diagnostics`.
+pub fn emit_asset(
+  assets: &mut CompilationAssets,
+  diagnostics: &mut Vec<Diagnostic>,
+  filename: String,
+  asset: CompilationAsset,
+) {
+  if let Some(mut original) = assets.remove(&filename)
+    && let Some(original_source) = &original.source
+    && let Some(asset_source) = asset.get_source()
+  {
+    let is_source_equal = is_source_equal(original_source, asset_source);
+    if !is_source_equal {
+      tracing::error!(
+        "Emit Duplicate Filename({}), is_source_equal: {:?}",
+        filename,
+        is_source_equal
+      );
+      diagnostics.push(
+        rspack_error::error!(
+          "Conflict: Multiple assets emit different content to the same filename {}{}",
+          filename,
+          ""
+        )
+        .into(),
+      );
+      assets.insert(filename, asset);
+      return;
+    }
+    original.info = asset.info;
+    assets.insert(filename, original);
+  } else {
+    assets.insert(filename, asset);
+  }
+}
+
+/// Standalone `update_asset` for use in process_assets plugins where `&Compilation` is immutable.
+pub fn update_asset(
+  assets: &mut CompilationAssets,
+  filename: &str,
+  updater: impl FnOnce(
+    BoxSource,
+    BindingCell<AssetInfo>,
+  ) -> Result<(BoxSource, BindingCell<AssetInfo>)>,
+) -> Result<()> {
+  let (new_source, new_info) = match assets.remove(filename) {
+    Some(CompilationAsset {
+      source: Some(source),
+      info,
+    }) => {
+      let (new_source, new_info) = updater(source, info)?;
+      (new_source, new_info)
+    }
+    _ => {
+      return Err(rspack_error::error!(
+        "Called Compilation.updateAsset for not existing filename {}",
+        filename
+      ));
+    }
+  };
+  assets.insert(
+    filename.to_owned(),
+    CompilationAsset {
+      source: Some(new_source),
+      info: new_info,
+    },
+  );
+  Ok(())
+}
+
+/// Standalone `par_rename_assets` for use in process_assets plugins where `&Compilation` is immutable.
+pub fn par_rename_assets(
+  assets: &mut CompilationAssets,
+  chunk_by_ukey: &mut ChunkByUkey,
+  renames: Vec<(String, String)>,
+) {
+  chunk_by_ukey
+    .values_mut()
+    .par_bridge()
+    .for_each(|chunk| {
+      for (old_name, new_name) in renames.iter() {
+        if chunk.remove_file(old_name) {
+          chunk.add_file(new_name.clone());
+        }
+        if chunk.remove_auxiliary_file(old_name) {
+          chunk.add_auxiliary_file(new_name.clone());
+        }
+      }
+    });
+
+  for (old_name, new_name) in renames {
+    if let Some(asset) = assets.remove(&old_name) {
+      assets.insert(new_name, asset);
+    }
+  }
+}
 
 #[cacheable]
 #[derive(Debug, Clone)]

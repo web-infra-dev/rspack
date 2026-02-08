@@ -64,9 +64,9 @@ async fn generate_html(
   filename: &str,
   html_file_name: &Filename,
   config: &HtmlRspackPluginOptions,
-  compilation: &mut Compilation,
+  compilation: &Compilation,
   hooks: ArcHtmlPluginHooks,
-) -> Result<(String, String, Vec<PathBuf>)> {
+) -> Result<(String, String, Vec<PathBuf>, Vec<Diagnostic>)> {
   let public_path = config.get_public_path(compilation, filename).await;
 
   let mut template = HtmlTemplate::new(config, compilation).await?;
@@ -165,11 +165,7 @@ async fn generate_html(
 
   let ast_with_diagnostic = parser.parse_file(&template.url, after_template_execution_data.html)?;
 
-  let (mut current_ast, diagnostic) = ast_with_diagnostic.split_into_parts();
-
-  if !diagnostic.is_empty() {
-    compilation.extend_diagnostics(diagnostic);
-  }
+  let (mut current_ast, mut diagnostics) = ast_with_diagnostic.split_into_parts();
 
   if !matches!(config.inject, HtmlInject::False) {
     let mut visitor = AssetInjector::new(
@@ -192,11 +188,12 @@ async fn generate_html(
     template_file_name.to_string(),
     html.into_owned(),
     template.file_dependencies,
+    diagnostics,
   ))
 }
 
 #[plugin_hook(CompilationProcessAssets for HtmlRspackPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_OPTIMIZE_INLINE)]
-async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
+async fn process_assets(&self, compilation: &Compilation, artifact: &mut rspack_core::ProcessAssetsArtifact, _build_chunk_graph_artifact: &mut rspack_core::BuildChunkGraphArtifact) -> Result<()> {
   let config: &HtmlRspackPluginOptions = &self.config;
   let hooks = HtmlRspackPlugin::get_compilation_hooks(compilation.id());
 
@@ -233,14 +230,15 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     .await
     {
       Ok(content) => {
-        compilation
+        artifact
           .file_dependencies
           .extend(content.2.into_iter().map(Into::into));
+        artifact.diagnostics.extend(content.3);
         (content.0, content.1)
       }
       Err(err) => {
         let error_msg = err.to_string();
-        compilation.push_diagnostic(Diagnostic::from(err));
+        artifact.diagnostics.push(Diagnostic::from(err));
         ("error.html".to_string(), create_error_html(&error_msg))
       }
     };
@@ -258,10 +256,10 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 
     if let Some(favicon) = &config.favicon {
       match create_favicon_asset(favicon, config, compilation).await {
-        Ok(favicon) => compilation.emit_asset(favicon.0, favicon.1),
+        Ok(favicon) => { artifact.assets.insert(favicon.0, favicon.1); },
         Err(err) => {
           let error_msg = err.to_string();
-          compilation.push_diagnostic(Diagnostic::from(err));
+          artifact.diagnostics.push(Diagnostic::from(err));
           before_emit_data.html = create_error_html(&error_msg);
         }
       };
@@ -275,7 +273,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     )
     .await?;
 
-    compilation.emit_asset(html_asset.0.clone(), html_asset.1);
+    artifact.assets.insert(html_asset.0.clone(), html_asset.1);
 
     let _ = hooks
       .borrow()

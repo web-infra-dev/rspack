@@ -56,8 +56,8 @@ impl RealContentHashPlugin {
 }
 
 #[plugin_hook(CompilationProcessAssets for RealContentHashPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_OPTIMIZE_HASH)]
-async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
-  inner_impl(compilation).await
+async fn process_assets(&self, compilation: &Compilation, artifact: &mut rspack_core::ProcessAssetsArtifact, build_chunk_graph_artifact: &mut rspack_core::BuildChunkGraphArtifact) -> Result<()> {
+  inner_impl(compilation, artifact, build_chunk_graph_artifact).await
 }
 
 impl Plugin for RealContentHashPlugin {
@@ -78,12 +78,12 @@ impl Plugin for RealContentHashPlugin {
   }
 }
 
-async fn inner_impl(compilation: &mut Compilation) -> Result<()> {
+async fn inner_impl(compilation: &Compilation, artifact: &mut rspack_core::ProcessAssetsArtifact, build_chunk_graph_artifact: &mut rspack_core::BuildChunkGraphArtifact) -> Result<()> {
   let logger = compilation.get_logger("rspack.RealContentHashPlugin");
   let start = logger.time("hash to asset names");
   let mut hash_to_asset_names: HashMap<&str, Vec<&str>> = HashMap::default();
-  for (name, asset) in compilation
-    .assets()
+  for (name, asset) in artifact
+    .assets
     .iter()
     .filter(|(_, asset)| asset.get_source().is_some())
   {
@@ -110,8 +110,8 @@ async fn inner_impl(compilation: &mut Compilation) -> Result<()> {
   logger.time_end(start);
 
   let start = logger.time("create ordered hashes");
-  let assets_data: HashMap<&str, AssetData> = compilation
-    .assets()
+  let assets_data: HashMap<&str, AssetData> = artifact
+    .assets
     .par_iter()
     .filter_map(|(name, asset)| {
       asset.get_source().map(|source| {
@@ -262,7 +262,7 @@ async fn inner_impl(compilation: &mut Compilation) -> Result<()> {
   let start = logger.time("update assets");
   let mut asset_renames = Vec::with_capacity(updates.len());
   for (name, new_source, new_name) in updates {
-    compilation.update_asset(&name, |_, old_info| {
+    rspack_core::update_asset(&mut artifact.assets, &name, |_, old_info| {
       let new_hashes: HashSet<_> = old_info
         .content_hash
         .iter()
@@ -284,7 +284,7 @@ async fn inner_impl(compilation: &mut Compilation) -> Result<()> {
     }
   }
 
-  compilation.par_rename_assets(asset_renames);
+  rspack_core::par_rename_assets(&mut artifact.assets, &mut build_chunk_graph_artifact.chunk_by_ukey, asset_renames);
 
   logger.time_end(start);
 

@@ -760,15 +760,14 @@ impl SourceMapDevToolPlugin {
 }
 
 #[plugin_hook(CompilationProcessAssets for SourceMapDevToolPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_DEV_TOOLING)]
-async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
+async fn process_assets(&self, compilation: &Compilation, artifact: &mut rspack_core::ProcessAssetsArtifact, build_chunk_graph_artifact: &mut rspack_core::BuildChunkGraphArtifact) -> Result<()> {
   let logger = compilation.get_logger("rspack.SourceMapDevToolPlugin");
 
   // use to read
   let mut file_to_chunk: HashMap<&str, &Chunk> = HashMap::default();
   // use to write
   let mut file_to_chunk_ukey: HashMap<String, ChunkUkey> = HashMap::default();
-  for chunk in compilation
-    .build_chunk_graph_artifact
+  for chunk in build_chunk_graph_artifact
     .chunk_by_ukey
     .values()
   {
@@ -812,7 +811,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       asset: (source_filename, mut source_asset),
       source_map,
     } = mapped_asset;
-    if let Some(asset) = compilation.assets_mut().remove(source_filename.as_ref()) {
+    if let Some(asset) = artifact.assets.remove(source_filename.as_ref()) {
       source_asset.info = asset.info;
       if let Some((ref source_map_filename, _)) = source_map {
         source_asset.info.related.source_map = Some(source_map_filename.clone());
@@ -820,13 +819,12 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     }
 
     let chunk_ukey = file_to_chunk_ukey.get(source_filename.as_ref());
-    compilation.emit_asset(source_filename.to_string(), source_asset);
+    artifact.assets.insert(source_filename.to_string(), source_asset);
     if let Some((source_map_filename, source_map_asset)) = source_map {
-      compilation.emit_asset(source_map_filename.clone(), source_map_asset);
+      artifact.assets.insert(source_map_filename.clone(), source_map_asset);
 
       let chunk = chunk_ukey.map(|ukey| {
-        compilation
-          .build_chunk_graph_artifact
+        build_chunk_graph_artifact
           .chunk_by_ukey
           .expect_get_mut(ukey)
       });

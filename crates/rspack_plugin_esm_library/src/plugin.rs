@@ -401,11 +401,11 @@ static RSPACK_ESM_CHUNK_PLACEHOLDER_RE: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r##"__RSPACK_ESM_CHUNK_[^'"]+"##).expect("should have regex"));
 
 #[plugin_hook(CompilationProcessAssets for EsmLibraryPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_AFTER_OPTIMIZE_HASH)]
-async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
+async fn process_assets(&self, compilation: &Compilation, artifact: &mut rspack_core::ProcessAssetsArtifact, build_chunk_graph_artifact: &mut rspack_core::BuildChunkGraphArtifact) -> Result<()> {
   let mut replaced = vec![];
   let mut removed = vec![];
 
-  for (asset_name, asset) in compilation.assets() {
+  for (asset_name, asset) in &artifact.assets {
     if asset.get_info().javascript_module.unwrap_or_default() {
       let Some(source) = asset.get_source() else {
         continue;
@@ -441,8 +441,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         let start = captures.range().start as u32;
         let end = captures.range().end as u32;
         let Some(chunk) = chunk_ids_to_ukey.get(chunk_id).map(|chunk_ukey| {
-          compilation
-            .build_chunk_graph_artifact
+          build_chunk_graph_artifact
             .chunk_by_ukey
             .get(chunk_ukey)
             .expect("should have chunk for chunk ukey")
@@ -455,7 +454,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           .iter()
           .filter(|f| {
             // find ref asset info
-            let Some(asset) = compilation.assets().get(*f) else {
+            let Some(asset) = artifact.assets.get(*f) else {
               return false;
             };
             asset.get_info().javascript_module.unwrap_or_default()
@@ -493,14 +492,14 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     }
   }
   for (replace_name, replace_source) in replaced {
-    compilation
-      .assets_mut()
+    artifact
+      .assets
       .get_mut(&replace_name)
       .expect("should have asset")
       .set_source(Some(Arc::new(replace_source)));
   }
   for remove_name in removed {
-    compilation.assets_mut().remove(&remove_name);
+    artifact.assets.remove(&remove_name);
   }
 
   Ok(())
