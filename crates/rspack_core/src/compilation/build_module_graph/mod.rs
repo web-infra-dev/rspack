@@ -37,10 +37,9 @@ impl Compilation {
       self.module_executor = Some(module_executor);
     }
 
-    let artifact = self.build_module_graph_artifact.take();
-    self
-      .build_module_graph_artifact
-      .replace(build_module_graph(self, artifact).await?);
+    let artifact = self.build_module_graph_artifact.steal();
+    let artifact = build_module_graph(self, artifact).await?;
+    self.build_module_graph_artifact = artifact.into();
 
     self.in_finish_make.store(true, Ordering::Release);
 
