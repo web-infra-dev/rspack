@@ -382,7 +382,7 @@ function getTargetValues(target: unknown): string[] {
 }
 
 function isNodeLikeTarget(target: unknown): boolean {
-  if (target === false) return true;
+  if (target === false) return false;
   const targets = getTargetValues(target);
   return targets.some((value) => value.includes('node'));
 }
@@ -656,6 +656,21 @@ function getInlineRscRuntimePluginFactorySource(): string {
     '      target[key] = value;',
     '    }',
     '  };',
+    '  var remapConsumerNode = function(alias, value, namespacedClientIds) {',
+    '    if (!isObject(value)) return value;',
+    '    return Object.fromEntries(Object.entries(value).map(function(entry) {',
+    '      var exportName = entry[0];',
+    '      var exportValue = entry[1];',
+    '      var nextExportValue = isObject(exportValue) ? Object.assign({}, exportValue) : exportValue;',
+    '      if (isObject(nextExportValue) && nextExportValue.id != null) {',
+    '        var rawId = String(nextExportValue.id);',
+    '        nextExportValue.id = Object.prototype.hasOwnProperty.call(namespacedClientIds, rawId)',
+    '          ? namespacedClientIds[rawId]',
+    '          : getNamespacedModuleId(alias, rawId);',
+    '      }',
+    '      return [exportName, nextExportValue];',
+    '    }));',
+    '  };',
     '  var mergeRemoteManifest = function(alias, remoteManifest) {',
     '    if (!isObject(remoteManifest)) return;',
     '    var hostManifest = ensureHostManifest();',
@@ -680,11 +695,12 @@ function getInlineRscRuntimePluginFactorySource(): string {
     '        var entry = _entries[_i];',
     '        var rawModuleId = entry[0];',
     '        var value = entry[1];',
-    '        var scopedModuleId = Object.prototype.hasOwnProperty.call(namespacedClientIds, rawModuleId)',
-    '          ? namespacedClientIds[rawModuleId]',
+    '        var scopedModuleId = Object.prototype.hasOwnProperty.call(namespacedClientIds, String(rawModuleId))',
+    '          ? namespacedClientIds[String(rawModuleId)]',
     '          : getNamespacedModuleId(alias, rawModuleId);',
-    "        assertNoConflict(hostManifest.serverConsumerModuleMap, scopedModuleId, value, alias, 'serverConsumerModuleMap');",
-    '        hostManifest.serverConsumerModuleMap[scopedModuleId] = value;',
+    '        var nextValue = remapConsumerNode(alias, value, namespacedClientIds);',
+    "        assertNoConflict(hostManifest.serverConsumerModuleMap, scopedModuleId, nextValue, alias, 'serverConsumerModuleMap');",
+    '        hostManifest.serverConsumerModuleMap[scopedModuleId] = nextValue;',
     '      }',
     '    }',
     '    var remoteServerManifest = remoteManifest.serverManifest;',
