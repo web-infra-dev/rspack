@@ -411,10 +411,10 @@ codegen-units = 256
 inherits      = "release"
 lto           = false
 ## reduce little optimization to reduce build time
-opt-level = 2
+debug               = "limited"
 force-unwind-tables = true
-debug = "limited"
-strip =  "debuginfo"
+opt-level           = 2
+strip               = false
 
 # This is for production for profiling production build
 [profile.profiling]
