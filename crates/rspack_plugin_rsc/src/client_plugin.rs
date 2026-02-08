@@ -133,10 +133,7 @@ fn record_module(
     return;
   }
 
-  let is_async = ModuleGraph::is_async(
-    &compilation.async_modules_artifact.borrow(),
-    module_identifier,
-  );
+  let is_async = ModuleGraph::is_async(&compilation.async_modules_artifact, module_identifier);
   plugin_state.client_modules.insert(
     resource.to_string(),
     ManifestExport {

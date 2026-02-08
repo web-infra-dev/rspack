@@ -60,7 +60,7 @@ fn then_expr(
         fake_type |= FakeNamespaceObjectMode::MERGE_PROPERTIES;
       }
       if ModuleGraph::is_async(
-        &compilation.async_modules_artifact.borrow(),
+        &compilation.async_modules_artifact,
         compilation
           .get_module_graph()
           .module_identifier_by_dependency_id(dep_id)
