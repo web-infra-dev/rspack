@@ -1,5 +1,4 @@
 import fs from 'node:fs';
-import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import vm, { SourceTextModule } from 'node:vm';
@@ -402,32 +401,23 @@ export class NodeRunner implements ITestRunner {
       if (path.isAbsolute(specifier)) {
         return pathToFileURL(specifier).href;
       }
-      const requireFromFile = createRequire(fromFile);
-      let resolvedSpecifier: string;
-      try {
-        resolvedSpecifier = requireFromFile.resolve(specifier);
-      } catch (resolveError) {
-        this.log(
-          `dynamic import require.resolve miss: ${specifier}, reason: ${
-            (resolveError as Error).message
-          }`,
-        );
-        // Fall back to the bare specifier so ESM-only packages can still
-        // be resolved by Node's dynamic import pipeline.
-        return specifier;
-      }
-      if (
-        resolvedSpecifier.startsWith('node:') ||
-        !path.isAbsolute(resolvedSpecifier)
-      ) {
-        return resolvedSpecifier;
-      }
-      return pathToFileURL(resolvedSpecifier).href;
+      return specifier;
     })();
 
     try {
       return await import(normalizedSpecifier);
     } catch (importError) {
+      const importErrorCode = (importError as NodeJS.ErrnoException).code;
+      const shouldFallbackToRequire =
+        importErrorCode === 'ERR_MODULE_NOT_FOUND' ||
+        importErrorCode === 'ERR_UNKNOWN_FILE_EXTENSION' ||
+        importErrorCode === 'ERR_UNSUPPORTED_DIR_IMPORT' ||
+        importErrorCode === 'ERR_INVALID_MODULE_SPECIFIER' ||
+        importErrorCode === 'ERR_PACKAGE_PATH_NOT_EXPORTED' ||
+        importErrorCode === 'ERR_UNSUPPORTED_ESM_URL_SCHEME';
+      if (!shouldFallbackToRequire) {
+        throw importError;
+      }
       this.log(
         `dynamic import fallback require: ${specifier}, reason: ${
           (importError as Error).message
