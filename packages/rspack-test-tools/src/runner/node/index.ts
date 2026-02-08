@@ -403,7 +403,19 @@ export class NodeRunner implements ITestRunner {
         return pathToFileURL(specifier).href;
       }
       const requireFromFile = createRequire(fromFile);
-      const resolvedSpecifier = requireFromFile.resolve(specifier);
+      let resolvedSpecifier: string;
+      try {
+        resolvedSpecifier = requireFromFile.resolve(specifier);
+      } catch (resolveError) {
+        this.log(
+          `dynamic import require.resolve miss: ${specifier}, reason: ${
+            (resolveError as Error).message
+          }`,
+        );
+        // Fall back to the bare specifier so ESM-only packages can still
+        // be resolved by Node's dynamic import pipeline.
+        return specifier;
+      }
       if (
         resolvedSpecifier.startsWith('node:') ||
         !path.isAbsolute(resolvedSpecifier)

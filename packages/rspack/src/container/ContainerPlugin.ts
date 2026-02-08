@@ -33,12 +33,22 @@ export type ExposesConfig = {
   layer?: string;
 };
 
+function hasMultipleShareScopes(shareScope?: string | string[]) {
+  return Array.isArray(shareScope) && shareScope.filter(Boolean).length > 1;
+}
+
 export class ContainerPlugin extends RspackBuiltinPlugin {
   name = BuiltinPluginName.ContainerPlugin;
   _options;
 
   constructor(options: ContainerPluginOptions) {
     super();
+    const enhanced = options.enhanced ?? false;
+    if (!enhanced && hasMultipleShareScopes(options.shareScope)) {
+      throw new Error(
+        '[ContainerPlugin] Multiple share scopes are only supported in enhanced mode. Set `enhanced: true` or provide a single `shareScope`.',
+      );
+    }
     this._options = {
       name: options.name,
       shareScope: options.shareScope || 'default',
@@ -61,7 +71,7 @@ export class ContainerPlugin extends RspackBuiltinPlugin {
           layer: item.layer || undefined,
         }),
       ),
-      enhanced: options.enhanced ?? false,
+      enhanced,
     };
   }
 
