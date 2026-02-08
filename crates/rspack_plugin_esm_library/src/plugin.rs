@@ -14,7 +14,7 @@ use rspack_core::{
   CompilationOptimizeChunks, CompilationParams, CompilationProcessAssets,
   CompilationRuntimeRequirementInTree, CompilerCompilation, ConcatenatedModuleInfo,
   ConcatenationScope, DependencyType, ExternalModuleInfo, GetTargetResult, Logger,
-  ModuleFactoryCreateData, ModuleGraph, ModuleIdentifier, ModuleInfo, ModuleType,
+  ModuleFactoryCreateData, ModuleIdentifier, ModuleInfo, ModuleType,
   NormalModuleFactoryAfterFactorize, NormalModuleFactoryParser, ParserAndGenerator, ParserOptions,
   Plugin, PrefetchExportsInfoMode, RuntimeGlobals, RuntimeModule, get_target, is_esm_dep_like,
   rspack_sources::{ReplaceSource, Source},
@@ -31,7 +31,7 @@ use tokio::sync::RwLock;
 
 use crate::{
   chunk_link::ChunkLinkContext, dependency::dyn_import::DynamicImportDependencyTemplate,
-  ensure_entry_exports::ensure_entry_exports, esm_lib_parser_plugin::EsmLibParserPlugin,
+  esm_lib_parser_plugin::EsmLibParserPlugin, optimize_chunks::ensure_entry_exports,
   preserve_modules::preserve_modules, runtime::EsmRegisterModuleRuntimeModule,
 };
 
@@ -98,7 +98,7 @@ async fn render_chunk_content(
 async fn finish_modules(
   &self,
   compilation: &mut Compilation,
-  async_modules_artifact: &mut AsyncModulesArtifact,
+  _async_modules_artifact: &mut AsyncModulesArtifact,
 ) -> Result<()> {
   let module_graph = compilation.get_module_graph();
   let mut modules_map = IdentifierIndexMap::default();
@@ -118,9 +118,6 @@ async fn finish_modules(
       logger.debug(format!(
         "module {module_identifier} has bailout reason: {reason}",
       ));
-      should_scope_hoisting = false;
-    } else if ModuleGraph::is_async(async_modules_artifact, module_identifier) {
-      logger.debug(format!("module {module_identifier} is an async module"));
       should_scope_hoisting = false;
     }
     // TODO: support config to disable scope hoisting for non strict module

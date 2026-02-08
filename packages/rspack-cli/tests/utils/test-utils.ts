@@ -82,10 +82,36 @@ const createProcess = (cwd, args, options, env) => {
  * @param {string} cwd The path to folder that contains test
  * @param {Array<string>} args Array of arguments
  * @param {Object<string, any>} options Options for tests
+ * @param env
+ * @param diagnoseKilledProcess
  * @returns {Promise}
  */
-const run = async (cwd, args: string[] = [], options = {}, env = {}) => {
-  return createProcess(cwd, args, options, env);
+const run = async (
+  cwd: string,
+  args: string[] = [],
+  options: { [s: string]: any } = {},
+  env: { [s: string]: string } = {},
+  diagnoseKilledProcess: boolean = false,
+): Promise<any> => {
+  const result = await createProcess(cwd, args, options, env);
+
+  if (diagnoseKilledProcess && result.exitCode === undefined && result.signal) {
+    console.error(
+      `🔍 DIAGNOSIS: Process(${args.join(' ')}) was killed by signal(${result.signal})`,
+    );
+
+    if (result.stdout) {
+      console.error('STDOUT:');
+      console.error(result.stdout);
+    }
+
+    if (result.stderr) {
+      console.error('STDERR');
+      console.error(result.stderr);
+    }
+  }
+
+  return result;
 };
 
 /**

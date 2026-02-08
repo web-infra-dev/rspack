@@ -163,7 +163,7 @@ fn build_server_manifest(
                 // so ensuring chunk loading at runtime is unnecessary.
                 chunks: vec![],
                 r#async: Some(ModuleGraph::is_async(
-                  &compilation.async_modules_artifact.borrow(),
+                  &compilation.async_modules_artifact,
                   &module.identifier(),
                 )),
               },
@@ -229,7 +229,7 @@ fn build_server_consumer_module_map(
       name: "*".to_string(),
       chunks: vec![],
       r#async: Some(ModuleGraph::is_async(
-        &compilation.async_modules_artifact.borrow(),
+        &compilation.async_modules_artifact,
         &module.identifier(),
       )),
     };

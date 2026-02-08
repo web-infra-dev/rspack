@@ -232,3 +232,26 @@ export default {
   },
 };
 ```
+
+:::info Known Limitation
+Currently, when using `output.module: true`, `defer import` syntax for external modules will be compiled to standard `import` syntax.
+
+For example, if `jquery` is configured as external:
+
+```js
+import defer * as $ from 'jquery';
+```
+
+It will generate:
+
+```js
+import * as __rspack_external_jquery from 'jquery';
+```
+
+This is because `defer import` syntax is not yet supported by any runtime. In the future, Rspack will support preserving `defer import` syntax based on the target configuration, generating the following code:
+
+```js
+import defer * as __rspack_external_jquery from 'jquery';
+```
+
+:::
