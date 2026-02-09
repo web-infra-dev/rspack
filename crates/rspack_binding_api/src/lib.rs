@@ -2,6 +2,15 @@
 #![allow(deprecated)]
 #![allow(unused)]
 #![allow(trivial_numeric_casts)]
+#![allow(clippy::from_iter_instead_of_collect)]
+#![allow(clippy::implicit_clone)]
+#![allow(clippy::map_unwrap_or)]
+#![allow(clippy::needless_continue)]
+#![allow(clippy::redundant_clone)]
+#![allow(clippy::stable_sort_primitive)]
+#![allow(clippy::uninlined_format_args)]
+#![allow(clippy::unnested_or_patterns)]
+#![allow(clippy::unreadable_literal)]
 
 //! `rspack_binding_api` is the core binding layer in the Rspack project, responsible for exposing Rspack core functionality written in Rust to JavaScript/TypeScript environments. It provides complete API interfaces for compilation, building, module processing, and other functionalities.
 //!

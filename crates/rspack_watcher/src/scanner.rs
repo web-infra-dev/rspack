@@ -156,7 +156,7 @@ mod tests {
     scanner.close();
 
     let collected_events = collector.await.unwrap();
-    println!("Collected events: {:?}", collected_events);
+    println!("Collected events: {collected_events:?}");
     assert_eq!(collected_events.len(), 2);
 
     assert!(collected_events.contains(&vec![FsEvent {
