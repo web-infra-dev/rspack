@@ -124,6 +124,7 @@ Phase 4 — Finalize
 | 39 | `39-hmr-lazy-compilation-and-benchmark.md` | HMR/Lazy/Bench | HMR single-file ~5-20ms; FixedBitSet benchmark design |
 | 40 | `40-minification-pipeline.md` | SWC/LightningCSS Minimizer | +342ms with minification, caching opportunity for rebuilds |
 | 41 | `41-consolidated-profiling-data.md` | All Profiling Data | All 8 runs cross-referenced, scaling formulas, feature impact matrix |
+| 42 | `42-react-10k-benchmark-analysis.md` | react-10k Specific | Maps all findings to actual benchmark; projects 3.3x speedup from SideEffects fix |
 
 ## Methodology
 
