@@ -31,6 +31,7 @@ performance opportunity write-ups based on the `build-tools-performance`
 - [parsing-loaders-and-transforms.md](./parsing-loaders-and-transforms.md)
 - [chunking-codegen-and-runtime.md](./chunking-codegen-and-runtime.md)
 - [caching-incremental-and-io.md](./caching-incremental-and-io.md)
+- [plugin-hooks-and-bindings.md](./plugin-hooks-and-bindings.md)
 - [cross-cutting-optimizations.md](./cross-cutting-optimizations.md)
 
 ## How to Use This Folder
