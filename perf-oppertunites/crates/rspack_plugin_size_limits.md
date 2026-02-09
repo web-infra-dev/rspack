@@ -11,6 +11,7 @@ Warnings for asset/entrypoint size limits.
 - Avoid computing sizes for assets that are already below thresholds.
 - Reuse size calculations from previous passes.
 - Gate warnings to only when size limit checks are enabled.
+- Single-file crate: concentrate profiling on `src/lib.rs` hook implementations.
 
 ## Suggested experiments
 - Compare builds with size limit checks enabled vs disabled.

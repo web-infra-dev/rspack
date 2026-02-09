@@ -11,6 +11,7 @@ Deduplicate modules in the graph to reduce output size.
 - Use fingerprints to avoid deep comparisons of identical modules.
 - Avoid scanning entire module graph when no changes detected.
 - Cache dedupe results across incremental builds.
+- Single-file crate: concentrate profiling on `src/lib.rs` hook implementations.
 
 ## Suggested experiments
 - Profile a build with many identical modules and compare fingerprint strategies.

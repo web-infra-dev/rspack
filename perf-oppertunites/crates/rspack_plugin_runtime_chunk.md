@@ -11,6 +11,7 @@ Runtime chunk extraction and configuration.
 - Avoid repeated runtime chunk decisions across modules.
 - Cache runtime chunk names and template outputs.
 - Skip runtime chunk work when output uses a single chunk.
+- Single-file crate: concentrate profiling on `src/lib.rs` hook implementations.
 
 ## Suggested experiments
 - Measure runtime chunk decision time on multi-entry builds.

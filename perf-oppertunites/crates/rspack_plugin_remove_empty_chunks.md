@@ -11,6 +11,7 @@ Remove empty chunks from the chunk graph after optimization.
 - Track emptiness incrementally to avoid full graph scans.
 - Batch removals to reduce chunk graph mutation overhead.
 - Avoid recomputation when chunk graph is unchanged.
+- Single-file crate: concentrate profiling on `src/lib.rs` hook implementations.
 
 ## Suggested experiments
 - Measure empty-chunk removal time on large split-chunk configs.

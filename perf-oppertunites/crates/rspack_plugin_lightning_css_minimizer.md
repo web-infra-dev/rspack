@@ -11,6 +11,7 @@ CSS minification using LightningCSS.
 - Cache minifier configuration and reuse parser state.
 - Parallelize minification with bounded concurrency.
 - Avoid re-minifying unchanged CSS modules via content hash caching.
+- Single-file crate: concentrate profiling on `src/lib.rs` hook implementations.
 
 ## Suggested experiments
 - Profile CSS-heavy builds with minification enabled/disabled.

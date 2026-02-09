@@ -11,6 +11,7 @@ Worker plugin for handling worker entry points and chunking.
 - Cache resolved worker entry modules to avoid repeated resolution.
 - Reuse generated worker runtime templates across chunks.
 - Avoid string concatenations in per-module worker wrappers.
+- Single-file crate: concentrate profiling on `src/lib.rs` hook implementations.
 
 ## Suggested experiments
 - Profile builds with many worker entries to measure resolution and wrapper overhead.

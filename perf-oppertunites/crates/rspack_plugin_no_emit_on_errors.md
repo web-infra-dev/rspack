@@ -11,6 +11,7 @@ Suppress asset emission when compilation errors are present.
 - Keep checks lightweight; avoid scanning full diagnostics.
 - Reuse cached error flags from earlier passes.
 - Avoid allocations when no errors are present.
+- Single-file crate: concentrate profiling on `src/lib.rs` hook implementations.
 
 ## Suggested experiments
 - Measure error detection overhead on error-free builds.

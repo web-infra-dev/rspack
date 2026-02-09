@@ -11,6 +11,7 @@ Progress reporting during compilation.
 - Throttle progress updates to reduce log overhead.
 - Avoid formatting strings for every module in large builds.
 - Disable progress hooks when not explicitly enabled.
+- Single-file crate: concentrate profiling on `src/lib.rs` hook implementations.
 
 ## Suggested experiments
 - Measure build time difference with progress enabled vs disabled.
