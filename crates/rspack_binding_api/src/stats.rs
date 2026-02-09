@@ -502,8 +502,7 @@ pub struct JsStatsModuleCommonAttributes<'a> {
   pub provided_exports: Option<AtomVecWrapper>,
 
   // optimizationBailout
-  #[napi(ts_type = "Array<string>")]
-  pub optimization_bailout: Option<StringSliceWrapper<'a>>,
+  pub optimization_bailout: Option<Vec<String>>,
 
   // depth
   pub depth: Option<u32>,
@@ -631,7 +630,7 @@ impl<'a> TryFrom<StatsModule<'a>> for JsStatsModule<'a> {
       source,
       orphan: stats.orphan,
       provided_exports: stats.provided_exports.map(AtomVecWrapper::new),
-      optimization_bailout: stats.optimization_bailout.map(StringSliceWrapper::new),
+      optimization_bailout: stats.optimization_bailout,
       pre_order_index: stats.pre_order_index,
       post_order_index: stats.post_order_index,
       cached: stats.cached,

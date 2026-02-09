@@ -1177,7 +1177,13 @@ impl Stats<'_> {
     }
 
     if options.optimization_bailout {
-      stats.optimization_bailout = Some(&mgm.optimization_bailout);
+      stats.optimization_bailout = Some(
+        mgm
+          .optimization_bailout
+          .iter()
+          .map(|b| b.to_string())
+          .collect(),
+      );
     }
 
     // 'depth' is used for sorting in the JavaScript side, so it should always be computed.

@@ -246,7 +246,7 @@ impl JsCompilation {
         .get_module_graph()
         .module_graph_modules()
         .map(|(_, mgm)| mgm)
-        .flat_map(|item| item.optimization_bailout.clone())
+        .flat_map(|item| item.optimization_bailout.iter().map(|b| b.to_string()))
         .map(|item| JsStatsOptimizationBailout { inner: item })
         .collect::<Vec<_>>(),
     )

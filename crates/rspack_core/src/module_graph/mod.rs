@@ -936,12 +936,15 @@ impl ModuleGraph {
     new_mgm.add_incoming_connection(*dep_id);
   }
 
-  pub fn get_optimization_bailout_mut(&mut self, id: &ModuleIdentifier) -> &mut Vec<String> {
+  pub fn get_optimization_bailout_mut(
+    &mut self,
+    id: &ModuleIdentifier,
+  ) -> &mut Vec<OptimizationBailoutItem> {
     let mgm = self.module_graph_module_by_identifier_mut(id);
     mgm.optimization_bailout_mut()
   }
 
-  pub fn get_optimization_bailout(&self, id: &ModuleIdentifier) -> &Vec<String> {
+  pub fn get_optimization_bailout(&self, id: &ModuleIdentifier) -> &Vec<OptimizationBailoutItem> {
     let mgm = self
       .module_graph_module_by_identifier(id)
       .expect("should have module graph module");

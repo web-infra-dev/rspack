@@ -104,7 +104,7 @@ impl ModernModuleLibraryPlugin {
 
         reasons
           .iter()
-          .any(|r| r.contains("Module is an entry point"))
+          .any(|r| r.to_string().contains("Module is an entry point"))
       })
       .collect::<HashSet<_>>();
 

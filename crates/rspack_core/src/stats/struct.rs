@@ -173,7 +173,7 @@ pub struct StatsModule<'a> {
   pub orphan: Option<bool>,
   pub provided_exports: Option<Vec<Atom>>,
   pub used_exports: Option<StatsUsedExports>,
-  pub optimization_bailout: Option<&'a [String]>,
+  pub optimization_bailout: Option<Vec<String>>,
   pub depth: Option<usize>,
   pub pre_order_index: Option<u32>,
   pub post_order_index: Option<u32>,

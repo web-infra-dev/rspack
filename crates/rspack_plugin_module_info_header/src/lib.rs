@@ -308,7 +308,7 @@ async fn render_js_module_package(
     }
 
     for b in module_graph.get_optimization_bailout(&module.identifier()) {
-      new_source.add(RawStringSource::from(to_comment_with_nl(b)))
+      new_source.add(RawStringSource::from(to_comment_with_nl(&b.to_string())))
     }
   }
 
