@@ -223,7 +223,7 @@ export default {
 - **Type:** `boolean`
 - **Default:** `false`
 
-When enabled, Rspack will support bundling the [Deferred Imports Evaluation](https://github.com/tc39/proposal-defer-import-eval) proposal, which allows deferring the evaluation of a module until its first use. Currently, only `import defer * as ns from "./module"` is supported, while `import.defer()` will be supported in future versions.
+When enabled, Rspack will support bundling the [Deferred Imports Evaluation](https://github.com/tc39/proposal-defer-import-eval) proposal, which allows deferring the evaluation of a module until its first use. Rspack supports both `import defer * as ns from "./module"` and `import.defer()` syntax.
 
 ```js title="rspack.config.mjs"
 export default {
