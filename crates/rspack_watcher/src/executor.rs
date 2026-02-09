@@ -1,6 +1,9 @@
-use std::sync::{
-  Arc,
-  atomic::{AtomicBool, Ordering},
+use std::{
+  sync::{
+    Arc,
+    atomic::{AtomicBool, Ordering},
+  },
+  time::Instant,
 };
 
 use rspack_util::fx_hash::FxHashSet as HashSet;
@@ -44,25 +47,23 @@ pub struct Executor {
   start_waiting: bool,
   execute_handle: Option<tokio::task::JoinHandle<()>>,
   execute_aggregate_handle: Option<tokio::task::JoinHandle<()>>,
+  /// Tracks the last time an event was triggered.
+  ///
+  /// The aggregate event handlers are only triggered after the aggregate timeout has passed from the last event.
+  ///
+  /// For example, if the last event was triggered at time T, and the aggregate timeout is 100ms,
+  /// the event handler will only be executed if no new events are received until time T + 100ms.
+  last_changed: Arc<Mutex<Option<Instant>>>,
 }
 
 const DEFAULT_AGGREGATE_TIMEOUT: u32 = 50; // Default timeout in milliseconds
-
-/// `ExecEvent` represents control events for the watcher executor loop.
-/// - `Execute`: Indicates that an event (change or delete) has occurred and the handler should be triggered.
-/// - `Close`: Indicates that the event receiver has been closed and the executor should stop.
-#[derive(Debug)]
-enum ExecAggregateEvent {
-  /// Trigger the execution of the event handler (e.g., after a file change or delete).
-  Execute,
-  /// Signal to close the executor loop (e.g., when the receiver is closed).
-  Close,
-}
 
 enum ExecEvent {
   Execute(EventBatch),
   Close,
 }
+
+type ExecAggregateEvent = ();
 
 impl Executor {
   /// Create a new `WatcherExecutor` with the given receiver and optional aggregate timeout.
@@ -83,6 +84,7 @@ impl Executor {
       execute_aggregate_handle: None,
       execute_handle: None,
       aggregate_timeout: aggregate_timeout.unwrap_or(DEFAULT_AGGREGATE_TIMEOUT),
+      last_changed: Default::default(),
     }
   }
 
@@ -132,7 +134,7 @@ impl Executor {
       let exec_aggregate_tx = self.exec_aggregate_tx.clone();
       let exec_tx = self.exec_tx.clone();
       let paused = Arc::clone(&self.paused);
-      let aggregate_running = Arc::clone(&self.aggregate_running);
+      let last_changed = Arc::clone(&self.last_changed);
 
       let future = async move {
         while let Some(events) = rx.lock().await.recv().await {
@@ -151,14 +153,17 @@ impl Executor {
             }
           }
 
-          if !paused.load(Ordering::Relaxed) && !aggregate_running.load(Ordering::Relaxed) {
-            let _ = exec_aggregate_tx.send(ExecAggregateEvent::Execute);
+          let paused = paused.load(Ordering::Relaxed);
+
+          if !paused {
+            last_changed.lock().await.replace(Instant::now());
           }
 
           let _ = exec_tx.send(ExecEvent::Execute(events));
         }
 
-        let _ = exec_aggregate_tx.send(ExecAggregateEvent::Close);
+        // Send close signal to both executors when the main receiver is closed
+        let _ = exec_aggregate_tx.send(());
         let _ = exec_tx.send(ExecEvent::Close);
       };
 
@@ -184,6 +189,7 @@ impl Executor {
       Arc::clone(&self.files_data),
       self.aggregate_timeout as u64,
       Arc::clone(&self.aggregate_running),
+      Arc::clone(&self.last_changed),
     ));
 
     self.execute_handle = Some(create_execute_task(
@@ -233,38 +239,64 @@ fn create_execute_aggregate_task(
   files: ThreadSafety<FilesData>,
   aggregate_timeout: u64,
   running: Arc<AtomicBool>,
+  last_changed: Arc<Mutex<Option<Instant>>>,
 ) -> tokio::task::JoinHandle<()> {
   let future = async move {
     loop {
-      let aggregate_rx = {
-        // release the lock on exec_aggregate_rx
-        // and wait for the next event
-        let mut exec_aggregate_rx_guard = exec_aggregate_rx.lock().await;
-        match exec_aggregate_rx_guard.recv().await {
-          Some(event) => event,
-          None => return,
-        }
+      // Wait for the signal to terminate the executor
+      if exec_aggregate_rx.lock().await.try_recv().is_ok() {
+        break;
+      }
+
+      let mut last_changed = last_changed.lock().await;
+      let time_elapsed_since_last_change = last_changed.map(|t| t.elapsed().as_millis() as u64);
+
+      let on_timeout = if let Some(elapsed) = time_elapsed_since_last_change {
+        elapsed >= aggregate_timeout
+      } else {
+        false
       };
 
-      if let ExecAggregateEvent::Execute = aggregate_rx {
-        running.store(true, Ordering::Relaxed);
-        // Wait for the aggregate timeout before executing the handler
-        tokio::time::sleep(tokio::time::Duration::from_millis(aggregate_timeout)).await;
+      if !on_timeout {
+        // Not yet timed out, wait a bit and check again
+        if let Some(time_elapsed_since_last_change) = time_elapsed_since_last_change {
+          debug_assert!(time_elapsed_since_last_change < aggregate_timeout);
+          let wait_duration = aggregate_timeout - time_elapsed_since_last_change;
+          tokio::time::sleep(tokio::time::Duration::from_millis(wait_duration)).await;
+        } else {
+          // No changes have been recorded yet. The minimum wait is the aggregate timeout.
+          tokio::time::sleep(tokio::time::Duration::from_millis(aggregate_timeout)).await;
+        }
 
-        // Get the files to process
-        let files = {
-          let mut files = files.lock().await;
-          if files.is_empty() {
-            running.store(false, Ordering::Relaxed);
-            continue;
-          }
-          std::mem::take(&mut *files)
-        };
-
-        // Call the event handler with the changed and deleted files
-        event_handler.on_event_handle(files.changed, files.deleted);
-        running.store(false, Ordering::Relaxed);
+        continue;
       }
+
+      running.store(true, Ordering::Relaxed);
+
+      // Lock to `last_changed` should be held until we reset it to `None`
+      // to avoid race conditions where new events arrive just before we reset it.
+      //
+      // Failed to do so may cause missing aggregate events. For example (the bad case):
+      // - Event A arrives, `last_changed` is set to T1
+      // - Timeout occurs, we are about to process events
+      // - Before we reset `last_changed`, Event B arrives, `last_changed` is set to T2
+      // - We reset `last_changed` to None, losing the information about Event B
+      // - Event B is never processed because `last_changed` is None and `on_timeout` is always a `false`.
+      *last_changed = None;
+
+      // Get the files to process
+      let files = {
+        let mut files = files.lock().await;
+        if files.is_empty() {
+          running.store(false, Ordering::Relaxed);
+          continue;
+        }
+        std::mem::take(&mut *files)
+      };
+
+      // Call the event handler with the changed and deleted files
+      event_handler.on_event_handle(files.changed, files.deleted);
+      running.store(false, Ordering::Relaxed);
     }
   };
 
