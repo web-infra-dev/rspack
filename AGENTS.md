@@ -129,14 +129,14 @@ Depends on what you have modified, you need to rebuild by `pnpm run build:js` or
 
 ## AI-Friendly Documentation
 
-This project includes comprehensive documentation designed for AI assistants and large language models. All AI-friendly documentation is located in the `agents/` directory:
+This project includes comprehensive documentation designed for AI assistants and large language models. All AI-friendly documentation is located in the `.agents/` directory:
 
-- **[Architecture Guide](agents/ARCHITECTURE.md)** - High-level architecture overview, core components, compilation pipeline, and system design
-- **[API Design](agents/API_DESIGN.md)** - API design principles, patterns, versioning strategy, and compatibility guidelines
-- **[Code Style](agents/CODE_STYLE.md)** - Coding standards and conventions for Rust and TypeScript/JavaScript
-- **[Common Patterns](agents/COMMON_PATTERNS.md)** - Common code patterns, templates, and best practices for plugin/loader development
-- **[Glossary](agents/GLOSSARY.md)** - Comprehensive glossary of terms and concepts used throughout the codebase
-- **[Skills](agents/SKILLS.md)** - Required skills and knowledge areas for contributing to Rspack
+- **[Architecture Guide](.agents/ARCHITECTURE.md)** - High-level architecture overview, core components, compilation pipeline, and system design
+- **[API Design](.agents/API_DESIGN.md)** - API design principles, patterns, versioning strategy, and compatibility guidelines
+- **[Code Style](.agents/CODE_STYLE.md)** - Coding standards and conventions for Rust and TypeScript/JavaScript
+- **[Common Patterns](.agents/COMMON_PATTERNS.md)** - Common code patterns, templates, and best practices for plugin/loader development
+- **[Glossary](.agents/GLOSSARY.md)** - Comprehensive glossary of terms and concepts used throughout the codebase
+- **[Skills](.agents/SKILLS.md)** - Required skills and knowledge areas for contributing to Rspack
 
 These documents provide detailed context about the project structure, coding standards, common patterns, and domain-specific knowledge to help AI assistants better understand and contribute to the codebase.
 
