@@ -12,6 +12,11 @@ File watching subsystem for incremental and watch builds.
 - Batch filesystem stat calls and coalesce path updates.
 - Use watch backend filters to avoid reporting irrelevant paths.
 
+## Key functions/structs to inspect
+- `FsWatcher::new` (lib.rs) — initializes disk watcher, executor, scanner.
+- `FsWatcher::watch` (lib.rs) — main loop for event aggregation.
+- `FsWatcher::close` / `wait_for_event` (lib.rs) — shutdown and event handling.
+
 ## Suggested experiments
 - Run watch mode on large repos and measure rebuild triggers with/without debouncing.
 - Compare event volume across different watcher backends.

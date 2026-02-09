@@ -12,6 +12,11 @@ Workspace-level utilities shared across crates (configuration glue, helper types
 - Avoid cloning large configuration structs; use `Arc` or borrowed references.
 - Prefer `Cow<str>` for string helpers to reduce allocations in hot helpers.
 
+## Key functions/structs to inspect
+- `rspack_pkg_version!` macro (lib.rs) → calls `generated::rspack_pkg_version()`.
+- `rspack_workspace_version!` macro (lib.rs) → calls `generated::rspack_workspace_version()`.
+- `rspack_swc_core_version!` macro (lib.rs) → calls `generated::rspack_swc_core_version()`.
+
 ## Suggested experiments
 - Measure config normalization time with and without caching (multi-compiler config).
 - Track allocations during `CompilerOptions` normalization to validate wins.

@@ -12,6 +12,11 @@ SWC plugin that collects TypeScript metadata used by Rspack.
 - Minimize AST traversal work; short-circuit when TS metadata is unused.
 - Reuse SWC allocator arenas if possible to reduce per-module allocations.
 
+## Key functions/structs to inspect
+- `ExportedEnumCollector::new` and `ExportedEnumCollector::collect` (enums.rs).
+- `ExportedEnumCollector::evaluate_expr` / `evaluate_bin` (enums.rs).
+- `TypeExportsCollector::new` and `TypeExportsCollector::visit_program` (type_exports.rs).
+
 ## Suggested experiments
 - Profile TS-heavy cases with and without metadata collection enabled.
 - Measure AST traversal time vs. cached results per module.

@@ -12,6 +12,11 @@ SWC plugin that implements `babel-plugin-import` behavior in Rust.
 - Avoid repeated string allocations when generating new import paths.
 - Short-circuit when module has no matching import patterns.
 
+## Key functions/structs to inspect
+- `ImportPlugin::visit_mut_module` (lib.rs) — main rewrite loop.
+- `ImportPlugin::transform` (lib.rs) — builds rewritten import paths.
+- `IdentComponent::visit_ident` / `visit_ts_type_ref` (visit.rs) — reference tracking.
+
 ## Suggested experiments
 - Profile a case with heavy `babel-plugin-import` usage and compare cached vs. uncached behavior.
 - Measure allocations during path rewriting.

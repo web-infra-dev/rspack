@@ -13,6 +13,11 @@ Task scheduling primitives for compilation work distribution.
 - Batch small tasks into larger units to reduce scheduling overhead.
 - Single-file crate: concentrate profiling on `src/lib.rs` task primitives.
 
+## Key functions/structs to inspect
+- `CompilerContext::fetch_new_dependency_id` / `dependency_id` (lib.rs).
+- `within_compiler_context` / `within_compiler_context_sync` (lib.rs).
+- `spawn_in_compiler_context` (lib.rs) for task-local propagation.
+
 ## Suggested experiments
 - Measure task count and overhead during codegen/hash passes.
 - Test batching of small tasks in a large module graph.

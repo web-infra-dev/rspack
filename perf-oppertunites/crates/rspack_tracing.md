@@ -12,6 +12,11 @@ Tracing integration utilities used across compilation phases.
 - Avoid building trace payload strings in hot paths.
 - Batch trace events or reduce event cardinality for high-volume loops.
 
+## Key functions/structs to inspect
+- `Tracer::setup`, `Tracer::sync_trace`, `Tracer::teardown` (tracer.rs).
+- `TraceEvent` struct (tracer.rs) and payload size per event.
+- `stdout`/`perfetto` layer implementations (stdout.rs, perfetto.rs).
+
 ## Suggested experiments
 - Compare build times with tracing enabled vs disabled on large workloads.
 - Measure overhead of hot spans in module graph and loader loops.

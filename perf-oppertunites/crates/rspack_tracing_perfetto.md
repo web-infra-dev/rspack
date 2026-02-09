@@ -12,6 +12,11 @@ Perfetto tracing backend for detailed profiling.
 - Avoid large trace payloads or per-entity events in hot loops.
 - Use sampling strategies instead of full event emission.
 
+## Key functions/structs to inspect
+- `unique_uuid` and `create_track_descriptor` (idl_helpers.rs).
+- `create_event` and `create_scope_sliced_packet` (idl_helpers.rs).
+- Perfetto layer setup in `lib.rs`.
+
 ## Suggested experiments
 - Profile the impact of Perfetto tracing on a large build with different sampling rates.
 - Validate that Perfetto tracing is fully gated behind flags.
