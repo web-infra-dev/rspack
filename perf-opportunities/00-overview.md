@@ -119,6 +119,8 @@ Phase 4 — Finalize
 | 34 | `34-rspack-watcher.md` | rspack_watcher | Watch mode, debouncing, HMR latency |
 | 35 | `35-dev-vs-prod-profile-and-runtimespec.md` | Dev/Prod Compare | 2.85x slower in production; RuntimeSpec 130K+ allocations |
 | 36 | `36-rspack-plugin-esm-library.md` | rspack_plugin_esm_library | Re-parsing for library builds, export chain resolution |
+| 37 | `37-poc-fixes-top-3-findings.md` | PoC Fixes | Concrete code changes for top 3 findings, 67-74% projected gain |
+| 38 | `38-async-trait-and-dynamic-dispatch.md` | async_trait | ~33ms at 10K modules — not the bottleneck |
 
 ## Methodology
 
