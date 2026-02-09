@@ -11,6 +11,7 @@ Procedural macros for NAPI bindings.
 - Prefer zero-copy buffer types in generated bindings.
 - Avoid redundant conversions in macro-generated code.
 - Keep bindings minimal to reduce JS↔Rust overhead.
+- Single-file crate: concentrate profiling on `src/lib.rs` macro expansion paths.
 
 ## Suggested experiments
 - Inspect generated binding code for redundant conversions.

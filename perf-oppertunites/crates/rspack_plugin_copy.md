@@ -11,6 +11,7 @@ Copy assets or files to output directory.
 - Batch file copy operations to reduce IO overhead.
 - Avoid hashing or reading files when unchanged.
 - Skip copy pass when configuration has no patterns.
+- Single-file crate: concentrate profiling on `src/lib.rs` copy pipeline.
 
 ## Suggested experiments
 - Profile large copy patterns to measure IO overhead.

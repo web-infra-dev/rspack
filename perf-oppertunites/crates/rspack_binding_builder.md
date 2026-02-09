@@ -10,6 +10,7 @@ Binding builder utilities for Node integration.
 ## Perf opportunities
 - Not runtime hot; ensure build helpers are not included in runtime paths.
 - Keep generated bindings minimal to reduce JS↔Rust overhead.
+- Single-file crate: concentrate profiling on `src/lib.rs` build helpers.
 
 ## Suggested experiments
 - Validate binding builder execution frequency in CI pipelines.

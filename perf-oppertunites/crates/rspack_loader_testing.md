@@ -10,6 +10,7 @@ Loader testing utilities.
 ## Perf opportunities
 - Not runtime hot; ensure utilities are not pulled into production builds.
 - Avoid heavy fixture loading unless explicitly used.
+- Single-file crate: concentrate profiling on `src/lib.rs` test helpers.
 
 ## Suggested experiments
 - Verify test helpers are not compiled in release builds.

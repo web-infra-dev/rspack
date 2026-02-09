@@ -11,6 +11,7 @@ mimalloc integration and allocator configuration.
 - Tune allocator settings for module graph + codegen workloads.
 - Reduce large transient allocations to avoid page faults.
 - Consider per-thread arenas for hot parallel paths.
+- Single-file crate: concentrate profiling on `src/lib.rs` allocator hooks.
 
 ## Suggested experiments
 - Compare allocation stats with different mimalloc settings.

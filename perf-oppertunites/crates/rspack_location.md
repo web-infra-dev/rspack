@@ -11,6 +11,7 @@ Location tracking utilities (source positions and dependency locations).
 - Avoid building location data in release builds unless needed.
 - Reuse location structs for repeated source positions.
 - Skip expensive formatting in hot paths.
+- Single-file crate: concentrate profiling on `src/lib.rs` location helpers.
 
 ## Suggested experiments
 - Measure cost of location tracking with source maps enabled.

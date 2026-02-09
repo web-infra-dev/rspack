@@ -11,6 +11,7 @@ Case-sensitive path checks for module resolution.
 - Cache case check results per path to avoid repeated filesystem lookups.
 - Batch checks when resolving many modules in same directory.
 - Skip checks when filesystem is known to be case-sensitive.
+- Single-file crate: concentrate profiling on `src/lib.rs` path checks.
 
 ## Suggested experiments
 - Measure case-sensitive check overhead on macOS/Windows.

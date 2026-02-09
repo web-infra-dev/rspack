@@ -10,6 +10,7 @@ Binding build script for Node.js integration.
 ## Perf opportunities
 - Not runtime hot; ensure build scripts are not invoked in production builds.
 - Avoid expensive build-time checks unless required.
+- Single-file crate: concentrate profiling on `src/lib.rs` build script logic.
 
 ## Suggested experiments
 - Validate build script execution frequency in CI.
