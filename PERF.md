@@ -131,6 +131,42 @@ Sample count: **19** (each entry ≈ 5.26%).
 4. **Codegen + writer allocations** — `swc_ecma_codegen` text writer hotspots.
 5. **Runtime/allocator overhead** — libc + V8 GC/IC costs.
 
+## Rspack-specific Hotspots (Non-SWC)
+
+These lines are **inside Rspack crates** or closely related subsystems (not
+pure SWC internals). They are prime candidates for optimization work beyond
+SWC tuning.
+
+### Web target
+
+| Source:Line | Symbol | Analysis |
+| --- | --- | --- |
+| `crates/rspack_plugin_javascript/src/visitors/dependency/parser/walk.rs:1355` | `JavascriptParser::walk_statements` | Dependency scanning traversal; repeated AST walks amplify cost across modules. |
+| `crates/rspack_plugin_javascript/src/dependency/esm/esm_import_specifier_dependency.rs:362` | `VariableInfoId HashMap insert` | Import specifier tracking; map churn appears during ESM import analysis. |
+| `lightningcss/.../border_image.rs` | `BorderImageHandler::flush` | CSS minification output path; indicates CSS pipeline cost in production. |
+
+### Node target
+
+| Source:Line | Symbol | Analysis |
+| --- | --- | --- |
+| `crates/rspack_core/options/resolve/clever_merge` (alloc vec growth) | `parse_resolve` | Resolve option normalization; may be sensitive to large config objects. |
+| `crates/rspack_plugin_javascript/.../call_hooks_info` | `JavascriptParser::call_hooks_info` | Hook evaluation during dependency scan; synchronous JS hook overhead is visible. |
+
+### ESM output
+
+| Source:Line | Symbol | Analysis |
+| --- | --- | --- |
+| `rspack_binding_api::options::raw_resolve` (drop_in_place) | `RawAliasOptionItem` cleanup | N-API option conversion cleanup; suggests overhead in option marshaling. |
+
+## Additional Non-SWC Libraries with Hot Lines
+
+| Library | Example line | Notes |
+| --- | --- | --- |
+| `lightningcss` | `BorderImageHandler::flush` | CSS pipeline cost in production builds. |
+| `hstr` | `Atom::eq`, macros.rs | Atom comparisons during transforms and resolver passes. |
+| `mimalloc-rspack` | allocator entry points | Indicates allocation pressure in parser/minifier. |
+| `blake3` | `mi_malloc_aligned` (AVX512) | Hashing / allocation interaction in node target. |
+
 ## Next Steps to Improve Coverage
 
 - Add `--repeat` for more samples once perf report timeouts are addressed.
