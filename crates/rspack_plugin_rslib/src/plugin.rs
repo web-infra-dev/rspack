@@ -4,7 +4,11 @@ use std::{
 };
 
 use rspack_core::{
-  AssetEmittedInfo, BuildModuleGraphArtifact, ChunkUkey, Compilation, CompilationOptimizeDependencies, CompilationParams, CompilerAssetEmitted, CompilerCompilation, DependencyType, ModuleType, NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, Plugin, RuntimeCodeTemplate, SideEffectsOptimizeArtifact, get_module_directives, get_module_hashbang, rspack_sources::{ConcatSource, RawStringSource, Source, SourceExt}
+  AssetEmittedInfo, BuildModuleGraphArtifact, ChunkUkey, Compilation,
+  CompilationOptimizeDependencies, CompilationParams, CompilerAssetEmitted, CompilerCompilation,
+  DependencyType, ModuleType, NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, Plugin,
+  RuntimeCodeTemplate, SideEffectsOptimizeArtifact, get_module_directives, get_module_hashbang,
+  rspack_sources::{ConcatSource, RawStringSource, Source, SourceExt},
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};

@@ -8,7 +8,18 @@ use atomic_refcell::AtomicRefCell;
 use regex::Regex;
 use rspack_collections::{Identifiable, Identifier, IdentifierIndexMap, IdentifierSet, UkeyMap};
 use rspack_core::{
-  ApplyContext, AssetInfo, AsyncModulesArtifact, BoxModule, BuildModuleGraphArtifact, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements, CompilationAdditionalTreeRuntimeRequirements, CompilationAfterCodeGeneration, CompilationConcatenationScope, CompilationFinishModules, CompilationOptimizeChunks, CompilationOptimizeDependencies, CompilationParams, CompilationProcessAssets, CompilationRuntimeRequirementInTree, CompilerCompilation, ConcatenatedModuleInfo, ConcatenationScope, DependencyType, ExternalModuleInfo, GetTargetResult, Logger, ModuleFactoryCreateData, ModuleIdentifier, ModuleInfo, ModuleType, NormalModuleFactoryAfterFactorize, NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, Plugin, PrefetchExportsInfoMode, RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule, SideEffectsOptimizeArtifact, get_target, is_esm_dep_like, rspack_sources::{ReplaceSource, Source}
+  ApplyContext, AssetInfo, AsyncModulesArtifact, BoxModule, BuildModuleGraphArtifact, ChunkUkey,
+  Compilation, CompilationAdditionalChunkRuntimeRequirements,
+  CompilationAdditionalTreeRuntimeRequirements, CompilationAfterCodeGeneration,
+  CompilationConcatenationScope, CompilationFinishModules, CompilationOptimizeChunks,
+  CompilationOptimizeDependencies, CompilationParams, CompilationProcessAssets,
+  CompilationRuntimeRequirementInTree, CompilerCompilation, ConcatenatedModuleInfo,
+  ConcatenationScope, DependencyType, ExternalModuleInfo, GetTargetResult, Logger,
+  ModuleFactoryCreateData, ModuleIdentifier, ModuleInfo, ModuleType,
+  NormalModuleFactoryAfterFactorize, NormalModuleFactoryParser, ParserAndGenerator, ParserOptions,
+  Plugin, PrefetchExportsInfoMode, RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule,
+  SideEffectsOptimizeArtifact, get_target, is_esm_dep_like,
+  rspack_sources::{ReplaceSource, Source},
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
