@@ -14,16 +14,16 @@ This document consolidates all findings from the per-crate analyses and ranks th
 
 ## Tier 1 — High Impact, Worth Immediate Investigation
 
-> **Updated with profiling data** — SideEffects O(n²) confirmed as #1 bottleneck.
+> **REVISED with ACTUAL react-10k profiling data** (doc #43). The real 10K-module benchmark revealed the make phase dominates at 81.8%. Priorities adjusted accordingly.
 
-| # | Opportunity | Crate | Phase | Est. Impact | Effort | Details |
-|---|-----------|-------|-------|-------------|--------|---------|
-| **★** | **Fix SideEffectsFlagPlugin O(n²) scaling** | rspack_plugin_javascript | OptimizeDeps | **10-50% of optimize deps** | Medium | **PROFILING-CONFIRMED**: Fresh per-task caches cause O(n²) traversal. 292ms at 1K modules, projected 29s at 10K. Use shared cache or topological ordering. See `20-deep-dive-sideeffects-bottleneck.md`, `23-deep-dive-exports-info-system.md` |
-| 1 | **Replace BigUint with FixedBitSet in CodeSplitter** | rspack_core | BuildChunkGraph | 3-8% total | Medium | BigUint operations for available module tracking are O(n/64) per operation. FixedBitSet with SIMD would be O(n/256) or better. See `21-deep-dive-codesplitter-biguint.md` |
-| 2 | **Reduce main-thread bottleneck in task loop** | rspack_core | BuildModuleGraph | 5-12% total | High | 950K sequential HashMap ops at 10K modules. See `22-deep-dive-task-loop-main-thread.md` |
-| 3 | **Merge SWC AST 7-pass pipeline** | rspack_plugin_javascript | BuildModuleGraph | 3-6% total | Medium | 7 passes over AST = 140M node visits at 10K. Merge SWC transforms + pre-walks. See `24-deep-dive-parsing-scanning.md` |
-| 4 | **Skip JS↔Rust boundary for hooks with no JS taps** | rspack_binding_api | All phases | 2-10% total | Medium | When no JavaScript plugins are listening, skip the boundary crossing entirely. Most Rspack configurations use only builtin plugins. See `12-rspack-binding-api.md` §1 |
-| 5 | **Eliminate ExportsInfoData clone in FlagDependencyExports/Usage** | rspack_plugin_javascript | OptimizeDeps | 2-5% total | High | Both plugins clone ExportsInfoData for parallel processing. ~20MB cloned at 10K modules. See `23-deep-dive-exports-info-system.md` |
+| # | Opportunity | Crate | Phase | Est. Impact (react-10k release) | Effort | Details |
+|---|-----------|-------|-------|-------------------------------|--------|---------|
+| **★1** | **Merge SWC AST 7-pass pipeline** | rspack_plugin_javascript | BuildModuleGraph | **~430ms saved (12% of make)** | Medium | **ACTUAL react-10k: make phase is 81.8%**. 7 passes × 10K modules = 140M node visits. Merging passes 1-3 and 4-6 eliminates ~40% of visits. See `24-deep-dive-parsing-scanning.md` |
+| **★2** | **Cache AST for ConcatenatedModule** | rspack_core | CodeGeneration | **~190ms saved (eliminates re-parse)** | High | **ACTUAL react-10k: 9 concat configs × avg 1,111 modules = 9,999 re-parses during codegen**. Codegen is 8.2% of total. See `26-deep-dive-concatenated-module.md`, `43-react-10k-actual-profile.md` |
+| **★3** | **Reduce main-thread bottleneck in task loop** | rspack_core | BuildModuleGraph | **~215ms saved (6% of make)** | High | 120K deps processed sequentially on main thread. See `22-deep-dive-task-loop-main-thread.md` |
+| 4 | **Replace BigUint with FixedBitSet in CodeSplitter** | rspack_core | BuildChunkGraph | ~70ms (react-10k), **much more with async chunks** | Medium | react-10k: 5% of total. **Critical for apps with code splitting.** See `21-deep-dive-codesplitter-biguint.md`, `27-deep-dive-async-chunks-profile.md` |
+| 5 | **Fix SideEffectsFlagPlugin O(n²) scaling** | rspack_plugin_javascript | OptimizeDeps | **Depends on project: 12ms (react-10k) to 4,200ms (library-heavy)** | Medium | O(n²) confirmed but only triggers for modules with `sideEffects: false`. Source-file-heavy projects like react-10k are not affected. See `43-react-10k-actual-profile.md` |
+| 6 | **Skip JS↔Rust boundary for hooks with no JS taps** | rspack_binding_api | All phases | 2-10% total | Medium | See `12-rspack-binding-api.md` §1 |
 
 ---
 
