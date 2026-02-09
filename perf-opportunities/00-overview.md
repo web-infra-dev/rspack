@@ -125,6 +125,7 @@ Phase 4 — Finalize
 | 40 | `40-minification-pipeline.md` | SWC/LightningCSS Minimizer | +342ms with minification, caching opportunity for rebuilds |
 | 41 | `41-consolidated-profiling-data.md` | All Profiling Data | All 8 runs cross-referenced, scaling formulas, feature impact matrix |
 | 42 | `42-react-10k-benchmark-analysis.md` | react-10k Specific | Maps all findings to actual benchmark; projects 3.3x speedup from SideEffects fix |
+| 43 | `43-react-10k-actual-profile.md` | **REAL react-10k Profile** | **Actual 10K module run: make phase 81.8%, codegen 8.2% (concat re-parse), revised priorities** |
 
 ## Methodology
 
