@@ -19,4 +19,7 @@ Subresource Integrity (SRI) generation for emitted assets.
 ## Code pointers
 - `crates/rspack_plugin_sri/Cargo.toml`
 - `crates/rspack_plugin_sri/src/lib.rs`
+- `crates/rspack_plugin_sri/src/integrity.rs`
+- `crates/rspack_plugin_sri/src/html.rs`
+- `crates/rspack_plugin_sri/src/runtime.rs`
 - `crates/rspack_plugin_sri/**`

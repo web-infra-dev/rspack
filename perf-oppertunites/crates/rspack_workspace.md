@@ -19,4 +19,5 @@ Workspace-level utilities shared across crates (configuration glue, helper types
 ## Code pointers
 - `crates/rspack_workspace/Cargo.toml`
 - `crates/rspack_workspace/src/lib.rs`
+- `crates/rspack_workspace/src/generated.rs`
 - `crates/rspack_workspace/**`

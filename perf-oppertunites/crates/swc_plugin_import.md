@@ -19,4 +19,7 @@ SWC plugin that implements `babel-plugin-import` behavior in Rust.
 ## Code pointers
 - `crates/swc_plugin_import/Cargo.toml`
 - `crates/swc_plugin_import/src/lib.rs`
+- `crates/swc_plugin_import/src/legacy_case.rs`
+- `crates/swc_plugin_import/src/template.rs`
+- `crates/swc_plugin_import/src/visit.rs`
 - `crates/swc_plugin_import/**`

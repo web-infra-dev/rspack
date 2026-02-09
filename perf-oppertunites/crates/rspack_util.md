@@ -19,4 +19,8 @@ Utility helpers used across the codebase (path, string, tracing helpers).
 ## Code pointers
 - `crates/rspack_util/Cargo.toml`
 - `crates/rspack_util/src/lib.rs`
+- `crates/rspack_util/src/atom.rs`
+- `crates/rspack_util/src/fx_hash.rs`
+- `crates/rspack_util/src/node_path.rs`
+- `crates/rspack_util/src/tracing_preset.rs`
 - `crates/rspack_util/**`

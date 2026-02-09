@@ -19,4 +19,7 @@ Tracing integration utilities used across compilation phases.
 ## Code pointers
 - `crates/rspack_tracing/Cargo.toml`
 - `crates/rspack_tracing/src/lib.rs`
+- `crates/rspack_tracing/src/perfetto.rs`
+- `crates/rspack_tracing/src/stdout.rs`
+- `crates/rspack_tracing/src/tracer.rs`
 - `crates/rspack_tracing/**`

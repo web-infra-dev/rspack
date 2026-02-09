@@ -19,4 +19,6 @@ SWC plugin that collects TypeScript metadata used by Rspack.
 ## Code pointers
 - `crates/swc_plugin_ts_collector/Cargo.toml`
 - `crates/swc_plugin_ts_collector/src/lib.rs`
+- `crates/swc_plugin_ts_collector/src/enums.rs`
+- `crates/swc_plugin_ts_collector/src/type_exports.rs`
 - `crates/swc_plugin_ts_collector/**`

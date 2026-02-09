@@ -19,4 +19,7 @@ File watching subsystem for incremental and watch builds.
 ## Code pointers
 - `crates/rspack_watcher/Cargo.toml`
 - `crates/rspack_watcher/src/lib.rs`
+- `crates/rspack_watcher/src/disk_watcher.rs`
+- `crates/rspack_watcher/src/executor.rs`
+- `crates/rspack_watcher/src/analyzer/mod.rs`
 - `crates/rspack_watcher/**`

@@ -19,4 +19,5 @@ Perfetto tracing backend for detailed profiling.
 ## Code pointers
 - `crates/rspack_tracing_perfetto/Cargo.toml`
 - `crates/rspack_tracing_perfetto/src/lib.rs`
+- `crates/rspack_tracing_perfetto/src/idl_helpers.rs`
 - `crates/rspack_tracing_perfetto/**`
