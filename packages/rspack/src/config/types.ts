@@ -1834,6 +1834,12 @@ export type PersistentCacheOptions = {
    * @default false
    */
   portable?: boolean;
+  /**
+   * Enable read-only mode. When enabled, the cache will only be read from disk and never written to.
+   * @description This is useful for CI environments where you want to use a pre-warmed cache without modifying it.
+   * @default false
+   */
+  readonly?: boolean;
 };
 
 /**
