@@ -22,6 +22,7 @@ const { values, positionals } = parseArgs({
     traceFilter: { type: 'string', default: 'OVERVIEW' },
     perf: { type: 'string', default: 'perf' },
     node: { type: 'string', default: process.execPath },
+    repeat: { type: 'string', default: '1' },
   },
   allowPositionals: true,
 });
@@ -32,6 +33,11 @@ const outDir = path.resolve(
 );
 const configPath = path.resolve(values.config);
 const rspackCli = path.resolve('packages/rspack-cli/bin/rspack.js');
+const repeatCount = Number.parseInt(values.repeat, 10);
+
+if (!Number.isFinite(repeatCount) || repeatCount < 1) {
+  throw new Error(`Invalid repeat count: ${values.repeat}`);
+}
 
 function runCommand(command, args, options = {}) {
   const result = spawnSync(command, args, {
@@ -44,6 +50,10 @@ function runCommand(command, args, options = {}) {
   if (result.status !== 0) {
     throw new Error(`Command failed: ${command} ${args.join(' ')}`);
   }
+}
+
+function shellEscape(value) {
+  return `'${value.replace(/'/g, "'\\''")}'`;
 }
 
 function runCapture(command, args, options = {}) {
@@ -99,6 +109,7 @@ function writeMetadata(perfDataPath, reportPath) {
     perfDataPath,
     reportPath,
     rspackCli,
+    repeat: repeatCount,
     command: ['node', rspackCli, 'build', '-c', configPath, ...positionals],
   };
   fs.writeFileSync(
@@ -131,22 +142,26 @@ function runProfile() {
     ...positionals,
   ];
 
-  runCommand(
-    values.perf,
-    [
-      'record',
-      '-F',
-      values.rate,
-      '--call-graph',
-      'dwarf',
-      '-o',
-      perfDataPath,
-      '--',
-      values.node,
-      ...nodeArgs,
-    ],
-    { env },
-  );
+  const perfArgs = [
+    'record',
+    '-F',
+    values.rate,
+    '--call-graph',
+    'dwarf',
+    '-o',
+    perfDataPath,
+    '--',
+  ];
+
+  if (repeatCount > 1) {
+    const nodeCommand = [values.node, ...nodeArgs].map(shellEscape).join(' ');
+    const loopCommand = `for i in $(seq 1 ${repeatCount}); do ${nodeCommand}; done`;
+    perfArgs.push('bash', '-lc', loopCommand);
+  } else {
+    perfArgs.push(values.node, ...nodeArgs);
+  }
+
+  runCommand(values.perf, perfArgs, { env });
 
   const reportOutput = runCapture(values.perf, [
     'report',

@@ -92,6 +92,7 @@ Notes:
 - The script requires `perf` (install via `linux-tools-common` on Ubuntu).
 - Use `--build` to run `pnpm run build:binding:profiling` and `pnpm run build:js` automatically.
 - Extra arguments after `--` are forwarded to `rspack build`.
+- Use `--repeat N` to run the build multiple times for more samples.
 
 ### Rsdoctor timeline
 
