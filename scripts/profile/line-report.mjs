@@ -122,7 +122,12 @@ function writeMetadata(perfDataPath, reportPath, rawReportPath) {
     repeat: repeatCount,
     addr2line: values.addr2line ?? null,
     bindingPath,
-    bindingMapInfo,
+    bindingMapInfo: bindingMapInfo
+      ? {
+          base: `0x${bindingMapInfo.base.toString(16)}`,
+          offset: `0x${bindingMapInfo.offset.toString(16)}`,
+        }
+      : null,
     command: ['node', rspackCli, 'build', '-c', configPath, ...positionals],
   };
   fs.writeFileSync(
