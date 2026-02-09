@@ -254,9 +254,10 @@ function getRawExtractCommentsOptions(
     return res;
   }
   if (extractComments instanceof RegExp) {
+    const { source, flags } = conditionStr(extractComments);
     const res = {
-      condition: extractComments.source,
-      conditionFlags: extractComments.flags,
+      condition: source,
+      conditionFlags: flags,
     };
     return res;
   }

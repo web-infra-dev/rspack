@@ -243,7 +243,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           };
           NormalizedExtractComments {
             filename: comments_filename,
-            condition: extract_comments_condition.as_ref().expect("must exists").clone(),
+            condition: extract_comments_condition.as_ref().expect("must exist").clone(),
             banner
           }
         });
