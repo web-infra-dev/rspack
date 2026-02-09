@@ -124,7 +124,18 @@ If all Tier 1-3 opportunities were implemented:
 - **Cold build**: 15-25% faster
 - **Rebuild (watch mode)**: 20-40% faster (with Tier 4 additions)
 
-The react-10k benchmark would see the most benefit from:
-1. Make phase improvements (§2, §3, §9) — the make phase dominates at 10K modules
-2. Code splitting improvements (§1) — BigUint scaling at 10K modules
-3. Hashing pipeline optimization (§11) — 10K modules means 10K hash computations
+### Updated Finding: The Bottleneck Shifts with Code Splitting
+
+Profiling with realistic code splitting (531 modules + 30 async chunks, see `32-combined-realistic-profile.md`) revealed that **BuildChunkGraph dominates** when async chunks are present:
+
+| Workload | #1 Bottleneck | % of Total |
+|----------|--------------|-----------|
+| 1000 linear modules, 1 chunk | SideEffects O(n²) | 26.3% |
+| 151 modules, 50 async chunks | BuildChunkGraph (BFS) | 32.8% |
+| 531 modules, 30 async chunks | **BuildChunkGraph** | **48.8%** |
+
+For react-10k with route-based code splitting:
+1. **BuildChunkGraph (FixedBitSet)** — the most impactful optimization for SPAs with code splitting
+2. **SideEffects O(n²) fix** — critical for large module counts
+3. **SplitChunks priority queue** — significant when many cache groups interact with many chunks
+4. Make phase improvements (§2, §3, §9) — always relevant at scale

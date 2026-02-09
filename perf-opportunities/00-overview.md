@@ -114,6 +114,9 @@ Phase 4 — Finalize
 | 29 | `29-deep-dive-module-factory-and-rebuild.md` | Factory/Rebuild | 300K rule evaluations, fresh compilation cost |
 | 30 | `30-deep-dive-module-build-and-hooks.md` | Build Pipeline | 1-4ms/module, hook dispatch overhead, RealContentHash |
 | 31 | `31-scaling-model.md` | All | Comprehensive scaling model to 10K-50K, 64-70% improvement potential |
+| 32 | `32-combined-realistic-profile.md` | Combined | 531 modules + 30 async chunks — BuildChunkGraph is 48.8% of total |
+| 33 | `33-rspack-javascript-compiler.md` | rspack_javascript_compiler | SWC wrapper, per-module compiler instantiation |
+| 34 | `34-rspack-watcher.md` | rspack_watcher | Watch mode, debouncing, HMR latency |
 
 ## Methodology
 
