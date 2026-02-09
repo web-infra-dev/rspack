@@ -123,6 +123,7 @@ Phase 4 — Finalize
 | 38 | `38-async-trait-and-dynamic-dispatch.md` | async_trait | ~33ms at 10K modules — not the bottleneck |
 | 39 | `39-hmr-lazy-compilation-and-benchmark.md` | HMR/Lazy/Bench | HMR single-file ~5-20ms; FixedBitSet benchmark design |
 | 40 | `40-minification-pipeline.md` | SWC/LightningCSS Minimizer | +342ms with minification, caching opportunity for rebuilds |
+| 41 | `41-consolidated-profiling-data.md` | All Profiling Data | All 8 runs cross-referenced, scaling formulas, feature impact matrix |
 
 ## Methodology
 
