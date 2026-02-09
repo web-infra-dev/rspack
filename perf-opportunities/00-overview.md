@@ -117,6 +117,8 @@ Phase 4 — Finalize
 | 32 | `32-combined-realistic-profile.md` | Combined | 531 modules + 30 async chunks — BuildChunkGraph is 48.8% of total |
 | 33 | `33-rspack-javascript-compiler.md` | rspack_javascript_compiler | SWC wrapper, per-module compiler instantiation |
 | 34 | `34-rspack-watcher.md` | rspack_watcher | Watch mode, debouncing, HMR latency |
+| 35 | `35-dev-vs-prod-profile-and-runtimespec.md` | Dev/Prod Compare | 2.85x slower in production; RuntimeSpec 130K+ allocations |
+| 36 | `36-rspack-plugin-esm-library.md` | rspack_plugin_esm_library | Re-parsing for library builds, export chain resolution |
 
 ## Methodology
 
