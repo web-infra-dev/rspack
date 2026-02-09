@@ -197,7 +197,7 @@ pub enum BuildMetaDefaultObject {
 }
 
 #[cacheable]
-#[derive(Debug, Default, Clone, Copy, Hash, PartialEq, Eq, Serialize)]
+#[derive(Debug, Default, Clone, Copy, Hash, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub enum ModuleArgument {
   #[default]
