@@ -19,4 +19,6 @@ Custom collection types used in hot paths (sets, maps, identifiers).
 ## Code pointers
 - `crates/rspack_collections/Cargo.toml`
 - `crates/rspack_collections/src/lib.rs`
+- `crates/rspack_collections/src/identifier.rs`
+- `crates/rspack_collections/src/ukey.rs`
 - `crates/rspack_collections/**`

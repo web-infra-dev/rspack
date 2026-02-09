@@ -19,4 +19,7 @@ Error and diagnostic types.
 ## Code pointers
 - `crates/rspack_error/Cargo.toml`
 - `crates/rspack_error/src/lib.rs`
+- `crates/rspack_error/src/diagnostic.rs`
+- `crates/rspack_error/src/error.rs`
+- `crates/rspack_error/src/displayer/mod.rs`
 - `crates/rspack_error/**`

@@ -19,4 +19,6 @@ Preact Refresh loader for HMR.
 ## Code pointers
 - `crates/rspack_loader_preact_refresh/Cargo.toml`
 - `crates/rspack_loader_preact_refresh/src/lib.rs`
+- `crates/rspack_loader_preact_refresh/src/plugin.rs`
+- `crates/rspack_loader_preact_refresh/src/runtime.js`
 - `crates/rspack_loader_preact_refresh/**`

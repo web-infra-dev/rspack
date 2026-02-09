@@ -19,4 +19,6 @@ LightningCSS loader for CSS parsing/transform.
 ## Code pointers
 - `crates/rspack_loader_lightningcss/Cargo.toml`
 - `crates/rspack_loader_lightningcss/src/lib.rs`
+- `crates/rspack_loader_lightningcss/src/config.rs`
+- `crates/rspack_loader_lightningcss/src/plugin.rs`
 - `crates/rspack_loader_lightningcss/**`

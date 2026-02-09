@@ -19,4 +19,8 @@ Built-in SWC loader for JS/TS transformations.
 ## Code pointers
 - `crates/rspack_loader_swc/Cargo.toml`
 - `crates/rspack_loader_swc/src/lib.rs`
+- `crates/rspack_loader_swc/src/options.rs`
+- `crates/rspack_loader_swc/src/transformer.rs`
+- `crates/rspack_loader_swc/src/collect_ts_info.rs`
+- `crates/rspack_loader_swc/src/plugin.rs`
 - `crates/rspack_loader_swc/**`
