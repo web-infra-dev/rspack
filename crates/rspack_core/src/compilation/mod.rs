@@ -405,7 +405,7 @@ impl Compilation {
       module_executor,
       in_finish_make: AtomicBool::new(false),
 
-      build_module_graph_artifact: StealCell::new(BuildModuleGraphArtifact::default()),
+      build_module_graph_artifact: StealCell::new(BuildModuleGraphArtifact::new()),
       modified_files,
       removed_files,
       input_filesystem,

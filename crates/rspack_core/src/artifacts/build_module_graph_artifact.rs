@@ -25,7 +25,7 @@ pub enum BuildModuleGraphArtifactState {
 }
 
 /// Make Artifact, including all side effects of the make stage.
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct BuildModuleGraphArtifact {
   // temporary data, used by subsequent steps of BuildModuleGraph, should be reset when rebuild.
   /// BuildModuleGraph stage affected modules.
@@ -44,7 +44,7 @@ pub struct BuildModuleGraphArtifact {
   // data
   /// Field to mark whether artifact has been initialized.
   ///
-  /// Only Default::default() is Uninitialized, `update_module_graph` will set this field to Initialized
+  /// Only `BuildModuleGraphArtifact::new()` is Uninitialized, `update_module_graph` will set this field to Initialized
   /// Persistent cache will update BuildModuleGraphArtifact and set force_build_deps to this field when this is Uninitialized.
   pub state: BuildModuleGraphArtifactState,
   /// Module graph data
@@ -69,6 +69,24 @@ pub struct BuildModuleGraphArtifact {
 }
 
 impl BuildModuleGraphArtifact {
+  pub fn new() -> Self {
+    Self {
+      affected_modules: Default::default(),
+      affected_dependencies: Default::default(),
+      issuer_update_modules: Default::default(),
+      state: BuildModuleGraphArtifactState::Uninitialized,
+      module_graph: Default::default(),
+      module_to_lazy_make: Default::default(),
+      make_failed_module: Default::default(),
+      make_failed_dependencies: Default::default(),
+      entry_dependencies: Default::default(),
+      file_dependencies: Default::default(),
+      context_dependencies: Default::default(),
+      missing_dependencies: Default::default(),
+      build_dependencies: Default::default(),
+    }
+  }
+
   pub fn get_module_graph(&self) -> &ModuleGraph {
     &self.module_graph
   }
