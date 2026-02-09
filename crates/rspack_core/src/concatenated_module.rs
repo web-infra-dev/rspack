@@ -75,6 +75,7 @@ pub struct RootModuleContext {
   pub name_for_condition: Option<Box<str>>,
   pub lib_indent: Option<String>,
   pub resolve_options: Option<Arc<Resolve>>,
+  #[cacheable(with=::rspack_cacheable::with::AsCacheable)]
   pub code_generation_dependencies: Option<Vec<BoxModuleDependency>>,
   pub presentational_dependencies: Option<Vec<BoxDependencyTemplate>>,
   pub context: Option<Context>,

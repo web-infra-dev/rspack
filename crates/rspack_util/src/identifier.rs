@@ -129,7 +129,9 @@ pub fn insert_zero_width_space_for_fragment(s: &str) -> Cow<'_, str> {
 fn split_keep<'a>(r: &Regex, text: &'a str) -> Vec<&'a str> {
   let mut result = Vec::new();
   let mut last = 0;
-  for (index, matched) in text.match_indices(r) {
+  for matched in r.find_iter(text) {
+    let index = matched.start();
+    let matched = matched.as_str();
     if last != index {
       result.push(&text[last..index]);
     }
