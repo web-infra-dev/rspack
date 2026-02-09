@@ -17,7 +17,7 @@ use rspack_core::{
   Plugin, PrefetchExportsInfoMode, PrefetchedExportsInfoWrapper, RuntimeSpec, SourceType,
   UsageState, UsedNameItem,
   diagnostics::ModuleParseError,
-  rspack_sources::{BoxSource, RawStringSource, Source, SourceExt},
+  rspack_sources::{BoxSource, OriginalSource, RawStringSource, Source, SourceExt},
 };
 use rspack_error::{Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray, error};
 use rspack_util::{itoa, location::byte_line_column_to_offset};
@@ -225,7 +225,11 @@ impl ParserAndGenerator for JsonParserAndGenerator {
               .render_module_argument(ModuleArgument::Module)
           )
         };
-        Ok(RawStringSource::from(content).boxed())
+        if module.get_source_map_kind().enabled() {
+          Ok(OriginalSource::new(content, module.identifier().as_str()).boxed())
+        } else {
+          Ok(RawStringSource::from(content).boxed())
+        }
       }
       _ => panic!(
         "Unsupported source type: {:?}",
@@ -275,7 +279,7 @@ impl Plugin for JsonPlugin {
   }
 }
 
-fn create_object_for_exports_info(
+pub fn create_object_for_exports_info(
   data: JsonValue,
   exports_info: &PrefetchedExportsInfoWrapper<'_>,
   runtime: Option<&RuntimeSpec>,
