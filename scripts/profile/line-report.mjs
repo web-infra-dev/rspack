@@ -39,6 +39,7 @@ const repeatCount = Number.parseInt(values.repeat, 10);
 const bindingPath = path.resolve(
   values.binding ?? 'crates/node_binding/rspack.linux-x64-gnu.node',
 );
+let bindingMapInfo = null;
 
 if (!Number.isFinite(repeatCount) || repeatCount < 1) {
   throw new Error(`Invalid repeat count: ${values.repeat}`);
@@ -121,6 +122,7 @@ function writeMetadata(perfDataPath, reportPath, rawReportPath) {
     repeat: repeatCount,
     addr2line: values.addr2line ?? null,
     bindingPath,
+    bindingMapInfo,
     command: ['node', rspackCli, 'build', '-c', configPath, ...positionals],
   };
   fs.writeFileSync(
@@ -194,6 +196,7 @@ function runProfile() {
   const reportOutput = runCapture(values.perf, reportArgs);
   fs.writeFileSync(rawReportPath, reportOutput);
 
+  bindingMapInfo = getBindingMapInfo(perfDataPath);
   const resolvedReport = resolveReportLines(reportOutput);
   fs.writeFileSync(reportPath, resolvedReport);
   writeMetadata(perfDataPath, reportPath, rawReportPath);
@@ -201,6 +204,36 @@ function runProfile() {
   if (values.trace) {
     console.log(`Rspack trace saved to ${tracePath}`);
   }
+}
+
+function getBindingMapInfo(perfDataPath) {
+  const output = runCapture(values.perf, [
+    'script',
+    '--show-mmap-events',
+    '-i',
+    perfDataPath,
+  ]);
+  const lines = output.split('\n');
+  for (const line of lines) {
+    if (!line.includes(bindingPath)) {
+      continue;
+    }
+    const match = line.match(
+      /\[(0x[0-9a-f]+)\(0x[0-9a-f]+\)\s+@\s+(0x[0-9a-f]+)[^\]]*\]:\s+(\S+)\s+(.+)$/i,
+    );
+    if (!match) {
+      continue;
+    }
+    const [, base, offset, perms] = match;
+    if (!perms.includes('r-x')) {
+      continue;
+    }
+    return {
+      base: BigInt(base),
+      offset: BigInt(offset),
+    };
+  }
+  return null;
 }
 
 function resolveReportLines(reportOutput) {
@@ -229,19 +262,21 @@ function resolveReportLines(reportOutput) {
     }
     let sourceLine = '??:0';
     if (dso.endsWith(path.basename(bindingPath)) && values.addr2line) {
-      sourceLine = resolveAddress(address) ?? sourceLine;
+      sourceLine = resolveAddress(address, bindingMapInfo) ?? sourceLine;
     }
     resolved.push([overhead, address, sourceLine, symbol, dso].join('\t'));
   }
   return `${header.join('\n')}\n${resolved.join('\n')}\n`;
 }
 
-function resolveAddress(address) {
-  if (!address || !values.addr2line) {
+function resolveAddress(address, mapInfo) {
+  if (!address || !values.addr2line || !mapInfo) {
     return null;
   }
   const clean = address.startsWith('0x') ? address : `0x${address}`;
-  const result = spawnSync(values.addr2line, ['-e', bindingPath, clean], {
+  const relative = BigInt(clean) - mapInfo.base + mapInfo.offset;
+  const relativeHex = `0x${relative.toString(16)}`;
+  const result = spawnSync(values.addr2line, ['-e', bindingPath, relativeHex], {
     encoding: 'utf8',
   });
   if (result.error || result.status !== 0) {
