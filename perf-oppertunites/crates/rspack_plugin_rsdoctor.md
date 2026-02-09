@@ -17,4 +17,6 @@ Rsdoctor integration for profiling and diagnostics.
 - Validate streaming vs batch data collection impact.
 
 ## Code pointers
+- `crates/rspack_plugin_rsdoctor/Cargo.toml`
+- `crates/rspack_plugin_rsdoctor/src/lib.rs`
 - `crates/rspack_plugin_rsdoctor/**`

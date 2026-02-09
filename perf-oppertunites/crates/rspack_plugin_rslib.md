@@ -17,4 +17,6 @@ Rslib integration for library builds.
 - Measure impact of cached wrapper templates.
 
 ## Code pointers
+- `crates/rspack_plugin_rslib/Cargo.toml`
+- `crates/rspack_plugin_rslib/src/lib.rs`
 - `crates/rspack_plugin_rslib/**`

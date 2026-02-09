@@ -17,4 +17,6 @@ Remove empty chunks from the chunk graph after optimization.
 - Compare incremental vs full scan approaches.
 
 ## Code pointers
+- `crates/rspack_plugin_remove_empty_chunks/Cargo.toml`
+- `crates/rspack_plugin_remove_empty_chunks/src/lib.rs`
 - `crates/rspack_plugin_remove_empty_chunks/**`

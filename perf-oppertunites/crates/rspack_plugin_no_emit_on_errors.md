@@ -17,4 +17,6 @@ Suppress asset emission when compilation errors are present.
 - Validate short-circuit behavior when errors are present.
 
 ## Code pointers
+- `crates/rspack_plugin_no_emit_on_errors/Cargo.toml`
+- `crates/rspack_plugin_no_emit_on_errors/src/lib.rs`
 - `crates/rspack_plugin_no_emit_on_errors/**`

@@ -17,4 +17,6 @@ Rstest integration for testing workflows.
 - Measure config parse time with large test suites.
 
 ## Code pointers
+- `crates/rspack_plugin_rstest/Cargo.toml`
+- `crates/rspack_plugin_rstest/src/lib.rs`
 - `crates/rspack_plugin_rstest/**`

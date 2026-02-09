@@ -17,4 +17,6 @@ Runtime module generation and runtime requirements computation.
 - Compare cached runtime outputs across incremental builds.
 
 ## Code pointers
+- `crates/rspack_plugin_runtime/Cargo.toml`
+- `crates/rspack_plugin_runtime/src/lib.rs`
 - `crates/rspack_plugin_runtime/**`

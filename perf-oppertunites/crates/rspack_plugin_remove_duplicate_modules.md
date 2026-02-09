@@ -17,4 +17,6 @@ Deduplicate modules in the graph to reduce output size.
 - Measure dedupe pass time across incremental builds.
 
 ## Code pointers
+- `crates/rspack_plugin_remove_duplicate_modules/Cargo.toml`
+- `crates/rspack_plugin_remove_duplicate_modules/src/lib.rs`
 - `crates/rspack_plugin_remove_duplicate_modules/**`

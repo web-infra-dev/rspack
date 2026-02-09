@@ -17,4 +17,6 @@ CSS minification using LightningCSS.
 - Measure cache hit rate for unchanged CSS assets.
 
 ## Code pointers
+- `crates/rspack_plugin_lightning_css_minimizer/Cargo.toml`
+- `crates/rspack_plugin_lightning_css_minimizer/src/lib.rs`
 - `crates/rspack_plugin_lightning_css_minimizer/**`

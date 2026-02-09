@@ -17,4 +17,6 @@ Module Federation integration (shared/remote modules, manifests).
 - Measure cache hit rates for shared module analysis across rebuilds.
 
 ## Code pointers
+- `crates/rspack_plugin_mf/Cargo.toml`
+- `crates/rspack_plugin_mf/src/lib.rs`
 - `crates/rspack_plugin_mf/**`

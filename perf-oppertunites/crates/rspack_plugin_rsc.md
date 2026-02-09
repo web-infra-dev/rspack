@@ -17,4 +17,6 @@ React Server Components integration.
 - Validate cache hits for unchanged component graphs.
 
 ## Code pointers
+- `crates/rspack_plugin_rsc/Cargo.toml`
+- `crates/rspack_plugin_rsc/src/lib.rs`
 - `crates/rspack_plugin_rsc/**`
