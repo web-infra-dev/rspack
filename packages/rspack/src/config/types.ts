@@ -1117,7 +1117,7 @@ export type JavascriptParserOptions = {
 
   /**
    * Warn or error for using non-existent exports and conflicting re-exports.
-   * @default 'auto'
+   * @default 'error'
    */
   exportsPresence?: ExportsPresence;
 
@@ -1126,9 +1126,6 @@ export type JavascriptParserOptions = {
 
   /** Warn or error for conflicting re-exports */
   reexportExportsPresence?: ExportsPresence;
-
-  /** Emit errors instead of warnings when imported names don't exist in imported module. */
-  strictExportPresence?: boolean;
 
   /** Provide custom syntax for Worker parsing, commonly used to support Worklet */
   worker?: string[] | boolean;

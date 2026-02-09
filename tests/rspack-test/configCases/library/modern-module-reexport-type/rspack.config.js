@@ -26,6 +26,11 @@ module.exports = {
 		concatenateModules: true
 	},
 	module: {
+		parser: {
+			javascript: {
+				exportsPresence: 'auto',
+			}
+		},
 		rules: [
 			{
 				test: /\.ts$/,

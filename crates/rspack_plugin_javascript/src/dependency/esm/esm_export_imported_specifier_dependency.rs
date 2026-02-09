@@ -944,11 +944,7 @@ impl ESMExportImportedSpecifierDependency {
     options
       .reexport_exports_presence
       .or(options.exports_presence)
-      .unwrap_or(if let Some(true) = options.strict_export_presence {
-        ExportPresenceMode::Error
-      } else {
-        ExportPresenceMode::Auto
-      })
+      .unwrap_or(ExportPresenceMode::Error)
   }
 
   fn get_conflicting_star_exports_errors(

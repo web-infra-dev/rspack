@@ -519,24 +519,6 @@ export default {
 };
 ```
 
-### module.parser.javascript.strictExportPresence
-
-- **Type:** `boolean`
-
-Emit errors instead of warnings when imported names don't exist in imported module.
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      javascript: {
-        strictExportPresence: true,
-      },
-    },
-  },
-};
-```
-
 ### module.parser.javascript.typeReexportsPresence
 
 <ApiMeta stability={Stability.Experimental} addedVersion="1.4.1" />

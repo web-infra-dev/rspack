@@ -3659,7 +3659,6 @@ export type JavascriptParserOptions = {
     exportsPresence?: ExportsPresence;
     importExportsPresence?: ExportsPresence;
     reexportExportsPresence?: ExportsPresence;
-    strictExportPresence?: boolean;
     worker?: string[] | boolean;
     overrideStrict?: 'strict' | 'non-strict';
     requireAlias?: boolean;

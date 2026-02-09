@@ -519,24 +519,6 @@ export default {
 };
 ```
 
-### module.parser.javascript.strictExportPresence
-
-- **类型：** `boolean`
-
-当导入的名称在导入模块中不存在时，发出错误而不是警告。
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      javascript: {
-        strictExportPresence: true,
-      },
-    },
-  },
-};
-```
-
 ### module.parser.javascript.typeReexportsPresence
 
 <ApiMeta stability={Stability.Experimental} addedVersion="1.4.1" />

@@ -577,7 +577,6 @@ function getRawJavascriptParserOptions(
       parser.reexportExportsPresence === false
         ? 'false'
         : parser.reexportExportsPresence,
-    strictExportPresence: parser.strictExportPresence,
     worker:
       typeof parser.worker === 'boolean'
         ? parser.worker

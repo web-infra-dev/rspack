@@ -1701,7 +1701,6 @@ impl ModuleOptionsBuilder {
           unknown_context_critical: Some(true),
           wrapped_context_critical: Some(false),
           wrapped_context_reg_exp: Some(RspackRegex::new(".*").expect("should initialize `Regex`")),
-          strict_export_presence: Some(false),
           worker: Some(vec!["...".to_string()]),
           import_meta: Some(true),
           require_alias: Some(true),

@@ -15,6 +15,11 @@ module.exports = {
 		}
 	],
 	module: {
+		parser: {
+			javascript: {
+				exportsPresence: 'auto',
+			}
+		},
 		rules: [
 			{
 				test: /\.s[ac]ss$/i,
