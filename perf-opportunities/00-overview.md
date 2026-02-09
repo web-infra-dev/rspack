@@ -74,7 +74,7 @@ Phase 4 — Finalize
 
 ## Document Index
 
-Each document below corresponds to one crate (or logical grouping for very small crates):
+### Per-Crate Analysis (1 file per crate)
 
 | # | File | Crate | Key Opportunities |
 |---|------|-------|-------------------|
@@ -95,7 +95,16 @@ Each document below corresponds to one crate (or logical grouping for very small
 | 15 | `15-rspack-plugin-mf.md` | rspack_plugin_mf | Module federation overhead |
 | 16 | `16-rspack-cacheable.md` | rspack_cacheable | Serialization performance |
 | 17 | `17-remaining-crates.md` | rspack_error, rspack_hook, rspack_ids, rspack_regex, rspack_tracing, rspack_util, etc. | Smaller crates |
-| 18 | `18-prioritized-recommendations.md` | N/A | All findings ranked by impact/effort |
+
+### Profiling & Deep Dives
+
+| # | File | Focus | Key Finding |
+|---|------|-------|-------------|
+| 18 | `18-prioritized-recommendations.md` | All crates | 26 recommendations ranked in 5 tiers with implementation roadmap |
+| 19 | `19-profiling-analysis.md` | Real traces | Actual build timing at 200/500 modules with scaling projections |
+| 20 | `20-deep-dive-sideeffects-bottleneck.md` | SideEffectsFlagPlugin | **#1 bottleneck**: O(n²) scaling in `update connections` |
+| 21 | `21-deep-dive-codesplitter-biguint.md` | CodeSplitter | Line-by-line BigUint hot path analysis, FixedBitSet proposal |
+| 22 | `22-deep-dive-task-loop-main-thread.md` | Task Loop | 950K sequential HashMap ops, concurrent graph proposal |
 
 ## Methodology
 
