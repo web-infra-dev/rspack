@@ -90,3 +90,15 @@ incremental passes are disabled by full-hash dependencies:
 - Use stage filtering so plugins only run when needed.
 - Reduce asset cloning by passing references where possible.
 - Aggregate asset updates to reduce repeated hash invalidations.
+
+### 9) ReplaceSource usage in JS plugins
+
+`ReplaceSource` appears in JS plugin code (e.g. URLPlugin). Opportunities:
+
+- Avoid `into_string_lossy()` on large sources; operate on bytes or slices.
+- Cache regex results for repeated placeholder patterns.
+- Replace in chunks rather than cloning entire sources when possible.
+
+Code pointer:
+
+- `crates/rspack_plugin_javascript/src/plugin/url_plugin.rs`
