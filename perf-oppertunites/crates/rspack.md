@@ -12,6 +12,10 @@ Top-level crate entrypoint for Rspack.
 - Avoid unnecessary initialization work in the common path.
 - Use lazy initialization for global state.
 
+## Key functions/structs to inspect
+- Builder entrypoints in `builder` module (e.g., `CompilerBuilder::build`).
+- Example usage in docs mirrors builder APIs; ensure minimal overhead.
+
 ## Suggested experiments
 - Measure startup time impact of entrypoint initialization.
 

@@ -12,6 +12,11 @@ NAPI integration and wrappers for JS↔Rust interop.
 - Use zero-copy buffers for sources/assets.
 - Avoid cloning large objects when passing to JS.
 
+## Key functions/structs to inspect
+- Threadsafe function wrappers (`threadsafe_function.rs`).
+- JS value wrappers (`js_values/*`) for clone/retain patterns.
+- Error formatting in `errors.rs`.
+
 ## Suggested experiments
 - Measure JS↔Rust call counts per build and identify top hooks.
 - Compare zero-copy vs cloned buffer paths.

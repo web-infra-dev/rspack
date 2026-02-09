@@ -12,6 +12,12 @@ Built-in SWC loader for JS/TS transformations.
 - Avoid re-instantiating SWC components per module.
 - Reuse buffers for loader outputs to reduce allocations.
 
+## Key functions/structs to inspect
+- `SwcLoaderPlugin` hooks (plugin.rs).
+- `transformer::transform` pipeline (transformer.rs).
+- Option normalization in `options.rs`.
+- TS info collection in `collect_ts_info.rs`.
+
 ## Suggested experiments
 - Measure loader option cache hit rates on incremental builds.
 - Compare per-module SWC instantiation vs reused instances.

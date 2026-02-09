@@ -12,6 +12,11 @@ Preact Refresh loader for HMR.
 - Cache refresh wrapper code per module.
 - Avoid repeated string allocations in transform output.
 
+## Key functions/structs to inspect
+- `PreactRefreshLoader::run` (lib.rs).
+- `PreactRefreshLoader::with_identifier` (lib.rs).
+- Plugin wiring in `plugin.rs`.
+
 ## Suggested experiments
 - Measure refresh transform overhead in large dev builds.
 - Compare cached vs recomputed refresh wrappers.

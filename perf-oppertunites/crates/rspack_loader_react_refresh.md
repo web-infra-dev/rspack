@@ -12,6 +12,11 @@ React Refresh loader for HMR.
 - Avoid re-running transforms when inputs are unchanged.
 - Cache generated refresh code per module.
 
+## Key functions/structs to inspect
+- `ReactRefreshLoader::run` (lib.rs).
+- `ReactRefreshLoader::with_identifier` (lib.rs).
+- Plugin wiring in `plugin.rs`.
+
 ## Suggested experiments
 - Measure refresh transform overhead in large dev builds.
 - Compare cached vs recomputed refresh wrappers.

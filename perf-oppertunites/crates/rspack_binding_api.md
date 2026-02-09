@@ -12,6 +12,12 @@ Shared binding API surface for JS↔Rust integration.
 - Prefer zero-copy buffers for assets and sources.
 - Avoid deep cloning when transferring large objects.
 
+## Key functions/structs to inspect
+- `Compiler` wrapper + `CompilerState::enter` (compiler.rs).
+- `Compilation` module bindings (compilation/*).
+- JS hook bridge in `plugins/js_hooks_plugin.rs` and `plugins/interceptor.rs`.
+- Raw options parsing in `raw_options/*` (conversion overhead).
+
 ## Suggested experiments
 - Measure per-hook binding overhead using a plugin-heavy workload.
 - Compare zero-copy buffer paths vs cloned buffers.

@@ -12,6 +12,11 @@ Loader execution pipeline and state machine.
 - Avoid lossy string conversions on large sources.
 - Batch loader execution for small modules to reduce overhead.
 
+## Key functions/structs to inspect
+- `run_loaders` and `run_loaders_impl` (runner.rs).
+- `process_resource` (runner.rs) for scheme/IO handling.
+- `Content::into_string_lossy` (content.rs).
+
 ## Suggested experiments
 - Measure loader pipeline time with varying loader counts.
 - Compare zero-copy content handling vs lossy conversions.

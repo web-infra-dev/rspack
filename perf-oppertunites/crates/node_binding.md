@@ -12,6 +12,10 @@ Node.js binding entrypoint for Rspack.
 - Prefer zero-copy buffers for sources/assets.
 - Avoid cloning large structures when marshaling to JS.
 
+## Key functions/structs to inspect
+- Thin re-export crate; key entrypoints are in `rspack_binding_api`.
+- Build/packaging scripts in `scripts/build.js` and `scripts/move-binding.js`.
+
 ## Suggested experiments
 - Measure NAPI call counts per build and identify top hooks.
 - Compare zero-copy vs clone paths for large sources.
