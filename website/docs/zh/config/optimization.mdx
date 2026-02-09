@@ -254,7 +254,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   optimization: {
     realContentHash: true,
   },
@@ -279,7 +278,6 @@ Rspack 支持通过 `optimization.splitChunks` 配置项来对 Chunk 进行拆�
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   optimization: {
     providedExports: false,
   },
@@ -300,7 +298,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   optimization: {
     sideEffects: 'flag',
   },
@@ -313,7 +310,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   optimization: {
     sideEffects: true,
   },
@@ -339,7 +335,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   optimization: {
     usedExports: false,
   },
@@ -350,7 +345,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   optimization: {
     usedExports: 'global',
   },
@@ -503,7 +497,6 @@ Rspack 将 `process.env.NODE_ENV` 设置为给定的字符串。除非该值被�
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   optimization: {
     nodeEnv: 'production',
   },
@@ -546,7 +539,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   optimization: {
     avoidEntryIife: true,
   },

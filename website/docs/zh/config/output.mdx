@@ -146,9 +146,7 @@ Chunk 加载的超时时间（毫秒）。
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   output: {
-    //...
     chunkLoadTimeout: 30000, // Chunk 加载会在 30 秒后超时
   },
 };
@@ -196,7 +194,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   output: {
     clean: true, // Clean the output directory before emit.
   },
@@ -239,7 +236,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   output: {
     compareBeforeEmit: false,
   },
@@ -336,7 +332,6 @@ type DevtoolModuleFilenameTemplate =
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   output: {
     devtoolModuleFilenameTemplate:
       'webpack://[namespace]/[resource-path]?[loaders]',
@@ -362,7 +357,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   output: {
     devtoolModuleFilenameTemplate: (info) => {
       return `webpack:///${info.resourcePath}?${info.loaders}`;
@@ -391,7 +385,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   output: {
     enabledChunkLoadingTypes: ['jsonp', 'require'],
   },
@@ -407,7 +400,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   output: {
     enabledLibraryTypes: ['module'],
   },
@@ -423,7 +415,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   output: {
     enabledWasmLoadingTypes: ['fetch'],
   },
@@ -554,7 +545,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   output: {
     filename: '[contenthash].bundle.js',
   },
@@ -565,7 +555,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   output: {
     filename: '[name].[contenthash].bundle.js',
   },
@@ -580,7 +569,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   output: {
     filename: (pathData) => {
       return pathData.chunk.name === 'main' ? '[name].js' : '[name]/[name].js';
@@ -648,7 +636,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   output: {
     hashFunction: 'xxhash64',
   },
@@ -675,7 +662,6 @@ Rspack 从 1.1 版本开始默认使用更快的 `xxhash64` 算法。
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   output: {
     hotUpdateChunkFilename: '[id].[fullhash].hot-update.js',
   },
@@ -717,7 +703,6 @@ JSONP 函数用于异步加载热更新块。
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   output: {
     iife: true,
   },
@@ -733,7 +718,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   output: {
     importFunctionName: '__import__',
   },
@@ -749,7 +733,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   output: {
     importMetaName: 'pseudoImport.meta',
   },
@@ -1188,7 +1171,6 @@ AMD 模块要求入口 chunk（例如，通过 `<script>` 标签加载的第一�
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   output: {
     library: {
       name: 'MyLibrary',
@@ -1228,7 +1210,6 @@ define(function () {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   output: {
     library: {
       name: 'MyLibrary',
@@ -1252,7 +1233,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   output: {
     library: {
       name: 'MyLibrary',
@@ -1280,7 +1260,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   output: {
     library: {
       type: 'umd',
@@ -1309,7 +1288,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   output: {
     library: {
       name: {
@@ -1331,7 +1309,6 @@ System 模块要求当 bundle 执行时，全局变量 `System` 出现在浏览�
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   output: {
     library: {
       type: 'system',
@@ -1511,7 +1488,6 @@ export default {
 
 ```js
 module.exports = {
-  //...
   output: {
     library: {
       name: 'MyLibrary',
@@ -1542,7 +1518,6 @@ define('MyLibrary', [], factory);
 ```js
 import path from 'path';
 module.exports = {
-  //...
   output: {
     library: {
       type: 'modern-module',
@@ -1682,7 +1657,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   output: {
     scriptType: 'module',
   },
@@ -1707,7 +1681,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   output: {
     strictModuleErrorHandling: true,
   },
@@ -1735,7 +1708,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   output: {
     trustedTypes: {
       policyName: 'my-application#rspack',
@@ -1755,9 +1727,7 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   output: {
-    //...
     trustedTypes: {
       policyName: 'my-application#rspack',
       onPolicyCreationFailure: 'continue',
@@ -1807,7 +1777,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   output: {
     wasmLoading: 'fetch',
   },
@@ -1823,7 +1792,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   output: {
     webassemblyModuleFilename: '[contenthash:8].wasm',
   },
@@ -1847,7 +1815,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   output: {
     workerChunkLoading: false,
   },
@@ -1863,7 +1830,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   output: {
     workerPublicPath: '/workerPublicPath2/',
   },
@@ -1879,7 +1845,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   output: {
     workerWasmLoading: 'fetch',
   },

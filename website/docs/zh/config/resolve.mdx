@@ -339,7 +339,6 @@ Rspack 在解析 `import './foo.js'` 时，会依次尝试解析 `'./foo.ts'` �
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   resolve: {
     fallback: {
       abc: false, // 不为 abc 引入 polyfill
@@ -369,7 +368,6 @@ import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 
 export default {
-  //...
   resolve: {
     fallback: {
       assert: require.resolve('assert'),

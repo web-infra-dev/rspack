@@ -256,7 +256,6 @@ If realContentHash is set to false, internal data is used to calculate the hash 
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   optimization: {
     realContentHash: true,
   },
@@ -289,7 +288,6 @@ If you only want Rspack use the manual `sideEffects` flag via (`package.json` an
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   optimization: {
     sideEffects: 'flag',
   },
@@ -302,7 +300,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   optimization: {
     sideEffects: true,
   },
@@ -323,7 +320,6 @@ After enabling, Rspack will analyze which exports the module provides, including
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   optimization: {
     providedExports: false,
   },
@@ -346,7 +342,6 @@ Exports are not generated for unused exports, export names are mangled to single
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   optimization: {
     usedExports: false,
   },
@@ -357,7 +352,6 @@ To opt-out from used exports analysis per runtime:
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   optimization: {
     usedExports: 'global',
   },
@@ -510,7 +504,6 @@ Possible values:
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   optimization: {
     nodeEnv: 'production',
   },
@@ -553,7 +546,6 @@ Currently, `optimization.avoidEntryIife` can only optimize a single entry module
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   optimization: {
     avoidEntryIife: true,
   },
