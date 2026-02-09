@@ -2,124 +2,138 @@
 
 This report summarizes a line-by-line CPU sampling review of Rspack using the
 existing `tests/bench/fixtures/ts-react` benchmark fixture. The analysis is
-based on the generated `line-report.txt` from the profiling script.
+based on the generated `line-report.txt` from the profiling script. It covers
+three build variants to maximize coverage:
+
+- **Web (default browser target)**
+- **Node target**
+- **ESM output (output.module)**
 
 ## Method
 
-- Benchmark fixture: `tests/bench/fixtures/ts-react` (via
-  `scripts/profile/bench-ts-react.config.cjs`)
-- Command:
+- Benchmark fixture: `tests/bench/fixtures/ts-react`
+- Build: `build:binding:profiling` + `build:js`
+- Commands:
   ```sh
+  # Web target
   pnpm run profile:line-report -- \
-    --outDir ./.rspack-profile-ts-react \
+    --config scripts/profile/bench-ts-react.config.cjs \
+    --outDir ./.rspack-profile-ts-react-web \
+    --traceFilter OVERVIEW \
+    --perf /usr/lib/linux-tools-6.8.0-100/perf \
+    --addr2line /usr/bin/llvm-addr2line
+
+  # Node target
+  pnpm run profile:line-report -- \
+    --config scripts/profile/bench-ts-react.node.config.cjs \
+    --outDir ./.rspack-profile-ts-react-node \
+    --traceFilter OVERVIEW \
+    --perf /usr/lib/linux-tools-6.8.0-100/perf \
+    --addr2line /usr/bin/llvm-addr2line
+
+  # ESM output
+  pnpm run profile:line-report -- \
+    --config scripts/profile/bench-ts-react.esm.config.cjs \
+    --outDir ./.rspack-profile-ts-react-esm \
     --traceFilter OVERVIEW \
     --perf /usr/lib/linux-tools-6.8.0-100/perf \
     --addr2line /usr/bin/llvm-addr2line
   ```
-- Sample size: 22 CPU samples (each line item in the report represents ~4.55%)
-- Build: `build:binding:profiling` + `build:js`
 
 > **Note:** Because the run is short, the sample count is low and each entry
 > has equal weight. For higher confidence, rerun with `--repeat` and/or a higher
 > sample rate.
 
-## Biggest Performance Impacts (Line-by-Line Review)
+## Line-by-line Findings (Web target)
 
-### 1. SWC minifier + usage analyzer work (largest Rust-side hotspot group)
+Sample count: **21** (each entry ≈ 4.76%).
 
-The most frequent Rust-side samples sit inside SWC minifier + usage analyzer
-paths, indicating that minification and analysis dominate the CPU time for this
-fixture:
+| Overhead | Source:Line | Symbol | Analysis |
+| --- | --- | --- | --- |
+| 4.76% | ?? | Builtin:RecordWriteIgnoreFP (V8) | Write barrier for GC; expected VM overhead during compilation. |
+| 4.76% | ?? | malloc (libc) | Allocation hot path; likely dominated by AST/minifier structures. |
+| 4.76% | ?? | v8::Utf16CharacterStream::AdvanceUntil (SkipWhiteSpace) | Parser whitespace scanning in V8 while loading JS/CLI. |
+| 4.76% | ?? | v8::ObjectLiteral::CalculateEmitStore | V8 AST emission for object literals; VM compile overhead. |
+| 4.76% | ?? | v8::ParserBase::ParseVariableStatement | V8 parsing overhead for JS modules. |
+| 4.76% | ?? | v8::Serializer::ObjectSerializer::OutputRawData | V8 snapshot serialization cost. |
+| 4.76% | ?? | v8::String::ComputeAndSetRawHash | String hashing overhead. |
+| 4.76% | ?? | v8::StringsStorage::Release | String storage churn. |
+| 4.76% | `triomphe/src/thin_arc.rs:248` | `swc_ecma_minifier::optimize` | SWC minifier entry; dominant Rust-side cost. |
+| 4.76% | `swc_ecma_visit/generated.rs:0` | `swc_ecma_utils::cast_to_bool` | AST traversal / type coercion; frequent during transforms. |
+| 4.76% | `mimalloc-rspack/src/lib.rs:0` | `swc_ecma_parser::parse_bin_op_recursively_inner` | Parser recursion + allocator overhead. |
+| 4.76% | `crates/rspack_plugin_javascript/.../walk.rs:1355` | `JavascriptParser::walk_statements` | Dependency scan traversal in Rspack plugin. |
+| 4.76% | `swc_ecma_minifier/src/compress/optimize/mod.rs:484` | `Optimizer::handle_stmts` | Minifier statement optimization pass. |
+| 4.76% | `better_scoped_tls/src/lib.rs:74` | `Resolver::mark_for_ref_inner` | Resolver metadata marking; symbol resolution overhead. |
+| 4.76% | `lightningcss/.../border_image.rs` | `BorderImageHandler::flush` | CSS minification/output cost. |
+| 4.76% | `mimalloc-rspack/src/lib.rs:51` | `Optimizer::visit_mut_fn_decl` | Minifier visitor on function declarations. |
+| 4.76% | `hashbrown/src/util.rs:13` | `simplify::Analyzer::visit_children_with` | HashMap utility hot path in DCE analyzer. |
+| 4.76% | `swc_atoms/src/lib.rs:39` | `VarWithOutInitCounter::visit_children_with` | Atom usage during minifier pure-vars pass. |
+| 4.76% | `core/src/slice/iter/macros.rs` | `write_punct` (codegen) | Codegen writer overhead. |
+| 4.76% | `swc_ecma_visit/generated.rs:62468` | `Fixer::visit_mut_children_with` | Fixer traversal; post-transform cleanup. |
+| 4.76% | `swc_ecma_parser/src/lexer/mod.rs:1093` | lexer table SEM0 | Lexer dispatch hot path. |
 
-- `swc_ecma_minifier/src/compress/optimize/conditionals.rs:501`
-- `swc_ecma_minifier/src/compress/optimize/sequences.rs:728`
-- `swc_ecma_minifier/src/compress/optimize/...` (multiple optimizer passes)
-- `swc_ecma_usage_analyzer` in `triomphe/src/thin_arc.rs:248`
-- `swc_ecma_visit` generated visitors (traversal overhead)
+## Line-by-line Findings (Node target)
 
-**Impact:** SWC minification and analysis passes are a primary CPU sink for the
-bench build. This is expected in production builds, but it is also the most
-material target for optimization and caching.
+Sample count: **19** (each entry ≈ 5.26%).
 
-**Opportunities**
-- Cache minify results for unchanged modules or cache SWC AST analysis outputs.
-- Consider pruning or gating costly minifier passes for small modules.
-- Reuse analyzer state where possible to reduce traversal overhead.
+| Overhead | Source:Line | Symbol | Analysis |
+| --- | --- | --- | --- |
+| 5.26% | ?? | Builtin:KeyedLoadIC_Megamorphic (V8) | Property access IC overhead; VM hot path. |
+| 5.26% | ?? | ld-linux resolver | Loader relocation cost. |
+| 5.26% | ?? | pthread_mutex_unlock | libc sync; allocator/GC related. |
+| 5.26% | ?? | v8::StringShape::DispatchToSpecificType | String lookup; VM runtime work. |
+| 5.26% | ?? | PagedSpaceObjectIterator::Next | GC heap walk. |
+| 5.26% | ?? | v8::Scanner::Next | Parser tokenization in V8. |
+| 5.26% | ?? | v8::Scanner::ScanString | V8 string literal scanning. |
+| 5.26% | ?? | v8::String::ToCString | String conversion cost. |
+| 5.26% | ?? | BytecodeRegisterOptimizer::Flush | Bytecode optimizer overhead. |
+| 5.26% | `core/src/ptr/mod.rs:547` | `swc_common::Globals::with` | Scoped TLS for syntax context; SWC infra cost. |
+| 5.26% | `core/src/mem/mod.rs:893` | `JavascriptParser::call_hooks_info` | Hook evaluation during dependency scan. |
+| 5.26% | `indexmap/src/map.rs:739` | `FnEnvHoister::to_decl` | Environment hoisting in SWC utils. |
+| 5.26% | `alloc/src/vec/mod.rs:2659` | `rename::Analyzer::add_usage` | Usage tracking; vector growth. |
+| 5.26% | `swc_ecma_minifier/src/compress/optimize/if_return.rs:496` | `Optimizer::merge_sequential_expr` | Minifier sequence merge optimization. |
+| 5.26% | `alloc/src/vec/mod.rs:1639` | `rspack_core::parse_resolve` | Resolve option merge; configuration processing. |
+| 5.26% | `hstr/src/wtf8/mod.rs:0` | `Atom::eq` | Atom string comparisons. |
+| 5.26% | `hstr/src/macros.rs:55` | `Resolver::visit_mut_children_with` | Resolver traversal in transforms. |
+| 5.26% | `core/src/fmt/builders.rs:330` | lexer whitespace table | Lexer whitespace table dispatch. |
+| 5.26% | `blake3_avx512_x86-64_unix.S:4471` | `mi_malloc_aligned` | SIMD hash/alloc; hashing overhead. |
 
-### 2. HashMap-heavy paths (allocation / rehash pressure)
+## Line-by-line Findings (ESM output)
 
-HashMap activity appears repeatedly:
+Sample count: **19** (each entry ≈ 5.26%).
 
-- `swc_ecma_codegen/src/lib.rs:625` (HashMap remove in codegen)
-- `swc_ecma_transforms_base/src/fixer.rs:919` (HashMap insert)
-- `crates/rspack_plugin_javascript/src/dependency/esm/esm_import_specifier_dependency.rs:362`
-  (HashMap insert for import specifier tracking)
+| Overhead | Source:Line | Symbol | Analysis |
+| --- | --- | --- | --- |
+| 5.26% | ?? | Builtin:Call_ReceiverIsAny (V8) | JS call dispatch overhead. |
+| 5.26% | ?? | malloc (libc) | Allocation pressure during compilation. |
+| 5.26% | ?? | pthread_mutex_lock | Sync in allocator/VM runtime. |
+| 5.26% | ?? | V8 `ScanIdentifierOrKeywordInner` | Token scanning for identifiers/keywords. |
+| 5.26% | ?? | ClassBoilerplate::New | Class literal compilation overhead. |
+| 5.26% | ?? | Utf8DecoderBase | UTF-8 decoding overhead. |
+| 5.26% | ?? | BytecodeGenerator::VisitPropertyLoad | VM bytecode generation. |
+| 5.26% | ?? | CalculateLineEndsImpl (two entries) | Script line map generation overhead. |
+| 5.26% | `core/src/num/uint_macros.rs:355` | `Globals::with` (marks) | Syntax context scope setup. |
+| 5.26% | `core/src/ptr/mod.rs:805` | `drop_in_place<Result<RawAliasOptionItem>>` | Raw resolve option cleanup in binding layer. |
+| 5.26% | `alloc/src/vec/mod.rs:2659` | `rename::Analyzer::add_usage` | Usage tracking cost. |
+| 5.26% | `swc_ecma_parser/src/lexer/token.rs:373` | `parse_subscript` | Parser subscript processing. |
+| 5.26% | `core/src/ptr/mod.rs:1944` | `optimize_expr_in_bool_ctx` | Minifier bool context optimization. |
+| 5.26% | `core/src/ptr/mod.rs:0` | `hashbrown::HashMap::insert` | Map insertion during transforms. |
+| 5.26% | `core/src/ptr/mod.rs:547` | `spec_from_iter_nested` | Iterator materialization in minifier passes. |
+| 5.26% | `swc_atoms/src/lib.rs:39` | `visit_mut_expr_stmt` | Minifier visitor on expr statements. |
+| 5.26% | `core/src/ptr/non_null.rs:1692` | `petgraph::GraphMap::to_index` | Graph map indexing in DCE. |
+| 5.26% | `swc_ecma_visit/generated.rs:60104` | `ExplicitResourceManagement::visit_mut_children_with` | Proposal transform traversal. |
 
-**Impact:** heavy map churn can degrade overall throughput, especially when
-combined with repeated AST traversal. These hot lines suggest rehash/resize
-and insertion overhead at scale.
+## Consolidated Biggest Impacts
 
-**Opportunities**
-- Pre-size HashMaps in hot paths.
-- Reuse maps across passes where possible.
-- Replace HashMap updates with immutable or append-only structures in
-  performance-critical loops.
+1. **SWC minifier + usage analyzer** — repeated optimizer passes and AST traversal.
+2. **HashMap churn** — `hashbrown` insert/remove in SWC and Rspack plugin logic.
+3. **Parser + lexer** — SWC parser + V8 parser overhead during build.
+4. **Codegen + writer allocations** — `swc_ecma_codegen` text writer hotspots.
+5. **Runtime/allocator overhead** — libc + V8 GC/IC costs.
 
-### 3. Parser + AST traversal in Rspack plugin code
+## Next Steps to Improve Coverage
 
-The report shows Rspack plugin parser work and AST traversal:
-
-- `crates/rspack_plugin_javascript/.../esm_import_specifier_dependency.rs:362`
-  (tracking import specifiers)
-- `swc_ecma_ast` and `swc_ecma_visit` traversal sites used by parser plugins
-
-**Impact:** repeated AST walks and dependency extraction are non-trivial, and
-they compound with minification. This is a typical cost center in bundlers.
-
-**Opportunities**
-- Reduce duplicate AST traversals during dependency scans.
-- Cache derived dependency metadata when the module is unchanged.
-
-### 4. Tracing / registry overhead
-
-There is a hotspot in tracing subscriber storage:
-
-- `sharded-slab/src/shard.rs:282` (registry access)
-
-**Impact:** tracing data structure access can be non-trivial when tracing is
-enabled. This suggests profiling with tracing disabled for more stable results,
-or limiting tracing filters to reduce overhead when not needed.
-
-**Opportunities**
-- Narrow `RSPACK_PROFILE` filters when profiling specific subsystems.
-- Avoid tracing in hot loops when not necessary.
-
-### 5. JS/V8 + libc overhead
-
-The report also includes runtime and libc entries:
-
-- `__tls_get_addr`, `pthread_mutex_lock`, and other libc routines
-- V8 internals (string handling, shared function info creation, line ends)
-
-**Impact:** These are runtime overheads from Node/V8 and system libraries. They
-are expected but can mask smaller Rust hotspots in short runs.
-
-**Opportunities**
-- Increase `--repeat` to dampen VM warmup costs.
-- Re-run with a larger fixture or a longer build to surface Rust hot paths.
-
-## Summary of Biggest Impacts
-
-1. **SWC minifier + usage analyzer** — dominant CPU time on the Rust side.
-2. **HashMap insert/remove churn** — visible in SWC and Rspack plugin code.
-3. **Parser + AST traversal** — repeated scans for dependencies and transforms.
-4. **Tracing registry + runtime costs** — measurable overhead when tracing.
-
-## Next Steps
-
-- Re-run with `--repeat 5` (or higher) to gather more samples and stabilize
-  the line-level distribution.
-- Consider isolating minifier-only runs to separate parser/codegen costs from
-  minification costs.
-- Use the generated `rspack.pftrace` for timeline analysis of compilation
-  phases and correlate with the line-level hotspots above.
+- Add `--repeat` for more samples once perf report timeouts are addressed.
+- Add more fixtures (e.g., external `rspack-benchcases`) to diversify workloads.
+- Use the `rspack.pftrace` output to correlate phase-level timing with the
+  line-level hotspots above.
