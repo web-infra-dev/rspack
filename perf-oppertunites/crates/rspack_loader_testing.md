@@ -3,9 +3,16 @@
 ## Role
 Loader testing utilities.
 
+## Profiling relevance
+- Not runtime hot; test-only utilities.
+- Ensure no production build impact.
+
 ## Perf opportunities
 - Not runtime hot; ensure utilities are not pulled into production builds.
 - Avoid heavy fixture loading unless explicitly used.
+
+## Suggested experiments
+- Verify test helpers are not compiled in release builds.
 
 ## Code pointers
 - `crates/rspack_loader_testing/**`
