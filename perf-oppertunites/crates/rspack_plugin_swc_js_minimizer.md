@@ -17,4 +17,6 @@ SWC-based JavaScript minification plugin.
 - Test cache hits on repeated builds with unchanged JS bundles.
 
 ## Code pointers
+- `crates/rspack_plugin_swc_js_minimizer/Cargo.toml`
+- `crates/rspack_plugin_swc_js_minimizer/src/lib.rs`
 - `crates/rspack_plugin_swc_js_minimizer/**`

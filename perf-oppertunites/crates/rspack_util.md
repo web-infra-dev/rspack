@@ -17,4 +17,6 @@ Utility helpers used across the codebase (path, string, tracing helpers).
 - Benchmark path normalization helpers with large inputs.
 
 ## Code pointers
+- `crates/rspack_util/Cargo.toml`
+- `crates/rspack_util/src/lib.rs`
 - `crates/rspack_util/**`

@@ -17,4 +17,6 @@ Workspace-level utilities shared across crates (configuration glue, helper types
 - Track allocations during `CompilerOptions` normalization to validate wins.
 
 ## Code pointers
+- `crates/rspack_workspace/Cargo.toml`
+- `crates/rspack_workspace/src/lib.rs`
 - `crates/rspack_workspace/**`

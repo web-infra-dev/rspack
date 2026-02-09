@@ -17,4 +17,6 @@ Task scheduling primitives for compilation work distribution.
 - Test batching of small tasks in a large module graph.
 
 ## Code pointers
+- `crates/rspack_tasks/Cargo.toml`
+- `crates/rspack_tasks/src/lib.rs`
 - `crates/rspack_tasks/**`

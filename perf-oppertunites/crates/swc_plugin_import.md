@@ -17,4 +17,6 @@ SWC plugin that implements `babel-plugin-import` behavior in Rust.
 - Measure allocations during path rewriting.
 
 ## Code pointers
+- `crates/swc_plugin_import/Cargo.toml`
+- `crates/swc_plugin_import/src/lib.rs`
 - `crates/swc_plugin_import/**`

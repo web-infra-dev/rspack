@@ -17,4 +17,6 @@ Tracing integration utilities used across compilation phases.
 - Measure overhead of hot spans in module graph and loader loops.
 
 ## Code pointers
+- `crates/rspack_tracing/Cargo.toml`
+- `crates/rspack_tracing/src/lib.rs`
 - `crates/rspack_tracing/**`

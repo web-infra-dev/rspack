@@ -17,4 +17,6 @@ File watching subsystem for incremental and watch builds.
 - Compare event volume across different watcher backends.
 
 ## Code pointers
+- `crates/rspack_watcher/Cargo.toml`
+- `crates/rspack_watcher/src/lib.rs`
 - `crates/rspack_watcher/**`

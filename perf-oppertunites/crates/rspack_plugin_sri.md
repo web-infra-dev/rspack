@@ -17,4 +17,6 @@ Subresource Integrity (SRI) generation for emitted assets.
 - Verify cache hit rates for unchanged assets across rebuilds.
 
 ## Code pointers
+- `crates/rspack_plugin_sri/Cargo.toml`
+- `crates/rspack_plugin_sri/src/lib.rs`
 - `crates/rspack_plugin_sri/**`

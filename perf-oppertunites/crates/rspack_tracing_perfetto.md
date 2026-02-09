@@ -17,4 +17,6 @@ Perfetto tracing backend for detailed profiling.
 - Validate that Perfetto tracing is fully gated behind flags.
 
 ## Code pointers
+- `crates/rspack_tracing_perfetto/Cargo.toml`
+- `crates/rspack_tracing_perfetto/src/lib.rs`
 - `crates/rspack_tracing_perfetto/**`
