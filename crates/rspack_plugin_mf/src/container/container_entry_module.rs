@@ -8,9 +8,9 @@ use rspack_core::{
   BuildMeta, BuildMetaExportsType, BuildResult, ChunkGroupOptions, CodeGenerationResult,
   Compilation, Context, DependenciesBlock, Dependency, DependencyId, DependencyType,
   ExportsArgument, FactoryMeta, GroupOptions, LibIdentOptions, Module, ModuleCodeGenerationContext,
-  ModuleCodeTemplate, ModuleDependency, ModuleGraph,
-  ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType, StaticExportsDependency,
-  StaticExportsSpec, impl_module_meta_info, impl_source_map_config, module_update_hash,
+  ModuleCodeTemplate, ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleType, RuntimeGlobals,
+  RuntimeSpec, SourceType, StaticExportsDependency, StaticExportsSpec, impl_module_meta_info,
+  impl_source_map_config, module_update_hash,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
@@ -253,6 +253,7 @@ impl Module for ContainerEntryModule {
     } = code_generation_context;
 
     let mut code_generation_result = CodeGenerationResult::default();
+    let require_name = runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE);
 
     if self.dependency_type == DependencyType::ShareContainerEntry {
       let module_graph = compilation.get_module_graph();
@@ -276,15 +277,18 @@ impl Module for ContainerEntryModule {
       );
 
       // Generate installInitialConsumes function using returning_function
-      let install_initial_consumes_call = r#"localBundlerRuntime.installInitialConsumes({ 
+      let install_initial_consumes_call = format!(
+        r#"localBundlerRuntime.installInitialConsumes({{ 
             installedModules: localInstalledModules, 
-            initialConsumes: __webpack_require__.consumesLoadingData.initialConsumes, 
-            moduleToHandlerMapping: __webpack_require__.federation.consumesLoadingModuleToHandlerMapping || {}, 
-            webpackRequire: __webpack_require__, 
+            initialConsumes: {require_name}.consumesLoadingData.initialConsumes, 
+            moduleToHandlerMapping: {require_name}.federation.consumesLoadingModuleToHandlerMapping || {{}}, 
+            webpackRequire: {require_name}, 
             asyncLoad: true 
-          })"#;
+          }})"#,
+        require_name = require_name
+      );
       let install_initial_consumes_fn =
-        runtime_template.returning_function(install_initial_consumes_call, "");
+        runtime_template.returning_function(&install_initial_consumes_call, "");
 
       // Create initShareContainer function using basic_function, supporting multi-statement body
       let init_body = format!(
@@ -297,11 +301,12 @@ impl Module for ContainerEntryModule {
         var localBundlerRuntime = bundlerRuntime;
         var localInstalledModules = installedModules;
         
-        if(!__webpack_require__.consumesLoadingData){{return; }}
+        if(!{require_name}.consumesLoadingData){{return; }}
         {federation_global}.installInitialConsumes = {install_initial_consumes_fn};
         
         return {federation_global}.installInitialConsumes();
-      "#
+      "#,
+        require_name = require_name
       );
       let init_share_container_fn =
         runtime_template.basic_function("mfInstance, bundlerRuntime", &init_body);
@@ -309,7 +314,7 @@ impl Module for ContainerEntryModule {
       // Generate the final source string
       let source = format!(
         r#"
-          __webpack_require__.federation = {{ instance: undefined,bundlerRuntime: undefined }}
+          {require_name}.federation = {{ instance: undefined,bundlerRuntime: undefined }}
           var factory = ()=>{factory};
           var initShareContainer = {init_share_container_fn};
     {runtime}({exports}, {{ 
@@ -317,6 +322,7 @@ impl Module for ContainerEntryModule {
         init: function() {{ return initShareContainer;}}
     }});
     "#,
+        require_name = require_name,
         runtime = runtime_template.render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS),
         exports = runtime_template.render_exports_argument(ExportsArgument::Exports),
         factory = factory,
