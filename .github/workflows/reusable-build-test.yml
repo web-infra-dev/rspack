@@ -69,8 +69,9 @@ jobs:
         if: ${{ contains(inputs.target, 'apple-darwin') }}
         run: |
           ulimit -c unlimited
-          sudo sysctl -w kern.corefile=core.%P
           ulimit -c
+          mkdir -p "$GITHUB_WORKSPACE/cores"
+          sudo sysctl -w kernel.core_pattern="$GITHUB_WORKSPACE/cores/core.%p.%t"
 
       ### x86_64-unknown-linux-gnu
       - name: Test x86_64-unknown-linux-gnu
@@ -126,19 +127,10 @@ jobs:
           RSPACK_LOADER_WORKER_THREADS: 1
         run: pnpm run test:ci
 
-      - name: Collect core dumps
-        if: always()
-        run: |
-          mkdir -p core-dumps
-          find . -maxdepth 5 -type f \
-            \( -name 'core.[0-9]*' -o -name 'core.*.[0-9]*' \) \
-            -exec cp {} core-dumps/ \; 2>/dev/null || true
-          ls -lah core-dumps/ || true
-
       - name: Upload core dumps
         if: always()
         uses: ./.github/actions/artifact/upload
         with:
           name: core-dumps-${{ inputs.target }}-node${{ matrix.node }}
-          path: core-dumps/
+          path: cores/
           if-no-files-found: ignore
