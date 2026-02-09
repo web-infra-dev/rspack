@@ -13,6 +13,9 @@ Template generation for web worker runtime.
 - Short-circuit when worker templates are not used.
 - Single-file crate: concentrate profiling on `src/lib.rs` hook implementations.
 
+## Key functions/structs to inspect
+- Worker template rendering in `src/lib.rs`.
+
 ## Suggested experiments
 - Measure template generation time with many worker entries.
 - Compare reuse of cached templates across rebuilds.

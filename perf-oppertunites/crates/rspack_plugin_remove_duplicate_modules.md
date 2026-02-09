@@ -13,6 +13,9 @@ Deduplicate modules in the graph to reduce output size.
 - Cache dedupe results across incremental builds.
 - Single-file crate: concentrate profiling on `src/lib.rs` hook implementations.
 
+## Key functions/structs to inspect
+- Deduplication pass in `src/lib.rs`.
+
 ## Suggested experiments
 - Profile a build with many identical modules and compare fingerprint strategies.
 - Measure dedupe pass time across incremental builds.

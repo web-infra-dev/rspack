@@ -13,6 +13,9 @@ Suppress asset emission when compilation errors are present.
 - Avoid allocations when no errors are present.
 - Single-file crate: concentrate profiling on `src/lib.rs` hook implementations.
 
+## Key functions/structs to inspect
+- Emission gating hooks in `src/lib.rs`.
+
 ## Suggested experiments
 - Measure error detection overhead on error-free builds.
 - Validate short-circuit behavior when errors are present.
