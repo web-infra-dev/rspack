@@ -105,6 +105,9 @@ Phase 4 — Finalize
 | 20 | `20-deep-dive-sideeffects-bottleneck.md` | SideEffectsFlagPlugin | **#1 bottleneck**: O(n²) scaling in `update connections` |
 | 21 | `21-deep-dive-codesplitter-biguint.md` | CodeSplitter | Line-by-line BigUint hot path analysis, FixedBitSet proposal |
 | 22 | `22-deep-dive-task-loop-main-thread.md` | Task Loop | 950K sequential HashMap ops, concurrent graph proposal |
+| 23 | `23-deep-dive-exports-info-system.md` | ExportsInfo | Root cause of O(n²): per-task fresh caches in side effects |
+| 24 | `24-deep-dive-parsing-scanning.md` | Parsing Pipeline | 7-pass pipeline, 140M node visits at 10K modules |
+| 25 | `25-deep-dive-incremental-compilation.md` | Incremental | 5 disabled passes in production, BUILD_CHUNK_GRAPH disabled |
 
 ## Methodology
 

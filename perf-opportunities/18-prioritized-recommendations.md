@@ -14,13 +14,16 @@ This document consolidates all findings from the per-crate analyses and ranks th
 
 ## Tier 1 — High Impact, Worth Immediate Investigation
 
+> **Updated with profiling data** — SideEffects O(n²) confirmed as #1 bottleneck.
+
 | # | Opportunity | Crate | Phase | Est. Impact | Effort | Details |
 |---|-----------|-------|-------|-------------|--------|---------|
-| 1 | **Replace BigUint with FixedBitSet in CodeSplitter** | rspack_core | BuildChunkGraph | 3-8% total | Medium | BigUint operations for available module tracking are O(n/64) per operation. FixedBitSet with SIMD would be O(n/256) or better. See `01-rspack-core.md` §3 |
-| 2 | **Reduce main-thread bottleneck in task loop** | rspack_core | BuildModuleGraph | 5-12% total | High | Main-thread processes 10K+ results sequentially. Moving graph operations to background tasks or using lock-free structures could significantly improve throughput. See `01-rspack-core.md` §6 |
-| 3 | **Merge SWC AST transform passes** | rspack_plugin_javascript | BuildModuleGraph | 3-6% total | Medium | Three separate AST walks (paren_remover, resolver, semicolons) could be combined into one. See `02-rspack-plugin-javascript.md` §1 |
+| **★** | **Fix SideEffectsFlagPlugin O(n²) scaling** | rspack_plugin_javascript | OptimizeDeps | **10-50% of optimize deps** | Medium | **PROFILING-CONFIRMED**: Fresh per-task caches cause O(n²) traversal. 292ms at 1K modules, projected 29s at 10K. Use shared cache or topological ordering. See `20-deep-dive-sideeffects-bottleneck.md`, `23-deep-dive-exports-info-system.md` |
+| 1 | **Replace BigUint with FixedBitSet in CodeSplitter** | rspack_core | BuildChunkGraph | 3-8% total | Medium | BigUint operations for available module tracking are O(n/64) per operation. FixedBitSet with SIMD would be O(n/256) or better. See `21-deep-dive-codesplitter-biguint.md` |
+| 2 | **Reduce main-thread bottleneck in task loop** | rspack_core | BuildModuleGraph | 5-12% total | High | 950K sequential HashMap ops at 10K modules. See `22-deep-dive-task-loop-main-thread.md` |
+| 3 | **Merge SWC AST 7-pass pipeline** | rspack_plugin_javascript | BuildModuleGraph | 3-6% total | Medium | 7 passes over AST = 140M node visits at 10K. Merge SWC transforms + pre-walks. See `24-deep-dive-parsing-scanning.md` |
 | 4 | **Skip JS↔Rust boundary for hooks with no JS taps** | rspack_binding_api | All phases | 2-10% total | Medium | When no JavaScript plugins are listening, skip the boundary crossing entirely. Most Rspack configurations use only builtin plugins. See `12-rspack-binding-api.md` §1 |
-| 5 | **Eliminate ExportsInfoData clone in FlagDependencyExports/Usage** | rspack_plugin_javascript | OptimizeDeps | 2-5% total | High | Both plugins clone ExportsInfoData for parallel processing. Use segment-based mutation or UnsafeCell. See `02-rspack-plugin-javascript.md` §3-4 |
+| 5 | **Eliminate ExportsInfoData clone in FlagDependencyExports/Usage** | rspack_plugin_javascript | OptimizeDeps | 2-5% total | High | Both plugins clone ExportsInfoData for parallel processing. ~20MB cloned at 10K modules. See `23-deep-dive-exports-info-system.md` |
 
 ---
 
