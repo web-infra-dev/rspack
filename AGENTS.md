@@ -96,6 +96,10 @@ Depends on what you have modified, you need to rebuild by `pnpm run build:js` or
 
 - **Template**: Use `.github/PULL_REQUEST_TEMPLATE.md`
 - **Title prefix**: `test:`, `fix:`, `feat:`, `refactor:`, `chore:`
+- **Semver alignment**:
+  - `fix:` -> PATCH bump
+  - `feat:` -> MINOR bump
+  - Any breaking change -> MAJOR bump (`type(scope)!:` and/or `BREAKING CHANGE:` in commit body)
 - **CI**: All checks must pass
 
 ## Contributing
@@ -104,7 +108,8 @@ Depends on what you have modified, you need to rebuild by `pnpm run build:js` or
 - Add tests for new features
 - Update docs when APIs change
 - Run linters before submitting
-- Use conventional commits
+- Use Conventional Commits in semver style: `type(scope): subject`
+- Prefer these types for release impact: `fix`, `feat`; use `!` or `BREAKING CHANGE:` only for incompatible changes
 - Keep PRs focused (one feature/fix per PR)
 
 ## Finding Code
