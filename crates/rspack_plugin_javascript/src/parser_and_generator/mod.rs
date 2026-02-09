@@ -126,7 +126,10 @@ impl JavaScriptParserAndGenerator {
       .dependency_by_id(dependency_id)
       .as_dependency_code_generation()
     {
-      if let Some(template) = compilation.get_dependency_template(dependency) {
+      if let Some(template) = dependency
+        .dependency_template()
+        .and_then(|template_type| compilation.get_dependency_template(template_type))
+      {
         template.render(dependency, source, context)
       } else {
         panic!(
@@ -356,7 +359,10 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
 
       if let Some(dependencies) = module.get_presentational_dependencies() {
         dependencies.iter().for_each(|dependency| {
-          if let Some(template) = compilation.get_dependency_template(dependency.as_ref()) {
+          if let Some(template) = dependency
+            .dependency_template()
+            .and_then(|template_type| compilation.get_dependency_template(template_type))
+          {
             template.render(dependency.as_ref(), &mut source, &mut context)
           } else {
             panic!(
