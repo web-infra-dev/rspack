@@ -1769,13 +1769,21 @@ export default {
 ## output.uniqueName
 
 - **类型：** `string`
-- **默认值：** 默认使用 [`output.library`](/config/output#outputlibrary) 名称或者上下文中的 package.json 的 包名称（package name）， 如果两者都不存在，值为 `''`。
+- **默认值：** 按以下优先级依次推导：
+  1. [`output.library`](#outputlibrary) 的 `name`
+  2. `context` 目录下 `package.json` 的 `name`
+  3. `''`（空字符串）
 
-此选项决定了在全局环境下为防止多个 Rspack 运行时 冲突所使用的唯一名称。
+该选项用于标识当前构建的唯一名称，主要用于避免多个 Rspack 应用在同一全局环境中运行时，其运行时代码发生冲突。
 
-`output.uniqueName` 将用于生成唯一全局变量:
+`output.uniqueName` 会影响以下配置项的默认值：
 
-- [`output.chunkLoadingGlobal`](/config/output#outputchunkloadingglobal)
+- [output.chunkLoadingGlobal](#outputchunkloadingglobal)
+- [output.hotUpdateGlobal](#outputhotupdateglobal)
+- [output.devtoolNamespace](#outputdevtoolnamespace)
+- [output.trustedTypes.policyName](#outputtrustedtypes)
+
+你也可以覆盖默认值：
 
 ```js title="rspack.config.mjs"
 export default {
