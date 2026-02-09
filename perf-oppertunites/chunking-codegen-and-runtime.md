@@ -7,6 +7,9 @@ emission paths.
 
 - Chunk graph build: `crates/rspack_core/src/compilation/build_chunk_graph/mod.rs`
 - Code generation: `crates/rspack_core/src/compilation/code_generation/mod.rs`
+- Chunk hashing: `crates/rspack_core/src/compilation/create_hash/mod.rs`
+- Module hashing: `crates/rspack_core/src/compilation/create_module_hashes/mod.rs`
+- Chunk asset rendering: `crates/rspack_core/src/compilation/create_chunk_assets/mod.rs`
 - Runtime modules: `crates/rspack_plugin_runtime/**`
 - Split chunks: `crates/rspack_plugin_split_chunks/**`
 - Runtime chunk: `crates/rspack_plugin_runtime_chunk/**`
@@ -63,5 +66,18 @@ Runtime modules often render JS templates repeatedly:
 
 ### 6) Asset emission batching
 
-Codegen output feeds into asset emission. Emitters can batch file writes and
-hashing to reduce IO overhead, especially for many chunks.
+`create_chunk_assets` calls render manifests per chunk, then emits assets. Each
+chunk generates its own manifest and diagnostics collections. Opportunities:
+
+- Batch rendering for chunks that share runtime configuration.
+- Use shared `Vec` buffers for manifests/diagnostics to reduce allocation.
+- Write assets in batches (group IO per output directory).
+
+### 7) Hashing pass consolidation
+
+`create_hash` and `create_module_hashes` can be expensive, especially when
+incremental passes are disabled by full-hash dependencies:
+
+- Avoid plugins that require `dependent_full_hash` unless strictly necessary.
+- Cache `ChunkHashResult` and runtime module hashes across builds.
+- For modules with identical runtime sets, reuse hash computations.
