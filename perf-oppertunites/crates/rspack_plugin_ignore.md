@@ -17,4 +17,6 @@ Ignore plugin for excluding modules based on patterns.
 - Compare precompiled regex vs per-module compilation.
 
 ## Code pointers
+- `crates/rspack_plugin_ignore/Cargo.toml`
+- `crates/rspack_plugin_ignore/src/lib.rs`
 - `crates/rspack_plugin_ignore/**`

@@ -17,4 +17,6 @@ Source map/devtool handling.
 - Measure incremental source map update effectiveness.
 
 ## Code pointers
+- `crates/rspack_plugin_devtool/Cargo.toml`
+- `crates/rspack_plugin_devtool/src/lib.rs`
 - `crates/rspack_plugin_devtool/**`

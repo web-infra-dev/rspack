@@ -17,4 +17,6 @@ Extract CSS assets into separate files.
 - Measure cache hit rates for unchanged CSS assets.
 
 ## Code pointers
+- `crates/rspack_plugin_extract_css/Cargo.toml`
+- `crates/rspack_plugin_extract_css/src/lib.rs`
 - `crates/rspack_plugin_extract_css/**`

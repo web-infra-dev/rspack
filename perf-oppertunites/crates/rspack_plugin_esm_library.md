@@ -17,4 +17,6 @@ ESM library output formatting.
 - Compare cached template reuse across incremental builds.
 
 ## Code pointers
+- `crates/rspack_plugin_esm_library/Cargo.toml`
+- `crates/rspack_plugin_esm_library/src/lib.rs`
 - `crates/rspack_plugin_esm_library/**`

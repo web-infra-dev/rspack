@@ -17,4 +17,6 @@ JavaScript module parsing, dependency extraction, and runtime hooks.
 - Track AST arena reuse impact on allocation pressure.
 
 ## Code pointers
+- `crates/rspack_plugin_javascript/Cargo.toml`
+- `crates/rspack_plugin_javascript/src/lib.rs`
 - `crates/rspack_plugin_javascript/**`

@@ -17,4 +17,6 @@ DLL plugin support (manifest and reference handling).
 - Measure cache hit rates for manifest parsing.
 
 ## Code pointers
+- `crates/rspack_plugin_dll/Cargo.toml`
+- `crates/rspack_plugin_dll/src/lib.rs`
 - `crates/rspack_plugin_dll/**`

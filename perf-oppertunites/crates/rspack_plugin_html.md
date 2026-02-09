@@ -17,4 +17,6 @@ HTML generation plugin (template rendering and asset injection).
 - Compare cached vs non-cached template rendering.
 
 ## Code pointers
+- `crates/rspack_plugin_html/Cargo.toml`
+- `crates/rspack_plugin_html/src/lib.rs`
 - `crates/rspack_plugin_html/**`

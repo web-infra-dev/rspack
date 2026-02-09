@@ -17,4 +17,6 @@ Entry plugin to register and manage initial entries.
 - Compare cached vs recomputed entry dependency lists.
 
 ## Code pointers
+- `crates/rspack_plugin_entry/Cargo.toml`
+- `crates/rspack_plugin_entry/src/lib.rs`
 - `crates/rspack_plugin_entry/**`

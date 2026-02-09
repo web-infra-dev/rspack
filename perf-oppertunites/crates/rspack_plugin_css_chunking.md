@@ -17,4 +17,6 @@ CSS chunking optimization for splitting CSS output.
 - Compare cached vs full CSS chunk group computation.
 
 ## Code pointers
+- `crates/rspack_plugin_css_chunking/Cargo.toml`
+- `crates/rspack_plugin_css_chunking/src/lib.rs`
 - `crates/rspack_plugin_css_chunking/**`

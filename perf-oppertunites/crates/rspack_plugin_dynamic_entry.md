@@ -17,4 +17,6 @@ Dynamic entry handling for runtime-determined entrypoints.
 - Compare cache hit rates for dynamic entry evaluation.
 
 ## Code pointers
+- `crates/rspack_plugin_dynamic_entry/Cargo.toml`
+- `crates/rspack_plugin_dynamic_entry/src/lib.rs`
 - `crates/rspack_plugin_dynamic_entry/**`
