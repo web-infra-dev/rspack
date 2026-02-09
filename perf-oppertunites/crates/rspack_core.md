@@ -19,5 +19,10 @@ Core compilation engine (module graph, chunking, codegen, hashing).
 ## Code pointers
 - `crates/rspack_core/Cargo.toml`
 - `crates/rspack_core/src/lib.rs`
+- `crates/rspack_core/src/compilation/build_module_graph/mod.rs`
+- `crates/rspack_core/src/compilation/build_chunk_graph/mod.rs`
+- `crates/rspack_core/src/compilation/code_generation/mod.rs`
+- `crates/rspack_core/src/exports/exports_info_getter.rs`
+- `crates/rspack_core/src/utils/file_counter/mod.rs`
 - `crates/rspack_core/src/compilation/**`
 - `crates/rspack_core/src/module_graph/**`
