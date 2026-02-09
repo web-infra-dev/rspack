@@ -407,14 +407,14 @@ opt-level = "s"
 
 # This is for CI build based on release but with faster build time
 [profile.ci]
-codegen-units = 256
-inherits      = "release"
-lto           = false
-## reduce little optimization to reduce build time
+codegen-units       = 256
 debug               = "limited"
 force-unwind-tables = true
-opt-level           = 2
-strip               = false
+inherits            = "release"
+lto                 = false
+## reduce little optimization to reduce build time
+opt-level = 2
+strip     = false
 
 # This is for production for profiling production build
 [profile.profiling]
