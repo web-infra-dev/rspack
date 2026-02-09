@@ -17,4 +17,6 @@ Location tracking utilities (source positions and dependency locations).
 - Compare builds with and without detailed location tracking.
 
 ## Code pointers
+- `crates/rspack_location/Cargo.toml`
+- `crates/rspack_location/src/lib.rs`
 - `crates/rspack_location/**`

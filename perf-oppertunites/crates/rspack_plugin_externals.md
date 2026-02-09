@@ -17,4 +17,6 @@ Externalization of modules based on configuration.
 - Compare cached vs uncached external decision performance.
 
 ## Code pointers
+- `crates/rspack_plugin_externals/Cargo.toml`
+- `crates/rspack_plugin_externals/src/lib.rs`
 - `crates/rspack_plugin_externals/**`

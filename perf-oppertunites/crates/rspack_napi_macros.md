@@ -17,4 +17,6 @@ Procedural macros for NAPI bindings.
 - Compare NAPI call overhead with simplified bindings.
 
 ## Code pointers
+- `crates/rspack_napi_macros/Cargo.toml`
+- `crates/rspack_napi_macros/src/lib.rs`
 - `crates/rspack_napi_macros/**`

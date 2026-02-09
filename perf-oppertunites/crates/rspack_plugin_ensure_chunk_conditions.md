@@ -17,4 +17,6 @@ Ensure chunk conditions and constraints are met.
 - Compare cached vs full condition evaluation.
 
 ## Code pointers
+- `crates/rspack_plugin_ensure_chunk_conditions/Cargo.toml`
+- `crates/rspack_plugin_ensure_chunk_conditions/src/lib.rs`
 - `crates/rspack_plugin_ensure_chunk_conditions/**`

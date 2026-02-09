@@ -17,4 +17,6 @@ Detect circular dependencies in module graph.
 - Compare full traversal vs incremental caching.
 
 ## Code pointers
+- `crates/rspack_plugin_circular_dependencies/Cargo.toml`
+- `crates/rspack_plugin_circular_dependencies/src/lib.rs`
 - `crates/rspack_plugin_circular_dependencies/**`

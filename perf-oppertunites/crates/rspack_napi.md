@@ -17,4 +17,6 @@ NAPI integration and wrappers for JS↔Rust interop.
 - Compare zero-copy vs cloned buffer paths.
 
 ## Code pointers
+- `crates/rspack_napi/Cargo.toml`
+- `crates/rspack_napi/src/lib.rs`
 - `crates/rspack_napi/**`

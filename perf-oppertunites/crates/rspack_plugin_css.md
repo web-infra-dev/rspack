@@ -17,4 +17,6 @@ CSS parsing, dependency extraction, and runtime handling.
 - Compare cache hit rates for unchanged CSS modules.
 
 ## Code pointers
+- `crates/rspack_plugin_css/Cargo.toml`
+- `crates/rspack_plugin_css/src/lib.rs`
 - `crates/rspack_plugin_css/**`

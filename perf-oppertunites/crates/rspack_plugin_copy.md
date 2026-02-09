@@ -17,4 +17,6 @@ Copy assets or files to output directory.
 - Compare cache hit rates for unchanged copied files.
 
 ## Code pointers
+- `crates/rspack_plugin_copy/Cargo.toml`
+- `crates/rspack_plugin_copy/src/lib.rs`
 - `crates/rspack_plugin_copy/**`

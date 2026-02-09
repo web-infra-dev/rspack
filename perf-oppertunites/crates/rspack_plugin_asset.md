@@ -17,4 +17,6 @@ Asset module handling (resource/inline/source).
 - Compare cache hit rates for unchanged asset content.
 
 ## Code pointers
+- `crates/rspack_plugin_asset/Cargo.toml`
+- `crates/rspack_plugin_asset/src/lib.rs`
 - `crates/rspack_plugin_asset/**`

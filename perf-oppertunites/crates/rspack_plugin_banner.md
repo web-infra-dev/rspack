@@ -17,4 +17,6 @@ Banner injection into emitted assets.
 - Compare cached banner string reuse across rebuilds.
 
 ## Code pointers
+- `crates/rspack_plugin_banner/Cargo.toml`
+- `crates/rspack_plugin_banner/src/lib.rs`
 - `crates/rspack_plugin_banner/**`
