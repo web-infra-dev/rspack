@@ -375,15 +375,18 @@ impl From<RawJavascriptParserOptions> for JavascriptParserOptions {
           exports: JavascriptParserCommonjsExportsOption::from(flag),
         },
         Either::B(options) => {
-          let exports = options
-            .exports
-            .map(|exports| match exports {
-              Either::A(flag) => JavascriptParserCommonjsExportsOption::from(flag),
-              Either::B(RawJavascriptParserCommonjsExports::SkipInEsm) => {
-                JavascriptParserCommonjsExportsOption::SkipInEsm
-              }
-            })
-            .unwrap_or(JavascriptParserCommonjsExportsOption::Enable);
+          let exports =
+            options
+              .exports
+              .map_or(
+                JavascriptParserCommonjsExportsOption::Enable,
+                |exports| match exports {
+                  Either::A(flag) => JavascriptParserCommonjsExportsOption::from(flag),
+                  Either::B(RawJavascriptParserCommonjsExports::SkipInEsm) => {
+                    JavascriptParserCommonjsExportsOption::SkipInEsm
+                  }
+                },
+              );
           JavascriptParserCommonjsOptions { exports }
         }
       }),

@@ -4,12 +4,13 @@ use std::{
 };
 
 use rspack_core::{
-  AssetEmittedInfo, ChunkUkey, Compilation, CompilationParams, CompilerAssetEmitted,
-  CompilerCompilation, CompilerFinishMake, ModuleType, NormalModuleFactoryParser,
-  ParserAndGenerator, ParserOptions, Plugin, get_module_directives, get_module_hashbang,
+  AssetEmittedInfo, BuildModuleGraphArtifact, ChunkUkey, Compilation,
+  CompilationOptimizeDependencies, CompilationParams, CompilerAssetEmitted, CompilerCompilation,
+  DependencyType, ModuleType, NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, Plugin,
+  SideEffectsOptimizeArtifact, get_module_directives, get_module_hashbang,
   rspack_sources::{ConcatSource, RawStringSource, Source, SourceExt},
 };
-use rspack_error::Result;
+use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_asset::AssetParserAndGenerator;
 use rspack_plugin_javascript::{
@@ -18,10 +19,11 @@ use rspack_plugin_javascript::{
 };
 
 use crate::{
-  asset::RslibAssetParserAndGenerator, hashbang_parser_plugin::HashbangParserPlugin,
-  import_dependency::RslibDependencyTemplate,
-  import_external::replace_import_dependencies_for_external_modules,
-  parser_plugin::RslibParserPlugin, react_directives_parser_plugin::ReactDirectivesParserPlugin,
+  asset::RslibAssetParserAndGenerator,
+  dyn_import_external::{ImportDependencyTemplate, cutout_dyn_import_external},
+  hashbang_parser_plugin::HashbangParserPlugin,
+  parser_plugin::RslibParserPlugin,
+  react_directives_parser_plugin::ReactDirectivesParserPlugin,
 };
 
 #[derive(Debug)]
@@ -86,17 +88,19 @@ async fn nmf_parser(
   Ok(())
 }
 
-#[plugin_hook(CompilerCompilation for RslibPlugin)]
+#[plugin_hook(CompilerCompilation for RslibPlugin, stage=10)]
 async fn compilation(
   &self,
   compilation: &mut Compilation,
   _params: &mut CompilationParams,
 ) -> Result<()> {
-  compilation.set_dependency_template(
-    RslibDependencyTemplate::template_type(),
-    Arc::new(RslibDependencyTemplate::default()),
+  let template = compilation.get_dependency_template(
+    rspack_core::DependencyTemplateType::Dependency(DependencyType::DynamicImport),
   );
-
+  compilation.set_dependency_template(
+    rspack_core::DependencyTemplateType::Dependency(DependencyType::DynamicImport),
+    Arc::new(ImportDependencyTemplate { template }),
+  );
   // Register render hook for hashbang and directives handling during chunk generation
   let hooks = JsPlugin::get_compilation_hooks_mut(compilation.id());
   let mut hooks = hooks.write().await;
@@ -167,11 +171,16 @@ async fn render(
   Ok(())
 }
 
-#[plugin_hook(CompilerFinishMake for RslibPlugin)]
-async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
-  // Replace ImportDependency instances with RslibImportDependency for external modules
-  replace_import_dependencies_for_external_modules(compilation)?;
-  Ok(())
+#[plugin_hook(CompilationOptimizeDependencies for RslibPlugin)]
+async fn optimize_dependencies(
+  &self,
+  _compilation: &Compilation,
+  _side_effects_optimize_artifact: &mut SideEffectsOptimizeArtifact,
+  build_module_graph_artifact: &mut BuildModuleGraphArtifact,
+  _diagnostics: &mut Vec<Diagnostic>,
+) -> Result<Option<bool>> {
+  cutout_dyn_import_external(build_module_graph_artifact);
+  Ok(None)
 }
 
 #[plugin_hook(CompilerAssetEmitted for RslibPlugin)]
@@ -206,7 +215,11 @@ impl Plugin for RslibPlugin {
       .parser
       .tap(nmf_parser::new(self));
 
-    ctx.compiler_hooks.finish_make.tap(finish_make::new(self));
+    ctx
+      .compilation_hooks
+      .optimize_dependencies
+      .tap(optimize_dependencies::new(self));
+
     ctx
       .compiler_hooks
       .asset_emitted

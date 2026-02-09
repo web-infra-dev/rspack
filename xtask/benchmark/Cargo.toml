@@ -32,3 +32,6 @@ name    = "benches"
 
 [package.metadata.cargo-shear]
 ignored = ["rspack_cacheable"]
+
+[lints]
+workspace = true
