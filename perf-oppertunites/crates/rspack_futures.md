@@ -19,4 +19,5 @@ Async helpers and scoped task utilities.
 ## Code pointers
 - `crates/rspack_futures/Cargo.toml`
 - `crates/rspack_futures/src/lib.rs`
+- `crates/rspack_futures/src/scope.rs`
 - `crates/rspack_futures/**`

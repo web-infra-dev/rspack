@@ -19,4 +19,7 @@ ID generation and management for modules/chunks.
 ## Code pointers
 - `crates/rspack_ids/Cargo.toml`
 - `crates/rspack_ids/src/lib.rs`
+- `crates/rspack_ids/src/id_helpers.rs`
+- `crates/rspack_ids/src/deterministic_module_ids_plugin.rs`
+- `crates/rspack_ids/src/named_module_ids_plugin.rs`
 - `crates/rspack_ids/**`

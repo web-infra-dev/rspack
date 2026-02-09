@@ -19,4 +19,7 @@ Cacheable serialization/deserialization framework.
 ## Code pointers
 - `crates/rspack_cacheable/Cargo.toml`
 - `crates/rspack_cacheable/src/lib.rs`
+- `crates/rspack_cacheable/src/serialize.rs`
+- `crates/rspack_cacheable/src/deserialize.rs`
+- `crates/rspack_cacheable/src/with/mod.rs`
 - `crates/rspack_cacheable/**`

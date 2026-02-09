@@ -19,4 +19,7 @@ Loader execution pipeline and state machine.
 ## Code pointers
 - `crates/rspack_loader_runner/Cargo.toml`
 - `crates/rspack_loader_runner/src/lib.rs`
+- `crates/rspack_loader_runner/src/runner.rs`
+- `crates/rspack_loader_runner/src/content.rs`
+- `crates/rspack_loader_runner/src/context.rs`
 - `crates/rspack_loader_runner/**`
