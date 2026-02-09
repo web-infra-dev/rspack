@@ -108,6 +108,7 @@ Phase 4 — Finalize
 | 23 | `23-deep-dive-exports-info-system.md` | ExportsInfo | Root cause of O(n²): per-task fresh caches in side effects |
 | 24 | `24-deep-dive-parsing-scanning.md` | Parsing Pipeline | 7-pass pipeline, 140M node visits at 10K modules |
 | 25 | `25-deep-dive-incremental-compilation.md` | Incremental | 5 disabled passes in production, BUILD_CHUNK_GRAPH disabled |
+| 26 | `26-deep-dive-concatenated-module.md` | ConcatenatedModule | Double-parsing of 5K modules during scope hoisting codegen |
 
 ## Methodology
 
