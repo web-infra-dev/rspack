@@ -17,4 +17,6 @@ Hook system definitions and macros.
 - Compare fast-path hook checks vs current behavior.
 
 ## Code pointers
+- `crates/rspack_hook/Cargo.toml`
+- `crates/rspack_hook/src/lib.rs`
 - `crates/rspack_hook/**`

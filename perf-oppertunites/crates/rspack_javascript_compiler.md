@@ -17,4 +17,6 @@ SWC-backed JavaScript/TypeScript parsing and transformation.
 - Measure AST arena reuse impact on allocation pressure.
 
 ## Code pointers
+- `crates/rspack_javascript_compiler/Cargo.toml`
+- `crates/rspack_javascript_compiler/src/lib.rs`
 - `crates/rspack_javascript_compiler/**`

@@ -17,4 +17,6 @@ Procedural macros used across Rspack.
 - Compare binary size with optimized macro expansions.
 
 ## Code pointers
+- `crates/rspack_macros/Cargo.toml`
+- `crates/rspack_macros/src/lib.rs`
 - `crates/rspack_macros/**`

@@ -17,4 +17,6 @@ Case-sensitive path checks for module resolution.
 - Compare cached vs non-cached path checks.
 
 ## Code pointers
+- `crates/rspack_plugin_case_sensitive/Cargo.toml`
+- `crates/rspack_plugin_case_sensitive/src/lib.rs`
 - `crates/rspack_plugin_case_sensitive/**`

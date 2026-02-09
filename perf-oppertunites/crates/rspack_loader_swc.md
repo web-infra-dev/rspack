@@ -17,4 +17,6 @@ Built-in SWC loader for JS/TS transformations.
 - Compare per-module SWC instantiation vs reused instances.
 
 ## Code pointers
+- `crates/rspack_loader_swc/Cargo.toml`
+- `crates/rspack_loader_swc/src/lib.rs`
 - `crates/rspack_loader_swc/**`

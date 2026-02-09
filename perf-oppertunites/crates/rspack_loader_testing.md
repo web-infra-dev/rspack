@@ -15,4 +15,6 @@ Loader testing utilities.
 - Verify test helpers are not compiled in release builds.
 
 ## Code pointers
+- `crates/rspack_loader_testing/Cargo.toml`
+- `crates/rspack_loader_testing/src/lib.rs`
 - `crates/rspack_loader_testing/**`

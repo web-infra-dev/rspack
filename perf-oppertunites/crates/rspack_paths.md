@@ -17,4 +17,6 @@ Path utilities and UTF‑8 path wrappers.
 - Compare cached path hashing vs direct hashing.
 
 ## Code pointers
+- `crates/rspack_paths/Cargo.toml`
+- `crates/rspack_paths/src/lib.rs`
 - `crates/rspack_paths/**`

@@ -17,4 +17,6 @@ File system abstraction used by resolver and loader pipelines.
 - Measure IO time vs cached stat/read usage.
 
 ## Code pointers
+- `crates/rspack_fs/Cargo.toml`
+- `crates/rspack_fs/src/lib.rs`
 - `crates/rspack_fs/**`

@@ -17,4 +17,6 @@ ID generation and management for modules/chunks.
 - Compare hashed vs incremental ID strategies.
 
 ## Code pointers
+- `crates/rspack_ids/Cargo.toml`
+- `crates/rspack_ids/src/lib.rs`
 - `crates/rspack_ids/**`

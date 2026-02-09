@@ -15,4 +15,6 @@ Tests for procedural macro expansion behavior.
 - Verify test-only features are gated and not compiled in release builds.
 
 ## Code pointers
+- `crates/rspack_macros_test/Cargo.toml`
+- `crates/rspack_macros_test/tests/compiletest.rs`
 - `crates/rspack_macros_test/**`
