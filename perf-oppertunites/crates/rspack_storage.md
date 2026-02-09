@@ -19,4 +19,7 @@ Storage backend for persistent cache (pack storage, IO bridging).
 ## Code pointers
 - `crates/rspack_storage/Cargo.toml`
 - `crates/rspack_storage/src/lib.rs`
+- `crates/rspack_storage/src/error.rs`
+- `crates/rspack_storage/src/fs/mod.rs`
+- `crates/rspack_storage/src/pack/mod.rs`
 - `crates/rspack_storage/**`

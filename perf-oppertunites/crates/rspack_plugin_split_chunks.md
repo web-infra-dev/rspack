@@ -19,4 +19,8 @@ SplitChunks optimization (chunk grouping and splitting).
 ## Code pointers
 - `crates/rspack_plugin_split_chunks/Cargo.toml`
 - `crates/rspack_plugin_split_chunks/src/lib.rs`
+- `crates/rspack_plugin_split_chunks/src/common.rs`
+- `crates/rspack_plugin_split_chunks/src/module_group.rs`
+- `crates/rspack_plugin_split_chunks/src/options/cache_group.rs`
+- `crates/rspack_plugin_split_chunks/src/plugin/mod.rs`
 - `crates/rspack_plugin_split_chunks/**`

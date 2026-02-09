@@ -19,4 +19,7 @@ Scheme handling (e.g., `file:`, `data:`, `http:`) for module resolution.
 ## Code pointers
 - `crates/rspack_plugin_schemes/Cargo.toml`
 - `crates/rspack_plugin_schemes/src/lib.rs`
+- `crates/rspack_plugin_schemes/src/file_uri.rs`
+- `crates/rspack_plugin_schemes/src/data_uri.rs`
+- `crates/rspack_plugin_schemes/src/http_uri/mod.rs`
 - `crates/rspack_plugin_schemes/**`

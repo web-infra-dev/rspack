@@ -19,4 +19,7 @@ Debug/testing utilities for inspecting Rspack internals.
 ## Code pointers
 - `crates/rspack_tools/Cargo.toml`
 - `crates/rspack_tools/src/lib.rs`
+- `crates/rspack_tools/src/debug_info.rs`
+- `crates/rspack_tools/src/utils.rs`
+- `crates/rspack_tools/src/compare/snapshot.rs`
 - `crates/rspack_tools/**`

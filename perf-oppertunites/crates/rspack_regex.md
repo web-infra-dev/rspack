@@ -19,4 +19,6 @@ Regex utilities used throughout the codebase.
 ## Code pointers
 - `crates/rspack_regex/Cargo.toml`
 - `crates/rspack_regex/src/lib.rs`
+- `crates/rspack_regex/src/algo.rs`
+- `crates/rspack_regex/src/napi.rs`
 - `crates/rspack_regex/**`

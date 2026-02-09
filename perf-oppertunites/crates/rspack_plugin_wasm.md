@@ -19,4 +19,8 @@ WASM module support and runtime integration.
 ## Code pointers
 - `crates/rspack_plugin_wasm/Cargo.toml`
 - `crates/rspack_plugin_wasm/src/lib.rs`
+- `crates/rspack_plugin_wasm/src/loading_plugin.rs`
+- `crates/rspack_plugin_wasm/src/parser_and_generator.rs`
+- `crates/rspack_plugin_wasm/src/dependency/wasm_import_dependency.rs`
+- `crates/rspack_plugin_wasm/src/runtime.rs`
 - `crates/rspack_plugin_wasm/**`
