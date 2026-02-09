@@ -30,6 +30,8 @@ performance opportunity write-ups based on the `build-tools-performance`
 - [hotspot-map.md](./hotspot-map.md) — perf symbols mapped to code.
 - [crate-survey.md](./crate-survey.md) — crate-by-crate inspection notes.
 - [crates/](./crates/) — per-crate performance opportunity write-ups.
+- [crates/000-deep-audit-and-profiling-status.md](./crates/000-deep-audit-and-profiling-status.md) — latest deep audit + profiling artifact status.
+- [crates/001-all-crates-remaining-opportunities.md](./crates/001-all-crates-remaining-opportunities.md) — one-by-one remaining opportunities for all crates.
 - [module-graph-and-resolution.md](./module-graph-and-resolution.md)
 - [parsing-loaders-and-transforms.md](./parsing-loaders-and-transforms.md)
 - [chunking-codegen-and-runtime.md](./chunking-codegen-and-runtime.md)
@@ -41,5 +43,7 @@ performance opportunity write-ups based on the `build-tools-performance`
 
 1. Start with `profiling-results.md` to see the perf evidence.
 2. Review `crate-survey.md` to map crates to pipeline stages.
-3. Dive into the per-stage docs for optimization opportunities, each including
+3. Review `crates/000-deep-audit-and-profiling-status.md` for current profiling feasibility and captured trace artifacts.
+4. Use `crates/001-all-crates-remaining-opportunities.md` as the crate-by-crate optimization backlog.
+5. Dive into the per-stage docs for optimization opportunities, each including
    code pointers and suggested experiments.

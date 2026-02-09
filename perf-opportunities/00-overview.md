@@ -127,6 +127,16 @@ Phase 4 — Finalize
 | 42 | `42-react-10k-benchmark-analysis.md` | react-10k Specific | Maps all findings to actual benchmark; projects 3.3x speedup from SideEffects fix |
 | 43 | `43-react-10k-actual-profile.md` | **REAL react-10k Profile** | **Actual 10K module run: make phase 81.8%, codegen 8.2% (concat re-parse), revised priorities** |
 
+### Consolidated Companion Set
+
+All docs from `perf-oppertunites/` were consolidated into `perf-opportunities/`:
+
+- `perf-opportunities/survey-0f36/` — workload, profiling, hotspot map, cross-cutting analyses
+- `perf-opportunities/crate-notes/` — crate-by-crate companion notes
+- `perf-opportunities/survey-0f36/macos-profiling-deep-research.md` — macOS-native deep profiling workflow and trace findings
+
+To reduce duplication, the temporary `phase-structured/` copy set was removed.
+
 ## Methodology
 
 1. **Manual source code inspection**: Every significant `.rs` file in each crate was read and analyzed
