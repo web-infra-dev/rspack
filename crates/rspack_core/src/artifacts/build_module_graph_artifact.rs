@@ -69,6 +69,7 @@ pub struct BuildModuleGraphArtifact {
 }
 
 impl BuildModuleGraphArtifact {
+  #[allow(clippy::new_without_default)]
   pub fn new() -> Self {
     Self {
       affected_modules: Default::default(),
