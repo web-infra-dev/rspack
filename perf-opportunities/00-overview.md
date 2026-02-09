@@ -112,6 +112,8 @@ Phase 4 — Finalize
 | 27 | `27-deep-dive-async-chunks-profile.md` | Async Chunks | BuildChunkGraph 24x slower with 50 async chunks |
 | 28 | `28-deep-dive-memory-allocation-patterns.md` | Memory | 244MB at 10K modules, DashMap per-module overhead |
 | 29 | `29-deep-dive-module-factory-and-rebuild.md` | Factory/Rebuild | 300K rule evaluations, fresh compilation cost |
+| 30 | `30-deep-dive-module-build-and-hooks.md` | Build Pipeline | 1-4ms/module, hook dispatch overhead, RealContentHash |
+| 31 | `31-scaling-model.md` | All | Comprehensive scaling model to 10K-50K, 64-70% improvement potential |
 
 ## Methodology
 
