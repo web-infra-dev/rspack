@@ -109,6 +109,9 @@ Phase 4 — Finalize
 | 24 | `24-deep-dive-parsing-scanning.md` | Parsing Pipeline | 7-pass pipeline, 140M node visits at 10K modules |
 | 25 | `25-deep-dive-incremental-compilation.md` | Incremental | 5 disabled passes in production, BUILD_CHUNK_GRAPH disabled |
 | 26 | `26-deep-dive-concatenated-module.md` | ConcatenatedModule | Double-parsing of 5K modules during scope hoisting codegen |
+| 27 | `27-deep-dive-async-chunks-profile.md` | Async Chunks | BuildChunkGraph 24x slower with 50 async chunks |
+| 28 | `28-deep-dive-memory-allocation-patterns.md` | Memory | 244MB at 10K modules, DashMap per-module overhead |
+| 29 | `29-deep-dive-module-factory-and-rebuild.md` | Factory/Rebuild | 300K rule evaluations, fresh compilation cost |
 
 ## Methodology
 
