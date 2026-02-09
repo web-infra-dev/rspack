@@ -17,4 +17,6 @@ Custom collection types used in hot paths (sets, maps, identifiers).
 - Compare `FxHash`/custom hashers for identifier-heavy workloads.
 
 ## Code pointers
+- `crates/rspack_collections/Cargo.toml`
+- `crates/rspack_collections/src/lib.rs`
 - `crates/rspack_collections/**`

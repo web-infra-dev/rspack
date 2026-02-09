@@ -17,5 +17,7 @@ Core compilation engine (module graph, chunking, codegen, hashing).
 - Measure impact of overlay fast paths and export prefetch caching.
 
 ## Code pointers
+- `crates/rspack_core/Cargo.toml`
+- `crates/rspack_core/src/lib.rs`
 - `crates/rspack_core/src/compilation/**`
 - `crates/rspack_core/src/module_graph/**`

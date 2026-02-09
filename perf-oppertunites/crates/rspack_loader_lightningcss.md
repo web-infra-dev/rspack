@@ -17,4 +17,6 @@ LightningCSS loader for CSS parsing/transform.
 - Compare cache hit rates for unchanged CSS modules.
 
 ## Code pointers
+- `crates/rspack_loader_lightningcss/Cargo.toml`
+- `crates/rspack_loader_lightningcss/src/lib.rs`
 - `crates/rspack_loader_lightningcss/**`

@@ -17,4 +17,6 @@ React Refresh loader for HMR.
 - Compare cached vs recomputed refresh wrappers.
 
 ## Code pointers
+- `crates/rspack_loader_react_refresh/Cargo.toml`
+- `crates/rspack_loader_react_refresh/src/lib.rs`
 - `crates/rspack_loader_react_refresh/**`

@@ -17,4 +17,6 @@ Loader execution pipeline and state machine.
 - Compare zero-copy content handling vs lossy conversions.
 
 ## Code pointers
+- `crates/rspack_loader_runner/Cargo.toml`
+- `crates/rspack_loader_runner/src/lib.rs`
 - `crates/rspack_loader_runner/**`

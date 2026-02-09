@@ -17,4 +17,6 @@ Error and diagnostic types.
 - Compare lazy vs eager error string construction.
 
 ## Code pointers
+- `crates/rspack_error/Cargo.toml`
+- `crates/rspack_error/src/lib.rs`
 - `crates/rspack_error/**`

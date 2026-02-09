@@ -17,4 +17,6 @@ Hashing utilities used for modules/chunks/assets.
 - Compare incremental vs full hash strategies.
 
 ## Code pointers
+- `crates/rspack_hash/Cargo.toml`
+- `crates/rspack_hash/src/lib.rs`
 - `crates/rspack_hash/**`
