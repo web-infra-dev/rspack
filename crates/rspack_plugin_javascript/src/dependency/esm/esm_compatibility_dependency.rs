@@ -72,10 +72,7 @@ impl DependencyTemplate for ESMCompatibilityDependencyTemplate {
       )));
     }
 
-    if ModuleGraph::is_async(
-      &compilation.async_modules_artifact.borrow(),
-      &module.identifier(),
-    ) {
+    if ModuleGraph::is_async(&compilation.async_modules_artifact, &module.identifier()) {
       init_fragments.push(Box::new(NormalInitFragment::new(
         format!(
           "{}({}, async function (__rspack_load_async_deps, __rspack_async_done) {{ try {{\n",

@@ -71,7 +71,11 @@
         "link": "https://github.com/web-infra-dev/rspack/releases"
       },
       {
-        "text": "Rspack 0.x Doc",
+        "text": "Rspack 1.x Docs",
+        "link": "http://v1.rspack.rs/"
+      },
+      {
+        "text": "Rspack 0.x Docs",
         "link": "http://v0.rspack.rs/"
       }
     ]

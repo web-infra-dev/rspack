@@ -301,6 +301,7 @@ export const getNormalizedRspackOptions = (
           ),
         },
         portable: cache.portable,
+        readonly: cache.readonly,
       };
     }),
     stats: nestedConfig(config.stats, (stats) => {
