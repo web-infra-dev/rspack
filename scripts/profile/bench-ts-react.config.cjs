@@ -4,7 +4,10 @@ const RefreshPlugin = require('@rspack/plugin-react-refresh');
 
 const isDev = process.env.NODE_ENV === 'development';
 const targets = ['chrome >= 87', 'edge >= 88', 'firefox >= 78', 'safari >= 14'];
-const fixtureRoot = path.resolve(__dirname, '../../tests/bench/fixtures/ts-react');
+const fixtureRoot = path.resolve(
+  __dirname,
+  '../../tests/bench/fixtures/ts-react',
+);
 
 module.exports = {
   context: fixtureRoot,

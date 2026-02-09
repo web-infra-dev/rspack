@@ -14,6 +14,7 @@ three build variants to maximize coverage:
 - Benchmark fixture: `tests/bench/fixtures/ts-react`
 - Build: `build:binding:profiling` + `build:js`
 - Commands:
+
   ```sh
   # Web target
   pnpm run profile:line-report -- \
@@ -48,44 +49,44 @@ three build variants to maximize coverage:
 
 Sample count: **31** (each entry ≈ 3.23%).
 
-| Overhead | Source:Line | Symbol | Analysis |
-| --- | --- | --- | --- |
-| 3.23% | `swc_ecma_codegen/src/lib.rs:666` | `Emitter::emit_list` (VarDeclarator) | Codegen loop over declarators; writer allocation churn. |
-| 3.23% | `crates/rspack_plugin_javascript/.../call_hooks_name.rs:126` | `JavascriptParser::call_hooks_info` | Hook evaluation during dependency scan; synchronous hook overhead. |
-| 3.23% | `lightningcss/.../values/easing` (`raw_vec/mod.rs:564`) | `EasingFunction::to_css` | CSS serialization cost; indicates CSS pipeline overhead. |
-| 3.23% | `preset_env_base/src/query.rs:67` | `targets_to_versions` | Browserslist target resolution; cacheable between builds. |
-| 3.23% | `swc_ecma_parser/src/parser/expr.rs:1796` | `parse_member_expr_or_new_expr_inner` | Parser recursion; parsing cost visible for TS/JS modules. |
-| 3.23% | `swc_ecma_minifier/.../remove_invalid_bin` | `Optimizer::remove_invalid_bin` | Minifier validity cleanup pass. |
-| 3.23% | `swc_ecma_minifier/.../can_absorb_negate` | `compress::util` | Boolean algebra simplification pass. |
-| 3.23% | `hashbrown/control/bitmask.rs` | `Optimizer::visit_mut_expr` | HashMap bitmask operations inside SWC passes. |
-| 3.23% | `swc_ecma_visit/generated.rs:16513` | `Preserver::visit_children_with` | Mangle-name preserver traversal. |
-| 3.23% | `swc_ecma_visit/generated.rs:50375` | `optional_chaining` transform | Optional chaining transform traversal. |
-| 3.23% | `napi_register_module_v1` | N-API module init | Binding initialization overhead (short runs). |
+| Overhead | Source:Line                                                  | Symbol                                | Analysis                                                           |
+| -------- | ------------------------------------------------------------ | ------------------------------------- | ------------------------------------------------------------------ |
+| 3.23%    | `swc_ecma_codegen/src/lib.rs:666`                            | `Emitter::emit_list` (VarDeclarator)  | Codegen loop over declarators; writer allocation churn.            |
+| 3.23%    | `crates/rspack_plugin_javascript/.../call_hooks_name.rs:126` | `JavascriptParser::call_hooks_info`   | Hook evaluation during dependency scan; synchronous hook overhead. |
+| 3.23%    | `lightningcss/.../values/easing` (`raw_vec/mod.rs:564`)      | `EasingFunction::to_css`              | CSS serialization cost; indicates CSS pipeline overhead.           |
+| 3.23%    | `preset_env_base/src/query.rs:67`                            | `targets_to_versions`                 | Browserslist target resolution; cacheable between builds.          |
+| 3.23%    | `swc_ecma_parser/src/parser/expr.rs:1796`                    | `parse_member_expr_or_new_expr_inner` | Parser recursion; parsing cost visible for TS/JS modules.          |
+| 3.23%    | `swc_ecma_minifier/.../remove_invalid_bin`                   | `Optimizer::remove_invalid_bin`       | Minifier validity cleanup pass.                                    |
+| 3.23%    | `swc_ecma_minifier/.../can_absorb_negate`                    | `compress::util`                      | Boolean algebra simplification pass.                               |
+| 3.23%    | `hashbrown/control/bitmask.rs`                               | `Optimizer::visit_mut_expr`           | HashMap bitmask operations inside SWC passes.                      |
+| 3.23%    | `swc_ecma_visit/generated.rs:16513`                          | `Preserver::visit_children_with`      | Mangle-name preserver traversal.                                   |
+| 3.23%    | `swc_ecma_visit/generated.rs:50375`                          | `optional_chaining` transform         | Optional chaining transform traversal.                             |
+| 3.23%    | `napi_register_module_v1`                                    | N-API module init                     | Binding initialization overhead (short runs).                      |
 
 ## Line-by-line Findings (Node target)
 
 Sample count: **23** (each entry ≈ 4.35%).
 
-| Overhead | Source:Line | Symbol | Analysis |
-| --- | --- | --- | --- |
-| 4.35% | `swc_ecma_parser/src/parser/stmt.rs:1302` | `parse_ident_name` | Parser identifier handling; TS/JS parsing cost. |
-| 4.35% | `crates/rspack_plugin_javascript/.../walk_pre` | `pre_walk_statements` | Pre-walk dependency traversal in plugin parser. |
-| 4.35% | `serde_json/src/lib.rs:412` | `MapDeserializer::end` | JSON parse cost (config/metadata) in build pipeline. |
-| 4.35% | `swc_common/comments` | `take_leading` | Comment extraction overhead; can be gated if comments unused. |
-| 4.35% | `swc_ecma_ast/eq_ignore_span` | Span comparison; AST equality checks (potentially prune). |
-| 4.35% | `InsertedSemicolons` visitor | Semicolon insertion traversal; extra pass cost. |
+| Overhead | Source:Line                                    | Symbol                                                    | Analysis                                                      |
+| -------- | ---------------------------------------------- | --------------------------------------------------------- | ------------------------------------------------------------- |
+| 4.35%    | `swc_ecma_parser/src/parser/stmt.rs:1302`      | `parse_ident_name`                                        | Parser identifier handling; TS/JS parsing cost.               |
+| 4.35%    | `crates/rspack_plugin_javascript/.../walk_pre` | `pre_walk_statements`                                     | Pre-walk dependency traversal in plugin parser.               |
+| 4.35%    | `serde_json/src/lib.rs:412`                    | `MapDeserializer::end`                                    | JSON parse cost (config/metadata) in build pipeline.          |
+| 4.35%    | `swc_common/comments`                          | `take_leading`                                            | Comment extraction overhead; can be gated if comments unused. |
+| 4.35%    | `swc_ecma_ast/eq_ignore_span`                  | Span comparison; AST equality checks (potentially prune). |
+| 4.35%    | `InsertedSemicolons` visitor                   | Semicolon insertion traversal; extra pass cost.           |
 
 ## Line-by-line Findings (ESM output)
 
 Sample count: **19** (each entry ≈ 5.26%).
 
-| Overhead | Source:Line | Symbol | Analysis |
-| --- | --- | --- | --- |
-| 5.26% | `core/src/option.rs` | `JavascriptParser::walk_statements` | Dependency traversal still visible in ESM output. |
-| 5.26% | `swc_ecma_codegen/text_writer/basic_impl.rs:98` | `emit_leading_comments` | Comment emission; could be disabled if no comments needed. |
-| 5.26% | `swc_ecma_parser/lexer/jsx.rs:9` | `read_keyword_with` | JSX lexer keyword scanning. |
-| 5.26% | `lightningcss/media_query` | `parse_with_options` | Media query parse cost (CSS pipeline). |
-| 5.26% | `blake3` | `mi_free` | Hashing / allocation cleanup overhead. |
+| Overhead | Source:Line                                     | Symbol                              | Analysis                                                   |
+| -------- | ----------------------------------------------- | ----------------------------------- | ---------------------------------------------------------- |
+| 5.26%    | `core/src/option.rs`                            | `JavascriptParser::walk_statements` | Dependency traversal still visible in ESM output.          |
+| 5.26%    | `swc_ecma_codegen/text_writer/basic_impl.rs:98` | `emit_leading_comments`             | Comment emission; could be disabled if no comments needed. |
+| 5.26%    | `swc_ecma_parser/lexer/jsx.rs:9`                | `read_keyword_with`                 | JSX lexer keyword scanning.                                |
+| 5.26%    | `lightningcss/media_query`                      | `parse_with_options`                | Media query parse cost (CSS pipeline).                     |
+| 5.26%    | `blake3`                                        | `mi_free`                           | Hashing / allocation cleanup overhead.                     |
 
 ## Consolidated Biggest Impacts
 
@@ -104,40 +105,40 @@ SWC tuning.
 
 ### Web target
 
-| Source:Line | Symbol | Analysis |
-| --- | --- | --- |
-| `crates/rspack_plugin_javascript/src/visitors/dependency/parser/call_hooks_name.rs:126` | `JavascriptParser::call_hooks_info` | Hook evaluation during dependency scan; synchronous hook overhead. |
-| `crates/rspack_plugin_javascript/src/dependency/esm/esm_import_specifier_dependency.rs:362` | `VariableInfoId HashMap insert` | Import specifier tracking; map churn appears during ESM import analysis. |
-| `preset_env_base/src/query.rs:67` | `targets_to_versions` | Browserslist target computation; cacheable per build. |
-| `lightningcss/.../values/easing` | `EasingFunction::to_css` | CSS serialization in output stage. |
+| Source:Line                                                                                 | Symbol                              | Analysis                                                                 |
+| ------------------------------------------------------------------------------------------- | ----------------------------------- | ------------------------------------------------------------------------ |
+| `crates/rspack_plugin_javascript/src/visitors/dependency/parser/call_hooks_name.rs:126`     | `JavascriptParser::call_hooks_info` | Hook evaluation during dependency scan; synchronous hook overhead.       |
+| `crates/rspack_plugin_javascript/src/dependency/esm/esm_import_specifier_dependency.rs:362` | `VariableInfoId HashMap insert`     | Import specifier tracking; map churn appears during ESM import analysis. |
+| `preset_env_base/src/query.rs:67`                                                           | `targets_to_versions`               | Browserslist target computation; cacheable per build.                    |
+| `lightningcss/.../values/easing`                                                            | `EasingFunction::to_css`            | CSS serialization in output stage.                                       |
 
 ### Node target
 
-| Source:Line | Symbol | Analysis |
-| --- | --- | --- |
-| `crates/rspack_plugin_javascript/.../walk_pre` | `pre_walk_statements` | Pre-walk dependency traversal in plugin parser. |
-| `serde_json/src/lib.rs:412` | `MapDeserializer::end` | JSON parsing overhead; suggests caching parsed configs or pre-serialization. |
-| `swc_common/comments` | `take_leading` | Comment extraction; could be gated when not required. |
-| `InsertedSemicolons` visitor | `visit_children_with` | Semicolon insertion traversal overhead. |
+| Source:Line                                    | Symbol                 | Analysis                                                                     |
+| ---------------------------------------------- | ---------------------- | ---------------------------------------------------------------------------- |
+| `crates/rspack_plugin_javascript/.../walk_pre` | `pre_walk_statements`  | Pre-walk dependency traversal in plugin parser.                              |
+| `serde_json/src/lib.rs:412`                    | `MapDeserializer::end` | JSON parsing overhead; suggests caching parsed configs or pre-serialization. |
+| `swc_common/comments`                          | `take_leading`         | Comment extraction; could be gated when not required.                        |
+| `InsertedSemicolons` visitor                   | `visit_children_with`  | Semicolon insertion traversal overhead.                                      |
 
 ### ESM output
 
-| Source:Line | Symbol | Analysis |
-| --- | --- | --- |
-| `core/src/option.rs` | `JavascriptParser::walk_statements` | Parser dependency traversal in ESM mode. |
-| `swc_ecma_codegen/text_writer/basic_impl.rs:98` | `emit_leading_comments` | Comment emission in ESM output. |
-| `lightningcss/media_query` | `parse_with_options` | CSS media query parse cost. |
+| Source:Line                                     | Symbol                              | Analysis                                 |
+| ----------------------------------------------- | ----------------------------------- | ---------------------------------------- |
+| `core/src/option.rs`                            | `JavascriptParser::walk_statements` | Parser dependency traversal in ESM mode. |
+| `swc_ecma_codegen/text_writer/basic_impl.rs:98` | `emit_leading_comments`             | Comment emission in ESM output.          |
+| `lightningcss/media_query`                      | `parse_with_options`                | CSS media query parse cost.              |
 
 ## Additional Non-SWC Libraries with Hot Lines
 
-| Library | Example line | Notes |
-| --- | --- | --- |
-| `lightningcss` | `BorderImageHandler::flush` | CSS pipeline cost in production builds. |
-| `hstr` | `Atom::eq`, macros.rs | Atom comparisons during transforms and resolver passes. |
-| `mimalloc-rspack` | allocator entry points | Indicates allocation pressure in parser/minifier. |
-| `blake3` | `mi_malloc_aligned` (AVX512) | Hashing / allocation interaction in node target. |
-| `preset_env_base` | `targets_to_versions` | Browserslist target computation cost; cacheable. |
-| `serde_json` | `MapDeserializer::end` | JSON parse overhead for config/metadata. |
+| Library           | Example line                 | Notes                                                   |
+| ----------------- | ---------------------------- | ------------------------------------------------------- |
+| `lightningcss`    | `BorderImageHandler::flush`  | CSS pipeline cost in production builds.                 |
+| `hstr`            | `Atom::eq`, macros.rs        | Atom comparisons during transforms and resolver passes. |
+| `mimalloc-rspack` | allocator entry points       | Indicates allocation pressure in parser/minifier.       |
+| `blake3`          | `mi_malloc_aligned` (AVX512) | Hashing / allocation interaction in node target.        |
+| `preset_env_base` | `targets_to_versions`        | Browserslist target computation cost; cacheable.        |
+| `serde_json`      | `MapDeserializer::end`       | JSON parse overhead for config/metadata.                |
 
 ## Next Steps to Improve Coverage
 
