@@ -19,4 +19,7 @@ Library output configuration and wrapper generation.
 ## Code pointers
 - `crates/rspack_plugin_library/Cargo.toml`
 - `crates/rspack_plugin_library/src/lib.rs`
+- `crates/rspack_plugin_library/src/amd_library_plugin.rs`
+- `crates/rspack_plugin_library/src/modern_module_library_plugin.rs`
+- `crates/rspack_plugin_library/src/umd_library_plugin.rs`
 - `crates/rspack_plugin_library/**`

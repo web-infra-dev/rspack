@@ -19,4 +19,6 @@ Hot Module Replacement runtime and hooks.
 ## Code pointers
 - `crates/rspack_plugin_hmr/Cargo.toml`
 - `crates/rspack_plugin_hmr/src/lib.rs`
+- `crates/rspack_plugin_hmr/src/hot_module_replacement.rs`
+- `crates/rspack_plugin_hmr/src/runtime/hot_module_replacement.ejs`
 - `crates/rspack_plugin_hmr/**`

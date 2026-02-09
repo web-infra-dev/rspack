@@ -19,4 +19,6 @@ Module replacement (aliasing/rewrites) support.
 ## Code pointers
 - `crates/rspack_plugin_module_replacement/Cargo.toml`
 - `crates/rspack_plugin_module_replacement/src/lib.rs`
+- `crates/rspack_plugin_module_replacement/src/context_replacement.rs`
+- `crates/rspack_plugin_module_replacement/src/normal_module_replacement.rs`
 - `crates/rspack_plugin_module_replacement/**`

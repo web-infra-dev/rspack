@@ -19,4 +19,5 @@ Compute content hashes based on emitted asset content.
 ## Code pointers
 - `crates/rspack_plugin_real_content_hash/Cargo.toml`
 - `crates/rspack_plugin_real_content_hash/src/lib.rs`
+- `crates/rspack_plugin_real_content_hash/src/drive.rs`
 - `crates/rspack_plugin_real_content_hash/**`

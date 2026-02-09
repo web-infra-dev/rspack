@@ -19,4 +19,6 @@ JSON module support.
 ## Code pointers
 - `crates/rspack_plugin_json/Cargo.toml`
 - `crates/rspack_plugin_json/src/lib.rs`
+- `crates/rspack_plugin_json/src/json_exports_dependency.rs`
+- `crates/rspack_plugin_json/src/utils.rs`
 - `crates/rspack_plugin_json/**`

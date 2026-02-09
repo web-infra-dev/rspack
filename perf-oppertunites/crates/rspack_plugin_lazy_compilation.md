@@ -19,4 +19,7 @@ Lazy compilation support for deferred module building.
 ## Code pointers
 - `crates/rspack_plugin_lazy_compilation/Cargo.toml`
 - `crates/rspack_plugin_lazy_compilation/src/lib.rs`
+- `crates/rspack_plugin_lazy_compilation/src/backend.rs`
+- `crates/rspack_plugin_lazy_compilation/src/dependency.rs`
+- `crates/rspack_plugin_lazy_compilation/src/plugin.rs`
 - `crates/rspack_plugin_lazy_compilation/**`
