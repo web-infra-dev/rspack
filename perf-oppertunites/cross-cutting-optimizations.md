@@ -62,6 +62,11 @@ indicating heavy identifier/path handling:
 - Batch file counting operations instead of per‑module increments.
 - Keep `FileCounter` updates off the critical path when possible.
 
+Related code:
+
+- `crates/rspack_core/src/utils/file_counter/mod.rs`
+- `crates/rspack_core/src/utils/incremental_info.rs`
+
 ## 8) Diagnostics & Logging
 
 Diagnostics should be cheap when there are no errors:
