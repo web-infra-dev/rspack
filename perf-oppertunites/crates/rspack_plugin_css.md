@@ -12,6 +12,12 @@ CSS parsing, dependency extraction, and runtime handling.
 - Avoid repeated string conversions during CSS transformations.
 - Batch CSS dependency processing to reduce graph churn.
 
+## Key functions/structs to inspect
+- CSS parser/generator in `parser_and_generator/mod.rs`.
+- Plugin entrypoints in `plugin/mod.rs` (hook registration).
+- Dependency implementations in `dependency/*` (compose/import/url).
+- Runtime template helpers in `runtime/mod.rs`.
+
 ## Suggested experiments
 - Profile CSS-heavy builds and measure parsing time.
 - Compare cache hit rates for unchanged CSS modules.

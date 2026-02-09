@@ -12,6 +12,11 @@ Extract CSS assets into separate files.
 - Avoid repeated string concatenation for CSS bundles.
 - Batch CSS asset emission to reduce IO overhead.
 
+## Key functions/structs to inspect
+- CSS dependency handling (`css_dependency.rs`).
+- Plugin hooks (`plugin.rs`) and runtime glue (`runtime.rs`).
+- CSS module wrapper (`css_module.rs`).
+
 ## Suggested experiments
 - Profile CSS-heavy builds with extraction enabled/disabled.
 - Measure cache hit rates for unchanged CSS assets.

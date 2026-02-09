@@ -12,6 +12,11 @@ Externalization of modules based on configuration.
 - Avoid resolver work when externals match early.
 - Batch external checks for repeated specifiers.
 
+## Key functions/structs to inspect
+- Externals plugin entrypoints in `plugin.rs`.
+- Node/electron target helpers (`node_target_plugin.rs`, `electron_target_plugin.rs`).
+- HTTP externals handler (`http_externals_plugin.rs`).
+
 ## Suggested experiments
 - Profile builds with large externals lists to measure resolver calls.
 - Compare cached vs uncached external decision performance.

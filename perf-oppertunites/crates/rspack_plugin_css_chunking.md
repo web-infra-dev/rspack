@@ -13,6 +13,9 @@ CSS chunking optimization for splitting CSS output.
 - Batch CSS chunk rendering to reduce IO overhead.
 - Single-file crate: concentrate profiling on `src/lib.rs` hook implementations.
 
+## Key functions/structs to inspect
+- CSS chunk grouping logic in `src/lib.rs` (hook implementations).
+
 ## Suggested experiments
 - Profile CSS-heavy builds with chunking enabled.
 - Compare cached vs full CSS chunk group computation.

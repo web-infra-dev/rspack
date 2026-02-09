@@ -12,6 +12,9 @@ Ensure chunk conditions and constraints are met.
 - Cache condition results per chunk/entry.
 - Short-circuit when no constraints are configured.
 
+## Key functions/structs to inspect
+- Condition evaluation hooks in `src/lib.rs`.
+
 ## Suggested experiments
 - Profile builds with many chunk conditions to measure evaluation overhead.
 - Compare cached vs full condition evaluation.

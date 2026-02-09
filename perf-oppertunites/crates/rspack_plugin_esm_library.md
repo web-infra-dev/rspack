@@ -12,6 +12,11 @@ ESM library output formatting.
 - Avoid repeated string concatenation for export maps.
 - Skip work when output target is not ESM.
 
+## Key functions/structs to inspect
+- `EsmLibraryPlugin` hooks (plugin.rs).
+- Render logic in `render.rs`.
+- Chunk linking in `chunk_link.rs` and `link.rs`.
+
 ## Suggested experiments
 - Profile ESM library builds with large export surfaces.
 - Compare cached template reuse across incremental builds.

@@ -12,6 +12,11 @@ DLL plugin support (manifest and reference handling).
 - Avoid repeated file IO for unchanged DLLs.
 - Reuse resolved module mappings when DLL config is stable.
 
+## Key functions/structs to inspect
+- Entry plugin in `dll_entry/dll_entry_plugin.rs`.
+- Delegated module handling in `dll_reference/delegated_module.rs`.
+- Manifest generation in `lib_manifest_plugin.rs`.
+
 ## Suggested experiments
 - Profile builds with large DLL manifests.
 - Measure cache hit rates for manifest parsing.
