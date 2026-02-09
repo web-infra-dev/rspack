@@ -12,6 +12,11 @@ SWC-backed JavaScript/TypeScript parsing and transformation.
 - Avoid repeated UTF‑8 validation of source buffers.
 - Use parallel parsing with bounded concurrency to prevent oversubscription.
 
+## Key functions/structs to inspect
+- `parse`, `transform`, and `minify` entrypoints (lib.rs, compiler.rs).
+- `JavaScriptCompiler` struct (compiler.rs).
+- Error mapping in `error.rs`.
+
 ## Suggested experiments
 - Profile large JS builds with and without cached SWC configs.
 - Measure AST arena reuse impact on allocation pressure.

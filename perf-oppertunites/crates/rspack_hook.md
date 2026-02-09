@@ -13,6 +13,10 @@ Hook system definitions and macros.
 - Reduce allocations in hook argument preparation.
 - Single-file crate: concentrate profiling on `src/lib.rs` hook dispatch paths.
 
+## Key functions/structs to inspect
+- `Hook::used_stages` and `Hook::intercept` (lib.rs).
+- `Interceptor::call` / `call_blocking` (lib.rs).
+
 ## Suggested experiments
 - Measure hook dispatch counts and time for plugin-heavy builds.
 - Compare fast-path hook checks vs current behavior.

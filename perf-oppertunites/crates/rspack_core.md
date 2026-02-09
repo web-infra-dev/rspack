@@ -12,6 +12,13 @@ Core compilation engine (module graph, chunking, codegen, hashing).
 - Optimize overlay map lookups and export prefetch caching.
 - Re-enable incremental chunk graph with correctness guardrails.
 
+## Key functions/structs to inspect
+- `Compilation::build_module_graph` / `build_module_graph` (build_module_graph/mod.rs).
+- `update_module_graph` (build_module_graph/graph_updater/mod.rs).
+- `Compilation::code_generation` (code_generation/mod.rs).
+- `Compilation::create_hash` / `create_module_hashes` (create_hash/*, create_module_hashes/*).
+- `FileCounter::add_files` (utils/file_counter/mod.rs).
+
 ## Suggested experiments
 - Profile module graph update stages with allocation sampling enabled.
 - Measure impact of overlay fast paths and export prefetch caching.

@@ -12,6 +12,9 @@ Loader testing utilities.
 - Avoid heavy fixture loading unless explicitly used.
 - Single-file crate: concentrate profiling on `src/lib.rs` test helpers.
 
+## Key functions/structs to inspect
+- Test harness helpers in `src/lib.rs`.
+
 ## Suggested experiments
 - Verify test helpers are not compiled in release builds.
 

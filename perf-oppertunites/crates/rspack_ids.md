@@ -12,6 +12,11 @@ ID generation and management for modules/chunks.
 - Use incremental ID assignment where possible.
 - Avoid string allocations when IDs are numeric.
 
+## Key functions/structs to inspect
+- Deterministic ID plugins (`deterministic_module_ids_plugin.rs`).
+- Named/natural ID plugins (`named_module_ids_plugin.rs`, `natural_module_ids_plugin.rs`).
+- `assign_ids` helpers in `id_helpers.rs`.
+
 ## Suggested experiments
 - Measure ID assignment time in large module graphs.
 - Compare hashed vs incremental ID strategies.

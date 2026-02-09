@@ -12,6 +12,11 @@ File system abstraction used by resolver and loader pipelines.
 - Batch IO operations to reduce syscall overhead.
 - Avoid unnecessary path conversions in hot loops.
 
+## Key functions/structs to inspect
+- `NativeFileSystem::new` and `ReadableFileSystem` trait methods (native_fs.rs, read.rs).
+- `MemoryFileSystem` path for in-memory builds (memory_fs.rs).
+- Stream types `NativeReadStream` / `NativeWriteStream` (native_fs.rs).
+
 ## Suggested experiments
 - Profile builds with different filesystem cache settings.
 - Measure IO time vs cached stat/read usage.

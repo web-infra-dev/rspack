@@ -12,6 +12,11 @@ Error and diagnostic types.
 - Use lazy diagnostics creation when possible.
 - Reduce allocations in error wrapping by reusing buffers.
 
+## Key functions/structs to inspect
+- `Diagnostic` constructors (diagnostic.rs).
+- `Error::error` and conversion helpers (error.rs, convert.rs).
+- `BatchErrors` aggregation (batch_error.rs).
+
 ## Suggested experiments
 - Measure diagnostic formatting overhead with large error sets.
 - Compare lazy vs eager error string construction.

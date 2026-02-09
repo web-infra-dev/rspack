@@ -12,6 +12,10 @@ Async helpers and scoped task utilities.
 - Avoid oversubscription by bounding concurrency.
 - Batch small tasks to reduce scheduling overhead.
 
+## Key functions/structs to inspect
+- `scope` (scope.rs) for task spawning and join semantics.
+- `ScopeToken::spawn` usage (scope.rs).
+
 ## Suggested experiments
 - Measure task counts and overhead during module graph and codegen passes.
 - Compare batched vs per-module task spawning.

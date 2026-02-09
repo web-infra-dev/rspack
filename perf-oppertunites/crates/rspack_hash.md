@@ -13,6 +13,11 @@ Hashing utilities used for modules/chunks/assets.
 - Prefer incremental hashing where possible.
 - Single-file crate: concentrate profiling on `src/lib.rs` hashing routines.
 
+## Key functions/structs to inspect
+- `RspackHash::new` / `RspackHash::with_salt` (lib.rs).
+- `RspackHash::digest` (lib.rs).
+- `Hasher::write` implementation (lib.rs).
+
 ## Suggested experiments
 - Measure hash time with and without caching on large builds.
 - Compare incremental vs full hash strategies.
