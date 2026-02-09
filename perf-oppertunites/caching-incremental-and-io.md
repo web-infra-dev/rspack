@@ -55,3 +55,12 @@ Some passes can skip work entirely if cache metadata shows no changes:
 
 - Skip `module_graph` updates when entrypoints and dependencies are unchanged.
 - Short‑circuit chunk graph rebuild when module hashes are identical.
+
+### 7) Incremental pass disablement triggers
+
+Some passes are disabled when full-hash dependencies or hash placeholders are
+used (e.g. in `create_chunk_assets` and `create_hash`). Documenting and
+minimizing these triggers can keep incremental benefits:
+
+- Prefer stable filename templates that do not require full compilation hash.
+- Avoid `dependent_full_hash` in plugins unless necessary.
