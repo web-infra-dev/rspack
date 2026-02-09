@@ -5051,6 +5051,7 @@ dependencies = [
  "rspack_hook",
  "rspack_javascript_compiler",
  "rspack_plugin_javascript",
+ "rspack_regex",
  "rspack_util",
  "serde_json",
  "swc_config",

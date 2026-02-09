@@ -14,6 +14,7 @@ use crate::asset_condition::{RawAssetConditions, into_asset_conditions};
 pub struct RawExtractComments {
   pub banner: Option<Either<String, bool>>,
   pub condition: Option<String>,
+  pub condition_flags: Option<String>,
 }
 
 #[derive(Debug)]
@@ -50,6 +51,7 @@ where
 fn into_extract_comments(c: Option<RawExtractComments>) -> Option<ExtractComments> {
   let c = c?;
   let condition = c.condition?;
+  let condition_flags = c.condition_flags.unwrap_or_default();
   let banner = match c.banner {
     Some(banner) => match banner {
       Either::A(s) => OptionWrapper::Custom(s),
@@ -64,7 +66,11 @@ fn into_extract_comments(c: Option<RawExtractComments>) -> Option<ExtractComment
     None => OptionWrapper::Default,
   };
 
-  Some(ExtractComments { condition, banner })
+  Some(ExtractComments {
+    condition,
+    condition_flags,
+    banner,
+  })
 }
 
 impl TryFrom<RawSwcJsMinimizerRspackPluginOptions> for PluginOptions {
