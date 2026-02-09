@@ -19,4 +19,7 @@ DLL plugin support (manifest and reference handling).
 ## Code pointers
 - `crates/rspack_plugin_dll/Cargo.toml`
 - `crates/rspack_plugin_dll/src/lib.rs`
+- `crates/rspack_plugin_dll/src/dll_entry/mod.rs`
+- `crates/rspack_plugin_dll/src/dll_reference/mod.rs`
+- `crates/rspack_plugin_dll/src/lib_manifest_plugin.rs`
 - `crates/rspack_plugin_dll/**`

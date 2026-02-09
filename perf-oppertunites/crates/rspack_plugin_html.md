@@ -19,4 +19,7 @@ HTML generation plugin (template rendering and asset injection).
 ## Code pointers
 - `crates/rspack_plugin_html/Cargo.toml`
 - `crates/rspack_plugin_html/src/lib.rs`
+- `crates/rspack_plugin_html/src/plugin.rs`
+- `crates/rspack_plugin_html/src/template.rs`
+- `crates/rspack_plugin_html/src/injector.rs`
 - `crates/rspack_plugin_html/**`

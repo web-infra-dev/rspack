@@ -19,4 +19,8 @@ ESM library output formatting.
 ## Code pointers
 - `crates/rspack_plugin_esm_library/Cargo.toml`
 - `crates/rspack_plugin_esm_library/src/lib.rs`
+- `crates/rspack_plugin_esm_library/src/plugin.rs`
+- `crates/rspack_plugin_esm_library/src/render.rs`
+- `crates/rspack_plugin_esm_library/src/runtime.rs`
+- `crates/rspack_plugin_esm_library/src/optimize_chunks.rs`
 - `crates/rspack_plugin_esm_library/**`

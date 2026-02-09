@@ -19,4 +19,9 @@ JavaScript module parsing, dependency extraction, and runtime hooks.
 ## Code pointers
 - `crates/rspack_plugin_javascript/Cargo.toml`
 - `crates/rspack_plugin_javascript/src/lib.rs`
+- `crates/rspack_plugin_javascript/src/plugin/mod.rs`
+- `crates/rspack_plugin_javascript/src/plugin/flag_dependency_usage_plugin.rs`
+- `crates/rspack_plugin_javascript/src/parser_plugin/mod.rs`
+- `crates/rspack_plugin_javascript/src/dependency/esm/mod.rs`
+- `crates/rspack_plugin_javascript/src/utils/mangle_exports.rs`
 - `crates/rspack_plugin_javascript/**`

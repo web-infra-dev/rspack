@@ -19,4 +19,7 @@ Source map/devtool handling.
 ## Code pointers
 - `crates/rspack_plugin_devtool/Cargo.toml`
 - `crates/rspack_plugin_devtool/src/lib.rs`
+- `crates/rspack_plugin_devtool/src/source_map_dev_tool_plugin.rs`
+- `crates/rspack_plugin_devtool/src/eval_source_map_dev_tool_plugin.rs`
+- `crates/rspack_plugin_devtool/src/mapped_assets_cache.rs`
 - `crates/rspack_plugin_devtool/**`

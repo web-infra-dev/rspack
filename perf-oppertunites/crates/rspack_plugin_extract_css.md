@@ -19,4 +19,7 @@ Extract CSS assets into separate files.
 ## Code pointers
 - `crates/rspack_plugin_extract_css/Cargo.toml`
 - `crates/rspack_plugin_extract_css/src/lib.rs`
+- `crates/rspack_plugin_extract_css/src/css_dependency.rs`
+- `crates/rspack_plugin_extract_css/src/plugin.rs`
+- `crates/rspack_plugin_extract_css/src/runtime.rs`
 - `crates/rspack_plugin_extract_css/**`
