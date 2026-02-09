@@ -9,9 +9,9 @@ const path = require("path");
 
 /*! EndNoStringValidationRegion - this should NOT be extracted */
 
-/** This is a JSDoc comment that should be extracted */
+/**! This is a special JSDoc comment that should be extracted */
 
-/** SuppressStringValidation - this should NOT be extracted either */
+/**! SuppressStringValidation - this should NOT be extracted either */
 
 // Regular comment - should not be extracted
 
@@ -40,8 +40,8 @@ it("should extract comments with regex lookahead and flags", () => {
 		// Should extract the important comment
 		expect(content).toContain("This comment should be extracted - it's important");
 		
-		// Should extract the JSDoc comment
-		expect(content).toContain("This is a JSDoc comment that should be extracted");
+		// Should extract the special JSDoc comment
+		expect(content).toContain("This is a special JSDoc comment that should be extracted");
 		
 		// Should NOT extract suppressed comments
 		expect(content).not.toContain("SuppressStringValidation");
