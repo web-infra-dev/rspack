@@ -6,7 +6,7 @@ use rspack_collections::Identifier;
 use rspack_core::{
   ChunkGraph, ChunkGroup, ChunkGroupUkey, ChunkUkey, Compilation, CompilationAfterProcessAssets,
   CompilerFailed, CompilerId, CompilerMake, CrossOriginLoading, Dependency, DependencyId,
-  EntryDependency, Logger, ModuleGraph, ModuleId, ModuleIdentifier, Plugin,
+  EntryDependency, Logger, ModuleGraph, ModuleId, ModuleIdentifier, ModuleType, Plugin,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
@@ -87,7 +87,7 @@ fn record_module(
   };
 
   let resource = get_module_resource(module.as_ref());
-  if resource.is_empty() {
+  if resource.is_empty() && !matches!(module.module_type(), ModuleType::Remote) {
     return;
   }
 
@@ -295,7 +295,7 @@ fn collect_actions(
   };
 
   let module_resource = get_module_resource(module.as_ref());
-  if module_resource.is_empty() {
+  if module_resource.is_empty() && !matches!(module.module_type(), ModuleType::Remote) {
     return;
   }
 

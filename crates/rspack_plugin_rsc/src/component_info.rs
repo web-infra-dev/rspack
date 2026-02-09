@@ -1,7 +1,7 @@
 use derive_more::Debug;
 use rspack_core::{
-  Compilation, DependencyId, ExportsInfoGetter, Module, ModuleIdentifier, PrefetchExportsInfoMode,
-  RscMeta, RscModuleType, RuntimeSpec,
+  Compilation, DependencyId, ExportsInfoGetter, Module, ModuleIdentifier, ModuleType,
+  PrefetchExportsInfoMode, RscMeta, RscModuleType, RuntimeSpec,
 };
 use rspack_plugin_javascript::dependency::{
   CommonJsExportRequireDependency, ESMExportImportedSpecifierDependency,
@@ -107,7 +107,7 @@ fn filter_client_components(
   component_info: &mut ComponentInfo,
 ) {
   let resource = get_module_resource(module);
-  if resource.is_empty() {
+  if resource.is_empty() && !matches!(module.module_type(), ModuleType::Remote) {
     return;
   }
 

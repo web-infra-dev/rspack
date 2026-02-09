@@ -30,7 +30,12 @@ export type ExposesObject = {
 export type ExposesConfig = {
   import: ExposesItem | ExposesItems;
   name?: string;
+  layer?: string;
 };
+
+function hasMultipleShareScopes(shareScope?: string | string[]) {
+  return Array.isArray(shareScope) && shareScope.filter(Boolean).length > 1;
+}
 
 export class ContainerPlugin extends RspackBuiltinPlugin {
   name = BuiltinPluginName.ContainerPlugin;
@@ -38,6 +43,12 @@ export class ContainerPlugin extends RspackBuiltinPlugin {
 
   constructor(options: ContainerPluginOptions) {
     super();
+    const enhanced = options.enhanced ?? false;
+    if (!enhanced && hasMultipleShareScopes(options.shareScope)) {
+      throw new Error(
+        '[ContainerPlugin] Multiple share scopes are only supported in enhanced mode. Set `enhanced: true` or provide a single `shareScope`.',
+      );
+    }
     this._options = {
       name: options.name,
       shareScope: options.shareScope || 'default',
@@ -52,13 +63,15 @@ export class ContainerPlugin extends RspackBuiltinPlugin {
         (item) => ({
           import: Array.isArray(item) ? item : [item],
           name: undefined,
+          layer: undefined,
         }),
         (item) => ({
           import: Array.isArray(item.import) ? item.import : [item.import],
           name: item.name || undefined,
+          layer: item.layer || undefined,
         }),
       ),
-      enhanced: options.enhanced ?? false,
+      enhanced,
     };
   }
 

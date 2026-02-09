@@ -490,6 +490,8 @@ export class NodeRunner implements ITestRunner {
     // (undocumented)
     protected globalContext: IGlobalContext | null;
     // (undocumented)
+    protected importModuleFromCjs(specifier: string, fromFile: string): Promise<unknown>;
+    // (undocumented)
     protected log(message: string): void;
     // (undocumented)
     protected _options: INodeRunnerOptions;

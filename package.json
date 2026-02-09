@@ -49,7 +49,9 @@
     "api-extractor:local": "pnpm --filter \"@rspack/*\" api-extractor --local",
     "api-extractor:ci": "pnpm --filter \"@rspack/*\" api-extractor:ci",
     "bench:ci": "pnpm run bench:prepare && cargo codspeed run && pnpm --filter bench run bench",
-    "bench:prepare": "node ./scripts/bench/setup.mjs"
+    "bench:prepare": "node ./scripts/bench/setup.mjs",
+    "examples:rsc-mf:dev": "pnpm --parallel --filter examples-rsc-mf-remote --filter examples-rsc-mf-host dev",
+    "examples:rsc-mf:test:e2e": "pnpm --filter examples-rsc-mf-host test:e2e"
   },
   "homepage": "https://rspack.rs",
   "bugs": "https://github.com/web-infra-dev/rspack/issues",

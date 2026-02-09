@@ -24,6 +24,10 @@ pub fn get_module_resource<'a>(module: &'a dyn Module) -> Cow<'a, str> {
     Cow::Owned(format!("{mod_path}{mod_query}"))
   } else if let Some(module) = module.as_context_module() {
     Cow::Borrowed(module.identifier().as_str())
+  } else if matches!(module.module_type(), ModuleType::Remote) {
+    // Remote modules are not normal modules but still need stable, non-empty
+    // identities so manifest/resource collection can include federated references.
+    Cow::Owned(format!("mf://{}", module.identifier()))
   } else {
     Cow::Borrowed("")
   }

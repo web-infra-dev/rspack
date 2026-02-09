@@ -2,7 +2,7 @@
 
 use indoc::formatdoc;
 use rspack_core::{
-  ChunkGraph, Compilation, Module, ModuleGraph, ModuleId, ModuleIdentifier, RuntimeModule,
+  ChunkGraph, Compilation, ModuleGraph, ModuleId, ModuleIdentifier, RuntimeModule,
   RuntimeModuleStage, RuntimeTemplate, impl_runtime_module,
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt};
@@ -123,7 +123,6 @@ fn build_server_manifest(
   server_actions: &mut ServerReferenceManifest,
 ) -> Result<()> {
   let module_graph = compilation.get_module_graph();
-
   let mut record_module =
     |module_identifier: &ModuleIdentifier, module_id: &ModuleId| -> Result<()> {
       let Some(module) = module_graph.module_by_identifier(module_identifier) else {
@@ -208,11 +207,7 @@ fn build_server_consumer_module_map(
     let Some(module) = module_graph.module_by_identifier(module_identifier) else {
       return;
     };
-    let Some(normal_module) = module.as_normal_module() else {
-      return;
-    };
-
-    if normal_module
+    if module
       .get_layer()
       .is_none_or(|layer| layer != LAYERS_NAMES.server_side_rendering)
     {

@@ -45,6 +45,34 @@ export default {
 
 传入 Module Federation 1.5 运行时所需的插件，插件可以对 Module Federation 的行为与能力进行扩展。
 
+### experiments.rsc
+
+<ApiMeta addedVersion="2.0.0" />
+
+- 类型：`boolean`
+- 默认值：`false`
+
+开启 Module Federation 与 React Server Components 的一等集成能力。
+
+在 Node 构建中启用后，Rspack 会校验并要求：
+
+- `target` 包含 `"async-node"`
+- `experiments.asyncStartup` 为 `true`
+- `runtimePlugins` 包含 `@module-federation/node/runtimePlugin`
+
+Rspack 不会自动注入 `@module-federation/node/runtimePlugin`，需要在用户配置中显式声明。
+
+```js title="rspack.config.mjs"
+new rspack.container.ModuleFederationPlugin({
+  // ...
+  runtimePlugins: [require.resolve('@module-federation/node/runtimePlugin')],
+  experiments: {
+    asyncStartup: true,
+    rsc: true,
+  },
+});
+```
+
 ### name
 
 - 类型：`string`
