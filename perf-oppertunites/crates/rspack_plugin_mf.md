@@ -12,6 +12,11 @@ Module Federation integration (shared/remote modules, manifests).
 - Avoid repeated serialization of federation data to JS.
 - Reduce string allocations when building federation runtime.
 
+## Key functions/structs to inspect
+- Container plugin hooks in `container/container_plugin.rs`.
+- Manifest generation in `manifest/utils.rs` and `manifest/data.rs`.
+- Sharing plugins (e.g., `consume_shared_plugin.rs`, `provide_shared_plugin.rs`).
+
 ## Suggested experiments
 - Profile a federated build with many remotes to measure manifest cost.
 - Measure cache hit rates for shared module analysis across rebuilds.

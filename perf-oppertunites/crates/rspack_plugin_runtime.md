@@ -12,6 +12,11 @@ Runtime module generation and runtime requirements computation.
 - Avoid repeated template string concatenation; preallocate buffers.
 - Skip runtime module regeneration when module hashes are unchanged.
 
+## Key functions/structs to inspect
+- `enable_chunk_loading_plugin` (lib.rs) — selects runtime loading plugins.
+- `RuntimePlugin::apply` (runtime_plugin.rs) — hooks registration.
+- Runtime module implementations in `runtime_module/*` (e.g. `load_script`, `jsonp_chunk_loading`).
+
 ## Suggested experiments
 - Measure runtime module generation time on multi-runtime builds.
 - Compare cached runtime outputs across incremental builds.

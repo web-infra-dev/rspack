@@ -12,6 +12,12 @@ React Server Components integration.
 - Avoid repeated traversal of the same component graph.
 - Gate RSC-specific work behind option checks to avoid overhead in non-RSC builds.
 
+## Key functions/structs to inspect
+- `make` hook in `client_plugin.rs` (client entry injection).
+- `record_module` and `extend_required_chunks` (client_plugin.rs).
+- `finish_make` / `process_assets` hooks in `server_plugin.rs`.
+- Loader hooks in `loaders/*_loader_plugin.rs` (resolve loader injection).
+
 ## Suggested experiments
 - Profile RSC builds and measure manifest generation time.
 - Validate cache hits for unchanged component graphs.

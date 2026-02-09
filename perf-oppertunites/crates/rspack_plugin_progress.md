@@ -13,6 +13,9 @@ Progress reporting during compilation.
 - Disable progress hooks when not explicitly enabled.
 - Single-file crate: concentrate profiling on `src/lib.rs` hook implementations.
 
+## Key functions/structs to inspect
+- Progress hook registration and update path in `src/lib.rs`.
+
 ## Suggested experiments
 - Measure build time difference with progress enabled vs disabled.
 - Adjust update interval and compare overhead.

@@ -12,6 +12,11 @@ Rslib integration for library builds.
 - Cache library output templates by configuration.
 - Reduce per-module string formatting in library wrappers.
 
+## Key functions/structs to inspect
+- `RslibPlugin` hook registrations (plugin.rs).
+- Parser plugin hooks in `parser_plugin.rs`.
+- Asset helpers in `asset.rs` and dependency handling in `import_dependency.rs`.
+
 ## Suggested experiments
 - Profile library builds with large module graphs.
 - Measure impact of cached wrapper templates.

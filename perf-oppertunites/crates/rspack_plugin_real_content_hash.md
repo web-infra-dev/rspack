@@ -12,6 +12,10 @@ Compute content hashes based on emitted asset content.
 - Hash assets in parallel with bounded concurrency.
 - Avoid re-reading asset sources when already in memory.
 
+## Key functions/structs to inspect
+- `RealContentHashPluginUpdateHash` hook (drive.rs).
+- Hook wiring in `lib.rs` for asset hash updates.
+
 ## Suggested experiments
 - Compare hashing time with and without asset hash caching.
 - Profile large asset outputs to measure parallel hash scaling.

@@ -12,6 +12,11 @@ Rsdoctor integration for profiling and diagnostics.
 - Avoid heavy data collection unless explicitly enabled.
 - Stream diagnostic data instead of building huge in-memory structures.
 
+## Key functions/structs to inspect
+- Hook taps in `plugin.rs` (after_code_generation, optimize_chunks, etc.).
+- Graph collection helpers: `collect_modules` / `collect_module_dependencies` (module_graph.rs).
+- Chunk collection helpers: `collect_chunks` / `collect_chunk_modules` (chunk_graph.rs).
+
 ## Suggested experiments
 - Measure rsdoctor overhead on large builds with profiling enabled.
 - Validate streaming vs batch data collection impact.

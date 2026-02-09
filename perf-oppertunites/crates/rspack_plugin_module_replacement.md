@@ -12,6 +12,11 @@ Module replacement (aliasing/rewrites) support.
 - Avoid repeated resolver calls for identical replacements.
 - Short-circuit when no replacements are configured.
 
+## Key functions/structs to inspect
+- `ContextReplacementPlugin::new` and options parsing (context_replacement.rs).
+- `cmf_before_resolve` / `cmf_after_resolve` hooks (context_replacement.rs).
+- Normal module replacement hooks in `normal_module_replacement.rs`.
+
 ## Suggested experiments
 - Profile builds with heavy replacement rules and measure resolver calls.
 - Compare cache hit rates for repeated replacement requests.
