@@ -280,6 +280,27 @@ pub struct ExternalModuleInfo {
   pub runtime_requirements: RuntimeGlobals,
 }
 
+impl ExternalModuleInfo {
+  pub fn new(index: usize, module: ModuleIdentifier) -> Self {
+    Self {
+      index,
+      module,
+      interop_namespace_object_used: false,
+      interop_namespace_object_name: None,
+      interop_namespace_object2_used: false,
+      interop_namespace_object2_name: None,
+      interop_default_access_used: false,
+      interop_default_access_name: None,
+      name: None,
+      deferred: false,
+      deferred_namespace_object_name: None,
+      deferred_namespace_object_used: false,
+      deferred_name: None,
+      runtime_requirements: RuntimeGlobals::default(),
+    }
+  }
+}
+
 #[derive(Debug, Clone)]
 struct ConcatenatedImport {
   connection: Arc<ModuleGraphConnection>,
@@ -1969,20 +1990,8 @@ impl ConcatenatedModule {
             }))
           }
           ConcatenationEntry::External(_) => ModuleInfo::External(ExternalModuleInfo {
-            index: i,
-            module: module_id,
-            interop_namespace_object_used: false,
-            interop_namespace_object_name: None,
-            interop_namespace_object2_used: false,
-            interop_namespace_object2_name: None,
-            interop_default_access_used: false,
-            interop_default_access_name: None,
-            name: None,
             deferred: mg.is_deferred(imported_by_defer_modules_artifact, &module_id),
-            deferred_namespace_object_name: None,
-            deferred_namespace_object_used: false,
-            deferred_name: None,
-            runtime_requirements: Default::default(),
+            ..ExternalModuleInfo::new(i, module_id)
           }),
         });
       let info = match concatenation_entry {
@@ -3085,7 +3094,7 @@ pub fn is_esm_dep_like(dep: &BoxDependency) -> bool {
   )
 }
 
-pub fn find_new_name(old_name: &str, used_names: &HashSet<Atom>, extra_info: &Vec<String>) -> Atom {
+pub fn find_new_name(old_name: &str, used_names: &HashSet<Atom>, extra_info: &[String]) -> Atom {
   let mut name = old_name.to_string();
 
   for info_part in extra_info {

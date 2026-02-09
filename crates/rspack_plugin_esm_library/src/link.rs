@@ -729,8 +729,8 @@ var {} = {{}};
   ) -> Result<()> {
     let runtime_template = compilation.runtime_template.create_runtime_code_template();
     let mut outputs = UkeyMap::<ChunkUkey, String>::default();
-    let concate_modules_map = orig_concate_modules_map.clone();
-    for m in concate_modules_map.keys() {
+    let module_keys: Vec<ModuleIdentifier> = orig_concate_modules_map.keys().copied().collect();
+    for m in &module_keys {
       if compilation
         .build_chunk_graph_artifact
         .chunk_graph
@@ -775,23 +775,25 @@ var {} = {{}};
       outputs.insert(chunk_ukey, output_path);
     }
 
+    let concate_modules_map = std::mem::take(orig_concate_modules_map);
     let map = rspack_futures::scope::<_, _>(|token| {
       for (m, info) in concate_modules_map {
-        if compilation
-          .build_chunk_graph_artifact
-          .chunk_graph
-          .get_module_chunks(m)
-          .is_empty()
-        {
-          // orphan module
-          continue;
-        }
-        let chunk_ukey = Self::get_module_chunk(m, compilation);
-
         // SAFETY: caller will poll the futures
-        let s = unsafe { token.used((compilation, m, chunk_ukey, info, &runtime_template)) };
+        let s = unsafe { token.used((compilation, m, info, &runtime_template)) };
         s.spawn(
-          async move |(compilation, id, chunk_ukey, info, runtime_template)| -> Result<ModuleInfo> {
+          async move |(compilation, id, info, runtime_template)| -> Result<ModuleInfo> {
+            if compilation
+              .build_chunk_graph_artifact
+              .chunk_graph
+              .get_module_chunks(m)
+              .is_empty()
+            {
+              // orphan module
+              return Ok(info);
+            }
+
+            let chunk_ukey = Self::get_module_chunk(m, compilation);
+
             let module_graph = compilation.get_module_graph();
 
             match info {
@@ -1015,7 +1017,7 @@ var {} = {{}};
       && let Some(symbol) = symbol
     {
       let new_name = if all_used_names.contains(&symbol) {
-        let new_name = find_new_name(&symbol, all_used_names, &vec![]);
+        let new_name = find_new_name(&symbol, all_used_names, &[]);
         all_used_names.insert(new_name.clone());
         new_name
       } else {
@@ -1280,7 +1282,7 @@ var {} = {{}};
                   symbol_binding.render().into()
                 } else {
                   let ref_chunk_link = link.get_mut_unwrap(&ref_chunk);
-                  let new_name = find_new_name(&name, &ref_chunk_link.used_names, &vec![]);
+                  let new_name = find_new_name(&name, &ref_chunk_link.used_names, &[]);
                   ref_chunk_link.used_names.insert(new_name.clone());
                   ref_chunk_link
                     .decl_before_exports

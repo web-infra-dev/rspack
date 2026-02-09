@@ -1,4 +1,7 @@
-use std::{borrow::Cow, sync::Arc};
+use std::{
+  borrow::Cow,
+  sync::{Arc, LazyLock},
+};
 
 use regex::Regex;
 use rspack_collections::{IdentifierIndexSet, UkeyIndexMap, UkeySet};
@@ -21,7 +24,6 @@ use rspack_util::{
   atom::Atom,
   fx_hash::{FxHashMap, FxIndexSet},
 };
-use swc_core::common::sync::Lazy;
 
 use crate::{
   chunk_link::{ChunkLinkContext, ReExportFrom, Ref},
@@ -39,8 +41,8 @@ fn get_chunk(compilation: &Compilation, chunk_ukey: ChunkUkey) -> &Chunk {
 
 use crate::{EsmLibraryPlugin, dependency::dyn_import::NAMESPACE_SYMBOL};
 
-static AUTO_PUBLIC_PATH_PLACEHOLDER_RE: Lazy<Regex> =
-  Lazy::new(|| Regex::new(AUTO_PUBLIC_PATH_PLACEHOLDER).expect("failed to create regex"));
+static AUTO_PUBLIC_PATH_PLACEHOLDER_RE: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(AUTO_PUBLIC_PATH_PLACEHOLDER).expect("failed to create regex"));
 
 impl EsmLibraryPlugin {
   pub(crate) fn get_runtime_chunk(chunk_ukey: ChunkUkey, compilation: &Compilation) -> ChunkUkey {
