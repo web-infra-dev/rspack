@@ -12,6 +12,11 @@ Cacheable serialization/deserialization framework.
 - Avoid unnecessary allocations in rkyv serializers.
 - Cache schema/metadata for repeated types.
 
+## Key functions/structs to inspect
+- `to_bytes` / `from_bytes` entrypoints (lib.rs).
+- `Serializer` / `Deserializer` (serialize.rs, deserialize.rs).
+- `with/*` adapters for common types (with/mod.rs).
+
 ## Suggested experiments
 - Profile cache serialization time on large builds.
 - Compare allocation counts with/without scratch buffer reuse.

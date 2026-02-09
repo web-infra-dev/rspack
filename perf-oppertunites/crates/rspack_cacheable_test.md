@@ -11,6 +11,10 @@ Tests for cacheable serialization utilities.
 - Not runtime hot; keep tests isolated.
 - Ensure test-only helpers are not included in production builds.
 
+## Key functions/structs to inspect
+- Macro test cases in `tests/macro/*`.
+- Utility tests in `tests/utils/*`.
+
 ## Suggested experiments
 - Verify test features are gated in release builds.
 

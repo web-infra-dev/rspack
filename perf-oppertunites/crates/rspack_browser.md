@@ -12,6 +12,11 @@ Browser/WASM support for Rspack.
 - Keep WASM initialization minimal; cache module instantiation.
 - Reduce serialization overhead when transferring data to WASM.
 
+## Key functions/structs to inspect
+- `oneshot` helpers (oneshot.rs) for browser initialization.
+- Panic handling shims (panic.rs).
+- WASM entrypoints in `lib.rs`.
+
 ## Suggested experiments
 - Profile browser builds with large projects and measure WASM init time.
 - Compare cached vs fresh WASM instantiation.

@@ -13,6 +13,10 @@ mimalloc integration and allocator configuration.
 - Consider per-thread arenas for hot parallel paths.
 - Single-file crate: concentrate profiling on `src/lib.rs` allocator hooks.
 
+## Key functions/structs to inspect
+- Global allocator selection via `static GLOBAL` definitions (lib.rs).
+- Feature-gated allocator wrappers (`sftrace_setup`, `tracy_client`) in lib.rs.
+
 ## Suggested experiments
 - Compare allocation stats with different mimalloc settings.
 - Measure build time impact of allocator tuning.

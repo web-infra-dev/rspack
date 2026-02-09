@@ -12,6 +12,10 @@ Binding builder utilities for Node integration.
 - Keep generated bindings minimal to reduce JS↔Rust overhead.
 - Single-file crate: concentrate profiling on `src/lib.rs` build helpers.
 
+## Key functions/structs to inspect
+- `register_custom_plugin` re-export (lib.rs) — see binding_api for implementation.
+- `CustomPluginBuilder` re-export (lib.rs).
+
 ## Suggested experiments
 - Validate binding builder execution frequency in CI pipelines.
 

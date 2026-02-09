@@ -12,6 +12,9 @@ Binding build script for Node.js integration.
 - Avoid expensive build-time checks unless required.
 - Single-file crate: concentrate profiling on `src/lib.rs` build script logic.
 
+## Key functions/structs to inspect
+- `setup` (lib.rs) — calls `napi_build::setup`.
+
 ## Suggested experiments
 - Validate build script execution frequency in CI.
 

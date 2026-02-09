@@ -12,6 +12,11 @@ Browserslist configuration parsing and resolution.
 - Avoid re-reading config files when unchanged.
 - Reduce string allocations in version parsing.
 
+## Key functions/structs to inspect
+- `load_config` (load_config.rs) — config IO and parsing.
+- LightningCSS conversion helpers (lightningcss.rs).
+- Top-level parsing functions in `lib.rs`.
+
 ## Suggested experiments
 - Profile builds with frequent browserslist lookups.
 - Compare cached vs uncached parsing on large configs.

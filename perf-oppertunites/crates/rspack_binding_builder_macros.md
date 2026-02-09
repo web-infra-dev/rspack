@@ -11,6 +11,10 @@ Procedural macros for binding builder utilities.
 - Ensure generated code avoids redundant conversions.
 - Keep macro expansions minimal to reduce compile-time and binary size.
 
+## Key functions/structs to inspect
+- `register_plugin` proc-macro (lib.rs).
+- Parsing and expansion in `register_plugin.rs`.
+
 ## Suggested experiments
 - Inspect generated bindings for redundant conversions.
 

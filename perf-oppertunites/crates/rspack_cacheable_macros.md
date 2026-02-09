@@ -12,6 +12,10 @@ Procedural macros for cacheable serialization.
 - Prefer compile-time constants for cache keys.
 - Keep macro expansions minimal to reduce binary size.
 
+## Key functions/structs to inspect
+- `cacheable` macro expansion in `cacheable/impl.rs`.
+- `cacheable_dyn` and `impl_with` helpers (cacheable_dyn.rs, cacheable/impl_with.rs).
+
 ## Suggested experiments
 - Inspect generated serializers for unnecessary allocations.
 - Compare serialized payload size with optimized macros.
