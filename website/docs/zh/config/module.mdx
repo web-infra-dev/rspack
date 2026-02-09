@@ -1776,6 +1776,33 @@ export default {
 };
 ```
 
+### module.parser["css/auto"].resolveImport
+
+<ApiMeta addedVersion="1.7.2" />
+
+- **类型：** `boolean | ((context: { url: string, media: string | undefined, resourcePath: string, supports: string | undefined, layer: string | undefined }) => boolean)`
+- **默认值：** `true`
+
+配置是否处理 `@import`。
+
+- `true`: 启用所有 `@import` 规则的处理（默认）。
+- `false`: 禁用所有 `@import` 规则的处理。
+- `function`: 仅处理满足条件的 `@import` 规则。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/auto': {
+        resolveImport: ({ url }) => {
+          return url.includes('style.css');
+        },
+      },
+    },
+  },
+};
+```
+
 ### module.parser.css
 
 `css` 模块的解析器选项。
@@ -1818,6 +1845,24 @@ export default {
     parser: {
       css: {
         url: true,
+      },
+    },
+  },
+};
+```
+
+### module.parser.css.resolveImport
+
+参考 [`module.parser["css/auto"].resolveImport`](#moduleparsercssautoresolveimport)。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      css: {
+        resolveImport: ({ url }) => {
+          return url.includes('style.css');
+        },
       },
     },
   },
@@ -1872,6 +1917,23 @@ export default {
 };
 ```
 
+### module.parser["css/module"].resolveImport
+
+参考 [`module.parser["css/auto"].resolveImport`](#moduleparsercssautoresolveimport)。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/module': {
+        resolveImport: ({ url }) => {
+          return url.includes('style.css');
+        },
+      },
+    },
+  },
+};
+```
 ## module.rules
 
 查看 [Module Rules](/config/module-rules) 了解详情。

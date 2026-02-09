@@ -1779,6 +1779,33 @@ export default {
 };
 ```
 
+### module.parser["css/auto"].resolveImport
+
+<ApiMeta addedVersion="1.7.2" />
+
+- **Type:** `boolean | ((context: { url: string, media: string | undefined, resourcePath: string, supports: string | undefined, layer: string | undefined }) => boolean)`
+- **Default:** `true`
+
+Whether to resolve `@import` syntax.
+
+- `true`: enable processing of `@import` rules (default).
+- `false`: disable processing of `@import` rules.
+- `function`: only process `@import` rules that satisfy the condition.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/auto': {
+        resolveImport: ({ url }) => {
+          return url.includes('style.css');
+        },
+      },
+    },
+  },
+};
+```
+
 ### module.parser.css
 
 Parser options for `css` modules.
@@ -1827,6 +1854,24 @@ export default {
 };
 ```
 
+### module.parser.css.resolveImport
+
+Same as [`module.parser["css/auto"].resolveImport`](#moduleparsercssautoresolveimport).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      css: {
+        resolveImport: ({ url }) => {
+          return url.includes('style.css');
+        },
+      },
+    },
+  },
+};
+```
+
 ### module.parser["css/module"]
 
 Parser options for `css/module` modules.
@@ -1869,6 +1914,24 @@ export default {
     parser: {
       'css/module': {
         url: true,
+      },
+    },
+  },
+};
+```
+
+### module.parser["css/module"].resolveImport
+
+Same as [`module.parser["css/auto"].resolveImport`](#moduleparsercssautoresolveimport).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/module': {
+        resolveImport: ({ url }) => {
+          return url.includes('style.css');
+        },
       },
     },
   },
