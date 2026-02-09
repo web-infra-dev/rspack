@@ -17,4 +17,6 @@ Merge duplicate chunks to reduce output size.
 - Compare fingerprint-based vs deep comparison strategies.
 
 ## Code pointers
+- `crates/rspack_plugin_merge_duplicate_chunks/Cargo.toml`
+- `crates/rspack_plugin_merge_duplicate_chunks/src/lib.rs`
 - `crates/rspack_plugin_merge_duplicate_chunks/**`

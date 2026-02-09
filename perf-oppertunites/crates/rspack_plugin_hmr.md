@@ -17,4 +17,6 @@ Hot Module Replacement runtime and hooks.
 - Compare template caching impact on rebuild latency.
 
 ## Code pointers
+- `crates/rspack_plugin_hmr/Cargo.toml`
+- `crates/rspack_plugin_hmr/src/lib.rs`
 - `crates/rspack_plugin_hmr/**`

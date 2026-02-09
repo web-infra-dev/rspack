@@ -17,4 +17,6 @@ Module replacement (aliasing/rewrites) support.
 - Compare cache hit rates for repeated replacement requests.
 
 ## Code pointers
+- `crates/rspack_plugin_module_replacement/Cargo.toml`
+- `crates/rspack_plugin_module_replacement/src/lib.rs`
 - `crates/rspack_plugin_module_replacement/**`

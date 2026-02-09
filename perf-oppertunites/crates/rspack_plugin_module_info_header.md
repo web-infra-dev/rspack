@@ -17,4 +17,6 @@ Inject module info headers into generated output.
 - Compare cached template vs per-module formatting overhead.
 
 ## Code pointers
+- `crates/rspack_plugin_module_info_header/Cargo.toml`
+- `crates/rspack_plugin_module_info_header/src/lib.rs`
 - `crates/rspack_plugin_module_info_header/**`

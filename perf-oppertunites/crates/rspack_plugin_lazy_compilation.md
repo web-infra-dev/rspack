@@ -17,4 +17,6 @@ Lazy compilation support for deferred module building.
 - Compare cached vs uncached lazy entry handling.
 
 ## Code pointers
+- `crates/rspack_plugin_lazy_compilation/Cargo.toml`
+- `crates/rspack_plugin_lazy_compilation/src/lib.rs`
 - `crates/rspack_plugin_lazy_compilation/**`

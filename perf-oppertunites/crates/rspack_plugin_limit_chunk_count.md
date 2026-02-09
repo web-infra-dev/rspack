@@ -17,4 +17,6 @@ Limit chunk count by merging or adjusting chunk graph.
 - Compare cached vs non-cached merge behavior across rebuilds.
 
 ## Code pointers
+- `crates/rspack_plugin_limit_chunk_count/Cargo.toml`
+- `crates/rspack_plugin_limit_chunk_count/src/lib.rs`
 - `crates/rspack_plugin_limit_chunk_count/**`

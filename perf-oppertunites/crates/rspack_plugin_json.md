@@ -17,4 +17,6 @@ JSON module support.
 - Compare cache hit rates for unchanged JSON files.
 
 ## Code pointers
+- `crates/rspack_plugin_json/Cargo.toml`
+- `crates/rspack_plugin_json/src/lib.rs`
 - `crates/rspack_plugin_json/**`

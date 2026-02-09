@@ -17,4 +17,6 @@ Progress reporting during compilation.
 - Adjust update interval and compare overhead.
 
 ## Code pointers
+- `crates/rspack_plugin_progress/Cargo.toml`
+- `crates/rspack_plugin_progress/src/lib.rs`
 - `crates/rspack_plugin_progress/**`

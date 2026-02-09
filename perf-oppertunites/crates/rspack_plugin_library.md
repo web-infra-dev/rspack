@@ -17,4 +17,6 @@ Library output configuration and wrapper generation.
 - Compare cached templates across incremental builds.
 
 ## Code pointers
+- `crates/rspack_plugin_library/Cargo.toml`
+- `crates/rspack_plugin_library/src/lib.rs`
 - `crates/rspack_plugin_library/**`

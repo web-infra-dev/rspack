@@ -17,4 +17,6 @@ Compute content hashes based on emitted asset content.
 - Profile large asset outputs to measure parallel hash scaling.
 
 ## Code pointers
+- `crates/rspack_plugin_real_content_hash/Cargo.toml`
+- `crates/rspack_plugin_real_content_hash/src/lib.rs`
 - `crates/rspack_plugin_real_content_hash/**`
