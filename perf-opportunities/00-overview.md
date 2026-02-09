@@ -122,6 +122,7 @@ Phase 4 — Finalize
 | 37 | `37-poc-fixes-top-3-findings.md` | PoC Fixes | Concrete code changes for top 3 findings, 67-74% projected gain |
 | 38 | `38-async-trait-and-dynamic-dispatch.md` | async_trait | ~33ms at 10K modules — not the bottleneck |
 | 39 | `39-hmr-lazy-compilation-and-benchmark.md` | HMR/Lazy/Bench | HMR single-file ~5-20ms; FixedBitSet benchmark design |
+| 40 | `40-minification-pipeline.md` | SWC/LightningCSS Minimizer | +342ms with minification, caching opportunity for rebuilds |
 
 ## Methodology
 
