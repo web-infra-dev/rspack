@@ -630,6 +630,7 @@ function getRawCssParserOptions(
   return {
     namedExports: parser.namedExports,
     url: parser.url,
+    resolveImport: parser.resolveImport as any,
   };
 }
 
