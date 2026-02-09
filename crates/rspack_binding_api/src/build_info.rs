@@ -277,7 +277,7 @@ impl ToNapiValue for BuildInfo {
     unsafe {
       let env_wrapper = Env::from_raw(env);
       let module_reference = val.module_reference.clone();
-      let known = KnownBuildInfo::new(module_reference.clone());
+      let known = KnownBuildInfo::new(module_reference);
       let napi_val = ToNapiValue::to_napi_value(env, known)?;
       let mut object = Object::from_raw(env, napi_val);
 

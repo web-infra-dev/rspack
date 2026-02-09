@@ -296,7 +296,6 @@ pub struct JavascriptParserOptions {
   pub exports_presence: Option<ExportPresenceMode>,
   pub import_exports_presence: Option<ExportPresenceMode>,
   pub reexport_exports_presence: Option<ExportPresenceMode>,
-  pub strict_export_presence: Option<bool>,
   pub type_reexports_presence: Option<TypeReexportPresenceMode>,
   pub worker: Option<Vec<String>>,
   pub override_strict: Option<OverrideStrict>,

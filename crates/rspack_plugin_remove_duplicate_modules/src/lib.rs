@@ -87,7 +87,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
   let mut chunk_map = chunk_map.into_iter().collect::<Vec<_>>();
   chunk_map.sort_by_key(|(chunks, _)| chunks.len());
 
-  for (chunks, modules) in chunk_map {
+  for (chunks, modules) in chunk_map.into_iter().rev() {
     if chunks.len() <= 1 {
       continue;
     }

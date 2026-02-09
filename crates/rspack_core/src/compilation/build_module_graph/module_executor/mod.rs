@@ -31,7 +31,7 @@ use crate::{
   Compilation, CompilationAsset, Context, DependencyId, PublicPath, task_loop::run_task_loop,
 };
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct ModuleExecutor {
   // data
   pub make_artifact: BuildModuleGraphArtifact,
@@ -45,9 +45,24 @@ pub struct ModuleExecutor {
   pub executed_runtime_modules: IdentifierDashMap<ExecutedRuntimeModule>,
 }
 
+impl Default for ModuleExecutor {
+  fn default() -> Self {
+    Self {
+      make_artifact: BuildModuleGraphArtifact::new(),
+      entries: Default::default(),
+      event_sender: Default::default(),
+      stop_receiver: Default::default(),
+      module_assets: Default::default(),
+      code_generated_modules: Default::default(),
+      executed_runtime_modules: Default::default(),
+    }
+  }
+}
+
 impl ModuleExecutor {
   pub async fn before_build_module_graph(&mut self, compilation: &Compilation) -> Result<()> {
-    let mut make_artifact = std::mem::take(&mut self.make_artifact);
+    let mut make_artifact =
+      std::mem::replace(&mut self.make_artifact, BuildModuleGraphArtifact::new());
     let mut params = Vec::with_capacity(5);
     params.push(UpdateParam::CheckNeedBuild);
     if !compilation.modified_files.is_empty() {
@@ -110,7 +125,7 @@ impl ModuleExecutor {
     });
     self.make_artifact = update_module_graph(
       compilation,
-      std::mem::take(&mut self.make_artifact),
+      std::mem::replace(&mut self.make_artifact, BuildModuleGraphArtifact::new()),
       vec![UpdateParam::BuildEntryAndClean(
         self.entries.values().copied().collect(),
       )],

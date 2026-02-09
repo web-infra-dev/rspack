@@ -70,14 +70,14 @@ use crate::{
   ChunkRenderCacheArtifact, ChunkRenderResult, ChunkUkey, CodeGenerateCacheArtifact,
   CodeGenerationJob, CodeGenerationResult, CodeGenerationResults, CompilationLogger,
   CompilationLogging, CompilerOptions, CompilerPlatform, ConcatenationScope,
-  DependenciesDiagnosticsArtifact, DependencyCodeGeneration, DependencyId, DependencyTemplate,
-  DependencyTemplateType, DependencyType, Entry, EntryData, EntryOptions, EntryRuntime, Entrypoint,
-  ExecuteModuleId, ExtendedReferencedExport, Filename, ImportPhase, ImportVarMap,
-  ImportedByDeferModulesArtifact, MemoryGCStorage, ModuleFactory, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleIdentifier, ModuleIdsArtifact, ModuleStaticCache, PathData,
-  ProcessRuntimeRequirementsCacheArtifact, ResolverFactory, RuntimeGlobals, RuntimeKeyMap,
-  RuntimeMode, RuntimeModule, RuntimeSpec, RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver,
-  SideEffectsOptimizeArtifact, SourceType, Stats, StealCell, ValueCacheVersions,
+  DependenciesDiagnosticsArtifact, DependencyId, DependencyTemplate, DependencyTemplateType,
+  DependencyType, Entry, EntryData, EntryOptions, EntryRuntime, Entrypoint, ExecuteModuleId,
+  ExtendedReferencedExport, Filename, ImportPhase, ImportVarMap, ImportedByDeferModulesArtifact,
+  MemoryGCStorage, ModuleFactory, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
+  ModuleIdsArtifact, ModuleStaticCache, PathData, ProcessRuntimeRequirementsCacheArtifact,
+  ResolverFactory, RuntimeGlobals, RuntimeKeyMap, RuntimeMode, RuntimeModule, RuntimeSpec,
+  RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver, SideEffectsOptimizeArtifact, SourceType,
+  Stats, StealCell, ValueCacheVersions,
   compilation::build_module_graph::{
     BuildModuleGraphArtifact, ModuleExecutor, UpdateParam, update_module_graph,
   },
@@ -406,7 +406,7 @@ impl Compilation {
       module_executor,
       in_finish_make: AtomicBool::new(false),
 
-      build_module_graph_artifact: StealCell::new(BuildModuleGraphArtifact::default()),
+      build_module_graph_artifact: StealCell::new(BuildModuleGraphArtifact::new()),
       modified_files,
       removed_files,
       input_filesystem,
@@ -1225,11 +1225,9 @@ impl Compilation {
 
   pub fn get_dependency_template(
     &self,
-    dep: &dyn DependencyCodeGeneration,
+    template_type: DependencyTemplateType,
   ) -> Option<Arc<dyn DependencyTemplate>> {
-    dep
-      .dependency_template()
-      .and_then(|template_type| self.dependency_templates.get(&template_type).cloned())
+    self.dependency_templates.get(&template_type).cloned()
   }
 }
 

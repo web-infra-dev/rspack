@@ -285,7 +285,6 @@ pub struct RawJavascriptParserOptions {
   pub exports_presence: Option<String>,
   pub import_exports_presence: Option<String>,
   pub reexport_exports_presence: Option<String>,
-  pub strict_export_presence: Option<bool>,
   pub worker: Option<Vec<String>>,
   pub override_strict: Option<String>,
   pub import_meta: Option<bool>,
@@ -359,7 +358,6 @@ impl From<RawJavascriptParserOptions> for JavascriptParserOptions {
       reexport_exports_presence: value
         .reexport_exports_presence
         .map(|e| ExportPresenceMode::from(e.as_str())),
-      strict_export_presence: value.strict_export_presence,
       type_reexports_presence: value
         .type_reexports_presence
         .map(|e| TypeReexportPresenceMode::from(e.as_str())),
@@ -377,15 +375,18 @@ impl From<RawJavascriptParserOptions> for JavascriptParserOptions {
           exports: JavascriptParserCommonjsExportsOption::from(flag),
         },
         Either::B(options) => {
-          let exports = options
-            .exports
-            .map(|exports| match exports {
-              Either::A(flag) => JavascriptParserCommonjsExportsOption::from(flag),
-              Either::B(RawJavascriptParserCommonjsExports::SkipInEsm) => {
-                JavascriptParserCommonjsExportsOption::SkipInEsm
-              }
-            })
-            .unwrap_or(JavascriptParserCommonjsExportsOption::Enable);
+          let exports =
+            options
+              .exports
+              .map_or(
+                JavascriptParserCommonjsExportsOption::Enable,
+                |exports| match exports {
+                  Either::A(flag) => JavascriptParserCommonjsExportsOption::from(flag),
+                  Either::B(RawJavascriptParserCommonjsExports::SkipInEsm) => {
+                    JavascriptParserCommonjsExportsOption::SkipInEsm
+                  }
+                },
+              );
           JavascriptParserCommonjsOptions { exports }
         }
       }),

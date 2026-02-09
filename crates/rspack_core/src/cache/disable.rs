@@ -14,6 +14,6 @@ impl Cache for DisableCache {
     make_artifact: &mut BuildModuleGraphArtifact,
     _incremental: &Incremental,
   ) {
-    *make_artifact = Default::default();
+    *make_artifact = BuildModuleGraphArtifact::new();
   }
 }

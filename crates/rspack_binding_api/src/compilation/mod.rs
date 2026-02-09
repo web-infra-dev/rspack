@@ -609,7 +609,10 @@ impl JsCompilation {
 
         let modules = compilation
           .rebuild_module(
-            IdentifierSet::from_iter(module_identifiers.into_iter().map(ModuleIdentifier::from)),
+            module_identifiers
+              .into_iter()
+              .map(ModuleIdentifier::from)
+              .collect::<IdentifierSet>(),
             |modules| {
               modules
                 .into_iter()
@@ -784,7 +787,7 @@ impl JsCompilation {
             } else {
               let mut map = FxHashMap::default();
               map.insert(options.clone(), dependency.clone());
-              entry_dependencies_map.insert(js_dependency.request.to_string(), map);
+              entry_dependencies_map.insert(js_dependency.request.clone(), map);
             }
             dependency
           };
@@ -888,7 +891,7 @@ impl JsCompilation {
             } else {
               let mut map = FxHashMap::default();
               map.insert(options.clone(), dependency.clone());
-              include_dependencies_map.insert(js_dependency.request.to_string(), map);
+              include_dependencies_map.insert(js_dependency.request.clone(), map);
             }
             dependency
           };

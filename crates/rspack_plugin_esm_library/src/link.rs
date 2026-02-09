@@ -98,6 +98,12 @@ impl EsmLibraryPlugin {
     if ctx.exported_symbols.contains(&exported) {
       // the name is already exported and we know the exported_local is not the same
       if strict_exports {
+        if let Some(already_exported_names) = ctx.exports.get(&local)
+          && already_exported_names.contains(&exported)
+        {
+          return Some(exported);
+        }
+
         return None;
       }
 
