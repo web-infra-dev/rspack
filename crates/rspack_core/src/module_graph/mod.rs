@@ -337,10 +337,12 @@ impl ModuleGraph {
     new_mgm.depth = assign_tuple.2;
     new_mgm.exports = assign_tuple.3;
 
-    let is_async =
-      ModuleGraph::is_async(&compilation.async_modules_artifact.borrow(), source_module);
-    let mut async_modules_artifact = compilation.async_modules_artifact.borrow_mut();
-    ModuleGraph::set_async(&mut async_modules_artifact, *target_module, is_async);
+    let is_async = ModuleGraph::is_async(&compilation.async_modules_artifact, source_module);
+    ModuleGraph::set_async(
+      &mut compilation.async_modules_artifact,
+      *target_module,
+      is_async,
+    );
   }
 
   pub fn move_module_connections(

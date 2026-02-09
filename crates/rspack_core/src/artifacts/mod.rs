@@ -17,9 +17,7 @@ mod module_ids_artifact;
 mod process_runtime_requirements_cache_artifact;
 mod side_effects_do_optimize_artifact;
 
-use std::{mem, sync::Arc};
-
-use atomic_refcell::AtomicRefCell;
+use std::mem;
 
 use crate::incremental::{Incremental, IncrementalPasses};
 
@@ -72,17 +70,6 @@ impl<T: ArtifactExt> ArtifactExt for Box<T> {
 // Implementation for BindingCell<T> - used when "napi" feature is enabled
 #[cfg(feature = "napi")]
 impl<T: ArtifactExt + Into<crate::BindingCell<T>>> ArtifactExt for crate::BindingCell<T> {
-  const PASS: IncrementalPasses = T::PASS;
-
-  fn recover(incremental: &Incremental, new: &mut Self, old: &mut Self) {
-    if Self::should_recover(incremental) {
-      mem::swap(new, old);
-    }
-  }
-}
-
-// Implementation for Arc<AtomicRefCell<T>> - used for shared artifacts
-impl<T: ArtifactExt> ArtifactExt for Arc<AtomicRefCell<T>> {
   const PASS: IncrementalPasses = T::PASS;
 
   fn recover(incremental: &Incremental, new: &mut Self, old: &mut Self) {
