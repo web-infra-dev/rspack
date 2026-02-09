@@ -17,4 +17,6 @@ Regex utilities used throughout the codebase.
 - Measure regex compilation counts in large builds.
 
 ## Code pointers
+- `crates/rspack_regex/Cargo.toml`
+- `crates/rspack_regex/src/lib.rs`
 - `crates/rspack_regex/**`

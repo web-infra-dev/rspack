@@ -17,4 +17,6 @@ SplitChunks optimization (chunk grouping and splitting).
 - Compare cached group results across incremental builds.
 
 ## Code pointers
+- `crates/rspack_plugin_split_chunks/Cargo.toml`
+- `crates/rspack_plugin_split_chunks/src/lib.rs`
 - `crates/rspack_plugin_split_chunks/**`

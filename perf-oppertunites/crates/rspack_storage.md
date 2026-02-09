@@ -17,4 +17,6 @@ Storage backend for persistent cache (pack storage, IO bridging).
 - Measure write amplification and IO time for different cache sizes.
 
 ## Code pointers
+- `crates/rspack_storage/Cargo.toml`
+- `crates/rspack_storage/src/lib.rs`
 - `crates/rspack_storage/**`

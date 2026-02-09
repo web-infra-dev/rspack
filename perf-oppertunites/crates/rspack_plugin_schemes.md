@@ -17,4 +17,6 @@ Scheme handling (e.g., `file:`, `data:`, `http:`) for module resolution.
 - Evaluate cache hit rates for repeated scheme requests.
 
 ## Code pointers
+- `crates/rspack_plugin_schemes/Cargo.toml`
+- `crates/rspack_plugin_schemes/src/lib.rs`
 - `crates/rspack_plugin_schemes/**`

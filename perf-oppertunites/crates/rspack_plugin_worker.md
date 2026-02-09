@@ -17,4 +17,6 @@ Worker plugin for handling worker entry points and chunking.
 - Compare cache hit rates when workers are unchanged across rebuilds.
 
 ## Code pointers
+- `crates/rspack_plugin_worker/Cargo.toml`
+- `crates/rspack_plugin_worker/src/lib.rs`
 - `crates/rspack_plugin_worker/**`

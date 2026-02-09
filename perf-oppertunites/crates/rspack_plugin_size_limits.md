@@ -17,4 +17,6 @@ Warnings for asset/entrypoint size limits.
 - Measure asset size calculation overhead in large outputs.
 
 ## Code pointers
+- `crates/rspack_plugin_size_limits/Cargo.toml`
+- `crates/rspack_plugin_size_limits/src/lib.rs`
 - `crates/rspack_plugin_size_limits/**`

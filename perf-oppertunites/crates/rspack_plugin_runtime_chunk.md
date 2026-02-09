@@ -17,4 +17,6 @@ Runtime chunk extraction and configuration.
 - Compare cached vs. recomputed runtime chunk naming.
 
 ## Code pointers
+- `crates/rspack_plugin_runtime_chunk/Cargo.toml`
+- `crates/rspack_plugin_runtime_chunk/src/lib.rs`
 - `crates/rspack_plugin_runtime_chunk/**`

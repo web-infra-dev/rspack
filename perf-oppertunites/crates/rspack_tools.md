@@ -17,4 +17,6 @@ Debug/testing utilities for inspecting Rspack internals.
 - Measure overhead of any optional tooling hooks when enabled.
 
 ## Code pointers
+- `crates/rspack_tools/Cargo.toml`
+- `crates/rspack_tools/src/lib.rs`
 - `crates/rspack_tools/**`

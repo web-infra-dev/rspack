@@ -17,4 +17,6 @@ Template generation for web worker runtime.
 - Compare reuse of cached templates across rebuilds.
 
 ## Code pointers
+- `crates/rspack_plugin_web_worker_template/Cargo.toml`
+- `crates/rspack_plugin_web_worker_template/src/lib.rs`
 - `crates/rspack_plugin_web_worker_template/**`

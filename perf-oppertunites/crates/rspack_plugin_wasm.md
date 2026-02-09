@@ -17,4 +17,6 @@ WASM module support and runtime integration.
 - Test cache effectiveness for unchanged WASM modules.
 
 ## Code pointers
+- `crates/rspack_plugin_wasm/Cargo.toml`
+- `crates/rspack_plugin_wasm/src/lib.rs`
 - `crates/rspack_plugin_wasm/**`
