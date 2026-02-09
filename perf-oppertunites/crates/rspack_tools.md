@@ -12,6 +12,11 @@ Debug/testing utilities for inspecting Rspack internals.
 - Avoid expensive snapshot generation unless explicitly requested.
 - Keep debug instrumentation gated behind feature flags.
 
+## Key functions/structs to inspect
+- `compare::snapshot::compare_snapshots` (compare/snapshot.rs).
+- `compare::occasion::make` helpers (compare/occasion/make.rs).
+- `debug_info` utilities (debug_info.rs) for instrumentation overhead.
+
 ## Suggested experiments
 - Validate that tools are excluded from production builds.
 - Measure overhead of any optional tooling hooks when enabled.

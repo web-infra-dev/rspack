@@ -13,6 +13,9 @@ Runtime chunk extraction and configuration.
 - Skip runtime chunk work when output uses a single chunk.
 - Single-file crate: concentrate profiling on `src/lib.rs` hook implementations.
 
+## Key functions/structs to inspect
+- Runtime chunk decision logic in `src/lib.rs` (hook implementations).
+
 ## Suggested experiments
 - Measure runtime chunk decision time on multi-entry builds.
 - Compare cached vs. recomputed runtime chunk naming.

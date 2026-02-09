@@ -12,6 +12,10 @@ Regex utilities used throughout the codebase.
 - Avoid regex usage in hot paths; prefer manual parsers.
 - Cache match results for repeated patterns when possible.
 
+## Key functions/structs to inspect
+- Regex compilation and execution in `algo.rs`.
+- NAPI bindings in `napi.rs` (if used by JS side).
+
 ## Suggested experiments
 - Benchmark regex-heavy rules (e.g., ignore patterns) with and without caching.
 - Measure regex compilation counts in large builds.

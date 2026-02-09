@@ -12,6 +12,11 @@ SplitChunks optimization (chunk grouping and splitting).
 - Avoid full graph scans when cache groups are unchanged.
 - Parallelize heavy grouping passes with bounded concurrency.
 
+## Key functions/structs to inspect
+- Cache group definitions (`options/cache_group.rs`).
+- Grouping logic in `module_group.rs`.
+- Split passes in `plugin/mod.rs` and `plugin/min_size.rs` / `max_size.rs`.
+
 ## Suggested experiments
 - Profile builds with large code splitting configs and track split pass time.
 - Compare cached group results across incremental builds.

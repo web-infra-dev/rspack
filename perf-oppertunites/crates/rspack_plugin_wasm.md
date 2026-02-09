@@ -12,6 +12,12 @@ WASM module support and runtime integration.
 - Avoid repeated hashing of WASM binaries; reuse content hash.
 - Parallelize WASM validation for large modules with bounded concurrency.
 
+## Key functions/structs to inspect
+- WASM parser/generator in `parser_and_generator.rs`.
+- Loading pipeline in `loading_plugin.rs`.
+- `WasmImportDependency` handling (dependency/wasm_import_dependency.rs).
+- Runtime glue in `runtime.rs`.
+
 ## Suggested experiments
 - Profile a WASM-heavy project and measure parse/validate time.
 - Test cache effectiveness for unchanged WASM modules.

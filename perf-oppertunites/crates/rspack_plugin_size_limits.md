@@ -13,6 +13,9 @@ Warnings for asset/entrypoint size limits.
 - Gate warnings to only when size limit checks are enabled.
 - Single-file crate: concentrate profiling on `src/lib.rs` hook implementations.
 
+## Key functions/structs to inspect
+- Size limit checks in `src/lib.rs` (warning emission and thresholds).
+
 ## Suggested experiments
 - Compare builds with size limit checks enabled vs disabled.
 - Measure asset size calculation overhead in large outputs.
