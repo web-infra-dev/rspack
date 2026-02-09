@@ -16,4 +16,6 @@ Top-level crate entrypoint for Rspack.
 - Measure startup time impact of entrypoint initialization.
 
 ## Code pointers
+- `crates/rspack/Cargo.toml`
+- `crates/rspack/src/lib.rs`
 - `crates/rspack/**`

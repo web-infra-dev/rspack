@@ -17,4 +17,6 @@ Node.js binding entrypoint for Rspack.
 - Compare zero-copy vs clone paths for large sources.
 
 ## Code pointers
+- `crates/node_binding/Cargo.toml`
+- `crates/node_binding/src/lib.rs`
 - `crates/node_binding/**`
