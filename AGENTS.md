@@ -48,6 +48,7 @@ Depends on what you have modified, you need to rebuild by `pnpm run build:js` or
 
 - **Linting**: `pnpm run lint:js` (Biome), `pnpm run lint:rs` (cargo check), `pnpm run lint:type` (Rslint)
 - **Formatting**: `pnpm run format:rs` (cargo fmt), `pnpm run format:js` (prettier), `pnpm run format:toml` (taplo)
+- **Rust gate**: After modifying Rust code, ensure both `cargo fmt --all --check` and `cargo lint` pass before commit/PR
 - **Style**: snake_case for Rust, camelCase for JS/TS
 
 ## Common Tasks
@@ -58,13 +59,13 @@ Depends on what you have modified, you need to rebuild by `pnpm run build:js` or
 2. Implement in appropriate crate/package
 3. Add tests (Rust unit tests, JS integration tests)
 4. Update docs if APIs change
-5. Run linters and tests: `pnpm run lint:js && pnpm run lint:rs && pnpm run test:unit && pnpm run test:rs`
+5. Run linters and tests: `pnpm run lint:js && pnpm run lint:rs && cargo lint && pnpm run test:unit && pnpm run test:rs`
 6. Format: `pnpm run format:rs && pnpm run format:js`
 7. Create PR
 
 ### Modifying Code
 
-- **Rust**: Core in `crates/rspack_core/`, plugins in `crates/rspack_plugin_*/`, rebuild with `pnpm run build:binding:dev`, test with `pnpm run test:rs`
+- **Rust**: Core in `crates/rspack_core/`, plugins in `crates/rspack_plugin_*/`, rebuild with `pnpm run build:binding:dev`, test with `pnpm run test:rs`, and ensure `cargo fmt --all --check && cargo lint` passes
 - **JS/TS**: API in `packages/rspack/src/`, CLI in `packages/rspack-cli/src/`, rebuild with `pnpm run build:js`, test with `pnpm run test:unit`
 
 ### Adding Tests
