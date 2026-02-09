@@ -1777,13 +1777,21 @@ export default {
 ## output.uniqueName
 
 - **Type:** `string`
-- **Default:** It defaults to [`output.library`](#outputlibrary) name or the package name from `package.json` in the context, if both aren't found, it is set to an `''`.
+- **Default:** Derived in the following priority order:
+  1. The `name` of [`output.library`](#outputlibrary)
+  2. The `name` field in `package.json` under the `context` directory
+  3. `''` (empty string)
 
-A unique name of the Rspack build to avoid multiple Rspack runtimes to conflict when using globals.
+This option is used to identify a unique name for the current build. It mainly helps prevent runtime code conflicts when multiple Rspack applications run in the same global environment.
 
-`output.uniqueName` will be used to generate unique globals for:
+`output.uniqueName` affects the default values of the following options:
 
-- [`output.chunkLoadingGlobal`](#outputchunkloadingglobal)
+- [output.chunkLoadingGlobal](#outputchunkloadingglobal)
+- [output.hotUpdateGlobal](#outputhotupdateglobal)
+- [output.devtoolNamespace](#outputdevtoolnamespace)
+- [output.trustedTypes.policyName](#outputtrustedtypes)
+
+To override the default value:
 
 ```js title="rspack.config.mjs"
 export default {
