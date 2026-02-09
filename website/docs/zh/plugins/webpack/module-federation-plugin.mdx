@@ -1,17 +1,17 @@
 import { Stability, ApiMeta } from '@components/ApiMeta';
+import { PackageManagerTabs } from '@theme';
 
 # ModuleFederationPlugin
 
-该插件实现了 [Module Federation 1.5](https://github.com/module-federation/universe/tree/main/packages/enhanced)。
+`ModuleFederationPlugin` 用于在 Rspack 中启用模块联邦（Module Federation）能力。
 
-:::tip
-该插件需要依赖 `@module-federation/runtime-tools`，请手动安装：
+该插件实现了 Module Federation 1.5 规范。如果你希望系统了解模块联邦的核心概念、使用方式与最佳实践，请参考 [Module Federation 指南](/guide/features/module-federation)。
 
-```bash
-npm install @module-federation/runtime-tools
-```
+## 安装依赖
 
-:::
+该插件依赖运行时包 [@module-federation/runtime-tools](https://www.npmjs.com/package/@module-federation/runtime-tools)，用于提供模块联邦的运行时支持。请先安装该依赖：
+
+<PackageManagerTabs command="add @module-federation/runtime-tools" />
 
 ## 示例
 
