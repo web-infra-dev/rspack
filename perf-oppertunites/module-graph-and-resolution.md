@@ -8,6 +8,8 @@ with pointers to the code paths that are likely to benefit from optimization.
 **Module graph build & updates**
 - `crates/rspack_core/src/compilation/build_module_graph/mod.rs`
 - `crates/rspack_core/src/compilation/build_module_graph/graph_updater/mod.rs`
+- `crates/rspack_core/src/compilation/build_module_graph/graph_updater/cutout/**`
+- `crates/rspack_core/src/compilation/build_module_graph/graph_updater/repair/**`
 - `crates/rspack_core/src/module_graph/**`
 
 **Rollback overlay map**
@@ -49,6 +51,15 @@ Opportunities:
 - Reuse buffers between passes (retain capacity).
 - Precompute entry dependency lists when entries do not change.
 - Use `SmallVec`/`Vec` + dedup rather than repeated `HashSet` creation.
+
+### 2b) Cutout/repair stage minimization
+
+`update_module_graph` executes `Cutout::cutout_artifact` and `repair`, each of
+which traverse module graph structures. Opportunities:
+
+- Track which `UpdateParam` paths truly require `repair`.
+- Short‑circuit `cutout` when only metadata changes (no graph structure changes).
+- Use `IdentifierSet` diffs to avoid scanning the full graph on minor updates.
 
 ### 3) Reduce cloning in rollback `OverlayMap::get_mut`
 
