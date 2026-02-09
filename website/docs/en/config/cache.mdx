@@ -158,11 +158,14 @@ Enable read-only cache mode. When enabled, the cache will only be read from disk
 
 **Example:**
 
+Enable only in CI:
+
 ```js title="rspack.config.mjs"
 export default {
   cache: {
     type: 'persistent',
-    readonly: true,
+    // Make sure your CI environment sets `process.env.CI` (or a similar env variable)
+    readonly: Boolean(process.env.CI),
   },
 };
 ```

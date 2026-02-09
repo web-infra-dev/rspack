@@ -158,11 +158,14 @@ export default {
 
 **示例：**
 
+仅在 CI 启用：
+
 ```js title="rspack.config.mjs"
 export default {
   cache: {
     type: 'persistent',
-    readonly: true,
+    // 请确保你的 CI 环境设置了 `process.env.CI`（或类似的环境变量）
+    readonly: Boolean(process.env.CI),
   },
 };
 ```
