@@ -1,8 +1,6 @@
 use std::marker::PhantomData;
 
-use rspack_core::{
-  Compilation, RuntimeModule, RuntimeModuleGenerateContext, rspack_sources::Source,
-};
+use rspack_core::{RuntimeModule, RuntimeModuleGenerateContext, rspack_sources::Source};
 use rspack_macros::impl_runtime_module;
 
 #[allow(dead_code)]

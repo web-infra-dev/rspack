@@ -285,7 +285,6 @@ impl Module for ContainerEntryModule {
             webpackRequire: {require_name}, 
             asyncLoad: true 
           }})"#,
-        require_name = require_name
       );
       let install_initial_consumes_fn =
         runtime_template.returning_function(&install_initial_consumes_call, "");
@@ -306,7 +305,6 @@ impl Module for ContainerEntryModule {
         
         return {federation_global}.installInitialConsumes();
       "#,
-        require_name = require_name
       );
       let init_share_container_fn =
         runtime_template.basic_function("mfInstance, bundlerRuntime", &init_body);
