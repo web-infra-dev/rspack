@@ -10,6 +10,7 @@ emission paths.
 - Chunk hashing: `crates/rspack_core/src/compilation/create_hash/mod.rs`
 - Module hashing: `crates/rspack_core/src/compilation/create_module_hashes/mod.rs`
 - Chunk asset rendering: `crates/rspack_core/src/compilation/create_chunk_assets/mod.rs`
+- Process assets hook: `crates/rspack_core/src/compilation/process_assets/mod.rs`
 - Runtime modules: `crates/rspack_plugin_runtime/**`
 - Split chunks: `crates/rspack_plugin_split_chunks/**`
 - Runtime chunk: `crates/rspack_plugin_runtime_chunk/**`
@@ -81,3 +82,11 @@ incremental passes are disabled by full-hash dependencies:
 - Avoid plugins that require `dependent_full_hash` unless strictly necessary.
 - Cache `ChunkHashResult` and runtime module hashes across builds.
 - For modules with identical runtime sets, reuse hash computations.
+
+### 8) Process assets hook overhead
+
+`process_assets` is plugin‑heavy. When many plugins tap, the overhead can grow:
+
+- Use stage filtering so plugins only run when needed.
+- Reduce asset cloning by passing references where possible.
+- Aggregate asset updates to reduce repeated hash invalidations.
