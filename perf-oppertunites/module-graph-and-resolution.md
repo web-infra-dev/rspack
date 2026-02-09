@@ -46,6 +46,10 @@ entries, it may be cheaper to operate directly on base maps without overlay:
 - Use compact bitsets for exports to reduce allocation and hashing overhead.
 - Skip prefetch for modules marked as `sideEffects: false` when possible.
 
+Code pointers:
+
+- `crates/rspack_core/src/exports/exports_info_getter.rs` (`ExportsInfoGetter::prefetch`)
+
 ### 2) Avoid repeated `HashSet`/`Vec` allocations in build graph
 
 `build_module_graph` allocates new `HashSet` and `Vec` inputs each pass:

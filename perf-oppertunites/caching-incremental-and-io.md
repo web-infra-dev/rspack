@@ -20,6 +20,11 @@ path can block:
 - Ensure cache writes are batched and offloaded to async tasks.
 - Use a single background flush per compilation pass instead of per entry.
 
+Code pointers:
+
+- `crates/rspack_storage/src/lib.rs`
+- `crates/rspack_core/src/cache/persistent/**`
+
 ### 2) Reduce serialization allocations
 
 `rspack_cacheable` uses `rkyv` and custom serializers. Opportunities:
