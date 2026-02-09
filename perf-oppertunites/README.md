@@ -26,6 +26,7 @@ performance opportunity write-ups based on the `build-tools-performance`
 
 - [workload-react-10k.md](./workload-react-10k.md) — setup/runbook for the case.
 - [profiling-results.md](./profiling-results.md) — perf output and notes.
+- [prioritized-opportunities.md](./prioritized-opportunities.md) — top opportunities, ordered by impact.
 - [crate-survey.md](./crate-survey.md) — crate-by-crate inspection notes.
 - [module-graph-and-resolution.md](./module-graph-and-resolution.md)
 - [parsing-loaders-and-transforms.md](./parsing-loaders-and-transforms.md)
