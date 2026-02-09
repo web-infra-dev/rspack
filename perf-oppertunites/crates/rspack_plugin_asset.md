@@ -12,6 +12,11 @@ Asset module handling (resource/inline/source).
 - Avoid re-encoding assets on incremental builds.
 - Batch asset emission IO where possible.
 
+## Key functions/structs to inspect
+- `AssetParserAndGenerator::with_*` constructors (lib.rs).
+- `render_manifest` hook in `AssetPlugin` (lib.rs).
+- `AssetExportsDependency` (asset_exports_dependency.rs).
+
 ## Suggested experiments
 - Profile asset-heavy builds and measure transformation time.
 - Compare cache hit rates for unchanged asset content.

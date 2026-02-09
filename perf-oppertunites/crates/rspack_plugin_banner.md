@@ -13,6 +13,9 @@ Banner injection into emitted assets.
 - Use `String::with_capacity` for concatenations.
 - Single-file crate: concentrate profiling on `src/lib.rs` banner insertion logic.
 
+## Key functions/structs to inspect
+- Banner plugin hook implementations in `src/lib.rs`.
+
 ## Suggested experiments
 - Measure banner injection overhead on large asset outputs.
 - Compare cached banner string reuse across rebuilds.

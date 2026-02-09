@@ -12,6 +12,11 @@ Procedural macros used across Rspack.
 - Prefer compile-time constants over runtime initialization.
 - Keep macro expansions minimal to reduce binary size.
 
+## Key functions/structs to inspect
+- `define_hook` macro expansion (hook.rs).
+- `plugin` / `plugin_hook` macro expansions (plugin.rs).
+- Runtime module macro helpers (runtime_module.rs).
+
 ## Suggested experiments
 - Inspect macro expansions for hot path allocations.
 - Compare binary size with optimized macro expansions.

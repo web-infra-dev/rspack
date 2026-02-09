@@ -12,6 +12,9 @@ Detect circular dependencies in module graph.
 - Cache traversal results between incremental builds.
 - Limit depth or scope for large graphs to reduce cost.
 
+## Key functions/structs to inspect
+- Circular dependency traversal in `src/lib.rs`.
+
 ## Suggested experiments
 - Profile circular dependency detection on large graphs.
 - Compare full traversal vs incremental caching.

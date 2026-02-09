@@ -13,6 +13,11 @@ Path utilities and UTF‑8 path wrappers.
 - Reduce hashing of path types in hot loops by caching hashes.
 - Single-file crate: concentrate profiling on `src/lib.rs` path helpers.
 
+## Key functions/structs to inspect
+- `AssertUtf8::assert_utf8` (lib.rs).
+- `ArcPath::new` and hash caching (lib.rs).
+- `ArcPathSet` / `ArcPathMap` insertion paths (lib.rs).
+
 ## Suggested experiments
 - Measure path normalization overhead in large module graphs.
 - Compare cached path hashing vs direct hashing.

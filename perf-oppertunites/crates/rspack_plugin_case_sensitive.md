@@ -13,6 +13,9 @@ Case-sensitive path checks for module resolution.
 - Skip checks when filesystem is known to be case-sensitive.
 - Single-file crate: concentrate profiling on `src/lib.rs` path checks.
 
+## Key functions/structs to inspect
+- Case-sensitive checks in `src/lib.rs` (hook implementations).
+
 ## Suggested experiments
 - Measure case-sensitive check overhead on macOS/Windows.
 - Compare cached vs non-cached path checks.

@@ -13,6 +13,9 @@ Copy assets or files to output directory.
 - Skip copy pass when configuration has no patterns.
 - Single-file crate: concentrate profiling on `src/lib.rs` copy pipeline.
 
+## Key functions/structs to inspect
+- Copy plugin hook implementations in `src/lib.rs`.
+
 ## Suggested experiments
 - Profile large copy patterns to measure IO overhead.
 - Compare cache hit rates for unchanged copied files.

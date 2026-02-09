@@ -13,6 +13,10 @@ Location tracking utilities (source positions and dependency locations).
 - Skip expensive formatting in hot paths.
 - Single-file crate: concentrate profiling on `src/lib.rs` location helpers.
 
+## Key functions/structs to inspect
+- `RealDependencyLocation::from_byte_location` (lib.rs).
+- `RealDependencyLocation::new` and `SourcePosition::from` (lib.rs).
+
 ## Suggested experiments
 - Measure cost of location tracking with source maps enabled.
 - Compare builds with and without detailed location tracking.

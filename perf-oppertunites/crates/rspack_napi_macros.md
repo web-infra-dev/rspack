@@ -13,6 +13,10 @@ Procedural macros for NAPI bindings.
 - Keep bindings minimal to reduce JS↔Rust overhead.
 - Single-file crate: concentrate profiling on `src/lib.rs` macro expansion paths.
 
+## Key functions/structs to inspect
+- `field_names` proc-macro (lib.rs).
+- `tagged_union` proc-macro (lib.rs).
+
 ## Suggested experiments
 - Inspect generated binding code for redundant conversions.
 - Compare NAPI call overhead with simplified bindings.
