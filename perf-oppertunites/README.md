@@ -29,6 +29,7 @@ performance opportunity write-ups based on the `build-tools-performance`
 - [prioritized-opportunities.md](./prioritized-opportunities.md) — top opportunities, ordered by impact.
 - [hotspot-map.md](./hotspot-map.md) — perf symbols mapped to code.
 - [crate-survey.md](./crate-survey.md) — crate-by-crate inspection notes.
+- [crates/](./crates/) — per-crate performance opportunity write-ups.
 - [module-graph-and-resolution.md](./module-graph-and-resolution.md)
 - [parsing-loaders-and-transforms.md](./parsing-loaders-and-transforms.md)
 - [chunking-codegen-and-runtime.md](./chunking-codegen-and-runtime.md)
