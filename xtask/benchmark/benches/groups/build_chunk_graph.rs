@@ -122,31 +122,7 @@ pub fn build_chunk_graph_benchmark_inner(c: &mut Criterion) {
     .build()
     .unwrap();
 
-  let compiler_id = compiler.id();
-  let compiler_context = CURRENT_COMPILER_CONTEXT.get();
-
-  fast_set(
-    &mut compiler.compilation,
-    Compilation::new(
-      compiler_id,
-      compiler.options.clone(),
-      compiler.platform.clone(),
-      compiler.plugin_driver.clone(),
-      compiler.buildtime_plugin_driver.clone(),
-      compiler.resolver_factory.clone(),
-      compiler.loader_resolver_factory.clone(),
-      None,
-      Incremental::new_cold(compiler.options.incremental),
-      Some(Default::default()),
-      Default::default(),
-      Default::default(),
-      compiler.input_filesystem.clone(),
-      compiler.intermediate_filesystem.clone(),
-      compiler.output_filesystem.clone(),
-      false,
-      compiler_context,
-    ),
-  );
+  reset_compilation_state(&mut compiler);
 
   rt.block_on(async {
     fs.create_dir_all("/src".into())
@@ -231,7 +207,86 @@ pub fn build_chunk_graph_benchmark_inner(c: &mut Criterion) {
   });
 }
 
-criterion_group!(chunk_graph, build_chunk_graph_benchmark);
+pub fn build_module_graph_benchmark(c: &mut Criterion) {
+  within_compiler_context_for_testing_sync(|| {
+    build_module_graph_benchmark_inner(c);
+  })
+}
+
+pub fn build_module_graph_benchmark_inner(c: &mut Criterion) {
+  let rt = Builder::new_multi_thread()
+    .build()
+    .expect("should not fail to build tokio runtime");
+  let _guard = rt.enter();
+
+  let fs = Arc::new(MemoryFileSystem::default());
+  let random_table =
+    serde_json::from_str::<Vec<Vec<usize>>>(include_str!("../build_chunk_graph/random_table.json"))
+      .expect("should not fail to parse random table json");
+  let mut compiler = Compiler::builder()
+    .context("/")
+    .entry("main", "/src/dynamic-0.js")
+    .input_filesystem(fs.clone())
+    .output_filesystem(fs.clone())
+    .optimization(Optimization::builder().remove_available_modules(true))
+    .incremental(IncrementalOptions::empty_passes())
+    .build()
+    .unwrap();
+
+  rt.block_on(async {
+    fs.create_dir_all("/src".into())
+      .await
+      .expect("should not fail to create dir");
+    prepare_large_code_splitting_case(NUM_MODULES, &random_table, &fs).await;
+  });
+
+  c.bench_function("rust@build_module_graph", |b| {
+    b.iter_with_setup_wrapper(|runner| {
+      reset_compilation_state(&mut compiler);
+      rt.block_on(async {
+        let mut compilation_params = compiler.new_compilation_params();
+        compiler
+          .plugin_driver
+          .compiler_hooks
+          .this_compilation
+          .call(&mut compiler.compilation, &mut compilation_params)
+          .await
+          .unwrap();
+        compiler
+          .plugin_driver
+          .compiler_hooks
+          .compilation
+          .call(&mut compiler.compilation, &mut compilation_params)
+          .await
+          .unwrap();
+        compiler
+          .plugin_driver
+          .compiler_hooks
+          .make
+          .call(&mut compiler.compilation)
+          .await
+          .unwrap();
+      });
+      runner.run(|| {
+        rt.block_on(async {
+          build_module_graph_pass(&mut compiler.compilation)
+            .await
+            .unwrap();
+        });
+        assert_eq!(
+          compiler.compilation.get_module_graph().modules().len(),
+          NUM_MODULES + NUM_MODULES / 10
+        );
+      });
+    });
+  });
+}
+
+criterion_group!(
+  chunk_graph,
+  build_chunk_graph_benchmark,
+  build_module_graph_benchmark
+);
 
 fn reset_chunk_graph_state(compilation: &mut Compilation) {
   compilation.build_chunk_graph_artifact.chunk_by_ukey = Default::default();
@@ -241,4 +296,31 @@ fn reset_chunk_graph_state(compilation: &mut Compilation) {
   compilation.build_chunk_graph_artifact.async_entrypoints = Default::default();
   compilation.build_chunk_graph_artifact.named_chunk_groups = Default::default();
   compilation.build_chunk_graph_artifact.named_chunks = Default::default();
+}
+
+fn reset_compilation_state(compiler: &mut Compiler) {
+  let compiler_id = compiler.id();
+  let compiler_context = CURRENT_COMPILER_CONTEXT.get();
+  fast_set(
+    &mut compiler.compilation,
+    Compilation::new(
+      compiler_id,
+      compiler.options.clone(),
+      compiler.platform.clone(),
+      compiler.plugin_driver.clone(),
+      compiler.buildtime_plugin_driver.clone(),
+      compiler.resolver_factory.clone(),
+      compiler.loader_resolver_factory.clone(),
+      None,
+      Incremental::new_cold(compiler.options.incremental),
+      Some(Default::default()),
+      Default::default(),
+      Default::default(),
+      compiler.input_filesystem.clone(),
+      compiler.intermediate_filesystem.clone(),
+      compiler.output_filesystem.clone(),
+      false,
+      compiler_context,
+    ),
+  );
 }
