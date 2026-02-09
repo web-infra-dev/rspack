@@ -60,7 +60,7 @@ impl ReadableFileSystem for VirtualFileSystem {
     if let Ok(store) = self.virtual_file_store.read()
       && let Some(metadata) = store.get_file_metadata(path)
     {
-      return Ok(metadata.clone());
+      return Ok(metadata);
     }
 
     self.real_fs.metadata(path).await
@@ -70,7 +70,7 @@ impl ReadableFileSystem for VirtualFileSystem {
     if let Ok(store) = self.virtual_file_store.read()
       && let Some(metadata) = store.get_file_metadata(path)
     {
-      return Ok(metadata.clone());
+      return Ok(metadata);
     }
 
     self.real_fs.metadata_sync(path)
@@ -80,7 +80,7 @@ impl ReadableFileSystem for VirtualFileSystem {
     if let Ok(store) = self.virtual_file_store.read()
       && let Some(metadata) = store.get_file_metadata(path)
     {
-      return Ok(metadata.clone());
+      return Ok(metadata);
     }
 
     self.real_fs.symlink_metadata(path).await
