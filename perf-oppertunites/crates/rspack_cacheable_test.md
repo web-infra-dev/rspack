@@ -17,4 +17,6 @@ Tests for cacheable serialization utilities.
 ## Code pointers
 - `crates/rspack_cacheable_test/Cargo.toml`
 - `crates/rspack_cacheable_test/tests/context.rs`
+- `crates/rspack_cacheable_test/tests/macro/mod.rs`
+- `crates/rspack_cacheable_test/tests/utils/mod.rs`
 - `crates/rspack_cacheable_test/**`

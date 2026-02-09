@@ -19,4 +19,10 @@ Shared binding API surface for JS↔Rust integration.
 ## Code pointers
 - `crates/rspack_binding_api/Cargo.toml`
 - `crates/rspack_binding_api/src/lib.rs`
+- `crates/rspack_binding_api/src/compiler.rs`
+- `crates/rspack_binding_api/src/compilation/mod.rs`
+- `crates/rspack_binding_api/src/plugins/mod.rs`
+- `crates/rspack_binding_api/src/raw_options/mod.rs`
+- `crates/rspack_binding_api/src/resolver.rs`
+- `crates/rspack_binding_api/src/module_graph.rs`
 - `crates/rspack_binding_api/**`

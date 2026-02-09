@@ -21,4 +21,5 @@ Procedural macros for cacheable serialization.
 - `crates/rspack_cacheable_macros/src/lib.rs`
 - `crates/rspack_cacheable_macros/src/cacheable/mod.rs`
 - `crates/rspack_cacheable_macros/src/cacheable/impl.rs`
+- `crates/rspack_cacheable_macros/src/cacheable/impl_with.rs`
 - `crates/rspack_cacheable_macros/**`

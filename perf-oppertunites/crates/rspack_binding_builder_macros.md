@@ -17,4 +17,5 @@ Procedural macros for binding builder utilities.
 ## Code pointers
 - `crates/rspack_binding_builder_macros/Cargo.toml`
 - `crates/rspack_binding_builder_macros/src/lib.rs`
+- `crates/rspack_binding_builder_macros/src/register_plugin.rs`
 - `crates/rspack_binding_builder_macros/**`

@@ -19,4 +19,6 @@ Browser/WASM support for Rspack.
 ## Code pointers
 - `crates/rspack_browser/Cargo.toml`
 - `crates/rspack_browser/src/lib.rs`
+- `crates/rspack_browser/src/oneshot.rs`
+- `crates/rspack_browser/src/panic.rs`
 - `crates/rspack_browser/**`

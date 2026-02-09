@@ -19,4 +19,6 @@ Browserslist configuration parsing and resolution.
 ## Code pointers
 - `crates/rspack_browserslist/Cargo.toml`
 - `crates/rspack_browserslist/src/lib.rs`
+- `crates/rspack_browserslist/src/load_config.rs`
+- `crates/rspack_browserslist/src/lightningcss.rs`
 - `crates/rspack_browserslist/**`
