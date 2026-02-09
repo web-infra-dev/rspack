@@ -10,6 +10,7 @@ import { WebRunner } from '../runner';
 import { BasicCaseCreator } from '../test/creator';
 import type {
   IModuleScope,
+  ITestCompilerManager,
   ITestContext,
   ITestEnv,
   ITestRunner,
@@ -24,6 +25,46 @@ type TWatchContext = {
   nativeWatcher: boolean;
   watchState: Record<string, any>;
 };
+
+const WATCH_BUILD_TIMEOUT_CODE = 'WATCH_BUILD_TIMEOUT';
+
+function waitForBuildEvent(
+  compiler: ITestCompilerManager,
+  timeoutMs?: number,
+): Promise<unknown> {
+  return new Promise((resolve, reject) => {
+    const emitter = compiler.getEmitter();
+    let timeout: ReturnType<typeof setTimeout> | undefined;
+    const onBuild = (error: Error | null, stats: unknown) => {
+      if (timeout) {
+        clearTimeout(timeout);
+      }
+      emitter.off(ECompilerEvent.Build, onBuild);
+      if (error) {
+        reject(error);
+      } else {
+        resolve(stats);
+      }
+    };
+    emitter.on(ECompilerEvent.Build, onBuild);
+    if (typeof timeoutMs === 'number') {
+      timeout = setTimeout(() => {
+        emitter.off(ECompilerEvent.Build, onBuild);
+        const err = new Error(`Watch build timeout after ${timeoutMs}ms`);
+        (err as NodeJS.ErrnoException).code = WATCH_BUILD_TIMEOUT_CODE;
+        reject(err);
+      }, timeoutMs);
+    }
+  });
+}
+
+function isWatchBuildTimeout(error: unknown) {
+  return (
+    !!error &&
+    typeof error === 'object' &&
+    (error as NodeJS.ErrnoException).code === WATCH_BUILD_TIMEOUT_CODE
+  );
+}
 
 export function createWatchInitialProcessor(
   name: string,
@@ -286,12 +327,6 @@ export function createWatchStepProcessor(
   };
   processor.build = async (context: ITestContext) => {
     const compiler = context.getCompiler();
-    const task = new Promise((resolve, reject) => {
-      compiler.getEmitter().once(ECompilerEvent.Build, (e, stats) => {
-        if (e) return reject(e);
-        resolve(stats);
-      });
-    });
     // wait compiler to ready watch the files and diretories
 
     // Native Watcher using [notify](https://github.com/notify-rs/notify) to watch files.
@@ -301,10 +336,28 @@ export function createWatchStepProcessor(
     // which will cause the compiler not rebuild when the files change.
     // The timeout is set to 400ms for windows OS and 100ms for other OS.
     // TODO: This is a workaround, we can remove it when notify support windows better.
-    const timeout = nativeWatcher && process.platform === 'win32' ? 400 : 100;
-    await new Promise((resolve) => setTimeout(resolve, timeout));
-    copyDiff(path.join(context.getSource(), step), tempDir, false);
-    await task;
+    const readyDelay =
+      nativeWatcher && process.platform === 'win32' ? 400 : 100;
+    const buildTimeout = nativeWatcher ? 10000 : undefined;
+    const maxRetries = nativeWatcher ? 1 : 0;
+    const retryDelay = nativeWatcher ? 250 : 0;
+
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      const task = waitForBuildEvent(compiler, buildTimeout);
+      const delay = attempt === 0 ? readyDelay : retryDelay;
+      if (delay > 0) {
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      }
+      copyDiff(path.join(context.getSource(), step), tempDir, false);
+      try {
+        await task;
+        break;
+      } catch (error) {
+        if (!isWatchBuildTimeout(error) || attempt === maxRetries) {
+          throw error;
+        }
+      }
+    }
   };
   return processor;
 }
