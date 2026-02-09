@@ -113,3 +113,32 @@ profiling suggests a hotspot.
 | `rspack_plugin_wasm` | WASM support. | Parsing/emit cost; cache module analysis. |
 | `rspack_plugin_web_worker_template` | Web worker templates. | Template rendering can be cached. |
 | `rspack_plugin_worker` | Worker plugin. | Module graph additions; cache resolved worker entries. |
+
+## Deep Dive Highlights (selected crates)
+
+### `rspack_core`
+
+- **Compilation pipeline:** `compilation/build_module_graph`, `build_chunk_graph`,
+  `code_generation`, `create_hash`, `create_chunk_assets`.
+- **Graph update hot path:** `module_graph/rollback/overlay_map.rs` where perf
+  shows `OverlayMap::get` in the top samples.
+- **Opportunity:** reuse buffers for `UpdateParam` collections, reduce overlay
+  usage in full builds, and re-enable incremental chunk graph.
+
+### `rspack_loader_runner`
+
+- **Loader state machine:** `run_loaders_impl` in `runner.rs`.
+- **Content handling:** `Content::into_string_lossy` in `content.rs` correlates
+  with perf’s lossy UTF‑8 conversion hotspot.
+- **Opportunity:** avoid lossy conversions and reuse per-loader buffers.
+
+### `rspack_javascript_compiler` + `rspack_plugin_javascript`
+
+- **SWC parse/transform:** `compiler.rs` and plugin visitors.
+- **Opportunity:** cache SWC configs and reuse AST arenas per module type.
+
+### `rspack_storage` + `rspack_cacheable`
+
+- **Persistent storage:** `PackStorage` and storage trait API.
+- **Serialization:** `serialize.rs`/`deserialize.rs` for cacheable types.
+- **Opportunity:** reduce serialization allocations and batch cache writes.
