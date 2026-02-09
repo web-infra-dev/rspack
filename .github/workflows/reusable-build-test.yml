@@ -130,7 +130,9 @@ jobs:
         if: always()
         run: |
           mkdir -p core-dumps
-          find . -maxdepth 5 -name 'core.*' -type f -exec cp {} core-dumps/ \; 2>/dev/null || true
+          find . -maxdepth 5 -type f \
+            \( -name 'core.[0-9]*' -o -name 'core.*.[0-9]*' \) \
+            -exec cp {} core-dumps/ \; 2>/dev/null || true
           ls -lah core-dumps/ || true
 
       - name: Upload core dumps
