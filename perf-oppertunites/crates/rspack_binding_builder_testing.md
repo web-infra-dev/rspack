@@ -3,9 +3,16 @@
 ## Role
 Testing utilities for binding builder.
 
+## Profiling relevance
+- Test-only crate; no runtime impact.
+- Ensure isolation from production builds.
+
 ## Perf opportunities
 - Not runtime hot; keep tests isolated from production paths.
 - Avoid heavy fixture loading unless required by tests.
+
+## Suggested experiments
+- Verify testing utilities are gated in release builds.
 
 ## Code pointers
 - `crates/rspack_binding_builder_testing/**`

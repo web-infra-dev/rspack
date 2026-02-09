@@ -3,10 +3,18 @@
 ## Role
 Shared binding API surface for JS↔Rust integration.
 
+## Profiling relevance
+- Indirectly affects performance in JS plugin-heavy builds.
+- Costs scale with number of binding calls and payload size.
+
 ## Perf opportunities
 - Batch binding calls to reduce NAPI overhead.
 - Prefer zero-copy buffers for assets and sources.
 - Avoid deep cloning when transferring large objects.
+
+## Suggested experiments
+- Measure per-hook binding overhead using a plugin-heavy workload.
+- Compare zero-copy buffer paths vs cloned buffers.
 
 ## Code pointers
 - `crates/rspack_binding_api/**`

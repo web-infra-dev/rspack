@@ -3,9 +3,16 @@
 ## Role
 Binding builder utilities for Node integration.
 
+## Profiling relevance
+- Build-time only; no runtime impact.
+- Ensure builders are not executed in production builds.
+
 ## Perf opportunities
 - Not runtime hot; ensure build helpers are not included in runtime paths.
 - Keep generated bindings minimal to reduce JS↔Rust overhead.
+
+## Suggested experiments
+- Validate binding builder execution frequency in CI pipelines.
 
 ## Code pointers
 - `crates/rspack_binding_builder/**`
