@@ -2378,7 +2378,6 @@ export interface RawJavascriptParserOptions {
   exportsPresence?: string
   importExportsPresence?: string
   reexportExportsPresence?: string
-  strictExportPresence?: boolean
   worker?: Array<string>
   overrideStrict?: string
   importMeta?: boolean

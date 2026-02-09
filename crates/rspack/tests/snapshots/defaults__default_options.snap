@@ -1627,9 +1627,6 @@ CompilerOptions {
                             exports_presence: None,
                             import_exports_presence: None,
                             reexport_exports_presence: None,
-                            strict_export_presence: Some(
-                                false,
-                            ),
                             type_reexports_presence: None,
                             worker: Some(
                                 [

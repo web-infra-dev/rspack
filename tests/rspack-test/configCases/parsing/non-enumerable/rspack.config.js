@@ -1,6 +1,6 @@
-const { DefinePlugin } = require("@rspack/core");
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
+	mode: "development",
 	module: {
 		parser: {
 			javascript: {
@@ -8,9 +8,4 @@ module.exports = {
 			}
 		}
 	},
-	plugins: [
-		new DefinePlugin({
-			"process.env.NODE_ENV": "'development'"
-		})
-	],
 };

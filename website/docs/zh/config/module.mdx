@@ -1232,7 +1232,7 @@ export default {
 
 <PropertyType
   type="'error' | 'warn' | 'auto' | false"
-  defaultValueList={[{ defaultValue: "'auto'" }]}
+  defaultValueList={[{ defaultValue: "'error'" }]}
 />
 
 当使用了不存在的导出或存在冲突的重导出时，是否进行警告或报错。
@@ -1247,7 +1247,7 @@ export default {
   module: {
     parser: {
       javascript: {
-        exportsPresence: 'error',
+        exportsPresence: 'auto',
       },
     },
   },
@@ -1290,27 +1290,9 @@ export default {
 };
 ```
 
-### module.parser.javascript.strictExportPresence
-
-- **类型：** `boolean`
-
-当导入的名称在导入模块中不存在时，发出错误而不是警告。
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      javascript: {
-        strictExportPresence: true,
-      },
-    },
-  },
-};
-```
-
 ### module.parser.javascript.typeReexportsPresence
 
-<ApiMeta stability={Stability.Experimental} addedVersion="1.4.1" />
+<ApiMeta addedVersion="1.4.1" />
 
 - **类型：** `'no-tolerant' | 'tolerant' | 'tolerant-no-check'`
 - **默认值：** `'no-tolerant'`
