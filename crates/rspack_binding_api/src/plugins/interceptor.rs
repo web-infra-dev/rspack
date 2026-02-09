@@ -267,7 +267,7 @@ impl<T: 'static + ToNapiValue, R: 'static + FromNapiValue> RegisterJsTapsInner<T
     hook: &impl Hook,
   ) -> rspack_error::Result<RegisterFunctionOutput<T, R>> {
     let mut used_stages = Vec::from_iter(hook.used_stages());
-    used_stages.sort();
+    used_stages.sort_unstable();
     self.register.call_with_sync(used_stages).await
   }
 

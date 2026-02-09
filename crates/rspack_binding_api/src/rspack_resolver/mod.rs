@@ -143,8 +143,9 @@ impl ResolverFactory {
       description_files: op.description_files.unwrap_or(default.description_files),
       enforce_extension: op
         .enforce_extension
-        .map(|enforce_extension| enforce_extension.into())
-        .unwrap_or(default.enforce_extension),
+        .map_or(default.enforce_extension, |enforce_extension| {
+          enforce_extension.into()
+        }),
       exports_fields: op
         .exports_fields
         .map(|o| {
