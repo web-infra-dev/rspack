@@ -139,17 +139,22 @@ export default {
 };
 ```
 
-## output.chunkLoadTimeout
+## output.chunkLoading
 
-- **Type:** `number`
-- **Default:** `120000`
+- **Type:** `false | 'jsonp' | 'import-scripts' | 'require' | 'async-node' | 'import' | string`
 
-The Number of milliseconds before chunk request timed out.
+The method to load chunks (methods included by default are `'jsonp'` (web), `'import'` (ESM), `'import-scripts'` (webworker), `'require'` (sync node.js), `'async-node'` (async node.js), but others might be added by plugins). The default value will be determined based on the configuration of [`target`](/config/target) and [`chunkFormat`](#outputchunkformat).
+
+:::tip
+
+The default value of this option depends on the [`target`](/config/target) and [`chunkFormat`](#outputchunkformat) setting. For more details, search for `"chunkLoading"` [in the Rspack defaults](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack/src/config/defaults.ts).
+
+:::
 
 ```js title="rspack.config.mjs"
 export default {
   output: {
-    chunkLoadTimeout: 30000, // 30 seconds before chunk request timed out.
+    chunkLoading: 'async-node',
   },
 };
 ```
@@ -169,22 +174,17 @@ export default {
 };
 ```
 
-## output.chunkLoading
+## output.chunkLoadTimeout
 
-- **Type:** `false | 'jsonp' | 'import-scripts' | 'require' | 'async-node' | 'import' | string`
+- **Type:** `number`
+- **Default:** `120000`
 
-The method to load chunks (methods included by default are `'jsonp'` (web), `'import'` (ESM), `'importScripts'` (webworker), `'require'` (sync node.js), `'async-node'` (async node.js), but others might be added by plugins). The default value will be determined based on the configuration of [`target`](#target) and [`chunkFormat`](#outputchunkformat).
-
-:::tip
-
-The default value of this option depends on the [`target`](/config/target) and [`chunkFormat`](#chunkFormat) setting. For more details, search for `"chunkLoading"` [in the Rspack defaults](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack/src/config/defaults.ts).
-
-:::
+The Number of milliseconds before chunk request timed out.
 
 ```js title="rspack.config.mjs"
 export default {
   output: {
-    chunkLoading: 'async-node',
+    chunkLoadTimeout: 30000, // 30 seconds before chunk request timed out.
   },
 };
 ```

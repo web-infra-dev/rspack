@@ -256,6 +256,31 @@ Customize the `exports` field in package.json. e.g.
 
 When this configuration is `["testExports", "exports"]`, the result of `import value from 'lib'` is `lib/test.js`.
 
+## resolve.extensionAlias
+
+- **Type:** `Record<string, string[] | string>`
+- **Default:** `{}`
+
+Define alias for the extension. e.g.
+
+```js title="rspack.config.mjs"
+export default {
+  resolve: {
+    extensionAlias: {
+      '.js': ['.ts', '.js'],
+    },
+  },
+};
+```
+
+This is particularly useful for TypeScript projects, as TypeScript recommends using the `.js` extension to reference TypeScript files.
+
+```ts title="index.ts"
+import { foo } from './foo.js'; // actually refers to `foo.ts`
+```
+
+Rspack will try to resolve `'./foo.ts'` and `'./foo.js'` sequentially when resolving `import './foo.js'`.
+
 ## resolve.extensions
 
 - **Type:** `string[]`
@@ -304,31 +329,6 @@ export default {
 
 - Avoid adding too many extensions as each one adds overhead to the resolution process. Keep the `extensions` array as short as possible to improve resolution performance.
 - Place the most commonly used extensions first in the array.
-
-## resolve.extensionAlias
-
-- **Type:** `Record<string, string[] | string>`
-- **Default:** `{}`
-
-Define alias for the extension. e.g.
-
-```js title="rspack.config.mjs"
-export default {
-  resolve: {
-    extensionAlias: {
-      '.js': ['.ts', '.js'],
-    },
-  },
-};
-```
-
-This is particularly useful for TypeScript projects, as TypeScript recommends using the `.js` extension to reference TypeScript files.
-
-```ts title="index.ts"
-import { foo } from './foo.js'; // actually refers to `foo.ts`
-```
-
-Rspack will try to resolve `'./foo.ts'` and `./foo.js'` sequentially when resolving `import './foo.js'`.
 
 ## resolve.fallback
 
@@ -397,6 +397,13 @@ export default {
   },
 };
 ```
+
+## resolve.fullySpecified
+
+- **Type:** `boolean`
+- **Default:** `false`
+
+No longer resolve extensions, no longer resolve mainFiles in package.json (but does not affect requests from mainFiles, browser, alias).
 
 ## resolve.importsFields
 
@@ -499,12 +506,24 @@ export default {
 
 The name of the directory to use when resolving dependencies.
 
-## resolve.preferRelative
+## resolve.pnp
 
 - **Type:** `boolean`
-- **Default:** `false`
+- **Default:** `!!process.versions.pnp`
 
-When enabled, `require('file')` will first look for the `. /file` file in the current directory, not `<modules>/file`.
+When enabled, it will enable [Yarn PnP](https://yarnpkg.com/features/pnp) resolution.
+
+It's enabled by default if [`!!process.versions.pnp`](https://yarnpkg.com/advanced/pnpapi#processversionspnp) is `true`, which means the application is running in Yarn PnP environments.
+
+Example:
+
+```js title="rspack.config.mjs"
+export default {
+  resolve: {
+    pnp: true,
+  },
+};
+```
 
 ## resolve.preferAbsolute
 
@@ -512,6 +531,36 @@ When enabled, `require('file')` will first look for the `. /file` file in the cu
 - **Default:** `false`
 
 Opt for absolute paths when resolving, in relation to `resolve.roots`.
+
+## resolve.preferRelative
+
+- **Type:** `boolean`
+- **Default:** `false`
+
+When enabled, `require('file')` will first look for the `./file` file in the current directory, not `<modules>/file`.
+
+## resolve.restrictions
+
+- **Type:** `string[]`
+- **Default:** `[]`
+
+A list of resolve restrictions to restrict the paths that a request can be resolved on.
+
+## resolve.roots
+
+- **Type:** `string[]`
+- **Default:** `[]`
+
+A list of directories where server-relative URLs (beginning with '/') are resolved. It defaults to the `context` configuration option. On systems other than Windows, these requests are initially resolved as an absolute path.
+
+## resolve.symlinks
+
+- **Type:** `boolean`
+- **Default:** `true`
+
+Whether to resolve symlinks to their symlinked location.
+
+When enabled, symlinked resources are resolved to their real path, not their symlinked location. Note that this may cause module resolution to fail when using tools that symlink packages (like `npm link`).
 
 ## resolve.tsConfig
 
@@ -552,52 +601,3 @@ Supports [tsconfig project references](https://www.typescriptlang.org/docs/handb
 The list of tsconfig paths can be provided manually, or you may specify `auto` to read the paths list from `tsconfig.references` automatically.
 
 This feature is disabled when the value is `undefined`.
-
-## resolve.fullySpecified
-
-- **Type:** `boolean`
-- **Default:** `false`
-
-No longer resolve extensions, no longer resolve mainFiles in package.json (but does not affect requests from mainFiles, browser, alias).
-
-## resolve.restrictions
-
-- **Type:** `string[]`
-- **Default:** `[]`
-
-A list of resolve restrictions to restrict the paths that a request can be resolved on.
-
-## resolve.roots
-
-- **Type:** `string[]`
-- **Default:** `[]`
-
-A list of directories where server-relative URLs (beginning with '/') are resolved. It defaults to the `context` configuration option. On systems other than Windows, these requests are initially resolved as an absolute path.
-
-## resolve.symlinks
-
-- **Type:** `boolean`
-- **Default:** `true`
-
-Whether to resolve symlinks to their symlinked location.
-
-When enabled, symlinked resources are resolved to their real path, not their symlinked location. Note that this may cause module resolution to fail when using tools that symlink packages (like `npm link`).
-
-## resolve.pnp
-
-- **Type:** `boolean`
-- **Default:** `!!process.versions.pnp`
-
-When enabled, it will enable [Yarn PnP](https://yarnpkg.com/features/pnp) resolution.
-
-It's enabled by default if [`!!process.versions.pnp`](https://yarnpkg.com/advanced/pnpapi#processversionspnp) is `true`, which means the application is running in Yarn PnP environments.
-
-Example:
-
-```js title="rspack.config.mjs"
-export default {
-  resolve: {
-    pnp: true,
-  },
-};
-```
