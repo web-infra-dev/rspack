@@ -134,7 +134,7 @@ export const applyRspackOptionsDefaults = (
   F(options, 'externalsType', () => {
     return options.output.library
       ? // loose type 'string', actual type is "commonjs" | "var" | "commonjs2"....
-      (options.output.library.type as any)
+        (options.output.library.type as any)
       : options.output.module
         ? 'module-import'
         : 'var';
@@ -152,8 +152,8 @@ export const applyRspackOptionsDefaults = (
 
   F(options, 'performance', () =>
     production &&
-      targetProperties &&
-      (targetProperties.browser || targetProperties.browser === null)
+    targetProperties &&
+    (targetProperties.browser || targetProperties.browser === null)
       ? {}
       : false,
   );
@@ -178,17 +178,17 @@ export const applyRspackOptionsDefaults = (
   return targetProperties === false
     ? targetProperties
     : {
-      platform: {
-        web: targetProperties.web,
-        browser: targetProperties.browser,
-        webworker: targetProperties.webworker,
-        node: targetProperties.node,
-        nwjs: targetProperties.nwjs,
-        electron: targetProperties.electron,
-      },
-      esVersion: targetProperties.esVersion,
-      targets: targetProperties.targets,
-    };
+        platform: {
+          web: targetProperties.web,
+          browser: targetProperties.browser,
+          webworker: targetProperties.webworker,
+          node: targetProperties.node,
+          nwjs: targetProperties.nwjs,
+          electron: targetProperties.electron,
+        },
+        esVersion: targetProperties.esVersion,
+        targets: targetProperties.targets,
+      };
 };
 
 export const applyRspackOptionsBaseDefaults = (
@@ -250,7 +250,7 @@ const applyIncrementalDefaults = (options: RspackOptionsNormalized) => {
 const applySnapshotDefaults = (
   _snapshot: SnapshotOptions,
   _env: { production: boolean },
-) => { };
+) => {};
 
 const applyJavascriptParserOptionsDefaults = (
   parserOptions: JavascriptParserOptions,
@@ -899,8 +899,8 @@ const applyExternalsPresetsDefaults = (
     externalsPresets,
     'web',
     !buildHttp &&
-    targetProperties &&
-    (targetProperties.web || isUniversal('node')),
+      targetProperties &&
+      (targetProperties.web || isUniversal('node')),
   );
   D(
     externalsPresets,
@@ -917,22 +917,22 @@ const applyExternalsPresetsDefaults = (
     externalsPresets,
     'electronMain',
     targetProperties &&
-    !!targetProperties.electron &&
-    (targetProperties.electronMain || isUniversal('electronMain')),
+      !!targetProperties.electron &&
+      (targetProperties.electronMain || isUniversal('electronMain')),
   );
   D(
     externalsPresets,
     'electronPreload',
     targetProperties &&
-    !!targetProperties.electron &&
-    (targetProperties.electronPreload || isUniversal('electronPreload')),
+      !!targetProperties.electron &&
+      (targetProperties.electronPreload || isUniversal('electronPreload')),
   );
   D(
     externalsPresets,
     'electronRenderer',
     targetProperties &&
-    !!targetProperties.electron &&
-    (targetProperties.electronRenderer || isUniversal('electronRenderer')),
+      !!targetProperties.electron &&
+      (targetProperties.electronRenderer || isUniversal('electronRenderer')),
   );
   D(
     externalsPresets,
