@@ -339,7 +339,6 @@ Redirect module requests when normal resolving fails.
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   resolve: {
     fallback: {
       abc: false, // do not include a polyfill for abc
@@ -369,7 +368,6 @@ import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 
 export default {
-  //...
   resolve: {
     fallback: {
       assert: require.resolve('assert'),

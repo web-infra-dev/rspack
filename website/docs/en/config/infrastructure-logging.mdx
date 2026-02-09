@@ -14,7 +14,6 @@ Append lines to the output instead of updating existing output, useful for statu
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   infrastructureLogging: {
     appendOnly: true,
     level: 'verbose',
@@ -37,7 +36,6 @@ Enable colorful output for infrastructure level logging. This option is used onl
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   infrastructureLogging: {
     colors: true,
     level: 'verbose',
@@ -60,7 +58,6 @@ Customize the console used for infrastructure level logging.
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   infrastructureLogging: {
     console: yourCustomConsole(),
   },
@@ -76,7 +73,6 @@ Enable debug information of specified loggers such as plugins or loaders. Simila
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   infrastructureLogging: {
     level: 'info',
     debug: ['MyPlugin', /MyPlugin/, (name) => name.contains('MyPlugin')],
@@ -102,7 +98,6 @@ Possible values:
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   infrastructureLogging: {
     level: 'info',
   },
@@ -118,7 +113,6 @@ Stream used for logging output. Defaults to `process.stderr`. This option is use
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   infrastructureLogging: {
     stream: process.stderr,
   },
