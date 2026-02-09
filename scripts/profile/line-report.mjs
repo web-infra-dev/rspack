@@ -8,7 +8,11 @@ const DEFAULT_CONFIG = path.resolve(
   'tests/bench/fixtures/ts-react/rspack.config.ts',
 );
 
+const rawArgs = process.argv.slice(2);
+const args = rawArgs[0] === '--' ? rawArgs.slice(1) : rawArgs;
+
 const { values, positionals } = parseArgs({
+  args,
   options: {
     config: { type: 'string', default: DEFAULT_CONFIG },
     outDir: { type: 'string' },
@@ -53,9 +57,7 @@ function runCapture(command, args, options = {}) {
   }
   if (result.status !== 0) {
     const stderr = result.stderr ? `\n${result.stderr}` : '';
-    throw new Error(
-      `Command failed: ${command} ${args.join(' ')}${stderr}`,
-    );
+    throw new Error(`Command failed: ${command} ${args.join(' ')}${stderr}`);
   }
   return result.stdout ?? '';
 }
