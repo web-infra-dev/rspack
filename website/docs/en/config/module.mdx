@@ -461,7 +461,7 @@ export default {
 
 <PropertyType
   type="'error' | 'warn' | 'auto' | false"
-  defaultValueList={[{ defaultValue: "'auto'" }]}
+  defaultValueList={[{ defaultValue: "'error'" }]}
 />
 
 Warn or error for using non-existent exports and conflicting re-exports.
@@ -476,7 +476,7 @@ export default {
   module: {
     parser: {
       javascript: {
-        exportsPresence: 'error',
+        exportsPresence: 'auto',
       },
     },
   },

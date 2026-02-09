@@ -461,7 +461,7 @@ export default {
 
 <PropertyType
   type="'error' | 'warn' | 'auto' | false"
-  defaultValueList={[{ defaultValue: "'auto'" }]}
+  defaultValueList={[{ defaultValue: "'error'" }]}
 />
 
 当使用了不存在的导出或存在冲突的重导出时，是否进行警告或报错。
@@ -476,7 +476,7 @@ export default {
   module: {
     parser: {
       javascript: {
-        exportsPresence: 'error',
+        exportsPresence: 'auto',
       },
     },
   },
