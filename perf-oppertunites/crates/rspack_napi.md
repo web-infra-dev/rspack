@@ -19,4 +19,8 @@ NAPI integration and wrappers for JS↔Rust interop.
 ## Code pointers
 - `crates/rspack_napi/Cargo.toml`
 - `crates/rspack_napi/src/lib.rs`
+- `crates/rspack_napi/src/callback.rs`
+- `crates/rspack_napi/src/errors.rs`
+- `crates/rspack_napi/src/threadsafe_function.rs`
+- `crates/rspack_napi/src/js_values/mod.rs`
 - `crates/rspack_napi/**`

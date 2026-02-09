@@ -19,4 +19,7 @@ Externalization of modules based on configuration.
 ## Code pointers
 - `crates/rspack_plugin_externals/Cargo.toml`
 - `crates/rspack_plugin_externals/src/lib.rs`
+- `crates/rspack_plugin_externals/src/plugin.rs`
+- `crates/rspack_plugin_externals/src/node_target_plugin.rs`
+- `crates/rspack_plugin_externals/src/http_externals_plugin.rs`
 - `crates/rspack_plugin_externals/**`

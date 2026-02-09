@@ -19,4 +19,8 @@ CSS parsing, dependency extraction, and runtime handling.
 ## Code pointers
 - `crates/rspack_plugin_css/Cargo.toml`
 - `crates/rspack_plugin_css/src/lib.rs`
+- `crates/rspack_plugin_css/src/plugin/mod.rs`
+- `crates/rspack_plugin_css/src/dependency/mod.rs`
+- `crates/rspack_plugin_css/src/parser_and_generator/mod.rs`
+- `crates/rspack_plugin_css/src/runtime/mod.rs`
 - `crates/rspack_plugin_css/**`

@@ -19,4 +19,7 @@ Procedural macros used across Rspack.
 ## Code pointers
 - `crates/rspack_macros/Cargo.toml`
 - `crates/rspack_macros/src/lib.rs`
+- `crates/rspack_macros/src/hook.rs`
+- `crates/rspack_macros/src/plugin.rs`
+- `crates/rspack_macros/src/runtime_module.rs`
 - `crates/rspack_macros/**`

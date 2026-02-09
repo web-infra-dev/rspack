@@ -19,4 +19,5 @@ Asset module handling (resource/inline/source).
 ## Code pointers
 - `crates/rspack_plugin_asset/Cargo.toml`
 - `crates/rspack_plugin_asset/src/lib.rs`
+- `crates/rspack_plugin_asset/src/asset_exports_dependency.rs`
 - `crates/rspack_plugin_asset/**`
