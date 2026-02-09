@@ -23,37 +23,6 @@ jobs:
     name: Run Rust Tests
     uses: ./.github/workflows/reusable-rust-test.yml
 
-  rust_test_miri:
-    name: Rust test miri
-    # TODO: enable it after self hosted runners are ready
-    # if: needs.rust_changes.outputs.changed == 'true' && github.ref_name == 'main' && github.repository_owner == 'web-infra-dev'
-    if: false
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
-
-      - name: Install Rust Toolchain
-        uses: ./.github/actions/rustup
-        with:
-          save-if: ${{ github.ref_name == 'main' }}
-          key: check
-
-      - name: Run Cargo codegen
-        run: cargo codegen
-
-      # Compile test without debug info for reducing the CI cache size
-      - name: Change profile.test
-        shell: bash
-        run: |
-          echo '[profile.test]' >> Cargo.toml
-          echo 'debug = false' >> Cargo.toml
-
-      - name: Run test
-        env:
-          MIRIFLAGS: -Zmiri-tree-borrows -Zmiri-disable-isolation
-        # reason for excluding https://github.com/napi-rs/napi-rs/issues/2200
-        run: cargo miri test --workspace --exclude rspack_node -- --nocapture
-
   test_required_check:
     # this job will be used for GitHub actions to determine required job success or not;
     # When code changed, it will check if any of the test jobs failed.
