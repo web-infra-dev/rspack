@@ -58,6 +58,20 @@ jobs:
         with:
           save-if: ${{ github.ref_name == 'main' && matrix.node == '20' }}
 
+      - name: Enable core dumps (Linux)
+        if: ${{ contains(inputs.target, 'linux') }}
+        run: |
+          ulimit -c unlimited
+          sudo sysctl -w kernel.core_pattern=core.%e.%p
+          ulimit -c
+
+      - name: Enable core dumps (macOS)
+        if: ${{ contains(inputs.target, 'apple-darwin') }}
+        run: |
+          ulimit -c unlimited
+          sudo sysctl -w kern.corefile=core.%P
+          ulimit -c
+
       ### x86_64-unknown-linux-gnu
       - name: Test x86_64-unknown-linux-gnu
         timeout-minutes: 15 # Tests should finish within 15 mins, please fix your tests instead of changing this to a higher timeout.
@@ -111,3 +125,18 @@ jobs:
           WASM: 1
           RSPACK_LOADER_WORKER_THREADS: 1
         run: pnpm run test:ci
+
+      - name: Collect core dumps
+        if: always()
+        run: |
+          mkdir -p core-dumps
+          find . -maxdepth 5 -name 'core.*' -type f -exec cp {} core-dumps/ \; 2>/dev/null || true
+          ls -lah core-dumps/ || true
+
+      - name: Upload core dumps
+        if: always()
+        uses: ./.github/actions/artifact/upload
+        with:
+          name: core-dumps-${{ inputs.target }}-node${{ matrix.node }}
+          path: core-dumps/
+          if-no-files-found: ignore
