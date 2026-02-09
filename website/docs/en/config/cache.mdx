@@ -22,6 +22,7 @@ type CacheOptions =
       buildDependencies?: string[];
       version?: string;
       portable?: boolean;
+      readonly?: boolean;
       snapshot?: {
         immutablePaths?: Array<string | RegExp>;
         unmanagedPaths?: Array<string | RegExp>;
@@ -146,6 +147,28 @@ export default {
 Files outside the project directory (outside `config.context`) will be converted to relative paths. If these files don't exist in the new environment, it will trigger a rebuild of the related modules.
 
 :::
+
+### cache.readonly
+
+- **Type:** `boolean`
+
+- **Default:** `false`
+
+Enable read-only cache mode. When enabled, the cache will only be read from disk and never written to, which is useful for CI environments where you want to use a pre-warmed cache without modifying it.
+
+**Example:**
+
+Enable only in CI:
+
+```js title="rspack.config.mjs"
+export default {
+  cache: {
+    type: 'persistent',
+    // Make sure your CI environment sets `process.env.CI` (or a similar env variable)
+    readonly: Boolean(process.env.CI),
+  },
+};
+```
 
 ### cache.snapshot
 
