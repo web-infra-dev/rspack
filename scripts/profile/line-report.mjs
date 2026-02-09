@@ -23,6 +23,7 @@ const { values, positionals } = parseArgs({
     perf: { type: 'string', default: 'perf' },
     node: { type: 'string', default: process.execPath },
     repeat: { type: 'string', default: '1' },
+    addr2line: { type: 'string' },
   },
   allowPositionals: true,
 });
@@ -110,6 +111,7 @@ function writeMetadata(perfDataPath, reportPath) {
     reportPath,
     rspackCli,
     repeat: repeatCount,
+    addr2line: values.addr2line ?? null,
     command: ['node', rspackCli, 'build', '-c', configPath, ...positionals],
   };
   fs.writeFileSync(
@@ -163,7 +165,7 @@ function runProfile() {
 
   runCommand(values.perf, perfArgs, { env });
 
-  const reportOutput = runCapture(values.perf, [
+  const reportArgs = [
     'report',
     '--stdio',
     '--no-children',
@@ -173,9 +175,14 @@ function runProfile() {
     'dso,symbol,srcline',
     '--fields',
     'overhead,srcline,symbol,dso',
-    '-i',
-    perfDataPath,
-  ]);
+  ];
+
+  if (values.addr2line) {
+    reportArgs.push('--addr2line', values.addr2line);
+  }
+
+  reportArgs.push('-i', perfDataPath);
+  const reportOutput = runCapture(values.perf, reportArgs);
 
   fs.writeFileSync(reportPath, reportOutput);
   writeMetadata(perfDataPath, reportPath);

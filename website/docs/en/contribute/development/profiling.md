@@ -93,6 +93,7 @@ Notes:
 - Use `--build` to run `pnpm run build:binding:profiling` and `pnpm run build:js` automatically.
 - Extra arguments after `--` are forwarded to `rspack build`.
 - Use `--repeat N` to run the build multiple times for more samples.
+- Use `--addr2line /path/to/llvm-addr2line` if line resolution needs improvement.
 
 ### Rsdoctor timeline
 
