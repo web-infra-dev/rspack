@@ -219,7 +219,11 @@ function resolveReportLines(reportOutput) {
     if (parts.length < 4) {
       continue;
     }
-    const [overhead, address, symbol, dso] = parts;
+    const [overheadRaw, addressRaw, symbolRaw, dsoRaw] = parts;
+    const overhead = overheadRaw.trim();
+    const address = addressRaw.trim();
+    const symbol = symbolRaw.trim();
+    const dso = dsoRaw.trim();
     if (!overhead.endsWith('%')) {
       continue;
     }
