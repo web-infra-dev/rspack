@@ -13,6 +13,9 @@ Ignore plugin for excluding modules based on patterns.
 - Avoid allocating new regex objects per module.
 - Single-file crate: concentrate profiling on `src/lib.rs` hook implementations.
 
+## Key functions/structs to inspect
+- Ignore plugin hook implementations in `src/lib.rs`.
+
 ## Suggested experiments
 - Profile builds with heavy ignore rules to measure matcher overhead.
 - Compare precompiled regex vs per-module compilation.

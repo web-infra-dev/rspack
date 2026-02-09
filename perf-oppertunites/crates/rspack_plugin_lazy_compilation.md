@@ -12,6 +12,11 @@ Lazy compilation support for deferred module building.
 - Cache module eligibility results to avoid repeated checks.
 - Avoid runtime template regeneration for identical lazy entries.
 
+## Key functions/structs to inspect
+- Backend/driver logic in `backend.rs`.
+- Module stubs in `module.rs`.
+- Plugin hooks in `plugin.rs`.
+
 ## Suggested experiments
 - Profile lazy compilation builds to measure eligibility checks.
 - Compare cached vs uncached lazy entry handling.

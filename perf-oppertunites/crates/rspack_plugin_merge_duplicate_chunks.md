@@ -13,6 +13,9 @@ Merge duplicate chunks to reduce output size.
 - Batch graph mutations to reduce overhead.
 - Single-file crate: concentrate profiling on `src/lib.rs` hook implementations.
 
+## Key functions/structs to inspect
+- Merge pass logic in `src/lib.rs`.
+
 ## Suggested experiments
 - Profile large split-chunk builds and measure merge pass time.
 - Compare fingerprint-based vs deep comparison strategies.

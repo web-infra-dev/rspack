@@ -12,6 +12,10 @@ JSON module support.
 - Cache parsed JSON for unchanged modules.
 - Short-circuit JSON parsing for small inline JSON modules.
 
+## Key functions/structs to inspect
+- JSON export dependency helpers (`json_exports_dependency.rs`).
+- JSON parsing utilities in `utils.rs`.
+
 ## Suggested experiments
 - Profile builds with many JSON modules to measure parse overhead.
 - Compare cache hit rates for unchanged JSON files.

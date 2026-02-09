@@ -12,6 +12,11 @@ HTML generation plugin (template rendering and asset injection).
 - Avoid repeated asset list string building when unchanged.
 - Use streaming template rendering for large HTML outputs.
 
+## Key functions/structs to inspect
+- `HtmlPlugin` hooks (plugin.rs).
+- Template parsing/rendering in `template.rs`.
+- Asset injection logic in `injector.rs`.
+
 ## Suggested experiments
 - Profile multi-page HTML builds and measure render time.
 - Compare cached vs non-cached template rendering.

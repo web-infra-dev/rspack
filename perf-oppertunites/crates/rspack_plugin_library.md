@@ -12,6 +12,11 @@ Library output configuration and wrapper generation.
 - Avoid string concatenation in per-module wrappers.
 - Skip library formatting when output is not a library target.
 
+## Key functions/structs to inspect
+- `AssignLibraryPlugin` / `AmdLibraryPlugin` hooks (assign_library_plugin.rs, amd_library_plugin.rs).
+- `UmdLibraryPlugin` output formatting (umd_library_plugin.rs).
+- Helper utilities in `utils.rs`.
+
 ## Suggested experiments
 - Profile library builds to measure wrapper generation time.
 - Compare cached templates across incremental builds.

@@ -12,6 +12,10 @@ Hot Module Replacement runtime and hooks.
 - Cache runtime template fragments by HMR mode.
 - Avoid per-module string formatting for HMR metadata.
 
+## Key functions/structs to inspect
+- HMR runtime generation in `hot_module_replacement.rs`.
+- HMR template in `runtime/hot_module_replacement.ejs`.
+
 ## Suggested experiments
 - Measure HMR update time with different module counts.
 - Compare template caching impact on rebuild latency.

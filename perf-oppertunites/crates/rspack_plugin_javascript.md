@@ -12,6 +12,12 @@ JavaScript module parsing, dependency extraction, and runtime hooks.
 - Avoid repeated inner-graph analysis when exports are unchanged.
 - Reduce string conversions when generating runtime code.
 
+## Key functions/structs to inspect
+- Parser plugin traversal in `parser_plugin/*`.
+- `flag_dependency_usage_plugin::collect_active_dependencies` (plugin/flag_dependency_usage_plugin.rs).
+- `module_concatenation_plugin::optimize_chunk_modules_impl` (plugin/module_concatenation_plugin.rs).
+- URL plugin ReplaceSource handling (`plugin/url_plugin.rs`).
+
 ## Suggested experiments
 - Profile large JS graphs with inner-graph enabled/disabled.
 - Track AST arena reuse impact on allocation pressure.

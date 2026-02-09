@@ -13,6 +13,9 @@ CSS minification using LightningCSS.
 - Avoid re-minifying unchanged CSS modules via content hash caching.
 - Single-file crate: concentrate profiling on `src/lib.rs` hook implementations.
 
+## Key functions/structs to inspect
+- CSS minification hook in `src/lib.rs` (process_assets stage).
+
 ## Suggested experiments
 - Profile CSS-heavy builds with minification enabled/disabled.
 - Measure cache hit rate for unchanged CSS assets.

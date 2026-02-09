@@ -13,6 +13,9 @@ Inject module info headers into generated output.
 - Skip header injection for small modules or when not needed.
 - Single-file crate: concentrate profiling on `src/lib.rs` hook implementations.
 
+## Key functions/structs to inspect
+- Header injection logic in `src/lib.rs`.
+
 ## Suggested experiments
 - Measure header injection cost on large builds.
 - Compare cached template vs per-module formatting overhead.
