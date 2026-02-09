@@ -49,7 +49,8 @@
     "api-extractor:local": "pnpm --filter \"@rspack/*\" api-extractor --local",
     "api-extractor:ci": "pnpm --filter \"@rspack/*\" api-extractor:ci",
     "bench:ci": "pnpm run bench:prepare && cargo codspeed run && pnpm --filter bench run bench",
-    "bench:prepare": "node ./scripts/bench/setup.mjs"
+    "bench:prepare": "node ./scripts/bench/setup.mjs",
+    "profile:line-report": "node ./scripts/profile/line-report.mjs"
   },
   "homepage": "https://rspack.rs",
   "bugs": "https://github.com/web-infra-dev/rspack/issues",

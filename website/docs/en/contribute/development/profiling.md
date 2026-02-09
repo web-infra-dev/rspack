@@ -64,6 +64,35 @@ Rspack’s Rust code usually runs in the tokio thread. Select the tokio thread t
 
 ![Rust Profiling](https://assets.rspack.rs/rspack/assets/profiling-rust.png)
 
+### Line-by-line report (perf)
+
+For a line-level CPU report on Linux, use the built-in profiling script. It wraps `perf record` and emits a line-by-line report (`line-report.txt`) plus a `rspack.pftrace` file for timeline analysis.
+
+```sh
+# Run a profiling build first (or add --build to the script).
+pnpm run build:binding:profiling
+pnpm run build:js
+
+# Generate the report using the default bench fixture (tests/bench/fixtures/ts-react)
+pnpm run profile:line-report
+```
+
+You can customize the inputs and output location:
+
+```sh
+pnpm run profile:line-report -- \
+  --config tests/bench/fixtures/ts-react/rspack.config.ts \
+  --outDir ./.rspack-profile-ts-react \
+  --rate 199 \
+  --traceFilter OVERVIEW
+```
+
+Notes:
+
+- The script requires `perf` (install via `linux-tools-common` on Ubuntu).
+- Use `--build` to run `pnpm run build:binding:profiling` and `pnpm run build:js` automatically.
+- Extra arguments after `--` are forwarded to `rspack build`.
+
 ### Rsdoctor timeline
 
 If we want to analyze the time cost of loaders and plugins or the compilation behavior of loaders, we can use Rsdoctor to view:
