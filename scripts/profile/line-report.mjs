@@ -156,7 +156,8 @@ function runProfile() {
     '0.5',
     '--sort',
     'dso,symbol,srcline',
-    '--line',
+    '--fields',
+    'overhead,srcline,symbol,dso',
     '-i',
     perfDataPath,
   ]);
