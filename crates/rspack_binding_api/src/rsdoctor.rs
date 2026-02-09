@@ -4,12 +4,13 @@ use napi::Either;
 use napi_derive::napi;
 use rspack_plugin_rsdoctor::{
   RsdoctorAsset, RsdoctorAssetPatch, RsdoctorChunk, RsdoctorChunkAssets, RsdoctorChunkGraph,
-  RsdoctorChunkModules, RsdoctorDependency, RsdoctorEntrypoint, RsdoctorEntrypointAssets,
-  RsdoctorExportInfo, RsdoctorModule, RsdoctorModuleGraph, RsdoctorModuleGraphModule,
-  RsdoctorModuleId, RsdoctorModuleIdsPatch, RsdoctorModuleOriginalSource,
-  RsdoctorModuleSourcesPatch, RsdoctorPluginChunkGraphFeature, RsdoctorPluginModuleGraphFeature,
-  RsdoctorPluginOptions, RsdoctorPluginSourceMapFeature, RsdoctorSideEffect,
-  RsdoctorSourcePosition, RsdoctorSourceRange, RsdoctorStatement, RsdoctorVariable,
+  RsdoctorChunkModules, RsdoctorConnection, RsdoctorDependency, RsdoctorEntrypoint,
+  RsdoctorEntrypointAssets, RsdoctorExportInfo, RsdoctorModule, RsdoctorModuleGraph,
+  RsdoctorModuleGraphModule, RsdoctorModuleId, RsdoctorModuleIdsPatch,
+  RsdoctorModuleOriginalSource, RsdoctorModuleSourcesPatch, RsdoctorPluginChunkGraphFeature,
+  RsdoctorPluginModuleGraphFeature, RsdoctorPluginOptions, RsdoctorPluginSourceMapFeature,
+  RsdoctorSideEffect, RsdoctorSourcePosition, RsdoctorSourceRange, RsdoctorStatement,
+  RsdoctorVariable,
 };
 
 #[napi(object)]
@@ -28,6 +29,7 @@ pub struct JsRsdoctorModule {
   pub chunks: Vec<i32>,
   pub issuer_path: Vec<i32>,
   pub bailout_reason: Vec<String>,
+  pub side_effects: Option<bool>,
 }
 
 impl From<RsdoctorModule> for JsRsdoctorModule {
@@ -51,6 +53,7 @@ impl From<RsdoctorModule> for JsRsdoctorModule {
         .filter_map(|i| i.ukey)
         .collect::<Vec<_>>(),
       bailout_reason: value.bailout_reason.into_iter().collect::<Vec<_>>(),
+      side_effects: value.side_effects,
     }
   }
 }
@@ -72,6 +75,35 @@ impl From<RsdoctorDependency> for JsRsdoctorDependency {
       request: value.request,
       module: value.module,
       dependency: value.dependency,
+    }
+  }
+}
+
+#[napi(object)]
+pub struct JsRsdoctorConnection {
+  pub ukey: i32,
+  pub dependency_id: String,
+  pub module: i32,
+  pub origin_module: Option<i32>,
+  pub resolved_module: i32,
+  pub dependency_type: String,
+  pub user_request: String,
+  pub loc: Option<String>,
+  pub active: bool,
+}
+
+impl From<RsdoctorConnection> for JsRsdoctorConnection {
+  fn from(value: RsdoctorConnection) -> Self {
+    JsRsdoctorConnection {
+      ukey: value.ukey,
+      dependency_id: value.dependency_id,
+      module: value.module,
+      origin_module: value.origin_module,
+      resolved_module: value.resolved_module,
+      dependency_type: value.dependency_type,
+      user_request: value.user_request,
+      loc: value.loc,
+      active: value.active,
     }
   }
 }
@@ -301,6 +333,7 @@ impl From<RsdoctorChunkModules> for JsRsdoctorChunkModules {
 pub struct JsRsdoctorModuleGraph {
   pub modules: Vec<JsRsdoctorModule>,
   pub dependencies: Vec<JsRsdoctorDependency>,
+  pub connections: Vec<JsRsdoctorConnection>,
   pub chunk_modules: Vec<JsRsdoctorChunkModules>,
 }
 
@@ -309,6 +342,7 @@ impl From<RsdoctorModuleGraph> for JsRsdoctorModuleGraph {
     JsRsdoctorModuleGraph {
       modules: value.modules.into_iter().map(|m| m.into()).collect(),
       dependencies: value.dependencies.into_iter().map(|d| d.into()).collect(),
+      connections: value.connections.into_iter().map(|c| c.into()).collect(),
       chunk_modules: value.chunk_modules.into_iter().map(|c| c.into()).collect(),
     }
   }

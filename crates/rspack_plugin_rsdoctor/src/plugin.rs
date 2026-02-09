@@ -375,7 +375,23 @@ async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<
     }
   }
 
-  // 6. collect chunk modules
+  // 6. collect connections (incoming connections for each module)
+  let rsd_connections = collect_module_connections(
+    &modules,
+    &module_ukey_map,
+    module_graph,
+    &compilation.module_graph_cache_artifact,
+  );
+
+  // 7. collect side_effects
+  let side_effects_map = collect_module_side_effects(&modules);
+  for (module_id, side_effect_free) in side_effects_map {
+    if let Some(rsd_module) = rsd_modules.get_mut(&module_id) {
+      rsd_module.side_effects = side_effect_free;
+    }
+  }
+
+  // 8. collect chunk modules
   let chunk_modules =
     collect_chunk_modules(chunk_by_ukey, &module_ukey_map, chunk_graph, module_graph);
 
@@ -386,6 +402,7 @@ async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<
       .call(&mut RsdoctorModuleGraph {
         modules: rsd_modules.into_values().collect::<Vec<_>>(),
         dependencies: rsd_dependencies.into_values().collect::<Vec<_>>(),
+        connections: rsd_connections,
         chunk_modules,
       })
       .await

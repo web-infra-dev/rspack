@@ -2,6 +2,8 @@ use rspack_collections::Identifier;
 use rspack_core::DependencyType;
 use rustc_hash::FxHashSet as HashSet;
 
+pub type ConnectionUkey = i32;
+
 #[derive(Debug, Default)]
 pub enum ModuleKind {
   #[default]
@@ -48,6 +50,7 @@ pub struct RsdoctorModule {
   pub belong_modules: HashSet<ModuleUkey>,
   pub issuer_path: Option<Vec<RsdoctorStatsModuleIssuer>>,
   pub bailout_reason: HashSet<String>,
+  pub side_effects: Option<bool>,
 }
 
 #[derive(Debug, Default)]
@@ -57,6 +60,19 @@ pub struct RsdoctorDependency {
   pub request: String,
   pub module: ModuleUkey,
   pub dependency: ModuleUkey,
+}
+
+#[derive(Debug, Default)]
+pub struct RsdoctorConnection {
+  pub ukey: ConnectionUkey,
+  pub dependency_id: String,
+  pub module: ModuleUkey,
+  pub origin_module: Option<ModuleUkey>,
+  pub resolved_module: ModuleUkey,
+  pub dependency_type: String,
+  pub user_request: String,
+  pub loc: Option<String>,
+  pub active: bool,
 }
 
 #[derive(Debug, Default)]
@@ -163,6 +179,7 @@ pub struct RsdoctorSourcePosition {
 pub struct RsdoctorModuleGraph {
   pub modules: Vec<RsdoctorModule>,
   pub dependencies: Vec<RsdoctorDependency>,
+  pub connections: Vec<RsdoctorConnection>,
   pub chunk_modules: Vec<RsdoctorChunkModules>,
 }
 

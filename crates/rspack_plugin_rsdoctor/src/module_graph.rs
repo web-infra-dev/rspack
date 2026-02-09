@@ -120,6 +120,7 @@ pub fn collect_modules(
           chunks,
           issuer_path: None,
           bailout_reason: HashSet::default(),
+          side_effects: None,
         },
       )
     })
@@ -303,4 +304,91 @@ pub fn collect_module_ids(
       })
     })
     .collect::<Vec<_>>()
+}
+
+pub fn collect_module_connections(
+  modules: &IdentifierMap<&BoxModule>,
+  module_ukeys: &HashMap<Identifier, ModuleUkey>,
+  module_graph: &ModuleGraph,
+  module_graph_cache: &ModuleGraphCacheArtifact,
+) -> Vec<RsdoctorConnection> {
+  let connection_ukey_counter = Arc::new(AtomicI32::new(0));
+
+  modules
+    .par_iter()
+    .flat_map(|(module_id, _)| {
+      let Some(module_ukey) = module_ukeys.get(module_id) else {
+        return vec![];
+      };
+
+      module_graph
+        .get_incoming_connections(module_id)
+        .filter_map(|conn| {
+          let dep = module_graph.dependency_by_id(&conn.dependency_id);
+
+          // Get dependency type and user_request
+          let (dep_type, user_request) = if let Some(d) = dep.as_module_dependency() {
+            (
+              d.dependency_type().as_str().to_string(),
+              d.user_request().to_string(),
+            )
+          } else if let Some(d) = dep.as_context_dependency() {
+            (
+              d.dependency_type().as_str().to_string(),
+              d.request().to_string(),
+            )
+          } else {
+            (dep.dependency_type().as_str().to_string(), String::new())
+          };
+
+          // Get loc
+          let loc = dep.loc().map(|l| l.to_string());
+
+          // Calculate active state
+          let active = conn.is_active(module_graph, None, module_graph_cache);
+
+          // Get origin module ukey
+          let origin_module_ukey = conn
+            .original_module_identifier
+            .and_then(|id| module_ukeys.get(&id).copied());
+
+          // Get resolved module ukey
+          let resolved_module_ukey = module_ukeys
+            .get(&conn.resolved_module)
+            .copied()
+            .unwrap_or(*module_ukey);
+
+          let ukey = connection_ukey_counter.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+
+          Some(RsdoctorConnection {
+            ukey,
+            dependency_id: conn.dependency_id.as_u32().to_string(),
+            module: *module_ukey,
+            origin_module: origin_module_ukey,
+            resolved_module: resolved_module_ukey,
+            dependency_type: dep_type,
+            user_request,
+            loc,
+            active,
+          })
+        })
+        .collect::<Vec<_>>()
+    })
+    .collect::<Vec<_>>()
+}
+
+pub fn collect_module_side_effects(
+  modules: &IdentifierMap<&BoxModule>,
+) -> HashMap<Identifier, Option<bool>> {
+  modules
+    .par_iter()
+    .map(|(module_id, module)| {
+      let side_effect_free = module
+        .factory_meta()
+        .and_then(|m| m.side_effect_free)
+        .or_else(|| module.build_meta().side_effect_free);
+
+      (*module_id, side_effect_free)
+    })
+    .collect::<HashMap<_, _>>()
 }
