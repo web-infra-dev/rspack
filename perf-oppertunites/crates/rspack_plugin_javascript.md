@@ -3,10 +3,18 @@
 ## Role
 JavaScript module parsing, dependency extraction, and runtime hooks.
 
+## Profiling relevance
+- Inner-graph processing appears in extended perf samples.
+- Costs scale with module count, export analysis, and transform complexity.
+
 ## Perf opportunities
 - Cache parser options and reuse AST arenas across modules.
 - Avoid repeated inner-graph analysis when exports are unchanged.
 - Reduce string conversions when generating runtime code.
+
+## Suggested experiments
+- Profile large JS graphs with inner-graph enabled/disabled.
+- Track AST arena reuse impact on allocation pressure.
 
 ## Code pointers
 - `crates/rspack_plugin_javascript/**`
