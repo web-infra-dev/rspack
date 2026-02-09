@@ -16,6 +16,8 @@ This document consolidates all findings from the per-crate analyses and ranks th
 
 > **REVISED with ACTUAL react-10k profiling data** (doc #43). The real 10K-module benchmark revealed the make phase dominates at 81.8%. Priorities adjusted accordingly.
 
+> **macOS rerun note**: recent react-10k reruns in this workspace showed both cold-like (~98s) and warm-profiled (~13-18s) outcomes depending on cache/environment state. Rankings below remain based on phase composition and algorithmic scaling, not single-run wall time.
+
 | # | Opportunity | Crate | Phase | Est. Impact (react-10k release) | Effort | Details |
 |---|-----------|-------|-------|-------------------------------|--------|---------|
 | **★1** | **Merge SWC AST 7-pass pipeline** | rspack_plugin_javascript | BuildModuleGraph | **~430ms saved (12% of make)** | Medium | **ACTUAL react-10k: make phase is 81.8%**. 7 passes × 10K modules = 140M node visits. Merging passes 1-3 and 4-6 eliminates ~40% of visits. See `24-deep-dive-parsing-scanning.md` |

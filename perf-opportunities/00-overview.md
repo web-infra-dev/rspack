@@ -134,6 +134,7 @@ All docs from `perf-oppertunites/` were consolidated into `perf-opportunities/`:
 - `perf-opportunities/survey-0f36/` — workload, profiling, hotspot map, cross-cutting analyses
 - `perf-opportunities/crate-notes/` — crate-by-crate companion notes
 - `perf-opportunities/survey-0f36/macos-profiling-deep-research.md` — macOS-native deep profiling workflow and trace findings
+- `perf-opportunities/crate-notes/003-file-level-manual-review-coverage-index.md` — crate/file coverage traceability index
 
 To reduce duplication, the temporary `phase-structured/` copy set was removed.
 

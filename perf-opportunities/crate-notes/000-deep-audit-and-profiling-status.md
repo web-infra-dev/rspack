@@ -78,6 +78,13 @@ Observed results in this audit:
 
 - Run A: `Rspack compiled with 2 warnings in 97.72 s`
 - Run B: `Rspack compiled with 2 warnings in 98.79 s`
+- Run C (`RSPACK_PROFILE=OVERVIEW`): `18.01 s`
+- Run D (`RSPACK_TRACE_LAYER=logger` filtered): `13.15 s`
+
+Artifacts:
+
+- `build-tools-performance/cases/react-10k/.rspack-profile-1770673656168-8888/rspack.pftrace`
+- `build-tools-performance/cases/react-10k/.rspack-profile-1770673684525-10298/react10k-trace.log`
 
 ### 4) xctrace attempts (blocked in this environment)
 
@@ -112,6 +119,8 @@ Highest signal crates (selected):
 Reference:
 
 - `perf-opportunities/crate-notes/002-independent-crate-static-signal-metrics.md`
+- `perf-opportunities/crate-notes/003-file-level-manual-review-coverage-index.md`
+- `perf-opportunities/crate-notes/004-all-crates-detailed-opportunities.md`
 
 ## Evidence-Driven Remaining Hotspots
 

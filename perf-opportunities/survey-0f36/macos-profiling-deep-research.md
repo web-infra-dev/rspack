@@ -77,11 +77,23 @@ Observed wall times in this audit:
 
 - 97.72s
 - 98.79s
+- 18.01s (`RSPACK_PROFILE=OVERVIEW`)
+- 13.15s (`RSPACK_TRACE_LAYER=logger` with filtered targets)
 
 These runs used linked local packages:
 
 - `@rspack/core@link:/Users/zackjackson/rspack/packages/rspack`
 - `@rspack/cli@link:/Users/zackjackson/rspack/packages/rspack-cli`
+
+Trace artifacts from react-10k runs:
+
+- `.rspack-profile-1770673656168-8888/rspack.pftrace`
+- `.rspack-profile-1770673684525-10298/react10k-trace.log`
+
+Interpretation note:
+
+- The 13-18s runs are significantly faster than the 97-99s runs, indicating warm-cache and/or environment variance effects.
+- Keep both cold/warm evidence sets and always annotate run conditions in comparisons.
 
 ## Deep profiling workflows to run next (macOS-native)
 
@@ -149,6 +161,17 @@ Practical implication:
   - react-10k repeated wall-time runs
   - `RSPACK_PROFILE` logger/perfetto traces
   - existing Linux perf artifacts in `profiling-results.md`
+
+Manual GUI capture handoff (required for deeper stack-level proof):
+
+1. Run Time Profiler in Instruments GUI for one cold and one warm react-10k build.
+2. Export top 20 self-time stacks and save screenshots in `perf-opportunities/profiles/macos/manual-instruments/`.
+3. Repeat with Allocations template and export top allocation backtraces.
+4. Add short notes to this file under a `Manual GUI Findings` section with:
+   - capture timestamp,
+   - template used,
+   - top hotspots,
+   - suspected optimization link to crate notes.
 
 ## Current remaining opportunities (macOS evidence aligned)
 
