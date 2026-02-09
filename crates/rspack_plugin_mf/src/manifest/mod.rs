@@ -21,7 +21,7 @@ pub use options::{
   RemoteAliasTarget,
 };
 use rspack_core::{
-  Compilation, CompilationAsset, CompilationProcessAssets, ModuleIdentifier, ModuleType, Plugin,
+  Compilation, CompilationAsset, CompilationProcessAssets, ProcessAssetArtifact, ModuleIdentifier, ModuleType, Plugin,
   PublicPath,
   rspack_sources::{RawStringSource, SourceExt},
 };
@@ -96,7 +96,9 @@ fn get_remote_entry_name(compilation: &Compilation, container_name: &str) -> Opt
   None
 }
 #[plugin_hook(CompilationProcessAssets for ModuleFederationManifestPlugin, stage = 0)]
-async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
+async fn process_assets(&self, compilation: &Compilation, process_asset_artifact: &mut ProcessAssetArtifact,
+  build_chunk_graph_artifact: &mut rspack_core::BuildChunkGraphArtifact,
+) -> Result<()> {
   // Prepare entrypoint names
   let entry_point_names: HashSet<String> = compilation
     .build_chunk_graph_artifact
@@ -624,7 +626,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   };
   // emit stats
   let stats_json = serde_json::to_string_pretty(&stats_root).expect("serialize stats");
-  compilation.emit_asset(
+  process_asset_artifact.assets.insert(
     self.options.stats_file_name.clone(),
     CompilationAsset::new(
       Some(RawStringSource::from(stats_json).boxed()),
@@ -673,7 +675,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       .collect(),
   };
   let manifest_json: String = serde_json::to_string_pretty(&manifest).expect("serialize manifest");
-  compilation.emit_asset(
+  process_asset_artifact.assets.insert(
     self.options.manifest_file_name.clone(),
     CompilationAsset::new(
       Some(RawStringSource::from(manifest_json).boxed()),

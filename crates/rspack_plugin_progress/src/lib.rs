@@ -17,7 +17,7 @@ use rspack_core::{
   CompilationChunkIds, CompilationFinishModules, CompilationId, CompilationModuleIds,
   CompilationOptimizeChunkModules, CompilationOptimizeChunks, CompilationOptimizeCodeGeneration,
   CompilationOptimizeDependencies, CompilationOptimizeModules, CompilationOptimizeTree,
-  CompilationParams, CompilationProcessAssets, CompilationSeal, CompilationSucceedModule,
+  CompilationParams, CompilationProcessAssets, ProcessAssetArtifact, CompilationSeal, CompilationSucceedModule,
   CompilerAfterEmit, CompilerClose, CompilerCompilation, CompilerEmit, CompilerFinishMake,
   CompilerId, CompilerMake, CompilerThisCompilation, ModuleIdentifier, ModuleIdsArtifact, Plugin,
   SideEffectsOptimizeArtifact, build_module_graph::BuildModuleGraphArtifact,
@@ -122,7 +122,8 @@ impl ProgressPlugin {
     )
   }
 
-  async fn update_throttled(&self) -> Result<()> {
+  async fn update_throttled(&self
+) -> Result<()> {
     let current_time = SystemTime::now()
       .duration_since(UNIX_EPOCH)
       .expect("failed to get current time")
@@ -519,7 +520,9 @@ async fn optimize_code_generation(
 }
 
 #[plugin_hook(CompilationProcessAssets for ProgressPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_ADDITIONAL)]
-async fn process_assets(&self, _compilation: &mut Compilation) -> Result<()> {
+async fn process_assets(&self, compilation: &Compilation, process_asset_artifact: &mut ProcessAssetArtifact,
+  build_chunk_graph_artifact: &mut rspack_core::BuildChunkGraphArtifact,
+) -> Result<()> {
   self.sealing_hooks_report("asset processing", 35).await
 }
 

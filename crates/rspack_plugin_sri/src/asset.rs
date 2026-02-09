@@ -3,7 +3,7 @@ use std::{cmp::Ordering, sync::Arc};
 use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use rspack_core::{
   ChunkUkey, Compilation, CompilationAfterProcessAssets, CompilationAssets,
-  CompilationProcessAssets, CrossOriginLoading, ManifestAssetType,
+  CompilationProcessAssets, CrossOriginLoading, ManifestAssetType, ProcessAssetArtifact,
   chunk_graph_chunk::ChunkId,
   rspack_sources::{ReplaceSource, Source},
 };
@@ -31,7 +31,8 @@ struct ProcessChunkResult {
 
 fn process_chunks(
   hash_funcs: &Vec<SubresourceIntegrityHashFunction>,
-  compilation: &mut Compilation,
+  compilation: &Compilation,
+  process_asset_artifact: &mut ProcessAssetArtifact,
 ) -> HashMap<String, String> {
   let mut hash_by_placeholders = HashMap::default();
   let mut integrities = HashMap::default();
@@ -41,7 +42,7 @@ fn process_chunks(
     compilation.options.output.cross_origin_loading,
     CrossOriginLoading::Disable
   ) {
-    compilation.push_diagnostic(Diagnostic::warn(
+    process_asset_artifact.diagnostics.push(Diagnostic::warn(
       "SubresourceIntegrity".to_string(),
       r#"SRI requires a cross-origin policy, defaulting to "anonymous". 
 Set "output.crossOriginLoading" option to a value other than "false"
@@ -104,7 +105,7 @@ See https://w3c.github.io/webappsec-subresource-integrity/#cross-origin-data-lea
     let mut should_warn_content_hash = false;
     for result in results {
       for warning in result.warnings {
-        compilation.push_diagnostic(Diagnostic::warn(
+        process_asset_artifact.diagnostics.push(Diagnostic::warn(
           "SubresourceIntegrity".to_string(),
           warning,
         ));
@@ -122,26 +123,32 @@ See https://w3c.github.io/webappsec-subresource-integrity/#cross-origin-data-lea
       let real_content_hash = compilation.options.optimization.real_content_hash;
 
       if let Some(source) = result.source
-        && let Some(error) = compilation
-          .update_asset(&result.file, |_, info| {
-            if use_any_hash(&info) && (info.content_hash.is_empty() || !real_content_hash) {
+        && let Some(error) = process_asset_artifact
+          .assets
+          .get_mut(&result.file)
+          .map(|asset| {
+            if use_any_hash(&asset.info)
+              && (asset.info.content_hash.is_empty() || !real_content_hash)
+            {
               should_warn_content_hash = true;
             }
 
-            let mut new_info = info;
-            new_info.content_hash.insert(integrity);
-            Ok((Arc::new(source), new_info))
+            asset.set_source(Some(Arc::new(source)));
+            let mut info = (*asset.info).clone();
+            info.content_hash.insert(integrity);
+            asset.set_info(info);
           })
-          .err()
+          .is_none()
+          .then(|| rspack_error::error!("Asset '{}' not found", result.file))
       {
-        compilation.push_diagnostic(Diagnostic::error(
+        process_asset_artifact.diagnostics.push(Diagnostic::error(
           "SubresourceIntegrity".to_string(),
           format!("Failed to update asset '{}': {}", result.file, error),
         ));
       }
     }
     if should_warn_content_hash {
-      compilation.push_diagnostic(Diagnostic::warn(
+      process_asset_artifact.diagnostics.push(Diagnostic::warn(
         "SubresourceIntegrity".to_string(),
         r#"Using [hash], [fullhash], [modulehash], or [chunkhash] can be risky
 with SRI. The same applies to [contenthash] when "optimization.realContentHash" option is disabled. 
@@ -269,8 +276,17 @@ async fn add_minssing_integrities(
 }
 
 #[plugin_hook(CompilationProcessAssets for SubresourceIntegrityPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_OPTIMIZE_INLINE - 1)]
-pub async fn handle_assets(&self, compilation: &mut Compilation) -> Result<()> {
-  let integrities = process_chunks(&self.options.hash_func_names, compilation);
+pub async fn handle_assets(
+  &self,
+  compilation: &Compilation,
+  process_asset_artifact: &mut ProcessAssetArtifact,
+  build_chunk_graph_artifact: &mut rspack_core::BuildChunkGraphArtifact,
+) -> Result<()> {
+  let integrities = process_chunks(
+    &self.options.hash_func_names,
+    compilation,
+    process_asset_artifact,
+  );
   let compilation_integrities =
     SubresourceIntegrityPlugin::get_compilation_integrities_mut(compilation.id());
   compilation_integrities.write().await.extend(integrities);

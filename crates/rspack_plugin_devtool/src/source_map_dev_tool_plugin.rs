@@ -13,7 +13,7 @@ use rayon::prelude::*;
 use regex::Regex;
 use rspack_collections::DatabaseItem;
 use rspack_core::{
-  AssetInfo, Chunk, ChunkUkey, Compilation, CompilationAsset, CompilationProcessAssets, Filename,
+  AssetInfo, Chunk, ChunkUkey, Compilation, CompilationAsset, CompilationProcessAssets, ProcessAssetArtifact, Filename,
   Logger, ModuleIdentifier, PathData, Plugin,
   rspack_sources::{
     BoxSource, ConcatSource, MapOptions, ObjectPool, RawStringSource, Source, SourceExt, SourceMap,
@@ -295,7 +295,8 @@ impl SourceMapDevToolPlugin {
     file_to_chunk: &HashMap<&str, &Chunk>,
     output_path: &Utf8Path,
     tasks: &mut [SourceMapTask],
-  ) -> Result<()> {
+  
+) -> Result<()> {
     let output_options = &compilation.options.output;
 
     let mut reference_to_source_name_mapping: HashMap<
@@ -760,7 +761,9 @@ impl SourceMapDevToolPlugin {
 }
 
 #[plugin_hook(CompilationProcessAssets for SourceMapDevToolPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_DEV_TOOLING)]
-async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
+async fn process_assets(&self, compilation: &Compilation, process_asset_artifact: &mut ProcessAssetArtifact,
+  build_chunk_graph_artifact: &mut rspack_core::BuildChunkGraphArtifact,
+) -> Result<()> {
   let logger = compilation.get_logger("rspack.SourceMapDevToolPlugin");
 
   // use to read
@@ -812,7 +815,8 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       asset: (source_filename, mut source_asset),
       source_map,
     } = mapped_asset;
-    if let Some(asset) = compilation.assets_mut().remove(source_filename.as_ref()) {
+    if let Some(asset) = process_asset_artifact.assets.remove(source_filename.as_ref())
+    {
       source_asset.info = asset.info;
       if let Some((ref source_map_filename, _)) = source_map {
         source_asset.info.related.source_map = Some(source_map_filename.clone());
@@ -820,15 +824,16 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     }
 
     let chunk_ukey = file_to_chunk_ukey.get(source_filename.as_ref());
-    compilation.emit_asset(source_filename.to_string(), source_asset);
+    process_asset_artifact
+      .assets
+      .insert(source_filename.to_string(), source_asset);
     if let Some((source_map_filename, source_map_asset)) = source_map {
-      compilation.emit_asset(source_map_filename.clone(), source_map_asset);
+      process_asset_artifact
+        .assets
+        .insert(source_map_filename.clone(), source_map_asset);
 
       let chunk = chunk_ukey.map(|ukey| {
-        compilation
-          .build_chunk_graph_artifact
-          .chunk_by_ukey
-          .expect_get_mut(ukey)
+        build_chunk_graph_artifact.chunk_by_ukey.expect_get_mut(ukey)
       });
       if let Some(chunk) = chunk {
         chunk.add_auxiliary_file(source_map_filename.clone());

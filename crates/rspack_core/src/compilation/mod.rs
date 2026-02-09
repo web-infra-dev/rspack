@@ -75,7 +75,8 @@ use crate::{
   ExtendedReferencedExport, Filename, ImportPhase, ImportVarMap, ImportedByDeferModulesArtifact,
   MemoryGCStorage, ModuleFactory, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
   ModuleIdsArtifact, ModuleStaticCache, PathData, ProcessRuntimeRequirementsCacheArtifact,
-  ResolverFactory, RuntimeGlobals, RuntimeKeyMap, RuntimeMode, RuntimeModule, RuntimeSpec,
+  ProcessAssetArtifact, ResolverFactory, RuntimeGlobals, RuntimeKeyMap, RuntimeMode,
+  RuntimeModule, RuntimeSpec,
   RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver, SideEffectsOptimizeArtifact, SourceType,
   Stats, StealCell, ValueCacheVersions,
   compilation::build_module_graph::{
@@ -128,7 +129,7 @@ define_hook!(CompilationContentHash: Series(compilation: &Compilation, chunk_uke
 define_hook!(CompilationDependentFullHash: SeriesBail(compilation: &Compilation, chunk_ukey: &ChunkUkey) -> bool);
 define_hook!(CompilationRenderManifest: Series(compilation: &Compilation, chunk_ukey: &ChunkUkey, manifest: &mut Vec<RenderManifestEntry>, diagnostics: &mut Vec<Diagnostic>),tracing=false);
 define_hook!(CompilationChunkAsset: Series(compilation: &Compilation, chunk_ukey: &ChunkUkey, filename: &str));
-define_hook!(CompilationProcessAssets: Series(compilation: &mut Compilation));
+define_hook!(CompilationProcessAssets: Series(compilation: &Compilation, process_asset_artifact: &mut ProcessAssetArtifact, build_chunk_graph_artifact: &mut BuildChunkGraphArtifact));
 define_hook!(CompilationAfterProcessAssets: Series(compilation: &Compilation, diagnostics: &mut Vec<Diagnostic>));
 define_hook!(CompilationAfterSeal: Series(compilation: &Compilation),tracing=true);
 
@@ -258,6 +259,8 @@ pub struct Compilation {
   // artifact for process runtime requirements cache
   pub process_runtime_requirements_cache_artifact:
     StealCell<ProcessRuntimeRequirementsCacheArtifact>,
+  // artifact for process assets
+  pub process_asset_artifact: StealCell<ProcessAssetArtifact>,
   pub imported_by_defer_modules_artifact: StealCell<ImportedByDeferModulesArtifact>,
 
   pub code_generated_modules: IdentifierSet,
@@ -388,6 +391,7 @@ impl Compilation {
       process_runtime_requirements_cache_artifact: StealCell::new(
         ProcessRuntimeRequirementsCacheArtifact::new(&options),
       ),
+      process_asset_artifact: StealCell::new(ProcessAssetArtifact::default()),
       build_time_executed_modules: Default::default(),
       incremental,
       build_chunk_graph_artifact: Default::default(),

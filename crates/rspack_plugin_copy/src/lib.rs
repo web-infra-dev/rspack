@@ -14,7 +14,7 @@ use glob::{MatchOptions, Pattern as GlobPattern};
 use regex::Regex;
 use rspack_core::{
   AssetInfo, AssetInfoRelated, Compilation, CompilationAsset, CompilationLogger,
-  CompilationProcessAssets, Filename, Logger, PathData, Plugin,
+  CompilationProcessAssets, ProcessAssetArtifact, Filename, Logger, PathData, Plugin,
   rspack_sources::{BoxSource, RawBufferSource, Source, SourceExt},
 };
 use rspack_error::{Diagnostic, Error, Result};
@@ -568,7 +568,10 @@ impl CopyRspackPlugin {
 }
 
 #[plugin_hook(CompilationProcessAssets for CopyRspackPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_ADDITIONAL)]
-async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
+async fn process_assets(&self, compilation: &Compilation, process_asset_artifact: &mut ProcessAssetArtifact
+,
+  build_chunk_graph_artifact: &mut rspack_core::BuildChunkGraphArtifact,
+) -> Result<()> {
   let logger = compilation.get_logger("rspack.CopyRspackPlugin");
   let start = logger.time("run pattern");
   let file_dependencies = DashSet::default();
@@ -603,13 +606,13 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   logger.time_end(start);
 
   let start = logger.time("emit assets");
-  compilation
+  process_asset_artifact
     .file_dependencies
     .extend(file_dependencies.into_iter().map(Into::into));
-  compilation
+  process_asset_artifact
     .context_dependencies
     .extend(context_dependencies.into_iter().map(Into::into));
-  compilation.extend_diagnostics(std::mem::take(
+  process_asset_artifact.diagnostics.extend(std::mem::take(
     diagnostics
       .lock()
       .expect("failed to obtain lock of `diagnostics`")
@@ -625,7 +628,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     let source_path = result.absolute_filename.clone();
     let dest_path = compilation.options.output.path.join(&result.filename);
 
-    if let Some(exist_asset) = compilation.assets_mut().get_mut(&result.filename) {
+    if let Some(exist_asset) = process_asset_artifact.assets.get_mut(&result.filename) {
       if !result.force {
         return;
       }
@@ -646,7 +649,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         set_info(&mut asset_info, info);
       }
 
-      compilation.emit_asset(
+      process_asset_artifact.assets.insert(
         result.filename,
         CompilationAsset::new(Some(Arc::new(result.source)), asset_info),
       );

@@ -5,7 +5,7 @@ use std::{
 
 use rspack_core::{
   Compilation, CompilationParams, CompilationProcessAssets, CompilerCompilation, ModuleType,
-  NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, Plugin,
+  NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, Plugin, ProcessAssetArtifact,
   rspack_sources::{BoxSource, ReplaceSource, SourceExt},
 };
 use rspack_error::Result;
@@ -100,6 +100,7 @@ async fn nmf_parser(
   module_type: &ModuleType,
   parser: &mut Box<dyn ParserAndGenerator>,
   _parser_options: Option<&ParserOptions>,
+
 ) -> Result<()> {
   if module_type.is_js_like()
     && let Some(parser) = parser.downcast_mut::<JavaScriptParserAndGenerator>()
@@ -177,7 +178,12 @@ struct MockFlagPos {
 }
 
 #[plugin_hook(CompilationProcessAssets for RstestPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_ADDITIONAL)]
-async fn mock_hoist_process_assets(&self, compilation: &mut Compilation) -> Result<()> {
+async fn mock_hoist_process_assets(
+  &self,
+  compilation: &Compilation,
+  process_asset_artifact: &mut ProcessAssetArtifact,
+  build_chunk_graph_artifact: &mut rspack_core::BuildChunkGraphArtifact,
+) -> Result<()> {
   let mut files = Vec::with_capacity(compilation.build_chunk_graph_artifact.chunk_by_ukey.len());
 
   for chunk in compilation
@@ -196,10 +202,14 @@ async fn mock_hoist_process_assets(&self, compilation: &mut Compilation) -> Resu
   for file in files {
     let mut pos_map: std::collections::HashMap<String, MockFlagPos> =
       std::collections::HashMap::new();
-    let _res = compilation.update_asset(file.as_str(), |old, info| {
+    if let Some(asset) = process_asset_artifact.assets.get_mut(file.as_str()) {
+      let info = asset.info.clone();
+      let Some(old) = asset.get_source().cloned() else {
+        continue;
+      };
       // Only handles JavaScript.
       if info.javascript_module.is_none() {
-        return Ok((old, info));
+        continue;
       }
 
       let content = old.source().into_string_lossy();
@@ -239,8 +249,8 @@ async fn mock_hoist_process_assets(&self, compilation: &mut Compilation) -> Resu
       }
 
       let new = self.update_source(old, &pos_map);
-      Ok((new, info))
-    });
+      asset.set_source(Some(new));
+    }
   }
 
   Ok(())

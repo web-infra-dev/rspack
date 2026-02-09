@@ -7,7 +7,7 @@ use cow_utils::CowUtils;
 use futures::future::BoxFuture;
 use regex::Regex;
 use rspack_core::{
-  Chunk, Compilation, CompilationProcessAssets, Filename, Logger, PathData, Plugin,
+  Chunk, Compilation, CompilationProcessAssets, ProcessAssetArtifact, Filename, Logger, PathData, Plugin,
   rspack_sources::{BoxSource, ConcatSource, RawStringSource, SourceExt},
   to_comment,
 };
@@ -125,7 +125,10 @@ impl BannerPlugin {
 }
 
 #[plugin_hook(CompilationProcessAssets for BannerPlugin, stage = self.config.stage.unwrap_or(Compilation::PROCESS_ASSETS_STAGE_ADDITIONS))]
-async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
+async fn process_assets(&self, compilation: &Compilation, process_asset_artifact: &mut ProcessAssetArtifact
+,
+  build_chunk_graph_artifact: &mut rspack_core::BuildChunkGraphArtifact,
+) -> Result<()> {
   let logger = compilation.get_logger("rspack.BannerPlugin");
   let start = logger.time("add banner");
   let mut updates = vec![];
@@ -197,10 +200,12 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   }
 
   for (file, comment) in updates {
-    let _res = compilation.update_asset(file.as_str(), |old, info| {
+    if let Some(asset) = process_asset_artifact.assets.get_mut(file.as_str())
+      && let Some(old) = asset.get_source().cloned()
+    {
       let new = self.update_source(comment, old, self.config.footer);
-      Ok((new, info))
-    });
+      asset.set_source(Some(new));
+    }
   }
 
   logger.time_end(start);

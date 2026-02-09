@@ -1499,7 +1499,12 @@ impl CompilationChunkAsset for CompilationChunkAssetTap {
 
 #[async_trait]
 impl CompilationProcessAssets for CompilationProcessAssetsTap {
-  async fn run(&self, compilation: &mut Compilation) -> rspack_error::Result<()> {
+  async fn run(
+    &self,
+    compilation: &Compilation,
+    _process_asset_artifact: &mut rspack_core::ProcessAssetArtifact,
+    _build_chunk_graph_artifact: &mut rspack_core::BuildChunkGraphArtifact,
+  ) -> rspack_error::Result<()> {
     let compilation = JsCompilationWrapper::new(compilation);
     self.function.call_with_promise(compilation).await
   }

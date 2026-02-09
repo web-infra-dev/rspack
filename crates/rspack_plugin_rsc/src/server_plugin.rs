@@ -5,8 +5,7 @@ use derive_more::Debug;
 use futures::future::BoxFuture;
 use rspack_collections::{Identifiable, IdentifierMap};
 use rspack_core::{
-  BoxDependency, ChunkUkey, Compilation, CompilationParams, CompilationProcessAssets,
-  CompilationRuntimeRequirementInTree, CompilerDone, CompilerFailed, CompilerFinishMake,
+  BoxDependency, ChunkUkey, Compilation, CompilationParams, CompilationProcessAssets, ProcessAssetArtifact, CompilationRuntimeRequirementInTree, CompilerDone, CompilerFailed, CompilerFinishMake,
   CompilerThisCompilation, Dependency, DependencyId, EntryDependency, EntryOptions, Logger, Plugin,
   RuntimeGlobals, RuntimeModule, RuntimeSpec, get_entry_runtime,
 };
@@ -90,6 +89,7 @@ async fn this_compilation(
   &self,
   compilation: &mut Compilation,
   _params: &mut CompilationParams,
+
 ) -> Result<()> {
   // Initialize or reset the plugin state for the current compilation.
   // If a state already exists, clear it; otherwise, insert a default state.
@@ -148,7 +148,9 @@ async fn runtime_requirements_in_tree(
 }
 
 #[plugin_hook(CompilationProcessAssets for RscServerPlugin)]
-async fn process_assets(&self, _compilation: &mut Compilation) -> Result<()> {
+async fn process_assets(&self, compilation: &Compilation, process_asset_artifact: &mut ProcessAssetArtifact,
+  build_chunk_graph_artifact: &mut rspack_core::BuildChunkGraphArtifact,
+) -> Result<()> {
   self.coordinator.idle().await?;
   Ok(())
 }

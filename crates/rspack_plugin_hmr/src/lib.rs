@@ -7,7 +7,7 @@ use rspack_collections::{DatabaseItem, IdentifierSet, UkeyMap};
 use rspack_core::{
   AssetInfo, Chunk, ChunkGraph, ChunkKind, ChunkUkey, Compilation,
   CompilationAdditionalTreeRuntimeRequirements, CompilationAsset, CompilationParams,
-  CompilationProcessAssets, CompilationRecords, CompilerCompilation, DependencyType, LoaderContext,
+  CompilationProcessAssets, ProcessAssetArtifact, CompilationRecords, CompilerCompilation, DependencyType, LoaderContext,
   ModuleId, ModuleIdentifier, ModuleType, NormalModuleFactoryParser, NormalModuleLoader,
   ParserAndGenerator, ParserOptions, PathData, Plugin, RunnerContext, RuntimeGlobals,
   RuntimeModule, RuntimeModuleExt, RuntimeSpec,
@@ -34,6 +34,7 @@ async fn compilation(
   &self,
   compilation: &mut Compilation,
   params: &mut CompilationParams,
+
 ) -> Result<()> {
   compilation.set_dependency_factory(
     DependencyType::ImportMetaHotAccept,
@@ -55,14 +56,19 @@ async fn compilation(
 }
 
 #[plugin_hook(CompilationProcessAssets for HotModuleReplacementPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_ADDITIONAL)]
-async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
+async fn process_assets(
+  &self,
+  compilation: &Compilation,
+  process_asset_artifact: &mut ProcessAssetArtifact,
+  build_chunk_graph_artifact: &mut rspack_core::BuildChunkGraphArtifact,
+) -> Result<()> {
   let Some(CompilationRecords {
     chunks: old_chunks,
     runtimes: all_old_runtime,
     modules: old_all_modules,
     runtime_modules: old_runtime_modules,
     hash: old_hash,
-  }) = compilation.records.take()
+  }) = process_asset_artifact.records.take()
   else {
     return Ok(());
   };
@@ -238,29 +244,23 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       // because during the manifest generation, HotUpdateChunk is passed to various plugins via the ukey.
       // The plugins then use the ukey to query compilation.build_chunk_graph_artifact.chunk_by_ukey to get the HotUpdateChunk instance.
       // Therefore, in Rspack, after the manifest is generated, we need to manually remove the HotUpdateChunk from compilation.chunks.
-      compilation
-        .build_chunk_graph_artifact
-        .chunk_by_ukey
-        .add(hot_update_chunk);
+      build_chunk_graph_artifact.chunk_by_ukey.add(hot_update_chunk);
 
       // In webpack, compilation.chunkGraph uses a WeakMap to maintain the relationship between Chunks and Modules.
       // This means the lifecycle of these data is tied to the Chunk, and they are garbage-collected when the Chunk is.
       //
       // In Rspack, we need to manually clean up the data in compilation.build_chunk_graph_artifact.chunk_graph after HotUpdateChunk is used.
-      compilation
-        .build_chunk_graph_artifact
-        .chunk_graph
-        .add_chunk(ukey);
+      build_chunk_graph_artifact.chunk_graph.add_chunk(ukey);
       for module_identifier in &new_modules {
-        compilation
-          .build_chunk_graph_artifact
+        process_asset_artifact
           .chunk_graph
           .connect_chunk_and_module(ukey, *module_identifier);
       }
       for runtime_module in &new_runtime_modules {
-        compilation.code_generated_modules.insert(*runtime_module);
-        compilation
-          .build_chunk_graph_artifact
+        process_asset_artifact
+          .code_generated_modules
+          .insert(*runtime_module);
+        process_asset_artifact
           .chunk_graph
           .connect_chunk_and_runtime_module(ukey, *runtime_module);
       }
@@ -276,29 +276,23 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 
       // Manually clean up ChunkGraph and chunks
       for module_identifier in new_modules {
-        compilation
-          .build_chunk_graph_artifact
+        process_asset_artifact
           .chunk_graph
           .disconnect_chunk_and_module(&ukey, module_identifier);
       }
       for runtime_module in new_runtime_modules {
-        compilation
-          .build_chunk_graph_artifact
+        process_asset_artifact
           .chunk_graph
           .disconnect_chunk_and_runtime_module(&ukey, &runtime_module);
       }
-      compilation
-        .build_chunk_graph_artifact
-        .chunk_graph
-        .remove_chunk(&ukey);
+      build_chunk_graph_artifact.chunk_graph.remove_chunk(&ukey);
       #[allow(clippy::unwrap_used)]
-      let hot_update_chunk = compilation
-        .build_chunk_graph_artifact
+      let hot_update_chunk = process_asset_artifact
         .chunk_by_ukey
         .remove(&ukey)
         .unwrap();
 
-      compilation.extend_diagnostics(diagnostics);
+      process_asset_artifact.diagnostics.extend(diagnostics);
 
       for entry in manifest {
         let filename = if entry.has_filename {
@@ -332,7 +326,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
             .or_default()
             .insert(filename.clone());
         }
-        compilation.emit_asset(filename, asset);
+        process_asset_artifact.assets.insert(filename, asset);
       }
 
       new_runtime.iter().for_each(|runtime| {
@@ -345,10 +339,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 
   // update chunk files
   for (chunk_ukey, files) in updated_chunks {
-    let chunk = compilation
-      .build_chunk_graph_artifact
-      .chunk_by_ukey
-      .expect_get_mut(&chunk_ukey);
+    let chunk = build_chunk_graph_artifact.chunk_by_ukey.expect_get_mut(&chunk_ukey);
     for file in files {
       chunk.add_file(file);
     }
@@ -376,7 +367,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           .removed_chunk_ids
           .extend(content.removed_chunk_ids);
         old_content.removed_modules.extend(content.removed_modules);
-        compilation.push_diagnostic(Diagnostic::warn(
+        process_asset_artifact.diagnostics.push(Diagnostic::warn(
           "HotModuleReplacementPlugin".to_string(),
           r#"The configured output.hotUpdateMainFilename doesn't lead to unique filenames per runtime and HMR update differs between runtimes.
 This might lead to incorrect runtime behavior of the applied update.
@@ -404,7 +395,7 @@ To fix this, make sure to include [runtime] in the output.hotUpdateMainFilename 
     })
     .to_string();
 
-    compilation.emit_asset(
+    process_asset_artifact.assets.insert(
       filename,
       CompilationAsset::new(
         Some(

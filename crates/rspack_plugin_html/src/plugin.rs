@@ -6,7 +6,9 @@ use std::{
 
 use atomic_refcell::AtomicRefCell;
 use cow_utils::CowUtils;
-use rspack_core::{Compilation, CompilationId, CompilationProcessAssets, Filename, Plugin};
+use rspack_core::{
+  Compilation, CompilationId, CompilationProcessAssets, ProcessAssetArtifact, Filename, Plugin,
+};
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
 #[cfg(allocative)]
@@ -64,7 +66,8 @@ async fn generate_html(
   filename: &str,
   html_file_name: &Filename,
   config: &HtmlRspackPluginOptions,
-  compilation: &mut Compilation,
+  compilation: &Compilation,
+  process_asset_artifact: &mut ProcessAssetArtifact,
   hooks: ArcHtmlPluginHooks,
 ) -> Result<(String, String, Vec<PathBuf>)> {
   let public_path = config.get_public_path(compilation, filename).await;
@@ -168,7 +171,7 @@ async fn generate_html(
   let (mut current_ast, diagnostic) = ast_with_diagnostic.split_into_parts();
 
   if !diagnostic.is_empty() {
-    compilation.extend_diagnostics(diagnostic);
+    process_asset_artifact.diagnostics.extend(diagnostic);
   }
 
   if !matches!(config.inject, HtmlInject::False) {
@@ -196,7 +199,10 @@ async fn generate_html(
 }
 
 #[plugin_hook(CompilationProcessAssets for HtmlRspackPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_OPTIMIZE_INLINE)]
-async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
+async fn process_assets(&self, compilation: &Compilation, process_asset_artifact: &mut ProcessAssetArtifact
+,
+  build_chunk_graph_artifact: &mut rspack_core::BuildChunkGraphArtifact,
+) -> Result<()> {
   let config: &HtmlRspackPluginOptions = &self.config;
   let hooks = HtmlRspackPlugin::get_compilation_hooks(compilation.id());
 
@@ -228,19 +234,20 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       &output_file_name,
       config,
       compilation,
+      process_asset_artifact,
       hooks.clone(),
     )
     .await
     {
       Ok(content) => {
-        compilation
+        process_asset_artifact
           .file_dependencies
           .extend(content.2.into_iter().map(Into::into));
         (content.0, content.1)
       }
       Err(err) => {
         let error_msg = err.to_string();
-        compilation.push_diagnostic(Diagnostic::from(err));
+        process_asset_artifact.diagnostics.push(Diagnostic::from(err));
         ("error.html".to_string(), create_error_html(&error_msg))
       }
     };
@@ -258,10 +265,12 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 
     if let Some(favicon) = &config.favicon {
       match create_favicon_asset(favicon, config, compilation).await {
-        Ok(favicon) => compilation.emit_asset(favicon.0, favicon.1),
+        Ok(favicon) => {
+          process_asset_artifact.assets.insert(favicon.0, favicon.1);
+        }
         Err(err) => {
           let error_msg = err.to_string();
-          compilation.push_diagnostic(Diagnostic::from(err));
+          process_asset_artifact.diagnostics.push(Diagnostic::from(err));
           before_emit_data.html = create_error_html(&error_msg);
         }
       };
@@ -275,7 +284,9 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     )
     .await?;
 
-    compilation.emit_asset(html_asset.0.clone(), html_asset.1);
+    process_asset_artifact
+      .assets
+      .insert(html_asset.0.clone(), html_asset.1);
 
     let _ = hooks
       .borrow()

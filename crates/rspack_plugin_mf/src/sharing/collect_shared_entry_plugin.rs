@@ -5,7 +5,7 @@ use std::{
 
 use regex::Regex;
 use rspack_core::{
-  Compilation, CompilationAsset, CompilationProcessAssets, Context, DependenciesBlock, Module,
+  Compilation, CompilationAsset, CompilationProcessAssets, ProcessAssetArtifact, Context, DependenciesBlock, Module,
   Plugin,
   rspack_sources::{RawStringSource, SourceExt},
 };
@@ -97,7 +97,10 @@ impl CollectSharedEntryPlugin {
 }
 
 #[plugin_hook(CompilationProcessAssets for CollectSharedEntryPlugin)]
-async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
+async fn process_assets(&self, compilation: &Compilation, process_asset_artifact: &mut ProcessAssetArtifact
+,
+  build_chunk_graph_artifact: &mut rspack_core::BuildChunkGraphArtifact,
+) -> Result<()> {
   // Traverse ConsumeSharedModule in the graph and collect real resolved module paths from fallback
   let module_graph = compilation.get_module_graph();
   let mut ordered_requests: FxHashMap<String, Vec<[String; 2]>> = FxHashMap::default();
@@ -205,7 +208,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     .clone()
     .unwrap_or_else(|| DEFAULT_FILENAME.to_string());
 
-  compilation.emit_asset(
+  process_asset_artifact.assets.insert(
     filename,
     CompilationAsset::new(
       Some(RawStringSource::from(json).boxed()),
