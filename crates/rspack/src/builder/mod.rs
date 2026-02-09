@@ -1703,8 +1703,8 @@ impl ModuleOptionsBuilder {
           wrapped_context_reg_exp: Some(RspackRegex::new(".*").expect("should initialize `Regex`")),
           worker: Some(vec!["...".to_string()]),
           import_meta: Some(true),
-          require_alias: Some(true),
-          require_as_expression: Some(false),
+          require_alias: Some(false),
+          require_as_expression: Some(true),
           require_dynamic: Some(true),
           require_resolve: Some(true),
           commonjs: Some(JavascriptParserCommonjsOptions {

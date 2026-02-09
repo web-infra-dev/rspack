@@ -1469,7 +1469,7 @@ export default {
 
 ### module.parser.javascript.requireAsExpression
 
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
 
 Control whether `require` used as an expression will be parsed.
 
@@ -1480,7 +1480,7 @@ export default {
   module: {
     parser: {
       javascript: {
-        requireAsExpression: true,
+        requireAsExpression: false,
       },
     },
   },
