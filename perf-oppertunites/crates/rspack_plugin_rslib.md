@@ -19,4 +19,7 @@ Rslib integration for library builds.
 ## Code pointers
 - `crates/rspack_plugin_rslib/Cargo.toml`
 - `crates/rspack_plugin_rslib/src/lib.rs`
+- `crates/rspack_plugin_rslib/src/plugin.rs`
+- `crates/rspack_plugin_rslib/src/parser_plugin.rs`
+- `crates/rspack_plugin_rslib/src/asset.rs`
 - `crates/rspack_plugin_rslib/**`

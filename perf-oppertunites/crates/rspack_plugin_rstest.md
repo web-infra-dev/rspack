@@ -19,4 +19,7 @@ Rstest integration for testing workflows.
 ## Code pointers
 - `crates/rspack_plugin_rstest/Cargo.toml`
 - `crates/rspack_plugin_rstest/src/lib.rs`
+- `crates/rspack_plugin_rstest/src/plugin.rs`
+- `crates/rspack_plugin_rstest/src/parser_plugin.rs`
+- `crates/rspack_plugin_rstest/src/import_dependency.rs`
 - `crates/rspack_plugin_rstest/**`

@@ -19,4 +19,7 @@ Rsdoctor integration for profiling and diagnostics.
 ## Code pointers
 - `crates/rspack_plugin_rsdoctor/Cargo.toml`
 - `crates/rspack_plugin_rsdoctor/src/lib.rs`
+- `crates/rspack_plugin_rsdoctor/src/plugin.rs`
+- `crates/rspack_plugin_rsdoctor/src/module_graph.rs`
+- `crates/rspack_plugin_rsdoctor/src/chunk_graph.rs`
 - `crates/rspack_plugin_rsdoctor/**`

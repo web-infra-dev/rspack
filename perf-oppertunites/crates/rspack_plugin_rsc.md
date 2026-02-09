@@ -19,4 +19,8 @@ React Server Components integration.
 ## Code pointers
 - `crates/rspack_plugin_rsc/Cargo.toml`
 - `crates/rspack_plugin_rsc/src/lib.rs`
+- `crates/rspack_plugin_rsc/src/client_plugin.rs`
+- `crates/rspack_plugin_rsc/src/server_plugin.rs`
+- `crates/rspack_plugin_rsc/src/manifest_runtime_module.rs`
+- `crates/rspack_plugin_rsc/src/loaders/mod.rs`
 - `crates/rspack_plugin_rsc/**`

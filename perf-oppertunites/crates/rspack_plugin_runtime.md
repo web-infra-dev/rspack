@@ -19,4 +19,7 @@ Runtime module generation and runtime requirements computation.
 ## Code pointers
 - `crates/rspack_plugin_runtime/Cargo.toml`
 - `crates/rspack_plugin_runtime/src/lib.rs`
+- `crates/rspack_plugin_runtime/src/runtime_module/mod.rs`
+- `crates/rspack_plugin_runtime/src/runtime_module/jsonp_chunk_loading.rs`
+- `crates/rspack_plugin_runtime/src/runtime_module/load_script.rs`
 - `crates/rspack_plugin_runtime/**`

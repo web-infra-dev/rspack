@@ -19,4 +19,8 @@ Module Federation integration (shared/remote modules, manifests).
 ## Code pointers
 - `crates/rspack_plugin_mf/Cargo.toml`
 - `crates/rspack_plugin_mf/src/lib.rs`
+- `crates/rspack_plugin_mf/src/container/mod.rs`
+- `crates/rspack_plugin_mf/src/container/container_plugin.rs`
+- `crates/rspack_plugin_mf/src/manifest/mod.rs`
+- `crates/rspack_plugin_mf/src/sharing/mod.rs`
 - `crates/rspack_plugin_mf/**`
