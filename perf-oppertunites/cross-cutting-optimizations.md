@@ -61,6 +61,7 @@ indicating heavy identifier/path handling:
 - Cache interned identifiers per compilation (avoid repeated `Ustr::from`).
 - Batch file counting operations instead of per‑module increments.
 - Keep `FileCounter` updates off the critical path when possible.
+- Reduce path hashing churn by caching `Path` hashes for repeated resolutions.
 
 Related code:
 

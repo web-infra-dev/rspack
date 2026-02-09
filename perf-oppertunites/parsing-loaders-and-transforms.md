@@ -21,6 +21,9 @@ conversions in loader content handling:
 - `Content::into_string_lossy` in `rspack_loader_runner/src/content.rs`
 - `Content` debug output uses lossy conversions for truncation
 
+Extended samples also show `simdutf8::validate_utf8_basic` and `hstr::AtomStore`
+insertions, indicating heavy UTF‑8 validation + atom interning during parsing.
+
 ## Optimization Opportunities
 
 ### 1) Avoid lossy string conversions in hot paths
@@ -31,6 +34,8 @@ can operate on `&[u8]` or `Cow<str>` without forcing lossy conversions:
 - Add a zero-copy `Content::as_str()` for UTF‑8‑validated buffers.
 - Cache a `String` representation inside `Content` to avoid repeated conversions.
 - Keep debug formatting behind trace flags to avoid unnecessary conversions.
+- Avoid repeated UTF‑8 validation by caching validation results for unchanged inputs.
+- Consider sharing atom stores or interning scopes to reduce `AtomStore::insert_entry`.
 
 ### 2) Reduce loader pipeline allocations
 

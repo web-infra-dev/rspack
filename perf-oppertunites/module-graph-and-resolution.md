@@ -26,6 +26,9 @@ Perf samples show `OverlayMap::get` inside module graph rollback maps, plus
 This means export analysis and side‑effects state caching are active in the hot
 path, even in full builds.
 
+Extended samples also show `HashMap::insert` for dependency → connection maps,
+pointing at heavy churn in module graph connection creation.
+
 ## Optimization Opportunities
 
 ### 1) Reduce overlay churn in full builds
@@ -73,6 +76,19 @@ which traverse module graph structures. Opportunities:
 - Track which `UpdateParam` paths truly require `repair`.
 - Short‑circuit `cutout` when only metadata changes (no graph structure changes).
 - Use `IdentifierSet` diffs to avoid scanning the full graph on minor updates.
+
+### 2c) Module graph cache artifact usage
+
+`ModuleGraphCacheArtifact` caches export modes, side‑effects states, and
+concatenated module entries, but only when `freeze()` is enabled:
+
+- Ensure `freeze()` is used in phases where cached values are safe.
+- Avoid repeated allocations in cache values (`Vec<ExportsInfo>`, etc.).
+- Consider using `Arc` for cached values to reduce cloning cost.
+
+Code pointer:
+
+- `crates/rspack_core/src/artifacts/module_graph_cache_artifact.rs`
 
 ### 3) Reduce cloning in rollback `OverlayMap::get_mut`
 
