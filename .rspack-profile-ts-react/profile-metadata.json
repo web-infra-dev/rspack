@@ -1,0 +1,17 @@
+{
+  "timestamp": "2026-02-09T04:15:37.099Z",
+  "config": "/workspace/scripts/profile/bench-ts-react.config.cjs",
+  "outputDir": "/workspace/.rspack-profile-ts-react",
+  "perfDataPath": "/workspace/.rspack-profile-ts-react/perf.data",
+  "reportPath": "/workspace/.rspack-profile-ts-react/line-report.txt",
+  "rspackCli": "/workspace/packages/rspack-cli/bin/rspack.js",
+  "repeat": 1,
+  "addr2line": "/usr/bin/llvm-addr2line",
+  "command": [
+    "node",
+    "/workspace/packages/rspack-cli/bin/rspack.js",
+    "build",
+    "-c",
+    "/workspace/scripts/profile/bench-ts-react.config.cjs"
+  ]
+}

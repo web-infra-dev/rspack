@@ -94,6 +94,9 @@ Notes:
 - Extra arguments after `--` are forwarded to `rspack build`.
 - Use `--repeat N` to run the build multiple times for more samples.
 - Use `--addr2line /path/to/llvm-addr2line` if line resolution needs improvement.
+- Use `--binding /path/to/rspack.linux-x64-gnu.node` to override the default binding path.
+
+The script also writes `line-report.raw.txt` (the raw perf output) alongside the resolved line report.
 
 ### Rsdoctor timeline
 

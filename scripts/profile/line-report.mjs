@@ -24,6 +24,7 @@ const { values, positionals } = parseArgs({
     node: { type: 'string', default: process.execPath },
     repeat: { type: 'string', default: '1' },
     addr2line: { type: 'string' },
+    binding: { type: 'string' },
   },
   allowPositionals: true,
 });
@@ -35,6 +36,9 @@ const outDir = path.resolve(
 const configPath = path.resolve(values.config);
 const rspackCli = path.resolve('packages/rspack-cli/bin/rspack.js');
 const repeatCount = Number.parseInt(values.repeat, 10);
+const bindingPath = path.resolve(
+  values.binding ?? 'crates/node_binding/rspack.linux-x64-gnu.node',
+);
 
 if (!Number.isFinite(repeatCount) || repeatCount < 1) {
   throw new Error(`Invalid repeat count: ${values.repeat}`);
@@ -94,6 +98,9 @@ function validateInputs() {
       `Rspack CLI not found at ${rspackCli}. Run "pnpm run build:js" first.`,
     );
   }
+  if (!fs.existsSync(bindingPath)) {
+    throw new Error(`Rspack binding not found at ${bindingPath}`);
+  }
   ensureCommand(values.perf);
 }
 
@@ -102,16 +109,18 @@ function runBuilds() {
   runCommand('pnpm', ['run', 'build:js']);
 }
 
-function writeMetadata(perfDataPath, reportPath) {
+function writeMetadata(perfDataPath, reportPath, rawReportPath) {
   const metadata = {
     timestamp: new Date(timestamp).toISOString(),
     config: configPath,
     outputDir: outDir,
     perfDataPath,
     reportPath,
+    rawReportPath,
     rspackCli,
     repeat: repeatCount,
     addr2line: values.addr2line ?? null,
+    bindingPath,
     command: ['node', rspackCli, 'build', '-c', configPath, ...positionals],
   };
   fs.writeFileSync(
@@ -172,24 +181,70 @@ function runProfile() {
     '--percent-limit',
     '0.5',
     '--sort',
-    'dso,symbol,srcline',
+    'dso,symbol',
     '--fields',
-    'overhead,srcline,symbol,dso',
+    'overhead,addr,symbol,dso',
+    '--field-separator',
+    '\t',
+    '-i',
+    perfDataPath,
   ];
 
-  if (values.addr2line) {
-    reportArgs.push('--addr2line', values.addr2line);
-  }
-
-  reportArgs.push('-i', perfDataPath);
+  const rawReportPath = path.join(outDir, 'line-report.raw.txt');
   const reportOutput = runCapture(values.perf, reportArgs);
+  fs.writeFileSync(rawReportPath, reportOutput);
 
-  fs.writeFileSync(reportPath, reportOutput);
-  writeMetadata(perfDataPath, reportPath);
+  const resolvedReport = resolveReportLines(reportOutput);
+  fs.writeFileSync(reportPath, resolvedReport);
+  writeMetadata(perfDataPath, reportPath, rawReportPath);
   console.log(`Line-by-line report saved to ${reportPath}`);
   if (values.trace) {
     console.log(`Rspack trace saved to ${tracePath}`);
   }
+}
+
+function resolveReportLines(reportOutput) {
+  const header = [
+    'Overhead\tAddress\tSource:Line\tSymbol\tShared Object',
+    '--------\t-------\t-----------\t------\t-------------',
+  ];
+  const lines = reportOutput
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .filter((line) => !line.startsWith('#'));
+  const resolved = [];
+  for (const line of lines) {
+    const parts = line.split('\t');
+    if (parts.length < 4) {
+      continue;
+    }
+    const [overhead, address, symbol, dso] = parts;
+    if (!overhead.endsWith('%')) {
+      continue;
+    }
+    let sourceLine = '??:0';
+    if (dso.endsWith(path.basename(bindingPath)) && values.addr2line) {
+      sourceLine = resolveAddress(address) ?? sourceLine;
+    }
+    resolved.push([overhead, address, sourceLine, symbol, dso].join('\t'));
+  }
+  return `${header.join('\n')}\n${resolved.join('\n')}\n`;
+}
+
+function resolveAddress(address) {
+  if (!address || !values.addr2line) {
+    return null;
+  }
+  const clean = address.startsWith('0x') ? address : `0x${address}`;
+  const result = spawnSync(values.addr2line, ['-e', bindingPath, clean], {
+    encoding: 'utf8',
+  });
+  if (result.error || result.status !== 0) {
+    return null;
+  }
+  const output = result.stdout?.trim();
+  return output && output !== '??:0' ? output.split('\n')[0] : null;
 }
 
 try {
