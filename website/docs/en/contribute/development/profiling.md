@@ -87,6 +87,20 @@ pnpm run profile:line-report -- \
   --traceFilter OVERVIEW
 ```
 
+Additional built-in configs for broader target coverage:
+
+```sh
+# Node target build
+pnpm run profile:line-report -- \
+  --config scripts/profile/bench-ts-react.node.config.cjs \
+  --outDir ./.rspack-profile-ts-react-node
+
+# ESM output build (output.module)
+pnpm run profile:line-report -- \
+  --config scripts/profile/bench-ts-react.esm.config.cjs \
+  --outDir ./.rspack-profile-ts-react-esm
+```
+
 Notes:
 
 - The script requires `perf` (install via `linux-tools-common` on Ubuntu).
