@@ -5,7 +5,7 @@ import path from 'node:path';
 import { parseArgs } from 'node:util';
 
 const DEFAULT_CONFIG = path.resolve(
-  'tests/bench/fixtures/ts-react/rspack.config.ts',
+  'scripts/profile/bench-ts-react.config.cjs',
 );
 
 const rawArgs = process.argv.slice(2);

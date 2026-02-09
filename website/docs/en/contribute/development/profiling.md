@@ -73,7 +73,7 @@ For a line-level CPU report on Linux, use the built-in profiling script. It wrap
 pnpm run build:binding:profiling
 pnpm run build:js
 
-# Generate the report using the default bench fixture (tests/bench/fixtures/ts-react)
+# Generate the report using the default bench fixture (ts-react)
 pnpm run profile:line-report
 ```
 
@@ -81,7 +81,7 @@ You can customize the inputs and output location:
 
 ```sh
 pnpm run profile:line-report -- \
-  --config tests/bench/fixtures/ts-react/rspack.config.ts \
+  --config scripts/profile/bench-ts-react.config.cjs \
   --outDir ./.rspack-profile-ts-react \
   --rate 199 \
   --traceFilter OVERVIEW
