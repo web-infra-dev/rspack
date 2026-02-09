@@ -39,7 +39,7 @@ const creator = new BasicCaseCreator({
           }),
     );
   },
-  concurrent: true,
+  concurrent: 1,
 });
 
 export function createNativeWatcher(
