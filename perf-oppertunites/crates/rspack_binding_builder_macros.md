@@ -15,4 +15,6 @@ Procedural macros for binding builder utilities.
 - Inspect generated bindings for redundant conversions.
 
 ## Code pointers
+- `crates/rspack_binding_builder_macros/Cargo.toml`
+- `crates/rspack_binding_builder_macros/src/lib.rs`
 - `crates/rspack_binding_builder_macros/**`

@@ -17,4 +17,6 @@ Cacheable serialization/deserialization framework.
 - Compare allocation counts with/without scratch buffer reuse.
 
 ## Code pointers
+- `crates/rspack_cacheable/Cargo.toml`
+- `crates/rspack_cacheable/src/lib.rs`
 - `crates/rspack_cacheable/**`

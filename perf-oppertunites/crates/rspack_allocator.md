@@ -17,4 +17,6 @@ mimalloc integration and allocator configuration.
 - Measure build time impact of allocator tuning.
 
 ## Code pointers
+- `crates/rspack_allocator/Cargo.toml`
+- `crates/rspack_allocator/src/lib.rs`
 - `crates/rspack_allocator/**`

@@ -17,4 +17,6 @@ Browser/WASM support for Rspack.
 - Compare cached vs fresh WASM instantiation.
 
 ## Code pointers
+- `crates/rspack_browser/Cargo.toml`
+- `crates/rspack_browser/src/lib.rs`
 - `crates/rspack_browser/**`

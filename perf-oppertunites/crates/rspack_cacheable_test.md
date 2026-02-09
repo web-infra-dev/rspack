@@ -15,4 +15,6 @@ Tests for cacheable serialization utilities.
 - Verify test features are gated in release builds.
 
 ## Code pointers
+- `crates/rspack_cacheable_test/Cargo.toml`
+- `crates/rspack_cacheable_test/tests/context.rs`
 - `crates/rspack_cacheable_test/**`

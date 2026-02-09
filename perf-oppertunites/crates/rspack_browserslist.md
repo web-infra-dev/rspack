@@ -17,4 +17,6 @@ Browserslist configuration parsing and resolution.
 - Compare cached vs uncached parsing on large configs.
 
 ## Code pointers
+- `crates/rspack_browserslist/Cargo.toml`
+- `crates/rspack_browserslist/src/lib.rs`
 - `crates/rspack_browserslist/**`

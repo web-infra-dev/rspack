@@ -17,4 +17,6 @@ Shared binding API surface for JS↔Rust integration.
 - Compare zero-copy buffer paths vs cloned buffers.
 
 ## Code pointers
+- `crates/rspack_binding_api/Cargo.toml`
+- `crates/rspack_binding_api/src/lib.rs`
 - `crates/rspack_binding_api/**`

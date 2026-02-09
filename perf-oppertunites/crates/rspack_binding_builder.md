@@ -15,4 +15,6 @@ Binding builder utilities for Node integration.
 - Validate binding builder execution frequency in CI pipelines.
 
 ## Code pointers
+- `crates/rspack_binding_builder/Cargo.toml`
+- `crates/rspack_binding_builder/src/lib.rs`
 - `crates/rspack_binding_builder/**`

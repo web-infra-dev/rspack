@@ -17,4 +17,6 @@ Procedural macros for cacheable serialization.
 - Compare serialized payload size with optimized macros.
 
 ## Code pointers
+- `crates/rspack_cacheable_macros/Cargo.toml`
+- `crates/rspack_cacheable_macros/src/lib.rs`
 - `crates/rspack_cacheable_macros/**`

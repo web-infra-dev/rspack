@@ -15,4 +15,6 @@ Testing utilities for binding builder.
 - Verify testing utilities are gated in release builds.
 
 ## Code pointers
+- `crates/rspack_binding_builder_testing/Cargo.toml`
+- `crates/rspack_binding_builder_testing/src/lib.rs`
 - `crates/rspack_binding_builder_testing/**`
