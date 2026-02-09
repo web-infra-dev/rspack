@@ -13,8 +13,10 @@ This document covers the loader pipeline and JS/CSS transform stages.
 
 ## Hotspot Evidence
 
-Perf shows `core::str::lossy::Utf8Chunks::next`, which matches multiple
-`String::from_utf8_lossy` conversions in loader content handling:
+Perf shows `core::str::lossy::Utf8Chunks::next`, plus SWC minifier and JS
+inner-graph processing (`rspack_plugin_javascript::parser_plugin::inner_graph`)
+in the extended samples. This matches multiple `String::from_utf8_lossy`
+conversions in loader content handling:
 
 - `Content::into_string_lossy` in `rspack_loader_runner/src/content.rs`
 - `Content` debug output uses lossy conversions for truncation

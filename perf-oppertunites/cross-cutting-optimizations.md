@@ -53,7 +53,16 @@ Binding calls can introduce overhead, especially for large datasets:
 - Use zero-copy buffers for sources and assets.
 - Avoid serializing large structures unless needed by JS plugins.
 
-## 7) Diagnostics & Logging
+## 7) Path/Identifier interning
+
+Perf samples show `ustr_fxhash::Ustr::from` and `FileCounter::add_files`,
+indicating heavy identifier/path handling:
+
+- Cache interned identifiers per compilation (avoid repeated `Ustr::from`).
+- Batch file counting operations instead of per‑module increments.
+- Keep `FileCounter` updates off the critical path when possible.
+
+## 8) Diagnostics & Logging
 
 Diagnostics should be cheap when there are no errors:
 

@@ -21,9 +21,10 @@ with pointers to the code paths that are likely to benefit from optimization.
 
 ## Hotspot Evidence
 
-Perf samples show `OverlayMap::get` inside module graph rollback maps. This
-means overlay lookups (used for incremental rebuilds) are occurring frequently
-even in full builds.
+Perf samples show `OverlayMap::get` inside module graph rollback maps, plus
+`ExportsInfoGetter::prefetch_exports` and `GetSideEffectsConnectionStateCache::get`.
+This means export analysis and side‑effects state caching are active in the hot
+path, even in full builds.
 
 ## Optimization Opportunities
 
@@ -36,6 +37,14 @@ entries, it may be cheaper to operate directly on base maps without overlay:
 - Avoid enabling overlay mode when no incremental rollback is expected.
 - Consider exposing a fast path where `overlay.is_none()` is checked once per
   iteration rather than per lookup.
+
+### 1b) Optimize exports prefetch path
+
+`ExportsInfoGetter::prefetch_exports` shows up in the perf samples:
+
+- Cache prefetch results per module to avoid re-walking export trees.
+- Use compact bitsets for exports to reduce allocation and hashing overhead.
+- Skip prefetch for modules marked as `sideEffects: false` when possible.
 
 ### 2) Avoid repeated `HashSet`/`Vec` allocations in build graph
 
