@@ -36,7 +36,6 @@ use std::{
   },
 };
 
-use atomic_refcell::AtomicRefCell;
 use dashmap::DashSet;
 use futures::future::BoxFuture;
 use indexmap::IndexMap;
@@ -72,13 +71,13 @@ use crate::{
   CodeGenerationJob, CodeGenerationResult, CodeGenerationResults, CompilationLogger,
   CompilationLogging, CompilerOptions, CompilerPlatform, ConcatenationScope,
   DependenciesDiagnosticsArtifact, DependencyCodeGeneration, DependencyId, DependencyTemplate,
-  DependencyTemplateType, DependencyType, DerefOption, Entry, EntryData, EntryOptions,
-  EntryRuntime, Entrypoint, ExecuteModuleId, ExtendedReferencedExport, Filename, ImportPhase,
-  ImportVarMap, ImportedByDeferModulesArtifact, MemoryGCStorage, ModuleFactory, ModuleGraph,
+  DependencyTemplateType, DependencyType, Entry, EntryData, EntryOptions, EntryRuntime, Entrypoint,
+  ExecuteModuleId, ExtendedReferencedExport, Filename, ImportPhase, ImportVarMap,
+  ImportedByDeferModulesArtifact, MemoryGCStorage, ModuleFactory, ModuleGraph,
   ModuleGraphCacheArtifact, ModuleIdentifier, ModuleIdsArtifact, ModuleStaticCache, PathData,
   ProcessRuntimeRequirementsCacheArtifact, ResolverFactory, RuntimeGlobals, RuntimeKeyMap,
   RuntimeMode, RuntimeModule, RuntimeSpec, RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver,
-  SideEffectsOptimizeArtifact, SourceType, Stats, ValueCacheVersions,
+  SideEffectsOptimizeArtifact, SourceType, Stats, StealCell, ValueCacheVersions,
   compilation::build_module_graph::{
     BuildModuleGraphArtifact, ModuleExecutor, UpdateParam, update_module_graph,
   },
@@ -97,7 +96,7 @@ define_hook!(CompilationExecuteModule:
   Series(module: &ModuleIdentifier, runtime_modules: &IdentifierSet, code_generation_results: &BindingCell<CodeGenerationResults>, execute_module_id: &ExecuteModuleId));
 define_hook!(CompilationFinishModules: Series(compilation: &mut Compilation, async_modules_artifact: &mut AsyncModulesArtifact));
 define_hook!(CompilationSeal: Series(compilation: &mut Compilation));
-define_hook!(CompilationDependencyReferencedExports: Series(
+define_hook!(CompilationDependencyReferencedExports: Sync(
   compilation: &Compilation,
   dependency: &DependencyId,
   referenced_exports: &Option<Vec<ExtendedReferencedExport>>,
@@ -227,11 +226,11 @@ pub struct Compilation {
   pub runtime_template: RuntimeTemplate,
 
   // artifact for infer_async_modules_plugin
-  pub async_modules_artifact: Arc<AtomicRefCell<AsyncModulesArtifact>>,
+  pub async_modules_artifact: StealCell<AsyncModulesArtifact>,
   // artifact for collect_dependencies_diagnostics
-  pub dependencies_diagnostics_artifact: Arc<AtomicRefCell<DependenciesDiagnosticsArtifact>>,
+  pub dependencies_diagnostics_artifact: StealCell<DependenciesDiagnosticsArtifact>,
   // artifact for side_effects_flag_plugin
-  pub side_effects_optimize_artifact: DerefOption<SideEffectsOptimizeArtifact>,
+  pub side_effects_optimize_artifact: StealCell<SideEffectsOptimizeArtifact>,
   // artifact for module_ids
   pub module_ids_artifact: ModuleIdsArtifact,
   // artifact for named_chunk_ids
@@ -282,7 +281,7 @@ pub struct Compilation {
 
   pub modified_files: ArcPathSet,
   pub removed_files: ArcPathSet,
-  pub build_module_graph_artifact: DerefOption<BuildModuleGraphArtifact>,
+  pub build_module_graph_artifact: StealCell<BuildModuleGraphArtifact>,
   pub input_filesystem: Arc<dyn ReadableFileSystem>,
 
   pub intermediate_filesystem: Arc<dyn IntermediateFileSystem>,
@@ -362,12 +361,10 @@ impl Compilation {
       resolver_factory,
       loader_resolver_factory,
 
-      async_modules_artifact: Arc::new(AtomicRefCell::new(AsyncModulesArtifact::default())),
+      async_modules_artifact: StealCell::new(AsyncModulesArtifact::default()),
       imported_by_defer_modules_artifact: Default::default(),
-      dependencies_diagnostics_artifact: Arc::new(AtomicRefCell::new(
-        DependenciesDiagnosticsArtifact::default(),
-      )),
-      side_effects_optimize_artifact: DerefOption::new(Default::default()),
+      dependencies_diagnostics_artifact: StealCell::new(DependenciesDiagnosticsArtifact::default()),
+      side_effects_optimize_artifact: StealCell::new(Default::default()),
       module_ids_artifact: Default::default(),
       named_chunk_ids_artifact: Default::default(),
       code_generation_results: Default::default(),
@@ -408,7 +405,7 @@ impl Compilation {
       module_executor,
       in_finish_make: AtomicBool::new(false),
 
-      build_module_graph_artifact: DerefOption::new(BuildModuleGraphArtifact::default()),
+      build_module_graph_artifact: StealCell::new(BuildModuleGraphArtifact::default()),
       modified_files,
       removed_files,
       input_filesystem,
@@ -428,18 +425,8 @@ impl Compilation {
     self.compiler_id
   }
 
-  pub fn recover_module_graph_to_new_compilation(&mut self, new_compilation: &mut Compilation) {
-    self
-      .build_module_graph_artifact
-      .get_module_graph_mut()
-      .reset();
-    std::mem::swap(
-      &mut self.build_module_graph_artifact,
-      &mut new_compilation.build_module_graph_artifact,
-    );
-  }
   pub fn swap_build_module_graph_artifact(&mut self, make_artifact: &mut BuildModuleGraphArtifact) {
-    self.build_module_graph_artifact.swap(make_artifact);
+    mem::swap(&mut *self.build_module_graph_artifact, make_artifact);
   }
   pub fn get_module_graph(&self) -> &ModuleGraph {
     self.build_module_graph_artifact.get_module_graph()
@@ -447,7 +434,7 @@ impl Compilation {
 
   // it will return None during make phase since mg is incomplete
   pub fn module_by_identifier(&self, identifier: &ModuleIdentifier) -> Option<&BoxModule> {
-    if self.build_module_graph_artifact.is_none() {
+    if self.build_module_graph_artifact.is_stolen() {
       return None;
     }
     if let Some(module) = self.get_module_graph().module_by_identifier(identifier) {
@@ -661,23 +648,23 @@ impl Compilation {
       self.add_entry(entry, options).await?;
     }
 
-    let make_artifact = self.build_module_graph_artifact.take();
-    self.build_module_graph_artifact.replace(
-      update_module_graph(
-        self,
-        make_artifact,
-        vec![UpdateParam::BuildEntry(
-          self
-            .entries
-            .values()
-            .flat_map(|item| item.all_dependencies())
-            .chain(self.global_entry.all_dependencies())
-            .copied()
-            .collect(),
-        )],
-      )
-      .await?,
-    );
+    let make_artifact = self.build_module_graph_artifact.steal();
+    let make_artifact = update_module_graph(
+      self,
+      make_artifact,
+      vec![UpdateParam::BuildEntry(
+        self
+          .entries
+          .values()
+          .flat_map(|item| item.all_dependencies())
+          .chain(self.global_entry.all_dependencies())
+          .copied()
+          .collect(),
+      )],
+    )
+    .await?;
+    self.build_module_graph_artifact = make_artifact.into();
+
     Ok(())
   }
 
@@ -712,23 +699,23 @@ impl Compilation {
 
     // Recheck entry and clean useless entry
     // This should before finish_modules hook is called, ensure providedExports effects on new added modules
-    let make_artifact = self.build_module_graph_artifact.take();
-    self.build_module_graph_artifact.replace(
-      update_module_graph(
-        self,
-        make_artifact,
-        vec![UpdateParam::BuildEntry(
-          self
-            .entries
-            .values()
-            .flat_map(|item| item.all_dependencies())
-            .chain(self.global_entry.all_dependencies())
-            .copied()
-            .collect(),
-        )],
-      )
-      .await?,
-    );
+    let make_artifact = self.build_module_graph_artifact.steal();
+    let make_artifact = update_module_graph(
+      self,
+      make_artifact,
+      vec![UpdateParam::BuildEntry(
+        self
+          .entries
+          .values()
+          .flat_map(|item| item.all_dependencies())
+          .chain(self.global_entry.all_dependencies())
+          .copied()
+          .collect(),
+      )],
+    )
+    .await?;
+    self.build_module_graph_artifact = make_artifact.into();
+
     Ok(())
   }
 
@@ -1029,19 +1016,18 @@ impl Compilation {
     module_identifiers: IdentifierSet,
     f: impl Fn(Vec<&BoxModule>) -> T,
   ) -> Result<T> {
-    let artifact = self.build_module_graph_artifact.take();
+    let artifact = self.build_module_graph_artifact.steal();
 
     // https://github.com/webpack/webpack/blob/19ca74127f7668aaf60d59f4af8fcaee7924541a/lib/Compilation.js#L2462C21-L2462C25
     self.module_graph_cache_artifact.unfreeze();
 
-    self.build_module_graph_artifact.replace(
-      update_module_graph(
-        self,
-        artifact,
-        vec![UpdateParam::ForceBuildModules(module_identifiers.clone())],
-      )
-      .await?,
-    );
+    let artifact = update_module_graph(
+      self,
+      artifact,
+      vec![UpdateParam::ForceBuildModules(module_identifiers.clone())],
+    )
+    .await?;
+    self.build_module_graph_artifact = artifact.into();
 
     let module_graph = self.get_module_graph();
     Ok(f(module_identifiers

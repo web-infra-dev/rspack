@@ -32,7 +32,6 @@ cargo_toml          = { version = "0.21.0", default-features = false }
 cfg-if              = { version = "1.0.4", default-features = false }
 chrono              = { version = "0.4.43", default-features = false }
 clap                = { version = "4.5.57", default-features = false }
-color-backtrace     = { version = "0.7.2", default-features = false, features = ["use-backtrace-crate"] }
 concat-string       = { version = "1.0.1", default-features = false }
 cow-utils           = { version = "0.1.3", default-features = false }
 criterion2          = { default-features = false, version = "2.0.0", features = ["async_tokio"] }
@@ -370,9 +369,6 @@ opt-level = "s"
 [profile.release.package.addr2line]
 opt-level = "s"
 
-[profile.release.package.color-backtrace]
-opt-level = "s"
-
 [profile.release.package.glob]
 opt-level = "s"
 
@@ -411,11 +407,14 @@ opt-level = "s"
 
 # This is for CI build based on release but with faster build time
 [profile.ci]
-codegen-units = 256
-inherits      = "release"
-lto           = false
+codegen-units       = 256
+debug               = "limited"
+force-unwind-tables = true
+inherits            = "release"
+lto                 = false
 ## reduce little optimization to reduce build time
 opt-level = 2
+strip     = false
 
 # This is for production for profiling production build
 [profile.profiling]

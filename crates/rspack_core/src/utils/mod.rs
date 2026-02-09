@@ -12,7 +12,6 @@ mod comment;
 mod compile_boolean_matcher;
 mod concatenated_module_visitor;
 mod concatenation_scope;
-mod deref_option;
 mod extract_source_map;
 mod extract_url_and_global;
 mod fast_actions;
@@ -20,6 +19,7 @@ mod file_counter;
 mod find_graph_roots;
 mod fs_trim;
 pub mod incremental_info;
+mod steal_cell;
 pub use fs_trim::*;
 mod hash;
 mod identifier;
@@ -37,8 +37,8 @@ mod to_path;
 pub use compile_boolean_matcher::*;
 pub use concatenated_module_visitor::*;
 pub use concatenation_scope::*;
-pub use deref_option::DerefOption;
 pub use memory_gc::MemoryGCStorage;
+pub use steal_cell::StealCell;
 
 pub use self::{
   comment::*,

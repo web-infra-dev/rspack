@@ -181,9 +181,9 @@ pub fn build_chunk_graph_benchmark_inner(c: &mut Criterion) {
       .unwrap();
 
     let mut side_effects_optimize_artifact =
-      compiler.compilation.side_effects_optimize_artifact.take();
+      compiler.compilation.side_effects_optimize_artifact.steal();
     let mut diagnostics: Vec<Diagnostic> = vec![];
-    let mut build_module_graph_artifact = compiler.compilation.build_module_graph_artifact.take();
+    let mut build_module_graph_artifact = compiler.compilation.build_module_graph_artifact.steal();
     while matches!(
       compiler
         .plugin_driver
@@ -199,15 +199,9 @@ pub fn build_chunk_graph_benchmark_inner(c: &mut Criterion) {
         .unwrap(),
       Some(true)
     ) {}
-    compiler
-      .compilation
-      .build_module_graph_artifact
-      .replace(build_module_graph_artifact);
+    compiler.compilation.build_module_graph_artifact = build_module_graph_artifact.into();
 
-    compiler
-      .compilation
-      .side_effects_optimize_artifact
-      .replace(side_effects_optimize_artifact);
+    compiler.compilation.side_effects_optimize_artifact = side_effects_optimize_artifact.into();
     compiler.compilation.extend_diagnostics(diagnostics);
 
     compiler

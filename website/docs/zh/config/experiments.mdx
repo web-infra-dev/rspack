@@ -1,4 +1,4 @@
-import { ApiMeta, Stability } from '../../../components/ApiMeta';
+import { ApiMeta } from '../../../components/ApiMeta';
 import WebpackLicense from '@components/WebpackLicense';
 import PropertyType from '@components/PropertyType';
 import { Table } from '@builtIns';
@@ -30,44 +30,6 @@ export default {
 };
 ```
 
-## experiments.css
-
-<ApiMeta stability={Stability.Deprecated} />
-
-- **类型：** `boolean`
-- **默认值：** `false`
-
-:::warning 已弃用
-此选项在 Rspack 2.0 中已弃用。现在手动添加 CSS type 将模块标记为 CSS 模块。
-:::
-
-### 迁移
-
-要在 Rspack 2.0 中使用 CSS，需要手动添加 CSS 规则到配置中：
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    rules: [
-      {
-        test: /\.css$/i,
-        type: 'css/auto',
-      },
-    ],
-  },
-};
-```
-
-### 旧用法（已弃用）
-
-```js title="rspack.config.mjs"
-export default {
-  experiments: {
-    css: true,
-  },
-};
-```
-
 ## experiments.futureDefaults
 
 - **类型：** `boolean`
@@ -82,12 +44,6 @@ export default {
   },
 };
 ```
-
-## experiments.incremental
-
-<ApiMeta stability={Stability.Deprecated} />
-
-此选项已移动至顶层 [`incremental`](/config/incremental)。
 
 ## experiments.buildHttp
 
@@ -267,7 +223,7 @@ export default {
 - **类型：** `boolean`
 - **默认值：** `false`
 
-开启后 Rspack 会支持打包 [Deferred Imports Evaluation](https://github.com/tc39/proposal-defer-import-eval) 提案，该功能允许延迟模块的执行直到首次使用。目前仅支持 `import defer * as ns from "./module"`，`import.defer()` 会在后续版本支持。
+开启后 Rspack 会支持打包 [Deferred Imports Evaluation](https://github.com/tc39/proposal-defer-import-eval) 提案，该功能允许延迟模块的执行直到首次使用。Rspack 支持 `import defer * as ns from "./module"` 和 `import.defer()` 两种语法。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -276,3 +232,26 @@ export default {
   },
 };
 ```
+
+:::info 已知的限制
+目前在使用 `output.module: true` 时，对 external 模块使用 `defer import` 语法会被编译为普通的 `import` 语法。
+
+例如，当 `jquery` 配置为 external 时：
+
+```js
+import defer * as $ from 'jquery';
+```
+
+将会生成：
+
+```js
+import * as __rspack_external_jquery from 'jquery';
+```
+
+这是因为目前尚未有运行时支持 `defer import` 语法。未来当更多运行时支持该语法后，Rspack 将会根据 target 配置决定是否保留 `defer import` 语法，生成如下代码：
+
+```js
+import defer * as __rspack_external_jquery from 'jquery';
+```
+
+:::

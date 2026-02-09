@@ -40,6 +40,7 @@ impl Parse for DefineHookInput {
         ExecKind::SeriesWaterfall { ret }
       }
       "Series" => ExecKind::Series,
+      "Sync" => ExecKind::Sync,
       "Parallel" => ExecKind::Parallel,
       _ => {
         return Err(Error::new_spanned(
@@ -80,10 +81,15 @@ impl DefineHookInput {
       exec_kind,
       tracing,
     } = self;
+    let is_async = exec_kind.is_async();
     let ret = exec_kind.return_type();
-    let attr = quote! { #[::rspack_hook::__macro_helper::async_trait] };
+    let attr = is_async.then(|| quote! { #[::rspack_hook::__macro_helper::async_trait] });
     let run_sig = quote! { fn run(&self, #args) -> #ret; };
-    let run_sig = quote! { async #run_sig };
+    let run_sig = if is_async {
+      quote! { async #run_sig }
+    } else {
+      run_sig
+    };
     let arg_names = args
       .iter()
       .map(|arg| match &*arg.pat {
@@ -96,18 +102,34 @@ impl DefineHookInput {
     let call_body = exec_kind.body(arg_names);
     let call_body = if tracing.is_none_or(|bool_lit| bool_lit.value) {
       let tracing_span_name = LitStr::new(&format!("hook:{trait_name}"), trait_name.span());
-      quote! {
-        ::rspack_hook::__macro_helper::tracing::Instrument::instrument(
-          async { #call_body },
-          ::rspack_hook::__macro_helper::tracing::info_span!(#tracing_span_name),
-        ).await
+      if is_async {
+        quote! {
+          ::rspack_hook::__macro_helper::tracing::Instrument::instrument(
+            async { #call_body },
+            ::rspack_hook::__macro_helper::tracing::info_span!(#tracing_span_name),
+          ).await
+        }
+      } else {
+        quote! {
+          let tracing_span = ::rspack_hook::__macro_helper::tracing::info_span!(#tracing_span_name);
+          let _tracing_span_guard = tracing_span.enter();
+          #call_body
+        }
       }
     } else {
       call_body
     };
-    let call_fn = quote! {
-      async fn call(&self, #args) -> #ret {
-        #call_body
+    let call_fn = if is_async {
+      quote! {
+        async fn call(&self, #args) -> #ret {
+          #call_body
+        }
+      }
+    } else {
+      quote! {
+        fn call(&self, #args) -> #ret {
+          #call_body
+        }
       }
     };
     Ok(quote! {
@@ -164,12 +186,17 @@ impl DefineHookInput {
 
 enum ExecKind {
   Series,
+  Sync,
   SeriesBail { ret: Option<TypePath> },
   SeriesWaterfall { ret: TypePath },
   Parallel,
 }
 
 impl ExecKind {
+  fn is_async(&self) -> bool {
+    !matches!(self, Self::Sync)
+  }
+
   pub fn parse_ret(input: ParseStream) -> Result<Option<TypePath>> {
     Ok(if input.peek(Token![->]) {
       <Token![->]>::parse(input)?;
@@ -197,7 +224,11 @@ impl ExecKind {
   }
 
   fn additional_taps(&self) -> TokenStream {
-    let call = quote! { additional_taps.extend(interceptor.call(self).await?); };
+    let call = if self.is_async() {
+      quote! { additional_taps.extend(interceptor.call(self).await?); }
+    } else {
+      quote! { additional_taps.extend(interceptor.call_blocking(self)?); }
+    };
     quote! {
       let mut additional_taps = std::vec::Vec::new();
       for interceptor in self.interceptors.iter() {
@@ -218,6 +249,15 @@ impl ExecKind {
           #additional_taps
           for tap in all_taps {
             tap.run(#args).await?;
+          }
+          Ok(())
+        }
+      }
+      Self::Sync => {
+        quote! {
+          #additional_taps
+          for tap in all_taps {
+            tap.run(#args)?;
           }
           Ok(())
         }

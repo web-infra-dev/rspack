@@ -1,16 +1,16 @@
-use rspack_core::{ConstDependency, RuntimeGlobals, RuntimeRequirementsDependency};
+use rspack_core::{ConstDependency, ModuleArgument, RuntimeGlobals, RuntimeRequirementsDependency};
 use rspack_error::{Error, Severity};
 use rspack_util::SpanExt;
 use swc_core::{
   common::{Span, Spanned},
-  ecma::ast::{CallExpr, Ident, UnaryExpr},
+  ecma::ast::{CallExpr, Ident, Pat, UnaryExpr},
 };
 
 use crate::{
   dependency::{ModuleArgumentDependency, RequireMainDependency},
   parser_plugin::JavascriptParserPlugin,
   utils::eval::{self, BasicEvaluatedExpression},
-  visitors::{JavascriptParser, create_traceable_error},
+  visitors::{JavascriptParser, Statement, VariableDeclaration, create_traceable_error},
 };
 
 fn expression_not_supported(
@@ -165,7 +165,7 @@ impl JavascriptParserPlugin for APIPlugin {
         Some(true)
       }
       API_CHUNK_LOAD => {
-        parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::call(
+        parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
           ident.span.into(),
           RuntimeGlobals::ENSURE_CHUNK,
         )));
@@ -337,6 +337,48 @@ impl JavascriptParserPlugin for APIPlugin {
       return Some(true);
     }
 
+    None
+  }
+
+  fn pre_declarator(
+    &self,
+    parser: &mut JavascriptParser,
+    declarator: &swc_core::ecma::ast::VarDeclarator,
+    _declaration: VariableDeclaration<'_>,
+  ) -> Option<bool> {
+    // Check if we're at top level scope and the declarator is a simple identifier named "module"
+    if parser.is_top_level_scope()
+      && let Pat::Ident(ident) = &declarator.name
+      && ident.id.sym.as_ref() == "module"
+    {
+      parser.build_info.module_argument = ModuleArgument::RspackModule;
+    }
+    None
+  }
+
+  fn pre_statement(&self, parser: &mut JavascriptParser, stmt: Statement) -> Option<bool> {
+    // Check if we're at top level scope
+    if parser.is_top_level_scope() {
+      match stmt {
+        Statement::Fn(fn_decl) => {
+          // Check for function declaration named "module"
+          if let Some(ident) = fn_decl.ident()
+            && ident.sym.as_ref() == "module"
+          {
+            parser.build_info.module_argument = ModuleArgument::RspackModule;
+          }
+        }
+        Statement::Class(class_decl) => {
+          // Check for class declaration named "module"
+          if let Some(ident) = class_decl.ident()
+            && ident.sym.as_ref() == "module"
+          {
+            parser.build_info.module_argument = ModuleArgument::RspackModule;
+          }
+        }
+        _ => {}
+      }
+    }
     None
   }
 

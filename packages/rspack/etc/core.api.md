@@ -5997,6 +5997,7 @@ export type PersistentCacheOptions = {
     snapshot?: CacheSnapshotOptions;
     storage?: CacheStorageOptions;
     portable?: boolean;
+    readonly?: boolean;
 };
 
 // @public (undocumented)

@@ -1,10 +1,54 @@
-import { ApiMeta } from '../../../components/ApiMeta';
+import { ApiMeta, Stability } from '../../../components/ApiMeta';
 
 # Deprecated options
 
 This page lists configuration options that have been deprecated in Rspack.
 
 These options are kept for backward compatibility only and should not be used in new projects.
+
+## experiments.css
+
+<ApiMeta stability={Stability.Deprecated} />
+
+- **Type:** `boolean`
+- **Default:** `false`
+
+:::warning Deprecated
+This option is deprecated since Rspack 2.0. Users now need to manually add CSS rules to enable CSS support. In a future version, Rspack will automatically add CSS-related default rules.
+:::
+
+### Migration
+
+To use CSS in Rspack 2.0, you need to manually add CSS rules to your configuration:
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.css$/,
+        type: 'css/auto',
+      },
+    ],
+  },
+};
+```
+
+### Legacy usage (deprecated)
+
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    css: true,
+  },
+};
+```
+
+## experiments.incremental
+
+<ApiMeta stability={Stability.Deprecated} />
+
+This option has been moved to top-level [`incremental`](/config/incremental).
 
 ## rules[].loaders
 

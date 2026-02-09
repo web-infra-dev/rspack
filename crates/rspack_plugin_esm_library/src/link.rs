@@ -40,7 +40,7 @@ use swc_core::{
 
 use crate::{
   EsmLibraryPlugin,
-  chunk_link::{ChunkLinkContext, ExternalInterop, Ref, SymbolRef},
+  chunk_link::{ChunkLinkContext, ExternalInterop, ReExportFrom, Ref, SymbolRef},
 };
 
 pub(crate) trait GetMut<K, V> {
@@ -66,9 +66,10 @@ impl<V> GetMut<ModuleIdentifier, V> for IdentifierIndexMap<V> {
 static START_EXPORTS: LazyLock<Atom> = LazyLock::new(|| "*".into());
 
 #[derive(Default, Debug)]
-struct ExportsContext {
-  pub exports: FxHashMap<Atom, FxIndexSet<Atom>>,
-  pub exported_symbols: FxHashMap<Atom, Atom>,
+pub(crate) struct ExportsContext {
+  exports: FxHashMap<Atom, FxIndexSet<Atom>>,
+  exported_symbols: FxHashSet<Atom>,
+  re_exports: FxIndexMap<ReExportFrom, FxHashMap<Atom, FxHashSet<Atom>>>,
 }
 
 impl EsmLibraryPlugin {
@@ -94,31 +95,90 @@ impl EsmLibraryPlugin {
     }
 
     // we've not exported this local symbol, check if we've already exported this symbol
-    if ctx.exported_symbols.contains_key(&exported) {
+    if ctx.exported_symbols.contains(&exported) {
       // the name is already exported and we know the exported_local is not the same
       if strict_exports {
         return None;
       }
 
-      let already_exported_names = ctx.exports.entry(local.clone()).or_default();
+      let already_exported_names = ctx.exports.entry(local).or_default();
 
       // we find another name to export this symbol
       let mut idx = 0;
       let mut new_export = Atom::new(format!("{exported}_{idx}"));
-      while ctx.exported_symbols.contains_key(&new_export) {
+      while ctx.exported_symbols.contains(&new_export) {
         idx += 1;
         new_export = format!("{exported}_{idx}").into();
       }
 
-      ctx.exported_symbols.insert(new_export.clone(), local);
+      ctx.exported_symbols.insert(new_export.clone());
       already_exported_names.insert(new_export.clone());
       already_exported_names.get(&new_export).cloned()
     } else {
-      let already_exported_names = ctx.exports.entry(local.clone()).or_default();
-      ctx.exported_symbols.insert(exported.clone(), local);
+      let already_exported_names = ctx.exports.entry(local).or_default();
+      ctx.exported_symbols.insert(exported.clone());
       already_exported_names.insert(exported.clone());
       already_exported_names.get(&exported).cloned()
     }
+  }
+
+  // // orig_chunk
+  // export { local_name as export_name } from 'ref_chunk'
+  fn add_chunk_re_export(
+    orig_chunk: ChunkUkey,
+    ref_chunk: ChunkUkey,
+    local_name: Atom,
+    export_name: Atom,
+    chunk_exports: &mut UkeyMap<ChunkUkey, ExportsContext>,
+    strict_exports: bool,
+  ) -> Option<&Atom> {
+    let exports_context = chunk_exports.get_mut_unwrap(&orig_chunk);
+
+    let export_name = if !exports_context.exported_symbols.contains(&export_name) {
+      export_name
+    } else {
+      if strict_exports {
+        return None;
+      }
+      let mut idx = 0;
+      let mut new_export = Atom::new(format!("{export_name}_{idx}"));
+      while exports_context.exported_symbols.contains(&new_export) {
+        idx += 1;
+        new_export = format!("{export_name}_{idx}").into();
+      }
+      new_export
+    };
+
+    exports_context.exported_symbols.insert(export_name.clone());
+
+    let set = exports_context
+      .re_exports
+      .entry(ReExportFrom::Chunk(ref_chunk))
+      .or_default()
+      .entry(local_name)
+      .or_default();
+
+    set.insert(export_name.clone());
+    Some(set.get(&export_name).expect("should have inserted"))
+  }
+
+  fn add_re_export_from_request(
+    chunk: ChunkUkey,
+    request: String,
+    imported_name: Atom,
+    export_name: Atom,
+    chunk_exports: &mut UkeyMap<ChunkUkey, ExportsContext>,
+  ) {
+    let ctx = chunk_exports.get_mut_unwrap(&chunk);
+    ctx.exported_symbols.insert(export_name.clone());
+
+    ctx
+      .re_exports
+      .entry(ReExportFrom::Request(request))
+      .or_default()
+      .entry(imported_name)
+      .or_default()
+      .insert(export_name);
   }
 
   pub(crate) async fn link(
@@ -1042,8 +1102,14 @@ var {} = {{}};
         if entry_chunk != current_chunk
           && let Some(exported) = exported
         {
-          let entry_chunk_link = link.get_mut_unwrap(&entry_chunk);
-          entry_chunk_link.add_re_export(current_chunk, exported, "default".to_string().into());
+          Self::add_chunk_re_export(
+            entry_chunk,
+            current_chunk,
+            exported,
+            "default".to_string().into(),
+            exports,
+            true,
+          );
         }
       }
       ModuleInfo::External(info) => {
@@ -1237,8 +1303,14 @@ var {} = {{}};
                 if ref_chunk != entry_chunk
                   && let Some(exported) = exported
                 {
-                  let entry_chunk_link = link.get_mut_unwrap(&entry_chunk);
-                  entry_chunk_link.add_re_export(ref_chunk, exported.clone(), name.clone());
+                  Self::add_chunk_re_export(
+                    entry_chunk,
+                    ref_chunk,
+                    exported.clone(),
+                    name.clone(),
+                    exports,
+                    true,
+                  );
                 }
               }
             }
@@ -1567,19 +1639,38 @@ var {} = {{}};
 
             if let Ref::Symbol(symbol_binding) = &mut binding {
               let module_id = symbol_binding.module;
-              let ref_chunk = Self::get_module_chunk(module_id, compilation);
+              let ref_module_chunk = Self::get_module_chunk(module_id, compilation);
               let ref_external = concate_modules_map[ref_module].is_external();
 
               if from_other_chunk && !ref_external {
                 let exported = Self::add_chunk_export(
-                  ref_chunk,
+                  ref_module_chunk,
                   symbol_binding.symbol.clone(),
                   symbol_binding.symbol.clone(),
                   &mut exports,
                   false,
                 );
 
-                symbol_binding.symbol = exported.expect("should have exported");
+                let mut exported = exported.expect("should have exported");
+
+                if ref_module_chunk != ref_chunk {
+                  // special case
+                  // const { foo, bar } = await import('./re-exports')
+                  // there is a chance that foo is from another chunk, and bar is from re-exports chunk
+                  // so should make sure foo is from another chunk
+                  exported = Self::add_chunk_re_export(
+                    ref_chunk,
+                    ref_module_chunk,
+                    exported.clone(),
+                    exported.clone(),
+                    &mut exports,
+                    false,
+                  )
+                  .expect("should have name")
+                  .clone();
+                }
+
+                symbol_binding.symbol = exported;
               }
             }
 
@@ -1788,23 +1879,29 @@ var {} = {{}};
         }
       }
 
-      let exports = exports
-        .get_mut(&chunk_link.chunk)
-        .expect("should have exports");
-
       for (key, locals) in removed_import_stmts {
         chunk_link.raw_import_stmts.swap_remove(&key);
 
         // change it from normal export to re-export
         for (local, imported) in locals {
+          let chunk_exports = exports
+            .get_mut(&chunk_link.chunk)
+            .expect("should have exports");
+
           // remove local from exported names
-          let Some(export_names) = exports.exports.remove(&local) else {
+          let Some(export_names) = chunk_exports.exports.remove(&local) else {
             continue;
           };
 
           // add local to re-export
           for export_name in export_names {
-            chunk_link.add_re_export_from_request(key.0.clone(), imported.clone(), export_name);
+            Self::add_re_export_from_request(
+              chunk_link.chunk,
+              key.0.clone(),
+              imported.clone(),
+              export_name,
+              &mut exports,
+            );
           }
         }
       }
@@ -1812,10 +1909,9 @@ var {} = {{}};
 
     // put result into chunk_link context
     for (chunk, exports) in exports {
-      *link
-        .get_mut(&chunk)
-        .expect("should have chunk")
-        .exports_mut() = exports.exports;
+      let link = link.get_mut(&chunk).expect("should have chunk");
+      *link.exports_mut() = exports.exports;
+      *link.re_exports_mut() = exports.re_exports;
     }
     for (chunk, imports) in imports {
       link.get_mut(&chunk).expect("should have chunk").imports = imports;

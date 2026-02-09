@@ -49,17 +49,15 @@ var map = {
 };
 function __rspack_async_context(req) {
   if(!__webpack_require__.o(map, req)) {
-    return Promise.resolve().then(function() {
-      var e = new Error("Cannot find module '" + req + "'");
-      e.code = 'MODULE_NOT_FOUND';
-      throw e;
-    });
+    return Promise.resolve().then(() => {
+var e = new Error("Cannot find module '" + req + "'");
+e.code = 'MODULE_NOT_FOUND';
+throw e;
+});
   }
 
   var ids = map[req], id = ids[0];
-  return __webpack_require__.e(ids[1][0]).then(function() {
-    return __webpack_require__(id);
-  });
+  return __webpack_require__.e(ids[1][0]).then(() => (__webpack_require__(id)));
 }
 
 __rspack_async_context.keys = () => (Object.keys(map));

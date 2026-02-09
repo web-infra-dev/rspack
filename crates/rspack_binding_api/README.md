@@ -9,7 +9,6 @@ Shared binding API for Rspack, providing bridge interfaces between Rspack core f
 ## Features
 
 - `browser`: Enable browser environment support
-- `color-backtrace`: Enable colored error backtraces
 - `debug_tool`: Enable debug tools
 - `plugin`: Enable SWC plugin support
 - `sftrace-setup`: Enable performance tracing setup

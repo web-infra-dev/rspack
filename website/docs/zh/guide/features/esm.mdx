@@ -10,15 +10,11 @@ Rspack 支持使用 ESM 格式输出进行打包。构建应用时，Rspack 默�
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   output: {
     module: true,
     chunkFormat: 'module',
     chunkLoading: 'import',
     workerChunkLoading: 'import',
-  },
-  experiments: {
-    outputModule: true,
   },
 };
 ```
@@ -33,7 +29,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   output: {
     module: true,
     chunkFormat: 'module',
@@ -48,9 +43,6 @@ export default {
     concatenateModules: true,
     avoidEntryIife: true,
     minimize: false,
-  },
-  experiments: {
-    outputModule: true,
   },
 };
 ```
