@@ -30,21 +30,6 @@ export default {
 };
 ```
 
-## experiments.futureDefaults
-
-- **类型：** `boolean`
-- **默认值：** `false`
-
-使用下一个主版本 Rspack 的默认值，并在任何有问题的地方显示警告。
-
-```js title="rspack.config.mjs"
-export default {
-  experiments: {
-    futureDefaults: true,
-  },
-};
-```
-
 ## experiments.buildHttp
 
 <ApiMeta addedVersion="1.3.0" />
@@ -115,6 +100,86 @@ import { something } from 'https://example.com/module.js';
 
 // Or import assets
 import imageUrl from 'https://example.com/image.png';
+```
+
+## experiments.deferImport
+
+<ApiMeta addedVersion="1.6.0" />
+
+- **类型：** `boolean`
+- **默认值：** `false`
+
+开启后 Rspack 会支持打包 [Deferred Imports Evaluation](https://github.com/tc39/proposal-defer-import-eval) 提案，该功能允许延迟模块的执行直到首次使用。Rspack 支持 `import defer * as ns from "./module"` 和 `import.defer()` 两种语法。
+
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    deferImport: true,
+  },
+};
+```
+
+:::info 已知的限制
+目前在使用 `output.module: true` 时，对 external 模块使用 `defer import` 语法会被编译为普通的 `import` 语法。
+
+例如，当 `jquery` 配置为 external 时：
+
+```js
+import defer * as $ from 'jquery';
+```
+
+将会生成：
+
+```js
+import * as __rspack_external_jquery from 'jquery';
+```
+
+这是因为目前尚未有运行时支持 `defer import` 语法。未来当更多运行时支持该语法后，Rspack 将会根据 target 配置决定是否保留 `defer import` 语法，生成如下代码：
+
+```js
+import defer * as __rspack_external_jquery from 'jquery';
+```
+
+:::
+
+## experiments.futureDefaults
+
+- **类型：** `boolean`
+- **默认值：** `false`
+
+使用下一个主版本 Rspack 的默认值，并在任何有问题的地方显示警告。
+
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    futureDefaults: true,
+  },
+};
+```
+
+## experiments.nativeWatcher
+
+<ApiMeta addedVersion="1.4.7" />
+
+- **类型：** `boolean`
+- **默认值：** `false`
+
+默认情况下，Rspack 使用 Watchpack 来监听文件变化，这在大多数情况下都能正常工作，但在某些特定的环境下可能会出现问题。
+例如在大量文件变化时，Watchpack 可能会出现性能问题, 更多详情请参考 [Watchpack issue #233](https://github.com/webpack/watchpack/issues/223)。
+
+如果你使用默认的 watcher 出现性能问题，可以尝试启用 `nativeWatcher`。
+
+启用 `nativeWatcher` 后，Rspack 将使用 Rust Native 文件系统监听文件变化，实现增量监听文件变更能力，这提供更好的性能和稳定性。
+
+```js title="rspack.config.mjs"
+export default {
+  watchOptions: {
+    // Other watch options...
+  }
+  experiments: {
+    nativeWatcher: true,
+  },
+};
 ```
 
 ## experiments.useInputFileSystem
@@ -190,68 +255,3 @@ export default {
 ```
 
 当访问 `virtual_entry.js` 和 `src/another_virtual.js` 时，它们匹配了 `experiments.useInputFileSystem` 中的正则规则，Rspack 会通过 `VirtualModulesPlugin` 包装的输入文件系统读取它们；而像 `src/disk_file.js`，则会使用原生文件系统读取。
-
-## experiments.nativeWatcher
-
-<ApiMeta addedVersion="1.4.7" />
-
-- **类型：** `boolean`
-- **默认值：** `false`
-
-默认情况下，Rspack 使用 Watchpack 来监听文件变化，这在大多数情况下都能正常工作，但在某些特定的环境下可能会出现问题。
-例如在大量文件变化时，Watchpack 可能会出现性能问题, 更多详情请参考 [Watchpack issue #233](https://github.com/webpack/watchpack/issues/223)。
-
-如果你使用默认的 watcher 出现性能问题，可以尝试启用 `nativeWatcher`。
-
-启用 `nativeWatcher` 后，Rspack 将使用 Rust Native 文件系统监听文件变化，实现增量监听文件变更能力，这提供更好的性能和稳定性。
-
-```js title="rspack.config.mjs"
-export default {
-  watchOptions: {
-    // Other watch options...
-  }
-  experiments: {
-    nativeWatcher: true,
-  },
-};
-```
-
-## experiments.deferImport
-
-<ApiMeta addedVersion="1.6.0" />
-
-- **类型：** `boolean`
-- **默认值：** `false`
-
-开启后 Rspack 会支持打包 [Deferred Imports Evaluation](https://github.com/tc39/proposal-defer-import-eval) 提案，该功能允许延迟模块的执行直到首次使用。Rspack 支持 `import defer * as ns from "./module"` 和 `import.defer()` 两种语法。
-
-```js title="rspack.config.mjs"
-export default {
-  experiments: {
-    deferImport: true,
-  },
-};
-```
-
-:::info 已知的限制
-目前在使用 `output.module: true` 时，对 external 模块使用 `defer import` 语法会被编译为普通的 `import` 语法。
-
-例如，当 `jquery` 配置为 external 时：
-
-```js
-import defer * as $ from 'jquery';
-```
-
-将会生成：
-
-```js
-import * as __rspack_external_jquery from 'jquery';
-```
-
-这是因为目前尚未有运行时支持 `defer import` 语法。未来当更多运行时支持该语法后，Rspack 将会根据 target 配置决定是否保留 `defer import` 语法，生成如下代码：
-
-```js
-import defer * as __rspack_external_jquery from 'jquery';
-```
-
-:::

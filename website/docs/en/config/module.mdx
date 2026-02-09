@@ -51,6 +51,780 @@ export default {
 See the [source code](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack/src/config/defaults.ts#L453) for the full list of default rules.
 :::
 
+## module.generator
+
+- **Type:** `Object`
+- **Default:** `{}`
+
+Configure all generators' options in one place with `module.generator`.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      // Generator options for asset modules
+      asset: {
+        dataUrl: {
+          encoding: false,
+          mimetype: 'base64',
+        },
+        filename: '[name]-[contenthash][ext]',
+        publicPath: 'https://cdn.example.com/',
+      },
+      // Generator options for asset/inline modules
+      'asset/inline': {
+        dataUrl: {
+          encoding: false,
+          mimetype: 'base64',
+        },
+      },
+      // Generator options for asset/resource modules
+      'asset/resource': {
+        filename: '[name]-[contenthash][ext]',
+        publicPath: 'https://cdn.example.com/',
+      },
+      // Generator options for css/auto modules
+      'css/auto': {
+        exportsConvention: 'as-is',
+        exportsOnly: false,
+        localIdentName: '[uniqueName]-[id]-[local]',
+        esModule: true,
+      },
+      // Generator options for `css` modules
+      css: {
+        exportsOnly: false,
+        esModule: true,
+      },
+      // Generator options for css/module modules
+      'css/module': {
+        exportsConvention: 'as-is',
+        exportsOnly: false,
+        localIdentName: '[uniqueName]-[id]-[local]',
+        esModule: true,
+      },
+      // Generator options for `json` modules
+      json: {
+        JSONParse: true,
+      },
+    },
+  },
+};
+```
+
+### module.generator.asset
+
+Generator options for `asset` modules.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      asset: {
+        // options
+      },
+    },
+  },
+};
+```
+
+### module.generator.asset.binary
+
+- **Type:** `boolean | undefined`
+- **Default:** `undefined`
+
+Whether or not this asset module should be considered binary. This can be set to `false` to treat this asset module as text.
+If not set, the module type will be used to determine if the module is binary.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      asset: {
+        binary: false,
+      },
+    },
+  },
+};
+```
+
+### module.generator.asset.dataUrl
+
+- **Type:** `Object | (source: Buffer, context: { filename: string, module: Module }) => string`
+- **Default:** `{}`
+
+Only for modules with module type `'asset'` or `'asset/inline'`.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      asset: {
+        dataUrl: {
+          encoding: 'base64',
+          mimetype: 'mimetype/png',
+        },
+      },
+    },
+  },
+};
+```
+
+When used a a function, it executes for every module and must return a data URI string.
+
+```js title="rspack.config.mjs"
+import { createRequire } from 'node:module';
+
+const require = createRequire(import.meta.url);
+
+export default {
+  module: {
+    generator: {
+      asset: {
+        dataUrl: ({ content }) => {
+          const svgToMiniDataURI = require('mini-svg-data-uri');
+          return svgToMiniDataURI(content);
+        },
+      },
+    },
+  },
+};
+```
+
+### module.generator.asset.dataUrl.encoding
+
+- **Type:** `false | 'base64'`
+- **Default:** `'base64'`
+
+When set to 'base64', module source will be encoded using Base64 algorithm. Setting encoding to false will disable encoding. Only for modules with module type `'asset'` or `'asset/inline'`.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      asset: {
+        dataUrl: {
+          encoding: false,
+        },
+      },
+    },
+  },
+};
+```
+
+### module.generator.asset.dataUrl.mimetype
+
+- **Type:** `string`
+- **Default:** `require('mime-types').lookup(ext)`
+
+A mimetype for data URI. Resolves from module resource extension by default. Only for modules with module type `'asset'` or `'asset/inline'`.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      asset: {
+        dataUrl: {
+          mimetype: 'image/png',
+        },
+      },
+    },
+  },
+};
+```
+
+### module.generator.asset.importMode
+
+- **Type:** `'url' | 'preserve'`
+- **Default:** `'url'`
+
+If `"url"`, a URL pointing to the asset will be generated based on [publicPath](#modulegeneratorassetpublicpath).
+If `"preserve"`, preserve import/require statement from generated asset.
+
+Only for modules with module type `'asset'` or `'asset/resource'`.
+
+- `'asset'`:
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      asset: {
+        importMode: 'preserve',
+      },
+    },
+  },
+};
+```
+
+- `'asset/resource'`:
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'asset/resource': {
+        importMode: 'preserve',
+      },
+    },
+  },
+};
+```
+
+### module.generator.asset.filename
+
+- **Type:** `string | ((pathData: PathData, assetInfo?: AssetInfo) => string)`
+- **Default:** `undefined`
+- **Supported Template string:** checkout [`output.assetModuleFilename`](/config/output#outputassetmodulefilename)
+
+Same as `output.assetModuleFilename`. Overrides `output.assetModuleFilename` and only works for `asset` and `asset/resource` module types.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      asset: {
+        filename: 'static/[hash][ext]',
+      },
+    },
+  },
+};
+```
+
+### module.generator.asset.outputPath
+
+- **Type:** `string | ((pathData: PathData, assetInfo?: AssetInfo) => string)`
+- **Default:** `undefined`
+
+Emit the asset in the specified folder relative to [`output.path`](/config/output#outputpath).
+
+Only for modules with module type `'asset'` or `'asset/resource'`.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      asset: {
+        outputPath: 'foo/',
+      },
+    },
+  },
+};
+```
+
+### module.generator.asset.publicPath
+
+- **Type:** `string | ((pathData: PathData, assetInfo?: AssetInfo) => string)`
+- **Default:** `undefined`
+
+Override [`output.publicPath`](/config/output#outputpublicpath), only for modules with module type `'asset'` or `'asset/resource'`.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      asset: {
+        publicPath: 'https://cdn.example.com/',
+      },
+    },
+  },
+};
+```
+
+### module.generator.asset.emit
+
+- **Type:** `boolean`
+- **Default:** `true`
+
+Whether to output assets to disk. You can set this option to `false` to avoid outputting unnecessary files for some scenarios such as SSR.
+
+Only for modules with module type `'asset'` or `'asset/resource'`.
+
+- `'asset'`:
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      asset: {
+        emit: false,
+      },
+    },
+  },
+};
+```
+
+- `'asset/resource'`:
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'asset/resource': {
+        emit: false,
+      },
+    },
+  },
+};
+```
+
+### module.generator["asset/inline"]
+
+Generator options for `asset/inline` modules.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'asset/inline': {
+        // options
+      },
+    },
+  },
+};
+```
+
+### module.generator["asset/inline"].binary
+
+Same as [`module.generator["asset"].binary`](#modulegeneratorassetbinary).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'asset/inline': {
+        binary: false,
+      },
+    },
+  },
+};
+```
+
+### module.generator["asset/inline"].dataUrl
+
+Same as [`module.generator["asset"].dataUrl`](#modulegeneratorassetdataurl).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'asset/inline': {
+        dataUrl: {
+          // options
+        },
+      },
+    },
+  },
+};
+```
+
+### module.generator["asset/inline"].dataUrl.encoding
+
+Same as [`module.generator["asset"].dataUrl.encoding`](#modulegeneratorassetdataurlencoding).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'asset/inline': {
+        dataUrl: {
+          encoding: false,
+        },
+      },
+    },
+  },
+};
+```
+
+### module.generator["asset/inline"].dataUrl.mimetype
+
+Same as [`module.generator["asset"].dataUrl.mimetype`](#modulegeneratorassetdataurlmimetype).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'asset/inline': {
+        dataUrl: {
+          mimetype: 'image/png',
+        },
+      },
+    },
+  },
+};
+```
+
+### module.generator["asset/resource"]
+
+Generator options for `asset/resource` modules.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'asset/resource': {
+        // options
+      },
+    },
+  },
+};
+```
+
+### module.generator["asset/resource"].binary
+
+Same as [`module.generator["asset"].binary`](#modulegeneratorassetbinary).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'asset/resource': {
+        binary: false,
+      },
+    },
+  },
+};
+```
+
+### module.generator["asset/resource"].importMode
+
+Same as [`module.generator["asset"].importMode`](#modulegeneratorassetimportmode).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'asset/resource': {
+        importMode: 'preserve',
+      },
+    },
+  },
+};
+```
+
+### module.generator["asset/resource"].filename
+
+Same as [`module.generator["asset"].filename`](#modulegeneratorassetfilename).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'asset/resource': {
+        filename: 'static/[hash][ext]',
+      },
+    },
+  },
+};
+```
+
+### module.generator["asset/resource"].outputPath
+
+Same as [`module.generator["asset"].outputPath`](#modulegeneratorassetoutputpath).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'asset/resource': {
+        outputPath: 'foo/',
+      },
+    },
+  },
+};
+```
+
+### module.generator["asset/resource"].publicPath
+
+Same as [`module.generator["asset"].publicPath`](#modulegeneratorassetpublicpath).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'asset/resource': {
+        publicPath: 'https://cdn.example.com/',
+      },
+    },
+  },
+};
+```
+
+### module.generator["css/auto"]
+
+Generator options for `css/auto` modules.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/auto': {
+        // options
+      },
+    },
+  },
+};
+```
+
+### module.generator["css/auto"].exportsConvention
+
+- **Type:** `'as-is' | 'camel-case' | 'camel-case-only' | 'dashes' | 'dashes-only'`
+- **Default:** `'as-is'`
+
+Customize how CSS export names are exported to javascript modules, such as keeping them as is, transforming them to camel case, etc.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/auto': {
+        exportsConvention: 'camel-case',
+      },
+    },
+  },
+};
+```
+
+### module.generator["css/auto"].exportsOnly
+
+- **Type:** `boolean`
+- **Default:** `true` for node environments, `false` for web environments.
+
+If `true`, **only exports** the identifier mappings from CSS into the output JavaScript files, without embedding any stylesheets in the template. Useful if you are using CSS Modules for pre-rendering (e.g. SSR).
+
+If `false`, generate stylesheets and embed them in the template.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/auto': {
+        exportsOnly: false,
+      },
+    },
+  },
+};
+```
+
+### module.generator["css/auto"].localIdentName
+
+- **Type:** `string`
+- **Default:** `[uniqueName]-[id]-[local]`
+
+Customize the format of the local class names generated for CSS modules, besides the substitutions at [File-level](/config/output#file-context) and [Module-level](/config/output#module-context), also include `[uniqueName]` and `[local]`.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/auto': {
+        localIdentName: '[local]-[hash:base64:6]',
+      },
+    },
+  },
+};
+```
+
+### module.generator["css/auto"].esModule
+
+- **Type:** `boolean`
+- **Default:** `true`
+
+This configuration is available for improved ESM-CJS interoperability purposes.
+
+Whether to add `__esModule` to the exports of CSS; if added, it will be treated as ES modules during ESM-CJS interop, otherwise, it will be treated as a CommonJS Module.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/auto': {
+        esModule: true,
+      },
+    },
+  },
+};
+```
+
+For example, a common use case, when using the CommonJS output from a third-party component library, it is sometimes necessary to add this configuration to ensure correct ESM-CJS interop, to obtain the correct exports (this can be used in conjunction with [rules[].test](/config/module-rules#rulestest) and other matching conditions to add it only for that particular component library).
+
+The original source code of the third-party component library:
+
+```js
+import style from './style.css';
+
+export function Button() {
+  return <button className={style.btn}></button>;
+}
+```
+
+The CommonJS format output published by the third-party component library:
+
+```js
+'use strict';
+
+Object.defineProperty(exports, '__esModule', {
+  value: true,
+});
+exports.Button = Button;
+var _style = _interopRequireDefault(require('./style.css'));
+var _jsxRuntime = require('react/jsx-runtime');
+function _interopRequireDefault(obj) {
+  return obj && obj.__esModule ? obj : { default: obj };
+}
+function Button() {
+  return /*#__PURE__*/ (0, _jsxRuntime.jsx)('button', {
+    className: _style['default'].btn, // <-- Note: After passing through _interopRequireDefault, this need to access default here.
+  });
+}
+```
+
+### module.generator.css
+
+Generator options for `css` modules.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      css: {
+        // options
+      },
+    },
+  },
+};
+```
+
+### module.generator.css.exportsOnly
+
+Same as [`module.generator["css/auto"].exportsOnly`](#modulegeneratorcssautoexportsonly).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      css: {
+        exportsOnly: false,
+      },
+    },
+  },
+};
+```
+
+### module.generator.css.esModule
+
+Same as [`module.generator["css/auto"].esModule`](#modulegeneratorcssautoesmodule).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      css: {
+        esModule: true,
+      },
+    },
+  },
+};
+```
+
+### module.generator["css/module"]
+
+Generator options for `css/module` modules.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/module': {
+        // options
+      },
+    },
+  },
+};
+```
+
+### module.generator["css/module"].exportsConvention
+
+Same as [`module.generator["css/auto"].exportsConvention`](#modulegeneratorcssautoexportsconvention).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/module': {
+        exportsConvention: 'camel-case',
+      },
+    },
+  },
+};
+```
+
+### module.generator["css/module"].exportsOnly
+
+Same as [`module.generator["css/auto"].exportsOnly`](#modulegeneratorcssautoexportsonly).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/module': {
+        exportsOnly: false,
+      },
+    },
+  },
+};
+```
+
+### module.generator["css/module"].localIdentName
+
+Same as [`module.generator["css/auto"].localIdentName`](#modulegeneratorcssautolocalidentname).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/module': {
+        localIdentName: '[local]-[hash:base64:6]',
+      },
+    },
+  },
+};
+```
+
+### module.generator["css/module"].esModule
+
+Same as [`module.generator["css/auto"].esModule`](#modulegeneratorcssautoesmodule).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/module': {
+        esModule: true,
+      },
+    },
+  },
+};
+```
+
+### module.generator.json.JSONParse
+
+- **Type:** `boolean`
+- **Default:** `true`
+
+Use `JSON.parse` when the JSON string is longer than 20 characters.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      json: {
+        JSONParse: false,
+      },
+    },
+  },
+};
+```
+
 ## module.noParse
 
 - **Type:** `string | string[] | RegExp | RegExp[] | ((request: string) => boolean)`
@@ -1095,780 +1869,6 @@ export default {
     parser: {
       'css/module': {
         url: true,
-      },
-    },
-  },
-};
-```
-
-## module.generator
-
-- **Type:** `Object`
-- **Default:** `{}`
-
-Configure all generators' options in one place with `module.generator`.
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    generator: {
-      // Generator options for asset modules
-      asset: {
-        dataUrl: {
-          encoding: false,
-          mimetype: 'base64',
-        },
-        filename: '[name]-[contenthash][ext]',
-        publicPath: 'https://cdn.example.com/',
-      },
-      // Generator options for asset/inline modules
-      'asset/inline': {
-        dataUrl: {
-          encoding: false,
-          mimetype: 'base64',
-        },
-      },
-      // Generator options for asset/resource modules
-      'asset/resource': {
-        filename: '[name]-[contenthash][ext]',
-        publicPath: 'https://cdn.example.com/',
-      },
-      // Generator options for css/auto modules
-      'css/auto': {
-        exportsConvention: 'as-is',
-        exportsOnly: false,
-        localIdentName: '[uniqueName]-[id]-[local]',
-        esModule: true,
-      },
-      // Generator options for `css` modules
-      css: {
-        exportsOnly: false,
-        esModule: true,
-      },
-      // Generator options for css/module modules
-      'css/module': {
-        exportsConvention: 'as-is',
-        exportsOnly: false,
-        localIdentName: '[uniqueName]-[id]-[local]',
-        esModule: true,
-      },
-      // Generator options for `json` modules
-      json: {
-        JSONParse: true,
-      },
-    },
-  },
-};
-```
-
-### module.generator.asset
-
-Generator options for `asset` modules.
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    generator: {
-      asset: {
-        // options
-      },
-    },
-  },
-};
-```
-
-### module.generator.asset.binary
-
-- **Type:** `boolean | undefined`
-- **Default:** `undefined`
-
-Whether or not this asset module should be considered binary. This can be set to `false` to treat this asset module as text.
-If not set, the module type will be used to determine if the module is binary.
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    generator: {
-      asset: {
-        binary: false,
-      },
-    },
-  },
-};
-```
-
-### module.generator.asset.dataUrl
-
-- **Type:** `Object | (source: Buffer, context: { filename: string, module: Module }) => string`
-- **Default:** `{}`
-
-Only for modules with module type `'asset'` or `'asset/inline'`.
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    generator: {
-      asset: {
-        dataUrl: {
-          encoding: 'base64',
-          mimetype: 'mimetype/png',
-        },
-      },
-    },
-  },
-};
-```
-
-When used a a function, it executes for every module and must return a data URI string.
-
-```js title="rspack.config.mjs"
-import { createRequire } from 'node:module';
-
-const require = createRequire(import.meta.url);
-
-export default {
-  module: {
-    generator: {
-      asset: {
-        dataUrl: ({ content }) => {
-          const svgToMiniDataURI = require('mini-svg-data-uri');
-          return svgToMiniDataURI(content);
-        },
-      },
-    },
-  },
-};
-```
-
-### module.generator.asset.dataUrl.encoding
-
-- **Type:** `false | 'base64'`
-- **Default:** `'base64'`
-
-When set to 'base64', module source will be encoded using Base64 algorithm. Setting encoding to false will disable encoding. Only for modules with module type `'asset'` or `'asset/inline'`.
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    generator: {
-      asset: {
-        dataUrl: {
-          encoding: false,
-        },
-      },
-    },
-  },
-};
-```
-
-### module.generator.asset.dataUrl.mimetype
-
-- **Type:** `string`
-- **Default:** `require('mime-types').lookup(ext)`
-
-A mimetype for data URI. Resolves from module resource extension by default. Only for modules with module type `'asset'` or `'asset/inline'`.
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    generator: {
-      asset: {
-        dataUrl: {
-          mimetype: 'image/png',
-        },
-      },
-    },
-  },
-};
-```
-
-### module.generator.asset.importMode
-
-- **Type:** `'url' | 'preserve'`
-- **Default:** `'url'`
-
-If `"url"`, a URL pointing to the asset will be generated based on [publicPath](#modulegeneratorassetpublicpath).
-If `"preserve"`, preserve import/require statement from generated asset.
-
-Only for modules with module type `'asset'` or `'asset/resource'`.
-
-- `'asset'`:
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    generator: {
-      asset: {
-        importMode: 'preserve',
-      },
-    },
-  },
-};
-```
-
-- `'asset/resource'`:
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    generator: {
-      'asset/resource': {
-        importMode: 'preserve',
-      },
-    },
-  },
-};
-```
-
-### module.generator.asset.filename
-
-- **Type:** `string | ((pathData: PathData, assetInfo?: AssetInfo) => string)`
-- **Default:** `undefined`
-- **Supported Template string:** checkout [`output.assetModuleFilename`](/config/output#outputassetmodulefilename)
-
-Same as `output.assetModuleFilename`. Overrides `output.assetModuleFilename` and only works for `asset` and `asset/resource` module types.
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    generator: {
-      asset: {
-        filename: 'static/[hash][ext]',
-      },
-    },
-  },
-};
-```
-
-### module.generator.asset.outputPath
-
-- **Type:** `string | ((pathData: PathData, assetInfo?: AssetInfo) => string)`
-- **Default:** `undefined`
-
-Emit the asset in the specified folder relative to [`output.path`](/config/output#outputpath).
-
-Only for modules with module type `'asset'` or `'asset/resource'`.
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    generator: {
-      asset: {
-        outputPath: 'foo/',
-      },
-    },
-  },
-};
-```
-
-### module.generator.asset.publicPath
-
-- **Type:** `string | ((pathData: PathData, assetInfo?: AssetInfo) => string)`
-- **Default:** `undefined`
-
-Override [`output.publicPath`](/config/output#outputpublicpath), only for modules with module type `'asset'` or `'asset/resource'`.
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    generator: {
-      asset: {
-        publicPath: 'https://cdn.example.com/',
-      },
-    },
-  },
-};
-```
-
-### module.generator.asset.emit
-
-- **Type:** `boolean`
-- **Default:** `true`
-
-Whether to output assets to disk. You can set this option to `false` to avoid outputting unnecessary files for some scenarios such as SSR.
-
-Only for modules with module type `'asset'` or `'asset/resource'`.
-
-- `'asset'`:
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    generator: {
-      asset: {
-        emit: false,
-      },
-    },
-  },
-};
-```
-
-- `'asset/resource'`:
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    generator: {
-      'asset/resource': {
-        emit: false,
-      },
-    },
-  },
-};
-```
-
-### module.generator["asset/inline"]
-
-Generator options for `asset/inline` modules.
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    generator: {
-      'asset/inline': {
-        // options
-      },
-    },
-  },
-};
-```
-
-### module.generator["asset/inline"].binary
-
-Same as [`module.generator["asset"].binary`](#modulegeneratorassetbinary).
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    generator: {
-      'asset/inline': {
-        binary: false,
-      },
-    },
-  },
-};
-```
-
-### module.generator["asset/inline"].dataUrl
-
-Same as [`module.generator["asset"].dataUrl`](#modulegeneratorassetdataurl).
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    generator: {
-      'asset/inline': {
-        dataUrl: {
-          // options
-        },
-      },
-    },
-  },
-};
-```
-
-### module.generator["asset/inline"].dataUrl.encoding
-
-Same as [`module.generator["asset"].dataUrl.encoding`](#modulegeneratorassetdataurlencoding).
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    generator: {
-      'asset/inline': {
-        dataUrl: {
-          encoding: false,
-        },
-      },
-    },
-  },
-};
-```
-
-### module.generator["asset/inline"].dataUrl.mimetype
-
-Same as [`module.generator["asset"].dataUrl.mimetype`](#modulegeneratorassetdataurlmimetype).
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    generator: {
-      'asset/inline': {
-        dataUrl: {
-          mimetype: 'image/png',
-        },
-      },
-    },
-  },
-};
-```
-
-### module.generator["asset/resource"]
-
-Generator options for `asset/resource` modules.
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    generator: {
-      'asset/resource': {
-        // options
-      },
-    },
-  },
-};
-```
-
-### module.generator["asset/resource"].binary
-
-Same as [`module.generator["asset"].binary`](#modulegeneratorassetbinary).
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    generator: {
-      'asset/resource': {
-        binary: false,
-      },
-    },
-  },
-};
-```
-
-### module.generator["asset/resource"].importMode
-
-Same as [`module.generator["asset"].importMode`](#modulegeneratorassetimportmode).
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    generator: {
-      'asset/resource': {
-        importMode: 'preserve',
-      },
-    },
-  },
-};
-```
-
-### module.generator["asset/resource"].filename
-
-Same as [`module.generator["asset"].filename`](#modulegeneratorassetfilename).
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    generator: {
-      'asset/resource': {
-        filename: 'static/[hash][ext]',
-      },
-    },
-  },
-};
-```
-
-### module.generator["asset/resource"].outputPath
-
-Same as [`module.generator["asset"].outputPath`](#modulegeneratorassetoutputpath).
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    generator: {
-      'asset/resource': {
-        outputPath: 'foo/',
-      },
-    },
-  },
-};
-```
-
-### module.generator["asset/resource"].publicPath
-
-Same as [`module.generator["asset"].publicPath`](#modulegeneratorassetpublicpath).
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    generator: {
-      'asset/resource': {
-        publicPath: 'https://cdn.example.com/',
-      },
-    },
-  },
-};
-```
-
-### module.generator["css/auto"]
-
-Generator options for `css/auto` modules.
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    generator: {
-      'css/auto': {
-        // options
-      },
-    },
-  },
-};
-```
-
-### module.generator["css/auto"].exportsConvention
-
-- **Type:** `'as-is' | 'camel-case' | 'camel-case-only' | 'dashes' | 'dashes-only'`
-- **Default:** `'as-is'`
-
-Customize how CSS export names are exported to javascript modules, such as keeping them as is, transforming them to camel case, etc.
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    generator: {
-      'css/auto': {
-        exportsConvention: 'camel-case',
-      },
-    },
-  },
-};
-```
-
-### module.generator["css/auto"].exportsOnly
-
-- **Type:** `boolean`
-- **Default:** `true` for node environments, `false` for web environments.
-
-If `true`, **only exports** the identifier mappings from CSS into the output JavaScript files, without embedding any stylesheets in the template. Useful if you are using CSS Modules for pre-rendering (e.g. SSR).
-
-If `false`, generate stylesheets and embed them in the template.
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    generator: {
-      'css/auto': {
-        exportsOnly: false,
-      },
-    },
-  },
-};
-```
-
-### module.generator["css/auto"].localIdentName
-
-- **Type:** `string`
-- **Default:** `[uniqueName]-[id]-[local]`
-
-Customize the format of the local class names generated for CSS modules, besides the substitutions at [File-level](/config/output#file-context) and [Module-level](/config/output#module-context), also include `[uniqueName]` and `[local]`.
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    generator: {
-      'css/auto': {
-        localIdentName: '[local]-[hash:base64:6]',
-      },
-    },
-  },
-};
-```
-
-### module.generator["css/auto"].esModule
-
-- **Type:** `boolean`
-- **Default:** `true`
-
-This configuration is available for improved ESM-CJS interoperability purposes.
-
-Whether to add `__esModule` to the exports of CSS; if added, it will be treated as ES modules during ESM-CJS interop, otherwise, it will be treated as a CommonJS Module.
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    generator: {
-      'css/auto': {
-        esModule: true,
-      },
-    },
-  },
-};
-```
-
-For example, a common use case, when using the CommonJS output from a third-party component library, it is sometimes necessary to add this configuration to ensure correct ESM-CJS interop, to obtain the correct exports (this can be used in conjunction with [rules[].test](/config/module-rules#rulestest) and other matching conditions to add it only for that particular component library).
-
-The original source code of the third-party component library:
-
-```js
-import style from './style.css';
-
-export function Button() {
-  return <button className={style.btn}></button>;
-}
-```
-
-The CommonJS format output published by the third-party component library:
-
-```js
-'use strict';
-
-Object.defineProperty(exports, '__esModule', {
-  value: true,
-});
-exports.Button = Button;
-var _style = _interopRequireDefault(require('./style.css'));
-var _jsxRuntime = require('react/jsx-runtime');
-function _interopRequireDefault(obj) {
-  return obj && obj.__esModule ? obj : { default: obj };
-}
-function Button() {
-  return /*#__PURE__*/ (0, _jsxRuntime.jsx)('button', {
-    className: _style['default'].btn, // <-- Note: After passing through _interopRequireDefault, this need to access default here.
-  });
-}
-```
-
-### module.generator.css
-
-Generator options for `css` modules.
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    generator: {
-      css: {
-        // options
-      },
-    },
-  },
-};
-```
-
-### module.generator.css.exportsOnly
-
-Same as [`module.generator["css/auto"].exportsOnly`](#modulegeneratorcssautoexportsonly).
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    generator: {
-      css: {
-        exportsOnly: false,
-      },
-    },
-  },
-};
-```
-
-### module.generator.css.esModule
-
-Same as [`module.generator["css/auto"].esModule`](#modulegeneratorcssautoesmodule).
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    generator: {
-      css: {
-        esModule: true,
-      },
-    },
-  },
-};
-```
-
-### module.generator["css/module"]
-
-Generator options for `css/module` modules.
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    generator: {
-      'css/module': {
-        // options
-      },
-    },
-  },
-};
-```
-
-### module.generator["css/module"].exportsConvention
-
-Same as [`module.generator["css/auto"].exportsConvention`](#modulegeneratorcssautoexportsconvention).
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    generator: {
-      'css/module': {
-        exportsConvention: 'camel-case',
-      },
-    },
-  },
-};
-```
-
-### module.generator["css/module"].exportsOnly
-
-Same as [`module.generator["css/auto"].exportsOnly`](#modulegeneratorcssautoexportsonly).
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    generator: {
-      'css/module': {
-        exportsOnly: false,
-      },
-    },
-  },
-};
-```
-
-### module.generator["css/module"].localIdentName
-
-Same as [`module.generator["css/auto"].localIdentName`](#modulegeneratorcssautolocalidentname).
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    generator: {
-      'css/module': {
-        localIdentName: '[local]-[hash:base64:6]',
-      },
-    },
-  },
-};
-```
-
-### module.generator["css/module"].esModule
-
-Same as [`module.generator["css/auto"].esModule`](#modulegeneratorcssautoesmodule).
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    generator: {
-      'css/module': {
-        esModule: true,
-      },
-    },
-  },
-};
-```
-
-### module.generator.json.JSONParse
-
-- **Type:** `boolean`
-- **Default:** `true`
-
-Use `JSON.parse` when the JSON string is longer than 20 characters.
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    generator: {
-      json: {
-        JSONParse: false,
       },
     },
   },

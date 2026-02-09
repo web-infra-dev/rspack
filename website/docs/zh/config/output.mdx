@@ -137,17 +137,20 @@ export default {
 };
 ```
 
-## output.chunkLoadTimeout
+## output.chunkLoading
 
-- **类型：** `number`
-- **默认值：** `120000`
+- **类型：** `false | 'jsonp' | 'import-scripts' | 'require' | 'async-node' | 'import' | string`
 
-Chunk 加载的超时时间（毫秒）。
+加载 chunk 的方式，默认值会根据 [`target`](/config/target) 和 [`chunkFormat`](#outputchunkformat) 的配置而决定，一般来说，target 为 web 时会使用 `'jsonp'` 来加载 chunk；为 ESM 时会使用 `'import'` 来加载 chunk；为 webworker 时会使用 `'import-scripts'` 来加载 chunk；为 node.js 时会使用 `'require'` 来加载 chunk；为 async node.js 时会使用 `'async-node'`（`fs.readFile` + `vm.runInThisContext`）来加载 chunk，插件可能会添加其他格式。
+
+:::tip
+这个选项的默认值取决于 [`target`](/config/target) 和 [`output.chunkFormat`](#chunkFormat) 设置。要了解更多详情，请在 Rspack [默认设置中](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack/src/config/defaults.ts)搜索 `"chunkLoading"`。
+:::
 
 ```js title="rspack.config.mjs"
 export default {
   output: {
-    chunkLoadTimeout: 30000, // Chunk 加载会在 30 秒后超时
+    chunkLoading: 'async-node',
   },
 };
 ```
@@ -167,20 +170,17 @@ export default {
 };
 ```
 
-## output.chunkLoading
+## output.chunkLoadTimeout
 
-- **类型：** `false | 'jsonp' | 'import-scripts' | 'require' | 'async-node' | 'import' | string`
+- **类型：** `number`
+- **默认值：** `120000`
 
-加载 chunk 的方式，默认值会根据 [`target`](/config/target) 和 [`chunkFormat`](#outputchunkformat) 的配置而决定，一般来说，target 为 web 时会使用 `'jsonp'` 来加载 chunk；为 ESM 时会使用 `'import'` 来加载 chunk；为 webworker 时会使用 `'import-scripts'` 来加载 chunk；为 node.js 时会使用 `'require'` 来加载 chunk；为 async node.js 时会使用 `'async-node'`（`fs.readFile` + `vm.runInThisContext`）来加载 chunk，插件可能会添加其他格式。
-
-:::tip
-这个选项的默认值取决于 [`target`](/config/target) 和 [`output.chunkFormat`](#chunkFormat) 设置。要了解更多详情，请在 Rspack [默认设置中](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack/src/config/defaults.ts)搜索 `"chunkLoading"`。
-:::
+Chunk 加载的超时时间（毫秒）。
 
 ```js title="rspack.config.mjs"
 export default {
   output: {
-    chunkLoading: 'async-node',
+    chunkLoadTimeout: 30000, // Chunk 加载会在 30 秒后超时
   },
 };
 ```
