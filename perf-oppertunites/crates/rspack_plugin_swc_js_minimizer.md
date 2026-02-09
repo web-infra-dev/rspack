@@ -11,6 +11,7 @@ SWC-based JavaScript minification plugin.
 - Cache normalized SWC minifier configs across modules.
 - Reuse AST arenas between modules where possible.
 - Parallelize minification with bounded concurrency to avoid oversubscription.
+- Single-file crate: concentrate profiling on `src/lib.rs` hook implementations.
 
 ## Suggested experiments
 - Profile large builds with/without minification and measure per-file cost.

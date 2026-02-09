@@ -11,6 +11,7 @@ Path utilities and UTF‑8 path wrappers.
 - Cache normalized path representations to avoid repeated conversions.
 - Avoid `to_string_lossy` unless needed for diagnostics.
 - Reduce hashing of path types in hot loops by caching hashes.
+- Single-file crate: concentrate profiling on `src/lib.rs` path helpers.
 
 ## Suggested experiments
 - Measure path normalization overhead in large module graphs.

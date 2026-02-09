@@ -11,6 +11,7 @@ Dynamic entry handling for runtime-determined entrypoints.
 - Cache resolved dynamic entries and avoid repeated resolution.
 - Avoid rebuilding entry lists when only non-entry modules change.
 - Batch dynamic entry evaluation to reduce hook overhead.
+- Single-file crate: concentrate profiling on `src/lib.rs` hook implementations.
 
 ## Suggested experiments
 - Profile dynamic-entry builds and measure resolution overhead.

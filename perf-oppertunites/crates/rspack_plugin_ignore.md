@@ -11,6 +11,7 @@ Ignore plugin for excluding modules based on patterns.
 - Precompile ignore patterns and reuse across builds.
 - Short-circuit resolution when ignore hits early.
 - Avoid allocating new regex objects per module.
+- Single-file crate: concentrate profiling on `src/lib.rs` hook implementations.
 
 ## Suggested experiments
 - Profile builds with heavy ignore rules to measure matcher overhead.

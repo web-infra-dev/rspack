@@ -11,6 +11,7 @@ Hook system definitions and macros.
 - Add fast paths when no taps are registered.
 - Avoid building tap lists for empty hooks.
 - Reduce allocations in hook argument preparation.
+- Single-file crate: concentrate profiling on `src/lib.rs` hook dispatch paths.
 
 ## Suggested experiments
 - Measure hook dispatch counts and time for plugin-heavy builds.

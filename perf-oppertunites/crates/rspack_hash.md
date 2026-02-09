@@ -11,6 +11,7 @@ Hashing utilities used for modules/chunks/assets.
 - Cache computed hashes and reuse across passes.
 - Avoid hashing when content hash unchanged (use dirty flags).
 - Prefer incremental hashing where possible.
+- Single-file crate: concentrate profiling on `src/lib.rs` hashing routines.
 
 ## Suggested experiments
 - Measure hash time with and without caching on large builds.

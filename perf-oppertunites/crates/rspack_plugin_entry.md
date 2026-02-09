@@ -11,6 +11,7 @@ Entry plugin to register and manage initial entries.
 - Cache computed entry dependency lists.
 - Avoid reallocating entry vectors on incremental builds.
 - Short-circuit when entries are unchanged.
+- Single-file crate: concentrate profiling on `src/lib.rs` hook implementations.
 
 ## Suggested experiments
 - Profile multi-entry builds to measure entry setup time.
