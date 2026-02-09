@@ -17,13 +17,14 @@ use rspack_core::{
   AssetGeneratorOptions, AssetInlineGeneratorOptions, AssetParserDataUrl,
   AssetParserDataUrlOptions, AssetParserOptions, AssetResourceGeneratorOptions,
   CssAutoGeneratorOptions, CssAutoParserOptions, CssGeneratorOptions, CssModuleGeneratorOptions,
-  CssModuleParserOptions, CssParserOptions, DescriptionData, DynamicImportFetchPriority,
-  DynamicImportMode, ExportPresenceMode, FuncUseCtx, GeneratorOptions, GeneratorOptionsMap,
-  JavascriptParserCommonjsExportsOption, JavascriptParserCommonjsOptions, JavascriptParserOptions,
-  JavascriptParserOrder, JavascriptParserUrl, JsonGeneratorOptions, JsonParserOptions,
-  ModuleNoParseRule, ModuleNoParseRules, ModuleNoParseTestFn, ModuleOptions, ModuleRule,
-  ModuleRuleEffect, ModuleRuleEnforce, ModuleRuleUse, ModuleRuleUseLoader, OverrideStrict,
-  ParseOption, ParserOptions, ParserOptionsMap, TypeReexportPresenceMode,
+  CssModuleParserOptions, CssParserImport, CssParserImportContext, CssParserOptions,
+  DescriptionData, DynamicImportFetchPriority, DynamicImportMode, ExportPresenceMode, FuncUseCtx,
+  GeneratorOptions, GeneratorOptionsMap, JavascriptParserCommonjsExportsOption,
+  JavascriptParserCommonjsOptions, JavascriptParserOptions, JavascriptParserOrder,
+  JavascriptParserUrl, JsonGeneratorOptions, JsonParserOptions, ModuleNoParseRule,
+  ModuleNoParseRules, ModuleNoParseTestFn, ModuleOptions, ModuleRule, ModuleRuleEffect,
+  ModuleRuleEnforce, ModuleRuleUse, ModuleRuleUseLoader, OverrideStrict, ParseOption,
+  ParserOptions, ParserOptionsMap, TypeReexportPresenceMode,
 };
 use rspack_error::error;
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
@@ -284,7 +285,6 @@ pub struct RawJavascriptParserOptions {
   pub exports_presence: Option<String>,
   pub import_exports_presence: Option<String>,
   pub reexport_exports_presence: Option<String>,
-  pub strict_export_presence: Option<bool>,
   pub worker: Option<Vec<String>>,
   pub override_strict: Option<String>,
   pub import_meta: Option<bool>,
@@ -358,7 +358,6 @@ impl From<RawJavascriptParserOptions> for JavascriptParserOptions {
       reexport_exports_presence: value
         .reexport_exports_presence
         .map(|e| ExportPresenceMode::from(e.as_str())),
-      strict_export_presence: value.strict_export_presence,
       type_reexports_presence: value
         .type_reexports_presence
         .map(|e| TypeReexportPresenceMode::from(e.as_str())),
@@ -465,11 +464,47 @@ impl From<RawAssetParserDataUrlOptions> for AssetParserDataUrlOptions {
   }
 }
 
-#[derive(Debug, Default)]
+// Use tuple to pass arguments separately to JS function
+#[derive(Debug)]
 #[napi(object)]
+pub struct RawCssImportContext {
+  pub url: String,
+  pub media: Option<String>,
+  pub resource_path: String,
+  pub supports: Option<String>,
+  pub layer: Option<String>,
+}
+
+type RawCssImportFn = ThreadsafeFunction<RawCssImportContext, bool>;
+
+fn convert_import_option(import: Option<Either<bool, RawCssImportFn>>) -> Option<CssParserImport> {
+  import.map(|i| match i {
+    Either::A(b) => CssParserImport::Bool(b),
+    Either::B(f) => CssParserImport::Func(Arc::new(move |args: CssParserImportContext| {
+      let f = f.clone();
+      Box::pin(async move {
+        f.call_with_sync(RawCssImportContext {
+          url: args.url,
+          media: args.media,
+          resource_path: args.resource_path,
+          supports: args.supports,
+          layer: args.layer,
+        })
+        .await
+      })
+    })),
+  })
+}
+
+#[derive(Debug, Default)]
+#[napi(object, object_to_js = false)]
 pub struct RawCssParserOptions {
   pub named_exports: Option<bool>,
   pub url: Option<bool>,
+  #[napi(
+    ts_type = "boolean | ((context: { url: string, media: string | undefined, resourcePath: string, supports: string | undefined, layer: string | undefined }) => boolean)"
+  )]
+  pub resolve_import: Option<Either<bool, RawCssImportFn>>,
 }
 
 impl From<RawCssParserOptions> for CssParserOptions {
@@ -477,15 +512,20 @@ impl From<RawCssParserOptions> for CssParserOptions {
     Self {
       named_exports: value.named_exports,
       url: value.url,
+      resolve_import: convert_import_option(value.resolve_import),
     }
   }
 }
 
 #[derive(Debug, Default)]
-#[napi(object)]
+#[napi(object, object_to_js = false)]
 pub struct RawCssAutoParserOptions {
   pub named_exports: Option<bool>,
   pub url: Option<bool>,
+  #[napi(
+    ts_type = "boolean | ((context: { url: string, media: string | undefined, resourcePath: string, supports: string | undefined, layer: string | undefined }) => boolean)"
+  )]
+  pub resolve_import: Option<Either<bool, RawCssImportFn>>,
 }
 
 impl From<RawCssAutoParserOptions> for CssAutoParserOptions {
@@ -493,15 +533,20 @@ impl From<RawCssAutoParserOptions> for CssAutoParserOptions {
     Self {
       named_exports: value.named_exports,
       url: value.url,
+      resolve_import: convert_import_option(value.resolve_import),
     }
   }
 }
 
 #[derive(Debug, Default)]
-#[napi(object)]
+#[napi(object, object_to_js = false)]
 pub struct RawCssModuleParserOptions {
   pub named_exports: Option<bool>,
   pub url: Option<bool>,
+  #[napi(
+    ts_type = "boolean | ((context: { url: string, media: string | undefined, resourcePath: string, supports: string | undefined, layer: string | undefined }) => boolean)"
+  )]
+  pub resolve_import: Option<Either<bool, RawCssImportFn>>,
 }
 
 impl From<RawCssModuleParserOptions> for CssModuleParserOptions {
@@ -509,6 +554,7 @@ impl From<RawCssModuleParserOptions> for CssModuleParserOptions {
     Self {
       named_exports: value.named_exports,
       url: value.url,
+      resolve_import: convert_import_option(value.resolve_import),
     }
   }
 }

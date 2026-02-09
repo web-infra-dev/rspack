@@ -48,6 +48,7 @@ Depends on what you have modified, you need to rebuild by `pnpm run build:js` or
 
 - **Linting**: `pnpm run lint:js` (Biome), `pnpm run lint:rs` (cargo check), `pnpm run lint:type` (Rslint)
 - **Formatting**: `pnpm run format:rs` (cargo fmt), `pnpm run format:js` (prettier), `pnpm run format:toml` (taplo)
+- **Rust gate**: After modifying Rust code, ensure both `cargo fmt --all --check` and `cargo lint` pass before commit/PR
 - **Style**: snake_case for Rust, camelCase for JS/TS
 
 ## Common Tasks
@@ -58,13 +59,13 @@ Depends on what you have modified, you need to rebuild by `pnpm run build:js` or
 2. Implement in appropriate crate/package
 3. Add tests (Rust unit tests, JS integration tests)
 4. Update docs if APIs change
-5. Run linters and tests: `pnpm run lint:js && pnpm run lint:rs && pnpm run test:unit && pnpm run test:rs`
+5. Run linters and tests: `pnpm run lint:js && pnpm run lint:rs && cargo lint && pnpm run test:unit && pnpm run test:rs`
 6. Format: `pnpm run format:rs && pnpm run format:js`
 7. Create PR
 
 ### Modifying Code
 
-- **Rust**: Core in `crates/rspack_core/`, plugins in `crates/rspack_plugin_*/`, rebuild with `pnpm run build:binding:dev`, test with `pnpm run test:rs`
+- **Rust**: Core in `crates/rspack_core/`, plugins in `crates/rspack_plugin_*/`, rebuild with `pnpm run build:binding:dev`, test with `pnpm run test:rs`, and ensure `cargo fmt --all --check && cargo lint` passes
 - **JS/TS**: API in `packages/rspack/src/`, CLI in `packages/rspack-cli/src/`, rebuild with `pnpm run build:js`, test with `pnpm run test:unit`
 
 ### Adding Tests
@@ -96,6 +97,10 @@ Depends on what you have modified, you need to rebuild by `pnpm run build:js` or
 
 - **Template**: Use `.github/PULL_REQUEST_TEMPLATE.md`
 - **Title prefix**: `test:`, `fix:`, `feat:`, `refactor:`, `chore:`
+- **Semver alignment**:
+  - `fix:` -> PATCH bump
+  - `feat:` -> MINOR bump
+  - Any breaking change -> MAJOR bump (`type(scope)!:` and/or `BREAKING CHANGE:` in commit body)
 - **CI**: All checks must pass
 
 ## Contributing
@@ -104,7 +109,8 @@ Depends on what you have modified, you need to rebuild by `pnpm run build:js` or
 - Add tests for new features
 - Update docs when APIs change
 - Run linters before submitting
-- Use conventional commits
+- Use Conventional Commits in semver style: `type(scope): subject`
+- Prefer these types for release impact: `fix`, `feat`; use `!` or `BREAKING CHANGE:` only for incompatible changes
 - Keep PRs focused (one feature/fix per PR)
 
 ## Finding Code
@@ -123,14 +129,14 @@ Depends on what you have modified, you need to rebuild by `pnpm run build:js` or
 
 ## AI-Friendly Documentation
 
-This project includes comprehensive documentation designed for AI assistants and large language models. All AI-friendly documentation is located in the `agents/` directory:
+This project includes comprehensive documentation designed for AI assistants and large language models. All AI-friendly documentation is located in the `.agents/` directory:
 
-- **[Architecture Guide](agents/ARCHITECTURE.md)** - High-level architecture overview, core components, compilation pipeline, and system design
-- **[API Design](agents/API_DESIGN.md)** - API design principles, patterns, versioning strategy, and compatibility guidelines
-- **[Code Style](agents/CODE_STYLE.md)** - Coding standards and conventions for Rust and TypeScript/JavaScript
-- **[Common Patterns](agents/COMMON_PATTERNS.md)** - Common code patterns, templates, and best practices for plugin/loader development
-- **[Glossary](agents/GLOSSARY.md)** - Comprehensive glossary of terms and concepts used throughout the codebase
-- **[Skills](agents/SKILLS.md)** - Required skills and knowledge areas for contributing to Rspack
+- **[Architecture Guide](.agents/ARCHITECTURE.md)** - High-level architecture overview, core components, compilation pipeline, and system design
+- **[API Design](.agents/API_DESIGN.md)** - API design principles, patterns, versioning strategy, and compatibility guidelines
+- **[Code Style](.agents/CODE_STYLE.md)** - Coding standards and conventions for Rust and TypeScript/JavaScript
+- **[Common Patterns](.agents/COMMON_PATTERNS.md)** - Common code patterns, templates, and best practices for plugin/loader development
+- **[Glossary](.agents/GLOSSARY.md)** - Comprehensive glossary of terms and concepts used throughout the codebase
+- **[Skills](.agents/SKILLS.md)** - Required skills and knowledge areas for contributing to Rspack
 
 These documents provide detailed context about the project structure, coding standards, common patterns, and domain-specific knowledge to help AI assistants better understand and contribute to the codebase.
 

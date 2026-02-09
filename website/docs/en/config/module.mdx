@@ -51,1056 +51,6 @@ export default {
 See the [source code](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack/src/config/defaults.ts#L453) for the full list of default rules.
 :::
 
-## module.noParse
-
-- **Type:** `string | string[] | RegExp | RegExp[] | ((request: string) => boolean)`
-- **Default:** `undefined`
-
-Keep module mechanism of the matched modules as-is, such as `module.exports`, `require`, `import`.
-
-It's useful and can boost build performance when used to ignore libraries without external dependencies.
-
-Note: these modules will still be processed by configured loaders.
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    noParse: /typescript|watermark-dom/,
-  },
-};
-```
-
-```js title="rspack.config.mjs"
-import { createRequire } from 'node:module';
-
-const require = createRequire(import.meta.url);
-
-export default {
-  module: {
-    noParse: [require.resolve('typescript'), /watermark-dom/],
-  },
-};
-```
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    noParse: (request) => /typescript|watermark-dom/.test(request),
-  },
-};
-```
-
-## module.parser
-
-- **Type:** `Object`
-- **Default:** `{}`
-
-Configure all parsers' options in one place with `module.parser`.
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      // Parser options for asset modules
-      asset: {
-        dataUrlCondition: {
-          maxSize: 16192,
-        },
-      },
-      // Parser options for javascript modules
-      javascript: {
-        dynamicImportMode: 'lazy',
-        dynamicImportPrefetch: false,
-        dynamicImportPreload: false,
-        url: true,
-        importMeta: true,
-      },
-      // Parser options for CSS modules
-      css: {
-        namedExports: true,
-      },
-      // Parser options for css/auto modules
-      'css/auto': {
-        namedExports: true,
-      },
-      // Parser options for css/module modules
-      'css/module': {
-        namedExports: true,
-      },
-    },
-  },
-};
-```
-
-### module.parser.asset
-
-Parser options for `asset` modules.
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      asset: {
-        // options
-      },
-    },
-  },
-};
-```
-
-### module.parser.asset.dataUrlCondition
-
-- **Type:** `{ maxSize: number }`
-- **Default:** `{ maxSize: 8096 }`
-
-If the module size is less than or equal to `maxSize`, then the module will be Base64 encoded, otherwise a file will be created. This option can be used only for [Asset modules](/guide/features/asset-module).
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      asset: {
-        dataUrlCondition: {
-          // Modules' size smaller than or equal to 4KB will be Base64 encoded.
-          maxSize: 4 * 1024,
-        },
-      },
-    },
-  },
-};
-```
-
-### module.parser.javascript
-
-Parser options for `javascript` modules.
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      javascript: {
-        // options
-      },
-    },
-  },
-};
-```
-
-### module.parser.javascript.commonjsMagicComments
-
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
-<ApiMeta addedVersion="1.5.6" />
-
-Enable [Magic comments](/api/runtime-api/module-methods#magic-comments) support for CommonJS.
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      javascript: {
-        commonjsMagicComments: true,
-      },
-    },
-  },
-};
-```
-
-Note that only `webpackIgnore` comment is supported at the moment:
-
-```js
-const x = require(/* webpackIgnore: true */ 'x');
-```
-
-### module.parser.javascript.dynamicImportMode
-
-<PropertyType
-  type="'lazy' | 'eager' | 'weak' | 'lazy-once'"
-  defaultValueList={[{ defaultValue: "'lazy'" }]}
-/>
-
-Specifies global mode for dynamic import, see [`webpackMode`](/api/runtime-api/module-methods#webpackmode) for more details.
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      javascript: {
-        dynamicImportMode: 'eager',
-      },
-    },
-  },
-};
-```
-
-### module.parser.javascript.dynamicImportPrefetch
-
-<PropertyType
-  type="boolean | number"
-  defaultValueList={[{ defaultValue: 'false' }]}
-/>
-
-Specifies global prefetch for dynamic import, see [`webpackPrefetch`](/api/runtime-api/module-methods#webpackprefetch) for more details.
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      javascript: {
-        dynamicImportPrefetch: true,
-      },
-    },
-  },
-};
-```
-
-### module.parser.javascript.dynamicImportPreload
-
-<PropertyType
-  type="boolean | number"
-  defaultValueList={[{ defaultValue: 'false' }]}
-/>
-
-Specifies global preload for dynamic import, see [`webpackPreload`](/api/runtime-api/module-methods#webpackpreload) for more details.
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      javascript: {
-        dynamicImportPreload: true,
-      },
-    },
-  },
-};
-```
-
-### module.parser.javascript.dynamicImportFetchPriority
-
-<ApiMeta addedVersion="1.0.0" />
-
-<PropertyType
-  type="'low' | 'high' | 'auto'"
-  defaultValueList={[{ defaultValue: "'auto'" }]}
-/>
-
-Specifies global `fetchPriority` for dynamic import, see [`webpackFetchPriority`](/api/runtime-api/module-methods#webpackfetchpriority) for more details.
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      javascript: {
-        dynamicImportFetchPriority: 'high',
-      },
-    },
-  },
-};
-```
-
-### module.parser.javascript.url
-
-<PropertyType
-  type="true | false | 'relative' | 'new-url-relative'"
-  defaultValueList={[{ defaultValue: 'true' }]}
-/>
-
-Enable parsing of `new URL()` syntax.
-
-- `true`: Generate absolute URLs that include the root URL (default behavior).
-- `'relative'`: Generate relative URLs without the root URL.
-- `'new-url-relative'`: Generate static relative URLs that are replaced at compile-time with the correct public path.
-
-When using `'new-url-relative'`, Rspack generates relative URLs that will be replaced at compile-time with the correct public path:
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      javascript: {
-        url: 'new-url-relative',
-      },
-    },
-  },
-};
-```
-
-```js
-new URL('./icon.svg', import.meta.url);
-
-// would become 👇
-new URL('./icon[hash].svg', import.meta.url);
-```
-
-When using `'relative'`, Rspack generates runtime code to calculate relative URLs for `new URL()` syntax, i.e., there's no base URL included in the result URL:
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      javascript: {
-        url: 'relative',
-      },
-    },
-  },
-};
-```
-
-```html
-<!-- with 'relative' -->
-<img src="icon.svg" />
-
-<!-- without 'relative' -->
-<img src="file:///path/to/project/dist/icon.svg" />
-```
-
-### module.parser.javascript.exprContextCritical
-
-<PropertyType
-  type="boolean | undefined"
-  defaultValueList={[{ defaultValue: 'true' }]}
-/>
-
-Enable warnings for full dynamic dependencies (`import(variable)`).
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      javascript: {
-        exprContextCritical: false,
-      },
-    },
-  },
-};
-```
-
-### module.parser.javascript.wrappedContextCritical
-
-<PropertyType
-  type="boolean | undefined"
-  defaultValueList={[{ defaultValue: 'false' }]}
-/>
-
-Enable warnings for partial dynamic dependencies (`import("./path/to/" + variable)`).
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      javascript: {
-        wrappedContextCritical: false,
-      },
-    },
-  },
-};
-```
-
-### module.parser.javascript.unknownContextCritical
-
-<PropertyType
-  type="boolean | undefined"
-  defaultValueList={[{ defaultValue: 'true' }]}
-/>
-
-Enable warnings when using the `require` function in a non-statically-analyzable way (`require(variable)`).
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      javascript: {
-        unknownContextCritical: false,
-      },
-    },
-  },
-};
-```
-
-### module.parser.javascript.wrappedContextRegExp
-
-<PropertyType
-  type="RegExp | undefined"
-  defaultValueList={[{ defaultValue: '/.*/' }]}
-/>
-
-Set a regular expression to match wrapped dynamic dependencies.
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      javascript: {
-        wrappedContextRegExp: /\.js$/,
-      },
-    },
-  },
-};
-```
-
-### module.parser.javascript.importMeta
-
-<ApiMeta addedVersion="1.0.0-alpha.6" />
-
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
-
-Enable or disable evaluating `import.meta`.
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      javascript: {
-        importMeta: false,
-      },
-    },
-  },
-};
-```
-
-### module.parser.javascript.exportsPresence
-
-<PropertyType
-  type="'error' | 'warn' | 'auto' | false"
-  defaultValueList={[{ defaultValue: "'auto'" }]}
-/>
-
-Warn or error for using non-existent exports and conflicting re-exports.
-
-- `"error"`: Report errors.
-- `"warn"`: Report warnings.
-- `"auto"`: Depending on whether the module is a strict ESM, give an error if it is, otherwise give a warning.
-- `false`: Disable this feature.
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      javascript: {
-        exportsPresence: 'error',
-      },
-    },
-  },
-};
-```
-
-### module.parser.javascript.importExportsPresence
-
-<PropertyType type="'error' | 'warn' | 'auto' | false" />
-
-Warn or error for using non-existent exports, defaulting to the configuration of [module.parser.javascript.exportsPresence](#moduleparserjavascriptexportspresence).
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      javascript: {
-        importExportsPresence: 'error',
-      },
-    },
-  },
-};
-```
-
-### module.parser.javascript.reexportExportsPresence
-
-<PropertyType type="'error' | 'warn' | 'auto' | false" />
-
-Warn or error for conflicting re-exports, defaulting to the configuration of [module.parser.javascript.exportsPresence](#moduleparserjavascriptexportspresence).
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      javascript: {
-        reexportExportsPresence: 'error',
-      },
-    },
-  },
-};
-```
-
-### module.parser.javascript.strictExportPresence
-
-- **Type:** `boolean`
-
-Emit errors instead of warnings when imported names don't exist in imported module.
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      javascript: {
-        strictExportPresence: true,
-      },
-    },
-  },
-};
-```
-
-### module.parser.javascript.typeReexportsPresence
-
-<ApiMeta stability={Stability.Experimental} addedVersion="1.4.1" />
-
-- **Type:** `'no-tolerant' | 'tolerant' | 'tolerant-no-check'`
-- **Default:** `'no-tolerant'`
-
-Controls error tolerance for type re-exports, commonly seen in these two scenarios:
-
-```ts
-// case 1:
-export { TypeA } from './types';
-// case 2:
-import { TypeB } from './types';
-export { TypeB };
-```
-
-When re-exporting types, since `TypeA` and `TypeB` are types but used in value namespace (`export {}`), Rspack will report warnings:
-
-```txt
-WARNING in ./re-exports.ts
-  ⚠ ESModulesLinkingWarning: export 'TypeA' (reexported as 'TypeA') was not found in './types' (module has no exports)
-   ╭─[2:0]
- 1 │ // case 1:
- 2 │ export { TypeA } from "./types";
-   · ────────────────────────────────
-
-WARNING in ./re-exports.ts
-  ⚠ ESModulesLinkingWarning: export 'TypeB' (reexported as 'TypeB') was not found in './types' (module has no exports)
-   ╭─[5:0]
- 3 │ // case 2:
- 4 │ import { TypeB } from "./types";
- 5 │ export { TypeB };
-   · ─────────────────
-```
-
-:::info Recommended with isolatedModules
-When using Rspack to bundle TypeScript, we strongly recommend enabling [isolatedModules](https://www.typescriptlang.org/tsconfig/#isolatedModules) in tsconfig.json (also recommended with other bundlers as it matches how bundlers compile TypeScript: [.ts files are independent and compiled separately](/guide/tech/typescript#%E5%BC%80%E5%90%AF-isolatedmodules)). This will give TypeScript's own warning for type re-exports: `Re-exporting a type when 'isolatedModules' is enabled requires using 'export type'.`
-:::
-
-- `'no-tolerant'`: Default behavior, shows errors for type re-exports.
-- `'tolerant'`: Tolerates type re-exports while verifying the existence of corresponding type exports in child modules. Requires coordination with [`collectTypeScriptInfo.typeExports`](/guide/features/builtin-swc-loader#collecttypescriptinfotypeexports) from builtin:swc-loader to collect type export information.
-- `'tolerant-no-check'`: Tolerates type re-exports without checking child modules (may incorrectly tolerate some invalid cases, though IDEs usually provide warnings). Better performance as it skeps child module checks.
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      javascript: {
-        typeReexportsPresence: 'tolerant',
-      },
-    },
-    rules: [
-      {
-        test: /\.ts$/,
-        use: [
-          {
-            loader: 'builtin:swc-loader',
-            options: {
-              jsc: {
-                parser: {
-                  syntax: 'typescript',
-                },
-              },
-              collectTypeScriptInfo: {
-                typeExports: true, // Must be enabled in "tolerant" mode
-              },
-            },
-          },
-        ],
-      },
-    ],
-  },
-};
-```
-
-Please refer to [type reexports presence example](https://github.com/rstackjs/rstack-examples/tree/main/rspack/type-reexports-presence) for more details.
-
-### module.parser.javascript.worker
-
-<ApiMeta addedVersion="1.0.0-alpha.0" />
-
-<PropertyType type="string[] | boolean" />
-
-Provide custom syntax for Worker parsing, commonly used to support Worklet:
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      javascript: {
-        worker: [
-          // Supports CSS paintWorklet
-          'CSS.paintWorklet.addModule()',
-          // Supports AudioWorklet, with the leading '*' indicating the recognition of a variable named 'context', for example:
-          // let context = new AudioContext();
-          // await context.audioWorklet.addModule(new URL("noise-processor.js", import.meta.url));
-          '*context.audioWorklet.addModule()',
-          // Extends default syntax: ["Worker", "SharedWorker", "navigator.serviceWorker.register()", "Worker from worker_threads"]
-          '...',
-        ],
-      },
-    },
-  },
-};
-```
-
-> See [Web Workers](/guide/features/web-workers) for more details.
-
-### module.parser.javascript.overrideStrict
-
-<ApiMeta addedVersion="1.0.0-alpha.4" />
-
-<PropertyType type="'strict' | 'non-strict'" />
-
-Override the module to strict or non-strict.
-
-This may affect the behavior of the module (some behaviors differ between strict and non-strict), so please configure this option carefully.
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      javascript: {
-        overrideStrict: 'strict',
-      },
-    },
-  },
-};
-```
-
-### module.parser.javascript.commonjs
-
-<PropertyType
-  type="boolean | { exports?: boolean | 'skipInEsm' }"
-  defaultValueList={[{ defaultValue: 'true' }]}
-/>
-
-Controls CommonJS-specific parser behaviour. The default `true` keeps Rspack's standard handling for CommonJS export mutations. Set `{ exports: 'skipInEsm' }` to skip rewriting CommonJS export assignments when the module is evaluated as ESM, preserving the original runtime side effects. Provide `false` to disable CommonJS export handling entirely.
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      javascript: {
-        commonjs: {
-          exports: 'skipInEsm',
-        },
-      },
-    },
-  },
-};
-```
-
-### module.parser.javascript.requireAlias
-
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
-
-Control whether renaming of the CommonJS `require` function will be parsed and transformed.
-
-When set to `true`, Rspack will parse and transform cases where `require` is assigned to a variable or passed as a parameter (e.g., `const req = require; req('./module')`).
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      javascript: {
-        requireAlias: true,
-      },
-    },
-  },
-};
-```
-
-### module.parser.javascript.requireAsExpression
-
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
-
-Control whether `require` used as an expression will be parsed.
-
-When set to `true`, Rspack will parse `require` when it's used as an expression (e.g., `const req = require; req('./module')`) and emit a warning. When set to `false`, this pattern will be ignored.
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      javascript: {
-        requireAsExpression: true,
-      },
-    },
-  },
-};
-```
-
-### module.parser.javascript.requireDynamic
-
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
-
-Control whether dynamic `require` calls will be parsed.
-
-When set to `false`, Rspack will not parse dynamic `require` calls where the module path is not a static string (e.g., `require(variable)`). This can improve build performance if your code doesn't use dynamic requires.
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      javascript: {
-        requireDynamic: false,
-      },
-    },
-  },
-};
-```
-
-### module.parser.javascript.requireResolve
-
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
-
-Control whether `require.resolve()` calls will be parsed.
-
-When set to `false`, Rspack will not parse `require.resolve()` calls. This can improve build performance if your code doesn't use `require.resolve()`.
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      javascript: {
-        requireResolve: false,
-      },
-    },
-  },
-};
-```
-
-### module.parser.javascript.importDynamic
-
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
-
-Control whether dynamic `import()` calls will be parsed.
-
-When set to `false`, Rspack will not parse dynamic `import()` calls where the module path is not a static string (e.g., `import(variable)`). This can improve build performance if your code doesn't use dynamic imports.
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      javascript: {
-        importDynamic: false,
-      },
-    },
-  },
-};
-```
-
-### module.parser.javascript.jsx
-
-<ApiMeta stability={Stability.Experimental} addedVersion="1.5.7" />
-
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
-
-Allow the JavaScript parser to understand JSX syntax so that parsing and minimization can operate on files that keep JSX in the final bundle.
-
-Enable this option when you set the loader's JSX mode to "preserve" and want to defer the actual JSX transform to a later tool (for example, libraries that ship JSX output or rely on a custom JSX runtime).
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      javascript: {
-        jsx: true,
-      },
-    },
-  },
-};
-```
-
-:::warning
-This option is experimental in Rspack and may change or be removed.
-:::
-
-### module.parser["javascript/auto"]
-
-Parser options for `javascript/auto` modules, same as the [`javascript` parser options](#moduleparserjavascript).
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      'javascript/auto': {
-        // options
-      },
-    },
-  },
-};
-```
-
-### module.parser["javascript/dynamic"]
-
-Parser options for `javascript/dynamic` modules, same as the [`javascript` parser options](#moduleparserjavascript).
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      'javascript/dynamic': {
-        // options
-      },
-    },
-  },
-};
-```
-
-### module.parser["javascript/esm"]
-
-Parser options for `javascript/esm` modules, same as the [`javascript` parser options](#moduleparserjavascript).
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      'javascript/esm': {
-        // options
-      },
-    },
-  },
-};
-```
-
-### module.parser.json
-
-<ApiMeta addedVersion="1.2.0" />
-
-Parser options for `json` modules.
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      json: {
-        // options
-      },
-    },
-  },
-};
-```
-
-### module.parser.json.exportsDepth
-
-<ApiMeta addedVersion="1.2.0" />
-
-- **Type:** `number`
-- **Default:** production mode is `Number.MAX_SAFE_INTEGER`, development mode is `1`
-
-The depth of json dependency flagged as `exportInfo`.
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      json: {
-        // For example, for the following json
-        // {
-        //   "depth_1": {
-        //     "depth_2": {
-        //       "depth_3": "foo"
-        //     }
-        //   },
-        //   "_depth_1": "bar"
-        // }
-        // when `exportsDepth: 1`, `depth_2` and `depth_3` will not be flagged as `exportInfo`.
-        exportsDepth: 1,
-      },
-    },
-  },
-};
-```
-
-### module.parser["css/auto"]
-
-Parser options for `css/auto` modules.
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      'css/auto': {
-        // options
-      },
-    },
-  },
-};
-```
-
-### module.parser["css/auto"].namedExports
-
-- **Type:** `boolean`
-- **Default:** `true`
-
-Use ES modules named export for CSS exports.
-
-When using `namedExports: true`, you can use namespace export or named export:
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      'css/auto': {
-        namedExports: true,
-      },
-    },
-  },
-};
-```
-
-```js
-// namespace export
-import * as classes from './index.module.css';
-// named export
-import { class1, class2 } from './index.module.css';
-```
-
-When using `namedExports: false`, in addition to namespace export and named export, default export can also be used:
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      'css/auto': {
-        namedExports: false,
-      },
-    },
-  },
-};
-```
-
-```js
-// namespace export
-import * as classes from './index.module.css';
-// named export
-import { class1, class2 } from './index.module.css';
-// default export
-import classes from './index.module.css';
-// default export and named export
-import classes, { class1, class2 } from './index.module.css';
-```
-
-### module.parser["css/auto"].url
-
-- **Type:** `boolean`
-- **Default:** `true`
-
-Allow to enable/disables handling the CSS functions url.
-
-When using `url: true`, Rspack will resolve the path in `url` function, the resolve file will be treated as an asset.
-When using `url: false`, Rspack will ignore the path in the `url` function, keep the content unchanged.
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      css: {
-        url: true,
-      },
-    },
-  },
-};
-```
-
-### module.parser.css
-
-Parser options for `css` modules.
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      css: {
-        // options
-      },
-    },
-  },
-};
-```
-
-### module.parser.css.namedExports
-
-Same as [`module.parser["css/auto"].namedExports`](#moduleparsercssautonamedexports).
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      css: {
-        namedExports: true,
-      },
-    },
-  },
-};
-```
-
-### module.parser.css.url
-
-Same as [`module.parser["css/auto"].url`](#moduleparsercssautourl).
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      css: {
-        url: true,
-      },
-    },
-  },
-};
-```
-
-### module.parser["css/module"]
-
-Parser options for `css/module` modules.
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      'css/module': {
-        // options
-      },
-    },
-  },
-};
-```
-
-### module.parser["css/module"].namedExports
-
-Same as [`module.parser["css/auto"].namedExports`](#moduleparsercssautonamedexports).
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      'css/module': {
-        namedExports: true,
-      },
-    },
-  },
-};
-```
-
-### module.parser["css/module"].url
-
-Same as [`module.parser["css/auto"].url`](#moduleparsercssautourl).
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      'css/module': {
-        url: true,
-      },
-    },
-  },
-};
-```
-
 ## module.generator
 
 - **Type:** `Object`
@@ -1219,7 +169,7 @@ export default {
 };
 ```
 
-When used a a function, it executes for every module and must return a data URI string.
+When used as a function, it executes for every module and must return a data URI string.
 
 ```js title="rspack.config.mjs"
 import { createRequire } from 'node:module';
@@ -1227,7 +177,6 @@ import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 
 export default {
-  //...
   module: {
     generator: {
       asset: {
@@ -1870,6 +819,1101 @@ export default {
     generator: {
       json: {
         JSONParse: false,
+      },
+    },
+  },
+};
+```
+
+## module.noParse
+
+- **Type:** `string | string[] | RegExp | RegExp[] | ((request: string) => boolean)`
+- **Default:** `undefined`
+
+Keep module mechanism of the matched modules as-is, such as `module.exports`, `require`, `import`.
+
+It's useful and can boost build performance when used to ignore libraries without external dependencies.
+
+Note: these modules will still be processed by configured loaders.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    noParse: /typescript|watermark-dom/,
+  },
+};
+```
+
+```js title="rspack.config.mjs"
+import { createRequire } from 'node:module';
+
+const require = createRequire(import.meta.url);
+
+export default {
+  module: {
+    noParse: [require.resolve('typescript'), /watermark-dom/],
+  },
+};
+```
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    noParse: (request) => /typescript|watermark-dom/.test(request),
+  },
+};
+```
+
+## module.parser
+
+- **Type:** `Object`
+- **Default:** `{}`
+
+Configure all parsers' options in one place with `module.parser`.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      // Parser options for asset modules
+      asset: {
+        dataUrlCondition: {
+          maxSize: 16192,
+        },
+      },
+      // Parser options for javascript modules
+      javascript: {
+        dynamicImportMode: 'lazy',
+        dynamicImportPrefetch: false,
+        dynamicImportPreload: false,
+        url: true,
+        importMeta: true,
+      },
+      // Parser options for CSS modules
+      css: {
+        namedExports: true,
+      },
+      // Parser options for css/auto modules
+      'css/auto': {
+        namedExports: true,
+      },
+      // Parser options for css/module modules
+      'css/module': {
+        namedExports: true,
+      },
+    },
+  },
+};
+```
+
+### module.parser.asset
+
+Parser options for `asset` modules.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      asset: {
+        // options
+      },
+    },
+  },
+};
+```
+
+### module.parser.asset.dataUrlCondition
+
+- **Type:** `{ maxSize: number }`
+- **Default:** `{ maxSize: 8096 }`
+
+If the module size is less than or equal to `maxSize`, then the module will be Base64 encoded, otherwise a file will be created. This option can be used only for [Asset modules](/guide/features/asset-module).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      asset: {
+        dataUrlCondition: {
+          // Modules' size smaller than or equal to 4KB will be Base64 encoded.
+          maxSize: 4 * 1024,
+        },
+      },
+    },
+  },
+};
+```
+
+### module.parser.javascript
+
+Parser options for `javascript` modules.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        // options
+      },
+    },
+  },
+};
+```
+
+### module.parser.javascript.commonjsMagicComments
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
+<ApiMeta addedVersion="1.5.6" />
+
+Enable [Magic comments](/api/runtime-api/module-methods#magic-comments) support for CommonJS.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        commonjsMagicComments: true,
+      },
+    },
+  },
+};
+```
+
+Note that only `webpackIgnore` comment is supported at the moment:
+
+```js
+const x = require(/* webpackIgnore: true */ 'x');
+```
+
+### module.parser.javascript.dynamicImportMode
+
+<PropertyType
+  type="'lazy' | 'eager' | 'weak' | 'lazy-once'"
+  defaultValueList={[{ defaultValue: "'lazy'" }]}
+/>
+
+Specifies global mode for dynamic import, see [`webpackMode`](/api/runtime-api/module-methods#webpackmode) for more details.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        dynamicImportMode: 'eager',
+      },
+    },
+  },
+};
+```
+
+### module.parser.javascript.dynamicImportPrefetch
+
+<PropertyType
+  type="boolean | number"
+  defaultValueList={[{ defaultValue: 'false' }]}
+/>
+
+Specifies global prefetch for dynamic import, see [`webpackPrefetch`](/api/runtime-api/module-methods#webpackprefetch) for more details.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        dynamicImportPrefetch: true,
+      },
+    },
+  },
+};
+```
+
+### module.parser.javascript.dynamicImportPreload
+
+<PropertyType
+  type="boolean | number"
+  defaultValueList={[{ defaultValue: 'false' }]}
+/>
+
+Specifies global preload for dynamic import, see [`webpackPreload`](/api/runtime-api/module-methods#webpackpreload) for more details.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        dynamicImportPreload: true,
+      },
+    },
+  },
+};
+```
+
+### module.parser.javascript.dynamicImportFetchPriority
+
+<ApiMeta addedVersion="1.0.0" />
+
+<PropertyType
+  type="'low' | 'high' | 'auto'"
+  defaultValueList={[{ defaultValue: "'auto'" }]}
+/>
+
+Specifies global `fetchPriority` for dynamic import, see [`webpackFetchPriority`](/api/runtime-api/module-methods#webpackfetchpriority) for more details.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        dynamicImportFetchPriority: 'high',
+      },
+    },
+  },
+};
+```
+
+### module.parser.javascript.url
+
+<PropertyType
+  type="true | false | 'relative' | 'new-url-relative'"
+  defaultValueList={[{ defaultValue: 'true' }]}
+/>
+
+Enable parsing of `new URL()` syntax.
+
+- `true`: Generate absolute URLs that include the root URL (default behavior).
+- `'relative'`: Generate relative URLs without the root URL.
+- `'new-url-relative'`: Generate static relative URLs that are replaced at compile-time with the correct public path.
+
+When using `'new-url-relative'`, Rspack generates relative URLs that will be replaced at compile-time with the correct public path:
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        url: 'new-url-relative',
+      },
+    },
+  },
+};
+```
+
+```js
+new URL('./icon.svg', import.meta.url);
+
+// would become 👇
+new URL('./icon[hash].svg', import.meta.url);
+```
+
+When using `'relative'`, Rspack generates runtime code to calculate relative URLs for `new URL()` syntax, i.e., there's no base URL included in the result URL:
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        url: 'relative',
+      },
+    },
+  },
+};
+```
+
+```html
+<!-- with 'relative' -->
+<img src="icon.svg" />
+
+<!-- without 'relative' -->
+<img src="file:///path/to/project/dist/icon.svg" />
+```
+
+### module.parser.javascript.exprContextCritical
+
+<PropertyType
+  type="boolean | undefined"
+  defaultValueList={[{ defaultValue: 'true' }]}
+/>
+
+Enable warnings for full dynamic dependencies (`import(variable)`).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        exprContextCritical: false,
+      },
+    },
+  },
+};
+```
+
+### module.parser.javascript.wrappedContextCritical
+
+<PropertyType
+  type="boolean | undefined"
+  defaultValueList={[{ defaultValue: 'false' }]}
+/>
+
+Enable warnings for partial dynamic dependencies (`import("./path/to/" + variable)`).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        wrappedContextCritical: false,
+      },
+    },
+  },
+};
+```
+
+### module.parser.javascript.unknownContextCritical
+
+<PropertyType
+  type="boolean | undefined"
+  defaultValueList={[{ defaultValue: 'true' }]}
+/>
+
+Enable warnings when using the `require` function in a non-statically-analyzable way (`require(variable)`).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        unknownContextCritical: false,
+      },
+    },
+  },
+};
+```
+
+### module.parser.javascript.wrappedContextRegExp
+
+<PropertyType
+  type="RegExp | undefined"
+  defaultValueList={[{ defaultValue: '/.*/' }]}
+/>
+
+Set a regular expression to match wrapped dynamic dependencies.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        wrappedContextRegExp: /\.js$/,
+      },
+    },
+  },
+};
+```
+
+### module.parser.javascript.importMeta
+
+<ApiMeta addedVersion="1.0.0-alpha.6" />
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+
+Enable or disable evaluating `import.meta`.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        importMeta: false,
+      },
+    },
+  },
+};
+```
+
+### module.parser.javascript.exportsPresence
+
+<PropertyType
+  type="'error' | 'warn' | 'auto' | false"
+  defaultValueList={[{ defaultValue: "'error'" }]}
+/>
+
+Warn or error for using non-existent exports and conflicting re-exports.
+
+- `"error"`: Report errors.
+- `"warn"`: Report warnings.
+- `"auto"`: Depending on whether the module is a strict ESM, give an error if it is, otherwise give a warning.
+- `false`: Disable this feature.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        exportsPresence: 'auto',
+      },
+    },
+  },
+};
+```
+
+### module.parser.javascript.importExportsPresence
+
+<PropertyType type="'error' | 'warn' | 'auto' | false" />
+
+Warn or error for using non-existent exports, defaulting to the configuration of [module.parser.javascript.exportsPresence](#moduleparserjavascriptexportspresence).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        importExportsPresence: 'error',
+      },
+    },
+  },
+};
+```
+
+### module.parser.javascript.reexportExportsPresence
+
+<PropertyType type="'error' | 'warn' | 'auto' | false" />
+
+Warn or error for conflicting re-exports, defaulting to the configuration of [module.parser.javascript.exportsPresence](#moduleparserjavascriptexportspresence).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        reexportExportsPresence: 'error',
+      },
+    },
+  },
+};
+```
+
+### module.parser.javascript.typeReexportsPresence
+
+<ApiMeta addedVersion="1.4.1" />
+
+- **Type:** `'no-tolerant' | 'tolerant' | 'tolerant-no-check'`
+- **Default:** `'no-tolerant'`
+
+Controls error tolerance for type re-exports, commonly seen in these two scenarios:
+
+```ts
+// case 1:
+export { TypeA } from './types';
+// case 2:
+import { TypeB } from './types';
+export { TypeB };
+```
+
+When re-exporting types, since `TypeA` and `TypeB` are types but used in value namespace (`export {}`), Rspack will report warnings:
+
+```txt
+WARNING in ./re-exports.ts
+  ⚠ ESModulesLinkingWarning: export 'TypeA' (reexported as 'TypeA') was not found in './types' (module has no exports)
+   ╭─[2:0]
+ 1 │ // case 1:
+ 2 │ export { TypeA } from "./types";
+   · ────────────────────────────────
+
+WARNING in ./re-exports.ts
+  ⚠ ESModulesLinkingWarning: export 'TypeB' (reexported as 'TypeB') was not found in './types' (module has no exports)
+   ╭─[5:0]
+ 3 │ // case 2:
+ 4 │ import { TypeB } from "./types";
+ 5 │ export { TypeB };
+   · ─────────────────
+```
+
+:::info Recommended with isolatedModules
+When using Rspack to bundle TypeScript, we strongly recommend enabling [isolatedModules](https://www.typescriptlang.org/tsconfig/#isolatedModules) in tsconfig.json (also recommended with other bundlers as it matches how bundlers compile TypeScript: [.ts files are independent and compiled separately](/guide/tech/typescript#%E5%BC%80%E5%90%AF-isolatedmodules)). This will give TypeScript's own warning for type re-exports: `Re-exporting a type when 'isolatedModules' is enabled requires using 'export type'.`
+:::
+
+- `'no-tolerant'`: Default behavior, shows errors for type re-exports.
+- `'tolerant'`: Tolerates type re-exports while verifying the existence of corresponding type exports in child modules. Requires coordination with [`collectTypeScriptInfo.typeExports`](/guide/features/builtin-swc-loader#collecttypescriptinfotypeexports) from builtin:swc-loader to collect type export information.
+- `'tolerant-no-check'`: Tolerates type re-exports without checking child modules (may incorrectly tolerate some invalid cases, though IDEs usually provide warnings). Better performance as it skeps child module checks.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        typeReexportsPresence: 'tolerant',
+      },
+    },
+    rules: [
+      {
+        test: /\.ts$/,
+        use: [
+          {
+            loader: 'builtin:swc-loader',
+            options: {
+              jsc: {
+                parser: {
+                  syntax: 'typescript',
+                },
+              },
+              collectTypeScriptInfo: {
+                typeExports: true, // Must be enabled in "tolerant" mode
+              },
+            },
+          },
+        ],
+      },
+    ],
+  },
+};
+```
+
+Please refer to [type reexports presence example](https://github.com/rstackjs/rstack-examples/tree/main/rspack/type-reexports-presence) for more details.
+
+### module.parser.javascript.worker
+
+<ApiMeta addedVersion="1.0.0-alpha.0" />
+
+<PropertyType type="string[] | boolean" />
+
+Provide custom syntax for Worker parsing, commonly used to support Worklet:
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        worker: [
+          // Supports CSS paintWorklet
+          'CSS.paintWorklet.addModule()',
+          // Supports AudioWorklet, with the leading '*' indicating the recognition of a variable named 'context', for example:
+          // let context = new AudioContext();
+          // await context.audioWorklet.addModule(new URL("noise-processor.js", import.meta.url));
+          '*context.audioWorklet.addModule()',
+          // Extends default syntax: ["Worker", "SharedWorker", "navigator.serviceWorker.register()", "Worker from worker_threads"]
+          '...',
+        ],
+      },
+    },
+  },
+};
+```
+
+> See [Web Workers](/guide/features/web-workers) for more details.
+
+### module.parser.javascript.overrideStrict
+
+<ApiMeta addedVersion="1.0.0-alpha.4" />
+
+<PropertyType type="'strict' | 'non-strict'" />
+
+Override the module to strict or non-strict.
+
+This may affect the behavior of the module (some behaviors differ between strict and non-strict), so please configure this option carefully.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        overrideStrict: 'strict',
+      },
+    },
+  },
+};
+```
+
+### module.parser.javascript.commonjs
+
+<PropertyType
+  type="boolean | { exports?: boolean | 'skipInEsm' }"
+  defaultValueList={[{ defaultValue: 'true' }]}
+/>
+
+Controls CommonJS-specific parser behaviour. The default `true` keeps Rspack's standard handling for CommonJS export mutations. Set `{ exports: 'skipInEsm' }` to skip rewriting CommonJS export assignments when the module is evaluated as ESM, preserving the original runtime side effects. Provide `false` to disable CommonJS export handling entirely.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        commonjs: {
+          exports: 'skipInEsm',
+        },
+      },
+    },
+  },
+};
+```
+
+### module.parser.javascript.requireAlias
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
+
+Control whether renaming of the CommonJS `require` function will be parsed and transformed.
+
+When set to `true`, Rspack will parse and transform cases where `require` is assigned to a variable or passed as a parameter (e.g., `const req = require; req('./module')`).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        requireAlias: true,
+      },
+    },
+  },
+};
+```
+
+### module.parser.javascript.requireAsExpression
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
+
+Control whether `require` used as an expression will be parsed.
+
+When set to `true`, Rspack will parse `require` when it's used as an expression (e.g., `const req = require; req('./module')`) and emit a warning. When set to `false`, this pattern will be ignored.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        requireAsExpression: true,
+      },
+    },
+  },
+};
+```
+
+### module.parser.javascript.requireDynamic
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+
+Control whether dynamic `require` calls will be parsed.
+
+When set to `false`, Rspack will not parse dynamic `require` calls where the module path is not a static string (e.g., `require(variable)`). This can improve build performance if your code doesn't use dynamic requires.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        requireDynamic: false,
+      },
+    },
+  },
+};
+```
+
+### module.parser.javascript.requireResolve
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+
+Control whether `require.resolve()` calls will be parsed.
+
+When set to `false`, Rspack will not parse `require.resolve()` calls. This can improve build performance if your code doesn't use `require.resolve()`.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        requireResolve: false,
+      },
+    },
+  },
+};
+```
+
+### module.parser.javascript.importDynamic
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+
+Control whether dynamic `import()` calls will be parsed.
+
+When set to `false`, Rspack will not parse dynamic `import()` calls where the module path is not a static string (e.g., `import(variable)`). This can improve build performance if your code doesn't use dynamic imports.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        importDynamic: false,
+      },
+    },
+  },
+};
+```
+
+### module.parser.javascript.jsx
+
+<ApiMeta stability={Stability.Experimental} addedVersion="1.5.7" />
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
+
+Allow the JavaScript parser to understand JSX syntax so that parsing and minimization can operate on files that keep JSX in the final bundle.
+
+Enable this option when you set the loader's JSX mode to "preserve" and want to defer the actual JSX transform to a later tool (for example, libraries that ship JSX output or rely on a custom JSX runtime).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        jsx: true,
+      },
+    },
+  },
+};
+```
+
+:::warning
+This option is experimental in Rspack and may change or be removed.
+:::
+
+### module.parser["javascript/auto"]
+
+Parser options for `javascript/auto` modules, same as the [`javascript` parser options](#moduleparserjavascript).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'javascript/auto': {
+        // options
+      },
+    },
+  },
+};
+```
+
+### module.parser["javascript/dynamic"]
+
+Parser options for `javascript/dynamic` modules, same as the [`javascript` parser options](#moduleparserjavascript).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'javascript/dynamic': {
+        // options
+      },
+    },
+  },
+};
+```
+
+### module.parser["javascript/esm"]
+
+Parser options for `javascript/esm` modules, same as the [`javascript` parser options](#moduleparserjavascript).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'javascript/esm': {
+        // options
+      },
+    },
+  },
+};
+```
+
+### module.parser.json
+
+<ApiMeta addedVersion="1.2.0" />
+
+Parser options for `json` modules.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      json: {
+        // options
+      },
+    },
+  },
+};
+```
+
+### module.parser.json.exportsDepth
+
+<ApiMeta addedVersion="1.2.0" />
+
+- **Type:** `number`
+- **Default:** production mode is `Number.MAX_SAFE_INTEGER`, development mode is `1`
+
+The depth of json dependency flagged as `exportInfo`.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      json: {
+        // For example, for the following json
+        // {
+        //   "depth_1": {
+        //     "depth_2": {
+        //       "depth_3": "foo"
+        //     }
+        //   },
+        //   "_depth_1": "bar"
+        // }
+        // when `exportsDepth: 1`, `depth_2` and `depth_3` will not be flagged as `exportInfo`.
+        exportsDepth: 1,
+      },
+    },
+  },
+};
+```
+
+### module.parser["css/auto"]
+
+Parser options for `css/auto` modules.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/auto': {
+        // options
+      },
+    },
+  },
+};
+```
+
+### module.parser["css/auto"].namedExports
+
+- **Type:** `boolean`
+- **Default:** `true`
+
+Use ES modules named export for CSS exports.
+
+When using `namedExports: true`, you can use namespace export or named export:
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/auto': {
+        namedExports: true,
+      },
+    },
+  },
+};
+```
+
+```js
+// namespace export
+import * as classes from './index.module.css';
+// named export
+import { class1, class2 } from './index.module.css';
+```
+
+When using `namedExports: false`, in addition to namespace export and named export, default export can also be used:
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/auto': {
+        namedExports: false,
+      },
+    },
+  },
+};
+```
+
+```js
+// namespace export
+import * as classes from './index.module.css';
+// named export
+import { class1, class2 } from './index.module.css';
+// default export
+import classes from './index.module.css';
+// default export and named export
+import classes, { class1, class2 } from './index.module.css';
+```
+
+### module.parser["css/auto"].url
+
+- **Type:** `boolean`
+- **Default:** `true`
+
+Allow to enable/disables handling the CSS functions url.
+
+When using `url: true`, Rspack will resolve the path in `url` function, the resolve file will be treated as an asset.
+When using `url: false`, Rspack will ignore the path in the `url` function, keep the content unchanged.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      css: {
+        url: true,
+      },
+    },
+  },
+};
+```
+
+### module.parser["css/auto"].resolveImport
+
+<ApiMeta addedVersion="1.7.2" />
+
+- **Type:** `boolean | ((context: { url: string, media: string | undefined, resourcePath: string, supports: string | undefined, layer: string | undefined }) => boolean)`
+- **Default:** `true`
+
+Whether to resolve `@import` syntax.
+
+- `true`: enable processing of `@import` rules (default).
+- `false`: disable processing of `@import` rules.
+- `function`: only process `@import` rules that satisfy the condition.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/auto': {
+        resolveImport: ({ url }) => {
+          return url.includes('style.css');
+        },
+      },
+    },
+  },
+};
+```
+
+### module.parser.css
+
+Parser options for `css` modules.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      css: {
+        // options
+      },
+    },
+  },
+};
+```
+
+### module.parser.css.namedExports
+
+Same as [`module.parser["css/auto"].namedExports`](#moduleparsercssautonamedexports).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      css: {
+        namedExports: true,
+      },
+    },
+  },
+};
+```
+
+### module.parser.css.url
+
+Same as [`module.parser["css/auto"].url`](#moduleparsercssautourl).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      css: {
+        url: true,
+      },
+    },
+  },
+};
+```
+
+### module.parser.css.resolveImport
+
+Same as [`module.parser["css/auto"].resolveImport`](#moduleparsercssautoresolveimport).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      css: {
+        resolveImport: ({ url }) => {
+          return url.includes('style.css');
+        },
+      },
+    },
+  },
+};
+```
+
+### module.parser["css/module"]
+
+Parser options for `css/module` modules.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/module': {
+        // options
+      },
+    },
+  },
+};
+```
+
+### module.parser["css/module"].namedExports
+
+Same as [`module.parser["css/auto"].namedExports`](#moduleparsercssautonamedexports).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/module': {
+        namedExports: true,
+      },
+    },
+  },
+};
+```
+
+### module.parser["css/module"].url
+
+Same as [`module.parser["css/auto"].url`](#moduleparsercssautourl).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/module': {
+        url: true,
+      },
+    },
+  },
+};
+```
+
+### module.parser["css/module"].resolveImport
+
+Same as [`module.parser["css/auto"].resolveImport`](#moduleparsercssautoresolveimport).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/module': {
+        resolveImport: ({ url }) => {
+          return url.includes('style.css');
+        },
       },
     },
   },

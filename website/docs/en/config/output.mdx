@@ -139,19 +139,22 @@ export default {
 };
 ```
 
-## output.chunkLoadTimeout
+## output.chunkLoading
 
-- **Type:** `number`
-- **Default:** `120000`
+- **Type:** `false | 'jsonp' | 'import-scripts' | 'require' | 'async-node' | 'import' | string`
 
-The Number of milliseconds before chunk request timed out.
+The method to load chunks (methods included by default are `'jsonp'` (web), `'import'` (ESM), `'import-scripts'` (webworker), `'require'` (sync node.js), `'async-node'` (async node.js), but others might be added by plugins). The default value will be determined based on the configuration of [`target`](/config/target) and [`chunkFormat`](#outputchunkformat).
+
+:::tip
+
+The default value of this option depends on the [`target`](/config/target) and [`chunkFormat`](#outputchunkformat) setting. For more details, search for `"chunkLoading"` [in the Rspack defaults](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack/src/config/defaults.ts).
+
+:::
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   output: {
-    //...
-    chunkLoadTimeout: 30000, // 30 seconds before chunk request timed out.
+    chunkLoading: 'async-node',
   },
 };
 ```
@@ -171,22 +174,17 @@ export default {
 };
 ```
 
-## output.chunkLoading
+## output.chunkLoadTimeout
 
-- **Type:** `false | 'jsonp' | 'import-scripts' | 'require' | 'async-node' | 'import' | string`
+- **Type:** `number`
+- **Default:** `120000`
 
-The method to load chunks (methods included by default are `'jsonp'` (web), `'import'` (ESM), `'importScripts'` (webworker), `'require'` (sync node.js), `'async-node'` (async node.js), but others might be added by plugins). The default value will be determined based on the configuration of [`target`](#target) and [`chunkFormat`](#outputchunkformat).
-
-:::tip
-
-The default value of this option depends on the [`target`](/config/target) and [`chunkFormat`](#chunkFormat) setting. For more details, search for `"chunkLoading"` [in the Rspack defaults](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack/src/config/defaults.ts).
-
-:::
+The Number of milliseconds before chunk request timed out.
 
 ```js title="rspack.config.mjs"
 export default {
   output: {
-    chunkLoading: 'async-node',
+    chunkLoadTimeout: 30000, // 30 seconds before chunk request timed out.
   },
 };
 ```
@@ -200,7 +198,6 @@ Before generating the products, delete all files in the output directory.
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   output: {
     clean: true, // Clean the output directory before emit.
   },
@@ -243,7 +240,6 @@ Rspack will not write output file when file already exists on disk with the same
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   output: {
     compareBeforeEmit: false,
   },
@@ -340,7 +336,6 @@ Customize the names used in each source map's `sources` array. This can be done 
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   output: {
     devtoolModuleFilenameTemplate:
       'webpack://[namespace]/[resource-path]?[loaders]',
@@ -366,7 +361,6 @@ When using a function, the same options are available camel-cased via the `info`
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   output: {
     devtoolModuleFilenameTemplate: (info) => {
       return `webpack:///${info.resourcePath}?${info.loaders}`;
@@ -395,7 +389,6 @@ List of chunk loading types enabled for use by entry points. Will be automatical
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   output: {
     enabledChunkLoadingTypes: ['jsonp', 'require'],
   },
@@ -411,7 +404,6 @@ List of library types enabled for use by entry points.
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   output: {
     enabledLibraryTypes: ['module'],
   },
@@ -427,7 +419,6 @@ List of Wasm loading types enabled for use by entry points.
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   output: {
     enabledWasmLoadingTypes: ['fetch'],
   },
@@ -541,7 +532,6 @@ Use [Entry](/config/entry.html) name:
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   output: {
     filename: '[name].bundle.js',
   },
@@ -552,7 +542,6 @@ Using internal chunk id:
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   output: {
     filename: '[id].bundle.js',
   },
@@ -563,7 +552,6 @@ Using hashes generated from the generated content:
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   output: {
     filename: '[contenthash].bundle.js',
   },
@@ -574,7 +562,6 @@ Combining multiple substitutions:
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   output: {
     filename: '[name].[contenthash].bundle.js',
   },
@@ -589,7 +576,6 @@ Using the function to return the filename:
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   output: {
     filename: (pathData) => {
       return pathData.chunk.name === 'main' ? '[name].js' : '[name]/[name].js';
@@ -741,7 +727,6 @@ The name of the native `import()` function. Can be used for polyfilling, e.g. wi
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   output: {
     importFunctionName: '__import__',
   },
@@ -757,7 +742,6 @@ The name of the native `import.meta` object (can be exchanged for a polyfill).
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   output: {
     importMetaName: 'pseudoImport.meta',
   },
@@ -1196,7 +1180,6 @@ With the following configuration:
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   output: {
     library: {
       name: 'MyLibrary',
@@ -1236,7 +1219,6 @@ This bundle will not work as expected, or not work at all (in the case of the al
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   output: {
     library: {
       name: 'MyLibrary',
@@ -1260,7 +1242,6 @@ In this case, you need the `library.name` property to name your module:
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   output: {
     library: {
       name: 'MyLibrary',
@@ -1288,7 +1269,6 @@ Note that omitting `library.name` will result in the assignment of all propertie
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   output: {
     library: {
       type: 'umd',
@@ -1317,7 +1297,6 @@ You may specify an object for `library.name` for differing names per targets:
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   output: {
     library: {
       name: {
@@ -1339,7 +1318,6 @@ System modules require that a global variable `System` is present in the browser
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   output: {
     library: {
       type: 'system',
@@ -1519,7 +1497,6 @@ When using `output.library.type: "umd"`, setting `output.library.umdNamedDefine`
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   output: {
     library: {
       name: 'MyLibrary',
@@ -1550,7 +1527,6 @@ When enabled, Rspack will preserve the original directory structure of modules w
 ```js
 import path from 'path';
 module.exports = {
-  //...
   output: {
     library: {
       type: 'modern-module',
@@ -1690,7 +1666,6 @@ If [`output.module`](#outputmodule) is set to `true`, `output.scriptType` will d
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   output: {
     scriptType: 'module',
   },
@@ -1715,7 +1690,6 @@ Handle error in module loading as per ECMAScript Modules spec at a performance c
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   output: {
     strictModuleErrorHandling: true,
   },
@@ -1743,7 +1717,6 @@ It is disabled by default (no compatibility, script URLs are strings).
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   output: {
     trustedTypes: {
       policyName: 'my-application#rspack',
@@ -1763,9 +1736,7 @@ Determine whether to proceed with loading in anticipation that [`require-trusted
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   output: {
-    //...
     trustedTypes: {
       policyName: 'my-application#rspack',
       onPolicyCreationFailure: 'continue',
@@ -1815,7 +1786,6 @@ The default value can be affected by different [`target`](/config/target):
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   output: {
     wasmLoading: 'fetch',
   },
@@ -1831,7 +1801,6 @@ Specifies the filename of WebAssembly modules. It should be provided as a relati
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   output: {
     webassemblyModuleFilename: '[contenthash:8].wasm',
   },
@@ -1855,7 +1824,6 @@ The default value of this option depends on the [`target`](/config/target) setti
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   output: {
     workerChunkLoading: false,
   },
@@ -1871,7 +1839,6 @@ Set a public path for Worker, defaults to value of [output.publicPath](#outputpu
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   output: {
     workerPublicPath: '/workerPublicPath2/',
   },
@@ -1887,7 +1854,6 @@ Option to set the method of loading WebAssembly Modules in workers, defaults to 
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   output: {
     workerWasmLoading: 'fetch',
   },

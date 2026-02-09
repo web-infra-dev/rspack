@@ -245,7 +245,6 @@ If a function is passed then it will be invoked on every [make](/api/plugin-api/
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   entry: () => './demo',
 };
 ```
@@ -254,7 +253,6 @@ Or:
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   entry: () => new Promise((resolve) => resolve(['./demo', './demo2'])),
 };
 ```

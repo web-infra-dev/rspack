@@ -9,33 +9,27 @@ import WebpackLicense from '@components/WebpackLicense';
 
 优化：该选项用于自定义优化配置。你可以通过 [optimization](/config/optimization) 来自定义优化配置。默认情况下，Rspack 会根据 [mode](/config/mode) 来选择合适的优化配置。
 
-## optimization.moduleIds
+## optimization.avoidEntryIife
 
-<PropertyType
-  type="'natural' | 'named' | 'deterministic'"
-  defaultValueList={[
-    { defaultValue: "'deterministic'", mode: 'production' },
-    { defaultValue: "'named'", mode: 'development' },
-  ]}
-/>
+<ApiMeta addedVersion="1.2.0" />
 
-设置 Rspack 在生成模块 id 时使用的算法。
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
 
-支持以下字符串值：
+使用 `optimization.avoidEntryIife` 可以避免在需要时将入口模块包装在 IIFE 中（在 [rspack_plugin_javascript](https://github.com/web-infra-dev/rspack/blob/main/crates/rspack_plugin_javascript/src/plugin/mod.rs) 中搜索 `"This entry needs to be wrapped in an IIFE because"`）。这种方法有助于优化 JavaScript 引擎的性能，并在构建 ESM 库时保证 tree shaking 生效。
 
-| 选项            | 描述                                                                         |
-| --------------- | ---------------------------------------------------------------------------- |
-| `natural`       | 根据模块加载的顺序使用自增数字作为模块 id。                                  |
-| `named`         | 使用有意义、方便调试的内容当作模块 id。                                      |
-| `deterministic` | 使用对模块标识符哈希后的数字当作模块 id，有益于长期缓存。默认使用 3 位数字。 |
+目前，`optimization.avoidEntryIife` 只能优化单个入口模块及其他模块共存时的 IIFE。
 
 ```js title="rspack.config.mjs"
 export default {
   optimization: {
-    moduleIds: 'deterministic',
+    avoidEntryIife: true,
   },
 };
 ```
+
+:::warning
+`optimization.avoidEntryIife` 选项可能会对构建性能产生负面影响，如果你更注重构建性能而不是这些优化，请考虑不要启用此选项。
+:::
 
 ## optimization.chunkIds
 
@@ -67,21 +61,7 @@ export default {
 };
 ```
 
-## optimization.mergeDuplicateChunks
-
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
-
-是否合并重复的 chunks，将 `optimization.mergeDuplicateChunks` 设置成 `false` 来关闭该优化。
-
-```js title="rspack.config.mjs"
-export default {
-  optimization: {
-    mergeDuplicateChunks: false,
-  },
-};
-```
-
-## optimization.minimize
+## optimization.concatenateModules
 
 <PropertyType
   type="boolean"
@@ -91,292 +71,35 @@ export default {
   ]}
 />
 
-是否使用 [`optimization.minimizer`](#optimizationminimizer) 中声明的压缩器对产物进行压缩。
+开启模块拼接优化，允许将多个模块拼接成单个模块以降低产物体积，提升压缩效率。此优化需要开启 [optimization.providedExports](#optimizationprovidedexports) 和 [optimization.usedExports](#optimizationusedexports)。默认情况下，`optimization.concatenateModules` 在 `production` 模式下启用，其它模式则禁用。
 
 ```js title="rspack.config.mjs"
 export default {
   optimization: {
-    minimize: true,
+    concatenateModules: false,
   },
 };
 ```
 
-## optimization.minimizer
-
-<PropertyType
-  type="Array<Plugin>"
-  defaultValueList={[
-    {
-      defaultValue:
-        '[new SwcJsMinimizerRspackPlugin(), new LightningCssMinimizerRspackPlugin()]',
-    },
-  ]}
-/>
-
-自定义压缩器。默认使用 [`rspack.SwcJsMinimizerRspackPlugin`](/plugins/rspack/swc-js-minimizer-rspack-plugin) 和 [`rspack.LightningCssMinimizerRspackPlugin`](/plugins/rspack/lightning-css-minimizer-rspack-plugin)。
-
-当设置了 `optimization.minimizer` 时，默认的压缩器会被禁用。
-
-```js title="rspack.config.mjs"
-import TerserPlugin from 'terser-webpack-plugin';
-
-export default {
-  optimization: {
-    minimizer: [new TerserPlugin()],
-  },
-};
-```
-
-使用 Rspack 内置的压缩器，并自定义压缩选项：
-
-```js title="rspack.config.mjs"
-import { rspack } from '@rspack/core';
-
-export default {
-  optimization: {
-    // 当声明了 `optimization.minimizer`，默认压缩器会被禁用
-    // 但你可以配合使用 '...'，它代表默认压缩器
-    minimizer: [
-      new rspack.SwcJsMinimizerRspackPlugin({
-        minimizerOptions: {
-          format: {
-            comments: false,
-          },
-        },
-      }),
-      new rspack.LightningCssMinimizerRspackPlugin({
-        minimizerOptions: {
-          errorRecovery: false,
-        },
-      }),
-    ],
-  },
-};
-```
-
-## optimization.removeAvailableModules
-
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
-
-是否检测并移除那些已经存在于父 chunks 中的模块。这项优化有助于减少打包产物中的重复模块，这通常可以优化整体的构建性能（通过减小了后续 chunk 优化的计算量）并减小产物体积。
-
-这项优化默认开启，如果需要禁用，可以将 `optimization.removeAvailableModules` 设置为 `false`：
-
-```js title="rspack.config.mjs"
-export default {
-  optimization: {
-    removeAvailableModules: false,
-  },
-};
-```
-
-:::danger
-禁用这项优化是危险的，因为它可能会显著增加包大小，并显著地降低构建速度。
-:::
-
-## optimization.removeEmptyChunks
-
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
-
-检测并移除打包过程中产生的空 Chunk。将 `optimization.removeEmptyChunks` 设置为 `false` 来禁用该优化。
-
-```js title="rspack.config.mjs"
-export default {
-  optimization: {
-    removeEmptyChunks: false,
-  },
-};
-```
-
-## optimization.runtimeChunk
-
-<PropertyType
-  type="boolean | string | { name: string } | { name: (entrypoint: { name: string }) => string }"
-  defaultValueList={[{ defaultValue: 'false' }]}
-/>
-
-用来控制 Rspack 的 [runtime](/misc/glossary#runtime) chunk 如何生成。
-
-默认为 `false`，这意味着运行时代码会被内联到入口的 chunks 中。
-
-设置为 `true` 或 `'multiple'` 会为每个入口添加一个仅包含运行时的额外 chunk。该设置等同于：
-
-```js title="rspack.config.mjs"
-export default {
-  optimization: {
-    runtimeChunk: {
-      name: (entrypoint) => `runtime~${entrypoint.name}`,
-    },
-  },
-};
-```
-
-设置为 `'single'` 会将所有入口的运行时代码抽离到一个单独的 chunk。该设置等同于：
-
-```js title="rspack.config.mjs"
-export default {
-  optimization: {
-    runtimeChunk: 'runtime',
-  },
-};
-```
-
-设置为对象时，可以提供 `name` 属性，该属性代表 runtime chunk 的名称。
-
-```js title="rspack.config.mjs"
-export default {
-  optimization: {
-    runtimeChunk: {
-      // 这将生成一个名为 `my-name.js` 的 chunk
-      name: 'my-name',
-    },
-  },
-};
-```
-
-:::tip
-被导入的模块在每个 runtime chunk 中是单独初始化的，因此，如果你在单个页面中包含多个入口 chunks，请留意这种行为。你需要将 `optimization.runtimeChunk` 设置为 `'single'` 或使用其他配置，以保证页面仅包含一个 runtime 实例。
-:::
-
-## optimization.realContentHash
+## optimization.emitOnErrors
 
 <PropertyType
   type="boolean"
   defaultValueList={[
-    { defaultValue: 'true', mode: 'production' },
-    { defaultValue: 'false', mode: 'development' },
+    { defaultValue: 'false', mode: 'production' },
+    { defaultValue: 'true', mode: 'development' },
   ]}
 />
 
-在产物处理完成后，添加额外的哈希计算步骤根据产物的文件内容计算该产物的哈希。该功能在生产环境下会默认开启。
-
-如果将 `realContentHash` 设置为 `false`，则使用编译流程中的内部数据计算哈希，在某些情况下，即使产物内容完全一致也可能导致哈希变化。
+开启 `optimization.emitOnErrors` 时，即使编译过程中发生错误，Rspack 也会生成产物。这些错误会被注入到产物代码中，运行它们时会抛出错误。
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   optimization: {
-    realContentHash: true,
+    emitOnErrors: true,
   },
 };
 ```
-
-## optimization.splitChunks
-
-<PropertyType type="false | object" />
-
-Rspack 支持通过 `optimization.splitChunks` 配置项来对 Chunk 进行拆分。
-
-该优化选项默认情况下是开启的，你可以将其设为 `false` 来关闭它。
-
-有关配置此行为的可用选项，请参见 [SplitChunksPlugin](/plugins/webpack/split-chunks-plugin) 页面。
-
-## optimization.providedExports
-
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
-
-开启后 Rspack 将会分析模块提供哪些导出，包括重导出模块，引用模块不存在的导出时会发出提示。默认情况下，`optimization.providedExports` 已启用，该分析会增加构建时间，你可以考虑在 development 模式中关闭该配置，关闭后有可能会遇到[SideEffects 章节](/guide/optimization/tree-shaking#reexports-optimization)运行时循环依赖的错误。
-
-```js title="rspack.config.mjs"
-export default {
-  //...
-  optimization: {
-    providedExports: false,
-  },
-};
-```
-
-## optimization.sideEffects
-
-<PropertyType
-  type="boolean | 'flag'"
-  defaultValueList={[
-    { defaultValue: 'true', mode: 'production' },
-    { defaultValue: "'flag'", mode: 'development' },
-  ]}
-/>
-
-如果你只希望 Rspack 使用手动指定的 `sideEffects` 标志（通过 `package.json` 和 `rules[].sideEffects`），而不分析源代码，可以这样配置：
-
-```js title="rspack.config.mjs"
-export default {
-  //...
-  optimization: {
-    sideEffects: 'flag',
-  },
-};
-```
-
-配置为 `flag` 会让 Rspack 仅识别 package.json 中的 `sideEffects` 标志或者 [`rules[].sideEffects`](/config/module-rules#rulessideeffects)（模块配置中的规则），以跳过那些被标记为没有副作用但未被使用的模块。
-
-配置为 `true` 会让 Rspack 除了识别用户主动标记以外，还会尝试分析未被标记的 module 源码是否包含副作用。
-
-```js title="rspack.config.mjs"
-export default {
-  //...
-  optimization: {
-    sideEffects: true,
-  },
-};
-```
-
-:::tip
-`optimization.sideEffects` 依赖于启用 [`optimization.providedExports`](#optimizationprovidedexports)。这在构建时会有一定的成本，但消除模块对性能有积极的影响，因为生成的代码更少。这个优化的效果取决于你的代码库，尝试使用它来获得可能的性能提升。
-:::
-
-## optimization.usedExports
-
-<PropertyType
-  type="boolean | 'global'"
-  defaultValueList={[
-    { defaultValue: 'true', mode: 'production' },
-    { defaultValue: 'false', mode: 'development' },
-  ]}
-/>
-
-告诉 Rspack 对每个模块确定使用的导出。这取决于 `optimization.providedExports`。
-`optimization.usedExports` 收集的信息被其他优化或代码生成使用，即不会为未使用的导出生成导出信息，当所有用法兼容时，导出名称会被缩短为单个字符标识符。压缩器中的死代码消除将受益于此，并且可以删除未使用的导出。
-
-```js title="rspack.config.mjs"
-export default {
-  //...
-  optimization: {
-    usedExports: false,
-  },
-};
-```
-
-如果需要在运行时取消使用的导出分析：
-
-```js title="rspack.config.mjs"
-export default {
-  //...
-  optimization: {
-    usedExports: 'global',
-  },
-};
-```
-
-## optimization.mangleExports
-
-<PropertyType
-  type="boolean | 'deterministic' | 'size' "
-  defaultValueList={[
-    { defaultValue: 'deterministic', mode: 'production' },
-    { defaultValue: 'false', mode: 'development' },
-  ]}
-/>
-
-`optimization.mangleExports` 允许控制导出名称的混淆。
-
-支持以下选项：
-
-| option          | description                                                                        |
-| --------------- | ---------------------------------------------------------------------------------- |
-| 'named'         | 使用有意义且易于调试的内容作为标识符。在开发模式下，默认启用此选项。               |
-| 'deterministic' | 使用哈希模块标识符作为标识符，以便从长期缓存中受益。在生产模式下，默认启用此选项。 |
-| true            | 与 'deterministic' 相同。                                                          |
-| false           | 保留原始名称。适用于可读性和调试。                                                 |
 
 ## optimization.inlineExports
 
@@ -466,7 +189,42 @@ function f2() {
 
 这里我们将 `value` 赋值给了 `value2`，`value2` 和 `value` 也分别在函数 `f2` 和 `f1` 中被访问，但函数没有被调用，因此没有使用到 `value2` 和 `value`，因此 `value` 的导入是可以被删除的。
 
-## optimization.concatenateModules
+## optimization.mangleExports
+
+<PropertyType
+  type="boolean | 'deterministic' | 'size' "
+  defaultValueList={[
+    { defaultValue: 'deterministic', mode: 'production' },
+    { defaultValue: 'false', mode: 'development' },
+  ]}
+/>
+
+`optimization.mangleExports` 允许控制导出名称的混淆。
+
+支持以下选项：
+
+| option          | description                                                                        |
+| --------------- | ---------------------------------------------------------------------------------- |
+| 'named'         | 使用有意义且易于调试的内容作为标识符。在开发模式下，默认启用此选项。               |
+| 'deterministic' | 使用哈希模块标识符作为标识符，以便从长期缓存中受益。在生产模式下，默认启用此选项。 |
+| true            | 与 'deterministic' 相同。                                                          |
+| false           | 保留原始名称。适用于可读性和调试。                                                 |
+
+## optimization.mergeDuplicateChunks
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+
+是否合并重复的 chunks，将 `optimization.mergeDuplicateChunks` 设置成 `false` 来关闭该优化。
+
+```js title="rspack.config.mjs"
+export default {
+  optimization: {
+    mergeDuplicateChunks: false,
+  },
+};
+```
+
+## optimization.minimize
 
 <PropertyType
   type="boolean"
@@ -476,12 +234,93 @@ function f2() {
   ]}
 />
 
-开启模块拼接优化，允许将多个模块拼接成单个模块以降低产物体积，提升压缩效率。此优化需要开启 [optimization.providedExports](#optimizationprovidedexports) 和 [optimization.usedExports](#optimizationusedexports)。默认情况下，`optimization.concatenateModules` 在 `production` 模式下启用，其它模式则禁用。
+是否使用 [`optimization.minimizer`](#optimizationminimizer) 中声明的压缩器对产物进行压缩。
 
 ```js title="rspack.config.mjs"
 export default {
   optimization: {
-    concatenateModules: false,
+    minimize: true,
+  },
+};
+```
+
+## optimization.minimizer
+
+<PropertyType
+  type="Array<Plugin>"
+  defaultValueList={[
+    {
+      defaultValue:
+        '[new SwcJsMinimizerRspackPlugin(), new LightningCssMinimizerRspackPlugin()]',
+    },
+  ]}
+/>
+
+自定义压缩器。默认使用 [`rspack.SwcJsMinimizerRspackPlugin`](/plugins/rspack/swc-js-minimizer-rspack-plugin) 和 [`rspack.LightningCssMinimizerRspackPlugin`](/plugins/rspack/lightning-css-minimizer-rspack-plugin)。
+
+当设置了 `optimization.minimizer` 时，默认的压缩器会被禁用。
+
+```js title="rspack.config.mjs"
+import TerserPlugin from 'terser-webpack-plugin';
+
+export default {
+  optimization: {
+    minimizer: [new TerserPlugin()],
+  },
+};
+```
+
+使用 Rspack 内置的压缩器，并自定义压缩选项：
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  optimization: {
+    // 当声明了 `optimization.minimizer`，默认压缩器会被禁用
+    // 但你可以配合使用 '...'，它代表默认压缩器
+    minimizer: [
+      new rspack.SwcJsMinimizerRspackPlugin({
+        minimizerOptions: {
+          format: {
+            comments: false,
+          },
+        },
+      }),
+      new rspack.LightningCssMinimizerRspackPlugin({
+        minimizerOptions: {
+          errorRecovery: false,
+        },
+      }),
+    ],
+  },
+};
+```
+
+## optimization.moduleIds
+
+<PropertyType
+  type="'natural' | 'named' | 'deterministic'"
+  defaultValueList={[
+    { defaultValue: "'deterministic'", mode: 'production' },
+    { defaultValue: "'named'", mode: 'development' },
+  ]}
+/>
+
+设置 Rspack 在生成模块 id 时使用的算法。
+
+支持以下字符串值：
+
+| 选项            | 描述                                                                         |
+| --------------- | ---------------------------------------------------------------------------- |
+| `natural`       | 根据模块加载的顺序使用自增数字作为模块 id。                                  |
+| `named`         | 使用有意义、方便调试的内容当作模块 id。                                      |
+| `deterministic` | 使用对模块标识符哈希后的数字当作模块 id，有益于长期缓存。默认使用 3 位数字。 |
+
+```js title="rspack.config.mjs"
+export default {
+  optimization: {
+    moduleIds: 'deterministic',
   },
 };
 ```
@@ -503,7 +342,6 @@ Rspack 将 `process.env.NODE_ENV` 设置为给定的字符串。除非该值被�
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   optimization: {
     nodeEnv: 'production',
   },
@@ -514,45 +352,199 @@ export default {
 当 [mode](/config/mode) 被设置为 `'none'` 时，`optimization.nodeEnv` 默认为 `false`。
 :::
 
-## optimization.emitOnErrors
+## optimization.providedExports
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+
+开启后 Rspack 将会分析模块提供哪些导出，包括重导出模块，引用模块不存在的导出时会发出提示。默认情况下，`optimization.providedExports` 已启用，该分析会增加构建时间，你可以考虑在 development 模式中关闭该配置，关闭后有可能会遇到[SideEffects 章节](/guide/optimization/tree-shaking#reexports-optimization)运行时循环依赖的错误。
+
+```js title="rspack.config.mjs"
+export default {
+  optimization: {
+    providedExports: false,
+  },
+};
+```
+
+## optimization.realContentHash
 
 <PropertyType
   type="boolean"
   defaultValueList={[
-    { defaultValue: 'false', mode: 'production' },
-    { defaultValue: 'true', mode: 'development' },
+    { defaultValue: 'true', mode: 'production' },
+    { defaultValue: 'false', mode: 'development' },
   ]}
 />
 
-开启 `optimization.emitOnErrors` 时，即使编译过程中发生错误，Rspack 也会生成产物。这些错误会被注入到产物代码中，运行它们时会抛出错误。
+在产物处理完成后，添加额外的哈希计算步骤根据产物的文件内容计算该产物的哈希。该功能在生产环境下会默认开启。
+
+如果将 `realContentHash` 设置为 `false`，则使用编译流程中的内部数据计算哈希，在某些情况下，即使产物内容完全一致也可能导致哈希变化。
 
 ```js title="rspack.config.mjs"
 export default {
   optimization: {
-    emitOnErrors: true,
+    realContentHash: true,
   },
 };
 ```
 
-## optimization.avoidEntryIife
+## optimization.removeAvailableModules
 
-<ApiMeta addedVersion="1.2.0" />
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
 
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
+是否检测并移除那些已经存在于父 chunks 中的模块。这项优化有助于减少打包产物中的重复模块，这通常可以优化整体的构建性能（通过减小了后续 chunk 优化的计算量）并减小产物体积。
 
-使用 `optimization.avoidEntryIife` 可以避免在需要时将入口模块包装在 IIFE 中（在 [rspack_plugin_javascript](https://github.com/web-infra-dev/rspack/blob/main/crates/rspack_plugin_javascript/src/plugin/mod.rs) 中搜索 `"This entry needs to be wrapped in an IIFE because"`）。这种方法有助于优化 JavaScript 引擎的性能，并在构建 ESM 库时保证 tree shaking 生效。
-
-目前，`optimization.avoidEntryIife` 只能优化单个入口模块及其他模块共存时的 IIFE。
+这项优化默认开启，如果需要禁用，可以将 `optimization.removeAvailableModules` 设置为 `false`：
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   optimization: {
-    avoidEntryIife: true,
+    removeAvailableModules: false,
   },
 };
 ```
 
-:::warning
-`optimization.avoidEntryIife` 选项可能会对构建性能产生负面影响，如果你更注重构建性能而不是这些优化，请考虑不要启用此选项。
+:::danger
+禁用这项优化是危险的，因为它可能会显著增加包大小，并显著地降低构建速度。
 :::
+
+## optimization.removeEmptyChunks
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+
+检测并移除打包过程中产生的空 Chunk。将 `optimization.removeEmptyChunks` 设置为 `false` 来禁用该优化。
+
+```js title="rspack.config.mjs"
+export default {
+  optimization: {
+    removeEmptyChunks: false,
+  },
+};
+```
+
+## optimization.runtimeChunk
+
+<PropertyType
+  type="boolean | string | { name: string } | { name: (entrypoint: { name: string }) => string }"
+  defaultValueList={[{ defaultValue: 'false' }]}
+/>
+
+用来控制 Rspack 的 [runtime](/misc/glossary#runtime) chunk 如何生成。
+
+默认为 `false`，这意味着运行时代码会被内联到入口的 chunks 中。
+
+设置为 `true` 或 `'multiple'` 会为每个入口添加一个仅包含运行时的额外 chunk。该设置等同于：
+
+```js title="rspack.config.mjs"
+export default {
+  optimization: {
+    runtimeChunk: {
+      name: (entrypoint) => `runtime~${entrypoint.name}`,
+    },
+  },
+};
+```
+
+设置为 `'single'` 会将所有入口的运行时代码抽离到一个单独的 chunk。该设置等同于：
+
+```js title="rspack.config.mjs"
+export default {
+  optimization: {
+    runtimeChunk: 'runtime',
+  },
+};
+```
+
+设置为对象时，可以提供 `name` 属性，该属性代表 runtime chunk 的名称。
+
+```js title="rspack.config.mjs"
+export default {
+  optimization: {
+    runtimeChunk: {
+      // 这将生成一个名为 `my-name.js` 的 chunk
+      name: 'my-name',
+    },
+  },
+};
+```
+
+:::tip
+被导入的模块在每个 runtime chunk 中是单独初始化的，因此，如果你在单个页面中包含多个入口 chunks，请留意这种行为。你需要将 `optimization.runtimeChunk` 设置为 `'single'` 或使用其他配置，以保证页面仅包含一个 runtime 实例。
+:::
+
+## optimization.sideEffects
+
+<PropertyType
+  type="boolean | 'flag'"
+  defaultValueList={[
+    { defaultValue: 'true', mode: 'production' },
+    { defaultValue: "'flag'", mode: 'development' },
+  ]}
+/>
+
+如果你只希望 Rspack 使用手动指定的 `sideEffects` 标志（通过 `package.json` 和 `rules[].sideEffects`），而不分析源代码，可以这样配置：
+
+```js title="rspack.config.mjs"
+export default {
+  optimization: {
+    sideEffects: 'flag',
+  },
+};
+```
+
+配置为 `flag` 会让 Rspack 仅识别 package.json 中的 `sideEffects` 标志或者 [`rules[].sideEffects`](/config/module-rules#rulessideeffects)（模块配置中的规则），以跳过那些被标记为没有副作用但未被使用的模块。
+
+配置为 `true` 会让 Rspack 除了识别用户主动标记以外，还会尝试分析未被标记的 module 源码是否包含副作用。
+
+```js title="rspack.config.mjs"
+export default {
+  optimization: {
+    sideEffects: true,
+  },
+};
+```
+
+:::tip
+`optimization.sideEffects` 依赖于启用 [`optimization.providedExports`](#optimizationprovidedexports)。这在构建时会有一定的成本，但消除模块对性能有积极的影响，因为生成的代码更少。这个优化的效果取决于你的代码库，尝试使用它来获得可能的性能提升。
+:::
+
+## optimization.splitChunks
+
+<PropertyType type="false | object" />
+
+Rspack 支持通过 `optimization.splitChunks` 配置项来对 Chunk 进行拆分。
+
+该优化选项默认情况下是开启的，你可以将其设为 `false` 来关闭它。
+
+有关配置此行为的可用选项，请参见 [SplitChunksPlugin](/plugins/webpack/split-chunks-plugin) 页面。
+
+## optimization.usedExports
+
+<PropertyType
+  type="boolean | 'global'"
+  defaultValueList={[
+    { defaultValue: 'true', mode: 'production' },
+    { defaultValue: 'false', mode: 'development' },
+  ]}
+/>
+
+告诉 Rspack 对每个模块确定使用的导出。这取决于 `optimization.providedExports`。
+`optimization.usedExports` 收集的信息被其他优化或代码生成使用，即不会为未使用的导出生成导出信息，当所有用法兼容时，导出名称会被缩短为单个字符标识符。压缩器中的死代码消除将受益于此，并且可以删除未使用的导出。
+
+```js title="rspack.config.mjs"
+export default {
+  optimization: {
+    usedExports: false,
+  },
+};
+```
+
+如果需要在运行时取消使用的导出分析：
+
+```js title="rspack.config.mjs"
+export default {
+  optimization: {
+    usedExports: 'global',
+  },
+};
+```

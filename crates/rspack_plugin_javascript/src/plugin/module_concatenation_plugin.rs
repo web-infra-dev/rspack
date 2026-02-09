@@ -849,7 +849,7 @@ impl ModuleConcatenationPlugin {
           imported_by_defer_modules_artifact.insert(*module);
         }
       }
-      compilation.imported_by_defer_modules_artifact = imported_by_defer_modules_artifact;
+      compilation.imported_by_defer_modules_artifact = imported_by_defer_modules_artifact.into();
     }
 
     let mut relevant_modules = vec![];

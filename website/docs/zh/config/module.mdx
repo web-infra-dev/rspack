@@ -51,1056 +51,6 @@ export default {
 查看 [源代码](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack/src/config/defaults.ts#L453) 了解所有的默认规则。
 :::
 
-## module.noParse
-
-- **类型：** `string | string[] | RegExp | RegExp[] | ((request: string) => boolean)`
-- **默认值：** `undefined`
-
-匹配的文件代码不会被 Rspack 转换，包括 `module.exports`, `require`, `import` 这些模块系统相关的语法。
-
-用来忽略那些没有外部依赖的第三方库的时候很有用，有时还能提升性能。
-
-请注意：这些文件依然还会被已配置的 loaders 处理。
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    noParse: /typescript|watermark-dom/,
-  },
-};
-```
-
-```js title="rspack.config.mjs"
-import { createRequire } from 'node:module';
-
-const require = createRequire(import.meta.url);
-
-export default {
-  module: {
-    noParse: [require.resolve('typescript'), /watermark-dom/],
-  },
-};
-```
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    noParse: (request) => /typescript|watermark-dom/.test(request),
-  },
-};
-```
-
-## module.parser
-
-- **类型：** `Object`
-- **默认值：** `{}`
-
-使用 `module.parser` 在一个地方配置所有解析器选项。
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      // asset 模块的解析器选项
-      asset: {
-        dataUrlCondition: {
-          maxSize: 16192,
-        },
-      },
-      // javascript 模块的解析器选项
-      javascript: {
-        dynamicImportMode: 'lazy',
-        dynamicImportPrefetch: false,
-        dynamicImportPreload: false,
-        url: true,
-        importMeta: true,
-      },
-      // CSS 模块的解析器选项
-      css: {
-        namedExports: true,
-      },
-      // css/auto 模块的解析器选项
-      'css/auto': {
-        namedExports: true,
-      },
-      // css/module 模块的解析器选项
-      'css/module': {
-        namedExports: true,
-      },
-    },
-  },
-};
-```
-
-### module.parser.asset
-
-`asset` 模块的解析器选项。
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      asset: {
-        // options
-      },
-    },
-  },
-};
-```
-
-### module.parser.asset.dataUrlCondition
-
-- **类型：** `{ maxSize: number }`
-- **默认值：** `{ maxSize: 8096 }`
-
-如果当前模块的小于等于 `maxSize`，那么模块将被 Base64 编码，否则模块将会以文件形式被输出。该选项仅能作用于 [Asset modules](/guide/features/asset-module)。
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      asset: {
-        dataUrlCondition: {
-          // 小于等于 4KB 的模块将被 Base64 编码
-          maxSize: 4 * 1024,
-        },
-      },
-    },
-  },
-};
-```
-
-### module.parser.javascript
-
-`javascript` 模块的解析器选项。
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      javascript: {
-        // options
-      },
-    },
-  },
-};
-```
-
-### module.parser.javascript.commonjsMagicComments
-
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
-<ApiMeta addedVersion="1.5.6" />
-
-为 CommonJS 启用 [Magic comments](/api/runtime-api/module-methods#magic-comments) 支持。
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      javascript: {
-        commonjsMagicComments: true,
-      },
-    },
-  },
-};
-```
-
-目前仅支持 `webpackIgnore` 注释：
-
-```js
-const x = require(/* webpackIgnore: true */ 'x');
-```
-
-### module.parser.javascript.dynamicImportMode
-
-<PropertyType
-  type="'lazy' | 'eager' | 'weak' | 'lazy-once'"
-  defaultValueList={[{ defaultValue: "'lazy'" }]}
-/>
-
-指定动态导入的全局模式，详见[`webpackMode`](/api/runtime-api/module-methods#webpackmode)。
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      javascript: {
-        dynamicImportMode: 'eager',
-      },
-    },
-  },
-};
-```
-
-### module.parser.javascript.dynamicImportPrefetch
-
-<PropertyType
-  type="boolean | number"
-  defaultValueList={[{ defaultValue: 'false' }]}
-/>
-
-指定动态导入的全局 prefetch，详见[`webpackPrefetch`](/api/runtime-api/module-methods#webpackprefetch)。
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      javascript: {
-        dynamicImportPrefetch: true,
-      },
-    },
-  },
-};
-```
-
-### module.parser.javascript.dynamicImportPreload
-
-<PropertyType
-  type="boolean | number"
-  defaultValueList={[{ defaultValue: 'false' }]}
-/>
-
-指定动态导入的全局 preload，详见[`webpackPreload`](/api/runtime-api/module-methods#webpackpreload)。
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      javascript: {
-        dynamicImportPreload: true,
-      },
-    },
-  },
-};
-```
-
-### module.parser.javascript.dynamicImportFetchPriority
-
-<ApiMeta addedVersion="1.0.0" />
-
-<PropertyType
-  type="'low' | 'high' | 'auto'"
-  defaultValueList={[{ defaultValue: "'auto'" }]}
-/>
-
-指定动态导入的全局 `fetchPriority`，详见[`webpackFetchPriority`](/api/runtime-api/module-methods#webpackfetchpriority)。
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      javascript: {
-        dynamicImportFetchPriority: 'high',
-      },
-    },
-  },
-};
-```
-
-### module.parser.javascript.url
-
-<PropertyType
-  type="true | false | 'relative' | 'new-url-relative'"
-  defaultValueList={[{ defaultValue: 'true' }]}
-/>
-
-启用 `new URL()` 语法解析。
-
-- `true`：生成包含根 URL 的绝对 URL（默认行为）。
-- `'relative'`：生成不包含根 URL 的相对 URL。
-- `'new-url-relative'`：相对于公共路径的相对 URL。
-
-当使用 `'new-url-relative'` 时，Rspack 将在编译时计算出相对于公共路径的相对 URL：
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      javascript: {
-        url: 'new-url-relative',
-      },
-    },
-  },
-};
-```
-
-```js
-new URL('./icon.svg', import.meta.url);
-
-// 转换成 👇
-new URL('./icon[hash].svg', import.meta.url);
-```
-
-当使用 `'relative'` 时，Rspack 将生成运行时代码，为 `new URL()` 语法计算出相对的 URL，结果 URL 中不包含根 URL：
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      javascript: {
-        url: 'relative',
-      },
-    },
-  },
-};
-```
-
-```html
-<!-- 使用 'relative' -->
-<img src="icon.svg" />
-
-<!-- 不使用 'relative' -->
-<img src="file:///path/to/project/dist/icon.svg" />
-```
-
-### module.parser.javascript.exprContextCritical
-
-<PropertyType
-  type="boolean | undefined"
-  defaultValueList={[{ defaultValue: 'true' }]}
-/>
-
-启用完全动态依赖（`import(variable)`）的警告。
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      javascript: {
-        exprContextCritical: false,
-      },
-    },
-  },
-};
-```
-
-### module.parser.javascript.wrappedContextCritical
-
-<PropertyType
-  type="boolean | undefined"
-  defaultValueList={[{ defaultValue: 'false' }]}
-/>
-
-启用部分动态依赖（`import("./path/to/" + variable)`）的警告。
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      javascript: {
-        wrappedContextCritical: false,
-      },
-    },
-  },
-};
-```
-
-### module.parser.javascript.unknownContextCritical
-
-<PropertyType
-  type="boolean | undefined"
-  defaultValueList={[{ defaultValue: 'true' }]}
-/>
-
-在使用 `require` 函数时，如果无法进行静态分析（`require(variable)`），是否进行警告。
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      javascript: {
-        unknownContextCritical: false,
-      },
-    },
-  },
-};
-```
-
-### module.parser.javascript.wrappedContextRegExp
-
-<PropertyType
-  type="RegExp | undefined"
-  defaultValueList={[{ defaultValue: '/.*/' }]}
-/>
-
-设置正则表达式，用于匹配包裹的动态依赖。
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      javascript: {
-        wrappedContextRegExp: /\.js$/,
-      },
-    },
-  },
-};
-```
-
-### module.parser.javascript.importMeta
-
-<ApiMeta addedVersion="1.0.0-alpha.6" />
-
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
-
-是否要解析替换 `import.meta`。
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      javascript: {
-        importMeta: false,
-      },
-    },
-  },
-};
-```
-
-### module.parser.javascript.exportsPresence
-
-<PropertyType
-  type="'error' | 'warn' | 'auto' | false"
-  defaultValueList={[{ defaultValue: "'auto'" }]}
-/>
-
-当使用了不存在的导出或存在冲突的重导出时，是否进行警告或报错。
-
-- `"error"`：进行报错。
-- `"warn"`：进行警告。
-- `"auto"`：根据模块是否为严格 ESM，如果是严格 ESM 则报错，否则警告。
-- `false`：关闭该功能。
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      javascript: {
-        exportsPresence: 'error',
-      },
-    },
-  },
-};
-```
-
-### module.parser.javascript.importExportsPresence
-
-<PropertyType type="'error' | 'warn' | 'auto' | false" />
-
-当使用了不存在的导出时，是否进行警告或报错。默认会遵循 [module.parser.javascript.exportsPresence](#moduleparserjavascriptexportspresence) 的配置。
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      javascript: {
-        importExportsPresence: 'error',
-      },
-    },
-  },
-};
-```
-
-### module.parser.javascript.reexportExportsPresence
-
-<PropertyType type="'error' | 'warn' | 'auto' | false" />
-
-当使用了存在冲突的重导出时，是否进行警告或报错。默认会遵循 [module.parser.javascript.exportsPresence](#moduleparserjavascriptexportspresence) 的配置。
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      javascript: {
-        reexportExportsPresence: 'error',
-      },
-    },
-  },
-};
-```
-
-### module.parser.javascript.strictExportPresence
-
-- **类型：** `boolean`
-
-当导入的名称在导入模块中不存在时，发出错误而不是警告。
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      javascript: {
-        strictExportPresence: true,
-      },
-    },
-  },
-};
-```
-
-### module.parser.javascript.typeReexportsPresence
-
-<ApiMeta stability={Stability.Experimental} addedVersion="1.4.1" />
-
-- **类型：** `'no-tolerant' | 'tolerant' | 'tolerant-no-check'`
-- **默认值：** `'no-tolerant'`
-
-是否宽容重导出类型的报错，常见有以下两种场景：
-
-```ts
-// case 1:
-export { TypeA } from './types';
-// case 2:
-import { TypeB } from './types';
-export { TypeB };
-```
-
-重导出类型时，由于 `TypeA`、`TypeB` 是类型，但使用在 `export {}` 值空间中，导致报错：
-
-```txt
-WARNING in ./re-exports.ts
-  ⚠ ESModulesLinkingWarning: export 'TypeA' (reexported as 'TypeA') was not found in './types' (module has no exports)
-   ╭─[2:0]
- 1 │ // case 1:
- 2 │ export { TypeA } from "./types";
-   · ────────────────────────────────
-
-WARNING in ./re-exports.ts
-  ⚠ ESModulesLinkingWarning: export 'TypeB' (reexported as 'TypeB') was not found in './types' (module has no exports)
-   ╭─[5:0]
- 3 │ // case 2:
- 4 │ import { TypeB } from "./types";
- 5 │ export { TypeB };
-   · ─────────────────
-```
-
-:::info 推荐配合 isolatedModules 使用 Rspack
-使用 Rspack 打包 TypeScript 时，我们强烈推荐开启 tsconfig.json 中的 [isolatedModules](https://www.typescriptlang.org/tsconfig/#isolatedModules)（使用其他 bundler 时也推荐开启，因为这符合 bundler 如何编译 TypeScript：[.ts 文件之间相互独立，独立进行编译](/guide/tech/typescript#%E5%BC%80%E5%90%AF-isolatedmodules)），此时对于重导出类型会收到 TypeScript 提示：`Re-exporting a type when 'isolatedModules' is enabled requires using 'export type'.`。
-:::
-
-- `'no-tolerant'`：默认行为，不会对重导出类型进行宽容处理，遇到上述情况会报错。
-- `'tolerant'`：会对重导出类型进行宽容处理，同时检查子模块中是否有对应的类型导出，由于需要收集子模块中的类型导出信息，该配置需要和 builtin:swc-loader 的 [`collectTypeScriptInfo.typeExports`](/guide/features/builtin-swc-loader#collecttypescriptinfotypeexports) 配合使用。
-- `'tolerant-no-check'`：会对重导出类型进行宽容处理，但不会检查子模块中是否有对应的类型导出，此时可能存在误将本该报错的场景宽容掉（通常 IDE 也会有相应提示），由于不需要检查子模块，所以性能也会更好。
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      javascript: {
-        typeReexportsPresence: 'tolerant',
-      },
-    },
-    rules: [
-      {
-        test: /\.ts$/,
-        use: [
-          {
-            loader: 'builtin:swc-loader',
-            options: {
-              jsc: {
-                parser: {
-                  syntax: 'typescript',
-                },
-              },
-              collectTypeScriptInfo: {
-                typeExports: true, // "tolerant" 模式下需开启 typeExports 收集
-              },
-            },
-          },
-        ],
-      },
-    ],
-  },
-};
-```
-
-详细示例可参考：[type reexports presence 示例](https://github.com/rstackjs/rstack-examples/tree/main/rspack/type-reexports-presence)
-
-### module.parser.javascript.worker
-
-<ApiMeta addedVersion="1.0.0-alpha.0" />
-
-<PropertyType type="string[] | boolean" />
-
-为 Worker 解析提供自定义的语法，常用于支持 Worklet：
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      javascript: {
-        worker: [
-          // 支持 CSS paintWorklet
-          'CSS.paintWorklet.addModule()',
-          // 支持 AudioWorklet，最前面的 '*' 表示识别名为 'context' 的变量，比如：
-          // let context = new AudioContext();
-          // await context.audioWorklet.addModule(new URL("noise-processor.js", import.meta.url));
-          '*context.audioWorklet.addModule()',
-          // 继承默认语法：["Worker", "SharedWorker", "navigator.serviceWorker.register()", "Worker from worker_threads"]
-          '...',
-        ],
-      },
-    },
-  },
-};
-```
-
-> 查看 [Web Workers](/guide/features/web-workers) 了解更多。
-
-### module.parser.javascript.overrideStrict
-
-<ApiMeta addedVersion="1.0.0-alpha.4" />
-
-<PropertyType type="'strict' | 'non-strict'" />
-
-将模块覆盖为严格模式或非严格模式。
-
-这可能会影响模块的行为（某些行为在严格模式和非严格模式之间有所不同），因此请谨慎配置此选项。
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      javascript: {
-        overrideStrict: 'strict',
-      },
-    },
-  },
-};
-```
-
-### module.parser.javascript.commonjs
-
-<PropertyType
-  type="boolean | { exports?: boolean | 'skipInEsm' }"
-  defaultValueList={[{ defaultValue: 'true' }]}
-/>
-
-控制 CommonJS 相关的解析行为。`true` 会保持 Rspack 对 CommonJS 导出赋值的默认转换；设置 `{ exports: 'skipInEsm' }` 时，当模块以 ESM 方式执行会跳过对应的重写，从而保留原始的运行时副作用；配置为 `false` 则关闭所有 CommonJS 导出处理。
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      javascript: {
-        commonjs: {
-          exports: 'skipInEsm',
-        },
-      },
-    },
-  },
-};
-```
-
-### module.parser.javascript.requireAlias
-
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
-
-控制是否解析和转换 CommonJS `require` 函数的重命名。
-
-当设置为 `true` 时，Rspack 会解析和转换将 `require` 赋值给变量或作为参数传递的情况（例如：`const req = require; req('./module')`）。
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      javascript: {
-        requireAlias: true,
-      },
-    },
-  },
-};
-```
-
-### module.parser.javascript.requireAsExpression
-
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
-
-控制是否解析作为表达式使用的 `require`。
-
-当设置为 `true` 时，Rspack 会解析作为表达式使用的 `require`（例如：`const req = require; req('./module')`）并发出警告。当设置为 `false` 时，这种模式会被忽略。
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      javascript: {
-        requireAsExpression: true,
-      },
-    },
-  },
-};
-```
-
-### module.parser.javascript.requireDynamic
-
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
-
-控制是否解析动态 `require` 调用。
-
-当设置为 `false` 时，Rspack 不会解析模块路径不是静态字符串的动态 `require` 调用（例如：`require(variable)`）。如果代码中不使用动态 require，可以提高构建性能。
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      javascript: {
-        requireDynamic: false,
-      },
-    },
-  },
-};
-```
-
-### module.parser.javascript.requireResolve
-
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
-
-控制是否解析 `require.resolve()` 调用。
-
-当设置为 `false` 时，Rspack 不会解析 `require.resolve()` 调用。如果代码中不使用 `require.resolve()`，可以提高构建性能。
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      javascript: {
-        requireResolve: false,
-      },
-    },
-  },
-};
-```
-
-### module.parser.javascript.importDynamic
-
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
-
-控制是否解析动态 `import()` 调用。
-
-当设置为 `false` 时，Rspack 不会解析模块路径不是静态字符串的动态 `import()` 调用（例如：`import(variable)`）。如果代码中不使用动态导入，可以提高构建性能。
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      javascript: {
-        importDynamic: false,
-      },
-    },
-  },
-};
-```
-
-### module.parser.javascript.jsx
-
-<ApiMeta stability={Stability.Experimental} addedVersion="1.5.7" />
-
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
-
-让 JavaScript 解析器能够识别 JSX 语法，这样语法解析和压缩等流程就可以在保留 JSX 的情况下继续工作。
-
-当你在 loader 中将 JSX 的模式设置为 "preserve"，希望把 JSX 的转换留给后续工具（例如输出 JSX 的类库或依赖自定义 JSX runtime 的场景）时，可以开启该选项。
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      javascript: {
-        jsx: true,
-      },
-    },
-  },
-};
-```
-
-:::warning
-该选项目前仅在 Rspack 中实验性提供，未来可能调整或移除。
-:::
-
-### module.parser["javascript/auto"]
-
-`javascript/auto` 模块的解析器选项，和 [`javascript` 的模块的解析器选项](#moduleparserjavascript)相同。
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      'javascript/auto': {
-        // options
-      },
-    },
-  },
-};
-```
-
-### module.parser["javascript/dynamic"]
-
-`javascript/dynamic` 模块的解析器选项，和 [`javascript` 的模块的解析器选项](#moduleparserjavascript)相同。
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      'javascript/dynamic': {
-        // options
-      },
-    },
-  },
-};
-```
-
-### module.parser["javascript/esm"]
-
-`javascript/esm` 模块的解析器选项，和 [`javascript` 的模块的解析器选项](#moduleparserjavascript)相同。
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      'javascript/esm': {
-        // options
-      },
-    },
-  },
-};
-```
-
-### module.parser.json
-
-<ApiMeta addedVersion="1.2.0" />
-
-`json` 模块的解析器选项
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      json: {
-        // options
-      },
-    },
-  },
-};
-```
-
-### module.parser.json.exportsDepth
-
-<ApiMeta addedVersion="1.2.0" />
-
-- **Type:** `number`
-- **Default:** production 模式为 `Number.MAX_SAFE_INTEGER`, development 模式为 `1`
-
-设置 Rspack 对于 `json` 模块导出的分析程度。development 模式下此项默认值为 `1`，可大幅提升构建效率。
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      json: {
-        // 例如，对于以下 json
-        // {
-        //   "depth_1": {
-        //     "depth_2": {
-        //       "depth_3": "foo"
-        //     }
-        //   },
-        //   "_depth_1": "bar"
-        // }
-        // 当设置 exportsDepth: 1 时, `depth_2` and `depth_3` 将不会被分析。
-        exportsDepth: 1,
-      },
-    },
-  },
-};
-```
-
-### module.parser["css/auto"]
-
-`css/auto` 模块的解析器选项。
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      'css/auto': {
-        // options
-      },
-    },
-  },
-};
-```
-
-### module.parser["css/auto"].namedExports
-
-- **类型：** `boolean`
-- **默认值：** `true`
-
-使用 ES 模块命名导出来导出 CSS。
-
-当使用 `namedExports: true` 时，你可以使用命名空间导出或命名导出：
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      'css/auto': {
-        namedExports: true,
-      },
-    },
-  },
-};
-```
-
-```js
-// 命名空间导出
-import * as classes from './index.module.css';
-// 命名导出
-import { class1, class2 } from './index.module.css';
-```
-
-当使用 `namedExports: false` 时，除了命名空间导出和命名导出之外，还可以用默认导出：
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      'css/auto': {
-        namedExports: false,
-      },
-    },
-  },
-};
-```
-
-```js
-// 命名空间导出
-import * as classes from './index.module.css';
-// 命名导出
-import { class1, class2 } from './index.module.css';
-// 默认导出
-import classes from './index.module.css';
-// 默认导出和命名导出
-import classes, { class1, class2 } from './index.module.css';
-```
-
-### module.parser["css/auto"].url
-
-- **类型：** `boolean`
-- **默认值：** `true`
-
-开启或者关闭对 CSS 中的 `url` 的处理。
-
-当开启该选项 `url: true`, Rspack 将 `url` 函数中的路径解析成资源路径。
-当关闭该选项 `url: false`, Rspack 忽略 `url` 函数，保持内容不变。
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      css: {
-        url: true,
-      },
-    },
-  },
-};
-```
-
-### module.parser.css
-
-`css` 模块的解析器选项。
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      css: {
-        // options
-      },
-    },
-  },
-};
-```
-
-### module.parser.css.namedExports
-
-和 [`module.parser["css/auto"].namedExports`](#moduleparsercssautonamedexports) 一样。
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      css: {
-        namedExports: true,
-      },
-    },
-  },
-};
-```
-
-### module.parser.css.url
-
-和 [`module.parser["css/auto"].url`](#moduleparsercssautourl) 一样。
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      css: {
-        url: true,
-      },
-    },
-  },
-};
-```
-
-### module.parser["css/module"]
-
-`css/module` 模块的解析器选项。
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      'css/module': {
-        // options
-      },
-    },
-  },
-};
-```
-
-### module.parser["css/module"].namedExports
-
-和 [`module.parser["css/auto"].namedExports`](#moduleparsercssautonamedexports) 一样。
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      'css/module': {
-        namedExports: true,
-      },
-    },
-  },
-};
-```
-
-### module.parser["css/module"].url
-
-和 [`module.parser["css/auto"].url`](#moduleparsercssautourl) 一样。
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      css: {
-        url: true,
-      },
-    },
-  },
-};
-```
-
 ## module.generator
 
 - **类型：** `Object`
@@ -1226,7 +176,6 @@ import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 
 export default {
-  //...
   module: {
     generator: {
       asset: {
@@ -1867,6 +816,1101 @@ export default {
     generator: {
       json: {
         JSONParse: false,
+      },
+    },
+  },
+};
+```
+
+## module.noParse
+
+- **类型：** `string | string[] | RegExp | RegExp[] | ((request: string) => boolean)`
+- **默认值：** `undefined`
+
+匹配的文件代码不会被 Rspack 转换，包括 `module.exports`, `require`, `import` 这些模块系统相关的语法。
+
+用来忽略那些没有外部依赖的第三方库的时候很有用，有时还能提升性能。
+
+请注意：这些文件依然还会被已配置的 loaders 处理。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    noParse: /typescript|watermark-dom/,
+  },
+};
+```
+
+```js title="rspack.config.mjs"
+import { createRequire } from 'node:module';
+
+const require = createRequire(import.meta.url);
+
+export default {
+  module: {
+    noParse: [require.resolve('typescript'), /watermark-dom/],
+  },
+};
+```
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    noParse: (request) => /typescript|watermark-dom/.test(request),
+  },
+};
+```
+
+## module.parser
+
+- **类型：** `Object`
+- **默认值：** `{}`
+
+使用 `module.parser` 在一个地方配置所有解析器选项。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      // asset 模块的解析器选项
+      asset: {
+        dataUrlCondition: {
+          maxSize: 16192,
+        },
+      },
+      // javascript 模块的解析器选项
+      javascript: {
+        dynamicImportMode: 'lazy',
+        dynamicImportPrefetch: false,
+        dynamicImportPreload: false,
+        url: true,
+        importMeta: true,
+      },
+      // CSS 模块的解析器选项
+      css: {
+        namedExports: true,
+      },
+      // css/auto 模块的解析器选项
+      'css/auto': {
+        namedExports: true,
+      },
+      // css/module 模块的解析器选项
+      'css/module': {
+        namedExports: true,
+      },
+    },
+  },
+};
+```
+
+### module.parser.asset
+
+`asset` 模块的解析器选项。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      asset: {
+        // options
+      },
+    },
+  },
+};
+```
+
+### module.parser.asset.dataUrlCondition
+
+- **类型：** `{ maxSize: number }`
+- **默认值：** `{ maxSize: 8096 }`
+
+如果当前模块的小于等于 `maxSize`，那么模块将被 Base64 编码，否则模块将会以文件形式被输出。该选项仅能作用于 [Asset modules](/guide/features/asset-module)。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      asset: {
+        dataUrlCondition: {
+          // 小于等于 4KB 的模块将被 Base64 编码
+          maxSize: 4 * 1024,
+        },
+      },
+    },
+  },
+};
+```
+
+### module.parser.javascript
+
+`javascript` 模块的解析器选项。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        // options
+      },
+    },
+  },
+};
+```
+
+### module.parser.javascript.commonjsMagicComments
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
+<ApiMeta addedVersion="1.5.6" />
+
+为 CommonJS 启用 [Magic comments](/api/runtime-api/module-methods#magic-comments) 支持。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        commonjsMagicComments: true,
+      },
+    },
+  },
+};
+```
+
+目前仅支持 `webpackIgnore` 注释：
+
+```js
+const x = require(/* webpackIgnore: true */ 'x');
+```
+
+### module.parser.javascript.dynamicImportMode
+
+<PropertyType
+  type="'lazy' | 'eager' | 'weak' | 'lazy-once'"
+  defaultValueList={[{ defaultValue: "'lazy'" }]}
+/>
+
+指定动态导入的全局模式，详见[`webpackMode`](/api/runtime-api/module-methods#webpackmode)。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        dynamicImportMode: 'eager',
+      },
+    },
+  },
+};
+```
+
+### module.parser.javascript.dynamicImportPrefetch
+
+<PropertyType
+  type="boolean | number"
+  defaultValueList={[{ defaultValue: 'false' }]}
+/>
+
+指定动态导入的全局 prefetch，详见[`webpackPrefetch`](/api/runtime-api/module-methods#webpackprefetch)。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        dynamicImportPrefetch: true,
+      },
+    },
+  },
+};
+```
+
+### module.parser.javascript.dynamicImportPreload
+
+<PropertyType
+  type="boolean | number"
+  defaultValueList={[{ defaultValue: 'false' }]}
+/>
+
+指定动态导入的全局 preload，详见[`webpackPreload`](/api/runtime-api/module-methods#webpackpreload)。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        dynamicImportPreload: true,
+      },
+    },
+  },
+};
+```
+
+### module.parser.javascript.dynamicImportFetchPriority
+
+<ApiMeta addedVersion="1.0.0" />
+
+<PropertyType
+  type="'low' | 'high' | 'auto'"
+  defaultValueList={[{ defaultValue: "'auto'" }]}
+/>
+
+指定动态导入的全局 `fetchPriority`，详见[`webpackFetchPriority`](/api/runtime-api/module-methods#webpackfetchpriority)。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        dynamicImportFetchPriority: 'high',
+      },
+    },
+  },
+};
+```
+
+### module.parser.javascript.url
+
+<PropertyType
+  type="true | false | 'relative' | 'new-url-relative'"
+  defaultValueList={[{ defaultValue: 'true' }]}
+/>
+
+启用 `new URL()` 语法解析。
+
+- `true`：生成包含根 URL 的绝对 URL（默认行为）。
+- `'relative'`：生成不包含根 URL 的相对 URL。
+- `'new-url-relative'`：相对于公共路径的相对 URL。
+
+当使用 `'new-url-relative'` 时，Rspack 将在编译时计算出相对于公共路径的相对 URL：
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        url: 'new-url-relative',
+      },
+    },
+  },
+};
+```
+
+```js
+new URL('./icon.svg', import.meta.url);
+
+// 转换成 👇
+new URL('./icon[hash].svg', import.meta.url);
+```
+
+当使用 `'relative'` 时，Rspack 将生成运行时代码，为 `new URL()` 语法计算出相对的 URL，结果 URL 中不包含根 URL：
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        url: 'relative',
+      },
+    },
+  },
+};
+```
+
+```html
+<!-- 使用 'relative' -->
+<img src="icon.svg" />
+
+<!-- 不使用 'relative' -->
+<img src="file:///path/to/project/dist/icon.svg" />
+```
+
+### module.parser.javascript.exprContextCritical
+
+<PropertyType
+  type="boolean | undefined"
+  defaultValueList={[{ defaultValue: 'true' }]}
+/>
+
+启用完全动态依赖（`import(variable)`）的警告。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        exprContextCritical: false,
+      },
+    },
+  },
+};
+```
+
+### module.parser.javascript.wrappedContextCritical
+
+<PropertyType
+  type="boolean | undefined"
+  defaultValueList={[{ defaultValue: 'false' }]}
+/>
+
+启用部分动态依赖（`import("./path/to/" + variable)`）的警告。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        wrappedContextCritical: false,
+      },
+    },
+  },
+};
+```
+
+### module.parser.javascript.unknownContextCritical
+
+<PropertyType
+  type="boolean | undefined"
+  defaultValueList={[{ defaultValue: 'true' }]}
+/>
+
+在使用 `require` 函数时，如果无法进行静态分析（`require(variable)`），是否进行警告。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        unknownContextCritical: false,
+      },
+    },
+  },
+};
+```
+
+### module.parser.javascript.wrappedContextRegExp
+
+<PropertyType
+  type="RegExp | undefined"
+  defaultValueList={[{ defaultValue: '/.*/' }]}
+/>
+
+设置正则表达式，用于匹配包裹的动态依赖。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        wrappedContextRegExp: /\.js$/,
+      },
+    },
+  },
+};
+```
+
+### module.parser.javascript.importMeta
+
+<ApiMeta addedVersion="1.0.0-alpha.6" />
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+
+是否要解析替换 `import.meta`。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        importMeta: false,
+      },
+    },
+  },
+};
+```
+
+### module.parser.javascript.exportsPresence
+
+<PropertyType
+  type="'error' | 'warn' | 'auto' | false"
+  defaultValueList={[{ defaultValue: "'error'" }]}
+/>
+
+当使用了不存在的导出或存在冲突的重导出时，是否进行警告或报错。
+
+- `"error"`：进行报错。
+- `"warn"`：进行警告。
+- `"auto"`：根据模块是否为严格 ESM，如果是严格 ESM 则报错，否则警告。
+- `false`：关闭该功能。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        exportsPresence: 'auto',
+      },
+    },
+  },
+};
+```
+
+### module.parser.javascript.importExportsPresence
+
+<PropertyType type="'error' | 'warn' | 'auto' | false" />
+
+当使用了不存在的导出时，是否进行警告或报错。默认会遵循 [module.parser.javascript.exportsPresence](#moduleparserjavascriptexportspresence) 的配置。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        importExportsPresence: 'error',
+      },
+    },
+  },
+};
+```
+
+### module.parser.javascript.reexportExportsPresence
+
+<PropertyType type="'error' | 'warn' | 'auto' | false" />
+
+当使用了存在冲突的重导出时，是否进行警告或报错。默认会遵循 [module.parser.javascript.exportsPresence](#moduleparserjavascriptexportspresence) 的配置。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        reexportExportsPresence: 'error',
+      },
+    },
+  },
+};
+```
+
+### module.parser.javascript.typeReexportsPresence
+
+<ApiMeta addedVersion="1.4.1" />
+
+- **类型：** `'no-tolerant' | 'tolerant' | 'tolerant-no-check'`
+- **默认值：** `'no-tolerant'`
+
+是否宽容重导出类型的报错，常见有以下两种场景：
+
+```ts
+// case 1:
+export { TypeA } from './types';
+// case 2:
+import { TypeB } from './types';
+export { TypeB };
+```
+
+重导出类型时，由于 `TypeA`、`TypeB` 是类型，但使用在 `export {}` 值空间中，导致报错：
+
+```txt
+WARNING in ./re-exports.ts
+  ⚠ ESModulesLinkingWarning: export 'TypeA' (reexported as 'TypeA') was not found in './types' (module has no exports)
+   ╭─[2:0]
+ 1 │ // case 1:
+ 2 │ export { TypeA } from "./types";
+   · ────────────────────────────────
+
+WARNING in ./re-exports.ts
+  ⚠ ESModulesLinkingWarning: export 'TypeB' (reexported as 'TypeB') was not found in './types' (module has no exports)
+   ╭─[5:0]
+ 3 │ // case 2:
+ 4 │ import { TypeB } from "./types";
+ 5 │ export { TypeB };
+   · ─────────────────
+```
+
+:::info 推荐配合 isolatedModules 使用 Rspack
+使用 Rspack 打包 TypeScript 时，我们强烈推荐开启 tsconfig.json 中的 [isolatedModules](https://www.typescriptlang.org/tsconfig/#isolatedModules)（使用其他 bundler 时也推荐开启，因为这符合 bundler 如何编译 TypeScript：[.ts 文件之间相互独立，独立进行编译](/guide/tech/typescript#%E5%BC%80%E5%90%AF-isolatedmodules)），此时对于重导出类型会收到 TypeScript 提示：`Re-exporting a type when 'isolatedModules' is enabled requires using 'export type'.`。
+:::
+
+- `'no-tolerant'`：默认行为，不会对重导出类型进行宽容处理，遇到上述情况会报错。
+- `'tolerant'`：会对重导出类型进行宽容处理，同时检查子模块中是否有对应的类型导出，由于需要收集子模块中的类型导出信息，该配置需要和 builtin:swc-loader 的 [`collectTypeScriptInfo.typeExports`](/guide/features/builtin-swc-loader#collecttypescriptinfotypeexports) 配合使用。
+- `'tolerant-no-check'`：会对重导出类型进行宽容处理，但不会检查子模块中是否有对应的类型导出，此时可能存在误将本该报错的场景宽容掉（通常 IDE 也会有相应提示），由于不需要检查子模块，所以性能也会更好。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        typeReexportsPresence: 'tolerant',
+      },
+    },
+    rules: [
+      {
+        test: /\.ts$/,
+        use: [
+          {
+            loader: 'builtin:swc-loader',
+            options: {
+              jsc: {
+                parser: {
+                  syntax: 'typescript',
+                },
+              },
+              collectTypeScriptInfo: {
+                typeExports: true, // "tolerant" 模式下需开启 typeExports 收集
+              },
+            },
+          },
+        ],
+      },
+    ],
+  },
+};
+```
+
+详细示例可参考：[type reexports presence 示例](https://github.com/rstackjs/rstack-examples/tree/main/rspack/type-reexports-presence)
+
+### module.parser.javascript.worker
+
+<ApiMeta addedVersion="1.0.0-alpha.0" />
+
+<PropertyType type="string[] | boolean" />
+
+为 Worker 解析提供自定义的语法，常用于支持 Worklet：
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        worker: [
+          // 支持 CSS paintWorklet
+          'CSS.paintWorklet.addModule()',
+          // 支持 AudioWorklet，最前面的 '*' 表示识别名为 'context' 的变量，比如：
+          // let context = new AudioContext();
+          // await context.audioWorklet.addModule(new URL("noise-processor.js", import.meta.url));
+          '*context.audioWorklet.addModule()',
+          // 继承默认语法：["Worker", "SharedWorker", "navigator.serviceWorker.register()", "Worker from worker_threads"]
+          '...',
+        ],
+      },
+    },
+  },
+};
+```
+
+> 查看 [Web Workers](/guide/features/web-workers) 了解更多。
+
+### module.parser.javascript.overrideStrict
+
+<ApiMeta addedVersion="1.0.0-alpha.4" />
+
+<PropertyType type="'strict' | 'non-strict'" />
+
+将模块覆盖为严格模式或非严格模式。
+
+这可能会影响模块的行为（某些行为在严格模式和非严格模式之间有所不同），因此请谨慎配置此选项。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        overrideStrict: 'strict',
+      },
+    },
+  },
+};
+```
+
+### module.parser.javascript.commonjs
+
+<PropertyType
+  type="boolean | { exports?: boolean | 'skipInEsm' }"
+  defaultValueList={[{ defaultValue: 'true' }]}
+/>
+
+控制 CommonJS 相关的解析行为。`true` 会保持 Rspack 对 CommonJS 导出赋值的默认转换；设置 `{ exports: 'skipInEsm' }` 时，当模块以 ESM 方式执行会跳过对应的重写，从而保留原始的运行时副作用；配置为 `false` 则关闭所有 CommonJS 导出处理。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        commonjs: {
+          exports: 'skipInEsm',
+        },
+      },
+    },
+  },
+};
+```
+
+### module.parser.javascript.requireAlias
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
+
+控制是否解析和转换 CommonJS `require` 函数的重命名。
+
+当设置为 `true` 时，Rspack 会解析和转换将 `require` 赋值给变量或作为参数传递的情况（例如：`const req = require; req('./module')`）。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        requireAlias: true,
+      },
+    },
+  },
+};
+```
+
+### module.parser.javascript.requireAsExpression
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
+
+控制是否解析作为表达式使用的 `require`。
+
+当设置为 `true` 时，Rspack 会解析作为表达式使用的 `require`（例如：`const req = require; req('./module')`）并发出警告。当设置为 `false` 时，这种模式会被忽略。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        requireAsExpression: true,
+      },
+    },
+  },
+};
+```
+
+### module.parser.javascript.requireDynamic
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+
+控制是否解析动态 `require` 调用。
+
+当设置为 `false` 时，Rspack 不会解析模块路径不是静态字符串的动态 `require` 调用（例如：`require(variable)`）。如果代码中不使用动态 require，可以提高构建性能。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        requireDynamic: false,
+      },
+    },
+  },
+};
+```
+
+### module.parser.javascript.requireResolve
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+
+控制是否解析 `require.resolve()` 调用。
+
+当设置为 `false` 时，Rspack 不会解析 `require.resolve()` 调用。如果代码中不使用 `require.resolve()`，可以提高构建性能。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        requireResolve: false,
+      },
+    },
+  },
+};
+```
+
+### module.parser.javascript.importDynamic
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+
+控制是否解析动态 `import()` 调用。
+
+当设置为 `false` 时，Rspack 不会解析模块路径不是静态字符串的动态 `import()` 调用（例如：`import(variable)`）。如果代码中不使用动态导入，可以提高构建性能。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        importDynamic: false,
+      },
+    },
+  },
+};
+```
+
+### module.parser.javascript.jsx
+
+<ApiMeta stability={Stability.Experimental} addedVersion="1.5.7" />
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
+
+让 JavaScript 解析器能够识别 JSX 语法，这样语法解析和压缩等流程就可以在保留 JSX 的情况下继续工作。
+
+当你在 loader 中将 JSX 的模式设置为 "preserve"，希望把 JSX 的转换留给后续工具（例如输出 JSX 的类库或依赖自定义 JSX runtime 的场景）时，可以开启该选项。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        jsx: true,
+      },
+    },
+  },
+};
+```
+
+:::warning
+该选项目前仅在 Rspack 中实验性提供，未来可能调整或移除。
+:::
+
+### module.parser["javascript/auto"]
+
+`javascript/auto` 模块的解析器选项，和 [`javascript` 的模块的解析器选项](#moduleparserjavascript)相同。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'javascript/auto': {
+        // options
+      },
+    },
+  },
+};
+```
+
+### module.parser["javascript/dynamic"]
+
+`javascript/dynamic` 模块的解析器选项，和 [`javascript` 的模块的解析器选项](#moduleparserjavascript)相同。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'javascript/dynamic': {
+        // options
+      },
+    },
+  },
+};
+```
+
+### module.parser["javascript/esm"]
+
+`javascript/esm` 模块的解析器选项，和 [`javascript` 的模块的解析器选项](#moduleparserjavascript)相同。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'javascript/esm': {
+        // options
+      },
+    },
+  },
+};
+```
+
+### module.parser.json
+
+<ApiMeta addedVersion="1.2.0" />
+
+`json` 模块的解析器选项
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      json: {
+        // options
+      },
+    },
+  },
+};
+```
+
+### module.parser.json.exportsDepth
+
+<ApiMeta addedVersion="1.2.0" />
+
+- **Type:** `number`
+- **Default:** production 模式为 `Number.MAX_SAFE_INTEGER`, development 模式为 `1`
+
+设置 Rspack 对于 `json` 模块导出的分析程度。development 模式下此项默认值为 `1`，可大幅提升构建效率。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      json: {
+        // 例如，对于以下 json
+        // {
+        //   "depth_1": {
+        //     "depth_2": {
+        //       "depth_3": "foo"
+        //     }
+        //   },
+        //   "_depth_1": "bar"
+        // }
+        // 当设置 exportsDepth: 1 时, `depth_2` and `depth_3` 将不会被分析。
+        exportsDepth: 1,
+      },
+    },
+  },
+};
+```
+
+### module.parser["css/auto"]
+
+`css/auto` 模块的解析器选项。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/auto': {
+        // options
+      },
+    },
+  },
+};
+```
+
+### module.parser["css/auto"].namedExports
+
+- **类型：** `boolean`
+- **默认值：** `true`
+
+使用 ES 模块命名导出来导出 CSS。
+
+当使用 `namedExports: true` 时，你可以使用命名空间导出或命名导出：
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/auto': {
+        namedExports: true,
+      },
+    },
+  },
+};
+```
+
+```js
+// 命名空间导出
+import * as classes from './index.module.css';
+// 命名导出
+import { class1, class2 } from './index.module.css';
+```
+
+当使用 `namedExports: false` 时，除了命名空间导出和命名导出之外，还可以用默认导出：
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/auto': {
+        namedExports: false,
+      },
+    },
+  },
+};
+```
+
+```js
+// 命名空间导出
+import * as classes from './index.module.css';
+// 命名导出
+import { class1, class2 } from './index.module.css';
+// 默认导出
+import classes from './index.module.css';
+// 默认导出和命名导出
+import classes, { class1, class2 } from './index.module.css';
+```
+
+### module.parser["css/auto"].url
+
+- **类型：** `boolean`
+- **默认值：** `true`
+
+开启或者关闭对 CSS 中的 `url` 的处理。
+
+当开启该选项 `url: true`, Rspack 将 `url` 函数中的路径解析成资源路径。
+当关闭该选项 `url: false`, Rspack 忽略 `url` 函数，保持内容不变。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      css: {
+        url: true,
+      },
+    },
+  },
+};
+```
+
+### module.parser["css/auto"].resolveImport
+
+<ApiMeta addedVersion="1.7.2" />
+
+- **类型：** `boolean | ((context: { url: string, media: string | undefined, resourcePath: string, supports: string | undefined, layer: string | undefined }) => boolean)`
+- **默认值：** `true`
+
+配置是否处理 `@import`。
+
+- `true`: 启用所有 `@import` 规则的处理（默认）。
+- `false`: 禁用所有 `@import` 规则的处理。
+- `function`: 仅处理满足条件的 `@import` 规则。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/auto': {
+        resolveImport: ({ url }) => {
+          return url.includes('style.css');
+        },
+      },
+    },
+  },
+};
+```
+
+### module.parser.css
+
+`css` 模块的解析器选项。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      css: {
+        // options
+      },
+    },
+  },
+};
+```
+
+### module.parser.css.namedExports
+
+和 [`module.parser["css/auto"].namedExports`](#moduleparsercssautonamedexports) 一样。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      css: {
+        namedExports: true,
+      },
+    },
+  },
+};
+```
+
+### module.parser.css.url
+
+和 [`module.parser["css/auto"].url`](#moduleparsercssautourl) 一样。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      css: {
+        url: true,
+      },
+    },
+  },
+};
+```
+
+### module.parser.css.resolveImport
+
+参考 [`module.parser["css/auto"].resolveImport`](#moduleparsercssautoresolveimport)。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      css: {
+        resolveImport: ({ url }) => {
+          return url.includes('style.css');
+        },
+      },
+    },
+  },
+};
+```
+
+### module.parser["css/module"]
+
+`css/module` 模块的解析器选项。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/module': {
+        // options
+      },
+    },
+  },
+};
+```
+
+### module.parser["css/module"].namedExports
+
+和 [`module.parser["css/auto"].namedExports`](#moduleparsercssautonamedexports) 一样。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/module': {
+        namedExports: true,
+      },
+    },
+  },
+};
+```
+
+### module.parser["css/module"].url
+
+和 [`module.parser["css/auto"].url`](#moduleparsercssautourl) 一样。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      css: {
+        url: true,
+      },
+    },
+  },
+};
+```
+
+### module.parser["css/module"].resolveImport
+
+参考 [`module.parser["css/auto"].resolveImport`](#moduleparsercssautoresolveimport)。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/module': {
+        resolveImport: ({ url }) => {
+          return url.includes('style.css');
+        },
       },
     },
   },

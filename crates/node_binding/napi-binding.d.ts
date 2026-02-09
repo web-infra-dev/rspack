@@ -1127,6 +1127,11 @@ export interface JsRsdoctorExportInfo {
   sideEffects: Array<number>
 }
 
+export interface JsRsdoctorJsonModuleSize {
+  identifier: string
+  size: number
+}
+
 export interface JsRsdoctorModule {
   ukey: number
   identifier: string
@@ -1175,6 +1180,7 @@ export interface JsRsdoctorModuleOriginalSource {
 
 export interface JsRsdoctorModuleSourcesPatch {
   moduleOriginalSources: Array<JsRsdoctorModuleOriginalSource>
+  jsonModuleSizes: Array<JsRsdoctorJsonModuleSize>
 }
 
 export interface JsRsdoctorSideEffect {
@@ -2056,6 +2062,7 @@ export interface RawCssAutoGeneratorOptions {
 export interface RawCssAutoParserOptions {
   namedExports?: boolean
   url?: boolean
+  resolveImport?: boolean | ((context: { url: string, media: string | undefined, resourcePath: string, supports: string | undefined, layer: string | undefined }) => boolean)
 }
 
 export interface RawCssChunkingPluginOptions {
@@ -2082,6 +2089,14 @@ export interface RawCssGeneratorOptions {
   esModule?: boolean
 }
 
+export interface RawCssImportContext {
+  url: string
+  media?: string
+  resourcePath: string
+  supports?: string
+  layer?: string
+}
+
 export interface RawCssModuleGeneratorOptions {
   exportsConvention?: "as-is" | "camel-case" | "camel-case-only" | "dashes" | "dashes-only"
   exportsOnly?: boolean
@@ -2092,11 +2107,13 @@ export interface RawCssModuleGeneratorOptions {
 export interface RawCssModuleParserOptions {
   namedExports?: boolean
   url?: boolean
+  resolveImport?: boolean | ((context: { url: string, media: string | undefined, resourcePath: string, supports: string | undefined, layer: string | undefined }) => boolean)
 }
 
 export interface RawCssParserOptions {
   namedExports?: boolean
   url?: boolean
+  resolveImport?: boolean | ((context: { url: string, media: string | undefined, resourcePath: string, supports: string | undefined, layer: string | undefined }) => boolean)
 }
 
 export interface RawDllEntryPluginOptions {
@@ -2361,7 +2378,6 @@ export interface RawJavascriptParserOptions {
   exportsPresence?: string
   importExportsPresence?: string
   reexportExportsPresence?: string
-  strictExportPresence?: boolean
   worker?: Array<string>
   overrideStrict?: string
   importMeta?: boolean
