@@ -21,7 +21,6 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
   compilation
     .get_module_graph()
     .modules()
-    .iter()
     .for_each(|(module_id, module)| {
       let source_chunks = compilation
         .build_chunk_graph_artifact
@@ -36,7 +35,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
         })
         .collect::<Vec<_>>();
       if !source_chunks.is_empty() {
-        source_module_chunks.insert(*module_id, source_chunks);
+        source_module_chunks.insert(module_id, source_chunks);
       }
     });
 

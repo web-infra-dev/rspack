@@ -188,15 +188,14 @@ async fn finish_modules(
     logger.log(format!(
       "{} modules are affected, {} in total",
       modules.len(),
-      compilation.get_module_graph().modules().len()
+      compilation.get_module_graph().module_count()
     ));
     modules
   } else {
     compilation
       .get_module_graph()
       .modules()
-      .keys()
-      .copied()
+      .map(|(module_identifier, _)| module_identifier)
       .collect()
   };
   let module_graph_cache = compilation.module_graph_cache_artifact.clone();

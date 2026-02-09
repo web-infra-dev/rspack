@@ -163,23 +163,22 @@ async fn module_ids(
 
   let modules: IdentifierSet = module_graph
     .modules()
-    .iter()
-    .filter(|&(module_identifier, module)| {
+    .filter_map(|(module_identifier, module)| {
       let not_used =
-        if let Some(module_id) = ChunkGraph::get_module_id(&module_ids, *module_identifier) {
+        if let Some(module_id) = ChunkGraph::get_module_id(&module_ids, module_identifier) {
           !used_ids.contains_key(module_id)
         } else {
           true
         };
-      not_used
+      (not_used
         && module.need_id()
         && compilation
           .build_chunk_graph_artifact
           .chunk_graph
-          .get_number_of_module_chunks(*module_identifier)
-          != 0
+          .get_number_of_module_chunks(module_identifier)
+          != 0)
+        .then_some(module_identifier)
     })
-    .map(|(m, _)| *m)
     .collect();
   let modules_len = modules.len();
 
@@ -225,7 +224,7 @@ async fn module_ids(
     logger.log(format!(
       "{} modules are affected, {} in total",
       modules_len,
-      module_graph.modules().len(),
+      module_graph.module_count(),
     ));
     logger.log(format!(
       "{} modules are updated by set_module_id, with {} unnamed modules",

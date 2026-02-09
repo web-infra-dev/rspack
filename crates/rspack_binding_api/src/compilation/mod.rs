@@ -187,12 +187,12 @@ impl JsCompilation {
     let compilation = self.as_ref()?;
     let module_graph = compilation.get_module_graph();
     let modules = module_graph.modules();
-    let mut arr = env.create_array(modules.len() as u32)?;
-    for (i, identifier) in modules.keys().enumerate() {
+    let mut arr = env.create_array(module_graph.module_count() as u32)?;
+    for (i, (identifier, _)) in modules.enumerate() {
       arr.set(
         i as u32,
         compilation
-          .module_by_identifier(identifier)
+          .module_by_identifier(&identifier)
           .map(|module| ModuleObject::with_ref(module.as_ref(), compilation.compiler_id())),
       )?;
     }

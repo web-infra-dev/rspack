@@ -57,8 +57,7 @@ pub async fn preserve_modules(
   let modules = compilation
     .get_module_graph()
     .modules()
-    .keys()
-    .copied()
+    .map(|(module_identifier, _)| module_identifier)
     .collect::<Vec<_>>();
 
   let entry_modules = entry_modules(compilation);

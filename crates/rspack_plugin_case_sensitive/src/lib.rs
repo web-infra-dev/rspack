@@ -59,10 +59,10 @@ async fn seal(&self, compilation: &mut Compilation) -> Result<()> {
   let module_graph = compilation.get_module_graph();
   let all_modules = module_graph.modules();
   let mut not_conflect: HashMap<String, Identifier> =
-    HashMap::with_capacity_and_hasher(all_modules.len(), FxBuildHasher);
+    HashMap::with_capacity_and_hasher(module_graph.module_count(), FxBuildHasher);
   let mut conflict: HashMap<String, IdentifierSet> = HashMap::default();
 
-  for module in all_modules.values() {
+  for (_, module) in all_modules {
     // Ignore `data:` URLs, because it's not a real path
     if let Some(normal_module) = module.as_normal_module()
       && normal_module

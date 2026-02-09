@@ -102,8 +102,7 @@ async fn finish_modules(
 ) -> Result<()> {
   let module_graph = compilation.get_module_graph();
   let mut modules_map = IdentifierIndexMap::default();
-  let modules = module_graph.modules();
-  let mut modules = modules.iter().collect::<Vec<_>>();
+  let mut modules = module_graph.modules().collect::<Vec<_>>();
   modules.sort_by(|(m1, _), (m2, _)| m1.cmp(m2));
   let logger = compilation.get_logger("rspack.EsmLibraryPlugin");
 
@@ -126,7 +125,7 @@ async fn finish_modules(
     //   should_scope_hoisting = false;
     // }
     else if module_graph
-      .get_incoming_connections(module_identifier)
+      .get_incoming_connections(&module_identifier)
       .map(|conn| module_graph.dependency_by_id(&conn.dependency_id))
       .any(|dep| {
         !is_esm_dep_like(dep)
@@ -145,7 +144,7 @@ async fn finish_modules(
     // if we reach here, check exports info
     if should_scope_hoisting {
       let exports_info = module_graph
-        .get_prefetched_exports_info(module_identifier, PrefetchExportsInfoMode::Default);
+        .get_prefetched_exports_info(&module_identifier, PrefetchExportsInfoMode::Default);
 
       let relevant_exports = exports_info.get_relevant_exports(None);
       let unknown_exports = relevant_exports
@@ -176,19 +175,19 @@ async fn finish_modules(
 
     if should_scope_hoisting {
       modules_map.insert(
-        *module_identifier,
+        module_identifier,
         ModuleInfo::Concatenated(Box::new(ConcatenatedModuleInfo {
           index: idx,
-          module: *module_identifier,
+          module: module_identifier,
           ..Default::default()
         })),
       );
     } else {
       modules_map.insert(
-        *module_identifier,
+        module_identifier,
         ModuleInfo::External(ExternalModuleInfo {
           index: idx,
-          module: *module_identifier,
+          module: module_identifier,
           interop_namespace_object_used: false,
           interop_namespace_object_name: None,
           interop_namespace_object2_used: false,

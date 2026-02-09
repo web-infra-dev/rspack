@@ -161,7 +161,7 @@ async fn optimize_dependencies(
 
   let module_graph = build_module_graph_artifact.get_module_graph();
 
-  let all_modules = module_graph.modules();
+  let all_modules: IdentifierMap<&BoxModule> = module_graph.modules().collect();
 
   let side_effects_state_map: IdentifierMap<ConnectionState> = all_modules
     .par_iter()

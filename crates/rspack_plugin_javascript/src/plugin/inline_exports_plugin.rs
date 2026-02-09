@@ -115,9 +115,8 @@ async fn optimize_dependencies(
   let mut visited: FxHashSet<ExportsInfo> = FxHashSet::default();
 
   let mut q = modules
-    .keys()
-    .filter_map(|mid| {
-      let mgm = mg.module_graph_module_by_identifier(mid)?;
+    .filter_map(|(mid, _)| {
+      let mgm = mg.module_graph_module_by_identifier(&mid)?;
       Some(mgm.exports)
     })
     .collect_vec();

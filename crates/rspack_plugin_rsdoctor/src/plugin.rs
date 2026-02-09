@@ -267,7 +267,9 @@ async fn collect_json_sizes(&self, compilation: &mut Compilation) -> Result<Opti
   }
 
   let module_graph = compilation.get_module_graph();
-  let modules = module_graph.modules();
+  let modules = module_graph
+    .modules()
+    .collect::<rspack_collections::IdentifierMap<_>>();
 
   let json_sizes = collect_json_module_sizes(&modules, module_graph);
 
@@ -290,7 +292,9 @@ async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<
   let module_graph = compilation.get_module_graph();
   let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
   let chunk_by_ukey = &compilation.build_chunk_graph_artifact.chunk_by_ukey;
-  let modules = module_graph.modules();
+  let modules = module_graph
+    .modules()
+    .collect::<rspack_collections::IdentifierMap<_>>();
 
   // 1. collect modules
   rsd_modules.extend(collect_modules(
@@ -411,7 +415,9 @@ async fn module_ids(
 
   let hooks = RsdoctorPlugin::get_compilation_hooks(compilation.id());
   let module_graph = compilation.get_module_graph();
-  let modules = module_graph.modules();
+  let modules = module_graph
+    .modules()
+    .collect::<rspack_collections::IdentifierMap<_>>();
   let rsd_module_ids = collect_module_ids(
     &modules,
     &MODULE_UKEY_MAP
@@ -449,7 +455,9 @@ async fn after_code_generation(
 
   let hooks = RsdoctorPlugin::get_compilation_hooks(compilation.id());
   let module_graph = compilation.get_module_graph();
-  let modules = module_graph.modules();
+  let modules = module_graph
+    .modules()
+    .collect::<rspack_collections::IdentifierMap<_>>();
   let rsd_module_original_sources = collect_module_original_sources(
     &modules,
     &MODULE_UKEY_MAP

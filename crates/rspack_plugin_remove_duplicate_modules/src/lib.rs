@@ -52,15 +52,12 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
 
   module_graph
     .modules()
-    .par_iter()
+    .par_bridge()
     .for_each(|(identifier, _)| {
-      let chunks = chunk_graph.get_module_chunks(*identifier);
+      let chunks = chunk_graph.get_module_chunks(identifier);
       let mut sorted_chunks = chunks.iter().copied().collect::<Vec<_>>();
       sorted_chunks.sort();
-      chunk_map
-        .entry(sorted_chunks)
-        .or_default()
-        .push(*identifier);
+      chunk_map.entry(sorted_chunks).or_default().push(identifier);
     });
 
   /*

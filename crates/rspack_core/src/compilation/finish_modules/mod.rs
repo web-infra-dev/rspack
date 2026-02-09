@@ -120,18 +120,26 @@ impl Compilation {
           logger.log(format!(
             "{} modules are affected, {} in total",
             modules.len(),
-            self.get_module_graph().modules().len()
+            self.get_module_graph().module_count()
           ));
           (modules, true)
         } else {
           (
-            self.get_module_graph().modules().keys().copied().collect(),
+            self
+              .get_module_graph()
+              .modules()
+              .map(|(module_identifier, _)| module_identifier)
+              .collect(),
             true,
           )
         }
       } else {
         (
-          self.get_module_graph().modules().keys().copied().collect(),
+          self
+            .get_module_graph()
+            .modules()
+            .map(|(module_identifier, _)| module_identifier)
+            .collect(),
           false,
         )
       }

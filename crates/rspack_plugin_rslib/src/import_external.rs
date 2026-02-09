@@ -13,7 +13,7 @@ pub fn replace_import_dependencies_for_external_modules(
   let mg = compilation.get_module_graph();
   let mut deps_to_replace: Vec<BoxDependency> = Vec::new();
 
-  for module in mg.modules().values() {
+  for (_, module) in mg.modules() {
     for block_id in module.get_blocks() {
       let Some(block) = mg.block_by_id(block_id) else {
         continue;

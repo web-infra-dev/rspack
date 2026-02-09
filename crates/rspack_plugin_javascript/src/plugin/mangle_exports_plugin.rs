@@ -76,7 +76,7 @@ async fn optimize_code_generation(
   }
 
   let mg = build_module_graph_artifact.get_module_graph_mut();
-  let modules = mg.modules();
+  let modules = mg.modules().collect_vec();
 
   let mut exports_info_cache = FxHashMap::default();
 
