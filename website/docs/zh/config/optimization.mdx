@@ -194,7 +194,7 @@ function f2() {
 <PropertyType
   type="boolean | 'deterministic' | 'size'"
   defaultValueList={[
-    { defaultValue: 'deterministic', mode: 'production' },
+    { defaultValue: 'true', mode: 'production' },
     { defaultValue: 'false', mode: 'development' },
   ]}
 />
@@ -203,12 +203,12 @@ function f2() {
 
 支持以下选项：
 
-| option          | description                                                                |
-| --------------- | -------------------------------------------------------------------------- |
-| 'size'          | 使用尽可能短的导出名，以减小产物体积。                                     |
-| 'deterministic' | 使用短且稳定的导出名，以获得更好的长期缓存稳定性。生产模式默认启用该选项。 |
-| true            | 与 `'deterministic'` 相同。                                                |
-| false           | 关闭导出名混淆，保留原始导出名。开发模式默认启用该选项。                   |
+| option            | description                                                                |
+| ----------------- | -------------------------------------------------------------------------- |
+| `'size'`          | 使用尽可能短的导出名，以减小产物体积。                                     |
+| `'deterministic'` | 使用短且稳定的导出名，以获得更好的长期缓存稳定性。生产模式默认启用该选项。 |
+| `true`            | 与 `'deterministic'` 相同。                                                |
+| `false`           | 关闭导出名混淆，保留原始导出名。开发模式默认启用该选项。                   |
 
 例如源代码为：
 
