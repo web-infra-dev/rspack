@@ -116,14 +116,13 @@ fn hoist_new_esm_import_fragments(
       conditional_fragment.content().to_string()
     };
 
-    let runtime_condition = conditional_fragment.runtime_condition().clone();
     let override_fragment = rspack_core::ConditionalInitFragment::new(
       content,
       InitFragmentStage::StageESMImports,
       -1,
       key,
       None,
-      runtime_condition,
+      RuntimeCondition::Boolean(true),
     );
     overrides.push(override_fragment.boxed());
   }
