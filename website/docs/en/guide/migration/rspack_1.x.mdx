@@ -184,24 +184,6 @@ const statsData = stats.toJson({
 
 ### Parser Default Behavior
 
-#### require as Expression
-
-The default value of `parser.javascript.requireAsExpression` has been changed to `false`.
-
-This means `require` is no longer parsed as an expression, and some dynamic usage may no longer work. To enable it, explicitly configure:
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      javascript: {
-        requireAsExpression: true,
-      },
-    },
-  },
-};
-```
-
 #### require Renaming
 
 The require renaming resolution feature is disabled by default.
@@ -660,7 +642,7 @@ class MyPlugin {
     compiler.hooks.compilation.tap('MyPlugin', (compilation) => {
 -      const hooks = compiler.HtmlRspackPlugin.getHooks(compilation);
 +      const hooks = compiler.HtmlRspackPlugin.getCompilationHooks(compilation);
-      
+
       hooks.beforeEmit.tap('MyPlugin', (data, cb) => {
         // ...
       });
