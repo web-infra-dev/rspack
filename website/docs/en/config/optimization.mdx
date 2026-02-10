@@ -192,23 +192,53 @@ Here we assign the `value` to `value2`. Both `value2` and `value` are accessed w
 ## optimization.mangleExports
 
 <PropertyType
-  type="boolean | 'deterministic' | 'size' "
+  type="boolean | 'deterministic' | 'size'"
   defaultValueList={[
     { defaultValue: 'deterministic', mode: 'production' },
     { defaultValue: 'false', mode: 'development' },
   ]}
 />
 
-`optimization.mangleExports` allows to control export mangling.
+`optimization.mangleExports` controls how export names are mangled.
 
 The following values are supported:
 
-| option          | description                                                                                                                        |
-| --------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| 'named'         | Use meaningful, easy-to-debug content as id. This option is enabled by default in development mode                                 |
-| 'deterministic' | Use the hashed module identifier as the id to benefit from long-term caching. This option is enabled by default in production mode |
-| true            | Same as 'deterministic'                                                                                                            |
-| false           | Keep original name. Good for readability and debugging.                                                                            |
+| option          | description                                                                                                    |
+| --------------- | -------------------------------------------------------------------------------------------------------------- |
+| 'size'          | Use the shortest possible export names to reduce bundle size.                                                  |
+| 'deterministic' | Use short and stable export names for better long-term cache stability. Enabled by default in production mode. |
+| true            | Same as `'deterministic'`.                                                                                     |
+| false           | Disable export mangling and keep original export names. Enabled by default in development mode.                |
+
+For example, with the following source code:
+
+```js title="src/math.js"
+export const veryLongExportName = 1;
+```
+
+When `mangleExports` is disabled, the export name is preserved:
+
+```js title="dist/main.js"
+__webpack_require__.d(__webpack_exports__, {
+  veryLongExportName: () => veryLongExportName,
+});
+```
+
+When `mangleExports` is set to `'size'`, the export name is shortened:
+
+```js title="rspack.config.mjs"
+export default {
+  optimization: {
+    mangleExports: 'size',
+  },
+};
+```
+
+```js title="dist/main.js"
+__webpack_require__.d(__webpack_exports__, {
+  a: () => veryLongExportName,
+});
+```
 
 ## optimization.mergeDuplicateChunks
 
