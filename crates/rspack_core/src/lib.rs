@@ -1,3 +1,7 @@
+#![feature(arbitrary_self_types)]
+#![feature(derive_coerce_pointee)]
+#![feature(layout_for_ptr)]
+
 use std::{fmt, sync::Arc};
 mod artifacts;
 mod binding;

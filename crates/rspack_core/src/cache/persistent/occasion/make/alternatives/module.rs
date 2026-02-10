@@ -8,10 +8,7 @@ use rspack_sources::BoxSource;
 use rspack_util::source_map::{ModuleSourceMapConfig, SourceMapKind};
 
 use crate::{
-  AsyncDependenciesBlockIdentifier, BoxModule, BuildInfo, BuildMeta, CodeGenerationResult,
-  Compilation, Context, DependenciesBlock, DependencyId, FactoryMeta, Module,
-  ModuleCodeGenerationContext, ModuleGraph, ModuleIdentifier, ModuleType, RuntimeSpec, SourceType,
-  ValueCacheVersions,
+  AsyncDependenciesBlockIdentifier, BindingCell, BoxModule, BuildInfo, BuildMeta, CodeGenerationResult, Compilation, Context, DependenciesBlock, DependencyId, FactoryMeta, Module, ModuleCodeGenerationContext, ModuleGraph, ModuleIdentifier, ModuleType, RuntimeSpec, SourceType, ValueCacheVersions
 };
 
 #[cacheable]
@@ -27,7 +24,7 @@ pub struct TempModule {
 impl TempModule {
   pub fn transform_from(module: OwnedOrRef<BoxModule>) -> OwnedOrRef<BoxModule> {
     let m = module.as_ref();
-    OwnedOrRef::Owned(BoxModule::new(Box::new(Self {
+    OwnedOrRef::Owned(BoxModule::new(BindingCell::new(Self {
       id: m.identifier(),
       build_info: m.build_info().clone(),
       build_meta: m.build_meta().clone(),

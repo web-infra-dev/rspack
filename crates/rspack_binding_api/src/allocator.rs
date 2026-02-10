@@ -30,7 +30,7 @@ impl rspack_core::NapiAllocator for NapiAllocatorImpl {
     env: napi_env,
     val: &BindingCell<rspack_core::CodeGenerationResult>,
   ) -> napi::Result<napi::sys::napi_value> {
-    let code_generation_result = CodeGenerationResult::new(val.downgrade());
+    let code_generation_result = CodeGenerationResult::new(val.reflector());
     unsafe { ToNapiValue::to_napi_value(env, code_generation_result) }
   }
 
@@ -41,7 +41,7 @@ impl rspack_core::NapiAllocator for NapiAllocatorImpl {
       rustc_hash::FxHashMap<rspack_core::SourceType, rspack_core::rspack_sources::BoxSource>,
     >,
   ) -> napi::Result<napi::sys::napi_value> {
-    let sources = Sources::new(val.downgrade());
+    let sources = Sources::new(val.reflector());
     unsafe { ToNapiValue::to_napi_value(env, sources) }
   }
 
@@ -50,7 +50,7 @@ impl rspack_core::NapiAllocator for NapiAllocatorImpl {
     env: napi_env,
     val: &BindingCell<rspack_core::CodeGenerationResults>,
   ) -> napi::Result<napi::sys::napi_value> {
-    let code_generation_results = CodeGenerationResults::new(val.downgrade());
+    let code_generation_results = CodeGenerationResults::new(val.reflector());
     unsafe { ToNapiValue::to_napi_value(env, code_generation_results) }
   }
 
@@ -59,7 +59,7 @@ impl rspack_core::NapiAllocator for NapiAllocatorImpl {
     env: napi_env,
     val: &BindingCell<rustc_hash::FxHashMap<String, rspack_core::CompilationAsset>>,
   ) -> napi::Result<napi::sys::napi_value> {
-    let assets = Assets::new(val.downgrade());
+    let assets = Assets::new(val.reflector());
     unsafe { ToNapiValue::to_napi_value(env, assets) }
   }
 }

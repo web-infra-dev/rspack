@@ -77,7 +77,9 @@ impl JsCompilation {
     env: &Env,
     filename: String,
     new_source_or_function: Either<JsSourceFromJs, Function<'_, JsSourceToJs, JsSourceFromJs>>,
-    asset_info_update_or_function: Option<Either<Object, Function<'_, Reflector, Option<Object>>>>,
+    asset_info_update_or_function: Option<
+      Either<Object, Function<'_, Reflector<rspack_core::AssetInfo>, Option<Object>>>,
+    >,
   ) -> Result<()> {
     let compilation = self.as_mut()?;
 
@@ -942,7 +944,7 @@ impl JsCompilation {
   }
 
   #[napi(getter, ts_return_type = "CodeGenerationResults")]
-  pub fn code_generation_results(&self) -> Result<Reflector> {
+  pub fn code_generation_results(&self) -> Result<Reflector<rspack_core::CodeGenerationResults>> {
     let compilation = self.as_ref()?;
 
     Ok(compilation.code_generation_results.reflector())

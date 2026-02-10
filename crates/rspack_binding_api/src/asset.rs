@@ -202,7 +202,7 @@ impl AssetInfo {
 pub struct JsAsset {
   pub name: String,
   #[napi(ts_type = "AssetInfo")]
-  pub info: Reflector,
+  pub info: Reflector<rspack_core::AssetInfo>,
 }
 
 impl From<rspack_core::AssetInfoRelated> for AssetInfoRelated {
