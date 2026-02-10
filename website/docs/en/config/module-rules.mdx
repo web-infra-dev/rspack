@@ -461,9 +461,46 @@ export default {
 
 `rules[].loader` is a shortcut to `rules[].use: [ { loader } ]`. See [rules[].use](/config/module-rules#rulesuse) for details.
 
+For example, use the built-in swc-loader to compile TypeScript files:
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.ts$/,
+        loader: 'builtin:swc-loader',
+      },
+    ],
+  },
+};
+```
+
 ## rules[].options
 
 `rules[].options` is a shortcut to `rules[].use: [ { options } ]`. See [rules[].use](/config/module-rules#rulesuse) for details.
+
+For example, pass options to the swc-loader:
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.ts$/,
+        loader: 'builtin:swc-loader',
+        options: {
+          jsc: {
+            parser: {
+              syntax: 'typescript',
+            },
+          },
+        },
+      },
+    ],
+  },
+};
+```
 
 ## rules[].parser
 
