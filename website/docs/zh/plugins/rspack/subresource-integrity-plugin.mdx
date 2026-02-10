@@ -57,9 +57,9 @@ export default {
 
 ### 使用 HTML 插件
 
-当使用 HTML 插件（[`HtmlRspackPlugin`](/plugins/rspack/html-rspack-plugin.mdx) 或 [`html-webpack-plugin`](https://github.com/jantimon/html-webpack-plugin)）时，`integrity` 和 `crossorigin` 属性将被自动设置。
+当使用 HTML 插件（[`HtmlRspackPlugin`](/plugins/rspack/html-rspack-plugin) 或 [`html-webpack-plugin`](https://github.com/jantimon/html-webpack-plugin)）时，`integrity` 和 `crossorigin` 属性将被自动设置。
 
-SubresourceIntegrityPlugin 默认会与 [`HtmlRspackPlugin`](/plugins/rspack/html-rspack-plugin.mdx) 交互：
+SubresourceIntegrityPlugin 默认会与 [`HtmlRspackPlugin`](/plugins/rspack/html-rspack-plugin) 交互：
 
 ```js title="rspack.config.mjs"
 import { SubresourceIntegrityPlugin, HtmlRspackPlugin } from '@rspack/core';
@@ -90,10 +90,10 @@ export default {
 
 如果使用 HTML 插件时设置了 `inject: false`，你需要在模板中手动注入 `integrity` 和 `crossorigin` 属性。
 
-对于 [`HtmlRspackPlugin`](/plugins/rspack/html-rspack-plugin.mdx)，模板的语法与标准 `.ejs` 稍有不同不同（参考[文档](/plugins/rspack/html-rspack-plugin#supported-ejs-syntax)），可以这样注入属性：
+对于 [`HtmlRspackPlugin`](/plugins/rspack/html-rspack-plugin)，模板的语法与标准 `.ejs` 稍有不同（参考[文档](/plugins/rspack/html-rspack-plugin#supported-ejs-syntax)），可以这样注入属性：
 
 ```ejs title="index.ejs"
-<% for  in htmlRspackPlugin.files.js { %>
+<% for src in htmlRspackPlugin.files.js { %>
   <script src="<%= htmlRspackPlugin.files.js[index] %>"
     integrity="<%= htmlRspackPlugin.files.jsIntegrity[index] %>"
     crossorigin="<%= rspackConfig.output.crossOriginLoading %>"

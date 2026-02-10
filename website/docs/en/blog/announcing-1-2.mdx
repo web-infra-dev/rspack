@@ -139,7 +139,7 @@ new rspack.SwcJsMinimizerRspackPlugin({
 });
 ```
 
-[passes](https://swc.rs/docs/configuration/minification#jscminifycompress) is the the maximum number of times to run compress. In some cases, more than one pass leads to further compressed code. Given Rspack's inherent speed, we've determined that using `2` passes by default strikes an optimal balance between build performance and bundle size.
+[passes](https://swc.rs/docs/configuration/minification#jscminifycompress) is the maximum number of times to run compress. In some cases, more than one pass leads to further compressed code. Given Rspack's inherent speed, we've determined that using `2` passes by default strikes an optimal balance between build performance and bundle size.
 
 > See [feat: set default SWC minimizer passes to 2 to reduce bundle size](https://github.com/web-infra-dev/rspack/pull/8853) for more details.
 

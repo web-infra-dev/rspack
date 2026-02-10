@@ -57,9 +57,9 @@ export default {
 
 ### With HTML plugin
 
-When the HTML plugin([`HtmlRspackPlugin`](/plugins/rspack/html-rspack-plugin.mdx) or [`html-webpack-plugin`](https://github.com/jantimon/html-webpack-plugin)) is used, the `integrity` and `crossorigin` attributes will be set automatically.
+When the HTML plugin([`HtmlRspackPlugin`](/plugins/rspack/html-rspack-plugin) or [`html-webpack-plugin`](https://github.com/jantimon/html-webpack-plugin)) is used, the `integrity` and `crossorigin` attributes will be set automatically.
 
-The SubresourceIntegrityPlugin will interact with [`HtmlRspackPlugin`](/plugins/rspack/html-rspack-plugin.mdx) by default:
+The SubresourceIntegrityPlugin will interact with [`HtmlRspackPlugin`](/plugins/rspack/html-rspack-plugin) by default:
 
 ```js title="rspack.config.mjs"
 import { SubresourceIntegrityPlugin, HtmlRspackPlugin } from '@rspack/core';
@@ -90,7 +90,7 @@ export default {
 
 If you use the HTML plugin with `inject: false`, you need to set the `integrity` and `crossorigin` attributes in your template manually.
 
-With [`HtmlRspackPlugin`](/plugins/rspack/html-rspack-plugin.mdx), the grammar of the template is a bit different with `.ejs`(see [here](/plugins/rspack/html-rspack-plugin#supported-ejs-syntax)), you can inject them like this:
+With [`HtmlRspackPlugin`](/plugins/rspack/html-rspack-plugin), the grammar of the template is a bit different with `.ejs`(see [here](/plugins/rspack/html-rspack-plugin#supported-ejs-syntax)), you can inject them like this:
 
 ```ejs title="index.ejs"
 <% for src in htmlRspackPlugin.files.js { %>

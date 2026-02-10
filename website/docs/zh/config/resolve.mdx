@@ -26,7 +26,7 @@ import WebpackLicense from '@components/WebpackLicense';
 
 - `require("@/a")` 会尝试解析 `<root>/src/a`。
 - `require("abc")` 会尝试解析 `<root>/src/abc`。
-- `require("abc/file.js")` 不会命中匹配规则，它会尝试去解析 `node_modules/abc/files.js`。
+- `require("abc/file.js")` 不会命中匹配规则，它会尝试去解析 `node_modules/abc/file.js`。
 
 ### 对包解析的影响
 
@@ -567,13 +567,22 @@ Rspack 中用来替代 [tsconfig-paths-webpack-plugin](https://www.npmjs.com/pac
 - **类型：** `string | object | undefined`
 - **默认值:** `undefined`
 
+- string:
+
 ```js title="rspack.config.mjs"
 export default {
   resolve: {
-    // string
     tsConfig: path.resolve(__dirname, './tsconfig.json'),
-    // or object
-    tsconfig: {
+  },
+};
+```
+
+- object:
+
+```js title="rspack.config.mjs"
+export default {
+  resolve: {
+    tsConfig: {
       configFile: path.resolve(__dirname, './tsconfig.json'),
       references: 'auto',
     },
