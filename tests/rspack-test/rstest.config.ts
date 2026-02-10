@@ -1,5 +1,6 @@
 import path from 'node:path';
 import { defineConfig, defineProject, type ProjectConfig } from '@rstest/core';
+import { StreamedTextReporter } from '../../scripts/test/streamed-reporter';
 
 const root = path.resolve(__dirname, "../../");
 
@@ -104,6 +105,10 @@ const sharedConfig = defineProject({
   ...(wasmConfig || {}),
 }) as ProjectConfig;
 
+const streamedReporter = new StreamedTextReporter(
+  path.join(root, 'rspack-test-streamed-report.txt')
+);
+
 export default defineConfig({
   projects: [{
     extends: sharedConfig,
@@ -127,7 +132,7 @@ export default defineConfig({
       RSPACK_HOT_TEST: 'true',
     },
   }],
-  reporters: testFilter ? ['verbose'] : ['default'],
+  reporters: testFilter ? ['verbose', streamedReporter] : ['default', streamedReporter],
   pool: {
     maxWorkers: process.env.WASM ? 1 : "80%",
     execArgv: ['--no-warnings', '--expose-gc', '--max-old-space-size=8192', '--experimental-vm-modules'],

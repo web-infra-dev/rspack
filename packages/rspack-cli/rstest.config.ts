@@ -1,4 +1,6 @@
+import path from 'node:path';
 import { defineConfig, type RstestConfig } from '@rstest/core';
+import { StreamedTextReporter } from '../../scripts/test/streamed-reporter';
 
 const wasmConfig: RstestConfig | undefined = process.env.WASM
   ? {
@@ -11,6 +13,10 @@ const wasmConfig: RstestConfig | undefined = process.env.WASM
       maxConcurrency: 1,
     }
   : undefined;
+
+const streamedReporter = new StreamedTextReporter(
+  path.join(__dirname, '../../rspack-cli-streamed-report.txt'),
+);
 
 export default defineConfig({
   testEnvironment: 'node',
@@ -33,5 +39,6 @@ export default defineConfig({
         truncateThreshold: 5000,
       }
     : undefined,
+  reporters: ['default', streamedReporter],
   ...(wasmConfig || {}),
 });
