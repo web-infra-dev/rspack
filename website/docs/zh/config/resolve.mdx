@@ -567,12 +567,21 @@ Rspack 中用来替代 [tsconfig-paths-webpack-plugin](https://www.npmjs.com/pac
 - **类型：** `string | object | undefined`
 - **默认值:** `undefined`
 
+- string:
+
 ```js title="rspack.config.mjs"
 export default {
   resolve: {
-    // string
     tsConfig: path.resolve(__dirname, './tsconfig.json'),
-    // or object
+  },
+};
+```
+
+- object:
+
+```js title="rspack.config.mjs"
+export default {
+  resolve: {
     tsConfig: {
       configFile: path.resolve(__dirname, './tsconfig.json'),
       references: 'auto',
