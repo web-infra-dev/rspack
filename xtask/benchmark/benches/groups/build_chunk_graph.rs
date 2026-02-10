@@ -299,6 +299,9 @@ fn reset_chunk_graph_state(compilation: &mut Compilation) {
 }
 
 fn reset_compilation_state(compiler: &mut Compiler) {
+  let previous_compilation_id = compiler.compilation.id();
+  compiler.plugin_driver.clear_cache(previous_compilation_id);
+
   let compiler_id = compiler.id();
   let compiler_context = CURRENT_COMPILER_CONTEXT.get();
   fast_set(
