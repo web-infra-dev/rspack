@@ -2421,4 +2421,31 @@ mod test {
       }
     )
   }
+
+  #[test]
+  #[ignore]
+  fn bench_merge_resolve_perf() {
+    use std::hint::black_box;
+    use std::time::Instant;
+
+    let first = first_case_5();
+    let second = second_case_5();
+    let warmup_iters = 20_000usize;
+    let bench_iters = 300_000usize;
+
+    for _ in 0..warmup_iters {
+      black_box(merge_resolve(first.clone(), second.clone()));
+    }
+
+    let start = Instant::now();
+    for _ in 0..bench_iters {
+      black_box(merge_resolve(first.clone(), second.clone()));
+    }
+    let elapsed = start.elapsed();
+    let ns_per_iter = elapsed.as_nanos() as f64 / bench_iters as f64;
+    println!(
+      "bench_merge_resolve_perf: total={:?}, iters={}, ns/iter={:.2}",
+      elapsed, bench_iters, ns_per_iter
+    );
+  }
 }
