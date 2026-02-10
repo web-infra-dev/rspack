@@ -15,7 +15,9 @@
     "./package.json": "./package.json",
     "./helper/*": "./dist/helper/*.js",
     "./helper/legacy/*": "./dist/helper/legacy/*.js",
-    "./helper/util/*": "./dist/helper/util/*.js"
+    "./helper/util/*": "./dist/helper/util/*.js",
+    "./reporter": "./dist/reporter/index.js",
+    "./reporter/*": "./dist/reporter/*.js"
   },
   "scripts": {
     "build": "tsc -b ./tsconfig.build.json",

@@ -9,10 +9,15 @@ import { Compiler } from '@rspack/core';
 import type EventEmitter from 'node:events';
 import { MultiCompiler } from '@rspack/core';
 import type { MultiStats } from '@rspack/core';
+import type { Reporter } from '@rstest/core';
 import { RspackOptions } from '@rspack/core';
 import type { Stats } from '@rspack/core';
 import type { StatsCompilation } from '@rspack/core';
 import type { StatsError } from '@rspack/core';
+import type { TestCaseInfo } from '@rstest/core';
+import type { TestFileInfo } from '@rstest/core';
+import type { TestResult } from '@rstest/core';
+import type { TestSuiteInfo } from '@rstest/core';
 
 // @public (undocumented)
 export class BasicCaseCreator {
@@ -534,6 +539,29 @@ class RspackTestDiff {
     constructor(value: string);
     // (undocumented)
     value: string;
+}
+
+// @public
+export class StreamedEventReporter implements Reporter {
+    constructor(outputPath?: string);
+    // (undocumented)
+    onExit(): void;
+    // (undocumented)
+    onTestCaseResult(result: TestResult): void;
+    // (undocumented)
+    onTestCaseStart(test: TestCaseInfo): void;
+    // (undocumented)
+    onTestFileReady(file: TestFileInfo): void;
+    // (undocumented)
+    onTestFileStart(file: TestFileInfo): void;
+    // (undocumented)
+    onTestRunEnd(): Promise<void>;
+    // (undocumented)
+    onTestRunStart(): void;
+    // (undocumented)
+    onTestSuiteResult(result: TestResult): void;
+    // (undocumented)
+    onTestSuiteStart(suite: TestSuiteInfo): void;
 }
 
 // @public (undocumented)
