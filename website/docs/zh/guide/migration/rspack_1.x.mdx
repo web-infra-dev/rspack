@@ -20,9 +20,9 @@ Rspack 2.0 将最低支持的 Node.js 版本从 18.x 升级到 **20.19.0** 以�
 
 ## 实验性配置变更
 
-### 移除 experiments.css
+### 默认启用 experiments.css
 
-`experiments.css` 已被移除。CSS 处理能力现在默认可用，但仍需要在 `module.rules` 中配置对应的 `type` 以启用：
+[experiments.css](/config/experiments#experimentscss) 的默认值从 `false` 调整为 `true`。CSS 处理能力现在默认可用，但仍需要在 `module.rules` 中配置对应的 `type` 以启用：
 
 ```js title="rspack.config.mjs"
 export default {
@@ -33,6 +33,16 @@ export default {
         type: 'css/auto', // 自动识别 CSS Modules
       },
     ],
+  },
+};
+```
+
+如果不需要使用内置的 CSS 处理，可以显式禁用：
+
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    css: false,
   },
 };
 ```
@@ -188,6 +198,14 @@ export default {
 
 `experiments.typeReexportsPresence` 已被移除，可直接使用 [module.parser.javascript.typeReexportsPresence](/config/module#moduleparserjavascripttypereexportspresence) 控制重导出类型时的行为。
 
+### 移除 experiments.inlineConst
+
+`experiments.inlineConst` 已被移除，可使用 [optimization.inlineExports](/config/optimization#optimizationinlineexports) 控制常量内联优化。
+
+### 移除 experiments.inlineEnum
+
+`experiments.inlineEnum` 已被移除，可使用 [optimization.inlineExports](/config/optimization#optimizationinlineexports) 和 builtin:swc-loader 的 [collectTypeScriptInfo.exportedEnum](/guide/features/builtin-swc-loader#collecttypescriptinfoexportedenum) 控制枚举内联优化。
+
 ### 移除 experiments.outputModule
 
 `experiments.outputModule` 已被移除，可直接使用 [output.module](/config/output#outputmodule) 输出 ESM 产物。
@@ -289,6 +307,27 @@ export default {
 };
 ```
 
+### 移除 builtin:swc-loader 的 rspackExperiments.collectTypeScriptInfo
+
+`builtin:swc-loader` 的 `rspackExperiments.collectTypeScriptInfo` 已被移除，可使用 [collectTypeScriptInfo](/guide/features/builtin-swc-loader#collecttypescriptinfo) 控制 TypeScript 信息收集。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.ts$/,
+        loader: 'builtin:swc-loader',
+        options: {
+          collectTypeScriptInfo: {
+            typeExports: true,
+          },
+        },
+      },
+    ],
+  },
+};
+```
 ### 从 target 派生 loader 和 plugin 的 targets 配置
 
 在 Rspack 2.0 中，`builtin:swc-loader`、`builtin:lightningcss-loader` 和 `rspack.LightningCssMinimizerRspackPlugin` 的 `targets` 配置现在默认从 [target](/config/target) 配置派生。
@@ -315,6 +354,22 @@ export default {
 ```
 
 ## 产物相关配置变更
+
+### 移除 output.libraryTarget
+
+`output.libraryTarget` 已被移除，可使用 [output.library.type](/config/output#outputlibrarytype) 代替。
+
+### 移除 output.libraryExport
+
+`output.libraryExport` 已被移除，可使用 [output.library.export](/config/output#outputlibraryexport) 代替。
+
+### 移除 output.umdNamedDefine
+
+`output.umdNamedDefine` 已被移除，可使用 [output.library.umdNamedDefine](/config/output#outputlibraryumdnameddefine) 代替。
+
+### 移除 output.auxiliaryComment
+
+`output.auxiliaryComment` 已被移除，可使用 [output.library.auxiliaryComment](/config/output#outputlibraryauxiliarycomment) 代替。
 
 ### 修改 output.chunkLoadingGlobal 的默认值
 
