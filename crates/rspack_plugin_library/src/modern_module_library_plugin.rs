@@ -6,7 +6,7 @@ use rspack_core::{
   CompilationOptimizeChunkModules, CompilationParams, CompilerCompilation, CompilerFinishMake,
   ConcatenatedModule, ConcatenatedModuleExportsDefinitions, DependencyId, ExportsType,
   LibraryOptions, ModuleGraph, ModuleIdentifier, Plugin, PrefetchExportsInfoMode, RuntimeSpec,
-  RuntimeVariable, UsedNameItem,
+  RuntimeVariable, UsedNameItem, export_name,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
   to_identifier,
 };
@@ -397,7 +397,10 @@ fn render_as_named_exports_impl(
       })
       .map(|(local, exported)| {
         if let Some(exported) = exported {
-          format!("{local} as {exported}")
+          // Use export_name to properly quote identifiers that aren't valid JavaScript identifiers
+          let quoted_exported = export_name(exported)
+            .unwrap_or_else(|_| panic!("Failed to generate valid export name for: {}", exported));
+          format!("{local} as {quoted_exported}")
         } else {
           local.clone()
         }
