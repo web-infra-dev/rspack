@@ -74,11 +74,10 @@ use crate::{
   DependencyType, Entry, EntryData, EntryOptions, EntryRuntime, Entrypoint, ExecuteModuleId,
   ExtendedReferencedExport, Filename, ImportPhase, ImportVarMap, ImportedByDeferModulesArtifact,
   MemoryGCStorage, ModuleFactory, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
-  ModuleIdsArtifact, ModuleStaticCache, PathData, ProcessRuntimeRequirementsCacheArtifact,
-  ProcessAssetArtifact, ResolverFactory, RuntimeGlobals, RuntimeKeyMap, RuntimeMode,
-  RuntimeModule, RuntimeSpec,
-  RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver, SideEffectsOptimizeArtifact, SourceType,
-  Stats, StealCell, ValueCacheVersions,
+  ModuleIdsArtifact, ModuleStaticCache, PathData, ProcessAssetArtifact,
+  ProcessRuntimeRequirementsCacheArtifact, ResolverFactory, RuntimeGlobals, RuntimeKeyMap,
+  RuntimeMode, RuntimeModule, RuntimeSpec, RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver,
+  SideEffectsOptimizeArtifact, SourceType, Stats, StealCell, ValueCacheVersions,
   compilation::build_module_graph::{
     BuildModuleGraphArtifact, ModuleExecutor, UpdateParam, update_module_graph,
   },
@@ -742,6 +741,34 @@ impl Compilation {
       let entry = self.assets_related_in.entry(source_map).or_default();
       entry.insert(name.to_string());
     }
+  }
+
+  pub fn swap_process_asset_artifact_fields(
+    &mut self,
+    process_asset_artifact: &mut ProcessAssetArtifact,
+  ) {
+    std::mem::swap(&mut self.assets, &mut process_asset_artifact.assets);
+    std::mem::swap(
+      &mut self.assets_related_in,
+      &mut process_asset_artifact.assets_related_in,
+    );
+    std::mem::swap(
+      &mut self.diagnostics,
+      &mut process_asset_artifact.diagnostics,
+    );
+    std::mem::swap(&mut self.records, &mut process_asset_artifact.records);
+    std::mem::swap(
+      &mut self.file_dependencies,
+      &mut process_asset_artifact.file_dependencies,
+    );
+    std::mem::swap(
+      &mut self.context_dependencies,
+      &mut process_asset_artifact.context_dependencies,
+    );
+    std::mem::swap(
+      &mut self.code_generated_modules,
+      &mut process_asset_artifact.code_generated_modules,
+    );
   }
 
   pub fn update_asset(

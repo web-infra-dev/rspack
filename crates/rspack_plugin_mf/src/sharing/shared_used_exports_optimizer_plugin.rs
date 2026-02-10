@@ -3,9 +3,9 @@ use std::sync::{Arc, RwLock};
 use rspack_core::{
   AsyncDependenciesBlockIdentifier, ChunkUkey, Compilation,
   CompilationAdditionalTreeRuntimeRequirements, CompilationDependencyReferencedExports,
-  CompilationOptimizeDependencies, CompilationProcessAssets, ProcessAssetArtifact, DependenciesBlock, Dependency,
+  CompilationOptimizeDependencies, CompilationProcessAssets, DependenciesBlock, Dependency,
   DependencyId, DependencyType, ExtendedReferencedExport, Module, ModuleGraph, ModuleIdentifier,
-  Plugin, RuntimeGlobals, RuntimeModule, RuntimeModuleExt, RuntimeSpec,
+  Plugin, ProcessAssetArtifact, RuntimeGlobals, RuntimeModule, RuntimeModuleExt, RuntimeSpec,
   SideEffectsOptimizeArtifact,
   build_module_graph::BuildModuleGraphArtifact,
   rspack_sources::{RawStringSource, SourceExt, SourceValue},
@@ -313,8 +313,10 @@ async fn optimize_dependencies(
 }
 
 #[plugin_hook(CompilationProcessAssets for SharedUsedExportsOptimizerPlugin, stage = 1)]
-async fn process_assets(&self, compilation: &Compilation, process_asset_artifact: &mut ProcessAssetArtifact
-,
+async fn process_assets(
+  &self,
+  compilation: &Compilation,
+  process_asset_artifact: &mut ProcessAssetArtifact,
   build_chunk_graph_artifact: &mut rspack_core::BuildChunkGraphArtifact,
 ) -> Result<()> {
   let file_names = vec![
@@ -323,7 +325,7 @@ async fn process_assets(&self, compilation: &Compilation, process_asset_artifact
   ];
   for file_name in file_names {
     if let Some(file_name) = &file_name
-      && let Some(file) = compilation.assets().get(file_name)
+      && let Some(file) = process_asset_artifact.assets.get(file_name)
       && let Some(source) = file.get_source()
       && let SourceValue::String(content) = source.source()
       && let Ok(mut stats_root) = serde_json::from_str::<StatsRoot>(&content)

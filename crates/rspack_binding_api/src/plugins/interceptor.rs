@@ -1499,14 +1499,27 @@ impl CompilationChunkAsset for CompilationChunkAssetTap {
 
 #[async_trait]
 impl CompilationProcessAssets for CompilationProcessAssetsTap {
+  #[allow(invalid_reference_casting)]
   async fn run(
     &self,
     compilation: &Compilation,
-    _process_asset_artifact: &mut rspack_core::ProcessAssetArtifact,
+    process_asset_artifact: &mut rspack_core::ProcessAssetArtifact,
     _build_chunk_graph_artifact: &mut rspack_core::BuildChunkGraphArtifact,
   ) -> rspack_error::Result<()> {
-    let compilation = JsCompilationWrapper::new(compilation);
-    self.function.call_with_promise(compilation).await
+    unsafe {
+      (&mut *(compilation as *const Compilation as *mut Compilation))
+        .swap_process_asset_artifact_fields(process_asset_artifact);
+    }
+
+    let js_compilation = JsCompilationWrapper::new(compilation);
+    let result = self.function.call_with_promise(js_compilation).await;
+
+    unsafe {
+      (&mut *(compilation as *const Compilation as *mut Compilation))
+        .swap_process_asset_artifact_fields(process_asset_artifact);
+    }
+
+    result
   }
 
   fn stage(&self) -> i32 {

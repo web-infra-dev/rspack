@@ -11,7 +11,7 @@ use cow_utils::CowUtils;
 use itertools::Itertools;
 use rayon::prelude::*;
 use rspack_core::{
-  AssetInfo, Compilation, CompilationAsset, Filename, PathData,
+  AssetInfo, Compilation, CompilationAsset, CompilationAssets, Filename, PathData,
   rspack_sources::{RawBufferSource, RawStringSource, SourceExt},
 };
 use rspack_error::{AnyhowResultToRspackResultExt, Result};
@@ -41,6 +41,7 @@ impl HtmlPluginAssets {
   pub async fn create_assets<'a>(
     config: &HtmlRspackPluginOptions,
     compilation: &'a Compilation,
+    assets_by_name: &'a CompilationAssets,
     public_path: &str,
     output_path: &Utf8PathBuf,
     html_file_name: &Filename,
@@ -85,7 +86,7 @@ impl HtmlPluginAssets {
       .map(|entry_name| compilation.entrypoint_by_name(entry_name))
       .flat_map(|entry| entry.get_files(&compilation.build_chunk_graph_artifact.chunk_by_ukey))
       .filter_map(|asset_name| {
-        let asset = compilation.assets().get(&asset_name).expect("TODO:");
+        let asset = assets_by_name.get(&asset_name).expect("TODO:");
         if asset.info.hot_module_replacement.unwrap_or(false)
           || asset.info.development.unwrap_or(false)
         {

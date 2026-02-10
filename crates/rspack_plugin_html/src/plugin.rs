@@ -7,7 +7,7 @@ use std::{
 use atomic_refcell::AtomicRefCell;
 use cow_utils::CowUtils;
 use rspack_core::{
-  Compilation, CompilationId, CompilationProcessAssets, ProcessAssetArtifact, Filename, Plugin,
+  Compilation, CompilationId, CompilationProcessAssets, Filename, Plugin, ProcessAssetArtifact,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
@@ -83,6 +83,7 @@ async fn generate_html(
   let assets_info = HtmlPluginAssets::create_assets(
     config,
     compilation,
+    &process_asset_artifact.assets,
     &public_path,
     &template_file_name,
     html_file_name,
@@ -199,8 +200,10 @@ async fn generate_html(
 }
 
 #[plugin_hook(CompilationProcessAssets for HtmlRspackPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_OPTIMIZE_INLINE)]
-async fn process_assets(&self, compilation: &Compilation, process_asset_artifact: &mut ProcessAssetArtifact
-,
+async fn process_assets(
+  &self,
+  compilation: &Compilation,
+  process_asset_artifact: &mut ProcessAssetArtifact,
   build_chunk_graph_artifact: &mut rspack_core::BuildChunkGraphArtifact,
 ) -> Result<()> {
   let config: &HtmlRspackPluginOptions = &self.config;
@@ -247,7 +250,9 @@ async fn process_assets(&self, compilation: &Compilation, process_asset_artifact
       }
       Err(err) => {
         let error_msg = err.to_string();
-        process_asset_artifact.diagnostics.push(Diagnostic::from(err));
+        process_asset_artifact
+          .diagnostics
+          .push(Diagnostic::from(err));
         ("error.html".to_string(), create_error_html(&error_msg))
       }
     };
@@ -270,7 +275,9 @@ async fn process_assets(&self, compilation: &Compilation, process_asset_artifact
         }
         Err(err) => {
           let error_msg = err.to_string();
-          process_asset_artifact.diagnostics.push(Diagnostic::from(err));
+          process_asset_artifact
+            .diagnostics
+            .push(Diagnostic::from(err));
           before_emit_data.html = create_error_html(&error_msg);
         }
       };

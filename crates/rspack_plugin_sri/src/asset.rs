@@ -296,7 +296,7 @@ pub async fn handle_assets(
     IntegrityHtmlPlugin::NativePlugin | IntegrityHtmlPlugin::JavaScriptPlugin
   ) {
     add_minssing_integrities(
-      compilation.assets(),
+      &process_asset_artifact.assets,
       compilation_integrities.clone(),
       &self.options.hash_func_names,
     )

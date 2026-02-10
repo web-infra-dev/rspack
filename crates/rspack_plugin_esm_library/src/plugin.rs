@@ -12,12 +12,13 @@ use rspack_core::{
   Compilation, CompilationAdditionalChunkRuntimeRequirements,
   CompilationAdditionalTreeRuntimeRequirements, CompilationAfterCodeGeneration,
   CompilationConcatenationScope, CompilationFinishModules, CompilationOptimizeChunks,
-  CompilationOptimizeDependencies, CompilationParams, CompilationProcessAssets, ProcessAssetArtifact, CompilationRuntimeRequirementInTree, CompilerCompilation, ConcatenatedModuleInfo,
+  CompilationOptimizeDependencies, CompilationParams, CompilationProcessAssets,
+  CompilationRuntimeRequirementInTree, CompilerCompilation, ConcatenatedModuleInfo,
   ConcatenationScope, DependencyType, ExternalModuleInfo, GetTargetResult, Logger,
   ModuleFactoryCreateData, ModuleIdentifier, ModuleInfo, ModuleType,
   NormalModuleFactoryAfterFactorize, NormalModuleFactoryParser, ParserAndGenerator, ParserOptions,
-  Plugin, PrefetchExportsInfoMode, RuntimeGlobals, RuntimeModule, SideEffectsOptimizeArtifact,
-  get_target, is_esm_dep_like,
+  Plugin, PrefetchExportsInfoMode, ProcessAssetArtifact, RuntimeGlobals, RuntimeModule,
+  SideEffectsOptimizeArtifact, get_target, is_esm_dep_like,
   rspack_sources::{ReplaceSource, Source},
 };
 use rspack_error::{Diagnostic, Result};
@@ -71,7 +72,6 @@ async fn compilation(
   &self,
   compilation: &mut Compilation,
   _params: &mut CompilationParams,
-
 ) -> Result<()> {
   let hooks = JsPlugin::get_compilation_hooks_mut(compilation.id());
   let mut hooks = hooks.write().await;
@@ -404,13 +404,16 @@ static RSPACK_ESM_CHUNK_PLACEHOLDER_RE: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r##"__RSPACK_ESM_CHUNK_[^'"]+"##).expect("should have regex"));
 
 #[plugin_hook(CompilationProcessAssets for EsmLibraryPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_AFTER_OPTIMIZE_HASH)]
-async fn process_assets(&self, compilation: &Compilation, process_asset_artifact: &mut ProcessAssetArtifact,
+async fn process_assets(
+  &self,
+  compilation: &Compilation,
+  process_asset_artifact: &mut ProcessAssetArtifact,
   build_chunk_graph_artifact: &mut rspack_core::BuildChunkGraphArtifact,
 ) -> Result<()> {
   let mut replaced = vec![];
   let mut removed = vec![];
 
-  for (asset_name, asset) in compilation.assets() {
+  for (asset_name, asset) in &process_asset_artifact.assets {
     if asset.get_info().javascript_module.unwrap_or_default() {
       let Some(source) = asset.get_source() else {
         continue;
@@ -460,7 +463,7 @@ async fn process_assets(&self, compilation: &Compilation, process_asset_artifact
           .iter()
           .filter(|f| {
             // find ref asset info
-            let Some(asset) = compilation.assets().get(*f) else {
+            let Some(asset) = process_asset_artifact.assets.get(*f) else {
               return false;
             };
             asset.get_info().javascript_module.unwrap_or_default()

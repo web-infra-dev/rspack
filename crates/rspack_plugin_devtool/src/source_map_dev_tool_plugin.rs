@@ -13,8 +13,9 @@ use rayon::prelude::*;
 use regex::Regex;
 use rspack_collections::DatabaseItem;
 use rspack_core::{
-  AssetInfo, Chunk, ChunkUkey, Compilation, CompilationAsset, CompilationProcessAssets, ProcessAssetArtifact, Filename,
-  Logger, ModuleIdentifier, PathData, Plugin,
+  AssetInfo, Chunk, ChunkUkey, Compilation, CompilationAsset, CompilationAssets,
+  CompilationProcessAssets, Filename, Logger, ModuleIdentifier, PathData, Plugin,
+  ProcessAssetArtifact,
   rspack_sources::{
     BoxSource, ConcatSource, MapOptions, ObjectPool, RawStringSource, Source, SourceExt, SourceMap,
   },
@@ -295,8 +296,7 @@ impl SourceMapDevToolPlugin {
     file_to_chunk: &HashMap<&str, &Chunk>,
     output_path: &Utf8Path,
     tasks: &mut [SourceMapTask],
-  
-) -> Result<()> {
+  ) -> Result<()> {
     let output_options = &compilation.options.output;
 
     let mut reference_to_source_name_mapping: HashMap<
@@ -557,9 +557,11 @@ impl SourceMapDevToolPlugin {
     compilation: &Compilation,
     file_to_chunk: &HashMap<&str, &Chunk>,
     output_path: &Utf8Path,
+    assets_by_name: CompilationAssets,
     compilation_assets: Vec<(String, &CompilationAsset)>,
   ) -> Result<Vec<MappedAsset>> {
     let mut tasks = self.collect_tasks(compilation, compilation_assets).await?;
+    let assets_by_name = Arc::new(assets_by_name);
 
     self
       .finalize_source_maps(compilation, file_to_chunk, output_path, &mut tasks)
@@ -573,9 +575,20 @@ impl SourceMapDevToolPlugin {
            source_map,
            ..
          }| {
-          let s = unsafe { token.used((&self, compilation, file_to_chunk, asset_filename, source, source_map)) };
+          let assets_by_name = Arc::clone(&assets_by_name);
+          let s = unsafe {
+            token.used((
+              &self,
+              compilation,
+              file_to_chunk,
+              assets_by_name,
+              asset_filename,
+              source,
+              source_map,
+            ))
+          };
           s.spawn(
-            |(plugin, compilation, file_to_chunk, asset_filename, source, mut source_map)| async move {
+            |(plugin, compilation, file_to_chunk, assets_by_name, asset_filename, source, mut source_map)| async move {
               let debug_id = plugin.debug_ids.then(|| {
                 let debug_id = generate_debug_id(&asset_filename, &source.buffer());
                 source_map.set_debug_id(Some(debug_id.clone()));
@@ -583,12 +596,11 @@ impl SourceMapDevToolPlugin {
               });
               let source_map_json = source_map.to_json().map_err(|e| error!(e.to_string()))?;
 
-              let mut asset = compilation
-                .assets()
+              let mut asset = assets_by_name
                 .get(asset_filename.as_ref())
                 .unwrap_or_else(|| {
                   panic!(
-                    "expected to find filename '{}' in compilation.assets, but it was not present",
+                    "expected to find filename '{}' in process_asset_artifact.assets, but it was not present",
                     asset_filename.as_ref()
                   )
                 })
@@ -701,7 +713,7 @@ impl SourceMapDevToolPlugin {
                   asset.source = Some(source.clone());
                 }
                 let mut source_map_asset_info = AssetInfo::default().with_development(Some(true));
-                if let Some(asset) = compilation.assets().get(asset_filename.as_ref()) {
+                if let Some(asset) = assets_by_name.get(asset_filename.as_ref()) {
                   // set source map asset version to be the same as the target asset
                   source_map_asset_info.version = asset.info.version.clone();
                 }
@@ -761,7 +773,10 @@ impl SourceMapDevToolPlugin {
 }
 
 #[plugin_hook(CompilationProcessAssets for SourceMapDevToolPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_DEV_TOOLING)]
-async fn process_assets(&self, compilation: &Compilation, process_asset_artifact: &mut ProcessAssetArtifact,
+async fn process_assets(
+  &self,
+  compilation: &Compilation,
+  process_asset_artifact: &mut ProcessAssetArtifact,
   build_chunk_graph_artifact: &mut rspack_core::BuildChunkGraphArtifact,
 ) -> Result<()> {
   let logger = compilation.get_logger("rspack.SourceMapDevToolPlugin");
@@ -770,11 +785,7 @@ async fn process_assets(&self, compilation: &Compilation, process_asset_artifact
   let mut file_to_chunk: HashMap<&str, &Chunk> = HashMap::default();
   // use to write
   let mut file_to_chunk_ukey: HashMap<String, ChunkUkey> = HashMap::default();
-  for chunk in compilation
-    .build_chunk_graph_artifact
-    .chunk_by_ukey
-    .values()
-  {
+  for chunk in build_chunk_graph_artifact.chunk_by_ukey.values() {
     for file in chunk.files() {
       file_to_chunk.insert(file, chunk);
       file_to_chunk_ukey.insert(file.clone(), chunk.ukey());
@@ -797,14 +808,20 @@ async fn process_assets(&self, compilation: &Compilation, process_asset_artifact
   );
 
   let start = logger.time("collect source maps");
-  let compilation_assets = compilation
-    .assets()
+  let compilation_assets = process_asset_artifact
+    .assets
     .iter()
     .filter(|(_filename, asset)| asset.info.related.source_map.is_none());
   let mapped_asstes = self
     .mapped_assets_cache
     .use_cache(compilation_assets, |assets| {
-      self.map_assets(compilation, &file_to_chunk, &output_path, assets)
+      self.map_assets(
+        compilation,
+        &file_to_chunk,
+        &output_path,
+        process_asset_artifact.assets.clone(),
+        assets,
+      )
     })
     .await?;
   logger.time_end(start);
@@ -815,7 +832,9 @@ async fn process_assets(&self, compilation: &Compilation, process_asset_artifact
       asset: (source_filename, mut source_asset),
       source_map,
     } = mapped_asset;
-    if let Some(asset) = process_asset_artifact.assets.remove(source_filename.as_ref())
+    if let Some(asset) = process_asset_artifact
+      .assets
+      .remove(source_filename.as_ref())
     {
       source_asset.info = asset.info;
       if let Some((ref source_map_filename, _)) = source_map {
@@ -833,7 +852,9 @@ async fn process_assets(&self, compilation: &Compilation, process_asset_artifact
         .insert(source_map_filename.clone(), source_map_asset);
 
       let chunk = chunk_ukey.map(|ukey| {
-        build_chunk_graph_artifact.chunk_by_ukey.expect_get_mut(ukey)
+        build_chunk_graph_artifact
+          .chunk_by_ukey
+          .expect_get_mut(ukey)
       });
       if let Some(chunk) = chunk {
         chunk.add_auxiliary_file(source_map_filename.clone());

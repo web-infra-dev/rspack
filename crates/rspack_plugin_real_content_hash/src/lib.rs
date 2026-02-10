@@ -57,11 +57,18 @@ impl RealContentHashPlugin {
 }
 
 #[plugin_hook(CompilationProcessAssets for RealContentHashPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_OPTIMIZE_HASH)]
-async fn process_assets(&self, compilation: &Compilation, process_asset_artifact: &mut ProcessAssetArtifact
-,
+async fn process_assets(
+  &self,
+  compilation: &Compilation,
+  process_asset_artifact: &mut ProcessAssetArtifact,
   build_chunk_graph_artifact: &mut rspack_core::BuildChunkGraphArtifact,
 ) -> Result<()> {
-  inner_impl(compilation, process_asset_artifact).await
+  inner_impl(
+    compilation,
+    process_asset_artifact,
+    build_chunk_graph_artifact,
+  )
+  .await
 }
 
 impl Plugin for RealContentHashPlugin {
@@ -85,12 +92,13 @@ impl Plugin for RealContentHashPlugin {
 async fn inner_impl(
   compilation: &Compilation,
   process_asset_artifact: &mut ProcessAssetArtifact,
+  build_chunk_graph_artifact: &mut rspack_core::BuildChunkGraphArtifact,
 ) -> Result<()> {
   let logger = compilation.get_logger("rspack.RealContentHashPlugin");
   let start = logger.time("hash to asset names");
   let mut hash_to_asset_names: HashMap<&str, Vec<&str>> = HashMap::default();
-  for (name, asset) in compilation
-    .assets()
+  for (name, asset) in process_asset_artifact
+    .assets
     .iter()
     .filter(|(_, asset)| asset.get_source().is_some())
   {
@@ -117,8 +125,8 @@ async fn inner_impl(
   logger.time_end(start);
 
   let start = logger.time("create ordered hashes");
-  let assets_data: HashMap<&str, AssetData> = compilation
-    .assets()
+  let assets_data: HashMap<&str, AssetData> = process_asset_artifact
+    .assets
     .par_iter()
     .filter_map(|(name, asset)| {
       asset.get_source().map(|source| {
@@ -294,7 +302,7 @@ async fn inner_impl(
     }
   }
 
-  process_asset_artifact
+  build_chunk_graph_artifact
     .chunk_by_ukey
     .values_mut()
     .par_bridge()
@@ -308,9 +316,37 @@ async fn inner_impl(
         }
       }
     });
-  for (old_name, new_name) in asset_renames {
-    if let Some(asset) = process_asset_artifact.assets.remove(&old_name) {
-      process_asset_artifact.assets.insert(new_name, asset);
+  for (old_name, new_name) in &asset_renames {
+    if let Some(asset) = process_asset_artifact.assets.remove(old_name) {
+      process_asset_artifact
+        .assets
+        .insert(new_name.clone(), asset);
+    }
+  }
+  for (old_name, new_name) in &asset_renames {
+    for asset in process_asset_artifact.assets.values_mut() {
+      if asset.info.related.source_map.as_deref() == Some(old_name.as_str()) {
+        asset.info.related.source_map = Some(new_name.clone());
+      }
+    }
+  }
+  for (old_name, new_name) in &asset_renames {
+    if let Some(related_in) = process_asset_artifact.assets_related_in.remove(old_name) {
+      process_asset_artifact
+        .assets_related_in
+        .insert(new_name.clone(), related_in);
+    }
+    for related_in_names in process_asset_artifact.assets_related_in.values_mut() {
+      *related_in_names = related_in_names
+        .iter()
+        .map(|related_in_name| {
+          if related_in_name == old_name {
+            new_name.clone()
+          } else {
+            related_in_name.clone()
+          }
+        })
+        .collect();
     }
   }
 
