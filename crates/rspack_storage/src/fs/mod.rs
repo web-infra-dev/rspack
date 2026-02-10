@@ -1,106 +1,19 @@
+mod error;
+mod reader;
+mod writer;
+
 use std::sync::Arc;
 
-mod error;
 use error::FsResultToStorageFsResult;
-pub use error::{BatchFSError, BatchFSResult, FSError, FSOperation, FSResult};
-use rspack_fs::{FileMetadata, IntermediateFileSystem, ReadStream, WriteStream};
-use rspack_paths::{Utf8Path, Utf8PathBuf};
+use rspack_fs::{FileMetadata, IntermediateFileSystem};
+use rspack_paths::Utf8Path;
 use rustc_hash::FxHashSet as HashSet;
 
-#[derive(Debug)]
-pub struct Writer {
-  path: Utf8PathBuf,
-  stream: Box<dyn WriteStream>,
-}
-
-impl Writer {
-  pub async fn write_line(&mut self, line: &str) -> FSResult<()> {
-    self
-      .stream
-      .write_line(line)
-      .await
-      .to_storage_fs_result(&self.path, FSOperation::Write)
-  }
-  pub async fn write(&mut self, buf: &[u8]) -> FSResult<usize> {
-    self
-      .stream
-      .write(buf)
-      .await
-      .to_storage_fs_result(&self.path, FSOperation::Write)
-  }
-  pub async fn write_all(&mut self, buf: &[u8]) -> FSResult<()> {
-    self
-      .stream
-      .write_all(buf)
-      .await
-      .to_storage_fs_result(&self.path, FSOperation::Write)
-  }
-  pub async fn flush(&mut self) -> FSResult<()> {
-    self
-      .stream
-      .flush()
-      .await
-      .to_storage_fs_result(&self.path, FSOperation::Write)
-  }
-  pub async fn close(&mut self) -> FSResult<()> {
-    self
-      .stream
-      .close()
-      .await
-      .to_storage_fs_result(&self.path, FSOperation::Write)
-  }
-}
-
-#[derive(Debug)]
-pub struct Reader {
-  path: Utf8PathBuf,
-  stream: Box<dyn ReadStream>,
-}
-
-impl Reader {
-  pub async fn read_line(&mut self) -> FSResult<String> {
-    self
-      .stream
-      .read_line()
-      .await
-      .to_storage_fs_result(&self.path, FSOperation::Read)
-  }
-  pub async fn read(&mut self, length: usize) -> FSResult<Vec<u8>> {
-    self
-      .stream
-      .read(length)
-      .await
-      .to_storage_fs_result(&self.path, FSOperation::Read)
-  }
-  pub async fn read_until(&mut self, byte: u8) -> FSResult<Vec<u8>> {
-    self
-      .stream
-      .read_until(byte)
-      .await
-      .to_storage_fs_result(&self.path, FSOperation::Read)
-  }
-  pub async fn read_to_end(&mut self) -> FSResult<Vec<u8>> {
-    self
-      .stream
-      .read_to_end()
-      .await
-      .to_storage_fs_result(&self.path, FSOperation::Read)
-  }
-  pub async fn skip(&mut self, offset: usize) -> FSResult<()> {
-    self
-      .stream
-      .skip(offset)
-      .await
-      .to_storage_fs_result(&self.path, FSOperation::Read)
-  }
-  pub async fn close(&mut self) -> FSResult<()> {
-    self
-      .stream
-      .close()
-      .await
-      .to_storage_fs_result(&self.path, FSOperation::Read)
-  }
-}
+pub use self::{
+  error::{BatchFSError, BatchFSResult, FSError, FSOperation, FSResult},
+  reader::Reader,
+  writer::Writer,
+};
 
 #[derive(Debug)]
 pub struct FileSystem(pub Arc<dyn IntermediateFileSystem>);
