@@ -86,6 +86,16 @@ jobs:
           run: pnpm run bench:ci
           token: ${{ secrets.CODSPEED_TOKEN }}
 
+      - name: Run benchmark (walltime)
+        uses: ./.github/actions/codspeed
+        timeout-minutes: 30
+        env:
+          RAYON_NUM_THREADS: 1
+        with:
+          mode: 'walltime'
+          run: pnpm run bench:ci
+          token: ${{ secrets.CODSPEED_TOKEN }}
+
       - name: Run benchmark (memory)
         uses: ./.github/actions/codspeed
         timeout-minutes: 30
