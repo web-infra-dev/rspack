@@ -10,19 +10,21 @@ version.workspace = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-camino           = { workspace = true }
-dashmap          = { workspace = true }
-json             = { workspace = true }
-lightningcss     = { workspace = true }
-once_cell        = { workspace = true }
-rspack_cacheable = { workspace = true }
-rspack_resolver  = { workspace = true }
-rspack_sources   = { workspace = true }
-rustc-hash       = { workspace = true }
-serde_json       = { workspace = true }
-swc_core         = { workspace = true, features = ["ecma_ast"] }
-ustr             = { workspace = true }
-xxhash-rust      = { workspace = true, features = ["const_xxh64"] }
 
 [lints]
 workspace = true
+
+[dev-dependencies]
+camino = { workspace = true }
+dashmap = { workspace = true }
+json = { workspace = true }
+lightningcss = { workspace = true }
+once_cell = { workspace = true }
+rspack_cacheable = { workspace = true }
+rspack_resolver = { workspace = true }
+rspack_sources = { workspace = true }
+rustc-hash = { workspace = true }
+serde_json = { workspace = true }
+swc_core = { workspace = true, features = ["ecma_ast"] }
+ustr = { workspace = true }
+xxhash-rust = { workspace = true, features = ["const_xxh64"] }
