@@ -186,7 +186,7 @@ module.exports = [
 	rstestEntry("./mockFactory.js"),
 	rstestEntry("./manualMock.js"),
 	rstestEntry("./importActual.js"),
-    rstestEntry("./importActualHoisted.js"),
+	rstestEntry("./importActualHoisted.js"),
 	rstestEntry("./requireActual.js"),
 	{
 		entry: "./test.js",
