@@ -39,7 +39,7 @@ export default {
 
 The path of the entry module can be a relative path or an absolute path.
 
-If `entry` is set as a relative path, Rspack will use the value set by [context configuration](/config/context.html) as the base path, which by default is the current working directory of the Node.js process, namely `process.cwd()`.
+If `entry` is set as a relative path, Rspack will use the value set by [context configuration](/config/context) as the base path, which by default is the current working directory of the Node.js process, namely `process.cwd()`.
 
 You can also use the [path module](https://nodejs.org/api/path.html) in Node.js to generate an absolute path and pass it to the `entry` configuration:
 
