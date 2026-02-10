@@ -1,11 +1,8 @@
-// import * as actual from './src/foo' with { rstest: 'importActual' };
-
 import { value } from './src/foo'
 import * as actual from './src/foo' with { rstest: 'importActual' };
 import { rstest } from '@rstest/core';
 
 rstest.mock('./src/foo', () =>{
-  console.error('actual', actual)
   return {
     ...actual,
     value: `mocked_${actual?.value}`,
