@@ -158,74 +158,6 @@ impl RuntimeTemplate {
     }
   }
 
-  pub fn render(&self, key: &str, params: Option<serde_json::Value>) -> Result<String, Error> {
-    let mut render_params = Value::Object(Default::default());
-
-    render_params
-      .as_object_mut()
-      .unwrap_or_else(|| unreachable!())
-      .extend(
-        self
-          .runtime_globals
-          .iter()
-          .map(|(k, v)| (k.clone(), v.clone())),
-      );
-
-    if let Some(params) = params {
-      match params {
-        Value::Object(params) => {
-          for (k, v) in params {
-            render_params
-              .as_object_mut()
-              .unwrap_or_else(|| unreachable!())
-              .insert(k, v);
-          }
-        }
-        _ => panic!("Should receive a map value"),
-      }
-    }
-
-    if let Some((executer, file_content)) = self
-      .dojang
-      .as_ref()
-      .expect("dojang should be initialized")
-      .templates
-      .get(key)
-    {
-      executer
-        .render(
-          &mut Context::new(render_params),
-          &self
-            .dojang
-            .as_ref()
-            .expect("dojang should be initialized")
-            .templates,
-          &self
-            .dojang
-            .as_ref()
-            .expect("dojang should be initialized")
-            .functions,
-          file_content,
-          &mut Mutex::new(std::collections::HashMap::new()),
-        )
-        // Replace Windows-style line endings (\r\n) with Unix-style (\n) to ensure consistent runtime templates across platforms
-        .map(|render| render.cow_replace("\r\n", "\n").to_string())
-        .to_rspack_result_with_message(|e| {
-          format!("Runtime module: failed to render template {key} from: {e}")
-        })
-    } else {
-      Err(error!("Runtime module: Template {key} is not found"))
-    }
-  }
-
-  pub fn render_runtime_globals(&self, runtime_globals: &RuntimeGlobals) -> String {
-    runtime_globals_to_string(runtime_globals, &self.compiler_options)
-  }
-
-  pub fn render_runtime_variable(&self, runtime_variable: &RuntimeVariable) -> String {
-    runtime_variable_to_string(runtime_variable, &self.compiler_options)
-  }
-
   pub fn runtime_module_prefix(&self) -> &'static str {
     "webpack/runtime/"
   }
@@ -247,8 +179,16 @@ impl RuntimeTemplate {
     Identifier::from(format!("{}{custom}", self.runtime_module_prefix()))
   }
 
-  pub fn create_module_codegen_runtime_template(&self) -> ModuleCodegenRuntimeTemplate {
-    ModuleCodegenRuntimeTemplate::new(self.compiler_options.clone())
+  pub fn create_module_code_template(&self) -> ModuleCodeTemplate {
+    ModuleCodeTemplate::new(self.compiler_options.clone())
+  }
+
+  pub fn create_runtime_code_template<'a>(&'a self) -> RuntimeCodeTemplate<'a> {
+    RuntimeCodeTemplate::new(
+      self.compiler_options.clone(),
+      self.runtime_globals.clone(),
+      self.dojang.as_ref().expect("dojang should be initialized"),
+    )
   }
 }
 
@@ -544,12 +484,12 @@ pub fn get_outgoing_async_modules(
 }
 
 #[derive(Debug)]
-pub struct ModuleCodegenRuntimeTemplate {
+pub struct ModuleCodeTemplate {
   compiler_options: Arc<CompilerOptions>,
   runtime_requirements: RuntimeGlobals,
 }
 
-impl ModuleCodegenRuntimeTemplate {
+impl ModuleCodeTemplate {
   pub fn new(compiler_options: Arc<CompilerOptions>) -> Self {
     Self {
       compiler_options,
@@ -1466,5 +1406,118 @@ return {}
       },
       "",
     )
+  }
+}
+
+pub struct RuntimeCodeTemplate<'a> {
+  compiler_options: Arc<CompilerOptions>,
+  runtime_globals: Arc<Map<String, Value>>,
+  dojang: &'a Dojang,
+}
+
+impl<'a> RuntimeCodeTemplate<'a> {
+  pub fn new(
+    compiler_options: Arc<CompilerOptions>,
+    runtime_globals: Arc<Map<String, Value>>,
+    dojang: &'a Dojang,
+  ) -> Self {
+    Self {
+      compiler_options,
+      runtime_globals,
+      dojang,
+    }
+  }
+
+  pub fn render_runtime_globals(&self, runtime_globals: &RuntimeGlobals) -> String {
+    runtime_globals_to_string(runtime_globals, &self.compiler_options)
+  }
+
+  pub fn render_runtime_variable(&self, runtime_variable: &RuntimeVariable) -> String {
+    runtime_variable_to_string(runtime_variable, &self.compiler_options)
+  }
+
+  pub fn render_exports_argument(&self, exports_argument: ExportsArgument) -> String {
+    match exports_argument {
+      ExportsArgument::Exports => "exports".to_string(),
+      ExportsArgument::RspackExports => self.render_runtime_variable(&RuntimeVariable::Exports),
+    }
+  }
+
+  pub fn render_module_argument(&self, module_argument: ModuleArgument) -> String {
+    match module_argument {
+      ModuleArgument::Module => "module".to_string(),
+      ModuleArgument::RspackModule => self.render_runtime_variable(&RuntimeVariable::Module),
+    }
+  }
+
+  pub fn render_this_exports(&self) -> String {
+    "this".to_string()
+  }
+
+  pub fn render(&self, key: &str, params: Option<serde_json::Value>) -> Result<String, Error> {
+    let mut render_params = Value::Object(Default::default());
+
+    render_params
+      .as_object_mut()
+      .unwrap_or_else(|| unreachable!())
+      .extend(
+        self
+          .runtime_globals
+          .iter()
+          .map(|(k, v)| (k.clone(), v.clone())),
+      );
+
+    if let Some(params) = params {
+      match params {
+        Value::Object(params) => {
+          for (k, v) in params {
+            render_params
+              .as_object_mut()
+              .unwrap_or_else(|| unreachable!())
+              .insert(k, v);
+          }
+        }
+        _ => panic!("Should receive a map value"),
+      }
+    }
+
+    if let Some((executer, file_content)) = self.dojang.templates.get(key) {
+      executer
+        .render(
+          &mut Context::new(render_params),
+          &self.dojang.templates,
+          &self.dojang.functions,
+          file_content,
+          &mut Mutex::new(std::collections::HashMap::new()),
+        )
+        // Replace Windows-style line endings (\r\n) with Unix-style (\n) to ensure consistent runtime templates across platforms
+        .map(|render| render.cow_replace("\r\n", "\n").to_string())
+        .to_rspack_result_with_message(|e| {
+          format!("Runtime module: failed to render template {key} from: {e}")
+        })
+    } else {
+      Err(error!("Runtime module: Template {key} is not found"))
+    }
+  }
+
+  pub fn basic_function(&self, args: &str, body: &str) -> String {
+    if self
+      .compiler_options
+      .output
+      .environment
+      .supports_arrow_function()
+    {
+      format!(
+        r#"({args}) => {{
+{body}
+}}"#
+      )
+    } else {
+      format!(
+        r#"function({args}) {{
+{body}
+}}"#
+      )
+    }
   }
 }

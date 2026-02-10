@@ -444,9 +444,7 @@ impl Compilation {
           let s = unsafe { token.used((&self, runtime_module_identifier, runtime_module)) };
           s.spawn(
             |(compilation, runtime_module_identifier, runtime_module)| async {
-              let mut runtime_template = compilation
-                .runtime_template
-                .create_module_codegen_runtime_template();
+              let mut runtime_template = compilation.runtime_template.create_module_code_template();
               let mut code_generation_context = ModuleCodeGenerationContext {
                 compilation,
                 runtime: None,

@@ -346,9 +346,7 @@ impl EsmLibraryPlugin {
           changed = true;
 
           let module_info = concate_modules_map[module_info_id].as_concatenated();
-          let mut runtime_template = compilation
-            .runtime_template
-            .create_module_codegen_runtime_template();
+          let mut runtime_template = compilation.runtime_template.create_module_code_template();
 
           let module_graph = compilation.get_module_graph();
           let box_module = module_graph
@@ -729,6 +727,7 @@ var {} = {{}};
     compilation: &Compilation,
     orig_concate_modules_map: &mut IdentifierIndexMap<ModuleInfo>,
   ) -> Result<()> {
+    let runtime_template = compilation.runtime_template.create_runtime_code_template();
     let mut outputs = UkeyMap::<ChunkUkey, String>::default();
     let concate_modules_map = orig_concate_modules_map.clone();
     for m in concate_modules_map.keys() {
@@ -790,9 +789,9 @@ var {} = {{}};
         let chunk_ukey = Self::get_module_chunk(m, compilation);
 
         // SAFETY: caller will poll the futures
-        let s = unsafe { token.used((compilation, m, chunk_ukey, info)) };
+        let s = unsafe { token.used((compilation, m, chunk_ukey, info, &runtime_template)) };
         s.spawn(
-          async move |(compilation, id, chunk_ukey, info)| -> Result<ModuleInfo> {
+          async move |(compilation, id, chunk_ukey, info, runtime_template)| -> Result<ModuleInfo> {
             let module_graph = compilation.get_module_graph();
 
             match info {
@@ -828,6 +827,7 @@ var {} = {{}};
                       .as_ref(),
                     &mut render_source,
                     &mut chunk_init_fragments,
+                    runtime_template,
                   )
                   .await?;
                 *concate_info = codegen_res

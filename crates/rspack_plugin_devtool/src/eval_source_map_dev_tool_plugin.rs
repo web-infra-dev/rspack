@@ -6,7 +6,7 @@ use futures::future::join_all;
 use rspack_core::{
   ChunkGraph, ChunkInitFragments, ChunkUkey, Compilation,
   CompilationAdditionalModuleRuntimeRequirements, CompilationParams, CompilerCompilation, Filename,
-  Module, ModuleIdentifier, PathData, Plugin, RuntimeGlobals,
+  Module, ModuleIdentifier, PathData, Plugin, RuntimeCodeTemplate, RuntimeGlobals,
   rspack_sources::{BoxSource, MapOptions, ObjectPool, RawStringSource, Source, SourceExt},
 };
 use rspack_error::Result;
@@ -101,6 +101,7 @@ async fn render_module_content(
   module: &dyn Module,
   render_source: &mut RenderSource,
   _init_fragments: &mut ChunkInitFragments,
+  runtime_template: &RuntimeCodeTemplate<'_>,
 ) -> Result<()> {
   let output_options = &compilation.options.output;
   let chunk = compilation
@@ -266,9 +267,7 @@ async fn render_module_content(
         if compilation.options.output.trusted_types.is_some() {
           format!(
             "{}({})",
-            compilation
-              .runtime_template
-              .render_runtime_globals(&RuntimeGlobals::CREATE_SCRIPT),
+            runtime_template.render_runtime_globals(&RuntimeGlobals::CREATE_SCRIPT),
             module_content
           )
         } else {

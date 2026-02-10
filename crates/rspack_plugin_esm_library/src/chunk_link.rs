@@ -3,7 +3,7 @@ use std::{borrow::Cow, sync::Arc};
 use rspack_collections::{IdentifierIndexMap, IdentifierIndexSet, IdentifierMap, IdentifierSet};
 use rspack_core::{
   BoxChunkInitFragment, ChunkGraph, ChunkUkey, Compilation, ImportSpec, ModuleGraph,
-  ModuleIdentifier, RuntimeGlobals, find_new_name,
+  ModuleIdentifier, RuntimeCodeTemplate, RuntimeGlobals, find_new_name,
   rspack_sources::{ConcatSource, RawStringSource},
 };
 use rspack_util::fx_hash::{FxHashMap, FxHashSet, FxIndexMap, FxIndexSet};
@@ -178,7 +178,11 @@ impl ExternalInterop {
     })
   }
 
-  pub fn render(&self, compilation: &Compilation) -> ConcatSource {
+  pub fn render(
+    &self,
+    compilation: &Compilation,
+    runtime_template: &RuntimeCodeTemplate<'_>,
+  ) -> ConcatSource {
     let mut source = ConcatSource::default();
     let name = self.required_symbol.as_ref();
 
@@ -189,9 +193,7 @@ impl ExternalInterop {
         // this render only happens at top level scope of the chunk
         "const {name} = {}{}({});\n",
         if is_async { "await " } else { "" },
-        compilation
-          .runtime_template
-          .render_runtime_globals(&RuntimeGlobals::REQUIRE),
+        runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
         serde_json::to_string(
           ChunkGraph::get_module_id(&compilation.module_ids_artifact, self.module)
             .unwrap_or_else(|| panic!("should set module id for {:?}", self.module))
@@ -204,9 +206,7 @@ impl ExternalInterop {
         source.add(RawStringSource::from(format!(
           "var {} = /*#__PURE__*/{}({}, 2);\n",
           namespace_object,
-          compilation
-            .runtime_template
-            .render_runtime_globals(&RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT),
+          runtime_template.render_runtime_globals(&RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT),
           name
         )));
       }
@@ -215,9 +215,7 @@ impl ExternalInterop {
         source.add(RawStringSource::from(format!(
           "var {} = /*#__PURE__*/{}({});\n",
           namespace_object,
-          compilation
-            .runtime_template
-            .render_runtime_globals(&RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT),
+          runtime_template.render_runtime_globals(&RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT),
           name
         )));
       }
@@ -226,9 +224,7 @@ impl ExternalInterop {
         source.add(RawStringSource::from(format!(
           "var {} = /*#__PURE__*/{}({});\n",
           default_access,
-          compilation
-            .runtime_template
-            .render_runtime_globals(&RuntimeGlobals::COMPAT_GET_DEFAULT_EXPORT),
+          runtime_template.render_runtime_globals(&RuntimeGlobals::COMPAT_GET_DEFAULT_EXPORT),
           name
         )));
 
@@ -247,9 +243,7 @@ impl ExternalInterop {
     } else {
       source.add(RawStringSource::from(format!(
         "{}({});\n",
-        compilation
-          .runtime_template
-          .render_runtime_globals(&RuntimeGlobals::REQUIRE),
+        runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
         serde_json::to_string(
           ChunkGraph::get_module_id(&compilation.module_ids_artifact, self.module)
             .unwrap_or_else(|| panic!("should set module id for {}", self.module))
