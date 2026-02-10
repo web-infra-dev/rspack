@@ -9,6 +9,15 @@ function test2() {
 	cjsRequire2("./file");
 }
 
+try {
+	(function test3(cjsRequire3) {
+		cjsRequire3("./file");
+	})(require);
+} catch (e) {
+	// do nothing
+}
+
+
 test;
 test2;
 require;
@@ -24,6 +33,7 @@ it("should NOT rename require when requireAlias is false", function () {
 
 	expect(content).toContain(`cjsRequire("${filename}")`);
 	expect(content).toContain(`cjsRequire2("${filename}")`);
+	expect(content).toContain(`cjsRequire3("${filename}")`);
 	expect(content).toContain(`var cjsRequire = ${requireName}, cjsRequire2 =  true && ${requireName};`);
 	expect(content).not.toContain(`module.exports = "${ok}";`);
 });

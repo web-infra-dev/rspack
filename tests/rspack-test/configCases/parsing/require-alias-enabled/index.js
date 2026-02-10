@@ -9,6 +9,10 @@ function test2() {
 	cjsRequire2("./file");
 }
 
+(function test3(cjsRequire3) {
+	cjsRequire3("./file");
+})(require);
+
 test;
 test2;
 require;
@@ -23,6 +27,7 @@ it("should NOT rename require when requireAlias is false", function () {
 
 	expect(content).toMatch(/function test\(\) \{\s*__webpack_require__\(239\);\s*\}/i);
 	expect(content).toMatch(/function test2\(\) \{\s*__webpack_require__\(239\);\s*\}/i);
+	expect(content).toMatch(/function test3\(cjsRequire3\) \{\s*__webpack_require__\(239\);\s*\}/i);
 	expect(content).toContain(`var cjsRequire = ${requireName}, cjsRequire2 = ${requireName};`);
 	expect(content).toContain(`module.exports = "${ok}";`);
 });
