@@ -126,7 +126,7 @@ fn parse_resolve(resolve: Resolve) -> ResolveWithEntry {
 
   macro_rules! update_by_value {
     ($ident: ident, $should_insert_by_value_key: expr) => {
-      let mut $ident = LinkedHashMap::new();
+      let mut $ident = LinkedHashMap::with_capacity(by_values_key.len());
       for by_value_key in &by_values_key {
         let obj = by_dependency.0.get_mut(by_value_key).expect("");
         let should_insert_by_value_key = $should_insert_by_value_key(obj.$ident.as_ref());
@@ -202,6 +202,17 @@ fn get_from_by_values<T: Default + Clone>(
     .cloned()
 }
 
+fn take_exact_from_by_values<T: Default>(
+  by_values: &mut LinkedHashMap<DependencyCategoryStr, T>,
+  key: &str,
+) -> Option<T> {
+  if key == "default" {
+    None
+  } else {
+    by_values.get_mut(key).map(std::mem::take)
+  }
+}
+
 fn _merge_resolve(first: Resolve, second: Resolve) -> Resolve {
   let first = parse_resolve(first);
   let second = parse_resolve(second);
@@ -212,7 +223,8 @@ fn _merge_resolve(first: Resolve, second: Resolve) -> Resolve {
         if let Some(by_values) = first.$ident.by_values {
           let mut new_by_values = by_values;
           for (key, value) in second.$ident.by_values.unwrap_or_default() {
-            let first_value = get_from_by_values(&new_by_values, key.as_ref()).unwrap_or_default();
+            let first_value = take_exact_from_by_values(&mut new_by_values, key.as_ref())
+              .unwrap_or_else(|| get_from_by_values(&new_by_values, key.as_ref()).unwrap_or_default());
             new_by_values.insert(key, overwrite(first_value, value, $deal_merge));
           }
           Entry {
@@ -253,7 +265,8 @@ fn _merge_resolve(first: Resolve, second: Resolve) -> Resolve {
         let new_by_values = if let Some(by_values) = second.$ident.by_values {
           let mut new_by_values = intermediate_by_values;
           for (key, value) in by_values {
-            let first_value = get_from_by_values(&new_by_values, key.as_ref()).unwrap_or_default();
+            let first_value = take_exact_from_by_values(&mut new_by_values, key.as_ref())
+              .unwrap_or_else(|| get_from_by_values(&new_by_values, key.as_ref()).unwrap_or_default());
             new_by_values.insert(key, overwrite(first_value, value, $deal_merge));
           }
           new_by_values
@@ -418,9 +431,17 @@ fn _merge_resolve(first: Resolve, second: Resolve) -> Resolve {
   macro_rules! to_resolve {
     ($ident: ident) => {
       if let Some(by_values) = result_entry.$ident.by_values {
-        for (key, resolve) in by_dependency.iter_mut() {
-          if let Some(value) = get_from_by_values(&by_values, key) {
-            resolve.$ident = value;
+        if by_values.contains_key("default") {
+          for (key, resolve) in by_dependency.iter_mut() {
+            if let Some(value) = get_from_by_values(&by_values, key) {
+              resolve.$ident = value;
+            }
+          }
+        } else {
+          for (key, value) in by_values {
+            if let Some(resolve) = by_dependency.get_mut(key.as_ref()) {
+              resolve.$ident = value;
+            }
           }
         }
       }
@@ -485,6 +506,9 @@ fn _merge_resolve(first: Resolve, second: Resolve) -> Resolve {
 
 fn normalize_string_array(a: Vec<String>, b: Vec<String>) -> Vec<String> {
   let spread_count = b.iter().filter(|item| item.as_str() == "...").count();
+  if spread_count == 0 {
+    return b;
+  }
   let mut result = Vec::with_capacity(b.len() + spread_count.saturating_mul(a.len()));
   for item in b {
     if item == "..." {
