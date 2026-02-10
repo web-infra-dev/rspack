@@ -631,8 +631,8 @@ importers:
         version: 19.2.4(react@19.2.4)
     devDependencies:
       '@codspeed/vitest-plugin':
-        specifier: ^4.0.1
-        version: 4.0.1(vite@7.1.7(@types/node@20.19.31)(jiti@2.6.1)(less@4.4.2)(sass-embedded@1.97.3)(sass@1.97.3)(terser@5.44.1)(tsx@4.21.0)(yaml@2.8.2))(vitest@3.2.4(@types/debug@4.1.12)(@types/node@20.19.31)(jiti@2.6.1)(jsdom@26.1.0)(less@4.4.2)(sass-embedded@1.97.3)(sass@1.97.3)(terser@5.44.1)(tsx@4.21.0)(yaml@2.8.2))
+        specifier: ^5.0.0
+        version: 5.2.0(tinybench@2.9.0)(vite@7.1.7(@types/node@20.19.31)(jiti@2.6.1)(less@4.4.2)(sass-embedded@1.97.3)(sass@1.97.3)(terser@5.44.1)(tsx@4.21.0)(yaml@2.8.2))(vitest@3.2.4(@types/debug@4.1.12)(@types/node@20.19.31)(jiti@2.6.1)(jsdom@26.1.0)(less@4.4.2)(sass-embedded@1.97.3)(sass@1.97.3)(terser@5.44.1)(tsx@4.21.0)(yaml@2.8.2))
       '@rspack/cli':
         specifier: workspace:*
         version: link:../../packages/rspack-cli
@@ -1484,14 +1484,15 @@ packages:
   '@chevrotain/utils@11.0.3':
     resolution: {integrity: sha512-YslZMgtJUyuMbZ+aKvfF3x1f5liK4mWNxghFRv7jqRR9C3R3fAOGTTKvxXDa2Y1s9zSbcpuO0cAxDYsc9SrXoQ==}
 
-  '@codspeed/core@4.0.1':
-    resolution: {integrity: sha512-fJ53arfgtzCDZa8DuGJhpTZ3Ll9A1uW5nQ2jSJnfO4Hl5MRD2cP8P4vPvIUAGbdbjwCxR1jat6cW8OloMJkJXw==}
+  '@codspeed/core@5.2.0':
+    resolution: {integrity: sha512-CmDhpWjcOJg2iBOQ/BmBnSBq8qxlM3r4h8uvYDkoUaba+EKRT3T73BZtKuml/48jZMsB+4/FG2UbTBinDWtuvw==}
 
-  '@codspeed/vitest-plugin@4.0.1':
-    resolution: {integrity: sha512-aqmrPJzX9cD50UWDsOyih5L5WcEYlNQg3u84sJJ9ZuuLApA51w+LGxk6Xbyb8LJF9n/CwM94HKHV/qArfnvDoQ==}
+  '@codspeed/vitest-plugin@5.2.0':
+    resolution: {integrity: sha512-soXKIQBqJzjVQyWRwe2HNfhCaBgxhG25m8+PI3F5zFFsV3FQxMJXHsMECNtrgm+SRiCiWv/OFTcfCMZRy4nKtw==}
     peerDependencies:
-      vite: ^4.2.0 || ^5.0.0 || ^6.0.0
-      vitest: '>=1.2.2'
+      tinybench: '>=2.9.0'
+      vite: ^4.2.0 || ^5.0.0 || ^6.0.0 || ^7.0.0
+      vitest: ^3.2 || ^4
 
   '@cspell/cspell-bundled-dicts@9.6.3':
     resolution: {integrity: sha512-0Ibx+ynlSd8wMAoUmc2Ck4SDN27eJheM45aCmCvCA8saROwkDh7j8zBz7aTTUTtFN+pcotJoNxr71LLD+KXhgQ==}
@@ -8962,7 +8963,7 @@ snapshots:
 
   '@chevrotain/utils@11.0.3': {}
 
-  '@codspeed/core@4.0.1':
+  '@codspeed/core@5.2.0':
     dependencies:
       axios: 1.13.4
       find-up: 6.3.0
@@ -8971,9 +8972,10 @@ snapshots:
     transitivePeerDependencies:
       - debug
 
-  '@codspeed/vitest-plugin@4.0.1(vite@7.1.7(@types/node@20.19.31)(jiti@2.6.1)(less@4.4.2)(sass-embedded@1.97.3)(sass@1.97.3)(terser@5.44.1)(tsx@4.21.0)(yaml@2.8.2))(vitest@3.2.4(@types/debug@4.1.12)(@types/node@20.19.31)(jiti@2.6.1)(jsdom@26.1.0)(less@4.4.2)(sass-embedded@1.97.3)(sass@1.97.3)(terser@5.44.1)(tsx@4.21.0)(yaml@2.8.2))':
+  '@codspeed/vitest-plugin@5.2.0(tinybench@2.9.0)(vite@7.1.7(@types/node@20.19.31)(jiti@2.6.1)(less@4.4.2)(sass-embedded@1.97.3)(sass@1.97.3)(terser@5.44.1)(tsx@4.21.0)(yaml@2.8.2))(vitest@3.2.4(@types/debug@4.1.12)(@types/node@20.19.31)(jiti@2.6.1)(jsdom@26.1.0)(less@4.4.2)(sass-embedded@1.97.3)(sass@1.97.3)(terser@5.44.1)(tsx@4.21.0)(yaml@2.8.2))':
     dependencies:
-      '@codspeed/core': 4.0.1
+      '@codspeed/core': 5.2.0
+      tinybench: 2.9.0
       vite: 7.1.7(@types/node@20.19.31)(jiti@2.6.1)(less@4.4.2)(sass-embedded@1.97.3)(sass@1.97.3)(terser@5.44.1)(tsx@4.21.0)(yaml@2.8.2)
       vitest: 3.2.4(@types/debug@4.1.12)(@types/node@20.19.31)(jiti@2.6.1)(jsdom@26.1.0)(less@4.4.2)(sass-embedded@1.97.3)(sass@1.97.3)(terser@5.44.1)(tsx@4.21.0)(yaml@2.8.2)
     transitivePeerDependencies:
