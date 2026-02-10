@@ -191,6 +191,10 @@ export default defineConfig({
     merge(commonLibConfig, {
       dts: {
         build: true,
+        alias: {
+          // alias to pre-bundled types as they are public API
+          '@rspack/lite-tapable': './compiled/@rspack/lite-tapable/dist/index',
+        },
       },
       redirect: {
         dts: {

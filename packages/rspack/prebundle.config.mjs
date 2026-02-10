@@ -11,6 +11,11 @@ export default {
       copyDts: true,
     },
     {
+      name: '@rspack/lite-tapable',
+      copyDts: true,
+      dtsOnly: true,
+    },
+    {
       name: 'watchpack',
       dtsExternals: ['graceful-fs'],
       afterBundle(task) {
