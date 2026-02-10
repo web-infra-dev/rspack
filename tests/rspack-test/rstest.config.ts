@@ -1,5 +1,5 @@
 import path from 'node:path';
-import { defineConfig, defineProject,type ProjectConfig, type RstestConfig } from '@rstest/core';
+import { defineConfig, defineProject, type ProjectConfig, type RstestConfig } from '@rstest/core';
 import { StreamedEventReporter } from '@rspack/test-tools/reporter';
 
 const root = path.resolve(__dirname, "../../");
@@ -44,7 +44,7 @@ const testFilter = process.argv.includes("--test") || process.argv.includes("-t"
   ]
   : undefined;
 
-const reporters: RstestConfig["reporters"]  = testFilter ? ['verbose' as const] : ['default' as const];
+const reporters: RstestConfig['reporters']  = testFilter ? ['verbose' as const] : ['default' as const];
 if (process.env.CI) {
   reporters.push(new StreamedEventReporter( path.join(__dirname, '../../', 'rspack-test-event-report.txt')));
 }
