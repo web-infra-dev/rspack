@@ -177,3 +177,11 @@ jobs:
           WASM: 1
           RSPACK_LOADER_WORKER_THREADS: 1
         run: pnpm run test:ci
+
+      - name: Upload Test Reporter
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rstest-event-reports-${{ inputs.target }}-node${{ matrix.node }}
+          path: '*-report.txt'
+          if-no-files-found: ignore
