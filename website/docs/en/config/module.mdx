@@ -66,7 +66,7 @@ export default {
       asset: {
         dataUrl: {
           encoding: false,
-          mimetype: 'base64',
+          mimetype: 'image/png',
         },
         filename: '[name]-[contenthash][ext]',
         publicPath: 'https://cdn.example.com/',
@@ -75,7 +75,7 @@ export default {
       'asset/inline': {
         dataUrl: {
           encoding: false,
-          mimetype: 'base64',
+          mimetype: 'image/png',
         },
       },
       // Generator options for asset/resource modules
@@ -161,7 +161,7 @@ export default {
       asset: {
         dataUrl: {
           encoding: 'base64',
-          mimetype: 'mimetype/png',
+          mimetype: 'image/png',
         },
       },
     },
@@ -274,7 +274,7 @@ export default {
 
 - **Type:** `string | ((pathData: PathData, assetInfo?: AssetInfo) => string)`
 - **Default:** `undefined`
-- **Supported Template string:** checkout [`output.assetModuleFilename`](/config/output#outputassetmodulefilename)
+- **Supported Template string:** see [`output.assetModuleFilename`](/config/output#outputassetmodulefilename)
 
 Same as `output.assetModuleFilename`. Overrides `output.assetModuleFilename` and only works for `asset` and `asset/resource` module types.
 
@@ -1330,7 +1330,7 @@ WARNING in ./re-exports.ts
 ```
 
 :::info Recommended with isolatedModules
-When using Rspack to bundle TypeScript, we strongly recommend enabling [isolatedModules](https://www.typescriptlang.org/tsconfig/#isolatedModules) in tsconfig.json (also recommended with other bundlers as it matches how bundlers compile TypeScript: [.ts files are independent and compiled separately](/guide/tech/typescript#%E5%BC%80%E5%90%AF-isolatedmodules)). This will give TypeScript's own warning for type re-exports: `Re-exporting a type when 'isolatedModules' is enabled requires using 'export type'.`
+When using Rspack to bundle TypeScript, we strongly recommend enabling [isolatedModules](https://www.typescriptlang.org/tsconfig/#isolatedModules) in tsconfig.json (also recommended with other bundlers as it matches how bundlers compile TypeScript: [.ts files are independent and compiled separately](/guide/tech/typescript#enable-isolatedmodules)). This will give TypeScript's own warning for type re-exports: `Re-exporting a type when 'isolatedModules' is enabled requires using 'export type'.`
 :::
 
 - `'no-tolerant'`: Default behavior, shows errors for type re-exports.
