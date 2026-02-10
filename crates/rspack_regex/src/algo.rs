@@ -130,14 +130,7 @@ impl Algo {
   }
 
   pub(crate) fn new_rust_regex(expr: &str, flags: &str) -> Result<Algo, Error> {
-    let ignore_case = flags.contains('i');
-    if let Some(algo) = Self::try_compile_to_end_with_fast_path(expr)
-      && !ignore_case
-    {
-      Ok(algo)
-    } else {
-      HashRustRegex::new(expr, flags).map(Algo::RustRegex)
-    }
+    HashRustRegex::new(expr, flags).map(Algo::RustRegex)
   }
 
   fn try_compile_to_end_with_fast_path(expr: &str) -> Option<Algo> {
@@ -252,7 +245,7 @@ mod test_algo {
         .unwrap()
         .is_rust_regex()
     );
-    assert!(Algo::new_rust_regex("\\.js$", "").unwrap().is_end_with());
+    assert!(Algo::new_rust_regex("\\.js$", "").unwrap().is_rust_regex());
   }
 
   #[test]
