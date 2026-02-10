@@ -1,5 +1,5 @@
 use rspack_core::{
-  Compilation, RuntimeGlobals, RuntimeModule, RuntimeTemplate, impl_runtime_module,
+  RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext, RuntimeTemplate, impl_runtime_module,
 };
 
 pub static EXPORT_REQUIRE_RUNTIME_MODULE_ID: &str = "export_webpack_require";
@@ -16,8 +16,11 @@ impl ExportRequireRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for ExportRequireRuntimeModule {
-  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
-    let require_name = compilation
+  async fn generate(
+    &self,
+    context: &RuntimeModuleGenerateContext<'_>,
+  ) -> rspack_error::Result<String> {
+    let require_name = context
       .runtime_template
       .render_runtime_globals(&RuntimeGlobals::REQUIRE);
     let export_temp_name = format!("{require_name}temp");

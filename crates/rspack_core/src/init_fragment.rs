@@ -15,7 +15,7 @@ use rustc_hash::FxHasher;
 use swc_core::ecma::atoms::Atom;
 
 use crate::{
-  ExportsArgument, GenerateContext, ModuleCodegenRuntimeTemplate, RuntimeCondition, RuntimeGlobals,
+  ExportsArgument, GenerateContext, ModuleCodeTemplate, RuntimeCondition, RuntimeGlobals,
   merge_runtime, property_name,
 };
 
@@ -159,7 +159,7 @@ fn first<C>(fragments: Vec<Box<dyn InitFragment<C>>>) -> Box<dyn InitFragment<C>
 
 pub trait InitFragmentRenderContext {
   fn runtime_condition_expression(&mut self, runtime_condition: &RuntimeCondition) -> String;
-  fn runtime_template(&mut self) -> &mut ModuleCodegenRuntimeTemplate;
+  fn runtime_template(&mut self) -> &mut ModuleCodeTemplate;
 }
 
 pub trait InitFragment<C>: IntoAny + DynHash + DynClone + Debug + Sync + Send {
@@ -268,7 +268,7 @@ impl InitFragmentRenderContext for GenerateContext<'_> {
     )
   }
 
-  fn runtime_template(&mut self) -> &mut ModuleCodegenRuntimeTemplate {
+  fn runtime_template(&mut self) -> &mut ModuleCodeTemplate {
     self.runtime_template
   }
 }
@@ -280,7 +280,7 @@ impl InitFragmentRenderContext for ChunkRenderContext {
     unreachable!("should not call runtime condition expression in chunk render context")
   }
 
-  fn runtime_template(&mut self) -> &mut ModuleCodegenRuntimeTemplate {
+  fn runtime_template(&mut self) -> &mut ModuleCodeTemplate {
     unreachable!("should not call runtime template in chunk render context")
   }
 }

@@ -15,7 +15,7 @@ You can define budget thresholds with `maxAssetSize` and `maxEntrypointSize`, an
 
 <PropertyType type="false | object" />
 
-Set `performance` to `false` to disable the performance hint:
+Set `performance` to `false` to disable the performance hints:
 
 ```js title="rspack.config.mjs"
 export default {
@@ -85,7 +85,7 @@ export default {
 
 <PropertyType type="number" defaultValueList={[{ defaultValue: '250000' }]} />
 
-Sets the total size threshold for an entrypoint (in bytes). Entrypoint size means the total size needed for the initial load of that entry. Rspack emits a performance hint when the entrypoint total size exceeds this value.
+Sets the total size threshold for an entrypoint (in bytes). Entrypoint total size means the total size needed for the initial load of that entry. Rspack emits a performance hint when the entrypoint total size exceeds this value.
 
 For example, set the entrypoint size threshold to 500 KB:
 

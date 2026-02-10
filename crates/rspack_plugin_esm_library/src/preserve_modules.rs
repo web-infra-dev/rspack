@@ -1,11 +1,10 @@
-use std::{borrow::Cow, path::Path};
+use std::{borrow::Cow, path::Path, sync::LazyLock};
 
 use regex::Regex;
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::Compilation;
 use rspack_util::fx_hash::{FxHashMap, FxHashSet};
 use sugar_path::SugarPath;
-use swc_core::common::sync::Lazy;
 
 use crate::EsmLibraryPlugin;
 
@@ -48,7 +47,6 @@ pub fn entry_name_for_module(
   entry_name_for_module
 }
 
-#[allow(clippy::unwrap_used)]
 pub async fn preserve_modules(
   root: &Path,
   compilation: &mut Compilation,
@@ -108,8 +106,8 @@ pub async fn preserve_modules(
         .unwrap_or(&compilation.options.output.filename)
         .template()
         .map_or(Cow::Borrowed(".js"), |tpl| {
-          static EXTENSION_JS: Lazy<Regex> =
-            Lazy::new(|| Regex::new(r".+(\..+)$").expect("failed to compile EXTENSION_REGEXP"));
+          static EXTENSION_JS: LazyLock<Regex> =
+            LazyLock::new(|| Regex::new(r".+(\..+)$").expect("failed to compile EXTENSION_REGEXP"));
 
           if let Some(captures) = EXTENSION_JS.captures(tpl) {
             Cow::Owned(captures[1].to_string())
@@ -192,7 +190,12 @@ pub async fn preserve_modules(
           .chunk_graph
           .disconnect_chunk_and_entry_module(&chunk, module_id);
 
-        let entrypoint = compilation.entrypoint_by_name_mut(entry_names.iter().next().unwrap());
+        let entrypoint = compilation.entrypoint_by_name_mut(
+          entry_names
+            .iter()
+            .next()
+            .expect("entry_names should not be empty"),
+        );
         let ukey = entrypoint.ukey;
         entrypoint.set_entrypoint_chunk(new_chunk_ukey);
 

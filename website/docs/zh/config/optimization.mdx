@@ -192,23 +192,53 @@ function f2() {
 ## optimization.mangleExports
 
 <PropertyType
-  type="boolean | 'deterministic' | 'size' "
+  type="boolean | 'deterministic' | 'size'"
   defaultValueList={[
-    { defaultValue: 'deterministic', mode: 'production' },
+    { defaultValue: 'true', mode: 'production' },
     { defaultValue: 'false', mode: 'development' },
   ]}
 />
 
-`optimization.mangleExports` 允许控制导出名称的混淆。
+`optimization.mangleExports` 用于控制导出名的混淆方式。
 
 支持以下选项：
 
-| option          | description                                                                        |
-| --------------- | ---------------------------------------------------------------------------------- |
-| 'named'         | 使用有意义且易于调试的内容作为标识符。在开发模式下，默认启用此选项。               |
-| 'deterministic' | 使用哈希模块标识符作为标识符，以便从长期缓存中受益。在生产模式下，默认启用此选项。 |
-| true            | 与 'deterministic' 相同。                                                          |
-| false           | 保留原始名称。适用于可读性和调试。                                                 |
+| option            | description                                                                |
+| ----------------- | -------------------------------------------------------------------------- |
+| `'size'`          | 使用尽可能短的导出名，以减小产物体积。                                     |
+| `'deterministic'` | 使用短且稳定的导出名，以获得更好的长期缓存稳定性。生产模式默认启用该选项。 |
+| `true`            | 与 `'deterministic'` 相同。                                                |
+| `false`           | 关闭导出名混淆，保留原始导出名。开发模式默认启用该选项。                   |
+
+例如源代码为：
+
+```js title="src/math.js"
+export const veryLongExportName = 1;
+```
+
+关闭 `mangleExports` 时，导出名会被保留：
+
+```js title="dist/main.js"
+__webpack_require__.d(__webpack_exports__, {
+  veryLongExportName: () => veryLongExportName,
+});
+```
+
+将 `mangleExports` 设置为 `'size'` 时，导出名会被缩短：
+
+```js title="rspack.config.mjs"
+export default {
+  optimization: {
+    mangleExports: 'size',
+  },
+};
+```
+
+```js title="dist/main.js"
+__webpack_require__.d(__webpack_exports__, {
+  a: () => veryLongExportName,
+});
+```
 
 ## optimization.mergeDuplicateChunks
 

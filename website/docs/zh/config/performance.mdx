@@ -85,9 +85,9 @@ export default {
 
 <PropertyType type="number" defaultValueList={[{ defaultValue: '250000' }]} />
 
-设置入口总体积阈值（单位：bytes）。入口体积指首屏加载该入口时需要的总体积。当入口总体积超过该值时，Rspack 会触发性能提示。
+设置入口总体积阈值（单位：bytes）。这里的入口总体积指初始加载该入口时需要的所有资源总体积，当入口总体积超过该值时，Rspack 会触发性能提示。
 
-例如设置入口体积阈值为 500 KB：
+例如设置入口总体积阈值为 500 KB：
 
 ```js title="rspack.config.mjs"
 export default {

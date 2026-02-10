@@ -2,7 +2,8 @@ use std::iter;
 
 use itertools::Itertools;
 use rspack_core::{
-  Compilation, RuntimeGlobals, RuntimeModule, RuntimeTemplate, impl_runtime_module,
+  Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext, RuntimeTemplate,
+  impl_runtime_module,
 };
 
 #[impl_runtime_module]
@@ -26,7 +27,12 @@ impl RuntimeModule for StartupChunkDependenciesRuntimeModule {
     )]
   }
 
-  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
+  async fn generate(
+    &self,
+    context: &RuntimeModuleGenerateContext<'_>,
+  ) -> rspack_error::Result<String> {
+    let compilation = context.compilation;
+    let runtime_template = context.runtime_template;
     if let Some(chunk_ukey) = self.chunk {
       let chunk_ids = compilation
         .build_chunk_graph_artifact
@@ -50,9 +56,7 @@ impl RuntimeModule for StartupChunkDependenciesRuntimeModule {
         match chunk_ids.len() {
           1 => format!(
             r#"return {}("{}").then(next);"#,
-            compilation
-              .runtime_template
-              .render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK),
+            runtime_template.render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK),
             chunk_ids.first().expect("Should has at least one chunk")
           ),
           2 => format!(
@@ -61,9 +65,7 @@ impl RuntimeModule for StartupChunkDependenciesRuntimeModule {
               .iter()
               .map(|cid| format!(
                 r#"{}("{}")"#,
-                compilation
-                  .runtime_template
-                  .render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK),
+                runtime_template.render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK),
                 cid
               ))
               .join(",\n")
@@ -71,12 +73,8 @@ impl RuntimeModule for StartupChunkDependenciesRuntimeModule {
           _ => format!(
             r#"return Promise.all({}.map({}, {})).then(next);"#,
             serde_json::to_string(&chunk_ids).expect("Invalid json to string"),
-            compilation
-              .runtime_template
-              .render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK),
-            compilation
-              .runtime_template
-              .render_runtime_globals(&RuntimeGlobals::REQUIRE)
+            runtime_template.render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK),
+            runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
           ),
         }
       } else {
@@ -85,9 +83,7 @@ impl RuntimeModule for StartupChunkDependenciesRuntimeModule {
           .map(|cid| {
             format!(
               r#"{}("{}");"#,
-              compilation
-                .runtime_template
-                .render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK),
+              runtime_template.render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK),
               cid
             )
           })
@@ -95,7 +91,7 @@ impl RuntimeModule for StartupChunkDependenciesRuntimeModule {
           .join("\n")
       };
 
-      let source = compilation.runtime_template.render(
+      let source = runtime_template.render(
         &self.id,
         Some(serde_json::json!({
           "_body": body,
