@@ -2,11 +2,13 @@
 use std::{borrow::Cow, collections::VecDeque, rc::Rc, sync::Arc};
 
 use rayon::prelude::*;
-use rspack_collections::{IdentifierDashMap, IdentifierIndexSet, IdentifierMap, IdentifierSet};
+use rspack_collections::{
+  Identifiable, IdentifierDashMap, IdentifierIndexSet, IdentifierMap, IdentifierSet,
+};
 use rspack_core::{
-  BoxDependency, Compilation, CompilationOptimizeChunkModules, DependencyId, DependencyType,
-  ExportProvided, ExtendedReferencedExport, GetTargetResult, ImportedByDeferModulesArtifact,
-  LibIdentOptions, Logger, Module, ModuleExt, ModuleGraph, ModuleGraphCacheArtifact,
+  BoxDependency, BoxModule, Compilation, CompilationOptimizeChunkModules, DependencyId,
+  DependencyType, ExportProvided, ExtendedReferencedExport, GetTargetResult,
+  ImportedByDeferModulesArtifact, LibIdentOptions, Logger, ModuleGraph, ModuleGraphCacheArtifact,
   ModuleGraphConnection, ModuleGraphModule, ModuleIdentifier, Plugin, PrefetchExportsInfoMode,
   ProvidedExports, RuntimeCondition, RuntimeSpec, SourceType,
   concatenated_module::{
@@ -717,14 +719,15 @@ impl ModuleConcatenationPlugin {
         }
       })
       .collect::<Vec<_>>();
-    let mut new_module = ConcatenatedModule::create(
+
+    let mut new_module = BoxModule::new(Box::new(ConcatenatedModule::create(
       root_module_ctxt,
       modules,
       Some(rspack_hash::HashFunction::MD4),
       config.runtime.clone(),
       compilation,
-    );
-    new_module
+    )));
+    let build_result = new_module
       .build(
         rspack_core::BuildContext {
           compiler_id: compilation.compiler_id(),
@@ -738,15 +741,17 @@ impl ModuleConcatenationPlugin {
         Some(compilation),
       )
       .await?;
+    new_module = build_result.module;
+
     let mut chunk_graph = std::mem::take(&mut compilation.build_chunk_graph_artifact.chunk_graph);
     let module_graph = compilation.get_module_graph_mut();
     let root_mgm_exports = module_graph
       .module_graph_module_by_identifier(&root_module_id)
       .expect("should have mgm")
       .exports;
-    let module_graph_module = ModuleGraphModule::new(new_module.id(), root_mgm_exports);
+    let module_graph_module = ModuleGraphModule::new(new_module.identifier(), root_mgm_exports);
     module_graph.add_module_graph_module(module_graph_module);
-    ModuleGraph::clone_module_attributes(compilation, &root_module_id, &new_module.id());
+    ModuleGraph::clone_module_attributes(compilation, &root_module_id, &new_module.identifier());
     // integrate
 
     let module_graph = compilation.get_module_graph_mut();
@@ -754,7 +759,7 @@ impl ModuleConcatenationPlugin {
       if m == &root_module_id {
         continue;
       }
-      module_graph.copy_outgoing_module_connections(m, &new_module.id(), |con, dep| {
+      module_graph.copy_outgoing_module_connections(m, &new_module.identifier(), |con, dep| {
         con.original_module_identifier.as_ref() == Some(m)
           && !(is_esm_dep_like(dep) && modules_set.contains(con.module_identifier()))
       });
@@ -790,9 +795,12 @@ impl ModuleConcatenationPlugin {
     // these lines of codes fix a bug: when asset module (NormalModule) is concatenated into ConcatenatedModule, the asset will be lost
     // because `chunk_graph.replace_module(&root_module_id, &new_module.id());` will remove the asset module from chunk, and I add this module back to fix this bug
     if is_root_module_asset_module {
-      chunk_graph.replace_module(&root_module_id, &new_module.id());
+      chunk_graph.replace_module(&root_module_id, &new_module.identifier());
       chunk_graph.add_module(root_module_id);
-      for chunk_ukey in chunk_graph.get_module_chunks(new_module.id()).clone() {
+      for chunk_ukey in chunk_graph
+        .get_module_chunks(new_module.identifier())
+        .clone()
+      {
         let module = module_graph
           .module_by_identifier(&root_module_id)
           .expect("should exist module");
@@ -808,10 +816,10 @@ impl ModuleConcatenationPlugin {
         chunk_graph.connect_chunk_and_module(chunk_ukey, root_module_id);
       }
     } else {
-      chunk_graph.replace_module(&root_module_id, &new_module.id());
+      chunk_graph.replace_module(&root_module_id, &new_module.identifier());
     }
 
-    module_graph.move_module_connections(&root_module_id, &new_module.id(), |c, dep| {
+    module_graph.move_module_connections(&root_module_id, &new_module.identifier(), |c, dep| {
       let other_module = if *c.module_identifier() == root_module_id {
         c.original_module_identifier
       } else {
@@ -825,7 +833,7 @@ impl ModuleConcatenationPlugin {
         };
       !inner_connection
     });
-    module_graph.add_module(new_module.boxed());
+    module_graph.add_module(new_module);
     compilation.build_chunk_graph_artifact.chunk_graph = chunk_graph;
     Ok(())
   }
@@ -1307,7 +1315,7 @@ impl ModuleConcatenationPlugin {
         s.spawn(move |compilation| async move {
           let modules_set = config.get_modules();
           let new_module = create_concatenated_module(compilation, &config).await?;
-          let new_module_id = new_module.id();
+          let new_module_id = new_module.identifier();
           let connections = prepare_concatenated_module_connections(
             compilation,
             &new_module_id,
@@ -1357,7 +1365,7 @@ impl ModuleConcatenationPlugin {
 
     for res in new_modules {
       let (new_module, outgoings, root_outgoings, root_incomings, config) = res?;
-      let new_module_id = new_module.id();
+      let new_module_id = new_module.identifier();
       let root_module_id = config.root_module;
       add_concatenated_module(compilation, new_module, config);
 
@@ -1441,7 +1449,7 @@ pub struct NoRuntimeModuleCache {
 async fn create_concatenated_module(
   compilation: &Compilation,
   config: &ConcatConfiguration,
-) -> Result<ConcatenatedModule> {
+) -> Result<BoxModule> {
   let module_graph = compilation.get_module_graph();
   let root_module_id = config.root_module;
   let modules_set = config.get_modules();
@@ -1506,14 +1514,14 @@ async fn create_concatenated_module(
       }
     })
     .collect::<Vec<_>>();
-  let mut new_module = ConcatenatedModule::create(
+  let mut new_module = BoxModule::new(Box::from(ConcatenatedModule::create(
     root_module_ctxt,
     modules,
     Some(rspack_hash::HashFunction::MD4),
     config.runtime.clone(),
     compilation,
-  );
-  new_module
+  )));
+  let build_result = new_module
     .build(
       rspack_core::BuildContext {
         compiler_id: compilation.compiler_id(),
@@ -1527,6 +1535,7 @@ async fn create_concatenated_module(
       Some(compilation),
     )
     .await?;
+  new_module = build_result.module;
 
   Ok(new_module)
 }
@@ -1613,7 +1622,7 @@ where
 
 fn add_concatenated_module(
   compilation: &mut Compilation,
-  new_module: ConcatenatedModule,
+  new_module: BoxModule,
   config: ConcatConfiguration,
 ) {
   let root_module_id = config.root_module;
@@ -1633,9 +1642,9 @@ fn add_concatenated_module(
     .module_graph_module_by_identifier(&root_module_id)
     .expect("should have mgm")
     .exports;
-  let module_graph_module = ModuleGraphModule::new(new_module.id(), root_mgm_exports);
+  let module_graph_module = ModuleGraphModule::new(new_module.identifier(), root_mgm_exports);
   module_graph.add_module_graph_module(module_graph_module);
-  ModuleGraph::clone_module_attributes(compilation, &root_module_id, &new_module.id());
+  ModuleGraph::clone_module_attributes(compilation, &root_module_id, &new_module.identifier());
   // integrate
 
   let module_graph = compilation.get_module_graph_mut();
@@ -1670,9 +1679,12 @@ fn add_concatenated_module(
   // these lines of codes fix a bug: when asset module (NormalModule) is concatenated into ConcatenatedModule, the asset will be lost
   // because `chunk_graph.replace_module(&root_module_id, &new_module.id());` will remove the asset module from chunk, and I add this module back to fix this bug
   if is_root_module_asset_module {
-    chunk_graph.replace_module(&root_module_id, &new_module.id());
+    chunk_graph.replace_module(&root_module_id, &new_module.identifier());
     chunk_graph.add_module(root_module_id);
-    for chunk_ukey in chunk_graph.get_module_chunks(new_module.id()).clone() {
+    for chunk_ukey in chunk_graph
+      .get_module_chunks(new_module.identifier())
+      .clone()
+    {
       let module = module_graph
         .module_by_identifier(&root_module_id)
         .expect("should exist module");
@@ -1688,10 +1700,10 @@ fn add_concatenated_module(
       chunk_graph.connect_chunk_and_module(chunk_ukey, root_module_id);
     }
   } else {
-    chunk_graph.replace_module(&root_module_id, &new_module.id());
+    chunk_graph.replace_module(&root_module_id, &new_module.identifier());
   }
 
-  module_graph.add_module(new_module.boxed());
+  module_graph.add_module(new_module);
   compilation.build_chunk_graph_artifact.chunk_graph = chunk_graph;
 }
 
