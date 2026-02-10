@@ -83,7 +83,6 @@ async function build() {
 			features.push("tracy-client");
 		}
 		if (values.profile === "release") {
-			features.push("info-level");
 			if (process.env.RUST_TARGET && !process.env.RUST_TARGET.includes("windows-msvc")) {
 				rustflags.push("-Cforce-unwind-tables=no");
 			}
