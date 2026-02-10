@@ -200,6 +200,6 @@ pub async fn recovery_module_graph(
     mg.cache_recovery_connection(connection);
   }
 
-  tracing::debug!("recovery {} module", mg.modules().len());
+  tracing::debug!("recovery {} module", mg.module_count());
   Ok((mg, module_to_lazy_make, entry_dependencies))
 }

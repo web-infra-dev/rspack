@@ -53,7 +53,7 @@ async fn runtime_requirements_pass_impl(compilation: &mut Compilation) -> Result
     logger.log(format!(
       "{} modules are affected, {} in total",
       modules.len(),
-      compilation.get_module_graph().modules().len()
+      compilation.get_module_graph().module_count()
     ));
     modules
   } else {
@@ -62,8 +62,7 @@ async fn runtime_requirements_pass_impl(compilation: &mut Compilation) -> Result
     compilation
       .get_module_graph()
       .modules()
-      .keys()
-      .copied()
+      .map(|(module_identifier, _)| module_identifier)
       .collect()
   };
   compilation

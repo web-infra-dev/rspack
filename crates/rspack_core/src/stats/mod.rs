@@ -220,7 +220,7 @@ impl Stats<'_> {
 
     let mut modules: Vec<StatsModule> = module_graph
       .modules()
-      .values()
+      .map(|(_, module)| module)
       .par_bridge()
       .map(|module| {
         self.get_module(
@@ -247,7 +247,7 @@ impl Stats<'_> {
     if let Some(executor_module_graph) = &executor_module_graph {
       let executed_modules: Vec<StatsModule> = executor_module_graph
         .modules()
-        .values()
+        .map(|(_, module)| module)
         .par_bridge()
         .map(|module| {
           self.get_module(

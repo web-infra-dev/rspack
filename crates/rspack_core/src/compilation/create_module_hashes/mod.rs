@@ -49,17 +49,17 @@ async fn create_module_hashes_pass_impl(compilation: &mut Compilation) -> Result
 
     // check if module runtime changes
     let mg = compilation.get_module_graph();
-    for mi in mg.modules().keys() {
+    for (mi, _) in mg.modules() {
       let module_runtimes = compilation
         .build_chunk_graph_artifact
         .chunk_graph
-        .get_module_runtimes(*mi, &compilation.build_chunk_graph_artifact.chunk_by_ukey);
+        .get_module_runtimes(mi, &compilation.build_chunk_graph_artifact.chunk_by_ukey);
       let module_runtime_keys = module_runtimes
         .values()
         .map(get_runtime_key)
         .collect::<HashSet<_>>();
 
-      if let Some(runtime_map) = compilation.cgm_hash_artifact.get_runtime_map(mi) {
+      if let Some(runtime_map) = compilation.cgm_hash_artifact.get_runtime_map(&mi) {
         if module_runtimes.is_empty() {
           // module has no runtime, skip
           continue;
@@ -76,23 +76,23 @@ async fn create_module_hashes_pass_impl(compilation: &mut Compilation) -> Result
                 .next()
                 .expect("should have at least one runtime")
           {
-            modules.insert(*mi);
+            modules.insert(mi);
           }
         } else {
           // multiple runtimes
           if matches!(runtime_map.mode, RuntimeMode::SingleEntry) {
-            modules.insert(*mi);
+            modules.insert(mi);
             continue;
           }
 
           if runtime_map.map.len() != module_runtimes.len() {
-            modules.insert(*mi);
+            modules.insert(mi);
             continue;
           }
 
           for runtime_key in runtime_map.map.keys() {
             if !module_runtime_keys.contains(runtime_key) {
-              modules.insert(*mi);
+              modules.insert(mi);
               break;
             }
           }
@@ -105,7 +105,7 @@ async fn create_module_hashes_pass_impl(compilation: &mut Compilation) -> Result
     logger.log(format!(
       "{} modules are affected, {} in total",
       modules.len(),
-      mg.modules().len()
+      mg.module_count()
     ));
 
     modules
@@ -113,8 +113,7 @@ async fn create_module_hashes_pass_impl(compilation: &mut Compilation) -> Result
     compilation
       .get_module_graph()
       .modules()
-      .keys()
-      .copied()
+      .map(|(module_identifier, _)| module_identifier)
       .collect()
   };
   compilation

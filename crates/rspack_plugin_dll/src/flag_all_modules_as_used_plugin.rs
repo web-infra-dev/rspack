@@ -60,7 +60,10 @@ async fn optimize_dependencies(
 
   let mg = build_module_graph_artifact.get_module_graph_mut();
 
-  let module_id_list: IdentifierSet = mg.modules().keys().copied().collect();
+  let module_id_list: IdentifierSet = mg
+    .modules()
+    .map(|(module_identifier, _)| module_identifier)
+    .collect();
 
   for module_id in module_id_list {
     mg.get_exports_info_data_mut(&module_id)

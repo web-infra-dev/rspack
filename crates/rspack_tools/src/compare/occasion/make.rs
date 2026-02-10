@@ -60,8 +60,8 @@ impl<'a> ArtifactComparator<'a> {
   /// Compare the complete artifacts
   fn compare(&self, debug_info: &DebugInfo) -> Result<()> {
     // Get all modules from both graphs
-    let modules1 = self.mg1.modules();
-    let modules2 = self.mg2.modules();
+    let modules1 = self.mg1.modules().collect::<HashMap<_, _>>();
+    let modules2 = self.mg2.modules().collect::<HashMap<_, _>>();
 
     // Compare module keys
     ensure_iter_equal(

@@ -140,8 +140,12 @@ impl ModuleGraph {
 
 impl ModuleGraph {
   /// Return an unordered iterator of modules
-  pub fn modules(&self) -> IdentifierMap<&BoxModule> {
-    self.inner.modules.iter().map(|(k, v)| (*k, v)).collect()
+  pub fn modules(&self) -> impl Iterator<Item = (ModuleIdentifier, &BoxModule)> {
+    self.inner.modules.iter().map(|(k, v)| (*k, v))
+  }
+
+  pub fn module_count(&self) -> usize {
+    self.inner.modules.iter().count()
   }
 
   pub fn module_graph_modules(&self) -> IdentifierMap<&ModuleGraphModule> {

@@ -25,8 +25,7 @@ pub fn build_chunk_graph(compilation: &mut Compilation) -> rspack_error::Result<
   let all_modules = compilation
     .get_module_graph()
     .modules()
-    .keys()
-    .copied()
+    .map(|(module_identifier, _)| module_identifier)
     .collect::<Vec<_>>();
 
   splitter.prepare(&all_modules, compilation)?;
