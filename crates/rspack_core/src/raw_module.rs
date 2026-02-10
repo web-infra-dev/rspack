@@ -12,10 +12,11 @@ use rspack_sources::{BoxSource, OriginalSource, RawStringSource, SourceExt};
 use rspack_util::source_map::{ModuleSourceMapConfig, SourceMapKind};
 
 use crate::{
-  BuildInfo, BuildMeta, CodeGenerationResult, Compilation, ConnectionState, Context,
-  DependenciesBlock, DependencyId, FactoryMeta, Module, ModuleCodeGenerationContext, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
-  dependencies_block::AsyncDependenciesBlockIdentifier, impl_module_meta_info, module_update_hash,
+  BoxModule, BuildContext, BuildInfo, BuildMeta, BuildResult, CodeGenerationResult, Compilation,
+  ConnectionState, Context, DependenciesBlock, DependencyId, FactoryMeta, Module,
+  ModuleCodeGenerationContext, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, ModuleType,
+  RuntimeGlobals, RuntimeSpec, SourceType, dependencies_block::AsyncDependenciesBlockIdentifier,
+  impl_module_meta_info, module_update_hash,
 };
 
 #[impl_source_map_config]
@@ -163,6 +164,19 @@ impl Module for RawModule {
       return ConnectionState::Active(!side_effect_free);
     }
     ConnectionState::Active(true)
+  }
+
+  async fn build(
+    self: Box<Self>,
+    _build_context: BuildContext,
+    _compilation: Option<&Compilation>,
+  ) -> Result<BuildResult> {
+    Ok(BuildResult {
+      module: BoxModule::new(self),
+      dependencies: vec![],
+      blocks: vec![],
+      optimization_bailouts: vec![],
+    })
   }
 }
 

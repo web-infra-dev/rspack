@@ -4,12 +4,12 @@ use async_trait::async_trait;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
-  AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo, BuildMeta, BuildResult,
-  CodeGenerationResult, Compilation, Context, DependenciesBlock, DependencyId, FactoryMeta,
-  LibIdentOptions, Module, ModuleArgument, ModuleCodeGenerationContext, ModuleDependency,
-  ModuleGraph, ModuleId, ModuleType, RuntimeSpec, SourceType, StaticExportsDependency,
-  StaticExportsSpec, ValueCacheVersions, impl_module_meta_info, impl_source_map_config,
-  module_update_hash,
+  AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, BuildContext, BuildInfo, BuildMeta,
+  BuildResult, CodeGenerationResult, Compilation, Context, DependenciesBlock, DependencyId,
+  FactoryMeta, LibIdentOptions, Module, ModuleArgument, ModuleCodeGenerationContext,
+  ModuleDependency, ModuleGraph, ModuleId, ModuleType, RuntimeSpec, SourceType,
+  StaticExportsDependency, StaticExportsSpec, ValueCacheVersions, impl_module_meta_info,
+  impl_source_map_config, module_update_hash,
   rspack_sources::{BoxSource, OriginalSource, RawStringSource},
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
@@ -92,7 +92,7 @@ impl Module for DelegatedModule {
   }
 
   async fn build(
-    &mut self,
+    mut self: Box<Self>,
     _build_context: BuildContext,
     _compilation: Option<&Compilation>,
   ) -> Result<BuildResult> {
@@ -111,8 +111,10 @@ impl Module for DelegatedModule {
     ];
     self.build_meta = self.delegate_data.build_meta.clone();
     Ok(BuildResult {
+      module: BoxModule::new(self),
       dependencies,
-      ..Default::default()
+      blocks: vec![],
+      optimization_bailouts: vec![],
     })
   }
 

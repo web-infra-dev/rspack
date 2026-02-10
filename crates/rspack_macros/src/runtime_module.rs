@@ -247,6 +247,19 @@ pub fn impl_runtime_module(
         }
         Ok(hasher.digest(&compilation.options.output.hash_digest))
       }
+
+      async fn build(
+        self: Box<Self>,
+        _build_context: ::rspack_core::BuildContext,
+        _compilation: Option<&::rspack_core::Compilation>,
+      ) -> ::rspack_error::Result<::rspack_core::BuildResult> {
+        Ok(::rspack_core::BuildResult {
+          module: ::rspack_core::BoxModule::new(self),
+          dependencies: vec![],
+          blocks: vec![],
+          optimization_bailouts: vec![],
+        })
+      }
     }
 
     impl #impl_generics rspack_error::Diagnosable for #name  #ty_generics #where_clause {
