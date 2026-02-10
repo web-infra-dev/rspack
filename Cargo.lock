@@ -4723,7 +4723,6 @@ dependencies = [
 name = "rspack_plugin_module_info_header"
 version = "0.100.0-beta.1"
 dependencies = [
- "regex",
  "rspack_cacheable",
  "rspack_core",
  "rspack_error",
