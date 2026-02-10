@@ -1,5 +1,5 @@
 [toolchain]
 profile = "default"
 components = ["rust-src"]
-# Use stable for maximum compatibility.
-channel = "stable"
+# Pin to a fixed stable version for reproducibility.
+channel = "1.93.0"
