@@ -23,27 +23,32 @@ export class StreamedTextReporter implements Reporter {
   }
 
   private write(message: string): void {
-    const timestamp = new Date().toISOString();
-    this.stream.write(`[${timestamp}] ${message}\n`);
+    this.stream.write(`${message}\n`);
+  }
+
+  private formatTimestamp(): string {
+    return new Date().toISOString();
   }
 
   onTestRunStart() {
-    this.write('TEST_RUN_START');
+    this.write(`__GLOBAL__ | TEST_RUN_START | ${this.formatTimestamp()}`);
   }
 
   onTestFileStart(file: TestFileInfo) {
-    this.write(`FILE_START: ${file.testPath}`);
+    this.write(`${file.testPath} | FILE_START | ${this.formatTimestamp()}`);
   }
 
   onTestFileReady(file: TestFileInfo) {
-    this.write(`FILE_READY: ${file.testPath}`);
+    this.write(`${file.testPath} | FILE_READY | ${this.formatTimestamp()}`);
   }
 
   onTestSuiteStart(suite: TestSuiteInfo) {
     const suitePath = suite.parentNames
       ? `${suite.parentNames.join(' > ')} > ${suite.name}`
       : suite.name;
-    this.write(`SUITE_START: ${suite.testPath} > ${suitePath}`);
+    this.write(
+      `${suite.testPath} > ${suitePath} | SUITE_START | ${this.formatTimestamp()}`,
+    );
   }
 
   onTestSuiteResult(result: TestResult) {
@@ -51,7 +56,7 @@ export class StreamedTextReporter implements Reporter {
       ? `${result.parentNames.join(' > ')} > ${result.name}`
       : result.name;
     this.write(
-      `SUITE_END: ${result.testPath} > ${suitePath} [${result.status}] (${result.duration}ms)`,
+      `${result.testPath} > ${suitePath} | SUITE_END | ${this.formatTimestamp()} | ${result.status} | ${result.duration}ms`,
     );
   }
 
@@ -59,7 +64,9 @@ export class StreamedTextReporter implements Reporter {
     const testPath = test.parentNames
       ? `${test.parentNames.join(' > ')} > ${test.name}`
       : test.name;
-    this.write(`TEST_START: ${test.testPath} > ${testPath}`);
+    this.write(
+      `${test.testPath} > ${testPath} | TEST_START | ${this.formatTimestamp()}`,
+    );
   }
 
   onTestCaseResult(result: TestResult) {
@@ -67,17 +74,17 @@ export class StreamedTextReporter implements Reporter {
       ? `${result.parentNames.join(' > ')} > ${result.name}`
       : result.name;
     this.write(
-      `TEST_END: ${result.testPath} > ${testPath} [${result.status}] (${result.duration}ms)`,
+      `${result.testPath} > ${testPath} | TEST_END | ${this.formatTimestamp()} | ${result.status} | ${result.duration}ms`,
     );
     if (result.errors && result.errors.length > 0) {
       this.write(
-        `TEST_ERROR: ${result.testPath} > ${testPath}: ${result.errors[0].message}`,
+        `${result.testPath} > ${testPath} | TEST_ERROR | ${this.formatTimestamp()} | ${result.errors[0].message}`,
       );
     }
   }
 
   async onTestRunEnd() {
-    this.write('TEST_RUN_END');
+    this.write(`__GLOBAL__ | TEST_RUN_END | ${this.formatTimestamp()}`);
     return new Promise<void>((resolve) => {
       this.stream.end(() => {
         resolve();
