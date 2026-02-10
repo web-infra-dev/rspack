@@ -1099,6 +1099,18 @@ export interface JsRsdoctorChunkModules {
   modules: Array<number>
 }
 
+export interface JsRsdoctorConnection {
+  ukey: number
+  dependencyId: string
+  module: number
+  originModule?: number
+  resolvedModule: number
+  dependencyType: string
+  userRequest: string
+  loc?: string
+  active: boolean
+}
+
 export interface JsRsdoctorDependency {
   ukey: number
   kind: string
@@ -1146,11 +1158,13 @@ export interface JsRsdoctorModule {
   chunks: Array<number>
   issuerPath: Array<number>
   bailoutReason: Array<string>
+  sideEffects?: boolean
 }
 
 export interface JsRsdoctorModuleGraph {
   modules: Array<JsRsdoctorModule>
   dependencies: Array<JsRsdoctorDependency>
+  connections: Array<JsRsdoctorConnection>
   chunkModules: Array<JsRsdoctorChunkModules>
 }
 

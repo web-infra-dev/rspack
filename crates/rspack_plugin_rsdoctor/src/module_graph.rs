@@ -4,7 +4,7 @@ use rayon::iter::{IntoParallelRefIterator, ParallelBridge, ParallelIterator};
 use rspack_collections::{Identifiable, Identifier, IdentifierMap};
 use rspack_core::{
   BoxModule, ChunkGraph, Compilation, Context, DependencyId, DependencyType, Module, ModuleGraph,
-  ModuleIdsArtifact, ModuleType, PrefetchExportsInfoMode, UsageState,
+  ModuleGraphCacheArtifact, ModuleIdsArtifact, ModuleType, PrefetchExportsInfoMode, UsageState,
   rspack_sources::{MapOptions, ObjectPool},
 };
 use rspack_paths::Utf8PathBuf;
@@ -13,8 +13,8 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use thread_local::ThreadLocal;
 
 use crate::{
-  ChunkUkey, ModuleKind, ModuleUkey, RsdoctorDependency, RsdoctorJsonModuleSizes, RsdoctorModule,
-  RsdoctorModuleId, RsdoctorModuleOriginalSource,
+  ChunkUkey, ModuleKind, ModuleUkey, RsdoctorConnection, RsdoctorDependency,
+  RsdoctorJsonModuleSizes, RsdoctorModule, RsdoctorModuleId, RsdoctorModuleOriginalSource,
 };
 
 pub fn collect_json_module_sizes(

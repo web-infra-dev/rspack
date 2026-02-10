@@ -30,8 +30,9 @@ use crate::{
     collect_chunks, collect_entrypoint_assets, collect_entrypoints,
   },
   module_graph::{
-    collect_concatenated_modules, collect_json_module_sizes, collect_module_dependencies,
-    collect_module_ids, collect_module_original_sources, collect_modules,
+    collect_concatenated_modules, collect_json_module_sizes, collect_module_connections,
+    collect_module_dependencies, collect_module_ids, collect_module_original_sources,
+    collect_module_side_effects, collect_modules,
   },
 };
 
