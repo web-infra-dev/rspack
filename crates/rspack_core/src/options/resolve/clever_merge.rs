@@ -9,6 +9,12 @@ use super::{
 };
 
 pub(super) fn merge_resolve(first: Resolve, second: Resolve) -> Resolve {
+  if is_empty_with_pnp(&first) {
+    return second;
+  }
+  if is_empty_with_pnp(&second) {
+    return first;
+  }
   _merge_resolve(first, second)
 }
 
@@ -41,6 +47,10 @@ fn is_empty(resolve: &Resolve) -> bool {
     && is_none!(tsconfig)
     && is_none!(by_dependency)
     && is_none!(pnp_manifest)
+}
+
+fn is_empty_with_pnp(resolve: &Resolve) -> bool {
+  is_empty(resolve) && resolve.pnp.is_none()
 }
 
 #[derive(Default, Debug)]
@@ -112,11 +122,11 @@ fn parse_resolve(resolve: Resolve) -> ResolveWithEntry {
     return res;
   };
   let mut by_dependency = by_dependency;
+  let by_values_key: Vec<_> = by_dependency.0.keys().cloned().collect();
 
   macro_rules! update_by_value {
     ($ident: ident, $should_insert_by_value_key: expr) => {
       let mut $ident = LinkedHashMap::new();
-      let by_values_key: Vec<_> = by_dependency.0.keys().cloned().collect();
       for by_value_key in &by_values_key {
         let obj = by_dependency.0.get_mut(by_value_key).expect("");
         let should_insert_by_value_key = $should_insert_by_value_key(obj.$ident.as_ref());
@@ -131,7 +141,7 @@ fn parse_resolve(resolve: Resolve) -> ResolveWithEntry {
           }
         }
       }
-      if $ident.len() > 0 {
+      if !$ident.is_empty() {
         res.$ident.by_values = Some($ident);
       }
     };
@@ -186,13 +196,10 @@ fn get_from_by_values<T: Default + Clone>(
   by_values: &LinkedHashMap<DependencyCategoryStr, T>,
   key: &str,
 ) -> Option<T> {
-  let value = if key != "default" && by_values.contains_key(key) {
-    by_values.get(key)
-  } else {
-    by_values.get("default")
-  };
-  // FIXME: not use clone
-  value.cloned()
+  by_values
+    .get(key)
+    .or_else(|| (key != "default").then(|| by_values.get("default")).flatten())
+    .cloned()
 }
 
 fn _merge_resolve(first: Resolve, second: Resolve) -> Resolve {
@@ -227,13 +234,13 @@ fn _merge_resolve(first: Resolve, second: Resolve) -> Resolve {
       } else if let Some(intermediate_by_values) = first.$ident.by_values {
         #[allow(clippy::redundant_closure_call)]
         let need_merge_base = $need_merge_base(&intermediate_by_values);
-        let mut intermediate_by_values: LinkedHashMap<_, _> = intermediate_by_values
-          .into_iter()
-          .map(|(key, value)| {
-            let value = overwrite(value, second.$ident.base.clone(), $deal_merge);
-            (key, value)
-          })
-          .collect();
+        let mut intermediate_by_values = intermediate_by_values;
+        if let Some(second_base) = second.$ident.base.as_ref() {
+          for value in intermediate_by_values.values_mut() {
+            let first_value = std::mem::take(value);
+            *value = overwrite(first_value, Some(second_base.clone()), $deal_merge);
+          }
+        }
         let new_base = if need_merge_base {
           overwrite(first.$ident.base, second.$ident.base, $deal_merge)
         } else {
@@ -246,8 +253,7 @@ fn _merge_resolve(first: Resolve, second: Resolve) -> Resolve {
         let new_by_values = if let Some(by_values) = second.$ident.by_values {
           let mut new_by_values = intermediate_by_values;
           for (key, value) in by_values {
-            let first_value =
-              get_from_by_values(&mut new_by_values, key.as_ref()).unwrap_or_default();
+            let first_value = get_from_by_values(&new_by_values, key.as_ref()).unwrap_or_default();
             new_by_values.insert(key, overwrite(first_value, value, $deal_merge));
           }
           new_by_values
@@ -478,14 +484,16 @@ fn _merge_resolve(first: Resolve, second: Resolve) -> Resolve {
 }
 
 fn normalize_string_array(a: Vec<String>, b: Vec<String>) -> Vec<String> {
-  b.into_iter().fold(vec![], |mut acc, item| {
-    if item.eq("...") {
-      acc.append(&mut a.clone());
+  let spread_count = b.iter().filter(|item| item.as_str() == "...").count();
+  let mut result = Vec::with_capacity(b.len() + spread_count.saturating_mul(a.len()));
+  for item in b {
+    if item == "..." {
+      result.extend(a.iter().cloned());
     } else {
-      acc.push(item);
+      result.push(item);
     }
-    acc
-  })
+  }
+  result
 }
 
 fn extend_alias(a: Alias, b: Alias) -> Alias {
