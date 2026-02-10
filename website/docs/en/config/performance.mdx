@@ -5,19 +5,39 @@ import WebpackLicense from '@components/WebpackLicense';
 
 # Performance
 
-These options allows you to control how Rspack notifies you of assets and entry points that exceed a specific file limit.
+`performance` configures Rspack's performance hint mechanism, helping you identify oversized outputs during the build.
+
+It compares asset sizes and entrypoint total sizes against thresholds to decide whether hints should be emitted, and `hints` controls the hint level (`warning` / `error` / disabled).
+
+You can define budget thresholds with `maxAssetSize` and `maxEntrypointSize`, and use `assetFilter` to exclude files that should not be counted, so hints better match your real performance goals.
 
 ## performance
 
 <PropertyType type="false | object" />
 
-Configure how performance hints are shown. For example if you have an asset that is over 250kb, Rspack will emit a warning notifying you of this.
+Set `performance` to `false` to disable the performance hint:
+
+```js title="rspack.config.mjs"
+export default {
+  performance: false,
+};
+```
 
 ### performance.assetFilter
 
 <PropertyType type="(assetFilename: string) => boolean" />
 
-This property allows Rspack to control what files are used to calculate performance hints.
+Used to filter which assets are included in performance hint calculations. Files returning `true` are included, and files returning `false` are ignored.
+
+Ignore CSS files when calculating performance hints:
+
+```js title="rspack.config.mjs"
+export default {
+  performance: {
+    assetFilter: (assetFilename) => !assetFilename.endsWith('.css'),
+  },
+};
+```
 
 ### performance.hints
 
@@ -29,16 +49,50 @@ This property allows Rspack to control what files are used to calculate performa
   ]}
 />
 
-Turns hints on/off. In addition, tells Rspack to throw either an error or a warning when hints are found.
+Controls whether performance hints are enabled and which level to use:
+
+- `false`: Disable performance hints
+- `'warning'`: Emit hints as warnings
+- `'error'`: Emit hints as errors, which fails the build
+
+Treat performance hints as build errors:
+
+```js title="rspack.config.mjs"
+export default {
+  performance: {
+    hints: process.env.NODE_ENV === 'production' ? 'error' : false,
+  },
+};
+```
 
 ### performance.maxAssetSize
 
 <PropertyType type="number" defaultValueList={[{ defaultValue: '250000' }]} />
 
-An asset is any emitted file from Rspack. This option controls when Rspack emits a performance hint based on individual asset size in bytes.
+Sets the size threshold for a single asset (in bytes). Rspack emits a performance hint when an asset exceeds this value.
+
+Lower the single asset size limit to catch oversized files earlier:
+
+```js title="rspack.config.mjs"
+export default {
+  performance: {
+    maxAssetSize: 100000,
+  },
+};
+```
 
 ### performance.maxEntrypointSize
 
 <PropertyType type="number" defaultValueList={[{ defaultValue: '250000' }]} />
 
-An entry point represents all assets that would be utilized during initial load time for a specific entry. This option controls when Rspack should emit performance hints based on the maximum entry point size in bytes.
+Sets the total size threshold for an entrypoint (in bytes). Entrypoint size means the total size needed for the initial load of that entry. Rspack emits a performance hint when the entrypoint total size exceeds this value.
+
+For example, set the entrypoint size threshold to 500 KB:
+
+```js title="rspack.config.mjs"
+export default {
+  performance: {
+    maxEntrypointSize: 500000,
+  },
+};
+```
