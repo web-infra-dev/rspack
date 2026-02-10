@@ -1,6 +1,6 @@
 import path from 'node:path';
 import { defineConfig, defineProject,type ProjectConfig, type RstestConfig } from '@rstest/core';
-import { StreamedEventReporter } from '@rspack/test-tools/reporter'
+import { StreamedEventReporter } from '@rspack/test-tools/reporter';
 
 const root = path.resolve(__dirname, "../../");
 
@@ -128,14 +128,14 @@ export default defineConfig({
       'NativeWatcher*.test.js',
     ],
   }, {
-      extends: sharedConfig,
-      name: 'nativeWatcher',
-      include: [
-        'NativeWatcher*.test.js',
-      ],
-      retry: 0, // re-try in native watcher tests is useless
-      maxConcurrency: 1,
-      testTimeout: 30_000,
+    extends: sharedConfig,
+    name: 'nativeWatcher',
+    include: [
+      'NativeWatcher*.test.js',
+    ],
+    retry: 0, // re-try in native watcher tests is useless
+    maxConcurrency: 1,
+    testTimeout: 30_000,
   }],
   reporters,
   pool: {
