@@ -20,9 +20,9 @@ Rspack 2.0 将最低支持的 Node.js 版本从 18.x 升级到 **20.19.0** 以�
 
 ## 实验性配置变更
 
-### 默认启用 experiments.css
+### 移除 experiments.css
 
-[experiments.css](/config/experiments#experimentscss) 的默认值从 `false` 调整为 `true`。CSS 处理能力现在默认可用，但仍需要在 `module.rules` 中配置对应的 `type` 以启用：
+experiments.css 已被移除。CSS 处理能力现在默认可用，但仍需要在 `module.rules` 中配置对应的 `type` 以启用：
 
 ```js title="rspack.config.mjs"
 export default {
@@ -37,21 +37,13 @@ export default {
 };
 ```
 
-如果不需要使用内置的 CSS 处理，可以显式禁用：
-
-```js title="rspack.config.mjs"
-export default {
-  experiments: {
-    css: false,
-  },
-};
-```
-
 可用的 `type` 如下：
 
 - **`css`**：将 CSS 作为纯 CSS 处理，不启用 CSS Modules
 - **`css/module`**：强制启用 CSS Modules
 - **`css/auto`**：自动检测，对于 `.module.css` 文件启用 CSS Modules，普通 `.css` 文件则作为纯 CSS 处理
+
+> 更多详情参考 [CSS](/guide/tech/css)
 
 ### 默认启用 experiments.asyncWebAssembly
 
@@ -80,7 +72,7 @@ export default {
 };
 ```
 
-### 移动 experiments.cache 到顶层
+### 移动 experiments.cache
 
 `experiments.cache` 已移动到顶层的 [cache](/config/cache) ：
 
@@ -124,7 +116,7 @@ export default {
 };
 ```
 
-### 移动 experiments.incremental 到顶层
+### 移动 experiments.incremental
 
 `experiments.incremental` 已移动到顶层的 [incremental](/config/incremental) ：
 
@@ -196,7 +188,7 @@ export default {
 
 ### 移除 experiments.typeReexportsPresence
 
-`experiments.typeReexportsPresence` 已被移除，可直接使用 [module.parser.javascript.typeReexportsPresence](/config/module#moduleparserjavascripttypereexportspresence) 控制重导出类型时的行为。
+`experiments.typeReexportsPresence` 已被移除，可使用 [module.parser.javascript.typeReexportsPresence](/config/module#moduleparserjavascripttypereexportspresence) 控制重导出类型时的行为。
 
 ### 移除 experiments.inlineConst
 
@@ -208,11 +200,11 @@ export default {
 
 ### 移除 experiments.outputModule
 
-`experiments.outputModule` 已被移除，可直接使用 [output.module](/config/output#outputmodule) 输出 ESM 产物。
+`experiments.outputModule` 已被移除，可使用 [output.module](/config/output#outputmodule) 输出 ESM 产物。
 
 ### 移除 experiments.parallelLoader
 
-`experiments.parallelLoader` 已被移除，可通过 [module.rules.use.parallel](/config/module#modulerulesuseparallel) 启用 loader 的并行化：
+`experiments.parallelLoader` 已被移除，可通过 [module.rules.use.parallel](/config/module-rules#rulesuseparallel) 启用 loader 的并行化：
 
 ```diff title="rspack.config.mjs"
 export default {
@@ -328,6 +320,7 @@ export default {
   },
 };
 ```
+
 ### 从 target 派生 loader 和 plugin 的 targets 配置
 
 在 Rspack 2.0 中，`builtin:swc-loader`、`builtin:lightningcss-loader` 和 `rspack.LightningCssMinimizerRspackPlugin` 的 `targets` 配置现在默认从 [target](/config/target) 配置派生。
@@ -401,7 +394,7 @@ export default {
 
 ### 修改 output.trustedTypes.policyName 的默认值
 
-[output.trustedTypes.policyName](/config/output#outputtrustedtypespolicyname) 的打底值从 `'webpack'` 改为 `'rspack'`。
+[output.trustedTypes.policyName](/config/output#outputtrustedtypes) 的打底值从 `'webpack'` 改为 `'rspack'`。
 
 `policyName` 的默认值为 `output.uniqueName`，只有在未设置 `uniqueName` 时才会使用打底值。
 
@@ -445,6 +438,8 @@ const statsData = stats.toJson({
 });
 ```
 
+> 详细参数配置可参考 [Stats](/config/stats)
+
 ### 移除 profile 和 stats.profile 配置
 
 顶层的 `profile` 配置和 `stats.profile` 配置已被移除，建议使用 [Rsdoctor](/guide/optimization/use-rsdoctor) 进行性能分析：
@@ -462,7 +457,7 @@ export default {
 
 ### 移除 EsmLibraryPlugin
 
-`rspack.EsmLibraryPlugin` 插件已被移除，可以通过配置 [output.library](/config/output#outputlibrary) 来生成 ESM 格式的产物:
+`rspack.EsmLibraryPlugin` 插件已被移除，可以通过配置 [output.library](/config/output#outputlibrary) 为 `modern-module` 来生成 ESM 格式的产物:
 
 ```diff title="rspack.config.mjs"
 -import { EsmLibraryPlugin } from '@rspack/core';
@@ -479,19 +474,19 @@ export default {
 
 ### 移除 experiments.SubResourceIntegrityPlugin
 
-`experiments.SubResourceIntegrityPlugin` 已被移除，可直接使用导出对象上的 [SubresourceIntegrityPlugin](/plugins/rspack/subresource-integrity-plugin) 替代：
+`experiments.SubResourceIntegrityPlugin` 已被移除，可使用导出对象上的 [SubresourceIntegrityPlugin](/plugins/rspack/subresource-integrity-plugin) 替代：
 
 ```diff title="rspack.config.mjs"
-+ import rspack from '@rspack/core';
-+
+import rspack from '@rspack/core';
+
 export default {
-+  output: {
-+    crossOriginLoading: 'anonymous',
-+  },
-+  plugins: [
+  output: {
+    crossOriginLoading: 'anonymous',
+  },
+  plugins: [
 -    new rspack.experiments.SubresourceIntegrityPlugin(),
 +    new rspack.SubresourceIntegrityPlugin(),
-+  ],
+  ],
 };
 ```
 
@@ -500,8 +495,8 @@ export default {
 `WarnCaseSensitiveModulesPlugin` 插件已被移除，可以使用 [CaseSensitivePlugin](/plugins/webpack/case-sensitive-plugin) 插件来检测大小写敏感的模块引用问题：
 
 ```diff title="rspack.config.mjs"
-+ import { rspack } from '@rspack/core';
-+
+import { rspack } from '@rspack/core';
+
 export default {
   plugins: [
 -    new rspack.WarnCaseSensitiveModulesPlugin(),
@@ -510,7 +505,7 @@ export default {
 };
 ```
 
-### 移除部分插件的 getHooks 方法
+### 移除插件的 getHooks 方法
 
 插件的 `getHooks` 方法已被移除，请使用 `getCompilationHooks` 方法替代：
 
@@ -539,11 +534,11 @@ class MyPlugin {
 export default {
   plugins: [
     new rspack.HtmlRspackPlugin({
--      sri: "sha256",
+-     sri: "sha256",
     }),
-+    new rspack.SubresourceIntegrityPlugin({
-+      hashFuncNames: ["sha256"],
-+    }),
++   new rspack.SubresourceIntegrityPlugin({
++     hashFuncNames: ["sha256"],
++   }),
   ],
 };
 ```
