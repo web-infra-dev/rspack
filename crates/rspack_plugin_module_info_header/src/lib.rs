@@ -1,6 +1,5 @@
-use std::{hash::Hash, rc::Rc, sync::LazyLock};
+use std::{hash::Hash, rc::Rc};
 
-use regex::Regex;
 use rspack_cacheable::with::AsVecConverter;
 use rspack_core::{
   BuildMetaExportsType, ChunkGraph, ChunkInitFragments, ChunkUkey, Compilation, CompilationParams,
@@ -21,9 +20,6 @@ use rspack_plugin_javascript::{
   JavascriptModulesChunkHash, JavascriptModulesRenderModulePackage, JsPlugin, RenderSource,
 };
 use rustc_hash::FxHashSet;
-
-static COMMENT_END_REGEX: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r"\*/").expect("should init regex"));
 
 #[plugin]
 #[derive(Debug, Default)]
@@ -161,7 +157,7 @@ impl ModuleInfoHeaderPlugin {
 
   pub fn generate_header(module: &dyn Module, compilation: &Compilation) -> String {
     let req = module.readable_identifier(&compilation.options.context);
-    let req = COMMENT_END_REGEX.replace_all(&req, "*_/");
+    let req = req.split("*/").collect::<Vec<_>>().join("*_/");
 
     let req_stars_str = "*".repeat(req.len());
 

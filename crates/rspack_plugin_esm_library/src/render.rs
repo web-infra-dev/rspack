@@ -1,9 +1,5 @@
-use std::{
-  borrow::Cow,
-  sync::{Arc, LazyLock},
-};
+use std::{borrow::Cow, sync::Arc};
 
-use regex::Regex;
 use rspack_collections::{IdentifierIndexSet, UkeyIndexMap, UkeySet};
 use rspack_core::{
   AssetInfo, Chunk, ChunkGraph, ChunkRenderContext, ChunkUkey, CodeGenerationDataFilename,
@@ -40,9 +36,6 @@ fn get_chunk(compilation: &Compilation, chunk_ukey: ChunkUkey) -> &Chunk {
 }
 
 use crate::{EsmLibraryPlugin, dependency::dyn_import::NAMESPACE_SYMBOL};
-
-static AUTO_PUBLIC_PATH_PLACEHOLDER_RE: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(AUTO_PUBLIC_PATH_PLACEHOLDER).expect("failed to create regex"));
 
 impl EsmLibraryPlugin {
   pub(crate) fn get_runtime_chunk(chunk_ukey: ChunkUkey, compilation: &Compilation) -> ChunkUkey {
@@ -576,11 +569,13 @@ var {} = {{}};
     let final_source = if replace_auto_public_path {
       let mut replace_source = ReplaceSource::new(final_source);
       let mut replacement = vec![];
-      for captures in
-        AUTO_PUBLIC_PATH_PLACEHOLDER_RE.find_iter(&replace_source.source().into_string_lossy())
+      for (start, matched) in replace_source
+        .source()
+        .into_string_lossy()
+        .match_indices(AUTO_PUBLIC_PATH_PLACEHOLDER)
       {
-        let start = captures.range().start as u32;
-        let end = captures.range().end as u32;
+        let start = start as u32;
+        let end = (start as usize + matched.len()) as u32;
         let relative = get_undo_path(
           &output_path,
           compilation.options.output.path.to_string(),

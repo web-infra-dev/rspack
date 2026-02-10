@@ -77,7 +77,7 @@ proc-macro2         = { version = "1.0.106", default-features = false }
 prost               = { version = "0.13", default-features = false }
 quote               = { version = "1.0.44", default-features = false }
 rayon               = { version = "1.11.0", default-features = false }
-regex               = { version = "1.12.3", default-features = false }
+regex               = { version = "1.12.3", default-features = false, features = ["perf"] }
 regex-syntax        = { version = "0.8.9", default-features = false, features = ["std"] }
 regress             = { version = "0.10.5", default-features = false, features = ["pattern"] }
 rspack_resolver     = { features = ["package_json_raw_json_api", "yarn_pnp"], version = "0.6.6", default-features = false }
@@ -509,6 +509,11 @@ verbose_file_reads              = "warn"
 
 # performance
 redundant_clone = "warn"
+regex_creation_in_loops = "warn"
+
+# regex
+invalid_regex = "warn"
+trivial_regex = "warn"
 
 [patch.crates-io]
 simd-adler32 = { git = "https://github.com/mcountryman/simd-adler32.git", rev = "b279034d9eb554c3e5e0af523db044f08d8297ba" }
