@@ -108,6 +108,9 @@ export default defineConfig({
   projects: [{
     extends: sharedConfig,
     name: 'base',
+    exclude: [
+      'NativeWatcher*.test.js',
+    ],
   }, {
     extends: sharedConfig,
     name: 'hottest',
@@ -115,6 +118,18 @@ export default defineConfig({
     env: {
       RSPACK_HOT_TEST: 'true',
     },
+    exclude: [
+      'NativeWatcher*.test.js',
+    ],
+  }, {
+      extends: sharedConfig,
+      name: 'nativeWatcher',
+      include: [
+        'NativeWatcher*.test.js',
+      ],
+      retry: 0, // re-try in native watcher tests is useless
+      maxConcurrency: 1,
+      testTimeout: 30_000,
   }],
   reporters: testFilter ? ['verbose'] : ['default'],
   pool: {
