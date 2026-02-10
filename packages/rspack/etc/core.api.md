@@ -5405,8 +5405,6 @@ interface NormalModuleCompilationHooks {
     loader: liteTapable.SyncHook<[LoaderContext, Module]>;
     // (undocumented)
     readResource: liteTapable.HookMap<liteTapable.AsyncSeriesBailHook<[LoaderContext], string | Buffer>>;
-    // (undocumented)
-    readResourceForScheme: any;
 }
 
 // @public (undocumented)
