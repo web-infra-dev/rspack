@@ -267,12 +267,20 @@ pub fn build_module_graph_benchmark_inner(c: &mut Criterion) {
           .await
           .unwrap();
       });
+      assert!(
+        compiler.compilation.get_errors().next().is_none(),
+        "build_module_graph benchmark setup should not produce compilation errors"
+      );
       runner.run(|| {
         rt.block_on(async {
           build_module_graph_pass(&mut compiler.compilation)
             .await
             .unwrap();
         });
+        assert!(
+          compiler.compilation.get_errors().next().is_none(),
+          "build_module_graph benchmark pass should not produce compilation errors"
+        );
         assert_eq!(
           compiler.compilation.get_module_graph().modules().len(),
           NUM_MODULES + NUM_MODULES / 10
