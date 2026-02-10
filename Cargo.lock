@@ -5107,6 +5107,7 @@ version = "0.100.0-beta.0"
 dependencies = [
  "cow-utils",
  "napi",
+ "regex",
  "regex-syntax",
  "regress",
  "rspack_cacheable",

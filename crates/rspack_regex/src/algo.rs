@@ -1,5 +1,6 @@
 use std::{fmt::Debug, hash::Hash};
 
+use regex::RegexBuilder;
 use regex_syntax::hir::{Hir, HirKind, Look, literal::ExtractKind};
 use regress::Match;
 use rspack_error::{Error, error};
@@ -43,6 +44,63 @@ impl HashRegressRegex {
   }
 }
 
+#[derive(Clone)]
+pub struct HashRustRegex {
+  pub regex: regex::Regex,
+  expr: String,
+  flags: String,
+}
+
+impl Hash for HashRustRegex {
+  fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+    self.expr.hash(state);
+    self.flags.hash(state)
+  }
+}
+
+impl Debug for HashRustRegex {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    Debug::fmt(&self.regex, f)
+  }
+}
+
+impl HashRustRegex {
+  pub(crate) fn new(expr: &str, flags: &str) -> Result<Self, Error> {
+    let mut builder = RegexBuilder::new(expr);
+    for flag in flags.chars() {
+      match flag {
+        'i' => {
+          builder.case_insensitive(true);
+        }
+        'm' => {
+          builder.multi_line(true);
+        }
+        's' => {
+          builder.dot_matches_new_line(true);
+        }
+        'u' => {
+          builder.unicode(true);
+        }
+        // Keep JS regexp flags for metadata compatibility.
+        'g' | 'y' => {}
+        _ => {
+          return Err(error!("Unsupported regex flag `{flag}` for rust regex"));
+        }
+      }
+    }
+    match builder.build() {
+      Ok(regex) => Ok(Self {
+        regex,
+        expr: expr.to_string(),
+        flags: flags.to_string(),
+      }),
+      Err(err) => Err(error!(
+        "Can't construct rust regex `/{expr}/{flags}`, original error message: {err}"
+      )),
+    }
+  }
+}
+
 #[derive(Clone, Debug, Hash)]
 pub enum Algo {
   /// Regress is considered having the same behaviors as RegExp in JS.
@@ -52,6 +110,7 @@ pub enum Algo {
   EndWith {
     pats: Vec<String>,
   },
+  RustRegex(HashRustRegex),
   Regress(HashRegressRegex),
 }
 
@@ -67,6 +126,17 @@ impl Algo {
         Ok(regex) => Ok(Algo::Regress(regex)),
         Err(e) => Err(e),
       }
+    }
+  }
+
+  pub(crate) fn new_rust_regex(expr: &str, flags: &str) -> Result<Algo, Error> {
+    let ignore_case = flags.contains('i');
+    if let Some(algo) = Self::try_compile_to_end_with_fast_path(expr)
+      && !ignore_case
+    {
+      Ok(algo)
+    } else {
+      HashRustRegex::new(expr, flags).map(Algo::RustRegex)
     }
   }
 
@@ -90,6 +160,7 @@ impl Algo {
 
   pub(crate) fn test(&self, str: &str) -> bool {
     match self {
+      Algo::RustRegex(regex) => regex.regex.is_match(str),
       Algo::Regress(regex) => regex.find(str).is_some(),
       Algo::EndWith { pats } => pats.iter().any(|pat| str.ends_with(pat)),
     }
@@ -97,6 +168,7 @@ impl Algo {
 
   pub(crate) fn global(&self) -> bool {
     match self {
+      Algo::RustRegex(reg) => reg.flags.contains('g'),
       Algo::Regress(reg) => reg.flags.contains('g'),
       Algo::EndWith { .. } => false,
     }
@@ -104,6 +176,7 @@ impl Algo {
 
   pub(crate) fn sticky(&self) -> bool {
     match self {
+      Algo::RustRegex(reg) => reg.flags.contains('y'),
       Algo::Regress(reg) => reg.flags.contains('y'),
       Algo::EndWith { .. } => false,
     }
@@ -127,7 +200,7 @@ mod test_algo {
     fn end_with_pats(&self) -> std::collections::HashSet<&str> {
       match self {
         Algo::EndWith { pats } => pats.iter().map(|s| s.as_str()).collect(),
-        Algo::Regress(_) => panic!("expect EndWith"),
+        Algo::Regress(_) | Algo::RustRegex(_) => panic!("expect EndWith"),
       }
     }
 
@@ -137,6 +210,10 @@ mod test_algo {
 
     fn is_regress(&self) -> bool {
       matches!(self, Self::Regress(..))
+    }
+
+    fn is_rust_regex(&self) -> bool {
+      matches!(self, Self::RustRegex(..))
     }
   }
 
@@ -166,5 +243,23 @@ mod test_algo {
     assert!(Algo::new("^\\.(svg|png)$", "").unwrap().is_regress());
     // wildcard match
     assert!(Algo::new("\\..(svg|png)$", "").unwrap().is_regress());
+  }
+
+  #[test]
+  fn check_rust_regex_path() {
+    assert!(
+      Algo::new_rust_regex("^\\.(svg|png)$", "")
+        .unwrap()
+        .is_rust_regex()
+    );
+    assert!(Algo::new_rust_regex("\\.js$", "").unwrap().is_end_with());
+  }
+
+  #[test]
+  fn rust_regex_flags() {
+    let regex = Algo::new_rust_regex("foo", "g").unwrap();
+    assert!(regex.global());
+    assert!(!regex.sticky());
+    assert!(regex.test("foo"));
   }
 }
