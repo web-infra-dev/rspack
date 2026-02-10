@@ -5,21 +5,41 @@ import WebpackLicense from '@components/WebpackLicense';
 
 # Performance
 
-性能提示：这些选项可以控制 Rspack 如何通知「资源（asset）和入口起点超过指定文件限制」。
+`performance` 用于配置 Rspack 的性能提示机制，帮助你在构建阶段识别体积过大的输出结果。
+
+它会根据资源（asset）体积和入口（entrypoint）总体积与阈值的比较结果，决定是否输出提示，并由 `hints` 决定提示级别（warning/error/关闭）。
+
+你可以通过 `maxAssetSize`、`maxEntrypointSize` 设置预算阈值，并通过 `assetFilter` 排除不需要纳入统计的文件，从而让提示更符合项目的真实性能目标。
 
 ## performance
 
 <PropertyType type="false | object" />
 
-配置如何展示性能提示。例如，如果一个资源超过 250kb，Rspack 会对此输出一个警告来通知你。
+将 `performance` 设为 `false` 可禁用性能提示功能：
 
-### performance.assetFilter
+```js title="rspack.config.mjs"
+export default {
+  performance: false,
+};
+```
+
+## performance.assetFilter
 
 <PropertyType type="(assetFilename: string) => boolean" />
 
-此属性允许 Rspack 控制用于计算性能提示的文件。
+用于筛选哪些资源会参与性能提示计算。返回 `true` 的文件会被纳入计算，返回 `false` 的文件会被忽略。
 
-### performance.hints
+例如在性能提示计算时忽略 CSS 文件：
+
+```js title="rspack.config.mjs"
+export default {
+  performance: {
+    assetFilter: (assetFilename) => !assetFilename.endsWith('.css'),
+  },
+};
+```
+
+## performance.hints
 
 <PropertyType
   type="false | 'error' | 'warning'"
@@ -29,16 +49,50 @@ import WebpackLicense from '@components/WebpackLicense';
   ]}
 />
 
-打开/关闭提示。此外，当找到提示时，告诉 Rspack 抛出一个错误或警告。
+控制是否启用性能提示，以及提示级别：
 
-### performance.maxAssetSize
+- `false`：关闭性能提示
+- `'warning'`：以警告形式提示
+- `'error'`：以错误形式提示，会使构建失败
+
+例如将性能提示视为构建错误：
+
+```js title="rspack.config.mjs"
+export default {
+  performance: {
+    hints: process.env.NODE_ENV === 'production' ? 'error' : false,
+  },
+};
+```
+
+## performance.maxAssetSize
 
 <PropertyType type="number" defaultValueList={[{ defaultValue: '250000' }]} />
 
-此选项根据单个资源体积（单位：bytes），控制 Rspack 何时生成性能提示。
+设置单个资源体积阈值（单位：bytes）。当某个资源超过该值时，Rspack 会触发性能提示。
 
-### performance.maxEntrypointSize
+降低单个资源体积上限，以更早发现体积过大的文件：
+
+```js title="rspack.config.mjs"
+export default {
+  performance: {
+    maxAssetSize: 100000,
+  },
+};
+```
+
+## performance.maxEntrypointSize
 
 <PropertyType type="number" defaultValueList={[{ defaultValue: '250000' }]} />
 
-此选项根据入口起点的最大体积（单位：bytes），控制 Rspack 何时生成性能提示。
+设置入口总体积阈值（单位：bytes）。入口体积指首屏加载该入口时需要的总体积。当入口总体积超过该值时，Rspack 会触发性能提示。
+
+例如设置入口体积阈值为 500 KB：
+
+```js title="rspack.config.mjs"
+export default {
+  performance: {
+    maxEntrypointSize: 500000,
+  },
+};
+```
