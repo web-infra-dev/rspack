@@ -1,7 +1,4 @@
-use std::{
-  borrow::Cow,
-  sync::Arc,
-};
+use std::{borrow::Cow, sync::Arc};
 
 use rspack_collections::{IdentifierIndexSet, UkeyIndexMap, UkeySet};
 use rspack_core::{
