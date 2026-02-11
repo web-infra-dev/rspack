@@ -70,7 +70,7 @@
     "@rspack/binding": "workspace:*"
   },
   "peerDependencies": {
-    "@module-federation/runtime-tools": "0.24.1",
+    "@module-federation/runtime-tools": "^0.24.1 || ^2.0.0",
     "@swc/helpers": ">=0.5.1"
   },
   "peerDependenciesMeta": {
