@@ -363,7 +363,7 @@ importers:
   packages/rspack:
     dependencies:
       '@module-federation/runtime-tools':
-        specifier: 0.24.1
+        specifier: ^0.24.1 || ^2.0.0
         version: 0.24.1
       '@rspack/binding':
         specifier: workspace:*
