@@ -19,9 +19,9 @@ Rspack 2.0 的最低 Node.js 版本要求为 **20.19+** 或 **22.12+**，并且�
 
 > 这一变更不影响 Rspack 构建 CommonJS 产物的能力，相关的构建行为和配置方式也保持不变。
 
-## 依赖更新
+## CLI 依赖更新
 
-从 Rspack 2.0 开始，`@rspack/dev-server` 被调整为可选依赖，`@rspack/cli` 不再默认安装它。这是因为部分场景（例如仅运行 `rspack build`）并不需要开发服务器。
+从 Rspack 2.0 开始，`@rspack/dev-server` 被调整为 `@rspack/cli` 的可选依赖。这是因为部分场景（例如仅运行 `rspack build`）并不需要开发服务器。
 
 当你使用 `rspack serve` 或 `rspack preview` 命令时，手动安装：
 
