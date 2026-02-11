@@ -1,24 +1,33 @@
 import { PackageManagerTabs } from '@theme';
 
-# Migrating from Rspack 1.x
+# Upgrading from v1 to v2
 
-This document lists all breaking changes from Rspack v1.x to v2.0. You can refer to this document to migrate your project.
+This document lists all breaking changes from Rspack 1.x to 2.0. Use it as a migration reference.
 
-> See [Breaking changes in Rspack v2.0](https://github.com/web-infra-dev/rspack/discussions/9270) for more details.
+- For more details, see [Breaking changes in Rspack 2.0](https://github.com/web-infra-dev/rspack/discussions/9270)
+- For Rsbuild users, see [Rsbuild - Upgrading from v1 to v2](https://v2.rsbuild.rs/guide/upgrade/v1-to-v2)
 
 ## Upgrade Node.js
 
-Rspack 2.0 has upgraded the minimum supported Node.js version from 18.x to **20.19.0** to natively support loading ESM modules via `require()` at runtime.
+Rspack 2.0 requires a minimum Node.js version of **20.19+** or **22.12+**, and Node.js 18 is no longer supported.
 
-Meanwhile, `@rspack/core` and `@rspack/cli` are now published as pure ESM packages, and their CommonJS build artifacts have been removed.
+## Pure ESM package
 
-## Dependency Updates
+Both `@rspack/core` and `@rspack/cli` are now published as **pure ESM** packages, with CommonJS builds removed.
 
-`@rspack/dev-server` is now an optional dependency. You need to manually install it when using `rspack serve` or `rspack preview` commands.
+In Node.js 20 and later, the runtime natively supports loading ESM modules via [require(esm)](https://nodejs.org/api/modules.html#loading-ecmascript-modules-using-require). As a result, for most projects that use Rspack through its JavaScript API, this change should have no practical impact and does not require any code modifications.
+
+> This does not affect Rspack's ability to build CommonJS output. All related build behavior and configuration options remain unchanged.
+
+## CLI dependency updates
+
+Starting with Rspack 2.0, [@rspack/dev-server](https://npmjs.com/package/@rspack/dev-server) has been made an optional dependency of `@rspack/cli`. This is because some workflows, such as running only `rspack build`, do not require a dev server.
+
+When using the `rspack serve` or `rspack preview` commands, install it manually:
 
 <PackageManagerTabs command="add @rspack/dev-server -D" />
 
-## Experimental Configuration Changes
+## Experimental configuration changes
 
 ### Remove experiments.css
 
