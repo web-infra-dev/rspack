@@ -2,7 +2,7 @@ use std::{collections::BTreeMap, sync::Arc};
 
 use async_trait::async_trait;
 use rspack_core::{
-  Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleStage, RuntimeTemplate,
+  RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext, RuntimeModuleStage, RuntimeTemplate,
   impl_runtime_module,
 };
 use rspack_error::{Result, error};
@@ -34,13 +34,13 @@ impl RuntimeModule for SharedUsedExportsOptimizerRuntimeModule {
     RuntimeModuleStage::Attach
   }
 
-  async fn generate(&self, compilation: &Compilation) -> Result<String> {
+  async fn generate(&self, context: &RuntimeModuleGenerateContext<'_>) -> Result<String> {
     if self.shared_used_exports.is_empty() {
       return Ok(String::new());
     }
     let federation_global = format!(
       "{}.federation",
-      compilation
+      context
         .runtime_template
         .render_runtime_globals(&RuntimeGlobals::REQUIRE)
     );

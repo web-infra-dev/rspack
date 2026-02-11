@@ -38,23 +38,24 @@ use swc_experimental_ecma_semantic::resolver::{Semantic, resolver};
 use swc_node_comments::SwcComments;
 
 use crate::{
-  AsyncDependenciesBlockIdentifier, BoxDependency, BoxDependencyTemplate, BoxModuleDependency,
-  BuildContext, BuildInfo, BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, BuildResult,
-  ChunkGraph, ChunkInitFragments, ChunkRenderContext, CodeGenerationDataTopLevelDeclarations,
-  CodeGenerationExportsFinalNames, CodeGenerationPublicPathAutoReplace, CodeGenerationResult,
-  Compilation, ConcatenatedModuleIdent, ConcatenationScope, ConditionalInitFragment,
-  ConnectionState, Context, DEFAULT_EXPORT, DEFAULT_EXPORT_ATOM, DependenciesBlock, DependencyId,
-  DependencyType, ExportInfoHashKey, ExportProvided, ExportsArgument, ExportsInfoGetter,
-  ExportsType, FactoryMeta, GetUsedNameParam, ImportedByDeferModulesArtifact, InitFragment,
-  InitFragmentStage, LibIdentOptions, Module, ModuleArgument, ModuleCodeGenerationContext,
-  ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, ModuleLayer,
-  ModuleStaticCache, ModuleType, NAMESPACE_OBJECT_EXPORT, ParserOptions, PrefetchExportsInfoMode,
-  Resolve, RuntimeCondition, RuntimeGlobals, RuntimeSpec, SourceType, URLStaticMode, UsageState,
-  UsedName, UsedNameItem, escape_identifier, filter_runtime, find_target, get_runtime_key,
-  impl_source_map_config, merge_runtime_condition, merge_runtime_condition_non_false,
-  module_update_hash, property_access, property_name,
-  render_make_deferred_namespace_mode_from_exports_type, reserved_names::RESERVED_NAMES,
-  subtract_runtime_condition, to_identifier_with_escaped, to_normal_comment,
+  AsyncDependenciesBlockIdentifier, BoxDependency, BoxDependencyTemplate, BoxModule,
+  BoxModuleDependency, BuildContext, BuildInfo, BuildMeta, BuildMetaDefaultObject,
+  BuildMetaExportsType, BuildResult, ChunkGraph, ChunkInitFragments, ChunkRenderContext,
+  CodeGenerationDataTopLevelDeclarations, CodeGenerationExportsFinalNames,
+  CodeGenerationPublicPathAutoReplace, CodeGenerationResult, Compilation, ConcatenatedModuleIdent,
+  ConcatenationScope, ConditionalInitFragment, ConnectionState, Context, DEFAULT_EXPORT,
+  DEFAULT_EXPORT_ATOM, DependenciesBlock, DependencyId, DependencyType, ExportInfoHashKey,
+  ExportProvided, ExportsArgument, ExportsInfoGetter, ExportsType, FactoryMeta, GetUsedNameParam,
+  ImportedByDeferModulesArtifact, InitFragment, InitFragmentStage, LibIdentOptions, Module,
+  ModuleArgument, ModuleCodeGenerationContext, ModuleGraph, ModuleGraphCacheArtifact,
+  ModuleGraphConnection, ModuleIdentifier, ModuleLayer, ModuleStaticCache, ModuleType,
+  NAMESPACE_OBJECT_EXPORT, ParserOptions, PrefetchExportsInfoMode, Resolve, RuntimeCondition,
+  RuntimeGlobals, RuntimeSpec, SourceType, URLStaticMode, UsageState, UsedName, UsedNameItem,
+  escape_identifier, filter_runtime, find_target, get_runtime_key, impl_source_map_config,
+  merge_runtime_condition, merge_runtime_condition_non_false, module_update_hash, property_access,
+  property_name, render_make_deferred_namespace_mode_from_exports_type,
+  reserved_names::RESERVED_NAMES, subtract_runtime_condition, to_identifier_with_escaped,
+  to_normal_comment,
 };
 
 type ExportsDefinitionArgs = Vec<(String, String)>;
@@ -277,6 +278,27 @@ pub struct ExternalModuleInfo {
   pub deferred_namespace_object_used: bool,
   pub deferred_name: Option<Atom>,
   pub runtime_requirements: RuntimeGlobals,
+}
+
+impl ExternalModuleInfo {
+  pub fn new(index: usize, module: ModuleIdentifier) -> Self {
+    Self {
+      index,
+      module,
+      interop_namespace_object_used: false,
+      interop_namespace_object_name: None,
+      interop_namespace_object2_used: false,
+      interop_namespace_object2_name: None,
+      interop_default_access_used: false,
+      interop_default_access_name: None,
+      name: None,
+      deferred: false,
+      deferred_namespace_object_name: None,
+      deferred_namespace_object_used: false,
+      deferred_name: None,
+      runtime_requirements: RuntimeGlobals::default(),
+    }
+  }
 }
 
 #[derive(Debug, Clone)]
@@ -742,7 +764,7 @@ impl Module for ConcatenatedModule {
 
   /// the compilation is asserted to be `Some(Compilation)`, https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/ModuleConcatenationPlugin.js#L394-L418
   async fn build(
-    &mut self,
+    mut self: Box<Self>,
     _build_context: BuildContext,
     compilation: Option<&Compilation>,
   ) -> Result<BuildResult> {
@@ -810,7 +832,12 @@ impl Module for ConcatenatedModule {
         .extend(module_build_info.assets.as_ref().clone());
     }
     // return a dummy result is enough, since we don't build the ConcatenatedModule in make phase
-    Ok(BuildResult::default())
+    Ok(BuildResult {
+      module: BoxModule::new(self),
+      dependencies: vec![],
+      blocks: vec![],
+      optimization_bailouts: vec![],
+    })
   }
 
   // #[tracing::instrument("ConcatenatedModule::code_generation", skip_all, fields(identifier = ?self.identifier()))]
@@ -1963,20 +1990,8 @@ impl ConcatenatedModule {
             }))
           }
           ConcatenationEntry::External(_) => ModuleInfo::External(ExternalModuleInfo {
-            index: i,
-            module: module_id,
-            interop_namespace_object_used: false,
-            interop_namespace_object_name: None,
-            interop_namespace_object2_used: false,
-            interop_namespace_object2_name: None,
-            interop_default_access_used: false,
-            interop_default_access_name: None,
-            name: None,
             deferred: mg.is_deferred(imported_by_defer_modules_artifact, &module_id),
-            deferred_namespace_object_name: None,
-            deferred_namespace_object_used: false,
-            deferred_name: None,
-            runtime_requirements: Default::default(),
+            ..ExternalModuleInfo::new(i, module_id)
           }),
         });
       let info = match concatenation_entry {
@@ -2289,9 +2304,7 @@ impl ConcatenatedModule {
         .module_by_identifier(&module_id)
         .unwrap_or_else(|| panic!("should have module {module_id}"));
 
-      let mut runtime_template = compilation
-        .runtime_template
-        .create_module_codegen_runtime_template();
+      let mut runtime_template = compilation.runtime_template.create_module_code_template();
       let mut code_generation_context = ModuleCodeGenerationContext {
         compilation,
         runtime,
@@ -3081,7 +3094,7 @@ pub fn is_esm_dep_like(dep: &BoxDependency) -> bool {
   )
 }
 
-pub fn find_new_name(old_name: &str, used_names: &HashSet<Atom>, extra_info: &Vec<String>) -> Atom {
+pub fn find_new_name(old_name: &str, used_names: &HashSet<Atom>, extra_info: &[String]) -> Atom {
   let mut name = old_name.to_string();
 
   for info_part in extra_info {

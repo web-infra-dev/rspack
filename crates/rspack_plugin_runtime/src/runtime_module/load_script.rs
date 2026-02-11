@@ -1,7 +1,8 @@
 use std::ptr::NonNull;
 
 use rspack_core::{
-  ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeTemplate, impl_runtime_module,
+  ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext,
+  RuntimeTemplate, impl_runtime_module,
 };
 
 use crate::{
@@ -52,7 +53,12 @@ impl RuntimeModule for LoadScriptRuntimeModule {
     ]
   }
 
-  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
+  async fn generate(
+    &self,
+    context: &RuntimeModuleGenerateContext<'_>,
+  ) -> rspack_error::Result<String> {
+    let compilation = context.compilation;
+    let runtime_template = context.runtime_template;
     let runtime_requirements = get_chunk_runtime_requirements(compilation, &self.chunk_ukey);
     let with_fetch_priority = runtime_requirements.contains(RuntimeGlobals::HAS_FETCH_PRIORITY);
 
@@ -66,7 +72,7 @@ impl RuntimeModule for LoadScriptRuntimeModule {
       ))
     };
 
-    let create_script_code = compilation.runtime_template.render(
+    let create_script_code = runtime_template.render(
       &self.template_id(TemplateId::CreateScript),
       Some(serde_json::json!({
         "_script_type": &compilation.options.output.script_type,
@@ -93,7 +99,7 @@ impl RuntimeModule for LoadScriptRuntimeModule {
       })
       .await?;
 
-    let render_source = compilation.runtime_template.render(
+    let render_source = runtime_template.render(
       &self.template_id(TemplateId::Raw),
       Some(serde_json::json!({
         "_unique_prefix": unique_prefix.unwrap_or_default(),

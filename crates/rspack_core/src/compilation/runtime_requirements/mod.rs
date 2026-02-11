@@ -57,7 +57,8 @@ async fn runtime_requirements_pass_impl(compilation: &mut Compilation) -> Result
     ));
     modules
   } else {
-    compilation.cgm_runtime_requirements_artifact = Default::default();
+    compilation.cgm_runtime_requirements_artifact =
+      CgmRuntimeRequirementsArtifact::default().into();
     compilation
       .get_module_graph()
       .modules()

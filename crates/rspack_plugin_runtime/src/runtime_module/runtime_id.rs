@@ -1,6 +1,6 @@
 use itertools::Itertools;
 use rspack_core::{
-  Compilation, RuntimeGlobals, RuntimeModule, RuntimeTemplate, impl_runtime_module,
+  RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext, RuntimeTemplate, impl_runtime_module,
 };
 
 #[impl_runtime_module]
@@ -15,7 +15,11 @@ impl RuntimeIdRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for RuntimeIdRuntimeModule {
-  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
+  async fn generate(
+    &self,
+    context: &RuntimeModuleGenerateContext<'_>,
+  ) -> rspack_error::Result<String> {
+    let compilation = context.compilation;
     if let Some(chunk_ukey) = self.chunk {
       let chunk = compilation
         .build_chunk_graph_artifact
@@ -41,7 +45,7 @@ impl RuntimeModule for RuntimeIdRuntimeModule {
 
       Ok(format!(
         "{} = {};",
-        compilation
+        context
           .runtime_template
           .render_runtime_globals(&RuntimeGlobals::RUNTIME_ID),
         serde_json::to_string(&id).expect("Invalid json string")

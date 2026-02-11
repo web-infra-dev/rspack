@@ -9,8 +9,8 @@ use rspack_core::{
   CompilationAdditionalChunkRuntimeRequirements, CompilationFinishModules, CompilationParams,
   CompilerCompilation, EntryData, ExportProvided, Filename, LibraryExport, LibraryName,
   LibraryNonUmdObject, LibraryOptions, ModuleIdentifier, PathData, Plugin, PrefetchExportsInfoMode,
-  RuntimeGlobals, RuntimeModule, RuntimeVariable, SourceType, UsageState, get_entry_runtime,
-  property_access,
+  RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule, RuntimeVariable, SourceType, UsageState,
+  get_entry_runtime, property_access,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
   to_identifier,
 };
@@ -214,6 +214,7 @@ async fn render(
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
   render_source: &mut RenderSource,
+  _runtime_template: &RuntimeCodeTemplate<'_>,
 ) -> Result<()> {
   let Some(options) = self.get_options_for_chunk(compilation, chunk_ukey)? else {
     return Ok(());
@@ -248,6 +249,7 @@ async fn render_startup(
   chunk_ukey: &ChunkUkey,
   module: &ModuleIdentifier,
   render_source: &mut RenderSource,
+  runtime_template: &RuntimeCodeTemplate<'_>,
 ) -> Result<()> {
   let Some(options) = self.get_options_for_chunk(compilation, chunk_ukey)? else {
     return Ok(());
@@ -265,18 +267,14 @@ async fn render_startup(
     .export
     .map(|e| property_access(e, 0))
     .unwrap_or_default();
-  let exports_name = compilation
-    .runtime_template
-    .render_runtime_variable(&RuntimeVariable::Exports);
+  let exports_name = runtime_template.render_runtime_variable(&RuntimeVariable::Exports);
   if matches!(self.options.unnamed, Unnamed::Static) {
     let export_target = access_with_init(&full_name_resolved, self.options.prefix.len(), true);
     let module_graph = compilation.get_module_graph();
     let exports_info =
       module_graph.get_prefetched_exports_info(module, PrefetchExportsInfoMode::Default);
     let mut provided = vec![];
-    let exports_name = compilation
-      .runtime_template
-      .render_runtime_variable(&RuntimeVariable::Exports);
+    let exports_name = runtime_template.render_runtime_variable(&RuntimeVariable::Exports);
     for (_, export_info) in exports_info.exports() {
       if matches!(export_info.provided(), Some(ExportProvided::NotProvided)) {
         continue;

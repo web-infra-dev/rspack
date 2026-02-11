@@ -1,6 +1,6 @@
 {
   "name": "@rspack/core",
-  "version": "2.0.0-beta.0",
+  "version": "2.0.0-beta.2",
   "webpackVersion": "5.75.0",
   "license": "MIT",
   "description": "The fast Rust-based web bundler with webpack-compatible API",
@@ -48,11 +48,11 @@
   "devDependencies": {
     "@ast-grep/napi": "^0.40.5",
     "@napi-rs/wasm-runtime": "1.0.7",
-    "@rsbuild/plugin-node-polyfill": "^1.4.3",
+    "@rsbuild/plugin-node-polyfill": "^1.4.4",
     "@rspack/lite-tapable": "1.1.0",
-    "@rslib/core": "0.19.4",
+    "@rslib/core": "0.19.5",
     "@swc/types": "0.1.25",
-    "@types/node": "^20.19.31",
+    "@types/node": "^20.19.33",
     "@types/watchpack": "^2.4.5",
     "browserslist-load-config": "^1.0.1",
     "browserslist-to-es-version": "^1.4.1",
@@ -70,7 +70,7 @@
     "@rspack/binding": "workspace:*"
   },
   "peerDependencies": {
-    "@module-federation/runtime-tools": "0.24.1",
+    "@module-federation/runtime-tools": "^0.24.1 || ^2.0.0",
     "@swc/helpers": ">=0.5.1"
   },
   "peerDependenciesMeta": {

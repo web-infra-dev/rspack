@@ -1777,6 +1777,7 @@ export type CssAutoGeneratorOptions = {
 export type CssAutoParserOptions = {
     namedExports?: CssParserNamedExports;
     url?: CssParserUrl;
+    resolveImport?: CssParserResolveImport;
 };
 
 // @public
@@ -1883,6 +1884,7 @@ export type CssModuleGeneratorOptions = CssAutoGeneratorOptions;
 export type CssModuleParserOptions = {
     namedExports?: CssParserNamedExports;
     url?: CssParserUrl;
+    resolveImport?: CssParserResolveImport;
 };
 
 // @public (undocumented)
@@ -1892,6 +1894,19 @@ export type CssParserNamedExports = boolean;
 export type CssParserOptions = {
     namedExports?: CssParserNamedExports;
     url?: CssParserUrl;
+    resolveImport?: CssParserResolveImport;
+};
+
+// @public (undocumented)
+export type CssParserResolveImport = boolean | ((context: CssParserResolveImportContext) => boolean);
+
+// @public (undocumented)
+export type CssParserResolveImportContext = {
+    url: string;
+    media: string | undefined;
+    resourcePath: string;
+    supports: string | undefined;
+    layer: string | undefined;
 };
 
 // @public (undocumented)
@@ -3659,7 +3674,6 @@ export type JavascriptParserOptions = {
     exportsPresence?: ExportsPresence;
     importExportsPresence?: ExportsPresence;
     reexportExportsPresence?: ExportsPresence;
-    strictExportPresence?: boolean;
     worker?: string[] | boolean;
     overrideStrict?: 'strict' | 'non-strict';
     requireAlias?: boolean;
@@ -5391,8 +5405,6 @@ interface NormalModuleCompilationHooks {
     loader: liteTapable.SyncHook<[LoaderContext, Module]>;
     // (undocumented)
     readResource: liteTapable.HookMap<liteTapable.AsyncSeriesBailHook<[LoaderContext], string | Buffer>>;
-    // (undocumented)
-    readResourceForScheme: any;
 }
 
 // @public (undocumented)
@@ -7133,6 +7145,8 @@ declare namespace rspackExports {
         AssetParserOptions,
         CssParserNamedExports,
         CssParserUrl,
+        CssParserResolveImportContext,
+        CssParserResolveImport,
         CssParserOptions,
         CssAutoParserOptions,
         CssModuleParserOptions,
@@ -7460,7 +7474,7 @@ const RuntimeChunkPlugin: {
 };
 
 // @public (undocumented)
-export const RuntimeGlobals: Record<"publicPath" | "chunkName" | "moduleId" | "module" | "require" | "global" | "system" | "exports" | "requireScope" | "thisAsExports" | "returnExportsFromRuntime" | "moduleLoaded" | "entryModuleId" | "moduleCache" | "moduleFactories" | "moduleFactoriesAddOnly" | "ensureChunk" | "ensureChunkHandlers" | "ensureChunkIncludeEntries" | "prefetchChunk" | "prefetchChunkHandlers" | "preloadChunk" | "preloadChunkHandlers" | "definePropertyGetters" | "makeNamespaceObject" | "createFakeNamespaceObject" | "compatGetDefaultExport" | "harmonyModuleDecorator" | "nodeModuleDecorator" | "getFullHash" | "wasmInstances" | "instantiateWasm" | "uncaughtErrorHandler" | "scriptNonce" | "loadScript" | "createScript" | "createScriptUrl" | "getTrustedTypesPolicy" | "hasFetchPriority" | "runtimeId" | "getChunkScriptFilename" | "getChunkCssFilename" | "rspackVersion" | "hasCssModules" | "rspackUniqueId" | "getChunkUpdateScriptFilename" | "getChunkUpdateCssFilename" | "startup" | "startupNoDefault" | "startupOnlyAfter" | "startupOnlyBefore" | "chunkCallback" | "startupEntrypoint" | "startupChunkDependencies" | "onChunksLoaded" | "externalInstallChunk" | "interceptModuleExecution" | "shareScopeMap" | "initializeSharing" | "currentRemoteGetScope" | "getUpdateManifestFilename" | "hmrDownloadManifest" | "hmrDownloadUpdateHandlers" | "hmrModuleData" | "hmrInvalidateModuleHandlers" | "hmrRuntimeStatePrefix" | "amdDefine" | "amdOptions" | "hasOwnProperty" | "systemContext" | "baseURI" | "relativeUrl" | "asyncModule" | "asyncModuleExportSymbol" | "makeDeferredNamespaceObject" | "makeDeferredNamespaceObjectSymbol", string>;
+export const RuntimeGlobals: Record<"publicPath" | "chunkName" | "moduleId" | "module" | "exports" | "require" | "global" | "system" | "requireScope" | "thisAsExports" | "returnExportsFromRuntime" | "moduleLoaded" | "entryModuleId" | "moduleCache" | "moduleFactories" | "moduleFactoriesAddOnly" | "ensureChunk" | "ensureChunkHandlers" | "ensureChunkIncludeEntries" | "prefetchChunk" | "prefetchChunkHandlers" | "preloadChunk" | "preloadChunkHandlers" | "definePropertyGetters" | "makeNamespaceObject" | "createFakeNamespaceObject" | "compatGetDefaultExport" | "harmonyModuleDecorator" | "nodeModuleDecorator" | "getFullHash" | "wasmInstances" | "instantiateWasm" | "uncaughtErrorHandler" | "scriptNonce" | "loadScript" | "createScript" | "createScriptUrl" | "getTrustedTypesPolicy" | "hasFetchPriority" | "runtimeId" | "getChunkScriptFilename" | "getChunkCssFilename" | "rspackVersion" | "hasCssModules" | "rspackUniqueId" | "getChunkUpdateScriptFilename" | "getChunkUpdateCssFilename" | "startup" | "startupNoDefault" | "startupOnlyAfter" | "startupOnlyBefore" | "chunkCallback" | "startupEntrypoint" | "startupChunkDependencies" | "onChunksLoaded" | "externalInstallChunk" | "interceptModuleExecution" | "shareScopeMap" | "initializeSharing" | "currentRemoteGetScope" | "getUpdateManifestFilename" | "hmrDownloadManifest" | "hmrDownloadUpdateHandlers" | "hmrModuleData" | "hmrInvalidateModuleHandlers" | "hmrRuntimeStatePrefix" | "amdDefine" | "amdOptions" | "hasOwnProperty" | "systemContext" | "baseURI" | "relativeUrl" | "asyncModule" | "asyncModuleExportSymbol" | "makeDeferredNamespaceObject" | "makeDeferredNamespaceObjectSymbol", string>;
 
 // @public (undocumented)
 export class RuntimeModule {

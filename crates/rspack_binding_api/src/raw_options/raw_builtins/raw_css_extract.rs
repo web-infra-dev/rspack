@@ -23,16 +23,13 @@ impl From<RawCssExtractPluginOption> for CssExtractOptions {
       filename: value.filename.into(),
       chunk_filename: value.chunk_filename.into(),
       ignore_order: value.ignore_order,
-      insert: value
-        .insert
-        .map(|insert| {
-          if insert.starts_with("function") || insert.starts_with('(') {
-            InsertType::Fn(insert)
-          } else {
-            InsertType::Selector(insert)
-          }
-        })
-        .unwrap_or(InsertType::Default),
+      insert: value.insert.map_or(InsertType::Default, |insert| {
+        if insert.starts_with("function") || insert.starts_with('(') {
+          InsertType::Fn(insert)
+        } else {
+          InsertType::Selector(insert)
+        }
+      }),
       attributes: value.attributes.into_iter().collect(),
       link_type: value.link_type,
       runtime: value.runtime,

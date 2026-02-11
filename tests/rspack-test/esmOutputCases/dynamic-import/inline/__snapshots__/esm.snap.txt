@@ -1,0 +1,15 @@
+```mjs title=foo_js.mjs
+// ./foo.js
+
+
+```
+
+```mjs title=main.mjs
+// ./index.js
+it('should have correct inline export', async () => {
+  const { value } = await import("./foo_js.mjs").then((mod) => ({ value: (/* inlined export .value */42) }))
+  expect(value).toBe(42)
+})
+
+
+```

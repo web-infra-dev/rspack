@@ -211,6 +211,7 @@ async fn runtime_requirements_in_tree(
       .map(|library| library.library_type.clone())
   };
 
+  let runtime_template = compilation.runtime_template.create_runtime_code_template();
   for runtime_requirement in runtime_requirements.iter() {
     match runtime_requirement {
       RuntimeGlobals::ASYNC_MODULE => {
@@ -262,9 +263,7 @@ async fn runtime_requirements_in_tree(
             "javascript",
             "javascript",
             SourceType::JavaScript,
-            compilation
-              .runtime_template
-              .render_runtime_globals(&RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME),
+            runtime_template.render_runtime_globals(&RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME),
             |_| false,
             |chunk, compilation| {
               chunk_has_js(&chunk.ukey(), compilation).then(|| {
@@ -287,9 +286,7 @@ async fn runtime_requirements_in_tree(
             "css",
             "css",
             SourceType::Css,
-            compilation
-              .runtime_template
-              .render_runtime_globals(&RuntimeGlobals::GET_CHUNK_CSS_FILENAME),
+            runtime_template.render_runtime_globals(&RuntimeGlobals::GET_CHUNK_CSS_FILENAME),
             |runtime_requirements| {
               runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS)
             },

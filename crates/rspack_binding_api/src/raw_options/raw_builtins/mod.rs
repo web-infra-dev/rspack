@@ -511,7 +511,7 @@ impl<'a> BuiltinPlugin<'a> {
           .into_iter()
           .map(Into::into)
           .collect();
-        provides.sort_unstable_by_key(|(k, _)| k.to_string());
+        provides.sort_unstable_by_key(|(k, _)| k.clone());
         plugins.push(ProvideSharedPlugin::new(provides).boxed())
       }
       BuiltinPluginName::CollectSharedEntryPlugin => {

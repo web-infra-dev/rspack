@@ -70,14 +70,14 @@ use crate::{
   ChunkRenderCacheArtifact, ChunkRenderResult, ChunkUkey, CodeGenerateCacheArtifact,
   CodeGenerationJob, CodeGenerationResult, CodeGenerationResults, CompilationLogger,
   CompilationLogging, CompilerOptions, CompilerPlatform, ConcatenationScope,
-  DependenciesDiagnosticsArtifact, DependencyCodeGeneration, DependencyId, DependencyTemplate,
-  DependencyTemplateType, DependencyType, Entry, EntryData, EntryOptions, EntryRuntime, Entrypoint,
-  ExecuteModuleId, ExtendedReferencedExport, Filename, ImportPhase, ImportVarMap,
-  ImportedByDeferModulesArtifact, MemoryGCStorage, ModuleFactory, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleIdentifier, ModuleIdsArtifact, ModuleStaticCache, PathData,
-  ProcessRuntimeRequirementsCacheArtifact, ResolverFactory, RuntimeGlobals, RuntimeKeyMap,
-  RuntimeMode, RuntimeModule, RuntimeSpec, RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver,
-  SideEffectsOptimizeArtifact, SourceType, Stats, StealCell, ValueCacheVersions,
+  DependenciesDiagnosticsArtifact, DependencyId, DependencyTemplate, DependencyTemplateType,
+  DependencyType, Entry, EntryData, EntryOptions, EntryRuntime, Entrypoint, ExecuteModuleId,
+  ExtendedReferencedExport, Filename, ImportPhase, ImportVarMap, ImportedByDeferModulesArtifact,
+  MemoryGCStorage, ModuleFactory, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
+  ModuleIdsArtifact, ModuleStaticCache, PathData, ProcessRuntimeRequirementsCacheArtifact,
+  ResolverFactory, RuntimeGlobals, RuntimeKeyMap, RuntimeMode, RuntimeModule, RuntimeSpec,
+  RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver, SideEffectsOptimizeArtifact, SourceType,
+  Stats, StealCell, ValueCacheVersions,
   compilation::build_module_graph::{
     BuildModuleGraphArtifact, ModuleExecutor, UpdateParam, update_module_graph,
   },
@@ -232,32 +232,33 @@ pub struct Compilation {
   // artifact for side_effects_flag_plugin
   pub side_effects_optimize_artifact: StealCell<SideEffectsOptimizeArtifact>,
   // artifact for module_ids
-  pub module_ids_artifact: ModuleIdsArtifact,
+  pub module_ids_artifact: StealCell<ModuleIdsArtifact>,
   // artifact for named_chunk_ids
-  pub named_chunk_ids_artifact: ChunkNamedIdArtifact,
+  pub named_chunk_ids_artifact: StealCell<ChunkNamedIdArtifact>,
   // artifact for code_generation
   pub code_generation_results: BindingCell<CodeGenerationResults>,
   // artifact for create_module_hashes
-  pub cgm_hash_artifact: CgmHashArtifact,
+  pub cgm_hash_artifact: StealCell<CgmHashArtifact>,
   // artifact for process_modules_runtime_requirements
-  pub cgm_runtime_requirements_artifact: CgmRuntimeRequirementsArtifact,
+  pub cgm_runtime_requirements_artifact: StealCell<CgmRuntimeRequirementsArtifact>,
   // artifact for process_chunks_runtime_requirements
-  pub cgc_runtime_requirements_artifact: CgcRuntimeRequirementsArtifact,
+  pub cgc_runtime_requirements_artifact: StealCell<CgcRuntimeRequirementsArtifact>,
   // artifact for create_hash
-  pub chunk_hashes_artifact: ChunkHashesArtifact,
+  pub chunk_hashes_artifact: StealCell<ChunkHashesArtifact>,
   // artifact for create_chunk_assets
-  pub chunk_render_artifact: ChunkRenderArtifact,
+  pub chunk_render_artifact: StealCell<ChunkRenderArtifact>,
   // artifact for caching get_mode
-  pub module_graph_cache_artifact: ModuleGraphCacheArtifact,
+  pub module_graph_cache_artifact: StealCell<ModuleGraphCacheArtifact>,
   // transient cache for module static info
   pub module_static_cache: ModuleStaticCache,
   // artifact for chunk render cache
-  pub chunk_render_cache_artifact: ChunkRenderCacheArtifact,
+  pub chunk_render_cache_artifact: StealCell<ChunkRenderCacheArtifact>,
   // artifact for code generate cache
-  pub code_generate_cache_artifact: CodeGenerateCacheArtifact,
+  pub code_generate_cache_artifact: StealCell<CodeGenerateCacheArtifact>,
   // artifact for process runtime requirements cache
-  pub process_runtime_requirements_cache_artifact: ProcessRuntimeRequirementsCacheArtifact,
-  pub imported_by_defer_modules_artifact: ImportedByDeferModulesArtifact,
+  pub process_runtime_requirements_cache_artifact:
+    StealCell<ProcessRuntimeRequirementsCacheArtifact>,
+  pub imported_by_defer_modules_artifact: StealCell<ImportedByDeferModulesArtifact>,
 
   pub code_generated_modules: IdentifierSet,
   pub build_time_executed_modules: IdentifierSet,
@@ -362,30 +363,30 @@ impl Compilation {
       loader_resolver_factory,
 
       async_modules_artifact: StealCell::new(AsyncModulesArtifact::default()),
-      imported_by_defer_modules_artifact: Default::default(),
+      imported_by_defer_modules_artifact: StealCell::new(Default::default()),
       dependencies_diagnostics_artifact: StealCell::new(DependenciesDiagnosticsArtifact::default()),
       side_effects_optimize_artifact: StealCell::new(Default::default()),
-      module_ids_artifact: Default::default(),
-      named_chunk_ids_artifact: Default::default(),
+      module_ids_artifact: StealCell::new(Default::default()),
+      named_chunk_ids_artifact: StealCell::new(Default::default()),
       code_generation_results: Default::default(),
-      cgm_hash_artifact: Default::default(),
-      cgm_runtime_requirements_artifact: Default::default(),
-      cgc_runtime_requirements_artifact: Default::default(),
-      chunk_hashes_artifact: Default::default(),
-      chunk_render_artifact: Default::default(),
-      module_graph_cache_artifact: Default::default(),
+      cgm_hash_artifact: StealCell::new(Default::default()),
+      cgm_runtime_requirements_artifact: StealCell::new(Default::default()),
+      cgc_runtime_requirements_artifact: StealCell::new(Default::default()),
+      chunk_hashes_artifact: StealCell::new(Default::default()),
+      chunk_render_artifact: StealCell::new(Default::default()),
+      module_graph_cache_artifact: StealCell::new(Default::default()),
       module_static_cache: Default::default(),
       code_generated_modules: Default::default(),
-      chunk_render_cache_artifact: ChunkRenderCacheArtifact::new(MemoryGCStorage::new(
-        match &options.cache {
+      chunk_render_cache_artifact: StealCell::new(ChunkRenderCacheArtifact::new(
+        MemoryGCStorage::new(match &options.cache {
           CacheOptions::Disabled => 0, // FIXME: this should be removed in future
           CacheOptions::Memory { max_generations } => *max_generations,
           CacheOptions::Persistent(_) => 1,
-        },
+        }),
       )),
-      code_generate_cache_artifact: CodeGenerateCacheArtifact::new(&options),
-      process_runtime_requirements_cache_artifact: ProcessRuntimeRequirementsCacheArtifact::new(
-        &options,
+      code_generate_cache_artifact: StealCell::new(CodeGenerateCacheArtifact::new(&options)),
+      process_runtime_requirements_cache_artifact: StealCell::new(
+        ProcessRuntimeRequirementsCacheArtifact::new(&options),
       ),
       build_time_executed_modules: Default::default(),
       incremental,
@@ -405,7 +406,7 @@ impl Compilation {
       module_executor,
       in_finish_make: AtomicBool::new(false),
 
-      build_module_graph_artifact: StealCell::new(BuildModuleGraphArtifact::default()),
+      build_module_graph_artifact: StealCell::new(BuildModuleGraphArtifact::new()),
       modified_files,
       removed_files,
       input_filesystem,
@@ -1224,11 +1225,9 @@ impl Compilation {
 
   pub fn get_dependency_template(
     &self,
-    dep: &dyn DependencyCodeGeneration,
+    template_type: DependencyTemplateType,
   ) -> Option<Arc<dyn DependencyTemplate>> {
-    dep
-      .dependency_template()
-      .and_then(|template_type| self.dependency_templates.get(&template_type).cloned())
+    self.dependency_templates.get(&template_type).cloned()
   }
 }
 

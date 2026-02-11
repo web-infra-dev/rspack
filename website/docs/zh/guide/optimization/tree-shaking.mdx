@@ -33,7 +33,7 @@ Rspack 支持 [tree shaking](https://developer.mozilla.org/zh-CN/docs/Glossary/T
 - [usedExports](/config/optimization#optimizationusedexports) 检查模块导出是否被使用到，没被使用到的导出可以被移除。
 - [sideEffects](/config/optimization#optimizationsideeffects) 检查模块是否包含副作用，如果不包含副作用可以被重导出优化。
 - [providedExports](/config/optimization#optimizationprovidedExports) 分析模块的所有导出和重导出来源。
-- [innerGraph](/config/optimization#optimizationsinnergraph) 追踪变量的传递，更加准确地判断导出是否真的被使用到。
+- [innerGraph](/config/optimization#optimizationinnergraph) 追踪变量的传递，更加准确地判断导出是否真的被使用到。
 
 下面有一些例子来说明各个配置项的作用，为了增强文档的可读性，我们会使用伪代码来展示代码的删除效果。
 

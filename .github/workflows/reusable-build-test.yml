@@ -128,20 +128,10 @@ jobs:
           RSPACK_LOADER_WORKER_THREADS: 1
         run: pnpm run test:ci
 
-      - name: Upload streamed test reports
+      - name: Upload Test Reporter
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: streamed-reports-${{ inputs.target }}-node${{ matrix.node }}
-          path: |
-            rspack-test-streamed-report.txt
-            rspack-cli-streamed-report.txt
-          if-no-files-found: ignore
-
-      - name: Upload core dumps
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: core-dumps-${{ inputs.target }}-node${{ matrix.node }}
-          path: ./cores/
+          name: rstest-event-reports-${{ inputs.target }}-node${{ matrix.node }}
+          path: '*-report.txt'
           if-no-files-found: ignore

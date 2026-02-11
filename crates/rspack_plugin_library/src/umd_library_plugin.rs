@@ -4,8 +4,8 @@ use rspack_core::{
   Chunk, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements, CompilationParams,
   CompilerCompilation, ExternalModule, ExternalRequest, Filename, LibraryAuxiliaryComment,
   LibraryCustomUmdObject, LibraryName, LibraryNonUmdObject, LibraryOptions, LibraryType,
-  ModuleGraph, ModuleGraphCacheArtifact, PathData, Plugin, RuntimeGlobals, RuntimeModule,
-  SourceType,
+  ModuleGraph, ModuleGraphCacheArtifact, PathData, Plugin, RuntimeCodeTemplate, RuntimeGlobals,
+  RuntimeModule, SourceType,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt, error};
@@ -98,6 +98,7 @@ async fn render(
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
   render_source: &mut RenderSource,
+  _runtime_template: &RuntimeCodeTemplate<'_>,
 ) -> Result<()> {
   let Some(options) = self.get_options_for_chunk(compilation, chunk_ukey) else {
     return Ok(());

@@ -3,8 +3,8 @@ use std::{hash::BuildHasherDefault, sync::LazyLock};
 use indexmap::IndexMap;
 use rspack_cacheable::with::AsMap;
 use rspack_core::{
-  Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleStage, RuntimeTemplate,
-  chunk_graph_chunk::ChunkId, impl_runtime_module,
+  Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext, RuntimeModuleStage,
+  RuntimeTemplate, chunk_graph_chunk::ChunkId, impl_runtime_module,
 };
 use rustc_hash::FxHasher;
 
@@ -39,8 +39,11 @@ impl RuntimeModule for ChunkPrefetchTriggerRuntimeModule {
     )]
   }
 
-  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
-    let source = compilation.runtime_template.render(
+  async fn generate(
+    &self,
+    context: &RuntimeModuleGenerateContext<'_>,
+  ) -> rspack_error::Result<String> {
+    let source = context.runtime_template.render(
       &self.id,
       Some(serde_json::json!({
         "_chunk_map": &self.chunk_map,

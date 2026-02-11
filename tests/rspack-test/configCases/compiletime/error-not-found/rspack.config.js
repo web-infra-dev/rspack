@@ -3,7 +3,7 @@ module.exports = {
 	module: {
 		parser: {
 			javascript: {
-				strictExportPresence: true
+				exportsPresence: 'error'
 			}
 		}
 	}

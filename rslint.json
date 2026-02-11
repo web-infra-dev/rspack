@@ -49,7 +49,15 @@
       "@typescript-eslint/no-extraneous-class": "off",
       "@typescript-eslint/consistent-type-imports": "off",
       "@typescript-eslint/no-invalid-void-type": "off",
-      "@typescript-eslint/default-param-last": "error"
+      "@typescript-eslint/default-param-last": "error",
+      "@typescript-eslint/prefer-string-starts-ends-with": "off",
+      "@typescript-eslint/prefer-readonly": "off",
+      "@typescript-eslint/no-inferrable-types": "off",
+      "@typescript-eslint/prefer-literal-enum-member": [
+        "error",
+        { "allowBitwiseExpressions": true }
+      ],
+      "@typescript-eslint/no-non-null-assertion": "off"
     },
     "plugins": ["@typescript-eslint"]
   }

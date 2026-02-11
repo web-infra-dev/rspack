@@ -173,9 +173,7 @@ impl Compilation {
           let codegen_res = this
             .code_generate_cache_artifact
             .use_cache(&job, || async {
-              let mut runtime_template = this
-                .runtime_template
-                .create_module_codegen_runtime_template();
+              let mut runtime_template = this.runtime_template.create_module_code_template();
               let mut code_generation_context = ModuleCodeGenerationContext {
                 compilation: this,
                 runtime: Some(&job.runtime),
