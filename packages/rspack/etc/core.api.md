@@ -10,13 +10,10 @@ import type { Abortable } from 'node:events';
 import { AssetInfo } from '@rspack/binding';
 import { async } from '@rspack/binding';
 import { AsyncDependenciesBlock } from '@rspack/binding';
-import { AsyncParallelHook } from '@rspack/lite-tapable';
-import { AsyncSeriesBailHook } from '@rspack/lite-tapable';
 import binding from '@rspack/binding';
 import { Buffer as Buffer_2 } from 'buffer';
 import { BuiltinPlugin } from '@rspack/binding';
 import { BuiltinPluginName } from '@rspack/binding';
-import type { Callback } from '@rspack/lite-tapable';
 import { Chunk } from '@rspack/binding';
 import { ChunkGraph } from '@rspack/binding';
 import { ChunkGroup } from '@rspack/binding';
@@ -32,7 +29,6 @@ import { ExternalModule } from '@rspack/binding';
 import type { ExternalObject } from '@rspack/binding';
 import { fs } from 'fs';
 import { default as fs_2 } from 'graceful-fs';
-import { HookMap } from '@rspack/lite-tapable';
 import type * as http from 'node:http';
 import { IncomingMessage } from 'http';
 import type { JsAddingRuntimeModule } from '@rspack/binding';
@@ -57,7 +53,6 @@ import type { JsSource } from '@rspack/binding';
 import type { JsStats } from '@rspack/binding';
 import type { JsStatsCompilation } from '@rspack/binding';
 import type { JsStatsError } from '@rspack/binding';
-import * as liteTapable from '@rspack/lite-tapable';
 import { Module } from '@rspack/binding';
 import type { ModuleGraphConnection } from '@rspack/binding';
 import type * as net from 'node:net';
@@ -87,9 +82,6 @@ import { SourceMapDevToolPluginOptions } from '@rspack/binding';
 import { StatSyncFn } from 'fs';
 import type * as stream from 'node:stream';
 import { sync } from '@rspack/binding';
-import { SyncBailHook } from '@rspack/lite-tapable';
-import { SyncHook } from '@rspack/lite-tapable';
-import { SyncWaterfallHook } from '@rspack/lite-tapable';
 import type { TransformOutput } from '@rspack/binding';
 import { Url } from 'url';
 import type * as url from 'node:url';
@@ -124,6 +116,19 @@ interface AmdConfig extends BaseModuleConfig {
 export type AmdContainer = string;
 
 // @public (undocumented)
+type Append<T extends any[], U> = {
+    0: [U];
+    1: [T[0], U];
+    2: [T[0], T[1], U];
+    3: [T[0], T[1], T[2], U];
+    4: [T[0], T[1], T[2], T[3], U];
+    5: [T[0], T[1], T[2], T[3], T[4], U];
+    6: [T[0], T[1], T[2], T[3], T[4], T[5], U];
+    7: [T[0], T[1], T[2], T[3], T[4], T[5], T[6], U];
+    8: [T[0], T[1], T[2], T[3], T[4], T[5], T[6], T[7], U];
+}[Measure<T['length']>];
+
+// @public (undocumented)
 export const applyRspackOptionsBaseDefaults: (options: RspackOptionsNormalized) => void;
 
 // @public (undocumented)
@@ -147,6 +152,9 @@ interface Argument {
     // (undocumented)
     spread?: Span;
 }
+
+// @public (undocumented)
+type ArgumentNames<T extends any[]> = FixedSizeArray<T['length'], string>;
 
 // @public (undocumented)
 interface ArrayExpression extends ExpressionBase {
@@ -183,6 +191,9 @@ interface ArrowFunctionExpression extends ExpressionBase {
     // (undocumented)
     typeParameters?: TsTypeParameterDeclaration;
 }
+
+// @public (undocumented)
+type AsArray<T> = T extends any[] ? T : [T];
 
 // @public
 const asRegExp: (test: string | RegExp) => RegExp;
@@ -359,6 +370,31 @@ interface Assumptions {
 export type AsyncChunks = boolean;
 
 export { AsyncDependenciesBlock }
+
+// @public (undocumented)
+class AsyncParallelHook<T, AdditionalOptions = UnsetAdditionalOptions> extends HookBase<T, void, AdditionalOptions> {
+    // (undocumented)
+    callAsyncStageRange(queried: QueriedHook<T, void, AdditionalOptions>, ...args: Append<AsArray<T>, Callback<Error, void>>): void;
+}
+
+// @public (undocumented)
+class AsyncSeriesBailHook<T, R, AdditionalOptions = UnsetAdditionalOptions> extends HookBase<T, R, AdditionalOptions> {
+    // (undocumented)
+    callAsyncStageRange(queried: QueriedHook<T, R, AdditionalOptions>, ...args: Append<AsArray<T>, Callback<Error, R>>): void;
+}
+
+// @public (undocumented)
+class AsyncSeriesHook<T, AdditionalOptions = UnsetAdditionalOptions> extends HookBase<T, void, AdditionalOptions> {
+    // (undocumented)
+    callAsyncStageRange(queried: QueriedHook<T, void, AdditionalOptions>, ...args: Append<AsArray<T>, Callback<Error, void>>): void;
+}
+
+// @public (undocumented)
+class AsyncSeriesWaterfallHook<T, AdditionalOptions = UnsetAdditionalOptions> extends HookBase<T, AsArray<T>[0], AdditionalOptions> {
+    constructor(args?: ArgumentNames<AsArray<T>>, name?: string);
+    // (undocumented)
+    callAsyncStageRange(queried: QueriedHook<T, AsArray<T>[0], AdditionalOptions>, ...args: Append<AsArray<T>, Callback<Error, AsArray<T>[0]>>): void;
+}
 
 // @public
 export type AuxiliaryComment = string | LibraryCustomUmdCommentObject;
@@ -703,6 +739,9 @@ export type CacheStorageOptions = {
 };
 
 // @public (undocumented)
+type Callback<E, T> = (error: E | null, result?: T) => void;
+
+// @public (undocumented)
 type Callback_2 = (stats?: Stats | MultiStats) => any;
 
 // @public (undocumented)
@@ -858,7 +897,7 @@ interface ClassMethodBase extends Node_4, HasSpan {
     // (undocumented)
     accessibility?: Accessibility;
     // (undocumented)
-    function: Fn;
+    function: Fn_2;
     // (undocumented)
     isAbstract: boolean;
     // (undocumented)
@@ -2849,6 +2888,15 @@ type ExtractedTargetProperties = {
 };
 
 // @public (undocumented)
+type ExtractHookAdditionalOptions<H> = H extends Hook<any, any, infer A> ? A : never;
+
+// @public (undocumented)
+type ExtractHookArgs<H> = H extends Hook<infer T, any> ? T : never;
+
+// @public (undocumented)
+type ExtractHookReturn<H> = H extends Hook<any, infer R> ? R : never;
+
+// @public (undocumented)
 type ExtraPluginHookData = {
     plugin: {
         options: HtmlRspackPluginOptions;
@@ -2898,7 +2946,16 @@ export type FilterItemTypes = RegExp | string | ((value: string) => boolean);
 export type FilterTypes = FilterItemTypes | FilterItemTypes[];
 
 // @public (undocumented)
-interface Fn extends HasSpan, HasDecorator {
+type FixedSizeArray<T extends number, U> = T extends 0 ? undefined[] : ReadonlyArray<U> & {
+    0: U;
+    length: T;
+};
+
+// @public (undocumented)
+type Fn<T, R> = (...args: AsArray<T>) => R;
+
+// @public (undocumented)
+interface Fn_2 extends HasSpan, HasDecorator {
     // (undocumented)
     async: boolean;
     // (undocumented)
@@ -2912,6 +2969,12 @@ interface Fn extends HasSpan, HasDecorator {
     // (undocumented)
     typeParameters?: TsTypeParameterDeclaration;
 }
+
+// @public (undocumented)
+type FnAsync<T, R> = (...args: Append<AsArray<T>, InnerCallback<Error, R>>) => void;
+
+// @public (undocumented)
+type FnPromise<T, R> = (...args: AsArray<T>) => Promise<R>;
 
 // @public (undocumented)
 interface ForInStatement extends Node_4, HasSpan {
@@ -2961,7 +3024,13 @@ interface FSImplementation {
 }
 
 // @public (undocumented)
-interface FunctionDeclaration extends Fn {
+type FullTap = Tap & {
+    type: 'sync' | 'async' | 'promise';
+    fn: Function;
+};
+
+// @public (undocumented)
+interface FunctionDeclaration extends Fn_2 {
     // (undocumented)
     declare: boolean;
     // (undocumented)
@@ -2971,7 +3040,7 @@ interface FunctionDeclaration extends Fn {
 }
 
 // @public (undocumented)
-interface FunctionExpression extends Fn, ExpressionBase {
+interface FunctionExpression extends Fn_2, ExpressionBase {
     // (undocumented)
     identifier?: Identifier;
     // (undocumented)
@@ -3133,6 +3202,134 @@ type HistoryContext = {
     readonly parsedUrl: Url;
     readonly request: any;
 };
+
+// @public (undocumented)
+interface Hook<T = any, R = any, AdditionalOptions = UnsetAdditionalOptions> {
+    // (undocumented)
+    intercept(interceptor: HookInterceptor<T, R, AdditionalOptions>): void;
+    // (undocumented)
+    isUsed(): boolean;
+    // (undocumented)
+    name?: string;
+    // (undocumented)
+    queryStageRange(stageRange: StageRange): QueriedHook<T, R, AdditionalOptions>;
+    // (undocumented)
+    tap(opt: Options<AdditionalOptions>, fn: Fn<T, R>): void;
+    // (undocumented)
+    tapAsync(opt: Options<AdditionalOptions>, fn: FnAsync<T, R>): void;
+    // (undocumented)
+    tapPromise(opt: Options<AdditionalOptions>, fn: FnPromise<T, R>): void;
+    // (undocumented)
+    withOptions(opt: TapOptions & IfSet<AdditionalOptions>): Hook<T, R, AdditionalOptions>;
+}
+
+// @public (undocumented)
+class HookBase<T, R, AdditionalOptions = UnsetAdditionalOptions> implements Hook<T, R, AdditionalOptions> {
+    constructor(args?: ArgumentNames<AsArray<T>>, name?: string);
+    // (undocumented)
+    args: ArgumentNames<AsArray<T>>;
+    // (undocumented)
+    callAsync(...args: Append<AsArray<T>, Callback<Error, R>>): void;
+    // (undocumented)
+    callAsyncStageRange(queried: QueriedHook<T, R, AdditionalOptions>, ...args: Append<AsArray<T>, Callback<Error, R>>): void;
+    // (undocumented)
+    _insert(item: FullTap & IfSet<AdditionalOptions>): void;
+    // (undocumented)
+    intercept(interceptor: HookInterceptor<T, R, AdditionalOptions>): void;
+    // (undocumented)
+    interceptors: HookInterceptor<T, R, AdditionalOptions>[];
+    // (undocumented)
+    isUsed(): boolean;
+    // (undocumented)
+    name?: string;
+    // (undocumented)
+    _prepareArgs(args: AsArray<T>): (T | undefined)[];
+    // (undocumented)
+    promise(...args: AsArray<T>): Promise<R>;
+    // (undocumented)
+    promiseStageRange(queried: QueriedHook<T, R, AdditionalOptions>, ...args: AsArray<T>): Promise<R>;
+    // (undocumented)
+    queryStageRange(stageRange: StageRange): QueriedHook<T, R, AdditionalOptions>;
+    // (undocumented)
+    _runCallInterceptors(...args: any[]): void;
+    // (undocumented)
+    _runDoneInterceptors(): void;
+    // (undocumented)
+    _runErrorInterceptors(e: Error): void;
+    // (undocumented)
+    _runRegisterInterceptors(options: FullTap & IfSet<AdditionalOptions>): FullTap & IfSet<AdditionalOptions>;
+    // (undocumented)
+    _runResultInterceptors(r: R): void;
+    // (undocumented)
+    _runTapInterceptors(tap: FullTap & IfSet<AdditionalOptions>): void;
+    // (undocumented)
+    tap(options: Options<AdditionalOptions>, fn: Fn<T, R>): void;
+    // (undocumented)
+    _tap(type: 'sync' | 'async' | 'promise', options: Options<AdditionalOptions>, fn: Function): void;
+    // (undocumented)
+    tapAsync(options: Options<AdditionalOptions>, fn: FnAsync<T, R>): void;
+    // (undocumented)
+    tapPromise(options: Options<AdditionalOptions>, fn: FnPromise<T, R>): void;
+    // (undocumented)
+    taps: (FullTap & IfSet<AdditionalOptions>)[];
+    // (undocumented)
+    withOptions(options: TapOptions & IfSet<AdditionalOptions>): Hook<T, R, AdditionalOptions>;
+}
+
+// @public (undocumented)
+type HookFactory<H> = (key: HookMapKey, hook?: H) => H;
+
+// @public (undocumented)
+interface HookInterceptor<T, R, AdditionalOptions = UnsetAdditionalOptions> {
+    // (undocumented)
+    call?: (...args: any[]) => void;
+    // (undocumented)
+    done?: () => void;
+    // (undocumented)
+    error?: (err: Error) => void;
+    // (undocumented)
+    loop?: (...args: any[]) => void;
+    // (undocumented)
+    name?: string;
+    // (undocumented)
+    register?: (tap: FullTap & IfSet<AdditionalOptions>) => FullTap & IfSet<AdditionalOptions>;
+    // (undocumented)
+    result?: (result: R) => void;
+    // (undocumented)
+    tap?: (tap: FullTap & IfSet<AdditionalOptions>) => void;
+}
+
+// @public (undocumented)
+class HookMap<H extends Hook> {
+    constructor(factory: HookFactory<H>, name?: string);
+    // (undocumented)
+    _factory: HookFactory<H>;
+    // (undocumented)
+    for(key: HookMapKey): H;
+    // (undocumented)
+    get(key: HookMapKey): H | undefined;
+    // (undocumented)
+    intercept(interceptor: HookMapInterceptor<H>): void;
+    // (undocumented)
+    _interceptors: HookMapInterceptor<H>[];
+    // (undocumented)
+    isUsed(): boolean;
+    // (undocumented)
+    _map: Map<HookMapKey, H>;
+    // (undocumented)
+    name?: string;
+    // (undocumented)
+    queryStageRange(stageRange: StageRange): QueriedHookMap<H>;
+}
+
+// @public (undocumented)
+interface HookMapInterceptor<H> {
+    // (undocumented)
+    factory?: HookFactory<H>;
+}
+
+// @public (undocumented)
+type HookMapKey = any;
 
 // @public (undocumented)
 type Hooks = Readonly<{
@@ -3391,6 +3588,9 @@ interface IDirent {
 }
 
 // @public (undocumented)
+type IfSet<X> = X extends UnsetAdditionalOptions ? {} : X;
+
+// @public (undocumented)
 interface IfStatement extends Node_4, HasSpan {
     // (undocumented)
     alternate?: Statement;
@@ -3519,6 +3719,9 @@ export type InfrastructureLogging = {
     level?: 'none' | 'error' | 'warn' | 'info' | 'log' | 'verbose';
     stream?: NodeJS.WritableStream;
 };
+
+// @public (undocumented)
+type InnerCallback<E, T> = (error?: E | null | false, result?: T) => void;
 
 // @public (undocumented)
 type InputFileSystem = {
@@ -4545,6 +4748,38 @@ type Literal = StringLiteral | BooleanLiteral | NullLiteral | NumericLiteral | B
 // @public
 export type LiteralUnion<T extends U, U> = T | (U & Record<never, never>);
 
+declare namespace liteTapable {
+    export {
+        AsArray,
+        Fn,
+        FnAsync,
+        FnPromise,
+        Callback,
+        Options,
+        HookInterceptor,
+        Hook,
+        HookBase,
+        StageRange,
+        minStage,
+        maxStage,
+        safeStage,
+        QueriedHook,
+        SyncHook,
+        SyncBailHook,
+        SyncWaterfallHook,
+        AsyncParallelHook,
+        AsyncSeriesHook,
+        AsyncSeriesBailHook,
+        AsyncSeriesWaterfallHook,
+        HookMapKey,
+        HookFactory,
+        HookMapInterceptor,
+        HookMap,
+        QueriedHookMap,
+        MultiHook
+    }
+}
+
 // @public (undocumented)
 export type Loader = Record<string, any>;
 
@@ -4895,6 +5130,12 @@ interface MatchPattern {
 }
 
 // @public (undocumented)
+const maxStage: number;
+
+// @public (undocumented)
+type Measure<T extends number> = T extends 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 ? T : never;
+
+// @public (undocumented)
 interface MemberExpression extends ExpressionBase {
     // (undocumented)
     object: Expression;
@@ -4921,7 +5162,7 @@ interface MetaProperty extends Node_4, HasSpan {
 type MethodKind = "method" | "getter" | "setter";
 
 // @public (undocumented)
-interface MethodProperty extends PropBase, Fn {
+interface MethodProperty extends PropBase, Fn_2 {
     // (undocumented)
     type: "MethodProperty";
 }
@@ -4941,6 +5182,9 @@ function minify(source: string, options?: JsMinifyOptions): Promise<TransformOut
 
 // @public (undocumented)
 function minifySync(source: string, options?: JsMinifyOptions): TransformOutput;
+
+// @public (undocumented)
+const minStage: number;
 
 // @public (undocumented)
 type MkdirSync = (path: PathLike, options: MakeDirectoryOptions) => undefined | string;
@@ -5189,6 +5433,27 @@ export class MultiCompiler {
 // @public (undocumented)
 export interface MultiCompilerOptions {
     parallelism?: number;
+}
+
+// @public (undocumented)
+class MultiHook<H extends Hook> {
+    constructor(hooks: H[], name?: string);
+    // (undocumented)
+    hooks: H[];
+    // (undocumented)
+    intercept(interceptor: HookInterceptor<ExtractHookArgs<Hook>, ExtractHookReturn<Hook>, ExtractHookAdditionalOptions<Hook>>): void;
+    // (undocumented)
+    isUsed(): boolean;
+    // (undocumented)
+    name?: string;
+    // (undocumented)
+    tap(options: Options<ExtractHookAdditionalOptions<Hook>>, fn: Fn<ExtractHookArgs<Hook>, ExtractHookReturn<Hook>>): void;
+    // (undocumented)
+    tapAsync(options: Options<ExtractHookAdditionalOptions<Hook>>, fn: FnAsync<ExtractHookArgs<Hook>, ExtractHookReturn<Hook>>): void;
+    // (undocumented)
+    tapPromise(options: Options<ExtractHookAdditionalOptions<Hook>>, fn: FnPromise<ExtractHookArgs<Hook>, ExtractHookReturn<Hook>>): void;
+    // (undocumented)
+    withOptions(options: TapOptions & IfSet<ExtractHookAdditionalOptions<Hook>>): MultiHook<Hook<any, any, UnsetAdditionalOptions>>;
 }
 
 // @public (undocumented)
@@ -5667,8 +5932,11 @@ interface OptionalChainingExpression extends ExpressionBase {
     type: "OptionalChainingExpression";
 }
 
+// @public (undocumented)
+type Options<AdditionalOptions = UnsetAdditionalOptions> = string | (Tap & IfSet<AdditionalOptions>);
+
 // @public
-interface Options extends Config_2 {
+interface Options_2 extends Config_2 {
     // (undocumented)
     caller?: CallerOptions;
     configFile?: string | boolean;
@@ -6242,6 +6510,40 @@ export type PublicPath = LiteralUnion<'auto', string> | Exclude<Filename, string
 
 // @public (undocumented)
 type Purge = (files?: string | string[] | Set<string>) => void;
+
+// @public (undocumented)
+class QueriedHook<T, R, AdditionalOptions = UnsetAdditionalOptions> {
+    constructor(stageRange: StageRange, hook: HookBase<T, R, AdditionalOptions>);
+    // (undocumented)
+    call(...args: AsArray<T>): R;
+    // (undocumented)
+    callAsync(...args: Append<AsArray<T>, Callback<Error, R>>): void;
+    // (undocumented)
+    hook: HookBase<T, R, AdditionalOptions>;
+    // (undocumented)
+    isUsed(): boolean;
+    // (undocumented)
+    promise(...args: AsArray<T>): Promise<R>;
+    // (undocumented)
+    stageRange: StageRange;
+    // (undocumented)
+    tapsInRange: (FullTap & IfSet<AdditionalOptions>)[];
+}
+
+// @public (undocumented)
+class QueriedHookMap<H extends Hook> {
+    constructor(stageRange: StageRange, hookMap: HookMap<H>);
+    // (undocumented)
+    for(key: HookMapKey): QueriedHook<any, any, UnsetAdditionalOptions>;
+    // (undocumented)
+    get(key: HookMapKey): QueriedHook<any, any, UnsetAdditionalOptions> | undefined;
+    // (undocumented)
+    hookMap: HookMap<H>;
+    // (undocumented)
+    isUsed(): boolean;
+    // (undocumented)
+    stageRange: StageRange;
+}
 
 // @public (undocumented)
 class RawSource extends Source {
@@ -7560,6 +7862,9 @@ type RuntimePlugins = string[] | [string, Record<string, unknown>][];
 type RuntimeSpec = string | Set<string> | undefined;
 
 // @public (undocumented)
+const safeStage: (stage: number) => number;
+
+// @public (undocumented)
 interface Script extends Node_4, HasSpan, HasInterpreter {
     // (undocumented)
     body: Statement[];
@@ -7897,6 +8202,9 @@ interface SpreadElement extends Node_4 {
     // (undocumented)
     type: "SpreadElement";
 }
+
+// @public (undocumented)
+type StageRange = readonly [number, number];
 
 // @public (undocumented)
 type Stat = {
@@ -8358,6 +8666,49 @@ interface SwitchStatement extends Node_4, HasSpan {
 }
 
 // @public (undocumented)
+class SyncBailHook<T, R, AdditionalOptions = UnsetAdditionalOptions> extends HookBase<T, R, AdditionalOptions> {
+    // (undocumented)
+    call(...args: AsArray<T>): R;
+    // (undocumented)
+    callAsyncStageRange(queried: QueriedHook<T, R, AdditionalOptions>, ...args: Append<AsArray<T>, Callback<Error, R>>): void;
+    // (undocumented)
+    callStageRange(queried: QueriedHook<T, R, AdditionalOptions>, ...args: AsArray<T>): R;
+    // (undocumented)
+    tapAsync(): never;
+    // (undocumented)
+    tapPromise(): never;
+}
+
+// @public (undocumented)
+class SyncHook<T, R = void, AdditionalOptions = UnsetAdditionalOptions> extends HookBase<T, R, AdditionalOptions> {
+    // (undocumented)
+    call(...args: AsArray<T>): R;
+    // (undocumented)
+    callAsyncStageRange(queried: QueriedHook<T, R, AdditionalOptions>, ...args: Append<AsArray<T>, Callback<Error, R>>): void;
+    // (undocumented)
+    callStageRange(queried: QueriedHook<T, R, AdditionalOptions>, ...args: AsArray<T>): R;
+    // (undocumented)
+    tapAsync(): never;
+    // (undocumented)
+    tapPromise(): never;
+}
+
+// @public (undocumented)
+class SyncWaterfallHook<T, AdditionalOptions = UnsetAdditionalOptions> extends HookBase<T, AsArray<T>[0], AdditionalOptions> {
+    constructor(args?: ArgumentNames<AsArray<T>>, name?: string);
+    // (undocumented)
+    call(...args: AsArray<T>): AsArray<T>[0];
+    // (undocumented)
+    callAsyncStageRange(queried: QueriedHook<T, AsArray<T>[0], AdditionalOptions>, ...args: Append<AsArray<T>, Callback<Error, AsArray<T>[0]>>): void;
+    // (undocumented)
+    callStageRange(queried: QueriedHook<T, AsArray<T>[0], AdditionalOptions>, ...args: AsArray<T>): AsArray<T>[0];
+    // (undocumented)
+    tapAsync(): never;
+    // (undocumented)
+    tapPromise(): never;
+}
+
+// @public (undocumented)
 interface SystemjsConfig {
     // (undocumented)
     allowTopLevelThis?: boolean;
@@ -8376,6 +8727,17 @@ interface TaggedTemplateExpression extends ExpressionBase {
     // (undocumented)
     typeParameters?: TsTypeParameterInstantiation;
 }
+
+// @public (undocumented)
+type Tap = TapOptions & {
+    name: string;
+};
+
+// @public (undocumented)
+type TapOptions = {
+    before?: string;
+    stage?: number;
+};
 
 // @public
 export type Target = false | AllowTarget | AllowTarget[];
@@ -8784,7 +9146,7 @@ type ToSnakeCaseProperties_2<T> = {
 };
 
 // @public (undocumented)
-function transform(source: string, options?: Options): Promise<TransformOutput>;
+function transform(source: string, options?: Options_2): Promise<TransformOutput>;
 
 // @public
 interface TransformConfig {
@@ -8804,7 +9166,7 @@ interface TransformConfig {
 }
 
 // @public (undocumented)
-function transformSync(source: string, options?: Options): TransformOutput;
+function transformSync(source: string, options?: Options_2): TransformOutput;
 
 // @public (undocumented)
 type TreeShakingConfig = {
@@ -9555,6 +9917,12 @@ type UnaryOperator = "-" | "+" | "!" | "~" | "typeof" | "void" | "delete";
 
 // @public
 export type UniqueName = string;
+
+// @public (undocumented)
+class UnsetAdditionalOptions {
+    // (undocumented)
+    _UnsetAdditionalOptions: true;
+}
 
 // @public (undocumented)
 interface UpdateExpression extends ExpressionBase {
