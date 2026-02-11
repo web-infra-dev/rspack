@@ -8,8 +8,7 @@ module.exports = {
         new CopyRspackPlugin({
             patterns: [
                 {
-                    from: path.join(__dirname, "public"),
-                    to: path.join(__dirname, "dist"),
+                    from: "./public"
                 }
             ]
         }),
@@ -17,6 +16,7 @@ module.exports = {
             apply(compiler) {
                 compiler.hooks.done.tap("DonePlugin", (stats) => {
                     for (const file of stats.compilation.fileDependencies) {
+                        // Verify that fileDependencies are always normalized
                         expect(file).toBe(path.normalize(file));
                     }
                 });
