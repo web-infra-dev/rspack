@@ -108,9 +108,9 @@ impl TryFrom<RawResolveOptions> for Resolve {
   fn try_from(value: RawResolveOptions) -> Result<Self, Self::Error> {
     let pnp = value.pnp;
     let pnp_manifest = value.pnp_manifest.map(|m| match m {
-        Either::A(p) => rspack_core::PnpManifest::Path(p.into()),
-        Either::B(_) => rspack_core::PnpManifest::Disabled,
-      });
+      Either::A(p) => rspack_core::PnpManifest::Path(p.into()),
+      Either::B(_) => rspack_core::PnpManifest::Disabled,
+    });
     let prefer_relative = value.prefer_relative;
     let prefer_absolute = value.prefer_absolute;
     let extensions = value.extensions;
@@ -260,9 +260,9 @@ pub fn normalize_raw_resolve_options_with_dependency_type(
       };
 
       let pnp_manifest = raw.pnp_manifest.map(|m| match m {
-          Either::A(p) => rspack_core::PnpManifest::Path(p.into()),
-          Either::B(_) => rspack_core::PnpManifest::Disabled,
-        });
+        Either::A(p) => rspack_core::PnpManifest::Path(p.into()),
+        Either::B(_) => rspack_core::PnpManifest::Disabled,
+      });
 
       let exports_fields = raw
         .exports_fields

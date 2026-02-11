@@ -13,7 +13,8 @@ use rustc_hash::FxHashSet as HashSet;
 
 use super::{ResolveResult, Resource, boxfs::BoxFS};
 use crate::{
-  Alias, AliasMap, DependencyCategory, PnpManifest, Resolve, ResolveArgs, ResolveOptionsWithDependencyType,
+  Alias, AliasMap, DependencyCategory, PnpManifest, Resolve, ResolveArgs,
+  ResolveOptionsWithDependencyType,
 };
 
 #[derive(Debug, Default, Clone)]

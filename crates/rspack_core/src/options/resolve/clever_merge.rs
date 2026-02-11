@@ -3,8 +3,8 @@ use hashlink::LinkedHashMap;
 use super::{
   Alias, AliasFields, ByDependency, ConditionNames, DependencyCategoryStr, DescriptionFiles,
   EnforceExtension, ExportsFields, ExtensionAlias, Extensions, Fallback, FullySpecified,
-  ImportsFields, MainFields, MainFiles, Modules, PnpManifest, PreferAbsolute, PreferRelative, Resolve,
-  Restrictions, Roots, Symlink, TsconfigOptions,
+  ImportsFields, MainFields, MainFiles, Modules, PnpManifest, PreferAbsolute, PreferRelative,
+  Resolve, Restrictions, Roots, Symlink, TsconfigOptions,
   value_type::{GetValueType, ValueType},
 };
 
