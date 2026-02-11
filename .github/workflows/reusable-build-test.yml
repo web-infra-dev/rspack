@@ -62,7 +62,8 @@ jobs:
         if: ${{ contains(inputs.target, 'linux') }}
         run: |
           ulimit -c unlimited
-          sudo sysctl -w kernel.core_pattern=core.%e.%p
+          mkdir -p "$GITHUB_WORKSPACE/cores"
+          sudo sysctl -w kernel.core_pattern="$GITHUB_WORKSPACE/cores/core.%p.%t"
           ulimit -c
 
       - name: Enable core dumps (macOS)
