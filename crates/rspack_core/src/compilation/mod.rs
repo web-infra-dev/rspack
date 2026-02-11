@@ -107,6 +107,7 @@ define_hook!(CompilationConcatenationScope: SeriesBail(compilation: &Compilation
 define_hook!(CompilationOptimizeDependencies: SeriesBail(compilation: &Compilation, side_effects_optimize_artifact: &mut SideEffectsOptimizeArtifact,  build_module_graph_artifact: &mut BuildModuleGraphArtifact,
  diagnostics: &mut Vec<Diagnostic>) -> bool);
 define_hook!(CompilationOptimizeModules: SeriesBail(compilation: &Compilation, diagnostics: &mut Vec<Diagnostic>) -> bool);
+define_hook!(CompilationOptimizeChunks: SeriesBail(compilation: &Compilation) -> bool);
 define_hook!(CompilationAfterOptimizeModules: Series(compilation: &Compilation));
 define_hook!(CompilationOptimizeChunks: SeriesBail(compilation: &mut Compilation) -> bool);
 define_hook!(CompilationOptimizeTree: Series(compilation: &Compilation));
@@ -420,6 +421,16 @@ impl Compilation {
 
   pub fn id(&self) -> CompilationId {
     self.id
+  }
+
+  /// # Safety
+  ///
+  /// Callers must ensure there is exclusive access to the compilation.
+  /// This is intended for hook implementations that receive an immutable
+  /// reference but still own unique access during execution.
+  #[allow(clippy::mut_from_ref)]
+  pub unsafe fn as_mut(&self) -> &mut Self {
+    &mut *(self as *const _ as *mut _)
   }
 
   pub fn compiler_id(&self) -> CompilerId {

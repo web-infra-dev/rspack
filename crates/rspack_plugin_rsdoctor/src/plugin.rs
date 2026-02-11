@@ -198,7 +198,7 @@ async fn compilation(
 }
 
 #[plugin_hook(CompilationOptimizeChunks for RsdoctorPlugin, stage = 9999)]
-async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
+async fn optimize_chunks(&self, compilation: &Compilation) -> Result<Option<bool>> {
   if !self.has_chunk_graph_feature(RsdoctorPluginChunkGraphFeature::ChunkGraph) {
     return Ok(None);
   }

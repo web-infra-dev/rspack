@@ -48,7 +48,9 @@ impl RemoveEmptyChunksPlugin {
 }
 
 #[plugin_hook(CompilationOptimizeChunks for RemoveEmptyChunksPlugin, stage = Compilation::OPTIMIZE_CHUNKS_STAGE_ADVANCED)]
-async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
+async fn optimize_chunks(&self, compilation: &Compilation) -> Result<Option<bool>> {
+  // SAFETY: optimize_chunks runs with exclusive access to the compilation.
+  let compilation = unsafe { compilation.as_mut() };
   self.remove_empty_chunks(compilation);
   Ok(None)
 }

@@ -467,7 +467,7 @@ async fn after_optimize_modules(&self, _compilation: &Compilation) -> Result<()>
 }
 
 #[plugin_hook(CompilationOptimizeChunks for ProgressPlugin)]
-async fn optimize_chunks(&self, _compilation: &mut Compilation) -> Result<Option<bool>> {
+async fn optimize_chunks(&self, _compilation: &Compilation) -> Result<Option<bool>> {
   self.sealing_hooks_report("chunk optimization", 9).await?;
   Ok(None)
 }

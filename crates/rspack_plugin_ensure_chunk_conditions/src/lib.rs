@@ -9,7 +9,9 @@ use tracing::info;
 pub struct EnsureChunkConditionsPlugin;
 
 #[plugin_hook(CompilationOptimizeChunks for EnsureChunkConditionsPlugin, stage = Compilation::OPTIMIZE_CHUNKS_STAGE_BASIC)]
-async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
+async fn optimize_chunks(&self, compilation: &Compilation) -> Result<Option<bool>> {
+  // SAFETY: optimize_chunks runs with exclusive access to the compilation.
+  let compilation = unsafe { compilation.as_mut() };
   let logger = compilation.get_logger(self.name());
   let start = logger.time("ensure chunk conditions");
   compilation
