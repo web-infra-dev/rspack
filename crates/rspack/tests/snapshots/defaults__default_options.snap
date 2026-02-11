@@ -1638,10 +1638,10 @@ CompilerOptions {
                                 true,
                             ),
                             require_alias: Some(
-                                true,
+                                false,
                             ),
                             require_as_expression: Some(
-                                false,
+                                true,
                             ),
                             require_dynamic: Some(
                                 true,

@@ -2,8 +2,9 @@
 
 use indoc::formatdoc;
 use rspack_core::{
-  ChunkGraph, Compilation, Module, ModuleGraph, ModuleId, ModuleIdentifier, RuntimeModule,
-  RuntimeModuleStage, RuntimeTemplate, impl_runtime_module,
+  ChunkGraph, Compilation, Module, ModuleGraph, ModuleId, ModuleIdentifier, RuntimeGlobals,
+  RuntimeModule, RuntimeModuleGenerateContext, RuntimeModuleStage, RuntimeTemplate,
+  impl_runtime_module,
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_util::fx_hash::FxIndexSet;
@@ -64,7 +65,12 @@ impl RuntimeModule for RscManifestRuntimeModule {
     RuntimeModuleStage::Attach
   }
 
-  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
+  async fn generate(
+    &self,
+    context: &RuntimeModuleGenerateContext<'_>,
+  ) -> rspack_error::Result<String> {
+    let compilation = context.compilation;
+    let runtime_template = context.runtime_template;
     let server_compiler_id = compilation.compiler_id();
 
     let Some(entry_name) = self
@@ -111,9 +117,10 @@ impl RuntimeModule for RscManifestRuntimeModule {
 
     Ok(formatdoc! {
       r#"
-        __webpack_require__.rscM = JSON.parse({});
+        {require_name}.rscM = JSON.parse({rsc_manifest_json});
       "#,
-      to_json_string_literal(&rsc_manifest).to_rspack_result()?,
+      require_name = runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
+      rsc_manifest_json = to_json_string_literal(&rsc_manifest).to_rspack_result()?,
     })
   }
 }

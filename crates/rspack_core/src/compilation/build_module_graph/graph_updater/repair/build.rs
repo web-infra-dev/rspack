@@ -8,7 +8,7 @@ use super::{
 };
 use crate::{
   AsyncDependenciesBlock, BoxDependency, BoxModule, BuildContext, BuildResult, CompilationId,
-  CompilerId, CompilerOptions, DependencyParents, ModuleCodegenRuntimeTemplate, ResolverFactory,
+  CompilerId, CompilerOptions, DependencyParents, ModuleCodeTemplate, ResolverFactory,
   SharedPluginDriver,
   compilation::build_module_graph::{ForwardedIdSet, HasLazyDependencies, LazyDependencies},
   utils::{
@@ -24,7 +24,7 @@ pub struct BuildTask {
   pub module: BoxModule,
   pub resolver_factory: Arc<ResolverFactory>,
   pub compiler_options: Arc<CompilerOptions>,
-  pub runtime_template: ModuleCodegenRuntimeTemplate,
+  pub runtime_template: ModuleCodeTemplate,
   pub plugin_driver: SharedPluginDriver,
   pub fs: Arc<dyn ReadableFileSystem>,
   pub forwarded_ids: ForwardedIdSet,
@@ -71,7 +71,6 @@ impl Task<TaskContext> for BuildTask {
 
     result.map::<Vec<Box<dyn Task<TaskContext>>>, _>(|build_result| {
       vec![Box::new(BuildResultTask {
-        module,
         build_result: Box::new(build_result),
         plugin_driver,
         forwarded_ids,
@@ -82,7 +81,6 @@ impl Task<TaskContext> for BuildTask {
 
 #[derive(Debug)]
 struct BuildResultTask {
-  pub module: BoxModule,
   pub build_result: Box<BuildResult>,
   pub plugin_driver: SharedPluginDriver,
   pub forwarded_ids: ForwardedIdSet,
@@ -95,11 +93,11 @@ impl Task<TaskContext> for BuildResultTask {
   }
   async fn main_run(self: Box<Self>, context: &mut TaskContext) -> TaskResult<TaskContext> {
     let BuildResultTask {
-      mut module,
       build_result,
       plugin_driver,
       mut forwarded_ids,
     } = *self;
+    let mut module = build_result.module;
 
     plugin_driver
       .compilation_hooks

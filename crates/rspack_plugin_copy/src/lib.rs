@@ -255,7 +255,7 @@ impl CopyRspackPlugin {
     if matches!(from_type, FromType::Dir | FromType::Glob) {
       logger.debug(format!("added '{absolute_filename}' as a file dependency",));
 
-      file_dependencies.insert(absolute_filename.clone().into_std_path_buf());
+      file_dependencies.insert(absolute_filename.clone().into_std_path_buf().normalize());
     }
 
     // TODO cache
@@ -416,7 +416,7 @@ impl CopyRspackPlugin {
       }
       FromType::File => {
         logger.debug(format!("added '{abs_from}' as a file dependency"));
-        file_dependencies.insert(abs_from.clone().into_std_path_buf());
+        file_dependencies.insert(abs_from.clone().into_std_path_buf().normalize());
         context = abs_from.parent().unwrap_or(Utf8Path::new("")).into();
 
         if dot_enable.is_none() {

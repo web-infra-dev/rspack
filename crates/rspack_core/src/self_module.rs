@@ -10,10 +10,10 @@ use rspack_sources::BoxSource;
 use rspack_util::source_map::SourceMapKind;
 
 use crate::{
-  AsyncDependenciesBlockIdentifier, BuildInfo, BuildMeta, ChunkUkey, CodeGenerationResult,
-  Compilation, Context, DependenciesBlock, DependencyId, FactoryMeta, LibIdentOptions, Module,
-  ModuleCodeGenerationContext, ModuleGraph, ModuleIdentifier, ModuleType, RuntimeSpec, SourceType,
-  impl_module_meta_info,
+  AsyncDependenciesBlockIdentifier, BoxModule, BuildContext, BuildInfo, BuildMeta, BuildResult,
+  ChunkUkey, CodeGenerationResult, Compilation, Context, DependenciesBlock, DependencyId,
+  FactoryMeta, LibIdentOptions, Module, ModuleCodeGenerationContext, ModuleGraph, ModuleIdentifier,
+  ModuleType, RuntimeSpec, SourceType, impl_module_meta_info,
 };
 
 #[impl_source_map_config]
@@ -127,6 +127,19 @@ impl Module for SelfModule {
       &[],
       &compilation.options.output.hash_digest,
     ))
+  }
+
+  async fn build(
+    self: Box<Self>,
+    _build_context: BuildContext,
+    _compilation: Option<&Compilation>,
+  ) -> Result<BuildResult> {
+    Ok(BuildResult {
+      module: BoxModule::new(self),
+      dependencies: vec![],
+      blocks: vec![],
+      optimization_bailouts: vec![],
+    })
   }
 }
 

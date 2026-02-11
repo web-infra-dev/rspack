@@ -12,8 +12,8 @@ use indexmap::{IndexMap, IndexSet};
 use regex::{Captures, Regex};
 use rspack_core::{
   ChunkGraph, Compilation, CompilerOptions, CssExportsConvention, GenerateContext, LocalIdentName,
-  ModuleArgument, ModuleCodegenRuntimeTemplate, PathData, RESERVED_IDENTIFIER, ResourceData,
-  RuntimeGlobals, RuntimeSpec, UsedNameItem,
+  ModuleArgument, ModuleCodeTemplate, PathData, RESERVED_IDENTIFIER, ResourceData, RuntimeGlobals,
+  RuntimeSpec, UsedNameItem,
   rspack_sources::{ConcatSource, RawStringSource},
   to_identifier,
 };
@@ -150,7 +150,7 @@ pub fn css_modules_exports_to_string<'a>(
   module: &dyn rspack_core::Module,
   compilation: &Compilation,
   runtime: Option<&RuntimeSpec>,
-  runtime_template: &mut ModuleCodegenRuntimeTemplate,
+  runtime_template: &mut ModuleCodeTemplate,
   ns_obj: &str,
   left: &str,
   right: &str,
@@ -185,7 +185,7 @@ if ({module_argument}.hot.data && {module_argument}.hot.data.exports && {module_
 pub fn stringified_exports<'a>(
   exports: IndexMap<&'a str, &'a IndexSet<CssExport>>,
   compilation: &Compilation,
-  runtime_template: &mut ModuleCodegenRuntimeTemplate,
+  runtime_template: &mut ModuleCodeTemplate,
   module: &dyn rspack_core::Module,
   runtime: Option<&RuntimeSpec>,
 ) -> Result<(&'static str, String)> {
@@ -286,6 +286,7 @@ pub fn css_modules_exports_to_concatenate_module_string<'a>(
     compilation,
     concatenation_scope,
     runtime,
+    runtime_template,
     ..
   } = generate_context;
   let Some(scope) = concatenation_scope else {
@@ -354,9 +355,7 @@ pub fn css_modules_exports_to_concatenate_module_string<'a>(
             .expect("should json stringify module id");
             format!(
               "{}({from})[{}]",
-              compilation
-                .runtime_template
-                .render_runtime_globals(&RuntimeGlobals::REQUIRE),
+              runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
               from_used_name
             )
           }

@@ -1,5 +1,6 @@
 use rspack_core::{
-  Compilation, RuntimeGlobals, RuntimeModule, RuntimeTemplate, impl_runtime_module,
+  Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext, RuntimeTemplate,
+  impl_runtime_module,
 };
 
 #[impl_runtime_module]
@@ -34,12 +35,16 @@ impl RuntimeModule for ChunkPrefetchPreloadFunctionRuntimeModule {
     )]
   }
 
-  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
-    let source = compilation.runtime_template.render(
+  async fn generate(
+    &self,
+    context: &RuntimeModuleGenerateContext<'_>,
+  ) -> rspack_error::Result<String> {
+    let runtime_template = context.runtime_template;
+    let source = runtime_template.render(
       &self.id,
       Some(serde_json::json!({
-        "_runtime_handlers":  compilation.runtime_template.render_runtime_globals(&self.runtime_handlers),
-        "_runtime_function": compilation.runtime_template.render_runtime_globals(&self.runtime_function),
+        "_runtime_handlers":  runtime_template.render_runtime_globals(&self.runtime_handlers),
+        "_runtime_function": runtime_template.render_runtime_globals(&self.runtime_function),
       })),
     )?;
 

@@ -2,7 +2,8 @@ use std::sync::LazyLock;
 
 use rspack_core::{
   Chunk, ChunkGraph, Compilation, ModuleIdentifier, RuntimeGlobals, RuntimeModule,
-  RuntimeModuleStage, RuntimeTemplate, SourceType, impl_runtime_module,
+  RuntimeModuleGenerateContext, RuntimeModuleStage, RuntimeTemplate, SourceType,
+  impl_runtime_module,
 };
 use rspack_plugin_runtime::extract_runtime_globals_from_ejs;
 use rustc_hash::FxHashMap;
@@ -73,7 +74,12 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
     ]
   }
 
-  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
+  async fn generate(
+    &self,
+    context: &RuntimeModuleGenerateContext<'_>,
+  ) -> rspack_error::Result<String> {
+    let compilation = context.compilation;
+    let runtime_template = context.runtime_template;
     let chunk_ukey = self
       .chunk
       .expect("should have chunk in <ConsumeSharedRuntimeModule as RuntimeModule>::generate");
@@ -180,9 +186,7 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
     } else {
       json_stringify(&initial_consumes)
     };
-    let require_name = compilation
-      .runtime_template
-      .render_runtime_globals(&RuntimeGlobals::REQUIRE);
+    let require_name = runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE);
     let mut source = format!(
       r#"
 {require_name}.consumesLoadingData = {{ chunkMapping: {chunk_mapping}, moduleIdToConsumeDataMapping: {module_id_to_consume_data_mapping}, initialConsumes: {initial_consumes_json} }};
@@ -194,27 +198,20 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
       {
         source += &format!(
           "{ensure_chunk_handlers}.consumes = {ensure_chunk_handlers}.consumes || function() {{ throw new Error(\"should have {ensure_chunk_handlers}.consumes\") }}",
-          ensure_chunk_handlers = compilation
-            .runtime_template
-            .render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK_HANDLERS)
+          ensure_chunk_handlers =
+            runtime_template.render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK_HANDLERS)
         );
       }
       return Ok(source);
     }
-    source += &compilation
-      .runtime_template
-      .render(&self.get_template_id(TemplateId::Common), None)?;
+    source += &runtime_template.render(&self.get_template_id(TemplateId::Common), None)?;
     if !initial_consumes.is_empty() {
-      source += &compilation
-        .runtime_template
-        .render(&self.get_template_id(TemplateId::Initial), None)?;
+      source += &runtime_template.render(&self.get_template_id(TemplateId::Initial), None)?;
     }
     if ChunkGraph::get_chunk_runtime_requirements(compilation, &chunk_ukey)
       .contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS)
     {
-      source += &compilation
-        .runtime_template
-        .render(&self.get_template_id(TemplateId::Loading), None)?;
+      source += &runtime_template.render(&self.get_template_id(TemplateId::Loading), None)?;
     }
     Ok(source)
   }

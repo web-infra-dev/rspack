@@ -8,7 +8,7 @@ use rspack_cacheable::{cacheable, cacheable_dyn, with::Skip};
 use rspack_core::{
   AsyncDependenciesBlockIdentifier, BuildMetaExportsType, COLLECTED_TYPESCRIPT_INFO_PARSE_META_KEY,
   ChunkGraph, CollectedTypeScriptInfo, Compilation, DependenciesBlock, DependencyId,
-  DependencyRange, GenerateContext, Module, ModuleCodegenRuntimeTemplate, ModuleGraph, ModuleType,
+  DependencyRange, GenerateContext, Module, ModuleCodeTemplate, ModuleGraph, ModuleType,
   ParseContext, ParseResult, ParserAndGenerator, RuntimeGlobals, SideEffectsBailoutItem,
   SourceType, TemplateContext, TemplateReplaceSource,
   diagnostics::map_box_diagnostics_to_module_parse_diagnostics,
@@ -56,7 +56,7 @@ static LEGACY_REQUIRE_REGEX: LazyLock<Regex> = LazyLock::new(|| {
 });
 
 impl ParserRuntimeRequirementsData {
-  pub fn new(runtime_template: &ModuleCodegenRuntimeTemplate) -> Self {
+  pub fn new(runtime_template: &ModuleCodeTemplate) -> Self {
     let require_name =
       runtime_template.render_runtime_globals_without_adding(&RuntimeGlobals::REQUIRE);
     let module_name =

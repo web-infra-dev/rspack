@@ -1,12 +1,11 @@
-use std::{hash::Hash, rc::Rc, sync::LazyLock};
+use std::{hash::Hash, rc::Rc};
 
-use regex::Regex;
 use rspack_cacheable::with::AsVecConverter;
 use rspack_core::{
   BuildMetaExportsType, ChunkGraph, ChunkInitFragments, ChunkUkey, Compilation, CompilationParams,
   CompilerCompilation, ExportInfo, ExportProvided, ExportsInfoGetter, GetTargetResult, Module,
   ModuleGraph, ModuleIdentifier, Plugin, PrefetchExportsInfoMode, PrefetchedExportsInfoWrapper,
-  UsageState, get_target,
+  RuntimeCodeTemplate, UsageState, get_target,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
   to_comment_with_nl,
 };
@@ -21,9 +20,6 @@ use rspack_plugin_javascript::{
   JavascriptModulesChunkHash, JavascriptModulesRenderModulePackage, JsPlugin, RenderSource,
 };
 use rustc_hash::FxHashSet;
-
-static COMMENT_END_REGEX: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r"\*/").expect("should init regex"));
 
 #[plugin]
 #[derive(Debug, Default)]
@@ -161,7 +157,7 @@ impl ModuleInfoHeaderPlugin {
 
   pub fn generate_header(module: &dyn Module, compilation: &Compilation) -> String {
     let req = module.readable_identifier(&compilation.options.context);
-    let req = COMMENT_END_REGEX.replace_all(&req, "*_/");
+    let req = req.split("*/").collect::<Vec<_>>().join("*_/");
 
     let req_stars_str = "*".repeat(req.len());
 
@@ -240,6 +236,7 @@ async fn render_js_module_package(
   module: &dyn Module,
   render_source: &mut RenderSource,
   _init_fragments: &mut ChunkInitFragments,
+  runtime_template: &RuntimeCodeTemplate<'_>,
 ) -> Result<()> {
   let mut new_source: ConcatSource = Default::default();
 
@@ -290,7 +287,7 @@ async fn render_js_module_package(
       let reqs = {
         let mut rr = runtime_requirements
           .iter()
-          .map(|v| compilation.runtime_template.render_runtime_globals(&v))
+          .map(|v| runtime_template.render_runtime_globals(&v))
           .collect::<Vec<_>>();
         rr.sort_by(|a, b| b.cmp(a));
         rr.join(", ")

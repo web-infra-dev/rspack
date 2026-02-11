@@ -7,6 +7,7 @@ use indexmap::IndexSet;
 use itertools::Itertools;
 use rspack_cacheable::cacheable;
 use rspack_collections::{DatabaseItem, IdentifierLinkedMap, IdentifierMap, IdentifierSet};
+use rspack_util::fx_hash::FxIndexSet;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet};
 use serde::{Serialize, Serializer};
 
@@ -916,8 +917,16 @@ impl ChunkGraph {
 
     // true, if a is always a parent of b
     let is_available_chunk = |a: &Chunk, b: &Chunk| {
-      let mut queue = b.groups().clone().into_iter().collect::<Vec<_>>();
-      while let Some(chunk_group_ukey) = queue.pop() {
+      let mut queue = b
+        .groups()
+        .clone()
+        .into_iter()
+        .collect::<FxIndexSet<ChunkGroupUkey>>();
+      let mut index: usize = 0;
+      while index < queue.len() {
+        let chunk_group_ukey = queue[index];
+        index += 1;
+
         if a.is_in_group(&chunk_group_ukey) {
           continue;
         }
@@ -926,7 +935,7 @@ impl ChunkGraph {
           return false;
         }
         for parent in chunk_group.parents_iterable() {
-          queue.push(*parent);
+          queue.insert(*parent);
         }
       }
       true

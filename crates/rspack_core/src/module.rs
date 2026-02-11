@@ -34,9 +34,9 @@ use crate::{
   ChunkGraph, ChunkUkey, CodeGenerationResult, CollectedTypeScriptInfo, Compilation,
   CompilationAsset, CompilationId, CompilerId, CompilerOptions, ConcatenationScope,
   ConnectionState, Context, ContextModule, DependenciesBlock, DependencyId, ExportProvided,
-  ExternalModule, GetTargetResult, ModuleCodegenRuntimeTemplate, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleLayer, ModuleType, NormalModule, PrefetchExportsInfoMode,
-  RawModule, Resolve, ResolverFactory, RuntimeSpec, SelfModule, SharedPluginDriver, SourceType,
+  ExternalModule, GetTargetResult, ModuleCodeTemplate, ModuleGraph, ModuleGraphCacheArtifact,
+  ModuleLayer, ModuleType, NormalModule, PrefetchExportsInfoMode, RawModule, Resolve,
+  ResolverFactory, RuntimeSpec, SelfModule, SharedPluginDriver, SourceType,
   concatenated_module::ConcatenatedModule, dependencies_block::dependencies_block_update_hash,
   get_target, value_cache_versions::ValueCacheVersions,
 };
@@ -46,7 +46,7 @@ pub struct BuildContext {
   pub compilation_id: CompilationId,
   pub compiler_options: Arc<CompilerOptions>,
   pub resolver_factory: Arc<ResolverFactory>,
-  pub runtime_template: ModuleCodegenRuntimeTemplate,
+  pub runtime_template: ModuleCodeTemplate,
   pub plugin_driver: SharedPluginDriver,
   pub fs: Arc<dyn ReadableFileSystem>,
 }
@@ -231,8 +231,9 @@ pub struct BuildMeta {
 }
 
 // webpack build info
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct BuildResult {
+  pub module: BoxModule,
   /// Whether the result is cacheable, i.e shared between builds.
   pub dependencies: Vec<BoxDependency>,
   pub blocks: Vec<Box<AsyncDependenciesBlock>>,
@@ -253,7 +254,7 @@ pub struct ModuleCodeGenerationContext<'a> {
   pub compilation: &'a Compilation,
   pub runtime: Option<&'a RuntimeSpec>,
   pub concatenation_scope: Option<ConcatenationScope>,
-  pub runtime_template: &'a mut ModuleCodegenRuntimeTemplate,
+  pub runtime_template: &'a mut ModuleCodeTemplate,
 }
 
 #[cacheable_dyn]
@@ -289,12 +290,10 @@ pub trait Module:
   /// The actual build of the module, which will be called by the `Compilation`.
   /// Build can also returns the dependencies of the module, which will be used by the `Compilation` to build the dependency graph.
   async fn build(
-    &mut self,
+    self: Box<Self>,
     _build_context: BuildContext,
     _compilation: Option<&Compilation>,
-  ) -> Result<BuildResult> {
-    Ok(Default::default())
-  }
+  ) -> Result<BuildResult>;
 
   fn factory_meta(&self) -> Option<&FactoryMeta>;
 
@@ -573,6 +572,14 @@ impl BoxModule {
   pub fn new(module: Box<dyn Module>) -> Self {
     BoxModule(module)
   }
+
+  pub async fn build(
+    self,
+    build_context: BuildContext,
+    compilation: Option<&Compilation>,
+  ) -> Result<BuildResult> {
+    self.0.build(build_context, compilation).await
+  }
 }
 
 impl AsInnerConverter for BoxModule {
@@ -803,7 +810,7 @@ mod test {
         }
 
         async fn build(
-          &mut self,
+          self: Box<Self>,
           _build_context: BuildContext,
           _compilation: Option<&Compilation>,
         ) -> Result<BuildResult> {

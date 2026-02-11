@@ -461,9 +461,46 @@ export default {
 
 `rules[].loader` 是 `rules[].use: [ { loader } ]` 的简略写法。 详情见 [rules[].use](/config/module-rules#rulesuse).
 
+例如，使用 `builtin:swc-loader` 来编译 TypeScript 文件：
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.ts$/,
+        loader: 'builtin:swc-loader',
+      },
+    ],
+  },
+};
+```
+
 ## rules[].options
 
 `rules[].options` 是 `rules[].use: [ { options } ]` 的简略写法。 详情见 [rules[].use](/config/module-rules#rulesuse).
+
+例如，向 `builtin:swc-loader` 传递选项：
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.ts$/,
+        loader: 'builtin:swc-loader',
+        options: {
+          jsc: {
+            parser: {
+              syntax: 'typescript',
+            },
+          },
+        },
+      },
+    ],
+  },
+};
+```
 
 ## rules[].parser
 

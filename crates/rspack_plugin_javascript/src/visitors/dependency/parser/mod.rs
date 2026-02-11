@@ -362,6 +362,7 @@ pub struct JavascriptParser<'parser> {
   pub(crate) inner_graph: InnerGraphState,
   pub(crate) has_inlinable_const_decls: bool,
   pub(crate) side_effects_item: Option<SideEffectsBailoutItemWithSpan>,
+  pub(crate) is_renaming: Option<Atom>,
 }
 
 impl<'parser> JavascriptParser<'parser> {
@@ -535,6 +536,7 @@ impl<'parser> JavascriptParser<'parser> {
       has_inlinable_const_decls: true,
       side_effects_item: None,
       parser_runtime_requirements,
+      is_renaming: None,
     }
   }
 

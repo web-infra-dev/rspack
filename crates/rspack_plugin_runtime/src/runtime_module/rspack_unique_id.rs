@@ -1,5 +1,6 @@
 use rspack_core::{
-  Compilation, RuntimeModule, RuntimeModuleStage, RuntimeTemplate, impl_runtime_module,
+  RuntimeModule, RuntimeModuleGenerateContext, RuntimeModuleStage, RuntimeTemplate,
+  impl_runtime_module,
 };
 
 #[impl_runtime_module]
@@ -31,8 +32,11 @@ impl RuntimeModule for RspackUniqueIdRuntimeModule {
     )]
   }
 
-  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
-    let source = compilation.runtime_template.render(
+  async fn generate(
+    &self,
+    context: &RuntimeModuleGenerateContext<'_>,
+  ) -> rspack_error::Result<String> {
+    let source = context.runtime_template.render(
       &self.id,
       Some(serde_json::json!({
         "_bundler_name": &self.bundler_name,

@@ -87,6 +87,16 @@ impl RspackRegex {
     })
   }
 
+  pub fn new_rust_regex(expr: &str, flags: &str) -> Result<Self, Error> {
+    let mut chars = flags.chars().collect::<Vec<char>>();
+    chars.sort_unstable();
+    Ok(Self {
+      flags: chars.into_iter().collect::<String>(),
+      source: expr.to_string(),
+      algo: Box::new(Algo::new_rust_regex(expr, flags)?),
+    })
+  }
+
   // https://github.com/webpack/webpack/blob/4baf1c075d59babd028f8201526cb8c4acfd24a0/lib/dependencies/ContextDependency.js#L30
   #[inline]
   pub fn to_source_string(&self) -> String {

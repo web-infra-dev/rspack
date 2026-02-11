@@ -326,7 +326,7 @@ type DevtoolModuleFilenameTemplate =
 
 - **默认值：** `webpack://[namespace]/[resource-path]?[loaders]'`
 
-此选项仅在 [`devtool`](/config/devtool.html) 使用了需要模块名称的选项时使用。
+此选项仅在 [`devtool`](/config/devtool) 使用了需要模块名称的选项时使用。
 
 自定义每个 source map 的 `sources` 数组中使用的名称。可以通过传递模板字符串或者函数来完成。例如，当使用 `devtool: 'eval'`，默认值是：
 
@@ -502,7 +502,7 @@ export default {
 
 这个选项决定了输出的 JavaScript bundle 文件名称。这些 bundle 将会被写入 [`output.path`](#outputpath) 指定的目录下。
 
-对于单个 [Entry](/config/entry.html) 来说，你可以使用一个固定名称，如：
+对于单个 [Entry](/config/entry 来说，你可以使用一个固定名称，如：
 
 ```js title="rspack.config.mjs"
 export default {
@@ -521,7 +521,7 @@ Rspack 会对用户输入的代码进行代码分割优化，这些优化可能�
 
 :::
 
-使用 [Entry](/config/entry.html) 名称：
+使用 [Entry](/config/entry) 名称：
 
 ```js title="rspack.config.mjs"
 export default {
