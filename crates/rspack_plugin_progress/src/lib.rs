@@ -19,8 +19,8 @@ use rspack_core::{
   CompilationOptimizeDependencies, CompilationOptimizeModules, CompilationOptimizeTree,
   CompilationParams, CompilationProcessAssets, CompilationSeal, CompilationSucceedModule,
   CompilerAfterEmit, CompilerClose, CompilerCompilation, CompilerEmit, CompilerFinishMake,
-  CompilerId, CompilerMake, CompilerThisCompilation, Context, ModuleIdentifier, ModuleIdsArtifact,
-  Plugin, SideEffectsOptimizeArtifact, build_module_graph::BuildModuleGraphArtifact,
+  CompilerId, CompilerMake, CompilerThisCompilation, ModuleIdentifier, ModuleIdsArtifact, Plugin,
+  SideEffectsOptimizeArtifact, build_module_graph::BuildModuleGraphArtifact,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
@@ -79,11 +79,8 @@ pub struct ProgressPlugin {
   pub modules_count: Arc<AtomicU32>,
   pub modules_done: Arc<AtomicU32>,
   pub active_modules: Arc<Mutex<IdentifierMap<Instant>>>,
-  pub active_module_display_names: Arc<Mutex<IdentifierMap<String>>>,
   pub last_modules_count: Arc<Mutex<Option<u32>>>,
   pub last_active_module: Arc<Mutex<Option<ModuleIdentifier>>>,
-  pub last_active_module_display_name: Arc<Mutex<Option<String>>>,
-  pub context: Arc<Mutex<Option<Context>>>,
   pub last_state_info: Arc<Mutex<Vec<ProgressPluginStateInfo>>>,
   pub last_updated: Arc<AtomicU32>,
 }
@@ -122,20 +119,7 @@ impl ProgressPlugin {
       Default::default(),
       Default::default(),
       Default::default(),
-      Default::default(),
-      Default::default(),
-      Default::default(),
     )
-  }
-
-  async fn get_module_display_name(&self, module: &BoxModule) -> String {
-    if let Some(context) = self.context.lock().await.clone() {
-      let readable_identifier = module.readable_identifier(&context).to_string();
-      if !readable_identifier.is_empty() {
-        return readable_identifier;
-      }
-    }
-    module.identifier().to_string()
   }
 
   async fn update_throttled(&self) -> Result<()> {
@@ -163,13 +147,7 @@ impl ProgressPlugin {
     let mut items = vec![];
 
     if let Some(last_active_module) = self.last_active_module.lock().await.as_ref() {
-      let last_active_module_display_name = self
-        .last_active_module_display_name
-        .lock()
-        .await
-        .clone()
-        .unwrap_or_else(|| last_active_module.to_string());
-      items.push(last_active_module_display_name);
+      items.push(last_active_module.to_string());
       let duration = self
         .active_modules
         .lock()
@@ -316,14 +294,9 @@ impl ProgressPlugin {
 #[plugin_hook(CompilerThisCompilation for ProgressPlugin)]
 async fn this_compilation(
   &self,
-  compilation: &mut Compilation,
+  _compilation: &mut Compilation,
   _params: &mut CompilationParams,
 ) -> Result<()> {
-  self
-    .context
-    .lock()
-    .await
-    .replace(compilation.options.context.clone());
   if let ProgressPluginOptions::Default(options) = &self.options {
     let progress_bar = self.progress_bar.as_ref().unwrap_or_else(|| unreachable!());
     if !options.profile {
@@ -365,10 +338,6 @@ async fn make(&self, _compilation: &mut Compilation) -> Result<()> {
     .await?;
   self.modules_count.store(0, Relaxed);
   self.modules_done.store(0, Relaxed);
-  self.active_modules.lock().await.clear();
-  self.active_module_display_names.lock().await.clear();
-  self.last_active_module.lock().await.take();
-  self.last_active_module_display_name.lock().await.take();
   Ok(())
 }
 
@@ -379,28 +348,17 @@ async fn build_module(
   _compilation_id: CompilationId,
   module: &mut BoxModule,
 ) -> Result<()> {
-  let module_display_name = self.get_module_display_name(module).await;
   self
     .active_modules
     .lock()
     .await
     .insert(module.identifier(), Instant::now());
-  self
-    .active_module_display_names
-    .lock()
-    .await
-    .insert(module.identifier(), module_display_name.clone());
   self.modules_count.fetch_add(1, Relaxed);
   self
     .last_active_module
     .lock()
     .await
     .replace(module.identifier());
-  self
-    .last_active_module_display_name
-    .lock()
-    .await
-    .replace(module_display_name);
   if let ProgressPluginOptions::Default(options) = &self.options
     && !options.profile
   {
@@ -417,41 +375,27 @@ async fn succeed_module(
   _compilation_id: CompilationId,
   module: &mut BoxModule,
 ) -> Result<()> {
-  let module_display_name = self.get_module_display_name(module).await;
   self.modules_done.fetch_add(1, Relaxed);
   self
     .last_active_module
     .lock()
     .await
     .replace(module.identifier());
-  self
-    .last_active_module_display_name
-    .lock()
-    .await
-    .replace(module_display_name);
 
   // only profile mode should update at succeed module
   if self.is_profile() {
     self.update_throttled().await?;
   }
   let mut last_active_module = Default::default();
-  let mut last_active_module_display_name = None;
   {
     let mut active_modules = self.active_modules.lock().await;
-    let mut active_module_display_names = self.active_module_display_names.lock().await;
     active_modules.remove(&module.identifier());
-    active_module_display_names.remove(&module.identifier());
 
     // get the last active module
     if !self.is_profile() {
       active_modules.iter().for_each(|(module, _)| {
         last_active_module = *module;
       });
-      if !last_active_module.is_empty() {
-        last_active_module_display_name = active_module_display_names
-          .get(&last_active_module)
-          .cloned();
-      }
     }
   }
   if !self.is_profile() {
@@ -460,11 +404,6 @@ async fn succeed_module(
       .lock()
       .await
       .replace(last_active_module);
-    self
-      .last_active_module_display_name
-      .lock()
-      .await
-      .clone_from(&last_active_module_display_name);
     if !last_active_module.is_empty() {
       self.update_throttled().await?;
     }
