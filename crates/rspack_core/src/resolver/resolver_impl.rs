@@ -299,6 +299,15 @@ fn to_rspack_resolver_options(
     .into_iter()
     .map(PathBuf::from)
     .collect();
+  let enable_pnp = options.pnp.unwrap_or(false);
+  let pnp_manifest = if enable_pnp {
+    options
+      .pnp_manifest
+      .as_ref()
+      .map(|path| PathBuf::from(path))
+  } else {
+    None
+  };
 
   rspack_resolver::ResolveOptions {
     fallback,
@@ -323,7 +332,8 @@ fn to_rspack_resolver_options(
     roots,
     builtin_modules: options.builtin_modules,
     imports_fields,
-    enable_pnp: options.pnp.unwrap_or(false),
+    enable_pnp,
+    pnp_manifest,
   }
 }
 
@@ -436,4 +446,33 @@ fn map_resolver_error(is_recursion: bool, args: &ResolveArgs<'_>) -> Error {
     Severity::Error
   };
   error
+}
+
+#[cfg(test)]
+mod tests {
+  use super::to_rspack_resolver_options;
+  use crate::{DependencyCategory, Resolve};
+  use std::{fs, time::SystemTime};
+
+  #[test]
+  fn to_rspack_resolver_options_keeps_pnp_manifest() {
+    let timestamp = SystemTime::now()
+      .duration_since(SystemTime::UNIX_EPOCH)
+      .expect("time before unix epoch")
+      .as_nanos();
+    let temp_root = std::env::temp_dir().join(format!("rspack-core-pnp-{timestamp}"));
+    fs::create_dir_all(&temp_root).expect("create temp dir");
+    let manifest = temp_root.join(".pnp.cjs");
+    fs::write(&manifest, "// test").expect("write test manifest");
+
+    let options = Resolve {
+      pnp: Some(true),
+      pnp_manifest: Some(manifest.to_string_lossy().to_string()),
+      ..Default::default()
+    };
+
+    let resolved = to_rspack_resolver_options(options, false, DependencyCategory::Unknown);
+
+    assert_eq!(resolved.pnp_manifest, Some(manifest));
+  }
 }

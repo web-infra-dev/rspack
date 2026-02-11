@@ -138,6 +138,8 @@ pub struct Resolve {
   pub enforce_extension: Option<EnforceExtension>,
   /// If set, Yarn PnP resolution will be supported.
   pub pnp: Option<bool>,
+  /// Absolute path to the Yarn Plug'n'Play manifest.
+  pub pnp_manifest: Option<String>,
   /// Whether to parse [module.builtinModules](https://nodejs.org/api/module.html#modulebuiltinmodules) or not.
   pub builtin_modules: bool,
 }

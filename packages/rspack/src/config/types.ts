@@ -831,6 +831,8 @@ export type ResolveOptions = {
   byDependency?: Record<string, ResolveOptions>;
   /** enable Yarn PnP */
   pnp?: boolean;
+  /** Absolute path to the Yarn Plug'n'Play manifest file. */
+  pnpManifest?: string;
 };
 
 /** Used to configure the Rspack module resolution */

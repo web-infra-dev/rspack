@@ -56,6 +56,7 @@ pub struct RawResolveOptions {
   pub restrictions: Option<Vec<Either<String, RspackRegex>>>,
   pub roots: Option<Vec<String>>,
   pub pnp: Option<bool>,
+  pub pnp_manifest: Option<String>,
 }
 
 fn normalize_alias(
@@ -105,6 +106,7 @@ impl TryFrom<RawResolveOptions> for Resolve {
 
   fn try_from(value: RawResolveOptions) -> Result<Self, Self::Error> {
     let pnp = value.pnp;
+    let pnp_manifest = value.pnp_manifest;
     let prefer_relative = value.prefer_relative;
     let prefer_absolute = value.prefer_absolute;
     let extensions = value.extensions;
@@ -174,6 +176,7 @@ impl TryFrom<RawResolveOptions> for Resolve {
       description_files,
       imports_fields,
       pnp,
+      pnp_manifest,
       builtin_modules: false,
     })
   }
@@ -237,6 +240,7 @@ pub struct RawResolveOptionsWithDependencyType {
   pub dependency_type: Option<String>,
   pub resolve_to_context: Option<bool>,
   pub pnp: Option<bool>,
+  pub pnp_manifest: Option<String>,
 }
 
 pub fn normalize_raw_resolve_options_with_dependency_type(
@@ -305,6 +309,7 @@ pub fn normalize_raw_resolve_options_with_dependency_type(
         by_dependency,
         description_files: raw.description_files,
         enforce_extension: raw.enforce_extension,
+        pnp_manifest: raw.pnp_manifest,
         builtin_modules: false,
       };
       Ok(ResolveOptionsWithDependencyType {
@@ -322,5 +327,45 @@ pub fn normalize_raw_resolve_options_with_dependency_type(
       resolve_to_context: default_resolve_to_context,
       dependency_category: DependencyCategory::Unknown,
     }),
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::RawResolveOptions;
+  use rspack_core::Resolve;
+
+  #[test]
+  fn raw_resolve_options_preserves_pnp_manifest() {
+    let raw = RawResolveOptions {
+      pnp: Some(true),
+      pnp_manifest: Some("/tmp/.pnp.cjs".to_string()),
+      prefer_relative: None,
+      prefer_absolute: None,
+      extensions: None,
+      main_files: None,
+      main_fields: None,
+      condition_names: None,
+      alias: None,
+      fallback: None,
+      symlinks: None,
+      tsconfig: None,
+      modules: None,
+      by_dependency: None,
+      fully_specified: None,
+      exports_fields: None,
+      description_files: None,
+      enforce_extension: None,
+      imports_fields: None,
+      extension_alias: None,
+      alias_fields: None,
+      restrictions: None,
+      roots: None,
+    };
+
+    let resolved = Resolve::try_from(raw).expect("convert raw resolve options");
+
+    assert_eq!(resolved.pnp, Some(true));
+    assert_eq!(resolved.pnp_manifest.as_deref(), Some("/tmp/.pnp.cjs"));
   }
 }

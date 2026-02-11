@@ -39,6 +39,7 @@ fn is_empty(resolve: &Resolve) -> bool {
     && is_none!(restrictions)
     && is_none!(roots)
     && is_none!(tsconfig)
+    && is_none!(pnp_manifest)
     && is_none!(by_dependency)
 }
 
@@ -71,6 +72,7 @@ struct ResolveWithEntry {
   restrictions: Entry<Restrictions>,
   roots: Entry<Roots>,
   pnp: Entry<bool>,
+  pnp_manifest: Entry<String>,
 }
 
 fn parse_resolve(resolve: Resolve) -> ResolveWithEntry {
@@ -104,6 +106,7 @@ fn parse_resolve(resolve: Resolve) -> ResolveWithEntry {
     restrictions: entry!(restrictions),
     roots: entry!(roots),
     pnp: entry!(pnp),
+    pnp_manifest: entry!(pnp_manifest),
   };
   let Some(by_dependency) = resolve.by_dependency else {
     return res;
@@ -274,6 +277,7 @@ fn _merge_resolve(first: Resolve, second: Resolve) -> Resolve {
 
   let result_entry = ResolveWithEntry {
     pnp: merge!(pnp, second.pnp.base.get_value_type(), |_| true, |_, b| b),
+    pnp_manifest: merge!(pnp_manifest, ValueType::Other, |_| false, |_, b| b),
     extensions: merge!(
       extensions,
       second.extensions.base.get_value_type(),
@@ -460,6 +464,7 @@ fn _merge_resolve(first: Resolve, second: Resolve) -> Resolve {
     restrictions: result_entry.restrictions.base,
     roots: result_entry.roots.base,
     pnp: result_entry.pnp.base,
+    pnp_manifest: result_entry.pnp_manifest.base,
     builtin_modules: false,
   }
 }
