@@ -5,7 +5,7 @@ use std::{
     Arc, LazyLock,
     atomic::{AtomicU32, Ordering::Relaxed},
   },
-  time::{Duration, Instant},
+  time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
 
 use futures::future::BoxFuture;
@@ -89,7 +89,7 @@ pub struct ProgressPlugin {
   pub last_modules_count: Arc<Mutex<Option<u32>>>,
   pub last_active_module: Arc<Mutex<Option<ModuleIdentifier>>>,
   pub last_state_info: Arc<Mutex<Vec<ProgressPluginStateInfo>>>,
-  pub last_updated: Arc<Mutex<Option<Instant>>>,
+  pub last_updated: Arc<AtomicU32>,
 }
 
 impl ProgressPlugin {
@@ -130,14 +130,14 @@ impl ProgressPlugin {
   }
 
   async fn update_throttled(&self) -> Result<()> {
-    let now = Instant::now();
-    let mut last_updated = self.last_updated.lock().await;
-    let should_update = last_updated
-      .is_none_or(|last| now.saturating_duration_since(last) > Duration::from_millis(100));
+    let current_time = SystemTime::now()
+      .duration_since(UNIX_EPOCH)
+      .expect("failed to get current time")
+      .as_millis() as u32;
 
-    if should_update {
+    if current_time - self.last_updated.load(Relaxed) > 100 {
       self.update().await?;
-      *last_updated = Some(now);
+      self.last_updated.store(current_time, Relaxed);
     }
 
     Ok(())

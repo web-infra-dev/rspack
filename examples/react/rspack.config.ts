@@ -51,14 +51,6 @@ export default defineConfig({
     ],
   },
   plugins: [
-    new rspack.ProgressPlugin((percentage, message, info) => {
-      console.info(
-        percentage,
-        message,
-        info.builtModules,
-        info.moduleIdentifier,
-      );
-    }),
     new rspack.HtmlRspackPlugin({
       template: './index.html',
     }),
