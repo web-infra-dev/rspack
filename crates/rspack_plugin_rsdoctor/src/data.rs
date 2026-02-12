@@ -36,6 +36,14 @@ pub struct RsdoctorStatsModuleIssuer {
 }
 
 #[derive(Debug, Default)]
+pub struct RsdoctorSideEffectLocation {
+  pub location: String,
+  pub node_type: String,
+  pub module: ModuleUkey,
+  pub request: String,
+}
+
+#[derive(Debug, Default)]
 pub struct RsdoctorModule {
   pub ukey: ModuleUkey,
   pub identifier: Identifier,
@@ -51,6 +59,7 @@ pub struct RsdoctorModule {
   pub issuer_path: Option<Vec<RsdoctorStatsModuleIssuer>>,
   pub bailout_reason: HashSet<String>,
   pub side_effects: Option<bool>,
+  pub side_effects_locations: Vec<RsdoctorSideEffectLocation>,
 }
 
 #[derive(Debug, Default)]

@@ -15,6 +15,7 @@ use thread_local::ThreadLocal;
 use crate::{
   ChunkUkey, ModuleKind, ModuleUkey, RsdoctorConnection, RsdoctorDependency,
   RsdoctorJsonModuleSizes, RsdoctorModule, RsdoctorModuleId, RsdoctorModuleOriginalSource,
+  RsdoctorSideEffectLocation,
 };
 
 pub fn collect_json_module_sizes(
@@ -121,6 +122,7 @@ pub fn collect_modules(
           issuer_path: None,
           bailout_reason: HashSet::default(),
           side_effects: None,
+          side_effects_locations: Vec::new(),
         },
       )
     })
@@ -377,18 +379,67 @@ pub fn collect_module_connections(
     .collect::<Vec<_>>()
 }
 
-pub fn collect_module_side_effects(
+pub fn collect_module_side_effects_locations(
   modules: &IdentifierMap<&BoxModule>,
-) -> HashMap<Identifier, Option<bool>> {
+  module_ukeys: &HashMap<Identifier, ModuleUkey>,
+  module_graph: &ModuleGraph,
+) -> HashMap<Identifier, Vec<RsdoctorSideEffectLocation>> {
   modules
     .par_iter()
-    .map(|(module_id, module)| {
-      let side_effect_free = module
-        .factory_meta()
-        .and_then(|m| m.side_effect_free)
-        .or_else(|| module.build_meta().side_effect_free);
+    .filter_map(|(module_id, module)| {
+      let bailout_reasons = module_graph.get_optimization_bailout(module_id);
+      let module_ukey = module_ukeys.get(module_id)?;
+      let request = if let Some(normal_module) = module.as_normal_module() {
+        normal_module.request().to_string()
+      } else {
+        module.identifier().to_string()
+      };
 
-      (*module_id, side_effect_free)
+      let side_effect_locations: Vec<RsdoctorSideEffectLocation> = bailout_reasons
+        .iter()
+        .filter_map(|reason| {
+          // Parse bailout_reason string format:
+          // "{node_type} with side_effects in source code at {file}:{location}"
+          if !reason.contains("side_effects") {
+            return None;
+          }
+
+          // Extract node type and location
+          let parts: Vec<&str> = reason
+            .split(" with side_effects in source code at ")
+            .collect();
+          if parts.len() != 2 {
+            return None;
+          }
+
+          let node_type = parts[0].to_string();
+          let location_part = parts[1];
+
+          // Format: "module_identifier:line:column"
+          let location = if let Some(colon_pos) = location_part.rfind(':') {
+            let before_last_colon = &location_part[..colon_pos];
+            if let Some(second_colon_pos) = before_last_colon.rfind(':') {
+              location_part[second_colon_pos + 1..].to_string()
+            } else {
+              location_part.to_string()
+            }
+          } else {
+            location_part.to_string()
+          };
+
+          Some(RsdoctorSideEffectLocation {
+            location,
+            node_type,
+            module: *module_ukey,
+            request: request.clone(),
+          })
+        })
+        .collect();
+      if side_effect_locations.is_empty() {
+        None
+      } else {
+        Some((*module_id, side_effect_locations))
+      }
     })
     .collect::<HashMap<_, _>>()
 }

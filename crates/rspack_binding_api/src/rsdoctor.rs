@@ -9,8 +9,8 @@ use rspack_plugin_rsdoctor::{
   RsdoctorModuleGraphModule, RsdoctorModuleId, RsdoctorModuleIdsPatch,
   RsdoctorModuleOriginalSource, RsdoctorModuleSourcesPatch, RsdoctorPluginChunkGraphFeature,
   RsdoctorPluginModuleGraphFeature, RsdoctorPluginOptions, RsdoctorPluginSourceMapFeature,
-  RsdoctorSideEffect, RsdoctorSourcePosition, RsdoctorSourceRange, RsdoctorStatement,
-  RsdoctorVariable,
+  RsdoctorSideEffect, RsdoctorSideEffectLocation, RsdoctorSourcePosition, RsdoctorSourceRange,
+  RsdoctorStatement, RsdoctorVariable,
 };
 
 #[napi(object)]
@@ -29,7 +29,7 @@ pub struct JsRsdoctorModule {
   pub chunks: Vec<i32>,
   pub issuer_path: Vec<i32>,
   pub bailout_reason: Vec<String>,
-  pub side_effects: Option<bool>,
+  pub side_effects_locations: Vec<JsRsdoctorSideEffectLocation>,
 }
 
 impl From<RsdoctorModule> for JsRsdoctorModule {
@@ -53,7 +53,11 @@ impl From<RsdoctorModule> for JsRsdoctorModule {
         .filter_map(|i| i.ukey)
         .collect::<Vec<_>>(),
       bailout_reason: value.bailout_reason.into_iter().collect::<Vec<_>>(),
-      side_effects: value.side_effects,
+      side_effects_locations: value
+        .side_effects_locations
+        .into_iter()
+        .map(|loc| loc.into())
+        .collect::<Vec<_>>(),
     }
   }
 }
@@ -191,6 +195,25 @@ impl From<RsdoctorModuleGraphModule> for JsRsdoctorModuleGraphModule {
 }
 
 #[napi(object)]
+pub struct JsRsdoctorSideEffectLocation {
+  pub location: String,
+  pub node_type: String,
+  pub module: i32,
+  pub request: String,
+}
+
+impl From<RsdoctorSideEffectLocation> for JsRsdoctorSideEffectLocation {
+  fn from(value: RsdoctorSideEffectLocation) -> Self {
+    JsRsdoctorSideEffectLocation {
+      location: value.location,
+      node_type: value.node_type,
+      module: value.module,
+      request: value.request,
+    }
+  }
+}
+
+#[napi(object)]
 pub struct JsRsdoctorSideEffect {
   pub ukey: i32,
   pub name: String,
@@ -249,7 +272,6 @@ pub struct JsRsdoctorExportInfo {
   pub from: Option<i32>,
   pub variable: Option<i32>,
   pub identifier: Option<JsRsdoctorStatement>,
-  pub side_effects: Vec<i32>,
 }
 
 impl From<RsdoctorExportInfo> for JsRsdoctorExportInfo {
@@ -260,7 +282,6 @@ impl From<RsdoctorExportInfo> for JsRsdoctorExportInfo {
       from: value.from,
       variable: value.variable,
       identifier: value.identifier.map(|i| i.into()),
-      side_effects: value.side_effects.into_iter().collect::<Vec<_>>(),
     }
   }
 }

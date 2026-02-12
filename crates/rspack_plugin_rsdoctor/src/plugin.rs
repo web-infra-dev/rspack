@@ -32,7 +32,7 @@ use crate::{
   module_graph::{
     collect_concatenated_modules, collect_json_module_sizes, collect_module_connections,
     collect_module_dependencies, collect_module_ids, collect_module_original_sources,
-    collect_module_side_effects, collect_modules,
+    collect_module_side_effects_locations, collect_modules,
   },
 };
 
@@ -384,11 +384,12 @@ async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<
     &compilation.module_graph_cache_artifact,
   );
 
-  // 7. collect side_effects
-  let side_effects_map = collect_module_side_effects(&modules);
-  for (module_id, side_effect_free) in side_effects_map {
+  // 7 collect side_effects locations
+  let side_effects_locations_map =
+    collect_module_side_effects_locations(&modules, &module_ukey_map, module_graph);
+  for (module_id, locations) in side_effects_locations_map {
     if let Some(rsd_module) = rsd_modules.get_mut(&module_id) {
-      rsd_module.side_effects = side_effect_free;
+      rsd_module.side_effects_locations = locations;
     }
   }
 

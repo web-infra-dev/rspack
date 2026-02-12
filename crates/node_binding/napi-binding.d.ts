@@ -1136,7 +1136,6 @@ export interface JsRsdoctorExportInfo {
   from?: number
   variable?: number
   identifier?: JsRsdoctorStatement
-  sideEffects: Array<number>
 }
 
 export interface JsRsdoctorJsonModuleSize {
@@ -1158,7 +1157,7 @@ export interface JsRsdoctorModule {
   chunks: Array<number>
   issuerPath: Array<number>
   bailoutReason: Array<string>
-  sideEffects?: boolean
+  sideEffectsLocations: Array<JsRsdoctorSideEffectLocation>
 }
 
 export interface JsRsdoctorModuleGraph {
@@ -1207,6 +1206,13 @@ export interface JsRsdoctorSideEffect {
   fromDependency?: number
   exports: Array<number>
   variable?: number
+}
+
+export interface JsRsdoctorSideEffectLocation {
+  location: string
+  nodeType: string
+  module: number
+  request: string
 }
 
 export interface JsRsdoctorSourceMapFeatures {
