@@ -97,7 +97,6 @@ impl ProgressPlugin {
     let progress_bar = match &options {
       ProgressPluginOptions::Handler(_fn) => None,
       ProgressPluginOptions::Default(options) => {
-        // default interval is 20, means draw every 1000/20 = 50ms, use 100 to draw every 1000/100 = 10ms
         let progress_bar = MULTI_PROGRESS.add(ProgressBar::new(100));
 
         let mut progress_bar_style = ProgressStyle::with_template(&options.template)
