@@ -5,7 +5,7 @@ use std::{
     Arc, LazyLock,
     atomic::{AtomicU32, Ordering::Relaxed},
   },
-  time::{Duration, Instant, SystemTime, UNIX_EPOCH},
+  time::{Duration, Instant},
 };
 
 use futures::future::BoxFuture;
@@ -82,7 +82,7 @@ pub struct ProgressPlugin {
   pub last_modules_count: Arc<Mutex<Option<u32>>>,
   pub last_active_module: Arc<Mutex<Option<ModuleIdentifier>>>,
   pub last_state_info: Arc<Mutex<Vec<ProgressPluginStateInfo>>>,
-  pub last_updated: Arc<AtomicU32>,
+  pub last_updated: Arc<Mutex<Option<Instant>>>,
 }
 
 impl ProgressPlugin {
@@ -123,14 +123,14 @@ impl ProgressPlugin {
   }
 
   async fn update_throttled(&self) -> Result<()> {
-    let current_time = SystemTime::now()
-      .duration_since(UNIX_EPOCH)
-      .expect("failed to get current time")
-      .as_millis() as u32;
+    let now = Instant::now();
+    let mut last_updated = self.last_updated.lock().await;
+    let should_update = last_updated
+      .is_none_or(|last| now.saturating_duration_since(last) > Duration::from_millis(100));
 
-    if current_time - self.last_updated.load(Relaxed) > 100 {
+    if should_update {
       self.update().await?;
-      self.last_updated.store(current_time, Relaxed);
+      *last_updated = Some(now);
     }
 
     Ok(())
@@ -181,7 +181,7 @@ impl ProgressPlugin {
   }
 
   async fn default_handler(&self, _: f64, msg: String, duration: Option<Duration>) {
-    let full_state = vec![msg.clone()];
+    let full_state = [msg.clone()];
     let now = Instant::now();
     {
       let mut last_state_info = self.last_state_info.lock().await;
