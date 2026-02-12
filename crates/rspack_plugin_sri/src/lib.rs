@@ -123,9 +123,7 @@ async fn handle_compilation(
     fs: compilation.output_filesystem.clone(),
     output_path: compilation.options.output.path.clone(),
     cross_origin_loading: compilation.options.output.cross_origin_loading.clone(),
-    runtime_template: compilation
-      .runtime_template
-      .create_module_codegen_runtime_template(),
+    runtime_template: compilation.runtime_template.create_module_code_template(),
   };
   SubresourceIntegrityPlugin::set_compilation_sri_context(compilation.id(), ctx);
 

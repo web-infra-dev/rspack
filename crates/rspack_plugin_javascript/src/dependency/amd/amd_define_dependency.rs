@@ -6,8 +6,8 @@ use rspack_cacheable::{
 use rspack_core::{
   AffectType, AsContextDependency, AsModuleDependency, Dependency, DependencyCategory,
   DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
-  DependencyTemplateType, DependencyType, ExportsArgument, ModuleArgument,
-  ModuleCodegenRuntimeTemplate, RuntimeGlobals, TemplateContext, TemplateReplaceSource,
+  DependencyTemplateType, DependencyType, ExportsArgument, ModuleArgument, ModuleCodeTemplate,
+  RuntimeGlobals, TemplateContext, TemplateReplaceSource,
 };
 use rspack_util::{atom::Atom, json_stringify};
 
@@ -68,7 +68,7 @@ impl Branch {
     &self,
     local_module_var: &Option<String>,
     named_module: &Option<Atom>,
-    runtime_template: &mut ModuleCodegenRuntimeTemplate,
+    runtime_template: &mut ModuleCodeTemplate,
   ) -> String {
     let local_module_var = match local_module_var {
       Some(name) => name,

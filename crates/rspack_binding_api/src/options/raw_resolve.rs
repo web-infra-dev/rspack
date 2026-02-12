@@ -312,8 +312,9 @@ pub fn normalize_raw_resolve_options_with_dependency_type(
         resolve_to_context: raw.resolve_to_context.unwrap_or(default_resolve_to_context),
         dependency_category: raw
           .dependency_type
-          .map(|c| DependencyCategory::from(c.as_str()))
-          .unwrap_or(DependencyCategory::Unknown),
+          .map_or(DependencyCategory::Unknown, |c| {
+            DependencyCategory::from(c.as_str())
+          }),
       })
     }
     None => Ok(ResolveOptionsWithDependencyType {

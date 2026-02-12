@@ -408,7 +408,14 @@ impl CommonJsImportsParserPlugin {
       None,
       parser.in_try,
     );
-    if let Some(true) = parser.javascript_options.unknown_context_critical {
+    let is_renaming_require = parser
+      .is_renaming
+      .as_ref()
+      .is_some_and(|is_renaming| is_renaming == expr_name::REQUIRE)
+      && !parser.javascript_options.require_alias.unwrap_or_default();
+    if let Some(true) = parser.javascript_options.unknown_context_critical
+      && !is_renaming_require
+    {
       let mut error = create_traceable_error(
         "Critical dependency".into(),
         "require function is used in a way in which dependencies cannot be statically extracted"
@@ -425,9 +432,9 @@ impl CommonJsImportsParserPlugin {
 }
 
 impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
-  fn can_rename(&self, parser: &mut JavascriptParser, for_name: &str) -> Option<bool> {
+  fn can_rename(&self, _parser: &mut JavascriptParser, for_name: &str) -> Option<bool> {
     if for_name == expr_name::REQUIRE {
-      Some(parser.javascript_options.require_alias.unwrap_or(true))
+      Some(true)
     } else {
       None
     }
@@ -435,11 +442,19 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
 
   fn rename(&self, parser: &mut JavascriptParser, expr: &Expr, for_name: &str) -> Option<bool> {
     if for_name == expr_name::REQUIRE {
-      parser.add_presentational_dependency(Box::new(ConstDependency::new(
-        expr.span().into(),
-        "undefined".into(),
-      )));
-      Some(false)
+      if parser.javascript_options.require_alias.unwrap_or_default() {
+        parser.add_presentational_dependency(Box::new(ConstDependency::new(
+          expr.span().into(),
+          "undefined".into(),
+        )));
+        Some(false)
+      } else {
+        let old_is_renaming = parser.is_renaming.clone();
+        parser.is_renaming = Some(expr_name::REQUIRE.into());
+        parser.walk_expression(expr);
+        parser.is_renaming = old_is_renaming;
+        Some(true)
+      }
     } else {
       None
     }

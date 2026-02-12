@@ -22,6 +22,10 @@ const externalAlias: Rspack.Externals = ({ request }, callback) => {
   const { dependencies } = prebundleConfig;
 
   for (const item of dependencies) {
+    if (typeof item === 'object' && item.dtsOnly) {
+      continue;
+    }
+
     const depName = typeof item === 'string' ? item : item.name;
     if (new RegExp(`^${depName}$`).test(request!)) {
       return callback(
@@ -191,6 +195,10 @@ export default defineConfig({
     merge(commonLibConfig, {
       dts: {
         build: true,
+        alias: {
+          // alias to pre-bundled types as they are public API
+          '@rspack/lite-tapable': './compiled/@rspack/lite-tapable/dist/index',
+        },
       },
       redirect: {
         dts: {

@@ -1,4 +1,3 @@
-// require.ensure(["./a"], function() {});
-// require(["./b"]);
-require("./b");
+require.ensure(["./a"], function() {});
+require(["./b"]);
 import(/* webpackChunkName: "c" */ "./c");

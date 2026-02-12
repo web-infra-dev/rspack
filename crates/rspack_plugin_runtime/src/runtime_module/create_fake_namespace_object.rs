@@ -1,7 +1,8 @@
 use std::sync::LazyLock;
 
 use rspack_core::{
-  Compilation, RuntimeGlobals, RuntimeModule, RuntimeTemplate, impl_runtime_module,
+  Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext, RuntimeTemplate,
+  impl_runtime_module,
 };
 
 use crate::extract_runtime_globals_from_ejs;
@@ -30,8 +31,11 @@ impl RuntimeModule for CreateFakeNamespaceObjectRuntimeModule {
     )]
   }
 
-  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
-    let source = compilation.runtime_template.render(&self.id, None)?;
+  async fn generate(
+    &self,
+    context: &RuntimeModuleGenerateContext<'_>,
+  ) -> rspack_error::Result<String> {
+    let source = context.runtime_template.render(&self.id, None)?;
 
     Ok(source)
   }

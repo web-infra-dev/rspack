@@ -12,11 +12,11 @@ use rspack_cacheable::{
 };
 use rspack_core::{
   BoxDependencyTemplate, BoxModuleDependency, BuildMetaDefaultObject, BuildMetaExportsType,
-  ChunkGraph, Compilation, ConstDependency, CssExportsConvention, Dependency, DependencyId,
-  DependencyRange, DependencyType, GenerateContext, LocalIdentName, Module, ModuleArgument,
-  ModuleGraph, ModuleIdentifier, ModuleInitFragments, ModuleType, NormalModule, ParseContext,
-  ParseResult, ParserAndGenerator, PrefetchExportsInfoMode, RuntimeGlobals, RuntimeSpec,
-  SourceType, TemplateContext, UsageState,
+  ChunkGraph, Compilation, ConstDependency, CssExportsConvention, CssParserImport,
+  CssParserImportContext, Dependency, DependencyId, DependencyRange, DependencyType,
+  GenerateContext, LocalIdentName, Module, ModuleArgument, ModuleGraph, ModuleIdentifier,
+  ModuleInitFragments, ModuleType, NormalModule, ParseContext, ParseResult, ParserAndGenerator,
+  PrefetchExportsInfoMode, RuntimeGlobals, RuntimeSpec, SourceType, TemplateContext, UsageState,
   diagnostics::map_box_diagnostics_to_module_parse_diagnostics,
   remove_bom,
   rspack_sources::{BoxSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt},
@@ -83,6 +83,7 @@ pub struct CssParserAndGenerator {
   pub named_exports: bool,
   pub es_module: bool,
   pub url: bool,
+  pub resolve_import: CssParserImport,
   #[cacheable(with=AsOption<AsMap<AsCacheable, AsVec>>)]
   pub exports: Option<CssExports>,
   pub local_names: Option<FxHashMap<String, String>>,
@@ -224,6 +225,26 @@ impl ParserAndGenerator for CssParserAndGenerator {
               (range.start, range.end).into(),
               "".into(),
             )));
+            continue;
+          }
+          // Check the import option
+          let should_import = match &self.resolve_import {
+            CssParserImport::Bool(b) => *b,
+            CssParserImport::Func(f) => {
+              // Call the filter function with the import arguments
+              let args = CssParserImportContext {
+                url: request.to_string(),
+                media: media.map(|s| s.to_string()),
+                resource_path: resource_path
+                  .map(|p| p.as_str().to_string())
+                  .unwrap_or_default(),
+                supports: supports.map(|s| s.to_string()),
+                layer: layer.map(|s| s.to_string()),
+              };
+              (f(args).await).unwrap_or(true)
+            }
+          };
+          if !should_import {
             continue;
           }
           let request = replace_module_request_prefix(
@@ -540,7 +561,10 @@ impl ParserAndGenerator for CssParserAndGenerator {
           let dep = module_graph.dependency_by_id(id);
 
           if let Some(dependency) = dep.as_dependency_code_generation() {
-            if let Some(template) = compilation.get_dependency_template(dependency) {
+            if let Some(template) = dependency
+              .dependency_template()
+              .and_then(|template_type| compilation.get_dependency_template(template_type))
+            {
               template.render(dependency, &mut source, &mut context)
             } else {
               panic!(
@@ -579,7 +603,10 @@ impl ParserAndGenerator for CssParserAndGenerator {
 
         if let Some(dependencies) = module.get_presentational_dependencies() {
           dependencies.iter().for_each(|dependency| {
-            if let Some(template) = compilation.get_dependency_template(dependency.as_ref()) {
+            if let Some(template) = dependency
+              .dependency_template()
+              .and_then(|dependency_type| compilation.get_dependency_template(dependency_type))
+            {
               template.render(dependency.as_ref(), &mut source, &mut context)
             } else {
               panic!(

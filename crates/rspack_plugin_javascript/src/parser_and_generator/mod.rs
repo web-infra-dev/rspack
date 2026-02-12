@@ -8,7 +8,7 @@ use rspack_cacheable::{cacheable, cacheable_dyn, with::Skip};
 use rspack_core::{
   AsyncDependenciesBlockIdentifier, BuildMetaExportsType, COLLECTED_TYPESCRIPT_INFO_PARSE_META_KEY,
   ChunkGraph, CollectedTypeScriptInfo, Compilation, DependenciesBlock, DependencyId,
-  DependencyRange, GenerateContext, Module, ModuleCodegenRuntimeTemplate, ModuleGraph, ModuleType,
+  DependencyRange, GenerateContext, Module, ModuleCodeTemplate, ModuleGraph, ModuleType,
   ParseContext, ParseResult, ParserAndGenerator, RuntimeGlobals, SideEffectsBailoutItem,
   SourceType, TemplateContext, TemplateReplaceSource,
   diagnostics::map_box_diagnostics_to_module_parse_diagnostics,
@@ -56,7 +56,7 @@ static LEGACY_REQUIRE_REGEX: LazyLock<Regex> = LazyLock::new(|| {
 });
 
 impl ParserRuntimeRequirementsData {
-  pub fn new(runtime_template: &ModuleCodegenRuntimeTemplate) -> Self {
+  pub fn new(runtime_template: &ModuleCodeTemplate) -> Self {
     let require_name =
       runtime_template.render_runtime_globals_without_adding(&RuntimeGlobals::REQUIRE);
     let module_name =
@@ -126,7 +126,10 @@ impl JavaScriptParserAndGenerator {
       .dependency_by_id(dependency_id)
       .as_dependency_code_generation()
     {
-      if let Some(template) = compilation.get_dependency_template(dependency) {
+      if let Some(template) = dependency
+        .dependency_template()
+        .and_then(|template_type| compilation.get_dependency_template(template_type))
+      {
         template.render(dependency, source, context)
       } else {
         panic!(
@@ -356,7 +359,10 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
 
       if let Some(dependencies) = module.get_presentational_dependencies() {
         dependencies.iter().for_each(|dependency| {
-          if let Some(template) = compilation.get_dependency_template(dependency.as_ref()) {
+          if let Some(template) = dependency
+            .dependency_template()
+            .and_then(|template_type| compilation.get_dependency_template(template_type))
+          {
             template.render(dependency.as_ref(), &mut source, &mut context)
           } else {
             panic!(

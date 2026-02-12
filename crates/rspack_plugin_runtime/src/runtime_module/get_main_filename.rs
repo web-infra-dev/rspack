@@ -1,6 +1,6 @@
 use rspack_core::{
-  Compilation, Filename, PathData, RuntimeGlobals, RuntimeModule, RuntimeTemplate, SourceType,
-  has_hash_placeholder, impl_runtime_module,
+  Compilation, Filename, PathData, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext,
+  RuntimeTemplate, SourceType, has_hash_placeholder, impl_runtime_module,
 };
 
 #[impl_runtime_module]
@@ -28,7 +28,12 @@ impl GetMainFilenameRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for GetMainFilenameRuntimeModule {
-  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
+  async fn generate(
+    &self,
+    context: &RuntimeModuleGenerateContext<'_>,
+  ) -> rspack_error::Result<String> {
+    let compilation = context.compilation;
+    let runtime_template = context.runtime_template;
     if let Some(chunk_ukey) = self.chunk {
       let chunk = compilation
         .build_chunk_graph_artifact
@@ -52,9 +57,7 @@ impl RuntimeModule for GetMainFilenameRuntimeModule {
             .hash(
               format!(
                 "\" + {}() + \"",
-                compilation
-                  .runtime_template
-                  .render_runtime_globals(&RuntimeGlobals::GET_FULL_HASH)
+                runtime_template.render_runtime_globals(&RuntimeGlobals::GET_FULL_HASH)
               )
               .as_str(),
             )
@@ -67,9 +70,7 @@ impl RuntimeModule for GetMainFilenameRuntimeModule {
             return \"{}\";
          }};
         ",
-        compilation
-          .runtime_template
-          .render_runtime_globals(&self.global),
+        runtime_template.render_runtime_globals(&self.global),
         filename,
       ))
     } else {

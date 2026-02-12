@@ -2,8 +2,9 @@ use std::{ptr::NonNull, sync::LazyLock};
 
 use rspack_collections::DatabaseItem;
 use rspack_core::{
-  BooleanMatcher, Chunk, ChunkGroupOrderKey, Compilation, RuntimeGlobals, RuntimeModule,
-  RuntimeModuleStage, RuntimeTemplate, compile_boolean_matcher, impl_runtime_module,
+  BooleanMatcher, Chunk, ChunkGroupOrderKey, Compilation, RuntimeCodeTemplate, RuntimeGlobals,
+  RuntimeModule, RuntimeModuleGenerateContext, RuntimeModuleStage, RuntimeTemplate,
+  compile_boolean_matcher, impl_runtime_module,
 };
 use rspack_plugin_javascript::impl_plugin_for_js_plugin::chunk_has_js;
 
@@ -104,7 +105,12 @@ impl JsonpChunkLoadingRuntimeModule {
 }
 
 impl JsonpChunkLoadingRuntimeModule {
-  fn generate_base_uri(&self, chunk: &Chunk, compilation: &Compilation) -> String {
+  fn generate_base_uri(
+    &self,
+    chunk: &Chunk,
+    compilation: &Compilation,
+    runtime_template: &RuntimeCodeTemplate<'_>,
+  ) -> String {
     let base_uri = chunk
       .get_entry_options(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
       .and_then(|options| options.base_uri.as_ref())
@@ -112,9 +118,7 @@ impl JsonpChunkLoadingRuntimeModule {
       .unwrap_or_else(|| "document.baseURI || self.location.href".to_string());
     format!(
       "{} = {};\n",
-      compilation
-        .runtime_template
-        .render_runtime_globals(&RuntimeGlobals::BASE_URI),
+      runtime_template.render_runtime_globals(&RuntimeGlobals::BASE_URI),
       base_uri
     )
   }
@@ -198,7 +202,12 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
     ]
   }
 
-  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
+  async fn generate(
+    &self,
+    context: &RuntimeModuleGenerateContext<'_>,
+  ) -> rspack_error::Result<String> {
+    let compilation = context.compilation;
+    let runtime_template = context.runtime_template;
     let chunk = compilation
       .build_chunk_graph_artifact
       .chunk_by_ukey
@@ -245,7 +254,7 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
     let mut source = String::default();
 
     if with_base_uri {
-      source.push_str(&self.generate_base_uri(chunk, compilation));
+      source.push_str(&self.generate_base_uri(chunk, compilation, runtime_template));
     }
 
     source.push_str(&format!(
@@ -259,9 +268,7 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
         true => {
           let state_expression = format!(
             "{}_jsonp",
-            compilation
-              .runtime_template
-              .render_runtime_globals(&RuntimeGlobals::HMR_RUNTIME_STATE_PREFIX)
+            runtime_template.render_runtime_globals(&RuntimeGlobals::HMR_RUNTIME_STATE_PREFIX)
           );
           format!("{state_expression} = {state_expression} || ")
         }
@@ -274,7 +281,7 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
       let body = if matches!(has_js_matcher, BooleanMatcher::Condition(false)) {
         "installedChunks[chunkId] = 0;".to_string()
       } else {
-        compilation.runtime_template.render(
+        runtime_template.render(
           &self.template_id(TemplateId::Raw),
           Some(serde_json::json!({
             "_js_matcher": &js_matcher,
@@ -293,9 +300,7 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
           {body}
         }}
         "#,
-        compilation
-          .runtime_template
-          .render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK_HANDLERS),
+        runtime_template.render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK_HANDLERS),
         if with_fetch_priority {
           ", fetchPriority"
         } else {
@@ -305,7 +310,7 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
     }
 
     if with_prefetch && !matches!(has_js_matcher, BooleanMatcher::Condition(false)) {
-      let link_prefetch_code = compilation.runtime_template.render(
+      let link_prefetch_code = runtime_template.render(
         &self.template_id(TemplateId::WithPrefetchLink),
         Some(serde_json::json!({
           "_cross_origin": cross_origin_loading.to_string(),
@@ -326,7 +331,7 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
         })
         .await?;
 
-      let source_with_prefetch = compilation.runtime_template.render(
+      let source_with_prefetch = runtime_template.render(
         &self.template_id(TemplateId::WithPrefetch),
         Some(serde_json::json!({
           "_js_matcher": &js_matcher,
@@ -338,7 +343,7 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
     }
 
     if with_preload && !matches!(has_js_matcher, BooleanMatcher::Condition(false)) {
-      let link_preload_code = compilation.runtime_template.render(
+      let link_preload_code = runtime_template.render(
         &self.template_id(TemplateId::WithPreloadLink),
         Some(serde_json::json!({
           "_script_type": script_type.as_str(),
@@ -360,7 +365,7 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
         })
         .await?;
 
-      let source_with_preload = compilation.runtime_template.render(
+      let source_with_preload = runtime_template.render(
         &self.template_id(TemplateId::WithPreload),
         Some(serde_json::json!({
           "_js_matcher": &js_matcher,
@@ -372,8 +377,7 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
     }
 
     if with_hmr {
-      let source_with_hmr = compilation
-        .runtime_template
+      let source_with_hmr = runtime_template
         .render(&self.template_id(TemplateId::WithHmr), Some(serde_json::json!({
           "_global_object": &compilation.options.output.global_object,
           "_hot_update_global": &serde_json::to_string(&compilation.options.output.hot_update_global).expect("failed to serde_json::to_string(hot_update_global)"),
@@ -383,23 +387,21 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
       let hmr_runtime = generate_javascript_hmr_runtime(
         &self.template_id(TemplateId::HmrRuntime),
         "jsonp",
-        &compilation.runtime_template,
+        runtime_template,
       )?;
       source.push_str(&hmr_runtime);
     }
 
     if with_hmr_manifest {
-      let source_with_hmr_manifest = compilation
-        .runtime_template
-        .render(&self.template_id(TemplateId::WithHmrManifest), None)?;
+      let source_with_hmr_manifest =
+        runtime_template.render(&self.template_id(TemplateId::WithHmrManifest), None)?;
 
       source.push_str(&source_with_hmr_manifest);
     }
 
     if with_on_chunk_load {
-      let source_with_on_chunk_load = compilation
-        .runtime_template
-        .render(&self.template_id(TemplateId::WithOnChunkLoad), None)?;
+      let source_with_on_chunk_load =
+        runtime_template.render(&self.template_id(TemplateId::WithOnChunkLoad), None)?;
 
       source.push_str(&source_with_on_chunk_load);
     }
@@ -409,7 +411,7 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
         r#"{}["{}"]"#,
         &compilation.options.output.global_object, &compilation.options.output.chunk_loading_global
       );
-      let source_with_callback = compilation.runtime_template.render(
+      let source_with_callback = runtime_template.render(
         &self.template_id(TemplateId::WithCallback),
         Some(serde_json::json!({
           "_chunk_loading_global_expr": &chunk_loading_global_expr,

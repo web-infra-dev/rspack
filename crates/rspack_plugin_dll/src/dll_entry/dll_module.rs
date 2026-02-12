@@ -4,7 +4,7 @@ use async_trait::async_trait;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
-  AsyncDependenciesBlockIdentifier, BuildContext, BuildInfo, BuildMeta, BuildResult,
+  AsyncDependenciesBlockIdentifier, BoxModule, BuildContext, BuildInfo, BuildMeta, BuildResult,
   CodeGenerationResult, Compilation, Context, DependenciesBlock, Dependency, DependencyId,
   EntryDependency, FactoryMeta, Module, ModuleArgument, ModuleCodeGenerationContext, ModuleGraph,
   ModuleType, RuntimeGlobals, RuntimeSpec, SourceType, ValueCacheVersions, impl_module_meta_info,
@@ -78,7 +78,7 @@ impl Module for DllModule {
   }
 
   async fn build(
-    &mut self,
+    mut self: Box<Self>,
     _build_context: BuildContext,
     _compilation: Option<&Compilation>,
   ) -> Result<BuildResult> {
@@ -91,8 +91,10 @@ impl Module for DllModule {
       .collect::<Vec<_>>();
 
     Ok(BuildResult {
+      module: BoxModule::new(self),
       dependencies,
-      ..Default::default()
+      blocks: vec![],
+      optimization_bailouts: vec![],
     })
   }
 

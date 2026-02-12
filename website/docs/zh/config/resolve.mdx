@@ -26,7 +26,7 @@ import WebpackLicense from '@components/WebpackLicense';
 
 - `require("@/a")` 会尝试解析 `<root>/src/a`。
 - `require("abc")` 会尝试解析 `<root>/src/abc`。
-- `require("abc/file.js")` 不会命中匹配规则，它会尝试去解析 `node_modules/abc/files.js`。
+- `require("abc/file.js")` 不会命中匹配规则，它会尝试去解析 `node_modules/abc/file.js`。
 
 ### 对包解析的影响
 
@@ -256,6 +256,31 @@ export default {
 
 则当配置为 `["testExports", "exports"]` 时, `import value from 'lib'` 的结果为 `lib/test.js`。
 
+## resolve.extensionAlias
+
+- **类型：** `Record<string, string[] | string>`
+- **默认值：** `{}`
+
+定义拓展名的别名，例如：
+
+```js title="rspack.config.mjs"
+export default {
+  resolve: {
+    extensionAlias: {
+      '.js': ['.ts', '.js'],
+    },
+  },
+};
+```
+
+这对于 TypeScript 项目来说非常有用，因为 TypeScript 推荐使用 `.js` 扩展名来引用 TypeScript 文件。
+
+```ts title="index.ts"
+import { foo } from './foo.js'; // 实际引用的是 foo.ts
+```
+
+Rspack 在解析 `import './foo.js'` 时，会依次尝试解析 `'./foo.ts'` 和 `./foo.js`。
+
 ## resolve.extensions
 
 - **类型：** `string[]`
@@ -305,31 +330,6 @@ export default {
 - 避免添加过多扩展名，因为每个扩展名都会增加解析开销。尽量保持 `extensions` 数组精简以提升解析性能。
 - 将最常用的扩展名放在数组前面。
 
-## resolve.extensionAlias
-
-- **类型：** `Record<string, string[] | string>`
-- **默认值：** `{}`
-
-定义拓展名的别名，例如：
-
-```js title="rspack.config.mjs"
-export default {
-  resolve: {
-    extensionAlias: {
-      '.js': ['.ts', '.js'],
-    },
-  },
-};
-```
-
-这对于 TypeScript 项目来说非常有用，因为 TypeScript 推荐使用 `.js` 扩展名来引用 TypeScript 文件。
-
-```ts title="index.ts"
-import { foo } from './foo.js'; // 实际引用的是 foo.ts
-```
-
-Rspack 在解析 `import './foo.js'` 时，会依次尝试解析 `'./foo.ts'` 和 `./foo.js`。
-
 ## resolve.fallback
 
 - **类型：** `Record<string, false | string>`
@@ -339,7 +339,6 @@ Rspack 在解析 `import './foo.js'` 时，会依次尝试解析 `'./foo.ts'` �
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   resolve: {
     fallback: {
       abc: false, // 不为 abc 引入 polyfill
@@ -369,7 +368,6 @@ import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 
 export default {
-  //...
   resolve: {
     fallback: {
       assert: require.resolve('assert'),
@@ -399,6 +397,13 @@ export default {
   },
 };
 ```
+
+## resolve.fullySpecified
+
+- **类型：** `boolean`
+- **默认值：** `false`
+
+不再解析扩展名，不再解析 package.json 中的 mainFiles（但不会影响来自 mainFiles, browser, alias 的请求）。
 
 ## resolve.importsFields
 
@@ -501,12 +506,22 @@ export default {
 
 解析依赖时的目录名。
 
-## resolve.preferRelative
+## resolve.pnp
 
-- **类型：** `boolean`
-- **默认值：** `false`
+- **类型:** `boolean`
+- **默认值:** `!!process.versions.pnp`
 
-当开启时，`require('file')` 会首先寻找当前目录下的 `./file` 文件，而不是 `<modules>/file`。
+启用时，将使用 [Yarn PnP](https://yarnpkg.com/features/pnp) 算法进行路径解析。
+
+当 [`!!process.versions.pnp`](https://yarnpkg.com/advanced/pnpapi#processversionspnp) 为 `true` 时（即应用在 Yarn PnP 环境中运行时），它默认是启用的。
+
+```js title="rspack.config.mjs"
+export default {
+  resolve: {
+    pnp: true,
+  },
+};
+```
 
 ## resolve.preferAbsolute
 
@@ -515,6 +530,36 @@ export default {
 
 在解析时，倾向使用与 `resolve.roots` 相关的绝对路径。
 
+## resolve.preferRelative
+
+- **类型：** `boolean`
+- **默认值：** `false`
+
+当开启时，`require('file')` 会首先寻找当前目录下的 `./file` 文件，而不是 `<modules>/file`。
+
+## resolve.restrictions
+
+- **类型：** `string[]`
+- **默认值：**`[]`
+
+限制请求解析路径的解析限制列表。
+
+## resolve.roots
+
+- **类型：** `string[]`
+- **默认值：**`[]`
+
+一个目录列表，用于解析服务器相对 URL（以'/'开头的 URL）。默认使用 context 配置选项。在非 Windows 系统上，这些请求首先作为绝对路径进行解析。
+
+## resolve.symlinks
+
+- **类型：** `boolean`
+- **默认值：**`true`
+
+是否将符号链接（symlink）解析到它们的符号链接位置（symlink location）。
+
+启用时，符号链接的资源，将解析为其**真实**路径，而不是其符号链接的位置。注意，当使用创建符号链接包的工具（如 `npm link`）时，这种方式可能会导致模块解析失败。
+
 ## resolve.tsConfig
 
 Rspack 中用来替代 [tsconfig-paths-webpack-plugin](https://www.npmjs.com/package/tsconfig-paths-webpack-plugin) 的配置。
@@ -522,13 +567,22 @@ Rspack 中用来替代 [tsconfig-paths-webpack-plugin](https://www.npmjs.com/pac
 - **类型：** `string | object | undefined`
 - **默认值:** `undefined`
 
+- string:
+
 ```js title="rspack.config.mjs"
 export default {
   resolve: {
-    // string
     tsConfig: path.resolve(__dirname, './tsconfig.json'),
-    // or object
-    tsconfig: {
+  },
+};
+```
+
+- object:
+
+```js title="rspack.config.mjs"
+export default {
+  resolve: {
+    tsConfig: {
       configFile: path.resolve(__dirname, './tsconfig.json'),
       references: 'auto',
     },
@@ -554,50 +608,3 @@ export default {
 可以通过文件路径用于手动配置，或者使用 `auto` 用于自动读取 `tsconfig.references` 中的文件路径。
 
 使用 `undefined` 将会关闭该功能。
-
-## resolve.fullySpecified
-
-- **类型：** `boolean`
-- **默认值：** `false`
-
-不再解析扩展名，不再解析 package.json 中的 mainFiles（但不会影响来自 mainFiles, browser, alias 的请求）。
-
-## resolve.restrictions
-
-- **类型：** `string[]`
-- **默认值：**`[]`
-
-限制请求解析路径的解析限制列表。
-
-## resolve.roots
-
-- **类型：** `string[]`
-- **默认值：**`[]`
-
-一个目录列表，用于解析服务器相对 URL（以'/'开头的 URL）。默认使用 context 配置选项。在非 Windows 系统上，这些请求首先作为绝对路径进行解析。
-
-## resolve.symlinks
-
-- **类型：** `boolean`
-- **默认值：**`true`
-
-是否将符号链接（symlink）解析到它们的符号链接位置（symlink location）。
-
-启用时，符号链接的资源，将解析为其**真实**路径，而不是其符号链接的位置。注意，当使用创建符号链接包的工具（如 `npm link`）时，这种方式可能会导致模块解析失败。
-
-## resolve.pnp
-
-- **类型:** `boolean`
-- **默认值:** `!!process.versions.pnp`
-
-启用时，将使用 [Yarn PnP](https://yarnpkg.com/features/pnp) 算法进行路径解析。
-
-当 [`!!process.versions.pnp`](https://yarnpkg.com/advanced/pnpapi#processversionspnp) 为 `true` 时（即应用在 Yarn PnP 环境中运行时），它默认是启用的。
-
-```js title="rspack.config.mjs"
-export default {
-  resolve: {
-    pnp: true,
-  },
-};
-```

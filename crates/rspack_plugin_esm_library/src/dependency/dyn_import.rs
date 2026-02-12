@@ -6,6 +6,7 @@ use rspack_core::{
   get_exports_type,
 };
 use rspack_plugin_javascript::dependency::ImportDependency;
+use rspack_plugin_rslib::dyn_import_external::render_dyn_import_external_module;
 
 use crate::EsmLibraryPlugin;
 
@@ -127,6 +128,11 @@ impl DependencyTemplate for DynamicImportDependencyTemplate {
       );
       return;
     };
+
+    if let Some(external_module) = ref_module.as_external_module() {
+      render_dyn_import_external_module(import_dep, external_module, source);
+      return;
+    }
 
     let ref_chunk = EsmLibraryPlugin::get_module_chunk(
       ref_module.identifier(),

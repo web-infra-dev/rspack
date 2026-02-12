@@ -18,7 +18,7 @@ impl EntryDependency {
       ))),
       None => {
         let dependency = Box::new(rspack_core::EntryDependency::new(
-          self.request.to_string(),
+          self.request.clone(),
           context,
           layer,
           false,

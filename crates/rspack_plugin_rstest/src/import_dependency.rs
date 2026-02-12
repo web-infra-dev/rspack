@@ -2,8 +2,8 @@ use rspack_cacheable::cacheable;
 use rspack_core::{
   AsyncDependenciesBlockIdentifier, ChunkGraph, Compilation, Dependency, DependencyCodeGeneration,
   DependencyId, DependencyTemplate, DependencyTemplateType, DependencyType, ExportsType,
-  FakeNamespaceObjectMode, ModuleCodegenRuntimeTemplate, ModuleDependency, ModuleGraph,
-  RuntimeGlobals, TemplateContext, TemplateReplaceSource, get_exports_type,
+  FakeNamespaceObjectMode, ModuleCodeTemplate, ModuleDependency, ModuleGraph, RuntimeGlobals,
+  TemplateContext, TemplateReplaceSource, get_exports_type,
 };
 use rspack_plugin_javascript::dependency::ImportDependency;
 
@@ -63,7 +63,7 @@ impl DependencyTemplate for ImportDependencyTemplate {
 
 pub fn module_id_rstest(
   compilation: &Compilation,
-  runtime_template: &mut ModuleCodegenRuntimeTemplate,
+  runtime_template: &mut ModuleCodeTemplate,
   id: &DependencyId,
   request: &str,
   weak: bool,
@@ -107,9 +107,7 @@ fn module_namespace_promise_rstest(
   {
     return format!(
       "{}(\"{request}\")",
-      compilation
-        .runtime_template
-        .render_runtime_globals(&RuntimeGlobals::REQUIRE)
+      runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
     );
   };
 

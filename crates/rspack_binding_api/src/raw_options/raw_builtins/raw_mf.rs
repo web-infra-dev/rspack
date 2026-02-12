@@ -177,7 +177,7 @@ impl From<RawSharedContainerPluginOptions> for SharedContainerPluginOptions {
       request: value.request,
       version: value.version,
       library: value.library.into(),
-      file_name: value.file_name.clone().map(Into::into),
+      file_name: value.file_name.map(Into::into),
     }
   }
 }

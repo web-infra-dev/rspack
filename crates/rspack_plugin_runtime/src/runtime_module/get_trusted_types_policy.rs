@@ -1,6 +1,6 @@
 use rspack_core::{
-  Compilation, OnPolicyCreationFailure, RuntimeGlobals, RuntimeModule, RuntimeTemplate,
-  impl_runtime_module,
+  OnPolicyCreationFailure, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext,
+  RuntimeTemplate, impl_runtime_module,
 };
 
 use crate::get_chunk_runtime_requirements;
@@ -24,7 +24,11 @@ impl RuntimeModule for GetTrustedTypesPolicyRuntimeModule {
     )]
   }
 
-  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
+  async fn generate(
+    &self,
+    context: &RuntimeModuleGenerateContext<'_>,
+  ) -> rspack_error::Result<String> {
+    let compilation = context.compilation;
     let trusted_types = compilation
       .options
       .output
@@ -38,7 +42,7 @@ impl RuntimeModule for GetTrustedTypesPolicyRuntimeModule {
       OnPolicyCreationFailure::Continue
     );
 
-    let source = compilation.runtime_template.render(
+    let source = context.runtime_template.render(
       &self.id,
       Some(serde_json::json!({
         "_create_script": runtime_requirements.contains(RuntimeGlobals::CREATE_SCRIPT),
