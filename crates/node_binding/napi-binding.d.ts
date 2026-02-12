@@ -2727,7 +2727,9 @@ export interface RawPathData {
 }
 
 export interface RawProgressPluginHandlerInfo {
+  /** Number of built modules */
   builtModules: number
+  /** Identifier of the active module (only provided during `build modules` updates) */
   moduleIdentifier?: string
 }
 
@@ -2737,7 +2739,7 @@ export interface RawProgressPluginOptions {
   template?: string
   tick?: string | Array<string>
   progressChars?: string
-  handler?: (percent: number, msg: string, info: { builtModules: number, moduleIdentifier?: string }) => void
+  handler?: (percent: number, msg: string, info: RawProgressPluginHandlerInfo) => void
 }
 
 export interface RawProvideOptions {

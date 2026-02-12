@@ -11,7 +11,9 @@ use rspack_plugin_progress::{
 #[derive(Debug)]
 #[napi(object)]
 pub struct RawProgressPluginHandlerInfo {
+  /// Number of built modules
   pub built_modules: u32,
+  /// Identifier of the active module (only provided during `build modules` updates)
   pub module_identifier: Option<String>,
 }
 
@@ -40,9 +42,7 @@ pub struct RawProgressPluginOptions {
   pub progress_chars: Option<String>,
   // the handler for progress event
   #[debug(skip)]
-  #[napi(
-    ts_type = "(percent: number, msg: string, info: { builtModules: number, moduleIdentifier?: string }) => void"
-  )]
+  #[napi(ts_type = "(percent: number, msg: string, info: RawProgressPluginHandlerInfo) => void")]
   pub handler: Option<HandlerFn>,
 }
 
