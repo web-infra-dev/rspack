@@ -77,7 +77,7 @@ jobs:
         run: pnpm run build:js
 
       - name: Replace Ubuntu APT sources
-        if: runner.os == 'Linux'
+        if: startsWith(runner.name, 'rspack-ubuntu')
         run: |
           CODENAME=$(lsb_release -cs)
           echo "Detected Ubuntu codename: $CODENAME"
