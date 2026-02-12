@@ -81,6 +81,12 @@ jobs:
         run: |
           CODENAME=$(lsb_release -cs)
           echo "Detected Ubuntu codename: $CODENAME"
+
+          # Backup and clean PPA sources
+          sudo mkdir -p /etc/apt/sources.list.d.bak
+          sudo mv /etc/apt/sources.list.d/*.list /etc/apt/sources.list.d.bak/ 2>/dev/null || true
+
+          # Replace main sources
           sudo cp /etc/apt/sources.list /etc/apt/sources.list.bak
           sudo tee /etc/apt/sources.list > /dev/null <<EOF
           deb https://mirrors.volces.com/ubuntu $CODENAME main restricted universe multiverse
@@ -88,6 +94,7 @@ jobs:
           deb https://mirrors.volces.com/ubuntu $CODENAME-security main restricted universe multiverse
           deb https://mirrors.volces.com/ubuntu $CODENAME-backports main restricted universe multiverse
           EOF
+
           sudo apt update
 
       - name: Run benchmark
