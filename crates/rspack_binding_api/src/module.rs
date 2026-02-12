@@ -369,7 +369,9 @@ impl Module {
   pub fn blocks(&mut self) -> napi::Result<Vec<AsyncDependenciesBlockWrapper>> {
     let (compilation, module) = self.as_ref()?;
 
-    let module_graph = compilation.get_module_graph();
+    let Some(module_graph) = compilation.try_get_module_graph() else {
+      return Ok(vec![]);
+    };
     let blocks = module.get_blocks();
     Ok(
       blocks
@@ -387,7 +389,11 @@ impl Module {
   pub fn dependencies(&mut self) -> napi::Result<Vec<DependencyWrapper>> {
     let (compilation, module) = self.as_ref()?;
 
-    let module_graph = compilation.get_module_graph();
+    let Some(module_graph) = compilation.try_get_module_graph() else {
+      return Err(napi::Error::from_reason(
+        "ModuleGraph is not available during build phase",
+      ));
+    };
     let dependencies = module.get_dependencies();
     Ok(
       dependencies

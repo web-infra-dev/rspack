@@ -268,7 +268,16 @@ export type AssetModuleImportMode = 'url' | 'preserve';
 export type AssetModuleOutputPath = Filename;
 
 // @public
-export type AssetParserDataUrl = AssetParserDataUrlOptions;
+export type AssetParserDataUrl = AssetParserDataUrlOptions | AssetParserDataUrlFunction;
+
+// @public (undocumented)
+export type AssetParserDataUrlFnCtx = {
+    filename: string;
+    module: Module;
+};
+
+// @public (undocumented)
+export type AssetParserDataUrlFunction = (source: Buffer, context: AssetParserDataUrlFnCtx) => boolean;
 
 // @public
 export type AssetParserDataUrlOptions = {
@@ -277,7 +286,7 @@ export type AssetParserDataUrlOptions = {
 
 // @public
 export type AssetParserOptions = {
-    dataUrlCondition?: AssetParserDataUrlOptions;
+    dataUrlCondition?: AssetParserDataUrl;
 };
 
 // @public
@@ -7450,6 +7459,8 @@ declare namespace rspackExports {
         RuleSetRule,
         RuleSetRules,
         AssetParserDataUrlOptions,
+        AssetParserDataUrlFnCtx,
+        AssetParserDataUrlFunction,
         AssetParserDataUrl,
         AssetParserOptions,
         CssParserNamedExports,
