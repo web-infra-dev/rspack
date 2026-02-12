@@ -151,7 +151,11 @@ impl ProgressPlugin {
         self.modules_count.load(Relaxed),
       ) as f64);
 
-    let msg = format!("build modules ({modules_done})");
+    let msg = if modules_done == 0 {
+      "build modules".to_string()
+    } else {
+      format!("build modules ({modules_done})")
+    };
 
     if let Some(last_active_module) = self.last_active_module.lock().await.as_ref() {
       let info = self.create_handler_info(Some(last_active_module.to_string()));
