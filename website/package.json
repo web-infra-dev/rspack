@@ -40,7 +40,6 @@
     "case-police": "~2.1.1",
     "cspell": "^9.6.4",
     "cspell-ban-words": "0.0.4",
-    "heading-case": "^1.0.7",
     "rsbuild-plugin-google-analytics": "1.0.5",
     "rsbuild-plugin-open-graph": "1.1.2",
     "rspress-plugin-font-open-sans": "1.0.3",
