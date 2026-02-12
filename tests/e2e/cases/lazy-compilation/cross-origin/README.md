@@ -1,4 +1,4 @@
-# Cross-Origin Lazy Compilation Test
+# Cross-Origin lazy compilation test
 
 This test verifies that lazy compilation works correctly
 when the lazy compilation server runs on a different origin (port) than the frontend dev server.
@@ -38,7 +38,7 @@ when the lazy compilation server runs on a different origin (port) than the fron
 +----------------------+             |                                 |
 ```
 
-## Key Points
+## Key points
 
 1. **Two Separate Servers**: Frontend runs on port 8500, lazy compilation on port 8600
 2. **Cross-Origin Request**: Browser sends POST request to a different origin
