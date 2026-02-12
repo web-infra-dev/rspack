@@ -79,12 +79,14 @@ jobs:
       - name: Replace Ubuntu APT sources
         if: runner.os == 'Linux'
         run: |
+          CODENAME=$(lsb_release -cs)
+          echo "Detected Ubuntu codename: $CODENAME"
           sudo cp /etc/apt/sources.list /etc/apt/sources.list.bak
           sudo tee /etc/apt/sources.list > /dev/null <<EOF
-          deb http://mirrors.ivolces.com/debian buster main contrib non-free
-          deb http://mirrors.ivolces.com/debian buster-backports main contrib non-free
-          deb http://mirrors.ivolces.com/debian-security buster/updates main contrib non-free
-          deb-src http://mirrors.ivolces.com/debian buster main contrib non-free
+          deb https://mirrors.volces.com/ubuntu $CODENAME main restricted universe multiverse
+          deb https://mirrors.volces.com/ubuntu $CODENAME-updates main restricted universe multiverse
+          deb https://mirrors.volces.com/ubuntu $CODENAME-security main restricted universe multiverse
+          deb https://mirrors.volces.com/ubuntu $CODENAME-backports main restricted universe multiverse
           EOF
           sudo apt update
 
