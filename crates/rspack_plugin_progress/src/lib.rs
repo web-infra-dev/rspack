@@ -26,8 +26,15 @@ use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
 use tokio::sync::Mutex;
 
-type HandlerFn =
-  Arc<dyn Fn(f64, String, Vec<String>) -> BoxFuture<'static, Result<()>> + Send + Sync>;
+type HandlerFn = Arc<
+  dyn Fn(f64, String, ProgressPluginHandlerInfo) -> BoxFuture<'static, Result<()>> + Send + Sync,
+>;
+
+#[derive(Debug, Clone, Default)]
+pub struct ProgressPluginHandlerInfo {
+  pub built_modules: u32,
+  pub module_identifier: Option<String>,
+}
 
 pub enum ProgressPluginOptions {
   Handler(HandlerFn),
@@ -147,6 +154,7 @@ impl ProgressPlugin {
     let msg = format!("build modules ({modules_done})");
 
     if let Some(last_active_module) = self.last_active_module.lock().await.as_ref() {
+      let info = self.create_handler_info(Some(last_active_module.to_string()));
       let duration = self
         .active_modules
         .lock()
@@ -154,21 +162,28 @@ impl ProgressPlugin {
         .get(last_active_module)
         .map(|time| Instant::now() - *time);
       self
-        .handler(0.1 + percent_by_module * 0.55, msg, vec![], duration)
+        .handler(0.1 + percent_by_module * 0.55, msg, info, duration)
         .await?;
     }
     Ok(())
+  }
+
+  fn create_handler_info(&self, module_identifier: Option<String>) -> ProgressPluginHandlerInfo {
+    ProgressPluginHandlerInfo {
+      built_modules: self.modules_done.load(Relaxed),
+      module_identifier,
+    }
   }
 
   pub async fn handler(
     &self,
     percent: f64,
     msg: String,
-    state_items: Vec<String>,
+    info: ProgressPluginHandlerInfo,
     time: Option<Duration>,
   ) -> Result<()> {
     match &self.options {
-      ProgressPluginOptions::Handler(handler) => handler(percent, msg, state_items).await?,
+      ProgressPluginOptions::Handler(handler) => handler(percent, msg, info).await?,
       ProgressPluginOptions::Default(options) => {
         if options.profile {
           self.default_handler(percent, msg, time).await;
@@ -264,7 +279,7 @@ impl ProgressPlugin {
       .handler(
         0.7 + 0.25 * (index as f64 / number_of_sealing_hooks as f64),
         name.to_string(),
-        vec![],
+        self.create_handler_info(None),
         None,
       )
       .await
@@ -293,7 +308,12 @@ async fn this_compilation(
   }
 
   self
-    .handler(0.08, "build start".to_string(), vec![], None)
+    .handler(
+      0.08,
+      "build start".to_string(),
+      self.create_handler_info(None),
+      None,
+    )
     .await
 }
 
@@ -304,14 +324,24 @@ async fn compilation(
   _params: &mut CompilationParams,
 ) -> Result<()> {
   self
-    .handler(0.09, "build start".to_string(), vec![], None)
+    .handler(
+      0.09,
+      "build start".to_string(),
+      self.create_handler_info(None),
+      None,
+    )
     .await
 }
 
 #[plugin_hook(CompilerMake for ProgressPlugin)]
 async fn make(&self, _compilation: &mut Compilation) -> Result<()> {
   self
-    .handler(0.1, String::from("build modules"), vec![], None)
+    .handler(
+      0.1,
+      String::from("build modules"),
+      self.create_handler_info(None),
+      None,
+    )
     .await?;
   self.modules_count.store(0, Relaxed);
   self.modules_done.store(0, Relaxed);
@@ -393,7 +423,12 @@ async fn succeed_module(
 #[plugin_hook(CompilerFinishMake for ProgressPlugin)]
 async fn finish_make(&self, _compilation: &mut Compilation) -> Result<()> {
   self
-    .handler(0.69, "build modules done".to_string(), vec![], None)
+    .handler(
+      0.69,
+      "build modules done".to_string(),
+      self.create_handler_info(None),
+      None,
+    )
     .await
 }
 
@@ -507,13 +542,25 @@ async fn after_process_assets(
 #[plugin_hook(CompilerEmit for ProgressPlugin)]
 async fn emit(&self, _compilation: &mut Compilation) -> Result<()> {
   self
-    .handler(0.98, "emit assets".to_string(), vec![], None)
+    .handler(
+      0.98,
+      "emit assets".to_string(),
+      self.create_handler_info(None),
+      None,
+    )
     .await
 }
 
 #[plugin_hook(CompilerAfterEmit for ProgressPlugin)]
 async fn after_emit(&self, _compilation: &mut Compilation) -> Result<()> {
-  self.handler(1.0, "done".to_string(), vec![], None).await
+  self
+    .handler(
+      1.0,
+      "done".to_string(),
+      self.create_handler_info(None),
+      None,
+    )
+    .await
 }
 
 #[plugin_hook(CompilerClose for ProgressPlugin)]

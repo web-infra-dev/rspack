@@ -628,3 +628,17 @@ class MyPlugin {
   }
 }
 ```
+
+### ProgressPlugin handler 签名变更
+
+`ProgressPlugin` 自定义 handler 的第三个参数已从 `items: string[]` 变更为结构化的 `info` 对象。
+
+```diff
+- (percent, msg, items) => void
++ (percent, msg, info) => void
+```
+
+`info` 包含：
+
+- `builtModules: number`：已构建的模块数量
+- `moduleIdentifier?: string`：当前构建的模块标识符（仅在 `build modules` 更新阶段提供）

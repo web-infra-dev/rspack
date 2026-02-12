@@ -2726,13 +2726,18 @@ export interface RawPathData {
   url?: string
 }
 
+export interface RawProgressPluginHandlerInfo {
+  builtModules: number
+  moduleIdentifier?: string
+}
+
 export interface RawProgressPluginOptions {
   prefix?: string
   profile?: boolean
   template?: string
   tick?: string | Array<string>
   progressChars?: string
-  handler?: (percent: number, msg: string, items: string[]) => void
+  handler?: (percent: number, msg: string, info: { builtModules: number, moduleIdentifier?: string }) => void
 }
 
 export interface RawProvideOptions {

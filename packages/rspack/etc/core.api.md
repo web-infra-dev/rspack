@@ -6399,7 +6399,10 @@ export const ProgressPlugin: {
 };
 
 // @public (undocumented)
-export type ProgressPluginArgument = Partial<Omit<RawProgressPluginOptions, 'handler'>> | ((percentage: number, msg: string, ...args: string[]) => void) | undefined;
+export type ProgressPluginArgument = Partial<Omit<RawProgressPluginOptions, 'handler'>> | ((percentage: number, msg: string, info: {
+    builtModules: number;
+    moduleIdentifier?: string;
+}) => void) | undefined;
 
 // @public (undocumented)
 interface PropBase extends Node_4 {
