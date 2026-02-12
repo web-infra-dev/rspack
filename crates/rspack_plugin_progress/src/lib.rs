@@ -128,7 +128,7 @@ impl ProgressPlugin {
       .expect("failed to get current time")
       .as_millis() as u32;
 
-    if current_time - self.last_updated.load(Relaxed) > 200 {
+    if current_time - self.last_updated.load(Relaxed) > 100 {
       self.update().await?;
       self.last_updated.store(current_time, Relaxed);
     }
@@ -144,10 +144,9 @@ impl ProgressPlugin {
         self.modules_count.load(Relaxed),
       ) as f64);
 
-    let mut items = vec![];
+    let msg = format!("build modules ({modules_done})");
 
     if let Some(last_active_module) = self.last_active_module.lock().await.as_ref() {
-      items.push(last_active_module.to_string());
       let duration = self
         .active_modules
         .lock()
@@ -155,12 +154,7 @@ impl ProgressPlugin {
         .get(last_active_module)
         .map(|time| Instant::now() - *time);
       self
-        .handler(
-          0.1 + percent_by_module * 0.55,
-          String::from("building"),
-          items,
-          duration,
-        )
+        .handler(0.1 + percent_by_module * 0.55, msg, vec![], duration)
         .await?;
     }
     Ok(())
@@ -177,23 +171,17 @@ impl ProgressPlugin {
       ProgressPluginOptions::Handler(handler) => handler(percent, msg, state_items).await?,
       ProgressPluginOptions::Default(options) => {
         if options.profile {
-          self.default_handler(percent, msg, state_items, time).await;
+          self.default_handler(percent, msg, time).await;
         } else {
-          self.progress_bar_handler(percent, msg, state_items);
+          self.progress_bar_handler(percent, msg);
         }
       }
     };
     Ok(())
   }
 
-  async fn default_handler(
-    &self,
-    _: f64,
-    msg: String,
-    items: Vec<String>,
-    duration: Option<Duration>,
-  ) {
-    let full_state = [vec![msg.clone()], items.clone()].concat();
+  async fn default_handler(&self, _: f64, msg: String, duration: Option<Duration>) {
+    let full_state = vec![msg.clone()];
     let now = Instant::now();
     {
       let mut last_state_info = self.last_state_info.lock().await;
@@ -259,9 +247,8 @@ impl ProgressPlugin {
     }
   }
 
-  fn progress_bar_handler(&self, percent: f64, msg: String, state_items: Vec<String>) {
+  fn progress_bar_handler(&self, percent: f64, msg: String) {
     if let Some(progress_bar) = &self.progress_bar {
-      let msg = msg + " " + state_items.join(" ").as_str();
       if percent == 1.0 {
         progress_bar.finish_with_message(msg);
       } else {
@@ -276,8 +263,8 @@ impl ProgressPlugin {
     self
       .handler(
         0.7 + 0.25 * (index as f64 / number_of_sealing_hooks as f64),
-        "sealing".to_string(),
-        vec![name.to_string()],
+        name.to_string(),
+        vec![],
         None,
       )
       .await
@@ -306,12 +293,7 @@ async fn this_compilation(
   }
 
   self
-    .handler(
-      0.08,
-      "setup".to_string(),
-      vec!["compilation".to_string()],
-      None,
-    )
+    .handler(0.08, "prepare compilation".to_string(), vec![], None)
     .await
 }
 
@@ -322,22 +304,19 @@ async fn compilation(
   _params: &mut CompilationParams,
 ) -> Result<()> {
   self
-    .handler(
-      0.09,
-      "setup".to_string(),
-      vec!["compilation".to_string()],
-      None,
-    )
+    .handler(0.09, "prepare compilation".to_string(), vec![], None)
     .await
 }
 
 #[plugin_hook(CompilerMake for ProgressPlugin)]
 async fn make(&self, _compilation: &mut Compilation) -> Result<()> {
   self
-    .handler(0.1, String::from("make"), vec![], None)
+    .handler(0.1, String::from("build graph"), vec![], None)
     .await?;
   self.modules_count.store(0, Relaxed);
   self.modules_done.store(0, Relaxed);
+  self.active_modules.lock().await.clear();
+  self.last_active_module.lock().await.take();
   Ok(())
 }
 
@@ -414,12 +393,7 @@ async fn succeed_module(
 #[plugin_hook(CompilerFinishMake for ProgressPlugin)]
 async fn finish_make(&self, _compilation: &mut Compilation) -> Result<()> {
   self
-    .handler(
-      0.69,
-      "building".to_string(),
-      vec!["finish make".to_string()],
-      None,
-    )
+    .handler(0.69, "build modules done".to_string(), vec![], None)
     .await
 }
 
@@ -429,12 +403,12 @@ async fn finish_modules(
   _compilation: &mut Compilation,
   _async_modules_artifact: &mut AsyncModulesArtifact,
 ) -> Result<()> {
-  self.sealing_hooks_report("finish modules", 0).await
+  self.sealing_hooks_report("modules ready", 0).await
 }
 
 #[plugin_hook(CompilationSeal for ProgressPlugin)]
 async fn seal(&self, _compilation: &mut Compilation) -> Result<()> {
-  self.sealing_hooks_report("plugins", 1).await
+  self.sealing_hooks_report("start", 1).await
 }
 
 #[plugin_hook(CompilationOptimizeDependencies for ProgressPlugin)]
@@ -455,35 +429,29 @@ async fn optimize_modules(
   _compilation: &Compilation,
   _diagnostics: &mut Vec<Diagnostic>,
 ) -> Result<Option<bool>> {
-  self.sealing_hooks_report("module optimization", 7).await?;
+  self.sealing_hooks_report("modules", 7).await?;
   Ok(None)
 }
 
 #[plugin_hook(CompilationAfterOptimizeModules for ProgressPlugin)]
 async fn after_optimize_modules(&self, _compilation: &Compilation) -> Result<()> {
-  self
-    .sealing_hooks_report("after module optimization", 8)
-    .await
+  self.sealing_hooks_report("modules done", 8).await
 }
 
 #[plugin_hook(CompilationOptimizeChunks for ProgressPlugin)]
 async fn optimize_chunks(&self, _compilation: &mut Compilation) -> Result<Option<bool>> {
-  self.sealing_hooks_report("chunk optimization", 9).await?;
+  self.sealing_hooks_report("chunks", 9).await?;
   Ok(None)
 }
 
 #[plugin_hook(CompilationOptimizeTree for ProgressPlugin)]
 async fn optimize_tree(&self, _compilation: &Compilation) -> Result<()> {
-  self
-    .sealing_hooks_report("module and chunk tree optimization", 11)
-    .await
+  self.sealing_hooks_report("graph", 11).await
 }
 
 #[plugin_hook(CompilationOptimizeChunkModules for ProgressPlugin)]
 async fn optimize_chunk_modules(&self, _compilation: &mut Compilation) -> Result<Option<bool>> {
-  self
-    .sealing_hooks_report("chunk modules optimization", 13)
-    .await?;
+  self.sealing_hooks_report("chunk modules", 13).await?;
   Ok(None)
 }
 
@@ -494,7 +462,7 @@ async fn module_ids(
   _module_ids: &mut ModuleIdsArtifact,
   _diagnostics: &mut Vec<Diagnostic>,
 ) -> Result<()> {
-  self.sealing_hooks_report("module ids", 16).await
+  self.sealing_hooks_report("assign module ids", 16).await
 }
 
 #[plugin_hook(CompilationChunkIds for ProgressPlugin)]
@@ -505,7 +473,7 @@ async fn chunk_ids(
   _named_chunk_ids_artifact: &mut ChunkNamedIdArtifact,
   _diagnostics: &mut Vec<Diagnostic>,
 ) -> Result<()> {
-  self.sealing_hooks_report("chunk ids", 21).await
+  self.sealing_hooks_report("assign chunk ids", 21).await
 }
 
 #[plugin_hook(CompilationOptimizeCodeGeneration for ProgressPlugin)]
@@ -515,12 +483,12 @@ async fn optimize_code_generation(
   _build_module_graph_artifact: &mut BuildModuleGraphArtifact,
   _diagnostics: &mut Vec<Diagnostic>,
 ) -> Result<()> {
-  self.sealing_hooks_report("code generation", 26).await
+  self.sealing_hooks_report("generate code", 26).await
 }
 
 #[plugin_hook(CompilationProcessAssets for ProgressPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_ADDITIONAL)]
 async fn process_assets(&self, _compilation: &mut Compilation) -> Result<()> {
-  self.sealing_hooks_report("asset processing", 35).await
+  self.sealing_hooks_report("process assets", 35).await
 }
 
 #[plugin_hook(CompilationAfterProcessAssets for ProgressPlugin)]
@@ -529,28 +497,19 @@ async fn after_process_assets(
   _compilation: &Compilation,
   _diagnostics: &mut Vec<Diagnostic>,
 ) -> Result<()> {
-  self
-    .sealing_hooks_report("after asset optimization", 36)
-    .await
+  self.sealing_hooks_report("process assets done", 36).await
 }
 
 #[plugin_hook(CompilerEmit for ProgressPlugin)]
 async fn emit(&self, _compilation: &mut Compilation) -> Result<()> {
   self
-    .handler(0.98, "emitting".to_string(), vec!["emit".to_string()], None)
+    .handler(0.98, "emit assets".to_string(), vec![], None)
     .await
 }
 
 #[plugin_hook(CompilerAfterEmit for ProgressPlugin)]
 async fn after_emit(&self, _compilation: &mut Compilation) -> Result<()> {
-  self
-    .handler(
-      1.0,
-      "emitting".to_string(),
-      vec!["after emit".to_string()],
-      None,
-    )
-    .await
+  self.handler(1.0, "done".to_string(), vec![], None).await
 }
 
 #[plugin_hook(CompilerClose for ProgressPlugin)]
