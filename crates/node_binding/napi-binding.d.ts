@@ -1800,8 +1800,14 @@ export interface RawAssetInlineGeneratorOptions {
 }
 
 export interface RawAssetParserDataUrl {
-  type: "options"
+  type: "options" | "function"
   options?: RawAssetParserDataUrlOptions
+  func?: (source: Buffer, context: RawAssetParserDataUrlFnCtx) => boolean
+}
+
+export interface RawAssetParserDataUrlFnCtx {
+  filename: string
+  module: Module
 }
 
 export interface RawAssetParserDataUrlOptions {

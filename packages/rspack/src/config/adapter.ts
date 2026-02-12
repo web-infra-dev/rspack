@@ -3,6 +3,7 @@ import {
   type RawAssetGeneratorOptions,
   type RawAssetInlineGeneratorOptions,
   type RawAssetParserDataUrl,
+  type RawAssetParserDataUrlFnCtx,
   type RawAssetParserOptions,
   type RawAssetResourceGeneratorOptions,
   type RawCssAutoGeneratorOptions,
@@ -618,8 +619,15 @@ function getRawAssetParserDataUrl(
       },
     };
   }
+  if (typeof dataUrlCondition === 'function') {
+    return {
+      type: 'function',
+      func: (source: Buffer, context: RawAssetParserDataUrlFnCtx) =>
+        dataUrlCondition(source, context),
+    };
+  }
   throw new Error(
-    `unreachable: AssetParserDataUrl type should be one of "options", but got ${dataUrlCondition}`,
+    `unreachable: AssetParserDataUrl type should be one of "options", "function", but got ${dataUrlCondition}`,
   );
 }
 
