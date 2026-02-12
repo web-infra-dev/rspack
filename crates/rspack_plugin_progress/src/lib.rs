@@ -293,7 +293,7 @@ async fn this_compilation(
   }
 
   self
-    .handler(0.08, "prepare compilation".to_string(), vec![], None)
+    .handler(0.08, "build start".to_string(), vec![], None)
     .await
 }
 
@@ -304,14 +304,14 @@ async fn compilation(
   _params: &mut CompilationParams,
 ) -> Result<()> {
   self
-    .handler(0.09, "prepare compilation".to_string(), vec![], None)
+    .handler(0.09, "build start".to_string(), vec![], None)
     .await
 }
 
 #[plugin_hook(CompilerMake for ProgressPlugin)]
 async fn make(&self, _compilation: &mut Compilation) -> Result<()> {
   self
-    .handler(0.1, String::from("build graph"), vec![], None)
+    .handler(0.1, String::from("build modules"), vec![], None)
     .await?;
   self.modules_count.store(0, Relaxed);
   self.modules_done.store(0, Relaxed);
@@ -403,12 +403,12 @@ async fn finish_modules(
   _compilation: &mut Compilation,
   _async_modules_artifact: &mut AsyncModulesArtifact,
 ) -> Result<()> {
-  self.sealing_hooks_report("modules ready", 0).await
+  self.sealing_hooks_report("finish modules", 0).await
 }
 
 #[plugin_hook(CompilationSeal for ProgressPlugin)]
 async fn seal(&self, _compilation: &mut Compilation) -> Result<()> {
-  self.sealing_hooks_report("start", 1).await
+  self.sealing_hooks_report("start sealing", 1).await
 }
 
 #[plugin_hook(CompilationOptimizeDependencies for ProgressPlugin)]
@@ -419,7 +419,9 @@ async fn optimize_dependencies(
   _build_module_graph_artifact: &mut BuildModuleGraphArtifact,
   _diagnostics: &mut Vec<Diagnostic>,
 ) -> Result<Option<bool>> {
-  self.sealing_hooks_report("dependencies", 2).await?;
+  self
+    .sealing_hooks_report("optimize dependencies", 2)
+    .await?;
   Ok(None)
 }
 
@@ -429,29 +431,31 @@ async fn optimize_modules(
   _compilation: &Compilation,
   _diagnostics: &mut Vec<Diagnostic>,
 ) -> Result<Option<bool>> {
-  self.sealing_hooks_report("modules", 7).await?;
+  self.sealing_hooks_report("optimize modules", 7).await?;
   Ok(None)
 }
 
 #[plugin_hook(CompilationAfterOptimizeModules for ProgressPlugin)]
 async fn after_optimize_modules(&self, _compilation: &Compilation) -> Result<()> {
-  self.sealing_hooks_report("modules done", 8).await
+  self.sealing_hooks_report("optimize modules done", 8).await
 }
 
 #[plugin_hook(CompilationOptimizeChunks for ProgressPlugin)]
 async fn optimize_chunks(&self, _compilation: &mut Compilation) -> Result<Option<bool>> {
-  self.sealing_hooks_report("chunks", 9).await?;
+  self.sealing_hooks_report("optimize chunks", 9).await?;
   Ok(None)
 }
 
 #[plugin_hook(CompilationOptimizeTree for ProgressPlugin)]
 async fn optimize_tree(&self, _compilation: &Compilation) -> Result<()> {
-  self.sealing_hooks_report("graph", 11).await
+  self.sealing_hooks_report("optimize graph", 11).await
 }
 
 #[plugin_hook(CompilationOptimizeChunkModules for ProgressPlugin)]
 async fn optimize_chunk_modules(&self, _compilation: &mut Compilation) -> Result<Option<bool>> {
-  self.sealing_hooks_report("chunk modules", 13).await?;
+  self
+    .sealing_hooks_report("optimize chunk modules", 13)
+    .await?;
   Ok(None)
 }
 
