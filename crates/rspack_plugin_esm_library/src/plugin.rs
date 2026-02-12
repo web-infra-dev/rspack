@@ -15,7 +15,7 @@ use rspack_core::{
   CompilationOptimizeDependencies, CompilationParams, CompilationProcessAssets,
   CompilationRuntimeRequirementInTree, CompilerCompilation, ConcatenatedModuleInfo,
   ConcatenationScope, DependencyType, ExternalModuleInfo, GetTargetResult, Logger,
-  ModuleFactoryCreateData, ModuleIdentifier, ModuleInfo, ModuleType,
+  ModuleFactoryCreateData, ModuleGraph, ModuleIdentifier, ModuleInfo, ModuleType,
   NormalModuleFactoryAfterFactorize, NormalModuleFactoryParser, ParserAndGenerator, ParserOptions,
   Plugin, PrefetchExportsInfoMode, RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule,
   SideEffectsOptimizeArtifact, get_target, is_esm_dep_like,
@@ -27,7 +27,6 @@ use rspack_plugin_javascript::{
   JavascriptModulesRenderChunkContent, JsPlugin, RenderSource,
   dependency::ImportDependencyTemplate, parser_and_generator::JavaScriptParserAndGenerator,
 };
-use rspack_plugin_rslib::dyn_import_external::cutout_dyn_import_external;
 use rspack_util::fx_hash::FxHashMap;
 use sugar_path::SugarPath;
 use tokio::sync::RwLock;
@@ -64,6 +63,163 @@ impl EsmLibraryPlugin {
       Default::default(),
       Default::default(),
     )
+  }
+
+  async fn mark_modules(&self, compilation: &Compilation, module_graph: &ModuleGraph) {
+    let mut modules_map = IdentifierIndexMap::default();
+    let modules = module_graph.modules();
+    let mut modules = modules.iter().collect::<Vec<_>>();
+    modules.sort_by(|(m1, _), (m2, _)| m1.cmp(m2));
+    let logger = compilation.get_logger("rspack.EsmLibraryPlugin");
+
+    for (idx, (module_identifier, module)) in modules.into_iter().enumerate() {
+      // make sure all exports are provided
+      let mut should_scope_hoisting = true;
+
+      if let Some(reason) = module.get_concatenation_bailout_reason(
+        module_graph,
+        &compilation.build_chunk_graph_artifact.chunk_graph,
+      ) {
+        logger.debug(format!(
+          "module {module_identifier} has bailout reason: {reason}",
+        ));
+        should_scope_hoisting = false;
+      }
+      // TODO: support config to disable scope hoisting for non strict module
+      //  else if !module.build_info().strict {
+      //   logger.debug(format!("module {module_identifier} is not strict module"));
+      //   should_scope_hoisting = false;
+      // }
+      else if module_graph
+        .get_incoming_connections(module_identifier)
+        .map(|conn| module_graph.dependency_by_id(&conn.dependency_id))
+        .any(|dep| {
+          !is_esm_dep_like(dep)
+            && !matches!(
+              dep.dependency_type(),
+              DependencyType::Entry | DependencyType::DynamicImport
+            )
+        })
+      {
+        logger.debug(format!(
+          "module {module_identifier} is referenced by non esm dependency"
+        ));
+        should_scope_hoisting = false;
+      }
+
+      // if we reach here, check exports info
+      if should_scope_hoisting {
+        let exports_info = module_graph
+          .get_prefetched_exports_info(module_identifier, PrefetchExportsInfoMode::Default);
+
+        let relevant_exports = exports_info.get_relevant_exports(None);
+        let unknown_exports = relevant_exports
+          .iter()
+          .filter(|export_info| {
+            export_info.is_reexport()
+              && !matches!(
+                get_target(
+                  export_info,
+                  module_graph,
+                  Rc::new(|_| true),
+                  &mut Default::default()
+                ),
+                Some(GetTargetResult::Target(_))
+              )
+          })
+          .copied()
+          .collect::<Vec<_>>();
+
+        if !unknown_exports.is_empty() {
+          logger.debug(format!(
+            "module {module_identifier} has unknown reexport: {:?}",
+            unknown_exports.iter().map(|e| e.name()).collect::<Vec<_>>()
+          ));
+          should_scope_hoisting = false;
+        }
+      }
+
+      if should_scope_hoisting {
+        modules_map.insert(
+          *module_identifier,
+          ModuleInfo::Concatenated(Box::new(ConcatenatedModuleInfo {
+            index: idx,
+            module: *module_identifier,
+            ..Default::default()
+          })),
+        );
+      } else {
+        modules_map.insert(
+          *module_identifier,
+          ModuleInfo::External(ExternalModuleInfo {
+            index: idx,
+            module: *module_identifier,
+            interop_namespace_object_used: false,
+            interop_namespace_object_name: None,
+            interop_namespace_object2_used: false,
+            interop_namespace_object2_name: None,
+            interop_default_access_used: false,
+            interop_default_access_name: None,
+            runtime_requirements: RuntimeGlobals::default(),
+            name: None,
+            deferred: false,
+            deferred_name: None,
+            deferred_namespace_object_name: None,
+            deferred_namespace_object_used: false,
+          }),
+        );
+      }
+    }
+
+    // we should mark all wrapped modules' children as wrapped
+    let mut visited = IdentifierSet::default();
+    let mut stack = modules_map
+      .iter()
+      .filter(|(_, info)| matches!(info, ModuleInfo::External(_)))
+      .map(|(id, _)| *id)
+      .collect::<Vec<_>>();
+
+    while let Some(m) = stack.pop() {
+      if !visited.insert(m) {
+        continue;
+      }
+
+      for dep in module_graph.get_outgoing_deps_in_order(&m) {
+        let Some(dep_module) = module_graph.module_identifier_by_dependency_id(dep) else {
+          continue;
+        };
+
+        if let Some(info) = modules_map.get_mut(dep_module)
+          && let ModuleInfo::Concatenated(concate_info) = info
+        {
+          *info = ModuleInfo::External(ExternalModuleInfo {
+            index: concate_info.index,
+            module: concate_info.module,
+            interop_namespace_object_used: false,
+            interop_namespace_object_name: None,
+            interop_namespace_object2_used: false,
+            interop_namespace_object2_name: None,
+            interop_default_access_used: false,
+            interop_default_access_name: None,
+            name: None,
+            runtime_requirements: RuntimeGlobals::default(),
+            deferred: false,
+            deferred_name: None,
+            deferred_namespace_object_name: None,
+            deferred_namespace_object_used: false,
+          });
+          stack.push(*dep_module);
+        }
+      }
+    }
+
+    // only used for scope
+    // we mutably modify data in `self.concatenated_modules_map`
+    let mut map = self.concatenated_modules_map_for_codegen.borrow_mut();
+    *map = Arc::new(modules_map.clone());
+    drop(map);
+
+    *self.concatenated_modules_map.write().await = modules_map;
   }
 }
 
@@ -107,134 +263,6 @@ async fn finish_modules(
   _async_modules_artifact: &mut AsyncModulesArtifact,
 ) -> Result<()> {
   let module_graph = compilation.get_module_graph();
-  let mut modules_map = IdentifierIndexMap::default();
-  let modules = module_graph.modules();
-  let mut modules = modules.iter().collect::<Vec<_>>();
-  modules.sort_by(|(m1, _), (m2, _)| m1.cmp(m2));
-  let logger = compilation.get_logger("rspack.EsmLibraryPlugin");
-
-  for (idx, (module_identifier, module)) in modules.into_iter().enumerate() {
-    // make sure all exports are provided
-    let mut should_scope_hoisting = true;
-
-    if let Some(reason) = module.get_concatenation_bailout_reason(
-      module_graph,
-      &compilation.build_chunk_graph_artifact.chunk_graph,
-    ) {
-      logger.debug(format!(
-        "module {module_identifier} has bailout reason: {reason}",
-      ));
-      should_scope_hoisting = false;
-    }
-    // TODO: support config to disable scope hoisting for non strict module
-    //  else if !module.build_info().strict {
-    //   logger.debug(format!("module {module_identifier} is not strict module"));
-    //   should_scope_hoisting = false;
-    // }
-    else if module_graph
-      .get_incoming_connections(module_identifier)
-      .map(|conn| module_graph.dependency_by_id(&conn.dependency_id))
-      .any(|dep| {
-        !is_esm_dep_like(dep)
-          && !matches!(
-            dep.dependency_type(),
-            DependencyType::Entry | DependencyType::DynamicImport
-          )
-      })
-    {
-      logger.debug(format!(
-        "module {module_identifier} is referenced by non esm dependency"
-      ));
-      should_scope_hoisting = false;
-    }
-
-    // if we reach here, check exports info
-    if should_scope_hoisting {
-      let exports_info = module_graph
-        .get_prefetched_exports_info(module_identifier, PrefetchExportsInfoMode::Default);
-
-      let relevant_exports = exports_info.get_relevant_exports(None);
-      let unknown_exports = relevant_exports
-        .iter()
-        .filter(|export_info| {
-          export_info.is_reexport()
-            && !matches!(
-              get_target(
-                export_info,
-                module_graph,
-                Rc::new(|_| true),
-                &mut Default::default()
-              ),
-              Some(GetTargetResult::Target(_))
-            )
-        })
-        .copied()
-        .collect::<Vec<_>>();
-
-      if !unknown_exports.is_empty() {
-        logger.debug(format!(
-          "module {module_identifier} has unknown reexport: {:?}",
-          unknown_exports.iter().map(|e| e.name()).collect::<Vec<_>>()
-        ));
-        should_scope_hoisting = false;
-      }
-    }
-
-    if should_scope_hoisting {
-      modules_map.insert(
-        *module_identifier,
-        ModuleInfo::Concatenated(Box::new(ConcatenatedModuleInfo {
-          index: idx,
-          module: *module_identifier,
-          ..Default::default()
-        })),
-      );
-    } else {
-      modules_map.insert(
-        *module_identifier,
-        ModuleInfo::External(ExternalModuleInfo::new(idx, *module_identifier)),
-      );
-    }
-  }
-
-  // we should mark all wrapped modules' children as wrapped
-  let mut visited = IdentifierSet::default();
-  let mut stack = modules_map
-    .iter()
-    .filter(|(_, info)| matches!(info, ModuleInfo::External(_)))
-    .map(|(id, _)| *id)
-    .collect::<Vec<_>>();
-
-  let module_graph = compilation.get_module_graph();
-  while let Some(m) = stack.pop() {
-    if !visited.insert(m) {
-      continue;
-    }
-
-    for dep in module_graph.get_outgoing_deps_in_order(&m) {
-      let Some(dep_module) = module_graph.module_identifier_by_dependency_id(dep) else {
-        continue;
-      };
-
-      if let Some(info) = modules_map.get_mut(dep_module)
-        && let ModuleInfo::Concatenated(concate_info) = info
-      {
-        *info = ModuleInfo::External(ExternalModuleInfo::new(
-          concate_info.index,
-          concate_info.module,
-        ));
-        stack.push(*dep_module);
-      }
-    }
-  }
-
-  // only used for scope
-  // we mutably modify data in `self.concatenated_modules_map`
-  let mut map = self.concatenated_modules_map_for_codegen.borrow_mut();
-  *map = Arc::new(modules_map.clone());
-  drop(map);
-
-  *self.concatenated_modules_map.write().await = modules_map;
   // mark all entry exports as used
   let mut entry_modules = IdentifierSet::default();
   for entry_data in compilation.entries.values() {
@@ -459,7 +487,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           .expect("should have correct to_str for chunk path");
 
         // change relative path to unix style
-        let import_str = if relative.starts_with(".") {
+        let import_str = if relative.starts_with("./") || relative.starts_with("../") {
           relative
         } else {
           std::borrow::Cow::Owned(format!("./{relative}"))
@@ -538,12 +566,15 @@ async fn after_factorize(
 #[plugin_hook(CompilationOptimizeDependencies for EsmLibraryPlugin)]
 async fn optimize_dependencies(
   &self,
-  _compilation: &Compilation,
+  compilation: &Compilation,
   _side_effects_optimize_artifact: &mut SideEffectsOptimizeArtifact,
   build_module_graph_artifact: &mut BuildModuleGraphArtifact,
   _diagnostics: &mut Vec<Diagnostic>,
 ) -> Result<Option<bool>> {
-  cutout_dyn_import_external(build_module_graph_artifact);
+  self
+    .mark_modules(compilation, &build_module_graph_artifact.module_graph)
+    .await;
+
   Ok(None)
 }
 
@@ -558,13 +589,18 @@ impl Plugin for EsmLibraryPlugin {
 
     ctx
       .compilation_hooks
-      .after_code_generation
-      .tap(after_code_generation::new(self));
+      .optimize_dependencies
+      .tap(optimize_dependencies::new(self));
 
     ctx
       .compilation_hooks
       .concatenation_scope
       .tap(concatenation_scope::new(self));
+
+    ctx
+      .compilation_hooks
+      .after_code_generation
+      .tap(after_code_generation::new(self));
 
     ctx
       .compilation_hooks
@@ -590,11 +626,6 @@ impl Plugin for EsmLibraryPlugin {
       .compilation_hooks
       .optimize_chunks
       .tap(optimize_chunks::new(self));
-
-    ctx
-      .compilation_hooks
-      .optimize_dependencies
-      .tap(optimize_dependencies::new(self));
 
     ctx.normal_module_factory_hooks.parser.tap(parse::new(self));
     ctx

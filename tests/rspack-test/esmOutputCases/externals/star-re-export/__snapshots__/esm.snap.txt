@@ -1,0 +1,10 @@
+```mjs title=main.mjs
+export * from "fs";
+export * from "path";
+// ./index.js
+
+
+const value = 42
+export { value };
+
+```

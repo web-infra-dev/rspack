@@ -4880,6 +4880,7 @@ version = "0.100.0-beta.2"
 dependencies = [
  "async-trait",
  "rspack_cacheable",
+ "rspack_collections",
  "rspack_core",
  "rspack_error",
  "rspack_fs",
@@ -4887,6 +4888,7 @@ dependencies = [
  "rspack_hook",
  "rspack_plugin_asset",
  "rspack_plugin_javascript",
+ "rustc-hash",
  "serde_json",
  "swc_core",
  "tracing",
