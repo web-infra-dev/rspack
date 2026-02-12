@@ -1022,8 +1022,8 @@ importers:
         specifier: 0.0.4
         version: 0.0.4
       heading-case:
-        specifier: ^1.0.6
-        version: 1.0.6
+        specifier: ^1.0.7
+        version: 1.0.7
       rsbuild-plugin-google-analytics:
         specifier: 1.0.5
         version: 1.0.5(@rsbuild/core@2.0.0-beta.1(@module-federation/runtime-tools@0.24.1)(core-js@3.47.0))
@@ -5512,8 +5512,8 @@ packages:
     resolution: {integrity: sha512-F/1DnUGPopORZi0ni+CvrCgHQ5FyEAHRLSApuYWMmrbSwoN2Mn/7k+Gl38gJnR7yyDZk6WLXwiGod1JOWNDKGw==}
     hasBin: true
 
-  heading-case@1.0.6:
-    resolution: {integrity: sha512-yGJVdhNejrGETI7JEslt8e+iPZAGNwwlzbiFCWqdp3QfsR5C0qHUasRhG33Af1wUrDet3b/VERECIJ4VrjaiRA==}
+  heading-case@1.0.7:
+    resolution: {integrity: sha512-iwQFmbRpvSm57XVI1LiWyXqKd6KyW3jGDIskxPO+8zCZ/JblxU5rdCNmqVWuc3NNHFr32cOmxSTC38GsR7U8GA==}
     hasBin: true
 
   hmac-drbg@1.0.1:
@@ -13186,7 +13186,7 @@ snapshots:
 
   he@1.2.0: {}
 
-  heading-case@1.0.6: {}
+  heading-case@1.0.7: {}
 
   hmac-drbg@1.0.1:
     dependencies:
