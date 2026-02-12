@@ -78,10 +78,6 @@ runs:
   steps:
     - shell: bash
       run: |
-        sudo apt update
-        sudo apt install -y libc6-dbg
-    - shell: bash
-      run: |
         # Validate required inputs
         # (custom message for smoother v4 migration)
         if [ -z "${{ inputs.mode }}" ]; then

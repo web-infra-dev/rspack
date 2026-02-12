@@ -76,6 +76,18 @@ jobs:
       - name: Build JS
         run: pnpm run build:js
 
+      - name: Replace Ubuntu APT sources
+        if: runner.os == 'Linux'
+        run: |
+          sudo cp /etc/apt/sources.list /etc/apt/sources.list.bak
+          sudo tee /etc/apt/sources.list > /dev/null <<EOF
+          deb http://mirrors.ivolces.com/debian buster main contrib non-free
+          deb http://mirrors.ivolces.com/debian buster-backports main contrib non-free
+          deb http://mirrors.ivolces.com/debian-security buster/updates main contrib non-free
+          deb-src http://mirrors.ivolces.com/debian buster main contrib non-free
+          EOF
+          sudo apt update
+
       - name: Run benchmark
         uses: ./.github/actions/codspeed
         timeout-minutes: 30
