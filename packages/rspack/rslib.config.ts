@@ -197,7 +197,8 @@ export default defineConfig({
         build: true,
         alias: {
           // alias to pre-bundled types as they are public API
-          '@rspack/lite-tapable': './compiled/@rspack/lite-tapable/dist/index',
+          '@rspack/lite-tapable':
+            './compiled/@rspack/lite-tapable/dist/index.d.ts',
         },
       },
       redirect: {
