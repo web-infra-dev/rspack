@@ -16,7 +16,7 @@ import { parseOptions } from './options';
 export type ContainerReferencePluginOptions = {
   remoteType: ExternalsType;
   remotes: Remotes;
-  shareScope?: string;
+  shareScope?: string | string[];
   enhanced?: boolean;
 };
 export type Remotes = (RemotesItem | RemotesObject)[] | RemotesObject;
@@ -27,7 +27,7 @@ export type RemotesObject = {
 };
 export type RemotesConfig = {
   external: RemotesItem | RemotesItems;
-  shareScope?: string;
+  shareScope?: string | string[];
 };
 
 export class ContainerReferencePlugin extends RspackBuiltinPlugin {

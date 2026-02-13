@@ -143,7 +143,7 @@ interface RemoteInfo {
   name?: string;
   entry?: string;
   externalType: ExternalsType;
-  shareScope: string;
+  shareScope: string | string[];
 }
 
 type RemoteInfos = Record<string, RemoteInfo[]>;

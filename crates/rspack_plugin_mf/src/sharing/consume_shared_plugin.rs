@@ -27,16 +27,35 @@ use super::{
 #[cacheable]
 #[derive(Debug, Clone, Hash)]
 pub struct ConsumeOptions {
+  pub request: Option<String>,
+  pub issuer_layer: Option<String>,
+  pub layer: Option<String>,
   pub import: Option<String>,
   pub import_resolved: Option<String>,
   pub share_key: String,
-  pub share_scope: String,
+  pub share_scope: Vec<String>,
   pub required_version: Option<ConsumeVersion>,
   pub package_name: Option<String>,
   pub strict_version: bool,
   pub singleton: bool,
   pub eager: bool,
   pub tree_shaking_mode: Option<String>,
+}
+
+fn create_lookup_key_for_sharing(request: &str, layer: Option<&str>) -> String {
+  if let Some(layer) = layer {
+    return format!("({layer}){request}");
+  }
+  request.to_string()
+}
+
+fn strip_lookup_layer_prefix(lookup: &str) -> &str {
+  if lookup.starts_with('(')
+    && let Some(index) = lookup.find(')')
+  {
+    return &lookup[index + 1..];
+  }
+  lookup
 }
 
 #[cacheable]
@@ -78,6 +97,8 @@ pub async fn resolve_matched_configs(
   let mut unresolved = FxHashMap::default();
   let mut prefixed = FxHashMap::default();
   for (request, config) in configs {
+    let request = config.request.as_deref().unwrap_or(request);
+    let lookup_key = create_lookup_key_for_sharing(request, config.issuer_layer.as_deref());
     if RELATIVE_REQUEST.is_match(request) {
       let Ok(ResolveResult::Resource(resource)) = resolver
         .resolve(compilation.options.context.as_ref(), request)
@@ -86,16 +107,18 @@ pub async fn resolve_matched_configs(
         compilation.push_diagnostic(error!("Can't resolve shared module {request}").into());
         continue;
       };
-      resolved.insert(resource.path.as_str().to_string(), config.clone());
+      let resource_key =
+        create_lookup_key_for_sharing(resource.path.as_str(), config.issuer_layer.as_deref());
+      resolved.insert(resource_key, config.clone());
       compilation
         .file_dependencies
         .insert(resource.path.as_path().into());
     } else if ABSOLUTE_REQUEST.is_match(request) {
-      resolved.insert(request.to_owned(), config.clone());
+      resolved.insert(lookup_key, config.clone());
     } else if request.ends_with('/') {
-      prefixed.insert(request.to_owned(), config.clone());
+      prefixed.insert(lookup_key, config.clone());
     } else {
-      unresolved.insert(request.to_owned(), config.clone());
+      unresolved.insert(lookup_key, config.clone());
     }
   }
   MatchedConsumes {
@@ -357,6 +380,9 @@ impl ConsumeSharedPlugin {
         context.clone()
       },
       ConsumeOptions {
+        request: config.request.clone(),
+        issuer_layer: config.issuer_layer.clone(),
+        layer: config.layer.clone(),
         import: import_resolved
           .is_some()
           .then(|| config.import.clone())
@@ -414,8 +440,14 @@ async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<B
   }
   let request = &data.request;
   let consumes = self.get_matched_consumes();
+  let request_lookup = create_lookup_key_for_sharing(request, data.issuer_layer.as_deref());
+  let fallback_lookup = create_lookup_key_for_sharing(request, None);
 
-  if let Some(matched) = consumes.unresolved.get(request) {
+  if let Some(matched) = consumes
+    .unresolved
+    .get(&request_lookup)
+    .or_else(|| consumes.unresolved.get(&fallback_lookup))
+  {
     let module = self
       .create_consume_shared_module(&data.context, request, matched.clone(), |d| {
         data.diagnostics.push(d)
@@ -424,13 +456,24 @@ async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<B
     return Ok(Some(module.boxed()));
   }
   for (prefix, options) in &consumes.prefixed {
-    if request.starts_with(prefix) {
-      let remainder = &request[prefix.len()..];
+    if let Some(config_issuer_layer) = options.issuer_layer.as_deref()
+      && data.issuer_layer.as_deref() != Some(config_issuer_layer)
+    {
+      continue;
+    }
+    let lookup = options
+      .request
+      .as_deref()
+      .unwrap_or_else(|| strip_lookup_layer_prefix(prefix));
+    if let Some(remainder) = request.strip_prefix(lookup) {
       let module = self
         .create_consume_shared_module(
           &data.context,
           request,
           Arc::new(ConsumeOptions {
+            request: Some(request.to_owned()),
+            issuer_layer: options.issuer_layer.clone(),
+            layer: options.layer.clone(),
             import: options.import.as_ref().map(|i| i.to_owned() + remainder),
             import_resolved: options.import_resolved.clone(),
             share_key: options.share_key.clone() + remainder,
@@ -467,8 +510,13 @@ async fn create_module(
   }
   let resource = create_data.resource_resolve_data.resource();
   let consumes = self.get_matched_consumes();
-
-  if let Some(options) = consumes.resolved.get(resource) {
+  let resource_lookup = create_lookup_key_for_sharing(resource, data.issuer_layer.as_deref());
+  let fallback_lookup = create_lookup_key_for_sharing(resource, None);
+  if let Some(options) = consumes
+    .resolved
+    .get(&resource_lookup)
+    .or_else(|| consumes.resolved.get(&fallback_lookup))
+  {
     let module = self
       .create_consume_shared_module(&data.context, resource, options.clone(), |d| {
         data.diagnostics.push(d)

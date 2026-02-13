@@ -77,9 +77,15 @@ export class CollectSharedEntryPlugin extends RspackBuiltinPlugin {
   }
 
   raw(): BuiltinPlugin {
-    const consumeShareOptions = createConsumeShareOptions(this.sharedOptions);
-    const normalizedConsumeShareOptions =
-      normalizeConsumeShareOptions(consumeShareOptions);
+    const consumeShareOptions = createConsumeShareOptions(
+      this.sharedOptions,
+      true,
+    );
+    const normalizedConsumeShareOptions = normalizeConsumeShareOptions(
+      consumeShareOptions,
+      undefined,
+      true,
+    );
     const rawOptions: RawCollectShareEntryPluginOptions = {
       consumes: normalizedConsumeShareOptions.map(([key, v]) => ({
         key,

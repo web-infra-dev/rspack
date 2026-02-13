@@ -35,7 +35,7 @@ pub struct RemoteModule {
   request: String,
   external_requests: Vec<String>,
   pub internal_request: String,
-  pub share_scope: String,
+  pub share_scope: Vec<String>,
   pub remote_key: String,
   factory_meta: Option<FactoryMeta>,
   build_info: BuildInfo,
@@ -47,17 +47,18 @@ impl RemoteModule {
     request: String,
     external_requests: Vec<String>,
     internal_request: String,
-    share_scope: String,
+    share_scope: Vec<String>,
     remote_key: String,
   ) -> Self {
     let readable_identifier = format!("remote {}", &request);
     let lib_ident = format!("webpack/container/remote/{}", &request);
+    let share_scope_identifier = share_scope.join("|");
     Self {
       blocks: Default::default(),
       dependencies: Default::default(),
       identifier: ModuleIdentifier::from(format!(
         "remote ({}) {} {}",
-        share_scope,
+        share_scope_identifier,
         external_requests.join(" "),
         internal_request
       )),
@@ -209,12 +210,21 @@ impl Module for RemoteModule {
       )
     });
     codegen.add(SourceType::Remote, RawStringSource::from_static("").boxed());
-    codegen.data.insert(CodeGenerationDataShareInit {
-      items: vec![ShareInitData {
-        share_scope: self.share_scope.clone(),
+    let scopes: Vec<String> = if self.share_scope.is_empty() {
+      vec!["default".to_string()]
+    } else {
+      self.share_scope.clone()
+    };
+    let share_init_items = scopes
+      .iter()
+      .map(|scope| ShareInitData {
+        share_scope: scope.clone(),
         init_stage: 20,
         init: DataInitInfo::ExternalModuleId(id.cloned()),
-      }],
+      })
+      .collect();
+    codegen.data.insert(CodeGenerationDataShareInit {
+      items: share_init_items,
     });
     Ok(codegen)
   }

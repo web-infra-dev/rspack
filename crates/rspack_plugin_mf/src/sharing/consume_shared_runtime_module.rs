@@ -100,18 +100,50 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
         .code_generation_results
         .get(&module, Some(chunk.runtime()));
       if let Some(data) = code_gen.data.get::<CodeGenerationDataConsumeShared>() {
-        module_id_to_consume_data_mapping.insert(id, format!(
-          "{{ shareScope: {}, shareKey: {}, import: {}, requiredVersion: {}, strictVersion: {}, singleton: {}, eager: {}, fallback: {}, treeShakingMode: {} }}",
-          json_stringify(&data.share_scope),
-          json_stringify(&data.share_key),
-          json_stringify(&data.import),
-          json_stringify(&data.required_version.as_ref().map_or_else(|| "*".to_string(), |v| v.to_string())),
-          json_stringify(&data.strict_version),
-          json_stringify(&data.singleton),
-          json_stringify(&data.eager),
-          data.fallback.as_deref().unwrap_or("undefined"),
-          json_stringify(&data.tree_shaking_mode),
-        ));
+        let share_scope = if self.enhanced {
+          json_stringify(&data.share_scope)
+        } else {
+          json_stringify(data.share_scope.first().map_or("default", String::as_str))
+        };
+        let consume_data = if self.enhanced {
+          format!(
+            "{{ shareScope: {}, shareKey: {}, import: {}, requiredVersion: {}, strictVersion: {}, singleton: {}, eager: {}, layer: {}, fallback: {}, treeShakingMode: {} }}",
+            share_scope,
+            json_stringify(&data.share_key),
+            json_stringify(&data.import),
+            json_stringify(
+              &data
+                .required_version
+                .as_ref()
+                .map_or_else(|| "*".to_string(), |v| v.to_string())
+            ),
+            json_stringify(&data.strict_version),
+            json_stringify(&data.singleton),
+            json_stringify(&data.eager),
+            json_stringify(&data.layer),
+            data.fallback.as_deref().unwrap_or("undefined"),
+            json_stringify(&data.tree_shaking_mode),
+          )
+        } else {
+          format!(
+            "{{ shareScope: {}, shareKey: {}, import: {}, requiredVersion: {}, strictVersion: {}, singleton: {}, eager: {}, fallback: {}, treeShakingMode: {} }}",
+            share_scope,
+            json_stringify(&data.share_key),
+            json_stringify(&data.import),
+            json_stringify(
+              &data
+                .required_version
+                .as_ref()
+                .map_or_else(|| "*".to_string(), |v| v.to_string())
+            ),
+            json_stringify(&data.strict_version),
+            json_stringify(&data.singleton),
+            json_stringify(&data.eager),
+            data.fallback.as_deref().unwrap_or("undefined"),
+            json_stringify(&data.tree_shaking_mode),
+          )
+        };
+        module_id_to_consume_data_mapping.insert(id, consume_data);
       }
     };
     // Match enhanced/webpack behavior: include all referenced chunks so async ones are mapped too
@@ -225,13 +257,14 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
 
 #[derive(Debug, Clone)]
 pub struct CodeGenerationDataConsumeShared {
-  pub share_scope: String,
+  pub share_scope: Vec<String>,
   pub share_key: String,
   pub import: Option<String>,
   pub required_version: Option<ConsumeVersion>,
   pub strict_version: bool,
   pub singleton: bool,
   pub eager: bool,
+  pub layer: Option<String>,
   pub fallback: Option<String>,
   pub tree_shaking_mode: Option<String>,
 }

@@ -28,8 +28,10 @@ static ABSOLUTE_REQUEST: LazyLock<Regex> =
 
 #[derive(Debug, Clone)]
 pub struct ProvideOptions {
+  pub request: Option<String>,
+  pub layer: Option<String>,
   pub share_key: String,
-  pub share_scope: String,
+  pub share_scope: Vec<String>,
   pub version: Option<ProvideVersion>,
   pub eager: bool,
   pub singleton: Option<bool>,
@@ -40,8 +42,10 @@ pub struct ProvideOptions {
 
 #[derive(Debug, Clone)]
 pub struct VersionedProvideOptions {
+  pub request: Option<String>,
+  pub layer: Option<String>,
   pub share_key: String,
-  pub share_scope: String,
+  pub share_scope: Vec<String>,
   pub version: ProvideVersion,
   pub eager: bool,
   pub singleton: Option<bool>,
@@ -53,6 +57,8 @@ pub struct VersionedProvideOptions {
 impl ProvideOptions {
   fn to_versioned(&self) -> VersionedProvideOptions {
     VersionedProvideOptions {
+      request: self.request.clone(),
+      layer: self.layer.clone(),
       share_key: self.share_key.clone(),
       share_scope: self.share_scope.clone(),
       version: self.version.clone().unwrap_or_default(),
@@ -63,6 +69,22 @@ impl ProvideOptions {
       tree_shaking_mode: self.tree_shaking_mode.clone(),
     }
   }
+}
+
+fn create_lookup_key_for_sharing(request: &str, layer: Option<&str>) -> String {
+  if let Some(layer) = layer {
+    return format!("({layer}){request}");
+  }
+  request.to_string()
+}
+
+fn strip_lookup_layer_prefix(lookup: &str) -> &str {
+  if lookup.starts_with('(')
+    && let Some(index) = lookup.find(')')
+  {
+    return &lookup[index + 1..];
+  }
+  lookup
 }
 
 #[rspack_cacheable::cacheable]
@@ -106,25 +128,29 @@ impl ProvideSharedPlugin {
     &self,
     key: &str,
     share_key: &str,
-    share_scope: &str,
+    share_scope: &[String],
     version: Option<&ProvideVersion>,
     eager: bool,
     singleton: Option<bool>,
     required_version: Option<ConsumeVersion>,
     strict_version: Option<bool>,
     tree_shaking_mode: Option<String>,
+    layer: Option<String>,
     resource: &str,
     resource_data: &ResourceData,
     mut add_diagnostic: impl FnMut(Diagnostic),
   ) {
     let title = "rspack.ProvideSharedPlugin";
     let error_header = "No version specified and unable to automatically determine one.";
+    let lookup_key = create_lookup_key_for_sharing(resource, layer.as_deref());
     if let Some(version) = version {
       self.resolved_provide_map.write().await.insert(
-        resource.to_string(),
+        lookup_key.clone(),
         VersionedProvideOptions {
+          request: Some(resource.to_string()),
+          layer: layer.clone(),
           share_key: share_key.to_string(),
-          share_scope: share_scope.to_string(),
+          share_scope: share_scope.to_vec(),
           version: version.to_owned(),
           eager,
           singleton,
@@ -139,10 +165,12 @@ impl ProvideSharedPlugin {
         && let Some(version) = version.as_str()
       {
         self.resolved_provide_map.write().await.insert(
-          resource.to_string(),
+          lookup_key.clone(),
           VersionedProvideOptions {
+            request: Some(resource.to_string()),
+            layer: layer.clone(),
             share_key: share_key.to_string(),
-            share_scope: share_scope.to_string(),
+            share_scope: share_scope.to_vec(),
             version: ProvideVersion::Version(version.to_string()),
             eager,
             singleton,
@@ -190,12 +218,14 @@ async fn compilation(
   let mut match_provides = self.match_provides.write().await;
   let mut prefix_match_provides = self.prefix_match_provides.write().await;
   for (request, config) in &self.provides {
-    if RELATIVE_REQUEST.is_match(request) || ABSOLUTE_REQUEST.is_match(request) {
-      resolved_provide_map.insert(request.clone(), config.to_versioned());
-    } else if request.ends_with('/') {
-      prefix_match_provides.insert(request.clone(), config.clone());
+    let actual_request = config.request.as_deref().unwrap_or(request);
+    let lookup_key = create_lookup_key_for_sharing(actual_request, config.layer.as_deref());
+    if RELATIVE_REQUEST.is_match(actual_request) || ABSOLUTE_REQUEST.is_match(actual_request) {
+      resolved_provide_map.insert(lookup_key, config.to_versioned());
+    } else if actual_request.ends_with('/') {
+      prefix_match_provides.insert(lookup_key, config.clone());
     } else {
-      match_provides.insert(request.clone(), config.clone());
+      match_provides.insert(lookup_key, config.clone());
     }
   }
   Ok(())
@@ -208,17 +238,22 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
     .read()
     .await
     .iter()
-    .map(|(resource, config)| {
+    .map(|(lookup_key, config)| {
+      let request = config
+        .request
+        .clone()
+        .unwrap_or_else(|| strip_lookup_layer_prefix(lookup_key).to_string());
       (
         Box::new(ProvideSharedDependency::new(
           config.share_scope.clone(),
           config.share_key.clone(),
           config.version.clone(),
-          resource.clone(),
+          request,
           config.eager,
           config.singleton,
           config.required_version.clone(),
           config.strict_version,
+          config.layer.clone(),
           config.tree_shaking_mode.clone(),
         )) as BoxDependency,
         EntryOptions {
@@ -237,22 +272,42 @@ async fn normal_module_factory_module(
   &self,
   data: &mut ModuleFactoryCreateData,
   create_data: &mut NormalModuleCreateData,
-  _module: &mut BoxModule,
+  module: &mut BoxModule,
 ) -> Result<()> {
   let resource = create_data.resource_resolve_data.resource();
   let resource_data = &create_data.resource_resolve_data;
+  let effective_layer = module
+    .get_layer()
+    .cloned()
+    .or_else(|| data.issuer_layer.clone());
+  let resource_lookup = create_lookup_key_for_sharing(resource, effective_layer.as_deref());
+  let fallback_resource_lookup = create_lookup_key_for_sharing(resource, None);
   if self
     .resolved_provide_map
     .read()
     .await
-    .contains_key(resource)
+    .contains_key(&resource_lookup)
+  {
+    return Ok(());
+  }
+  if effective_layer.is_none()
+    && self
+      .resolved_provide_map
+      .read()
+      .await
+      .contains_key(&fallback_resource_lookup)
   {
     return Ok(());
   }
   let request = &data.request;
+  let request_lookup = create_lookup_key_for_sharing(request, effective_layer.as_deref());
+  let fallback_request_lookup = create_lookup_key_for_sharing(request, None);
   {
     let match_provides = self.match_provides.read().await;
-    if let Some(config) = match_provides.get(request) {
+    if let Some(config) = match_provides
+      .get(&request_lookup)
+      .or_else(|| match_provides.get(&fallback_request_lookup))
+    {
       self
         .provide_shared_module(
           request,
@@ -264,6 +319,7 @@ async fn normal_module_factory_module(
           config.required_version.clone(),
           config.strict_version,
           config.tree_shaking_mode.clone(),
+          config.layer.clone(),
           resource,
           resource_data,
           |d| data.diagnostics.push(d),
@@ -271,9 +327,17 @@ async fn normal_module_factory_module(
         .await;
     }
   }
-  for (prefix, config) in self.prefix_match_provides.read().await.iter() {
-    if request.starts_with(prefix) {
-      let remainder = &request[prefix.len()..];
+  for (prefix_lookup, config) in self.prefix_match_provides.read().await.iter() {
+    if let Some(config_layer) = config.layer.as_deref()
+      && effective_layer.as_deref() != Some(config_layer)
+    {
+      continue;
+    }
+    let prefix = config
+      .request
+      .as_deref()
+      .unwrap_or_else(|| strip_lookup_layer_prefix(prefix_lookup));
+    if let Some(remainder) = request.strip_prefix(prefix) {
       self
         .provide_shared_module(
           request,
@@ -285,6 +349,7 @@ async fn normal_module_factory_module(
           config.required_version.clone(),
           config.strict_version,
           config.tree_shaking_mode.clone(),
+          config.layer.clone(),
           resource,
           resource_data,
           |d| data.diagnostics.push(d),

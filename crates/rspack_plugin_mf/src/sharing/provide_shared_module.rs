@@ -7,8 +7,8 @@ use rspack_core::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, BuildContext,
   BuildInfo, BuildMeta, BuildResult, CodeGenerationResult, Compilation, Context, DependenciesBlock,
   DependencyId, FactoryMeta, LibIdentOptions, Module, ModuleCodeGenerationContext, ModuleGraph,
-  ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType, impl_module_meta_info,
-  impl_source_map_config, module_update_hash, rspack_sources::BoxSource,
+  ModuleIdentifier, ModuleLayer, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
+  impl_module_meta_info, impl_source_map_config, module_update_hash, rspack_sources::BoxSource,
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
 use rspack_hash::{RspackHash, RspackHashDigest};
@@ -33,13 +33,14 @@ pub struct ProvideSharedModule {
   lib_ident: String,
   readable_identifier: String,
   name: String,
-  share_scope: String,
+  share_scope: Vec<String>,
   version: ProvideVersion,
   request: String,
   eager: bool,
   singleton: Option<bool>,
   required_version: Option<ConsumeVersion>,
   strict_version: Option<bool>,
+  layer: Option<String>,
   tree_shaking_mode: Option<String>,
   factory_meta: Option<FactoryMeta>,
   build_info: BuildInfo,
@@ -49,7 +50,7 @@ pub struct ProvideSharedModule {
 impl ProvideSharedModule {
   #[allow(clippy::too_many_arguments)]
   pub fn new(
-    share_scope: String,
+    share_scope: Vec<String>,
     name: String,
     version: ProvideVersion,
     request: String,
@@ -57,17 +58,34 @@ impl ProvideSharedModule {
     singleton: Option<bool>,
     required_version: Option<ConsumeVersion>,
     strict_version: Option<bool>,
+    layer: Option<String>,
     tree_shaking_mode: Option<String>,
   ) -> Self {
+    let share_scope_identifier = share_scope.join("|");
     let identifier = format!(
-      "provide shared module ({}) {}@{} = {}",
-      &share_scope, &name, &version, &request
+      "provide shared module ({}){} {}@{} = {}",
+      &share_scope_identifier,
+      layer
+        .as_ref()
+        .map(|layer| format!(" ({layer})"))
+        .unwrap_or_default(),
+      &name,
+      &version,
+      &request
     );
     Self {
       blocks: Vec::new(),
       dependencies: Vec::new(),
       identifier: ModuleIdentifier::from(identifier.as_ref()),
-      lib_ident: format!("webpack/sharing/provide/{}/{}", &share_scope, &name),
+      lib_ident: format!(
+        "{}webpack/sharing/provide/{}/{}",
+        layer
+          .as_ref()
+          .map(|layer| format!("({layer})/"))
+          .unwrap_or_default(),
+        &share_scope_identifier,
+        &name
+      ),
       readable_identifier: identifier,
       name,
       share_scope,
@@ -77,6 +95,7 @@ impl ProvideSharedModule {
       singleton,
       required_version,
       strict_version,
+      layer,
       tree_shaking_mode,
       factory_meta: None,
       build_info: BuildInfo {
@@ -150,6 +169,10 @@ impl Module for ProvideSharedModule {
     Some(self.lib_ident.as_str().into())
   }
 
+  fn get_layer(&self) -> Option<&ModuleLayer> {
+    self.layer.as_ref()
+  }
+
   async fn build(
     mut self: Box<Self>,
     _build_context: BuildContext,
@@ -196,20 +219,28 @@ impl Module for ProvideSharedModule {
     code_generation_result
       .data
       .insert(CodeGenerationDataShareInit {
-        items: vec![ShareInitData {
-          share_scope: self.share_scope.clone(),
+        items: if self.share_scope.is_empty() {
+          vec!["default".to_string()]
+        } else {
+          self.share_scope.clone()
+        }
+        .iter()
+        .map(|scope| ShareInitData {
+          share_scope: scope.clone(),
           init_stage: 10,
           init: DataInitInfo::ProvideSharedInfo(ProvideSharedInfo {
             name: self.name.clone(),
             version: self.version.clone(),
-            factory,
+            factory: factory.clone(),
             eager: self.eager,
             singleton: self.singleton,
             strict_version: self.strict_version,
             required_version: self.required_version.clone(),
+            layer: self.layer.clone(),
             tree_shaking_mode: self.tree_shaking_mode.clone(),
           }),
-        }],
+        })
+        .collect(),
       });
     Ok(code_generation_result)
   }

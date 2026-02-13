@@ -32,7 +32,7 @@ pub struct ContainerEntryModule {
   identifier: ModuleIdentifier,
   lib_ident: String,
   exposes: Vec<(String, ExposeOptions)>,
-  share_scope: String,
+  share_scope: Vec<String>,
   factory_meta: Option<FactoryMeta>,
   build_info: BuildInfo,
   build_meta: BuildMeta,
@@ -47,16 +47,17 @@ impl ContainerEntryModule {
   pub fn new(
     name: String,
     exposes: Vec<(String, ExposeOptions)>,
-    share_scope: String,
+    share_scope: Vec<String>,
     enhanced: bool,
   ) -> Self {
     let lib_ident = format!("webpack/container/entry/{}", &name);
+    let share_scope_identifier = share_scope.join("|");
     Self {
       blocks: Vec::new(),
       dependencies: Vec::new(),
       identifier: ModuleIdentifier::from(format!(
         "container entry ({}) {}",
-        share_scope,
+        share_scope_identifier,
         json_stringify(&exposes),
       )),
       lib_ident,
@@ -89,7 +90,7 @@ impl ContainerEntryModule {
       identifier: ModuleIdentifier::from(format!("share container entry {}@{}", &name, &version,)),
       lib_ident,
       exposes: vec![],
-      share_scope: String::new(),
+      share_scope: vec![],
       factory_meta: None,
       build_info: BuildInfo {
         strict: true,
@@ -397,7 +398,13 @@ var init = function(shareScope, initScope) {{
         has_own_property =
           runtime_template.render_runtime_globals(&RuntimeGlobals::HAS_OWN_PROPERTY),
         share_scope_map = runtime_template.render_runtime_globals(&RuntimeGlobals::SHARE_SCOPE_MAP),
-        share_scope = json_stringify(&self.share_scope),
+        share_scope = json_stringify(
+          &self
+            .share_scope
+            .first()
+            .cloned()
+            .unwrap_or_else(|| "default".to_string())
+        ),
         initialize_sharing =
           runtime_template.render_runtime_globals(&RuntimeGlobals::INITIALIZE_SHARING),
         define_property_getters =
@@ -514,5 +521,5 @@ impl ExposeModuleMap {
 #[derive(Debug, Clone)]
 pub struct CodeGenerationDataExpose {
   pub module_map: ExposeModuleMap,
-  pub share_scope: String,
+  pub share_scope: Vec<String>,
 }
