@@ -1,0 +1,16 @@
+```mjs title=_hidden_index_js.mjs
+// ./.hidden/index.js
+const value = () => 42
+export { value };
+
+```
+
+```mjs title=main.mjs
+// ./index.js
+it("should render hidden folder", async () => {
+  const {value} = await import("./_hidden_index_js.mjs").then((mod) => ({ value: mod.value }))
+
+  expect(value()).toBe(42)
+})
+
+```

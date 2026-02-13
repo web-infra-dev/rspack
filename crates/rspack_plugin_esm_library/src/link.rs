@@ -1058,15 +1058,22 @@ var {} = {{}};
     };
 
     for dep in module.get_dependencies() {
+      let Some(conn) = module_graph.connection_by_dependency_id(dep) else {
+        continue;
+      };
+
+      if !conn.is_active(module_graph, None, module_graph_cache) {
+        continue;
+      }
+
       let dep = module_graph.dependency_by_id(dep);
       if let Some(dep) = dep.downcast_ref::<ESMExportImportedSpecifierDependency>()
         && dep.name.is_none()
       {
         let mode = dep.get_mode(module_graph, None, module_graph_cache);
 
-        if matches!(mode, ExportMode::DynamicReexport(_))
-          && let Some(ref_module) = module_graph.module_identifier_by_dependency_id(&dep.id)
-        {
+        if matches!(mode, ExportMode::DynamicReexport(_)) {
+          let ref_module = conn.module_identifier();
           // collect all exports from ref module
           exports.extend(Self::resolve_re_export_star_from_unknown(
             *ref_module,
