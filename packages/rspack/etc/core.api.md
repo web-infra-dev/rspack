@@ -6930,6 +6930,7 @@ export type ResolveOptions = {
     roots?: string[];
     byDependency?: Record<string, ResolveOptions>;
     pnp?: boolean;
+    pnpManifest?: string | false;
 };
 
 // @public (undocumented)

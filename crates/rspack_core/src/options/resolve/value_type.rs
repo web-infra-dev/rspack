@@ -1,3 +1,5 @@
+use rspack_paths::Utf8PathBuf;
+
 pub(super) enum ValueType {
   Undefined,
   Atom,
@@ -39,3 +41,4 @@ macro_rules! get_value_type_for_basic {
 }
 
 get_value_type_for_basic!(bool);
+get_value_type_for_basic!(Utf8PathBuf);

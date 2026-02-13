@@ -1739,6 +1739,12 @@ export interface NapiResolveOptions {
    * Default `false`
    */
   enablePnp?: boolean
+  /**
+   * Path to PnP manifest file
+   *
+   * Default `None`
+   */
+  pnpManifest?: string | false
 }
 
 export interface NativeWatcherOptions {
@@ -2792,6 +2798,7 @@ export interface RawResolveOptions {
   restrictions?: (string | RegExp)[]
   roots?: Array<string>
   pnp?: boolean
+  pnpManifest?: string | false
 }
 
 export interface RawResolveOptionsWithDependencyType {
@@ -2819,6 +2826,7 @@ export interface RawResolveOptionsWithDependencyType {
   dependencyType?: string
   resolveToContext?: boolean
   pnp?: boolean
+  pnpManifest?: string | false
 }
 
 export interface RawResolveTsconfigOptions {

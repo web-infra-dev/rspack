@@ -1,8 +1,8 @@
 use napi::Either;
 use napi_derive::napi;
 use rspack_core::{
-  Alias, AliasMap, ByDependency, DependencyCategory, Resolve, ResolveOptionsWithDependencyType,
-  Restriction, TsconfigOptions, TsconfigReferences,
+  Alias, AliasMap, ByDependency, DependencyCategory, PnpManifest, Resolve,
+  ResolveOptionsWithDependencyType, Restriction, TsconfigOptions, TsconfigReferences,
 };
 use rspack_error::error;
 use rspack_regex::RspackRegex;
@@ -56,6 +56,8 @@ pub struct RawResolveOptions {
   pub restrictions: Option<Vec<Either<String, RspackRegex>>>,
   pub roots: Option<Vec<String>>,
   pub pnp: Option<bool>,
+  #[napi(ts_type = "string | false")]
+  pub pnp_manifest: Option<Either<String, bool>>,
 }
 
 fn normalize_alias(
@@ -105,6 +107,10 @@ impl TryFrom<RawResolveOptions> for Resolve {
 
   fn try_from(value: RawResolveOptions) -> Result<Self, Self::Error> {
     let pnp = value.pnp;
+    let pnp_manifest = value.pnp_manifest.map(|m| match m {
+      Either::A(p) => rspack_core::PnpManifest::Path(p.into()),
+      Either::B(_) => rspack_core::PnpManifest::Disabled,
+    });
     let prefer_relative = value.prefer_relative;
     let prefer_absolute = value.prefer_absolute;
     let extensions = value.extensions;
@@ -174,6 +180,7 @@ impl TryFrom<RawResolveOptions> for Resolve {
       description_files,
       imports_fields,
       pnp,
+      pnp_manifest,
       builtin_modules: false,
     })
   }
@@ -237,6 +244,8 @@ pub struct RawResolveOptionsWithDependencyType {
   pub dependency_type: Option<String>,
   pub resolve_to_context: Option<bool>,
   pub pnp: Option<bool>,
+  #[napi(ts_type = "string | false")]
+  pub pnp_manifest: Option<Either<String, ()>>,
 }
 
 pub fn normalize_raw_resolve_options_with_dependency_type(
@@ -249,6 +258,12 @@ pub fn normalize_raw_resolve_options_with_dependency_type(
         Some(config) => Some(TsconfigOptions::try_from(config)?),
         None => None,
       };
+
+      let pnp_manifest = raw.pnp_manifest.map(|m| match m {
+        Either::A(p) => rspack_core::PnpManifest::Path(p.into()),
+        Either::B(_) => rspack_core::PnpManifest::Disabled,
+      });
+
       let exports_fields = raw
         .exports_fields
         .map(|v| v.into_iter().map(|s| vec![s]).collect());
@@ -293,6 +308,7 @@ pub fn normalize_raw_resolve_options_with_dependency_type(
         condition_names: raw.condition_names,
         tsconfig,
         pnp: raw.pnp,
+        pnp_manifest,
         modules: raw.modules,
         fallback: normalize_alias(raw.fallback)?,
         fully_specified: raw.fully_specified,
