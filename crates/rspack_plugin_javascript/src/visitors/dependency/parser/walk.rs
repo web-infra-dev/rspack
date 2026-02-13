@@ -932,15 +932,18 @@ impl JavascriptParser<'_> {
         && rename_identifier
           .call_hooks_name(parser, |this, for_name| drive.can_rename(this, for_name))
           .unwrap_or_default()
-        && !rename_identifier
+      {
+        if !rename_identifier
           .call_hooks_name(parser, |this, for_name| drive.rename(this, expr, for_name))
           .unwrap_or_default()
-      {
-        let variable = parser
-          .get_variable_info(&rename_identifier)
-          .map(|info| ExportedVariableInfo::VariableInfo(info.id()))
-          .unwrap_or(ExportedVariableInfo::Name(rename_identifier));
-        return Some(variable);
+        {
+          let variable = parser
+            .get_variable_info(&rename_identifier)
+            .map(|info| ExportedVariableInfo::VariableInfo(info.id()))
+            .unwrap_or(ExportedVariableInfo::Name(rename_identifier));
+          return Some(variable);
+        }
+        return None;
       }
       parser.walk_expression(expr);
       None

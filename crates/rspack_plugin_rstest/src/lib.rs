@@ -1,3 +1,4 @@
+mod esm_import_dependency;
 mod import_dependency;
 mod mock_method_dependency;
 mod mock_module_id_dependency;

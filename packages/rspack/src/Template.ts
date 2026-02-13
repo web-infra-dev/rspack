@@ -14,7 +14,8 @@ const DELTA_A_TO_Z = 'z'.charCodeAt(0) - START_LOWERCASE_ALPHABET_CODE + 1;
 const NUMBER_OF_IDENTIFIER_START_CHARS = DELTA_A_TO_Z * 2 + 2; // a-z A-Z _ $
 const NUMBER_OF_IDENTIFIER_CONTINUATION_CHARS =
   NUMBER_OF_IDENTIFIER_START_CHARS + 10; // a-z A-Z _ $ 0-9
-const FUNCTION_CONTENT_REGEX = /^function\s?\(\)\s?\{\r?\n?|\r?\n?\}$/g;
+const FUNCTION_CONTENT_REGEX =
+  /^function(?:\s+[\w$]+)?\s?\(\)\s?\{\r?\n?|\r?\n?\}$/g;
 const INDENT_MULTILINE_REGEX = /^\t/gm;
 const LINE_SEPARATOR_REGEX = /\r?\n/g;
 const IDENTIFIER_NAME_REPLACE_REGEX = /^([^a-zA-Z$_])/;

@@ -1,8 +1,9 @@
 use std::{borrow::Cow, ptr::NonNull, sync::LazyLock};
 
 use rspack_core::{
-  BooleanMatcher, ChunkGroupOrderKey, Compilation, CrossOriginLoading, RuntimeGlobals,
-  RuntimeModule, RuntimeModuleStage, RuntimeTemplate, compile_boolean_matcher, impl_runtime_module,
+  BooleanMatcher, ChunkGroupOrderKey, CrossOriginLoading, RuntimeGlobals, RuntimeModule,
+  RuntimeModuleGenerateContext, RuntimeModuleStage, RuntimeTemplate, compile_boolean_matcher,
+  impl_runtime_module,
 };
 use rspack_plugin_runtime::{
   CreateLinkData, LinkPrefetchData, LinkPreloadData, RuntimeModuleChunkWrapper, RuntimePlugin,
@@ -132,12 +133,14 @@ impl RuntimeModule for CssLoadingRuntimeModule {
     ]
   }
 
-  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
+  async fn generate(
+    &self,
+    context: &RuntimeModuleGenerateContext<'_>,
+  ) -> rspack_error::Result<String> {
+    let compilation = context.compilation;
+    let runtime_template = context.runtime_template;
     if let Some(chunk_ukey) = self.chunk {
       let runtime_hooks = RuntimePlugin::get_compilation_hooks(compilation.id());
-      let mut runtime_template = compilation
-        .runtime_template
-        .create_module_codegen_runtime_template();
       let chunk = compilation
         .build_chunk_graph_artifact
         .chunk_by_ukey
@@ -208,7 +211,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
         &stringify_chunks(&initial_chunk_ids, 0)
       ));
 
-      let create_link_raw = compilation.runtime_template.render(
+      let create_link_raw = context.runtime_template.render(
         &self.template_id(TemplateId::CreateLink),
         Some(serde_json::json!({
           "_with_fetch_priority": with_fetch_priority,
@@ -283,7 +286,7 @@ installedChunks[chunkId] = 0;
         Cow::Borrowed("// no initial css")
       };
 
-      let raw_source = compilation.runtime_template.render(
+      let raw_source = context.runtime_template.render(
         &self.template_id(TemplateId::Raw),
         Some(serde_json::json!({
           "_unique_name": unique_name,
@@ -296,7 +299,7 @@ installedChunks[chunkId] = 0;
       source.push_str(&raw_source);
 
       if with_loading {
-        let source_with_loading = compilation.runtime_template.render(
+        let source_with_loading = context.runtime_template.render(
           &self.template_id(TemplateId::WithLoading),
           Some(serde_json::json!({
             "_css_matcher": &has_css_matcher.render("chunkId"),
@@ -307,7 +310,7 @@ installedChunks[chunkId] = 0;
       }
 
       if with_prefetch && !matches!(has_css_matcher, BooleanMatcher::Condition(false)) {
-        let link_prefetch_raw = compilation.runtime_template.render(
+        let link_prefetch_raw = context.runtime_template.render(
           &self.template_id(TemplateId::WithPrefetchLink),
           Some(serde_json::json!({
             "_cross_origin": compilation.options.output.cross_origin_loading.to_string(),
@@ -327,7 +330,7 @@ installedChunks[chunkId] = 0;
           })
           .await?;
 
-        let source_with_prefetch = compilation.runtime_template.render(
+        let source_with_prefetch = context.runtime_template.render(
           &self.template_id(TemplateId::WithPrefetch),
           Some(serde_json::json!({
             "_css_matcher": &has_css_matcher.render("chunkId"),
@@ -339,7 +342,7 @@ installedChunks[chunkId] = 0;
       }
 
       if with_preload && !matches!(has_css_matcher, BooleanMatcher::Condition(false)) {
-        let link_preload_raw = compilation.runtime_template.render(
+        let link_preload_raw = context.runtime_template.render(
           &self.template_id(TemplateId::WithPreloadLink),
           Some(serde_json::json!({
             "_cross_origin": compilation.options.output.cross_origin_loading.to_string(),
@@ -359,7 +362,7 @@ installedChunks[chunkId] = 0;
           })
           .await?;
 
-        let source_with_preload = compilation.runtime_template.render(
+        let source_with_preload = context.runtime_template.render(
           &self.template_id(TemplateId::WithPreload),
           Some(serde_json::json!({
             "_css_matcher": &has_css_matcher.render("chunkId"),
@@ -371,7 +374,7 @@ installedChunks[chunkId] = 0;
       }
 
       if with_hmr {
-        let source_with_hmr = compilation.runtime_template.render(
+        let source_with_hmr = context.runtime_template.render(
           &self.template_id(TemplateId::WithHmr),
           Some(serde_json::json!({
             "_is_neutral_platform": is_neutral_platform

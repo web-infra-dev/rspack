@@ -1,10 +1,10 @@
 # Rspack
 
-## Project Overview
+## Project overview
 
 Rspack is a high-performance JavaScript bundler written in Rust that offers strong compatibility with the webpack ecosystem.
 
-## Project Architecture
+## Project architecture
 
 - **Monorepo** with Rust crates (`crates/`) and JavaScript packages (`packages/`)
 - See [Project Architecture](website/docs/en/contribute/development/project.md) for details
@@ -44,16 +44,16 @@ Depends on what you have modified, you need to rebuild by `pnpm run build:js` or
 - **JavaScript**: Use `--inspect` flag, attach with `Attach JavaScript`
 - **rust-lldb**: `rust-lldb -- node /path/to/rspack build` for panic debugging
 
-## Code Quality
+## Code quality
 
 - **Linting**: `pnpm run lint:js` (Biome), `pnpm run lint:rs` (cargo check), `pnpm run lint:type` (Rslint)
 - **Formatting**: `pnpm run format:rs` (cargo fmt), `pnpm run format:js` (prettier), `pnpm run format:toml` (taplo)
 - **Rust gate**: After modifying Rust code, ensure both `cargo fmt --all --check` and `cargo lint` pass before commit/PR
 - **Style**: snake_case for Rust, camelCase for JS/TS
 
-## Common Tasks
+## Common tasks
 
-### Adding a New Feature
+### Adding a new feature
 
 1. Create feature branch from `main`
 2. Implement in appropriate crate/package
@@ -63,17 +63,17 @@ Depends on what you have modified, you need to rebuild by `pnpm run build:js` or
 6. Format: `pnpm run format:rs && pnpm run format:js`
 7. Create PR
 
-### Modifying Code
+### Modifying code
 
 - **Rust**: Core in `crates/rspack_core/`, plugins in `crates/rspack_plugin_*/`, rebuild with `pnpm run build:binding:dev`, test with `pnpm run test:rs`, and ensure `cargo fmt --all --check && cargo lint` passes
 - **JS/TS**: API in `packages/rspack/src/`, CLI in `packages/rspack-cli/src/`, rebuild with `pnpm run build:js`, test with `pnpm run test:unit`
 
-### Adding Tests
+### Adding tests
 
 - **Rust**: Add `#[test]` functions in same file or `tests/` directory
 - **JavaScript**: Add cases in `tests/rspack-test/{type}Cases/` (Normal, Config, Hot, Watch, StatsOutput, StatsAPI, Diagnostic, Hash, Compiler, Defaults, Error, Hook, TreeShaking, Builtin)
 
-## Dependency Management
+## Dependency management
 
 - **Package manager**: pnpm (workspaces for monorepo)
 - **Rust**: `Cargo.toml` in each crate
@@ -93,7 +93,7 @@ Depends on what you have modified, you need to rebuild by `pnpm run build:js` or
 - **API**: `website/docs/en/api/`
 - **Extract API**: `pnpm run api-extractor:local`
 
-## Pull Request Guidelines
+## Pull request guidelines
 
 - **Template**: Use `.github/PULL_REQUEST_TEMPLATE.md`
 - **Title prefix**: `test:`, `fix:`, `feat:`, `refactor:`, `chore:`
@@ -113,7 +113,7 @@ Depends on what you have modified, you need to rebuild by `pnpm run build:js` or
 - Prefer these types for release impact: `fix`, `feat`; use `!` or `BREAKING CHANGE:` only for incompatible changes
 - Keep PRs focused (one feature/fix per PR)
 
-## Finding Code
+## Finding code
 
 - **Rust core**: `crates/rspack_core/`
 - **Plugins**: `crates/rspack_plugin_*/`
@@ -121,7 +121,7 @@ Depends on what you have modified, you need to rebuild by `pnpm run build:js` or
 - **CLI**: `packages/rspack-cli/src/`
 - **Tests**: `tests/rspack-test/`
 
-## Error Handling
+## Error handling
 
 - Use `rspack_error` crate for Rust errors
 - Provide clear, actionable error messages

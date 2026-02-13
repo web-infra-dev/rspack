@@ -4,9 +4,29 @@ use derive_more::Debug;
 use napi::{Either, bindgen_prelude::FnArgs};
 use napi_derive::napi;
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
-use rspack_plugin_progress::{ProgressPluginDisplayOptions, ProgressPluginOptions};
+use rspack_plugin_progress::{
+  ProgressPluginDisplayOptions, ProgressPluginHandlerInfo, ProgressPluginOptions,
+};
 
-type HandlerFn = ThreadsafeFunction<FnArgs<(f64, String, Vec<String>)>, ()>;
+#[derive(Debug)]
+#[napi(object)]
+pub struct RawProgressPluginHandlerInfo {
+  /// Number of built modules
+  pub built_modules: u32,
+  /// Identifier of the active module (only provided during `build modules` updates)
+  pub module_identifier: Option<String>,
+}
+
+impl From<ProgressPluginHandlerInfo> for RawProgressPluginHandlerInfo {
+  fn from(value: ProgressPluginHandlerInfo) -> Self {
+    Self {
+      built_modules: value.built_modules,
+      module_identifier: value.module_identifier,
+    }
+  }
+}
+
+type HandlerFn = ThreadsafeFunction<FnArgs<(f64, String, RawProgressPluginHandlerInfo)>, ()>;
 #[derive(Debug)]
 #[napi(object, object_to_js = false)]
 pub struct RawProgressPluginOptions {
@@ -22,16 +42,16 @@ pub struct RawProgressPluginOptions {
   pub progress_chars: Option<String>,
   // the handler for progress event
   #[debug(skip)]
-  #[napi(ts_type = "(percent: number, msg: string, items: string[]) => void")]
+  #[napi(ts_type = "(percent: number, msg: string, info: RawProgressPluginHandlerInfo) => void")]
   pub handler: Option<HandlerFn>,
 }
 
 impl From<RawProgressPluginOptions> for ProgressPluginOptions {
   fn from(value: RawProgressPluginOptions) -> Self {
     if let Some(f) = value.handler {
-      Self::Handler(Arc::new(move |percent, msg, items| {
+      Self::Handler(Arc::new(move |percent, msg, info| {
         let f = f.clone();
-        Box::pin(async move { f.call_with_sync((percent, msg, items).into()).await })
+        Box::pin(async move { f.call_with_sync((percent, msg, info.into()).into()).await })
       }))
     } else {
       Self::Default(ProgressPluginDisplayOptions {

@@ -569,12 +569,22 @@ When enabled, symlinked resources are resolved to their real path, not their sym
 
 The replacement of [tsconfig-paths-webpack-plugin](https://www.npmjs.com/package/tsconfig-paths-webpack-plugin) in Rspack.
 
+- string:
+
 ```js title="rspack.config.mjs"
 export default {
   resolve: {
     // string
     tsConfig: path.resolve(__dirname, './tsconfig.json'),
-    // or object
+  },
+};
+```
+
+- object:
+
+```js title="rspack.config.mjs"
+export default {
+  resolve: {
     tsConfig: {
       configFile: path.resolve(__dirname, './tsconfig.json'),
       references: 'auto',

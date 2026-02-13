@@ -30,7 +30,8 @@ use rspack_collections::{Identifier, IdentifierDashMap, IdentifierLinkedMap, Ide
 use rspack_core::{
   ChunkGraph, ChunkGroupUkey, ChunkInitFragments, ChunkRenderContext, ChunkUkey,
   CodeGenerationDataTopLevelDeclarations, Compilation, CompilationId, ConcatenatedModuleIdent,
-  ExportsArgument, IdentCollector, Module, RuntimeGlobals, RuntimeVariable, SourceType,
+  ExportsArgument, IdentCollector, Module, RuntimeCodeTemplate, RuntimeGlobals, RuntimeVariable,
+  SourceType,
   concatenated_module::find_new_name,
   render_init_fragments,
   reserved_names::RESERVED_NAMES,
@@ -136,6 +137,7 @@ impl JsPlugin {
   pub fn render_require<'me>(
     chunk_ukey: &ChunkUkey,
     compilation: &'me Compilation,
+    runtime_template: &RuntimeCodeTemplate<'_>,
   ) -> Vec<Cow<'me, str>> {
     let runtime_requirements = ChunkGraph::get_chunk_runtime_requirements(compilation, chunk_ukey);
 
@@ -149,9 +151,7 @@ impl JsPlugin {
         r#"// Check if module is in cache
 var cachedModule = {}[moduleId];
 if (cachedModule !== undefined) {{"#,
-        compilation
-          .runtime_template
-          .render_runtime_variable(&RuntimeVariable::ModuleCache)
+        runtime_template.render_runtime_variable(&RuntimeVariable::ModuleCache)
       )
       .into(),
     );
@@ -166,9 +166,7 @@ if (cachedModule !== undefined) {{"#,
 }}
 // Create a new module (and put it into the cache)
 var module = ({}[moduleId] = {{"#,
-        compilation
-          .runtime_template
-          .render_runtime_variable(&RuntimeVariable::ModuleCache)
+        runtime_template.render_runtime_variable(&RuntimeVariable::ModuleCache)
       )
       .into(),
     );
@@ -201,37 +199,23 @@ var module = ({}[moduleId] = {{"#,
         }}
         execOptions.factory.call(module.exports, module, module.exports, execOptions.require);
       "#,
-          compilation
-            .runtime_template
-            .render_runtime_variable(&RuntimeVariable::Modules),
-          compilation
-            .runtime_template
-            .render_runtime_globals(&RuntimeGlobals::REQUIRE),
-          compilation
-            .runtime_template
-            .render_runtime_globals(&RuntimeGlobals::INTERCEPT_MODULE_EXECUTION)
+          runtime_template.render_runtime_variable(&RuntimeVariable::Modules),
+          runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
+          runtime_template.render_runtime_globals(&RuntimeGlobals::INTERCEPT_MODULE_EXECUTION)
         )
         .into()
       } else if runtime_requirements.contains(RuntimeGlobals::THIS_AS_EXPORTS) {
         format!(
           "{}[moduleId].call(module.exports, module, module.exports, {});\n",
-          compilation
-            .runtime_template
-            .render_runtime_variable(&RuntimeVariable::Modules),
-          compilation
-            .runtime_template
-            .render_runtime_globals(&RuntimeGlobals::REQUIRE)
+          runtime_template.render_runtime_variable(&RuntimeVariable::Modules),
+          runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
         )
         .into()
       } else {
         format!(
           "{}[moduleId](module, module.exports, {});\n",
-          compilation
-            .runtime_template
-            .render_runtime_variable(&RuntimeVariable::Modules),
-          compilation
-            .runtime_template
-            .render_runtime_globals(&RuntimeGlobals::REQUIRE)
+          runtime_template.render_runtime_variable(&RuntimeVariable::Modules),
+          runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
         )
         .into()
       };
@@ -264,15 +248,13 @@ var module = ({}[moduleId] = {{"#,
   pub async fn render_bootstrap<'me>(
     chunk_ukey: &ChunkUkey,
     compilation: &'me Compilation,
+    runtime_template: &RuntimeCodeTemplate<'_>,
   ) -> Result<RenderBootstrapResult<'me>> {
     let runtime_requirements = ChunkGraph::get_chunk_runtime_requirements(compilation, chunk_ukey);
     let chunk = compilation
       .build_chunk_graph_artifact
       .chunk_by_ukey
       .expect_get(chunk_ukey);
-    let mut runtime_template = compilation
-      .runtime_template
-      .create_module_codegen_runtime_template();
     let module_factories = runtime_requirements.contains(RuntimeGlobals::MODULE_FACTORIES);
     let require_function = runtime_requirements.contains(RuntimeGlobals::REQUIRE);
     let module_cache = runtime_requirements.contains(RuntimeGlobals::MODULE_CACHE);
@@ -340,7 +322,11 @@ function {}(moduleId) {{
         )
         .into(),
       );
-      header.extend(Self::render_require(chunk_ukey, compilation));
+      header.extend(Self::render_require(
+        chunk_ukey,
+        compilation,
+        runtime_template,
+      ));
       header.push(
         r#"
 }
@@ -685,10 +671,8 @@ var {} = {{}};
     compilation: &Compilation,
     chunk_ukey: &ChunkUkey,
     output_path: &str,
+    runtime_template: &RuntimeCodeTemplate<'_>,
   ) -> Result<BoxSource> {
-    let mut runtime_template = compilation
-      .runtime_template
-      .create_module_codegen_runtime_template();
     let js_plugin_hooks = Self::get_compilation_hooks(compilation.id());
     let hooks = js_plugin_hooks
       .try_read()
@@ -710,7 +694,7 @@ var {} = {{}};
       header,
       startup,
       allow_inline_startup,
-    } = Self::render_bootstrap(chunk_ukey, compilation).await?;
+    } = Self::render_bootstrap(chunk_ukey, compilation, runtime_template).await?;
     let module_graph = &compilation.get_module_graph();
     let all_modules = compilation
       .build_chunk_graph_artifact
@@ -768,6 +752,7 @@ var {} = {{}};
       all_strict,
       output_path,
       &hooks,
+      runtime_template,
     )
     .await?;
     let has_chunk_modules_result = chunk_modules_result.is_some();
@@ -801,7 +786,7 @@ var {} = {{}};
       .chunk_graph
       .has_chunk_runtime_modules(chunk_ukey)
     {
-      sources.add(render_runtime_modules(compilation, chunk_ukey).await?);
+      sources.add(render_runtime_modules(compilation, chunk_ukey, runtime_template).await?);
     }
     if let Some(inlined_modules) = inlined_modules {
       let last_entry_module = inlined_modules
@@ -828,6 +813,7 @@ var {} = {{}};
             has_chunk_modules_result,
             output_path,
             &hooks,
+            runtime_template,
           )
           .await?
       } else {
@@ -846,6 +832,7 @@ var {} = {{}};
           false,
           output_path,
           &hooks,
+          runtime_template,
         )
         .await?
         else {
@@ -943,6 +930,7 @@ var {} = {{}};
           chunk_ukey,
           last_entry_module,
           &mut render_source,
+          runtime_template,
         )
         .await?;
       sources.add(render_source.source);
@@ -963,6 +951,7 @@ var {} = {{}};
           chunk_ukey,
           last_entry_module,
           &mut render_source,
+          runtime_template,
         )
         .await?;
       sources.add(render_source.source);
@@ -988,7 +977,12 @@ var {} = {{}};
     };
     hooks
       .render
-      .call(compilation, chunk_ukey, &mut render_source)
+      .call(
+        compilation,
+        chunk_ukey,
+        &mut render_source,
+        runtime_template,
+      )
       .await?;
     Ok(if iife {
       ConcatSource::new([
@@ -1012,6 +1006,7 @@ var {} = {{}};
     has_chunk_modules_result: bool,
     output_path: &str,
     hooks: &JavascriptModulesPluginHooks,
+    runtime_template: &RuntimeCodeTemplate<'_>,
   ) -> Result<Option<IdentifierMap<Arc<dyn Source>>>> {
     let inner_strict = !all_strict && all_modules.iter().all(|m| m.build_info().strict);
     let is_multiple_entries = inlined_modules.len() > 1;
@@ -1041,10 +1036,19 @@ var {} = {{}};
             all_strict,
             output_path,
             &hooks,
+            runtime_template,
           ))
         };
         s.spawn(
-          move |(compilation, chunk_ukey, module, all_strict, output_path, hooks)| async move {
+          move |(
+            compilation,
+            chunk_ukey,
+            module,
+            all_strict,
+            output_path,
+            hooks,
+            runtime_template,
+          )| async move {
             render_module(
               compilation,
               chunk_ukey,
@@ -1053,6 +1057,7 @@ var {} = {{}};
               false,
               output_path,
               hooks,
+              runtime_template,
             )
             .await
           },
@@ -1358,6 +1363,7 @@ var {} = {{}};
     compilation: &Compilation,
     chunk_ukey: &ChunkUkey,
     output_path: &str,
+    runtime_template: &RuntimeCodeTemplate<'_>,
   ) -> Result<BoxSource> {
     let js_plugin_hooks = Self::get_compilation_hooks(compilation.id());
     let hooks = js_plugin_hooks
@@ -1392,6 +1398,7 @@ var {} = {{}};
       all_strict,
       output_path,
       &hooks,
+      runtime_template,
     )
     .await?
     .unwrap_or_else(|| (RawStringSource::from_static("{}").boxed(), Vec::new()));
@@ -1400,7 +1407,12 @@ var {} = {{}};
     };
     hooks
       .render_chunk
-      .call(compilation, chunk_ukey, &mut render_source)
+      .call(
+        compilation,
+        chunk_ukey,
+        &mut render_source,
+        runtime_template,
+      )
       .await?;
     let source_with_fragments = render_init_fragments(
       render_source.source,
@@ -1412,7 +1424,12 @@ var {} = {{}};
     };
     hooks
       .render
-      .call(compilation, chunk_ukey, &mut render_source)
+      .call(
+        compilation,
+        chunk_ukey,
+        &mut render_source,
+        runtime_template,
+      )
       .await?;
     sources.add(render_source.source);
     if !is_module {
@@ -1445,12 +1462,13 @@ var {} = {{}};
     compilation: &Compilation,
     hasher: &mut RspackHash,
   ) -> Result<()> {
+    let runtime_template = compilation.runtime_template.create_runtime_code_template();
     // sample hash use content
     let RenderBootstrapResult {
       header,
       startup,
       allow_inline_startup,
-    } = Self::render_bootstrap(chunk_ukey, compilation).await?;
+    } = Self::render_bootstrap(chunk_ukey, compilation, &runtime_template).await?;
     header.hash(hasher);
     startup.hash(hasher);
     allow_inline_startup.hash(hasher);

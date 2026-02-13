@@ -66,7 +66,7 @@ export default {
       asset: {
         dataUrl: {
           encoding: false,
-          mimetype: 'base64',
+          mimetype: 'image/png',
         },
         filename: '[name]-[contenthash][ext]',
         publicPath: 'https://cdn.example.com/',
@@ -75,7 +75,7 @@ export default {
       'asset/inline': {
         dataUrl: {
           encoding: false,
-          mimetype: 'base64',
+          mimetype: 'image/png',
         },
       },
       // asset/resource 模块的生成器选项
@@ -160,7 +160,7 @@ export default {
       asset: {
         dataUrl: {
           encoding: 'base64',
-          mimetype: 'mimetype/png',
+          mimetype: 'image/png',
         },
       },
     },
@@ -194,7 +194,7 @@ export default {
 - **类型：** `false | 'base64'`
 - **默认值：** `'base64'`
 
-设置为 base64 时，模块将使用 base64 算法进行编码。将编码设置为 false 将禁用编码。仅对模块类型为 `'asset/inline'` 的模块生效。
+设置为 base64 时，模块将使用 base64 算法进行编码。将编码设置为 false 将禁用编码。仅对模块类型为 `'asset'` 或 `'asset/inline'` 的模块生效。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -215,7 +215,7 @@ export default {
 - **类型：** `string`
 - **默认值：** `require('mime-types').lookup(ext)`
 
-dataUrl 的 MIME 类型，默认从模块资源扩展名解析。仅对模块类型为 `'asset/inline'` 的模块生效。
+dataUrl 的 MIME 类型，默认从模块资源扩展名解析。仅对模块类型为 `'asset'` 或 `'asset/inline'` 的模块生效。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -1466,7 +1466,7 @@ export default {
 
 ### module.parser.javascript.requireAsExpression
 
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
 
 控制是否解析作为表达式使用的 `require`。
 
@@ -1477,7 +1477,7 @@ export default {
   module: {
     parser: {
       javascript: {
-        requireAsExpression: true,
+        requireAsExpression: false,
       },
     },
   },

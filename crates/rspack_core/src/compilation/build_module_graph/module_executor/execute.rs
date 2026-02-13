@@ -318,9 +318,7 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
         .get(runtime_id)
         .expect("runtime module exist");
 
-      let mut runtime_template = compilation
-        .runtime_template
-        .create_module_codegen_runtime_template();
+      let mut runtime_template = compilation.runtime_template.create_module_code_template();
       let mut code_generation_context = ModuleCodeGenerationContext {
         compilation: &compilation,
         runtime: None,

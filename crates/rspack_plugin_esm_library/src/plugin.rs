@@ -17,8 +17,8 @@ use rspack_core::{
   ConcatenationScope, DependencyType, ExternalModuleInfo, GetTargetResult, Logger,
   ModuleFactoryCreateData, ModuleIdentifier, ModuleInfo, ModuleType,
   NormalModuleFactoryAfterFactorize, NormalModuleFactoryParser, ParserAndGenerator, ParserOptions,
-  Plugin, PrefetchExportsInfoMode, RuntimeGlobals, RuntimeModule, SideEffectsOptimizeArtifact,
-  get_target, is_esm_dep_like,
+  Plugin, PrefetchExportsInfoMode, RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule,
+  SideEffectsOptimizeArtifact, get_target, is_esm_dep_like,
   rspack_sources::{ReplaceSource, Source},
 };
 use rspack_error::{Diagnostic, Result};
@@ -93,8 +93,11 @@ async fn render_chunk_content(
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
   asset_info: &mut AssetInfo,
+  runtime_template: &RuntimeCodeTemplate<'_>,
 ) -> Result<Option<RenderSource>> {
-  self.render_chunk(compilation, chunk_ukey, asset_info).await
+  self
+    .render_chunk(compilation, chunk_ukey, asset_info, runtime_template)
+    .await
 }
 
 #[plugin_hook(CompilationFinishModules for EsmLibraryPlugin, stage = 100)]
@@ -189,22 +192,7 @@ async fn finish_modules(
     } else {
       modules_map.insert(
         *module_identifier,
-        ModuleInfo::External(ExternalModuleInfo {
-          index: idx,
-          module: *module_identifier,
-          interop_namespace_object_used: false,
-          interop_namespace_object_name: None,
-          interop_namespace_object2_used: false,
-          interop_namespace_object2_name: None,
-          interop_default_access_used: false,
-          interop_default_access_name: None,
-          runtime_requirements: RuntimeGlobals::default(),
-          name: None,
-          deferred: false,
-          deferred_name: None,
-          deferred_namespace_object_name: None,
-          deferred_namespace_object_used: false,
-        }),
+        ModuleInfo::External(ExternalModuleInfo::new(idx, *module_identifier)),
       );
     }
   }
@@ -231,22 +219,10 @@ async fn finish_modules(
       if let Some(info) = modules_map.get_mut(dep_module)
         && let ModuleInfo::Concatenated(concate_info) = info
       {
-        *info = ModuleInfo::External(ExternalModuleInfo {
-          index: concate_info.index,
-          module: concate_info.module,
-          interop_namespace_object_used: false,
-          interop_namespace_object_name: None,
-          interop_namespace_object2_used: false,
-          interop_namespace_object2_name: None,
-          interop_default_access_used: false,
-          interop_default_access_name: None,
-          name: None,
-          runtime_requirements: RuntimeGlobals::default(),
-          deferred: false,
-          deferred_name: None,
-          deferred_namespace_object_name: None,
-          deferred_namespace_object_used: false,
-        });
+        *info = ModuleInfo::External(ExternalModuleInfo::new(
+          concate_info.index,
+          concate_info.module,
+        ));
         stack.push(*dep_module);
       }
     }
@@ -450,7 +426,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
             .get(chunk_ukey)
             .expect("should have chunk for chunk ukey")
         }) else {
-          unreachable!("This should happen, please file an issue");
+          unreachable!("This should not happen, please file an issue");
         };
 
         let js_files = chunk
