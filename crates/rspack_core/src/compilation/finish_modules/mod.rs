@@ -26,7 +26,7 @@ impl PassExt for FinishModulesPhasePass {
     use crate::incremental::IncrementalPasses;
     if compilation
       .incremental
-      .passes_enabled(IncrementalPasses::FINISH_MODULES)
+      .passes_enabled(IncrementalPasses::BUILD_MODULE_GRAPH)
     {
       compilation.exports_info_artifact.checkpoint();
     }

@@ -178,6 +178,7 @@ impl DependencyTemplate for CommonJsFullRequireDependencyTemplate {
       && let used = {
         if dep.names.is_empty() {
           let exports_info_used = compilation
+            .exports_info_artifact
             .get_prefetched_exports_info_used(&imported_module.module_identifier, *runtime);
           ExportsInfoGetter::get_used_name(
             GetUsedNameParam::WithoutNames(&exports_info_used),
@@ -185,10 +186,12 @@ impl DependencyTemplate for CommonJsFullRequireDependencyTemplate {
             &dep.names,
           )
         } else {
-          let exports_info = compilation.get_prefetched_exports_info(
-            &imported_module.module_identifier,
-            PrefetchExportsInfoMode::Nested(&dep.names),
-          );
+          let exports_info = compilation
+            .exports_info_artifact
+            .get_prefetched_exports_info(
+              &imported_module.module_identifier,
+              PrefetchExportsInfoMode::Nested(&dep.names),
+            );
           ExportsInfoGetter::get_used_name(
             GetUsedNameParam::WithNames(&exports_info),
             *runtime,

@@ -212,9 +212,6 @@ impl Task<TaskContext> for FactorizeResultTask {
     let mut mgm = ModuleGraphModule::new(module.identifier());
     mgm.set_issuer_if_unset(original_module_identifier);
 
-    context
-      .exports_info_artifact
-      .new_exports_info(module_identifier);
     tracing::trace!("Module created: {}", &module_identifier);
 
     Ok(vec![Box::new(AddTask {

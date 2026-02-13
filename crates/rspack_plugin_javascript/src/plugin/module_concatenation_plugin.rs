@@ -915,8 +915,9 @@ impl ModuleConcatenationPlugin {
           return (false, false, module_id, bailout_reason);
         }
 
-        let exports_info =
-          compilation.get_prefetched_exports_info(&module_id, PrefetchExportsInfoMode::Default);
+        let exports_info = compilation
+          .exports_info_artifact
+          .get_prefetched_exports_info(&module_id, PrefetchExportsInfoMode::Default);
         let relevant_exports = exports_info.get_relevant_exports(None);
         let unknown_exports = relevant_exports
           .iter()

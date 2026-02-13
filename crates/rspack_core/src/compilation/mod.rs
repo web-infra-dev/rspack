@@ -434,36 +434,6 @@ impl Compilation {
     self.build_module_graph_artifact.get_module_graph()
   }
 
-  pub fn get_prefetched_exports_info<'b>(
-    &'b self,
-    module_identifier: &ModuleIdentifier,
-    mode: PrefetchExportsInfoMode<'b>,
-  ) -> PrefetchedExportsInfoWrapper<'b> {
-    self
-      .exports_info_artifact
-      .get_prefetched_exports_info(module_identifier, mode)
-  }
-
-  pub fn get_prefetched_exports_info_optional<'b>(
-    &'b self,
-    module_identifier: &ModuleIdentifier,
-    mode: PrefetchExportsInfoMode<'b>,
-  ) -> Option<PrefetchedExportsInfoWrapper<'b>> {
-    self
-      .exports_info_artifact
-      .get_prefetched_exports_info_optional(module_identifier, mode)
-  }
-
-  pub fn get_prefetched_exports_info_used(
-    &self,
-    module_identifier: &ModuleIdentifier,
-    runtime: Option<&RuntimeSpec>,
-  ) -> PrefetchedExportsInfoUsed {
-    self
-      .exports_info_artifact
-      .get_prefetched_exports_info_used(module_identifier, runtime)
-  }
-
   // it will return None during make phase since mg is incomplete
   pub fn module_by_identifier(&self, identifier: &ModuleIdentifier) -> Option<&BoxModule> {
     if self.build_module_graph_artifact.is_stolen() {

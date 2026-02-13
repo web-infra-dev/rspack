@@ -270,7 +270,16 @@ impl Cache for PersistentCache {
       )
     {
       match self.make_occasion.recovery().await {
-        Ok(artifact) => *compilation.build_module_graph_artifact = artifact,
+        Ok(artifact) => {
+          *compilation.build_module_graph_artifact = artifact;
+          for (module, _) in compilation
+            .build_module_graph_artifact
+            .get_module_graph()
+            .modules()
+          {
+            compilation.exports_info_artifact.new_exports_info(module);
+          }
+        }
         Err(err) => self.warnings.push(err.to_string()),
       }
     }

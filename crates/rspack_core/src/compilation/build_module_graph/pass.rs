@@ -7,7 +7,7 @@ use crate::{
   cache::Cache,
   compilation::{
     finish_make::finish_make_pass, finish_module_graph::finish_module_graph_pass,
-    make::make_hook_pass, pass::PassExt,
+    finish_modules::finish_modules_pass, make::make_hook_pass, pass::PassExt,
   },
 };
 

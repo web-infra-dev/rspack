@@ -15,7 +15,7 @@ pub struct ExportsInfoArtifact {
 }
 
 impl ArtifactExt for ExportsInfoArtifact {
-  const PASS: IncrementalPasses = IncrementalPasses::FINISH_MODULES;
+  const PASS: IncrementalPasses = IncrementalPasses::BUILD_MODULE_GRAPH;
 
   fn recover(incremental: &Incremental, new: &mut Self, old: &mut Self) {
     if incremental.mutations_readable(Self::PASS) {
@@ -27,7 +27,6 @@ impl ArtifactExt for ExportsInfoArtifact {
 
 impl ExportsInfoArtifact {
   pub fn new_exports_info(&mut self, module_identifier: ModuleIdentifier) {
-    dbg!(module_identifier);
     let info = ExportsInfoData::default();
     let id = info.id();
     self.set_exports_info_by_id(id, info);

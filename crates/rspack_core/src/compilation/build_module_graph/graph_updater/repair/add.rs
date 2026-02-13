@@ -93,6 +93,10 @@ impl Task<TaskContext> for AddTask {
 
     module_graph.add_module_graph_module(*self.module_graph_module);
 
+    context
+      .exports_info_artifact
+      .new_exports_info(module_identifier);
+
     set_resolved_module(
       module_graph,
       self.original_module_identifier,

@@ -761,7 +761,7 @@ impl ESMExportImportedSpecifierDependency {
           } else {
             let used_name = if ids.is_empty() {
               let exports_info_used =
-                compilation.get_prefetched_exports_info_used(imported_module, None);
+                exports_info_artifact.get_prefetched_exports_info_used(imported_module, None);
               ExportsInfoGetter::get_used_name(
                 GetUsedNameParam::WithoutNames(&exports_info_used),
                 None,

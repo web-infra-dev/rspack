@@ -261,6 +261,7 @@ async fn render_js_module_package(
     let module_graph = compilation.get_module_graph();
 
     let exports_info = compilation
+      .exports_info_artifact
       .get_prefetched_exports_info(&module.identifier(), PrefetchExportsInfoMode::Default);
 
     if !matches!(export_type, BuildMetaExportsType::Unset) {

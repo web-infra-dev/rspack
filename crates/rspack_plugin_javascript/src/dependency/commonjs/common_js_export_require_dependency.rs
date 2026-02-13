@@ -459,8 +459,9 @@ impl DependencyTemplate for CommonJsExportRequireDependencyTemplate {
     let module_argument = module.get_module_argument();
 
     let used = if dep.names.is_empty() {
-      let exports_info_used =
-        compilation.get_prefetched_exports_info_used(&module.identifier(), *runtime);
+      let exports_info_used = compilation
+        .exports_info_artifact
+        .get_prefetched_exports_info_used(&module.identifier(), *runtime);
       ExportsInfoGetter::get_used_name(
         GetUsedNameParam::WithoutNames(&exports_info_used),
         *runtime,
