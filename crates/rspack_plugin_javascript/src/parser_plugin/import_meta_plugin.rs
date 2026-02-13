@@ -341,11 +341,9 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
     match root_info {
       ExportedVariableInfo::Name(root) => {
         if root == expr_name::IMPORT_META {
-          // In PreserveUnknown mode, keep unknown import.meta properties as-is
           if matches!(self.0, ImportMeta::PreserveUnknown) {
             return Some(true);
           }
-
           let members = parser
             .get_member_expression_info(ExprRef::Member(expr), AllowedMemberTypes::Expression)
             .and_then(|info| match info {
