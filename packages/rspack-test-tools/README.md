@@ -8,7 +8,7 @@
 
 Test tools for rspack.
 
-## Wasm Tests
+## Wasm tests
 
 We expect to reuse the tests for Rspack wasm target as many as possible and we have managed to do it partially. Currently wasm tests should be run with an environment variable `WASM=1` under the following limitations:
 
