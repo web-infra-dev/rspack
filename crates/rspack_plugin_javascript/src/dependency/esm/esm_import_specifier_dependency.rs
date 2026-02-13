@@ -535,30 +535,24 @@ impl DependencyTemplate for ESMImportSpecifierDependencyTemplate {
       .expect(
         "ESMImportSpecifierDependencyTemplate should only be used for ESMImportSpecifierDependency",
       );
-    let TemplateContext {
-      compilation,
-      runtime,
-      ..
-    } = code_generatable_context;
+    let compilation = code_generatable_context.compilation;
+    let runtime = code_generatable_context.runtime;
     let module_graph = compilation.get_module_graph();
     let ids = dep.get_ids(module_graph);
     let connection = module_graph.connection_by_dependency_id(&dep.id);
     // Early return if target is not active and export is not inlined
     if let Some(con) = connection
       && !con.is_target_active(
-        code_generatable_context.compilation.get_module_graph(),
-        code_generatable_context.runtime,
-        &code_generatable_context
-          .compilation
-          .module_graph_cache_artifact,
-        &code_generatable_context.compilation.exports_info_artifact,
+        module_graph,
+        runtime,
+        &compilation.module_graph_cache_artifact,
+        &compilation.exports_info_artifact,
       )
       && !is_export_inlined(
-        code_generatable_context.compilation.get_module_graph(),
-        &code_generatable_context.compilation.exports_info_artifact,
+        &compilation.exports_info_artifact,
         con.module_identifier(),
         ids,
-        code_generatable_context.runtime,
+        runtime,
       )
     {
       return;

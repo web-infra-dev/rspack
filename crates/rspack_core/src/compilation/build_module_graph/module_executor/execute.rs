@@ -11,8 +11,7 @@ use super::context::{ExecutorTaskContext, ImportModuleMeta};
 use crate::{
   Chunk, ChunkGraph, ChunkKind, CodeGenerationDataAssetInfo, CodeGenerationDataFilename,
   CodeGenerationResult, CompilationAsset, CompilationAssets, EntryOptions, Entrypoint,
-  ExportsInfoArtifact, FactorizeInfo, ModuleCodeGenerationContext, ModuleType, PublicPath,
-  RuntimeSpec, SourceType,
+  FactorizeInfo, ModuleCodeGenerationContext, ModuleType, PublicPath, RuntimeSpec, SourceType,
   utils::task_loop::{Task, TaskResult, TaskType},
 };
 

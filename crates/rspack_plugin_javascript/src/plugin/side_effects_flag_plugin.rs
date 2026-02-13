@@ -263,7 +263,7 @@ async fn optimize_dependencies(
           connection,
           &side_effects_state_map,
           module_graph,
-          &exports_info_artifact,
+          exports_info_artifact,
         ),
       )
     })
@@ -302,7 +302,7 @@ async fn optimize_dependencies(
           connection,
           &side_effects_state_map,
           module_graph,
-          &exports_info_artifact,
+          exports_info_artifact,
         )
         .map(|i| (connection.dependency_id, i))
       })

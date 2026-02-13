@@ -165,7 +165,6 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
       ..
     } = code_generatable_context;
 
-    let mg = compilation.get_module_graph();
     let module_identifier = module.identifier();
 
     if let Some(declaration) = &dep.declaration {

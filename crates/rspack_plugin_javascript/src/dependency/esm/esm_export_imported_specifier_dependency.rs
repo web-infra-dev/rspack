@@ -1417,7 +1417,6 @@ impl Dependency for ESMExportImportedSpecifierDependency {
       }) => {
         let mut referenced_exports = vec![];
         collect_referenced_export_items(
-          module_graph,
           exports_info_artifact,
           runtime,
           &mut referenced_exports,
@@ -1438,7 +1437,6 @@ impl Dependency for ESMExportImportedSpecifierDependency {
             continue;
           }
           collect_referenced_export_items(
-            module_graph,
             exports_info_artifact,
             runtime,
             &mut referenced_exports,

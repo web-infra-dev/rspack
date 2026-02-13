@@ -18,7 +18,7 @@ use crate::{
 pub async fn repair(
   compilation: &Compilation,
   mut artifact: BuildModuleGraphArtifact,
-  mut exports_info_artifact: ExportsInfoArtifact,
+  exports_info_artifact: ExportsInfoArtifact,
   build_dependencies: HashSet<BuildDependency>,
 ) -> Result<(BuildModuleGraphArtifact, ExportsInfoArtifact)> {
   let module_graph = artifact.get_module_graph_mut();

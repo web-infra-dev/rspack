@@ -26,11 +26,7 @@ use self::{
   storage::{Storage, StorageOptions, create_storage},
 };
 use super::Cache;
-use crate::{
-  Compilation, CompilerOptions, Logger,
-  compilation::build_module_graph::{BuildModuleGraphArtifact, BuildModuleGraphArtifactState},
-  incremental::Incremental,
-};
+use crate::{BuildModuleGraphArtifactState, Compilation, CompilerOptions, Logger};
 
 #[cacheable]
 #[derive(Debug, Clone, Hash)]

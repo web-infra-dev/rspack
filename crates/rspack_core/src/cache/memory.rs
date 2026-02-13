@@ -1,9 +1,5 @@
 use super::Cache;
-use crate::{
-  BuildChunkGraphArtifact, Compilation, artifacts::ArtifactExt,
-  compilation::build_module_graph::BuildModuleGraphArtifact, incremental::Incremental,
-  recover_artifact,
-};
+use crate::{BuildChunkGraphArtifact, Compilation, artifacts::ArtifactExt, recover_artifact};
 
 /// Memory cache implementation
 ///

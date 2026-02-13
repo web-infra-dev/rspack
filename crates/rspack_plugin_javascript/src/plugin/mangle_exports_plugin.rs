@@ -5,8 +5,8 @@ use rayon::prelude::*;
 use regex::Regex;
 use rspack_core::{
   BuildMetaExportsType, Compilation, CompilationOptimizeCodeGeneration, ExportInfo, ExportProvided,
-  ExportsInfo, ExportsInfoArtifact, ExportsInfoGetter, ModuleGraph, Plugin,
-  PrefetchExportsInfoMode, PrefetchedExportsInfoWrapper, UsageState, UsedNameItem,
+  ExportsInfo, ExportsInfoArtifact, ExportsInfoGetter, Plugin, PrefetchExportsInfoMode,
+  PrefetchedExportsInfoWrapper, UsageState, UsedNameItem,
   build_module_graph::BuildModuleGraphArtifact, incremental::IncrementalPasses,
 };
 use rspack_error::{Diagnostic, Result};
@@ -83,12 +83,12 @@ async fn optimize_code_generation(
 
   let mut q = modules
     .iter()
-    .filter_map(|(mid, module)| {
+    .map(|(mid, module)| {
       let is_namespace = matches!(
         module.build_meta().exports_type,
         BuildMetaExportsType::Namespace
       );
-      Some((exports_info_artifact.get_exports_info(mid), is_namespace))
+      (exports_info_artifact.get_exports_info(mid), is_namespace)
     })
     .collect_vec();
 
@@ -101,7 +101,7 @@ async fn optimize_code_generation(
         let deterministic = self.deterministic;
         let exports_info_data = ExportsInfoGetter::prefetch(
           exports_info,
-          &exports_info_artifact,
+          exports_info_artifact,
           PrefetchExportsInfoMode::Default,
         );
         let export_list = {
@@ -183,8 +183,8 @@ async fn optimize_code_generation(
   }
 
   let mut queue = modules
-    .into_iter()
-    .map(|(mid, _)| exports_info_artifact.get_exports_info(&mid))
+    .into_keys()
+    .map(|mid| exports_info_artifact.get_exports_info(&mid))
     .collect_vec();
 
   while !queue.is_empty() {
@@ -193,7 +193,6 @@ async fn optimize_code_generation(
       .into_par_iter()
       .map(|exports_info| {
         mangle_exports_info(
-          mg,
           exports_info_artifact,
           self.deterministic,
           exports_info,
@@ -236,7 +235,6 @@ static MANGLE_NAME_DETERMINISTIC_REG: LazyLock<Regex> = LazyLock::new(|| {
 
 /// Function to mangle exports information.
 fn mangle_exports_info(
-  mg: &ModuleGraph,
   exports_info_artifact: &ExportsInfoArtifact,
   deterministic: bool,
   exports_info: ExportsInfo,

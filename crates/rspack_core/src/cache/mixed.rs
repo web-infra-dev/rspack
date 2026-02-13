@@ -1,7 +1,5 @@
 use super::{Cache, memory::MemoryCache, persistent::PersistentCache};
-use crate::{
-  Compilation, compilation::build_module_graph::BuildModuleGraphArtifact, incremental::Incremental,
-};
+use crate::Compilation;
 
 /// Mixed cache implementation
 ///

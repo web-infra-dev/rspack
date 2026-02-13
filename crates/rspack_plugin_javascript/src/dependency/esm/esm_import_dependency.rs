@@ -267,6 +267,7 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
   }
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
   module_dependency: &T,
   ids: &[Atom],

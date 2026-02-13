@@ -10,10 +10,7 @@ use rspack_fs::{IntermediateFileSystem, ReadableFileSystem};
 use self::{
   disable::DisableCache, memory::MemoryCache, mixed::MixedCache, persistent::PersistentCache,
 };
-use crate::{
-  CacheOptions, Compilation, CompilerOptions,
-  compilation::build_module_graph::BuildModuleGraphArtifact, incremental::Incremental,
-};
+use crate::{CacheOptions, Compilation, CompilerOptions};
 
 /// Cache trait
 ///

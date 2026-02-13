@@ -22,7 +22,6 @@ fn inline_enabled(dependency_id: &DependencyId, mg: &ModuleGraph) -> bool {
 }
 
 pub fn is_export_inlined(
-  mg: &ModuleGraph,
   exports_info_artifact: &ExportsInfoArtifact,
   module: &ModuleIdentifier,
   ids: &[Atom],
@@ -55,7 +54,7 @@ pub fn connection_active_inline_value_for_esm_import_specifier(
   }
   let module = connection.module_identifier();
   let ids = dependency.get_ids(mg);
-  !is_export_inlined(mg, exports_info_artifact, module, ids, runtime)
+  !is_export_inlined(exports_info_artifact, module, ids, runtime)
 }
 
 pub fn connection_active_inline_value_for_esm_export_imported_specifier(
@@ -81,7 +80,7 @@ pub fn connection_active_inline_value_for_esm_export_imported_specifier(
     if item.hidden || item.checked {
       return true;
     }
-    if !is_export_inlined(mg, exports_info_artifact, module, &item.ids, runtime) {
+    if !is_export_inlined(exports_info_artifact, module, &item.ids, runtime) {
       return true;
     }
   }
@@ -121,7 +120,7 @@ async fn optimize_dependencies(
 
   let mut q = modules
     .keys()
-    .filter_map(|mid| Some(exports_info_artifact.get_exports_info(mid)))
+    .map(|mid| exports_info_artifact.get_exports_info(mid))
     .collect_vec();
 
   while !q.is_empty() {
@@ -131,7 +130,7 @@ async fn optimize_dependencies(
       .filter_map(|exports_info| {
         let exports_info_data = ExportsInfoGetter::prefetch(
           exports_info,
-          &exports_info_artifact,
+          exports_info_artifact,
           PrefetchExportsInfoMode::Default,
         );
         let export_list = {

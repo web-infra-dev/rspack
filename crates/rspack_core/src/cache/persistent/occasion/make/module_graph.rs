@@ -143,7 +143,7 @@ pub async fn recovery_module_graph(
     })
     .with_max_len(1)
     .consume(|node| {
-      let mut mgm = node.mgm.into_owned();
+      let mgm = node.mgm.into_owned();
       let module = node.module.into_owned();
       for (index_in_block, (dep, parent_block)) in node.dependencies.into_iter().enumerate() {
         let dep = dep.into_owned();

@@ -8,9 +8,9 @@ use rspack_collections::{
 use rspack_core::{
   BoxDependency, BoxModule, Compilation, CompilationOptimizeChunkModules, DependencyId,
   DependencyType, ExportProvided, ExportsInfoArtifact, ExtendedReferencedExport, GetTargetResult,
-  ImportedByDeferModulesArtifact, LibIdentOptions, Logger, Module, ModuleExt, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleGraphModule, ModuleIdentifier, Plugin,
-  PrefetchExportsInfoMode, ProvidedExports, RuntimeCondition, RuntimeSpec, SourceType,
+  ImportedByDeferModulesArtifact, LibIdentOptions, Logger, ModuleGraph, ModuleGraphCacheArtifact,
+  ModuleGraphConnection, ModuleGraphModule, ModuleIdentifier, Plugin, PrefetchExportsInfoMode,
+  ProvidedExports, RuntimeCondition, RuntimeSpec, SourceType,
   concatenated_module::{
     ConcatenatedInnerModule, ConcatenatedModule, RootModuleContext, is_esm_dep_like,
   },
@@ -754,7 +754,7 @@ impl ModuleConcatenationPlugin {
 
     let mut chunk_graph = std::mem::take(&mut compilation.build_chunk_graph_artifact.chunk_graph);
     let module_graph = compilation.get_module_graph_mut();
-    let module_graph_module = ModuleGraphModule::new(new_module.id());
+    let module_graph_module = ModuleGraphModule::new(new_module.identifier());
     module_graph.add_module_graph_module(module_graph_module);
     ModuleGraph::clone_module_attributes(compilation, &root_module_id, &new_module.identifier());
     // integrate
@@ -1662,7 +1662,7 @@ fn add_concatenated_module(
   let mut chunk_graph = std::mem::take(&mut compilation.build_chunk_graph_artifact.chunk_graph);
   let module_graph = compilation.get_module_graph_mut();
 
-  let module_graph_module = ModuleGraphModule::new(new_module.id());
+  let module_graph_module = ModuleGraphModule::new(new_module.identifier());
   module_graph.add_module_graph_module(module_graph_module);
   ModuleGraph::clone_module_attributes(compilation, &root_module_id, &new_module.identifier());
   // integrate

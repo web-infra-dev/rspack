@@ -29,7 +29,7 @@ use super::{
 };
 use crate::{
   Compilation, CompilationAsset, Context, DependencyId, ExportsInfoArtifact, PublicPath, StealCell,
-  build_module_graph::module_executor::execute::ExecuteResult, exports, task_loop::run_task_loop,
+  build_module_graph::module_executor::execute::ExecuteResult, task_loop::run_task_loop,
 };
 
 #[derive(Debug)]

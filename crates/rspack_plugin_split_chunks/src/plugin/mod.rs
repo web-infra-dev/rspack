@@ -122,7 +122,6 @@ impl SplitChunksPlugin {
     let mut removed_module_chunks: IdentifierMap<UkeySet<ChunkUkey>> = IdentifierMap::default();
 
     let mut combinator = module_group::Combinator::default();
-    let module_graph = compilation.get_module_graph();
 
     if self
       .cache_groups
@@ -139,7 +138,6 @@ impl SplitChunksPlugin {
     {
       combinator.prepare_group_by_used_exports(
         &all_modules,
-        module_graph,
         &compilation.exports_info_artifact,
         &compilation.build_chunk_graph_artifact.chunk_by_ukey,
         &module_chunks,

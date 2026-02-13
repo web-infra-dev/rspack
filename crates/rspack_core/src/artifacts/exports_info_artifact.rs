@@ -2,7 +2,7 @@ use rayon::prelude::*;
 use rspack_collections::IdentifierMap;
 
 use crate::{
-  ArtifactExt, ExportsInfo, ExportsInfoData, ExportsInfoGetter, ModuleGraph, ModuleIdentifier,
+  ArtifactExt, ExportsInfo, ExportsInfoData, ExportsInfoGetter, ModuleIdentifier,
   PrefetchExportsInfoMode, PrefetchedExportsInfoUsed, PrefetchedExportsInfoWrapper, RuntimeSpec,
   incremental::{Incremental, IncrementalPasses},
   module_graph::rollback,

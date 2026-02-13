@@ -8,7 +8,7 @@ use futures::future::join_all;
 use rayon::prelude::*;
 use rspack_collections::{IdentifierMap, UkeyIndexMap, UkeyMap, UkeySet};
 use rspack_core::{
-  ChunkByUkey, ChunkUkey, Compilation, ExportsInfoArtifact, Module, ModuleGraph, ModuleIdentifier,
+  ChunkByUkey, ChunkUkey, Compilation, ExportsInfoArtifact, Module, ModuleIdentifier,
   PrefetchExportsInfoMode, RuntimeKeyMap, UsageKey, get_runtime_key,
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt};
@@ -70,7 +70,6 @@ impl Combinator {
   fn group_chunks_by_exports(
     module_identifier: &ModuleIdentifier,
     module_chunks: impl Iterator<Item = ChunkUkey>,
-    module_graph: &ModuleGraph,
     exports_info_artifact: &ExportsInfoArtifact,
     chunk_by_ukey: &ChunkByUkey,
   ) -> Vec<UkeySet<ChunkUkey>> {
@@ -195,7 +194,6 @@ impl Combinator {
   pub(crate) fn prepare_group_by_used_exports(
     &mut self,
     all_modules: &[ModuleIdentifier],
-    module_graph: &ModuleGraph,
     exports_info_artifact: &ExportsInfoArtifact,
     chunk_by_ukey: &ChunkByUkey,
     module_chunks: &ModuleChunks,
@@ -211,7 +209,6 @@ impl Combinator {
             .expect("should have module chunks")
             .iter()
             .copied(),
-          module_graph,
           exports_info_artifact,
           chunk_by_ukey,
         );

@@ -185,7 +185,6 @@ impl DependencyTemplate for ESMExportSpecifierDependencyTemplate {
         }
         let export_name = &[dep.name.clone(), enum_key.clone()];
         is_export_inlined(
-          module_graph,
           &compilation.exports_info_artifact,
           &module.identifier(),
           export_name,

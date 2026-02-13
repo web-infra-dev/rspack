@@ -1,7 +1,5 @@
 use super::Cache;
-use crate::{
-  Compilation, compilation::build_module_graph::BuildModuleGraphArtifact, incremental::Incremental,
-};
+use crate::{Compilation, compilation::build_module_graph::BuildModuleGraphArtifact};
 
 /// Disable cache implementation
 ///

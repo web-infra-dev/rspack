@@ -58,7 +58,6 @@ impl Compilation {
     dependencies_diagnostics_artifact: &mut DependenciesDiagnosticsArtifact,
     async_modules_artifact: &mut AsyncModulesArtifact,
   ) -> Result<Vec<Diagnostic>> {
-    let logger = self.get_logger("rspack.Compilation");
     if let Some(mut mutations) = self.incremental.mutations_write() {
       mutations.extend(
         self

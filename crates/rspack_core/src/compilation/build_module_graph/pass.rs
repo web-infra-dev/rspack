@@ -7,7 +7,7 @@ use crate::{
   cache::Cache,
   compilation::{
     finish_make::finish_make_pass, finish_module_graph::finish_module_graph_pass,
-    finish_modules::finish_modules_pass, make::make_hook_pass, pass::PassExt,
+    make::make_hook_pass, pass::PassExt,
   },
 };
 
@@ -38,7 +38,7 @@ impl PassExt for BuildModuleGraphPhasePass {
   async fn run_pass_with_cache(
     &self,
     compilation: &mut Compilation,
-    cache: &mut dyn Cache,
+    _cache: &mut dyn Cache,
   ) -> Result<()> {
     let plugin_driver = compilation.plugin_driver.clone();
 
@@ -69,6 +69,6 @@ impl PassExt for BuildModuleGraphPhasePass {
   }
 
   async fn after_pass(&self, compilation: &mut Compilation, cache: &mut dyn Cache) {
-    cache.after_build_module_graph(&compilation).await;
+    cache.after_build_module_graph(compilation).await;
   }
 }

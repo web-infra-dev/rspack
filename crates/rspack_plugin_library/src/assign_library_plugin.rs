@@ -270,7 +270,6 @@ async fn render_startup(
   let exports_name = runtime_template.render_runtime_variable(&RuntimeVariable::Exports);
   if matches!(self.options.unnamed, Unnamed::Static) {
     let export_target = access_with_init(&full_name_resolved, self.options.prefix.len(), true);
-    let module_graph = compilation.get_module_graph();
     let exports_info = compilation
       .exports_info_artifact
       .get_prefetched_exports_info(module, PrefetchExportsInfoMode::Default);

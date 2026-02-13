@@ -628,7 +628,6 @@ impl ParserAndGenerator for CssParserAndGenerator {
           // currently this is dead branch, as css module will never be concatenated expect exportsOnly
           let mut concate_source = ConcatSource::default();
           if let Some(ref exports) = self.exports {
-            let mg = generate_context.compilation.get_module_graph();
             let exports_info_artifact = &generate_context.compilation.exports_info_artifact;
             if let Some(local_names) = &self.local_names {
               let unused_exports = get_unused_local_ident(

@@ -203,6 +203,7 @@ pub fn compare_modules_by_pre_order_index_or_identifier(
   }
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn get_short_chunk_name(
   chunk: &Chunk,
   chunk_graph: &ChunkGraph,
@@ -267,6 +268,7 @@ pub fn shorten_long_string(string: String, delimiter: &str) -> String {
   }
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn get_long_chunk_name(
   chunk: &Chunk,
   chunk_graph: &ChunkGraph,

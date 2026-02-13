@@ -17,7 +17,7 @@ pub use self::{
   module_executor::{ExecuteModuleId, ExecutedRuntimeModule, ModuleExecutor},
 };
 pub use crate::{BuildModuleGraphArtifact, BuildModuleGraphArtifactState};
-use crate::{Compilation, ExportsInfoArtifact, exports, logger::Logger};
+use crate::{Compilation, ExportsInfoArtifact, logger::Logger};
 
 pub async fn build_module_graph_pass(compilation: &mut Compilation) -> Result<()> {
   let logger = compilation.get_logger("rspack.Compiler");
@@ -57,7 +57,7 @@ impl Compilation {
 pub async fn build_module_graph(
   compilation: &Compilation,
   mut artifact: BuildModuleGraphArtifact,
-  mut exports_info_artifact: ExportsInfoArtifact,
+  exports_info_artifact: ExportsInfoArtifact,
 ) -> Result<(BuildModuleGraphArtifact, ExportsInfoArtifact)> {
   let mut params = Vec::with_capacity(6);
 

@@ -75,7 +75,6 @@ use crate::{
   ExportsInfoArtifact, ExtendedReferencedExport, Filename, ImportPhase, ImportVarMap,
   ImportedByDeferModulesArtifact, MemoryGCStorage, ModuleFactory, ModuleGraph,
   ModuleGraphCacheArtifact, ModuleIdentifier, ModuleIdsArtifact, ModuleStaticCache, PathData,
-  PrefetchExportsInfoMode, PrefetchedExportsInfoUsed, PrefetchedExportsInfoWrapper,
   ProcessRuntimeRequirementsCacheArtifact, ResolverFactory, RuntimeGlobals, RuntimeKeyMap,
   RuntimeMode, RuntimeModule, RuntimeSpec, RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver,
   SideEffectsOptimizeArtifact, SourceType, Stats, StealCell, ValueCacheVersions,

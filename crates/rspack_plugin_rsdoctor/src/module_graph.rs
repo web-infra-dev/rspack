@@ -19,7 +19,6 @@ use crate::{
 
 pub fn collect_json_module_sizes(
   modules: &IdentifierMap<&BoxModule>,
-  module_graph: &ModuleGraph,
   exports_info_artifact: &ExportsInfoArtifact,
 ) -> RsdoctorJsonModuleSizes {
   let mut json_sizes: RsdoctorJsonModuleSizes = RsdoctorJsonModuleSizes::default();

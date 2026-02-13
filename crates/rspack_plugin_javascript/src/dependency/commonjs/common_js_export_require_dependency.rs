@@ -360,7 +360,6 @@ impl Dependency for CommonJsExportRequireDependency {
         })
         .collect_vec();
       collect_referenced_export_items(
-        mg,
         exports_info_artifact,
         runtime,
         &mut referenced_exports,

@@ -116,7 +116,6 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
           continue;
         }
         if !is_runtime_equal(chunk.runtime(), other_chunk.runtime()) {
-          let module_graph = compilation.get_module_graph();
           let is_all_equal = compilation
             .build_chunk_graph_artifact
             .chunk_graph
