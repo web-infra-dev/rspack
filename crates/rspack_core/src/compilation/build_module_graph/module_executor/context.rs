@@ -1,7 +1,8 @@
+use rspack_tasks::CURRENT_COMPILER_CONTEXT;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use super::{super::graph_updater::repair::context::TaskContext, module_tracker::ModuleTracker};
-use crate::{DependencyId, ModuleIdentifier};
+use crate::{DependencyId, ExportsInfoArtifact, ModuleIdentifier};
 
 /// The meta data for import_module.
 ///

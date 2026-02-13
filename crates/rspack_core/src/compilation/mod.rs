@@ -72,12 +72,13 @@ use crate::{
   CompilationLogging, CompilerOptions, CompilerPlatform, ConcatenationScope,
   DependenciesDiagnosticsArtifact, DependencyId, DependencyTemplate, DependencyTemplateType,
   DependencyType, Entry, EntryData, EntryOptions, EntryRuntime, Entrypoint, ExecuteModuleId,
-  ExtendedReferencedExport, Filename, ImportPhase, ImportVarMap, ImportedByDeferModulesArtifact,
-  MemoryGCStorage, ModuleFactory, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
-  ModuleIdsArtifact, ModuleStaticCache, PathData, ProcessRuntimeRequirementsCacheArtifact,
-  ResolverFactory, RuntimeGlobals, RuntimeKeyMap, RuntimeMode, RuntimeModule, RuntimeSpec,
-  RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver, SideEffectsOptimizeArtifact, SourceType,
-  Stats, StealCell, ValueCacheVersions,
+  ExportsInfoArtifact, ExtendedReferencedExport, Filename, ImportPhase, ImportVarMap,
+  ImportedByDeferModulesArtifact, MemoryGCStorage, ModuleFactory, ModuleGraph,
+  ModuleGraphCacheArtifact, ModuleIdentifier, ModuleIdsArtifact, ModuleStaticCache, PathData,
+  PrefetchExportsInfoMode, PrefetchedExportsInfoUsed, PrefetchedExportsInfoWrapper,
+  ProcessRuntimeRequirementsCacheArtifact, ResolverFactory, RuntimeGlobals, RuntimeKeyMap,
+  RuntimeMode, RuntimeModule, RuntimeSpec, RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver,
+  SideEffectsOptimizeArtifact, SourceType, Stats, StealCell, ValueCacheVersions,
   compilation::build_module_graph::{
     BuildModuleGraphArtifact, ModuleExecutor, UpdateParam, update_module_graph,
   },
@@ -104,7 +105,7 @@ define_hook!(CompilationDependencyReferencedExports: Sync(
   module_graph: Option<&ModuleGraph>
 ));
 define_hook!(CompilationConcatenationScope: SeriesBail(compilation: &Compilation, curr_module: ModuleIdentifier) -> ConcatenationScope);
-define_hook!(CompilationOptimizeDependencies: SeriesBail(compilation: &Compilation, side_effects_optimize_artifact: &mut SideEffectsOptimizeArtifact,  build_module_graph_artifact: &mut BuildModuleGraphArtifact,
+define_hook!(CompilationOptimizeDependencies: SeriesBail(compilation: &Compilation, side_effects_optimize_artifact: &mut SideEffectsOptimizeArtifact,  build_module_graph_artifact: &mut BuildModuleGraphArtifact, exports_info_artifact: &mut ExportsInfoArtifact,
  diagnostics: &mut Vec<Diagnostic>) -> bool);
 define_hook!(CompilationOptimizeModules: SeriesBail(compilation: &Compilation, diagnostics: &mut Vec<Diagnostic>) -> bool);
 define_hook!(CompilationAfterOptimizeModules: Series(compilation: &Compilation));
@@ -121,7 +122,7 @@ define_hook!(CompilationAdditionalChunkRuntimeRequirements: Series(compilation: 
 define_hook!(CompilationRuntimeRequirementInChunk: SeriesBail(compilation: &mut Compilation, chunk_ukey: &ChunkUkey, all_runtime_requirements: &RuntimeGlobals, runtime_requirements: &RuntimeGlobals, runtime_requirements_mut: &mut RuntimeGlobals));
 define_hook!(CompilationAdditionalTreeRuntimeRequirements: Series(compilation: &Compilation, chunk_ukey: &ChunkUkey, runtime_requirements: &mut RuntimeGlobals, runtime_modules: &mut Vec<Box<dyn RuntimeModule>>));
 define_hook!(CompilationRuntimeRequirementInTree: SeriesBail(compilation: &Compilation, chunk_ukey: &ChunkUkey, all_runtime_requirements: &RuntimeGlobals, runtime_requirements: &RuntimeGlobals, runtime_requirements_mut: &mut RuntimeGlobals, runtime_modules_to_add: &mut Vec<(ChunkUkey, Box<dyn RuntimeModule>)>));
-define_hook!(CompilationOptimizeCodeGeneration: Series(compilation: &Compilation, build_module_graph_artifact: &mut BuildModuleGraphArtifact, diagnostics: &mut Vec<Diagnostic>));
+define_hook!(CompilationOptimizeCodeGeneration: Series(compilation: &Compilation, build_module_graph_artifact: &mut BuildModuleGraphArtifact, exports_info_artifact: &mut ExportsInfoArtifact, diagnostics: &mut Vec<Diagnostic>));
 define_hook!(CompilationAfterCodeGeneration: Series(compilation: &Compilation, diagnostics: &mut Vec<Diagnostic>));
 define_hook!(CompilationChunkHash: Series(compilation: &Compilation, chunk_ukey: &ChunkUkey, hasher: &mut RspackHash),tracing=false);
 define_hook!(CompilationContentHash: Series(compilation: &Compilation, chunk_ukey: &ChunkUkey, hashes: &mut HashMap<SourceType, RspackHash>));
@@ -229,6 +230,8 @@ pub struct Compilation {
   pub async_modules_artifact: StealCell<AsyncModulesArtifact>,
   // artifact for collect_dependencies_diagnostics
   pub dependencies_diagnostics_artifact: StealCell<DependenciesDiagnosticsArtifact>,
+  // artifact for exports info
+  pub exports_info_artifact: StealCell<ExportsInfoArtifact>,
   // artifact for side_effects_flag_plugin
   pub side_effects_optimize_artifact: StealCell<SideEffectsOptimizeArtifact>,
   // artifact for module_ids
@@ -365,6 +368,7 @@ impl Compilation {
       async_modules_artifact: StealCell::new(AsyncModulesArtifact::default()),
       imported_by_defer_modules_artifact: StealCell::new(Default::default()),
       dependencies_diagnostics_artifact: StealCell::new(DependenciesDiagnosticsArtifact::default()),
+      exports_info_artifact: StealCell::new(ExportsInfoArtifact::default()),
       side_effects_optimize_artifact: StealCell::new(Default::default()),
       module_ids_artifact: StealCell::new(Default::default()),
       named_chunk_ids_artifact: StealCell::new(Default::default()),
@@ -426,11 +430,38 @@ impl Compilation {
     self.compiler_id
   }
 
-  pub fn swap_build_module_graph_artifact(&mut self, make_artifact: &mut BuildModuleGraphArtifact) {
-    mem::swap(&mut *self.build_module_graph_artifact, make_artifact);
-  }
   pub fn get_module_graph(&self) -> &ModuleGraph {
     self.build_module_graph_artifact.get_module_graph()
+  }
+
+  pub fn get_prefetched_exports_info<'b>(
+    &'b self,
+    module_identifier: &ModuleIdentifier,
+    mode: PrefetchExportsInfoMode<'b>,
+  ) -> PrefetchedExportsInfoWrapper<'b> {
+    self
+      .exports_info_artifact
+      .get_prefetched_exports_info(module_identifier, mode)
+  }
+
+  pub fn get_prefetched_exports_info_optional<'b>(
+    &'b self,
+    module_identifier: &ModuleIdentifier,
+    mode: PrefetchExportsInfoMode<'b>,
+  ) -> Option<PrefetchedExportsInfoWrapper<'b>> {
+    self
+      .exports_info_artifact
+      .get_prefetched_exports_info_optional(module_identifier, mode)
+  }
+
+  pub fn get_prefetched_exports_info_used(
+    &self,
+    module_identifier: &ModuleIdentifier,
+    runtime: Option<&RuntimeSpec>,
+  ) -> PrefetchedExportsInfoUsed {
+    self
+      .exports_info_artifact
+      .get_prefetched_exports_info_used(module_identifier, runtime)
   }
 
   // it will return None during make phase since mg is incomplete
@@ -650,9 +681,11 @@ impl Compilation {
     }
 
     let make_artifact = self.build_module_graph_artifact.steal();
-    let make_artifact = update_module_graph(
+    let exports_info_artifact = self.exports_info_artifact.steal();
+    let (make_artifact, exports_info_artifact) = update_module_graph(
       self,
       make_artifact,
+      exports_info_artifact,
       vec![UpdateParam::BuildEntry(
         self
           .entries
@@ -665,6 +698,7 @@ impl Compilation {
     )
     .await?;
     self.build_module_graph_artifact = make_artifact.into();
+    self.exports_info_artifact = exports_info_artifact.into();
 
     Ok(())
   }
@@ -701,9 +735,11 @@ impl Compilation {
     // Recheck entry and clean useless entry
     // This should before finish_modules hook is called, ensure providedExports effects on new added modules
     let make_artifact = self.build_module_graph_artifact.steal();
-    let make_artifact = update_module_graph(
+    let exports_info_artifact = self.exports_info_artifact.steal();
+    let (make_artifact, exports_info_artifact) = update_module_graph(
       self,
       make_artifact,
+      exports_info_artifact,
       vec![UpdateParam::BuildEntry(
         self
           .entries
@@ -716,6 +752,7 @@ impl Compilation {
     )
     .await?;
     self.build_module_graph_artifact = make_artifact.into();
+    self.exports_info_artifact = exports_info_artifact.into();
 
     Ok(())
   }
@@ -1018,17 +1055,20 @@ impl Compilation {
     f: impl Fn(Vec<&BoxModule>) -> T,
   ) -> Result<T> {
     let artifact = self.build_module_graph_artifact.steal();
+    let exports_info_artifact = self.exports_info_artifact.steal();
 
     // https://github.com/webpack/webpack/blob/19ca74127f7668aaf60d59f4af8fcaee7924541a/lib/Compilation.js#L2462C21-L2462C25
     self.module_graph_cache_artifact.unfreeze();
 
-    let artifact = update_module_graph(
+    let (artifact, exports_info_artifact) = update_module_graph(
       self,
       artifact,
+      exports_info_artifact,
       vec![UpdateParam::ForceBuildModules(module_identifiers.clone())],
     )
     .await?;
     self.build_module_graph_artifact = artifact.into();
+    self.exports_info_artifact = exports_info_artifact.into();
 
     let module_graph = self.get_module_graph();
     Ok(f(module_identifiers

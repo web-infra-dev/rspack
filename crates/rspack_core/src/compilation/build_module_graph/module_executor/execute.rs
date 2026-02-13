@@ -11,7 +11,8 @@ use super::context::{ExecutorTaskContext, ImportModuleMeta};
 use crate::{
   Chunk, ChunkGraph, ChunkKind, CodeGenerationDataAssetInfo, CodeGenerationDataFilename,
   CodeGenerationResult, CompilationAsset, CompilationAssets, EntryOptions, Entrypoint,
-  FactorizeInfo, ModuleCodeGenerationContext, ModuleType, PublicPath, RuntimeSpec, SourceType,
+  ExportsInfoArtifact, FactorizeInfo, ModuleCodeGenerationContext, ModuleType, PublicPath,
+  RuntimeSpec, SourceType,
   utils::task_loop::{Task, TaskResult, TaskType},
 };
 
@@ -40,12 +41,15 @@ pub struct ExecuteModuleResult {
   pub id: ExecuteModuleId,
 }
 
-pub type ExecuteResultSender = Sender<(
-  ExecuteModuleResult,
-  CompilationAssets,
-  IdentifierSet,
-  Vec<ExecutedRuntimeModule>,
-)>;
+#[derive(Debug)]
+pub struct ExecuteResult {
+  pub execute_result: ExecuteModuleResult,
+  pub assets: CompilationAssets,
+  pub code_generated_modules: IdentifierSet,
+  pub executed_runtime_modules: Vec<ExecutedRuntimeModule>,
+}
+
+pub type ExecuteResultSender = Sender<ExecuteResult>;
 
 #[derive(Debug)]
 pub struct ExecuteTask {
@@ -60,16 +64,16 @@ impl ExecuteTask {
     let id = EXECUTE_MODULE_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
     self
       .result_sender
-      .send((
-        ExecuteModuleResult {
+      .send(ExecuteResult {
+        execute_result: ExecuteModuleResult {
           id,
           error: Some(error.to_string()),
           ..Default::default()
         },
-        Default::default(),
-        Default::default(),
-        Default::default(),
-      ))
+        assets: Default::default(),
+        code_generated_modules: Default::default(),
+        executed_runtime_modules: Default::default(),
+      })
       .expect("should send result success");
   }
 }
@@ -112,12 +116,12 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
     else {
       // no entry module, entry dependency factorize failed.
       result_sender
-        .send((
+        .send(ExecuteResult {
           execute_result,
-          CompilationAssets::default(),
-          IdentifierSet::default(),
-          vec![],
-        ))
+          assets: Default::default(),
+          code_generated_modules: Default::default(),
+          executed_runtime_modules: Default::default(),
+        })
         .expect("should send result success");
 
       return Ok(vec![]);
@@ -202,12 +206,12 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
 
     if has_error {
       result_sender
-        .send((
+        .send(ExecuteResult {
           execute_result,
-          CompilationAssets::default(),
-          IdentifierSet::default(),
-          vec![],
-        ))
+          assets: Default::default(),
+          code_generated_modules: Default::default(),
+          executed_runtime_modules: Default::default(),
+        })
         .expect("should send result success");
 
       return Ok(vec![]);
@@ -387,6 +391,7 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
     };
 
     assets.extend(std::mem::take(compilation.assets_mut()));
+
     let code_generated_modules = std::mem::take(&mut compilation.code_generated_modules);
     let executed_runtime_modules = runtime_modules
       .iter()
@@ -412,12 +417,12 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
       .collect_vec();
     origin_context.recovery_from_temp_compilation(compilation);
     result_sender
-      .send((
+      .send(ExecuteResult {
         execute_result,
         assets,
         code_generated_modules,
         executed_runtime_modules,
-      ))
+      })
       .expect("should send result success");
     Ok(vec![])
   }

@@ -124,7 +124,9 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
             .into_par_iter()
             .all(|module| {
               is_equally_used(
-                module_graph.get_exports_info_data(module),
+                compilation
+                  .exports_info_artifact
+                  .get_exports_info_data(module),
                 chunk.runtime(),
                 other_chunk.runtime(),
               )

@@ -1,9 +1,9 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsContextDependency, Dependency, DependencyCodeGeneration, DependencyId, DependencyRange,
-  DependencyTemplate, DependencyTemplateType, DependencyType, ExtendedReferencedExport,
-  FactorizeInfo, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, RuntimeSpec,
-  TemplateContext, TemplateReplaceSource,
+  DependencyTemplate, DependencyTemplateType, DependencyType, ExportsInfoArtifact,
+  ExtendedReferencedExport, FactorizeInfo, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
+  RuntimeSpec, TemplateContext, TemplateReplaceSource,
 };
 
 #[cacheable]
@@ -46,6 +46,7 @@ impl Dependency for IsIncludeDependency {
     &self,
     _module_graph: &ModuleGraph,
     _module_graph_cache: &ModuleGraphCacheArtifact,
+    _exports_info_artifact: &ExportsInfoArtifact,
     _runtime: Option<&RuntimeSpec>,
   ) -> Vec<ExtendedReferencedExport> {
     vec![]

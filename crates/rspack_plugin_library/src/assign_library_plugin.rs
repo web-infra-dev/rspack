@@ -271,8 +271,9 @@ async fn render_startup(
   if matches!(self.options.unnamed, Unnamed::Static) {
     let export_target = access_with_init(&full_name_resolved, self.options.prefix.len(), true);
     let module_graph = compilation.get_module_graph();
-    let exports_info =
-      module_graph.get_prefetched_exports_info(module, PrefetchExportsInfoMode::Default);
+    let exports_info = compilation
+      .exports_info_artifact
+      .get_prefetched_exports_info(module, PrefetchExportsInfoMode::Default);
     let mut provided = vec![];
     let exports_name = runtime_template.render_runtime_variable(&RuntimeVariable::Exports);
     for (_, export_info) in exports_info.exports() {
@@ -484,19 +485,18 @@ async fn finish_modules(
   }
 
   for (runtime, export, module_identifier) in runtime_info {
-    let module_graph = compilation
-      .build_module_graph_artifact
-      .get_module_graph_mut();
     if let Some(export) = export {
-      let export_info = module_graph
+      let export_info = compilation
+        .exports_info_artifact
         .get_exports_info_data_mut(&module_identifier)
         .ensure_export_info(&(export.as_str()).into());
-      let info = export_info.as_data_mut(module_graph);
+      let info = export_info.as_data_mut(&mut compilation.exports_info_artifact);
       info.set_used(UsageState::Used, Some(&runtime));
       info.set_can_mangle_use(Some(false));
       info.set_can_inline_use(Some(CanInlineUse::No));
     } else {
-      module_graph
+      compilation
+        .exports_info_artifact
         .get_exports_info_data_mut(&module_identifier)
         .set_used_in_unknown_way(Some(&runtime));
     }

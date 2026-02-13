@@ -29,21 +29,23 @@ impl Cache for MemoryCache {
   }
 
   // BUILD_MODULE_GRAPH: build_module_graph_artifact (module graph recovery)
-  async fn before_build_module_graph(
-    &mut self,
-    make_artifact: &mut BuildModuleGraphArtifact,
-    incremental: &Incremental,
-  ) {
+  async fn before_build_module_graph(&mut self, compilation: &mut Compilation) {
     if let Some(old_compilation) = self.old_compilation.as_mut() {
+      let incremental = &compilation.incremental;
       recover_artifact(
         incremental,
-        make_artifact,
+        &mut compilation.build_module_graph_artifact,
         &mut old_compilation.build_module_graph_artifact,
+      );
+      recover_artifact(
+        incremental,
+        &mut compilation.exports_info_artifact,
+        &mut old_compilation.exports_info_artifact,
       );
     }
   }
 
-  // FINISH_MODULES: async_modules_artifact, dependencies_diagnostics_artifact
+  // FINISH_MODULES: exports_info_artifact, async_modules_artifact, dependencies_diagnostics_artifact
   async fn before_finish_modules(&mut self, compilation: &mut Compilation) {
     if let Some(old_compilation) = self.old_compilation.as_mut() {
       let incremental = &compilation.incremental;

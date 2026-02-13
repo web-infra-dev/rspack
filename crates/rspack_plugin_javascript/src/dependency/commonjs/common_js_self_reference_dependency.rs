@@ -4,9 +4,9 @@ use rspack_cacheable::{
 };
 use rspack_core::{
   AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
-  DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, ExportsInfoGetter,
-  ExtendedReferencedExport, FactorizeInfo, GetUsedNameParam, ModuleDependency, ModuleGraph,
-  ModuleGraphCacheArtifact, PrefetchExportsInfoMode, RuntimeSpec, TemplateContext,
+  DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, ExportsInfoArtifact,
+  ExportsInfoGetter, ExtendedReferencedExport, FactorizeInfo, GetUsedNameParam, ModuleDependency,
+  ModuleGraph, ModuleGraphCacheArtifact, PrefetchExportsInfoMode, RuntimeSpec, TemplateContext,
   TemplateReplaceSource, UsedName, property_access,
 };
 use swc_core::atoms::Atom;
@@ -64,6 +64,7 @@ impl Dependency for CommonJsSelfReferenceDependency {
     &self,
     _module_graph: &ModuleGraph,
     _module_graph_cache: &ModuleGraphCacheArtifact,
+    _exports_info_artifact: &ExportsInfoArtifact,
     _runtime: Option<&RuntimeSpec>,
   ) -> Vec<ExtendedReferencedExport> {
     if self.is_call {
@@ -145,14 +146,14 @@ impl DependencyTemplate for CommonJsSelfReferenceDependencyTemplate {
     let used = if dep.names.is_empty() {
       let used_name = if dep.names.is_empty() {
         let exports_info_used =
-          module_graph.get_prefetched_exports_info_used(&module.identifier(), *runtime);
+          compilation.get_prefetched_exports_info_used(&module.identifier(), *runtime);
         ExportsInfoGetter::get_used_name(
           GetUsedNameParam::WithoutNames(&exports_info_used),
           *runtime,
           &dep.names,
         )
       } else {
-        let exports_info = module_graph.get_prefetched_exports_info(
+        let exports_info = compilation.get_prefetched_exports_info(
           &module.identifier(),
           PrefetchExportsInfoMode::Nested(&dep.names),
         );

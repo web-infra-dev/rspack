@@ -5,10 +5,10 @@ use rspack_cacheable::{
 use rspack_core::{
   AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
   DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
-  ExportsInfoGetter, ExportsType, ExtendedReferencedExport, FactorizeInfo, GetUsedNameParam,
-  ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, PrefetchExportsInfoMode, RuntimeGlobals,
-  RuntimeSpec, TemplateContext, TemplateReplaceSource, UsedName, property_access,
-  to_normal_comment,
+  ExportsInfoArtifact, ExportsInfoGetter, ExportsType, ExtendedReferencedExport, FactorizeInfo,
+  GetUsedNameParam, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
+  PrefetchExportsInfoMode, RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource,
+  UsedName, property_access, to_normal_comment,
 };
 use swc_core::atoms::Atom;
 
@@ -78,13 +78,21 @@ impl Dependency for CommonJsFullRequireDependency {
     &self,
     module_graph: &ModuleGraph,
     module_graph_cache: &ModuleGraphCacheArtifact,
+    exports_info_artifact: &ExportsInfoArtifact,
     _runtime: Option<&RuntimeSpec>,
   ) -> Vec<ExtendedReferencedExport> {
     if self.is_call
       && module_graph
         .module_graph_module_by_dependency_id(&self.id)
         .and_then(|mgm| module_graph.module_by_identifier(&mgm.module_identifier))
-        .map(|m| m.get_exports_type(module_graph, module_graph_cache, false))
+        .map(|m| {
+          m.get_exports_type(
+            module_graph,
+            module_graph_cache,
+            exports_info_artifact,
+            false,
+          )
+        })
         .is_some_and(|t| !matches!(t, ExportsType::Namespace))
     {
       if self.names.is_empty() {
@@ -169,7 +177,7 @@ impl DependencyTemplate for CommonJsFullRequireDependencyTemplate {
       module_graph.module_graph_module_by_dependency_id(&dep.id)
       && let used = {
         if dep.names.is_empty() {
-          let exports_info_used = module_graph
+          let exports_info_used = compilation
             .get_prefetched_exports_info_used(&imported_module.module_identifier, *runtime);
           ExportsInfoGetter::get_used_name(
             GetUsedNameParam::WithoutNames(&exports_info_used),
@@ -177,7 +185,7 @@ impl DependencyTemplate for CommonJsFullRequireDependencyTemplate {
             &dep.names,
           )
         } else {
-          let exports_info = module_graph.get_prefetched_exports_info(
+          let exports_info = compilation.get_prefetched_exports_info(
             &imported_module.module_identifier,
             PrefetchExportsInfoMode::Nested(&dep.names),
           );

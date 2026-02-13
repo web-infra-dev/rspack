@@ -38,6 +38,7 @@ impl Task<ExecutorTaskContext> for EntryTask {
       origin_context,
       tracker,
       executed_entry_deps,
+      ..
     } = context;
 
     let mut res = vec![];

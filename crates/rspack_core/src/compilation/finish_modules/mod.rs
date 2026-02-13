@@ -1,7 +1,38 @@
+use async_trait::async_trait;
 use rspack_error::Result;
 
 use super::*;
-use crate::logger::Logger;
+use crate::{cache::Cache, logger::Logger, pass::PassExt};
+
+pub struct FinishModulesPhasePass;
+
+#[async_trait]
+impl PassExt for FinishModulesPhasePass {
+  fn name(&self) -> &'static str {
+    "finish modules"
+  }
+
+  async fn before_pass(&self, compilation: &mut Compilation, cache: &mut dyn Cache) {
+    cache.before_finish_modules(compilation).await;
+  }
+
+  async fn after_pass(&self, compilation: &mut Compilation, cache: &mut dyn Cache) {
+    cache.after_finish_modules(compilation).await;
+  }
+
+  async fn run_pass(&self, compilation: &mut Compilation) -> Result<()> {
+    finish_modules_pass(compilation).await?;
+
+    use crate::incremental::IncrementalPasses;
+    if compilation
+      .incremental
+      .passes_enabled(IncrementalPasses::FINISH_MODULES)
+    {
+      compilation.exports_info_artifact.checkpoint();
+    }
+    Ok(())
+  }
+}
 
 pub async fn finish_modules_pass(compilation: &mut Compilation) -> Result<()> {
   let mut dependencies_diagnostics_artifact = compilation.dependencies_diagnostics_artifact.steal();
@@ -64,7 +95,6 @@ impl Compilation {
       tracing::debug!(target: incremental::TRACING_TARGET, passes = %IncrementalPasses::BUILD_MODULE_GRAPH, %mutations);
     }
 
-    let start = logger.time("finish modules");
     // finish_modules means the module graph (modules, connections, dependencies) are
     // frozen and start to optimize (provided exports, infer async, etc.) based on the
     // module graph, so any kind of change that affect these should be done before the
@@ -76,8 +106,6 @@ impl Compilation {
       .finish_modules
       .call(self, async_modules_artifact)
       .await?;
-
-    logger.time_end(start);
 
     // https://github.com/webpack/webpack/blob/19ca74127f7668aaf60d59f4af8fcaee7924541a/lib/Compilation.js#L2988
     self.module_graph_cache_artifact.freeze();
@@ -139,6 +167,7 @@ impl Compilation {
 
     let module_graph = self.get_module_graph();
     let module_graph_cache = &self.module_graph_cache_artifact;
+    let exports_info_artifact = &self.exports_info_artifact;
     let dependencies_diagnostics: DependenciesDiagnosticsArtifact = modules
       .par_iter()
       .map(|module_identifier| {
@@ -151,7 +180,7 @@ impl Compilation {
           .filter_map(|dependency_id| {
             let dependency = module_graph.dependency_by_id(dependency_id);
             dependency
-              .get_diagnostics(module_graph, module_graph_cache)
+              .get_diagnostics(module_graph, module_graph_cache, exports_info_artifact)
               .map(|diagnostics| {
                 diagnostics.into_iter().map(|mut diagnostic| {
                   diagnostic.module_identifier = Some(*module_identifier);

@@ -40,7 +40,8 @@ impl PureExpressionDependency {
       Some(UsedByExports::Bool(false)) => RuntimeCondition::Boolean(false),
       Some(UsedByExports::Set(ref set)) => {
         let module_graph = compilation.get_module_graph();
-        let exports_info = module_graph
+        let exports_info = compilation
+          .exports_info_artifact
           .get_prefetched_exports_info(&self.module_identifier, PrefetchExportsInfoMode::Default);
         filter_runtime(runtime, |cur_runtime| {
           set.iter().any(|id| {

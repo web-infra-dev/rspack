@@ -1,7 +1,9 @@
 use rspack_util::atom::Atom;
 use rustc_hash::FxHashSet;
 
-use crate::{ExportInfo, ExportInfoData, ModuleGraph, RuntimeSpec, UsageState};
+use crate::{
+  ExportInfo, ExportInfoData, ExportsInfoArtifact, ModuleGraph, RuntimeSpec, UsageState,
+};
 
 /// refer https://github.com/webpack/webpack/blob/d15c73469fd71cf98734685225250148b68ddc79/lib/FlagDependencyUsagePlugin.js#L64
 #[derive(Clone, Debug)]
@@ -66,6 +68,7 @@ impl Default for ReferencedExport {
 
 pub fn collect_referenced_export_items<'a>(
   module_graph: &'a ModuleGraph,
+  exports_info_artifact: &'a ExportsInfoArtifact,
   runtime: Option<&'a RuntimeSpec>,
   referenced_export: &mut Vec<Vec<&'a Atom>>,
   prefix: Vec<&'a Atom>,
@@ -90,7 +93,7 @@ pub fn collect_referenced_export_items<'a>(
     }
     already_visited.insert(export_info_id);
 
-    let exports_info = module_graph.get_exports_info_by_id(
+    let exports_info = exports_info_artifact.get_exports_info_by_id(
       &export_info
         .exports_info()
         .expect("should have exports info"),
@@ -98,6 +101,7 @@ pub fn collect_referenced_export_items<'a>(
     for export_info in exports_info.exports().values() {
       collect_referenced_export_items(
         module_graph,
+        exports_info_artifact,
         runtime,
         referenced_export,
         if default_points_to_self

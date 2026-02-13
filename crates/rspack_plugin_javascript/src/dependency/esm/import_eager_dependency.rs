@@ -4,9 +4,9 @@ use rspack_cacheable::{
 };
 use rspack_core::{
   AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
-  DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, FactorizeInfo,
-  ImportAttributes, ImportPhase, ModuleDependency, ModuleGraphCacheArtifact, ResourceIdentifier,
-  TemplateContext, TemplateReplaceSource,
+  DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, ExportsInfoArtifact,
+  FactorizeInfo, ImportAttributes, ImportPhase, ModuleDependency, ModuleGraphCacheArtifact,
+  ResourceIdentifier, TemplateContext, TemplateReplaceSource,
 };
 use swc_core::ecma::atoms::Atom;
 
@@ -91,6 +91,7 @@ impl Dependency for ImportEagerDependency {
     &self,
     module_graph: &rspack_core::ModuleGraph,
     module_graph_cache: &ModuleGraphCacheArtifact,
+    exports_info_artifact: &ExportsInfoArtifact,
     _runtime: Option<&rspack_core::RuntimeSpec>,
   ) -> Vec<rspack_core::ExtendedReferencedExport> {
     create_import_dependency_referenced_exports(
@@ -98,6 +99,7 @@ impl Dependency for ImportEagerDependency {
       &self.referenced_exports,
       module_graph,
       module_graph_cache,
+      exports_info_artifact,
     )
   }
 

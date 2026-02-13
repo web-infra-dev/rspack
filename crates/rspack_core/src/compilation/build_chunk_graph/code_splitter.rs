@@ -20,8 +20,8 @@ use super::incremental::ChunkCreateData;
 use crate::{
   AsyncDependenciesBlockIdentifier, ChunkGroup, ChunkGroupKind, ChunkGroupOptions, ChunkGroupUkey,
   ChunkLoading, ChunkUkey, Compilation, ConnectionState, DependenciesBlock, DependencyId,
-  DependencyLocation, EntryDependency, EntryRuntime, GroupOptions, Logger, ModuleDependency,
-  ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, RuntimeSpec,
+  DependencyLocation, EntryDependency, EntryRuntime, ExportsInfoArtifact, GroupOptions, Logger,
+  ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, RuntimeSpec,
   SyntheticDependencyLocation, assign_depths,
   dependencies_block::AsyncDependenciesToInitialChunkError,
   get_entry_runtime,
@@ -306,13 +306,19 @@ fn get_active_state_of_connections(
   runtime: Option<&RuntimeSpec>,
   module_graph: &ModuleGraph,
   module_graph_cache: &ModuleGraphCacheArtifact,
+  exports_info_artifact: &ExportsInfoArtifact,
 ) -> ConnectionState {
   let mut iter = connections.iter();
   let id = iter.next().expect("should have connection");
   let mut merged = module_graph
     .connection_by_dependency_id(id)
     .expect("should have connection")
-    .active_state(module_graph, runtime, module_graph_cache);
+    .active_state(
+      module_graph,
+      runtime,
+      module_graph_cache,
+      exports_info_artifact,
+    );
   if merged.is_true() {
     return merged;
   }
@@ -321,7 +327,12 @@ fn get_active_state_of_connections(
       + module_graph
         .connection_by_dependency_id(c)
         .expect("should have connection")
-        .active_state(module_graph, runtime, module_graph_cache);
+        .active_state(
+          module_graph,
+          runtime,
+          module_graph_cache,
+          exports_info_artifact,
+        );
     if merged.is_true() {
       return merged;
     }
@@ -1921,6 +1932,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
             Some(&cgi.runtime),
             compilation.get_module_graph(),
             &compilation.module_graph_cache_artifact,
+            &compilation.exports_info_artifact,
           );
           if active_state.is_false() {
             continue;
@@ -2360,6 +2372,7 @@ fn extract_block_modules(
       runtime.as_deref(),
       compilation.get_module_graph(),
       &compilation.module_graph_cache_artifact,
+      &compilation.exports_info_artifact,
     );
     modules.push((*module_identifier, active_state, connections.clone()));
   }

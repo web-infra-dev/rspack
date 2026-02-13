@@ -7,7 +7,7 @@ use crate::{
   cache::Cache,
   compilation::{
     finish_make::finish_make_pass, finish_module_graph::finish_module_graph_pass,
-    finish_modules::finish_modules_pass, make::make_hook_pass, pass::PassExt,
+    make::make_hook_pass, pass::PassExt,
   },
 };
 
@@ -18,9 +18,6 @@ use crate::{
 /// - build module graph
 /// - finish make
 /// - finish module graph
-/// - finish modules (has its own cache interaction)
-///
-/// This pass uses `run_pass_with_cache` because finish_modules needs cache access mid-pass.
 pub struct BuildModuleGraphPhasePass;
 
 #[async_trait]
@@ -30,12 +27,7 @@ impl PassExt for BuildModuleGraphPhasePass {
   }
 
   async fn before_pass(&self, compilation: &mut Compilation, cache: &mut dyn Cache) {
-    cache
-      .before_build_module_graph(
-        &mut compilation.build_module_graph_artifact,
-        &compilation.incremental,
-      )
-      .await;
+    cache.before_build_module_graph(compilation).await;
   }
 
   async fn run_pass(&self, _compilation: &mut Compilation) -> Result<()> {
@@ -61,11 +53,7 @@ impl PassExt for BuildModuleGraphPhasePass {
 
     // Sub-phase: finish module graph
     finish_module_graph_pass(compilation).await?;
-    // FIXME: this is a workaround and after we move exports_info from module graph we can move finish_modules into separate pass
-    // Sub-phase: finish_modules (with inline cache handling)
-    cache.before_finish_modules(compilation).await;
-    finish_modules_pass(compilation).await?;
-    cache.after_finish_modules(compilation).await;
+
     // Add checkpoint if incremental build is enabled
     use crate::incremental::IncrementalPasses;
     if compilation
@@ -81,8 +69,6 @@ impl PassExt for BuildModuleGraphPhasePass {
   }
 
   async fn after_pass(&self, compilation: &mut Compilation, cache: &mut dyn Cache) {
-    cache
-      .after_build_module_graph(&compilation.build_module_graph_artifact)
-      .await;
+    cache.after_build_module_graph(&compilation).await;
   }
 }

@@ -12,10 +12,10 @@ use json::{
 };
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
-  BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, ExportsInfoGetter, GenerateContext,
-  Module, ModuleArgument, ModuleGraph, NAMESPACE_OBJECT_EXPORT, ParseOption, ParserAndGenerator,
-  Plugin, PrefetchExportsInfoMode, PrefetchedExportsInfoWrapper, RuntimeSpec, SourceType,
-  UsageState, UsedNameItem,
+  BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, ExportsInfoArtifact, ExportsInfoGetter,
+  GenerateContext, Module, ModuleArgument, ModuleGraph, NAMESPACE_OBJECT_EXPORT, ParseOption,
+  ParserAndGenerator, Plugin, PrefetchExportsInfoMode, PrefetchedExportsInfoWrapper, RuntimeSpec,
+  SourceType, UsageState, UsedNameItem,
   diagnostics::ModuleParseError,
   rspack_sources::{BoxSource, OriginalSource, RawStringSource, Source, SourceExt},
 };
@@ -189,7 +189,8 @@ impl ParserAndGenerator for JsonParserAndGenerator {
           .json_data
           .as_ref()
           .expect("should have json data");
-        let exports_info = module_graph
+        let exports_info = compilation
+          .exports_info_artifact
           .get_prefetched_exports_info(&module.identifier(), PrefetchExportsInfoMode::Default);
 
         let final_json = match json_data {
@@ -199,7 +200,12 @@ impl ParserAndGenerator for JsonParserAndGenerator {
               UsageState::Unused
             ) =>
           {
-            create_object_for_exports_info(json_data.clone(), &exports_info, *runtime, module_graph)
+            create_object_for_exports_info(
+              json_data.clone(),
+              &exports_info,
+              *runtime,
+              &compilation.exports_info_artifact,
+            )
           }
           _ => json_data.clone(),
         };
@@ -283,7 +289,7 @@ pub fn create_object_for_exports_info(
   data: JsonValue,
   exports_info: &PrefetchedExportsInfoWrapper<'_>,
   runtime: Option<&RuntimeSpec>,
-  mg: &ModuleGraph,
+  exports_info_artifact: &ExportsInfoArtifact,
 ) -> JsonValue {
   if exports_info.other_exports_info().get_used(runtime) != UsageState::Unused {
     return data;
@@ -308,9 +314,12 @@ pub fn create_object_for_exports_info(
         {
           // avoid clone
           let temp = std::mem::replace(value, JsonValue::Null);
-          let exports_info =
-            ExportsInfoGetter::prefetch(&exports_info, mg, PrefetchExportsInfoMode::Default);
-          create_object_for_exports_info(temp, &exports_info, runtime, mg)
+          let exports_info = ExportsInfoGetter::prefetch(
+            &exports_info,
+            exports_info_artifact,
+            PrefetchExportsInfoMode::Default,
+          );
+          create_object_for_exports_info(temp, &exports_info, runtime, exports_info_artifact)
         } else {
           std::mem::replace(value, JsonValue::Null)
         };
@@ -346,13 +355,16 @@ pub fn create_object_for_exports_info(
           if used == UsageState::OnlyPropertiesUsed
             && let Some(exports_info) = export_info.exports_info()
           {
-            let exports_info =
-              ExportsInfoGetter::prefetch(&exports_info, mg, PrefetchExportsInfoMode::Default);
+            let exports_info = ExportsInfoGetter::prefetch(
+              &exports_info,
+              exports_info_artifact,
+              PrefetchExportsInfoMode::Default,
+            );
             Some(create_object_for_exports_info(
               item,
               &exports_info,
               runtime,
-              mg,
+              exports_info_artifact,
             ))
           } else {
             Some(item)

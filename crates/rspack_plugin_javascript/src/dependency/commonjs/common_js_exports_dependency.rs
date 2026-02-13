@@ -5,9 +5,9 @@ use rspack_cacheable::{
 use rspack_core::{
   AsContextDependency, AsModuleDependency, Dependency, DependencyCategory,
   DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
-  DependencyTemplateType, DependencyType, ExportNameOrSpec, ExportSpec, ExportsInfoGetter,
-  ExportsOfExportsSpec, ExportsSpec, GetUsedNameParam, InitFragmentExt, InitFragmentKey,
-  InitFragmentStage, ModuleGraph, ModuleGraphCacheArtifact, NormalInitFragment,
+  DependencyTemplateType, DependencyType, ExportNameOrSpec, ExportSpec, ExportsInfoArtifact,
+  ExportsInfoGetter, ExportsOfExportsSpec, ExportsSpec, GetUsedNameParam, InitFragmentExt,
+  InitFragmentKey, InitFragmentStage, ModuleGraph, ModuleGraphCacheArtifact, NormalInitFragment,
   PrefetchExportsInfoMode, TemplateContext, TemplateReplaceSource, UsedName, property_access,
 };
 use swc_core::atoms::Atom;
@@ -101,6 +101,7 @@ impl Dependency for CommonJsExportsDependency {
     &self,
     _mg: &ModuleGraph,
     _mg_cache: &ModuleGraphCacheArtifact,
+    _exports_info_artifact: &ExportsInfoArtifact,
   ) -> Option<ExportsSpec> {
     let vec = vec![ExportNameOrSpec::ExportSpec(ExportSpec {
       name: self.names[0].clone(),
@@ -169,17 +170,19 @@ impl DependencyTemplate for CommonJsExportsDependencyTemplate {
 
     let used = if dep.names.is_empty() {
       let exports_info_used =
-        module_graph.get_prefetched_exports_info_used(&module.identifier(), *runtime);
+        compilation.get_prefetched_exports_info_used(&module.identifier(), *runtime);
       ExportsInfoGetter::get_used_name(
         GetUsedNameParam::WithoutNames(&exports_info_used),
         *runtime,
         &dep.names,
       )
     } else {
-      let exports_info = module_graph.get_prefetched_exports_info(
-        &module.identifier(),
-        PrefetchExportsInfoMode::Nested(&dep.names),
-      );
+      let exports_info = compilation
+        .exports_info_artifact
+        .get_prefetched_exports_info(
+          &module.identifier(),
+          PrefetchExportsInfoMode::Nested(&dep.names),
+        );
       ExportsInfoGetter::get_used_name(
         GetUsedNameParam::WithNames(&exports_info),
         *runtime,

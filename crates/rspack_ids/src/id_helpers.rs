@@ -11,8 +11,8 @@ use itertools::{
 use rspack_collections::{DatabaseItem, Identifier, UkeyMap};
 use rspack_core::{
   BoxModule, Chunk, ChunkByUkey, ChunkGraph, ChunkGroupByUkey, ChunkNamedIdArtifact, ChunkUkey,
-  Compilation, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, ModuleIdsArtifact,
-  compare_runtime,
+  Compilation, ExportsInfoArtifact, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
+  ModuleIdsArtifact, compare_runtime,
 };
 use rspack_util::{
   comparators::{compare_ids, compare_numbers},
@@ -211,6 +211,7 @@ pub fn get_short_chunk_name(
   module_graph: &ModuleGraph,
   module_graph_cache: &ModuleGraphCacheArtifact,
   named_chunk_ids_artifact: &ChunkNamedIdArtifact,
+  exports_info_artifact: &ExportsInfoArtifact,
 ) -> String {
   if let Some(name) = named_chunk_ids_artifact
     .chunk_short_names
@@ -220,7 +221,12 @@ pub fn get_short_chunk_name(
   }
 
   let modules = chunk_graph
-    .get_chunk_root_modules(&chunk.ukey(), module_graph, module_graph_cache)
+    .get_chunk_root_modules(
+      &chunk.ukey(),
+      module_graph,
+      module_graph_cache,
+      exports_info_artifact,
+    )
     .iter()
     .map(|id| {
       module_graph
@@ -269,13 +275,19 @@ pub fn get_long_chunk_name(
   module_graph: &ModuleGraph,
   module_graph_cache: &ModuleGraphCacheArtifact,
   named_chunk_ids_artifact: &ChunkNamedIdArtifact,
+  exports_info_artifact: &ExportsInfoArtifact,
 ) -> String {
   if let Some(name) = named_chunk_ids_artifact.chunk_long_names.get(&chunk.ukey()) {
     return name.clone();
   }
 
   let modules = chunk_graph
-    .get_chunk_root_modules(&chunk.ukey(), module_graph, module_graph_cache)
+    .get_chunk_root_modules(
+      &chunk.ukey(),
+      module_graph,
+      module_graph_cache,
+      exports_info_artifact,
+    )
     .iter()
     .map(|id| {
       module_graph
@@ -311,13 +323,19 @@ pub fn get_full_chunk_name(
   module_graph: &ModuleGraph,
   module_graph_cache: &ModuleGraphCacheArtifact,
   context: &str,
+  exports_info_artifact: &ExportsInfoArtifact,
 ) -> String {
   if let Some(name) = chunk.name() {
     return name.to_owned();
   }
 
   let full_module_names = chunk_graph
-    .get_chunk_root_modules(&chunk.ukey(), module_graph, module_graph_cache)
+    .get_chunk_root_modules(
+      &chunk.ukey(),
+      module_graph,
+      module_graph_cache,
+      exports_info_artifact,
+    )
     .iter()
     .filter_map(|id| module_graph.module_by_identifier(id))
     .map(|module| get_full_module_name(module, context))
