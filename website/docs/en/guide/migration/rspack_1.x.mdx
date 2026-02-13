@@ -236,7 +236,7 @@ export default {
 };
 ```
 
-## Module Compilation Changes
+## Module compilation changes
 
 ### Changed default value of module.parser.javascript.exportsPresence
 
@@ -355,7 +355,7 @@ export default {
 };
 ```
 
-## Output Configuration Changes
+## Output configuration changes
 
 ### Removed output.libraryTarget
 
@@ -423,7 +423,7 @@ export default {
 
 The `output.charset` configuration has been removed. This option was used to add a `charset` attribute to generated `<script>` tags, but modern browsers default to UTF-8 encoding, so this configuration is no longer needed.
 
-## Stats Changes
+## Stats changes
 
 ### Changed default parameters of stats.toJson()
 
@@ -462,7 +462,7 @@ export default {
 };
 ```
 
-## Plugin Changes
+## Plugin changes
 
 ### Removed EsmLibraryPlugin
 
@@ -597,14 +597,14 @@ export default {
 };
 ```
 
-## Other Changes
+## Other changes
 
 ### Changed default value of devtool
 
 - When `mode` is `development`, the default value of `devtool` has been changed from `eval` to `cheap-module-source-map`
 - When `mode` is `production`, the default value of `devtool` in `@rspack/cli` has been changed from `source-map` to `false`
 
-### Removed Runtime Module deprecated properties
+### Removed runtime module deprecated properties
 
 The following deprecated properties of Runtime module have been removed:
 
