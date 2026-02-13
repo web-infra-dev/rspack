@@ -16,6 +16,9 @@ pub struct MemoryStorage {
 
 #[async_trait::async_trait]
 impl Storage for MemoryStorage {
+  async fn init(&self) -> Result<()> {
+    Ok(())
+  }
   async fn load(&self, scope: &'static str) -> Result<Vec<(Arc<Vec<u8>>, Arc<Vec<u8>>)>> {
     if let Some(value) = self.inner.lock().expect("should get lock").get(scope) {
       Ok(

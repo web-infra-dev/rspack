@@ -117,6 +117,7 @@ impl PersistentCache {
       return;
     }
     self.initialized = true;
+    let _ = self.storage.init().await;
 
     match self.build_deps.validate().await {
       Ok(success) => {

@@ -12,21 +12,19 @@
 
 ```
 root/
-├── db_meta              # DB 元数据
-├── state.lock           # 进程锁（Transaction）
-├── commit.lock          # 提交锁（Transaction）
+├── .temp/                  # 临时目录（事务使用）
+│   ├── state.lock          # 进程锁
+│   ├── commit.lock         # 提交锁
+│   └── bucket1/            # 临时数据（与正式结构一致）
+│       ├── 0.hot.pack
+│       ├── 0.hot.index
+│       └── bucket_meta.txt
 ├── bucket1/
-│   ├── bucket_meta      # Bucket 元数据
-│   ├── page_0/          # 分页 0
-│   │   ├── index        # Bloom Filter 索引（所有 pack）
-│   │   ├── hot.pack     # 热数据块
-│   │   ├── cold_0.pack  # 冷数据块 0
-│   │   ├── cold_1.pack  # 冷数据块 1
-│   │   └── ...
-│   ├── page_1/          # 分页 1
-│   │   ├── index
-│   │   ├── hot.pack
-│   │   └── ...
+│   ├── bucket_meta.txt     # Bucket 元数据
+│   ├── 0.hot.pack          # 热数据块
+│   ├── 0.hot.index         # 热数据索引
+│   ├── 1.cold.pack         # 冷数据块
+│   ├── 1.cold.index        # 冷数据索引
 │   └── ...
 └── bucket2/
     └── ...
@@ -34,12 +32,15 @@ root/
 
 ### 1.2 文件说明
 
-- **db_meta**: DB 级别的元数据（版本、bucket 列表）
-- **bucket_meta**: Bucket 级别的元数据（分页数、配置等）
-- **page_N/**: 数据分页目录，根据 key 分配
-- **index**: Bloom Filter 索引，包含该 page 下所有 pack 的 key
-- **hot.pack**: 热数据块，新写入和更新的数据
-- **cold_N.pack**: 冷数据块，从 hot.pack 冻结而来
+- **.temp/**: 临时目录，存储事务相关文件
+  - **state.lock**: 进程锁，记录当前进程 PID
+  - **commit.lock**: 提交锁，记录要添加/删除的文件列表
+  - **bucket1/**: 临时数据，结构与正式目录一致
+- **bucket_meta.txt**: Bucket 元数据（pages 列表，hot page ID）
+- **N.hot.pack**: 热数据块，新写入和更新的数据
+- **N.hot.index**: 热数据索引，存储 exist_check_hash
+- **N.cold.pack**: 冷数据块，从 hot.pack 分裂而来
+- **N.cold.index**: 冷数据索引
 
 ---
 
@@ -49,133 +50,105 @@ root/
 
 ```rust
 pub struct DBOptions {
-    /// 分页数量（0 表示不分页）
-    /// 用于降低单个 bucket 的数据规模，增加并行性
-    /// 例如：bucket 有 1GB 数据，page_count=10，则每个 page 约 100MB
+    /// 每个 page 的条目数阈值，超过后分裂
     pub page_count: usize,
 
     /// 单个数据块的最大大小（字节）
-    /// hot.pack 容量 = max_pack_size * 2
-    /// cold.pack 容量 ≤ max_pack_size
     pub max_pack_size: usize,
 }
 ```
 
 ### 2.2 参数作用说明
 
-| 参数            | 作用                                          | 示例                               |
-| --------------- | --------------------------------------------- | ---------------------------------- |
-| `page_count`    | 将 bucket 数据分散到多个 page，降低单文件大小 | 10 个 page，每个 100MB             |
-| `max_pack_size` | 限制单个 cold.pack 大小；hot.pack = 2x        | max_pack_size=50MB，hot 最大 100MB |
+| 参数            | 作用                                   | 示例                |
+| --------------- | -------------------------------------- | ------------------- |
+| `page_count`    | Hot page 条目数阈值，超过后分裂成 Cold | 10 条，超过后分裂   |
+| `max_pack_size` | 限制单个 pack 大小（当前未使用）       | max_pack_size=512KB |
 
 ---
 
 ## 3. 核心机制
 
-### 3.1 分页（Page）机制
+### 3.1 热/冷数据块机制
 
-**目的**: 降低数据规模，增加并行性
-
-**分配策略**:
-
-```rust
-fn get_page_index(key: &[u8], page_count: usize) -> usize {
-    if page_count == 0 {
-        return 0;
-    }
-    // 沿用现有实现：基于 bytes 求和取模
-    let sum: usize = key.iter().map(|&b| b as usize).sum();
-    sum % page_count
-}
-```
-
-**注**: 当前实现使用 bytes 求和取模，简单高效。未来可以考虑使用 hash 算法，但需要性能测试对比。
-
-**特点**:
-
-- `page_count = 0` 时，所有数据在一个 page（bucket 根目录）
-- `page_count > 0` 时，数据分散到 `page_0/`, `page_1/`, ...
-
-### 3.2 热/冷数据块机制
-
-#### 3.2.1 热数据块 (hot.pack)
+#### 3.1.1 热数据块 (N.hot.pack)
 
 **特性**:
 
-- 每个 page 只有一个 hot.pack
-- 容量上限：`max_pack_size * 2`
-- 所有新写入和更新的数据先进入热区块
+- 每个 bucket 只有一个 hot page
+- 条目数阈值：`page_count`
+- 所有新写入和更新的数据先进入热数据块
 
-**数据结构** (队列):
+**分裂条件**:
 
 ```
-[队头] ← 冷区块迁移的数据 | 新写入/更新的数据 → [队尾]
+if hot page 条目数 > page_count:
+    1. 取前 80% 条目作为 cold page
+    2. 将 cold page 写入新的 N.cold.pack
+    3. 后 20% 条目保留在新的 hot page
+    4. hot page ID 递增
 ```
 
-#### 3.2.2 冷数据块 (cold_N.pack)
+#### 3.1.2 冷数据块 (N.cold.pack)
 
 **特性**:
 
-- 每个 page 可以有多个 cold.pack
-- 单个文件大小 ≤ `max_pack_size`
-- 从 hot.pack 冻结而来，数据不可变（除非删除整个文件）
+- 每个 bucket 可以有多个 cold page
+- 从 hot page 分裂而来，数据不可变
+- 每个 cold page 对应一个 index 文件
 
-**触发冻结条件**:
+### 3.2 索引机制
 
-```
-if hot.pack 大小 > max_pack_size * 2:
-    1. 从 hot.pack 队头取出 max_pack_size 的数据
-    2. 写入新的 cold_N.pack
-    3. hot.pack 保留剩余数据
-```
-
-### 3.3 索引机制（简化 Bloom Filter）
-
-**位置**: 每个 page 一个 `index` 文件
+**位置**: 每个 pack 文件对应一个 `.index` 文件
 
 **用途**:
 
-- 主要用于 Get 操作（查找单个 key）
-- Load All 操作不需要读取 index，直接读取所有 pack
+- 存储该 pack 所有 key 的 exist_check_hash
+- 用于快速判断 key 是否可能存在
 
 **数据结构**:
 
 ```rust
-// HashMap: pack 文件名 -> 该 pack 所有 key 的 hash 叠加值
-type PageIndex = HashMap<String, u64>;
+// Index 文件只存储一个 u64 hash
+pub struct Index {
+  hash: u64,
+}
 ```
 
-**Hash 叠加算法**:
+**Hash 计算算法**:
 
 ```rust
 // 生成 pack 的索引 hash
-fn generate_pack_hash(keys: &[Vec<u8>]) -> u64 {
-    let mut result = 0u64;
-    for key in keys {
-        let key_hash = hash(key);
-        result |= key_hash;  // 按位或操作
-    }
-    result
+fn exist_check_hash(keys: &[&[u8]]) -> u64 {
+  let mut hasher = DefaultHasher::new();
+  for key in keys {
+    key.hash(&mut hasher);
+  }
+  hasher.finish()
 }
+```
 
 // 检查 key 是否可能在 pack 中
 fn may_contain(key: &[u8], pack_hash: u64) -> bool {
-    let key_hash = hash(key);
-    (key_hash & pack_hash) == key_hash  // 按位与操作
+let key_hash = hash(key);
+(key_hash & pack_hash) == key_hash // 按位与操作
 }
+
 ```
 
 **查找流程**:
 
 ```
+
 1. 计算 key 的 hash 值
 2. 遍历 index 中的所有 pack:
    a. 如果 (key_hash & pack_hash) == key_hash:
-      - 可能在该 pack 中，读取 pack 文件查找
-      - 找到则返回 value
-      - 未找到则继续下一个匹配的 pack
-   b. 否则：一定不在该 pack 中，跳过
+   - 可能在该 pack 中，读取 pack 文件查找
+   - 找到则返回 value
+   - 未找到则继续下一个匹配的 pack
+     b. 否则：一定不在该 pack 中，跳过
 3. 所有 pack 都检查完毕，返回 None
+
 ```
 
 **特性**:
@@ -196,6 +169,7 @@ fn may_contain(key: &[u8], pack_hash: u64) -> bool {
 **流程**:
 
 ```
+
 1. 读取 db_meta
 2. 读取 bucket_meta，获取 page_count
 3. 对每个 page（并行）:
@@ -203,6 +177,7 @@ fn may_contain(key: &[u8], pack_hash: u64) -> bool {
    b. 读取所有 cold pack，解析所有 key-value pairs
    c. 合并到内存 HashMap
 4. 返回所有 key-value pairs
+
 ```
 
 **注**: 全量读取不需要 index，直接读取所有 pack 文件
@@ -214,16 +189,18 @@ fn may_contain(key: &[u8], pack_hash: u64) -> bool {
 **流程**:
 
 ```
+
 1. 计算 key 的 hash 值
 2. 计算 key 所属的 page_index
 3. 读取该 page 的 index 文件
 4. 遍历 index 中的所有 pack:
    a. 如果 (key_hash & pack_hash) == key_hash:
-      - 读取该 pack 文件
-      - 查找 key，找到则返回 value
-      - 未找到则继续下一个匹配的 pack
-   b. 否则：跳过该 pack
+   - 读取该 pack 文件
+   - 查找 key，找到则返回 value
+   - 未找到则继续下一个匹配的 pack
+     b. 否则：跳过该 pack
 5. 所有匹配的 pack 都未找到，返回 None
+
 ```
 
 **注**: 当前 Storage trait 没有单独的 get 方法，此流程为未来优化预留
@@ -233,20 +210,24 @@ fn may_contain(key: &[u8], pack_hash: u64) -> bool {
 **内存操作** (立即执行):
 
 ```
+
 1. 计算 key 所属的 page_index
 2. 更新内存中的 data[page_index][key] = value
 3. 标记 dirty = true
+
 ```
 
 **持久化** (在 Save 时执行):
 
 ```
+
 1. 对每个 dirty page:
    a. 将 data[page_index] 添加到 hot.pack 队尾
-   b. 如果 hot.pack > max_pack_size * 2:
-      - 从队头取出 max_pack_size 数据
-      - 写入新的 cold_N.pack
-   c. 更新 index 文件（索引 hash）
+   b. 如果 hot.pack > max_pack_size \* 2:
+   - 从队头取出 max_pack_size 数据
+   - 写入新的 cold_N.pack
+     c. 更新 index 文件（索引 hash）
+
 ```
 
 ### 4.4 Remove (删除数据)
@@ -256,14 +237,17 @@ fn may_contain(key: &[u8], pack_hash: u64) -> bool {
 **情况 1: 删除在 hot.pack 中的 key**
 
 ```
+
 1. 从 hot.pack 数据中移除该 key-value
 2. 重新生成 hot.pack 文件
 3. 更新 index
+
 ```
 
 **情况 2: 删除在 cold_N.pack 中的 key**
 
 ```
+
 1. 读取该 cold_N.pack 的所有数据到内存
 2. 读取 hot.pack 的所有数据到内存
 3. 从 cold_N.pack 数据中删除该 key
@@ -271,31 +255,57 @@ fn may_contain(key: &[u8], pack_hash: u64) -> bool {
 5. 删除原 cold_N.pack 文件
 6. 重新生成 hot.pack 文件
 7. 更新 index
+
 ```
 
 ### 4.5 Save (持久化)
 
+**两阶段锁定策略**：
+
 ```
-1. 开启 Transaction (使用现有的 Transaction 实现)
-   - 自动处理 state.lock / commit.lock
-   - 自动恢复未完成的提交
 
-2. 对每个 dirty bucket:
-   对每个 dirty page:
-     a. 处理删除操作（如上述 4.4）
-     b. 处理写入操作（如上述 4.3）
-     c. 如果 hot.pack 过大，冻结为 cold.pack
-     d. 生成新的 index 文件（索引 hash）
-     e. 通过 transaction.add_file() 添加文件
+Phase 1: Read Lock - 数据准备阶段
 
-3. 更新 bucket_meta
-4. 更新 db_meta
+1. 持有读锁（允许并发读取）
+2. 对每个 scope:
+   a. 加载现有数据
+   b. 合并变更
+   c. 调用 bucket.prepare_save() 准备新数据
+   - 计算 hot/cold 分裂
+   - 生成所有 pack/index 文件内容
+   - 返回相对路径（如 "bucket1/0.hot.pack"）
+3. 收集所有待添加/删除文件列表
 
-5. Commit transaction
-   - 原子性移动所有文件
+Phase 2: Write Lock - 事务提交阶段
+
+1. 释放读锁，获取写锁（独占访问）
+2. 创建 Transaction
+3. tx.begin():
+   - 检查 .temp/state.lock，处理崩溃恢复
+   - 创建新的 .temp/state.lock（记录当前 PID）
+   - 清空 .temp 目录
+4. 添加文件到事务:
+   - tx.add_file("bucket1/0.hot.pack", content)
+     → 写入到 .temp/bucket1/0.hot.pack
+   - tx.add_file("bucket1/0.hot.index", content)
+     → 写入到 .temp/bucket1/0.hot.index
+5. tx.commit():
+   - 验证 state.lock 的 PID 匹配
+   - 写入 .temp/commit.lock（记录所有操作）
+   - 移动文件: .temp/bucket1/0.hot.pack → bucket1/0.hot.pack
    - 删除旧文件
-   - 清理 lock 文件
+   - 删除 .temp/commit.lock
+   - 删除 .temp/state.lock
+
 ```
+
+**设计优势**：
+
+- **最小化写锁时间**: 数据准备（计算、序列化）在读锁下完成
+- **提高并发性**: 准备阶段允许其他读操作并发执行
+- **原子性**: 写锁阶段只做文件移动，保证事务完整性
+- **崩溃恢复**: 通过 state.lock 和 commit.lock 实现自动恢复
+
 
 ---
 
@@ -306,17 +316,20 @@ fn may_contain(key: &[u8], pack_hash: u64) -> bool {
 **格式说明**:
 
 ```
+
 第 1 行: key_size_0 key_size_1 key_size_2 ... (空格分隔)
 第 2 行: value_size_0 value_size_1 value_size_2 ... (空格分隔)
 第 3 行开始: 连续的二进制数据
-  - 先是所有 keys 的二进制数据（按顺序）
-    - key_0 的字节 (key_size_0 字节)
-    - key_1 的字节 (key_size_1 字节)
-    - ...
-  - 然后是所有 values 的二进制数据（按顺序）
-    - value_0 的字节 (value_size_0 字节)
-    - value_1 的字节 (value_size_1 字节)
-    - ...
+
+- 先是所有 keys 的二进制数据（按顺序）
+  - key_0 的字节 (key_size_0 字节)
+  - key_1 的字节 (key_size_1 字节)
+  - ...
+- 然后是所有 values 的二进制数据（按顺序）
+  - value_0 的字节 (value_size_0 字节)
+  - value_1 的字节 (value_size_1 字节)
+  - ...
+
 ```
 
 **示例**:
@@ -329,10 +342,12 @@ fn may_contain(key: &[u8], pack_hash: u64) -> bool {
 文件内容：
 
 ```
+
 3 2
 5 6
 abcxyhelloworld!
-```
+
+````
 
 **读取流程**:
 
@@ -357,7 +372,7 @@ for size in value_sizes {
 
 // 5. 组合成 key-value pairs
 let pairs = keys.into_iter().zip(values).collect();
-```
+````
 
 **写入流程**:
 
@@ -537,7 +552,7 @@ hot.pack,789012,512
 1.0.0
 snapshot,module_graph,meta
 
-```
+````
 
 ---
 
@@ -779,7 +794,7 @@ trait Storage {
     // 未来可能添加：对应 Get 操作
     // async fn get(&self, scope: &'static str, key: &[u8]) -> Result<Option<Vec<u8>>>;
 }
-```
+````
 
 ### 为什么 Load All 不需要 Index？
 

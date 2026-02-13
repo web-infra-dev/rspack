@@ -23,6 +23,7 @@ pub struct PackStorage {
   pub updates: Mutex<ScopeUpdates>,
 }
 
+#[derive(Debug)]
 pub struct PackStorageOptions {
   pub root: PathBuf,
   pub temp_root: PathBuf,
@@ -64,6 +65,9 @@ impl PackStorage {
 
 #[async_trait::async_trait]
 impl Storage for PackStorage {
+  async fn init(&self) -> Result<()> {
+    Ok(())
+  }
   async fn load(&self, name: &'static str) -> Result<ItemPairs> {
     self.manager.load(name).await
   }
