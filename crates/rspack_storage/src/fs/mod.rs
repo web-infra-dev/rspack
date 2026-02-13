@@ -1,13 +1,15 @@
 mod error;
 mod reader;
+mod scope;
 mod writer;
 
 use std::sync::Arc;
 
-use error::FsResultToStorageFsResult;
+pub use error::FsResultToStorageFsResult;
 use rspack_fs::{FileMetadata, IntermediateFileSystem};
 use rspack_paths::Utf8Path;
 use rustc_hash::FxHashSet as HashSet;
+pub use scope::ScopeFileSystem;
 
 pub use self::{
   error::{BatchFSError, BatchFSResult, FSError, FSOperation, FSResult},
@@ -15,7 +17,7 @@ pub use self::{
   writer::Writer,
 };
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct FileSystem(pub Arc<dyn IntermediateFileSystem>);
 
 impl FileSystem {
@@ -125,6 +127,38 @@ impl FileSystem {
         .to_storage_fs_result(from, FSOperation::Move)?;
     }
     Ok(())
+  }
+
+  // Low-level methods for lock helpers
+
+  /// Low-level stat operation - returns metadata without error wrapping
+  pub async fn stat(&self, path: &Utf8Path) -> FSResult<FileMetadata> {
+    self
+      .0
+      .stat(path)
+      .await
+      .to_storage_fs_result(path, FSOperation::Stat)
+  }
+
+  /// Low-level write operation - writes bytes directly to a file
+  pub async fn write(&self, path: &Utf8Path, data: &[u8]) -> FSResult<()> {
+    self
+      .ensure_dir(path.parent().expect("should have parent"))
+      .await?;
+    self
+      .0
+      .write(path, data)
+      .await
+      .to_storage_fs_result(path, FSOperation::Write)
+  }
+
+  /// Low-level read operation - reads entire file into Vec<u8>
+  pub async fn read_file_bytes(&self, path: &Utf8Path) -> FSResult<Vec<u8>> {
+    self
+      .0
+      .read_file(path)
+      .await
+      .to_storage_fs_result(path, FSOperation::Read)
   }
 }
 

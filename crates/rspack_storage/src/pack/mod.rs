@@ -23,6 +23,7 @@ pub struct PackStorage {
   pub updates: Mutex<ScopeUpdates>,
 }
 
+#[derive(Debug)]
 pub struct PackStorageOptions {
   pub root: PathBuf,
   pub temp_root: PathBuf,
