@@ -338,13 +338,14 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
     root_info: &ExportedVariableInfo,
     expr: &swc_core::ecma::ast::MemberExpr,
   ) -> Option<bool> {
-    if matches!(self.0, ImportMeta::PreserveUnknown) {
-      return Some(true);
-    }
-
     match root_info {
       ExportedVariableInfo::Name(root) => {
         if root == expr_name::IMPORT_META {
+          // In PreserveUnknown mode, keep unknown import.meta properties as-is
+          if matches!(self.0, ImportMeta::PreserveUnknown) {
+            return Some(true);
+          }
+
           let members = parser
             .get_member_expression_info(ExprRef::Member(expr), AllowedMemberTypes::Expression)
             .and_then(|info| match info {
