@@ -18,7 +18,7 @@ dashmap          = { workspace = true }
 indexmap         = { workspace = true }
 itoa             = { workspace = true }
 memchr           = { workspace = true }
-regex            = { workspace = true, features = ["pattern"] }
+regex            = { workspace = true }
 rspack_cacheable = { workspace = true }
 rspack_paths     = { workspace = true }
 rustc-hash       = { workspace = true }

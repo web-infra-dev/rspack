@@ -236,6 +236,7 @@ fn test_manual_cacheable_dyn_macro_with_generics() {
 
   #[cacheable]
   struct Data {
+    #[cacheable(with=::rspack_cacheable::with::AsCacheable)]
     animal_1: Box<dyn Animal<&'static str>>,
     animal_2: Box<dyn Animal<String>>,
   }

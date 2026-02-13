@@ -1,5 +1,5 @@
 [toolchain]
 profile = "default"
 components = ["rust-src"]
-# Use nightly for better access to the latest Rust features.
-channel = "nightly-2025-11-13"
+# Pin to a fixed stable version for reproducibility.
+channel = "1.93.0"

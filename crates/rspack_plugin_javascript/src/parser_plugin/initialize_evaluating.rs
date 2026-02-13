@@ -197,7 +197,15 @@ impl JavascriptParserPlugin for InitializeEvaluating {
       } else if arg.is_regexp() {
         let raw = arg.regexp();
         let regex = eval_regexp_to_regexp(&raw.0, &raw.1);
-        param.string().split(&regex).map(|s| s.to_owned()).collect()
+        let input = param.string();
+        let mut result = Vec::new();
+        let mut last = 0;
+        for matched in regex.find_iter(input) {
+          result.push(input[last..matched.start()].to_owned());
+          last = matched.end();
+        }
+        result.push(input[last..].to_owned());
+        result
       } else {
         return None;
       };

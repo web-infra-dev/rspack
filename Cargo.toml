@@ -79,7 +79,7 @@ quote               = { version = "1.0.44", default-features = false }
 rayon               = { version = "1.11.0", default-features = false }
 regex               = { version = "1.12.3", default-features = false, features = ["perf"] }
 regex-syntax        = { version = "0.8.9", default-features = false, features = ["std"] }
-regress             = { version = "0.10.5", default-features = false, features = ["pattern"] }
+regress             = { version = "0.10.5", default-features = false }
 rspack_resolver     = { features = ["package_json_raw_json_api", "yarn_pnp"], version = "0.6.6", default-features = false }
 rspack_sources      = { version = "=0.4.17", default-features = false }
 rustc-hash          = { version = "2.1.1", default-features = false }

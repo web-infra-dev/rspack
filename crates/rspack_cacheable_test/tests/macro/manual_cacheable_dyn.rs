@@ -240,6 +240,7 @@ fn test_manual_cacheable_dyn_macro() {
 
   #[cacheable]
   struct Data {
+    #[cacheable(with=::rspack_cacheable::with::AsCacheable)]
     animal: Box<dyn Animal>,
   }
 

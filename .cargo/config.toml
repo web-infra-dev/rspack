@@ -1,6 +1,7 @@
 # workaround for getting workspace root dir, reference: https://github.com/rust-lang/cargo/issues/3946
 [env]
 CARGO_WORKSPACE_DIR = { value = "", relative = true }
+RUSTC_BOOTSTRAP = "1"
 
 [alias]
 lint = "clippy --workspace --all-targets -- --deny warnings"
@@ -32,8 +33,7 @@ rustflags = [
   # "-Wclippy::same_name_method",
 
   "-Aclippy::default_constructed_unit_structs",
-  "-Zshare-generics=y", # make the current crate share its generic instantiations
-  "-Zthreads=8", # parallel frontend https://blog.rust-lang.org/2023/11/09/parallel-rustc.html
+  # Removed nightly-only `-Z*` flags to support stable toolchain.
   "-Csymbol-mangling-version=v0", # symbol mangling v0 https://doc.rust-lang.org/stable/rustc/symbol-mangling/v0.html
 ]
 

@@ -136,11 +136,13 @@ where
   {
     if self.overlay.is_some() {
       self.materialize_overlay_value(key);
-      let overlay = self.overlay.as_mut().expect("overlay checked above");
-      match overlay.get_mut(key) {
-        Some(OverlayValue::Value(value)) => Some(value),
-        _ => None,
+      if let Some(overlay) = self.overlay.as_mut() {
+        return match overlay.get_mut(key) {
+          Some(OverlayValue::Value(value)) => Some(value),
+          _ => None,
+        };
       }
+      None
     } else {
       self.base.get_mut(key)
     }

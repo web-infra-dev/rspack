@@ -65,7 +65,7 @@ pub struct AsyncDependenciesBlock {
   // Vec<Box<T: Sized>> makes sense if T is a large type (see #3530, 1st comment).
   // #3530: https://github.com/rust-lang/rust-clippy/issues/3530
   #[allow(clippy::vec_box)]
-  #[cacheable(omit_bounds)]
+  #[cacheable(with=::rspack_cacheable::with::AsCacheable, omit_bounds)]
   blocks: Vec<Box<AsyncDependenciesBlock>>,
   block_ids: Vec<AsyncDependenciesBlockIdentifier>,
   dependency_ids: Vec<DependencyId>,
