@@ -1,35 +1,30 @@
-// Lock file structures for transaction management
-
 use std::sync::Arc;
 
 use futures::AsyncWriteExt;
-use rspack_fs::IntermediateFileSystem;
 use rspack_paths::Utf8PathBuf;
 
-use crate::fs::{FSError, FSOperation, FSResult, Reader, Writer, error::FsResultToStorageFsResult};
+use crate::fs::{
+  FSError, FSOperation, FSResult, FileSystem, Reader, Writer, error::FsResultToStorageFsResult,
+};
 
 mod commit;
 mod state;
 
-pub use commit::CommitLock;
-pub use state::StateLock;
+pub use self::{commit::CommitLock, state::StateLock};
 
 const STATE_LOCK_FILE: &str = "state.lock";
 const COMMIT_LOCK_FILE: &str = "commit.lock";
 
 /// Helper for reading and writing lock files
-///
-/// Provides convenient methods to read/write state.lock and commit.lock
-/// in a specific directory.
 #[derive(Debug, Clone)]
 pub struct LockHelper {
   root_dir: Utf8PathBuf,
-  fs: Arc<dyn IntermediateFileSystem>,
+  fs: FileSystem,
 }
 
 impl LockHelper {
   /// Create a new lock helper for the given directory
-  pub fn new(root_dir: Utf8PathBuf, fs: Arc<dyn IntermediateFileSystem>) -> Self {
+  pub fn new(root_dir: Utf8PathBuf, fs: FileSystem) -> Self {
     Self { root_dir, fs }
   }
 

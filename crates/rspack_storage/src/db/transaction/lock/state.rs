@@ -1,10 +1,7 @@
 /// State lock - records current process info
-///
-/// This is a basic lock structure that only provides serialization/deserialization
-/// and process checking methods. It does not participate in core transaction logic.
 #[derive(Debug)]
 pub struct StateLock {
-  pid: u32,
+  pub pid: u32,
 }
 
 impl StateLock {
@@ -16,15 +13,11 @@ impl StateLock {
     self.pid.to_string()
   }
 
-  /// Deserialize from string format
-  ///
-  /// Returns None if the format is invalid
   pub fn from_string(s: &str) -> Option<Self> {
     let pid = s.trim().parse::<u32>().ok()?;
     Some(Self { pid })
   }
 
-  /// Check if the process with this PID is currently running
   #[cfg(unix)]
   pub fn is_running(&self) -> bool {
     use std::process::Command;
@@ -54,7 +47,6 @@ impl StateLock {
       .unwrap_or(false)
   }
 
-  /// Check if this lock belongs to the current process
   pub fn is_current(&self) -> bool {
     self.pid == std::process::id()
   }
@@ -73,23 +65,21 @@ mod tests {
   use super::*;
 
   #[test]
-  fn test_roundtrip() {
+  fn test_format() {
     let lock = StateLock::default();
     let new_lock = StateLock::from_string(&lock.to_string()).unwrap();
     assert_eq!(lock.to_string(), new_lock.to_string());
-  }
 
-  #[test]
-  fn test_from_string_invalid() {
     assert!(StateLock::from_string("").is_none());
     assert!(StateLock::from_string("invalid").is_none());
   }
 
   #[test]
-  fn test_is_current() {
+  fn test_check_features() {
     let current_pid = std::process::id();
     let lock = StateLock { pid: current_pid };
     assert!(lock.is_current());
+    assert!(lock.is_running());
 
     let other_lock = StateLock {
       pid: current_pid + 1,

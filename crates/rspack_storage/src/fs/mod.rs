@@ -15,7 +15,7 @@ pub use self::{
   writer::Writer,
 };
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct FileSystem(pub Arc<dyn IntermediateFileSystem>);
 
 impl FileSystem {

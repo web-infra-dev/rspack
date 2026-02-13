@@ -76,7 +76,7 @@ mod tests {
   use super::*;
 
   #[test]
-  fn test_roundtrip() {
+  fn test_format() {
     let add_files = vec![Utf8PathBuf::from("file1"), Utf8PathBuf::from("file2")];
     let remove_files = vec![Utf8PathBuf::from("file3")];
     let lock = CommitLock::new(add_files, remove_files);
