@@ -24,18 +24,14 @@ impl JsExportsInfo {
     }
   }
 
-  fn as_ref(&self) -> napi::Result<&'static ModuleGraph> {
+  fn as_ref(&self) -> napi::Result<&'static Compilation> {
     let compilation = unsafe { self.compilation.as_ref() };
-    let module_graph = compilation.get_module_graph();
-    Ok(module_graph)
+    Ok(compilation)
   }
 
-  fn as_mut(&mut self) -> napi::Result<&'static mut ModuleGraph> {
+  fn as_mut(&mut self) -> napi::Result<&'static mut Compilation> {
     let compilation = unsafe { self.compilation.as_mut() };
-    let module_graph = compilation
-      .build_module_graph_artifact
-      .get_module_graph_mut();
-    Ok(module_graph)
+    Ok(compilation)
   }
 }
 
@@ -43,7 +39,7 @@ impl JsExportsInfo {
 impl JsExportsInfo {
   #[napi(ts_args_type = "runtime: string | string[] | undefined")]
   pub fn is_used(&self, js_runtime: JsRuntimeSpec) -> napi::Result<bool> {
-    let compilation = unsafe { self.compilation.as_ref() };
+    let compilation = self.as_ref()?;
     let runtime: Option<RuntimeSpec> = js_runtime.map(|js_rt| match js_rt {
       Either::A(str) => std::iter::once(str).map(Into::into).collect(),
       Either::B(vec) => vec.into_iter().map(Into::into).collect(),
@@ -58,7 +54,7 @@ impl JsExportsInfo {
 
   #[napi(ts_args_type = "runtime: string | string[] | undefined")]
   pub fn is_module_used(&self, js_runtime: JsRuntimeSpec) -> napi::Result<bool> {
-    let compilation = unsafe { self.compilation.as_ref() };
+    let compilation = self.as_ref()?;
     let runtime: Option<RuntimeSpec> = js_runtime.map(|js_rt| match js_rt {
       Either::A(str) => std::iter::once(str).map(Into::into).collect(),
       Either::B(vec) => vec.into_iter().map(Into::into).collect(),
@@ -73,7 +69,7 @@ impl JsExportsInfo {
 
   #[napi(ts_args_type = "runtime: string | string[] | undefined")]
   pub fn set_used_in_unknown_way(&mut self, js_runtime: JsRuntimeSpec) -> napi::Result<bool> {
-    let compilation = unsafe { self.compilation.as_mut() };
+    let compilation = self.as_mut()?;
     let runtime: Option<RuntimeSpec> = js_runtime.map(|js_rt| match js_rt {
       Either::A(str) => std::iter::once(str).map(Into::into).collect(),
       Either::B(vec) => vec.into_iter().map(Into::into).collect(),
@@ -95,7 +91,7 @@ impl JsExportsInfo {
     js_name: Either<String, Vec<String>>,
     js_runtime: JsRuntimeSpec,
   ) -> napi::Result<u32> {
-    let compilation = unsafe { self.compilation.as_ref() };
+    let compilation = self.as_ref()?;
     let runtime: Option<RuntimeSpec> = js_runtime.map(|js_rt| match js_rt {
       Either::A(str) => std::iter::once(str).map(Into::into).collect(),
       Either::B(vec) => vec.into_iter().map(Into::into).collect(),

@@ -88,7 +88,7 @@ impl JsModuleGraph {
     js_module: ModuleObjectRef,
     js_runtime: Either<String, Vec<String>>,
   ) -> napi::Result<Option<Either<bool, Vec<JsString<'a>>>>> {
-    let (compilation, _module_graph) = self.as_ref()?;
+    let (compilation, _) = self.as_ref()?;
 
     let mut runtime = ustr::UstrSet::default();
     match js_runtime {
@@ -124,7 +124,7 @@ impl JsModuleGraph {
 
   #[napi(ts_args_type = "module: Module")]
   pub fn get_exports_info(&self, module: ModuleObjectRef) -> napi::Result<JsExportsInfo> {
-    let (compilation, _module_graph) = self.as_ref()?;
+    let (compilation, _) = self.as_ref()?;
     let exports_info = compilation
       .exports_info_artifact
       .get_exports_info(&module.identifier);
