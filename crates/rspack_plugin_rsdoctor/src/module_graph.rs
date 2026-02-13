@@ -4,7 +4,7 @@ use rayon::iter::{IntoParallelRefIterator, ParallelBridge, ParallelIterator};
 use rspack_collections::{Identifiable, Identifier, IdentifierMap};
 use rspack_core::{
   BoxModule, ChunkGraph, Compilation, Context, DependencyId, DependencyType, Module, ModuleGraph,
-  ModuleIdsArtifact, ModuleType, PrefetchExportsInfoMode, UsageState,
+  ModuleGraphCacheArtifact, ModuleIdsArtifact, ModuleType, PrefetchExportsInfoMode, UsageState,
   rspack_sources::{MapOptions, ObjectPool},
 };
 use rspack_paths::Utf8PathBuf;
@@ -13,8 +13,9 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use thread_local::ThreadLocal;
 
 use crate::{
-  ChunkUkey, ModuleKind, ModuleUkey, RsdoctorDependency, RsdoctorJsonModuleSizes, RsdoctorModule,
-  RsdoctorModuleId, RsdoctorModuleOriginalSource,
+  ChunkUkey, ModuleKind, ModuleUkey, RsdoctorConnection, RsdoctorDependency,
+  RsdoctorJsonModuleSizes, RsdoctorModule, RsdoctorModuleId, RsdoctorModuleOriginalSource,
+  RsdoctorSideEffectLocation,
 };
 
 pub fn collect_json_module_sizes(
@@ -120,6 +121,8 @@ pub fn collect_modules(
           chunks,
           issuer_path: None,
           bailout_reason: HashSet::default(),
+          side_effects: None,
+          side_effects_locations: Vec::new(),
         },
       )
     })
@@ -303,4 +306,140 @@ pub fn collect_module_ids(
       })
     })
     .collect::<Vec<_>>()
+}
+
+pub fn collect_module_connections(
+  modules: &IdentifierMap<&BoxModule>,
+  module_ukeys: &HashMap<Identifier, ModuleUkey>,
+  module_graph: &ModuleGraph,
+  module_graph_cache: &ModuleGraphCacheArtifact,
+) -> Vec<RsdoctorConnection> {
+  let connection_ukey_counter = Arc::new(AtomicI32::new(0));
+
+  modules
+    .par_iter()
+    .flat_map(|(module_id, _)| {
+      let Some(module_ukey) = module_ukeys.get(module_id) else {
+        return vec![];
+      };
+
+      module_graph
+        .get_incoming_connections(module_id)
+        .filter_map(|conn| {
+          let dep = module_graph.dependency_by_id(&conn.dependency_id);
+
+          // Get dependency type and user_request
+          let (dep_type, user_request) = if let Some(d) = dep.as_module_dependency() {
+            (
+              d.dependency_type().as_str().to_string(),
+              d.user_request().to_string(),
+            )
+          } else if let Some(d) = dep.as_context_dependency() {
+            (
+              d.dependency_type().as_str().to_string(),
+              d.request().to_string(),
+            )
+          } else {
+            (dep.dependency_type().as_str().to_string(), String::new())
+          };
+
+          // Get loc
+          let loc = dep.loc().map(|l| l.to_string());
+
+          // Calculate active state
+          let active = conn.is_active(module_graph, None, module_graph_cache);
+
+          // Get origin module ukey
+          let origin_module_ukey = conn
+            .original_module_identifier
+            .and_then(|id| module_ukeys.get(&id).copied());
+
+          // Get resolved module ukey
+          let resolved_module_ukey = module_ukeys
+            .get(&conn.resolved_module)
+            .copied()
+            .unwrap_or(*module_ukey);
+
+          let ukey = connection_ukey_counter.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+
+          Some(RsdoctorConnection {
+            ukey,
+            dependency_id: conn.dependency_id.as_u32().to_string(),
+            module: *module_ukey,
+            origin_module: origin_module_ukey,
+            resolved_module: resolved_module_ukey,
+            dependency_type: dep_type,
+            user_request,
+            loc,
+            active,
+          })
+        })
+        .collect::<Vec<_>>()
+    })
+    .collect::<Vec<_>>()
+}
+
+pub fn collect_module_side_effects_locations(
+  modules: &IdentifierMap<&BoxModule>,
+  module_ukeys: &HashMap<Identifier, ModuleUkey>,
+  module_graph: &ModuleGraph,
+) -> HashMap<Identifier, Vec<RsdoctorSideEffectLocation>> {
+  modules
+    .par_iter()
+    .filter_map(|(module_id, module)| {
+      let bailout_reasons = module_graph.get_optimization_bailout(module_id);
+      let module_ukey = module_ukeys.get(module_id)?;
+      let request = if let Some(normal_module) = module.as_normal_module() {
+        normal_module.request().to_string()
+      } else {
+        module.identifier().to_string()
+      };
+
+      let side_effect_locations: Vec<RsdoctorSideEffectLocation> = bailout_reasons
+        .iter()
+        .filter_map(|reason| {
+          // Parse bailout_reason string format:
+          // "{node_type} with side_effects in source code at {file}:{location}"
+          if !reason.contains("side_effects") {
+            return None;
+          }
+
+          // Extract node type and location
+          let parts: Vec<&str> = reason
+            .split(" with side_effects in source code at ")
+            .collect();
+          if parts.len() != 2 {
+            return None;
+          }
+
+          let node_type = parts[0].to_string();
+          let location_part = parts[1];
+
+          // Format: "module_identifier:line:column"
+          let location = if let Some(colon_pos) = location_part.rfind(':') {
+            let before_last_colon = &location_part[..colon_pos];
+            if let Some(second_colon_pos) = before_last_colon.rfind(':') {
+              location_part[second_colon_pos + 1..].to_string()
+            } else {
+              location_part.to_string()
+            }
+          } else {
+            location_part.to_string()
+          };
+
+          Some(RsdoctorSideEffectLocation {
+            location,
+            node_type,
+            module: *module_ukey,
+            request: request.clone(),
+          })
+        })
+        .collect();
+      if side_effect_locations.is_empty() {
+        None
+      } else {
+        Some((*module_id, side_effect_locations))
+      }
+    })
+    .collect::<HashMap<_, _>>()
 }
