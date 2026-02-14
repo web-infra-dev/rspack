@@ -4591,6 +4591,9 @@ dependencies = [
  "serde_json",
  "sugar_path",
  "swc_core",
+ "swc_experimental_ecma_ast",
+ "swc_experimental_ecma_parser",
+ "swc_experimental_ecma_semantic",
  "swc_node_comments",
  "tokio",
  "tracing",
@@ -5260,6 +5263,7 @@ dependencies = [
  "sugar_path",
  "swc_config",
  "swc_core",
+ "swc_experimental_ecma_ast",
  "swc_plugin_runner",
  "unicase",
  "wasi-common",
@@ -6672,8 +6676,6 @@ dependencies = [
 [[package]]
 name = "swc_experimental_ast_macros"
 version = "0.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b739e8a7ecebdcf1195a1130de3dd0f5cc27d9191a51d5624e99e6b1fa6eedbd"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -6683,8 +6685,6 @@ dependencies = [
 [[package]]
 name = "swc_experimental_ecma_ast"
 version = "0.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c051666da10a794e4c9d4a7031f4e92b5d5877b23c2fb3c76e93352c3cca85ce"
 dependencies = [
  "num-bigint",
  "oxc_index",
@@ -6697,8 +6697,6 @@ dependencies = [
 [[package]]
 name = "swc_experimental_ecma_parser"
 version = "0.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "caa4c9d2e6cfc103072ce59dc1fd8813ed3de3fdf2a11cc308e0629827322468"
 dependencies = [
  "bitflags 2.9.1",
  "either",
@@ -6714,8 +6712,6 @@ dependencies = [
 [[package]]
 name = "swc_experimental_ecma_semantic"
 version = "0.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8a7084cdfe2c86494d3e7adaba62be38db785d4d274850fcedd60e866a1837b7"
 dependencies = [
  "bitflags 2.9.1",
  "oxc_index",
@@ -6728,8 +6724,6 @@ dependencies = [
 [[package]]
 name = "swc_experimental_ecma_visit"
 version = "0.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "97cf548ff1ddcf74610285ca113a5a24d61b4eeda11296289dd92df53f3f1f48"
 dependencies = [
  "swc_experimental_ecma_ast",
 ]
