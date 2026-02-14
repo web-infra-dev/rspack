@@ -65,6 +65,28 @@ impl JsCompilation {
     // so as long as the Compiler is not dropped, we can safely return a 'static reference.
     Ok(unsafe { self.inner.as_mut() })
   }
+
+  pub(crate) fn exports_info_artifact_ref(&self) -> napi::Result<&'static ExportsInfoArtifact> {
+    let compilation = self.as_ref()?;
+    if let Some(ptr) = compilation.compiler_context.exports_info_artifact_ptr() {
+      // SAFETY: pointer is injected by binding hook phases and valid in current scope.
+      Ok(unsafe { &*(ptr as *const ExportsInfoArtifact) })
+    } else {
+      Ok(&compilation.exports_info_artifact)
+    }
+  }
+
+  pub(crate) fn exports_info_artifact_mut(
+    &mut self,
+  ) -> napi::Result<&'static mut ExportsInfoArtifact> {
+    let compilation = self.as_mut()?;
+    if let Some(ptr) = compilation.compiler_context.exports_info_artifact_ptr() {
+      // SAFETY: pointer is injected by binding hook phases and valid in current scope.
+      Ok(unsafe { &mut *(ptr as *mut ExportsInfoArtifact) })
+    } else {
+      Ok(&mut compilation.exports_info_artifact)
+    }
+  }
 }
 
 #[napi]
@@ -494,18 +516,9 @@ impl JsCompilation {
   #[napi]
   pub fn get_stats(&self, reference: Reference<JsCompilation>, env: Env) -> Result<JsStats> {
     Ok(JsStats::new(reference.share_with(env, |compilation| {
+      let exports_info_artifact = compilation.exports_info_artifact_ref()?;
       let compilation = compilation.as_ref()?;
-      let exports_info_artifact_ptr = compilation.compiler_context.exports_info_artifact_ptr();
-      let stats = {
-        let ptr = exports_info_artifact_ptr;
-        if let Some(ptr) = ptr {
-          // SAFETY: pointer is injected by binding hook phases and valid in current scope.
-          let exports_info_artifact = unsafe { &*(ptr as *const ExportsInfoArtifact) };
-          compilation.get_stats_with_exports_info_artifact(exports_info_artifact)
-        } else {
-          compilation.get_stats()
-        }
-      };
+      let stats = compilation.get_stats_with_exports_info_artifact(exports_info_artifact);
 
       Ok(stats)
     })?))
@@ -612,22 +625,14 @@ impl JsCompilation {
     let compilation = self
       .as_mut()
       .map_err(|err| napi::Error::new(err.status.into(), err.reason.clone()))?;
+    let exports_info_artifact = self
+      .exports_info_artifact_mut()
+      .map_err(|err| napi::Error::new(err.status.into(), err.reason.clone()))?;
     let compiler_context = compilation.compiler_context.clone();
     callbackify(
       f,
       within_compiler_context(compiler_context, async {
         let compiler_id = compilation.compiler_id();
-        let Some(exports_info_artifact_ptr) =
-          compilation.compiler_context.exports_info_artifact_ptr()
-        else {
-          return Err(napi::Error::new(
-            napi::Status::InvalidArg.into(),
-            "compilation.rebuildModule can only be used in finishModules hook".to_string(),
-          ));
-        };
-        // SAFETY: pointer is injected by binding hook phases and valid in current scope.
-        let exports_info_artifact =
-          unsafe { &mut *(exports_info_artifact_ptr as *mut ExportsInfoArtifact) };
 
         let modules = compilation
           .rebuild_module(
