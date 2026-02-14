@@ -120,8 +120,11 @@ impl Compilation {
     // Collect dependencies diagnostics at here to make sure:
     // 1. after finish_modules: has provide exports info
     // 2. before optimize dependencies: side effects free module hasn't been skipped
-    let mut all_diagnostics = self
-      .collect_dependencies_diagnostics(dependencies_diagnostics_artifact, exports_info_artifact);
+    let mut all_diagnostics = self.collect_dependencies_diagnostics(
+      dependencies_diagnostics_artifact,
+      build_module_graph_artifact,
+      exports_info_artifact,
+    );
     self.module_graph_cache_artifact.unfreeze();
 
     // take make diagnostics
@@ -134,6 +137,7 @@ impl Compilation {
   fn collect_dependencies_diagnostics(
     &self,
     dependencies_diagnostics_artifact: &mut DependenciesDiagnosticsArtifact,
+    build_module_graph_artifact: &BuildModuleGraphArtifact,
     exports_info_artifact: &ExportsInfoArtifact,
   ) -> Vec<Diagnostic> {
     // Compute modules while holding the lock, then release it
@@ -152,29 +156,43 @@ impl Compilation {
           for revoked_module in revoked_modules {
             dependencies_diagnostics_artifact.remove(&revoked_module);
           }
-          let modules = mutations.get_affected_modules_with_module_graph(self.get_module_graph());
+          let modules = mutations
+            .get_affected_modules_with_module_graph(build_module_graph_artifact.get_module_graph());
           let logger = self.get_logger("rspack.incremental.finishModules");
           logger.log(format!(
             "{} modules are affected, {} in total",
             modules.len(),
-            self.get_module_graph().modules().len()
+            build_module_graph_artifact
+              .get_module_graph()
+              .modules()
+              .len()
           ));
           (modules, true)
         } else {
           (
-            self.get_module_graph().modules().keys().copied().collect(),
+            build_module_graph_artifact
+              .get_module_graph()
+              .modules()
+              .keys()
+              .copied()
+              .collect(),
             true,
           )
         }
       } else {
         (
-          self.get_module_graph().modules().keys().copied().collect(),
+          build_module_graph_artifact
+            .get_module_graph()
+            .modules()
+            .keys()
+            .copied()
+            .collect(),
           false,
         )
       }
     };
 
-    let module_graph = self.get_module_graph();
+    let module_graph = build_module_graph_artifact.get_module_graph();
     let module_graph_cache = &self.module_graph_cache_artifact;
     let dependencies_diagnostics: DependenciesDiagnosticsArtifact = modules
       .par_iter()
