@@ -3,7 +3,7 @@
 use swc_core::{atoms::Atom, common::Span};
 use swc_experimental_ecma_ast::*;
 
-use crate::JS_DEFAULT_KEYWORD;
+use crate::{JS_DEFAULT_KEYWORD, visitors::JavascriptParser};
 
 #[derive(Debug, Clone, Copy)]
 pub enum ClassDeclOrExpr {
@@ -190,32 +190,45 @@ impl ExportNamedDeclaration {
     }
   }
 
-  pub fn named_export_specifiers(
+  pub fn named_export_specifiers<F: FnMut(&mut JavascriptParser<'_>, Atom, Atom, Span)>(
+    parser: &mut JavascriptParser<'_>,
     named: NamedExport,
-    ast: &Ast,
-  ) -> impl Iterator<Item = (Atom, Atom, Span)> {
-    named.specifiers(ast).iter().map(|spec| {
-      let spec = ast.get_node_in_sub_range(spec);
+    f: F,
+  ) {
+    for spec in named.specifiers(&parser.ast).iter() {
+      let spec = parser.ast.get_node_in_sub_range(spec);
       match spec {
-        ExportSpecifier::Namespace(_) => unreachable!("should handle ExportSpecifier::Namespace by ExportAllOrNamedAll::NamedAll in block_pre_walk_export_all_declaration"),
+        ExportSpecifier::Namespace(_) => unreachable!(
+          "should handle ExportSpecifier::Namespace by ExportAllOrNamedAll::NamedAll in block_pre_walk_export_all_declaration"
+        ),
         ExportSpecifier::Default(s) => {
-          let exported = ast.get_atom(s.exported(ast).sym(ast));
-          (JS_DEFAULT_KEYWORD.clone(), exported, s.exported(ast).span(ast))
-        },
+          let exported = parser.ast.get_atom(s.exported(ast).sym(ast));
+          f(
+            parser,
+            JS_DEFAULT_KEYWORD.clone(),
+            exported,
+            s.exported(ast).span(ast),
+          );
+        }
         ExportSpecifier::Named(n) => {
+          let ast = &parser.ast;
           let exported_name = n.exported(ast).unwrap_or(n.orig(ast));
           let orig = match n.orig(ast) {
             ModuleExportName::Ident(ident) => ast.get_atom(ident.sym(ast)),
-            ModuleExportName::Str(s) => ast.get_wtf8_atom(s.value(ast)).to_atom_lossy().into_owned(),
-                  };
+            ModuleExportName::Str(s) => {
+              ast.get_wtf8_atom(s.value(ast)).to_atom_lossy().into_owned()
+            }
+          };
           let exported_name_str = match exported_name {
             ModuleExportName::Ident(ident) => ast.get_atom(ident.sym(ast)),
-            ModuleExportName::Str(s) => ast.get_wtf8_atom(s.value(ast)).to_atom_lossy().into_owned(),
-                  };
-          (orig, exported_name_str, exported_name.span(ast))
-        },
+            ModuleExportName::Str(s) => {
+              ast.get_wtf8_atom(s.value(ast)).to_atom_lossy().into_owned()
+            }
+          };
+          f(parser, orig, exported_name_str, exported_name.span(ast));
+        }
       }
-    })
+    }
   }
 }
 
@@ -407,7 +420,7 @@ impl Spanned for MaybeNamedFunctionDecl {
 }
 
 impl MaybeNamedFunctionDecl {
-  fn from_fn_decl(value: FnDecl, ast: &Ast) -> Self {
+  pub(crate) fn from_fn_decl(value: FnDecl, ast: &Ast) -> Self {
     Self {
       span: value.span(ast),
       ident: Some(value.ident(ast)),
@@ -417,7 +430,7 @@ impl MaybeNamedFunctionDecl {
 }
 
 impl MaybeNamedFunctionDecl {
-  fn from_fn_expr(f: FnExpr, ast: &Ast) -> Self {
+  pub(crate) fn from_fn_expr(f: FnExpr, ast: &Ast) -> Self {
     Self {
       span: f.span(ast),
       ident: f.ident(ast),
@@ -456,7 +469,7 @@ impl Spanned for MaybeNamedClassDecl {
 }
 
 impl MaybeNamedClassDecl {
-  fn from_class_decl(value: ClassDecl, ast: &Ast) -> Self {
+  pub(crate) fn from_class_decl(value: ClassDecl, ast: &Ast) -> Self {
     Self {
       span: value.span(ast),
       ident: Some(value.ident(ast)),
@@ -466,7 +479,7 @@ impl MaybeNamedClassDecl {
 }
 
 impl MaybeNamedClassDecl {
-  fn from_class_expr(value: ClassExpr, ast: &Ast) -> Self {
+  pub(crate) fn from_class_expr(value: ClassExpr, ast: &Ast) -> Self {
     Self {
       span: value.span(ast),
       ident: value.ident(ast),
@@ -600,7 +613,7 @@ impl Statement {
 }
 
 impl Statement {
-  fn from_decl(value: Decl, ast: &Ast) -> Self {
+  pub(crate) fn from_decl(value: Decl, ast: &Ast) -> Self {
     use Statement::*;
     match value {
       Decl::Class(d) => Class(MaybeNamedClassDecl::from_class_decl(d, ast)),
