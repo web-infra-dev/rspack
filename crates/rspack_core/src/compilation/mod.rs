@@ -990,7 +990,14 @@ impl Compilation {
   }
 
   pub fn get_stats(&self) -> Stats<'_> {
-    Stats::new(self)
+    self.get_stats_with_exports_info_artifact(&self.exports_info_artifact)
+  }
+
+  pub fn get_stats_with_exports_info_artifact<'a>(
+    &'a self,
+    exports_info_artifact: &'a ExportsInfoArtifact,
+  ) -> Stats<'a> {
+    Stats::new(self, exports_info_artifact)
   }
 
   pub fn add_named_chunk(

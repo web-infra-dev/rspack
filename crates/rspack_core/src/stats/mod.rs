@@ -23,11 +23,18 @@ use crate::{
 #[derive(Debug, Clone)]
 pub struct Stats<'compilation> {
   pub compilation: &'compilation Compilation,
+  pub exports_info_artifact: &'compilation ExportsInfoArtifact,
 }
 
 impl<'compilation> Stats<'compilation> {
-  pub fn new(compilation: &'compilation Compilation) -> Self {
-    Self { compilation }
+  pub fn new(
+    compilation: &'compilation Compilation,
+    exports_info_artifact: &'compilation ExportsInfoArtifact,
+  ) -> Self {
+    Self {
+      compilation,
+      exports_info_artifact,
+    }
   }
 }
 
@@ -220,7 +227,7 @@ impl Stats<'_> {
         self.get_module(
           module_graph,
           module_graph_cache,
-          &self.compilation.exports_info_artifact,
+          self.exports_info_artifact,
           module,
           false,
           None,
@@ -330,7 +337,7 @@ impl Stats<'_> {
             &c.ukey(),
             module_graph,
             module_graph_cache,
-            &self.compilation.exports_info_artifact,
+            self.exports_info_artifact,
           )
           .into_iter()
           .collect::<IdentifierSet>();
@@ -354,7 +361,7 @@ impl Stats<'_> {
               self.get_module(
                 module_graph,
                 module_graph_cache,
-                &self.compilation.exports_info_artifact,
+                self.exports_info_artifact,
                 m,
                 false,
                 Some(&root_modules),

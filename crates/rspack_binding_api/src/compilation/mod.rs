@@ -20,9 +20,7 @@ use rspack_core::{
 use rspack_error::{Diagnostic, Severity, ToStringResultToRspackResultExt};
 use rspack_napi::napi::bindgen_prelude::*;
 use rspack_plugin_runtime::RuntimeModuleFromJs;
-use rspack_tasks::{
-  with_current_exports_info_artifact, within_compiler_context, within_compiler_context_sync,
-};
+use rspack_tasks::{within_compiler_context, within_compiler_context_sync};
 use rustc_hash::FxHashMap;
 
 use crate::{
@@ -497,8 +495,19 @@ impl JsCompilation {
   pub fn get_stats(&self, reference: Reference<JsCompilation>, env: Env) -> Result<JsStats> {
     Ok(JsStats::new(reference.share_with(env, |compilation| {
       let compilation = compilation.as_ref()?;
+      let exports_info_artifact_ptr = compilation.compiler_context.exports_info_artifact_ptr();
+      let stats = {
+        let ptr = exports_info_artifact_ptr;
+        if let Some(ptr) = ptr {
+          // SAFETY: pointer is injected by binding hook phases and valid in current scope.
+          let exports_info_artifact = unsafe { &*(ptr as *const ExportsInfoArtifact) };
+          compilation.get_stats_with_exports_info_artifact(exports_info_artifact)
+        } else {
+          compilation.get_stats()
+        }
+      };
 
-      Ok(compilation.get_stats())
+      Ok(stats)
     })?))
   }
 
@@ -615,9 +624,10 @@ impl JsCompilation {
               .into_iter()
               .map(ModuleIdentifier::from)
               .collect::<IdentifierSet>(),
-            with_current_exports_info_artifact(|ptr| {
-              ptr.map(|ptr| unsafe { &mut *(ptr as *mut ExportsInfoArtifact) })
-            }),
+            compilation
+              .compiler_context
+              .exports_info_artifact_ptr()
+              .map(|ptr| unsafe { &mut *(ptr as *mut ExportsInfoArtifact) }),
             |modules| {
               modules
                 .into_iter()
