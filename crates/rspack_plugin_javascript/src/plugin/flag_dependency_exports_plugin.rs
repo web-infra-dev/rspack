@@ -8,7 +8,9 @@ use rspack_core::{
   ExportNameOrSpec, ExportProvided, ExportSpecExports, ExportsInfo, ExportsInfoArtifact,
   ExportsInfoData, ExportsOfExportsSpec, ExportsSpec, GetTargetResult, Logger, ModuleGraph,
   ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, Nullable, Plugin,
-  PrefetchExportsInfoMode, build_module_graph::BuildModuleGraphArtifact, get_target,
+  PrefetchExportsInfoMode,
+  build_module_graph::BuildModuleGraphArtifact,
+  get_target,
   incremental::{self, IncrementalPasses},
 };
 use rspack_error::Result;
@@ -210,14 +212,17 @@ async fn finish_modules(
     .incremental
     .mutations_read(IncrementalPasses::FINISH_MODULES)
   {
-    let modules =
-      mutations.get_affected_modules_with_module_graph(build_module_graph_artifact.get_module_graph());
+    let modules = mutations
+      .get_affected_modules_with_module_graph(build_module_graph_artifact.get_module_graph());
     tracing::debug!(target: incremental::TRACING_TARGET, passes = %IncrementalPasses::FINISH_MODULES, %mutations, ?modules);
     let logger = compilation.get_logger("rspack.incremental.finishModules");
     logger.log(format!(
       "{} modules are affected, {} in total",
       modules.len(),
-      build_module_graph_artifact.get_module_graph().modules().len()
+      build_module_graph_artifact
+        .get_module_graph()
+        .modules()
+        .len()
     ));
     modules
   } else {
@@ -231,12 +236,8 @@ async fn finish_modules(
   let module_graph_cache = compilation.module_graph_cache_artifact.clone();
 
   let module_graph = build_module_graph_artifact.get_module_graph_mut();
-  FlagDependencyExportsState::new(
-    module_graph,
-    &module_graph_cache,
-    exports_info_artifact,
-  )
-  .apply(modules);
+  FlagDependencyExportsState::new(module_graph, &module_graph_cache, exports_info_artifact)
+    .apply(modules);
 
   Ok(())
 }

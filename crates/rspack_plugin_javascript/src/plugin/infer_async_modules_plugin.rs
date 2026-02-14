@@ -2,7 +2,8 @@ use rayon::prelude::*;
 use rspack_collections::{IdentifierLinkedSet, IdentifierMap, IdentifierSet};
 use rspack_core::{
   AsyncModulesArtifact, Compilation, CompilationFinishModules, DependencyType, ExportsInfoArtifact,
-  Logger, ModuleGraph, Plugin, build_module_graph::BuildModuleGraphArtifact,
+  Logger, ModuleGraph, Plugin,
+  build_module_graph::BuildModuleGraphArtifact,
   incremental::{IncrementalPasses, Mutation, Mutations},
 };
 use rspack_error::Result;

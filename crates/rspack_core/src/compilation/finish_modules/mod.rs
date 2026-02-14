@@ -120,8 +120,8 @@ impl Compilation {
     // Collect dependencies diagnostics at here to make sure:
     // 1. after finish_modules: has provide exports info
     // 2. before optimize dependencies: side effects free module hasn't been skipped
-    let mut all_diagnostics =
-      self.collect_dependencies_diagnostics(dependencies_diagnostics_artifact, exports_info_artifact);
+    let mut all_diagnostics = self
+      .collect_dependencies_diagnostics(dependencies_diagnostics_artifact, exports_info_artifact);
     self.module_graph_cache_artifact.unfreeze();
 
     // take make diagnostics

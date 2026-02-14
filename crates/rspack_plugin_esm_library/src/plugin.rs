@@ -152,8 +152,8 @@ async fn finish_modules(
 
     // if we reach here, check exports info
     if should_scope_hoisting {
-      let exports_info =
-        exports_info_artifact.get_prefetched_exports_info(module_identifier, PrefetchExportsInfoMode::Default);
+      let exports_info = exports_info_artifact
+        .get_prefetched_exports_info(module_identifier, PrefetchExportsInfoMode::Default);
 
       let relevant_exports = exports_info.get_relevant_exports(None);
       let unknown_exports = relevant_exports

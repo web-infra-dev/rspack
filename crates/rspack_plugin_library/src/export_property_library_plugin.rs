@@ -5,7 +5,8 @@ use rspack_core::{
   CompilationAdditionalChunkRuntimeRequirements, CompilationFinishModules, CompilationParams,
   CompilerCompilation, EntryData, ExportsInfoArtifact, LibraryExport, LibraryOptions, LibraryType,
   ModuleIdentifier, Plugin, RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule, UsageState,
-  build_module_graph::BuildModuleGraphArtifact, get_entry_runtime, property_access,
+  build_module_graph::BuildModuleGraphArtifact,
+  get_entry_runtime, property_access,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
 };
 use rspack_error::Result;

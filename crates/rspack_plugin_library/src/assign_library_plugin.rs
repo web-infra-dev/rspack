@@ -10,8 +10,9 @@ use rspack_core::{
   CompilerCompilation, EntryData, ExportProvided, ExportsInfoArtifact, Filename, LibraryExport,
   LibraryName, LibraryNonUmdObject, LibraryOptions, ModuleIdentifier, PathData, Plugin,
   PrefetchExportsInfoMode, RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule, RuntimeVariable,
-  SourceType, UsageState, build_module_graph::BuildModuleGraphArtifact, get_entry_runtime,
-  property_access,
+  SourceType, UsageState,
+  build_module_graph::BuildModuleGraphArtifact,
+  get_entry_runtime, property_access,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
   to_identifier,
 };
