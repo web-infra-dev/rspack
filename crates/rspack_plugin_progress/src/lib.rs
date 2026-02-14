@@ -19,8 +19,9 @@ use rspack_core::{
   CompilationOptimizeDependencies, CompilationOptimizeModules, CompilationOptimizeTree,
   CompilationParams, CompilationProcessAssets, CompilationSeal, CompilationSucceedModule,
   CompilerAfterEmit, CompilerClose, CompilerCompilation, CompilerEmit, CompilerFinishMake,
-  CompilerId, CompilerMake, CompilerThisCompilation, ModuleIdentifier, ModuleIdsArtifact, Plugin,
-  SideEffectsOptimizeArtifact, build_module_graph::BuildModuleGraphArtifact,
+  CompilerId, CompilerMake, CompilerThisCompilation, ExportsInfoArtifact, ModuleIdentifier,
+  ModuleIdsArtifact, Plugin, SideEffectsOptimizeArtifact,
+  build_module_graph::BuildModuleGraphArtifact,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
@@ -455,6 +456,7 @@ async fn optimize_dependencies(
   _compilation: &Compilation,
   _side_effects_optimize_artifact: &mut SideEffectsOptimizeArtifact,
   _build_module_graph_artifact: &mut BuildModuleGraphArtifact,
+  _exports_info_artifact: &mut ExportsInfoArtifact,
   _diagnostics: &mut Vec<Diagnostic>,
 ) -> Result<Option<bool>> {
   self
@@ -523,6 +525,7 @@ async fn optimize_code_generation(
   &self,
   _compilation: &Compilation,
   _build_module_graph_artifact: &mut BuildModuleGraphArtifact,
+  _exports_info_artifact: &mut ExportsInfoArtifact,
   _diagnostics: &mut Vec<Diagnostic>,
 ) -> Result<()> {
   self.sealing_hooks_report("generate code", 26).await

@@ -5,7 +5,7 @@ use rayon::prelude::*;
 use regex::Regex;
 use rspack_core::{
   BuildMetaExportsType, Compilation, CompilationOptimizeCodeGeneration, ExportInfo, ExportProvided,
-  ExportsInfo, ExportsInfoGetter, ModuleGraph, Plugin, PrefetchExportsInfoMode,
+  ExportsInfo, ExportsInfoArtifact, ExportsInfoGetter, Plugin, PrefetchExportsInfoMode,
   PrefetchedExportsInfoWrapper, UsageState, UsedNameItem,
   build_module_graph::BuildModuleGraphArtifact, incremental::IncrementalPasses,
 };
@@ -64,6 +64,7 @@ async fn optimize_code_generation(
   &self,
   compilation: &Compilation,
   build_module_graph_artifact: &mut BuildModuleGraphArtifact,
+  exports_info_artifact: &mut ExportsInfoArtifact,
   diagnostics: &mut Vec<Diagnostic>,
 ) -> Result<()> {
   if let Some(diagnostic) = compilation.incremental.disable_passes(
@@ -82,13 +83,12 @@ async fn optimize_code_generation(
 
   let mut q = modules
     .iter()
-    .filter_map(|(mid, module)| {
-      let mgm = mg.module_graph_module_by_identifier(mid)?;
+    .map(|(mid, module)| {
       let is_namespace = matches!(
         module.build_meta().exports_type,
         BuildMetaExportsType::Namespace
       );
-      Some((mgm.exports, is_namespace))
+      (exports_info_artifact.get_exports_info(mid), is_namespace)
     })
     .collect_vec();
 
@@ -99,8 +99,11 @@ async fn optimize_code_generation(
       .filter_map(|(exports_info, is_namespace)| {
         let mut avoid_mangle_non_provided = !is_namespace;
         let deterministic = self.deterministic;
-        let exports_info_data =
-          ExportsInfoGetter::prefetch(exports_info, mg, PrefetchExportsInfoMode::Default);
+        let exports_info_data = ExportsInfoGetter::prefetch(
+          exports_info,
+          exports_info_artifact,
+          PrefetchExportsInfoMode::Default,
+        );
         let export_list = {
           if !can_mangle(&exports_info_data) {
             return None;
@@ -180,11 +183,8 @@ async fn optimize_code_generation(
   }
 
   let mut queue = modules
-    .into_iter()
-    .filter_map(|(mid, _)| {
-      let mgm = mg.module_graph_module_by_identifier(&mid)?;
-      Some(mgm.exports)
-    })
+    .into_keys()
+    .map(|mid| exports_info_artifact.get_exports_info(&mid))
     .collect_vec();
 
   while !queue.is_empty() {
@@ -192,7 +192,12 @@ async fn optimize_code_generation(
     let batch = tasks
       .into_par_iter()
       .map(|exports_info| {
-        mangle_exports_info(mg, self.deterministic, exports_info, &exports_info_cache)
+        mangle_exports_info(
+          exports_info_artifact,
+          self.deterministic,
+          exports_info,
+          &exports_info_cache,
+        )
       })
       .collect::<Vec<_>>();
 
@@ -202,7 +207,7 @@ async fn optimize_code_generation(
       queue.extend(nested_exports);
     }
 
-    mg.batch_set_export_info_used_name(used_name_tasks);
+    mg.batch_set_export_info_used_name(exports_info_artifact, used_name_tasks);
   }
 
   Ok(())
@@ -230,7 +235,7 @@ static MANGLE_NAME_DETERMINISTIC_REG: LazyLock<Regex> = LazyLock::new(|| {
 
 /// Function to mangle exports information.
 fn mangle_exports_info(
-  mg: &ModuleGraph,
+  exports_info_artifact: &ExportsInfoArtifact,
   deterministic: bool,
   exports_info: ExportsInfo,
   exports_info_cache: &FxHashMap<ExportsInfo, Vec<ExportInfoCache>>,
@@ -307,7 +312,7 @@ fn mangle_exports_info(
     let mut unused_exports = Vec::new();
 
     for export_info in mangleable_exports {
-      let used = export_info.as_data(mg).get_used(None);
+      let used = export_info.as_data(exports_info_artifact).get_used(None);
       if used == UsageState::Unused {
         unused_exports.push(export_info);
       } else {

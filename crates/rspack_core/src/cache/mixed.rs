@@ -1,7 +1,5 @@
 use super::{Cache, memory::MemoryCache, persistent::PersistentCache};
-use crate::{
-  Compilation, compilation::build_module_graph::BuildModuleGraphArtifact, incremental::Incremental,
-};
+use crate::Compilation;
 
 /// Mixed cache implementation
 ///
@@ -50,29 +48,16 @@ impl Cache for MixedCache {
   }
 
   // BUILD_MODULE_GRAPH hooks
-  async fn before_build_module_graph(
-    &mut self,
-    make_artifact: &mut BuildModuleGraphArtifact,
-    incremental: &Incremental,
-  ) {
+  async fn before_build_module_graph(&mut self, compilation: &mut Compilation) {
     // First try memory cache (for rebuild)
-    self
-      .memory
-      .before_build_module_graph(make_artifact, incremental)
-      .await;
+    self.memory.before_build_module_graph(compilation).await;
     // Then try persistent cache (for initial build)
-    self
-      .persistent
-      .before_build_module_graph(make_artifact, incremental)
-      .await;
+    self.persistent.before_build_module_graph(compilation).await;
   }
 
-  async fn after_build_module_graph(&self, make_artifact: &BuildModuleGraphArtifact) {
+  async fn after_build_module_graph(&self, compilation: &Compilation) {
     // Save to persistent cache
-    self
-      .persistent
-      .after_build_module_graph(make_artifact)
-      .await;
+    self.persistent.after_build_module_graph(compilation).await;
   }
 
   // FINISH_MODULES hooks

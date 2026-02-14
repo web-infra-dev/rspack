@@ -7,7 +7,7 @@ use rspack_collections::{
 };
 use rspack_core::{
   BoxDependency, BoxModule, Compilation, CompilationOptimizeChunkModules, DependencyId,
-  DependencyType, ExportProvided, ExtendedReferencedExport, GetTargetResult,
+  DependencyType, ExportProvided, ExportsInfoArtifact, ExtendedReferencedExport, GetTargetResult,
   ImportedByDeferModulesArtifact, LibIdentOptions, Logger, ModuleGraph, ModuleGraphCacheArtifact,
   ModuleGraphConnection, ModuleGraphModule, ModuleIdentifier, Plugin, PrefetchExportsInfoMode,
   ProvidedExports, RuntimeCondition, RuntimeSpec, SourceType,
@@ -179,6 +179,7 @@ impl ModuleConcatenationPlugin {
   pub fn get_imports(
     mg: &ModuleGraph,
     mg_cache: &ModuleGraphCacheArtifact,
+    exports_info_artifact: &ExportsInfoArtifact,
     mi: ModuleIdentifier,
     runtime: Option<&RuntimeSpec>,
     imports_cache: &mut RuntimeIdentifierCache<IdentifierIndexSet>,
@@ -208,11 +209,11 @@ impl ModuleConcatenationPlugin {
           false
         } else {
           // can't determine, need to check
-          con.is_target_active(mg, Some(runtime), mg_cache)
+          con.is_target_active(mg, Some(runtime), mg_cache, exports_info_artifact)
         }
       } else {
         // no runtime, need to check
-        con.is_target_active(mg, None, mg_cache)
+        con.is_target_active(mg, None, mg_cache, exports_info_artifact)
       };
 
       if !is_target_active {
@@ -346,6 +347,7 @@ impl ModuleConcatenationPlugin {
                 cached_module_runtime,
                 module_graph,
                 module_graph_cache,
+                &compilation.exports_info_artifact,
               )
             });
 
@@ -415,6 +417,7 @@ impl ModuleConcatenationPlugin {
                 cached_module_runtime,
                 module_graph,
                 module_graph_cache,
+                &compilation.exports_info_artifact,
               )
             })
             .collect();
@@ -525,7 +528,12 @@ impl ModuleConcatenationPlugin {
           let mut current_runtime_condition = RuntimeCondition::Boolean(false);
           for connection in connections {
             let runtime_condition = filter_runtime(Some(runtime), |runtime| {
-              connection.is_target_active(module_graph, runtime, module_graph_cache)
+              connection.is_target_active(
+                module_graph,
+                runtime,
+                module_graph_cache,
+                &compilation.exports_info_artifact,
+              )
             });
 
             if runtime_condition == RuntimeCondition::Boolean(false) {
@@ -626,6 +634,7 @@ impl ModuleConcatenationPlugin {
     for imp in Self::get_imports(
       module_graph,
       module_graph_cache,
+      &compilation.exports_info_artifact,
       *module_id,
       runtime,
       imports_cache,
@@ -745,11 +754,7 @@ impl ModuleConcatenationPlugin {
 
     let mut chunk_graph = std::mem::take(&mut compilation.build_chunk_graph_artifact.chunk_graph);
     let module_graph = compilation.get_module_graph_mut();
-    let root_mgm_exports = module_graph
-      .module_graph_module_by_identifier(&root_module_id)
-      .expect("should have mgm")
-      .exports;
-    let module_graph_module = ModuleGraphModule::new(new_module.identifier(), root_mgm_exports);
+    let module_graph_module = ModuleGraphModule::new(new_module.identifier());
     module_graph.add_module_graph_module(module_graph_module);
     ModuleGraph::clone_module_attributes(compilation, &root_module_id, &new_module.identifier());
     // integrate
@@ -910,8 +915,9 @@ impl ModuleConcatenationPlugin {
           return (false, false, module_id, bailout_reason);
         }
 
-        let exports_info =
-          module_graph.get_prefetched_exports_info(&module_id, PrefetchExportsInfoMode::Default);
+        let exports_info = compilation
+          .exports_info_artifact
+          .get_prefetched_exports_info(&module_id, PrefetchExportsInfoMode::Default);
         let relevant_exports = exports_info.get_relevant_exports(None);
         let unknown_exports = relevant_exports
           .iter()
@@ -921,6 +927,7 @@ impl ModuleConcatenationPlugin {
                 get_target(
                   export_info,
                   module_graph,
+                  &compilation.exports_info_artifact,
                   Rc::new(|_| true),
                   &mut Default::default()
                 ),
@@ -1064,8 +1071,9 @@ impl ModuleConcatenationPlugin {
     let modules_without_runtime_cache = cache_modules
       .into_par_iter()
       .map(|module_id| {
-        let exports_info =
-          module_graph.get_prefetched_exports_info(&module_id, PrefetchExportsInfoMode::Default);
+        let exports_info = compilation
+          .exports_info_artifact
+          .get_prefetched_exports_info(&module_id, PrefetchExportsInfoMode::Default);
         let provided_names = matches!(
           exports_info.get_provided_exports(),
           ProvidedExports::ProvidedNames(_)
@@ -1102,8 +1110,12 @@ impl ModuleConcatenationPlugin {
             }
             let con = module_graph.connection_by_dependency_id(d)?;
             let module_dep = dep.as_module_dependency().expect("should be module dep");
-            let imported_names =
-              module_dep.get_referenced_exports(module_graph, module_graph_cache, None);
+            let imported_names = module_dep.get_referenced_exports(
+              module_graph,
+              module_graph_cache,
+              &compilation.exports_info_artifact,
+              None,
+            );
 
             Some((
               con.clone(),
@@ -1112,7 +1124,12 @@ impl ModuleConcatenationPlugin {
                   ExtendedReferencedExport::Array(arr) => !arr.is_empty(),
                   ExtendedReferencedExport::Export(export) => !export.name.is_empty(),
                 }),
-                con.is_target_active(module_graph, Some(&runtime), module_graph_cache),
+                con.is_target_active(
+                  module_graph,
+                  Some(&runtime),
+                  module_graph_cache,
+                  &compilation.exports_info_artifact,
+                ),
               ),
             ))
           })
@@ -1127,7 +1144,12 @@ impl ModuleConcatenationPlugin {
         for connection in incomings.values().flatten() {
           active_incomings.insert(
             connection.dependency_id,
-            connection.is_active(module_graph, Some(&runtime), module_graph_cache),
+            connection.is_active(
+              module_graph,
+              Some(&runtime),
+              module_graph_cache,
+              &compilation.exports_info_artifact,
+            ),
           );
         }
         let number_of_chunks = compilation
@@ -1158,8 +1180,9 @@ impl ModuleConcatenationPlugin {
         .expect("should have module");
       let module_graph = compilation.get_module_graph();
       let module_graph_cache = &compilation.module_graph_cache_artifact;
-      let exports_info =
-        module_graph.get_prefetched_exports_info(current_root, PrefetchExportsInfoMode::Default);
+      let exports_info = compilation
+        .exports_info_artifact
+        .get_prefetched_exports_info(current_root, PrefetchExportsInfoMode::Default);
       let filtered_runtime = filter_runtime(Some(runtime), |r| exports_info.is_module_used(r));
       let active_runtime = match filtered_runtime {
         RuntimeCondition::Boolean(true) => Some(runtime.clone()),
@@ -1178,6 +1201,7 @@ impl ModuleConcatenationPlugin {
       let imports = Self::get_imports(
         module_graph,
         module_graph_cache,
+        &compilation.exports_info_artifact,
         *current_root,
         active_runtime.as_ref(),
         &mut imports_cache,
@@ -1638,11 +1662,7 @@ fn add_concatenated_module(
   let mut chunk_graph = std::mem::take(&mut compilation.build_chunk_graph_artifact.chunk_graph);
   let module_graph = compilation.get_module_graph_mut();
 
-  let root_mgm_exports = module_graph
-    .module_graph_module_by_identifier(&root_module_id)
-    .expect("should have mgm")
-    .exports;
-  let module_graph_module = ModuleGraphModule::new(new_module.identifier(), root_mgm_exports);
+  let module_graph_module = ModuleGraphModule::new(new_module.identifier());
   module_graph.add_module_graph_module(module_graph_module);
   ModuleGraph::clone_module_attributes(compilation, &root_module_id, &new_module.identifier());
   // integrate
@@ -1714,6 +1734,7 @@ fn is_connection_active_in_runtime(
   cached_runtime: &RuntimeSpec,
   mg: &ModuleGraph,
   mg_cache: &ModuleGraphCacheArtifact,
+  exports_info_artifact: &ExportsInfoArtifact,
 ) -> bool {
   if let (Some(cached_active), Some(runtime)) = (
     cached_active_incomings.get(&connection.dependency_id),
@@ -1732,5 +1753,5 @@ fn is_connection_active_in_runtime(
     }
   }
 
-  connection.is_active(mg, runtime, mg_cache)
+  connection.is_active(mg, runtime, mg_cache, exports_info_artifact)
 }

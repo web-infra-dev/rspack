@@ -4,10 +4,10 @@ use rspack_cacheable::{
 };
 use rspack_core::{
   AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
-  DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, ExportsType,
-  ExtendedReferencedExport, FactorizeInfo, ImportAttributes, ImportPhase, ModuleDependency,
-  ModuleGraph, ModuleGraphCacheArtifact, ReferencedExport, ResourceIdentifier, TemplateContext,
-  TemplateReplaceSource, create_exports_object_referenced,
+  DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, ExportsInfoArtifact,
+  ExportsType, ExtendedReferencedExport, FactorizeInfo, ImportAttributes, ImportPhase,
+  ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ReferencedExport, ResourceIdentifier,
+  TemplateContext, TemplateReplaceSource, create_exports_object_referenced,
 };
 use swc_core::ecma::atoms::Atom;
 
@@ -18,6 +18,7 @@ pub fn create_import_dependency_referenced_exports(
   referenced_exports: &Option<Vec<Vec<Atom>>>,
   mg: &ModuleGraph,
   mg_cache: &ModuleGraphCacheArtifact,
+  exports_info_artifact: &ExportsInfoArtifact,
 ) -> Vec<ExtendedReferencedExport> {
   if let Some(referenced_exports) = referenced_exports {
     let mut refs = vec![];
@@ -38,7 +39,8 @@ pub fn create_import_dependency_referenced_exports(
         else {
           return create_exports_object_referenced();
         };
-        let exports_type = imported_module.get_exports_type(mg, mg_cache, strict);
+        let exports_type =
+          imported_module.get_exports_type(mg, mg_cache, exports_info_artifact, strict);
         if matches!(
           exports_type,
           ExportsType::DefaultOnly | ExportsType::DefaultWithNamed
@@ -140,6 +142,7 @@ impl Dependency for ImportDependency {
     &self,
     module_graph: &rspack_core::ModuleGraph,
     module_graph_cache: &ModuleGraphCacheArtifact,
+    exports_info_artifact: &ExportsInfoArtifact,
     _runtime: Option<&rspack_core::RuntimeSpec>,
   ) -> Vec<rspack_core::ExtendedReferencedExport> {
     create_import_dependency_referenced_exports(
@@ -147,6 +150,7 @@ impl Dependency for ImportDependency {
       &self.referenced_exports,
       module_graph,
       module_graph_cache,
+      exports_info_artifact,
     )
   }
 

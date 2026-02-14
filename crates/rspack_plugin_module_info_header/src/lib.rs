@@ -3,9 +3,9 @@ use std::{hash::Hash, rc::Rc};
 use rspack_cacheable::with::AsVecConverter;
 use rspack_core::{
   BuildMetaExportsType, ChunkGraph, ChunkInitFragments, ChunkUkey, Compilation, CompilationParams,
-  CompilerCompilation, ExportInfo, ExportProvided, ExportsInfoGetter, GetTargetResult, Module,
-  ModuleGraph, ModuleIdentifier, Plugin, PrefetchExportsInfoMode, PrefetchedExportsInfoWrapper,
-  RuntimeCodeTemplate, UsageState, get_target,
+  CompilerCompilation, ExportInfo, ExportProvided, ExportsInfoArtifact, ExportsInfoGetter,
+  GetTargetResult, Module, ModuleGraph, ModuleIdentifier, Plugin, PrefetchExportsInfoMode,
+  PrefetchedExportsInfoWrapper, RuntimeCodeTemplate, UsageState, get_target,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
   to_comment_with_nl,
 };
@@ -34,6 +34,7 @@ fn print_exports_info_to_source<F>(
   request_shortener: &F,
   already_printed: &mut FxHashSet<ExportInfo>,
   module_graph: &ModuleGraph,
+  exports_info_artifact: &ExportsInfoArtifact,
 ) where
   F: Fn(&ModuleIdentifier) -> String,
 {
@@ -71,6 +72,7 @@ fn print_exports_info_to_source<F>(
     let target_desc = match get_target(
       export_info,
       module_graph,
+      exports_info_artifact,
       Rc::new(|_| true),
       &mut Default::default(),
     ) {
@@ -94,8 +96,11 @@ fn print_exports_info_to_source<F>(
     source.add(RawStringSource::from(to_comment_with_nl(&export_str)));
 
     if let Some(exports_info) = &export_info.exports_info() {
-      let exports_info =
-        ExportsInfoGetter::prefetch(exports_info, module_graph, PrefetchExportsInfoMode::Default);
+      let exports_info = ExportsInfoGetter::prefetch(
+        exports_info,
+        exports_info_artifact,
+        PrefetchExportsInfoMode::Default,
+      );
       print_exports_info_to_source(
         source,
         &format!("{ident}  "),
@@ -103,6 +108,7 @@ fn print_exports_info_to_source<F>(
         request_shortener,
         already_printed,
         module_graph,
+        exports_info_artifact,
       );
     }
   }
@@ -117,6 +123,7 @@ fn print_exports_info_to_source<F>(
     let target = get_target(
       other_exports_info,
       module_graph,
+      exports_info_artifact,
       Rc::new(|_| true),
       &mut Default::default(),
     );
@@ -253,7 +260,8 @@ async fn render_js_module_package(
 
     let module_graph = compilation.get_module_graph();
 
-    let exports_info = module_graph
+    let exports_info = compilation
+      .exports_info_artifact
       .get_prefetched_exports_info(&module.identifier(), PrefetchExportsInfoMode::Default);
 
     if !matches!(export_type, BuildMetaExportsType::Unset) {
@@ -272,6 +280,7 @@ async fn render_js_module_package(
         &request_shortener,
         &mut FxHashSet::default(),
         module_graph,
+        &compilation.exports_info_artifact,
       );
     }
 

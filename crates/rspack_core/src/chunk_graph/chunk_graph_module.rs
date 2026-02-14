@@ -330,7 +330,8 @@ impl ChunkGraph {
         if visited_modules.contains(module_identifier) {
           return None;
         }
-        let active_state = connection.active_state(mg, runtime, mg_cache);
+        let active_state =
+          connection.active_state(mg, runtime, mg_cache, &compilation.exports_info_artifact);
         if active_state.is_false() {
           return None;
         }
@@ -339,7 +340,12 @@ impl ChunkGraph {
           runtime,
           |runtime| {
             let runtime = runtime.map(|r| RuntimeSpec::from_iter([*r]));
-            let active_state = connection.active_state(mg, runtime.as_ref(), mg_cache);
+            let active_state = connection.active_state(
+              mg,
+              runtime.as_ref(),
+              mg_cache,
+              &compilation.exports_info_artifact,
+            );
             active_state.hash(&mut hasher);
           },
           true,
@@ -379,20 +385,29 @@ impl ChunkGraph {
         Self::get_module_id(&compilation.module_ids_artifact, module_identifier)
           .dyn_hash(&mut hasher);
         module
-          .get_exports_type(mg, &compilation.module_graph_cache_artifact, strict)
+          .get_exports_type(
+            mg,
+            &compilation.module_graph_cache_artifact,
+            &compilation.exports_info_artifact,
+            strict,
+          )
           .hash(&mut hasher);
         module.source_types(mg).dyn_hash(&mut hasher);
 
         ModuleGraph::is_async(&compilation.async_modules_artifact, &module_identifier)
           .dyn_hash(&mut hasher);
-        let exports_info =
-          mg.get_prefetched_exports_info(&module_identifier, PrefetchExportsInfoMode::Full);
+        let exports_info = compilation
+          .exports_info_artifact
+          .get_prefetched_exports_info(&module_identifier, PrefetchExportsInfoMode::Full);
         let (entry, exports) = exports_info.meta();
         (hasher.finish(), entry, exports)
       });
 
     hasher.write_u64(hash);
-    let exports_info = ExportsInfoGetter::from_meta((exports_info_entry, exports_info_exports), mg);
+    let exports_info = ExportsInfoGetter::from_meta(
+      (exports_info_entry, exports_info_exports),
+      &compilation.exports_info_artifact,
+    );
     exports_info.update_hash(&mut hasher, runtime);
     hasher.finish()
   }

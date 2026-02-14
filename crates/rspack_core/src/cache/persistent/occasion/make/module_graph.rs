@@ -12,8 +12,8 @@ use super::{
 };
 use crate::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, Dependency,
-  DependencyId, DependencyParents, ExportsInfoData, ModuleGraph, ModuleGraphConnection,
-  ModuleGraphModule, ModuleIdentifier, RayonConsumer,
+  DependencyId, DependencyParents, ModuleGraph, ModuleGraphConnection, ModuleGraphModule,
+  ModuleIdentifier, RayonConsumer,
   cache::persistent::codec::CacheCodec,
   compilation::build_module_graph::{LazyDependencies, ModuleToLazyMake},
 };
@@ -143,7 +143,7 @@ pub async fn recovery_module_graph(
     })
     .with_max_len(1)
     .consume(|node| {
-      let mut mgm = node.mgm.into_owned();
+      let mgm = node.mgm.into_owned();
       let module = node.module.into_owned();
       for (index_in_block, (dep, parent_block)) in node.dependencies.into_iter().enumerate() {
         let dep = dep.into_owned();
@@ -170,11 +170,6 @@ pub async fn recovery_module_graph(
         module_to_lazy_make
           .update_module_lazy_dependencies(module.identifier(), Some(lazy_info.into_owned()));
       }
-      // recovery exports/export info
-      let exports_info = ExportsInfoData::default();
-      mgm.exports = exports_info.id();
-      mg.set_exports_info(exports_info.id(), exports_info);
-
       mg.add_module_graph_module(mgm);
       mg.add_module(module);
     });

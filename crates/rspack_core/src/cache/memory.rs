@@ -1,9 +1,5 @@
 use super::Cache;
-use crate::{
-  BuildChunkGraphArtifact, Compilation, artifacts::ArtifactExt,
-  compilation::build_module_graph::BuildModuleGraphArtifact, incremental::Incremental,
-  recover_artifact,
-};
+use crate::{BuildChunkGraphArtifact, Compilation, artifacts::ArtifactExt, recover_artifact};
 
 /// Memory cache implementation
 ///
@@ -29,16 +25,18 @@ impl Cache for MemoryCache {
   }
 
   // BUILD_MODULE_GRAPH: build_module_graph_artifact (module graph recovery)
-  async fn before_build_module_graph(
-    &mut self,
-    make_artifact: &mut BuildModuleGraphArtifact,
-    incremental: &Incremental,
-  ) {
+  async fn before_build_module_graph(&mut self, compilation: &mut Compilation) {
     if let Some(old_compilation) = self.old_compilation.as_mut() {
+      let incremental = &compilation.incremental;
       recover_artifact(
         incremental,
-        make_artifact,
+        &mut compilation.build_module_graph_artifact,
         &mut old_compilation.build_module_graph_artifact,
+      );
+      recover_artifact(
+        incremental,
+        &mut compilation.exports_info_artifact,
+        &mut old_compilation.exports_info_artifact,
       );
     }
   }
