@@ -1,7 +1,7 @@
 use std::fmt;
 
 use futures::future::BoxFuture;
-use rspack_core::{Compilation, CompilationAddEntry};
+use rspack_core::{Compilation, CompilationAddEntry, EntryOptions};
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 
@@ -44,11 +44,15 @@ pub type RuntimeChunkNameFn =
   Box<dyn for<'a> Fn(&'a str) -> BoxFuture<'a, Result<String>> + Sync + Send>;
 
 #[plugin_hook(CompilationAddEntry for RuntimeChunkPlugin)]
-async fn add_entry(&self, compilation: &mut Compilation, entry_name: Option<&str>) -> Result<()> {
+async fn add_entry(
+  &self,
+  _compilation: &Compilation,
+  entry_name: Option<&str>,
+  entry_options: &mut EntryOptions,
+) -> Result<()> {
   if let Some(entry_name) = entry_name
-    && let Some(data) = compilation.entries.get_mut(entry_name)
-    && data.options.runtime.is_none()
-    && data.options.depend_on.is_none()
+    && entry_options.runtime.is_none()
+    && entry_options.depend_on.is_none()
   {
     let name = match &self.name {
       RuntimeChunkName::Single => "runtime".to_string(),
@@ -58,7 +62,7 @@ async fn add_entry(&self, compilation: &mut Compilation, entry_name: Option<&str
       RuntimeChunkName::String(name) => name.clone(),
       RuntimeChunkName::Fn(f) => f(entry_name).await?,
     };
-    data.options.runtime = Some(name.into());
+    entry_options.runtime = Some(name.into());
   }
   Ok(())
 }

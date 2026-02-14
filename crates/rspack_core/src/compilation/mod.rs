@@ -87,7 +87,7 @@ use crate::{
   is_source_equal, to_identifier,
 };
 
-define_hook!(CompilationAddEntry: Series(compilation: &mut Compilation, entry_name: Option<&str>));
+define_hook!(CompilationAddEntry: Series(compilation: &Compilation, entry_name: Option<&str>, entry_options: &mut EntryOptions));
 define_hook!(CompilationBuildModule: Series(compiler_id: CompilerId, compilation_id: CompilationId, module: &mut BoxModule),tracing=false);
 define_hook!(CompilationRevokedModules: Series(compilation: &Compilation, revoked_modules: &IdentifierSet));
 define_hook!(CompilationStillValidModule: Series(compiler_id: CompilerId, compilation_id: CompilationId, module: &mut BoxModule));
@@ -95,7 +95,7 @@ define_hook!(CompilationSucceedModule: Series(compiler_id: CompilerId, compilati
 define_hook!(CompilationExecuteModule:
   Series(module: &ModuleIdentifier, runtime_modules: &IdentifierSet, code_generation_results: &BindingCell<CodeGenerationResults>, execute_module_id: &ExecuteModuleId));
 define_hook!(CompilationFinishModules: Series(compilation: &mut Compilation, async_modules_artifact: &mut AsyncModulesArtifact));
-define_hook!(CompilationSeal: Series(compilation: &mut Compilation));
+define_hook!(CompilationSeal: Series(compilation: &Compilation, diagnostics: &mut Vec<Diagnostic>));
 define_hook!(CompilationDependencyReferencedExports: Sync(
   compilation: &Compilation,
   dependency: &DependencyId,
@@ -617,20 +617,22 @@ impl Compilation {
       .build_module_graph_artifact
       .get_module_graph_mut()
       .add_dependency(entry);
+    let mut entry_options_for_hook = options;
+    let mut should_insert_entry = false;
+
     if let Some(name) = &entry_name {
       if let Some(data) = self.entries.get_mut(name) {
         data.dependencies.push(entry_id);
-        data.options.merge(options)?;
+        let mut merged_options = data.options.clone();
+        merged_options.merge(entry_options_for_hook)?;
+        entry_options_for_hook = merged_options;
       } else {
-        let data = EntryData {
-          dependencies: vec![entry_id],
-          include_dependencies: vec![],
-          options,
-        };
-        self.entries.insert(name.to_owned(), data);
+        should_insert_entry = true;
       }
     } else {
       self.global_entry.dependencies.push(entry_id);
+      self.global_entry.options.merge(entry_options_for_hook)?;
+      entry_options_for_hook = self.global_entry.options.clone();
     }
 
     self
@@ -638,8 +640,23 @@ impl Compilation {
       .clone()
       .compilation_hooks
       .add_entry
-      .call(self, entry_name.as_deref())
+      .call(self, entry_name.as_deref(), &mut entry_options_for_hook)
       .await?;
+
+    if let Some(name) = &entry_name {
+      if should_insert_entry {
+        let data = EntryData {
+          dependencies: vec![entry_id],
+          include_dependencies: vec![],
+          options: entry_options_for_hook,
+        };
+        self.entries.insert(name.to_owned(), data);
+      } else if let Some(data) = self.entries.get_mut(name) {
+        data.options = entry_options_for_hook;
+      }
+    } else {
+      self.global_entry.options = entry_options_for_hook;
+    }
 
     Ok(())
   }

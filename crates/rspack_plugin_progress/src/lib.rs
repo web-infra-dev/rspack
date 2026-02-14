@@ -446,7 +446,7 @@ async fn finish_modules(
 }
 
 #[plugin_hook(CompilationSeal for ProgressPlugin)]
-async fn seal(&self, _compilation: &mut Compilation) -> Result<()> {
+async fn seal(&self, _compilation: &Compilation, _diagnostics: &mut Vec<Diagnostic>) -> Result<()> {
   self.sealing_hooks_report("start sealing", 1).await
 }
 
