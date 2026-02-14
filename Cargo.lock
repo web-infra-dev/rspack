@@ -5686,16 +5686,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
 
 [[package]]
-name = "string-interner"
-version = "0.19.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "23de088478b31c349c9ba67816fa55d9355232d63c3afea8bf513e31f0f1d2c0"
-dependencies = [
- "hashbrown 0.15.2",
- "serde",
-]
-
-[[package]]
 name = "string_enum"
 version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6691,9 +6681,9 @@ dependencies = [
 name = "swc_experimental_ecma_ast"
 version = "0.5.0"
 dependencies = [
+ "hashbrown 0.16.1",
  "num-bigint",
  "oxc_index",
- "string-interner",
  "swc_core",
  "swc_experimental_ast_macros",
  "unicode-id-start",
@@ -6718,7 +6708,6 @@ dependencies = [
 name = "swc_experimental_ecma_semantic"
 version = "0.5.0"
 dependencies = [
- "bitflags 2.9.1",
  "oxc_index",
  "rustc-hash",
  "swc_core",
