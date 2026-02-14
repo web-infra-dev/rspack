@@ -27,11 +27,11 @@ use rspack_util::{
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 use swc_core::{
   atoms::Atom,
-  common::{FileName, Spanned, SyntaxContext},
+  common::{FileName, SyntaxContext},
   ecma::visit::swc_ecma_ast,
 };
 use swc_experimental_ecma_ast::{
-  Ast, ClassExpr, EsVersion, Ident, ObjectPatProp, Prop, Visit, VisitWith,
+  Ast, ClassExpr, EsVersion, GetSpan, Ident, ObjectPatProp, Prop, StringAllocator, Visit, VisitWith,
 };
 use swc_experimental_ecma_parser::{EsSyntax, Parser, StringSource, Syntax};
 use swc_experimental_ecma_semantic::resolver::{Semantic, resolver};
@@ -1040,7 +1040,7 @@ impl Module for ConcatenatedModule {
               let source = info.source.as_mut().expect("should have source");
 
               for identifier in refs {
-                let span = identifier.id.span();
+                let span = identifier.id.span;
                 let low = span.real_lo();
                 let high = span.real_hi();
                 if identifier.shorthand {
@@ -1322,7 +1322,7 @@ impl Module for ConcatenatedModule {
           );
 
           // We assume this should be concatenated module info because previous loop
-          let span = reference_ident.id.span();
+          let span = reference_ident.id.span;
           let low = span.real_lo();
           let high = span.real_hi();
           // let source = info.source.as_mut().expect("should have source");
@@ -2382,6 +2382,7 @@ impl ConcatenatedModule {
         })
         .unwrap_or(false);
 
+      let string_allocator = StringAllocator::default();
       let lexer = swc_experimental_ecma_parser::Lexer::new(
         Syntax::Es(EsSyntax {
           jsx,
@@ -2390,12 +2391,14 @@ impl ConcatenatedModule {
         EsVersion::EsNext,
         StringSource::new(fm.src.as_str()),
         Some(&comments),
+        string_allocator.clone(),
       );
-      let p = Parser::new_from(lexer);
+      let mut ast = Ast::new(fm.src.len(), string_allocator);
+      let mut p = Parser::new_from(&mut ast, lexer);
       let ret = p.parse_module();
 
-      let ret = match ret {
-        Ok(ret) => ret,
+      let module = match ret {
+        Ok(module) => module,
         Err(err) => {
           // return empty error as we already push error to compilation.diagnostics
           return Err(Error::from_string(
@@ -2408,10 +2411,10 @@ impl ConcatenatedModule {
         }
       };
       let mut all_used_names = HashSet::default();
-      let ast = &ret.ast;
+      let ast = &ast;
 
-      let semantic = resolver(ret.root, ast);
-      let ids = collect_ident(ast, ret.root);
+      let semantic = resolver(module, ast);
+      let ids = collect_ident(&ast, module);
 
       module_info.module_ctxt = semantic.top_level_scope_id().to_ctxt();
       module_info.global_ctxt = semantic.unresolved_scope_id().to_ctxt();

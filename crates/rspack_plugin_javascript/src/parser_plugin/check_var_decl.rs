@@ -1,10 +1,7 @@
 use std::sync::LazyLock;
 
 use rustc_hash::FxHashSet;
-use swc_core::{
-  common::Spanned,
-  ecma::ast::{Ident, ObjectPatProp, Pat},
-};
+use swc_experimental_ecma_ast::{GetSpan, Ident, ObjectPatProp, Pat, VarDeclarator};
 
 use super::JavascriptParserPlugin;
 use crate::visitors::{
@@ -36,15 +33,18 @@ fn is_reserved_word_in_strict(word: &str) -> bool {
 pub struct CheckVarDeclaratorIdent;
 
 impl CheckVarDeclaratorIdent {
-  fn check_ident(&self, parser: &mut JavascriptParser, ident: &Ident) {
-    if is_reserved_word_in_strict(ident.sym.as_str()) {
+  fn check_ident(&self, parser: &mut JavascriptParser, ident: Ident) {
+    if is_reserved_word_in_strict(parser.ast.get_utf8(ident.sym(&parser.ast))) {
       if parser.is_strict() {
         parser.add_error(
           create_traceable_error(
             "JavaScript parse error".into(),
-            format!("The keyword '{}' is reserved in strict mode", ident.sym),
+            format!(
+              "The keyword '{}' is reserved in strict mode",
+              parser.ast.get_utf8(ident.sym(&parser.ast))
+            ),
             parser.source.to_string(),
-            ident.span().into(),
+            ident.span(&parser.ast).into(),
           )
           .into(),
         );
@@ -52,9 +52,12 @@ impl CheckVarDeclaratorIdent {
         parser.add_error(
           create_traceable_error(
             "JavaScript parse error".into(),
-            format!("{} is disallowed as a lexically bound name", ident.sym),
+            format!(
+              "{} is disallowed as a lexically bound name",
+              parser.ast.get_utf8(ident.sym(&parser.ast))
+            ),
             parser.source.to_string(),
-            ident.span().into(),
+            ident.span(&parser.ast).into(),
           )
           .into(),
         );
@@ -62,36 +65,40 @@ impl CheckVarDeclaratorIdent {
     }
   }
 
-  fn check_var_decl_pat(&self, parser: &mut JavascriptParser, pat: &Pat) {
+  fn check_var_decl_pat(&self, parser: &mut JavascriptParser, pat: Pat) {
     match pat {
       Pat::Ident(ident) => {
-        self.check_ident(parser, ident);
+        self.check_ident(parser, ident.id(&parser.ast));
       }
       Pat::Array(bindings) => {
-        for binding in bindings.elems.iter().flatten() {
-          self.check_var_decl_pat(parser, binding);
+        for binding in bindings.elems(&parser.ast).iter() {
+          let binding = parser.ast.get_node_in_sub_range(binding);
+          if let Some(binding) = binding {
+            self.check_var_decl_pat(parser, binding);
+          }
         }
       }
       Pat::Object(obj) => {
-        for prop in &obj.props {
+        for prop in obj.props(&parser.ast).iter() {
+          let prop = parser.ast.get_node_in_sub_range(prop);
           match prop {
             ObjectPatProp::KeyValue(pair) => {
-              self.check_var_decl_pat(parser, &pair.value);
+              self.check_var_decl_pat(parser, pair.value(&parser.ast));
             }
             ObjectPatProp::Assign(assign) => {
-              self.check_ident(parser, &assign.key);
+              self.check_ident(parser, assign.key(&parser.ast).id(&parser.ast));
             }
             ObjectPatProp::Rest(rest) => {
-              self.check_var_decl_pat(parser, &rest.arg);
+              self.check_var_decl_pat(parser, rest.arg(&parser.ast));
             }
           }
         }
       }
       Pat::Assign(assign) => {
-        self.check_var_decl_pat(parser, &assign.left);
+        self.check_var_decl_pat(parser, assign.left(&parser.ast));
       }
       Pat::Rest(rest) => {
-        self.check_var_decl_pat(parser, &rest.arg);
+        self.check_var_decl_pat(parser, rest.arg(&parser.ast));
       }
       _ => unreachable!(),
     }
@@ -102,16 +109,17 @@ impl JavascriptParserPlugin for CheckVarDeclaratorIdent {
   fn declarator(
     &self,
     parser: &mut JavascriptParser,
-    _expr: &swc_core::ecma::ast::VarDeclarator,
-    stmt: VariableDeclaration<'_>,
+    _expr: VarDeclarator,
+    stmt: VariableDeclaration,
   ) -> Option<bool> {
-    let should_check = match stmt.kind() {
+    let should_check = match stmt.kind(&parser.ast) {
       VariableDeclarationKind::Var => parser.is_strict(),
       _ => true,
     };
     if should_check {
-      for ele in stmt.declarators() {
-        self.check_var_decl_pat(parser, &ele.name);
+      for ele in stmt.declarators(&parser.ast).iter() {
+        let ele = parser.ast.get_node_in_sub_range(ele);
+        self.check_var_decl_pat(parser, ele.name(&parser.ast));
       }
     }
     None

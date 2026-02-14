@@ -28,8 +28,9 @@ serde_json       = { workspace = true }
 sugar_path       = { workspace = true }
 unicase          = { workspace = true }
 
-swc_config = { workspace = true }
-swc_core   = { workspace = true, features = ["__common", "base", "ecma_ast"] }
+swc_config                = { workspace = true }
+swc_core                  = { workspace = true, features = ["__common", "base", "ecma_ast"] }
+swc_experimental_ecma_ast = { workspace = true }
 
 # wasm runtime
 anyhow            = { workspace = true, optional = true }

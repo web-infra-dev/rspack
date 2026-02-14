@@ -8,16 +8,17 @@ version.workspace = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-camino                   = { workspace = true }
-regex                    = { workspace = true }
-rspack_cacheable         = { workspace = true }
-rspack_core              = { workspace = true }
-rspack_error             = { workspace = true }
-rspack_hook              = { workspace = true }
-rspack_plugin_javascript = { workspace = true }
-rspack_util              = { workspace = true }
-swc_core                 = { workspace = true }
-tracing                  = { workspace = true }
+camino                    = { workspace = true }
+regex                     = { workspace = true }
+rspack_cacheable          = { workspace = true }
+rspack_core               = { workspace = true }
+rspack_error              = { workspace = true }
+rspack_hook               = { workspace = true }
+rspack_plugin_javascript  = { workspace = true }
+rspack_util               = { workspace = true }
+swc_core                  = { workspace = true }
+swc_experimental_ecma_ast = { workspace = true }
+tracing                   = { workspace = true }
 
 [package.metadata.cargo-shear]
 ignored = ["tracing"]

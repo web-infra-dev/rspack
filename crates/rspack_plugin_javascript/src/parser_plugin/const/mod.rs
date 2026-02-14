@@ -2,11 +2,14 @@ mod if_stmt;
 mod logic_expr;
 
 use rspack_core::{CachedConstDependency, ConstDependency};
-use swc_core::common::Spanned;
+use swc_experimental_ecma_ast::{BinExpr, CondExpr, GetSpan, Ident, IfStmt};
 
 pub use self::logic_expr::is_logic_op;
 use super::JavascriptParserPlugin;
-use crate::{utils::eval::evaluate_to_string, visitors::JavascriptParser};
+use crate::{
+  utils::eval::{BasicEvaluatedExpression, evaluate_to_string},
+  visitors::JavascriptParser,
+};
 
 pub struct ConstPlugin;
 
@@ -17,7 +20,7 @@ impl JavascriptParserPlugin for ConstPlugin {
   fn expression_logical_operator(
     &self,
     parser: &mut JavascriptParser,
-    expr: &swc_core::ecma::ast::BinExpr,
+    expr: BinExpr,
   ) -> Option<bool> {
     self::logic_expr::expression_logic_operator(parser, expr)
   }
@@ -25,9 +28,9 @@ impl JavascriptParserPlugin for ConstPlugin {
   fn expression_conditional_operation(
     &self,
     parser: &mut JavascriptParser,
-    expression: &swc_core::ecma::ast::CondExpr,
+    expression: CondExpr,
   ) -> Option<bool> {
-    let param = parser.evaluate_expression(&expression.test);
+    let param = parser.evaluate_expression(expression.test(&parser.ast));
     if let Some(bool) = param.as_bool() {
       if !param.could_have_side_effects() {
         parser.add_presentational_dependency(Box::new(ConstDependency::new(
@@ -35,16 +38,16 @@ impl JavascriptParserPlugin for ConstPlugin {
           format!(" {bool}").into(),
         )));
       } else {
-        parser.walk_expression(&expression.test);
+        parser.walk_expression(expression.test(&parser.ast));
       }
       if bool {
         parser.add_presentational_dependency(Box::new(ConstDependency::new(
-          expression.alt.span().into(),
+          expression.alt(&parser.ast).span(&parser.ast).into(),
           "0".into(),
         )));
       } else {
         parser.add_presentational_dependency(Box::new(ConstDependency::new(
-          expression.cons.span().into(),
+          expression.cons(&parser.ast).span(&parser.ast).into(),
           "0".into(),
         )));
       }
@@ -54,25 +57,21 @@ impl JavascriptParserPlugin for ConstPlugin {
     }
   }
 
-  fn statement_if(
-    &self,
-    parser: &mut JavascriptParser,
-    expr: &swc_core::ecma::ast::IfStmt,
-  ) -> Option<bool> {
+  fn statement_if(&self, parser: &mut JavascriptParser, expr: IfStmt) -> Option<bool> {
     self::if_stmt::statement_if(parser, expr)
   }
 
   fn identifier(
     &self,
     parser: &mut JavascriptParser,
-    ident: &swc_core::ecma::ast::Ident,
+    ident: Ident,
     for_name: &str,
   ) -> Option<bool> {
     match for_name {
       RESOURCE_FRAGMENT => {
         let resource_fragment = parser.resource_data.fragment().unwrap_or("");
         parser.add_presentational_dependency(Box::new(CachedConstDependency::new(
-          ident.span.into(),
+          ident.span(&parser.ast).into(),
           "__resourceFragment".into(),
           serde_json::to_string(resource_fragment)
             .expect("should render module id")
@@ -83,7 +82,7 @@ impl JavascriptParserPlugin for ConstPlugin {
       RESOURCE_QUERY => {
         let resource_query = parser.resource_data.query().unwrap_or("");
         parser.add_presentational_dependency(Box::new(CachedConstDependency::new(
-          ident.span.into(),
+          ident.span(&parser.ast).into(),
           "__resourceQuery".into(),
           serde_json::to_string(resource_query)
             .expect("should render module id")
@@ -101,7 +100,7 @@ impl JavascriptParserPlugin for ConstPlugin {
     for_name: &str,
     start: u32,
     end: u32,
-  ) -> Option<crate::utils::eval::BasicEvaluatedExpression<'static>> {
+  ) -> Option<BasicEvaluatedExpression> {
     match for_name {
       RESOURCE_QUERY => Some(evaluate_to_string(
         parser

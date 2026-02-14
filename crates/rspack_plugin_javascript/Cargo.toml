@@ -51,6 +51,11 @@ swc_core = { workspace = true, features = [
   "base_module",
   "ecma_quote",
 ] }
+swc_experimental_ecma_ast = { workspace = true }
+swc_experimental_ecma_parser = { workspace = true, features = ["unstable"] }
+swc_experimental_ecma_semantic = { workspace = true }
+swc_experimental_ecma_transforms_base = { workspace = true }
+swc_experimental_ecma_utils = { workspace = true }
 swc_node_comments = { workspace = true }
 tokio = { workspace = true, features = ["sync"] }
 tracing = { workspace = true }

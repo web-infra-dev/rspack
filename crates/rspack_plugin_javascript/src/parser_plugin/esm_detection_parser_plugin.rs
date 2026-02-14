@@ -2,9 +2,9 @@ use std::ops::Add;
 
 use rspack_core::{BuildMetaExportsType, ExportsArgument, ModuleArgument, ModuleType};
 use rspack_util::SpanExt;
-use swc_core::{
-  common::{BytePos, Span, Spanned},
-  ecma::ast::{Ident, ModuleItem, Program, UnaryExpr},
+use swc_core::common::BytePos;
+use swc_experimental_ecma_ast::{
+  AwaitExpr, CallExpr, ForOfStmt, GetSpan, Ident, ModuleItem, Program, Span, UnaryExpr,
 };
 
 use super::JavascriptParserPlugin;
@@ -49,10 +49,10 @@ fn is_non_esm_identifier(name: &str) -> bool {
 
 // Port from https://github.com/webpack/webpack/blob/main/lib/dependencies/HarmonyDetectionParserPlugin.js
 impl JavascriptParserPlugin for ESMDetectionParserPlugin {
-  fn program(&self, parser: &mut JavascriptParser, ast: &Program) -> Option<bool> {
+  fn program(&self, parser: &mut JavascriptParser, ast: Program) -> Option<bool> {
     let is_strict_esm = matches!(parser.module_type, ModuleType::JsEsm);
     let is_esm = is_strict_esm
-      || matches!(ast, Program::Module(module) if module.body.iter().any(|s| matches!(s, ModuleItem::ModuleDecl(_))));
+      || matches!(ast, Program::Module(module) if module.body(&parser.ast).iter().map(|i| parser.ast.get_node_in_sub_range(i)).any(|s| matches!(s, ModuleItem::ModuleDecl(_))));
 
     if is_esm {
       parser.add_presentational_dependency(Box::new(ESMCompatibilityDependency));
@@ -70,43 +70,39 @@ impl JavascriptParserPlugin for ESMDetectionParserPlugin {
     None
   }
 
-  fn top_level_await_expr(
-    &self,
-    parser: &mut JavascriptParser,
-    expr: &swc_core::ecma::ast::AwaitExpr,
-  ) {
-    let lo = expr.span_lo();
+  fn top_level_await_expr(&self, parser: &mut JavascriptParser, expr: AwaitExpr) {
+    let lo = expr.span_lo(&parser.ast);
     let hi = lo.add(BytePos(AWAIT_LEN));
     let span = Span::new(lo, hi);
     parser.handle_top_level_await(span);
   }
 
-  fn top_level_for_of_await_stmt(
-    &self,
-    parser: &mut JavascriptParser,
-    stmt: &swc_core::ecma::ast::ForOfStmt,
-  ) {
+  fn top_level_for_of_await_stmt(&self, parser: &mut JavascriptParser, stmt: ForOfStmt) {
     let offset = 4; // "for ".len();
-    let lo = stmt.span_lo().add(BytePos(offset));
+    let lo = stmt.span_lo(&parser.ast).add(BytePos(offset));
     let hi = lo.add(BytePos(AWAIT_LEN));
     let span = Span::new(lo, hi);
     parser.handle_top_level_await(span);
   }
 
-  fn evaluate_typeof<'a>(
+  fn evaluate_typeof(
     &self,
     parser: &mut JavascriptParser,
-    expr: &'a UnaryExpr,
+    expr: UnaryExpr,
     for_name: &str,
-  ) -> Option<BasicEvaluatedExpression<'a>> {
-    (parser.is_esm && is_non_esm_identifier(for_name))
-      .then(|| BasicEvaluatedExpression::with_range(expr.span().real_lo(), expr.span().real_hi()))
+  ) -> Option<BasicEvaluatedExpression> {
+    (parser.is_esm && is_non_esm_identifier(for_name)).then(|| {
+      BasicEvaluatedExpression::with_range(
+        expr.span(&parser.ast).real_lo(),
+        expr.span(&parser.ast).real_hi(),
+      )
+    })
   }
 
   fn r#typeof(
     &self,
     parser: &mut JavascriptParser,
-    _expr: &UnaryExpr,
+    _expr: UnaryExpr,
     for_name: &str,
   ) -> Option<bool> {
     (parser.is_esm && is_non_esm_identifier(for_name)).then_some(true)
@@ -115,18 +111,13 @@ impl JavascriptParserPlugin for ESMDetectionParserPlugin {
   fn identifier(
     &self,
     parser: &mut JavascriptParser,
-    _ident: &Ident,
+    _ident: Ident,
     for_name: &str,
   ) -> Option<bool> {
     (parser.is_esm && is_non_esm_identifier(for_name)).then_some(true)
   }
 
-  fn call(
-    &self,
-    parser: &mut JavascriptParser,
-    _expr: &swc_core::ecma::ast::CallExpr,
-    for_name: &str,
-  ) -> Option<bool> {
+  fn call(&self, parser: &mut JavascriptParser, _expr: CallExpr, for_name: &str) -> Option<bool> {
     (parser.is_esm && is_non_esm_identifier(for_name)).then_some(true)
   }
 }

@@ -2065,9 +2065,9 @@ checksum = "cb56e1aa765b4b4f3aadfab769793b7087bb03a4ea4920644a6d238e2df5b9ed"
 
 [[package]]
 name = "indexmap"
-version = "2.12.1"
+version = "2.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0ad4bb2b565bca0645f4d68c5c9af97fba094e9791da685bf83cb5f3ce74acf2"
+checksum = "7714e70437a7dc3ac8eb7e6f8df75fd8eb422675fc7678aff7364301092b1017"
 dependencies = [
  "equivalent",
  "hashbrown 0.16.1",
@@ -4584,6 +4584,11 @@ dependencies = [
  "slotmap",
  "sugar_path",
  "swc_core",
+ "swc_experimental_ecma_ast",
+ "swc_experimental_ecma_parser",
+ "swc_experimental_ecma_semantic",
+ "swc_experimental_ecma_transforms_base",
+ "swc_experimental_ecma_utils",
  "swc_node_comments",
  "tokio",
  "tracing",
@@ -4879,8 +4884,10 @@ dependencies = [
  "rspack_hook",
  "rspack_plugin_asset",
  "rspack_plugin_javascript",
+ "rspack_util",
  "serde_json",
  "swc_core",
+ "swc_experimental_ecma_ast",
  "tracing",
 ]
 
@@ -4897,6 +4904,7 @@ dependencies = [
  "rspack_plugin_javascript",
  "rspack_util",
  "swc_core",
+ "swc_experimental_ecma_ast",
  "tracing",
 ]
 
@@ -5104,6 +5112,7 @@ dependencies = [
  "rspack_cacheable",
  "rspack_error",
  "swc_core",
+ "swc_experimental_ecma_ast",
 ]
 
 [[package]]
@@ -5255,6 +5264,7 @@ dependencies = [
  "sugar_path",
  "swc_config",
  "swc_core",
+ "swc_experimental_ecma_ast",
  "swc_plugin_runner",
  "unicase",
  "wasi-common",
@@ -5680,16 +5690,6 @@ name = "static_assertions"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
-
-[[package]]
-name = "string-interner"
-version = "0.19.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "23de088478b31c349c9ba67816fa55d9355232d63c3afea8bf513e31f0f1d2c0"
-dependencies = [
- "hashbrown 0.15.2",
- "serde",
-]
 
 [[package]]
 name = "string_enum"
@@ -6677,8 +6677,7 @@ dependencies = [
 [[package]]
 name = "swc_experimental_ast_macros"
 version = "0.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b739e8a7ecebdcf1195a1130de3dd0f5cc27d9191a51d5624e99e6b1fa6eedbd"
+source = "git+https://github.com/CPunisher/swc-experimental.git?rev=321e447112c8c6cf540647df3a6fa31f8fc9be45#321e447112c8c6cf540647df3a6fa31f8fc9be45"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -6688,12 +6687,11 @@ dependencies = [
 [[package]]
 name = "swc_experimental_ecma_ast"
 version = "0.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c051666da10a794e4c9d4a7031f4e92b5d5877b23c2fb3c76e93352c3cca85ce"
+source = "git+https://github.com/CPunisher/swc-experimental.git?rev=321e447112c8c6cf540647df3a6fa31f8fc9be45#321e447112c8c6cf540647df3a6fa31f8fc9be45"
 dependencies = [
+ "hashbrown 0.16.1",
  "num-bigint",
  "oxc_index",
- "string-interner",
  "swc_core",
  "swc_experimental_ast_macros",
  "unicode-id-start",
@@ -6702,8 +6700,7 @@ dependencies = [
 [[package]]
 name = "swc_experimental_ecma_parser"
 version = "0.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "caa4c9d2e6cfc103072ce59dc1fd8813ed3de3fdf2a11cc308e0629827322468"
+source = "git+https://github.com/CPunisher/swc-experimental.git?rev=321e447112c8c6cf540647df3a6fa31f8fc9be45#321e447112c8c6cf540647df3a6fa31f8fc9be45"
 dependencies = [
  "bitflags 2.9.1",
  "either",
@@ -6719,10 +6716,8 @@ dependencies = [
 [[package]]
 name = "swc_experimental_ecma_semantic"
 version = "0.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8a7084cdfe2c86494d3e7adaba62be38db785d4d274850fcedd60e866a1837b7"
+source = "git+https://github.com/CPunisher/swc-experimental.git?rev=321e447112c8c6cf540647df3a6fa31f8fc9be45#321e447112c8c6cf540647df3a6fa31f8fc9be45"
 dependencies = [
- "bitflags 2.9.1",
  "oxc_index",
  "rustc-hash",
  "swc_core",
@@ -6731,10 +6726,29 @@ dependencies = [
 ]
 
 [[package]]
+name = "swc_experimental_ecma_transforms_base"
+version = "0.5.0"
+source = "git+https://github.com/CPunisher/swc-experimental.git?rev=321e447112c8c6cf540647df3a6fa31f8fc9be45#321e447112c8c6cf540647df3a6fa31f8fc9be45"
+dependencies = [
+ "indexmap",
+ "rustc-hash",
+ "swc_core",
+ "swc_experimental_ecma_ast",
+]
+
+[[package]]
+name = "swc_experimental_ecma_utils"
+version = "0.1.0"
+source = "git+https://github.com/CPunisher/swc-experimental.git?rev=321e447112c8c6cf540647df3a6fa31f8fc9be45#321e447112c8c6cf540647df3a6fa31f8fc9be45"
+dependencies = [
+ "swc_experimental_ecma_ast",
+ "swc_experimental_ecma_semantic",
+]
+
+[[package]]
 name = "swc_experimental_ecma_visit"
 version = "0.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "97cf548ff1ddcf74610285ca113a5a24d61b4eeda11296289dd92df53f3f1f48"
+source = "git+https://github.com/CPunisher/swc-experimental.git?rev=321e447112c8c6cf540647df3a6fa31f8fc9be45#321e447112c8c6cf540647df3a6fa31f8fc9be45"
 dependencies = [
  "swc_experimental_ecma_ast",
 ]
