@@ -1,10 +1,8 @@
-use swc_core::{
-  atoms::Atom,
-  ecma::ast::{Expr, MemberExpr, OptChainExpr},
-};
+use swc_core::atoms::Atom;
+use swc_experimental_ecma_ast::{Expr, MemberExpr, OptChainExpr};
 
 use super::{AllowedMemberTypes, ExportedVariableInfo, JavascriptParser, MemberExpressionInfo};
-use crate::visitors::{ExprRef, scope_info::VariableInfoId};
+use crate::visitors::scope_info::VariableInfoId;
 
 /// callHooksForName/callHooksForInfo in webpack
 /// webpack use HookMap and filter at callHooksForName/callHooksForInfo
@@ -91,10 +89,7 @@ impl CallHooksName for OptChainExpr {
     F: Fn(&mut JavascriptParser, &str) -> Option<T>,
   {
     let Some(MemberExpressionInfo::Expression(expr_name)) = parser
-      .get_member_expression_info_from_expr(
-        &Expr::OptChain(self.to_owned()),
-        AllowedMemberTypes::Expression,
-      )
+      .get_member_expression_info_from_expr(Expr::OptChain(*self), AllowedMemberTypes::Expression)
     else {
       return None;
     };
