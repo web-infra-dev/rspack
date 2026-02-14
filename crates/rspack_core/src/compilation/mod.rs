@@ -1021,23 +1021,40 @@ impl Compilation {
   pub async fn rebuild_module<T>(
     &mut self,
     module_identifiers: IdentifierSet,
+    exports_info_artifact: Option<&mut ExportsInfoArtifact>,
     f: impl Fn(Vec<&BoxModule>) -> T,
   ) -> Result<T> {
     let artifact = self.build_module_graph_artifact.steal();
-    let exports_info_artifact = self.exports_info_artifact.steal();
 
     // https://github.com/webpack/webpack/blob/19ca74127f7668aaf60d59f4af8fcaee7924541a/lib/Compilation.js#L2462C21-L2462C25
     self.module_graph_cache_artifact.unfreeze();
 
-    let (artifact, exports_info_artifact) = update_module_graph(
-      self,
-      artifact,
-      exports_info_artifact,
-      vec![UpdateParam::ForceBuildModules(module_identifiers.clone())],
-    )
-    .await?;
+    let (artifact, exports_info_artifact) =
+      if let Some(exports_info_artifact) = exports_info_artifact {
+        let (artifact, updated_exports_info_artifact) = update_module_graph(
+          self,
+          artifact,
+          std::mem::take(exports_info_artifact),
+          vec![UpdateParam::ForceBuildModules(module_identifiers.clone())],
+        )
+        .await?;
+        *exports_info_artifact = updated_exports_info_artifact;
+        (artifact, None)
+      } else {
+        let exports_info_artifact = self.exports_info_artifact.steal();
+        let (artifact, exports_info_artifact) = update_module_graph(
+          self,
+          artifact,
+          exports_info_artifact,
+          vec![UpdateParam::ForceBuildModules(module_identifiers.clone())],
+        )
+        .await?;
+        (artifact, Some(exports_info_artifact))
+      };
     self.build_module_graph_artifact = artifact.into();
-    self.exports_info_artifact = exports_info_artifact.into();
+    if let Some(exports_info_artifact) = exports_info_artifact {
+      self.exports_info_artifact = exports_info_artifact.into();
+    }
 
     let module_graph = self.get_module_graph();
     Ok(f(module_identifiers

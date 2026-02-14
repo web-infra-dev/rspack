@@ -72,6 +72,7 @@ use rspack_plugin_runtime::{
   RuntimePluginLinkPrefetch, RuntimePluginLinkPrefetchHook, RuntimePluginLinkPreload,
   RuntimePluginLinkPreloadHook,
 };
+use rspack_tasks::within_compiler_context;
 
 use crate::{
   asset::JsAssetEmittedArgs,
@@ -1260,10 +1261,18 @@ impl CompilationFinishModules for CompilationFinishModulesTap {
     &self,
     compilation: &Compilation,
     _async_modules_artifact: &mut AsyncModulesArtifact,
-    _exports_info_artifact: &mut rspack_core::ExportsInfoArtifact,
+    exports_info_artifact: &mut rspack_core::ExportsInfoArtifact,
   ) -> rspack_error::Result<()> {
-    let compilation = JsCompilationWrapper::new(compilation);
-    self.function.call_with_promise(compilation).await
+    let compiler_context = compilation.compiler_context.clone();
+    let previous_ptr = compiler_context.exports_info_artifact_ptr();
+    compiler_context.set_exports_info_artifact_ptr(Some(exports_info_artifact as *mut _ as usize));
+    let result = within_compiler_context(compiler_context.clone(), async {
+      let compilation = JsCompilationWrapper::new(compilation);
+      self.function.call_with_promise(compilation).await
+    })
+    .await;
+    compiler_context.set_exports_info_artifact_ptr(previous_ptr);
+    result
   }
 
   fn stage(&self) -> i32 {

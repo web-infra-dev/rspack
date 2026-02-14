@@ -2,7 +2,10 @@
 // which creates a implicit compiler context to support isolated parallel compiler state
 use std::{
   future::Future,
-  sync::{Arc, atomic::AtomicU32},
+  sync::{
+    Arc,
+    atomic::{AtomicU32, AtomicUsize},
+  },
 };
 
 use tokio::{
@@ -14,6 +17,7 @@ use tokio::{
 #[derive(Debug)]
 pub struct CompilerContext {
   dependenc_id_generator: AtomicU32,
+  exports_info_artifact_ptr: AtomicUsize,
 }
 
 task_local! {
@@ -25,6 +29,7 @@ impl CompilerContext {
   pub fn new() -> Self {
     Self {
       dependenc_id_generator: AtomicU32::new(0),
+      exports_info_artifact_ptr: AtomicUsize::new(0),
     }
   }
   pub fn fetch_new_dependency_id(&self) -> u32 {
@@ -42,6 +47,19 @@ impl CompilerContext {
       .dependenc_id_generator
       .store(id, std::sync::atomic::Ordering::SeqCst);
   }
+
+  pub fn exports_info_artifact_ptr(&self) -> Option<usize> {
+    let ptr = self
+      .exports_info_artifact_ptr
+      .load(std::sync::atomic::Ordering::SeqCst);
+    (ptr != 0).then_some(ptr)
+  }
+
+  pub fn set_exports_info_artifact_ptr(&self, ptr: Option<usize>) {
+    self
+      .exports_info_artifact_ptr
+      .store(ptr.unwrap_or_default(), std::sync::atomic::Ordering::SeqCst);
+  }
 }
 
 pub fn fetch_new_dependency_id() -> u32 {
@@ -52,6 +70,14 @@ pub fn get_current_dependency_id() -> u32 {
 }
 pub fn set_current_dependency_id(id: u32) {
   CURRENT_COMPILER_CONTEXT.get().set_dependency_id(id);
+}
+
+pub fn with_current_exports_info_artifact<T>(f: impl FnOnce(Option<usize>) -> T) -> T {
+  let ptr = CURRENT_COMPILER_CONTEXT
+    .try_with(|ctx| ctx.exports_info_artifact_ptr())
+    .ok()
+    .flatten();
+  f(ptr)
 }
 
 pub fn within_compiler_context<F>(

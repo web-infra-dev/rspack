@@ -14,13 +14,15 @@ use entries::JsEntries;
 use napi_derive::napi;
 use rspack_collections::{DatabaseItem, IdentifierSet};
 use rspack_core::{
-  BindingCell, BoxDependency, Compilation, CompilationId, EntryOptions, FactorizeInfo,
-  ModuleIdentifier, Reflector, rspack_sources::BoxSource,
+  BindingCell, BoxDependency, Compilation, CompilationId, EntryOptions, ExportsInfoArtifact,
+  FactorizeInfo, ModuleIdentifier, Reflector, rspack_sources::BoxSource,
 };
 use rspack_error::{Diagnostic, Severity, ToStringResultToRspackResultExt};
 use rspack_napi::napi::bindgen_prelude::*;
 use rspack_plugin_runtime::RuntimeModuleFromJs;
-use rspack_tasks::{within_compiler_context, within_compiler_context_sync};
+use rspack_tasks::{
+  with_current_exports_info_artifact, within_compiler_context, within_compiler_context_sync,
+};
 use rustc_hash::FxHashMap;
 
 use crate::{
@@ -613,6 +615,9 @@ impl JsCompilation {
               .into_iter()
               .map(ModuleIdentifier::from)
               .collect::<IdentifierSet>(),
+            with_current_exports_info_artifact(|ptr| {
+              ptr.map(|ptr| unsafe { &mut *(ptr as *mut ExportsInfoArtifact) })
+            }),
             |modules| {
               modules
                 .into_iter()
