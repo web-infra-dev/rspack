@@ -72,14 +72,6 @@ pub fn set_current_dependency_id(id: u32) {
   CURRENT_COMPILER_CONTEXT.get().set_dependency_id(id);
 }
 
-pub fn with_current_exports_info_artifact<T>(f: impl FnOnce(Option<usize>) -> T) -> T {
-  let ptr = CURRENT_COMPILER_CONTEXT
-    .try_with(|ctx| ctx.exports_info_artifact_ptr())
-    .ok()
-    .flatten();
-  f(ptr)
-}
-
 pub fn within_compiler_context<F>(
   compiler_context: Arc<CompilerContext>,
   f: F,
