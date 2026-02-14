@@ -76,7 +76,10 @@ use rspack_plugin_runtime::{
 use crate::{
   asset::JsAssetEmittedArgs,
   chunk::{ChunkWrapper, JsChunkAssetArgs},
-  compilation::JsCompilationWrapper,
+  compilation::{
+    JsCompilationWrapper, clear_finish_modules_exports_info_artifact,
+    set_finish_modules_exports_info_artifact,
+  },
   context_module_factory::{
     JsContextModuleFactoryAfterResolveDataWrapper, JsContextModuleFactoryAfterResolveResult,
     JsContextModuleFactoryBeforeResolveDataWrapper, JsContextModuleFactoryBeforeResolveResult,
@@ -1260,10 +1263,17 @@ impl CompilationFinishModules for CompilationFinishModulesTap {
     &self,
     compilation: &Compilation,
     _async_modules_artifact: &mut AsyncModulesArtifact,
-    _exports_info_artifact: &mut rspack_core::ExportsInfoArtifact,
+    exports_info_artifact: &mut rspack_core::ExportsInfoArtifact,
   ) -> rspack_error::Result<()> {
-    let compilation = JsCompilationWrapper::new(compilation);
-    self.function.call_with_promise(compilation).await
+    #[allow(clippy::unwrap_used)]
+    let exports_info_artifact = NonNull::new(exports_info_artifact as *mut _).unwrap();
+    let compilation_id = compilation.id();
+    set_finish_modules_exports_info_artifact(compilation_id, exports_info_artifact);
+    let compilation =
+      JsCompilationWrapper::new_with_exports_info_artifact(compilation, exports_info_artifact);
+    let result = self.function.call_with_promise(compilation).await;
+    clear_finish_modules_exports_info_artifact(compilation_id);
+    result
   }
 
   fn stage(&self) -> i32 {
