@@ -441,7 +441,6 @@ async fn finish_modules(
   &self,
   _compilation: &Compilation,
   _async_modules_artifact: &mut AsyncModulesArtifact,
-  _build_module_graph_artifact: &mut BuildModuleGraphArtifact,
   _exports_info_artifact: &mut ExportsInfoArtifact,
 ) -> Result<()> {
   self.sealing_hooks_report("finish modules", 0).await

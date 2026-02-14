@@ -105,10 +105,9 @@ async fn finish_modules(
   &self,
   compilation: &Compilation,
   _async_modules_artifact: &mut AsyncModulesArtifact,
-  build_module_graph_artifact: &mut BuildModuleGraphArtifact,
   exports_info_artifact: &mut ExportsInfoArtifact,
 ) -> Result<()> {
-  let module_graph = build_module_graph_artifact.get_module_graph();
+  let module_graph = compilation.get_module_graph();
   let mut modules_map = IdentifierIndexMap::default();
   let modules = module_graph.modules();
   let mut modules = modules.iter().collect::<Vec<_>>();
@@ -208,7 +207,7 @@ async fn finish_modules(
     .map(|(id, _)| *id)
     .collect::<Vec<_>>();
 
-  let module_graph = build_module_graph_artifact.get_module_graph();
+  let module_graph = compilation.get_module_graph();
   while let Some(m) = stack.pop() {
     if !visited.insert(m) {
       continue;

@@ -1260,7 +1260,6 @@ impl CompilationFinishModules for CompilationFinishModulesTap {
     &self,
     compilation: &Compilation,
     _async_modules_artifact: &mut AsyncModulesArtifact,
-    _build_module_graph_artifact: &mut BuildModuleGraphArtifact,
     _exports_info_artifact: &mut rspack_core::ExportsInfoArtifact,
   ) -> rspack_error::Result<()> {
     let compilation = JsCompilationWrapper::new(compilation);

@@ -10,9 +10,7 @@ use rspack_core::{
   CompilerCompilation, EntryData, ExportProvided, ExportsInfoArtifact, Filename, LibraryExport,
   LibraryName, LibraryNonUmdObject, LibraryOptions, ModuleIdentifier, PathData, Plugin,
   PrefetchExportsInfoMode, RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule, RuntimeVariable,
-  SourceType, UsageState,
-  build_module_graph::BuildModuleGraphArtifact,
-  get_entry_runtime, property_access,
+  SourceType, UsageState, get_entry_runtime, property_access,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
   to_identifier,
 };
@@ -447,10 +445,9 @@ async fn finish_modules(
   &self,
   compilation: &Compilation,
   _async_modules_artifact: &mut AsyncModulesArtifact,
-  build_module_graph_artifact: &mut BuildModuleGraphArtifact,
   exports_info_artifact: &mut ExportsInfoArtifact,
 ) -> Result<()> {
-  let module_graph = build_module_graph_artifact.get_module_graph();
+  let module_graph = compilation.get_module_graph();
   let mut runtime_info = Vec::with_capacity(compilation.entries.len());
   for (entry_name, entry) in compilation.entries.iter() {
     let EntryData {
