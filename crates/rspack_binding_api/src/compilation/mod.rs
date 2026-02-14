@@ -14,8 +14,8 @@ use entries::JsEntries;
 use napi_derive::napi;
 use rspack_collections::{DatabaseItem, IdentifierSet};
 use rspack_core::{
-  BindingCell, BoxDependency, Compilation, CompilationId, EntryOptions, ExportsInfoArtifact,
-  FactorizeInfo, ModuleIdentifier, Reflector, rspack_sources::BoxSource,
+  BindingCell, BoxDependency, Compilation, CompilationId, EntryOptions, FactorizeInfo,
+  ModuleIdentifier, Reflector, rspack_sources::BoxSource,
 };
 use rspack_error::{Diagnostic, Severity, ToStringResultToRspackResultExt};
 use rspack_napi::napi::bindgen_prelude::*;
@@ -46,21 +46,12 @@ pub struct JsCompilation {
   #[allow(dead_code)]
   pub(crate) id: CompilationId,
   pub(crate) inner: NonNull<Compilation>,
-  pub(crate) finish_modules_exports_info_artifact: Option<NonNull<ExportsInfoArtifact>>,
 }
 
 impl JsCompilation {
-  pub(crate) fn new(
-    id: CompilationId,
-    inner: NonNull<Compilation>,
-    finish_modules_exports_info_artifact: Option<NonNull<ExportsInfoArtifact>>,
-  ) -> Self {
+  pub(crate) fn new(id: CompilationId, inner: NonNull<Compilation>) -> Self {
     #[allow(clippy::unwrap_used)]
-    Self {
-      id,
-      inner,
-      finish_modules_exports_info_artifact,
-    }
+    Self { id, inner }
   }
 
   pub(crate) fn as_ref(&self) -> napi::Result<&'static Compilation> {
@@ -611,22 +602,17 @@ impl JsCompilation {
       .as_mut()
       .map_err(|err| napi::Error::new(err.status.into(), err.reason.clone()))?;
     let compiler_context = compilation.compiler_context.clone();
-    let finish_modules_exports_info_artifact = self
-      .finish_modules_exports_info_artifact
-      .map(|ptr| ptr.as_ptr() as usize);
     callbackify(
       f,
-      within_compiler_context(compiler_context, async move {
+      within_compiler_context(compiler_context, async {
         let compiler_id = compilation.compiler_id();
 
         let modules = compilation
-          .rebuild_module_with_exports_info_artifact(
+          .rebuild_module(
             module_identifiers
               .into_iter()
               .map(ModuleIdentifier::from)
               .collect::<IdentifierSet>(),
-            finish_modules_exports_info_artifact
-              .map(|ptr| unsafe { &mut *(ptr as *mut ExportsInfoArtifact) }),
             |modules| {
               modules
                 .into_iter()
@@ -1019,7 +1005,6 @@ thread_local! {
 pub struct JsCompilationWrapper {
   id: CompilationId,
   inner: NonNull<Compilation>,
-  finish_modules_exports_info_artifact: Option<NonNull<ExportsInfoArtifact>>,
 }
 
 unsafe impl Send for JsCompilationWrapper {}
@@ -1030,19 +1015,6 @@ impl JsCompilationWrapper {
     Self {
       id: compilation.id(),
       inner: NonNull::new(compilation as *const Compilation as *mut Compilation).unwrap(),
-      finish_modules_exports_info_artifact: None,
-    }
-  }
-
-  pub fn new_with_exports_info_artifact(
-    compilation: &Compilation,
-    exports_info_artifact: NonNull<ExportsInfoArtifact>,
-  ) -> Self {
-    #[allow(clippy::unwrap_used)]
-    Self {
-      id: compilation.id(),
-      inner: NonNull::new(compilation as *const Compilation as *mut Compilation).unwrap(),
-      finish_modules_exports_info_artifact: Some(exports_info_artifact),
     }
   }
 
@@ -1054,33 +1026,6 @@ impl JsCompilationWrapper {
   }
 }
 
-pub(crate) fn clear_finish_modules_exports_info_artifact(compilation_id: CompilationId) {
-  COMPILATION_INSTANCE_REFS.with(|ref_cell| {
-    let mut refs = ref_cell.borrow_mut();
-    if let Some(reference) = refs
-      .get_mut(&compilation_id)
-      .and_then(WeakReference::get_mut)
-    {
-      reference.finish_modules_exports_info_artifact = None;
-    }
-  });
-}
-
-pub(crate) fn set_finish_modules_exports_info_artifact(
-  compilation_id: CompilationId,
-  exports_info_artifact: NonNull<ExportsInfoArtifact>,
-) {
-  COMPILATION_INSTANCE_REFS.with(|ref_cell| {
-    let mut refs = ref_cell.borrow_mut();
-    if let Some(reference) = refs
-      .get_mut(&compilation_id)
-      .and_then(WeakReference::get_mut)
-    {
-      reference.finish_modules_exports_info_artifact = Some(exports_info_artifact);
-    }
-  });
-}
-
 impl ToNapiValue for JsCompilationWrapper {
   unsafe fn to_napi_value(env: sys::napi_env, val: Self) -> Result<sys::napi_value> {
     unsafe {
@@ -1088,18 +1033,12 @@ impl ToNapiValue for JsCompilationWrapper {
         let mut refs = ref_cell.borrow_mut();
 
         match refs.entry(val.id) {
-          std::collections::hash_map::Entry::Occupied(mut entry) => {
-            if let Some(exports_info_artifact) = val.finish_modules_exports_info_artifact
-              && let Some(reference) = entry.get_mut().get_mut()
-            {
-              reference.finish_modules_exports_info_artifact = Some(exports_info_artifact);
-            }
+          std::collections::hash_map::Entry::Occupied(entry) => {
             let r = entry.get();
             ToNapiValue::to_napi_value(env, r.clone())
           }
           std::collections::hash_map::Entry::Vacant(entry) => {
-            let js_compilation =
-              JsCompilation::new(val.id, val.inner, val.finish_modules_exports_info_artifact);
+            let js_compilation = JsCompilation::new(val.id, val.inner);
             let napi_value = ToNapiValue::to_napi_value(env, js_compilation)?;
             let reference: Reference<JsCompilation> = Reference::from_napi_value(env, napi_value)?;
             let weak_reference = entry.insert(reference.downgrade());
