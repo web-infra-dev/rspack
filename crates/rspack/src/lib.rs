@@ -15,7 +15,7 @@
 //! rspack_core = "0.3"
 //! ```
 //!
-//! ```ignore
+//! ```
 //! use std::path::PathBuf;
 //!
 //! use rspack::builder::{Builder, CompilerBuilder};

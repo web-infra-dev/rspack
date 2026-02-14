@@ -243,7 +243,7 @@ impl CompilerBuilder {
   ///
   /// # Examples
   ///
-  /// ```ignore
+  /// ```rust
   /// use rspack::builder::{Builder as _, ModuleOptionsBuilder};
   /// use rspack_core::{Compiler, ModuleOptions};
   ///
@@ -274,7 +274,7 @@ impl CompilerBuilder {
   ///
   /// # Examples
   ///
-  /// ```ignore
+  /// ```rust
   /// use rspack::builder::{Builder as _, OutputOptionsBuilder};
   /// use rspack_core::{Compiler, OutputOptions};
   ///
@@ -305,7 +305,7 @@ impl CompilerBuilder {
   ///
   /// # Examples
   ///
-  /// ```ignore
+  /// ```rust
   /// use rspack::builder::{Builder as _, OptimizationOptionsBuilder};
   /// use rspack_core::{Compiler, Optimization};
   ///
@@ -334,7 +334,7 @@ impl CompilerBuilder {
   ///
   /// # Examples
   ///
-  /// ```ignore
+  /// ```rust
   /// use rspack::builder::{Builder as _, NodeOptionBuilder};
   /// use rspack_core::{Compiler, NodeGlobalOption, NodeOption};
   ///
@@ -376,7 +376,7 @@ impl CompilerBuilder {
   ///
   /// # Examples
   ///
-  /// ```ignore
+  /// ```rust
   /// use rspack::builder::{Builder as _, ExperimentsBuilder};
   /// use rspack_core::{Compiler, Experiments};
   ///
@@ -728,7 +728,7 @@ impl CompilerOptionsBuilder {
   ///
   /// # Examples
   ///
-  /// ```ignore
+  /// ```rust
   /// use rspack::builder::{Builder as _, ModuleOptionsBuilder};
   /// use rspack_core::{Compiler, ModuleOptions};
   ///
@@ -763,7 +763,7 @@ impl CompilerOptionsBuilder {
   ///
   /// # Examples
   ///
-  /// ```ignore
+  /// ```rust
   /// use rspack::builder::{Builder as _, OutputOptionsBuilder};
   /// use rspack_core::{Compiler, OutputOptions};
   ///
@@ -792,7 +792,7 @@ impl CompilerOptionsBuilder {
   ///
   /// # Examples
   ///
-  /// ```ignore
+  /// ```rust
   /// use rspack::builder::{Builder as _, OptimizationOptionsBuilder};
   /// use rspack_core::{Compiler, Optimization};
   ///
@@ -820,7 +820,7 @@ impl CompilerOptionsBuilder {
   ///
   /// # Examples
   ///
-  /// ```ignore
+  /// ```rust
   /// use rspack::builder::{Builder as _, NodeOptionBuilder};
   /// use rspack_core::{Compiler, NodeGlobalOption, NodeOption};
   ///
@@ -850,7 +850,7 @@ impl CompilerOptionsBuilder {
   ///
   /// # Examples
   ///
-  /// ```ignore
+  /// ```rust
   /// use rspack::builder::{Builder as _, ExperimentsBuilder};
   /// use rspack_core::{Compiler, Experiments};
   ///
