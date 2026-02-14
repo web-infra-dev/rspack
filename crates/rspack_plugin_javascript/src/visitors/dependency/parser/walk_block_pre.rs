@@ -1,6 +1,5 @@
-use swc_core::{
-  common::Spanned,
-  ecma::ast::{DefaultDecl, ExportSpecifier, ExprStmt, ModuleDecl, ModuleItem, Stmt},
+use swc_experimental_ecma_ast::{
+  DefaultDecl, ExportSpecifier, ExprStmt, ModuleDecl, ModuleItem, Spanned, Stmt,
 };
 
 use super::{
@@ -13,23 +12,23 @@ use super::{
 use crate::{
   JS_DEFAULT_KEYWORD,
   parser_plugin::JavascriptParserPlugin,
-  visitors::{VariableDeclaration, VariableDeclarationKind},
+  visitors::{MaybeNamedFunctionDecl, VariableDeclaration, VariableDeclarationKind},
 };
 
 impl JavascriptParser<'_> {
-  pub fn block_pre_walk_module_items(&mut self, statements: &Vec<ModuleItem>) {
+  pub fn block_pre_walk_module_items(&mut self, statements: TypedSubRange<ModuleItem>) {
     for statement in statements {
       self.block_pre_walk_module_item(statement);
     }
   }
 
-  pub fn block_pre_walk_statements(&mut self, statements: &Vec<Stmt>) {
+  pub fn block_pre_walk_statements(&mut self, statements: TypedSubRange<Stmt>) {
     for statement in statements {
-      self.block_pre_walk_statement(statement.into());
+      self.block_pre_walk_statement(Statement::from_stmt(statement, &self.ast));
     }
   }
 
-  pub fn block_pre_walk_module_item(&mut self, statement: &ModuleItem) {
+  pub fn block_pre_walk_module_item(&mut self, statement: ModuleItem) {
     match statement {
       ModuleItem::ModuleDecl(decl) => {
         self.enter_statement(
@@ -46,8 +45,14 @@ impl JavascriptParser<'_> {
               ModuleDecl::Import(_) => {}
               ModuleDecl::ExportAll(_) => {}
               ModuleDecl::ExportNamed(decl) => {
-                let is_named_namespace_export = decl.specifiers.len() == 1
-                  && matches!(decl.specifiers.first(), Some(ExportSpecifier::Namespace(_)));
+                let is_named_namespace_export = decl.specifiers(&parser.ast).len() == 1
+                  && matches!(
+                    decl
+                      .specifiers(&parser.ast)
+                      .first()
+                      .map(|n| parser.ast.get_node_in_sub_range(n)),
+                    Some(ExportSpecifier::Namespace(_))
+                  );
                 if !is_named_namespace_export {
                   parser.block_pre_walk_export_named_declaration(
                     ExportNamedDeclaration::Specifiers(decl),
@@ -61,20 +66,19 @@ impl JavascriptParser<'_> {
                 .block_pre_walk_export_default_declaration(ExportDefaultDeclaration::Decl(decl)),
               ModuleDecl::ExportDefaultExpr(expr) => parser
                 .block_pre_walk_export_default_declaration(ExportDefaultDeclaration::Expr(expr)),
-              ModuleDecl::TsImportEquals(_)
-              | ModuleDecl::TsExportAssignment(_)
-              | ModuleDecl::TsNamespaceExport(_) => unreachable!(),
             };
           },
         );
       }
-      ModuleItem::Stmt(stmt) => self.block_pre_walk_statement(stmt.into()),
+      ModuleItem::Stmt(stmt) => {
+        self.block_pre_walk_statement(Statement::from_stmt(stmt, &self.ast))
+      }
     }
   }
 
   pub fn block_pre_walk_statement(&mut self, stmt: Statement) {
     self.enter_statement(
-      &stmt,
+      stmt,
       |parser, _| {
         parser
           .plugin_drive
@@ -91,26 +95,26 @@ impl JavascriptParser<'_> {
     );
   }
 
-  fn block_pre_walk_expression_statement(&mut self, stmt: &ExprStmt) {
-    if let Some(assign) = stmt.expr.as_assign() {
+  fn block_pre_walk_expression_statement(&mut self, stmt: ExprStmt) {
+    if let Some(assign) = stmt.expr(&self.ast).as_assign() {
       self.pre_walk_assignment_expression(assign)
     }
   }
 
-  pub(super) fn block_pre_walk_variable_declaration(&mut self, decl: VariableDeclaration<'_>) {
-    if decl.kind() != VariableDeclarationKind::Var {
+  pub(super) fn block_pre_walk_variable_declaration(&mut self, decl: VariableDeclaration) {
+    if decl.kind(&self.ast) != VariableDeclarationKind::Var {
       self._pre_walk_variable_declaration(decl);
     }
   }
 
   fn block_pre_walk_class_declaration(&mut self, decl: MaybeNamedClassDecl) {
     if let Some(ident) = decl.ident() {
-      self.define_variable(ident.sym.clone())
+      self.define_variable(self.ast.get_atom(ident.sym(&self.ast)))
     }
   }
 
   fn block_pre_walk_export_named_declaration(&mut self, export: ExportNamedDeclaration) {
-    if export.source().is_some() {
+    if export.source(&self.ast).is_some() {
       return;
     }
     self
@@ -120,33 +124,35 @@ impl JavascriptParser<'_> {
     match export {
       ExportNamedDeclaration::Decl(decl) => {
         let prev = self.prev_statement;
-        self.pre_walk_statement((&decl.decl).into());
+        self.pre_walk_statement(Statement::from_decl(decl.decl(&self.ast).into(), &self.ast));
         self.prev_statement = prev;
-        self.block_pre_walk_statement((&decl.decl).into());
-        self.enter_declaration(&decl.decl, |parser, def| {
+        self.block_pre_walk_statement(Statement::from_decl(decl.decl(&self.ast), &self.ast));
+        self.enter_declaration(decl.decl(&self.ast), |parser, def| {
           parser.plugin_drive.clone().export_specifier(
             parser,
             ExportLocal::Named(export),
-            &def.sym,
-            &def.sym,
-            def.span,
+            &parser.ast.get_atom(def.sym(&parser.ast)),
+            &parser.ast.get_atom(def.sym(&parser.ast)),
+            def.span(&parser.ast),
           );
         });
       }
       ExportNamedDeclaration::Specifiers(named) => {
-        for (local_id, exported_name, exported_name_span) in
-          ExportNamedDeclaration::named_export_specifiers(named)
-        {
-          if named.src.is_none() {
-            self.plugin_drive.clone().export_specifier(
-              self,
-              ExportLocal::Named(export),
-              &local_id,
-              &exported_name,
-              exported_name_span,
-            );
-          }
-        }
+        ExportNamedDeclaration::named_export_specifiers(
+          self,
+          named,
+          |this, local_id, exported_name, exported_name_span| {
+            if named.src(&this.ast).is_none() {
+              this.plugin_drive.clone().export_specifier(
+                this,
+                ExportLocal::Named(export),
+                &local_id,
+                &exported_name,
+                exported_name_span,
+              );
+            }
+          },
+        );
       }
     }
   }
@@ -158,20 +164,20 @@ impl JavascriptParser<'_> {
       .export(self, ExportLocal::Default(export));
     match export {
       ExportDefaultDeclaration::Decl(decl) => {
-        match &decl.decl {
+        match decl.decl(&self.ast) {
           DefaultDecl::Class(c) => {
-            let stmt = Statement::Class(c.into());
+            let stmt = Statement::Class(MaybeNamedClassDecl::from_class_expr(c, &self.ast));
             let prev = self.prev_statement;
             self.pre_walk_statement(stmt);
             self.prev_statement = prev;
             self.block_pre_walk_statement(stmt);
-            if let Some(ident) = &c.ident {
+            if let Some(ident) = c.ident(&self.ast) {
               self.plugin_drive.clone().export_specifier(
                 self,
                 ExportLocal::Default(export),
-                &ident.sym,
+                &self.ast.get_atom(ident.sym(&self.ast)),
                 &JS_DEFAULT_KEYWORD,
-                ident.span(),
+                ident.span(&self.ast),
               );
             } else {
               self.plugin_drive.clone().export_expression(
@@ -182,18 +188,18 @@ impl JavascriptParser<'_> {
             }
           }
           DefaultDecl::Fn(f) => {
-            let stmt = Statement::Fn(f.into());
+            let stmt = Statement::Fn(MaybeNamedFunctionDecl::from_fn_expr(f, &self.ast));
             let prev = self.prev_statement;
             self.pre_walk_statement(stmt);
             self.prev_statement = prev;
             self.block_pre_walk_statement(stmt);
-            if let Some(ident) = &f.ident {
+            if let Some(ident) = f.ident(&self.ast) {
               self.plugin_drive.clone().export_specifier(
                 self,
                 ExportLocal::Default(export),
-                &ident.sym,
+                &self.ast.get_atom(ident.sym(&self.ast)),
                 &JS_DEFAULT_KEYWORD,
-                ident.span(),
+                ident.span(&self.ast),
               );
             } else {
               self.plugin_drive.clone().export_expression(
@@ -203,7 +209,6 @@ impl JavascriptParser<'_> {
               );
             }
           }
-          DefaultDecl::TsInterfaceDecl(_) => unreachable!(),
         };
       }
       ExportDefaultDeclaration::Expr(expr) => {
@@ -212,7 +217,7 @@ impl JavascriptParser<'_> {
         self.plugin_drive.clone().export_expression(
           self,
           export,
-          ExportDefaultExpression::Expr(&expr.expr),
+          ExportDefaultExpression::Expr(expr.expr(&self.ast)),
         );
       }
     }

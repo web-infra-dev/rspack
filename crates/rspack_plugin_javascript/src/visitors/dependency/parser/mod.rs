@@ -1147,7 +1147,7 @@ impl<'parser> JavascriptParser<'parser> {
     ret
   }
 
-  fn enter_declaration<F>(&mut self, decl: &Decl, on_ident: F)
+  fn enter_declaration<F>(&mut self, decl: Decl, on_ident: F)
   where
     F: FnOnce(&mut Self, Ident) + Copy,
   {
