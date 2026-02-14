@@ -1,9 +1,6 @@
 use rspack_core::ConstDependency;
 use rspack_util::SpanExt;
-use swc_core::{
-  common::Spanned,
-  ecma::ast::{BinExpr, BinaryOp},
-};
+use swc_experimental_ecma_ast::{BinExpr, BinaryOp, Spanned};
 
 use crate::visitors::JavascriptParser;
 
@@ -14,15 +11,15 @@ pub fn is_logic_op(op: BinaryOp) -> bool {
   )
 }
 
-pub fn expression_logic_operator(scanner: &mut JavascriptParser, expr: &BinExpr) -> Option<bool> {
-  if expr.op == BinaryOp::LogicalAnd || expr.op == BinaryOp::LogicalOr {
-    let param = scanner.evaluate_expression(&expr.left);
+pub fn expression_logic_operator(scanner: &mut JavascriptParser, expr: BinExpr) -> Option<bool> {
+  if expr.op(&scanner.ast) == BinaryOp::LogicalAnd || expr.op(&scanner.ast) == BinaryOp::LogicalOr {
+    let param = scanner.evaluate_expression(expr.left(&scanner.ast));
     let boolean = param.as_bool();
     let boolean = boolean?;
     let keep_right = if boolean {
-      expr.op == BinaryOp::LogicalAnd
+      expr.op(&scanner.ast) == BinaryOp::LogicalAnd
     } else {
-      expr.op == BinaryOp::LogicalOr
+      expr.op(&scanner.ast) == BinaryOp::LogicalOr
     };
     if !param.could_have_side_effects() && (keep_right || param.is_bool()) {
       scanner.add_presentational_dependency(Box::new(ConstDependency::new(
@@ -30,18 +27,22 @@ pub fn expression_logic_operator(scanner: &mut JavascriptParser, expr: &BinExpr)
         format!(" {boolean}").into(),
       )));
     } else {
-      scanner.walk_expression(&expr.left);
+      scanner.walk_expression(expr.left(&scanner.ast));
     }
 
     if !keep_right {
       scanner.add_presentational_dependency(Box::new(ConstDependency::new(
-        (expr.right.span().real_lo(), expr.right.span().real_hi()).into(),
+        (
+          expr.right(&scanner.ast).span(&scanner.ast).real_lo(),
+          expr.right(&scanner.ast).span(&scanner.ast).real_hi(),
+        )
+          .into(),
         "0".into(),
       )));
     }
     Some(keep_right)
-  } else if expr.op == BinaryOp::NullishCoalescing {
-    let param = scanner.evaluate_expression(&expr.left);
+  } else if expr.op(&scanner.ast) == BinaryOp::NullishCoalescing {
+    let param = scanner.evaluate_expression(expr.left(&scanner.ast));
     if let Some(keep_right) = param.as_nullish() {
       if !param.could_have_side_effects() && keep_right {
         scanner.add_presentational_dependency(Box::new(ConstDependency::new(
@@ -50,10 +51,14 @@ pub fn expression_logic_operator(scanner: &mut JavascriptParser, expr: &BinExpr)
         )));
       } else {
         scanner.add_presentational_dependency(Box::new(ConstDependency::new(
-          (expr.right.span().real_lo(), expr.right.span().real_hi()).into(),
+          (
+            expr.right(&scanner.ast).span(&scanner.ast).real_lo(),
+            expr.right(&scanner.ast).span(&scanner.ast).real_hi(),
+          )
+            .into(),
           "0".into(),
         )));
-        scanner.walk_expression(&expr.left);
+        scanner.walk_expression(expr.left(&scanner.ast));
       }
       Some(keep_right)
     } else {
