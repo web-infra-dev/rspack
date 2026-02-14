@@ -90,6 +90,18 @@ impl Cache for MemoryCache {
     }
   }
 
+  // OPTIMIZE_CHUNK_MODULES: imported_by_defer_modules_artifact
+  async fn before_optimize_chunk_modules(&mut self, compilation: &mut Compilation) {
+    if let Some(old_compilation) = self.old_compilation.as_mut() {
+      let incremental = &compilation.incremental;
+      recover_artifact(
+        incremental,
+        &mut compilation.imported_by_defer_modules_artifact,
+        &mut old_compilation.imported_by_defer_modules_artifact,
+      );
+    }
+  }
+
   // MODULE_IDS: module_ids_artifact
   async fn before_module_ids(&mut self, compilation: &mut Compilation) {
     if let Some(old_compilation) = self.old_compilation.as_mut() {

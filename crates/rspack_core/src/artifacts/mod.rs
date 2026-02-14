@@ -34,8 +34,8 @@ pub trait ArtifactExt: Sized {
 
   /// Determines whether this artifact should be recovered from the previous compilation.
   ///
-  /// Returns `true` if the artifact's pass is empty (always recover) or if
-  /// the incremental system has readable mutations for this artifact's pass.
+  /// Returns `true` when the incremental system has readable mutations for
+  /// this artifact's pass.
   fn should_recover(incremental: &Incremental) -> bool {
     incremental.mutations_readable(Self::PASS)
   }

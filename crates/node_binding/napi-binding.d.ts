@@ -2328,6 +2328,7 @@ export interface RawIncremental {
   finishModules: boolean
   optimizeDependencies: boolean
   buildChunkGraph: boolean
+  optimizeChunkModules: boolean
   moduleIds: boolean
   chunkIds: boolean
   modulesHashes: boolean
