@@ -1,10 +1,11 @@
 // borrow the ideas from turbo_tasks https://github.com/vercel/next.js/blob/678ef8b5650871a730ca14c480c762ca53716575/turbopack/crates/turbo-tasks/src/manager.rs#L1
 // which creates a implicit compiler context to support isolated parallel compiler state
 use std::{
+  ffi::c_void,
   future::Future,
   sync::{
     Arc,
-    atomic::{AtomicU32, AtomicUsize},
+    atomic::{AtomicPtr, AtomicU32},
   },
 };
 
@@ -17,7 +18,7 @@ use tokio::{
 #[derive(Debug)]
 pub struct CompilerContext {
   dependenc_id_generator: AtomicU32,
-  exports_info_artifact_ptr: AtomicUsize,
+  exports_info_artifact_ptr: AtomicPtr<c_void>,
 }
 
 task_local! {
@@ -29,7 +30,7 @@ impl CompilerContext {
   pub fn new() -> Self {
     Self {
       dependenc_id_generator: AtomicU32::new(0),
-      exports_info_artifact_ptr: AtomicUsize::new(0),
+      exports_info_artifact_ptr: AtomicPtr::new(std::ptr::null_mut()),
     }
   }
   pub fn fetch_new_dependency_id(&self) -> u32 {
@@ -48,17 +49,18 @@ impl CompilerContext {
       .store(id, std::sync::atomic::Ordering::SeqCst);
   }
 
-  pub fn exports_info_artifact_ptr(&self) -> Option<usize> {
+  pub fn exports_info_artifact_ptr(&self) -> Option<*mut c_void> {
     let ptr = self
       .exports_info_artifact_ptr
       .load(std::sync::atomic::Ordering::SeqCst);
-    (ptr != 0).then_some(ptr)
+    (!ptr.is_null()).then_some(ptr)
   }
 
-  pub fn set_exports_info_artifact_ptr(&self, ptr: Option<usize>) {
-    self
-      .exports_info_artifact_ptr
-      .store(ptr.unwrap_or_default(), std::sync::atomic::Ordering::SeqCst);
+  pub fn set_exports_info_artifact_ptr(&self, ptr: Option<*mut c_void>) {
+    self.exports_info_artifact_ptr.store(
+      ptr.unwrap_or(std::ptr::null_mut()),
+      std::sync::atomic::Ordering::SeqCst,
+    );
   }
 }
 

@@ -1,5 +1,6 @@
 use std::{
   collections::HashMap,
+  ffi::c_void,
   hash::Hash,
   ptr::NonNull,
   sync::{Arc, RwLock},
@@ -1264,13 +1265,21 @@ impl CompilationFinishModules for CompilationFinishModulesTap {
     exports_info_artifact: &mut rspack_core::ExportsInfoArtifact,
   ) -> rspack_error::Result<()> {
     let compiler_context = compilation.compiler_context.clone();
-    let previous_ptr = compiler_context.exports_info_artifact_ptr();
-    compiler_context.set_exports_info_artifact_ptr(Some(exports_info_artifact as *mut _ as usize));
+    let previous_ptr_addr = compiler_context
+      .exports_info_artifact_ptr()
+      .map_or(0usize, |ptr| ptr as usize);
+    compiler_context
+      .set_exports_info_artifact_ptr(Some(exports_info_artifact as *mut _ as *mut c_void));
     let result = within_compiler_context(compiler_context.clone(), async {
       let compilation = JsCompilationWrapper::new(compilation);
       self.function.call_with_promise(compilation).await
     })
     .await;
+    let previous_ptr = if previous_ptr_addr == 0 {
+      None
+    } else {
+      Some(previous_ptr_addr as *mut c_void)
+    };
     compiler_context.set_exports_info_artifact_ptr(previous_ptr);
     result
   }
