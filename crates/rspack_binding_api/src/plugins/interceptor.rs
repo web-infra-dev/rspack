@@ -1258,8 +1258,10 @@ impl CompilationExecuteModule for CompilationExecuteModuleTap {
 impl CompilationFinishModules for CompilationFinishModulesTap {
   async fn run(
     &self,
-    compilation: &mut Compilation,
-    async_modules_artifact: &mut AsyncModulesArtifact,
+    compilation: &Compilation,
+    _async_modules_artifact: &mut AsyncModulesArtifact,
+    _build_module_graph_artifact: &mut BuildModuleGraphArtifact,
+    _exports_info_artifact: &mut rspack_core::ExportsInfoArtifact,
   ) -> rspack_error::Result<()> {
     let compilation = JsCompilationWrapper::new(compilation);
     self.function.call_with_promise(compilation).await

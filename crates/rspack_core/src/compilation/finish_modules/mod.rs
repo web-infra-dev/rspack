@@ -37,14 +37,20 @@ impl PassExt for FinishModulesPhasePass {
 pub async fn finish_modules_pass(compilation: &mut Compilation) -> Result<()> {
   let mut dependencies_diagnostics_artifact = compilation.dependencies_diagnostics_artifact.steal();
   let mut async_modules_artifact = compilation.async_modules_artifact.steal();
+  let mut build_module_graph_artifact = compilation.build_module_graph_artifact.steal();
+  let mut exports_info_artifact = compilation.exports_info_artifact.steal();
   let diagnostics = compilation
     .finish_modules_inner(
       &mut dependencies_diagnostics_artifact,
       &mut async_modules_artifact,
+      &mut build_module_graph_artifact,
+      &mut exports_info_artifact,
     )
     .await;
   compilation.dependencies_diagnostics_artifact = dependencies_diagnostics_artifact.into();
   compilation.async_modules_artifact = async_modules_artifact.into();
+  compilation.build_module_graph_artifact = build_module_graph_artifact.into();
+  compilation.exports_info_artifact = exports_info_artifact.into();
   let diagnostics = diagnostics?;
   compilation.extend_diagnostics(diagnostics);
 
@@ -54,38 +60,36 @@ pub async fn finish_modules_pass(compilation: &mut Compilation) -> Result<()> {
 impl Compilation {
   #[tracing::instrument("Compilation:finish_modules_inner", skip_all)]
   pub async fn finish_modules_inner(
-    &mut self,
+    &self,
     dependencies_diagnostics_artifact: &mut DependenciesDiagnosticsArtifact,
     async_modules_artifact: &mut AsyncModulesArtifact,
+    build_module_graph_artifact: &mut BuildModuleGraphArtifact,
+    exports_info_artifact: &mut ExportsInfoArtifact,
   ) -> Result<Vec<Diagnostic>> {
     if let Some(mut mutations) = self.incremental.mutations_write() {
       mutations.extend(
-        self
-          .build_module_graph_artifact
+        build_module_graph_artifact
           .affected_dependencies
           .updated()
           .iter()
           .map(|&dependency| Mutation::DependencyUpdate { dependency }),
       );
       mutations.extend(
-        self
-          .build_module_graph_artifact
+        build_module_graph_artifact
           .affected_modules
           .removed()
           .iter()
           .map(|&module| Mutation::ModuleRemove { module }),
       );
       mutations.extend(
-        self
-          .build_module_graph_artifact
+        build_module_graph_artifact
           .affected_modules
           .updated()
           .iter()
           .map(|&module| Mutation::ModuleUpdate { module }),
       );
       mutations.extend(
-        self
-          .build_module_graph_artifact
+        build_module_graph_artifact
           .affected_modules
           .added()
           .iter()
@@ -103,7 +107,12 @@ impl Compilation {
       .clone()
       .compilation_hooks
       .finish_modules
-      .call(self, async_modules_artifact)
+      .call(
+        self,
+        async_modules_artifact,
+        build_module_graph_artifact,
+        exports_info_artifact,
+      )
       .await?;
 
     // https://github.com/webpack/webpack/blob/19ca74127f7668aaf60d59f4af8fcaee7924541a/lib/Compilation.js#L2988
@@ -112,11 +121,11 @@ impl Compilation {
     // 1. after finish_modules: has provide exports info
     // 2. before optimize dependencies: side effects free module hasn't been skipped
     let mut all_diagnostics =
-      self.collect_dependencies_diagnostics(dependencies_diagnostics_artifact);
+      self.collect_dependencies_diagnostics(dependencies_diagnostics_artifact, exports_info_artifact);
     self.module_graph_cache_artifact.unfreeze();
 
     // take make diagnostics
-    let diagnostics = self.build_module_graph_artifact.diagnostics();
+    let diagnostics = build_module_graph_artifact.diagnostics();
     all_diagnostics.extend(diagnostics);
     Ok(all_diagnostics)
   }
@@ -125,6 +134,7 @@ impl Compilation {
   fn collect_dependencies_diagnostics(
     &self,
     dependencies_diagnostics_artifact: &mut DependenciesDiagnosticsArtifact,
+    exports_info_artifact: &ExportsInfoArtifact,
   ) -> Vec<Diagnostic> {
     // Compute modules while holding the lock, then release it
     let (modules, has_mutations) = {
@@ -166,7 +176,6 @@ impl Compilation {
 
     let module_graph = self.get_module_graph();
     let module_graph_cache = &self.module_graph_cache_artifact;
-    let exports_info_artifact = &self.exports_info_artifact;
     let dependencies_diagnostics: DependenciesDiagnosticsArtifact = modules
       .par_iter()
       .map(|module_identifier| {

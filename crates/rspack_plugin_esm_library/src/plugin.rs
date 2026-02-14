@@ -103,10 +103,12 @@ async fn render_chunk_content(
 #[plugin_hook(CompilationFinishModules for EsmLibraryPlugin, stage = 100)]
 async fn finish_modules(
   &self,
-  compilation: &mut Compilation,
+  compilation: &Compilation,
   _async_modules_artifact: &mut AsyncModulesArtifact,
+  build_module_graph_artifact: &mut BuildModuleGraphArtifact,
+  exports_info_artifact: &mut ExportsInfoArtifact,
 ) -> Result<()> {
-  let module_graph = compilation.get_module_graph();
+  let module_graph = build_module_graph_artifact.get_module_graph();
   let mut modules_map = IdentifierIndexMap::default();
   let modules = module_graph.modules();
   let mut modules = modules.iter().collect::<Vec<_>>();
@@ -150,9 +152,8 @@ async fn finish_modules(
 
     // if we reach here, check exports info
     if should_scope_hoisting {
-      let exports_info = compilation
-        .exports_info_artifact
-        .get_prefetched_exports_info(module_identifier, PrefetchExportsInfoMode::Default);
+      let exports_info =
+        exports_info_artifact.get_prefetched_exports_info(module_identifier, PrefetchExportsInfoMode::Default);
 
       let relevant_exports = exports_info.get_relevant_exports(None);
       let unknown_exports = relevant_exports
@@ -163,7 +164,7 @@ async fn finish_modules(
               get_target(
                 export_info,
                 module_graph,
-                &compilation.exports_info_artifact,
+                exports_info_artifact,
                 Rc::new(|_| true),
                 &mut Default::default()
               ),
@@ -207,7 +208,7 @@ async fn finish_modules(
     .map(|(id, _)| *id)
     .collect::<Vec<_>>();
 
-  let module_graph = compilation.get_module_graph();
+  let module_graph = build_module_graph_artifact.get_module_graph();
   while let Some(m) = stack.pop() {
     if !visited.insert(m) {
       continue;
@@ -249,8 +250,7 @@ async fn finish_modules(
   }
 
   for m in entry_modules {
-    compilation
-      .exports_info_artifact
+    exports_info_artifact
       .get_exports_info_data_mut(&m)
       .set_used_in_unknown_way(None);
   }

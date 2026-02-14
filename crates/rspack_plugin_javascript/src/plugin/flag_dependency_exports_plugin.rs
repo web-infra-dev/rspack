@@ -8,7 +8,7 @@ use rspack_core::{
   ExportNameOrSpec, ExportProvided, ExportSpecExports, ExportsInfo, ExportsInfoArtifact,
   ExportsInfoData, ExportsOfExportsSpec, ExportsSpec, GetTargetResult, Logger, ModuleGraph,
   ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, Nullable, Plugin,
-  PrefetchExportsInfoMode, get_target,
+  PrefetchExportsInfoMode, build_module_graph::BuildModuleGraphArtifact, get_target,
   incremental::{self, IncrementalPasses},
 };
 use rspack_error::Result;
@@ -201,24 +201,27 @@ pub struct FlagDependencyExportsPlugin;
 #[plugin_hook(CompilationFinishModules for FlagDependencyExportsPlugin)]
 async fn finish_modules(
   &self,
-  compilation: &mut Compilation,
+  compilation: &Compilation,
   _async_modules_artifact: &mut AsyncModulesArtifact,
+  build_module_graph_artifact: &mut BuildModuleGraphArtifact,
+  exports_info_artifact: &mut ExportsInfoArtifact,
 ) -> Result<()> {
   let modules: IdentifierSet = if let Some(mutations) = compilation
     .incremental
     .mutations_read(IncrementalPasses::FINISH_MODULES)
   {
-    let modules = mutations.get_affected_modules_with_module_graph(compilation.get_module_graph());
+    let modules =
+      mutations.get_affected_modules_with_module_graph(build_module_graph_artifact.get_module_graph());
     tracing::debug!(target: incremental::TRACING_TARGET, passes = %IncrementalPasses::FINISH_MODULES, %mutations, ?modules);
     let logger = compilation.get_logger("rspack.incremental.finishModules");
     logger.log(format!(
       "{} modules are affected, {} in total",
       modules.len(),
-      compilation.get_module_graph().modules().len()
+      build_module_graph_artifact.get_module_graph().modules().len()
     ));
     modules
   } else {
-    compilation
+    build_module_graph_artifact
       .get_module_graph()
       .modules()
       .keys()
@@ -227,13 +230,11 @@ async fn finish_modules(
   };
   let module_graph_cache = compilation.module_graph_cache_artifact.clone();
 
-  let module_graph = compilation
-    .build_module_graph_artifact
-    .get_module_graph_mut();
+  let module_graph = build_module_graph_artifact.get_module_graph_mut();
   FlagDependencyExportsState::new(
     module_graph,
     &module_graph_cache,
-    &mut compilation.exports_info_artifact,
+    exports_info_artifact,
   )
   .apply(modules);
 

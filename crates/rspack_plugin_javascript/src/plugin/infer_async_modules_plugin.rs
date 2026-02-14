@@ -1,8 +1,8 @@
 use rayon::prelude::*;
 use rspack_collections::{IdentifierLinkedSet, IdentifierMap, IdentifierSet};
 use rspack_core::{
-  AsyncModulesArtifact, Compilation, CompilationFinishModules, DependencyType, Logger, ModuleGraph,
-  Plugin,
+  AsyncModulesArtifact, Compilation, CompilationFinishModules, DependencyType, ExportsInfoArtifact,
+  Logger, ModuleGraph, Plugin, build_module_graph::BuildModuleGraphArtifact,
   incremental::{IncrementalPasses, Mutation, Mutations},
 };
 use rspack_error::Result;
@@ -15,8 +15,10 @@ pub struct InferAsyncModulesPlugin;
 #[plugin_hook(CompilationFinishModules for InferAsyncModulesPlugin)]
 async fn finish_modules(
   &self,
-  compilation: &mut Compilation,
+  compilation: &Compilation,
   async_modules_artifact: &mut AsyncModulesArtifact,
+  build_module_graph_artifact: &mut BuildModuleGraphArtifact,
+  _exports_info_artifact: &mut ExportsInfoArtifact,
 ) -> Result<()> {
   if let Some(mutations) = compilation
     .incremental
@@ -36,7 +38,7 @@ async fn finish_modules(
       });
   }
 
-  let module_graph = compilation.get_module_graph();
+  let module_graph = build_module_graph_artifact.get_module_graph();
   let modules = module_graph.modules();
   let mut sync_modules = IdentifierLinkedSet::default();
   let mut async_modules = IdentifierLinkedSet::default();
@@ -55,13 +57,13 @@ async fn finish_modules(
     .then(Mutations::default);
 
   set_sync_modules(
-    compilation,
+    build_module_graph_artifact,
     async_modules_artifact,
     sync_modules,
     &mut mutations,
   );
   set_async_modules(
-    compilation,
+    build_module_graph_artifact,
     async_modules_artifact,
     async_modules,
     &mut mutations,
@@ -89,12 +91,12 @@ async fn finish_modules(
 }
 
 fn set_sync_modules(
-  compilation: &Compilation,
+  build_module_graph_artifact: &BuildModuleGraphArtifact,
   async_modules_artifact: &mut AsyncModulesArtifact,
   modules: IdentifierLinkedSet,
   mutations: &mut Option<Mutations>,
 ) {
-  let module_graph = compilation.get_module_graph();
+  let module_graph = build_module_graph_artifact.get_module_graph();
   let outgoing_connections = modules
     .iter()
     .par_bridge()
@@ -117,7 +119,7 @@ fn set_sync_modules(
       .get(&module)
       .cloned()
       .unwrap_or_else(|| {
-        let module_graph = compilation.get_module_graph();
+        let module_graph = build_module_graph_artifact.get_module_graph();
         module_graph
           .get_outgoing_connections(&module)
           .filter_map(|con| module_graph.module_identifier_by_dependency_id(&con.dependency_id))
@@ -137,7 +139,7 @@ fn set_sync_modules(
       if let Some(mutations) = mutations {
         mutations.add(Mutation::ModuleSetAsync { module });
       }
-      let module_graph = compilation.get_module_graph();
+      let module_graph = build_module_graph_artifact.get_module_graph();
       module_graph
         .get_incoming_connections(&module)
         .filter(|con| {
@@ -157,7 +159,7 @@ fn set_sync_modules(
 }
 
 fn set_async_modules(
-  compilation: &Compilation,
+  build_module_graph_artifact: &BuildModuleGraphArtifact,
   async_modules_artifact: &mut AsyncModulesArtifact,
   modules: IdentifierLinkedSet,
   mutations: &mut Option<Mutations>,
@@ -171,7 +173,7 @@ fn set_async_modules(
     {
       mutations.add(Mutation::ModuleSetAsync { module });
     }
-    let module_graph = compilation.get_module_graph();
+    let module_graph = build_module_graph_artifact.get_module_graph();
     module_graph
       .get_incoming_connections(&module)
       .filter(|con| {

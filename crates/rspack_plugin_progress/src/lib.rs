@@ -439,8 +439,10 @@ async fn finish_make(&self, _compilation: &mut Compilation) -> Result<()> {
 #[plugin_hook(CompilationFinishModules for ProgressPlugin)]
 async fn finish_modules(
   &self,
-  _compilation: &mut Compilation,
+  _compilation: &Compilation,
   _async_modules_artifact: &mut AsyncModulesArtifact,
+  _build_module_graph_artifact: &mut BuildModuleGraphArtifact,
+  _exports_info_artifact: &mut ExportsInfoArtifact,
 ) -> Result<()> {
   self.sealing_hooks_report("finish modules", 0).await
 }
