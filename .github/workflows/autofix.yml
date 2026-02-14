@@ -1,0 +1,72 @@
+name: autofix.ci
+
+on:
+  workflow_run:
+    workflows: ['CI-Lint']
+    types: [completed]
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  gate:
+    name: Check lint/format failure
+    if: ${{ github.event.workflow_run.event == 'pull_request'
+      && github.event.workflow_run.conclusion == 'failure'
+      && github.event.workflow_run.head_repository.full_name == github.repository }}
+    runs-on: ubuntu-latest
+    outputs:
+      should_run: ${{ steps.decide.outputs.should_run }}
+    steps:
+      - name: Decide whether to run autofix
+        id: decide
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        with:
+          script: |
+            const run = context.payload.workflow_run;
+            const jobs = await github.paginate(github.rest.actions.listJobsForWorkflowRunAttempt, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              run_id: run.id,
+              attempt_number: run.run_attempt,
+              per_page: 100
+            });
+
+            const lintFormatJob = jobs.find(job => job.name === "Lint and format code");
+            const shouldRun = Boolean(lintFormatJob && lintFormatJob.conclusion === "failure");
+
+            core.info(`lint job: ${lintFormatJob ? lintFormatJob.conclusion : "not found"}`);
+            core.info(`autofix should run: ${shouldRun}`);
+            core.setOutput("should_run", String(shouldRun));
+
+  autofix:
+    name: Autofix fmt and lint
+    needs: [gate]
+    if: ${{ needs.gate.outputs.should_run == 'true' }}
+    runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"') }}
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          ref: ${{ github.event.workflow_run.head_branch }}
+
+      - name: Pnpm Setup
+        uses: ./.github/actions/pnpm/setup
+
+      - name: Pnpm Install
+        uses: ./.github/actions/pnpm/install-dependencies
+
+      - name: Install Rust Toolchain
+        uses: ./.github/actions/rustup
+        with:
+          key: autofix
+
+      - name: Run auto-fixers
+        run: |
+          pnpm run lint-ci:js --write --unsafe || true
+          pnpm run format:js
+          pnpm run format:toml
+          pnpm run format:rs
+
+      - uses: autofix-ci/action@635ffb0c9798bd160680f18fd73371e355b85f27
+        if: ${{ always() }}
