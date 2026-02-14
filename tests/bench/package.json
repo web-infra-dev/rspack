@@ -7,7 +7,7 @@
     "bench": "vitest bench --run"
   },
   "devDependencies": {
-    "@codspeed/vitest-plugin": "^4.0.1",
+    "@codspeed/vitest-plugin": "^5.0.0",
     "@rspack/cli": "workspace:*",
     "@rspack/core": "workspace:*",
     "@rspack/plugin-react-refresh": "^1.6.0",
