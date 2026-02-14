@@ -1,9 +1,7 @@
 use rspack_core::DependencyRange;
 use rspack_util::SpanExt;
-use swc_core::{
-  common::Spanned,
-  ecma::ast::{BinExpr, BinaryOp},
-};
+use swc_core::common::Spanned;
+use swc_experimental_ecma_ast::{BinExpr, BinaryOp};
 
 use crate::{utils::eval::BasicEvaluatedExpression, visitors::JavascriptParser};
 
@@ -504,7 +502,7 @@ pub fn handle_const_operation<'a>(
 
 pub fn eval_binary_expression<'a>(
   scanner: &mut JavascriptParser,
-  expr: &'a BinExpr,
+  expr: BinExpr,
 ) -> Option<BasicEvaluatedExpression<'a>> {
   let mut stack = vec![expr];
   let mut expr = &*expr.left;

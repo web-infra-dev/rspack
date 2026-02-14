@@ -1,14 +1,14 @@
 use rspack_util::SpanExt;
-use swc_core::ecma::ast::CondExpr;
+use swc_experimental_ecma_ast::CondExpr;
 
 use super::BasicEvaluatedExpression;
 use crate::visitors::JavascriptParser;
 
 #[inline]
-pub fn eval_cond_expression<'a>(
+pub fn eval_cond_expression(
   scanner: &mut JavascriptParser,
-  cond: &'a CondExpr,
-) -> Option<BasicEvaluatedExpression<'a>> {
+  cond: CondExpr,
+) -> Option<BasicEvaluatedExpression> {
   let condition = scanner.evaluate_expression(&cond.test);
   let condition_value = condition.as_bool();
   let mut res;

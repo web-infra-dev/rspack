@@ -1,8 +1,6 @@
 use rspack_util::SpanExt;
-use swc_core::{
-  common::Spanned,
-  ecma::ast::{Lit, Str},
-};
+use swc_core::common::Spanned;
+use swc_experimental_ecma_ast::{Lit, Str};
 
 use super::BasicEvaluatedExpression;
 
@@ -36,7 +34,7 @@ pub fn eval_bigint(bigint: &swc_core::ecma::ast::BigInt) -> BasicEvaluatedExpres
 }
 
 #[inline]
-pub fn eval_lit_expr(expr: &Lit) -> Option<BasicEvaluatedExpression<'_>> {
+pub fn eval_lit_expr(expr: Lit) -> Option<BasicEvaluatedExpression<'_>> {
   match expr {
     Lit::Str(str) => Some(eval_str(str)),
     Lit::Regex(regexp) => {

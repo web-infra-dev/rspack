@@ -340,7 +340,7 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
     &self,
     parser: &mut JavascriptParser,
     expr: VarDeclarator,
-    stmt: VariableDeclaration<'_>,
+    stmt: VariableDeclaration,
   ) -> Option<bool> {
     for plugin in &self.plugins {
       let res = plugin.declarator(parser, expr, stmt);
@@ -439,11 +439,11 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
     None
   }
 
-  fn evaluate<'a>(
+  fn evaluate(
     &self,
     parser: &mut JavascriptParser,
-    expr: &'a Expr,
-  ) -> Option<BasicEvaluatedExpression<'a>> {
+    expr: Expr,
+  ) -> Option<BasicEvaluatedExpression> {
     for plugin in &self.plugins {
       let res = plugin.evaluate(parser, expr);
       // `SyncBailHook`
@@ -454,12 +454,12 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
     None
   }
 
-  fn evaluate_typeof<'a>(
+  fn evaluate_typeof(
     &self,
     parser: &mut JavascriptParser,
-    expr: &'a UnaryExpr,
+    expr: UnaryExpr,
     for_name: &str,
-  ) -> Option<BasicEvaluatedExpression<'a>> {
+  ) -> Option<BasicEvaluatedExpression> {
     for plugin in &self.plugins {
       let res = plugin.evaluate_typeof(parser, expr, for_name);
       // `SyncBailHook`
@@ -470,13 +470,13 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
     None
   }
 
-  fn evaluate_call_expression_member<'a>(
+  fn evaluate_call_expression_member(
     &self,
     parser: &mut JavascriptParser,
     property: &str,
-    expr: &'a CallExpr,
-    param: BasicEvaluatedExpression<'a>,
-  ) -> Option<BasicEvaluatedExpression<'a>> {
+    expr: CallExpr,
+    param: BasicEvaluatedExpression,
+  ) -> Option<BasicEvaluatedExpression> {
     for plugin in &self.plugins {
       let res = plugin.evaluate_call_expression_member(parser, property, expr, param.clone());
       // `SyncBailHook`
@@ -493,7 +493,7 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
     for_name: &str,
     start: u32,
     end: u32,
-  ) -> Option<BasicEvaluatedExpression<'static>> {
+  ) -> Option<BasicEvaluatedExpression> {
     for plugin in &self.plugins {
       let res = plugin.evaluate_identifier(parser, for_name, start, end);
       // `SyncBailHook`
@@ -534,7 +534,7 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
     &self,
     parser: &mut JavascriptParser,
     declarator: VarDeclarator,
-    declaration: VariableDeclaration<'_>,
+    declaration: VariableDeclaration,
   ) -> Option<bool> {
     for plugin in &self.plugins {
       let res = plugin.pre_declarator(parser, declarator, declaration);
@@ -789,7 +789,7 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
   fn import_meta_property_in_destructuring(
     &self,
     parser: &mut JavascriptParser,
-    property: DestructuringAssignmentProperty,
+    property: &DestructuringAssignmentProperty,
   ) -> Option<String> {
     for plugin in &self.plugins {
       let res = plugin.import_meta_property_in_destructuring(parser, property);

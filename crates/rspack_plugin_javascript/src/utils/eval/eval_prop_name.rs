@@ -1,5 +1,6 @@
 use rspack_util::SpanExt;
-use swc_core::{common::Spanned, ecma::ast::PropName};
+use swc_core::common::Spanned;
+use swc_experimental_ecma_ast::PropName;
 
 use crate::{
   utils::eval::{BasicEvaluatedExpression, eval_bigint, eval_number, eval_str},
@@ -9,8 +10,8 @@ use crate::{
 #[inline]
 pub fn eval_prop_name<'a>(
   parser: &mut JavascriptParser,
-  prop_name: &'a PropName,
-) -> BasicEvaluatedExpression<'a> {
+  prop_name: PropName,
+) -> BasicEvaluatedExpression {
   match prop_name {
     PropName::Str(str) => eval_str(str),
     PropName::Num(num) => eval_number(num),

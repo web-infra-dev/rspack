@@ -1,8 +1,6 @@
 use rspack_util::SpanExt;
-use swc_core::{
-  common::Spanned,
-  ecma::ast::{TaggedTpl, Tpl},
-};
+use swc_core::common::Spanned;
+use swc_experimental_ecma_ast::{TaggedTpl, Tpl};
 
 use super::BasicEvaluatedExpression;
 use crate::visitors::JavascriptParser;
@@ -15,17 +13,17 @@ pub enum TemplateStringKind {
 }
 
 #[inline]
-fn get_simplified_template_result<'a>(
+fn get_simplified_template_result(
   scanner: &mut JavascriptParser,
   kind: TemplateStringKind,
-  node: &'a Tpl,
+  node: Tpl,
 ) -> (
   Vec<BasicEvaluatedExpression<'a>>,
   Vec<BasicEvaluatedExpression<'a>>,
 ) {
   let mut quasis: Vec<BasicEvaluatedExpression<'a>> = vec![];
   let mut parts: Vec<BasicEvaluatedExpression<'a>> = vec![];
-  for i in 0..node.quasis.len() {
+  for i in 0..node.quasis(&scanner.ast).len() {
     let quasi_expr = &node.quasis[i];
     let quasi = match kind {
       TemplateStringKind::Cooked => {
@@ -77,9 +75,9 @@ fn get_simplified_template_result<'a>(
 }
 
 #[inline]
-pub fn eval_tpl_expression<'a>(
+pub fn eval_tpl_expression(
   scanner: &mut JavascriptParser,
-  tpl: &'a Tpl,
+  tpl: Tpl,
 ) -> Option<BasicEvaluatedExpression<'a>> {
   let kind = TemplateStringKind::Cooked;
   let (quasis, mut parts) = get_simplified_template_result(scanner, kind, tpl);
@@ -95,16 +93,16 @@ pub fn eval_tpl_expression<'a>(
 }
 
 #[inline]
-pub fn eval_tagged_tpl_expression<'a>(
+pub fn eval_tagged_tpl_expression(
   scanner: &mut JavascriptParser,
-  tagged_tpl: &'a TaggedTpl,
-) -> Option<BasicEvaluatedExpression<'a>> {
-  let tag = scanner.evaluate_expression(&tagged_tpl.tag);
+  tagged_tpl: TaggedTpl,
+) -> Option<BasicEvaluatedExpression> {
+  let tag = scanner.evaluate_expression(tagged_tpl.tag(&scanner.ast));
   if !tag.is_identifier() || tag.identifier() != "String.raw" {
     return None;
   };
   let kind = TemplateStringKind::Raw;
-  let tpl = &tagged_tpl.tpl;
+  let tpl = tagged_tpl.tpl(&scanner.ast);
   let (quasis, parts) = get_simplified_template_result(scanner, kind, tpl);
   let mut res =
     BasicEvaluatedExpression::with_range(tagged_tpl.span().real_lo(), tagged_tpl.span().real_hi());

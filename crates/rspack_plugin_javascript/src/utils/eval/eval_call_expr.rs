@@ -1,13 +1,13 @@
-use swc_core::ecma::ast::{CallExpr, MemberProp};
+use swc_experimental_ecma_ast::{CallExpr, MemberProp};
 
 use super::BasicEvaluatedExpression;
 use crate::{parser_plugin::JavascriptParserPlugin, visitors::JavascriptParser};
 
 #[inline]
-pub fn eval_call_expression<'a>(
+pub fn eval_call_expression(
   parser: &mut JavascriptParser,
-  expr: &'a CallExpr,
-) -> Option<BasicEvaluatedExpression<'a>> {
+  expr: CallExpr,
+) -> Option<BasicEvaluatedExpression> {
   if let Some(member) = expr.callee.as_expr().and_then(|expr| expr.as_member()) {
     if let MemberProp::Ident(ident) = &member.prop {
       let param = parser.evaluate_expression(&member.obj);

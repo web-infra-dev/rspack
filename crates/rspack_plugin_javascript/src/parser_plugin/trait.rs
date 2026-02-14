@@ -81,7 +81,7 @@ pub trait JavascriptParserPlugin {
     &self,
     _parser: &mut JavascriptParser,
     _expr: &'a Expr,
-  ) -> Option<BasicEvaluatedExpression<'a>> {
+  ) -> Option<BasicEvaluatedExpression> {
     None
   }
 
@@ -90,7 +90,7 @@ pub trait JavascriptParserPlugin {
     _parser: &mut JavascriptParser,
     _expr: &'a UnaryExpr,
     _for_name: &str,
-  ) -> Option<BasicEvaluatedExpression<'a>> {
+  ) -> Option<BasicEvaluatedExpression> {
     None
   }
 
@@ -100,17 +100,17 @@ pub trait JavascriptParserPlugin {
     _for_name: &str,
     _start: u32,
     _end: u32,
-  ) -> Option<BasicEvaluatedExpression<'static>> {
+  ) -> Option<BasicEvaluatedExpression> {
     None
   }
 
-  fn evaluate_call_expression_member<'a>(
+  fn evaluate_call_expression_member(
     &self,
     _parser: &mut JavascriptParser,
     _property: &str,
-    _expr: &'a CallExpr,
-    _param: BasicEvaluatedExpression<'a>,
-  ) -> Option<BasicEvaluatedExpression<'a>> {
+    _expr: CallExpr,
+    _param: BasicEvaluatedExpression,
+  ) -> Option<BasicEvaluatedExpression> {
     None
   }
 
@@ -435,7 +435,7 @@ pub trait JavascriptParserPlugin {
   fn import_meta_property_in_destructuring(
     &self,
     _parser: &mut JavascriptParser,
-    _property: DestructuringAssignmentProperty,
+    _property: &DestructuringAssignmentProperty,
   ) -> Option<String> {
     None
   }

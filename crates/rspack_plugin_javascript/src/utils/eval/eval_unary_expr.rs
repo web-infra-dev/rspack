@@ -1,8 +1,6 @@
 use rspack_util::SpanExt;
-use swc_core::{
-  common::Spanned,
-  ecma::ast::{Lit, UnaryExpr, UnaryOp},
-};
+use swc_core::common::Spanned;
+use swc_experimental_ecma_ast::{Lit, UnaryExpr, UnaryOp};
 
 use super::BasicEvaluatedExpression;
 use crate::{
@@ -109,9 +107,9 @@ fn eval_typeof<'a>(
 }
 
 #[inline]
-pub fn eval_unary_expression<'a>(
+pub fn eval_unary_expression(
   scanner: &mut JavascriptParser,
-  expr: &'a UnaryExpr,
+  expr: UnaryExpr,
 ) -> Option<BasicEvaluatedExpression<'a>> {
   match expr.op {
     UnaryOp::TypeOf => eval_typeof(scanner, expr),

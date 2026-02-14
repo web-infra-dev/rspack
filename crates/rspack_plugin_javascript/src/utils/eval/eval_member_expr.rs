@@ -1,5 +1,5 @@
 use rspack_util::SpanExt;
-use swc_core::ecma::ast::{Expr, MemberExpr};
+use swc_experimental_ecma_ast::{Expr, MemberExpr};
 
 use super::BasicEvaluatedExpression;
 use crate::{
@@ -9,8 +9,8 @@ use crate::{
 
 pub fn eval_member_expression<'a>(
   parser: &mut JavascriptParser,
-  member: &'a MemberExpr,
-  expr: &'a Expr,
+  member: MemberExpr,
+  expr: Expr,
 ) -> Option<BasicEvaluatedExpression<'a>> {
   let ret = if let Some(MemberExpressionInfo::Expression(info)) =
     parser.get_member_expression_info(ExprRef::Member(member), AllowedMemberTypes::Expression)
