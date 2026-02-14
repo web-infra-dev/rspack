@@ -62,7 +62,7 @@ pub use self::{
 
 /// join string component in a more human readable way
 /// e.g.
-/// ```
+/// ```ignore
 /// use rspack_core::join_string_component;
 /// assert_eq!(
 ///   "a, b and c",
