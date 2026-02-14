@@ -8,8 +8,7 @@ use crate::{ArtifactExt, incremental::IncrementalPasses};
 pub struct ImportedByDeferModulesArtifact(IdentifierSet);
 
 impl ArtifactExt for ImportedByDeferModulesArtifact {
-  // FIXME: define a proper incremental pass for this artifact
-  const PASS: IncrementalPasses = IncrementalPasses::empty();
+  const PASS: IncrementalPasses = IncrementalPasses::OPTIMIZE_CHUNK_MODULES;
 }
 
 impl Deref for ImportedByDeferModulesArtifact {
