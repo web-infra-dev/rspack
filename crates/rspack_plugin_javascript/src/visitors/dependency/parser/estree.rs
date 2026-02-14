@@ -573,7 +573,7 @@ impl Spanned for Statement {
 }
 
 impl Statement {
-  fn from_stmt(value: Stmt, ast: &Ast) -> Self {
+  pub(crate) fn from_stmt(value: Stmt, ast: &Ast) -> Self {
     use Statement::*;
     match value {
       Stmt::Block(d) => Block(d),
