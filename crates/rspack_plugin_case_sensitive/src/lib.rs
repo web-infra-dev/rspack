@@ -52,10 +52,9 @@ This will lead to a race-condition and corrupted files on case-insensitive file 
 }
 
 #[plugin_hook(CompilationSeal for CaseSensitivePlugin)]
-async fn seal(&self, compilation: &mut Compilation) -> Result<()> {
+async fn seal(&self, compilation: &Compilation, diagnostics: &mut Vec<Diagnostic>) -> Result<()> {
   let logger = compilation.get_logger(self.name());
   let start = logger.time("check case sensitive modules");
-  let mut diagnostics: Vec<Diagnostic> = vec![];
   let module_graph = compilation.get_module_graph();
   let all_modules = module_graph.modules();
   let mut not_conflect: HashMap<String, Identifier> =
@@ -99,8 +98,6 @@ async fn seal(&self, compilation: &mut Compilation) -> Result<()> {
       self.create_sensitive_modules_warning(case_modules, compilation.get_module_graph()),
     ));
   }
-
-  compilation.extend_diagnostics(diagnostics);
   logger.time_end(start);
   Ok(())
 }

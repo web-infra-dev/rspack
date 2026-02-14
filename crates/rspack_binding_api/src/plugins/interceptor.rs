@@ -1532,7 +1532,11 @@ impl CompilationAfterProcessAssets for CompilationAfterProcessAssetsTap {
 
 #[async_trait]
 impl CompilationSeal for CompilationSealTap {
-  async fn run(&self, _compilation: &mut Compilation) -> rspack_error::Result<()> {
+  async fn run(
+    &self,
+    _compilation: &Compilation,
+    _diagnostics: &mut Vec<Diagnostic>,
+  ) -> rspack_error::Result<()> {
     self.function.call_with_sync(()).await
   }
 
