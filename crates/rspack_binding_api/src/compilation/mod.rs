@@ -617,6 +617,17 @@ impl JsCompilation {
       f,
       within_compiler_context(compiler_context, async {
         let compiler_id = compilation.compiler_id();
+        let Some(exports_info_artifact_ptr) =
+          compilation.compiler_context.exports_info_artifact_ptr()
+        else {
+          return Err(napi::Error::new(
+            napi::Status::InvalidArg.into(),
+            "compilation.rebuildModule can only be used in finishModules hook".to_string(),
+          ));
+        };
+        // SAFETY: pointer is injected by binding hook phases and valid in current scope.
+        let exports_info_artifact =
+          unsafe { &mut *(exports_info_artifact_ptr as *mut ExportsInfoArtifact) };
 
         let modules = compilation
           .rebuild_module(
@@ -624,10 +635,7 @@ impl JsCompilation {
               .into_iter()
               .map(ModuleIdentifier::from)
               .collect::<IdentifierSet>(),
-            compilation
-              .compiler_context
-              .exports_info_artifact_ptr()
-              .map(|ptr| unsafe { &mut *(ptr as *mut ExportsInfoArtifact) }),
+            exports_info_artifact,
             |modules| {
               modules
                 .into_iter()
