@@ -1,11 +1,8 @@
-use swc_core::{
-  atoms::Atom,
-  common::Span,
-  ecma::ast::{
-    AssignExpr, AwaitExpr, BinExpr, CallExpr, ClassMember, CondExpr, Expr, ForOfStmt, Ident,
-    IfStmt, ImportDecl, MemberExpr, ModuleDecl, NewExpr, OptChainExpr, Program, ThisExpr,
-    UnaryExpr, VarDeclarator,
-  },
+use swc_core::{atoms::Atom, common::Span};
+use swc_experimental_ecma_ast::{
+  AssignExpr, AwaitExpr, BinExpr, CallExpr, ClassMember, CondExpr, Expr, ForOfStmt, Ident, IfStmt,
+  ImportDecl, MemberExpr, ModuleDecl, NewExpr, OptChainExpr, Program, ThisExpr, UnaryExpr,
+  VarDeclarator,
 };
 
 use crate::{
@@ -33,20 +30,20 @@ pub trait JavascriptParserPlugin {
   }
 
   /// The return value will have no effect.
-  fn top_level_await_expr(&self, _parser: &mut JavascriptParser, _expr: &AwaitExpr) {}
+  fn top_level_await_expr(&self, _parser: &mut JavascriptParser, _expr: AwaitExpr) {}
 
   /// The return value will have no effect.
-  fn top_level_for_of_await_stmt(&self, _parser: &mut JavascriptParser, _stmt: &ForOfStmt) {}
+  fn top_level_for_of_await_stmt(&self, _parser: &mut JavascriptParser, _stmt: ForOfStmt) {}
 
   fn can_rename(&self, _parser: &mut JavascriptParser, _str: &str) -> Option<bool> {
     None
   }
 
-  fn rename(&self, _parser: &mut JavascriptParser, _expr: &Expr, _str: &str) -> Option<bool> {
+  fn rename(&self, _parser: &mut JavascriptParser, _expr: Expr, _str: &str) -> Option<bool> {
     None
   }
 
-  fn program(&self, _parser: &mut JavascriptParser, _ast: &Program) -> Option<bool> {
+  fn program(&self, _parser: &mut JavascriptParser, _ast: Program) -> Option<bool> {
     None
   }
 
@@ -54,7 +51,7 @@ pub trait JavascriptParserPlugin {
     None
   }
 
-  fn module_declaration(&self, _parser: &mut JavascriptParser, _decl: &ModuleDecl) -> Option<bool> {
+  fn module_declaration(&self, _parser: &mut JavascriptParser, _decl: ModuleDecl) -> Option<bool> {
     None
   }
 
@@ -66,7 +63,7 @@ pub trait JavascriptParserPlugin {
   fn block_pre_module_declaration(
     &self,
     _parser: &mut JavascriptParser,
-    _decl: &ModuleDecl,
+    _decl: ModuleDecl,
   ) -> Option<bool> {
     None
   }
@@ -74,8 +71,8 @@ pub trait JavascriptParserPlugin {
   fn pre_declarator(
     &self,
     _parser: &mut JavascriptParser,
-    _declarator: &VarDeclarator,
-    _declaration: VariableDeclaration<'_>,
+    _declarator: VarDeclarator,
+    _declaration: VariableDeclaration,
   ) -> Option<bool> {
     None
   }
@@ -120,7 +117,7 @@ pub trait JavascriptParserPlugin {
   fn can_collect_destructuring_assignment_properties(
     &self,
     _parser: &mut JavascriptParser,
-    _expr: &Expr,
+    _expr: Expr,
   ) -> Option<bool> {
     None
   }
@@ -128,7 +125,7 @@ pub trait JavascriptParserPlugin {
   fn pattern(
     &self,
     _parser: &mut JavascriptParser,
-    _ident: &Ident,
+    _ident: Ident,
     _for_name: &str,
   ) -> Option<bool> {
     None
@@ -158,7 +155,7 @@ pub trait JavascriptParserPlugin {
   fn member(
     &self,
     _parser: &mut JavascriptParser,
-    _expr: &MemberExpr,
+    _expr: MemberExpr,
     _for_name: &str,
   ) -> Option<bool> {
     None
@@ -167,7 +164,7 @@ pub trait JavascriptParserPlugin {
   fn member_chain(
     &self,
     _parser: &mut JavascriptParser,
-    _expr: &MemberExpr,
+    _expr: MemberExpr,
     _for_name: &str,
     _members: &[Atom],
     _members_optionals: &[bool],
@@ -229,14 +226,14 @@ pub trait JavascriptParserPlugin {
   fn expression_logical_operator(
     &self,
     _parser: &mut JavascriptParser,
-    _expr: &BinExpr,
+    _expr: BinExpr,
   ) -> Option<KeepRight> {
     None
   }
 
   /// Return:
   /// - `None` means should walk left and right;
-  fn binary_expression(&self, _parser: &mut JavascriptParser, _expr: &BinExpr) -> Option<bool> {
+  fn binary_expression(&self, _parser: &mut JavascriptParser, _expr: BinExpr) -> Option<bool> {
     None
   }
 
@@ -244,14 +241,14 @@ pub trait JavascriptParserPlugin {
   /// - `None` means need walk `stmt.test`, `stmt.cons` and `stmt.alt`;
   /// - `Some(true)` means only need walk `stmt.cons`;
   /// - `Some(false)` means only need walk `stmt.alt`;
-  fn statement_if(&self, _parser: &mut JavascriptParser, _expr: &IfStmt) -> Option<bool> {
+  fn statement_if(&self, _parser: &mut JavascriptParser, _expr: IfStmt) -> Option<bool> {
     None
   }
 
   fn class_extends_expression(
     &self,
     _parser: &mut JavascriptParser,
-    _super_class: &Expr,
+    _super_class: Expr,
     _class_decl_or_expr: ClassDeclOrExpr,
   ) -> Option<bool> {
     None
@@ -260,7 +257,7 @@ pub trait JavascriptParserPlugin {
   fn class_body_element(
     &self,
     _parser: &mut JavascriptParser,
-    _element: &ClassMember,
+    _element: ClassMember,
     _class_decl_or_expr: ClassDeclOrExpr,
   ) -> Option<bool> {
     None
@@ -269,7 +266,7 @@ pub trait JavascriptParserPlugin {
   fn class_body_value(
     &self,
     _parser: &mut JavascriptParser,
-    _element: &swc_core::ecma::ast::ClassMember,
+    _element: ClassMember,
     _expr_span: Span,
     _class_decl_or_expr: ClassDeclOrExpr,
   ) -> Option<bool> {
@@ -279,8 +276,8 @@ pub trait JavascriptParserPlugin {
   fn declarator(
     &self,
     _parser: &mut JavascriptParser,
-    _expr: &VarDeclarator,
-    _stmt: VariableDeclaration<'_>,
+    _expr: VarDeclarator,
+    _stmt: VariableDeclaration,
   ) -> Option<bool> {
     None
   }
@@ -288,7 +285,7 @@ pub trait JavascriptParserPlugin {
   fn new_expression(
     &self,
     _parser: &mut JavascriptParser,
-    _expr: &NewExpr,
+    _expr: NewExpr,
     _for_name: &str,
   ) -> Option<bool> {
     None
@@ -297,25 +294,20 @@ pub trait JavascriptParserPlugin {
   fn identifier(
     &self,
     _parser: &mut JavascriptParser,
-    _ident: &Ident,
+    _ident: Ident,
     _for_name: &str,
   ) -> Option<bool> {
     None
   }
 
-  fn this(
-    &self,
-    _parser: &mut JavascriptParser,
-    _expr: &ThisExpr,
-    _for_name: &str,
-  ) -> Option<bool> {
+  fn this(&self, _parser: &mut JavascriptParser, _expr: ThisExpr, _for_name: &str) -> Option<bool> {
     None
   }
 
   fn assign(
     &self,
     _parser: &mut JavascriptParser,
-    _expr: &AssignExpr,
+    _expr: AssignExpr,
     _for_name: &str,
   ) -> Option<bool> {
     None
@@ -324,7 +316,7 @@ pub trait JavascriptParserPlugin {
   fn assign_member_chain(
     &self,
     _parser: &mut JavascriptParser,
-    _expr: &AssignExpr,
+    _expr: AssignExpr,
     _members: &[Atom],
     _for_name: &str,
   ) -> Option<bool> {
@@ -334,8 +326,8 @@ pub trait JavascriptParserPlugin {
   fn import_call(
     &self,
     _parser: &mut JavascriptParser,
-    _expr: &CallExpr,
-    _import_then: Option<&CallExpr>,
+    _expr: CallExpr,
+    _import_then: Option<CallExpr>,
   ) -> Option<bool> {
     None
   }
@@ -352,7 +344,7 @@ pub trait JavascriptParserPlugin {
   fn import(
     &self,
     _parser: &mut JavascriptParser,
-    _statement: &ImportDecl,
+    _statement: ImportDecl,
     _source: &str,
   ) -> Option<bool> {
     None
@@ -361,7 +353,7 @@ pub trait JavascriptParserPlugin {
   fn import_specifier(
     &self,
     _parser: &mut JavascriptParser,
-    _statement: &ImportDecl,
+    _statement: ImportDecl,
     _source: &Atom,
     _export_name: Option<&Atom>,
     _identifier_name: &Atom,
@@ -414,18 +406,14 @@ pub trait JavascriptParserPlugin {
     None
   }
 
-  fn optional_chaining(
-    &self,
-    _parser: &mut JavascriptParser,
-    _expr: &OptChainExpr,
-  ) -> Option<bool> {
+  fn optional_chaining(&self, _parser: &mut JavascriptParser, _expr: OptChainExpr) -> Option<bool> {
     None
   }
 
   fn expression_conditional_operation(
     &self,
     _parser: &mut JavascriptParser,
-    _expr: &CondExpr,
+    _expr: CondExpr,
   ) -> Option<bool> {
     None
   }
@@ -434,7 +422,7 @@ pub trait JavascriptParserPlugin {
     None
   }
 
-  fn is_pure(&self, _parser: &mut JavascriptParser, _expr: &Expr) -> Option<bool> {
+  fn is_pure(&self, _parser: &mut JavascriptParser, _expr: Expr) -> Option<bool> {
     None
   }
 
@@ -447,7 +435,7 @@ pub trait JavascriptParserPlugin {
   fn import_meta_property_in_destructuring(
     &self,
     _parser: &mut JavascriptParser,
-    _property: &DestructuringAssignmentProperty,
+    _property: DestructuringAssignmentProperty,
   ) -> Option<String> {
     None
   }
