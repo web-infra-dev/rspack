@@ -27,11 +27,11 @@ use rspack_util::{
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 use swc_core::{
   atoms::Atom,
-  common::{FileName, Spanned, SyntaxContext},
+  common::{FileName, SyntaxContext},
   ecma::visit::swc_ecma_ast,
 };
 use swc_experimental_ecma_ast::{
-  Ast, ClassExpr, EsVersion, Ident, ObjectPatProp, Prop, Visit, VisitWith,
+  Ast, ClassExpr, EsVersion, Ident, ObjectPatProp, Prop, Spanned, Visit, VisitWith,
 };
 use swc_experimental_ecma_parser::{EsSyntax, Parser, StringSource, Syntax};
 use swc_experimental_ecma_semantic::resolver::{Semantic, resolver};
@@ -1012,7 +1012,7 @@ impl Module for ConcatenatedModule {
               let source = info.source.as_mut().expect("should have source");
 
               for identifier in refs {
-                let span = identifier.id.span();
+                let span = identifier.id.span;
                 let low = span.real_lo();
                 let high = span.real_hi();
                 if identifier.shorthand {
@@ -1293,7 +1293,7 @@ impl Module for ConcatenatedModule {
           );
 
           // We assume this should be concatenated module info because previous loop
-          let span = reference_ident.id.span();
+          let span = reference_ident.id.span;
           let low = span.real_lo();
           let high = span.real_hi();
           // let source = info.source.as_mut().expect("should have source");
