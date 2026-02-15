@@ -163,10 +163,8 @@ async fn optimize_dependencies(
 
   let module_graph = build_module_graph_artifact.get_module_graph();
 
-  let all_modules = module_graph.modules();
-
-  let side_effects_state_map: IdentifierMap<ConnectionState> = all_modules
-    .par_iter()
+  let side_effects_state_map: IdentifierMap<ConnectionState> = module_graph
+    .modules_par_iter()
     .map(|(module_identifier, module)| {
       (
         *module_identifier,
@@ -238,12 +236,12 @@ async fn optimize_dependencies(
     logger.log(format!(
       "{} modules are affected, {} in total",
       modules.len(),
-      all_modules.len()
+      module_graph.modules_len()
     ));
 
     modules
   } else {
-    all_modules.keys().copied().collect()
+    module_graph.modules_keys().copied().collect()
   };
   logger.time_end(inner_start);
 

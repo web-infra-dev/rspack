@@ -216,11 +216,11 @@ async fn finish_modules(
     logger.log(format!(
       "{} modules are affected, {} in total",
       modules.len(),
-      module_graph.modules().len()
+      module_graph.modules_len()
     ));
     modules
   } else {
-    module_graph.modules().keys().copied().collect()
+    module_graph.modules_keys().copied().collect()
   };
   let module_graph_cache = compilation.module_graph_cache_artifact.clone();
 

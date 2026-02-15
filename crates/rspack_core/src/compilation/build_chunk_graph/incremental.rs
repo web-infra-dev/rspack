@@ -504,7 +504,7 @@ impl CodeSplitter {
     // Thanks!
     let module_graph = compilation.get_module_graph();
     let ordinal_by_module = &mut self.ordinal_by_module;
-    for m in module_graph.modules().keys() {
+    for m in module_graph.modules_keys() {
       if !ordinal_by_module.contains_key(m) {
         ordinal_by_module.insert(*m, ordinal_by_module.len() as u64 + 1);
       }
@@ -550,8 +550,7 @@ impl CodeSplitter {
       (
         compilation
           .get_module_graph()
-          .modules()
-          .keys()
+          .modules_keys()
           .copied()
           .collect(),
         Default::default(),

@@ -870,9 +870,8 @@ impl ModuleConcatenationPlugin {
 
     // filter modules that can be root
     let modules: Vec<_> = module_graph
-      .module_graph_modules()
-      .keys()
-      .copied()
+      .module_graph_modules_iter()
+      .map(|(k, _)| *k)
       .collect();
     let res: Vec<_> = modules
       .into_par_iter()

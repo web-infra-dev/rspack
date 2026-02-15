@@ -181,7 +181,7 @@ pub async fn recovery_module_graph(
 
   // recovery entry
   let mut entry_module: Vec<ModuleIdentifier> = vec![];
-  for (_, mgm) in mg.module_graph_modules() {
+  for (_, mgm) in mg.module_graph_modules_iter() {
     if mgm.issuer().identifier().is_none() {
       entry_module.push(mgm.module_identifier);
     };
@@ -195,6 +195,6 @@ pub async fn recovery_module_graph(
     mg.cache_recovery_connection(connection);
   }
 
-  tracing::debug!("recovery {} module", mg.modules().len());
+  tracing::debug!("recovery {} module", mg.modules_len());
   Ok((mg, module_to_lazy_make, entry_dependencies))
 }

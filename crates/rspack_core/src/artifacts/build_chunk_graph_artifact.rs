@@ -225,12 +225,12 @@ where
   let compilation = task(compilation).await?;
   let mg = compilation.get_module_graph();
   let mut map = IdentifierMap::default();
-  for (mid, mgm) in mg.module_graph_modules() {
+  for (mid, mgm) in mg.module_graph_modules_iter() {
     let (Some(pre), Some(post)) = (mgm.pre_order_index, mgm.post_order_index) else {
       continue;
     };
 
-    map.insert(mid, (pre, post));
+    map.insert(*mid, (pre, post));
   }
   compilation.build_chunk_graph_artifact.module_idx = map;
   Ok(())
