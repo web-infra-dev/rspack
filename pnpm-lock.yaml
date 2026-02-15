@@ -338,8 +338,8 @@ importers:
         specifier: ~1.2.1
         version: 1.2.1(@rspack/core@packages+rspack)(webpack@5.102.1)
       rspack-vue-loader:
-        specifier: ^17.4.5
-        version: 17.4.5(vue@3.5.28(typescript@5.9.3))(webpack@5.102.1)
+        specifier: ^17.5.0
+        version: 17.5.0(@rspack/core@packages+rspack)(vue@3.5.28(typescript@5.9.3))
 
   packages/create-rspack/template-vue-ts:
     dependencies:
@@ -357,8 +357,8 @@ importers:
         specifier: ~1.2.1
         version: 1.2.1(@rspack/core@packages+rspack)(webpack@5.102.1)
       rspack-vue-loader:
-        specifier: ^17.4.5
-        version: 17.4.5(vue@3.5.28(typescript@5.9.3))(webpack@5.102.1)
+        specifier: ^17.5.0
+        version: 17.5.0(@rspack/core@packages+rspack)(vue@3.5.28(typescript@5.9.3))
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
@@ -715,8 +715,8 @@ importers:
         specifier: ^0.18.0
         version: 0.18.0
       rspack-vue-loader:
-        specifier: ^17.4.5
-        version: 17.4.5(vue@3.5.28(typescript@5.9.3))(webpack@5.102.1)
+        specifier: ^17.5.0
+        version: 17.5.0(@rspack/core@packages+rspack)(vue@3.5.28(typescript@5.9.3))
       tailwindcss:
         specifier: ^3.4.19
         version: 3.4.19(ts-node@10.9.2(@types/node@20.19.33)(typescript@5.9.3))
@@ -7252,13 +7252,15 @@ packages:
       '@rsbuild/core':
         optional: true
 
-  rspack-vue-loader@17.4.5:
-    resolution: {integrity: sha512-i88hGa4mySkwiP7HqRICIAhomcMdkNCZ5tQGcxkcUWmDfC2QfeQegFBEKY4RdbuxJ3p1Ocj/Ul6Sh4yl6L7mDg==}
+  rspack-vue-loader@17.5.0:
+    resolution: {integrity: sha512-hJrL2+jytfTs6ORHBOKTh5lU7BVZvmv7afELuQfyEpGC1ll7MKj1BxlgAIbhd6pZwoEwfdH79Lewtwe4VOlfCQ==}
     peerDependencies:
+      '@rspack/core': ^1.0.0 || ^2.0.0-0
       '@vue/compiler-sfc': '*'
       vue: '*'
-      webpack: ^5.0.0
     peerDependenciesMeta:
+      '@rspack/core':
+        optional: true
       '@vue/compiler-sfc':
         optional: true
       vue:
@@ -15329,12 +15331,12 @@ snapshots:
     optionalDependencies:
       '@rsbuild/core': 2.0.0-beta.1(@module-federation/runtime-tools@0.24.1)(core-js@3.47.0)
 
-  rspack-vue-loader@17.4.5(vue@3.5.28(typescript@5.9.3))(webpack@5.102.1):
+  rspack-vue-loader@17.5.0(@rspack/core@packages+rspack)(vue@3.5.28(typescript@5.9.3)):
     dependencies:
+      '@rspack/lite-tapable': 1.1.0
       chalk: 4.1.2
-      watchpack: 2.4.4
-      webpack: 5.102.1
     optionalDependencies:
+      '@rspack/core': link:packages/rspack
       vue: 3.5.28(typescript@5.9.3)
 
   rspress-plugin-font-open-sans@1.0.3(@rspress/core@2.0.2(@module-federation/runtime-tools@0.24.1)(@types/react@19.2.13)(core-js@3.47.0)):
