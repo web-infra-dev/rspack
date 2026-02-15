@@ -23,8 +23,8 @@ permissions:
 
 jobs:
   bench:
-    name: Bench
-    runs-on: ${{ fromJSON(inputs.runner) }}
+    name: Bench-Walltime
+    runs-on: 'rspack-bench-ubuntu'
     defaults:
       run:
         shell: bash
@@ -82,6 +82,6 @@ jobs:
         env:
           RAYON_NUM_THREADS: 1
         with:
-          mode: 'simulation'
+          mode: 'walltime'
           run: pnpm run bench:ci
           token: ${{ secrets.CODSPEED_TOKEN }}
