@@ -61,9 +61,10 @@ impl JavaScriptCompiler {
     P: Pass + 'a,
     S: Into<String>,
   {
-    let fm = self
-      .cm
-      .new_source_file(filename.unwrap_or(Arc::new(FileName::Anon)), source.into());
+    let fm = self.cm.new_source_file(
+      filename.unwrap_or_else(|| Arc::new(FileName::Anon)),
+      source.into(),
+    );
     let javascript_transformer =
       JavaScriptTransformer::new(self.cm.clone(), fm, comments, self, options)?;
 

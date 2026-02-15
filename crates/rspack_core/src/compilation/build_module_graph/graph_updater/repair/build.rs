@@ -182,7 +182,7 @@ impl Task<TaskContext> for BuildResultTask {
 
     {
       let mgm = module_graph.module_graph_module_by_identifier_mut(&module.identifier());
-      mgm.all_dependencies = all_dependencies.clone();
+      mgm.all_dependencies.clone_from(&all_dependencies);
     }
 
     let module_identifier = module.identifier();

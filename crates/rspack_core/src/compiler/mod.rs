@@ -160,7 +160,7 @@ impl Compiler {
     let module_executor = ModuleExecutor::default();
 
     let id = CompilerId::new();
-    let compiler_context = compiler_context.unwrap_or(Arc::new(CompilerContext::new()));
+    let compiler_context = compiler_context.unwrap_or_else(|| Arc::new(CompilerContext::new()));
     Self {
       id,
       compiler_path,

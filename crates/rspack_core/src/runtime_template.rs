@@ -1,5 +1,5 @@
 use std::{
-  fmt::Debug,
+  fmt::{Debug, Write},
   sync::{Arc, LazyLock, Mutex},
 };
 
@@ -1287,11 +1287,13 @@ impl ModuleCodeTemplate {
             )
           );
         }
-        appending.push_str(&format!(
+        write!(
+          appending,
           ".then({}.bind({}, {module_id_expr}, {mode}))",
           self.render_runtime_globals(&RuntimeGlobals::MAKE_DEFERRED_NAMESPACE_OBJECT),
           self.render_runtime_globals(&RuntimeGlobals::REQUIRE)
-        ));
+        )
+        .expect("infallible write to String");
       } else if let Some(header) = header {
         let rendered_async_deps_fn =
           self.render_runtime_globals(&RuntimeGlobals::MAKE_DEFERRED_NAMESPACE_OBJECT);
