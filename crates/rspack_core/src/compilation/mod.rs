@@ -94,7 +94,7 @@ define_hook!(CompilationStillValidModule: Series(compiler_id: CompilerId, compil
 define_hook!(CompilationSucceedModule: Series(compiler_id: CompilerId, compilation_id: CompilationId, module: &mut BoxModule),tracing=false);
 define_hook!(CompilationExecuteModule:
   Series(module: &ModuleIdentifier, runtime_modules: &IdentifierSet, code_generation_results: &BindingCell<CodeGenerationResults>, execute_module_id: &ExecuteModuleId));
-define_hook!(CompilationFinishModules: Series(compilation: &mut Compilation, async_modules_artifact: &mut AsyncModulesArtifact));
+define_hook!(CompilationFinishModules: Series(compilation: &Compilation, async_modules_artifact: &mut AsyncModulesArtifact, exports_info_artifact: &mut ExportsInfoArtifact));
 define_hook!(CompilationSeal: Series(compilation: &mut Compilation));
 define_hook!(CompilationDependencyReferencedExports: Sync(
   compilation: &Compilation,
@@ -990,7 +990,14 @@ impl Compilation {
   }
 
   pub fn get_stats(&self) -> Stats<'_> {
-    Stats::new(self)
+    self.get_stats_with_exports_info_artifact(&self.exports_info_artifact)
+  }
+
+  pub fn get_stats_with_exports_info_artifact<'a>(
+    &'a self,
+    exports_info_artifact: &'a ExportsInfoArtifact,
+  ) -> Stats<'a> {
+    Stats::new(self, exports_info_artifact)
   }
 
   pub fn add_named_chunk(
@@ -1021,23 +1028,23 @@ impl Compilation {
   pub async fn rebuild_module<T>(
     &mut self,
     module_identifiers: IdentifierSet,
+    exports_info_artifact: &mut ExportsInfoArtifact,
     f: impl Fn(Vec<&BoxModule>) -> T,
   ) -> Result<T> {
     let artifact = self.build_module_graph_artifact.steal();
-    let exports_info_artifact = self.exports_info_artifact.steal();
 
     // https://github.com/webpack/webpack/blob/19ca74127f7668aaf60d59f4af8fcaee7924541a/lib/Compilation.js#L2462C21-L2462C25
     self.module_graph_cache_artifact.unfreeze();
 
-    let (artifact, exports_info_artifact) = update_module_graph(
+    let (artifact, updated_exports_info_artifact) = update_module_graph(
       self,
       artifact,
-      exports_info_artifact,
+      std::mem::take(exports_info_artifact),
       vec![UpdateParam::ForceBuildModules(module_identifiers.clone())],
     )
     .await?;
+    *exports_info_artifact = updated_exports_info_artifact;
     self.build_module_graph_artifact = artifact.into();
-    self.exports_info_artifact = exports_info_artifact.into();
 
     let module_graph = self.get_module_graph();
     Ok(f(module_identifiers

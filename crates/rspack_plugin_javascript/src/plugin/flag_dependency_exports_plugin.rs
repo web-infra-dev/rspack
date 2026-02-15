@@ -18,14 +18,14 @@ use rustc_hash::FxHashSet;
 use swc_core::ecma::atoms::Atom;
 
 struct FlagDependencyExportsState<'a> {
-  mg: &'a mut ModuleGraph,
+  mg: &'a ModuleGraph,
   mg_cache: &'a ModuleGraphCacheArtifact,
   exports_info_artifact: &'a mut ExportsInfoArtifact,
 }
 
 impl<'a> FlagDependencyExportsState<'a> {
   pub fn new(
-    mg: &'a mut ModuleGraph,
+    mg: &'a ModuleGraph,
     mg_cache: &'a ModuleGraphCacheArtifact,
     exports_info_artifact: &'a mut ExportsInfoArtifact,
   ) -> Self {
@@ -201,41 +201,31 @@ pub struct FlagDependencyExportsPlugin;
 #[plugin_hook(CompilationFinishModules for FlagDependencyExportsPlugin)]
 async fn finish_modules(
   &self,
-  compilation: &mut Compilation,
+  compilation: &Compilation,
   _async_modules_artifact: &mut AsyncModulesArtifact,
+  exports_info_artifact: &mut ExportsInfoArtifact,
 ) -> Result<()> {
+  let module_graph = compilation.get_module_graph();
   let modules: IdentifierSet = if let Some(mutations) = compilation
     .incremental
     .mutations_read(IncrementalPasses::FINISH_MODULES)
   {
-    let modules = mutations.get_affected_modules_with_module_graph(compilation.get_module_graph());
+    let modules = mutations.get_affected_modules_with_module_graph(module_graph);
     tracing::debug!(target: incremental::TRACING_TARGET, passes = %IncrementalPasses::FINISH_MODULES, %mutations, ?modules);
     let logger = compilation.get_logger("rspack.incremental.finishModules");
     logger.log(format!(
       "{} modules are affected, {} in total",
       modules.len(),
-      compilation.get_module_graph().modules().len()
+      module_graph.modules().len()
     ));
     modules
   } else {
-    compilation
-      .get_module_graph()
-      .modules()
-      .keys()
-      .copied()
-      .collect()
+    module_graph.modules().keys().copied().collect()
   };
   let module_graph_cache = compilation.module_graph_cache_artifact.clone();
 
-  let module_graph = compilation
-    .build_module_graph_artifact
-    .get_module_graph_mut();
-  FlagDependencyExportsState::new(
-    module_graph,
-    &module_graph_cache,
-    &mut compilation.exports_info_artifact,
-  )
-  .apply(modules);
+  FlagDependencyExportsState::new(module_graph, &module_graph_cache, exports_info_artifact)
+    .apply(modules);
 
   Ok(())
 }
@@ -302,7 +292,7 @@ fn collect_module_exports_specs(
 /// and also collect the dependencies
 /// which will be used to backtrack when target exports info is changed
 pub fn process_exports_spec(
-  mg: &mut ModuleGraph,
+  mg: &ModuleGraph,
   exports_info_artifact: &mut ExportsInfoArtifact,
   module_id: &ModuleIdentifier,
   dep_id: DependencyId,
@@ -542,7 +532,7 @@ pub fn merge_exports_without_nested(
 /// This method is used for the case that the exports info data will be nested modified
 /// that means this exports info can not be modified parallelly
 pub fn merge_exports(
-  mg: &mut ModuleGraph,
+  mg: &ModuleGraph,
   exports_info_artifact: &mut ExportsInfoArtifact,
   module_id: &ModuleIdentifier,
   exports_info: ExportsInfo,
@@ -656,7 +646,7 @@ fn set_export_base_info(
 }
 
 fn merge_nested_exports(
-  mg: &mut ModuleGraph,
+  mg: &ModuleGraph,
   exports_info_artifact: &mut ExportsInfoArtifact,
   module_id: &ModuleIdentifier,
   export_info: ExportInfo,

@@ -1,5 +1,6 @@
 use std::{
   collections::HashMap,
+  ffi::c_void,
   hash::Hash,
   ptr::NonNull,
   sync::{Arc, RwLock},
@@ -72,6 +73,7 @@ use rspack_plugin_runtime::{
   RuntimePluginLinkPrefetch, RuntimePluginLinkPrefetchHook, RuntimePluginLinkPreload,
   RuntimePluginLinkPreloadHook,
 };
+use rspack_tasks::within_compiler_context;
 
 use crate::{
   asset::JsAssetEmittedArgs,
@@ -1258,11 +1260,28 @@ impl CompilationExecuteModule for CompilationExecuteModuleTap {
 impl CompilationFinishModules for CompilationFinishModulesTap {
   async fn run(
     &self,
-    compilation: &mut Compilation,
-    async_modules_artifact: &mut AsyncModulesArtifact,
+    compilation: &Compilation,
+    _async_modules_artifact: &mut AsyncModulesArtifact,
+    exports_info_artifact: &mut rspack_core::ExportsInfoArtifact,
   ) -> rspack_error::Result<()> {
-    let compilation = JsCompilationWrapper::new(compilation);
-    self.function.call_with_promise(compilation).await
+    let compiler_context = compilation.compiler_context.clone();
+    let previous_ptr_addr = compiler_context
+      .exports_info_artifact_ptr()
+      .map_or(0usize, |ptr| ptr as usize);
+    compiler_context
+      .set_exports_info_artifact_ptr(Some(exports_info_artifact as *mut _ as *mut c_void));
+    let result = within_compiler_context(compiler_context.clone(), async {
+      let compilation = JsCompilationWrapper::new(compilation);
+      self.function.call_with_promise(compilation).await
+    })
+    .await;
+    let previous_ptr = if previous_ptr_addr == 0 {
+      None
+    } else {
+      Some(previous_ptr_addr as *mut c_void)
+    };
+    compiler_context.set_exports_info_artifact_ptr(previous_ptr);
+    result
   }
 
   fn stage(&self) -> i32 {
