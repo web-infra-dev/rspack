@@ -106,7 +106,12 @@ impl BuildChunkGraphArtifact {
         'outer: for (m, connections) in active_modules {
           for conn in connections {
             if conn
-              .active_state(module_graph, None, module_graph_cache)
+              .active_state(
+                module_graph,
+                None,
+                module_graph_cache,
+                &this_compilation.exports_info_artifact,
+              )
               .is_not_false()
             {
               res.push(m);

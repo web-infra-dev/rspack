@@ -586,7 +586,14 @@ impl RstestParserPlugin {
       }
       // rs.mockRequire
       ("rs" | "rstest", "mockRequire") => {
-        self.process_mock(parser, call_expr, true, false, MockMethod::Mock, true);
+        self.process_mock(
+          parser,
+          call_expr,
+          true,
+          false,
+          MockMethod::MockRequire,
+          true,
+        );
         Some(false)
       }
       // rs.doMock

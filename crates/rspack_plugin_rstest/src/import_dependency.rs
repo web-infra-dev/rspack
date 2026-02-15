@@ -115,6 +115,7 @@ fn module_namespace_promise_rstest(
   let exports_type = get_exports_type(
     compilation.get_module_graph(),
     &compilation.module_graph_cache_artifact,
+    &compilation.exports_info_artifact,
     dep_id,
     &module.identifier(),
   );

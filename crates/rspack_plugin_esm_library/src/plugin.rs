@@ -14,8 +14,8 @@ use rspack_core::{
   CompilationConcatenationScope, CompilationFinishModules, CompilationOptimizeChunks,
   CompilationOptimizeDependencies, CompilationParams, CompilationProcessAssets,
   CompilationRuntimeRequirementInTree, CompilerCompilation, ConcatenatedModuleInfo,
-  ConcatenationScope, DependencyType, ExternalModuleInfo, GetTargetResult, Logger,
-  ModuleFactoryCreateData, ModuleIdentifier, ModuleInfo, ModuleType,
+  ConcatenationScope, DependencyType, ExportsInfoArtifact, ExternalModuleInfo, GetTargetResult,
+  Logger, ModuleFactoryCreateData, ModuleIdentifier, ModuleInfo, ModuleType,
   NormalModuleFactoryAfterFactorize, NormalModuleFactoryParser, ParserAndGenerator, ParserOptions,
   Plugin, PrefetchExportsInfoMode, RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule,
   SideEffectsOptimizeArtifact, get_target, is_esm_dep_like,
@@ -150,7 +150,8 @@ async fn finish_modules(
 
     // if we reach here, check exports info
     if should_scope_hoisting {
-      let exports_info = module_graph
+      let exports_info = compilation
+        .exports_info_artifact
         .get_prefetched_exports_info(module_identifier, PrefetchExportsInfoMode::Default);
 
       let relevant_exports = exports_info.get_relevant_exports(None);
@@ -162,6 +163,7 @@ async fn finish_modules(
               get_target(
                 export_info,
                 module_graph,
+                &compilation.exports_info_artifact,
                 Rc::new(|_| true),
                 &mut Default::default()
               ),
@@ -246,11 +248,9 @@ async fn finish_modules(
     );
   }
 
-  let module_graph = compilation
-    .build_module_graph_artifact
-    .get_module_graph_mut();
   for m in entry_modules {
-    module_graph
+    compilation
+      .exports_info_artifact
       .get_exports_info_data_mut(&m)
       .set_used_in_unknown_way(None);
   }
@@ -541,6 +541,7 @@ async fn optimize_dependencies(
   _compilation: &Compilation,
   _side_effects_optimize_artifact: &mut SideEffectsOptimizeArtifact,
   build_module_graph_artifact: &mut BuildModuleGraphArtifact,
+  _exports_info_artifact: &mut ExportsInfoArtifact,
   _diagnostics: &mut Vec<Diagnostic>,
 ) -> Result<Option<bool>> {
   cutout_dyn_import_external(build_module_graph_artifact);

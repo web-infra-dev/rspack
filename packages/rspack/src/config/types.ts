@@ -831,6 +831,8 @@ export type ResolveOptions = {
   byDependency?: Record<string, ResolveOptions>;
   /** enable Yarn PnP */
   pnp?: boolean;
+  /** Path to PnP manifest file */
+  pnpManifest?: string | false;
 };
 
 /** Used to configure the Rspack module resolution */
@@ -2765,6 +2767,11 @@ export type Incremental = {
    * Enable incremental build chunk graph.
    */
   buildChunkGraph?: boolean;
+
+  /**
+   * Enable incremental optimize chunk modules.
+   */
+  optimizeChunkModules?: boolean;
 
   /**
    * Enable incremental module ids.

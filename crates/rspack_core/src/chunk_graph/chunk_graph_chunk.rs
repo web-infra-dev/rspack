@@ -13,8 +13,8 @@ use serde::{Serialize, Serializer};
 
 use crate::{
   BoxModule, Chunk, ChunkByUkey, ChunkGraph, ChunkGraphModule, ChunkGroupByUkey, ChunkGroupUkey,
-  ChunkUkey, Compilation, Module, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
-  RuntimeGlobals, RuntimeModule, SourceType, find_graph_roots, merge_runtime,
+  ChunkUkey, Compilation, ExportsInfoArtifact, Module, ModuleGraph, ModuleGraphCacheArtifact,
+  ModuleIdentifier, RuntimeGlobals, RuntimeModule, SourceType, find_graph_roots, merge_runtime,
 };
 
 #[derive(Debug, Clone, Default)]
@@ -719,6 +719,7 @@ impl ChunkGraph {
     chunk: &ChunkUkey,
     module_graph: &ModuleGraph,
     module_graph_cache: &ModuleGraphCacheArtifact,
+    exports_info_artifact: &ExportsInfoArtifact,
   ) -> Vec<ModuleIdentifier> {
     let cgc = self.expect_chunk_graph_chunk(chunk);
     let mut input = cgc.modules.iter().copied().collect::<Vec<_>>();
@@ -731,10 +732,16 @@ impl ChunkGraph {
         set: &mut IdentifierSet,
         module_graph: &ModuleGraph,
         module_graph_cache: &ModuleGraphCacheArtifact,
+        exports_info_artifact: &ExportsInfoArtifact,
       ) {
         for connection in module_graph.get_outgoing_connections(&module) {
           // https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/ChunkGraph.js#L290
-          let active_state = connection.active_state(module_graph, None, module_graph_cache);
+          let active_state = connection.active_state(
+            module_graph,
+            None,
+            module_graph_cache,
+            exports_info_artifact,
+          );
           match active_state {
             crate::ConnectionState::Active(false) => {
               continue;
@@ -745,6 +752,7 @@ impl ChunkGraph {
                 set,
                 module_graph,
                 module_graph_cache,
+                exports_info_artifact,
               );
               continue;
             }
@@ -754,7 +762,13 @@ impl ChunkGraph {
         }
       }
 
-      add_dependencies(module, &mut set, module_graph, module_graph_cache);
+      add_dependencies(
+        module,
+        &mut set,
+        module_graph,
+        module_graph_cache,
+        exports_info_artifact,
+      );
       set.into_iter().collect()
     });
 

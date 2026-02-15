@@ -628,3 +628,17 @@ class MyPlugin {
   }
 }
 ```
+
+### ProgressPlugin handler signature change
+
+The `ProgressPlugin` custom handler's third argument has changed from `items: string[]` to a structured `info` object.
+
+```diff
+- (percent, msg, items) => void
++ (percent, msg, info) => void
+```
+
+`info` includes:
+
+- `builtModules: number`: Number of modules built so far
+- `moduleIdentifier?: string`: Identifier of the module being built (only provided during `build modules` updates)

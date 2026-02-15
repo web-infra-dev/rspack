@@ -18,12 +18,14 @@ new rspack.ProgressPlugin(options);
 
 - `percentage`：0 到 1 之间的数字，表示编译的完成百分比
 - `message`：关于当前执行 hook 的简短描述
-- `...args`：零个或多个描述当前进度的附加字符串
+- `info`：额外的进度信息
+  - `builtModules`：已构建的模块数量
+  - `moduleIdentifier`：当前活跃模块的标识符（仅在 `build modules` 更新阶段提供）
 
 ```js
-const handler = (percentage, message, ...args) => {
+const handler = (percentage, message, info) => {
   // e.g. Output each progress message directly to the console:
-  console.info(percentage, message, ...args);
+  console.info(percentage, message, info.builtModules, info.moduleIdentifier);
 };
 
 new rspack.ProgressPlugin(handler);
