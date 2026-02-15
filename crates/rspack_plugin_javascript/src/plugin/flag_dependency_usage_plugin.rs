@@ -60,7 +60,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
     let mut module_graph = self.build_module_graph_artifact.get_module_graph_mut();
     self.exports_info_artifact.reset_all_exports_info_used();
 
-    for mgm in module_graph.module_graph_modules().values() {
+    for (_, mgm) in module_graph.module_graph_modules_iter() {
       self.exports_info_module_map.insert(
         self
           .exports_info_artifact

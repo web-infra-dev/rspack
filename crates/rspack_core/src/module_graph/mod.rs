@@ -131,16 +131,43 @@ impl ModuleGraph {
 }
 
 impl ModuleGraph {
+  #[inline]
+  pub fn modules_len(&self) -> usize {
+    self.inner.modules.len()
+  }
+
+  #[inline]
+  pub fn modules_iter(&self) -> impl Iterator<Item = (&ModuleIdentifier, &BoxModule)> {
+    self.inner.modules.iter()
+  }
+
+  #[inline]
+  pub fn modules_par_iter(
+    &self,
+  ) -> impl rayon::prelude::ParallelIterator<Item = (&ModuleIdentifier, &BoxModule)> {
+    self.inner.modules.par_iter()
+  }
+
+  #[inline]
+  pub fn modules_keys(&self) -> impl Iterator<Item = &ModuleIdentifier> {
+    self.inner.modules.iter().map(|(k, _)| k)
+  }
+
+  #[inline]
+  pub fn module_graph_modules_iter(
+    &self,
+  ) -> impl Iterator<Item = (&ModuleIdentifier, &ModuleGraphModule)> {
+    self.inner.module_graph_modules.iter()
+  }
+
   /// Return an unordered iterator of modules
   pub fn modules(&self) -> IdentifierMap<&BoxModule> {
-    self.inner.modules.iter().map(|(k, v)| (*k, v)).collect()
+    self.modules_iter().map(|(k, v)| (*k, v)).collect()
   }
 
   pub fn module_graph_modules(&self) -> IdentifierMap<&ModuleGraphModule> {
     self
-      .inner
-      .module_graph_modules
-      .iter()
+      .module_graph_modules_iter()
       .map(|(k, v)| (*k, v))
       .collect()
   }

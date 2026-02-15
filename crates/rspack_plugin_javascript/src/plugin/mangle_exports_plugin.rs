@@ -77,12 +77,11 @@ async fn optimize_code_generation(
   }
 
   let mg = build_module_graph_artifact.get_module_graph_mut();
-  let modules = mg.modules();
 
   let mut exports_info_cache = FxHashMap::default();
 
-  let mut q = modules
-    .iter()
+  let mut q = mg
+    .modules_iter()
     .map(|(mid, module)| {
       let is_namespace = matches!(
         module.build_meta().exports_type,
@@ -182,9 +181,9 @@ async fn optimize_code_generation(
     }
   }
 
-  let mut queue = modules
-    .into_keys()
-    .map(|mid| exports_info_artifact.get_exports_info(&mid))
+  let mut queue = mg
+    .modules_keys()
+    .map(|mid| exports_info_artifact.get_exports_info(mid))
     .collect_vec();
 
   while !queue.is_empty() {
