@@ -11,7 +11,7 @@
     "@babel/core": "^7.29.0",
     "@babel/preset-react": "^7.28.5",
     "@playwright/test": "1.57.0",
-    "core-js": "3.47.0",
+    "core-js": "3.48.0",
     "@rspack/core": "workspace:*",
     "@rspack/browser": "workspace:*",
     "@rspack/dev-server": "~1.2.1",
