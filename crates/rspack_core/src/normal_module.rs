@@ -654,7 +654,13 @@ impl Module for NormalModule {
           },
         )
         .await?;
-      code_generation_result.add(*source_type, CachedSource::new(generation_result).boxed());
+
+      let source = CachedSource::new(generation_result);
+      // Precompute hash for cached source to optimize concatenated module performance.
+      // In concatenated modules, a large module is assembled and hash calculation becomes serial.
+      // By precomputing hashes here during parallel code generation, we avoid serial bottlenecks later.
+      precompute_hash_for_source(&source);
+      code_generation_result.add(*source_type, source.boxed());
     }
     code_generation_result.concatenation_scope = std::mem::take(concatenation_scope);
     Ok(code_generation_result)
@@ -869,4 +875,9 @@ impl NormalModule {
     }
     Ok(RawStringSource::from(content.into_string_lossy()).boxed())
   }
+}
+
+fn precompute_hash_for_source(source: &CachedSource) {
+  let mut hasher = FxHasher::default();
+  source.hash(&mut hasher);
 }
