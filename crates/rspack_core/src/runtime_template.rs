@@ -461,25 +461,26 @@ pub fn get_outgoing_async_modules(
           .clone(),
       );
     } else {
-      for (module, connections) in mg.get_outcoming_connections_by_module(&module_identifier) {
-        let is_esm = connections.iter().any(|connection| {
-          let dep = mg.dependency_by_id(&connection.dependency_id);
-          matches!(
-            dep.dependency_type(),
-            DependencyType::EsmImport | DependencyType::EsmExportImport
-          )
-        });
-        if is_esm {
-          helper(
-            compilation,
-            mg,
-            mg.module_by_identifier(&module)
-              .expect("should have module")
-              .as_ref(),
-            set,
-            visited,
-          );
+      let mut esm_targets = HashSet::default();
+      for connection in mg.get_outgoing_connections(&module_identifier) {
+        let dep = mg.dependency_by_id(&connection.dependency_id);
+        if matches!(
+          dep.dependency_type(),
+          DependencyType::EsmImport | DependencyType::EsmExportImport
+        ) {
+          esm_targets.insert(*connection.module_identifier());
         }
+      }
+      for module in esm_targets {
+        helper(
+          compilation,
+          mg,
+          mg.module_by_identifier(&module)
+            .expect("should have module")
+            .as_ref(),
+          set,
+          visited,
+        );
       }
     }
   }
