@@ -2,7 +2,7 @@ pub mod internal;
 pub mod rollback;
 
 use internal::try_get_module_graph_module_mut_by_identifier;
-use rayon::prelude::*;
+use rayon::prelude::IntoParallelRefIterator;
 use rspack_collections::IdentifierMap;
 use rspack_error::Result;
 use rspack_hash::RspackHashDigest;
@@ -170,6 +170,11 @@ impl ModuleGraph {
       .module_graph_modules_iter()
       .map(|(k, v)| (*k, v))
       .collect()
+  }
+
+  #[inline]
+  pub fn module_graph_modules_len(&self) -> usize {
+    self.inner.module_graph_modules.iter().count()
   }
 
   // #[tracing::instrument(skip_all, fields(module = ?module_id))]
@@ -576,6 +581,16 @@ impl ModuleGraph {
       .iter()
       .map(|(k, v)| (*k, v))
       .collect()
+  }
+
+  #[inline]
+  pub fn dependencies_iter(&self) -> impl Iterator<Item = (&DependencyId, &BoxDependency)> {
+    self.inner.dependencies.iter()
+  }
+
+  #[inline]
+  pub fn dependencies_len(&self) -> usize {
+    self.inner.dependencies.len()
   }
 
   pub fn add_dependency(&mut self, dependency: BoxDependency) {
@@ -1012,38 +1027,20 @@ impl ModuleGraph {
     &mut self,
     tasks: Vec<(DependencyId, ModuleIdentifier)>,
   ) {
-    let changed = tasks
-      .into_par_iter()
-      .map(|(dep_id, original_module_identifier)| {
-        let mut con = self
-          .connection_by_dependency_id(&dep_id)
-          .expect("should have connection")
-          .clone();
-        con.original_module_identifier = Some(original_module_identifier);
-        (dep_id, con)
-      })
-      .collect::<Vec<_>>();
-
-    for (dep_id, con) in changed {
-      self.inner.connections.insert(dep_id, con);
+    for (dep_id, original_module_identifier) in tasks {
+      let con = self
+        .connection_by_dependency_id_mut(&dep_id)
+        .expect("should have connection");
+      con.original_module_identifier = Some(original_module_identifier);
     }
   }
 
   pub fn batch_set_connections_module(&mut self, tasks: Vec<(DependencyId, ModuleIdentifier)>) {
-    let changed = tasks
-      .into_par_iter()
-      .map(|(dep_id, module_identifier)| {
-        let mut con = self
-          .connection_by_dependency_id(&dep_id)
-          .expect("should have connection")
-          .clone();
-        con.set_module_identifier(module_identifier);
-        (dep_id, con)
-      })
-      .collect::<Vec<_>>();
-
-    for (dep_id, con) in changed {
-      self.inner.connections.insert(dep_id, con);
+    for (dep_id, module_identifier) in tasks {
+      let con = self
+        .connection_by_dependency_id_mut(&dep_id)
+        .expect("should have connection");
+      con.set_module_identifier(module_identifier);
     }
   }
 
@@ -1051,25 +1048,14 @@ impl ModuleGraph {
     &mut self,
     tasks: Vec<(ModuleIdentifier, Vec<DependencyId>, Vec<DependencyId>)>,
   ) {
-    let changed = tasks
-      .into_par_iter()
-      .map(|(mid, outgoings, incomings)| {
-        let mut mgm = self
-          .module_graph_module_by_identifier(&mid)
-          .expect("should have mgm")
-          .clone();
-        for outgoing in outgoings {
-          mgm.add_outgoing_connection(outgoing);
-        }
-        for incoming in incomings {
-          mgm.add_incoming_connection(incoming);
-        }
-        (mid, mgm)
-      })
-      .collect::<Vec<_>>();
-
-    for (mid, mgm) in changed {
-      self.inner.module_graph_modules.insert(mid, mgm);
+    for (mid, outgoings, incomings) in tasks {
+      let mgm = self.module_graph_module_by_identifier_mut(&mid);
+      for outgoing in outgoings {
+        mgm.add_outgoing_connection(outgoing);
+      }
+      for incoming in incomings {
+        mgm.add_incoming_connection(incoming);
+      }
     }
   }
 
@@ -1077,25 +1063,14 @@ impl ModuleGraph {
     &mut self,
     tasks: Vec<(ModuleIdentifier, Vec<DependencyId>, Vec<DependencyId>)>,
   ) {
-    let changed = tasks
-      .into_par_iter()
-      .map(|(mid, outgoings, incomings)| {
-        let mut mgm = self
-          .module_graph_module_by_identifier(&mid)
-          .expect("should have mgm")
-          .clone();
-        for outgoing in outgoings.iter() {
-          mgm.remove_outgoing_connection(outgoing);
-        }
-        for incoming in incomings.iter() {
-          mgm.remove_incoming_connection(incoming);
-        }
-        (mid, mgm)
-      })
-      .collect::<Vec<_>>();
-
-    for (mid, mgm) in changed {
-      self.inner.module_graph_modules.insert(mid, mgm);
+    for (mid, outgoings, incomings) in tasks {
+      let mgm = self.module_graph_module_by_identifier_mut(&mid);
+      for outgoing in &outgoings {
+        mgm.remove_outgoing_connection(outgoing);
+      }
+      for incoming in &incomings {
+        mgm.remove_incoming_connection(incoming);
+      }
     }
   }
 

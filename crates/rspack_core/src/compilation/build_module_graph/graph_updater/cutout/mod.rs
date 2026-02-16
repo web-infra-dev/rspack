@@ -50,12 +50,10 @@ impl Cutout {
           clean_entry_dependencies = true;
         }
         UpdateParam::CheckNeedBuild => {
-          force_build_modules.extend(module_graph.modules().values().filter_map(|module| {
-            if module.need_build(&compilation.value_cache_versions) {
-              Some(module.identifier())
-            } else {
-              None
-            }
+          force_build_modules.extend(module_graph.modules_iter().filter_map(|(_, module)| {
+            module
+              .need_build(&compilation.value_cache_versions)
+              .then_some(module.identifier())
           }));
         }
         UpdateParam::ModifiedFiles(files) | UpdateParam::RemovedFiles(files) => {

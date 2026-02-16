@@ -4,10 +4,9 @@ use either::Either;
 use once_cell::sync::OnceCell;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use rspack_collections::{IdentifierSet, UkeySet};
+use rustc_hash::FxHashMap as HashMap;
 
-use crate::{
-  AffectType, BoxDependency, ChunkUkey, Compilation, DependencyId, ModuleGraph, ModuleIdentifier,
-};
+use crate::{AffectType, ChunkUkey, Compilation, DependencyId, ModuleGraph, ModuleIdentifier};
 
 #[derive(Debug, Default)]
 pub struct Mutations {
@@ -254,18 +253,6 @@ fn compute_affected_modules_with_module_graph(
   built_modules: IdentifierSet,
   built_dependencies: UkeySet<DependencyId>,
 ) -> IdentifierSet {
-  fn reduce_affect_type<'a>(dependencies: impl Iterator<Item = &'a BoxDependency>) -> AffectType {
-    let mut affected = AffectType::False;
-    for dependency in dependencies {
-      match dependency.could_affect_referencing_module() {
-        AffectType::True => affected = AffectType::True,
-        AffectType::False => {}
-        AffectType::Transitive => return AffectType::Transitive,
-      }
-    }
-    affected
-  }
-
   fn get_direct_and_transitive_affected_modules(
     modules: &IdentifierSet,
     all_affected_modules: &IdentifierSet,
@@ -274,23 +261,38 @@ fn compute_affected_modules_with_module_graph(
     modules
       .par_iter()
       .flat_map(|module_identifier| {
-        module_graph
-          .get_incoming_connections_by_origin_module(module_identifier)
+        let mut affect_by_referencing_module: HashMap<ModuleIdentifier, AffectType> =
+          HashMap::default();
+        for connection in module_graph.get_incoming_connections(module_identifier) {
+          let Some(referencing_module) = connection.original_module_identifier else {
+            continue;
+          };
+          if all_affected_modules.contains(&referencing_module) {
+            continue;
+          }
+          let affect = module_graph
+            .dependency_by_id(&connection.dependency_id)
+            .could_affect_referencing_module();
+          affect_by_referencing_module
+            .entry(referencing_module)
+            .and_modify(|current| {
+              if matches!(current, AffectType::Transitive)
+                || matches!(affect, AffectType::Transitive)
+              {
+                *current = AffectType::Transitive;
+              } else if matches!(current, AffectType::False) {
+                *current = affect;
+              }
+            })
+            .or_insert(affect);
+        }
+
+        affect_by_referencing_module
           .into_iter()
-          .filter_map(|(referencing_module, connections)| {
-            let referencing_module = referencing_module?;
-            if all_affected_modules.contains(&referencing_module) {
-              return None;
-            }
-            match reduce_affect_type(
-              connections
-                .iter()
-                .map(|c| module_graph.dependency_by_id(&c.dependency_id)),
-            ) {
-              AffectType::False => None,
-              AffectType::True => Some(AffectedModuleKind::Direct(referencing_module)),
-              AffectType::Transitive => Some(AffectedModuleKind::Transitive(referencing_module)),
-            }
+          .filter_map(|(referencing_module, affect)| match affect {
+            AffectType::False => None,
+            AffectType::True => Some(AffectedModuleKind::Direct(referencing_module)),
+            AffectType::Transitive => Some(AffectedModuleKind::Transitive(referencing_module)),
           })
           .collect::<Vec<_>>()
       })
