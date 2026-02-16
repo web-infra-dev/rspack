@@ -1,15 +1,5 @@
 ```mjs title=lib.mjs
-import * as __rspack_external_fs from "fs";
-
-// fs
-
-// ./lib.js
-// side effect
-console.log.bind(console)
-
-
-// re-export star from unknown
-
+import "./proxy-main.mjs";
 
 export * from "fs";
 
@@ -23,7 +13,17 @@ export { a, b } from "./proxy-main.mjs";
 ```
 
 ```mjs title=proxy-main.mjs
-import "./lib.mjs";
+import * as __rspack_external_fs from "fs";
+
+// fs
+
+// ./lib.js
+// side effect
+console.log.bind(console)
+
+
+// re-export star from unknown
+
 
 // ./index.js
 // normal export
