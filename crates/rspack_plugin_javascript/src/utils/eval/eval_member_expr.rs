@@ -1,19 +1,19 @@
 use rspack_util::SpanExt;
-use swc_core::ecma::ast::{Expr, MemberExpr};
+use swc_experimental_ecma_ast::{Expr, MemberExpr, Spanned};
 
 use super::BasicEvaluatedExpression;
 use crate::{
   parser_plugin::JavascriptParserPlugin,
-  visitors::{AllowedMemberTypes, ExprRef, JavascriptParser, MemberExpressionInfo},
+  visitors::{AllowedMemberTypes, JavascriptParser, MemberExpressionInfo},
 };
 
-pub fn eval_member_expression<'a>(
+pub fn eval_member_expression(
   parser: &mut JavascriptParser,
-  member: &'a MemberExpr,
-  expr: &'a Expr,
-) -> Option<BasicEvaluatedExpression<'a>> {
+  member: MemberExpr,
+  expr: Expr,
+) -> Option<BasicEvaluatedExpression> {
   let ret = if let Some(MemberExpressionInfo::Expression(info)) =
-    parser.get_member_expression_info(ExprRef::Member(member), AllowedMemberTypes::Expression)
+    parser.get_member_expression_info(Expr::Member(member), AllowedMemberTypes::Expression)
   {
     parser
       .plugin_drive
@@ -21,14 +21,16 @@ pub fn eval_member_expression<'a>(
       .evaluate_identifier(
         parser,
         &info.name,
-        member.span.real_lo(),
-        member.span.real_hi(),
+        member.span(&parser.ast).real_lo(),
+        member.span(&parser.ast).real_hi(),
       )
       .or_else(|| parser.plugin_drive.clone().evaluate(parser, expr))
       .or_else(|| {
         // TODO: fallback with `evaluateDefinedIdentifier`
-        let mut eval =
-          BasicEvaluatedExpression::with_range(member.span.real_lo(), member.span.real_hi());
+        let mut eval = BasicEvaluatedExpression::with_range(
+          member.span(&parser.ast).real_lo(),
+          member.span(&parser.ast).real_hi(),
+        );
         eval.set_identifier(
           info.name.into(),
           info.root_info,
