@@ -16,7 +16,7 @@ use rspack_util::{MergeFrom, try_all, try_any};
 use rustc_hash::FxHashMap as HashMap;
 use tokio::sync::OnceCell;
 
-use crate::{Compilation, Filename, Module, ModuleType, PublicPath, Resolve};
+use crate::{Compilation, CompilerId, Filename, Module, ModuleType, PublicPath, Resolve};
 
 #[derive(Debug, Default)]
 pub struct ParserOptionsMap(HashMap<String, ParserOptions>);
@@ -311,6 +311,15 @@ pub struct JavascriptParserOptions {
   pub defer_import: Option<bool>,
 }
 
+pub struct AssetParserDataUrlFnCtx<'a> {
+  pub filename: String,
+  pub module: &'a dyn Module,
+  pub compiler_id: CompilerId,
+}
+
+pub type AssetParserDataUrlFn =
+  Arc<dyn Fn(Vec<u8>, AssetParserDataUrlFnCtx) -> BoxFuture<'static, Result<bool>> + Sync + Send>;
+
 #[cacheable]
 #[derive(Debug, Clone, MergeFrom)]
 pub struct AssetParserOptions {
@@ -318,10 +327,33 @@ pub struct AssetParserOptions {
 }
 
 #[cacheable]
-#[derive(Debug, Clone, MergeFrom)]
 pub enum AssetParserDataUrl {
   Options(AssetParserDataUrlOptions),
-  // TODO: Function
+  Func(#[cacheable(with=Unsupported)] AssetParserDataUrlFn),
+}
+
+impl fmt::Debug for AssetParserDataUrl {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    match self {
+      Self::Options(i) => f.debug_tuple("Options").field(i).finish(),
+      Self::Func(_) => f.debug_tuple("Func").finish(),
+    }
+  }
+}
+
+impl Clone for AssetParserDataUrl {
+  fn clone(&self) -> Self {
+    match self {
+      Self::Options(i) => Self::Options(i.clone()),
+      Self::Func(i) => Self::Func(i.clone()),
+    }
+  }
+}
+
+impl MergeFrom for AssetParserDataUrl {
+  fn merge_from(self, other: &Self) -> Self {
+    other.clone()
+  }
 }
 
 #[cacheable]
