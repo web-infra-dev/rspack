@@ -28,13 +28,14 @@ use rspack_util::{SpanExt, fx_hash::FxIndexSet};
 use rustc_hash::{FxHashMap, FxHashSet};
 use swc_core::{
   atoms::Atom,
-  common::{BytePos, Mark, Span, comments::Comments},
+  common::{BytePos, Span, comments::Comments},
 };
 use swc_experimental_ecma_ast::{
   ArrayPat, AssignPat, AssignTargetPat, Ast, CallExpr, Callee, Decl, Expr, Ident, Lit, MemberExpr,
   MetaPropExpr, MetaPropKind, ObjectPat, ObjectPatProp, OptCall, OptChainBase, OptChainExpr, Pat,
   Program, RestPat, Spanned, Stmt, ThisExpr, TypedSubRange,
 };
+use swc_experimental_ecma_semantic::ScopeId;
 
 use crate::{
   BoxJavascriptParserPlugin,
@@ -368,7 +369,7 @@ impl<'parser> JavascriptParser<'parser> {
     build_meta: &'parser mut BuildMeta,
     build_info: &'parser mut BuildInfo,
     semicolons: &'parser mut FxHashSet<BytePos>,
-    unresolved_mark: Mark,
+    unresolved_scope_id: ScopeId,
     parser_plugins: &'parser mut Vec<BoxJavascriptParserPlugin>,
     parse_meta: ParseMeta,
     parser_runtime_requirements: &'parser ParserRuntimeRequirementsData,
@@ -470,13 +471,13 @@ impl<'parser> JavascriptParser<'parser> {
     }
     if compiler_options.optimization.inner_graph {
       plugins.push(Box::new(parser_plugin::InnerGraphPlugin::new(
-        unresolved_mark,
+        unresolved_scope_id,
       )));
     }
 
     if compiler_options.optimization.side_effects.is_true() {
       plugins.push(Box::new(parser_plugin::SideEffectsParserPlugin::new(
-        unresolved_mark,
+        unresolved_scope_id,
       )));
     }
 

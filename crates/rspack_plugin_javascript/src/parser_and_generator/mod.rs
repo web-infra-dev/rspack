@@ -16,32 +16,19 @@ use rspack_core::{
   rspack_sources::{BoxSource, ReplaceSource, Source, SourceExt},
 };
 use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
-use rspack_javascript_compiler::JavaScriptCompiler;
-use swc_core::{
-  base::config::IsModule,
-  common::{BytePos, input::SourceFileInput},
-  ecma::{
-    ast,
-    parser::{EsSyntax, Syntax, lexer::Lexer},
-    transforms::base::fixer::paren_remover,
-  },
+use swc_experimental_ecma_ast::{Program, VisitWith};
+use swc_experimental_ecma_parser::{
+  EsSyntax, Lexer, Parser, StringSource, Syntax, unstable::Capturing,
 };
+use swc_experimental_ecma_semantic::resolver::resolver;
+use swc_experimental_ecma_transforms_base::remove_paren::remove_paren;
 use swc_node_comments::SwcComments;
 
 use crate::{
   BoxJavascriptParserPlugin,
   dependency::ESMCompatibilityDependency,
-  visitors::{ScanDependenciesResult, scan_dependencies, semicolon, swc_visitor::resolver},
+  visitors::{ScanDependenciesResult, scan_dependencies, semicolon},
 };
-
-fn module_type_to_is_module(value: &ModuleType) -> IsModule {
-  // parser options align with webpack
-  match value {
-    ModuleType::JsEsm => IsModule::Bool(true),
-    ModuleType::JsDynamic => IsModule::Bool(false),
-    _ => IsModule::Unknown,
-  }
-}
 
 #[derive(Debug)]
 pub struct ParserRuntimeRequirementsData {
@@ -204,7 +191,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     let source_string = source.source().into_string_lossy();
 
     let comments = SwcComments::default();
-    let target = ast::EsVersion::EsNext;
+    let target = swc_experimental_ecma_ast::EsVersion::EsNext;
 
     let jsx = module_parser_options
       .and_then(|options| options.get_javascript())
@@ -223,46 +210,47 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         ..Default::default()
       }),
       target,
-      SourceFileInput::new(
-        &source_string,
-        BytePos(1),
-        BytePos(source_string.len() as u32 + 1),
-      ),
+      StringSource::new(source_string.as_ref()),
       Some(&comments),
     );
+    let parse_lexer = Capturing::new(parser_lexer);
+    let parser = Parser::new_from(parse_lexer);
+    let program_result = match module_type {
+      // parser options align with webpack
+      ModuleType::JsEsm => parser.parse_module().map(|r| r.map_root(Program::Module)),
+      ModuleType::JsDynamic => parser.parse_script().map(|r| r.map_root(Program::Script)),
+      _ => parser.parse_program(),
+    };
 
-    let javascript_compiler = JavaScriptCompiler::new();
-
-    let (mut ast, tokens) = match javascript_compiler.parse_with_lexer(
-      &source_string,
-      parser_lexer,
-      module_type_to_is_module(module_type),
-      Some(comments.clone()),
-      true,
-    ) {
-      Ok(ast) => ast,
-      Err(e) => {
-        diagnostics.append(&mut e.into_inner().into_iter().map(|e| e.into()).collect());
+    let (root, mut ast, tokens) = match program_result {
+      Ok(mut ret) => {
+        if !ret.errors.is_empty() {
+          // diagnostics.append(&mut ret.errors.into_iter().map(|e| e.into()).collect());
+          return default_with_diagnostics(source, diagnostics);
+        }
+        let tokens = ret.input.take();
+        (ret.root, ret.ast, tokens)
+      }
+      Err(_) => {
+        // diagnostics.append(&mut e.into());
         return default_with_diagnostics(source, diagnostics);
       }
     };
 
-    let mut semicolons = Default::default();
-    ast.transform(|program, context| {
-      program.visit_mut_with(&mut paren_remover(Some(&comments)));
-      program.visit_mut_with(&mut resolver(
-        context.unresolved_mark,
-        context.top_level_mark,
-        false,
-      ));
-      program.visit_with(&mut semicolon::InsertedSemicolons {
-        semicolons: &mut semicolons,
-        // safety: it's safe to assert tokens is some since we pass with_tokens = true
-        tokens: &tokens.expect("should get tokens from parser"),
-      });
+    let mut semicolons: std::collections::HashSet<
+      swc_core::common::BytePos,
+      rustc_hash::FxBuildHasher,
+    > = Default::default();
+    remove_paren(root, &mut ast, Some(&comments));
+
+    let semantic = resolver(root, &ast);
+    root.visit_with(&mut semicolon::InsertedSemicolons {
+      ast: &ast,
+      semicolons: &mut semicolons,
+      tokens: &tokens,
     });
 
-    let unresolved_mark = ast.get_context().unresolved_mark;
+    let unresolved_scope_id = semantic.unresolved_scope_id();
     let parser_runtime_requirements = ParserRuntimeRequirementsData::new(runtime_template);
 
     let ScanDependenciesResult {
@@ -271,26 +259,26 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       presentational_dependencies,
       mut warning_diagnostics,
       mut side_effects_item,
-    } = match ast.visit(|program, _| {
-      scan_dependencies(
-        &source_string,
-        program,
-        resource_data,
-        compiler_options,
-        module_type,
-        module_layer,
-        factory_meta,
-        build_meta,
-        build_info,
-        module_identifier,
-        module_parser_options,
-        &mut semicolons,
-        unresolved_mark,
-        &mut self.parser_plugins,
-        parse_meta,
-        &parser_runtime_requirements,
-      )
-    }) {
+    } = match scan_dependencies(
+      &source_string,
+      ast,
+      root,
+      Some(comments),
+      resource_data,
+      compiler_options,
+      module_type,
+      module_layer,
+      factory_meta,
+      build_meta,
+      build_info,
+      module_identifier,
+      module_parser_options,
+      &mut semicolons,
+      unresolved_scope_id,
+      &mut self.parser_plugins,
+      parse_meta,
+      &parser_runtime_requirements,
+    ) {
       Ok(result) => result,
       Err(mut e) => {
         diagnostics.append(&mut e);

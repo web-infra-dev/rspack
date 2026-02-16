@@ -2069,9 +2069,9 @@ checksum = "cb56e1aa765b4b4f3aadfab769793b7087bb03a4ea4920644a6d238e2df5b9ed"
 
 [[package]]
 name = "indexmap"
-version = "2.12.1"
+version = "2.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0ad4bb2b565bca0645f4d68c5c9af97fba094e9791da685bf83cb5f3ce74acf2"
+checksum = "7714e70437a7dc3ac8eb7e6f8df75fd8eb422675fc7678aff7364301092b1017"
 dependencies = [
  "equivalent",
  "hashbrown 0.16.1",
@@ -4594,6 +4594,7 @@ dependencies = [
  "swc_experimental_ecma_ast",
  "swc_experimental_ecma_parser",
  "swc_experimental_ecma_semantic",
+ "swc_experimental_ecma_transforms_base",
  "swc_node_comments",
  "tokio",
  "tracing",
@@ -6719,6 +6720,16 @@ dependencies = [
  "swc_core",
  "swc_experimental_ecma_ast",
  "swc_experimental_ecma_visit",
+]
+
+[[package]]
+name = "swc_experimental_ecma_transforms_base"
+version = "0.5.0"
+dependencies = [
+ "indexmap",
+ "rustc-hash",
+ "swc_core",
+ "swc_experimental_ecma_ast",
 ]
 
 [[package]]
