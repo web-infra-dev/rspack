@@ -69,7 +69,7 @@ impl CallHooksName for MemberExpr {
     F: Fn(&mut JavascriptParser, &str) -> Option<T>,
   {
     let Some(MemberExpressionInfo::Expression(expr_name)) =
-      parser.get_member_expression_info(ExprRef::Member(self), AllowedMemberTypes::Expression)
+      parser.get_member_expression_info(Expr::Member(*self), AllowedMemberTypes::Expression)
     else {
       return None;
     };

@@ -1,5 +1,5 @@
 use swc_experimental_ecma_ast::{
-  DefaultDecl, ExportSpecifier, ExprStmt, ModuleDecl, ModuleItem, Spanned, Stmt,
+  DefaultDecl, ExportSpecifier, ExprStmt, ModuleDecl, ModuleItem, Spanned, Stmt, TypedSubRange,
 };
 
 use super::{
@@ -17,13 +17,15 @@ use crate::{
 
 impl JavascriptParser<'_> {
   pub fn block_pre_walk_module_items(&mut self, statements: TypedSubRange<ModuleItem>) {
-    for statement in statements {
+    for statement in statements.iter() {
+      let statement = self.ast.get_node_in_sub_range(statement);
       self.block_pre_walk_module_item(statement);
     }
   }
 
   pub fn block_pre_walk_statements(&mut self, statements: TypedSubRange<Stmt>) {
-    for statement in statements {
+    for statement in statements.iter() {
+      let statement = self.ast.get_node_in_sub_range(statement);
       self.block_pre_walk_statement(Statement::from_stmt(statement, &self.ast));
     }
   }
