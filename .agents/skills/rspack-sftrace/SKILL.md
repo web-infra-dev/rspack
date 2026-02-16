@@ -62,8 +62,8 @@ mkdir -p "$TRACE_DIR"
 # Full trace
 sftrace record -o "$TRACE_DIR/sf.log" -- pnpm build
 
-# Filtered trace
-sftrace record -f "$TRACE_DIR/sftrace.filter" -o "$TRACE_DIR/sf.filtered.log" -- pnpm build
+# Filtered trace (requires sftrace.filter from step 3)
+sftrace record -f sftrace.filter -o "$TRACE_DIR/sf.filtered.log" -- pnpm build
 ```
 
 ### 5) Analyze sf.log
@@ -72,13 +72,14 @@ Convert sftrace log to perfetto protobuf format.
 
 ```sh
 cd examples/react
+TRACE_DIR="sftrace-YYYYMMDD-HHMMSS" # replace with your run directory
 sftrace convert "$TRACE_DIR/sf.filtered.log" -o "$TRACE_DIR/sf.filtered.pb.gz"
 ```
 
 ### 6) Optional: Visualization using [viztracer](https://github.com/gaogaotiantian/viztracer)
 
 ```sh
-vizviewer --use_external_processor sf.filtered.pb.gz
+vizviewer --use_external_processor "$TRACE_DIR/sf.filtered.pb.gz"
 ```
 
 Use this only for visualization.
