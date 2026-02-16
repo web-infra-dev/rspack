@@ -81,7 +81,7 @@
     "prettier-2": "npm:prettier@2.8.8",
     "rimraf": "^5.0.10",
     "typescript": "^5.9.3",
-    "webpack": "5.102.1",
+    "webpack": "5.104.1",
     "zx": "8.8.5"
   },
   "packageManager": "pnpm@10.26.2",
