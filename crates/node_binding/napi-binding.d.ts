@@ -1739,6 +1739,12 @@ export interface NapiResolveOptions {
    * Default `false`
    */
   enablePnp?: boolean
+  /**
+   * Path to PnP manifest file
+   *
+   * Default `None`
+   */
+  pnpManifest?: string | false
 }
 
 export interface NativeWatcherOptions {
@@ -2322,6 +2328,7 @@ export interface RawIncremental {
   finishModules: boolean
   optimizeDependencies: boolean
   buildChunkGraph: boolean
+  optimizeChunkModules: boolean
   moduleIds: boolean
   chunkIds: boolean
   modulesHashes: boolean
@@ -2726,13 +2733,20 @@ export interface RawPathData {
   url?: string
 }
 
+export interface RawProgressPluginHandlerInfo {
+  /** Number of built modules */
+  builtModules: number
+  /** Identifier of the active module (only provided during `build modules` updates) */
+  moduleIdentifier?: string
+}
+
 export interface RawProgressPluginOptions {
   prefix?: string
   profile?: boolean
   template?: string
   tick?: string | Array<string>
   progressChars?: string
-  handler?: (percent: number, msg: string, items: string[]) => void
+  handler?: (percent: number, msg: string, info: RawProgressPluginHandlerInfo) => void
 }
 
 export interface RawProvideOptions {
@@ -2785,6 +2799,7 @@ export interface RawResolveOptions {
   restrictions?: (string | RegExp)[]
   roots?: Array<string>
   pnp?: boolean
+  pnpManifest?: string | false
 }
 
 export interface RawResolveOptionsWithDependencyType {
@@ -2812,6 +2827,7 @@ export interface RawResolveOptionsWithDependencyType {
   dependencyType?: string
   resolveToContext?: boolean
   pnp?: boolean
+  pnpManifest?: string | false
 }
 
 export interface RawResolveTsconfigOptions {

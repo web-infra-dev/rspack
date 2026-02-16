@@ -34,9 +34,9 @@ use crate::{
   ChunkGraph, ChunkUkey, CodeGenerationResult, CollectedTypeScriptInfo, Compilation,
   CompilationAsset, CompilationId, CompilerId, CompilerOptions, ConcatenationScope,
   ConnectionState, Context, ContextModule, DependenciesBlock, DependencyId, ExportProvided,
-  ExternalModule, GetTargetResult, ModuleCodeTemplate, ModuleGraph, ModuleGraphCacheArtifact,
-  ModuleLayer, ModuleType, NormalModule, PrefetchExportsInfoMode, RawModule, Resolve,
-  ResolverFactory, RuntimeSpec, SelfModule, SharedPluginDriver, SourceType,
+  ExportsInfoArtifact, ExternalModule, GetTargetResult, ModuleCodeTemplate, ModuleGraph,
+  ModuleGraphCacheArtifact, ModuleLayer, ModuleType, NormalModule, PrefetchExportsInfoMode,
+  RawModule, Resolve, ResolverFactory, RuntimeSpec, SelfModule, SharedPluginDriver, SourceType,
   concatenated_module::ConcatenatedModule, dependencies_block::dependencies_block_update_hash,
   get_target, value_cache_versions::ValueCacheVersions,
 };
@@ -319,10 +319,17 @@ pub trait Module:
     &self,
     module_graph: &ModuleGraph,
     module_graph_cache: &ModuleGraphCacheArtifact,
+    exports_info_artifact: &ExportsInfoArtifact,
     strict: bool,
   ) -> ExportsType {
     module_graph_cache.cached_get_exports_type((self.identifier(), strict), || {
-      get_exports_type_impl(self.identifier(), self.build_meta(), module_graph, strict)
+      get_exports_type_impl(
+        self.identifier(),
+        self.build_meta(),
+        module_graph,
+        exports_info_artifact,
+        strict,
+      )
     })
   }
 
@@ -433,6 +440,7 @@ fn get_exports_type_impl(
   identifier: ModuleIdentifier,
   build_meta: &BuildMeta,
   mg: &ModuleGraph,
+  exports_info_artifact: &ExportsInfoArtifact,
   strict: bool,
 ) -> ExportsType {
   let export_type = &build_meta.exports_type;
@@ -470,8 +478,8 @@ fn get_exports_type_impl(
         }
 
         let name = Atom::from("__esModule");
-        let exports_info =
-          mg.get_prefetched_exports_info_optional(&identifier, PrefetchExportsInfoMode::Default);
+        let exports_info = exports_info_artifact
+          .get_prefetched_exports_info_optional(&identifier, PrefetchExportsInfoMode::Default);
         if let Some(export_info) = exports_info
           .as_ref()
           .map(|info| info.get_read_only_export_info(&name))
@@ -479,9 +487,13 @@ fn get_exports_type_impl(
           if matches!(export_info.provided(), Some(ExportProvided::NotProvided)) {
             handle_default(default_object)
           } else {
-            let Some(GetTargetResult::Target(target)) =
-              get_target(export_info, mg, Rc::new(|_| true), &mut Default::default())
-            else {
+            let Some(GetTargetResult::Target(target)) = get_target(
+              export_info,
+              mg,
+              exports_info_artifact,
+              Rc::new(|_| true),
+              &mut Default::default(),
+            ) else {
               return ExportsType::Dynamic;
             };
             if target

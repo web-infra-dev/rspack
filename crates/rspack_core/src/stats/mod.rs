@@ -15,19 +15,26 @@ pub use r#struct::*;
 
 use crate::{
   BoxModule, BoxRuntimeModule, Chunk, ChunkGraph, ChunkGroupOrderKey, ChunkGroupUkey, ChunkUkey,
-  Compilation, LogType, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
-  PrefetchExportsInfoMode, ProvidedExports, RuntimeSpec, SourceType, UsedExports,
+  Compilation, ExportsInfoArtifact, LogType, ModuleGraph, ModuleGraphCacheArtifact,
+  ModuleIdentifier, PrefetchExportsInfoMode, ProvidedExports, RuntimeSpec, SourceType, UsedExports,
   compilation::build_module_graph::ExecutedRuntimeModule,
 };
 
 #[derive(Debug, Clone)]
 pub struct Stats<'compilation> {
   pub compilation: &'compilation Compilation,
+  pub exports_info_artifact: &'compilation ExportsInfoArtifact,
 }
 
 impl<'compilation> Stats<'compilation> {
-  pub fn new(compilation: &'compilation Compilation) -> Self {
-    Self { compilation }
+  pub fn new(
+    compilation: &'compilation Compilation,
+    exports_info_artifact: &'compilation ExportsInfoArtifact,
+  ) -> Self {
+    Self {
+      compilation,
+      exports_info_artifact,
+    }
   }
 }
 
@@ -212,12 +219,6 @@ impl Stats<'_> {
     let module_graph = self.compilation.get_module_graph();
     let module_graph_cache = &self.compilation.module_graph_cache_artifact;
 
-    let executor_module_graph = self
-      .compilation
-      .module_executor
-      .as_ref()
-      .map(|executor| executor.make_artifact.get_module_graph());
-
     let mut modules: Vec<StatsModule> = module_graph
       .modules()
       .values()
@@ -226,6 +227,7 @@ impl Stats<'_> {
         self.get_module(
           module_graph,
           module_graph_cache,
+          self.exports_info_artifact,
           module,
           false,
           None,
@@ -243,8 +245,20 @@ impl Stats<'_> {
       .collect::<Result<Vec<_>>>()?;
     modules.extend(runtime_modules);
 
+    let executor_module_graph = self
+      .compilation
+      .module_executor
+      .as_ref()
+      .map(|executor| executor.make_artifact.get_module_graph());
     let executor_module_graph_cache = ModuleGraphCacheArtifact::default();
-    if let Some(executor_module_graph) = &executor_module_graph {
+    let executor_exports_info_artifact = self
+      .compilation
+      .module_executor
+      .as_ref()
+      .map(|executor| &executor.exports_info_artifact);
+    if let Some(executor_module_graph) = &executor_module_graph
+      && let Some(executor_exports_info_artifact) = executor_exports_info_artifact
+    {
       let executed_modules: Vec<StatsModule> = executor_module_graph
         .modules()
         .values()
@@ -253,6 +267,7 @@ impl Stats<'_> {
           self.get_module(
             executor_module_graph,
             &executor_module_graph_cache,
+            executor_exports_info_artifact,
             module,
             true,
             None,
@@ -318,7 +333,12 @@ impl Stats<'_> {
         };
 
         let root_modules = chunk_graph
-          .get_chunk_root_modules(&c.ukey(), module_graph, module_graph_cache)
+          .get_chunk_root_modules(
+            &c.ukey(),
+            module_graph,
+            module_graph_cache,
+            self.exports_info_artifact,
+          )
           .into_iter()
           .collect::<IdentifierSet>();
 
@@ -341,6 +361,7 @@ impl Stats<'_> {
               self.get_module(
                 module_graph,
                 module_graph_cache,
+                self.exports_info_artifact,
                 m,
                 false,
                 Some(&root_modules),
@@ -809,6 +830,7 @@ impl Stats<'_> {
     &'a self,
     module_graph: &'a ModuleGraph,
     module_graph_cache: &'a ModuleGraphCacheArtifact,
+    exports_info_artifact: &'a ExportsInfoArtifact,
     module: &'a BoxModule,
     executed: bool,
     root_modules: Option<&IdentifierSet>,
@@ -960,7 +982,8 @@ impl Stats<'_> {
       stats.pre_order_index = module_graph.get_pre_order_index(&identifier);
       stats.post_order_index = module_graph.get_post_order_index(&identifier);
       stats.cacheable = Some(module.build_info().cacheable);
-      stats.optional = Some(module_graph.is_optional(&identifier, module_graph_cache));
+      stats.optional =
+        Some(module_graph.is_optional(&identifier, module_graph_cache, exports_info_artifact));
       stats.orphan = Some(orphan);
       stats.dependent = dependent;
       stats.issuer = issuer.map(|i| i.identifier());
@@ -1102,7 +1125,12 @@ impl Stats<'_> {
             r#type,
             user_request,
             explanation,
-            active: connection.is_active(module_graph, runtime, module_graph_cache),
+            active: connection.is_active(
+              module_graph,
+              runtime,
+              module_graph_cache,
+              exports_info_artifact,
+            ),
             loc,
           })
         })
@@ -1120,8 +1148,7 @@ impl Stats<'_> {
           .used_exports
           .is_enable()
       {
-        let module_graph = self.compilation.get_module_graph();
-        let exports_info = module_graph
+        let exports_info = exports_info_artifact
           .get_prefetched_exports_info(&module.identifier(), PrefetchExportsInfoMode::Default);
         let used_exports = exports_info.get_used_exports(None);
         match used_exports {
@@ -1137,8 +1164,7 @@ impl Stats<'_> {
     if options.provided_exports {
       stats.provided_exports =
         if !executed && self.compilation.options.optimization.provided_exports {
-          let module_graph = self.compilation.get_module_graph();
-          let exports_info = module_graph
+          let exports_info = exports_info_artifact
             .get_prefetched_exports_info(&module.identifier(), PrefetchExportsInfoMode::Default);
           let provided_exports = exports_info.get_provided_exports();
           match provided_exports {
@@ -1168,6 +1194,7 @@ impl Stats<'_> {
           self.get_module(
             module_graph,
             module_graph_cache,
+            exports_info_artifact,
             module,
             executed,
             root_modules,
@@ -1241,7 +1268,9 @@ impl Stats<'_> {
     if stats.built || stats.code_generated || options.cached_modules {
       stats.identifier = Some(module.identifier);
       stats.name = Some(module.name.clone().into());
-      stats.name_for_condition = module.name_for_condition.clone();
+      stats
+        .name_for_condition
+        .clone_from(&module.name_for_condition);
       stats.cacheable = Some(module.cacheable);
       stats.optional = Some(false);
       stats.orphan = Some(true);

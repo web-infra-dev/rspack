@@ -24,7 +24,7 @@ impl Compilation {
     let mut chunk_asset_map = vec![];
     let mut module_assets = vec![];
     let mg = self.get_module_graph();
-    for (identifier, module) in mg.modules() {
+    for (identifier, module) in mg.modules_iter() {
       let assets = &module.build_info().assets;
       if assets.is_empty() {
         continue;
@@ -38,12 +38,12 @@ impl Compilation {
         .build_chunk_graph_artifact
         .chunk_graph
         .chunk_graph_module_by_module_identifier
-        .contains_key(&identifier)
+        .contains_key(identifier)
       {
         for chunk in self
           .build_chunk_graph_artifact
           .chunk_graph
-          .get_module_chunks(identifier)
+          .get_module_chunks(*identifier)
           .iter()
         {
           for name in assets.keys() {

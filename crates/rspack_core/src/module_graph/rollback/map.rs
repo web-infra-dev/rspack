@@ -1,6 +1,9 @@
 use std::{collections::HashMap, fmt::Debug, hash::Hash};
 
-use rayon::iter::IntoParallelRefMutIterator as RayonIntoParallelRefMutIterator;
+use rayon::iter::{
+  IntoParallelRefIterator as RayonIntoParallelRefIterator,
+  IntoParallelRefMutIterator as RayonIntoParallelRefMutIterator,
+};
 #[derive(Debug, Clone)]
 pub enum Action<K, V> {
   Inserted { key: K, previous: Option<V> },
@@ -119,9 +122,30 @@ where
   pub fn iter(&self) -> impl Iterator<Item = (&K, &V)> {
     self.map.iter()
   }
+  #[inline]
+  pub fn len(&self) -> usize {
+    self.map.len()
+  }
+  #[inline]
+  pub fn is_empty(&self) -> bool {
+    self.map.is_empty()
+  }
   // check the length of mutations for debug performance purpose
   pub fn mutations_len(&self) -> usize {
     self.undo_stack.len()
+  }
+}
+
+impl<'data, K, V> RayonIntoParallelRefIterator<'data> for RollbackMap<K, V>
+where
+  K: Eq + Hash + Send + Sync + 'data,
+  V: Send + Sync + 'data,
+{
+  type Item = (&'data K, &'data V);
+  type Iter = rayon::collections::hash_map::Iter<'data, K, V>;
+
+  fn par_iter(&'data self) -> Self::Iter {
+    self.map.par_iter()
   }
 }
 

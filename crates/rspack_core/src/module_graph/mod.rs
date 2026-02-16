@@ -18,10 +18,9 @@ mod module;
 pub use module::*;
 mod connection;
 pub use connection::*;
-mod exports_info;
 
 use crate::{
-  BoxDependency, BoxModule, DependencyCondition, DependencyId, ExportsInfo, ExportsInfoData,
+  BoxDependency, BoxModule, DependencyCondition, DependencyId, ExportsInfoArtifact,
   ModuleIdentifier,
 };
 
@@ -94,9 +93,6 @@ pub(crate) struct ModuleGraphData {
   /// ModuleGraphConnection indexed by `DependencyId`.
   /// modified here https://github.com/web-infra-dev/rspack/blob/9ae2f0f3be22370197cd9ed3308982f84f2bb738/crates/rspack_plugin_javascript/src/plugin/module_concatenation_plugin.rs#L820
   connections: rollback::OverlayMap<DependencyId, ModuleGraphConnection>,
-  // ExportsInfoData indexed by ExportsInfo id
-  // modified here https://github.com/web-infra-dev/rspack/blob/9ae2f0f3be22370197cd9ed3308982f84f2bb738/crates/rspack_plugin_javascript/src/plugin/side_effects_flag_plugin.rs#L332
-  exports_info_map: rollback::OverlayMap<ExportsInfo, ExportsInfoData>,
 
   /***************** only Modified during Seal Phase ********************/
   // setting here https://github.com/web-infra-dev/rspack/blob/9ae2f0f3be22370197cd9ed3308982f84f2bb738/crates/rspack_plugin_javascript/src/plugin/side_effects_flag_plugin.rs#L318
@@ -107,17 +103,13 @@ impl ModuleGraphData {
     self.modules.checkpoint();
     self.module_graph_modules.checkpoint();
     self.connections.checkpoint();
-
-    self.exports_info_map.checkpoint();
-
-    // exports_info_map and dep_meta_map are not used for build_module_graph
+    // dep_meta_map is not used for build_module_graph
   }
   // reset to checkpoint
   fn recover(&mut self) {
     self.modules.reset();
     self.module_graph_modules.reset();
     self.connections.reset();
-    self.exports_info_map.reset();
     // reset data to save memory
     self.dep_meta_map.clear();
   }
@@ -139,16 +131,43 @@ impl ModuleGraph {
 }
 
 impl ModuleGraph {
+  #[inline]
+  pub fn modules_len(&self) -> usize {
+    self.inner.modules.len()
+  }
+
+  #[inline]
+  pub fn modules_iter(&self) -> impl Iterator<Item = (&ModuleIdentifier, &BoxModule)> {
+    self.inner.modules.iter()
+  }
+
+  #[inline]
+  pub fn modules_par_iter(
+    &self,
+  ) -> impl rayon::prelude::ParallelIterator<Item = (&ModuleIdentifier, &BoxModule)> {
+    self.inner.modules.par_iter()
+  }
+
+  #[inline]
+  pub fn modules_keys(&self) -> impl Iterator<Item = &ModuleIdentifier> {
+    self.inner.modules.iter().map(|(k, _)| k)
+  }
+
+  #[inline]
+  pub fn module_graph_modules_iter(
+    &self,
+  ) -> impl Iterator<Item = (&ModuleIdentifier, &ModuleGraphModule)> {
+    self.inner.module_graph_modules.iter()
+  }
+
   /// Return an unordered iterator of modules
   pub fn modules(&self) -> IdentifierMap<&BoxModule> {
-    self.inner.modules.iter().map(|(k, v)| (*k, v)).collect()
+    self.modules_iter().map(|(k, v)| (*k, v)).collect()
   }
 
   pub fn module_graph_modules(&self) -> IdentifierMap<&ModuleGraphModule> {
     self
-      .inner
-      .module_graph_modules
-      .iter()
+      .module_graph_modules_iter()
       .map(|(k, v)| (*k, v))
       .collect()
   }
@@ -179,6 +198,7 @@ impl ModuleGraph {
     runtime: Option<&RuntimeSpec>,
     module_graph: &ModuleGraph,
     module_graph_cache: &ModuleGraphCacheArtifact,
+    exports_info_artifact: &ExportsInfoArtifact,
   ) -> HashMap<ModuleIdentifier, Vec<&ModuleGraphConnection>> {
     let connections = self
       .module_graph_module_by_identifier(module_id)
@@ -190,7 +210,12 @@ impl ModuleGraph {
       let con = self
         .connection_by_dependency_id(dep_id)
         .expect("should have connection");
-      if !con.is_active(module_graph, runtime, module_graph_cache) {
+      if !con.is_active(
+        module_graph,
+        runtime,
+        module_graph_cache,
+        exports_info_artifact,
+      ) {
         continue;
       }
       map.entry(*con.module_identifier()).or_default().push(con);
@@ -329,13 +354,18 @@ impl ModuleGraph {
       old_mgm.post_order_index,
       old_mgm.pre_order_index,
       old_mgm.depth,
-      old_mgm.exports,
     );
     let new_mgm = module_graph.module_graph_module_by_identifier_mut(target_module);
     new_mgm.post_order_index = assign_tuple.0;
     new_mgm.pre_order_index = assign_tuple.1;
     new_mgm.depth = assign_tuple.2;
-    new_mgm.exports = assign_tuple.3;
+
+    let exports_info = compilation
+      .exports_info_artifact
+      .get_exports_info(source_module);
+    compilation
+      .exports_info_artifact
+      .set_exports_info(*target_module, exports_info);
 
     let is_async = ModuleGraph::is_async(&compilation.async_modules_artifact, source_module);
     ModuleGraph::set_async(
@@ -797,6 +827,7 @@ impl ModuleGraph {
     &self,
     module_id: &ModuleIdentifier,
     module_graph_cache: &ModuleGraphCacheArtifact,
+    exports_info_artifact: &ExportsInfoArtifact,
   ) -> bool {
     let mut has_connections = false;
     for connection in self.get_incoming_connections(module_id) {
@@ -805,7 +836,7 @@ impl ModuleGraph {
         return false;
       };
       if !module_dependency.get_optional()
-        || !connection.is_target_active(self, None, module_graph_cache)
+        || !connection.is_target_active(self, None, module_graph_cache, exports_info_artifact)
       {
         return false;
       }
@@ -940,13 +971,20 @@ impl ModuleGraph {
     connection: &ModuleGraphConnection,
     runtime: Option<&RuntimeSpec>,
     module_graph_cache: &ModuleGraphCacheArtifact,
+    exports_info_artifact: &ExportsInfoArtifact,
   ) -> ConnectionState {
     let condition = self
       .inner
       .connection_to_condition
       .get(&connection.dependency_id)
       .expect("should have condition");
-    condition.get_connection_state(connection, runtime, self, module_graph_cache)
+    condition.get_connection_state(
+      connection,
+      runtime,
+      self,
+      module_graph_cache,
+      exports_info_artifact,
+    )
   }
 
   // todo remove it after module_graph_partial remove all of dependency_id_to_*
@@ -1061,18 +1099,18 @@ impl ModuleGraph {
     }
   }
 
-  pub fn batch_set_export_info_used_name(&mut self, tasks: Vec<(ExportInfo, UsedNameItem)>) {
+  pub fn batch_set_export_info_used_name(
+    &mut self,
+    exports_info_artifact: &mut ExportsInfoArtifact,
+    tasks: Vec<(ExportInfo, UsedNameItem)>,
+  ) {
     for (export_info, used_name) in tasks {
       let ExportInfo {
         exports_info,
         export_name,
       } = export_info;
 
-      let data = self
-        .inner
-        .exports_info_map
-        .get_mut(&exports_info)
-        .expect("should have exports info");
+      let data = exports_info_artifact.get_exports_info_mut_by_id(&exports_info);
       match export_name {
         ExportName::Named(name) => {
           data

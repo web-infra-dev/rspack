@@ -63,6 +63,7 @@ import type { RawFuncUseCtx } from '@rspack/binding';
 import { RawHttpUriPluginOptions } from '@rspack/binding';
 import { RawIgnorePluginOptions } from '@rspack/binding';
 import { RawOptions } from '@rspack/binding';
+import { RawProgressPluginHandlerInfo } from '@rspack/binding';
 import { RawProgressPluginOptions } from '@rspack/binding';
 import { RawProvideOptions } from '@rspack/binding';
 import { RawRslibPluginOptions } from '@rspack/binding';
@@ -3696,6 +3697,7 @@ export type Incremental = {
     finishModules?: boolean;
     optimizeDependencies?: boolean;
     buildChunkGraph?: boolean;
+    optimizeChunkModules?: boolean;
     moduleIds?: boolean;
     chunkIds?: boolean;
     modulesHashes?: boolean;
@@ -6389,9 +6391,9 @@ type Program = Module_2 | Script;
 
 // @public (undocumented)
 export const ProgressPlugin: {
-    new (progress?: ProgressPluginArgument): {
+    new (progress?: ProgressPluginOptions): {
         name: string;
-        _args: [progress?: ProgressPluginArgument];
+        _args: [progress?: ProgressPluginOptions];
         affectedHooks: keyof CompilerHooks | undefined;
         raw(compiler: Compiler): BuiltinPlugin;
         apply(compiler: Compiler): void;
@@ -6399,7 +6401,10 @@ export const ProgressPlugin: {
 };
 
 // @public (undocumented)
-export type ProgressPluginArgument = Partial<Omit<RawProgressPluginOptions, 'handler'>> | ((percentage: number, msg: string, ...args: string[]) => void) | undefined;
+export type ProgressPluginHandlerInfo = RawProgressPluginHandlerInfo;
+
+// @public (undocumented)
+export type ProgressPluginOptions = Partial<Omit<RawProgressPluginOptions, 'handler'>> | ((percentage: number, msg: string, info: RawProgressPluginHandlerInfo) => void) | undefined;
 
 // @public (undocumented)
 interface PropBase extends Node_4 {
@@ -6926,6 +6931,7 @@ export type ResolveOptions = {
     roots?: string[];
     byDependency?: Record<string, ResolveOptions>;
     pnp?: boolean;
+    pnpManifest?: string | false;
 };
 
 // @public (undocumented)
@@ -7227,7 +7233,8 @@ declare namespace rspackExports {
         BannerPluginArgument,
         DefinePluginOptions,
         EntryOptions,
-        ProgressPluginArgument,
+        ProgressPluginHandlerInfo,
+        ProgressPluginOptions,
         ProvidePluginOptions,
         BannerPlugin,
         CaseSensitivePlugin,

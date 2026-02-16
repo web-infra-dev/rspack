@@ -6,10 +6,10 @@ use rspack_cacheable::{
 use rspack_core::{
   AsContextDependency, Compilation, Dependency, DependencyCategory, DependencyCodeGeneration,
   DependencyId, DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType,
-  DependencyType, ExportsInfoGetter, ExtendedReferencedExport, FactorizeInfo, GetUsedNameParam,
-  InitFragmentKey, InitFragmentStage, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
-  NormalInitFragment, PrefetchExportsInfoMode, RuntimeSpec, TemplateContext, TemplateReplaceSource,
-  UsedName, create_exports_object_referenced,
+  DependencyType, ExportsInfoArtifact, ExportsInfoGetter, ExtendedReferencedExport, FactorizeInfo,
+  GetUsedNameParam, InitFragmentKey, InitFragmentStage, ModuleDependency, ModuleGraph,
+  ModuleGraphCacheArtifact, NormalInitFragment, PrefetchExportsInfoMode, RuntimeSpec,
+  TemplateContext, TemplateReplaceSource, UsedName, create_exports_object_referenced,
 };
 use rspack_util::ext::DynHash;
 use swc_core::atoms::Atom;
@@ -71,6 +71,7 @@ impl Dependency for ProvideDependency {
     &self,
     _module_graph: &ModuleGraph,
     _module_graph_cache: &ModuleGraphCacheArtifact,
+    _exports_info_artifact: &ExportsInfoArtifact,
     _runtime: Option<&RuntimeSpec>,
   ) -> Vec<ExtendedReferencedExport> {
     if self.ids.is_empty() {
@@ -172,18 +173,21 @@ impl DependencyTemplate for ProvideDependencyTemplate {
     };
 
     let used_name = if dep.ids.is_empty() {
-      let exports_info_used =
-        module_graph.get_prefetched_exports_info_used(con.module_identifier(), *runtime);
+      let exports_info_used = compilation
+        .exports_info_artifact
+        .get_prefetched_exports_info_used(con.module_identifier(), *runtime);
       ExportsInfoGetter::get_used_name(
         GetUsedNameParam::WithoutNames(&exports_info_used),
         *runtime,
         &dep.ids,
       )
     } else {
-      let exports_info = module_graph.get_prefetched_exports_info(
-        con.module_identifier(),
-        PrefetchExportsInfoMode::Nested(&dep.ids),
-      );
+      let exports_info = compilation
+        .exports_info_artifact
+        .get_prefetched_exports_info(
+          con.module_identifier(),
+          PrefetchExportsInfoMode::Nested(&dep.ids),
+        );
       ExportsInfoGetter::get_used_name(
         GetUsedNameParam::WithNames(&exports_info),
         *runtime,

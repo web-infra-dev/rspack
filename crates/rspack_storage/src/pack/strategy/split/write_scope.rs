@@ -259,7 +259,7 @@ impl ScopeWriteStrategy for SplitPackStrategy {
       .collect::<HashMap<_, _>>();
 
     for (meta, (hash, pack)) in new_pack_metas.into_iter().zip(write_results.into_iter()) {
-      meta.hash = hash.clone();
+      meta.hash.clone_from(&hash);
       meta.size = pack.size();
       wrote_files.insert(pack.path.clone());
       wrote_packs.insert(hash, pack);

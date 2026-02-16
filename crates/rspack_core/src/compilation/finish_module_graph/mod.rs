@@ -24,8 +24,11 @@ impl Compilation {
     self.in_finish_make.store(false, Ordering::Release);
     // clean up the entry deps
     let make_artifact = self.build_module_graph_artifact.steal();
-    let make_artifact = finish_build_module_graph(self, make_artifact).await?;
+    let exports_info_artifact = self.exports_info_artifact.steal();
+    let (make_artifact, exports_info_artifact) =
+      finish_build_module_graph(self, make_artifact, exports_info_artifact).await?;
     self.build_module_graph_artifact = make_artifact.into();
+    self.exports_info_artifact = exports_info_artifact.into();
     // sync assets to module graph from module_executor
     if let Some(module_executor) = &mut self.module_executor {
       let mut module_executor = std::mem::take(module_executor);

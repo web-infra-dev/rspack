@@ -1,5 +1,5 @@
 use super::Cache;
-use crate::{compilation::build_module_graph::BuildModuleGraphArtifact, incremental::Incremental};
+use crate::{Compilation, compilation::build_module_graph::BuildModuleGraphArtifact};
 
 /// Disable cache implementation
 ///
@@ -9,11 +9,7 @@ pub struct DisableCache;
 
 #[async_trait::async_trait]
 impl Cache for DisableCache {
-  async fn before_build_module_graph(
-    &mut self,
-    make_artifact: &mut BuildModuleGraphArtifact,
-    _incremental: &Incremental,
-  ) {
-    *make_artifact = BuildModuleGraphArtifact::new();
+  async fn before_build_module_graph(&mut self, compilation: &mut Compilation) {
+    *compilation.build_module_graph_artifact = BuildModuleGraphArtifact::new();
   }
 }

@@ -55,15 +55,14 @@ async fn code_generation_pass_impl(compilation: &mut Compilation) -> Result<()> 
     logger.log(format!(
       "{} modules are affected, {} in total",
       modules.len(),
-      compilation.get_module_graph().modules().len()
+      compilation.get_module_graph().modules_len()
     ));
     modules
   } else {
     *compilation.code_generation_results = Default::default();
     compilation
       .get_module_graph()
-      .modules()
-      .keys()
+      .modules_keys()
       .copied()
       .collect()
   };

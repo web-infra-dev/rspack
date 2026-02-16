@@ -74,6 +74,7 @@ async fn chunk_ids(
           module_graph,
           module_graph_cache,
           &context,
+          &compilation.exports_info_artifact,
         ),
       )
     })

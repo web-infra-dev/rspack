@@ -40,8 +40,8 @@ pub use static_exports_dependency::{StaticExportsDependency, StaticExportsSpec};
 use swc_core::ecma::atoms::Atom;
 
 use crate::{
-  ConnectionState, EvaluatedInlinableValue, ExtendedReferencedExport, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, RuntimeSpec,
+  ConnectionState, EvaluatedInlinableValue, ExportsInfoArtifact, ExtendedReferencedExport,
+  ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, RuntimeSpec,
 };
 
 #[derive(Debug, Clone)]
@@ -173,6 +173,7 @@ pub trait DependencyConditionFn: Sync + Send {
     runtime: Option<&RuntimeSpec>,
     module_graph: &ModuleGraph,
     module_graph_cache: &ModuleGraphCacheArtifact,
+    exports_info_artifact: &ExportsInfoArtifact,
   ) -> ConnectionState;
 }
 
@@ -190,10 +191,15 @@ impl DependencyCondition {
     runtime: Option<&RuntimeSpec>,
     mg: &ModuleGraph,
     module_graph_cache: &ModuleGraphCacheArtifact,
+    exports_info_artifact: &ExportsInfoArtifact,
   ) -> ConnectionState {
-    self
-      .0
-      .get_connection_state(connection, runtime, mg, module_graph_cache)
+    self.0.get_connection_state(
+      connection,
+      runtime,
+      mg,
+      module_graph_cache,
+      exports_info_artifact,
+    )
   }
 }
 

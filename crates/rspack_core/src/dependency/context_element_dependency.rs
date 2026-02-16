@@ -10,9 +10,9 @@ use super::{AffectType, FactorizeInfo};
 use crate::{
   AsContextDependency, AsDependencyCodeGeneration, Context, ContextMode, ContextNameSpaceObject,
   ContextOptions, ContextTypePrefix, Dependency, DependencyCategory, DependencyId, DependencyType,
-  ExportsType, ExtendedReferencedExport, ImportAttributes, ModuleDependency, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleLayer, ReferencedExport, ResourceIdentifier, RuntimeSpec,
-  create_exports_object_referenced,
+  ExportsInfoArtifact, ExportsType, ExtendedReferencedExport, ImportAttributes, ModuleDependency,
+  ModuleGraph, ModuleGraphCacheArtifact, ModuleLayer, ReferencedExport, ResourceIdentifier,
+  RuntimeSpec, create_exports_object_referenced,
 };
 
 #[cacheable]
@@ -82,6 +82,7 @@ impl Dependency for ContextElementDependency {
     &self,
     module_graph: &ModuleGraph,
     module_graph_cache: &ModuleGraphCacheArtifact,
+    exports_info_artifact: &ExportsInfoArtifact,
     _runtime: Option<&RuntimeSpec>,
   ) -> Vec<ExtendedReferencedExport> {
     if let Some(referenced_exports) = &self.referenced_exports {
@@ -105,9 +106,14 @@ impl Dependency for ContextElementDependency {
             });
 
           let exports_type = is_strict.and_then(|is_strict| {
-            module_graph
-              .get_module_by_dependency_id(&self.id)
-              .map(|m| m.get_exports_type(module_graph, module_graph_cache, is_strict))
+            module_graph.get_module_by_dependency_id(&self.id).map(|m| {
+              m.get_exports_type(
+                module_graph,
+                module_graph_cache,
+                exports_info_artifact,
+                is_strict,
+              )
+            })
           });
 
           if let Some(exports_type) = exports_type

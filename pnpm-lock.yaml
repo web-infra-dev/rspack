@@ -62,8 +62,8 @@ importers:
         specifier: ^16.2.7
         version: 16.2.7
       prettier:
-        specifier: 3.7.4
-        version: 3.7.4
+        specifier: 3.8.1
+        version: 3.8.1
       prettier-2:
         specifier: npm:prettier@2.8.8
         version: prettier@2.8.8
@@ -220,8 +220,8 @@ importers:
   packages/create-rspack:
     dependencies:
       create-rstack:
-        specifier: 1.7.21
-        version: 1.7.21
+        specifier: 1.8.0
+        version: 1.8.0
     devDependencies:
       '@rslib/core':
         specifier: 0.19.5
@@ -338,8 +338,8 @@ importers:
         specifier: ~1.2.1
         version: 1.2.1(@rspack/core@packages+rspack)(webpack@5.102.1)
       rspack-vue-loader:
-        specifier: ^17.4.5
-        version: 17.4.5(vue@3.5.28(typescript@5.9.3))(webpack@5.102.1)
+        specifier: ^17.5.0
+        version: 17.5.0(@rspack/core@packages+rspack)(vue@3.5.28(typescript@5.9.3))
 
   packages/create-rspack/template-vue-ts:
     dependencies:
@@ -357,8 +357,8 @@ importers:
         specifier: ~1.2.1
         version: 1.2.1(@rspack/core@packages+rspack)(webpack@5.102.1)
       rspack-vue-loader:
-        specifier: ^17.4.5
-        version: 17.4.5(vue@3.5.28(typescript@5.9.3))(webpack@5.102.1)
+        specifier: ^17.5.0
+        version: 17.5.0(@rspack/core@packages+rspack)(vue@3.5.28(typescript@5.9.3))
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
@@ -383,7 +383,7 @@ importers:
         version: 1.0.7
       '@rsbuild/plugin-node-polyfill':
         specifier: ^1.4.4
-        version: 1.4.4(@rsbuild/core@2.0.0-beta.1(@module-federation/runtime-tools@0.24.1)(core-js@3.47.0))
+        version: 1.4.4(@rsbuild/core@2.0.0-beta.1(@module-federation/runtime-tools@0.24.1)(core-js@3.48.0))
       '@rslib/core':
         specifier: 0.19.5
         version: 0.19.5(@microsoft/api-extractor@7.55.2(@types/node@20.19.33))(typescript@5.9.3)
@@ -406,8 +406,8 @@ importers:
         specifier: ^1.4.1
         version: 1.4.1
       enhanced-resolve:
-        specifier: 5.18.4
-        version: 5.18.4
+        specifier: 5.19.0
+        version: 5.19.0
       glob-to-regexp:
         specifier: ^0.4.1
         version: 0.4.1
@@ -691,8 +691,8 @@ importers:
         specifier: ^10.0.0
         version: 10.0.0(@babel/core@7.29.0)(webpack@5.102.1)
       core-js:
-        specifier: 3.47.0
-        version: 3.47.0
+        specifier: 3.48.0
+        version: 3.48.0
       css-loader:
         specifier: ^7.1.3
         version: 7.1.3(@rspack/core@packages+rspack)(webpack@5.102.1)
@@ -715,8 +715,8 @@ importers:
         specifier: ^0.18.0
         version: 0.18.0
       rspack-vue-loader:
-        specifier: ^17.4.5
-        version: 17.4.5(vue@3.5.28(typescript@5.9.3))(webpack@5.102.1)
+        specifier: ^17.5.0
+        version: 17.5.0(@rspack/core@packages+rspack)(vue@3.5.28(typescript@5.9.3))
       tailwindcss:
         specifier: ^3.4.19
         version: 3.4.19(ts-node@10.9.2(@types/node@20.19.33)(typescript@5.9.3))
@@ -788,7 +788,7 @@ importers:
         version: 19.2.3(@types/react@19.2.13)
       '@webdiscus/pug-loader':
         specifier: ^2.11.1
-        version: 2.11.1(enhanced-resolve@5.18.4)(pug@3.0.3)(webpack@5.102.1)
+        version: 2.11.1(enhanced-resolve@5.19.0)(pug@3.0.3)(webpack@5.102.1)
       acorn:
         specifier: ^8.15.0
         version: 8.15.0
@@ -811,8 +811,8 @@ importers:
         specifier: ^2.7.0
         version: 2.7.0
       core-js:
-        specifier: 3.47.0
-        version: 3.47.0
+        specifier: 3.48.0
+        version: 3.48.0
       css-loader:
         specifier: ^7.1.3
         version: 7.1.3(@rspack/core@packages+rspack)(webpack@5.102.1)
@@ -987,22 +987,22 @@ importers:
     devDependencies:
       '@rsbuild/plugin-sass':
         specifier: ^1.5.0
-        version: 1.5.0(@rsbuild/core@2.0.0-beta.1(@module-federation/runtime-tools@0.24.1)(core-js@3.47.0))
+        version: 1.5.0(@rsbuild/core@2.0.0-beta.1(@module-federation/runtime-tools@0.24.1)(core-js@3.48.0))
       '@rspress/core':
         specifier: ^2.0.2
-        version: 2.0.2(@module-federation/runtime-tools@0.24.1)(@types/react@19.2.13)(core-js@3.47.0)
+        version: 2.0.2(@module-federation/runtime-tools@0.24.1)(@types/react@19.2.13)(core-js@3.48.0)
       '@rspress/plugin-algolia':
         specifier: ^2.0.2
-        version: 2.0.2(@rspress/core@2.0.2(@module-federation/runtime-tools@0.24.1)(@types/react@19.2.13)(core-js@3.47.0))(@types/react@19.2.13)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(search-insights@2.17.3)
+        version: 2.0.2(@rspress/core@2.0.2(@module-federation/runtime-tools@0.24.1)(@types/react@19.2.13)(core-js@3.48.0))(@types/react@19.2.13)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(search-insights@2.17.3)
       '@rspress/plugin-client-redirects':
         specifier: ^2.0.2
-        version: 2.0.2(@rspress/core@2.0.2(@module-federation/runtime-tools@0.24.1)(@types/react@19.2.13)(core-js@3.47.0))
+        version: 2.0.2(@rspress/core@2.0.2(@module-federation/runtime-tools@0.24.1)(@types/react@19.2.13)(core-js@3.48.0))
       '@rspress/plugin-rss':
         specifier: ^2.0.2
-        version: 2.0.2(@rspress/core@2.0.2(@module-federation/runtime-tools@0.24.1)(@types/react@19.2.13)(core-js@3.47.0))
+        version: 2.0.2(@rspress/core@2.0.2(@module-federation/runtime-tools@0.24.1)(@types/react@19.2.13)(core-js@3.48.0))
       '@rspress/plugin-sitemap':
         specifier: ^2.0.2
-        version: 2.0.2(@rspress/core@2.0.2(@module-federation/runtime-tools@0.24.1)(@types/react@19.2.13)(core-js@3.47.0))
+        version: 2.0.2(@rspress/core@2.0.2(@module-federation/runtime-tools@0.24.1)(@types/react@19.2.13)(core-js@3.48.0))
       '@shikijs/transformers':
         specifier: ^3.22.0
         version: 3.22.0
@@ -1026,13 +1026,13 @@ importers:
         version: 0.0.4
       rsbuild-plugin-google-analytics:
         specifier: 1.0.5
-        version: 1.0.5(@rsbuild/core@2.0.0-beta.1(@module-federation/runtime-tools@0.24.1)(core-js@3.47.0))
+        version: 1.0.5(@rsbuild/core@2.0.0-beta.1(@module-federation/runtime-tools@0.24.1)(core-js@3.48.0))
       rsbuild-plugin-open-graph:
         specifier: 1.1.2
-        version: 1.1.2(@rsbuild/core@2.0.0-beta.1(@module-federation/runtime-tools@0.24.1)(core-js@3.47.0))
+        version: 1.1.2(@rsbuild/core@2.0.0-beta.1(@module-federation/runtime-tools@0.24.1)(core-js@3.48.0))
       rspress-plugin-font-open-sans:
         specifier: 1.0.3
-        version: 1.0.3(@rspress/core@2.0.2(@module-federation/runtime-tools@0.24.1)(@types/react@19.2.13)(core-js@3.47.0))
+        version: 1.0.3(@rspress/core@2.0.2(@module-federation/runtime-tools@0.24.1)(@types/react@19.2.13)(core-js@3.48.0))
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
@@ -4449,6 +4449,9 @@ packages:
   core-js@3.47.0:
     resolution: {integrity: sha512-c3Q2VVkGAUyupsjRnaNX6u8Dq2vAdzm9iuPj5FW0fRxzlxgq9Q39MDq10IvmQSpLgHQNyQzQmOo6bgGHmH3NNg==}
 
+  core-js@3.48.0:
+    resolution: {integrity: sha512-zpEHTy1fjTMZCKLHUZoVeylt9XrzaIN2rbPXEt0k+q7JE5CkCZdo6bNq55bn24a69CH7ErAVLKijxJja4fw+UQ==}
+
   core-util-is@1.0.3:
     resolution: {integrity: sha512-ZQBvi1DcpJ4GDqanjucZ2Hj3wEO5pZDS89BWbkcrvdxksJorwUDDZamX9ldFkp9aw2lmBDLgkObEA4DWNJ9FYQ==}
 
@@ -4488,8 +4491,8 @@ packages:
   create-require@1.1.1:
     resolution: {integrity: sha512-dcKFX3jn0MpIaXjisoRvexIJVEKzaq7z2rZKxf+MSr9TkdmHmsU4m2lcLojrj/FHl8mk5VxMmYA+ftRkP/3oKQ==}
 
-  create-rstack@1.7.21:
-    resolution: {integrity: sha512-42zVov509R4TZx+09WWQ8y8SFet+iQ30ABkEgbdFaAwDAH6JlXWy8BkY07GVHwu0xZLmUAuOVfRhfTI8rai2ug==}
+  create-rstack@1.8.0:
+    resolution: {integrity: sha512-EuUJqB0CnTDOlPSxdtGe1oV6BSB5p9h/N3n6cde/oo1Mrt58MCYlrao3jbiO7M0eeo1ZJtbBehX4k6aMhAgCrw==}
 
   cross-env@10.1.0:
     resolution: {integrity: sha512-GsYosgnACZTADcmEyJctkJIoqAhHjttw7RsFrVoJNXbsWWqaq6Ym+7kZjq6mS45O0jij6vtiReppKQEtqWy6Dw==}
@@ -4949,8 +4952,8 @@ packages:
     resolution: {integrity: sha512-Q0n9HRi4m6JuGIV1eFlmvJB7ZEVxu93IrMyiMsGC0lrMJMWzRgx6WGquyfQgZVb31vhGgXnfmPNNXmxnOkRBrg==}
     engines: {node: '>= 0.8'}
 
-  enhanced-resolve@5.18.4:
-    resolution: {integrity: sha512-LgQMM4WXU3QI+SYgEc2liRgznaD5ojbmY3sb8LxyguVkIg5FxdpTkvk72te2R38/TGKxH634oLxXRGY6d7AP+Q==}
+  enhanced-resolve@5.19.0:
+    resolution: {integrity: sha512-phv3E1Xl4tQOShqSte26C7Fl84EwUdZsyOuSSk9qtAGyyQs2s3jJzComh+Abf4g187lUUAvH+H26omrqia2aGg==}
     engines: {node: '>=10.13.0'}
 
   entities@2.2.0:
@@ -6889,6 +6892,11 @@ packages:
     engines: {node: '>=14'}
     hasBin: true
 
+  prettier@3.8.1:
+    resolution: {integrity: sha512-UOnG6LftzbdaHZcKoPFtOcCKztrQ57WkHDeRD9t/PTQtmT0NHSeWWepj6pS0z/N7+08BHFDQVUrfmfMRcZwbMg==}
+    engines: {node: '>=14'}
+    hasBin: true
+
   pretty-error@4.0.0:
     resolution: {integrity: sha512-AoJ5YMAcXKYxKhuJGdcvse+Voc6v1RgnsR3nWcYU7q4t6z0Q6T86sv5Zq8VIRbOWWFpvdGE83LtdSMNd+6Y0xw==}
 
@@ -7247,13 +7255,15 @@ packages:
       '@rsbuild/core':
         optional: true
 
-  rspack-vue-loader@17.4.5:
-    resolution: {integrity: sha512-i88hGa4mySkwiP7HqRICIAhomcMdkNCZ5tQGcxkcUWmDfC2QfeQegFBEKY4RdbuxJ3p1Ocj/Ul6Sh4yl6L7mDg==}
+  rspack-vue-loader@17.5.0:
+    resolution: {integrity: sha512-hJrL2+jytfTs6ORHBOKTh5lU7BVZvmv7afELuQfyEpGC1ll7MKj1BxlgAIbhd6pZwoEwfdH79Lewtwe4VOlfCQ==}
     peerDependencies:
+      '@rspack/core': ^1.0.0 || ^2.0.0-0
       '@vue/compiler-sfc': '*'
       vue: '*'
-      webpack: ^5.0.0
     peerDependenciesMeta:
+      '@rspack/core':
+        optional: true
       '@vue/compiler-sfc':
         optional: true
       vue:
@@ -10220,17 +10230,17 @@ snapshots:
       core-js: 3.47.0
       jiti: 2.6.1
 
-  '@rsbuild/core@2.0.0-beta.1(@module-federation/runtime-tools@0.24.1)(core-js@3.47.0)':
+  '@rsbuild/core@2.0.0-beta.1(@module-federation/runtime-tools@0.24.1)(core-js@3.48.0)':
     dependencies:
       '@rspack/core': 2.0.0-alpha.1(@module-federation/runtime-tools@0.24.1)(@swc/helpers@0.5.18)
       '@swc/helpers': 0.5.18
       jiti: 2.6.1
     optionalDependencies:
-      core-js: 3.47.0
+      core-js: 3.48.0
     transitivePeerDependencies:
       - '@module-federation/runtime-tools'
 
-  '@rsbuild/plugin-node-polyfill@1.4.4(@rsbuild/core@2.0.0-beta.1(@module-federation/runtime-tools@0.24.1)(core-js@3.47.0))':
+  '@rsbuild/plugin-node-polyfill@1.4.4(@rsbuild/core@2.0.0-beta.1(@module-federation/runtime-tools@0.24.1)(core-js@3.48.0))':
     dependencies:
       assert: 2.1.0
       browserify-zlib: 0.2.0
@@ -10256,19 +10266,19 @@ snapshots:
       util: 0.12.5
       vm-browserify: 1.1.2
     optionalDependencies:
-      '@rsbuild/core': 2.0.0-beta.1(@module-federation/runtime-tools@0.24.1)(core-js@3.47.0)
+      '@rsbuild/core': 2.0.0-beta.1(@module-federation/runtime-tools@0.24.1)(core-js@3.48.0)
 
-  '@rsbuild/plugin-react@1.4.5(@rsbuild/core@2.0.0-beta.1(@module-federation/runtime-tools@0.24.1)(core-js@3.47.0))':
+  '@rsbuild/plugin-react@1.4.5(@rsbuild/core@2.0.0-beta.1(@module-federation/runtime-tools@0.24.1)(core-js@3.48.0))':
     dependencies:
-      '@rsbuild/core': 2.0.0-beta.1(@module-federation/runtime-tools@0.24.1)(core-js@3.47.0)
+      '@rsbuild/core': 2.0.0-beta.1(@module-federation/runtime-tools@0.24.1)(core-js@3.48.0)
       '@rspack/plugin-react-refresh': 1.6.0(react-refresh@0.18.0)
       react-refresh: 0.18.0
     transitivePeerDependencies:
       - webpack-hot-middleware
 
-  '@rsbuild/plugin-sass@1.5.0(@rsbuild/core@2.0.0-beta.1(@module-federation/runtime-tools@0.24.1)(core-js@3.47.0))':
+  '@rsbuild/plugin-sass@1.5.0(@rsbuild/core@2.0.0-beta.1(@module-federation/runtime-tools@0.24.1)(core-js@3.48.0))':
     dependencies:
-      '@rsbuild/core': 2.0.0-beta.1(@module-federation/runtime-tools@0.24.1)(core-js@3.47.0)
+      '@rsbuild/core': 2.0.0-beta.1(@module-federation/runtime-tools@0.24.1)(core-js@3.48.0)
       deepmerge: 4.3.1
       loader-utils: 2.0.4
       postcss: 8.5.6
@@ -10469,13 +10479,13 @@ snapshots:
       html-entities: 2.6.0
       react-refresh: 0.18.0
 
-  '@rspress/core@2.0.2(@module-federation/runtime-tools@0.24.1)(@types/react@19.2.13)(core-js@3.47.0)':
+  '@rspress/core@2.0.2(@module-federation/runtime-tools@0.24.1)(@types/react@19.2.13)(core-js@3.48.0)':
     dependencies:
       '@mdx-js/mdx': 3.1.1
       '@mdx-js/react': 3.1.1(@types/react@19.2.13)(react@19.2.4)
-      '@rsbuild/core': 2.0.0-beta.1(@module-federation/runtime-tools@0.24.1)(core-js@3.47.0)
-      '@rsbuild/plugin-react': 1.4.5(@rsbuild/core@2.0.0-beta.1(@module-federation/runtime-tools@0.24.1)(core-js@3.47.0))
-      '@rspress/shared': 2.0.2(@module-federation/runtime-tools@0.24.1)(core-js@3.47.0)
+      '@rsbuild/core': 2.0.0-beta.1(@module-federation/runtime-tools@0.24.1)(core-js@3.48.0)
+      '@rsbuild/plugin-react': 1.4.5(@rsbuild/core@2.0.0-beta.1(@module-federation/runtime-tools@0.24.1)(core-js@3.48.0))
+      '@rspress/shared': 2.0.2(@module-federation/runtime-tools@0.24.1)(core-js@3.48.0)
       '@shikijs/rehype': 3.21.0
       '@types/unist': 3.0.3
       '@unhead/react': 2.1.2(react@19.2.4)
@@ -10520,33 +10530,33 @@ snapshots:
       - supports-color
       - webpack-hot-middleware
 
-  '@rspress/plugin-algolia@2.0.2(@rspress/core@2.0.2(@module-federation/runtime-tools@0.24.1)(@types/react@19.2.13)(core-js@3.47.0))(@types/react@19.2.13)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(search-insights@2.17.3)':
+  '@rspress/plugin-algolia@2.0.2(@rspress/core@2.0.2(@module-federation/runtime-tools@0.24.1)(@types/react@19.2.13)(core-js@3.48.0))(@types/react@19.2.13)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(search-insights@2.17.3)':
     dependencies:
       '@docsearch/css': 4.5.3
       '@docsearch/react': 4.5.3(@types/react@19.2.13)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(search-insights@2.17.3)
-      '@rspress/core': 2.0.2(@module-federation/runtime-tools@0.24.1)(@types/react@19.2.13)(core-js@3.47.0)
+      '@rspress/core': 2.0.2(@module-federation/runtime-tools@0.24.1)(@types/react@19.2.13)(core-js@3.48.0)
     transitivePeerDependencies:
       - '@types/react'
       - react
       - react-dom
       - search-insights
 
-  '@rspress/plugin-client-redirects@2.0.2(@rspress/core@2.0.2(@module-federation/runtime-tools@0.24.1)(@types/react@19.2.13)(core-js@3.47.0))':
+  '@rspress/plugin-client-redirects@2.0.2(@rspress/core@2.0.2(@module-federation/runtime-tools@0.24.1)(@types/react@19.2.13)(core-js@3.48.0))':
     dependencies:
-      '@rspress/core': 2.0.2(@module-federation/runtime-tools@0.24.1)(@types/react@19.2.13)(core-js@3.47.0)
+      '@rspress/core': 2.0.2(@module-federation/runtime-tools@0.24.1)(@types/react@19.2.13)(core-js@3.48.0)
 
-  '@rspress/plugin-rss@2.0.2(@rspress/core@2.0.2(@module-federation/runtime-tools@0.24.1)(@types/react@19.2.13)(core-js@3.47.0))':
+  '@rspress/plugin-rss@2.0.2(@rspress/core@2.0.2(@module-federation/runtime-tools@0.24.1)(@types/react@19.2.13)(core-js@3.48.0))':
     dependencies:
-      '@rspress/core': 2.0.2(@module-federation/runtime-tools@0.24.1)(@types/react@19.2.13)(core-js@3.47.0)
+      '@rspress/core': 2.0.2(@module-federation/runtime-tools@0.24.1)(@types/react@19.2.13)(core-js@3.48.0)
       feed: 4.2.2
 
-  '@rspress/plugin-sitemap@2.0.2(@rspress/core@2.0.2(@module-federation/runtime-tools@0.24.1)(@types/react@19.2.13)(core-js@3.47.0))':
+  '@rspress/plugin-sitemap@2.0.2(@rspress/core@2.0.2(@module-federation/runtime-tools@0.24.1)(@types/react@19.2.13)(core-js@3.48.0))':
     dependencies:
-      '@rspress/core': 2.0.2(@module-federation/runtime-tools@0.24.1)(@types/react@19.2.13)(core-js@3.47.0)
+      '@rspress/core': 2.0.2(@module-federation/runtime-tools@0.24.1)(@types/react@19.2.13)(core-js@3.48.0)
 
-  '@rspress/shared@2.0.2(@module-federation/runtime-tools@0.24.1)(core-js@3.47.0)':
+  '@rspress/shared@2.0.2(@module-federation/runtime-tools@0.24.1)(core-js@3.48.0)':
     dependencies:
-      '@rsbuild/core': 2.0.0-beta.1(@module-federation/runtime-tools@0.24.1)(core-js@3.47.0)
+      '@rsbuild/core': 2.0.0-beta.1(@module-federation/runtime-tools@0.24.1)(core-js@3.48.0)
       '@shikijs/rehype': 3.21.0
       gray-matter: 4.0.3
       lodash-es: 4.17.23
@@ -11208,10 +11218,10 @@ snapshots:
       '@webassemblyjs/ast': 1.14.1
       '@xtuc/long': 4.2.2
 
-  '@webdiscus/pug-loader@2.11.1(enhanced-resolve@5.18.4)(pug@3.0.3)(webpack@5.102.1)':
+  '@webdiscus/pug-loader@2.11.1(enhanced-resolve@5.19.0)(pug@3.0.3)(webpack@5.102.1)':
     dependencies:
       ansis: 3.10.0
-      enhanced-resolve: 5.18.4
+      enhanced-resolve: 5.19.0
       parse5: 7.3.0
       pug: 3.0.3
       webpack: 5.102.1
@@ -11856,6 +11866,8 @@ snapshots:
 
   core-js@3.47.0: {}
 
+  core-js@3.48.0: {}
+
   core-util-is@1.0.3: {}
 
   cose-base@1.0.3:
@@ -11908,7 +11920,7 @@ snapshots:
 
   create-require@1.1.1: {}
 
-  create-rstack@1.7.21: {}
+  create-rstack@1.8.0: {}
 
   cross-env@10.1.0:
     dependencies:
@@ -12434,7 +12446,7 @@ snapshots:
 
   encodeurl@2.0.0: {}
 
-  enhanced-resolve@5.18.4:
+  enhanced-resolve@5.19.0:
     dependencies:
       graceful-fs: 4.2.11
       tapable: 2.3.0
@@ -14867,6 +14879,8 @@ snapshots:
 
   prettier@3.7.4: {}
 
+  prettier@3.8.1: {}
+
   pretty-error@4.0.0:
     dependencies:
       lodash: 4.17.23
@@ -15314,25 +15328,25 @@ snapshots:
       '@microsoft/api-extractor': 7.55.2(@types/node@20.19.33)
       typescript: 5.9.3
 
-  rsbuild-plugin-google-analytics@1.0.5(@rsbuild/core@2.0.0-beta.1(@module-federation/runtime-tools@0.24.1)(core-js@3.47.0)):
+  rsbuild-plugin-google-analytics@1.0.5(@rsbuild/core@2.0.0-beta.1(@module-federation/runtime-tools@0.24.1)(core-js@3.48.0)):
     optionalDependencies:
-      '@rsbuild/core': 2.0.0-beta.1(@module-federation/runtime-tools@0.24.1)(core-js@3.47.0)
+      '@rsbuild/core': 2.0.0-beta.1(@module-federation/runtime-tools@0.24.1)(core-js@3.48.0)
 
-  rsbuild-plugin-open-graph@1.1.2(@rsbuild/core@2.0.0-beta.1(@module-federation/runtime-tools@0.24.1)(core-js@3.47.0)):
+  rsbuild-plugin-open-graph@1.1.2(@rsbuild/core@2.0.0-beta.1(@module-federation/runtime-tools@0.24.1)(core-js@3.48.0)):
     optionalDependencies:
-      '@rsbuild/core': 2.0.0-beta.1(@module-federation/runtime-tools@0.24.1)(core-js@3.47.0)
+      '@rsbuild/core': 2.0.0-beta.1(@module-federation/runtime-tools@0.24.1)(core-js@3.48.0)
 
-  rspack-vue-loader@17.4.5(vue@3.5.28(typescript@5.9.3))(webpack@5.102.1):
+  rspack-vue-loader@17.5.0(@rspack/core@packages+rspack)(vue@3.5.28(typescript@5.9.3)):
     dependencies:
+      '@rspack/lite-tapable': 1.1.0
       chalk: 4.1.2
-      watchpack: 2.4.4
-      webpack: 5.102.1
     optionalDependencies:
+      '@rspack/core': link:packages/rspack
       vue: 3.5.28(typescript@5.9.3)
 
-  rspress-plugin-font-open-sans@1.0.3(@rspress/core@2.0.2(@module-federation/runtime-tools@0.24.1)(@types/react@19.2.13)(core-js@3.47.0)):
+  rspress-plugin-font-open-sans@1.0.3(@rspress/core@2.0.2(@module-federation/runtime-tools@0.24.1)(@types/react@19.2.13)(core-js@3.48.0)):
     dependencies:
-      '@rspress/core': 2.0.2(@module-federation/runtime-tools@0.24.1)(@types/react@19.2.13)(core-js@3.47.0)
+      '@rspress/core': 2.0.2(@module-federation/runtime-tools@0.24.1)(@types/react@19.2.13)(core-js@3.48.0)
 
   run-applescript@7.1.0: {}
 
@@ -15986,7 +16000,7 @@ snapshots:
   ts-loader@9.5.4(typescript@5.9.3)(webpack@5.102.1):
     dependencies:
       chalk: 4.1.2
-      enhanced-resolve: 5.18.4
+      enhanced-resolve: 5.19.0
       micromatch: 4.0.8
       semver: 7.7.4
       source-map: 0.7.6
@@ -16363,7 +16377,7 @@ snapshots:
       acorn-import-phases: 1.0.4(acorn@8.15.0)
       browserslist: 4.26.3
       chrome-trace-event: 1.0.4
-      enhanced-resolve: 5.18.4
+      enhanced-resolve: 5.19.0
       es-module-lexer: 1.7.0
       eslint-scope: 5.1.1
       events: 3.3.0

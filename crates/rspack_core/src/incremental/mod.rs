@@ -29,34 +29,37 @@ bitflags! {
     /// Webpack stage: compilation.hooks.seal
     /// https://webpack.js.org/api/compilation-hooks/#seal
     const BUILD_CHUNK_GRAPH = 1 << 3;
+    /// Webpack stage: compilation.hooks.optimizeChunkModules
+    /// https://webpack.js.org/api/compilation-hooks/#optimizechunkmodules
+    const OPTIMIZE_CHUNK_MODULES = 1 << 4;
     /// Webpack stage: compilation.hooks.moduleIds
     /// https://webpack.js.org/api/compilation-hooks/#moduleids
-    const MODULE_IDS = 1 << 4;
+    const MODULE_IDS = 1 << 5;
     /// Webpack stage: compilation.hooks.chunkIds
     /// https://webpack.js.org/api/compilation-hooks/#chunkids
-    const CHUNK_IDS = 1 << 5;
+    const CHUNK_IDS = 1 << 6;
     /// Webpack stage: compilation.hooks.moduleHash beforeModuleHash / afterModuleHash
     /// https://webpack.js.org/api/compilation-hooks/#beforemodulehash
     /// https://webpack.js.org/api/compilation-hooks/#aftermodulehash
-    const MODULES_HASHES = 1 << 6;
+    const MODULES_HASHES = 1 << 7;
     /// Webpack stage: compilation.hooks.codeGeneration / afterCodeGeneration
     /// https://github.com/webpack/webpack/blob/d2a124db548cad6e84dffd93b502a4e74bfe2b6a/lib/Compilation.js#L902
-    const MODULES_CODEGEN = 1 << 7;
+    const MODULES_CODEGEN = 1 << 8;
     /// Webpack stage: compilation.hooks.beforeRuntimeRequirement / afterRuntimeRequirement
     /// https://github.com/webpack/webpack/blob/d2a124db548cad6e84dffd93b502a4e74bfe2b6a/lib/Compilation.js#L907
-    const MODULES_RUNTIME_REQUIREMENTS = 1 << 8;
-    const CHUNKS_RUNTIME_REQUIREMENTS = 1 << 9;
+    const MODULES_RUNTIME_REQUIREMENTS = 1 << 9;
+    const CHUNKS_RUNTIME_REQUIREMENTS = 1 << 10;
     /// Webpack stage: compilation.hooks.chunkHash / contentHash
     /// https://webpack.js.org/api/compilation-hooks/#contenthash
-    const CHUNKS_HASHES = 1 << 10;
+    const CHUNKS_HASHES = 1 << 11;
     /// Webpack stage: compilation.hooks.chunkAsset
     /// https://webpack.js.org/api/compilation-hooks/#chunkasset
-    const CHUNK_ASSET = 1 << 11;
+    const CHUNK_ASSET = 1 << 12;
     /// Webpack stage: compiler.hooks.emit / afterEmit / assetEmitted
     /// https://webpack.js.org/api/compiler-hooks/#emit
     /// https://webpack.js.org/api/compiler-hooks/#afteremit
     /// https://webpack.js.org/api/compiler-hooks/#assetemitted
-    const EMIT_ASSETS = 1 << 12;
+    const EMIT_ASSETS = 1 << 13;
   }
 }
 
@@ -67,6 +70,7 @@ impl IncrementalPasses {
       Self::FINISH_MODULES => "finishModules",
       Self::OPTIMIZE_DEPENDENCIES => "optimizeDependencies",
       Self::BUILD_CHUNK_GRAPH => "buildChunkGraph",
+      Self::OPTIMIZE_CHUNK_MODULES => "optimizeChunkModules",
       Self::MODULE_IDS => "moduleIds",
       Self::CHUNK_IDS => "chunkIds",
       Self::MODULES_HASHES => "modulesHashes",

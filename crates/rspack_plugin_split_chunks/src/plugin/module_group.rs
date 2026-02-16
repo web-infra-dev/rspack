@@ -8,7 +8,7 @@ use futures::future::join_all;
 use rayon::prelude::*;
 use rspack_collections::{IdentifierMap, UkeyIndexMap, UkeyMap, UkeySet};
 use rspack_core::{
-  ChunkByUkey, ChunkUkey, Compilation, Module, ModuleGraph, ModuleIdentifier,
+  ChunkByUkey, ChunkUkey, Compilation, ExportsInfoArtifact, Module, ModuleIdentifier,
   PrefetchExportsInfoMode, RuntimeKeyMap, UsageKey, get_runtime_key,
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt};
@@ -70,11 +70,11 @@ impl Combinator {
   fn group_chunks_by_exports(
     module_identifier: &ModuleIdentifier,
     module_chunks: impl Iterator<Item = ChunkUkey>,
-    module_graph: &ModuleGraph,
+    exports_info_artifact: &ExportsInfoArtifact,
     chunk_by_ukey: &ChunkByUkey,
   ) -> Vec<UkeySet<ChunkUkey>> {
-    let exports_info =
-      module_graph.get_prefetched_exports_info(module_identifier, PrefetchExportsInfoMode::Default);
+    let exports_info = exports_info_artifact
+      .get_prefetched_exports_info(module_identifier, PrefetchExportsInfoMode::Default);
     let mut grouped_by_used_exports: FxHashMap<UsageKey, UkeySet<ChunkUkey>> = Default::default();
     let mut runtime_key_map = RuntimeKeyMap::default();
     for chunk_ukey in module_chunks {
@@ -194,7 +194,7 @@ impl Combinator {
   pub(crate) fn prepare_group_by_used_exports(
     &mut self,
     all_modules: &[ModuleIdentifier],
-    module_graph: &ModuleGraph,
+    exports_info_artifact: &ExportsInfoArtifact,
     chunk_by_ukey: &ChunkByUkey,
     module_chunks: &ModuleChunks,
     chunk_index_map: &UkeyMap<ChunkUkey, u64>,
@@ -209,7 +209,7 @@ impl Combinator {
             .expect("should have module chunks")
             .iter()
             .copied(),
-          module_graph,
+          exports_info_artifact,
           chunk_by_ukey,
         );
         let mut grouped_chunks_key = vec![];

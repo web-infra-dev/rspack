@@ -1,5 +1,5 @@
 use std::{
-  fmt::Debug,
+  fmt::{Debug, Write},
   sync::{Arc, LazyLock, Mutex},
 };
 
@@ -17,10 +17,10 @@ use swc_core::atoms::Atom;
 
 use crate::{
   AsyncDependenciesBlockIdentifier, ChunkGraph, Compilation, CompilerOptions, DependenciesBlock,
-  DependencyId, DependencyType, ExportsArgument, ExportsInfoGetter, ExportsType,
-  FakeNamespaceObjectMode, GenerateContext, GetUsedNameParam, ImportPhase, InitFragment,
-  InitFragmentExt, InitFragmentKey, InitFragmentStage, Module, ModuleArgument, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleId, ModuleIdentifier, NormalInitFragment, PathInfo,
+  DependencyId, DependencyType, ExportsArgument, ExportsInfoArtifact, ExportsInfoGetter,
+  ExportsType, FakeNamespaceObjectMode, GenerateContext, GetUsedNameParam, ImportPhase,
+  InitFragment, InitFragmentExt, InitFragmentKey, InitFragmentStage, Module, ModuleArgument,
+  ModuleGraph, ModuleGraphCacheArtifact, ModuleId, ModuleIdentifier, NormalInitFragment, PathInfo,
   PrefetchExportsInfoMode, RuntimeCondition, RuntimeGlobals, RuntimeSpec, UsedName,
   compile_boolean_matcher_from_lists, contextify, property_access,
   runtime_globals::{RuntimeVariable, runtime_globals_to_string, runtime_variable_to_string},
@@ -398,6 +398,7 @@ pub fn render_make_deferred_namespace_mode_from_exports_type(exports_type: Expor
 pub fn get_exports_type(
   module_graph: &ModuleGraph,
   module_graph_cache: &ModuleGraphCacheArtifact,
+  exports_info_artifact: &ExportsInfoArtifact,
   id: &DependencyId,
   parent_module: &ModuleIdentifier,
 ) -> ExportsType {
@@ -405,12 +406,19 @@ pub fn get_exports_type(
     .module_by_identifier(parent_module)
     .expect("should have mgm")
     .get_strict_esm_module();
-  get_exports_type_with_strict(module_graph, module_graph_cache, id, strict)
+  get_exports_type_with_strict(
+    module_graph,
+    module_graph_cache,
+    exports_info_artifact,
+    id,
+    strict,
+  )
 }
 
 pub fn get_exports_type_with_strict(
   module_graph: &ModuleGraph,
   module_graph_cache: &ModuleGraphCacheArtifact,
+  exports_info_artifact: &ExportsInfoArtifact,
   id: &DependencyId,
   strict: bool,
 ) -> ExportsType {
@@ -420,7 +428,12 @@ pub fn get_exports_type_with_strict(
   module_graph
     .module_by_identifier(module)
     .expect("should have module")
-    .get_exports_type(module_graph, module_graph_cache, strict)
+    .get_exports_type(
+      module_graph,
+      module_graph_cache,
+      exports_info_artifact,
+      strict,
+    )
 }
 
 pub fn get_outgoing_async_modules(
@@ -924,6 +937,7 @@ impl ModuleCodeTemplate {
     let exports_type = get_exports_type(
       mg,
       &compilation.module_graph_cache_artifact,
+      &compilation.exports_info_artifact,
       id,
       &module.identifier(),
     );
@@ -975,8 +989,13 @@ impl ModuleCodeTemplate {
       return self.missing_module(request);
     };
 
-    let exports_type =
-      get_exports_type(mg, &compilation.module_graph_cache_artifact, id, &module_id);
+    let exports_type = get_exports_type(
+      mg,
+      &compilation.module_graph_cache_artifact,
+      &compilation.exports_info_artifact,
+      id,
+      &module_id,
+    );
 
     let target_module_identifier = target_module.identifier();
 
@@ -991,10 +1010,14 @@ impl ModuleCodeTemplate {
         if is_deferred && !matches!(exports_type, ExportsType::Namespace) {
           let name = &export_name[1..];
           let Some(used) = ExportsInfoGetter::get_used_name(
-            GetUsedNameParam::WithNames(&mg.get_prefetched_exports_info(
-              &target_module_identifier,
-              PrefetchExportsInfoMode::Nested(name),
-            )),
+            GetUsedNameParam::WithNames(
+              &compilation
+                .exports_info_artifact
+                .get_prefetched_exports_info(
+                  &target_module_identifier,
+                  PrefetchExportsInfoMode::Nested(name),
+                ),
+            ),
             runtime,
             name,
           ) else {
@@ -1100,10 +1123,14 @@ impl ModuleCodeTemplate {
       .unwrap_or(export_name);
     if !export_name.is_empty() {
       let used_name = match ExportsInfoGetter::get_used_name(
-        GetUsedNameParam::WithNames(&mg.get_prefetched_exports_info(
-          &target_module_identifier,
-          PrefetchExportsInfoMode::Nested(export_name),
-        )),
+        GetUsedNameParam::WithNames(
+          &compilation
+            .exports_info_artifact
+            .get_prefetched_exports_info(
+              &target_module_identifier,
+              PrefetchExportsInfoMode::Nested(export_name),
+            ),
+        ),
         runtime,
         export_name,
       ) {
@@ -1202,6 +1229,7 @@ impl ModuleCodeTemplate {
     let exports_type = get_exports_type(
       mg,
       &compilation.module_graph_cache_artifact,
+      &compilation.exports_info_artifact,
       dep_id,
       &module_id,
     );
@@ -1259,11 +1287,13 @@ impl ModuleCodeTemplate {
             )
           );
         }
-        appending.push_str(&format!(
+        write!(
+          appending,
           ".then({}.bind({}, {module_id_expr}, {mode}))",
           self.render_runtime_globals(&RuntimeGlobals::MAKE_DEFERRED_NAMESPACE_OBJECT),
           self.render_runtime_globals(&RuntimeGlobals::REQUIRE)
-        ));
+        )
+        .expect("infallible write to String");
       } else if let Some(header) = header {
         let rendered_async_deps_fn =
           self.render_runtime_globals(&RuntimeGlobals::MAKE_DEFERRED_NAMESPACE_OBJECT);

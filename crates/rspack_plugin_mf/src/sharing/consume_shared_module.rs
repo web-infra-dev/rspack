@@ -158,6 +158,7 @@ impl Module for ConsumeSharedModule {
     &self,
     _module_graph: &ModuleGraph,
     _module_graph_cache: &rspack_core::ModuleGraphCacheArtifact,
+    _exports_info_artifact: &rspack_core::ExportsInfoArtifact,
     _strict: bool,
   ) -> ExportsType {
     ExportsType::Dynamic

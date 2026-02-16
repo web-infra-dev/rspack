@@ -116,7 +116,6 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
           continue;
         }
         if !is_runtime_equal(chunk.runtime(), other_chunk.runtime()) {
-          let module_graph = compilation.get_module_graph();
           let is_all_equal = compilation
             .build_chunk_graph_artifact
             .chunk_graph
@@ -124,7 +123,9 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
             .into_par_iter()
             .all(|module| {
               is_equally_used(
-                module_graph.get_exports_info_data(module),
+                compilation
+                  .exports_info_artifact
+                  .get_exports_info_data(module),
                 chunk.runtime(),
                 other_chunk.runtime(),
               )
