@@ -1367,7 +1367,7 @@ impl Module for ConcatenatedModule {
     let mut exports_final_names: Vec<(String, String)> = vec![];
 
     for (_, export_info) in exports_info.exports() {
-      let name = export_info.name().cloned().unwrap_or("".into());
+      let name = export_info.name().cloned().unwrap_or_else(|| "".into());
       if matches!(export_info.provided(), Some(ExportProvided::NotProvided)) {
         continue;
       }
@@ -1559,7 +1559,7 @@ impl Module for ConcatenatedModule {
               &compilation.exports_info_artifact,
               &compilation.module_static_cache,
               module_info_id,
-              vec![export_info.name().cloned().unwrap_or("".into())],
+              vec![export_info.name().cloned().unwrap_or_else(|| "".into())],
               &module_to_info_map,
               runtime,
               false,
@@ -1711,7 +1711,7 @@ impl Module for ConcatenatedModule {
           runtime_template
             .runtime_requirements_mut()
             .insert(info.runtime_requirements);
-          name = info.namespace_object_name.clone();
+          name.clone_from(&info.namespace_object_name);
         }
         ModuleInfo::External(info) => {
           // Deferred modules namespace objects is hoisted up at above loop
@@ -1742,7 +1742,7 @@ impl Module for ConcatenatedModule {
               .expect("should json stringify module id")
             )));
 
-            name = info.name.clone();
+            name.clone_from(&info.name);
           }
           // If a module is deferred in other places, but used as non-deferred here,
           // the module itself will be emitted as mod_deferred (in the case "external"),

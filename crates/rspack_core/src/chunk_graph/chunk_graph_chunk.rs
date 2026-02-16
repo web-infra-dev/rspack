@@ -1160,6 +1160,6 @@ impl ChunkGraph {
 
         None
       })
-      .unwrap_or(module.source_types(module_graph).iter().copied().collect())
+      .unwrap_or_else(|| module.source_types(module_graph).iter().copied().collect())
   }
 }

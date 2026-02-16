@@ -1268,7 +1268,9 @@ impl Stats<'_> {
     if stats.built || stats.code_generated || options.cached_modules {
       stats.identifier = Some(module.identifier);
       stats.name = Some(module.name.clone().into());
-      stats.name_for_condition = module.name_for_condition.clone();
+      stats
+        .name_for_condition
+        .clone_from(&module.name_for_condition);
       stats.cacheable = Some(module.cacheable);
       stats.optional = Some(false);
       stats.orphan = Some(true);

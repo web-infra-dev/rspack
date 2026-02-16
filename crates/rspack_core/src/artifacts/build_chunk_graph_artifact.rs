@@ -244,16 +244,16 @@ impl ArtifactExt for BuildChunkGraphArtifact {
   fn recover(_incremental: &crate::incremental::Incremental, new: &mut Self, old: &mut Self) {
     new.code_splitter = mem::take(&mut old.code_splitter);
     rayon::scope(|s| {
-      s.spawn(|_| new.chunk_by_ukey = old.chunk_by_ukey.clone());
-      s.spawn(|_| new.chunk_graph = old.chunk_graph.clone());
-      s.spawn(|_| new.chunk_group_by_ukey = old.chunk_group_by_ukey.clone());
+      s.spawn(|_| new.chunk_by_ukey.clone_from(&old.chunk_by_ukey));
+      s.spawn(|_| new.chunk_graph.clone_from(&old.chunk_graph));
+      s.spawn(|_| new.chunk_group_by_ukey.clone_from(&old.chunk_group_by_ukey));
 
-      s.spawn(|_| new.async_entrypoints = old.async_entrypoints.clone());
-      s.spawn(|_| new.named_chunk_groups = old.named_chunk_groups.clone());
-      s.spawn(|_| new.named_chunks = old.named_chunks.clone());
+      s.spawn(|_| new.async_entrypoints.clone_from(&old.async_entrypoints));
+      s.spawn(|_| new.named_chunk_groups.clone_from(&old.named_chunk_groups));
+      s.spawn(|_| new.named_chunks.clone_from(&old.named_chunks));
       s.spawn(|_| {
-        new.entrypoints = old.entrypoints.clone();
-        new.module_idx = old.module_idx.clone();
+        new.entrypoints.clone_from(&old.entrypoints);
+        new.module_idx.clone_from(&old.module_idx);
       });
     });
   }

@@ -508,6 +508,9 @@ verbose_file_reads              = "warn"
 #mem_forget                      = "warn"
 
 # performance
+iter_filter_is_ok       = "warn"
+iter_filter_is_some     = "warn"
+iter_with_drain         = "warn"
 redundant_clone         = "warn"
 regex_creation_in_loops = "warn"
 
