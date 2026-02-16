@@ -1212,9 +1212,17 @@ export default {
 
 <ApiMeta addedVersion="1.0.0-alpha.6" />
 
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+<PropertyType
+  type="boolean | 'preserve-unknown'"
+  defaultValueList={[{ defaultValue: 'true' }]}
+/>
 
 是否要解析替换 `import.meta`。
+当输出是[ESM 格式产物](/zh/guide/features/esm)的时候，默认值为`'preserve-unknown'`，其他情况默认值为`true`。
+
+- `"preserve-unknown"`: 未知的 `import.meta` 字段会在运行时被计算，而不是编译期被替换。
+- `true`: 所有`import.meta`字段在编译期被替换。
+- `false`: 所有`import.meta`字段都不会被替换。
 
 ```js title="rspack.config.mjs"
 export default {
