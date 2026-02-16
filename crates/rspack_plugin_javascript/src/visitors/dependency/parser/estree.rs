@@ -193,7 +193,7 @@ impl ExportNamedDeclaration {
   pub fn named_export_specifiers<F: FnMut(&mut JavascriptParser<'_>, Atom, Atom, Span)>(
     parser: &mut JavascriptParser<'_>,
     named: NamedExport,
-    f: F,
+    mut f: F,
   ) {
     for spec in named.specifiers(&parser.ast).iter() {
       let spec = parser.ast.get_node_in_sub_range(spec);
@@ -202,12 +202,14 @@ impl ExportNamedDeclaration {
           "should handle ExportSpecifier::Namespace by ExportAllOrNamedAll::NamedAll in block_pre_walk_export_all_declaration"
         ),
         ExportSpecifier::Default(s) => {
-          let exported = parser.ast.get_atom(s.exported(ast).sym(ast));
+          let exported = parser
+            .ast
+            .get_atom(s.exported(&parser.ast).sym(&parser.ast));
           f(
             parser,
             JS_DEFAULT_KEYWORD.clone(),
             exported,
-            s.exported(ast).span(ast),
+            s.exported(&parser.ast).span(&parser.ast),
           );
         }
         ExportSpecifier::Named(n) => {

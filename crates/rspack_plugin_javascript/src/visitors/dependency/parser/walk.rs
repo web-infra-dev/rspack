@@ -804,7 +804,7 @@ impl JavascriptParser<'_> {
   fn walk_member_expression(&mut self, expr: MemberExpr) {
     // println!("{:#?}", expr);
     if let Some(expr_info) =
-      self.get_member_expression_info(ExprRef::Member(expr), AllowedMemberTypes::all())
+      self.get_member_expression_info(Expr::Member(expr), AllowedMemberTypes::all())
     {
       match expr_info {
         MemberExpressionInfo::Expression(expr_info) => {
@@ -1005,23 +1005,23 @@ impl JavascriptParser<'_> {
         if let Some(var_info) = var_info
           && let Some(param) = params.get(i)
         {
-          let param = parser.ast.get_atom(param.id(&this.ast).sym(&this.ast));
+          let param = parser.ast.get_atom(param.id(&parser.ast).sym(&parser.ast));
           parser.set_variable(param, var_info);
         }
       }
 
       if let Some(expr) = expr.as_fn() {
-        if let Some(stmt) = expr.function(&this.ast).body(&this.ast) {
-          parser.detect_mode(stmt.stmts(&this.ast));
+        if let Some(stmt) = expr.function(&parser.ast).body(&parser.ast) {
+          parser.detect_mode(stmt.stmts(&parser.ast));
           let prev = parser.prev_statement;
           parser.pre_walk_statement(Statement::Block(stmt));
           parser.prev_statement = prev;
           parser.walk_statement(Statement::Block(stmt));
         }
       } else if let Some(expr) = expr.as_arrow() {
-        match expr.body(&this.ast) {
+        match expr.body(&parser.ast) {
           BlockStmtOrExpr::BlockStmt(stmt) => {
-            parser.detect_mode(stmt.stmts(&this.ast));
+            parser.detect_mode(stmt.stmts(&parser.ast));
             let prev = parser.prev_statement;
             parser.pre_walk_statement(Statement::Block(stmt));
             parser.prev_statement = prev;
@@ -1126,26 +1126,25 @@ impl JavascriptParser<'_> {
           )
         } else {
           if let Expr::Member(member) = callee {
-            if let Some(MemberExpressionInfo::Call(expr_info)) = self.get_member_expression_info(
-              ExprRef::Member(member),
-              AllowedMemberTypes::CallExpression,
-            ) && expr_info
-              .root_info
-              .call_hooks_name(self, |this, for_name| {
-                this
-                  .plugin_drive
-                  .clone()
-                  .call_member_chain_of_call_member_chain(
-                    this,
-                    expr,
-                    &expr_info.callee_members,
-                    expr_info.call,
-                    &expr_info.members,
-                    &expr_info.member_ranges,
-                    for_name,
-                  )
-              })
-              .unwrap_or_default()
+            if let Some(MemberExpressionInfo::Call(expr_info)) = self
+              .get_member_expression_info(Expr::Member(member), AllowedMemberTypes::CallExpression)
+              && expr_info
+                .root_info
+                .call_hooks_name(self, |this, for_name| {
+                  this
+                    .plugin_drive
+                    .clone()
+                    .call_member_chain_of_call_member_chain(
+                      this,
+                      expr,
+                      &expr_info.callee_members,
+                      expr_info.call,
+                      &expr_info.members,
+                      &expr_info.member_ranges,
+                      for_name,
+                    )
+                })
+                .unwrap_or_default()
             {
               return;
             }
@@ -1321,7 +1320,8 @@ impl JavascriptParser<'_> {
         return;
       }
       self.walk_expression(expr.right(&self.ast));
-      self.enter_pattern(warp_ident_to_pat(&mut self.ast, ident), |this, ident| {
+      let pat = warp_ident_to_pat(&mut self.ast, ident);
+      self.enter_pattern(pat, |this, ident| {
         let ident_sym = this.ast.get_atom(ident.sym(&this.ast));
         if !ident_sym
           .call_hooks_name(this, |this, for_name| {
@@ -1349,7 +1349,7 @@ impl JavascriptParser<'_> {
       self.walk_assign_target_pattern(pat);
     } else if let Some(SimpleAssignTarget::Member(member)) = expr.left(&self.ast).as_simple() {
       if let Some(MemberExpressionInfo::Expression(expr_name)) =
-        self.get_member_expression_info(ExprRef::Member(member), AllowedMemberTypes::Expression)
+        self.get_member_expression_info(Expr::Member(member), AllowedMemberTypes::Expression)
         && expr_name
           .root_info
           .call_hooks_name(self, |parser, for_name| {
@@ -1439,9 +1439,9 @@ impl JavascriptParser<'_> {
   fn walk_block_statement(&mut self, stmt: BlockStmt) {
     self.in_block_scope(|this| {
       let prev = this.prev_statement;
-      this.block_pre_walk_statements(stmt.stmts(&self.ast));
+      this.block_pre_walk_statements(stmt.stmts(&this.ast));
       this.prev_statement = prev;
-      this.walk_statements(stmt.stmts(&self.ast));
+      this.walk_statements(stmt.stmts(&this.ast));
     })
   }
 
