@@ -9,6 +9,8 @@ description: Use sftrace, which is based on LLVM Xray instrumentation, to trace 
 
 Use sftrace (LLVM XRay) to trace rspack's Rust function calls and convert them to perfetto protobuf format for performance analysis and troubleshooting.
 
+Default workflow: run inside the target example directory (for example `examples/react`) and store all trace artifacts in that directory (not `/tmp`).
+
 ## Workflow
 
 ### 1) Build sftrace tools
@@ -32,8 +34,11 @@ SFTRACE=1 pnpm build:binding:profiling
 `sftrace filter` works on function symbols from an object file (for rspack, the binding `.node` file).
 
 ```sh
-# Resolve binding path from the target project (example: examples/react)
-BINDING_NODE="$(pnpm -C examples/react exec node -p 'require.resolve("@rspack/binding-linux-x64-gnu")')"
+# Enter the target example directory first
+cd examples/react
+
+# Prefer the locally built profiling binding from the monorepo
+BINDING_NODE="$(realpath ../../crates/node_binding/rspack.linux-x64-gnu.node)"
 
 # Regex mode
 sftrace filter -p "$BINDING_NODE" -r 'finish_modules|FlagDependencyExportsPlugin' -o sftrace.filter
@@ -42,18 +47,23 @@ sftrace filter -p "$BINDING_NODE" -r 'finish_modules|FlagDependencyExportsPlugin
 # sftrace filter -p "$BINDING_NODE" --list symbols.list -o sftrace.filter
 ```
 
-If your platform package name differs, replace `@rspack/binding-linux-x64-gnu` accordingly.
+If your binding file name differs by platform, replace the `.node` path accordingly.
 
 ### 4) Record sftrace (example: build in `examples/react`)
 
-When `-f` points to a file outside your current directory, prefer an absolute path.
+Run from the target example directory and keep outputs local to that example.
 
 ```sh
+cd examples/react
+
+TRACE_DIR="sftrace-$(date +%Y%m%d-%H%M%S)"
+mkdir -p "$TRACE_DIR"
+
 # Full trace
-sftrace record -o sf.log -- pnpm -C examples/react build
+sftrace record -o "$TRACE_DIR/sf.log" -- pnpm build
 
 # Filtered trace
-sftrace record -f sftrace.filter -o sf.filtered.log -- pnpm -C examples/react build
+sftrace record -f "$TRACE_DIR/sftrace.filter" -o "$TRACE_DIR/sf.filtered.log" -- pnpm build
 ```
 
 ### 5) Analyze sf.log
@@ -61,7 +71,8 @@ sftrace record -f sftrace.filter -o sf.filtered.log -- pnpm -C examples/react bu
 Convert sftrace log to perfetto protobuf format.
 
 ```sh
-sftrace convert sf.filtered.log -o sf.filtered.pb.gz
+cd examples/react
+sftrace convert "$TRACE_DIR/sf.filtered.log" -o "$TRACE_DIR/sf.filtered.pb.gz"
 ```
 
 ### 6) Optional: Visualization using [viztracer](https://github.com/gaogaotiantian/viztracer)
