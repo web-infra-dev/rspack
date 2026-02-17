@@ -202,7 +202,7 @@ fn handle_worker(
     let mut options = args
       .get(1)
       // new Worker(new URL("worker.js"), options)
-      .map(parse_new_worker_options);
+      .map(|id| parse_new_worker_options(parser, parser.ast.get_node_in_sub_range(id)));
 
     let import_options = expr_box
       .as_new()
@@ -212,7 +212,12 @@ fn handle_worker(
           .and_then(|args| args.first())
           .and_then(|n| {
             // new Worker(new URL(/* options */ "worker.js"))
-            parse_new_worker_options_from_comments(parser, n.span(), new_url_expr.span(&parser.ast))
+            let n = parser.ast.get_node_in_sub_range(n);
+            parse_new_worker_options_from_comments(
+              parser,
+              n.span(&parser.ast),
+              new_url_expr.span(&parser.ast),
+            )
           })
       })
       .or_else(|| {
@@ -328,13 +333,15 @@ impl JavascriptParserPlugin for WorkerPlugin {
     _statement: VariableDeclaration,
   ) -> Option<bool> {
     if let Some(ident) = decl.name(&parser.ast).as_ident()
-      && self.pattern_syntax.contains_key(ident.sym.as_str())
+      && self
+        .pattern_syntax
+        .contains_key(parser.ast.get_utf8(ident.id(&parser.ast).sym(&parser.ast)))
     {
       parser.tag_variable(
-        ident.sym.clone(),
+        parser.ast.get_atom(ident.id(&parser.ast).sym(&parser.ast)),
         WORKER_SPECIFIER_TAG,
         Some(WorkerSpecifierData {
-          key: ident.sym.clone(),
+          key: parser.ast.get_atom(ident.id(&parser.ast).sym(&parser.ast)),
         }),
       );
       return Some(true);
@@ -436,6 +443,7 @@ impl JavascriptParserPlugin for WorkerPlugin {
             parser.walk_expression(callee);
           }
           if let Some(arg) = call_expr.args(&parser.ast).get(1) {
+            let arg = parser.ast.get_node_in_sub_range(arg);
             parser.walk_expression(arg.expr(&parser.ast));
           }
           true
