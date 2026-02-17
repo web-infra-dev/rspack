@@ -38,6 +38,7 @@ criterion2          = { default-features = false, version = "2.0.0", features = 
 css-module-lexer    = { version = "0.0.15", default-features = false }
 dashmap             = { version = "6.1.0", default-features = false }
 derive_more         = { version = "2.0.1", default-features = false }
+defer-drop         = { version = "1.3.0", default-features = false }
 dunce               = { version = "1.0.5", default-features = false }
 dyn-clone           = { version = "1.0.20", default-features = false }
 either              = { version = "1.15.0", default-features = false }

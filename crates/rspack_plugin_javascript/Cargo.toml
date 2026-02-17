@@ -11,6 +11,7 @@ anymap = { workspace = true }
 async-trait = { workspace = true }
 bitflags = { workspace = true }
 cow-utils = { workspace = true }
+defer-drop = { workspace = true }
 either = { workspace = true }
 fast-glob = { workspace = true }
 indexmap = { workspace = true }

@@ -1,5 +1,5 @@
 use std::{
-  borrow::Cow, mem, sync::{Arc, LazyLock}
+  borrow::Cow, sync::{Arc, LazyLock}
 };
 
 use regex::Regex;
@@ -312,9 +312,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         Some(SideEffectsBailoutItem { msg, ty: item.ty })
       });
     }
-    rayon::spawn( move|| {
-      drop(ast);
-    });
+    drop(defer_drop::DeferDrop::new(ast));
     Ok(
       ParseResult {
         source,
