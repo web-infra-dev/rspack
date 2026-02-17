@@ -1294,7 +1294,7 @@ impl JavascriptParser<'_> {
     match expr {
       Expr::Tpl(tpl) => eval::eval_tpl_expression(self, tpl),
       Expr::TaggedTpl(tagged_tpl) => eval::eval_tagged_tpl_expression(self, tagged_tpl),
-      Expr::Lit(lit) => eval::eval_lit_expr(lit),
+      Expr::Lit(lit) => eval::eval_lit_expr(self, lit),
       Expr::Cond(cond) => eval::eval_cond_expression(self, cond),
       Expr::Unary(unary) => eval::eval_unary_expression(self, unary),
       Expr::Bin(binary) => eval::eval_binary_expression(self, binary),

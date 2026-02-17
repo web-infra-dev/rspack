@@ -1,7 +1,7 @@
 use swc_core::{atoms::Atom, common::Span};
 use swc_experimental_ecma_ast::{
   AssignExpr, AwaitExpr, BinExpr, CallExpr, ClassMember, CondExpr, Expr, ForOfStmt, Ident, IfStmt,
-  ImportDecl, MemberExpr, ModuleDecl, NewExpr, OptChainExpr, Program, ThisExpr, UnaryExpr,
+  ImportDecl, MemberExpr, ModuleDecl, NewExpr, OptChainExpr, Program, ThisExpr, UnaryExpr, Utf8Ref,
   VarDeclarator,
 };
 
@@ -77,20 +77,20 @@ pub trait JavascriptParserPlugin {
     None
   }
 
-  fn evaluate<'a>(
+  fn evaluate(
     &self,
     _parser: &mut JavascriptParser,
-    _expr: &'a Expr,
-  ) -> Option<BasicEvaluatedExpression<'a>> {
+    _expr: Expr,
+  ) -> Option<BasicEvaluatedExpression> {
     None
   }
 
-  fn evaluate_typeof<'a>(
+  fn evaluate_typeof(
     &self,
     _parser: &mut JavascriptParser,
-    _expr: &'a UnaryExpr,
+    _expr: UnaryExpr,
     _for_name: &str,
-  ) -> Option<BasicEvaluatedExpression<'a>> {
+  ) -> Option<BasicEvaluatedExpression> {
     None
   }
 
@@ -100,17 +100,17 @@ pub trait JavascriptParserPlugin {
     _for_name: &str,
     _start: u32,
     _end: u32,
-  ) -> Option<BasicEvaluatedExpression<'static>> {
+  ) -> Option<BasicEvaluatedExpression> {
     None
   }
 
-  fn evaluate_call_expression_member<'a>(
+  fn evaluate_call_expression_member(
     &self,
     _parser: &mut JavascriptParser,
-    _property: &str,
-    _expr: &'a CallExpr,
-    _param: BasicEvaluatedExpression<'a>,
-  ) -> Option<BasicEvaluatedExpression<'a>> {
+    _property: Utf8Ref,
+    _expr: CallExpr,
+    _param: BasicEvaluatedExpression,
+  ) -> Option<BasicEvaluatedExpression> {
     None
   }
 
@@ -131,19 +131,14 @@ pub trait JavascriptParserPlugin {
     None
   }
 
-  fn call(
-    &self,
-    _parser: &mut JavascriptParser,
-    _expr: &CallExpr,
-    _for_name: &str,
-  ) -> Option<bool> {
+  fn call(&self, _parser: &mut JavascriptParser, _expr: CallExpr, _for_name: &str) -> Option<bool> {
     None
   }
 
   fn call_member_chain(
     &self,
     _parser: &mut JavascriptParser,
-    _expr: &CallExpr,
+    _expr: CallExpr,
     _for_name: &str,
     _members: &[Atom],
     _members_optionals: &[bool],
@@ -177,7 +172,7 @@ pub trait JavascriptParserPlugin {
     &self,
     _parser: &mut JavascriptParser,
     _root_info: &ExportedVariableInfo,
-    _expr: &MemberExpr,
+    _expr: MemberExpr,
   ) -> Option<bool> {
     None
   }
@@ -186,9 +181,9 @@ pub trait JavascriptParserPlugin {
   fn member_chain_of_call_member_chain(
     &self,
     _parser: &mut JavascriptParser,
-    _member_expr: &MemberExpr,
+    _member_expr: MemberExpr,
     _callee_members: &[Atom],
-    _call_expr: &CallExpr,
+    _call_expr: CallExpr,
     _members: &[Atom],
     _member_ranges: &[Span],
     _for_name: &str,
@@ -200,9 +195,9 @@ pub trait JavascriptParserPlugin {
   fn call_member_chain_of_call_member_chain(
     &self,
     _parser: &mut JavascriptParser,
-    _call_expr: &CallExpr,
+    _call_expr: CallExpr,
     _callee_members: &[Atom],
-    _inner_call_expr: &CallExpr,
+    _inner_call_expr: CallExpr,
     _members: &[Atom],
     _member_ranges: &[Span],
     _for_name: &str,
@@ -213,7 +208,7 @@ pub trait JavascriptParserPlugin {
   fn r#typeof(
     &self,
     _parser: &mut JavascriptParser,
-    _expr: &UnaryExpr,
+    _expr: UnaryExpr,
     _for_name: &str,
   ) -> Option<bool> {
     None
@@ -435,7 +430,7 @@ pub trait JavascriptParserPlugin {
   fn import_meta_property_in_destructuring(
     &self,
     _parser: &mut JavascriptParser,
-    _property: DestructuringAssignmentProperty,
+    _property: &DestructuringAssignmentProperty,
   ) -> Option<String> {
     None
   }

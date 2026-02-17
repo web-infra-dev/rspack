@@ -7,10 +7,9 @@ use rspack_core::{
 use rspack_hash::RspackHash;
 use rspack_util::SpanExt;
 use rustc_hash::{FxHashMap, FxHashSet};
-use swc_core::{
-  atoms::Atom,
-  common::{Span, Spanned},
-  ecma::ast::{CallExpr, ExprOrSpread, Ident, NewExpr, VarDeclarator},
+use swc_core::atoms::Atom;
+use swc_experimental_ecma_ast::{
+  CallExpr, ExprOrSpread, Ident, NewExpr, Span, Spanned, TypedSubRange, VarDeclarator,
 };
 use url::Url;
 
@@ -45,12 +44,21 @@ struct ParsedNewWorkerImportOptions {
   pub ignored: Option<bool>,
 }
 
-fn parse_new_worker_options(arg: &ExprOrSpread) -> ParsedNewWorkerOptions {
-  let obj = arg.expr.as_object();
+fn parse_new_worker_options(
+  parser: &JavascriptParser,
+  arg: ExprOrSpread,
+) -> ParsedNewWorkerOptions {
+  let obj = arg.expr(&parser.ast).as_object();
   let name = obj
-    .and_then(|obj| get_literal_str_by_obj_prop(obj, "name"))
-    .map(|str| str.value.to_string_lossy().into());
-  let span = arg.span();
+    .and_then(|obj| get_literal_str_by_obj_prop(&parser.ast, obj, "name"))
+    .map(|str| {
+      parser
+        .ast
+        .get_wtf8(str.value(&parser.ast))
+        .to_string_lossy()
+        .into()
+    });
+  let span = arg.span(&parser.ast);
   ParsedNewWorkerOptions {
     range: Some((span.real_lo(), span.real_hi())),
     name,
@@ -76,7 +84,7 @@ fn parse_new_worker_options_from_comments(
 fn add_dependencies(
   parser: &mut JavascriptParser,
   span: Span,
-  first_arg: &ExprOrSpread,
+  first_arg: ExprOrSpread,
   parsed_path: ParsedNewWorkerPath,
   parsed_options: Option<ParsedNewWorkerOptions>,
   need_new_url: bool,
@@ -126,7 +134,7 @@ fn add_dependencies(
   if parser.compiler_options.output.trusted_types.is_some() {
     parser.add_dependency(Box::new(CreateScriptUrlDependency::new(
       span.into(),
-      first_arg.span().into(),
+      first_arg.span(&parser.ast).into(),
     )));
   }
 
@@ -150,22 +158,23 @@ fn add_dependencies(
   }
 }
 
-fn handle_worker<'a>(
+fn handle_worker(
   parser: &mut JavascriptParser,
-  args: &'a [ExprOrSpread],
+  args: TypedSubRange<ExprOrSpread>,
   span: Span,
 ) -> Option<(
   ParsedNewWorkerPath,
   Option<ParsedNewWorkerOptions>,
-  &'a ExprOrSpread,
+  ExprOrSpread,
   bool,
 )> {
-  if let Some(expr_or_spread) = args.first()
-    && let ExprOrSpread {
-      spread: None,
-      expr: expr_box,
-    } = expr_or_spread
-  {
+  if let Some(expr_or_spread) = args.first() {
+    let expr_or_spread = parser.ast.get_node_in_sub_range(expr_or_spread);
+    if expr_or_spread.spread(&parser.ast).is_some() {
+      return None;
+    }
+    let expr_box = expr_or_spread.expr(&parser.ast);
+
     let mut need_new_url = false;
     let path = if let Some(new_url_expr) = expr_box.as_new()
       && let Some((request, start, end)) = get_url_request(parser, new_url_expr)
@@ -179,7 +188,10 @@ fn handle_worker<'a>(
     {
       need_new_url = true;
       ParsedNewWorkerPath {
-        range: (member_expr.span().real_lo(), member_expr.span().real_hi()),
+        range: (
+          member_expr.span(&parser.ast).real_lo(),
+          member_expr.span(&parser.ast).real_hi(),
+        ),
         value: Url::from_file_path(parser.resource_data.resource())
           .expect("should be a path")
           .to_string(),
@@ -196,17 +208,16 @@ fn handle_worker<'a>(
       .as_new()
       .and_then(|new_url_expr| {
         new_url_expr
-          .args
-          .as_ref()
+          .args(&parser.ast)
           .and_then(|args| args.first())
           .and_then(|n| {
             // new Worker(new URL(/* options */ "worker.js"))
-            parse_new_worker_options_from_comments(parser, n.span(), new_url_expr.span())
+            parse_new_worker_options_from_comments(parser, n.span(), new_url_expr.span(&parser.ast))
           })
       })
       .or_else(|| {
         // new Worker(/* options */ new URL("worker.js"))
-        parse_new_worker_options_from_comments(parser, expr_or_spread.span(), span)
+        parse_new_worker_options_from_comments(parser, expr_or_spread.span(&parser.ast), span)
       });
 
     if import_options
@@ -313,10 +324,10 @@ impl JavascriptParserPlugin for WorkerPlugin {
   fn pre_declarator(
     &self,
     parser: &mut JavascriptParser,
-    decl: &VarDeclarator,
-    _statement: VariableDeclaration<'_>,
+    decl: VarDeclarator,
+    _statement: VariableDeclaration,
   ) -> Option<bool> {
-    if let Some(ident) = decl.name.as_ident()
+    if let Some(ident) = decl.name(&parser.ast).as_ident()
       && self.pattern_syntax.contains_key(ident.sym.as_str())
     {
       parser.tag_variable(
@@ -331,13 +342,13 @@ impl JavascriptParserPlugin for WorkerPlugin {
     None
   }
 
-  fn pattern(&self, parser: &mut JavascriptParser, ident: &Ident, for_name: &str) -> Option<bool> {
+  fn pattern(&self, parser: &mut JavascriptParser, ident: Ident, for_name: &str) -> Option<bool> {
     if self.pattern_syntax.contains_key(for_name) {
       parser.tag_variable(
-        ident.sym.clone(),
+        parser.ast.get_atom(ident.sym(&parser.ast)),
         WORKER_SPECIFIER_TAG,
         Some(WorkerSpecifierData {
-          key: ident.sym.clone(),
+          key: parser.ast.get_atom(ident.sym(&parser.ast)),
         }),
       );
       return Some(true);
@@ -348,7 +359,7 @@ impl JavascriptParserPlugin for WorkerPlugin {
   fn call_member_chain(
     &self,
     parser: &mut JavascriptParser,
-    call_expr: &CallExpr,
+    call_expr: CallExpr,
     for_name: &str,
     members: &[Atom],
     _members_optionals: &[bool],
@@ -364,25 +375,29 @@ impl JavascriptParserPlugin for WorkerPlugin {
     if let Some(value) = self.pattern_syntax.get(data.key.as_str())
       && value.contains(&members.iter().map(|id| id.as_str()).join("."))
     {
-      return handle_worker(parser, &call_expr.args, call_expr.span).map(
-        |(parsed_path, parsed_options, first_arg, need_new_url)| {
-          add_dependencies(
-            parser,
-            call_expr.span,
-            first_arg,
-            parsed_path,
-            parsed_options,
-            need_new_url,
-          );
-          if let Some(callee) = call_expr.callee.as_expr() {
-            parser.walk_expression(callee);
-          }
-          if let Some(arg) = call_expr.args.get(1) {
-            parser.walk_expression(&arg.expr);
-          }
-          true
-        },
-      );
+      return handle_worker(
+        parser,
+        call_expr.args(&parser.ast),
+        call_expr.span(&parser.ast),
+      )
+      .map(|(parsed_path, parsed_options, first_arg, need_new_url)| {
+        add_dependencies(
+          parser,
+          call_expr.span(&parser.ast),
+          first_arg,
+          parsed_path,
+          parsed_options,
+          need_new_url,
+        );
+        if let Some(callee) = call_expr.callee(&parser.ast).as_expr() {
+          parser.walk_expression(callee);
+        }
+        if let Some(arg) = call_expr.args(&parser.ast).get(1) {
+          let arg = parser.ast.get_node_in_sub_range(arg);
+          parser.walk_expression(arg.expr(&parser.ast));
+        }
+        true
+      });
     }
     None
   }
@@ -390,7 +405,7 @@ impl JavascriptParserPlugin for WorkerPlugin {
   fn call(
     &self,
     parser: &mut JavascriptParser,
-    call_expr: &CallExpr,
+    call_expr: CallExpr,
     for_name: &str,
   ) -> Option<bool> {
     if for_name == ESM_SPECIFIER_TAG {
@@ -403,56 +418,63 @@ impl JavascriptParserPlugin for WorkerPlugin {
         .from_call_syntax
         .contains(&(ids, settings.source.to_string()))
       {
-        return handle_worker(parser, &call_expr.args, call_expr.span).map(
-          |(parsed_path, parsed_options, first_arg, need_new_url)| {
-            add_dependencies(
-              parser,
-              call_expr.span,
-              first_arg,
-              parsed_path,
-              parsed_options,
-              need_new_url,
-            );
-            if let Some(callee) = call_expr.callee.as_expr() {
-              parser.walk_expression(callee);
-            }
-            if let Some(arg) = call_expr.args.get(1) {
-              parser.walk_expression(&arg.expr);
-            }
-            true
-          },
-        );
+        return handle_worker(
+          parser,
+          call_expr.args(&parser.ast),
+          call_expr.span(&parser.ast),
+        )
+        .map(|(parsed_path, parsed_options, first_arg, need_new_url)| {
+          add_dependencies(
+            parser,
+            call_expr.span(&parser.ast),
+            first_arg,
+            parsed_path,
+            parsed_options,
+            need_new_url,
+          );
+          if let Some(callee) = call_expr.callee(&parser.ast).as_expr() {
+            parser.walk_expression(callee);
+          }
+          if let Some(arg) = call_expr.args(&parser.ast).get(1) {
+            parser.walk_expression(arg.expr(&parser.ast));
+          }
+          true
+        });
       }
       return None;
     }
     if !self.call_syntax.contains(for_name) {
       return None;
     }
-    handle_worker(parser, &call_expr.args, call_expr.span).map(
-      |(parsed_path, parsed_options, first_arg, need_new_url)| {
-        add_dependencies(
-          parser,
-          call_expr.span,
-          first_arg,
-          parsed_path,
-          parsed_options,
-          need_new_url,
-        );
-        if let Some(callee) = call_expr.callee.as_expr() {
-          parser.walk_expression(callee);
-        }
-        if let Some(arg) = call_expr.args.get(1) {
-          parser.walk_expression(&arg.expr);
-        }
-        true
-      },
+    handle_worker(
+      parser,
+      call_expr.args(&parser.ast),
+      call_expr.span(&parser.ast),
     )
+    .map(|(parsed_path, parsed_options, first_arg, need_new_url)| {
+      add_dependencies(
+        parser,
+        call_expr.span(&parser.ast),
+        first_arg,
+        parsed_path,
+        parsed_options,
+        need_new_url,
+      );
+      if let Some(callee) = call_expr.callee(&parser.ast).as_expr() {
+        parser.walk_expression(callee);
+      }
+      if let Some(arg) = call_expr.args(&parser.ast).get(1) {
+        let arg = parser.ast.get_node_in_sub_range(arg);
+        parser.walk_expression(arg.expr(&parser.ast));
+      }
+      true
+    })
   }
 
   fn new_expression(
     &self,
     parser: &mut JavascriptParser,
-    new_expr: &NewExpr,
+    new_expr: NewExpr,
     for_name: &str,
   ) -> Option<bool> {
     if for_name == ESM_SPECIFIER_TAG {
@@ -466,23 +488,23 @@ impl JavascriptParserPlugin for WorkerPlugin {
         .contains(&(ids, settings.source.to_string()))
       {
         return new_expr
-          .args
-          .as_ref()
-          .and_then(|args| handle_worker(parser, args, new_expr.span))
+          .args(&parser.ast)
+          .and_then(|args| handle_worker(parser, args, new_expr.span(&parser.ast)))
           .map(|(parsed_path, parsed_options, first_arg, need_new_url)| {
             add_dependencies(
               parser,
-              new_expr.span,
+              new_expr.span(&parser.ast),
               first_arg,
               parsed_path,
               parsed_options,
               need_new_url,
             );
-            parser.walk_expression(&new_expr.callee);
-            if let Some(args) = &new_expr.args
+            parser.walk_expression(new_expr.callee(&parser.ast));
+            if let Some(args) = new_expr.args(&parser.ast)
               && let Some(arg) = args.get(1)
             {
-              parser.walk_expression(&arg.expr);
+              let arg = parser.ast.get_node_in_sub_range(arg);
+              parser.walk_expression(arg.expr(&parser.ast));
             }
             true
           });
@@ -493,23 +515,23 @@ impl JavascriptParserPlugin for WorkerPlugin {
       return None;
     }
     new_expr
-      .args
-      .as_ref()
-      .and_then(|args| handle_worker(parser, args, new_expr.span))
+      .args(&parser.ast)
+      .and_then(|args| handle_worker(parser, args, new_expr.span(&parser.ast)))
       .map(|(parsed_path, parsed_options, first_arg, need_new_url)| {
         add_dependencies(
           parser,
-          new_expr.span,
+          new_expr.span(&parser.ast),
           first_arg,
           parsed_path,
           parsed_options,
           need_new_url,
         );
-        parser.walk_expression(&new_expr.callee);
-        if let Some(args) = &new_expr.args
+        parser.walk_expression(new_expr.callee(&parser.ast));
+        if let Some(args) = new_expr.args(&parser.ast)
           && let Some(arg) = args.get(1)
         {
-          parser.walk_expression(&arg.expr);
+          let arg = parser.ast.get_node_in_sub_range(arg);
+          parser.walk_expression(arg.expr(&parser.ast));
         }
         true
       })
