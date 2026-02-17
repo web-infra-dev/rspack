@@ -3,7 +3,7 @@ use rspack_core::{
 };
 use rspack_regex::RspackRegex;
 use rspack_util::SpanExt;
-use swc_core::{common::Spanned, ecma::ast::CallExpr};
+use swc_experimental_ecma_ast::{CallExpr, GetSpan};
 
 use super::JavascriptParserPlugin;
 use crate::{
@@ -16,13 +16,18 @@ pub struct RequireContextDependencyParserPlugin;
 const DEFAULT_REGEXP_STR: &str = r"^\.\/.*$";
 
 impl JavascriptParserPlugin for RequireContextDependencyParserPlugin {
-  fn call(&self, parser: &mut JavascriptParser, expr: &CallExpr, for_name: &str) -> Option<bool> {
+  fn call(&self, parser: &mut JavascriptParser, expr: CallExpr, for_name: &str) -> Option<bool> {
     if for_name != "require.context" {
       return None;
     }
 
-    let mode = if expr.args.len() == 4 {
-      let mode_expr = parser.evaluate_expression(&expr.args[3].expr);
+    let mode = if expr.args(&parser.ast).len() == 4 {
+      let mode_expr = parser.evaluate_expression(
+        parser
+          .ast
+          .get_node_in_sub_range(expr.args(&parser.ast).get(3).unwrap())
+          .expr(&parser.ast),
+      );
       if !mode_expr.is_string() {
         // FIXME: return `None` in webpack
         ContextMode::Sync
@@ -35,8 +40,13 @@ impl JavascriptParserPlugin for RequireContextDependencyParserPlugin {
       ContextMode::Sync
     };
 
-    let (reg_exp, reg_exp_span) = if expr.args.len() >= 3 {
-      let reg_exp_expr = parser.evaluate_expression(&expr.args[2].expr);
+    let (reg_exp, reg_exp_span) = if expr.args(&parser.ast).len() >= 3 {
+      let reg_exp_expr = parser.evaluate_expression(
+        parser
+          .ast
+          .get_node_in_sub_range(expr.args(&parser.ast).get(2).unwrap())
+          .expr(&parser.ast),
+      );
       let reg_exp = if !reg_exp_expr.is_regexp() {
         // FIXME: return `None` in webpack
         RspackRegex::new(DEFAULT_REGEXP_STR).expect("reg should success")
@@ -44,7 +54,17 @@ impl JavascriptParserPlugin for RequireContextDependencyParserPlugin {
         let (expr, flags) = reg_exp_expr.regexp();
         RspackRegex::with_flags(expr.as_str(), flags.as_str()).expect("reg should success")
       };
-      (reg_exp, Some(expr.args[2].expr.span().into()))
+      (
+        reg_exp,
+        Some(
+          parser
+            .ast
+            .get_node_in_sub_range(expr.args(&parser.ast).get(2).unwrap())
+            .expr(&parser.ast)
+            .span(&parser.ast)
+            .into(),
+        ),
+      )
     } else {
       (
         RspackRegex::new(DEFAULT_REGEXP_STR).expect("reg should success"),
@@ -52,8 +72,13 @@ impl JavascriptParserPlugin for RequireContextDependencyParserPlugin {
       )
     };
 
-    let recursive = if expr.args.len() >= 2 {
-      let recursive_expr = parser.evaluate_expression(&expr.args[1].expr);
+    let recursive = if expr.args(&parser.ast).len() >= 2 {
+      let recursive_expr = parser.evaluate_expression(
+        parser
+          .ast
+          .get_node_in_sub_range(expr.args(&parser.ast).get(1).unwrap())
+          .expr(&parser.ast),
+      );
       if !recursive_expr.is_bool() {
         // FIXME: return `None` in webpack
         true
@@ -64,8 +89,9 @@ impl JavascriptParserPlugin for RequireContextDependencyParserPlugin {
       true
     };
 
-    if let Some(arg) = expr.args.first() {
-      let request_expr = parser.evaluate_expression(&arg.expr);
+    if let Some(arg) = expr.args(&parser.ast).first() {
+      let request_expr =
+        parser.evaluate_expression(parser.ast.get_node_in_sub_range(arg).expr(&parser.ast));
       if !request_expr.is_string() {
         return None;
       }
@@ -84,13 +110,13 @@ impl JavascriptParserPlugin for RequireContextDependencyParserPlugin {
           namespace_object: rspack_core::ContextNameSpaceObject::Unset,
           group_options: None,
           replaces: Vec::new(),
-          start: expr.span().real_lo(),
-          end: expr.span().real_hi(),
+          start: expr.span(&parser.ast).real_lo(),
+          end: expr.span(&parser.ast).real_hi(),
           referenced_exports: None,
           attributes: None,
           phase: None,
         },
-        expr.span.into(),
+        expr.span(&parser.ast).into(),
         parser.in_try,
       )));
       return Some(true);
