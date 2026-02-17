@@ -312,7 +312,9 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         Some(SideEffectsBailoutItem { msg, ty: item.ty })
       });
     }
-    mem::forget(ast);
+    rayon::spawn( move|| {
+      drop(ast);
+    });
     Ok(
       ParseResult {
         source,
