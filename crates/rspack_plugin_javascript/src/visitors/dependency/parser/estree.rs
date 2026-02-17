@@ -11,20 +11,12 @@ pub enum ClassDeclOrExpr {
   Expr(ClassExpr),
 }
 
-impl Spanned for ClassDeclOrExpr {
+impl GetSpan for ClassDeclOrExpr {
   #[inline]
   fn span(&self, ast: &Ast) -> Span {
     match self {
       ClassDeclOrExpr::Decl(decl) => decl.span(ast),
       ClassDeclOrExpr::Expr(expr) => expr.span(ast),
-    }
-  }
-
-  #[inline]
-  fn set_span(&mut self, ast: &mut Ast, span: Span) {
-    match self {
-      ClassDeclOrExpr::Decl(decl) => decl.span = span,
-      ClassDeclOrExpr::Expr(expr) => expr.set_span(ast, span),
     }
   }
 }
@@ -46,20 +38,12 @@ pub enum ExportAllDeclaration {
   NamedAll(NamedExport),
 }
 
-impl Spanned for ExportAllDeclaration {
+impl GetSpan for ExportAllDeclaration {
   #[inline]
   fn span(&self, ast: &Ast) -> Span {
     match self {
       ExportAllDeclaration::All(all) => all.span(ast),
       ExportAllDeclaration::NamedAll(all) => all.span(ast),
-    }
-  }
-
-  #[inline]
-  fn set_span(&mut self, ast: &mut Ast, span: Span) {
-    match self {
-      ExportAllDeclaration::All(all) => all.set_span(ast, span),
-      ExportAllDeclaration::NamedAll(all) => all.set_span(ast, span),
     }
   }
 }
@@ -141,20 +125,12 @@ pub enum ExportNamedDeclaration {
   Specifiers(NamedExport),
 }
 
-impl Spanned for ExportNamedDeclaration {
+impl GetSpan for ExportNamedDeclaration {
   #[inline]
   fn span(&self, ast: &Ast) -> Span {
     match self {
       ExportNamedDeclaration::Decl(decl) => decl.span(ast),
       ExportNamedDeclaration::Specifiers(export) => export.span(ast),
-    }
-  }
-
-  #[inline]
-  fn set_span(&mut self, ast: &mut Ast, span: Span) {
-    match self {
-      ExportNamedDeclaration::Decl(decl) => decl.set_span(ast, span),
-      ExportNamedDeclaration::Specifiers(export) => export.set_span(ast, span),
     }
   }
 }
@@ -246,20 +222,12 @@ pub enum ExportDefaultDeclaration {
   Expr(ExportDefaultExpr),
 }
 
-impl Spanned for ExportDefaultDeclaration {
+impl GetSpan for ExportDefaultDeclaration {
   #[inline]
   fn span(&self, ast: &Ast) -> Span {
     match self {
       ExportDefaultDeclaration::Decl(decl) => decl.span(ast),
       ExportDefaultDeclaration::Expr(expr) => expr.span(ast),
-    }
-  }
-
-  #[inline]
-  fn set_span(&mut self, ast: &mut Ast, span: Span) {
-    match self {
-      ExportDefaultDeclaration::Decl(decl) => decl.set_span(ast, span),
-      ExportDefaultDeclaration::Expr(expr) => expr.set_span(ast, span),
     }
   }
 }
@@ -284,22 +252,13 @@ pub enum ExportDefaultExpression {
   Expr(Expr),
 }
 
-impl Spanned for ExportDefaultExpression {
+impl GetSpan for ExportDefaultExpression {
   #[inline]
   fn span(&self, ast: &Ast) -> Span {
     match self {
       ExportDefaultExpression::FnDecl(f) => f.span(ast),
       ExportDefaultExpression::ClassDecl(c) => c.span(ast),
       ExportDefaultExpression::Expr(e) => e.span(ast),
-    }
-  }
-
-  #[inline]
-  fn set_span(&mut self, ast: &mut Ast, span: Span) {
-    match self {
-      ExportDefaultExpression::FnDecl(f) => f.set_span(ast, span),
-      ExportDefaultExpression::ClassDecl(c) => c.set_span(ast, span),
-      ExportDefaultExpression::Expr(e) => e.set_span(ast, span),
     }
   }
 }
@@ -320,20 +279,12 @@ pub enum ExportImport {
   Named(ExportNamedDeclaration),
 }
 
-impl Spanned for ExportImport {
+impl GetSpan for ExportImport {
   #[inline]
   fn span(&self, ast: &Ast) -> Span {
     match self {
       ExportImport::All(all) => all.span(ast),
       ExportImport::Named(named) => named.span(ast),
-    }
-  }
-
-  #[inline]
-  fn set_span(&mut self, ast: &mut Ast, span: Span) {
-    match self {
-      ExportImport::All(all) => all.set_span(ast, span),
-      ExportImport::Named(named) => named.set_span(ast, span),
     }
   }
 }
@@ -375,20 +326,12 @@ pub enum ExportLocal {
   Default(ExportDefaultDeclaration),
 }
 
-impl Spanned for ExportLocal {
+impl GetSpan for ExportLocal {
   #[inline]
   fn span(&self, ast: &Ast) -> Span {
     match self {
       ExportLocal::Named(decl) => decl.span(ast),
       ExportLocal::Default(decl) => decl.span(ast),
-    }
-  }
-
-  #[inline]
-  fn set_span(&mut self, ast: &mut Ast, span: Span) {
-    match self {
-      ExportLocal::Named(decl) => decl.set_span(ast, span),
-      ExportLocal::Default(decl) => decl.set_span(ast, span),
     }
   }
 }
@@ -409,15 +352,10 @@ pub struct MaybeNamedFunctionDecl {
   function: Function,
 }
 
-impl Spanned for MaybeNamedFunctionDecl {
+impl GetSpan for MaybeNamedFunctionDecl {
   #[inline]
   fn span(&self, _ast: &Ast) -> Span {
     self.span
-  }
-
-  #[inline]
-  fn set_span(&mut self, _ast: &mut Ast, span: Span) {
-    self.span = span;
   }
 }
 
@@ -458,15 +396,10 @@ pub struct MaybeNamedClassDecl {
   class: Class,
 }
 
-impl Spanned for MaybeNamedClassDecl {
+impl GetSpan for MaybeNamedClassDecl {
   #[inline]
   fn span(&self, _ast: &Ast) -> Span {
     self.span
-  }
-
-  #[inline]
-  fn set_span(&mut self, _ast: &mut Ast, span: Span) {
-    self.span = span;
   }
 }
 
@@ -529,7 +462,7 @@ pub enum Statement {
   Var(VariableDeclaration),
 }
 
-impl Spanned for Statement {
+impl GetSpan for Statement {
   #[inline]
   fn span(&self, ast: &Ast) -> Span {
     use Statement::*;
@@ -555,34 +488,6 @@ impl Spanned for Statement {
       Class(d) => d.span(ast),
       Fn(d) => d.span(ast),
       Var(d) => d.span(ast),
-    }
-  }
-
-  #[inline]
-  fn set_span(&mut self, ast: &mut Ast, span: Span) {
-    use Statement::*;
-    match self {
-      Block(d) => d.set_span(ast, span),
-      Empty(d) => d.set_span(ast, span),
-      Debugger(d) => d.set_span(ast, span),
-      With(d) => d.set_span(ast, span),
-      Return(d) => d.set_span(ast, span),
-      Labeled(d) => d.set_span(ast, span),
-      Break(d) => d.set_span(ast, span),
-      Continue(d) => d.set_span(ast, span),
-      If(d) => d.set_span(ast, span),
-      Switch(d) => d.set_span(ast, span),
-      Throw(d) => d.set_span(ast, span),
-      Try(d) => d.set_span(ast, span),
-      While(d) => d.set_span(ast, span),
-      DoWhile(d) => d.set_span(ast, span),
-      For(d) => d.set_span(ast, span),
-      ForIn(d) => d.set_span(ast, span),
-      ForOf(d) => d.set_span(ast, span),
-      Expr(d) => d.set_span(ast, span),
-      Class(d) => d.set_span(ast, span),
-      Fn(d) => d.set_span(ast, span),
-      Var(d) => d.set_span(ast, span),
     }
   }
 }
@@ -657,20 +562,12 @@ pub enum VariableDeclarationKind {
   AwaitUsing,
 }
 
-impl Spanned for VariableDeclaration {
+impl GetSpan for VariableDeclaration {
   #[inline]
   fn span(&self, ast: &Ast) -> Span {
     match self {
       VariableDeclaration::VarDecl(var_decl) => var_decl.span(ast),
       VariableDeclaration::UsingDecl(using_decl) => using_decl.span(ast),
-    }
-  }
-
-  #[inline]
-  fn set_span(&mut self, ast: &mut Ast, span: Span) {
-    match self {
-      VariableDeclaration::VarDecl(var_decl) => var_decl.set_span(ast, span),
-      VariableDeclaration::UsingDecl(using_decl) => using_decl.set_span(ast, span),
     }
   }
 }

@@ -1,6 +1,6 @@
 use swc_experimental_ecma_ast::{
   ArrayPat, AssignExpr, BlockStmt, CatchClause, DoWhileStmt, ForHead, ForInStmt, ForOfStmt,
-  ForStmt, IfStmt, LabeledStmt, ModuleItem, ObjectPat, ObjectPatProp, Pat, Spanned, Stmt,
+  ForStmt, GetSpan, IfStmt, LabeledStmt, ModuleItem, ObjectPat, ObjectPatProp, Pat, Stmt,
   SwitchCase, SwitchStmt, TryStmt, TypedSubRange, VarDeclarator, WhileStmt, WithStmt,
 };
 

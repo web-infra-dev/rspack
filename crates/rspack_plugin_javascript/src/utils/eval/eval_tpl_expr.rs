@@ -1,5 +1,5 @@
 use rspack_util::SpanExt;
-use swc_experimental_ecma_ast::{Spanned, TaggedTpl, Tpl};
+use swc_experimental_ecma_ast::{GetSpan, TaggedTpl, Tpl};
 
 use super::BasicEvaluatedExpression;
 use crate::visitors::JavascriptParser;

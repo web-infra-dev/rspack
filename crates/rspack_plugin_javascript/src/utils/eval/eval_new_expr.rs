@@ -1,6 +1,6 @@
 use rspack_util::SpanExt;
 use swc_core::atoms::Atom;
-use swc_experimental_ecma_ast::{NewExpr, Spanned};
+use swc_experimental_ecma_ast::{GetSpan, NewExpr};
 
 use super::BasicEvaluatedExpression;
 use crate::{utils::eval, visitors::JavascriptParser};

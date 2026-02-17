@@ -1,5 +1,5 @@
 use rspack_util::SpanExt;
-use swc_experimental_ecma_ast::{Lit, Spanned, UnaryExpr, UnaryOp};
+use swc_experimental_ecma_ast::{GetSpan, Lit, UnaryExpr, UnaryOp};
 
 use super::BasicEvaluatedExpression;
 use crate::{

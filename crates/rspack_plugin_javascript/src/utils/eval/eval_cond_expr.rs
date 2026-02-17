@@ -1,5 +1,5 @@
 use rspack_util::SpanExt;
-use swc_experimental_ecma_ast::{CondExpr, Spanned};
+use swc_experimental_ecma_ast::{CondExpr, GetSpan};
 
 use super::BasicEvaluatedExpression;
 use crate::visitors::JavascriptParser;

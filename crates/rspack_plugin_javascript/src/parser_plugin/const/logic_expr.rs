@@ -1,6 +1,6 @@
 use rspack_core::ConstDependency;
 use rspack_util::SpanExt;
-use swc_experimental_ecma_ast::{BinExpr, BinaryOp, Spanned};
+use swc_experimental_ecma_ast::{BinExpr, BinaryOp, GetSpan};
 
 use crate::visitors::JavascriptParser;
 

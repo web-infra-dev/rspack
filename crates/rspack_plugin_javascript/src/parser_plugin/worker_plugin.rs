@@ -9,7 +9,7 @@ use rspack_util::SpanExt;
 use rustc_hash::{FxHashMap, FxHashSet};
 use swc_core::atoms::Atom;
 use swc_experimental_ecma_ast::{
-  CallExpr, ExprOrSpread, Ident, NewExpr, Span, Spanned, TypedSubRange, VarDeclarator,
+  CallExpr, ExprOrSpread, GetSpan, Ident, NewExpr, Span, TypedSubRange, VarDeclarator,
 };
 use url::Url;
 

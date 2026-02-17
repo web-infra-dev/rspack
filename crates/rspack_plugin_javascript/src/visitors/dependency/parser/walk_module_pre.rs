@@ -1,5 +1,5 @@
 use swc_experimental_ecma_ast::{
-  ExportSpecifier, ImportDecl, ImportSpecifier, ModuleDecl, ModuleExportName, ModuleItem, Spanned,
+  ExportSpecifier, GetSpan, ImportDecl, ImportSpecifier, ModuleDecl, ModuleExportName, ModuleItem,
   TypedSubRange,
 };
 
