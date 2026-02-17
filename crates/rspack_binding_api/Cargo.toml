@@ -60,6 +60,7 @@ napi        = { workspace = true, features = ["async", "tokio_rt", "serde-json",
 napi-derive = { workspace = true, features = ["compat-mode"] }
 
 derive_more                            = { workspace = true, features = ["debug"] }
+defer-drop                            = { workspace = true }
 futures                                = { workspace = true }
 glob                                   = { workspace = true }
 heck                                   = { workspace = true }

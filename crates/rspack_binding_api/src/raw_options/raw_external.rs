@@ -106,7 +106,7 @@ pub struct RawExternalItemFnCtx {
 impl Drop for RawExternalItemFnCtx {
   fn drop(&mut self) {
     let inner = self.i.take();
-    rayon::spawn(move || drop(inner));
+    drop(defer_drop::DeferDrop::new(inner));
   }
 }
 
