@@ -1,6 +1,5 @@
 use std::{
-  borrow::Cow,
-  sync::{Arc, LazyLock},
+  borrow::Cow, mem, sync::{Arc, LazyLock}
 };
 
 use regex::Regex;
@@ -313,7 +312,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         Some(SideEffectsBailoutItem { msg, ty: item.ty })
       });
     }
-
+    mem::forget(ast);
     Ok(
       ParseResult {
         source,
