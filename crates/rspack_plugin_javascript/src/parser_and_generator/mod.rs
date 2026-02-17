@@ -253,7 +253,6 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       tokens: &tokens,
     });
 
-    let unresolved_scope_id = semantic.unresolved_scope_id();
     let parser_runtime_requirements = ParserRuntimeRequirementsData::new(runtime_template);
 
     let ScanDependenciesResult {
@@ -265,6 +264,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     } = match scan_dependencies(
       &source_string,
       ast,
+      semantic,
       root,
       Some(comments),
       resource_data,
@@ -277,7 +277,6 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       module_identifier,
       module_parser_options,
       &mut semicolons,
-      unresolved_scope_id,
       &mut self.parser_plugins,
       parse_meta,
       &parser_runtime_requirements,

@@ -11,7 +11,7 @@ use rspack_error::Diagnostic;
 use rustc_hash::FxHashSet;
 use swc_core::common::{BytePos, comments::Comments};
 use swc_experimental_ecma_ast::{Ast, Program};
-use swc_experimental_ecma_semantic::ScopeId;
+use swc_experimental_ecma_semantic::resolver::Semantic;
 use swc_node_comments::SwcComments;
 
 pub use self::{
@@ -37,6 +37,7 @@ pub struct ScanDependenciesResult {
 pub fn scan_dependencies(
   source: &str,
   ast: Ast,
+  semantic: Semantic,
   program: Program,
   comments: Option<SwcComments>,
   resource_data: &ResourceData,
@@ -49,7 +50,6 @@ pub fn scan_dependencies(
   module_identifier: ModuleIdentifier,
   module_parser_options: Option<&ParserOptions>,
   semicolons: &mut FxHashSet<BytePos>,
-  unresolved_scope_id: ScopeId,
   parser_plugins: &mut Vec<BoxJavascriptParserPlugin>,
   parse_meta: ParseMeta,
   parser_runtime_requirements: &ParserRuntimeRequirementsData,
@@ -57,6 +57,7 @@ pub fn scan_dependencies(
   let mut parser = JavascriptParser::new(
     source,
     ast,
+    semantic,
     compiler_options,
     module_parser_options
       .and_then(|p| p.get_javascript())
@@ -70,7 +71,6 @@ pub fn scan_dependencies(
     build_meta,
     build_info,
     semicolons,
-    unresolved_scope_id,
     parser_plugins,
     parse_meta,
     parser_runtime_requirements,
