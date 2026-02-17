@@ -5,7 +5,7 @@
  * Author Donny/강동윤
  * Copyright (c)
  */
-use std::{env, fs::File, path::PathBuf, sync::Arc};
+use std::{fs::File, path::PathBuf, sync::Arc};
 
 use anyhow::{Context, bail};
 use base64::prelude::*;
@@ -199,7 +199,7 @@ impl<'a> JavaScriptTransformer<'a> {
       error = true;
     }
 
-    let mut res = program_result.map_err(|e| {
+    let res = program_result.map_err(|e| {
       e.into_diagnostic(handler).emit();
       anyhow::Error::msg("Syntax Error")
     });
@@ -207,11 +207,6 @@ impl<'a> JavaScriptTransformer<'a> {
     if error {
       return Err(anyhow::anyhow!("Syntax Error"));
     }
-
-    if env::var("SWC_DEBUG").unwrap_or_default() == "1" {
-      res = res.with_context(|| format!("Parser config: {syntax:?}"));
-    }
-
     res
   }
 
