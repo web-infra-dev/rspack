@@ -29,35 +29,40 @@ pub fn get_literal_str_by_obj_prop(ast: &Ast, obj: ObjectLit, field: &str) -> Op
   }
 }
 
-pub fn get_bool_by_obj_prop<'a>(obj: &'a ObjectLit, field: &'a str) -> Option<&'a Bool> {
-  let lit = get_value_by_obj_prop(obj, field).and_then(|e| e.as_lit())?;
+pub fn get_bool_by_obj_prop(ast: &Ast, obj: ObjectLit, field: &str) -> Option<Bool> {
+  let lit = get_value_by_obj_prop(ast, obj, field).and_then(|e| e.as_lit())?;
   match lit {
     Lit::Bool(bool) => Some(bool),
     _ => None,
   }
 }
 
-pub fn get_regex_by_obj_prop<'a>(obj: &'a ObjectLit, field: &'a str) -> Option<&'a Regex> {
-  let lit = get_value_by_obj_prop(obj, field).and_then(|e| e.as_lit())?;
+pub fn get_regex_by_obj_prop(ast: &Ast, obj: ObjectLit, field: &str) -> Option<Regex> {
+  let lit = get_value_by_obj_prop(ast, obj, field).and_then(|e| e.as_lit())?;
   match lit {
     Lit::Regex(regexp) => Some(regexp),
     _ => None,
   }
 }
 
-pub fn get_attributes(obj: &ObjectLit) -> ImportAttributes {
+pub fn get_attributes(ast: &Ast, obj: ObjectLit) -> ImportAttributes {
   obj
-    .props
+    .props(ast)
     .iter()
     .filter_map(|p| {
+      let p = ast.get_node_in_sub_range(p);
       p.as_prop().and_then(|p| p.as_key_value()).and_then(|kv| {
-        kv.key
+        kv.key(ast)
           .as_ident()
-          .map(|k| k.sym.as_str())
-          .or_else(|| kv.key.as_str().and_then(|k| k.value.as_str()))
+          .map(|k| ast.get_utf8(k.sym(ast)))
+          .or_else(|| {
+            kv.key(ast)
+              .as_str()
+              .and_then(|k| ast.get_wtf8(k.value(ast)).as_str())
+          })
           .map(|s| s.to_string())
-          .zip(kv.value.as_lit().and_then(|lit| match lit {
-            Lit::Str(s) => Some(s.value.to_string_lossy().to_string()),
+          .zip(kv.value(ast).as_lit().and_then(|lit| match lit {
+            Lit::Str(s) => Some(ast.get_wtf8(s.value(ast)).to_string_lossy().to_string()),
             _ => None,
           }))
       })

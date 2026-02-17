@@ -3,12 +3,8 @@ use rspack_core::{
   JavascriptParserUrl, RuntimeGlobals, RuntimeRequirementsDependency,
 };
 use rspack_util::SpanExt;
-use swc_core::{
-  common::Spanned,
-  ecma::{
-    ast::{Expr, ExprOrSpread, MemberExpr, MetaPropKind, NewExpr},
-    visit::{Visit, VisitWith},
-  },
+use swc_experimental_ecma_ast::{
+  Ast, Expr, MemberExpr, MetaPropKind, NewExpr, Spanned, Visit, VisitWith,
 };
 use url::Url;
 
@@ -18,71 +14,71 @@ use crate::{
   dependency::{URLContextDependency, URLDependency},
   magic_comment::try_extract_magic_comment,
   parser_plugin::inner_graph::state::InnerGraphUsageOperation,
-  visitors::{ExprRef, JavascriptParser, context_reg_exp, create_context_dependency},
+  visitors::{JavascriptParser, context_reg_exp, create_context_dependency},
 };
 
-#[derive(Default)]
-struct NestedNewUrlVisitor {
+struct NestedNewUrlVisitor<'a> {
+  ast: &'a Ast,
   has_nested_new_url: bool,
 }
 
-impl Visit for NestedNewUrlVisitor {
-  fn visit_new_expr(&mut self, expr: &NewExpr) {
+impl Visit for NestedNewUrlVisitor<'_> {
+  fn ast(&self) -> &Ast {
+    self.ast
+  }
+
+  fn visit_new_expr(&mut self, expr: NewExpr) {
     if expr
-      .callee
+      .callee(self.ast)
       .as_ident()
-      .is_some_and(|ident| ident.sym.eq("URL"))
+      .is_some_and(|ident| self.ast.get_utf8(ident.sym(self.ast)).eq("URL"))
     {
       self.has_nested_new_url = true;
     }
   }
 }
 
-pub fn is_meta_url(parser: &mut JavascriptParser, expr: &MemberExpr) -> bool {
-  let chain = parser.extract_member_expression_chain(ExprRef::Member(expr));
-  if let ExprRef::MetaProp(meta) = chain.object {
-    return meta.kind == MetaPropKind::ImportMeta
+pub fn is_meta_url(parser: &mut JavascriptParser, expr: MemberExpr) -> bool {
+  let chain = parser.extract_member_expression_chain(Expr::Member(expr));
+  if let Expr::MetaProp(meta) = chain.object {
+    return meta.kind(&parser.ast) == MetaPropKind::ImportMeta
       && chain.members.len() == 1
       && chain.members.first().is_some_and(|member| member == "url");
   }
   false
 }
 
-pub fn get_url_request(
-  parser: &mut JavascriptParser,
-  expr: &NewExpr,
-) -> Option<(String, u32, u32)> {
-  let args = expr.args.as_ref()?;
-  let ExprOrSpread {
-    spread: None,
-    expr: arg1,
-  } = args.first()?
-  else {
+pub fn get_url_request(parser: &mut JavascriptParser, expr: NewExpr) -> Option<(String, u32, u32)> {
+  let args = expr.args(&parser.ast)?;
+  let expr_or_spread = parser.ast.get_node_in_sub_range(args.first()?);
+  if expr_or_spread.spread(&parser.ast).is_some() {
     return None;
-  };
-  let arg2 = args.get(1);
+  }
 
-  if let Some(arg2) = arg2 {
+  let arg1 = expr_or_spread.expr(&parser.ast);
+  if let Some(arg2) = args.get(1) {
     // new URL(xx, import.meta.url)
-    let ExprOrSpread {
-      spread: None,
-      expr: arg2,
-    } = arg2
-    else {
+    let arg2 = parser.ast.get_node_in_sub_range(arg2);
+    if arg2.spread(&parser.ast).is_some() {
       return None;
     };
-    let Expr::Member(arg2) = &**arg2 else {
+
+    let arg2 = arg2.expr(&parser.ast);
+    let Expr::Member(arg2) = arg2 else {
       return None;
     };
     if is_meta_url(parser, arg2) {
-      return parser
-        .evaluate_expression(arg1)
-        .as_string()
-        .map(|req| (req, arg1.span().real_lo(), arg2.span().real_hi()));
+      return parser.evaluate_expression(arg1).as_string().map(|req| {
+        (
+          req,
+          arg1.span(&parser.ast).real_lo(),
+          arg2.span(&parser.ast).real_hi(),
+        )
+      });
     }
   } else {
     // new URL(import.meta.url)
-    let Expr::Member(arg1) = &**arg1 else {
+    let Expr::Member(arg1) = arg1 else {
       return None;
     };
     if is_meta_url(parser, arg1) {
@@ -90,8 +86,8 @@ pub fn get_url_request(
         Url::from_file_path(parser.resource_data.resource())
           .expect("should be a path")
           .to_string(),
-        arg1.span().real_lo(),
-        arg1.span().real_hi(),
+        arg1.span(&parser.ast).real_lo(),
+        arg1.span(&parser.ast).real_hi(),
       ));
     }
   }
@@ -111,43 +107,49 @@ impl JavascriptParserPlugin for URLPlugin {
   fn new_expression(
     &self,
     parser: &mut JavascriptParser,
-    expr: &NewExpr,
+    expr: NewExpr,
     for_name: &str,
   ) -> Option<bool> {
     if for_name != "URL" {
       return None;
     }
 
-    let args = expr.args.as_ref()?;
+    let args = expr.args(&parser.ast)?;
 
-    let arg = args.first()?;
-    let magic_comment_options = try_extract_magic_comment(parser, expr.span, arg.span());
+    let arg = parser.ast.get_node_in_sub_range(args.first()?);
+    let magic_comment_options =
+      try_extract_magic_comment(parser, expr.span(&parser.ast), arg.span(&parser.ast));
     if magic_comment_options.get_ignore().unwrap_or_default() {
       if args.len() != 2 {
         return None;
       }
-      let arg2 = args.get(1)?;
-      if let ExprOrSpread {
-        spread: None,
-        expr: arg2_expr,
-      } = arg2
-        && let Expr::Member(arg2) = &**arg2_expr
-        && !is_meta_url(parser, arg2)
-      {
+
+      let arg2 = parser.ast.get_node_in_sub_range(args.get(1)?);
+      if arg2.spread(&parser.ast).is_some() {
+        return None;
+      }
+
+      let arg2 = arg2.expr(&parser.ast);
+      let Expr::Member(arg2) = arg2 else {
+        return None;
+      };
+      if !is_meta_url(parser, arg2) {
         return None;
       }
       parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
-        arg2.span().into(),
+        arg2.span(&parser.ast).into(),
         RuntimeGlobals::BASE_URI,
       )));
       return Some(true);
     }
 
     // should not parse new URL(import.meta.url)
-    if expr.args.as_ref().is_some_and(|args| {
+    if expr.args(&parser.ast).is_some_and(|args| {
       args.len() == 1
-        && args[0]
-          .expr
+        && parser
+          .ast
+          .get_node_in_sub_range(args.get(0).unwrap())
+          .expr(&parser.ast)
           .as_member()
           .is_some_and(|member| is_meta_url(parser, member))
     }) {
@@ -157,7 +159,7 @@ impl JavascriptParserPlugin for URLPlugin {
     if let Some((request, start, end)) = get_url_request(parser, expr) {
       let dep = URLDependency::new(
         request.into(),
-        expr.span.into(),
+        expr.span(&parser.ast).into(),
         (start, end).into(),
         self.mode,
       );
@@ -167,22 +169,27 @@ impl JavascriptParserPlugin for URLPlugin {
       return Some(true);
     }
 
-    let mut nested_new_url_visitor = NestedNewUrlVisitor::default();
-    arg.expr.visit_with(&mut nested_new_url_visitor);
+    let mut nested_new_url_visitor = NestedNewUrlVisitor {
+      ast: &parser.ast,
+      has_nested_new_url: false,
+    };
+    arg
+      .expr(&parser.ast)
+      .visit_with(&mut nested_new_url_visitor);
     if nested_new_url_visitor.has_nested_new_url {
       return None;
     }
 
-    let arg2 = args.get(1)?;
+    let arg2 = parser.ast.get_node_in_sub_range(args.get(1)?);
     if !arg2
-      .expr
+      .expr(&parser.ast)
       .as_member()
       .is_some_and(|member| is_meta_url(parser, member))
     {
       return None;
     }
 
-    let param = parser.evaluate_expression(&arg.expr);
+    let param = parser.evaluate_expression(arg.expr(&parser.ast));
     let result = create_context_dependency(&param, parser);
     let options = ContextOptions {
       mode: ContextMode::Sync,
@@ -196,8 +203,8 @@ impl JavascriptParserPlugin for URLPlugin {
       namespace_object: ContextNameSpaceObject::Unset,
       group_options: None,
       replaces: result.replaces,
-      start: expr.span().real_lo(),
-      end: expr.span().real_hi(),
+      start: expr.span(&parser.ast).real_lo(),
+      end: expr.span(&parser.ast).real_hi(),
       referenced_exports: None,
       attributes: None,
       phase: None,
@@ -205,7 +212,7 @@ impl JavascriptParserPlugin for URLPlugin {
 
     let mut dep = URLContextDependency::new(
       options,
-      expr.span().into(),
+      expr.span(&parser.ast).into(),
       param.range().into(),
       parser.in_try,
     );
@@ -215,10 +222,14 @@ impl JavascriptParserPlugin for URLPlugin {
     Some(true)
   }
 
-  fn is_pure(&self, parser: &mut JavascriptParser, expr: &Expr) -> Option<bool> {
+  fn is_pure(&self, parser: &mut JavascriptParser, expr: Expr) -> Option<bool> {
     let expr = expr.as_new()?;
-    let callee = expr.callee.as_ident()?;
-    if parser.get_free_info_from_variable(&callee.sym).is_none() || !callee.sym.eq("URL") {
+    let callee = expr.callee(&parser.ast).as_ident()?;
+    if parser
+      .get_free_info_from_variable(&parser.ast.get_atom(callee.sym(&parser.ast)))
+      .is_none()
+      || !parser.ast.get_utf8(callee.sym(&parser.ast)).eq("URL")
+    {
       return None;
     }
     get_url_request(parser, expr)?;
