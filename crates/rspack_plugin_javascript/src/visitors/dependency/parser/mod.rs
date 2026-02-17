@@ -35,7 +35,7 @@ use swc_experimental_ecma_ast::{
   MetaPropExpr, MetaPropKind, ObjectPat, ObjectPatProp, OptCall, OptChainBase, OptChainExpr, Pat,
   Program, RestPat, Spanned, Stmt, ThisExpr, TypedSubRange,
 };
-use swc_experimental_ecma_semantic::ScopeId;
+use swc_experimental_ecma_semantic::resolver::Semantic;
 
 use crate::{
   BoxJavascriptParserPlugin,
@@ -316,6 +316,7 @@ pub struct JavascriptParser<'parser> {
   // ===== inputs =======
   pub(crate) source: &'parser str,
   pub ast: Ast,
+  pub semantic: Semantic,
   pub parse_meta: ParseMeta,
   pub comments: Option<&'parser dyn Comments>,
   pub factory_meta: Option<&'parser FactoryMeta>,
@@ -358,6 +359,7 @@ impl<'parser> JavascriptParser<'parser> {
   pub fn new(
     source: &'parser str,
     ast: Ast,
+    semantic: Semantic,
     compiler_options: &'parser CompilerOptions,
     javascript_options: &'parser JavascriptParserOptions,
     comments: Option<&'parser dyn Comments>,
@@ -369,7 +371,6 @@ impl<'parser> JavascriptParser<'parser> {
     build_meta: &'parser mut BuildMeta,
     build_info: &'parser mut BuildInfo,
     semicolons: &'parser mut FxHashSet<BytePos>,
-    unresolved_scope_id: ScopeId,
     parser_plugins: &'parser mut Vec<BoxJavascriptParserPlugin>,
     parse_meta: ParseMeta,
     parser_runtime_requirements: &'parser ParserRuntimeRequirementsData,
@@ -471,13 +472,13 @@ impl<'parser> JavascriptParser<'parser> {
     }
     if compiler_options.optimization.inner_graph {
       plugins.push(Box::new(parser_plugin::InnerGraphPlugin::new(
-        unresolved_scope_id,
+        semantic.unresolved_scope_id(),
       )));
     }
 
     if compiler_options.optimization.side_effects.is_true() {
       plugins.push(Box::new(parser_plugin::SideEffectsParserPlugin::new(
-        unresolved_scope_id,
+        semantic.unresolved_scope_id(),
       )));
     }
 
@@ -490,6 +491,7 @@ impl<'parser> JavascriptParser<'parser> {
       javascript_options,
       source,
       ast,
+      semantic,
       errors,
       warning_diagnostics,
       dependencies,

@@ -4595,6 +4595,7 @@ dependencies = [
  "swc_experimental_ecma_parser",
  "swc_experimental_ecma_semantic",
  "swc_experimental_ecma_transforms_base",
+ "swc_experimental_ecma_utils",
  "swc_node_comments",
  "tokio",
  "tracing",
@@ -6729,6 +6730,14 @@ dependencies = [
  "rustc-hash",
  "swc_core",
  "swc_experimental_ecma_ast",
+]
+
+[[package]]
+name = "swc_experimental_ecma_utils"
+version = "0.1.0"
+dependencies = [
+ "swc_experimental_ecma_ast",
+ "swc_experimental_ecma_semantic",
 ]
 
 [[package]]

@@ -16,7 +16,7 @@ use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_paths::{AssertUtf8, Utf8Path};
 use sugar_path::SugarPath;
-use swc_core::ecma::ast::*;
+use swc_experimental_ecma_ast::*;
 
 use crate::dependency::{ESMExportImportedSpecifierDependency, ESMImportSpecifierDependency};
 
@@ -72,39 +72,37 @@ fn glob_match_with_normalized_pattern(pattern: &str, string: &str) -> bool {
 }
 
 pub trait ClassExt {
-  fn class_key(&self) -> Option<&PropName>;
-  fn is_static(&self) -> bool;
+  fn class_key(&self, ast: &Ast) -> Option<PropName>;
+  fn is_static(&self, ast: &Ast) -> bool;
 }
 
 impl ClassExt for ClassMember {
-  fn class_key(&self) -> Option<&PropName> {
+  fn class_key(&self, ast: &Ast) -> Option<PropName> {
     match self {
-      ClassMember::Constructor(c) => Some(&c.key),
-      ClassMember::Method(m) => Some(&m.key),
+      ClassMember::Constructor(c) => Some(c.key(ast)),
+      ClassMember::Method(m) => Some(m.key(ast)),
       ClassMember::PrivateMethod(_) => None,
-      ClassMember::ClassProp(c) => Some(&c.key),
+      ClassMember::ClassProp(c) => Some(c.key(ast)),
       ClassMember::PrivateProp(_) => None,
-      ClassMember::TsIndexSignature(_) => unreachable!(),
       ClassMember::Empty(_) => None,
       ClassMember::StaticBlock(_) => None,
-      ClassMember::AutoAccessor(a) => match a.key {
+      ClassMember::AutoAccessor(a) => match a.key(ast) {
         Key::Private(_) => None,
-        Key::Public(ref public) => Some(public),
+        Key::Public(public) => Some(public),
       },
     }
   }
 
-  fn is_static(&self) -> bool {
+  fn is_static(&self, ast: &Ast) -> bool {
     match self {
       ClassMember::Constructor(_cons) => false,
-      ClassMember::Method(m) => m.is_static,
-      ClassMember::PrivateMethod(m) => m.is_static,
-      ClassMember::ClassProp(p) => p.is_static,
-      ClassMember::PrivateProp(p) => p.is_static,
-      ClassMember::TsIndexSignature(_) => unreachable!(),
+      ClassMember::Method(m) => m.is_static(ast),
+      ClassMember::PrivateMethod(m) => m.is_static(ast),
+      ClassMember::ClassProp(p) => p.is_static(ast),
+      ClassMember::PrivateProp(p) => p.is_static(ast),
       ClassMember::Empty(_) => false,
       ClassMember::StaticBlock(_) => true,
-      ClassMember::AutoAccessor(a) => a.is_static,
+      ClassMember::AutoAccessor(a) => a.is_static(ast),
     }
   }
 }
