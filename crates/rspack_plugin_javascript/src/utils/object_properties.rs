@@ -1,26 +1,28 @@
-use std::ops::Deref;
-
 use rspack_core::ImportAttributes;
-use swc_core::ecma::ast::{Bool, Expr, Lit, ObjectLit, Regex, Str};
+use swc_experimental_ecma_ast::{Ast, Bool, Expr, Lit, ObjectLit, Regex, Str};
 
-pub fn get_value_by_obj_prop<'a>(obj: &'a ObjectLit, field: &'a str) -> Option<&'a Expr> {
-  obj
-    .props
-    .iter()
-    .find_map(|p| {
-      p.as_prop()
-        .and_then(|p| p.as_key_value())
-        .filter(|kv| {
-          kv.key.as_ident().filter(|key| key.sym == field).is_some()
-            || kv.key.as_str().filter(|key| key.value == field).is_some()
-        })
-        .map(|name| &name.value)
-    })
-    .map(|boxed| boxed.deref())
+pub fn get_value_by_obj_prop(ast: &Ast, obj: ObjectLit, field: &str) -> Option<Expr> {
+  obj.props(ast).iter().find_map(|p| {
+    let p = ast.get_node_in_sub_range(p);
+    p.as_prop()
+      .and_then(|p| p.as_key_value())
+      .filter(|kv| {
+        kv.key(ast)
+          .as_ident()
+          .filter(|key| ast.get_utf8(key.sym(ast)) == field)
+          .is_some()
+          || kv
+            .key(ast)
+            .as_str()
+            .filter(|key| ast.get_wtf8(key.value(ast)) == field)
+            .is_some()
+      })
+      .map(|name| name.value(ast))
+  })
 }
 
-pub fn get_literal_str_by_obj_prop<'a>(obj: &'a ObjectLit, field: &'a str) -> Option<&'a Str> {
-  let lit = get_value_by_obj_prop(obj, field).and_then(|e| e.as_lit())?;
+pub fn get_literal_str_by_obj_prop(ast: &Ast, obj: ObjectLit, field: &str) -> Option<Str> {
+  let lit = get_value_by_obj_prop(ast, obj, field).and_then(|e| e.as_lit())?;
   match lit {
     Lit::Str(str) => Some(str),
     _ => None,
