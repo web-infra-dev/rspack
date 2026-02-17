@@ -3,7 +3,7 @@ use std::sync::LazyLock;
 use rspack_core::SideEffectsBailoutItemWithSpan;
 use swc_core::common::comments::{CommentKind, Comments};
 use swc_experimental_ecma_ast::{
-  Class, ClassMember, Decl, Expr, Function, ModuleDecl, Pat, PropName, Spanned, VarDecl,
+  Class, ClassMember, Decl, Expr, Function, GetSpan, ModuleDecl, Pat, PropName, VarDecl,
   VarDeclOrExpr,
 };
 use swc_experimental_ecma_semantic::ScopeId;

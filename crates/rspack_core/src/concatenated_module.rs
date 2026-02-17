@@ -31,7 +31,7 @@ use swc_core::{
   ecma::visit::swc_ecma_ast,
 };
 use swc_experimental_ecma_ast::{
-  Ast, ClassExpr, EsVersion, Ident, ObjectPatProp, Prop, Spanned, Visit, VisitWith,
+  Ast, ClassExpr, EsVersion, GetSpan, Ident, ObjectPatProp, Prop, Visit, VisitWith,
 };
 use swc_experimental_ecma_parser::{EsSyntax, Parser, StringSource, Syntax};
 use swc_experimental_ecma_semantic::resolver::{Semantic, resolver};

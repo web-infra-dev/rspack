@@ -4,7 +4,7 @@ use rspack_core::{
 };
 use rspack_util::SpanExt;
 use swc_experimental_ecma_ast::{
-  Ast, Expr, MemberExpr, MetaPropKind, NewExpr, Spanned, Visit, VisitWith,
+  Ast, Expr, GetSpan, MemberExpr, MetaPropKind, NewExpr, Visit, VisitWith,
 };
 use url::Url;
 

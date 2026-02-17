@@ -1,6 +1,6 @@
 use rspack_core::ConstDependency;
 use swc_core::atoms::wtf8::Wtf8;
-use swc_experimental_ecma_ast::{Lit, Program, Spanned};
+use swc_experimental_ecma_ast::{GetSpan, Lit, Program};
 
 use super::JavascriptParserPlugin;
 use crate::visitors::JavascriptParser;

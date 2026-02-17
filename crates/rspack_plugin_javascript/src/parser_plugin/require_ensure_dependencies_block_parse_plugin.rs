@@ -7,7 +7,7 @@ use rspack_core::{
 };
 use rspack_util::SpanExt;
 use swc_experimental_ecma_ast::{
-  ArrowExpr, Ast, BlockStmtOrExpr, CallExpr, Expr, FnExpr, Spanned, UnaryExpr,
+  ArrowExpr, Ast, BlockStmtOrExpr, CallExpr, Expr, FnExpr, GetSpan, UnaryExpr,
 };
 
 use super::JavascriptParserPlugin;

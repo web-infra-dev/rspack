@@ -2,7 +2,7 @@ use rustc_hash::FxHashSet;
 use swc_core::common::BytePos;
 use swc_experimental_ecma_ast::{
   Ast, BreakStmt, ClassMember, ContinueStmt, DebuggerStmt, ExportAll, ExportDefaultExpr, ExprStmt,
-  ImportDecl, NamedExport, ReturnStmt, Span, Spanned, ThrowStmt, UpdateExpr, VarDecl, Visit,
+  GetSpan, ImportDecl, NamedExport, ReturnStmt, Span, ThrowStmt, UpdateExpr, VarDecl, Visit,
   VisitWith, YieldExpr,
 };
 use swc_experimental_ecma_parser::unstable::{Token, TokenAndSpan};

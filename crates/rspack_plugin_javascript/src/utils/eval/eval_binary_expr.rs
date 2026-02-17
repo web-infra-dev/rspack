@@ -1,6 +1,6 @@
 use rspack_core::DependencyRange;
 use rspack_util::SpanExt;
-use swc_experimental_ecma_ast::{BinExpr, BinaryOp, Spanned};
+use swc_experimental_ecma_ast::{BinExpr, BinaryOp, GetSpan};
 
 use crate::{utils::eval::BasicEvaluatedExpression, visitors::JavascriptParser};
 

@@ -1,5 +1,5 @@
 use rspack_util::SpanExt;
-use swc_experimental_ecma_ast::{PropName, Spanned};
+use swc_experimental_ecma_ast::{GetSpan, PropName};
 
 use crate::{
   utils::eval::{BasicEvaluatedExpression, eval_bigint, eval_number, eval_str},

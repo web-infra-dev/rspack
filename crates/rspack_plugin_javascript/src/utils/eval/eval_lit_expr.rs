@@ -1,5 +1,5 @@
 use rspack_util::SpanExt;
-use swc_experimental_ecma_ast::{BigInt, Bool, Lit, Number, Spanned, Str};
+use swc_experimental_ecma_ast::{BigInt, Bool, GetSpan, Lit, Number, Str};
 
 use super::BasicEvaluatedExpression;
 use crate::visitors::JavascriptParser;

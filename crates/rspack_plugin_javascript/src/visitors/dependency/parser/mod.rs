@@ -31,9 +31,9 @@ use swc_core::{
   common::{BytePos, Span, comments::Comments},
 };
 use swc_experimental_ecma_ast::{
-  ArrayPat, AssignPat, AssignTargetPat, Ast, CallExpr, Callee, Decl, Expr, Ident, Lit, MemberExpr,
-  MetaPropExpr, MetaPropKind, ObjectPat, ObjectPatProp, OptCall, OptChainBase, OptChainExpr, Pat,
-  Program, RestPat, Spanned, Stmt, ThisExpr, TypedSubRange,
+  ArrayPat, AssignPat, AssignTargetPat, Ast, CallExpr, Callee, Decl, Expr, GetSpan, Ident, Lit,
+  MemberExpr, MetaPropExpr, MetaPropKind, ObjectPat, ObjectPatProp, OptCall, OptChainBase,
+  OptChainExpr, Pat, Program, RestPat, Stmt, ThisExpr, TypedSubRange,
 };
 use swc_experimental_ecma_semantic::resolver::Semantic;
 
@@ -187,13 +187,9 @@ pub struct StatementPath {
   span: Span,
 }
 
-impl Spanned for StatementPath {
+impl GetSpan for StatementPath {
   fn span(&self, _ast: &Ast) -> Span {
     self.span
-  }
-
-  fn set_span(&mut self, _ast: &mut Ast, span: Span) {
-    self.span = span
   }
 }
 
@@ -1167,7 +1163,7 @@ impl<'parser> JavascriptParser<'parser> {
 
   fn enter_statement<S, H, F>(&mut self, statement: S, call_hook: H, on_statement: F)
   where
-    S: Spanned + Copy,
+    S: GetSpan + Copy,
     H: FnOnce(&mut Self, S) -> bool,
     F: FnOnce(&mut Self, S),
   {
