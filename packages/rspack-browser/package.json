@@ -37,7 +37,7 @@
     "@swc/types": "0.1.25",
     "@types/watchpack": "^2.4.5",
     "memfs": "4.53.0",
-    "webpack-sources": "3.3.3"
+    "webpack-sources": "3.3.4"
   },
   "peerDependencies": {
     "@swc/helpers": ">=0.5.1"
