@@ -3,8 +3,9 @@ use std::sync::Arc;
 use cow_utils::CowUtils;
 use itertools::Itertools;
 use rspack_core::DependencyRange;
+use rspack_util::atom::Atom;
 use rustc_hash::FxHashSet as HashSet;
-use swc_core::{atoms::Atom, common::Spanned};
+use swc_experimental_ecma_ast::{CallExpr, GetSpan, Ident, MemberExpr};
 
 use super::{super::JavascriptParserPlugin, ProvideValue, VALUE_DEP_PREFIX};
 use crate::{dependency::ProvideDependency, visitors::JavascriptParser};
@@ -66,15 +67,14 @@ impl JavascriptParserPlugin for ProvideParserPlugin {
     self.names.contains(str).then_some(true)
   }
 
-  fn call(
-    &self,
-    parser: &mut JavascriptParser,
-    expr: &swc_core::ecma::ast::CallExpr,
-    for_name: &str,
-  ) -> Option<bool> {
-    if self.add_provide_dep(for_name, expr.callee.span().into(), parser) {
+  fn call(&self, parser: &mut JavascriptParser, expr: CallExpr, for_name: &str) -> Option<bool> {
+    if self.add_provide_dep(
+      for_name,
+      expr.callee(&parser.ast).span(&parser.ast).into(),
+      parser,
+    ) {
       // FIXME: webpack use `walk_expression` here
-      parser.walk_expr_or_spread(&expr.args);
+      parser.walk_expr_or_spread(expr.args(&parser.ast));
       return Some(true);
     }
     None
@@ -83,22 +83,22 @@ impl JavascriptParserPlugin for ProvideParserPlugin {
   fn member(
     &self,
     parser: &mut JavascriptParser,
-    expr: &swc_core::ecma::ast::MemberExpr,
+    expr: MemberExpr,
     for_name: &str,
   ) -> Option<bool> {
     self
-      .add_provide_dep(for_name, expr.span().into(), parser)
+      .add_provide_dep(for_name, expr.span(&parser.ast).into(), parser)
       .then_some(true)
   }
 
   fn identifier(
     &self,
     parser: &mut JavascriptParser,
-    ident: &swc_core::ecma::ast::Ident,
+    ident: Ident,
     for_name: &str,
   ) -> Option<bool> {
     self
-      .add_provide_dep(for_name, ident.span.into(), parser)
+      .add_provide_dep(for_name, ident.span(&parser.ast).into(), parser)
       .then_some(true)
   }
 }

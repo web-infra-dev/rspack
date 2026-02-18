@@ -1,5 +1,5 @@
 use rspack_core::{ConstDependency, RuntimeGlobals, RuntimeRequirementsDependency};
-use swc_core::ecma::ast::MemberExpr;
+use swc_experimental_ecma_ast::{GetSpan, MemberExpr, UnaryExpr};
 
 use super::JavascriptParserPlugin;
 use crate::{
@@ -16,7 +16,7 @@ impl JavascriptParserPlugin for CommonJsPlugin {
     for_name: &str,
     start: u32,
     end: u32,
-  ) -> Option<BasicEvaluatedExpression<'static>> {
+  ) -> Option<BasicEvaluatedExpression> {
     if for_name == expr_name::MODULE_HOT {
       Some(evaluate_to_identifier(
         expr_name::MODULE_HOT.into(),
@@ -33,12 +33,12 @@ impl JavascriptParserPlugin for CommonJsPlugin {
   fn r#typeof(
     &self,
     parser: &mut JavascriptParser,
-    expr: &swc_core::ecma::ast::UnaryExpr,
+    expr: UnaryExpr,
     for_name: &str,
   ) -> Option<bool> {
     if for_name == expr_name::MODULE {
       parser.add_presentational_dependency(Box::new(ConstDependency::new(
-        expr.span.into(),
+        expr.span(&parser.ast).into(),
         "'object'".into(),
       )));
       Some(true)
@@ -50,7 +50,7 @@ impl JavascriptParserPlugin for CommonJsPlugin {
   fn member(
     &self,
     parser: &mut JavascriptParser,
-    _expr: &MemberExpr,
+    _expr: MemberExpr,
     for_name: &str,
   ) -> Option<bool> {
     if for_name == "module.id" {

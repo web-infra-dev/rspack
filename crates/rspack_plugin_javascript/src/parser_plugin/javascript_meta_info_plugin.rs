@@ -1,5 +1,6 @@
 use rspack_util::atom::Atom;
 use rustc_hash::FxHashSet;
+use swc_experimental_ecma_ast::CallExpr;
 
 use super::{JavascriptParserPlugin, TopLevelSymbol};
 use crate::visitors::JavascriptParser;
@@ -7,12 +8,7 @@ use crate::visitors::JavascriptParser;
 pub struct JavascriptMetaInfoPlugin;
 
 impl JavascriptParserPlugin for JavascriptMetaInfoPlugin {
-  fn call(
-    &self,
-    parser: &mut JavascriptParser,
-    _expr: &swc_core::ecma::ast::CallExpr,
-    for_name: &str,
-  ) -> Option<bool> {
+  fn call(&self, parser: &mut JavascriptParser, _expr: CallExpr, for_name: &str) -> Option<bool> {
     if for_name == "eval" {
       parser.build_info.module_concatenation_bailout = Some("eval()".into());
       if let Some(top_level_symbol) = parser.inner_graph.get_top_level_symbol() {

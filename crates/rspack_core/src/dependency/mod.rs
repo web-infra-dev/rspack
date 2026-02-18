@@ -246,12 +246,12 @@ impl ImportPhase {
   }
 }
 
-impl From<swc_core::ecma::ast::ImportPhase> for ImportPhase {
-  fn from(phase: swc_core::ecma::ast::ImportPhase) -> Self {
+impl From<swc_experimental_ecma_ast::ImportPhase> for ImportPhase {
+  fn from(phase: swc_experimental_ecma_ast::ImportPhase) -> Self {
     match phase {
-      swc_core::ecma::ast::ImportPhase::Evaluation => Self::Evaluation,
-      swc_core::ecma::ast::ImportPhase::Source => Self::Source,
-      swc_core::ecma::ast::ImportPhase::Defer => Self::Defer,
+      swc_experimental_ecma_ast::ImportPhase::Evaluation => Self::Evaluation,
+      swc_experimental_ecma_ast::ImportPhase::Source => Self::Source,
+      swc_experimental_ecma_ast::ImportPhase::Defer => Self::Defer,
     }
   }
 }

@@ -5,13 +5,13 @@ use rspack_core::{
 use rspack_error::{Diagnostic, cyan, yellow};
 use rspack_util::SpanExt;
 use sugar_path::SugarPath;
-use swc_core::{common::Spanned, ecma::ast::Expr};
+use swc_experimental_ecma_ast::{Expr, GetSpan, Ident, MemberExpr, UnaryExpr};
 use url::Url;
 
 use crate::{
   JavascriptParserPlugin,
   dependency::ExternalModuleDependency,
-  utils::eval,
+  utils::eval::{self, BasicEvaluatedExpression},
   visitors::{DestructuringAssignmentProperty, JavascriptParser},
 };
 
@@ -400,7 +400,7 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
   fn identifier(
     &self,
     parser: &mut JavascriptParser,
-    ident: &swc_core::ecma::ast::Ident,
+    ident: Ident,
     for_name: &str,
   ) -> Option<bool> {
     // Skip CJS handling if not enabled
@@ -427,7 +427,7 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
           // We need to create two separate dependencies in Rspack.
           Self::add_cjs_node_module_dependency(
             parser,
-            ident.span,
+            ident.span(&parser.ast),
             DIRNAME,
             NodeMetaProperty::Dirname,
           );
@@ -440,7 +440,7 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
           }
           Self::add_cjs_node_module_dependency(
             parser,
-            ident.span,
+            ident.span(&parser.ast),
             DIRNAME,
             NodeMetaProperty::Dirname,
           );
@@ -460,7 +460,7 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
       };
       if let Some(dirname) = dirname {
         parser.add_presentational_dependency(Box::new(ConstDependency::new(
-          ident.span.into(),
+          ident.span(&parser.ast).into(),
           serde_json::to_string(&dirname)
             .expect("should render dirname")
             .into(),
@@ -482,7 +482,7 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
           // We need to create two separate dependencies in Rspack.
           Self::add_cjs_node_module_dependency(
             parser,
-            ident.span,
+            ident.span(&parser.ast),
             FILENAME,
             NodeMetaProperty::Filename,
           );
@@ -495,7 +495,7 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
           }
           Self::add_cjs_node_module_dependency(
             parser,
-            ident.span,
+            ident.span(&parser.ast),
             FILENAME,
             NodeMetaProperty::Filename,
           );
@@ -514,7 +514,7 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
       };
       if let Some(filename) = filename {
         parser.add_presentational_dependency(Box::new(ConstDependency::new(
-          ident.span.into(),
+          ident.span(&parser.ast).into(),
           serde_json::to_string(&filename)
             .expect("should render filename")
             .into(),
@@ -528,7 +528,7 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
       )
     {
       parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
-        ident.span.into(),
+        ident.span(&parser.ast).into(),
         RuntimeGlobals::GLOBAL,
       )));
       return Some(true);
@@ -536,7 +536,7 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
     None
   }
 
-  fn rename(&self, parser: &mut JavascriptParser, expr: &Expr, for_name: &str) -> Option<bool> {
+  fn rename(&self, parser: &mut JavascriptParser, expr: Expr, for_name: &str) -> Option<bool> {
     // Skip CJS handling if not enabled
     if !self.handle_cjs {
       return None;
@@ -550,7 +550,7 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
       )
     {
       parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
-        expr.span().into(),
+        expr.span(&parser.ast).into(),
         RuntimeGlobals::GLOBAL,
       )));
       return Some(false);
@@ -561,7 +561,7 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
   fn r#typeof(
     &self,
     parser: &mut JavascriptParser,
-    unary_expr: &swc_core::ecma::ast::UnaryExpr,
+    unary_expr: UnaryExpr,
     for_name: &str,
   ) -> Option<bool> {
     use crate::visitors::expr_name;
@@ -643,18 +643,18 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
     }
 
     parser.add_presentational_dependency(Box::new(ConstDependency::new(
-      unary_expr.span().into(),
+      unary_expr.span(&parser.ast).into(),
       "'string'".into(),
     )));
     Some(true)
   }
 
-  fn evaluate_typeof<'a>(
+  fn evaluate_typeof(
     &self,
     parser: &mut JavascriptParser,
-    expr: &'a swc_core::ecma::ast::UnaryExpr,
+    expr: UnaryExpr,
     for_name: &str,
-  ) -> Option<eval::BasicEvaluatedExpression<'a>> {
+  ) -> Option<BasicEvaluatedExpression> {
     use crate::visitors::expr_name;
 
     match for_name {
@@ -675,8 +675,8 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
         }
         Some(eval::evaluate_to_string(
           "string".to_string(),
-          expr.span.real_lo(),
-          expr.span.real_hi(),
+          expr.span(&parser.ast).real_lo(),
+          expr.span(&parser.ast).real_hi(),
         ))
       }
       expr_name::IMPORT_META_DIRNAME => {
@@ -696,8 +696,8 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
         }
         Some(eval::evaluate_to_string(
           "string".to_string(),
-          expr.span.real_lo(),
-          expr.span.real_hi(),
+          expr.span(&parser.ast).real_lo(),
+          expr.span(&parser.ast).real_hi(),
         ))
       }
       _ => None,
@@ -710,7 +710,7 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
     for_name: &str,
     start: u32,
     end: u32,
-  ) -> Option<crate::utils::eval::BasicEvaluatedExpression<'static>> {
+  ) -> Option<BasicEvaluatedExpression> {
     use crate::visitors::expr_name;
 
     if for_name == DIRNAME {
@@ -780,7 +780,7 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
   fn member(
     &self,
     parser: &mut JavascriptParser,
-    member_expr: &swc_core::ecma::ast::MemberExpr,
+    member_expr: MemberExpr,
     for_name: &str,
   ) -> Option<bool> {
     use crate::visitors::expr_name;
@@ -803,7 +803,7 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
 
     let replacement = Self::get_import_meta_member_replacement(parser, property)?;
     parser.add_presentational_dependency(Box::new(ConstDependency::new(
-      member_expr.span().into(),
+      member_expr.span(&parser.ast).into(),
       replacement.into(),
     )));
     Some(true)

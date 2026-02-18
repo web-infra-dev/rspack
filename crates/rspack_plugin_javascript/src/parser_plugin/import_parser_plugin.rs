@@ -1,19 +1,13 @@
-use std::borrow::Cow;
-
 use rspack_core::{
   AsyncDependenciesBlock, ChunkGroupOptions, ContextDependency, ContextNameSpaceObject,
   ContextOptions, DependencyCategory, DependencyRange, DependencyType, DynamicImportFetchPriority,
   DynamicImportMode, GroupOptions, ImportAttributes, ImportPhase,
 };
 use rspack_error::{Error, Severity};
-use rspack_util::{SpanExt, swc::get_swc_comments};
+use rspack_util::{SpanExt, atom::Atom, swc::get_swc_comments};
 use rustc_hash::FxHashMap;
-use swc_core::{
-  common::{Span, Spanned},
-  ecma::{
-    ast::{BlockStmtOrExpr, CallExpr, Expr, Ident, MemberExpr, Pat, VarDeclarator},
-    atoms::Atom,
-  },
+use swc_experimental_ecma_ast::{
+  Ast, BlockStmtOrExpr, CallExpr, Expr, GetSpan, Ident, MemberExpr, Pat, Span, VarDeclarator,
 };
 
 use super::JavascriptParserPlugin;
@@ -33,10 +27,10 @@ const DYNAMIC_IMPORT_TAG: &str = "dynamic import";
 
 fn tag_dynamic_import_referenced(
   parser: &mut JavascriptParser,
-  import_call: &CallExpr,
+  import_call: CallExpr,
   variable_name: Atom,
 ) {
-  let import_span = import_call.span();
+  let import_span = import_call.span(&parser.ast);
   parser.dynamic_import_references.add_import(import_span);
   parser.tag_variable(
     variable_name,
@@ -107,10 +101,10 @@ impl JavascriptParserPlugin for ImportParserPlugin {
   fn can_collect_destructuring_assignment_properties(
     &self,
     parser: &mut JavascriptParser,
-    expr: &Expr,
+    expr: Expr,
   ) -> Option<bool> {
     if let Some(call) = expr.as_call()
-      && call.callee.is_import()
+      && call.callee(&parser.ast).is_import()
     {
       return Some(true);
     }
@@ -130,17 +124,20 @@ impl JavascriptParserPlugin for ImportParserPlugin {
   fn pre_declarator(
     &self,
     parser: &mut JavascriptParser,
-    declarator: &VarDeclarator,
-    _declaration: VariableDeclaration<'_>,
+    declarator: VarDeclarator,
+    _declaration: VariableDeclaration,
   ) -> Option<bool> {
-    if let Some(init) = &declarator.init
-      && let Some(expr) = init.as_await_expr()
-      && let Some(call) = expr.arg.as_call()
-      && call.callee.is_import()
-      && let Some(binding) = declarator.name.as_ident()
+    if let Some(init) = declarator.init(&parser.ast)
+      && let Some(expr) = init.as_await()
+      && let Some(call) = expr.arg(&parser.ast).as_call()
+      && call.callee(&parser.ast).is_import()
+      && let Some(binding) = declarator.name(&parser.ast).as_ident()
     {
-      parser.define_variable(binding.id.sym.clone());
-      tag_dynamic_import_referenced(parser, call, binding.id.sym.clone());
+      let name = parser
+        .ast
+        .get_atom(binding.id(&parser.ast).sym(&parser.ast));
+      parser.define_variable(name.clone());
+      tag_dynamic_import_referenced(parser, call, name);
     }
     None
   }
@@ -148,7 +145,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
   fn identifier(
     &self,
     parser: &mut JavascriptParser,
-    ident: &Ident,
+    ident: Ident,
     for_name: &str,
   ) -> Option<bool> {
     if for_name != DYNAMIC_IMPORT_TAG {
@@ -160,7 +157,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
     let data = ImportTagData::downcast(tag_info.data.clone()?);
     if let Some(keys) = parser
       .destructuring_assignment_properties
-      .get(&ident.span())
+      .get(&ident.span(&parser.ast))
     {
       let mut refs = Vec::new();
       keys.traverse_on_leaf(&mut |stack| {
@@ -184,7 +181,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
   fn member_chain(
     &self,
     parser: &mut JavascriptParser,
-    _expr: &MemberExpr,
+    _expr: MemberExpr,
     for_name: &str,
     members: &[Atom],
     members_optionals: &[bool],
@@ -208,7 +205,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
   fn call_member_chain(
     &self,
     parser: &mut JavascriptParser,
-    expr: &CallExpr,
+    expr: CallExpr,
     for_name: &str,
     members: &[Atom],
     members_optionals: &[bool],
@@ -231,21 +228,23 @@ impl JavascriptParserPlugin for ImportParserPlugin {
       .dynamic_import_references
       .get_import_mut_expect(&data.import_span)
       .add_reference(ids.to_vec());
-    parser.walk_expr_or_spread(&expr.args);
+    parser.walk_expr_or_spread(expr.args(&parser.ast));
     Some(true)
   }
 
   fn import_call(
     &self,
     parser: &mut JavascriptParser,
-    node: &CallExpr,
-    import_then: Option<&CallExpr>,
+    node: CallExpr,
+    import_then: Option<CallExpr>,
   ) -> Option<bool> {
-    let dyn_imported = node.args.first()?;
-    if dyn_imported.spread.is_some() {
+    let dyn_imported = parser
+      .ast
+      .get_node_in_sub_range(node.args(&parser.ast).first()?);
+    if dyn_imported.spread(&parser.ast).is_some() {
       return None;
     }
-    let import_call_span = node.span();
+    let import_call_span = node.span(&parser.ast);
     let dynamic_import_mode = parser.javascript_options.dynamic_import_mode;
     let dynamic_import_preload = parser
       .javascript_options
@@ -259,7 +258,11 @@ impl JavascriptParserPlugin for ImportParserPlugin {
       .get_order();
     let dynamic_import_fetch_priority = parser.javascript_options.dynamic_import_fetch_priority;
 
-    let magic_comment_options = try_extract_magic_comment(parser, node.span, dyn_imported.span());
+    let magic_comment_options = try_extract_magic_comment(
+      parser,
+      node.span(&parser.ast),
+      dyn_imported.span(&parser.ast),
+    );
     if magic_comment_options.get_ignore().unwrap_or_default() {
       return None;
     }
@@ -296,8 +299,8 @@ impl JavascriptParserPlugin for ImportParserPlugin {
     let referenced_in_member = parser
       .dynamic_import_references
       .get_import(&import_call_span);
-    let referenced_fulfilled_ns_obj =
-      import_then.and_then(|import_then| get_fulfilled_callback_namespace_obj(import_then));
+    let referenced_fulfilled_ns_obj = import_then
+      .and_then(|import_then| get_fulfilled_callback_namespace_obj(&parser.ast, import_then));
     if let Some(keys) = referenced_in_destructuring {
       let mut refs = Vec::new();
       keys.traverse_on_leaf(&mut |stack| {
@@ -322,17 +325,17 @@ impl JavascriptParserPlugin for ImportParserPlugin {
     }
 
     let phase: ImportPhase = node
-      .callee
+      .callee(&parser.ast)
       .as_import()
       .expect("should be import")
-      .phase
+      .phase(&parser.ast)
       .into();
     if phase.is_defer() && !parser.compiler_options.experiments.defer_import {
       parser.add_error(rspack_error::error!("deferImport is still an experimental feature. To continue using it, please enable 'experiments.deferImport'.").into());
     }
 
-    let attributes = get_attributes_from_call_expr(node);
-    let param = parser.evaluate_expression(dyn_imported.expr.as_ref());
+    let attributes = get_attributes_from_call_expr(&parser.ast, node);
+    let param = parser.evaluate_expression(dyn_imported.expr(&parser.ast));
 
     let dep_locator = if param.is_string() {
       if matches!(mode, DynamicImportMode::Eager) {
@@ -360,8 +363,8 @@ impl JavascriptParserPlugin for ImportParserPlugin {
           parser.in_try,
           get_swc_comments(
             parser.comments,
-            dyn_imported.span().lo,
-            dyn_imported.span().hi,
+            dyn_imported.span(&parser.ast).lo,
+            dyn_imported.span(&parser.ast).hi,
           ),
         ));
         let mut block = AsyncDependenciesBlock::new(
@@ -399,7 +402,12 @@ impl JavascriptParserPlugin for ImportParserPlugin {
         critical,
       } = create_context_dependency(&param, parser);
 
-      let reg_exp = context_reg_exp(&reg, "", Some(dyn_imported.span().into()), parser);
+      let reg_exp = context_reg_exp(
+        &reg,
+        "",
+        Some(dyn_imported.span(&parser.ast).into()),
+        parser,
+      );
       let mut dep = ImportContextDependency::new(
         ContextOptions {
           mode: mode.into(),
@@ -429,7 +437,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
           phase: Some(phase),
         },
         import_call_span.into(),
-        dyn_imported.span().into(),
+        dyn_imported.span(&parser.ast).into(),
         parser.in_try,
       );
       *dep.critical_mut() = critical;
@@ -443,11 +451,18 @@ impl JavascriptParserPlugin for ImportParserPlugin {
     };
 
     if let Some(import_then) = import_then {
+      let mut args = import_then.args(&parser.ast);
       if let Some(ns_obj) = referenced_fulfilled_ns_obj {
-        walk_import_then_fulfilled_callback(parser, node, &import_then.args[0].expr, ns_obj);
-        parser.walk_expr_or_spread(&import_then.args[1..]);
+        walk_import_then_fulfilled_callback(
+          parser,
+          node,
+          args.get_node(&parser.ast, 0).unwrap().expr(&parser.ast),
+          ns_obj,
+        );
+        args.remove_first();
+        parser.walk_expr_or_spread(args);
       } else {
-        parser.walk_expr_or_spread(&import_then.args);
+        parser.walk_expr_or_spread(args);
       }
     }
 
@@ -502,25 +517,27 @@ impl JavascriptParserPlugin for ImportParserPlugin {
   }
 }
 
-fn get_attributes_from_call_expr(node: &CallExpr) -> Option<ImportAttributes> {
+fn get_attributes_from_call_expr(ast: &Ast, node: CallExpr) -> Option<ImportAttributes> {
   node
-    .args
-    .get(1)
-    .and_then(|arg| arg.expr.as_object())
-    .and_then(|obj| get_value_by_obj_prop(obj, "with"))
+    .args(ast)
+    .get_node(ast, 1)
+    .and_then(|arg| arg.expr(ast).as_object())
+    .and_then(|obj| get_value_by_obj_prop(ast, obj, "with"))
     .and_then(|expr| expr.as_object())
-    .map(get_attributes)
+    .map(|o| get_attributes(ast, o))
 }
 
-fn get_fulfilled_callback_namespace_obj(import_then: &CallExpr) -> Option<&Pat> {
-  let fulfilled_callback = import_then.args.first()?;
-  if fulfilled_callback.spread.is_some() {
+fn get_fulfilled_callback_namespace_obj(ast: &Ast, import_then: CallExpr) -> Option<Pat> {
+  let fulfilled_callback = ast.get_node_in_sub_range(import_then.args(ast).first()?);
+  if fulfilled_callback.spread(ast).is_some() {
     return None;
   }
-  let fulfilled_callback = &*fulfilled_callback.expr;
+  let fulfilled_callback = fulfilled_callback.expr(ast);
   let ns_obj = match fulfilled_callback {
-    Expr::Arrow(f) => f.params.first()?,
-    Expr::Fn(f) => &f.function.params.first()?.pat,
+    Expr::Arrow(f) => ast.get_node_in_sub_range(f.params(ast).first()?),
+    Expr::Fn(f) => ast
+      .get_node_in_sub_range(f.function(ast).params(ast).first()?)
+      .pat(ast),
     _ => return None,
   };
   if ns_obj.is_ident() || ns_obj.is_object() {
@@ -531,28 +548,34 @@ fn get_fulfilled_callback_namespace_obj(import_then: &CallExpr) -> Option<&Pat> 
 
 fn walk_import_then_fulfilled_callback(
   parser: &mut JavascriptParser,
-  import_call: &CallExpr,
-  fulfilled_callback: &Expr,
-  namespace_obj_arg: &Pat,
+  import_call: CallExpr,
+  fulfilled_callback: Expr,
+  namespace_obj_arg: Pat,
 ) {
-  let mut scope_params: Vec<Cow<Pat>> = if let Some(fn_expr) = fulfilled_callback.as_fn_expr() {
+  let mut scope_params: Vec<Pat> = if let Some(fn_expr) = fulfilled_callback.as_fn() {
     fn_expr
-      .function
-      .params
+      .function(&parser.ast)
+      .params(&parser.ast)
       .iter()
-      .map(|p| Cow::Borrowed(&p.pat))
+      .map(|p| parser.ast.get_node_in_sub_range(p).pat(&parser.ast))
       .collect()
   } else if let Some(arrow_expr) = fulfilled_callback.as_arrow() {
-    arrow_expr.params.iter().map(Cow::Borrowed).collect()
+    arrow_expr
+      .params(&parser.ast)
+      .iter()
+      .map(|p| parser.ast.get_node_in_sub_range(p))
+      .collect()
   } else {
     unreachable!()
   };
 
   // Add function name in scope for recursive calls
-  if let Some(expr) = fulfilled_callback.as_fn_expr()
-    && let Some(ident) = &expr.ident
+  if let Some(expr) = fulfilled_callback.as_fn()
+    && let Some(ident) = expr.ident(&parser.ast)
   {
-    scope_params.push(Cow::Owned(Pat::Ident(ident.clone().into())));
+    scope_params.push(Pat::Ident(
+      parser.ast.binding_ident(ident.span(&parser.ast), ident),
+    ));
   }
 
   let was_top_level_scope = parser.top_level_scope;
@@ -564,21 +587,25 @@ fn walk_import_then_fulfilled_callback(
     };
 
   parser.in_function_scope(
-    fulfilled_callback.is_fn_expr(),
+    fulfilled_callback.is_fn(),
     scope_params.into_iter(),
     |parser| {
       if let Some(ns_obj) = namespace_obj_arg.as_ident() {
-        tag_dynamic_import_referenced(parser, import_call, ns_obj.id.sym.clone());
+        tag_dynamic_import_referenced(
+          parser,
+          import_call,
+          parser.ast.get_atom(ns_obj.id(&parser.ast).sym(&parser.ast)),
+        );
       } else if let Some(ns_obj) = namespace_obj_arg.as_object() {
         if let Some(keys) =
           parser.collect_destructuring_assignment_properties_from_object_pattern(ns_obj)
         {
           parser
             .dynamic_import_references
-            .add_import(import_call.span());
+            .add_import(import_call.span(&parser.ast));
           let import_references = parser
             .dynamic_import_references
-            .get_import_mut_expect(&import_call.span());
+            .get_import_mut_expect(&import_call.span(&parser.ast));
           let mut refs = Vec::new();
           keys.traverse_on_leaf(&mut |stack| {
             refs.push(stack.iter().map(|p| p.id.clone()).collect());
@@ -590,24 +617,26 @@ fn walk_import_then_fulfilled_callback(
       } else {
         unreachable!()
       }
-      if let Some(expr) = fulfilled_callback.as_fn_expr() {
-        for param in &expr.function.params {
-          parser.walk_pattern(&param.pat);
+      if let Some(expr) = fulfilled_callback.as_fn() {
+        for param in expr.function(&parser.ast).params(&parser.ast).iter() {
+          let param = parser.ast.get_node_in_sub_range(param);
+          parser.walk_pattern(param.pat(&parser.ast));
         }
-        if let Some(stmt) = &expr.function.body {
-          parser.detect_mode(&stmt.stmts);
+        if let Some(stmt) = expr.function(&parser.ast).body(&parser.ast) {
+          parser.detect_mode(stmt.stmts(&parser.ast));
           let prev = parser.prev_statement;
           parser.pre_walk_statement(Statement::Block(stmt));
           parser.prev_statement = prev;
           parser.walk_statement(Statement::Block(stmt));
         }
       } else if let Some(expr) = fulfilled_callback.as_arrow() {
-        for pat in &expr.params {
+        for pat in expr.params(&parser.ast).iter() {
+          let pat = parser.ast.get_node_in_sub_range(pat);
           parser.walk_pattern(pat);
         }
-        match &*expr.body {
+        match expr.body(&parser.ast) {
           BlockStmtOrExpr::BlockStmt(stmt) => {
-            parser.detect_mode(&stmt.stmts);
+            parser.detect_mode(stmt.stmts(&parser.ast));
             let prev = parser.prev_statement;
             parser.pre_walk_statement(Statement::Block(stmt));
             parser.prev_statement = prev;
