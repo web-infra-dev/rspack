@@ -25,7 +25,7 @@ type OnEvaluateIdentifier = dyn Fn(
     &str, /* Ident */
     u32,  /* start */
     u32,  /* end */
-  ) -> Option<BasicEvaluatedExpression<'static>>
+  ) -> Option<BasicEvaluatedExpression>
   + Send
   + Sync;
 
@@ -34,7 +34,7 @@ type OnEvaluateTypeof = dyn Fn(
     &mut JavascriptParser,
     u32, /* start */
     u32, /* end */
-  ) -> Option<BasicEvaluatedExpression<'static>>
+  ) -> Option<BasicEvaluatedExpression>
   + Send
   + Sync;
 
@@ -144,7 +144,7 @@ type OnObjectEvaluateIdentifier = dyn Fn(
     &str, /* Ident */
     u32,  /* start */
     u32,  /* end */
-  ) -> Option<BasicEvaluatedExpression<'static>>
+  ) -> Option<BasicEvaluatedExpression>
   + Send
   + Sync;
 
@@ -332,7 +332,7 @@ impl WalkData {
       }
     }
 
-    fn object_evaluate_identifier(start: u32, end: u32) -> BasicEvaluatedExpression<'static> {
+    fn object_evaluate_identifier(start: u32, end: u32) -> BasicEvaluatedExpression {
       let mut evaluated = BasicEvaluatedExpression::new();
       evaluated.set_truthy();
       evaluated.set_side_effects(false);
