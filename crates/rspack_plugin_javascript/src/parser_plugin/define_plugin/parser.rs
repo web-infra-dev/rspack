@@ -7,7 +7,7 @@ use std::{
 };
 
 use rspack_util::SpanExt;
-use swc_core::ecma::ast::Expr;
+use swc_experimental_ecma_ast::{Expr, GetSpan, Ident, MemberExpr, UnaryExpr};
 
 use super::{VALUE_DEP_PREFIX, utils::gen_const_dep, walk_data::WalkData};
 use crate::{
@@ -66,12 +66,12 @@ impl JavascriptParserPlugin for DefineParserPlugin {
     None
   }
 
-  fn evaluate_typeof<'a>(
+  fn evaluate_typeof(
     &self,
     parser: &mut JavascriptParser,
-    expr: &'a swc_core::ecma::ast::UnaryExpr,
+    expr: UnaryExpr,
     for_name: &str,
-  ) -> Option<BasicEvaluatedExpression<'a>> {
+  ) -> Option<BasicEvaluatedExpression> {
     if let Some(record) = self.get_define_record(for_name)
       && let Some(on_evaluate_typeof) = &record.on_evaluate_typeof
     {
@@ -80,7 +80,12 @@ impl JavascriptParserPlugin for DefineParserPlugin {
         return None;
       }
       self.add_value_dependency(parser, for_name);
-      let evaluated = on_evaluate_typeof(record, parser, expr.span.real_lo(), expr.span.real_hi());
+      let evaluated = on_evaluate_typeof(
+        record,
+        parser,
+        expr.span(&parser.ast).real_lo(),
+        expr.span(&parser.ast).real_hi(),
+      );
       self.recurse_typeof.store(false, Ordering::Release);
       return evaluated;
     }
@@ -88,8 +93,8 @@ impl JavascriptParserPlugin for DefineParserPlugin {
       self.add_value_dependency(parser, for_name);
       return Some(evaluate_to_string(
         "object".to_string(),
-        expr.span.real_lo(),
-        expr.span.real_hi(),
+        expr.span(&parser.ast).real_lo(),
+        expr.span(&parser.ast).real_hi(),
       ));
     }
     None
@@ -101,7 +106,7 @@ impl JavascriptParserPlugin for DefineParserPlugin {
     for_name: &str,
     start: u32,
     end: u32,
-  ) -> Option<crate::utils::eval::BasicEvaluatedExpression<'static>> {
+  ) -> Option<BasicEvaluatedExpression> {
     if let Some(record) = self.get_define_record(for_name)
       && let Some(on_evaluate_identifier) = &record.on_evaluate_identifier
     {
@@ -125,14 +130,19 @@ impl JavascriptParserPlugin for DefineParserPlugin {
   fn r#typeof(
     &self,
     parser: &mut JavascriptParser,
-    expr: &swc_core::ecma::ast::UnaryExpr,
+    expr: UnaryExpr,
     for_name: &str,
   ) -> Option<bool> {
     if let Some(record) = self.get_define_record(for_name)
       && let Some(on_typeof) = &record.on_typeof
     {
       self.add_value_dependency(parser, for_name);
-      return on_typeof(record, parser, expr.span.real_lo(), expr.span.real_hi());
+      return on_typeof(
+        record,
+        parser,
+        expr.span(&parser.ast).real_lo(),
+        expr.span(&parser.ast).real_hi(),
+      );
     } else if self.walk_data.object_define_record.contains_key(for_name) {
       self.add_value_dependency(parser, for_name);
       debug_assert!(!parser.in_short_hand);
@@ -140,8 +150,8 @@ impl JavascriptParserPlugin for DefineParserPlugin {
         parser,
         Cow::Borrowed(r#""object""#),
         for_name,
-        expr.span.real_lo(),
-        expr.span.real_hi(),
+        expr.span(&parser.ast).real_lo(),
+        expr.span(&parser.ast).real_hi(),
       ) {
         parser.add_presentational_dependency(dep);
       }
@@ -154,7 +164,7 @@ impl JavascriptParserPlugin for DefineParserPlugin {
   fn can_collect_destructuring_assignment_properties(
     &self,
     parser: &mut JavascriptParser,
-    expr: &Expr,
+    expr: Expr,
   ) -> Option<bool> {
     if let MemberExpressionInfo::Expression(info) =
       parser.get_member_expression_info_from_expr(expr, AllowedMemberTypes::Expression)?
@@ -175,7 +185,7 @@ impl JavascriptParserPlugin for DefineParserPlugin {
   fn member(
     &self,
     parser: &mut JavascriptParser,
-    expr: &swc_core::ecma::ast::MemberExpr,
+    expr: MemberExpr,
     for_name: &str,
   ) -> Option<bool> {
     if let Some(record) = self.get_define_record(for_name)
@@ -185,9 +195,9 @@ impl JavascriptParserPlugin for DefineParserPlugin {
       return on_expression(
         record,
         parser,
-        expr.span,
-        expr.span.real_lo(),
-        expr.span.real_hi(),
+        expr.span(&parser.ast),
+        expr.span(&parser.ast).real_lo(),
+        expr.span(&parser.ast).real_hi(),
         for_name,
       );
     } else if let Some(record) = self.walk_data.object_define_record.get(for_name)
@@ -197,9 +207,9 @@ impl JavascriptParserPlugin for DefineParserPlugin {
       return on_expression(
         record,
         parser,
-        expr.span,
-        expr.span.real_lo(),
-        expr.span.real_hi(),
+        expr.span(&parser.ast),
+        expr.span(&parser.ast).real_lo(),
+        expr.span(&parser.ast).real_hi(),
         for_name,
       );
     }
@@ -209,7 +219,7 @@ impl JavascriptParserPlugin for DefineParserPlugin {
   fn identifier(
     &self,
     parser: &mut JavascriptParser,
-    ident: &swc_core::ecma::ast::Ident,
+    ident: Ident,
     for_name: &str,
   ) -> Option<bool> {
     if let Some(record) = self.get_define_record(for_name)
@@ -219,9 +229,9 @@ impl JavascriptParserPlugin for DefineParserPlugin {
       return on_expression(
         record,
         parser,
-        ident.span,
-        ident.span.real_lo(),
-        ident.span.real_hi(),
+        ident.span(&parser.ast),
+        ident.span(&parser.ast).real_lo(),
+        ident.span(&parser.ast).real_hi(),
         for_name,
       );
     } else if let Some(record) = self.walk_data.object_define_record.get(for_name)
@@ -231,9 +241,9 @@ impl JavascriptParserPlugin for DefineParserPlugin {
       return on_expression(
         record,
         parser,
-        ident.span,
-        ident.span.real_lo(),
-        ident.span.real_hi(),
+        ident.span(&parser.ast),
+        ident.span(&parser.ast).real_lo(),
+        ident.span(&parser.ast).real_hi(),
         for_name,
       );
     }
