@@ -84,18 +84,5 @@
     "webpack": "5.102.1",
     "zx": "8.8.5"
   },
-  "packageManager": "pnpm@10.26.2",
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "@biomejs/biome",
-      "@parcel/watcher",
-      "@swc/core",
-      "core-js",
-      "es5-ext",
-      "esbuild"
-    ],
-    "patchedDependencies": {
-      "webpack-sources@3.3.4": "patches/webpack-sources@3.3.4.patch"
-    }
-  }
+  "packageManager": "pnpm@10.26.2"
 }
