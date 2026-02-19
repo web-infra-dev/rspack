@@ -17,8 +17,8 @@ importers:
         specifier: ^2.3.14
         version: 2.3.14
       '@microsoft/api-extractor':
-        specifier: 7.55.2
-        version: 7.55.2(@types/node@20.19.33)
+        specifier: 7.56.3
+        version: 7.56.3(@types/node@20.19.33)
       '@microsoft/api-extractor-model':
         specifier: 7.32.2
         version: 7.32.2(@types/node@20.19.33)
@@ -225,7 +225,7 @@ importers:
     devDependencies:
       '@rslib/core':
         specifier: 0.19.6
-        version: 0.19.6(@microsoft/api-extractor@7.55.2(@types/node@20.19.33))(typescript@5.9.3)
+        version: 0.19.6(@microsoft/api-extractor@7.56.3(@types/node@20.19.33))(typescript@5.9.3)
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
@@ -386,7 +386,7 @@ importers:
         version: 1.4.4(@rsbuild/core@2.0.0-beta.3(@module-federation/runtime-tools@0.24.1)(core-js@3.48.0))
       '@rslib/core':
         specifier: 0.19.6
-        version: 0.19.6(@microsoft/api-extractor@7.55.2(@types/node@20.19.33))(typescript@5.9.3)
+        version: 0.19.6(@microsoft/api-extractor@7.56.3(@types/node@20.19.33))(typescript@5.9.3)
       '@rspack/lite-tapable':
         specifier: 1.1.0
         version: 1.1.0
@@ -468,7 +468,7 @@ importers:
     devDependencies:
       '@rslib/core':
         specifier: 0.19.6
-        version: 0.19.6(@microsoft/api-extractor@7.55.2(@types/node@20.19.33))(typescript@5.9.3)
+        version: 0.19.6(@microsoft/api-extractor@7.56.3(@types/node@20.19.33))(typescript@5.9.3)
       '@rspack/core':
         specifier: workspace:*
         version: link:../rspack
@@ -2346,6 +2346,10 @@ packages:
     resolution: {integrity: sha512-ZT55BDLV0yv0RBm2czMiZ+SqCGO7AvmOM3G/w2xhVPH+te0aKgFjmBvGlL1dH+ql2tgGO3MVrbb3jCKyvpgnxA==}
     engines: {node: 20 || >=22}
 
+  '@isaacs/brace-expansion@5.0.1':
+    resolution: {integrity: sha512-WMz71T1JS624nWj2n2fnYAuPovhv7EUhk69R6i9dsVyzxt5eM3bjwvgk9L+APE1TRscGysAVMANkB0jh0LQZrQ==}
+    engines: {node: 20 || >=22}
+
   '@isaacs/cliui@8.0.2':
     resolution: {integrity: sha512-O8jcjabXaleOG9DQ0+ARXWZBTfnP4WNAqzuiJK7ll44AmxGKv/J2M4TPjxjY3znBCfvBXFzucm1twdyFybFqEA==}
     engines: {node: '>=12'}
@@ -2462,8 +2466,8 @@ packages:
   '@microsoft/api-extractor-model@7.32.2':
     resolution: {integrity: sha512-Ussc25rAalc+4JJs9HNQE7TuO9y6jpYQX9nWD1DhqUzYPBr3Lr7O9intf+ZY8kD5HnIqeIRJX7ccCT0QyBy2Ww==}
 
-  '@microsoft/api-extractor@7.55.2':
-    resolution: {integrity: sha512-1jlWO4qmgqYoVUcyh+oXYRztZde/pAi7cSVzBz/rc+S7CoVzDasy8QE13dx6sLG4VRo8SfkkLbFORR6tBw4uGQ==}
+  '@microsoft/api-extractor@7.56.3':
+    resolution: {integrity: sha512-fRqok4aRNq5GpgGBv2fKlSSKbirPKTJ75vQefthB5x9dwt4Zz+AezUzdc1p/AG4wUBIgmhjcEwn/Rj+N4Wh4Mw==}
     hasBin: true
 
   '@microsoft/tsdoc-config@0.18.0':
@@ -3413,16 +3417,16 @@ packages:
   '@rushstack/rig-package@0.6.0':
     resolution: {integrity: sha512-ZQmfzsLE2+Y91GF15c65L/slMRVhF6Hycq04D4TwtdGaUAbIXXg9c5pKA5KFU7M4QMaihoobp9JJYpYcaY3zOw==}
 
-  '@rushstack/terminal@0.19.5':
-    resolution: {integrity: sha512-6k5tpdB88G0K7QrH/3yfKO84HK9ggftfUZ51p7fePyCE7+RLLHkWZbID9OFWbXuna+eeCFE7AkKnRMHMxNbz7Q==}
+  '@rushstack/terminal@0.21.0':
+    resolution: {integrity: sha512-cLaI4HwCNYmknM5ns4G+drqdEB6q3dCPV423+d3TZeBusYSSm09+nR7CnhzJMjJqeRcdMAaLnrA4M/3xDz4R3w==}
     peerDependencies:
       '@types/node': '*'
     peerDependenciesMeta:
       '@types/node':
         optional: true
 
-  '@rushstack/ts-command-line@5.1.5':
-    resolution: {integrity: sha512-YmrFTFUdHXblYSa+Xc9OO9FsL/XFcckZy0ycQ6q7VSBsVs5P0uD9vcges5Q9vctGlVdu27w+Ct6IuJ458V0cTQ==}
+  '@rushstack/ts-command-line@5.2.0':
+    resolution: {integrity: sha512-lYxCX0nDdkDtCkVpvF0m25ymf66SaMWuppbD6b7MdkIzvGXKBXNIVZlwBH/C0YfkanrupnICWf2n4z3AKSfaHw==}
 
   '@shikijs/core@3.21.0':
     resolution: {integrity: sha512-AXSQu/2n1UIQekY8euBJlvFYZIw0PHY63jUzGbrOma4wPxzznJXTXkri+QcHeBNaFxiiOljKxxJkVSoB3PjbyA==}
@@ -6474,12 +6478,12 @@ packages:
   minimalistic-crypto-utils@1.0.1:
     resolution: {integrity: sha512-JIYlbt6g8i5jKfJ3xz7rF0LXmv2TkDxBLUkiBeZ7bAx4GnnNMr8xFpGnOxn6GhTEHx3SjRrZEoU+j04prX1ktg==}
 
-  minimatch@10.0.3:
-    resolution: {integrity: sha512-IPZ167aShDZZUMdRk66cyQAW3qr0WzbHkPdMYa8bzZhlHhO3jALbKdxcaak7W9FfT2rZNpQuUu4Od7ILEpXSaw==}
-    engines: {node: 20 || >=22}
-
   minimatch@10.1.1:
     resolution: {integrity: sha512-enIvLvRAFZYXJzkCYG5RKmPfrFArdLv+R+lbQ53BmIMLIry74bjKzX6iHAm8WYamJkhSSEabrWN5D97XnKObjQ==}
+    engines: {node: 20 || >=22}
+
+  minimatch@10.1.2:
+    resolution: {integrity: sha512-fu656aJ0n2kcXwsnwnv9g24tkU5uSmOlTjd6WyyaKm2Z+h1qmY6bAjrcaIxF/BslFqbZ8UBtbJi7KgQOZD2PTw==}
     engines: {node: 20 || >=22}
 
   minimatch@3.1.2:
@@ -9690,6 +9694,10 @@ snapshots:
     dependencies:
       '@isaacs/balanced-match': 4.0.1
 
+  '@isaacs/brace-expansion@5.0.1':
+    dependencies:
+      '@isaacs/balanced-match': 4.0.1
+
   '@isaacs/cliui@8.0.2':
     dependencies:
       string-width: 5.1.2
@@ -9868,18 +9876,18 @@ snapshots:
     transitivePeerDependencies:
       - '@types/node'
 
-  '@microsoft/api-extractor@7.55.2(@types/node@20.19.33)':
+  '@microsoft/api-extractor@7.56.3(@types/node@20.19.33)':
     dependencies:
       '@microsoft/api-extractor-model': 7.32.2(@types/node@20.19.33)
       '@microsoft/tsdoc': 0.16.0
       '@microsoft/tsdoc-config': 0.18.0
       '@rushstack/node-core-library': 5.19.1(@types/node@20.19.33)
       '@rushstack/rig-package': 0.6.0
-      '@rushstack/terminal': 0.19.5(@types/node@20.19.33)
-      '@rushstack/ts-command-line': 5.1.5(@types/node@20.19.33)
+      '@rushstack/terminal': 0.21.0(@types/node@20.19.33)
+      '@rushstack/ts-command-line': 5.2.0(@types/node@20.19.33)
       diff: 8.0.2
       lodash: 4.17.23
-      minimatch: 10.0.3
+      minimatch: 10.1.2
       resolve: 1.22.11
       semver: 7.5.4
       source-map: 0.6.1
@@ -10467,12 +10475,12 @@ snapshots:
       reduce-configs: 1.1.1
       sass-embedded: 1.97.3
 
-  '@rslib/core@0.19.6(@microsoft/api-extractor@7.55.2(@types/node@20.19.33))(typescript@5.9.3)':
+  '@rslib/core@0.19.6(@microsoft/api-extractor@7.56.3(@types/node@20.19.33))(typescript@5.9.3)':
     dependencies:
       '@rsbuild/core': 1.7.3
-      rsbuild-plugin-dts: 0.19.6(@microsoft/api-extractor@7.55.2(@types/node@20.19.33))(@rsbuild/core@1.7.3)(typescript@5.9.3)
+      rsbuild-plugin-dts: 0.19.6(@microsoft/api-extractor@7.56.3(@types/node@20.19.33))(@rsbuild/core@1.7.3)(typescript@5.9.3)
     optionalDependencies:
-      '@microsoft/api-extractor': 7.55.2(@types/node@20.19.33)
+      '@microsoft/api-extractor': 7.56.3(@types/node@20.19.33)
       typescript: 5.9.3
     transitivePeerDependencies:
       - '@typescript/native-preview'
@@ -10787,7 +10795,7 @@ snapshots:
       resolve: 1.22.11
       strip-json-comments: 3.1.1
 
-  '@rushstack/terminal@0.19.5(@types/node@20.19.33)':
+  '@rushstack/terminal@0.21.0(@types/node@20.19.33)':
     dependencies:
       '@rushstack/node-core-library': 5.19.1(@types/node@20.19.33)
       '@rushstack/problem-matcher': 0.1.1(@types/node@20.19.33)
@@ -10795,9 +10803,9 @@ snapshots:
     optionalDependencies:
       '@types/node': 20.19.33
 
-  '@rushstack/ts-command-line@5.1.5(@types/node@20.19.33)':
+  '@rushstack/ts-command-line@5.2.0(@types/node@20.19.33)':
     dependencies:
-      '@rushstack/terminal': 0.19.5(@types/node@20.19.33)
+      '@rushstack/terminal': 0.21.0(@types/node@20.19.33)
       '@types/argparse': 1.0.38
       argparse: 1.0.10
       string-argv: 0.3.2
@@ -14600,13 +14608,13 @@ snapshots:
 
   minimalistic-crypto-utils@1.0.1: {}
 
-  minimatch@10.0.3:
-    dependencies:
-      '@isaacs/brace-expansion': 5.0.0
-
   minimatch@10.1.1:
     dependencies:
       '@isaacs/brace-expansion': 5.0.0
+
+  minimatch@10.1.2:
+    dependencies:
+      '@isaacs/brace-expansion': 5.0.1
 
   minimatch@3.1.2:
     dependencies:
@@ -15519,12 +15527,12 @@ snapshots:
 
   rrweb-cssom@0.8.0: {}
 
-  rsbuild-plugin-dts@0.19.6(@microsoft/api-extractor@7.55.2(@types/node@20.19.33))(@rsbuild/core@1.7.3)(typescript@5.9.3):
+  rsbuild-plugin-dts@0.19.6(@microsoft/api-extractor@7.56.3(@types/node@20.19.33))(@rsbuild/core@1.7.3)(typescript@5.9.3):
     dependencies:
       '@ast-grep/napi': 0.37.0
       '@rsbuild/core': 1.7.3
     optionalDependencies:
-      '@microsoft/api-extractor': 7.55.2(@types/node@20.19.33)
+      '@microsoft/api-extractor': 7.56.3(@types/node@20.19.33)
       typescript: 5.9.3
 
   rsbuild-plugin-google-analytics@1.0.5(@rsbuild/core@2.0.0-beta.3(@module-federation/runtime-tools@0.24.1)(core-js@3.48.0)):
