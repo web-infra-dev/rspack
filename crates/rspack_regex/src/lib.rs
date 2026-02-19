@@ -9,7 +9,7 @@ use rspack_cacheable::{
   with::{AsString, AsStringConverter},
 };
 use rspack_error::Error;
-use swc_core::ecma::ast::Regex as SwcRegex;
+use swc_experimental_ecma_ast::{Ast, Regex as SwcRegex};
 
 use self::algo::Algo;
 
@@ -105,21 +105,9 @@ impl RspackRegex {
     .cow_replace('|', "%7C")
     .into_owned()
   }
-}
 
-impl TryFrom<&SwcRegex> for RspackRegex {
-  type Error = Error;
-
-  fn try_from(value: &SwcRegex) -> Result<Self, Self::Error> {
-    RspackRegex::with_flags(value.exp.as_ref(), value.flags.as_ref())
-  }
-}
-
-impl TryFrom<SwcRegex> for RspackRegex {
-  type Error = Error;
-
-  fn try_from(value: SwcRegex) -> Result<Self, Self::Error> {
-    RspackRegex::with_flags(value.exp.as_ref(), value.flags.as_ref())
+  pub fn try_from_swc_regex(ast: &Ast, value: SwcRegex) -> Result<Self, Error> {
+    Self::with_flags(ast.get_utf8(value.exp(ast)), ast.get_utf8(value.flags(ast)))
   }
 }
 

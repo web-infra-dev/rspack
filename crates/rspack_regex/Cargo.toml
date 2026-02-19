@@ -9,13 +9,14 @@ version.workspace = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-cow-utils        = { workspace = true }
-napi             = { workspace = true }
-regex-syntax     = { workspace = true }
-regress          = { workspace = true, features = ["backend-pikevm", "std"] }
-rspack_cacheable = { workspace = true }
-rspack_error     = { workspace = true }
-swc_core         = { workspace = true, features = ["ecma_ast"] }
+cow-utils                 = { workspace = true }
+napi                      = { workspace = true }
+regex-syntax              = { workspace = true }
+regress                   = { workspace = true, features = ["backend-pikevm", "std"] }
+rspack_cacheable          = { workspace = true }
+rspack_error              = { workspace = true }
+swc_core                  = { workspace = true, features = ["ecma_ast"] }
+swc_experimental_ecma_ast = { workspace = true }
 
 [dev-dependencies]
 swc_core = { workspace = true, features = [

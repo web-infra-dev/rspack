@@ -1,10 +1,7 @@
 use rspack_core::{ContextMode, ContextNameSpaceObject, ContextOptions, DependencyCategory};
 use rspack_regex::RspackRegex;
 use rspack_util::SpanExt;
-use swc_core::{
-  common::Spanned,
-  ecma::ast::{CallExpr, Lit},
-};
+use swc_experimental_ecma_ast::{CallExpr, GetSpan, Lit};
 
 use super::JavascriptParserPlugin;
 use crate::{
@@ -17,49 +14,71 @@ use crate::{
 };
 
 fn create_import_meta_context_dependency(
-  node: &CallExpr,
+  node: CallExpr,
   parser: &mut JavascriptParser,
 ) -> Option<ImportMetaContextDependency> {
-  assert!(node.callee.is_expr());
-  let dyn_imported = node.args.first()?;
-  if dyn_imported.spread.is_some() {
+  assert!(node.callee(&parser.ast).is_expr());
+  let dyn_imported = parser
+    .ast
+    .get_node_in_sub_range(node.args(&parser.ast).first()?);
+  if dyn_imported.spread(&parser.ast).is_some() {
     return None;
   }
   let context = dyn_imported
-    .expr
+    .expr(&parser.ast)
     .as_lit()
     .and_then(|lit| {
       if let Lit::Str(str) = lit {
-        return Some(str.value.to_string_lossy().to_string());
+        return Some(
+          parser
+            .ast
+            .get_wtf8(str.value(&parser.ast))
+            .to_string_lossy()
+            .to_string(),
+        );
       }
       None
     })
     // TODO: should've used expression evaluation to handle cases like `abc${"efg"}`, etc.
     .or_else(|| {
-      if let Some(tpl) = dyn_imported.expr.as_tpl()
-        && tpl.exprs.is_empty()
-        && tpl.quasis.len() == 1
-        && let Some(el) = tpl.quasis.first()
+      if let Some(tpl) = dyn_imported.expr(&parser.ast).as_tpl()
+        && tpl.exprs(&parser.ast).is_empty()
+        && tpl.quasis(&parser.ast).len() == 1
+        && let Some(el) = tpl.quasis(&parser.ast).first()
       {
-        return Some(el.raw.to_string());
+        let el = parser.ast.get_node_in_sub_range(el);
+        return Some(parser.ast.get_utf8(el.raw(&parser.ast)).to_string());
       }
       None
     })?;
   let reg = r"^\.\/.*$";
-  let context_options = if let Some(obj) = node.args.get(1).and_then(|arg| arg.expr.as_object()) {
-    let regexp = get_regex_by_obj_prop(obj, "regExp");
-    let regexp_span = regexp.map(|r| r.span().into());
+  let context_options = if let Some(obj) = node.args(&parser.ast).get(1).and_then(|arg| {
+    parser
+      .ast
+      .get_node_in_sub_range(arg)
+      .expr(&parser.ast)
+      .as_object()
+  }) {
+    let regexp = get_regex_by_obj_prop(&parser.ast, obj, "regExp");
+    let regexp_span = regexp.map(|r| r.span(&parser.ast).into());
     let regexp = regexp.map_or(RspackRegex::new(reg).expect("reg failed"), |regexp| {
-      RspackRegex::try_from(regexp).expect("reg failed")
+      RspackRegex::try_from_swc_regex(&parser.ast, regexp).expect("reg failed")
     });
-    let include = get_regex_by_obj_prop(obj, "include")
-      .map(|regexp| RspackRegex::try_from(regexp).expect("reg failed"));
-    let exclude = get_regex_by_obj_prop(obj, "exclude")
-      .map(|regexp| RspackRegex::try_from(regexp).expect("reg failed"));
-    let mode = get_literal_str_by_obj_prop(obj, "mode").map_or(ContextMode::Sync, |s| {
-      s.value.to_string_lossy().as_ref().into()
-    });
-    let recursive = get_bool_by_obj_prop(obj, "recursive").is_none_or(|bool| bool.value);
+    let include = get_regex_by_obj_prop(&parser.ast, obj, "include")
+      .map(|regexp| RspackRegex::try_from_swc_regex(&parser.ast, regexp).expect("reg failed"));
+    let exclude = get_regex_by_obj_prop(&parser.ast, obj, "exclude")
+      .map(|regexp| RspackRegex::try_from_swc_regex(&parser.ast, regexp).expect("reg failed"));
+    let mode =
+      get_literal_str_by_obj_prop(&parser.ast, obj, "mode").map_or(ContextMode::Sync, |s| {
+        parser
+          .ast
+          .get_wtf8(s.value(&parser.ast))
+          .to_string_lossy()
+          .as_ref()
+          .into()
+      });
+    let recursive = get_bool_by_obj_prop(&parser.ast, obj, "recursive")
+      .is_none_or(|bool| bool.value(&parser.ast));
     ContextOptions {
       reg_exp: clean_regexp_in_context_module(regexp, regexp_span, parser),
       include,
@@ -72,8 +91,8 @@ fn create_import_meta_context_dependency(
       group_options: None,
       mode,
       replaces: Vec::new(),
-      start: node.span().real_lo(),
-      end: node.span().real_hi(),
+      start: node.span(&parser.ast).real_lo(),
+      end: node.span(&parser.ast).real_hi(),
       referenced_exports: None,
       attributes: None,
       phase: None,
@@ -91,8 +110,8 @@ fn create_import_meta_context_dependency(
       namespace_object: ContextNameSpaceObject::Unset,
       group_options: None,
       replaces: Vec::new(),
-      start: node.span().real_lo(),
-      end: node.span().real_hi(),
+      start: node.span(&parser.ast).real_lo(),
+      end: node.span(&parser.ast).real_hi(),
       referenced_exports: None,
       attributes: None,
       phase: None,
@@ -100,7 +119,7 @@ fn create_import_meta_context_dependency(
   };
   Some(ImportMetaContextDependency::new(
     context_options,
-    node.span.into(),
+    node.span(&parser.ast).into(),
     parser.in_try,
   ))
 }
@@ -114,7 +133,7 @@ impl JavascriptParserPlugin for ImportMetaContextDependencyParserPlugin {
     for_name: &str,
     start: u32,
     end: u32,
-  ) -> Option<BasicEvaluatedExpression<'static>> {
+  ) -> Option<BasicEvaluatedExpression> {
     if for_name == expr_name::IMPORT_META_CONTEXT {
       Some(eval::evaluate_to_identifier(
         expr_name::IMPORT_META_CONTEXT.into(),
@@ -128,13 +147,11 @@ impl JavascriptParserPlugin for ImportMetaContextDependencyParserPlugin {
     }
   }
 
-  fn call(
-    &self,
-    parser: &mut JavascriptParser,
-    expr: &swc_core::ecma::ast::CallExpr,
-    for_name: &str,
-  ) -> Option<bool> {
-    if for_name != expr_name::IMPORT_META_CONTEXT || expr.args.is_empty() || expr.args.len() > 2 {
+  fn call(&self, parser: &mut JavascriptParser, expr: CallExpr, for_name: &str) -> Option<bool> {
+    if for_name != expr_name::IMPORT_META_CONTEXT
+      || expr.args(&parser.ast).is_empty()
+      || expr.args(&parser.ast).len() > 2
+    {
       None
     } else if let Some(dep) = create_import_meta_context_dependency(expr, parser) {
       parser.add_dependency(Box::new(dep));
