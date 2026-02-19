@@ -427,8 +427,8 @@ importers:
         specifier: ^5.9.3
         version: 5.9.3
       watchpack:
-        specifier: ^2.4.4
-        version: 2.4.4
+        specifier: ^2.5.1
+        version: 2.5.1
       webpack-sources:
         specifier: 3.3.4
         version: 3.3.4(patch_hash=0d62122aa5f9ac77d9ad3b4959c3c0492778a5948c0b00b45a673f3facfca327)
@@ -8311,8 +8311,8 @@ packages:
   wast-loader@1.14.1:
     resolution: {integrity: sha512-s35gffU7MzyA8nHZapVlYG6KlfSey4ZlZ1Xk//6wmXzogPAykqBMKWUWWBuzVSrrm8dWqNfzcPD0I3z167N72g==}
 
-  watchpack@2.4.4:
-    resolution: {integrity: sha512-c5EGNOiyxxV5qmTtAB7rbiXxi1ooX1pQKMLX/MIabJjRA0SJBQOjKF+KSVfHkr9U1cADPon0mRiVe/riyaiDUA==}
+  watchpack@2.5.1:
+    resolution: {integrity: sha512-Zn5uXdcFNIA1+1Ei5McRd+iRzfhENPCe7LeABkJtNulSxjma+l7ltNx55BWZkRlwRnpOgHqxnjyaDgJnNXnqzg==}
     engines: {node: '>=10.13.0'}
 
   wbuf@1.7.3:
@@ -16544,7 +16544,7 @@ snapshots:
     dependencies:
       wabt: 1.0.0-nightly.20180421
 
-  watchpack@2.4.4:
+  watchpack@2.5.1:
     dependencies:
       glob-to-regexp: 0.4.1
       graceful-fs: 4.2.11
@@ -16601,7 +16601,7 @@ snapshots:
       schema-utils: 4.3.3
       tapable: 2.3.0
       terser-webpack-plugin: 5.3.16(webpack@5.102.1)
-      watchpack: 2.4.4
+      watchpack: 2.5.1
       webpack-sources: 3.3.4(patch_hash=0d62122aa5f9ac77d9ad3b4959c3c0492778a5948c0b00b45a673f3facfca327)
     transitivePeerDependencies:
       - '@swc/core'
