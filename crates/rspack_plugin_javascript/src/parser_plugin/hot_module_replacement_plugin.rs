@@ -1,9 +1,6 @@
 use rspack_core::{BoxDependency, DependencyRange};
-use rspack_util::SpanExt;
-use swc_core::{
-  common::{Span, Spanned},
-  ecma::{ast::CallExpr, atoms::Atom},
-};
+use rspack_util::{SpanExt, atom::Atom};
+use swc_experimental_ecma_ast::{CallExpr, GetSpan, MemberExpr, Span};
 
 use crate::{
   dependency::{
@@ -12,7 +9,7 @@ use crate::{
     import_emitted_runtime,
   },
   parser_plugin::JavascriptParserPlugin,
-  utils::eval,
+  utils::eval::{self, BasicEvaluatedExpression},
   visitors::{JavascriptParser, expr_name},
 };
 
@@ -20,13 +17,14 @@ type CreateDependency = fn(Atom, DependencyRange) -> BoxDependency;
 
 fn extract_deps(
   parser: &mut JavascriptParser,
-  call_expr: &CallExpr,
+  call_expr: CallExpr,
   create_dependency: CreateDependency,
 ) -> Vec<BoxDependency> {
   let mut dependencies: Vec<BoxDependency> = vec![];
 
-  if let Some(first_arg) = call_expr.args.first() {
-    let expr = parser.evaluate_expression(&first_arg.expr);
+  if let Some(first_arg) = call_expr.args(&parser.ast).first() {
+    let first_arg = parser.ast.get_node_in_sub_range(first_arg);
+    let expr = parser.evaluate_expression(first_arg.expr(&parser.ast));
     if expr.is_string() {
       dependencies.push(create_dependency(
         expr.string().as_str().into(),
@@ -61,23 +59,24 @@ impl JavascriptParser<'_> {
 
   fn create_accept_handler(
     &mut self,
-    call_expr: &CallExpr,
+    call_expr: CallExpr,
     create_dependency: CreateDependency,
   ) -> Option<bool> {
     self.build_info.module_concatenation_bailout = Some(String::from("Hot Module Replacement"));
     self.add_presentational_dependency(Box::new(ModuleArgumentDependency::new(
       Some("hot.accept".into()),
-      call_expr.callee.span().into(),
+      call_expr.callee(&self.ast).span(&self.ast).into(),
       Some(self.source()),
     )));
     let dependencies = extract_deps(self, call_expr, create_dependency);
     if !dependencies.is_empty() {
       let dependency_ids = dependencies.iter().map(|dep| *dep.id()).collect::<Vec<_>>();
-      let callback_arg = call_expr.args.get(1);
+      let callback_arg = call_expr.args(&self.ast).get(1);
       let range = if let Some(callback) = callback_arg {
-        Into::<DependencyRange>::into(callback.span())
+        let callback = self.ast.get_node_in_sub_range(callback);
+        Into::<DependencyRange>::into(callback.span(&self.ast))
       } else {
-        DependencyRange::new(call_expr.span().real_hi() - 1, 0)
+        DependencyRange::new(call_expr.span(&self.ast).real_hi() - 1, 0)
       };
       self.add_presentational_dependency(Box::new(ESMAcceptDependency::new(
         range,
@@ -86,24 +85,25 @@ impl JavascriptParser<'_> {
         Some(self.source()),
       )));
       self.add_dependencies(dependencies);
-      for arg in call_expr.args.iter().skip(1) {
-        self.walk_expression(&arg.expr);
+      for arg in call_expr.args(&self.ast).iter().skip(1) {
+        let arg = self.ast.get_node_in_sub_range(arg);
+        self.walk_expression(arg.expr(&self.ast));
       }
       return Some(true);
     }
-    self.walk_expr_or_spread(&call_expr.args);
+    self.walk_expr_or_spread(call_expr.args(&self.ast));
     Some(true)
   }
 
   fn create_decline_handler(
     &mut self,
-    call_expr: &CallExpr,
+    call_expr: CallExpr,
     create_dependency: CreateDependency,
   ) -> Option<bool> {
     self.build_info.module_concatenation_bailout = Some(String::from("Hot Module Replacement"));
     self.add_presentational_dependency(Box::new(ModuleArgumentDependency::new(
       Some("hot.decline".into()),
-      call_expr.callee.span().into(),
+      call_expr.callee(&self.ast).span(&self.ast).into(),
       Some(self.source()),
     )));
     let dependencies = extract_deps(self, call_expr, create_dependency);
@@ -131,7 +131,7 @@ impl JavascriptParserPlugin for ModuleHotReplacementParserPlugin {
     for_name: &str,
     start: u32,
     end: u32,
-  ) -> Option<crate::utils::eval::BasicEvaluatedExpression<'static>> {
+  ) -> Option<BasicEvaluatedExpression> {
     if for_name == expr_name::MODULE_HOT {
       Some(eval::evaluate_to_identifier(
         expr_name::MODULE_HOT.into(),
@@ -148,11 +148,11 @@ impl JavascriptParserPlugin for ModuleHotReplacementParserPlugin {
   fn member(
     &self,
     parser: &mut JavascriptParser,
-    expr: &swc_core::ecma::ast::MemberExpr,
+    expr: MemberExpr,
     for_name: &str,
   ) -> Option<bool> {
     if for_name == expr_name::MODULE_HOT {
-      parser.create_hmr_expression_handler(expr.span());
+      parser.create_hmr_expression_handler(expr.span(&parser.ast));
       Some(true)
     } else {
       None
@@ -162,7 +162,7 @@ impl JavascriptParserPlugin for ModuleHotReplacementParserPlugin {
   fn call(
     &self,
     parser: &mut JavascriptParser,
-    call_expr: &swc_core::ecma::ast::CallExpr,
+    call_expr: CallExpr,
     for_name: &str,
   ) -> Option<bool> {
     if for_name == expr_name::MODULE_HOT_ACCEPT {
@@ -198,7 +198,7 @@ impl JavascriptParserPlugin for ImportMetaHotReplacementParserPlugin {
     for_name: &str,
     start: u32,
     end: u32,
-  ) -> Option<crate::utils::eval::BasicEvaluatedExpression<'static>> {
+  ) -> Option<BasicEvaluatedExpression> {
     if for_name == expr_name::IMPORT_META_HOT {
       Some(eval::evaluate_to_identifier(
         expr_name::IMPORT_META_HOT.into(),
@@ -215,11 +215,11 @@ impl JavascriptParserPlugin for ImportMetaHotReplacementParserPlugin {
   fn member(
     &self,
     parser: &mut JavascriptParser,
-    expr: &swc_core::ecma::ast::MemberExpr,
+    expr: MemberExpr,
     for_name: &str,
   ) -> Option<bool> {
     if for_name == expr_name::IMPORT_META_HOT {
-      parser.create_hmr_expression_handler(expr.span());
+      parser.create_hmr_expression_handler(expr.span(&parser.ast));
       Some(true)
     } else {
       None
@@ -229,7 +229,7 @@ impl JavascriptParserPlugin for ImportMetaHotReplacementParserPlugin {
   fn call(
     &self,
     parser: &mut JavascriptParser,
-    call_expr: &swc_core::ecma::ast::CallExpr,
+    call_expr: CallExpr,
     for_name: &str,
   ) -> Option<bool> {
     if for_name == expr_name::IMPORT_META_HOT_ACCEPT {
