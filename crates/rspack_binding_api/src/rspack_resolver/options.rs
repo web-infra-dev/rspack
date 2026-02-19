@@ -157,6 +157,12 @@ pub struct NapiResolveOptions {
   ///
   /// Default `false`
   pub enable_pnp: Option<bool>,
+
+  /// Path to PnP manifest file
+  ///
+  /// Default `None`
+  #[napi(ts_type = "string | false")]
+  pub pnp_manifest: Option<Either<String, ()>>,
 }
 
 #[napi]

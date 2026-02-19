@@ -2,7 +2,7 @@ use rayon::iter::{IntoParallelIterator, ParallelBridge, ParallelIterator};
 use rspack_collections::{DatabaseItem, UkeyIndexSet, UkeySet};
 use rspack_core::{
   ChunkByUkey, ChunkGraph, ChunkGroupByUkey, ChunkNamedIdArtifact, ChunkUkey, CompilationChunkIds,
-  Logger, ModuleGraph, ModuleGraphCacheArtifact, Plugin,
+  ExportsInfoArtifact, Logger, ModuleGraph, ModuleGraphCacheArtifact, Plugin,
   chunk_graph_chunk::ChunkId,
   incremental::{self, IncrementalPasses, Mutation, Mutations},
 };
@@ -24,6 +24,7 @@ fn assign_named_chunk_ids(
   context: &str,
   module_graph: &ModuleGraph,
   module_graph_cache: &ModuleGraphCacheArtifact,
+  exports_info_artifact: &ExportsInfoArtifact,
   delimiter: &str,
   used_ids: &mut FxHashMap<ChunkId, ChunkUkey>,
   named_chunk_ids_artifact: &mut ChunkNamedIdArtifact,
@@ -41,6 +42,7 @@ fn assign_named_chunk_ids(
         module_graph,
         module_graph_cache,
         named_chunk_ids_artifact,
+        exports_info_artifact,
       );
       (item, name)
     })
@@ -88,6 +90,7 @@ fn assign_named_chunk_ids(
         module_graph,
         module_graph_cache,
         named_chunk_ids_artifact,
+        exports_info_artifact,
       );
       (item, long_name)
     })
@@ -278,6 +281,7 @@ async fn chunk_ids(
     context,
     module_graph,
     &compilation.module_graph_cache_artifact,
+    &compilation.exports_info_artifact,
     &self.delimiter,
     &mut used_ids,
     named_chunk_ids_artifact,

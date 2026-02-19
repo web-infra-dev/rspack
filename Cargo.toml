@@ -31,7 +31,7 @@ camino              = { version = "1.2.2", default-features = false }
 cargo_toml          = { version = "0.21.0", default-features = false }
 cfg-if              = { version = "1.0.4", default-features = false }
 chrono              = { version = "0.4.43", default-features = false }
-clap                = { version = "4.5.57", default-features = false }
+clap                = { version = "4.5.59", default-features = false }
 concat-string       = { version = "1.0.1", default-features = false }
 cow-utils           = { version = "0.1.3", default-features = false }
 criterion2          = { default-features = false, version = "2.0.0", features = ["async_tokio"] }
@@ -44,13 +44,13 @@ either              = { version = "1.15.0", default-features = false }
 enum-tag            = { version = "0.3.0", default-features = false }
 fast-glob           = { version = "1.0.0", default-features = false }
 form_urlencoded     = { version = "1.2.2", default-features = false }
-futures             = { version = "0.3.31", default-features = false, features = ["std"] }
+futures             = { version = "0.3.32", default-features = false, features = ["std"] }
 glob                = { version = "0.3.3", default-features = false }
 hashlink            = { version = "0.10.0", default-features = false }
 heck                = { version = "0.5.0", default-features = false }
 hex                 = { version = "0.4.3", default-features = false, features = ["std"] }
 indexmap            = { version = "2.12.1", default-features = false }
-indicatif           = { version = "0.18.3", default-features = false }
+indicatif           = { version = "0.18.4", default-features = false }
 indoc               = { version = "2.0.7", default-features = false }
 insta               = { version = "1.42.0", default-features = false }
 itertools           = { version = "0.14.0", default-features = false, features = ["use_std"] }
@@ -80,7 +80,7 @@ rayon               = { version = "1.11.0", default-features = false }
 regex               = { version = "1.12.3", default-features = false, features = ["perf"] }
 regex-syntax        = { version = "0.8.9", default-features = false, features = ["std"] }
 regress             = { version = "0.10.5", default-features = false, features = ["pattern"] }
-rspack_resolver     = { features = ["package_json_raw_json_api", "yarn_pnp"], version = "0.6.6", default-features = false }
+rspack_resolver     = { features = ["package_json_raw_json_api", "yarn_pnp"], version = "0.6.7", default-features = false }
 rspack_sources      = { version = "=0.4.17", default-features = false }
 rustc-hash          = { version = "2.1.1", default-features = false }
 ryu-js              = { version = "1.0.2", default-features = false }
@@ -94,7 +94,7 @@ simd-json           = { version = "0.17.0", default-features = false }
 smol_str            = { version = "0.3.5", default-features = false }
 stacker             = { version = "0.1.23", default-features = false }
 sugar_path          = { version = "1.2.1", default-features = false, features = ["cached_current_dir"] }
-syn                 = { version = "2.0.114", default-features = false }
+syn                 = { version = "2.0.116", default-features = false }
 termcolor           = { version = "1.4.1", default-features = false }
 textwrap            = { version = "0.16.1", default-features = false }
 thread_local        = { version = "1.1.9", default-features = false }
@@ -102,7 +102,7 @@ tokio               = { version = "1.48.0", default-features = false, features =
 toml                = { version = "0.8.19", default-features = false, features = ["parse", "display"] }
 tracing             = { version = "0.1.44", default-features = false, features = ["max_level_trace", "release_max_level_trace"] }
 tracing-subscriber  = { version = "0.3.22", default-features = false, features = ["fmt", "registry"] }
-trybuild            = { version = "1.0.115", default-features = false, features = ["diff"] }
+trybuild            = { version = "1.0.116", default-features = false, features = ["diff"] }
 unicase             = { version = "2.8.1", default-features = false }
 unicode-width       = { version = "0.2.2", default-features = false }
 url                 = { version = "2.5.8", default-features = false }
@@ -508,6 +508,9 @@ verbose_file_reads              = "warn"
 #mem_forget                      = "warn"
 
 # performance
+iter_filter_is_ok       = "warn"
+iter_filter_is_some     = "warn"
+iter_with_drain         = "warn"
 redundant_clone         = "warn"
 regex_creation_in_loops = "warn"
 

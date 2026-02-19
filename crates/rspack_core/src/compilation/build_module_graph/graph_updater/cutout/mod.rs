@@ -132,13 +132,11 @@ impl Cutout {
       }
     }
     // add entry dependencies
-    for dep in next_entry_dependencies
-      .difference(&entry_dependencies)
-      .copied()
-      .collect::<Vec<_>>()
-    {
-      build_deps.insert((dep, None));
-      entry_dependencies.insert(dep);
+    for dep in next_entry_dependencies.iter() {
+      if !entry_dependencies.contains(dep) {
+        build_deps.insert((*dep, None));
+        entry_dependencies.insert(*dep);
+      }
     }
     artifact.entry_dependencies = entry_dependencies;
 

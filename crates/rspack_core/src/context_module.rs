@@ -1,4 +1,4 @@
-use std::{borrow::Cow, hash::Hash, sync::Arc};
+use std::{borrow::Cow, fmt::Write, hash::Hash, sync::Arc};
 
 use cow_utils::CowUtils;
 use derive_more::Debug;
@@ -242,6 +242,7 @@ impl ContextModule {
       let exports_type = get_exports_type_with_strict(
         compilation.get_module_graph(),
         &compilation.module_graph_cache_artifact,
+        &compilation.exports_info_artifact,
         dep,
         matches!(
           self.options.context_options.namespace_object,
@@ -1308,13 +1309,13 @@ fn create_identifier(options: &ContextModuleOptions, resource: Option<&str>) -> 
     }
     id += "|groupOptions: {";
     if let Some(o) = group.prefetch_order {
-      id.push_str(&format!("prefetchOrder: {o},"));
+      write!(id, "prefetchOrder: {o},").expect("infallible write to String");
     }
     if let Some(o) = group.preload_order {
-      id.push_str(&format!("preloadOrder: {o},"));
+      write!(id, "preloadOrder: {o},").expect("infallible write to String");
     }
     if let Some(o) = group.fetch_priority {
-      id.push_str(&format!("fetchPriority: {o},"));
+      write!(id, "fetchPriority: {o},").expect("infallible write to String");
     }
     id += "}";
   }

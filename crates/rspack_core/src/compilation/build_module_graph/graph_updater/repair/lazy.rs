@@ -28,13 +28,10 @@ impl Task<TaskContext> for ProcessUnlazyDependenciesTask {
       .module_to_lazy_make
       .get_lazy_dependencies(&original_module_identifier)
       .expect("only module has lazy dependencies should run into ProcessUnlazyDependenciesTask");
-    let requested_deps: Vec<DependencyId> = lazy_dependencies
-      .requested_lazy_dependencies(&forwarded_ids)
-      .into_iter()
-      .collect();
 
     let module_graph = &mut context.artifact.module_graph;
-    let dependencies_to_process: Vec<DependencyId> = requested_deps
+    let dependencies_to_process: Vec<DependencyId> = lazy_dependencies
+      .requested_lazy_dependencies(&forwarded_ids)
       .into_iter()
       .filter(|dep| {
         let dep = module_graph.dependency_by_id_mut(dep);

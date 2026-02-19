@@ -4,8 +4,8 @@ use rspack_util::atom::Atom;
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
-  DependencyId, ExportInfo, ExportInfoData, ExportInfoHashKey, ExportsInfo, ExportsInfoGetter,
-  ModuleGraph, ModuleIdentifier, PrefetchExportsInfoMode,
+  DependencyId, ExportInfo, ExportInfoData, ExportInfoHashKey, ExportsInfo, ExportsInfoArtifact,
+  ExportsInfoGetter, ModuleGraph, ModuleIdentifier, PrefetchExportsInfoMode,
 };
 
 #[derive(Debug, Hash, Clone, PartialEq, Eq)]
@@ -59,27 +59,37 @@ pub struct FindTargetResultItem {
 pub fn get_terminal_binding(
   export_info: &ExportInfoData,
   mg: &ModuleGraph,
+  exports_info_artifact: &ExportsInfoArtifact,
 ) -> Option<TerminalBinding> {
   if export_info.terminal_binding() {
     return Some(TerminalBinding::ExportInfo(export_info.id()));
   }
-  let Some(GetTargetResult::Target(target)) =
-    get_target(export_info, mg, Rc::new(|_| true), &mut Default::default())
-  else {
+  let Some(GetTargetResult::Target(target)) = get_target(
+    export_info,
+    mg,
+    exports_info_artifact,
+    Rc::new(|_| true),
+    &mut Default::default(),
+  ) else {
     return None;
   };
-  let exports_info = mg.get_exports_info(&target.module);
+  let exports_info = exports_info_artifact.get_exports_info(&target.module);
   let Some(export) = target.export else {
     return Some(TerminalBinding::ExportsInfo(exports_info));
   };
-  ExportsInfoGetter::prefetch(&exports_info, mg, PrefetchExportsInfoMode::Nested(&export))
-    .get_read_only_export_info_recursive(&export)
-    .map(|data| TerminalBinding::ExportInfo(data.id()))
+  ExportsInfoGetter::prefetch(
+    &exports_info,
+    exports_info_artifact,
+    PrefetchExportsInfoMode::Nested(&export),
+  )
+  .get_read_only_export_info_recursive(&export)
+  .map(|data| TerminalBinding::ExportInfo(data.id()))
 }
 
 pub fn find_target(
   export_info: &ExportInfoData,
   mg: &ModuleGraph,
+  exports_info_artifact: &ExportsInfoArtifact,
   valid_target_module_filter: Arc<impl Fn(&ModuleIdentifier) -> bool>,
   visited: &mut HashSet<ExportInfoHashKey>,
 ) -> FindTargetResult {
@@ -111,8 +121,8 @@ pub fn find_target(
       return FindTargetResult::ValidTarget(target);
     }
     let name = &target.export.as_ref().expect("should have export")[0];
-    let exports_info =
-      mg.get_prefetched_exports_info(&target.module, PrefetchExportsInfoMode::Default);
+    let exports_info = exports_info_artifact
+      .get_prefetched_exports_info(&target.module, PrefetchExportsInfoMode::Default);
     let export_info = exports_info.get_export_info_without_mut_module_graph(name);
     let export_info_hash_key = export_info.as_hash_key();
     if visited.contains(&export_info_hash_key) {
@@ -122,6 +132,7 @@ pub fn find_target(
     let new_target = find_target(
       &export_info,
       mg,
+      exports_info_artifact,
       valid_target_module_filter.clone(),
       visited,
     );
@@ -161,6 +172,7 @@ pub fn find_target(
 pub fn get_target(
   export_info: &ExportInfoData,
   mg: &ModuleGraph,
+  exports_info_artifact: &ExportsInfoArtifact,
   resolve_filter: ResolveFilterFnTy,
   already_visited: &mut HashSet<ExportInfoHashKey>,
 ) -> Option<GetTargetResult> {
@@ -178,11 +190,23 @@ pub fn get_target(
     dependency: item.dependency,
     export: item.export.clone(),
   });
-  let target = resolve_target(values.next()?, already_visited, resolve_filter.clone(), mg);
+  let target = resolve_target(
+    values.next()?,
+    already_visited,
+    resolve_filter.clone(),
+    mg,
+    exports_info_artifact,
+  );
 
   if let Some(GetTargetResult::Target(target)) = &target {
     for val in values {
-      let resolved_target = resolve_target(val, already_visited, resolve_filter.clone(), mg);
+      let resolved_target = resolve_target(
+        val,
+        already_visited,
+        resolve_filter.clone(),
+        mg,
+        exports_info_artifact,
+      );
       let Some(GetTargetResult::Target(resolved_target)) = &resolved_target else {
         return resolved_target;
       };
@@ -200,6 +224,7 @@ fn resolve_target(
   already_visited: &mut HashSet<ExportInfoHashKey>,
   resolve_filter: ResolveFilterFnTy,
   mg: &ModuleGraph,
+  exports_info_artifact: &ExportsInfoArtifact,
 ) -> Option<GetTargetResult> {
   let mut target = ResolvedExportInfoTarget {
     module: *input_target
@@ -221,8 +246,8 @@ fn resolve_target(
       return Some(GetTargetResult::Target(target));
     };
 
-    let exports_info =
-      mg.get_prefetched_exports_info(&target.module, PrefetchExportsInfoMode::Default);
+    let exports_info = exports_info_artifact
+      .get_prefetched_exports_info(&target.module, PrefetchExportsInfoMode::Default);
     let maybe_export_info = exports_info.get_export_info_without_mut_module_graph(name);
     let maybe_export_info_hash_key = maybe_export_info.as_hash_key();
     if already_visited.contains(&maybe_export_info_hash_key) {
@@ -231,6 +256,7 @@ fn resolve_target(
     let new_target = get_target(
       &maybe_export_info,
       mg,
+      exports_info_artifact,
       resolve_filter.clone(),
       already_visited,
     );
@@ -270,11 +296,16 @@ fn resolve_target(
 pub fn can_move_target(
   export_info: &ExportInfoData,
   mg: &ModuleGraph,
+  exports_info_artifact: &ExportsInfoArtifact,
   resolve_filter: ResolveFilterFnTy,
 ) -> Option<ResolvedExportInfoTarget> {
-  let Some(GetTargetResult::Target(target)) =
-    get_target(export_info, mg, resolve_filter, &mut Default::default())
-  else {
+  let Some(GetTargetResult::Target(target)) = get_target(
+    export_info,
+    mg,
+    exports_info_artifact,
+    resolve_filter,
+    &mut Default::default(),
+  ) else {
     return None;
   };
   let max_target = export_info.get_max_target();

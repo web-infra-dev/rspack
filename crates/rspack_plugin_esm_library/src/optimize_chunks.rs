@@ -60,6 +60,7 @@ pub(crate) fn ensure_entry_exports(compilation: &mut Compilation) {
           None,
           module_graph,
           &compilation.module_graph_cache_artifact,
+          &compilation.exports_info_artifact,
         );
         for outgoing in outgoings.keys() {
           if let Some(entry_chunks) = entry_module_belongs.get(outgoing) {

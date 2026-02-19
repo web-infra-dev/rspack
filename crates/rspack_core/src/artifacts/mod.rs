@@ -11,6 +11,7 @@ mod chunk_render_cache_artifact;
 mod code_generate_cache_artifact;
 mod code_generation_results;
 mod dependencies_diagnostics_artifact;
+mod exports_info_artifact;
 mod imported_by_defer_modules_artifact;
 mod module_graph_cache_artifact;
 mod module_ids_artifact;
@@ -33,8 +34,8 @@ pub trait ArtifactExt: Sized {
 
   /// Determines whether this artifact should be recovered from the previous compilation.
   ///
-  /// Returns `true` if the artifact's pass is empty (always recover) or if
-  /// the incremental system has readable mutations for this artifact's pass.
+  /// Returns `true` when the incremental system has readable mutations for
+  /// this artifact's pass.
   fn should_recover(incremental: &Incremental) -> bool {
     incremental.mutations_readable(Self::PASS)
   }
@@ -93,6 +94,7 @@ pub use chunk_render_cache_artifact::ChunkRenderCacheArtifact;
 pub use code_generate_cache_artifact::CodeGenerateCacheArtifact;
 pub use code_generation_results::*;
 pub use dependencies_diagnostics_artifact::DependenciesDiagnosticsArtifact;
+pub use exports_info_artifact::ExportsInfoArtifact;
 pub use imported_by_defer_modules_artifact::ImportedByDeferModulesArtifact;
 pub use module_graph_cache_artifact::*;
 pub use module_ids_artifact::ModuleIdsArtifact;

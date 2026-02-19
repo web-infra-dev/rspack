@@ -284,6 +284,7 @@ async fn render_startup(
   let exports_type = module.get_exports_type(
     module_graph,
     &compilation.module_graph_cache_artifact,
+    &compilation.exports_info_artifact,
     module.build_meta().strict_esm_module,
   );
   if let Some(exports_final_names) = codegen
@@ -291,8 +292,9 @@ async fn render_startup(
     .get::<CodeGenerationExportsFinalNames>()
     .map(|d: &CodeGenerationExportsFinalNames| d.inner())
   {
-    let exports_info =
-      module_graph.get_prefetched_exports_info(module_id, PrefetchExportsInfoMode::Default);
+    let exports_info = compilation
+      .exports_info_artifact
+      .get_prefetched_exports_info(module_id, PrefetchExportsInfoMode::Default);
     for (_, export_info) in exports_info.exports() {
       let info_name = export_info.name().expect("should have name");
       let used_name = export_info

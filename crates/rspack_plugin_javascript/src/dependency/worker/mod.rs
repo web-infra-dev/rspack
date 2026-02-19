@@ -6,8 +6,8 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsContextDependency, Compilation, Dependency, DependencyCategory, DependencyCodeGeneration,
   DependencyId, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
-  ExtendedReferencedExport, FactorizeInfo, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
-  RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource,
+  ExportsInfoArtifact, ExtendedReferencedExport, FactorizeInfo, ModuleDependency, ModuleGraph,
+  ModuleGraphCacheArtifact, RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource,
 };
 use rspack_util::ext::DynHash;
 
@@ -65,6 +65,7 @@ impl Dependency for WorkerDependency {
     &self,
     _module_graph: &ModuleGraph,
     _module_graph_cache: &ModuleGraphCacheArtifact,
+    _exports_info_artifact: &ExportsInfoArtifact,
     _runtime: Option<&RuntimeSpec>,
   ) -> Vec<ExtendedReferencedExport> {
     vec![]

@@ -4,9 +4,10 @@ use rspack_core::{
   AsContextDependency, AsModuleDependency, Dependency, DependencyCategory,
   DependencyCodeGeneration, DependencyId, DependencyLocation, DependencyRange, DependencyTemplate,
   DependencyTemplateType, DependencyType, ESMExportInitFragment, EvaluatedInlinableValue,
-  ExportNameOrSpec, ExportSpec, ExportSpecExports, ExportsInfoGetter, ExportsOfExportsSpec,
-  ExportsSpec, GetUsedNameParam, LazyUntil, ModuleGraph, ModuleGraphCacheArtifact,
-  PrefetchExportsInfoMode, TSEnumValue, TemplateContext, TemplateReplaceSource, UsedName,
+  ExportNameOrSpec, ExportSpec, ExportSpecExports, ExportsInfoArtifact, ExportsInfoGetter,
+  ExportsOfExportsSpec, ExportsSpec, GetUsedNameParam, LazyUntil, ModuleGraph,
+  ModuleGraphCacheArtifact, PrefetchExportsInfoMode, TSEnumValue, TemplateContext,
+  TemplateReplaceSource, UsedName,
 };
 use swc_core::ecma::atoms::Atom;
 
@@ -71,6 +72,7 @@ impl Dependency for ESMExportSpecifierDependency {
     &self,
     _mg: &ModuleGraph,
     _mg_cache: &ModuleGraphCacheArtifact,
+    _exports_info_artifact: &ExportsInfoArtifact,
   ) -> Option<ExportsSpec> {
     Some(ExportsSpec {
       exports: ExportsOfExportsSpec::Names(vec![ExportNameOrSpec::ExportSpec(ExportSpec {
@@ -182,14 +184,20 @@ impl DependencyTemplate for ESMExportSpecifierDependencyTemplate {
           return false;
         }
         let export_name = &[dep.name.clone(), enum_key.clone()];
-        is_export_inlined(module_graph, &module.identifier(), export_name, *runtime)
+        is_export_inlined(
+          &compilation.exports_info_artifact,
+          &module.identifier(),
+          export_name,
+          *runtime,
+        )
       });
       if all_enum_member_inlined {
         return;
       }
     }
 
-    let exports_info = module_graph
+    let exports_info = compilation
+      .exports_info_artifact
       .get_prefetched_exports_info(&module.identifier(), PrefetchExportsInfoMode::Default);
     let Some(used_name) = ExportsInfoGetter::get_used_name(
       GetUsedNameParam::WithNames(&exports_info),

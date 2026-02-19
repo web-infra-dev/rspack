@@ -105,7 +105,7 @@ fn scan_path_changed(
 fn check_path_metadata(filepath: &ArcPath, start_time: &SystemTime) -> bool {
   if let Ok(m_time) = filepath
     .metadata()
-    .and_then(|metadata| metadata.modified().or(metadata.created()))
+    .and_then(|metadata| metadata.modified().or_else(|_| metadata.created()))
   {
     *start_time < m_time
   } else {
