@@ -5109,6 +5109,7 @@ dependencies = [
  "rspack_cacheable",
  "rspack_error",
  "swc_core",
+ "swc_experimental_ecma_ast",
 ]
 
 [[package]]
