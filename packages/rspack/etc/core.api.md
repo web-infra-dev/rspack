@@ -8112,7 +8112,7 @@ class SourceMapSource extends Source {
     		name: string,
     		sourceMap?: string | RawSourceMap_2 | Buffer_2,
     		originalSource?: string | Buffer_2,
-    		innerSourceMap?: string | RawSourceMap_2 | Buffer_2,
+    		innerSourceMap?: null | string | RawSourceMap_2 | Buffer_2,
     		removeOriginalSource?: boolean,
     	);
     	// (undocumented)
@@ -9967,13 +9967,13 @@ namespace util_2 {
         			let // (undocumented)
         enableDualStringBufferCaching: () => void;
         			let // (undocumented)
-        internString: (str: string) => string;
-        			let // (undocumented)
-        isDualStringBufferCachingEnabled: () => boolean;
-        			let // (undocumented)
         enterStringInterningRange: () => void;
         			let // (undocumented)
         exitStringInterningRange: () => void;
+        			let // (undocumented)
+        internString: (str: string) => string;
+        			let // (undocumented)
+        isDualStringBufferCachingEnabled: () => boolean;
         		}
     	}
 

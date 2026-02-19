@@ -5,9 +5,9 @@ settings:
   excludeLinksFromLockfile: false
 
 patchedDependencies:
-  webpack-sources@3.3.3:
-    hash: b2a26650f08a2359d0a3cd81fa6fa272aa7441a28dd7e601792da5ed5d2b4aee
-    path: patches/webpack-sources@3.3.3.patch
+  webpack-sources@3.3.4:
+    hash: 0d62122aa5f9ac77d9ad3b4959c3c0492778a5948c0b00b45a673f3facfca327
+    path: patches/webpack-sources@3.3.4.patch
 
 importers:
 
@@ -430,8 +430,8 @@ importers:
         specifier: ^2.4.4
         version: 2.4.4
       webpack-sources:
-        specifier: 3.3.3
-        version: 3.3.3(patch_hash=b2a26650f08a2359d0a3cd81fa6fa272aa7441a28dd7e601792da5ed5d2b4aee)
+        specifier: 3.3.4
+        version: 3.3.4(patch_hash=0d62122aa5f9ac77d9ad3b4959c3c0492778a5948c0b00b45a673f3facfca327)
 
   packages/rspack-browser:
     dependencies:
@@ -454,8 +454,8 @@ importers:
         specifier: 4.53.0
         version: 4.53.0
       webpack-sources:
-        specifier: 3.3.3
-        version: 3.3.3(patch_hash=b2a26650f08a2359d0a3cd81fa6fa272aa7441a28dd7e601792da5ed5d2b4aee)
+        specifier: 3.3.4
+        version: 3.3.4(patch_hash=0d62122aa5f9ac77d9ad3b4959c3c0492778a5948c0b00b45a673f3facfca327)
 
   packages/rspack-cli:
     dependencies:
@@ -569,8 +569,8 @@ importers:
         specifier: 6.0.1
         version: 6.0.1
       webpack-sources:
-        specifier: 3.3.3
-        version: 3.3.3(patch_hash=b2a26650f08a2359d0a3cd81fa6fa272aa7441a28dd7e601792da5ed5d2b4aee)
+        specifier: 3.3.4
+        version: 3.3.4(patch_hash=0d62122aa5f9ac77d9ad3b4959c3c0492778a5948c0b00b45a673f3facfca327)
     devDependencies:
       '@rspack/core':
         specifier: workspace:*
@@ -934,8 +934,8 @@ importers:
         specifier: ^1.14.1
         version: 1.14.1
       webpack-sources:
-        specifier: 3.3.3
-        version: 3.3.3(patch_hash=b2a26650f08a2359d0a3cd81fa6fa272aa7441a28dd7e601792da5ed5d2b4aee)
+        specifier: 3.3.4
+        version: 3.3.4(patch_hash=0d62122aa5f9ac77d9ad3b4959c3c0492778a5948c0b00b45a673f3facfca327)
       worker-rspack-loader:
         specifier: ^3.1.2
         version: 3.1.2(@rspack/core@packages+rspack)(webpack@5.102.1)
@@ -8338,8 +8338,8 @@ packages:
     resolution: {integrity: sha512-hXXvrjtx2PLYx4qruKl+kyRSLc52V+cCvMxRjmKwoA+CBbbF5GfIBtR6kCvl0fYGqTUPKB+1ktVmTHqMOzgCBg==}
     engines: {node: '>=18.0.0'}
 
-  webpack-sources@3.3.3:
-    resolution: {integrity: sha512-yd1RBzSGanHkitROoPFd6qsrxt+oFhg/129YzheDGqeustzX0vTZJZsSsQjVQC4yzBQ56K55XU8gaNCtIzOnTg==}
+  webpack-sources@3.3.4:
+    resolution: {integrity: sha512-7tP1PdV4vF+lYPnkMR0jMY5/la2ub5Fc/8VQrrU+lXkiM6C4TjVfGw7iKfyhnTQOsD+6Q/iKw0eFciziRgD58Q==}
     engines: {node: '>=10.13.0'}
 
   webpack@5.102.1:
@@ -16574,7 +16574,7 @@ snapshots:
       flat: 5.0.2
       wildcard: 2.0.1
 
-  webpack-sources@3.3.3(patch_hash=b2a26650f08a2359d0a3cd81fa6fa272aa7441a28dd7e601792da5ed5d2b4aee): {}
+  webpack-sources@3.3.4(patch_hash=0d62122aa5f9ac77d9ad3b4959c3c0492778a5948c0b00b45a673f3facfca327): {}
 
   webpack@5.102.1:
     dependencies:
@@ -16602,7 +16602,7 @@ snapshots:
       tapable: 2.3.0
       terser-webpack-plugin: 5.3.16(webpack@5.102.1)
       watchpack: 2.4.4
-      webpack-sources: 3.3.3(patch_hash=b2a26650f08a2359d0a3cd81fa6fa272aa7441a28dd7e601792da5ed5d2b4aee)
+      webpack-sources: 3.3.4(patch_hash=0d62122aa5f9ac77d9ad3b4959c3c0492778a5948c0b00b45a673f3facfca327)
     transitivePeerDependencies:
       - '@swc/core'
       - esbuild
