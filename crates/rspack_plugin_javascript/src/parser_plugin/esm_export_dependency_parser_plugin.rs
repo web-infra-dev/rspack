@@ -1,10 +1,8 @@
 use itertools::Itertools;
 use rspack_core::{BoxDependency, ConstDependency, DependencyRange, DependencyType, ImportPhase};
-use rspack_util::SpanExt;
-use swc_core::{
-  atoms::Atom,
-  common::{Span, Spanned, comments::CommentKind},
-};
+use rspack_util::{SpanExt, atom::Atom};
+use swc_core::common::comments::CommentKind;
+use swc_experimental_ecma_ast::{GetSpan, Span};
 
 use super::{
   DEFAULT_STAR_JS_WORD, InnerGraphMapUsage, InnerGraphPlugin, JS_DEFAULT_KEYWORD,
@@ -31,8 +29,10 @@ pub struct ESMExportDependencyParserPlugin;
 impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
   fn export(&self, parser: &mut JavascriptParser, statement: ExportLocal) -> Option<bool> {
     let dep = ESMExportHeaderDependency::new(
-      statement.span().into(),
-      statement.declaration_span().map(|span| span.into()),
+      statement.span(&parser.ast).into(),
+      statement
+        .declaration_span(&parser.ast)
+        .map(|span| span.into()),
       Some(parser.source()),
     );
     parser.add_presentational_dependency(Box::new(dep));
@@ -46,15 +46,17 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
     source: &Atom,
   ) -> Option<bool> {
     parser.last_esm_import_order += 1;
-    let clean_dep = ConstDependency::new(statement.span().into(), "".into());
+    let clean_dep = ConstDependency::new(statement.span(&parser.ast).into(), "".into());
     parser.add_presentational_dependency(Box::new(clean_dep));
     let mut side_effect_dep = ESMImportSideEffectDependency::new(
       source.clone(),
       parser.last_esm_import_order,
-      statement.span().into(),
+      statement.span(&parser.ast).into(),
       DependencyType::EsmExportImport,
       ImportPhase::Evaluation,
-      statement.get_with_obj().map(get_attributes),
+      statement
+        .get_with_obj(&parser.ast)
+        .map(|obj| get_attributes(&parser.ast, obj)),
       Some(parser.source()),
       statement.is_star_export(),
     );
@@ -105,7 +107,7 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
         settings.ids,
         Some(export_name.clone()),
         None,
-        statement.span().into(),
+        statement.span(&parser.ast).into(),
         ESMExportImportedSpecifierDependency::create_export_presence_mode(
           parser.javascript_options,
         ),
@@ -143,13 +145,13 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
         },
         inlinable,
         enum_value,
-        statement.span().into(),
+        statement.span(&parser.ast).into(),
         Some(parser.source()),
       ))
     };
-    let is_asi_safe = !parser.is_asi_position(statement.span_lo());
+    let is_asi_safe = !parser.is_asi_position(statement.span_lo(&parser.ast));
     if !is_asi_safe {
-      parser.set_asi_position(statement.span_hi());
+      parser.set_asi_position(statement.span_hi(&parser.ast));
     }
     parser.add_dependency(dep);
     Some(true)
@@ -190,18 +192,20 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
       local_id.map(|id| vec![id.clone()]).unwrap_or_default(),
       export_name.cloned(),
       star_exports,
-      statement.span().into(),
+      statement.span(&parser.ast).into(),
       ESMExportImportedSpecifierDependency::create_export_presence_mode(parser.javascript_options),
       ImportPhase::Evaluation,
-      statement.get_with_obj().map(get_attributes),
+      statement
+        .get_with_obj(&parser.ast)
+        .map(|obj| get_attributes(&parser.ast, obj)),
       Some(parser.source()),
     );
     if export_name.is_none() {
       parser.build_info.all_star_exports.push(dep.id);
     }
-    let is_asi_safe = !parser.is_asi_position(statement.span_lo());
+    let is_asi_safe = !parser.is_asi_position(statement.span_lo(&parser.ast));
     if !is_asi_safe {
-      parser.set_asi_position(statement.span_hi());
+      parser.set_asi_position(statement.span_hi(&parser.ast));
     }
     if parser
       .factory_meta
@@ -220,8 +224,8 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
     statement: ExportDefaultDeclaration,
     expr: ExportDefaultExpression,
   ) -> Option<bool> {
-    let expr_span = expr.span();
-    let statement_span = statement.span();
+    let expr_span = expr.span(&parser.ast);
+    let statement_span = statement.span(&parser.ast);
 
     let dep: ESMExportExpressionDependency = ESMExportExpressionDependency::new(
       expr_span.into(),
@@ -242,22 +246,39 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
         .unwrap_or_default(),
       match expr {
         ExportDefaultExpression::FnDecl(f) => {
-          let start = f.span().real_lo();
-          let end = if let Some(first_arg) = f.function.params.first() {
-            first_arg.span().real_lo()
+          let function = f.function(&parser.ast);
+          let start = f.span(&parser.ast).real_lo();
+          let end = if let Some(first_param) = function.params(&parser.ast).first() {
+            parser
+              .ast
+              .get_node_in_sub_range(first_param)
+              .span(&parser.ast)
+              .real_lo()
           } else {
-            f.function.body.span().real_lo()
+            function
+              .body(&parser.ast)
+              .expect("function should have body")
+              .span(&parser.ast)
+              .real_lo()
           };
           Some(DeclarationId::Func(DeclarationInfo::new(
             DependencyRange::new(start, end),
             format!(
               "{}function{} ",
-              if f.function.is_async { "async " } else { "" },
-              if f.function.is_generator { "*" } else { "" },
+              if function.is_async(&parser.ast) {
+                "async "
+              } else {
+                ""
+              },
+              if function.is_generator(&parser.ast) {
+                "*"
+              } else {
+                ""
+              },
             ),
             format!(
               r#"({}"#,
-              if f.function.params.is_empty() {
+              if function.params(&parser.ast).is_empty() {
                 ") "
               } else {
                 ""
@@ -266,17 +287,17 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
           )))
         }
         ExportDefaultExpression::ClassDecl(c) => c
-          .ident
-          .as_ref()
-          .map(|ident| DeclarationId::Id(ident.sym.to_string())),
+          .ident(&parser.ast)
+          .map(|ident| DeclarationId::Id(parser.ast.get_utf8(ident.sym(&parser.ast)).to_string())),
         ExportDefaultExpression::Expr(_) => None,
       },
       Some(parser.source()),
     );
     parser.add_dependency(Box::new(dep));
+    let ident_atom = expr.ident(&parser.ast).map(|r| parser.ast.get_atom(r));
     InnerGraphPlugin::add_variable_usage(
       parser,
-      expr.ident().unwrap_or_else(|| &DEFAULT_STAR_JS_WORD),
+      ident_atom.as_ref().unwrap_or_else(|| &DEFAULT_STAR_JS_WORD),
       InnerGraphMapUsage::Value(JS_DEFAULT_KEYWORD.clone()),
     );
     Some(true)

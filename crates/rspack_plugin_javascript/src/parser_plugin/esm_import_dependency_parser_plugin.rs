@@ -1,10 +1,9 @@
 use rspack_core::{
   ConstDependency, DependencyType, ExportPresenceMode, ImportAttributes, ImportPhase,
 };
-use swc_core::{
-  atoms::Atom,
-  common::{Span, Spanned},
-  ecma::ast::{BinExpr, BinaryOp, Callee, Expr, Ident, ImportDecl},
+use rspack_util::atom::Atom;
+use swc_experimental_ecma_ast::{
+  BinExpr, BinaryOp, CallExpr, Callee, Expr, GetSpan, Ident, ImportDecl, MemberExpr, Span,
 };
 
 use super::{InnerGraphPlugin, JavascriptParserPlugin};
@@ -37,13 +36,15 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
   fn import(
     &self,
     parser: &mut JavascriptParser,
-    import_decl: &ImportDecl,
+    import_decl: ImportDecl,
     source: &str,
   ) -> Option<bool> {
     parser.last_esm_import_order += 1;
-    let attributes = import_decl.with.as_ref().map(|obj| get_attributes(obj));
+    let attributes = import_decl
+      .with(&parser.ast)
+      .map(|obj| get_attributes(&parser.ast, obj));
     let phase = if parser.javascript_options.defer_import.unwrap_or_default() {
-      import_decl.phase.into()
+      import_decl.phase(&parser.ast).into()
     } else {
       ImportPhase::Evaluation
     };
@@ -54,10 +55,11 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
       parser
         .add_error(rspack_error::error!("Source phase imports is not supported in Rspack.").into());
     }
+    let import_decl_span = import_decl.span(&parser.ast);
     let dependency = ESMImportSideEffectDependency::new(
       source.into(),
       parser.last_esm_import_order,
-      import_decl.span.into(),
+      import_decl_span.into(),
       DependencyType::EsmImport,
       phase,
       attributes,
@@ -68,27 +70,27 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
     parser.add_dependency(Box::new(dependency));
 
     parser.add_presentational_dependency(Box::new(ConstDependency::new(
-      import_decl.span.into(),
-      if parser.is_asi_position(import_decl.span_lo()) {
+      import_decl_span.into(),
+      if parser.is_asi_position(import_decl_span.lo) {
         ";".into()
       } else {
         "".into()
       },
     )));
-    parser.unset_asi_position(import_decl.span_hi());
+    parser.unset_asi_position(import_decl_span.hi);
     Some(true)
   }
 
   fn import_specifier(
     &self,
     parser: &mut JavascriptParser,
-    statement: &ImportDecl,
+    statement: ImportDecl,
     source: &Atom,
     id: Option<&Atom>,
     name: &Atom,
   ) -> Option<bool> {
     let phase = if parser.javascript_options.defer_import.unwrap_or_default() {
-      statement.phase.into()
+      statement.phase(&parser.ast).into()
     } else {
       ImportPhase::Evaluation
     };
@@ -101,17 +103,19 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
         ids: id.map(|id| vec![id.clone()]).unwrap_or_default(),
         source_order: parser.last_esm_import_order,
         phase,
-        attributes: statement.with.as_ref().map(|obj| get_attributes(obj)),
+        attributes: statement
+          .with(&parser.ast)
+          .map(|obj| get_attributes(&parser.ast, obj)),
       }),
     );
     Some(true)
   }
 
-  fn binary_expression(&self, parser: &mut JavascriptParser, expr: &BinExpr) -> Option<bool> {
-    if expr.op != BinaryOp::In {
+  fn binary_expression(&self, parser: &mut JavascriptParser, expr: BinExpr) -> Option<bool> {
+    if expr.op(&parser.ast) != BinaryOp::In {
       return None;
     }
-    let right = parser.evaluate_expression(&expr.right);
+    let right = parser.evaluate_expression(expr.right(&parser.ast));
     if !right.is_identifier() {
       return None;
     }
@@ -124,7 +128,7 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
     } else {
       return None;
     };
-    let left = parser.evaluate_expression(&expr.left);
+    let left = parser.evaluate_expression(expr.left(&parser.ast));
     if left.could_have_side_effects() {
       return None;
     }
@@ -140,8 +144,8 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
       settings.name,
       settings.source_order,
       parser.in_short_hand,
-      !parser.is_asi_position(expr.span_lo()),
-      expr.span.into(),
+      !parser.is_asi_position(expr.span_lo(&parser.ast)),
+      expr.span(&parser.ast).into(),
       ids,
       parser.in_tagged_template_tag,
       direct_import,
@@ -167,7 +171,7 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
   fn can_collect_destructuring_assignment_properties(
     &self,
     parser: &mut JavascriptParser,
-    expr: &Expr,
+    expr: Expr,
   ) -> Option<bool> {
     if let MemberExpressionInfo::Expression(info) =
       parser.get_member_expression_info_from_expr(expr, AllowedMemberTypes::Expression)?
@@ -185,7 +189,7 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
   fn identifier(
     &self,
     parser: &mut JavascriptParser,
-    ident: &Ident,
+    ident: Ident,
     for_name: &str,
   ) -> Option<bool> {
     if for_name != ESM_SPECIFIER_TAG {
@@ -197,15 +201,15 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
     let settings = ESMSpecifierData::downcast(tag_info.data.clone()?);
     let referenced_properties_in_destructuring = parser
       .destructuring_assignment_properties
-      .get(&ident.span())
+      .get(&ident.span(&parser.ast))
       .cloned();
     let dep = ESMImportSpecifierDependency::new(
       settings.source,
       settings.name,
       settings.source_order,
       parser.in_short_hand,
-      !parser.is_asi_position(ident.span_lo()),
-      ident.span.into(),
+      !parser.is_asi_position(ident.span_lo(&parser.ast)),
+      ident.span(&parser.ast).into(),
       settings.ids,
       parser.in_tagged_template_tag,
       true,
@@ -229,14 +233,15 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
   fn call_member_chain(
     &self,
     parser: &mut JavascriptParser,
-    call_expr: &swc_core::ecma::ast::CallExpr,
+    call_expr: CallExpr,
     for_name: &str,
     members: &[Atom],
     members_optionals: &[bool],
     _member_ranges: &[Span],
   ) -> Option<bool> {
-    let Callee::Expr(callee) = &call_expr.callee else {
-      unreachable!()
+    let callee = match call_expr.callee(&parser.ast) {
+      Callee::Expr(expr) => expr,
+      _ => unreachable!(),
     };
     if for_name != ESM_SPECIFIER_TAG {
       return None;
@@ -249,12 +254,13 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
     let non_optional_members = get_non_optional_part(members, members_optionals);
     let span = if members.len() > non_optional_members.len() {
       let expr = get_non_optional_member_chain_from_expr(
+        &parser.ast,
         callee,
         (members.len() - non_optional_members.len()) as i32,
       );
-      expr.span()
+      expr.span(&parser.ast)
     } else {
-      callee.span()
+      callee.span(&parser.ast)
     };
     let mut ids = settings.ids;
     ids.extend(non_optional_members.iter().cloned());
@@ -264,7 +270,7 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
       settings.name,
       settings.source_order,
       false,
-      !parser.is_asi_position(call_expr.span_lo()),
+      !parser.is_asi_position(call_expr.span_lo(&parser.ast)),
       span.into(),
       ids,
       true,
@@ -285,14 +291,14 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
       InnerGraphUsageOperation::ESMImportSpecifier(dep_idx),
     );
 
-    parser.walk_expr_or_spread(&call_expr.args);
+    parser.walk_expr_or_spread(call_expr.args(&parser.ast));
     Some(true)
   }
 
   fn member_chain(
     &self,
     parser: &mut JavascriptParser,
-    member_expr: &swc_core::ecma::ast::MemberExpr,
+    member_expr: MemberExpr,
     for_name: &str,
     members: &[Atom],
     members_optionals: &[bool],
@@ -309,25 +315,26 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
     let non_optional_members = get_non_optional_part(members, members_optionals);
     let span = if members.len() > non_optional_members.len() {
       let expr = get_non_optional_member_chain_from_member(
+        &parser.ast,
         member_expr,
         (members.len() - non_optional_members.len()) as i32,
       );
-      expr.span()
+      expr.span(&parser.ast)
     } else {
-      member_expr.span()
+      member_expr.span(&parser.ast)
     };
     let mut ids = settings.ids;
     ids.extend(non_optional_members.iter().cloned());
     let referenced_properties_in_destructuring = parser
       .destructuring_assignment_properties
-      .get(&member_expr.span())
+      .get(&member_expr.span(&parser.ast))
       .cloned();
     let dep = ESMImportSpecifierDependency::new(
       settings.source,
       settings.name,
       settings.source_order,
       false,
-      !parser.is_asi_position(member_expr.span_lo()),
+      !parser.is_asi_position(member_expr.span_lo(&parser.ast)),
       span.into(),
       ids,
       false,

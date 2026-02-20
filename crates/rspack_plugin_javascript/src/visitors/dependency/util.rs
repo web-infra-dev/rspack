@@ -1,10 +1,8 @@
 use rspack_core::DependencyRange;
 use rspack_error::{Diagnostic, Error, Severity};
 use rspack_regex::RspackRegex;
-use swc_core::{
-  atoms::Atom,
-  ecma::ast::{Expr, MemberExpr, OptChainBase},
-};
+use rspack_util::atom::Atom;
+use swc_experimental_ecma_ast::{Ast, Expr, MemberExpr, OptChainBase};
 
 use super::JavascriptParser;
 
@@ -103,20 +101,20 @@ pub fn get_non_optional_part<'a>(members: &'a [Atom], members_optionals: &[bool]
   }
 }
 
-pub fn get_non_optional_member_chain_from_expr(mut expr: &Expr, mut count: i32) -> &Expr {
+pub fn get_non_optional_member_chain_from_expr(ast: &Ast, mut expr: Expr, mut count: i32) -> Expr {
   while count != 0 {
     if let Expr::Member(member) = expr {
-      expr = &member.obj;
+      expr = member.obj(ast);
       count -= 1;
     } else if let Expr::OptChain(opt_chain) = expr {
-      expr = match &*opt_chain.base {
-        OptChainBase::Member(member) => &*member.obj,
-        OptChainBase::Call(call) if call.callee.as_member().is_some() => {
+      expr = match opt_chain.base(ast) {
+        OptChainBase::Member(member) => member.obj(ast),
+        OptChainBase::Call(call) if call.callee(ast).as_member().is_some() => {
           let member = call
-            .callee
+            .callee(ast)
             .as_member()
             .expect("`call.callee` is `MemberExpr` in `if_guard`");
-          &*member.obj
+          member.obj(ast)
         }
         _ => unreachable!(),
       };
@@ -128,7 +126,11 @@ pub fn get_non_optional_member_chain_from_expr(mut expr: &Expr, mut count: i32) 
   expr
 }
 
-pub fn get_non_optional_member_chain_from_member(member: &MemberExpr, mut count: i32) -> &Expr {
+pub fn get_non_optional_member_chain_from_member(
+  ast: &Ast,
+  member: MemberExpr,
+  mut count: i32,
+) -> Expr {
   count -= 1;
-  get_non_optional_member_chain_from_expr(&member.obj, count)
+  get_non_optional_member_chain_from_expr(ast, member.obj(ast), count)
 }
