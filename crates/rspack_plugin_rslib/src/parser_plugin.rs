@@ -1,5 +1,5 @@
 use rspack_plugin_javascript::{JavascriptParserPlugin, visitors::JavascriptParser};
-use swc_core::ecma::ast::MemberExpr;
+use swc_experimental_ecma_ast::{MemberExpr, UnaryExpr};
 
 #[derive(PartialEq, Debug, Default)]
 pub struct RslibParserPlugin {
@@ -18,7 +18,7 @@ impl JavascriptParserPlugin for RslibParserPlugin {
   fn member(
     &self,
     _parser: &mut JavascriptParser,
-    _member_expr: &MemberExpr,
+    _member_expr: MemberExpr,
     for_name: &str,
   ) -> Option<bool> {
     if for_name == "require.cache"
@@ -36,7 +36,7 @@ impl JavascriptParserPlugin for RslibParserPlugin {
   fn r#typeof(
     &self,
     _parser: &mut JavascriptParser,
-    _expr: &swc_core::ecma::ast::UnaryExpr,
+    _expr: UnaryExpr,
     for_name: &str,
   ) -> Option<bool> {
     if for_name == "module" {
