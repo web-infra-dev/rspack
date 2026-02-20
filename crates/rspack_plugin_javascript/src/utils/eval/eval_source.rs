@@ -17,6 +17,7 @@ pub fn eval_source<T: Display>(
   error_title: T,
 ) -> Option<BasicEvaluatedExpression> {
   let result = parse_file_as_expr(
+    &mut parser.ast,
     &source,
     Syntax::Es(EsSyntax::default()),
     EsVersion::EsNext,
@@ -36,9 +37,9 @@ pub fn eval_source<T: Display>(
       parser.add_warning(error.into());
       None
     }
-    Ok(mut ret) => {
-      remove_paren(ret.root, &mut ret.ast, None);
-      BasicEvaluatedExpression::with_owned_expression(ret.root, |expr| {
+    Ok(expr) => {
+      remove_paren(expr, &mut parser.ast, None);
+      BasicEvaluatedExpression::with_owned_expression(expr, |expr| {
         Some(parser.evaluate_expression(expr))
       })
     }

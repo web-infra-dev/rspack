@@ -1,5 +1,6 @@
 use std::{
   borrow::Cow,
+  rc::Rc,
   sync::{Arc, LazyLock},
 };
 
@@ -16,7 +17,7 @@ use rspack_core::{
   rspack_sources::{BoxSource, ReplaceSource, Source, SourceExt},
 };
 use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
-use swc_experimental_ecma_ast::{Program, VisitWith};
+use swc_experimental_ecma_ast::{Ast, Program, VisitWith};
 use swc_experimental_ecma_parser::{
   EsSyntax, Lexer, Parser, StringSource, Syntax, unstable::Capturing,
 };
@@ -198,6 +199,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       .and_then(|options| options.jsx)
       .unwrap_or(false);
 
+    let mut ast = Ast::new(source_string.len(), Rc::default());
     let parser_lexer = Lexer::new(
       Syntax::Es(EsSyntax {
         jsx,
@@ -212,24 +214,26 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       target,
       StringSource::new(source_string.as_ref()),
       Some(&comments),
+      ast.string_allocator(),
     );
     let parse_lexer = Capturing::new(parser_lexer);
-    let parser = Parser::new_from(parse_lexer);
+    let mut parser = Parser::new_from(&mut ast, parse_lexer);
     let program_result = match module_type {
       // parser options align with webpack
-      ModuleType::JsEsm => parser.parse_module().map(|r| r.map_root(Program::Module)),
-      ModuleType::JsDynamic => parser.parse_script().map(|r| r.map_root(Program::Script)),
+      ModuleType::JsEsm => parser.parse_module().map(Program::Module),
+      ModuleType::JsDynamic => parser.parse_script().map(Program::Script),
       _ => parser.parse_program(),
     };
+    let errors = parser.take_errors();
 
-    let (root, mut ast, tokens) = match program_result {
-      Ok(mut ret) => {
-        if !ret.errors.is_empty() {
+    let (root, tokens) = match program_result {
+      Ok(program) => {
+        if !errors.is_empty() {
           // diagnostics.append(&mut ret.errors.into_iter().map(|e| e.into()).collect());
           return default_with_diagnostics(source, diagnostics);
         }
-        let tokens = ret.input.take();
-        (ret.root, ret.ast, tokens)
+        let tokens = parser.input_mut().iter.take();
+        (program, tokens)
       }
       Err(_) => {
         // diagnostics.append(&mut e.into());
