@@ -1,12 +1,8 @@
 use rspack_core::{BuildMetaDefaultObject, BuildMetaExportsType, DependencyRange, RuntimeGlobals};
-use rspack_util::SpanExt;
-use swc_core::{
-  atoms::Atom,
-  common::{Span, Spanned},
-  ecma::ast::{
-    AssignExpr, CallExpr, Expr, ExprOrSpread, Ident, Lit, MemberExpr, ObjectLit, Prop, PropName,
-    PropOrSpread, UnaryExpr, UnaryOp,
-  },
+use rspack_util::{SpanExt, atom::Atom};
+use swc_experimental_ecma_ast::{
+  AssignExpr, Ast, CallExpr, Expr, ExprOrSpread, GetSpan, Ident, Lit, MemberExpr, Prop, PropName,
+  PropOrSpread, Span, ThisExpr, TypedSubRange, UnaryExpr, UnaryOp,
 };
 
 use super::JavascriptParserPlugin;
@@ -19,27 +15,28 @@ use crate::{
   visitors::JavascriptParser,
 };
 
-fn get_value_of_property_description(expr: &Expr) -> Option<&Expr> {
-  if let Expr::Object(ObjectLit { props, .. }) = expr {
-    for prop in props {
+fn get_value_of_property_description(ast: &Ast, expr: Expr) -> Option<Expr> {
+  if let Expr::Object(obj_lit) = expr {
+    for prop in obj_lit.props(ast).iter() {
+      let prop = ast.get_node_in_sub_range(prop);
       if let PropOrSpread::Prop(prop) = prop
-        && let Prop::KeyValue(key_value_prop) = &**prop
-        && let PropName::Ident(ident) = &key_value_prop.key
-        && &ident.sym == "value"
+        && let Prop::KeyValue(key_value_prop) = prop
+        && let PropName::Ident(ident) = key_value_prop.key(ast)
+        && ast.get_utf8(ident.sym(ast)) == "value"
       {
-        return Some(&key_value_prop.value);
+        return Some(key_value_prop.value(ast));
       }
     }
   }
   None
 }
 
-fn is_truthy_literal(expr: &Expr) -> bool {
+fn is_truthy_literal(ast: &Ast, expr: Expr) -> bool {
   match expr {
-    Expr::Lit(lit) => is_lit_truthy_literal(lit),
+    Expr::Lit(lit) => is_lit_truthy_literal(ast, lit),
     Expr::Unary(unary) => {
-      if unary.op == UnaryOp::Bang {
-        return is_falsy_literal(&unary.arg);
+      if unary.op(ast) == UnaryOp::Bang {
+        return is_falsy_literal(ast, unary.arg(ast));
       }
       false
     }
@@ -47,12 +44,12 @@ fn is_truthy_literal(expr: &Expr) -> bool {
   }
 }
 
-fn is_falsy_literal(expr: &Expr) -> bool {
+fn is_falsy_literal(ast: &Ast, expr: Expr) -> bool {
   match expr {
-    Expr::Lit(lit) => !is_lit_truthy_literal(lit),
+    Expr::Lit(lit) => !is_lit_truthy_literal(ast, lit),
     Expr::Unary(unary) => {
-      if unary.op == UnaryOp::Bang {
-        return is_truthy_literal(&unary.arg);
+      if unary.op(ast) == UnaryOp::Bang {
+        return is_truthy_literal(ast, unary.arg(ast));
       }
       false
     }
@@ -60,12 +57,12 @@ fn is_falsy_literal(expr: &Expr) -> bool {
   }
 }
 
-fn is_lit_truthy_literal(lit: &Lit) -> bool {
+fn is_lit_truthy_literal(ast: &Ast, lit: Lit) -> bool {
   match lit {
-    Lit::Str(str) => !str.value.is_empty(),
-    Lit::Bool(bool) => bool.value,
+    Lit::Str(str) => !ast.get_wtf8(str.value(ast)).is_empty(),
+    Lit::Bool(bool) => bool.value(ast),
     Lit::Null(_) => false,
-    Lit::Num(num) => num.value != 0.0,
+    Lit::Num(num) => num.value(ast) != 0.0,
     _ => true,
   }
 }
@@ -111,12 +108,12 @@ impl JavascriptParser<'_> {
     self.build_meta.exports_type = BuildMetaExportsType::Dynamic;
   }
 
-  fn check_namespace(&mut self, top_level: bool, value_expr: Option<&Expr>) {
+  fn check_namespace(&mut self, top_level: bool, value_expr: Option<Expr>) {
     if matches!(self.parser_exports_state, Some(false)) || self.parser_exports_state.is_none() {
       return;
     }
     if let Some(value_expr) = value_expr
-      && is_truthy_literal(value_expr)
+      && is_truthy_literal(&self.ast, value_expr)
       && top_level
     {
       self.set_flagged();
@@ -126,36 +123,37 @@ impl JavascriptParser<'_> {
   }
 }
 
-fn parse_require_call<'a>(
+fn parse_require_call(
   parser: &mut JavascriptParser,
-  mut expr: &'a Expr,
-) -> Option<(BasicEvaluatedExpression<'a>, Vec<Atom>)> {
+  mut expr: Expr,
+) -> Option<(BasicEvaluatedExpression, Vec<Atom>)> {
   let mut ids = Vec::new();
   while let Some(member) = expr.as_member() {
-    if let Some(prop) = member.prop.as_ident() {
-      ids.push(prop.sym.clone());
-    } else if let Some(prop) = member.prop.as_computed()
-      && let prop = parser.evaluate_expression(&prop.expr)
+    if let Some(prop) = member.prop(&parser.ast).as_ident() {
+      ids.push(parser.ast.get_atom(prop.sym(&parser.ast)));
+    } else if let Some(prop) = member.prop(&parser.ast).as_computed()
+      && let prop = parser.evaluate_expression(prop.expr(&parser.ast))
       && let Some(prop) = prop.as_string()
     {
       ids.push(prop.into());
     } else {
       return None;
     }
-    expr = &*member.obj;
+    expr = member.obj(&parser.ast);
   }
   if let Some(call) = expr.as_call()
-    && call.args.len() == 1
-    && let Some(callee) = call.callee.as_expr()
+    && call.args(&parser.ast).len() == 1
+    && let Some(callee) = call.callee(&parser.ast).as_expr()
     && let Some(callee) = callee.as_ident()
-    && let Some(info) = parser.get_free_info_from_variable(&callee.sym)
+    && let Some(info) =
+      parser.get_free_info_from_variable(&parser.ast.get_atom(callee.sym(&parser.ast)))
     && info.name == "require"
   {
-    let arg = &call.args[0];
-    if arg.spread.is_some() {
+    let arg = call.args(&parser.ast).get_node(&parser.ast, 0).unwrap();
+    if arg.spread(&parser.ast).is_some() {
       return None;
     }
-    let arg = parser.evaluate_expression(&arg.expr);
+    let arg = parser.evaluate_expression(arg.expr(&parser.ast));
     ids.reverse();
     return Some((arg, ids));
   }
@@ -164,7 +162,7 @@ fn parse_require_call<'a>(
 
 fn handle_assign_export(
   parser: &mut JavascriptParser,
-  assign_expr: &AssignExpr,
+  assign_expr: AssignExpr,
   remaining: &[Atom],
   base: ExportsBase,
 ) -> Option<bool> {
@@ -172,7 +170,7 @@ fn handle_assign_export(
     return None;
   }
   if (remaining.is_empty() || remaining.first().is_some_and(|i| i != "__esModule"))
-    && let Some((arg, ids)) = parse_require_call(parser, &assign_expr.right)
+    && let Some((arg, ids)) = parse_require_call(parser, assign_expr.right(&parser.ast))
     && arg.is_string()
   {
     parser.enable();
@@ -186,7 +184,7 @@ fn handle_assign_export(
     // exports.aaa = require('xx');
     // module.exports.aaa = require('xx');
     // this.aaa = require('xx');
-    let range: DependencyRange = assign_expr.span.into();
+    let range: DependencyRange = assign_expr.span(&parser.ast).into();
     parser.add_dependency(Box::new(CommonJsExportRequireDependency::new(
       arg.string().clone(),
       parser.in_try,
@@ -194,7 +192,7 @@ fn handle_assign_export(
       base,
       remaining.to_vec(),
       ids,
-      !parser.is_statement_level_expression(assign_expr.span()),
+      !parser.is_statement_level_expression(assign_expr.span(&parser.ast)),
     )));
     return Some(true);
   }
@@ -214,20 +212,21 @@ fn handle_assign_export(
       // const flagIt = () => (exports.__esModule = true); => stmt_level = 1, last_stmt_is_expr_stmt = false
       // const flagIt = () => { exports.__esModule = true }; => stmt_level = 2, last_stmt_is_expr_stmt = true
       // (exports.__esModule = true); => stmt_level = 1, last_stmt_is_expr_stmt = true
-      parser.statement_path.len() == 1 && parser.is_statement_level_expression(assign_expr.span()),
-      Some(&assign_expr.right),
+      parser.statement_path.len() == 1
+        && parser.is_statement_level_expression(assign_expr.span(&parser.ast)),
+      Some(assign_expr.right(&parser.ast)),
     );
   }
   // exports.a = 1;
   // module.exports.a = 1;
   // this.a = 1;
   parser.add_dependency(Box::new(CommonJsExportsDependency::new(
-    assign_expr.left.span().into(),
+    assign_expr.left(&parser.ast).span(&parser.ast).into(),
     None,
     base,
     remaining.to_owned(),
   )));
-  parser.walk_expression(&assign_expr.right);
+  parser.walk_expression(assign_expr.right(&parser.ast));
   Some(true)
 }
 
@@ -236,7 +235,7 @@ fn handle_access_export(
   expr_span: Span,
   remaining: &[Atom],
   base: ExportsBase,
-  call_args: Option<&Vec<ExprOrSpread>>,
+  call_args: TypedSubRange<ExprOrSpread>,
 ) -> Option<bool> {
   if parser.is_esm {
     return None;
@@ -250,9 +249,7 @@ fn handle_access_export(
     remaining.to_vec(),
     true,
   )));
-  if let Some(call_args) = call_args {
-    parser.walk_expr_or_spread(call_args);
-  }
+  parser.walk_expr_or_spread(call_args);
   Some(true)
 }
 
@@ -274,7 +271,7 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
   fn assign_member_chain(
     &self,
     parser: &mut JavascriptParser,
-    assign_expr: &AssignExpr,
+    assign_expr: AssignExpr,
     remaining: &[Atom],
     for_name: &str,
   ) -> Option<bool> {
@@ -305,7 +302,7 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
   fn call(
     &self,
     parser: &mut JavascriptParser,
-    call_expr: &CallExpr,
+    call_expr: CallExpr,
     for_name: &str,
   ) -> Option<bool> {
     if self.should_skip_handler(parser) {
@@ -315,21 +312,37 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
     if parser.is_esm {
       return None;
     }
+
+    let arg0 = call_expr
+      .args(&parser.ast)
+      .get_node(&parser.ast, 0)
+      .unwrap();
+    if arg0.spread(&parser.ast).is_some() {
+      return None;
+    }
+    let arg0 = arg0.expr(&parser.ast);
+
+    let arg1 = call_expr
+      .args(&parser.ast)
+      .get_node(&parser.ast, 1)
+      .unwrap();
+    if arg1.spread(&parser.ast).is_some() {
+      return None;
+    }
+    let arg1 = arg1.expr(&parser.ast);
+
+    let arg2 = call_expr
+      .args(&parser.ast)
+      .get_node(&parser.ast, 2)
+      .unwrap();
+    if arg2.spread(&parser.ast).is_some() {
+      return None;
+    }
+    let arg2 = arg2.expr(&parser.ast);
+
     if for_name == "Object.defineProperty"
-      && parser.is_statement_level_expression(call_expr.span())
-      && call_expr.args.len() == 3
-      && let Some(ExprOrSpread {
-        spread: None,
-        expr: arg0,
-      }) = call_expr.args.first()
-      && let Some(ExprOrSpread {
-        spread: None,
-        expr: arg1,
-      }) = call_expr.args.get(1)
-      && let Some(ExprOrSpread {
-        spread: None,
-        expr: arg2,
-      }) = call_expr.args.get(2)
+      && parser.is_statement_level_expression(call_expr.span(&parser.ast))
+      && call_expr.args(&parser.ast).len() == 3
     {
       let exports_arg = parser.evaluate_expression(arg0);
       if !exports_arg.is_identifier() {
@@ -349,12 +362,12 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
       if &property == "__esModule" {
         parser.check_namespace(
           parser.statement_path.len() == 1,
-          get_value_of_property_description(arg2),
+          get_value_of_property_description(&parser.ast, arg2),
         );
       }
       parser.add_dependency(Box::new(CommonJsExportsDependency::new(
-        call_expr.span.into(),
-        Some(arg2.span().into()),
+        call_expr.span(&parser.ast).into(),
+        Some(arg2.span(&parser.ast).into()),
         base,
         vec![property.into()],
       )));
@@ -369,7 +382,7 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
   fn identifier(
     &self,
     parser: &mut JavascriptParser,
-    ident: &Ident,
+    ident: Ident,
     for_name: &str,
   ) -> Option<bool> {
     if self.should_skip_handler(parser) {
@@ -392,25 +405,32 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
 
     if for_name == "exports" {
       // exports
-      return handle_access_export(parser, ident.span(), &[], ExportsBase::Exports, None);
+      return handle_access_export(
+        parser,
+        ident.span(&parser.ast),
+        &[],
+        ExportsBase::Exports,
+        TypedSubRange::empty(),
+      );
     }
 
     None
   }
 
-  fn this(
-    &self,
-    parser: &mut JavascriptParser,
-    expr: &swc_core::ecma::ast::ThisExpr,
-    _for_name: &str,
-  ) -> Option<bool> {
+  fn this(&self, parser: &mut JavascriptParser, expr: ThisExpr, _for_name: &str) -> Option<bool> {
     if self.should_skip_handler(parser) {
       return None;
     }
 
     if parser.is_top_level_this() {
       // this
-      return handle_access_export(parser, expr.span(), &[], ExportsBase::This, None);
+      return handle_access_export(
+        parser,
+        expr.span(&parser.ast),
+        &[],
+        ExportsBase::This,
+        TypedSubRange::empty(),
+      );
     }
     None
   }
@@ -418,7 +438,7 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
   fn member(
     &self,
     parser: &mut JavascriptParser,
-    expr: &MemberExpr,
+    expr: MemberExpr,
     for_name: &str,
   ) -> Option<bool> {
     if self.should_skip_handler(parser) {
@@ -427,7 +447,13 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
 
     if for_name == "module.exports" {
       // module.exports
-      return handle_access_export(parser, expr.span(), &[], ExportsBase::ModuleExports, None);
+      return handle_access_export(
+        parser,
+        expr.span(&parser.ast),
+        &[],
+        ExportsBase::ModuleExports,
+        TypedSubRange::empty(),
+      );
     }
     None
   }
@@ -435,7 +461,7 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
   fn member_chain(
     &self,
     parser: &mut JavascriptParser,
-    expr: &MemberExpr,
+    expr: MemberExpr,
     for_name: &str,
     members: &[Atom],
     _members_optionals: &[bool],
@@ -447,23 +473,35 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
 
     if for_name == "exports" {
       // exports.a.b.c
-      return handle_access_export(parser, expr.span(), members, ExportsBase::Exports, None);
+      return handle_access_export(
+        parser,
+        expr.span(&parser.ast),
+        members,
+        ExportsBase::Exports,
+        TypedSubRange::empty(),
+      );
     }
 
     if for_name == "module" && matches!(members.first(), Some(first) if first == "exports") {
       // module.exports.a.b.c
       return handle_access_export(
         parser,
-        expr.span(),
+        expr.span(&parser.ast),
         &members[1..],
         ExportsBase::ModuleExports,
-        None,
+        TypedSubRange::empty(),
       );
     }
 
     if for_name == "this" && parser.is_top_level_scope() {
       // this.a.b.c
-      return handle_access_export(parser, expr.span(), members, ExportsBase::This, None);
+      return handle_access_export(
+        parser,
+        expr.span(&parser.ast),
+        members,
+        ExportsBase::This,
+        TypedSubRange::empty(),
+      );
     }
 
     None
@@ -472,7 +510,7 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
   fn call_member_chain(
     &self,
     parser: &mut JavascriptParser,
-    expr: &CallExpr,
+    expr: CallExpr,
     for_name: &str,
     members: &[Atom],
     _members_optionals: &[bool],
@@ -486,10 +524,10 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
       // exports.a.b.c()
       return handle_access_export(
         parser,
-        expr.callee.span(),
+        expr.callee(&parser.ast).span(&parser.ast),
         members,
         ExportsBase::Exports,
-        Some(&expr.args),
+        expr.args(&parser.ast),
       );
     }
 
@@ -497,10 +535,10 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
       // module.exports.a.b.c()
       return handle_access_export(
         parser,
-        expr.callee.span(),
+        expr.callee(&parser.ast).span(&parser.ast),
         &members[1..],
         ExportsBase::ModuleExports,
-        Some(&expr.args),
+        expr.args(&parser.ast),
       );
     }
 
@@ -508,22 +546,22 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
       // this.a.b.c()
       return handle_access_export(
         parser,
-        expr.callee.span(),
+        expr.callee(&parser.ast).span(&parser.ast),
         members,
         ExportsBase::This,
-        Some(&expr.args),
+        expr.args(&parser.ast),
       );
     }
 
     None
   }
 
-  fn evaluate_typeof<'a>(
+  fn evaluate_typeof(
     &self,
     parser: &mut JavascriptParser,
-    expr: &'a UnaryExpr,
+    expr: UnaryExpr,
     for_name: &str,
-  ) -> Option<BasicEvaluatedExpression<'a>> {
+  ) -> Option<BasicEvaluatedExpression> {
     if self.should_skip_handler(parser) {
       return None;
     }
@@ -531,8 +569,8 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
     (for_name == "module" || for_name == "exports").then(|| {
       eval::evaluate_to_string(
         "object".to_string(),
-        expr.span.real_lo(),
-        expr.span.real_hi(),
+        expr.span(&parser.ast).real_lo(),
+        expr.span(&parser.ast).real_hi(),
       )
     })
   }
