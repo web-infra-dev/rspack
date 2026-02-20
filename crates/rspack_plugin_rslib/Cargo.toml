@@ -16,11 +16,13 @@ rspack_hash              = { workspace = true }
 rspack_hook              = { workspace = true }
 rspack_plugin_asset      = { workspace = true }
 rspack_plugin_javascript = { workspace = true }
+rspack_util              = { workspace = true }
 
-async-trait = { workspace = true }
-serde_json  = { workspace = true }
-swc_core    = { workspace = true }
-tracing     = { workspace = true }
+async-trait               = { workspace = true }
+serde_json                = { workspace = true }
+swc_core                  = { workspace = true }
+swc_experimental_ecma_ast = { workspace = true }
+tracing                   = { workspace = true }
 
 [package.metadata.cargo-shear]
 ignored = ["tracing"]

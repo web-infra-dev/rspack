@@ -4884,8 +4884,10 @@ dependencies = [
  "rspack_hook",
  "rspack_plugin_asset",
  "rspack_plugin_javascript",
+ "rspack_util",
  "serde_json",
  "swc_core",
+ "swc_experimental_ecma_ast",
  "tracing",
 ]
 
@@ -4902,6 +4904,7 @@ dependencies = [
  "rspack_plugin_javascript",
  "rspack_util",
  "swc_core",
+ "swc_experimental_ecma_ast",
  "tracing",
 ]
 

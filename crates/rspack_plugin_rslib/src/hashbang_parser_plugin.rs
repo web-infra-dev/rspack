@@ -1,15 +1,16 @@
 use rspack_core::ConstDependency;
 use rspack_plugin_javascript::{JavascriptParserPlugin, visitors::JavascriptParser};
-use swc_core::ecma::ast::Program;
+use swc_experimental_ecma_ast::Program;
 
 pub struct HashbangParserPlugin;
 
 impl JavascriptParserPlugin for HashbangParserPlugin {
-  fn program(&self, parser: &mut JavascriptParser, ast: &Program) -> Option<bool> {
-    let hashbang = ast
-      .as_module()
-      .and_then(|m| m.shebang.as_ref())
-      .or_else(|| ast.as_script().and_then(|s| s.shebang.as_ref()))?;
+  fn program(&self, parser: &mut JavascriptParser, ast: Program) -> Option<bool> {
+    let hashbang_str = match ast {
+      Program::Module(m) => m.shebang(&parser.ast),
+      Program::Script(s) => s.shebang(&parser.ast),
+    };
+    let hashbang = hashbang_str.map(|s| parser.ast.get_utf8(s))?;
 
     // Normalize hashbang to always include "#!" prefix
     // SWC may omit the leading "#!" in the shebang value
