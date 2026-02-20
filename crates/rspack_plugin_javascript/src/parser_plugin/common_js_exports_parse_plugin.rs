@@ -313,28 +313,25 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
       return None;
     }
 
-    let arg0 = call_expr
-      .args(&parser.ast)
-      .get_node(&parser.ast, 0)
-      .unwrap();
+    let Some(arg0) = call_expr.args(&parser.ast).get_node(&parser.ast, 0) else {
+      return None;
+    };
     if arg0.spread(&parser.ast).is_some() {
       return None;
     }
     let arg0 = arg0.expr(&parser.ast);
 
-    let arg1 = call_expr
-      .args(&parser.ast)
-      .get_node(&parser.ast, 1)
-      .unwrap();
+    let Some(arg1) = call_expr.args(&parser.ast).get_node(&parser.ast, 1) else {
+      return None;
+    };
     if arg1.spread(&parser.ast).is_some() {
       return None;
     }
     let arg1 = arg1.expr(&parser.ast);
 
-    let arg2 = call_expr
-      .args(&parser.ast)
-      .get_node(&parser.ast, 2)
-      .unwrap();
+    let Some(arg2) = call_expr.args(&parser.ast).get_node(&parser.ast, 2) else {
+      return None;
+    };
     if arg2.spread(&parser.ast).is_some() {
       return None;
     }
