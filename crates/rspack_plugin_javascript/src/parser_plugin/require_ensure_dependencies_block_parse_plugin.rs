@@ -7,7 +7,7 @@ use rspack_core::{
 };
 use rspack_util::SpanExt;
 use swc_experimental_ecma_ast::{
-  ArrowExpr, Ast, BlockStmtOrExpr, CallExpr, Expr, FnExpr, GetSpan, UnaryExpr,
+  ArrowExpr, Ast, BlockStmtOrExpr, CallExpr, Expr, FnExpr, GetSpan, Pat, UnaryExpr,
 };
 
 use super::JavascriptParserPlugin;
@@ -109,18 +109,22 @@ impl JavascriptParserPlugin for RequireEnsureDependenciesBlockParserPlugin {
     ))];
     // TODO: Webpack sets `parser.state.current = depBlock`, but rspack doesn't support nested block yet.
     let mut failed = false;
-    parser.in_function_scope(true, std::iter::empty(), |parser| {
-      for item in dependencies_items.iter() {
-        if let Some(item) = item.as_string() {
-          deps.push(Box::new(RequireEnsureItemDependency::new(
-            item.as_str().into(),
-            expr.span(&parser.ast).into(),
-          )));
-        } else {
-          failed = true;
+    parser.in_function_scope(
+      true,
+      std::iter::empty::<fn(&Ast) -> Option<Pat>>(),
+      |parser| {
+        for item in dependencies_items.iter() {
+          if let Some(item) = item.as_string() {
+            deps.push(Box::new(RequireEnsureItemDependency::new(
+              item.as_str().into(),
+              expr.span(&parser.ast).into(),
+            )));
+          } else {
+            failed = true;
+          }
         }
-      }
-    });
+      },
+    );
     if failed {
       return None;
     }

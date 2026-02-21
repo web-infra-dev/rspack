@@ -588,7 +588,7 @@ fn walk_import_then_fulfilled_callback(
 
   parser.in_function_scope(
     fulfilled_callback.is_fn(),
-    scope_params.into_iter(),
+    scope_params.into_iter().map(|p| move |_: &Ast| Some(p)),
     |parser| {
       if let Some(ns_obj) = namespace_obj_arg.as_ident() {
         tag_dynamic_import_referenced(

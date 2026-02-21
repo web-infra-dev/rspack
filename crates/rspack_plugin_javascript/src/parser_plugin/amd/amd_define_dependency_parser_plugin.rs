@@ -1,6 +1,5 @@
 use std::borrow::Cow;
 
-use itertools::Itertools;
 use rspack_core::{
   BoxDependencyTemplate, BuildMetaDefaultObject, BuildMetaExportsType, ContextDependency,
   ContextMode, ContextNameSpaceObject, ContextOptions, Dependency, DependencyCategory,
@@ -513,7 +512,10 @@ impl AMDDefineDependencyParserPlugin {
       let in_try = parser.in_try;
       parser.in_function_scope(
         true,
-        fn_params.expect("fn_params should not be None").into_iter(),
+        fn_params
+          .expect("fn_params should not be None")
+          .into_iter()
+          .map(|p| move |_: &Ast| Some(p)),
         |parser| {
           for (name, rename_identifier) in fn_renames.iter() {
             let variable = parser
@@ -562,15 +564,16 @@ impl AMDDefineDependencyParserPlugin {
             .function(&parser.ast)
             .params(&parser.ast)
             .iter()
-            .map(|param| parser.ast.get_node_in_sub_range(param).pat(&parser.ast))
-            .filter(|pat| {
-              pat.as_ident().is_some_and(|ident| {
-                !RESERVED_NAMES
-                  .contains(&parser.ast.get_utf8(ident.id(&parser.ast).sym(&parser.ast)))
-              })
-            })
-            .collect_vec();
-          parser.in_function_scope(true, params.into_iter(), |parser| {
+            .map(|param| {
+              move |ast: &Ast| {
+                let pat = ast.get_node_in_sub_range(param).pat(ast);
+                let Some(ident) = pat.as_ident() else {
+                  return None;
+                };
+                (!RESERVED_NAMES.contains(&ast.get_utf8(ident.id(ast).sym(ast)))).then_some(pat)
+              }
+            });
+          parser.in_function_scope(true, params, |parser| {
             for (name, rename_identifier) in fn_renames.iter() {
               let variable = parser
                 .get_variable_info(rename_identifier)

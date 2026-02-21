@@ -1,6 +1,5 @@
 use std::borrow::Cow;
 
-use itertools::Itertools;
 use swc_core::atoms::Atom;
 use swc_experimental_ecma_ast::{
   ArrayLit, ArrayPat, ArrowExpr, AssignExpr, AssignPat, AssignTarget, AssignTargetPat, Ast,
@@ -48,10 +47,11 @@ impl JavascriptParser<'_> {
     self.in_tagged_template_tag = old_in_tagged_template_tag;
   }
 
-  pub fn in_class_scope<I, F>(&mut self, has_this: bool, params: I, f: F)
+  pub fn in_class_scope<I, F, P>(&mut self, has_this: bool, params: I, f: F)
   where
     F: FnOnce(&mut Self),
-    I: Iterator<Item = Pat>,
+    P: FnOnce(&Ast) -> Option<Pat>,
+    I: Iterator<Item = P>,
   {
     let old_definitions = self.definitions;
     let old_in_try = self.in_try;
@@ -78,10 +78,11 @@ impl JavascriptParser<'_> {
     self.in_tagged_template_tag = old_in_tagged_template_tag;
   }
 
-  pub(crate) fn in_function_scope<I, F>(&mut self, has_this: bool, params: I, f: F)
+  pub(crate) fn in_function_scope<I, F, P>(&mut self, has_this: bool, params: I, f: F)
   where
     F: FnOnce(&mut Self),
-    I: Iterator<Item = Pat>,
+    P: FnOnce(&Ast) -> Option<Pat>,
+    I: Iterator<Item = P>,
   {
     let old_definitions = self.definitions;
     let old_top_level_scope = self.top_level_scope;
@@ -661,15 +662,19 @@ impl JavascriptParser<'_> {
     self.walk_prop_name(getter.key(&self.ast));
     let was_top_level = self.top_level_scope;
     self.top_level_scope = TopLevelScope::False;
-    self.in_function_scope(true, std::iter::empty(), |parser| {
-      if let Some(body) = getter.body(&parser.ast) {
-        parser.detect_mode(body.stmts(&parser.ast));
-        let prev = parser.prev_statement;
-        parser.pre_walk_statement(Statement::Block(body));
-        parser.prev_statement = prev;
-        parser.walk_statement(Statement::Block(body));
-      }
-    });
+    self.in_function_scope(
+      true,
+      std::iter::empty::<fn(&Ast) -> Option<Pat>>(),
+      |parser| {
+        if let Some(body) = getter.body(&parser.ast) {
+          parser.detect_mode(body.stmts(&parser.ast));
+          let prev = parser.prev_statement;
+          parser.pre_walk_statement(Statement::Block(body));
+          parser.prev_statement = prev;
+          parser.walk_statement(Statement::Block(body));
+        }
+      },
+    );
     self.top_level_scope = was_top_level;
   }
 
@@ -677,15 +682,19 @@ impl JavascriptParser<'_> {
     self.walk_prop_name(setter.key(&self.ast));
     let was_top_level = self.top_level_scope;
     self.top_level_scope = TopLevelScope::False;
-    self.in_function_scope(true, std::iter::once(setter.param(&self.ast)), |parser| {
-      if let Some(body) = setter.body(&parser.ast) {
-        parser.detect_mode(body.stmts(&parser.ast));
-        let prev = parser.prev_statement;
-        parser.pre_walk_statement(Statement::Block(body));
-        parser.prev_statement = prev;
-        parser.walk_statement(Statement::Block(body));
-      }
-    });
+    self.in_function_scope(
+      true,
+      std::iter::once(setter.param(&self.ast)).map(|p| move |_: &Ast| Some(p)),
+      |parser| {
+        if let Some(body) = setter.body(&parser.ast) {
+          parser.detect_mode(body.stmts(&parser.ast));
+          let prev = parser.prev_statement;
+          parser.pre_walk_statement(Statement::Block(body));
+          parser.prev_statement = prev;
+          parser.walk_statement(Statement::Block(body));
+        }
+      },
+    );
     self.top_level_scope = was_top_level;
   }
 
@@ -708,9 +717,8 @@ impl JavascriptParser<'_> {
           .function(&self.ast)
           .params(&self.ast)
           .iter()
-          .map(|p| self.ast.get_node_in_sub_range(p).pat(&self.ast))
-          .collect_vec();
-        self.in_function_scope(true, params.into_iter(), |this| {
+          .map(|p| move |ast: &Ast| Some(ast.get_node_in_sub_range(p).pat(ast)));
+        self.in_function_scope(true, params, |this| {
           this.walk_function(method.function(&this.ast));
         });
         self.top_level_scope = was_top_level;
@@ -920,10 +928,10 @@ impl JavascriptParser<'_> {
   ///
   /// # Panics
   /// Either `Params` of `expr` or `params` passed in should be `BindingIdent`.
-  fn _walk_iife(
+  fn _walk_iife<F: FnOnce(&Ast) -> Expr>(
     &mut self,
     expr: Expr,
-    args: impl Iterator<Item = Expr>,
+    args: impl Iterator<Item = F>,
     current_this: Option<Expr>,
   ) {
     fn get_var_name(parser: &mut JavascriptParser, expr: Expr) -> Option<ExportedVariableInfo> {
@@ -948,7 +956,7 @@ impl JavascriptParser<'_> {
 
     let rename_this = current_this.and_then(|this| get_var_name(self, this));
     let variable_info_for_args = args
-      .map(|param| get_var_name(self, param))
+      .map(|get_param| get_var_name(self, get_param(&self.ast)))
       .collect::<Vec<_>>();
 
     let mut params = vec![];
@@ -995,42 +1003,46 @@ impl JavascriptParser<'_> {
         TopLevelScope::False
       };
 
-    self.in_function_scope(true, scope_params.into_iter(), |parser| {
-      if let Some(this) = rename_this
-        && !expr.is_arrow()
-      {
-        parser.set_variable("this".into(), this)
-      }
-      for (i, var_info) in variable_info_for_args.into_iter().enumerate() {
-        if let Some(var_info) = var_info
-          && let Some(param) = params.get(i)
+    self.in_function_scope(
+      true,
+      scope_params.into_iter().map(|p| move |_: &Ast| Some(p)),
+      |parser| {
+        if let Some(this) = rename_this
+          && !expr.is_arrow()
         {
-          let param = parser.ast.get_atom(param.id(&parser.ast).sym(&parser.ast));
-          parser.set_variable(param, var_info);
+          parser.set_variable("this".into(), this)
         }
-      }
+        for (i, var_info) in variable_info_for_args.into_iter().enumerate() {
+          if let Some(var_info) = var_info
+            && let Some(param) = params.get(i)
+          {
+            let param = parser.ast.get_atom(param.id(&parser.ast).sym(&parser.ast));
+            parser.set_variable(param, var_info);
+          }
+        }
 
-      if let Some(expr) = expr.as_fn() {
-        if let Some(stmt) = expr.function(&parser.ast).body(&parser.ast) {
-          parser.detect_mode(stmt.stmts(&parser.ast));
-          let prev = parser.prev_statement;
-          parser.pre_walk_statement(Statement::Block(stmt));
-          parser.prev_statement = prev;
-          parser.walk_statement(Statement::Block(stmt));
-        }
-      } else if let Some(expr) = expr.as_arrow() {
-        match expr.body(&parser.ast) {
-          BlockStmtOrExpr::BlockStmt(stmt) => {
+        if let Some(expr) = expr.as_fn() {
+          if let Some(stmt) = expr.function(&parser.ast).body(&parser.ast) {
             parser.detect_mode(stmt.stmts(&parser.ast));
             let prev = parser.prev_statement;
             parser.pre_walk_statement(Statement::Block(stmt));
             parser.prev_statement = prev;
             parser.walk_statement(Statement::Block(stmt));
           }
-          BlockStmtOrExpr::Expr(expr) => parser.walk_expression(expr),
+        } else if let Some(expr) = expr.as_arrow() {
+          match expr.body(&parser.ast) {
+            BlockStmtOrExpr::BlockStmt(stmt) => {
+              parser.detect_mode(stmt.stmts(&parser.ast));
+              let prev = parser.prev_statement;
+              parser.pre_walk_statement(Statement::Block(stmt));
+              parser.prev_statement = prev;
+              parser.walk_statement(Statement::Block(stmt));
+            }
+            BlockStmtOrExpr::Expr(expr) => parser.walk_expression(expr),
+          }
         }
-      }
-    });
+      },
+    );
     self.top_level_scope = was_top_level_scope;
   }
 
@@ -1057,10 +1069,8 @@ impl JavascriptParser<'_> {
           let mut params = expr
             .args(&self.ast)
             .iter()
-            .map(|arg| self.ast.get_node_in_sub_range(arg).expr(&self.ast))
-            .collect_vec()
-            .into_iter();
-          let this = params.next();
+            .map(|arg| move |ast: &Ast| ast.get_node_in_sub_range(arg).expr(ast));
+          let this = params.next().map(|this| this(&self.ast));
           self._walk_iife(member_expr.obj(&self.ast), params, this)
         } else if let Expr::Member(member_expr) = callee
           && let Expr::Fn(fn_expr) = member_expr.obj(&self.ast)
@@ -1074,10 +1084,8 @@ impl JavascriptParser<'_> {
           let mut params = expr
             .args(&self.ast)
             .iter()
-            .map(|arg| self.ast.get_node_in_sub_range(arg).expr(&self.ast))
-            .collect_vec()
-            .into_iter();
-          let this = params.next();
+            .map(|arg| move |ast: &Ast| ast.get_node_in_sub_range(arg).expr(ast));
+          let this = params.next().map(|this| this(&self.ast));
           self._walk_iife(member_expr.obj(&self.ast), params, this)
         } else if let Expr::Fn(fn_expr) = callee
           && is_simple_function(&self.ast, fn_expr.function(&self.ast).params(&self.ast))
@@ -1088,9 +1096,7 @@ impl JavascriptParser<'_> {
             expr
               .args(&self.ast)
               .iter()
-              .map(|arg| self.ast.get_node_in_sub_range(arg).expr(&self.ast))
-              .collect_vec()
-              .into_iter(),
+              .map(|arg| move |ast: &Ast| ast.get_node_in_sub_range(arg).expr(ast)),
             None,
           )
         } else if let Expr::Fn(fn_expr) = callee
@@ -1102,9 +1108,7 @@ impl JavascriptParser<'_> {
             expr
               .args(&self.ast)
               .iter()
-              .map(|arg| self.ast.get_node_in_sub_range(arg).expr(&self.ast))
-              .collect_vec()
-              .into_iter(),
+              .map(|arg| move |ast: &Ast| ast.get_node_in_sub_range(arg).expr(ast)),
             None,
           )
         } else if let Expr::Arrow(arrow_expr) = callee
@@ -1119,8 +1123,7 @@ impl JavascriptParser<'_> {
             expr
               .args(&self.ast)
               .iter()
-              .map(|arg| self.ast.get_node_in_sub_range(arg).expr(&self.ast))
-              .collect_vec()
+              .map(|arg| move |ast: &Ast| ast.get_node_in_sub_range(arg).expr(ast))
               .into_iter(),
             None,
           )
@@ -1389,9 +1392,8 @@ impl JavascriptParser<'_> {
     let params = expr
       .params(&self.ast)
       .iter()
-      .map(|p| self.ast.get_node_in_sub_range(p))
-      .collect_vec();
-    self.in_function_scope(false, params.into_iter(), |this| {
+      .map(|p| move |ast: &Ast| Some(ast.get_node_in_sub_range(p)));
+    self.in_function_scope(false, params, |this| {
       for param in expr.params(&this.ast).iter() {
         let param = this.ast.get_node_in_sub_range(param);
         this.walk_pattern(param)
@@ -1452,9 +1454,8 @@ impl JavascriptParser<'_> {
       .function()
       .params(&self.ast)
       .iter()
-      .map(|param| self.ast.get_node_in_sub_range(param).pat(&self.ast))
-      .collect_vec();
-    self.in_function_scope(true, params.into_iter(), |this| {
+      .map(|param| move |ast: &Ast| Some(ast.get_node_in_sub_range(param).pat(ast)));
+    self.in_function_scope(true, params, |this| {
       this.walk_function(decl.function());
     });
     self.top_level_scope = was_top_level;
@@ -1491,9 +1492,13 @@ impl JavascriptParser<'_> {
       scope_params.push(pat);
     }
 
-    self.in_function_scope(true, scope_params.into_iter(), |this| {
-      this.walk_function(expr.function(&this.ast));
-    });
+    self.in_function_scope(
+      true,
+      scope_params.into_iter().map(|pat| move |_: &Ast| Some(pat)),
+      |this| {
+        this.walk_function(expr.function(&this.ast));
+      },
+    );
     self.top_level_scope = was_top_level;
   }
 
@@ -1592,182 +1597,186 @@ impl JavascriptParser<'_> {
       vec![]
     };
 
-    self.in_class_scope(true, scope_params.into_iter(), |this| {
-      for class_element in classy.body(&this.ast).iter() {
-        let class_element = this.ast.get_node_in_sub_range(class_element);
-        if this
-          .plugin_drive
-          .clone()
-          .class_body_element(this, class_element, class_decl_or_expr)
-          .unwrap_or_default()
-        {
-          continue;
+    self.in_class_scope(
+      true,
+      scope_params.into_iter().map(|pat| move |_: &Ast| Some(pat)),
+      |this| {
+        for class_element in classy.body(&this.ast).iter() {
+          let class_element = this.ast.get_node_in_sub_range(class_element);
+          if this
+            .plugin_drive
+            .clone()
+            .class_body_element(this, class_element, class_decl_or_expr)
+            .unwrap_or_default()
+          {
+            continue;
+          }
+
+          match class_element {
+            ClassMember::Constructor(ctor) => {
+              if ctor.key(&this.ast).is_computed() {
+                // webpack use `walk_expression`, `walk_expression` just walk down the ast, so it's ok to use `walk_prop_name`
+                this.walk_prop_name(ctor.key(&this.ast));
+              }
+
+              if this
+                .plugin_drive
+                .clone()
+                .class_body_value(
+                  this,
+                  class_element,
+                  ctor.span(&this.ast),
+                  class_decl_or_expr,
+                )
+                .unwrap_or_default()
+              {
+                continue;
+              }
+
+              let was_top_level = this.top_level_scope;
+              this.top_level_scope = TopLevelScope::False;
+
+              let params = ctor.params(&this.ast).iter().map(|p| {
+                move |ast: &Ast| {
+                  let p = ast.get_node_in_sub_range(p);
+                  Some(p.as_param().expect("should only contain param").pat(ast))
+                }
+              });
+              this.in_function_scope(true, params, |this| {
+                for param in ctor.params(&this.ast).iter() {
+                  let param = this.ast.get_node_in_sub_range(param);
+                  let param = param
+                    .as_param()
+                    .expect("should only contain param")
+                    .pat(&this.ast);
+                  this.walk_pattern(param);
+                }
+
+                if let Some(body) = ctor.body(&this.ast) {
+                  this.detect_mode(body.stmts(&this.ast));
+                  let prev = this.prev_statement;
+                  this.pre_walk_statement(Statement::Block(body));
+                  this.prev_statement = prev;
+                  this.walk_statement(Statement::Block(body));
+                }
+              });
+
+              this.top_level_scope = was_top_level;
+            }
+            ClassMember::Method(method) => {
+              if method.key(&this.ast).is_computed() {
+                // webpack use `walk_expression`, `walk_expression` just walk down the ast, so it's ok to use `walk_prop_name`
+                this.walk_prop_name(method.key(&this.ast));
+              }
+
+              if this
+                .plugin_drive
+                .clone()
+                .class_body_value(
+                  this,
+                  class_element,
+                  method.span(&this.ast),
+                  class_decl_or_expr,
+                )
+                .unwrap_or_default()
+              {
+                continue;
+              }
+
+              let was_top_level = this.top_level_scope;
+              let params = method
+                .function(&this.ast)
+                .params(&this.ast)
+                .iter()
+                .map(|p| move |ast: &Ast| Some(ast.get_node_in_sub_range(p).pat(ast)));
+              this.top_level_scope = TopLevelScope::False;
+              this.in_function_scope(true, params, |this| {
+                this.walk_function(method.function(&this.ast))
+              });
+              this.top_level_scope = was_top_level;
+            }
+            ClassMember::PrivateMethod(method) => {
+              if this
+                .plugin_drive
+                .clone()
+                .class_body_value(
+                  this,
+                  class_element,
+                  method.span(&this.ast),
+                  class_decl_or_expr,
+                )
+                .unwrap_or_default()
+              {
+                continue;
+              }
+              // method.key is always not computed in private method, so we don't need to walk it
+              let was_top_level = this.top_level_scope;
+              let params = method
+                .function(&this.ast)
+                .params(&this.ast)
+                .iter()
+                .map(|p| move |ast: &Ast| Some(ast.get_node_in_sub_range(p).pat(ast)));
+              this.top_level_scope = TopLevelScope::False;
+              this.in_function_scope(true, params, |this| {
+                this.walk_function(method.function(&this.ast))
+              });
+              this.top_level_scope = was_top_level;
+            }
+            ClassMember::ClassProp(prop) => {
+              if prop.key(&this.ast).is_computed() {
+                // webpack use `walk_expression`, `walk_expression` just walk down the ast, so it's ok to use `walk_prop_name`
+                this.walk_prop_name(prop.key(&this.ast));
+              }
+              if let Some(value) = prop.value(&this.ast)
+                && !this
+                  .plugin_drive
+                  .clone()
+                  .class_body_value(
+                    this,
+                    class_element,
+                    value.span(&this.ast),
+                    class_decl_or_expr,
+                  )
+                  .unwrap_or_default()
+              {
+                let was_top_level = this.top_level_scope;
+                this.top_level_scope = TopLevelScope::False;
+                this.walk_expression(value);
+                this.top_level_scope = was_top_level;
+              }
+            }
+            ClassMember::PrivateProp(prop) => {
+              // prop.key is always not computed in private prop, so we don't need to walk it
+              if let Some(value) = prop.value(&this.ast)
+                && !this
+                  .plugin_drive
+                  .clone()
+                  .class_body_value(
+                    this,
+                    class_element,
+                    value.span(&this.ast),
+                    class_decl_or_expr,
+                  )
+                  .unwrap_or_default()
+              {
+                let was_top_level = this.top_level_scope;
+                this.top_level_scope = TopLevelScope::False;
+                this.walk_expression(value);
+                this.top_level_scope = was_top_level;
+              }
+            }
+            ClassMember::StaticBlock(block) => {
+              let was_top_level = this.top_level_scope;
+              this.top_level_scope = TopLevelScope::False;
+              this.walk_block_statement(block.body(&this.ast));
+              this.top_level_scope = was_top_level;
+            }
+            ClassMember::Empty(_) => {}
+            ClassMember::AutoAccessor(_) => {}
+          };
         }
-
-        match class_element {
-          ClassMember::Constructor(ctor) => {
-            if ctor.key(&this.ast).is_computed() {
-              // webpack use `walk_expression`, `walk_expression` just walk down the ast, so it's ok to use `walk_prop_name`
-              this.walk_prop_name(ctor.key(&this.ast));
-            }
-
-            if this
-              .plugin_drive
-              .clone()
-              .class_body_value(
-                this,
-                class_element,
-                ctor.span(&this.ast),
-                class_decl_or_expr,
-              )
-              .unwrap_or_default()
-            {
-              continue;
-            }
-
-            let was_top_level = this.top_level_scope;
-            this.top_level_scope = TopLevelScope::False;
-
-            let params = ctor
-              .params(&this.ast)
-              .iter()
-              .map(|p| {
-                let p = this.ast.get_node_in_sub_range(p);
-                let p = p.as_param().expect("should only contain param");
-                p.pat(&this.ast)
-              })
-              .collect_vec();
-            this.in_function_scope(true, params.clone().into_iter(), |this| {
-              for param in params {
-                this.walk_pattern(param)
-              }
-
-              if let Some(body) = ctor.body(&this.ast) {
-                this.detect_mode(body.stmts(&this.ast));
-                let prev = this.prev_statement;
-                this.pre_walk_statement(Statement::Block(body));
-                this.prev_statement = prev;
-                this.walk_statement(Statement::Block(body));
-              }
-            });
-
-            this.top_level_scope = was_top_level;
-          }
-          ClassMember::Method(method) => {
-            if method.key(&this.ast).is_computed() {
-              // webpack use `walk_expression`, `walk_expression` just walk down the ast, so it's ok to use `walk_prop_name`
-              this.walk_prop_name(method.key(&this.ast));
-            }
-
-            if this
-              .plugin_drive
-              .clone()
-              .class_body_value(
-                this,
-                class_element,
-                method.span(&this.ast),
-                class_decl_or_expr,
-              )
-              .unwrap_or_default()
-            {
-              continue;
-            }
-
-            let was_top_level = this.top_level_scope;
-            let params = method
-              .function(&this.ast)
-              .params(&this.ast)
-              .iter()
-              .map(|p| this.ast.get_node_in_sub_range(p).pat(&this.ast))
-              .collect_vec();
-            this.top_level_scope = TopLevelScope::False;
-            this.in_function_scope(true, params.into_iter(), |this| {
-              this.walk_function(method.function(&this.ast))
-            });
-            this.top_level_scope = was_top_level;
-          }
-          ClassMember::PrivateMethod(method) => {
-            if this
-              .plugin_drive
-              .clone()
-              .class_body_value(
-                this,
-                class_element,
-                method.span(&this.ast),
-                class_decl_or_expr,
-              )
-              .unwrap_or_default()
-            {
-              continue;
-            }
-            // method.key is always not computed in private method, so we don't need to walk it
-            let was_top_level = this.top_level_scope;
-            let params = method
-              .function(&this.ast)
-              .params(&this.ast)
-              .iter()
-              .map(|p| this.ast.get_node_in_sub_range(p).pat(&this.ast))
-              .collect_vec();
-            this.top_level_scope = TopLevelScope::False;
-            this.in_function_scope(true, params.into_iter(), |this| {
-              this.walk_function(method.function(&this.ast))
-            });
-            this.top_level_scope = was_top_level;
-          }
-          ClassMember::ClassProp(prop) => {
-            if prop.key(&this.ast).is_computed() {
-              // webpack use `walk_expression`, `walk_expression` just walk down the ast, so it's ok to use `walk_prop_name`
-              this.walk_prop_name(prop.key(&this.ast));
-            }
-            if let Some(value) = prop.value(&this.ast)
-              && !this
-                .plugin_drive
-                .clone()
-                .class_body_value(
-                  this,
-                  class_element,
-                  value.span(&this.ast),
-                  class_decl_or_expr,
-                )
-                .unwrap_or_default()
-            {
-              let was_top_level = this.top_level_scope;
-              this.top_level_scope = TopLevelScope::False;
-              this.walk_expression(value);
-              this.top_level_scope = was_top_level;
-            }
-          }
-          ClassMember::PrivateProp(prop) => {
-            // prop.key is always not computed in private prop, so we don't need to walk it
-            if let Some(value) = prop.value(&this.ast)
-              && !this
-                .plugin_drive
-                .clone()
-                .class_body_value(
-                  this,
-                  class_element,
-                  value.span(&this.ast),
-                  class_decl_or_expr,
-                )
-                .unwrap_or_default()
-            {
-              let was_top_level = this.top_level_scope;
-              this.top_level_scope = TopLevelScope::False;
-              this.walk_expression(value);
-              this.top_level_scope = was_top_level;
-            }
-          }
-          ClassMember::StaticBlock(block) => {
-            let was_top_level = this.top_level_scope;
-            this.top_level_scope = TopLevelScope::False;
-            this.walk_block_statement(block.body(&this.ast));
-            this.top_level_scope = was_top_level;
-          }
-          ClassMember::Empty(_) => {}
-          ClassMember::AutoAccessor(_) => {}
-        };
-      }
-    });
+      },
+    );
   }
 }
 

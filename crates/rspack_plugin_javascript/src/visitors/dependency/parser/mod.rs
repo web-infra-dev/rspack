@@ -1108,13 +1108,16 @@ impl<'parser> JavascriptParser<'parser> {
     }
   }
 
-  fn enter_patterns<I, F>(&mut self, patterns: I, on_ident: F)
+  fn enter_patterns<I, F, P>(&mut self, patterns: I, on_ident: F)
   where
     F: FnOnce(&mut Self, Ident) + Copy,
-    I: Iterator<Item = Pat>,
+    P: FnOnce(&Ast) -> Option<Pat>,
+    I: Iterator<Item = P>,
   {
     for pattern in patterns {
-      self.enter_pattern(pattern, on_ident);
+      if let Some(pattern) = pattern(&self.ast) {
+        self.enter_pattern(pattern, on_ident);
+      }
     }
   }
 
