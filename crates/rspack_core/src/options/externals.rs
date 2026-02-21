@@ -5,7 +5,7 @@ use rspack_error::Result;
 use rspack_regex::RspackRegex;
 use rustc_hash::FxHashMap as HashMap;
 
-use crate::{ResolveOptionsWithDependencyType, ResolverFactory};
+use crate::{Context, DependencyCategory, ResolveOptionsWithDependencyType, ResolverFactory};
 
 pub type Externals = Vec<ExternalItem>;
 
@@ -26,8 +26,8 @@ pub struct ContextInfo {
 
 pub struct ExternalItemFnCtx {
   pub request: String,
-  pub context: String,
-  pub dependency_type: String,
+  pub context: Context,
+  pub dependency_type: DependencyCategory,
   pub context_info: ContextInfo,
   pub resolve_options_with_dependency_type: ResolveOptionsWithDependencyType,
   pub resolver_factory: Arc<ResolverFactory>,
