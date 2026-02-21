@@ -244,27 +244,33 @@ impl AMDRequireDependenciesBlockParserPlugin {
               .function(&parser.ast)
               .params(&parser.ast)
               .iter()
-              .map(|i| parser.ast.get_node_in_sub_range(i))
-              .filter(|param| !is_reserved_param(&parser.ast, param.pat(&parser.ast)))
-              .map(|param| param.pat(&parser.ast))
-              .collect_vec();
-            parser.in_function_scope(true, params.into_iter(), |parser| {
+              .map(|param| {
+                move |ast: &Ast| {
+                  let param = ast.get_node_in_sub_range(param);
+                  if is_reserved_param(ast, param.pat(ast)) {
+                    return None;
+                  }
+                  Some(param.pat(ast))
+                }
+              });
+            parser.in_function_scope(true, params, |parser| {
               parser.walk_statement(Statement::Block(body));
             });
           }
         }
         Either::Right(arrow) => {
-          let params = arrow
-            .params(&parser.ast)
-            .iter()
-            .map(|i| parser.ast.get_node_in_sub_range(i))
-            .filter(|param| !is_reserved_param(&parser.ast, *param))
-            .collect_vec();
-          parser.in_function_scope(true, params.into_iter(), |parser| {
-            match arrow.body(&parser.ast) {
-              BlockStmtOrExpr::BlockStmt(body) => parser.walk_statement(Statement::Block(body)),
-              BlockStmtOrExpr::Expr(expr) => parser.walk_expression(expr),
+          let params = arrow.params(&parser.ast).iter().map(|param| {
+            move |ast: &Ast| {
+              let param = ast.get_node_in_sub_range(param);
+              if is_reserved_param(ast, param) {
+                return None;
+              }
+              Some(param)
             }
+          });
+          parser.in_function_scope(true, params, |parser| match arrow.body(&parser.ast) {
+            BlockStmtOrExpr::BlockStmt(body) => parser.walk_statement(Statement::Block(body)),
+            BlockStmtOrExpr::Expr(expr) => parser.walk_expression(expr),
           });
         }
       }
@@ -323,7 +329,7 @@ impl AMDRequireDependenciesBlockParserPlugin {
     if call_expr.args(&parser.ast).len() == 1 {
       let mut block_deps: Vec<BoxDependency> = vec![dep];
       let mut result = None;
-      parser.in_function_scope(true, iter::empty(), |parser| {
+      parser.in_function_scope(true, iter::empty::<fn(&Ast) -> Option<Pat>>(), |parser| {
         result = self.process_array(parser, &mut block_deps, call_expr, &param);
       });
       if result.is_some_and(|x| x) {
@@ -345,7 +351,7 @@ impl AMDRequireDependenciesBlockParserPlugin {
       let mut block_deps: Vec<BoxDependency> = vec![];
 
       let mut result = None;
-      parser.in_function_scope(true, iter::empty(), |parser| {
+      parser.in_function_scope(true, iter::empty::<fn(&Ast) -> Option<Pat>>(), |parser| {
         result = self.process_array(parser, &mut block_deps, call_expr, &param);
       });
 
