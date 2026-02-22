@@ -23,6 +23,7 @@ use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_javascript_compiler::JavaScriptCompiler;
 use rspack_plugin_javascript::{ExtractedCommentsInfo, JavascriptModulesChunkHash, JsPlugin};
+use rspack_regex::RspackRegex;
 use rspack_util::asset_condition::AssetConditions;
 use swc_config::types::BoolOrDataConfig;
 use swc_core::{
@@ -103,20 +104,22 @@ pub enum OptionWrapper<T: std::fmt::Debug + Hash> {
 #[derive(Debug)]
 pub struct ExtractComments {
   pub condition: String,
+  pub condition_flags: String,
   pub banner: OptionWrapper<String>,
 }
 
 impl Hash for ExtractComments {
   fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
     self.condition.as_str().hash(state);
+    self.condition_flags.as_str().hash(state);
     self.banner.hash(state);
   }
 }
 
 #[derive(Debug)]
-struct NormalizedExtractComments<'a> {
+struct NormalizedExtractComments {
   filename: String,
-  condition: &'a Regex,
+  condition: RspackRegex,
   banner: Option<String>,
 }
 
@@ -167,10 +170,17 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let extract_comments_condition = options
     .extract_comments
     .as_ref()
-    .map(|extract_comment| extract_comment.condition.as_ref())
-    .map(|condition| {
-      Regex::new(condition)
-        .unwrap_or_else(|_| panic!("`{condition}` is invalid extractComments condition"))
+    .map(|extract_comment| {
+      RspackRegex::with_flags(
+        extract_comment.condition.as_ref(),
+        extract_comment.condition_flags.as_ref(),
+      )
+      .unwrap_or_else(|_| {
+        panic!(
+          "`/{}/{}` is invalid extractComments condition",
+          extract_comment.condition, extract_comment.condition_flags
+        )
+      })
     });
   let enter_span = tracing::Span::current();
 
@@ -233,7 +243,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           };
           NormalizedExtractComments {
             filename: comments_filename,
-            condition: extract_comments_condition.as_ref().expect("must exists"),
+            condition: extract_comments_condition.as_ref().expect("must exist").clone(),
             banner
           }
         });
@@ -248,7 +258,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 
             leading_trivial.iter().for_each(|(_, comments)| {
               comments.iter().for_each(|c| {
-                if extract_comments.condition.is_match(&c.text) {
+                if extract_comments.condition.test(&c.text) {
                   let comment = match c.kind {
                     CommentKind::Line => {
                       format!("//{}", c.text)
@@ -265,7 +275,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
             });
             trailing_trivial.iter().for_each(|(_, comments)| {
               comments.iter().for_each(|c| {
-                if extract_comments.condition.is_match(&c.text) {
+                if extract_comments.condition.test(&c.text) {
                   let comment = match c.kind {
                     CommentKind::Line => {
                       format!("//{}", c.text)
