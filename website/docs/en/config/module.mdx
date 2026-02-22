@@ -1215,9 +1215,18 @@ export default {
 
 <ApiMeta addedVersion="1.0.0-alpha.6" />
 
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+<PropertyType
+  type="boolean | 'preserve-unknown'"
+  defaultValueList={[{ defaultValue: 'true' }]}
+/>
 
 Enable or disable evaluating `import.meta`.
+
+When using [ESM output](/guide/features/esm), default value is set to `'preserve-unknown'`, otherwise `true`.
+
+- `"preserve-unknown"`: Unknown `import.meta` properties are determined at runtime instead of being statically analyzed at compile time.
+- `true`: All `import.meta` properties are statically analyzed at compile time.
+- `false`: All `import.meta` properties are determined at runtime
 
 ```js title="rspack.config.mjs"
 export default {

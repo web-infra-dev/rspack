@@ -2387,7 +2387,7 @@ export interface RawJavascriptParserOptions {
   reexportExportsPresence?: string
   worker?: Array<string>
   overrideStrict?: string
-  importMeta?: boolean
+  importMeta?: string
   /**
    * This option is experimental in Rspack only and subject to change or be removed anytime.
    * @experimental

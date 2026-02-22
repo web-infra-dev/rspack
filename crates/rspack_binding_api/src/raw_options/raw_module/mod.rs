@@ -19,7 +19,7 @@ use rspack_core::{
   CssAutoGeneratorOptions, CssAutoParserOptions, CssGeneratorOptions, CssModuleGeneratorOptions,
   CssModuleParserOptions, CssParserImport, CssParserImportContext, CssParserOptions,
   DescriptionData, DynamicImportFetchPriority, DynamicImportMode, ExportPresenceMode, FuncUseCtx,
-  GeneratorOptions, GeneratorOptionsMap, JavascriptParserCommonjsExportsOption,
+  GeneratorOptions, GeneratorOptionsMap, ImportMeta, JavascriptParserCommonjsExportsOption,
   JavascriptParserCommonjsOptions, JavascriptParserOptions, JavascriptParserOrder,
   JavascriptParserUrl, JsonGeneratorOptions, JsonParserOptions, ModuleNoParseRule,
   ModuleNoParseRules, ModuleNoParseTestFn, ModuleOptions, ModuleRule, ModuleRuleEffect,
@@ -287,7 +287,7 @@ pub struct RawJavascriptParserOptions {
   pub reexport_exports_presence: Option<String>,
   pub worker: Option<Vec<String>>,
   pub override_strict: Option<String>,
-  pub import_meta: Option<bool>,
+  pub import_meta: Option<String>,
   /// This option is experimental in Rspack only and subject to change or be removed anytime.
   /// @experimental
   pub require_alias: Option<bool>,
@@ -365,7 +365,7 @@ impl From<RawJavascriptParserOptions> for JavascriptParserOptions {
       override_strict: value
         .override_strict
         .map(|e| OverrideStrict::from(e.as_str())),
-      import_meta: value.import_meta,
+      import_meta: value.import_meta.map(|e| ImportMeta::from(e.as_str())),
       require_alias: value.require_alias,
       require_as_expression: value.require_as_expression,
       require_dynamic: value.require_dynamic,

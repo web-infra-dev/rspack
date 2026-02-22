@@ -1654,7 +1654,7 @@ CompilerOptions {
                             ),
                             override_strict: None,
                             import_meta: Some(
-                                true,
+                                Auto,
                             ),
                             require_alias: Some(
                                 false,
