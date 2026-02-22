@@ -91,6 +91,14 @@ impl ChunkGraphModule {
 }
 
 impl ChunkGraph {
+  pub fn modules(&self) -> IdentifierSet {
+    self
+      .chunk_graph_module_by_module_identifier
+      .keys()
+      .copied()
+      .collect()
+  }
+
   pub fn add_module(&mut self, module_identifier: ModuleIdentifier) {
     self
       .chunk_graph_module_by_module_identifier

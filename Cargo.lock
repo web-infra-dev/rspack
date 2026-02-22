@@ -4430,6 +4430,7 @@ version = "0.100.0-beta.2"
 dependencies = [
  "async-trait",
  "atomic_refcell",
+ "futures",
  "rayon",
  "regex",
  "rspack_cacheable",
@@ -4443,6 +4444,7 @@ dependencies = [
  "rspack_plugin_javascript",
  "rspack_plugin_rslib",
  "rspack_plugin_runtime",
+ "rspack_plugin_split_chunks",
  "rspack_util",
  "serde",
  "serde_json",

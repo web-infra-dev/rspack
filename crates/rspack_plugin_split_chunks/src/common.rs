@@ -5,8 +5,9 @@ use std::{
 
 use derive_more::Debug;
 use futures::future::BoxFuture;
+use rayon::prelude::*;
 use rspack_collections::{IdentifierMap, UkeySet};
-use rspack_core::{ChunkUkey, Compilation, Module, SourceType};
+use rspack_core::{ChunkUkey, Compilation, Module, ModuleIdentifier, SourceType};
 use rspack_error::Result;
 use rspack_regex::RspackRegex;
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -200,6 +201,26 @@ impl DerefMut for SplitChunkSizes {
   }
 }
 
+pub fn get_module_sizes<T: ParallelIterator<Item = ModuleIdentifier>>(
+  all_modules: T,
+  compilation: &Compilation,
+) -> ModuleSizes {
+  let module_graph = compilation.get_module_graph();
+  all_modules
+    .map(|module| {
+      let module = module_graph
+        .module_by_identifier(&module)
+        .expect("should have module");
+      let sizes = module
+        .source_types(module_graph)
+        .iter()
+        .map(|ty| (*ty, module.size(Some(ty), Some(compilation))))
+        .collect::<FxHashMap<_, _>>();
+      (module.identifier(), sizes)
+    })
+    .collect::<IdentifierMap<_>>()
+}
+
 #[derive(Debug)]
 pub struct FallbackCacheGroup {
   #[debug(skip)]
@@ -210,5 +231,5 @@ pub struct FallbackCacheGroup {
   pub automatic_name_delimiter: String,
 }
 
-pub(crate) type ModuleSizes = IdentifierMap<FxHashMap<SourceType, f64>>;
+pub type ModuleSizes = IdentifierMap<FxHashMap<SourceType, f64>>;
 pub(crate) type ModuleChunks = IdentifierMap<UkeySet<ChunkUkey>>;

@@ -63,5 +63,8 @@
     "tokio",
     "ukey",
     "Ukey"
-  ]
+  ],
+  "[rust]": {
+    "editor.defaultFormatter": "rust-lang.rust-analyzer"
+  }
 }

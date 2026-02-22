@@ -11,17 +11,6 @@ repository.workspace    = true
 version.workspace       = true
 
 [dependencies]
-async-trait    = { workspace = true }
-atomic_refcell = { workspace = true }
-rayon          = { workspace = true }
-regex          = { workspace = true }
-serde          = { workspace = true }
-serde_json     = { workspace = true }
-sugar_path     = { workspace = true }
-swc_core       = { workspace = true, features = ["swc_ecma_transforms_base"] }
-tokio          = { workspace = true }
-tracing        = { workspace = true }
-
 rspack_cacheable           = { workspace = true }
 rspack_collections         = { workspace = true }
 rspack_core                = { workspace = true }
@@ -33,7 +22,20 @@ rspack_javascript_compiler = { workspace = true }
 rspack_plugin_javascript   = { workspace = true }
 rspack_plugin_rslib        = { workspace = true }
 rspack_plugin_runtime      = { workspace = true }
+rspack_plugin_split_chunks = { workspace = true }
 rspack_util                = { workspace = true }
+
+async-trait    = { workspace = true }
+atomic_refcell = { workspace = true }
+futures        = { workspace = true }
+rayon          = { workspace = true }
+regex          = { workspace = true }
+serde          = { workspace = true }
+serde_json     = { workspace = true }
+sugar_path     = { workspace = true }
+swc_core       = { workspace = true, features = ["swc_ecma_transforms_base"] }
+tokio          = { workspace = true }
+tracing        = { workspace = true }
 
 [lints]
 workspace = true

@@ -12,8 +12,8 @@ use std::{borrow::Cow, hash::Hash, sync::LazyLock};
 use regex::Regex;
 use rspack_collections::{DatabaseItem, UkeyMap};
 use rspack_core::{
-  ChunkUkey, Compilation, CompilerOptions, DEFAULT_DELIMITER, Module, ModuleIdentifier, SourceType,
-  incremental::Mutation,
+  BoxModule, ChunkUkey, Compilation, CompilerOptions, DEFAULT_DELIMITER, Module, ModuleIdentifier,
+  SourceType, incremental::Mutation,
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_hash::{RspackHash, RspackHashDigest};
@@ -255,21 +255,15 @@ fn get_key(module: &dyn Module, delimiter: &str, compilation: &Compilation) -> S
 
 fn deterministic_grouping_for_modules(
   compilation: &Compilation,
-  chunk: &ChunkUkey,
+  items: &[&BoxModule],
   allow_max_size: &SplitChunkSizes,
   min_size: &SplitChunkSizes,
   delimiter: &str,
 ) -> Vec<Group> {
   let mut results: Vec<Group> = Default::default();
-  let module_graph = compilation.get_module_graph();
-
-  let items = compilation
-    .build_chunk_graph_artifact
-    .chunk_graph
-    .get_chunk_modules(chunk, module_graph);
 
   let mut nodes = items
-    .into_iter()
+    .iter()
     .map(|module| {
       let module: &dyn Module = module.as_ref();
 
@@ -598,9 +592,15 @@ impl SplitChunksPlugin {
           min_size,
           automatic_name_delimiter,
         } = &info;
+        let module_graph = compilation_ref.get_module_graph();
+
+        let items = compilation_ref
+          .build_chunk_graph_artifact
+          .chunk_graph
+          .get_chunk_modules(chunk, module_graph);
         let results = deterministic_grouping_for_modules(
           compilation_ref,
-          chunk,
+          &items,
           allow_max_size,
           min_size,
           automatic_name_delimiter,

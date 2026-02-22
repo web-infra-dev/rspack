@@ -22,10 +22,6 @@ module.exports = {
   optimization: {
     splitChunks: {
       cacheGroups: {
-        cjs: {
-          test: /cjs\.js/,
-          name: 'cjs'
-        },
         json: {
           test: /index\.json/,
           name: 'json'

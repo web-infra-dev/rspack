@@ -2186,6 +2186,7 @@ export interface RawEnvironment {
 
 export interface RawEsmLibraryPlugin {
   preserveModules?: string
+  splitChunks?: RawSplitChunksOptions
 }
 
 export interface RawEvalDevToolModulePluginOptions {

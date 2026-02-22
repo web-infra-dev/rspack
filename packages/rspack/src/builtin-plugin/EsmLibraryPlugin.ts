@@ -1,8 +1,12 @@
 import { BuiltinPluginName } from '@rspack/binding';
 import type { Compiler } from '../Compiler';
-import type { RspackOptionsNormalized } from '../config';
+import type {
+  OptimizationSplitChunksOptions,
+  RspackOptionsNormalized,
+} from '../config';
 import WebpackError from '../lib/WebpackError';
 import { RemoveDuplicateModulesPlugin } from './RemoveDuplicateModulesPlugin';
+import { toRawSplitChunksOptions } from './SplitChunksPlugin';
 
 export function applyLimits(options: RspackOptionsNormalized) {
   // concatenateModules is not supported in ESM library mode, it has its own scope hoist algorithm
@@ -13,6 +17,9 @@ export function applyLimits(options: RspackOptionsNormalized) {
 
   // chunk rendering is handled by EsmLibraryPlugin
   options.output.chunkFormat = false;
+
+  // mark output is module
+  options.output.module = true;
 
   if (options.output.chunkLoading && options.output.chunkLoading !== 'import') {
     options.output.chunkLoading = 'import';
@@ -40,14 +47,21 @@ export function applyLimits(options: RspackOptionsNormalized) {
 
 export class EsmLibraryPlugin {
   static PLUGIN_NAME = 'EsmLibraryPlugin';
-  options?: { preserveModules?: string };
+  options: {
+    preserveModules?: string;
+    splitChunks?: OptimizationSplitChunksOptions | false;
+  };
 
-  constructor(options?: { preserveModules?: string }) {
-    this.options = options;
+  constructor(options?: {
+    preserveModules?: string;
+    splitChunks?: OptimizationSplitChunksOptions | false;
+  }) {
+    this.options = options ?? {};
   }
 
   apply(compiler: Compiler) {
     applyLimits(compiler.options);
+
     new RemoveDuplicateModulesPlugin().apply(compiler);
 
     let err;
@@ -60,7 +74,11 @@ export class EsmLibraryPlugin {
     compiler.__internal__registerBuiltinPlugin({
       name: BuiltinPluginName.EsmLibraryPlugin,
       options: {
-        preserveModules: this.options?.preserveModules,
+        preserveModules: this.options.preserveModules,
+        splitChunks: toRawSplitChunksOptions(
+          this.options.splitChunks ?? false,
+          compiler,
+        ),
       },
     });
   }

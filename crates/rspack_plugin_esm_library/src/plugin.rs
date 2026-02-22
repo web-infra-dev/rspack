@@ -28,6 +28,7 @@ use rspack_plugin_javascript::{
   dependency::ImportDependencyTemplate, parser_and_generator::JavaScriptParserAndGenerator,
 };
 use rspack_plugin_rslib::dyn_import_external::cutout_dyn_import_external;
+use rspack_plugin_split_chunks::CacheGroup;
 use rspack_util::fx_hash::FxHashMap;
 use sugar_path::SugarPath;
 use tokio::sync::RwLock;
@@ -44,6 +45,8 @@ pub static RSPACK_ESM_RUNTIME_CHUNK: &str = "RSPACK_ESM_RUNTIME";
 #[derive(Debug, Default)]
 pub struct EsmLibraryPlugin {
   pub(crate) preserve_modules: Option<PathBuf>,
+  pub(crate) split_chunks: Option<Vec<CacheGroup>>,
+
   // module instance will hold this map till compile done, we can't mutate it,
   // normal concatenateModule just read the info from it
   // the Arc here is to for module_codegen API, which needs to render module in parallel
@@ -56,9 +59,10 @@ pub struct EsmLibraryPlugin {
 }
 
 impl EsmLibraryPlugin {
-  pub fn new(preserve_modules: Option<PathBuf>) -> Self {
+  pub fn new(preserve_modules: Option<PathBuf>, split_chunks: Option<Vec<CacheGroup>>) -> Self {
     Self::new_inner(
       preserve_modules,
+      split_chunks,
       Default::default(),
       Default::default(),
       Default::default(),
@@ -491,9 +495,11 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
     if !errors.is_empty() {
       compilation.extend_diagnostics(errors);
     }
-  } else {
-    ensure_entry_exports(compilation);
+  } else if let Some(cache_groups) = &self.split_chunks {
+    crate::split_chunks::split(cache_groups, compilation).await?;
   }
+
+  ensure_entry_exports(compilation);
 
   Ok(None)
 }
