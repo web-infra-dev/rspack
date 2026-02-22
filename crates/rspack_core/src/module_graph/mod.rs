@@ -136,12 +136,12 @@ impl ModuleGraph {
   }
 
   #[inline]
-  pub fn modules_iter(&self) -> impl Iterator<Item = (&ModuleIdentifier, &BoxModule)> {
+  pub fn modules(&self) -> impl Iterator<Item = (&ModuleIdentifier, &BoxModule)> {
     self.inner.modules.iter()
   }
 
   #[inline]
-  pub fn modules_par_iter(
+  pub fn modules_par(
     &self,
   ) -> impl rayon::prelude::ParallelIterator<Item = (&ModuleIdentifier, &BoxModule)> {
     self.inner.modules.par_iter()
@@ -153,7 +153,7 @@ impl ModuleGraph {
   }
 
   #[inline]
-  pub fn module_graph_modules_iter(
+  pub fn module_graph_modules(
     &self,
   ) -> impl Iterator<Item = (&ModuleIdentifier, &ModuleGraphModule)> {
     self.inner.module_graph_modules.iter()
@@ -556,7 +556,7 @@ impl ModuleGraph {
     &self.inner.blocks
   }
 
-  pub fn dependencies_iter(&self) -> impl Iterator<Item = (&DependencyId, &BoxDependency)> {
+  pub fn dependencies(&self) -> impl Iterator<Item = (&DependencyId, &BoxDependency)> {
     self.inner.dependencies.iter()
   }
 

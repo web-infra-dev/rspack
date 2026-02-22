@@ -271,7 +271,7 @@ impl Cache for PersistentCache {
           for (module, _) in compilation
             .build_module_graph_artifact
             .get_module_graph()
-            .modules_iter()
+            .modules()
           {
             compilation.exports_info_artifact.new_exports_info(*module);
           }

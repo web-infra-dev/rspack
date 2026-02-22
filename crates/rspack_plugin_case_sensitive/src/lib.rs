@@ -61,7 +61,7 @@ async fn seal(&self, compilation: &mut Compilation) -> Result<()> {
     HashMap::with_capacity_and_hasher(module_graph.modules_len(), FxBuildHasher);
   let mut conflict: HashMap<String, IdentifierSet> = HashMap::default();
 
-  for (_, module) in module_graph.modules_iter() {
+  for (_, module) in module_graph.modules() {
     // Ignore `data:` URLs, because it's not a real path
     if let Some(normal_module) = module.as_normal_module()
       && normal_module

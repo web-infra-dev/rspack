@@ -62,12 +62,12 @@ impl<'a> ArtifactComparator<'a> {
     // Get all modules from both graphs
     let modules1 = self
       .mg1
-      .modules_iter()
+      .modules()
       .map(|(id, module)| (*id, module))
       .collect::<HashMap<_, _>>();
     let modules2 = self
       .mg2
-      .modules_iter()
+      .modules()
       .map(|(id, module)| (*id, module))
       .collect::<HashMap<_, _>>();
 

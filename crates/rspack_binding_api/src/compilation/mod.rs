@@ -244,7 +244,7 @@ impl JsCompilation {
     Ok(
       compilation
         .get_module_graph()
-        .module_graph_modules_iter()
+        .module_graph_modules()
         .map(|(_, mgm)| mgm)
         .flat_map(|item| item.optimization_bailout.clone())
         .map(|item| JsStatsOptimizationBailout { inner: item })

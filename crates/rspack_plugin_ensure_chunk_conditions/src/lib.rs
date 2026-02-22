@@ -20,7 +20,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
   let mut source_module_chunks = HashMap::default();
   compilation
     .get_module_graph()
-    .modules_iter()
+    .modules()
     .for_each(|(module_id, module)| {
       let source_chunks = compilation
         .build_chunk_graph_artifact

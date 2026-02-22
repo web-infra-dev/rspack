@@ -162,7 +162,7 @@ async fn module_ids(
   }
 
   let modules: IdentifierSet = module_graph
-    .modules_iter()
+    .modules()
     .filter(|&(module_identifier, module)| {
       let not_used =
         if let Some(module_id) = ChunkGraph::get_module_id(&module_ids, *module_identifier) {

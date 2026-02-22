@@ -55,7 +55,7 @@ pub fn get_used_module_ids_and_modules_with_artifact(
 
   compilation
     .get_module_graph()
-    .modules_iter()
+    .modules()
     .map(|(_, module)| module)
     .filter(|m| m.need_id())
     .for_each(|module| {

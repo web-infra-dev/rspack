@@ -104,7 +104,7 @@ async fn finish_modules(
   }
 
   let module_graph = compilation.get_module_graph();
-  for (module_identifier, module) in module_graph.modules_iter() {
+  for (module_identifier, module) in module_graph.modules() {
     if module
       .as_ref()
       .as_any()

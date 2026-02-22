@@ -268,7 +268,7 @@ async fn collect_json_sizes(&self, compilation: &mut Compilation) -> Result<Opti
 
   let module_graph = compilation.get_module_graph();
   let modules = module_graph
-    .modules_iter()
+    .modules()
     .map(|(id, module)| (*id, module))
     .collect::<IdentifierMap<_>>();
 
@@ -294,7 +294,7 @@ async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<
   let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
   let chunk_by_ukey = &compilation.build_chunk_graph_artifact.chunk_by_ukey;
   let modules = module_graph
-    .modules_iter()
+    .modules()
     .map(|(id, module)| (*id, module))
     .collect::<IdentifierMap<_>>();
 
@@ -418,7 +418,7 @@ async fn module_ids(
   let hooks = RsdoctorPlugin::get_compilation_hooks(compilation.id());
   let module_graph = compilation.get_module_graph();
   let modules = module_graph
-    .modules_iter()
+    .modules()
     .map(|(id, module)| (*id, module))
     .collect::<IdentifierMap<_>>();
   let rsd_module_ids = collect_module_ids(
@@ -459,7 +459,7 @@ async fn after_code_generation(
   let hooks = RsdoctorPlugin::get_compilation_hooks(compilation.id());
   let module_graph = compilation.get_module_graph();
   let modules = module_graph
-    .modules_iter()
+    .modules()
     .map(|(id, module)| (*id, module))
     .collect::<IdentifierMap<_>>();
   let rsd_module_original_sources = collect_module_original_sources(

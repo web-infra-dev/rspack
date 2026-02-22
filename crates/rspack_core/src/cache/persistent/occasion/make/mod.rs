@@ -82,7 +82,7 @@ impl MakeOccasion {
     let mut context_dep = FileCounter::default();
     let mut missing_dep = FileCounter::default();
     let mut build_dep = FileCounter::default();
-    for (mid, module) in mg.modules_iter() {
+    for (mid, module) in mg.modules() {
       let build_info = module.build_info();
       let resource_id = ResourceId::from(*mid);
       file_dep.add_files(&resource_id, &build_info.file_dependencies);
@@ -96,7 +96,7 @@ impl MakeOccasion {
 
     // recovery make_failed_dependencies
     let mut make_failed_dependencies = FxHashSet::default();
-    for (dep_id, dep) in mg.dependencies_iter() {
+    for (dep_id, dep) in mg.dependencies() {
       if let Some(info) = FactorizeInfo::get_from(dep) {
         if !info.is_success() {
           make_failed_dependencies.insert(*dep_id);
