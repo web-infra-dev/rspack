@@ -15,8 +15,8 @@ fn get_modules_needing_ids(
   let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
   compilation
     .get_module_graph()
-    .modules()
-    .values()
+    .modules_iter()
+    .map(|(_, module)| module)
     .filter(|m| {
       m.need_id()
         && ChunkGraph::get_module_id(module_ids_artifact, m.identifier()).is_none()

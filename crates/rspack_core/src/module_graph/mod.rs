@@ -3,7 +3,6 @@ pub mod rollback;
 
 use internal::try_get_module_graph_module_mut_by_identifier;
 use rayon::prelude::*;
-use rspack_collections::IdentifierMap;
 use rspack_error::Result;
 use rspack_hash::RspackHashDigest;
 use rustc_hash::FxHashMap as HashMap;
@@ -158,11 +157,6 @@ impl ModuleGraph {
     &self,
   ) -> impl Iterator<Item = (&ModuleIdentifier, &ModuleGraphModule)> {
     self.inner.module_graph_modules.iter()
-  }
-
-  /// Return an unordered iterator of modules
-  pub fn modules(&self) -> IdentifierMap<&BoxModule> {
-    self.modules_iter().map(|(k, v)| (*k, v)).collect()
   }
 
   // #[tracing::instrument(skip_all, fields(module = ?module_id))]

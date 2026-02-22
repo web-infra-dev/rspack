@@ -54,8 +54,7 @@ pub async fn preserve_modules(
   let mut errors = vec![];
   let modules = compilation
     .get_module_graph()
-    .modules()
-    .keys()
+    .modules_keys()
     .copied()
     .collect::<Vec<_>>();
 

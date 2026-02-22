@@ -183,7 +183,7 @@ fn build_server_manifest(
       Ok(())
     };
 
-  for module in module_graph.modules().values() {
+  for (_, module) in module_graph.modules_iter() {
     let module_id =
       match ChunkGraph::get_module_id(&compilation.module_ids_artifact, module.identifier()) {
         Some(id) => id,

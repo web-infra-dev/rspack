@@ -220,8 +220,8 @@ impl Stats<'_> {
     let module_graph_cache = &self.compilation.module_graph_cache_artifact;
 
     let mut modules: Vec<StatsModule> = module_graph
-      .modules()
-      .values()
+      .modules_iter()
+      .map(|(_, module)| module)
       .par_bridge()
       .map(|module| {
         self.get_module(
@@ -260,8 +260,8 @@ impl Stats<'_> {
       && let Some(executor_exports_info_artifact) = executor_exports_info_artifact
     {
       let executed_modules: Vec<StatsModule> = executor_module_graph
-        .modules()
-        .values()
+        .modules_iter()
+        .map(|(_, module)| module)
         .par_bridge()
         .map(|module| {
           self.get_module(

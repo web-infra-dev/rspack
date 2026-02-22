@@ -230,7 +230,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     let mut module_ids_by_name: HashMap<String, ModuleIdentifier> = HashMap::default();
     let mut remote_module_ids: Vec<ModuleIdentifier> = Vec::new();
     let mut container_entry_module: Option<ModuleIdentifier> = None;
-    for (_, module) in module_graph.modules() {
+    for (_, module) in module_graph.modules_iter() {
       let module_identifier = module.identifier();
       if let Some(path) = module_source_path(module, compilation) {
         let stripped = strip_ext(&path);

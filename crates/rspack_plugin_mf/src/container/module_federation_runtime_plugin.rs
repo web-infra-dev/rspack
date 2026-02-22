@@ -104,14 +104,14 @@ async fn finish_modules(
   }
 
   let module_graph = compilation.get_module_graph();
-  for (module_identifier, module) in module_graph.modules() {
+  for (module_identifier, module) in module_graph.modules_iter() {
     if module
       .as_ref()
       .as_any()
       .downcast_ref::<ContainerEntryModule>()
       .is_some()
     {
-      async_modules_artifact.insert(module_identifier);
+      async_modules_artifact.insert(*module_identifier);
     }
   }
 

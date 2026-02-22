@@ -271,9 +271,9 @@ impl Cache for PersistentCache {
           for (module, _) in compilation
             .build_module_graph_artifact
             .get_module_graph()
-            .modules()
+            .modules_iter()
           {
-            compilation.exports_info_artifact.new_exports_info(module);
+            compilation.exports_info_artifact.new_exports_info(*module);
           }
         }
         Err(err) => self.warnings.push(err.to_string()),

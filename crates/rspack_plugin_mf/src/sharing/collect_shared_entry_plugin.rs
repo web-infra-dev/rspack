@@ -103,7 +103,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let mut ordered_requests: FxHashMap<String, Vec<[String; 2]>> = FxHashMap::default();
   let mut share_scopes: FxHashMap<String, String> = FxHashMap::default();
 
-  for (_id, module) in module_graph.modules() {
+  for (_id, module) in module_graph.modules_iter() {
     let module_type = module.module_type();
     if !matches!(module_type, rspack_core::ModuleType::ConsumeShared) {
       continue;
