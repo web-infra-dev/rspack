@@ -74,9 +74,8 @@ impl ModernModuleLibraryPlugin {
     let module_graph = compilation.get_module_graph();
 
     let module_ids: Vec<_> = module_graph
-      .module_graph_modules()
-      .keys()
-      .copied()
+      .module_graph_modules_iter()
+      .map(|(id, _)| *id)
       .collect();
 
     let mut concatenated_module_ids = HashSet::default();

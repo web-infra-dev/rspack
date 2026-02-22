@@ -165,13 +165,6 @@ impl ModuleGraph {
     self.modules_iter().map(|(k, v)| (*k, v)).collect()
   }
 
-  pub fn module_graph_modules(&self) -> IdentifierMap<&ModuleGraphModule> {
-    self
-      .module_graph_modules_iter()
-      .map(|(k, v)| (*k, v))
-      .collect()
-  }
-
   // #[tracing::instrument(skip_all, fields(module = ?module_id))]
   pub fn get_outcoming_connections_by_module(
     &self,
