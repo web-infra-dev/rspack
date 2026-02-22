@@ -208,9 +208,8 @@ impl JsCompilation {
   pub fn modules<'a>(&self, env: &'a Env) -> Result<Array<'a>> {
     let compilation = self.as_ref()?;
     let module_graph = compilation.get_module_graph();
-    let modules = module_graph.modules();
-    let mut arr = env.create_array(modules.len() as u32)?;
-    for (i, identifier) in modules.keys().enumerate() {
+    let mut arr = env.create_array(module_graph.modules_len() as u32)?;
+    for (i, identifier) in module_graph.modules_keys().enumerate() {
       arr.set(
         i as u32,
         compilation
@@ -246,7 +245,7 @@ impl JsCompilation {
       compilation
         .get_module_graph()
         .module_graph_modules()
-        .values()
+        .map(|(_, mgm)| mgm)
         .flat_map(|item| item.optimization_bailout.clone())
         .map(|item| JsStatsOptimizationBailout { inner: item })
         .collect::<Vec<_>>(),

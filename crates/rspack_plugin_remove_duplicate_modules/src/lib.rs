@@ -50,18 +50,15 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
 
   let chunk_map: DashMap<Vec<ChunkUkey>, Vec<ModuleIdentifier>> = DashMap::default();
 
-  module_graph
-    .modules()
-    .par_iter()
-    .for_each(|(identifier, _)| {
-      let chunks = chunk_graph.get_module_chunks(*identifier);
-      let mut sorted_chunks = chunks.iter().copied().collect::<Vec<_>>();
-      sorted_chunks.sort();
-      chunk_map
-        .entry(sorted_chunks)
-        .or_default()
-        .push(*identifier);
-    });
+  module_graph.modules_par().for_each(|(identifier, _)| {
+    let chunks = chunk_graph.get_module_chunks(*identifier);
+    let mut sorted_chunks = chunks.iter().copied().collect::<Vec<_>>();
+    sorted_chunks.sort();
+    chunk_map
+      .entry(sorted_chunks)
+      .or_default()
+      .push(*identifier);
+  });
 
   /*
     sort chunks so that do max effort to find reusable chunk

@@ -849,7 +849,7 @@ impl ModuleConcatenationPlugin {
     if compilation.options.experiments.defer_import {
       let mut imported_by_defer_modules_artifact = ImportedByDeferModulesArtifact::default();
       let module_graph = compilation.get_module_graph();
-      for dep in module_graph.dependencies().values() {
+      for (_, dep) in module_graph.dependencies() {
         if dep.get_phase().is_defer()
           && matches!(
             dep.dependency_type(),
@@ -870,7 +870,7 @@ impl ModuleConcatenationPlugin {
 
     // filter modules that can be root
     let modules: Vec<_> = module_graph
-      .module_graph_modules_iter()
+      .module_graph_modules()
       .map(|(k, _)| *k)
       .collect();
     let res: Vec<_> = modules

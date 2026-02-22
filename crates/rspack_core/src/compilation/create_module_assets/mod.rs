@@ -24,7 +24,7 @@ impl Compilation {
     let mut chunk_asset_map = vec![];
     let mut module_assets = vec![];
     let mg = self.get_module_graph();
-    for (identifier, module) in mg.modules_iter() {
+    for (identifier, module) in mg.modules() {
       let assets = &module.build_info().assets;
       if assets.is_empty() {
         continue;

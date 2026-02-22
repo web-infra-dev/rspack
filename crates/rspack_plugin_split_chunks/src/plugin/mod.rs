@@ -52,8 +52,7 @@ impl SplitChunksPlugin {
 
     let mut all_modules = compilation
       .get_module_graph()
-      .modules()
-      .keys()
+      .modules_keys()
       .copied()
       .collect::<Vec<_>>();
     // Sort modules to ensure deterministic processing order

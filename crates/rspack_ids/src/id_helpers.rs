@@ -56,7 +56,7 @@ pub fn get_used_module_ids_and_modules_with_artifact(
   compilation
     .get_module_graph()
     .modules()
-    .values()
+    .map(|(_, module)| module)
     .filter(|m| m.need_id())
     .for_each(|module| {
       let module_id = ChunkGraph::get_module_id(module_ids_artifact, module.identifier());

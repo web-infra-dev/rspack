@@ -285,7 +285,7 @@ pub fn build_module_graph_benchmark_inner(c: &mut Criterion) {
           "build_module_graph benchmark pass should not produce compilation errors"
         );
         assert_eq!(
-          compiler.compilation.get_module_graph().modules().len(),
+          compiler.compilation.get_module_graph().modules_len(),
           NUM_MODULES + NUM_MODULES / 10
         );
       });

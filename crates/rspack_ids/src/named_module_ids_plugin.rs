@@ -163,7 +163,6 @@ async fn module_ids(
 
   let modules: IdentifierSet = module_graph
     .modules()
-    .iter()
     .filter(|&(module_identifier, module)| {
       let not_used =
         if let Some(module_id) = ChunkGraph::get_module_id(&module_ids, *module_identifier) {
@@ -225,7 +224,7 @@ async fn module_ids(
     logger.log(format!(
       "{} modules are affected, {} in total",
       modules_len,
-      module_graph.modules().len(),
+      module_graph.modules_len(),
     ));
     logger.log(format!(
       "{} modules are updated by set_module_id, with {} unnamed modules",

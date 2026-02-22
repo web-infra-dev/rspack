@@ -1,4 +1,7 @@
-use std::sync::Arc;
+use std::sync::{
+  Arc,
+  atomic::{AtomicUsize, Ordering},
+};
 
 use rayon::prelude::*;
 use rspack_cacheable::{cacheable, utils::OwnedOrRef};
@@ -48,7 +51,8 @@ pub fn save_module_graph(
   }
 
   // save module_graph
-  let nodes = need_update_modules
+  let saved_count = AtomicUsize::new(0);
+  need_update_modules
     .par_iter()
     .map(|identifier| {
       let mgm = mg
@@ -115,13 +119,12 @@ pub fn save_module_graph(
         }
       }
     })
-    .collect::<Vec<_>>();
+    .consume(|(id, bytes)| {
+      storage.set(SCOPE, id, bytes);
+      saved_count.fetch_add(1, Ordering::Relaxed);
+    });
 
-  tracing::debug!("save {} modules", nodes.len());
-
-  for (id, bytes) in nodes {
-    storage.set(SCOPE, id, bytes)
-  }
+  tracing::debug!("save {} modules", saved_count.load(Ordering::Relaxed));
 }
 
 #[tracing::instrument("Cache::Occasion::Make::ModuleGraph::recovery", skip_all)]
@@ -181,7 +184,7 @@ pub async fn recovery_module_graph(
 
   // recovery entry
   let mut entry_module: Vec<ModuleIdentifier> = vec![];
-  for (_, mgm) in mg.module_graph_modules_iter() {
+  for (_, mgm) in mg.module_graph_modules() {
     if mgm.issuer().identifier().is_none() {
       entry_module.push(mgm.module_identifier);
     };

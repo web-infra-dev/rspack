@@ -135,7 +135,7 @@ async fn optimize_dependencies(
 ) -> Result<Option<bool>> {
   let module_ids: Vec<_> = {
     let module_graph = build_module_graph_artifact.get_module_graph();
-    module_graph.modules().keys().copied().collect()
+    module_graph.modules_keys().copied().collect()
   };
   self.apply_custom_exports();
   for module_id in module_ids {

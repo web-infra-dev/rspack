@@ -3,7 +3,6 @@ pub mod rollback;
 
 use internal::try_get_module_graph_module_mut_by_identifier;
 use rayon::prelude::*;
-use rspack_collections::IdentifierMap;
 use rspack_error::Result;
 use rspack_hash::RspackHashDigest;
 use rustc_hash::FxHashMap as HashMap;
@@ -137,12 +136,12 @@ impl ModuleGraph {
   }
 
   #[inline]
-  pub fn modules_iter(&self) -> impl Iterator<Item = (&ModuleIdentifier, &BoxModule)> {
+  pub fn modules(&self) -> impl Iterator<Item = (&ModuleIdentifier, &BoxModule)> {
     self.inner.modules.iter()
   }
 
   #[inline]
-  pub fn modules_par_iter(
+  pub fn modules_par(
     &self,
   ) -> impl rayon::prelude::ParallelIterator<Item = (&ModuleIdentifier, &BoxModule)> {
     self.inner.modules.par_iter()
@@ -154,22 +153,10 @@ impl ModuleGraph {
   }
 
   #[inline]
-  pub fn module_graph_modules_iter(
+  pub fn module_graph_modules(
     &self,
   ) -> impl Iterator<Item = (&ModuleIdentifier, &ModuleGraphModule)> {
     self.inner.module_graph_modules.iter()
-  }
-
-  /// Return an unordered iterator of modules
-  pub fn modules(&self) -> IdentifierMap<&BoxModule> {
-    self.modules_iter().map(|(k, v)| (*k, v)).collect()
-  }
-
-  pub fn module_graph_modules(&self) -> IdentifierMap<&ModuleGraphModule> {
-    self
-      .module_graph_modules_iter()
-      .map(|(k, v)| (*k, v))
-      .collect()
   }
 
   // #[tracing::instrument(skip_all, fields(module = ?module_id))]
@@ -569,13 +556,8 @@ impl ModuleGraph {
     &self.inner.blocks
   }
 
-  pub fn dependencies(&self) -> HashMap<DependencyId, &BoxDependency> {
-    self
-      .inner
-      .dependencies
-      .iter()
-      .map(|(k, v)| (*k, v))
-      .collect()
+  pub fn dependencies(&self) -> impl Iterator<Item = (&DependencyId, &BoxDependency)> {
+    self.inner.dependencies.iter()
   }
 
   pub fn add_dependency(&mut self, dependency: BoxDependency) {
