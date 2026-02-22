@@ -562,13 +562,8 @@ impl ModuleGraph {
     &self.inner.blocks
   }
 
-  pub fn dependencies(&self) -> HashMap<DependencyId, &BoxDependency> {
-    self
-      .inner
-      .dependencies
-      .iter()
-      .map(|(k, v)| (*k, v))
-      .collect()
+  pub fn dependencies_iter(&self) -> impl Iterator<Item = (&DependencyId, &BoxDependency)> {
+    self.inner.dependencies.iter()
   }
 
   pub fn add_dependency(&mut self, dependency: BoxDependency) {

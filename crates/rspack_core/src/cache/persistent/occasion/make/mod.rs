@@ -96,10 +96,10 @@ impl MakeOccasion {
 
     // recovery make_failed_dependencies
     let mut make_failed_dependencies = FxHashSet::default();
-    for (dep_id, dep) in mg.dependencies() {
+    for (dep_id, dep) in mg.dependencies_iter() {
       if let Some(info) = FactorizeInfo::get_from(dep) {
         if !info.is_success() {
-          make_failed_dependencies.insert(dep_id);
+          make_failed_dependencies.insert(*dep_id);
         }
         let resource = dep_id.into();
         file_dep.add_files(&resource, info.file_dependencies());
