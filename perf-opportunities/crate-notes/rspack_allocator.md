@@ -1,0 +1,27 @@
+# rspack_allocator
+
+## Role
+mimalloc integration and allocator configuration.
+
+## Profiling relevance
+- Allocation pressure is a top hotspot in perf samples.
+- Allocation strategy directly affects page faults and throughput.
+
+## Perf opportunities
+- Tune allocator settings for module graph + codegen workloads.
+- Reduce large transient allocations to avoid page faults.
+- Consider per-thread arenas for hot parallel paths.
+- Single-file crate: concentrate profiling on `src/lib.rs` allocator hooks.
+
+## Key functions/structs to inspect
+- Global allocator selection via `static GLOBAL` definitions (lib.rs).
+- Feature-gated allocator wrappers (`sftrace_setup`, `tracy_client`) in lib.rs.
+
+## Suggested experiments
+- Compare allocation stats with different mimalloc settings.
+- Measure build time impact of allocator tuning.
+
+## Code pointers
+- `crates/rspack_allocator/Cargo.toml`
+- `crates/rspack_allocator/src/lib.rs`
+- `crates/rspack_allocator/**`
