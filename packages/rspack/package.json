@@ -58,7 +58,7 @@
     "browserslist-to-es-version": "^1.4.1",
     "enhanced-resolve": "5.19.0",
     "glob-to-regexp": "^0.4.1",
-    "memfs": "4.53.0",
+    "memfs": "4.56.10",
     "prebundle": "^1.6.2",
     "tinypool": "^1.1.1",
     "tsx": "^4.21.0",
