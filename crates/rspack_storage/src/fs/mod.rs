@@ -154,9 +154,6 @@ impl FileSystem for BridgeFileSystem {
   }
 
   async fn write_file(&self, path: &Utf8Path) -> FSResult<Writer> {
-    if self.exists(path).await? {
-      self.remove_file(path).await?;
-    }
     self
       .ensure_dir(path.parent().expect("should have parent"))
       .await?;
