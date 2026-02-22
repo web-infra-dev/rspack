@@ -64,6 +64,7 @@ impl Debug for dyn SourceLocation {
 
 impl SourceLocation for &str {
   fn look_up_range_pos(&self, start: u32, end: u32) -> Option<(SourcePosition, SourcePosition)> {
+    return None;
     let s = *self;
     let len = s.len();
     let start_idx = start as usize;
