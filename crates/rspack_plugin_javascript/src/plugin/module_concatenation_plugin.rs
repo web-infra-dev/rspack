@@ -1267,7 +1267,7 @@ impl ModuleConcatenationPlugin {
 
     logger.time_end(start);
 
-    rayon::spawn(move || drop(modules_without_runtime_cache));
+    drop(defer_drop::DeferDrop::new(modules_without_runtime_cache));
 
     if !concat_configurations.is_empty() {
       let mut concat_len_buffer = itoa::Buffer::new();

@@ -301,7 +301,11 @@ impl ModuleGraph {
       })
       .unwrap_or_default();
 
-    self.inner.modules.remove(module_id);
+    self.inner.modules.remove_with(module_id, |removed_module| {
+      if removed_module.as_normal_module().is_some() {
+        drop(defer_drop::DeferDrop::new(removed_module));
+      }
+    });
     self.inner.module_graph_modules.remove(module_id);
 
     for block in blocks {

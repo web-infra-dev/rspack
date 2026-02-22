@@ -13,6 +13,7 @@ async-trait = { workspace = true }
 bitflags = { workspace = true }
 cow-utils = { workspace = true }
 dashmap = { workspace = true, features = ["rayon"] }
+defer-drop = { workspace = true }
 derive_more = { workspace = true, features = ["debug"] }
 dyn-clone = { workspace = true }
 either = { workspace = true }

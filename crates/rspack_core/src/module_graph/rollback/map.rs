@@ -47,12 +47,19 @@ where
 
   /// Remove a key and record the removed value for undo.
   pub fn remove(&mut self, key: &K) -> bool {
+    self.remove_with(key, |_| {})
+  }
+
+  /// Remove a key, forwarding removed value to callback only when checkpoint is disabled.
+  pub fn remove_with(&mut self, key: &K, on_remove: impl FnOnce(V)) -> bool {
     if let Some(value) = self.map.remove(key) {
       if self.checkpoint.is_some() {
         self.undo_stack.push(Action::Removed {
           key: key.clone(),
           value,
         });
+      } else {
+        on_remove(value);
       }
       true
     } else {
