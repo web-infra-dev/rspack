@@ -15,15 +15,22 @@ use swc_core::{atoms::Atom, common::Span};
 
 use crate::{
   AsyncDependenciesBlock, BoxDependency, BoxDependencyTemplate, BoxLoader, BoxModuleDependency,
-  BuildInfo, BuildMeta, ChunkGraph, CodeGenerationData, Compilation, CompilerOptions,
+  BuildInfo, BuildMeta, ChunkGraph, CodeGenerationData, Compilation, CompilerId, CompilerOptions,
   ConcatenationScope, Context, EvaluatedInlinableValue, FactoryMeta, Module, ModuleCodeTemplate,
   ModuleGraph, ModuleIdentifier, ModuleLayer, ModuleType, NormalModule, ParserOptions, RuntimeSpec,
   SourceType,
 };
 
+#[derive(Debug, Clone, Copy)]
+pub struct SafeModulePtr(pub *const dyn Module);
+
+unsafe impl Send for SafeModulePtr {}
+unsafe impl Sync for SafeModulePtr {}
+
 #[derive(Debug)]
 pub struct ParseContext<'a> {
   pub source: BoxSource,
+  pub module: SafeModulePtr,
   pub module_context: &'a Context,
   pub module_identifier: ModuleIdentifier,
   pub module_type: &'a ModuleType,
@@ -36,6 +43,7 @@ pub struct ParseContext<'a> {
   pub loaders: &'a [BoxLoader],
   pub resource_data: &'a ResourceData,
   pub compiler_options: &'a CompilerOptions,
+  pub compiler_id: CompilerId,
   pub additional_data: Option<AdditionalData>,
   pub factory_meta: Option<&'a FactoryMeta>,
   pub parse_meta: ParseMeta,

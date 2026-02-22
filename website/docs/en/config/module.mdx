@@ -924,7 +924,7 @@ export default {
 
 ### module.parser.asset.dataUrlCondition
 
-- **Type:** `{ maxSize: number }`
+- **Type:** `{ maxSize: number } | (source: Buffer, context: { filename: string, module: Module }) => boolean`
 - **Default:** `{ maxSize: 8096 }`
 
 If the module size is less than or equal to `maxSize`, then the module will be Base64 encoded, otherwise a file will be created. This option can be used only for [Asset modules](/guide/features/asset-module).
@@ -944,6 +944,22 @@ export default {
 };
 ```
 
+When a function is given, returning true tells Rspack to inject the module into the bundle as Base64 encoded string, otherwise module file will be emitted into the output directory.
+
+````js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      asset: {
+        dataUrlCondition: (source, { filename, module }) => {
+          const content = source.toString();
+          return content.includes("some marker");
+        },
+      },
+    },
+  },
+};
+
 ### module.parser.javascript
 
 Parser options for `javascript` modules.
@@ -958,7 +974,7 @@ export default {
     },
   },
 };
-```
+````
 
 ### module.parser.javascript.commonjsMagicComments
 

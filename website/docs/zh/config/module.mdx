@@ -921,7 +921,7 @@ export default {
 
 ### module.parser.asset.dataUrlCondition
 
-- **类型：** `{ maxSize: number }`
+- **类型：** `{ maxSize: number } | (source: Buffer, context: { filename: string, module: Module }) => boolean`
 - **默认值：** `{ maxSize: 8096 }`
 
 如果当前模块的小于等于 `maxSize`，那么模块将被 Base64 编码，否则模块将会以文件形式被输出。该选项仅能作用于 [Asset modules](/guide/features/asset-module)。
@@ -941,6 +941,22 @@ export default {
 };
 ```
 
+当给定一个函数时，如果返回 true，那么模块将被 Base64 编码，否则模块将会以文件形式被输出。
+
+````js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      asset: {
+        dataUrlCondition: (source, { filename, module }) => {
+          const content = source.toString();
+          return content.includes("some marker");
+        },
+      },
+    },
+  },
+};
+
 ### module.parser.javascript
 
 `javascript` 模块的解析器选项。
@@ -955,7 +971,7 @@ export default {
     },
   },
 };
-```
+````
 
 ### module.parser.javascript.commonjsMagicComments
 

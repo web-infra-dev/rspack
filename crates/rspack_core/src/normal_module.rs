@@ -540,6 +540,7 @@ impl Module for NormalModule {
       .parser_and_generator
       .parse(ParseContext {
         source: source.clone(),
+        module: crate::parser_and_generator::SafeModulePtr(self.as_ref()),
         module_context: &self.context,
         module_identifier: self.id,
         module_parser_options: self.parser_options.as_ref(),
@@ -551,6 +552,7 @@ impl Module for NormalModule {
         loaders: &self.loaders,
         resource_data: &self.resource_data,
         compiler_options: &build_context.compiler_options,
+        compiler_id: build_context.compiler_id,
         additional_data: loader_result.additional_data,
         factory_meta: self.factory_meta.as_ref(),
         build_info: &mut self.build_info,

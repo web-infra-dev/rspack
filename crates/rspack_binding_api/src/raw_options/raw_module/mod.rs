@@ -14,7 +14,7 @@ use napi_derive::napi;
 use regex::Regex;
 use rspack_core::{
   AssetGeneratorDataUrl, AssetGeneratorDataUrlFnCtx, AssetGeneratorDataUrlOptions,
-  AssetGeneratorOptions, AssetInlineGeneratorOptions, AssetParserDataUrl,
+  AssetGeneratorOptions, AssetInlineGeneratorOptions, AssetParserDataUrl, AssetParserDataUrlFnCtx,
   AssetParserDataUrlOptions, AssetParserOptions, AssetResourceGeneratorOptions,
   CssAutoGeneratorOptions, CssAutoParserOptions, CssGeneratorOptions, CssModuleGeneratorOptions,
   CssModuleParserOptions, CssParserImport, CssParserImportContext, CssParserOptions,
@@ -414,7 +414,7 @@ impl From<RawJsonGeneratorOptions> for JsonGeneratorOptions {
 }
 
 #[derive(Debug, Default)]
-#[napi(object)]
+#[napi(object, object_to_js = false)]
 pub struct RawAssetParserOptions {
   pub data_url_condition: Option<RawAssetParserDataUrl>,
 }
@@ -428,12 +428,13 @@ impl From<RawAssetParserOptions> for AssetParserOptions {
 }
 
 #[derive(Debug, Default)]
-#[napi(object)]
+#[napi(object, object_to_js = false)]
 pub struct RawAssetParserDataUrl {
-  #[napi(ts_type = r#""options""#)]
+  #[napi(ts_type = r#""options" | "function""#)]
   pub r#type: String,
   pub options: Option<RawAssetParserDataUrlOptions>,
-  // TODO: pub function
+  #[napi(ts_type = r#"(source: Buffer, context: RawAssetParserDataUrlFnCtx) => boolean"#)]
+  pub func: Option<ThreadsafeFunction<FnArgs<(Buffer, RawAssetParserDataUrlFnCtx)>, bool>>,
 }
 
 impl From<RawAssetParserDataUrl> for AssetParserDataUrl {
@@ -445,8 +446,19 @@ impl From<RawAssetParserDataUrl> for AssetParserDataUrl {
           .expect("should have an \"options\" when RawAssetParserDataUrl.type is \"options\"")
           .into(),
       ),
+      "function" => {
+        let func = value
+          .func
+          .expect("should have a \"func\" when RawAssetParserDataUrl.type is \"function\"");
+        Self::Func(Arc::new(move |source, ctx| {
+          let func = func.clone();
+          let source = source.into();
+          let ctx = ctx.into();
+          Box::pin(async move { func.call_with_sync((source, ctx).into()).await })
+        }))
+      }
       _ => panic!(
-        "Failed to resolve the RawAssetParserDataUrl.type {}. Expected type is `options`.",
+        "Failed to resolve the RawAssetParserDataUrl.type {}. Expected type is `options` or `function`.",
         value.r#type
       ),
     }
@@ -463,6 +475,29 @@ impl From<RawAssetParserDataUrlOptions> for AssetParserDataUrlOptions {
   fn from(value: RawAssetParserDataUrlOptions) -> Self {
     Self {
       max_size: value.max_size,
+    }
+  }
+}
+
+#[napi(object)]
+pub struct RawAssetParserDataUrlFnCtx {
+  pub filename: String,
+  #[napi(ts_type = "Module")]
+  pub module: ModuleObject,
+}
+
+impl From<AssetParserDataUrlFnCtx<'_>> for RawAssetParserDataUrlFnCtx {
+  fn from(value: AssetParserDataUrlFnCtx) -> Self {
+    #[allow(clippy::unwrap_used)]
+    Self {
+      filename: value.filename,
+      module: ModuleObject::with_ptr(
+        NonNull::new(
+          value.module as *const dyn rspack_core::Module as *mut dyn rspack_core::Module,
+        )
+        .unwrap(),
+        value.compiler_id,
+      ),
     }
   }
 }

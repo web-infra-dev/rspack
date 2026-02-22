@@ -5,13 +5,13 @@ use rayon::prelude::*;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AssetGeneratorDataUrl, AssetGeneratorDataUrlFnCtx, AssetGeneratorImportMode, AssetInfo,
-  AssetParserDataUrl, BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, ChunkUkey,
-  CodeGenerationDataAssetInfo, CodeGenerationDataFilename, CodeGenerationDataUrl,
-  CodeGenerationPublicPathAutoReplace, Compilation, CompilationRenderManifest, CompilerOptions,
-  DependencyType, Filename, GenerateContext, GeneratorOptions, ManifestAssetType, Module,
-  ModuleArgument, ModuleGraph, NAMESPACE_OBJECT_EXPORT, NormalModule, ParseContext,
-  ParserAndGenerator, PathData, Plugin, PublicPath, RenderManifestEntry, ResourceData,
-  RuntimeGlobals, RuntimeSpec, SourceType,
+  AssetParserDataUrl, AssetParserDataUrlFnCtx, BuildMetaDefaultObject, BuildMetaExportsType,
+  ChunkGraph, ChunkUkey, CodeGenerationDataAssetInfo, CodeGenerationDataFilename,
+  CodeGenerationDataUrl, CodeGenerationPublicPathAutoReplace, Compilation,
+  CompilationRenderManifest, CompilerOptions, DependencyType, Filename, GenerateContext,
+  GeneratorOptions, ManifestAssetType, Module, ModuleArgument, ModuleGraph,
+  NAMESPACE_OBJECT_EXPORT, NormalModule, ParseContext, ParserAndGenerator, PathData, Plugin,
+  PublicPath, RenderManifestEntry, ResourceData, RuntimeGlobals, RuntimeSpec, SourceType,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
 };
 use rspack_error::{
@@ -474,6 +474,8 @@ impl ParserAndGenerator for AssetParserAndGenerator {
       source,
       build_meta,
       build_info,
+      resource_data,
+      module_parser_options,
       ..
     } = parse_context;
     build_info.strict = true;
@@ -486,24 +488,31 @@ impl ParserAndGenerator for AssetParserAndGenerator {
       DataUrlOptions::Bytes => Some(CanonicalizedDataUrlOption::Bytes),
       DataUrlOptions::Inline(val) => Some(CanonicalizedDataUrlOption::Asset(*val)),
       DataUrlOptions::Auto(option) => {
-        let limit_size = parse_context
-          .module_parser_options
-          .and_then(|x| {
-            x.get_asset()
-              .and_then(|x| x.data_url_condition.as_ref())
-              .and_then(|x| match x {
-                AssetParserDataUrl::Options(x) => x.max_size,
-              })
-          })
-          .or_else(|| {
-            option.as_ref().and_then(|x| match x {
-              AssetParserDataUrl::Options(x) => x.max_size,
-            })
-          })
-          .unwrap_or(DEFAULT_MAX_SIZE);
-        Some(CanonicalizedDataUrlOption::Asset(
-          size <= limit_size as usize,
-        ))
+        let data_url_condition = module_parser_options
+          .and_then(|x| x.get_asset())
+          .and_then(|x| x.data_url_condition.as_ref())
+          .or(option.as_ref());
+
+        let is_inline = if let Some(condition) = data_url_condition {
+          match condition {
+            AssetParserDataUrl::Options(x) => {
+              let limit_size = x.max_size.unwrap_or(DEFAULT_MAX_SIZE);
+              size <= limit_size as usize
+            }
+            AssetParserDataUrl::Func(func) => {
+              let filename = resource_data.resource().to_string();
+              let ctx = AssetParserDataUrlFnCtx {
+                filename,
+                module: unsafe { &*parse_context.module.0 },
+                compiler_id: parse_context.compiler_id,
+              };
+              func(source.buffer().to_vec(), ctx).await?
+            }
+          }
+        } else {
+          size <= DEFAULT_MAX_SIZE as usize
+        };
+        Some(CanonicalizedDataUrlOption::Asset(is_inline))
       }
     };
 
