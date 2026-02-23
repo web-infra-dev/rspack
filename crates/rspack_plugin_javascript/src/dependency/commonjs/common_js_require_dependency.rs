@@ -1,8 +1,8 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
-  DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
-  FactorizeInfo, ModuleDependency, TemplateContext, TemplateReplaceSource,
+  DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, FactorizeInfo,
+  ModuleDependency, TemplateContext, TemplateReplaceSource,
 };
 
 #[cacheable]
@@ -13,7 +13,6 @@ pub struct CommonJsRequireDependency {
   optional: bool,
   range: DependencyRange,
   range_expr: Option<DependencyRange>,
-  loc: Option<DependencyLocation>,
   factorize_info: FactorizeInfo,
 }
 
@@ -23,16 +22,14 @@ impl CommonJsRequireDependency {
     range: DependencyRange,
     range_expr: Option<DependencyRange>,
     optional: bool,
-    source: Option<&str>,
+    _source: Option<&str>,
   ) -> Self {
-    let loc = range.to_loc(source);
     Self {
       id: DependencyId::new(),
       request,
       optional,
       range,
       range_expr,
-      loc,
       factorize_info: Default::default(),
     }
   }
@@ -42,10 +39,6 @@ impl CommonJsRequireDependency {
 impl Dependency for CommonJsRequireDependency {
   fn id(&self) -> &DependencyId {
     &self.id
-  }
-
-  fn loc(&self) -> Option<DependencyLocation> {
-    self.loc.clone()
   }
 
   fn category(&self) -> &DependencyCategory {

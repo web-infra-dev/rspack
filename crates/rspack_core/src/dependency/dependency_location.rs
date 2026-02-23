@@ -2,7 +2,10 @@ use std::fmt::{self, Debug};
 
 use rspack_cacheable::cacheable;
 use rspack_location::{DependencyLocation, RealDependencyLocation, SourcePosition};
+use rspack_sources::Source;
 use rspack_util::SpanExt;
+
+use super::Dependency;
 
 /// Represents a range in a dependency, typically used for tracking the span of code in a source file.
 /// It stores the start and end positions (as offsets) of the range, typically using base-0 indexing.
@@ -151,4 +154,18 @@ impl AsLoc for &str {
     let loc: &dyn SourceLocation = self;
     loc
   }
+}
+
+pub fn get_dependency_location(
+  dependency: &dyn Dependency,
+  source: Option<&dyn Source>,
+) -> Option<DependencyLocation> {
+  dependency.loc().or_else(|| {
+    dependency.range().and_then(|range| {
+      source.and_then(|source| {
+        let source = source.source().into_string_lossy();
+        range.to_loc(Some(source.as_ref()))
+      })
+    })
+  })
 }

@@ -1092,7 +1092,8 @@ impl Stats<'_> {
           } else {
             (None, None)
           };
-          let loc = dependency.loc().map(|l| l.to_string());
+          let loc =
+            crate::get_dependency_location(dependency.as_ref(), None).map(|l| l.to_string());
           let explanation = module_graph
             .get_dep_meta_if_existing(&connection.dependency_id)
             .and_then(|extra| extra.explanation);

@@ -209,7 +209,7 @@ pub fn get_module_trace<'a>(
       .get_incoming_connections(&module_identifier)
       .filter_map(|c| {
         let dep = module_graph.dependency_by_id(&c.dependency_id);
-        let loc = dep.loc().map(|loc| loc.to_string())?;
+        let loc = crate::get_dependency_location(dep.as_ref(), None).map(|loc| loc.to_string())?;
         Some(StatsErrorModuleTraceDependency { loc })
       })
       .collect::<Vec<_>>();

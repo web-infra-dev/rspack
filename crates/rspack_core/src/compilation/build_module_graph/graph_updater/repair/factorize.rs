@@ -91,7 +91,7 @@ impl Task<TaskContext> for FactorizeTask {
       Ok(result) => Some(result),
       Err(mut e) => {
         // Wrap source code if available
-        if let Some(s) = self.original_module_source {
+        if let Some(s) = self.original_module_source.as_ref() {
           let has_source_code = e.src.is_some();
           if !has_source_code {
             e.src = Some(s.source().into_string_lossy().into_owned());
@@ -103,7 +103,10 @@ impl Task<TaskContext> for FactorizeTask {
           return Err(e);
         }
         let mut diagnostic = Diagnostic::from(e);
-        diagnostic.loc = create_data.dependencies[0].loc();
+        diagnostic.loc = crate::get_dependency_location(
+          create_data.dependencies[0].as_ref(),
+          self.original_module_source.as_deref(),
+        );
         create_data.diagnostics.insert(0, diagnostic);
         None
       }

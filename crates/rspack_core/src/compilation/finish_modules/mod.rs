@@ -194,7 +194,7 @@ impl Compilation {
               .map(|diagnostics| {
                 diagnostics.into_iter().map(|mut diagnostic| {
                   diagnostic.module_identifier = Some(*module_identifier);
-                  diagnostic.loc = dependency.loc();
+                  diagnostic.loc = crate::get_dependency_location(dependency.as_ref(), None);
                   diagnostic
                 })
               })
