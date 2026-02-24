@@ -396,9 +396,6 @@ importers:
       '@types/node':
         specifier: ^20.19.33
         version: 20.19.33
-      '@types/watchpack':
-        specifier: ^2.4.5
-        version: 2.4.5
       browserslist-load-config:
         specifier: ^1.0.1
         version: 1.0.1
