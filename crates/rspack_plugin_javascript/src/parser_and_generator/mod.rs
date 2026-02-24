@@ -16,8 +16,10 @@ use rspack_core::{
   remove_bom, render_init_fragments,
   rspack_sources::{BoxSource, ReplaceSource, Source, SourceExt},
 };
-use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
-use swc_experimental_ecma_ast::{Ast, Program, VisitWith};
+use rspack_error::{Diagnostic, Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use rspack_util::SpanExt;
+use rustc_hash::FxHashSet;
+use swc_experimental_ecma_ast::{Ast, Program, Span, VisitWith};
 use swc_experimental_ecma_parser::{
   EsSyntax, Lexer, Parser, StringSource, Syntax, unstable::Capturing,
 };
@@ -227,19 +229,44 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       ModuleType::JsDynamic => parser.parse_script().map(Program::Script),
       _ => parser.parse_program(),
     };
-    let errors = parser.take_errors();
+
+    let mut errors = parser.take_errors();
+    let error_mapper = |msg: String, span: Span| {
+      Error::from_string(
+        Some(source_string.to_string()),
+        span.real_lo() as usize,
+        span.real_hi() as usize,
+        "JavaScript parse error".into(),
+        msg,
+      )
+    };
 
     let (root, tokens) = match program_result {
       Ok(program) => {
         if !errors.is_empty() {
-          // diagnostics.append(&mut ret.errors.into_iter().map(|e| e.into()).collect());
+          diagnostics.extend(
+            errors
+              .into_iter()
+              .map(|e| (e.kind().msg().to_string(), e.span()))
+              .collect::<FxHashSet<_>>()
+              .into_iter()
+              .map(|(msg, span)| error_mapper(msg, span).into()),
+          );
           return default_with_diagnostics(source, diagnostics);
         }
         let tokens = parser.input_mut().iter.take();
         (program, tokens)
       }
-      Err(_) => {
-        // diagnostics.append(&mut e.into());
+      Err(e) => {
+        errors.push(e);
+        diagnostics.extend(
+          errors
+            .into_iter()
+            .map(|e| (e.kind().msg().to_string(), e.span()))
+            .collect::<FxHashSet<_>>()
+            .into_iter()
+            .map(|(msg, span)| error_mapper(msg, span).into()),
+        );
         return default_with_diagnostics(source, diagnostics);
       }
     };
