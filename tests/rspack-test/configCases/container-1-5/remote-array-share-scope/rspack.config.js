@@ -22,7 +22,7 @@ module.exports = {
     new ModuleFederationPlugin({
       name: 'remote_array_share_scope_host',
       remotes:{
-        remote: {
+        'remote-alias': {
           external:'remote_array_share_scope_provider@http://localhost:3001/remoteEntry.js',
           shareScope:['scope1','scope3']
         }
