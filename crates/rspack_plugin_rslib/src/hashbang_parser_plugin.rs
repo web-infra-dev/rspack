@@ -10,7 +10,7 @@ impl JavascriptParserPlugin for HashbangParserPlugin {
       Program::Module(m) => m.shebang(&parser.ast),
       Program::Script(s) => s.shebang(&parser.ast),
     };
-    let hashbang = hashbang_str.map(|s| parser.ast.get_utf8(s))?;
+    let hashbang = hashbang_str.to_option().map(|s| parser.ast.get_utf8(s))?;
 
     // Normalize hashbang to always include "#!" prefix
     // SWC may omit the leading "#!" in the shebang value
