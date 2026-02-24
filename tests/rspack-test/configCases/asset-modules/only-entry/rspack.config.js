@@ -1,6 +1,6 @@
 const path = require("path");
 const fs = require("fs");
-const webpack = require("@rspack/core");
+const { rspack } = require("@rspack/core");
 
 /** @type {(number, any) => import("@rspack/core").Configuration} */
 const common = (i, options) => ({
@@ -30,9 +30,9 @@ const common = (i, options) => ({
 				compiler.hooks.compilation.tap("Test", compilation => {
 					compilation.hooks.processAssets.tap(
 						{
-							name: "copy-webpack-plugin",
+							name: "copy-rspack-plugin",
 							stage:
-								compiler.webpack.Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL
+								compiler.rspack.Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL
 						},
 						() => {
 							const data = fs.readFileSync(
@@ -41,7 +41,7 @@ const common = (i, options) => ({
 
 							compilation.emitAsset(
 								"test.js",
-								new webpack.sources.RawSource(data)
+								new rspack.sources.RawSource(data)
 							);
 						}
 					);

@@ -1,7 +1,7 @@
 "use strict";
 
 const { RawSource } = require("webpack-sources");
-const webpack = require("@rspack/core");
+const { rspack } = require("@rspack/core");
 
 /** @typedef {import("../../../../lib/Compiler")} Compiler */
 
@@ -14,7 +14,7 @@ class CopyPlugin {
 	apply(compiler) {
 		const hookOptions = {
 			name: "MockCopyPlugin",
-			stage: webpack.Compilation.PROCESS_ASSETS_STAGE_ADDITIONS
+			stage: rspack.Compilation.PROCESS_ASSETS_STAGE_ADDITIONS
 		};
 
 		compiler.hooks.thisCompilation.tap(hookOptions, (compilation) => {
@@ -40,7 +40,7 @@ module.exports = [
 		},
 		plugins: [
 			new CopyPlugin(),
-			new webpack.ManifestPlugin({
+			new rspack.ManifestPlugin({
 				filename: "foo.json"
 			})
 		],
@@ -73,7 +73,7 @@ module.exports = [
 		},
 		plugins: [
 			new CopyPlugin(),
-			new webpack.ManifestPlugin({
+			new rspack.ManifestPlugin({
 				filename: "bar.json"
 			})
 		],
