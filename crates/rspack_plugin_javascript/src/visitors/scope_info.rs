@@ -67,12 +67,12 @@ impl ScopeInfoDB {
   pub fn new() -> Self {
     let mut map = Vec::with_capacity(2);
     map.push(ScopeInfo {
-      stack: vec![ScopeInfoId(0)],
+      parent: None,
       map: Default::default(),
       is_strict: false,
     });
     map.push(ScopeInfo {
-      stack: vec![ScopeInfoId(1)],
+      parent: None,
       map: Default::default(),
       is_strict: false,
     });
@@ -85,21 +85,13 @@ impl ScopeInfoDB {
 
   fn _create(&mut self, parent: Option<ScopeInfoId>) -> ScopeInfoId {
     let id = ScopeInfoId(self.map.len() as u32);
-    let stack = match parent {
-      Some(parent) => {
-        let mut parnet_stack = self.expect_get_scope(parent).stack.clone();
-        parnet_stack.push(id);
-        parnet_stack
-      }
-      None => vec![id],
-    };
     let is_strict = match parent {
       Some(parent) => self.expect_get_scope(parent).is_strict,
       None => false,
     };
     let info = ScopeInfo {
       is_strict,
-      stack,
+      parent,
       map: Default::default(),
     };
     self.map.push(info);
@@ -160,15 +152,18 @@ impl ScopeInfoDB {
       } else {
         Some(top_value)
       }
-    } else if definitions.stack.len() > 1 {
-      for &id in definitions.stack.iter().rev().skip(1) {
-        if let Some(&value) = self.expect_get_scope(id).map.get(key) {
+    } else if let Some(parent) = definitions.parent {
+      let mut current = Some(parent);
+      while let Some(current_id) = current {
+        let scope = self.expect_get_scope(current_id);
+        if let Some(&value) = scope.map.get(key) {
           if value == VariableInfo::TOMBSTONE || value == VariableInfo::UNDEFINED {
             return None;
           } else {
             return Some(value);
           }
         }
+        current = scope.parent;
       }
       let definitions = self.expect_get_mut_scope(id);
       definitions.map.insert(key.clone(), VariableInfo::TOMBSTONE);
@@ -185,7 +180,7 @@ impl ScopeInfoDB {
 
   pub fn delete(&mut self, id: ScopeInfoId, key: &Atom) {
     let scope = self.expect_get_mut_scope(id);
-    if scope.stack.len() > 1 {
+    if scope.parent.is_some() {
       scope.map.insert(key.clone(), VariableInfo::TOMBSTONE);
     } else {
       scope.map.remove(key);
@@ -326,7 +321,7 @@ impl VariableInfo {
 
 #[derive(Debug)]
 pub struct ScopeInfo {
-  stack: Vec<ScopeInfoId>,
+  pub parent: Option<ScopeInfoId>,
   map: FxHashMap<Atom, VariableInfoId>,
   pub is_strict: bool,
 }
