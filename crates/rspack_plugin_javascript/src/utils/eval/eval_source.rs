@@ -38,7 +38,7 @@ pub fn eval_source<T: Display>(
       None
     }
     Ok(expr) => {
-      remove_paren(expr, &mut parser.ast, None);
+      let expr = remove_paren(expr, &mut parser.ast, None);
       BasicEvaluatedExpression::with_owned_expression(expr, |expr| {
         Some(parser.evaluate_expression(expr))
       })

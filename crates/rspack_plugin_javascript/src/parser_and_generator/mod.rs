@@ -275,7 +275,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       swc_core::common::BytePos,
       rustc_hash::FxBuildHasher,
     > = Default::default();
-    remove_paren(root, &mut ast, Some(&comments));
+    let root = remove_paren(root, &mut ast, Some(&comments));
 
     let semantic = resolver(root, &ast);
     root.visit_with(&mut semicolon::InsertedSemicolons {
