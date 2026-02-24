@@ -62,40 +62,27 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.3.14",
-    "@microsoft/api-extractor": "7.55.2",
+    "@microsoft/api-extractor": "7.56.3",
     "@microsoft/api-extractor-model": "7.32.2",
     "@rslint/core": "0.2.1",
     "@rspack/cli": "workspace:*",
-    "@rstest/core": "^0.8.4",
+    "@rstest/core": "^0.8.5",
     "@taplo/cli": "^0.7.0",
     "@types/is-ci": "^3.0.4",
     "@types/node": "^20.19.33",
-    "check-dependency-version-consistency": "^5.0.1",
+    "check-dependency-version-consistency": "^6.0.0",
     "commander": "14.0.3",
     "cross-env": "^10.1.0",
     "heading-case": "^1.0.7",
     "husky": "^9.1.7",
     "is-ci": "4.1.0",
     "lint-staged": "^16.2.7",
-    "prettier": "3.7.4",
+    "prettier": "3.8.1",
     "prettier-2": "npm:prettier@2.8.8",
     "rimraf": "^5.0.10",
     "typescript": "^5.9.3",
     "webpack": "5.102.1",
     "zx": "8.8.5"
   },
-  "packageManager": "pnpm@10.26.2",
-  "pnpm": {
-    "patchedDependencies": {
-      "webpack-sources@3.3.3": "patches/webpack-sources@3.3.3.patch"
-    },
-    "onlyBuiltDependencies": [
-      "@biomejs/biome",
-      "@parcel/watcher",
-      "@swc/core",
-      "core-js",
-      "es5-ext",
-      "esbuild"
-    ]
-  }
+  "packageManager": "pnpm@10.26.2"
 }

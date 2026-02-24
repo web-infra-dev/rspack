@@ -588,7 +588,7 @@ export type TCompilerCaseConfig = {
     options?: (context: ITestContext) => RspackOptions;
     compiler?: (context: ITestContext, compiler: Compiler) => Promise<void>;
     build?: (context: ITestContext, compiler: Compiler) => Promise<void>;
-    check?: ({ context, stats, files, compiler, compilation, }: {
+    check?: (input: {
         context: ITestContext;
         stats?: StatsCompilation;
         files?: Record<string, string>;
@@ -752,7 +752,7 @@ export type TMultiCompilerCaseConfig = {
     options?: (context: ITestContext) => RspackOptions;
     compiler?: (context: ITestContext, compiler: Compiler) => Promise<void>;
     build?: (context: ITestContext, compiler: Compiler) => Promise<void>;
-    check?: ({ context, stats, files, compiler, compilation, }: {
+    check?: (input: {
         context: ITestContext;
         stats?: StatsCompilation;
         files?: Record<string, string>;

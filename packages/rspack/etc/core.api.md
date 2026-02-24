@@ -7079,7 +7079,7 @@ const RsdoctorPlugin: typeof RsdoctorPluginImpl & {
 
 // @public (undocumented)
 export namespace RsdoctorPluginData {
-    export type { JsRsdoctorAsset as RsdoctorAsset, JsRsdoctorChunkGraph as RsdoctorChunkGraph, JsRsdoctorModuleGraph as RsdoctorModuleGraph, JsRsdoctorChunk as RsdoctorChunk, JsRsdoctorModule as RsdoctorModule, JsRsdoctorSideEffect as RsdoctorSideEffect, JsRsdoctorExportInfo as RsdoctorExportInfo, JsRsdoctorVariable as RsdoctorVariable, JsRsdoctorDependency as RsdoctorDependency, JsRsdoctorEntrypoint as RsdoctorEntrypoint, JsRsdoctorStatement as RsdoctorStatement, JsRsdoctorSourceRange as RsdoctorSourceRange, JsRsdoctorSourcePosition as RsdoctorSourcePosition, JsRsdoctorModuleGraphModule as RsdoctorModuleGraphModule, JsRsdoctorModuleIdsPatch as RsdoctorModuleIdsPatch, JsRsdoctorModuleOriginalSource as RsdoctorModuleOriginalSource, JsRsdoctorAssetPatch as RsdoctorAssetPatch, JsRsdoctorChunkAssets as RsdoctorChunkAssets, JsRsdoctorEntrypointAssets as RsdoctorEntrypointAssets, JsRsdoctorChunkModules as RsdoctorChunkModules, JsRsdoctorModuleSourcesPatch as RsdoctorModuleSourcesPatch, };
+    export export type { JsRsdoctorAsset as RsdoctorAsset, JsRsdoctorChunkGraph as RsdoctorChunkGraph, JsRsdoctorModuleGraph as RsdoctorModuleGraph, JsRsdoctorChunk as RsdoctorChunk, JsRsdoctorModule as RsdoctorModule, JsRsdoctorSideEffect as RsdoctorSideEffect, JsRsdoctorExportInfo as RsdoctorExportInfo, JsRsdoctorVariable as RsdoctorVariable, JsRsdoctorDependency as RsdoctorDependency, JsRsdoctorEntrypoint as RsdoctorEntrypoint, JsRsdoctorStatement as RsdoctorStatement, JsRsdoctorSourceRange as RsdoctorSourceRange, JsRsdoctorSourcePosition as RsdoctorSourcePosition, JsRsdoctorModuleGraphModule as RsdoctorModuleGraphModule, JsRsdoctorModuleIdsPatch as RsdoctorModuleIdsPatch, JsRsdoctorModuleOriginalSource as RsdoctorModuleOriginalSource, JsRsdoctorAssetPatch as RsdoctorAssetPatch, JsRsdoctorChunkAssets as RsdoctorChunkAssets, JsRsdoctorEntrypointAssets as RsdoctorEntrypointAssets, JsRsdoctorChunkModules as RsdoctorChunkModules, JsRsdoctorModuleSourcesPatch as RsdoctorModuleSourcesPatch, };
 }
 
 // @public (undocumented)
@@ -8112,7 +8112,7 @@ class SourceMapSource extends Source {
     		name: string,
     		sourceMap?: string | RawSourceMap_2 | Buffer_2,
     		originalSource?: string | Buffer_2,
-    		innerSourceMap?: string | RawSourceMap_2 | Buffer_2,
+    		innerSourceMap?: null | string | RawSourceMap_2 | Buffer_2,
     		removeOriginalSource?: boolean,
     	);
     	// (undocumented)
@@ -9967,13 +9967,13 @@ namespace util_2 {
         			let // (undocumented)
         enableDualStringBufferCaching: () => void;
         			let // (undocumented)
-        internString: (str: string) => string;
-        			let // (undocumented)
-        isDualStringBufferCachingEnabled: () => boolean;
-        			let // (undocumented)
         enterStringInterningRange: () => void;
         			let // (undocumented)
         exitStringInterningRange: () => void;
+        			let // (undocumented)
+        internString: (str: string) => string;
+        			let // (undocumented)
+        isDualStringBufferCachingEnabled: () => boolean;
         		}
     	}
 
