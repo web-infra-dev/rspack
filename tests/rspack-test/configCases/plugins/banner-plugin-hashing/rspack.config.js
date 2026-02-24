@@ -1,6 +1,6 @@
 "use strict";
 
-const webpack = require("@rspack/core");
+const { rspack } = require("@rspack/core");
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
@@ -16,7 +16,7 @@ module.exports = {
 		filename: "[name].js?value",
 	},
 	plugins: [
-		new webpack.BannerPlugin({
+		new rspack.BannerPlugin({
 			banner:
 				"fullhash:[fullhash], chunkhash:[chunkhash], name:[name], base:[base], query:[query], file:[file], path:[path], ext:[ext]",
 		}),

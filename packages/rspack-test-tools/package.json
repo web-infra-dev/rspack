@@ -21,9 +21,7 @@
   },
   "scripts": {
     "build": "tsc -b ./tsconfig.build.json",
-    "dev": "tsc -b -w",
-    "api-extractor": "api-extractor run --verbose",
-    "api-extractor:ci": "api-extractor run --verbose || diff temp/test-tools.api.md etc/test-tools.api.md"
+    "dev": "tsc -b -w"
   },
   "files": [
     "client",

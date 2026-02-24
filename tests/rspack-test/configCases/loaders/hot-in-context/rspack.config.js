@@ -1,4 +1,4 @@
-const webpack = require("@rspack/core");
+const { rspack } = require("@rspack/core");
 /** @type {import("@rspack/core").Configuration[]} */
 module.exports = [
 	{
@@ -6,6 +6,6 @@ module.exports = [
 	},
 	{
 		// with hmr
-		plugins: [new webpack.HotModuleReplacementPlugin()]
+		plugins: [new rspack.HotModuleReplacementPlugin()]
 	}
 ];
