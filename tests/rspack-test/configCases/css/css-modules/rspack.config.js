@@ -1,7 +1,7 @@
 "use strict";
 
 const path = require("path");
-const webpack = require("@rspack/core");
+const { rspack } = require("@rspack/core");
 
 /** @type {(env: Env, options: TestOptions) => import("@rspack/core").Configuration[]} */
 module.exports = (env, { testPath }) => [
@@ -50,13 +50,13 @@ module.exports = (env, { testPath }) => [
 			__filename: false
 		},
 		plugins: [
-			new webpack.ids.DeterministicModuleIdsPlugin({
+			new rspack.ids.DeterministicModuleIdsPlugin({
 				maxLength: 3,
 				failOnConflict: true,
 				fixedLength: true,
 				test: (m) => m.type.startsWith("css")
 			}),
-			new webpack.experiments.ids.SyncModuleIdsPlugin({
+			new rspack.experiments.ids.SyncModuleIdsPlugin({
 				test: (m) => m.type.startsWith("css"),
 				path: path.resolve(testPath, "module-ids.json"),
 				mode: "create"

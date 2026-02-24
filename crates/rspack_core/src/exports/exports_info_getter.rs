@@ -292,7 +292,7 @@ impl<'a> PrefetchedExportsInfoWrapper<'a> {
     for (_, export_info) in self.get_exports_in_exports_info(exports_info) {
       match export_info.provided() {
         Some(ExportProvided::Provided | ExportProvided::Unknown) | None => {
-          ret.push(export_info.name().cloned().unwrap_or("".into()));
+          ret.push(export_info.name().cloned().unwrap_or_else(|| "".into()));
         }
         _ => {}
       }

@@ -1,4 +1,4 @@
-const webpack = require("@rspack/core");
+const { rspack } = require("@rspack/core");
 
 class Plugin {
 	apply(compiler) {
@@ -25,10 +25,10 @@ module.exports = {
 		rules: [
 			{
 				test: /\.css$/,
-				use: [webpack.CssExtractRspackPlugin.loader, "css-loader"],
+				use: [rspack.CssExtractRspackPlugin.loader, "css-loader"],
 				type: "javascript/auto"
 			}
 		]
 	},
-	plugins: [new webpack.CssExtractRspackPlugin(), new Plugin()]
+	plugins: [new rspack.CssExtractRspackPlugin(), new Plugin()]
 };

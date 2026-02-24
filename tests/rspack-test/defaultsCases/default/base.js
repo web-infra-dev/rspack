@@ -51,6 +51,7 @@ module.exports = {
 			    modulesCodegen: true,
 			    modulesHashes: true,
 			    modulesRuntimeRequirements: true,
+			    optimizeChunkModules: true,
 			    optimizeDependencies: true,
 			    silent: true,
 			  },

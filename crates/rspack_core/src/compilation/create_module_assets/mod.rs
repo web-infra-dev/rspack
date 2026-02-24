@@ -38,12 +38,12 @@ impl Compilation {
         .build_chunk_graph_artifact
         .chunk_graph
         .chunk_graph_module_by_module_identifier
-        .contains_key(&identifier)
+        .contains_key(identifier)
       {
         for chunk in self
           .build_chunk_graph_artifact
           .chunk_graph
-          .get_module_chunks(identifier)
+          .get_module_chunks(*identifier)
           .iter()
         {
           for name in assets.keys() {

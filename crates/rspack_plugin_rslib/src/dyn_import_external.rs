@@ -8,7 +8,7 @@ use rspack_plugin_javascript::dependency::ImportDependency;
 pub fn cutout_dyn_import_external(build_module_graph_artifact: &mut BuildModuleGraphArtifact) {
   let mg = build_module_graph_artifact.get_module_graph();
   let mut connections_to_disable = Vec::new();
-  for module in mg.modules().values() {
+  for (_, module) in mg.modules() {
     for block_id in module.get_blocks() {
       let Some(block) = mg.block_by_id(block_id) else {
         continue;

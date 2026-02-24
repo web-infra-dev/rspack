@@ -21,7 +21,6 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
   compilation
     .get_module_graph()
     .modules()
-    .iter()
     .for_each(|(module_id, module)| {
       let source_chunks = compilation
         .build_chunk_graph_artifact

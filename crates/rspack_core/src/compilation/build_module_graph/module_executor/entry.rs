@@ -46,7 +46,7 @@ impl Task<ExecutorTaskContext> for EntryTask {
         // not exist, generate a new dependency
         let dep = Box::new(LoaderImportDependency::new(
           meta.request.clone(),
-          origin_module_context.unwrap_or(Context::from("")),
+          origin_module_context.unwrap_or_else(|| Context::from("")),
         ));
         let dep_id = *dep.id();
 

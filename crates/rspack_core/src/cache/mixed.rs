@@ -99,6 +99,22 @@ impl Cache for MixedCache {
     self.persistent.after_build_chunk_graph(compilation).await;
   }
 
+  // OPTIMIZE_CHUNK_MODULES hooks
+  async fn before_optimize_chunk_modules(&mut self, compilation: &mut Compilation) {
+    self.memory.before_optimize_chunk_modules(compilation).await;
+    self
+      .persistent
+      .before_optimize_chunk_modules(compilation)
+      .await;
+  }
+
+  async fn after_optimize_chunk_modules(&self, compilation: &Compilation) {
+    self
+      .persistent
+      .after_optimize_chunk_modules(compilation)
+      .await;
+  }
+
   // MODULE_IDS hooks
   async fn before_module_ids(&mut self, compilation: &mut Compilation) {
     self.memory.before_module_ids(compilation).await;

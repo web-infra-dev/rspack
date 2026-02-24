@@ -199,7 +199,8 @@ impl Compilation {
         .map(|runtime_chunk| (runtime_chunk, (Vec::new(), 0)))
         .collect();
     let mut remaining: u32 = 0;
-    for runtime_chunk_ukey in runtime_chunks_map.keys().copied().collect::<Vec<_>>() {
+    let runtime_chunk_keys: Vec<_> = runtime_chunks_map.keys().copied().collect();
+    for runtime_chunk_ukey in runtime_chunk_keys {
       let runtime_chunk = self
         .build_chunk_graph_artifact
         .chunk_by_ukey
@@ -302,7 +303,7 @@ impl Compilation {
         .map(|chunk| {
           chunk
             .name()
-            .or(chunk.id().map(|id| id.as_str()))
+            .or_else(|| chunk.id().map(|id| id.as_str()))
             .unwrap_or("no id chunk")
         })
         .join(", ");

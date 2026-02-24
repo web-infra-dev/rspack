@@ -1,7 +1,7 @@
 "use strict";
 
 const path = require("path");
-const webpack = require("@rspack/core");
+const { rspack } = require("@rspack/core");
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
@@ -11,7 +11,7 @@ module.exports = {
 		}
 	},
 	plugins: [
-		new webpack.ContextReplacementPlugin(/main/, (context) => {
+		new rspack.ContextReplacementPlugin(/main/, (context) => {
 			Object.assign(context, {
 				resource: ["../override"] // resolved relatively
 			});

@@ -1,7 +1,7 @@
 "use strict";
 
 const path = require("path");
-const webpack = require("@rspack/core");
+const { rspack } = require("@rspack/core");
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
@@ -10,5 +10,5 @@ module.exports = {
 			app: [path.join(__dirname, "src/main"), path.join(__dirname, "src/foo")]
 		}
 	},
-	plugins: [new webpack.ContextReplacementPlugin(/main/, "../override")]
+	plugins: [new rspack.ContextReplacementPlugin(/main/, "../override")]
 };

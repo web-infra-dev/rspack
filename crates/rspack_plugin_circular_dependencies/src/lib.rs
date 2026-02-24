@@ -145,11 +145,10 @@ impl GraphModule {
 
 fn build_module_map(compilation: &Compilation) -> IdentifierMap<GraphModule> {
   let module_graph = compilation.get_module_graph();
-  let modules = module_graph.modules();
 
   let mut module_map: IdentifierMap<GraphModule> = IdentifierMap::default();
-  module_map.reserve(modules.len());
-  for (id, module) in modules {
+  module_map.reserve(module_graph.modules_len());
+  for (&id, module) in module_graph.modules() {
     let mut graph_module = GraphModule::new(id, module.source().is_some());
     // if allow async cycles, the async dependencies should not be collected to check for cycles
     for dependency_id in module_graph

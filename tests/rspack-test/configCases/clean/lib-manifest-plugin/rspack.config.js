@@ -1,6 +1,6 @@
 const path = require("path");
 const readDir = require("./readdir");
-const webpack = require("@rspack/core");
+const { rspack } = require("@rspack/core");
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = (_, { testPath }) => {
@@ -9,7 +9,7 @@ module.exports = (_, { testPath }) => {
 			clean: true
 		},
 		plugins: [
-			new webpack.DllPlugin({
+			new rspack.DllPlugin({
 				name: "[name]_dll",
 				path: path.resolve(testPath, "manifest.json")
 			}),

@@ -1,4 +1,4 @@
-const webpack = require("@rspack/core");
+const { rspack } = require("@rspack/core");
 const TerserPlugin = require("terser-webpack-plugin");
 
 /** @type {import("@rspack/core").Configuration} */
@@ -18,7 +18,7 @@ module.exports = {
 		minimizer: [new TerserPlugin()]
 	},
 	plugins: [
-		new webpack.SourceMapDevToolPlugin({
+		new rspack.SourceMapDevToolPlugin({
 			filename: "sourcemaps/[file].map",
 			append: data => `\n//# sourceMappingURL=http://localhost:50505/[file].map`
 		})
