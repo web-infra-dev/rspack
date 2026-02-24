@@ -13,7 +13,6 @@ use rspack_hook::{plugin, plugin_hook};
 use rspack_util::allocative;
 use rspack_util::fx_hash::FxDashMap;
 use sugar_path::SugarPath;
-use swc_html::visit::VisitMutWith;
 
 use crate::{
   AfterEmitData, AfterTemplateExecutionData, AlterAssetTagGroupsData, AlterAssetTagsData,
@@ -141,7 +140,7 @@ async fn generate_html(
 
   let template_execution_result = template.render(config).await?;
 
-  let mut after_template_execution_data = hooks
+  let after_template_execution_data = hooks
     .borrow()
     .after_template_execution
     .call(AfterTemplateExecutionData {
@@ -153,13 +152,6 @@ async fn generate_html(
       uid: config.uid,
     })
     .await?;
-
-  let has_doctype = after_template_execution_data.html.contains("!DOCTYPE")
-    || after_template_execution_data.html.contains("!doctype");
-  if !has_doctype {
-    after_template_execution_data.html =
-      format!("<!DOCTYPE html>{}", after_template_execution_data.html);
-  }
 
   let parser = HtmlCompiler::new(config);
 
@@ -181,12 +173,6 @@ async fn generate_html(
 
   let raw_html = parser.codegen(&mut current_ast, compilation)?;
   let html = raw_html.cow_replace("$$RSPACK_URL_AMP$$", "&");
-
-  let html = if has_doctype {
-    html
-  } else {
-    html.cow_replace("<!DOCTYPE html>", "")
-  };
 
   Ok((
     template_file_name.to_string(),

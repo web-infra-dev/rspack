@@ -1,6 +1,13 @@
+ERROR in × HTML parse error: Stray start tag "head"
+   ╭─[1:0]
+ 1 │ <head>
+   · ──────
+ 2 │   </something>
+   ╰────
+
 ERROR in × HTML parse error: Stray end tag "something"
    ╭─[2:2]
- 1 │ <!DOCTYPE html><head>
+ 1 │ <head>
  2 │   </something>
    ·   ────────────
    ╰────
