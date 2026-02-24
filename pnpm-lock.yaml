@@ -16,12 +16,6 @@ importers:
       '@biomejs/biome':
         specifier: ^2.4.4
         version: 2.4.4
-      '@microsoft/api-extractor':
-        specifier: 7.56.3
-        version: 7.56.3(@types/node@20.19.33)
-      '@microsoft/api-extractor-model':
-        specifier: 7.32.2
-        version: 7.32.2(@types/node@20.19.33)
       '@rslint/core':
         specifier: 0.2.1
         version: 0.2.1
