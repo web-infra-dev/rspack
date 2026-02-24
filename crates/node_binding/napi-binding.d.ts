@@ -3,8 +3,8 @@
 
 /* -- banner.d.ts -- */
 export type JsFilename =
-	| string
-	| ((pathData: JsPathData, assetInfo?: AssetInfo) => string);
+  | string
+  | ((pathData: JsPathData, assetInfo?: AssetInfo) => string);
 
 export type RawLazyCompilationTest = RegExp | ((module: Module) => boolean);
 
@@ -26,45 +26,45 @@ export const COMMIT_CUSTOM_FIELDS_SYMBOL: unique symbol;
 export const RUST_ERROR_SYMBOL: unique symbol;
 
 interface KnownBuildInfo {
-	[BUILD_INFO_ASSETS_SYMBOL]: Assets,
-	[BUILD_INFO_FILE_DEPENDENCIES_SYMBOL]: string[],
-	[BUILD_INFO_CONTEXT_DEPENDENCIES_SYMBOL]: string[],
-	[BUILD_INFO_MISSING_DEPENDENCIES_SYMBOL]: string[],
-	[BUILD_INFO_BUILD_DEPENDENCIES_SYMBOL]: string[],
-	[COMMIT_CUSTOM_FIELDS_SYMBOL](): void;
+  [BUILD_INFO_ASSETS_SYMBOL]: Assets,
+  [BUILD_INFO_FILE_DEPENDENCIES_SYMBOL]: string[],
+  [BUILD_INFO_CONTEXT_DEPENDENCIES_SYMBOL]: string[],
+  [BUILD_INFO_MISSING_DEPENDENCIES_SYMBOL]: string[],
+  [BUILD_INFO_BUILD_DEPENDENCIES_SYMBOL]: string[],
+  [COMMIT_CUSTOM_FIELDS_SYMBOL](): void;
 }
 
 export type BuildInfo = KnownBuildInfo & Record<string, any>;
 
 export interface Module {
-	[MODULE_IDENTIFIER_SYMBOL]: string;
-	readonly type: string;
-	get context(): string | undefined;
-	get layer(): string | undefined;
-	get factoryMeta(): JsFactoryMeta
-	set factoryMeta(factoryMeta: JsFactoryMeta);
-	get useSourceMap(): boolean;
-	get useSimpleSourceMap(): boolean;
-	buildInfo: BuildInfo;
-	buildMeta: Record<string, any>;
+  [MODULE_IDENTIFIER_SYMBOL]: string;
+  readonly type: string;
+  get context(): string | undefined;
+  get layer(): string | undefined;
+  get factoryMeta(): JsFactoryMeta
+  set factoryMeta(factoryMeta: JsFactoryMeta);
+  get useSourceMap(): boolean;
+  get useSimpleSourceMap(): boolean;
+  buildInfo: BuildInfo;
+  buildMeta: Record<string, any>;
 }
 
 interface NormalModuleConstructor {
-	new(): NormalModule;
-	readonly prototype: NormalModule;
+  new(): NormalModule;
+  readonly prototype: NormalModule;
 }
 
 export var NormalModule: NormalModuleConstructor;
 
 export interface NormalModule extends Module {
-	readonly resource: string;
-	readonly request: string;
-	readonly userRequest: string;
-	readonly rawRequest: string;
-	readonly resourceResolveData: Readonly<JsResourceData> | undefined;
-	readonly loaders: JsLoaderItem[];
-	get matchResource(): string | undefined;
-	set matchResource(val: string | undefined);
+  readonly resource: string;
+  readonly request: string;
+  readonly userRequest: string;
+  readonly rawRequest: string;
+  readonly resourceResolveData: Readonly<JsResourceData> | undefined;
+  readonly loaders: JsLoaderItem[];
+  get matchResource(): string | undefined;
+  set matchResource(val: string | undefined);
 }
 
 export interface ConcatenatedModule extends Module {
@@ -74,26 +74,26 @@ export interface ContextModule extends Module {
 }
 
 export interface ExternalModule extends Module {
-	readonly userRequest: string;
+  readonly userRequest: string;
 }
 
 export interface RspackError extends Error {
-	name: string;
-	message: string;
-	details?: string;
-	module?: null | Module;
-	loc?: DependencyLocation;
-	file?: string;
-	stack?: string;
-	hideStack?: boolean;
-	error?: Error;
+  name: string;
+  message: string;
+  details?: string;
+  module?: null | Module;
+  loc?: DependencyLocation;
+  file?: string;
+  stack?: string;
+  hideStack?: boolean;
+  error?: Error;
 }
 
 export type DependencyLocation = SyntheticDependencyLocation | RealDependencyLocation;
 
 export interface JsSource {
-	source: string | Buffer
-	map?: string
+  source: string | Buffer
+  map?: string
 }
 
 export type CompilerId = void;
@@ -399,7 +399,7 @@ export declare class JsExportsInfo {
   isUsed(runtime: string | string[] | undefined): boolean
   isModuleUsed(runtime: string | string[] | undefined): boolean
   setUsedInUnknownWay(runtime: string | string[] | undefined): boolean
-  getUsed(name: string | string[], runtime: string | string[] | undefined):  0 | 1 | 2 | 3 | 4
+  getUsed(name: string | string[], runtime: string | string[] | undefined): 0 | 1 | 2 | 3 | 4
 }
 
 export declare class JsModuleGraph {
@@ -1930,7 +1930,7 @@ export interface RawConsumeOptions {
   import?: string
   importResolved?: string
   shareKey: string
-  shareScope: RawShareScope
+  shareScope: string | Array<string>
   requiredVersion?: string | false | undefined
   packageName?: string
   strictVersion: boolean
@@ -1946,7 +1946,7 @@ export interface RawConsumeSharedPluginOptions {
 
 export interface RawContainerPluginOptions {
   name: string
-  shareScope: RawShareScope
+  shareScope: string | Array<string>
   library: JsLibraryOptions
   runtime?: false | string
   filename?: string
@@ -1957,7 +1957,7 @@ export interface RawContainerPluginOptions {
 export interface RawContainerReferencePluginOptions {
   remoteType: string
   remotes: Array<RawRemoteOptions>
-  shareScope?: RawShareScope
+  shareScope?: string | Array<string>
   enhanced: boolean
 }
 
@@ -2069,7 +2069,7 @@ export interface RawCopyPattern {
    * Allows to modify the file contents.
    * @default undefined
    */
-  transform?: { transformer: (input: Buffer, absoluteFilename: string) => string | Buffer | Promise<string> | Promise<Buffer>  } | ((input: Buffer, absoluteFilename: string) => string | Buffer | Promise<string> | Promise<Buffer>)
+  transform?: { transformer: (input: Buffer, absoluteFilename: string) => string | Buffer | Promise<string> | Promise<Buffer> } | ((input: Buffer, absoluteFilename: string) => string | Buffer | Promise<string> | Promise<Buffer>)
 }
 
 export interface RawCopyRspackPluginOptions {
@@ -2429,24 +2429,24 @@ export interface RawJavascriptParserOptions {
    * @experimental
    */
   requireResolve?: boolean
-commonjs?: boolean | { exports?: boolean | 'skipInEsm' }
-/**
- * This option is experimental in Rspack only and subject to change or be removed anytime.
- * @experimental
- */
-importDynamic?: boolean
-commonjsMagicComments?: boolean
-/**
- * This option is experimental in Rspack only and subject to change or be removed anytime.
- * @experimental
- */
-typeReexportsPresence?: string
-/**
- * This option is experimental in Rspack only and subject to change or be removed anytime.
- * @experimental
- */
-jsx?: boolean
-deferImport?: boolean
+  commonjs?: boolean | { exports?: boolean | 'skipInEsm' }
+  /**
+   * This option is experimental in Rspack only and subject to change or be removed anytime.
+   * @experimental
+   */
+  importDynamic?: boolean
+  commonjsMagicComments?: boolean
+  /**
+   * This option is experimental in Rspack only and subject to change or be removed anytime.
+   * @experimental
+   */
+  typeReexportsPresence?: string
+  /**
+   * This option is experimental in Rspack only and subject to change or be removed anytime.
+   * @experimental
+   */
+  jsx?: boolean
+  deferImport?: boolean
 }
 
 export interface RawJsonGeneratorOptions {
@@ -2459,7 +2459,7 @@ export interface RawJsonParserOptions {
 }
 
 export interface RawLazyCompilationOption {
-  currentActiveModules: ((err: Error | null, ) => Set<string>)
+  currentActiveModules: ((err: Error | null,) => Set<string>)
   test?: RawLazyCompilationTest
   entries: boolean
   imports: boolean
@@ -2685,12 +2685,12 @@ export interface RawOptions {
   stats: RawStatsOptions
   cache: boolean | { type: "memory" } | ({ type: "persistent" } & RawCacheOptionsPersistent)
   experiments: RawExperiments
-incremental?: false | { [key: string]: boolean }
-node?: RawNodeOption
-amd?: string
-bail: boolean
-__references: Record<string, any>
-__virtual_files?: Array<JsVirtualFile>
+  incremental?: false | { [key: string]: boolean }
+  node?: RawNodeOption
+  amd?: string
+  bail: boolean
+  __references: Record<string, any>
+  __virtual_files?: Array<JsVirtualFile>
 }
 
 export interface RawOutputOptions {
@@ -2773,7 +2773,7 @@ export interface RawProgressPluginOptions {
 export interface RawProvideOptions {
   key: string
   shareKey: string
-  shareScope: RawShareScope
+  shareScope: string | Array<string>
   version?: string | false | undefined
   eager: boolean
   singleton?: boolean
@@ -2794,7 +2794,7 @@ export interface RawRemoteAliasTarget {
 export interface RawRemoteOptions {
   key: string
   external: Array<string>
-  shareScope: RawShareScope
+  shareScope: string | Array<string>
 }
 
 export interface RawResolveOptions {
@@ -2939,9 +2939,9 @@ export interface RawSizeLimitsPluginOptions {
 }
 
 export interface RawSnapshotOptions {
-  immutablePaths: Array<string|RegExp>
-  unmanagedPaths: Array<string|RegExp>
-  managedPaths: Array<string|RegExp>
+  immutablePaths: Array<string | RegExp>
+  unmanagedPaths: Array<string | RegExp>
+  managedPaths: Array<string | RegExp>
 }
 
 export interface RawSplitChunkSizes {
@@ -3045,7 +3045,7 @@ export interface RealDependencyLocation {
  * Author Donny/강동윤
  * Copyright (c)
  */
-export declare function registerGlobalTrace(filter: string, layer:  "logger" | "perfetto" , output: string): void
+export declare function registerGlobalTrace(filter: string, layer: "logger" | "perfetto", output: string): void
 
 export declare enum RegisterJsTapKind {
   CompilerThisCompilation = 0,

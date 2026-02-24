@@ -3,7 +3,7 @@ import type { Compiler } from '../Compiler';
 import type { ExternalsType } from '../config';
 import type { ShareFallback } from '../sharing/IndependentSharedPlugin';
 import type { SharedConfig } from '../sharing/SharePlugin';
-import { normalizeShareScope } from '../sharing/SharePlugin';
+import { normalizeShareScope, type ShareScope } from '../sharing/SharePlugin';
 import { TreeShakingSharedPlugin } from '../sharing/TreeShakingSharedPlugin';
 import { isRequiredVersion } from '../sharing/utils';
 import {
@@ -144,7 +144,7 @@ interface RemoteInfo {
   name?: string;
   entry?: string;
   externalType: ExternalsType;
-  shareScope: string;
+  shareScope: ShareScope;
 }
 
 type RemoteInfos = Record<string, RemoteInfo[]>;

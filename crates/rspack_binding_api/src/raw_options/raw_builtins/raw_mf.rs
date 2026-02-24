@@ -16,9 +16,7 @@ use crate::options::{
   library::JsLibraryOptions,
 };
 
-pub type RawShareScope = Either<String, Vec<String>>;
-
-fn normalize_share_scope(value: RawShareScope) -> String {
+fn normalize_share_scope(value: Either<String, Vec<String>>) -> String {
   match value {
     Either::A(s) => s,
     Either::B(list) => list
@@ -32,7 +30,7 @@ fn normalize_share_scope(value: RawShareScope) -> String {
 #[napi(object)]
 pub struct RawContainerPluginOptions {
   pub name: String,
-  pub share_scope: RawShareScope,
+  pub share_scope: Either<String, Vec<String>>,
   pub library: JsLibraryOptions,
   #[napi(ts_type = "false | string")]
   pub runtime: Option<JsEntryRuntime>,
@@ -80,7 +78,7 @@ impl From<RawExposeOptions> for (String, ExposeOptions) {
 pub struct RawContainerReferencePluginOptions {
   pub remote_type: String,
   pub remotes: Vec<RawRemoteOptions>,
-  pub share_scope: Option<RawShareScope>,
+  pub share_scope: Option<Either<String, Vec<String>>>,
   pub enhanced: bool,
 }
 
@@ -100,7 +98,7 @@ impl From<RawContainerReferencePluginOptions> for ContainerReferencePluginOption
 pub struct RawRemoteOptions {
   pub key: String,
   pub external: Vec<String>,
-  pub share_scope: RawShareScope,
+  pub share_scope: Either<String, Vec<String>>,
 }
 
 impl From<RawRemoteOptions> for (String, RemoteOptions) {
@@ -120,7 +118,7 @@ impl From<RawRemoteOptions> for (String, RemoteOptions) {
 pub struct RawProvideOptions {
   pub key: String,
   pub share_key: String,
-  pub share_scope: RawShareScope,
+  pub share_scope: Either<String, Vec<String>>,
   #[napi(ts_type = "string | false | undefined")]
   pub version: Option<RawVersion>,
   pub eager: bool,
@@ -268,7 +266,7 @@ pub struct RawConsumeOptions {
   pub import: Option<String>,
   pub import_resolved: Option<String>,
   pub share_key: String,
-  pub share_scope: RawShareScope,
+  pub share_scope: Either<String, Vec<String>>,
   #[napi(ts_type = "string | false | undefined")]
   pub required_version: Option<RawVersion>,
   pub package_name: Option<String>,
