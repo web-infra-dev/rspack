@@ -1,4 +1,4 @@
-const webpack = require("@rspack/core");
+const { rspack } = require("@rspack/core");
 
 /** @type {{ value: number, msg: string, info: { builtModules: number, moduleIdentifier?: string } }[]} */
 const progressItems = [];
@@ -6,7 +6,7 @@ const progressItems = [];
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	plugins: [
-		new webpack.ProgressPlugin((value, msg, info) => {
+		new rspack.ProgressPlugin((value, msg, info) => {
 			progressItems.push({ value, msg, info });
 		}),
 		{

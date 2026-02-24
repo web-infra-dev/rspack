@@ -81,7 +81,7 @@ async fn optimize_code_generation(
   let mut exports_info_cache = FxHashMap::default();
 
   let mut q = mg
-    .modules_iter()
+    .modules()
     .map(|(mid, module)| {
       let is_namespace = matches!(
         module.build_meta().exports_type,

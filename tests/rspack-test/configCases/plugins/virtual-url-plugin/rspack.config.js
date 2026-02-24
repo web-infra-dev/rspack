@@ -2,9 +2,9 @@
 
 const fs = require("fs");
 const path = require("path");
-const webpack = require("@rspack/core");
+const { rspack } = require("@rspack/core");
 
-const { VirtualUrlPlugin } = webpack.experiments.schemes;
+const { VirtualUrlPlugin } = rspack.experiments.schemes;
 
 const watchDir = path.join(__dirname, "./routes");
 

@@ -225,7 +225,7 @@ where
   let compilation = task(compilation).await?;
   let mg = compilation.get_module_graph();
   let mut map = IdentifierMap::default();
-  for (mid, mgm) in mg.module_graph_modules_iter() {
+  for (mid, mgm) in mg.module_graph_modules() {
     let (Some(pre), Some(post)) = (mgm.pre_order_index, mgm.post_order_index) else {
       continue;
     };
