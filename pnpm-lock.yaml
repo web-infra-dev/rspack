@@ -319,8 +319,8 @@ importers:
   packages/create-rspack/template-vue-js:
     dependencies:
       vue:
-        specifier: ^3.5.28
-        version: 3.5.28(typescript@5.9.3)
+        specifier: ^3.5.29
+        version: 3.5.29(typescript@5.9.3)
     devDependencies:
       '@rspack/cli':
         specifier: workspace:*
@@ -333,13 +333,13 @@ importers:
         version: 1.2.1(@rspack/core@packages+rspack)(webpack@5.102.1)
       rspack-vue-loader:
         specifier: ^17.5.0
-        version: 17.5.0(@rspack/core@packages+rspack)(vue@3.5.28(typescript@5.9.3))
+        version: 17.5.0(@rspack/core@packages+rspack)(vue@3.5.29(typescript@5.9.3))
 
   packages/create-rspack/template-vue-ts:
     dependencies:
       vue:
-        specifier: ^3.5.28
-        version: 3.5.28(typescript@5.9.3)
+        specifier: ^3.5.29
+        version: 3.5.29(typescript@5.9.3)
     devDependencies:
       '@rspack/cli':
         specifier: workspace:*
@@ -352,7 +352,7 @@ importers:
         version: 1.2.1(@rspack/core@packages+rspack)(webpack@5.102.1)
       rspack-vue-loader:
         specifier: ^17.5.0
-        version: 17.5.0(@rspack/core@packages+rspack)(vue@3.5.28(typescript@5.9.3))
+        version: 17.5.0(@rspack/core@packages+rspack)(vue@3.5.29(typescript@5.9.3))
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
@@ -676,8 +676,8 @@ importers:
         specifier: ^1.6.1
         version: 1.6.1(react-refresh@0.18.0)
       '@swc/helpers':
-        specifier: 0.5.18
-        version: 0.5.18
+        specifier: 0.5.19
+        version: 0.5.19
       '@types/fs-extra':
         specifier: 11.0.4
         version: 11.0.4
@@ -710,7 +710,7 @@ importers:
         version: 0.18.0
       rspack-vue-loader:
         specifier: ^17.5.0
-        version: 17.5.0(@rspack/core@packages+rspack)(vue@3.5.28(typescript@5.9.3))
+        version: 17.5.0(@rspack/core@packages+rspack)(vue@3.5.29(typescript@5.9.3))
       tailwindcss:
         specifier: ^3.4.19
         version: 3.4.19(ts-node@10.9.2(@types/node@20.19.33)(typescript@5.9.3))
@@ -718,8 +718,8 @@ importers:
         specifier: ^5.9.3
         version: 5.9.3
       vue:
-        specifier: ^3.5.28
-        version: 3.5.28(typescript@5.9.3)
+        specifier: ^3.5.29
+        version: 3.5.29(typescript@5.9.3)
       ws:
         specifier: ^8.19.0
         version: 8.19.0
@@ -757,8 +757,8 @@ importers:
         specifier: ^0.8.5
         version: 0.8.5(jsdom@26.1.0)
       '@swc/helpers':
-        specifier: 0.5.18
-        version: 0.5.18
+        specifier: 0.5.19
+        version: 0.5.19
       '@swc/plugin-remove-console':
         specifier: ^12.5.0
         version: 12.5.0
@@ -931,8 +931,8 @@ importers:
         specifier: 3.3.4
         version: 3.3.4(patch_hash=0d62122aa5f9ac77d9ad3b4959c3c0492778a5948c0b00b45a673f3facfca327)
       worker-rspack-loader:
-        specifier: ^3.1.2
-        version: 3.1.2(@rspack/core@packages+rspack)(webpack@5.102.1)
+        specifier: ^3.1.3
+        version: 3.1.3(@rspack/core@packages+rspack)(webpack@5.102.1)
       xxhashjs:
         specifier: ^0.2.2
         version: 0.2.2
@@ -961,8 +961,8 @@ importers:
         specifier: ^1.13.5
         version: 1.13.5
       markdown-to-jsx:
-        specifier: ^9.7.4
-        version: 9.7.4(react@19.2.4)(vue@3.5.28(typescript@5.9.3))
+        specifier: ^9.7.6
+        version: 9.7.6(react@19.2.4)(vue@3.5.29(typescript@5.9.3))
       mermaid:
         specifier: ^11.12.3
         version: 11.12.3
@@ -3470,6 +3470,9 @@ packages:
   '@swc/helpers@0.5.18':
     resolution: {integrity: sha512-TXTnIcNJQEKwThMMqBXsZ4VGAza6bvN4pa41Rkqoio6QBKMvo+5lexeTMScGCIxtzgQJzElcvIltani+adC5PQ==}
 
+  '@swc/helpers@0.5.19':
+    resolution: {integrity: sha512-QamiFeIK3txNjgUTNppE6MiG3p7TdninpZu0E0PbqVh1a9FNLT2FRhisaa4NcaX52XVhA5l7Pk58Ft7Sqi/2sA==}
+
   '@swc/plugin-remove-console@12.5.0':
     resolution: {integrity: sha512-Q+drfL5CrAjC3fiHJhbSJKimPED/0n3n2WxizTIv27QcFnTEEJCHQMHY0xEVZ1n+nmHMckrwZDI7AH/liJBcMg==}
 
@@ -3799,34 +3802,34 @@ packages:
   '@vitest/utils@3.2.4':
     resolution: {integrity: sha512-fB2V0JFrQSMsCo9HiSq3Ezpdv4iYaXRG1Sx8edX3MwxfyNn83mKiGzOcH+Fkxt4MHxr3y42fQi1oeAInqgX2QA==}
 
-  '@vue/compiler-core@3.5.28':
-    resolution: {integrity: sha512-kviccYxTgoE8n6OCw96BNdYlBg2GOWfBuOW4Vqwrt7mSKWKwFVvI8egdTltqRgITGPsTFYtKYfxIG8ptX2PJHQ==}
+  '@vue/compiler-core@3.5.29':
+    resolution: {integrity: sha512-cuzPhD8fwRHk8IGfmYaR4eEe4cAyJEL66Ove/WZL7yWNL134nqLddSLwNRIsFlnnW1kK+p8Ck3viFnC0chXCXw==}
 
-  '@vue/compiler-dom@3.5.28':
-    resolution: {integrity: sha512-/1ZepxAb159jKR1btkefDP+J2xuWL5V3WtleRmxaT+K2Aqiek/Ab/+Ebrw2pPj0sdHO8ViAyyJWfhXXOP/+LQA==}
+  '@vue/compiler-dom@3.5.29':
+    resolution: {integrity: sha512-n0G5o7R3uBVmVxjTIYcz7ovr8sy7QObFG8OQJ3xGCDNhbG60biP/P5KnyY8NLd81OuT1WJflG7N4KWYHaeeaIg==}
 
-  '@vue/compiler-sfc@3.5.28':
-    resolution: {integrity: sha512-6TnKMiNkd6u6VeVDhZn/07KhEZuBSn43Wd2No5zaP5s3xm8IqFTHBj84HJah4UepSUJTro5SoqqlOY22FKY96g==}
+  '@vue/compiler-sfc@3.5.29':
+    resolution: {integrity: sha512-oJZhN5XJs35Gzr50E82jg2cYdZQ78wEwvRO6Y63TvLVTc+6xICzJHP1UIecdSPPYIbkautNBanDiWYa64QSFIA==}
 
-  '@vue/compiler-ssr@3.5.28':
-    resolution: {integrity: sha512-JCq//9w1qmC6UGLWJX7RXzrGpKkroubey/ZFqTpvEIDJEKGgntuDMqkuWiZvzTzTA5h2qZvFBFHY7fAAa9475g==}
+  '@vue/compiler-ssr@3.5.29':
+    resolution: {integrity: sha512-Y/ARJZE6fpjzL5GH/phJmsFwx3g6t2KmHKHx5q+MLl2kencADKIrhH5MLF6HHpRMmlRAYBRSvv347Mepf1zVNw==}
 
-  '@vue/reactivity@3.5.28':
-    resolution: {integrity: sha512-gr5hEsxvn+RNyu9/9o1WtdYdwDjg5FgjUSBEkZWqgTKlo/fvwZ2+8W6AfKsc9YN2k/+iHYdS9vZYAhpi10kNaw==}
+  '@vue/reactivity@3.5.29':
+    resolution: {integrity: sha512-zcrANcrRdcLtmGZETBxWqIkoQei8HaFpZWx/GHKxx79JZsiZ8j1du0VUJtu4eJjgFvU/iKL5lRXFXksVmI+5DA==}
 
-  '@vue/runtime-core@3.5.28':
-    resolution: {integrity: sha512-POVHTdbgnrBBIpnbYU4y7pOMNlPn2QVxVzkvEA2pEgvzbelQq4ZOUxbp2oiyo+BOtiYlm8Q44wShHJoBvDPAjQ==}
+  '@vue/runtime-core@3.5.29':
+    resolution: {integrity: sha512-8DpW2QfdwIWOLqtsNcds4s+QgwSaHSJY/SUe04LptianUQ/0xi6KVsu/pYVh+HO3NTVvVJjIPL2t6GdeKbS4Lg==}
 
-  '@vue/runtime-dom@3.5.28':
-    resolution: {integrity: sha512-4SXxSF8SXYMuhAIkT+eBRqOkWEfPu6nhccrzrkioA6l0boiq7sp18HCOov9qWJA5HML61kW8p/cB4MmBiG9dSA==}
+  '@vue/runtime-dom@3.5.29':
+    resolution: {integrity: sha512-AHvvJEtcY9tw/uk+s/YRLSlxxQnqnAkjqvK25ZiM4CllCZWzElRAoQnCM42m9AHRLNJ6oe2kC5DCgD4AUdlvXg==}
 
-  '@vue/server-renderer@3.5.28':
-    resolution: {integrity: sha512-pf+5ECKGj8fX95bNincbzJ6yp6nyzuLDhYZCeFxUNp8EBrQpPpQaLX3nNCp49+UbgbPun3CeVE+5CXVV1Xydfg==}
+  '@vue/server-renderer@3.5.29':
+    resolution: {integrity: sha512-G/1k6WK5MusLlbxSE2YTcqAAezS+VuwHhOvLx2KnQU7G2zCH6KIb+5Wyt6UjMq7a3qPzNEjJXs1hvAxDclQH+g==}
     peerDependencies:
-      vue: 3.5.28
+      vue: 3.5.29
 
-  '@vue/shared@3.5.28':
-    resolution: {integrity: sha512-cfWa1fCGBxrvaHRhvV3Is0MgmrbSCxYTXCSCau2I0a1Xw1N1pHAvkWCiXPRAqjvToILvguNyEwjevUqAuBQWvQ==}
+  '@vue/shared@3.5.29':
+    resolution: {integrity: sha512-w7SR0A5zyRByL9XUkCfdLs7t9XOHUyJ67qPGQjOou3p6GvBeBW+AVjUUmlxtZ4PIYaRvE+1LmK44O4uajlZwcg==}
 
   '@webassemblyjs/ast@1.14.1':
     resolution: {integrity: sha512-nuBEDgQfm1ccRp/8bCQrx1frohyufl4JlbMMZ4P1wpeOfDhF6FQkxZJ1b/e+PLwr6X1Nhw6OLme5usuBWYBvuQ==}
@@ -6209,8 +6212,8 @@ packages:
   markdown-table@3.0.4:
     resolution: {integrity: sha512-wiYz4+JrLyb/DqW2hkFJxP7Vd7JuTDm77fvbM8VfEQdmSMqcImWeeRbHwZjBjIFki/VaMK2BhFi7oUUZeM5bqw==}
 
-  markdown-to-jsx@9.7.4:
-    resolution: {integrity: sha512-W4ERh57uGFDT4Z0HDlk8fR8/vYwj+9cMMVwhLdVtvVLqGatGjroZIMk5IY/PMbV0ig0sos2FJVwUMQj/7l2VDg==}
+  markdown-to-jsx@9.7.6:
+    resolution: {integrity: sha512-oPckbBhWv/d2HmYzSv68g2UBTONmrFYlqUd+juolxTplJImhDEKFgAEcnxSTeZ1HISKzKxm+mVeUYP7OUhglJQ==}
     engines: {node: '>= 18'}
     peerDependencies:
       react: '>= 16.0.0'
@@ -8280,8 +8283,8 @@ packages:
   vscode-uri@3.1.0:
     resolution: {integrity: sha512-/BpdSx+yCQGnCvecbyXdxHDkuk55/G3xwnC0GqY4gmQ3j+A+g8kzzgB4Nk/SINjqn6+waqw3EgbVF2QKExkRxQ==}
 
-  vue@3.5.28:
-    resolution: {integrity: sha512-BRdrNfeoccSoIZeIhyPBfvWSLFP4q8J3u8Ju8Ug5vu3LdD+yTM13Sg4sKtljxozbnuMu1NB1X5HBHRYUzFocKg==}
+  vue@3.5.29:
+    resolution: {integrity: sha512-BZqN4Ze6mDQVNAni0IHeMJ5mwr8VAJ3MQC9FmprRhcBYENw+wOAAjRj8jfmN6FLl0j96OXbR+CjWhmAmM+QGnA==}
     peerDependencies:
       typescript: '*'
     peerDependenciesMeta:
@@ -8390,11 +8393,11 @@ packages:
     resolution: {integrity: sha512-RNGKj82nUPg3g5ygxkQl0R937xLyho1J24ItRCBTr/m1YnZkzJy1hUiHUJrc/VlsDQzsCnInEGSg3bci0Lmd4w==}
     engines: {node: '>= 10.0.0'}
 
-  worker-rspack-loader@3.1.2:
-    resolution: {integrity: sha512-lz2CoI/xGUFtjGrfTfzU6193fRdqSPsYrwPppeVCyknnFjq384RQ8BTHYp/KVMsgrodIubZX/G/i7sxvwC9tSA==}
+  worker-rspack-loader@3.1.3:
+    resolution: {integrity: sha512-pO4x66+Smy06tKy9eSbGmQgRj8TyOEsmyL+bix+SxI5YyV59Qu23YOMXBlAjLFhm/BDVkBvYr3qXyZs4IvO+YA==}
     engines: {node: '>= 10.13.0'}
     peerDependencies:
-      '@rspack/core': 0.x || 1.x
+      '@rspack/core': 0.x || 1.x || ^2.0.0-0
       webpack: ^5.0.0
     peerDependenciesMeta:
       '@rspack/core':
@@ -9703,6 +9706,7 @@ snapshots:
   '@isaacs/brace-expansion@5.0.1':
     dependencies:
       '@isaacs/balanced-match': 4.0.1
+    optional: true
 
   '@isaacs/cliui@8.0.2':
     dependencies:
@@ -9881,6 +9885,7 @@ snapshots:
       '@rushstack/node-core-library': 5.19.1(@types/node@20.19.33)
     transitivePeerDependencies:
       - '@types/node'
+    optional: true
 
   '@microsoft/api-extractor@7.56.3(@types/node@20.19.33)':
     dependencies:
@@ -9900,6 +9905,7 @@ snapshots:
       typescript: 5.8.2
     transitivePeerDependencies:
       - '@types/node'
+    optional: true
 
   '@microsoft/tsdoc-config@0.18.0':
     dependencies:
@@ -9907,8 +9913,10 @@ snapshots:
       ajv: 8.12.0
       jju: 1.4.0
       resolve: 1.22.11
+    optional: true
 
-  '@microsoft/tsdoc@0.16.0': {}
+  '@microsoft/tsdoc@0.16.0':
+    optional: true
 
   '@module-federation/error-codes@0.22.0': {}
 
@@ -10420,16 +10428,16 @@ snapshots:
 
   '@rsbuild/core@1.7.3':
     dependencies:
-      '@rspack/core': 1.7.5(@swc/helpers@0.5.18)
+      '@rspack/core': 1.7.5(@swc/helpers@0.5.19)
       '@rspack/lite-tapable': 1.1.0
-      '@swc/helpers': 0.5.18
+      '@swc/helpers': 0.5.19
       core-js: 3.47.0
       jiti: 2.6.1
 
   '@rsbuild/core@2.0.0-beta.3(@module-federation/runtime-tools@0.24.1)(core-js@3.48.0)':
     dependencies:
-      '@rspack/core': 2.0.0-beta.0(@module-federation/runtime-tools@0.24.1)(@swc/helpers@0.5.18)
-      '@swc/helpers': 0.5.18
+      '@rspack/core': 2.0.0-beta.0(@module-federation/runtime-tools@0.24.1)(@swc/helpers@0.5.19)
+      '@swc/helpers': 0.5.19
       jiti: 2.6.1
     optionalDependencies:
       core-js: 3.48.0
@@ -10608,21 +10616,21 @@ snapshots:
       '@rspack/binding-win32-ia32-msvc': 2.0.0-beta.0
       '@rspack/binding-win32-x64-msvc': 2.0.0-beta.0
 
-  '@rspack/core@1.7.5(@swc/helpers@0.5.18)':
+  '@rspack/core@1.7.5(@swc/helpers@0.5.19)':
     dependencies:
       '@module-federation/runtime-tools': 0.22.0
       '@rspack/binding': 1.7.5
       '@rspack/lite-tapable': 1.1.0
     optionalDependencies:
-      '@swc/helpers': 0.5.18
+      '@swc/helpers': 0.5.19
 
-  '@rspack/core@2.0.0-beta.0(@module-federation/runtime-tools@0.24.1)(@swc/helpers@0.5.18)':
+  '@rspack/core@2.0.0-beta.0(@module-federation/runtime-tools@0.24.1)(@swc/helpers@0.5.19)':
     dependencies:
       '@rspack/binding': 2.0.0-beta.0
       '@rspack/lite-tapable': 1.1.0
     optionalDependencies:
       '@module-federation/runtime-tools': 0.24.1
-      '@swc/helpers': 0.5.18
+      '@swc/helpers': 0.5.19
 
   '@rspack/dev-server@1.2.1(@rspack/core@packages+rspack)(webpack@5.102.1)':
     dependencies:
@@ -10791,15 +10799,18 @@ snapshots:
       semver: 7.5.4
     optionalDependencies:
       '@types/node': 20.19.33
+    optional: true
 
   '@rushstack/problem-matcher@0.1.1(@types/node@20.19.33)':
     optionalDependencies:
       '@types/node': 20.19.33
+    optional: true
 
   '@rushstack/rig-package@0.6.0':
     dependencies:
       resolve: 1.22.11
       strip-json-comments: 3.1.1
+    optional: true
 
   '@rushstack/terminal@0.21.0(@types/node@20.19.33)':
     dependencies:
@@ -10808,6 +10819,7 @@ snapshots:
       supports-color: 8.1.1
     optionalDependencies:
       '@types/node': 20.19.33
+    optional: true
 
   '@rushstack/ts-command-line@5.2.0(@types/node@20.19.33)':
     dependencies:
@@ -10817,6 +10829,7 @@ snapshots:
       string-argv: 0.3.2
     transitivePeerDependencies:
       - '@types/node'
+    optional: true
 
   '@shikijs/core@3.21.0':
     dependencies:
@@ -10893,6 +10906,10 @@ snapshots:
     dependencies:
       tslib: 2.8.1
 
+  '@swc/helpers@0.5.19':
+    dependencies:
+      tslib: 2.8.1
+
   '@swc/plugin-remove-console@12.5.0':
     dependencies:
       '@swc/counter': 0.1.3
@@ -10915,7 +10932,8 @@ snapshots:
     dependencies:
       tslib: 2.8.1
 
-  '@types/argparse@1.0.38': {}
+  '@types/argparse@1.0.38':
+    optional: true
 
   '@types/babel__generator@7.27.0':
     dependencies:
@@ -11284,59 +11302,59 @@ snapshots:
       loupe: 3.2.1
       tinyrainbow: 2.0.0
 
-  '@vue/compiler-core@3.5.28':
+  '@vue/compiler-core@3.5.29':
     dependencies:
       '@babel/parser': 7.29.0
-      '@vue/shared': 3.5.28
+      '@vue/shared': 3.5.29
       entities: 7.0.1
       estree-walker: 2.0.2
       source-map-js: 1.2.1
 
-  '@vue/compiler-dom@3.5.28':
+  '@vue/compiler-dom@3.5.29':
     dependencies:
-      '@vue/compiler-core': 3.5.28
-      '@vue/shared': 3.5.28
+      '@vue/compiler-core': 3.5.29
+      '@vue/shared': 3.5.29
 
-  '@vue/compiler-sfc@3.5.28':
+  '@vue/compiler-sfc@3.5.29':
     dependencies:
       '@babel/parser': 7.29.0
-      '@vue/compiler-core': 3.5.28
-      '@vue/compiler-dom': 3.5.28
-      '@vue/compiler-ssr': 3.5.28
-      '@vue/shared': 3.5.28
+      '@vue/compiler-core': 3.5.29
+      '@vue/compiler-dom': 3.5.29
+      '@vue/compiler-ssr': 3.5.29
+      '@vue/shared': 3.5.29
       estree-walker: 2.0.2
       magic-string: 0.30.21
       postcss: 8.5.6
       source-map-js: 1.2.1
 
-  '@vue/compiler-ssr@3.5.28':
+  '@vue/compiler-ssr@3.5.29':
     dependencies:
-      '@vue/compiler-dom': 3.5.28
-      '@vue/shared': 3.5.28
+      '@vue/compiler-dom': 3.5.29
+      '@vue/shared': 3.5.29
 
-  '@vue/reactivity@3.5.28':
+  '@vue/reactivity@3.5.29':
     dependencies:
-      '@vue/shared': 3.5.28
+      '@vue/shared': 3.5.29
 
-  '@vue/runtime-core@3.5.28':
+  '@vue/runtime-core@3.5.29':
     dependencies:
-      '@vue/reactivity': 3.5.28
-      '@vue/shared': 3.5.28
+      '@vue/reactivity': 3.5.29
+      '@vue/shared': 3.5.29
 
-  '@vue/runtime-dom@3.5.28':
+  '@vue/runtime-dom@3.5.29':
     dependencies:
-      '@vue/reactivity': 3.5.28
-      '@vue/runtime-core': 3.5.28
-      '@vue/shared': 3.5.28
+      '@vue/reactivity': 3.5.29
+      '@vue/runtime-core': 3.5.29
+      '@vue/shared': 3.5.29
       csstype: 3.2.3
 
-  '@vue/server-renderer@3.5.28(vue@3.5.28(typescript@5.9.3))':
+  '@vue/server-renderer@3.5.29(vue@3.5.29(typescript@5.9.3))':
     dependencies:
-      '@vue/compiler-ssr': 3.5.28
-      '@vue/shared': 3.5.28
-      vue: 3.5.28(typescript@5.9.3)
+      '@vue/compiler-ssr': 3.5.29
+      '@vue/shared': 3.5.29
+      vue: 3.5.29(typescript@5.9.3)
 
-  '@vue/shared@3.5.28': {}
+  '@vue/shared@3.5.29': {}
 
   '@webassemblyjs/ast@1.14.1':
     dependencies:
@@ -11459,6 +11477,7 @@ snapshots:
   ajv-draft-04@1.0.0(ajv@8.13.0):
     optionalDependencies:
       ajv: 8.13.0
+    optional: true
 
   ajv-formats@2.1.1(ajv@8.17.1):
     optionalDependencies:
@@ -11467,6 +11486,7 @@ snapshots:
   ajv-formats@3.0.1(ajv@8.13.0):
     optionalDependencies:
       ajv: 8.13.0
+    optional: true
 
   ajv-keywords@3.5.2(ajv@6.12.6):
     dependencies:
@@ -11490,6 +11510,7 @@ snapshots:
       json-schema-traverse: 1.0.0
       require-from-string: 2.0.2
       uri-js: 4.4.1
+    optional: true
 
   ajv@8.13.0:
     dependencies:
@@ -11497,6 +11518,7 @@ snapshots:
       json-schema-traverse: 1.0.0
       require-from-string: 2.0.2
       uri-js: 4.4.1
+    optional: true
 
   ajv@8.17.1:
     dependencies:
@@ -12559,7 +12581,8 @@ snapshots:
 
   diff@4.0.2: {}
 
-  diff@8.0.2: {}
+  diff@8.0.2:
+    optional: true
 
   diffie-hellman@5.0.3:
     dependencies:
@@ -13570,7 +13593,8 @@ snapshots:
       parent-module: 1.0.1
       resolve-from: 4.0.0
 
-  import-lazy@4.0.0: {}
+  import-lazy@4.0.0:
+    optional: true
 
   import-meta-resolve@4.2.0: {}
 
@@ -13849,7 +13873,8 @@ snapshots:
 
   jiti@2.6.1: {}
 
-  jju@1.4.0: {}
+  jju@1.4.0:
+    optional: true
 
   js-stringify@1.0.2: {}
 
@@ -14062,6 +14087,7 @@ snapshots:
   lru-cache@6.0.0:
     dependencies:
       yallist: 4.0.0
+    optional: true
 
   magic-string@0.30.19:
     dependencies:
@@ -14087,10 +14113,10 @@ snapshots:
 
   markdown-table@3.0.4: {}
 
-  markdown-to-jsx@9.7.4(react@19.2.4)(vue@3.5.28(typescript@5.9.3)):
+  markdown-to-jsx@9.7.6(react@19.2.4)(vue@3.5.29(typescript@5.9.3)):
     optionalDependencies:
       react: 19.2.4
-      vue: 3.5.28(typescript@5.9.3)
+      vue: 3.5.29(typescript@5.9.3)
 
   marked@16.3.0: {}
 
@@ -14620,6 +14646,7 @@ snapshots:
   minimatch@10.1.2:
     dependencies:
       '@isaacs/brace-expansion': 5.0.1
+    optional: true
 
   minimatch@3.1.2:
     dependencies:
@@ -15546,13 +15573,13 @@ snapshots:
     optionalDependencies:
       '@rsbuild/core': 2.0.0-beta.3(@module-federation/runtime-tools@0.24.1)(core-js@3.48.0)
 
-  rspack-vue-loader@17.5.0(@rspack/core@packages+rspack)(vue@3.5.28(typescript@5.9.3)):
+  rspack-vue-loader@17.5.0(@rspack/core@packages+rspack)(vue@3.5.29(typescript@5.9.3)):
     dependencies:
       '@rspack/lite-tapable': 1.1.0
       chalk: 4.1.2
     optionalDependencies:
       '@rspack/core': link:packages/rspack
-      vue: 3.5.28(typescript@5.9.3)
+      vue: 3.5.29(typescript@5.9.3)
 
   rspress-plugin-font-open-sans@1.0.3(@rspress/core@2.0.3(@module-federation/runtime-tools@0.24.1)(@types/react@19.2.14)(core-js@3.48.0)):
     dependencies:
@@ -15734,6 +15761,7 @@ snapshots:
   semver@7.5.4:
     dependencies:
       lru-cache: 6.0.0
+    optional: true
 
   semver@7.7.2: {}
 
@@ -16008,7 +16036,8 @@ snapshots:
 
   strip-final-newline@2.0.0: {}
 
-  strip-json-comments@3.1.1: {}
+  strip-json-comments@3.1.1:
+    optional: true
 
   strip-literal@3.1.0:
     dependencies:
@@ -16279,7 +16308,8 @@ snapshots:
 
   typedarray@0.0.6: {}
 
-  typescript@5.8.2: {}
+  typescript@5.8.2:
+    optional: true
 
   typescript@5.9.3: {}
 
@@ -16523,13 +16553,13 @@ snapshots:
 
   vscode-uri@3.1.0: {}
 
-  vue@3.5.28(typescript@5.9.3):
+  vue@3.5.29(typescript@5.9.3):
     dependencies:
-      '@vue/compiler-dom': 3.5.28
-      '@vue/compiler-sfc': 3.5.28
-      '@vue/runtime-dom': 3.5.28
-      '@vue/server-renderer': 3.5.28(vue@3.5.28(typescript@5.9.3))
-      '@vue/shared': 3.5.28
+      '@vue/compiler-dom': 3.5.29
+      '@vue/compiler-sfc': 3.5.29
+      '@vue/runtime-dom': 3.5.29
+      '@vue/server-renderer': 3.5.29(vue@3.5.29(typescript@5.9.3))
+      '@vue/shared': 3.5.29
     optionalDependencies:
       typescript: 5.9.3
 
@@ -16662,7 +16692,7 @@ snapshots:
       assert-never: 1.4.0
       babel-walk: 3.0.0-canary-5
 
-  worker-rspack-loader@3.1.2(@rspack/core@packages+rspack)(webpack@5.102.1):
+  worker-rspack-loader@3.1.3(@rspack/core@packages+rspack)(webpack@5.102.1):
     dependencies:
       loader-utils: 2.0.4
       schema-utils: 3.3.0
@@ -16727,7 +16757,8 @@ snapshots:
 
   yallist@3.1.1: {}
 
-  yallist@4.0.0: {}
+  yallist@4.0.0:
+    optional: true
 
   yaml@2.8.1: {}
 
