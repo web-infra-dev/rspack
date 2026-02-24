@@ -84,15 +84,7 @@ impl<'a> HtmlCompiler<'a> {
         .map(|doc| CompiledDocument::Document(doc).with_diagnostic(diagnostics))
         .map_err(|e| html_parse_error_to_traceable_error(e, &fm))
     } else {
-      let context_element = Element {
-        span: DUMMY_SP,
-        tag_name: "body".into(),
-        namespace: Namespace::HTML,
-        attributes: vec![],
-        children: vec![],
-        content: None,
-        is_self_closing: false,
-      };
+      let context_element = create_body_context_element();
       let document_fragment = parse_file_as_document_fragment(
         fm.as_ref(),
         &context_element,
@@ -132,15 +124,7 @@ impl<'a> HtmlCompiler<'a> {
           &NoopCssMinifier,
         ),
         CompiledDocument::DocumentFragment(ast) => {
-          let context_element = Element {
-            span: DUMMY_SP,
-            tag_name: "body".into(),
-            namespace: Namespace::HTML,
-            attributes: vec![],
-            children: vec![],
-            content: None,
-            is_self_closing: false,
-          };
+          let context_element = create_body_context_element();
           minify_document_fragment_with_custom_css_minifier(
             ast,
             &context_element,
@@ -156,6 +140,18 @@ impl<'a> HtmlCompiler<'a> {
     let mut r#gen = CodeGenerator::new(wr, codegen_config);
     ast.emit_to_codegen(&mut r#gen)?;
     Ok(output)
+  }
+}
+
+fn create_body_context_element() -> Element {
+  Element {
+    span: DUMMY_SP,
+    tag_name: "body".into(),
+    namespace: Namespace::HTML,
+    attributes: vec![],
+    children: vec![],
+    content: None,
+    is_self_closing: false,
   }
 }
 
