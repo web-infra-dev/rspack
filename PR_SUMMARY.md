@@ -7,6 +7,7 @@ This PR introduces a significant performance optimization for `DependencyLocatio
 ## Problem
 
 Previously, computing `DependencyLocation` for each dependency required scanning the entire source file from the beginning to calculate line and column numbers. This resulted in:
+
 - **O(n×m) complexity** for n dependencies in a file of length m
 - Redundant UTF-16 encoding calculations
 - Repeated newline counting operations
@@ -50,15 +51,15 @@ Previously, computing `DependencyLocation` for each dependency required scanning
   - `compute_dependency_location()`: Main entry point with caching
   - `advance_pos()`: Incremental position advancement helper
 
-- **Updated `JavascriptParser`**: 
+- **Updated `JavascriptParser`**:
   - Embeds `DependencyLocationAdvancer` instance
   - Delegates location computation to the advancer
 
-- **Dependency Constructors**: 
+- **Dependency Constructors**:
   - Accept `loc: Option<DependencyLocation>` directly
   - Removed internal `range.to_loc(source)` calls
 
-- **Parser Plugins**: 
+- **Parser Plugins**:
   - All updated to compute location before creating dependencies
   - Use `parser.to_dependency_location(range)` API
 
@@ -105,6 +106,7 @@ Previously, computing `DependencyLocation` for each dependency required scanning
 ## Migration Guide
 
 For plugin developers:
+
 - Update calls from `parser.to_dependency_location(span)` to `parser.to_dependency_location(DependencyRange::from(span))`
 - Or use `DependencyRange::new(start, end)` directly if you have byte offsets
 

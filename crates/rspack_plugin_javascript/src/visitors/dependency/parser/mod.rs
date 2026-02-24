@@ -364,7 +364,7 @@ pub struct JavascriptParser<'parser> {
   pub(crate) has_inlinable_const_decls: bool,
   pub(crate) side_effects_item: Option<SideEffectsBailoutItemWithSpan>,
   pub(crate) is_renaming: Option<Atom>,
-  pub location_advancer: DependencyLocationAdvancer,
+  pub(crate) location_advancer: DependencyLocationAdvancer,
 }
 
 impl<'parser> JavascriptParser<'parser> {

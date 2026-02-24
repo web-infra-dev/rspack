@@ -38,7 +38,7 @@ impl ProvideParserPlugin {
       let range = DependencyRange::from(span);
       let loc = parser.to_dependency_location(range);
       let dep = ProvideDependency::new(
-        span.into(),
+        range,
         Atom::from(requests[0].as_str()),
         name_identifier,
         requests[1..]

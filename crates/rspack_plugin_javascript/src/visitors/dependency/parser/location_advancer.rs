@@ -244,8 +244,7 @@ mod tests {
       let result = cache.compute_dependency_location(source, range);
       assert!(
         result.is_some(),
-        "Should compute location for range {:?}",
-        range
+        "Should compute location for range {range:?}",
       );
 
       // Verify the result has correct structure
