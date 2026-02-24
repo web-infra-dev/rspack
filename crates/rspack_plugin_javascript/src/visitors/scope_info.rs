@@ -1,15 +1,28 @@
+use std::num::NonZeroU32;
+
 use bitflags::bitflags;
 use rustc_hash::FxHashMap;
 use swc_core::atoms::Atom;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct ScopeInfoId(u32);
+macro_rules! define_entity_id {
+  ($name:ident) => {
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+    pub struct $name(NonZeroU32);
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct VariableInfoId(u32);
+    impl $name {
+      pub fn new(id: u32) -> Self {
+        Self(NonZeroU32::new(id + 1).unwrap())
+      }
+      pub fn index(&self) -> usize {
+        (self.0.get() - 1) as usize
+      }
+    }
+  };
+}
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct TagInfoId(u32);
+define_entity_id!(ScopeInfoId);
+define_entity_id!(VariableInfoId);
+define_entity_id!(TagInfoId);
 
 #[derive(Debug)]
 pub struct VariableInfoDB {
@@ -21,14 +34,14 @@ impl VariableInfoDB {
     let mut map = Vec::with_capacity(2);
     map.push(VariableInfo {
       id: VariableInfo::TOMBSTONE,
-      declared_scope: ScopeInfoId(0),
+      declared_scope: ScopeInfoId::new(0),
       name: None,
       flags: VariableInfoFlags::empty(),
       tag_info: None,
     });
     map.push(VariableInfo {
       id: VariableInfo::UNDEFINED,
-      declared_scope: ScopeInfoId(1),
+      declared_scope: ScopeInfoId::new(1),
       name: None,
       flags: VariableInfoFlags::empty(),
       tag_info: None,
@@ -84,7 +97,7 @@ impl ScopeInfoDB {
   }
 
   fn _create(&mut self, parent: Option<ScopeInfoId>) -> ScopeInfoId {
-    let id = ScopeInfoId(self.map.len() as u32);
+    let id = ScopeInfoId::new(self.map.len() as u32);
     let is_strict = match parent {
       Some(parent) => self.expect_get_scope(parent).is_strict,
       None => false,
@@ -109,14 +122,14 @@ impl ScopeInfoDB {
   pub fn expect_get_scope(&self, id: ScopeInfoId) -> &ScopeInfo {
     self
       .map
-      .get(id.0 as usize)
+      .get(id.index())
       .unwrap_or_else(|| panic!("{id:#?} should exist"))
   }
 
   pub fn expect_get_mut_scope(&mut self, id: ScopeInfoId) -> &mut ScopeInfo {
     self
       .map
-      .get_mut(id.0 as usize)
+      .get_mut(id.index())
       .unwrap_or_else(|| panic!("{id:#?} should exist"))
   }
 
@@ -124,7 +137,7 @@ impl ScopeInfoDB {
     self
       .variable_info_db
       .map
-      .get(id.0 as usize)
+      .get(id.index())
       .unwrap_or_else(|| panic!("{id:#?} should exist"))
   }
 
@@ -132,7 +145,7 @@ impl ScopeInfoDB {
     self
       .tag_info_db
       .map
-      .get(id.0 as usize)
+      .get(id.index())
       .unwrap_or_else(|| panic!("{id:#?} should exist"))
   }
 
@@ -140,7 +153,7 @@ impl ScopeInfoDB {
     self
       .tag_info_db
       .map
-      .get_mut(id.0 as usize)
+      .get_mut(id.index())
       .unwrap_or_else(|| panic!("{id:#?} should exist"))
   }
 
@@ -202,7 +215,7 @@ impl TagInfo {
     data: Option<Box<dyn anymap::CloneAny>>,
     next: Option<TagInfoId>,
   ) -> TagInfoId {
-    let id = TagInfoId(definitions_db.tag_info_db.map.len() as u32);
+    let id = TagInfoId::new(definitions_db.tag_info_db.map.len() as u32);
     let tag_info = TagInfo { tag, data, next };
     definitions_db.tag_info_db.map.push(tag_info);
     id
@@ -284,8 +297,10 @@ pub struct VariableInfo {
 }
 
 impl VariableInfo {
-  const TOMBSTONE: VariableInfoId = VariableInfoId(0);
-  const UNDEFINED: VariableInfoId = VariableInfoId(1);
+  const TOMBSTONE: VariableInfoId =
+    VariableInfoId(unsafe { std::num::NonZeroU32::new_unchecked(1) });
+  const UNDEFINED: VariableInfoId =
+    VariableInfoId(unsafe { std::num::NonZeroU32::new_unchecked(2) });
 
   pub fn create(
     definitions_db: &mut ScopeInfoDB,
@@ -294,7 +309,7 @@ impl VariableInfo {
     flags: VariableInfoFlags,
     tag_info: Option<TagInfoId>,
   ) -> VariableInfoId {
-    let id = VariableInfoId(definitions_db.variable_info_db.map.len() as u32);
+    let id = VariableInfoId::new(definitions_db.variable_info_db.map.len() as u32);
     let variable_info = VariableInfo {
       id,
       declared_scope,
