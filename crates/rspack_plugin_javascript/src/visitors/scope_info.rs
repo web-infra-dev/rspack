@@ -336,7 +336,7 @@ impl VariableInfo {
 
 #[derive(Debug)]
 pub struct ScopeInfo {
-  pub parent: Option<ScopeInfoId>,
+  parent: Option<ScopeInfoId>,
   map: FxHashMap<Atom, VariableInfoId>,
   pub is_strict: bool,
 }
