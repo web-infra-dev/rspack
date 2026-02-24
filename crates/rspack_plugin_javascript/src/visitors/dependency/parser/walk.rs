@@ -975,7 +975,11 @@ impl JavascriptParser<'_> {
         // SAFETY: is_simple_function will ensure pat is always a BindingIdent.
         let ident = pat.as_ident().expect("should be a `BindingIdent`");
         params.push(ident);
-        if variable_info_for_args.get(i).is_none() {
+        if variable_info_for_args
+          .get(i)
+          .and_then(|info| info.as_ref())
+          .is_none()
+        {
           scope_params.push(pat);
         }
       }
@@ -985,7 +989,11 @@ impl JavascriptParser<'_> {
         // SAFETY: is_simple_function will ensure pat is always a BindingIdent.
         let ident = pat.as_ident().expect("should be a `BindingIdent`");
         params.push(ident);
-        if variable_info_for_args.get(i).is_none() {
+        if variable_info_for_args
+          .get(i)
+          .and_then(|info| info.as_ref())
+          .is_none()
+        {
           scope_params.push(pat);
         }
       }
