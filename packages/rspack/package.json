@@ -24,10 +24,7 @@
     "prepare": "prebundle && node ./move-tinypool.js",
     "build": "rslib build",
     "build:browser": "rslib build -c rslib.browser.config.ts",
-    "dev": "rslib build --watch",
-    "doc-coverage": "tsx ./scripts/check-documentation-coverage.ts",
-    "api-extractor": "api-extractor run --verbose",
-    "api-extractor:ci": "api-extractor run --verbose || diff temp/core.api.md etc/core.api.md"
+    "dev": "rslib build --watch"
   },
   "files": [
     "dist",
