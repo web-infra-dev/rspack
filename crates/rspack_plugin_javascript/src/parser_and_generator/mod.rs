@@ -12,7 +12,7 @@ use rspack_core::{
   ParseContext, ParseResult, ParserAndGenerator, RuntimeGlobals, SideEffectsBailoutItem,
   SourceType, TemplateContext, TemplateReplaceSource,
   diagnostics::map_box_diagnostics_to_module_parse_diagnostics,
-  remove_bom, render_init_fragments,
+  remove_bom, render_init_fragments, to_dependency_location,
   rspack_sources::{BoxSource, ReplaceSource, Source, SourceExt},
 };
 use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
@@ -306,9 +306,9 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     if compiler_options.optimization.side_effects.is_true() {
       build_meta.side_effect_free = Some(side_effects_item.is_none());
       side_effects_bailout = side_effects_item.take().and_then(|item| -> Option<_> {
-        let source = source.source().into_string_lossy();
-        let msg = Into::<DependencyRange>::into(item.span)
-          .to_loc(Some(source.as_ref()))?
+        let source_str = source.source().into_string_lossy();
+        let range: DependencyRange = item.span.into();
+        let msg = to_dependency_location(source_str.as_ref(), range.start, range.end)?
           .to_string();
         Some(SideEffectsBailoutItem { msg, ty: item.ty })
       });

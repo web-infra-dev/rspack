@@ -15,6 +15,7 @@ either = { workspace = true }
 fast-glob = { workspace = true }
 indexmap = { workspace = true }
 itertools = { workspace = true }
+memchr = { workspace = true }
 num-bigint = { workspace = true }
 once_cell = { workspace = true }
 rayon = { workspace = true }

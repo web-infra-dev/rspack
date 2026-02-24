@@ -32,12 +32,11 @@ impl CommonJsFullRequireDependency {
     request: String,
     names: Vec<Atom>,
     range: DependencyRange,
+    loc: Option<DependencyLocation>,
     is_call: bool,
     optional: bool,
     asi_safe: bool,
-    source: Option<&str>,
   ) -> Self {
-    let loc = range.to_loc(source);
     Self {
       id: DependencyId::new(),
       request,

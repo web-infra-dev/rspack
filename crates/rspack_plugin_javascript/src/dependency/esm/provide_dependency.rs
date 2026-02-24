@@ -34,9 +34,8 @@ impl ProvideDependency {
     request: Atom,
     identifier: String,
     ids: Vec<Atom>,
-    source: Option<&str>,
+    loc: Option<DependencyLocation>,
   ) -> Self {
-    let loc = range.to_loc(source);
     Self {
       range,
       request,
