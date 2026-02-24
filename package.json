@@ -70,7 +70,7 @@
     "@taplo/cli": "^0.7.0",
     "@types/is-ci": "^3.0.4",
     "@types/node": "^20.19.33",
-    "check-dependency-version-consistency": "^5.0.1",
+    "check-dependency-version-consistency": "^6.0.0",
     "commander": "14.0.3",
     "cross-env": "^10.1.0",
     "heading-case": "^1.0.7",

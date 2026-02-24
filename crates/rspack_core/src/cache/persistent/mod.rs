@@ -273,7 +273,7 @@ impl Cache for PersistentCache {
             .get_module_graph()
             .modules()
           {
-            compilation.exports_info_artifact.new_exports_info(module);
+            compilation.exports_info_artifact.new_exports_info(*module);
           }
         }
         Err(err) => self.warnings.push(err.to_string()),

@@ -1,5 +1,5 @@
-const webpack = require("@rspack/core");
-const { ModuleFederationPluginV1: ModuleFederationPlugin } = webpack.container;
+const { rspack } = require("@rspack/core");
+const { ModuleFederationPluginV1: ModuleFederationPlugin } = rspack.container;
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {

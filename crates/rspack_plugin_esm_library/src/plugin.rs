@@ -109,8 +109,7 @@ async fn finish_modules(
 ) -> Result<()> {
   let module_graph = compilation.get_module_graph();
   let mut modules_map = IdentifierIndexMap::default();
-  let modules = module_graph.modules();
-  let mut modules = modules.iter().collect::<Vec<_>>();
+  let mut modules = module_graph.modules().collect::<Vec<_>>();
   modules.sort_by(|(m1, _), (m2, _)| m1.cmp(m2));
   let logger = compilation.get_logger("rspack.EsmLibraryPlugin");
 
