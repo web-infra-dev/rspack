@@ -215,7 +215,7 @@ const lazyCompilationMiddlewareInternal = (
     try {
       modules = await readModuleIdsFromBody(req);
     } catch (err) {
-      logger.error('Failed to parse request body: ' + err);
+      logger.error(`Failed to parse request body: ${err}`);
       res.writeHead(400);
       res.end('Bad Request');
       return;
