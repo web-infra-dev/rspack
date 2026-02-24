@@ -5,50 +5,20 @@ use swc_core::atoms::Atom;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ScopeInfoId(u32);
 
-impl ScopeInfoId {
-  fn init() -> ScopeInfoId {
-    // tombstone -> ScopeInfoId(0)
-    // undefined -> ScopeInfoId(1)
-    ScopeInfoId(2)
-  }
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct VariableInfoId(u32);
-
-impl VariableInfoId {
-  fn init() -> VariableInfoId {
-    // VariableInfoId(0) -> ScopeInfoId(0)
-    // VariableInfoId(1) -> ScopeInfoId(1)
-    VariableInfoId(2)
-  }
-}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct TagInfoId(u32);
 
-impl TagInfoId {
-  fn init() -> TagInfoId {
-    TagInfoId(0)
-  }
-}
-
 #[derive(Debug)]
 pub struct VariableInfoDB {
-  count: VariableInfoId,
-  map: FxHashMap<VariableInfoId, VariableInfo>,
+  map: Vec<VariableInfo>,
 }
 
 impl VariableInfoDB {
-  fn next(&mut self) -> VariableInfoId {
-    let id = self.count;
-    self.count.0 += 1;
-    id
-  }
-
   fn new() -> Self {
     Self {
-      count: VariableInfoId::init(),
       map: Default::default(),
     }
   }
@@ -56,29 +26,31 @@ impl VariableInfoDB {
 
 #[derive(Debug)]
 pub struct TagInfoDB {
-  count: TagInfoId,
-  map: FxHashMap<TagInfoId, TagInfo>,
+  map: Vec<TagInfo>,
 }
 
 impl TagInfoDB {
-  fn next(&mut self) -> TagInfoId {
-    let id = self.count;
-    self.count.0 += 1;
-    id
-  }
-
   fn new() -> Self {
-    Self {
-      count: TagInfoId::init(),
-      map: Default::default(),
-    }
+    let mut map = Vec::with_capacity(2);
+    map.push(TagInfo {
+      id: TagInfoId(0),
+      tag: "tombstone",
+      data: None,
+      next: None,
+    });
+    map.push(TagInfo {
+      id: TagInfoId(1),
+      tag: "undefined",
+      data: None,
+      next: None,
+    });
+    Self { map }
   }
 }
 
 #[derive(Debug)]
 pub struct ScopeInfoDB {
-  count: ScopeInfoId,
-  map: FxHashMap<ScopeInfoId, ScopeInfo>,
+  map: Vec<ScopeInfo>,
   variable_info_db: VariableInfoDB,
   tag_info_db: TagInfoDB,
 }
@@ -90,15 +62,8 @@ impl Default for ScopeInfoDB {
 }
 
 impl ScopeInfoDB {
-  fn next(&mut self) -> ScopeInfoId {
-    let id = self.count;
-    self.count.0 += 1;
-    id
-  }
-
   pub fn new() -> Self {
     Self {
-      count: ScopeInfoId::init(),
       map: Default::default(),
       variable_info_db: VariableInfoDB::new(),
       tag_info_db: TagInfoDB::new(),
@@ -106,7 +71,7 @@ impl ScopeInfoDB {
   }
 
   fn _create(&mut self, parent: Option<ScopeInfoId>) -> ScopeInfoId {
-    let id = self.next();
+    let id = ScopeInfoId(self.map.len() as u32);
     let stack = match parent {
       Some(parent) => {
         let mut parnet_stack = self.expect_get_scope(parent).stack.clone();
@@ -124,8 +89,7 @@ impl ScopeInfoDB {
       stack,
       map: Default::default(),
     };
-    let prev = self.map.insert(id, info);
-    assert!(prev.is_none());
+    self.map.push(info);
     id
   }
 
@@ -140,14 +104,14 @@ impl ScopeInfoDB {
   pub fn expect_get_scope(&self, id: ScopeInfoId) -> &ScopeInfo {
     self
       .map
-      .get(&id)
+      .get(id.0 as usize)
       .unwrap_or_else(|| panic!("{id:#?} should exist"))
   }
 
   pub fn expect_get_mut_scope(&mut self, id: ScopeInfoId) -> &mut ScopeInfo {
     self
       .map
-      .get_mut(&id)
+      .get_mut(id.0 as usize)
       .unwrap_or_else(|| panic!("{id:#?} should exist"))
   }
 
@@ -155,7 +119,7 @@ impl ScopeInfoDB {
     self
       .variable_info_db
       .map
-      .get(&id)
+      .get(id.0 as usize)
       .unwrap_or_else(|| panic!("{id:#?} should exist"))
   }
 
@@ -163,7 +127,7 @@ impl ScopeInfoDB {
     self
       .tag_info_db
       .map
-      .get(&id)
+      .get(id.0 as usize)
       .unwrap_or_else(|| panic!("{id:#?} should exist"))
   }
 
@@ -171,7 +135,7 @@ impl ScopeInfoDB {
     self
       .tag_info_db
       .map
-      .get_mut(&id)
+      .get_mut(id.0 as usize)
       .unwrap_or_else(|| panic!("{id:#?} should exist"))
   }
 
@@ -231,15 +195,14 @@ impl TagInfo {
     data: Option<Box<dyn anymap::CloneAny>>,
     next: Option<TagInfoId>,
   ) -> TagInfoId {
-    let id = definitions_db.tag_info_db.next();
+    let id = TagInfoId(definitions_db.tag_info_db.map.len() as u32);
     let tag_info = TagInfo {
       id,
       tag,
       data,
       next,
     };
-    let prev = definitions_db.tag_info_db.map.insert(id, tag_info);
-    assert!(prev.is_none());
+    definitions_db.tag_info_db.map.push(tag_info);
     id
   }
 
@@ -333,7 +296,7 @@ impl VariableInfo {
     flags: VariableInfoFlags,
     tag_info: Option<TagInfoId>,
   ) -> VariableInfoId {
-    let id = definitions_db.variable_info_db.next();
+    let id = VariableInfoId(definitions_db.variable_info_db.map.len() as u32);
     let variable_info = VariableInfo {
       id,
       declared_scope,
@@ -341,11 +304,7 @@ impl VariableInfo {
       flags,
       tag_info,
     };
-    let prev = definitions_db
-      .variable_info_db
-      .map
-      .insert(id, variable_info);
-    assert!(prev.is_none());
+    definitions_db.variable_info_db.map.push(variable_info);
     id
   }
 
