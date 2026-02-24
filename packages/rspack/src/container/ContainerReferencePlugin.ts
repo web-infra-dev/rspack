@@ -10,13 +10,14 @@ import {
 import { ExternalsPlugin } from '../builtin-plugin/ExternalsPlugin';
 import type { Compiler } from '../Compiler';
 import type { ExternalsType } from '../config';
+import type { ShareScope } from '../sharing/SharePlugin';
 import { ShareRuntimePlugin } from '../sharing/ShareRuntimePlugin';
 import { parseOptions } from './options';
 
 export type ContainerReferencePluginOptions = {
   remoteType: ExternalsType;
   remotes: Remotes;
-  shareScope?: string;
+  shareScope?: ShareScope;
   enhanced?: boolean;
 };
 export type Remotes = (RemotesItem | RemotesObject)[] | RemotesObject;
@@ -27,7 +28,7 @@ export type RemotesObject = {
 };
 export type RemotesConfig = {
   external: RemotesItem | RemotesItems;
-  shareScope?: string;
+  shareScope?: ShareScope;
 };
 
 export class ContainerReferencePlugin extends RspackBuiltinPlugin {

@@ -1930,7 +1930,7 @@ export interface RawConsumeOptions {
   import?: string
   importResolved?: string
   shareKey: string
-  shareScope: string
+  shareScope: RawShareScope
   requiredVersion?: string | false | undefined
   packageName?: string
   strictVersion: boolean
@@ -1946,7 +1946,7 @@ export interface RawConsumeSharedPluginOptions {
 
 export interface RawContainerPluginOptions {
   name: string
-  shareScope: string
+  shareScope: RawShareScope
   library: JsLibraryOptions
   runtime?: false | string
   filename?: string
@@ -1957,7 +1957,7 @@ export interface RawContainerPluginOptions {
 export interface RawContainerReferencePluginOptions {
   remoteType: string
   remotes: Array<RawRemoteOptions>
-  shareScope?: string
+  shareScope?: RawShareScope
   enhanced: boolean
 }
 
@@ -2773,7 +2773,7 @@ export interface RawProgressPluginOptions {
 export interface RawProvideOptions {
   key: string
   shareKey: string
-  shareScope: string
+  shareScope: RawShareScope
   version?: string | false | undefined
   eager: boolean
   singleton?: boolean
@@ -2794,7 +2794,7 @@ export interface RawRemoteAliasTarget {
 export interface RawRemoteOptions {
   key: string
   external: Array<string>
-  shareScope: string
+  shareScope: RawShareScope
 }
 
 export interface RawResolveOptions {

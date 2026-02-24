@@ -4,8 +4,17 @@ import { ConsumeSharedPlugin } from './ConsumeSharedPlugin';
 import { ProvideSharedPlugin } from './ProvideSharedPlugin';
 import { isRequiredVersion } from './utils';
 
+export type ShareScope = string | string[];
+
+export function normalizeShareScope(
+  shareScope?: ShareScope,
+): string | undefined {
+  if (typeof shareScope === 'string') return shareScope;
+  return shareScope?.[0];
+}
+
 export type SharePluginOptions = {
-  shareScope?: string;
+  shareScope?: ShareScope;
   shared: Shared;
   enhanced: boolean;
 };
@@ -26,7 +35,7 @@ export type SharedConfig = {
   packageName?: string;
   requiredVersion?: false | string;
   shareKey?: string;
-  shareScope?: string;
+  shareScope?: ShareScope;
   singleton?: boolean;
   strictVersion?: boolean;
   version?: false | string;

@@ -10,6 +10,7 @@ import {
 import type { Compiler } from '../Compiler';
 import type { EntryRuntime, FilenameTemplate, LibraryOptions } from '../config';
 import { parseOptions } from '../container/options';
+import type { ShareScope } from '../sharing/SharePlugin';
 import { ShareRuntimePlugin } from '../sharing/ShareRuntimePlugin';
 
 export type ContainerPluginOptions = {
@@ -18,7 +19,7 @@ export type ContainerPluginOptions = {
   library?: LibraryOptions;
   name: string;
   runtime?: EntryRuntime;
-  shareScope?: string;
+  shareScope?: ShareScope;
   enhanced?: boolean;
 };
 export type Exposes = (ExposesItem | ExposesObject)[] | ExposesObject;
