@@ -66,7 +66,10 @@ impl<'a> HtmlCompiler<'a> {
     source: String,
   ) -> Result<TWithDiagnosticArray<CompiledDocument>> {
     let cm = Lrc::new(SourceMap::new(FilePathMapping::empty()));
-    let has_doctype = source.contains("!doctype") || source.contains("!DOCTYPE");
+    let has_doctype = source
+      .trim_start()
+      .to_ascii_lowercase()
+      .starts_with("<!doctype");
     let fm = cm.new_source_file(Arc::new(FileName::Custom(path.to_string())), source);
 
     let mut errors = vec![];
