@@ -18,9 +18,22 @@ pub struct VariableInfoDB {
 
 impl VariableInfoDB {
   fn new() -> Self {
-    Self {
-      map: Default::default(),
-    }
+    let mut map = Vec::with_capacity(2);
+    map.push(VariableInfo {
+      id: VariableInfo::TOMBSTONE,
+      declared_scope: ScopeInfoId(0),
+      name: None,
+      flags: VariableInfoFlags::empty(),
+      tag_info: None,
+    });
+    map.push(VariableInfo {
+      id: VariableInfo::UNDEFINED,
+      declared_scope: ScopeInfoId(1),
+      name: None,
+      flags: VariableInfoFlags::empty(),
+      tag_info: None,
+    });
+    Self { map }
   }
 }
 
@@ -31,20 +44,9 @@ pub struct TagInfoDB {
 
 impl TagInfoDB {
   fn new() -> Self {
-    let mut map = Vec::with_capacity(2);
-    map.push(TagInfo {
-      id: TagInfoId(0),
-      tag: "tombstone",
-      data: None,
-      next: None,
-    });
-    map.push(TagInfo {
-      id: TagInfoId(1),
-      tag: "undefined",
-      data: None,
-      next: None,
-    });
-    Self { map }
+    Self {
+      map: Default::default(),
+    }
   }
 }
 
@@ -63,8 +65,19 @@ impl Default for ScopeInfoDB {
 
 impl ScopeInfoDB {
   pub fn new() -> Self {
-    Self {
+    let mut map = Vec::with_capacity(2);
+    map.push(ScopeInfo {
+      stack: vec![ScopeInfoId(0)],
       map: Default::default(),
+      is_strict: false,
+    });
+    map.push(ScopeInfo {
+      stack: vec![ScopeInfoId(1)],
+      map: Default::default(),
+      is_strict: false,
+    });
+    Self {
+      map,
       variable_info_db: VariableInfoDB::new(),
       tag_info_db: TagInfoDB::new(),
     }
@@ -182,7 +195,6 @@ impl ScopeInfoDB {
 
 #[derive(Debug)]
 pub struct TagInfo {
-  id: TagInfoId,
   pub tag: &'static str,
   pub data: Option<Box<dyn anymap::CloneAny>>,
   pub next: Option<TagInfoId>,
@@ -196,18 +208,9 @@ impl TagInfo {
     next: Option<TagInfoId>,
   ) -> TagInfoId {
     let id = TagInfoId(definitions_db.tag_info_db.map.len() as u32);
-    let tag_info = TagInfo {
-      id,
-      tag,
-      data,
-      next,
-    };
+    let tag_info = TagInfo { tag, data, next };
     definitions_db.tag_info_db.map.push(tag_info);
     id
-  }
-
-  pub fn id(&self) -> TagInfoId {
-    self.id
   }
 }
 
