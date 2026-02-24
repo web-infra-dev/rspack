@@ -20,7 +20,7 @@ impl VariableInfoId {
 
 #[derive(Debug, Default)]
 pub struct VariableInfoDB {
-  pub map: SlotMap<VariableInfoId, VariableInfo>,
+  map: SlotMap<VariableInfoId, VariableInfo>,
 }
 
 impl VariableInfoDB {
@@ -46,9 +46,9 @@ impl TagInfoDB {
 
 #[derive(Debug)]
 pub struct ScopeInfoDB {
-  pub map: SlotMap<ScopeInfoId, ScopeInfo>,
-  pub variable_info_db: VariableInfoDB,
-  pub tag_info_db: TagInfoDB,
+  map: SlotMap<ScopeInfoId, ScopeInfo>,
+  variable_info_db: VariableInfoDB,
+  tag_info_db: TagInfoDB,
 }
 
 impl Default for ScopeInfoDB {
