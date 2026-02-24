@@ -136,13 +136,7 @@ impl JavascriptParserPlugin for RequireEnsureDependenciesBlockParserPlugin {
 
     let range = DependencyRange::from(expr.span);
     let loc = parser.to_dependency_location(range);
-    let mut block = AsyncDependenciesBlock::new(
-      *parser.module_identifier,
-      loc,
-      None,
-      deps,
-      None,
-    );
+    let mut block = AsyncDependenciesBlock::new(*parser.module_identifier, loc, None, deps, None);
     block.set_group_options(GroupOptions::ChunkGroup(
       ChunkGroupOptions::default().name_optional(chunk_name),
     ));

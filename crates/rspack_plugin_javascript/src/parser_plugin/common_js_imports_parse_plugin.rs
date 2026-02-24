@@ -54,7 +54,8 @@ fn create_commonjs_require_context_dependency(
     phase: None,
   };
   let range = call_expr.span().into();
-  let loc = parser.to_dependency_location(range)
+  let loc = parser
+    .to_dependency_location(range)
     .expect("Should get correct loc");
   let mut dep = CommonJsRequireContextDependency::new(
     options,
@@ -186,10 +187,8 @@ impl CommonJsImportsParserPlugin {
     let param = parser.evaluate_expression(argument_expr);
     let range = call_expr.callee.span().into();
     let loc = parser.to_dependency_location(range);
-    let require_resolve_header_dependency = Box::new(RequireResolveHeaderDependency::new(
-      range,
-      loc,
-    ));
+    let require_resolve_header_dependency =
+      Box::new(RequireResolveHeaderDependency::new(range, loc));
 
     if param.is_conditional() {
       for option in param.options() {
@@ -337,10 +336,7 @@ impl CommonJsImportsParserPlugin {
       if !is_expression {
         let range: DependencyRange = callee.span().into();
         let loc = parser.to_dependency_location(range);
-        parser.add_presentational_dependency(Box::new(RequireHeaderDependency::new(
-          range,
-          loc,
-        )));
+        parser.add_presentational_dependency(Box::new(RequireHeaderDependency::new(range, loc)));
         return Some(true);
       }
     }
@@ -371,10 +367,7 @@ impl CommonJsImportsParserPlugin {
     } else {
       let range: DependencyRange = callee.span().into();
       let loc = parser.to_dependency_location(range);
-      parser.add_presentational_dependency(Box::new(RequireHeaderDependency::new(
-        range,
-        loc,
-      )));
+      parser.add_presentational_dependency(Box::new(RequireHeaderDependency::new(range, loc)));
     }
     Some(true)
   }
@@ -410,7 +403,8 @@ impl CommonJsImportsParserPlugin {
         attributes: None,
         phase: None,
       },
-      parser.to_dependency_location(DependencyRange::from(span))
+      parser
+        .to_dependency_location(DependencyRange::from(span))
         .expect("Should get correct loc"),
       ident.span().into(),
       None,

@@ -102,13 +102,8 @@ fn add_dependencies(
   ));
   let range = DependencyRange::from(span);
   let loc = parser.to_dependency_location(range);
-  let mut block = AsyncDependenciesBlock::new(
-    *parser.module_identifier,
-    loc,
-    None,
-    vec![dep],
-    None,
-  );
+  let mut block =
+    AsyncDependenciesBlock::new(*parser.module_identifier, loc, None, vec![dep], None);
   block.set_group_options(GroupOptions::Entrypoint(Box::new(EntryOptions {
     name,
     runtime: Some(runtime.into()),

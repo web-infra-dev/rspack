@@ -1,5 +1,6 @@
 use rspack_core::{
-  ConstDependency, DependencyRange, DependencyType, ExportPresenceMode, ImportAttributes, ImportPhase,
+  ConstDependency, DependencyRange, DependencyType, ExportPresenceMode, ImportAttributes,
+  ImportPhase,
 };
 use swc_core::{
   atoms::Atom,

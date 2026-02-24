@@ -21,11 +21,10 @@ use rspack_cacheable::{
   with::{AsCacheable, AsOption, AsPreset, AsVec},
 };
 use rspack_core::{
-  DependencyLocation,
   AsyncDependenciesBlock, BoxDependency, BoxDependencyTemplate, BuildInfo, BuildMeta,
-  CompilerOptions, DependencyRange, FactoryMeta, JavascriptParserCommonjsExportsOption,
-  JavascriptParserOptions, ModuleIdentifier, ModuleLayer, ModuleType, ParseMeta, ResourceData,
-  SideEffectsBailoutItemWithSpan,
+  CompilerOptions, DependencyLocation, DependencyRange, FactoryMeta,
+  JavascriptParserCommonjsExportsOption, JavascriptParserOptions, ModuleIdentifier, ModuleLayer,
+  ModuleType, ParseMeta, ResourceData, SideEffectsBailoutItemWithSpan,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_util::{SpanExt, fx_hash::FxIndexSet};
@@ -1426,6 +1425,8 @@ impl JavascriptParser<'_> {
   }
 
   pub fn to_dependency_location(&mut self, range: DependencyRange) -> Option<DependencyLocation> {
-    self.location_advancer.to_dependency_location(self.source, range)
+    self
+      .location_advancer
+      .compute_dependency_location(self.source, range)
   }
 }

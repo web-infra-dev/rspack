@@ -174,11 +174,8 @@ impl JavascriptParserPlugin for APIPlugin {
       API_MODULE => {
         let range = ident.span.into();
         let loc = parser.to_dependency_location(range);
-        parser.add_presentational_dependency(Box::new(ModuleArgumentDependency::new(
-          None,
-          range,
-          loc,
-        )));
+        parser
+          .add_presentational_dependency(Box::new(ModuleArgumentDependency::new(None, range, loc)));
         Some(true)
       }
       API_BASE_URI => {

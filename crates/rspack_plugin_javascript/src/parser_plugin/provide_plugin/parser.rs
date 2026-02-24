@@ -2,10 +2,12 @@ use std::sync::Arc;
 
 use cow_utils::CowUtils;
 use itertools::Itertools;
-use rustc_hash::FxHashSet as HashSet;
-use swc_core::{atoms::Atom, common::{Span, Spanned}};
-
 use rspack_core::DependencyRange;
+use rustc_hash::FxHashSet as HashSet;
+use swc_core::{
+  atoms::Atom,
+  common::{Span, Spanned},
+};
 
 use super::{super::JavascriptParserPlugin, ProvideValue, VALUE_DEP_PREFIX};
 use crate::{dependency::ProvideDependency, visitors::JavascriptParser};
@@ -23,12 +25,7 @@ impl ProvideParserPlugin {
     Self { provide, names }
   }
 
-  fn add_provide_dep(
-    &self,
-    name: &str,
-    span: Span,
-    parser: &mut JavascriptParser,
-  ) -> bool {
+  fn add_provide_dep(&self, name: &str, span: Span, parser: &mut JavascriptParser) -> bool {
     if let Some(requests) = self.provide.get(name) {
       let name_identifier = if name.contains(SOURCE_DOT) {
         format!(
