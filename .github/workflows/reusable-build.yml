@@ -71,3 +71,12 @@ jobs:
       target: ${{ inputs.target }}
       runner: ${{ inputs.runner }}
       ref: ${{ inputs.ref }}
+
+  bench-gh:
+    uses: ./.github/workflows/reusable-build-bench.yml
+    if: inputs.bench
+    needs: [build, codspeed]
+    with:
+      target: ${{ inputs.target }}
+      runner: ubuntu-22.04
+      ref: ${{ inputs.ref }}
