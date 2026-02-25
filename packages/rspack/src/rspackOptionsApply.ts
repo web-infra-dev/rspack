@@ -284,6 +284,7 @@ export class RspackOptionsApply {
       ).apply(compiler);
     }
 
+    let enableLibSplitChunks = false;
     if (
       options.output.enabledLibraryTypes &&
       options.output.enabledLibraryTypes.length > 0
@@ -310,8 +311,10 @@ export class RspackOptionsApply {
           );
         }
 
+        enableLibSplitChunks = true;
         new EsmLibraryPlugin({
           preserveModules: options.output.library?.preserveModules,
+          splitChunks: options.optimization.splitChunks,
         }).apply(compiler);
       } else {
         for (const type of options.output.enabledLibraryTypes) {
@@ -319,7 +322,8 @@ export class RspackOptionsApply {
         }
       }
     }
-    if (options.optimization.splitChunks) {
+
+    if (!enableLibSplitChunks && options.optimization.splitChunks) {
       new SplitChunksPlugin(options.optimization.splitChunks).apply(compiler);
     }
     // TODO: inconsistent: the plugin need to be placed after SplitChunksPlugin

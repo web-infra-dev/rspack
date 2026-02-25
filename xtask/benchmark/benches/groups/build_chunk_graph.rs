@@ -15,9 +15,9 @@ use rspack_fs::{MemoryFileSystem, WritableFileSystem};
 use rspack_tasks::{CURRENT_COMPILER_CONTEXT, within_compiler_context_for_testing_sync};
 use tokio::runtime::Builder;
 
-static NUM_MODULES: usize = 10000;
+pub(crate) static NUM_MODULES: usize = 10000;
 
-async fn prepare_large_code_splitting_case(
+pub(crate) async fn prepare_large_code_splitting_case(
   num: usize,
   random_table: &Vec<Vec<usize>>,
   fs: &MemoryFileSystem,

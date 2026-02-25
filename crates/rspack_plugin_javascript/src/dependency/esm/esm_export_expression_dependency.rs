@@ -55,9 +55,8 @@ impl ESMExportExpressionDependency {
     range_stmt: DependencyRange,
     prefix: String,
     declaration: Option<DeclarationId>,
-    source: Option<&str>,
+    loc: Option<DependencyLocation>,
   ) -> Self {
-    let loc = range.to_loc(source);
     Self {
       id: DependencyId::default(),
       range,

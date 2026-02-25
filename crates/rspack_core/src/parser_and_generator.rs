@@ -11,14 +11,14 @@ use rspack_loader_runner::{AdditionalData, ParseMeta, ResourceData};
 use rspack_sources::BoxSource;
 use rspack_util::{ext::AsAny, source_map::SourceMapKind};
 use rustc_hash::{FxHashMap, FxHashSet};
-use swc_core::{atoms::Atom, common::Span};
+use swc_core::atoms::Atom;
 
 use crate::{
   AsyncDependenciesBlock, BoxDependency, BoxDependencyTemplate, BoxLoader, BoxModuleDependency,
   BuildInfo, BuildMeta, ChunkGraph, CodeGenerationData, Compilation, CompilerOptions,
-  ConcatenationScope, Context, EvaluatedInlinableValue, FactoryMeta, Module, ModuleCodeTemplate,
-  ModuleGraph, ModuleIdentifier, ModuleLayer, ModuleType, NormalModule, ParserOptions, RuntimeSpec,
-  SourceType,
+  ConcatenationScope, Context, DependencyLocation, DependencyRange, EvaluatedInlinableValue,
+  FactoryMeta, Module, ModuleCodeTemplate, ModuleGraph, ModuleIdentifier, ModuleLayer, ModuleType,
+  NormalModule, ParserOptions, RuntimeSpec, SourceType,
 };
 
 #[derive(Debug)]
@@ -90,14 +90,15 @@ impl SideEffectsBailoutItem {
 
 #[derive(Debug)]
 pub struct SideEffectsBailoutItemWithSpan {
-  pub span: Span,
+  pub range: DependencyRange,
+  pub loc: Option<DependencyLocation>,
   /// The type of AstNode
   pub ty: String,
 }
 
 impl SideEffectsBailoutItemWithSpan {
-  pub fn new(span: Span, ty: String) -> Self {
-    Self { span, ty }
+  pub fn new(range: DependencyRange, loc: Option<DependencyLocation>, ty: String) -> Self {
+    Self { range, loc, ty }
   }
 }
 

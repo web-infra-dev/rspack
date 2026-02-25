@@ -20,6 +20,7 @@ use super::ModuleGroupMap;
 use crate::{
   SplitChunksPlugin,
   common::{ModuleChunks, ModuleSizes},
+  min_size::remove_min_size_violating_modules,
   module_group::{IndexedCacheGroup, ModuleGroup, compare_entries},
   options::{
     cache_group::CacheGroup,
@@ -524,7 +525,7 @@ impl SplitChunksPlugin {
         }
 
         // Validate `min_size` again
-        if Self::remove_min_size_violating_modules(key, other_module_group, cache_group, module_sizes)
+        if remove_min_size_violating_modules(&cache_group.key, other_module_group, cache_group, module_sizes)
           || !Self::check_min_size_reduction(&other_module_group.get_sizes(module_sizes), &cache_group.min_size_reduction, other_module_group.chunks.len()) {
           tracing::trace!(
             "{key} is deleted for violating min_size {:#?}",

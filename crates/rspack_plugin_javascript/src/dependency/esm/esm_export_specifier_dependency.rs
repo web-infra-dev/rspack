@@ -35,9 +35,8 @@ impl ESMExportSpecifierDependency {
     inline: Option<EvaluatedInlinableValue>,
     enum_value: Option<TSEnumValue>,
     range: DependencyRange,
-    source: Option<&str>,
+    loc: Option<DependencyLocation>,
   ) -> Self {
-    let loc = range.to_loc(source);
     Self {
       name,
       value,

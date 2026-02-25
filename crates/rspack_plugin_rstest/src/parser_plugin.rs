@@ -90,25 +90,26 @@ impl RstestParserPlugin {
         if let Some(lit) = first_arg.expr.as_lit()
           && let Some(lit) = lit.as_str()
         {
-          let range_expr: DependencyRange = first_arg.span().into();
+          let first_arg_range: DependencyRange = first_arg.span().into();
+          let loc = parser.to_dependency_location(first_arg_range);
           let dep = CommonJsRequireDependency::new(
             lit.value.to_string_lossy().to_string(),
-            range_expr,
+            first_arg_range,
             Some(call_expr.span.into()),
             parser.in_try,
-            Some(parser.source()),
+            loc,
           );
           parser.add_dependency(Box::new(dep));
 
-          let range: DependencyRange = call_expr.callee.span().into();
-          let source_rope = parser.source();
+          let callee_range = call_expr.callee.span().into();
+          let loc = parser.to_dependency_location(callee_range);
           parser.add_presentational_dependency(Box::new(RequireHeaderDependency::new(
-            range,
-            Some(source_rope),
+            callee_range,
+            loc,
           )));
 
           parser.add_presentational_dependency(Box::new(ConstDependency::new(
-            range,
+            callee_range,
             ".rstest_require_actual".into(),
           )));
 
@@ -147,9 +148,10 @@ impl RstestParserPlugin {
 
           let imported_span = call_expr.args.first().expect("should have one arg");
 
+          let range = call_expr.span.into();
           let dep = Box::new(ImportDependency::new(
             lit.value.to_atom_lossy().into_owned(),
-            call_expr.span.into(),
+            range,
             None,
             Some(attrs),
             ImportPhase::Evaluation,
@@ -161,9 +163,10 @@ impl RstestParserPlugin {
             ),
           ));
 
+          let loc = parser.to_dependency_location(range);
           let block = AsyncDependenciesBlock::new(
             *parser.module_identifier,
-            Into::<DependencyRange>::into(call_expr.span).to_loc(Some(parser.source())),
+            loc,
             None,
             vec![dep],
             Some(lit.value.to_string_lossy().to_string()),
@@ -469,9 +472,10 @@ impl RstestParserPlugin {
 
                 let mut attrs = ImportAttributes::default();
                 attrs.insert("rstest".to_string(), "importMock".to_string());
+                let range = call_expr.span.into();
                 let dep = Box::new(ImportDependency::new(
                   Atom::from(mocked_target),
-                  call_expr.span.into(),
+                  range,
                   None,
                   Some(attrs),
                   ImportPhase::Evaluation,
@@ -483,9 +487,10 @@ impl RstestParserPlugin {
                   ),
                 ));
 
+                let loc = parser.to_dependency_location(range);
                 let block = AsyncDependenciesBlock::new(
                   *parser.module_identifier,
-                  Into::<DependencyRange>::into(call_expr.span).to_loc(Some(parser.source())),
+                  loc,
                   None,
                   vec![dep],
                   Some(mocked_target.to_string()),
@@ -495,19 +500,21 @@ impl RstestParserPlugin {
 
                 return Some(true);
               } else {
+                let first_arg_range = first_arg.span().into();
+                let loc = parser.to_dependency_location(first_arg_range);
                 let dep: CommonJsRequireDependency = CommonJsRequireDependency::new(
                   mocked_target.to_string(),
-                  first_arg.span().into(),
+                  first_arg_range,
                   Some(call_expr.span.into()),
                   parser.in_try,
-                  Some(parser.source()),
+                  loc,
                 );
 
-                let range: DependencyRange = call_expr.callee.span().into();
-                let source_rope = parser.source();
+                let callee_range = call_expr.callee.span().into();
+                let loc = parser.to_dependency_location(callee_range);
                 parser.add_presentational_dependency(Box::new(RequireHeaderDependency::new(
-                  range,
-                  Some(source_rope),
+                  callee_range,
+                  loc,
                 )));
 
                 parser.add_dependency(Box::new(dep));

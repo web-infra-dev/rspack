@@ -1,5 +1,6 @@
 use rspack_core::{
-  ConstDependency, DependencyType, ExportPresenceMode, ImportAttributes, ImportPhase,
+  ConstDependency, DependencyRange, DependencyType, ExportPresenceMode, ImportAttributes,
+  ImportPhase,
 };
 use swc_core::{
   atoms::Atom,
@@ -61,7 +62,7 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
       DependencyType::EsmImport,
       phase,
       attributes,
-      Some(parser.source()),
+      parser.to_dependency_location(DependencyRange::from(import_decl.span)),
       false,
     );
 
@@ -135,6 +136,8 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
     ids.extend(members.iter().cloned());
     ids.push(left.into());
 
+    let range = DependencyRange::from(expr.span);
+    let loc = parser.to_dependency_location(range);
     let mut dep = ESMImportSpecifierDependency::new(
       settings.source,
       settings.name,
@@ -149,7 +152,7 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
       None,
       settings.phase,
       settings.attributes,
-      Some(parser.source()),
+      loc,
     );
     dep.evaluated_in_operator = true;
 
@@ -199,6 +202,8 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
       .destructuring_assignment_properties
       .get(&ident.span())
       .cloned();
+    let range = DependencyRange::from(ident.span);
+    let loc = parser.to_dependency_location(range);
     let dep = ESMImportSpecifierDependency::new(
       settings.source,
       settings.name,
@@ -213,7 +218,7 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
       referenced_properties_in_destructuring,
       settings.phase,
       settings.attributes,
-      Some(parser.source()),
+      loc,
     );
     let dep_idx = parser.next_dependency_idx();
     parser.add_dependency(Box::new(dep));
@@ -275,7 +280,7 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
       None,
       settings.phase,
       settings.attributes,
-      Some(parser.source()),
+      parser.to_dependency_location(DependencyRange::from(call_expr.callee.span())),
     );
     let dep_idx = parser.next_dependency_idx();
     parser.add_dependency(Box::new(dep));
@@ -336,7 +341,7 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
       referenced_properties_in_destructuring,
       settings.phase,
       settings.attributes,
-      Some(parser.source()),
+      parser.to_dependency_location(DependencyRange::from(span)),
     );
     let dep_idx = parser.next_dependency_idx();
     parser.add_dependency(Box::new(dep));

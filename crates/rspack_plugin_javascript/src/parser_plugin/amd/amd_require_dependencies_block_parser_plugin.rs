@@ -301,7 +301,8 @@ impl AMDRequireDependenciesBlockParserPlugin {
       error_callback_arg.map(|arg| arg.expr.span().into()),
     ));
 
-    let block_loc = Into::<DependencyRange>::into(call_expr.span).to_loc(Some(parser.source()));
+    let range = DependencyRange::from(call_expr.span);
+    let block_loc = parser.to_dependency_location(range);
 
     if call_expr.args.len() == 1 {
       let mut block_deps: Vec<BoxDependency> = vec![dep];

@@ -21,9 +21,8 @@ impl ESMExportHeaderDependency {
   pub fn new(
     range: DependencyRange,
     range_decl: Option<DependencyRange>,
-    source: Option<&str>,
+    loc: Option<DependencyLocation>,
   ) -> Self {
-    let loc = range.to_loc(source);
     Self {
       range,
       range_decl,

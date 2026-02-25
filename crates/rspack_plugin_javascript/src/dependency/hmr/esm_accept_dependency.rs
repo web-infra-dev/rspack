@@ -20,9 +20,8 @@ impl ESMAcceptDependency {
     range: DependencyRange,
     has_callback: bool,
     dependency_ids: Vec<DependencyId>,
-    source: Option<&str>,
+    loc: Option<DependencyLocation>,
   ) -> Self {
-    let loc = range.to_loc(source);
     Self {
       range,
       has_callback,
