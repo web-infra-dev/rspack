@@ -90,18 +90,6 @@ pub fn derive_projects(
       {
         let builder = builder.clone();
         projects.push((
-          format!("{name}-production"),
-          Arc::new(move || {
-            let mut builder = builder();
-            builder.mode(Mode::Production);
-            builder
-          }),
-        ));
-      }
-
-      {
-        let builder = builder.clone();
-        projects.push((
           format!("{name}-production-sourcemap"),
           Arc::new(move || {
             let mut builder = builder();
