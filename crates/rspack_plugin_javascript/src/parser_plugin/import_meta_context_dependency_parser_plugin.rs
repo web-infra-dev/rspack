@@ -53,11 +53,17 @@ fn create_import_meta_context_dependency(
       }
       None
     })?;
-  let context_options = if let Some(obj) = node.args(&parser.ast).get(1).and_then(|arg| parser.ast.get_node_in_sub_range(arg).expr(&parser.ast).as_object()) {
+  let context_options = if let Some(obj) = node.args(&parser.ast).get(1).and_then(|arg| {
+    parser
+      .ast
+      .get_node_in_sub_range(arg)
+      .expr(&parser.ast)
+      .as_object()
+  }) {
     let regexp = get_regex_by_obj_prop(&parser.ast, obj, "regExp");
     let regexp_span = regexp.map(|r| r.span(&parser.ast).into());
     let regexp = regexp.map_or_else(default_context_reg_exp, |regexp| {
-      RspackRegex::try_from(regexp).expect("reg failed")
+      RspackRegex::try_from_swc_regex(&parser.ast, regexp).expect("reg failed")
     });
     let include = get_regex_by_obj_prop(&parser.ast, obj, "include")
       .map(|regexp| RspackRegex::try_from_swc_regex(&parser.ast, regexp).expect("reg failed"));
