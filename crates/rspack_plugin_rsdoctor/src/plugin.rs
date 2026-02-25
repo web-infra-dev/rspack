@@ -7,9 +7,11 @@ use atomic_refcell::AtomicRefCell;
 use futures::future::BoxFuture;
 use rspack_collections::{Identifier, IdentifierMap};
 use rspack_core::{
-  ChunkGroupUkey, Compilation, CompilationAfterCodeGeneration, CompilationAfterProcessAssets,
-  CompilationId, CompilationModuleIds, CompilationOptimizeChunkModules, CompilationOptimizeChunks,
-  CompilationParams, CompilerCompilation, ModuleIdsArtifact, Plugin,
+  AsyncModulesArtifact, BuildChunkGraphArtifact, ChunkGroupUkey, Compilation,
+  CompilationAfterCodeGeneration, CompilationAfterProcessAssets, CompilationId,
+  CompilationModuleIds, CompilationOptimizeChunkModules, CompilationOptimizeChunks,
+  CompilationParams, CompilerCompilation, ExportsInfoArtifact, ImportedByDeferModulesArtifact,
+  ModuleIdsArtifact, Plugin, build_module_graph::BuildModuleGraphArtifact,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
@@ -261,7 +263,16 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
 }
 
 #[plugin_hook(CompilationOptimizeChunkModules for RsdoctorPlugin, stage = -1)]
-async fn collect_json_sizes(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
+async fn collect_json_sizes(
+  &self,
+  compilation: &Compilation,
+  _build_chunk_graph_artifact: &mut BuildChunkGraphArtifact,
+  _build_module_graph_artifact: &mut BuildModuleGraphArtifact,
+  _async_modules_artifact: &mut AsyncModulesArtifact,
+  _exports_info_artifact: &mut ExportsInfoArtifact,
+  _imported_by_defer_modules_artifact: &mut ImportedByDeferModulesArtifact,
+  _diagnostics: &mut Vec<Diagnostic>,
+) -> Result<Option<bool>> {
   if !self.has_module_graph_feature(RsdoctorPluginModuleGraphFeature::ModuleSources) {
     return Ok(None);
   }
@@ -280,7 +291,16 @@ async fn collect_json_sizes(&self, compilation: &mut Compilation) -> Result<Opti
 }
 
 #[plugin_hook(CompilationOptimizeChunkModules for RsdoctorPlugin, stage = 9999)]
-async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
+async fn optimize_chunk_modules(
+  &self,
+  compilation: &Compilation,
+  build_chunk_graph_artifact: &mut BuildChunkGraphArtifact,
+  build_module_graph_artifact: &mut BuildModuleGraphArtifact,
+  _async_modules_artifact: &mut AsyncModulesArtifact,
+  _exports_info_artifact: &mut ExportsInfoArtifact,
+  _imported_by_defer_modules_artifact: &mut ImportedByDeferModulesArtifact,
+  _diagnostics: &mut Vec<Diagnostic>,
+) -> Result<Option<bool>> {
   if !self.has_module_graph_feature(RsdoctorPluginModuleGraphFeature::ModuleGraph) {
     return Ok(None);
   }
@@ -290,9 +310,9 @@ async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<
   let mut rsd_modules = HashMap::default();
   let mut rsd_dependencies = HashMap::default();
 
-  let module_graph = compilation.get_module_graph();
-  let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
-  let chunk_by_ukey = &compilation.build_chunk_graph_artifact.chunk_by_ukey;
+  let module_graph = build_module_graph_artifact.get_module_graph();
+  let chunk_graph = &build_chunk_graph_artifact.chunk_graph;
+  let chunk_by_ukey = &build_chunk_graph_artifact.chunk_by_ukey;
   let modules = module_graph
     .modules()
     .map(|(id, module)| (*id, module))

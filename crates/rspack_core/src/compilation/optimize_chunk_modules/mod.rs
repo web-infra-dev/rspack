@@ -16,15 +16,41 @@ impl PassExt for OptimizeChunkModulesPass {
   }
 
   async fn run_pass(&self, compilation: &mut Compilation) -> Result<()> {
-    compilation
-      .plugin_driver
-      .clone()
-      .compilation_hooks
-      .optimize_chunk_modules
-      .call(compilation)
-      .await
-      .map(|_| ())
-      .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.optimizeChunkModules"))?;
+    let mut build_chunk_graph_artifact =
+      std::mem::take(&mut compilation.build_chunk_graph_artifact);
+    let mut build_module_graph_artifact = compilation.build_module_graph_artifact.steal();
+    let mut async_modules_artifact = compilation.async_modules_artifact.steal();
+    let mut exports_info_artifact = compilation.exports_info_artifact.steal();
+    let mut imported_by_defer_modules_artifact =
+      compilation.imported_by_defer_modules_artifact.steal();
+    let mut diagnostics = vec![];
+
+    while matches!(
+      compilation
+        .plugin_driver
+        .clone()
+        .compilation_hooks
+        .optimize_chunk_modules
+        .call(
+          compilation,
+          &mut build_chunk_graph_artifact,
+          &mut build_module_graph_artifact,
+          &mut async_modules_artifact,
+          &mut exports_info_artifact,
+          &mut imported_by_defer_modules_artifact,
+          &mut diagnostics,
+        )
+        .await
+        .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.optimizeChunkModules"))?,
+      Some(true)
+    ) {}
+
+    compilation.build_chunk_graph_artifact = build_chunk_graph_artifact;
+    compilation.build_module_graph_artifact = build_module_graph_artifact.into();
+    compilation.async_modules_artifact = async_modules_artifact.into();
+    compilation.exports_info_artifact = exports_info_artifact.into();
+    compilation.imported_by_defer_modules_artifact = imported_by_defer_modules_artifact.into();
+    compilation.extend_diagnostics(diagnostics);
 
     Ok(())
   }

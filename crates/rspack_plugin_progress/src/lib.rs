@@ -12,16 +12,16 @@ use futures::future::BoxFuture;
 use indicatif::{MultiProgress, ProgressBar, ProgressDrawTarget, ProgressStyle};
 use rspack_collections::IdentifierMap;
 use rspack_core::{
-  AsyncModulesArtifact, BoxModule, ChunkByUkey, ChunkNamedIdArtifact, Compilation,
-  CompilationAfterOptimizeModules, CompilationAfterProcessAssets, CompilationBuildModule,
-  CompilationChunkIds, CompilationFinishModules, CompilationId, CompilationModuleIds,
-  CompilationOptimizeChunkModules, CompilationOptimizeChunks, CompilationOptimizeCodeGeneration,
-  CompilationOptimizeDependencies, CompilationOptimizeModules, CompilationOptimizeTree,
-  CompilationParams, CompilationProcessAssets, CompilationSeal, CompilationSucceedModule,
-  CompilerAfterEmit, CompilerClose, CompilerCompilation, CompilerEmit, CompilerFinishMake,
-  CompilerId, CompilerMake, CompilerThisCompilation, ExportsInfoArtifact, ModuleIdentifier,
-  ModuleIdsArtifact, Plugin, SideEffectsOptimizeArtifact,
-  build_module_graph::BuildModuleGraphArtifact,
+  AsyncModulesArtifact, BoxModule, BuildChunkGraphArtifact, ChunkByUkey, ChunkNamedIdArtifact,
+  Compilation, CompilationAfterOptimizeModules, CompilationAfterProcessAssets,
+  CompilationBuildModule, CompilationChunkIds, CompilationFinishModules, CompilationId,
+  CompilationModuleIds, CompilationOptimizeChunkModules, CompilationOptimizeChunks,
+  CompilationOptimizeCodeGeneration, CompilationOptimizeDependencies, CompilationOptimizeModules,
+  CompilationOptimizeTree, CompilationParams, CompilationProcessAssets, CompilationSeal,
+  CompilationSucceedModule, CompilerAfterEmit, CompilerClose, CompilerCompilation, CompilerEmit,
+  CompilerFinishMake, CompilerId, CompilerMake, CompilerThisCompilation, ExportsInfoArtifact,
+  ImportedByDeferModulesArtifact, ModuleIdentifier, ModuleIdsArtifact, Plugin,
+  SideEffectsOptimizeArtifact, build_module_graph::BuildModuleGraphArtifact,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
@@ -493,7 +493,16 @@ async fn optimize_tree(&self, _compilation: &Compilation) -> Result<()> {
 }
 
 #[plugin_hook(CompilationOptimizeChunkModules for ProgressPlugin)]
-async fn optimize_chunk_modules(&self, _compilation: &mut Compilation) -> Result<Option<bool>> {
+async fn optimize_chunk_modules(
+  &self,
+  _compilation: &Compilation,
+  _build_chunk_graph_artifact: &mut BuildChunkGraphArtifact,
+  _build_module_graph_artifact: &mut BuildModuleGraphArtifact,
+  _async_modules_artifact: &mut AsyncModulesArtifact,
+  _exports_info_artifact: &mut ExportsInfoArtifact,
+  _imported_by_defer_modules_artifact: &mut ImportedByDeferModulesArtifact,
+  _diagnostics: &mut Vec<Diagnostic>,
+) -> Result<Option<bool>> {
   self
     .sealing_hooks_report("optimize chunk modules", 13)
     .await?;
