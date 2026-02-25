@@ -19,6 +19,7 @@ use rspack_core::{
 use rspack_error::{Diagnostic, Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_util::SpanExt;
 use rustc_hash::FxHashSet;
+use swc_core::common::BytePos;
 use swc_experimental_ecma_ast::{Ast, Program, Span, VisitWith};
 use swc_experimental_ecma_parser::{
   EsSyntax, Lexer, Parser, StringSource, Syntax, unstable::Capturing,
@@ -271,10 +272,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       }
     };
 
-    let mut semicolons: std::collections::HashSet<
-      swc_core::common::BytePos,
-      rustc_hash::FxBuildHasher,
-    > = Default::default();
+    let mut semicolons: FxHashSet<BytePos> = Default::default();
     let root = remove_paren(root, &mut ast, Some(&comments));
 
     let semantic = resolver(root, &ast);
