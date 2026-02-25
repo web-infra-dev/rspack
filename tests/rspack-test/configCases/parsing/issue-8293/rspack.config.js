@@ -1,4 +1,4 @@
-const webpack = require("@rspack/core");
+const { rspack } = require("@rspack/core");
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
@@ -20,7 +20,7 @@ module.exports = {
 		__dirname: false
 	},
 	plugins: [
-		new webpack.DefinePlugin({
+		new rspack.DefinePlugin({
 			CONST_PREFIX0: JSON.stringify("prefix0"),
 			CONST_SUFFIX0: JSON.stringify("suffix0"),
 			CONST_PREFIX1: JSON.stringify("prefix1"),

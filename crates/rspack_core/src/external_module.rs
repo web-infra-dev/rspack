@@ -10,13 +10,14 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet};
 use serde::Serialize;
 
 use crate::{
-  AsyncDependenciesBlockIdentifier, BuildContext, BuildInfo, BuildMeta, BuildMetaExportsType,
-  BuildResult, ChunkGraph, ChunkInitFragments, ChunkUkey, CodeGenerationDataUrl,
-  CodeGenerationResult, Compilation, ConcatenationScope, Context, DependenciesBlock, DependencyId,
-  ExternalType, FactoryMeta, ImportAttributes, InitFragmentExt, InitFragmentKey, InitFragmentStage,
-  LibIdentOptions, Module, ModuleArgument, ModuleCodeGenerationContext, ModuleCodeTemplate,
-  ModuleGraph, ModuleType, NAMESPACE_OBJECT_EXPORT, NormalInitFragment, PrefetchExportsInfoMode,
-  RuntimeGlobals, RuntimeSpec, SourceType, StaticExportsDependency, StaticExportsSpec, UsedExports,
+  AsyncDependenciesBlockIdentifier, BoxModule, BuildContext, BuildInfo, BuildMeta,
+  BuildMetaExportsType, BuildResult, ChunkGraph, ChunkInitFragments, ChunkUkey,
+  CodeGenerationDataUrl, CodeGenerationResult, Compilation, ConcatenationScope, Context,
+  DependenciesBlock, DependencyId, ExternalType, FactoryMeta, ImportAttributes, InitFragmentExt,
+  InitFragmentKey, InitFragmentStage, LibIdentOptions, Module, ModuleArgument,
+  ModuleCodeGenerationContext, ModuleCodeTemplate, ModuleGraph, ModuleType,
+  NAMESPACE_OBJECT_EXPORT, NormalInitFragment, PrefetchExportsInfoMode, RuntimeGlobals,
+  RuntimeSpec, SourceType, StaticExportsDependency, StaticExportsSpec, UsedExports,
   extract_url_and_global, impl_module_meta_info, module_update_hash, property_access,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
   to_identifier,
@@ -411,7 +412,11 @@ impl ExternalModule {
           .map(|s| s.as_str())
           .expect("should have module id");
         let external_variable = format!("__rspack_external_{}", to_identifier(id));
-        let check_external_variable = if module_graph.is_optional(&self.id, module_graph_cache) {
+        let check_external_variable = if module_graph.is_optional(
+          &self.id,
+          module_graph_cache,
+          &compilation.exports_info_artifact,
+        ) {
           format!(
             "if(typeof {} === 'undefined') {{ {} }}\n",
             external_variable,
@@ -438,8 +443,11 @@ impl ExternalModule {
         } else {
           "undefined".to_string()
         };
-        let check_external_variable = if module_graph.is_optional(&self.id, module_graph_cache)
-          && let Some(request) = request
+        let check_external_variable = if module_graph.is_optional(
+          &self.id,
+          module_graph_cache,
+          &compilation.exports_info_artifact,
+        ) && let Some(request) = request
         {
           format!(
             "if(typeof {} === 'undefined') {{ {} }}\n",
@@ -481,7 +489,8 @@ impl ExternalModule {
           };
 
           if let Some(concatenation_scope) = concatenation_scope {
-            let exports_info = module_graph
+            let exports_info = compilation
+              .exports_info_artifact
               .get_prefetched_exports_info(&self.identifier(), PrefetchExportsInfoMode::Default);
             let used_exports = exports_info.get_used_exports(runtime);
             let meta = &self.dependency_meta.attributes;
@@ -708,7 +717,11 @@ if(typeof {global} !== "undefined") return resolve();
         } else {
           "undefined".to_string()
         };
-        let check_external_variable = if module_graph.is_optional(&self.id, module_graph_cache) {
+        let check_external_variable = if module_graph.is_optional(
+          &self.id,
+          module_graph_cache,
+          &compilation.exports_info_artifact,
+        ) {
           format!(
             "if(typeof {} === 'undefined') {{ {} }}\n",
             &external_variable,
@@ -826,7 +839,7 @@ impl Module for ExternalModule {
   }
 
   async fn build(
-    &mut self,
+    mut self: Box<Self>,
     build_context: BuildContext,
     _: Option<&Compilation>,
   ) -> Result<BuildResult> {
@@ -872,6 +885,7 @@ impl Module for ExternalModule {
     }
     self.build_meta.exports_type = exports_type;
     Ok(BuildResult {
+      module: BoxModule::new(self),
       dependencies: vec![Box::new(StaticExportsDependency::new(
         StaticExportsSpec::True,
         can_mangle,
@@ -950,9 +964,11 @@ impl Module for ExternalModule {
   ) -> Result<RspackHashDigest> {
     let mut hasher = RspackHash::from(&compilation.options.output);
     self.id.dyn_hash(&mut hasher);
-    let is_optional = compilation
-      .get_module_graph()
-      .is_optional(&self.id, &compilation.module_graph_cache_artifact);
+    let is_optional = compilation.get_module_graph().is_optional(
+      &self.id,
+      &compilation.module_graph_cache_artifact,
+      &compilation.exports_info_artifact,
+    );
     is_optional.dyn_hash(&mut hasher);
     module_update_hash(self, &mut hasher, compilation, runtime);
     Ok(hasher.digest(&compilation.options.output.hash_digest))

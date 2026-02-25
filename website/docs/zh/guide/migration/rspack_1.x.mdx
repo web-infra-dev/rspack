@@ -1,0 +1,644 @@
+import { PackageManagerTabs } from '@theme';
+
+# 从 v1 升级到 v2
+
+当前文档列出了从 Rspack 1.x 到 2.0 的所有不兼容更新，你可以参考此文档来迁移。
+
+- 查看 [Breaking changes in Rspack 2.0](https://github.com/web-infra-dev/rspack/discussions/9270) 了解更多细节
+- 对于 Rsbuild 用户，查看 [Rsbuild - 从 v1 升级到 v2](https://v2.rsbuild.rs/zh/guide/upgrade/v1-to-v2)
+
+## 升级 Node.js
+
+Rspack 2.0 的最低 Node.js 版本要求为 **20.19+** 或 **22.12+**，并且不再支持 Node.js 18。
+
+## Pure ESM 包
+
+`@rspack/core` 和 `@rspack/cli` 已以 **pure ESM** 形式发布，移除了 CommonJS 构建产物。
+
+在 Node.js 20 及以上版本中，运行时已原生支持通过 [require(esm)](https://nodejs.org/api/modules.html#loading-ecmascript-modules-using-require) 加载 ESM 模块。因此，对大多数仍通过 JavaScript API 使用 Rspack 的项目来说，这一变更通常不会带来实际影响，也无需额外修改现有代码。
+
+> 这一变更不影响 Rspack 构建 CommonJS 产物的能力，相关的构建行为和配置方式也保持不变。
+
+## CLI 依赖更新
+
+从 Rspack 2.0 开始，[@rspack/dev-server](https://npmjs.com/package/@rspack/dev-server) 被调整为 `@rspack/cli` 的可选依赖。这是因为部分场景（例如仅运行 `rspack build`）并不需要开发服务器。
+
+当你使用 `rspack serve` 或 `rspack preview` 命令时，手动安装：
+
+<PackageManagerTabs command="add @rspack/dev-server -D" />
+
+## 实验性配置变更
+
+### 移除 experiments.css
+
+experiments.css 已被移除。CSS 处理能力现在默认可用，但仍需要在 `module.rules` 中配置对应的 `type` 以启用：
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.css$/,
+        type: 'css/auto', // 自动识别 CSS Modules
+      },
+    ],
+  },
+};
+```
+
+可用的 `type` 如下：
+
+- **`css`**：将 CSS 作为纯 CSS 处理，不启用 CSS Modules
+- **`css/module`**：强制启用 CSS Modules
+- **`css/auto`**：自动检测，对于 `.module.css` 文件启用 CSS Modules，普通 `.css` 文件则作为纯 CSS 处理
+
+> 更多详情参考 [CSS](/guide/tech/css)
+
+### 默认启用 experiments.asyncWebAssembly
+
+[experiments.asyncWebAssembly](/config/experiments#experimentsasyncwebassembly) 的默认值从 `false` 调整为 `true`。异步 WebAssembly 支持默认启用，但仍需要在 `module.rules` 中配置 `type: 'webassembly/async'` 以启用：
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.wasm$/,
+        type: 'webassembly/async',
+      },
+    ],
+  },
+};
+```
+
+如果不需要此功能，可以显式禁用：
+
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    asyncWebAssembly: false,
+  },
+};
+```
+
+### 移动 experiments.cache
+
+`experiments.cache` 已移动到顶层的 [cache](/config/cache) ：
+
+```diff title="rspack.config.mjs"
+export default {
+-  experiments: {
+-    cache: {
+-      type: 'filesystem',
+-      buildDependencies: {
+-        config: [__filename],
+-      },
+-    },
+-  },
++  cache: {
++    type: 'filesystem',
++    buildDependencies: {
++      config: [__filename],
++    },
++  },
+};
+```
+
+### 移除 experiments.rspackFuture
+
+`experiments.rspackFuture` 已被移除，其中的 `bundlerInfo` 选项已移动到 [output.bundlerInfo](/config/output#outputbundlerinfo)：
+
+```diff title="rspack.config.mjs"
+export default {
+-  experiments: {
+-    rspackFuture: {
+-      bundlerInfo: {
+-        version: '1.0.0',
+-      },
+-    },
+-  },
++  output: {
++    bundlerInfo: {
++      version: '1.0.0',
++    },
++  },
+};
+```
+
+### 移动 experiments.incremental
+
+`experiments.incremental` 已移动到顶层的 [incremental](/config/incremental) ：
+
+```diff title="rspack.config.mjs"
+export default {
+-  experiments: {
+-    incremental: {
+-      make: true,
+-      emitAssets: true,
+-    },
+-  },
++  incremental: {
++    make: true,
++    emitAssets: true,
++  },
+};
+```
+
+### 移除 experiments.layers
+
+`experiments.layers` 已被移除。Layer 功能已稳定并默认启用，但仍需要在 `module.rules` 中配置 `layer` 以启用：
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.css$/,
+        type: 'css/auto',
+        layer: 'styles', // 将 CSS 模块放入 'styles' layer
+      },
+      {
+        test: /\.js$/,
+        layer: 'app', // 将 JS 模块放入 'app' layer
+      },
+    ],
+  },
+};
+```
+
+### 移除 experiments.topLevelAwait
+
+`experiments.topLevelAwait` 已被移除。Top-level await 功能已稳定并默认启用，现在在 ESM 模块中使用 top-level await 将自动生效：
+
+```js title="get-config.mjs"
+// 在模块顶层直接使用 await
+const response = await fetch('https://api.example.com/config');
+const config = await response.json();
+
+export default config;
+```
+
+### 移除 experiments.lazyCompilation
+
+`experiments.lazyCompilation` 已移动到顶层的 [lazyCompilation](/config/lazy-compilation) ：
+
+```diff title="rspack.config.mjs"
+export default {
+-  experiments: {
+-    lazyCompilation: true,
+-  },
++  lazyCompilation: true,
+};
+```
+
+### 移除 experiments.lazyBarrel
+
+`experiments.lazyBarrel` 已被移除，[Lazy barrel](/guide/optimization/lazy-barrel) 优化将默认启用。
+
+### 移除 experiments.typeReexportsPresence
+
+`experiments.typeReexportsPresence` 已被移除，可使用 [module.parser.javascript.typeReexportsPresence](/config/module#moduleparserjavascripttypereexportspresence) 控制重导出类型时的行为。
+
+### 移除 experiments.inlineConst
+
+`experiments.inlineConst` 已被移除，可使用 [optimization.inlineExports](/config/optimization#optimizationinlineexports) 控制常量内联优化。
+
+### 移除 experiments.inlineEnum
+
+`experiments.inlineEnum` 已被移除，可使用 [optimization.inlineExports](/config/optimization#optimizationinlineexports) 和 builtin:swc-loader 的 [collectTypeScriptInfo.exportedEnum](/guide/features/builtin-swc-loader#collecttypescriptinfoexportedenum) 控制枚举内联优化。
+
+### 移除 experiments.outputModule
+
+`experiments.outputModule` 已被移除，可使用 [output.module](/config/output#outputmodule) 输出 ESM 产物。
+
+### 移除 experiments.parallelLoader
+
+`experiments.parallelLoader` 已被移除，可通过 [module.rules.use.parallel](/config/module-rules#rulesuseparallel) 启用 loader 的并行化：
+
+```diff title="rspack.config.mjs"
+export default {
+-  experiments: {
+-    parallelLoader: true,
+-  },
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        use: [
+          {
+            loader: './my-loader.js',
+            parallel: true, // 启用并行化 loader
+          },
+        ],
+      },
+    ],
+  },
+};
+```
+
+## 模块编译相关变更
+
+### 修改 module.parser.javascript.exportsPresence 的默认值
+
+[module.parser.javascript.exportsPresence](/config/module#moduleparserjavascriptexportspresence) 的默认值由 `warn` 变更为 `error`。当检测到导出的内容不存在时，现在将直接抛出错误而不是仅仅警告。
+
+如果你希望恢复为旧行为，可显式设置为 `warn`：
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        exportsPresence: 'warn',
+      },
+    },
+  },
+};
+```
+
+### 移除 module.parser.javascript.strictExportPresence
+
+`module.parser.javascript.strictExportPresence` 已被移除，可使用 [module.parser.javascript.exportsPresence](/config/module#moduleparserjavascriptexportspresence) 控制导出内容不存在时的行为。
+
+### 修改 module.parser.javascript.requireAlias 的默认值
+
+[module.parser.javascript.requireAlias](/config/module#moduleparserjavascriptrequirealias) 的默认值从 `true` 调整为 `false`。当检测到 `require` 被赋值给变量或作为参数传递时，将不会进行解析和转换。
+
+如果你的代码中使用了 require 重命名并加载了下游模块，同时希望该模块能够被打包到产物中，可显式启用：
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        requireAlias: true,
+      },
+    },
+  },
+};
+```
+
+### 禁用 builtin:swc-loader 读取 .swcrc
+
+在 Rspack 2.0 中，`builtin:swc-loader` 默认禁用 `.swcrc` 文件读取。你需要将 SWC 配置迁移到 `rspack.config.js` 的 loader 选项中：
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        loader: 'builtin:swc-loader',
+        options: {
+          jsc: {
+            parser: {
+              syntax: 'ecmascript',
+              jsx: true,
+            },
+            transform: {
+              react: {
+                runtime: 'automatic',
+              },
+            },
+          },
+        },
+      },
+    ],
+  },
+};
+```
+
+### 移除 builtin:swc-loader 的 rspackExperiments.collectTypeScriptInfo
+
+`builtin:swc-loader` 的 `rspackExperiments.collectTypeScriptInfo` 已被移除，可使用 [collectTypeScriptInfo](/guide/features/builtin-swc-loader#collecttypescriptinfo) 控制 TypeScript 信息收集。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.ts$/,
+        loader: 'builtin:swc-loader',
+        options: {
+          collectTypeScriptInfo: {
+            typeExports: true,
+          },
+        },
+      },
+    ],
+  },
+};
+```
+
+### 从 target 派生 loader 和 plugin 的 targets 配置
+
+在 Rspack 2.0 中，`builtin:swc-loader`、`builtin:lightningcss-loader` 和 `rspack.LightningCssMinimizerRspackPlugin` 的 `targets` 配置现在默认从 [target](/config/target) 配置派生。
+
+如果需要显式控制 `targets` 配置，可在 loader 或 plugin 选项中配置：
+
+```js title="rspack.config.mjs"
+export default {
+  target: 'node',
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        loader: 'builtin:swc-loader',
+        options: {
+          env: {
+            targets: 'chrome >= 87',
+          },
+        },
+      },
+    ],
+  },
+};
+```
+
+## 产物相关配置变更
+
+### 移除 output.libraryTarget
+
+`output.libraryTarget` 已被移除，可使用 [output.library.type](/config/output#outputlibrarytype) 代替。
+
+### 移除 output.libraryExport
+
+`output.libraryExport` 已被移除，可使用 [output.library.export](/config/output#outputlibraryexport) 代替。
+
+### 移除 output.umdNamedDefine
+
+`output.umdNamedDefine` 已被移除，可使用 [output.library.umdNamedDefine](/config/output#outputlibraryumdnameddefine) 代替。
+
+### 移除 output.auxiliaryComment
+
+`output.auxiliaryComment` 已被移除，可使用 [output.library.auxiliaryComment](/config/output#outputlibraryauxiliarycomment) 代替。
+
+### 修改 output.chunkLoadingGlobal 的默认值
+
+[output.chunkLoadingGlobal](/config/output#outputchunkloadingglobal) 的默认值从 `webpackChunk${output.uniqueName}` 改为 `rspackChunk${output.uniqueName}`。
+
+如果你的应用依赖特定的全局变量名称，可显式配置：
+
+```js title="rspack.config.mjs"
+export default {
+  output: {
+    chunkLoadingGlobal: 'webpackChunkMyApp',
+  },
+};
+```
+
+### 修改 output.hotUpdateGlobal 的默认值
+
+[output.hotUpdateGlobal](/config/output#outputhotupdateglobal) 的默认值从 `webpackHotUpdate${output.uniqueName}` 改为 `rspackHotUpdate${output.uniqueName}`。
+
+如果你的应用依赖特定的全局变量名称，可显式配置：
+
+```js title="rspack.config.mjs"
+export default {
+  output: {
+    hotUpdateGlobal: 'webpackHotUpdateMyApp',
+  },
+};
+```
+
+### 修改 output.trustedTypes.policyName 的默认值
+
+[output.trustedTypes.policyName](/config/output#outputtrustedtypes) 的打底值从 `'webpack'` 改为 `'rspack'`。
+
+`policyName` 的默认值为 `output.uniqueName`，只有在未设置 `uniqueName` 时才会使用打底值。
+
+如果你的项目未设置 `uniqueName` 并依赖特定的 Trusted Types 策略名称，需要更新你的 CSP 配置或显式设置：
+
+```js title="rspack.config.mjs"
+export default {
+  output: {
+    trustedTypes: {
+      policyName: 'webpack',
+    },
+  },
+};
+```
+
+### 移除 output.charset
+
+`output.charset` 配置已被移除。该选项用于在生成的 `<script>` 标签中添加 `charset` 属性，但现代浏览器已默认使用 UTF-8 编码，不再需要此配置。
+
+## Stats 相关变更
+
+### 修改 stats.toJson() 的默认参数
+
+`stats.toJson()` 方法在未传入参数时，以下字段的默认值调整为 `false`：
+
+- `modules`: 模块信息
+- `assets`: 资源信息
+- `chunks`: chunk 信息
+- `chunkGroups`: chunk group 信息
+- `entryPoints`: 入口点信息
+
+这意味着调用 `stats.toJson()` 时，默认不再包含这些详细信息，返回的对象更加精简。如果你需要获取详细信息，可以在调用 `toJson()` 时显式传入参数：
+
+```js
+const statsData = stats.toJson({
+  modules: true,
+  assets: true,
+  chunks: true,
+  chunkGroups: true,
+  entryPoints: true,
+});
+```
+
+> 详细参数配置可参考 [Stats](/config/stats)
+
+### 移除 profile 和 stats.profile 配置
+
+顶层的 `profile` 配置和 `stats.profile` 配置已被移除，建议使用 [Rsdoctor](/guide/optimization/use-rsdoctor) 进行性能分析：
+
+```diff title="rspack.config.mjs"
+export default {
+-  profile: true,
+  stats: {
+-    profile: true,
+  },
+};
+```
+
+## 插件相关变更
+
+### 移除 EsmLibraryPlugin
+
+`rspack.EsmLibraryPlugin` 插件已被移除，可以通过配置 [output.library](/config/output#outputlibrary) 为 `modern-module` 来生成 ESM 格式的产物:
+
+```diff title="rspack.config.mjs"
+-import { EsmLibraryPlugin } from '@rspack/core';
+
+export default {
+-  plugins: [new EsmLibraryPlugin()],
++  output: {
++    library: {
++      type: 'modern-module',
++    },
++  },
+};
+```
+
+### 移除 experiments.SubResourceIntegrityPlugin
+
+`experiments.SubResourceIntegrityPlugin` 已被移除，可使用导出对象上的 [SubresourceIntegrityPlugin](/plugins/rspack/subresource-integrity-plugin) 替代：
+
+```diff title="rspack.config.mjs"
+import rspack from '@rspack/core';
+
+export default {
+  output: {
+    crossOriginLoading: 'anonymous',
+  },
+  plugins: [
+-    new rspack.experiments.SubresourceIntegrityPlugin(),
++    new rspack.SubresourceIntegrityPlugin(),
+  ],
+};
+```
+
+### 移除 WarnCaseSensitiveModulesPlugin
+
+`WarnCaseSensitiveModulesPlugin` 插件已被移除，可以使用 [CaseSensitivePlugin](/plugins/webpack/case-sensitive-plugin) 插件来检测大小写敏感的模块引用问题：
+
+```diff title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  plugins: [
+-    new rspack.WarnCaseSensitiveModulesPlugin(),
++    new rspack.CaseSensitivePlugin(),
+  ],
+};
+```
+
+### 移除插件的 getHooks 方法
+
+插件的 `getHooks` 方法已被移除，请使用 `getCompilationHooks` 方法替代：
+
+```diff title="my-plugin.js"
+class MyPlugin {
+  apply(compiler) {
+    compiler.hooks.compilation.tap('MyPlugin', (compilation) => {
+-      const hooks = compiler.HtmlRspackPlugin.getHooks(compilation);
++      const hooks = compiler.HtmlRspackPlugin.getCompilationHooks(compilation);
+
+      hooks.beforeEmit.tap('MyPlugin', (data, cb) => {
+        // ...
+      });
+    });
+  }
+}
+```
+
+### 调整 HtmlRspackPlugin 配置项
+
+[HtmlRspackPlugin](/plugins/rspack/html-rspack-plugin) 的 `sri` 配置已被移除。
+
+如果你需要 SRI 功能，可使用 [SubresourceIntegrityPlugin](/plugins/rspack/subresource-integrity-plugin) 插件。
+
+```diff title="rspack.config.mjs"
+export default {
+  plugins: [
+    new rspack.HtmlRspackPlugin({
+-     sri: "sha256",
+    }),
++   new rspack.SubresourceIntegrityPlugin({
++     hashFuncNames: ["sha256"],
++   }),
+  ],
+};
+```
+
+### 调整 LightningCssMinimizerRspackPlugin 配置项
+
+[LightningCssMinimizerRspackPlugin](/plugins/rspack/lightning-css-minimizer-rspack-plugin) 的以下选项已被移除：
+
+#### 移除 draft
+
+`draft` 选项已被移除，可使用 `drafts` 配置替代。
+
+```diff title="rspack.config.mjs"
+import { LightningCssMinimizerRspackPlugin } from '@rspack/core';
+
+export default {
+  optimization: {
+    minimizer: [
+      new LightningCssMinimizerRspackPlugin({
+-       draft: {
+-         customMedia: true,
+-       },
++       drafts: {
++         customMedia: true,
++       },
+      }),
+    ],
+  },
+};
+```
+
+#### 移除 cssHeadDataCompression
+
+`cssHeadDataCompression` 选项已被移除，可以直接移除该配置，不会影响构建结果。
+
+```diff title="rspack.config.mjs"
+import { LightningCssMinimizerRspackPlugin } from '@rspack/core';
+
+export default {
+  optimization: {
+    minimizer: [
+      new LightningCssMinimizerRspackPlugin({
+-       cssHeadDataCompression: true,
+      }),
+    ],
+  },
+};
+```
+
+## 其他变更
+
+### 修改 devtool 的默认值
+
+- 在 `mode` 为 `development` 时，将 `devtool` 的默认值从 `eval` 调整为 `cheap-module-source-map`
+- 在 `mode` 为 `production` 时，将 `@rspack/cli` 中 `devtool` 的默认值从 `source-map` 调整为 `false`
+
+### 移除 Runtime module 废弃属性
+
+Runtime module 的以下废弃属性已被移除：
+
+- `constructorName` - 构造函数名称属性
+- `moduleIdentifier` - 模块标识符属性
+
+如果你在自定义插件中使用了这些属性，需要更新代码：
+
+```diff title="my-plugin.js"
+class MyPlugin {
+  apply(compiler) {
+    compiler.hooks.compilation.tap('MyPlugin', (compilation) => {
+      compilation.hooks.runtimeModule.tap('MyPlugin', (module) => {
+-       const name = module.constructorName;
+-       const id = module.moduleIdentifier;
++       // 使用其他方式获取模块信息
++       const name = module.constructor.name;
++       const id = module.identifier();
+      });
+    });
+  }
+}
+```
+
+### ProgressPlugin handler 签名变更
+
+`ProgressPlugin` 自定义 handler 的第三个参数已从 `items: string[]` 变更为结构化的 `info` 对象。
+
+```diff
+- (percent, msg, items) => void
++ (percent, msg, info) => void
+```
+
+`info` 包含：
+
+- `builtModules: number`：已构建的模块数量
+- `moduleIdentifier?: string`：当前构建的模块标识符（仅在 `build modules` 更新阶段提供）

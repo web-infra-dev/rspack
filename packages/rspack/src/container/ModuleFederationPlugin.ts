@@ -346,5 +346,5 @@ function getDefaultEntryRuntime(
           require('./moduleFederationDefaultRuntime.js').default,
         ),
   ].join(';');
-  return `@module-federation/runtime/rspack.js!=!data:text/javascript,${content}`;
+  return `@module-federation/runtime/rspack.js!=!data:text/javascript,${encodeURIComponent(content)}`;
 }

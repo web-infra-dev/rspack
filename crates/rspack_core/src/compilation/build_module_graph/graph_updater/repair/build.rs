@@ -71,7 +71,6 @@ impl Task<TaskContext> for BuildTask {
 
     result.map::<Vec<Box<dyn Task<TaskContext>>>, _>(|build_result| {
       vec![Box::new(BuildResultTask {
-        module,
         build_result: Box::new(build_result),
         plugin_driver,
         forwarded_ids,
@@ -82,7 +81,6 @@ impl Task<TaskContext> for BuildTask {
 
 #[derive(Debug)]
 struct BuildResultTask {
-  pub module: BoxModule,
   pub build_result: Box<BuildResult>,
   pub plugin_driver: SharedPluginDriver,
   pub forwarded_ids: ForwardedIdSet,
@@ -95,11 +93,11 @@ impl Task<TaskContext> for BuildResultTask {
   }
   async fn main_run(self: Box<Self>, context: &mut TaskContext) -> TaskResult<TaskContext> {
     let BuildResultTask {
-      mut module,
       build_result,
       plugin_driver,
       mut forwarded_ids,
     } = *self;
+    let mut module = build_result.module;
 
     plugin_driver
       .compilation_hooks
@@ -184,7 +182,7 @@ impl Task<TaskContext> for BuildResultTask {
 
     {
       let mgm = module_graph.module_graph_module_by_identifier_mut(&module.identifier());
-      mgm.all_dependencies = all_dependencies.clone();
+      mgm.all_dependencies.clone_from(&all_dependencies);
     }
 
     let module_identifier = module.identifier();

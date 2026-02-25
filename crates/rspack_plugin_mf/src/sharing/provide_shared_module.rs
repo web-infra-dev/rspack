@@ -4,8 +4,8 @@ use async_trait::async_trait;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
-  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo,
-  BuildMeta, BuildResult, CodeGenerationResult, Compilation, Context, DependenciesBlock,
+  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, BuildContext,
+  BuildInfo, BuildMeta, BuildResult, CodeGenerationResult, Compilation, Context, DependenciesBlock,
   DependencyId, FactoryMeta, LibIdentOptions, Module, ModuleCodeGenerationContext, ModuleGraph,
   ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType, impl_module_meta_info,
   impl_source_map_config, module_update_hash, rspack_sources::BoxSource,
@@ -151,7 +151,7 @@ impl Module for ProvideSharedModule {
   }
 
   async fn build(
-    &mut self,
+    mut self: Box<Self>,
     _build_context: BuildContext,
     _: Option<&Compilation>,
   ) -> Result<BuildResult> {
@@ -166,9 +166,10 @@ impl Module for ProvideSharedModule {
     }
 
     Ok(BuildResult {
+      module: BoxModule::new(self),
       dependencies,
       blocks,
-      ..Default::default()
+      optimization_bailouts: vec![],
     })
   }
 

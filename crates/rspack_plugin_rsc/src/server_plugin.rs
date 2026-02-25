@@ -291,11 +291,16 @@ impl RscServerPlugin {
       .collect();
     compilation.add_include(add_include_args).await?;
     for (dependency_id, runtime) in included_dependencies {
-      let mg = compilation.get_module_graph_mut();
-      let Some(module) = mg.get_module_by_dependency_id(&dependency_id) else {
-        continue;
+      let module_identifier = {
+        let mg = compilation.get_module_graph();
+        let Some(module) = mg.get_module_by_dependency_id(&dependency_id) else {
+          continue;
+        };
+        module.identifier()
       };
-      let info = mg.get_exports_info_data_mut(&module.identifier());
+      let info = compilation
+        .exports_info_artifact
+        .get_exports_info_data_mut(&module_identifier);
       info.set_used_in_unknown_way(Some(&runtime));
     }
 
@@ -371,11 +376,16 @@ impl RscServerPlugin {
       .collect();
     compilation.add_include(add_include_args).await?;
     for (dependency_id, runtime) in included_dependencies {
-      let mg = compilation.get_module_graph_mut();
-      let Some(m) = mg.get_module_by_dependency_id(&dependency_id) else {
-        continue;
+      let module_identifier = {
+        let mg = compilation.get_module_graph();
+        let Some(m) = mg.get_module_by_dependency_id(&dependency_id) else {
+          continue;
+        };
+        m.identifier()
       };
-      let info = mg.get_exports_info_data_mut(&m.identifier());
+      let info = compilation
+        .exports_info_artifact
+        .get_exports_info_data_mut(&module_identifier);
       info.set_used_in_unknown_way(Some(&runtime));
     }
 

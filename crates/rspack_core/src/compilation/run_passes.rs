@@ -4,9 +4,9 @@ use super::{
   build_module_graph::pass::BuildModuleGraphPhasePass, chunk_ids::ChunkIdsPass,
   code_generation::CodeGenerationPass, create_chunk_assets::CreateChunkAssetsPass,
   create_hash::CreateHashPass, create_module_assets::CreateModuleAssetsPass,
-  create_module_hashes::CreateModuleHashesPass, module_ids::ModuleIdsPass,
-  optimize_chunk_modules::OptimizeChunkModulesPass, optimize_chunks::OptimizeChunksPass,
-  optimize_code_generation::OptimizeCodeGenerationPass,
+  create_module_hashes::CreateModuleHashesPass, finish_modules::FinishModulesPhasePass,
+  module_ids::ModuleIdsPass, optimize_chunk_modules::OptimizeChunkModulesPass,
+  optimize_chunks::OptimizeChunksPass, optimize_code_generation::OptimizeCodeGenerationPass,
   optimize_dependencies::OptimizeDependenciesPass, optimize_modules::OptimizeModulesPass,
   optimize_tree::OptimizeTreePass, pass::PassExt, process_assets::ProcessAssetsPass,
   runtime_requirements::RuntimeRequirementsPass, seal::SealPass, *,
@@ -20,9 +20,8 @@ impl Compilation {
     cache: &mut dyn Cache,
   ) -> Result<()> {
     let passes: Vec<Box<dyn PassExt>> = vec![
-      // Phase 1: Build Module Graph
       Box::new(BuildModuleGraphPhasePass),
-      // Phase 2: Seal & Optimize
+      Box::new(FinishModulesPhasePass),
       Box::new(SealPass),
       Box::new(OptimizeDependenciesPass),
       Box::new(BuildChunkGraphPass),

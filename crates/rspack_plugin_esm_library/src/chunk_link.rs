@@ -74,83 +74,64 @@ pub struct ExternalInterop {
   pub property_access: FxIndexMap<Atom, Atom>,
 }
 
+fn get_or_create_interop_name(
+  required_symbol: &mut Option<Atom>,
+  field: &mut Option<Atom>,
+  suffix: &str,
+  used_names: &mut FxHashSet<Atom>,
+) -> Atom {
+  if required_symbol.is_none() {
+    let new_name = find_new_name("", used_names, &[]);
+    used_names.insert(new_name.clone());
+    *required_symbol = Some(new_name);
+  }
+  if let Some(existing) = field {
+    return existing.clone();
+  }
+  let mut new_name = Atom::new(format!(
+    "{}{}",
+    required_symbol.as_ref().expect("already set"),
+    suffix
+  ));
+  if used_names.contains(&new_name) {
+    new_name = find_new_name(new_name.as_str(), used_names, &[]);
+  }
+  *field = Some(new_name.clone());
+  used_names.insert(new_name.clone());
+  new_name
+}
+
 impl ExternalInterop {
   pub fn namespace(&mut self, used_names: &mut FxHashSet<Atom>) -> Atom {
-    if self.required_symbol.is_none() {
-      let new_name = find_new_name("", used_names, &vec![]);
-      used_names.insert(new_name.clone());
-      self.required_symbol = Some(new_name);
-    }
-
-    if let Some(namespace_object) = &self.namespace_object {
-      namespace_object.clone()
-    } else {
-      let mut new_name = Atom::new(format!(
-        "{}_namespace",
-        self.required_symbol.as_ref().expect("already set")
-      ));
-
-      if used_names.contains(&new_name) {
-        new_name = find_new_name(new_name.as_str(), used_names, &vec![]);
-      }
-      self.namespace_object = Some(new_name.clone());
-      used_names.insert(new_name.clone());
-      new_name
-    }
+    get_or_create_interop_name(
+      &mut self.required_symbol,
+      &mut self.namespace_object,
+      "_namespace",
+      used_names,
+    )
   }
 
   pub fn namespace2(&mut self, used_names: &mut FxHashSet<Atom>) -> Atom {
-    if self.required_symbol.is_none() {
-      let new_name = find_new_name("", used_names, &vec![]);
-      used_names.insert(new_name.clone());
-      self.required_symbol = Some(new_name);
-    }
-
-    if let Some(namespace_object) = &self.namespace_object2 {
-      namespace_object.clone()
-    } else {
-      let mut new_name = Atom::new(format!(
-        "{}_namespace2",
-        self.required_symbol.as_ref().expect("already set")
-      ));
-
-      if used_names.contains(&new_name) {
-        new_name = find_new_name(new_name.as_str(), used_names, &vec![]);
-      }
-      self.namespace_object2 = Some(new_name.clone());
-      used_names.insert(new_name.clone());
-      new_name
-    }
+    get_or_create_interop_name(
+      &mut self.required_symbol,
+      &mut self.namespace_object2,
+      "_namespace2",
+      used_names,
+    )
   }
 
   pub fn default_access(&mut self, used_names: &mut FxHashSet<Atom>) -> Atom {
-    if self.required_symbol.is_none() {
-      let new_name = find_new_name("", used_names, &vec![]);
-      used_names.insert(new_name.clone());
-      self.required_symbol = Some(new_name);
-    }
-
-    if let Some(default_access) = &self.default_access {
-      default_access.clone()
-    } else {
-      let mut new_name = Atom::new(format!(
-        "{}_default",
-        self.required_symbol.as_ref().expect("already set")
-      ));
-
-      if used_names.contains(&new_name) {
-        new_name = find_new_name(new_name.as_str(), used_names, &vec![]);
-      }
-
-      self.default_access = Some(new_name.clone());
-      used_names.insert(new_name.clone());
-      new_name
-    }
+    get_or_create_interop_name(
+      &mut self.required_symbol,
+      &mut self.default_access,
+      "_default",
+      used_names,
+    )
   }
 
   pub fn default_exported(&mut self, used_names: &mut FxHashSet<Atom>) -> Atom {
     if self.required_symbol.is_none() {
-      let new_name = find_new_name("", used_names, &vec![]);
+      let new_name = find_new_name("", used_names, &[]);
       used_names.insert(new_name.clone());
       self.required_symbol = Some(new_name);
     }
@@ -160,7 +141,7 @@ impl ExternalInterop {
     }
 
     let default_access_symbol = self.default_access(used_names);
-    let default_exported_symbol = find_new_name(&default_access_symbol, used_names, &vec![]);
+    let default_exported_symbol = find_new_name(&default_access_symbol, used_names, &[]);
     used_names.insert(default_exported_symbol.clone());
     self.default_exported = Some(default_exported_symbol.clone());
     default_exported_symbol
@@ -168,7 +149,7 @@ impl ExternalInterop {
 
   pub fn property_access(&mut self, atom: &Atom, used_names: &mut FxHashSet<Atom>) -> Atom {
     self.property_access.get(atom).cloned().unwrap_or_else(|| {
-      let local_name = find_new_name(atom, used_names, &vec![]);
+      let local_name = find_new_name(atom, used_names, &[]);
       self.property_access.insert(atom.clone(), local_name);
       self
         .property_access

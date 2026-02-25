@@ -525,6 +525,28 @@ export default {
 };
 ```
 
+## resolve.pnpManifest
+
+- **Type:** `undefined | string | false`
+- **Default:** `undefined`
+
+Use this option to specify the path to the PnP manifest file.
+
+- `undefined`: Rspack will attempt to find the closest `.pnp.cjs` file if `resolve.pnp` is enabled and this option is not provided.
+- `string`: Force Rspack resolver to stick to the pnp manifest file path.
+- `false`: Do not use a global PnP manifest. Instead, resolve the PnP manifest in each project. This supports cross-referenced projects that have `enableGlobalCache` disabled in `.yarnrc.yml`.
+
+Example:
+
+```js title="rspack.config.mjs"
+export default {
+  resolve: {
+    pnp: true,
+    pnpManifest: path.resolve(__dirname, '.pnp.cjs'),
+  },
+};
+```
+
 ## resolve.preferAbsolute
 
 - **Type:** `boolean`

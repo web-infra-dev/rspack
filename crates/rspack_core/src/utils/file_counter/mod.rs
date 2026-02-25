@@ -119,30 +119,30 @@ mod test {
 
     counter.add_files(&resource_1, &file_list_all);
     counter.add_files(&resource_2, &file_list_a);
-    assert_eq!(counter.files().collect::<Vec<_>>().len(), 2);
-    assert_eq!(counter.added_files().collect::<Vec<_>>().len(), 2);
-    assert_eq!(counter.removed_files().collect::<Vec<_>>().len(), 0);
+    assert_eq!(counter.files().count(), 2);
+    assert_eq!(counter.added_files().count(), 2);
+    assert_eq!(counter.removed_files().count(), 0);
 
     // test repeated additions
     counter.add_files(&resource_1, &file_list_all);
-    assert_eq!(counter.files().collect::<Vec<_>>().len(), 2);
-    assert_eq!(counter.added_files().collect::<Vec<_>>().len(), 2);
-    assert_eq!(counter.removed_files().collect::<Vec<_>>().len(), 0);
+    assert_eq!(counter.files().count(), 2);
+    assert_eq!(counter.added_files().count(), 2);
+    assert_eq!(counter.removed_files().count(), 0);
 
     counter.remove_files(&resource_1, &file_list_a);
-    assert_eq!(counter.files().collect::<Vec<_>>().len(), 2);
-    assert_eq!(counter.added_files().collect::<Vec<_>>().len(), 2);
-    assert_eq!(counter.removed_files().collect::<Vec<_>>().len(), 0);
+    assert_eq!(counter.files().count(), 2);
+    assert_eq!(counter.added_files().count(), 2);
+    assert_eq!(counter.removed_files().count(), 0);
 
     counter.remove_files(&resource_1, &file_list_b);
-    assert_eq!(counter.files().collect::<Vec<_>>().len(), 1);
-    assert_eq!(counter.added_files().collect::<Vec<_>>().len(), 1);
-    assert_eq!(counter.removed_files().collect::<Vec<_>>().len(), 0);
+    assert_eq!(counter.files().count(), 1);
+    assert_eq!(counter.added_files().count(), 1);
+    assert_eq!(counter.removed_files().count(), 0);
 
     counter.remove_files(&resource_2, &file_list_a);
-    assert_eq!(counter.files().collect::<Vec<_>>().len(), 0);
-    assert_eq!(counter.added_files().collect::<Vec<_>>().len(), 0);
-    assert_eq!(counter.removed_files().collect::<Vec<_>>().len(), 0);
+    assert_eq!(counter.files().count(), 0);
+    assert_eq!(counter.added_files().count(), 0);
+    assert_eq!(counter.removed_files().count(), 0);
   }
 
   #[test]
@@ -172,35 +172,35 @@ mod test {
     let resource_2 = ResourceId::Module("B".into());
 
     counter.add_files(&resource_1, &file_list_a);
-    assert_eq!(counter.added_files().collect::<Vec<_>>().len(), 1);
-    assert_eq!(counter.removed_files().collect::<Vec<_>>().len(), 0);
+    assert_eq!(counter.added_files().count(), 1);
+    assert_eq!(counter.removed_files().count(), 0);
 
     counter.reset_incremental_info();
-    assert_eq!(counter.added_files().collect::<Vec<_>>().len(), 0);
-    assert_eq!(counter.removed_files().collect::<Vec<_>>().len(), 0);
+    assert_eq!(counter.added_files().count(), 0);
+    assert_eq!(counter.removed_files().count(), 0);
 
     counter.remove_files(&resource_1, &file_list_a);
-    assert_eq!(counter.added_files().collect::<Vec<_>>().len(), 0);
-    assert_eq!(counter.removed_files().collect::<Vec<_>>().len(), 1);
+    assert_eq!(counter.added_files().count(), 0);
+    assert_eq!(counter.removed_files().count(), 1);
 
     counter.add_files(&resource_1, &file_list_a);
-    assert_eq!(counter.added_files().collect::<Vec<_>>().len(), 0);
-    assert_eq!(counter.removed_files().collect::<Vec<_>>().len(), 0);
+    assert_eq!(counter.added_files().count(), 0);
+    assert_eq!(counter.removed_files().count(), 0);
 
     counter.reset_incremental_info();
-    assert_eq!(counter.added_files().collect::<Vec<_>>().len(), 0);
-    assert_eq!(counter.removed_files().collect::<Vec<_>>().len(), 0);
+    assert_eq!(counter.added_files().count(), 0);
+    assert_eq!(counter.removed_files().count(), 0);
 
     counter.add_files(&resource_2, &file_list_a);
-    assert_eq!(counter.added_files().collect::<Vec<_>>().len(), 0);
-    assert_eq!(counter.removed_files().collect::<Vec<_>>().len(), 0);
+    assert_eq!(counter.added_files().count(), 0);
+    assert_eq!(counter.removed_files().count(), 0);
 
     counter.remove_files(&resource_1, &file_list_a);
-    assert_eq!(counter.added_files().collect::<Vec<_>>().len(), 0);
-    assert_eq!(counter.removed_files().collect::<Vec<_>>().len(), 0);
+    assert_eq!(counter.added_files().count(), 0);
+    assert_eq!(counter.removed_files().count(), 0);
 
     counter.remove_files(&resource_2, &file_list_a);
-    assert_eq!(counter.added_files().collect::<Vec<_>>().len(), 0);
-    assert_eq!(counter.removed_files().collect::<Vec<_>>().len(), 1);
+    assert_eq!(counter.added_files().count(), 0);
+    assert_eq!(counter.removed_files().count(), 1);
   }
 }

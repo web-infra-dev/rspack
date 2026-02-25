@@ -15,10 +15,14 @@ use rspack_plugin_javascript::{
 };
 
 use crate::{
+  esm_import_dependency::{
+    RstestESMImportSideEffectDependencyTemplate, RstestESMImportSpecifierDependencyTemplate,
+  },
   import_dependency::ImportDependencyTemplate,
   mock_method_dependency::MockMethodDependencyTemplate,
   mock_module_id_dependency::MockModuleIdDependencyTemplate,
-  module_path_name_dependency::ModulePathNameDependencyTemplate, parser_plugin::RstestParserPlugin,
+  module_path_name_dependency::ModulePathNameDependencyTemplate,
+  parser_plugin::RstestParserPlugin,
   url_dependency::RstestUrlDependencyTemplate,
 };
 
@@ -148,6 +152,16 @@ async fn compilation_stage_9999(
   compilation: &mut Compilation,
   _params: &mut CompilationParams,
 ) -> Result<()> {
+  // Override ESM import template for importActual hoist ordering.
+  compilation.set_dependency_template(
+    RstestESMImportSideEffectDependencyTemplate::template_type(),
+    Arc::new(RstestESMImportSideEffectDependencyTemplate::default()),
+  );
+  compilation.set_dependency_template(
+    RstestESMImportSpecifierDependencyTemplate::template_type(),
+    Arc::new(RstestESMImportSpecifierDependencyTemplate::default()),
+  );
+
   // Override the default import dependency template.
   compilation.set_dependency_template(
     ImportDependencyTemplate::template_type(),

@@ -1,6 +1,6 @@
 {
   "name": "monorepo",
-  "version": "2.0.0-beta.0",
+  "version": "2.0.0-beta.2",
   "license": "MIT",
   "description": "The fast Rust-based web bundler with webpack-compatible API",
   "private": true,
@@ -26,8 +26,8 @@
     "build:cli:release:browser": "pnpm --filter @rspack/binding build:release:browser && pnpm run build:js",
     "test:js": "pnpm -r run test",
     "format:rs": "cargo fmt --all",
-    "format:js": "prettier . --write",
-    "format-ci:js": "prettier . --check",
+    "format:js": "prettier . --write && heading-case --write",
+    "format-ci:js": "prettier . --check && heading-case",
     "format-ci:toml": "taplo format --check",
     "format:toml": "taplo format",
     "lint:js": "pnpm run lint-ci:js --write",
@@ -45,9 +45,6 @@
     "test:e2e": "pnpm --filter \"e2e-test\" test",
     "test:ci": "cross-env NODE_OPTIONS=--max_old_space_size=8192 pnpm run build:js && pnpm run test:unit",
     "test:rs": "cargo test --workspace --exclude rspack_binding_api --exclude rspack_node --exclude rspack_binding_builder --exclude rspack_binding_builder_macros --exclude rspack_binding_builder_testing --exclude rspack_binding_build --exclude rspack_napi --exclude rspack_watcher -- --nocapture",
-    "doc-coverage": "pnpm --filter \"@rspack/core\" doc-coverage",
-    "api-extractor:local": "pnpm --filter \"@rspack/*\" api-extractor --local",
-    "api-extractor:ci": "pnpm --filter \"@rspack/*\" api-extractor:ci",
     "bench:ci": "pnpm run bench:prepare && cargo codspeed run && pnpm --filter bench run bench",
     "bench:prepare": "node ./scripts/bench/setup.mjs"
   },
@@ -61,40 +58,26 @@
     "pnpm": "10.26.2"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.3.14",
-    "@microsoft/api-extractor": "7.55.2",
-    "@microsoft/api-extractor-model": "7.32.2",
+    "@biomejs/biome": "^2.4.4",
     "@rslint/core": "0.2.1",
     "@rspack/cli": "workspace:*",
-    "@rstest/core": "^0.8.3",
+    "@rstest/core": "^0.8.5",
     "@taplo/cli": "^0.7.0",
     "@types/is-ci": "^3.0.4",
-    "@types/node": "^20.19.31",
-    "check-dependency-version-consistency": "^5.0.1",
+    "@types/node": "^20.19.33",
+    "check-dependency-version-consistency": "^6.0.0",
     "commander": "14.0.3",
     "cross-env": "^10.1.0",
+    "heading-case": "^1.0.7",
     "husky": "^9.1.7",
     "is-ci": "4.1.0",
     "lint-staged": "^16.2.7",
-    "prettier": "3.7.4",
+    "prettier": "3.8.1",
     "prettier-2": "npm:prettier@2.8.8",
     "rimraf": "^5.0.10",
     "typescript": "^5.9.3",
     "webpack": "5.102.1",
     "zx": "8.8.5"
   },
-  "packageManager": "pnpm@10.26.2",
-  "pnpm": {
-    "patchedDependencies": {
-      "webpack-sources@3.3.3": "patches/webpack-sources@3.3.3.patch"
-    },
-    "onlyBuiltDependencies": [
-      "@biomejs/biome",
-      "@parcel/watcher",
-      "@swc/core",
-      "core-js",
-      "es5-ext",
-      "esbuild"
-    ]
-  }
+  "packageManager": "pnpm@10.26.2"
 }

@@ -29,9 +29,6 @@ use crate::{
 static RELATIVE_PATH_REGEX: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"^\.\.?\/").expect("should init regex"));
 
-static PARENT_PATH_REGEX: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r"^\.\.[\/]").expect("should init regex"));
-
 static CURRENT_DIR_REGEX: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"^(\.[\/])").expect("should init regex"));
 
@@ -156,7 +153,7 @@ pub async fn resolve_for_error_hints(
         // If the specifier is a relative path pointing to the current directory,
         // we can suggest the path relative to the current directory.
         format!("{prefix}{relative_path}")
-      } else if PARENT_PATH_REGEX.is_match(args.specifier) {
+      } else if args.specifier.starts_with("../") || args.specifier.starts_with("..\\") {
         // If the specifier is a relative path to which the parent directory is,
         // then we return the relative path directly.
         relative_path.as_str().to_string()

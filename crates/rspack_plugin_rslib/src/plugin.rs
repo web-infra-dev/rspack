@@ -6,8 +6,9 @@ use std::{
 use rspack_core::{
   AssetEmittedInfo, BuildModuleGraphArtifact, ChunkUkey, Compilation,
   CompilationOptimizeDependencies, CompilationParams, CompilerAssetEmitted, CompilerCompilation,
-  DependencyType, ModuleType, NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, Plugin,
-  RuntimeCodeTemplate, SideEffectsOptimizeArtifact, get_module_directives, get_module_hashbang,
+  DependencyType, ExportsInfoArtifact, ModuleType, NormalModuleFactoryParser, ParserAndGenerator,
+  ParserOptions, Plugin, RuntimeCodeTemplate, SideEffectsOptimizeArtifact, get_module_directives,
+  get_module_hashbang,
   rspack_sources::{ConcatSource, RawStringSource, Source, SourceExt},
 };
 use rspack_error::{Diagnostic, Result};
@@ -178,6 +179,7 @@ async fn optimize_dependencies(
   _compilation: &Compilation,
   _side_effects_optimize_artifact: &mut SideEffectsOptimizeArtifact,
   build_module_graph_artifact: &mut BuildModuleGraphArtifact,
+  _exports_info_artifact: &mut ExportsInfoArtifact,
   _diagnostics: &mut Vec<Diagnostic>,
 ) -> Result<Option<bool>> {
   cutout_dyn_import_external(build_module_graph_artifact);

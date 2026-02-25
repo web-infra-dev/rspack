@@ -100,7 +100,8 @@ export type {
   BannerPluginArgument,
   DefinePluginOptions,
   EntryOptions,
-  ProgressPluginArgument,
+  ProgressPluginHandlerInfo,
+  ProgressPluginOptions,
   ProvidePluginOptions,
 } from './builtin-plugin';
 export {

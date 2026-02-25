@@ -2,7 +2,7 @@
 
 const fs = require("fs");
 const path = require("path");
-const webpack = require("@rspack/core");
+const { rspack } = require("@rspack/core");
 
 /**
  * @param {0 | 1 | 2} i index
@@ -66,7 +66,7 @@ const common = (i) => ({
 
 							compilation.emitAsset(
 								"test.js",
-								new webpack.sources.RawSource(data)
+								new rspack.sources.RawSource(data)
 							);
 						}
 					);

@@ -15,9 +15,9 @@ use rspack_fs::{MemoryFileSystem, WritableFileSystem};
 use rspack_tasks::{CURRENT_COMPILER_CONTEXT, within_compiler_context_for_testing_sync};
 use tokio::runtime::Builder;
 
-static NUM_MODULES: usize = 10000;
+pub(crate) static NUM_MODULES: usize = 10000;
 
-async fn prepare_large_code_splitting_case(
+pub(crate) async fn prepare_large_code_splitting_case(
   num: usize,
   random_table: &Vec<Vec<usize>>,
   fs: &MemoryFileSystem,
@@ -160,6 +160,7 @@ pub fn build_chunk_graph_benchmark_inner(c: &mut Criterion) {
       compiler.compilation.side_effects_optimize_artifact.steal();
     let mut diagnostics: Vec<Diagnostic> = vec![];
     let mut build_module_graph_artifact = compiler.compilation.build_module_graph_artifact.steal();
+    let mut exports_info_artifact = compiler.compilation.exports_info_artifact.steal();
     while matches!(
       compiler
         .plugin_driver
@@ -169,6 +170,7 @@ pub fn build_chunk_graph_benchmark_inner(c: &mut Criterion) {
           &compiler.compilation,
           &mut side_effects_optimize_artifact,
           &mut build_module_graph_artifact,
+          &mut exports_info_artifact,
           &mut diagnostics
         )
         .await
@@ -176,6 +178,7 @@ pub fn build_chunk_graph_benchmark_inner(c: &mut Criterion) {
       Some(true)
     ) {}
     compiler.compilation.build_module_graph_artifact = build_module_graph_artifact.into();
+    compiler.compilation.exports_info_artifact = exports_info_artifact.into();
 
     compiler.compilation.side_effects_optimize_artifact = side_effects_optimize_artifact.into();
     compiler.compilation.extend_diagnostics(diagnostics);
@@ -282,7 +285,7 @@ pub fn build_module_graph_benchmark_inner(c: &mut Criterion) {
           "build_module_graph benchmark pass should not produce compilation errors"
         );
         assert_eq!(
-          compiler.compilation.get_module_graph().modules().len(),
+          compiler.compilation.get_module_graph().modules_len(),
           NUM_MODULES + NUM_MODULES / 10
         );
       });
