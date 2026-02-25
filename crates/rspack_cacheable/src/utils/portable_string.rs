@@ -91,9 +91,9 @@ impl PortableString {
       // so trim it before appending "/" to avoid double slashes like "<project_root>/src//"
       let relative_path = path_match
         .as_str()
-        .trim_end_matches('/')
         .relative(project_root)
         .to_slash_lossy()
+        .trim_suffix('/')
         .to_string();
 
       let portable_path = if relative_path.is_empty() || relative_path == "." {
