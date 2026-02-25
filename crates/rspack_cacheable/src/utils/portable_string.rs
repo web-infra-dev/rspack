@@ -135,7 +135,8 @@ impl PortableString {
       result.push_str(&content[last_end..full_match.start()]);
 
       // Convert to absolute path
-      let abs_path = format!("{}/{}", &project_root_str, relative_match.as_str()).normalize();
+      let abs_path_str = format!("{}/{}", &project_root_str, relative_match.as_str());
+      let abs_path = abs_path_str.normalize();
 
       result.push_str(&abs_path.to_string_lossy());
       if !abs_path.ends_with(std::path::MAIN_SEPARATOR_STR) {
