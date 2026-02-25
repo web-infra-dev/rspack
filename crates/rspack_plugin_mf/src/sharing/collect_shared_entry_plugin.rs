@@ -21,7 +21,7 @@ const DEFAULT_FILENAME: &str = "collect-shared-entries.json";
 #[derive(Debug, Serialize)]
 struct CollectSharedEntryAssetItem<'a> {
   #[serde(rename = "shareScope")]
-  share_scope: &'a str,
+  share_scope: &'a [String],
   requests: &'a [[String; 2]],
 }
 
@@ -101,7 +101,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   // Traverse ConsumeSharedModule in the graph and collect real resolved module paths from fallback
   let module_graph = compilation.get_module_graph();
   let mut ordered_requests: FxHashMap<String, Vec<[String; 2]>> = FxHashMap::default();
-  let mut share_scopes: FxHashMap<String, String> = FxHashMap::default();
+  let mut share_scopes: FxHashMap<String, Vec<String>> = FxHashMap::default();
 
   for (_id, module) in module_graph.modules() {
     let module_type = module.module_type();
@@ -113,18 +113,11 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       .as_any()
       .downcast_ref::<super::consume_shared_module::ConsumeSharedModule>()
     {
-      // Parse share_scope and share_key from readable_identifier
+      // Parse share_key from readable_identifier
       let ident = consume.readable_identifier(&Context::default()).to_string();
       // Format: "consume shared module ({scope}) {share_key}@..."
-      let (scope, key) = {
-        let mut scope = String::new();
+      let key = {
         let mut key = String::new();
-        if let Some(start) = ident.find("(")
-          && let Some(end) = ident.find(")")
-          && end > start
-        {
-          scope = ident[start + 1..end].to_string();
-        }
         if let Some(pos) = ident.find(") ") {
           let rest = &ident[pos + 2..];
           // Limit to the segment before any suffixes like " (strict)", " (fallback: ...)" or " (eager)"
@@ -135,11 +128,12 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           let at = head.rfind('@').unwrap_or(head.len());
           key = head[..at].to_string();
         }
-        (scope, key)
+        key
       };
       if key.is_empty() {
         continue;
       }
+      let scope = consume.share_scope().to_vec();
       // Collect target modules from dependencies and async blocks
       let mut target_modules = Vec::new();
       for dep_id in consume.get_dependencies() {
@@ -183,13 +177,14 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   }
 
   // Build asset content
+  let empty_scope: Vec<String> = Vec::new();
   let mut shared: FxHashMap<&str, CollectSharedEntryAssetItem<'_>> = FxHashMap::default();
   for (share_key, requests) in ordered_requests.iter() {
-    let scope = share_scopes.get(share_key).map_or("", |s| s.as_str());
+    let scope = share_scopes.get(share_key).map_or(&empty_scope, |s| s);
     shared.insert(
       share_key.as_str(),
       CollectSharedEntryAssetItem {
-        share_scope: scope,
+        share_scope: scope.as_slice(),
         requests: requests.as_slice(),
       },
     );

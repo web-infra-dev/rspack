@@ -18,14 +18,14 @@ use super::{
 pub struct ContainerReferencePluginOptions {
   pub remote_type: ExternalType,
   pub remotes: Vec<(String, RemoteOptions)>,
-  pub share_scope: Option<String>,
+  pub share_scope: Option<Vec<String>>,
   pub enhanced: bool,
 }
 
 #[derive(Debug)]
 pub struct RemoteOptions {
   pub external: Vec<String>,
-  pub share_scope: String,
+  pub share_scope: Vec<String>,
 }
 
 #[plugin]

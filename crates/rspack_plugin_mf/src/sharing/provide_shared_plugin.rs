@@ -29,7 +29,7 @@ static ABSOLUTE_REQUEST: LazyLock<Regex> =
 #[derive(Debug, Clone)]
 pub struct ProvideOptions {
   pub share_key: String,
-  pub share_scope: String,
+  pub share_scope: Vec<String>,
   pub version: Option<ProvideVersion>,
   pub eager: bool,
   pub singleton: Option<bool>,
@@ -41,7 +41,7 @@ pub struct ProvideOptions {
 #[derive(Debug, Clone)]
 pub struct VersionedProvideOptions {
   pub share_key: String,
-  pub share_scope: String,
+  pub share_scope: Vec<String>,
   pub version: ProvideVersion,
   pub eager: bool,
   pub singleton: Option<bool>,
@@ -106,7 +106,7 @@ impl ProvideSharedPlugin {
     &self,
     key: &str,
     share_key: &str,
-    share_scope: &str,
+    share_scope: &[String],
     version: Option<&ProvideVersion>,
     eager: bool,
     singleton: Option<bool>,
@@ -124,7 +124,7 @@ impl ProvideSharedPlugin {
         resource.to_string(),
         VersionedProvideOptions {
           share_key: share_key.to_string(),
-          share_scope: share_scope.to_string(),
+          share_scope: share_scope.to_vec(),
           version: version.to_owned(),
           eager,
           singleton,
@@ -142,7 +142,7 @@ impl ProvideSharedPlugin {
           resource.to_string(),
           VersionedProvideOptions {
             share_key: share_key.to_string(),
-            share_scope: share_scope.to_string(),
+            share_scope: share_scope.to_vec(),
             version: ProvideVersion::Version(version.to_string()),
             eager,
             singleton,
@@ -257,7 +257,7 @@ async fn normal_module_factory_module(
         .provide_shared_module(
           request,
           &config.share_key,
-          &config.share_scope,
+          &config.share_scope, // Vec<String> deref to &[String]
           config.version.as_ref(),
           config.eager,
           config.singleton,
@@ -278,7 +278,7 @@ async fn normal_module_factory_module(
         .provide_shared_module(
           request,
           &(config.share_key.clone() + remainder),
-          &config.share_scope,
+          &config.share_scope, // Vec<String> deref to &[String]
           config.version.as_ref(),
           config.eager,
           config.singleton,

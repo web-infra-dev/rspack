@@ -55,6 +55,7 @@ impl RuntimeModule for RemoteRuntimeModule {
     let mut chunk_to_remotes_mapping = FxHashMap::default();
     let mut id_to_remote_data_mapping = FxHashMap::default();
     let module_graph = compilation.get_module_graph();
+    let enhanced = self.enhanced;
     // Match enhanced/webpack behavior: include all referenced chunks so async ones are mapped too
     for chunk in
       chunk.get_all_referenced_chunks(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
@@ -71,7 +72,16 @@ impl RuntimeModule for RemoteRuntimeModule {
         let name = m.internal_request.as_str();
         let id = ChunkGraph::get_module_id(&compilation.module_ids_artifact, m.identifier())
           .expect("should have module_id at <RemoteRuntimeModule as RuntimeModule>::generate");
-        let share_scope = m.share_scope.as_str();
+        let share_scope = if enhanced {
+          ShareScopeField::Multiple(m.share_scope.as_slice())
+        } else {
+          ShareScopeField::Single(
+            m.share_scope
+              .first()
+              .map(|s| s.as_str())
+              .unwrap_or("default"),
+          )
+        };
         let dep = m.get_dependencies()[0];
         let external_module = module_graph
           .get_module_by_dependency_id(&dep)
@@ -136,8 +146,15 @@ impl RuntimeModule for RemoteRuntimeModule {
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 struct RemoteData<'a> {
-  share_scope: &'a str,
+  share_scope: ShareScopeField<'a>,
   name: &'a str,
   external_module_id: &'a ModuleId,
   remote_name: &'a str,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(untagged)]
+enum ShareScopeField<'a> {
+  Single(&'a str),
+  Multiple(&'a [String]),
 }

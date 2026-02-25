@@ -92,6 +92,7 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
     let mut chunk_to_module_mapping = FxHashMap::default();
     let mut module_id_to_consume_data_mapping = FxHashMap::default();
     let mut initial_consumes = Vec::new();
+    let enhanced = self.enhanced;
     let mut add_module = |module: ModuleIdentifier, chunk: &Chunk, ids: &mut Vec<String>| {
       let id = ChunkGraph::get_module_id(&compilation.module_ids_artifact, module)
         .map(|s| s.to_string())
@@ -101,10 +102,21 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
         .code_generation_results
         .get(&module, Some(chunk.runtime()));
       if let Some(data) = code_gen.data.get::<CodeGenerationDataConsumeShared>() {
+        let share_scope_json = if enhanced {
+          json_stringify_str(&data.share_scope)
+        } else {
+          json_stringify_str(
+            data
+              .share_scope
+              .first()
+              .map(|s| s.as_str())
+              .unwrap_or("default"),
+          )
+        };
         module_id_to_consume_data_mapping.insert(id, format!(
           "{{ shareScope: {}, shareKey: {}, import: {}, requiredVersion: {}, strictVersion: {}, singleton: {}, eager: {}, fallback: {}, treeShakingMode: {} }}",
-          json_stringify_str(&data.share_scope),
-          json_stringify_str(&data.share_key),
+          share_scope_json,
+          json_stringify(&data.share_key),
           json_stringify(&data.import),
           json_stringify_str(&data.required_version.as_ref().map_or_else(|| "*".to_string(), |v| v.to_string())),
           json_stringify(&data.strict_version),
@@ -226,7 +238,7 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
 
 #[derive(Debug, Clone)]
 pub struct CodeGenerationDataConsumeShared {
-  pub share_scope: String,
+  pub share_scope: Vec<String>,
   pub share_key: String,
   pub import: Option<String>,
   pub required_version: Option<ConsumeVersion>,

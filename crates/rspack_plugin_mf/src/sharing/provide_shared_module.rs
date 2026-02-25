@@ -33,7 +33,7 @@ pub struct ProvideSharedModule {
   lib_ident: String,
   readable_identifier: String,
   name: String,
-  share_scope: String,
+  share_scope: Vec<String>,
   version: ProvideVersion,
   request: String,
   eager: bool,
@@ -49,7 +49,7 @@ pub struct ProvideSharedModule {
 impl ProvideSharedModule {
   #[allow(clippy::too_many_arguments)]
   pub fn new(
-    share_scope: String,
+    share_scope: Vec<String>,
     name: String,
     version: ProvideVersion,
     request: String,
@@ -59,15 +59,16 @@ impl ProvideSharedModule {
     strict_version: Option<bool>,
     tree_shaking_mode: Option<String>,
   ) -> Self {
+    let scopes_key = share_scope.join("|");
     let identifier = format!(
       "provide shared module ({}) {}@{} = {}",
-      &share_scope, &name, &version, &request
+      &scopes_key, &name, &version, &request
     );
     Self {
       blocks: Vec::new(),
       dependencies: Vec::new(),
       identifier: ModuleIdentifier::from(identifier.as_ref()),
-      lib_ident: format!("webpack/sharing/provide/{}/{}", &share_scope, &name),
+      lib_ident: format!("webpack/sharing/provide/{}/{}", &scopes_key, &name),
       readable_identifier: identifier,
       name,
       share_scope,

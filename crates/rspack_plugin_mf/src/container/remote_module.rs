@@ -35,7 +35,7 @@ pub struct RemoteModule {
   request: String,
   external_requests: Vec<String>,
   pub internal_request: String,
-  pub share_scope: String,
+  pub share_scope: Vec<String>,
   pub remote_key: String,
   factory_meta: Option<FactoryMeta>,
   build_info: BuildInfo,
@@ -47,7 +47,7 @@ impl RemoteModule {
     request: String,
     external_requests: Vec<String>,
     internal_request: String,
-    share_scope: String,
+    share_scope: Vec<String>,
     remote_key: String,
   ) -> Self {
     let readable_identifier = format!("remote {}", &request);
@@ -57,7 +57,7 @@ impl RemoteModule {
       dependencies: Default::default(),
       identifier: ModuleIdentifier::from(format!(
         "remote ({}) {} {}",
-        share_scope,
+        share_scope.join("|"),
         external_requests.join(" "),
         internal_request
       )),

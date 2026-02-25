@@ -30,7 +30,7 @@ pub struct ConsumeOptions {
   pub import: Option<String>,
   pub import_resolved: Option<String>,
   pub share_key: String,
-  pub share_scope: String,
+  pub share_scope: Vec<String>,
   pub required_version: Option<ConsumeVersion>,
   pub package_name: Option<String>,
   pub strict_version: bool,

@@ -12,7 +12,7 @@ use crate::ConsumeVersion;
 pub struct ProvideSharedDependency {
   id: DependencyId,
   request: String,
-  pub share_scope: String,
+  pub share_scope: Vec<String>,
   pub name: String,
   pub version: ProvideVersion,
   pub eager: bool,
@@ -27,7 +27,7 @@ pub struct ProvideSharedDependency {
 impl ProvideSharedDependency {
   #[allow(clippy::too_many_arguments)]
   pub fn new(
-    share_scope: String,
+    share_scope: Vec<String>,
     name: String,
     version: ProvideVersion,
     request: String,
@@ -39,7 +39,7 @@ impl ProvideSharedDependency {
   ) -> Self {
     let resource_identifier = format!(
       "provide module ({}) {} as {} @ {} {}",
-      &share_scope,
+      share_scope.join("|"),
       &request,
       &name,
       &version,

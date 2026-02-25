@@ -38,10 +38,15 @@ pub struct ConsumeSharedModule {
 }
 
 impl ConsumeSharedModule {
+  pub fn share_scope(&self) -> &[String] {
+    &self.options.share_scope
+  }
+
   pub fn new(context: Context, options: ConsumeOptions) -> Self {
+    let scopes_key = options.share_scope.join("|");
     let identifier = format!(
       "consume shared module ({}) {}@{}{}{}{}{}",
-      &options.share_scope,
+      &scopes_key,
       &options.share_key,
       options
         .required_version
@@ -74,7 +79,7 @@ impl ConsumeSharedModule {
       identifier: ModuleIdentifier::from(identifier.as_ref()),
       lib_ident: format!(
         "webpack/sharing/consume/{}/{}{}",
-        &options.share_scope,
+        &scopes_key,
         &options.share_key,
         options
           .import
