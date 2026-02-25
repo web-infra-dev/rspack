@@ -23,9 +23,8 @@ impl CommonJsRequireDependency {
     range: DependencyRange,
     range_expr: Option<DependencyRange>,
     optional: bool,
-    source: Option<&str>,
+    loc: Option<DependencyLocation>,
   ) -> Self {
-    let loc = range.to_loc(source);
     Self {
       id: DependencyId::new(),
       request,

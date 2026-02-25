@@ -1,12 +1,95 @@
 use rayon::prelude::*;
-use rspack_collections::IdentifierMap;
-use rspack_core::{Compilation, ModuleIdentifier, SourceType};
-use rustc_hash::FxHashMap;
+use rspack_collections::IdentifierSet;
+use rspack_core::{ModuleIdentifier, SourceType};
 
 use super::ModuleGroupMap;
 use crate::{
   CacheGroup, SplitChunkSizes, SplitChunksPlugin, common::ModuleSizes, module_group::ModuleGroup,
 };
+
+pub trait ModulesContainer {
+  fn get_sizes(&mut self, module_sizes: &ModuleSizes) -> SplitChunkSizes;
+  fn get_source_types_modules(
+    &self,
+    source_types: &[SourceType],
+    module_sizes: &ModuleSizes,
+  ) -> IdentifierSet;
+  fn remove_module(&mut self, module: ModuleIdentifier);
+  fn modules(&self) -> &IdentifierSet;
+}
+
+impl ModulesContainer for ModuleGroup {
+  fn get_sizes(&mut self, module_sizes: &ModuleSizes) -> SplitChunkSizes {
+    ModuleGroup::get_sizes(self, module_sizes)
+  }
+
+  fn get_source_types_modules(
+    &self,
+    source_types: &[SourceType],
+    module_sizes: &ModuleSizes,
+  ) -> IdentifierSet {
+    ModuleGroup::get_source_types_modules(self, source_types, module_sizes)
+  }
+
+  fn remove_module(&mut self, module: ModuleIdentifier) {
+    ModuleGroup::remove_module(self, module);
+  }
+
+  fn modules(&self) -> &IdentifierSet {
+    &self.modules
+  }
+}
+
+/// Return `true` if the `ModuleGroup` become empty.
+pub(crate) fn remove_min_size_violating_modules(
+  module_group_key: &str,
+  module_group: &mut ModuleGroup,
+  cache_group: &CacheGroup,
+  module_sizes: &ModuleSizes,
+) -> bool {
+  // Find out what `SourceType`'s size is not fit the min_size
+  let violating_source_types: Box<[SourceType]> = module_group
+  .get_sizes(module_sizes)
+  .iter()
+  .filter_map(|(module_group_ty, module_group_ty_size)| {
+    let cache_group_ty_min_size = cache_group
+      .min_size
+      .get(module_group_ty)
+      .copied()
+      .unwrap_or_default();
+
+    if *module_group_ty_size < cache_group_ty_min_size {
+      tracing::trace!(
+        "ModuleGroup({}) have violating SourceType({:?}). Reason: module_group_ty_size({:?}) < CacheGroup({}).min_size({:?})",
+        module_group_key,
+        module_group_ty,
+        module_group_ty_size,
+        cache_group.key,
+        cache_group_ty_min_size,
+      );
+      Some(*module_group_ty)
+    } else {
+      None
+    }
+  })
+  .collect::<Box<[_]>>();
+
+  if violating_source_types.is_empty() {
+    return module_group.modules.is_empty();
+  }
+
+  // Remove modules having violating SourceType
+  let violating_modules =
+    module_group.get_source_types_modules(&violating_source_types, module_sizes);
+
+  // question: After removing violating modules, the size of other `SourceType`s of this `ModuleGroup`
+  // may not fit again. But Webpack seems ignore this case. Not sure if it is on purpose.
+  for violating_module in violating_modules {
+    module_group.remove_module(violating_module);
+  }
+
+  module_group.modules.is_empty()
+}
 
 impl SplitChunksPlugin {
   pub(crate) fn check_min_size_reduction(
@@ -33,57 +116,6 @@ impl SplitChunksPlugin {
     true
   }
 
-  /// Return `true` if the `ModuleGroup` become empty.
-  pub(crate) fn remove_min_size_violating_modules(
-    module_group_key: &str,
-    module_group: &mut ModuleGroup,
-    cache_group: &CacheGroup,
-    module_sizes: &ModuleSizes,
-  ) -> bool {
-    // Find out what `SourceType`'s size is not fit the min_size
-    let violating_source_types: Box<[SourceType]> = module_group
-    .get_sizes(module_sizes)
-    .iter()
-    .filter_map(|(module_group_ty, module_group_ty_size)| {
-      let cache_group_ty_min_size = cache_group
-        .min_size
-        .get(module_group_ty)
-        .copied()
-        .unwrap_or_default();
-
-      if *module_group_ty_size < cache_group_ty_min_size {
-        tracing::trace!(
-          "ModuleGroup({}) have violating SourceType({:?}). Reason: module_group_ty_size({:?}) < CacheGroup({}).min_size({:?})",
-          module_group_key,
-          module_group_ty,
-          module_group_ty_size,
-          cache_group.key,
-          cache_group_ty_min_size,
-        );
-        Some(*module_group_ty)
-      } else {
-        None
-      }
-    })
-    .collect::<Box<[_]>>();
-
-    if violating_source_types.is_empty() {
-      return module_group.modules.is_empty();
-    }
-
-    // Remove modules having violating SourceType
-    let violating_modules =
-      module_group.get_source_types_modules(&violating_source_types, module_sizes);
-
-    // question: After removing violating modules, the size of other `SourceType`s of this `ModuleGroup`
-    // may not fit again. But Webpack seems ignore this case. Not sure if it is on purpose.
-    for violating_module in violating_modules {
-      module_group.remove_module(violating_module);
-    }
-
-    module_group.modules.is_empty()
-  }
-
   /// Affected by `splitChunks.minSize`/`splitChunks.cacheGroups.{cacheGroup}.minSize`
   // #[tracing::instrument(skip_all)]
   pub(crate) fn ensure_min_size_fit(
@@ -106,7 +138,7 @@ impl SplitChunksPlugin {
           return None;
         }
 
-        if Self::remove_min_size_violating_modules(
+        if remove_min_size_violating_modules(
           module_group_key,
           module_group,
           cache_group,
@@ -130,26 +162,5 @@ impl SplitChunksPlugin {
       );
       module_group_map.swap_remove(&key);
     });
-  }
-
-  pub(crate) fn get_module_sizes(
-    all_modules: &[ModuleIdentifier],
-    compilation: &Compilation,
-  ) -> ModuleSizes {
-    let module_graph = compilation.get_module_graph();
-    all_modules
-      .par_iter()
-      .map(|module| {
-        let module = module_graph
-          .module_by_identifier(module)
-          .expect("should have module");
-        let sizes = module
-          .source_types(module_graph)
-          .iter()
-          .map(|ty| (*ty, module.size(Some(ty), Some(compilation))))
-          .collect::<FxHashMap<_, _>>();
-        (module.identifier(), sizes)
-      })
-      .collect::<IdentifierMap<_>>()
   }
 }

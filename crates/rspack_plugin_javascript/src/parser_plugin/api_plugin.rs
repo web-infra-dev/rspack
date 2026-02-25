@@ -172,11 +172,10 @@ impl JavascriptParserPlugin for APIPlugin {
         Some(true)
       }
       API_MODULE => {
-        parser.add_presentational_dependency(Box::new(ModuleArgumentDependency::new(
-          None,
-          ident.span.into(),
-          Some(parser.source),
-        )));
+        let range = ident.span.into();
+        let loc = parser.to_dependency_location(range);
+        parser
+          .add_presentational_dependency(Box::new(ModuleArgumentDependency::new(None, range, loc)));
         Some(true)
       }
       API_BASE_URI => {
@@ -329,10 +328,12 @@ impl JavascriptParserPlugin for APIPlugin {
     }
 
     if for_name == "__webpack_module__.id" {
+      let range = member_expr.span.into();
+      let loc = parser.to_dependency_location(range);
       parser.add_presentational_dependency(Box::new(ModuleArgumentDependency::new(
         Some("id".into()),
-        member_expr.span().into(),
-        Some(parser.source),
+        range,
+        loc,
       )));
       return Some(true);
     }

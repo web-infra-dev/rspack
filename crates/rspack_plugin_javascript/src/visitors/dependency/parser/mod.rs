@@ -1,6 +1,7 @@
 pub mod ast;
 mod call_hooks_name;
 pub mod estree;
+mod location_advancer;
 mod walk;
 mod walk_block_pre;
 mod walk_module_pre;
@@ -21,9 +22,9 @@ use rspack_cacheable::{
 };
 use rspack_core::{
   AsyncDependenciesBlock, BoxDependency, BoxDependencyTemplate, BuildInfo, BuildMeta,
-  CompilerOptions, DependencyRange, FactoryMeta, JavascriptParserCommonjsExportsOption,
-  JavascriptParserOptions, ModuleIdentifier, ModuleLayer, ModuleType, ParseMeta, ResourceData,
-  SideEffectsBailoutItemWithSpan,
+  CompilerOptions, DependencyLocation, DependencyRange, FactoryMeta,
+  JavascriptParserCommonjsExportsOption, JavascriptParserOptions, ModuleIdentifier, ModuleLayer,
+  ModuleType, ParseMeta, ResourceData, SideEffectsBailoutItemWithSpan,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_util::{SpanExt, fx_hash::FxIndexSet};
@@ -52,7 +53,7 @@ use crate::{
   utils::eval::{self, BasicEvaluatedExpression},
   visitors::{
     ScanDependenciesResult,
-    dependency::parser::ast::ExprRef,
+    dependency::parser::{ast::ExprRef, location_advancer::DependencyLocationAdvancer},
     scope_info::{
       ScopeInfoDB, ScopeInfoId, TagInfo, TagInfoId, VariableInfo, VariableInfoFlags, VariableInfoId,
     },
@@ -363,6 +364,7 @@ pub struct JavascriptParser<'parser> {
   pub(crate) has_inlinable_const_decls: bool,
   pub(crate) side_effects_item: Option<SideEffectsBailoutItemWithSpan>,
   pub(crate) is_renaming: Option<Atom>,
+  pub(crate) location_advancer: DependencyLocationAdvancer,
 }
 
 impl<'parser> JavascriptParser<'parser> {
@@ -537,6 +539,7 @@ impl<'parser> JavascriptParser<'parser> {
       side_effects_item: None,
       parser_runtime_requirements,
       is_renaming: None,
+      location_advancer: DependencyLocationAdvancer::new(),
     }
   }
 
@@ -1419,5 +1422,11 @@ impl JavascriptParser<'_> {
       }
       _ => None,
     }
+  }
+
+  pub fn to_dependency_location(&mut self, range: DependencyRange) -> Option<DependencyLocation> {
+    self
+      .location_advancer
+      .compute_dependency_location(self.source, range)
   }
 }

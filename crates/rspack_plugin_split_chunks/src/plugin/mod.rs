@@ -1,12 +1,13 @@
 mod chunk;
 mod max_request;
-mod max_size;
-mod min_size;
+pub mod max_size;
+pub mod min_size;
 mod module_group;
 
 use std::{borrow::Cow, cmp::Ordering, fmt::Debug};
 
 use itertools::Itertools;
+use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use rspack_collections::{DatabaseItem, IdentifierMap, UkeyMap, UkeySet};
 use rspack_core::{ChunkUkey, Compilation, CompilationOptimizeChunks, Logger, Plugin};
 use rspack_error::Result;
@@ -17,6 +18,7 @@ use tracing::instrument;
 use crate::{
   CacheGroup, SplitChunkSizes,
   common::FallbackCacheGroup,
+  get_module_sizes,
   module_group::{IndexedCacheGroup, ModuleGroup},
 };
 
@@ -58,7 +60,7 @@ impl SplitChunksPlugin {
     // Sort modules to ensure deterministic processing order
     all_modules.sort_unstable();
 
-    let module_sizes = Self::get_module_sizes(&all_modules, compilation);
+    let module_sizes = get_module_sizes(all_modules.par_iter().copied(), compilation);
     let module_chunks = Self::get_module_chunks(&all_modules, compilation);
     logger.time_end(start);
 

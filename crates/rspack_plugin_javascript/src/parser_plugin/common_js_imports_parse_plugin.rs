@@ -53,12 +53,14 @@ fn create_commonjs_require_context_dependency(
     attributes: None,
     phase: None,
   };
+  let range = call_expr.span().into();
+  let loc = parser
+    .to_dependency_location(range)
+    .expect("Should get correct loc");
   let mut dep = CommonJsRequireContextDependency::new(
     options,
-    DependencyRange::from(span)
-      .to_loc(Some(parser.source()))
-      .expect("Should get correct loc"),
-    call_expr.span().into(),
+    loc,
+    range,
     Some(arg_expr.span().into()),
     parser.in_try,
   );
@@ -183,10 +185,10 @@ impl CommonJsImportsParserPlugin {
 
     let argument_expr = &call_expr.args[0].expr;
     let param = parser.evaluate_expression(argument_expr);
-    let require_resolve_header_dependency = Box::new(RequireResolveHeaderDependency::new(
-      call_expr.callee.span().into(),
-      Some(parser.source()),
-    ));
+    let range = call_expr.callee.span().into();
+    let loc = parser.to_dependency_location(range);
+    let require_resolve_header_dependency =
+      Box::new(RequireResolveHeaderDependency::new(range, loc));
 
     if param.is_conditional() {
       for option in param.options() {
@@ -255,15 +257,17 @@ impl CommonJsImportsParserPlugin {
       return None;
     }
     let param = parser.evaluate_expression(&arg.expr);
+    let range = DependencyRange::from(member_expr.span);
+    let loc = parser.to_dependency_location(range);
     param.is_string().then(|| {
       CommonJsFullRequireDependency::new(
         param.string().to_owned(),
         members.to_vec(),
         member_expr.span().into(),
+        loc,
         is_call,
         parser.in_try,
         !parser.is_asi_position(member_expr.span_lo()),
-        Some(parser.source()),
       )
     })
   }
@@ -275,13 +279,15 @@ impl CommonJsImportsParserPlugin {
     param: &BasicEvaluatedExpression,
   ) -> Option<bool> {
     param.is_string().then(|| {
-      let range_expr: DependencyRange = param.range().into();
+      let (start, end) = param.range();
+      let range_expr = DependencyRange::new(start, end);
+      let loc = parser.to_dependency_location(range_expr);
       let dep = CommonJsRequireDependency::new(
         param.string().clone(),
         range_expr,
         Some(span.into()),
         parser.in_try,
-        Some(parser.source()),
+        loc,
       );
       parser.add_dependency(Box::new(dep));
       true
@@ -329,10 +335,8 @@ impl CommonJsImportsParserPlugin {
       }
       if !is_expression {
         let range: DependencyRange = callee.span().into();
-        parser.add_presentational_dependency(Box::new(RequireHeaderDependency::new(
-          range,
-          Some(parser.source()),
-        )));
+        let loc = parser.to_dependency_location(range);
+        parser.add_presentational_dependency(Box::new(RequireHeaderDependency::new(range, loc)));
         return Some(true);
       }
     }
@@ -362,10 +366,8 @@ impl CommonJsImportsParserPlugin {
       self.process_require_context(parser, call_expr, &param);
     } else {
       let range: DependencyRange = callee.span().into();
-      parser.add_presentational_dependency(Box::new(RequireHeaderDependency::new(
-        range,
-        Some(parser.source()),
-      )));
+      let loc = parser.to_dependency_location(range);
+      parser.add_presentational_dependency(Box::new(RequireHeaderDependency::new(range, loc)));
     }
     Some(true)
   }
@@ -401,8 +403,8 @@ impl CommonJsImportsParserPlugin {
         attributes: None,
         phase: None,
       },
-      DependencyRange::from(span)
-        .to_loc(Some(parser.source()))
+      parser
+        .to_dependency_location(DependencyRange::from(span))
         .expect("Should get correct loc"),
       ident.span().into(),
       None,
