@@ -34,9 +34,12 @@ use sugar_path::SugarPath;
 use tokio::sync::RwLock;
 
 use crate::{
-  chunk_link::ChunkLinkContext, dependency::dyn_import::DynamicImportDependencyTemplate,
-  esm_lib_parser_plugin::EsmLibParserPlugin, optimize_chunks::ensure_entry_exports,
-  preserve_modules::preserve_modules, runtime::EsmRegisterModuleRuntimeModule,
+  chunk_link::ChunkLinkContext,
+  dependency::dyn_import::DynamicImportDependencyTemplate,
+  esm_lib_parser_plugin::EsmLibParserPlugin,
+  optimize_chunks::{ensure_entry_exports, optimize_runtime_chunks},
+  preserve_modules::preserve_modules,
+  runtime::EsmRegisterModuleRuntimeModule,
 };
 
 pub static RSPACK_ESM_RUNTIME_CHUNK: &str = "RSPACK_ESM_RUNTIME";
@@ -504,6 +507,12 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
   Ok(None)
 }
 
+#[plugin_hook(CompilationOptimizeChunks for EsmLibraryPlugin, stage = Compilation::OPTIMIZE_CHUNKS_STAGE_ADVANCED + 1)]
+async fn optimize_runtime_chunk_hook(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
+  optimize_runtime_chunks(compilation);
+  Ok(None)
+}
+
 #[plugin_hook(NormalModuleFactoryParser for EsmLibraryPlugin)]
 async fn parse(
   &self,
@@ -595,6 +604,11 @@ impl Plugin for EsmLibraryPlugin {
       .compilation_hooks
       .optimize_chunks
       .tap(optimize_chunks::new(self));
+
+    ctx
+      .compilation_hooks
+      .optimize_chunks
+      .tap(optimize_runtime_chunk_hook::new(self));
 
     ctx
       .compilation_hooks

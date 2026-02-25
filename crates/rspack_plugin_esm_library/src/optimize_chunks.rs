@@ -150,3 +150,97 @@ pub(crate) fn ensure_entry_exports(compilation: &mut Compilation) {
     );
   }
 }
+
+/// For each entrypoint, if the runtime chunk is the same as the entry chunk
+/// and any initial ChunkGroup containing this chunk has multiple chunks,
+/// split the runtime into a separate runtime chunk.
+///
+/// This must run AFTER SplitChunksPlugin and RemoveDuplicateModulesPlugin
+/// to inspect the final chunk graph topology.
+pub(crate) fn optimize_runtime_chunks(compilation: &mut Compilation) {
+  // Phase 1: Collect entrypoints that need runtime splitting
+  let entrypoints_to_split: Vec<ChunkGroupUkey> = compilation
+    .entrypoints()
+    .values()
+    .copied()
+    .filter(|entrypoint_ukey| {
+      let entrypoint = compilation
+        .build_chunk_graph_artifact
+        .chunk_group_by_ukey
+        .expect_get(entrypoint_ukey);
+
+      let runtime_chunk_ukey =
+        entrypoint.get_runtime_chunk(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey);
+      let entry_chunk_ukey = entrypoint.get_entrypoint_chunk();
+
+      // Skip if runtime is already a separate chunk
+      if runtime_chunk_ukey != entry_chunk_ukey {
+        return false;
+      }
+
+      // Check if any initial ChunkGroup containing this chunk has multiple chunks
+      let chunk = compilation
+        .build_chunk_graph_artifact
+        .chunk_by_ukey
+        .expect_get(&runtime_chunk_ukey);
+
+      chunk.groups().iter().any(|group_ukey| {
+        let group = compilation
+          .build_chunk_graph_artifact
+          .chunk_group_by_ukey
+          .expect_get(group_ukey);
+        group.is_initial() && group.chunks.len() > 1
+      })
+    })
+    .collect();
+
+  // Phase 2: For each identified entrypoint, create a new runtime chunk
+  for entrypoint_ukey in entrypoints_to_split {
+    let entry_chunk_ukey = {
+      let entrypoint = compilation
+        .build_chunk_graph_artifact
+        .chunk_group_by_ukey
+        .expect_get(&entrypoint_ukey);
+      entrypoint.get_entrypoint_chunk()
+    };
+
+    // Create a new chunk
+    let new_chunk_ukey =
+      Compilation::add_chunk(&mut compilation.build_chunk_graph_artifact.chunk_by_ukey);
+
+    // Record mutation for incremental compilation
+    if let Some(mut mutation) = compilation.incremental.mutations_write() {
+      mutation.add(Mutation::ChunkAdd {
+        chunk: new_chunk_ukey,
+      });
+    }
+
+    // Register the chunk in the chunk graph
+    compilation
+      .build_chunk_graph_artifact
+      .chunk_graph
+      .add_chunk(new_chunk_ukey);
+
+    // Set the entrypoint's runtime chunk to the new chunk
+    let entrypoint = compilation
+      .build_chunk_graph_artifact
+      .chunk_group_by_ukey
+      .expect_get_mut(&entrypoint_ukey);
+    entrypoint.set_runtime_chunk(new_chunk_ukey);
+    entrypoint.unshift_chunk(new_chunk_ukey);
+
+    // Configure the new chunk
+    let [Some(entry_chunk), Some(new_chunk)] = compilation
+      .build_chunk_graph_artifact
+      .chunk_by_ukey
+      .get_many_mut([&entry_chunk_ukey, &new_chunk_ukey])
+    else {
+      unreachable!("entry_chunk and new_chunk should both exist")
+    };
+
+    new_chunk.set_runtime(entry_chunk.runtime().clone());
+    new_chunk.add_id_name_hints("runtime".to_string());
+    new_chunk.set_prevent_integration(true);
+    new_chunk.add_group(entrypoint_ukey);
+  }
+}

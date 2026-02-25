@@ -43,7 +43,7 @@
     "test:hot": "pnpm --filter \"@rspack/*\" test:hot",
     "test:unit": "pnpm --parallel --filter \"@rspack/*\" test",
     "test:e2e": "pnpm --filter \"e2e-test\" test",
-    "test:ci": "cross-env NODE_OPTIONS=--max_old_space_size=8192 pnpm run build:js && pnpm run test:unit",
+    "test:ci": "cross-env NODE_OPTIONS=\"--max_old_space_size=8192 --stack-trace-limit=100\" pnpm run build:js && pnpm run test:unit",
     "test:rs": "cargo test --workspace --exclude rspack_binding_api --exclude rspack_node --exclude rspack_binding_builder --exclude rspack_binding_builder_macros --exclude rspack_binding_builder_testing --exclude rspack_binding_build --exclude rspack_napi --exclude rspack_watcher -- --nocapture",
     "bench:ci": "pnpm run bench:prepare && cargo codspeed run && pnpm --filter bench run bench",
     "bench:prepare": "node ./scripts/bench/setup.mjs"
