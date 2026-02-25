@@ -6,13 +6,6 @@ import { isRequiredVersion } from './utils';
 
 export type ShareScope = string | string[];
 
-export function normalizeShareScope(
-  shareScope?: ShareScope,
-): string | undefined {
-  if (typeof shareScope === 'string') return shareScope;
-  return shareScope?.[0];
-}
-
 export type SharePluginOptions = {
   shareScope?: ShareScope;
   shared: Shared;

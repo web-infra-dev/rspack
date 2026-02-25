@@ -2,8 +2,7 @@ import { createRequire } from 'node:module';
 import type { Compiler } from '../Compiler';
 import type { ExternalsType } from '../config';
 import type { ShareFallback } from '../sharing/IndependentSharedPlugin';
-import type { SharedConfig } from '../sharing/SharePlugin';
-import { normalizeShareScope, type ShareScope } from '../sharing/SharePlugin';
+import type { SharedConfig, ShareScope } from '../sharing/SharePlugin';
 import { TreeShakingSharedPlugin } from '../sharing/TreeShakingSharedPlugin';
 import { isRequiredVersion } from '../sharing/utils';
 import {
@@ -190,17 +189,15 @@ export function getRemoteInfos(
     options.remoteType ||
     (options.library ? (options.library.type as ExternalsType) : 'script');
 
-  const shareScope = normalizeShareScope(options.shareScope);
   const remotes = parseOptions(
     options.remotes,
     (item) => ({
       external: Array.isArray(item) ? item : [item],
-      shareScope: shareScope ?? 'default',
+      shareScope: options.shareScope ?? 'default',
     }),
     (item) => ({
       external: Array.isArray(item.external) ? item.external : [item.external],
-      shareScope:
-        normalizeShareScope(item.shareScope) ?? shareScope ?? 'default',
+      shareScope: item.shareScope || options.shareScope || 'default',
     }),
   );
 
