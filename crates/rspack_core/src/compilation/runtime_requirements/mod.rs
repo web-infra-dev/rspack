@@ -141,14 +141,16 @@ async fn runtime_requirements_pass_impl(compilation: &mut Compilation) -> Result
 
 macro_rules! process_runtime_requirement_hook_macro {
   ($name: ident, $s: ty, $c: ty) => {
-    async fn $name(
+    async fn $name<C: ?Sized>(
       self: $s,
       requirements: &mut RuntimeGlobals,
-      call_hook: impl for<'a> Fn(
+      context: &mut C,
+      mut call_hook: impl for<'a> FnMut(
         $c,
         &'a RuntimeGlobals,
         &'a RuntimeGlobals,
         &'a mut RuntimeGlobals,
+        &'a mut C,
       ) -> BoxFuture<'a, Result<()>>,
     ) -> Result<()> {
       let mut runtime_requirements_mut = *requirements;
@@ -165,6 +167,7 @@ macro_rules! process_runtime_requirement_hook_macro {
           requirements,
           &runtime_requirements,
           &mut runtime_requirements_mut,
+          context,
         )
         .await?;
 
@@ -218,12 +221,13 @@ impl Compilation {
                     .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.additionalModuleRuntimeRequirements"))?;
 
                   compilation
-                    .process_runtime_requirement_hook(&mut runtime_requirements, {
+                    .process_runtime_requirement_hook(&mut runtime_requirements, &mut (), {
                       let plugin_driver = plugin_driver.clone();
                       move |compilation,
                                   all_runtime_requirements,
                                   runtime_requirements,
-                                  runtime_requirements_mut| {
+                                  runtime_requirements_mut,
+                                  _| {
                         Box::pin({
                           let plugin_driver = plugin_driver.clone();
                           async move {
@@ -318,13 +322,15 @@ impl Compilation {
         self.add_runtime_module(&chunk_ukey, module)?;
       }
 
+      let mut runtime_modules_to_add = Vec::new();
       self
-        .process_runtime_requirement_hook_mut(&mut set, {
+        .process_runtime_requirement_hook_mut(&mut set, &mut runtime_modules_to_add, {
           let plugin_driver = plugin_driver.clone();
           move |compilation,
                 all_runtime_requirements,
                 runtime_requirements,
-                runtime_requirements_mut| {
+                runtime_requirements_mut,
+                runtime_modules_to_add| {
             Box::pin({
               let plugin_driver = plugin_driver.clone();
               async move {
@@ -337,17 +343,27 @@ impl Compilation {
                     all_runtime_requirements,
                     runtime_requirements,
                     runtime_requirements_mut,
+                    runtime_modules_to_add,
                   )
                   .await
                   .map_err(|e| {
                     e.wrap_err("caused by plugins in Compilation.hooks.runtimeRequirementInChunk")
                   })?;
+                for runtime_module in runtime_modules_to_add.iter() {
+                  let additional_runtime_requirements =
+                    runtime_module.additional_runtime_requirements(compilation);
+                  runtime_requirements_mut.extend(additional_runtime_requirements);
+                }
                 Ok(())
               }
             })
           }
         })
         .await?;
+
+      for module in runtime_modules_to_add {
+        self.add_runtime_module(&chunk_ukey, module)?;
+      }
 
       ChunkGraph::set_chunk_runtime_requirements(self, chunk_ukey, set);
     }
