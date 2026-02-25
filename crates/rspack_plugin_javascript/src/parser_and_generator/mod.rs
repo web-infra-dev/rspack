@@ -1,5 +1,6 @@
 use std::{
   borrow::Cow,
+  rc::Rc,
   sync::{Arc, LazyLock},
 };
 
@@ -204,11 +205,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       .and_then(|options| options.jsx)
       .unwrap_or(false);
 
-    use rspack_util::swc::STRING_ALLOCATOR;
-    let mut ast = Ast::new(
-      source_string.len(),
-      STRING_ALLOCATOR.with(|allocator| allocator.clone()),
-    );
+    let mut ast = Ast::new(source_string.len(), Rc::default());
     let parser_lexer = Lexer::new(
       Syntax::Es(EsSyntax {
         jsx,

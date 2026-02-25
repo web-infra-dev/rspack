@@ -3,6 +3,7 @@ use std::{
   collections::BTreeMap,
   fmt::Debug,
   hash::{BuildHasherDefault, Hasher},
+  rc::Rc,
   sync::{Arc, LazyLock},
 };
 
@@ -31,7 +32,7 @@ use swc_core::{
   ecma::visit::swc_ecma_ast,
 };
 use swc_experimental_ecma_ast::{
-  Ast, ClassExpr, EsVersion, GetSpan, Ident, ObjectPatProp, Prop, Visit, VisitWith,
+  Ast, ClassExpr, EsVersion, GetSpan, Ident, ObjectPatProp, Prop, StringAllocator, Visit, VisitWith,
 };
 use swc_experimental_ecma_parser::{EsSyntax, Parser, StringSource, Syntax};
 use swc_experimental_ecma_semantic::resolver::{Semantic, resolver};
@@ -2382,8 +2383,7 @@ impl ConcatenatedModule {
         })
         .unwrap_or(false);
 
-      use rspack_util::swc::STRING_ALLOCATOR;
-      let string_allocator = STRING_ALLOCATOR.with(|allocator| allocator.clone());
+      let string_allocator = Rc::new(StringAllocator::default());
       let lexer = swc_experimental_ecma_parser::Lexer::new(
         Syntax::Es(EsSyntax {
           jsx,
