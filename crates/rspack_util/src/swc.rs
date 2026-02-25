@@ -1,6 +1,8 @@
 #[cfg(feature = "plugin")]
 pub mod runtime;
 
+use std::rc::Rc;
+
 use rustc_hash::FxHashSet;
 use swc_config::types::BoolOr;
 use swc_core::{
@@ -11,6 +13,11 @@ use swc_core::{
     comments::{Comment, CommentKind, Comments, SingleThreadedComments},
   },
 };
+use swc_experimental_ecma_ast::StringAllocator;
+
+thread_local! {
+  pub static STRING_ALLOCATOR: Rc<StringAllocator> = Rc::new(StringAllocator::default());
+}
 
 pub fn normalize_custom_filename(source: &str) -> &str {
   if source.starts_with('<') && source.ends_with('>') {
