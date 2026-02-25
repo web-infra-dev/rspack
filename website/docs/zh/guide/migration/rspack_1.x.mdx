@@ -7,6 +7,16 @@ import { PackageManagerTabs } from '@theme';
 - 查看 [Breaking changes in Rspack 2.0](https://github.com/web-infra-dev/rspack/discussions/9270) 了解更多细节
 - 对于 Rsbuild 用户，查看 [Rsbuild - 从 v1 升级到 v2](https://v2.rsbuild.rs/zh/guide/upgrade/v1-to-v2)
 
+## 使用 Agent Skills
+
+如果你在使用支持 Skills 的 Coding Agent，可以安装 [rspack-v2-upgrade](https://github.com/rstackjs/agent-skills#rspack-v2-upgrade) 技能来辅助完成 v1 到 v2 的升级流程。
+
+```bash
+npx skills add rstackjs/agent-skills --skill rspack-v2-upgrade
+```
+
+安装后，让 Coding Agent 协助完成升级即可。
+
 ## 升级 Node.js
 
 Rspack 2.0 的最低 Node.js 版本要求为 **20.19+** 或 **22.12+**，并且不再支持 Node.js 18。
