@@ -4,10 +4,10 @@ use dashmap::DashMap;
 use rayon::prelude::*;
 use rspack_collections::IdentifierSet;
 use rspack_core::{
-  ChunkUkey, Compilation, CompilationOptimizeChunks, ModuleIdentifier, Plugin,
-  incremental::Mutation,
+  BuildChunkGraphArtifact, ChunkUkey, Compilation, CompilationOptimizeChunks, ModuleIdentifier,
+  Plugin, incremental::Mutation,
 };
-use rspack_error::Result;
+use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
 
 #[derive(Debug)]
@@ -23,13 +23,12 @@ impl std::default::Default for RemoveDuplicateModulesPlugin {
 }
 
 fn find_reusable_chunk(
-  compilation: &Compilation,
+  build_chunk_graph_artifact: &BuildChunkGraphArtifact,
   chunks: &[ChunkUkey],
   modules: &[ModuleIdentifier],
 ) -> Option<ChunkUkey> {
   let filter = |chunk: &&ChunkUkey| {
-    let chunk_modules = compilation
-      .build_chunk_graph_artifact
+    let chunk_modules = build_chunk_graph_artifact
       .chunk_graph
       .get_chunk_modules_identifier(chunk);
     modules.len() == chunk_modules.len()
@@ -44,9 +43,14 @@ fn find_reusable_chunk(
 }
 
 #[plugin_hook(CompilationOptimizeChunks for RemoveDuplicateModulesPlugin)]
-async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
+async fn optimize_chunks(
+  &self,
+  compilation: &Compilation,
+  build_chunk_graph_artifact: &mut BuildChunkGraphArtifact,
+  _diagnostics: &mut Vec<Diagnostic>,
+) -> Result<Option<bool>> {
   let module_graph = compilation.get_module_graph();
-  let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
+  let chunk_graph = &build_chunk_graph_artifact.chunk_graph;
 
   let chunk_map: DashMap<Vec<ChunkUkey>, Vec<ModuleIdentifier>> = DashMap::default();
 
@@ -93,31 +97,29 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
     }
 
     // split chunks from original chunks and create new chunk
-    let new_chunk_ukey = if let Some(chunk) = find_reusable_chunk(compilation, &chunks, &modules) {
-      // we can use this chunk directly
-      // all modules are into existing chunk, the chunkMap needs update
+    let new_chunk_ukey =
+      if let Some(chunk) = find_reusable_chunk(build_chunk_graph_artifact, &chunks, &modules) {
+        // we can use this chunk directly
+        // all modules are into existing chunk, the chunkMap needs update
 
-      chunk
-    } else {
-      let new_chunk_ukey =
-        Compilation::add_chunk(&mut compilation.build_chunk_graph_artifact.chunk_by_ukey);
-      if let Some(mut mutations) = compilation.incremental.mutations_write() {
-        mutations.add(Mutation::ChunkAdd {
-          chunk: new_chunk_ukey,
-        });
+        chunk
+      } else {
+        let new_chunk_ukey = Compilation::add_chunk(&mut build_chunk_graph_artifact.chunk_by_ukey);
+        if let Some(mut mutations) = compilation.incremental.mutations_write() {
+          mutations.add(Mutation::ChunkAdd {
+            chunk: new_chunk_ukey,
+          });
+        };
+        let new_chunk = build_chunk_graph_artifact
+          .chunk_by_ukey
+          .expect_get_mut(&new_chunk_ukey);
+        *new_chunk.chunk_reason_mut() = Some("modules are shared across multiple chunks".into());
+        build_chunk_graph_artifact
+          .chunk_graph
+          .add_chunk(new_chunk_ukey);
+
+        new_chunk_ukey
       };
-      let new_chunk = compilation
-        .build_chunk_graph_artifact
-        .chunk_by_ukey
-        .expect_get_mut(&new_chunk_ukey);
-      *new_chunk.chunk_reason_mut() = Some("modules are shared across multiple chunks".into());
-      compilation
-        .build_chunk_graph_artifact
-        .chunk_graph
-        .add_chunk(new_chunk_ukey);
-
-      new_chunk_ukey
-    };
 
     let mut entry_modules = IdentifierSet::default();
 
@@ -126,22 +128,20 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
         continue;
       }
 
-      let [Some(new_chunk), Some(origin)] = compilation
-        .build_chunk_graph_artifact
+      let [Some(new_chunk), Some(origin)] = build_chunk_graph_artifact
         .chunk_by_ukey
         .get_many_mut([&new_chunk_ukey, chunk_ukey])
       else {
         panic!("should have both chunks")
       };
       entry_modules.extend(
-        compilation
-          .build_chunk_graph_artifact
+        build_chunk_graph_artifact
           .chunk_graph
           .get_chunk_entry_modules(chunk_ukey),
       );
       origin.split(
         new_chunk,
-        &mut compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
+        &mut build_chunk_graph_artifact.chunk_group_by_ukey,
       );
       if let Some(mut mutations) = compilation.incremental.mutations_write() {
         mutations.add(Mutation::ChunkSplit {
@@ -157,39 +157,33 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
         if chunk_ukey == &new_chunk_ukey {
           continue;
         }
-        compilation
-          .build_chunk_graph_artifact
+        build_chunk_graph_artifact
           .chunk_graph
           .disconnect_chunk_and_module(chunk_ukey, m);
 
         if is_entry {
-          compilation
-            .build_chunk_graph_artifact
+          build_chunk_graph_artifact
             .chunk_graph
             .disconnect_chunk_and_entry_module(chunk_ukey, m);
         }
       }
 
-      compilation
-        .build_chunk_graph_artifact
+      build_chunk_graph_artifact
         .chunk_graph
         .connect_chunk_and_module(new_chunk_ukey, m);
 
       if is_entry {
-        let chunk = compilation
-          .build_chunk_graph_artifact
+        let chunk = build_chunk_graph_artifact
           .chunk_by_ukey
           .expect_get(&new_chunk_ukey);
         for group in chunk.groups().iter().filter(|group| {
-          let group = compilation
-            .build_chunk_graph_artifact
+          let group = build_chunk_graph_artifact
             .chunk_group_by_ukey
             .expect_get(group);
 
           group.is_initial() && group.kind.is_entrypoint()
         }) {
-          compilation
-            .build_chunk_graph_artifact
+          build_chunk_graph_artifact
             .chunk_graph
             .connect_chunk_and_entry_module(new_chunk_ukey, m, *group);
         }

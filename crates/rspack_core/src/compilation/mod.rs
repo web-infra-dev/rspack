@@ -108,7 +108,7 @@ define_hook!(CompilationOptimizeDependencies: SeriesBail(compilation: &Compilati
  diagnostics: &mut Vec<Diagnostic>) -> bool);
 define_hook!(CompilationOptimizeModules: SeriesBail(compilation: &Compilation, diagnostics: &mut Vec<Diagnostic>) -> bool);
 define_hook!(CompilationAfterOptimizeModules: Series(compilation: &Compilation));
-define_hook!(CompilationOptimizeChunks: SeriesBail(compilation: &mut Compilation) -> bool);
+define_hook!(CompilationOptimizeChunks: SeriesBail(compilation: &Compilation, build_chunk_graph_artifact: &mut BuildChunkGraphArtifact, diagnostics: &mut Vec<Diagnostic>) -> bool);
 define_hook!(CompilationOptimizeTree: Series(compilation: &Compilation));
 define_hook!(CompilationOptimizeChunkModules: SeriesBail(compilation: &mut Compilation) -> bool);
 define_hook!(CompilationBeforeModuleIds: Series(compilation: &Compilation, modules: &IdentifierSet, module_ids: &mut ModuleIdsArtifact));

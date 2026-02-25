@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 
 use rspack_collections::{DatabaseItem, UkeySet};
-use rspack_core::{ChunkUkey, Compilation};
+use rspack_core::{BuildChunkGraphArtifact, ChunkUkey, Compilation};
 
 use crate::{CacheGroup, SplitChunksPlugin};
 
@@ -11,12 +11,13 @@ impl SplitChunksPlugin {
   // #[tracing::instrument(skip_all)]
   pub(crate) fn ensure_max_request_fit(
     &self,
-    compilation: &Compilation,
+    _compilation: &Compilation,
+    build_chunk_graph_artifact: &BuildChunkGraphArtifact,
     cache_group: &CacheGroup,
     used_chunks: &mut Cow<UkeySet<ChunkUkey>>,
   ) {
-    let chunk_db = &compilation.build_chunk_graph_artifact.chunk_by_ukey;
-    let chunk_group_db = &compilation.build_chunk_graph_artifact.chunk_group_by_ukey;
+    let chunk_db = &build_chunk_graph_artifact.chunk_by_ukey;
+    let chunk_group_db = &build_chunk_graph_artifact.chunk_group_by_ukey;
     let invalided_chunks = used_chunks
       .iter()
       .map(|c| chunk_db.expect_get(c))

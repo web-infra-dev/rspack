@@ -5,10 +5,10 @@ use std::collections::HashSet;
 use chunk_combination::{ChunkCombination, ChunkCombinationBucket, ChunkCombinationUkey};
 use rspack_collections::{UkeyMap, UkeySet};
 use rspack_core::{
-  ChunkSizeOptions, ChunkUkey, Compilation, CompilationOptimizeChunks, Plugin,
-  compare_chunks_with_graph, incremental::Mutation,
+  BuildChunkGraphArtifact, ChunkSizeOptions, ChunkUkey, Compilation, CompilationOptimizeChunks,
+  Plugin, compare_chunks_with_graph, incremental::Mutation,
 };
-use rspack_error::Result;
+use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
 
 fn add_to_set_map(
@@ -55,14 +55,18 @@ impl LimitChunkCountPlugin {
 }
 
 #[plugin_hook(CompilationOptimizeChunks for LimitChunkCountPlugin, stage = Compilation::OPTIMIZE_CHUNKS_STAGE_ADVANCED)]
-async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
+async fn optimize_chunks(
+  &self,
+  compilation: &Compilation,
+  build_chunk_graph_artifact: &mut BuildChunkGraphArtifact,
+  _diagnostics: &mut Vec<Diagnostic>,
+) -> Result<Option<bool>> {
   let max_chunks = self.options.max_chunks;
   if max_chunks < 1 {
     return Ok(None);
   }
 
-  let mut chunks_ukeys = compilation
-    .build_chunk_graph_artifact
+  let mut chunks_ukeys = build_chunk_graph_artifact
     .chunk_by_ukey
     .keys()
     .copied()
@@ -71,17 +75,13 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
     return Ok(None);
   }
 
-  let chunk_by_ukey = &compilation.build_chunk_graph_artifact.chunk_by_ukey.clone();
-  let chunk_group_by_ukey = &compilation
-    .build_chunk_graph_artifact
-    .chunk_group_by_ukey
-    .clone();
-  let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph.clone();
-  let mut new_chunk_by_ukey =
-    std::mem::take(&mut compilation.build_chunk_graph_artifact.chunk_by_ukey);
+  let chunk_by_ukey = &build_chunk_graph_artifact.chunk_by_ukey.clone();
+  let chunk_group_by_ukey = &build_chunk_graph_artifact.chunk_group_by_ukey.clone();
+  let chunk_graph = &build_chunk_graph_artifact.chunk_graph.clone();
+  let mut new_chunk_by_ukey = std::mem::take(&mut build_chunk_graph_artifact.chunk_by_ukey);
   let mut new_chunk_group_by_ukey =
-    std::mem::take(&mut compilation.build_chunk_graph_artifact.chunk_group_by_ukey);
-  let mut new_chunk_graph = std::mem::take(&mut compilation.build_chunk_graph_artifact.chunk_graph);
+    std::mem::take(&mut build_chunk_graph_artifact.chunk_group_by_ukey);
+  let mut new_chunk_graph = std::mem::take(&mut build_chunk_graph_artifact.chunk_graph);
 
   //    let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph.clone();
   let module_graph = compilation.get_module_graph();
@@ -300,9 +300,9 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
     }
   }
 
-  compilation.build_chunk_graph_artifact.chunk_by_ukey = new_chunk_by_ukey;
-  compilation.build_chunk_graph_artifact.chunk_group_by_ukey = new_chunk_group_by_ukey;
-  compilation.build_chunk_graph_artifact.chunk_graph = new_chunk_graph;
+  build_chunk_graph_artifact.chunk_by_ukey = new_chunk_by_ukey;
+  build_chunk_graph_artifact.chunk_group_by_ukey = new_chunk_group_by_ukey;
+  build_chunk_graph_artifact.chunk_graph = new_chunk_graph;
 
   if let Some(mut mutations) = compilation.incremental.mutations_write() {
     // ChunkRemove mutations must be added last because a chunk can be removed after another chunk

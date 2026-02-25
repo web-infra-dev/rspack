@@ -1,10 +1,10 @@
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use rspack_collections::UkeySet;
 use rspack_core::{
-  ChunkUkey, Compilation, CompilationOptimizeChunks, ExportsInfoData, Plugin, RuntimeSpec,
-  incremental::Mutation, is_runtime_equal,
+  BuildChunkGraphArtifact, ChunkUkey, Compilation, CompilationOptimizeChunks, ExportsInfoData,
+  Plugin, RuntimeSpec, incremental::Mutation, is_runtime_equal,
 };
-use rspack_error::Result;
+use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
 use rustc_hash::FxHashSet as HashSet;
 
@@ -13,27 +13,29 @@ use rustc_hash::FxHashSet as HashSet;
 pub struct MergeDuplicateChunksPlugin;
 
 #[plugin_hook(CompilationOptimizeChunks for MergeDuplicateChunksPlugin, stage = Compilation::OPTIMIZE_CHUNKS_STAGE_BASIC)]
-async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
+async fn optimize_chunks(
+  &self,
+  compilation: &Compilation,
+  build_chunk_graph_artifact: &mut BuildChunkGraphArtifact,
+  _diagnostics: &mut Vec<Diagnostic>,
+) -> Result<Option<bool>> {
   let mut not_duplicates = HashSet::default();
 
-  let mut chunk_ukeys = compilation
-    .build_chunk_graph_artifact
+  let mut chunk_ukeys = build_chunk_graph_artifact
     .chunk_by_ukey
     .keys()
     .copied()
     .collect::<Vec<_>>();
 
   chunk_ukeys.sort_by_key(|ukey| {
-    compilation
-      .build_chunk_graph_artifact
+    build_chunk_graph_artifact
       .chunk_by_ukey
       .expect_get(ukey)
       .name()
   });
 
   for chunk_ukey in chunk_ukeys {
-    if !compilation
-      .build_chunk_graph_artifact
+    if !build_chunk_graph_artifact
       .chunk_by_ukey
       .contains(&chunk_ukey)
     {
@@ -41,15 +43,13 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
       continue;
     }
     let mut possible_duplicates: Option<UkeySet<ChunkUkey>> = None;
-    for module in compilation
-      .build_chunk_graph_artifact
+    for module in build_chunk_graph_artifact
       .chunk_graph
       .get_chunk_modules_identifier(&chunk_ukey)
     {
       if let Some(ref mut possible_duplicates) = possible_duplicates {
         possible_duplicates.retain(|dup| {
-          compilation
-            .build_chunk_graph_artifact
+          build_chunk_graph_artifact
             .chunk_graph
             .is_module_in_chunk(module, *dup)
         });
@@ -57,18 +57,15 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
           break;
         }
       } else {
-        for dup in compilation
-          .build_chunk_graph_artifact
+        for dup in build_chunk_graph_artifact
           .chunk_graph
           .get_module_chunks(*module)
         {
           if *dup != chunk_ukey
-            && compilation
-              .build_chunk_graph_artifact
+            && build_chunk_graph_artifact
               .chunk_graph
               .get_number_of_chunk_modules(&chunk_ukey)
-              == compilation
-                .build_chunk_graph_artifact
+              == build_chunk_graph_artifact
                 .chunk_graph
                 .get_number_of_chunk_modules(dup)
             && !not_duplicates.contains(dup)
@@ -86,29 +83,25 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
       && !possible_duplicates.is_empty()
     {
       'outer: for other_chunk_ukey in possible_duplicates {
-        let chunk = compilation
-          .build_chunk_graph_artifact
+        let chunk = build_chunk_graph_artifact
           .chunk_by_ukey
           .expect_get(&chunk_ukey);
-        let other_chunk = compilation
-          .build_chunk_graph_artifact
+        let other_chunk = build_chunk_graph_artifact
           .chunk_by_ukey
           .expect_get(&other_chunk_ukey);
-        if other_chunk.has_runtime(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
-          != chunk.has_runtime(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
+        if other_chunk.has_runtime(&build_chunk_graph_artifact.chunk_group_by_ukey)
+          != chunk.has_runtime(&build_chunk_graph_artifact.chunk_group_by_ukey)
         {
           continue;
         }
-        if compilation
-          .build_chunk_graph_artifact
+        if build_chunk_graph_artifact
           .chunk_graph
           .get_number_of_entry_modules(&chunk_ukey)
           > 0
         {
           continue;
         }
-        if compilation
-          .build_chunk_graph_artifact
+        if build_chunk_graph_artifact
           .chunk_graph
           .get_number_of_entry_modules(&other_chunk_ukey)
           > 0
@@ -116,8 +109,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
           continue;
         }
         if !is_runtime_equal(chunk.runtime(), other_chunk.runtime()) {
-          let is_all_equal = compilation
-            .build_chunk_graph_artifact
+          let is_all_equal = build_chunk_graph_artifact
             .chunk_graph
             .get_chunk_modules_identifier(&chunk_ukey)
             .into_par_iter()
@@ -134,22 +126,19 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
             continue 'outer;
           }
         }
-        if compilation
-          .build_chunk_graph_artifact
+        if build_chunk_graph_artifact
           .chunk_graph
           .can_chunks_be_integrated(
             &chunk_ukey,
             &other_chunk_ukey,
-            &compilation.build_chunk_graph_artifact.chunk_by_ukey,
-            &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
+            &build_chunk_graph_artifact.chunk_by_ukey,
+            &build_chunk_graph_artifact.chunk_group_by_ukey,
           )
         {
-          let mut chunk_graph =
-            std::mem::take(&mut compilation.build_chunk_graph_artifact.chunk_graph);
-          let mut chunk_by_ukey =
-            std::mem::take(&mut compilation.build_chunk_graph_artifact.chunk_by_ukey);
+          let mut chunk_graph = std::mem::take(&mut build_chunk_graph_artifact.chunk_graph);
+          let mut chunk_by_ukey = std::mem::take(&mut build_chunk_graph_artifact.chunk_by_ukey);
           let mut chunk_group_by_ukey =
-            std::mem::take(&mut compilation.build_chunk_graph_artifact.chunk_group_by_ukey);
+            std::mem::take(&mut build_chunk_graph_artifact.chunk_group_by_ukey);
           chunk_graph.integrate_chunks(
             &chunk_ukey,
             &other_chunk_ukey,
@@ -165,9 +154,9 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
               chunk: other_chunk_ukey,
             });
           }
-          compilation.build_chunk_graph_artifact.chunk_graph = chunk_graph;
-          compilation.build_chunk_graph_artifact.chunk_by_ukey = chunk_by_ukey;
-          compilation.build_chunk_graph_artifact.chunk_group_by_ukey = chunk_group_by_ukey;
+          build_chunk_graph_artifact.chunk_graph = chunk_graph;
+          build_chunk_graph_artifact.chunk_by_ukey = chunk_by_ukey;
+          build_chunk_graph_artifact.chunk_group_by_ukey = chunk_group_by_ukey;
         }
       }
     }

@@ -19,10 +19,10 @@ use std::{
 
 use async_trait::async_trait;
 use rspack_core::{
-  Compilation, CompilationOptimizeChunks, CompilerCompilation, Dependency, DependencyId,
-  ModuleIdentifier, Plugin, incremental::Mutation,
+  BuildChunkGraphArtifact, Compilation, CompilationOptimizeChunks, CompilerCompilation, Dependency,
+  DependencyId, ModuleIdentifier, Plugin, incremental::Mutation,
 };
-use rspack_error::Result;
+use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
 use rustc_hash::{FxHashMap, FxHashSet};
 
@@ -136,7 +136,12 @@ async fn compilation(
 }
 
 #[plugin_hook(CompilationOptimizeChunks for HoistContainerReferencesPlugin, stage = Compilation::OPTIMIZE_CHUNKS_STAGE_ADVANCED + 1)]
-async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
+async fn optimize_chunks(
+  &self,
+  compilation: &Compilation,
+  build_chunk_graph_artifact: &mut BuildChunkGraphArtifact,
+  _diagnostics: &mut Vec<Diagnostic>,
+) -> Result<Option<bool>> {
   // Helper: recursively collect all referenced modules
   fn get_all_referenced_modules(
     compilation: &Compilation,
@@ -193,11 +198,19 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
     .collect::<FxHashSet<_>>();
 
   // Hoist referenced modules to their runtime chunk
-  let runtime_chunk_by_runtime = compilation
-    .get_chunk_graph_entries()
+  let runtime_chunk_by_runtime = build_chunk_graph_artifact
+    .entrypoints
+    .values()
+    .copied()
+    .chain(build_chunk_graph_artifact.async_entrypoints.iter().copied())
+    .map(|entrypoint_ukey| {
+      let entrypoint = build_chunk_graph_artifact
+        .chunk_group_by_ukey
+        .expect_get(&entrypoint_ukey);
+      entrypoint.get_runtime_chunk(&build_chunk_graph_artifact.chunk_group_by_ukey)
+    })
     .filter_map(|runtime_chunk| {
-      compilation
-        .build_chunk_graph_artifact
+      build_chunk_graph_artifact
         .chunk_by_ukey
         .get(&runtime_chunk)
         .map(|chunk| (chunk.runtime().clone(), runtime_chunk))
@@ -205,24 +218,18 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
     .flat_map(|(runtime, runtime_chunk)| runtime.into_iter().map(move |r| (r, runtime_chunk)))
     .collect::<FxHashMap<_, _>>();
   for module in &all_modules_to_hoist {
-    let runtime_chunks = compilation
-      .build_chunk_graph_artifact
+    let runtime_chunks = build_chunk_graph_artifact
       .chunk_graph
-      .get_module_runtimes_iter(
-        *module,
-        &compilation.build_chunk_graph_artifact.chunk_by_ukey,
-      )
+      .get_module_runtimes_iter(*module, &build_chunk_graph_artifact.chunk_by_ukey)
       .flat_map(|runtime| runtime.iter())
       .filter_map(|runtime| runtime_chunk_by_runtime.get(runtime).copied())
       .collect::<Vec<_>>();
     for runtime_chunk in runtime_chunks {
-      if !compilation
-        .build_chunk_graph_artifact
+      if !build_chunk_graph_artifact
         .chunk_graph
         .is_module_in_chunk(module, runtime_chunk)
       {
-        compilation
-          .build_chunk_graph_artifact
+        build_chunk_graph_artifact
           .chunk_graph
           .connect_chunk_and_module(runtime_chunk, *module);
       }
@@ -235,8 +242,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
     .copied()
     .collect::<FxHashSet<_>>();
   for module in all_modules_to_hoist {
-    let non_runtime_chunks = compilation
-      .build_chunk_graph_artifact
+    let non_runtime_chunks = build_chunk_graph_artifact
       .chunk_graph
       .get_module_chunks(module)
       .iter()
@@ -244,44 +250,29 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
       .copied()
       .collect::<Vec<_>>();
     for chunk in non_runtime_chunks {
-      compilation
-        .build_chunk_graph_artifact
+      build_chunk_graph_artifact
         .chunk_graph
         .disconnect_chunk_and_module(&chunk, module);
 
-      if compilation
-        .build_chunk_graph_artifact
+      if build_chunk_graph_artifact
         .chunk_graph
         .get_number_of_chunk_modules(&chunk)
         == 0
-        && compilation
-          .build_chunk_graph_artifact
+        && build_chunk_graph_artifact
           .chunk_graph
           .get_number_of_entry_modules(&chunk)
           == 0
-        && let Some(mut removed_chunk) = compilation
-          .build_chunk_graph_artifact
-          .chunk_by_ukey
-          .remove(&chunk)
+        && let Some(mut removed_chunk) = build_chunk_graph_artifact.chunk_by_ukey.remove(&chunk)
       {
-        compilation
-          .build_chunk_graph_artifact
-          .chunk_graph
-          .disconnect_chunk(
-            &mut removed_chunk,
-            &mut compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
-          );
-        compilation
-          .build_chunk_graph_artifact
-          .chunk_graph
-          .remove_chunk(&chunk);
+        build_chunk_graph_artifact.chunk_graph.disconnect_chunk(
+          &mut removed_chunk,
+          &mut build_chunk_graph_artifact.chunk_group_by_ukey,
+        );
+        build_chunk_graph_artifact.chunk_graph.remove_chunk(&chunk);
 
         // Remove from named chunks if it has a name
         if let Some(name) = removed_chunk.name() {
-          compilation
-            .build_chunk_graph_artifact
-            .named_chunks
-            .remove(name);
+          build_chunk_graph_artifact.named_chunks.remove(name);
         }
         // Record mutation
         if let Some(mut mutations) = compilation.incremental.mutations_write() {

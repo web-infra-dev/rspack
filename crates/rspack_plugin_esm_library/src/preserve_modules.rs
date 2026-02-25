@@ -2,7 +2,7 @@ use std::{borrow::Cow, path::Path, sync::LazyLock};
 
 use regex::Regex;
 use rspack_collections::{IdentifierMap, IdentifierSet};
-use rspack_core::Compilation;
+use rspack_core::{BuildChunkGraphArtifact, Compilation};
 use rspack_util::fx_hash::{FxHashMap, FxHashSet};
 use sugar_path::SugarPath;
 
@@ -49,7 +49,8 @@ pub fn entry_name_for_module(
 
 pub async fn preserve_modules(
   root: &Path,
-  compilation: &mut Compilation,
+  compilation: &Compilation,
+  build_chunk_graph_artifact: &mut BuildChunkGraphArtifact,
 ) -> Vec<rspack_error::Diagnostic> {
   let mut errors = vec![];
   let modules = compilation
@@ -62,8 +63,7 @@ pub async fn preserve_modules(
   let entry_name_for_module = entry_name_for_module(&entry_modules);
 
   for module_id in modules {
-    if compilation
-      .build_chunk_graph_artifact
+    if build_chunk_graph_artifact
       .chunk_graph
       .get_module_chunks(module_id)
       .is_empty()
@@ -90,8 +90,7 @@ pub async fn preserve_modules(
       continue;
     };
     let chunk = EsmLibraryPlugin::get_module_chunk(module_id, compilation);
-    let old_chunk = compilation
-      .build_chunk_graph_artifact
+    let old_chunk = build_chunk_graph_artifact
       .chunk_by_ukey
       .expect_get_mut(&chunk);
 
@@ -126,8 +125,7 @@ pub async fn preserve_modules(
         file_path.to_string_lossy().to_string().into()
       };
 
-      if compilation
-        .build_chunk_graph_artifact
+      if build_chunk_graph_artifact
         .chunk_graph
         .get_chunk_modules_identifier(&chunk)
         .len()
@@ -138,14 +136,11 @@ pub async fn preserve_modules(
         continue;
       }
 
-      let new_chunk_ukey =
-        Compilation::add_chunk(&mut compilation.build_chunk_graph_artifact.chunk_by_ukey);
-      compilation
-        .build_chunk_graph_artifact
+      let new_chunk_ukey = Compilation::add_chunk(&mut build_chunk_graph_artifact.chunk_by_ukey);
+      build_chunk_graph_artifact
         .chunk_graph
         .add_chunk(new_chunk_ukey);
-      let [Some(new_chunk), Some(old_chunk)] = compilation
-        .build_chunk_graph_artifact
+      let [Some(new_chunk), Some(old_chunk)] = build_chunk_graph_artifact
         .chunk_by_ukey
         .get_many_mut([&new_chunk_ukey, &chunk])
       else {
@@ -155,16 +150,14 @@ pub async fn preserve_modules(
       new_chunk.set_filename_template(Some(new_filename));
       old_chunk.split(
         new_chunk,
-        &mut compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
+        &mut build_chunk_graph_artifact.chunk_group_by_ukey,
       );
       // disconnect module from other chunks
-      compilation
-        .build_chunk_graph_artifact
+      build_chunk_graph_artifact
         .chunk_graph
         .disconnect_chunk_and_module(&chunk, module_id);
 
-      compilation
-        .build_chunk_graph_artifact
+      build_chunk_graph_artifact
         .chunk_graph
         .connect_chunk_and_module(new_chunk_ukey, module_id);
 
@@ -184,22 +177,26 @@ pub async fn preserve_modules(
           );
         }
 
-        compilation
-          .build_chunk_graph_artifact
+        build_chunk_graph_artifact
           .chunk_graph
           .disconnect_chunk_and_entry_module(&chunk, module_id);
 
-        let entrypoint = compilation.entrypoint_by_name_mut(
-          entry_names
-            .iter()
-            .next()
-            .expect("entry_names should not be empty"),
-        );
+        let entrypoint_ukey = *build_chunk_graph_artifact
+          .entrypoints
+          .get(
+            entry_names
+              .iter()
+              .next()
+              .expect("entry_names should not be empty"),
+          )
+          .expect("entrypoint not found");
+        let entrypoint = build_chunk_graph_artifact
+          .chunk_group_by_ukey
+          .expect_get_mut(&entrypoint_ukey);
         let ukey = entrypoint.ukey;
         entrypoint.set_entrypoint_chunk(new_chunk_ukey);
 
-        compilation
-          .build_chunk_graph_artifact
+        build_chunk_graph_artifact
           .chunk_graph
           .connect_chunk_and_entry_module(new_chunk_ukey, module_id, ukey);
       }

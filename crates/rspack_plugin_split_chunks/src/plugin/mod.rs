@@ -8,8 +8,10 @@ use std::{borrow::Cow, cmp::Ordering, fmt::Debug};
 
 use itertools::Itertools;
 use rspack_collections::{DatabaseItem, IdentifierMap, UkeyMap, UkeySet};
-use rspack_core::{ChunkUkey, Compilation, CompilationOptimizeChunks, Logger, Plugin};
-use rspack_error::Result;
+use rspack_core::{
+  BuildChunkGraphArtifact, ChunkUkey, Compilation, CompilationOptimizeChunks, Logger, Plugin,
+};
+use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_util::{fx_hash::FxIndexMap, tracing_preset::TRACING_BENCH_TARGET};
 use tracing::instrument;
@@ -46,7 +48,11 @@ impl SplitChunksPlugin {
     )
   }
   #[instrument(name = "Compilation:SplitChunks",target=TRACING_BENCH_TARGET, skip_all)]
-  async fn inner_impl(&self, compilation: &mut Compilation) -> Result<()> {
+  async fn inner_impl(
+    &self,
+    compilation: &Compilation,
+    build_chunk_graph_artifact: &mut BuildChunkGraphArtifact,
+  ) -> Result<()> {
     let logger = compilation.get_logger(self.name());
     let start = logger.time("prepare module data");
 
@@ -59,12 +65,11 @@ impl SplitChunksPlugin {
     all_modules.sort_unstable();
 
     let module_sizes = Self::get_module_sizes(&all_modules, compilation);
-    let module_chunks = Self::get_module_chunks(&all_modules, compilation);
+    let module_chunks = Self::get_module_chunks(&all_modules, build_chunk_graph_artifact);
     logger.time_end(start);
 
     let chunk_index_map: UkeyMap<ChunkUkey, u64> = {
-      let mut ordered_chunks = compilation
-        .build_chunk_graph_artifact
+      let mut ordered_chunks = build_chunk_graph_artifact
         .chunk_by_ukey
         .values()
         .collect::<Vec<_>>();
@@ -75,8 +80,7 @@ impl SplitChunksPlugin {
           .groups()
           .iter()
           .map(|group| {
-            compilation
-              .build_chunk_graph_artifact
+            build_chunk_graph_artifact
               .chunk_group_by_ukey
               .expect_get(group)
           })
@@ -138,7 +142,7 @@ impl SplitChunksPlugin {
       combinator.prepare_group_by_used_exports(
         &all_modules,
         &compilation.exports_info_artifact,
-        &compilation.build_chunk_graph_artifact.chunk_by_ukey,
+        &build_chunk_graph_artifact.chunk_by_ukey,
         &module_chunks,
         &chunk_index_map,
       );
@@ -179,13 +183,13 @@ impl SplitChunksPlugin {
         let mut is_reuse_existing_chunk_with_all_modules = false;
         let new_chunk = self.get_corresponding_chunk(
           compilation,
+          build_chunk_graph_artifact,
           &mut module_group,
           &mut is_reuse_existing_chunk,
           &mut is_reuse_existing_chunk_with_all_modules,
         );
 
-        let new_chunk_mut = compilation
-          .build_chunk_graph_artifact
+        let new_chunk_mut = build_chunk_graph_artifact
           .chunk_by_ukey
           .expect_get_mut(&new_chunk);
         tracing::trace!(
@@ -214,7 +218,12 @@ impl SplitChunksPlugin {
 
         let mut used_chunks = Cow::Borrowed(&module_group.chunks);
 
-        self.ensure_max_request_fit(compilation, cache_group, &mut used_chunks);
+        self.ensure_max_request_fit(
+          compilation,
+          build_chunk_graph_artifact,
+          cache_group,
+          &mut used_chunks,
+        );
 
         if used_chunks.len() != module_group.chunks.len() {
           // There are some chunks removed by `ensure_max_request_fit`
@@ -252,15 +261,23 @@ impl SplitChunksPlugin {
           new_chunk,
           &used_chunks,
           compilation,
+          build_chunk_graph_artifact,
         );
 
-        self.split_from_original_chunks(&module_group, &used_chunks, new_chunk, compilation);
+        self.split_from_original_chunks(
+          &module_group,
+          &used_chunks,
+          new_chunk,
+          compilation,
+          build_chunk_graph_artifact,
+        );
 
         self.remove_all_modules_from_other_module_groups(
           &module_group,
           &mut module_group_map,
           &used_chunks,
           compilation,
+          build_chunk_graph_artifact,
           &module_sizes,
         );
 
@@ -278,7 +295,11 @@ impl SplitChunksPlugin {
 
     let start = logger.time("ensure max size fit");
     self
-      .ensure_max_size_fit(compilation, &max_size_setting_map)
+      .ensure_max_size_fit(
+        compilation,
+        build_chunk_graph_artifact,
+        &max_size_setting_map,
+      )
       .await?;
     logger.time_end(start);
 
@@ -295,10 +316,16 @@ impl Debug for SplitChunksPlugin {
 }
 
 #[plugin_hook(CompilationOptimizeChunks for SplitChunksPlugin, stage = Compilation::OPTIMIZE_CHUNKS_STAGE_ADVANCED)]
-async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
-  self.inner_impl(compilation).await?;
-  compilation
-    .build_chunk_graph_artifact
+async fn optimize_chunks(
+  &self,
+  compilation: &Compilation,
+  build_chunk_graph_artifact: &mut BuildChunkGraphArtifact,
+  _diagnostics: &mut Vec<Diagnostic>,
+) -> Result<Option<bool>> {
+  self
+    .inner_impl(compilation, build_chunk_graph_artifact)
+    .await?;
+  build_chunk_graph_artifact
     .chunk_graph
     .generate_dot(compilation, "after-split-chunks")
     .await;

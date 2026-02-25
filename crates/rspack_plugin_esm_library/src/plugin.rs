@@ -8,8 +8,8 @@ use atomic_refcell::AtomicRefCell;
 use regex::Regex;
 use rspack_collections::{Identifiable, Identifier, IdentifierIndexMap, IdentifierSet, UkeyMap};
 use rspack_core::{
-  ApplyContext, AssetInfo, AsyncModulesArtifact, BoxModule, BuildModuleGraphArtifact, ChunkUkey,
-  Compilation, CompilationAdditionalChunkRuntimeRequirements,
+  ApplyContext, AssetInfo, AsyncModulesArtifact, BoxModule, BuildChunkGraphArtifact,
+  BuildModuleGraphArtifact, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
   CompilationAdditionalTreeRuntimeRequirements, CompilationAfterCodeGeneration,
   CompilationConcatenationScope, CompilationFinishModules, CompilationOptimizeChunks,
   CompilationOptimizeDependencies, CompilationParams, CompilationProcessAssets,
@@ -484,15 +484,25 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 }
 
 #[plugin_hook(CompilationOptimizeChunks for EsmLibraryPlugin, stage = Compilation::OPTIMIZE_CHUNKS_STAGE_ADVANCED)]
-async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
+async fn optimize_chunks(
+  &self,
+  compilation: &Compilation,
+  build_chunk_graph_artifact: &mut BuildChunkGraphArtifact,
+  diagnostics: &mut Vec<Diagnostic>,
+) -> Result<Option<bool>> {
   // check if we have to generate proxy chunks
   if let Some(preserve_modules_root) = &self.preserve_modules {
-    let errors = preserve_modules(preserve_modules_root, compilation).await;
+    let errors = preserve_modules(
+      preserve_modules_root,
+      compilation,
+      build_chunk_graph_artifact,
+    )
+    .await;
     if !errors.is_empty() {
-      compilation.extend_diagnostics(errors);
+      diagnostics.extend(errors);
     }
   } else {
-    ensure_entry_exports(compilation);
+    ensure_entry_exports(compilation, build_chunk_graph_artifact);
   }
 
   Ok(None)

@@ -8,8 +8,8 @@ use futures::future::join_all;
 use rayon::prelude::*;
 use rspack_collections::{IdentifierMap, UkeyIndexMap, UkeyMap, UkeySet};
 use rspack_core::{
-  ChunkByUkey, ChunkUkey, Compilation, ExportsInfoArtifact, Module, ModuleIdentifier,
-  PrefetchExportsInfoMode, RuntimeKeyMap, UsageKey, get_runtime_key,
+  BuildChunkGraphArtifact, ChunkByUkey, ChunkUkey, Compilation, ExportsInfoArtifact, Module,
+  ModuleIdentifier, PrefetchExportsInfoMode, RuntimeKeyMap, UsageKey, get_runtime_key,
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_util::tracing_preset::TRACING_BENCH_TARGET;
@@ -463,7 +463,8 @@ impl SplitChunksPlugin {
     current_module_group: &ModuleGroup,
     module_group_map: &mut ModuleGroupMap,
     used_chunks: &UkeySet<ChunkUkey>,
-    compilation: &Compilation,
+    _compilation: &Compilation,
+    build_chunk_graph_artifact: &BuildChunkGraphArtifact,
     module_sizes: &ModuleSizes,
   ) {
     // remove all modules from other entries and update size
@@ -504,7 +505,7 @@ impl SplitChunksPlugin {
 
         // Since there are modules removed, make sure the rest of chunks are all used.
         other_module_group.chunks.retain(|c| {
-          compilation.build_chunk_graph_artifact.chunk_graph
+          build_chunk_graph_artifact.chunk_graph
             .is_any_module_in_chunk(other_module_group.modules.iter(), *c)
         });
 

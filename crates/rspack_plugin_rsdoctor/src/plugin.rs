@@ -7,9 +7,10 @@ use atomic_refcell::AtomicRefCell;
 use futures::future::BoxFuture;
 use rspack_collections::{Identifier, IdentifierMap};
 use rspack_core::{
-  ChunkGroupUkey, Compilation, CompilationAfterCodeGeneration, CompilationAfterProcessAssets,
-  CompilationId, CompilationModuleIds, CompilationOptimizeChunkModules, CompilationOptimizeChunks,
-  CompilationParams, CompilerCompilation, ModuleIdsArtifact, Plugin,
+  BuildChunkGraphArtifact, ChunkGroupUkey, Compilation, CompilationAfterCodeGeneration,
+  CompilationAfterProcessAssets, CompilationId, CompilationModuleIds,
+  CompilationOptimizeChunkModules, CompilationOptimizeChunks, CompilationParams,
+  CompilerCompilation, ModuleIdsArtifact, Plugin,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
@@ -198,16 +199,21 @@ async fn compilation(
 }
 
 #[plugin_hook(CompilationOptimizeChunks for RsdoctorPlugin, stage = 9999)]
-async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
+async fn optimize_chunks(
+  &self,
+  compilation: &Compilation,
+  build_chunk_graph_artifact: &mut BuildChunkGraphArtifact,
+  _diagnostics: &mut Vec<Diagnostic>,
+) -> Result<Option<bool>> {
   if !self.has_chunk_graph_feature(RsdoctorPluginChunkGraphFeature::ChunkGraph) {
     return Ok(None);
   }
 
   let hooks = RsdoctorPlugin::get_compilation_hooks(compilation.id());
 
-  let chunk_by_ukey = &compilation.build_chunk_graph_artifact.chunk_by_ukey;
-  let chunk_group_by_ukey = &compilation.build_chunk_graph_artifact.chunk_group_by_ukey;
-  let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
+  let chunk_by_ukey = &build_chunk_graph_artifact.chunk_by_ukey;
+  let chunk_group_by_ukey = &build_chunk_graph_artifact.chunk_group_by_ukey;
+  let chunk_graph = &build_chunk_graph_artifact.chunk_graph;
   let chunks = chunk_by_ukey.iter().collect::<HashMap<_, _>>();
 
   let mut rsd_chunks = HashMap::default();
@@ -228,7 +234,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
 
   // 3. collect entrypoints
   rsd_entrypoints.extend(collect_entrypoints(
-    &compilation.build_chunk_graph_artifact.entrypoints,
+    &build_chunk_graph_artifact.entrypoints,
     &rsd_chunks,
     chunk_group_by_ukey,
   ));

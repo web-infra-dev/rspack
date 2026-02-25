@@ -12,8 +12,8 @@ use std::{borrow::Cow, hash::Hash, sync::LazyLock};
 use regex::Regex;
 use rspack_collections::{DatabaseItem, UkeyMap};
 use rspack_core::{
-  ChunkUkey, Compilation, CompilerOptions, DEFAULT_DELIMITER, Module, ModuleIdentifier, SourceType,
-  incremental::Mutation,
+  BuildChunkGraphArtifact, ChunkUkey, Compilation, CompilerOptions, DEFAULT_DELIMITER, Module,
+  ModuleIdentifier, SourceType, incremental::Mutation,
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_hash::{RspackHash, RspackHashDigest};
@@ -255,6 +255,7 @@ fn get_key(module: &dyn Module, delimiter: &str, compilation: &Compilation) -> S
 
 fn deterministic_grouping_for_modules(
   compilation: &Compilation,
+  build_chunk_graph_artifact: &BuildChunkGraphArtifact,
   chunk: &ChunkUkey,
   allow_max_size: &SplitChunkSizes,
   min_size: &SplitChunkSizes,
@@ -263,8 +264,7 @@ fn deterministic_grouping_for_modules(
   let mut results: Vec<Group> = Default::default();
   let module_graph = compilation.get_module_graph();
 
-  let items = compilation
-    .build_chunk_graph_artifact
+  let items = build_chunk_graph_artifact
     .chunk_graph
     .get_chunk_modules(chunk, module_graph);
 
@@ -474,22 +474,22 @@ impl SplitChunksPlugin {
   // #[tracing::instrument(skip_all)]
   pub(super) async fn ensure_max_size_fit(
     &self,
-    compilation: &mut Compilation,
+    compilation: &Compilation,
+    build_chunk_graph_artifact: &mut BuildChunkGraphArtifact,
     max_size_setting_map: &UkeyMap<ChunkUkey, MaxSizeSetting>,
   ) -> Result<()> {
     let fallback_cache_group = &self.fallback_cache_group;
-    let chunk_group_db = &compilation.build_chunk_graph_artifact.chunk_group_by_ukey;
-    let compilation_ref = &*compilation;
+    let chunk_group_db = &build_chunk_graph_artifact.chunk_group_by_ukey;
+    let compilation_ref = compilation;
 
     let chunks_with_size_info_results = rspack_futures::scope::<_, Result<_>>(|token| {
-      compilation_ref
-        .build_chunk_graph_artifact
+      build_chunk_graph_artifact
         .chunk_by_ukey
         .values()
         .for_each(|chunk| {
         let s = unsafe {
           token.used((
-            &*compilation,
+            compilation,
             chunk,
             fallback_cache_group,
             chunk_group_db,
@@ -600,6 +600,7 @@ impl SplitChunksPlugin {
         } = &info;
         let results = deterministic_grouping_for_modules(
           compilation_ref,
+          build_chunk_graph_artifact,
           chunk,
           allow_max_size,
           min_size,
@@ -630,8 +631,7 @@ impl SplitChunksPlugin {
         } else {
           index.to_string()
         };
-        let chunk = compilation
-          .build_chunk_graph_artifact
+        let chunk = build_chunk_graph_artifact
           .chunk_by_ukey
           .expect_get_mut(&info.chunk);
         let delimiter = max_size_setting_map
@@ -654,8 +654,8 @@ impl SplitChunksPlugin {
           let new_chunk_ukey = if let Some(name) = name {
             let (new_chunk_ukey, created) = Compilation::add_named_chunk(
               name,
-              &mut compilation.build_chunk_graph_artifact.chunk_by_ukey,
-              &mut compilation.build_chunk_graph_artifact.named_chunks,
+              &mut build_chunk_graph_artifact.chunk_by_ukey,
+              &mut build_chunk_graph_artifact.named_chunks,
             );
             if created && let Some(mut mutations) = compilation.incremental.mutations_write() {
               mutations.add(Mutation::ChunkAdd {
@@ -665,7 +665,7 @@ impl SplitChunksPlugin {
             new_chunk_ukey
           } else {
             let new_chunk_ukey =
-              Compilation::add_chunk(&mut compilation.build_chunk_graph_artifact.chunk_by_ukey);
+              Compilation::add_chunk(&mut build_chunk_graph_artifact.chunk_by_ukey);
             if let Some(mut mutations) = compilation.incremental.mutations_write() {
               mutations.add(Mutation::ChunkAdd {
                 chunk: new_chunk_ukey,
@@ -674,8 +674,7 @@ impl SplitChunksPlugin {
             new_chunk_ukey
           };
 
-          let [Some(new_part), Some(chunk)] = compilation
-            .build_chunk_graph_artifact
+          let [Some(new_part), Some(chunk)] = build_chunk_graph_artifact
             .chunk_by_ukey
             .get_many_mut([&new_chunk_ukey, &old_chunk])
           else {
@@ -684,7 +683,7 @@ impl SplitChunksPlugin {
           let new_part_ukey = new_part.ukey();
           chunk.split(
             new_part,
-            &mut compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
+            &mut build_chunk_graph_artifact.chunk_group_by_ukey,
           );
           *new_part.chunk_reason_mut() = chunk.chunk_reason().map(ToString::to_string);
           if chunk.filename_template().is_some() {
@@ -698,8 +697,7 @@ impl SplitChunksPlugin {
           }
 
           group.nodes.iter().for_each(|module| {
-            compilation
-              .build_chunk_graph_artifact
+            build_chunk_graph_artifact
               .chunk_graph
               .add_chunk(new_part_ukey);
 
@@ -712,13 +710,11 @@ impl SplitChunksPlugin {
             }
 
             // Add module to new chunk
-            compilation
-              .build_chunk_graph_artifact
+            build_chunk_graph_artifact
               .chunk_graph
               .connect_chunk_and_module(new_part_ukey, module.module);
             // Remove module from used chunks
-            compilation
-              .build_chunk_graph_artifact
+            build_chunk_graph_artifact
               .chunk_graph
               .disconnect_chunk_and_module(&old_chunk, module.module)
           })
