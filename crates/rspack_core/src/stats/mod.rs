@@ -221,7 +221,7 @@ impl Stats<'_> {
 
     let mut modules: Vec<StatsModule> = module_graph
       .modules()
-      .values()
+      .map(|(_, module)| module)
       .par_bridge()
       .map(|module| {
         self.get_module(
@@ -261,7 +261,7 @@ impl Stats<'_> {
     {
       let executed_modules: Vec<StatsModule> = executor_module_graph
         .modules()
-        .values()
+        .map(|(_, module)| module)
         .par_bridge()
         .map(|module| {
           self.get_module(
@@ -1268,7 +1268,9 @@ impl Stats<'_> {
     if stats.built || stats.code_generated || options.cached_modules {
       stats.identifier = Some(module.identifier);
       stats.name = Some(module.name.clone().into());
-      stats.name_for_condition = module.name_for_condition.clone();
+      stats
+        .name_for_condition
+        .clone_from(&module.name_for_condition);
       stats.cacheable = Some(module.cacheable);
       stats.optional = Some(false);
       stats.orphan = Some(true);

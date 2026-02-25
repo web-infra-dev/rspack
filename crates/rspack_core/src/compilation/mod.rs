@@ -1404,7 +1404,9 @@ impl AssetInfo {
     // "another" first fields
     self.minimized = another.minimized;
 
-    self.source_filename = another.source_filename.or(self.source_filename.take());
+    self.source_filename = another
+      .source_filename
+      .or_else(|| self.source_filename.take());
     self.version = another.version;
     self.related.merge_another(another.related);
 
@@ -1416,7 +1418,9 @@ impl AssetInfo {
     // self.module_hash.extend(another.module_hash.iter().cloned());
 
     // old first fields or truthy first fields
-    self.javascript_module = another.javascript_module.or(self.javascript_module.take());
+    self.javascript_module = another
+      .javascript_module
+      .or_else(|| self.javascript_module.take());
     self.immutable = another.immutable.or(self.immutable);
     self.development = another.development.or(self.development);
     self.hot_module_replacement = another

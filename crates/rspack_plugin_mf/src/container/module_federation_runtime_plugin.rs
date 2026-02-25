@@ -111,7 +111,7 @@ async fn finish_modules(
       .downcast_ref::<ContainerEntryModule>()
       .is_some()
     {
-      async_modules_artifact.insert(module_identifier);
+      async_modules_artifact.insert(*module_identifier);
     }
   }
 

@@ -82,10 +82,10 @@ urlencoding = { workspace = true }
 ustr = { workspace = true }
 winnow = { workspace = true }
 
+pnp                            = { workspace = true }
 swc_experimental_ecma_ast      = { workspace = true }
 swc_experimental_ecma_parser   = { workspace = true }
 swc_experimental_ecma_semantic = { workspace = true }
-pnp = { workspace = true }
 
 [dev-dependencies]
 pretty_assertions = { workspace = true }

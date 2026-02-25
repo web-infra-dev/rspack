@@ -151,18 +151,14 @@ impl Compilation {
           logger.log(format!(
             "{} modules are affected, {} in total",
             modules.len(),
-            build_module_graph_artifact
-              .get_module_graph()
-              .modules()
-              .len()
+            build_module_graph_artifact.get_module_graph().modules_len()
           ));
           (modules, true)
         } else {
           (
             build_module_graph_artifact
               .get_module_graph()
-              .modules()
-              .keys()
+              .modules_keys()
               .copied()
               .collect(),
             true,
@@ -172,8 +168,7 @@ impl Compilation {
         (
           build_module_graph_artifact
             .get_module_graph()
-            .modules()
-            .keys()
+            .modules_keys()
             .copied()
             .collect(),
           false,

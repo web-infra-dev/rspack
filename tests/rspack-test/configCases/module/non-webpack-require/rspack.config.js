@@ -1,6 +1,6 @@
 "use strict";
 
-const webpack = require("@rspack/core");
+const { rspack } = require("@rspack/core");
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
@@ -29,7 +29,7 @@ module.exports = {
 						() => {
 							compilation.emitAsset(
 								"mod.js",
-								new webpack.sources.RawSource(
+								new rspack.sources.RawSource(
 									"module.exports = 'module text';\n"
 								)
 							);
@@ -44,7 +44,7 @@ module.exports = {
 						() => {
 							compilation.emitAsset(
 								"node_modules/external-module/index.js",
-								new webpack.sources.RawSource(
+								new rspack.sources.RawSource(
 									"module.exports = 'external module text';\n"
 								)
 							);

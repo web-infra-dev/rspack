@@ -1,4 +1,4 @@
-const webpack = require("@rspack/core");
+const { rspack } = require("@rspack/core");
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
@@ -15,7 +15,7 @@ module.exports = {
 		]
 	},
 	plugins: [
-		new webpack.ProgressPlugin(),
+		new rspack.ProgressPlugin(),
 		{
 			apply(compiler) {
 				compiler.hooks.done.tapPromise("CacheTest", async () => {

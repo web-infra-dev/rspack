@@ -114,12 +114,11 @@ async fn optimize_dependencies(
   }
 
   let mg = build_module_graph_artifact.get_module_graph_mut();
-  let modules = mg.modules();
 
   let mut visited: FxHashSet<ExportsInfo> = FxHashSet::default();
 
-  let mut q = modules
-    .keys()
+  let mut q = mg
+    .modules_keys()
     .map(|mid| exports_info_artifact.get_exports_info(mid))
     .collect_vec();
 
