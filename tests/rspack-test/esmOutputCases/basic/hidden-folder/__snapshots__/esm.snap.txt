@@ -8,7 +8,7 @@ export { value };
 ```mjs title=main.mjs
 // ./index.js
 it("should render hidden folder", async () => {
-  const {value} = await import("./_hidden_index_js.mjs").then((mod) => ({ value: mod.value }))
+  const {value} = await import("./_hidden_index_js.mjs")
 
   expect(value()).toBe(42)
 })

@@ -1,7 +1,9 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, sync::Arc};
 
+use atomic_refcell::AtomicRefCell;
+use rspack_collections::IdentifierMap;
 use rspack_core::{
-  Dependency, DependencyId, DependencyTemplate, ExportsType, ExtendedReferencedExport,
+  ChunkUkey, Dependency, DependencyId, DependencyTemplate, ExportsType, ExtendedReferencedExport,
   FakeNamespaceObjectMode, ModuleGraph, RuntimeGlobals, TemplateContext, UsageState,
   get_exports_type,
 };
@@ -95,8 +97,12 @@ fn then_expr(
   appending
 }
 
-#[derive(Debug, Default)]
-pub struct DynamicImportDependencyTemplate;
+#[derive(Debug)]
+pub struct DynamicImportDependencyTemplate {
+  /// module_id → facade_chunk_ukey. Shared with EsmLibraryPlugin.
+  /// Written during optimize_chunks, read during code generation.
+  pub facade_chunks: Arc<AtomicRefCell<IdentifierMap<ChunkUkey>>>,
+}
 
 impl DependencyTemplate for DynamicImportDependencyTemplate {
   fn render(
@@ -135,7 +141,7 @@ impl DependencyTemplate for DynamicImportDependencyTemplate {
       return;
     }
 
-    let ref_chunk = EsmLibraryPlugin::get_module_chunk(
+    let source_chunk = EsmLibraryPlugin::get_module_chunk(
       ref_module.identifier(),
       code_generatable_context.compilation,
     );
@@ -146,6 +152,16 @@ impl DependencyTemplate for DynamicImportDependencyTemplate {
         .expect("should have parent module for import dep"),
       code_generatable_context.compilation,
     );
+
+    // If there's a facade chunk for this module, redirect the import to the facade.
+    // The facade chunk is empty (only re-exports), so import() yields the correct namespace directly.
+    let ref_chunk_ukey = {
+      let facade_map = self.facade_chunks.borrow();
+      facade_map
+        .get(&ref_module.identifier())
+        .copied()
+        .unwrap_or(source_chunk)
+    };
 
     /*
     For:
@@ -166,12 +182,12 @@ impl DependencyTemplate for DynamicImportDependencyTemplate {
       b. if refModule is not scope hoisted
         const { a, b } = await import('./ref-chunk').then(() => __webpack_require__(./refModule));
     */
-    let already_in_chunk = ref_chunk == orig_chunk;
+    let already_in_chunk = ref_chunk_ukey == orig_chunk;
     let ref_chunk = code_generatable_context
       .compilation
       .build_chunk_graph_artifact
       .chunk_by_ukey
-      .expect_get(&ref_chunk);
+      .expect_get(&ref_chunk_ukey);
     let import_promise = if already_in_chunk {
       Cow::Borrowed("Promise.resolve()")
     } else {
@@ -224,6 +240,27 @@ impl DependencyTemplate for DynamicImportDependencyTemplate {
       &code_generatable_context.compilation.exports_info_artifact,
       None,
     );
+
+    // For empty facade chunks (0 modules, only re-exports) or single-module chunks,
+    // the chunk's exports exactly match the module's exports
+    // (ensured by link_entry_module_exports with strict_exports).
+    // No .then() remapping needed — import() directly yields the correct namespace.
+    if !already_in_chunk {
+      let chunk_modules = code_generatable_context
+        .compilation
+        .build_chunk_graph_artifact
+        .chunk_graph
+        .get_chunk_modules_identifier(&ref_chunk_ukey);
+      if chunk_modules.len() <= 1 {
+        source.replace(
+          import_dep.range.start,
+          import_dep.range.end,
+          &import_promise,
+          None,
+        );
+        return;
+      }
+    }
 
     let render_exports = if !ref_exports.is_empty()
       && !ref_exports.iter().any(|ref_exports| match ref_exports {

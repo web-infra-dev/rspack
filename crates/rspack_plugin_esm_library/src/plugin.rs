@@ -6,19 +6,23 @@ use std::{
 
 use atomic_refcell::AtomicRefCell;
 use regex::Regex;
-use rspack_collections::{Identifiable, Identifier, IdentifierIndexMap, IdentifierSet, UkeyMap};
+use rspack_collections::{
+  Identifiable, Identifier, IdentifierIndexMap, IdentifierMap, IdentifierSet, UkeyMap, UkeySet,
+};
 use rspack_core::{
   ApplyContext, AssetInfo, AsyncModulesArtifact, BoxModule, BuildModuleGraphArtifact, ChunkUkey,
   Compilation, CompilationAdditionalChunkRuntimeRequirements,
   CompilationAdditionalTreeRuntimeRequirements, CompilationAfterCodeGeneration,
   CompilationConcatenationScope, CompilationFinishModules, CompilationOptimizeChunks,
   CompilationOptimizeDependencies, CompilationParams, CompilationProcessAssets,
-  CompilationRuntimeRequirementInTree, CompilerCompilation, ConcatenatedModuleInfo,
-  ConcatenationScope, DependencyType, ExportsInfoArtifact, ExternalModuleInfo, GetTargetResult,
-  Logger, ModuleFactoryCreateData, ModuleGraph, ModuleIdentifier, ModuleInfo, ModuleType,
-  NormalModuleFactoryAfterFactorize, NormalModuleFactoryParser, ParserAndGenerator, ParserOptions,
-  Plugin, PrefetchExportsInfoMode, RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule,
-  SideEffectsOptimizeArtifact, get_target, is_esm_dep_like,
+  CompilationRenderManifest, CompilationRuntimeRequirementInTree, CompilerCompilation,
+  ConcatenatedModuleInfo, ConcatenationScope, DependencyType, ExportsInfoArtifact,
+  ExternalModuleInfo, GetTargetResult, Logger, ManifestAssetType, ModuleFactoryCreateData,
+  ModuleGraph, ModuleIdentifier, ModuleInfo, ModuleType, NormalModuleFactoryAfterFactorize,
+  NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, PathData, Plugin,
+  PrefetchExportsInfoMode, RenderManifestEntry, RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule,
+  SideEffectsOptimizeArtifact, SourceType, get_js_chunk_filename_template, get_target,
+  is_esm_dep_like,
   rspack_sources::{ReplaceSource, Source},
 };
 use rspack_error::{Diagnostic, Result};
@@ -36,7 +40,9 @@ use crate::{
   chunk_link::ChunkLinkContext,
   dependency::dyn_import::DynamicImportDependencyTemplate,
   esm_lib_parser_plugin::EsmLibParserPlugin,
-  optimize_chunks::{ensure_entry_exports, optimize_runtime_chunks},
+  optimize_chunks::{
+    ensure_dyn_import_namespace_facades, ensure_entry_exports, optimize_runtime_chunks,
+  },
   preserve_modules::preserve_modules,
   runtime::EsmRegisterModuleRuntimeModule,
 };
@@ -58,6 +64,10 @@ pub struct EsmLibraryPlugin {
   pub(crate) concatenated_modules_map: RwLock<IdentifierIndexMap<ModuleInfo>>,
   pub(crate) links: AtomicRefCell<UkeyMap<ChunkUkey, ChunkLinkContext>>,
   pub(crate) chunk_ids_to_ukey: AtomicRefCell<FxHashMap<String, ChunkUkey>>,
+  pub(crate) strict_export_chunks: AtomicRefCell<UkeySet<ChunkUkey>>,
+  pub(crate) all_dyn_targets: AtomicRefCell<IdentifierSet>,
+  pub(crate) dyn_import_facade_chunks: Arc<AtomicRefCell<IdentifierMap<ChunkUkey>>>,
+  pub(crate) dyn_import_facade_chunks_set: Arc<AtomicRefCell<UkeySet<ChunkUkey>>>,
 }
 
 impl EsmLibraryPlugin {
@@ -65,6 +75,10 @@ impl EsmLibraryPlugin {
     Self::new_inner(
       preserve_modules,
       split_chunks,
+      Default::default(),
+      Default::default(),
+      Default::default(),
+      Default::default(),
       Default::default(),
       Default::default(),
       Default::default(),
@@ -251,8 +265,79 @@ async fn compilation(
 
   compilation.set_dependency_template(
     ImportDependencyTemplate::template_type(),
-    Arc::new(DynamicImportDependencyTemplate::default()),
+    Arc::new(DynamicImportDependencyTemplate {
+      facade_chunks: self.dyn_import_facade_chunks.clone(),
+    }),
   );
+  Ok(())
+}
+
+#[plugin_hook(CompilationRenderManifest for EsmLibraryPlugin)]
+async fn render_manifest(
+  &self,
+  compilation: &Compilation,
+  chunk_ukey: &ChunkUkey,
+  manifest: &mut Vec<RenderManifestEntry>,
+  _diagnostics: &mut Vec<Diagnostic>,
+) -> Result<()> {
+  let is_facade = {
+    let all_facades = self.dyn_import_facade_chunks_set.borrow();
+    all_facades.contains(chunk_ukey)
+  };
+  if !is_facade {
+    return Ok(());
+  }
+
+  let chunk = compilation
+    .build_chunk_graph_artifact
+    .chunk_by_ukey
+    .get(chunk_ukey)
+    .expect("should have chunk");
+
+  // let chunk = compilation.get;
+  let filename_template = get_js_chunk_filename_template(
+    chunk,
+    &compilation.options.output,
+    &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
+  );
+  let mut asset_info = AssetInfo::default().with_asset_type(ManifestAssetType::JavaScript);
+  asset_info.set_javascript_module(compilation.options.output.module);
+  let output_path = compilation
+    .get_path_with_info(
+      &filename_template,
+      PathData::default()
+        .chunk_hash_optional(chunk.rendered_hash(
+          &compilation.chunk_hashes_artifact,
+          compilation.options.output.hash_digest_length,
+        ))
+        .chunk_id_optional(chunk.id().map(|id| id.as_str()))
+        .chunk_name_optional(chunk.name_for_filename_template())
+        .content_hash_optional(chunk.rendered_content_hash_by_source_type(
+          &compilation.chunk_hashes_artifact,
+          &SourceType::JavaScript,
+          compilation.options.output.hash_digest_length,
+        ))
+        .runtime(chunk.runtime().as_str()),
+      &mut asset_info,
+    )
+    .await?;
+
+  let runtime_template = compilation.runtime_template.create_runtime_code_template();
+  let Some(source) = self
+    .render_chunk(compilation, chunk_ukey, &mut asset_info, &runtime_template)
+    .await?
+  else {
+    return Ok(());
+  };
+
+  manifest.push(RenderManifestEntry {
+    source: source.source,
+    filename: output_path,
+    has_filename: true,
+    info: asset_info,
+    auxiliary: false,
+  });
+
   Ok(())
 }
 
@@ -665,6 +750,20 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
   }
 
   ensure_entry_exports(compilation);
+  let concate_modules_map = self.concatenated_modules_map.read().await;
+  let concatenated_modules = concate_modules_map
+    .iter()
+    .filter(|(_, info)| matches!(info, ModuleInfo::Concatenated(_)))
+    .map(|(id, _)| *id)
+    .collect::<IdentifierSet>();
+  drop(concate_modules_map);
+
+  let (strict_chunks, all_dyn_targets, facade_mapping) =
+    ensure_dyn_import_namespace_facades(compilation, &concatenated_modules);
+  *self.strict_export_chunks.borrow_mut() = strict_chunks;
+  *self.all_dyn_targets.borrow_mut() = all_dyn_targets;
+  *self.dyn_import_facade_chunks_set.borrow_mut() = facade_mapping.values().copied().collect();
+  *self.dyn_import_facade_chunks.borrow_mut() = facade_mapping;
 
   Ok(None)
 }
@@ -753,6 +852,11 @@ impl Plugin for EsmLibraryPlugin {
       .compilation_hooks
       .after_code_generation
       .tap(after_code_generation::new(self));
+
+    ctx
+      .compilation_hooks
+      .render_manifest
+      .tap(render_manifest::new(self));
 
     ctx
       .compilation_hooks

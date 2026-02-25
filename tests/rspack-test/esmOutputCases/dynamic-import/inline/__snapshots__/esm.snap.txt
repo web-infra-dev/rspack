@@ -1,13 +1,15 @@
 ```mjs title=foo_js.mjs
 // ./foo.js
 
+var foo_value = (/* inlined export .value */42);
+export { foo_value as value };
 
 ```
 
 ```mjs title=main.mjs
 // ./index.js
 it('should have correct inline export', async () => {
-  const { value } = await import("./foo_js.mjs").then((mod) => ({ value: (/* inlined export .value */42) }))
+  const { value } = await import("./foo_js.mjs")
   expect(value).toBe(42)
 })
 

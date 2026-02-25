@@ -11,6 +11,13 @@ exports.value = 42
 
 },
 });
+const dynamic = __webpack_require__("./dynamic.js");
+var dynamic_default = /*#__PURE__*/__webpack_require__.n(dynamic);
+var dynamic_default_0 = dynamic_default();
+var value = dynamic.value;
+
+export { value };
+export default dynamic_default_0;
 
 ```
 
@@ -52,6 +59,18 @@ return module.exports;
 // expose the modules object (__webpack_modules__)
 __webpack_require__.m = __webpack_modules__;
 
+// webpack/runtime/compat_get_default_export
+(() => {
+// getDefaultExport function for compatibility with non-ESM modules
+__webpack_require__.n = (module) => {
+	var getter = module && module.__esModule ?
+		() => (module['default']) :
+		() => (module);
+	__webpack_require__.d(getter, { a: getter });
+	return getter;
+};
+
+})();
 // webpack/runtime/create_fake_namespace_object
 (() => {
 var getProto = Object.getPrototypeOf ? (obj) => (Object.getPrototypeOf(obj)) : (obj) => (obj.__proto__);

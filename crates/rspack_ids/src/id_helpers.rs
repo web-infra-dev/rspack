@@ -441,13 +441,36 @@ fn compare_chunks_by_groups(
 ) -> Ordering {
   let a_groups: Vec<_> = a
     .get_sorted_groups_iter(chunk_group_by_ukey)
-    .map(|group| chunk_group_by_ukey.expect_get(group).index)
+    .map(|group| chunk_group_by_ukey.expect_get(group))
     .collect();
+  let a_groups_index = a_groups.iter().map(|group| group.index).collect_vec();
+
   let b_groups: Vec<_> = b
     .get_sorted_groups_iter(chunk_group_by_ukey)
-    .map(|group| chunk_group_by_ukey.expect_get(group).index)
+    .map(|group| chunk_group_by_ukey.expect_get(group))
     .collect();
-  a_groups.cmp(&b_groups)
+  let b_groups_index = b_groups.iter().map(|group| group.index).collect_vec();
+
+  let groups_ordering = a_groups_index.cmp(&b_groups_index);
+
+  if groups_ordering != Ordering::Equal {
+    return groups_ordering;
+  }
+
+  let Some(group) = a_groups.first() else {
+    return Ordering::Equal;
+  };
+
+  let a_in_children = group
+    .chunks
+    .iter()
+    .find_position(|child| **child == a.ukey());
+  let b_in_children = group
+    .chunks
+    .iter()
+    .find_position(|child| **child == b.ukey());
+
+  a_in_children.cmp(&b_in_children)
 }
 
 pub fn compare_chunks_natural<'a>(
