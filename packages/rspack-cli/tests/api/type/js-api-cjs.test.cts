@@ -6,7 +6,7 @@ const {
 } = require('./api-wrapper.cjs');
 
 // https://github.com/web-infra-dev/rspack/issues/8095
-describe.concurrent(
+describe(
   'js-api-type should be correct when requiring from @rspack/core',
   () => {
     it('cjs default require', async () => {
