@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use cow_utils::CowUtils;
 use rspack_core::Compilation;
 use rspack_error::{
   IntoTWithDiagnosticArray, Result, TWithDiagnosticArray, ToStringResultToRspackResultExt,
@@ -68,7 +69,7 @@ impl<'a> HtmlCompiler<'a> {
     let cm = Lrc::new(SourceMap::new(FilePathMapping::empty()));
     let has_doctype = source
       .trim_start()
-      .to_ascii_lowercase()
+      .cow_to_ascii_lowercase()
       .starts_with("<!doctype");
     let fm = cm.new_source_file(Arc::new(FileName::Custom(path.to_string())), source);
 
