@@ -13,12 +13,12 @@ use rspack_core::{
   CompilationAdditionalTreeRuntimeRequirements, CompilationAfterCodeGeneration,
   CompilationConcatenationScope, CompilationFinishModules, CompilationOptimizeChunks,
   CompilationOptimizeDependencies, CompilationParams, CompilationProcessAssets,
-  CompilationRuntimeRequirementInTree, CompilerCompilation, ConcatenatedModuleInfo,
-  ConcatenationScope, DependencyType, ExportsInfoArtifact, ExternalModuleInfo, GetTargetResult,
-  Logger, ModuleFactoryCreateData, ModuleIdentifier, ModuleInfo, ModuleType,
-  NormalModuleFactoryAfterFactorize, NormalModuleFactoryParser, ParserAndGenerator, ParserOptions,
-  Plugin, PrefetchExportsInfoMode, RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule,
-  SideEffectsOptimizeArtifact, get_target, is_esm_dep_like,
+  CompilationProcessAssetsMutations, CompilationRuntimeRequirementInTree, CompilerCompilation,
+  ConcatenatedModuleInfo, ConcatenationScope, DependencyType, ExportsInfoArtifact,
+  ExternalModuleInfo, GetTargetResult, Logger, ModuleFactoryCreateData, ModuleIdentifier,
+  ModuleInfo, ModuleType, NormalModuleFactoryAfterFactorize, NormalModuleFactoryParser,
+  ParserAndGenerator, ParserOptions, Plugin, PrefetchExportsInfoMode, RuntimeCodeTemplate,
+  RuntimeGlobals, RuntimeModule, SideEffectsOptimizeArtifact, get_target, is_esm_dep_like,
   rspack_sources::{ReplaceSource, Source},
 };
 use rspack_error::{Diagnostic, Result};
@@ -378,7 +378,11 @@ static RSPACK_ESM_CHUNK_PLACEHOLDER_RE: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r##"__RSPACK_ESM_CHUNK_[^'"]+"##).expect("should have regex"));
 
 #[plugin_hook(CompilationProcessAssets for EsmLibraryPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_AFTER_OPTIMIZE_HASH)]
-async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
+async fn process_assets(
+  &self,
+  compilation: &Compilation,
+  process_assets_mutations: &mut CompilationProcessAssetsMutations,
+) -> Result<()> {
   let mut replaced = vec![];
   let mut removed = vec![];
 
@@ -470,14 +474,14 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     }
   }
   for (replace_name, replace_source) in replaced {
-    compilation
+    process_assets_mutations
       .assets_mut()
       .get_mut(&replace_name)
       .expect("should have asset")
       .set_source(Some(Arc::new(replace_source)));
   }
   for remove_name in removed {
-    compilation.assets_mut().remove(&remove_name);
+    process_assets_mutations.assets_mut().remove(&remove_name);
   }
 
   Ok(())

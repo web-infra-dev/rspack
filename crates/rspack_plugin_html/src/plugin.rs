@@ -6,7 +6,10 @@ use std::{
 
 use atomic_refcell::AtomicRefCell;
 use cow_utils::CowUtils;
-use rspack_core::{Compilation, CompilationId, CompilationProcessAssets, Filename, Plugin};
+use rspack_core::{
+  Compilation, CompilationId, CompilationProcessAssets, CompilationProcessAssetsMutations,
+  Filename, Plugin,
+};
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
 #[cfg(allocative)]
@@ -196,7 +199,12 @@ async fn generate_html(
 }
 
 #[plugin_hook(CompilationProcessAssets for HtmlRspackPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_OPTIMIZE_INLINE)]
-async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
+async fn process_assets(
+  &self,
+  _compilation: &Compilation,
+  process_assets_mutations: &mut CompilationProcessAssetsMutations,
+) -> Result<()> {
+  let compilation = process_assets_mutations.compilation_mut();
   let config: &HtmlRspackPluginOptions = &self.config;
   let hooks = HtmlRspackPlugin::get_compilation_hooks(compilation.id());
 

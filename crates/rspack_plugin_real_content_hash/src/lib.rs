@@ -13,7 +13,8 @@ use once_cell::sync::OnceCell;
 use rayon::prelude::*;
 use regex::Regex;
 use rspack_core::{
-  AssetInfo, BindingCell, Compilation, CompilationId, CompilationProcessAssets, Logger, Plugin,
+  AssetInfo, BindingCell, Compilation, CompilationId, CompilationProcessAssets,
+  CompilationProcessAssetsMutations, Logger, Plugin,
   rspack_sources::{BoxSource, RawStringSource, SourceExt, SourceValue},
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt};
@@ -56,8 +57,12 @@ impl RealContentHashPlugin {
 }
 
 #[plugin_hook(CompilationProcessAssets for RealContentHashPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_OPTIMIZE_HASH)]
-async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
-  inner_impl(compilation).await
+async fn process_assets(
+  &self,
+  compilation: &Compilation,
+  process_assets_mutations: &mut CompilationProcessAssetsMutations,
+) -> Result<()> {
+  inner_impl(compilation, process_assets_mutations).await
 }
 
 impl Plugin for RealContentHashPlugin {
@@ -78,7 +83,10 @@ impl Plugin for RealContentHashPlugin {
   }
 }
 
-async fn inner_impl(compilation: &mut Compilation) -> Result<()> {
+async fn inner_impl(
+  compilation: &Compilation,
+  process_assets_mutations: &mut CompilationProcessAssetsMutations,
+) -> Result<()> {
   let logger = compilation.get_logger("rspack.RealContentHashPlugin");
   let start = logger.time("hash to asset names");
   let mut hash_to_asset_names: HashMap<&str, Vec<&str>> = HashMap::default();
@@ -262,7 +270,7 @@ async fn inner_impl(compilation: &mut Compilation) -> Result<()> {
   let start = logger.time("update assets");
   let mut asset_renames = Vec::with_capacity(updates.len());
   for (name, new_source, new_name) in updates {
-    compilation.update_asset(&name, |_, old_info| {
+    process_assets_mutations.update_asset(&name, |_, old_info| {
       let new_hashes: HashSet<_> = old_info
         .content_hash
         .iter()
@@ -284,7 +292,7 @@ async fn inner_impl(compilation: &mut Compilation) -> Result<()> {
     }
   }
 
-  compilation.par_rename_assets(asset_renames);
+  process_assets_mutations.par_rename_assets(asset_renames);
 
   logger.time_end(start);
 

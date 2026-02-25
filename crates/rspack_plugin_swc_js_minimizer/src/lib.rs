@@ -11,7 +11,7 @@ use rayon::prelude::*;
 use regex::Regex;
 use rspack_core::{
   AssetInfo, ChunkUkey, Compilation, CompilationAsset, CompilationParams, CompilationProcessAssets,
-  CompilerCompilation, Plugin,
+  CompilationProcessAssetsMutations, CompilerCompilation, Plugin,
   diagnostics::MinifyError,
   rspack_sources::{
     ConcatSource, MapOptions, ObjectPool, RawStringSource, Source, SourceExt, SourceMapSource,
@@ -157,7 +157,11 @@ async fn js_chunk_hash(
 }
 
 #[plugin_hook(CompilationProcessAssets for SwcJsMinimizerRspackPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_OPTIMIZE_SIZE)]
-async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
+async fn process_assets(
+  &self,
+  _compilation: &Compilation,
+  process_assets_mutations: &mut CompilationProcessAssetsMutations,
+) -> Result<()> {
   let options = &self.options;
   let minimizer_options = &self.options.minimizer_options;
 
@@ -175,7 +179,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let enter_span = tracing::Span::current();
 
   let tls: ThreadLocal<ObjectPool> = ThreadLocal::new();
-  compilation
+  process_assets_mutations
     .assets_mut()
     .par_iter_mut()
     .filter(|(filename, original)| {
@@ -396,7 +400,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 
       Ok(())
   })?;
-  compilation.extend_diagnostics(rx.into_iter().flatten().collect::<Vec<_>>());
+  process_assets_mutations.extend_diagnostics(rx.into_iter().flatten().collect::<Vec<_>>());
 
   // write all extracted comments to assets
   all_extracted_comments
@@ -405,7 +409,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     .clone()
     .into_iter()
     .for_each(|(_, comments)| {
-      compilation.emit_asset(
+      process_assets_mutations.emit_asset(
         comments.comments_file_name,
         CompilationAsset::new(
           Some(comments.source),

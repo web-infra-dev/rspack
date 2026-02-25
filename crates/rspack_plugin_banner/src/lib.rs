@@ -7,7 +7,8 @@ use cow_utils::CowUtils;
 use futures::future::BoxFuture;
 use regex::Regex;
 use rspack_core::{
-  Chunk, Compilation, CompilationProcessAssets, Filename, Logger, PathData, Plugin,
+  Chunk, Compilation, CompilationProcessAssets, CompilationProcessAssetsMutations, Filename,
+  Logger, PathData, Plugin,
   rspack_sources::{BoxSource, ConcatSource, RawStringSource, SourceExt},
   to_comment,
 };
@@ -125,7 +126,11 @@ impl BannerPlugin {
 }
 
 #[plugin_hook(CompilationProcessAssets for BannerPlugin, stage = self.config.stage.unwrap_or(Compilation::PROCESS_ASSETS_STAGE_ADDITIONS))]
-async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
+async fn process_assets(
+  &self,
+  compilation: &Compilation,
+  process_assets_mutations: &mut CompilationProcessAssetsMutations,
+) -> Result<()> {
   let logger = compilation.get_logger("rspack.BannerPlugin");
   let start = logger.time("add banner");
   let mut updates = vec![];
@@ -197,7 +202,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   }
 
   for (file, comment) in updates {
-    let _res = compilation.update_asset(file.as_str(), |old, info| {
+    let _res = process_assets_mutations.update_asset(file.as_str(), |old, info| {
       let new = self.update_source(comment, old, self.config.footer);
       Ok((new, info))
     });

@@ -20,10 +20,11 @@ impl PassExt for ProcessAssetsPass {
 impl Compilation {
   #[instrument("Compilation:process_assets",target=TRACING_BENCH_TARGET, skip_all)]
   async fn process_assets(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
+    let mut process_assets_mutations = CompilationProcessAssetsMutations::new(self);
     plugin_driver
       .compilation_hooks
       .process_assets
-      .call(self)
+      .call(self, &mut process_assets_mutations)
       .await
       .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.processAssets"))
   }

@@ -3,10 +3,10 @@ use std::sync::{Arc, RwLock};
 use rspack_core::{
   AsyncDependenciesBlockIdentifier, ChunkUkey, Compilation,
   CompilationAdditionalTreeRuntimeRequirements, CompilationDependencyReferencedExports,
-  CompilationOptimizeDependencies, CompilationProcessAssets, DependenciesBlock, Dependency,
-  DependencyId, DependencyType, ExportsInfoArtifact, ExtendedReferencedExport, Module, ModuleGraph,
-  ModuleIdentifier, Plugin, RuntimeGlobals, RuntimeModule, RuntimeModuleExt, RuntimeSpec,
-  SideEffectsOptimizeArtifact,
+  CompilationOptimizeDependencies, CompilationProcessAssets, CompilationProcessAssetsMutations,
+  DependenciesBlock, Dependency, DependencyId, DependencyType, ExportsInfoArtifact,
+  ExtendedReferencedExport, Module, ModuleGraph, ModuleIdentifier, Plugin, RuntimeGlobals,
+  RuntimeModule, RuntimeModuleExt, RuntimeSpec, SideEffectsOptimizeArtifact,
   build_module_graph::BuildModuleGraphArtifact,
   rspack_sources::{RawStringSource, SourceExt, SourceValue},
 };
@@ -312,7 +312,11 @@ async fn optimize_dependencies(
 }
 
 #[plugin_hook(CompilationProcessAssets for SharedUsedExportsOptimizerPlugin, stage = 1)]
-async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
+async fn process_assets(
+  &self,
+  compilation: &Compilation,
+  process_assets_mutations: &mut CompilationProcessAssetsMutations,
+) -> Result<()> {
   let file_names = vec![
     self.stats_file_name.clone(),
     self.manifest_file_name.clone(),
@@ -338,7 +342,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       let updated_content = serde_json::to_string_pretty(&stats_root)
         .map_err(|e| rspack_error::error!("Failed to serialize stats root: {}", e))?;
 
-      compilation.update_asset(file_name, |_, info| {
+      process_assets_mutations.update_asset(file_name, |_, info| {
         Ok((RawStringSource::from(updated_content).boxed(), info))
       })?;
     }

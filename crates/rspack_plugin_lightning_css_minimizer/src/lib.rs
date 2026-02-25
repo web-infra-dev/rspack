@@ -13,7 +13,8 @@ use lightningcss::{
 use rayon::prelude::*;
 use regex::Regex;
 use rspack_core::{
-  ChunkUkey, Compilation, CompilationChunkHash, CompilationProcessAssets, Plugin,
+  ChunkUkey, Compilation, CompilationChunkHash, CompilationProcessAssets,
+  CompilationProcessAssetsMutations, Plugin,
   diagnostics::MinifyError,
   rspack_sources::{
     MapOptions, ObjectPool, RawStringSource, SourceExt, SourceMap, SourceMapSource,
@@ -122,7 +123,11 @@ async fn chunk_hash(
 }
 
 #[plugin_hook(CompilationProcessAssets for LightningCssMinimizerRspackPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_OPTIMIZE_SIZE)]
-async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
+async fn process_assets(
+  &self,
+  _compilation: &Compilation,
+  process_assets_mutations: &mut CompilationProcessAssetsMutations,
+) -> Result<()> {
   let options = &self.options;
   let minimizer_options = &self.options.minimizer_options;
   let all_warnings: RwLock<Vec<Diagnostic>> = Default::default();
@@ -133,7 +138,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   };
 
   let tls: ThreadLocal<ObjectPool> = ThreadLocal::new();
-  compilation
+  process_assets_mutations
     .assets_mut()
     .par_iter_mut()
     .filter(|(filename, original)| {
@@ -283,7 +288,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       Ok(())
     }).map_err(MinifyError)?;
 
-  compilation.extend_diagnostics(all_warnings.into_inner().expect("should lock"));
+  process_assets_mutations.extend_diagnostics(all_warnings.into_inner().expect("should lock"));
 
   Ok(())
 }

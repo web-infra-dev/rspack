@@ -128,7 +128,7 @@ define_hook!(CompilationContentHash: Series(compilation: &Compilation, chunk_uke
 define_hook!(CompilationDependentFullHash: SeriesBail(compilation: &Compilation, chunk_ukey: &ChunkUkey) -> bool);
 define_hook!(CompilationRenderManifest: Series(compilation: &Compilation, chunk_ukey: &ChunkUkey, manifest: &mut Vec<RenderManifestEntry>, diagnostics: &mut Vec<Diagnostic>),tracing=false);
 define_hook!(CompilationChunkAsset: Series(compilation: &Compilation, chunk_ukey: &ChunkUkey, filename: &str));
-define_hook!(CompilationProcessAssets: Series(compilation: &mut Compilation));
+define_hook!(CompilationProcessAssets: Series(compilation: &Compilation, process_assets_mutations: &mut CompilationProcessAssetsMutations));
 define_hook!(CompilationAfterProcessAssets: Series(compilation: &Compilation, diagnostics: &mut Vec<Diagnostic>));
 define_hook!(CompilationAfterSeal: Series(compilation: &Compilation),tracing=true);
 
@@ -170,6 +170,84 @@ pub struct CompilationHooks {
   pub process_assets: CompilationProcessAssetsHook,
   pub after_process_assets: CompilationAfterProcessAssetsHook,
   pub after_seal: CompilationAfterSealHook,
+}
+
+pub struct CompilationProcessAssetsMutations {
+  compilation: *mut Compilation,
+}
+
+// SAFETY: Used only during `Compilation.hooks.processAssets` execution, where the underlying
+// `Compilation` lives for the whole hook call and access is coordinated by hook sequencing.
+unsafe impl Send for CompilationProcessAssetsMutations {}
+
+impl CompilationProcessAssetsMutations {
+  pub fn new(compilation: &mut Compilation) -> Self {
+    Self { compilation }
+  }
+
+  pub fn compilation_mut(&mut self) -> &mut Compilation {
+    // SAFETY: This wrapper is only created in `Compilation::process_assets` and
+    // used during `Compilation.hooks.processAssets` execution.
+    unsafe { &mut *self.compilation }
+  }
+
+  pub fn records_take(&mut self) -> Option<CompilationRecords> {
+    self.compilation_mut().records.take()
+  }
+
+  pub fn file_dependencies_mut(&mut self) -> &mut ArcPathIndexSet {
+    &mut self.compilation_mut().file_dependencies
+  }
+
+  pub fn context_dependencies_mut(&mut self) -> &mut ArcPathIndexSet {
+    &mut self.compilation_mut().context_dependencies
+  }
+
+  pub fn assets_mut(&mut self) -> &mut CompilationAssets {
+    self.compilation_mut().assets_mut()
+  }
+
+  pub fn chunk_by_ukey_mut(&mut self) -> &mut ChunkByUkey {
+    &mut self
+      .compilation_mut()
+      .build_chunk_graph_artifact
+      .chunk_by_ukey
+  }
+
+  pub fn push_diagnostic(&mut self, diagnostic: Diagnostic) {
+    self.compilation_mut().push_diagnostic(diagnostic);
+  }
+
+  pub fn extend_diagnostics(&mut self, diagnostics: impl IntoIterator<Item = Diagnostic>) {
+    self.compilation_mut().extend_diagnostics(diagnostics);
+  }
+
+  pub fn update_asset(
+    &mut self,
+    filename: &str,
+    updater: impl FnOnce(
+      BoxSource,
+      BindingCell<AssetInfo>,
+    ) -> Result<(BoxSource, BindingCell<AssetInfo>)>,
+  ) -> Result<()> {
+    self.compilation_mut().update_asset(filename, updater)
+  }
+
+  pub fn emit_asset(&mut self, filename: String, asset: CompilationAsset) {
+    self.compilation_mut().emit_asset(filename, asset);
+  }
+
+  pub fn delete_asset(&mut self, filename: &str) {
+    self.compilation_mut().delete_asset(filename);
+  }
+
+  pub fn rename_asset(&mut self, filename: &str, new_name: String) {
+    self.compilation_mut().rename_asset(filename, new_name);
+  }
+
+  pub fn par_rename_assets(&mut self, renames: Vec<(String, String)>) {
+    self.compilation_mut().par_rename_assets(renames);
+  }
 }
 
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd)]

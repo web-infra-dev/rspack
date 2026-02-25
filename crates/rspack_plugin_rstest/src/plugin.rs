@@ -4,8 +4,9 @@ use std::{
 };
 
 use rspack_core::{
-  Compilation, CompilationParams, CompilationProcessAssets, CompilerCompilation, ModuleType,
-  NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, Plugin,
+  Compilation, CompilationParams, CompilationProcessAssets, CompilationProcessAssetsMutations,
+  CompilerCompilation, ModuleType, NormalModuleFactoryParser, ParserAndGenerator, ParserOptions,
+  Plugin,
   rspack_sources::{BoxSource, ReplaceSource, SourceExt},
 };
 use rspack_error::Result;
@@ -191,7 +192,11 @@ struct MockFlagPos {
 }
 
 #[plugin_hook(CompilationProcessAssets for RstestPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_ADDITIONAL)]
-async fn mock_hoist_process_assets(&self, compilation: &mut Compilation) -> Result<()> {
+async fn mock_hoist_process_assets(
+  &self,
+  compilation: &Compilation,
+  process_assets_mutations: &mut CompilationProcessAssetsMutations,
+) -> Result<()> {
   let mut files = Vec::with_capacity(compilation.build_chunk_graph_artifact.chunk_by_ukey.len());
 
   for chunk in compilation
@@ -210,7 +215,7 @@ async fn mock_hoist_process_assets(&self, compilation: &mut Compilation) -> Resu
   for file in files {
     let mut pos_map: std::collections::HashMap<String, MockFlagPos> =
       std::collections::HashMap::new();
-    let _res = compilation.update_asset(file.as_str(), |old, info| {
+    let _res = process_assets_mutations.update_asset(file.as_str(), |old, info| {
       // Only handles JavaScript.
       if info.javascript_module.is_none() {
         return Ok((old, info));

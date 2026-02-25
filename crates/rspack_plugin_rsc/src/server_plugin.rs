@@ -6,9 +6,10 @@ use futures::future::BoxFuture;
 use rspack_collections::{Identifiable, IdentifierMap};
 use rspack_core::{
   BoxDependency, ChunkUkey, Compilation, CompilationParams, CompilationProcessAssets,
-  CompilationRuntimeRequirementInTree, CompilerDone, CompilerFailed, CompilerFinishMake,
-  CompilerThisCompilation, Dependency, DependencyId, EntryDependency, EntryOptions, Logger, Plugin,
-  RuntimeGlobals, RuntimeModule, RuntimeSpec, get_entry_runtime,
+  CompilationProcessAssetsMutations, CompilationRuntimeRequirementInTree, CompilerDone,
+  CompilerFailed, CompilerFinishMake, CompilerThisCompilation, Dependency, DependencyId,
+  EntryDependency, EntryOptions, Logger, Plugin, RuntimeGlobals, RuntimeModule, RuntimeSpec,
+  get_entry_runtime,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -148,7 +149,11 @@ async fn runtime_requirements_in_tree(
 }
 
 #[plugin_hook(CompilationProcessAssets for RscServerPlugin)]
-async fn process_assets(&self, _compilation: &mut Compilation) -> Result<()> {
+async fn process_assets(
+  &self,
+  _compilation: &Compilation,
+  _process_assets_mutations: &mut CompilationProcessAssetsMutations,
+) -> Result<()> {
   self.coordinator.idle().await?;
   Ok(())
 }

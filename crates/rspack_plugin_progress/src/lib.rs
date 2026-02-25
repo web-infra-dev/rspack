@@ -17,10 +17,10 @@ use rspack_core::{
   CompilationChunkIds, CompilationFinishModules, CompilationId, CompilationModuleIds,
   CompilationOptimizeChunkModules, CompilationOptimizeChunks, CompilationOptimizeCodeGeneration,
   CompilationOptimizeDependencies, CompilationOptimizeModules, CompilationOptimizeTree,
-  CompilationParams, CompilationProcessAssets, CompilationSeal, CompilationSucceedModule,
-  CompilerAfterEmit, CompilerClose, CompilerCompilation, CompilerEmit, CompilerFinishMake,
-  CompilerId, CompilerMake, CompilerThisCompilation, ExportsInfoArtifact, ModuleIdentifier,
-  ModuleIdsArtifact, Plugin, SideEffectsOptimizeArtifact,
+  CompilationParams, CompilationProcessAssets, CompilationProcessAssetsMutations, CompilationSeal,
+  CompilationSucceedModule, CompilerAfterEmit, CompilerClose, CompilerCompilation, CompilerEmit,
+  CompilerFinishMake, CompilerId, CompilerMake, CompilerThisCompilation, ExportsInfoArtifact,
+  ModuleIdentifier, ModuleIdsArtifact, Plugin, SideEffectsOptimizeArtifact,
   build_module_graph::BuildModuleGraphArtifact,
 };
 use rspack_error::{Diagnostic, Result};
@@ -533,7 +533,11 @@ async fn optimize_code_generation(
 }
 
 #[plugin_hook(CompilationProcessAssets for ProgressPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_ADDITIONAL)]
-async fn process_assets(&self, _compilation: &mut Compilation) -> Result<()> {
+async fn process_assets(
+  &self,
+  _compilation: &Compilation,
+  _process_assets_mutations: &mut CompilationProcessAssetsMutations,
+) -> Result<()> {
   self.sealing_hooks_report("process assets", 35).await
 }
 
