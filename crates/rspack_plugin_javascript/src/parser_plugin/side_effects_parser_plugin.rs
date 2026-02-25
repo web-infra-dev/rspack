@@ -162,7 +162,7 @@ impl SideEffectsParserPlugin {
           self.unresolved_scope_id,
           parser.comments,
         ) {
-          let range = DependencyRange::from(do_while_stmt.span());
+          let range = DependencyRange::from(do_while_stmt.span(&parser.ast));
           let loc = parser.to_dependency_location(range);
           parser.side_effects_item = Some(SideEffectsBailoutItemWithSpan::new(
             range,
@@ -250,7 +250,7 @@ impl SideEffectsParserPlugin {
           self.unresolved_scope_id,
           parser.comments,
         ) {
-          let range = DependencyRange::from(switch_stmt.span());
+          let range = DependencyRange::from(switch_stmt.span(&parser.ast));
           let loc = parser.to_dependency_location(range);
           parser.side_effects_item = Some(SideEffectsBailoutItemWithSpan::new(
             range,
@@ -266,7 +266,7 @@ impl SideEffectsParserPlugin {
           self.unresolved_scope_id,
           parser.comments,
         ) {
-          let range = DependencyRange::from(class_stmt.span());
+          let range = DependencyRange::from(class_stmt.span(&parser.ast));
           let loc = parser.to_dependency_location(range);
           parser.side_effects_item = Some(SideEffectsBailoutItemWithSpan::new(
             range,

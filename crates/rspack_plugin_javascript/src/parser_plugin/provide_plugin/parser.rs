@@ -5,7 +5,7 @@ use itertools::Itertools;
 use rspack_core::DependencyRange;
 use rspack_util::atom::Atom;
 use rustc_hash::FxHashSet as HashSet;
-use swc_experimental_ecma_ast::{CallExpr, GetSpan, Ident, MemberExpr};
+use swc_experimental_ecma_ast::{CallExpr, GetSpan, Ident, MemberExpr, Span};
 
 use super::{super::JavascriptParserPlugin, ProvideValue, VALUE_DEP_PREFIX};
 use crate::{dependency::ProvideDependency, visitors::JavascriptParser};
@@ -65,11 +65,7 @@ impl JavascriptParserPlugin for ProvideParserPlugin {
   }
 
   fn call(&self, parser: &mut JavascriptParser, expr: CallExpr, for_name: &str) -> Option<bool> {
-    if self.add_provide_dep(
-      for_name,
-      expr.callee(&parser.ast).span(&parser.ast),
-      parser,
-    ) {
+    if self.add_provide_dep(for_name, expr.callee(&parser.ast).span(&parser.ast), parser) {
       // FIXME: webpack use `walk_expression` here
       parser.walk_expr_or_spread(expr.args(&parser.ast));
       return Some(true);

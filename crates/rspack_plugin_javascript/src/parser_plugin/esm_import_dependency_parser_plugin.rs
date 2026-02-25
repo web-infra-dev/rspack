@@ -64,7 +64,7 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
       DependencyType::EsmImport,
       phase,
       attributes,
-      parser.to_dependency_location(DependencyRange::from(import_decl.span)),
+      parser.to_dependency_location(DependencyRange::from(import_decl.span(&parser.ast))),
       false,
     );
 
@@ -140,7 +140,7 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
     ids.extend(members.iter().cloned());
     ids.push(left.into());
 
-    let range = DependencyRange::from(expr.span);
+    let range = DependencyRange::from(expr.span(&parser.ast));
     let loc = parser.to_dependency_location(range);
     let mut dep = ESMImportSpecifierDependency::new(
       settings.source,
@@ -206,7 +206,7 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
       .destructuring_assignment_properties
       .get(&ident.span(&parser.ast))
       .cloned();
-    let range = DependencyRange::from(ident.span);
+    let range = DependencyRange::from(ident.span(&parser.ast));
     let loc = parser.to_dependency_location(range);
     let dep = ESMImportSpecifierDependency::new(
       settings.source,
@@ -286,7 +286,9 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
       None,
       settings.phase,
       settings.attributes,
-      parser.to_dependency_location(DependencyRange::from(call_expr.callee.span())),
+      parser.to_dependency_location(DependencyRange::from(
+        call_expr.callee(&parser.ast).span(&parser.ast),
+      )),
     );
     let dep_idx = parser.next_dependency_idx();
     parser.add_dependency(Box::new(dep));

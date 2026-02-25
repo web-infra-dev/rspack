@@ -92,7 +92,7 @@ impl RstestParserPlugin {
         if let Some(lit) = first_arg.expr(&parser.ast).as_lit()
           && let Some(lit) = lit.as_str()
         {
-          let range_expr: DependencyRange = first_arg.span(&parser.ast).into();
+          let first_arg_range = first_arg.span(&parser.ast).into();
           let loc = parser.to_dependency_location(first_arg_range);
           let dep = CommonJsRequireDependency::new(
             parser
@@ -100,16 +100,16 @@ impl RstestParserPlugin {
               .get_wtf8(lit.value(&parser.ast))
               .to_string_lossy()
               .to_string(),
-            range_expr,
+            first_arg_range,
             Some(call_expr.span(&parser.ast).into()),
             parser.in_try,
             loc,
           );
           parser.add_dependency(Box::new(dep));
 
-          let callee_range: DependencyRange = call_expr.callee(&parser.ast).span(&parser.ast).into();
+          let callee_range: DependencyRange =
+            call_expr.callee(&parser.ast).span(&parser.ast).into();
           let loc = parser.to_dependency_location(callee_range);
-          let source_rope = parser.source();
           parser.add_presentational_dependency(Box::new(RequireHeaderDependency::new(
             callee_range,
             loc,
@@ -560,7 +560,6 @@ impl RstestParserPlugin {
 
                 let callee_range = call_expr.callee(&parser.ast).span(&parser.ast).into();
                 let loc = parser.to_dependency_location(callee_range);
-                let source_rope = parser.source();
                 parser.add_presentational_dependency(Box::new(RequireHeaderDependency::new(
                   callee_range,
                   loc,
