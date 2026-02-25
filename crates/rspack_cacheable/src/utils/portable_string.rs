@@ -87,11 +87,15 @@ impl PortableString {
       result.push_str(&content[last_end..path_match.start()]);
 
       // Convert to portable format with <project_root> placeholder
+      // sugar_path 2.x relative() fast path may preserve trailing slash (e.g. "src/"),
+      // so trim it before appending "/" to avoid double slashes like "<project_root>/src//"
       let relative_path = path_match
         .as_str()
+        .trim_end_matches('/')
         .relative(project_root)
         .to_slash_lossy()
         .to_string();
+
       let portable_path = if relative_path.is_empty() || relative_path == "." {
         format!("{PROJECT_ROOT_PLACEHOLDER}/")
       } else {
