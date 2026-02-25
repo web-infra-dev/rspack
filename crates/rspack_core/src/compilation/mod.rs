@@ -95,7 +95,7 @@ define_hook!(CompilationSucceedModule: Series(compiler_id: CompilerId, compilati
 define_hook!(CompilationExecuteModule:
   Series(module: &ModuleIdentifier, runtime_modules: &IdentifierSet, code_generation_results: &BindingCell<CodeGenerationResults>, execute_module_id: &ExecuteModuleId));
 define_hook!(CompilationFinishModules: Series(compilation: &Compilation, async_modules_artifact: &mut AsyncModulesArtifact, exports_info_artifact: &mut ExportsInfoArtifact));
-define_hook!(CompilationSeal: Series(compilation: &mut Compilation));
+define_hook!(CompilationSeal: Series(compilation: &Compilation, diagnostics: &mut Vec<Diagnostic>));
 define_hook!(CompilationDependencyReferencedExports: Sync(
   compilation: &Compilation,
   dependency: &DependencyId,
