@@ -7,6 +7,16 @@ This document lists all breaking changes from Rspack 1.x to 2.0. Use it as a mig
 - For more details, see [Breaking changes in Rspack 2.0](https://github.com/web-infra-dev/rspack/discussions/9270)
 - For Rsbuild users, see [Rsbuild - Upgrading from v1 to v2](https://v2.rsbuild.rs/guide/upgrade/v1-to-v2)
 
+## Using Agent Skills
+
+If you are using a Coding Agent that supports Skills, install the [rspack-v2-upgrade](https://github.com/rstackjs/agent-skills#rspack-v2-upgrade) skill to help with the upgrade process from v1 to v2.
+
+```bash
+npx skills add rstackjs/agent-skills --skill rspack-v2-upgrade
+```
+
+After installation, let the Coding Agent guide you through the upgrade.
+
 ## Upgrade Node.js
 
 Rspack 2.0 requires a minimum Node.js version of **20.19+** or **22.12+**, and Node.js 18 is no longer supported.
