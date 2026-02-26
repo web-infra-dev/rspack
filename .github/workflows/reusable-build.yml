@@ -12,7 +12,7 @@ on:
       test-runner: # Test Runner labels
         required: false
         type: string
-      bench-runner: # Test Runner labels
+      bench-runner: # Benchmark Runner labels
         required: false
         type: string
       profile: # Rust profile, "ci" or "production" or "profiling"
