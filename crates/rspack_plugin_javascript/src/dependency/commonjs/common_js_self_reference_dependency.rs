@@ -7,7 +7,7 @@ use rspack_core::{
   DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, ExportsInfoArtifact,
   ExportsInfoGetter, ExtendedReferencedExport, FactorizeInfo, GetUsedNameParam, ModuleDependency,
   ModuleGraph, ModuleGraphCacheArtifact, PrefetchExportsInfoMode, RuntimeSpec, TemplateContext,
-  TemplateReplaceSource, UsedName, property_access,
+  TemplateReplaceSource, UsedName, property_access_with_optional,
 };
 use swc_core::atoms::Atom;
 
@@ -21,17 +21,25 @@ pub struct CommonJsSelfReferenceDependency {
   base: ExportsBase,
   #[cacheable(with=AsVec<AsPreset>)]
   names: Vec<Atom>,
+  names_optionals: Vec<bool>,
   is_call: bool,
   factorize_info: FactorizeInfo,
 }
 
 impl CommonJsSelfReferenceDependency {
-  pub fn new(range: DependencyRange, base: ExportsBase, names: Vec<Atom>, is_call: bool) -> Self {
+  pub fn new(
+    range: DependencyRange,
+    base: ExportsBase,
+    names: Vec<Atom>,
+    names_optionals: Vec<bool>,
+    is_call: bool,
+  ) -> Self {
     Self {
       id: DependencyId::new(),
       range,
       base,
       names,
+      names_optionals,
       is_call,
       factorize_info: Default::default(),
     }
@@ -192,7 +200,11 @@ impl DependencyTemplate for CommonJsSelfReferenceDependencyTemplate {
       dep.range.start,
       dep.range.end,
       &match used {
-        UsedName::Normal(used) => format!("{}{}", base, property_access(used, 0)),
+        UsedName::Normal(used) => format!(
+          "{}{}",
+          base,
+          property_access_with_optional(used, &dep.names_optionals, 0)
+        ),
         // Export a inlinable const from cjs is not possible for now, so self reference a inlinable
         // const is also not possible for now, but we compat it here
         UsedName::Inlined(inlined) => inlined.render(""),
