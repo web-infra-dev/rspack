@@ -69,5 +69,5 @@ jobs:
     needs: [build, codspeed]
     with:
       target: ${{ inputs.target }}
-      runner: '"ubuntu-22.04"'
+      runner: ${{ inputs.runner }}
       ref: ${{ inputs.ref }}
