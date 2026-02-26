@@ -207,10 +207,15 @@ export class SubresourceIntegrityPlugin extends NativeSubresourceIntegrityPlugin
     let src = '';
     if (isUrlSrc) {
       // For absolute URLs, we need to check if they're under our publicPath
-      if (!publicPath) {
-        // No publicPath configured, skip external URLs
+      // If publicPath is just "/" or empty, it means local resources
+      // External absolute URLs should be skipped
+      const isLocalPublicPath = !publicPath || publicPath === '/' || publicPath === './';
+      
+      if (isLocalPublicPath) {
+        // Local publicPath, skip all external URLs
         return;
       }
+      
       const protocolRelativePublicPath = publicPath.replace(
         HTTP_PROTOCOL_REGEX,
         '',

@@ -184,10 +184,15 @@ async fn process_tag(
 
   // If it's an absolute URL, check if it's under publicPath
   let src = if is_absolute_url {
-    if public_path.is_empty() {
-      // No publicPath configured, skip external URLs
+    // If publicPath is just "/" or empty or "./", it means local resources
+    // External absolute URLs should be skipped
+    let is_local_public_path = public_path.is_empty() || public_path == "/" || public_path == "./";
+    
+    if is_local_public_path {
+      // Local publicPath, skip all external URLs
       return Ok(None);
     }
+    
     let protocol_relative_public_path = HTTP_PROTOCOL_REGEX.replace(public_path, "").to_string();
     let protocol_relative_tag_src = HTTP_PROTOCOL_REGEX.replace(&tag_src, "").to_string();
 
