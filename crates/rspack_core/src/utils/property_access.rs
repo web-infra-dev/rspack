@@ -1,22 +1,25 @@
 use crate::utils::property_name::{RESERVED_IDENTIFIER, SAFE_IDENTIFIER};
 
+fn render_property_access(result: &mut String, property: &str, optional: bool) {
+  let prefix = if optional { "?." } else { "." };
+  if SAFE_IDENTIFIER.is_match(property) && !RESERVED_IDENTIFIER.contains(property) {
+    result.push_str(&format!("{prefix}{property}"));
+  } else {
+    let quoted = serde_json::to_string(property).expect("should render property");
+    if optional {
+      result.push_str(&format!("?.[{quoted}]"));
+    } else {
+      result.push_str(&format!("[{quoted}]"));
+    }
+  }
+}
+
 pub fn property_access<S: AsRef<str>>(o: impl IntoIterator<Item = S>, start: usize) -> String {
   o.into_iter()
     .skip(start)
-    .fold(String::default(), |mut str, property| {
-      let property = property.as_ref();
-      if SAFE_IDENTIFIER.is_match(property) && !RESERVED_IDENTIFIER.contains(property) {
-        str.push_str(format!(".{property}").as_str());
-      } else {
-        str.push_str(
-          format!(
-            "[{}]",
-            serde_json::to_string(property).expect("should render property")
-          )
-          .as_str(),
-        );
-      }
-      str
+    .fold(String::default(), |mut s, p| {
+      render_property_access(&mut s, p.as_ref(), false);
+      s
     })
 }
 
@@ -25,38 +28,13 @@ pub fn property_access_with_optional<S: AsRef<str>>(
   optionals: &[bool],
   start: usize,
 ) -> String {
-  properties.into_iter().skip(start).enumerate().fold(
-    String::default(),
-    |mut str, (i, property)| {
-      let property = property.as_ref();
-      let is_optional = optionals.get(i + start).copied().unwrap_or(false);
-
-      if SAFE_IDENTIFIER.is_match(property) && !RESERVED_IDENTIFIER.contains(property) {
-        if is_optional {
-          str.push_str(format!("?.{property}").as_str());
-        } else {
-          str.push_str(format!(".{property}").as_str());
-        }
-      } else {
-        if is_optional {
-          str.push_str(
-            format!(
-              "?.[{}]",
-              serde_json::to_string(property).expect("should render property")
-            )
-            .as_str(),
-          );
-        } else {
-          str.push_str(
-            format!(
-              "[{}]",
-              serde_json::to_string(property).expect("should render property")
-            )
-            .as_str(),
-          );
-        }
-      }
-      str
-    },
-  )
+  properties
+    .into_iter()
+    .skip(start)
+    .enumerate()
+    .fold(String::default(), |mut s, (i, p)| {
+      let optional = optionals.get(i + start).copied().unwrap_or(false);
+      render_property_access(&mut s, p.as_ref(), optional);
+      s
+    })
 }
