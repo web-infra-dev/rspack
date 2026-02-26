@@ -42,6 +42,11 @@ impl PassExt for BuildModuleGraphPhasePass {
   ) -> Result<()> {
     let plugin_driver = compilation.plugin_driver.clone();
 
+    // reset temporary data
+    compilation
+      .build_module_graph_artifact
+      .reset_temporary_data();
+
     // Sub-phase: make hook
     make_hook_pass(compilation, plugin_driver.clone()).await?;
 

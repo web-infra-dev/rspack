@@ -650,11 +650,9 @@ impl Compilation {
     }
 
     let make_artifact = self.build_module_graph_artifact.steal();
-    let exports_info_artifact = self.exports_info_artifact.steal();
-    let (make_artifact, exports_info_artifact) = update_module_graph(
+    let make_artifact = update_module_graph(
       self,
       make_artifact,
-      exports_info_artifact,
       vec![UpdateParam::BuildEntry(
         self
           .entries
@@ -667,6 +665,9 @@ impl Compilation {
     )
     .await?;
     self.build_module_graph_artifact = make_artifact.into();
+
+    let mut exports_info_artifact = self.exports_info_artifact.steal();
+    self.ensure_exports_info_initialized(&mut exports_info_artifact);
     self.exports_info_artifact = exports_info_artifact.into();
 
     Ok(())
@@ -704,11 +705,9 @@ impl Compilation {
     // Recheck entry and clean useless entry
     // This should before finish_modules hook is called, ensure providedExports effects on new added modules
     let make_artifact = self.build_module_graph_artifact.steal();
-    let exports_info_artifact = self.exports_info_artifact.steal();
-    let (make_artifact, exports_info_artifact) = update_module_graph(
+    let make_artifact = update_module_graph(
       self,
       make_artifact,
-      exports_info_artifact,
       vec![UpdateParam::BuildEntry(
         self
           .entries
@@ -721,6 +720,9 @@ impl Compilation {
     )
     .await?;
     self.build_module_graph_artifact = make_artifact.into();
+
+    let mut exports_info_artifact = self.exports_info_artifact.steal();
+    self.ensure_exports_info_initialized(&mut exports_info_artifact);
     self.exports_info_artifact = exports_info_artifact.into();
 
     Ok(())
@@ -1036,15 +1038,20 @@ impl Compilation {
     // https://github.com/webpack/webpack/blob/19ca74127f7668aaf60d59f4af8fcaee7924541a/lib/Compilation.js#L2462C21-L2462C25
     self.module_graph_cache_artifact.unfreeze();
 
-    let (artifact, updated_exports_info_artifact) = update_module_graph(
+    dbg!(&artifact.affected_modules, &exports_info_artifact);
+    let artifact = update_module_graph(
       self,
       artifact,
-      std::mem::take(exports_info_artifact),
       vec![UpdateParam::ForceBuildModules(module_identifiers.clone())],
     )
     .await?;
-    *exports_info_artifact = updated_exports_info_artifact;
     self.build_module_graph_artifact = artifact.into();
+
+    dbg!(
+      &self.build_module_graph_artifact.affected_modules,
+      &exports_info_artifact
+    );
+    self.ensure_exports_info_initialized(exports_info_artifact);
 
     let module_graph = self.get_module_graph();
     Ok(f(module_identifiers
@@ -1119,6 +1126,7 @@ impl Compilation {
       });
     entries.chain(async_entries)
   }
+
   pub fn add_runtime_module(
     &mut self,
     chunk_ukey: &ChunkUkey,

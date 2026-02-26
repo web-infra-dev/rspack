@@ -8,7 +8,7 @@ use rustc_hash::FxHashSet as HashSet;
 
 use self::{cutout::Cutout, repair::repair};
 use super::{BuildModuleGraphArtifact, BuildModuleGraphArtifactState};
-use crate::{Compilation, DependencyId, ExportsInfoArtifact};
+use crate::{Compilation, DependencyId};
 
 /// The param to update module graph
 #[derive(Debug, Clone)]
@@ -32,9 +32,8 @@ pub enum UpdateParam {
 pub async fn update_module_graph(
   compilation: &Compilation,
   mut artifact: BuildModuleGraphArtifact,
-  mut exports_info_artifact: ExportsInfoArtifact,
   params: Vec<UpdateParam>,
-) -> Result<(BuildModuleGraphArtifact, ExportsInfoArtifact)> {
+) -> Result<BuildModuleGraphArtifact> {
   artifact.state = BuildModuleGraphArtifactState::Initialized;
   let mut cutout = Cutout::default();
 
@@ -48,13 +47,7 @@ pub async fn update_module_graph(
     .call(compilation, &revoked_modules)
     .await?;
 
-  (artifact, exports_info_artifact) = repair(
-    compilation,
-    artifact,
-    exports_info_artifact,
-    build_dependencies,
-  )
-  .await?;
+  artifact = repair(compilation, artifact, build_dependencies).await?;
   cutout.fix_artifact(&mut artifact);
-  Ok((artifact, exports_info_artifact))
+  Ok(artifact)
 }

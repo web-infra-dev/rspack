@@ -26,7 +26,7 @@ impl PassExt for FinishModulesPhasePass {
     use crate::incremental::IncrementalPasses;
     if compilation
       .incremental
-      .passes_enabled(IncrementalPasses::BUILD_MODULE_GRAPH)
+      .passes_enabled(IncrementalPasses::FINISH_MODULES)
     {
       compilation.exports_info_artifact.checkpoint();
     }
@@ -95,6 +95,8 @@ impl Compilation {
       tracing::debug!(target: incremental::TRACING_TARGET, passes = %IncrementalPasses::BUILD_MODULE_GRAPH, %mutations);
     }
 
+    self.ensure_exports_info_initialized(exports_info_artifact);
+
     // finish_modules means the module graph (modules, connections, dependencies) are
     // frozen and start to optimize (provided exports, infer async, etc.) based on the
     // module graph, so any kind of change that affect these should be done before the
@@ -120,6 +122,14 @@ impl Compilation {
     let diagnostics = build_module_graph_artifact.diagnostics();
     all_diagnostics.extend(diagnostics);
     Ok(all_diagnostics)
+  }
+
+  pub fn ensure_exports_info_initialized(&self, exports_info_artifact: &mut ExportsInfoArtifact) {
+    for module in self.build_module_graph_artifact.affected_modules.added() {
+      if !exports_info_artifact.has_exports_info(module) {
+        exports_info_artifact.new_exports_info(*module);
+      }
+    }
   }
 
   #[tracing::instrument("Compilation:collect_dependencies_diagnostics", skip_all)]
