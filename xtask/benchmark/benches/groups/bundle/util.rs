@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{path::PathBuf, sync::Arc};
 
 use rspack::builder::{Builder, CompilerBuilder};
 use rspack_core::{
@@ -20,9 +20,9 @@ pub struct BuilderOptions {
 pub fn basic_compiler_builder(options: BuilderOptions) -> CompilerBuilder {
   let mut builder = Compiler::builder();
 
-  let dir = std::env::current_dir()
-    .unwrap()
-    .join("../../.bench/rspack-benchcases")
+  let benchcases_dir = std::env::var("RSPACK_BENCHCASES_DIR")
+    .expect("RSPACK_BENCHCASES_DIR is required and must be an absolute path, e.g. RSPACK_BENCHCASES_DIR=/path/to/.bench/rspack-benchcases");
+  let dir = PathBuf::from(benchcases_dir)
     .canonicalize()
     .unwrap()
     .join(options.project);
