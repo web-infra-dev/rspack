@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{path::PathBuf, sync::Arc};
 
 use rspack::builder::{Builder, CompilerBuilder};
 use rspack_core::{
@@ -20,9 +20,8 @@ pub struct BuilderOptions {
 pub fn basic_compiler_builder(options: BuilderOptions) -> CompilerBuilder {
   let mut builder = Compiler::builder();
 
-  let dir = std::env::current_dir()
-    .unwrap()
-    .join("../../.bench/rspack-benchcases")
+  let dir = PathBuf::from(env!("CARGO_WORKSPACE_DIR"))
+    .join(".bench/rspack-benchcases")
     .canonicalize()
     .unwrap()
     .join(options.project);
