@@ -4,9 +4,9 @@ use std::{
   sync::{Arc, atomic::AtomicU32},
 };
 
+use bitvec::prelude::{BitVec, Lsb0};
 use indexmap::{IndexMap as RawIndexMap, IndexSet as RawIndexSet};
 use itertools::Itertools;
-use num_bigint::BigUint;
 use rayon::prelude::*;
 use rspack_collections::{
   Database, DatabaseItem, IdentifierHasher, IdentifierIndexSet, IdentifierMap, IdentifierSet, Ukey,
@@ -38,6 +38,43 @@ type BlockConnectionMap = HashMap<
   DependenciesBlockIdentifier,
   Arc<Vec<(ModuleIdentifier, ConnectionState, Vec<DependencyId>)>>,
 >;
+pub(super) type ModuleBitSet = BitVec<usize, Lsb0>;
+
+#[inline]
+fn bit_index(index: u64) -> usize {
+  usize::try_from(index).expect("module ordinal overflowed usize")
+}
+
+#[inline]
+fn bitset_has(bitset: &ModuleBitSet, index: u64) -> bool {
+  bitset
+    .get(bit_index(index))
+    .map(|bit| *bit)
+    .unwrap_or(false)
+}
+
+#[inline]
+fn bitset_set(bitset: &mut ModuleBitSet, index: u64) {
+  let index = bit_index(index);
+  if bitset.len() <= index {
+    bitset.resize(index + 1, false);
+  }
+  bitset.set(index, true);
+}
+
+fn bitset_or_assign(left: &mut ModuleBitSet, right: &ModuleBitSet) {
+  if left.len() < right.len() {
+    left.resize(right.len(), false);
+  }
+  right.iter_ones().for_each(|index| left.set(index, true));
+}
+
+fn bitset_and(left: &ModuleBitSet, right: &ModuleBitSet) -> ModuleBitSet {
+  let len = left.len().min(right.len());
+  let mut result = left[..len].to_bitvec();
+  result &= &right[..len];
+  result
+}
 
 #[derive(Debug, Clone, Default)]
 pub struct ChunkGroupInfo {
@@ -47,9 +84,9 @@ pub struct ChunkGroupInfo {
   pub chunk_loading: bool,
   pub async_chunks: bool,
   pub runtime: Arc<RuntimeSpec>,
-  pub min_available_modules: Arc<BigUint>,
+  pub min_available_modules: Arc<ModuleBitSet>,
   pub min_available_modules_init: bool,
-  pub available_modules_to_be_merged: Vec<Arc<BigUint>>,
+  pub available_modules_to_be_merged: Vec<Arc<ModuleBitSet>>,
 
   pub skipped_items: IdentifierIndexSet,
   pub skipped_module_connections: IndexSet<(ModuleIdentifier, Vec<DependencyId>)>,
@@ -62,7 +99,7 @@ pub struct ChunkGroupInfo {
 
   // set of modules available including modules from this chunk group
   // A derived attribute, therefore utilizing interior mutability to manage updates
-  resulting_available_modules: Option<Arc<BigUint>>,
+  resulting_available_modules: Option<Arc<ModuleBitSet>>,
 
   pub outgoing_blocks:
     RawHashSet<AsyncDependenciesBlockIdentifier, BuildHasherDefault<IdentifierHasher>>,
@@ -106,7 +143,7 @@ impl ChunkGroupInfo {
   fn calculate_resulting_available_modules(
     &mut self,
     chunk_group: &ChunkGroup,
-    mask_by_chunk: &UkeyMap<ChunkUkey, BigUint>,
+    mask_by_chunk: &UkeyMap<ChunkUkey, ModuleBitSet>,
   ) {
     if self.resulting_available_modules.is_some() {
       return;
@@ -119,7 +156,7 @@ impl ChunkGroupInfo {
       let mask = mask_by_chunk
         .get(chunk)
         .expect("chunk must in mask_by_chunk");
-      new_resulting_available_modules |= mask
+      bitset_or_assign(&mut new_resulting_available_modules, mask);
     }
 
     self.resulting_available_modules = Some(Arc::new(new_resulting_available_modules));
@@ -246,7 +283,7 @@ pub(crate) struct CodeSplitter {
   pub(crate) named_async_entrypoints: HashMap<String, CgiUkey>,
   pub(crate) block_modules_runtime_map: BlockModulesRuntimeMap,
   pub(crate) ordinal_by_module: IdentifierMap<u64>,
-  pub(crate) mask_by_chunk: UkeyMap<ChunkUkey, BigUint>,
+  pub(crate) mask_by_chunk: UkeyMap<ChunkUkey, ModuleBitSet>,
 
   stat_processed_queue_items: u32,
   stat_processed_blocks: u32,
@@ -399,7 +436,7 @@ impl CodeSplitter {
     if created && let Some(mut mutations) = compilation.incremental.mutations_write() {
       mutations.add(Mutation::ChunkAdd { chunk: chunk_ukey });
     }
-    self.mask_by_chunk.insert(chunk_ukey, BigUint::from(0u32));
+    self.mask_by_chunk.insert(chunk_ukey, ModuleBitSet::new());
     let runtime = get_entry_runtime(name, options, &compilation.entries);
     let chunk = compilation
       .build_chunk_graph_artifact
@@ -699,7 +736,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
           if created && let Some(mut mutations) = compilation.incremental.mutations_write() {
             mutations.add(Mutation::ChunkAdd { chunk: chunk_ukey });
           }
-          self.mask_by_chunk.insert(chunk_ukey, BigUint::from(0u32));
+          self.mask_by_chunk.insert(chunk_ukey, ModuleBitSet::new());
           let chunk = compilation
             .build_chunk_graph_artifact
             .chunk_by_ukey
@@ -1147,7 +1184,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       return;
     }
 
-    if cgi.min_available_modules.bit(*module_ordinal) {
+    if bitset_has(cgi.min_available_modules.as_ref(), *module_ordinal) {
       cgi.skipped_items.insert(item.module);
       return;
     }
@@ -1160,7 +1197,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       .mask_by_chunk
       .get_mut(&item.chunk)
       .expect("chunk must in mask_by_chunk");
-    chunk_mask.set_bit(*module_ordinal, true);
+    bitset_set(chunk_mask, *module_ordinal);
 
     self.add_and_enter_module(
       &AddAndEnterModule {
@@ -1194,7 +1231,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       )
     });
 
-    if cgi.min_available_modules.bit(*module_ordinal) {
+    if bitset_has(cgi.min_available_modules.as_ref(), *module_ordinal) {
       cgi.skipped_items.insert(item.module);
       return;
     }
@@ -1208,7 +1245,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       .mask_by_chunk
       .get_mut(&item.chunk)
       .expect("chunk must in mask_by_chunk");
-    chunk_mask.set_bit(*module_ordinal, true);
+    bitset_set(chunk_mask, *module_ordinal);
 
     self.enter_module(
       &EnterModule {
@@ -1409,7 +1446,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       let ordinal = self.ordinal_by_module.get(module).unwrap_or_else(|| {
         panic!("expected a module ordinal for identifier '{module}', but none was found.")
       });
-      if active_state.is_true() && min_available_modules.bit(*ordinal) {
+      if active_state.is_true() && bitset_has(min_available_modules.as_ref(), *ordinal) {
         // already in parent chunks, skip it for now
         chunk_group_info.skipped_items.insert(*module);
         continue;
@@ -1540,7 +1577,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         .build_chunk_graph_artifact
         .chunk_graph
         .add_chunk(chunk_ukey);
-      self.mask_by_chunk.insert(chunk_ukey, BigUint::from(0u32));
+      self.mask_by_chunk.insert(chunk_ukey, ModuleBitSet::new());
       let module_graph = compilation.get_module_graph();
       let block = module_graph
         .block_by_id(&block_id)
@@ -1903,7 +1940,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
           let ordinal = self.ordinal_by_module.get(module).unwrap_or_else(|| {
             panic!("expected a module ordinal for identifier '{module}', but none was found.")
           });
-          if !cgi.min_available_modules.bit(*ordinal) {
+          if !bitset_has(cgi.min_available_modules.as_ref(), *ordinal) {
             Some(*module)
           } else {
             None
@@ -1942,7 +1979,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
             let module_ordinal = self.ordinal_by_module.get(module).unwrap_or_else(|| {
               panic!("expected a module ordinal for identifier '{module}', but none was found.")
             });
-            if cgi.min_available_modules.bit(*module_ordinal) {
+            if bitset_has(cgi.min_available_modules.as_ref(), *module_ordinal) {
               cgi.skipped_items.insert(*module);
               continue;
             }
@@ -1988,11 +2025,11 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     }
   }
 
-  fn _debug_available_modules(&self, available_modules: &BigUint) -> IdentifierSet {
+  fn _debug_available_modules(&self, available_modules: &ModuleBitSet) -> IdentifierSet {
     let mut set: IdentifierSet = Default::default();
 
     for (module, ordinal) in &self.ordinal_by_module {
-      if available_modules.bit(*ordinal) {
+      if bitset_has(available_modules, *ordinal) {
         set.insert(*module);
       }
     }
@@ -2012,7 +2049,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     for info_ukey in &self.chunk_groups_for_combining {
       let info_ukey = *info_ukey;
       let info = self.chunk_group_infos.expect_get(&info_ukey);
-      let mut available_modules = BigUint::from(0u32);
+      let mut available_modules = ModuleBitSet::new();
 
       // combine min_available_modules from all resulting_available_modules
       for source_ukey in info.available_sources.clone() {
@@ -2028,7 +2065,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
           .resulting_available_modules
           .as_ref()
           .expect("should have resulting available modules");
-        available_modules |= resulting_available_modules.as_ref();
+        bitset_or_assign(&mut available_modules, resulting_available_modules.as_ref());
       }
 
       let info = self.chunk_group_infos.expect_get_mut(&info_ukey);
@@ -2091,8 +2128,10 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
                 }
 
                 let orig = cgi.min_available_modules.clone();
-                cgi.min_available_modules =
-                  Arc::new(cgi.min_available_modules.as_ref() & modules_to_be_merged.as_ref());
+                cgi.min_available_modules = Arc::new(bitset_and(
+                  cgi.min_available_modules.as_ref(),
+                  modules_to_be_merged.as_ref(),
+                ));
                 changed |= orig != cgi.min_available_modules;
               }
             }

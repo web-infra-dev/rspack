@@ -3848,6 +3848,7 @@ dependencies = [
  "async-recursion",
  "async-trait",
  "bitflags 2.9.1",
+ "bitvec",
  "cow-utils",
  "dashmap 6.1.0",
  "derive_more",
