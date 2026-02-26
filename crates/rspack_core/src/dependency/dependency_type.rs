@@ -127,6 +127,10 @@ pub enum DependencyType {
   RstestModulePath,
   RstestMockModuleId,
   RstestHoistMock,
+  /// RSC client entry
+  RscClientEntry,
+  /// RSC client reference (inside async blocks, replaces import())
+  RscClientReference,
 }
 
 impl DependencyType {
@@ -207,6 +211,8 @@ impl DependencyType {
       DependencyType::RstestModulePath => "rstest module path",
       DependencyType::RstestMockModuleId => "rstest mock module id",
       DependencyType::RstestHoistMock => "rstest hoist mock",
+      DependencyType::RscClientEntry => "rsc client entry",
+      DependencyType::RscClientReference => "rsc client reference",
     }
   }
 }
