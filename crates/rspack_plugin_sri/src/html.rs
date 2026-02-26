@@ -190,13 +190,13 @@ async fn process_tag(
     }
     let protocol_relative_public_path = HTTP_PROTOCOL_REGEX.replace(public_path, "").to_string();
     let protocol_relative_tag_src = HTTP_PROTOCOL_REGEX.replace(&tag_src, "").to_string();
-    
+
     // If the tag src doesn't start with publicPath, it's an external resource
     // Skip SRI for external resources not served from our publicPath
     if !protocol_relative_tag_src.starts_with(&protocol_relative_public_path) {
       return Ok(None);
     }
-    
+
     // Extract the asset path relative to publicPath
     let tag_src_with_scheme = format!("http:{protocol_relative_tag_src}");
     let public_path_with_scheme = if protocol_relative_public_path.starts_with("//") {
