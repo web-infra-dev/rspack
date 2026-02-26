@@ -37,18 +37,15 @@ impl Compilation {
           .collect::<Vec<_>>();
 
         // assets of executed modules are not in this compilation
-        let chunk_asset_map = if chunk_graph
-          .chunk_graph_module_by_module_identifier
-          .contains_key(identifier)
-        {
-          chunk_graph
-            .get_module_chunks(*identifier)
-            .iter()
-            .flat_map(|chunk| assets.keys().map(move |name| (*chunk, name.clone())))
-            .collect::<Vec<_>>()
-        } else {
-          Vec::new()
-        };
+        let chunk_asset_map = chunk_graph
+          .try_get_module_chunks(identifier)
+          .map(|chunks| {
+            chunks
+              .iter()
+              .flat_map(|chunk| assets.keys().map(move |name| (*chunk, name.clone())))
+              .collect::<Vec<_>>()
+          })
+          .unwrap_or_default();
 
         Some((module_assets, chunk_asset_map))
       })
