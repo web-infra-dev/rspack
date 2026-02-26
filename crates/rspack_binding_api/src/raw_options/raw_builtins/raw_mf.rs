@@ -27,8 +27,7 @@ fn into_share_scope(value: Either<String, Vec<String>>) -> ShareScope {
 fn assert_share_scope(share_scope: &ShareScope, enhanced: bool) {
   assert!(
     enhanced || !matches!(share_scope, ShareScope::Multiple(v) if v.len() > 1),
-    "shareScope as an array with multiple entries requires enhanced=true, got: {:?}",
-    share_scope
+    "shareScope as an array with multiple entries requires enhanced=true, got: {share_scope:?}",
   );
 }
 
