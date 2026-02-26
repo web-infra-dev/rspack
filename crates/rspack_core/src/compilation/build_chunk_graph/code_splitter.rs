@@ -4,7 +4,7 @@ use std::{
   sync::{Arc, atomic::AtomicU32},
 };
 
-use bitvec::prelude::{BitVec, Lsb0};
+use fixedbitset::FixedBitSet;
 use indexmap::{IndexMap as RawIndexMap, IndexSet as RawIndexSet};
 use itertools::Itertools;
 use rayon::prelude::*;
@@ -38,7 +38,7 @@ type BlockConnectionMap = HashMap<
   DependenciesBlockIdentifier,
   Arc<Vec<(ModuleIdentifier, ConnectionState, Vec<DependencyId>)>>,
 >;
-pub(super) type ModuleBitSet = BitVec<usize, Lsb0>;
+pub(super) type ModuleBitSet = FixedBitSet;
 
 #[inline]
 fn bit_index(index: u64) -> usize {
@@ -47,32 +47,26 @@ fn bit_index(index: u64) -> usize {
 
 #[inline]
 fn bitset_has(bitset: &ModuleBitSet, index: u64) -> bool {
-  bitset
-    .get(bit_index(index))
-    .map(|bit| *bit)
-    .unwrap_or(false)
+  let index = bit_index(index);
+  index < bitset.len() && bitset.contains(index)
 }
 
 #[inline]
 fn bitset_set(bitset: &mut ModuleBitSet, index: u64) {
   let index = bit_index(index);
   if bitset.len() <= index {
-    bitset.resize(index + 1, false);
+    bitset.grow(index + 1);
   }
   bitset.set(index, true);
 }
 
 fn bitset_or_assign(left: &mut ModuleBitSet, right: &ModuleBitSet) {
-  if left.len() < right.len() {
-    left.resize(right.len(), false);
-  }
-  right.iter_ones().for_each(|index| left.set(index, true));
+  left.union_with(right);
 }
 
 fn bitset_and(left: &ModuleBitSet, right: &ModuleBitSet) -> ModuleBitSet {
-  let len = left.len().min(right.len());
-  let mut result = left[..len].to_bitvec();
-  result &= &right[..len];
+  let mut result = left.clone();
+  result.intersect_with(right);
   result
 }
 

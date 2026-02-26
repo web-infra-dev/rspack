@@ -1,6 +1,5 @@
 use std::{collections::HashSet, hash::BuildHasherDefault, sync::Arc};
 
-use bitvec::prelude::{BitVec, Lsb0};
 use rspack_collections::{
   IdentifierHasher, IdentifierIndexSet, IdentifierMap, IdentifierSet, UkeySet,
 };
@@ -68,17 +67,15 @@ impl CodeSplitter {
   fn bitset_set(bitset: &mut ModuleBitSet, index: u64) {
     let index = Self::bit_index(index);
     if bitset.len() <= index {
-      bitset.resize(index + 1, false);
+      bitset.grow(index + 1);
     }
     bitset.set(index, true);
   }
 
   #[inline]
   fn bitset_has(bitset: &ModuleBitSet, index: u64) -> bool {
-    bitset
-      .get(Self::bit_index(index))
-      .map(|bit| *bit)
-      .unwrap_or(false)
+    let index = Self::bit_index(index);
+    index < bitset.len() && bitset.contains(index)
   }
 
   pub(crate) fn invalidate_from_module(
@@ -536,7 +533,7 @@ impl CodeSplitter {
       }
     }
     for chunk in compilation.build_chunk_graph_artifact.chunk_by_ukey.keys() {
-      let mut mask = BitVec::<usize, Lsb0>::new();
+      let mut mask = ModuleBitSet::new();
       for module_id in compilation
         .build_chunk_graph_artifact
         .chunk_graph

@@ -11,12 +11,12 @@ anymap = { workspace = true }
 async-recursion = { workspace = true }
 async-trait = { workspace = true }
 bitflags = { workspace = true }
-bitvec = { workspace = true }
 cow-utils = { workspace = true }
 dashmap = { workspace = true, features = ["rayon"] }
 derive_more = { workspace = true, features = ["debug"] }
 dyn-clone = { workspace = true }
 either = { workspace = true }
+fixedbitset = { workspace = true }
 futures = { workspace = true }
 hashlink = { workspace = true }
 heck = { workspace = true }
