@@ -17,7 +17,7 @@ use rspack_util::source_map::SourceMapKind;
 use rustc_hash::FxHashSet;
 
 use crate::{
-  client_reference_dependency::ClientReferenceDependency, plugin_state::ClientEntryInfo,
+  client_reference_dependency::ClientReferenceDependency, plugin_state::ClientModuleImport,
 };
 
 #[impl_source_map_config]
@@ -28,7 +28,7 @@ pub struct RscEntryModule {
   dependencies: Vec<DependencyId>,
   identifier: ModuleIdentifier,
   lib_ident: String,
-  client_modules: Vec<ClientEntryInfo>,
+  client_modules: Vec<ClientModuleImport>,
   name: String,
   factory_meta: Option<FactoryMeta>,
   build_info: BuildInfo,
@@ -36,7 +36,7 @@ pub struct RscEntryModule {
 }
 
 impl RscEntryModule {
-  pub fn new(name: String, client_modules: Vec<ClientEntryInfo>) -> Self {
+  pub fn new(name: String, client_modules: Vec<ClientModuleImport>) -> Self {
     let lib_ident = format!("rspack/rsc-entry?name={}", &name);
     let identifier = ModuleIdentifier::from(format!(
       "rsc entry ({}) [{}]",
@@ -178,11 +178,16 @@ impl Module for RscEntryModule {
         .expect("should have block");
 
       for dependency_id in block.get_dependencies() {
-        let dep = module_graph.dependency_by_id(dependency_id);
-        let request = dep
+        let dependency = module_graph.dependency_by_id(dependency_id);
+        let request = dependency
           .downcast_ref::<ClientReferenceDependency>()
-          .map(|d| d.user_request())
-          .unwrap_or("unknown");
+          .unwrap_or_else(|| {
+            panic!(
+              "Expected dependency of RscEntryModule to be ClientReferenceDependency, got {:?}",
+              dependency.dependency_type()
+            )
+          })
+          .user_request();
 
         if module_graph
           .get_module_by_dependency_id(dependency_id)

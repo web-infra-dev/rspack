@@ -415,8 +415,8 @@ impl RscClientPlugin {
         };
 
         // Check if the module is a RscEntryModule (our custom virtual module)
-        let is_client_entry_module = module.downcast_ref::<RscEntryModule>().is_some();
-        if !is_client_entry_module {
+        let is_rsc_entry_module = module.downcast_ref::<RscEntryModule>().is_some();
+        if !is_rsc_entry_module {
           continue;
         }
         // Traverse the blocks of the RscEntryModule to find the actual client modules
@@ -496,10 +496,7 @@ async fn rsc_client_compilation(
   compilation: &mut Compilation,
   params: &mut CompilationParams,
 ) -> Result<()> {
-  compilation.set_dependency_factory(
-    DependencyType::RscClientEntry,
-    Arc::new(RscEntryModuleFactory),
-  );
+  compilation.set_dependency_factory(DependencyType::RscEntry, Arc::new(RscEntryModuleFactory));
   compilation.set_dependency_factory(
     DependencyType::RscClientReference,
     params.normal_module_factory.clone(),

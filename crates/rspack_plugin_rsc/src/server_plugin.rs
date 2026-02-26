@@ -27,7 +27,7 @@ use crate::{
     client_entry_loader::CLIENT_ENTRY_LOADER_IDENTIFIER,
   },
   manifest_runtime_module::RscManifestRuntimeModule,
-  plugin_state::{ActionIdNamePair, ClientEntryInfo, PLUGIN_STATES, PluginState},
+  plugin_state::{ActionIdNamePair, ClientModuleImport, PLUGIN_STATES, PluginState},
 };
 
 #[derive(Debug)]
@@ -406,11 +406,11 @@ impl RscServerPlugin {
       css_imports,
     } = client_entry;
 
-    let client_entry_infos = {
-      let mut infos = Vec::new();
+    let client_entries = {
+      let mut modules = Vec::new();
       let merged_css_imports = css_imports.values().flatten().collect::<FxHashSet<_>>();
       for request in merged_css_imports {
-        infos.push(ClientEntryInfo {
+        modules.push(ClientModuleImport {
           request: request.clone(),
           ids: vec![],
         });
@@ -423,12 +423,12 @@ impl RscServerPlugin {
         .extend(css_imports.into_iter());
 
       for (request, ids) in &client_imports {
-        infos.push(ClientEntryInfo {
+        modules.push(ClientModuleImport {
           request: request.clone(),
           ids: ids.iter().cloned().collect(),
         });
       }
-      infos
+      modules
     };
 
     let client_server_loader = {
@@ -454,7 +454,7 @@ impl RscServerPlugin {
     // Inject the entry to the client compiler.
     plugin_state
       .injected_client_entries
-      .insert(entry_name.clone(), client_entry_infos);
+      .insert(entry_name.clone(), client_entries);
 
     if !should_inject_ssr_modules {
       return None;

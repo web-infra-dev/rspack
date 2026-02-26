@@ -4,20 +4,20 @@ use rspack_core::{
   DependencyType, FactorizeInfo, ModuleDependency, ResourceIdentifier,
 };
 
-use crate::plugin_state::ClientEntryInfo;
+use crate::plugin_state::ClientModuleImport;
 
 #[cacheable]
 #[derive(Debug, Clone)]
 pub struct RscEntryDependency {
   id: DependencyId,
   pub name: String,
-  pub client_modules: Vec<ClientEntryInfo>,
+  pub client_modules: Vec<ClientModuleImport>,
   resource_identifier: ResourceIdentifier,
   factorize_info: FactorizeInfo,
 }
 
 impl RscEntryDependency {
-  pub fn new(name: String, client_modules: Vec<ClientEntryInfo>) -> Self {
+  pub fn new(name: String, client_modules: Vec<ClientModuleImport>) -> Self {
     let resource_identifier = format!("rsc-client-entry-{}", &name).into();
     Self {
       id: DependencyId::new(),
@@ -40,7 +40,7 @@ impl Dependency for RscEntryDependency {
   }
 
   fn dependency_type(&self) -> &DependencyType {
-    &DependencyType::RscClientEntry
+    &DependencyType::RscEntry
   }
 
   fn resource_identifier(&self) -> Option<&str> {
