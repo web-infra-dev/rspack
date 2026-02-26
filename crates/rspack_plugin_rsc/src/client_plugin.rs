@@ -472,10 +472,7 @@ impl Plugin for RscClientPlugin {
   }
 
   fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
-    ctx
-      .compiler_hooks
-      .compilation
-      .tap(rsc_client_compilation::new(self));
+    ctx.compiler_hooks.compilation.tap(compilation::new(self));
 
     ctx.compiler_hooks.make.tap(make::new(self));
 
@@ -491,7 +488,7 @@ impl Plugin for RscClientPlugin {
 }
 
 #[plugin_hook(CompilerCompilation for RscClientPlugin)]
-async fn rsc_client_compilation(
+async fn compilation(
   &self,
   compilation: &mut Compilation,
   params: &mut CompilationParams,

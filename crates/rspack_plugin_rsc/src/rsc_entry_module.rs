@@ -8,8 +8,10 @@ use rspack_core::{
   BuildInfo, BuildMeta, BuildMetaExportsType, BuildResult, CodeGenerationResult, Compilation,
   Context, DependenciesBlock, Dependency, DependencyId, FactoryMeta, LibIdentOptions, Module,
   ModuleCodeGenerationContext, ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleType,
-  RuntimeSpec, SourceType, impl_module_meta_info, impl_source_map_config, module_update_hash,
+  RuntimeSpec, SourceType, contextify, impl_module_meta_info, impl_source_map_config,
+  module_update_hash,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
+  to_comment,
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
 use rspack_hash::{RspackHash, RspackHashDigest};
@@ -158,19 +160,12 @@ impl Module for RscEntryModule {
     &self,
     code_generation_context: &mut ModuleCodeGenerationContext,
   ) -> Result<CodeGenerationResult> {
-    let ModuleCodeGenerationContext {
-      compilation,
-      runtime_template,
-      ..
-    } = code_generation_context;
+    let ModuleCodeGenerationContext { compilation, .. } = code_generation_context;
 
     let mut code_generation_result = CodeGenerationResult::default();
     let module_graph = compilation.get_module_graph();
 
-    // Generate code that loads each client module via its async block.
-    // This produces: Promise.all([blockPromise1, blockPromise2, ...]).then(function() { ... })
-    // Each block promise ensures the chunk containing the client module is loaded.
-    let mut statements = Vec::new();
+    let mut comments = Vec::new();
 
     for block_id in self.get_blocks() {
       let block = module_graph
@@ -189,21 +184,12 @@ impl Module for RscEntryModule {
           })
           .user_request();
 
-        if module_graph
-          .get_module_by_dependency_id(dependency_id)
-          .is_none()
-        {
-          statements.push(runtime_template.throw_missing_module_error_block(request));
-        } else {
-          let block_promise = runtime_template.block_promise(Some(block_id), compilation, request);
-          let module_raw = runtime_template.module_raw(compilation, dependency_id, request, false);
-          let load_fn = runtime_template.returning_function(&module_raw, "");
-          statements.push(format!("{block_promise}.then({load_fn});"));
-        }
+        let comment = to_comment(&contextify(compilation.options.context.as_path(), request));
+        comments.push(comment);
       }
     }
 
-    let source = statements.join("\n");
+    let source = comments.join("\n");
     code_generation_result =
       code_generation_result.with_javascript(RawStringSource::from(source).boxed());
     Ok(code_generation_result)
