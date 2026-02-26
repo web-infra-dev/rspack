@@ -4,7 +4,7 @@ use rspack_core::{
   DependencyType, FactorizeInfo, ModuleDependency, ResourceIdentifier,
 };
 
-use crate::ExposeOptions;
+use crate::{ExposeOptions, ShareScope};
 
 #[cacheable]
 #[derive(Debug, Clone)]
@@ -12,7 +12,7 @@ pub struct ContainerEntryDependency {
   id: DependencyId,
   pub name: String,
   pub exposes: Vec<(String, ExposeOptions)>,
-  pub share_scope: Vec<String>,
+  pub share_scope: ShareScope,
   pub request: Option<String>,
   pub version: Option<String>,
   resource_identifier: ResourceIdentifier,
@@ -25,7 +25,7 @@ impl ContainerEntryDependency {
   pub fn new(
     name: String,
     exposes: Vec<(String, ExposeOptions)>,
-    share_scope: Vec<String>,
+    share_scope: ShareScope,
     enhanced: bool,
   ) -> Self {
     let resource_identifier = format!("container-entry-{}", &name).into();
@@ -49,7 +49,7 @@ impl ContainerEntryDependency {
       id: DependencyId::new(),
       name,
       exposes: vec![],
-      share_scope: Vec::new(),
+      share_scope: ShareScope::Multiple(vec![]),
       request: Some(request),
       version: Some(version),
       resource_identifier,

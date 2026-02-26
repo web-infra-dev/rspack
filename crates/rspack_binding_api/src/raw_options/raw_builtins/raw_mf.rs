@@ -8,7 +8,8 @@ use rspack_plugin_mf::{
   ManifestSharedOption, ModuleFederationManifestPluginOptions,
   ModuleFederationRuntimeExperimentsOptions, ModuleFederationRuntimePluginOptions,
   OptimizeSharedConfig, ProvideOptions, ProvideVersion, RemoteAliasTarget, RemoteOptions,
-  SharedContainerPluginOptions, SharedUsedExportsOptimizerPluginOptions, StatsBuildInfo,
+  ShareScope, SharedContainerPluginOptions, SharedUsedExportsOptimizerPluginOptions,
+  StatsBuildInfo,
 };
 
 use crate::options::{
@@ -16,16 +17,16 @@ use crate::options::{
   library::JsLibraryOptions,
 };
 
-fn into_share_scope(value: Either<String, Vec<String>>) -> Vec<String> {
+fn into_share_scope(value: Either<String, Vec<String>>) -> ShareScope {
   match value {
-    Either::A(s) => vec![s],
-    Either::B(list) => list,
+    Either::A(s) => ShareScope::Single(s),
+    Either::B(list) => ShareScope::Multiple(list),
   }
 }
 
-fn assert_share_scope(share_scope: &[String], enhanced: bool) {
+fn assert_share_scope(share_scope: &ShareScope, enhanced: bool) {
   assert!(
-    enhanced || share_scope.len() <= 1,
+    enhanced || !matches!(share_scope, ShareScope::Multiple(v) if v.len() > 1),
     "shareScope as an array with multiple entries requires enhanced=true, got: {:?}",
     share_scope
   );
@@ -97,9 +98,8 @@ impl From<RawContainerReferencePluginOptions> for ContainerReferencePluginOption
     }
     // Validate each remote's share_scope against the plugin-level enhanced flag
     for remote in &value.remotes {
-      if let Either::B(ref list) = remote.share_scope {
-        assert_share_scope(list, value.enhanced);
-      }
+      let remote_scope = into_share_scope(remote.share_scope.clone());
+      assert_share_scope(&remote_scope, value.enhanced);
     }
     Self {
       remote_type: value.remote_type,

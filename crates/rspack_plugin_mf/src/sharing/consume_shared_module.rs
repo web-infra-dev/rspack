@@ -38,12 +38,12 @@ pub struct ConsumeSharedModule {
 }
 
 impl ConsumeSharedModule {
-  pub fn share_scope(&self) -> &[String] {
+  pub fn share_scope(&self) -> &ShareScope {
     &self.options.share_scope
   }
 
   pub fn new(context: Context, options: ConsumeOptions) -> Self {
-    let scopes_key = options.share_scope.join("|");
+    let scopes_key = options.share_scope.key();
     let identifier = format!(
       "consume shared module ({}) {}@{}{}{}{}{}",
       &scopes_key,

@@ -21,7 +21,7 @@ use rustc_hash::FxHashSet;
 use super::{
   container_exposed_dependency::ContainerExposedDependency, container_plugin::ExposeOptions,
 };
-use crate::utils::json_stringify;
+use crate::{ShareScope, utils::json_stringify};
 
 #[impl_source_map_config]
 #[cacheable]
@@ -32,7 +32,7 @@ pub struct ContainerEntryModule {
   identifier: ModuleIdentifier,
   lib_ident: String,
   exposes: Vec<(String, ExposeOptions)>,
-  share_scope: Vec<String>,
+  share_scope: ShareScope,
   factory_meta: Option<FactoryMeta>,
   build_info: BuildInfo,
   build_meta: BuildMeta,
@@ -47,7 +47,7 @@ impl ContainerEntryModule {
   pub fn new(
     name: String,
     exposes: Vec<(String, ExposeOptions)>,
-    share_scope: Vec<String>,
+    share_scope: ShareScope,
     enhanced: bool,
   ) -> Self {
     let lib_ident = format!("webpack/container/entry/{}", &name);
@@ -56,7 +56,7 @@ impl ContainerEntryModule {
       dependencies: Vec::new(),
       identifier: ModuleIdentifier::from(format!(
         "container entry ({}) {}",
-        share_scope.join("|"),
+        share_scope.key(),
         json_stringify(&exposes),
       )),
       lib_ident,
@@ -89,7 +89,7 @@ impl ContainerEntryModule {
       identifier: ModuleIdentifier::from(format!("share container entry {}@{}", &name, &version,)),
       lib_ident,
       exposes: vec![],
-      share_scope: Vec::new(),
+      share_scope: ShareScope::Multiple(vec![]),
       factory_meta: None,
       build_info: BuildInfo {
         strict: true,
@@ -397,13 +397,12 @@ var init = function(shareScope, initScope) {{
         has_own_property =
           runtime_template.render_runtime_globals(&RuntimeGlobals::HAS_OWN_PROPERTY),
         share_scope_map = runtime_template.render_runtime_globals(&RuntimeGlobals::SHARE_SCOPE_MAP),
-        share_scope = json_stringify_str(
-          self
-            .share_scope
-            .first()
-            .map(|s| s.as_str())
-            .unwrap_or("default")
-        ),
+        share_scope = json_stringify_str(match &self.share_scope {
+          ShareScope::Single(s) => s.as_str(),
+          ShareScope::Multiple(_) => {
+            panic!("ContainerEntryModule: enhanced=false only supports string share scope")
+          }
+        }),
         initialize_sharing =
           runtime_template.render_runtime_globals(&RuntimeGlobals::INITIALIZE_SHARING),
         define_property_getters =
@@ -520,5 +519,5 @@ impl ExposeModuleMap {
 #[derive(Debug, Clone)]
 pub struct CodeGenerationDataExpose {
   pub module_map: ExposeModuleMap,
-  pub share_scope: Vec<String>,
+  pub share_scope: ShareScope,
 }

@@ -10,7 +10,7 @@ use rspack_util::json_stringify_str;
 use rustc_hash::FxHashMap;
 
 use super::consume_shared_plugin::ConsumeVersion;
-use crate::utils::json_stringify;
+use crate::{ShareScope, utils::json_stringify};
 
 static CONSUMES_COMMON_TEMPLATE: &str = include_str!("./consumesCommon.ejs");
 static CONSUMES_INITIAL_TEMPLATE: &str = include_str!("./consumesInitial.ejs");
@@ -92,7 +92,6 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
     let mut chunk_to_module_mapping = FxHashMap::default();
     let mut module_id_to_consume_data_mapping = FxHashMap::default();
     let mut initial_consumes = Vec::new();
-    let enhanced = self.enhanced;
     let mut add_module = |module: ModuleIdentifier, chunk: &Chunk, ids: &mut Vec<String>| {
       let id = ChunkGraph::get_module_id(&compilation.module_ids_artifact, module)
         .map(|s| s.to_string())
@@ -238,7 +237,7 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
 
 #[derive(Debug, Clone)]
 pub struct CodeGenerationDataConsumeShared {
-  pub share_scope: Vec<String>,
+  pub share_scope: ShareScope,
   pub share_key: String,
   pub import: Option<String>,
   pub required_version: Option<ConsumeVersion>,
