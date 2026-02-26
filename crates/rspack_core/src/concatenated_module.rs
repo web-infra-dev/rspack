@@ -3,7 +3,6 @@ use std::{
   collections::BTreeMap,
   fmt::Debug,
   hash::{BuildHasherDefault, Hasher},
-  rc::Rc,
   sync::{Arc, LazyLock},
 };
 
@@ -2383,7 +2382,7 @@ impl ConcatenatedModule {
         })
         .unwrap_or(false);
 
-      let string_allocator = Rc::new(StringAllocator::default());
+      let string_allocator = StringAllocator::default();
       let lexer = swc_experimental_ecma_parser::Lexer::new(
         Syntax::Es(EsSyntax {
           jsx,

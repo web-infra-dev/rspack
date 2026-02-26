@@ -6677,7 +6677,7 @@ dependencies = [
 [[package]]
 name = "swc_experimental_ast_macros"
 version = "0.5.0"
-source = "git+https://github.com/CPunisher/swc-experimental.git#e87ea5db99eeaaad58e724261f88c1baa4e30bed"
+source = "git+https://github.com/CPunisher/swc-experimental.git?rev=2a1ba88358f716b241df53e61a86b4f05c5beb88#2a1ba88358f716b241df53e61a86b4f05c5beb88"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -6687,7 +6687,7 @@ dependencies = [
 [[package]]
 name = "swc_experimental_ecma_ast"
 version = "0.5.0"
-source = "git+https://github.com/CPunisher/swc-experimental.git#e87ea5db99eeaaad58e724261f88c1baa4e30bed"
+source = "git+https://github.com/CPunisher/swc-experimental.git?rev=2a1ba88358f716b241df53e61a86b4f05c5beb88#2a1ba88358f716b241df53e61a86b4f05c5beb88"
 dependencies = [
  "hashbrown 0.16.1",
  "num-bigint",
@@ -6700,7 +6700,7 @@ dependencies = [
 [[package]]
 name = "swc_experimental_ecma_parser"
 version = "0.5.0"
-source = "git+https://github.com/CPunisher/swc-experimental.git#e87ea5db99eeaaad58e724261f88c1baa4e30bed"
+source = "git+https://github.com/CPunisher/swc-experimental.git?rev=2a1ba88358f716b241df53e61a86b4f05c5beb88#2a1ba88358f716b241df53e61a86b4f05c5beb88"
 dependencies = [
  "bitflags 2.9.1",
  "either",
@@ -6716,7 +6716,7 @@ dependencies = [
 [[package]]
 name = "swc_experimental_ecma_semantic"
 version = "0.5.0"
-source = "git+https://github.com/CPunisher/swc-experimental.git#e87ea5db99eeaaad58e724261f88c1baa4e30bed"
+source = "git+https://github.com/CPunisher/swc-experimental.git?rev=2a1ba88358f716b241df53e61a86b4f05c5beb88#2a1ba88358f716b241df53e61a86b4f05c5beb88"
 dependencies = [
  "oxc_index",
  "rustc-hash",
@@ -6728,7 +6728,7 @@ dependencies = [
 [[package]]
 name = "swc_experimental_ecma_transforms_base"
 version = "0.5.0"
-source = "git+https://github.com/CPunisher/swc-experimental.git#e87ea5db99eeaaad58e724261f88c1baa4e30bed"
+source = "git+https://github.com/CPunisher/swc-experimental.git?rev=2a1ba88358f716b241df53e61a86b4f05c5beb88#2a1ba88358f716b241df53e61a86b4f05c5beb88"
 dependencies = [
  "indexmap",
  "rustc-hash",
@@ -6739,7 +6739,7 @@ dependencies = [
 [[package]]
 name = "swc_experimental_ecma_utils"
 version = "0.1.0"
-source = "git+https://github.com/CPunisher/swc-experimental.git#e87ea5db99eeaaad58e724261f88c1baa4e30bed"
+source = "git+https://github.com/CPunisher/swc-experimental.git?rev=2a1ba88358f716b241df53e61a86b4f05c5beb88#2a1ba88358f716b241df53e61a86b4f05c5beb88"
 dependencies = [
  "swc_experimental_ecma_ast",
  "swc_experimental_ecma_semantic",
@@ -6748,7 +6748,7 @@ dependencies = [
 [[package]]
 name = "swc_experimental_ecma_visit"
 version = "0.5.0"
-source = "git+https://github.com/CPunisher/swc-experimental.git#e87ea5db99eeaaad58e724261f88c1baa4e30bed"
+source = "git+https://github.com/CPunisher/swc-experimental.git?rev=2a1ba88358f716b241df53e61a86b4f05c5beb88#2a1ba88358f716b241df53e61a86b4f05c5beb88"
 dependencies = [
  "swc_experimental_ecma_ast",
 ]

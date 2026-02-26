@@ -1,6 +1,5 @@
 use std::{
   borrow::Cow,
-  rc::Rc,
   sync::{Arc, LazyLock},
 };
 
@@ -20,7 +19,7 @@ use rspack_error::{Diagnostic, Error, IntoTWithDiagnosticArray, Result, TWithDia
 use rspack_util::SpanExt;
 use rustc_hash::FxHashSet;
 use swc_core::common::BytePos;
-use swc_experimental_ecma_ast::{Ast, Program, Span, VisitWith};
+use swc_experimental_ecma_ast::{Ast, Program, Span, StringAllocator, VisitWith};
 use swc_experimental_ecma_parser::{
   EsSyntax, Lexer, Parser, StringSource, Syntax, unstable::Capturing,
 };
@@ -205,7 +204,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       .and_then(|options| options.jsx)
       .unwrap_or(false);
 
-    let mut ast = Ast::new(source_string.len(), Rc::default());
+    let mut ast = Ast::new(source_string.len(), StringAllocator::default());
     let parser_lexer = Lexer::new(
       Syntax::Es(EsSyntax {
         jsx,
