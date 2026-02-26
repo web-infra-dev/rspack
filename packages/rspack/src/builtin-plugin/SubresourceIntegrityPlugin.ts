@@ -209,7 +209,8 @@ export class SubresourceIntegrityPlugin extends NativeSubresourceIntegrityPlugin
       // For absolute URLs, we need to check if they're under our publicPath
       // If publicPath is just "/" or empty, it means local resources
       // External absolute URLs should be skipped
-      const isLocalPublicPath = !publicPath || publicPath === '/' || publicPath === './';
+      const isLocalPublicPath =
+        !publicPath || publicPath === '/' || publicPath === './';
 
       if (isLocalPublicPath) {
         // Local publicPath, skip all external URLs
