@@ -49,20 +49,29 @@ impl Compilation {
       .keys()
       .copied()
       .collect::<Vec<_>>()
-      .par_iter()
-      .map(|chunk_ukey| -> Result<Option<ChunkUkey>> {
-        let mut chunk_dependent_full_hash = false;
-        plugin_driver.compilation_hooks.dependent_full_hash.call(
-          self,
-          chunk_ukey,
-          &mut chunk_dependent_full_hash,
-        )?;
-        Ok(chunk_dependent_full_hash.then_some(*chunk_ukey))
-      })
-      .collect::<Result<Vec<_>>>()?
-      .into_iter()
-      .flatten()
-      .collect();
+      .into_par_iter()
+      .try_fold(
+        UkeySet::default,
+        |mut local_set, chunk_ukey| -> Result<UkeySet<_>> {
+          let mut chunk_dependent_full_hash = false;
+          plugin_driver.compilation_hooks.dependent_full_hash.call(
+            self,
+            &chunk_ukey,
+            &mut chunk_dependent_full_hash,
+          )?;
+          if chunk_dependent_full_hash {
+            local_set.insert(chunk_ukey);
+          }
+          Ok(local_set)
+        },
+      )
+      .try_reduce(
+        UkeySet::default,
+        |mut acc, local_set| -> Result<UkeySet<_>> {
+          acc.extend(local_set);
+          Ok(acc)
+        },
+      )?;
     if !full_hash_chunks.is_empty()
       && let Some(diagnostic) = self.incremental.disable_passes(
         IncrementalPasses::CHUNKS_HASHES,
