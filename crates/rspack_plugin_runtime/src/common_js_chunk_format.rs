@@ -101,21 +101,22 @@ async fn js_chunk_hash(
 }
 
 #[plugin_hook(CompilationDependentFullHash for CommonJsChunkFormatPlugin)]
-async fn compilation_dependent_full_hash(
+fn compilation_dependent_full_hash(
   &self,
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
-) -> Result<Option<bool>> {
+  dependent_full_hash: &mut bool,
+) -> Result<()> {
   let chunk = compilation
     .build_chunk_graph_artifact
     .chunk_by_ukey
     .expect_get(chunk_ukey);
   if chunk.has_entry_module(&compilation.build_chunk_graph_artifact.chunk_graph)
-    && runtime_chunk_has_hash(compilation, chunk_ukey).await?
+    && runtime_chunk_has_hash(compilation, chunk_ukey)?
   {
-    return Ok(Some(true));
+    *dependent_full_hash = true;
   }
-  Ok(None)
+  Ok(())
 }
 
 #[plugin_hook(JavascriptModulesRenderChunk for CommonJsChunkFormatPlugin)]
