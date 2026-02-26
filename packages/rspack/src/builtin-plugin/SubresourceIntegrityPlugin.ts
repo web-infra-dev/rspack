@@ -210,24 +210,24 @@ export class SubresourceIntegrityPlugin extends NativeSubresourceIntegrityPlugin
       // If publicPath is just "/" or empty, it means local resources
       // External absolute URLs should be skipped
       const isLocalPublicPath = !publicPath || publicPath === '/' || publicPath === './';
-      
+
       if (isLocalPublicPath) {
         // Local publicPath, skip all external URLs
         return;
       }
-      
+
       const protocolRelativePublicPath = publicPath.replace(
         HTTP_PROTOCOL_REGEX,
         '',
       );
       const protocolRelativeTagSrc = tagSrc.replace(HTTP_PROTOCOL_REGEX, '');
-      
+
       // If the tag src doesn't start with publicPath, it's an external resource
       // Skip SRI for external resources not served from our publicPath
       if (!protocolRelativeTagSrc.startsWith(protocolRelativePublicPath)) {
         return;
       }
-      
+
       // Extract the asset path relative to publicPath
       const tagSrcWithScheme = `http:${protocolRelativeTagSrc}`;
       const publicPathWithScheme = protocolRelativePublicPath.startsWith('//')
