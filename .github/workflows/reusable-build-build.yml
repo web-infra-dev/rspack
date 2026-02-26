@@ -219,4 +219,5 @@ jobs:
             crates/node_binding/*.node
             crates/node_binding/*.d.ts
             crates/node_binding/rspack.wasm32-wasi.wasm
+            crates/node_binding/rspack.wasm32-wasi.debug.wasm
             crates/node_binding/rspack.browser.wasm

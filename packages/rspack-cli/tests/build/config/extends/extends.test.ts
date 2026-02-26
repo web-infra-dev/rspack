@@ -2,7 +2,7 @@ import { readFile } from 'fs/promises';
 import { resolve } from 'path';
 import { run } from '../../../utils/test-utils';
 
-describe.concurrent('rspack extends feature', () => {
+describe('rspack extends feature', () => {
   describe('basic extends', () => {
     const cwd = resolve(__dirname, './base');
 
