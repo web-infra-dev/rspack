@@ -195,6 +195,7 @@ export class SubresourceIntegrityPlugin extends NativeSubresourceIntegrityPlugin
       return;
     }
 
+    // Check if the tagSrc is an absolute URL (http/https or protocol-relative)
     let isUrlSrc = false;
     try {
       const url = new URL(tagSrc);
@@ -205,7 +206,9 @@ export class SubresourceIntegrityPlugin extends NativeSubresourceIntegrityPlugin
 
     let src = '';
     if (isUrlSrc) {
+      // For absolute URLs, we need to check if they're under our publicPath
       if (!publicPath) {
+        // No publicPath configured, skip external URLs
         return;
       }
       const protocolRelativePublicPath = publicPath.replace(
@@ -213,18 +216,22 @@ export class SubresourceIntegrityPlugin extends NativeSubresourceIntegrityPlugin
         '',
       );
       const protocolRelativeTagSrc = tagSrc.replace(HTTP_PROTOCOL_REGEX, '');
-      if (protocolRelativeTagSrc.startsWith(protocolRelativePublicPath)) {
-        const tagSrcWithScheme = `http:${protocolRelativeTagSrc}`;
-        const publicPathWithScheme = protocolRelativePublicPath.startsWith('//')
-          ? `http:${protocolRelativePublicPath}`
-          : protocolRelativePublicPath;
-        src = relative(
-          publicPathWithScheme,
-          decodeURIComponent(tagSrcWithScheme),
-        );
-      } else {
+      
+      // If the tag src doesn't start with publicPath, it's an external resource
+      // Skip SRI for external resources not served from our publicPath
+      if (!protocolRelativeTagSrc.startsWith(protocolRelativePublicPath)) {
         return;
       }
+      
+      // Extract the asset path relative to publicPath
+      const tagSrcWithScheme = `http:${protocolRelativeTagSrc}`;
+      const publicPathWithScheme = protocolRelativePublicPath.startsWith('//')
+        ? `http:${protocolRelativePublicPath}`
+        : protocolRelativePublicPath;
+      src = relative(
+        publicPathWithScheme,
+        decodeURIComponent(tagSrcWithScheme),
+      );
     } else {
       src = relative(publicPath, decodeURIComponent(tagSrc));
     }
