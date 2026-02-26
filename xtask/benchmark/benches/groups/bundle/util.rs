@@ -1,4 +1,4 @@
-use std::{path::PathBuf, sync::Arc};
+use std::sync::Arc;
 
 use rspack::builder::{Builder, CompilerBuilder};
 use rspack_core::{
