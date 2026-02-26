@@ -332,14 +332,12 @@ pub fn collect_module_side_effects_locations(
       let side_effect_locations: Vec<RsdoctorSideEffectLocation> = bailout_reasons
         .iter()
         .filter_map(|item| match item {
-          OptimizationBailoutItem::SideEffects { node_type, loc, .. } => {
-            Some(RsdoctorSideEffectLocation {
-              location: loc.clone(),
-              node_type: node_type.clone(),
-              module: *module_ukey,
-              request: request.clone(),
-            })
-          }
+          OptimizationBailoutItem::SideEffects(data) => Some(RsdoctorSideEffectLocation {
+            location: data.loc.clone(),
+            node_type: data.node_type.clone(),
+            module: *module_ukey,
+            request: request.clone(),
+          }),
           _ => None,
         })
         .collect();

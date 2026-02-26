@@ -39,8 +39,8 @@ use crate::{
   ModuleCodeGenerationContext, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
   ModuleLayer, ModuleType, OptimizationBailoutItem, OutputOptions, ParseContext, ParseResult,
   ParserAndGenerator, ParserOptions, Resolve, RspackLoaderRunnerPlugin, RunnerContext,
-  RuntimeGlobals, RuntimeSpec, SourceType, contextify, diagnostics::ModuleBuildError, get_context,
-  module_update_hash,
+  RuntimeGlobals, RuntimeSpec, SideEffectsData, SourceType, contextify,
+  diagnostics::ModuleBuildError, get_context, module_update_hash,
 };
 
 #[cacheable]
@@ -568,12 +568,12 @@ impl Module for NormalModule {
       self.add_diagnostics(diagnostics);
     }
     let optimization_bailouts = if let Some(side_effects_bailout) = side_effects_bailout {
-      let short_id = self.readable_identifier(&build_context.compiler_options.context);
-      vec![OptimizationBailoutItem::SideEffects {
-        node_type: side_effects_bailout.ty,
-        loc: side_effects_bailout.msg,
-        short_id: short_id.to_string(),
-      }]
+      vec![OptimizationBailoutItem::SideEffects(Box::new(
+        SideEffectsData {
+          node_type: side_effects_bailout.ty,
+          loc: side_effects_bailout.msg,
+        },
+      ))]
     } else {
       vec![]
     };
