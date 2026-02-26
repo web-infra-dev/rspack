@@ -60,42 +60,60 @@ mod tests {
 
   #[test]
   fn test_property_access_reserved_words() {
-    assert_eq!(property_access(["class", "default"], 0), "[\"class\"][\"default\"]");
+    assert_eq!(
+      property_access(["class", "default"], 0),
+      "[\"class\"][\"default\"]"
+    );
   }
 
   #[test]
   fn test_property_access_with_optional_all_required() {
     let props = vec!["a", "b", "c"];
     let optionals = vec![false, false, false];
-    assert_eq!(property_access_with_optional(props, &optionals, 0), ".a.b.c");
+    assert_eq!(
+      property_access_with_optional(props, &optionals, 0),
+      ".a.b.c"
+    );
   }
 
   #[test]
   fn test_property_access_with_optional_all_optional() {
     let props = vec!["a", "b", "c"];
     let optionals = vec![true, true, true];
-    assert_eq!(property_access_with_optional(props, &optionals, 0), "?.a?.b?.c");
+    assert_eq!(
+      property_access_with_optional(props, &optionals, 0),
+      "?.a?.b?.c"
+    );
   }
 
   #[test]
   fn test_property_access_with_optional_mixed() {
     let props = vec!["a", "b", "c"];
     let optionals = vec![false, true, false];
-    assert_eq!(property_access_with_optional(props, &optionals, 0), ".a?.b.c");
+    assert_eq!(
+      property_access_with_optional(props, &optionals, 0),
+      ".a?.b.c"
+    );
   }
 
   #[test]
   fn test_property_access_with_optional_special_chars() {
     let props = vec!["a-b", "c"];
     let optionals = vec![true, false];
-    assert_eq!(property_access_with_optional(props, &optionals, 0), "?.[\"a-b\"].c");
+    assert_eq!(
+      property_access_with_optional(props, &optionals, 0),
+      "?.[\"a-b\"].c"
+    );
   }
 
   #[test]
   fn test_property_access_with_optional_with_start() {
     let props = vec!["a", "b", "c"];
     let optionals = vec![false, true, true];
-    assert_eq!(property_access_with_optional(props, &optionals, 1), "?.b?.c");
+    assert_eq!(
+      property_access_with_optional(props, &optionals, 1),
+      "?.b?.c"
+    );
   }
 
   #[test]
