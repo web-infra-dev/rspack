@@ -4,14 +4,17 @@ const { rspack } = require("@rspack/core");
 module.exports = {
 	mode: "production",
 	target: "web",
-	entry: "./main.js",
 	output: {
-		filename: "main.js",
 		publicPath: "https://cdn.example.com/assets/",
 		crossOriginLoading: "anonymous"
 	},
+	node: {
+		__dirname: false
+	},
 	plugins: [
-		new rspack.HtmlRspackPlugin(),
+		new rspack.HtmlRspackPlugin({
+			filename: "index.html"
+		}),
 		new rspack.SubresourceIntegrityPlugin({
 			hashFuncNames: ["sha384"],
 			enabled: true

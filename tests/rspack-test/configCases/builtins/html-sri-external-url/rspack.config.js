@@ -4,26 +4,28 @@ const { rspack } = require("@rspack/core");
 module.exports = {
 	mode: "production",
 	target: "web",
-	entry: "./main.js",
 	output: {
-		filename: "main.js",
 		crossOriginLoading: "anonymous"
+	},
+	node: {
+		__dirname: false
 	},
 	plugins: [
 		new rspack.HtmlRspackPlugin({
-			tags: [
-				{
-					tag: "script",
-					attrs: {
-						src: "https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js"
-					},
-					append: false
-				}
-			]
+			filename: "index.html"
 		}),
 		new rspack.SubresourceIntegrityPlugin({
 			hashFuncNames: ["sha384"],
 			enabled: true
-		})
+		}),
+		{
+			apply(compiler) {
+				compiler.hooks.compilation.tap('TestPlugin', (compilation) => {
+					rspack.HtmlRspackPlugin.getCompilationHooks(compilation).beforeAssetTagGeneration.tap('TestPlugin', (data) => {
+						data.assets.js.push("https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js");
+					});
+				});
+			}
+		}
 	]
 };
