@@ -66,6 +66,7 @@ jobs:
       bench: true
       prefer_docker: false
       test-runner: '"ubuntu-22.04"'
+      bench-runner: '"ubuntu-22.04"'
 
   test-windows:
     name: Test Windows
