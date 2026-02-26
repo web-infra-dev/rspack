@@ -1,6 +1,6 @@
 use rspack_core::EvaluatedInlinableValue;
 use rspack_util::ryu_js;
-use swc_core::ecma::ast::{ModuleDecl, ModuleItem, Program, VarDeclarator};
+use swc_experimental_ecma_ast::{ModuleDecl, ModuleItem, Program, VarDeclarator};
 
 use super::JavascriptParserPlugin;
 use crate::{
@@ -25,14 +25,15 @@ pub struct InlinableConstData {
 pub struct InlineConstPlugin;
 
 impl JavascriptParserPlugin for InlineConstPlugin {
-  fn program(&self, parser: &mut JavascriptParser, program: &Program) -> Option<bool> {
+  fn program(&self, parser: &mut JavascriptParser, program: Program) -> Option<bool> {
     if let Some(module) = program.as_module() {
-      for item in &module.body {
+      for item in module.body(&parser.ast).iter() {
+        let item = parser.ast.get_node_in_sub_range(item);
         match item {
           ModuleItem::ModuleDecl(m) => {
             if m.is_import()
               || m.is_export_all()
-              || matches!(m, ModuleDecl::ExportNamed(m) if m.src.is_some())
+              || matches!(m, ModuleDecl::ExportNamed(m) if m.src(&parser.ast).is_some())
             {
               // For now we only handle cross-module const inlining, we might don't need to
               // inline const inside the module if we leave it to minimizer?
@@ -54,7 +55,7 @@ impl JavascriptParserPlugin for InlineConstPlugin {
     for_name: &str,
     start: u32,
     end: u32,
-  ) -> Option<BasicEvaluatedExpression<'static>> {
+  ) -> Option<BasicEvaluatedExpression> {
     if !parser.has_inlinable_const_decls || for_name != INLINABLE_CONST_TAG {
       return None;
     }
@@ -76,20 +77,22 @@ impl JavascriptParserPlugin for InlineConstPlugin {
   fn pre_declarator(
     &self,
     parser: &mut JavascriptParser,
-    declarator: &VarDeclarator,
-    declaration: VariableDeclaration<'_>,
+    declarator: VarDeclarator,
+    declaration: VariableDeclaration,
   ) -> Option<bool> {
     if !parser.has_inlinable_const_decls || !parser.is_top_level_scope() {
       return None;
     }
-    if matches!(declaration.kind(), VariableDeclarationKind::Const)
-      && let Some(name) = declarator.name.as_ident()
-      && let Some(init) = &declarator.init
+    if matches!(
+      declaration.kind(&parser.ast),
+      VariableDeclarationKind::Const
+    ) && let Some(name) = declarator.name(&parser.ast).as_ident()
+      && let Some(init) = declarator.init(&parser.ast)
     {
       let evaluated = parser.evaluate_expression(init);
       if let Some(inlinable) = to_evaluated_inlinable_value(&evaluated) {
         parser.tag_variable_with_flags(
-          name.id.sym.clone(),
+          parser.ast.get_atom(name.id(&parser.ast).sym(&parser.ast)),
           INLINABLE_CONST_TAG,
           Some(InlinableConstData { value: inlinable }),
           VariableInfoFlags::NORMAL,

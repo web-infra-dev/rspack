@@ -2,62 +2,65 @@ use itertools::Itertools;
 use rspack_core::ConstDependency;
 use rspack_util::SpanExt;
 use rustc_hash::FxHashSet;
-use swc_core::{
-  common::Spanned,
-  ecma::ast::{
-    BlockStmt, DoWhileStmt, ForHead, ForInStmt, ForOfStmt, Ident, IfStmt, LabeledStmt,
-    ObjectPatProp, Pat, Stmt, VarDecl, VarDeclKind, VarDeclOrExpr, VarDeclarator, WhileStmt,
-  },
+use swc_experimental_ecma_ast::{
+  Ast, BlockStmt, ForHead, GetSpan, Ident, IfStmt, ObjectPatProp, Pat, Stmt, TypedSubRange,
+  VarDecl, VarDeclKind, VarDeclOrExpr, VarDeclarator,
 };
 
 use crate::visitors::JavascriptParser;
 
-fn get_hoisted_declarations<'a>(
-  branch: &'a Stmt,
+fn get_hoisted_declarations(
+  ast: &Ast,
+  branch: Stmt,
   include_function_declarations: bool,
-) -> FxHashSet<&'a Ident> {
+) -> FxHashSet<Ident> {
   let mut declarations = FxHashSet::default();
   let mut stmt_stack = vec![branch];
 
-  let collect_declaration_from_ident =
-    |ident: &'a Ident, declarations: &mut FxHashSet<&'a Ident>| {
-      declarations.insert(ident);
-    };
-
-  let collect_declaration_from_pat = |pattern: &'a Pat, declarations: &mut FxHashSet<&'a Ident>| {
-    let mut stack = vec![pattern];
-    while let Some(node) = stack.pop() {
-      match node {
-        Pat::Ident(ident) => collect_declaration_from_ident(&ident.id, declarations),
-        Pat::Array(array) => {
-          for element in array.elems.iter().flatten() {
-            stack.push(element);
-          }
-        }
-        Pat::Assign(assign) => stack.push(&assign.left),
-        Pat::Object(object) => {
-          for property in &object.props {
-            match &property {
-              ObjectPatProp::KeyValue(key_value) => stack.push(&key_value.value),
-              ObjectPatProp::Assign(assign) => {
-                collect_declaration_from_ident(&assign.key, declarations)
-              }
-              ObjectPatProp::Rest(rest) => stack.push(&rest.arg),
-            }
-          }
-        }
-        Pat::Rest(rest) => stack.push(&rest.arg),
-        _ => {}
-      }
-    }
+  let collect_declaration_from_ident = |ident: Ident, declarations: &mut FxHashSet<Ident>| {
+    declarations.insert(ident);
   };
 
-  fn get_var_kind_decls(decl: &VarDecl) -> Option<&Vec<VarDeclarator>> {
-    matches!(decl.kind, VarDeclKind::Var).then_some(&decl.decls)
+  let collect_declaration_from_pat =
+    |ast: &Ast, pattern: Pat, declarations: &mut FxHashSet<Ident>| {
+      let mut stack = vec![pattern];
+      while let Some(node) = stack.pop() {
+        match node {
+          Pat::Ident(ident) => collect_declaration_from_ident(ident.id(ast), declarations),
+          Pat::Array(array) => {
+            for element in array.elems(ast).iter() {
+              let element = ast.get_node_in_sub_range(element);
+              if let Some(element) = element {
+                stack.push(element);
+              }
+            }
+          }
+          Pat::Assign(assign) => stack.push(assign.left(ast)),
+          Pat::Object(object) => {
+            for property in object.props(ast).iter() {
+              let property = ast.get_node_in_sub_range(property);
+              match property {
+                ObjectPatProp::KeyValue(key_value) => stack.push(key_value.value(ast)),
+                ObjectPatProp::Assign(assign) => {
+                  collect_declaration_from_ident(assign.key(ast).id(ast), declarations)
+                }
+                ObjectPatProp::Rest(rest) => stack.push(rest.arg(ast)),
+              }
+            }
+          }
+          Pat::Rest(rest) => stack.push(rest.arg(ast)),
+          _ => {}
+        }
+      }
+    };
+
+  fn get_var_kind_decls(ast: &Ast, decl: VarDecl) -> Option<TypedSubRange<VarDeclarator>> {
+    matches!(decl.kind(ast), VarDeclKind::Var).then_some(decl.decls(ast))
   }
 
-  fn collect_from_block_stm<'b>(block: &'b BlockStmt, stack: &mut Vec<&'b Stmt>) {
-    for stmt in &block.stmts {
+  fn collect_from_block_stm(ast: &Ast, block: BlockStmt, stack: &mut Vec<Stmt>) {
+    for stmt in block.stmts(ast).iter() {
+      let stmt = ast.get_node_in_sub_range(stmt);
       stack.push(stmt);
     }
   }
@@ -65,69 +68,85 @@ fn get_hoisted_declarations<'a>(
   while let Some(node) = stmt_stack.pop() {
     match node {
       Stmt::Block(block) => {
-        collect_from_block_stm(block, &mut stmt_stack);
+        collect_from_block_stm(ast, block, &mut stmt_stack);
       }
       Stmt::If(r#if) => {
-        stmt_stack.push(&r#if.cons);
-        if let Some(alt) = &r#if.alt {
+        stmt_stack.push(r#if.cons(ast));
+        if let Some(alt) = r#if.alt(ast) {
           stmt_stack.push(alt);
         }
       }
       Stmt::For(r#for) => {
-        if let Some(init) = &r#for.init
-          && let VarDeclOrExpr::VarDecl(var_decl) = &init
-          && let Some(decls) = get_var_kind_decls(var_decl)
+        if let Some(init) = r#for.init(ast)
+          && let VarDeclOrExpr::VarDecl(var_decl) = init
+          && let Some(decls) = get_var_kind_decls(ast, var_decl)
         {
-          for decl in decls {
-            collect_declaration_from_pat(&decl.name, &mut declarations);
+          for decl in decls.iter() {
+            let decl = ast.get_node_in_sub_range(decl);
+            collect_declaration_from_pat(ast, decl.name(ast), &mut declarations);
           }
         }
-        stmt_stack.push(&r#for.body);
+        stmt_stack.push(r#for.body(ast));
       }
-      Stmt::ForIn(ForInStmt { left, body, .. }) | Stmt::ForOf(ForOfStmt { left, body, .. }) => {
-        if let ForHead::VarDecl(var_decl) = &left {
-          for decl in &var_decl.decls {
-            collect_declaration_from_pat(&decl.name, &mut declarations);
+      Stmt::ForIn(for_in) => {
+        let left = for_in.left(ast);
+        let body = for_in.body(ast);
+        if let ForHead::VarDecl(var_decl) = left {
+          for decl in var_decl.decls(ast).iter() {
+            let decl = ast.get_node_in_sub_range(decl);
+            collect_declaration_from_pat(ast, decl.name(ast), &mut declarations);
           }
         }
         stmt_stack.push(body);
       }
-      Stmt::DoWhile(DoWhileStmt { body, .. })
-      | Stmt::While(WhileStmt { body, .. })
-      | Stmt::Labeled(LabeledStmt { body, .. }) => {
+      Stmt::ForOf(for_of) => {
+        let left = for_of.left(ast);
+        let body = for_of.body(ast);
+        if let ForHead::VarDecl(var_decl) = left {
+          for decl in var_decl.decls(ast).iter() {
+            let decl = ast.get_node_in_sub_range(decl);
+            collect_declaration_from_pat(ast, decl.name(ast), &mut declarations);
+          }
+        }
         stmt_stack.push(body);
       }
+      Stmt::DoWhile(do_while) => stmt_stack.push(do_while.body(ast)),
+      Stmt::While(while_stmt) => stmt_stack.push(while_stmt.body(ast)),
+      Stmt::Labeled(labeled_stmt) => stmt_stack.push(labeled_stmt.body(ast)),
       Stmt::Switch(switch) => {
-        for cs in &switch.cases {
-          for consequent in &cs.cons {
+        for cs in switch.cases(ast).iter() {
+          let cs = ast.get_node_in_sub_range(cs);
+          for consequent in cs.cons(ast).iter() {
+            let consequent = ast.get_node_in_sub_range(consequent);
             stmt_stack.push(consequent);
           }
         }
       }
       Stmt::Try(r#try) => {
-        collect_from_block_stm(&r#try.block, &mut stmt_stack);
-        if let Some(handler) = &r#try.handler {
-          collect_from_block_stm(&handler.body, &mut stmt_stack);
+        collect_from_block_stm(ast, r#try.block(ast), &mut stmt_stack);
+        if let Some(handler) = r#try.handler(ast) {
+          collect_from_block_stm(ast, handler.body(ast), &mut stmt_stack);
         }
-        if let Some(finalizer) = &r#try.finalizer {
-          collect_from_block_stm(finalizer, &mut stmt_stack);
+        if let Some(finalizer) = r#try.finalizer(ast) {
+          collect_from_block_stm(ast, finalizer, &mut stmt_stack);
         }
       }
-      Stmt::Decl(decl) if decl.as_fn_decl().is_some() && include_function_declarations => {
+      Stmt::Decl(decl) if decl.as_fn().is_some() && include_function_declarations => {
         let r#fn = decl
-          .as_fn_decl()
+          .as_fn()
           .expect("decl is `FunctionDeclaration` in `if_guard`");
-        collect_declaration_from_ident(&r#fn.ident, &mut declarations);
+        collect_declaration_from_ident(r#fn.ident(ast), &mut declarations);
       }
       Stmt::Decl(decl) if decl.as_var().is_some() => {
         let Some(var) = decl.as_var() else {
           continue;
         };
-        let Some(decls) = get_var_kind_decls(var) else {
+        let Some(decls) = get_var_kind_decls(ast, var) else {
           continue;
         };
-        for decl in decls {
-          collect_declaration_from_pat(&decl.name, &mut declarations);
+        for decl in decls.iter() {
+          let decl = ast.get_node_in_sub_range(decl);
+          collect_declaration_from_pat(ast, decl.name(ast), &mut declarations);
         }
       }
       _ => {}
@@ -137,8 +156,8 @@ fn get_hoisted_declarations<'a>(
   declarations
 }
 
-pub fn statement_if(scanner: &mut JavascriptParser, stmt: &IfStmt) -> Option<bool> {
-  let param = scanner.evaluate_expression(&stmt.test);
+pub fn statement_if(scanner: &mut JavascriptParser, stmt: IfStmt) -> Option<bool> {
+  let param = scanner.evaluate_expression(stmt.test(&scanner.ast));
   let boolean = param.as_bool()?;
   if !param.could_have_side_effects() {
     scanner.add_presentational_dependency(Box::new(ConstDependency::new(
@@ -146,34 +165,37 @@ pub fn statement_if(scanner: &mut JavascriptParser, stmt: &IfStmt) -> Option<boo
       boolean.to_string().into_boxed_str(),
     )));
   } else {
-    scanner.walk_expression(&stmt.test);
+    scanner.walk_expression(stmt.test(&scanner.ast));
   }
 
   let branch_to_remove = if boolean {
-    stmt.alt.as_ref()
+    stmt.alt(&scanner.ast)
   } else {
-    Some(&stmt.cons)
+    Some(stmt.cons(&scanner.ast))
   };
 
   if let Some(branch_to_remove) = branch_to_remove {
     let declarations = if scanner.is_strict() {
-      get_hoisted_declarations(branch_to_remove, false)
+      get_hoisted_declarations(&scanner.ast, branch_to_remove, false)
     } else {
-      get_hoisted_declarations(branch_to_remove, true)
+      get_hoisted_declarations(&scanner.ast, branch_to_remove, true)
     };
     let replacement = if declarations.is_empty() {
       "{}".to_string()
     } else {
       format!(
         "{{ var {} }}",
-        declarations.iter().map(|decl| decl.sym.as_str()).join(", ")
+        declarations
+          .iter()
+          .map(|decl| scanner.ast.get_utf8(decl.sym(&scanner.ast)))
+          .join(", ")
       )
     };
 
     scanner.add_presentational_dependency(Box::new(ConstDependency::new(
       (
-        branch_to_remove.span().real_lo(),
-        branch_to_remove.span().real_hi(),
+        branch_to_remove.span(&scanner.ast).real_lo(),
+        branch_to_remove.span(&scanner.ast).real_hi(),
       )
         .into(),
       replacement.into_boxed_str(),

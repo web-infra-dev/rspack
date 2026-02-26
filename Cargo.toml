@@ -145,9 +145,11 @@ swc_html_minifier   = { version = "44.0.0", default-features = false }
 swc_node_comments   = { version = "18.0.0", default-features = false }
 swc_plugin_runner   = { version = "24.0.0", default-features = false }
 
-swc_experimental_ecma_ast      = { version = "0.5.0", default-features = false }
-swc_experimental_ecma_parser   = { version = "0.5.0", default-features = false }
-swc_experimental_ecma_semantic = { version = "0.5.0", default-features = false }
+swc_experimental_ecma_ast             = { git = "https://github.com/CPunisher/swc-experimental.git", rev = "2a1ba88358f716b241df53e61a86b4f05c5beb88", default-features = false }
+swc_experimental_ecma_parser          = { git = "https://github.com/CPunisher/swc-experimental.git", rev = "2a1ba88358f716b241df53e61a86b4f05c5beb88", default-features = false }
+swc_experimental_ecma_semantic        = { git = "https://github.com/CPunisher/swc-experimental.git", rev = "2a1ba88358f716b241df53e61a86b4f05c5beb88", default-features = false }
+swc_experimental_ecma_transforms_base = { git = "https://github.com/CPunisher/swc-experimental.git", rev = "2a1ba88358f716b241df53e61a86b4f05c5beb88", default-features = false }
+swc_experimental_ecma_utils           = { git = "https://github.com/CPunisher/swc-experimental.git", rev = "2a1ba88358f716b241df53e61a86b4f05c5beb88", default-features = false }
 
 rspack_dojang = { version = "0.1.11", default-features = false }
 tracy-client = { version = "=0.18.4", default-features = false, features = [
