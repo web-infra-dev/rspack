@@ -3,9 +3,11 @@ const { rspack } = require("@rspack/core");
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	mode: "production",
+	target: "web",
 	entry: "./main.js",
 	output: {
-		filename: "main.js"
+		filename: "main.js",
+		crossOriginLoading: "anonymous"
 	},
 	plugins: [
 		new rspack.HtmlRspackPlugin({
