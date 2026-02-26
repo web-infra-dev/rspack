@@ -93,7 +93,7 @@ impl PortableString {
         .as_str()
         .relative(project_root)
         .to_slash_lossy()
-        .trim_suffix('/')
+        .trim_end_matches('/')
         .to_string();
 
       let portable_path = if relative_path.is_empty() || relative_path == "." {

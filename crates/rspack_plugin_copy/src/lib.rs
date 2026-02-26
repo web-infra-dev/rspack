@@ -260,7 +260,7 @@ impl CopyRspackPlugin {
           .to_path_buf()
           .into_std_path_buf()
           .normalize()
-          .to_path_buf(),
+          .into_owned(),
       );
     }
 
@@ -427,7 +427,7 @@ impl CopyRspackPlugin {
             .clone()
             .into_std_path_buf()
             .normalize()
-            .to_path_buf(),
+            .into_owned(),
         );
         context = abs_from.parent().unwrap_or(Utf8Path::new("")).into();
 

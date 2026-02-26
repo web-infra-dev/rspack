@@ -1,4 +1,3 @@
-#![feature(trim_prefix_suffix)]
 
 #[cfg(feature = "noop")]
 pub use rspack_cacheable_macros::{
