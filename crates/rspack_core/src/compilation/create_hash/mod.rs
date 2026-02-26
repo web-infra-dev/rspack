@@ -379,19 +379,35 @@ impl Compilation {
     // re-create runtime chunk hash that depend on full hash
     let start = logger.time("hashing: process full hash chunks");
     for chunk_ukey in full_hash_chunks {
-      for runtime_module_identifier in self
-        .build_chunk_graph_artifact
-        .chunk_graph
-        .get_chunk_runtime_modules_iterable(&chunk_ukey)
-      {
-        let runtime_module = &self.runtime_modules[runtime_module_identifier];
-        if runtime_module.full_hash() || runtime_module.dependent_hash() {
-          let digest = runtime_module.get_runtime_hash(self, None).await?;
-          self
-            .runtime_modules_hash
-            .insert(*runtime_module_identifier, digest);
-        }
+      let runtime_module_hashes = rspack_futures::scope::<_, Result<_>>(|token| {
+        self
+          .build_chunk_graph_artifact
+          .chunk_graph
+          .get_chunk_runtime_modules_iterable(&chunk_ukey)
+          .for_each(|runtime_module_identifier| {
+            let runtime_module = &self.runtime_modules[runtime_module_identifier];
+            if runtime_module.full_hash() || runtime_module.dependent_hash() {
+              let s = unsafe { token.used((&self, runtime_module_identifier)) };
+              s.spawn(|(compilation, runtime_module_identifier)| async {
+                let runtime_module = &compilation.runtime_modules[runtime_module_identifier];
+                let digest = runtime_module.get_runtime_hash(compilation, None).await?;
+                Ok((*runtime_module_identifier, digest))
+              });
+            }
+          })
+      })
+      .await
+      .into_iter()
+      .map(|res| res.to_rspack_result())
+      .collect::<Result<Vec<_>>>()?;
+
+      for res in runtime_module_hashes {
+        let (runtime_module_identifier, digest) = res?;
+        self
+          .runtime_modules_hash
+          .insert(runtime_module_identifier, digest);
       }
+
       let chunk = self
         .build_chunk_graph_artifact
         .chunk_by_ukey
