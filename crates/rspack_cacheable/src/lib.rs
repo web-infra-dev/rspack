@@ -1,4 +1,3 @@
-
 #[cfg(feature = "noop")]
 pub use rspack_cacheable_macros::{
   disable_cacheable as cacheable, disable_cacheable_dyn as cacheable_dyn,
