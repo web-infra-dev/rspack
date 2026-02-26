@@ -2469,8 +2469,8 @@ packages:
   '@microsoft/tsdoc@0.16.0':
     resolution: {integrity: sha512-xgAyonlVVS+q7Vc7qLW0UrJU7rSFcETRWsqdXZtjzRU8dF+6CkozTK4V4y1LwOX7j8r/vHphjDeMeGI4tNGeGA==}
 
-  '@module-federation/error-codes@0.0.0-fix-array-share-scope-20260225123251':
-    resolution: {integrity: sha512-pM4ydWXaUetcQkXEW0eybeGNUlFboO2AHL+yFczGPSfkIuHWx+cPE2leFkeJpKwfWZD7UhgTOLJXdIO6RTT2hA==}
+  '@module-federation/error-codes@0.0.0-fix-array-share-scope-20260226111150':
+    resolution: {integrity: sha512-bJziB0aolGq4PpVtUG+Eiuemn+NeFNZVYe7nnSw6yzvTwm7o2YHvnRy1mKO0niTp08iL31yrhVpTIiW8x1Ls+g==}
 
   '@module-federation/error-codes@0.22.0':
     resolution: {integrity: sha512-xF9SjnEy7vTdx+xekjPCV5cIHOGCkdn3pIxo9vU7gEZMIw0SvAEdsy6Uh17xaCpm8V0FWvR0SZoK9Ik6jGOaug==}
@@ -9933,7 +9933,7 @@ snapshots:
   '@microsoft/tsdoc@0.16.0':
     optional: true
 
-  '@module-federation/error-codes@0.0.0-fix-array-share-scope-20260225123251': {}
+  '@module-federation/error-codes@0.0.0-fix-array-share-scope-20260226111150': {}
 
   '@module-federation/error-codes@0.22.0': {}
 
