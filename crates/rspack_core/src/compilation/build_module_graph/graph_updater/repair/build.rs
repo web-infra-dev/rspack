@@ -1,14 +1,15 @@
 use std::{collections::VecDeque, sync::Arc};
 
 use rspack_fs::ReadableFileSystem;
-use rustc_hash::FxHashSet;
+use rustc_hash::FxHashMap as HashMap;
 
 use super::{
-  TaskContext, lazy::ProcessUnlazyDependenciesTask, process_dependencies::ProcessDependenciesTask,
+  TaskContext, factorize::FactorizeTask, lazy::ProcessUnlazyDependenciesTask,
+  process_dependencies::dependency_resource_identifier,
 };
 use crate::{
   AsyncDependenciesBlock, BoxDependency, BoxModule, BuildContext, BuildResult, CompilationId,
-  CompilerId, CompilerOptions, DependencyParents, ModuleCodeTemplate, ResolverFactory,
+  CompilerId, CompilerOptions, DependencyParents, Module, ModuleCodeTemplate, ResolverFactory,
   SharedPluginDriver,
   compilation::build_module_graph::{ForwardedIdSet, HasLazyDependencies, LazyDependencies},
   utils::{
@@ -142,6 +143,7 @@ impl Task<TaskContext> for BuildResultTask {
     let mut lazy_dependencies = LazyDependencies::default();
     let mut queue = VecDeque::new();
     let mut all_dependencies = vec![];
+    let mut grouped_dependencies = HashMap::default();
     let mut handle_block = |dependencies: Vec<BoxDependency>,
                             blocks: Vec<Box<AsyncDependenciesBlock>>,
                             current_block: Option<Box<AsyncDependenciesBlock>>|
@@ -155,6 +157,14 @@ impl Task<TaskContext> for BuildResultTask {
           module.add_dependency_id(dependency_id);
         }
         all_dependencies.push(dependency_id);
+        if dependency.lazy().is_none()
+          && let Some(resource_identifier) = dependency_resource_identifier(&dependency)
+        {
+          grouped_dependencies
+            .entry(resource_identifier.into_owned())
+            .or_insert(vec![])
+            .push(dependency.clone());
+        }
         module_graph.set_parents(
           dependency_id,
           DependencyParents {
@@ -186,17 +196,21 @@ impl Task<TaskContext> for BuildResultTask {
     }
 
     let module_identifier = module.identifier();
+    let original_module_source = module
+      .as_normal_module()
+      .and_then(|module| module.source().cloned());
+    let original_module_context = module.get_context();
+    let issuer = module
+      .as_normal_module()
+      .and_then(|module| module.name_for_condition());
+    let issuer_layer = module.get_layer().cloned();
+    let resolve_options = module.get_resolve_options();
 
     module_graph.add_module(module);
 
     let mut tasks: Vec<Box<dyn Task<TaskContext>>> = vec![];
 
-    let dependencies_to_process = if !lazy_dependencies.is_empty() {
-      let lazy_dependency_ids = lazy_dependencies
-        .all_lazy_dependencies()
-        .collect::<FxHashSet<_>>();
-      all_dependencies.retain(|dep| !lazy_dependency_ids.contains(dep));
-
+    if !lazy_dependencies.is_empty() {
       if let Some(HasLazyDependencies::Pending(pending_forwarded_ids)) = context
         .artifact
         .module_to_lazy_make
@@ -210,21 +224,45 @@ impl Task<TaskContext> for BuildResultTask {
           original_module_identifier: module_identifier,
         }));
       }
-
-      all_dependencies
     } else {
       context
         .artifact
         .module_to_lazy_make
         .update_module_lazy_dependencies(module_identifier, None);
-      all_dependencies
-    };
+    }
 
-    tasks.push(Box::new(ProcessDependenciesTask {
-      dependencies: dependencies_to_process,
-      original_module_identifier: module_identifier,
-      from_unlazy: false,
-    }));
+    for dependencies in grouped_dependencies.into_values() {
+      let dependency = &dependencies[0];
+      let dependency_type = dependency.dependency_type();
+      // TODO move module_factory calculate to dependency factories
+      let module_factory = context
+        .dependency_factories
+        .get(dependency_type)
+        .unwrap_or_else(|| {
+          panic!(
+            "No module factory available for dependency type: {}, resourceIdentifier: {:?}",
+            dependency_type,
+            dependency.resource_identifier()
+          )
+        })
+        .clone();
+
+      tasks.push(Box::new(FactorizeTask {
+        compiler_id: context.compiler_id,
+        compilation_id: context.compilation_id,
+        module_factory,
+        original_module_identifier: Some(module_identifier),
+        original_module_source: original_module_source.clone(),
+        original_module_context: original_module_context.clone(),
+        issuer: issuer.clone(),
+        issuer_layer: issuer_layer.clone(),
+        dependencies,
+        resolve_options: resolve_options.clone(),
+        options: context.compiler_options.clone(),
+        resolver_factory: context.resolver_factory.clone(),
+        from_unlazy: false,
+      }));
+    }
 
     Ok(tasks)
   }
