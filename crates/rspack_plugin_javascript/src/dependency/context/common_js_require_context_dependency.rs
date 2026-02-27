@@ -2,8 +2,9 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsModuleDependency, ContextDependency, ContextOptions, Dependency, DependencyCategory,
   DependencyCodeGeneration, DependencyId, DependencyLocation, DependencyRange, DependencyTemplate,
-  DependencyTemplateType, DependencyType, ExportsInfoArtifact, FactorizeInfo, ModuleGraph,
-  ModuleGraphCacheArtifact, ResourceIdentifier, TemplateContext, TemplateReplaceSource,
+  DependencyTemplateType, DependencyType, ExportsInfoArtifact, ExtendedReferencedExport,
+  FactorizeInfo, ModuleGraph, ModuleGraphCacheArtifact, ReferencedExport, ResourceIdentifier,
+  RuntimeSpec, TemplateContext, TemplateReplaceSource, create_exports_object_referenced,
 };
 use rspack_error::Diagnostic;
 
@@ -80,6 +81,28 @@ impl Dependency for CommonJsRequireContextDependency {
       return Some(vec![critical.clone()]);
     }
     None
+  }
+
+  fn get_referenced_exports(
+    &self,
+    _module_graph: &ModuleGraph,
+    _module_graph_cache: &ModuleGraphCacheArtifact,
+    _exports_info_artifact: &ExportsInfoArtifact,
+    _runtime: Option<&RuntimeSpec>,
+  ) -> Vec<ExtendedReferencedExport> {
+    if let Some(referenced_exports) = &self.options.referenced_exports {
+      return referenced_exports
+        .iter()
+        .map(|referenced_export| {
+          ExtendedReferencedExport::Export(ReferencedExport::new(
+            referenced_export.clone(),
+            false,
+            false,
+          ))
+        })
+        .collect();
+    }
+    create_exports_object_referenced()
   }
 
   fn loc(&self) -> Option<DependencyLocation> {
