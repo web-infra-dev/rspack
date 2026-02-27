@@ -111,6 +111,7 @@ jobs:
         run: pnpm run build:js
 
       - name: Run rspack-ecosystem-benchmark
+        timeout-minutes: 40
         id: run-benchmark
         run: |
           RSPACK_DIR=$(pwd)
