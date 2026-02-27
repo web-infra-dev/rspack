@@ -245,7 +245,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
     // statement like `return` / `throw` (non top-level). This relies on
     // `parser.terminated` which mirrors webpack's `scope.terminated` logic.
     if parser.terminated.is_some() && !parser.is_top_level_scope() {
-      return None;
+      return Some(true);
     }
 
     let dyn_imported = node.args.first()?;

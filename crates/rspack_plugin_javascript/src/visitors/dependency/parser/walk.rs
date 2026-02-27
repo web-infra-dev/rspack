@@ -226,7 +226,7 @@ impl JavascriptParser<'_> {
   }
 
   fn walk_with_statement(&mut self, stmt: &WithStmt) {
-    self.in_block_scope(false, |this| {
+    self.in_block_scope(true, |this| {
       this.walk_expression(&stmt.obj);
       this.walk_nested_statement(&stmt.body);
     });

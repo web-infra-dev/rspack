@@ -135,7 +135,6 @@ impl JavascriptParserPlugin for ConstPlugin {
       return None;
     }
 
-    use itertools::Itertools;
     use swc_core::ecma::ast::{
       BlockStmt, ClassDecl, Decl, DoWhileStmt, EmptyStmt, ExprStmt, ForInStmt, ForOfStmt, ForStmt,
       LabeledStmt, ReturnStmt, Stmt as SwcStmt, SwitchStmt, ThrowStmt, TryStmt, VarDecl, WhileStmt,
@@ -266,10 +265,9 @@ impl JavascriptParserPlugin for ConstPlugin {
     let replacement_body = if declarations.is_empty() {
       "{}".to_string()
     } else {
-      format!(
-        "{{ var {} }}",
-        declarations.iter().map(|decl| decl.sym.as_str()).join(", ")
-      )
+      let mut names: Vec<&str> = declarations.iter().map(|decl| decl.sym.as_str()).collect();
+      names.sort_unstable();
+      format!("{{ var {} }}", names.join(", "))
     };
 
     // Prepend the same comment as webpack for easier debugging.

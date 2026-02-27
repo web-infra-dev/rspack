@@ -343,17 +343,6 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
     None
   }
 
-  fn terminate(&self, parser: &mut JavascriptParser, stmt: Statement) -> Option<bool> {
-    for plugin in &self.plugins {
-      let res = plugin.terminate(parser, stmt);
-      // `SyncBailHook`
-      if res.is_some() {
-        return res;
-      }
-    }
-    None
-  }
-
   fn unused_statement(&self, parser: &mut JavascriptParser, stmt: Statement) -> Option<bool> {
     for plugin in &self.plugins {
       let res = plugin.unused_statement(parser, stmt);
