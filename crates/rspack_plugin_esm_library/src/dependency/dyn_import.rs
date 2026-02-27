@@ -3,16 +3,13 @@ use std::{borrow::Cow, sync::Arc};
 use atomic_refcell::AtomicRefCell;
 use rspack_collections::IdentifierMap;
 use rspack_core::{
-  ChunkUkey, Dependency, DependencyId, DependencyTemplate, ExportsType, ExtendedReferencedExport,
-  FakeNamespaceObjectMode, ModuleGraph, RuntimeGlobals, TemplateContext, UsageState,
-  get_exports_type,
+  ChunkUkey, Dependency, DependencyId, DependencyTemplate, ExportsType, FakeNamespaceObjectMode,
+  ModuleGraph, RuntimeGlobals, TemplateContext, get_exports_type,
 };
 use rspack_plugin_javascript::dependency::ImportDependency;
 use rspack_plugin_rslib::dyn_import_external::render_dyn_import_external_module;
 
 use crate::EsmLibraryPlugin;
-
-pub static NAMESPACE_SYMBOL: &str = "mod";
 
 fn then_expr(
   code_generatable_context: &mut TemplateContext,
@@ -231,16 +228,6 @@ impl DependencyTemplate for DynamicImportDependencyTemplate {
       return;
     }
 
-    // importer and importee are both scope hoisted
-    let ref_exports = dep.get_referenced_exports(
-      module_graph,
-      &code_generatable_context
-        .compilation
-        .module_graph_cache_artifact,
-      &code_generatable_context.compilation.exports_info_artifact,
-      None,
-    );
-
     // For empty facade chunks (0 modules, only re-exports) or single-module chunks,
     // the chunk's exports exactly match the module's exports
     // (ensured by link_entry_module_exports with strict_exports).
@@ -262,95 +249,10 @@ impl DependencyTemplate for DynamicImportDependencyTemplate {
       }
     }
 
-    let render_exports = if !ref_exports.is_empty()
-      && !ref_exports.iter().any(|ref_exports| match ref_exports {
-        ExtendedReferencedExport::Array(atoms) => atoms.is_empty(),
-        ExtendedReferencedExport::Export(referenced_export) => referenced_export.name.is_empty(),
-      }) {
-      // we only extract the named exports
-      // const { a, b } = await import('./refModule');
-      // const { a, b } = await import('./refChunk').then(mod => ({ a: __rspack_module_dynamic_ref0_a, b: __rspack_module_dynamic_ref0_b }));
-      let ref_exports = ref_exports
-        .iter()
-        .flat_map(|ref_exports| match ref_exports {
-          ExtendedReferencedExport::Array(atoms) => atoms
-            .iter()
-            .map(|atom| {
-              format!(
-                "{atom}: {}",
-                concatenation_scope.create_dynamic_module_reference(
-                  &ref_module.identifier(),
-                  already_in_chunk,
-                  atom
-                )
-              )
-            })
-            .collect::<Vec<_>>(),
-          ExtendedReferencedExport::Export(referenced_export) => referenced_export
-            .name
-            .iter()
-            .map(|atom| {
-              format!(
-                "{atom}: {}",
-                concatenation_scope.create_dynamic_module_reference(
-                  &ref_module.identifier(),
-                  already_in_chunk,
-                  atom
-                )
-              )
-            })
-            .collect::<Vec<_>>(),
-        })
-        .collect::<Vec<_>>();
-      ref_exports.join(",")
-    } else {
-      let ref_exports_info = code_generatable_context
-        .compilation
-        .exports_info_artifact
-        .get_prefetched_exports_info(
-          &ref_module.identifier(),
-          rspack_core::PrefetchExportsInfoMode::Default,
-        );
-      let all_exports = ref_exports_info.get_relevant_exports(None);
-      all_exports
-        .iter()
-        .filter(|export| !matches!(export.get_used(None), UsageState::Unused))
-        .filter_map(|export| export.name())
-        .map(|ref_export| {
-          format!(
-            "{}: {}",
-            ref_export,
-            concatenation_scope.create_dynamic_module_reference(
-              &ref_module.identifier(),
-              already_in_chunk,
-              ref_export
-            )
-          )
-        })
-        .collect::<Vec<_>>()
-        .join(",")
-    };
-
     source.replace(
       import_dep.range.start,
       import_dep.range.end,
-      &format!(
-        "{}{}",
-        import_promise,
-        if render_exports.is_empty() {
-          Cow::Borrowed("")
-        } else {
-          Cow::Owned(format!(
-            ".then(({}) => ({{ {} }}))",
-            if already_in_chunk {
-              ""
-            } else {
-              NAMESPACE_SYMBOL
-            },
-            render_exports
-          ))
-        }
-      ),
+      &import_promise,
       None,
     );
   }

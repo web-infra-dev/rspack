@@ -35,7 +35,7 @@ fn get_chunk(compilation: &Compilation, chunk_ukey: ChunkUkey) -> &Chunk {
     .expect_get(&chunk_ukey)
 }
 
-use crate::{EsmLibraryPlugin, dependency::dyn_import::NAMESPACE_SYMBOL};
+use crate::EsmLibraryPlugin;
 
 impl EsmLibraryPlugin {
   pub(crate) fn get_runtime_chunk(chunk_ukey: ChunkUkey, compilation: &Compilation) -> ChunkUkey {
@@ -744,31 +744,6 @@ var {} = {{}};
           source.replace(
             ident.id.span.real_lo(),
             ident.id.span.real_hi() + 2,
-            &name,
-            None,
-          );
-        }
-      } else if ctxt == &info.global_ctxt
-        && let Some((in_same_chunk, binding_ref)) = chunk_link.dyn_refs.get(atom.as_str())
-      {
-        let final_name = match binding_ref {
-          Ref::Symbol(symbol_ref) => Cow::Owned(if *in_same_chunk {
-            symbol_ref.render()
-          } else {
-            format!("{NAMESPACE_SYMBOL}.{}", symbol_ref.render())
-          }),
-          Ref::Inline(inline) => Cow::Borrowed(inline),
-        };
-
-        for ref_atom in refs {
-          let name = if ref_atom.shorthand {
-            Cow::Owned(format!("{}: {}", &ref_atom.id.sym, final_name.as_str()))
-          } else {
-            final_name.clone()
-          };
-          source.replace(
-            ref_atom.id.span.real_lo(),
-            ref_atom.id.span.real_hi(),
             &name,
             None,
           );

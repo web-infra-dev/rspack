@@ -37,7 +37,7 @@ import fs, { readFile } from "fs";
 
 
 it('should render external correctly', async () => {
-  const {ns} = await import("./async_js.mjs").then((mod) => ({ ns: mod.ns }))
+  const {ns} = await import("./async_js.mjs")
 
   expect(fs).toBe(other).toBe(fs).toBe(ns.default)
   expect(readFile).toBe(readFile).toBe(readFile).toBe(ns.readFile)

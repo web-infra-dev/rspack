@@ -1629,7 +1629,6 @@ var {} = {{}};
     // calculate exports based on imports
     for (chunk, chunk_link) in link.iter_mut() {
       let mut refs = FxIndexMap::default();
-      let mut dyn_refs = FxHashMap::default();
       let needed_namespace_objects = needed_namespace_objects_by_ukey.entry(*chunk).or_default();
       let chunk_imports = imports.entry(*chunk).or_default();
       // if one chunk has multiple modules that require the same
@@ -1738,97 +1737,6 @@ var {} = {{}};
             );
           }
         }
-
-        for (ref_module, all_refs) in &concatenation_scope.dyn_refs {
-          let ref_chunk = Self::get_module_chunk(*ref_module, compilation);
-          let ref_required = required.entry(ref_chunk).or_default();
-          let from_other_chunk = ref_chunk != *chunk;
-
-          for (ref_string, ref_atom) in all_refs.iter() {
-            if dyn_refs.contains_key(ref_string) {
-              continue;
-            }
-
-            let mut binding = Self::get_binding(
-              None,
-              module_graph,
-              &compilation.module_graph_cache_artifact,
-              &compilation.exports_info_artifact,
-              ref_module,
-              vec![ref_atom.clone()],
-              concate_modules_map,
-              needed_namespace_objects,
-              false,
-              false,
-              module.build_meta().strict_esm_module,
-              Some(false),
-              &mut Default::default(),
-              ref_required,
-              &mut chunk_link.used_names,
-            );
-
-            if let Ref::Symbol(symbol_binding) = &mut binding {
-              let module_id = symbol_binding.module;
-              let ref_module_chunk = Self::get_module_chunk(module_id, compilation);
-              let ref_external = concate_modules_map[ref_module].is_external();
-
-              if from_other_chunk && !ref_external {
-                let exported = Self::add_chunk_export(
-                  ref_module_chunk,
-                  symbol_binding.symbol.clone(),
-                  symbol_binding.symbol.clone(),
-                  &mut exports,
-                  self.strict_export_chunk(ref_module_chunk),
-                );
-
-                let Some(mut exported) = exported else {
-                  if self.strict_export_chunk(ref_module_chunk) {
-                    errors.push(
-                      rspack_error::error!(
-                        "Dynamic import module {ref_module} has conflict exports: {} has already been exported",
-                        symbol_binding.symbol
-                      )
-                      .into(),
-                    );
-                  }
-                  continue;
-                };
-
-                if ref_module_chunk != ref_chunk {
-                  // special case
-                  // const { foo, bar } = await import('./re-exports')
-                  // there is a chance that foo is from another chunk, and bar is from re-exports chunk
-                  // so should make sure foo is from another chunk
-                  let Some(reexported) = Self::add_chunk_re_export(
-                    ref_chunk,
-                    ref_module_chunk,
-                    exported.clone(),
-                    exported.clone(),
-                    &mut exports,
-                    self.strict_export_chunk(ref_chunk),
-                  ) else {
-                    if self.strict_export_chunk(ref_chunk) {
-                      errors.push(
-                        rspack_error::error!(
-                          "Dynamic import module {ref_module} has conflict re-exports: {} has already been exported",
-                          exported
-                        )
-                        .into(),
-                      );
-                    }
-                    continue;
-                  };
-
-                  exported = reexported.clone();
-                }
-
-                symbol_binding.symbol = exported;
-              }
-            }
-
-            dyn_refs.insert(ref_string.clone(), (!from_other_chunk, binding));
-          }
-        }
       }
 
       // deconflict imported symbol and required symbols
@@ -1917,7 +1825,6 @@ var {} = {{}};
 
       chunk_link.needed_namespace_objects = needed_namespace_objects.clone();
       chunk_link.refs = refs;
-      chunk_link.dyn_refs = dyn_refs;
 
       // ensure imports external module
       for m in &chunk_link.decl_modules {
@@ -1974,18 +1881,6 @@ var {} = {{}};
             None
           }
         })
-        .chain(
-          chunk_link
-            .dyn_refs
-            .iter()
-            .filter_map(|(_, (_, symbol_ref))| {
-              if let Ref::Symbol(symbol_ref) = symbol_ref {
-                Some(&symbol_ref.symbol)
-              } else {
-                None
-              }
-            }),
-        )
         .collect::<FxHashSet<_>>();
 
       let all_chunk_exported_symbols = &exports[&chunk_link.chunk].exports;
