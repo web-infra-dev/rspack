@@ -12,7 +12,7 @@ use swc_core::{
 
 use crate::visitors::JavascriptParser;
 
-fn get_hoisted_declarations<'a>(
+pub fn get_hoisted_declarations<'a>(
   branch: &'a Stmt,
   include_function_declarations: bool,
 ) -> FxHashSet<&'a Ident> {

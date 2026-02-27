@@ -192,6 +192,12 @@ pub struct NameInfo<'a> {
   pub info: Option<&'a VariableInfo>,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ScopeTerminated {
+  Return,
+  Throw,
+}
+
 #[derive(Clone, Copy, Debug)]
 pub enum TopLevelScope {
   Top,
@@ -347,6 +353,7 @@ pub struct JavascriptParser<'parser> {
   pub(crate) top_level_scope: TopLevelScope,
   pub(crate) current_tag_info: Option<TagInfoId>,
   pub in_try: bool,
+  pub(crate) terminated: Option<ScopeTerminated>,
   pub(crate) in_short_hand: bool,
   pub(crate) in_tagged_template_tag: bool,
   pub(crate) member_expr_in_optional_chain: bool,
@@ -354,6 +361,9 @@ pub struct JavascriptParser<'parser> {
   pub(crate) statement_path: Vec<StatementPath>,
   pub(crate) prev_statement: Option<StatementPath>,
   pub is_esm: bool,
+  /// Cache for eval_source parse warnings to avoid emitting duplicate
+  /// diagnostics when the same inline source fails to parse multiple times.
+  pub(crate) eval_source_warnings: FxHashSet<(String, String)>,
   pub(crate) destructuring_assignment_properties: DestructuringAssignmentPropertiesMap,
   pub(crate) dynamic_import_references: ImportsReferencesState,
   pub(crate) worker_index: u32,
@@ -513,6 +523,7 @@ impl<'parser> JavascriptParser<'parser> {
       presentational_dependencies,
       blocks,
       in_try: false,
+      terminated: None,
       in_short_hand: false,
       top_level_scope: TopLevelScope::Top,
       is_esm: matches!(module_type, ModuleType::JsEsm),
@@ -538,6 +549,7 @@ impl<'parser> JavascriptParser<'parser> {
       current_tag_info: None,
       prev_statement: None,
       inner_graph: InnerGraphState::new(),
+      eval_source_warnings: Default::default(),
       parse_meta,
       local_modules: Default::default(),
       has_inlinable_const_decls: true,
@@ -1314,7 +1326,7 @@ impl JavascriptParser<'_> {
     source: String,
     error_title: T,
   ) -> Option<BasicEvaluatedExpression<'static>> {
-    eval::eval_source(self, source, error_title)
+    eval::eval_source(self, source, error_title.to_string())
   }
 
   // same as `JavascriptParser._initializeEvaluating` in webpack

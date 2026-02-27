@@ -54,6 +54,27 @@ pub trait JavascriptParserPlugin {
     None
   }
 
+  /// Called for return / throw statements to decide whether to treat them as
+  /// terminating the current scope for dead control flow tracking.
+  ///
+  /// Return:
+  /// - `Some(true)` means mark `parser.terminated` with the corresponding reason
+  /// - Other values mean do not change termination state
+  fn terminate(&self, _parser: &mut JavascriptParser, _stmt: Statement) -> Option<bool> {
+    None
+  }
+
+  /// Called for statements after a terminating point (when only function
+  /// declarations should still be processed). Plugins may eliminate or
+  /// transform such unused statements.
+  ///
+  /// Return:
+  /// - `Some(true)` means the statement is fully handled and should be skipped
+  /// - Other values mean the parser should still walk the statement
+  fn unused_statement(&self, _parser: &mut JavascriptParser, _stmt: Statement) -> Option<bool> {
+    None
+  }
+
   fn module_declaration(&self, _parser: &mut JavascriptParser, _decl: &ModuleDecl) -> Option<bool> {
     None
   }

@@ -241,6 +241,13 @@ impl JavascriptParserPlugin for ImportParserPlugin {
     node: &CallExpr,
     import_then: Option<&CallExpr>,
   ) -> Option<bool> {
+    // Skip unreachable dynamic imports that are placed after a terminating
+    // statement like `return` / `throw` (non top-level). This relies on
+    // `parser.terminated` which mirrors webpack's `scope.terminated` logic.
+    if parser.terminated.is_some() && !parser.is_top_level_scope() {
+      return None;
+    }
+
     let dyn_imported = node.args.first()?;
     if dyn_imported.spread.is_some() {
       return None;
