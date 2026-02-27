@@ -1632,7 +1632,6 @@ var {} = {{}};
       let mut dyn_refs = FxHashMap::default();
       let needed_namespace_objects = needed_namespace_objects_by_ukey.entry(*chunk).or_default();
       let chunk_imports = imports.entry(*chunk).or_default();
-      let required = required.entry(*chunk).or_default();
       // if one chunk has multiple modules that require the same
       // module, the first module require imported module, the
       // followings should not require the module again.
@@ -1643,6 +1642,8 @@ var {} = {{}};
       // foo; // access foo again, but no require call
       // ```
       for m in chunk_link.hoisted_modules.clone() {
+        let current_required = required.entry(*chunk).or_default();
+
         let module = module_graph
           .module_by_identifier(&m)
           .expect("should have module");
@@ -1692,7 +1693,7 @@ var {} = {{}};
               */
               None,
               &mut chunk_link.used_names,
-              required,
+              current_required,
             );
           }
         }
@@ -1724,7 +1725,7 @@ var {} = {{}};
               module.build_meta().strict_esm_module,
               options.asi_safe,
               &mut Default::default(),
-              required,
+              current_required,
               &mut chunk_link.used_names,
             );
 
@@ -1740,6 +1741,7 @@ var {} = {{}};
 
         for (ref_module, all_refs) in &concatenation_scope.dyn_refs {
           let ref_chunk = Self::get_module_chunk(*ref_module, compilation);
+          let ref_required = required.entry(ref_chunk).or_default();
           let from_other_chunk = ref_chunk != *chunk;
 
           for (ref_string, ref_atom) in all_refs.iter() {
@@ -1761,7 +1763,7 @@ var {} = {{}};
               module.build_meta().strict_esm_module,
               Some(false),
               &mut Default::default(),
-              required,
+              ref_required,
               &mut chunk_link.used_names,
             );
 
