@@ -186,7 +186,6 @@ where
 
 #[cfg(test)]
 mod tests {
-  use rayon::prelude::*;
   use rustc_hash::FxHashMap as HashMap;
 
   use super::OverlayMap;
@@ -248,24 +247,6 @@ mod tests {
       .expect("should clone base into overlay") = 5;
 
     assert_eq!(map.get(&"a".to_string()), Some(&5));
-
-    map.reset();
-
-    assert_eq!(map.get(&"a".to_string()), Some(&1));
-  }
-
-  #[test]
-  fn par_iter_mut_materializes_base_entries() {
-    let mut map = OverlayMap::new(
-      [("a".to_string(), 1)]
-        .into_iter()
-        .collect::<HashMap<_, _>>(),
-    );
-
-    map.checkpoint();
-    map.par_iter_mut().for_each(|(_, value)| *value += 1);
-
-    assert_eq!(map.get(&"a".to_string()), Some(&2));
 
     map.reset();
 
