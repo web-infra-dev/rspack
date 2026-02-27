@@ -103,14 +103,14 @@ fn context_dependency_template_as_require_call(
     && let Some(value_range) = value_range
   {
     for (content, start, end) in &dep.options().replaces {
-      source.replace(*start, *end, content, None);
+      source.replace(*start, *end, content.to_string(), None);
     }
     source.replace(value_range.end, range.end, ")", None);
     expr.push('(');
-    source.replace(range.start, value_range.start, &expr, None);
+    source.replace(range.start, value_range.start, expr, None);
     return;
   }
-  source.replace(range.start, range.end, &expr, None);
+  source.replace(range.start, range.end, expr, None);
 }
 
 fn context_dependency_template_as_id(
@@ -138,18 +138,18 @@ fn context_dependency_template_as_id(
     .module_graph_module_by_dependency_id(id)
     .is_none()
   {
-    source.replace(range.start, range.end, &expr, None);
+    source.replace(range.start, range.end, expr, None);
     return;
   }
 
   for (content, start, end) in &dep.options().replaces {
-    source.replace(*start, *end, content, None);
+    source.replace(*start, *end, content.to_string(), None);
   }
 
   source.replace(
     range.start,
     range.start,
-    &format!("{}.resolve(", &expr),
+    format!("{}.resolve(", &expr),
     None,
   );
   source.replace(range.end, range.end, ")", None);

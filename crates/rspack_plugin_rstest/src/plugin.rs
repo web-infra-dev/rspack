@@ -82,7 +82,7 @@ impl RstestPlugin {
         replace.replace(
           placeholder_start as u32,
           placeholder_end as u32 + 1, // consider the trailing semicolon
-          &format! {"// [Rstest mock hoist] \"{mocked_id}\"\n{content};\n\n"},
+          format! {"// [Rstest mock hoist] \"{mocked_id}\"\n{content};\n\n"},
           None,
         );
         replace.replace(

@@ -212,7 +212,7 @@ impl DependencyTemplate for CommonJsExportsDependencyTemplate {
         source.replace(
           dep.range.start,
           dep.range.end,
-          &format!("{}{}", base, property_access(used, 0)),
+          format!("{}{}", base, property_access(used, 0)),
           None,
         );
       } else {
@@ -222,7 +222,12 @@ impl DependencyTemplate for CommonJsExportsDependencyTemplate {
           "__webpack_{}_export__",
           if is_inlined { "inlined" } else { "unused" }
         );
-        source.replace(dep.range.start, dep.range.end, &placeholder_var, None);
+        source.replace(
+          dep.range.start,
+          dep.range.end,
+          placeholder_var.clone(),
+          None,
+        );
         init_fragments.push(
           NormalInitFragment::new(
             format!("var {placeholder_var};\n"),
@@ -241,7 +246,7 @@ impl DependencyTemplate for CommonJsExportsDependencyTemplate {
             source.replace(
               dep.range.start,
               value_range.start,
-              &format!(
+              format!(
                 "Object.defineProperty({}{}, {}, (",
                 base,
                 property_access(used[0..used.len() - 1].iter(), 0),

@@ -227,6 +227,6 @@ impl DependencyTemplate for CommonJsFullRequireDependencyTemplate {
       )
     };
 
-    source.replace(dep.range.start, dep.range.end, &require_expr, None);
+    source.replace(dep.range.start, dep.range.end, require_expr, None);
   }
 }

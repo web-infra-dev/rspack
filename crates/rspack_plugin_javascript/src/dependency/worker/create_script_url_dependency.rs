@@ -85,8 +85,7 @@ impl DependencyTemplate for CreateScriptUrlDependencyTemplate {
         code_generatable_context
           .runtime_template
           .render_runtime_globals(&RuntimeGlobals::CREATE_SCRIPT_URL),
-      )
-      .as_str(),
+      ),
       None,
     );
     source.insert(dep.range_path.end, ")", None);

@@ -283,12 +283,17 @@ impl DependencyTemplate for AMDDefineDependencyTemplate {
     let mut texts = text.split('#');
 
     if !definition.is_empty() {
-      source.insert(0, &definition, None);
+      source.insert(0, definition, None);
     }
 
     let mut current = dep.range.start;
     if let Some(array_range) = &dep.array_range {
-      source.replace(current, array_range.start, texts.next().unwrap_or(""), None);
+      source.replace(
+        current,
+        array_range.start,
+        texts.next().unwrap_or("").to_string(),
+        None,
+      );
       current = array_range.end;
     }
 
@@ -296,7 +301,7 @@ impl DependencyTemplate for AMDDefineDependencyTemplate {
       source.replace(
         current,
         object_range.start,
-        texts.next().unwrap_or(""),
+        texts.next().unwrap_or("").to_string(),
         None,
       );
       current = object_range.end;
@@ -304,13 +309,18 @@ impl DependencyTemplate for AMDDefineDependencyTemplate {
       source.replace(
         current,
         function_range.start,
-        texts.next().unwrap_or(""),
+        texts.next().unwrap_or("").to_string(),
         None,
       );
       current = function_range.end;
     }
 
-    source.replace(current, dep.range.end, texts.next().unwrap_or(""), None);
+    source.replace(
+      current,
+      dep.range.end,
+      texts.next().unwrap_or("").to_string(),
+      None,
+    );
 
     if texts.next().is_some() {
       panic!("Implementation error");

@@ -127,7 +127,7 @@ impl DependencyTemplate for DynamicImportDependencyTemplate {
       source.replace(
         import_dep.range.start,
         import_dep.range.end,
-        &missing_promise,
+        missing_promise,
         None,
       );
       return;
@@ -200,7 +200,7 @@ impl DependencyTemplate for DynamicImportDependencyTemplate {
       source.replace(
         import_dep.range.start,
         import_dep.range.end,
-        &format!(
+        format!(
           "{import_promise}{}",
           then_expr(code_generatable_context, dep_id, request)
         ),
@@ -218,7 +218,7 @@ impl DependencyTemplate for DynamicImportDependencyTemplate {
       source.replace(
         import_dep.range.start,
         import_dep.range.end,
-        &format!(
+        format!(
           "{import_promise}{}",
           then_expr(code_generatable_context, dep_id, request)
         ),
@@ -252,7 +252,27 @@ impl DependencyTemplate for DynamicImportDependencyTemplate {
     source.replace(
       import_dep.range.start,
       import_dep.range.end,
+<<<<<<< Updated upstream
       &import_promise,
+=======
+      format!(
+        "{}{}",
+        import_promise,
+        if render_exports.is_empty() {
+          Cow::Borrowed("")
+        } else {
+          Cow::Owned(format!(
+            ".then(({}) => ({{ {} }}))",
+            if already_in_chunk {
+              ""
+            } else {
+              NAMESPACE_SYMBOL
+            },
+            render_exports
+          ))
+        }
+      ),
+>>>>>>> Stashed changes
       None,
     );
   }

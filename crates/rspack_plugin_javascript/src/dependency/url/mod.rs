@@ -147,8 +147,7 @@ impl DependencyTemplate for URLDependencyTemplate {
             runtime_template.render_runtime_globals(&RuntimeGlobals::RELATIVE_URL),
             runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
             runtime_template.module_id(compilation, &dep.id, &dep.request, false),
-          )
-          .as_str(),
+          ),
           None,
         );
       }
@@ -167,8 +166,7 @@ impl DependencyTemplate for URLDependencyTemplate {
               &dep.id.as_u32()
             ))
             .expect("should serde"),
-          )
-          .as_str(),
+          ),
           None,
         );
       }
@@ -181,8 +179,7 @@ impl DependencyTemplate for URLDependencyTemplate {
             runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
             runtime_template.module_id(compilation, &dep.id, &dep.request, false),
             runtime_template.render_runtime_globals(&RuntimeGlobals::BASE_URI)
-          )
-          .as_str(),
+          ),
           None,
         );
       }

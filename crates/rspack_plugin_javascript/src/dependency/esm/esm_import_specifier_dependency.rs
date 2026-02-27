@@ -513,7 +513,7 @@ impl ESMImportSpecifierDependencyTemplate {
         source.replace(
           dep.range.start,
           dep.range.end,
-          &format!("{} in {code}", json_stringify(&used_name)),
+          format!("{} in {code}", json_stringify(&used_name)),
           None,
         )
       }
@@ -570,9 +570,9 @@ impl DependencyTemplate for ESMImportSpecifierDependencyTemplate {
     let export_expr = self.get_code_for_ids(ids, dep, connection, code_generatable_context);
 
     if dep.shorthand {
-      source.insert(dep.range.end, format!(": {export_expr}").as_str(), None);
+      source.insert(dep.range.end, format!(": {export_expr}"), None);
     } else {
-      source.replace(dep.range.start, dep.range.end, export_expr.as_str(), None);
+      source.replace(dep.range.start, dep.range.end, export_expr, None);
     }
 
     let module_graph = code_generatable_context.compilation.get_module_graph();
@@ -642,7 +642,7 @@ impl DependencyTemplate for ESMImportSpecifierDependencyTemplate {
         } else {
           key
         };
-        source.replace(prop.range.start, prop.range.end, &content, None);
+        source.replace(prop.range.start, prop.range.end, content, None);
       });
     }
   }

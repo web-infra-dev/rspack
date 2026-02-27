@@ -95,14 +95,14 @@ impl DependencyTemplate for RequireEnsureDependencyTemplate {
     source.replace(
       dep.range.start,
       dep.content_range.start,
-      &format!("{promise}.then(("),
+      format!("{promise}.then(("),
       None,
     );
     if let Some(error_handler_range) = &dep.error_handler_range {
       source.replace(
         dep.content_range.end,
         error_handler_range.start,
-        &format!(
+        format!(
           ").bind(null, {}))['catch'](",
           code_generatable_context
             .runtime_template
@@ -115,7 +115,7 @@ impl DependencyTemplate for RequireEnsureDependencyTemplate {
       source.replace(
         dep.content_range.end,
         dep.range.end,
-        &format!(
+        format!(
           ").bind(null, {}))['catch']({})",
           code_generatable_context
             .runtime_template

@@ -173,7 +173,7 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
           source.replace(
             func.range.start,
             func.range.end,
-            &format!("{}{}{}", func.prefix, DEFAULT_EXPORT, func.suffix),
+            format!("{}{}{}", func.prefix, DEFAULT_EXPORT, func.suffix),
             None,
           );
           DEFAULT_EXPORT
@@ -211,7 +211,7 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
       source.replace(
         dep.range_stmt.start,
         dep.range.start,
-        format!("/* export default */ {}", dep.prefix).as_str(),
+        format!("/* export default */ {}", dep.prefix),
         None,
       );
     } else {
@@ -264,7 +264,7 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
       source.replace(
         dep.range_stmt.start,
         dep.range.start,
-        &format!("{}({}", content, dep.prefix),
+        format!("{}({}", content, dep.prefix),
         None,
       );
       source.replace_with_enforce(

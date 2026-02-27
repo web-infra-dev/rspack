@@ -153,7 +153,7 @@ impl DependencyTemplate for PureExpressionDependencyTemplate {
     if let Some(condition) = condition {
       source.insert(
         dep.range.start,
-        &format!("(/* runtime-dependent pure expression or super */ {condition} ? ("),
+        format!("(/* runtime-dependent pure expression or super */ {condition} ? ("),
         None,
       );
       source.insert(dep.range.end, ") : null)", None);

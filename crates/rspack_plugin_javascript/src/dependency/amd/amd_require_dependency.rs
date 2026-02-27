@@ -115,8 +115,8 @@ impl DependencyTemplate for AMDRequireDependencyTemplate {
           .runtime_template
           .render_runtime_globals(&RuntimeGlobals::UNCAUGHT_ERROR_HANDLER),
       );
-      source.replace(dep.outer_range.start, array_range.start, &start_block, None);
-      source.replace(array_range.end, dep.outer_range.end, &end_block, None);
+      source.replace(dep.outer_range.start, array_range.start, start_block, None);
+      source.replace(array_range.end, dep.outer_range.end, end_block, None);
       return;
     }
 
@@ -137,10 +137,10 @@ impl DependencyTemplate for AMDRequireDependencyTemplate {
       source.replace(
         dep.outer_range.start,
         function_range.start,
-        &start_block,
+        start_block,
         None,
       );
-      source.replace(function_range.end, dep.outer_range.end, &end_block, None);
+      source.replace(function_range.end, dep.outer_range.end, end_block, None);
       return;
     }
 
@@ -161,7 +161,7 @@ impl DependencyTemplate for AMDRequireDependencyTemplate {
         ")"
       };
 
-      source.replace(dep.outer_range.start, array_range.start, &start_block, None);
+      source.replace(dep.outer_range.start, array_range.start, start_block, None);
 
       source.insert(array_range.start, "var __rspack_amd_require_deps = ", None);
 
@@ -207,7 +207,7 @@ impl DependencyTemplate for AMDRequireDependencyTemplate {
           .render_runtime_globals(&RuntimeGlobals::UNCAUGHT_ERROR_HANDLER),
       );
 
-      source.replace(dep.outer_range.start, array_range.start, &start_block, None);
+      source.replace(dep.outer_range.start, array_range.start, start_block, None);
 
       source.insert(array_range.start, "var __rspack_amd_require_deps = ", None);
 
@@ -219,7 +219,7 @@ impl DependencyTemplate for AMDRequireDependencyTemplate {
         None,
       );
 
-      source.replace(function_range.end, dep.outer_range.end, &end_block, None);
+      source.replace(function_range.end, dep.outer_range.end, end_block, None);
     };
   }
 }

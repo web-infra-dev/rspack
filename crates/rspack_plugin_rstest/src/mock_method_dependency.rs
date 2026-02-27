@@ -272,7 +272,7 @@ impl MockMethodDependencyTemplate {
     source.replace(
       stmt_range.start,
       stmt_range.start,
-      &format!("/* RSTEST:{flag}_HOIST_START:{request} */"),
+      format!("/* RSTEST:{flag}_HOIST_START:{request} */"),
       None,
     );
 
@@ -280,7 +280,7 @@ impl MockMethodDependencyTemplate {
     source.replace(
       stmt_range.end,
       stmt_range.end,
-      &format!("\n/* RSTEST:{flag}_HOIST_END:{request} */"),
+      format!("\n/* RSTEST:{flag}_HOIST_END:{request} */"),
       None,
     );
 
@@ -290,7 +290,7 @@ impl MockMethodDependencyTemplate {
     source.replace(
       callee_range.end,
       callee_range.end,
-      &format!(" */ {require_name}.{mock_method}"),
+      format!(" */ {require_name}.{mock_method}"),
       None,
     );
   }
@@ -312,7 +312,7 @@ impl MockMethodDependencyTemplate {
     source.replace(
       callee_range.end,
       callee_range.end,
-      &format!(" */ /* RSTEST:{flag}_HOIST_START:{request} */{require_name}.{mock_method}"),
+      format!(" */ /* RSTEST:{flag}_HOIST_START:{request} */{require_name}.{mock_method}"),
       None,
     );
 
@@ -321,7 +321,7 @@ impl MockMethodDependencyTemplate {
     source.replace(
       call_range.end,
       call_range.end,
-      &format!("\n/* RSTEST:{flag}_HOIST_END:{request} */"),
+      format!("\n/* RSTEST:{flag}_HOIST_END:{request} */"),
       None,
     );
   }
@@ -339,7 +339,7 @@ impl MockMethodDependencyTemplate {
     source.replace(
       callee_range.end,
       callee_range.end,
-      &format!(" */ {require_name}.{mock_method}"),
+      format!(" */ {require_name}.{mock_method}"),
       None,
     );
   }
