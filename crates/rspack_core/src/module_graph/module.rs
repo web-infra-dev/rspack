@@ -7,33 +7,27 @@ use crate::{DependencyId, ModuleIdentifier, ModuleIssuer};
 
 #[cacheable]
 #[derive(Debug, Clone)]
-pub struct SideEffectsData {
-  pub node_type: String,
-  pub loc: String,
-}
-
-/// An item in the optimization bailout list for a module.
-///
-/// `SideEffects` is heap-allocated via `Box` so that the enum size stays at
-/// ~32 bytes instead of ~80 bytes, avoiding the 3× memory overhead in
-/// `Vec<OptimizationBailoutItem>` when `ModuleConcatenationPlugin` pushes many
-/// items during production builds.
-#[cacheable]
-#[derive(Debug, Clone)]
 pub enum OptimizationBailoutItem {
   Message(String),
-  SideEffects(Box<SideEffectsData>),
+  SideEffects {
+    node_type: String,
+    loc: String,
+    short_id: String,
+  },
 }
 
 impl fmt::Display for OptimizationBailoutItem {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {
       Self::Message(msg) => write!(f, "{msg}"),
-      Self::SideEffects(data) => {
+      Self::SideEffects {
+        node_type,
+        loc,
+        short_id,
+      } => {
         write!(
           f,
-          "{} with side_effects in source code at {}",
-          data.node_type, data.loc
+          "{node_type} with side_effects in source code at {short_id}:{loc}"
         )
       }
     }
