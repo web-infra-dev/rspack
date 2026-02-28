@@ -2,6 +2,7 @@ use std::hash::BuildHasherDefault;
 
 use rspack_collections::{IdentifierHasher, IdentifierSet};
 use rspack_error::Diagnostic;
+use rspack_paths::ArcPathSet;
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
@@ -66,6 +67,14 @@ pub struct BuildModuleGraphArtifact {
   pub missing_dependencies: FileCounter,
   /// The files which cache depends on.
   pub build_dependencies: FileCounter,
+
+  /// Pending file counter updates from build results, deferred from the main
+  /// thread task loop to reduce per-task overhead. Each entry records the
+  /// module identifier whose build_info paths should be added.
+  pending_build_file_counter_ids: Vec<ModuleIdentifier>,
+  /// Pending file counter updates from factorize results. Each entry records
+  /// the first dependency id whose FactorizeInfo paths should be added.
+  pending_factorize_file_counter_ids: Vec<DependencyId>,
 }
 
 impl BuildModuleGraphArtifact {
@@ -85,6 +94,8 @@ impl BuildModuleGraphArtifact {
       context_dependencies: Default::default(),
       missing_dependencies: Default::default(),
       build_dependencies: Default::default(),
+      pending_build_file_counter_ids: Default::default(),
+      pending_factorize_file_counter_ids: Default::default(),
     }
   }
 
@@ -220,6 +231,110 @@ impl BuildModuleGraphArtifact {
         .collect::<Vec<_>>()
     });
     module_diagnostics.chain(dep_diagnostics).collect()
+  }
+
+  pub fn defer_build_file_counter_update(&mut self, module_identifier: ModuleIdentifier) {
+    self.pending_build_file_counter_ids.push(module_identifier);
+  }
+
+  pub fn defer_factorize_file_counter_update(&mut self, dep_id: DependencyId) {
+    self.pending_factorize_file_counter_ids.push(dep_id);
+  }
+
+  /// Apply all deferred file counter updates that were buffered during the
+  /// task loop. The four independent `FileCounter`s are processed in parallel
+  /// via `std::thread::scope` to maximise throughput.
+  pub fn flush_pending_file_counter_updates(&mut self) {
+    let build_ids = std::mem::take(&mut self.pending_build_file_counter_ids);
+    let factorize_ids = std::mem::take(&mut self.pending_factorize_file_counter_ids);
+
+    if build_ids.is_empty() && factorize_ids.is_empty() {
+      return;
+    }
+
+    // Phase 1 – collect owned copies of the path sets from the module graph.
+    // Cloning an ArcPathSet is cheap (just Arc ref-count bumps).
+    struct BuildUpdate {
+      resource_id: ResourceId,
+      file: ArcPathSet,
+      context: ArcPathSet,
+      missing: ArcPathSet,
+      build: ArcPathSet,
+    }
+
+    struct FactorizeUpdate {
+      resource_id: ResourceId,
+      file: ArcPathSet,
+      context: ArcPathSet,
+      missing: ArcPathSet,
+    }
+
+    let build_updates: Vec<BuildUpdate> = build_ids
+      .iter()
+      .filter_map(|mid| {
+        let module = self.module_graph.module_by_identifier(mid)?;
+        let bi = module.build_info();
+        Some(BuildUpdate {
+          resource_id: ResourceId::from(mid),
+          file: bi.file_dependencies.clone(),
+          context: bi.context_dependencies.clone(),
+          missing: bi.missing_dependencies.clone(),
+          build: bi.build_dependencies.clone(),
+        })
+      })
+      .collect();
+
+    let factorize_updates: Vec<FactorizeUpdate> = factorize_ids
+      .iter()
+      .filter_map(|dep_id| {
+        let dep = self.module_graph.dependency_by_id(dep_id);
+        let info = FactorizeInfo::get_from(dep)?;
+        Some(FactorizeUpdate {
+          resource_id: ResourceId::from(dep_id),
+          file: info.file_dependencies().clone(),
+          context: info.context_dependencies().clone(),
+          missing: info.missing_dependencies().clone(),
+        })
+      })
+      .collect();
+
+    // Phase 2 – apply updates to the four FileCounters in parallel.
+    let file_deps = &mut self.file_dependencies;
+    let context_deps = &mut self.context_dependencies;
+    let missing_deps = &mut self.missing_dependencies;
+    let build_deps = &mut self.build_dependencies;
+
+    std::thread::scope(|s| {
+      s.spawn(|| {
+        for u in &build_updates {
+          file_deps.add_files(&u.resource_id, &u.file);
+        }
+        for u in &factorize_updates {
+          file_deps.add_files(&u.resource_id, &u.file);
+        }
+      });
+      s.spawn(|| {
+        for u in &build_updates {
+          context_deps.add_files(&u.resource_id, &u.context);
+        }
+        for u in &factorize_updates {
+          context_deps.add_files(&u.resource_id, &u.context);
+        }
+      });
+      s.spawn(|| {
+        for u in &build_updates {
+          missing_deps.add_files(&u.resource_id, &u.missing);
+        }
+        for u in &factorize_updates {
+          missing_deps.add_files(&u.resource_id, &u.missing);
+        }
+      });
+      s.spawn(|| {
+        for u in &build_updates {
+          build_deps.add_files(&u.resource_id, &u.build);
+        }
+      });
+    });
   }
 
   pub fn reset_temporary_data(&mut self) {

@@ -46,6 +46,7 @@ impl MakeOccasion {
       state: _,
       make_failed_dependencies: _,
       make_failed_module: _,
+      ..
     } = artifact;
 
     let mut need_update_modules = issuer_update_modules.clone();
@@ -108,24 +109,17 @@ impl MakeOccasion {
       }
     }
 
-    Ok(BuildModuleGraphArtifact {
-      // write all of field here to avoid forget to update occasion when add new fields
-      // temporary data set to default
-      affected_modules: Default::default(),
-      affected_dependencies: Default::default(),
-      issuer_update_modules: Default::default(),
-
-      state: BuildModuleGraphArtifactState::Initialized,
-      module_graph: mg,
-      module_to_lazy_make,
-
-      make_failed_module,
-      make_failed_dependencies,
-      entry_dependencies,
-      file_dependencies: file_dep,
-      context_dependencies: context_dep,
-      missing_dependencies: missing_dep,
-      build_dependencies: build_dep,
-    })
+    let mut artifact = BuildModuleGraphArtifact::new();
+    artifact.state = BuildModuleGraphArtifactState::Initialized;
+    artifact.module_graph = mg;
+    artifact.module_to_lazy_make = module_to_lazy_make;
+    artifact.make_failed_module = make_failed_module;
+    artifact.make_failed_dependencies = make_failed_dependencies;
+    artifact.entry_dependencies = entry_dependencies;
+    artifact.file_dependencies = file_dep;
+    artifact.context_dependencies = context_dep;
+    artifact.missing_dependencies = missing_dep;
+    artifact.build_dependencies = build_dep;
+    Ok(artifact)
   }
 }

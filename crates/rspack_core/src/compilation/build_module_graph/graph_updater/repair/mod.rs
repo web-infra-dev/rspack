@@ -66,5 +66,6 @@ pub async fn repair(
 
   let mut ctx = TaskContext::new(compilation, artifact, exports_info_artifact);
   run_task_loop(&mut ctx, init_tasks).await?;
+  ctx.artifact.flush_pending_file_counter_updates();
   Ok((ctx.artifact, ctx.exports_info_artifact))
 }

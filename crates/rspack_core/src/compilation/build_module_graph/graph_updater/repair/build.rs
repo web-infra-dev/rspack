@@ -11,10 +11,7 @@ use crate::{
   CompilerId, CompilerOptions, DependencyParents, ModuleCodeTemplate, ResolverFactory,
   SharedPluginDriver,
   compilation::build_module_graph::{ForwardedIdSet, HasLazyDependencies, LazyDependencies},
-  utils::{
-    ResourceId,
-    task_loop::{Task, TaskResult, TaskType},
-  },
+  utils::task_loop::{Task, TaskResult, TaskType},
 };
 
 #[derive(Debug)]
@@ -105,8 +102,6 @@ impl Task<TaskContext> for BuildResultTask {
       .call(context.compiler_id, context.compilation_id, &mut module)
       .await?;
 
-    let build_info = module.build_info();
-
     if !module.diagnostics().is_empty() {
       context
         .artifact
@@ -120,23 +115,9 @@ impl Task<TaskContext> for BuildResultTask {
       .module_graph
       .get_optimization_bailout_mut(&module.identifier())
       .extend(build_result.optimization_bailouts);
-    let resource_id = ResourceId::from(module.identifier());
     context
       .artifact
-      .file_dependencies
-      .add_files(&resource_id, &build_info.file_dependencies);
-    context
-      .artifact
-      .context_dependencies
-      .add_files(&resource_id, &build_info.context_dependencies);
-    context
-      .artifact
-      .missing_dependencies
-      .add_files(&resource_id, &build_info.missing_dependencies);
-    context
-      .artifact
-      .build_dependencies
-      .add_files(&resource_id, &build_info.build_dependencies);
+      .defer_build_file_counter_update(module.identifier());
 
     let module_graph = &mut context.artifact.module_graph;
     let mut lazy_dependencies = LazyDependencies::default();

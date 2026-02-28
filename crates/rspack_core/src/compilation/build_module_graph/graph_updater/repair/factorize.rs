@@ -9,10 +9,7 @@ use crate::{
   ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, ModuleLayer, Resolve,
   ResolverFactory,
   module_graph::ModuleGraphModule,
-  utils::{
-    ResourceId,
-    task_loop::{Task, TaskResult, TaskType},
-  },
+  utils::task_loop::{Task, TaskResult, TaskType},
 };
 
 #[derive(Debug)]
@@ -161,16 +158,7 @@ impl Task<TaskContext> for FactorizeResultTask {
         .make_failed_dependencies
         .insert(*dependencies[0].id());
     }
-    let resource_id = ResourceId::from(*dependencies[0].id());
-    artifact
-      .file_dependencies
-      .add_files(&resource_id, factorize_info.file_dependencies());
-    artifact
-      .context_dependencies
-      .add_files(&resource_id, factorize_info.context_dependencies());
-    artifact
-      .missing_dependencies
-      .add_files(&resource_id, factorize_info.missing_dependencies());
+    artifact.defer_factorize_file_counter_update(*dependencies[0].id());
 
     for dep in &mut dependencies {
       // Some dependencies do not come from the process_dependencies task,
