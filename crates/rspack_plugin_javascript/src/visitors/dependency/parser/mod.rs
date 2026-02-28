@@ -48,7 +48,7 @@ use crate::{
   parser_and_generator::ParserRuntimeRequirementsData,
   parser_plugin::{
     self, ImportsReferencesState, InnerGraphState, JavaScriptParserPluginDrive,
-    JavascriptParserPlugin,
+    JavascriptParserPlugin, RequireReferencesState,
   },
   utils::eval::{self, BasicEvaluatedExpression},
   visitors::{
@@ -363,6 +363,7 @@ pub struct JavascriptParser<'parser> {
   pub is_esm: bool,
   pub(crate) destructuring_assignment_properties: DestructuringAssignmentPropertiesMap,
   pub(crate) dynamic_import_references: ImportsReferencesState,
+  pub(crate) common_js_require_references: RequireReferencesState,
   pub(crate) worker_index: u32,
   pub(crate) parser_exports_state: Option<bool>,
   pub(crate) local_modules: Vec<LocalModule>,
@@ -541,6 +542,7 @@ impl<'parser> JavascriptParser<'parser> {
       member_expr_in_optional_chain: false,
       destructuring_assignment_properties: Default::default(),
       dynamic_import_references: Default::default(),
+      common_js_require_references: Default::default(),
       semicolons,
       statement_path: Default::default(),
       current_tag_info: None,
