@@ -2,7 +2,7 @@ use rayon::prelude::*;
 use rspack_collections::{IdentifierMap, IdentifierSet, UkeyDashSet, UkeyMap, UkeySet};
 use rspack_core::{
   ChunkGroupUkey, ChunkUkey, Compilation, DependenciesBlock, DependencyType, Logger,
-  incremental::Mutation,
+  ModuleIdentifier, incremental::Mutation,
 };
 
 use crate::EsmLibraryPlugin;
@@ -383,6 +383,10 @@ pub(crate) fn ensure_dyn_import_namespace_facades(
     }
   }
 
+  // Track how many dyn targets are in each multi-module chunk.
+  // When multiple dyn targets share a chunk, we need facades to avoid export conflicts.
+  let mut dyn_targets_per_chunk = UkeyMap::<ChunkUkey, Vec<ModuleIdentifier>>::default();
+
   for module_id in &all_dyn_targets {
     let Some(module) = module_graph.module_by_identifier(module_id) else {
       continue;
@@ -415,8 +419,25 @@ pub(crate) fn ensure_dyn_import_namespace_facades(
       } else {
         already_strict.insert(chunk_ukey);
       }
+    } else if concatenated_modules.contains(module_id) {
+      // Multi-module chunk with only named imports: track for potential conflict detection.
+      dyn_targets_per_chunk
+        .entry(chunk_ukey)
+        .or_default()
+        .push(*module_id);
     }
-    // Multi-module chunk with only named imports: .then() remapping handles it, no split needed.
+  }
+
+  // When multiple dyn targets share the same multi-module chunk, their exports
+  // would be merged into the chunk's exports. If they have overlapping export names,
+  // this causes conflicts. Create facade chunks for all of them to ensure each
+  // dynamic import gets the correct module's exports.
+  for (chunk_ukey, targets) in &dyn_targets_per_chunk {
+    if targets.len() > 1 {
+      for module_id in targets {
+        needs_split.push((*module_id, *chunk_ukey));
+      }
+    }
   }
 
   needs_split.sort_by_key(|(module_id, _)| *module_id);
