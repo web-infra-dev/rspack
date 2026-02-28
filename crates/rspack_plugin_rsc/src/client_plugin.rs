@@ -4,10 +4,10 @@ use atomic_refcell::AtomicRefCell;
 use derive_more::Debug;
 use rspack_collections::Identifier;
 use rspack_core::{
-  ChunkGraph, ChunkGroup, ChunkGroupUkey, ChunkUkey, Compilation, CompilationAfterProcessAssets,
-  CompilationParams, CompilerCompilation, CompilerFailed, CompilerId, CompilerMake,
-  CrossOriginLoading, DependenciesBlock, Dependency, DependencyId, DependencyType, Logger,
-  ModuleGraph, ModuleId, ModuleIdentifier, Plugin,
+  BoxDependency, ChunkGraph, ChunkGroup, ChunkGroupUkey, ChunkUkey, Compilation,
+  CompilationAfterProcessAssets, CompilationParams, CompilerCompilation, CompilerFailed,
+  CompilerId, CompilerMake, CrossOriginLoading, DependenciesBlock, DependencyId, DependencyType,
+  Logger, ModuleGraph, ModuleId, ModuleIdentifier, Plugin,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
@@ -536,7 +536,7 @@ async fn make(&self, compilation: &mut Compilation) -> Result<()> {
         continue;
       }
 
-      let dependency = Box::new(RscEntryDependency::new(
+      let dependency: BoxDependency = Box::new(RscEntryDependency::new(
         entry_name.clone(),
         client_modules.clone(),
       ));
@@ -549,7 +549,7 @@ async fn make(&self, compilation: &mut Compilation) -> Result<()> {
       include_dependencies.push(*dependency.id());
       compilation
         .get_module_graph_mut()
-        .add_dependency(dependency);
+        .add_dependency(dependency.into());
     }
 
     #[allow(clippy::unwrap_used)]

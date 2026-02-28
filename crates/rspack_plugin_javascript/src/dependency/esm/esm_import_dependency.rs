@@ -614,10 +614,8 @@ impl Dependency for ESMImportSideEffectDependency {
     })
   }
 
-  fn unset_lazy(&mut self) -> bool {
-    let changed = self.lazy_make;
-    self.lazy_make = false;
-    changed
+  fn unset_lazy(&self) -> bool {
+    self.lazy_make
   }
 }
 

@@ -127,7 +127,8 @@ pub trait Dependency:
     None
   }
 
-  fn unset_lazy(&mut self) -> bool {
+  #[doc(hidden)]
+  fn unset_lazy(&self) -> bool {
     false
   }
 }
