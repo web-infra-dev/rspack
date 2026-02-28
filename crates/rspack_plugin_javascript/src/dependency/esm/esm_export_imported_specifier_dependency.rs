@@ -59,7 +59,8 @@ pub struct ESMExportImportedSpecifierDependency {
   resource_identifier: ResourceIdentifier,
   export_presence_mode: ExportPresenceMode,
   loc: Option<DependencyLocation>,
-  factorize_info: FactorizeInfo,
+  #[cacheable(with=rspack_cacheable::with::Skip)]
+  factorize_info: std::sync::Arc<std::sync::Mutex<FactorizeInfo>>,
   lazy_make: bool,
 }
 
@@ -1499,12 +1500,19 @@ impl ModuleDependency for ESMExportImportedSpecifierDependency {
     ))
   }
 
-  fn factorize_info(&self) -> &FactorizeInfo {
-    &self.factorize_info
+  fn factorize_info(&self) -> FactorizeInfo {
+    self
+      .factorize_info
+      .lock()
+      .expect("dependency factorize_info poisoned")
+      .clone()
   }
 
-  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
-    &mut self.factorize_info
+  fn set_factorize_info(&self, info: FactorizeInfo) {
+    *self
+      .factorize_info
+      .lock()
+      .expect("dependency factorize_info poisoned") = info;
   }
 }
 

@@ -1,14 +1,10 @@
-use std::sync::{Mutex, OnceLock};
+use std::sync::{Arc, Mutex};
 
 use rspack_cacheable::cacheable;
 use rspack_error::Diagnostic;
 use rspack_paths::ArcPathSet;
-use rustc_hash::FxHashMap;
 
 use super::{ArcDependency, Dependency, DependencyId};
-
-static FACTORIZE_INFO_MAP: OnceLock<Mutex<FxHashMap<DependencyId, FactorizeInfo>>> =
-  OnceLock::new();
 
 #[cacheable]
 #[derive(Debug, Clone, Default)]
@@ -38,39 +34,39 @@ impl FactorizeInfo {
   }
 
   pub fn get_from(dep: &dyn Dependency) -> Option<FactorizeInfo> {
-    let map = FACTORIZE_INFO_MAP.get_or_init(|| Mutex::new(FxHashMap::default()));
-    if let Some(info) = map
-      .lock()
-      .expect("factorize info map poisoned")
-      .get(dep.id())
-      .cloned()
-    {
-      return Some(info);
-    }
     if let Some(d) = dep.as_context_dependency() {
-      Some(d.factorize_info().clone())
+      Some(d.factorize_info())
     } else if let Some(d) = dep.as_module_dependency() {
-      Some(d.factorize_info().clone())
+      Some(d.factorize_info())
     } else {
       None
     }
   }
 
   pub(crate) fn revoke_arc(dep: &ArcDependency) -> Option<FactorizeInfo> {
-    let map = FACTORIZE_INFO_MAP.get_or_init(|| Mutex::new(FxHashMap::default()));
-    map
-      .lock()
-      .expect("factorize info map poisoned")
-      .remove(dep.id())
+    if let Some(d) = dep.as_context_dependency() {
+      let info = d.factorize_info();
+      d.set_factorize_info(Default::default());
+      Some(info)
+    } else if let Some(d) = dep.as_module_dependency() {
+      let info = d.factorize_info();
+      d.set_factorize_info(Default::default());
+      Some(info)
+    } else {
+      None
+    }
   }
 
   pub(crate) fn set_arc(dep: &ArcDependency, info: FactorizeInfo) -> Option<()> {
-    let map = FACTORIZE_INFO_MAP.get_or_init(|| Mutex::new(FxHashMap::default()));
-    map
-      .lock()
-      .expect("factorize info map poisoned")
-      .insert(*dep.id(), info);
-    Some(())
+    if let Some(d) = dep.as_context_dependency() {
+      d.set_factorize_info(info);
+      Some(())
+    } else if let Some(d) = dep.as_module_dependency() {
+      d.set_factorize_info(info);
+      Some(())
+    } else {
+      None
+    }
   }
 
   pub fn is_success(&self) -> bool {
@@ -96,4 +92,15 @@ impl FactorizeInfo {
   pub fn diagnostics(&self) -> &[Diagnostic] {
     &self.diagnostics
   }
+}
+
+pub fn read_factorize_info(cell: &Arc<Mutex<FactorizeInfo>>) -> FactorizeInfo {
+  cell
+    .lock()
+    .expect("dependency factorize_info poisoned")
+    .clone()
+}
+
+pub fn write_factorize_info(cell: &Arc<Mutex<FactorizeInfo>>, info: FactorizeInfo) {
+  *cell.lock().expect("dependency factorize_info poisoned") = info;
 }

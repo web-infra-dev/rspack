@@ -13,7 +13,8 @@ const FEDERATION_RUNTIME_DEPENDENCY_TYPE: DependencyType = DependencyType::EsmIm
 pub struct FederationRuntimeDependency {
   pub id: DependencyId,
   request: String,
-  factorize_info: FactorizeInfo,
+  #[cacheable(with=rspack_cacheable::with::Skip)]
+  factorize_info: std::sync::Arc<std::sync::Mutex<FactorizeInfo>>,
 }
 
 impl FederationRuntimeDependency {
@@ -51,12 +52,19 @@ impl ModuleDependency for FederationRuntimeDependency {
     &self.request
   }
 
-  fn factorize_info(&self) -> &FactorizeInfo {
-    &self.factorize_info
+  fn factorize_info(&self) -> FactorizeInfo {
+    self
+      .factorize_info
+      .lock()
+      .expect("dependency factorize_info poisoned")
+      .clone()
   }
 
-  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
-    &mut self.factorize_info
+  fn set_factorize_info(&self, info: FactorizeInfo) {
+    *self
+      .factorize_info
+      .lock()
+      .expect("dependency factorize_info poisoned") = info;
   }
   // Spawning_effect is not directly translatable, Rust's ownership and borrowing rules apply.
   // Side effects are generally handled by the module's build and code generation logic.

@@ -19,8 +19,8 @@ pub trait ContextDependency: Dependency {
 
   fn set_critical(&self, diagnostic: Option<Diagnostic>);
 
-  fn factorize_info(&self) -> &FactorizeInfo;
-  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo;
+  fn factorize_info(&self) -> FactorizeInfo;
+  fn set_factorize_info(&self, info: FactorizeInfo);
 }
 
 pub trait AsContextDependency {

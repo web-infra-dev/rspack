@@ -16,7 +16,8 @@ pub struct CssImportDependency {
   media: Option<String>,
   supports: Option<String>,
   layer: Option<CssLayer>,
-  factorize_info: FactorizeInfo,
+  #[cacheable(with=rspack_cacheable::with::Skip)]
+  factorize_info: std::sync::Arc<std::sync::Mutex<FactorizeInfo>>,
 }
 
 #[cacheable]
@@ -91,12 +92,19 @@ impl ModuleDependency for CssImportDependency {
     &self.request
   }
 
-  fn factorize_info(&self) -> &FactorizeInfo {
-    &self.factorize_info
+  fn factorize_info(&self) -> FactorizeInfo {
+    self
+      .factorize_info
+      .lock()
+      .expect("dependency factorize_info poisoned")
+      .clone()
   }
 
-  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
-    &mut self.factorize_info
+  fn set_factorize_info(&self, info: FactorizeInfo) {
+    *self
+      .factorize_info
+      .lock()
+      .expect("dependency factorize_info poisoned") = info;
   }
 }
 

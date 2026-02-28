@@ -27,7 +27,8 @@ pub struct ImportEagerDependency {
   attributes: Option<ImportAttributes>,
   phase: ImportPhase,
   resource_identifier: ResourceIdentifier,
-  factorize_info: FactorizeInfo,
+  #[cacheable(with=rspack_cacheable::with::Skip)]
+  factorize_info: std::sync::Arc<std::sync::Mutex<FactorizeInfo>>,
 }
 
 impl ImportEagerDependency {
@@ -118,12 +119,19 @@ impl ModuleDependency for ImportEagerDependency {
     &self.request
   }
 
-  fn factorize_info(&self) -> &FactorizeInfo {
-    &self.factorize_info
+  fn factorize_info(&self) -> FactorizeInfo {
+    self
+      .factorize_info
+      .lock()
+      .expect("dependency factorize_info poisoned")
+      .clone()
   }
 
-  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
-    &mut self.factorize_info
+  fn set_factorize_info(&self, info: FactorizeInfo) {
+    *self
+      .factorize_info
+      .lock()
+      .expect("dependency factorize_info poisoned") = info;
   }
 }
 

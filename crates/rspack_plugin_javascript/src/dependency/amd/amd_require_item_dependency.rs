@@ -14,7 +14,8 @@ pub struct AMDRequireItemDependency {
   request: Atom,
   range: Option<DependencyRange>,
   optional: bool,
-  factorize_info: FactorizeInfo,
+  #[cacheable(with=rspack_cacheable::with::Skip)]
+  factorize_info: std::sync::Arc<std::sync::Mutex<FactorizeInfo>>,
 }
 
 impl AMDRequireItemDependency {
@@ -66,12 +67,19 @@ impl ModuleDependency for AMDRequireItemDependency {
     self.optional
   }
 
-  fn factorize_info(&self) -> &FactorizeInfo {
-    &self.factorize_info
+  fn factorize_info(&self) -> FactorizeInfo {
+    self
+      .factorize_info
+      .lock()
+      .expect("dependency factorize_info poisoned")
+      .clone()
   }
 
-  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
-    &mut self.factorize_info
+  fn set_factorize_info(&self, info: FactorizeInfo) {
+    *self
+      .factorize_info
+      .lock()
+      .expect("dependency factorize_info poisoned") = info;
   }
 }
 

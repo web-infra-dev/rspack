@@ -24,7 +24,8 @@ pub struct URLContextDependency {
   optional: bool,
   #[cacheable(with=Skip)]
   critical: Arc<Mutex<Option<Diagnostic>>>,
-  factorize_info: FactorizeInfo,
+  #[cacheable(with=rspack_cacheable::with::Skip)]
+  factorize_info: std::sync::Arc<std::sync::Mutex<FactorizeInfo>>,
 }
 
 impl URLContextDependency {
@@ -123,12 +124,19 @@ impl ContextDependency for URLContextDependency {
       .expect("context dependency critical poisoned") = diagnostic;
   }
 
-  fn factorize_info(&self) -> &FactorizeInfo {
-    &self.factorize_info
+  fn factorize_info(&self) -> FactorizeInfo {
+    self
+      .factorize_info
+      .lock()
+      .expect("dependency factorize_info poisoned")
+      .clone()
   }
 
-  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
-    &mut self.factorize_info
+  fn set_factorize_info(&self, info: FactorizeInfo) {
+    *self
+      .factorize_info
+      .lock()
+      .expect("dependency factorize_info poisoned") = info;
   }
 }
 

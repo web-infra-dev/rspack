@@ -24,8 +24,8 @@ pub trait ModuleDependency: Dependency {
     None
   }
 
-  fn factorize_info(&self) -> &FactorizeInfo;
-  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo;
+  fn factorize_info(&self) -> FactorizeInfo;
+  fn set_factorize_info(&self, info: FactorizeInfo);
 }
 
 clone_trait_object!(ModuleDependency);

@@ -31,7 +31,8 @@ pub struct ContextElementDependency {
   pub referenced_exports: Option<Vec<Vec<Atom>>>,
   pub dependency_type: DependencyType,
   pub attributes: Option<ImportAttributes>,
-  pub factorize_info: FactorizeInfo,
+  #[cacheable(with=rspack_cacheable::with::Skip)]
+  pub factorize_info: std::sync::Arc<std::sync::Mutex<FactorizeInfo>>,
 }
 
 impl ContextElementDependency {
@@ -160,12 +161,19 @@ impl ModuleDependency for ContextElementDependency {
     )
   }
 
-  fn factorize_info(&self) -> &FactorizeInfo {
-    &self.factorize_info
+  fn factorize_info(&self) -> FactorizeInfo {
+    self
+      .factorize_info
+      .lock()
+      .expect("dependency factorize_info poisoned")
+      .clone()
   }
 
-  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
-    &mut self.factorize_info
+  fn set_factorize_info(&self, info: FactorizeInfo) {
+    *self
+      .factorize_info
+      .lock()
+      .expect("dependency factorize_info poisoned") = info;
   }
 }
 
