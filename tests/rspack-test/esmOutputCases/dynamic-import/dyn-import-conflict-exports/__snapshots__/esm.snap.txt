@@ -1,0 +1,43 @@
+```mjs title=0.mjs
+
+export { value } from "./ab-chunk.mjs";
+
+```
+
+```mjs title=1.mjs
+
+export { value_0 as value } from "./ab-chunk.mjs";
+
+```
+
+```mjs title=ab-chunk.mjs
+// ./a.js
+const value = 1
+
+// ./b.js
+const b_value = 2
+
+export { b_value as value_0, value };
+
+```
+
+```mjs title=main.mjs
+import { value, value_0 as b_value } from "./ab-chunk.mjs";
+
+// ./index.js
+
+
+
+it('should handle conflicting exports from multi-module chunk', async () => {
+	expect(value).toBe(1)
+	expect(b_value).toBe(2)
+
+	const modA = await import("./0.mjs")
+	const modB = await import("./1.mjs")
+
+	expect(modA.value).toBe(1)
+	expect(modB.value).toBe(2)
+})
+
+
+```

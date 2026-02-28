@@ -1,0 +1,21 @@
+```mjs title=main.mjs
+// ./index.js
+it('should dynamically import module that re-exports from external', async () => {
+	const mod = await import("./wrapper_js.mjs")
+	expect(mod.readFile).toBeDefined()
+	expect(mod.fsDefault).toBeDefined()
+})
+
+
+```
+
+```mjs title=wrapper_js.mjs
+// fs
+
+// ./wrapper.js
+
+
+
+export { default as fsDefault, readFile } from "fs";
+
+```
