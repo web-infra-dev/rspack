@@ -9,10 +9,11 @@ use camino::Utf8Path;
 use regex::Regex;
 use rspack_cacheable::cacheable;
 use rspack_core::{
-  BoxModule, ChunkUkey, Compilation, CompilationAdditionalTreeRuntimeRequirements,
-  CompilationFinishModules, CompilationParams, CompilerThisCompilation, Context,
-  DependencyCategory, DependencyType, ExportsInfoGetter, ModuleExt, ModuleFactoryCreateData,
-  ModuleGraph, ModuleIdentifier, ModuleType, NormalModuleCreateData,
+  AsyncModulesArtifact, BoxModule, ChunkUkey, Compilation,
+  CompilationAdditionalTreeRuntimeRequirements, CompilationFinishModules,
+  CompilationOptimizeChunks, CompilationParams, CompilerThisCompilation, Context,
+  DependencyCategory, DependencyType, ExportProvided, ExportsInfoArtifact, ExportsInfoGetter,
+  ModuleExt, ModuleFactoryCreateData, ModuleIdentifier, ModuleType, NormalModuleCreateData,
   NormalModuleFactoryCreateModule, NormalModuleFactoryFactorize, NormalModuleFactoryModule, Plugin,
   PrefetchExportsInfoMode, ProvidedExports, ResolveOptionsWithDependencyType, ResolveResult,
   Resolver, RuntimeGlobals, RuntimeModule,
@@ -363,7 +364,7 @@ impl ConsumeSharedPlugin {
 
       // If we have a fallback, set the consume_shared_key in its BuildMeta
       if let Some(fallback_id) = fallback_id {
-        let mut module_graph = compilation.get_module_graph_mut();
+        let module_graph = compilation.get_module_graph_mut();
         if let Some(fallback_module) = module_graph.module_by_identifier_mut(&fallback_id) {
           // Set the consume_shared_key in the fallback module's BuildMeta
           fallback_module.build_meta_mut().consume_shared_key = Some(share_key);
@@ -376,7 +377,8 @@ impl ConsumeSharedPlugin {
 
   /// Copy metadata from fallback module to ConsumeShared module
   fn copy_fallback_metadata_to_consume_shared(
-    compilation: &mut Compilation,
+    compilation: &Compilation,
+    exports_info_artifact: &mut ExportsInfoArtifact,
     consume_shared_id: &ModuleIdentifier,
   ) -> Result<()> {
     // First, find the fallback module identifier
@@ -398,11 +400,9 @@ impl ConsumeSharedPlugin {
 
     // If we have a fallback, copy the export metadata
     if let Some(fallback_id) = fallback_id {
-      let mut module_graph = compilation.get_module_graph_mut();
-
       // Copy export information from fallback to ConsumeShared
       Self::copy_exports_from_fallback_to_consume_shared(
-        &mut module_graph,
+        exports_info_artifact,
         &fallback_id,
         consume_shared_id,
       )?;
@@ -413,105 +413,77 @@ impl ConsumeSharedPlugin {
 
   /// Copy export information from fallback module to ConsumeShared module
   fn copy_exports_from_fallback_to_consume_shared(
-    module_graph: &mut ModuleGraph,
+    exports_info_artifact: &mut ExportsInfoArtifact,
     fallback_id: &ModuleIdentifier,
     consume_shared_id: &ModuleIdentifier,
   ) -> Result<()> {
-    use rspack_core::ExportProvided;
-
     // Get exports info for both modules
-    let fallback_exports_info = module_graph.get_exports_info(fallback_id);
-    let consume_shared_exports_info = module_graph.get_exports_info(consume_shared_id);
+    let fallback_exports_info = exports_info_artifact.get_exports_info(fallback_id);
+    let consume_shared_exports_info = exports_info_artifact.get_exports_info(consume_shared_id);
 
     // Get the fallback module's provided exports using prefetched mode
-    let prefetched_fallback = ExportsInfoGetter::prefetch(
-      &fallback_exports_info,
-      module_graph,
-      PrefetchExportsInfoMode::Full,
-    );
-
-    let fallback_provided = prefetched_fallback.get_provided_exports();
+    let (fallback_provided, fallback_exports_snapshot) = {
+      let prefetched_fallback = ExportsInfoGetter::prefetch(
+        &fallback_exports_info,
+        exports_info_artifact,
+        PrefetchExportsInfoMode::Full,
+      );
+      let fallback_provided = prefetched_fallback.get_provided_exports();
+      let fallback_exports_snapshot = match &fallback_provided {
+        ProvidedExports::ProvidedNames(export_names) => export_names
+          .iter()
+          .map(|export_name| {
+            let fallback_export_info = prefetched_fallback.get_read_only_export_info(export_name);
+            (
+              export_name.clone(),
+              fallback_export_info.provided(),
+              fallback_export_info.can_mangle_provide(),
+              fallback_export_info.exports_info(),
+              fallback_export_info.terminal_binding(),
+            )
+          })
+          .collect::<Vec<_>>(),
+        _ => Vec::new(),
+      };
+      (fallback_provided, fallback_exports_snapshot)
+    };
 
     // Copy the provided exports to the ConsumeShared module
     match fallback_provided {
-      ProvidedExports::ProvidedNames(export_names) => {
+      ProvidedExports::ProvidedNames(_) => {
         // Copy each specific export from fallback to ConsumeShared
-        for export_name in export_names {
-          // Get or create export info for this export in the ConsumeShared module
+        for (export_name, provided, can_mangle_provide, nested_exports_info, terminal_binding) in
+          fallback_exports_snapshot
+        {
+          let consume_shared_export_info = consume_shared_exports_info
+            .as_data_mut(exports_info_artifact)
+            .ensure_export_info(&export_name);
           let consume_shared_export_info =
-            consume_shared_exports_info.get_export_info(module_graph, &export_name);
-          let fallback_export_info =
-            fallback_exports_info.get_export_info(module_graph, &export_name);
+            consume_shared_export_info.as_data_mut(exports_info_artifact);
 
-          // Copy the provided status
-          if let Some(provided) = fallback_export_info.as_data(module_graph).provided() {
-            consume_shared_export_info
-              .as_data_mut(module_graph)
-              .set_provided(Some(provided));
-          } else {
-            // Default to provided if not explicitly set in fallback
-            consume_shared_export_info
-              .as_data_mut(module_graph)
-              .set_provided(Some(ExportProvided::Provided));
+          consume_shared_export_info.set_provided(provided.or(Some(ExportProvided::Provided)));
+          if let Some(can_mangle) = can_mangle_provide {
+            consume_shared_export_info.set_can_mangle_provide(Some(can_mangle));
           }
-
-          // Copy can_mangle_provide status
-          if let Some(can_mangle) = fallback_export_info
-            .as_data(module_graph)
-            .can_mangle_provide()
-          {
-            consume_shared_export_info
-              .as_data_mut(module_graph)
-              .set_can_mangle_provide(Some(can_mangle));
+          if let Some(nested_exports_info) = nested_exports_info {
+            consume_shared_export_info.set_exports_info(Some(nested_exports_info));
           }
-
-          // Copy exports_info if it exists (for nested exports)
-          if let Some(nested_exports_info) =
-            fallback_export_info.as_data(module_graph).exports_info()
-          {
-            consume_shared_export_info
-              .as_data_mut(module_graph)
-              .set_exports_info(Some(nested_exports_info));
-          }
-
-          // Note: Usage state copying is handled by FlagDependencyUsagePlugin
-          // We only copy provision metadata here
-
-          // Copy terminal binding information if available
-          let terminal_binding = fallback_export_info
-            .as_data(module_graph)
-            .terminal_binding();
           if terminal_binding {
-            consume_shared_export_info
-              .as_data_mut(module_graph)
-              .set_terminal_binding(terminal_binding);
+            consume_shared_export_info.set_terminal_binding(true);
           }
         }
 
         // Mark the ConsumeShared module as having complete provide info
-        consume_shared_exports_info.set_has_provide_info(module_graph);
-
-        // Set the "other exports" to not provided (since we copied all specific exports)
-        consume_shared_exports_info.set_unknown_exports_provided(
-          module_graph,
-          false, // not provided
-          None,  // no exclude exports
-          None,  // no can_mangle
-          None,  // no terminal_binding
-          None,  // no target_key
-        );
+        consume_shared_exports_info
+          .as_data_mut(exports_info_artifact)
+          .set_has_provide_info();
       }
       ProvidedExports::ProvidedAll => {
         // If fallback provides all exports, mark ConsumeShared the same way
-        consume_shared_exports_info.set_unknown_exports_provided(
-          module_graph,
-          true, // provided
-          None, // no exclude exports
-          None, // no can_mangle
-          None, // no terminal_binding
-          None, // no target_key
-        );
-        consume_shared_exports_info.set_has_provide_info(module_graph);
+        let consume_shared_exports_info_data =
+          consume_shared_exports_info.as_data_mut(exports_info_artifact);
+        consume_shared_exports_info_data.set_has_provide_info();
+        consume_shared_exports_info_data.set_unknown_exports_provided(true, None, None, None, None);
       }
       ProvidedExports::Unknown => {
         // Keep unknown status - don't copy anything
@@ -523,14 +495,19 @@ impl ConsumeSharedPlugin {
 
   /// Enhanced metadata copying that also analyzes usage through incoming connections
   fn enhanced_copy_fallback_metadata_to_consume_shared(
-    compilation: &mut Compilation,
+    compilation: &Compilation,
+    exports_info_artifact: &mut ExportsInfoArtifact,
     consume_shared_id: &ModuleIdentifier,
   ) -> Result<()> {
     // Note: Enhanced analysis disabled due to borrow checker issues
     // ShareUsagePlugin provides this functionality instead
 
     // First, do the standard export metadata copying
-    Self::copy_fallback_metadata_to_consume_shared(compilation, consume_shared_id)?;
+    Self::copy_fallback_metadata_to_consume_shared(
+      compilation,
+      exports_info_artifact,
+      consume_shared_id,
+    )?;
 
     /* Enhanced analysis commented out due to borrow checker issues
     // Then, enhance with usage analysis from incoming connections
@@ -708,12 +685,16 @@ async fn this_compilation(
 }
 
 #[plugin_hook(CompilationFinishModules for ConsumeSharedPlugin)]
-async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
+async fn finish_modules(
+  &self,
+  compilation: &Compilation,
+  _async_modules_artifact: &mut AsyncModulesArtifact,
+  exports_info_artifact: &mut ExportsInfoArtifact,
+) -> Result<()> {
   // Find all ConsumeShared modules and copy metadata from their fallbacks
   let consume_shared_modules: Vec<ModuleIdentifier> = compilation
     .get_module_graph()
-    .modules()
-    .keys()
+    .modules_keys()
     .filter(|id| {
       if let Some(module) = compilation.get_module_graph().module_by_identifier(id) {
         module.module_type() == &ModuleType::ConsumeShared
@@ -726,22 +707,49 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
 
   // Process each ConsumeShared module individually to avoid borrow checker issues
   for consume_shared_id in consume_shared_modules {
-    // First, set the consume_shared_key in the fallback module's BuildMeta
-    Self::set_consume_shared_key_in_fallback(compilation, &consume_shared_id)?;
-
     if self.options.enhanced {
       // Use enhanced copying that includes usage analysis
-      Self::enhanced_copy_fallback_metadata_to_consume_shared(compilation, &consume_shared_id)?;
+      Self::enhanced_copy_fallback_metadata_to_consume_shared(
+        compilation,
+        exports_info_artifact,
+        &consume_shared_id,
+      )?;
     } else {
       // Use standard metadata copying
-      Self::copy_fallback_metadata_to_consume_shared(compilation, &consume_shared_id)?;
+      Self::copy_fallback_metadata_to_consume_shared(
+        compilation,
+        exports_info_artifact,
+        &consume_shared_id,
+      )?;
     }
+  }
+
+  Ok(())
+}
+
+#[plugin_hook(CompilationOptimizeChunks for ConsumeSharedPlugin)]
+async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
+  let consume_shared_modules: Vec<ModuleIdentifier> = {
+    let module_graph = compilation.get_module_graph();
+    module_graph
+      .modules_keys()
+      .filter(|id| {
+        module_graph
+          .module_by_identifier(id)
+          .is_some_and(|module| module.module_type() == &ModuleType::ConsumeShared)
+      })
+      .copied()
+      .collect()
+  };
+
+  for consume_shared_id in consume_shared_modules {
+    Self::set_consume_shared_key_in_fallback(compilation, &consume_shared_id)?;
   }
 
   // Phase 2: Unified shared detection optimization for all modules
   Self::mark_shared_descendants(compilation)?;
 
-  Ok(())
+  Ok(None)
 }
 
 #[plugin_hook(NormalModuleFactoryFactorize for ConsumeSharedPlugin)]
@@ -900,7 +908,6 @@ impl ConsumeSharedPlugin {
       let module_graph = compilation.get_module_graph();
       module_graph
         .modules()
-        .iter()
         .map(|(id, module)| {
           let build_meta = module.build_meta();
           (
@@ -1052,6 +1059,10 @@ impl Plugin for ConsumeSharedPlugin {
       .compilation_hooks
       .finish_modules
       .tap(finish_modules::new(self));
+    ctx
+      .compilation_hooks
+      .optimize_chunks
+      .tap(optimize_chunks::new(self));
     Ok(())
   }
 }

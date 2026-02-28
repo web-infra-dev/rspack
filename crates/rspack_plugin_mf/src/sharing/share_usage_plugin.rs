@@ -5,12 +5,13 @@ use std::{
 
 use async_trait::async_trait;
 use rspack_core::{
-  ApplyContext, AssetInfo, Compilation, CompilationAfterProcessAssets, CompilationAsset,
-  CompilationOptimizeDependencies, DependenciesBlock, DependencyType, ExtendedReferencedExport,
-  ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, ModuleType, Plugin,
-  rspack_sources::{RawSource, SourceExt},
+  ApplyContext, AssetInfo, BuildModuleGraphArtifact, Compilation, CompilationAsset,
+  CompilationOptimizeDependencies, CompilationProcessAssets, DependenciesBlock, DependencyType,
+  ExportsInfoArtifact, ExtendedReferencedExport, ModuleGraph, ModuleGraphCacheArtifact,
+  ModuleIdentifier, ModuleType, Plugin, SideEffectsOptimizeArtifact,
+  rspack_sources::{RawStringSource, SourceExt},
 };
-use rspack_error::{Error, Result};
+use rspack_error::{Diagnostic, Result, error};
 use rspack_hook::{plugin, plugin_hook};
 use serde::{Deserialize, Serialize};
 
@@ -122,7 +123,7 @@ impl ShareUsagePlugin {
       for source in &external_config.sources {
         if source.exists() {
           let content = std::fs::read_to_string(source)
-            .map_err(|e| Error::msg(format!("Failed to read external usage file: {e}")))?;
+            .map_err(|e| error!("Failed to read external usage file: {e}"))?;
 
           if let Ok(external_report) = serde_json::from_str::<ShareUsageReport>(&content) {
             // Merge the tree_shake data from the external share-usage.json
@@ -232,20 +233,25 @@ impl ShareUsagePlugin {
   fn analyze_consume_shared_usage(
     &self,
     compilation: &Compilation,
+    exports_info_artifact: &ExportsInfoArtifact,
   ) -> HashMap<String, HashMap<String, bool>> {
     let mut usage_map = HashMap::new();
     let module_graph = compilation.get_module_graph();
 
     // First, try to find ConsumeShared modules (for consumer apps)
-    for module_id in module_graph.modules().keys() {
+    for module_id in module_graph.modules_keys() {
       if let Some(module) = module_graph.module_by_identifier(module_id)
         && module.module_type() == &ModuleType::ConsumeShared
         && let Some(share_key) = module.get_consume_shared_key()
       {
         let exports_usage =
           if let Some(fallback_id) = self.find_fallback_module_id(&module_graph, module_id) {
-            let (used_exports, provided_exports) =
-              self.analyze_module_usage(&module_graph, &fallback_id, module_id);
+            let (used_exports, provided_exports) = self.analyze_module_usage(
+              &module_graph,
+              &fallback_id,
+              module_id,
+              exports_info_artifact,
+            );
 
             // Build usage map from exports
             let mut usage = HashMap::new();
@@ -263,7 +269,7 @@ impl ShareUsagePlugin {
 
     // If no ConsumeShared modules found, look for shared modules being exposed
     if usage_map.is_empty() {
-      usage_map = self.analyze_shared_module_usage(compilation);
+      usage_map = self.analyze_shared_module_usage(compilation, exports_info_artifact);
     }
 
     usage_map
@@ -272,12 +278,13 @@ impl ShareUsagePlugin {
   fn analyze_shared_module_usage(
     &self,
     compilation: &Compilation,
+    exports_info_artifact: &ExportsInfoArtifact,
   ) -> HashMap<String, HashMap<String, bool>> {
     let mut usage_map = HashMap::new();
     let module_graph = compilation.get_module_graph();
 
     // Look through all modules to find ones that are being shared
-    for module_id in module_graph.modules().keys() {
+    for module_id in module_graph.modules_keys() {
       if let Some(module) = module_graph.module_by_identifier(module_id) {
         // Check if this module is being shared by looking at its usage
         let module_identifier = module.identifier().to_string();
@@ -285,7 +292,7 @@ impl ShareUsagePlugin {
         // For now, we'll assume the share key is "module" based on the config
         // In a real implementation, we would need to map from the shared config
         if module_identifier.contains("module.js") {
-          let usage = self.analyze_exports_usage(&module_graph, module_id);
+          let usage = self.analyze_exports_usage(module_id, exports_info_artifact);
           usage_map.insert("module".to_string(), usage);
           break;
         }
@@ -297,17 +304,17 @@ impl ShareUsagePlugin {
 
   fn analyze_exports_usage(
     &self,
-    module_graph: &ModuleGraph,
     module_id: &ModuleIdentifier,
+    exports_info_artifact: &ExportsInfoArtifact,
   ) -> HashMap<String, bool> {
     use rspack_core::{ExportsInfoGetter, PrefetchExportsInfoMode, ProvidedExports, UsageState};
 
     let mut usage_map = HashMap::new();
 
-    let exports_info = module_graph.get_exports_info(module_id);
+    let exports_info = exports_info_artifact.get_exports_info(module_id);
     let prefetched = ExportsInfoGetter::prefetch(
       &exports_info,
-      module_graph,
+      exports_info_artifact,
       PrefetchExportsInfoMode::Default,
     );
 
@@ -344,6 +351,7 @@ impl ShareUsagePlugin {
     module_graph: &ModuleGraph,
     fallback_id: &ModuleIdentifier,
     consume_shared_id: &ModuleIdentifier,
+    exports_info_artifact: &ExportsInfoArtifact,
   ) -> (Vec<String>, Vec<String>) {
     use rspack_core::{ExportsInfoGetter, PrefetchExportsInfoMode, ProvidedExports, UsageState};
 
@@ -351,10 +359,10 @@ impl ShareUsagePlugin {
     let mut provided_exports = Vec::new();
     let mut all_imported_exports = HashSet::new();
 
-    let exports_info = module_graph.get_exports_info(fallback_id);
+    let exports_info = exports_info_artifact.get_exports_info(fallback_id);
     let prefetched = ExportsInfoGetter::prefetch(
       &exports_info,
-      module_graph,
+      exports_info_artifact,
       PrefetchExportsInfoMode::Default,
     );
 
@@ -379,35 +387,36 @@ impl ShareUsagePlugin {
     }
 
     for connection in module_graph.get_incoming_connections(consume_shared_id) {
-      if let Some(dependency) = module_graph.dependency_by_id(&connection.dependency_id) {
-        let referenced_exports = dependency.get_referenced_exports(
-          module_graph,
-          &ModuleGraphCacheArtifact::default(),
-          None,
-        );
+      let dependency = module_graph.dependency_by_id(&connection.dependency_id);
+      let referenced_exports = dependency.get_referenced_exports(
+        module_graph,
+        &ModuleGraphCacheArtifact::default(),
+        exports_info_artifact,
+        None,
+      );
 
-        for export_ref in referenced_exports {
-          let names = match export_ref {
-            ExtendedReferencedExport::Array(names) => {
-              names.into_iter().map(|n| n.to_string()).collect::<Vec<_>>()
-            }
-            ExtendedReferencedExport::Export(export_info) => export_info
-              .name
-              .into_iter()
-              .map(|n| n.to_string())
-              .collect::<Vec<_>>(),
-          };
+      for export_ref in referenced_exports {
+        let names = match export_ref {
+          ExtendedReferencedExport::Array(names) => {
+            names.into_iter().map(|n| n.to_string()).collect::<Vec<_>>()
+          }
+          ExtendedReferencedExport::Export(export_info) => export_info
+            .name
+            .into_iter()
+            .map(|n| n.to_string())
+            .collect::<Vec<_>>(),
+        };
 
-          for name in names {
-            if !used_exports.contains(&name) {
-              used_exports.push(name);
-            }
+        for name in names {
+          if !used_exports.contains(&name) {
+            used_exports.push(name);
           }
         }
 
         self.extract_dependency_imports(
           dependency.as_ref(),
           module_graph,
+          exports_info_artifact,
           &mut all_imported_exports,
         );
       }
@@ -426,10 +435,15 @@ impl ShareUsagePlugin {
     &self,
     dependency: &dyn rspack_core::Dependency,
     module_graph: &ModuleGraph,
+    exports_info_artifact: &ExportsInfoArtifact,
     imports: &mut HashSet<String>,
   ) {
-    let referenced_exports =
-      dependency.get_referenced_exports(module_graph, &ModuleGraphCacheArtifact::default(), None);
+    let referenced_exports = dependency.get_referenced_exports(
+      module_graph,
+      &ModuleGraphCacheArtifact::default(),
+      exports_info_artifact,
+      None,
+    );
 
     let mut found_exports = false;
     for export_ref in referenced_exports {
@@ -459,8 +473,8 @@ impl ShareUsagePlugin {
   ) -> Option<ModuleIdentifier> {
     if let Some(module) = module_graph.module_by_identifier(consume_shared_id) {
       for dep_id in module.get_dependencies() {
-        if let Some(dep) = module_graph.dependency_by_id(dep_id)
-          && matches!(dep.dependency_type(), DependencyType::ConsumeSharedFallback)
+        let dep = module_graph.dependency_by_id(dep_id);
+        if matches!(dep.dependency_type(), DependencyType::ConsumeSharedFallback)
           && let Some(fallback_id) = module_graph.module_identifier_by_dependency_id(dep_id)
         {
           return Some(*fallback_id);
@@ -470,8 +484,8 @@ impl ShareUsagePlugin {
       for block_id in module.get_blocks() {
         if let Some(block) = module_graph.block_by_id(block_id) {
           for dep_id in block.get_dependencies() {
-            if let Some(dep) = module_graph.dependency_by_id(dep_id)
-              && matches!(dep.dependency_type(), DependencyType::ConsumeSharedFallback)
+            let dep = module_graph.dependency_by_id(dep_id);
+            if matches!(dep.dependency_type(), DependencyType::ConsumeSharedFallback)
               && let Some(fallback_id) = module_graph.module_identifier_by_dependency_id(dep_id)
             {
               return Some(*fallback_id);
@@ -486,9 +500,16 @@ impl ShareUsagePlugin {
 }
 
 #[plugin_hook(CompilationOptimizeDependencies for ShareUsagePlugin)]
-async fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
+async fn optimize_dependencies(
+  &self,
+  compilation: &Compilation,
+  _side_effects_optimize_artifact: &mut SideEffectsOptimizeArtifact,
+  _build_module_graph_artifact: &mut BuildModuleGraphArtifact,
+  exports_info_artifact: &mut ExportsInfoArtifact,
+  _diagnostics: &mut Vec<Diagnostic>,
+) -> Result<Option<bool>> {
   // Step 1: Analyze what THIS application uses from shared modules
-  let mut usage_data = self.analyze_consume_shared_usage(compilation);
+  let mut usage_data = self.analyze_consume_shared_usage(compilation, exports_info_artifact);
 
   // Step 2: Load external usage data - exports that OTHER apps need (don't tree-shake these!)
   let external_usage = self.load_external_usage(compilation)?;
@@ -524,34 +545,38 @@ async fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<O
   };
 
   let content = serde_json::to_string_pretty(&report)
-    .map_err(|e| Error::msg(format!("Failed to serialize share usage report: {e}")))?;
+    .map_err(|e| error!("Failed to serialize share usage report: {e}"))?;
 
   // Write to filesystem for FlagDependencyUsagePlugin to read
   std::fs::write(&usage_file_path, content)
-    .map_err(|e| Error::msg(format!("Failed to write share usage file: {e}")))?;
+    .map_err(|e| error!("Failed to write share usage file: {e}"))?;
 
   Ok(None)
 }
 
-#[plugin_hook(CompilationAfterProcessAssets for ShareUsagePlugin)]
-async fn after_process_assets(&self, compilation: &mut Compilation) -> Result<()> {
+#[plugin_hook(CompilationProcessAssets for ShareUsagePlugin)]
+async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   // Generate ONLY the local usage data and emit as asset
   // This represents what THIS application uses from shared modules
-  let usage_data = self.analyze_consume_shared_usage(compilation);
+  let usage_data =
+    self.analyze_consume_shared_usage(compilation, &compilation.exports_info_artifact);
 
   let report = ShareUsageReport {
     tree_shake: usage_data,
   };
 
   let content = serde_json::to_string_pretty(&report)
-    .map_err(|e| Error::msg(format!("Failed to serialize share usage report: {e}")))?;
+    .map_err(|e| error!("Failed to serialize share usage report: {e}"))?;
 
   let filename = &self.options.filename;
 
   // Always emit the share-usage.json as a build asset
   compilation.assets_mut().insert(
     filename.clone(),
-    CompilationAsset::new(Some(RawSource::from(content).boxed()), AssetInfo::default()),
+    CompilationAsset::new(
+      Some(RawStringSource::from(content).boxed()),
+      AssetInfo::default(),
+    ),
   );
 
   Ok(())
@@ -573,8 +598,8 @@ impl Plugin for ShareUsagePlugin {
     // Still generate the report file for debugging/external tools
     ctx
       .compilation_hooks
-      .after_process_assets
-      .tap(after_process_assets::new(self));
+      .process_assets
+      .tap(process_assets::new(self));
     Ok(())
   }
 }

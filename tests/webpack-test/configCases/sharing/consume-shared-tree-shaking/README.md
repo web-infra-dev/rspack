@@ -1,8 +1,8 @@
-# Module Federation Tree-Shaking with External Usage Test
+# Module Federation Tree-Shaking with external usage test
 
 This test validates that Module Federation can properly tree-shake shared modules while preserving exports needed by external systems.
 
-## Test Structure
+## Test structure
 
 - **module.js**: Exports multiple values to test different scenarios:
   - **Directly used**: `used`, `alsoUsed`, `usedBoth` - imported and used in tests
@@ -18,7 +18,7 @@ This test validates that Module Federation can properly tree-shake shared module
 
 - **index.js**: Entry point that dynamically imports bootstrap.js (avoids eager loading)
 
-## How It Works
+## How it works
 
 1. The ModuleFederationPlugin automatically applies ShareUsagePlugin
 2. ShareUsagePlugin analyzes what THIS app uses from shared modules
@@ -30,13 +30,15 @@ This test validates that Module Federation can properly tree-shake shared module
 5. FlagDependencyUsagePlugin reads `share-usage.json` during optimization
 6. Tree-shaking preserves all exports marked as true, removes those marked as false
 
-## Expected Behavior
+## Expected behavior
 
 **Available exports (✅):**
+
 - `used`, `alsoUsed`, `usedBoth` - directly imported
 - `externallyUsed1`, `externallyUsed2`, `sharedUtility` - preserved via external-usage.json
 
 **Tree-shaken exports (❌):**
+
 - `unused`, `alsoUnused`, `neverUsed` - not used anywhere and not marked for external preservation
 
 This ensures that Module Federation builds can safely tree-shake while maintaining compatibility with external consumers.

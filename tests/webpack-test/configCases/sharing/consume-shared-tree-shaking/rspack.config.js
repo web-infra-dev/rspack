@@ -1,4 +1,4 @@
-const { ModuleFederationPlugin } = require("@rspack/core").container;
+const { ModuleFederationPlugin } = require('@rspack/core').container;
 
 /**
  * This test demonstrates tree-shaking with Module Federation and external usage preservation.
@@ -12,23 +12,23 @@ const { ModuleFederationPlugin } = require("@rspack/core").container;
  * @type {import("@rspack/core").Configuration}
  */
 module.exports = {
-	entry: './index.js',
-  mode: "production",
+  entry: './index.js',
+  mode: 'production',
   optimization: {
     usedExports: true,
     sideEffects: false,
   },
   plugins: [
     new ModuleFederationPlugin({
-      name: "app",
-      filename: "remoteEntry.js",
+      name: 'app',
+      filename: 'remoteEntry.js',
       exposes: {
-        "./module": "./module",
+        './module': './module',
       },
       shared: {
-        "./module": {
-          shareKey: "module",
-          version: "1.0.0",
+        './module': {
+          shareKey: 'module',
+          version: '1.0.0',
           singleton: true,
         },
       },

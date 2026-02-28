@@ -1,4 +1,4 @@
-# RFC: Module Federation Tree-Shaking Support with External Usage Preservation
+# RFC: Module Federation Tree-Shaking support with external usage preservation
 
 ## Summary
 
@@ -12,15 +12,17 @@ Module Federation allows multiple independent applications to share code at runt
 2. **Bundle size optimization**: Without tree-shaking, shared modules include all exports even when only a subset is used across all consumers
 3. **Coordination challenge**: Applications need a way to communicate which exports they need from shared modules to prevent breaking runtime dependencies
 
-## Detailed Design
+## Detailed design
 
 The solution involves a two-part system:
+
 1. **Usage Reporting**: Each application reports what it uses from shared modules
 2. **Usage Preservation**: Each application preserves exports that other applications need
 
-### Core Architecture
+### Core architecture
 
-#### Data Flow
+#### Data flow
+
 ```
 App A Build:
 1. Analyzes its own usage of shared modules
@@ -52,6 +54,7 @@ pub struct ShareUsagePluginOptions {
 ```
 
 **Execution Flow:**
+
 1. **optimize_dependencies hook** (runs BEFORE FlagDependencyUsagePlugin):
    - Analyzes local usage via `analyze_consume_shared_usage()`
    - Loads external usage data from `external-usage.json`
@@ -63,26 +66,27 @@ pub struct ShareUsagePluginOptions {
    - This file reports what THIS app uses (for other apps to consume)
 
 **Output Format (share-usage.json):**
+
 ```json
 {
   "treeShake": {
     "react": {
-      "useState": true,      // This app uses useState
-      "useEffect": false,    // This app doesn't use useEffect
-      "useContext": true     // This app uses useContext
+      "useState": true, // This app uses useState
+      "useEffect": false, // This app doesn't use useEffect
+      "useContext": true // This app uses useContext
     }
   }
 }
 ```
 
-### 2. Enhanced Module Metadata
+### 2. Enhanced module metadata
 
 Extended `BuildMeta` structure to track Module Federation metadata:
 
 ```rust
 pub struct BuildMeta {
   // ... existing fields ...
-  
+
   // Module federation fields
   pub consume_shared_key: Option<String>,
   pub shared_key: Option<String>,
@@ -92,11 +96,12 @@ pub struct BuildMeta {
 ```
 
 This metadata enables:
+
 - Tracking which modules are shared dependencies
 - Preserving share keys through the module graph
 - Identifying module relationships for tree-shaking decisions
 
-### 3. Export Metadata Propagation
+### 3. Export metadata propagation
 
 The `ConsumeSharedPlugin` propagates export information from fallback modules to ConsumeShared modules:
 
@@ -110,7 +115,7 @@ fn copy_exports_from_fallback_to_consume_shared(
 
 This ensures ConsumeShared modules have accurate export information for analysis.
 
-### 4. FlagDependencyUsagePlugin Integration
+### 4. FlagDependencyUsagePlugin integration
 
 The `FlagDependencyUsagePlugin` reads the temporary share-usage.json file written by ShareUsagePlugin:
 
@@ -132,16 +137,17 @@ if let Ok(content) = std::fs::read_to_string(&usage_path) {
 
 **Important:** The share-usage.json file read here is a TEMPORARY file containing merged data (local + external usage), not the final asset that gets emitted.
 
-### 5. Provide Shared Plugin Enhancements
+### 5. Provide shared plugin enhancements
 
 Updated `ProvideSharedPlugin` to:
+
 - Track shared module keys in module metadata
 - Propagate share information through the dependency graph
 - Maintain module relationships for tree-shaking analysis
 
-## Implementation Details
+## Implementation details
 
-### Key Components and Their Roles
+### Key components and their roles
 
 1. **ShareUsagePlugin** (`rspack_plugin_mf/src/sharing/share_usage_plugin.rs`)
    - **Purpose**: Bridge between local usage analysis and external requirements
@@ -156,7 +162,7 @@ Updated `ProvideSharedPlugin` to:
 2. **FlagDependencyUsagePlugin** (`rspack_plugin_javascript/src/plugin/flag_dependency_usage_plugin.rs`)
    - **Purpose**: Marks exports for tree-shaking based on usage data
    - **Reads**: Temporary share-usage.json from context directory
-   - **Process**: 
+   - **Process**:
      - For each module with a shared_key
      - Looks up usage in the merged data
      - Marks exports as Used (preserve) or Unused (tree-shake)
@@ -171,9 +177,10 @@ Updated `ProvideSharedPlugin` to:
      - `shared_key`: Share key for shared modules
      - `effective_shared_key`: Inherited share key through dependency chain
 
-### Test Coverage
+### Test coverage
 
 Added test case: `tests/webpack-test/configCases/sharing/consume-shared-tree-shaking/`
+
 - Validates tree-shaking behavior with shared modules
 - Ensures share-usage.json generation
 - Tests export preservation based on usage data
@@ -189,7 +196,7 @@ Added test case: `tests/webpack-test/configCases/sharing/consume-shared-tree-sha
 7. **Flexible Preservation Strategies**: Support for union, intersection, and override merge strategies
 8. **Conditional Preservation**: Exports can be preserved based on remote names or environments
 
-## Migration Strategy
+## Migration strategy
 
 1. **Phase 1**: Deploy ShareUsagePlugin in analysis mode
    - Generate usage reports without affecting tree-shaking
@@ -203,9 +210,9 @@ Added test case: `tests/webpack-test/configCases/sharing/consume-shared-tree-sha
    - Share usage reports between applications
    - Optimize shared modules globally
 
-## External Usage Preservation
+## External usage preservation
 
-### Understanding the Two-File System
+### Understanding the Two-File system
 
 The implementation uses two distinct files with different purposes:
 
@@ -219,12 +226,12 @@ The implementation uses two distinct files with different purposes:
    - Generated as a build asset for OTHER applications to use
    - Other apps can use this as their external-usage.json
 
-### Complete Build Flow Example
+### Complete build flow example
 
 ```
 App A Build:
 ├── INPUT: external-usage.json (what App B & C need from shared modules)
-├── PROCESS: 
+├── PROCESS:
 │   1. ShareUsagePlugin analyzes App A's usage
 │   2. Loads external-usage.json
 │   3. Merges: preserves exports needed by App A OR Apps B/C
@@ -238,7 +245,7 @@ App B Build:
 └── OUTPUT: dist/share-usage.json (what App B needs)
 ```
 
-### JSON Schema for External Usage Data
+### JSON schema for external usage data
 
 ```typescript
 interface ExternalUsageConfig {
@@ -281,7 +288,7 @@ interface ExternalUsageData {
 }
 ```
 
-### External Usage Data Example
+### External usage data example
 
 ```json
 {
@@ -316,7 +323,7 @@ interface ExternalUsageData {
 }
 ```
 
-### Aggregated Usage Format
+### Aggregated usage format
 
 For coordinating across multiple applications, an aggregated format combines usage from multiple sources:
 
@@ -351,7 +358,7 @@ For coordinating across multiple applications, an aggregated format combines usa
 }
 ```
 
-## Configuration Example
+## Configuration example
 
 ```javascript
 // webpack.config.js
@@ -364,8 +371,8 @@ module.exports = {
       name: 'app',
       shared: {
         react: { singleton: true },
-        'react-dom': { singleton: true }
-      }
+        'react-dom': { singleton: true },
+      },
     }),
     new ShareUsagePlugin({
       filename: 'share-usage.json',
@@ -374,31 +381,31 @@ module.exports = {
         // Load external usage from files
         sources: [
           './external-usage/remote-app.json',
-          'https://cdn.example.com/usage/aggregated.json'
+          'https://cdn.example.com/usage/aggregated.json',
         ],
         // Or provide inline configuration
         inline: {
           version: '1.0',
           modules: {
-            'react': {
+            react: {
               preservedExports: ['useState', 'useEffect'],
-              source: 'remote-app'
-            }
-          }
+              source: 'remote-app',
+            },
+          },
         },
         // Merge strategy when conflicts occur
-        mergeStrategy: 'union' // Preserve all exports from all sources
-      }
-    })
+        mergeStrategy: 'union', // Preserve all exports from all sources
+      },
+    }),
   ],
   optimization: {
     usedExports: true,
-    sideEffects: false
-  }
+    sideEffects: false,
+  },
 };
 ```
 
-### CLI Integration
+### CLI integration
 
 The external usage data can also be provided via CLI:
 
@@ -421,31 +428,28 @@ const { analyzeExternalUsage } = require('@rspack/core').sharing;
 // Analyze and merge multiple usage sources
 async function buildWithExternalUsage() {
   const externalUsage = await analyzeExternalUsage({
-    sources: [
-      './local-usage.json',
-      'https://remote.example.com/usage.json'
-    ],
-    mergeStrategy: 'union'
+    sources: ['./local-usage.json', 'https://remote.example.com/usage.json'],
+    mergeStrategy: 'union',
   });
-  
+
   // Use in webpack config
   return {
     plugins: [
       new ShareUsagePlugin({
-        externalUsage: { inline: externalUsage }
-      })
-    ]
+        externalUsage: { inline: externalUsage },
+      }),
+    ],
   };
 }
 ```
 
-## Unresolved Questions
+## Unresolved questions
 
 1. **Cross-repository coordination**: How should usage data be shared between independently deployed applications?
 2. **Version compatibility**: How to handle usage data when shared module versions differ?
 3. **Dynamic imports**: How to track usage for dynamically imported shared modules?
 
-## Alternatives Considered
+## Alternatives considered
 
 1. **Runtime detection**: Detect usage at runtime instead of build time
    - Pros: More accurate for dynamic usage
@@ -459,16 +463,16 @@ async function buildWithExternalUsage() {
    - Pros: Guaranteed compatibility
    - Cons: Larger bundle sizes
 
-## How It All Works Together
+## How it all works together
 
-### The Complete Picture
+### The complete picture
 
 1. **Each app reports its usage**: Via share-usage.json in build artifacts
 2. **Each app preserves external needs**: Via external-usage.json input
 3. **Coordination happens through file sharing**: Apps exchange their usage reports
 4. **Tree-shaking is safe**: Only truly unused exports are removed
 
-### Key Insights
+### Key insights
 
 - **share-usage.json is OUTPUT only**: It reports what this app uses for others
 - **external-usage.json is INPUT only**: It tells us what others need preserved
@@ -478,6 +482,7 @@ async function buildWithExternalUsage() {
 ### Result
 
 This design enables optimal tree-shaking across Module Federation boundaries:
+
 - Each application only includes exports it needs OR that others need
 - No manual configuration of preserved exports required
 - Automatic coordination through usage data files
