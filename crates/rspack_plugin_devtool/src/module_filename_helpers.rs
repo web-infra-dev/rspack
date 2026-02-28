@@ -9,7 +9,7 @@ use cow_utils::CowUtils;
 use rspack_core::{ChunkGraph, Compilation, OutputOptions, contextify};
 use rspack_error::Result;
 use rspack_hash::RspackHash;
-use rspack_paths::{Utf8Path, Utf8PathBuf};
+use rspack_paths::Utf8Path;
 use rustc_hash::FxHashMap as HashMap;
 use sugar_path::SugarPath;
 
@@ -221,7 +221,7 @@ impl ModuleFilenameHelpers {
       compilation,
       output_options,
       namespace,
-      unresolved_source_map_path.map(|p| p.to_path_buf()),
+      unresolved_source_map_path,
     );
 
     template_replace(module_filename_template, &ctx)
@@ -265,7 +265,7 @@ impl ModuleFilenameHelpers {
     compilation: &'a Compilation,
     output_options: &'a OutputOptions,
     namespace: &'a str,
-    unresolved_source_map_path: Option<Utf8PathBuf>,
+    unresolved_source_map_path: Option<&'a Utf8Path>,
   ) -> ModuleFilenameTemplateStringCtx<'a> {
     ModuleFilenameTemplateStringCtx {
       source_reference,
@@ -279,12 +279,12 @@ impl ModuleFilenameHelpers {
   }
 }
 
-pub struct ModuleFilenameTemplateStringCtx<'a> {
+struct ModuleFilenameTemplateStringCtx<'a> {
   source_reference: &'a SourceReference,
   compilation: &'a Compilation,
   output_options: &'a OutputOptions,
   namespace: &'a str,
-  unresolved_source_map_path: Option<Utf8PathBuf>,
+  unresolved_source_map_path: Option<&'a Utf8Path>,
 
   // Lazy fields using OnceCell for caching
   short_identifier: OnceCell<Cow<'a, str>>,
@@ -356,14 +356,8 @@ impl<'a> ModuleFilenameTemplateStringCtx<'a> {
       }
       SourceReference::Source(_) => {
         let absolute_resource_path = self.absolute_resource_path();
-        resolve_relative_resource_path(
-          absolute_resource_path,
-          self
-            .unresolved_source_map_path
-            .as_ref()
-            .map(|p| p.as_path()),
-        )
-        .map(Cow::Owned)
+        resolve_relative_resource_path(absolute_resource_path, self.unresolved_source_map_path)
+          .map(Cow::Owned)
       }
     }
   }

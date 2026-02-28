@@ -13,8 +13,8 @@ use rayon::prelude::*;
 use regex::Regex;
 use rspack_collections::DatabaseItem;
 use rspack_core::{
-  AssetInfo, CONTENT_HASH_PLACEHOLDER, Chunk, ChunkUkey, Compilation, CompilationAsset,
-  CompilationProcessAssets, Filename, Logger, ModuleIdentifier, PathData, Plugin,
+  AssetInfo, Chunk, ChunkUkey, Compilation, CompilationAsset, CompilationProcessAssets, Filename,
+  Logger, ModuleIdentifier, PathData, Plugin, has_content_hash_placeholder,
   rspack_sources::{
     BoxSource, ConcatSource, MapOptions, ObjectPool, RawStringSource, Source, SourceExt, SourceMap,
   },
@@ -38,12 +38,16 @@ use crate::{
   mapped_assets_cache::MappedAssetsCache, module_filename_helpers::ModuleFilenameHelpers,
 };
 
-static SCHEMA_SOURCE_REGEXP: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r"^(data|https?):").expect("failed to compile SCHEMA_SOURCE_REGEXP"));
+/// Check if a string starts with `data:`, `http:`, or `https:`
+fn is_schema_source(s: &str) -> bool {
+  s.starts_with("data:") || s.starts_with("http:") || s.starts_with("https:")
+}
 
-static CSS_EXTENSION_DETECT_REGEXP: LazyLock<Regex> = LazyLock::new(|| {
-  Regex::new(r"\.css($|\?)").expect("failed to compile CSS_EXTENSION_DETECT_REGEXP")
-});
+/// Check if a string ends with `.css` or contains `.css?`
+fn has_css_extension(s: &str) -> bool {
+  s.ends_with(".css") || s.contains(".css?")
+}
+
 static URL_FORMATTING_REGEXP: LazyLock<Regex> = LazyLock::new(|| {
   Regex::new(r"^\n\/\/(.*)$").expect("failed to compile URL_FORMATTING_REGEXP regex")
 });
@@ -343,7 +347,7 @@ impl SourceMapDevToolPlugin {
                   .await?;
 
                 if let SourceReference::Source(source_name) = &source_reference
-                  && SCHEMA_SOURCE_REGEXP.is_match(source_name.as_ref())
+                  && is_schema_source(source_name.as_ref())
                 {
                   return Ok((
                     source_reference.clone(),
@@ -406,7 +410,7 @@ impl SourceMapDevToolPlugin {
               .await?;
 
             if let SourceReference::Source(source_name) = source_reference
-              && SCHEMA_SOURCE_REGEXP.is_match(source_name)
+              && is_schema_source(source_name)
             {
               return Ok((
                 source_reference.clone(),
@@ -593,7 +597,7 @@ impl SourceMapDevToolPlugin {
                 })
                 .clone();
 
-              let css_extension_detected = CSS_EXTENSION_DETECT_REGEXP.is_match(&asset_filename);
+              let css_extension_detected = has_css_extension(&asset_filename);
               let current_source_mapping_url_comment = match &plugin.source_mapping_url_comment {
                 Some(SourceMappingUrlComment::String(s)) => {
                   let s = if css_extension_detected {
@@ -619,7 +623,7 @@ impl SourceMapDevToolPlugin {
                   None => Cow::Borrowed(asset_filename.as_ref()),
                 };
 
-                let content_hash_digest = if source_map_filename_config.as_str().contains(CONTENT_HASH_PLACEHOLDER) {
+                let content_hash_digest = if chunk.is_some() && has_content_hash_placeholder(source_map_filename_config.as_str()) {
                   let mut hasher = RspackHash::from(&compilation.options.output);
                   hasher.write(source_map_json.as_bytes());
                   let digest = hasher.digest(&compilation.options.output.hash_digest);
@@ -630,7 +634,8 @@ impl SourceMapDevToolPlugin {
 
                 let data = PathData::default().filename(&filename);
                 let data = match chunk {
-                  Some(chunk) => data
+                  Some(chunk) => {
+                    data
                     .chunk_id_optional(
                       chunk
                         .id()
@@ -643,7 +648,7 @@ impl SourceMapDevToolPlugin {
                     .chunk_name_optional(
                       chunk.name_for_filename_template(),
                     )
-                    .content_hash_optional(content_hash_digest.as_ref().map(|digest| digest.encoded())),
+                    .content_hash_optional(content_hash_digest.as_ref().map(|digest| digest.encoded()))},
                   None => data,
                 };
                 let source_map_filename = compilation

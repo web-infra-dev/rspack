@@ -35,7 +35,7 @@ pub struct ModuleFilenameTemplateFnCtx {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum SourceReference {
+enum SourceReference {
   Source(Arc<str>),
   Module(ModuleIdentifier),
 }
