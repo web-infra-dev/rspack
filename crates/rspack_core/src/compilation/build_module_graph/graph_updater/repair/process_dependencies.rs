@@ -1,5 +1,6 @@
 use std::borrow::Cow;
 
+use dyn_clone::clone_box;
 use rustc_hash::FxHashMap as HashMap;
 
 use super::{TaskContext, factorize::FactorizeTask};
@@ -66,7 +67,7 @@ impl Task<TaskContext> for ProcessDependenciesTask {
         sorted_dependencies
           .entry(resource_identifier)
           .or_insert(vec![])
-          .push(dependency.clone());
+          .push(clone_box(dependency.as_ref()));
       }
     }
 

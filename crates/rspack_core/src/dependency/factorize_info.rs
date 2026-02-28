@@ -2,7 +2,7 @@ use rspack_cacheable::cacheable;
 use rspack_error::Diagnostic;
 use rspack_paths::ArcPathSet;
 
-use super::{BoxDependency, DependencyId};
+use super::{Dependency, DependencyId};
 
 #[cacheable]
 #[derive(Debug, Clone, Default)]
@@ -31,7 +31,7 @@ impl FactorizeInfo {
     }
   }
 
-  pub fn get_from(dep: &BoxDependency) -> Option<&FactorizeInfo> {
+  pub fn get_from(dep: &dyn Dependency) -> Option<&FactorizeInfo> {
     if let Some(d) = dep.as_context_dependency() {
       Some(d.factorize_info())
     } else if let Some(d) = dep.as_module_dependency() {
@@ -41,7 +41,7 @@ impl FactorizeInfo {
     }
   }
 
-  pub fn revoke(dep: &mut BoxDependency) -> Option<FactorizeInfo> {
+  pub fn revoke(dep: &mut dyn Dependency) -> Option<FactorizeInfo> {
     if let Some(d) = dep.as_context_dependency_mut() {
       Some(std::mem::take(d.factorize_info_mut()))
     } else if let Some(d) = dep.as_module_dependency_mut() {

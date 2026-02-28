@@ -78,7 +78,10 @@ async fn make(&self, compilation: &mut Compilation) -> Result<()> {
             .entry(entry.into())
             .or_default()
             .insert(options.clone(), *dependency_id);
-          dependency.clone()
+          let dependency = dependency
+            .downcast_ref::<EntryDependency>()
+            .expect("dependency should be EntryDependency in DynamicEntryPlugin");
+          Box::new(dependency.clone())
         } else {
           let dependency: BoxDependency = Box::new(EntryDependency::new(
             entry.clone(),

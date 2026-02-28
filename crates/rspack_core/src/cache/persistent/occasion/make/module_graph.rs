@@ -3,6 +3,7 @@ use std::sync::{
   atomic::{AtomicUsize, Ordering},
 };
 
+use dyn_clone::clone_box;
 use rayon::prelude::*;
 use rspack_cacheable::{cacheable, utils::OwnedOrRef};
 use rspack_collections::IdentifierSet;
@@ -71,7 +72,7 @@ pub fn save_module_graph(
         .par_iter()
         .map(|dep_id| {
           (
-            mg.dependency_by_id(dep_id).into(),
+            clone_box(mg.dependency_by_id(dep_id).as_ref()).into(),
             mg.get_parent_block(dep_id).map(Into::into),
           )
         })

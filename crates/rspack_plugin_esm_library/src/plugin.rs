@@ -120,7 +120,7 @@ impl EsmLibraryPlugin {
         .get_incoming_connections(module_identifier)
         .map(|conn| module_graph.dependency_by_id(&conn.dependency_id))
         .any(|dep| {
-          !is_esm_dep_like(dep)
+          !is_esm_dep_like(dep.as_ref())
             && !matches!(
               dep.dependency_type(),
               DependencyType::Entry | DependencyType::DynamicImport
@@ -389,7 +389,7 @@ async fn finish_modules(
       .get_incoming_connections(module_identifier)
       .map(|conn| module_graph.dependency_by_id(&conn.dependency_id))
       .any(|dep| {
-        !is_esm_dep_like(dep)
+        !is_esm_dep_like(dep.as_ref())
           && !matches!(
             dep.dependency_type(),
             DependencyType::Entry | DependencyType::DynamicImport

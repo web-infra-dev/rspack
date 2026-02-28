@@ -38,24 +38,24 @@ use swc_experimental_ecma_semantic::resolver::{Semantic, resolver};
 use swc_node_comments::SwcComments;
 
 use crate::{
-  AsyncDependenciesBlockIdentifier, BoxDependency, BoxDependencyTemplate, BoxModule,
-  BoxModuleDependency, BuildContext, BuildInfo, BuildMeta, BuildMetaDefaultObject,
-  BuildMetaExportsType, BuildResult, ChunkGraph, ChunkInitFragments, ChunkRenderContext,
-  CodeGenerationDataTopLevelDeclarations, CodeGenerationExportsFinalNames,
-  CodeGenerationPublicPathAutoReplace, CodeGenerationResult, Compilation, ConcatenatedModuleIdent,
-  ConcatenationScope, ConditionalInitFragment, ConnectionState, Context, DEFAULT_EXPORT,
-  DEFAULT_EXPORT_ATOM, DependenciesBlock, DependencyId, DependencyType, ExportInfoHashKey,
-  ExportProvided, ExportsArgument, ExportsInfoArtifact, ExportsInfoGetter, ExportsType,
-  FactoryMeta, GetUsedNameParam, ImportedByDeferModulesArtifact, InitFragment, InitFragmentStage,
-  LibIdentOptions, Module, ModuleArgument, ModuleCodeGenerationContext, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, ModuleLayer,
-  ModuleStaticCache, ModuleType, NAMESPACE_OBJECT_EXPORT, ParserOptions, PrefetchExportsInfoMode,
-  Resolve, RuntimeCondition, RuntimeGlobals, RuntimeSpec, SourceType, URLStaticMode, UsageState,
-  UsedName, UsedNameItem, escape_identifier, filter_runtime, find_target, get_runtime_key,
-  impl_source_map_config, merge_runtime_condition, merge_runtime_condition_non_false,
-  module_update_hash, property_access, property_name,
-  render_make_deferred_namespace_mode_from_exports_type, reserved_names::RESERVED_NAMES,
-  subtract_runtime_condition, to_identifier_with_escaped, to_normal_comment,
+  AsyncDependenciesBlockIdentifier, BoxDependencyTemplate, BoxModule, BoxModuleDependency,
+  BuildContext, BuildInfo, BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, BuildResult,
+  ChunkGraph, ChunkInitFragments, ChunkRenderContext, CodeGenerationDataTopLevelDeclarations,
+  CodeGenerationExportsFinalNames, CodeGenerationPublicPathAutoReplace, CodeGenerationResult,
+  Compilation, ConcatenatedModuleIdent, ConcatenationScope, ConditionalInitFragment,
+  ConnectionState, Context, DEFAULT_EXPORT, DEFAULT_EXPORT_ATOM, DependenciesBlock, Dependency,
+  DependencyId, DependencyType, ExportInfoHashKey, ExportProvided, ExportsArgument,
+  ExportsInfoArtifact, ExportsInfoGetter, ExportsType, FactoryMeta, GetUsedNameParam,
+  ImportedByDeferModulesArtifact, InitFragment, InitFragmentStage, LibIdentOptions, Module,
+  ModuleArgument, ModuleCodeGenerationContext, ModuleGraph, ModuleGraphCacheArtifact,
+  ModuleGraphConnection, ModuleIdentifier, ModuleLayer, ModuleStaticCache, ModuleType,
+  NAMESPACE_OBJECT_EXPORT, ParserOptions, PrefetchExportsInfoMode, Resolve, RuntimeCondition,
+  RuntimeGlobals, RuntimeSpec, SourceType, URLStaticMode, UsageState, UsedName, UsedNameItem,
+  escape_identifier, filter_runtime, find_target, get_runtime_key, impl_source_map_config,
+  merge_runtime_condition, merge_runtime_condition_non_false, module_update_hash, property_access,
+  property_name, render_make_deferred_namespace_mode_from_exports_type,
+  reserved_names::RESERVED_NAMES, subtract_runtime_condition, to_identifier_with_escaped,
+  to_normal_comment,
 };
 
 type ExportsDefinitionArgs = Vec<(String, String)>;
@@ -799,7 +799,7 @@ impl Module for ConcatenatedModule {
       for dep_id in module.get_dependencies().iter() {
         let dep = module_graph.dependency_by_id(dep_id);
         let module_id_of_dep = module_graph.module_identifier_by_dependency_id(dep_id);
-        if !is_esm_dep_like(dep) || !modules.contains(&module_id_of_dep) {
+        if !is_esm_dep_like(dep.as_ref()) || !modules.contains(&module_id_of_dep) {
           self.dependencies.push(*dep_id);
         }
       }
@@ -2221,7 +2221,7 @@ impl ConcatenatedModule {
       .into_iter()
       .filter_map(|connection| {
         let dep = mg.dependency_by_id(&connection.dependency_id);
-        if !is_esm_dep_like(dep) {
+        if !is_esm_dep_like(dep.as_ref()) {
           return None;
         }
         let ref_module = mg
@@ -3117,7 +3117,7 @@ impl ConcatenatedModule {
   }
 }
 
-pub fn is_esm_dep_like(dep: &BoxDependency) -> bool {
+pub fn is_esm_dep_like(dep: &dyn Dependency) -> bool {
   matches!(
     dep.dependency_type(),
     DependencyType::EsmImportSpecifier

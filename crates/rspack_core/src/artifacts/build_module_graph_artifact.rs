@@ -208,7 +208,7 @@ impl BuildModuleGraphArtifact {
     let dep_diagnostics = self.make_failed_dependencies.iter().flat_map(|dep_id| {
       let dep = mg.dependency_by_id(dep_id);
       let origin_module_identifier = mg.get_parent_module(dep_id);
-      FactorizeInfo::get_from(dep)
+      FactorizeInfo::get_from(dep.as_ref())
         .expect("should have factorize info")
         .diagnostics()
         .iter()

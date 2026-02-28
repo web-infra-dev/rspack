@@ -838,7 +838,7 @@ impl JsCompilation {
             .into_iter()
             .map(|dependency_id| {
               let dependency = module_graph.dependency_by_id(&dependency_id);
-              if let Some(factorize_info) = FactorizeInfo::get_from(dependency)
+              if let Some(factorize_info) = FactorizeInfo::get_from(dependency.as_ref())
                 && let Some(diagnostic) = factorize_info.diagnostics().first()
               {
                 return Either::A(diagnostic.to_string());
@@ -942,7 +942,7 @@ impl JsCompilation {
             .into_iter()
             .map(|dependency_id| {
               let dependency = module_graph.dependency_by_id(&dependency_id);
-              if let Some(factorize_info) = FactorizeInfo::get_from(dependency)
+              if let Some(factorize_info) = FactorizeInfo::get_from(dependency.as_ref())
                 && let Some(diagnostic) = factorize_info.diagnostics().first()
               {
                 return Either::A(diagnostic.to_string());

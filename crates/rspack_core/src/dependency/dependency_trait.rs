@@ -1,4 +1,4 @@
-use std::{any::Any, fmt::Debug};
+use std::{any::Any, fmt::Debug, sync::Arc};
 
 use dyn_clone::{DynClone, clone_trait_object};
 use rspack_cacheable::cacheable_dyn;
@@ -149,3 +149,4 @@ impl dyn Dependency + '_ {
 clone_trait_object!(Dependency);
 
 pub type BoxDependency = Box<dyn Dependency>;
+pub type ArcDependency = Arc<dyn Dependency>;
