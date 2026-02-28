@@ -1,5 +1,5 @@
 use rspack_core::{
-  Compilation, RuntimeGlobals, RuntimeModule, RuntimeTemplate, impl_runtime_module,
+  RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext, RuntimeTemplate, impl_runtime_module,
 };
 
 #[impl_runtime_module]
@@ -14,10 +14,13 @@ impl AmdDefineRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for AmdDefineRuntimeModule {
-  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
+  async fn generate(
+    &self,
+    context: &RuntimeModuleGenerateContext<'_>,
+  ) -> rspack_error::Result<String> {
     Ok(format!(
       "{} = function () {{ throw new Error('define cannot be used indirect'); }}",
-      compilation
+      context
         .runtime_template
         .render_runtime_globals(&RuntimeGlobals::AMD_DEFINE),
     ))

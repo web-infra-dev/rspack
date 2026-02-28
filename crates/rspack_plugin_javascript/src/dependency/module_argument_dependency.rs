@@ -14,8 +14,7 @@ pub struct ModuleArgumentDependency {
 }
 
 impl ModuleArgumentDependency {
-  pub fn new(id: Option<String>, range: DependencyRange, source: Option<&str>) -> Self {
-    let loc = range.to_loc(source);
+  pub fn new(id: Option<String>, range: DependencyRange, loc: Option<DependencyLocation>) -> Self {
     Self { id, range, loc }
   }
 

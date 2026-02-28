@@ -1,7 +1,7 @@
 "use strict";
 
 const path = require("path");
-const webpack = require("@rspack/core");
+const { rspack } = require("@rspack/core");
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
@@ -14,7 +14,7 @@ module.exports = {
 		]
 	},
 	plugins: [
-		new webpack.ContextReplacementPlugin(
+		new rspack.ContextReplacementPlugin(
 			/replacement.d$/,
 			path.resolve(__dirname, "modules?cats=meow"),
 			{

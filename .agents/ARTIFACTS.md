@@ -8,6 +8,14 @@ Artifacts are data structures that hold intermediate compilation results. They a
 
 ## Core Concepts
 
+### PASS Binding Rule
+
+An artifact's `PASS` must be bound to the pass where that artifact is first built in the compilation pipeline.
+
+- If an artifact is first produced in pass `X`, set `ArtifactExt::PASS` to `X`.
+- Do not use `empty` as a fallback.
+- If an artifact is read in later passes, it still stays bound to its first-build pass.
+
 ### ArtifactExt Trait
 
 The `ArtifactExt` trait is the foundation of the artifact system. It associates each artifact with its corresponding incremental pass and provides recovery logic.
@@ -60,7 +68,7 @@ Artifacts that directly implement `ArtifactExt`:
 | `SideEffectsOptimizeArtifact`     | `SIDE_EFFECTS_OPTIMIZATION`    | Side effects optimization data  |
 | `AsyncModulesArtifact`            | `INFER_ASYNC_MODULES`          | Async modules information       |
 | `DependenciesDiagnosticsArtifact` | `DEPENDENCIES_DIAGNOSTICS`     | Dependencies diagnostics        |
-| `ImportedByDeferModulesArtifact`  | empty                          | Deferred module import tracking |
+| `ImportedByDeferModulesArtifact`  | `OPTIMIZE_CHUNK_MODULES`       | Deferred module import tracking |
 
 ### Cache Artifacts
 

@@ -7,8 +7,8 @@ use swc_core::ecma::atoms::Atom;
 use super::AffectType;
 use crate::{
   AsContextDependency, AsDependencyCodeGeneration, AsModuleDependency, Dependency, DependencyId,
-  DependencyType, ExportNameOrSpec, ExportsOfExportsSpec, ExportsSpec, ModuleGraph,
-  ModuleGraphCacheArtifact,
+  DependencyType, ExportNameOrSpec, ExportsInfoArtifact, ExportsOfExportsSpec, ExportsSpec,
+  ModuleGraph, ModuleGraphCacheArtifact,
 };
 
 #[cacheable]
@@ -50,6 +50,7 @@ impl Dependency for StaticExportsDependency {
     &self,
     _mg: &ModuleGraph,
     _mg_cache: &ModuleGraphCacheArtifact,
+    _exports_info_artifact: &ExportsInfoArtifact,
   ) -> Option<ExportsSpec> {
     Some(ExportsSpec {
       exports: match &self.exports {

@@ -1,8 +1,8 @@
 use std::sync::LazyLock;
 
 use rspack_core::{
-  ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeTemplate, RuntimeVariable,
-  impl_runtime_module,
+  ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext,
+  RuntimeTemplate, RuntimeVariable, impl_runtime_module,
 };
 
 use crate::{extract_runtime_globals_from_ejs, get_chunk_runtime_requirements};
@@ -35,13 +35,18 @@ impl RuntimeModule for MakeOptimizedDeferredNamespaceObjectRuntimeModule {
     )]
   }
 
-  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
+  async fn generate(
+    &self,
+    context: &RuntimeModuleGenerateContext<'_>,
+  ) -> rspack_error::Result<String> {
+    let compilation = context.compilation;
+    let runtime_template = context.runtime_template;
     let has_async = get_chunk_runtime_requirements(compilation, &self.chunk_ukey)
       .contains(RuntimeGlobals::ASYNC_MODULE);
-    let source = compilation.runtime_template.render(
+    let source = runtime_template.render(
       &self.id,
       Some(serde_json::json!({
-        "_module_cache": compilation.runtime_template.render_runtime_variable(&RuntimeVariable::ModuleCache),
+        "_module_cache": runtime_template.render_runtime_variable(&RuntimeVariable::ModuleCache),
         "_has_async": has_async,
       })),
     )?;

@@ -1,5 +1,5 @@
 use itertools::Itertools;
-use rspack_core::{ConstDependency, property_access};
+use rspack_core::{ConstDependency, DependencyRange, property_access};
 use rspack_error::{Error, Severity};
 use rspack_util::SpanExt;
 use swc_core::{
@@ -50,9 +50,11 @@ impl ImportMetaPlugin {
 
     let argument_expr = &call_expr.args[0].expr;
     let param = parser.evaluate_expression(argument_expr);
+    let range = DependencyRange::from(call_expr.callee.span());
+    let loc = parser.to_dependency_location(range);
     let import_meta_resolve_header_dependency = Box::new(ImportMetaResolveHeaderDependency::new(
       call_expr.callee.span().into(),
-      Some(parser.source()),
+      loc,
     ));
 
     if param.is_conditional() {

@@ -5,9 +5,9 @@ use rspack_core::{
   ConditionalInitFragment, ConnectionState, Dependency, DependencyCategory,
   DependencyCodeGeneration, DependencyCondition, DependencyConditionFn, DependencyId,
   DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
-  ExportProvided, ExportsType, ExtendedReferencedExport, FactorizeInfo, ForwardId,
-  ImportAttributes, ImportPhase, InitFragmentExt, InitFragmentKey, InitFragmentStage, LazyUntil,
-  ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
+  ExportProvided, ExportsInfoArtifact, ExportsType, ExtendedReferencedExport, FactorizeInfo,
+  ForwardId, ImportAttributes, ImportPhase, InitFragmentExt, InitFragmentKey, InitFragmentStage,
+  LazyUntil, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
   PrefetchExportsInfoMode, ProvidedExports, ResourceIdentifier, RuntimeCondition, RuntimeSpec,
   SourceType, TemplateContext, TemplateReplaceSource, TypeReexportPresenceMode, filter_runtime,
 };
@@ -82,12 +82,11 @@ impl ESMImportSideEffectDependency {
     dependency_type: DependencyType,
     phase: ImportPhase,
     attributes: Option<ImportAttributes>,
-    source: Option<&str>,
+    loc: Option<DependencyLocation>,
     star_export: bool,
   ) -> Self {
     let resource_identifier =
       create_resource_identifier_for_esm_dependency(&request, attributes.as_ref());
-    let loc = range.to_loc(source);
     Self {
       id: DependencyId::new(),
       source_order,
@@ -127,7 +126,12 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
   let module_graph_cache = &compilation.module_graph_cache_artifact;
   let connection = module_graph.connection_by_dependency_id(module_dependency.id());
   let is_target_active = if let Some(con) = connection {
-    con.is_target_active(module_graph, *runtime, module_graph_cache)
+    con.is_target_active(
+      module_graph,
+      *runtime,
+      module_graph_cache,
+      &compilation.exports_info_artifact,
+    )
   } else {
     true
   };
@@ -156,7 +160,12 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
   } else if let Some(connection) = module_graph.connection_by_dependency_id(module_dependency.id())
   {
     filter_runtime(*runtime, |r| {
-      connection.is_target_active(module_graph, r, module_graph_cache)
+      connection.is_target_active(
+        module_graph,
+        r,
+        module_graph_cache,
+        &compilation.exports_info_artifact,
+      )
     })
   } else {
     RuntimeCondition::Boolean(true)
@@ -257,11 +266,13 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
   }
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
   module_dependency: &T,
   ids: &[Atom],
   module_graph: &ModuleGraph,
   module_graph_cache: &ModuleGraphCacheArtifact,
+  exports_info_artifact: &ExportsInfoArtifact,
   name: &Atom,
   is_reexport: bool,
   should_error: bool,
@@ -279,6 +290,7 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
   let exports_type = imported_module.get_exports_type(
     module_graph,
     module_graph_cache,
+    exports_info_artifact,
     parent_module.build_meta().strict_esm_module,
   );
   let additional_msg = || {
@@ -323,7 +335,7 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
       return None;
     }
     let imported_module_identifier = imported_module.identifier();
-    let exports_info = module_graph.get_prefetched_exports_info(
+    let exports_info = exports_info_artifact.get_prefetched_exports_info(
       &imported_module_identifier,
       PrefetchExportsInfoMode::Nested(ids),
     );
@@ -353,8 +365,10 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
         .is_some()
         && ids.len() == 1
         && matches!(
-          module_graph
-            .get_prefetched_exports_info(parent_module_identifier, PrefetchExportsInfoMode::Default)
+          exports_info_artifact.get_prefetched_exports_info(
+            parent_module_identifier,
+            PrefetchExportsInfoMode::Default,
+          )
             .is_export_provided(std::slice::from_ref(name)),
           Some(ExportProvided::Provided)
         )
@@ -375,7 +389,7 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
         }
       }
       let mut pos = 0;
-      let mut maybe_exports_info = Some(module_graph.get_prefetched_exports_info(
+      let mut maybe_exports_info = Some(exports_info_artifact.get_prefetched_exports_info(
         &imported_module_identifier,
         PrefetchExportsInfoMode::Nested(ids),
       ));
@@ -576,6 +590,7 @@ impl Dependency for ESMImportSideEffectDependency {
     &self,
     _module_graph: &ModuleGraph,
     _module_graph_cache: &ModuleGraphCacheArtifact,
+    _exports_info_artifact: &ExportsInfoArtifact,
     _runtime: Option<&RuntimeSpec>,
   ) -> Vec<ExtendedReferencedExport> {
     vec![]
@@ -642,6 +657,7 @@ impl DependencyConditionFn for ESMImportSideEffectDependencyCondition {
     _runtime: Option<&RuntimeSpec>,
     module_graph: &ModuleGraph,
     module_graph_cache: &ModuleGraphCacheArtifact,
+    _exports_info_artifact: &ExportsInfoArtifact,
   ) -> ConnectionState {
     let id = *conn.module_identifier();
     if let Some(module) = module_graph.module_by_identifier(&id) {

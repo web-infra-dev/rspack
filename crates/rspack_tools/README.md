@@ -4,7 +4,7 @@ A toolkit for debugging and testing rspack internals.
 
 ## Commands
 
-### `compare` - Compare Cache In Directories
+### `compare` - Compare cache in directories
 
 Compare the cache content of two directories to verify they contain identical data.
 

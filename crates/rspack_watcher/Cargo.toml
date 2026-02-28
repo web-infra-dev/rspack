@@ -22,3 +22,6 @@ tokio = { workspace = true, features = ["rt", "macros", "sync", "fs"] }
 
 [dev-dependencies]
 tempfile = "3.23.0"
+
+[lints]
+workspace = true

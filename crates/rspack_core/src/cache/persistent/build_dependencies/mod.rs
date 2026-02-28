@@ -8,10 +8,7 @@ use rspack_paths::{ArcPath, ArcPathSet, AssertUtf8};
 use rustc_hash::FxHashSet as HashSet;
 
 use self::helper::{Helper, is_node_package_path};
-use super::{
-  snapshot::{Snapshot, SnapshotScope},
-  storage::Storage,
-};
+use super::snapshot::{Snapshot, SnapshotScope};
 
 pub const SCOPE: &str = "build_dependencies";
 
@@ -30,7 +27,6 @@ pub struct BuildDeps {
   pending: ArcPathSet,
   /// The snapshot which is used to save build dependencies.
   snapshot: Arc<Snapshot>,
-  storage: Arc<dyn Storage>,
   fs: Arc<dyn ReadableFileSystem>,
 }
 
@@ -39,13 +35,11 @@ impl BuildDeps {
     options: &BuildDepsOptions,
     fs: Arc<dyn ReadableFileSystem>,
     snapshot: Arc<Snapshot>,
-    storage: Arc<dyn Storage>,
   ) -> Self {
     Self {
       added: Default::default(),
       pending: options.iter().map(|v| ArcPath::from(v.as_path())).collect(),
       snapshot,
-      storage,
       fs,
     }
   }
@@ -85,23 +79,21 @@ impl BuildDeps {
 
   /// Validate build dependencies
   ///
-  /// If any build dependencies have changed, this method will reset storage.
-  pub async fn validate(&mut self) -> Result<()> {
+  /// If any build dependencies have changed, this method will return false.
+  pub async fn validate(&mut self) -> Result<bool> {
     let (_, modified_files, removed_files, no_changed_files) = self
       .snapshot
       .calc_modified_paths(SnapshotScope::BUILD)
       .await?;
 
     if !modified_files.is_empty() || !removed_files.is_empty() {
-      self.storage.reset().await;
-
       tracing::info!(
         "BuildDependencies: cache invalidate by modified_files {modified_files:?} and removed_files {removed_files:?}"
       );
-      return Ok(());
+      return Ok(false);
     }
     self.added = no_changed_files;
-    Ok(())
+    Ok(true)
   }
 }
 
@@ -165,20 +157,25 @@ mod test {
       storage.clone(),
       codec,
     ));
-    let mut build_deps = BuildDeps::new(&options, fs.clone(), snapshot.clone(), storage.clone());
+
+    let mut build_deps = BuildDeps::new(&options, fs.clone(), snapshot.clone());
+
     let warnings = build_deps.add(vec![].into_iter()).await;
     assert_eq!(warnings.len(), 1);
     let data = storage.load(scope).await.expect("should load success");
     assert_eq!(data.len(), 9);
 
-    let mut build_deps = BuildDeps::new(&options, fs.clone(), snapshot.clone(), storage.clone());
+    let mut build_deps = BuildDeps::new(&options, fs.clone(), snapshot.clone());
+
     fs.write("/b.js".into(), r#"require("./c")"#.as_bytes())
       .await
       .unwrap();
-    build_deps
+    let validate_result = build_deps
       .validate()
       .await
       .expect("should validate success");
+    assert!(!validate_result);
+    storage.reset().await;
 
     let data = storage.load(scope).await.expect("should load success");
     assert_eq!(data.len(), 0);

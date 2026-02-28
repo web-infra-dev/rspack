@@ -70,9 +70,9 @@ use crate::{
   ChunkRenderCacheArtifact, ChunkRenderResult, ChunkUkey, CodeGenerateCacheArtifact,
   CodeGenerationJob, CodeGenerationResult, CodeGenerationResults, CompilationLogger,
   CompilationLogging, CompilerOptions, CompilerPlatform, ConcatenationScope,
-  DependenciesDiagnosticsArtifact, DependencyCodeGeneration, DependencyId, DependencyTemplate,
-  DependencyTemplateType, DependencyType, Entry, EntryData, EntryOptions, EntryRuntime, Entrypoint,
-  ExecuteModuleId, ExtendedReferencedExport, Filename, ImportPhase, ImportVarMap,
+  DependenciesDiagnosticsArtifact, DependencyId, DependencyTemplate, DependencyTemplateType,
+  DependencyType, Entry, EntryData, EntryOptions, EntryRuntime, Entrypoint, ExecuteModuleId,
+  ExportsInfoArtifact, ExtendedReferencedExport, Filename, ImportPhase, ImportVarMap,
   ImportedByDeferModulesArtifact, MemoryGCStorage, ModuleFactory, ModuleGraph,
   ModuleGraphCacheArtifact, ModuleIdentifier, ModuleIdsArtifact, ModuleStaticCache, PathData,
   ProcessRuntimeRequirementsCacheArtifact, ResolverFactory, RuntimeGlobals, RuntimeKeyMap,
@@ -94,8 +94,8 @@ define_hook!(CompilationStillValidModule: Series(compiler_id: CompilerId, compil
 define_hook!(CompilationSucceedModule: Series(compiler_id: CompilerId, compilation_id: CompilationId, module: &mut BoxModule),tracing=false);
 define_hook!(CompilationExecuteModule:
   Series(module: &ModuleIdentifier, runtime_modules: &IdentifierSet, code_generation_results: &BindingCell<CodeGenerationResults>, execute_module_id: &ExecuteModuleId));
-define_hook!(CompilationFinishModules: Series(compilation: &mut Compilation, async_modules_artifact: &mut AsyncModulesArtifact));
-define_hook!(CompilationSeal: Series(compilation: &mut Compilation));
+define_hook!(CompilationFinishModules: Series(compilation: &Compilation, async_modules_artifact: &mut AsyncModulesArtifact, exports_info_artifact: &mut ExportsInfoArtifact));
+define_hook!(CompilationSeal: Series(compilation: &Compilation, diagnostics: &mut Vec<Diagnostic>));
 define_hook!(CompilationDependencyReferencedExports: Sync(
   compilation: &Compilation,
   dependency: &DependencyId,
@@ -104,7 +104,7 @@ define_hook!(CompilationDependencyReferencedExports: Sync(
   module_graph: Option<&ModuleGraph>
 ));
 define_hook!(CompilationConcatenationScope: SeriesBail(compilation: &Compilation, curr_module: ModuleIdentifier) -> ConcatenationScope);
-define_hook!(CompilationOptimizeDependencies: SeriesBail(compilation: &Compilation, side_effects_optimize_artifact: &mut SideEffectsOptimizeArtifact,  build_module_graph_artifact: &mut BuildModuleGraphArtifact,
+define_hook!(CompilationOptimizeDependencies: SeriesBail(compilation: &Compilation, side_effects_optimize_artifact: &mut SideEffectsOptimizeArtifact,  build_module_graph_artifact: &mut BuildModuleGraphArtifact, exports_info_artifact: &mut ExportsInfoArtifact,
  diagnostics: &mut Vec<Diagnostic>) -> bool);
 define_hook!(CompilationOptimizeModules: SeriesBail(compilation: &Compilation, diagnostics: &mut Vec<Diagnostic>) -> bool);
 define_hook!(CompilationAfterOptimizeModules: Series(compilation: &Compilation));
@@ -118,14 +118,14 @@ define_hook!(CompilationRuntimeModule: Series(compilation: &Compilation, module:
 define_hook!(CompilationAdditionalModuleRuntimeRequirements: Series(compilation: &Compilation, module_identifier: &ModuleIdentifier, runtime_requirements: &mut RuntimeGlobals),tracing=false);
 define_hook!(CompilationRuntimeRequirementInModule: SeriesBail(compilation: &Compilation, module_identifier: &ModuleIdentifier, all_runtime_requirements: &RuntimeGlobals, runtime_requirements: &RuntimeGlobals, runtime_requirements_mut: &mut RuntimeGlobals),tracing=false);
 define_hook!(CompilationAdditionalChunkRuntimeRequirements: Series(compilation: &Compilation, chunk_ukey: &ChunkUkey, runtime_requirements: &mut RuntimeGlobals, runtime_modules: &mut Vec<Box<dyn RuntimeModule>>));
-define_hook!(CompilationRuntimeRequirementInChunk: SeriesBail(compilation: &mut Compilation, chunk_ukey: &ChunkUkey, all_runtime_requirements: &RuntimeGlobals, runtime_requirements: &RuntimeGlobals, runtime_requirements_mut: &mut RuntimeGlobals));
+define_hook!(CompilationRuntimeRequirementInChunk: SeriesBail(compilation: &Compilation, chunk_ukey: &ChunkUkey, all_runtime_requirements: &RuntimeGlobals, runtime_requirements: &RuntimeGlobals, runtime_requirements_mut: &mut RuntimeGlobals, runtime_modules_to_add: &mut Vec<Box<dyn RuntimeModule>>));
 define_hook!(CompilationAdditionalTreeRuntimeRequirements: Series(compilation: &Compilation, chunk_ukey: &ChunkUkey, runtime_requirements: &mut RuntimeGlobals, runtime_modules: &mut Vec<Box<dyn RuntimeModule>>));
 define_hook!(CompilationRuntimeRequirementInTree: SeriesBail(compilation: &Compilation, chunk_ukey: &ChunkUkey, all_runtime_requirements: &RuntimeGlobals, runtime_requirements: &RuntimeGlobals, runtime_requirements_mut: &mut RuntimeGlobals, runtime_modules_to_add: &mut Vec<(ChunkUkey, Box<dyn RuntimeModule>)>));
-define_hook!(CompilationOptimizeCodeGeneration: Series(compilation: &Compilation, build_module_graph_artifact: &mut BuildModuleGraphArtifact, diagnostics: &mut Vec<Diagnostic>));
+define_hook!(CompilationOptimizeCodeGeneration: Series(compilation: &Compilation, build_module_graph_artifact: &mut BuildModuleGraphArtifact, exports_info_artifact: &mut ExportsInfoArtifact, diagnostics: &mut Vec<Diagnostic>));
 define_hook!(CompilationAfterCodeGeneration: Series(compilation: &Compilation, diagnostics: &mut Vec<Diagnostic>));
 define_hook!(CompilationChunkHash: Series(compilation: &Compilation, chunk_ukey: &ChunkUkey, hasher: &mut RspackHash),tracing=false);
 define_hook!(CompilationContentHash: Series(compilation: &Compilation, chunk_ukey: &ChunkUkey, hashes: &mut HashMap<SourceType, RspackHash>));
-define_hook!(CompilationDependentFullHash: SeriesBail(compilation: &Compilation, chunk_ukey: &ChunkUkey) -> bool);
+define_hook!(CompilationDependentFullHash: Sync(compilation: &Compilation, chunk_ukey: &ChunkUkey, dependent_full_hash: &mut bool));
 define_hook!(CompilationRenderManifest: Series(compilation: &Compilation, chunk_ukey: &ChunkUkey, manifest: &mut Vec<RenderManifestEntry>, diagnostics: &mut Vec<Diagnostic>),tracing=false);
 define_hook!(CompilationChunkAsset: Series(compilation: &Compilation, chunk_ukey: &ChunkUkey, filename: &str));
 define_hook!(CompilationProcessAssets: Series(compilation: &mut Compilation));
@@ -229,35 +229,38 @@ pub struct Compilation {
   pub async_modules_artifact: StealCell<AsyncModulesArtifact>,
   // artifact for collect_dependencies_diagnostics
   pub dependencies_diagnostics_artifact: StealCell<DependenciesDiagnosticsArtifact>,
+  // artifact for exports info
+  pub exports_info_artifact: StealCell<ExportsInfoArtifact>,
   // artifact for side_effects_flag_plugin
   pub side_effects_optimize_artifact: StealCell<SideEffectsOptimizeArtifact>,
   // artifact for module_ids
-  pub module_ids_artifact: ModuleIdsArtifact,
+  pub module_ids_artifact: StealCell<ModuleIdsArtifact>,
   // artifact for named_chunk_ids
-  pub named_chunk_ids_artifact: ChunkNamedIdArtifact,
+  pub named_chunk_ids_artifact: StealCell<ChunkNamedIdArtifact>,
   // artifact for code_generation
   pub code_generation_results: BindingCell<CodeGenerationResults>,
   // artifact for create_module_hashes
-  pub cgm_hash_artifact: CgmHashArtifact,
+  pub cgm_hash_artifact: StealCell<CgmHashArtifact>,
   // artifact for process_modules_runtime_requirements
-  pub cgm_runtime_requirements_artifact: CgmRuntimeRequirementsArtifact,
+  pub cgm_runtime_requirements_artifact: StealCell<CgmRuntimeRequirementsArtifact>,
   // artifact for process_chunks_runtime_requirements
-  pub cgc_runtime_requirements_artifact: CgcRuntimeRequirementsArtifact,
+  pub cgc_runtime_requirements_artifact: StealCell<CgcRuntimeRequirementsArtifact>,
   // artifact for create_hash
-  pub chunk_hashes_artifact: ChunkHashesArtifact,
+  pub chunk_hashes_artifact: StealCell<ChunkHashesArtifact>,
   // artifact for create_chunk_assets
-  pub chunk_render_artifact: ChunkRenderArtifact,
+  pub chunk_render_artifact: StealCell<ChunkRenderArtifact>,
   // artifact for caching get_mode
-  pub module_graph_cache_artifact: ModuleGraphCacheArtifact,
+  pub module_graph_cache_artifact: StealCell<ModuleGraphCacheArtifact>,
   // transient cache for module static info
   pub module_static_cache: ModuleStaticCache,
   // artifact for chunk render cache
-  pub chunk_render_cache_artifact: ChunkRenderCacheArtifact,
+  pub chunk_render_cache_artifact: StealCell<ChunkRenderCacheArtifact>,
   // artifact for code generate cache
-  pub code_generate_cache_artifact: CodeGenerateCacheArtifact,
+  pub code_generate_cache_artifact: StealCell<CodeGenerateCacheArtifact>,
   // artifact for process runtime requirements cache
-  pub process_runtime_requirements_cache_artifact: ProcessRuntimeRequirementsCacheArtifact,
-  pub imported_by_defer_modules_artifact: ImportedByDeferModulesArtifact,
+  pub process_runtime_requirements_cache_artifact:
+    StealCell<ProcessRuntimeRequirementsCacheArtifact>,
+  pub imported_by_defer_modules_artifact: StealCell<ImportedByDeferModulesArtifact>,
 
   pub code_generated_modules: IdentifierSet,
   pub build_time_executed_modules: IdentifierSet,
@@ -362,30 +365,31 @@ impl Compilation {
       loader_resolver_factory,
 
       async_modules_artifact: StealCell::new(AsyncModulesArtifact::default()),
-      imported_by_defer_modules_artifact: Default::default(),
+      imported_by_defer_modules_artifact: StealCell::new(Default::default()),
       dependencies_diagnostics_artifact: StealCell::new(DependenciesDiagnosticsArtifact::default()),
+      exports_info_artifact: StealCell::new(ExportsInfoArtifact::default()),
       side_effects_optimize_artifact: StealCell::new(Default::default()),
-      module_ids_artifact: Default::default(),
-      named_chunk_ids_artifact: Default::default(),
+      module_ids_artifact: StealCell::new(Default::default()),
+      named_chunk_ids_artifact: StealCell::new(Default::default()),
       code_generation_results: Default::default(),
-      cgm_hash_artifact: Default::default(),
-      cgm_runtime_requirements_artifact: Default::default(),
-      cgc_runtime_requirements_artifact: Default::default(),
-      chunk_hashes_artifact: Default::default(),
-      chunk_render_artifact: Default::default(),
-      module_graph_cache_artifact: Default::default(),
+      cgm_hash_artifact: StealCell::new(Default::default()),
+      cgm_runtime_requirements_artifact: StealCell::new(Default::default()),
+      cgc_runtime_requirements_artifact: StealCell::new(Default::default()),
+      chunk_hashes_artifact: StealCell::new(Default::default()),
+      chunk_render_artifact: StealCell::new(Default::default()),
+      module_graph_cache_artifact: StealCell::new(Default::default()),
       module_static_cache: Default::default(),
       code_generated_modules: Default::default(),
-      chunk_render_cache_artifact: ChunkRenderCacheArtifact::new(MemoryGCStorage::new(
-        match &options.cache {
+      chunk_render_cache_artifact: StealCell::new(ChunkRenderCacheArtifact::new(
+        MemoryGCStorage::new(match &options.cache {
           CacheOptions::Disabled => 0, // FIXME: this should be removed in future
           CacheOptions::Memory { max_generations } => *max_generations,
           CacheOptions::Persistent(_) => 1,
-        },
+        }),
       )),
-      code_generate_cache_artifact: CodeGenerateCacheArtifact::new(&options),
-      process_runtime_requirements_cache_artifact: ProcessRuntimeRequirementsCacheArtifact::new(
-        &options,
+      code_generate_cache_artifact: StealCell::new(CodeGenerateCacheArtifact::new(&options)),
+      process_runtime_requirements_cache_artifact: StealCell::new(
+        ProcessRuntimeRequirementsCacheArtifact::new(&options),
       ),
       build_time_executed_modules: Default::default(),
       incremental,
@@ -405,7 +409,7 @@ impl Compilation {
       module_executor,
       in_finish_make: AtomicBool::new(false),
 
-      build_module_graph_artifact: StealCell::new(BuildModuleGraphArtifact::default()),
+      build_module_graph_artifact: StealCell::new(BuildModuleGraphArtifact::new()),
       modified_files,
       removed_files,
       input_filesystem,
@@ -425,9 +429,6 @@ impl Compilation {
     self.compiler_id
   }
 
-  pub fn swap_build_module_graph_artifact(&mut self, make_artifact: &mut BuildModuleGraphArtifact) {
-    mem::swap(&mut *self.build_module_graph_artifact, make_artifact);
-  }
   pub fn get_module_graph(&self) -> &ModuleGraph {
     self.build_module_graph_artifact.get_module_graph()
   }
@@ -649,9 +650,11 @@ impl Compilation {
     }
 
     let make_artifact = self.build_module_graph_artifact.steal();
-    let make_artifact = update_module_graph(
+    let exports_info_artifact = self.exports_info_artifact.steal();
+    let (make_artifact, exports_info_artifact) = update_module_graph(
       self,
       make_artifact,
+      exports_info_artifact,
       vec![UpdateParam::BuildEntry(
         self
           .entries
@@ -664,6 +667,7 @@ impl Compilation {
     )
     .await?;
     self.build_module_graph_artifact = make_artifact.into();
+    self.exports_info_artifact = exports_info_artifact.into();
 
     Ok(())
   }
@@ -700,9 +704,11 @@ impl Compilation {
     // Recheck entry and clean useless entry
     // This should before finish_modules hook is called, ensure providedExports effects on new added modules
     let make_artifact = self.build_module_graph_artifact.steal();
-    let make_artifact = update_module_graph(
+    let exports_info_artifact = self.exports_info_artifact.steal();
+    let (make_artifact, exports_info_artifact) = update_module_graph(
       self,
       make_artifact,
+      exports_info_artifact,
       vec![UpdateParam::BuildEntry(
         self
           .entries
@@ -715,6 +721,7 @@ impl Compilation {
     )
     .await?;
     self.build_module_graph_artifact = make_artifact.into();
+    self.exports_info_artifact = exports_info_artifact.into();
 
     Ok(())
   }
@@ -983,7 +990,14 @@ impl Compilation {
   }
 
   pub fn get_stats(&self) -> Stats<'_> {
-    Stats::new(self)
+    self.get_stats_with_exports_info_artifact(&self.exports_info_artifact)
+  }
+
+  pub fn get_stats_with_exports_info_artifact<'a>(
+    &'a self,
+    exports_info_artifact: &'a ExportsInfoArtifact,
+  ) -> Stats<'a> {
+    Stats::new(self, exports_info_artifact)
   }
 
   pub fn add_named_chunk(
@@ -1014,6 +1028,7 @@ impl Compilation {
   pub async fn rebuild_module<T>(
     &mut self,
     module_identifiers: IdentifierSet,
+    exports_info_artifact: &mut ExportsInfoArtifact,
     f: impl Fn(Vec<&BoxModule>) -> T,
   ) -> Result<T> {
     let artifact = self.build_module_graph_artifact.steal();
@@ -1021,12 +1036,14 @@ impl Compilation {
     // https://github.com/webpack/webpack/blob/19ca74127f7668aaf60d59f4af8fcaee7924541a/lib/Compilation.js#L2462C21-L2462C25
     self.module_graph_cache_artifact.unfreeze();
 
-    let artifact = update_module_graph(
+    let (artifact, updated_exports_info_artifact) = update_module_graph(
       self,
       artifact,
+      std::mem::take(exports_info_artifact),
       vec![UpdateParam::ForceBuildModules(module_identifiers.clone())],
     )
     .await?;
+    *exports_info_artifact = updated_exports_info_artifact;
     self.build_module_graph_artifact = artifact.into();
 
     let module_graph = self.get_module_graph();
@@ -1224,11 +1241,9 @@ impl Compilation {
 
   pub fn get_dependency_template(
     &self,
-    dep: &dyn DependencyCodeGeneration,
+    template_type: DependencyTemplateType,
   ) -> Option<Arc<dyn DependencyTemplate>> {
-    dep
-      .dependency_template()
-      .and_then(|template_type| self.dependency_templates.get(&template_type).cloned())
+    self.dependency_templates.get(&template_type).cloned()
   }
 }
 
@@ -1389,7 +1404,9 @@ impl AssetInfo {
     // "another" first fields
     self.minimized = another.minimized;
 
-    self.source_filename = another.source_filename.or(self.source_filename.take());
+    self.source_filename = another
+      .source_filename
+      .or_else(|| self.source_filename.take());
     self.version = another.version;
     self.related.merge_another(another.related);
 
@@ -1401,7 +1418,9 @@ impl AssetInfo {
     // self.module_hash.extend(another.module_hash.iter().cloned());
 
     // old first fields or truthy first fields
-    self.javascript_module = another.javascript_module.or(self.javascript_module.take());
+    self.javascript_module = another
+      .javascript_module
+      .or_else(|| self.javascript_module.take());
     self.immutable = another.immutable.or(self.immutable);
     self.development = another.development.or(self.development);
     self.hot_module_replacement = another

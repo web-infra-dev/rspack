@@ -2,8 +2,9 @@ use std::sync::LazyLock;
 
 use rspack_collections::DatabaseItem;
 use rspack_core::{
-  Chunk, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleStage, RuntimeTemplate,
-  compile_boolean_matcher, impl_runtime_module,
+  Chunk, Compilation, RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule,
+  RuntimeModuleGenerateContext, RuntimeModuleStage, RuntimeTemplate, compile_boolean_matcher,
+  impl_runtime_module,
 };
 use rspack_plugin_javascript::impl_plugin_for_js_plugin::chunk_has_js;
 
@@ -62,6 +63,7 @@ impl ImportScriptsChunkLoadingRuntimeModule {
     &self,
     chunk: &Chunk,
     compilation: &Compilation,
+    runtime_template: &RuntimeCodeTemplate<'_>,
   ) -> rspack_error::Result<String> {
     let base_uri = if let Some(base_uri) = chunk
       .get_entry_options(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
@@ -83,9 +85,7 @@ impl ImportScriptsChunkLoadingRuntimeModule {
     };
     Ok(format!(
       "{} = {};\n",
-      compilation
-        .runtime_template
-        .render_runtime_globals(&RuntimeGlobals::BASE_URI),
+      runtime_template.render_runtime_globals(&RuntimeGlobals::BASE_URI),
       base_uri
     ))
   }
@@ -155,7 +155,12 @@ impl RuntimeModule for ImportScriptsChunkLoadingRuntimeModule {
     ]
   }
 
-  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
+  async fn generate(
+    &self,
+    context: &RuntimeModuleGenerateContext<'_>,
+  ) -> rspack_error::Result<String> {
+    let compilation = context.compilation;
+    let runtime_template = context.runtime_template;
     let chunk = compilation
       .build_chunk_graph_artifact
       .chunk_by_ukey
@@ -179,7 +184,11 @@ impl RuntimeModule for ImportScriptsChunkLoadingRuntimeModule {
     let mut source = String::default();
 
     if with_base_uri {
-      source.push_str(&self.generate_base_uri(chunk, compilation).await?);
+      source.push_str(
+        &self
+          .generate_base_uri(chunk, compilation, runtime_template)
+          .await?,
+      );
     }
 
     // object to store loaded chunks
@@ -187,9 +196,7 @@ impl RuntimeModule for ImportScriptsChunkLoadingRuntimeModule {
     if with_hmr {
       let state_expression = format!(
         "{}_importScripts",
-        compilation
-          .runtime_template
-          .render_runtime_globals(&RuntimeGlobals::HMR_RUNTIME_STATE_PREFIX)
+        runtime_template.render_runtime_globals(&RuntimeGlobals::HMR_RUNTIME_STATE_PREFIX)
       );
       source.push_str(&format!(
         "var installedChunks = {} = {} || {};\n",
@@ -205,7 +212,7 @@ impl RuntimeModule for ImportScriptsChunkLoadingRuntimeModule {
     }
 
     if with_loading || with_callback {
-      let render_source = compilation.runtime_template.render(
+      let render_source = runtime_template.render(
         &self.template_id(TemplateId::Raw),
         Some(serde_json::json!({
           "_chunk_loading_global_expr": format!(
@@ -220,7 +227,7 @@ impl RuntimeModule for ImportScriptsChunkLoadingRuntimeModule {
     }
 
     if with_loading {
-      let render_source = compilation.runtime_template.render(
+      let render_source = runtime_template.render(
         &self.template_id(TemplateId::WithLoading),
         Some(serde_json::json!({
           "_js_matcher": has_js_matcher.render("chunkId"),
@@ -231,7 +238,7 @@ impl RuntimeModule for ImportScriptsChunkLoadingRuntimeModule {
     }
 
     if with_hmr {
-      let source_with_hmr = compilation.runtime_template.render(&self.template_id(TemplateId::WithHmr), Some(serde_json::json!({
+      let source_with_hmr = runtime_template.render(&self.template_id(TemplateId::WithHmr), Some(serde_json::json!({
         "_with_create_script_url": self.with_create_script_url,
         "_global_object": &compilation.options.output.global_object.as_str(),
         "_hot_update_global": &serde_json::to_string(&compilation.options.output.hot_update_global).expect("failed to serde_json::to_string(hot_update_global)"),
@@ -240,16 +247,15 @@ impl RuntimeModule for ImportScriptsChunkLoadingRuntimeModule {
       let hmr_runtime = generate_javascript_hmr_runtime(
         &self.template_id(TemplateId::HmrRuntime),
         "importScripts",
-        &compilation.runtime_template,
+        runtime_template,
       )?;
       source.push_str(&hmr_runtime);
     }
 
     if with_hmr_manifest {
       // TODO: import_scripts_chunk_loading_with_hmr_manifest same as jsonp_chunk_loading_with_hmr_manifest
-      let source_with_hmr_manifest = compilation
-        .runtime_template
-        .render(&self.template_id(TemplateId::WithHmrManifest), None)?;
+      let source_with_hmr_manifest =
+        runtime_template.render(&self.template_id(TemplateId::WithHmrManifest), None)?;
 
       source.push_str(&source_with_hmr_manifest);
     }

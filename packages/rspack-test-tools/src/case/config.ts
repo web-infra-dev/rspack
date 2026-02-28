@@ -1,6 +1,6 @@
+import path from 'node:path';
 import type { RspackOptions } from '@rspack/core';
 import fs from 'fs-extra';
-import path from 'path';
 import { parseResource } from '../helper/legacy/parseResource';
 import { BasicCaseCreator } from '../test/creator';
 import type {

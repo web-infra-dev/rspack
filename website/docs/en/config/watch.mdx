@@ -47,7 +47,6 @@ Add a delay before rebuilding once the first file changed. This allows Rspack to
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   watchOptions: {
     aggregateTimeout: 600,
   },
@@ -67,7 +66,6 @@ If you want to watch the `node_modules` directory, you can set it to only exclud
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   watchOptions: {
     ignored: /\.git/,
   },
@@ -78,7 +76,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   watchOptions: {
     ignored: '**/.git',
   },
@@ -89,7 +86,6 @@ It is also possible to use multiple glob patterns:
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   watchOptions: {
     ignored: ['**/files/**/*.js', '**/.git', '**/node_modules'],
   },
@@ -102,7 +98,6 @@ In addition, you can specify one or more absolute paths:
 import path from 'node:path';
 
 export default {
-  //...
   watchOptions: {
     ignored: [path.posix.resolve(__dirname, './ignored-dir')],
   },
@@ -122,7 +117,6 @@ When set to `true`, the default polling interval is 5007 milliseconds.
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   watchOptions: {
     poll: true,
   },
@@ -133,7 +127,6 @@ It can also set a custom polling interval:
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   watchOptions: {
     poll: 1000, // Check for changes every second
   },
@@ -149,7 +142,6 @@ Follow symbolic links while looking for a file. This is usually not needed as Rs
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   watchOptions: {
     followSymlinks: true,
   },
@@ -164,7 +156,6 @@ Stop watching when stdin stream has ended.
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   watchOptions: {
     stdin: true,
   },

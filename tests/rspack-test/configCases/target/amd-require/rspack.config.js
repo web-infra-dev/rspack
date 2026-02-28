@@ -1,4 +1,4 @@
-const webpack = require("@rspack/core");
+const { rspack } = require("@rspack/core");
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	output: {
@@ -9,7 +9,7 @@ module.exports = {
 		__filename: false
 	},
 	plugins: [
-		new webpack.BannerPlugin({
+		new rspack.BannerPlugin({
 			raw: true,
 			banner:
 				"var nodeRequire = require;\nvar require = function(deps, fn) { fn(); }\n"

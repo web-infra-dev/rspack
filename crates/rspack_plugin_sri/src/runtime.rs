@@ -1,7 +1,7 @@
 use rspack_core::{
   ChunkUkey, Compilation, CompilationAdditionalTreeRuntimeRequirements, CrossOriginLoading,
-  ManifestAssetType, RuntimeGlobals, RuntimeModule, RuntimeModuleExt, RuntimeTemplate, SourceType,
-  chunk_graph_chunk::ChunkId, impl_runtime_module,
+  ManifestAssetType, RuntimeGlobals, RuntimeModule, RuntimeModuleExt, RuntimeModuleGenerateContext,
+  RuntimeTemplate, SourceType, chunk_graph_chunk::ChunkId, impl_runtime_module,
 };
 use rspack_error::{Result, error};
 use rspack_hook::plugin_hook;
@@ -46,7 +46,8 @@ impl SRIHashVariableRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for SRIHashVariableRuntimeModule {
-  async fn generate(&self, compilation: &Compilation) -> Result<String> {
+  async fn generate(&self, context: &RuntimeModuleGenerateContext<'_>) -> Result<String> {
+    let compilation = context.compilation;
     let Some(chunk) = self
       .chunk
       .as_ref()
@@ -76,9 +77,7 @@ impl RuntimeModule for SRIHashVariableRuntimeModule {
 
     let module_graph = compilation.get_module_graph();
 
-    let runtime_template = compilation
-      .runtime_template
-      .create_module_codegen_runtime_template();
+    let runtime_template = compilation.runtime_template.create_module_code_template();
     let source_types = vec![
       (
         SourceType::JavaScript,

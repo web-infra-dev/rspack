@@ -147,7 +147,6 @@ Name of the configuration. Used when loading multiple configurations.
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   name: 'admin-app',
 };
 ```
@@ -175,7 +174,6 @@ Then use `this.answer` to get its value in the loader:
 
 ```js title=custom-loader.js
 module.exports = function (source) {
-  // ...
   console.log(this.answer); // will log `42` here
   return source;
 };

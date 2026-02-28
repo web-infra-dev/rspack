@@ -24,7 +24,6 @@ indexmap = { workspace = true, features = ["rayon"] }
 indoc = { workspace = true }
 itertools = { workspace = true }
 json = { workspace = true }
-memchr = { workspace = true }
 mime_guess = { workspace = true }
 napi = { workspace = true, optional = true }
 num-bigint = { workspace = true }
@@ -82,6 +81,7 @@ urlencoding = { workspace = true }
 ustr = { workspace = true }
 winnow = { workspace = true }
 
+pnp                            = { workspace = true }
 swc_experimental_ecma_ast      = { workspace = true }
 swc_experimental_ecma_parser   = { workspace = true }
 swc_experimental_ecma_semantic = { workspace = true }

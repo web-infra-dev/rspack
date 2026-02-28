@@ -316,7 +316,7 @@ impl Drop for TestHelper {
 
     match temp_dir.close() {
       Ok(_) => {}
-      Err(e) => eprintln!("Failed to delete temp dir: {}", e),
+      Err(e) => eprintln!("Failed to delete temp dir: {e}"),
     }
   }
 }

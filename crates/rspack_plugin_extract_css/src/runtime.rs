@@ -3,8 +3,9 @@ use std::ptr::NonNull;
 use itertools::Itertools;
 use rspack_collections::UkeySet;
 use rspack_core::{
-  BooleanMatcher, ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
-  RuntimeTemplate, compile_boolean_matcher, impl_runtime_module,
+  BooleanMatcher, ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule,
+  RuntimeModuleGenerateContext, RuntimeModuleStage, RuntimeTemplate, compile_boolean_matcher,
+  impl_runtime_module,
 };
 use rspack_error::Result;
 use rspack_plugin_runtime::{
@@ -118,7 +119,9 @@ impl RuntimeModule for CssLoadingRuntimeModule {
     ]
   }
 
-  async fn generate(&self, compilation: &rspack_core::Compilation) -> Result<String> {
+  async fn generate(&self, context: &RuntimeModuleGenerateContext<'_>) -> Result<String> {
+    let compilation = context.compilation;
+    let runtime_template = context.runtime_template;
     let runtime_hooks = RuntimePlugin::get_compilation_hooks(compilation.id());
     let runtime_requirements = get_chunk_runtime_requirements(
       compilation,
@@ -170,7 +173,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
     }
     let mut res = vec![];
 
-    let create_link_raw = compilation.runtime_template.render(
+    let create_link_raw = runtime_template.render(
       &self.template_id(TemplateId::CreateLink),
       Some(serde_json::json!({
         "_set_attributes": &attr,
@@ -192,7 +195,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
       })
       .await?;
 
-    let raw = compilation.runtime_template.render(
+    let raw = runtime_template.render(
       &self.template_id(TemplateId::Raw),
       Some(serde_json::json!({
         "_create_link": &create_link.code,
@@ -219,7 +222,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
           .build_chunk_graph_artifact
           .chunk_by_ukey
           .expect_get(self.chunk.as_ref().expect("should attached chunk"));
-        let loading = compilation.runtime_template.render(
+        let loading = runtime_template.render(
           &self.template_id(TemplateId::WithLoading),
           Some(serde_json::json!({
             "_installed_chunks": format!(
@@ -253,9 +256,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
     }
 
     if with_hmr {
-      let hmr = compilation
-        .runtime_template
-        .render(&self.template_id(TemplateId::WithHmr), None)?;
+      let hmr = runtime_template.render(&self.template_id(TemplateId::WithHmr), None)?;
       res.push(hmr);
     } else {
       res.push("// no hmr".to_string());
@@ -263,7 +264,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
 
     if with_prefetch && with_loading && !matches!(has_css_matcher, BooleanMatcher::Condition(false))
     {
-      let link_prefetch_raw = compilation.runtime_template.render(
+      let link_prefetch_raw = runtime_template.render(
         &self.template_id(TemplateId::WithPrefetchLink),
         Some(serde_json::json!({
           "_cross_origin": compilation.options.output.cross_origin_loading.to_string(),
@@ -283,7 +284,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
         })
         .await?;
 
-      let prefetch = compilation.runtime_template.render(
+      let prefetch = runtime_template.render(
         &self.template_id(TemplateId::WithPrefetch),
         Some(serde_json::json!({
           "_create_prefetch_link": &link_prefetch.code,
@@ -297,7 +298,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
 
     if with_preload && with_loading && !matches!(has_css_matcher, BooleanMatcher::Condition(false))
     {
-      let link_preload_raw = compilation.runtime_template.render(
+      let link_preload_raw = runtime_template.render(
         &self.template_id(TemplateId::WithPreloadLink),
         Some(serde_json::json!({
           "_cross_origin": compilation.options.output.cross_origin_loading.to_string(),
@@ -317,7 +318,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
         })
         .await?;
 
-      let preload = compilation.runtime_template.render(
+      let preload = runtime_template.render(
         &self.template_id(TemplateId::WithPreload),
         Some(serde_json::json!({
           "_create_preload_link": &link_preload.code,

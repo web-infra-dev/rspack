@@ -383,8 +383,8 @@ impl JsCompiler {
           async move {
             compiler
               .rebuild(
-                HashSet::from_iter(changed_files.into_iter()),
-                HashSet::from_iter(removed_files.into_iter()),
+                changed_files.into_iter().collect::<HashSet<_>>(),
+                removed_files.into_iter().collect::<HashSet<_>>(),
               )
               .await
               .to_napi_result_with_message(|e| {

@@ -1,17 +1,17 @@
 import { Stability, ApiMeta } from '@components/ApiMeta';
+import { PackageManagerTabs } from '@theme';
 
 # ModuleFederationPlugin
 
-This plugin implements [Module Federation 1.5](https://github.com/module-federation/universe/tree/main/packages/enhanced).
+`ModuleFederationPlugin` enables Module Federation in Rspack.
 
-:::tip
-This plugin requires `@module-federation/runtime-tools`. Please install it manually:
+This plugin implements the Module Federation 1.5 specification. If you want to learn more about the core concepts, usage, and best practices of Module Federation, please refer to the [Module Federation Guide](/guide/features/module-federation).
 
-```bash
-npm install @module-federation/runtime-tools
-```
+## Install dependencies
 
-:::
+This plugin depends on the runtime package [@module-federation/runtime-tools](https://www.npmjs.com/package/@module-federation/runtime-tools), which provides runtime support for Module Federation. Please install it first:
+
+<PackageManagerTabs command="add @module-federation/runtime-tools" />
 
 ## Example
 

@@ -9,10 +9,18 @@ use crate::reference_manifest::{ManifestExport, ModuleLoading, ServerReferenceMa
 
 pub type ActionIdNamePair = (Atom, Atom);
 
+/// Structured info about a client module to inject into the client compiler.
+#[rspack_cacheable::cacheable]
+#[derive(Debug, Clone)]
+pub struct ClientModuleImport {
+  pub request: String,
+  pub ids: Vec<String>,
+}
+
 #[derive(Debug, Default)]
 pub struct PluginState {
   pub module_loading: Option<ModuleLoading>,
-  pub injected_client_entries: FxHashMap<String, String>,
+  pub injected_client_entries: FxHashMap<String, Vec<ClientModuleImport>>,
   pub client_modules: FxHashMap<String, ManifestExport>,
   pub ssr_modules: FxHashMap<String, ManifestExport>,
   pub client_actions_per_entry: FxHashMap<String, FxHashMap<String, Vec<ActionIdNamePair>>>,

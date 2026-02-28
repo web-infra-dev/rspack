@@ -1,5 +1,6 @@
 use rspack_core::{
-  Compilation, RuntimeGlobals, RuntimeModule, RuntimeTemplate, impl_runtime_module,
+  Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext, RuntimeTemplate,
+  impl_runtime_module,
 };
 
 #[impl_runtime_module]
@@ -27,8 +28,11 @@ impl RuntimeModule for StartupEntrypointRuntimeModule {
     )]
   }
 
-  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
-    compilation.runtime_template.render(&self.id, None)
+  async fn generate(
+    &self,
+    context: &RuntimeModuleGenerateContext<'_>,
+  ) -> rspack_error::Result<String> {
+    context.runtime_template.render(&self.id, None)
   }
 
   fn additional_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {

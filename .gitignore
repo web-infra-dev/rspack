@@ -197,3 +197,6 @@ rstack-examples/
 .windsurf
 .aider
 .codex
+
+# rstest event report files
+/*-report.txt

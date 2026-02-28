@@ -524,6 +524,7 @@ async fn render_manifest(
     .build_chunk_graph_artifact
     .chunk_by_ukey
     .expect_get(chunk_ukey);
+  let runtime_template = compilation.runtime_template.create_runtime_code_template();
   let is_hot_update = matches!(chunk.kind(), ChunkKind::HotUpdate);
   let is_main_chunk = chunk.groups().iter().any(|group_ukey| {
     let group = compilation
@@ -585,21 +586,21 @@ async fn render_manifest(
     .use_cache(compilation, chunk, &SourceType::JavaScript, || async {
       let source = if let Some(source) = hooks
         .render_chunk_content
-        .call(compilation, chunk_ukey, &mut asset_info)
+        .call(compilation, chunk_ukey, &mut asset_info, &runtime_template)
         .await?
       {
         source.source
       } else if is_hot_update {
         self
-          .render_chunk(compilation, chunk_ukey, &output_path)
+          .render_chunk(compilation, chunk_ukey, &output_path, &runtime_template)
           .await?
       } else if is_runtime_chunk {
         self
-          .render_main(compilation, chunk_ukey, &output_path)
+          .render_main(compilation, chunk_ukey, &output_path, &runtime_template)
           .await?
       } else {
         self
-          .render_chunk(compilation, chunk_ukey, &output_path)
+          .render_chunk(compilation, chunk_ukey, &output_path, &runtime_template)
           .await?
       };
       Ok((CachedSource::new(source).boxed(), Vec::new()))

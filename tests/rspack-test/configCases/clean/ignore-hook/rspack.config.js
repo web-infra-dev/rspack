@@ -1,7 +1,6 @@
 const fs = require("fs");
 const path = require("path");
-const webpack = require("@rspack/core");
-const { RawSource } = require("webpack-sources");
+const { rspack } = require("@rspack/core");
 const readDir = require("../enabled/readdir");
 
 /** @type {import("@rspack/core").Configuration} */
@@ -42,7 +41,7 @@ module.exports = {
 						fs.writeFileSync(path.join(ignoredTooDir, "file.ext"), "");
 						once = false;
 					}
-					assets["this/dir/should/not/be/removed/file.ext"] = new RawSource("");
+					assets["this/dir/should/not/be/removed/file.ext"] = new rspack.sources.RawSource("");
 				});
 			});
 			compiler.hooks.afterEmit.tap("Test", compilation => {

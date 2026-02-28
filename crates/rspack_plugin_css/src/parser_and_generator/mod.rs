@@ -12,11 +12,12 @@ use rspack_cacheable::{
 };
 use rspack_core::{
   BoxDependencyTemplate, BoxModuleDependency, BuildMetaDefaultObject, BuildMetaExportsType,
-  ChunkGraph, Compilation, ConstDependency, CssExportsConvention, Dependency, DependencyId,
-  DependencyRange, DependencyType, GenerateContext, LocalIdentName, Module, ModuleArgument,
-  ModuleGraph, ModuleIdentifier, ModuleInitFragments, ModuleType, NormalModule, ParseContext,
-  ParseResult, ParserAndGenerator, PrefetchExportsInfoMode, RuntimeGlobals, RuntimeSpec,
-  SourceType, TemplateContext, UsageState,
+  ChunkGraph, Compilation, ConstDependency, CssExportsConvention, CssParserImport,
+  CssParserImportContext, Dependency, DependencyId, DependencyRange, DependencyType,
+  ExportsInfoArtifact, GenerateContext, LocalIdentName, Module, ModuleArgument, ModuleGraph,
+  ModuleIdentifier, ModuleInitFragments, ModuleType, NormalModule, ParseContext, ParseResult,
+  ParserAndGenerator, PrefetchExportsInfoMode, RuntimeGlobals, RuntimeSpec, SourceType,
+  TemplateContext, UsageState,
   diagnostics::map_box_diagnostics_to_module_parse_diagnostics,
   remove_bom,
   rspack_sources::{BoxSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt},
@@ -83,6 +84,7 @@ pub struct CssParserAndGenerator {
   pub named_exports: bool,
   pub es_module: bool,
   pub url: bool,
+  pub resolve_import: CssParserImport,
   #[cacheable(with=AsOption<AsMap<AsCacheable, AsVec>>)]
   pub exports: Option<CssExports>,
   pub local_names: Option<FxHashMap<String, String>>,
@@ -224,6 +226,26 @@ impl ParserAndGenerator for CssParserAndGenerator {
               (range.start, range.end).into(),
               "".into(),
             )));
+            continue;
+          }
+          // Check the import option
+          let should_import = match &self.resolve_import {
+            CssParserImport::Bool(b) => *b,
+            CssParserImport::Func(f) => {
+              // Call the filter function with the import arguments
+              let args = CssParserImportContext {
+                url: request.to_string(),
+                media: media.map(|s| s.to_string()),
+                resource_path: resource_path
+                  .map(|p| p.as_str().to_string())
+                  .unwrap_or_default(),
+                supports: supports.map(|s| s.to_string()),
+                layer: layer.map(|s| s.to_string()),
+              };
+              (f(args).await).unwrap_or(true)
+            }
+          };
+          if !should_import {
             continue;
           }
           let request = replace_module_request_prefix(
@@ -540,7 +562,10 @@ impl ParserAndGenerator for CssParserAndGenerator {
           let dep = module_graph.dependency_by_id(id);
 
           if let Some(dependency) = dep.as_dependency_code_generation() {
-            if let Some(template) = compilation.get_dependency_template(dependency) {
+            if let Some(template) = dependency
+              .dependency_template()
+              .and_then(|template_type| compilation.get_dependency_template(template_type))
+            {
               template.render(dependency, &mut source, &mut context)
             } else {
               panic!(
@@ -579,7 +604,10 @@ impl ParserAndGenerator for CssParserAndGenerator {
 
         if let Some(dependencies) = module.get_presentational_dependencies() {
           dependencies.iter().for_each(|dependency| {
-            if let Some(template) = compilation.get_dependency_template(dependency.as_ref()) {
+            if let Some(template) = dependency
+              .dependency_template()
+              .and_then(|dependency_type| compilation.get_dependency_template(dependency_type))
+            {
               template.render(dependency.as_ref(), &mut source, &mut context)
             } else {
               panic!(
@@ -600,19 +628,23 @@ impl ParserAndGenerator for CssParserAndGenerator {
           // currently this is dead branch, as css module will never be concatenated expect exportsOnly
           let mut concate_source = ConcatSource::default();
           if let Some(ref exports) = self.exports {
-            let mg = generate_context.compilation.get_module_graph();
+            let exports_info_artifact = &generate_context.compilation.exports_info_artifact;
             if let Some(local_names) = &self.local_names {
               let unused_exports = get_unused_local_ident(
                 exports,
                 local_names,
                 module.identifier(),
                 generate_context.runtime,
-                mg,
+                exports_info_artifact,
               );
               generate_context.data.insert(unused_exports);
             }
-            let exports =
-              get_used_exports(exports, module.identifier(), generate_context.runtime, mg);
+            let exports = get_used_exports(
+              exports,
+              module.identifier(),
+              generate_context.runtime,
+              exports_info_artifact,
+            );
 
             css_modules_exports_to_concatenate_module_string(
               exports,
@@ -623,9 +655,10 @@ impl ParserAndGenerator for CssParserAndGenerator {
           }
           return Ok(concate_source.boxed());
         } else {
-          let mg = generate_context.compilation.get_module_graph();
-          let exports_info =
-            mg.get_prefetched_exports_info(&module.identifier(), PrefetchExportsInfoMode::Default);
+          let exports_info = generate_context
+            .compilation
+            .exports_info_artifact
+            .get_prefetched_exports_info(&module.identifier(), PrefetchExportsInfoMode::Default);
           let (ns_obj, left, right) = if self.es_module
             && exports_info
               .other_exports_info()
@@ -649,13 +682,17 @@ impl ParserAndGenerator for CssParserAndGenerator {
                 local_names,
                 module.identifier(),
                 generate_context.runtime,
-                mg,
+                &generate_context.compilation.exports_info_artifact,
               );
               generate_context.data.insert(unused_exports);
             }
 
-            let exports =
-              get_used_exports(exports, module.identifier(), generate_context.runtime, mg);
+            let exports = get_used_exports(
+              exports,
+              module.identifier(),
+              generate_context.runtime,
+              &generate_context.compilation.exports_info_artifact,
+            );
 
             css_modules_exports_to_string(
               exports,
@@ -725,10 +762,10 @@ fn get_used_exports<'a>(
   exports: &'a CssExports,
   identifier: ModuleIdentifier,
   runtime: Option<&RuntimeSpec>,
-  mg: &ModuleGraph,
+  exports_info_artifact: &ExportsInfoArtifact,
 ) -> IndexMap<&'a str, &'a IndexSet<CssExport>> {
-  let exports_info =
-    mg.get_prefetched_exports_info_optional(&identifier, PrefetchExportsInfoMode::Default);
+  let exports_info = exports_info_artifact
+    .get_prefetched_exports_info_optional(&identifier, PrefetchExportsInfoMode::Default);
 
   exports
     .iter()
@@ -757,7 +794,7 @@ fn get_unused_local_ident(
   local_names: &FxHashMap<String, String>,
   identifier: ModuleIdentifier,
   runtime: Option<&RuntimeSpec>,
-  mg: &ModuleGraph,
+  exports_info_artifact: &ExportsInfoArtifact,
 ) -> CodeGenerationDataUnusedLocalIdent {
   let exports_names = exports.iter().fold(
     FxHashMap::<&str, FxHashSet<Atom>>::default(),
@@ -776,8 +813,8 @@ fn get_unused_local_ident(
     },
   );
 
-  let exports_info =
-    mg.get_prefetched_exports_info_optional(&identifier, PrefetchExportsInfoMode::Default);
+  let exports_info = exports_info_artifact
+    .get_prefetched_exports_info_optional(&identifier, PrefetchExportsInfoMode::Default);
 
   CodeGenerationDataUnusedLocalIdent {
     idents: exports_names

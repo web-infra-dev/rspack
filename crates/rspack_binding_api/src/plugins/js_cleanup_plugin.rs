@@ -57,7 +57,7 @@ async fn revoked_modules(
       .cleanup_revoked_modules
       .call_async(External::new((
         compilation.compiler_id(),
-        revoked_modules.iter().cloned().collect::<Vec<_>>(),
+        revoked_modules.iter().copied().collect::<Vec<_>>(),
       )))
       .await
       .to_rspack_result()?;

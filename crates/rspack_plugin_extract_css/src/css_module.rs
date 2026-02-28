@@ -3,7 +3,7 @@ use std::hash::Hash;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
-  AsyncDependenciesBlockIdentifier, BuildContext, BuildInfo, BuildMeta, BuildResult,
+  AsyncDependenciesBlockIdentifier, BoxModule, BuildContext, BuildInfo, BuildMeta, BuildResult,
   CodeGenerationResult, Compilation, CompilerOptions, DependenciesBlock, DependencyId, FactoryMeta,
   Module, ModuleCodeGenerationContext, ModuleExt, ModuleFactory, ModuleFactoryCreateData,
   ModuleFactoryResult, ModuleGraph, ModuleLayer, RuntimeSpec, SourceType, impl_module_meta_info,
@@ -167,12 +167,17 @@ impl Module for CssModule {
   }
 
   async fn build(
-    &mut self,
+    mut self: Box<Self>,
     build_context: BuildContext,
     _compilation: Option<&Compilation>,
   ) -> Result<BuildResult> {
     self.build_info.hash = Some(self.compute_hash(&build_context.compiler_options));
-    Ok(Default::default())
+    Ok(BuildResult {
+      module: BoxModule::new(self),
+      dependencies: vec![],
+      blocks: vec![],
+      optimization_bailouts: vec![],
+    })
   }
 
   // #[tracing::instrument("ExtractCssModule::code_generation", skip_all, fields(identifier = ?self.identifier()))]

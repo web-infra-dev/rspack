@@ -23,7 +23,7 @@ The [rspack-rsc-examples](https://github.com/rstackjs/rspack-rsc-examples) repos
 React Server Components rely on the new architecture of React 19. Please ensure that both `react` and `react-dom` are version v19.1.0 or higher.
 :::
 
-## Basic Concepts
+## Basic concepts
 
 React Server Component artifacts require cooperative execution across both server and browser environments. To support this architecture, Rspack launches two Compiler instances to separately build the server and browser artifacts. The diagram below illustrates the overall build flow:
 
@@ -201,7 +201,7 @@ export default [
 ];
 ```
 
-## Server Entry
+## Server entry
 
 `"use server-entry"` is a specific directive introduced by Rspack, designed primarily for framework developers. It is used to mark a Server Component as the logical entry point for a page or route.
 

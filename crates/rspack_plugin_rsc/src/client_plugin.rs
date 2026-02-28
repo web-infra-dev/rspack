@@ -5,8 +5,9 @@ use derive_more::Debug;
 use rspack_collections::Identifier;
 use rspack_core::{
   ChunkGraph, ChunkGroup, ChunkGroupUkey, ChunkUkey, Compilation, CompilationAfterProcessAssets,
-  CompilerFailed, CompilerId, CompilerMake, CrossOriginLoading, Dependency, DependencyId,
-  EntryDependency, Logger, ModuleGraph, ModuleId, ModuleIdentifier, Plugin,
+  CompilationParams, CompilerCompilation, CompilerFailed, CompilerId, CompilerMake,
+  CrossOriginLoading, DependenciesBlock, Dependency, DependencyId, DependencyType, Logger,
+  ModuleGraph, ModuleId, ModuleIdentifier, Plugin,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
@@ -15,11 +16,11 @@ use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::{
   Coordinator,
-  loaders::client_entry_loader::{
-    CLIENT_ENTRY_LOADER_IDENTIFIER, ParsedClientEntries, parse_client_entries,
-  },
   plugin_state::{ActionIdNamePair, PLUGIN_STATES, PluginState},
   reference_manifest::{CrossOriginMode, ManifestExport, ModuleLoading},
+  rsc_entry_dependency::RscEntryDependency,
+  rsc_entry_module::RscEntryModule,
+  rsc_entry_module_factory::RscEntryModuleFactory,
   utils::{encode_uri_path, get_module_resource, is_css_mod},
 };
 
@@ -413,15 +414,20 @@ impl RscClientPlugin {
           continue;
         };
 
-        let is_client_loader = module
-          .as_normal_module()
-          .is_some_and(|m| m.user_request().starts_with(CLIENT_ENTRY_LOADER_IDENTIFIER));
-        if !is_client_loader {
+        // Check if the module is a RscEntryModule (our custom virtual module)
+        let is_rsc_entry_module = module.downcast_ref::<RscEntryModule>().is_some();
+        if !is_rsc_entry_module {
           continue;
         }
-        for dependency_id in module_graph.get_outgoing_deps_in_order(module_identifier) {
-          if let Some(conn) = module_graph.connection_by_dependency_id(dependency_id) {
-            client_entry_modules.insert(*conn.module_identifier());
+        // Traverse the blocks of the RscEntryModule to find the actual client modules
+        for block_id in module.get_blocks() {
+          let Some(block) = module_graph.block_by_id(block_id) else {
+            continue;
+          };
+          for dep_id in block.get_dependencies() {
+            if let Some(conn) = module_graph.connection_by_dependency_id(dep_id) {
+              client_entry_modules.insert(*conn.module_identifier());
+            }
           }
         }
       }
@@ -466,6 +472,8 @@ impl Plugin for RscClientPlugin {
   }
 
   fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
+    ctx.compiler_hooks.compilation.tap(compilation::new(self));
+
     ctx.compiler_hooks.make.tap(make::new(self));
 
     ctx.compiler_hooks.failed.tap(failed::new(self));
@@ -477,6 +485,20 @@ impl Plugin for RscClientPlugin {
 
     Ok(())
   }
+}
+
+#[plugin_hook(CompilerCompilation for RscClientPlugin)]
+async fn compilation(
+  &self,
+  compilation: &mut Compilation,
+  params: &mut CompilationParams,
+) -> Result<()> {
+  compilation.set_dependency_factory(DependencyType::RscEntry, Arc::new(RscEntryModuleFactory));
+  compilation.set_dependency_factory(
+    DependencyType::RscClientReference,
+    params.normal_module_factory.clone(),
+  );
+  Ok(())
 }
 
 // Execution must occur after EntryPlugin to ensure base entries are established
@@ -495,27 +517,18 @@ async fn make(&self, compilation: &mut Compilation) -> Result<()> {
     )
   })?;
 
-  let context = compilation.options.context.clone();
   let mut include_dependencies = vec![];
-  for (entry_name, import) in &plugin_state.injected_client_entries {
+  for (entry_name, client_modules) in &plugin_state.injected_client_entries {
     {
       if compilation.entries.get(entry_name).is_none() {
-        let loader_query = import
-          .split_once('?')
-          .map(|x| x.1)
-          .unwrap_or_default()
-          .rsplit_once('!')
-          .map(|x| x.0)
-          .unwrap_or_default();
-        let ParsedClientEntries { modules, .. } = parse_client_entries(loader_query)?;
         compilation.push_diagnostic(Diagnostic::error(
           "RSC Client Entry Mismatch".to_string(),
           format!(
             "Entry '{}' not found in the client compiler. Failed to inject the following client modules: {}",
             entry_name,
-            modules
-              .into_iter()
-              .map(|m| m.request)
+            client_modules
+              .iter()
+              .map(|m| m.request.as_str())
               .collect::<Vec<_>>()
               .join(", ")
           ),
@@ -523,11 +536,9 @@ async fn make(&self, compilation: &mut Compilation) -> Result<()> {
         continue;
       }
 
-      let dependency = Box::new(EntryDependency::new(
-        import.clone(),
-        context.clone(),
-        None,
-        false,
+      let dependency = Box::new(RscEntryDependency::new(
+        entry_name.clone(),
+        client_modules.clone(),
       ));
       self
         .client_entries_per_entry

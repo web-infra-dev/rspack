@@ -64,7 +64,7 @@ impl NativeWatcher {
         poll_interval: options.poll_interval,
         aggregate_timeout: options.aggregate_timeout,
       },
-      to_fs_watcher_ignored(options.ignored.clone()),
+      to_fs_watcher_ignored(options.ignored),
     );
 
     Self {

@@ -1,5 +1,4 @@
 import type { GetLoaderOptions } from '../../config/adapterRuleUse';
-import { deprecate } from '../../util';
 import { resolveCollectTypeScriptInfo } from './collectTypeScriptInfo';
 import { resolvePluginImport } from './pluginImport';
 
@@ -78,19 +77,6 @@ export const getSwcLoaderOptions: GetLoaderOptions = (o, composeOptions) => {
         rspackExperiments.import = resolvePluginImport(
           rspackExperiments.import || rspackExperiments.pluginImport,
         );
-      }
-      if (rspackExperiments.collectTypeScriptInfo) {
-        deprecate(
-          '`rspackExperiments.collectTypeScriptInfo` is deprecated and will be removed in Rspack v2.0. Use top-level `collectTypeScriptInfo` instead.',
-        );
-        // If top-level is not set, use rspackExperiments config
-        if (!options.collectTypeScriptInfo) {
-          options.collectTypeScriptInfo = resolveCollectTypeScriptInfo(
-            rspackExperiments.collectTypeScriptInfo,
-          );
-        }
-        // Remove from rspackExperiments to avoid duplication
-        delete rspackExperiments.collectTypeScriptInfo;
       }
     }
   }

@@ -1,5 +1,6 @@
 use rspack_core::{
-  Compilation, RuntimeGlobals, RuntimeModule, RuntimeTemplate, impl_runtime_module,
+  Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext, RuntimeTemplate,
+  impl_runtime_module,
 };
 
 use crate::get_chunk_runtime_requirements;
@@ -45,7 +46,12 @@ impl RuntimeModule for EnsureChunkRuntimeModule {
     ]
   }
 
-  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
+  async fn generate(
+    &self,
+    context: &RuntimeModuleGenerateContext<'_>,
+  ) -> rspack_error::Result<String> {
+    let compilation = context.compilation;
+    let runtime_template = context.runtime_template;
     let chunk_ukey = self.chunk.expect("should have chunk");
     let runtime_requirements = get_chunk_runtime_requirements(compilation, &chunk_ukey);
     let source = if runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS) {
@@ -55,16 +61,14 @@ impl RuntimeModule for EnsureChunkRuntimeModule {
         ""
       };
 
-      compilation.runtime_template.render(
+      runtime_template.render(
         &self.template_id(TemplateId::Raw),
         Some(serde_json::json!({
           "_fetch_priority": fetch_priority,
         })),
       )?
     } else {
-      compilation
-        .runtime_template
-        .render(&self.template_id(TemplateId::WithInline), None)?
+      runtime_template.render(&self.template_id(TemplateId::WithInline), None)?
     };
 
     Ok(source)

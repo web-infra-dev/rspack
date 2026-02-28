@@ -11,7 +11,7 @@ pub struct RunnerContext {
   pub compilation_id: CompilationId,
   pub options: Arc<CompilerOptions>,
   pub resolver_factory: Arc<ResolverFactory>,
-  pub module: NormalModule,
+  pub module: Box<NormalModule>,
   pub source_map_kind: SourceMapKind,
 }
 

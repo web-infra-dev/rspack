@@ -1,6 +1,6 @@
 use std::sync::LazyLock;
 
-use rspack_core::SideEffectsBailoutItemWithSpan;
+use rspack_core::{DependencyRange, SideEffectsBailoutItemWithSpan};
 use swc_core::{
   common::{
     Mark, Spanned, SyntaxContext,
@@ -39,16 +39,22 @@ impl JavascriptParserPlugin for SideEffectsParserPlugin {
     match decl {
       ModuleDecl::ExportDefaultExpr(expr) => {
         if !is_pure_expression(parser, &expr.expr, self.unresolve_ctxt, parser.comments) {
+          let range = DependencyRange::from(expr.span);
+          let loc = parser.to_dependency_location(range);
           parser.side_effects_item = Some(SideEffectsBailoutItemWithSpan::new(
-            expr.span,
+            range,
+            loc,
             String::from("ExportDefaultExpr"),
           ));
         }
       }
       ModuleDecl::ExportDecl(decl) => {
         if !is_pure_decl(parser, &decl.decl, self.unresolve_ctxt, parser.comments) {
+          let range = DependencyRange::from(decl.decl.span());
+          let loc = parser.to_dependency_location(range);
           parser.side_effects_item = Some(SideEffectsBailoutItemWithSpan::new(
-            decl.decl.span(),
+            range,
+            loc,
             String::from("Decl"),
           ));
         }
@@ -112,8 +118,11 @@ impl SideEffectsParserPlugin {
     match stmt {
       Statement::If(if_stmt) => {
         if !is_pure_expression(parser, &if_stmt.test, self.unresolve_ctxt, parser.comments) {
+          let range = DependencyRange::from(if_stmt.span());
+          let loc = parser.to_dependency_location(range);
           parser.side_effects_item = Some(SideEffectsBailoutItemWithSpan::new(
-            if_stmt.span(),
+            range,
+            loc,
             String::from("Statement"),
           ));
         }
@@ -125,8 +134,11 @@ impl SideEffectsParserPlugin {
           self.unresolve_ctxt,
           parser.comments,
         ) {
+          let range = DependencyRange::from(while_stmt.span());
+          let loc = parser.to_dependency_location(range);
           parser.side_effects_item = Some(SideEffectsBailoutItemWithSpan::new(
-            while_stmt.span(),
+            range,
+            loc,
             String::from("Statement"),
           ));
         }
@@ -138,8 +150,11 @@ impl SideEffectsParserPlugin {
           self.unresolve_ctxt,
           parser.comments,
         ) {
+          let range = DependencyRange::from(do_while_stmt.span());
+          let loc = parser.to_dependency_location(range);
           parser.side_effects_item = Some(SideEffectsBailoutItemWithSpan::new(
-            do_while_stmt.span(),
+            range,
+            loc,
             String::from("Statement"),
           ));
         }
@@ -158,8 +173,11 @@ impl SideEffectsParserPlugin {
         };
 
         if !pure_init {
+          let range = DependencyRange::from(for_stmt.span());
+          let loc = parser.to_dependency_location(range);
           parser.side_effects_item = Some(SideEffectsBailoutItemWithSpan::new(
-            for_stmt.span(),
+            range,
+            loc,
             String::from("Statement"),
           ));
           return;
@@ -171,8 +189,11 @@ impl SideEffectsParserPlugin {
         };
 
         if !pure_test {
+          let range = DependencyRange::from(for_stmt.span());
+          let loc = parser.to_dependency_location(range);
           parser.side_effects_item = Some(SideEffectsBailoutItemWithSpan::new(
-            for_stmt.span(),
+            range,
+            loc,
             String::from("Statement"),
           ));
           return;
@@ -184,8 +205,11 @@ impl SideEffectsParserPlugin {
         };
 
         if !pure_update {
+          let range = DependencyRange::from(for_stmt.span());
+          let loc = parser.to_dependency_location(range);
           parser.side_effects_item = Some(SideEffectsBailoutItemWithSpan::new(
-            for_stmt.span(),
+            range,
+            loc,
             String::from("Statement"),
           ));
         }
@@ -197,8 +221,11 @@ impl SideEffectsParserPlugin {
           self.unresolve_ctxt,
           parser.comments,
         ) {
+          let range = DependencyRange::from(expr_stmt.span());
+          let loc = parser.to_dependency_location(range);
           parser.side_effects_item = Some(SideEffectsBailoutItemWithSpan::new(
-            expr_stmt.span(),
+            range,
+            loc,
             String::from("Statement"),
           ));
         }
@@ -210,8 +237,11 @@ impl SideEffectsParserPlugin {
           self.unresolve_ctxt,
           parser.comments,
         ) {
+          let range = DependencyRange::from(switch_stmt.span());
+          let loc = parser.to_dependency_location(range);
           parser.side_effects_item = Some(SideEffectsBailoutItemWithSpan::new(
-            switch_stmt.span(),
+            range,
+            loc,
             String::from("Statement"),
           ));
         }
@@ -223,8 +253,11 @@ impl SideEffectsParserPlugin {
           self.unresolve_ctxt,
           parser.comments,
         ) {
+          let range = DependencyRange::from(class_stmt.span());
+          let loc = parser.to_dependency_location(range);
           parser.side_effects_item = Some(SideEffectsBailoutItemWithSpan::new(
-            class_stmt.span(),
+            range,
+            loc,
             String::from("Statement"),
           ));
         }
@@ -232,15 +265,21 @@ impl SideEffectsParserPlugin {
       Statement::Var(var_stmt) => match var_stmt {
         VariableDeclaration::VarDecl(var_decl) => {
           if !is_pure_var_decl(parser, var_decl, self.unresolve_ctxt, parser.comments) {
+            let range = DependencyRange::from(var_stmt.span());
+            let loc = parser.to_dependency_location(range);
             parser.side_effects_item = Some(SideEffectsBailoutItemWithSpan::new(
-              var_stmt.span(),
+              range,
+              loc,
               String::from("Statement"),
             ));
           }
         }
         VariableDeclaration::UsingDecl(_) => {
+          let range = DependencyRange::from(var_stmt.span());
+          let loc = parser.to_dependency_location(range);
           parser.side_effects_item = Some(SideEffectsBailoutItemWithSpan::new(
-            var_stmt.span(),
+            range,
+            loc,
             String::from("Statement"),
           ));
         }
@@ -250,8 +289,11 @@ impl SideEffectsParserPlugin {
       Statement::Block(_) => {}
       Statement::Fn(_) => {}
       _ => {
+        let range = DependencyRange::from(stmt.span());
+        let loc = parser.to_dependency_location(range);
         parser.side_effects_item = Some(SideEffectsBailoutItemWithSpan::new(
-          stmt.span(),
+          range,
+          loc,
           String::from("Statement"),
         ))
       }

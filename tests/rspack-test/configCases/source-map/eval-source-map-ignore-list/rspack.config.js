@@ -1,12 +1,12 @@
 "use strict";
 
-const webpack = require("@rspack/core");
+const { rspack } = require("@rspack/core");
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	devtool: false,
 	plugins: [
-		new webpack.EvalSourceMapDevToolPlugin({
+		new rspack.EvalSourceMapDevToolPlugin({
 			ignoreList: [/ignored\.js/]
 		})
 	],

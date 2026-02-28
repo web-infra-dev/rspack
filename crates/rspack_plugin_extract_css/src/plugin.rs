@@ -546,6 +546,7 @@ async fn runtime_requirement_in_tree(
   let has_hot_update = runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS);
 
   if has_hot_update || runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS) {
+    let runtime_template = compilation.runtime_template.create_runtime_code_template();
     let filename = self.options.filename.clone();
     let chunk_filename = self.options.chunk_filename.clone();
 
@@ -558,9 +559,7 @@ async fn runtime_requirement_in_tree(
         SOURCE_TYPE[0],
         format!(
           "{}.miniCssF",
-          compilation
-            .runtime_template
-            .render_runtime_globals(&RuntimeGlobals::REQUIRE)
+          runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
         ),
         move |runtime_requirements| {
           runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS)

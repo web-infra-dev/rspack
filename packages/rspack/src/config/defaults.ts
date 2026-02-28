@@ -235,6 +235,7 @@ const applyIncrementalDefaults = (options: RspackOptionsNormalized) => {
     D(options.incremental, 'finishModules', true);
     D(options.incremental, 'optimizeDependencies', true);
     D(options.incremental, 'buildChunkGraph', true);
+    D(options.incremental, 'optimizeChunkModules', true);
     D(options.incremental, 'moduleIds', true);
     D(options.incremental, 'chunkIds', true);
     D(options.incremental, 'modulesHashes', true);
@@ -264,8 +265,8 @@ const applyJavascriptParserOptionsDefaults = (
   D(parserOptions, 'unknownContextCritical', true);
   D(parserOptions, 'wrappedContextCritical', false);
   D(parserOptions, 'wrappedContextRegExp', /.*/);
-  D(parserOptions, 'strictExportPresence', false);
-  D(parserOptions, 'requireAsExpression', false);
+  D(parserOptions, 'exportsPresence', 'error');
+  D(parserOptions, 'requireAsExpression', true);
   D(parserOptions, 'requireAlias', false);
   D(parserOptions, 'requireDynamic', true);
   D(parserOptions, 'requireResolve', true);

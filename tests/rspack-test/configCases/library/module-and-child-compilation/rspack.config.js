@@ -11,7 +11,11 @@ module.exports = {
 		}
 	},
 	module: {
-		strictExportPresence: true,
+		parser: {
+			javascript: {
+				exportsPresence: "error",
+			}
+		},
 		rules: [
 			{
 				test: /\.custom$/i,

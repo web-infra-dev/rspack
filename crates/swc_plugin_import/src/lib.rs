@@ -284,10 +284,7 @@ impl ImportPlugin<'_> {
       Ok(Some(format!(
         "{}/{}/{}",
         &config.library_name,
-        config
-          .library_directory
-          .as_ref()
-          .unwrap_or(&"lib".to_string()),
+        config.library_directory.as_deref().unwrap_or("lib"),
         transformed_name
       )))
     };

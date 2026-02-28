@@ -50,7 +50,7 @@ impl Cutout {
           clean_entry_dependencies = true;
         }
         UpdateParam::CheckNeedBuild => {
-          force_build_modules.extend(module_graph.modules().values().filter_map(|module| {
+          force_build_modules.extend(module_graph.modules().filter_map(|(_, module)| {
             if module.need_build(&compilation.value_cache_versions) {
               Some(module.identifier())
             } else {
@@ -132,13 +132,11 @@ impl Cutout {
       }
     }
     // add entry dependencies
-    for dep in next_entry_dependencies
-      .difference(&entry_dependencies)
-      .copied()
-      .collect::<Vec<_>>()
-    {
-      build_deps.insert((dep, None));
-      entry_dependencies.insert(dep);
+    for dep in next_entry_dependencies.iter() {
+      if !entry_dependencies.contains(dep) {
+        build_deps.insert((*dep, None));
+        entry_dependencies.insert(*dep);
+      }
     }
     artifact.entry_dependencies = entry_dependencies;
 

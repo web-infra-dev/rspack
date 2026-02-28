@@ -1,5 +1,6 @@
 import path from 'node:path';
-import { defineConfig, defineProject, type ProjectConfig } from '@rstest/core';
+import { defineConfig, defineProject, type ProjectConfig, type RstestConfig } from '@rstest/core';
+import { StreamedEventReporter } from '@rspack/test-tools/reporter';
 
 const root = path.resolve(__dirname, "../../");
 
@@ -42,6 +43,11 @@ const testFilter = process.argv.includes("--test") || process.argv.includes("-t"
     : process.argv.indexOf("--test")) + 1
   ]
   : undefined;
+
+const reporters: RstestConfig['reporters']  = testFilter ? ['verbose' as const] : ['default' as const];
+if (process.env.CI) {
+  reporters.push(new StreamedEventReporter( path.join(__dirname, '../../', 'rspack-test-event-report.txt')));
+}
 
 const sharedConfig = defineProject({
   setupFiles: setupFilesAfterEnv,
@@ -108,6 +114,9 @@ export default defineConfig({
   projects: [{
     extends: sharedConfig,
     name: 'base',
+    exclude: [
+      'NativeWatcher*.test.js',
+    ],
   }, {
     extends: sharedConfig,
     name: 'hottest',
@@ -115,8 +124,20 @@ export default defineConfig({
     env: {
       RSPACK_HOT_TEST: 'true',
     },
+    exclude: [
+      'NativeWatcher*.test.js',
+    ],
+  }, {
+    extends: sharedConfig,
+    name: 'nativeWatcher',
+    include: [
+      'NativeWatcher*.test.js',
+    ],
+    retry: 0, // re-try in native watcher tests is useless
+    maxConcurrency: 1,
+    testTimeout: 30_000,
   }],
-  reporters: testFilter ? ['verbose'] : ['default'],
+  reporters,
   pool: {
     maxWorkers: process.env.WASM ? 1 : "80%",
     execArgv: ['--no-warnings', '--expose-gc', '--max-old-space-size=8192', '--experimental-vm-modules'],

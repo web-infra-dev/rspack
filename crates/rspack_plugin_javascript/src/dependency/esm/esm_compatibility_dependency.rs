@@ -53,7 +53,8 @@ impl DependencyTemplate for ESMCompatibilityDependencyTemplate {
       .module_by_identifier(&module.identifier())
       .expect("should have mgm");
     let name = Atom::from("__esModule");
-    let exports_info = module_graph
+    let exports_info = compilation
+      .exports_info_artifact
       .get_prefetched_exports_info(&module.identifier(), PrefetchExportsInfoMode::Default);
     let used = exports_info
       .get_read_only_export_info(&name)

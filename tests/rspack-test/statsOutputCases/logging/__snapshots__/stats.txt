@@ -73,8 +73,8 @@ LOG from Named Logger|<TEST_ROOT>/statsOutputCases/logging/index.js
     Message with named logger
 
 LOG from rspack.Compilation
-<t> finish modules: xx ms
 <t> build module graph: xx ms
+<t> finish modules: xx ms
 <t> seal: xx ms
 <t> optimize dependencies: xx ms
 <t> rebuild chunk graph: xx ms

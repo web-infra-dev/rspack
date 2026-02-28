@@ -301,6 +301,7 @@ export const getNormalizedRspackOptions = (
           ),
         },
         portable: cache.portable,
+        readonly: cache.readonly,
       };
     }),
     stats: nestedConfig(config.stats, (stats) => {
@@ -447,6 +448,7 @@ const getNormalizedIncrementalOptions = (
       finishModules: false,
       optimizeDependencies: false,
       buildChunkGraph: true,
+      optimizeChunkModules: false,
       moduleIds: false,
       chunkIds: false,
       modulesHashes: false,

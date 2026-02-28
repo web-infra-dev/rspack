@@ -1,6 +1,6 @@
 "use strict";
 
-const webpack = require("@rspack/core");
+const { rspack } = require("@rspack/core");
 
 /** @typedef {import("@rspack/core").GeneratorOptionsByModuleTypeKnown} GeneratorOptionsByModuleTypeKnown */
 
@@ -66,7 +66,7 @@ module.exports = [
 		mode: "development",
 		target: "web",
 		plugins: [
-			new webpack.DefinePlugin({
+			new rspack.DefinePlugin({
 				"process.env.TARGET": JSON.stringify("web")
 			})
 		]
@@ -76,7 +76,7 @@ module.exports = [
 		mode: "production",
 		target: "web",
 		plugins: [
-			new webpack.DefinePlugin({
+			new rspack.DefinePlugin({
 				"process.env.TARGET": JSON.stringify("web")
 			})
 		]
@@ -86,7 +86,7 @@ module.exports = [
 		mode: "development",
 		target: "node",
 		plugins: [
-			new webpack.DefinePlugin({
+			new rspack.DefinePlugin({
 				"process.env.TARGET": JSON.stringify("node")
 			})
 		]
@@ -96,7 +96,7 @@ module.exports = [
 		mode: "production",
 		target: "node",
 		plugins: [
-			new webpack.DefinePlugin({
+			new rspack.DefinePlugin({
 				"process.env.TARGET": JSON.stringify("node")
 			})
 		]
