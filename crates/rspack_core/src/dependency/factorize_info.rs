@@ -1,5 +1,3 @@
-use std::sync::{Arc, Mutex};
-
 use rspack_cacheable::cacheable;
 use rspack_error::Diagnostic;
 use rspack_paths::ArcPathSet;
@@ -92,15 +90,4 @@ impl FactorizeInfo {
   pub fn diagnostics(&self) -> &[Diagnostic] {
     &self.diagnostics
   }
-}
-
-pub fn read_factorize_info(cell: &Arc<Mutex<FactorizeInfo>>) -> FactorizeInfo {
-  cell
-    .lock()
-    .expect("dependency factorize_info poisoned")
-    .clone()
-}
-
-pub fn write_factorize_info(cell: &Arc<Mutex<FactorizeInfo>>, info: FactorizeInfo) {
-  *cell.lock().expect("dependency factorize_info poisoned") = info;
 }
