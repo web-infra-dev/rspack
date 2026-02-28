@@ -7,7 +7,7 @@ use super::{
   overwrite::overwrite_tasks,
 };
 use crate::{
-  BoxDependency, Context, LoaderImportDependency,
+  ArcDependency, BoxDependency, Context, LoaderImportDependency,
   utils::task_loop::{Task, TaskResult, TaskType},
 };
 
@@ -48,6 +48,7 @@ impl Task<ExecutorTaskContext> for EntryTask {
           meta.request.clone(),
           origin_module_context.unwrap_or_else(|| Context::from("")),
         ));
+        let dep_arc: ArcDependency = dep.clone().into();
         let dep_id = *dep.id();
 
         let mg = TaskContext::get_module_graph_mut(&mut origin_context.artifact);
@@ -71,7 +72,7 @@ impl Task<ExecutorTaskContext> for EntryTask {
           issuer: None,
           issuer_layer: meta.layer.clone(),
           original_module_context: None,
-          dependencies: vec![dep],
+          dependencies: vec![dep_arc],
           resolve_options: None,
           options: origin_context.compiler_options.clone(),
           resolver_factory: origin_context.resolver_factory.clone(),

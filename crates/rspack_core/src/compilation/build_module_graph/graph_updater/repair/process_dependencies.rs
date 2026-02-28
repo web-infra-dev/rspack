@@ -1,11 +1,10 @@
 use std::borrow::Cow;
 
-use dyn_clone::clone_box;
 use rustc_hash::FxHashMap as HashMap;
 
 use super::{TaskContext, factorize::FactorizeTask};
 use crate::{
-  ContextDependency, DependencyId, Module, ModuleIdentifier,
+  ArcDependency, ContextDependency, DependencyId, Module, ModuleIdentifier,
   utils::task_loop::{Task, TaskResult, TaskType},
 };
 
@@ -28,7 +27,7 @@ impl Task<TaskContext> for ProcessDependenciesTask {
       dependencies,
       from_unlazy,
     } = *self;
-    let mut sorted_dependencies = HashMap::default();
+    let mut sorted_dependencies: HashMap<_, Vec<ArcDependency>> = HashMap::default();
 
     // First mark all dependencies as added
     for dependency_id in &dependencies {
@@ -67,7 +66,7 @@ impl Task<TaskContext> for ProcessDependenciesTask {
         sorted_dependencies
           .entry(resource_identifier)
           .or_insert(vec![])
-          .push(clone_box(dependency.as_ref()));
+          .push(dependency.clone());
       }
     }
 
@@ -81,7 +80,7 @@ impl Task<TaskContext> for ProcessDependenciesTask {
         .module_by_identifier(&original_module_identifier)
         .and_then(|m| m.as_normal_module())
         .and_then(|m| m.source().cloned());
-      let dependency = &dependencies[0];
+      let dependency = dependencies[0].as_ref();
       let dependency_type = dependency.dependency_type();
       // TODO move module_factory calculate to dependency factories
       let module_factory = context

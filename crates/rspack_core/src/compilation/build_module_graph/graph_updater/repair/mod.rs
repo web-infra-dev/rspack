@@ -5,7 +5,6 @@ pub mod factorize;
 pub mod lazy;
 pub mod process_dependencies;
 
-use dyn_clone::clone_box;
 use rspack_error::Result;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
@@ -54,7 +53,7 @@ pub async fn repair(
             issuer: None,
             issuer_layer: None,
             original_module_context: None,
-            dependencies: vec![clone_box(dependency.as_ref())],
+            dependencies: vec![dependency.clone()],
             resolve_options: None,
             options: compilation.options.clone(),
             resolver_factory: compilation.resolver_factory.clone(),

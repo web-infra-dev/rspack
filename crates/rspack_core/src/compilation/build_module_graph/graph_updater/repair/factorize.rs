@@ -1,13 +1,14 @@
 use std::sync::Arc;
 
+use dyn_clone::clone_box;
 use rspack_error::Diagnostic;
 use rspack_sources::BoxSource;
 
 use super::{TaskContext, add::AddTask};
 use crate::{
-  BoxDependency, CompilationId, CompilerId, CompilerOptions, Context, FactorizeInfo, ModuleFactory,
-  ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, ModuleLayer, Resolve,
-  ResolverFactory,
+  ArcDependency, BoxDependency, CompilationId, CompilerId, CompilerOptions, Context, FactorizeInfo,
+  ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, ModuleLayer,
+  Resolve, ResolverFactory,
   module_graph::ModuleGraphModule,
   utils::{
     ResourceId,
@@ -25,7 +26,7 @@ pub struct FactorizeTask {
   pub original_module_context: Option<Box<Context>>,
   pub issuer: Option<Box<str>>,
   pub issuer_layer: Option<ModuleLayer>,
-  pub dependencies: Vec<BoxDependency>,
+  pub dependencies: Vec<ArcDependency>,
   pub resolve_options: Option<Arc<Resolve>>,
   pub options: Arc<CompilerOptions>,
   pub resolver_factory: Arc<ResolverFactory>,
@@ -38,7 +39,7 @@ impl Task<TaskContext> for FactorizeTask {
     TaskType::Background
   }
   async fn background_run(mut self: Box<Self>) -> TaskResult<TaskContext> {
-    let dependency = &self.dependencies[0];
+    let dependency = self.dependencies[0].as_ref();
 
     let context = if let Some(context) = dependency.get_context()
       && !context.is_empty()
@@ -59,14 +60,21 @@ impl Task<TaskContext> for FactorizeTask {
       .cloned();
 
     let request = self.dependencies[0]
+      .as_ref()
       .as_module_dependency()
       .map(|d| d.request().to_string())
       .or_else(|| {
         self.dependencies[0]
+          .as_ref()
           .as_context_dependency()
           .map(|d| d.request().to_string())
       })
       .unwrap_or_default();
+    let dependencies = self
+      .dependencies
+      .iter()
+      .map(|dep| clone_box(dep.as_ref()))
+      .collect();
     // Error and result are not mutually exclusive in webpack module factorization.
     // Rspack puts results that need to be shared in both error and ok in [ModuleFactoryCreateData].
     let mut create_data = ModuleFactoryCreateData {
@@ -76,7 +84,7 @@ impl Task<TaskContext> for FactorizeTask {
       options: self.options.clone(),
       context,
       request,
-      dependencies: self.dependencies,
+      dependencies,
       issuer: self.issuer,
       issuer_identifier: self.original_module_identifier,
       issuer_layer,
