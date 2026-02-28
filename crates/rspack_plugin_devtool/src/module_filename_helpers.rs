@@ -1,4 +1,6 @@
 use std::{
+  borrow::Cow,
+  cell::OnceCell,
   hash::{Hash, Hasher},
   path::Path,
 };
@@ -7,23 +9,21 @@ use cow_utils::CowUtils;
 use rspack_core::{ChunkGraph, Compilation, OutputOptions, contextify};
 use rspack_error::Result;
 use rspack_hash::RspackHash;
-use rspack_paths::Utf8Path;
+use rspack_paths::{Utf8Path, Utf8PathBuf};
 use rustc_hash::FxHashMap as HashMap;
 use sugar_path::SugarPath;
 
 use crate::{ModuleFilenameTemplateFn, ModuleFilenameTemplateFnCtx, SourceReference};
 
-fn get_before(s: &str, token: &str) -> String {
+fn get_before<'a>(s: &'a str, token: &str) -> &'a str {
   match s.rfind(token) {
-    Some(idx) => s[..idx].to_string(),
-    None => String::new(),
+    Some(idx) => &s[..idx],
+    None => "",
   }
 }
 
-fn get_after(s: &str, token: &str) -> String {
-  s.find(token)
-    .map(|idx| s[idx..].to_string())
-    .unwrap_or_default()
+fn get_after<'a>(s: &'a str, token: &str) -> &'a str {
+  s.find(token).map(|idx| &s[idx..]).unwrap_or_default()
 }
 
 fn get_hash(text: &str, output_options: &OutputOptions) -> String {
@@ -118,9 +118,9 @@ impl ModuleFilenameHelpers {
           .to_string();
         let relative_resource_path = Some(resource.clone());
 
-        let loaders = get_before(&short_identifier, "!");
-        let all_loaders = get_before(&identifier, "!");
-        let query = get_after(&resource, "?");
+        let loaders = get_before(&short_identifier, "!").to_string();
+        let all_loaders = get_before(&identifier, "!").to_string();
+        let query = get_after(&resource, "?").to_string();
 
         let q = query.len();
         let resource_path = if q == 0 {
@@ -156,9 +156,9 @@ impl ModuleFilenameHelpers {
           .unwrap_or("")
           .to_string();
 
-        let loaders = get_before(&short_identifier, "!");
-        let all_loaders = get_before(&identifier, "!");
-        let query = get_after(&resource, "?");
+        let loaders = get_before(&short_identifier, "!").to_string();
+        let all_loaders = get_before(&identifier, "!").to_string();
+        let query = get_after(&resource, "?").to_string();
 
         let q = query.len();
         let resource_path = if q == 0 {
@@ -216,12 +216,12 @@ impl ModuleFilenameHelpers {
     namespace: &str,
     unresolved_source_map_path: Option<&Utf8Path>,
   ) -> String {
-    let ctx = ModuleFilenameHelpers::create_module_filename_template_fn_ctx(
+    let ctx = ModuleFilenameHelpers::create_module_filename_template_string_ctx(
       source_reference,
       compilation,
       output_options,
       namespace,
-      unresolved_source_map_path,
+      unresolved_source_map_path.map(|p| p.to_path_buf()),
     );
 
     template_replace(module_filename_template, &ctx)
@@ -259,13 +259,161 @@ impl ModuleFilenameHelpers {
       })
       .collect()
   }
+
+  fn create_module_filename_template_string_ctx<'a>(
+    source_reference: &'a SourceReference,
+    compilation: &'a Compilation,
+    output_options: &'a OutputOptions,
+    namespace: &'a str,
+    unresolved_source_map_path: Option<Utf8PathBuf>,
+  ) -> ModuleFilenameTemplateStringCtx<'a> {
+    ModuleFilenameTemplateStringCtx {
+      source_reference,
+      compilation,
+      output_options,
+      namespace,
+      unresolved_source_map_path,
+      short_identifier: Default::default(),
+      identifier: Default::default(),
+    }
+  }
+}
+
+pub struct ModuleFilenameTemplateStringCtx<'a> {
+  source_reference: &'a SourceReference,
+  compilation: &'a Compilation,
+  output_options: &'a OutputOptions,
+  namespace: &'a str,
+  unresolved_source_map_path: Option<Utf8PathBuf>,
+
+  // Lazy fields using OnceCell for caching
+  short_identifier: OnceCell<Cow<'a, str>>,
+  identifier: OnceCell<Cow<'a, str>>,
+}
+
+impl<'a> ModuleFilenameTemplateStringCtx<'a> {
+  pub fn short_identifier(&self) -> &str {
+    self.short_identifier.get_or_init(|| {
+      let Compilation { options, .. } = self.compilation;
+      let context = &options.context;
+
+      match &self.source_reference {
+        SourceReference::Module(module_identifier) => {
+          let module_graph = self.compilation.get_module_graph();
+          let module = module_graph
+            .module_by_identifier(module_identifier)
+            .unwrap_or_else(|| {
+              panic!("failed to find a module for the given identifier '{module_identifier}'")
+            });
+          module.readable_identifier(context)
+        }
+        SourceReference::Source(source) => Cow::Owned(contextify(context, source)),
+      }
+    })
+  }
+
+  pub fn identifier(&self) -> &str {
+    let Compilation { options, .. } = self.compilation;
+    let context = &options.context;
+
+    match &self.source_reference {
+      SourceReference::Module(module_identifier) => self
+        .identifier
+        .get_or_init(|| Cow::Owned(contextify(context, module_identifier))),
+      SourceReference::Source(_) => {
+        // For Source, identifier is the same as short_identifier
+        self.short_identifier()
+      }
+    }
+  }
+
+  pub fn module_id(&self) -> &str {
+    match &self.source_reference {
+      SourceReference::Module(module_identifier) => {
+        ChunkGraph::get_module_id(&self.compilation.module_ids_artifact, *module_identifier)
+          .map(|s| s.as_str())
+          .unwrap_or_default()
+      }
+      SourceReference::Source(_) => "",
+    }
+  }
+
+  pub fn absolute_resource_path(&self) -> &str {
+    match &self.source_reference {
+      SourceReference::Module(module_identifier) => {
+        module_identifier.split('!').next_back().unwrap_or("")
+      }
+      SourceReference::Source(source) => source.split('!').next_back().unwrap_or(""),
+    }
+  }
+
+  pub fn relative_resource_path(&self) -> Option<Cow<'_, str>> {
+    match &self.source_reference {
+      SourceReference::Module(_) => {
+        let short_identifier = self.short_identifier();
+        let resource = short_identifier.split('!').next_back().unwrap_or("");
+        Some(Cow::Borrowed(resource))
+      }
+      SourceReference::Source(_) => {
+        let absolute_resource_path = self.absolute_resource_path();
+        resolve_relative_resource_path(
+          absolute_resource_path,
+          self
+            .unresolved_source_map_path
+            .as_ref()
+            .map(|p| p.as_path()),
+        )
+        .map(Cow::Owned)
+      }
+    }
+  }
+
+  pub fn hash(&self) -> String {
+    let identifier = self.identifier();
+    get_hash(identifier.as_ref(), self.output_options)
+  }
+
+  pub fn resource(&self) -> &str {
+    let short_identifier = self.short_identifier();
+    short_identifier.split('!').next_back().unwrap_or("")
+  }
+
+  pub fn loaders(&self) -> &str {
+    let short_identifier = self.short_identifier();
+    get_before(short_identifier.as_ref(), "!")
+  }
+
+  pub fn all_loaders(&self) -> &str {
+    let identifier = self.identifier();
+    get_before(identifier.as_ref(), "!")
+  }
+
+  pub fn query(&self) -> &str {
+    let resource = self.resource();
+    get_after(resource, "?")
+  }
+
+  pub fn resource_path(&self) -> &str {
+    let resource = self.resource();
+    let query = self.query();
+    let q = query.len();
+    if q == 0 {
+      resource
+    } else {
+      &resource[..resource.len().saturating_sub(q)]
+    }
+  }
+
+  pub fn namespace(&self) -> &str {
+    &self.namespace
+  }
 }
 
 fn starts_with_ignore_ascii_case(s: &[u8], prefix: &[u8]) -> bool {
   s.len() >= prefix.len() && s[..prefix.len()].eq_ignore_ascii_case(prefix)
 }
 
-fn template_replace(s: &str, ctx: &ModuleFilenameTemplateFnCtx) -> String {
+fn template_replace<'a>(s: &str, ctx: &ModuleFilenameTemplateStringCtx<'a>) -> String {
   let resource_tag = b"[resource]";
   let sstr = s;
   let s = s.as_bytes();
@@ -314,10 +462,10 @@ fn template_replace(s: &str, ctx: &ModuleFilenameTemplateFnCtx) -> String {
       b']' if state => {
         let mut next_pos = i + 1;
         match_ignore_case!(&s[pos..next_pos];
-            b"[identifier]" => buf.push_str(&ctx.identifier),
-            b"[short-identifier]" => buf.push_str(&ctx.short_identifier),
-            b"[resource]" => buf.push_str(&ctx.resource),
-            b"[resource-path]" |  b"[resourcepath]" => buf.push_str(&ctx.resource_path),
+            b"[identifier]" => buf.push_str(ctx.identifier().as_ref()),
+            b"[short-identifier]" => buf.push_str(ctx.short_identifier().as_ref()),
+            b"[resource]" => buf.push_str(ctx.resource()),
+            b"[resource-path]" |  b"[resourcepath]" => buf.push_str(ctx.resource_path()),
 
             b"[absolute-resource-path]" |
             b"[abs-resource-path]" |
@@ -326,14 +474,14 @@ fn template_replace(s: &str, ctx: &ModuleFilenameTemplateFnCtx) -> String {
             b"[absolute-resourcepath]" |
             b"[abs-resourcepath]" |
             b"[absoluteresourcepath]" |
-            b"[absresourcepath]" => buf.push_str(&ctx.absolute_resource_path),
+            b"[absresourcepath]" => buf.push_str(ctx.absolute_resource_path()),
 
             b"[relative-resource-path]" |
             b"[relativeresource-path]" |
             b"[relative-resourcepath]" |
             b"[relativeresourcepath]" => {
-              if let Some(relative_resource_path) = &ctx.relative_resource_path {
-                buf.push_str(relative_resource_path)
+              if let Some(relative_resource_path) = ctx.relative_resource_path() {
+                buf.push_str(relative_resource_path.as_ref())
               } else {
                 buf.push_str(&sstr[pos..next_pos]);
               }
@@ -341,21 +489,21 @@ fn template_replace(s: &str, ctx: &ModuleFilenameTemplateFnCtx) -> String {
 
             b"[all-loaders]" | b"[allloaders]" => if starts_with_ignore_ascii_case(&s[next_pos..], resource_tag) {
                 next_pos += resource_tag.len();
-                buf.push_str(&ctx.identifier);
+                buf.push_str(ctx.identifier().as_ref());
             } else {
-                buf.push_str(&ctx.all_loaders);
+                buf.push_str(ctx.all_loaders());
             },
             b"[loaders]" => if starts_with_ignore_ascii_case(&s[next_pos..], resource_tag) {
                 next_pos += resource_tag.len();
-                buf.push_str(&ctx.short_identifier);
+                buf.push_str(ctx.short_identifier().as_ref());
             } else {
-                buf.push_str(&ctx.loaders);
+                buf.push_str(ctx.loaders());
             },
 
-            b"[query]" => buf.push_str(&ctx.query),
-            b"[id]" => buf.push_str(&ctx.module_id),
-            b"[hash]" => buf.push_str(&ctx.hash),
-            b"[namespace]" => buf.push_str(&ctx.namespace),
+            b"[query]" => buf.push_str(ctx.query()),
+            b"[id]" => buf.push_str(ctx.module_id()),
+            b"[hash]" => buf.push_str(ctx.hash().as_ref()),
+            b"[namespace]" => buf.push_str(ctx.namespace()),
 
             matched => if let Some(matched) = matched.strip_prefix(b"[\\")
                 .and_then(|matched| matched.strip_suffix(b"\\]"))

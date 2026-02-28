@@ -619,11 +619,11 @@ impl SourceMapDevToolPlugin {
                   None => Cow::Borrowed(asset_filename.as_ref()),
                 };
 
-                let content_hash = if source_map_filename_config.as_str().contains(CONTENT_HASH_PLACEHOLDER) {
+                let content_hash_digest = if source_map_filename_config.as_str().contains(CONTENT_HASH_PLACEHOLDER) {
                   let mut hasher = RspackHash::from(&compilation.options.output);
                   hasher.write(source_map_json.as_bytes());
                   let digest = hasher.digest(&compilation.options.output.hash_digest);
-                  Some(digest.encoded())
+                  Some(digest)
                 } else {
                   None
                 };
@@ -643,7 +643,7 @@ impl SourceMapDevToolPlugin {
                     .chunk_name_optional(
                       chunk.name_for_filename_template(),
                     )
-                    .content_hash_optional(content_hash),
+                    .content_hash_optional(content_hash_digest.as_ref().map(|digest| digest.encoded())),
                   None => data,
                 };
                 let source_map_filename = compilation
