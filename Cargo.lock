@@ -4362,7 +4362,6 @@ dependencies = [
  "simd-json",
  "sugar_path",
  "thread_local",
- "tokio",
  "tracing",
 ]
 

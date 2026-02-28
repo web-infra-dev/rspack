@@ -290,7 +290,7 @@ impl SourceMapDevToolPlugin {
       .await
   }
 
-  /// Pipeline rayon `source.map()` with tokio source_name computation.
+  /// Compute source maps and source names concurrently via `rspack_futures::scope`.
   /// Returns collected tasks and the reference-to-source-name mapping.
   async fn collect_tasks(
     &self,
