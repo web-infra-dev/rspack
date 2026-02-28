@@ -364,7 +364,7 @@ impl<'a> ModuleFilenameTemplateStringCtx<'a> {
 
   pub fn hash(&self) -> String {
     let identifier = self.identifier();
-    get_hash(identifier.as_ref(), self.output_options)
+    get_hash(identifier, self.output_options)
   }
 
   pub fn resource(&self) -> &str {
@@ -374,12 +374,12 @@ impl<'a> ModuleFilenameTemplateStringCtx<'a> {
 
   pub fn loaders(&self) -> &str {
     let short_identifier = self.short_identifier();
-    get_before(short_identifier.as_ref(), "!")
+    get_before(short_identifier, "!")
   }
 
   pub fn all_loaders(&self) -> &str {
     let identifier = self.identifier();
-    get_before(identifier.as_ref(), "!")
+    get_before(identifier, "!")
   }
 
   pub fn query(&self) -> &str {
@@ -399,7 +399,7 @@ impl<'a> ModuleFilenameTemplateStringCtx<'a> {
   }
 
   pub fn namespace(&self) -> &str {
-    &self.namespace
+    self.namespace
   }
 }
 
