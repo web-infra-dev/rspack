@@ -204,15 +204,13 @@ impl Task<TaskContext> for BuildResultTask {
       {
         forwarded_ids.append(pending_forwarded_ids);
       }
-      if !forwarded_ids.is_empty() {
-        if let Some(task) = process_unlazy_dependencies(
-          &context.artifact.module_to_lazy_make,
-          module_graph,
-          forwarded_ids,
-          module_identifier,
-        ) {
-          tasks.push(Box::new(task));
-        }
+      if let Some(task) = process_unlazy_dependencies(
+        &context.artifact.module_to_lazy_make,
+        module_graph,
+        forwarded_ids,
+        module_identifier,
+      ) {
+        tasks.push(Box::new(task));
       }
 
       all_dependencies
