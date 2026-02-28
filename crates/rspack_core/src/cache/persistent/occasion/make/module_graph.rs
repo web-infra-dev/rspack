@@ -159,7 +159,7 @@ pub async fn recovery_module_graph(
             index_in_block,
           },
         );
-        mg.add_dependency(dep);
+        mg.add_dependency(dep.into());
       }
       for con in node.connections {
         let con = con.into_owned();
@@ -195,7 +195,8 @@ pub async fn recovery_module_graph(
     let dep = TempDependency::default();
     let connection = ModuleGraphConnection::new(*dep.id(), None, mid, false);
     entry_dependencies.insert(*dep.id());
-    mg.add_dependency(Box::new(dep));
+    let dep: BoxDependency = Box::new(dep);
+    mg.add_dependency(dep.into());
     mg.cache_recovery_connection(connection);
   }
 

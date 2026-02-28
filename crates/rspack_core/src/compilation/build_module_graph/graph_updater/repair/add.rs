@@ -140,7 +140,7 @@ fn set_resolved_module(
       *dependency.id(),
       module_identifier,
     )?;
-    module_graph.add_dependency(dependency);
+    module_graph.add_dependency(dependency.into());
   }
   Ok(())
 }

@@ -616,7 +616,7 @@ impl Compilation {
     self
       .build_module_graph_artifact
       .get_module_graph_mut()
-      .add_dependency(entry);
+      .add_dependency(entry.into());
     if let Some(name) = &entry_name {
       if let Some(data) = self.entries.get_mut(name) {
         data.dependencies.push(entry_id);
@@ -684,7 +684,7 @@ impl Compilation {
       self
         .build_module_graph_artifact
         .get_module_graph_mut()
-        .add_dependency(entry);
+        .add_dependency(entry.into());
       if let Some(name) = options.name.clone() {
         if let Some(data) = self.entries.get_mut(&name) {
           data.include_dependencies.push(entry_id);

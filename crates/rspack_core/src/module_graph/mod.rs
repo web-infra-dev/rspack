@@ -21,10 +21,7 @@ pub use module::*;
 mod connection;
 pub use connection::*;
 
-use crate::{
-  BoxDependency, BoxModule, DependencyCondition, DependencyId, ExportsInfoArtifact,
-  ModuleIdentifier,
-};
+use crate::{BoxModule, DependencyCondition, DependencyId, ExportsInfoArtifact, ModuleIdentifier};
 
 // TODO Here request can be used Atom
 pub type ImportVarMap = HashMap<(Option<ModuleIdentifier>, bool), String /* import_var */>;
@@ -563,11 +560,8 @@ impl ModuleGraph {
     self.inner.dependencies.iter()
   }
 
-  pub fn add_dependency(&mut self, dependency: BoxDependency) {
-    self
-      .inner
-      .dependencies
-      .insert(*dependency.id(), Arc::from(dependency));
+  pub fn add_dependency(&mut self, dependency: ArcDependency) {
+    self.inner.dependencies.insert(*dependency.id(), dependency);
   }
 
   /// Get a dependency by ID, panicking if not found.

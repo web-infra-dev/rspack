@@ -194,7 +194,7 @@ impl Task<TaskContext> for FactorizeResultTask {
       tracing::trace!("Module created with failure, but without bailout: {dep:?}");
       // sync dependencies to mg
       for dep in dependencies {
-        module_graph.add_dependency(dep)
+        module_graph.add_dependency(dep.into())
       }
       return Ok(vec![]);
     };
@@ -204,7 +204,7 @@ impl Task<TaskContext> for FactorizeResultTask {
       tracing::trace!("Module ignored: {dep:?}");
       // sync dependencies to mg
       for dep in dependencies {
-        module_graph.add_dependency(dep)
+        module_graph.add_dependency(dep.into())
       }
       return Ok(vec![]);
     };
