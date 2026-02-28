@@ -1,25 +1,28 @@
-use rspack_collections::Identifier;
-use rspack_core::{Compilation, RuntimeGlobals, RuntimeModule, impl_runtime_module};
+use rspack_core::{
+  RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext, RuntimeTemplate, impl_runtime_module,
+};
 
 #[impl_runtime_module]
 #[derive(Debug)]
-pub struct NonceRuntimeModule {
-  id: Identifier,
-}
+pub struct NonceRuntimeModule {}
 
-impl Default for NonceRuntimeModule {
-  fn default() -> Self {
-    Self::with_default(Identifier::from("webpack/runtime/nonce"))
+impl NonceRuntimeModule {
+  pub fn new(runtime_template: &RuntimeTemplate) -> Self {
+    Self::with_default(runtime_template)
   }
 }
 
 #[async_trait::async_trait]
 impl RuntimeModule for NonceRuntimeModule {
-  fn name(&self) -> Identifier {
-    self.id
-  }
-
-  async fn generate(&self, _: &Compilation) -> rspack_error::Result<String> {
-    Ok(format!("{} = undefined;", RuntimeGlobals::SCRIPT_NONCE))
+  async fn generate(
+    &self,
+    context: &RuntimeModuleGenerateContext<'_>,
+  ) -> rspack_error::Result<String> {
+    Ok(format!(
+      "{} = undefined;",
+      context
+        .runtime_template
+        .render_runtime_globals(&RuntimeGlobals::SCRIPT_NONCE)
+    ))
   }
 }

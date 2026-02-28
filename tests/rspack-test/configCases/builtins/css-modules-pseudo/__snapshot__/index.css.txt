@@ -1,0 +1,9 @@
+Object {
+  bar: _5dad3ebd4b914974,
+  bav: _63bcf8d98310c00c,
+  foo: _47d9af61f36d6346,
+  four: _48fb0c4ea02ebcd2,
+  one: _8404656162b1a0da,
+  three: _186133fccb509298,
+  two: _0af0c670506994ae,
+}

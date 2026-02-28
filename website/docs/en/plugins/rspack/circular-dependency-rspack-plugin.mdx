@@ -62,26 +62,6 @@ export default {
 };
 ```
 
-- Allow asynchronous cycles (such as `import('some/module')`) and manually handle all detected cycles.
-
-```ts title="rspack.config.mjs"
-import { rspack } from '@rspack/core';
-
-export default {
-  entry: './src/index.js',
-  plugins: [
-    new rspack.CircularDependencyRspackPlugin({
-      allowAsyncCycles: true,
-      onDetected(entrypoint, modules, compilation) {
-        compilation.errors.push(
-          new Error(`Cycle in ${entrypoint}: ${modules.join(' -> ')}`),
-        );
-      },
-    }),
-  ],
-};
-```
-
 ## Options
 
 ### failOnError
@@ -98,25 +78,6 @@ export default {
   plugins: [
     new rspack.CircularDependencyRspackPlugin({
       failOnError: true,
-    }),
-  ],
-};
-```
-
-### allowAsyncCycles
-
-- **Type:** `boolean`
-- **Default:** `false`
-
-Allow asynchronous imports and connections to cause a detected cycle to be ignored. Asynchronous imports include `import()` function calls, weak imports for lazy compilation, hot module connections, and more.
-
-```js title="rspack.config.mjs"
-import { rspack } from '@rspack/core';
-
-export default {
-  plugins: [
-    new rspack.CircularDependencyRspackPlugin({
-      allowAsyncCycles: true,
     }),
   ],
 };

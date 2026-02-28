@@ -1,0 +1,109 @@
+use std::hash::Hash;
+
+use rkyv::{
+  Archive, Deserialize, Place, Serialize,
+  de::Pooling,
+  rancor::Fallible,
+  ser::Sharing,
+  with::{ArchiveWith, DeserializeWith, SerializeWith},
+};
+use rspack_cacheable_macros::enable_cacheable as cacheable;
+
+use crate::{ContextGuard, Error, Result};
+
+/// A trait for writing custom serialization and deserialization.
+///
+/// `#[cacheable(with=Custom)]` will use this trait.
+pub trait CustomConverter {
+  type Target: Archive;
+  fn serialize(&self, guard: &ContextGuard) -> Result<Self::Target>;
+  fn deserialize(data: Self::Target, guard: &ContextGuard) -> Result<Self>
+  where
+    Self: Sized;
+}
+
+/// A wrapper that uses CustomConverter for serialization.
+pub struct Custom;
+
+/// A simple structure to save the generated `CustomConverter::Target`,
+/// which can avoid some deserialization conflicts.
+#[cacheable(crate=crate)]
+pub struct DataBox<T: Archive>(T);
+
+// impl hashable for ArchivedDataBox
+impl<T> Hash for ArchivedDataBox<T>
+where
+  T: Archive,
+  T::Archived: Hash,
+{
+  fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+    self.0.hash(state);
+  }
+}
+impl<T> PartialEq for ArchivedDataBox<T>
+where
+  T: Archive,
+  T::Archived: PartialEq,
+{
+  fn eq(&self, other: &Self) -> bool {
+    self.0 == other.0
+  }
+}
+impl<T> Eq for ArchivedDataBox<T>
+where
+  T: Archive,
+  T::Archived: Eq,
+{
+}
+
+pub struct CustomResolver<A: Archive> {
+  resolver: DataBoxResolver<A>,
+  value: DataBox<A>,
+}
+
+impl<T> ArchiveWith<T> for Custom
+where
+  T: CustomConverter,
+  T::Target: Archive,
+{
+  type Archived = ArchivedDataBox<T::Target>;
+  type Resolver = CustomResolver<T::Target>;
+
+  #[inline]
+  fn resolve_with(_field: &T, resolver: Self::Resolver, out: Place<Self::Archived>) {
+    let CustomResolver { resolver, value } = resolver;
+    value.resolve(resolver, out)
+  }
+}
+
+impl<T, S> SerializeWith<T, S> for Custom
+where
+  T: CustomConverter,
+  T::Target: Archive + Serialize<S>,
+  S: Fallible<Error = Error> + Sharing + ?Sized,
+{
+  #[inline]
+  fn serialize_with(field: &T, serializer: &mut S) -> Result<Self::Resolver> {
+    let guard = ContextGuard::sharing_guard(serializer)?;
+    let value = DataBox(T::serialize(field, guard)?);
+    Ok(CustomResolver {
+      resolver: value.serialize(serializer)?,
+      value,
+    })
+  }
+}
+
+impl<T, D> DeserializeWith<ArchivedDataBox<T::Target>, T, D> for Custom
+where
+  T: CustomConverter,
+  T::Target: Archive,
+  ArchivedDataBox<T::Target>: Deserialize<DataBox<T::Target>, D>,
+  D: Fallible<Error = Error> + Pooling + ?Sized,
+{
+  #[inline]
+  fn deserialize_with(field: &ArchivedDataBox<T::Target>, de: &mut D) -> Result<T> {
+    let value = field.deserialize(de)?;
+    let guard = ContextGuard::pooling_guard(de)?;
+    T::deserialize(value.0, guard)
+  }
+}

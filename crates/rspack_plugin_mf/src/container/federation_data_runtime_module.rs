@@ -5,56 +5,55 @@
 //! that federation runtime needs to operate correctly.
 
 use async_trait::async_trait;
-use rspack_collections::{DatabaseItem, Identifier};
+use rspack_collections::DatabaseItem;
 use rspack_core::{
-  BooleanMatcher, Chunk, ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
-  compile_boolean_matcher, get_js_chunk_filename_template, get_undo_path, impl_runtime_module,
+  BooleanMatcher, Chunk, Compilation, RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule,
+  RuntimeModuleGenerateContext, RuntimeModuleStage, RuntimeTemplate, compile_boolean_matcher,
+  get_js_chunk_filename_template, get_undo_path, impl_runtime_module,
 };
 use rspack_error::Result;
-use rspack_plugin_runtime::chunk_has_js;
+use rspack_plugin_javascript::impl_plugin_for_js_plugin::chunk_has_js;
 
 #[impl_runtime_module]
 #[derive(Debug)]
-pub struct FederationDataRuntimeModule {
-  id: Identifier,
-  chunk: Option<ChunkUkey>,
-}
+pub struct FederationDataRuntimeModule {}
 
-impl Default for FederationDataRuntimeModule {
-  fn default() -> Self {
-    Self::with_default(Identifier::from("module_federation/runtime"), None)
+impl FederationDataRuntimeModule {
+  pub fn new(runtime_template: &RuntimeTemplate) -> Self {
+    Self::with_name(runtime_template, "module_federation/runtime")
   }
 }
-
 #[async_trait]
 impl RuntimeModule for FederationDataRuntimeModule {
-  fn name(&self) -> Identifier {
-    self.id
-  }
-
-  fn attach(&mut self, chunk: ChunkUkey) {
-    self.chunk = Some(chunk);
-  }
-
   fn stage(&self) -> RuntimeModuleStage {
     RuntimeModuleStage::Normal
   }
 
-  async fn generate(&self, compilation: &Compilation) -> Result<String> {
+  async fn generate(&self, context: &RuntimeModuleGenerateContext<'_>) -> Result<String> {
+    let compilation = context.compilation;
+    let runtime_template = context.runtime_template;
     let chunk = compilation
+      .build_chunk_graph_artifact
       .chunk_by_ukey
       .expect_get(&self.chunk.expect("The chunk should be attached."));
-    Ok(federation_runtime_template(chunk, compilation).await)
+    Ok(federation_runtime_template(chunk, runtime_template, compilation).await)
   }
 }
 
-pub async fn federation_runtime_template(chunk: &Chunk, compilation: &Compilation) -> String {
-  let federation_global = format!("{}.federation", RuntimeGlobals::REQUIRE);
+pub async fn federation_runtime_template(
+  chunk: &Chunk,
+  runtime_template: &RuntimeCodeTemplate<'_>,
+  compilation: &Compilation,
+) -> String {
+  let federation_global = format!(
+    "{}.federation",
+    runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
+  );
 
-  let condition_map =
-    compilation
-      .chunk_graph
-      .get_chunk_condition_map(&chunk.ukey(), compilation, chunk_has_js);
+  let condition_map = compilation
+    .build_chunk_graph_artifact
+    .chunk_graph
+    .get_chunk_condition_map(&chunk.ukey(), compilation, chunk_has_js);
   let has_js_matcher = compile_boolean_matcher(&condition_map);
 
   let chunk_matcher = if matches!(has_js_matcher, BooleanMatcher::Condition(false)) {
@@ -75,7 +74,7 @@ chunkMatcher: function(chunkId) {{
     let filename = get_js_chunk_filename_template(
       chunk,
       &compilation.options.output,
-      &compilation.chunk_group_by_ukey,
+      &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
     );
     let output_name = compilation
       .get_path(&filename, Default::default())

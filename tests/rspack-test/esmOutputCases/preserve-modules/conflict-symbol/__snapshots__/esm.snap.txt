@@ -1,0 +1,46 @@
+```mjs title=demo/index.mjs
+import { other_demo } from "./other.mjs";
+
+// ./src/demo/index.js
+
+
+const demo = () => 'demo'
+other_demo;
+export { demo as local };
+
+```
+
+```mjs title=demo/other.mjs
+// ./src/demo/other.js
+const other_demo = () => 'otherDemo'
+
+{
+	const demo = () => 42
+	console.log.bind(demo)
+}
+
+export { other_demo };
+
+```
+
+```mjs title=index.mjs
+
+// ./src/index.js
+
+
+it('should preserve modules', () => {
+	const local = () => 2
+	expect(local()).toBe(2)
+})
+
+it('should have strict export symbol', async () => {
+	const allExports = await import(/*webpackIgnore: true*/'./index.mjs')
+
+	expect(allExports).toHaveProperty('local')
+})
+
+
+
+export { local } from "./demo/index.mjs";
+
+```

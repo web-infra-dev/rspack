@@ -105,7 +105,6 @@ HookAfterEmit --> HookNeedAdditionalPass{hooks.needAdditionalPass}
 HookNeedAdditionalPass --> |true| HookAdditionalDone(hooks.done)
 HookAdditionalDone --> HookAdditionPass(hooks.additionalPass)
 HookAdditionPass --> Compile
-HookNeedAdditionalPass --> |false| HookEmitRecords(hooks.emitRecords)
 HookEmitRecords --> HookDone
 HookDone --> HookFailed(<a href="#failed">hooks.failed</a>)
 HookFailed --> Callback("callback(err, stats)")
@@ -231,7 +230,7 @@ This hook is only triggered when calling [compiler.run()](/api/javascript-api/in
 ```js
 class ExamplePlugin {
   apply(compiler) {
-    compiler.hooks.beforeRun.tap('ExamplePlugin', compiler => {
+    compiler.hooks.beforeRun.tap('ExamplePlugin', (compiler) => {
       console.log('Build is about to start...');
     });
   }
@@ -284,7 +283,7 @@ This hook is only triggered when calling [compiler.run()](/api/javascript-api/in
 ```js
 class ExamplePlugin {
   apply(compiler) {
-    compiler.hooks.beforeRun.tap('ExamplePlugin', compiler => {
+    compiler.hooks.beforeRun.tap('ExamplePlugin', (compiler) => {
       console.log('Build start...');
     });
   }
@@ -339,7 +338,7 @@ This hook is only triggered when calling [compiler.watch()](/api/javascript-api/
 ```js
 class ExamplePlugin {
   apply(compiler) {
-    compiler.hooks.watchRun.tap('ExamplePlugin', compiler => {
+    compiler.hooks.watchRun.tap('ExamplePlugin', (compiler) => {
       const { modifiedFiles, removedFiles } = compiler;
       if (modifiedFiles) {
         console.log('Changed files:', Array.from(modifiedFiles));
@@ -401,10 +400,10 @@ You can use the `compilation` parameter to access the properties of the compilat
 ```js
 class ExamplePlugin {
   apply(compiler) {
-    compiler.hooks.thisCompilation.tap('ExamplePlugin', compilation => {
+    compiler.hooks.thisCompilation.tap('ExamplePlugin', (compilation) => {
       console.log('compilation created:', compilation);
 
-      compilation.hooks.make.tap('ExamplePlugin', compilation => {
+      compilation.hooks.make.tap('ExamplePlugin', (compilation) => {
         console.log("compilation's make hook called:", compilation);
       });
     });
@@ -437,10 +436,10 @@ You can use the `compilation` parameter to access the properties of the compilat
 ```js
 class ExamplePlugin {
   apply(compiler) {
-    compiler.hooks.compilation.tap('ExamplePlugin', compilation => {
+    compiler.hooks.compilation.tap('ExamplePlugin', (compilation) => {
       console.log('compilation created:', compilation);
 
-      compilation.hooks.make.tap('ExamplePlugin', compilation => {
+      compilation.hooks.make.tap('ExamplePlugin', (compilation) => {
         console.log("compilation's make hook called:", compilation);
       });
     });
@@ -529,7 +528,7 @@ Called before emitting assets. Should return a boolean telling whether to emit.
 - **Example:**
 
 ```js
-compiler.hooks.shouldEmit.tap('MyPlugin', compilation => {
+compiler.hooks.shouldEmit.tap('MyPlugin', (compilation) => {
   // return true to emit the output, otherwise false
   return true;
 });
@@ -633,3 +632,37 @@ Called when a watching compilation has stopped.
 Called when the compiler is closing.
 
 - **Type:** `AsyncSeriesHook<[]>`
+
+## infrastructureLog
+
+Called when infrastructure logging is triggered, allowing plugins to intercept, modify, or handle log messages.
+
+This hook provides a way to customize Rspack's infrastructure logs - you can filter specific log types, add custom formatting, or completely override the default logging behavior.
+
+If the hook returns `true`, the default infrastructure logging will be prevented. If it returns `undefined`, the default logging will proceed.
+
+- **Type:** `SyncBailHook<[string, string, any[]], true | void>`
+- **Arguments:**
+  - `name`: The name of the logger
+  - `type`: The log type (e.g., 'log', 'warn', 'error', ...)
+  - `args`: An array of arguments passed to the logging method
+- **Example:**
+
+```js
+class ExamplePlugin {
+  apply(compiler) {
+    compiler.hooks.infrastructureLog.tap('MyPlugin', (name, type, args) => {
+      // Custom logging logic
+      if (type === 'error') {
+        console.error(`[${name}] ERROR:`, ...args);
+        return true; // Prevent default logging
+      }
+
+      // Let other log types use default behavior
+      return undefined;
+    });
+  }
+}
+```
+
+> See [infrastructureLogging](/config/infrastructure-logging) to learn more about infrastructure logging.

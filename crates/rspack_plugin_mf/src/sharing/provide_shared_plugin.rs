@@ -35,6 +35,7 @@ pub struct ProvideOptions {
   pub singleton: Option<bool>,
   pub required_version: Option<ConsumeVersion>,
   pub strict_version: Option<bool>,
+  pub tree_shaking_mode: Option<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -46,6 +47,7 @@ pub struct VersionedProvideOptions {
   pub singleton: Option<bool>,
   pub required_version: Option<ConsumeVersion>,
   pub strict_version: Option<bool>,
+  pub tree_shaking_mode: Option<String>,
 }
 
 impl ProvideOptions {
@@ -58,6 +60,7 @@ impl ProvideOptions {
       singleton: self.singleton,
       required_version: self.required_version.clone(),
       strict_version: self.strict_version,
+      tree_shaking_mode: self.tree_shaking_mode.clone(),
     }
   }
 }
@@ -109,6 +112,7 @@ impl ProvideSharedPlugin {
     singleton: Option<bool>,
     required_version: Option<ConsumeVersion>,
     strict_version: Option<bool>,
+    tree_shaking_mode: Option<String>,
     resource: &str,
     resource_data: &ResourceData,
     mut add_diagnostic: impl FnMut(Diagnostic),
@@ -126,9 +130,10 @@ impl ProvideSharedPlugin {
           singleton,
           strict_version,
           required_version,
+          tree_shaking_mode: tree_shaking_mode.clone(),
         },
       );
-    } else if let Some(description) = &resource_data.resource_description {
+    } else if let Some(description) = resource_data.description() {
       if let Some(description) = description.json().as_object()
         && let Some(version) = description.get("version")
         && let Some(version) = version.as_str()
@@ -143,6 +148,7 @@ impl ProvideSharedPlugin {
             singleton,
             strict_version,
             required_version,
+            tree_shaking_mode: tree_shaking_mode.clone(),
           },
         );
       } else {
@@ -185,11 +191,11 @@ async fn compilation(
   let mut prefix_match_provides = self.prefix_match_provides.write().await;
   for (request, config) in &self.provides {
     if RELATIVE_REQUEST.is_match(request) || ABSOLUTE_REQUEST.is_match(request) {
-      resolved_provide_map.insert(request.to_string(), config.to_versioned());
+      resolved_provide_map.insert(request.clone(), config.to_versioned());
     } else if request.ends_with('/') {
-      prefix_match_provides.insert(request.to_string(), config.clone());
+      prefix_match_provides.insert(request.clone(), config.clone());
     } else {
-      match_provides.insert(request.to_string(), config.clone());
+      match_provides.insert(request.clone(), config.clone());
     }
   }
   Ok(())
@@ -205,14 +211,15 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
     .map(|(resource, config)| {
       (
         Box::new(ProvideSharedDependency::new(
-          config.share_scope.to_string(),
-          config.share_key.to_string(),
+          config.share_scope.clone(),
+          config.share_key.clone(),
           config.version.clone(),
-          resource.to_string(),
+          resource.clone(),
           config.eager,
           config.singleton,
           config.required_version.clone(),
           config.strict_version,
+          config.tree_shaking_mode.clone(),
         )) as BoxDependency,
         EntryOptions {
           name: None,
@@ -232,7 +239,7 @@ async fn normal_module_factory_module(
   create_data: &mut NormalModuleCreateData,
   module: &mut BoxModule,
 ) -> Result<()> {
-  let resource = &create_data.resource_resolve_data.resource;
+  let resource = create_data.resource_resolve_data.resource();
   let resource_data = &create_data.resource_resolve_data;
   if self
     .resolved_provide_map
@@ -270,6 +277,7 @@ async fn normal_module_factory_module(
         config.singleton,
         config.required_version.clone(),
         config.strict_version,
+        config.tree_shaking_mode.clone(),
         resource,
         resource_data,
         |d| data.diagnostics.push(d),
@@ -299,6 +307,7 @@ async fn normal_module_factory_module(
         config.singleton,
         config.required_version.clone(),
         config.strict_version,
+        config.tree_shaking_mode.clone(),
         resource,
         resource_data,
         |d| data.diagnostics.push(d),
@@ -338,6 +347,7 @@ async fn normal_module_factory_module(
         config.singleton,
         config.required_version.clone(),
         config.strict_version,
+        config.tree_shaking_mode.clone(),
         resource,
         resource_data,
         |d| data.diagnostics.push(d),

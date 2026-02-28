@@ -1,0 +1,6 @@
+asset bundle.js xx bytes [emitted] [minimized] (name: main)
+./index.js xx bytes [built] [code generated]
+  [no exports used]
+./a.js xx bytes [built] [code generated]
+  [used exports unknown]
+Rspack x.x.x compiled successfully in X s

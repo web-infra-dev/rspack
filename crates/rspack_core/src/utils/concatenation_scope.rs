@@ -1,52 +1,66 @@
-use std::{
-  collections::hash_map::Entry,
-  sync::{Arc, LazyLock},
-};
+use std::sync::{Arc, LazyLock};
 
+use anymap::CloneAny;
 use regex::Regex;
 use rspack_collections::IdentifierIndexMap;
-use rspack_util::itoa;
+use rspack_util::{
+  fx_hash::{FxIndexMap, FxIndexSet},
+  itoa,
+};
 use swc_core::atoms::Atom;
 
 use crate::{
-  ModuleIdentifier,
+  ExportMode, ModuleIdentifier,
   concatenated_module::{ConcatenatedModuleInfo, ModuleInfo},
 };
 
-pub const DEFAULT_EXPORT: &str = "__WEBPACK_DEFAULT_EXPORT__";
-pub const NAMESPACE_OBJECT_EXPORT: &str = "__WEBPACK_NAMESPACE_OBJECT__";
+pub static DEFAULT_EXPORT_ATOM: LazyLock<Atom> = LazyLock::new(|| "__rspack_default_export".into());
+pub const NAMESPACE_OBJECT_EXPORT: &str = "__rspack_ns_object";
+pub const DEFAULT_EXPORT: &str = "__rspack_default_export";
 
 static MODULE_REFERENCE_REGEXP: LazyLock<Regex> = LazyLock::new(|| {
   Regex::new(
-    r"^__WEBPACK_MODULE_REFERENCE__(\d+)_([\da-f]+|ns)(_call)?(_directImport)?(?:_asiSafe(\d))?__$",
+    r"^__rspack_module_ref(\d+)_([\da-f]+|ns)(_call)?(_directImport)?(_deferredImport)?(?:_asiSafe(\d))?__$",
   )
   .expect("should initialized regex")
 });
 
-#[derive(Default, Debug)]
+#[derive(Default, Debug, Clone)]
 pub struct ModuleReferenceOptions {
   pub ids: Vec<Atom>,
   pub call: bool,
   pub direct_import: bool,
+  pub deferred_import: bool,
   pub asi_safe: Option<bool>,
   pub index: usize,
 }
 
 #[derive(Debug, Clone)]
 pub struct ConcatenationScope {
+  pub concat_module_id: ModuleIdentifier,
   pub current_module: ConcatenatedModuleInfo,
   pub modules_map: Arc<IdentifierIndexMap<ModuleInfo>>,
+  pub data: anymap::Map<dyn CloneAny + Send + Sync>,
+  pub refs: IdentifierIndexMap<FxIndexMap<String, ModuleReferenceOptions>>,
+  pub dyn_refs: IdentifierIndexMap<FxIndexSet<(String, Atom)>>,
+  pub re_exports: IdentifierIndexMap<Vec<ExportMode>>,
 }
 
 #[allow(unused)]
 impl ConcatenationScope {
   pub fn new(
+    concat_module_id: ModuleIdentifier,
     modules_map: Arc<IdentifierIndexMap<ModuleInfo>>,
     current_module: ConcatenatedModuleInfo,
   ) -> Self {
     ConcatenationScope {
+      concat_module_id,
       current_module,
       modules_map,
+      data: Default::default(),
+      refs: IdentifierIndexMap::default(),
+      dyn_refs: Default::default(),
+      re_exports: Default::default(),
     }
   }
 
@@ -54,28 +68,38 @@ impl ConcatenationScope {
     self.modules_map.contains_key(module)
   }
 
+  /**
+  export { symbol as export_name }
+  */
   pub fn register_export(&mut self, export_name: Atom, symbol: String) {
     let export_map = self.current_module.export_map.get_or_insert_default();
-    match export_map.entry(export_name) {
-      Entry::Occupied(mut occ) => {
-        occ.insert(symbol);
-      }
-      Entry::Vacant(vac) => {
-        vac.insert(symbol);
-      }
-    }
+    export_map.insert(export_name, symbol);
   }
 
   pub fn register_raw_export(&mut self, export_name: Atom, symbol: String) {
     let raw_export_map = self.current_module.raw_export_map.get_or_insert_default();
-    match raw_export_map.entry(export_name) {
-      Entry::Occupied(mut occ) => {
-        occ.insert(symbol);
-      }
-      Entry::Vacant(vac) => {
-        vac.insert(symbol);
-      }
+    raw_export_map.insert(export_name, symbol);
+  }
+
+  pub fn register_namespace_import(
+    &mut self,
+    import_source: String,
+    attributes: Option<String>,
+    import_symbol: Atom,
+  ) -> &Atom {
+    let raw_import_map = self.current_module.import_map.get_or_insert_default();
+    let entry = raw_import_map
+      .entry((import_source, attributes))
+      .or_default();
+
+    if entry.namespace.is_none() {
+      entry.namespace = Some(import_symbol)
     }
+
+    entry
+      .namespace
+      .as_ref()
+      .expect("should have namespace symbol")
   }
 
   pub fn register_import(
@@ -93,7 +117,7 @@ impl ConcatenationScope {
       return;
     };
 
-    entry.insert(import_symbol);
+    entry.specifiers.insert(import_symbol);
   }
 
   pub fn register_namespace_export(&mut self, symbol: &str) {
@@ -101,7 +125,7 @@ impl ConcatenationScope {
   }
 
   pub fn create_module_reference(
-    &self,
+    &mut self,
     module: &ModuleIdentifier,
     options: &ModuleReferenceOptions,
   ) -> String {
@@ -118,6 +142,10 @@ impl ConcatenationScope {
       true => "_directImport",
       _ => "",
     };
+    let deferred_import_flag = match options.deferred_import {
+      true => "_deferredImport",
+      _ => "",
+    };
     let asi_safe_flag = match options.asi_safe {
       Some(true) => "_asiSafe1",
       Some(false) => "_asiSafe0",
@@ -132,13 +160,13 @@ impl ConcatenationScope {
 
     let mut index_buffer = itoa::Buffer::new();
     let index_str = index_buffer.format(info.index());
-    format!(
-      "__WEBPACK_MODULE_REFERENCE__{index_str}_{export_data}{call_flag}{direct_import_flag}{asi_safe_flag}__._"
-    )
-  }
+    let module_ref = format!(
+      "__rspack_module_ref{index_str}_{export_data}{call_flag}{direct_import_flag}{deferred_import_flag}{asi_safe_flag}__._"
+    );
+    let entry = self.refs.entry(*module).or_default();
+    entry.insert(module_ref.clone(), options.clone());
 
-  pub fn is_module_reference(name: &str) -> bool {
-    MODULE_REFERENCE_REGEXP.is_match(name)
+    module_ref
   }
 
   pub fn match_module_reference(name: &str) -> Option<ModuleReferenceOptions> {
@@ -152,16 +180,25 @@ impl ConcatenationScope {
       };
       let call = captures.get(3).is_some();
       let direct_import = captures.get(4).is_some();
-      let asi_safe = captures.get(5).map(|s| s.as_str() == "1");
+      let deferred_import = captures.get(5).is_some();
+      let asi_safe = captures.get(6).map(|s| s.as_str() == "1");
       Some(ModuleReferenceOptions {
         ids,
         call,
         direct_import,
+        deferred_import,
         asi_safe,
         index,
       })
     } else {
       None
     }
+  }
+
+  pub fn is_module_concatenated(&self, module: &ModuleIdentifier) -> bool {
+    matches!(
+      self.modules_map.get(module).expect("should have module"),
+      ModuleInfo::Concatenated(_)
+    )
   }
 }

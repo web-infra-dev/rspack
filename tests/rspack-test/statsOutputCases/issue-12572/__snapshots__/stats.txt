@@ -1,0 +1,7 @@
+asset main.js xx KiB [emitted] (name: main)
+chunk (runtime: main) main.js (main) xx bytes (javascript) xx KiB (runtime) <{889}> >{889}< [entry] [rendered]
+  ./a.js xx bytes [dependent] [built] [code generated]
+  ./b.js xx bytes [dependent] [built] [code generated]
+  ./index.js xx bytes [built] [code generated]
+  ./main.js xx bytes [dependent] [built] [code generated]
+Rspack x.x.x compiled successfully in X s

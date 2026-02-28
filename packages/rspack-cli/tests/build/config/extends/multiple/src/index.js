@@ -1,1 +1,1 @@
-console.log("Multiple extends test");
+console.log('Multiple extends test');

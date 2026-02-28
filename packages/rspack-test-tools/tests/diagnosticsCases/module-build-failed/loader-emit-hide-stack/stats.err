@@ -1,7 +1,0 @@
-WARNING in ./lib.js
-  ⚠ Module Warning (from <TEST_TOOLS_ROOT>/tests/diagnosticsCases/module-build-failed/loader-emit-hide-stack/my-loader.js):
-  │ Failed to load
-
-ERROR in ./lib.js
-  × Module Error (from <TEST_TOOLS_ROOT>/tests/diagnosticsCases/module-build-failed/loader-emit-hide-stack/my-loader.js):
-  │ Failed to load

@@ -1,0 +1,10 @@
+Object {
+  btn--info_is-disabled_1: _style_module_css_as-is-btn--info_is-disabled_1,
+  btn-info_is-disabled: _style_module_css_as-is-btn-info_is-disabled,
+  class: _style_module_css_as-is-class,
+  default: _style_module_css_as-is-default,
+  foo: bar,
+  foo_bar: _style_module_css_as-is-foo_bar,
+  my-btn-info_is-disabled: value,
+  simple: _style_module_css_as-is-simple,
+}

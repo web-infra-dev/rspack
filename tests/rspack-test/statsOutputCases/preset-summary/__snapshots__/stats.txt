@@ -1,0 +1,2 @@
+<e> [LogTestPlugin] Error
+Rspack x.x.x compiled successfully

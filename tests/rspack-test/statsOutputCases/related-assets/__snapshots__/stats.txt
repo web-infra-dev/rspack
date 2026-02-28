@@ -1,0 +1,136 @@
+default:
+  assets by path *.br xx KiB
+    asset default-main.js.map.br xx KiB [emitted]
+    asset default-main.js.br xx KiB [emitted]
+    + 6 assets
+  assets by path *.gz xx KiB
+    asset default-main.js.map.gz xx KiB [emitted]
+    asset default-main.js.gz xx KiB [emitted]
+    asset default-chunk_js.css.map.gz xx KiB [emitted]
+    + 5 assets
+  assets by path *.js xx KiB
+    asset default-main.js xx KiB [emitted] (name: main)
+    asset default-chunk_js.js xx bytes [emitted]
+  assets by path *.css xx KiB
+    asset default-chunk_js.css xx bytes [emitted]
+    asset default-main.css xx bytes [emitted] (name: main)
+
+  WARNING in ./chunk-style.css
+    ⚠ Module Warning (from <RSPACK_ROOT>/dist/cssExtractLoader.js):
+    │ use type 'css' and `CssExtractRspackPlugin` together, please set `{ type: "javascript/auto" }` for rules with `CssExtractRspackPlugin` in your rspack config (now `CssExtractRspackPlugin` does nothing).
+   @ ./chunk.js
+   @ ./index.js
+
+  WARNING in ./style.css
+    ⚠ Module Warning (from <RSPACK_ROOT>/dist/cssExtractLoader.js):
+    │ use type 'css' and `CssExtractRspackPlugin` together, please set `{ type: "javascript/auto" }` for rules with `CssExtractRspackPlugin` in your rspack config (now `CssExtractRspackPlugin` does nothing).
+   @ ./index.js
+
+
+relatedAssets:
+  assets by path *.br xx KiB
+    asset relatedAssets-main.js.map.br xx KiB [emitted]
+    asset relatedAssets-main.js.br xx KiB [emitted]
+    + 6 assets
+  assets by path *.gz xx KiB
+    asset relatedAssets-main.js.map.gz xx KiB [emitted]
+    asset relatedAssets-main.js.gz xx KiB [emitted]
+    asset relatedAssets-chunk_js.css.map.gz xx KiB [emitted]
+    + 5 assets
+  assets by path *.js xx KiB
+    asset relatedAssets-main.js xx KiB [emitted] (name: main)
+    asset relatedAssets-chunk_js.js xx bytes [emitted]
+  assets by path *.css xx KiB
+    asset relatedAssets-chunk_js.css xx bytes [emitted]
+    asset relatedAssets-main.css xx bytes [emitted] (name: main)
+
+  WARNING in ./chunk-style.css
+    ⚠ Module Warning (from <RSPACK_ROOT>/dist/cssExtractLoader.js):
+    │ use type 'css' and `CssExtractRspackPlugin` together, please set `{ type: "javascript/auto" }` for rules with `CssExtractRspackPlugin` in your rspack config (now `CssExtractRspackPlugin` does nothing).
+   @ ./chunk.js
+   @ ./index.js
+
+  WARNING in ./style.css
+    ⚠ Module Warning (from <RSPACK_ROOT>/dist/cssExtractLoader.js):
+    │ use type 'css' and `CssExtractRspackPlugin` together, please set `{ type: "javascript/auto" }` for rules with `CssExtractRspackPlugin` in your rspack config (now `CssExtractRspackPlugin` does nothing).
+   @ ./index.js
+
+
+exclude1:
+  hidden assets xx KiB 16 assets
+  assets by status xx KiB [emitted]
+    assets by path *.js xx KiB
+      asset exclude1-main.js xx KiB [emitted] (name: main)
+      asset exclude1-chunk_js.js xx bytes [emitted]
+    assets by path *.css xx KiB
+      asset exclude1-chunk_js.css xx bytes [emitted]
+      asset exclude1-main.css xx bytes [emitted] (name: main)
+
+  WARNING in ./chunk-style.css
+    ⚠ Module Warning (from <RSPACK_ROOT>/dist/cssExtractLoader.js):
+    │ use type 'css' and `CssExtractRspackPlugin` together, please set `{ type: "javascript/auto" }` for rules with `CssExtractRspackPlugin` in your rspack config (now `CssExtractRspackPlugin` does nothing).
+   @ ./chunk.js
+   @ ./index.js
+
+  WARNING in ./style.css
+    ⚠ Module Warning (from <RSPACK_ROOT>/dist/cssExtractLoader.js):
+    │ use type 'css' and `CssExtractRspackPlugin` together, please set `{ type: "javascript/auto" }` for rules with `CssExtractRspackPlugin` in your rspack config (now `CssExtractRspackPlugin` does nothing).
+   @ ./index.js
+
+
+exclude2:
+  assets by path *.br xx KiB
+    asset exclude2-main.js.map.br xx KiB [emitted]
+    asset exclude2-main.js.br xx KiB [emitted]
+    + 6 assets
+  assets by path *.gz xx KiB
+    asset exclude2-main.js.map.gz xx KiB [emitted]
+    asset exclude2-main.js.gz xx KiB [emitted]
+    asset exclude2-chunk_js.css.map.gz xx KiB [emitted]
+    + 5 assets
+  assets by path *.js xx KiB
+    asset exclude2-main.js xx KiB [emitted] (name: main)
+    asset exclude2-chunk_js.js xx bytes [emitted]
+  assets by path *.css xx KiB
+    asset exclude2-chunk_js.css xx bytes [emitted]
+    asset exclude2-main.css xx bytes [emitted] (name: main)
+
+  WARNING in ./chunk-style.css
+    ⚠ Module Warning (from <RSPACK_ROOT>/dist/cssExtractLoader.js):
+    │ use type 'css' and `CssExtractRspackPlugin` together, please set `{ type: "javascript/auto" }` for rules with `CssExtractRspackPlugin` in your rspack config (now `CssExtractRspackPlugin` does nothing).
+   @ ./chunk.js
+   @ ./index.js
+
+  WARNING in ./style.css
+    ⚠ Module Warning (from <RSPACK_ROOT>/dist/cssExtractLoader.js):
+    │ use type 'css' and `CssExtractRspackPlugin` together, please set `{ type: "javascript/auto" }` for rules with `CssExtractRspackPlugin` in your rspack config (now `CssExtractRspackPlugin` does nothing).
+   @ ./index.js
+
+
+exclude3:
+  hidden assets xx KiB 10 assets
+  assets by status xx KiB [emitted]
+    assets by path *.br xx KiB
+      asset exclude3-main.js.map.br xx KiB [emitted]
+      asset exclude3-main.js.br xx KiB [emitted]
+      asset exclude3-main.css.map.br xx KiB [emitted]
+      asset exclude3-main.css.br xx bytes [emitted]
+    assets by path *.gz xx KiB
+      asset exclude3-main.js.map.gz xx KiB [emitted]
+      asset exclude3-main.js.gz xx KiB [emitted]
+      asset exclude3-main.css.map.gz xx KiB [emitted]
+      asset exclude3-main.css.gz xx bytes [emitted]
+    assets by chunk xx KiB (name: main)
+      asset exclude3-main.js xx KiB [emitted] (name: main)
+      asset exclude3-main.css xx bytes [emitted] (name: main)
+
+  WARNING in ./chunk-style.css
+    ⚠ Module Warning (from <RSPACK_ROOT>/dist/cssExtractLoader.js):
+    │ use type 'css' and `CssExtractRspackPlugin` together, please set `{ type: "javascript/auto" }` for rules with `CssExtractRspackPlugin` in your rspack config (now `CssExtractRspackPlugin` does nothing).
+   @ ./chunk.js
+   @ ./index.js
+
+  WARNING in ./style.css
+    ⚠ Module Warning (from <RSPACK_ROOT>/dist/cssExtractLoader.js):
+    │ use type 'css' and `CssExtractRspackPlugin` together, please set `{ type: "javascript/auto" }` for rules with `CssExtractRspackPlugin` in your rspack config (now `CssExtractRspackPlugin` does nothing).
+   @ ./index.js

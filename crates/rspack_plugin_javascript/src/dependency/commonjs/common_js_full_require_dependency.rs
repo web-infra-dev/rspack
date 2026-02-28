@@ -1,14 +1,14 @@
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
-  with::{AsPreset, AsVec, Skip},
+  with::{AsPreset, AsVec},
 };
 use rspack_core::{
   AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
   DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
-  ExportsInfoGetter, ExportsType, ExtendedReferencedExport, FactorizeInfo, GetUsedNameParam,
-  ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, PrefetchExportsInfoMode, RuntimeGlobals,
-  RuntimeSpec, SharedSourceMap, TemplateContext, TemplateReplaceSource, UsedName, module_id,
-  property_access, to_normal_comment,
+  ExportsInfoArtifact, ExportsInfoGetter, ExportsType, ExtendedReferencedExport, FactorizeInfo,
+  GetUsedNameParam, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
+  PrefetchExportsInfoMode, RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource,
+  UsedName, property_access, to_normal_comment,
 };
 use swc_core::atoms::Atom;
 
@@ -23,8 +23,7 @@ pub struct CommonJsFullRequireDependency {
   is_call: bool,
   optional: bool,
   asi_safe: bool,
-  #[cacheable(with=Skip)]
-  source_map: Option<SharedSourceMap>,
+  loc: Option<DependencyLocation>,
   factorize_info: FactorizeInfo,
 }
 
@@ -33,10 +32,10 @@ impl CommonJsFullRequireDependency {
     request: String,
     names: Vec<Atom>,
     range: DependencyRange,
+    loc: Option<DependencyLocation>,
     is_call: bool,
     optional: bool,
     asi_safe: bool,
-    source_map: Option<SharedSourceMap>,
   ) -> Self {
     Self {
       id: DependencyId::new(),
@@ -46,7 +45,7 @@ impl CommonJsFullRequireDependency {
       is_call,
       optional,
       asi_safe,
-      source_map,
+      loc,
       factorize_info: Default::default(),
     }
   }
@@ -67,24 +66,32 @@ impl Dependency for CommonJsFullRequireDependency {
   }
 
   fn loc(&self) -> Option<DependencyLocation> {
-    self.range.to_loc(self.source_map.as_ref())
+    self.loc.clone()
   }
 
-  fn range(&self) -> Option<&DependencyRange> {
-    Some(&self.range)
+  fn range(&self) -> Option<DependencyRange> {
+    Some(self.range)
   }
 
   fn get_referenced_exports(
     &self,
     module_graph: &ModuleGraph,
     module_graph_cache: &ModuleGraphCacheArtifact,
+    exports_info_artifact: &ExportsInfoArtifact,
     _runtime: Option<&RuntimeSpec>,
   ) -> Vec<ExtendedReferencedExport> {
     if self.is_call
       && module_graph
         .module_graph_module_by_dependency_id(&self.id)
         .and_then(|mgm| module_graph.module_by_identifier(&mgm.module_identifier))
-        .map(|m| m.get_exports_type(module_graph, module_graph_cache, false))
+        .map(|m| {
+          m.get_exports_type(
+            module_graph,
+            module_graph_cache,
+            exports_info_artifact,
+            false,
+          )
+        })
         .is_some_and(|t| !matches!(t, ExportsType::Namespace))
     {
       if self.names.is_empty() {
@@ -160,32 +167,30 @@ impl DependencyTemplate for CommonJsFullRequireDependencyTemplate {
     let TemplateContext {
       compilation,
       runtime,
-      runtime_requirements,
+      runtime_template,
       ..
     } = code_generatable_context;
     let module_graph = compilation.get_module_graph();
-    runtime_requirements.insert(RuntimeGlobals::REQUIRE);
 
     let require_expr = if let Some(imported_module) =
       module_graph.module_graph_module_by_dependency_id(&dep.id)
       && let used = {
         if dep.names.is_empty() {
-          let exports_info = ExportsInfoGetter::prefetch_used_info_without_name(
-            &module_graph.get_exports_info(&imported_module.module_identifier),
-            &module_graph,
-            *runtime,
-            false,
-          );
+          let exports_info_used = compilation
+            .exports_info_artifact
+            .get_prefetched_exports_info_used(&imported_module.module_identifier, *runtime);
           ExportsInfoGetter::get_used_name(
-            GetUsedNameParam::WithoutNames(&exports_info),
+            GetUsedNameParam::WithoutNames(&exports_info_used),
             *runtime,
             &dep.names,
           )
         } else {
-          let exports_info = module_graph.get_prefetched_exports_info(
-            &imported_module.module_identifier,
-            PrefetchExportsInfoMode::Nested(&dep.names),
-          );
+          let exports_info = compilation
+            .exports_info_artifact
+            .get_prefetched_exports_info(
+              &imported_module.module_identifier,
+              PrefetchExportsInfoMode::Nested(&dep.names),
+            );
           ExportsInfoGetter::get_used_name(
             GetUsedNameParam::WithNames(&exports_info),
             *runtime,
@@ -195,18 +200,20 @@ impl DependencyTemplate for CommonJsFullRequireDependencyTemplate {
       }
       && let Some(used) = used
     {
-      let comment = to_normal_comment(&property_access(&dep.names, 0));
       let mut require_expr = match used {
         UsedName::Normal(used) => {
           format!(
             "{}({}){}{}",
-            RuntimeGlobals::REQUIRE,
-            module_id(compilation, &dep.id, &dep.request, false),
-            comment,
+            runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
+            runtime_template.module_id(compilation, &dep.id, &dep.request, false),
+            to_normal_comment(&property_access(&dep.names, 0)),
             property_access(used, 0)
           )
         }
-        UsedName::Inlined(inlined) => format!("{}{}", comment, inlined.render()),
+        UsedName::Inlined(inlined) => inlined.render(&to_normal_comment(&format!(
+          "inlined export {}",
+          property_access(&dep.names, 0)
+        ))),
       };
       if dep.asi_safe {
         require_expr = format!("({require_expr})");
@@ -215,8 +222,8 @@ impl DependencyTemplate for CommonJsFullRequireDependencyTemplate {
     } else {
       format!(
         r#"{}({})"#,
-        RuntimeGlobals::REQUIRE,
-        module_id(compilation, &dep.id, &dep.request, false)
+        runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
+        runtime_template.module_id(compilation, &dep.id, &dep.request, false)
       )
     };
 

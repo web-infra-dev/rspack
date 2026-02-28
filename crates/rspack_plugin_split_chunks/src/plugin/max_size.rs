@@ -7,14 +7,13 @@
  * Copyright (c) JS Foundation and other contributors
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
-use std::sync::LazyLock;
-use std::{borrow::Cow, hash::Hash};
+use std::{borrow::Cow, hash::Hash, sync::LazyLock};
 
 use regex::Regex;
 use rspack_collections::{DatabaseItem, UkeyMap};
 use rspack_core::{
-  ChunkUkey, Compilation, CompilerOptions, DEFAULT_DELIMITER, Module, ModuleIdentifier, SourceType,
-  incremental::Mutation,
+  BoxModule, ChunkUkey, Compilation, CompilerOptions, DEFAULT_DELIMITER, Module, ModuleIdentifier,
+  SourceType, incremental::Mutation,
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_hash::{RspackHash, RspackHashDigest};
@@ -111,7 +110,7 @@ fn get_size(module: &dyn Module, compilation: &Compilation) -> SplitChunkSizes {
   let module_graph = compilation.get_module_graph();
   SplitChunkSizes(
     module
-      .source_types(&module_graph)
+      .source_types(module_graph)
       .iter()
       .map(|ty| (*ty, module.size(Some(ty), Some(compilation))))
       .collect(),
@@ -125,18 +124,7 @@ fn hash_filename(filename: &str, options: &CompilerOptions) -> String {
   hash_digest.rendered(8).to_string()
 }
 
-static REPLACE_RELATIVE_PREFIX_REG: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r"^(\.\.?\/)+").expect("regexp init failed"));
-static REPLACE_ILLEGEL_LETTER_REG: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r"(^[.-]|[^a-zA-Z0-9_-])+").expect("regexp init failed"));
-
-fn request_to_id(req: &str) -> String {
-  let mut res = REPLACE_RELATIVE_PREFIX_REG.replace_all(req, "").to_string();
-  res = REPLACE_ILLEGEL_LETTER_REG
-    .replace_all(&res, "_")
-    .to_string();
-  res
-}
+use rspack_util::identifier::request_to_id;
 
 fn get_too_small_types(
   size: &SplitChunkSizes,
@@ -267,29 +255,29 @@ fn get_key(module: &dyn Module, delimiter: &str, compilation: &Compilation) -> S
 
 fn deterministic_grouping_for_modules(
   compilation: &Compilation,
-  chunk: &ChunkUkey,
+  items: &[&BoxModule],
   allow_max_size: &SplitChunkSizes,
   min_size: &SplitChunkSizes,
   delimiter: &str,
 ) -> Vec<Group> {
   let mut results: Vec<Group> = Default::default();
-  let module_graph = compilation.get_module_graph();
 
-  let items = compilation
-    .chunk_graph
-    .get_chunk_modules(chunk, &module_graph);
+  let mut nodes = items
+    .iter()
+    .map(|module| {
+      let module: &dyn Module = module.as_ref();
 
-  let nodes = items.into_iter().map(|module| {
-    let module: &dyn Module = &**module;
+      GroupItem {
+        module: module.identifier(),
+        size: get_size(module, compilation),
+        key: get_key(module, delimiter, compilation),
+      }
+    })
+    .collect::<Vec<_>>();
 
-    GroupItem {
-      module: module.identifier(),
-      size: get_size(module, compilation),
-      key: get_key(module, delimiter, compilation),
-    }
-  });
+  nodes.sort_by(|a, b| a.key.cmp(&b.key));
 
-  let mut initial_nodes = nodes
+  let initial_nodes = nodes
     .into_iter()
     .filter_map(|node| {
       // The Module itself is already bigger than `allow_max_size`, we will create a chunk
@@ -311,7 +299,6 @@ fn deterministic_grouping_for_modules(
     .collect::<Vec<_>>();
 
   if !initial_nodes.is_empty() {
-    initial_nodes.sort_by(|a, b| a.key.cmp(&b.key));
     let similarities = get_similarities(&initial_nodes);
     let initial_group = Group::new(initial_nodes, None, similarities);
 
@@ -376,7 +363,6 @@ fn deterministic_grouping_for_modules(
 
         group.key = group.nodes.first().map(|n| n.key.clone());
         results.push(group);
-        continue;
       } else {
         let mut pos = left;
         let mut best = -1;
@@ -486,11 +472,15 @@ impl SplitChunksPlugin {
     max_size_setting_map: &UkeyMap<ChunkUkey, MaxSizeSetting>,
   ) -> Result<()> {
     let fallback_cache_group = &self.fallback_cache_group;
-    let chunk_group_db = &compilation.chunk_group_by_ukey;
+    let chunk_group_db = &compilation.build_chunk_graph_artifact.chunk_group_by_ukey;
     let compilation_ref = &*compilation;
 
     let chunks_with_size_info_results = rspack_futures::scope::<_, Result<_>>(|token| {
-      compilation_ref.chunk_by_ukey.values().for_each(|chunk| {
+      compilation_ref
+        .build_chunk_graph_artifact
+        .chunk_by_ukey
+        .values()
+        .for_each(|chunk| {
         let s = unsafe {
           token.used((
             &*compilation,
@@ -526,17 +516,13 @@ impl SplitChunksPlugin {
             }
 
             let min_size = max_size_setting
-              .map(|s| &s.min_size)
-              .unwrap_or(&fallback_cache_group.min_size);
+              .map_or(&fallback_cache_group.min_size, |s| &s.min_size);
             let max_async_size = max_size_setting
-              .map(|s| &s.max_async_size)
-              .unwrap_or(&fallback_cache_group.max_async_size);
+              .map_or(&fallback_cache_group.max_async_size, |s| &s.max_async_size);
             let max_initial_size: &SplitChunkSizes = max_size_setting
-              .map(|s| &s.max_initial_size)
-              .unwrap_or(&fallback_cache_group.max_initial_size);
+              .map_or(&fallback_cache_group.max_initial_size, |s| &s.max_initial_size);
             let automatic_name_delimiter = max_size_setting
-              .map(|s| &s.automatic_name_delimiter)
-              .unwrap_or(&fallback_cache_group.automatic_name_delimiter);
+              .map_or(&fallback_cache_group.automatic_name_delimiter, |s| &s.automatic_name_delimiter);
 
             let mut allow_max_size = if chunk.is_only_initial(chunk_group_db) {
               Cow::Borrowed(max_initial_size)
@@ -606,9 +592,15 @@ impl SplitChunksPlugin {
           min_size,
           automatic_name_delimiter,
         } = &info;
+        let module_graph = compilation_ref.get_module_graph();
+
+        let items = compilation_ref
+          .build_chunk_graph_artifact
+          .chunk_graph
+          .get_chunk_modules(chunk, module_graph);
         let results = deterministic_grouping_for_modules(
           compilation_ref,
-          chunk,
+          &items,
           allow_max_size,
           min_size,
           automatic_name_delimiter,
@@ -638,11 +630,13 @@ impl SplitChunksPlugin {
         } else {
           index.to_string()
         };
-        let chunk = compilation.chunk_by_ukey.expect_get_mut(&info.chunk);
+        let chunk = compilation
+          .build_chunk_graph_artifact
+          .chunk_by_ukey
+          .expect_get_mut(&info.chunk);
         let delimiter = max_size_setting_map
           .get(&chunk.ukey())
-          .map(|s| s.automatic_name_delimiter.as_str())
-          .unwrap_or(DEFAULT_DELIMITER);
+          .map_or(DEFAULT_DELIMITER, |s| s.automatic_name_delimiter.as_str());
         let mut name = chunk
           .name()
           .map(|name| format!("{name}{delimiter}{group_key}"));
@@ -660,18 +654,19 @@ impl SplitChunksPlugin {
           let new_chunk_ukey = if let Some(name) = name {
             let (new_chunk_ukey, created) = Compilation::add_named_chunk(
               name,
-              &mut compilation.chunk_by_ukey,
-              &mut compilation.named_chunks,
+              &mut compilation.build_chunk_graph_artifact.chunk_by_ukey,
+              &mut compilation.build_chunk_graph_artifact.named_chunks,
             );
-            if created && let Some(mutations) = compilation.incremental.mutations_write() {
+            if created && let Some(mut mutations) = compilation.incremental.mutations_write() {
               mutations.add(Mutation::ChunkAdd {
                 chunk: new_chunk_ukey,
               });
             }
             new_chunk_ukey
           } else {
-            let new_chunk_ukey = Compilation::add_chunk(&mut compilation.chunk_by_ukey);
-            if let Some(mutations) = compilation.incremental.mutations_write() {
+            let new_chunk_ukey =
+              Compilation::add_chunk(&mut compilation.build_chunk_graph_artifact.chunk_by_ukey);
+            if let Some(mut mutations) = compilation.incremental.mutations_write() {
               mutations.add(Mutation::ChunkAdd {
                 chunk: new_chunk_ukey,
               });
@@ -680,18 +675,22 @@ impl SplitChunksPlugin {
           };
 
           let [Some(new_part), Some(chunk)] = compilation
+            .build_chunk_graph_artifact
             .chunk_by_ukey
             .get_many_mut([&new_chunk_ukey, &old_chunk])
           else {
             panic!("split_from_original_chunks failed")
           };
           let new_part_ukey = new_part.ukey();
-          chunk.split(new_part, &mut compilation.chunk_group_by_ukey);
+          chunk.split(
+            new_part,
+            &mut compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
+          );
           *new_part.chunk_reason_mut() = chunk.chunk_reason().map(ToString::to_string);
           if chunk.filename_template().is_some() {
             new_part.set_filename_template(chunk.filename_template().cloned());
           }
-          if let Some(mutations) = compilation.incremental.mutations_write() {
+          if let Some(mut mutations) = compilation.incremental.mutations_write() {
             mutations.add(Mutation::ChunkSplit {
               from: old_chunk,
               to: new_chunk_ukey,
@@ -699,7 +698,10 @@ impl SplitChunksPlugin {
           }
 
           group.nodes.iter().for_each(|module| {
-            compilation.chunk_graph.add_chunk(new_part_ukey);
+            compilation
+              .build_chunk_graph_artifact
+              .chunk_graph
+              .add_chunk(new_part_ukey);
 
             if let Some(module) = compilation.module_by_identifier(&module.module)
               && module
@@ -711,10 +713,12 @@ impl SplitChunksPlugin {
 
             // Add module to new chunk
             compilation
+              .build_chunk_graph_artifact
               .chunk_graph
               .connect_chunk_and_module(new_part_ukey, module.module);
             // Remove module from used chunks
             compilation
+              .build_chunk_graph_artifact
               .chunk_graph
               .disconnect_chunk_and_module(&old_chunk, module.module)
           })

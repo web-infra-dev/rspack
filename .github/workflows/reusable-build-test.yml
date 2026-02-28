@@ -16,14 +16,14 @@ on:
 jobs:
   e2e:
     name: E2E Testing
-    if: inputs.target == 'x86_64-unknown-linux-gnu'
+    if: inputs.target == 'x86_64-unknown-linux-gnu' || inputs.target == 'wasm32-wasip1-threads'
     runs-on: ${{ fromJSON(inputs.runner) }}
     defaults:
       run:
         shell: bash
     steps:
       - name: Checkout
-        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
         with:
           ref: ${{ inputs.ref }}
           clean: ${{ runner.environment == 'github-hosted' }}
@@ -35,9 +35,10 @@ jobs:
           path: crates/node_binding/
 
       - name: Setup Pnpm
+        timeout-minutes: 5
         uses: ./.github/actions/pnpm/setup
         with:
-          node-version: 20
+          node-version: 22
 
       - name: Pnpm Install
         uses: ./.github/actions/pnpm/install-dependencies
@@ -50,15 +51,32 @@ jobs:
 
       - name: Run e2e
         uses: ./.github/actions/docker/run
+        if: inputs.target == 'x86_64-unknown-linux-gnu'
         with:
           # Jammy uses ubuntu 22.04
           # If this is to change, make sure to upgrade the ubuntu version in GitHub Actions
-          image: mcr.microsoft.com/playwright:v1.54.2-jammy
+          image: mcr.microsoft.com/playwright:v1.58.2-jammy
           # .cache is required by download artifact, and mount in ./.github/actions/docker/run
           # .tool_cache is required by pnpm
           options: -v ${{ runner.tool_cache }}:${{runner.tool_cache}}
           script: |
             export PATH=${{ steps.calculate-node-bin-path.outputs.path }}:$PATH
+            pnpm run build:js
+            pnpm run test:e2e
+
+      - name: Run e2e for @rspack/browser
+        uses: ./.github/actions/docker/run
+        if: inputs.target == 'wasm32-wasip1-threads'
+        with:
+          # Jammy uses ubuntu 22.04
+          # If this is to change, make sure to upgrade the ubuntu version in GitHub Actions
+          image: mcr.microsoft.com/playwright:v1.58.2-jammy
+          # .cache is required by download artifact, and mount in ./.github/actions/docker/run
+          # .tool_cache is required by pnpm
+          options: -v ${{ runner.tool_cache }}:${{runner.tool_cache}}
+          script: |
+            export PATH=${{ steps.calculate-node-bin-path.outputs.path }}:$PATH
+            export WASM=1
             pnpm run build:js
             pnpm run test:e2e
 
@@ -69,8 +87,8 @@ jobs:
       fail-fast: false # wait for all test to finish for determining if it's node version based problem or general problem
       matrix:
         node: ${{ fromJSON(
-          inputs.target == 'wasm32-wasip1-threads'&& '[20]'
-          || contains(inputs.target, 'linux') && '[18, 20, 22]'
+          inputs.target == 'wasm32-wasip1-threads'&& '[24]'
+          || contains(inputs.target, 'linux') && '[20, 22, 24]'
           || '[22]') }}
     name: Test Node ${{ matrix.node }}
     defaults:
@@ -81,7 +99,7 @@ jobs:
       PUPPETEER_SKIP_DOWNLOAD: true
     steps:
       - name: Checkout
-        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
         with:
           ref: ${{ inputs.ref }}
           clean: ${{ runner.environment == 'github-hosted' }}
@@ -96,6 +114,7 @@ jobs:
         run: ls -lah crates/node_binding/
 
       - name: Setup Pnpm
+        timeout-minutes: 5
         uses: ./.github/actions/pnpm/setup
         with:
           node-version: ${{ matrix.node }}
@@ -103,7 +122,7 @@ jobs:
       - name: Pnpm Install
         uses: ./.github/actions/pnpm/install-dependencies
         with:
-          save-if: ${{ github.ref_name == 'main' && matrix.node == '18' }}
+          save-if: ${{ github.ref_name == 'main' && matrix.node == '20' }}
 
       ### x86_64-unknown-linux-gnu
       - name: Test x86_64-unknown-linux-gnu
@@ -111,9 +130,18 @@ jobs:
         if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' }}
         run: pnpm run test:ci
 
+      - name: Upload linux test cache
+        if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' && matrix.node == '22' }}
+        uses: ./.github/actions/artifact/upload
+        with:
+          name: testCase-persistentCache-linux
+          path: tests/rspack-test/js/temp/**/.cache
+          force-use-github: true
+          include-hidden-files: true
+
       ### *-apple-darwin
       - name: Test apple-darwin
-        timeout-minutes: 15 # Tests should finish within 15 mins, please fix your tests instead of changing this to a higher timeout.
+        timeout-minutes: 20 # Tests should finish within 15 mins, please fix your tests instead of changing this to a higher timeout.
         if: ${{ contains(inputs.target, 'apple-darwin') }}
         run: |
           # arch is ARM and target is ARM
@@ -131,6 +159,15 @@ jobs:
         if: ${{ inputs.target == 'x86_64-pc-windows-msvc' }}
         run: pnpm run test:ci
 
+      - name: Upload windows test cache
+        if: ${{ inputs.target == 'x86_64-pc-windows-msvc' && matrix.node == '22' }}
+        uses: ./.github/actions/artifact/upload
+        with:
+          name: testCase-persistentCache-windows
+          path: tests/rspack-test/js/temp/**/.cache
+          force-use-github: true
+          include-hidden-files: true
+
       ### WASM
       - name: Test WASM
         timeout-minutes: 15 # Tests should finish within 15 mins, please fix your tests instead of changing this to a higher timeout.
@@ -138,19 +175,13 @@ jobs:
         env:
           NODE_NO_WARNINGS: 1
           WASM: 1
+          RSPACK_LOADER_WORKER_THREADS: 1
         run: pnpm run test:ci
 
-      ### write the latest metric into branch gh-pages
-      ### Note that, We can't merge this script, because this script only runs on main branch
-      ### [Note] This step requires push permission and should be refactored.
-      # - name: Update main branch test compatibility metric
-      #   if: ${{ github.repository_owner == 'web-infra-dev' && inputs.target == 'x86_64-unknown-linux-gnu' && github.ref_name == 'main' && matrix.node == '18' }}
-      #   run: node ./tests/webpack-test/scripts/generate.js ${{ github.sha }}
-
-      # ### update metric diff against main branch when pull request change
-      - name: Update
-        if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' && github.event_name == 'pull_request' && matrix.node == '18' }}
-        uses: ./.github/actions/webpack-test-metric-diff
+      - name: Upload Test Reporter
+        if: always()
+        uses: actions/upload-artifact@v4
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          sha: ${{ github.sha }}
+          name: rstest-event-reports-${{ inputs.target }}-node${{ matrix.node }}
+          path: '*-report.txt'
+          if-no-files-found: ignore

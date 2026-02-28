@@ -1,33 +1,30 @@
 use itertools::Itertools;
-use rspack_collections::Identifier;
-use rspack_core::{ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, impl_runtime_module};
+use rspack_core::{
+  RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext, RuntimeTemplate, impl_runtime_module,
+};
 
 #[impl_runtime_module]
 #[derive(Debug)]
-pub struct RuntimeIdRuntimeModule {
-  id: Identifier,
-  chunk: Option<ChunkUkey>,
-}
+pub struct RuntimeIdRuntimeModule {}
 
-impl Default for RuntimeIdRuntimeModule {
-  fn default() -> Self {
-    Self::with_default(Identifier::from("webpack/runtime/runtime_id"), None)
+impl RuntimeIdRuntimeModule {
+  pub fn new(runtime_template: &RuntimeTemplate) -> Self {
+    Self::with_default(runtime_template)
   }
 }
 
 #[async_trait::async_trait]
 impl RuntimeModule for RuntimeIdRuntimeModule {
-  fn attach(&mut self, chunk: ChunkUkey) {
-    self.chunk = Some(chunk);
-  }
-
-  fn name(&self) -> Identifier {
-    self.id
-  }
-
-  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
+  async fn generate(
+    &self,
+    context: &RuntimeModuleGenerateContext<'_>,
+  ) -> rspack_error::Result<String> {
+    let compilation = context.compilation;
     if let Some(chunk_ukey) = self.chunk {
-      let chunk = compilation.chunk_by_ukey.expect_get(&chunk_ukey);
+      let chunk = compilation
+        .build_chunk_graph_artifact
+        .chunk_by_ukey
+        .expect_get(&chunk_ukey);
 
       let runtime = chunk.runtime();
 
@@ -35,18 +32,22 @@ impl RuntimeModule for RuntimeIdRuntimeModule {
         panic!("RuntimeIdRuntimeModule must be in a single runtime");
       }
 
-      let id = compilation.chunk_graph.get_runtime_id(
-        runtime
-          .iter()
-          .collect_vec()
-          .first()
-          .expect("At least one runtime")
-          .to_string(),
-      );
+      let id = compilation
+        .build_chunk_graph_artifact
+        .chunk_graph
+        .get_runtime_id(
+          runtime
+            .iter()
+            .collect_vec()
+            .first()
+            .expect("At least one runtime"),
+        );
 
       Ok(format!(
         "{} = {};",
-        RuntimeGlobals::RUNTIME_ID,
+        context
+          .runtime_template
+          .render_runtime_globals(&RuntimeGlobals::RUNTIME_ID),
         serde_json::to_string(&id).expect("Invalid json string")
       ))
     } else {

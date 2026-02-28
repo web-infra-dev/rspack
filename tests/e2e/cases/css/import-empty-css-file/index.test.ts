@@ -1,7 +1,7 @@
-import { test, expect } from "@/fixtures";
+import { test, expect } from '@/fixtures';
 
-test("should not throw error for importing empty css files", async ({
-	page
+test('should not throw error for importing empty css files', async ({
+  page,
 }) => {
-	expect(await page.textContent("#root")).toBe("ok");
+  await expect(page.locator('#root')).toHaveText('ok');
 });

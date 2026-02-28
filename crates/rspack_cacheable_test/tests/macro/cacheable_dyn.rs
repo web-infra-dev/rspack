@@ -1,11 +1,17 @@
 use rspack_cacheable::{
-  enable_cacheable as cacheable, enable_cacheable_dyn as cacheable_dyn, from_bytes, to_bytes,
+  CacheableContext, enable_cacheable as cacheable, enable_cacheable_dyn as cacheable_dyn,
+  from_bytes, to_bytes,
 };
 
 #[test]
 #[cfg_attr(miri, ignore)]
 fn test_cacheable_dyn_macro() {
   struct Context;
+  impl CacheableContext for Context {
+    fn project_root(&self) -> Option<&std::path::Path> {
+      None
+    }
+  }
 
   #[cacheable_dyn]
   trait Animal {
@@ -77,6 +83,11 @@ fn test_cacheable_dyn_macro() {
 #[cfg_attr(miri, ignore)]
 fn test_cacheable_dyn_macro_with_generics() {
   struct Context;
+  impl CacheableContext for Context {
+    fn project_root(&self) -> Option<&std::path::Path> {
+      None
+    }
+  }
 
   #[cacheable_dyn]
   trait Animal<T = ()>: Send + Sync

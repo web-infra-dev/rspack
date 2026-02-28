@@ -1,18 +1,18 @@
+#![allow(clippy::enum_variant_names)]
 use enum_tag::EnumTag;
 use rspack_core::{
-  BoxPlugin, ChunkLoadingType, CompilerOptions, EntryOptions, ExternalItem, ExternalType,
-  LibraryType, PluginExt as _, WasmLoadingType,
+  BoxPlugin, ChunkLoadingType, CompilerOptions, CompilerPlatform, EntryOptions, ExternalItem,
+  ExternalType, LibraryType, PluginExt as _, WasmLoadingType,
 };
 
 /// Options of builtin plugins
 ///
 /// The order of this list is strictly ordered with respect to `rspackOptionsApply`.
-#[allow(clippy::enum_variant_names)]
-#[derive(Debug, EnumTag)]
+#[derive(EnumTag, Debug)]
 #[repr(u8)]
 pub(super) enum BuiltinPluginOptions {
   // External handling plugins
-  ExternalsPlugin((ExternalType, Vec<ExternalItem>)),
+  ExternalsPlugin((ExternalType, Vec<ExternalItem>, bool)),
   NodeTargetPlugin,
   ElectronTargetPlugin(rspack_plugin_externals::ElectronTargetContext),
   HttpExternalsRspackPlugin((bool /* css */, bool /* web_async */)),
@@ -100,9 +100,15 @@ pub(super) enum BuiltinPluginOptions {
 #[derive(Default, Debug)]
 pub struct BuilderContext {
   pub(super) plugins: Vec<BuiltinPluginOptions>,
+  pub(super) platform: CompilerPlatform,
 }
 
 impl BuilderContext {
+  /// Take platform from the context
+  pub fn take_platform(&mut self) -> CompilerPlatform {
+    std::mem::take(&mut self.platform)
+  }
+
   /// Take plugins from the context.
   ///
   /// The plugins are sorted by their tag.
@@ -111,9 +117,11 @@ impl BuilderContext {
     let mut plugins = Vec::new();
     self.plugins.drain(..).for_each(|plugin| match plugin {
       // External handling plugins
-      BuiltinPluginOptions::ExternalsPlugin((external_type, externals)) => {
-        plugins
-          .push(rspack_plugin_externals::ExternalsPlugin::new(external_type, externals).boxed());
+      BuiltinPluginOptions::ExternalsPlugin((external_type, externals, place_in_initial)) => {
+        plugins.push(
+          rspack_plugin_externals::ExternalsPlugin::new(external_type, externals, place_in_initial)
+            .boxed(),
+        );
       }
       BuiltinPluginOptions::NodeTargetPlugin => {
         plugins.push(rspack_plugin_externals::node_target_plugin())

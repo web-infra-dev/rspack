@@ -29,7 +29,7 @@ If you have any problems using the Rspress, please create a new issue at [Rspres
 
 ## Image assets
 
-For images you use in the document, it's better to upload them to the [rspack-contrib/rstack-design-resources](https://github.com/rspack-contrib/rstack-design-resources) repository, so the size of the current repository doesn't get too big.
+For images you use in the document, it's better to upload them to the [rstackjs/rstack-design-resources](https://github.com/rstackjs/rstack-design-resources) repository, so the size of the current repository doesn't get too big.
 
 After you upload the images there, they will be automatically deployed under the <https://assets.rspack.rs/>.
 

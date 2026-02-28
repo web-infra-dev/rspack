@@ -1,4 +1,5 @@
-use rspack_core::{DependencyRange, SpanExt};
+use rspack_core::DependencyRange;
+use rspack_util::SpanExt;
 use swc_core::{
   common::Spanned,
   ecma::ast::{BinExpr, BinaryOp},
@@ -83,7 +84,7 @@ fn handle_strict_equality_comparison<'a>(
 ) -> Option<BasicEvaluatedExpression<'a>> {
   assert!(expr.op == BinaryOp::EqEqEq || expr.op == BinaryOp::NotEqEq);
   let right = scanner.evaluate_expression(&expr.right);
-  let mut res = BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.hi().0);
+  let mut res = BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.real_hi());
   let left_const = left.is_compile_time_value();
   let right_const = right.is_compile_time_value();
 
@@ -128,7 +129,7 @@ fn handle_abstract_equality_comparison<'a>(
 ) -> Option<BasicEvaluatedExpression<'a>> {
   assert!(expr.op == BinaryOp::EqEq || expr.op == BinaryOp::NotEq);
   let right = scanner.evaluate_expression(&expr.right);
-  let mut res = BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.hi().0);
+  let mut res = BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.real_hi());
 
   let left_const = left.is_compile_time_value();
   let right_const = right.is_compile_time_value();
@@ -161,12 +162,12 @@ fn handle_nullish_coalescing<'a>(
       if left.could_have_side_effects() {
         right.set_side_effects(true)
       }
-      right.set_range(expr.span.real_lo(), expr.span.hi().0);
+      right.set_range(expr.span.real_lo(), expr.span.real_hi());
       Some(right)
     }
     Some(false) => {
       let mut res = left.clone();
-      res.set_range(expr.span.real_lo(), expr.span.hi().0);
+      res.set_range(expr.span.real_lo(), expr.span.real_hi());
       Some(res)
     }
     _ => None,
@@ -183,7 +184,7 @@ fn handle_logical_or<'a>(
   match left_bool {
     Some(true) => {
       let mut res = left.clone();
-      res.set_range(expr.span.real_lo(), expr.span.hi().0);
+      res.set_range(expr.span.real_lo(), expr.span.real_hi());
       Some(res)
     }
     Some(false) => {
@@ -191,13 +192,14 @@ fn handle_logical_or<'a>(
       if left.could_have_side_effects() {
         right.set_side_effects(true)
       }
-      right.set_range(expr.span.real_lo(), expr.span.hi().0);
+      right.set_range(expr.span.real_lo(), expr.span.real_hi());
       Some(right)
     }
     _ => {
       let right_bool = scanner.evaluate_expression(&expr.right).as_bool();
       if right_bool.is_some_and(|x| x) {
-        let mut res = BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.hi().0);
+        let mut res =
+          BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.real_hi());
         res.set_truthy();
         Some(res)
       } else {
@@ -220,18 +222,19 @@ fn handle_logical_and<'a>(
       if left.could_have_side_effects() {
         right.set_side_effects(true)
       }
-      right.set_range(expr.span.real_lo(), expr.span.hi().0);
+      right.set_range(expr.span.real_lo(), expr.span.real_hi());
       Some(right)
     }
     Some(false) => {
       let mut res = left.clone();
-      res.set_range(expr.span.real_lo(), expr.span.hi().0);
+      res.set_range(expr.span.real_lo(), expr.span.real_hi());
       Some(res)
     }
     None => {
       let right_bool = scanner.evaluate_expression(&expr.right).as_bool();
       if right_bool.is_some_and(|x| !x) {
-        let mut res = BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.hi().0);
+        let mut res =
+          BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.real_hi());
         res.set_falsy();
         Some(res)
       } else {
@@ -249,7 +252,7 @@ fn handle_add<'a>(
 ) -> Option<BasicEvaluatedExpression<'a>> {
   assert_eq!(expr.op, BinaryOp::Add);
   let right = scanner.evaluate_expression(&expr.right);
-  let mut res = BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.hi.0);
+  let mut res = BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.real_hi());
   if left.could_have_side_effects() || right.could_have_side_effects() {
     res.set_side_effects(true)
   }
@@ -413,7 +416,7 @@ pub fn handle_const_operation<'a>(
     return None;
   }
 
-  let mut res = BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.hi().0);
+  let mut res = BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.real_hi());
   res.set_side_effects(left.could_have_side_effects() || right.could_have_side_effects());
 
   match expr.op {
@@ -526,7 +529,7 @@ pub fn eval_binary_expression<'a>(
     .or_else(|| {
       Some(BasicEvaluatedExpression::with_range(
         expr.span().real_lo(),
-        expr.span_hi().0,
+        expr.span().real_hi(),
       ))
     });
   }

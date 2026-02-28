@@ -12,6 +12,7 @@ version.workspace = true
 dashmap            = { workspace = true }
 derive_more        = { workspace = true, features = ["debug"] }
 futures            = { workspace = true }
+itertools          = { workspace = true }
 rayon              = { workspace = true }
 regex              = { workspace = true }
 rspack_collections = { workspace = true }
@@ -24,3 +25,6 @@ rspack_regex       = { workspace = true }
 rspack_util        = { workspace = true }
 rustc-hash         = { workspace = true }
 tracing            = { workspace = true }
+
+[lints]
+workspace = true

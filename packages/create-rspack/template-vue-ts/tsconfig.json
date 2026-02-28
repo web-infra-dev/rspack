@@ -19,10 +19,5 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true
   },
-  "include": ["src"],
-  "ts-node": {
-    "compilerOptions": {
-      "module": "CommonJS"
-    }
-  }
+  "include": ["src"]
 }

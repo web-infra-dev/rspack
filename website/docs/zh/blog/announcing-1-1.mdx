@@ -86,11 +86,11 @@ export default {
 ```js title="rspack.config.mjs"
 const AddAttributePlugin = {
   apply(compiler) {
-    compiler.hooks.compilation.tap('AddAttributePlugin', compilation => {
+    compiler.hooks.compilation.tap('AddAttributePlugin', (compilation) => {
       HtmlRspackPlugin.getCompilationHooks(
         compilation,
-      ).alterAssetTags.tapPromise('AddAttributePlugin', async data => {
-        data.assetTags.scripts = data.assetTags.scripts.map(tag => {
+      ).alterAssetTags.tapPromise('AddAttributePlugin', async (data) => {
+        data.assetTags.scripts = data.assetTags.scripts.map((tag) => {
           if (tag.tagName === 'script') {
             tag.attributes.specialAttribute = true;
           }

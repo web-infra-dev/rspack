@@ -1,0 +1,5 @@
+body {
+  & .eba2b5c5e898ec6a {
+    color: #00f;
+  }
+}

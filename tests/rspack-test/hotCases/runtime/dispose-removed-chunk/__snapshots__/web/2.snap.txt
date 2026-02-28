@@ -1,0 +1,120 @@
+# Case dispose-removed-chunk: Step 2
+
+## Changed Files
+- a.js
+- b.js
+- module.js
+
+## Asset Files
+- Bundle: b_js.CURRENT_HASH.js
+- Bundle: bundle.js
+- Manifest: main.LAST_HASH.hot-update.json, size: 35
+- Update: b_js.LAST_HASH.hot-update.js, size: 341
+- Update: main.LAST_HASH.hot-update.js, size: 181
+
+## Manifest
+
+### main.LAST_HASH.hot-update.json
+
+```json
+{"c":["b_js","main"],"r":[],"m":[]}
+```
+
+
+## Update
+
+
+### b_js.LAST_HASH.hot-update.js
+
+#### Changed Modules
+- ./b.js
+
+#### Changed Runtime Modules
+
+
+#### Changed Content
+```js
+"use strict";
+self["rspackHotUpdate"]("b_js", {
+"./b.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  "default": () => (__rspack_default_export)
+});
+/* export default */ const __rspack_default_export = ("version b2");
+
+
+},
+
+});
+```
+
+
+
+### main.LAST_HASH.hot-update.js
+
+#### Changed Modules
+
+
+#### Changed Runtime Modules
+- webpack/runtime/get_full_hash
+
+#### Changed Content
+```js
+"use strict";
+self["rspackHotUpdate"]("main", {},function(__webpack_require__) {
+// webpack/runtime/get_full_hash
+(() => {
+__webpack_require__.h = () => ("CURRENT_HASH")
+})();
+
+}
+);
+```
+
+
+
+
+## Runtime
+### Status
+
+```txt
+check => prepare => dispose => apply => idle
+```
+
+
+
+### JavaScript
+
+#### Outdated
+
+Outdated Modules:
+- ./a.js
+- ./module.js
+
+
+Outdated Dependencies:
+```json
+{
+  "./index.js": [
+    "./module.js"
+  ]
+}
+```
+
+#### Updated
+
+Updated Modules:
+- ./a.js
+- ./module.js
+
+Updated Runtime:
+- `__webpack_require__.h`
+
+
+#### Callback
+
+Accepted Callback:
+- ./module.js
+
+Disposed Callback:

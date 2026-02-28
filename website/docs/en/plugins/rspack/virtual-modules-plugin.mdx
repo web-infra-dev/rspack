@@ -2,28 +2,33 @@ import { ApiMeta } from '@components/ApiMeta.tsx';
 
 # VirtualModulesPlugin
 
-<ApiMeta specific={['Rspack']} />
+<ApiMeta specific={['Rspack']} addedVersion="1.5.0" />
 
-The `rspack.experiments.VirtualModulesPlugin` is a Rust port of the [`webpack-virtual-modules`](https://github.com/sysgears/webpack-virtual-modules) plugin. It's deeply integrated with Rspack to deliver the same functionality with enhanced performance.
+`VirtualModulesPlugin` allows you to create, modify, and delete files in memory, and Rspack treats these virtual files as if they were real files existing in the file system.
+
+This plugin is a Rust implementation of [webpack-virtual-modules](https://github.com/sysgears/webpack-virtual-modules), deeply integrated with Rspack to provide equivalent functionality with better performance.
 
 ## Usage
 
 ### Basic usage
 
-You can pass virtual modules to the constructor when creating a new VirtualModulesPlugin instance:
+When creating a `VirtualModulesPlugin` instance, you can directly configure virtual modules in the constructor:
 
 ```ts
-new rspack.experiments.VirtualModulesPlugin(modules?: Record<string, string>)
+import { rspack } from '@rspack/core';
+
+new rspack.experiments.VirtualModulesPlugin({
+  // ...modules
+});
 ```
 
-**Parameters:**
+- **Parameters:**
+  - `modules` (optional): An object where keys are file paths and values are file contents.
 
-- `modules` (optional): An object where keys are file paths and values are file contents.
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
 
-```js title="rspack.config.js"
-const rspack = require('@rspack/core');
-
-module.exports = {
+export default {
   plugins: [
     new rspack.experiments.VirtualModulesPlugin({
       'src/generated/config.js': 'export default { version: "1.0.0" };',
@@ -38,29 +43,39 @@ module.exports = {
 
 ### Dynamic module creation
 
-You can dynamically create or modify virtual modules using the `writeModule` method:
+You can dynamically create or modify virtual modules using the `writeModule` method.
+
+:::note
+Because the plugin's virtual modules are managed on the Rust side,
+the `writeModule` method becomes available only after the Rust compiler has been initialized.
+For example, invoking `writeModule` within the `beforeCompile` or `compile` hooks
+will throw the following error: `Error: Virtual file store has not been initialized.`
+:::
+
+- **Type:**
 
 ```ts
-writeModule(filePath: string, contents: string): void
+function writeModule(filePath: string, contents: string): void;
 ```
 
-**Parameters:**
+- **Parameters:**
+  - `filePath`: The virtual file path relative to [compiler.context](/api/javascript-api/compiler#context)
+  - `contents`: The content of the virtual file
 
-- `filePath`: The virtual file path relative to `compiler.context`
-- `contents`: The content of the virtual file
+- **Example:**
 
-```js title="rspack.config.js"
-const rspack = require('@rspack/core');
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
 
 const virtualModulesPlugin = new rspack.experiments.VirtualModulesPlugin();
 
-module.exports = {
+export default {
   plugins: [
     virtualModulesPlugin,
     {
       apply(compiler) {
-        compiler.hooks.beforeCompile.tap('MyPlugin', () => {
-          // Dynamically create modules
+        compiler.hooks.thisCompilation.tap('MyPlugin', () => {
+          // Dynamically create virtual modules
           const moduleContent = generateSomeContent();
           virtualModulesPlugin.writeModule('src/dynamic.js', moduleContent);
         });

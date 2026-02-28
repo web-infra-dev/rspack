@@ -1,0 +1,2 @@
+const x = {};
+export { x };

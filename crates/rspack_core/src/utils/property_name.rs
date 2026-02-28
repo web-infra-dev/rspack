@@ -70,3 +70,17 @@ pub fn property_name(prop: &str) -> Result<Cow<'_, str>> {
       .map(Cow::from)
   }
 }
+
+/// Returns the name quoted for ESM export/import specifiers.
+/// Unlike `property_name`, this function allows reserved words like "default"
+/// since they are valid in export/import context (e.g., `export { foo as default }`).
+/// Only quotes names that are not valid JavaScript identifiers (e.g., "a.b" -> "\"a.b\"").
+pub fn export_name(name: &str) -> Result<Cow<'_, str>> {
+  if SAFE_IDENTIFIER.is_match(name) {
+    Ok(Cow::from(name))
+  } else {
+    serde_json::to_string(name)
+      .to_rspack_result()
+      .map(Cow::from)
+  }
+}

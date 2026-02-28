@@ -9,14 +9,16 @@ version.workspace = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+allocative       = { workspace = true, optional = true }
+base64-simd      = { workspace = true }
 bitflags         = { workspace = true }
 concat-string    = { workspace = true }
 cow-utils        = { workspace = true }
 dashmap          = { workspace = true }
 indexmap         = { workspace = true }
 itoa             = { workspace = true }
-regex            = { workspace = true }
-ropey            = { workspace = true }
+memchr           = { workspace = true }
+regex            = { workspace = true, features = ["pattern"] }
 rspack_cacheable = { workspace = true }
 rspack_paths     = { workspace = true }
 rustc-hash       = { workspace = true }
@@ -27,7 +29,7 @@ sugar_path       = { workspace = true }
 unicase          = { workspace = true }
 
 swc_config = { workspace = true }
-swc_core   = { workspace = true, features = ["base", "ecma_ast"] }
+swc_core   = { workspace = true, features = ["__common", "base", "ecma_ast"] }
 
 # wasm runtime
 anyhow            = { workspace = true, optional = true }
@@ -42,3 +44,6 @@ signal-hook  = { workspace = true, optional = true }
 [features]
 debug_tool = ["signal-hook"]                                                         # only used for local debug and  should not be enabled in production release
 plugin     = ["anyhow", "once_cell", "wasmtime", "wasi-common", "swc_plugin_runner"]
+
+[lints]
+workspace = true

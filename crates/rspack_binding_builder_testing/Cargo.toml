@@ -35,3 +35,6 @@ napi-derive = { workspace = true, features = ["compat-mode"] }
 
 [build-dependencies]
 rspack_binding_build = { workspace = true }
+
+[lints]
+workspace = true

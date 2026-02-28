@@ -1,4 +1,4 @@
-include = ["Cargo.toml", "crates/*/*.toml", "xtask/*/*.toml"]
+include = ["Cargo.toml", "crates/*/*.toml", "xtask/**/*.toml"]
 
 # https://taplo.tamasfe.dev/configuration/formatter-options.html
 [formatting]

@@ -1,0 +1,4 @@
+./index.js xx bytes [built] [code generated]
+webpack/runtime/define_property_getters xx bytes [code generated]
+webpack/runtime/has_own_property xx bytes [code generated]
+webpack/runtime/make_namespace_object xx bytes [code generated]

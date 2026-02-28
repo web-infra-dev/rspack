@@ -1,31 +1,45 @@
-import { cleanUp } from "../ErrorHelpers";
-import WebpackError from "../lib/WebpackError";
+import { cleanUp } from '../ErrorHelpers';
+import WebpackError from '../lib/WebpackError';
 
-export default class ModuleError extends WebpackError {
-	error?: Error;
+const createMessage = (
+  err: Error,
+  type: 'Error' | 'Warning',
+  from?: string,
+) => {
+  let message = `Module ${type}${from ? ` (from ${from}):\n` : ': '}`;
 
-	constructor(err: Error, { from }: { from?: string } = {}) {
-		let message = "Module Error";
+  if (err && typeof err === 'object' && err.message) {
+    message += err.message;
+  } else if (err) {
+    message += err;
+  }
 
-		if (from) {
-			message += ` (from ${from}):\n`;
-		} else {
-			message += ": ";
-		}
+  return message;
+};
 
-		if (err && typeof err === "object" && err.message) {
-			message += err.message;
-		} else if (err) {
-			message += err;
-		}
+const getErrorDetails = (err: Error) =>
+  err && typeof err === 'object' && err.stack
+    ? cleanUp(err.stack, err.name, err.message)
+    : undefined;
 
-		super(message);
+export class ModuleError extends WebpackError {
+  error?: Error;
 
-		this.name = "ModuleError";
-		this.error = err;
-		this.details =
-			err && typeof err === "object" && err.stack
-				? cleanUp(err.stack, err.name, err.message)
-				: undefined;
-	}
+  constructor(err: Error, { from }: { from?: string } = {}) {
+    super(createMessage(err, 'Error', from));
+    this.name = 'ModuleError';
+    this.error = err;
+    this.details = getErrorDetails(err);
+  }
+}
+
+export class ModuleWarning extends WebpackError {
+  error?: Error;
+
+  constructor(err: Error, { from }: { from?: string } = {}) {
+    super(createMessage(err, 'Warning', from));
+    this.name = 'ModuleWarning';
+    this.error = err;
+    this.details = getErrorDetails(err);
+  }
 }

@@ -81,18 +81,40 @@ Supported browserslist values:
 - `browserslist:/path/to/config` - explicitly specify browserslist config
 - `browserslist:/path/to/config:modern` - explicitly specify browserslist config and an environment
 
+### Limitations
+
+Rspack uses [browserslist-rs](https://github.com/browserslist/browserslist-rs), a Rust implementation of Browserslist, and does not yet fully support all Browserslist features.
+
+Currently unsupported features:
+
+- Baseline queries, such as `baseline widely available`
+- Custom usage queries, such as `> 0.5% in my stats`
+- Coverage-based usage queries, such as `cover 99.5% in my stats`
+
 ## Node.js version
 
 A version of node or electron may be optionally specified. This is denoted by the [[X].Y] in the table above.
 
 ```js title="rspack.config.mjs"
 export default {
-  // ...
   target: 'node18.12',
 };
 ```
 
 When Rspack generates runtime code, this helps determine which ES features can be used (all chunks and modules are wrapped by runtime code).
+
+## Default targets for builtin loaders and plugins
+
+Rspack derives default targets from the `target` configuration and provides them to built-in loaders and plugins. If you don't specify targets in the loader/plugin options, the derived targets will be used:
+
+- `builtin:swc-loader` uses the derived targets as default `env.targets` or `jsc.target`
+- `builtin:lightningcss-loader` uses the derived targets as default `targets` (only for browserslist-related targets, since Lightning CSS only supports browser targets)
+- `SwcJsMinimizerRspackPlugin` uses the derived targets as default `ecma` version
+- `LightningCssMinimizerRspackPlugin` uses the derived targets as default `targets` (only for browserslist-related targets)
+
+This means you no longer need to manually configure the same targets in multiple places. For example, if you set `target: 'node18'`, the loaders and plugins will automatically use Node.js 18 compatible settings.
+
+Third-party loaders and plugins can also access `compiler.target` to derive default targets based on Rspack's target configuration. The `compiler.target` object contains `targets` (platform names with versions) and `esVersion` (the ECMAScript version number).
 
 ## target: false
 
@@ -100,7 +122,6 @@ If none of the predefined targets in the above list meet your needs, you can set
 
 ```js title="rspack.config.mjs"
 export default {
-  // ...
   target: false,
 };
 ```

@@ -11,11 +11,8 @@ use rspack_core::{
   Content, ModuleFactoryCreateData, NormalModuleFactoryResolveForScheme,
   NormalModuleFactoryResolveInScheme, NormalModuleReadResource, Plugin, ResourceData, Scheme,
 };
-use rspack_error::{
-  AnyhowResultToRspackResultExt, Result,
-  miette::{self, diagnostic},
-};
-use rspack_fs::WritableFileSystem;
+use rspack_error::{AnyhowResultToRspackResultExt, Result, error};
+use rspack_fs::{ReadableFileSystem, WritableFileSystem};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_util::asset_condition::{AssetCondition, AssetConditions};
 use url::Url;
@@ -29,36 +26,106 @@ pub struct HttpUriPlugin {
   options: HttpUriPluginOptions,
 }
 
-async fn get_info(url: &str, options: &HttpUriPluginOptions) -> miette::Result<ContentFetchResult> {
+async fn get_info(url: &str, options: &HttpUriPluginOptions) -> Result<ContentFetchResult> {
   // Check if the URL is allowed
   if !options.allowed_uris.is_allowed(url) {
-    return Err(
-      diagnostic!(
-        "{} doesn't match the allowedUris policy. These URIs are allowed:\n{}",
-        url,
-        options.allowed_uris.get_allowed_uris_description(),
-      )
-      .into(),
-    );
+    return Err(error!(
+      "{} doesn't match the allowedUris policy. These URIs are allowed:\n{}",
+      url,
+      options.allowed_uris.get_allowed_uris_description(),
+    ));
   }
-  resolve_content(url, options).await
+  resolve_content(url, options, 0).await
+}
+
+const MAX_REDIRECTS: usize = 5;
+
+/// Sanitize URL for inclusion in error messages
+#[allow(clippy::disallowed_methods)]
+fn sanitize_url_for_error(href: &str) -> String {
+  match Url::parse(href) {
+    Ok(u) => format!("{}//{}", u.scheme(), u.host_str().unwrap_or("")),
+    Err(_) => href
+      .chars()
+      .take(200)
+      .collect::<String>()
+      .replace(['\r', '\n'].as_ref(), ""),
+  }
+}
+
+/// Validate redirect location against allowed URIs and protocol constraints
+fn validate_redirect_location(
+  location: &str,
+  base: &str,
+  options: &HttpUriPluginOptions,
+) -> Result<String> {
+  // Parse the redirect location relative to the base URL
+  let base_url =
+    Url::parse(base).map_err(|_| error!("Invalid base URL: {}", sanitize_url_for_error(base)))?;
+
+  let next_url = base_url
+    .join(location)
+    .map_err(|_| error!("Invalid redirect URL: {}", sanitize_url_for_error(location)))?;
+
+  // Ensure redirect uses only http or https protocol
+  if next_url.scheme() != "http" && next_url.scheme() != "https" {
+    return Err(error!(
+      "Redirected URL uses disallowed protocol: {}",
+      sanitize_url_for_error(next_url.as_str())
+    ));
+  }
+
+  // Ensure redirect target is still within allowed URIs
+  if !options.allowed_uris.is_allowed(next_url.as_str()) {
+    return Err(error!(
+      "{} doesn't match the allowedUris policy after redirect. These URIs are allowed:\n{}",
+      next_url.as_str(),
+      options.allowed_uris.get_allowed_uris_description(),
+    ));
+  }
+
+  Ok(next_url.to_string())
 }
 
 // recursively handle http redirect
 async fn resolve_content(
   url: &str,
   options: &HttpUriPluginOptions,
-) -> miette::Result<ContentFetchResult> {
+  redirect_count: usize,
+) -> Result<ContentFetchResult> {
   let result = fetch_content(url, options)
     .await
     .to_rspack_result_from_anyhow()?;
   match result {
     FetchResultType::Content(content) => Ok(content),
     FetchResultType::Redirect(redirect) => {
-      Box::pin(resolve_content(&redirect.location, options)).await
+      // Validate redirect before following
+      let validated_location = validate_redirect_location(&redirect.location, url, options)?;
+
+      // Check redirect limit
+      if redirect_count >= MAX_REDIRECTS {
+        return Err(error!("Too many redirects"));
+      }
+
+      Box::pin(resolve_content(
+        &validated_location,
+        options,
+        redirect_count + 1,
+      ))
+      .await
     }
   }
 }
+
+/// Scheme only for http and https
+fn parse_url_as_http(url: &str) -> Option<Url> {
+  let url = Url::parse(url).ok()?;
+  if url.scheme() != "http" && url.scheme() != "https" {
+    return None;
+  }
+  Some(url)
+}
+
 impl HttpUriPlugin {
   pub fn new(options: HttpUriPluginOptions) -> Self {
     Self::new_inner(options)
@@ -108,16 +175,17 @@ async fn resolve_for_scheme(
   _scheme: &Scheme,
 ) -> Result<Option<bool>> {
   // Try to parse the URL and handle it
-  match Url::parse(&resource_data.resource) {
-    Ok(url) => match self
-      .respond_with_url_module(resource_data, &url, None)
-      .await
-    {
-      Ok(true) => Ok(Some(true)),
-      Ok(false) => Ok(None),
-      Err(e) => Err(e),
-    },
-    Err(_) => Ok(None),
+  let Some(url) = parse_url_as_http(resource_data.resource()) else {
+    return Ok(None);
+  };
+
+  match self
+    .respond_with_url_module(resource_data, &url, None)
+    .await
+  {
+    Ok(true) => Ok(Some(true)),
+    Ok(false) => Ok(None),
+    Err(e) => Err(e),
   }
 }
 
@@ -133,27 +201,26 @@ async fn resolve_in_scheme(
     .dependencies
     .first()
     .and_then(|dep| dep.as_module_dependency())
-    .map(|dep| dep.dependency_type().as_str() != "url")
-    .unwrap_or(true);
+    .is_none_or(|dep| dep.dependency_type().as_str() != "url");
 
   // Only handle relative urls (./xxx, ../xxx, /xxx, //xxx) and non-url dependencies
+  let resource = resource_data.resource();
   if is_not_url_dependency
-    && (!resource_data.resource.starts_with("./")
-      && !resource_data.resource.starts_with("../")
-      && !resource_data.resource.starts_with("/")
-      && !resource_data.resource.starts_with("//"))
+    && (!resource.starts_with("./")
+      && !resource.starts_with("../")
+      && !resource.starts_with("/")
+      && !resource.starts_with("//"))
   {
     return Ok(None);
   }
 
   // Parse the base URL from context
-  let base_url = match Url::parse(&format!("{}/", data.context)) {
-    Ok(url) => url,
-    Err(_) => return Ok(None),
+  let Some(base_url) = parse_url_as_http(&format!("{}/", data.context)) else {
+    return Ok(None);
   };
 
   // Join the base URL with the resource
-  match base_url.join(&resource_data.resource) {
+  match base_url.join(resource_data.resource()) {
     Ok(url) => match self
       .respond_with_url_module(resource_data, &url, None)
       .await
@@ -167,11 +234,15 @@ async fn resolve_in_scheme(
 }
 
 #[plugin_hook(NormalModuleReadResource for HttpUriPlugin)]
-async fn read_resource(&self, resource_data: &ResourceData) -> Result<Option<Content>> {
+async fn read_resource(
+  &self,
+  resource_data: &ResourceData,
+  _fs: &Arc<dyn ReadableFileSystem>,
+) -> Result<Option<Content>> {
   if (resource_data.get_scheme().is_http() || resource_data.get_scheme().is_https())
-    && EXTERNAL_HTTP_REQUEST.is_match(&resource_data.resource)
+    && EXTERNAL_HTTP_REQUEST.is_match(resource_data.resource())
   {
-    let content_result = get_info(&resource_data.resource, &self.options).await?;
+    let content_result = get_info(resource_data.resource(), &self.options).await?;
 
     return Ok(Some(Content::from(content_result.content().to_vec())));
   }
@@ -227,7 +298,7 @@ impl HttpUriOptionsAllowedUris {
 
   fn condition_to_string(&self, condition: &AssetCondition) -> String {
     match condition {
-      AssetCondition::String(s) => s.to_string(),
+      AssetCondition::String(s) => s.clone(),
       AssetCondition::Regexp(r) => r.to_source_string(),
     }
   }
@@ -237,20 +308,20 @@ impl HttpUriOptionsAllowedUris {
 // set
 fn get_resource_context(result_entry_resolved: &str) -> Option<String> {
   // Parse the resolved URL
-  if let Ok(base_url) = Url::parse(result_entry_resolved) {
-    // Resolve the relative path "." against the base URL
-    if let Ok(resolved_url) = base_url.join(".") {
-      // Convert the resolved URL to a string
-      let mut href = resolved_url.to_string();
+  let base_url = parse_url_as_http(result_entry_resolved)?;
 
-      // Remove the trailing slash if it exists
-      if href.ends_with('/') {
-        href.pop();
-      }
+  // Resolve the relative path "." against the base URL
+  if let Ok(resolved_url) = base_url.join(".") {
+    // Convert the resolved URL to a string
+    let mut href = resolved_url.to_string();
 
-      // Return the context as a string
-      return Some(href);
+    // Remove the trailing slash if it exists
+    if href.ends_with('/') {
+      href.pop();
     }
+
+    // Return the context as a string
+    return Some(href);
   }
 
   // Return None if parsing or joining fails

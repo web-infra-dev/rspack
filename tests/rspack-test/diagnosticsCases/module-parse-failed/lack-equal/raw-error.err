@@ -1,0 +1,17 @@
+Array [
+  Object {
+    code: ModuleParseError,
+    moduleIdentifier: <TEST_ROOT>/diagnosticsCases/module-parse-failed/lack-equal/index.js,
+    moduleName: ./index.js,
+  },
+  Object {
+    code: ModuleParseError,
+    moduleIdentifier: <TEST_ROOT>/diagnosticsCases/module-parse-failed/lack-equal/index.js,
+    moduleName: ./index.js,
+  },
+  Object {
+    code: ModuleParseError,
+    moduleIdentifier: <TEST_ROOT>/diagnosticsCases/module-parse-failed/lack-equal/index.js,
+    moduleName: ./index.js,
+  },
+]

@@ -1,217 +1,241 @@
-import fs from "node:fs";
-import path from "node:path";
-import { type Edit, Lang, parse } from "@ast-grep/napi";
-import { defineConfig, type LibConfig, rsbuild, rspack } from "@rslib/core";
-import prebundleConfig from "./prebundle.config.mjs";
+import fs from 'node:fs';
+import { createRequire } from 'node:module';
+import path from 'node:path';
+import { type Edit, Lang, parse, type SgNode } from '@ast-grep/napi';
+import type { Kinds, TypesMap } from '@ast-grep/napi/types/staticTypes';
+import {
+  defineConfig,
+  type LibConfig,
+  type RsbuildPlugin,
+  type Rspack,
+  rsbuild,
+  rspack,
+} from '@rslib/core';
+import packageJson from './package.json' with { type: 'json' };
+import prebundleConfig from './prebundle.config.mjs';
+
+const require = createRequire(import.meta.url);
 
 const merge = rsbuild.mergeRsbuildConfig;
 
-const externalAlias = ({ request }: { request?: string }, callback) => {
-	const { dependencies } = prebundleConfig;
+const externalAlias: Rspack.Externals = ({ request }, callback) => {
+  const { dependencies } = prebundleConfig;
 
-	for (const item of dependencies) {
-		const depName = typeof item === "string" ? item : item.name;
-		if (new RegExp(`^${depName}$`).test(request!)) {
-			return callback(null, `../compiled/${depName}/index.js`);
-		}
-	}
+  for (const item of dependencies) {
+    if (typeof item === 'object' && item.dtsOnly) {
+      continue;
+    }
 
-	if (new RegExp(/^tinypool$/).test(request!)) {
-		return callback(null, "../compiled/tinypool/dist/index.js");
-	}
+    const depName = typeof item === 'string' ? item : item.name;
+    if (new RegExp(`^${depName}$`).test(request!)) {
+      return callback(
+        undefined,
+        `node-commonjs ../compiled/${depName}/index.js`,
+      );
+    }
+  }
 
-	return callback();
+  if (new RegExp(/^tinypool$/).test(request!)) {
+    return callback(undefined, '../compiled/tinypool/dist/index.js');
+  }
+
+  return callback();
 };
 
 const commonLibConfig: LibConfig = {
-	format: "cjs",
-	syntax: ["node 18.12"],
-	source: {
-		define: {
-			WEBPACK_VERSION: JSON.stringify(require("./package.json").webpackVersion),
-			RSPACK_VERSION: JSON.stringify(require("./package.json").version),
-			IS_BROWSER: JSON.stringify(false)
-		}
-	},
-	output: {
-		externals: ["@rspack/binding/package.json", externalAlias],
-		minify: {
-			js: true,
-			jsOptions: {
-				minimizerOptions: {
-					// preserve variable name and disable minify for easier debugging
-					mangle: false,
-					minify: false,
-					compress: {
-						// enable to compress import.meta.url shims in top level scope
-						toplevel: true,
-						// keep debugger so we can debug in the debug terminal without need to search in minified dist
-						drop_debugger: false
-					}
-				}
-			}
-		}
-	},
-	tools: {
-		bundlerChain: (chain, { CHAIN_ID }) => {
-			// remove the entry loader in Rslib to avoid
-			// "Cannot access 'Compiler' before initialization" error caused by circular dependency
-			chain.module
-				.rule(`Rslib:${CHAIN_ID.RULE.JS}-entry-loader`)
-				.uses.delete("rsbuild:lib-entry-module");
-		}
-	}
+  format: 'esm',
+  syntax: ['es2023'],
+  source: {
+    define: {
+      WEBPACK_VERSION: JSON.stringify(packageJson.webpackVersion),
+      RSPACK_VERSION: JSON.stringify(packageJson.version),
+      IS_BROWSER: JSON.stringify(false),
+    },
+  },
+  output: {
+    externals: [
+      {
+        '@rspack/binding': 'node-commonjs @rspack/binding',
+      },
+      '@rspack/binding/package.json',
+      externalAlias,
+    ],
+    minify: {
+      js: true,
+      jsOptions: {
+        minimizerOptions: {
+          // preserve variable name and disable minify for easier debugging
+          mangle: false,
+          minify: false,
+          compress: {
+            // enable to compress import.meta.url shims in top level scope
+            toplevel: true,
+            // keep debugger so we can debug in the debug terminal without need to search in minified dist
+            drop_debugger: false,
+          },
+        },
+      },
+    },
+  },
 };
 
-/**
- * The `zod` dependency is bundled by Rslib. Since Rspack's public APIs
- * do not depend on `zod` types, we add `@ts-ignore` to prevent type errors
- * when users set `skipLibCheck: false` in their tsconfig.json file.
- */
-const fixZodTypePlugin: rsbuild.RsbuildPlugin = {
-	name: "fix-zod-type",
-	setup(api) {
-		api.onAfterBuild(async () => {
-			const schemaDir = path.join(api.context.distPath, "schema");
+const mfRuntimePlugin: RsbuildPlugin = {
+  name: 'mf-runtime',
+  setup(api) {
+    api.onAfterBuild(async () => {
+      const { swc } = rspack.experiments;
+      const runtime = await fs.promises.readFile(
+        path.resolve(
+          import.meta.dirname,
+          'src/runtime/moduleFederationDefaultRuntime.js',
+        ),
+        'utf-8',
+      );
 
-			if (!fs.existsSync(schemaDir)) {
-				throw new Error(`Schema directory not found: ${schemaDir}`);
-			}
+      const { code: downgradedRuntime } = await swc.transform(runtime, {
+        jsc: {
+          target: 'es2015',
+        },
+      });
 
-			const files = await fs.promises.readdir(schemaDir);
-			const dtsFiles = files.filter(file => file.endsWith(".d.ts"));
+      const minimizedRuntime = await swc.minify(downgradedRuntime, {
+        compress: false,
+        mangle: false,
+        ecma: 2015,
+      });
 
-			for (const file of dtsFiles) {
-				const filePath = path.join(schemaDir, file);
-				const content = await fs.promises.readFile(filePath, "utf-8");
-				const newContent = content
-					.replace(
-						`import * as z from "zod/v4";`,
-						`// @ts-ignore\nimport * as z from "zod/v4";`
-					)
-					.replace(
-						`import type { z } from "zod/v4";`,
-						`// @ts-ignore\nimport type { z } from "zod/v4";`
-					);
-
-				if (content !== newContent) {
-					await fs.promises.writeFile(filePath, newContent);
-				}
-			}
-		});
-	}
+      await fs.promises.writeFile(
+        path.resolve(
+          import.meta.dirname,
+          'dist/moduleFederationDefaultRuntime.js',
+        ),
+        minimizedRuntime.code,
+      );
+    });
+  },
 };
 
-const mfRuntimePlugin: rsbuild.RsbuildPlugin = {
-	name: "mf-runtime",
-	setup(api) {
-		api.onAfterBuild(async () => {
-			const { swc } = rspack.experiments;
-			const runtime = await fs.promises.readFile(
-				path.resolve(
-					__dirname,
-					"src/runtime/moduleFederationDefaultRuntime.js"
-				),
-				"utf-8"
-			);
+const codmodPlugin: RsbuildPlugin = {
+  name: 'codmod',
+  setup(api) {
+    /**
+     * Replaces `@rspack/binding` to code that reads env `RSPACK_BINDING` as the custom binding.
+     */
+    function replaceBinding(root: SgNode<TypesMap, Kinds<TypesMap>>): Edit[] {
+      const edits: Edit[] = [];
 
-			const { code: downgradedRuntime } = await swc.transform(runtime, {
-				jsc: {
-					target: "es2015"
-				}
-			});
+      // Pattern 1: let binding_namespaceObject = __rspack_createRequire_require("@rspack/binding");
+      const pattern1 = `let binding_namespaceObject = __rspack_createRequire_require("@rspack/binding");`;
+      const binding1 = root.find(pattern1);
+      if (binding1) {
+        edits.push(
+          binding1.replace(
+            `let binding_namespaceObject = __rspack_createRequire_require(process.env.RSPACK_BINDING ? process.env.RSPACK_BINDING : "@rspack/binding");`,
+          ),
+        );
+      }
 
-			const minimizedRuntime = await swc.minify(downgradedRuntime, {
-				compress: false,
-				mangle: false,
-				ecma: 2015
-			});
+      // Pattern 2: let instanceBinding = Compiler_require('@rspack/binding');
+      const pattern2 = `let instanceBinding = Compiler_require('@rspack/binding');`;
+      const binding2 = root.find(pattern2);
+      if (binding2) {
+        edits.push(
+          binding2.replace(
+            `let instanceBinding = Compiler_require(process.env.RSPACK_BINDING ? process.env.RSPACK_BINDING : '@rspack/binding');`,
+          ),
+        );
+      }
 
-			await fs.promises.writeFile(
-				path.resolve(__dirname, "dist/moduleFederationDefaultRuntime.js"),
-				minimizedRuntime.code
-			);
-		});
-	}
+      if (edits.length === 0) {
+        throw new Error(
+          'Cannot find any binding require statements to replace',
+        );
+      }
+
+      return edits;
+    }
+
+    api.onAfterBuild(async () => {
+      const dist = fs.readFileSync(
+        require.resolve(path.resolve(import.meta.dirname, 'dist/index.js')),
+        'utf-8',
+      );
+      const root = parse(Lang.JavaScript, dist).root();
+      const edits = [...replaceBinding(root)];
+
+      fs.writeFileSync(
+        require.resolve(path.resolve(import.meta.dirname, 'dist/index.js')),
+        root.commitEdits(edits),
+      );
+    });
+  },
 };
 
-const codmodPlugin: rsbuild.RsbuildPlugin = {
-	name: "codmod",
-	setup(api) {
-		/**
-		 * Replaces `@rspack/binding` to code that reads env `RSPACK_BINDING` as the custom binding.
-		 */
-		function replaceBinding(root): Edit[] {
-			const binding = root.find(`module.exports = require("@rspack/binding");`);
-			return [
-				binding.replace(
-					`module.exports = require(process.env.RSPACK_BINDING ? process.env.RSPACK_BINDING : "@rspack/binding");`
-				)
-			];
-		}
-
-		api.onAfterBuild(async () => {
-			const dist = fs.readFileSync(
-				require.resolve(path.resolve(__dirname, "dist/index.js")),
-				"utf-8"
-			);
-			const root = parse(Lang.JavaScript, dist).root();
-			const edits = [...replaceBinding(root)];
-
-			fs.writeFileSync(
-				require.resolve(path.resolve(__dirname, "dist/index.js")),
-				root.commitEdits(edits)
-			);
-		});
-	}
+// Remove `export { rspack as 'module.exports' };` to avoid parsing errors with TypeScript < 5.6.2
+const removeDtsExportPlugin: RsbuildPlugin = {
+  name: 'remove-dts-export',
+  setup(api) {
+    api.onAfterBuild(async () => {
+      const dtsPath = path.resolve(import.meta.dirname, 'dist/index.d.ts');
+      if (fs.existsSync(dtsPath)) {
+        const content = await fs.promises.readFile(dtsPath, 'utf-8');
+        const newContent = content.replace(
+          "export { rspack as 'module.exports' };",
+          '',
+        );
+        await fs.promises.writeFile(dtsPath, newContent);
+      }
+    });
+  },
 };
 
 export default defineConfig({
-	plugins: [fixZodTypePlugin, mfRuntimePlugin, codmodPlugin],
-	lib: [
-		merge(commonLibConfig, {
-			dts: {
-				build: true
-			},
-			source: {
-				entry: {
-					index: "./src/index.ts"
-				},
-				tsconfigPath: "./tsconfig.build.json"
-			},
-			output: {
-				externals: [externalAlias, "./moduleFederationDefaultRuntime.js"]
-			},
-			footer: {
-				// make default export in cjs work
-				js: "module.exports = __webpack_exports__.default;"
-			}
-		}),
-		merge(commonLibConfig, {
-			source: {
-				entry: {
-					cssExtractLoader: "./src/builtin-plugin/css-extract/loader.ts"
-				}
-			}
-		}),
-		merge(commonLibConfig, {
-			syntax: "es2015",
-			source: {
-				entry: {
-					cssExtractHmr: "./src/runtime/cssExtractHmr.ts"
-				}
-			}
-		}),
-		merge(commonLibConfig, {
-			source: {
-				entry: {
-					worker: "./src/loader-runner/worker.ts"
-				}
-			},
-			footer: {
-				// make default export in cjs work
-				js: "module.exports = __webpack_exports__.default;"
-			}
-		})
-	]
+  plugins: [mfRuntimePlugin, codmodPlugin, removeDtsExportPlugin],
+  lib: [
+    merge(commonLibConfig, {
+      dts: {
+        build: true,
+        alias: {
+          // alias to pre-bundled types as they are public API
+          '@rspack/lite-tapable': './compiled/@rspack/lite-tapable/dist',
+        },
+      },
+      redirect: {
+        dts: {
+          extension: true,
+        },
+      },
+      source: {
+        entry: {
+          index: './src/index.ts',
+        },
+        tsconfigPath: './tsconfig.build.json',
+      },
+      output: {
+        externals: [externalAlias, './moduleFederationDefaultRuntime.js'],
+      },
+    }),
+    merge(commonLibConfig, {
+      source: {
+        entry: {
+          cssExtractLoader: './src/builtin-plugin/css-extract/loader.ts',
+        },
+      },
+    }),
+    merge(commonLibConfig, {
+      syntax: 'es2015',
+      source: {
+        entry: {
+          cssExtractHmr: './src/runtime/cssExtractHmr.ts',
+        },
+      },
+    }),
+    merge(commonLibConfig, {
+      source: {
+        entry: {
+          worker: './src/loader-runner/worker.ts',
+        },
+      },
+    }),
+  ],
 });

@@ -1,0 +1,7 @@
+Array [
+  Object {
+    loc: 1:24-31,
+    moduleIdentifier: <TEST_ROOT>/diagnosticsCases/module-parse-failed/require-warning/index.js,
+    moduleName: ./index.js,
+  },
+]

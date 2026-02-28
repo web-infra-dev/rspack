@@ -58,6 +58,20 @@ pub enum Restriction {
   Regex(RspackRegex),
 }
 
+#[cacheable]
+#[derive(Debug, Clone, Hash, PartialEq, Eq, Default)]
+pub enum PnpManifest {
+  #[default]
+  Disabled,
+  Path(#[cacheable(with=AsPreset)] Utf8PathBuf),
+}
+
+impl value_type::GetValueType for PnpManifest {
+  fn get_value_type(&self) -> value_type::ValueType {
+    value_type::ValueType::Atom
+  }
+}
+
 pub(super) type Extensions = Vec<String>;
 pub(super) type PreferRelative = bool;
 pub(super) type PreferAbsolute = bool;
@@ -138,6 +152,8 @@ pub struct Resolve {
   pub enforce_extension: Option<EnforceExtension>,
   /// If set, Yarn PnP resolution will be supported.
   pub pnp: Option<bool>,
+  /// Path to PnP manifest file
+  pub pnp_manifest: Option<PnpManifest>,
   /// Whether to parse [module.builtinModules](https://nodejs.org/api/module.html#modulebuiltinmodules) or not.
   pub builtin_modules: bool,
 }

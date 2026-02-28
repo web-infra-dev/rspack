@@ -1,9 +1,9 @@
-import { BuiltinPluginName } from "@rspack/binding";
+import { BuiltinPluginName } from '@rspack/binding';
 
-import { create } from "./base";
+import { create } from './base';
 
 export const CssModulesPlugin = create(
-	BuiltinPluginName.CssModulesPlugin,
-	() => {},
-	"compilation"
+  BuiltinPluginName.CssModulesPlugin,
+  () => {},
+  'compilation',
 );

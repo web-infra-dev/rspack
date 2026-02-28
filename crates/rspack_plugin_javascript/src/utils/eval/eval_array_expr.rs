@@ -1,4 +1,4 @@
-use rspack_core::SpanExt;
+use rspack_util::SpanExt;
 use swc_core::ecma::ast::ArrayLit;
 
 use super::BasicEvaluatedExpression;
@@ -21,7 +21,7 @@ pub fn eval_array_expression<'a>(
     }
   }
 
-  let mut res = BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.hi().0);
+  let mut res = BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.real_hi());
   res.set_items(items);
   Some(res)
 }

@@ -18,7 +18,7 @@ use rspack_core::{
   rspack_sources::{Mapping, OriginalLocation, SourceMap, encode_mappings},
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt};
-use rspack_loader_runner::{Identifiable, Identifier};
+use rspack_loader_runner::Identifier;
 use tokio::sync::Mutex;
 
 pub mod config;
@@ -72,7 +72,7 @@ impl LightningCssLoader {
     let mut parser_flags = ParserFlags::empty();
     parser_flags.set(
       ParserFlags::CUSTOM_MEDIA,
-      matches!(&self.config.draft, Some(draft) if draft.custom_media),
+      matches!(&self.config.drafts, Some(drafts) if drafts.custom_media),
     );
     parser_flags.set(
       ParserFlags::DEEP_SELECTOR_COMBINATOR,
@@ -146,14 +146,16 @@ impl LightningCssLoader {
         .config
         .include
         .as_ref()
-        .map(|include| Features::from_bits_truncate(*include))
-        .unwrap_or(Features::empty()),
+        .map_or(Features::empty(), |include| {
+          Features::from_bits_truncate(*include)
+        }),
       exclude: self
         .config
         .exclude
         .as_ref()
-        .map(|exclude| Features::from_bits_truncate(*exclude))
-        .unwrap_or(Features::empty()),
+        .map_or(Features::empty(), |exclude| {
+          Features::from_bits_truncate(*exclude)
+        }),
     };
 
     let unused_symbols = self
@@ -170,39 +172,39 @@ impl LightningCssLoader {
       })
       .to_rspack_result()?;
 
-    let enable_sourcemap = loader_context.context.module_source_map_kind.enabled();
-
-    let mut source_map = loader_context
-      .source_map()
-      .map(|input_source_map| -> Result<_> {
-        let mut sm = parcel_sourcemap::SourceMap::new(
-          input_source_map
-            .source_root()
-            .unwrap_or(&loader_context.context.options.context),
-        );
-        sm.add_source(&filename);
-        sm.set_source_content(0, &content_str).to_rspack_result()?;
-        Ok(sm)
-      })
-      .transpose()?
-      .unwrap_or_else(|| {
-        let mut source_map =
-          parcel_sourcemap::SourceMap::new(&loader_context.context.options.context);
-        let source_idx = source_map.add_source(&filename);
-        source_map
-          .set_source_content(source_idx as usize, &content_str)
-          .expect("should set source content");
-        source_map
-      });
+    let mut source_map = if loader_context.context.source_map_kind.enabled() {
+      Some(
+        loader_context
+          .source_map()
+          .map(|input_source_map| -> Result<_> {
+            let mut sm = parcel_sourcemap::SourceMap::new(
+              input_source_map
+                .source_root()
+                .unwrap_or(&loader_context.context.options.context),
+            );
+            sm.add_source(&filename);
+            sm.set_source_content(0, &content_str).to_rspack_result()?;
+            Ok(sm)
+          })
+          .transpose()?
+          .unwrap_or_else(|| {
+            let mut source_map =
+              parcel_sourcemap::SourceMap::new(&loader_context.context.options.context);
+            let source_idx = source_map.add_source(&filename);
+            source_map
+              .set_source_content(source_idx as usize, &content_str)
+              .expect("should set source content");
+            source_map
+          }),
+      )
+    } else {
+      None
+    };
 
     let content = stylesheet
       .to_css(PrinterOptions {
         minify: self.config.minify.unwrap_or(false),
-        source_map: if enable_sourcemap {
-          Some(&mut source_map)
-        } else {
-          None
-        },
+        source_map: source_map.as_mut(),
         project_root: None,
         targets,
         analyze_dependencies: None,
@@ -220,7 +222,7 @@ impl LightningCssLoader {
       })
       .to_rspack_result_with_message(|e| format!("failed to generate css: {e}"))?;
 
-    if enable_sourcemap {
+    if let Some(source_map) = source_map {
       let mappings = encode_mappings(source_map.get_mappings().iter().map(|mapping| Mapping {
         generated_line: mapping.generated_line,
         generated_column: mapping.generated_column,
@@ -241,7 +243,7 @@ impl LightningCssLoader {
         source_map
           .get_sources_content()
           .iter()
-          .map(ToString::to_string)
+          .map(|source_content| Arc::from(source_content.clone()))
           .collect::<Vec<_>>(),
         source_map
           .get_names()
@@ -258,15 +260,13 @@ impl LightningCssLoader {
   }
 }
 
-impl Identifiable for LightningCssLoader {
-  fn identifier(&self) -> rspack_loader_runner::Identifier {
-    self.id
-  }
-}
-
 #[cacheable_dyn]
 #[async_trait::async_trait]
 impl Loader<RunnerContext> for LightningCssLoader {
+  fn identifier(&self) -> rspack_loader_runner::Identifier {
+    self.id
+  }
+
   #[tracing::instrument("loader:lightningcss", skip_all, fields(
     perfetto.track_name = "loader:lightningcss",
     perfetto.process_name = "Loader Analysis",

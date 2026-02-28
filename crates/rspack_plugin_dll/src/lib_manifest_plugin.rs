@@ -52,14 +52,14 @@ impl Plugin for LibManifestPlugin {
 
 #[plugin_hook(CompilerEmit for LibManifestPlugin)]
 async fn emit(&self, compilation: &mut Compilation) -> Result<()> {
-  let chunk_graph = &compilation.chunk_graph;
+  let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
 
   let mut manifests: HashMap<String, String> = HashMap::default();
 
   let module_graph = compilation.get_module_graph();
 
-  for (_, chunk) in compilation.chunk_by_ukey.iter() {
-    if !chunk.can_be_initial(&compilation.chunk_group_by_ukey) {
+  for (_, chunk) in compilation.build_chunk_graph_artifact.chunk_by_ukey.iter() {
+    if !chunk.can_be_initial(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey) {
       continue;
     }
 
@@ -67,21 +67,17 @@ async fn emit(&self, compilation: &mut Compilation) -> Result<()> {
       .get_path(
         &self.options.path,
         PathData::default()
-          .chunk_id_optional(
-            chunk
-              .id(&compilation.chunk_ids_artifact)
-              .map(|id| id.as_str()),
-          )
+          .chunk_id_optional(chunk.id().map(|id| id.as_str()))
           .chunk_hash_optional(chunk.rendered_hash(
             &compilation.chunk_hashes_artifact,
             compilation.options.output.hash_digest_length,
           ))
-          .chunk_name_optional(chunk.name_for_filename_template(&compilation.chunk_ids_artifact)),
+          .chunk_name_optional(chunk.name_for_filename_template()),
       )
       .await?;
 
     if manifests.contains_key(&target_path) {
-      return Err(Error::msg("each chunk must have a unique path"));
+      return Err(Error::error("each chunk must have a unique path".into()));
     }
 
     let name = if let Some(name) = self.options.name.as_ref() {
@@ -90,18 +86,12 @@ async fn emit(&self, compilation: &mut Compilation) -> Result<()> {
           .get_path(
             name,
             PathData::default()
-              .chunk_id_optional(
-                chunk
-                  .id(&compilation.chunk_ids_artifact)
-                  .map(|id| id.as_str()),
-              )
+              .chunk_id_optional(chunk.id().map(|id| id.as_str()))
               .chunk_hash_optional(chunk.rendered_hash(
                 &compilation.chunk_hashes_artifact,
                 compilation.options.output.hash_digest_length,
               ))
-              .chunk_name_optional(
-                chunk.name_for_filename_template(&compilation.chunk_ids_artifact),
-              )
+              .chunk_name_optional(chunk.name_for_filename_template())
               .content_hash_optional(chunk.rendered_content_hash_by_source_type(
                 &compilation.chunk_hashes_artifact,
                 &SourceType::JavaScript,
@@ -116,16 +106,13 @@ async fn emit(&self, compilation: &mut Compilation) -> Result<()> {
 
     let mut manifest_content: DllManifestContent = HashMap::default();
 
-    for module in chunk_graph.get_ordered_chunk_modules(&chunk.ukey(), &module_graph) {
+    for module in chunk_graph.get_ordered_chunk_modules(&chunk.ukey(), module_graph) {
       if self.options.entry_only.unwrap_or_default()
         && !some_in_iterable(
           module_graph.get_incoming_connections(&module.identifier()),
           |conn| {
             let dep = module_graph.dependency_by_id(&conn.dependency_id);
-
-            dep
-              .map(|dep| dep.is::<EntryDependency>())
-              .unwrap_or_default()
+            dep.is::<EntryDependency>()
           },
         )
       {
@@ -140,7 +127,8 @@ async fn emit(&self, compilation: &mut Compilation) -> Result<()> {
       let ident = module.lib_ident(LibIdentOptions { context });
 
       if let Some(ident) = ident {
-        let exports_info = module_graph
+        let exports_info = compilation
+          .exports_info_artifact
           .get_prefetched_exports_info(&module.identifier(), PrefetchExportsInfoMode::Default);
 
         let provided_exports = match exports_info.get_provided_exports() {

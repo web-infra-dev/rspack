@@ -12,4 +12,4 @@ A Rust crate that provides the foundation for building custom Rspack bindings an
 
 ## Guide
 
-[Rspack Custom binding](https://rspack-contrib.github.io/rspack-rust-book/custom-binding/getting-started/index.html)
+[Rspack Custom binding](https://rstackjs.github.io/rspack-rust-book/custom-binding/getting-started/index.html)

@@ -5,8 +5,8 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AffectType, AsContextDependency, AsModuleDependency, Dependency, DependencyCategory,
   DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
-  DependencyTemplateType, DependencyType, ModuleDependency, TemplateContext, TemplateReplaceSource,
-  module_raw,
+  DependencyTemplateType, DependencyType, ModuleDependency, RuntimeGlobals, TemplateContext,
+  TemplateReplaceSource,
 };
 
 use super::amd_require_item_dependency::AMDRequireItemDependency;
@@ -14,6 +14,7 @@ use super::amd_require_item_dependency::AMDRequireItemDependency;
 #[cacheable]
 #[derive(Debug, Clone)]
 pub enum AMDRequireArrayItem {
+  Require,
   String(String),
   LocalModuleDependency { local_module_variable_name: String },
   AMDRequireItemDependency { dep_id: DependencyId },
@@ -43,8 +44,8 @@ impl Dependency for AMDRequireArrayDependency {
     &self.id
   }
 
-  fn range(&self) -> Option<&DependencyRange> {
-    Some(&self.range)
+  fn range(&self) -> Option<DependencyRange> {
+    Some(self.range)
   }
 
   fn category(&self) -> &DependencyCategory {
@@ -77,6 +78,10 @@ impl AMDRequireArrayDependency {
     code_generatable_context: &mut TemplateContext,
   ) -> Cow<'a, str> {
     match dep {
+      AMDRequireArrayItem::Require => code_generatable_context
+        .runtime_template
+        .render_runtime_globals(&RuntimeGlobals::REQUIRE)
+        .into(),
       AMDRequireArrayItem::String(name) => name.into(),
       AMDRequireArrayItem::LocalModuleDependency {
         local_module_variable_name,
@@ -85,16 +90,17 @@ impl AMDRequireArrayDependency {
         let mg = code_generatable_context.compilation.get_module_graph();
         let dep = mg
           .dependency_by_id(dep_id)
-          .and_then(|dep| dep.downcast_ref::<AMDRequireItemDependency>())
+          .downcast_ref::<AMDRequireItemDependency>()
           .expect("should have AMDRequireItemDependency");
-        module_raw(
-          code_generatable_context.compilation,
-          code_generatable_context.runtime_requirements,
-          dep_id,
-          dep.request(),
-          dep.weak(),
-        )
-        .into()
+        code_generatable_context
+          .runtime_template
+          .module_raw(
+            code_generatable_context.compilation,
+            dep_id,
+            dep.request(),
+            dep.weak(),
+          )
+          .into()
       }
     }
   }

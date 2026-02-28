@@ -1,0 +1,48 @@
+```mjs title=main.mjs
+import * as __rspack_external_fs from "fs";
+import * as __rspack_external_path from "path";
+
+// fs?f137
+
+// path
+
+// fs?c303
+
+// ./lib3.js
+const lib3_lib3 = 42
+
+const lib_local = 24
+
+
+
+
+// ./lib2.js
+
+
+
+
+const lib2_lib2 = 42
+
+// ./lib.js
+
+
+
+
+const lib_lib = 42
+
+// ./index.js
+
+
+it('should re-export esm correctly', async () => {
+	const { lib, lib2, lib3, lib4, path, fs } = await import(/* webpackIgnore: true */ './main.mjs')
+	expect(lib).toBe(42)
+	expect(lib2).toBe(42)
+	expect(lib3).toBe(42)
+	expect(lib4).toBe(24)
+	expect(typeof path.resolve).toBe('function')
+	expect(typeof fs.readFile).toBe('function')
+})
+
+export { __rspack_external_fs as fs, __rspack_external_path as path, lib2_lib2 as lib2, lib3_lib3 as lib3, lib_lib as lib, lib_local as lib4 };
+
+```

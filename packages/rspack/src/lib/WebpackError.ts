@@ -8,26 +8,26 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 
-import { inspect } from "node:util";
-import type { DependencyLocation } from "@rspack/binding";
-import type { Chunk } from "../Chunk";
-import type { Module } from "../Module";
+import { inspect } from 'node:util';
+import type { DependencyLocation } from '@rspack/binding';
+import type { Chunk } from '../Chunk';
+import type { Module } from '../Module';
 
 export class WebpackError extends Error {
-	loc?: DependencyLocation;
-	file?: string;
-	chunk?: Chunk;
-	module?: null | Module;
-	details?: string;
-	hideStack?: boolean;
+  loc?: DependencyLocation;
+  file?: string;
+  chunk?: Chunk;
+  module?: null | Module;
+  details?: string;
+  hideStack?: boolean;
 }
 
 Object.defineProperty(WebpackError.prototype, inspect.custom, {
-	value: function () {
-		return this.stack + (this.details ? `\n${this.details}` : "");
-	},
-	enumerable: false,
-	configurable: true
+  value: function () {
+    return this.stack + (this.details ? `\n${this.details}` : '');
+  },
+  enumerable: false,
+  configurable: true,
 });
 
 export default WebpackError;

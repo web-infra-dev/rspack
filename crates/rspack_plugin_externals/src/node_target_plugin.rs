@@ -65,6 +65,7 @@ pub fn node_target_plugin() -> BoxPlugin {
       // Yarn PnP adds pnpapi as "builtin"
       ExternalItem::from("pnpapi".to_string()),
     ],
+    false,
   )
   .boxed()
 }

@@ -1,10 +1,10 @@
 use core::fmt;
-use std::{borrow::Cow, collections::HashSet};
+use std::borrow::Cow;
 
 use itertools::Itertools;
 use rspack_collections::{IdentifierMap, UkeyMap};
 use rspack_util::env::has_query;
-use rustc_hash::FxHashMap as HashMap;
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use crate::{
   AsyncDependenciesBlockIdentifier, ChunkGroupUkey, ChunkUkey, Compilation, ModuleIdentifier,
@@ -39,13 +39,15 @@ impl ChunkGraph {
   // 1. support chunk_group dump visualizer
   pub fn to_dot(&self, compilation: &Compilation) -> std::result::Result<String, fmt::Error> {
     let mut visited_group_nodes: HashMap<ChunkGroupUkey, String> = HashMap::default();
-    let mut visited_group_edges: HashSet<(ChunkGroupUkey, ChunkGroupUkey, bool)> = HashSet::new();
+    let mut visited_group_edges: HashSet<(ChunkGroupUkey, ChunkGroupUkey, bool)> =
+      HashSet::default();
     let mut visiting_groups: Vec<ChunkGroupUkey> = Vec::new();
     let module_graph = compilation.get_module_graph();
     // generate following chunk_group_info as dto record info
     // <td title="chunk_group_name"></td><td title="chunk1"></td><td title="chunk2"></td>
     let get_debug_chunk_group_info = |chunk_group_ukey: &ChunkGroupUkey| {
       let chunk_group = compilation
+        .build_chunk_graph_artifact
         .chunk_group_by_ukey
         .get(chunk_group_ukey)
         .expect("should have chunk group");
@@ -88,6 +90,7 @@ impl ChunkGraph {
         .iter()
         .map(|chunk_ukey| {
           let chunk: &crate::Chunk = compilation
+            .build_chunk_graph_artifact
             .chunk_by_ukey
             .get(chunk_ukey)
             .expect("should have chunk");
@@ -100,9 +103,16 @@ impl ChunkGraph {
         .map(|chunk_name| format!("    <tr><td>{chunk_name}</td></tr>"))
         .join("\n");
 
-      let table_body = requests.to_string();
+      let table_body = requests;
 
-      format!("\n<<table bgcolor=\"{bg_color}\">\n{table_header}\n{table_body}\n</table>>\n")
+      format!(
+        r#"
+<<table bgcolor="{bg_color}">
+{table_header}
+{table_body}
+</table>>
+"#
+      )
     };
 
     // push entry_point chunk group into visiting queue
@@ -112,6 +122,7 @@ impl ChunkGraph {
     // bfs visit all chunk groups
     while let Some(chunk_group_ukey) = visiting_groups.pop() {
       let chunk_group = compilation
+        .build_chunk_graph_artifact
         .chunk_group_by_ukey
         .get(&chunk_group_ukey)
         .expect("should have chunk group");

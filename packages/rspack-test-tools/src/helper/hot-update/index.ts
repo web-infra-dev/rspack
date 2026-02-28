@@ -1,1 +1,1 @@
-export { HotUpdatePlugin } from "./plugin";
+export { HotUpdatePlugin } from './plugin';

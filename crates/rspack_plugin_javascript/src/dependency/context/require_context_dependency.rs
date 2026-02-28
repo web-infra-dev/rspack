@@ -2,8 +2,8 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsModuleDependency, ContextDependency, ContextOptions, Dependency, DependencyCategory,
   DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
-  DependencyTemplateType, DependencyType, FactorizeInfo, ModuleGraph, ModuleGraphCacheArtifact,
-  TemplateContext, TemplateReplaceSource, module_raw,
+  DependencyTemplateType, DependencyType, ExportsInfoArtifact, FactorizeInfo, ModuleGraph,
+  ModuleGraphCacheArtifact, ResourceIdentifier, TemplateContext, TemplateReplaceSource,
 };
 use rspack_error::Diagnostic;
 
@@ -15,7 +15,7 @@ pub struct RequireContextDependency {
   id: DependencyId,
   options: ContextOptions,
   range: DependencyRange,
-  resource_identifier: String,
+  resource_identifier: ResourceIdentifier,
   optional: bool,
   critical: Option<Diagnostic>,
   factorize_info: FactorizeInfo,
@@ -50,8 +50,8 @@ impl Dependency for RequireContextDependency {
     &DependencyType::RequireContext
   }
 
-  fn range(&self) -> Option<&DependencyRange> {
-    Some(&self.range)
+  fn range(&self) -> Option<DependencyRange> {
+    Some(self.range)
   }
 
   fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
@@ -62,6 +62,7 @@ impl Dependency for RequireContextDependency {
     &self,
     _module_graph: &ModuleGraph,
     _module_graph_cache: &ModuleGraphCacheArtifact,
+    _exports_info_artifact: &ExportsInfoArtifact,
   ) -> Option<Vec<Diagnostic>> {
     if let Some(critical) = self.critical() {
       return Some(vec![critical.clone()]);
@@ -145,17 +146,12 @@ impl DependencyTemplate for RequireContextDependencyTemplate {
 
     let TemplateContext {
       compilation,
-      runtime_requirements,
+      runtime_template,
       ..
     } = code_generatable_context;
 
-    let content = module_raw(
-      compilation,
-      runtime_requirements,
-      &dep.id,
-      &dep.options.request,
-      dep.optional,
-    );
+    let content =
+      runtime_template.module_raw(compilation, &dep.id, &dep.options.request, dep.optional);
     source.replace(dep.range.start, dep.range.end, &content, None);
   }
 }

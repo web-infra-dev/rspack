@@ -1,28 +1,22 @@
-use rspack_collections::Identifier;
-use rspack_core::{Compilation, RuntimeModule, impl_runtime_module};
+use rspack_core::{
+  Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext, RuntimeTemplate,
+  impl_runtime_module,
+};
 
 #[impl_runtime_module]
 #[derive(Debug)]
 pub struct StartupEntrypointRuntimeModule {
-  id: Identifier,
   async_chunk_loading: bool,
 }
 
 impl StartupEntrypointRuntimeModule {
-  pub fn new(async_chunk_loading: bool) -> Self {
-    Self::with_default(
-      Identifier::from("webpack/runtime/startup_entrypoint"),
-      async_chunk_loading,
-    )
+  pub fn new(runtime_template: &RuntimeTemplate, async_chunk_loading: bool) -> Self {
+    Self::with_default(runtime_template, async_chunk_loading)
   }
 }
 
 #[async_trait::async_trait]
 impl RuntimeModule for StartupEntrypointRuntimeModule {
-  fn name(&self) -> Identifier {
-    self.id
-  }
-
   fn template(&self) -> Vec<(String, String)> {
     vec![(
       self.id.to_string(),
@@ -34,7 +28,16 @@ impl RuntimeModule for StartupEntrypointRuntimeModule {
     )]
   }
 
-  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
-    compilation.runtime_template.render(&self.id, None)
+  async fn generate(
+    &self,
+    context: &RuntimeModuleGenerateContext<'_>,
+  ) -> rspack_error::Result<String> {
+    context.runtime_template.render(&self.id, None)
+  }
+
+  fn additional_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
+    RuntimeGlobals::REQUIRE
+      | RuntimeGlobals::ENSURE_CHUNK
+      | RuntimeGlobals::ENSURE_CHUNK_INCLUDE_ENTRIES
   }
 }

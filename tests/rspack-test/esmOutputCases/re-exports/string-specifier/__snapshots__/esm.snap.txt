@@ -1,0 +1,27 @@
+```mjs title=lib-lib_js.mjs
+// ./lib.js
+const foo = () => 42
+
+
+export { foo as "b.c" };
+
+```
+
+```mjs title=main.mjs
+import { "b.c" as lib_foo } from "./lib-lib_js.mjs";
+
+// ./index.js
+
+
+console.log.bind(lib_foo)
+
+
+
+it('should have correct export', async () => {
+  const { "b.c": foo } = await import(/* webpackIgnore: true */ './main.mjs')
+
+  expect(foo()).toBe(42)
+})
+export { "b.c" } from "./lib-lib_js.mjs";
+
+```

@@ -1,0 +1,1 @@
+module.exports = () => "TODO: support function of module.parser.asset.dataUrlCondition"

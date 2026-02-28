@@ -1,0 +1,4 @@
+asset main.js xx bytes [emitted] (name: main)
+orphan modules xx bytes [orphan] 3 modules
+./index.js xx bytes [built] [code generated]
+Rspack x.x.x compiled successfully in X s

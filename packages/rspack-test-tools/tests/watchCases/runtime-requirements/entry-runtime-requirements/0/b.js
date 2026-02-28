@@ -1,1 +1,0 @@
-global.value = 42;

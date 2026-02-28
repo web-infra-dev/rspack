@@ -1,15 +1,9 @@
-use std::{borrow::Cow, hash::Hash, sync::Arc};
-
 use rspack_util::atom::Atom;
 use rustc_hash::FxHashMap as HashMap;
 
-use super::{
-  ExportInfoTargetValue, ExportProvided, ExportsInfo, Inlinable, ResolvedExportInfoTarget,
-  ResolvedExportInfoTargetWithCircular, UsageState,
-};
+use super::{ExportInfoTargetValue, ExportProvided, ExportsInfo, UsageState};
 use crate::{
-  DependencyId, FindTargetResult, ModuleGraph, ModuleIdentifier, ResolveFilterFnTy,
-  find_target_from_export_info, get_target_from_maybe_export_info, get_target_with_filter,
+  CanInlineUse, DependencyId, EvaluatedInlinableValue, ExportsInfoArtifact, UsedNameItem,
 };
 
 #[derive(Debug, Clone, Hash, Eq, PartialEq)]
@@ -19,6 +13,12 @@ pub enum ExportName {
   Named(Atom),
 }
 
+#[derive(Debug, Hash, PartialEq, Eq)]
+pub struct ExportInfoHashKey {
+  name: Option<Atom>,
+  belongs_to: ExportsInfo,
+}
+
 #[derive(Debug, Clone, Hash, Eq, PartialEq)]
 pub struct ExportInfo {
   pub exports_info: ExportsInfo,
@@ -26,8 +26,8 @@ pub struct ExportInfo {
 }
 
 impl ExportInfo {
-  pub fn as_data<'a>(&self, mg: &'a ModuleGraph) -> &'a ExportInfoData {
-    let exports_info = self.exports_info.as_data(mg);
+  pub fn as_data<'a>(&self, exports_info_artifact: &'a ExportsInfoArtifact) -> &'a ExportInfoData {
+    let exports_info = self.exports_info.as_data(exports_info_artifact);
 
     (match &self.export_name {
       ExportName::Other => exports_info.other_exports_info(),
@@ -38,8 +38,11 @@ impl ExportInfo {
     }) as _
   }
 
-  pub fn as_data_mut<'a>(&self, mg: &'a mut ModuleGraph) -> &'a mut ExportInfoData {
-    let exports_info = self.exports_info.as_data_mut(mg);
+  pub fn as_data_mut<'a>(
+    &self,
+    exports_info_artifact: &'a mut ExportsInfoArtifact,
+  ) -> &'a mut ExportInfoData {
+    let exports_info = self.exports_info.as_data_mut(exports_info_artifact);
 
     (match &self.export_name {
       ExportName::Other => exports_info.other_exports_info_mut(),
@@ -57,15 +60,15 @@ pub struct ExportInfoData {
   // the name could be `null` you could refer https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad4153d/lib/ExportsInfo.js#L78
   name: Option<Atom>,
   /// this is mangled name, https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/ExportsInfo.js#L1181-L1188
-  used_name: Option<Atom>,
+  used_name: Option<UsedNameItem>,
   target: HashMap<Option<DependencyId>, ExportInfoTargetValue>,
   /// This is rspack only variable, it is used to flag if the target has been initialized
   target_is_set: bool,
   provided: Option<ExportProvided>,
   can_mangle_provide: Option<bool>,
   can_mangle_use: Option<bool>,
-  // only specific export info can be inlined, so other_export_info.inlinable is always NoByProvide
-  inlinable: Inlinable,
+  can_inline_provide: Option<EvaluatedInlinableValue>,
+  can_inline_use: Option<CanInlineUse>,
   terminal_binding: bool,
   exports_info: Option<ExportsInfo>,
   exports_info_owned: bool,
@@ -138,15 +141,22 @@ impl ExportInfoData {
       has_use_in_runtime_info,
       can_mangle_use,
       global_used,
-      inlinable: Inlinable::NoByProvide,
+      // only specific export info can be inlined, so other_export_info.can_inline_provide is always None
+      can_inline_provide: None,
+      // only specific export info can be inlined, so other_export_info.can_inline_use is always None
+      can_inline_use: None,
     }
+  }
+
+  pub fn belongs_to(&self) -> &ExportsInfo {
+    &self.belongs_to
   }
 
   pub fn name(&self) -> Option<&Atom> {
     self.name.as_ref()
   }
 
-  pub fn used_name(&self) -> Option<&Atom> {
+  pub fn used_name(&self) -> Option<&UsedNameItem> {
     self.used_name.as_ref()
   }
 
@@ -174,8 +184,12 @@ impl ExportInfoData {
     self.can_mangle_use
   }
 
-  pub fn inlinable(&self) -> &Inlinable {
-    &self.inlinable
+  pub fn can_inline_provide(&self) -> Option<&EvaluatedInlinableValue> {
+    self.can_inline_provide.as_ref()
+  }
+
+  pub fn can_inline_use(&self) -> Option<CanInlineUse> {
+    self.can_inline_use
   }
 
   pub fn terminal_binding(&self) -> bool {
@@ -233,6 +247,14 @@ impl ExportInfoData {
     self.can_mangle_use = value;
   }
 
+  pub fn set_can_inline_provide(&mut self, value: Option<EvaluatedInlinableValue>) {
+    self.can_inline_provide = value;
+  }
+
+  pub fn set_can_inline_use(&mut self, value: Option<CanInlineUse>) {
+    self.can_inline_use = value;
+  }
+
   pub fn set_terminal_binding(&mut self, value: bool) {
     self.terminal_binding = value;
   }
@@ -245,11 +267,7 @@ impl ExportInfoData {
     self.exports_info_owned = value;
   }
 
-  pub fn set_inlinable(&mut self, inlinable: Inlinable) {
-    self.inlinable = inlinable;
-  }
-
-  pub fn set_used_name(&mut self, name: Atom) {
+  pub fn set_used_name(&mut self, name: UsedNameItem) {
     self.used_name = Some(name);
   }
 
@@ -268,110 +286,11 @@ impl ExportInfoData {
   pub fn set_has_use_in_runtime_info(&mut self, value: bool) {
     self.has_use_in_runtime_info = value;
   }
-}
 
-// The return value of `get_export_info_without_mut_module_graph`, when a module's exportType
-// is undefined, FlagDependencyExportsPlugin can't analyze the exports statically. In webpack,
-// it's possible to add a exportInfo with `provided: null` by `get_export_info` in some
-// optimization plugins:
-//   - https://github.com/webpack/webpack/blob/964c0315df0ee86a2b4edfdf621afa19db140d4f/lib/ExportsInfo.js#L1367 called by SideEffectsFlagPlugin
-//   - https://github.com/webpack/webpack/blob/964c0315df0ee86a2b4edfdf621afa19db140d4f/lib/optimize/ConcatenatedModule.js#L399 called by ModuleConcatenationPlugin
-// So the Dynamic variant is used to represent this situation without mutate the ModuleGraph,
-// and the Static variant represents the most situation which FlagDependencyExportsPlugin can
-// analyze the exports statically.
-#[derive(Debug)]
-pub enum MaybeDynamicTargetExportInfo<'a> {
-  Static(&'a ExportInfoData),
-  Dynamic {
-    export_name: Atom,
-    other_export_info: &'a ExportInfoData,
-    data: ExportInfoData,
-  },
-}
-
-#[derive(Debug, Hash, PartialEq, Eq)]
-pub enum MaybeDynamicTargetExportInfoHashKey {
-  ExportInfo(ExportInfo),
-  TemporaryData {
-    export_name: Atom,
-    other_export_info: ExportInfo,
-  },
-}
-
-impl<'a> MaybeDynamicTargetExportInfo<'a> {
-  pub fn to_data(&self) -> &ExportInfoData {
-    match self {
-      MaybeDynamicTargetExportInfo::Static(export_info) => export_info,
-      MaybeDynamicTargetExportInfo::Dynamic { data, .. } => data,
+  pub fn as_hash_key(&self) -> ExportInfoHashKey {
+    ExportInfoHashKey {
+      name: self.name().cloned(),
+      belongs_to: *self.belongs_to(),
     }
-  }
-
-  pub fn as_hash_key(&self) -> MaybeDynamicTargetExportInfoHashKey {
-    match self {
-      MaybeDynamicTargetExportInfo::Static(export_info) => {
-        MaybeDynamicTargetExportInfoHashKey::ExportInfo(export_info.id())
-      }
-      MaybeDynamicTargetExportInfo::Dynamic {
-        export_name,
-        other_export_info,
-        ..
-      } => MaybeDynamicTargetExportInfoHashKey::TemporaryData {
-        export_name: export_name.clone(),
-        other_export_info: other_export_info.id(),
-      },
-    }
-  }
-
-  pub fn provided(&'a self) -> Option<ExportProvided> {
-    self.to_data().provided()
-  }
-
-  fn get_max_target(&self) -> Cow<'_, HashMap<Option<DependencyId>, ExportInfoTargetValue>> {
-    self.to_data().get_max_target()
-  }
-
-  pub fn find_target(
-    &self,
-    mg: &ModuleGraph,
-    valid_target_module_filter: Arc<impl Fn(&ModuleIdentifier) -> bool>,
-  ) -> FindTargetResult {
-    find_target_from_export_info(
-      self.to_data(),
-      mg,
-      valid_target_module_filter,
-      &mut Default::default(),
-    )
-  }
-
-  pub fn get_target(
-    &self,
-    mg: &ModuleGraph,
-    resolve_filter: ResolveFilterFnTy,
-  ) -> Option<ResolvedExportInfoTarget> {
-    match get_target_from_maybe_export_info(self, mg, resolve_filter, &mut Default::default()) {
-      Some(ResolvedExportInfoTargetWithCircular::Circular) => None,
-      Some(ResolvedExportInfoTargetWithCircular::Target(target)) => Some(target),
-      None => None,
-    }
-  }
-
-  pub fn can_move_target(
-    &self,
-    mg: &ModuleGraph,
-    resolve_filter: ResolveFilterFnTy,
-  ) -> Option<ResolvedExportInfoTarget> {
-    let data = self.to_data();
-    let target = get_target_with_filter(data, mg, resolve_filter)?;
-    let max_target = self.get_max_target();
-    let original_target = max_target
-      .values()
-      .next()
-      .expect("should have export info target"); // refer https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/ExportsInfo.js#L1388-L1394
-    if original_target.dependency.as_ref() == Some(&target.dependency)
-      && original_target.export == target.export
-    {
-      return None;
-    }
-    Some(target)
   }
 }

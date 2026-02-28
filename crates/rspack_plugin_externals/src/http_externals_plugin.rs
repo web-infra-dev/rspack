@@ -6,9 +6,19 @@ use crate::ExternalsPlugin;
 
 pub fn http_externals_rspack_plugin(css: bool, web_async: bool) -> BoxPlugin {
   if web_async {
-    ExternalsPlugin::new("import".to_owned(), vec![http_external_item_web_async(css)]).boxed()
+    ExternalsPlugin::new(
+      "import".to_owned(),
+      vec![http_external_item_web_async(css)],
+      false,
+    )
+    .boxed()
   } else {
-    ExternalsPlugin::new("module".to_owned(), vec![http_external_item_web(css)]).boxed()
+    ExternalsPlugin::new(
+      "module".to_owned(),
+      vec![http_external_item_web(css)],
+      false,
+    )
+    .boxed()
   }
 }
 

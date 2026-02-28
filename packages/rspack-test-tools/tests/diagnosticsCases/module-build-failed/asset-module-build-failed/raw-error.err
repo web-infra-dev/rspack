@@ -1,7 +1,0 @@
-Array [
-  Object {
-    code: ModuleBuildError,
-    moduleIdentifier: asset|<TEST_TOOLS_ROOT>/tests/diagnosticsCases/module-build-failed/asset-module-build-failed/my-loader.js!<TEST_TOOLS_ROOT>/tests/diagnosticsCases/module-build-failed/asset-module-build-failed/logo.svg,
-    moduleName: ./logo.svg,
-  },
-]

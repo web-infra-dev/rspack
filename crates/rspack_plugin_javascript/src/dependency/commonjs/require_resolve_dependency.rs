@@ -1,9 +1,9 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
-  DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
+  DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, ExportsInfoArtifact,
   ExtendedReferencedExport, FactorizeInfo, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
-  RuntimeSpec, TemplateContext, TemplateReplaceSource, module_id,
+  RuntimeSpec, TemplateContext, TemplateReplaceSource,
 };
 
 #[cacheable]
@@ -44,14 +44,15 @@ impl Dependency for RequireResolveDependency {
     &DependencyType::RequireResolve
   }
 
-  fn range(&self) -> Option<&DependencyRange> {
-    Some(&self.range)
+  fn range(&self) -> Option<DependencyRange> {
+    Some(self.range)
   }
 
   fn get_referenced_exports(
     &self,
     _module_graph: &ModuleGraph,
     _module_graph_cache: &ModuleGraphCacheArtifact,
+    _exports_info_artifact: &ExportsInfoArtifact,
     _runtime: Option<&RuntimeSpec>,
   ) -> Vec<ExtendedReferencedExport> {
     vec![]
@@ -123,13 +124,15 @@ impl DependencyTemplate for RequireResolveDependencyTemplate {
     source.replace(
       dep.range.start,
       dep.range.end,
-      module_id(
-        code_generatable_context.compilation,
-        &dep.id,
-        &dep.request,
-        dep.weak,
-      )
-      .as_str(),
+      code_generatable_context
+        .runtime_template
+        .module_id(
+          code_generatable_context.compilation,
+          &dep.id,
+          &dep.request,
+          dep.weak,
+        )
+        .as_str(),
       None,
     );
   }

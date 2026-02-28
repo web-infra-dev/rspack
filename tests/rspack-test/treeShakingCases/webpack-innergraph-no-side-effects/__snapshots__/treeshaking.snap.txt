@@ -1,0 +1,50 @@
+```js title=main.js
+(self["rspackChunk"] = self["rspackChunk"] || []).push([["main"], {
+"./index.js"(__unused_rspack_module, __unused_rspack_exports, __webpack_require__) {
+it("should be able to load package without side effects where modules are unused", () => {
+	__webpack_require__("./module.js");
+});
+
+
+},
+"./module.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  "default": () => (__rspack_default_export),
+  test: () => (test)
+});
+/* import */ var _package__rspack_import_0 = __webpack_require__("./package/index.js");
+
+
+/* export default */ const __rspack_default_export = (_package__rspack_import_0.a);
+
+function test() {}
+
+
+},
+"./package/index.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+"use strict";
+__webpack_require__.d(__webpack_exports__, {
+  a: () => (a)
+});
+
+
+function a() {
+	return 42;
+}
+
+function b() {
+	return value;
+}
+
+
+},
+
+},function(__webpack_require__) {
+var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }
+var __webpack_exports__ = (__webpack_exec__("./index.js"));
+
+}
+]);
+```

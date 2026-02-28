@@ -1,0 +1,8 @@
+hidden assets xx bytes 1 asset
+asset bundle.js xx KiB [emitted] (name: main)
+runtime modules xx KiB 5 modules
+hidden modules xx bytes 2 modules
+cacheable modules xx bytes
+  ./index.js xx bytes [built] [code generated]
+  ./a.txt xx bytes [built] [code generated]
+Rspack x.x.x compiled successfully in X s

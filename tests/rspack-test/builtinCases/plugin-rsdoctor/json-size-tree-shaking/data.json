@@ -1,0 +1,27 @@
+{
+  "user": {
+    "name": "Alice",
+    "age": 25,
+    "email": "alice@example.com",
+    "profile": {
+      "bio": "Software Engineer",
+      "avatar": "https://example.com/avatar.jpg",
+      "social": {
+        "twitter": "@alice",
+        "github": "alice"
+      }
+    }
+  },
+  "config": {
+    "theme": "dark",
+    "language": "en",
+    "notifications": {
+      "email": true,
+      "push": false
+    }
+  },
+  "metadata": {
+    "version": "1.0.0",
+    "lastUpdated": "2024-01-01"
+  }
+}

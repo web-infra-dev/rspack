@@ -19,3 +19,6 @@ tracing        = { workspace = true }
 
 [package.metadata.cargo-shear]
 ignored = ["tracing"]
+
+[lints]
+workspace = true

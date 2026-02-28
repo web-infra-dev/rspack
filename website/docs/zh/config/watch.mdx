@@ -15,7 +15,6 @@ import WebpackLicense from '@components/WebpackLicense';
 
 ```js title="rspack.config.mjs"
 export default {
-  // ...
   watch: true,
 };
 ```
@@ -32,7 +31,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  // ...
   watchOptions: {
     ignored: /node_modules/,
     poll: true,
@@ -49,7 +47,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   watchOptions: {
     aggregateTimeout: 600,
   },
@@ -69,7 +66,6 @@ Rspack 从 v1.2.0 开始，默认排除 `node_modules` 和 `.git` 目录下的�
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   watchOptions: {
     ignored: /\.git/,
   },
@@ -80,7 +76,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   watchOptions: {
     ignored: '**/.git',
   },
@@ -91,7 +86,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   watchOptions: {
     ignored: ['**/files/**/*.js', '**/.git', '**/node_modules'],
   },
@@ -104,7 +98,6 @@ export default {
 import path from 'node:path';
 
 export default {
-  //...
   watchOptions: {
     ignored: [path.posix.resolve(__dirname, './ignored-dir')],
   },
@@ -124,7 +117,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   watchOptions: {
     poll: true,
   },
@@ -135,7 +127,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   watchOptions: {
     poll: 1000, // 每秒检查一次
   },
@@ -151,7 +142,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   watchOptions: {
     followSymlinks: true,
   },
@@ -166,7 +156,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   watchOptions: {
     stdin: true,
   },

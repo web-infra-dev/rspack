@@ -21,7 +21,6 @@ use swc_core::{
     parser::{EsSyntax, Syntax},
     transforms::base::{
       fixer::{fixer, paren_remover},
-      helpers::{self, Helpers},
       hygiene::hygiene,
       resolver,
     },
@@ -139,29 +138,27 @@ impl JavaScriptCompiler {
 
         let is_mangler_enabled = min_opts.mangle.is_some();
 
-        let program = helpers::HELPERS.set(&Helpers::new(false), || {
-          HANDLER.set(handler, || {
-            let program = program
-              .apply(&mut resolver(unresolved_mark, top_level_mark, false))
-              .apply(&mut paren_remover(Some(&comments as &dyn Comments)));
-            let mut program = swc_ecma_minifier::optimize(
-              program,
-              self.cm.clone(),
-              Some(&comments),
-              None,
-              &min_opts,
-              &swc_ecma_minifier::option::ExtraOptions {
-                unresolved_mark,
-                top_level_mark,
-                mangle_name_cache: None,
-              },
-            );
+        let program = HANDLER.set(handler, || {
+          let program = program
+            .apply(&mut resolver(unresolved_mark, top_level_mark, false))
+            .apply(&mut paren_remover(Some(&comments as &dyn Comments)));
+          let mut program = swc_ecma_minifier::optimize(
+            program,
+            self.cm.clone(),
+            Some(&comments),
+            None,
+            &min_opts,
+            &swc_ecma_minifier::option::ExtraOptions {
+              unresolved_mark,
+              top_level_mark,
+              mangle_name_cache: None,
+            },
+          );
 
-            if !is_mangler_enabled {
-              program.visit_mut_with(&mut hygiene())
-            }
-            program.apply(&mut fixer(Some(&comments as &dyn Comments)))
-          })
+          if !is_mangler_enabled {
+            program.visit_mut_with(&mut hygiene())
+          }
+          program.apply(&mut fixer(Some(&comments as &dyn Comments)))
         });
 
         if let Some(op) = comments_op {
@@ -170,7 +167,7 @@ impl JavaScriptCompiler {
 
         minify_file_comments(
           &comments,
-          opts
+          &opts
             .format
             .comments
             .clone()
@@ -192,7 +189,9 @@ impl JavaScriptCompiler {
           input_source_map: None,
           minify: opts.minify,
           comments: Some(&comments),
-          format: &opts.format,
+          preamble: &opts.format.preamble,
+          ascii_only: opts.format.ascii_only,
+          inline_script: opts.format.inline_script,
         };
 
         self.print(&program, print_options).map_err(|e| e.into())

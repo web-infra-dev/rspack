@@ -5,7 +5,7 @@ use rspack_core::{
   ModuleIdsArtifact, Plugin,
   incremental::{self, IncrementalPasses, Mutation, Mutations},
 };
-use rspack_error::Result;
+use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_util::{comparators::compare_ids, itoa};
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -124,8 +124,13 @@ fn assign_named_module_ids(
 pub struct NamedModuleIdsPlugin;
 
 #[plugin_hook(CompilationModuleIds for NamedModuleIdsPlugin)]
-async fn module_ids(&self, compilation: &mut rspack_core::Compilation) -> Result<()> {
-  let mut module_ids = std::mem::take(&mut compilation.module_ids_artifact);
+async fn module_ids(
+  &self,
+  compilation: &rspack_core::Compilation,
+  module_ids_artifact: &mut ModuleIdsArtifact,
+  _diagnostics: &mut Vec<Diagnostic>,
+) -> Result<()> {
+  let mut module_ids = std::mem::take(module_ids_artifact);
   let mut used_ids: FxHashMap<ModuleId, ModuleIdentifier> = module_ids
     .iter()
     .map(|(&module, id)| (id.clone(), module))
@@ -158,7 +163,6 @@ async fn module_ids(&self, compilation: &mut rspack_core::Compilation) -> Result
 
   let modules: IdentifierSet = module_graph
     .modules()
-    .iter()
     .filter(|&(module_identifier, module)| {
       let not_used =
         if let Some(module_id) = ChunkGraph::get_module_id(&module_ids, *module_identifier) {
@@ -169,6 +173,7 @@ async fn module_ids(&self, compilation: &mut rspack_core::Compilation) -> Result
       not_used
         && module.need_id()
         && compilation
+          .build_chunk_graph_artifact
           .chunk_graph
           .get_number_of_module_chunks(*module_identifier)
           != 0
@@ -186,7 +191,7 @@ async fn module_ids(&self, compilation: &mut rspack_core::Compilation) -> Result
   let unnamed_modules = assign_named_module_ids(
     modules,
     context,
-    &module_graph,
+    module_graph,
     &mut used_ids,
     &mut module_ids,
     &mut mutations,
@@ -219,7 +224,7 @@ async fn module_ids(&self, compilation: &mut rspack_core::Compilation) -> Result
     logger.log(format!(
       "{} modules are affected, {} in total",
       modules_len,
-      module_graph.modules().len(),
+      module_graph.modules_len(),
     ));
     logger.log(format!(
       "{} modules are updated by set_module_id, with {} unnamed modules",
@@ -228,13 +233,13 @@ async fn module_ids(&self, compilation: &mut rspack_core::Compilation) -> Result
     ));
   }
 
-  if let Some(compilation_mutations) = compilation.incremental.mutations_write()
+  if let Some(mut compilation_mutations) = compilation.incremental.mutations_write()
     && let Some(mutations) = mutations
   {
     compilation_mutations.extend(mutations);
   }
 
-  compilation.module_ids_artifact = module_ids;
+  *module_ids_artifact = module_ids;
   Ok(())
 }
 

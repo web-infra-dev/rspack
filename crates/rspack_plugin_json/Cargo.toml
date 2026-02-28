@@ -11,8 +11,10 @@ version.workspace = true
 async-trait      = { workspace = true }
 cow-utils        = { workspace = true }
 json             = { workspace = true }
-ropey            = { workspace = true }
 rspack_cacheable = { workspace = true }
 rspack_core      = { workspace = true }
 rspack_error     = { workspace = true }
 rspack_util      = { workspace = true }
+
+[lints]
+workspace = true

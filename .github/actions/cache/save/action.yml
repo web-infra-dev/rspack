@@ -4,10 +4,10 @@ description: Automatically save and restore cache to local or github
 
 inputs:
   key:
-    description: "An explicit key for saving the cache"
+    description: 'An explicit key for saving the cache'
     required: true
   path:
-    description: "A list of files, directories, and wildcard patterns to cache and restore"
+    description: 'A list of files, directories, and wildcard patterns to cache and restore'
     required: true
 
 runs:
@@ -15,7 +15,7 @@ runs:
   steps:
     - name: Save cache to github
       if: ${{ runner.environment == 'github-hosted' }}
-      uses: actions/cache/save@0400d5f644dc74513175e3cd8d07132dd4860809 # v4
+      uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
       with:
         key: ${{ inputs.key }}
         path: ${{ inputs.path }}

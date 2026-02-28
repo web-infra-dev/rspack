@@ -2,7 +2,7 @@ use std::{
   borrow::Cow,
   collections::HashMap,
   env,
-  hash::{DefaultHasher, Hash, Hasher},
+  hash::Hasher,
   path::{Path, PathBuf},
 };
 
@@ -14,14 +14,14 @@ use rspack_core::{
   AssetInfo, Compilation, CompilationAsset, Filename, PathData,
   rspack_sources::{RawBufferSource, RawStringSource, SourceExt},
 };
-use rspack_error::{AnyhowResultToRspackResultExt, Result, miette};
+use rspack_error::{AnyhowResultToRspackResultExt, Result};
+use rspack_hash::RspackHash;
 use rspack_paths::Utf8PathBuf;
 use serde::{Deserialize, Serialize};
 use sugar_path::SugarPath;
 
 use crate::{
   config::{HtmlChunkSortMode, HtmlInject, HtmlRspackPluginOptions, HtmlScriptLoading},
-  sri::{add_sri, create_digest_from_asset},
   tag::HtmlPluginTag,
 };
 
@@ -55,10 +55,16 @@ impl HtmlPluginAssets {
       {
         chunks
           .iter()
-          .filter(|&name| compilation.entrypoints.contains_key(name))
+          .filter(|&name| {
+            compilation
+              .build_chunk_graph_artifact
+              .entrypoints
+              .contains_key(name)
+          })
           .collect()
       } else {
         compilation
+          .build_chunk_graph_artifact
           .entrypoints
           .keys()
           .filter(|&entry_name| {
@@ -77,7 +83,7 @@ impl HtmlPluginAssets {
     let included_assets = sorted_entry_names
       .iter()
       .map(|entry_name| compilation.entrypoint_by_name(entry_name))
-      .flat_map(|entry| entry.get_files(&compilation.chunk_by_ukey))
+      .flat_map(|entry| entry.get_files(&compilation.build_chunk_graph_artifact.chunk_by_ukey))
       .filter_map(|asset_name| {
         let asset = compilation.assets().get(&asset_name).expect("TODO:");
         if asset.info.hot_module_replacement.unwrap_or(false)
@@ -102,11 +108,15 @@ impl HtmlPluginAssets {
         }
         let final_path = generate_posix_path(&asset_uri);
         if extension.eq_ignore_ascii_case("css") {
-          assets.css.push(final_path.to_string());
-          asset_map.insert(final_path.to_string(), asset);
+          if asset_map.insert(final_path.to_string(), asset).is_none() {
+            assets.css.push(final_path.to_string());
+          }
         } else if extension.eq_ignore_ascii_case("js") || extension.eq_ignore_ascii_case("mjs") {
-          assets.js.push(final_path.to_string());
-          asset_map.insert(final_path.to_string(), asset);
+          // keep the `if` to make the code more readable
+          #[allow(clippy::collapsible_if)]
+          if asset_map.insert(final_path.to_string(), asset).is_none() {
+            assets.js.push(final_path.to_string());
+          }
         }
       }
     }
@@ -169,11 +179,7 @@ pub struct HtmlPluginAssetTags {
 }
 
 impl HtmlPluginAssetTags {
-  pub fn from_assets(
-    config: &HtmlRspackPluginOptions,
-    assets: &HtmlPluginAssets,
-    asset_map: &HashMap<String, &CompilationAsset>,
-  ) -> Self {
+  pub fn from_assets(config: &HtmlRspackPluginOptions, assets: &HtmlPluginAssets) -> Self {
     let mut asset_tags = HtmlPluginAssetTags::default();
 
     // create script tags
@@ -214,39 +220,6 @@ impl HtmlPluginAssetTags {
     // create favicon tag
     if let Some(favicon) = &assets.favicon {
       asset_tags.meta.push(HtmlPluginTag::create_favicon(favicon));
-    }
-
-    // if some plugin changes assets in the same stage after this plugin
-    // both the name and the integrity may be inaccurate
-    if let Some(hash_func) = &config.sri {
-      asset_tags
-        .scripts
-        .par_iter_mut()
-        .filter_map(|tag| {
-          if let Some(asset) = tag.asset.as_ref().and_then(|asset| asset_map.get(asset)) {
-            asset.get_source().map(|s| (tag, s))
-          } else {
-            None
-          }
-        })
-        .for_each(|(tag, asset)| {
-          let sri_value = create_digest_from_asset(hash_func, asset);
-          add_sri(tag, &sri_value);
-        });
-      asset_tags
-        .styles
-        .par_iter_mut()
-        .filter_map(|tag| {
-          if let Some(asset) = tag.asset.as_ref().and_then(|asset| asset_map.get(asset)) {
-            asset.get_source().map(|s| (tag, s))
-          } else {
-            None
-          }
-        })
-        .for_each(|(tag, asset)| {
-          let sri_value = create_digest_from_asset(hash_func, asset);
-          add_sri(tag, &sri_value);
-        });
     }
 
     asset_tags
@@ -329,7 +302,7 @@ pub async fn create_favicon_asset(
   favicon: &str,
   config: &HtmlRspackPluginOptions,
   compilation: &Compilation,
-) -> Result<(String, CompilationAsset), miette::Error> {
+) -> Result<(String, CompilationAsset)> {
   let favicon_file_path = PathBuf::from(config.get_relative_path(compilation, favicon))
     .file_name()
     .expect("Should have favicon file name")
@@ -362,7 +335,10 @@ pub async fn create_html_asset(
   template_file_name: &str,
   compilation: &Compilation,
 ) -> Result<(String, CompilationAsset)> {
-  let hash = hash_for_source(html);
+  let mut hasher = RspackHash::from(&compilation.options.output);
+  hasher.write(html.as_bytes());
+  let hash_digest = hasher.digest(&compilation.options.output.hash_digest);
+  let content_hash = hash_digest.encoded();
 
   let mut asset_info = AssetInfo::default();
   let output_path = compilation
@@ -370,7 +346,7 @@ pub async fn create_html_asset(
       output_file_name,
       PathData::default()
         .filename(template_file_name)
-        .content_hash(&hash),
+        .content_hash(content_hash),
       &mut asset_info,
     )
     .await?;
@@ -379,10 +355,4 @@ pub async fn create_html_asset(
     output_path,
     CompilationAsset::new(Some(RawStringSource::from(html).boxed()), asset_info),
   ))
-}
-
-fn hash_for_source(source: &str) -> String {
-  let mut hasher = DefaultHasher::new();
-  source.hash(&mut hasher);
-  format!("{:016x}", hasher.finish())
 }

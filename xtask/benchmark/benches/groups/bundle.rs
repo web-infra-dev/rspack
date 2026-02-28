@@ -22,7 +22,8 @@ fn bundle_benchmark(c: &mut Criterion) {
 
   // Codspeed can only handle to up to 500 threads by default
   let rt = runtime::Builder::new_multi_thread()
-    .max_blocking_threads(256)
+    .worker_threads(8)
+    .max_blocking_threads(8)
     .build()
     .unwrap();
 

@@ -1,0 +1,54 @@
+var mfStartupBase = <%- REQUIRE %>.mfStartupBase = (function () {
+	var hasRun = false;
+	var result;
+	return function __webpack_require__mfStartupBase() {
+		if (hasRun) return result;
+		hasRun = true;
+		result = (function () {
+<%- _module_executions %>		})();
+		return result;
+	};
+})();
+
+var mfAsyncStartup = <%- REQUIRE %>.mfAsyncStartup = (function () {
+	var hasRun = false;
+	var result;
+	return function __webpack_require__mfAsyncStartup() {
+		if (hasRun) return result;
+		hasRun = true;
+		var base = mfStartupBase && mfStartupBase();
+		var promises = base && base.then ? [base] : [];
+		var handlers = <%- REQUIRE %>.f;
+		if (handlers) {
+			var startupChunkIds = <%- _entry_chunk_ids %>;
+			for (var i = 0; i < startupChunkIds.length; i++) {
+				handlers.consumes && handlers.consumes(startupChunkIds[i], promises);
+				handlers.remotes && handlers.remotes(startupChunkIds[i], promises);
+			}
+		}
+		result = promises.length ? Promise.all(promises) : base;
+		return result;
+	};
+})();
+
+<%- REQUIRE %>.mfStartup = <%- STARTUP %>;
+
+var wrapStartup = function (prev, isEntry) {
+	prev = typeof prev === "function" ? prev : function () {};
+	return function (result, chunkIds, cb) {
+		var res = mfAsyncStartup();
+		if (isEntry && chunkIds === undefined && result === undefined) {
+			return res && res.then ? res.then(function () {}) : Promise.resolve();
+		}
+		if (isEntry && chunkIds === undefined) chunkIds = [];
+		var _this = this;
+		var _args = arguments;
+		var run = function () {
+			return isEntry ? prev.call(_this, result, chunkIds, cb) : prev.apply(_this, _args);
+		};
+		return res && res.then ? res.then(run) : run();
+	};
+};
+
+<%- STARTUP %> = wrapStartup(<%- STARTUP %>);
+<%- STARTUP_ENTRYPOINT %> = wrapStartup(<%- STARTUP_ENTRYPOINT %>, 1);

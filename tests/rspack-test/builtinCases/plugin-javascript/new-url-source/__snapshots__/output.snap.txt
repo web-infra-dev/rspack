@@ -1,0 +1,29 @@
+```js title=main.js
+(self["rspackChunk"] = self["rspackChunk"] || []).push([["main"], {
+"./index.js"(__unused_rspack_module, __unused_rspack_exports, __webpack_require__) {
+const imgSrc = new URL(/* asset import */__webpack_require__("./react.svg"), __webpack_require__.b);
+const imgSrc2 = __webpack_require__("./vue.svg");
+const img = new Image();
+img.src = imgSrc.href;
+img.src = imgSrc2;
+
+
+},
+"./react.svg"(module, __unused_rspack_exports, __webpack_require__) {
+"use strict";
+module.exports = __webpack_require__.p + "7f01b434546fa27b.svg";
+
+},
+"./vue.svg"(module, __unused_rspack_exports, __webpack_require__) {
+"use strict";
+module.exports = __webpack_require__.p + "f134eec8578889d0.svg";
+
+},
+
+},function(__webpack_require__) {
+var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }
+var __webpack_exports__ = (__webpack_exec__("./index.js"));
+
+}
+]);
+```

@@ -1,0 +1,53 @@
+<%- ENSURE_CHUNK_HANDLERS %>.remotes = function (chunkId, promises) {
+	var chunkMapping = <%- REQUIRE %>.remotesLoadingData.chunkMapping;
+	var moduleIdToRemoteDataMapping = <%- REQUIRE %>.remotesLoadingData.moduleIdToRemoteDataMapping;
+	if (<%- HAS_OWN_PROPERTY %>(chunkMapping, chunkId)) {
+		chunkMapping[chunkId].forEach(function (id) {
+			var getScope = <%- CURRENT_REMOTE_GET_SCOPE %>;
+			if (!getScope) getScope = [];
+			var data = moduleIdToRemoteDataMapping[id];
+			if (getScope.indexOf(data) >= 0) return;
+			getScope.push(data);
+			if (data.p) return promises.push(data.p);
+			var onError = function (error) {
+				if (!error) error = new Error("Container missing");
+				if (typeof error.message === "string")
+					error.message +=
+						'\nwhile loading "' + data.name + '" from ' + data.externalModuleId;
+				<%- MODULE_FACTORIES %>[id] = function () {
+					throw error;
+				};
+				data.p = 0;
+			};
+			var handleFunction = function (fn, arg1, arg2, d, next, first) {
+				try {
+					var promise = fn(arg1, arg2);
+					if (promise && promise.then) {
+						var p = promise.then(function (result) {
+							return next(result, d);
+						}, onError);
+						if (first) promises.push((data.p = p));
+						else return p;
+					} else {
+						return next(promise, d, first);
+					}
+				} catch (error) {
+					onError(error);
+				}
+			};
+			var onExternal = function (external, _, first) {
+				return external ? handleFunction(<%- INITIALIZE_SHARING %>, data.shareScope, 0, external, onInitialized, first) : onError();
+			};
+			var onInitialized = function (_, external, first) {
+				return handleFunction(external.get, data.name, getScope, 0, onFactory, first);
+			};
+			var onFactory = function (factory) {
+				data.p = 1;
+				<%- MODULE_FACTORIES %>[id] = function (module) {
+					module.exports = factory();
+				};
+			};
+			handleFunction(<%- REQUIRE %>, data.externalModuleId, 0, 0, onExternal, 1);
+		});
+	}
+};

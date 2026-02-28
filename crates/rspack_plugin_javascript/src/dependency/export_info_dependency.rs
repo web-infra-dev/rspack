@@ -4,8 +4,9 @@ use rspack_cacheable::{
   with::{AsPreset, AsVec},
 };
 use rspack_core::{
-  DependencyCodeGeneration, DependencyTemplate, DependencyTemplateType, ExportProvided, Inlinable,
-  PrefetchExportsInfoMode, TemplateContext, TemplateReplaceSource, UsageState, UsedExports,
+  DependencyCodeGeneration, DependencyTemplate, DependencyTemplateType, ExportProvided,
+  ExportsInfoGetter, GetUsedNameParam, PrefetchExportsInfoMode, TemplateContext,
+  TemplateReplaceSource, UsageState, UsedExports, UsedName,
 };
 use swc_core::ecma::atoms::Atom;
 
@@ -48,11 +49,11 @@ impl ExportInfoDependency {
     } = context;
     let export_name = &self.export_name;
     let prop = &self.property;
-    let module_graph = compilation.get_module_graph();
     let module_identifier = module.identifier();
 
     if export_name.is_empty() && prop == "usedExports" {
-      let exports_info = module_graph
+      let exports_info = compilation
+        .exports_info_artifact
         .get_prefetched_exports_info(&module_identifier, PrefetchExportsInfoMode::Default);
       let used_exports = exports_info.get_used_exports(*runtime);
       return Some(match used_exports {
@@ -71,10 +72,12 @@ impl ExportInfoDependency {
       });
     }
 
-    let exports_info = module_graph.get_prefetched_exports_info(
-      &module_identifier,
-      PrefetchExportsInfoMode::Nested(export_name),
-    );
+    let exports_info = compilation
+      .exports_info_artifact
+      .get_prefetched_exports_info(
+        &module_identifier,
+        PrefetchExportsInfoMode::Nested(export_name),
+      );
 
     match prop.to_string().as_str() {
       "canMangle" => {
@@ -87,18 +90,13 @@ impl ExportInfoDependency {
         };
         can_mangle.map(|v| v.to_string())
       }
-      "inlinable" => {
-        let inlinable = if let Some(export_info) =
-          exports_info.get_read_only_export_info_recursive(export_name)
-        {
-          export_info.inlinable()
-        } else {
-          exports_info.other_exports_info().inlinable()
-        };
-        Some(match inlinable {
-          Inlinable::Inlined(inlined) => format!("inlined {}", inlined.render()),
-          _ => "no inline".to_string(),
-        })
+      "canInline" => {
+        let used_name = ExportsInfoGetter::get_used_name(
+          GetUsedNameParam::WithNames(&exports_info),
+          *runtime,
+          export_name,
+        );
+        Some(matches!(used_name, Some(UsedName::Inlined(_))).to_string())
       }
       "used" => {
         let used = exports_info.get_used(export_name, *runtime);

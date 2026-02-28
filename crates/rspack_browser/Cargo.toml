@@ -5,3 +5,6 @@ license           = "MIT"
 name              = "rspack_browser"
 repository        = "https://github.com/web-infra-dev/rspack"
 version.workspace = true
+
+[lints]
+workspace = true

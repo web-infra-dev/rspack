@@ -11,6 +11,7 @@ type Write = ThreadsafeFunction<FnArgs<(i32, Buffer, u32)>, Promise<Either<u32, 
 type Read = ThreadsafeFunction<FnArgs<(i32, u32, u32)>, Promise<Either<Buffer, ()>>>;
 type ReadUtil = ThreadsafeFunction<FnArgs<(i32, u8, u32)>, Promise<Either<Buffer, ()>>>;
 type ReadToEnd = ThreadsafeFunction<FnArgs<(i32, u32)>, Promise<Either<Buffer, ()>>>;
+type Chmod = ThreadsafeFunction<FnArgs<(String, u32)>, Promise<()>>;
 
 #[derive(Debug)]
 #[napi(object, object_to_js = false, js_name = "ThreadsafeNodeFS")]
@@ -53,7 +54,7 @@ pub struct ThreadsafeNodeFS {
   pub read_to_end: ReadToEnd,
   // The following functions are not supported by webpack, so they are optional
   #[napi(ts_type = "(name: string, mode: number) => Promise<void>")]
-  pub chmod: Option<ThreadsafeFunction<(String, u32), Promise<()>>>,
+  pub chmod: Option<Chmod>,
 }
 
 #[napi(object, object_to_js = false)]

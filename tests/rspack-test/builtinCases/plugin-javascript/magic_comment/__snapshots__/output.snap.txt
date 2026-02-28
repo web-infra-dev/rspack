@@ -1,0 +1,124 @@
+```js title=./sub/fold.js
+(self["rspackChunk"] = self["rspackChunk"] || []).push([["./sub/fold"], {
+"./sub_fold.js"() {
+console.log("123");
+
+
+},
+
+}]);
+```
+
+```js title=./sub/other.js
+(self["rspackChunk"] = self["rspackChunk"] || []).push([["./sub/other"], {
+"./other.js"() {
+console.log("123");
+
+
+},
+
+}]);
+```
+
+```js title=./sub/single.js
+(self["rspackChunk"] = self["rspackChunk"] || []).push([["./sub/single"], {
+"./single_quote.js"() {
+console.log("123");
+
+
+},
+
+}]);
+```
+
+```js title=./user/[id].js
+(self["rspackChunk"] = self["rspackChunk"] || []).push([["./user/[id]"], {
+"./user/1.js"() {
+console.log("user [id]");
+
+
+},
+
+}]);
+```
+
+```js title=bug_only_single_quote_js.js
+(self["rspackChunk"] = self["rspackChunk"] || []).push([["bug_only_single_quote_js"], {
+"./bug_only_single_quote.js"() {
+console.log("123");
+
+
+},
+
+}]);
+```
+
+```js title=main.js
+(self["rspackChunk"] = self["rspackChunk"] || []).push([["main"], {
+"./index.js"(__unused_rspack_module, __unused_rspack_exports, __webpack_require__) {
+__webpack_require__.e(/* import() | normal */ "normal").then(__webpack_require__.t.bind(__webpack_require__, "./normal.js", 23));
+__webpack_require__.e(/* import() | with.dot */ "with.dot").then(__webpack_require__.t.bind(__webpack_require__, "./with_dot.js", 23));
+__webpack_require__.e(/* import() | ./sub/fold */ "./sub/fold").then(__webpack_require__.t.bind(__webpack_require__, "./sub_fold.js", 23));
+__webpack_require__.e(/* import() | ./sub/single */ "./sub/single").then(__webpack_require__.t.bind(__webpack_require__, "./single_quote.js", 23));
+
+__webpack_require__.e(/* import() | ./sub/other */ "./sub/other").then(__webpack_require__.t.bind(__webpack_require__, "./other.js", 23));
+__webpack_require__.e(/* import() | ./user/[id] */ "./user/[id]").then(__webpack_require__.t.bind(__webpack_require__, "./user/1.js", 23));
+__webpack_require__.e(/* import() | user/[id]/page */ "user/[id]/page").then(__webpack_require__.t.bind(__webpack_require__, "./user/page/2.js", 23));
+__webpack_require__.e(/* import() | user/(id)/page */ "user/(id)/page").then(__webpack_require__.t.bind(__webpack_require__, "./user/page/3.js", 23));
+
+__webpack_require__.e(/* import() */ "bug_only_single_quote_js").then(__webpack_require__.t.bind(__webpack_require__, "./bug_only_single_quote.js", 23));
+
+
+},
+
+},function(__webpack_require__) {
+var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }
+var __webpack_exports__ = (__webpack_exec__("./index.js"));
+
+}
+]);
+```
+
+```js title=normal.js
+(self["rspackChunk"] = self["rspackChunk"] || []).push([["normal"], {
+"./normal.js"() {
+console.log("123");
+
+
+},
+
+}]);
+```
+
+```js title=user/(id)/page.js
+(self["rspackChunk"] = self["rspackChunk"] || []).push([["user/(id)/page"], {
+"./user/page/3.js"() {
+console.log("user (id)/page3");
+
+
+},
+
+}]);
+```
+
+```js title=user/[id]/page.js
+(self["rspackChunk"] = self["rspackChunk"] || []).push([["user/[id]/page"], {
+"./user/page/2.js"() {
+console.log("user [id]/page2");
+
+
+},
+
+}]);
+```
+
+```js title=with.dot.js
+(self["rspackChunk"] = self["rspackChunk"] || []).push([["with.dot"], {
+"./with_dot.js"() {
+console.log("123");
+
+
+},
+
+}]);
+```

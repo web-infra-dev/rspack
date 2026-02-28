@@ -1,37 +1,42 @@
+mod alternatives;
 mod module_graph;
 
 use std::sync::Arc;
 
+pub use module_graph::SCOPE;
+use rspack_collections::IdentifierSet;
 use rspack_error::Result;
-use rustc_hash::FxHashSet as HashSet;
+use rustc_hash::FxHashSet;
 
-use super::super::{Storage, cacheable_context::CacheableContext};
+use super::super::{Storage, codec::CacheCodec};
 use crate::{
-  FactorizeInfo, FileCounter,
-  compilation::make::{MakeArtifact, MakeArtifactState},
+  FactorizeInfo,
+  compilation::build_module_graph::{BuildModuleGraphArtifact, BuildModuleGraphArtifactState},
+  utils::{FileCounter, ResourceId},
 };
 
 /// Make Occasion is used to save MakeArtifact
 #[derive(Debug)]
 pub struct MakeOccasion {
-  context: Arc<CacheableContext>,
+  codec: Arc<CacheCodec>,
   storage: Arc<dyn Storage>,
 }
 
 impl MakeOccasion {
-  pub fn new(storage: Arc<dyn Storage>, context: Arc<CacheableContext>) -> Self {
-    Self { storage, context }
+  pub fn new(storage: Arc<dyn Storage>, codec: Arc<CacheCodec>) -> Self {
+    Self { storage, codec }
   }
 
   #[tracing::instrument(name = "Cache::Occasion::Make::save", skip_all)]
-  pub fn save(&self, artifact: &MakeArtifact) {
-    let MakeArtifact {
+  pub fn save(&self, artifact: &BuildModuleGraphArtifact) {
+    let BuildModuleGraphArtifact {
       // write all of field here to avoid forget to update occasion when add new fields
       // for module graph
-      module_graph_partial,
+      module_graph,
       module_to_lazy_make,
-      revoked_modules,
-      built_modules,
+      affected_modules,
+      affected_dependencies,
+      issuer_update_modules,
       // skip
       entry_dependencies: _,
       file_dependencies: _,
@@ -43,61 +48,84 @@ impl MakeOccasion {
       make_failed_module: _,
     } = artifact;
 
+    let mut need_update_modules = issuer_update_modules.clone();
+    need_update_modules.extend(affected_modules.active());
+
+    // The updated dependencies should be synced to persistent cache.
+    let mg = module_graph;
+    for dep_id in affected_dependencies.active() {
+      if let Some(m) = mg.get_parent_module(dep_id) {
+        need_update_modules.insert(*m);
+      }
+    }
+
     module_graph::save_module_graph(
-      module_graph_partial,
+      module_graph,
       module_to_lazy_make,
-      revoked_modules,
-      built_modules,
+      affected_modules.removed(),
+      &need_update_modules,
       &self.storage,
-      &self.context,
+      &self.codec,
     );
   }
 
   #[tracing::instrument(name = "Cache::Occasion::Make::recovery", skip_all)]
-  pub async fn recovery(&self) -> Result<MakeArtifact> {
-    let mut artifact = MakeArtifact::default();
-
-    let (partial, module_to_lazy_make, force_build_dependencies, isolated_modules) =
-      module_graph::recovery_module_graph(&self.storage, &self.context).await?;
-    artifact.module_graph_partial = partial;
-    artifact.module_to_lazy_make = module_to_lazy_make;
-    artifact.state = MakeArtifactState::Uninitialized(force_build_dependencies, isolated_modules);
+  pub async fn recovery(&self) -> Result<BuildModuleGraphArtifact> {
+    let (mg, module_to_lazy_make, entry_dependencies) =
+      module_graph::recovery_module_graph(&self.storage, &self.codec).await?;
 
     // regenerate statistical data
-    // TODO set make_failed_module after module.diagnostic are cacheable
-    // make failed module include diagnostic that do not support cache, so recovery will not include failed module
-    artifact.make_failed_module = Default::default();
+    // recovery make_failed_module
+    let mut make_failed_module = IdentifierSet::default();
     // recovery *_dep
-    let mg = artifact.get_module_graph();
     let mut file_dep = FileCounter::default();
     let mut context_dep = FileCounter::default();
     let mut missing_dep = FileCounter::default();
     let mut build_dep = FileCounter::default();
-    for (_, module) in mg.modules() {
+    for (mid, module) in mg.modules() {
       let build_info = module.build_info();
-      file_dep.add_batch_file(&build_info.file_dependencies);
-      context_dep.add_batch_file(&build_info.context_dependencies);
-      missing_dep.add_batch_file(&build_info.missing_dependencies);
-      build_dep.add_batch_file(&build_info.build_dependencies);
-    }
-    // recovery make_failed_dependencies
-    let mut make_failed_dependencies = HashSet::default();
-    for (dep_id, dep) in mg.dependencies() {
-      if let Some(info) = FactorizeInfo::get_from(dep)
-        && !info.is_success()
-      {
-        make_failed_dependencies.insert(dep_id);
-        file_dep.add_batch_file(&info.file_dependencies());
-        context_dep.add_batch_file(&info.context_dependencies());
-        missing_dep.add_batch_file(&info.missing_dependencies());
+      let resource_id = ResourceId::from(*mid);
+      file_dep.add_files(&resource_id, &build_info.file_dependencies);
+      context_dep.add_files(&resource_id, &build_info.context_dependencies);
+      missing_dep.add_files(&resource_id, &build_info.missing_dependencies);
+      build_dep.add_files(&resource_id, &build_info.build_dependencies);
+      if !module.diagnostics().is_empty() {
+        make_failed_module.insert(*mid);
       }
     }
-    artifact.make_failed_dependencies = make_failed_dependencies;
-    artifact.file_dependencies = file_dep;
-    artifact.context_dependencies = context_dep;
-    artifact.missing_dependencies = missing_dep;
-    artifact.build_dependencies = build_dep;
 
-    Ok(artifact)
+    // recovery make_failed_dependencies
+    let mut make_failed_dependencies = FxHashSet::default();
+    for (dep_id, dep) in mg.dependencies() {
+      if let Some(info) = FactorizeInfo::get_from(dep) {
+        if !info.is_success() {
+          make_failed_dependencies.insert(*dep_id);
+        }
+        let resource = dep_id.into();
+        file_dep.add_files(&resource, info.file_dependencies());
+        context_dep.add_files(&resource, info.context_dependencies());
+        missing_dep.add_files(&resource, info.missing_dependencies());
+      }
+    }
+
+    Ok(BuildModuleGraphArtifact {
+      // write all of field here to avoid forget to update occasion when add new fields
+      // temporary data set to default
+      affected_modules: Default::default(),
+      affected_dependencies: Default::default(),
+      issuer_update_modules: Default::default(),
+
+      state: BuildModuleGraphArtifactState::Initialized,
+      module_graph: mg,
+      module_to_lazy_make,
+
+      make_failed_module,
+      make_failed_dependencies,
+      entry_dependencies,
+      file_dependencies: file_dep,
+      context_dependencies: context_dep,
+      missing_dependencies: missing_dep,
+      build_dependencies: build_dep,
+    })
   }
 }

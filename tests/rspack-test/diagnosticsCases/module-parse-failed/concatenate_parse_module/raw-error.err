@@ -1,0 +1,6 @@
+Array [
+  Object {
+    moduleIdentifier: <TEST_ROOT>/diagnosticsCases/module-parse-failed/concatenate_parse_module/index.js|b0f63188df7cf86b816b44242b1e80e5,
+    moduleName: ./index.js + 1 modules,
+  },
+]

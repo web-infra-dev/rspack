@@ -9,11 +9,12 @@ on:
   push:
     branches:
       - main
+      - v1.x
     paths-ignore:
-      - "**/*.md"
-      - "website/**"
+      - '**/*.md'
+      - 'website/**'
     tags-ignore:
-      - "**"
+      - '**'
 jobs:
   check-changed:
     runs-on: ubuntu-latest
@@ -22,11 +23,11 @@ jobs:
       code_changed: ${{ steps.filter.outputs.code_changed == 'true' }}
       document_changed: ${{ steps.filter.outputs.document_changed == 'true' }}
     steps:
-      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
       - uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3
         id: filter
         with:
-          predicate-quantifier: "every"
+          predicate-quantifier: 'every'
           filters: |
             code_changed:
               - "!**/*.md"
@@ -41,7 +42,7 @@ jobs:
     needs: [check-changed]
     if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
     steps:
-      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
 
       - uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3
         id: changes
@@ -68,31 +69,22 @@ jobs:
       - name: Check Dependency Version
         run: pnpm run check-dependency-version
 
-      - name: API change check
-        run: |
-          echo "===================================="
-          echo "Note: force build npm packages with \`pnpm build:js\` and  \`pnpm api-extractor:local\` locally to generate API change if \`api-extractor\` check failed."
-          echo "$ pnpm build:js && pnpm api-extractor:local"
-          echo "===================================="
-          pnpm build:js
-          pnpm api-extractor:ci
-
-      - name: Documentation coverage check
-        run: pnpm doc-coverage
-
   lint-website:
     name: Lint and format website
     runs-on: ubuntu-latest
     needs: [check-changed]
     if: ${{ needs.check-changed.outputs.document_changed == 'true' }}
     steps:
-      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
 
       - name: Pnpm Setup
         uses: ./.github/actions/pnpm/setup
 
       - name: Pnpm Install
         uses: ./.github/actions/pnpm/install-dependencies
+
+      - name: Prettier
+        run: pnpm run format-ci:js
 
       - name: Run
         run: |
@@ -104,8 +96,8 @@ jobs:
     name: Spell check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
-      - uses: crate-ci/typos@a67079b4ae32e18c3f53d75368c52ce53b5fb56b # v1.35.4
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+      - uses: crate-ci/typos@bb4666ad77b539a6b4ce4eda7ebb6de553704021 # v1.42.0
         with:
           files: .
 
@@ -113,7 +105,7 @@ jobs:
     name: Pnpm Lockfile Check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
 
       - name: Pnpm Setup
         uses: ./.github/actions/pnpm/setup

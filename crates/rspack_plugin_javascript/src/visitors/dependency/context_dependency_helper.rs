@@ -1,10 +1,9 @@
-use std::{borrow::Cow, sync::LazyLock};
+use std::borrow::Cow;
 
 use itertools::Itertools;
-use regex::Regex;
 use rspack_core::parse_resource;
-use rspack_error::{Diagnostic, DiagnosticExt, Severity};
-use rspack_util::json_stringify;
+use rspack_error::{Diagnostic, Severity};
+use rspack_util::{json_stringify, quote_meta};
 
 use super::create_traceable_error;
 use crate::utils::eval::{BasicEvaluatedExpression, TemplateStringKind};
@@ -38,14 +37,14 @@ pub fn create_context_dependency(
       Cow::Owned(String::new())
     };
 
-    let (context, prefix) = split_context_from_prefix(prefix_raw.to_string());
+    let (context, prefix) = split_context_from_prefix(prefix_raw.clone());
     let (postfix, query, fragment) = match parse_resource(&postfix_raw) {
       Some(data) => (
         data.path.as_str().to_string(),
         data.query.unwrap_or_default(),
         data.fragment.unwrap_or_default(),
       ),
-      None => (postfix_raw.to_string(), String::new(), String::new()),
+      None => (postfix_raw.into_owned(), String::new(), String::new()),
     };
 
     // When there are more than two quasis, the generated RegExp can be more precise
@@ -56,7 +55,7 @@ pub fn create_context_dependency(
         .map(|q| quote_meta(q.string().as_str()) + wrapped_context_reg_exp)
         .join("")
     } else {
-      "".to_string()
+      String::new()
     };
 
     let reg = format!(
@@ -79,10 +78,10 @@ pub fn create_context_dependency(
               TemplateStringKind::Raw => "String.raw`",
             }
           );
-          replaces.push((value, param.range().0, part.range().1 - 1));
+          replaces.push((value, param.range().0, part.range().1));
         } else if i == parts.len() - 1 {
           let value = format!("{postfix}`");
-          replaces.push((value, part.range().0, param.range().1 - 1));
+          replaces.push((value, part.range().0, param.range().1));
         } else {
           let value = match param.template_string_kind() {
             TemplateStringKind::Cooked => {
@@ -91,7 +90,7 @@ pub fn create_context_dependency(
             TemplateStringKind::Raw => part.string().to_owned(),
           };
           let range = part.range();
-          replaces.push((value, range.0, range.1 - 1));
+          replaces.push((value, range.0, range.1));
         }
       } else if let Some(expr) = part.expression() {
         parser.walk_expression(expr);
@@ -99,17 +98,14 @@ pub fn create_context_dependency(
     }
 
     if let Some(true) = parser.javascript_options.wrapped_context_critical {
-      let range = param.range();
-      let warn: Diagnostic = create_traceable_error(
+      let mut warn: Diagnostic = Diagnostic::from(create_traceable_error(
         "Critical dependency".into(),
         "a part of the request of a dependency is an expression".to_string(),
-        parser.source_file,
-        rspack_core::ErrorSpan::new(range.0, range.1),
-      )
-      .with_severity(Severity::Warn)
-      .boxed()
-      .into();
-      let warn = warn.with_module_identifier(Some(*parser.module_identifier));
+        parser.source.to_string(),
+        param.range().into(),
+      ));
+      warn.severity = Severity::Warning;
+      warn.module_identifier = Some(*parser.module_identifier);
       critical = Some(warn);
     }
 
@@ -152,7 +148,7 @@ pub fn create_context_dependency(
         data.query.unwrap_or_default(),
         data.fragment.unwrap_or_default(),
       ),
-      None => (postfix_raw.to_string(), String::new(), String::new()),
+      None => (postfix_raw.into_owned(), String::new(), String::new()),
     };
 
     let reg = format!(
@@ -163,28 +159,21 @@ pub fn create_context_dependency(
 
     let mut replaces = Vec::new();
     if let Some(prefix_range) = prefix_range {
-      replaces.push((json_stringify(&prefix), prefix_range.0, prefix_range.1 - 1))
+      replaces.push((json_stringify(&prefix), prefix_range.0, prefix_range.1))
     }
     if let Some(postfix_range) = postfix_range {
-      replaces.push((
-        json_stringify(&postfix),
-        postfix_range.0,
-        postfix_range.1 - 1,
-      ))
+      replaces.push((json_stringify(&postfix), postfix_range.0, postfix_range.1))
     }
 
     if let Some(true) = parser.javascript_options.wrapped_context_critical {
-      let range = param.range();
-      let warn: Diagnostic = create_traceable_error(
+      let mut warn: Diagnostic = Diagnostic::from(create_traceable_error(
         "Critical dependency".into(),
         "a part of the request of a dependency is an expression".to_string(),
-        parser.source_file,
-        rspack_core::ErrorSpan::new(range.0, range.1),
-      )
-      .with_severity(Severity::Warn)
-      .boxed()
-      .into();
-      let warn = warn.with_module_identifier(Some(*parser.module_identifier));
+        parser.source.to_string(),
+        param.range().into(),
+      ));
+      warn.severity = Severity::Warning;
+      warn.module_identifier = Some(*parser.module_identifier);
       critical = Some(warn);
     }
 
@@ -206,17 +195,14 @@ pub fn create_context_dependency(
     }
   } else {
     if let Some(true) = parser.javascript_options.expr_context_critical {
-      let range = param.range();
-      let warn: Diagnostic = create_traceable_error(
+      let mut warn: Diagnostic = Diagnostic::from(create_traceable_error(
         "Critical dependency".into(),
         "the request of a dependency is an expression".to_string(),
-        parser.source_file,
-        rspack_core::ErrorSpan::new(range.0, range.1),
-      )
-      .with_severity(Severity::Warn)
-      .boxed()
-      .into();
-      let warn = warn.with_module_identifier(Some(*parser.module_identifier));
+        parser.source.to_string(),
+        param.range().into(),
+      ));
+      warn.severity = Severity::Warning;
+      warn.module_identifier = Some(*parser.module_identifier);
       critical = Some(warn);
     }
 
@@ -235,6 +221,7 @@ pub fn create_context_dependency(
   }
 }
 
+#[derive(Debug)]
 pub struct ContextModuleScanResult {
   pub context: String,
   pub reg: String,
@@ -250,12 +237,4 @@ pub(super) fn split_context_from_prefix(prefix: String) -> (String, String) {
   } else {
     (".".to_string(), prefix)
   }
-}
-
-static META_REG: LazyLock<Regex> = LazyLock::new(|| {
-  Regex::new(r"[-\[\]\\/{}()*+?.^$|]").expect("Failed to initialize `MATCH_RESOURCE_REGEX`")
-});
-
-pub fn quote_meta(str: &str) -> Cow<'_, str> {
-  META_REG.replace_all(str, "\\$0")
 }

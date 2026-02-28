@@ -1,0 +1,16 @@
+import { __webpack_require__ } from "./runtime~0.js";
+__webpack_require__.add({
+547(module) {
+module.exports = 'foo'
+
+
+},
+});
+const foo = __webpack_require__("547");
+var foo_default = /*#__PURE__*/__webpack_require__.n(foo);
+var foo_default_0 = foo_default();
+
+
+
+
+export { foo_default_0 as foo };

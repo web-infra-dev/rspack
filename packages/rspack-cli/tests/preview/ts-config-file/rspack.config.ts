@@ -1,3 +1,3 @@
 export default {
-	mode: "production"
+  mode: 'production',
 };

@@ -4,9 +4,9 @@ use cow_utils::CowUtils;
 use dashmap::DashMap;
 use derive_more::Debug;
 use rspack_core::{
-  BoxModule, ChunkInitFragments, ChunkUkey, Compilation,
-  CompilationAdditionalModuleRuntimeRequirements, CompilationParams, CompilerCompilation, Filename,
-  ModuleIdentifier, PathData, Plugin, RuntimeGlobals,
+  ChunkInitFragments, ChunkUkey, Compilation, CompilationAdditionalModuleRuntimeRequirements,
+  CompilationParams, CompilerCompilation, Filename, Module, ModuleIdentifier, PathData, Plugin,
+  RuntimeCodeTemplate, RuntimeGlobals,
   rspack_sources::{BoxSource, RawStringSource, Source, SourceExt},
 };
 use rspack_error::Result;
@@ -18,7 +18,7 @@ use rspack_plugin_javascript::{
 };
 
 use crate::{
-  ModuleFilenameTemplate, ModuleOrSource, module_filename_helpers::ModuleFilenameHelpers,
+  ModuleFilenameTemplate, SourceReference, module_filename_helpers::ModuleFilenameHelpers,
 };
 
 #[derive(Clone, Debug)]
@@ -43,7 +43,7 @@ pub struct EvalDevToolModulePlugin {
 
 impl EvalDevToolModulePlugin {
   pub fn new(options: EvalDevToolModulePluginOptions) -> Self {
-    let namespace = options.namespace.unwrap_or("".to_string());
+    let namespace = options.namespace.unwrap_or_default();
 
     let source_url_comment = options
       .source_url_comment
@@ -66,7 +66,7 @@ impl EvalDevToolModulePlugin {
 }
 
 #[plugin_hook(CompilerCompilation for EvalDevToolModulePlugin)]
-async fn eval_devtool_plugin_compilation(
+async fn compilation(
   &self,
   compilation: &mut Compilation,
   _params: &mut CompilationParams,
@@ -75,25 +75,24 @@ async fn eval_devtool_plugin_compilation(
   let mut hooks = hooks.write().await;
   hooks
     .render_module_content
-    .tap(eval_devtool_plugin_render_module_content::new(self));
-  hooks
-    .chunk_hash
-    .tap(eval_devtool_plugin_js_chunk_hash::new(self));
+    .tap(render_module_content::new(self));
+  hooks.chunk_hash.tap(js_chunk_hash::new(self));
   hooks
     .inline_in_runtime_bailout
-    .tap(eval_devtool_plugin_inline_in_runtime_bailout::new(self));
+    .tap(inline_in_runtime_bailout::new(self));
 
   Ok(())
 }
 
 #[plugin_hook(JavascriptModulesRenderModuleContent for EvalDevToolModulePlugin,tracing=false)]
-async fn eval_devtool_plugin_render_module_content(
+async fn render_module_content(
   &self,
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
-  module: &BoxModule,
+  module: &dyn Module,
   render_source: &mut RenderSource,
   _init_fragments: &mut ChunkInitFragments,
+  runtime_template: &RuntimeCodeTemplate<'_>,
 ) -> Result<()> {
   let origin_source = render_source.source.clone();
   if let Some(cached_source) = self.cache.get(&origin_source) {
@@ -103,18 +102,20 @@ async fn eval_devtool_plugin_render_module_content(
     return Ok(());
   }
 
-  let chunk = compilation.chunk_by_ukey.get(chunk_ukey);
+  let Some(chunk) = compilation
+    .build_chunk_graph_artifact
+    .chunk_by_ukey
+    .get(chunk_ukey)
+  else {
+    return Ok(());
+  };
   let path_data = PathData::default()
-    .chunk_id_optional(
-      chunk.and_then(|c| c.id(&compilation.chunk_ids_artifact).map(|id| id.as_str())),
-    )
-    .chunk_name_optional(chunk.and_then(|c| c.name()))
-    .chunk_hash_optional(chunk.and_then(|c| {
-      c.rendered_hash(
-        &compilation.chunk_hashes_artifact,
-        compilation.options.output.hash_digest_length,
-      )
-    }));
+    .chunk_id_optional(chunk.id().map(|id| id.as_str()))
+    .chunk_name_optional(chunk.name())
+    .chunk_hash_optional(chunk.rendered_hash(
+      &compilation.chunk_hashes_artifact,
+      compilation.options.output.hash_digest_length,
+    ));
 
   let filename = Filename::from(self.namespace.as_str());
   let namespace = compilation.get_path(&filename, path_data).await?;
@@ -122,25 +123,27 @@ async fn eval_devtool_plugin_render_module_content(
   let output_options = &compilation.options.output;
   let str = match &self.module_filename_template {
     ModuleFilenameTemplate::String(s) => ModuleFilenameHelpers::create_filename_of_string_template(
-      &ModuleOrSource::Module(module.identifier()),
+      &SourceReference::Module(module.identifier()),
       compilation,
       s,
       output_options,
       &namespace,
+      None,
     ),
     ModuleFilenameTemplate::Fn(f) => {
       ModuleFilenameHelpers::create_filename_of_fn_template(
-        &ModuleOrSource::Module(module.identifier()),
+        &SourceReference::Module(module.identifier()),
         compilation,
         f,
         output_options,
         &namespace,
+        None,
       )
       .await?
     }
   };
   let source = {
-    let source = &origin_source.source();
+    let source = &origin_source.source().into_string_lossy();
     let footer = format!(
       "\n{}",
       &self.source_url_comment.cow_replace(
@@ -159,7 +162,11 @@ async fn eval_devtool_plugin_render_module_content(
     RawStringSource::from(format!(
       "eval({});",
       if compilation.options.output.trusted_types.is_some() {
-        format!("{}({})", RuntimeGlobals::CREATE_SCRIPT, module_content)
+        format!(
+          "{}({})",
+          runtime_template.render_runtime_globals(&RuntimeGlobals::CREATE_SCRIPT),
+          module_content
+        )
       } else {
         module_content
       }
@@ -173,7 +180,7 @@ async fn eval_devtool_plugin_render_module_content(
 }
 
 #[plugin_hook(JavascriptModulesChunkHash for EvalDevToolModulePlugin)]
-async fn eval_devtool_plugin_js_chunk_hash(
+async fn js_chunk_hash(
   &self,
   _compilation: &Compilation,
   _chunk_ukey: &ChunkUkey,
@@ -184,10 +191,7 @@ async fn eval_devtool_plugin_js_chunk_hash(
 }
 
 #[plugin_hook(JavascriptModulesInlineInRuntimeBailout for EvalDevToolModulePlugin)]
-async fn eval_devtool_plugin_inline_in_runtime_bailout(
-  &self,
-  _compilation: &Compilation,
-) -> Result<Option<String>> {
+async fn inline_in_runtime_bailout(&self, _compilation: &Compilation) -> Result<Option<String>> {
   Ok(Some("the eval devtool is used.".to_string()))
 }
 
@@ -197,20 +201,17 @@ impl Plugin for EvalDevToolModulePlugin {
   }
 
   fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
-    ctx
-      .compiler_hooks
-      .compilation
-      .tap(eval_devtool_plugin_compilation::new(self));
+    ctx.compiler_hooks.compilation.tap(compilation::new(self));
     ctx
       .compilation_hooks
       .additional_module_runtime_requirements
-      .tap(eval_devtool_plugin_additional_module_runtime_requirements::new(self));
+      .tap(additional_module_runtime_requirements::new(self));
     Ok(())
   }
 }
 
 #[plugin_hook(CompilationAdditionalModuleRuntimeRequirements for EvalDevToolModulePlugin,tracing=false)]
-async fn eval_devtool_plugin_additional_module_runtime_requirements(
+async fn additional_module_runtime_requirements(
   &self,
   compilation: &Compilation,
   _module: &ModuleIdentifier,
@@ -264,9 +265,7 @@ fn encode_uri(string: &str) -> Cow<'_, str> {
       .is_some();
     if is_unescape {
       match r {
-        Cow::Borrowed(_) => {
-          continue;
-        }
+        Cow::Borrowed(_) => {}
         Cow::Owned(mut inner) => {
           inner.push(c);
           r = Cow::Owned(inner);

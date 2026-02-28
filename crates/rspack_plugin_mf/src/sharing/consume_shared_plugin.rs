@@ -1,7 +1,7 @@
 use std::{
   collections::HashSet,
   fmt,
-  sync::{Arc, LazyLock, Mutex, RwLock},
+  sync::{Arc, LazyLock, OnceLock},
 };
 
 use async_trait::async_trait;
@@ -15,7 +15,7 @@ use rspack_core::{
   ModuleGraph, ModuleIdentifier, ModuleType, NormalModuleCreateData,
   NormalModuleFactoryCreateModule, NormalModuleFactoryFactorize, NormalModuleFactoryModule, Plugin,
   PrefetchExportsInfoMode, ProvidedExports, ResolveOptionsWithDependencyType, ResolveResult,
-  Resolver, RuntimeGlobals,
+  Resolver, RuntimeGlobals, RuntimeModule,
 };
 use rspack_error::{Diagnostic, Result, error};
 use rspack_fs::ReadableFileSystem;
@@ -39,6 +39,7 @@ pub struct ConsumeOptions {
   pub strict_version: bool,
   pub singleton: bool,
   pub eager: bool,
+  pub tree_shaking_mode: Option<String>,
 }
 
 #[cacheable]
@@ -57,21 +58,21 @@ impl fmt::Display for ConsumeVersion {
   }
 }
 
-static RELATIVE_REQUEST: LazyLock<Regex> =
+pub static RELATIVE_REQUEST: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"^\.\.?(\/|$)").expect("Invalid regex"));
-static ABSOLUTE_REQUEST: LazyLock<Regex> =
+pub static ABSOLUTE_REQUEST: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"^(\/|[A-Za-z]:\\|\\\\)").expect("Invalid regex"));
-static PACKAGE_NAME: LazyLock<Regex> =
+pub static PACKAGE_NAME: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"^((?:@[^\\/]+[\\/])?[^\\/]+)").expect("Invalid regex"));
 
 #[derive(Debug)]
-struct MatchedConsumes {
-  resolved: FxHashMap<String, Arc<ConsumeOptions>>,
-  unresolved: FxHashMap<String, Arc<ConsumeOptions>>,
-  prefixed: FxHashMap<String, Arc<ConsumeOptions>>,
+pub struct MatchedConsumes {
+  pub resolved: FxHashMap<String, Arc<ConsumeOptions>>,
+  pub unresolved: FxHashMap<String, Arc<ConsumeOptions>>,
+  pub prefixed: FxHashMap<String, Arc<ConsumeOptions>>,
 }
 
-async fn resolve_matched_configs(
+pub async fn resolve_matched_configs(
   compilation: &mut Compilation,
   resolver: Arc<Resolver>,
   configs: &[(String, Arc<ConsumeOptions>)],
@@ -107,7 +108,7 @@ async fn resolve_matched_configs(
   }
 }
 
-async fn get_description_file(
+pub async fn get_description_file(
   fs: Arc<dyn ReadableFileSystem>,
   mut dir: &Utf8Path,
   satisfies_description_file_data: Option<impl Fn(Option<serde_json::Value>) -> bool>,
@@ -140,7 +141,7 @@ async fn get_description_file(
   }
 }
 
-fn get_required_version_from_description_file(
+pub fn get_required_version_from_description_file(
   data: serde_json::Value,
   package_name: &str,
 ) -> Option<ConsumeVersion> {
@@ -169,9 +170,9 @@ pub struct ConsumeSharedPluginOptions {
 #[derive(Debug)]
 pub struct ConsumeSharedPlugin {
   options: ConsumeSharedPluginOptions,
-  resolver: Mutex<Option<Arc<Resolver>>>,
-  compiler_context: Mutex<Option<Context>>,
-  matched_consumes: RwLock<Option<Arc<MatchedConsumes>>>,
+  resolver: OnceLock<Arc<Resolver>>,
+  compiler_context: OnceLock<Context>,
+  matched_consumes: OnceLock<Arc<MatchedConsumes>>,
 }
 
 impl ConsumeSharedPlugin {
@@ -185,43 +186,53 @@ impl ConsumeSharedPlugin {
   }
 
   fn init_context(&self, compilation: &Compilation) {
-    let mut lock = self.compiler_context.lock().expect("should lock");
-    *lock = Some(compilation.options.context.clone());
+    self
+      .compiler_context
+      .set(compilation.options.context.clone())
+      .expect("failed to set compiler context");
   }
 
   fn get_context(&self) -> Context {
-    let lock = self.compiler_context.lock().expect("should lock");
-    lock.clone().expect("init_context first")
+    self
+      .compiler_context
+      .get()
+      .expect("init_context first")
+      .clone()
   }
 
   fn init_resolver(&self, compilation: &Compilation) {
-    let mut lock = self.resolver.lock().expect("should lock");
-    *lock = Some(
-      compilation
-        .resolver_factory
-        .get(ResolveOptionsWithDependencyType {
-          resolve_options: None,
-          resolve_to_context: false,
-          dependency_category: DependencyCategory::Esm,
-        }),
-    );
+    self
+      .resolver
+      .set(
+        compilation
+          .resolver_factory
+          .get(ResolveOptionsWithDependencyType {
+            resolve_options: None,
+            resolve_to_context: false,
+            dependency_category: DependencyCategory::Esm,
+          }),
+      )
+      .expect("failed to set resolver for multiple times");
   }
 
   fn get_resolver(&self) -> Arc<Resolver> {
-    let lock = self.resolver.lock().expect("should lock");
-    lock.clone().expect("init_resolver first")
+    self.resolver.get().expect("init_resolver first").clone()
   }
 
   async fn init_matched_consumes(&self, compilation: &mut Compilation, resolver: Arc<Resolver>) {
     let config = resolve_matched_configs(compilation, resolver, &self.options.consumes).await;
-    let mut lock = self.matched_consumes.write().expect("should lock");
-
-    *lock = Some(Arc::new(config));
+    self
+      .matched_consumes
+      .set(Arc::new(config))
+      .expect("failed to set matched consumes");
   }
 
   fn get_matched_consumes(&self) -> Arc<MatchedConsumes> {
-    let lock = self.matched_consumes.read().expect("should lock");
-    lock.clone().expect("init_matched_consumes first")
+    self
+      .matched_consumes
+      .get()
+      .expect("init_matched_consumes first")
+      .clone()
   }
 
   async fn get_required_version(
@@ -666,6 +677,7 @@ impl ConsumeSharedPlugin {
         strict_version: config.strict_version,
         singleton: config.singleton,
         eager: config.eager,
+        tree_shaking_mode: config.tree_shaking_mode.clone(),
       },
     ))
   }
@@ -681,11 +693,17 @@ async fn this_compilation(
     DependencyType::ConsumeSharedFallback,
     params.normal_module_factory.clone(),
   );
-  self.init_context(compilation);
-  self.init_resolver(compilation);
-  self
-    .init_matched_consumes(compilation, self.get_resolver())
-    .await;
+  if self.compiler_context.get().is_none() {
+    self.init_context(compilation);
+  }
+  if self.resolver.get().is_none() {
+    self.init_resolver(compilation);
+  }
+  if self.matched_consumes.get().is_none() {
+    self
+      .init_matched_consumes(compilation, self.get_resolver())
+      .await;
+  }
   Ok(())
 }
 
@@ -733,12 +751,15 @@ async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<B
     .expect("should be module dependency");
   if matches!(
     dep.dependency_type(),
-    DependencyType::ConsumeSharedFallback | DependencyType::ProvideModuleForShared
+    DependencyType::ConsumeSharedFallback
+      | DependencyType::ProvideModuleForShared
+      | DependencyType::ShareContainerFallback
   ) {
     return Ok(None);
   }
-  let request = dep.request();
+  let request = &data.request;
   let consumes = self.get_matched_consumes();
+
   if let Some(matched) = consumes.unresolved.get(request) {
     let mut add_diagnostic = |d| data.diagnostics.push(d);
     match self
@@ -767,6 +788,7 @@ async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<B
             strict_version: options.strict_version,
             singleton: options.singleton,
             eager: options.eager,
+            tree_shaking_mode: options.tree_shaking_mode.clone(),
           }),
           &mut add_diagnostic,
         )
@@ -788,12 +810,15 @@ async fn create_module(
 ) -> Result<Option<BoxModule>> {
   if matches!(
     data.dependencies[0].dependency_type(),
-    DependencyType::ConsumeSharedFallback | DependencyType::ProvideModuleForShared
+    DependencyType::ConsumeSharedFallback
+      | DependencyType::ProvideModuleForShared
+      | DependencyType::ShareContainerFallback
   ) {
     return Ok(None);
   }
-  let resource = &create_data.resource_resolve_data.resource;
+  let resource = create_data.resource_resolve_data.resource();
   let consumes = self.get_matched_consumes();
+
   if let Some(options) = consumes.resolved.get(resource) {
     let mut add_diagnostic = |d| data.diagnostics.push(d);
     match self
@@ -852,20 +877,15 @@ async fn normal_module_factory_module(
 #[plugin_hook(CompilationAdditionalTreeRuntimeRequirements for ConsumeSharedPlugin)]
 async fn additional_tree_runtime_requirements(
   &self,
-  compilation: &mut Compilation,
-  chunk_ukey: &ChunkUkey,
-  runtime_requirements: &mut RuntimeGlobals,
+  compilation: &Compilation,
+  _chunk_ukey: &ChunkUkey,
+  _runtime_requirements: &mut RuntimeGlobals,
+  runtime_modules: &mut Vec<Box<dyn RuntimeModule>>,
 ) -> Result<()> {
-  runtime_requirements.insert(RuntimeGlobals::MODULE);
-  runtime_requirements.insert(RuntimeGlobals::MODULE_CACHE);
-  runtime_requirements.insert(RuntimeGlobals::MODULE_FACTORIES_ADD_ONLY);
-  runtime_requirements.insert(RuntimeGlobals::SHARE_SCOPE_MAP);
-  runtime_requirements.insert(RuntimeGlobals::INITIALIZE_SHARING);
-  runtime_requirements.insert(RuntimeGlobals::HAS_OWN_PROPERTY);
-  compilation.add_runtime_module(
-    chunk_ukey,
-    Box::new(ConsumeSharedRuntimeModule::new(self.options.enhanced)),
-  )?;
+  runtime_modules.push(Box::new(ConsumeSharedRuntimeModule::new(
+    &compilation.runtime_template,
+    self.options.enhanced,
+  )));
   Ok(())
 }
 

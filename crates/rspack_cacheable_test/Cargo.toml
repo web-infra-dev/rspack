@@ -23,3 +23,6 @@ serde_json       = { workspace = true }
 swc_core         = { workspace = true, features = ["ecma_ast"] }
 ustr             = { workspace = true }
 xxhash-rust      = { workspace = true, features = ["const_xxh64"] }
+
+[lints]
+workspace = true

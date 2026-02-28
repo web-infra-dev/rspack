@@ -1,0 +1,9 @@
+asset main.js xx bytes {889} [emitted] (name: main)
+chunk {889} (runtime: main) main.js (main) xx bytes [entry] [rendered]
+orphan modules xx bytes [orphan] 2 modules
+./index.js + 1 modules [326] xx bytes {889} [code generated]
+  [no exports]
+  [no exports used]
+  entry ./index.js
+  
+Rspack x.x.x compiled successfully in X s

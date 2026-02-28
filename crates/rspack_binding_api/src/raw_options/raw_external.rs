@@ -36,6 +36,7 @@ pub struct RawExternalsPluginOptions {
     ts_type = "(string | RegExp | Record<string, string | boolean | string[] | Record<string, string[]>> | ((...args: any[]) => any))[]"
   )]
   pub externals: Vec<RawExternalItem>,
+  pub place_in_initial: bool,
 }
 
 type RawExternalItem = Either4<
@@ -189,7 +190,7 @@ impl RawExternalItemFnCtx {
           },
           None::<fn()>,
         )
-        .map_err(|e| napi::Error::from_reason(e.reason.to_string()))
+        .map_err(|e| napi::Error::from_reason(e.reason.clone()))
       })?;
 
     Ok(f)

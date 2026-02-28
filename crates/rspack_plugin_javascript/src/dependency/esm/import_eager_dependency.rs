@@ -4,9 +4,9 @@ use rspack_cacheable::{
 };
 use rspack_core::{
   AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
-  DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, FactorizeInfo,
-  ImportAttributes, ModuleDependency, ModuleGraphCacheArtifact, TemplateContext,
-  TemplateReplaceSource, module_namespace_promise,
+  DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, ExportsInfoArtifact,
+  FactorizeInfo, ImportAttributes, ImportPhase, ModuleDependency, ModuleGraphCacheArtifact,
+  ResourceIdentifier, TemplateContext, TemplateReplaceSource,
 };
 use swc_core::ecma::atoms::Atom;
 
@@ -22,10 +22,11 @@ pub struct ImportEagerDependency {
   #[cacheable(with=AsPreset)]
   request: Atom,
   range: DependencyRange,
-  #[cacheable(with=AsOption<AsVec<AsPreset>>)]
-  referenced_exports: Option<Vec<Atom>>,
+  #[cacheable(with=AsOption<AsVec<AsVec<AsPreset>>>)]
+  referenced_exports: Option<Vec<Vec<Atom>>>,
   attributes: Option<ImportAttributes>,
-  resource_identifier: String,
+  phase: ImportPhase,
+  resource_identifier: ResourceIdentifier,
   factorize_info: FactorizeInfo,
 }
 
@@ -33,8 +34,9 @@ impl ImportEagerDependency {
   pub fn new(
     request: Atom,
     range: DependencyRange,
-    referenced_exports: Option<Vec<Atom>>,
+    referenced_exports: Option<Vec<Vec<Atom>>>,
     attributes: Option<ImportAttributes>,
+    phase: ImportPhase,
   ) -> Self {
     let resource_identifier =
       create_resource_identifier_for_esm_dependency(request.as_str(), attributes.as_ref());
@@ -44,9 +46,14 @@ impl ImportEagerDependency {
       id: DependencyId::new(),
       referenced_exports,
       attributes,
+      phase,
       resource_identifier,
       factorize_info: Default::default(),
     }
+  }
+
+  pub fn set_referenced_exports(&mut self, referenced_exports: Vec<Vec<Atom>>) {
+    self.referenced_exports = Some(referenced_exports);
   }
 }
 
@@ -72,14 +79,19 @@ impl Dependency for ImportEagerDependency {
     self.attributes.as_ref()
   }
 
-  fn range(&self) -> Option<&DependencyRange> {
-    Some(&self.range)
+  fn get_phase(&self) -> ImportPhase {
+    self.phase
+  }
+
+  fn range(&self) -> Option<DependencyRange> {
+    Some(self.range)
   }
 
   fn get_referenced_exports(
     &self,
     module_graph: &rspack_core::ModuleGraph,
     module_graph_cache: &ModuleGraphCacheArtifact,
+    exports_info_artifact: &ExportsInfoArtifact,
     _runtime: Option<&rspack_core::RuntimeSpec>,
   ) -> Vec<rspack_core::ExtendedReferencedExport> {
     create_import_dependency_referenced_exports(
@@ -87,6 +99,7 @@ impl Dependency for ImportEagerDependency {
       &self.referenced_exports,
       module_graph,
       module_graph_cache,
+      exports_info_artifact,
     )
   }
 
@@ -150,15 +163,19 @@ impl DependencyTemplate for ImportEagerDependencyTemplate {
     source.replace(
       dep.range.start,
       dep.range.end,
-      module_namespace_promise(
-        code_generatable_context,
-        &dep.id,
-        block,
-        &dep.request,
-        dep.dependency_type().as_str(),
-        false,
-      )
-      .as_str(),
+      code_generatable_context
+        .runtime_template
+        .module_namespace_promise(
+          code_generatable_context.compilation,
+          code_generatable_context.module.identifier(),
+          &dep.id,
+          block,
+          &dep.request,
+          dep.dependency_type().as_str(),
+          false,
+          dep.get_phase(),
+        )
+        .as_str(),
       None,
     );
   }

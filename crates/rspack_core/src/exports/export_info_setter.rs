@@ -2,14 +2,14 @@ use std::collections::hash_map::Entry;
 
 use rspack_util::atom::Atom;
 
-use super::{ExportInfoData, ExportInfoTargetValue, Inlinable, UsageFilterFnTy, UsageState};
-use crate::{DependencyId, ExportsInfo, Nullable, RuntimeSpec};
+use super::{ExportInfoData, ExportInfoTargetValue, UsageFilterFnTy, UsageState};
+use crate::{CanInlineUse, DependencyId, Nullable, RuntimeSpec};
 
 impl ExportInfoData {
   pub fn reset_provide_info(&mut self) {
     self.set_provided(None);
     self.set_can_mangle_provide(None);
-    self.set_inlinable(Inlinable::NoByProvide);
+    self.set_can_inline_provide(None);
     self.set_exports_info(None);
     self.set_exports_info_owned(false);
     self.set_target_is_set(false);
@@ -190,8 +190,8 @@ impl ExportInfoData {
       self.set_can_mangle_use(Some(false));
       changed = true;
     }
-    if self.inlinable().can_inline() {
-      self.set_inlinable(Inlinable::NoByUse);
+    if self.can_inline_use() != Some(CanInlineUse::No) {
+      self.set_can_inline_use(Some(CanInlineUse::No));
       changed = true;
     }
     changed
@@ -205,24 +205,22 @@ impl ExportInfoData {
       self.set_can_mangle_use(Some(false));
       changed = true;
     }
-    if self.inlinable().can_inline() {
-      self.set_inlinable(Inlinable::NoByUse);
+    if self.can_inline_use() != Some(CanInlineUse::No) {
+      self.set_can_inline_use(Some(CanInlineUse::No));
       changed = true;
     }
     changed
   }
 
-  pub fn set_has_use_info(&mut self, nested_exports_info: &mut Vec<ExportsInfo>) {
+  pub fn set_has_use_info(&mut self) {
     if !self.has_use_in_runtime_info() {
       self.set_has_use_in_runtime_info(true);
     }
     if self.can_mangle_use().is_none() {
       self.set_can_mangle_use(Some(true));
     }
-    if self.exports_info_owned()
-      && let Some(exports_info) = self.exports_info()
-    {
-      nested_exports_info.push(exports_info);
+    if self.can_inline_use().is_none() {
+      self.set_can_inline_use(Some(CanInlineUse::HasInfo));
     }
   }
 }

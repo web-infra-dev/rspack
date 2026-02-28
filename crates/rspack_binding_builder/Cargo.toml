@@ -15,3 +15,6 @@ plugin = ["rspack_binding_api/plugin"]
 
 [dependencies]
 rspack_binding_api = { workspace = true }
+
+[lints]
+workspace = true

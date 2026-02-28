@@ -1,11 +1,14 @@
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
 
 use napi::Either;
 use napi_derive::napi;
 use rspack_plugin_mf::{
-  ConsumeOptions, ConsumeSharedPluginOptions, ConsumeVersion, ContainerPluginOptions,
-  ContainerReferencePluginOptions, ExposeOptions, ModuleFederationRuntimePluginOptions,
-  ProvideOptions, ProvideVersion, RemoteOptions,
+  CollectSharedEntryPluginOptions, ConsumeOptions, ConsumeSharedPluginOptions, ConsumeVersion,
+  ContainerPluginOptions, ContainerReferencePluginOptions, ExposeOptions, ManifestExposeOption,
+  ManifestSharedOption, ModuleFederationManifestPluginOptions,
+  ModuleFederationRuntimeExperimentsOptions, ModuleFederationRuntimePluginOptions,
+  OptimizeSharedConfig, ProvideOptions, ProvideVersion, RemoteAliasTarget, RemoteOptions,
+  SharedContainerPluginOptions, SharedUsedExportsOptimizerPluginOptions, StatsBuildInfo,
 };
 
 use crate::options::{
@@ -113,6 +116,7 @@ pub struct RawProvideOptions {
   #[napi(ts_type = "string | false | undefined")]
   pub required_version: Option<RawVersion>,
   pub strict_version: Option<bool>,
+  pub tree_shaking_mode: Option<String>,
 }
 
 impl From<RawProvideOptions> for (String, ProvideOptions) {
@@ -127,8 +131,54 @@ impl From<RawProvideOptions> for (String, ProvideOptions) {
         singleton: value.singleton,
         required_version: value.required_version.map(|v| RawVersionWrapper(v).into()),
         strict_version: value.strict_version,
+        tree_shaking_mode: value.tree_shaking_mode,
       },
     )
+  }
+}
+
+#[derive(Debug)]
+#[napi(object)]
+pub struct RawCollectShareEntryPluginOptions {
+  pub consumes: Vec<RawConsumeOptions>,
+  pub filename: Option<String>,
+}
+
+impl From<RawCollectShareEntryPluginOptions> for CollectSharedEntryPluginOptions {
+  fn from(value: RawCollectShareEntryPluginOptions) -> Self {
+    Self {
+      consumes: value
+        .consumes
+        .into_iter()
+        .map(|provide| {
+          let (key, consume_options): (String, ConsumeOptions) = provide.into();
+          (key, std::sync::Arc::new(consume_options))
+        })
+        .collect(),
+      filename: value.filename,
+    }
+  }
+}
+
+#[derive(Debug)]
+#[napi(object)]
+pub struct RawSharedContainerPluginOptions {
+  pub name: String,
+  pub request: String,
+  pub version: String,
+  pub file_name: Option<String>,
+  pub library: JsLibraryOptions,
+}
+
+impl From<RawSharedContainerPluginOptions> for SharedContainerPluginOptions {
+  fn from(value: RawSharedContainerPluginOptions) -> Self {
+    SharedContainerPluginOptions {
+      name: value.name,
+      request: value.request,
+      version: value.version,
+      library: value.library.into(),
+      file_name: value.file_name.map(Into::into),
+    }
   }
 }
 
@@ -155,6 +205,52 @@ impl From<RawConsumeSharedPluginOptions> for ConsumeSharedPluginOptions {
 
 #[derive(Debug)]
 #[napi(object)]
+pub struct RawOptimizeSharedConfig {
+  pub share_key: String,
+  pub tree_shaking: bool,
+  pub used_exports: Option<Vec<String>>,
+}
+
+impl From<RawOptimizeSharedConfig> for OptimizeSharedConfig {
+  fn from(value: RawOptimizeSharedConfig) -> Self {
+    Self {
+      share_key: value.share_key,
+      tree_shaking: value.tree_shaking,
+      used_exports: value.used_exports.unwrap_or_default(),
+    }
+  }
+}
+
+#[derive(Debug)]
+#[napi(object)]
+pub struct RawSharedUsedExportsOptimizerPluginOptions {
+  pub shared: Vec<RawOptimizeSharedConfig>,
+  pub inject_tree_shaking_used_exports: Option<bool>,
+  pub manifest_file_name: Option<String>,
+  pub stats_file_name: Option<String>,
+}
+
+impl From<RawSharedUsedExportsOptimizerPluginOptions> for SharedUsedExportsOptimizerPluginOptions {
+  fn from(value: RawSharedUsedExportsOptimizerPluginOptions) -> Self {
+    Self {
+      shared: value
+        .shared
+        .into_iter()
+        .map(|config| config.into())
+        .collect(),
+      inject_tree_shaking_used_exports: value.inject_tree_shaking_used_exports.unwrap_or(true),
+      manifest_file_name: value
+        .manifest_file_name
+        .and_then(|s| if s.trim().is_empty() { None } else { Some(s) }),
+      stats_file_name: value
+        .stats_file_name
+        .and_then(|s| if s.trim().is_empty() { None } else { Some(s) }),
+    }
+  }
+}
+
+#[derive(Debug)]
+#[napi(object)]
 pub struct RawConsumeOptions {
   pub key: String,
   pub import: Option<String>,
@@ -167,6 +263,7 @@ pub struct RawConsumeOptions {
   pub strict_version: bool,
   pub singleton: bool,
   pub eager: bool,
+  pub tree_shaking_mode: Option<String>,
 }
 
 impl From<RawConsumeOptions> for (String, ConsumeOptions) {
@@ -183,6 +280,7 @@ impl From<RawConsumeOptions> for (String, ConsumeOptions) {
         strict_version: value.strict_version,
         singleton: value.singleton,
         eager: value.eager,
+        tree_shaking_mode: value.tree_shaking_mode,
       },
     )
   }
@@ -215,12 +313,132 @@ impl From<RawVersionWrapper> for ConsumeVersion {
 pub struct RawModuleFederationRuntimePluginOptions {
   #[napi(ts_type = "string | undefined")]
   pub entry_runtime: Option<String>,
+  pub experiments: Option<RawModuleFederationRuntimeExperimentsOptions>,
 }
 
 impl From<RawModuleFederationRuntimePluginOptions> for ModuleFederationRuntimePluginOptions {
   fn from(value: RawModuleFederationRuntimePluginOptions) -> Self {
     Self {
       entry_runtime: value.entry_runtime,
+      experiments: value.experiments.map(Into::into).unwrap_or_default(),
+    }
+  }
+}
+
+#[derive(Debug, Default)]
+#[napi(object)]
+pub struct RawModuleFederationRuntimeExperimentsOptions {
+  #[napi(js_name = "asyncStartup")]
+  pub async_startup: Option<bool>,
+}
+
+impl From<RawModuleFederationRuntimeExperimentsOptions>
+  for ModuleFederationRuntimeExperimentsOptions
+{
+  fn from(value: RawModuleFederationRuntimeExperimentsOptions) -> Self {
+    Self {
+      async_startup: value.async_startup.unwrap_or(false),
+    }
+  }
+}
+
+#[derive(Debug)]
+#[napi(object)]
+pub struct RawRemoteAliasTarget {
+  pub name: String,
+  pub entry: Option<String>,
+}
+
+#[derive(Debug)]
+#[napi(object)]
+pub struct RawManifestExposeOption {
+  pub path: String,
+  pub name: String,
+}
+
+#[derive(Debug)]
+#[napi(object)]
+pub struct RawManifestSharedOption {
+  pub name: String,
+  pub version: Option<String>,
+  pub required_version: Option<String>,
+  pub singleton: Option<bool>,
+}
+
+#[derive(Debug)]
+#[napi(object)]
+pub struct RawStatsBuildInfo {
+  pub build_version: String,
+  pub build_name: Option<String>,
+  // only appear when enable tree_shaking
+  pub target: Option<Vec<String>>,
+  pub plugins: Option<Vec<String>>,
+}
+
+#[derive(Debug)]
+#[napi(object)]
+pub struct RawModuleFederationManifestPluginOptions {
+  pub name: Option<String>,
+  pub global_name: Option<String>,
+  pub file_name: Option<String>,
+  pub file_path: Option<String>,
+  pub stats_file_name: Option<String>,
+  pub manifest_file_name: Option<String>,
+  pub disable_assets_analyze: Option<bool>,
+  pub remote_alias_map: Option<HashMap<String, RawRemoteAliasTarget>>,
+  pub exposes: Option<Vec<RawManifestExposeOption>>,
+  pub shared: Option<Vec<RawManifestSharedOption>>,
+  pub build_info: Option<RawStatsBuildInfo>,
+}
+
+impl From<RawModuleFederationManifestPluginOptions> for ModuleFederationManifestPluginOptions {
+  fn from(value: RawModuleFederationManifestPluginOptions) -> Self {
+    ModuleFederationManifestPluginOptions {
+      name: value.name,
+      global_name: value.global_name,
+      stats_file_name: value.stats_file_name.unwrap_or_default(),
+      manifest_file_name: value.manifest_file_name.unwrap_or_default(),
+      disable_assets_analyze: value.disable_assets_analyze.unwrap_or(false),
+      remote_alias_map: value
+        .remote_alias_map
+        .unwrap_or_default()
+        .into_iter()
+        .map(|(k, v)| {
+          (
+            k,
+            RemoteAliasTarget {
+              name: v.name,
+              entry: v.entry,
+            },
+          )
+        })
+        .collect::<HashMap<String, RemoteAliasTarget>>(),
+      exposes: value
+        .exposes
+        .unwrap_or_default()
+        .into_iter()
+        .map(|expose| ManifestExposeOption {
+          path: expose.path,
+          name: expose.name,
+        })
+        .collect(),
+      shared: value
+        .shared
+        .unwrap_or_default()
+        .into_iter()
+        .map(|shared| ManifestSharedOption {
+          name: shared.name,
+          version: shared.version,
+          required_version: shared.required_version,
+          singleton: shared.singleton,
+        })
+        .collect(),
+      build_info: value.build_info.map(|info| StatsBuildInfo {
+        build_version: info.build_version,
+        build_name: info.build_name,
+        target: info.target,
+        plugins: info.plugins,
+      }),
     }
   }
 }

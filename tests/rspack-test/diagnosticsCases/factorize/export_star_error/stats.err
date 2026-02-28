@@ -1,0 +1,8 @@
+ERROR in ./bar.js 4:1-29
+  × ESModulesLinkingError: The requested module './result.js' contains conflicting star exports for the name 'b' with the previous requested module './foo.js'
+   ╭─[4:0]
+ 2 │ 
+ 3 │ export * from "./foo.js";
+ 4 │ export * from "./result.js";
+   · ────────────────────────────
+   ╰────

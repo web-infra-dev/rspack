@@ -1,0 +1,20 @@
+```mjs title=main.mjs
+import { createRequire as __rspack_createRequire } from "node:module";
+const __rspack_createRequire_require = __rspack_createRequire(import.meta.url);
+import * as __rspack_external_path from "path";
+
+// external
+
+// ./index.js
+
+
+it('should have correct exports', async () => {
+  const { resolve } = await import(/*webpackIgnore: true*/'./main.mjs')
+
+	const { resolve: nodeResolve } = __rspack_createRequire_require('path')
+	expect(resolve).toBe(nodeResolve)
+});
+
+export * from "path";
+
+```

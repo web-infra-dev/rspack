@@ -1,6 +1,6 @@
 use napi::bindgen_prelude::Object;
 use napi_derive::napi;
-use rspack_error::{Error, miette::IntoDiagnostic};
+use rspack_error::{Error, ToStringResultToRspackResultExt};
 use rspack_plugin_module_replacement::ContextReplacementPluginOptions;
 use rspack_regex::RspackRegex;
 use rustc_hash::FxHashMap;
@@ -32,9 +32,9 @@ impl<'a> TryFrom<RawContextReplacementPluginOptions<'a>> for ContextReplacementP
 
     let new_content_create_context_map = if let Some(raw) = new_content_create_context_map {
       let mut map = FxHashMap::default();
-      let keys = Object::keys(&raw).into_diagnostic()?;
+      let keys = Object::keys(&raw).to_rspack_result()?;
       for key in keys {
-        let value = raw.get::<String>(&key).into_diagnostic()?;
+        let value = raw.get::<String>(&key).to_rspack_result()?;
         if let Some(value) = value {
           map.insert(key, value);
         }

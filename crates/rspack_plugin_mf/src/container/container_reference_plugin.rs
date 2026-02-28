@@ -3,7 +3,7 @@ use std::sync::Arc;
 use rspack_core::{
   BoxModule, ChunkUkey, Compilation, CompilationParams, CompilationRuntimeRequirementInTree,
   CompilerCompilation, DependencyType, ExternalType, ModuleExt, ModuleFactoryCreateData,
-  NormalModuleFactoryFactorize, Plugin, RuntimeGlobals,
+  NormalModuleFactoryFactorize, Plugin, RuntimeGlobals, RuntimeModule,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -84,17 +84,17 @@ async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<B
                 let fallback_suffix = if i > 0 {
                   let mut i_buffer = itoa::Buffer::new();
                   let i_str = i_buffer.format(i);
-                  format!("/fallback-{}", i_str)
+                  format!("/fallback-{i_str}")
                 } else {
                   Default::default()
                 };
-                format!("webpack/container/reference/{}{}", key, fallback_suffix)
+                format!("webpack/container/reference/{key}{fallback_suffix}")
               }
             })
             .collect(),
           format!(".{internal_request}"),
           config.share_scope.clone(),
-          key.to_string(),
+          key.clone(),
         )
         .boxed();
         return Ok(Some(remote));
@@ -107,22 +107,21 @@ async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<B
 #[plugin_hook(CompilationRuntimeRequirementInTree for ContainerReferencePlugin)]
 async fn runtime_requirements_in_tree(
   &self,
-  compilation: &mut Compilation,
+  compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
   _all_runtime_requirements: &RuntimeGlobals,
   runtime_requirements: &RuntimeGlobals,
-  runtime_requirements_mut: &mut RuntimeGlobals,
+  _runtime_requirements_mut: &mut RuntimeGlobals,
+  runtime_modules_to_add: &mut Vec<(ChunkUkey, Box<dyn RuntimeModule>)>,
 ) -> Result<Option<()>> {
   if runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS) {
-    runtime_requirements_mut.insert(RuntimeGlobals::MODULE);
-    runtime_requirements_mut.insert(RuntimeGlobals::MODULE_FACTORIES_ADD_ONLY);
-    runtime_requirements_mut.insert(RuntimeGlobals::HAS_OWN_PROPERTY);
-    runtime_requirements_mut.insert(RuntimeGlobals::INITIALIZE_SHARING);
-    runtime_requirements_mut.insert(RuntimeGlobals::SHARE_SCOPE_MAP);
-    compilation.add_runtime_module(
-      chunk_ukey,
-      Box::new(RemoteRuntimeModule::new(self.options.enhanced)),
-    )?;
+    runtime_modules_to_add.push((
+      *chunk_ukey,
+      Box::new(RemoteRuntimeModule::new(
+        &compilation.runtime_template,
+        self.options.enhanced,
+      )),
+    ));
   }
   Ok(None)
 }

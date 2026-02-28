@@ -3,7 +3,7 @@ use std::{cmp::Ordering, sync::Arc};
 use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use rspack_core::{
   ChunkUkey, Compilation, CompilationAfterProcessAssets, CompilationAssets,
-  CompilationProcessAssets, CrossOriginLoading,
+  CompilationProcessAssets, CrossOriginLoading, ManifestAssetType,
   chunk_graph_chunk::ChunkId,
   rspack_sources::{ReplaceSource, Source},
 };
@@ -54,17 +54,13 @@ See https://w3c.github.io/webappsec-subresource-integrity/#cross-origin-data-lea
   for batch in batches {
     let chunks = batch
       .into_iter()
-      .filter_map(|c| compilation.chunk_by_ukey.get(&c))
+      .filter_map(|c| compilation.build_chunk_graph_artifact.chunk_by_ukey.get(&c))
       .collect::<Vec<_>>();
 
     let results = chunks
       .into_par_iter()
       .flat_map(|c| {
-        let mut files = c
-          .files()
-          .iter()
-          .map(|f| (c.id(&compilation.chunk_ids_artifact), f))
-          .collect::<Vec<_>>();
+        let mut files = c.files().iter().map(|f| (c.id(), f)).collect::<Vec<_>>();
         files.sort_by(|a, b| {
           let a_file = a.1.split("?").next().expect("should have a file name");
           let b_file = b.1.split("?").next().expect("should have a file name");
@@ -79,17 +75,23 @@ See https://w3c.github.io/webappsec-subresource-integrity/#cross-origin-data-lea
         files
       })
       .map(|(chunk_id, file)| {
-        if let Some(source) = compilation.assets().get(file).and_then(|a| a.get_source()) {
+        if let Some((source, asset_type)) = compilation
+          .assets()
+          .get(file)
+          .and_then(|a| a.get_source().map(|s| (s, a.get_info().asset_type)))
+        {
           process_chunk_source(
             file,
             source.clone(),
+            asset_type,
             chunk_id,
             hash_funcs,
             &hash_by_placeholders,
+            compilation.options.output.hot_update_global.as_str(),
           )
         } else {
           ProcessChunkResult {
-            file: file.to_string(),
+            file: file.clone(),
             source: None,
             warnings: vec![format!("No asset found for source path '{}'", file)],
             placeholder: None,
@@ -126,7 +128,7 @@ See https://w3c.github.io/webappsec-subresource-integrity/#cross-origin-data-lea
               should_warn_content_hash = true;
             }
 
-            let mut new_info = info.clone();
+            let mut new_info = info;
             new_info.content_hash.insert(integrity);
             Ok((Arc::new(source), new_info))
           })
@@ -155,16 +157,18 @@ Use [contenthash] and ensure "optimization.realContentHash" option is enabled."#
 fn process_chunk_source(
   file: &str,
   source: Arc<dyn Source>,
+  asset_type: ManifestAssetType,
   chunk_id: Option<&ChunkId>,
   hash_funcs: &Vec<SubresourceIntegrityHashFunction>,
   hash_by_placeholders: &HashMap<String, String>,
+  hot_update_global: &str,
 ) -> ProcessChunkResult {
   // generate new source
   let mut new_source = ReplaceSource::new(source.clone());
 
   let mut warnings = vec![];
-  let source_content = source.source();
-  if source_content.contains("webpackHotUpdate") {
+  let source_content = source.source().into_string_lossy();
+  if source_content.contains(hot_update_global) {
     warnings.push("SubresourceIntegrity: SubResourceIntegrityPlugin may interfere with hot reloading. Consider disabling this plugin in development mode.".to_string());
   }
 
@@ -173,15 +177,14 @@ fn process_chunk_source(
     if let Some(m) = caps.get(0) {
       let replacement = hash_by_placeholders
         .get(m.as_str())
-        .map(|i| i.as_str())
-        .unwrap_or(m.as_str());
+        .map_or(m.as_str(), |i| i.as_str());
       new_source.replace(m.start() as u32, m.end() as u32, replacement, None);
     }
   }
 
   // compute self integrity and placeholder
-  let integrity = compute_integrity(hash_funcs, new_source.source().as_ref());
-  let placeholder = chunk_id.map(|id| make_placeholder(hash_funcs, id.as_str()));
+  let integrity = compute_integrity(hash_funcs, new_source.source().into_string_lossy().as_ref());
+  let placeholder = chunk_id.map(|id| make_placeholder(asset_type, hash_funcs, id.as_str()));
 
   ProcessChunkResult {
     file: file.to_string(),
@@ -192,31 +195,48 @@ fn process_chunk_source(
   }
 }
 
-fn digest_chunks(compilation: &Compilation) -> Vec<HashSet<ChunkUkey>> {
+fn digest_chunks(compilation: &Compilation) -> Vec<Vec<ChunkUkey>> {
   let mut batches = vec![];
   let mut visited_chunk_groups = HashSet::default();
   let mut visited_chunks = HashSet::default();
   let mut batch_chunk_groups = compilation.entrypoints().values().collect::<Vec<_>>();
 
   while !batch_chunk_groups.is_empty() {
-    let mut chunk_batch = HashSet::default();
+    let mut chunk_batch = vec![];
+    let mut chunk_runtime_batch = vec![];
     for chunk_group in std::mem::take(&mut batch_chunk_groups) {
       if visited_chunk_groups.contains(chunk_group) {
         continue;
       }
       visited_chunk_groups.insert(chunk_group);
-      if let Some(chunk_group) = compilation.chunk_group_by_ukey.get(chunk_group) {
+      if let Some(chunk_group) = compilation
+        .build_chunk_graph_artifact
+        .chunk_group_by_ukey
+        .get(chunk_group)
+      {
         batch_chunk_groups.extend(chunk_group.children.iter());
         batch_chunk_groups.extend(chunk_group.async_entrypoints_iterable());
-        for chunk in chunk_group.chunks.iter() {
-          if visited_chunks.contains(chunk) {
+        for chunk_ukey in chunk_group.chunks.iter() {
+          if visited_chunks.contains(chunk_ukey) {
             continue;
           }
-          visited_chunks.insert(*chunk);
-          chunk_batch.insert(*chunk);
+          let Some(chunk) = compilation
+            .build_chunk_graph_artifact
+            .chunk_by_ukey
+            .get(chunk_ukey)
+          else {
+            continue;
+          };
+          visited_chunks.insert(*chunk_ukey);
+          if chunk.has_runtime(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey) {
+            chunk_runtime_batch.push(*chunk_ukey);
+          } else {
+            chunk_batch.push(*chunk_ukey);
+          }
         }
       }
     }
+    batches.push(chunk_runtime_batch);
     batches.push(chunk_batch);
   }
   batches.reverse();
@@ -237,7 +257,7 @@ async fn add_minssing_integrities(
           return None;
         }
         asset.source.as_ref().map(|s| {
-          let content = s.source();
+          let content = s.source().into_string_lossy();
           let integrity = compute_integrity(hash_func_names, &content);
           (src.clone(), integrity)
         })
@@ -282,20 +302,31 @@ pub async fn handle_assets(&self, compilation: &mut Compilation) -> Result<()> {
 }
 
 #[plugin_hook(CompilationAfterProcessAssets for SubresourceIntegrityPlugin)]
-pub async fn detect_unresolved_integrity(&self, compilation: &mut Compilation) -> Result<()> {
+pub async fn detect_unresolved_integrity(
+  &self,
+  compilation: &Compilation,
+  diagnostics: &mut Vec<Diagnostic>,
+) -> Result<()> {
   let mut contain_unresolved_files = vec![];
-  for chunk in compilation.chunk_by_ukey.values() {
+  for chunk in compilation
+    .build_chunk_graph_artifact
+    .chunk_by_ukey
+    .values()
+  {
     for file in chunk.files() {
       if let Some(source) = compilation.assets().get(file).and_then(|a| a.get_source())
-        && source.source().contains(PLACEHOLDER_PREFIX)
+        && source
+          .source()
+          .into_string_lossy()
+          .contains(PLACEHOLDER_PREFIX)
       {
-        contain_unresolved_files.push(file.to_string());
+        contain_unresolved_files.push(file.clone());
       }
     }
   }
 
   for file in contain_unresolved_files {
-    compilation.push_diagnostic(Diagnostic::error(
+    diagnostics.push(Diagnostic::error(
       "SubresourceIntegrity".to_string(),
       format!("Asset {file} contains unresolved integrity placeholders"),
     ));
@@ -316,17 +347,10 @@ pub async fn update_hash(
     .read()
     .await
     .iter()
-    .filter_map(|(k, v)| {
-      if v == old_hash {
-        Some(k.to_string())
-      } else {
-        None
-      }
-    })
-    .next();
+    .find_map(|(k, v)| if v == old_hash { Some(k.clone()) } else { None });
   if let (Some(key), Some(asset)) = (key, assets.first()) {
-    let content = asset.source();
-    let new_integrity = compute_integrity(&self.options.hash_func_names, &content);
+    let content = asset.source().into_string_lossy();
+    let new_integrity = compute_integrity(&self.options.hash_func_names, content.as_ref());
     compilation_integrities
       .write()
       .await

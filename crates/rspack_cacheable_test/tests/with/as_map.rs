@@ -3,7 +3,8 @@ use std::path::PathBuf;
 use dashmap::DashMap;
 use rspack_cacheable::{
   enable_cacheable as cacheable,
-  with::{AsCacheable, AsMap, AsString},
+  utils::PortablePath,
+  with::{As, AsCacheable, AsMap},
 };
 use rustc_hash::FxHashMap;
 
@@ -21,7 +22,7 @@ struct Module {
 #[derive(Debug)]
 struct App {
   modules: FxHashMap<ModuleId, Module>,
-  #[cacheable(with=AsMap<AsCacheable, AsString>)]
+  #[cacheable(with=AsMap<AsCacheable, As<PortablePath>>)]
   paths: DashMap<String, PathBuf>,
 }
 

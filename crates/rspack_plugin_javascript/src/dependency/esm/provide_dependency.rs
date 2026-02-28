@@ -1,15 +1,15 @@
 use itertools::Itertools;
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
-  with::{AsPreset, AsVec, Skip},
+  with::{AsPreset, AsVec},
 };
 use rspack_core::{
   AsContextDependency, Compilation, Dependency, DependencyCategory, DependencyCodeGeneration,
   DependencyId, DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType,
-  DependencyType, ExportsInfoGetter, ExtendedReferencedExport, FactorizeInfo, GetUsedNameParam,
-  InitFragmentKey, InitFragmentStage, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
-  NormalInitFragment, PrefetchExportsInfoMode, RuntimeSpec, SharedSourceMap, TemplateContext,
-  TemplateReplaceSource, UsedName, create_exports_object_referenced, module_raw,
+  DependencyType, ExportsInfoArtifact, ExportsInfoGetter, ExtendedReferencedExport, FactorizeInfo,
+  GetUsedNameParam, InitFragmentKey, InitFragmentStage, ModuleDependency, ModuleGraph,
+  ModuleGraphCacheArtifact, NormalInitFragment, PrefetchExportsInfoMode, RuntimeSpec,
+  TemplateContext, TemplateReplaceSource, UsedName, create_exports_object_referenced,
 };
 use rspack_util::ext::DynHash;
 use swc_core::atoms::Atom;
@@ -24,8 +24,7 @@ pub struct ProvideDependency {
   #[cacheable(with=AsVec<AsPreset>)]
   ids: Vec<Atom>,
   range: DependencyRange,
-  #[cacheable(with=Skip)]
-  source_map: Option<SharedSourceMap>,
+  loc: Option<DependencyLocation>,
   factorize_info: FactorizeInfo,
 }
 
@@ -35,12 +34,12 @@ impl ProvideDependency {
     request: Atom,
     identifier: String,
     ids: Vec<Atom>,
-    source_map: Option<SharedSourceMap>,
+    loc: Option<DependencyLocation>,
   ) -> Self {
     Self {
       range,
       request,
-      source_map,
+      loc,
       identifier,
       ids,
       id: DependencyId::new(),
@@ -56,7 +55,7 @@ impl Dependency for ProvideDependency {
   }
 
   fn loc(&self) -> Option<DependencyLocation> {
-    self.range.to_loc(self.source_map.as_ref())
+    self.loc.clone()
   }
 
   fn category(&self) -> &DependencyCategory {
@@ -71,6 +70,7 @@ impl Dependency for ProvideDependency {
     &self,
     _module_graph: &ModuleGraph,
     _module_graph_cache: &ModuleGraphCacheArtifact,
+    _exports_info_artifact: &ExportsInfoArtifact,
     _runtime: Option<&RuntimeSpec>,
   ) -> Vec<ExtendedReferencedExport> {
     if self.ids.is_empty() {
@@ -161,7 +161,7 @@ impl DependencyTemplate for ProvideDependencyTemplate {
     let TemplateContext {
       compilation,
       runtime,
-      runtime_requirements,
+      runtime_template,
       init_fragments,
       ..
     } = code_generatable_context;
@@ -172,22 +172,21 @@ impl DependencyTemplate for ProvideDependencyTemplate {
     };
 
     let used_name = if dep.ids.is_empty() {
-      let exports_info = ExportsInfoGetter::prefetch_used_info_without_name(
-        &module_graph.get_exports_info(con.module_identifier()),
-        &module_graph,
-        *runtime,
-        false,
-      );
+      let exports_info_used = compilation
+        .exports_info_artifact
+        .get_prefetched_exports_info_used(con.module_identifier(), *runtime);
       ExportsInfoGetter::get_used_name(
-        GetUsedNameParam::WithoutNames(&exports_info),
+        GetUsedNameParam::WithoutNames(&exports_info_used),
         *runtime,
         &dep.ids,
       )
     } else {
-      let exports_info = module_graph.get_prefetched_exports_info(
-        con.module_identifier(),
-        PrefetchExportsInfoMode::Nested(&dep.ids),
-      );
+      let exports_info = compilation
+        .exports_info_artifact
+        .get_prefetched_exports_info(
+          con.module_identifier(),
+          PrefetchExportsInfoMode::Nested(&dep.ids),
+        );
       ExportsInfoGetter::get_used_name(
         GetUsedNameParam::WithNames(&exports_info),
         *runtime,
@@ -199,13 +198,7 @@ impl DependencyTemplate for ProvideDependencyTemplate {
       format!(
         "/* provided dependency */ var {} = {}{};\n",
         dep.identifier,
-        module_raw(
-          compilation,
-          runtime_requirements,
-          dep.id(),
-          dep.request(),
-          dep.weak()
-        ),
+        runtime_template.module_raw(compilation, dep.id(), dep.request(), dep.weak()),
         path_to_string(used_name.as_ref())
       ),
       InitFragmentStage::StageProvides,

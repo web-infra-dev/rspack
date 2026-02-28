@@ -194,7 +194,7 @@ pub(super) mod concatenated_module_entries {
   use super::*;
   use crate::ModuleIdentifier;
 
-  pub type ConcatenatedModuleEntriesCacheKey = (ModuleIdentifier, String);
+  pub type ConcatenatedModuleEntriesCacheKey = (ModuleIdentifier, Option<RuntimeKey>);
 
   #[derive(Debug, Default)]
   pub struct ConcatenatedModuleEntriesCache {

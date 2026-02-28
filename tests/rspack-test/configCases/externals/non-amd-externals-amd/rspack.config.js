@@ -1,0 +1,26 @@
+const { rspack } = require("@rspack/core");
+/** @type {import("@rspack/core").Configuration} */
+module.exports = {
+	output: {
+		library: { type: "amd" }
+	},
+	externals: {
+		external0: "external0",
+		external1: "var 'abc'"
+	},
+	node: {
+		__dirname: false,
+		__filename: false
+	},
+	target: "web",
+	externalsPresets: {
+		node: true
+	},
+	plugins: [
+		new rspack.BannerPlugin({
+			raw: true,
+			banner:
+				"function define(deps, fn) { fn(...deps.map(dep => require(dep))); }\n"
+		})
+	]
+};

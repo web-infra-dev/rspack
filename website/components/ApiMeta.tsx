@@ -1,4 +1,5 @@
 import { useLang } from '@rspress/core/runtime';
+import { Link } from '@rspress/core/theme';
 import styles from './ApiMeta.module.scss';
 
 /**
@@ -29,26 +30,22 @@ export function ApiMeta(props: ApiMetaProps) {
     `https://github.com/web-infra-dev/rspack/releases/tag/v${version.replace('v', '')}`;
 
   return (
-    <div className={wrapperStyle}>
+    <div className={`${wrapperStyle} rp-not-doc`}>
       {props.addedVersion && (
         <span className={`${tagStyle} ${styles.added}`}>
-          <a
-            href={getGitTagHref(props.addedVersion)}
-            target="_blank"
-            rel="noreferrer"
-          >
+          <Link href={getGitTagHref(props.addedVersion)}>
             Added in v{props.addedVersion}
-          </a>
+          </Link>
         </span>
       )}
       {props.deprecatedVersion && (
         <span className={`${tagStyle} ${styles.deprecated}`}>
-          <a href={href}>Deprecated in v{props.deprecatedVersion}</a>
+          <Link href={href}>Deprecated in v{props.deprecatedVersion}</Link>
         </span>
       )}
       {props.removedVersion && (
         <span className={`${tagStyle} ${styles.removed}`}>
-          <a href={href}>Removed in v{props.removedVersion}</a>
+          <Link href={href}>Removed in v{props.removedVersion}</Link>
         </span>
       )}
       {props.stability && (

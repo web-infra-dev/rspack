@@ -1,10 +1,17 @@
 use rspack_collections::IdentifierMap;
 
-use crate::{ModuleIdentifier, RuntimeGlobals, RuntimeSpec, RuntimeSpecMap};
+use crate::{
+  ArtifactExt, ModuleIdentifier, RuntimeGlobals, RuntimeSpec, RuntimeSpecMap,
+  incremental::IncrementalPasses,
+};
 
 #[derive(Debug, Default)]
 pub struct CgmRuntimeRequirementsArtifact {
   module_to_runtime_requirements: IdentifierMap<RuntimeSpecMap<RuntimeGlobals>>,
+}
+
+impl ArtifactExt for CgmRuntimeRequirementsArtifact {
+  const PASS: IncrementalPasses = IncrementalPasses::MODULES_RUNTIME_REQUIREMENTS;
 }
 
 impl CgmRuntimeRequirementsArtifact {

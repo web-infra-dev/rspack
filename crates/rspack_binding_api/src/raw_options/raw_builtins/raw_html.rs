@@ -3,18 +3,14 @@ use std::str::FromStr;
 use napi::bindgen_prelude::{Either3, Promise};
 use napi_derive::napi;
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
-use rspack_plugin_html::{
-  config::{
-    HtmlChunkSortMode, HtmlInject, HtmlRspackPluginBaseOptions, HtmlRspackPluginOptions,
-    HtmlScriptLoading, TemplateParameterFn, TemplateParameters, TemplateRenderFn,
-  },
-  sri::HtmlSriHashFunction,
+use rspack_plugin_html::config::{
+  HtmlChunkSortMode, HtmlInject, HtmlRspackPluginBaseOptions, HtmlRspackPluginOptions,
+  HtmlScriptLoading, TemplateParameterFn, TemplateParameters, TemplateRenderFn,
 };
 use rustc_hash::FxHashMap as HashMap;
 
 pub type RawHtmlScriptLoading = String;
 pub type RawHtmlInject = String;
-pub type RawHtmlSriHashFunction = String;
 pub type RawHtmlFilename = Vec<String>;
 type RawChunkSortMode = String;
 
@@ -51,8 +47,6 @@ pub struct RawHtmlRspackPluginOptions {
   #[napi(ts_type = "\"auto\" | \"manual\"")]
   pub chunks_sort_mode: RawChunkSortMode,
 
-  #[napi(ts_type = "\"sha256\" | \"sha384\" | \"sha512\"")]
-  pub sri: Option<RawHtmlSriHashFunction>,
   pub minify: Option<bool>,
   pub title: Option<String>,
   pub favicon: Option<String>,
@@ -71,10 +65,6 @@ impl From<RawHtmlRspackPluginOptions> for HtmlRspackPluginOptions {
 
     let chunks_sort_mode =
       HtmlChunkSortMode::from_str(&value.chunks_sort_mode).expect("Invalid chunks_sort_mode value");
-
-    let sri = value.sri.as_ref().map(|s| {
-      HtmlSriHashFunction::from_str(s).unwrap_or_else(|_| panic!("Invalid sri value: {s}"))
-    });
 
     HtmlRspackPluginOptions {
       filename: value
@@ -113,7 +103,6 @@ impl From<RawHtmlRspackPluginOptions> for HtmlRspackPluginOptions {
       chunks: value.chunks,
       exclude_chunks: value.exclude_chunks,
       chunks_sort_mode,
-      sri,
       minify: value.minify,
       title: value.title,
       favicon: value.favicon,

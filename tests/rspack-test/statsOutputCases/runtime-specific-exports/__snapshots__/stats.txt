@@ -1,0 +1,10 @@
+asset main.js xx KiB [emitted] (name: main)
+./example.js xx bytes [built] [code generated]
+  [no exports used]
+./increment.js xx bytes [built] [code generated]
+  [exports: decrement, increment, incrementBy2]
+  [only some exports used: increment]
+./math.js xx bytes [built] [code generated]
+  [exports: add, multiply]
+  [only some exports used: add]
+Rspack x.x.x compiled successfully in X s

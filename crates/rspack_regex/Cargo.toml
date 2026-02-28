@@ -11,6 +11,7 @@ version.workspace = true
 [dependencies]
 cow-utils        = { workspace = true }
 napi             = { workspace = true }
+regex            = { workspace = true }
 regex-syntax     = { workspace = true }
 regress          = { workspace = true, features = ["backend-pikevm", "std"] }
 rspack_cacheable = { workspace = true }
@@ -26,3 +27,6 @@ swc_core = { workspace = true, features = [
   "__utils",
   "ecma_preset_env",
 ] }
+
+[lints]
+workspace = true

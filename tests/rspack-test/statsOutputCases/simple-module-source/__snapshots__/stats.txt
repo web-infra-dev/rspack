@@ -1,0 +1,7 @@
+asset bundle.js xx KiB [emitted] (name: main)
+runtime modules xx bytes 3 modules
+orphan modules xx bytes [orphan] 1 module
+cacheable modules xx bytes
+  ./index.js xx bytes [built] [code generated]
+  ./raw.png xx bytes [built] [code generated]
+Rspack compiled successfully

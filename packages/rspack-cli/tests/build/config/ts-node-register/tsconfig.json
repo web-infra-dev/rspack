@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "rootDir": ".",
+    "target": "ESNext",
+    "module": "commonjs",
+    "noEmit": true,
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "types": ["./namespace.d.ts"]
+  },
+  "include": ["**/*.ts", "**/*.js"]
+}

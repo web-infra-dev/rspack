@@ -1,0 +1,3 @@
+runtime modules xx bytes 3 modules
+./index.js xx bytes [built] [code generated]
+./a.js!=!data:javascript,var __looooooooo.. xx bytes [built] [code generated]

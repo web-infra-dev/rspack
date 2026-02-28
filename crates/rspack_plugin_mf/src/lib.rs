@@ -1,4 +1,5 @@
 mod container;
+mod manifest;
 mod sharing;
 
 pub use container::{
@@ -6,11 +7,18 @@ pub use container::{
   container_reference_plugin::{
     ContainerReferencePlugin, ContainerReferencePluginOptions, RemoteOptions,
   },
+  embed_federation_runtime_module::EmbedFederationRuntimeModule,
   module_federation_runtime_plugin::{
-    ModuleFederationRuntimePlugin, ModuleFederationRuntimePluginOptions,
+    ModuleFederationRuntimeExperimentsOptions, ModuleFederationRuntimePlugin,
+    ModuleFederationRuntimePluginOptions,
   },
 };
+pub use manifest::{
+  ManifestExposeOption, ManifestSharedOption, ModuleFederationManifestPlugin,
+  ModuleFederationManifestPluginOptions, RemoteAliasTarget, StatsBuildInfo,
+};
 pub use sharing::{
+  collect_shared_entry_plugin::{CollectSharedEntryPlugin, CollectSharedEntryPluginOptions},
   consume_shared_module::ConsumeSharedModule,
   consume_shared_plugin::{
     ConsumeOptions, ConsumeSharedPlugin, ConsumeSharedPluginOptions, ConsumeVersion,
@@ -22,6 +30,10 @@ pub use sharing::{
   },
   share_runtime_plugin::ShareRuntimePlugin,
   share_usage_plugin::{ShareUsagePlugin, ShareUsagePluginOptions},
+  shared_container_plugin::{SharedContainerPlugin, SharedContainerPluginOptions},
+  shared_used_exports_optimizer_plugin::{
+    OptimizeSharedConfig, SharedUsedExportsOptimizerPlugin, SharedUsedExportsOptimizerPluginOptions,
+  },
 };
 
 mod utils {

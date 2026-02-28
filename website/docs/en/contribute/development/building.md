@@ -18,5 +18,6 @@ pnpm i
 
 - Run `cargo build` to compile Rust code.
 - Run `pnpm run build:cli:dev` to compile both Node.js and Rust code.
+- If you want to build Rspack Wasm, run `pnpm run build:cli:dev:wasm`.
 
 The built binary is located at `packages/rspack-cli/bin/rspack`.

@@ -9,12 +9,11 @@ Shared binding API for Rspack, providing bridge interfaces between Rspack core f
 ## Features
 
 - `browser`: Enable browser environment support
-- `color-backtrace`: Enable colored error backtraces
 - `debug_tool`: Enable debug tools
 - `plugin`: Enable SWC plugin support
 - `sftrace-setup`: Enable performance tracing setup
 
-## Important Notice
+## Important notice
 
 ⚠️ **Version Compatibility Warning**
 
@@ -24,24 +23,27 @@ Shared binding API for Rspack, providing bridge interfaces between Rspack core f
 - It is recommended to lock specific version numbers in production environments
 - Please thoroughly test all functionality before upgrading
 
-## API Usage Warning
+## API usage warning
 
 🚨 **This package's API should NOT be used as a public Rust API**
 
 This crate is designed to be linked as a **C dynamic library** during Rspack binding generation, not as a public Rust API for external consumption.
 
-### For Developers
+### For developers
 
 If you're working on Rspack itself:
+
 - This crate is safe to use within the Rspack project
 - Changes should be coordinated with the binding generation process
 - Test thoroughly when making changes
 
 If you're an external developer:
+
 - Do not depend on this crate directly
 - Use the official Rspack Node.js package instead
 - Report issues through the main Rspack repository
 
 If you're a user of Rspack custom binding:
+
 - Do not depend on this crate directly
 - Use [`rspack_binding_builder`](https://crates.io/crates/rspack_binding_builder) to build your own binding

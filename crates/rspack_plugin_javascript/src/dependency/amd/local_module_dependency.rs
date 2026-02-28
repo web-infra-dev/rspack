@@ -25,10 +25,6 @@ impl LocalModuleDependency {
       call_new,
     }
   }
-
-  pub fn get_variable_name(&self) -> String {
-    self.local_module.variable_name()
-  }
 }
 
 #[cacheable_dyn]
@@ -37,8 +33,8 @@ impl Dependency for LocalModuleDependency {
     &self.id
   }
 
-  fn range(&self) -> Option<&DependencyRange> {
-    self.range.as_ref()
+  fn range(&self) -> Option<DependencyRange> {
+    self.range
   }
 
   fn could_affect_referencing_module(&self) -> AffectType {

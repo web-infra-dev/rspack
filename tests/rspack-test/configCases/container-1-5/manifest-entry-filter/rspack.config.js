@@ -1,0 +1,59 @@
+const { ModuleFederationPlugin } = require("@rspack/core").container;
+const path = require('path');
+
+/** @type {import("@rspack/core").Configuration} */
+module.exports = {
+	entry: {
+		main: './index.js',
+		host: './main.js'
+	},
+	optimization:{
+		chunkIds: 'named',
+		moduleIds: 'named',
+		splitChunks: {
+			cacheGroups: {
+				mainVendor: {
+					test: /main-vendor/,
+					name: 'vendors-main-vendor',
+					chunks: 'all',
+					enforce: true
+				}
+			}
+		}
+	},
+	output: {
+		filename: '[name].js',
+		chunkFilename: '[name].js',
+	},
+	plugins: [
+		new ModuleFederationPlugin({
+			name: "container",
+			filename: "container.[chunkhash:8].js",
+			library: { type: "commonjs-module" },
+			manifest: true,
+			exposes: {
+				'./expose-a': {
+					import: './module.js',
+					name:'_federation_expose_a'
+				}
+			},
+			remoteType:'script',
+			remotes: {
+				'@remote/alias': 'remote@http://localhost:8000/remoteEntry.js',
+				"dynamic-remote": "dynamic_remote@http://localhost:8001/remoteEntry.js"
+			},
+			shared: {
+				'xreact': {},
+				'@scope-sc/dep1':{
+					singleton:true,
+					requiredVersion: '^1.0.0'
+				},
+				'@scope-sc2/dep2':{
+					singleton:false,
+					requiredVersion: '>=1.0.0'
+				}
+			},
+			runtimePlugins: [path.resolve(__dirname, './runtime-plugin.js')],
+		})
+	]
+};

@@ -12,16 +12,14 @@ use indexmap::{IndexMap, IndexSet};
 use regex::{Captures, Regex};
 use rspack_core::{
   ChunkGraph, Compilation, CompilerOptions, CssExportsConvention, GenerateContext, LocalIdentName,
-  PathData, RESERVED_IDENTIFIER, ResourceData, RuntimeGlobals,
+  ModuleArgument, ModuleCodeTemplate, PathData, RESERVED_IDENTIFIER, ResourceData, RuntimeGlobals,
+  RuntimeSpec, UsedNameItem,
   rspack_sources::{ConcatSource, RawStringSource},
   to_identifier,
 };
-use rspack_error::{
-  DiagnosticExt, Result, RspackSeverity, ToStringResultToRspackResultExt, TraceableError,
-  miette::Diagnostic,
-};
+use rspack_error::{Diagnostic, Error, Result, Severity, ToStringResultToRspackResultExt};
 use rspack_hash::RspackHash;
-use rspack_util::{identifier::make_paths_relative, itoa, json_stringify};
+use rspack_util::{atom::Atom, identifier::make_paths_relative, itoa, json_stringify};
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::parser_and_generator::CssExport;
@@ -43,7 +41,8 @@ impl<'a> LocalIdentOptions<'a> {
     local_name_ident: &'a LocalIdentName,
     compiler_options: &'a CompilerOptions,
   ) -> Self {
-    let relative_resource = make_paths_relative(&compiler_options.context, &resource_data.resource);
+    let relative_resource =
+      make_paths_relative(&compiler_options.context, resource_data.resource());
     Self {
       relative_resource,
       local_name_ident,
@@ -150,31 +149,34 @@ pub fn css_modules_exports_to_string<'a>(
   exports: IndexMap<&'a str, &'a IndexSet<CssExport>>,
   module: &dyn rspack_core::Module,
   compilation: &Compilation,
-  runtime_requirements: &mut RuntimeGlobals,
+  runtime: Option<&RuntimeSpec>,
+  runtime_template: &mut ModuleCodeTemplate,
   ns_obj: &str,
   left: &str,
   right: &str,
   with_hmr: bool,
 ) -> Result<String> {
   let (decl_name, exports_string) =
-    stringified_exports(exports, compilation, runtime_requirements, module)?;
+    stringified_exports(exports, compilation, runtime_template, module, runtime)?;
+
+  let module_argument = runtime_template.render_module_argument(ModuleArgument::Module);
 
   let hmr_code = if with_hmr {
     Cow::Owned(format!(
       "// only invalidate when locals change
 var stringified_exports = JSON.stringify({decl_name});
-if (module.hot.data && module.hot.data.exports && module.hot.data.exports != stringified_exports) {{
-  module.hot.invalidate();
+if ({module_argument}.hot.data && {module_argument}.hot.data.exports && {module_argument}.hot.data.exports != stringified_exports) {{
+  {module_argument}.hot.invalidate();
 }} else {{
-  module.hot.accept(); 
+  {module_argument}.hot.accept(); 
 }}
-module.hot.dispose(function(data) {{ data.exports = stringified_exports; }});"
+{module_argument}.hot.dispose(function(data) {{ data.exports = stringified_exports; }});"
     ))
   } else {
     Cow::Borrowed("")
   };
   let mut code =
-    format!("{exports_string}\n{hmr_code}\n{ns_obj}{left}module.exports = {decl_name}",);
+    format!("{exports_string}\n{hmr_code}\n{ns_obj}{left}{module_argument}.exports = {decl_name}",);
   code += right;
   code += ";\n";
   Ok(code)
@@ -183,57 +185,89 @@ module.hot.dispose(function(data) {{ data.exports = stringified_exports; }});"
 pub fn stringified_exports<'a>(
   exports: IndexMap<&'a str, &'a IndexSet<CssExport>>,
   compilation: &Compilation,
-  runtime_requirements: &mut RuntimeGlobals,
+  runtime_template: &mut ModuleCodeTemplate,
   module: &dyn rspack_core::Module,
+  runtime: Option<&RuntimeSpec>,
 ) -> Result<(&'static str, String)> {
   let mut stringified_exports = String::new();
   let module_graph = compilation.get_module_graph();
+  let exports_info = compilation
+    .exports_info_artifact
+    .get_prefetched_exports_info(
+      &module.identifier(),
+      rspack_core::PrefetchExportsInfoMode::Default,
+    );
   for (key, elements) in exports {
+    let export_info = exports_info.get_read_only_export_info(&Atom::from(key));
+    let used_name = export_info.get_used_name(None, runtime);
+    let used_name = match used_name {
+      Some(UsedNameItem::Str(name)) => name.to_string(),
+      _ => key.to_string(),
+    };
+
     let content = elements
       .iter()
-      .map(|CssExport { ident, from, id: _ }| match from {
-        None => json_stringify(&ident),
-        Some(from_name) => {
-          let from = module
-            .get_dependencies()
-            .iter()
-            .find_map(|id| {
-              let dependency = module_graph.dependency_by_id(id);
-              let request = if let Some(d) = dependency.and_then(|d| d.as_module_dependency()) {
-                Some(d.request())
-              } else {
-                dependency
-                  .and_then(|d| d.as_context_dependency())
-                  .map(|d| d.request())
-              };
-              if let Some(request) = request
-                && request == from_name
-              {
-                return module_graph.module_graph_module_by_dependency_id(id);
-              }
-              None
-            })
-            .expect("should have css from module");
+      .map(
+        |CssExport {
+           ident,
+           from,
+           id: _,
+           orig_name: _,
+         }| match from {
+          None => json_stringify(&ident),
+          Some(from_name) => {
+            let from = module
+              .get_dependencies()
+              .iter()
+              .find_map(|id| {
+                let dependency = module_graph.dependency_by_id(id);
+                let request = if let Some(d) = dependency.as_module_dependency() {
+                  Some(d.request())
+                } else {
+                  dependency.as_context_dependency().map(|d| d.request())
+                };
+                if let Some(request) = request
+                  && request == from_name
+                {
+                  return module_graph.module_graph_module_by_dependency_id(id);
+                }
+                None
+              })
+              .expect("should have css from module");
 
-          let from = serde_json::to_string(
-            ChunkGraph::get_module_id(&compilation.module_ids_artifact, from.module_identifier)
-              .expect("should have module"),
-          )
-          .expect("should json stringify module id");
-          runtime_requirements.insert(RuntimeGlobals::REQUIRE);
-          format!(
-            "{}({from})[{}]",
-            RuntimeGlobals::REQUIRE,
-            json_stringify(&unescape(ident))
-          )
-        }
-      })
+            let from_exports_info = compilation
+              .exports_info_artifact
+              .get_prefetched_exports_info(
+                &from.module_identifier,
+                rspack_core::PrefetchExportsInfoMode::Default,
+              );
+            let from_used_name = match from_exports_info
+              .get_read_only_export_info(&Atom::from(ident.as_str()))
+              .get_used_name(None, runtime)
+            {
+              Some(UsedNameItem::Str(name)) => json_stringify(&unescape(name.as_str())),
+              _ => json_stringify(&unescape(ident)),
+            };
+
+            let from = serde_json::to_string(
+              ChunkGraph::get_module_id(&compilation.module_ids_artifact, from.module_identifier)
+                .expect("should have module"),
+            )
+            .expect("should json stringify module id");
+            format!(
+              "{}({from})[{}]",
+              runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
+              from_used_name
+            )
+          }
+        },
+      )
       .collect::<Vec<_>>()
       .join(" + \" \" + ");
     writeln!(
       stringified_exports,
       "  {}: {},",
-      json_stringify(&key),
+      json_stringify(&used_name),
       content
     )
     .to_rspack_result()?;
@@ -255,6 +289,8 @@ pub fn css_modules_exports_to_concatenate_module_string<'a>(
   let GenerateContext {
     compilation,
     concatenation_scope,
+    runtime,
+    runtime_template,
     ..
   } = generate_context;
   let Some(scope) = concatenation_scope else {
@@ -262,48 +298,80 @@ pub fn css_modules_exports_to_concatenate_module_string<'a>(
   };
   let module_graph = compilation.get_module_graph();
   let mut used_identifiers = HashSet::default();
+  let exports_info = compilation
+    .exports_info_artifact
+    .get_prefetched_exports_info(
+      &module.identifier(),
+      rspack_core::PrefetchExportsInfoMode::Default,
+    );
   for (key, elements) in exports {
+    let export_info = exports_info.get_read_only_export_info(&Atom::from(key));
+    let used_name = export_info.get_used_name(None, *runtime);
+    let used_name = match used_name {
+      Some(UsedNameItem::Str(name)) => name.to_string(),
+      _ => key.to_string(),
+    };
+
     let content = elements
       .iter()
-      .map(|CssExport { ident, from, id: _ }| match from {
-        None => json_stringify(&ident),
-        Some(from_name) => {
-          let from = module
-            .get_dependencies()
-            .iter()
-            .find_map(|id| {
-              let dependency = module_graph.dependency_by_id(id);
-              let request = if let Some(d) = dependency.and_then(|d| d.as_module_dependency()) {
-                Some(d.request())
-              } else {
-                dependency
-                  .and_then(|d| d.as_context_dependency())
-                  .map(|d| d.request())
-              };
-              if let Some(request) = request
-                && request == from_name
-              {
-                return module_graph.module_graph_module_by_dependency_id(id);
-              }
-              None
-            })
-            .expect("should have css from module");
+      .map(
+        |CssExport {
+           ident,
+           from,
+           id: _,
+           orig_name: _,
+         }| match from {
+          None => json_stringify(&ident),
+          Some(from_name) => {
+            let from = module
+              .get_dependencies()
+              .iter()
+              .find_map(|id| {
+                let dependency = module_graph.dependency_by_id(id);
+                let request = if let Some(d) = dependency.as_module_dependency() {
+                  Some(d.request())
+                } else {
+                  dependency.as_context_dependency().map(|d| d.request())
+                };
+                if let Some(request) = request
+                  && request == from_name
+                {
+                  return module_graph.module_graph_module_by_dependency_id(id);
+                }
+                None
+              })
+              .expect("should have css from module");
 
-          let from = serde_json::to_string(
-            ChunkGraph::get_module_id(&compilation.module_ids_artifact, from.module_identifier)
-              .expect("should have module"),
-          )
-          .expect("should json stringify module id");
-          format!(
-            "{}({from})[{}]",
-            RuntimeGlobals::REQUIRE,
-            json_stringify(&ident)
-          )
-        }
-      })
+            let from_exports_info = compilation
+              .exports_info_artifact
+              .get_prefetched_exports_info(
+                &from.module_identifier,
+                rspack_core::PrefetchExportsInfoMode::Default,
+              );
+            let from_used_name = match from_exports_info
+              .get_read_only_export_info(&Atom::from(ident.as_str()))
+              .get_used_name(None, *runtime)
+            {
+              Some(UsedNameItem::Str(name)) => json_stringify(&name),
+              _ => json_stringify(&ident),
+            };
+
+            let from = serde_json::to_string(
+              ChunkGraph::get_module_id(&compilation.module_ids_artifact, from.module_identifier)
+                .expect("should have module"),
+            )
+            .expect("should json stringify module id");
+            format!(
+              "{}({from})[{}]",
+              runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
+              from_used_name
+            )
+          }
+        },
+      )
       .collect::<Vec<_>>()
       .join(" + \" \" + ");
-    let mut identifier = to_identifier(key);
+    let mut identifier: Cow<'_, str> = Cow::Owned(to_identifier(&used_name).into_owned());
     if RESERVED_IDENTIFIER.contains(identifier.as_ref()) {
       identifier = Cow::Owned(format!("_{identifier}"));
     }
@@ -311,7 +379,7 @@ pub fn css_modules_exports_to_concatenate_module_string<'a>(
     while used_identifiers.contains(&identifier) {
       let mut i_buffer = itoa::Buffer::new();
       let i_str = i_buffer.format(i);
-      identifier = Cow::Owned(format!("{identifier}{}", i_str));
+      identifier = Cow::Owned(format!("{identifier}{i_str}"));
       i += 1;
     }
     // TODO: conditional support `const or var` after we finished runtimeTemplate utils
@@ -416,40 +484,39 @@ pub fn css_parsing_traceable_error(
   start: css_module_lexer::Pos,
   end: css_module_lexer::Pos,
   message: impl Into<String>,
-  severity: RspackSeverity,
-) -> TraceableError {
-  TraceableError::from_arc_string(
-    Some(source_code),
+  severity: Severity,
+) -> Error {
+  let mut error = Error::from_string(
+    Some(source_code.to_string()),
     start as usize,
     end as usize,
     match severity {
-      RspackSeverity::Error => "CSS parse error".to_string(),
-      RspackSeverity::Warn => "CSS parse warning".to_string(),
+      Severity::Error => "CSS parse error".to_string(),
+      Severity::Warning => "CSS parse warning".to_string(),
     },
     message.into(),
-  )
-  .with_severity(severity)
+  );
+  error.severity = severity;
+  error
 }
 
 pub fn replace_module_request_prefix<'s>(
   specifier: &'s str,
-  diagnostics: &mut Vec<Box<dyn Diagnostic + Send + Sync>>,
+  diagnostics: &mut Vec<Diagnostic>,
   source_code: impl Fn() -> Arc<String>,
   start: css_module_lexer::Pos,
   end: css_module_lexer::Pos,
 ) -> &'s str {
   if let Some(specifier) = specifier.strip_prefix('~') {
-    diagnostics.push(
-      css_parsing_traceable_error(
-        source_code(),
-        start,
-        end,
-        "'@import' or 'url()' with a request starts with '~' is deprecated.".to_string(),
-        RspackSeverity::Warn,
-      )
-      .with_help(Some("Remove '~' from the request."))
-      .boxed(),
+    let mut error = css_parsing_traceable_error(
+      source_code(),
+      start,
+      end,
+      "'@import' or 'url()' with a request starts with '~' is deprecated.".to_string(),
+      Severity::Warning,
     );
+    error.help = Some("Remove '~' from the request.".into());
+    diagnostics.push(error.into());
     specifier
   } else {
     specifier

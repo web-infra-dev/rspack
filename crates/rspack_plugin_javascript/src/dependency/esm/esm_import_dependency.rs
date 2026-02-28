@@ -1,24 +1,17 @@
-use rspack_cacheable::{
-  cacheable, cacheable_dyn,
-  with::{AsPreset, Skip},
-};
+use rspack_cacheable::{cacheable, cacheable_dyn, with::AsPreset};
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   AsContextDependency, AwaitDependenciesInitFragment, BuildMetaDefaultObject, ChunkGraph,
   ConditionalInitFragment, ConnectionState, Dependency, DependencyCategory,
   DependencyCodeGeneration, DependencyCondition, DependencyConditionFn, DependencyId,
   DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
-  ErrorSpan, ExportProvided, ExportsType, ExtendedReferencedExport, FactorizeInfo, ForwardId,
-  ImportAttributes, InitFragmentExt, InitFragmentKey, InitFragmentStage, LazyUntil,
-  ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
-  PrefetchExportsInfoMode, ProvidedExports, RuntimeCondition, RuntimeSpec, SharedSourceMap,
-  TemplateContext, TemplateReplaceSource, TypeReexportPresenceMode, filter_runtime,
-  import_statement,
+  ExportProvided, ExportsInfoArtifact, ExportsType, ExtendedReferencedExport, FactorizeInfo,
+  ForwardId, ImportAttributes, ImportPhase, InitFragmentExt, InitFragmentKey, InitFragmentStage,
+  LazyUntil, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
+  PrefetchExportsInfoMode, ProvidedExports, ResourceIdentifier, RuntimeCondition, RuntimeSpec,
+  SourceType, TemplateContext, TemplateReplaceSource, TypeReexportPresenceMode, filter_runtime,
 };
-use rspack_error::{
-  Diagnostic, DiagnosticExt, TraceableError,
-  miette::{MietteDiagnostic, Severity},
-};
+use rspack_error::{Diagnostic, Error, Severity};
 use swc_core::ecma::atoms::Atom;
 
 use super::create_resource_identifier_for_esm_dependency;
@@ -31,7 +24,10 @@ pub mod import_emitted_runtime {
   use once_cell::sync::OnceCell;
   use rspack_collections::{IdentifierDashMap, IdentifierMap};
   use rspack_core::{ModuleIdentifier, RuntimeCondition};
+  #[cfg(allocative)]
+  use rspack_util::allocative;
 
+  #[cfg_attr(allocative, allocative::root)]
   static IMPORT_EMITTED_MAP: OnceCell<IdentifierDashMap<IdentifierMap<RuntimeCondition>>> =
     OnceCell::new();
 
@@ -67,12 +63,11 @@ pub struct ESMImportSideEffectDependency {
   source_order: i32,
   id: DependencyId,
   range: DependencyRange,
-  range_src: DependencyRange,
   dependency_type: DependencyType,
+  phase: ImportPhase,
   attributes: Option<ImportAttributes>,
-  resource_identifier: String,
-  #[cacheable(with=Skip)]
-  source_map: Option<SharedSourceMap>,
+  resource_identifier: ResourceIdentifier,
+  loc: Option<DependencyLocation>,
   factorize_info: FactorizeInfo,
   lazy_make: bool,
   star_export: bool,
@@ -84,10 +79,10 @@ impl ESMImportSideEffectDependency {
     request: Atom,
     source_order: i32,
     range: DependencyRange,
-    range_src: DependencyRange,
     dependency_type: DependencyType,
+    phase: ImportPhase,
     attributes: Option<ImportAttributes>,
-    source_map: Option<SharedSourceMap>,
+    loc: Option<DependencyLocation>,
     star_export: bool,
   ) -> Self {
     let resource_identifier =
@@ -97,11 +92,11 @@ impl ESMImportSideEffectDependency {
       source_order,
       request,
       range,
-      range_src,
       dependency_type,
+      phase,
       attributes,
       resource_identifier,
-      source_map,
+      loc,
       factorize_info: Default::default(),
       lazy_make: false,
       star_export,
@@ -116,13 +111,14 @@ impl ESMImportSideEffectDependency {
 pub fn esm_import_dependency_apply<T: ModuleDependency>(
   module_dependency: &T,
   source_order: i32,
+  phase: ImportPhase,
   code_generatable_context: &mut TemplateContext,
 ) {
   let TemplateContext {
     compilation,
     module,
     runtime,
-    runtime_requirements,
+    runtime_template,
     ..
   } = code_generatable_context;
   // Only available when module factorization is successful.
@@ -130,7 +126,12 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
   let module_graph_cache = &compilation.module_graph_cache_artifact;
   let connection = module_graph.connection_by_dependency_id(module_dependency.id());
   let is_target_active = if let Some(con) = connection {
-    con.is_target_active(&module_graph, *runtime, module_graph_cache)
+    con.is_target_active(
+      module_graph,
+      *runtime,
+      module_graph_cache,
+      &compilation.exports_info_artifact,
+    )
   } else {
     true
   };
@@ -139,15 +140,16 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
     return;
   }
 
-  let ref_module = module_graph.module_identifier_by_dependency_id(module_dependency.id());
+  let target_module = module_graph.get_module_by_dependency_id(module_dependency.id());
   if module_dependency.weak() {
     // lazy
-    if ref_module.is_none() {
+    if target_module.is_none() {
       return;
     }
     // weak
-    if let Some(ref_module) = ref_module
-      && ChunkGraph::get_module_id(&compilation.module_ids_artifact, *ref_module).is_none()
+    if let Some(target_module) = target_module
+      && ChunkGraph::get_module_id(&compilation.module_ids_artifact, target_module.identifier())
+        .is_none()
     {
       return;
     }
@@ -158,18 +160,31 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
   } else if let Some(connection) = module_graph.connection_by_dependency_id(module_dependency.id())
   {
     filter_runtime(*runtime, |r| {
-      connection.is_target_active(&module_graph, r, module_graph_cache)
+      connection.is_target_active(
+        module_graph,
+        r,
+        module_graph_cache,
+        &compilation.exports_info_artifact,
+      )
     })
   } else {
     RuntimeCondition::Boolean(true)
   };
 
-  let content: (String, String) = import_statement(
+  let import_var = compilation.get_import_var(
+    module.identifier(),
+    target_module,
+    module_dependency.user_request(),
+    phase,
+    *runtime,
+  );
+  let content: (String, String) = runtime_template.import_statement(
     *module,
     compilation,
-    runtime_requirements,
     module_dependency.id(),
+    &import_var,
     module_dependency.request(),
+    phase,
     false,
   );
   let TemplateContext {
@@ -178,21 +193,26 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
     module,
     ..
   } = code_generatable_context;
-  let import_var = compilation.get_import_var(module_dependency.id());
 
   // https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/dependencies/HarmonyImportDependency.js#L282-L285
-  let module_key = ref_module
-    .map(|i| i.as_str())
-    .unwrap_or(module_dependency.request());
-  let key = format!("ESM import {module_key}");
+  let module_key = target_module.map_or(module_dependency.request(), |m| m.identifier().as_str());
+  let key = format!(
+    "{}ESM import {module_key}",
+    match phase {
+      ImportPhase::Evaluation => "",
+      ImportPhase::Source => "",
+      ImportPhase::Defer => "deferred ",
+    }
+  );
 
   // The import emitted map is consumed by ESMAcceptDependency which enabled by HotModuleReplacementPlugin
   if let Some(import_emitted_map) = import_emitted_runtime::get_map()
-    && let Some(ref_module) = ref_module
+    && let Some(target_module) = target_module
   {
+    let target_module = target_module.identifier();
     let mut emitted_modules = import_emitted_map.entry(module.identifier()).or_default();
 
-    let old_runtime_condition = match emitted_modules.get(ref_module) {
+    let old_runtime_condition = match emitted_modules.get(&target_module) {
       Some(v) => v.to_owned(),
       None => RuntimeCondition::Boolean(false),
     };
@@ -212,21 +232,20 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
           .extend(old_runtime_condition.as_spec().expect("should be spec"));
       }
     }
-    emitted_modules.insert(*ref_module, merged_runtime_condition);
+    emitted_modules.insert(target_module, merged_runtime_condition);
   }
 
-  let is_async_module =
-    matches!(ref_module, Some(ref_module) if ModuleGraph::is_async(compilation, ref_module));
+  let is_async_module = matches!(target_module, Some(target_module) if ModuleGraph::is_async(&compilation.async_modules_artifact, &target_module.identifier()));
   if is_async_module {
     init_fragments.push(Box::new(ConditionalInitFragment::new(
       content.0,
       InitFragmentStage::StageESMImports,
       source_order,
-      InitFragmentKey::ESMImport(key.to_string()),
+      InitFragmentKey::ESMImport(key.clone()),
       None,
       runtime_condition.clone(),
     )));
-    init_fragments.push(AwaitDependenciesInitFragment::new_single(import_var.to_string()).boxed());
+    init_fragments.push(AwaitDependenciesInitFragment::new_single(import_var).boxed());
     init_fragments.push(Box::new(ConditionalInitFragment::new(
       content.1,
       InitFragmentStage::StageAsyncESMImports,
@@ -240,18 +259,20 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
       format!("{}{}", content.0, content.1),
       InitFragmentStage::StageESMImports,
       source_order,
-      InitFragmentKey::ESMImport(key.to_string()),
+      InitFragmentKey::ESMImport(key),
       None,
       runtime_condition,
     )));
   }
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
   module_dependency: &T,
   ids: &[Atom],
   module_graph: &ModuleGraph,
   module_graph_cache: &ModuleGraphCacheArtifact,
+  exports_info_artifact: &ExportsInfoArtifact,
   name: &Atom,
   is_reexport: bool,
   should_error: bool,
@@ -269,6 +290,7 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
   let exports_type = imported_module.get_exports_type(
     module_graph,
     module_graph_cache,
+    exports_info_artifact,
     parent_module.build_meta().strict_esm_module,
   );
   let additional_msg = || {
@@ -284,31 +306,25 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
     } else {
       (Severity::Warning, "ESModulesLinkingWarning")
     };
-    let mut diagnostic = if let Some(span) = module_dependency.range()
+    let mut error = if let Some(span) = module_dependency.range()
       && let Some(source) = parent_module.source()
     {
-      Diagnostic::from(
-        TraceableError::from_file(
-          source.source().into_owned(),
-          span.start as usize,
-          span.end as usize,
-          title.to_string(),
-          message,
-        )
-        .with_severity(severity)
-        .boxed(),
+      Error::from_string(
+        Some(source.source().into_string_lossy().into_owned()),
+        span.start as usize,
+        span.end as usize,
+        title.to_string(),
+        message,
       )
-      .with_hide_stack(Some(true))
     } else {
-      Diagnostic::from(
-        MietteDiagnostic::new(message)
-          .with_code(title)
-          .with_severity(severity)
-          .boxed(),
-      )
-      .with_hide_stack(Some(true))
+      let mut error = rspack_error::error!(message);
+      error.code = Some(title.into());
+      error
     };
-    diagnostic = diagnostic.with_module_identifier(Some(*parent_module_identifier));
+    error.severity = severity;
+    error.hide_stack = Some(true);
+    let mut diagnostic = Diagnostic::from(error);
+    diagnostic.module_identifier = Some(*parent_module_identifier);
     diagnostic
   };
   if matches!(
@@ -319,7 +335,7 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
       return None;
     }
     let imported_module_identifier = imported_module.identifier();
-    let exports_info = module_graph.get_prefetched_exports_info(
+    let exports_info = exports_info_artifact.get_prefetched_exports_info(
       &imported_module_identifier,
       PrefetchExportsInfoMode::Nested(ids),
     );
@@ -349,8 +365,10 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
         .is_some()
         && ids.len() == 1
         && matches!(
-          module_graph
-            .get_prefetched_exports_info(parent_module_identifier, PrefetchExportsInfoMode::Default)
+          exports_info_artifact.get_prefetched_exports_info(
+            parent_module_identifier,
+            PrefetchExportsInfoMode::Default,
+          )
             .is_export_provided(std::slice::from_ref(name)),
           Some(ExportProvided::Provided)
         )
@@ -371,7 +389,7 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
         }
       }
       let mut pos = 0;
-      let mut maybe_exports_info = Some(module_graph.get_prefetched_exports_info(
+      let mut maybe_exports_info = Some(exports_info_artifact.get_prefetched_exports_info(
         &imported_module_identifier,
         PrefetchExportsInfoMode::Nested(ids),
       ));
@@ -494,12 +512,10 @@ fn find_type_exports_from_outgoings(
     if visited.contains(connection.module_identifier()) {
       continue;
     }
-    let dependency = mg
-      .dependency_by_id(&connection.dependency_id)
-      .expect("should have dependency");
+    let dependency = mg.dependency_by_id(&connection.dependency_id);
     if !matches!(
       dependency.dependency_type(),
-      DependencyType::EsmImport | DependencyType::EsmExport
+      DependencyType::EsmImport | DependencyType::EsmExportImport
     ) {
       continue;
     }
@@ -517,11 +533,11 @@ impl Dependency for ESMImportSideEffectDependency {
   }
 
   fn loc(&self) -> Option<DependencyLocation> {
-    self.range.to_loc(self.source_map.as_ref())
+    self.loc.clone()
   }
 
-  fn range(&self) -> Option<&DependencyRange> {
-    Some(&self.range)
+  fn range(&self) -> Option<DependencyRange> {
+    Some(self.range)
   }
 
   fn source_order(&self) -> Option<i32> {
@@ -534,6 +550,10 @@ impl Dependency for ESMImportSideEffectDependency {
 
   fn dependency_type(&self) -> &DependencyType {
     &self.dependency_type
+  }
+
+  fn get_phase(&self) -> ImportPhase {
+    self.phase
   }
 
   fn get_attributes(&self) -> Option<&ImportAttributes> {
@@ -570,6 +590,7 @@ impl Dependency for ESMImportSideEffectDependency {
     &self,
     _module_graph: &ModuleGraph,
     _module_graph_cache: &ModuleGraphCacheArtifact,
+    _exports_info_artifact: &ExportsInfoArtifact,
     _runtime: Option<&RuntimeSpec>,
   ) -> Vec<ExtendedReferencedExport> {
     vec![]
@@ -600,30 +621,6 @@ impl Dependency for ESMImportSideEffectDependency {
   }
 }
 
-struct ESMImportSideEffectDependencyCondition;
-
-impl DependencyConditionFn for ESMImportSideEffectDependencyCondition {
-  fn get_connection_state(
-    &self,
-    conn: &rspack_core::ModuleGraphConnection,
-    _runtime: Option<&RuntimeSpec>,
-    module_graph: &ModuleGraph,
-    module_graph_cache: &ModuleGraphCacheArtifact,
-  ) -> ConnectionState {
-    let id = *conn.module_identifier();
-    if let Some(module) = module_graph.module_by_identifier(&id) {
-      module.get_side_effects_connection_state(
-        module_graph,
-        module_graph_cache,
-        &mut IdentifierSet::default(),
-        &mut IdentifierMap::default(),
-      )
-    } else {
-      ConnectionState::Active(true)
-    }
-  }
-}
-
 #[cacheable_dyn]
 impl ModuleDependency for ESMImportSideEffectDependency {
   fn request(&self) -> &str {
@@ -634,12 +631,8 @@ impl ModuleDependency for ESMImportSideEffectDependency {
     &self.request
   }
 
-  fn source_span(&self) -> Option<ErrorSpan> {
-    Some(ErrorSpan::new(self.range_src.start, self.range_src.end))
-  }
-
   fn get_condition(&self) -> Option<DependencyCondition> {
-    Some(DependencyCondition::new_fn(
+    Some(DependencyCondition::new(
       ESMImportSideEffectDependencyCondition,
     ))
   }
@@ -654,6 +647,31 @@ impl ModuleDependency for ESMImportSideEffectDependency {
 }
 
 impl AsContextDependency for ESMImportSideEffectDependency {}
+
+struct ESMImportSideEffectDependencyCondition;
+
+impl DependencyConditionFn for ESMImportSideEffectDependencyCondition {
+  fn get_connection_state(
+    &self,
+    conn: &rspack_core::ModuleGraphConnection,
+    _runtime: Option<&RuntimeSpec>,
+    module_graph: &ModuleGraph,
+    module_graph_cache: &ModuleGraphCacheArtifact,
+    _exports_info_artifact: &ExportsInfoArtifact,
+  ) -> ConnectionState {
+    let id = *conn.module_identifier();
+    if let Some(module) = module_graph.module_by_identifier(&id) {
+      module.get_side_effects_connection_state(
+        module_graph,
+        module_graph_cache,
+        &mut IdentifierSet::default(),
+        &mut IdentifierMap::default(),
+      )
+    } else {
+      ConnectionState::Active(true)
+    }
+  }
+}
 
 #[cacheable_dyn]
 impl DependencyCodeGeneration for ESMImportSideEffectDependency {
@@ -689,12 +707,24 @@ impl DependencyTemplate for ESMImportSideEffectDependencyTemplate {
       ..
     } = code_generatable_context;
     let module_graph = compilation.get_module_graph();
-    if let Some(scope) = concatenation_scope {
-      let module = module_graph.get_module_by_dependency_id(&dep.id);
-      if module.is_some_and(|m| scope.is_module_in_scope(&m.identifier())) {
+
+    let module = module_graph.get_module_by_dependency_id(&dep.id);
+
+    if let Some(module) = module {
+      let source_types = module.source_types(module_graph);
+      if source_types
+        .iter()
+        .all(|source_type| matches!(source_type, SourceType::Css))
+      {
         return;
       }
     }
-    esm_import_dependency_apply(dep, dep.source_order, code_generatable_context);
+
+    if let Some(scope) = concatenation_scope
+      && module.is_some_and(|m| scope.is_module_in_scope(&m.identifier()))
+    {
+      return;
+    }
+    esm_import_dependency_apply(dep, dep.source_order, dep.phase, code_generatable_context);
   }
 }

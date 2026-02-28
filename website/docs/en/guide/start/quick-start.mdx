@@ -25,11 +25,8 @@ You can refer to the following installation guides and choose one runtime:
 
 :::tip Version requirements
 
-Rspack has the following Node.js version requirements:
-
-- `@rspack/cli >= v1.0.0` requires Node.js 18.12.0 or higher.
-- `@rspack/core >= v1.5.0` requires Node.js 18.12.0 or higher.
-- `@rspack/core < v1.5.0` requires Node.js 16.0.0 or higher.
+- Rspack v2 requires Node.js 20.19.0 or higher.
+- Rspack v1 requires Node.js 18.12.0 or higher.
 
 :::
 
@@ -55,30 +52,32 @@ Run the following command to create an Rspack CLI project:
 
 Then follow the prompts in your terminal.
 
-### Quick creation
+### Non-interactive mode
 
-[create-rspack](https://www.npmjs.com/package/create-rspack) and [create-rsbuild](https://www.npmjs.com/package/create-rsbuild) provides some CLI flags. By setting these CLI flags, you can skip the interactive selection steps and create the project with one command.
+[create-rspack](https://www.npmjs.com/package/create-rspack) and [create-rsbuild](https://www.npmjs.com/package/create-rsbuild) support a non-interactive mode through command-line options. This mode lets you skip all prompts and create a project directly, which is useful for scripts, CI, and coding agents.
 
-For example, to create a React project in the `my-project` directory with one command:
+For example, the following command creates a React app in the `my-app` directory:
 
 ```bash
 # Rspack CLI
-npx create-rspack --dir my-project --template react
+npx -y create-rspack --dir my-app --template react
+
 # Rsbuild
-npx create-rsbuild --dir my-project --template react
+npx -y create-rsbuild --dir my-app --template react
+
 # Using abbreviations
-npx create-rsbuild -d my-project -t react
+npx -y create-rsbuild -d my-app -t react
 ```
 
 ## Online examples
 
 We provide an online example based on Rsbuild. The example gives an intuitive feel for the build performance of Rspack and the development experience of Rsbuild:
 
-- [Rsbuild CodeSandbox example](https://codesandbox.io/p/github/rspack-contrib/rsbuild-codesandbox-example)
+- [Rsbuild CodeSandbox example](https://codesandbox.io/p/github/rstackjs/rsbuild-codesandbox-example)
 
 Here we also provide an online example based on Wasm and WebContainer on StackBlitz:
 
-- [Rsbuild StackBlitz Example](https://stackblitz.com/~/github.com/rspack-contrib/rsbuild-stackblitz-example)
+- [Rsbuild StackBlitz Example](https://stackblitz.com/~/github.com/rstackjs/rsbuild-stackblitz-example)
 
 ## Manual installation
 
@@ -100,7 +99,8 @@ Update your build scripts to use Rspack CLI:
 {
   "scripts": {
     "dev": "rspack dev",
-    "build": "rspack build"
+    "build": "rspack build",
+    "preview": "rspack preview"
   }
 }
 ```
@@ -118,32 +118,6 @@ If you need to migrate from an existing project to Rspack, you can refer to the 
 - [Migrating from Vite to Rsbuild](https://rsbuild.rs/guide/migration/vite)
 - [Migrating from Tsup to Rslib](https://rslib.rs/guide/migration/tsup)
 - [Migrating from Storybook](/guide/migration/storybook)
-
-## Preview with StackBlitz
-
-Rspack >= 1.4 includes a Wasm binding, which makes Rspack available in [StackBlitz](https://stackblitz.com/) (WebContainers). Currently, if you want to preview your Rspack projects on StackBlitz, you need to specify the CPU architecture when installing dependencies. Different package managers have different ways to do it.
-
-For npm, you can specify the conditions for optional dependencies with `--cpu` option:
-
-```bash
-npm install --cpu=wasm32
-```
-
-For pnpm, you need to specify [supportedArchitectures](https://pnpm.io/settings#supportedarchitectures) in your `package.json`:
-
-```json title="package.json"
-{
-  "pnpm": {
-    "supportedArchitectures": {
-      "cpu": ["wasm32"]
-    }
-  }
-}
-```
-
-For other package managers, please refer to their respective documentation.
-
-In the future, we will continue to optimize the workflow, making users seamlessly preview Rspack projects. Additionally, we are planing to provide `@rspack/browser` package, allowing you to use Rspack directly in the browser.
 
 ## Install canary version
 
@@ -166,7 +140,7 @@ Here is an example of using pnpm overrides:
 }
 ```
 
-Rspack community also provides [install-rspack](https://github.com/rspack-contrib/install-rspack) tool to easily install canary version:
+Rspack community also provides [install-rspack](https://github.com/rstackjs/install-rspack) tool to easily install canary version:
 
 ```shell
 npx install-rspack --version latest # Install the latest version

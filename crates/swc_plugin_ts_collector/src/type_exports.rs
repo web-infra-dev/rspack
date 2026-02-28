@@ -60,37 +60,34 @@ impl Visit for TypeExportsCollector<'_> {
                         .as_ref()
                         .unwrap_or(&specifier.orig)
                         .atom()
-                        .clone(),
+                        .into_owned(),
                     ),
                     _ => None,
                   }
                 }));
             } else {
               for specifier in &named_export.specifiers {
-                match specifier {
-                  ExportSpecifier::Named(specifier) => {
-                    if specifier.is_type_only {
-                      self.type_exports.insert(
-                        specifier
-                          .exported
-                          .as_ref()
-                          .unwrap_or(&specifier.orig)
-                          .atom()
-                          .clone(),
-                      );
-                    } else if named_export.src.is_none() {
-                      self.export_idents.insert(
-                        specifier.orig.atom().clone(),
-                        specifier
-                          .exported
-                          .as_ref()
-                          .unwrap_or(&specifier.orig)
-                          .atom()
-                          .clone(),
-                      );
-                    }
+                if let ExportSpecifier::Named(specifier) = specifier {
+                  if specifier.is_type_only {
+                    self.type_exports.insert(
+                      specifier
+                        .exported
+                        .as_ref()
+                        .unwrap_or(&specifier.orig)
+                        .atom()
+                        .into_owned(),
+                    );
+                  } else if named_export.src.is_none() {
+                    self.export_idents.insert(
+                      specifier.orig.atom().into_owned(),
+                      specifier
+                        .exported
+                        .as_ref()
+                        .unwrap_or(&specifier.orig)
+                        .atom()
+                        .into_owned(),
+                    );
                   }
-                  _ => continue,
                 }
               }
             }
@@ -130,7 +127,7 @@ impl Visit for TypeExportsCollector<'_> {
       self
         .export_idents
         .iter()
-        .filter(|(export_ident, _)| self.type_idents.contains(export_ident))
+        .filter(|(export_ident, _)| self.type_idents.contains(*export_ident))
         .map(|(_, exported_as)| exported_as.clone()),
     );
   }

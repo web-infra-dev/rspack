@@ -13,7 +13,7 @@ use rustc_hash::FxHashMap as HashMap;
 use crate::{
   Chunk, ChunkByUkey, ChunkGroupByUkey, ChunkGroupUkey, ChunkLoading, ChunkUkey, Compilation,
   DependencyLocation, DynamicImportFetchPriority, Filename, LibraryOptions, ModuleIdentifier,
-  ModuleLayer, PublicPath, compare_chunk_group,
+  ModuleLayer, PublicPath, WasmLoading, compare_chunk_group,
 };
 
 #[derive(Debug, Clone)]
@@ -111,13 +111,7 @@ impl ChunkGroup {
     self
       .chunks
       .iter()
-      .flat_map(|chunk_ukey| {
-        chunk_by_ukey
-          .expect_get(chunk_ukey)
-          .files()
-          .iter()
-          .map(|file| file.to_string())
-      })
+      .flat_map(|chunk_ukey| chunk_by_ukey.expect_get(chunk_ukey).files().iter().cloned())
       .collect()
   }
 
@@ -126,15 +120,15 @@ impl ChunkGroup {
     chunk.add_group(self.ukey);
   }
 
-  pub fn unshift_chunk(&mut self, chunk: &mut Chunk) -> bool {
-    if let Ok(index) = self.chunks.binary_search(&chunk.ukey()) {
+  pub fn unshift_chunk(&mut self, chunk: ChunkUkey) -> bool {
+    if let Ok(index) = self.chunks.binary_search(&chunk) {
       if index > 0 {
         self.chunks.remove(index);
-        self.chunks.insert(0, chunk.ukey());
+        self.chunks.insert(0, chunk);
       }
       false
     } else {
-      self.chunks.insert(0, chunk.ukey());
+      self.chunks.insert(0, chunk);
       true
     }
   }
@@ -289,21 +283,12 @@ impl ChunkGroup {
       .iter()
       .filter_map(|chunk| {
         compilation
+          .build_chunk_graph_artifact
           .chunk_by_ukey
           .get(chunk)
-          .and_then(|item| item.id(&compilation.chunk_ids_artifact))
+          .and_then(|item| item.id())
       })
       .join("+")
-  }
-
-  pub fn get_parents<'a>(
-    &'a self,
-    chunk_group_by_ukey: &'a ChunkGroupByUkey,
-  ) -> Vec<&'a ChunkGroup> {
-    self
-      .parents_iterable()
-      .map(|ukey| chunk_group_by_ukey.expect_get(ukey))
-      .collect_vec()
   }
 
   pub fn name(&self) -> Option<&str> {
@@ -351,7 +336,11 @@ impl ChunkGroup {
     for order_key in orders {
       let mut list = vec![];
       for child_ukey in &self.children {
-        let Some(child_group) = compilation.chunk_group_by_ukey.get(child_ukey) else {
+        let Some(child_group) = compilation
+          .build_chunk_graph_artifact
+          .chunk_group_by_ukey
+          .get(child_ukey)
+        else {
           continue;
         };
         if let Some(order) = child_group
@@ -463,6 +452,7 @@ pub struct EntryOptions {
   pub name: Option<String>,
   pub runtime: Option<EntryRuntime>,
   pub chunk_loading: Option<ChunkLoading>,
+  pub wasm_loading: Option<WasmLoading>,
   pub async_chunks: Option<bool>,
   pub public_path: Option<PublicPath>,
   pub base_uri: Option<String>,
@@ -488,6 +478,7 @@ impl EntryOptions {
     merge_field!(name);
     merge_field!(runtime);
     merge_field!(chunk_loading);
+    merge_field!(wasm_loading);
     merge_field!(async_chunks);
     merge_field!(public_path);
     merge_field!(base_uri);

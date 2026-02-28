@@ -1,0 +1,53 @@
+used-exports:
+  asset used-exports-c.js xx KiB [emitted] (name: c)
+  asset used-exports-b.js xx KiB [emitted] (name: b)
+  asset used-exports-830.js xx bytes [emitted]
+  asset used-exports-a.js xx bytes [emitted] (name: a)
+  Entrypoint a xx bytes = used-exports-a.js
+  Entrypoint b xx KiB = used-exports-830.js xx bytes used-exports-b.js xx KiB
+  Entrypoint c xx KiB = used-exports-830.js xx bytes used-exports-c.js xx KiB
+  chunk (runtime: a) used-exports-a.js (a) xx bytes [entry] [rendered]
+    ./a.js + 1 modules xx bytes [code generated]
+  chunk (runtime: b) used-exports-b.js (b) xx bytes (javascript) xx KiB (runtime) [entry] [rendered]
+    ./b.js xx bytes [built] [code generated]
+  chunk (runtime: b, c) used-exports-830.js (id hint: ) xx bytes [initial] [rendered] split chunk (cache group: default)
+    ./objects.js xx bytes [built] [code generated]
+  chunk (runtime: c) used-exports-c.js (c) xx bytes (javascript) xx KiB (runtime) [entry] [rendered]
+    ./c.js xx bytes [built] [code generated]
+  used-exports (Rspack x.x.x) compiled successfully in X s
+
+no-used-exports:
+  asset no-used-exports-c.js xx KiB [emitted] (name: c)
+  asset no-used-exports-a.js xx KiB [emitted] (name: a)
+  asset no-used-exports-b.js xx KiB [emitted] (name: b)
+  asset no-used-exports-830.js xx bytes [emitted]
+  Entrypoint a xx KiB = no-used-exports-830.js xx bytes no-used-exports-a.js xx KiB
+  Entrypoint b xx KiB = no-used-exports-830.js xx bytes no-used-exports-b.js xx KiB
+  Entrypoint c xx KiB = no-used-exports-830.js xx bytes no-used-exports-c.js xx KiB
+  chunk (runtime: a) no-used-exports-a.js (a) xx bytes (javascript) xx KiB (runtime) [entry] [rendered]
+    ./a.js xx bytes [built] [code generated]
+  chunk (runtime: b) no-used-exports-b.js (b) xx bytes (javascript) xx KiB (runtime) [entry] [rendered]
+    ./b.js xx bytes [built] [code generated]
+  chunk (runtime: a, b, c) no-used-exports-830.js (id hint: ) xx bytes [initial] [rendered] split chunk (cache group: default)
+    ./objects.js xx bytes [built] [code generated]
+  chunk (runtime: c) no-used-exports-c.js (c) xx bytes (javascript) xx KiB (runtime) [entry] [rendered]
+    ./c.js xx bytes [built] [code generated]
+  no-used-exports (Rspack x.x.x) compiled successfully in X s
+
+global:
+  asset global-c.js xx KiB [emitted] (name: c)
+  asset global-a.js xx KiB [emitted] (name: a)
+  asset global-b.js xx KiB [emitted] (name: b)
+  asset global-830.js xx bytes [emitted]
+  Entrypoint a xx KiB = global-830.js xx bytes global-a.js xx KiB
+  Entrypoint b xx KiB = global-830.js xx bytes global-b.js xx KiB
+  Entrypoint c xx KiB = global-830.js xx bytes global-c.js xx KiB
+  chunk (runtime: a) global-a.js (a) xx bytes (javascript) xx KiB (runtime) [entry] [rendered]
+    ./a.js xx bytes [built] [code generated]
+  chunk (runtime: b) global-b.js (b) xx bytes (javascript) xx KiB (runtime) [entry] [rendered]
+    ./b.js xx bytes [built] [code generated]
+  chunk (runtime: a, b, c) global-830.js (id hint: ) xx bytes [initial] [rendered] split chunk (cache group: default)
+    ./objects.js xx bytes [built] [code generated]
+  chunk (runtime: c) global-c.js (c) xx bytes (javascript) xx KiB (runtime) [entry] [rendered]
+    ./c.js xx bytes [built] [code generated]
+  global (Rspack x.x.x) compiled successfully in X s

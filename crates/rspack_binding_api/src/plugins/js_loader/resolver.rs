@@ -4,7 +4,7 @@ use rspack_cacheable::{
   cacheable, cacheable_dyn,
   with::{AsOption, AsRefStr},
 };
-use rspack_collections::{Identifiable, Identifier};
+use rspack_collections::Identifier;
 use rspack_core::{
   BoxLoader, Context, Loader, ModuleRuleUseLoader, NormalModuleFactoryResolveLoader, ResolveResult,
   Resolver, Resource, RunnerContext,
@@ -24,14 +24,12 @@ pub struct JsLoader(
 
 #[cacheable_dyn]
 impl Loader<RunnerContext> for JsLoader {
-  fn r#type(&self) -> Option<&str> {
-    self.1.as_deref()
-  }
-}
-
-impl Identifiable for JsLoader {
   fn identifier(&self) -> Identifier {
     self.0
+  }
+
+  fn r#type(&self) -> Option<&str> {
+    self.1.as_deref()
   }
 }
 

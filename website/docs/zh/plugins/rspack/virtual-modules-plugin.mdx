@@ -2,28 +2,33 @@ import { ApiMeta } from '@components/ApiMeta.tsx';
 
 # VirtualModulesPlugin
 
-<ApiMeta specific={['Rspack']} />
+<ApiMeta specific={['Rspack']} addedVersion="1.5.0" />
 
-`rspack.experiments.VirtualModulesPlugin` 是 Rust 实现的 [`webpack-virtual-modules`](https://github.com/sysgears/webpack-virtual-modules) 插件，它与 Rspack 深度集成，在提供相同功能的同时拥有更好的性能。
+`VirtualModulesPlugin` 允许你在内存中创建、修改和删除文件，Rspack 会将这些虚拟文件视为真实存在于文件系统中的文件进行处理。
+
+该插件是 [webpack-virtual-modules](https://github.com/sysgears/webpack-virtual-modules) 的 Rust 实现版本，与 Rspack 深度集成，在提供相同功能的同时拥有更好的性能。
 
 ## 使用方法
 
 ### 基础用法
 
-创建一个新的 VirtualModulesPlugin 实例，可以在构造函数中传入虚拟模块：
+创建 `VirtualModulesPlugin` 实例时，可以在构造函数中直接配置虚拟模块：
 
 ```ts
-new rspack.experiments.VirtualModulesPlugin(modules?: Record<string, string>)
+import { rspack } from '@rspack/core';
+
+new rspack.experiments.VirtualModulesPlugin({
+  // ...modules
+});
 ```
 
-**参数：**
+- **参数：**
+  - `modules`（可选）：一个对象，其中键是文件路径，值是文件内容。
 
-- `modules`（可选）：一个对象，其中键是文件路径，值是文件内容。
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
 
-```js title="rspack.config.js"
-const rspack = require('@rspack/core');
-
-module.exports = {
+export default {
   plugins: [
     new rspack.experiments.VirtualModulesPlugin({
       'src/generated/config.js': 'export default { version: "1.0.0" };',
@@ -38,28 +43,36 @@ module.exports = {
 
 ### 动态模块创建
 
-你可以使用 `writeModule` 方法动态创建或修改虚拟模块：
+你可以使用 `writeModule` 方法动态创建或修改虚拟模块。
+
+:::note
+因为插件的虚拟模块是在 Rust 侧管理的，所以 `writeModule` 方法只有在 Rust 编译器初始化后才可用。
+例如，在 `beforeCompile` 或 `compile` 钩子中调用 `writeModule` 会抛出以下错误：`Error: Virtual file store has not been initialized.`
+:::
+
+- **类型：**
 
 ```ts
-writeModule(filePath: string, contents: string): void
+function writeModule(filePath: string, contents: string): void;
 ```
 
-**参数：**
+- **参数：**
+  - `filePath`：相对于 [compiler.context](/api/javascript-api/compiler#context) 的虚拟文件路径
+  - `contents`：虚拟文件的内容
 
-- `filePath`：相对于 `compiler.context` 的虚拟文件路径
-- `contents`：虚拟文件的内容
+- **示例：**
 
-```js title="rspack.config.js"
-const rspack = require('@rspack/core');
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
 
 const virtualModulesPlugin = new rspack.experiments.VirtualModulesPlugin();
 
-module.exports = {
+export default {
   plugins: [
     virtualModulesPlugin,
     {
       apply(compiler) {
-        compiler.hooks.beforeCompile.tap('MyPlugin', () => {
+        compiler.hooks.thisCompilation.tap('MyPlugin', () => {
           // 动态创建模块
           const moduleContent = generateSomeContent();
           virtualModulesPlugin.writeModule('src/dynamic.js', moduleContent);

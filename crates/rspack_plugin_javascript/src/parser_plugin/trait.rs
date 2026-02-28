@@ -11,8 +11,9 @@ use swc_core::{
 use crate::{
   utils::eval::BasicEvaluatedExpression,
   visitors::{
-    ClassDeclOrExpr, ExportDefaultDeclaration, ExportDefaultExpression, ExportImport, ExportLocal,
-    ExportedVariableInfo, JavascriptParser, Statement, VariableDeclaration,
+    ClassDeclOrExpr, DestructuringAssignmentProperty, ExportDefaultDeclaration,
+    ExportDefaultExpression, ExportImport, ExportLocal, ExportedVariableInfo, JavascriptParser,
+    Statement, VariableDeclaration,
   },
 };
 
@@ -79,6 +80,14 @@ pub trait JavascriptParserPlugin {
     None
   }
 
+  fn evaluate<'a>(
+    &self,
+    _parser: &mut JavascriptParser,
+    _expr: &'a Expr,
+  ) -> Option<BasicEvaluatedExpression<'a>> {
+    None
+  }
+
   fn evaluate_typeof<'a>(
     &self,
     _parser: &mut JavascriptParser,
@@ -105,6 +114,14 @@ pub trait JavascriptParserPlugin {
     _expr: &'a CallExpr,
     _param: BasicEvaluatedExpression<'a>,
   ) -> Option<BasicEvaluatedExpression<'a>> {
+    None
+  }
+
+  fn can_collect_destructuring_assignment_properties(
+    &self,
+    _parser: &mut JavascriptParser,
+    _expr: &Expr,
+  ) -> Option<bool> {
     None
   }
 
@@ -168,19 +185,29 @@ pub trait JavascriptParserPlugin {
     None
   }
 
+  #[allow(clippy::too_many_arguments)]
   fn member_chain_of_call_member_chain(
     &self,
     _parser: &mut JavascriptParser,
-    _expr: &MemberExpr,
+    _member_expr: &MemberExpr,
+    _callee_members: &[Atom],
+    _call_expr: &CallExpr,
+    _members: &[Atom],
+    _member_ranges: &[Span],
     _for_name: &str,
   ) -> Option<bool> {
     None
   }
 
+  #[allow(clippy::too_many_arguments)]
   fn call_member_chain_of_call_member_chain(
     &self,
     _parser: &mut JavascriptParser,
-    _expr: &CallExpr,
+    _call_expr: &CallExpr,
+    _callee_members: &[Atom],
+    _inner_call_expr: &CallExpr,
+    _members: &[Atom],
+    _member_ranges: &[Span],
     _for_name: &str,
   ) -> Option<bool> {
     None
@@ -209,11 +236,7 @@ pub trait JavascriptParserPlugin {
 
   /// Return:
   /// - `None` means should walk left and right;
-  fn binary_expression(
-    &self,
-    _parser: &mut JavascriptParser,
-    _expr: &BinExpr,
-  ) -> Option<KeepRight> {
+  fn binary_expression(&self, _parser: &mut JavascriptParser, _expr: &BinExpr) -> Option<bool> {
     None
   }
 
@@ -280,21 +303,40 @@ pub trait JavascriptParserPlugin {
     None
   }
 
-  fn this(&self, _parser: &mut JavascriptParser, _expr: &ThisExpr) -> Option<bool> {
-    None
-  }
-
-  // FIXME: should remove
-  fn assign(
+  fn this(
     &self,
     _parser: &mut JavascriptParser,
-    _expr: &AssignExpr,
-    _for_name: Option<&str>,
+    _expr: &ThisExpr,
+    _for_name: &str,
   ) -> Option<bool> {
     None
   }
 
-  fn import_call(&self, _parser: &mut JavascriptParser, _expr: &CallExpr) -> Option<bool> {
+  fn assign(
+    &self,
+    _parser: &mut JavascriptParser,
+    _expr: &AssignExpr,
+    _for_name: &str,
+  ) -> Option<bool> {
+    None
+  }
+
+  fn assign_member_chain(
+    &self,
+    _parser: &mut JavascriptParser,
+    _expr: &AssignExpr,
+    _members: &[Atom],
+    _for_name: &str,
+  ) -> Option<bool> {
+    None
+  }
+
+  fn import_call(
+    &self,
+    _parser: &mut JavascriptParser,
+    _expr: &CallExpr,
+    _import_then: Option<&CallExpr>,
+  ) -> Option<bool> {
     None
   }
 
@@ -389,6 +431,24 @@ pub trait JavascriptParserPlugin {
   }
 
   fn finish(&self, _parser: &mut JavascriptParser) -> Option<bool> {
+    None
+  }
+
+  fn is_pure(&self, _parser: &mut JavascriptParser, _expr: &Expr) -> Option<bool> {
+    None
+  }
+
+  /* plugin interop methods */
+
+  /**
+   * This method is used to interop with other plugins.
+   * It will be called in ImportMetaPlugin when processing destructuring of `import.meta`
+   */
+  fn import_meta_property_in_destructuring(
+    &self,
+    _parser: &mut JavascriptParser,
+    _property: &DestructuringAssignmentProperty,
+  ) -> Option<String> {
     None
   }
 }

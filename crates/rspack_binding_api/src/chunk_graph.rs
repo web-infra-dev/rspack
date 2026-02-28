@@ -48,8 +48,12 @@ impl ChunkGraph {
     let compilation = self.as_ref()?;
     Ok(
       compilation
+        .build_chunk_graph_artifact
         .chunk_graph
-        .has_chunk_entry_dependent_chunks(&chunk.chunk_ukey, &compilation.chunk_group_by_ukey),
+        .has_chunk_entry_dependent_chunks(
+          &chunk.chunk_ukey,
+          &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
+        ),
     )
   }
 
@@ -59,8 +63,9 @@ impl ChunkGraph {
 
     let module_graph = compilation.get_module_graph();
     let modules = compilation
+      .build_chunk_graph_artifact
       .chunk_graph
-      .get_chunk_modules(&chunk.chunk_ukey, &module_graph);
+      .get_chunk_modules(&chunk.chunk_ukey, module_graph);
 
     Ok(
       modules
@@ -80,6 +85,7 @@ impl ChunkGraph {
     let compilation = self.as_ref()?;
 
     let modules = compilation
+      .build_chunk_graph_artifact
       .chunk_graph
       .get_chunk_entry_modules(&chunk.chunk_ukey);
     let module_graph = compilation.get_module_graph();
@@ -98,6 +104,7 @@ impl ChunkGraph {
 
     Ok(
       compilation
+        .build_chunk_graph_artifact
         .chunk_graph
         .get_number_of_entry_modules(&chunk.chunk_ukey) as u32,
     )
@@ -111,11 +118,12 @@ impl ChunkGraph {
     let compilation = self.as_ref()?;
 
     let chunks = compilation
+      .build_chunk_graph_artifact
       .chunk_graph
       .get_chunk_entry_dependent_chunks_iterable(
         &chunk.chunk_ukey,
-        &compilation.chunk_by_ukey,
-        &compilation.chunk_group_by_ukey,
+        &compilation.build_chunk_graph_artifact.chunk_by_ukey,
+        &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
       );
 
     Ok(
@@ -133,15 +141,20 @@ impl ChunkGraph {
     source_type: String,
   ) -> Result<Vec<ModuleObject>> {
     let compilation = self.as_ref()?;
+    let module_graph = compilation.get_module_graph();
+
+    let chunk_modules = compilation
+      .build_chunk_graph_artifact
+      .chunk_graph
+      .get_chunk_modules_by_source_type(
+        &chunk.chunk_ukey,
+        SourceType::from(source_type.as_str()),
+        module_graph,
+      );
 
     Ok(
-      compilation
-        .chunk_graph
-        .get_chunk_modules_iterable_by_source_type(
-          &chunk.chunk_ukey,
-          SourceType::from(source_type.as_str()),
-          &compilation.get_module_graph(),
-        )
+      chunk_modules
+        .into_iter()
         .map(|module| ModuleObject::with_ref(module, compilation.compiler_id()))
         .collect(),
     )
@@ -153,6 +166,7 @@ impl ChunkGraph {
 
     Ok(
       compilation
+        .build_chunk_graph_artifact
         .chunk_graph
         .get_module_chunks(module.identifier)
         .iter()
@@ -203,8 +217,12 @@ impl ChunkGraph {
     let compilation = self.as_ref()?;
     Ok(
       compilation
+        .build_chunk_graph_artifact
         .chunk_graph
-        .get_block_chunk_group(&js_block.block_id, &compilation.chunk_group_by_ukey)
+        .get_block_chunk_group(
+          &js_block.block_id,
+          &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
+        )
         .map(|chunk_group| ChunkGroupWrapper::new(chunk_group.ukey, compilation)),
     )
   }

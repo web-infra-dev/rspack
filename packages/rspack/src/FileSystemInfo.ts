@@ -1,5 +1,5 @@
 interface FileSystemInfoEntry {
-	safeTime: number;
-	timestamp?: number;
+  safeTime: number;
+  timestamp?: number;
 }
 export type { FileSystemInfoEntry };

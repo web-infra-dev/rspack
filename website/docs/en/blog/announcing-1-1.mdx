@@ -86,9 +86,9 @@ Therefore, we refactored `HtmlRspackPlugin`. While supporting most of the config
 ```js title="rspack.config.mjs"
 const DeferPlugin = {
   apply(compiler) {
-    compiler.hooks.compilation.tap('DeferPlugin', compilation => {
+    compiler.hooks.compilation.tap('DeferPlugin', (compilation) => {
       const hooks = HtmlRspackPlugin.getCompilationHooks(compilation);
-      hooks.alterAssetTags.tapPromise('DeferPlugin', async data => {
+      hooks.alterAssetTags.tapPromise('DeferPlugin', async (data) => {
         // Add `defer` attribute to all script tags
         for (const tag of data.assetTags.scripts) {
           if (tag.tagName === 'script') {

@@ -1,408 +1,449 @@
-import fs from "node:fs";
-import path from "node:path";
-import { rimrafSync } from "rimraf";
+import fs from 'node:fs';
+import path from 'node:path';
+import { rimrafSync } from 'rimraf';
 
-import createLazyTestEnv from "../helper/legacy/createLazyTestEnv";
+import createLazyTestEnv from '../helper/legacy/createLazyTestEnv';
 import type {
-	ECompilerType,
-	ITestContext,
-	ITestEnv,
-	ITester,
-	ITestProcessor,
-	TRunnerFactory,
-	TTestConfig
-} from "../type";
-import { Tester } from "./tester";
+  ITestContext,
+  ITestEnv,
+  ITester,
+  ITesterConfig,
+  ITestProcessor,
+  TTestConfig,
+  TTestRunnerCreator,
+} from '../type';
+import { Tester } from './tester';
 
 declare global {
-	var testFilter: string | undefined;
+  var testFilter: string | undefined;
 }
 
 interface IConcurrentTestEnv {
-	clear: () => void;
-	run: () => Promise<void>;
+  clear: () => void;
+  run: () => Promise<void>;
 }
 
-export interface IBasicCaseCreatorOptions<T extends ECompilerType> {
-	clean?: boolean;
-	describe?: boolean;
-	timeout?: number;
-	contextValue?: Record<string, unknown>;
-	steps: (
-		creatorConfig: IBasicCaseCreatorOptions<T> & {
-			name: string;
-			src: string;
-			dist: string;
-			temp: string | void;
-		}
-	) => ITestProcessor[];
-	testConfig?: (testConfig: TTestConfig<T>) => void;
-	description?: (name: string, step: number) => string;
-	runner?: new (
-		name: string,
-		context: ITestContext
-	) => TRunnerFactory<ECompilerType>;
-	[key: string]: unknown;
-	concurrent?: boolean | number;
+export interface IBasicCaseCreatorOptions {
+  clean?: boolean;
+  describe?: boolean;
+  timeout?: number;
+  contextValue?: Record<string, unknown>;
+  steps: (
+    creatorConfig: IBasicCaseCreatorOptions & {
+      name: string;
+      src: string;
+      dist: string;
+      temp: string | void;
+    },
+  ) => ITestProcessor[];
+  testConfig?: (testConfig: TTestConfig) => void;
+  description?: (name: string, step: number) => string;
+  runner?: TTestRunnerCreator;
+  createContext?: (config: ITesterConfig) => ITestContext;
+  concurrent?: boolean | number;
+  [key: string]: unknown;
 }
 
-const DEFAULT_MAX_CONCURRENT = 5;
+const DEFAULT_MAX_CONCURRENT = process.env.WASM
+  ? 1
+  : Number(process.env.DEFAULT_MAX_CONCURRENT) || 5;
 
-export class BasicCaseCreator<T extends ECompilerType> {
-	protected currentConcurrent = 0;
-	protected tasks: [string, () => void][] = [];
+export class BasicCaseCreator {
+  protected currentConcurrent = 0;
+  protected tasks: [string, () => void][] = [];
 
-	constructor(protected _options: IBasicCaseCreatorOptions<T>) {}
+  constructor(protected _options: IBasicCaseCreatorOptions) {}
 
-	create(name: string, src: string, dist: string, temp?: string) {
-		const testConfig = this.readTestConfig(src);
-		if (typeof this._options.testConfig === "function") {
-			this._options.testConfig(testConfig);
-		}
-		const skipped = this.checkSkipped(src, testConfig);
-		if (skipped) {
-			this.skip(name, skipped);
-			return;
-		}
+  create(
+    name: string,
+    src: string,
+    dist: string,
+    temp?: string,
+    caseOptions?: Partial<IBasicCaseCreatorOptions>,
+  ) {
+    const options = {
+      ...this._options,
+      ...caseOptions,
+    };
+    const testConfig = this.readTestConfig(src);
+    if (typeof options.testConfig === 'function') {
+      options.testConfig(testConfig);
+    }
 
-		if (this._options.clean) {
-			this.clean([dist, temp || ""].filter(Boolean));
-		}
+    const skipped = this.checkSkipped(src, testConfig, options);
+    if (skipped) {
+      this.skip(name, skipped);
+      return;
+    }
 
-		const run = this.shouldRun(name);
-		const tester = this.createTester(name, src, dist, temp, testConfig);
-		const concurrent = process.env.WASM
-			? false
-			: testConfig.concurrent || this._options.concurrent;
-		if (this._options.describe) {
-			if (run) {
-				if (concurrent) {
-					describe(name, () =>
-						this.describeConcurrent(name, tester, testConfig)
-					);
-				} else {
-					describe(name, () => this.describe(name, tester, testConfig));
-				}
-			} else {
-				describe.skip(name, () => {
-					it.skip("skipped", () => {});
-				});
-			}
-		} else {
-			if (run) {
-				if (concurrent) {
-					this.describeConcurrent(name, tester, testConfig);
-				} else {
-					this.describe(name, tester, testConfig);
-				}
-			} else {
-				it.skip("skipped", () => {});
-			}
-		}
+    if (options.clean) {
+      this.clean([dist, temp || ''].filter(Boolean));
+    }
 
-		return tester;
-	}
+    const run = this.shouldRun(name);
+    const tester = this.createTester(
+      name,
+      src,
+      dist,
+      temp,
+      testConfig,
+      options,
+    );
+    const concurrent = process.env.WASM
+      ? 1
+      : testConfig.concurrent || options.concurrent;
+    if (options.describe) {
+      if (run) {
+        if (concurrent) {
+          describe(name, () =>
+            this.describeConcurrent(name, tester, testConfig, options),
+          );
+        } else {
+          describe(name, () =>
+            this.describe(name, tester, testConfig, options),
+          );
+        }
+      } else {
+        describe.skip(name, () => {
+          it.skip('skipped', () => {});
+        });
+      }
+    } else {
+      if (run) {
+        if (concurrent) {
+          this.describeConcurrent(name, tester, testConfig, options);
+        } else {
+          this.describe(name, tester, testConfig, options);
+        }
+      } else {
+        it.skip('skipped', () => {});
+      }
+    }
 
-	protected shouldRun(name: string) {
-		// TODO: more flexible filter
-		if (typeof global.testFilter !== "string" || !global.testFilter) {
-			return true;
-		}
-		return name.includes(global.testFilter);
-	}
+    return tester;
+  }
 
-	protected describeConcurrent(
-		name: string,
-		tester: ITester,
-		testConfig: TTestConfig<T>
-	) {
-		beforeAll(async () => {
-			await tester.prepare();
-		});
+  protected shouldRun(name: string) {
+    // TODO: more flexible filter
+    if (typeof global.testFilter !== 'string' || !global.testFilter) {
+      return true;
+    }
+    return name.includes(global.testFilter);
+  }
 
-		let starter = null;
-		let chain = new Promise<void>((resolve, reject) => {
-			starter = resolve;
-		});
-		const ender = this.registerConcurrentTask(name, starter!);
-		const env = this.createConcurrentEnv();
-		for (let index = 0; index < tester.total; index++) {
-			let stepSignalResolve = null;
-			const stepSignal = new Promise<Error>((resolve, reject) => {
-				stepSignalResolve = resolve;
-			}).catch(() => {
-				// prevent unhandled rejection
-			});
-			const description =
-				typeof this._options.description === "function"
-					? this._options.description(name, index)
-					: index
-						? `step [${index}] should pass`
-						: "should pass";
-			it(
-				description,
-				cb => {
-					stepSignal.then((e: Error | void) => {
-						cb(e);
-					});
-				},
-				this._options.timeout || 180000
-			);
+  protected describeConcurrent(
+    name: string,
+    tester: ITester,
+    testConfig: TTestConfig,
+    options: IBasicCaseCreatorOptions,
+  ) {
+    beforeAll(async () => {
+      await tester.prepare();
+    });
 
-			chain = chain.then(
-				async () => {
-					try {
-						env.clear();
-						await tester.compile();
-						await tester.check(env);
-						await env.run();
-						const context = tester.getContext();
-						if (!tester.next() && context.hasError()) {
-							const errors = context
-								.getError()
-								.map(i => `${i.stack}`.split("\n").join("\t\n"))
-								.join("\n\n");
-							throw new Error(
-								`Case "${name}" failed at step ${tester.step + 1}:\n${errors}`
-							);
-						}
-						stepSignalResolve!();
-					} catch (e) {
-						stepSignalResolve!(e);
-						return Promise.reject();
-					}
-				},
-				() => {
-					// bailout
-					stepSignalResolve!();
-					return Promise.reject();
-				}
-			);
-		}
+    let starter = null;
+    let chain = new Promise<void>((resolve, reject) => {
+      starter = resolve;
+    });
+    const ender = this.registerConcurrentTask(
+      name,
+      starter!,
+      options.concurrent as number,
+    );
+    const env = this.createConcurrentEnv();
+    for (let index = 0; index < tester.total; index++) {
+      let stepSignalResolve = null;
+      const stepSignal = new Promise<Error>((resolve, reject) => {
+        stepSignalResolve = resolve;
+      }).catch(() => {
+        // prevent unhandled rejection
+      });
+      const description =
+        typeof options.description === 'function'
+          ? options.description(name, index)
+          : index
+            ? `step [${index}] should pass`
+            : 'should pass';
+      it(
+        description,
+        async () => {
+          const e = await stepSignal;
+          if (e) {
+            throw e;
+          }
+        },
+        options.timeout,
+      );
 
-		chain
-			.catch(() => {
-				// bailout error
-				// prevent unhandled rejection
-			})
-			.finally(() => {
-				ender();
-			});
+      chain = chain.then(
+        async () => {
+          try {
+            env.clear();
+            await tester.compile();
+            await tester.check(env);
+            await env.run();
+            await tester.after();
+            const context = tester.getContext();
+            if (!tester.next() && context.hasError()) {
+              const errors = context
+                .getError()
+                .map((i) => `${i.stack}`.split('\n').join('\t\n'))
+                .join('\n\n');
+              throw new Error(
+                `Case "${name}" failed at step ${tester.step + 1}:\n${errors}`,
+              );
+            }
+            stepSignalResolve!();
+          } catch (e) {
+            stepSignalResolve!(e);
+            return Promise.reject();
+          }
+        },
+        () => {
+          // bailout
+          stepSignalResolve!();
+          return Promise.reject();
+        },
+      );
+    }
 
-		afterAll(async () => {
-			await tester.resume();
-		});
-	}
+    chain
+      .catch(() => {
+        // bailout error
+        // prevent unhandled rejection
+      })
+      .finally(() => {
+        ender();
+      });
 
-	protected describe(
-		name: string,
-		tester: ITester,
-		testConfig: TTestConfig<T>
-	) {
-		beforeAll(async () => {
-			await tester.prepare();
-		});
+    afterAll(async () => {
+      await tester.resume();
+    });
+  }
 
-		let bailout = false;
-		for (let index = 0; index < tester.total; index++) {
-			const description =
-				typeof this._options.description === "function"
-					? this._options.description(name, index)
-					: `step ${index ? `[${index}]` : ""} should pass`;
-			it(
-				description,
-				async () => {
-					if (bailout) {
-						throw `Case "${name}" step ${index + 1} bailout because ${tester.step + 1} failed`;
-					}
-					await tester.compile();
-					await tester.check(env);
-					const context = tester.getContext();
-					if (!tester.next() && context.hasError()) {
-						bailout = true;
-						const errors = context
-							.getError()
-							.map(i => `${i.stack}`.split("\n").join("\t\n"))
-							.join("\n\n");
-						throw new Error(
-							`Case "${name}" failed at step ${tester.step + 1}:\n${errors}`
-						);
-					}
-				},
-				this._options.timeout || 30000
-			);
-			const env = this.createEnv(testConfig);
-		}
+  protected describe(
+    name: string,
+    tester: ITester,
+    testConfig: TTestConfig,
+    options: IBasicCaseCreatorOptions,
+  ) {
+    beforeAll(async () => {
+      await tester.prepare();
+    });
 
-		afterAll(async () => {
-			await tester.resume();
-		});
-	}
+    let bailout = false;
+    for (let index = 0; index < tester.total; index++) {
+      const description =
+        typeof options.description === 'function'
+          ? options.description(name, index)
+          : `step [${index}] should pass`;
+      it(
+        description,
+        async () => {
+          if (bailout) {
+            throw `Case "${name}" step ${index + 1} bailout because ${tester.step + 1} failed`;
+          }
+          const context = tester.getContext();
+          try {
+            await tester.compile();
+          } catch (e) {
+            bailout = true;
+            context.emitError(e as Error);
+          }
+          await tester.check(env);
+          if (!tester.next() && context.hasError()) {
+            bailout = true;
+            const errors = context
+              .getError()
+              .map((i) => `${i.stack}`.split('\n').join('\t\n'))
+              .join('\n\n');
 
-	protected createConcurrentEnv(): ITestEnv & IConcurrentTestEnv {
-		const tasks: [string, () => Promise<void> | void][] = [];
-		const beforeTasks: (() => Promise<void> | void)[] = [];
-		const afterTasks: (() => Promise<void> | void)[] = [];
-		return {
-			clear: () => {
-				tasks.length = 0;
-				beforeTasks.length = 0;
-				afterTasks.length = 0;
-			},
-			run: async () => {
-				const runFn = async (
-					fn: (done?: (e?: Error) => void) => Promise<void> | void
-				) => {
-					if (fn.length) {
-						await new Promise<void>((resolve, reject) => {
-							fn(e => {
-								if (e) {
-									reject(e);
-								} else {
-									resolve();
-								}
-							});
-						});
-					} else {
-						const res = fn();
-						if (typeof res?.then === "function") {
-							await res;
-						}
-					}
-				};
+            throw new Error(
+              `Case "${name}" failed at step ${tester.step + 1}:\n${errors}`,
+            );
+          }
+        },
+        options.timeout || 60000,
+      );
+      const env = this.createEnv(testConfig, options);
+    }
 
-				for (const [description, fn] of tasks) {
-					for (const before of beforeTasks) {
-						await runFn(before);
-					}
-					try {
-						await runFn(fn);
-					} catch (e) {
-						throw new Error(
-							`Error: ${description} failed\n${(e as Error).stack}`
-						);
-					}
-					for (const after of afterTasks) {
-						await runFn(after);
-					}
-				}
-			},
-			expect,
-			it: (description: string, fn: () => Promise<void> | void) => {
-				expect(typeof description === "string");
-				expect(typeof fn === "function");
-				tasks.push([description, fn]);
-			},
-			beforeEach: (fn: () => Promise<void> | void) => {
-				expect(typeof fn === "function");
-				beforeTasks.push(fn);
-			},
-			afterEach: (fn: () => Promise<void> | void) => {
-				expect(typeof fn === "function");
-				afterTasks.push(fn);
-			},
-			jest
-		};
-	}
+    afterAll(async () => {
+      await tester.resume();
+    });
+  }
 
-	protected createEnv(testConfig: TTestConfig<T>): ITestEnv {
-		if (typeof this._options.runner === "function" && !testConfig.noTest) {
-			return createLazyTestEnv(10000);
-		}
-		return {
-			expect,
-			it,
-			beforeEach,
-			afterEach,
-			jest
-		};
-	}
+  protected createConcurrentEnv(): ITestEnv & IConcurrentTestEnv {
+    const tasks: [string, () => Promise<void> | void][] = [];
+    const beforeTasks: (() => Promise<void> | void)[] = [];
+    const afterTasks: (() => Promise<void> | void)[] = [];
+    return {
+      clear: () => {
+        tasks.length = 0;
+        beforeTasks.length = 0;
+        afterTasks.length = 0;
+      },
+      run: async () => {
+        const runFn = async (
+          fn: (done?: (e?: Error) => void) => Promise<void> | void,
+        ) => {
+          if (fn.length) {
+            await new Promise<void>((resolve, reject) => {
+              fn((e) => {
+                if (e) {
+                  reject(e);
+                } else {
+                  resolve();
+                }
+              });
+            });
+          } else {
+            const res = fn();
+            if (typeof res?.then === 'function') {
+              await res;
+            }
+          }
+        };
 
-	protected clean(folders: string[]) {
-		for (const f of folders) {
-			rimrafSync(f);
-			fs.mkdirSync(f, { recursive: true });
-		}
-	}
+        for (const [description, fn] of tasks) {
+          for (const before of beforeTasks) {
+            await runFn(before);
+          }
+          try {
+            await runFn(fn);
+          } catch (err) {
+            const e = err as Error;
+            const message = `Error: ${description} failed:\n${e.message}`;
+            e.message = message;
+            throw e;
+          }
+          for (const after of afterTasks) {
+            await runFn(after);
+          }
+        }
+      },
+      expect,
+      it: (description: string, fn: () => Promise<void> | void) => {
+        expect(typeof description === 'string');
+        expect(typeof fn === 'function');
+        tasks.push([description, fn]);
+      },
+      beforeEach: (fn: () => Promise<void> | void) => {
+        expect(typeof fn === 'function');
+        beforeTasks.push(fn);
+      },
+      afterEach: (fn: () => Promise<void> | void) => {
+        expect(typeof fn === 'function');
+        afterTasks.push(fn);
+      },
+      rstest,
+    };
+  }
 
-	protected skip(name: string, reason: string | boolean) {
-		describe.skip(name, () => {
-			it(
-				typeof reason === "string" ? `filtered by ${reason}` : "filtered",
-				() => {}
-			);
-		});
-	}
+  protected createEnv(
+    testConfig: TTestConfig,
+    options: IBasicCaseCreatorOptions,
+  ): ITestEnv {
+    if (options.runner && !testConfig.noTests) {
+      return createLazyTestEnv(10000);
+    }
+    return {
+      expect,
+      it,
+      beforeEach,
+      afterEach,
+      rstest,
+    };
+  }
 
-	protected readTestConfig(src: string): TTestConfig<T> {
-		const testConfigFile = path.join(src, "test.config.js");
-		return fs.existsSync(testConfigFile) ? require(testConfigFile) : {};
-	}
+  protected clean(folders: string[]) {
+    for (const f of folders) {
+      rimrafSync(f);
+    }
+  }
 
-	protected checkSkipped(
-		src: string,
-		testConfig: TTestConfig<T>
-	): boolean | string {
-		const filterPath = path.join(src, "test.filter.js");
-		// no test.filter.js, should not skip
-		if (!fs.existsSync(filterPath)) {
-			return false;
-		}
-		// test.filter.js exists, skip if it returns false|string|array
-		const filtered = require(filterPath)(this._options, testConfig);
-		if (typeof filtered === "string" || Array.isArray(filtered)) {
-			return true;
-		}
-		return !filtered;
-	}
+  protected skip(name: string, reason: string | boolean) {
+    it(
+      typeof reason === 'string' ? `filtered by ${reason}` : 'filtered',
+      () => {},
+    );
+  }
 
-	protected createTester(
-		name: string,
-		src: string,
-		dist: string,
-		temp: string | void,
-		testConfig: TTestConfig<T>
-	): ITester {
-		return new Tester({
-			name,
-			src,
-			dist,
-			testConfig,
-			contextValue: this._options.contextValue,
-			runnerFactory: this._options.runner,
-			steps: this._options.steps({
-				...this._options,
-				name,
-				src,
-				dist,
-				temp
-			})
-		});
-	}
+  protected readTestConfig(src: string): TTestConfig {
+    const testConfigFile = path.join(src, 'test.config.js');
+    return fs.existsSync(testConfigFile) ? require(testConfigFile) : {};
+  }
 
-	protected tryRunTask() {
-		while (
-			this.tasks.length !== 0 &&
-			this.currentConcurrent < this.getMaxConcurrent()
-		) {
-			const [_name, starter] = this.tasks.shift()!;
-			this.currentConcurrent++;
-			starter();
-		}
-	}
+  protected checkSkipped(
+    src: string,
+    testConfig: TTestConfig,
+    options: IBasicCaseCreatorOptions,
+  ): boolean | string {
+    const filterPath = path.join(src, 'test.filter.js');
+    // no test.filter.js, should not skip
+    if (!fs.existsSync(filterPath)) {
+      return false;
+    }
+    // test.filter.js exists, skip if it returns false|string|array
+    const filtered = require(filterPath)(options, testConfig);
+    if (typeof filtered === 'string' || Array.isArray(filtered)) {
+      return true;
+    }
+    return !filtered;
+  }
 
-	protected getMaxConcurrent() {
-		return typeof this._options.concurrent === "number"
-			? this._options.concurrent
-			: DEFAULT_MAX_CONCURRENT;
-	}
+  protected createTester(
+    name: string,
+    src: string,
+    dist: string,
+    temp: string | undefined,
+    testConfig: TTestConfig,
+    options: IBasicCaseCreatorOptions,
+  ): ITester {
+    return new Tester({
+      name,
+      src,
+      dist,
+      temp,
+      testConfig,
+      contextValue: options.contextValue,
+      runnerCreator: options.runner,
+      createContext: options.createContext,
+      steps: options.steps({
+        ...options,
+        name,
+        src,
+        dist,
+        temp,
+      }),
+    });
+  }
 
-	protected registerConcurrentTask(name: string, starter: () => void) {
-		this.tasks.push([name, starter]);
-		this.tryRunTask();
-		return () => {
-			this.currentConcurrent--;
-			this.tryRunTask();
-		};
-	}
+  protected tryRunTask(concurrent?: number) {
+    while (
+      this.tasks.length !== 0 &&
+      this.currentConcurrent < this.getMaxConcurrent(concurrent)
+    ) {
+      const [_name, starter] = this.tasks.shift()!;
+      this.currentConcurrent++;
+      starter();
+    }
+  }
+
+  protected getMaxConcurrent(concurrent?: number) {
+    return typeof concurrent === 'number' ? concurrent : DEFAULT_MAX_CONCURRENT;
+  }
+
+  protected registerConcurrentTask(
+    name: string,
+    starter: () => void,
+    concurrent?: number,
+  ) {
+    this.tasks.push([name, starter]);
+    this.tryRunTask(concurrent);
+    return () => {
+      this.currentConcurrent--;
+      this.tryRunTask(concurrent);
+    };
+  }
 }

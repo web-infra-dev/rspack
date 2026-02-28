@@ -1,0 +1,4 @@
+Object {
+  simple-bar: aae4ff18a077a47a ea6d3355f0608c9e,
+  simple-foo: a8ca61fffe156174 ea6d3355f0608c9e,
+}

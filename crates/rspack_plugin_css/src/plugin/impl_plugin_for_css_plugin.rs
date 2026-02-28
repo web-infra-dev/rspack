@@ -11,12 +11,12 @@ use rspack_collections::{DatabaseItem, ItemUkey};
 use rspack_core::{
   AssetInfo, Chunk, ChunkGraph, ChunkKind, ChunkLoading, ChunkLoadingType, ChunkUkey, Compilation,
   CompilationContentHash, CompilationId, CompilationParams, CompilationRenderManifest,
-  CompilationRuntimeRequirementInTree, CompilerCompilation, DependencyType, Module, ModuleGraph,
-  ModuleType, ParserAndGenerator, PathData, Plugin, PublicPath, RenderManifestEntry,
-  RuntimeGlobals, SelfModuleFactory, SourceType, get_css_chunk_filename_template,
+  CompilationRuntimeRequirementInTree, CompilerCompilation, DependencyType, ManifestAssetType,
+  Module, ModuleGraph, ModuleType, ParserAndGenerator, PathData, Plugin, PublicPath,
+  RenderManifestEntry, RuntimeGlobals, RuntimeModule, RuntimeModuleExt, SelfModuleFactory,
+  SourceType, get_css_chunk_filename_template,
   rspack_sources::{
-    BoxSource, CachedSource, ConcatSource, RawSource, RawStringSource, ReplaceSource, Source,
-    SourceExt,
+    BoxSource, CachedSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt,
   },
 };
 use rspack_error::{Diagnostic, Result, ToStringResultToRspackResultExt};
@@ -89,17 +89,20 @@ impl CssPlugin {
   async fn render_chunk(
     &self,
     compilation: &Compilation,
-    mg: &ModuleGraph<'_>,
+    mg: &ModuleGraph,
     chunk: &Chunk,
     output_path: &str,
     css_import_modules: Vec<&dyn Module>,
     css_modules: Vec<&dyn Module>,
   ) -> Result<(BoxSource, Vec<Diagnostic>)> {
+    let css_plugin_hooks = Self::get_compilation_hooks(compilation.id());
+    let hooks = css_plugin_hooks.borrow();
     let (ordered_css_modules, conflicts) =
       Self::get_ordered_chunk_css_modules(chunk, compilation, css_import_modules, css_modules);
-    let source = Self::render_chunk_to_source(compilation, chunk, &ordered_css_modules).await?;
+    let source =
+      Self::render_chunk_to_source(compilation, chunk, &ordered_css_modules, &hooks).await?;
 
-    let content = source.source();
+    let content = source.source().into_string_lossy();
     let len = AUTO_PUBLIC_PATH_PLACEHOLDER.len();
     let auto_public_path_matches: Vec<_> = content
       .match_indices(AUTO_PUBLIC_PATH_PLACEHOLDER)
@@ -118,7 +121,10 @@ impl CssPlugin {
     let mut diagnostics = vec![];
     if let Some(conflicts) = conflicts {
       diagnostics.extend(conflicts.into_iter().map(|conflict| {
-        let chunk = compilation.chunk_by_ukey.expect_get(&conflict.chunk);
+        let chunk = compilation
+          .build_chunk_graph_artifact
+          .chunk_by_ukey
+          .expect_get(&conflict.chunk);
 
         let failed_module = mg
           .module_by_identifier(&conflict.failed_module)
@@ -127,22 +133,20 @@ impl CssPlugin {
           .module_by_identifier(&conflict.selected_module)
           .expect("should have module");
 
-        Diagnostic::warn(
+        let mut diagnostic = Diagnostic::warn(
           "Conflicting order".into(),
           format!(
             "chunk {}\nConflicting order between {} and {}",
-            chunk.name().unwrap_or(
-              chunk
-                .id(&compilation.chunk_ids_artifact)
-                .expect("should have chunk id")
-                .as_str()
-            ),
+            chunk
+              .name()
+              .unwrap_or(chunk.id().expect("should have chunk id").as_str()),
             failed_module.readable_identifier(&compilation.options.context),
             selected_module.readable_identifier(&compilation.options.context)
           ),
-        )
-        .with_file(Some(output_path.to_owned().into()))
-        .with_chunk(Some(chunk.ukey().as_u32()))
+        );
+        diagnostic.file = Some(output_path.to_owned().into());
+        diagnostic.chunk = Some(chunk.ukey().as_u32());
+        diagnostic
       }));
     }
     Ok((source, diagnostics))
@@ -152,6 +156,7 @@ impl CssPlugin {
     compilation: &Compilation,
     chunk: &Chunk,
     ordered_css_modules: &[&dyn Module],
+    hooks: &CssModulesPluginHooks,
   ) -> rspack_error::Result<ConcatSource> {
     let module_sources = ordered_css_modules
       .iter()
@@ -176,10 +181,18 @@ impl CssPlugin {
         .into_iter()
         .flatten()
         .for_each(|(debug_info, data, cur_source)| {
-          let s = unsafe { token.used((compilation, chunk.ukey(), debug_info, data, cur_source)) };
+          let s = unsafe {
+            token.used((
+              compilation,
+              chunk.ukey(),
+              debug_info,
+              data,
+              cur_source,
+              hooks,
+            ))
+          };
           s.spawn(
-            |(compilation, chunk, debug_info, data, cur_source)| async move {
-              let hooks = Self::get_compilation_hooks(compilation.id());
+            |(compilation, chunk, debug_info, data, cur_source, hooks)| async move {
               let mut post_module_container = {
                 let mut container_source = ConcatSource::default();
 
@@ -188,17 +201,19 @@ impl CssPlugin {
                 // TODO: use PrefixSource to create indent
                 if let Some(media) = data.get::<CssMedia>() {
                   num_close_bracket += 1;
-                  container_source.add(RawSource::from(format!("@media {media}{{\n")));
+                  container_source.add(RawStringSource::from(format!("@media {media}{{\n")));
                 }
 
                 if let Some(supports) = data.get::<CssSupports>() {
                   num_close_bracket += 1;
-                  container_source.add(RawSource::from(format!("@supports ({supports}) {{\n")));
+                  container_source.add(RawStringSource::from(format!(
+                    "@supports ({supports}) {{\n"
+                  )));
                 }
 
                 if let Some(layer) = data.get::<CssLayer>() {
                   num_close_bracket += 1;
-                  container_source.add(RawSource::from(format!(
+                  container_source.add(RawStringSource::from(format!(
                     "@layer{} {{\n",
                     if let CssLayer::Named(layer) = &layer {
                       Cow::Owned(format!(" {layer}"))
@@ -221,7 +236,6 @@ impl CssPlugin {
 
               let chunk_ukey = chunk.ukey().as_u32().into();
               hooks
-                .borrow()
                 .render_module_package
                 .call(
                   compilation,
@@ -243,7 +257,7 @@ impl CssPlugin {
 
     let mut source = ConcatSource::default();
 
-    for module_source in module_sources.into_iter() {
+    for module_source in module_sources {
       source.add(module_source?);
     }
 
@@ -292,11 +306,12 @@ async fn compilation(
 #[plugin_hook(CompilationRuntimeRequirementInTree for CssPlugin)]
 async fn runtime_requirements_in_tree(
   &self,
-  compilation: &mut Compilation,
+  compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
-  _all_runtime_requirements: &RuntimeGlobals,
+  all_runtime_requirements: &RuntimeGlobals,
   runtime_requirements: &RuntimeGlobals,
   runtime_requirements_mut: &mut RuntimeGlobals,
+  runtime_modules_to_add: &mut Vec<(ChunkUkey, Box<dyn RuntimeModule>)>,
 ) -> Result<Option<()>> {
   let is_enabled_for_chunk = is_enabled_for_chunk(
     chunk_ukey,
@@ -308,17 +323,44 @@ async fn runtime_requirements_in_tree(
     compilation,
   );
 
-  if (runtime_requirements.contains(RuntimeGlobals::HAS_CSS_MODULES)
-    || runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS)
-    || runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS))
-    && is_enabled_for_chunk
+  if !is_enabled_for_chunk {
+    return Ok(None);
+  }
+
+  if runtime_requirements.contains(RuntimeGlobals::HAS_CSS_MODULES) {
+    runtime_modules_to_add.push((
+      *chunk_ukey,
+      CssLoadingRuntimeModule::new(&compilation.runtime_template).boxed(),
+    ));
+  }
+
+  if all_runtime_requirements.contains(RuntimeGlobals::HAS_CSS_MODULES)
+    && all_runtime_requirements.intersects(
+      RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS | RuntimeGlobals::ENSURE_CHUNK_HANDLERS,
+    )
   {
-    runtime_requirements_mut.insert(RuntimeGlobals::PUBLIC_PATH);
-    runtime_requirements_mut.insert(RuntimeGlobals::GET_CHUNK_CSS_FILENAME);
-    runtime_requirements_mut.insert(RuntimeGlobals::HAS_OWN_PROPERTY);
-    runtime_requirements_mut.insert(RuntimeGlobals::MODULE_FACTORIES_ADD_ONLY);
-    runtime_requirements_mut.insert(RuntimeGlobals::MAKE_NAMESPACE_OBJECT);
-    compilation.add_runtime_module(chunk_ukey, Box::<CssLoadingRuntimeModule>::default())?;
+    runtime_requirements_mut.extend(CssLoadingRuntimeModule::get_runtime_requirements_basic());
+  }
+
+  if all_runtime_requirements
+    .contains(RuntimeGlobals::HAS_CSS_MODULES | RuntimeGlobals::ENSURE_CHUNK_HANDLERS)
+  {
+    runtime_requirements_mut
+      .extend(CssLoadingRuntimeModule::get_runtime_requirements_with_loading());
+    if all_runtime_requirements.contains(RuntimeGlobals::PREFETCH_CHUNK_HANDLERS) {
+      runtime_requirements_mut
+        .extend(CssLoadingRuntimeModule::get_runtime_requirements_with_prefetch());
+    }
+    if all_runtime_requirements.contains(RuntimeGlobals::PRELOAD_CHUNK_HANDLERS) {
+      runtime_requirements_mut
+        .extend(CssLoadingRuntimeModule::get_runtime_requirements_with_preload());
+    }
+  }
+
+  if all_runtime_requirements
+    .contains(RuntimeGlobals::HAS_CSS_MODULES | RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS)
+  {
+    runtime_requirements_mut.extend(CssLoadingRuntimeModule::get_runtime_requirements_with_hmr());
   }
 
   Ok(None)
@@ -331,16 +373,19 @@ async fn content_hash(
   chunk_ukey: &ChunkUkey,
   hashes: &mut HashMap<SourceType, RspackHash>,
 ) -> Result<()> {
-  let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+  let chunk = compilation
+    .build_chunk_graph_artifact
+    .chunk_by_ukey
+    .expect_get(chunk_ukey);
   let module_graph = compilation.get_module_graph();
   let css_import_modules = compilation
+    .build_chunk_graph_artifact
     .chunk_graph
-    .get_chunk_modules_iterable_by_source_type(chunk_ukey, SourceType::CssImport, &module_graph)
-    .collect::<Vec<_>>();
+    .get_chunk_modules_by_source_type(chunk_ukey, SourceType::CssImport, module_graph);
   let css_modules = compilation
+    .build_chunk_graph_artifact
     .chunk_graph
-    .get_chunk_modules_iterable_by_source_type(chunk_ukey, SourceType::Css, &module_graph)
-    .collect::<Vec<_>>();
+    .get_chunk_modules_by_source_type(chunk_ukey, SourceType::Css, module_graph);
   let (ordered_modules, _) =
     Self::get_ordered_chunk_css_modules(chunk, compilation, css_import_modules, css_modules);
   let mut hasher = hashes
@@ -375,19 +420,23 @@ async fn render_manifest(
   manifest: &mut Vec<RenderManifestEntry>,
   diagnostics: &mut Vec<Diagnostic>,
 ) -> Result<()> {
-  let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+  let chunk = compilation
+    .build_chunk_graph_artifact
+    .chunk_by_ukey
+    .expect_get(chunk_ukey);
+  let _runtime_template = compilation.runtime_template.create_runtime_code_template();
   if matches!(chunk.kind(), ChunkKind::HotUpdate) {
     return Ok(());
   }
   let module_graph = compilation.get_module_graph();
   let css_import_modules = compilation
+    .build_chunk_graph_artifact
     .chunk_graph
-    .get_chunk_modules_iterable_by_source_type(chunk_ukey, SourceType::CssImport, &module_graph)
-    .collect::<Vec<_>>();
+    .get_chunk_modules_by_source_type(chunk_ukey, SourceType::CssImport, module_graph);
   let css_modules = compilation
+    .build_chunk_graph_artifact
     .chunk_graph
-    .get_chunk_modules_iterable_by_source_type(chunk_ukey, SourceType::Css, &module_graph)
-    .collect::<Vec<_>>();
+    .get_chunk_modules_by_source_type(chunk_ukey, SourceType::Css, module_graph);
   if css_import_modules.is_empty() && css_modules.is_empty() {
     return Ok(());
   }
@@ -395,25 +444,21 @@ async fn render_manifest(
   let filename_template = get_css_chunk_filename_template(
     chunk,
     &compilation.options.output,
-    &compilation.chunk_group_by_ukey,
+    &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
   );
-  let mut asset_info = AssetInfo::default();
+  let mut asset_info = AssetInfo::default().with_asset_type(ManifestAssetType::Css);
   let unused_idents = Self::get_chunk_unused_local_idents(compilation, chunk, &css_modules);
   asset_info.set_css_unused_idents(unused_idents);
   let output_path = compilation
     .get_path_with_info(
       filename_template,
       PathData::default()
-        .chunk_id_optional(
-          chunk
-            .id(&compilation.chunk_ids_artifact)
-            .map(|id| id.as_str()),
-        )
+        .chunk_id_optional(chunk.id().map(|id| id.as_str()))
         .chunk_hash_optional(chunk.rendered_hash(
           &compilation.chunk_hashes_artifact,
           compilation.options.output.hash_digest_length,
         ))
-        .chunk_name_optional(chunk.name_for_filename_template(&compilation.chunk_ids_artifact))
+        .chunk_name_optional(chunk.name_for_filename_template())
         .content_hash_optional(chunk.rendered_content_hash_by_source_type(
           &compilation.chunk_hashes_artifact,
           &SourceType::Css,
@@ -430,7 +475,7 @@ async fn render_manifest(
       let (source, diagnostics) = self
         .render_chunk(
           compilation,
-          &module_graph,
+          module_graph,
           chunk,
           &output_path,
           css_import_modules,
@@ -491,6 +536,7 @@ impl Plugin for CssPlugin {
           es_module: g.es_module.expect("should have es_module"),
           hot: false,
           url: p.url.expect("should have url"),
+          resolve_import: p.resolve_import.clone().unwrap_or_default(),
         }) as Box<dyn ParserAndGenerator>
       }),
     );
@@ -520,6 +566,7 @@ impl Plugin for CssPlugin {
           es_module: g.es_module.expect("should have es_module"),
           hot: false,
           url: p.url.expect("should have url"),
+          resolve_import: p.resolve_import.clone().unwrap_or_default(),
         }) as Box<dyn ParserAndGenerator>
       }),
     );
@@ -549,6 +596,7 @@ impl Plugin for CssPlugin {
           es_module: g.es_module.expect("should have es_module"),
           hot: false,
           url: p.url.expect("should have url"),
+          resolve_import: p.resolve_import.clone().unwrap_or_default(),
         }) as Box<dyn ParserAndGenerator>
       }),
     );

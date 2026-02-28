@@ -1,23 +1,29 @@
 use std::collections::hash_map::Entry;
 
-use rspack_core::UsedByExports;
+use rspack_core::DependencyRange;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::common::Span;
 
 use super::plugin::TopLevelSymbol;
-use crate::{
-  parser_plugin::inner_graph::plugin::{
-    InnerGraphMapSetValue, InnerGraphMapUsage, InnerGraphMapValue,
-  },
-  visitors::JavascriptParser,
+use crate::parser_plugin::inner_graph::plugin::{
+  InnerGraphMapSetValue, InnerGraphMapUsage, InnerGraphMapValue,
 };
 
-pub type UsageCallback = Box<dyn Fn(&mut JavascriptParser, Option<UsedByExports>)>;
+/// The operation to be performed when processing inner graph usage.
+#[derive(Debug, Clone)]
+pub enum InnerGraphUsageOperation {
+  /// Create PureExpressionDependency with the given range
+  PureExpression(DependencyRange),
+  /// Set used_by_exports on ESMImportSpecifierDependency at the given dependency index
+  ESMImportSpecifier(usize),
+  /// Set used_by_exports on URLDependency at the given dependency index
+  URLDependency(usize),
+}
 
 #[derive(Default)]
 pub struct InnerGraphState {
   pub(crate) inner_graph: HashMap<TopLevelSymbol, InnerGraphMapValue>,
-  pub(crate) usage_callback_map: HashMap<TopLevelSymbol, Vec<UsageCallback>>,
+  pub(crate) usage_map: HashMap<TopLevelSymbol, Vec<InnerGraphUsageOperation>>,
   current_top_level_symbol: Option<TopLevelSymbol>,
   enable: bool,
 

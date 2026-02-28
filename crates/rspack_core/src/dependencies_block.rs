@@ -2,10 +2,6 @@ use std::{borrow::Cow, hash::Hash};
 
 use rspack_cacheable::cacheable;
 use rspack_collections::Identifier;
-use rspack_error::{
-  miette::{self, Diagnostic},
-  thiserror::{self, Error},
-};
 use rspack_util::ext::DynHash;
 
 use crate::{
@@ -34,7 +30,7 @@ pub fn dependencies_block_update_hash(
 ) {
   let mg = compilation.get_module_graph();
   for dep_id in deps {
-    let dep = mg.dependency_by_id(dep_id).expect("should have dependency");
+    let dep = mg.dependency_by_id(dep_id);
     if let Some(dep) = dep.as_dependency_code_generation() {
       dep.update_hash(hasher, compilation, runtime);
     }
@@ -48,12 +44,6 @@ pub fn dependencies_block_update_hash(
 #[cacheable]
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd)]
 pub struct AsyncDependenciesBlockIdentifier(Identifier);
-
-impl AsyncDependenciesBlockIdentifier {
-  pub fn as_identifier(self) -> Identifier {
-    self.0
-  }
-}
 
 impl From<String> for AsyncDependenciesBlockIdentifier {
   fn from(value: String) -> Self {
@@ -141,6 +131,10 @@ impl AsyncDependenciesBlock {
     std::mem::take(&mut self.dependencies)
   }
 
+  pub fn get_dependency_mut(&mut self, idx: usize) -> Option<&mut BoxDependency> {
+    self.dependencies.get_mut(idx)
+  }
+
   pub fn add_block(&mut self, _block: AsyncDependenciesBlock) {
     unimplemented!("Nested block are not implemented");
     // self.block_ids.push(block.id);
@@ -171,8 +165,12 @@ impl AsyncDependenciesBlock {
   ) {
     self.group_options.dyn_hash(hasher);
     if let Some(chunk_group) = compilation
+      .build_chunk_graph_artifact
       .chunk_graph
-      .get_block_chunk_group(&self.id, &compilation.chunk_group_by_ukey)
+      .get_block_chunk_group(
+        &self.id,
+        &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
+      )
     {
       chunk_group.id(compilation).dyn_hash(hasher);
     }
@@ -209,9 +207,16 @@ impl DependenciesBlock for AsyncDependenciesBlock {
   }
 }
 
-#[derive(Debug, Error, Diagnostic)]
-#[diagnostic(code(AsyncDependencyToInitialChunkError))]
-#[error(
-  "It's not allowed to load an initial chunk on demand. The chunk name \"{0}\" is already used by an entrypoint."
-)]
+#[derive(Debug)]
 pub struct AsyncDependenciesToInitialChunkError(pub String, pub Option<DependencyLocation>);
+
+impl From<AsyncDependenciesToInitialChunkError> for rspack_error::Error {
+  fn from(value: AsyncDependenciesToInitialChunkError) -> rspack_error::Error {
+    let mut error = rspack_error::error!(
+      "It's not allowed to load an initial chunk on demand. The chunk name \"{}\" is already used by an entrypoint.",
+      value.0
+    );
+    error.code = Some("AsyncDependencyToInitialChunkError".into());
+    error
+  }
+}

@@ -1,0 +1,128 @@
+# Case multi-chunk: Step 1
+
+## Changed Files
+- file.js
+
+## Asset Files
+- Bundle: a.js
+- Bundle: b.js
+- Bundle: main.js
+- Manifest: a.LAST_HASH.hot-update.json, size: 25
+- Manifest: b.LAST_HASH.hot-update.json, size: 25
+- Manifest: main.LAST_HASH.hot-update.json, size: 28
+- Update: a.LAST_HASH.hot-update.js, size: 213
+- Update: b.LAST_HASH.hot-update.js, size: 213
+- Update: main.LAST_HASH.hot-update.js, size: 216
+
+## Manifest
+
+### a.LAST_HASH.hot-update.json
+
+```json
+{"c":["a"],"r":[],"m":[]}
+```
+
+
+
+### b.LAST_HASH.hot-update.json
+
+```json
+{"c":["b"],"r":[],"m":[]}
+```
+
+
+
+### main.LAST_HASH.hot-update.json
+
+```json
+{"c":["main"],"r":[],"m":[]}
+```
+
+
+## Update
+
+
+### a.LAST_HASH.hot-update.js
+
+#### Changed Modules
+- ./file.js
+
+#### Changed Runtime Modules
+- webpack/runtime/get_full_hash
+
+#### Changed Content
+```js
+self["rspackHotUpdate"]("a", {
+"./file.js"(module) {
+module.exports = 2;
+
+
+},
+
+},function(__webpack_require__) {
+// webpack/runtime/get_full_hash
+(() => {
+__webpack_require__.h = () => ("CURRENT_HASH")
+})();
+
+}
+);
+```
+
+
+
+### b.LAST_HASH.hot-update.js
+
+#### Changed Modules
+- ./file.js
+
+#### Changed Runtime Modules
+- webpack/runtime/get_full_hash
+
+#### Changed Content
+```js
+self["rspackHotUpdate"]("b", {
+"./file.js"(module) {
+module.exports = 2;
+
+
+},
+
+},function(__webpack_require__) {
+// webpack/runtime/get_full_hash
+(() => {
+__webpack_require__.h = () => ("CURRENT_HASH")
+})();
+
+}
+);
+```
+
+
+
+### main.LAST_HASH.hot-update.js
+
+#### Changed Modules
+- ./file.js
+
+#### Changed Runtime Modules
+- webpack/runtime/get_full_hash
+
+#### Changed Content
+```js
+self["rspackHotUpdate"]("main", {
+"./file.js"(module) {
+module.exports = 2;
+
+
+},
+
+},function(__webpack_require__) {
+// webpack/runtime/get_full_hash
+(() => {
+__webpack_require__.h = () => ("CURRENT_HASH")
+})();
+
+}
+);
+```

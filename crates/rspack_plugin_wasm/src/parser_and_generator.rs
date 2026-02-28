@@ -1,36 +1,33 @@
-use std::{
-  borrow::Cow,
-  collections::hash_map::DefaultHasher,
-  hash::{Hash, Hasher},
-};
+use std::borrow::Cow;
 
 use indexmap::IndexMap;
-use rspack_cacheable::{cacheable, cacheable_dyn, with::Unsupported};
-use rspack_collections::Identifier;
+use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
-  AssetInfo, BoxDependency, BuildMetaExportsType, ChunkGraph, Compilation,
-  DependencyType::WasmImport,
-  ExportsInfoGetter, Filename, GenerateContext, GetUsedNameParam, Module, ModuleDependency,
-  ModuleGraph, ModuleId, ModuleIdentifier, NormalModule, ParseContext, ParseResult,
-  ParserAndGenerator, PathData, PrefetchExportsInfoMode, RuntimeGlobals, SourceType,
-  StaticExportsDependency, StaticExportsSpec, UsedName, property_access,
+  BoxDependency, BuildMetaExportsType, Dependency, DependencyId, DependencyType, ExportsArgument,
+  GenerateContext, ImportPhase, Module, ModuleArgument, ModuleDependency, ModuleGraph,
+  ModuleIdentifier, ModuleInitFragments, ParseContext, ParseResult, ParserAndGenerator,
+  RuntimeGlobals, SourceType, StaticExportsDependency, StaticExportsSpec,
   rspack_sources::{BoxSource, RawStringSource, Source, SourceExt},
 };
 use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
-use rspack_util::itoa;
+use rspack_util::{itoa, json_stringify};
 use swc_core::atoms::Atom;
 use wasmparser::{Import, Parser, Payload};
 
-use crate::{ModuleIdToFileName, dependency::WasmImportDependency};
+use crate::dependency::WasmImportDependency;
 
 #[cacheable]
 #[derive(Debug)]
-pub struct AsyncWasmParserAndGenerator {
-  #[cacheable(with=Unsupported)]
-  pub(crate) module_id_to_filename: ModuleIdToFileName,
-}
+pub struct AsyncWasmParserAndGenerator;
 
 pub(crate) static WASM_SOURCE_TYPE: &[SourceType; 2] = &[SourceType::Wasm, SourceType::JavaScript];
+
+#[derive(Debug)]
+struct DepModule<'a> {
+  request: &'a str,
+  import_var: String,
+  deps: Vec<(DependencyId, Atom)>,
+}
 
 #[cacheable_dyn]
 #[async_trait::async_trait]
@@ -70,11 +67,10 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
           Payload::ImportSection(s) => {
             for import in s {
               match import {
-                Ok(Import { module, name, ty }) => {
+                Ok(Import { module, name, .. }) => {
                   dependencies.push(Box::new(WasmImportDependency::new(
                     module.into(),
                     name.into(),
-                    ty,
                   )));
                 }
                 Err(err) => diagnostic.push(Diagnostic::error(
@@ -136,30 +132,19 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
     let GenerateContext {
       compilation,
       runtime,
+      runtime_template,
       ..
     } = generate_context;
-    let wasm_filename_template = &compilation.options.output.webassembly_module_filename;
-    let hash = hash_for_source(source);
-    let normal_module = module
-      .as_normal_module()
-      .expect("module should be a NormalModule in AsyncWasmParserAndGenerator::generate");
-    let wasm_path_with_info =
-      render_wasm_name(compilation, normal_module, wasm_filename_template, &hash).await?;
-
-    self
-      .module_id_to_filename
-      .insert(module.identifier(), wasm_path_with_info.clone());
+    let hash = module
+      .build_info()
+      .hash
+      .as_ref()
+      .map(|hash| hash.rendered(16))
+      .expect("should build info have hash");
 
     match generate_context.requested_source_type {
       SourceType::JavaScript => {
-        let runtime_requirements = &mut generate_context.runtime_requirements;
-        runtime_requirements.insert(RuntimeGlobals::MODULE);
-        runtime_requirements.insert(RuntimeGlobals::MODULE_ID);
-        runtime_requirements.insert(RuntimeGlobals::EXPORTS);
-        runtime_requirements.insert(RuntimeGlobals::INSTANTIATE_WASM);
-
-        let mut dep_modules = IndexMap::<ModuleIdentifier, (String, &ModuleId)>::new();
-        let mut wasm_deps_by_request = IndexMap::<&str, Vec<(Identifier, String, String)>>::new();
+        let mut dep_modules = IndexMap::<ModuleIdentifier, DepModule>::new();
         let mut promises: Vec<String> = vec![];
 
         let module_graph = &compilation.get_module_graph();
@@ -167,8 +152,8 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
         module
           .get_dependencies()
           .iter()
-          .map(|id| module_graph.dependency_by_id(id).expect("should be ok"))
-          .filter(|dep| dep.dependency_type() == &WasmImport)
+          .map(|id| module_graph.dependency_by_id(id))
+          .filter(|dep| dep.dependency_type() == &DependencyType::WasmImport)
           .map(|dep| {
             (
               dep,
@@ -177,78 +162,78 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
           })
           .for_each(|(dep, mgm)| {
             if let Some(mgm) = mgm {
-              if !dep_modules.contains_key(&mgm.module_identifier) {
-                let mut len_buffer = itoa::Buffer::new();
-                let len_str = len_buffer.format(dep_modules.len());
-                let import_var = format!("WEBPACK_IMPORTED_MODULE_{}", len_str);
-                let val = (
-                  import_var.clone(),
-                  ChunkGraph::get_module_id(
-                    &compilation.module_ids_artifact,
-                    mgm.module_identifier,
-                  )
-                  .expect("should have module id"),
-                );
-
-                if ModuleGraph::is_async(compilation, &mgm.module_identifier) {
-                  promises.push(import_var);
-                }
-                dep_modules.insert(mgm.module_identifier, val);
-              }
-
               let dep = dep
                 .as_any()
                 .downcast_ref::<WasmImportDependency>()
                 .expect("should be wasm import dependency");
-
-              let dep_name = serde_json::to_string(dep.name()).expect("should be ok.");
-              let Some(UsedName::Normal(used_name)) = ExportsInfoGetter::get_used_name(
-                GetUsedNameParam::WithNames(&module_graph.get_prefetched_exports_info(
-                  &mgm.module_identifier,
-                  PrefetchExportsInfoMode::Default,
-                )),
-                *runtime,
-                &[dep.name().into()],
-              ) else {
-                return;
-              };
               let request = dep.request();
-              let val = (
-                mgm.module_identifier,
-                dep_name,
-                property_access(used_name, 0),
-              );
-              if let Some(deps) = wasm_deps_by_request.get_mut(&request) {
-                deps.push(val);
-              } else {
-                wasm_deps_by_request.insert(request, vec![val]);
-              }
+              let len = dep_modules.len();
+              let dep_module = dep_modules.entry(mgm.module_identifier).or_insert_with(|| {
+                let mut len_buffer = itoa::Buffer::new();
+                let len_str = len_buffer.format(len);
+                let import_var = format!("rspack_import_{len_str}");
+                if ModuleGraph::is_async(
+                  &compilation.async_modules_artifact,
+                  &mgm.module_identifier,
+                ) {
+                  promises.push(import_var.clone());
+                }
+                DepModule {
+                  request,
+                  import_var,
+                  deps: vec![],
+                }
+              });
+              dep_module.deps.push((*dep.id(), dep.name().clone()));
             }
           });
 
-        let imports_code = dep_modules
+        let (imports_code, imports_compat_code): (Vec<String>, Vec<String>) = dep_modules
           .iter()
-          .map(|(_, val)| render_import_stmt(&val.0, val.1))
-          .collect::<Vec<_>>()
-          .join("");
+          .map(|(_, dep_module)| {
+            runtime_template.import_statement(
+              module,
+              compilation,
+              &dep_module.deps[0].0,
+              &dep_module.import_var,
+              dep_module.request,
+              ImportPhase::Evaluation,
+              false,
+            )
+          })
+          .unzip();
+        let imports_code = imports_code.join("");
+        let imports_compat_code = imports_compat_code.join("");
 
-        let import_obj_request_items = wasm_deps_by_request
-          .into_iter()
-          .map(|(request, deps)| {
-            let deps = deps
+        let import_obj_request_items = dep_modules
+          .into_values()
+          .map(|dep_module| {
+            let deps = dep_module
+              .deps
               .into_iter()
-              .map(|(id, name, used_name)| {
-                let import_var = dep_modules.get(&id).expect("should be ok");
-                let import_var = &import_var.0;
-                format!("{name}: {import_var}{used_name}")
+              .map(|(dep_id, export_name)| {
+                let export = runtime_template.export_from_import(
+                  compilation,
+                  &mut ModuleInitFragments::default(),
+                  module.identifier(),
+                  *runtime,
+                  true,
+                  dep_module.request,
+                  &dep_module.import_var,
+                  std::slice::from_ref(&export_name),
+                  &dep_id,
+                  false,
+                  false,
+                  Some(true),
+                  ImportPhase::Evaluation,
+                );
+                let name = json_stringify(&export_name);
+                format!("{name}: {export}")
               })
               .collect::<Vec<_>>()
               .join(",\n");
 
-            format!(
-              "{}: {{\n{deps}\n}}",
-              serde_json::to_string(request).expect("should be ok")
-            )
+            format!("{}: {{\n{deps}\n}}", json_stringify(dep_module.request))
           })
           .collect::<Vec<_>>();
 
@@ -261,41 +246,41 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
           None
         };
 
+        let module_argument = runtime_template.render_module_argument(ModuleArgument::Module);
+        let exports_argument = runtime_template.render_exports_argument(ExportsArgument::Exports);
         let instantiate_call = format!(
-          "{}(exports, module.id, {} {})",
-          RuntimeGlobals::INSTANTIATE_WASM,
-          serde_json::to_string(&hash).expect("should be ok"),
+          r#"{}({exports_argument}, {}, "{}" {})"#,
+          runtime_template.render_runtime_globals(&RuntimeGlobals::INSTANTIATE_WASM),
+          runtime_template.render_runtime_globals(&RuntimeGlobals::MODULE_ID),
+          &hash,
           imports_obj.unwrap_or_default()
         );
 
         let source = if !promises.is_empty() {
-          generate_context
-            .runtime_requirements
-            .insert(RuntimeGlobals::ASYNC_MODULE);
           let promises = promises.join(", ");
           let decl = format!(
-            "var __webpack_instantiate__ = function ([{promises}]) {{\nreturn {instantiate_call};\n}}\n",
+            "var __rspack_instantiate__ = function ([{promises}]) {{\n{imports_compat_code}return {instantiate_call};\n}}\n",
           );
           let async_dependencies = format!(
-"{}(module, async function (__webpack_handle_async_dependencies__, __webpack_async_result__) {{
+"{}({module_argument}, async function (__rspack_load_async_deps, __rspack_async_done) {{
   try {{
-    {imports_code}
-    var __webpack_async_dependencies__ = __webpack_handle_async_dependencies__([{promises}]);
-    var [{promises}] = __webpack_async_dependencies__.then ? (await __webpack_async_dependencies__)() : __webpack_async_dependencies__;
-    await {instantiate_call};
+{imports_code}
+    var __rspack_async_deps = __rspack_load_async_deps([{promises}]);
+    var [{promises}] = __rspack_async_deps.then ? (await __rspack_async_deps)() : __rspack_async_deps;
+    {imports_compat_code}await {instantiate_call};
 
-  __webpack_async_result__();
+  __rspack_async_done();
 
-  }} catch(e) {{ __webpack_async_result__(e); }}
+  }} catch(e) {{ __rspack_async_done(e); }}
 }}, 1);
 ",
-            RuntimeGlobals::ASYNC_MODULE,
+            runtime_template.render_runtime_globals(&RuntimeGlobals::ASYNC_MODULE),
           );
 
           RawStringSource::from(format!("{decl}{async_dependencies}"))
         } else {
           RawStringSource::from(format!(
-            "{imports_code} module.exports = {instantiate_call};"
+            "{imports_code}{imports_compat_code}{module_argument}.exports = {instantiate_call};"
           ))
         };
 
@@ -313,37 +298,4 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
   ) -> Option<Cow<'static, str>> {
     Some("Module Concatenation is not implemented for AsyncWasmParserAndGenerator".into())
   }
-}
-
-async fn render_wasm_name(
-  compilation: &Compilation,
-  normal_module: &NormalModule,
-  wasm_filename_template: &Filename,
-  hash: &str,
-) -> Result<(String, AssetInfo)> {
-  compilation
-    .get_asset_path_with_info(
-      wasm_filename_template,
-      PathData::default()
-        .module_id_optional(
-          ChunkGraph::get_module_id(&compilation.module_ids_artifact, normal_module.id())
-            .map(|s| PathData::prepare_id(s.as_str()))
-            .as_deref(),
-        )
-        .filename(&normal_module.resource_resolved_data().resource)
-        .content_hash(hash)
-        .hash(hash),
-    )
-    .await
-}
-
-fn render_import_stmt(import_var: &str, module_id: &ModuleId) -> String {
-  let module_id = serde_json::to_string(module_id).expect("TODO");
-  format!("var {import_var} = __webpack_require__({module_id});\n",)
-}
-
-fn hash_for_source(source: &BoxSource) -> String {
-  let mut hasher = DefaultHasher::new();
-  source.hash(&mut hasher);
-  format!("{:016x}", hasher.finish())
 }

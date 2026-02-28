@@ -1,0 +1,37 @@
+assets by path *.wasm xx KiB
+  asset ad41658e96d8163b.module.wasm xx bytes [emitted] [immutable]
+  asset 675b695aa295b810.module.wasm xx bytes [emitted] [immutable]
+  asset d721b2404ff371da.module.wasm xx bytes [emitted] [immutable]
+  asset 304f41ed8aa46cbb.module.wasm xx bytes [emitted] [immutable]
+  asset 5fde5d910acc4fe1.module.wasm xx bytes [emitted] [immutable]
+  asset c8b87a4f03233e44.module.wasm xx bytes [emitted] [immutable]
+assets by path *.js xx KiB
+  asset bundle.js xx KiB [emitted] (name: main)
+  asset 549.bundle.js xx KiB [emitted]
+  asset 440.bundle.js xx bytes [emitted] (id hint: vendors)
+chunk (runtime: main) 440.bundle.js (id hint: vendors) xx bytes [rendered] split chunk (cache group: defaultVendors)
+  ./node_modules/env.js xx bytes [built] [code generated]
+chunk (runtime: main) 304f41ed8aa46cbb.module.wasm, 549.bundle.js, 5fde5d910acc4fe1.module.wasm, 675b695aa295b810.module.wasm, ad41658e96d8163b.module.wasm, c8b87a4f03233e44.module.wasm, d721b2404ff371da.module.wasm xx KiB (javascript) xx KiB (wasm) [rendered]
+  ./Q_rsqrt.wasm xx bytes (wasm) xx bytes (javascript) [dependent] [built] [code generated]
+  ./duff.wasm xx bytes (wasm) xx bytes (javascript) [dependent] [built] [code generated]
+  ./fact.wasm xx bytes (wasm) xx bytes (javascript) [dependent] [built] [code generated]
+  ./fast-math.wasm xx bytes (wasm) xx bytes (javascript) [dependent] [built] [code generated]
+  ./popcnt.wasm xx bytes (wasm) xx bytes (javascript) [dependent] [built] [code generated]
+  ./testFunction.wasm xx bytes (wasm) xx bytes (javascript) [dependent] [built] [code generated]
+  ./tests.js xx KiB [built] [code generated]
+chunk (runtime: main) bundle.js (main) xx bytes (javascript) xx KiB (runtime) [entry] [rendered]
+  ./index.js xx bytes [built] [code generated]
+runtime modules xx KiB 10 modules
+cacheable modules xx KiB (wasm) xx KiB (javascript)
+  webassembly modules xx KiB (wasm) xx bytes (javascript)
+    ./Q_rsqrt.wasm xx bytes (wasm) xx bytes (javascript) [built] [code generated]
+    ./testFunction.wasm xx bytes (wasm) xx bytes (javascript) [built] [code generated]
+    ./fact.wasm xx bytes (wasm) xx bytes (javascript) [built] [code generated]
+    ./popcnt.wasm xx bytes (wasm) xx bytes (javascript) [built] [code generated]
+    ./fast-math.wasm xx bytes (wasm) xx bytes (javascript) [built] [code generated]
+    ./duff.wasm xx bytes (wasm) xx bytes (javascript) [built] [code generated]
+  javascript modules xx KiB
+    ./index.js xx bytes [built] [code generated]
+    ./tests.js xx KiB [built] [code generated]
+    ./node_modules/env.js xx bytes [built] [code generated]
+Rspack x.x.x compiled successfully in X s

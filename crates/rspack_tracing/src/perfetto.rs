@@ -77,7 +77,7 @@ impl Tracer for PerfettoTracer {
         let (javascript_scoped_descriptor, parent_uuid) = create_scope_sliced_packet(
           event
             .process_name
-            .unwrap_or(JAVASCRIPT_ANALYSIS_TRACK.to_string()),
+            .unwrap_or_else(|| JAVASCRIPT_ANALYSIS_TRACK.to_string()),
         );
         let mut packet = idl::TracePacket::default();
         // specify the track name for track event using track_descriptor
@@ -131,8 +131,6 @@ impl Tracer for PerfettoTracer {
           );
           trace.packet.push(packet);
           self.write_log(&mut trace, Some(desc));
-        } else {
-          continue;
         }
       } else if event.ph == "P" || event.ph == "X" {
         let uuid = self

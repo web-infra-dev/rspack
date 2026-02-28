@@ -12,7 +12,7 @@
 //! - `plugin`: Enable SWC plugin support
 //!
 //! # Guide
-//! [Rspack Custom binding](https://rspack-contrib.github.io/rspack-rust-book/custom-binding/getting-started/index.html)
+//! [Rspack Custom binding](https://rstackjs.github.io/rspack-rust-book/custom-binding/getting-started/index.html)
 // Re-export rspack_binding_api to make it available to the N-API binding
 extern crate rspack_binding_api;
 

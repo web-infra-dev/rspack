@@ -1,20 +1,25 @@
 use std::cmp::Ordering;
 
+use itertools::Itertools;
 use rspack_collections::Identifier;
-use rspack_util::comparators::{compare_ids, compare_numbers};
+use rspack_util::comparators::compare_ids;
 
 use crate::{
-  BoxModule, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, Compilation, ModuleGraph,
+  ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, Compilation, ConcatenatedModule,
+  ModuleGraph, ModuleIdentifier,
 };
 mod comment;
 mod compile_boolean_matcher;
 mod concatenated_module_visitor;
 mod concatenation_scope;
+mod extract_source_map;
 mod extract_url_and_global;
 mod fast_actions;
 mod file_counter;
 mod find_graph_roots;
 mod fs_trim;
+pub mod incremental_info;
+mod steal_cell;
 pub use fs_trim::*;
 mod hash;
 mod identifier;
@@ -23,7 +28,6 @@ mod memory_gc;
 mod module_rules;
 mod property_access;
 mod property_name;
-mod queue;
 mod remove_bom;
 mod runtime;
 mod source;
@@ -34,12 +38,14 @@ pub use compile_boolean_matcher::*;
 pub use concatenated_module_visitor::*;
 pub use concatenation_scope::*;
 pub use memory_gc::MemoryGCStorage;
+pub use steal_cell::StealCell;
 
 pub use self::{
   comment::*,
+  extract_source_map::*,
   extract_url_and_global::*,
   fast_actions::*,
-  file_counter::FileCounter,
+  file_counter::{FileCounter, ResourceId},
   find_graph_roots::*,
   hash::*,
   identifier::*,
@@ -47,7 +53,6 @@ pub use self::{
   module_rules::*,
   property_access::*,
   property_name::*,
-  queue::*,
   remove_bom::*,
   runtime::*,
   source::*,
@@ -110,39 +115,92 @@ pub fn compare_chunk_group(
   ukey_b: &ChunkGroupUkey,
   compilation: &Compilation,
 ) -> Ordering {
-  let chunks_a = &compilation.chunk_group_by_ukey.expect_get(ukey_a).chunks;
-  let chunks_b = &compilation.chunk_group_by_ukey.expect_get(ukey_b).chunks;
+  let chunks_a = &compilation
+    .build_chunk_graph_artifact
+    .chunk_group_by_ukey
+    .expect_get(ukey_a)
+    .chunks;
+  let chunks_b = &compilation
+    .build_chunk_graph_artifact
+    .chunk_group_by_ukey
+    .expect_get(ukey_b)
+    .chunks;
   match chunks_a.len().cmp(&chunks_b.len()) {
     Ordering::Less => Ordering::Greater,
     Ordering::Greater => Ordering::Less,
     Ordering::Equal => compare_chunks_iterables(
-      &compilation.chunk_graph,
-      &compilation.get_module_graph(),
+      &compilation.build_chunk_graph_artifact.chunk_graph,
+      compilation.get_module_graph(),
       chunks_a,
       chunks_b,
     ),
   }
 }
 
-pub fn compare_modules_by_pre_order_index_or_identifier(
+pub fn compare_modules_by_identifier(a: &Identifier, b: &Identifier) -> std::cmp::Ordering {
+  compare_ids(a, b)
+}
+
+/// # Returns
+/// - `Some(String)` if a hashbang is found in the module's build_info extras
+/// - `None` if no hashbang is present or the module doesn't exist
+pub fn get_module_hashbang(
   module_graph: &ModuleGraph,
-  a: &Identifier,
-  b: &Identifier,
-) -> std::cmp::Ordering {
-  if let Some(a) = module_graph.get_pre_order_index(a)
-    && let Some(b) = module_graph.get_pre_order_index(b)
-  {
-    compare_numbers(a, b)
-  } else {
-    compare_ids(a, b)
-  }
+  module_id: &ModuleIdentifier,
+) -> Option<String> {
+  let module = module_graph.module_by_identifier(module_id)?;
+
+  let build_info =
+    if let Some(concatenated_module) = module.as_any().downcast_ref::<ConcatenatedModule>() {
+      // For concatenated modules, get the root module's build_info
+      let root_module_id = concatenated_module.get_root();
+      module_graph
+        .module_by_identifier(&root_module_id)
+        .map_or_else(|| module.build_info(), |m| m.build_info())
+    } else {
+      module.build_info()
+    };
+
+  build_info
+    .extras
+    .get("hashbang")
+    .and_then(|v| v.as_str())
+    .map(|s| s.to_string())
 }
 
-pub fn compare_modules_by_identifier(a: &BoxModule, b: &BoxModule) -> std::cmp::Ordering {
-  compare_ids(&a.identifier(), &b.identifier())
+/// # Returns
+/// - `Some(Vec<String>)` if directives are found in the module's build_info extras
+/// - `None` if no directives are present or the module doesn't exist
+pub fn get_module_directives(
+  module_graph: &ModuleGraph,
+  module_id: &ModuleIdentifier,
+) -> Option<Vec<String>> {
+  let module = module_graph.module_by_identifier(module_id)?;
+
+  let build_info =
+    if let Some(concatenated_module) = module.as_any().downcast_ref::<ConcatenatedModule>() {
+      // For concatenated modules, get the root module's build_info
+      let root_module_id = concatenated_module.get_root();
+      module_graph
+        .module_by_identifier(&root_module_id)
+        .map_or_else(|| module.build_info(), |m| m.build_info())
+    } else {
+      module.build_info()
+    };
+
+  build_info
+    .extras
+    .get("react_directives")
+    .and_then(|v| v.as_array())
+    .map(|arr| {
+      arr
+        .iter()
+        .filter_map(|v| v.as_str().map(|s| s.to_string()))
+        .collect()
+    })
 }
 
-pub fn compare_module_iterables(modules_a: &[&BoxModule], modules_b: &[&BoxModule]) -> Ordering {
+pub fn compare_module_iterables(modules_a: &[Identifier], modules_b: &[Identifier]) -> Ordering {
   let mut a_iter = modules_a.iter();
   let mut b_iter = modules_b.iter();
   loop {
@@ -189,8 +247,8 @@ pub fn compare_chunks_with_graph(
   chunk_a_ukey: &ChunkUkey,
   chunk_b_ukey: &ChunkUkey,
 ) -> Ordering {
-  let modules_a = chunk_graph.get_chunk_modules_identifier(chunk_a_ukey);
-  let modules_b = chunk_graph.get_chunk_modules_identifier(chunk_b_ukey);
+  let modules_a = chunk_graph.get_ordered_chunk_modules_identifier(chunk_a_ukey);
+  let modules_b = chunk_graph.get_ordered_chunk_modules_identifier(chunk_b_ukey);
   if modules_a.len() > modules_b.len() {
     return Ordering::Less;
   }
@@ -198,13 +256,45 @@ pub fn compare_chunks_with_graph(
     return Ordering::Greater;
   }
 
-  let modules_a: Vec<&BoxModule> = modules_a
-    .iter()
-    .filter_map(|module_id| module_graph.module_by_identifier(module_id))
-    .collect();
-  let modules_b: Vec<&BoxModule> = modules_b
-    .iter()
-    .filter_map(|module_id| module_graph.module_by_identifier(module_id))
-    .collect();
+  let modules_a = modules_a
+    .into_iter()
+    .filter(|module_id| module_graph.module_by_identifier(module_id).is_some())
+    .collect_vec();
+  let modules_b = modules_b
+    .into_iter()
+    .filter(|module_id| module_graph.module_by_identifier(module_id).is_some())
+    .collect_vec();
   compare_module_iterables(&modules_a, &modules_b)
+}
+
+#[cfg(allocative)]
+pub fn snapshot_allocative(name: &str) {
+  use std::{
+    path::PathBuf,
+    sync::{
+      LazyLock,
+      atomic::{self, AtomicUsize},
+    },
+  };
+
+  use rspack_util::allocative;
+
+  static ENABLE: LazyLock<Option<PathBuf>> = LazyLock::new(|| {
+    std::env::var_os("RSPACK_ALLOCATIVE_DIR")
+      .map(|dir| {
+        let _ = std::fs::create_dir_all(&dir);
+        dir
+      })
+      .map(Into::into)
+  });
+  static COUNT: AtomicUsize = AtomicUsize::new(0);
+
+  if let Some(dir) = ENABLE.as_deref() {
+    let mut builder = allocative::FlameGraphBuilder::default();
+    builder.visit_global_roots();
+    let buf = builder.finish_and_write_flame_graph();
+    let count = COUNT.fetch_add(1, atomic::Ordering::Relaxed);
+    let path = dir.join(format!("{}-{}.allocative", count, name));
+    std::fs::write(path, buf).expect("allocative write failed");
+  }
 }

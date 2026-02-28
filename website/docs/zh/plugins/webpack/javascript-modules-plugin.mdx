@@ -9,7 +9,7 @@ import { ApiMeta } from '@components/ApiMeta.tsx';
 ```js
 class MyJsMinimizerPlugin {
   apply(compiler) {
-    compiler.hooks.compilation.tap(MyJsMinimizerPlugin.name, compilation => {
+    compiler.hooks.compilation.tap(MyJsMinimizerPlugin.name, (compilation) => {
       // 用来获取 JavascriptModulesPlugin 的 chunkHash 钩子
       const hooks =
         compiler.rspack.javascript.JavascriptModulesPlugin.getCompilationHooks(
@@ -20,9 +20,12 @@ class MyJsMinimizerPlugin {
         hash.update(`minimized by ${MyJsMinimizerPlugin.name}`);
       });
       // 优化 JS chunk
-      compilation.hooks.processAssets.tap(MyJsMinimizerPlugin.name, assets => {
-        optimize(assets);
-      });
+      compilation.hooks.processAssets.tap(
+        MyJsMinimizerPlugin.name,
+        (assets) => {
+          optimize(assets);
+        },
+      );
     });
   }
 }

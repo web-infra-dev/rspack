@@ -579,7 +579,7 @@ export default {
     {
       apply(compiler) {
         const { RuntimeGlobals } = compiler.rspack;
-        compiler.hooks.thisCompilation.tap('CustomPlugin', compilation => {
+        compiler.hooks.thisCompilation.tap('CustomPlugin', (compilation) => {
           compilation.hooks.additionalTreeRuntimeRequirements.tap(
             'CustomPlugin',
             (_, set) => {
@@ -634,7 +634,7 @@ export default {
           }
         }
 
-        compiler.hooks.thisCompilation.tap('CustomPlugin', compilation => {
+        compiler.hooks.thisCompilation.tap('CustomPlugin', (compilation) => {
           compilation.hooks.runtimeRequirementInTree
             .for(RuntimeGlobals.ensureChunkHandlers)
             .tap('CustomPlugin', (chunk, set) => {
@@ -671,7 +671,7 @@ export default {
     {
       apply(compiler) {
         const { RuntimeGlobals } = compiler.rspack;
-        compiler.hooks.compilation.tap('CustomPlugin', compilation => {
+        compiler.hooks.compilation.tap('CustomPlugin', (compilation) => {
           compilation.hooks.runtimeModule.tap(
             'CustomPlugin',
             (module, chunk) => {
@@ -732,14 +732,14 @@ Process the assets before emit.
 - Emit a new asset in the `PROCESS_ASSETS_STAGE_ADDITIONAL` stage:
 
 ```js
-compiler.hooks.thisCompilation.tap('MyPlugin', compilation => {
+compiler.hooks.thisCompilation.tap('MyPlugin', (compilation) => {
   const { Compilation } = compiler.rspack;
   compilation.hooks.processAssets.tap(
     {
       name: 'MyPlugin',
       stage: Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL,
     },
-    assets => {
+    (assets) => {
       const { RawSource } = compiler.rspack.sources;
       const source = new RawSource('This is a new asset!');
       compilation.emitAsset('new-asset.txt', source);
@@ -751,14 +751,14 @@ compiler.hooks.thisCompilation.tap('MyPlugin', compilation => {
 - Updating an existing asset:
 
 ```js
-compiler.hooks.thisCompilation.tap('MyPlugin', compilation => {
+compiler.hooks.thisCompilation.tap('MyPlugin', (compilation) => {
   const { Compilation } = compiler.rspack;
   compilation.hooks.processAssets.tap(
     {
       name: 'MyPlugin',
       stage: Compilation.PROCESS_ASSETS_STAGE_ADDITIONS,
     },
-    assets => {
+    (assets) => {
       const asset = assets['foo.js'];
       if (!asset) {
         return;
@@ -778,14 +778,14 @@ compiler.hooks.thisCompilation.tap('MyPlugin', compilation => {
 - Removing an asset:
 
 ```js
-compiler.hooks.thisCompilation.tap('MyPlugin', compilation => {
+compiler.hooks.thisCompilation.tap('MyPlugin', (compilation) => {
   const { Compilation } = compiler.rspack;
   compilation.hooks.processAssets.tap(
     {
       name: 'MyPlugin',
       stage: Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE,
     },
-    assets => {
+    (assets) => {
       const assetName = 'unwanted-script.js';
       if (assets[assetName]) {
         compilation.deleteAsset(assetName);
@@ -838,7 +838,7 @@ Called after the [processAssets](#processAssets) hook had finished without error
 - **Example:**
 
 ```js
-compilation.hooks.afterProcessAssets.tap('MyPlugin', assets => {
+compilation.hooks.afterProcessAssets.tap('MyPlugin', (assets) => {
   console.log('assets', Object.keys(assets));
 });
 ```
@@ -924,7 +924,7 @@ This hook is like a list of actions that gets triggered when a preset is used. I
 Here's an illustrative plugin example:
 
 ```js
-compilation.hooks.statsPreset.for('my-preset').tap('MyPlugin', options => {
+compilation.hooks.statsPreset.for('my-preset').tap('MyPlugin', (options) => {
   if (options.all === undefined) options.all = true;
 });
 ```
@@ -959,7 +959,7 @@ This hook is used to transform an options object into a consistent format that c
 Here's an illustrative plugin example:
 
 ```js
-compilation.hooks.statsNormalize.tap('MyPlugin', options => {
+compilation.hooks.statsNormalize.tap('MyPlugin', (options) => {
   if (options.myOption === undefined) options.myOption = [];
 
   if (!Array.isArray(options.myOption)) options.myOptions = [options.myOptions];

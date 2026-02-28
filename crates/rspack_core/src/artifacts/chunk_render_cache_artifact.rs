@@ -3,11 +3,23 @@ use rspack_collections::Identifier;
 use rspack_error::{Diagnostic, Result};
 use rspack_sources::BoxSource;
 
-use crate::{Chunk, Compilation, MemoryGCStorage, SourceType};
+use crate::{
+  ArtifactExt, Chunk, Compilation, MemoryGCStorage, SourceType,
+  incremental::{Incremental, IncrementalPasses},
+};
 
 #[derive(Debug, Default)]
 pub struct ChunkRenderCacheArtifact {
   storage: Option<MemoryGCStorage<BoxSource>>,
+}
+
+impl ArtifactExt for ChunkRenderCacheArtifact {
+  const PASS: IncrementalPasses = IncrementalPasses::CHUNK_ASSET;
+
+  fn recover(_incremental: &Incremental, new: &mut Self, old: &mut Self) {
+    *new = std::mem::take(old);
+    new.start_next_generation();
+  }
 }
 
 impl ChunkRenderCacheArtifact {

@@ -2,23 +2,16 @@ use std::{
   collections::{HashMap, HashSet},
   io::{BufRead, Cursor, Read, Seek},
   sync::{Arc, Mutex},
-  time::{SystemTime, UNIX_EPOCH},
 };
 
 use rspack_paths::{AssertUtf8, Utf8Path, Utf8PathBuf};
+use rspack_util::current_time;
 
 use crate::{
   Error, FileMetadata, IntermediateFileSystem, IntermediateFileSystemExtras, IoResultToFsResultExt,
   ReadStream, ReadableFileSystem, Result, WritableFileSystem, WriteStream,
   file_metadata::FilePermissions,
 };
-
-fn current_time() -> u64 {
-  SystemTime::now()
-    .duration_since(UNIX_EPOCH)
-    .expect("should get current time")
-    .as_millis() as u64
-}
 
 fn new_error(msg: &str) -> Error {
   Error::Io(std::io::Error::other(msg))

@@ -50,8 +50,7 @@ fn normalize_string(
                 - res
                   .iter()
                   .rposition(|b| *b == separator)
-                  .map(|i| i + 1)
-                  .unwrap_or(0);
+                  .map_or(0, |i| i + 1);
             } else {
               res.clear();
               last_segment_length = 0;
@@ -114,6 +113,12 @@ pub trait NodePath {
   fn node_normalize_posix(&self) -> Utf8PathBuf;
 
   fn node_normalize_win32(&self) -> Utf8PathBuf;
+
+  fn node_is_absolute(&self) -> bool;
+
+  fn node_is_absolute_posix(&self) -> bool;
+
+  fn node_is_absolute_win32(&self) -> bool;
 }
 
 impl NodePath for Utf8Path {
@@ -159,6 +164,21 @@ impl NodePath for Utf8Path {
   #[inline]
   fn node_normalize_win32(&self) -> Utf8PathBuf {
     self.to_path_buf().node_normalize_win32()
+  }
+
+  #[inline]
+  fn node_is_absolute(&self) -> bool {
+    self.to_path_buf().node_is_absolute()
+  }
+
+  #[inline]
+  fn node_is_absolute_posix(&self) -> bool {
+    self.to_path_buf().node_is_absolute_posix()
+  }
+
+  #[inline]
+  fn node_is_absolute_win32(&self) -> bool {
+    self.to_path_buf().node_is_absolute_win32()
   }
 }
 
@@ -206,15 +226,11 @@ impl NodePath for Utf8PathBuf {
 
     // in general, a separator is needed if the rightmost byte is not a separator
     let buf = self.as_os_str().as_encoded_bytes();
-    let need_sep = buf
-      .last()
-      .map(|c| !is_posix_path_separator(c))
-      .unwrap_or(false)
+    let need_sep = buf.last().is_some_and(|c| !is_posix_path_separator(c))
       && path
         .as_bytes()
         .first()
-        .map(|c| !is_posix_path_separator(c))
-        .unwrap_or(false);
+        .is_some_and(|c| !is_posix_path_separator(c));
 
     let mut string = self.as_str().to_string();
     if need_sep {
@@ -237,12 +253,11 @@ impl NodePath for Utf8PathBuf {
 
     // in general, a separator is needed if the rightmost byte is not a separator
     let buf = self.as_os_str().as_encoded_bytes();
-    let need_sep = buf.last().map(|c| !is_path_separator(c)).unwrap_or(false)
+    let need_sep = buf.last().is_some_and(|c| !is_path_separator(c))
       && path
         .as_bytes()
         .first()
-        .map(|c| !is_path_separator(c))
-        .unwrap_or(false);
+        .is_some_and(|c| !is_path_separator(c));
 
     let mut joined = self.to_string();
     if need_sep {
@@ -470,6 +485,45 @@ impl NodePath for Utf8PathBuf {
       None if is_absolute => Utf8PathBuf::from(format!("\\{tail}")),
       _ => Utf8PathBuf::from(tail),
     }
+  }
+
+  #[inline]
+  fn node_is_absolute(&self) -> bool {
+    if cfg!(windows) {
+      self.node_is_absolute_win32()
+    } else {
+      self.node_is_absolute_posix()
+    }
+  }
+
+  fn node_is_absolute_posix(&self) -> bool {
+    // POSIX absolute path starts with '/'
+    self.as_str().starts_with('/')
+  }
+
+  fn node_is_absolute_win32(&self) -> bool {
+    let path = self.as_str();
+
+    if path.is_empty() {
+      return false;
+    }
+
+    let bytes = path.as_bytes();
+
+    // Mirrors Node.js `path.win32.isAbsolute`: first separator is absolute.
+    if is_path_separator(&bytes[0]) {
+      return true;
+    }
+
+    if path.len() > 2
+      && is_windows_device_root(&bytes[0])
+      && bytes[1] == b':'
+      && is_path_separator(&bytes[2])
+    {
+      return true;
+    }
+
+    false
   }
 }
 
@@ -1004,5 +1058,35 @@ mod test {
         }
         assert_eq!(path.node_normalize_win32().as_str(), *expected);
       });
+  }
+
+  // Test cases from https://github.com/nodejs/node/blob/5cf3c3e24c7257a0c6192ed8ef71efec8ddac22b/test/parallel/test-path-isabsolute.js
+  #[test]
+  fn test_node_is_absolute() {
+    // win32 cases
+    assert!(Utf8Path::new("/").node_is_absolute_win32());
+    assert!(Utf8Path::new("//").node_is_absolute_win32());
+    assert!(Utf8Path::new("//server").node_is_absolute_win32());
+    assert!(Utf8Path::new("//server/file").node_is_absolute_win32());
+    assert!(Utf8Path::new("\\\\server\\file").node_is_absolute_win32());
+    assert!(Utf8Path::new("\\\\server").node_is_absolute_win32());
+    assert!(Utf8Path::new("\\\\").node_is_absolute_win32());
+    assert!(!Utf8Path::new("c").node_is_absolute_win32());
+    assert!(!Utf8Path::new("c:").node_is_absolute_win32());
+    assert!(Utf8Path::new("c:\\").node_is_absolute_win32());
+    assert!(Utf8Path::new("c:/").node_is_absolute_win32());
+    assert!(Utf8Path::new("c://").node_is_absolute_win32());
+    assert!(Utf8Path::new("C:/Users/").node_is_absolute_win32());
+    assert!(Utf8Path::new("C:\\Users\\").node_is_absolute_win32());
+    assert!(!Utf8Path::new("C:cwd/another").node_is_absolute_win32());
+    assert!(!Utf8Path::new("C:cwd\\another").node_is_absolute_win32());
+    assert!(!Utf8Path::new("directory/directory").node_is_absolute_win32());
+    assert!(!Utf8Path::new("directory\\directory").node_is_absolute_win32());
+
+    // posix cases
+    assert!(Utf8Path::new("/home/foo").node_is_absolute_posix());
+    assert!(Utf8Path::new("/home/foo/..").node_is_absolute_posix());
+    assert!(!Utf8Path::new("bar/").node_is_absolute_posix());
+    assert!(!Utf8Path::new("./baz").node_is_absolute_posix());
   }
 }

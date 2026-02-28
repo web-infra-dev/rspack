@@ -1,17 +1,17 @@
-use rspack_cacheable::{
-  cacheable, cacheable_dyn,
-  with::{AsPreset, Skip},
-};
+use rspack_cacheable::{cacheable, cacheable_dyn, with::AsPreset};
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   AsContextDependency, AsModuleDependency, Dependency, DependencyCategory,
   DependencyCodeGeneration, DependencyId, DependencyLocation, DependencyRange, DependencyTemplate,
   DependencyTemplateType, DependencyType, ESMExportInitFragment, EvaluatedInlinableValue,
-  ExportNameOrSpec, ExportSpec, ExportsInfoGetter, ExportsOfExportsSpec, ExportsSpec,
-  GetUsedNameParam, LazyUntil, ModuleGraph, ModuleGraphCacheArtifact, PrefetchExportsInfoMode,
-  SharedSourceMap, TSEnumValue, TemplateContext, TemplateReplaceSource, UsedName,
+  ExportNameOrSpec, ExportSpec, ExportSpecExports, ExportsInfoArtifact, ExportsInfoGetter,
+  ExportsOfExportsSpec, ExportsSpec, GetUsedNameParam, LazyUntil, ModuleGraph,
+  ModuleGraphCacheArtifact, PrefetchExportsInfoMode, TSEnumValue, TemplateContext,
+  TemplateReplaceSource, UsedName,
 };
 use swc_core::ecma::atoms::Atom;
+
+use crate::is_export_inlined;
 
 // Create _webpack_require__.d(__webpack_exports__, {}) for each export.
 #[cacheable]
@@ -19,8 +19,7 @@ use swc_core::ecma::atoms::Atom;
 pub struct ESMExportSpecifierDependency {
   id: DependencyId,
   range: DependencyRange,
-  #[cacheable(with=Skip)]
-  source_map: Option<SharedSourceMap>,
+  loc: Option<DependencyLocation>,
   #[cacheable(with=AsPreset)]
   name: Atom,
   #[cacheable(with=AsPreset)]
@@ -36,7 +35,7 @@ impl ESMExportSpecifierDependency {
     inline: Option<EvaluatedInlinableValue>,
     enum_value: Option<TSEnumValue>,
     range: DependencyRange,
-    source_map: Option<SharedSourceMap>,
+    loc: Option<DependencyLocation>,
   ) -> Self {
     Self {
       name,
@@ -44,7 +43,7 @@ impl ESMExportSpecifierDependency {
       inline,
       enum_value,
       range,
-      source_map,
+      loc,
       id: DependencyId::new(),
     }
   }
@@ -57,7 +56,7 @@ impl Dependency for ESMExportSpecifierDependency {
   }
 
   fn loc(&self) -> Option<DependencyLocation> {
-    self.range.to_loc(self.source_map.as_ref())
+    self.loc.clone()
   }
 
   fn category(&self) -> &DependencyCategory {
@@ -72,22 +71,27 @@ impl Dependency for ESMExportSpecifierDependency {
     &self,
     _mg: &ModuleGraph,
     _mg_cache: &ModuleGraphCacheArtifact,
+    _exports_info_artifact: &ExportsInfoArtifact,
   ) -> Option<ExportsSpec> {
     Some(ExportsSpec {
       exports: ExportsOfExportsSpec::Names(vec![ExportNameOrSpec::ExportSpec(ExportSpec {
         name: self.name.clone(),
         inlinable: self.inline.clone(),
         exports: self.enum_value.as_ref().map(|enum_value| {
-          enum_value
-            .iter()
-            .map(|(enum_name, enum_value)| {
-              ExportNameOrSpec::ExportSpec(ExportSpec {
-                name: enum_name.clone(),
-                inlinable: enum_value.clone(),
-                ..Default::default()
+          ExportSpecExports::new(
+            enum_value
+              .iter()
+              .map(|(enum_name, enum_member)| {
+                ExportNameOrSpec::ExportSpec(ExportSpec {
+                  name: enum_name.clone(),
+                  inlinable: enum_member.clone(),
+                  can_mangle: Some(false),
+                  ..Default::default()
+                })
               })
-            })
-            .collect()
+              .collect(),
+          )
+          .with_unknown_provided(true)
         }),
         ..Default::default()
       })]),
@@ -171,7 +175,7 @@ impl DependencyTemplate for ESMExportSpecifierDependencyTemplate {
       .module_by_identifier(&module.identifier())
       .expect("should have module graph module");
 
-    // remove the enum decl if all the enum members are inlined
+    // remove the enum decl export if all the enum members are inlined
     if let Some(enum_value) = &dep.enum_value {
       let all_enum_member_inlined = enum_value.iter().all(|(enum_key, enum_member)| {
         // if there are enum member need to keep origin/non-inlineable, then we need to keep the enum decl
@@ -179,23 +183,20 @@ impl DependencyTemplate for ESMExportSpecifierDependencyTemplate {
           return false;
         }
         let export_name = &[dep.name.clone(), enum_key.clone()];
-        let exports_info = module_graph.get_prefetched_exports_info(
+        is_export_inlined(
+          &compilation.exports_info_artifact,
           &module.identifier(),
-          PrefetchExportsInfoMode::Nested(export_name),
-        );
-        let enum_member_used_name = ExportsInfoGetter::get_used_name(
-          GetUsedNameParam::WithNames(&exports_info),
-          *runtime,
           export_name,
-        );
-        matches!(enum_member_used_name, Some(UsedName::Inlined(_)))
+          *runtime,
+        )
       });
       if all_enum_member_inlined {
         return;
       }
     }
 
-    let exports_info = module_graph
+    let exports_info = compilation
+      .exports_info_artifact
       .get_prefetched_exports_info(&module.identifier(), PrefetchExportsInfoMode::Default);
     let Some(used_name) = ExportsInfoGetter::get_used_name(
       GetUsedNameParam::WithNames(&exports_info),

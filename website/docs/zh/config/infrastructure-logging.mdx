@@ -14,13 +14,12 @@ import WebpackLicense from '@components/WebpackLicense';
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   infrastructureLogging: {
     appendOnly: true,
     level: 'verbose',
   },
   plugins: [
-    compiler => {
+    (compiler) => {
       const logger = compiler.getInfrastructureLogger('MyPlugin');
       logger.status('first output'); // 当启用 `appendOnly` 时，此行不会被覆盖
       logger.status('second output');
@@ -37,13 +36,12 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   infrastructureLogging: {
     colors: true,
     level: 'verbose',
   },
   plugins: [
-    compiler => {
+    (compiler) => {
       const logger = compiler.getInfrastructureLogger('MyPlugin');
       logger.log('this output will be colorful');
     },
@@ -60,7 +58,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   infrastructureLogging: {
     console: yourCustomConsole(),
   },
@@ -76,10 +73,9 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   infrastructureLogging: {
     level: 'info',
-    debug: ['MyPlugin', /MyPlugin/, name => name.contains('MyPlugin')],
+    debug: ['MyPlugin', /MyPlugin/, (name) => name.contains('MyPlugin')],
   },
 };
 ```
@@ -102,7 +98,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   infrastructureLogging: {
     level: 'info',
   },
@@ -118,7 +113,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   infrastructureLogging: {
     stream: process.stderr,
   },

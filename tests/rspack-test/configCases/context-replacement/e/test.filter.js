@@ -1,0 +1,1 @@
+module.exports = () => "TODO: support context replacement with async require"

@@ -5,6 +5,7 @@ license           = "MIT"
 name              = "rspack_plugin_javascript"
 repository        = "https://github.com/web-infra-dev/rspack"
 version.workspace = true
+
 [dependencies]
 anymap = { workspace = true }
 async-trait = { workspace = true }
@@ -13,15 +14,13 @@ cow-utils = { workspace = true }
 either = { workspace = true }
 fast-glob = { workspace = true }
 indexmap = { workspace = true }
-indoc = { workspace = true }
 itertools = { workspace = true }
-linked_hash_set = { workspace = true }
+memchr = { workspace = true }
 num-bigint = { workspace = true }
 once_cell = { workspace = true }
 rayon = { workspace = true }
 regex = { workspace = true }
 regress = { workspace = true, features = ["pattern"] }
-ropey = { workspace = true }
 rspack_cacheable = { workspace = true }
 rspack_collections = { workspace = true }
 rspack_core = { workspace = true }
@@ -37,6 +36,7 @@ rspack_util = { workspace = true }
 rustc-hash = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
+slotmap = { workspace = true }
 sugar_path = { workspace = true }
 swc_core = { workspace = true, features = [
   "__parser",
@@ -49,6 +49,7 @@ swc_core = { workspace = true, features = [
   "ecma_transforms_compat",
   "ecma_transforms_typescript",
   "base",
+  "base_module",
   "ecma_quote",
 ] }
 swc_node_comments = { workspace = true }
@@ -59,3 +60,6 @@ winnow = { workspace = true }
 
 [package.metadata.cargo-shear]
 ignored = ["tracing"]
+
+[lints]
+workspace = true

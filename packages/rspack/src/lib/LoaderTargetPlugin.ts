@@ -8,29 +8,29 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 
-import type { Compiler } from "../Compiler";
-import type { Target } from "../config";
-import { NormalModule } from "../NormalModule";
+import type { Compiler } from '../Compiler';
+import type { Target } from '../config';
+import { NormalModule } from '../NormalModule';
 
 export class LoaderTargetPlugin {
-	/**
-	 * @param target the target
-	 */
-	constructor(public readonly target: Target) {}
+  /**
+   * @param target the target
+   */
+  constructor(public readonly target: Target) {}
 
-	/**
-	 * Apply the plugin
-	 * @param compiler the compiler instance
-	 * @returns
-	 */
-	apply(compiler: Compiler): void {
-		compiler.hooks.compilation.tap("LoaderTargetPlugin", compilation => {
-			NormalModule.getCompilationHooks(compilation).loader.tap(
-				"LoaderTargetPlugin",
-				loaderContext => {
-					loaderContext.target = this.target;
-				}
-			);
-		});
-	}
+  /**
+   * Apply the plugin
+   * @param compiler the compiler instance
+   * @returns
+   */
+  apply(compiler: Compiler): void {
+    compiler.hooks.compilation.tap('LoaderTargetPlugin', (compilation) => {
+      NormalModule.getCompilationHooks(compilation).loader.tap(
+        'LoaderTargetPlugin',
+        (loaderContext) => {
+          loaderContext.target = this.target;
+        },
+      );
+    });
+  }
 }

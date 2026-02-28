@@ -1,0 +1,8 @@
+import { __webpack_require__ } from "./runtime~0.js";
+__webpack_require__.add({
+917(module) {
+module.exports = 'b'
+
+},
+});
+__webpack_require__("917");

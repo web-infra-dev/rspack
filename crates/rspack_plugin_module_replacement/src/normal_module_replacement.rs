@@ -61,16 +61,21 @@ async fn nmf_after_resolve(
 ) -> Result<Option<bool>> {
   if self
     .resource_reg_exp
-    .test(&create_data.resource_resolve_data.resource)
+    .test(create_data.resource_resolve_data.resource())
   {
     match &self.new_resource {
       NormalModuleReplacer::String(new_resource) => {
+        // Same as [JsCreateData::update_nmf_data] in crates/rspack_binding_api/src/normal_module_factory.rs
         if Utf8PathBuf::from(new_resource).is_absolute() {
-          create_data.resource_resolve_data.resource = new_resource.clone();
+          create_data
+            .resource_resolve_data
+            .update_resource_data(new_resource.clone());
         } else if let Some(dir) =
-          Utf8PathBuf::from(&create_data.resource_resolve_data.resource).parent()
+          Utf8PathBuf::from(create_data.resource_resolve_data.resource()).parent()
         {
-          create_data.resource_resolve_data.resource = dir.join(new_resource.clone()).to_string();
+          create_data
+            .resource_resolve_data
+            .update_resource_data(dir.join(new_resource.clone()).to_string());
         }
       }
       NormalModuleReplacer::Fn(f) => f(data, Some(create_data)).await?,

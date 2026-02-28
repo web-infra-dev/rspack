@@ -1,0 +1,17 @@
+Array [
+  Object {
+    code: ModuleParseError,
+    moduleIdentifier: <TEST_ROOT>/diagnosticsCases/module-parse-failed/module-parse-error/non-recoverable.js,
+    moduleName: ./non-recoverable.js,
+  },
+  Object {
+    code: ModuleParseError,
+    moduleIdentifier: <TEST_ROOT>/diagnosticsCases/module-parse-failed/module-parse-error/recoverable.js,
+    moduleName: ./recoverable.js,
+  },
+  Object {
+    code: ModuleParseError,
+    moduleIdentifier: <TEST_ROOT>/diagnosticsCases/module-parse-failed/module-parse-error/recoverable.js,
+    moduleName: ./recoverable.js,
+  },
+]

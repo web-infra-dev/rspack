@@ -1,11 +1,12 @@
 use std::{
-  fmt::{self, Debug},
+  fmt,
   ops::{Deref, DerefMut},
   sync::Arc,
 };
 
 use async_recursion::async_recursion;
 use bitflags::bitflags;
+use derive_more::Debug;
 use futures::future::BoxFuture;
 use rspack_cacheable::{cacheable, with::Unsupported};
 use rspack_error::Result;
@@ -146,6 +147,7 @@ impl fmt::Display for DynamicImportFetchPriority {
 pub enum JavascriptParserUrl {
   Enable,
   Disable,
+  NewUrlRelative,
   Relative,
 }
 
@@ -154,6 +156,7 @@ impl From<&str> for JavascriptParserUrl {
     match value {
       "false" => Self::Disable,
       "relative" => Self::Relative,
+      "new-url-relative" => Self::NewUrlRelative,
       _ => Self::Enable,
     }
   }
@@ -189,6 +192,26 @@ impl From<&str> for JavascriptParserOrder {
       }
     }
   }
+}
+
+#[cacheable]
+#[derive(Debug, Clone, Copy, MergeFrom, PartialEq, Eq)]
+pub enum JavascriptParserCommonjsExportsOption {
+  Enable,
+  Disable,
+  SkipInEsm,
+}
+
+impl From<bool> for JavascriptParserCommonjsExportsOption {
+  fn from(value: bool) -> Self {
+    if value { Self::Enable } else { Self::Disable }
+  }
+}
+
+#[cacheable]
+#[derive(Debug, Clone, MergeFrom)]
+pub struct JavascriptParserCommonjsOptions {
+  pub exports: JavascriptParserCommonjsExportsOption,
 }
 
 #[cacheable]
@@ -273,16 +296,19 @@ pub struct JavascriptParserOptions {
   pub exports_presence: Option<ExportPresenceMode>,
   pub import_exports_presence: Option<ExportPresenceMode>,
   pub reexport_exports_presence: Option<ExportPresenceMode>,
-  pub strict_export_presence: Option<bool>,
   pub type_reexports_presence: Option<TypeReexportPresenceMode>,
   pub worker: Option<Vec<String>>,
   pub override_strict: Option<OverrideStrict>,
   pub import_meta: Option<bool>,
+  pub require_alias: Option<bool>,
   pub require_as_expression: Option<bool>,
   pub require_dynamic: Option<bool>,
   pub require_resolve: Option<bool>,
+  pub commonjs: Option<JavascriptParserCommonjsOptions>,
   pub import_dynamic: Option<bool>,
-  pub inline_const: Option<bool>,
+  pub commonjs_magic_comments: Option<bool>,
+  pub jsx: Option<bool>,
+  pub defer_import: Option<bool>,
 }
 
 #[cacheable]
@@ -304,11 +330,60 @@ pub struct AssetParserDataUrlOptions {
   pub max_size: Option<f64>,
 }
 
+/// Context passed to the CSS parser import filter function
+pub struct CssParserImportContext {
+  pub url: String,
+  pub media: Option<String>,
+  pub resource_path: String,
+  pub supports: Option<String>,
+  pub layer: Option<String>,
+}
+
+pub type CssParserImportFn =
+  Arc<dyn Fn(CssParserImportContext) -> BoxFuture<'static, Result<bool>> + Sync + Send>;
+
+#[cacheable]
+pub enum CssParserImport {
+  Bool(bool),
+  Func(#[cacheable(with=Unsupported)] CssParserImportFn),
+}
+
+impl Default for CssParserImport {
+  fn default() -> Self {
+    Self::Bool(true)
+  }
+}
+
+impl fmt::Debug for CssParserImport {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    match self {
+      Self::Bool(b) => write!(f, "CssParserImport::Bool({b})"),
+      Self::Func(_) => write!(f, "CssParserImport::Func(...)"),
+    }
+  }
+}
+
+impl Clone for CssParserImport {
+  fn clone(&self) -> Self {
+    match self {
+      Self::Bool(b) => Self::Bool(*b),
+      Self::Func(f) => Self::Func(f.clone()),
+    }
+  }
+}
+
+impl MergeFrom for CssParserImport {
+  fn merge_from(self, other: &Self) -> Self {
+    other.clone()
+  }
+}
+
 #[cacheable]
 #[derive(Debug, Clone, MergeFrom)]
 pub struct CssParserOptions {
   pub named_exports: Option<bool>,
   pub url: Option<bool>,
+  pub resolve_import: Option<CssParserImport>,
 }
 
 #[cacheable]
@@ -316,6 +391,7 @@ pub struct CssParserOptions {
 pub struct CssAutoParserOptions {
   pub named_exports: Option<bool>,
   pub url: Option<bool>,
+  pub resolve_import: Option<CssParserImport>,
 }
 
 impl From<CssParserOptions> for CssAutoParserOptions {
@@ -323,6 +399,7 @@ impl From<CssParserOptions> for CssAutoParserOptions {
     Self {
       named_exports: value.named_exports,
       url: value.url,
+      resolve_import: value.resolve_import,
     }
   }
 }
@@ -332,6 +409,7 @@ impl From<CssParserOptions> for CssAutoParserOptions {
 pub struct CssModuleParserOptions {
   pub named_exports: Option<bool>,
   pub url: Option<bool>,
+  pub resolve_import: Option<CssParserImport>,
 }
 
 impl From<CssParserOptions> for CssModuleParserOptions {
@@ -339,6 +417,7 @@ impl From<CssParserOptions> for CssModuleParserOptions {
     Self {
       named_exports: value.named_exports,
       url: value.url,
+      resolve_import: value.resolve_import,
     }
   }
 }
@@ -351,7 +430,7 @@ pub enum ParseOption {
   None,
 }
 
-impl Debug for ParseOption {
+impl fmt::Debug for ParseOption {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {
       Self::Func(_) => write!(f, "ParseOption::Func(...)"),
@@ -471,13 +550,6 @@ impl GeneratorOptions {
       .get_asset()
       .and_then(|x| x.data_url.as_ref())
       .or_else(|| self.get_asset_inline().and_then(|x| x.data_url.as_ref()))
-  }
-
-  pub fn asset_emit(&self) -> Option<bool> {
-    self
-      .get_asset()
-      .and_then(|x| x.emit)
-      .or_else(|| self.get_asset_resource().and_then(|x| x.emit))
   }
 }
 
@@ -992,6 +1064,7 @@ pub struct ModuleRule {
   pub one_of: Option<Vec<ModuleRule>>,
   pub rules: Option<Vec<ModuleRule>>,
   pub effect: ModuleRuleEffect,
+  pub extract_source_map: Option<bool>,
 }
 
 #[derive(Debug, Default)]
@@ -1005,6 +1078,7 @@ pub struct ModuleRuleEffect {
   pub generator: Option<GeneratorOptions>,
   pub resolve: Option<Resolve>,
   pub enforce: ModuleRuleEnforce,
+  pub extract_source_map: Option<bool>,
 }
 
 pub enum ModuleRuleUse {
@@ -1018,7 +1092,7 @@ impl Default for ModuleRuleUse {
   }
 }
 
-impl Debug for ModuleRuleUse {
+impl fmt::Debug for ModuleRuleUse {
   fn fmt(&self, f: &mut std::fmt::Formatter) -> std::result::Result<(), std::fmt::Error> {
     match self {
       ModuleRuleUse::Array(array_use) => write!(
@@ -1044,7 +1118,7 @@ pub enum ModuleNoParseRule {
   TestFn(ModuleNoParseTestFn),
 }
 
-impl Debug for ModuleNoParseRule {
+impl fmt::Debug for ModuleNoParseRule {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {
       Self::TestFn(_) => "Fn(...)".fmt(f),

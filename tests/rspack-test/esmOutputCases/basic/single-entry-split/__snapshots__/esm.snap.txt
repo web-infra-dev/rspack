@@ -1,0 +1,30 @@
+```mjs title=bar.mjs
+// ./bar.js
+const v = () => 42
+export { v };
+
+```
+
+```mjs title=foo.mjs
+import { v } from "./bar.mjs";
+
+// ./foo.js
+
+
+const value = () => v()
+
+export { value };
+
+```
+
+```mjs title=main.mjs
+import { value } from "./foo.mjs";
+
+// ./index.js
+
+
+it('should have correct value', () => {
+  expect(value()).toBe(42)
+})
+
+```

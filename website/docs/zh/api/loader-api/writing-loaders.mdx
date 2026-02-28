@@ -1,0 +1,330 @@
+import WebpackLicense from '@components/WebpackLicense';
+
+<WebpackLicense from="https://webpack.docschina.org/api/loaders/#examples" />
+
+# 编写 Loader
+
+学习如何为 Rspack 编写自定义 loader 来处理文件转换。
+
+## Loader 类型
+
+Rspack 支持多种 loader 类型，包括同步 loader、异步 loader、ESM loader、Raw loader 和 Pitching loader 等。
+
+以下部分提供了不同类型 loader 的一些基本示例。
+
+### 同步 Loader
+
+同步 loader 是最基本的 loader 类型，它可以通过 `return` 语句或 `this.callback` 方法同步返回转换后的内容：
+
+```js title="sync-loader.js"
+module.exports = function (source, map, meta) {
+  return someSyncOperation(source);
+};
+```
+
+相比于 `return` 语句，`this.callback` 方法更加灵活，它允许传递多个参数，包括错误信息、source map 和 meta 数据：
+
+```js title="sync-loader-with-callback.js"
+module.exports = function (source, map, meta) {
+  this.callback(null, someSyncOperation(source), map, meta);
+
+  // 调用 callback() 时需要返回 undefined，避免返回值冲突
+  return;
+};
+```
+
+::: info
+
+- `map` 和 `meta` 参数是可选的，查看 [this.callback](/api/loader-api/context#thiscallback) 和 [处理 Source Map](#处理-source-map) 了解更多。
+- 出于技术和性能方面的考虑，Rspack 会在内部将 loader 转换为异步，无论它是否为同步 loader。
+
+:::
+
+### 异步 Loader
+
+当需要执行异步操作（如文件读写、网络请求等）时，应该使用异步 loader。通过调用 [this.async()](/api/loader-api/context#thisasync) 方法获取 `callback` 函数，告知 Rspack 该 loader 需要异步处理。
+
+异步 loader 的 `callback` 也可以传递多个参数，包括转换后的内容、source maps 和 meta 数据：
+
+```js title="async-loader.js"
+module.exports = function (source, map, meta) {
+  // 获取异步回调函数
+  const callback = this.async();
+
+  // 执行异步操作
+  someAsyncOperation(source, function (err, result) {
+    // 处理错误情况
+    if (err) return callback(err);
+
+    // 成功时返回处理结果
+    callback(null, result, map, meta);
+  });
+};
+```
+
+### ESM loader
+
+Rspack 支持 ESM 格式的 loader，你可以使用 ESM 语法编写 loader，通过 `export default` 导出 loader 函数。
+
+在编写 ESM Loader 时，文件名需要以 `.mjs` 结尾，或者在最近的 `package.json` 中将 `type` 设置为 `module`。
+
+```js title="my-loader.mjs"
+export default function loader(source, map, meta) {
+  // ...
+}
+```
+
+如果需要导出 [raw](#raw-loader) 或 [pitch](#pitching-loader) 等选项，可以使用具名导出：
+
+```js title="my-loader.mjs"
+export default function loader(source) {
+  // ...
+}
+
+// 设置 raw loader
+export const raw = true;
+
+// 添加 pitch 函数
+export function pitch(remainingRequest, precedingRequest, data) {
+  // ...
+}
+```
+
+::: tip
+ESM loader 和 CommonJS loader 的功能完全相同，只是使用了不同的模块语法。你可以根据项目需求选择使用哪种格式。
+:::
+
+### Raw loader
+
+默认情况下，Rspack 会将文件内容转换为 UTF-8 字符串，然后传递给 loader 进行处理。然而，在处理二进制文件（如图片、音频或字体文件）时，我们需要直接操作原始二进制数据，而不是字符串形式。
+
+通过在 loader 文件中导出 `raw: true` 属性，loader 可以接收原始的 `Buffer` 对象作为输入，而不是字符串。
+
+- CJS：
+
+```js title="raw-loader.js"
+module.exports = function (source) {
+  // 对二进制内容进行处理
+  // 此时 source 是 Buffer 实例
+  const processed = someBufferOperation(source);
+
+  // 返回处理后的结果
+  return processed;
+};
+
+// 标记为 Raw Loader
+module.exports.raw = true;
+```
+
+- ESM：
+
+```js title="raw-loader.mjs"
+export default function loader(source) {
+  // ...
+}
+
+export const raw = true;
+```
+
+当多个 loader 串联使用时，每个 loader 都可以选择以字符串或 Buffer 的形式接收和传递处理结果。Rspack 会在不同 loader 之间自动进行 Buffer 和字符串的相互转换，确保数据能够正确传递给下一个 loader。
+
+Raw Loader 在处理图片压缩、二进制资源转换、文件编码等场景中特别有用。例如，当开发处理图片的 loader 时，通常需要直接操作二进制数据以便正确处理图像格式。
+
+### Pitching loader
+
+在 Rspack 的 loader 执行过程中，默认导出的 loader 函数总是**从右向左**被调用（称为 normal 阶段）。但有时，loader 可能只关注文件的元数据，而非前一个 loader 的处理结果。为了解决这类需求，Rspack 提供了 "pitching" 阶段 —— 在 loader 的常规执行前，每个 loader 可以定义的特殊阶段。
+
+与常规执行相反，loader 文件里导出的 `pitch` 方法会**从左向右**被调用，先于任何 loader 的默认函数执行。这种双向处理机制为开发者提供了更灵活的资源处理方式。
+
+例如，对于以下配置：
+
+```js title="rspack.config.mjs"
+export default {
+  //...
+  module: {
+    rules: [
+      {
+        //...
+        use: ['a-loader', 'b-loader', 'c-loader'],
+      },
+    ],
+  },
+};
+```
+
+会得到这些步骤：
+
+```
+|-a-loader `pitch
+  |- b-loader `pitch `.
+    |-c-loader `pitch`
+      |- 所请求的模块被作为依赖收集起来
+    |- c-loader正常执行
+  |-b-loader正常执行
+|- a-loader 正常执行
+```
+
+通常情况下，如果 loader 足够简单以至于只导出了 normal 阶段的钩子：
+
+```js
+module.exports = function (source) {};
+```
+
+那么其 pitching 阶段将被跳过。
+
+那么，"pitching" 阶段对于 loader 来说有哪些优势呢？
+
+首先，传递给 `pitch` 方法的数据在执行阶段也暴露在 `this.data` 下，可以用来捕获和共享 loader 生命周期中早期的信息。
+
+```js
+module.exports = function (source) {
+  return someSyncOperation(source, this.data.value);
+};
+
+module.exports.pitch = function (remainRequest, precedingRequest, data) {
+  data.value = 42;
+};
+```
+
+第二，如果一个 loader 在 `pitch` 方法中提供了一个结果，整个 loader 链路就会翻转过来，跳过其余的 normal 阶段的 loader。
+
+在我们上面的例子中，如果 b-loaders 的 `pitch` 方法返回了一些内容：
+
+```js
+module.exports = function (source) {
+  return someSyncOperation(source);
+};
+
+module.exports.pitch = function (remainingRequest, precedingRequest, data) {
+  if (someCondition()) {
+    return (
+      'module.exports = require(' +
+      JSON.stringify('-!' + remainingRequest) +
+      ');'
+    );
+  }
+};
+```
+
+上面的步骤将被缩短为：
+
+```
+|- a-loader `pitch`
+  |- b-loader `pitch`返回一个模块
+|- a-loader 正常执行
+```
+
+一个实际应用的例子是 `style-loader`，它利用了第二个优势来处理请求的调度。
+请访问 [style-loader](https://github.com/webpack/style-loader/blob/eb06baeb3ac4e3107732a21170b0a7f358c5423f/src/index.js#L39) 了解详情。
+
+## 使用 TypeScript 编写
+
+如果你使用 TypeScript 编写 Rspack loader，可以使用 `LoaderDefinition` 为你的 loader 提供完整的类型定义。
+
+```ts title="my-loader.ts"
+import type { LoaderDefinition } from '@rspack/core';
+
+// 声明 loader 选项的类型
+type MyLoaderOptions = {
+  foo: string;
+};
+
+const myLoader: LoaderDefinition<MyLoaderOptions> = function (source) {
+  const options = this.getOptions();
+  console.log(options); // { foo: 'bar' }
+  // Transform the source code
+  return `// Processed by my-loader\n${source}`;
+};
+
+export default myLoader;
+```
+
+或者，你也可以导入 `LoaderContext` 为 loader 上下文添加类型：
+
+```ts title="my-loader.ts"
+import type { LoaderContext } from '@rspack/core';
+
+type MyLoaderOptions = {
+  foo: string;
+};
+
+export default function myLoader(
+  this: LoaderContext<MyLoaderOptions>,
+  source: string,
+) {
+  const options = this.getOptions();
+  console.log(options); // { foo: 'bar' }
+  return `// Processed by my-loader\n${source}`;
+}
+```
+
+## 处理 Source map
+
+在开发 loader 时，正确处理 source map 对于有助于提供准确的调试信息。
+
+与 source map 相关的 Loader API：
+
+- 使用 [this.sourceMap](/api/loader-api/context#thissourcemap) 判断是否需要生成 source map。
+- 使用 [this.callback](/api/loader-api/context#thiscallback) 或 [this.async](/api/loader-api/context#thisasync) 方法返回处理后的 source map。
+
+### 自动处理 source map
+
+一些 transformer 支持自动处理 source map，例如 SWC 能够自动基于输入的 source map 生成新的 source map。
+
+下面是一个使用 Rspack 的 [SWC API](/api/javascript-api/swc) 的示例：
+
+```js title="myLoader.js"
+import { rspack } from '@rspack/core';
+
+const { swc } = rspack.experiments;
+
+export default async function myLoader(source, inputSourceMap) {
+  const callback = this.async();
+
+  try {
+    const result = await swc.transform(source, {
+      inputSourceMap,
+      sourceMaps: this.sourceMap,
+      // ...other options
+    });
+
+    callback(null, result.code, this.sourceMap ? result.map : undefined);
+  } catch (err) {
+    callback(err);
+  }
+}
+```
+
+### 手动合并 source map
+
+你也可以使用 [@jridgewell/remapping](https://www.npmjs.com/package/@jridgewell/remapping) 等三方库手动合并多个 source map：
+
+```js title="myLoader.js"
+import remapping from '@jridgewell/remapping';
+
+const mergeSourceMap = (inputSourceMap, newSourceMap) => {
+  return remapping([newSourceMap, inputSourceMap], () => null);
+};
+
+export default async function myLoader(source, inputSourceMap) {
+  const callback = this.async();
+
+  try {
+    const { code, sourceMap: newSourceMap } = await someTransformFunction(
+      source,
+      { sourceMap: this.sourceMap },
+    );
+
+    if (this.sourceMap) {
+      const mergedSourceMap = inputSourceMap
+        ? mergeSourceMap(inputSourceMap, newSourceMap)
+        : newSourceMap;
+      callback(null, code, mergedSourceMap);
+    } else {
+      callback(null, code);
+    }
+  } catch (err) {
+    callback(err);
+  }
+}
+```

@@ -1,18 +1,20 @@
 use itertools::Itertools;
-use rspack_core::{ConstDependency, SpanExt, property_access};
-use rspack_error::miette::Severity;
+use rspack_core::{ConstDependency, DependencyRange, property_access};
+use rspack_error::{Error, Severity};
+use rspack_util::SpanExt;
 use swc_core::{
   common::{Span, Spanned},
-  ecma::ast::MemberProp,
+  ecma::ast::{Expr, MemberProp, MetaPropKind},
 };
 use url::Url;
 
 use super::JavascriptParserPlugin;
 use crate::{
+  dependency::{ImportMetaResolveDependency, ImportMetaResolveHeaderDependency},
   utils::eval,
   visitors::{
-    AllowedMemberTypes, ExportedVariableInfo, JavascriptParser, MemberExpressionInfo, RootName,
-    create_traceable_error, expr_name,
+    AllowedMemberTypes, ExportedVariableInfo, ExprRef, JavascriptParser, MemberExpressionInfo,
+    RootName, create_traceable_error, expr_name,
   },
 };
 
@@ -20,12 +22,12 @@ pub struct ImportMetaPlugin;
 
 impl ImportMetaPlugin {
   fn import_meta_url(&self, parser: &JavascriptParser) -> String {
-    Url::from_file_path(&parser.resource_data.resource)
+    Url::from_file_path(parser.resource_data.resource())
       .expect("should be a path")
       .to_string()
   }
 
-  fn import_meta_webpack_version(&self) -> String {
+  fn import_meta_version(&self) -> String {
     "5".to_string()
   }
 
@@ -36,6 +38,49 @@ impl ImportMetaPlugin {
       property_access(members, 1)
     )
   }
+
+  fn process_import_meta_resolve(
+    &self,
+    parser: &mut JavascriptParser,
+    call_expr: &swc_core::ecma::ast::CallExpr,
+  ) {
+    if call_expr.args.len() != 1 {
+      return;
+    }
+
+    let argument_expr = &call_expr.args[0].expr;
+    let param = parser.evaluate_expression(argument_expr);
+    let range = DependencyRange::from(call_expr.callee.span());
+    let loc = parser.to_dependency_location(range);
+    let import_meta_resolve_header_dependency = Box::new(ImportMetaResolveHeaderDependency::new(
+      call_expr.callee.span().into(),
+      loc,
+    ));
+
+    if param.is_conditional() {
+      for option in param.options() {
+        self.process_import_meta_resolve_item(parser, option);
+      }
+    } else {
+      self.process_import_meta_resolve_item(parser, &param);
+    }
+    parser.add_dependency(import_meta_resolve_header_dependency);
+  }
+
+  fn process_import_meta_resolve_item(
+    &self,
+    parser: &mut JavascriptParser,
+    param: &eval::BasicEvaluatedExpression,
+  ) {
+    if param.is_string() {
+      let (start, end) = param.range();
+      parser.add_dependency(Box::new(ImportMetaResolveDependency::new(
+        param.string().clone(),
+        (start, end - 1).into(),
+        parser.in_try,
+      )));
+    }
+  }
 }
 
 impl JavascriptParserPlugin for ImportMetaPlugin {
@@ -44,13 +89,15 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
     _parser: &mut JavascriptParser,
     expr: &'a swc_core::ecma::ast::UnaryExpr,
     for_name: &str,
-  ) -> Option<crate::utils::eval::BasicEvaluatedExpression<'a>> {
+  ) -> Option<eval::BasicEvaluatedExpression<'a>> {
     let mut evaluated = None;
     if for_name == expr_name::IMPORT_META {
       evaluated = Some("object".to_string());
     } else if for_name == expr_name::IMPORT_META_URL {
       evaluated = Some("string".to_string());
-    } else if for_name == expr_name::IMPORT_META_WEBPACK {
+    } else if for_name == expr_name::IMPORT_META_RESOLVE {
+      evaluated = Some("function".to_string());
+    } else if for_name == expr_name::IMPORT_META_VERSION {
       evaluated = Some("number".to_string())
     } else if let Some(member_expr) = expr.arg.as_member()
       && let Some(meta_expr) = member_expr.obj.as_meta_prop()
@@ -75,7 +122,7 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
     start: u32,
     end: u32,
   ) -> Option<eval::BasicEvaluatedExpression<'static>> {
-    if for_name == expr_name::IMPORT_META_WEBPACK {
+    if for_name == expr_name::IMPORT_META_VERSION {
       Some(eval::evaluate_to_number(5_f64, start, end))
     } else if for_name == expr_name::IMPORT_META_URL {
       Some(eval::evaluate_to_string(
@@ -88,42 +135,92 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
     }
   }
 
+  fn evaluate<'a>(
+    &self,
+    _parser: &mut JavascriptParser,
+    expr: &'a Expr,
+  ) -> Option<eval::BasicEvaluatedExpression<'a>> {
+    if let Some(member) = expr.as_member()
+      && let Some(meta_prop) = member.obj.as_meta_prop()
+      && meta_prop.kind == MetaPropKind::ImportMeta
+    {
+      if let Some(ident) = member.prop.as_ident() {
+        // Skip `dirname` and `filename` - they are handled by NodeStuffPlugin
+        // and may have runtime values when node.__dirname/node.__filename is false
+        if ident.sym == "dirname" || ident.sym == "filename" {
+          return None;
+        }
+        return Some(eval::evaluate_to_undefined(
+          member.span().real_lo(),
+          member.span().real_hi(),
+        ));
+      }
+      if let Some(computed) = member.prop.as_computed()
+        && computed.expr.is_lit()
+      {
+        // Check for computed properties like import.meta["dirname"]
+        if let Some(str_lit) = computed.expr.as_lit().and_then(|lit| lit.as_str())
+          && (str_lit.value == "dirname" || str_lit.value == "filename")
+        {
+          return None;
+        }
+        return Some(eval::evaluate_to_undefined(
+          member.span().real_lo(),
+          member.span().real_hi(),
+        ));
+      }
+    }
+    None
+  }
+
   fn r#typeof(
     &self,
     parser: &mut JavascriptParser,
     unary_expr: &swc_core::ecma::ast::UnaryExpr,
     for_name: &str,
   ) -> Option<bool> {
-    if for_name == expr_name::IMPORT_META {
-      parser
-        .presentational_dependencies
-        .push(Box::new(ConstDependency::new(
+    match for_name {
+      expr_name::IMPORT_META => {
+        parser.add_presentational_dependency(Box::new(ConstDependency::new(
           unary_expr.span().into(),
           "'object'".into(),
-          None,
         )));
-      Some(true)
-    } else if for_name == expr_name::IMPORT_META_URL {
-      parser
-        .presentational_dependencies
-        .push(Box::new(ConstDependency::new(
+        Some(true)
+      }
+      expr_name::IMPORT_META_URL => {
+        parser.add_presentational_dependency(Box::new(ConstDependency::new(
           unary_expr.span().into(),
           "'string'".into(),
-          None,
         )));
-      Some(true)
-    } else if for_name == expr_name::IMPORT_META_WEBPACK {
-      parser
-        .presentational_dependencies
-        .push(Box::new(ConstDependency::new(
+        Some(true)
+      }
+      expr_name::IMPORT_META_RESOLVE => {
+        parser.add_presentational_dependency(Box::new(ConstDependency::new(
+          unary_expr.span().into(),
+          "'function'".into(),
+        )));
+        Some(true)
+      }
+      expr_name::IMPORT_META_VERSION => {
+        parser.add_presentational_dependency(Box::new(ConstDependency::new(
           unary_expr.span().into(),
           "'number'".into(),
-          None,
         )));
-      Some(true)
-    } else {
-      None
+        Some(true)
+      }
+      _ => None,
     }
+  }
+
+  fn can_collect_destructuring_assignment_properties(
+    &self,
+    _parser: &mut JavascriptParser,
+    expr: &Expr,
+  ) -> Option<bool> {
+    if expr.is_meta_prop() {
+      return Some(true);
+    }
+    None
   }
 
   fn meta_property(
@@ -133,18 +230,27 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
     span: Span,
   ) -> Option<bool> {
     if root_name == expr_name::IMPORT_META {
-      if let Some(referenced_properties_in_destructuring) =
-        parser.destructuring_assignment_properties_for(&span)
-      {
+      let destructuring_assignment_properties = parser
+        .destructuring_assignment_properties
+        .get(&span)
+        .cloned();
+
+      if let Some(referenced_properties_in_destructuring) = destructuring_assignment_properties {
         let mut content = vec![];
-        for prop in referenced_properties_in_destructuring {
+        for prop in referenced_properties_in_destructuring.iter() {
+          let res = parser
+            .plugin_drive
+            .clone()
+            .import_meta_property_in_destructuring(parser, prop);
+
+          if let Some(property) = res {
+            content.push(property);
+            continue;
+          }
           if prop.id == "url" {
             content.push(format!(r#"url: "{}""#, self.import_meta_url(parser)))
           } else if prop.id == "webpack" {
-            content.push(format!(
-              r#"webpack: {}"#,
-              self.import_meta_webpack_version()
-            ));
+            content.push(format!(r#"webpack: {}"#, self.import_meta_version()));
           } else {
             content.push(format!(
               r#"[{}]: {}"#,
@@ -153,36 +259,32 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
             ));
           }
         }
-        parser
-          .presentational_dependencies
-          .push(Box::new(ConstDependency::new(
-            span.into(),
-            format!("({{{}}})", content.join(",")).into(),
-            None,
-          )));
+        parser.add_presentational_dependency(Box::new(ConstDependency::new(
+          span.into(),
+          format!("({{{}}})", content.join(",")).into(),
+        )));
         Some(true)
       } else {
         // import.meta
         // warn when access import.meta directly
-        parser.warning_diagnostics.push(Box::new(create_traceable_error(
-      "Critical dependency".into(),
-      "Accessing import.meta directly is unsupported (only property access or destructuring is supported)".into(),
-      parser.source_file,
-      span.into()
-    ).with_severity(Severity::Warning)));
+        let mut error: Error = create_traceable_error(
+          "Critical dependency".into(),
+          "Accessing import.meta directly is unsupported (only property access or destructuring is supported)".into(),
+          parser.source.to_string(),
+          span.into()
+        );
+        error.severity = Severity::Warning;
+        parser.add_warning(error.into());
 
         let content = if parser.is_asi_position(span.lo()) {
           ";({})"
         } else {
           "({})"
         };
-        parser
-          .presentational_dependencies
-          .push(Box::new(ConstDependency::new(
-            span.into(),
-            content.into(),
-            None,
-          )));
+        parser.add_presentational_dependency(Box::new(ConstDependency::new(
+          span.into(),
+          content.into(),
+        )));
         Some(true)
       }
     } else {
@@ -198,27 +300,34 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
   ) -> Option<bool> {
     if for_name == expr_name::IMPORT_META_URL {
       // import.meta.url
-      parser
-        .presentational_dependencies
-        .push(Box::new(ConstDependency::new(
-          member_expr.span().into(),
-          format!("'{}'", self.import_meta_url(parser)).into(),
-          None,
-        )));
+      parser.add_presentational_dependency(Box::new(ConstDependency::new(
+        member_expr.span().into(),
+        format!("'{}'", self.import_meta_url(parser)).into(),
+      )));
       Some(true)
-    } else if for_name == expr_name::IMPORT_META_WEBPACK {
+    } else if for_name == expr_name::IMPORT_META_VERSION {
       // import.meta.webpack
-      parser
-        .presentational_dependencies
-        .push(Box::new(ConstDependency::new(
-          member_expr.span().into(),
-          self.import_meta_webpack_version().into(),
-          None,
-        )));
+      parser.add_presentational_dependency(Box::new(ConstDependency::new(
+        member_expr.span().into(),
+        self.import_meta_version().into(),
+      )));
       Some(true)
     } else {
       None
     }
+  }
+
+  fn call(
+    &self,
+    parser: &mut JavascriptParser,
+    call_expr: &swc_core::ecma::ast::CallExpr,
+    for_name: &str,
+  ) -> Option<bool> {
+    if for_name == expr_name::IMPORT_META_RESOLVE {
+      self.process_import_meta_resolve(parser, call_expr);
+      return Some(true);
+    }
+    None
   }
 
   fn unhandled_expression_member_chain(
@@ -231,7 +340,7 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
       ExportedVariableInfo::Name(root) => {
         if root == expr_name::IMPORT_META {
           let members = parser
-            .get_member_expression_info(expr, AllowedMemberTypes::Expression)
+            .get_member_expression_info(ExprRef::Member(expr), AllowedMemberTypes::Expression)
             .and_then(|info| match info {
               MemberExpressionInfo::Expression(res) => Some(res),
               _ => None,
@@ -244,7 +353,7 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
                 .get(1)
                 .is_some_and(|optional| *optional)
             {
-              ConstDependency::new(expr.span().into(), "undefined".into(), None)
+              ConstDependency::new(expr.span().into(), "undefined".into())
             } else {
               ConstDependency::new(
                 expr.span().into(),
@@ -253,14 +362,13 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
                     &members.members.iter().map(|x| x.to_string()).collect_vec(),
                   )
                   .into(),
-                None,
               )
             }
           } else {
-            ConstDependency::new(expr.span().into(), "undefined".into(), None)
+            ConstDependency::new(expr.span().into(), "undefined".into())
           };
 
-          parser.presentational_dependencies.push(Box::new(dep));
+          parser.add_presentational_dependency(Box::new(dep));
           return Some(true);
         }
       }
@@ -284,13 +392,10 @@ impl JavascriptParserPlugin for ImportMetaDisabledPlugin {
     if import_meta_name == expr_name::IMPORT_META {
       None
     } else if root_name == expr_name::IMPORT_META {
-      parser
-        .presentational_dependencies
-        .push(Box::new(ConstDependency::new(
-          span.into(),
-          import_meta_name.into(),
-          None,
-        )));
+      parser.add_presentational_dependency(Box::new(ConstDependency::new(
+        span.into(),
+        import_meta_name.into(),
+      )));
       Some(true)
     } else {
       None

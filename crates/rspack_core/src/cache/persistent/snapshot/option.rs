@@ -1,9 +1,11 @@
+use rspack_cacheable::{cacheable, utils::PortablePath, with::As};
 use rspack_regex::RspackRegex;
 
 /// Use string or regex to match path
+#[cacheable]
 #[derive(Debug, Clone, Hash)]
 pub enum PathMatcher {
-  String(String),
+  String(#[cacheable(with=As<PortablePath>)] String),
   Regexp(RspackRegex),
 }
 
@@ -17,6 +19,7 @@ impl PathMatcher {
 }
 
 /// Snapshot options
+#[cacheable]
 #[derive(Debug, Default, Clone, Hash)]
 pub struct SnapshotOptions {
   /// immutable paths, snapshot will ignore them

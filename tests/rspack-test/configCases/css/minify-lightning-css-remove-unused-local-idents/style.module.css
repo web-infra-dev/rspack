@@ -1,0 +1,27 @@
+.a {
+  color: red;
+}
+
+.b {
+  color: blue;
+}
+
+.local\/used {
+  color: red;
+}
+
+.local\/unused {
+  color: blue
+}
+
+.compose {
+  composes: composed-local;
+}
+
+.composed-local {
+  background-color: green;
+}
+
+.camel-case {
+  color: yellow;
+}

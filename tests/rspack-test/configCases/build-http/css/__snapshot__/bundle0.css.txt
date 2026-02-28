@@ -1,0 +1,20 @@
+Array [
+  .c {
+	color: pink;
+}
+
+
+
+div {
+	background: url(0dbf5c303a9fe7ec.jpg)
+},
+  .c {
+	color: pink;
+}
+
+
+
+div {
+	background: url(0dbf5c303a9fe7ec.jpg)
+},
+]

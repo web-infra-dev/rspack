@@ -1,0 +1,13 @@
+# Case vanilla: Step 0
+
+## Changed Files
+
+
+## Asset Files
+- Bundle: bundle.js
+- Bundle: style2_css.chunk.CURRENT_HASH.js
+
+## Manifest
+
+
+## Update

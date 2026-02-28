@@ -1,3 +1,0 @@
-Object {
-  style: _6ec1c834ac8cc99e-style,
-}

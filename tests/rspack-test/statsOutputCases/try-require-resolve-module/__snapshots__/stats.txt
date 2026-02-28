@@ -1,0 +1,11 @@
+WARNING in ./index.js
+  ⚠ Module not found: Can't resolve './missing-module' in '<TEST_ROOT>/statsOutputCases/try-require-resolve-module'
+   ╭─[2:20]
+ 1 │ try {
+ 2 │     require.resolve('./missing-module')
+   ·                     ──────────────────
+ 3 │ } catch (e) {
+ 4 │ 
+   ╰────
+
+Rspack compiled with 1 warning

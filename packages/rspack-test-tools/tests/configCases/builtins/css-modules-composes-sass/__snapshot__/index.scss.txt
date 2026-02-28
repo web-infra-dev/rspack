@@ -1,3 +1,0 @@
-Object {
-  bar: _6f71ebaec3a61562-bar d2e32b33f9cd5760-foo,
-}

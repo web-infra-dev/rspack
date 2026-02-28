@@ -1,0 +1,7 @@
+Array [
+  Object {
+    code: ModuleParseError,
+    moduleIdentifier: <TEST_ROOT>/diagnosticsCases/module-parse-failed/basic/index.js,
+    moduleName: ./index.js,
+  },
+]

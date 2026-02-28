@@ -1,0 +1,23 @@
+<%- MAKE_OPTIMIZED_DEFERRED_NAMESPACE_OBJECT %> = function(moduleId, mode, asyncDeps) {
+	var r = <%- REQUIRE %>;
+	<% if (_has_async) { %>
+	var isAsync = asyncDeps && asyncDeps.length;
+	<% } %>
+	var obj = {
+		get a() {
+			var exports = r(moduleId);
+			<% if (_has_async) { %>
+			if (isAsync) exports = exports[<%- ASYNC_MODULE_EXPORT_SYMBOL %>];
+			<% } %>
+			// if exportsType is "namespace" we can generate the most optimized code,
+			// on the second access, we can avoid trigger the getter.
+			// we can also do this if exportsType is "dynamic" and there is a "__esModule" property on it.
+			if (mode & 8 || (mode & 4 && exports.__esModule)) Object.defineProperty(this, "a", { value: exports });
+			return exports;
+		}
+	};
+	<% if (_has_async) { %>
+	if(isAsync) obj[<%- DEFERRED_MODULES_ASYNC_TRANSITIVE_DEPENDENCIES_SYMBOL %>] = asyncDeps;
+	<% } %>
+	return obj;
+};

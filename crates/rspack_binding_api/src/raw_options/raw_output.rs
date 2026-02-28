@@ -43,26 +43,29 @@ impl From<RawCrossOriginLoading> for CrossOriginLoading {
 #[derive(Debug, Clone)]
 #[napi(object)]
 pub struct RawEnvironment {
-  pub r#const: Option<bool>,
-  pub arrow_function: Option<bool>,
-  pub node_prefix_for_core_modules: Option<bool>,
-  pub async_function: Option<bool>,
-  pub big_int_literal: Option<bool>,
-  pub destructuring: Option<bool>,
-  pub document: Option<bool>,
-  pub dynamic_import: Option<bool>,
-  pub for_of: Option<bool>,
-  pub global_this: Option<bool>,
-  pub module: Option<bool>,
-  pub optional_chaining: Option<bool>,
-  pub template_literal: Option<bool>,
-  pub dynamic_import_in_worker: Option<bool>,
+  pub r#const: bool,
+  pub method_shorthand: bool,
+  pub arrow_function: bool,
+  pub node_prefix_for_core_modules: bool,
+  pub async_function: bool,
+  pub big_int_literal: bool,
+  pub destructuring: bool,
+  pub document: bool,
+  pub dynamic_import: bool,
+  pub for_of: bool,
+  pub global_this: bool,
+  pub module: bool,
+  pub optional_chaining: bool,
+  pub template_literal: bool,
+  pub dynamic_import_in_worker: bool,
+  pub import_meta_dirname_and_filename: bool,
 }
 
 impl From<RawEnvironment> for Environment {
   fn from(value: RawEnvironment) -> Self {
     Self {
       r#const: value.r#const,
+      method_shorthand: value.method_shorthand,
       arrow_function: value.arrow_function,
       node_prefix_for_core_modules: value.node_prefix_for_core_modules,
       async_function: value.async_function,
@@ -76,6 +79,7 @@ impl From<RawEnvironment> for Environment {
       optional_chaining: value.optional_chaining,
       template_literal: value.template_literal,
       dynamic_import_in_worker: value.dynamic_import_in_worker,
+      import_meta_dirname_and_filename: value.import_meta_dirname_and_filename,
     }
   }
 }
@@ -116,7 +120,6 @@ pub struct RawOutputOptions {
   #[napi(ts_type = "string | false")]
   pub chunk_loading: RawChunkLoading,
   pub chunk_load_timeout: u32,
-  pub charset: bool,
   pub enabled_chunk_loading_types: Option<Vec<String>>,
   pub trusted_types: Option<RawTrustedTypes>,
   pub source_map_filename: String,
@@ -213,7 +216,6 @@ impl TryFrom<RawOutputOptions> for OutputOptions {
         WithFalse::True(s) => s,
       },
       environment: value.environment.into(),
-      charset: value.charset,
       chunk_load_timeout: value.chunk_load_timeout,
       compare_before_emit: value.compare_before_emit,
     })

@@ -170,7 +170,6 @@ pub struct StatsModule<'a> {
   pub assets: Option<Vec<&'a str>>,
   pub modules: Option<Vec<StatsModule<'a>>>,
   pub source: Option<&'a BoxSource>,
-  pub profile: Option<StatsModuleProfile>,
   pub orphan: Option<bool>,
   pub provided_exports: Option<Vec<Atom>>,
   pub used_exports: Option<StatsUsedExports>,
@@ -198,8 +197,8 @@ pub enum StatsUsedExports {
 
 #[derive(Debug)]
 pub struct StatsModuleProfile {
-  pub factory: StatsMillisecond,
-  pub building: StatsMillisecond,
+  pub factory: u64,
+  pub building: u64,
 }
 
 #[derive(Debug)]
@@ -289,21 +288,6 @@ pub struct StatsModuleReason<'s> {
   pub explanation: Option<&'static str>,
   pub active: bool,
   pub loc: Option<String>,
-}
-
-#[derive(Debug)]
-pub struct StatsMillisecond {
-  pub secs: u64,
-  pub subsec_millis: u32,
-}
-
-impl StatsMillisecond {
-  pub fn new(secs: u64, subsec_millis: u32) -> Self {
-    Self {
-      secs,
-      subsec_millis,
-    }
-  }
 }
 
 #[derive(Debug)]

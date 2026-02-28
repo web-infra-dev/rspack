@@ -1,6 +1,8 @@
 use std::sync::Arc;
 
 use futures::future::join_all;
+use once_cell::sync::Lazy;
+use regex::Regex;
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_hook::plugin_hook;
 use rspack_paths::Utf8Path;
@@ -11,6 +13,10 @@ use rspack_plugin_html::{
 };
 use rustc_hash::FxHashMap as HashMap;
 use tokio::sync::RwLock;
+use url::Url;
+
+static HTTP_PROTOCOL_REGEX: Lazy<Regex> =
+  Lazy::new(|| Regex::new(r"^https?:").expect("Invalid regex"));
 
 use crate::{
   SRICompilationContext, SubresourceIntegrityHashFunction, SubresourceIntegrityPlugin,
@@ -25,7 +31,7 @@ async fn handle_html_plugin_assets(
   let normalized_integrities = get_normalized_integrities(compilation_integrities.clone()).await;
 
   let js_integrity = join_all(data.assets.js.iter().map(|asset| {
-    get_integrity_chechsum_for_asset(
+    get_integrity_checksum_for_asset(
       asset,
       compilation_integrities.clone(),
       &normalized_integrities,
@@ -34,7 +40,7 @@ async fn handle_html_plugin_assets(
   .await;
 
   let css_integrity = join_all(data.assets.css.iter().map(|asset| {
-    get_integrity_chechsum_for_asset(
+    get_integrity_checksum_for_asset(
       asset,
       compilation_integrities.clone(),
       &normalized_integrities,
@@ -170,9 +176,46 @@ async fn process_tag(
     return Ok(None);
   };
 
-  let src = get_asset_path(&tag_src, public_path);
+  // Check if the tag_src is an absolute URL (http/https or protocol-relative)
+  let is_absolute_url = match Url::parse(&tag_src) {
+    Ok(url) => url.scheme() == "http" || url.scheme() == "https",
+    Err(_) => tag_src.starts_with("//"),
+  };
+
+  // If it's an absolute URL, check if it's under publicPath
+  let src = if is_absolute_url {
+    // If publicPath is just "/" or empty or "./", it means local resources
+    // External absolute URLs should be skipped
+    let is_local_public_path = public_path.is_empty() || public_path == "/" || public_path == "./";
+
+    if is_local_public_path {
+      // Local publicPath, skip all external URLs
+      return Ok(None);
+    }
+
+    let protocol_relative_public_path = HTTP_PROTOCOL_REGEX.replace(public_path, "").to_string();
+    let protocol_relative_tag_src = HTTP_PROTOCOL_REGEX.replace(&tag_src, "").to_string();
+
+    // If the tag src doesn't start with publicPath, it's an external resource
+    // Skip SRI for external resources not served from our publicPath
+    if !protocol_relative_tag_src.starts_with(&protocol_relative_public_path) {
+      return Ok(None);
+    }
+
+    // Extract the asset path relative to publicPath
+    let tag_src_with_scheme = format!("http:{protocol_relative_tag_src}");
+    let public_path_with_scheme = if protocol_relative_public_path.starts_with("//") {
+      format!("http:{protocol_relative_public_path}")
+    } else {
+      protocol_relative_public_path
+    };
+    get_asset_path(&tag_src_with_scheme, &public_path_with_scheme)
+  } else {
+    get_asset_path(&tag_src, public_path)
+  };
+
   if let Some(integrity) =
-    get_integrity_chechsum_for_asset(&src, integrities, normalized_integrities).await
+    get_integrity_checksum_for_asset(&src, integrities, normalized_integrities).await
   {
     return Ok(Some(integrity));
   }
@@ -196,11 +239,10 @@ fn get_asset_path(src: &str, public_path: &str) -> String {
     .expect("Failed to decode asset path")
     .to_string();
   pathdiff::diff_paths(&decoded_src, public_path)
-    .map(|p| p.to_string_lossy().into_owned())
-    .unwrap_or_else(|| decoded_src.to_string())
+    .map_or_else(|| decoded_src.clone(), |p| p.to_string_lossy().into_owned())
 }
 
-async fn get_integrity_chechsum_for_asset(
+async fn get_integrity_checksum_for_asset(
   src: &str,
   integrities: Arc<RwLock<HashMap<String, String>>>,
   normalized_integrities: &HashMap<String, String>,

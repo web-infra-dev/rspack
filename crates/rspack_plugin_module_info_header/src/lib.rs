@@ -1,13 +1,11 @@
-use std::{hash::Hash, sync::LazyLock};
+use std::{hash::Hash, rc::Rc};
 
-use regex::Regex;
 use rspack_cacheable::with::AsVecConverter;
-use rspack_collections::Identifiable;
 use rspack_core::{
-  BoxModule, BuildMetaExportsType, ChunkGraph, ChunkInitFragments, ChunkUkey, Compilation,
-  CompilationParams, CompilerCompilation, ExportInfo, ExportProvided, ExportsInfoGetter, Module,
-  ModuleGraph, ModuleIdentifier, Plugin, PrefetchExportsInfoMode, PrefetchedExportsInfoWrapper,
-  UsageState, get_target,
+  BuildMetaExportsType, ChunkGraph, ChunkInitFragments, ChunkUkey, Compilation, CompilationParams,
+  CompilerCompilation, ExportInfo, ExportProvided, ExportsInfoArtifact, ExportsInfoGetter,
+  GetTargetResult, Module, ModuleGraph, ModuleIdentifier, Plugin, PrefetchExportsInfoMode,
+  PrefetchedExportsInfoWrapper, RuntimeCodeTemplate, UsageState, get_target,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
   to_comment_with_nl,
 };
@@ -23,9 +21,6 @@ use rspack_plugin_javascript::{
 };
 use rustc_hash::FxHashSet;
 
-static COMMENT_END_REGEX: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r"\*/").expect("should init regex"));
-
 #[plugin]
 #[derive(Debug, Default)]
 pub struct ModuleInfoHeaderPlugin {
@@ -39,6 +34,7 @@ fn print_exports_info_to_source<F>(
   request_shortener: &F,
   already_printed: &mut FxHashSet<ExportInfo>,
   module_graph: &ModuleGraph,
+  exports_info_artifact: &ExportsInfoArtifact,
 ) where
   F: Fn(&ModuleIdentifier) -> String,
 {
@@ -68,16 +64,19 @@ fn print_exports_info_to_source<F>(
 
   // print the exports
   for export_info in &printed_exports {
-    let export_name: String = export_info
-      .name()
-      .map(|n| n.to_string())
-      .unwrap_or("null".into());
+    let export_name: String = export_info.name().map_or("null".into(), |n| n.to_string());
     let provide_info = export_info.get_provided_info();
     let usage_info = export_info.get_used_info();
     let rename_info = export_info.get_rename_info();
 
-    let target_desc = match get_target(export_info, module_graph) {
-      Some(resolve_target) => {
+    let target_desc = match get_target(
+      export_info,
+      module_graph,
+      exports_info_artifact,
+      Rc::new(|_| true),
+      &mut Default::default(),
+    ) {
+      Some(GetTargetResult::Target(resolve_target)) => {
         let target_module = request_shortener(&resolve_target.module);
         match resolve_target.export {
           None => format!("-> {target_module}"),
@@ -87,7 +86,7 @@ fn print_exports_info_to_source<F>(
           }
         }
       }
-      None => "".into(),
+      _ => String::new(),
     };
 
     let export_str = format!(
@@ -97,8 +96,11 @@ fn print_exports_info_to_source<F>(
     source.add(RawStringSource::from(to_comment_with_nl(&export_str)));
 
     if let Some(exports_info) = &export_info.exports_info() {
-      let exports_info =
-        ExportsInfoGetter::prefetch(exports_info, module_graph, PrefetchExportsInfoMode::Default);
+      let exports_info = ExportsInfoGetter::prefetch(
+        exports_info,
+        exports_info_artifact,
+        PrefetchExportsInfoMode::Default,
+      );
       print_exports_info_to_source(
         source,
         &format!("{ident}  "),
@@ -106,6 +108,7 @@ fn print_exports_info_to_source<F>(
         request_shortener,
         already_printed,
         module_graph,
+        exports_info_artifact,
       );
     }
   }
@@ -117,8 +120,14 @@ fn print_exports_info_to_source<F>(
   }
 
   if show_other_exports {
-    let target = get_target(other_exports_info, module_graph);
-    if target.is_some()
+    let target = get_target(
+      other_exports_info,
+      module_graph,
+      exports_info_artifact,
+      Rc::new(|_| true),
+      &mut Default::default(),
+    );
+    if matches!(target, Some(GetTargetResult::Target(_)))
       || !matches!(
         other_exports_info.provided(),
         Some(ExportProvided::NotProvided)
@@ -134,10 +143,10 @@ fn print_exports_info_to_source<F>(
       let provide_info = other_exports_info.get_provided_info();
       let used_info = other_exports_info.get_used_info();
       let target_desc = match target {
-        Some(resolve_target) => {
+        Some(GetTargetResult::Target(resolve_target)) => {
           format!(" -> {}", request_shortener(&resolve_target.module))
         }
-        None => "".into(),
+        _ => String::new(),
       };
 
       let other_export_str =
@@ -155,11 +164,17 @@ impl ModuleInfoHeaderPlugin {
 
   pub fn generate_header(module: &dyn Module, compilation: &Compilation) -> String {
     let req = module.readable_identifier(&compilation.options.context);
-    let req = COMMENT_END_REGEX.replace_all(&req, "*_/");
+    let req = req.split("*/").collect::<Vec<_>>().join("*_/");
 
     let req_stars_str = "*".repeat(req.len());
 
-    format!("\n/*!****{req_stars_str}****!*\\\n  !*** {req} ***!\n  \\****{req_stars_str}****/\n")
+    format!(
+      r#"
+/*!****{req_stars_str}****!*\
+  !*** {req} ***!
+  \****{req_stars_str}****/
+"#
+    )
   }
 }
 
@@ -225,14 +240,15 @@ async fn render_js_module_package(
   &self,
   compilation: &Compilation,
   chunk_key: &ChunkUkey,
-  module: &BoxModule,
+  module: &dyn Module,
   render_source: &mut RenderSource,
   _init_fragments: &mut ChunkInitFragments,
+  runtime_template: &RuntimeCodeTemplate<'_>,
 ) -> Result<()> {
   let mut new_source: ConcatSource = Default::default();
 
   new_source.add(RawStringSource::from(
-    ModuleInfoHeaderPlugin::generate_header(module.as_ref(), compilation),
+    ModuleInfoHeaderPlugin::generate_header(module, compilation),
   ));
 
   if self.verbose {
@@ -244,7 +260,8 @@ async fn render_js_module_package(
 
     let module_graph = compilation.get_module_graph();
 
-    let exports_info = module_graph
+    let exports_info = compilation
+      .exports_info_artifact
       .get_prefetched_exports_info(&module.identifier(), PrefetchExportsInfoMode::Default);
 
     if !matches!(export_type, BuildMetaExportsType::Unset) {
@@ -262,11 +279,13 @@ async fn render_js_module_package(
         &exports_info,
         &request_shortener,
         &mut FxHashSet::default(),
-        &module_graph,
+        module_graph,
+        &compilation.exports_info_artifact,
       );
     }
 
     let chunk = compilation
+      .build_chunk_graph_artifact
       .chunk_by_ukey
       .get(chunk_key)
       .expect("Chunk must exists");
@@ -277,7 +296,7 @@ async fn render_js_module_package(
       let reqs = {
         let mut rr = runtime_requirements
           .iter()
-          .map(|v| v.name().to_string())
+          .map(|v| runtime_template.render_runtime_globals(&v))
           .collect::<Vec<_>>();
         rr.sort_by(|a, b| b.cmp(a));
         rr.join(", ")

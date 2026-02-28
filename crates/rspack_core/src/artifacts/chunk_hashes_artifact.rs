@@ -1,10 +1,14 @@
 use rspack_collections::UkeyMap;
 
-use crate::{ChunkHashesResult, ChunkUkey};
+use crate::{ArtifactExt, ChunkHashesResult, ChunkUkey, incremental::IncrementalPasses};
 
 #[derive(Debug, Default)]
 pub struct ChunkHashesArtifact {
   chunk_to_hashes: UkeyMap<ChunkUkey, ChunkHashesResult>,
+}
+
+impl ArtifactExt for ChunkHashesArtifact {
+  const PASS: IncrementalPasses = IncrementalPasses::CHUNKS_HASHES;
 }
 
 impl ChunkHashesArtifact {

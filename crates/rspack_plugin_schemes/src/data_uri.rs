@@ -1,4 +1,4 @@
-use std::sync::LazyLock;
+use std::sync::{Arc, LazyLock};
 
 use regex::Regex;
 use rspack_core::{
@@ -6,7 +6,9 @@ use rspack_core::{
   Plugin, ResourceData, Scheme,
 };
 use rspack_error::Result;
+use rspack_fs::ReadableFileSystem;
 use rspack_hook::{plugin, plugin_hook};
+use rspack_util::base64;
 
 static URI_REGEX: LazyLock<Regex> = LazyLock::new(|| {
   Regex::new(r"(?i)^data:([^;,]+)?((?:;[^;,]+)*?)(?:;(base64)?)?,(.*)$").expect("Invalid Regex")
@@ -24,7 +26,7 @@ async fn resolve_for_scheme(
   scheme: &Scheme,
 ) -> Result<Option<bool>> {
   if scheme.is_data()
-    && let Some(captures) = URI_REGEX.captures(&resource_data.resource)
+    && let Some(captures) = URI_REGEX.captures(resource_data.resource())
   {
     let mimetype = captures
       .get(1)
@@ -56,16 +58,20 @@ async fn resolve_for_scheme(
 }
 
 #[plugin_hook(NormalModuleReadResource for DataUriPlugin,tracing=false)]
-async fn read_resource(&self, resource_data: &ResourceData) -> Result<Option<Content>> {
+async fn read_resource(
+  &self,
+  resource_data: &ResourceData,
+  _fs: &Arc<dyn ReadableFileSystem>,
+) -> Result<Option<Content>> {
   if resource_data.get_scheme().is_data()
-    && let Some(captures) = URI_REGEX.captures(&resource_data.resource)
+    && let Some(captures) = URI_REGEX.captures(resource_data.resource())
   {
     let body = captures.get(4).expect("should have data uri body").as_str();
     let is_base64 = captures.get(3).is_some();
-    if is_base64 && let Some(cleaned) = rspack_base64::clean_base64(body) {
-      return match rspack_base64::decode_to_vec(cleaned.as_bytes()) {
+    if is_base64 && let Some(cleaned) = base64::clean_base64(body) {
+      return match base64::decode_to_vec(cleaned.as_bytes()) {
         Ok(buffer) => Ok(Some(Content::Buffer(buffer))),
-        Err(_) => Ok(Some(Content::String(resource_data.resource.to_string()))),
+        Err(_) => Ok(Some(Content::String(resource_data.resource().to_string()))),
       };
     }
 

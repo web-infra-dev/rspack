@@ -18,19 +18,19 @@ mod vtable_ptr;
 
 pub use vtable_ptr::VTablePtr;
 
-use crate::{DeserializeError, Deserializer, SerializeError, Serializer};
+use crate::{Deserializer, Result, Serializer};
 
 /// A trait object that can be archived.
 pub trait SerializeDyn {
   /// Writes the value to the serializer and returns the position it was written to.
-  fn serialize_dyn(&self, serializer: &mut Serializer) -> Result<usize, SerializeError>;
+  fn serialize_dyn(&self, serializer: &mut Serializer) -> Result<usize>;
 }
 
 impl<T> SerializeDyn for T
 where
   T: for<'a> SerializeUnsized<Serializer<'a>>,
 {
-  fn serialize_dyn(&self, serializer: &mut Serializer) -> Result<usize, SerializeError> {
+  fn serialize_dyn(&self, serializer: &mut Serializer) -> Result<usize> {
     self.serialize_unsized(serializer)
   }
 }
@@ -40,11 +40,7 @@ where
 /// See [`SerializeDyn`] for more information.
 pub trait DeserializeDyn<T: Pointee + ?Sized> {
   /// Deserializes this value into the given out pointer.
-  fn deserialize_dyn(
-    &self,
-    deserializer: &mut Deserializer,
-    out: *mut T,
-  ) -> Result<(), DeserializeError>;
+  fn deserialize_dyn(&self, deserializer: &mut Deserializer, out: *mut T) -> Result<()>;
 
   /// Returns the pointer metadata for the deserialized form of this type.
   fn deserialized_pointer_metadata(&self) -> DynMetadata<T>;

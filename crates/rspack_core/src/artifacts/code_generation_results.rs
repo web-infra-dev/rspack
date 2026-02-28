@@ -14,8 +14,8 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet};
 use serde::Serialize;
 
 use crate::{
-  AssetInfo, BindingCell, ChunkInitFragments, ConcatenationScope, ModuleIdentifier, RuntimeGlobals,
-  RuntimeSpec, RuntimeSpecMap, SourceType,
+  ArtifactExt, AssetInfo, BindingCell, ChunkInitFragments, ConcatenationScope, ModuleIdentifier,
+  RuntimeGlobals, RuntimeSpec, RuntimeSpecMap, SourceType, incremental::IncrementalPasses,
 };
 
 #[derive(Clone, Debug)]
@@ -36,6 +36,9 @@ impl CodeGenerationDataUrl {
 // For performance, mark the js modules containing AUTO_PUBLIC_PATH_PLACEHOLDER
 #[derive(Clone, Debug)]
 pub struct CodeGenerationPublicPathAutoReplace(pub bool);
+
+#[derive(Clone, Debug)]
+pub struct URLStaticMode;
 
 #[derive(Clone, Debug)]
 pub struct CodeGenerationDataFilename {
@@ -142,16 +145,6 @@ impl CodeGenerationResult {
     self
   }
 
-  pub fn with_css(mut self, generation_result: BoxSource) -> Self {
-    self.inner.insert(SourceType::Css, generation_result);
-    self
-  }
-
-  pub fn with_asset(mut self, generation_result: BoxSource) -> Self {
-    self.inner.insert(SourceType::Asset, generation_result);
-    self
-  }
-
   pub fn inner(&self) -> &HashMap<SourceType, BoxSource> {
     &self.inner
   }
@@ -197,6 +190,10 @@ pub static CODE_GEN_RESULT_ID: AtomicU32 = AtomicU32::new(0);
 pub struct CodeGenerationResults {
   module_generation_result_map: HashMap<CodeGenResultId, BindingCell<CodeGenerationResult>>,
   map: IdentifierMap<RuntimeSpecMap<CodeGenResultId>>,
+}
+
+impl ArtifactExt for CodeGenerationResults {
+  const PASS: IncrementalPasses = IncrementalPasses::MODULES_CODEGEN;
 }
 
 impl CodeGenerationResults {
@@ -295,6 +292,54 @@ impl CodeGenerationResults {
       .unwrap_or_else(|| panic!("No code generation result for {module_identifier}"))
   }
 
+  pub fn get_mut(
+    &mut self,
+    module_identifier: &ModuleIdentifier,
+    runtime: Option<&RuntimeSpec>,
+  ) -> &mut BindingCell<CodeGenerationResult> {
+    if let Some(entry) = self.map.get(module_identifier) {
+      if let Some(runtime) = runtime {
+        entry
+          .get(runtime)
+          .and_then(|m| {
+            self.module_generation_result_map.get_mut(m)
+          })
+          .unwrap_or_else(|| {
+            panic!(
+              "Failed to code generation result for {module_identifier} with runtime {runtime:?} \n {entry:?}"
+            )
+          })
+      } else {
+        if entry.size() > 1 {
+          let mut values = entry.values();
+          let results: FxHashSet<_> = entry.values().collect();
+          if results.len() > 1 {
+            panic!(
+              "No unique code generation entry for unspecified runtime for {module_identifier} ",
+            );
+          }
+
+          return values
+            .next()
+            .and_then(|m| self.module_generation_result_map.get_mut(m))
+            .unwrap_or_else(|| panic!("Expected value exists"));
+        }
+
+        entry
+          .values()
+          .next()
+          .and_then(|m| self.module_generation_result_map.get_mut(m))
+          .unwrap_or_else(|| panic!("Expected value exists"))
+      }
+    } else {
+      panic!(
+        "No code generation entry for {} (existing entries: {:?})",
+        module_identifier,
+        self.map.keys().collect::<Vec<_>>()
+      )
+    }
+  }
+
   pub fn add(
     &mut self,
     module_identifier: ModuleIdentifier,
@@ -347,4 +392,5 @@ pub struct CodeGenerationJob {
   pub hash: RspackHashDigest,
   pub runtime: RuntimeSpec,
   pub runtimes: Vec<RuntimeSpec>,
+  pub scope: Option<ConcatenationScope>,
 }

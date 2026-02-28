@@ -1,0 +1,24 @@
+/** @type {import("@rspack/core").Configuration} */
+module.exports = {
+	target: "web",
+	output: {
+		assetModuleFilename: "[name][ext]"
+	},
+	module: {
+		rules: [
+			{
+				test: /\.txt$/,
+				loader: require.resolve("./loader")
+			},
+			{
+				test: /\.text$/,
+				type: "asset/source"
+			},
+			{
+				test: /\.css$/,
+				type: "css/auto"
+			}
+		]
+	},
+
+};

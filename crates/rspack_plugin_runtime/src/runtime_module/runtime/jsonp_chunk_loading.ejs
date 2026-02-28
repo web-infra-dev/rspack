@@ -41,7 +41,7 @@ if (installedChunkData !== 0) {
 					}
 				}
 			};
-			__webpack_require__.l(url, loadingEnded, "chunk-" + chunkId, chunkId<%- _fetch_priority %>);
-		} <%- _match_fallback %>
+			<%- LOAD_SCRIPT %>(url, loadingEnded, "chunk-" + chunkId, chunkId<%- _fetch_priority %>);
+		} <% if (_js_matcher != "true") { %>else installedChunks[chunkId] = 0; <% } %>
 	}
 }

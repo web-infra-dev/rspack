@@ -9,7 +9,7 @@ use std::{
 };
 
 use regex::Regex;
-use rspack_error::{Error, MietteExt};
+use rspack_error::Error;
 use rspack_fs::ReadableFileSystem;
 use rspack_loader_runner::{DescriptionData, ResourceData};
 use rspack_paths::{AssertUtf8, Utf8PathBuf};
@@ -19,18 +19,15 @@ use sugar_path::SugarPath;
 
 pub use self::{
   factory::{ResolveOptionsWithDependencyType, ResolverFactory},
-  resolver_impl::{ResolveInnerError, ResolveInnerOptions, Resolver},
+  resolver_impl::{ResolveContext, ResolveInnerError, ResolveInnerOptions, Resolver},
 };
 use crate::{
-  Context, DependencyCategory, DependencyType, ErrorSpan, ModuleIdentifier, Resolve,
+  Context, DependencyCategory, DependencyRange, DependencyType, ModuleIdentifier, Resolve,
   SharedPluginDriver,
 };
 
 static RELATIVE_PATH_REGEX: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"^\.\.?\/").expect("should init regex"));
-
-static PARENT_PATH_REGEX: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r"^\.\.[\/]").expect("should init regex"));
 
 static CURRENT_DIR_REGEX: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"^(\.[\/])").expect("should init regex"));
@@ -43,7 +40,7 @@ pub struct ResolveArgs<'a> {
   pub specifier: &'a str,
   pub dependency_type: &'a DependencyType,
   pub dependency_category: &'a DependencyCategory,
-  pub span: Option<ErrorSpan>,
+  pub span: Option<DependencyRange>,
   pub resolve_options: Option<Arc<Resolve>>,
   pub resolve_to_context: bool,
   pub optional: bool,
@@ -94,11 +91,14 @@ impl Resource {
 
 impl From<Resource> for ResourceData {
   fn from(resource: Resource) -> Self {
-    Self::new(resource.full_path())
-      .path(resource.path)
-      .query(resource.query)
-      .fragment(resource.fragment)
-      .description_optional(resource.description_data)
+    let mut resource_data = Self::new_with_path(
+      resource.full_path(),
+      resource.path,
+      Some(resource.query),
+      Some(resource.fragment),
+    );
+    resource_data.set_description_optional(resource.description_data);
+    resource_data
   }
 }
 
@@ -153,7 +153,7 @@ pub async fn resolve_for_error_hints(
         // If the specifier is a relative path pointing to the current directory,
         // we can suggest the path relative to the current directory.
         format!("{prefix}{relative_path}")
-      } else if PARENT_PATH_REGEX.is_match(args.specifier) {
+      } else if args.specifier.starts_with("../") || args.specifier.starts_with("..\\") {
         // If the specifier is a relative path to which the parent directory is,
         // then we return the relative path directly.
         relative_path.as_str().to_string()
@@ -212,8 +212,8 @@ which tries to resolve these kind of requests in the current directory too.",
     let mut is_resolving_dir = false; // whether the request is to resolve a directory or not
 
     let file_name = normalized_path.file_name();
-    let utf8_normalized_path =
-      Utf8PathBuf::from_path_buf(normalized_path.clone()).expect("should be a valid utf8 path");
+    let utf8_normalized_path = Utf8PathBuf::from_path_buf(normalized_path.to_path_buf())
+      .expect("should be a valid utf8 path");
 
     let parent_path = match fs.metadata(&utf8_normalized_path).await {
       Ok(metadata) => {
@@ -348,8 +348,11 @@ pub async fn resolve(
   if result.is_err()
     && let Some(hint) = resolve_for_error_hints(args, plugin_driver, resolver.inner_fs()).await
   {
-    result = result.map_err(|err| err.with_help(hint))
+    result = result.map_err(|mut err| {
+      err.help = Some(hint);
+      err
+    })
   };
 
-  result.map_err(Error::new_boxed)
+  result
 }

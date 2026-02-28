@@ -9,5 +9,7 @@
   "web-workers",
   "lazy-compilation",
   "builtin-swc-loader",
-  "builtin-lightningcss-loader"
+  "builtin-lightningcss-loader",
+  "esm",
+  "layer"
 ]

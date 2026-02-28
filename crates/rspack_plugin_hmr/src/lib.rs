@@ -10,7 +10,7 @@ use rspack_core::{
   CompilationProcessAssets, CompilationRecords, CompilerCompilation, DependencyType, LoaderContext,
   ModuleId, ModuleIdentifier, ModuleType, NormalModuleFactoryParser, NormalModuleLoader,
   ParserAndGenerator, ParserOptions, PathData, Plugin, RunnerContext, RuntimeGlobals,
-  RuntimeModuleExt, RuntimeSpec,
+  RuntimeModule, RuntimeModuleExt, RuntimeSpec,
   chunk_graph_chunk::ChunkId,
   rspack_sources::{RawStringSource, SourceExt},
 };
@@ -124,13 +124,10 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     let removed_from_runtime: RuntimeSpec;
 
     let current_chunk = compilation
+      .build_chunk_graph_artifact
       .chunk_by_ukey
       .iter()
-      .find(|(_, chunk)| {
-        chunk
-          .expect_id(&compilation.chunk_ids_artifact)
-          .eq(&chunk_id)
-      })
+      .find(|(_, chunk)| chunk.expect_id().eq(&chunk_id))
       .map(|(_, chunk)| chunk);
     let current_chunk_ukey = current_chunk.map(|c| c.ukey());
 
@@ -138,7 +135,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       new_runtime = current_chunk
         .runtime()
         .intersection(&all_old_runtime)
-        .cloned()
+        .copied()
         .collect();
 
       if new_runtime.is_empty() {
@@ -146,6 +143,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       }
 
       new_modules = compilation
+        .build_chunk_graph_artifact
         .chunk_graph
         .get_chunk_modules_identifier(&current_chunk.ukey())
         .iter()
@@ -166,6 +164,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         .collect::<Vec<_>>();
 
       new_runtime_modules = compilation
+        .build_chunk_graph_artifact
         .chunk_graph
         .get_chunk_runtime_modules_in_order(&current_chunk.ukey(), compilation)
         .filter(|(module, _)| updated_runtime_modules.contains(module))
@@ -193,8 +192,12 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         .expect("should have module");
       let old_hash = old_hashes.get(&chunk_id);
       let runtimes = compilation
+        .build_chunk_graph_artifact
         .chunk_graph
-        .get_module_runtimes(*module_identifier, &compilation.chunk_by_ukey);
+        .get_module_runtimes(
+          *module_identifier,
+          &compilation.build_chunk_graph_artifact.chunk_by_ukey,
+        );
       if old_runtime == &new_runtime && runtimes.contains(&new_runtime) {
         let new_hash = compilation
           .code_generation_results
@@ -204,11 +207,6 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         }
       } else {
         for removed in removed_from_runtime.iter() {
-          for runtime in runtimes.values() {
-            if runtime.contains(removed) {
-              continue;
-            }
-          }
           if let Some(content) = hot_update_main_content_by_runtime.get_mut(removed) {
             content.removed_modules.insert(old_module_id.clone());
           }
@@ -218,7 +216,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 
     if !new_modules.is_empty() || !new_runtime_modules.is_empty() {
       let mut hot_update_chunk = Chunk::new(None, ChunkKind::HotUpdate);
-      hot_update_chunk.set_id(&mut compilation.chunk_ids_artifact, chunk_id.clone());
+      hot_update_chunk.set_id(chunk_id.clone());
       hot_update_chunk.set_runtime(if let Some(current_chunk) = current_chunk {
         current_chunk.runtime().clone()
       } else {
@@ -236,25 +234,33 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       // In webpack, there is no need to add HotUpdateChunk to compilation.chunks,
       // because HotUpdateChunk is no longer used after generating the manifest.
       //
-      // However, in Rspack, we need to add HotUpdateChunk to compilation.chunk_by_ukey
+      // However, in Rspack, we need to add HotUpdateChunk to compilation.build_chunk_graph_artifact.chunk_by_ukey
       // because during the manifest generation, HotUpdateChunk is passed to various plugins via the ukey.
-      // The plugins then use the ukey to query compilation.chunk_by_ukey to get the HotUpdateChunk instance.
+      // The plugins then use the ukey to query compilation.build_chunk_graph_artifact.chunk_by_ukey to get the HotUpdateChunk instance.
       // Therefore, in Rspack, after the manifest is generated, we need to manually remove the HotUpdateChunk from compilation.chunks.
-      compilation.chunk_by_ukey.add(hot_update_chunk);
+      compilation
+        .build_chunk_graph_artifact
+        .chunk_by_ukey
+        .add(hot_update_chunk);
 
       // In webpack, compilation.chunkGraph uses a WeakMap to maintain the relationship between Chunks and Modules.
       // This means the lifecycle of these data is tied to the Chunk, and they are garbage-collected when the Chunk is.
       //
-      // In Rspack, we need to manually clean up the data in compilation.chunk_graph after HotUpdateChunk is used.
-      compilation.chunk_graph.add_chunk(ukey);
+      // In Rspack, we need to manually clean up the data in compilation.build_chunk_graph_artifact.chunk_graph after HotUpdateChunk is used.
+      compilation
+        .build_chunk_graph_artifact
+        .chunk_graph
+        .add_chunk(ukey);
       for module_identifier in &new_modules {
         compilation
+          .build_chunk_graph_artifact
           .chunk_graph
           .connect_chunk_and_module(ukey, *module_identifier);
       }
       for runtime_module in &new_runtime_modules {
         compilation.code_generated_modules.insert(*runtime_module);
         compilation
+          .build_chunk_graph_artifact
           .chunk_graph
           .connect_chunk_and_runtime_module(ukey, *runtime_module);
       }
@@ -271,36 +277,39 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       // Manually clean up ChunkGraph and chunks
       for module_identifier in new_modules {
         compilation
+          .build_chunk_graph_artifact
           .chunk_graph
           .disconnect_chunk_and_module(&ukey, module_identifier);
       }
       for runtime_module in new_runtime_modules {
         compilation
+          .build_chunk_graph_artifact
           .chunk_graph
           .disconnect_chunk_and_runtime_module(&ukey, &runtime_module);
       }
-      compilation.chunk_graph.remove_chunk(&ukey);
+      compilation
+        .build_chunk_graph_artifact
+        .chunk_graph
+        .remove_chunk(&ukey);
       #[allow(clippy::unwrap_used)]
-      let hot_update_chunk = compilation.chunk_by_ukey.remove(&ukey).unwrap();
+      let hot_update_chunk = compilation
+        .build_chunk_graph_artifact
+        .chunk_by_ukey
+        .remove(&ukey)
+        .unwrap();
 
       compilation.extend_diagnostics(diagnostics);
 
       for entry in manifest {
         let filename = if entry.has_filename {
-          entry.filename.to_string()
+          entry.filename.clone()
         } else {
           compilation
             .get_path(
               &compilation.options.output.hot_update_chunk_filename,
               PathData::default()
-                .chunk_id_optional(
-                  hot_update_chunk
-                    .id(&compilation.chunk_ids_artifact)
-                    .map(|id| id.as_str()),
-                )
-                .chunk_name_optional(
-                  hot_update_chunk.name_for_filename_template(&compilation.chunk_ids_artifact),
-                )
+                .chunk_id_optional(hot_update_chunk.id().map(|id| id.as_str()))
+                .chunk_name_optional(hot_update_chunk.name_for_filename_template())
                 .hash_optional(
                   old_hash
                     .as_ref()
@@ -336,7 +345,10 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 
   // update chunk files
   for (chunk_ukey, files) in updated_chunks {
-    let chunk = compilation.chunk_by_ukey.expect_get_mut(&chunk_ukey);
+    let chunk = compilation
+      .build_chunk_graph_artifact
+      .chunk_by_ukey
+      .expect_get_mut(&chunk_ukey);
     for file in files {
       chunk.add_file(file);
     }
@@ -421,7 +433,7 @@ async fn normal_module_loader(&self, context: &mut LoaderContext<RunnerContext>)
 async fn normal_module_factory_parser(
   &self,
   module_type: &ModuleType,
-  parser: &mut dyn ParserAndGenerator,
+  parser: &mut Box<dyn ParserAndGenerator>,
   _parser_options: Option<&ParserOptions>,
 ) -> Result<()> {
   if let Some(parser) = parser.downcast_mut::<JavaScriptParserAndGenerator>() {
@@ -447,20 +459,13 @@ async fn normal_module_factory_parser(
 #[plugin_hook(CompilationAdditionalTreeRuntimeRequirements for HotModuleReplacementPlugin)]
 async fn additional_tree_runtime_requirements(
   &self,
-  compilation: &mut Compilation,
-  chunk_ukey: &ChunkUkey,
-  runtime_requirements: &mut RuntimeGlobals,
+  compilation: &Compilation,
+  _chunk_ukey: &ChunkUkey,
+  _runtime_requirements: &mut RuntimeGlobals,
+  runtime_modules: &mut Vec<Box<dyn RuntimeModule>>,
 ) -> Result<()> {
-  // TODO: the hmr runtime is depend on module.id, but webpack not add it.
-  runtime_requirements.insert(RuntimeGlobals::MODULE_ID);
-  runtime_requirements.insert(RuntimeGlobals::HMR_DOWNLOAD_MANIFEST);
-  runtime_requirements.insert(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS);
-  runtime_requirements.insert(RuntimeGlobals::INTERCEPT_MODULE_EXECUTION);
-  runtime_requirements.insert(RuntimeGlobals::MODULE_CACHE);
-  compilation.add_runtime_module(
-    chunk_ukey,
-    HotModuleReplacementRuntimeModule::default().boxed(),
-  )?;
+  runtime_modules
+    .push(HotModuleReplacementRuntimeModule::new(&compilation.runtime_template).boxed());
 
   Ok(())
 }

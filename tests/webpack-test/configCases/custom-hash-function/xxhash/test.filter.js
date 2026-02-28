@@ -1,1 +1,0 @@
-module.exports = () => "NOPLAN: custom function type hash function will hurt performance";

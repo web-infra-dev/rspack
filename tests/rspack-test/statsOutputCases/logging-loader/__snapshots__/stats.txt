@@ -1,0 +1,5 @@
+DEBUG LOG from TestLoader|<TEST_ROOT>/statsOutputCases/logging-loader/index.js
+<-> group
+  <i> info something
+      log something
+    -------

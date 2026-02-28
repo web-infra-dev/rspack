@@ -1,6 +1,6 @@
 // Modified base on https://github.com/csmoe/tracing-perfetto
 // 1. use micromegas_perfetto to avoid manually updating the perfetto proto file
-// 2. use Custom-scoped slices to mangae custom scope
+// 2. use Custom-scoped slices to manage custom scope
 #![forbid(unsafe_code)]
 use std::io::Write;
 
@@ -211,8 +211,9 @@ where
     };
 
     attrs.record(&mut visitor);
-    let (custom_scope_packet, process_uuid) =
-      create_scope_sliced_packet(user_process_name.unwrap_or(DEFAULT_PROCESS_NAME.to_string()));
+    let (custom_scope_packet, process_uuid) = create_scope_sliced_packet(
+      user_process_name.unwrap_or_else(|| DEFAULT_PROCESS_NAME.to_string()),
+    );
 
     // resolve the optional track descriptor for this span (either inherited from parent or user set, or None)
     let span_track_descriptor = user_track_name
@@ -313,8 +314,9 @@ where
         })
       })
       .flatten();
-    let (custom_scope_packet, process_uuid) =
-      create_scope_sliced_packet(user_process_name.unwrap_or(DEFAULT_PROCESS_NAME.to_string()));
+    let (custom_scope_packet, process_uuid) = create_scope_sliced_packet(
+      user_process_name.unwrap_or_else(|| DEFAULT_PROCESS_NAME.to_string()),
+    );
     let event_track_descriptor = user_track_name
       .map(|name| {
         create_track_descriptor(

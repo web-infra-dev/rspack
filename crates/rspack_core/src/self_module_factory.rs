@@ -1,6 +1,6 @@
 use rspack_error::Result;
 
-use crate::{ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, SelfModule};
+use crate::{ModuleExt, ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, SelfModule};
 
 #[derive(Debug)]
 pub struct SelfModuleFactory;
@@ -11,8 +11,8 @@ impl ModuleFactory for SelfModuleFactory {
     let issuer = data
       .issuer_identifier
       .expect("self module must have issuer");
-    Ok(ModuleFactoryResult::new_with_module(Box::new(
-      SelfModule::new(issuer),
-    )))
+    Ok(ModuleFactoryResult::new_with_module(
+      SelfModule::new(issuer).boxed(),
+    ))
   }
 }

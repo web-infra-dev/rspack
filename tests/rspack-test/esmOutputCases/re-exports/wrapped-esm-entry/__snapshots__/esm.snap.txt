@@ -1,0 +1,144 @@
+```mjs title=main.mjs
+import * as __rspack_external_fs from "fs";
+import { __webpack_require__ } from "./runtime.mjs";
+__webpack_require__.add({
+"./index.js"
+/*!******************!*\
+  !*** ./index.js ***!
+  \******************/
+(module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  fs: () => (/* reexport safe */ fs__rspack_import_0["default"]),
+  named: () => (/* reexport safe */ (/* inlined export _lib__rspack_import_1 */42)),
+  r: () => (/* reexport safe */ fs__rspack_import_0.readFile),
+  readFile: () => (/* reexport safe */ fs__rspack_import_0.readFile),
+  starExports: () => (/* reexport safe */ (/* inlined export _lib2__rspack_import_2 */42))
+});
+/* import */ var fs__rspack_import_0 = __webpack_require__(/*! fs */ "fs");
+
+/* reexport */ var __rspack_reexport = {};
+/* reexport */ for( const __rspack_import_key in fs__rspack_import_0) if(["r","named","default","fs","starExports","readFile"].indexOf(__rspack_import_key) < 0) __rspack_reexport[__rspack_import_key] =() => fs__rspack_import_0[__rspack_import_key]
+/* reexport */ __webpack_require__.d(__webpack_exports__, __rspack_reexport);
+/* module decorator */ module = __webpack_require__.hmd(module);
+
+
+
+
+
+
+
+console.log.bind(module)
+
+it('should compile and import success', async () => {
+	const {
+		fs,
+		/* star re-exported */ readFileSync,
+		/* renamed re-exported */ r,
+		readFile
+	} = await import(/*webpackIgnore: true*/'./main.mjs')
+
+	expect(fs).toBeDefined()
+	expect(readFileSync).toBeDefined()
+	expect(r).toBeDefined()
+	expect(readFile).toBeDefined()
+})
+
+
+},
+"fs"
+/*!*********************!*\
+  !*** external "fs" ***!
+  \*********************/
+(module) {
+
+module.exports = __rspack_external_fs;
+
+
+},
+});
+const index = __webpack_require__("./index.js");
+var fs = index.fs;
+var named = index.named;
+var r = index.r;
+var readFile = index.readFile;
+var starExports = index.starExports;
+
+export { fs, named, r, readFile, starExports };
+export * from "fs";
+
+```
+
+```mjs title=runtime.mjs
+
+var __webpack_modules__ = {};
+// The module cache
+var __webpack_module_cache__ = {};
+// The require function
+function __webpack_require__(moduleId) {
+// Check if module is in cache
+var cachedModule = __webpack_module_cache__[moduleId];
+if (cachedModule !== undefined) {
+return cachedModule.exports;
+}
+// Create a new module (and put it into the cache)
+var module = (__webpack_module_cache__[moduleId] = {
+id: moduleId,
+exports: {}
+});
+// Execute the module function
+__webpack_modules__[moduleId](module, module.exports, __webpack_require__);
+
+// Return the exports of the module
+return module.exports;
+}
+// expose the modules object (__webpack_modules__)
+__webpack_require__.m = __webpack_modules__;
+
+// webpack/runtime/define_property_getters
+(() => {
+__webpack_require__.d = (exports, definition) => {
+	for(var key in definition) {
+        if(__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key)) {
+            Object.defineProperty(exports, key, { enumerable: true, get: definition[key] });
+        }
+    }
+};
+})();
+// webpack/runtime/esm_module_decorator
+(() => {
+__webpack_require__.hmd = (module) => {
+  module = Object.create(module);
+  if (!module.children) module.children = [];
+  Object.defineProperty(module, 'exports', {
+      enumerable: true,
+      set: () => {
+          throw new Error('ES Modules may not assign module.exports or exports.*, Use ESM export syntax, instead: ' + module.id);
+      }
+  });
+  return module;
+};
+})();
+// webpack/runtime/esm_register_module
+(() => {
+__webpack_require__.add = function registerModules(modules) { Object.assign(__webpack_require__.m, modules) }
+
+})();
+// webpack/runtime/has_own_property
+(() => {
+__webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
+})();
+// webpack/runtime/make_namespace_object
+(() => {
+// define __esModule on exports
+__webpack_require__.r = (exports) => {
+	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+	}
+	Object.defineProperty(exports, '__esModule', { value: true });
+};
+})();
+
+export { __webpack_require__ };
+
+```

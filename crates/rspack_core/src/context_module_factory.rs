@@ -1,10 +1,12 @@
 use std::{borrow::Cow, sync::Arc};
 
+use async_recursion::async_recursion;
 use cow_utils::CowUtils;
 use derive_more::Debug;
 use rspack_error::{Result, ToStringResultToRspackResultExt, error};
 use rspack_fs::ReadableFileSystem;
 use rspack_hook::define_hook;
+use rspack_loader_runner::parse_resource;
 use rspack_paths::{Utf8Path, Utf8PathBuf};
 use rspack_regex::RspackRegex;
 use swc_core::common::util::take::Take;
@@ -12,11 +14,10 @@ use tracing::instrument;
 
 use crate::{
   BoxDependency, CompilationId, ContextElementDependency, ContextModule, ContextModuleOptions,
-  DependencyCategory, DependencyId, DependencyType, ErrorSpan, FactoryMeta, ModuleExt,
-  ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, RawModule,
-  ResolveArgs, ResolveContextModuleDependencies, ResolveInnerOptions,
-  ResolveOptionsWithDependencyType, ResolveResult, Resolver, ResolverFactory, SharedPluginDriver,
-  resolve,
+  DependencyCategory, DependencyId, DependencyType, ModuleExt, ModuleFactory,
+  ModuleFactoryCreateData, ModuleFactoryResult, ResolveArgs, ResolveContextModuleDependencies,
+  ResolveInnerOptions, ResolveOptionsWithDependencyType, ResolveResult, Resolver, ResolverFactory,
+  SharedPluginDriver, resolve,
 };
 
 #[derive(Debug)]
@@ -122,34 +123,40 @@ impl ContextModuleFactory {
     plugin_driver: SharedPluginDriver,
   ) -> Self {
     let resolve_dependencies: ResolveContextModuleDependencies = Arc::new(move |options| {
-      tracing::trace!("resolving context module path {}", options.resource);
+      let resolver_factory = resolver_factory.clone();
+      Box::pin(async move {
+        tracing::trace!("resolving context module path {}", options.resource);
+        if options.resource.as_str().is_empty() {
+          return Ok(vec![]);
+        }
 
-      let resolver = &resolver_factory.get(ResolveOptionsWithDependencyType {
-        resolve_options: options
-          .resolve_options
-          .clone()
-          .map(|r| Box::new(Arc::unwrap_or_clone(r))),
-        resolve_to_context: false,
-        dependency_category: options.context_options.category,
-      });
+        let resolver = &resolver_factory.get(ResolveOptionsWithDependencyType {
+          resolve_options: options
+            .resolve_options
+            .clone()
+            .map(|r| Box::new(Arc::unwrap_or_clone(r))),
+          resolve_to_context: false,
+          dependency_category: options.context_options.category,
+        });
+        let mut context_element_dependencies = vec![];
+        visit_dirs(
+          options.resource.as_str(),
+          &options.resource,
+          &mut context_element_dependencies,
+          &options,
+          &resolver.options(),
+          resolver.inner_fs(),
+        )
+        .await?;
+        context_element_dependencies.sort_by_cached_key(|d| d.user_request.clone());
 
-      let mut context_element_dependencies = vec![];
-      visit_dirs(
-        options.resource.as_str(),
-        &options.resource,
-        &mut context_element_dependencies,
-        &options,
-        &resolver.options(),
-        resolver.inner_fs(),
-      )?;
-      context_element_dependencies.sort_by_cached_key(|d| d.user_request.to_string());
+        tracing::trace!(
+          "resolving dependencies for {:?}",
+          context_element_dependencies
+        );
 
-      tracing::trace!(
-        "resolving dependencies for {:?}",
-        context_element_dependencies
-      );
-
-      Ok(context_element_dependencies)
+        Ok(context_element_dependencies)
+      })
     });
 
     Self {
@@ -279,9 +286,7 @@ impl ContextModuleFactory {
       specifier: specifier.as_str(),
       dependency_type: dependency.dependency_type(),
       dependency_category: dependency.category(),
-      span: dependency
-        .range()
-        .map(|range| ErrorSpan::new(range.start, range.end)),
+      span: dependency.range(),
       resolve_options: data.resolve_options.clone(),
       resolve_to_context: true,
       optional: dependency.get_optional(),
@@ -295,42 +300,43 @@ impl ContextModuleFactory {
       Ok(ResolveResult::Resource(resource)) => {
         let mut dependency_options = dependency.options().clone();
         dependency_options.recursive = before_resolve_data.recursive;
-        dependency_options.reg_exp = before_resolve_data.reg_exp.clone();
+        dependency_options
+          .reg_exp
+          .clone_from(&before_resolve_data.reg_exp);
 
         let options = ContextModuleOptions {
-          addon: loader_request.to_string(),
+          addon: loader_request.clone(),
           resource: resource.path,
           resource_query: resource.query,
           resource_fragment: resource.fragment,
           layer: data.issuer_layer.clone(),
           resolve_options: data.resolve_options.clone(),
-          context_options: dependency.options().clone(),
+          context_options: dependency_options,
           type_prefix: dependency.type_prefix(),
         };
-        let module = Box::new(ContextModule::new(
-          self.resolve_dependencies.clone(),
-          options.clone(),
-        ));
+        let module = ContextModule::new(self.resolve_dependencies.clone(), options.clone()).boxed();
         (module, Some(options))
       }
       Ok(ResolveResult::Ignored) => {
-        let ident = format!("{}/{}", data.context, specifier);
-        let module_identifier = ModuleIdentifier::from(format!("ignored|{ident}"));
-        let mut raw_module = RawModule::new(
-          "/* (ignored) */".to_owned(),
-          module_identifier,
-          format!("{specifier} (ignored)"),
-          Default::default(),
-        )
-        .boxed();
+        // should create an empty context module when ignored
+        let mut dependency_options = dependency.options().clone();
+        dependency_options.recursive = before_resolve_data.recursive;
+        dependency_options
+          .reg_exp
+          .clone_from(&before_resolve_data.reg_exp);
 
-        raw_module.set_factory_meta(FactoryMeta {
-          side_effect_free: Some(true),
-        });
-
-        data.add_file_dependencies(file_dependencies);
-        data.add_missing_dependencies(missing_dependencies);
-        return Ok((ModuleFactoryResult::new_with_module(raw_module), None));
+        let options = ContextModuleOptions {
+          addon: loader_request.clone(),
+          resource: Default::default(),
+          resource_query: Default::default(),
+          resource_fragment: Default::default(),
+          layer: data.issuer_layer.clone(),
+          resolve_options: data.resolve_options.clone(),
+          context_options: dependency_options,
+          type_prefix: dependency.type_prefix(),
+        };
+        let module = ContextModule::new(self.resolve_dependencies.clone(), options.clone()).boxed();
+        (module, Some(options))
       }
       Err(err) => {
         data.add_file_dependencies(file_dependencies);
@@ -378,6 +384,18 @@ impl ContextModuleFactory {
         // The dependencies can be modified  in the after resolve hook
         data.dependencies = after_resolve_data.dependencies.take();
 
+        let parsed_resource = parse_resource(after_resolve_data.resource.as_str());
+        if let Some(parsed_resource) = parsed_resource {
+          if let Some(query) = &parsed_resource.query {
+            context_module_options.resource_query.clone_from(query);
+          }
+          if let Some(fragment) = &parsed_resource.fragment {
+            context_module_options
+              .resource_fragment
+              .clone_from(fragment);
+          }
+        }
+
         context_module_options.resource = after_resolve_data.resource;
         context_module_options.context_options.context = after_resolve_data.context;
         context_module_options.context_options.reg_exp = after_resolve_data.reg_exp;
@@ -386,15 +404,17 @@ impl ContextModuleFactory {
         let module = ContextModule::new(
           after_resolve_data.resolve_dependencies,
           context_module_options.clone(),
-        );
+        )
+        .boxed();
 
-        Ok(Some(ModuleFactoryResult::new_with_module(Box::new(module))))
+        Ok(Some(ModuleFactoryResult::new_with_module(module)))
       }
     }
   }
 }
 
-fn visit_dirs(
+#[async_recursion]
+async fn visit_dirs(
   ctx: &str,
   dir: &Utf8Path,
   dependencies: &mut Vec<ContextElementDependency>,
@@ -403,7 +423,8 @@ fn visit_dirs(
   fs: Arc<dyn ReadableFileSystem>,
 ) -> Result<()> {
   if !fs
-    .metadata_sync(dir)
+    .metadata(dir)
+    .await
     .map(|m| m.is_directory)
     .unwrap_or(false)
   {
@@ -411,7 +432,7 @@ fn visit_dirs(
   }
   let include = &options.context_options.include;
   let exclude = &options.context_options.exclude;
-  for filename in fs.read_dir_sync(dir)? {
+  for filename in fs.read_dir(dir).await? {
     let path = dir.join(&filename);
     let path_str = path.as_str();
 
@@ -423,7 +444,8 @@ fn visit_dirs(
     }
 
     if fs
-      .metadata_sync(&path)
+      .metadata(&path)
+      .await
       .map(|m| m.is_directory)
       .unwrap_or(false)
     {
@@ -435,7 +457,8 @@ fn visit_dirs(
           options,
           resolve_options,
           fs.clone(),
-        )?;
+        )
+        .await?;
       }
     } else if filename.starts_with('.') {
       // ignore hidden files
@@ -471,25 +494,28 @@ fn visit_dirs(
         if !reg_exp.test(&r.request) {
           return;
         }
+        let request = format!(
+          "{}{}{}{}",
+          options.addon,
+          r.request,
+          options.resource_query.clone(),
+          options.resource_fragment.clone(),
+        );
+        let resource_identifier = ContextElementDependency::create_resource_identifier(
+          options.resource.as_str(),
+          &request,
+          options.context_options.attributes.as_ref(),
+        );
+
         dependencies.push(ContextElementDependency {
           id: DependencyId::new(),
-          request: format!(
-            "{}{}{}{}",
-            options.addon,
-            r.request,
-            options.resource_query.clone(),
-            options.resource_fragment.clone(),
-          ),
-          user_request: r.request.to_string(),
+          request,
+          user_request: r.request.clone(),
           category: options.context_options.category,
           context: options.resource.clone().into(),
           layer: options.layer.clone(),
           options: options.context_options.clone(),
-          resource_identifier: ContextElementDependency::create_resource_identifier(
-            options.resource.as_str(),
-            &path,
-            options.context_options.attributes.as_ref(),
-          ),
+          resource_identifier,
           attributes: options.context_options.attributes.clone(),
           referenced_exports: options.context_options.referenced_exports.clone(),
           dependency_type: DependencyType::ContextElement(options.type_prefix),

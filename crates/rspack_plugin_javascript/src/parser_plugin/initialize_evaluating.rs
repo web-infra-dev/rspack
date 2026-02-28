@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 
 use cow_utils::CowUtils;
-use rspack_core::SpanExt;
+use rspack_util::SpanExt;
 
 use super::JavascriptParserPlugin;
 use crate::utils::eval::BasicEvaluatedExpression;
@@ -47,7 +47,8 @@ impl JavascriptParserPlugin for InitializeEvaluating {
           arg2.map(|a| a.number()),
         )
       }) {
-        let mut res = BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.hi().0);
+        let mut res =
+          BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.real_hi());
         res.set_number(result as f64);
         res.set_side_effects(param.could_have_side_effects());
         return Some(res);
@@ -61,7 +62,8 @@ impl JavascriptParserPlugin for InitializeEvaluating {
       let arg1 = parser.evaluate_expression(&expr.args[0].expr);
       if arg1.is_number() {
         let result = mock_javascript_slice(param.string().as_str(), arg1.number());
-        let mut res = BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.hi().0);
+        let mut res =
+          BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.real_hi());
         res.set_string(result);
         res.set_side_effects(param.could_have_side_effects());
         return Some(res);
@@ -80,7 +82,7 @@ impl JavascriptParserPlugin for InitializeEvaluating {
       if !arg2.is_string() {
         return None;
       }
-      let mut res = BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.hi().0);
+      let mut res = BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.real_hi());
       // mock js replace
       let s: Cow<'_, str> = if arg1.is_string() {
         param
@@ -93,11 +95,7 @@ impl JavascriptParserPlugin for InitializeEvaluating {
       } else {
         let raw = arg1.regexp();
         let regexp = eval_regexp_to_regexp(&raw.0, &raw.1);
-        Cow::Owned(
-          regexp
-            .replace(param.string().as_ref(), arg2.string())
-            .to_owned(),
-        )
+        Cow::Owned(regexp.replace(param.string().as_ref(), arg2.string()))
       };
       res.set_string(s.to_string());
       res.set_side_effects(param.could_have_side_effects());
@@ -117,7 +115,7 @@ impl JavascriptParserPlugin for InitializeEvaluating {
           continue;
         }
         let mut new_string = if arg_expr.is_string() {
-          arg_expr.string().to_string()
+          arg_expr.string().clone()
         } else {
           format!("{}", arg_expr.number())
         };
@@ -129,12 +127,10 @@ impl JavascriptParserPlugin for InitializeEvaluating {
           string_suffix.as_ref().unwrap_or(&arg_expr).range().1,
         );
         eval.set_string(new_string);
-        eval.set_side_effects(
-          string_suffix
-            .as_ref()
-            .map(|s| s.could_have_side_effects())
-            .unwrap_or_else(|| arg_expr.could_have_side_effects()),
-        );
+        eval.set_side_effects(string_suffix.as_ref().map_or_else(
+          || arg_expr.could_have_side_effects(),
+          |s| s.could_have_side_effects(),
+        ));
         string_suffix = Some(eval);
       }
       if has_unknown_params {
@@ -153,7 +149,8 @@ impl JavascriptParserPlugin for InitializeEvaluating {
         } else {
           inner_exprs
         };
-        let mut eval = BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.hi().0);
+        let mut eval =
+          BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.real_hi());
         eval.set_wrapped(prefix, string_suffix, inner);
         return Some(eval);
       } else if param.is_wrapped() {
@@ -167,7 +164,8 @@ impl JavascriptParserPlugin for InitializeEvaluating {
         } else {
           inner_exprs
         };
-        let mut eval = BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.hi().0);
+        let mut eval =
+          BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.real_hi());
         eval.set_wrapped(param.prefix().cloned(), postfix, inner);
         return Some(eval);
       } else {
@@ -175,14 +173,13 @@ impl JavascriptParserPlugin for InitializeEvaluating {
         if let Some(string_suffix) = &string_suffix {
           new_string += string_suffix.string();
         }
-        let mut eval = BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.hi().0);
+        let mut eval =
+          BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.real_hi());
         eval.set_string(new_string);
-        eval.set_side_effects(
-          string_suffix
-            .as_ref()
-            .map(|s| s.could_have_side_effects())
-            .unwrap_or_else(|| param.could_have_side_effects()),
-        );
+        eval.set_side_effects(string_suffix.as_ref().map_or_else(
+          || param.could_have_side_effects(),
+          |s| s.could_have_side_effects(),
+        ));
         return Some(eval);
       }
     } else if property == SPLIT_METHOD_NAME
@@ -204,7 +201,7 @@ impl JavascriptParserPlugin for InitializeEvaluating {
       } else {
         return None;
       };
-      let mut res = BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.hi().0);
+      let mut res = BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.real_hi());
       res.set_array(array);
       res.set_side_effects(param.could_have_side_effects());
       return Some(res);

@@ -14,7 +14,8 @@ use swc_core::base::config::{
 #[serde(rename_all = "camelCase", default)]
 pub struct RawRspackExperiments {
   pub import: Option<Vec<RawImportOptions>>,
-  pub collect_type_script_info: Option<RawCollectTypeScriptInfoOptions>,
+  #[serde(default)]
+  pub react_server_components: bool,
 }
 
 #[derive(Default, Deserialize, Debug)]
@@ -27,7 +28,7 @@ pub struct RawCollectTypeScriptInfoOptions {
 #[derive(Default, Debug)]
 pub(crate) struct RspackExperiments {
   pub(crate) import: Option<Vec<ImportOptions>>,
-  pub(crate) collect_typescript_info: Option<CollectTypeScriptInfoOptions>,
+  pub(crate) react_server_components: bool,
 }
 
 #[derive(Default, Debug)]
@@ -49,7 +50,7 @@ impl From<RawRspackExperiments> for RspackExperiments {
       import: value
         .import
         .map(|i| i.into_iter().map(|v| v.into()).collect()),
-      collect_typescript_info: value.collect_type_script_info.map(|v| v.into()),
+      react_server_components: value.react_server_components,
     }
   }
 }
@@ -114,6 +115,9 @@ pub struct SwcLoaderJsOptions {
   pub source_map_ignore_list: Option<FilePattern>,
 
   #[serde(default)]
+  pub collect_type_script_info: Option<RawCollectTypeScriptInfoOptions>,
+
+  #[serde(default)]
   pub rspack_experiments: Option<RawRspackExperiments>,
 }
 
@@ -123,6 +127,7 @@ pub(crate) struct SwcCompilerOptionsWithAdditional {
   raw_options: String,
   pub(crate) swc_options: Options,
   pub(crate) rspack_experiments: RspackExperiments,
+  pub(crate) collect_typescript_info: Option<CollectTypeScriptInfoOptions>,
 }
 
 impl AsRefStrConverter for SwcCompilerOptionsWithAdditional {
@@ -156,6 +161,7 @@ impl TryFrom<&str> for SwcCompilerOptionsWithAdditional {
       error,
       is_module,
       schema,
+      collect_type_script_info,
       rspack_experiments,
       source_map_ignore_list,
     } = option;
@@ -187,9 +193,67 @@ impl TryFrom<&str> for SwcCompilerOptionsWithAdditional {
           schema,
           source_map_ignore_list,
         },
-        ..Default::default()
+        swcrc: false,
+        ..serde_json::from_value(serde_json::Value::Object(Default::default()))?
       },
       rspack_experiments: rspack_experiments.unwrap_or_default().into(),
+      collect_typescript_info: collect_type_script_info.map(|v| v.into()),
     })
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn test_specially_default_values_in_swc_options() {
+    // Verifies that fields using `#[serde(default = "...")]`
+    // receive the correct default value from the initializations of
+    // both SwcCompilerOptionsWithAdditional and swc_core::base::config::Options.
+    let raw_options = "{}";
+    let swc_options_with_additional: SwcCompilerOptionsWithAdditional = raw_options
+      .try_into()
+      .expect("Parse SwcCompilerOptionsWithAdditional from empty JSON string failed");
+
+    let swc_options_from_rspack: Options = swc_options_with_additional.swc_options;
+
+    let swc_options_from_native_lib: Options =
+      serde_json::from_value(serde_json::from_str(raw_options).unwrap()).unwrap();
+
+    assert_eq!(
+      swc_options_from_rspack.env_name,
+      swc_options_from_native_lib.env_name
+    );
+    assert_eq!(swc_options_from_rspack.cwd, swc_options_from_native_lib.cwd);
+
+    // We dont't want swc-loader in rspack to respect swcrc
+    assert!(!swc_options_from_rspack.swcrc);
+  }
+
+  #[test]
+  fn test_swc_loader_js_options_ignore_unexpected_field() {
+    let raw_options = "{ \"envName\": \"my-env\" }";
+    let swc_options_with_additional: SwcCompilerOptionsWithAdditional = raw_options
+      .try_into()
+      .expect("Parse SwcCompilerOptionsWithAdditional from JSON string failed");
+
+    let swc_options_from_rspack: Options = swc_options_with_additional.swc_options;
+
+    let swc_options_from_native_lib: Options =
+      serde_json::from_value(serde_json::from_str(raw_options).unwrap()).unwrap();
+
+    assert_eq!(
+      swc_options_from_native_lib.env_name, "my-env",
+      "native options should parse envName from JSON"
+    );
+    assert_ne!(
+      swc_options_from_rspack.env_name, "my-env",
+      "SwcCompilerOptionsWithAdditional should ignore unexpected field envName"
+    );
+    assert!(
+      !swc_options_from_rspack.env_name.is_empty(),
+      "SwcCompilerOptionsWithAdditional should receive a default value of env_name"
+    )
   }
 }

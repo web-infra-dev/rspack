@@ -12,9 +12,9 @@ export default {
   //...
   plugins: [
     {
-      apply: compiler => {
+      apply: (compiler) => {
         const { RuntimePlugin } = compiler.rspack;
-        compiler.hooks.compilation.tap('MyPlugin', compilation => {
+        compiler.hooks.compilation.tap('MyPlugin', (compilation) => {
           const hooks = RuntimePlugin.getCompilationHooks(compilation);
           //...
         });

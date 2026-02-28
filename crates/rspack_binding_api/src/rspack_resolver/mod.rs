@@ -1,19 +1,18 @@
 //! Port rspack_resolver napi
 //!
-//! This module is generally copied from https://github.com/web-infra-dev/rspack-resolver/blob/main/napi/src/lib.rs
+//! This module is generally copied from https://github.com/rstackjs/rspack-resolver/blob/main/napi/src/lib.rs
+mod options;
 
 use std::{
   path::{Path, PathBuf},
   sync::Arc,
 };
 
-use napi::tokio::runtime;
+use napi::{bindgen_prelude::Either, tokio::runtime};
 use napi_derive::napi;
 use rspack_resolver::{ResolveOptions, Resolver};
 
-mod options;
-
-use self::options::{NapiResolveOptions, StrOrStrList};
+use self::options::{AliasRawValue, NapiResolveOptions, StrOrStrList};
 
 #[napi(object)]
 pub struct ResolveResult {
@@ -31,7 +30,6 @@ async fn resolve(resolver: &Resolver, path: &Path, request: &str) -> ResolveResu
       module_type: resolution
         .package_json()
         .and_then(|p| p.r#type.as_ref())
-        .and_then(|t| t.as_str())
         .map(|t| t.to_string()),
     },
     Err(err) => ResolveResult {
@@ -129,17 +127,8 @@ impl ResolverFactory {
         .map(|alias| {
           alias
             .into_iter()
-            .map(|(k, v)| {
-              let v = v
-                .into_iter()
-                .map(|item| match item {
-                  Some(path) => rspack_resolver::AliasValue::from(path),
-                  None => rspack_resolver::AliasValue::Ignore,
-                })
-                .collect();
-              (k, v)
-            })
-            .collect::<Vec<_>>()
+            .map(|(k, v)| (k, AliasRawValue(v).into()))
+            .collect()
         })
         .unwrap_or(default.alias),
       alias_fields: op
@@ -154,8 +143,9 @@ impl ResolverFactory {
       description_files: op.description_files.unwrap_or(default.description_files),
       enforce_extension: op
         .enforce_extension
-        .map(|enforce_extension| enforce_extension.into())
-        .unwrap_or(default.enforce_extension),
+        .map_or(default.enforce_extension, |enforce_extension| {
+          enforce_extension.into()
+        }),
       exports_fields: op
         .exports_fields
         .map(|o| {
@@ -224,6 +214,10 @@ impl ResolverFactory {
       symlinks: op.symlinks.unwrap_or(default.symlinks),
       builtin_modules: op.builtin_modules.unwrap_or(default.builtin_modules),
       enable_pnp: op.enable_pnp.unwrap_or_default(),
+      pnp_manifest: op.pnp_manifest.and_then(|m| match m {
+        Either::A(p) => Some(PathBuf::from(p)),
+        Either::B(_) => None,
+      }),
     }
   }
 }

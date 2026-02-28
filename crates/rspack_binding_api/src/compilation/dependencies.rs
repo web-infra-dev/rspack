@@ -37,7 +37,7 @@ impl JsDependencies {
     self
       .compilation
       .file_dependencies()
-      .2
+      .3
       .map(|i| i.to_string_lossy().to_string())
       .collect()
   }
@@ -65,7 +65,7 @@ impl JsDependencies {
     self
       .compilation
       .context_dependencies()
-      .2
+      .3
       .map(|i| i.to_string_lossy().to_string())
       .collect()
   }
@@ -93,7 +93,7 @@ impl JsDependencies {
     self
       .compilation
       .missing_dependencies()
-      .2
+      .3
       .map(|i| i.to_string_lossy().to_string())
       .collect()
   }
@@ -121,7 +121,7 @@ impl JsDependencies {
     self
       .compilation
       .build_dependencies()
-      .2
+      .3
       .map(|i| i.to_string_lossy().to_string())
       .collect()
   }

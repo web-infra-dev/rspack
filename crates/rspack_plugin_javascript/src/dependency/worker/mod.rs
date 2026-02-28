@@ -6,8 +6,8 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsContextDependency, Compilation, Dependency, DependencyCategory, DependencyCodeGeneration,
   DependencyId, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
-  ExtendedReferencedExport, FactorizeInfo, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
-  RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource,
+  ExportsInfoArtifact, ExtendedReferencedExport, FactorizeInfo, ModuleDependency, ModuleGraph,
+  ModuleGraphCacheArtifact, RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource,
 };
 use rspack_util::ext::DynHash;
 
@@ -20,6 +20,7 @@ pub struct WorkerDependency {
   range: DependencyRange,
   range_path: DependencyRange,
   factorize_info: FactorizeInfo,
+  need_new_url: bool,
 }
 
 impl WorkerDependency {
@@ -28,6 +29,7 @@ impl WorkerDependency {
     public_path: String,
     range: DependencyRange,
     range_path: DependencyRange,
+    need_new_url: bool,
   ) -> Self {
     Self {
       id: DependencyId::new(),
@@ -36,6 +38,7 @@ impl WorkerDependency {
       range,
       range_path,
       factorize_info: Default::default(),
+      need_new_url,
     }
   }
 }
@@ -54,14 +57,15 @@ impl Dependency for WorkerDependency {
     &DependencyType::NewWorker
   }
 
-  fn range(&self) -> Option<&DependencyRange> {
-    Some(&self.range)
+  fn range(&self) -> Option<DependencyRange> {
+    Some(self.range)
   }
 
   fn get_referenced_exports(
     &self,
     _module_graph: &ModuleGraph,
     _module_graph_cache: &ModuleGraphCacheArtifact,
+    _exports_info_artifact: &ExportsInfoArtifact,
     _runtime: Option<&RuntimeSpec>,
   ) -> Vec<ExtendedReferencedExport> {
     vec![]
@@ -132,7 +136,7 @@ impl DependencyTemplate for WorkerDependencyTemplate {
       .expect("WorkerDependencyTemplate should be used for WorkerDependency");
     let TemplateContext {
       compilation,
-      runtime_requirements,
+      runtime_template,
       ..
     } = code_generatable_context;
     let chunk_id = compilation
@@ -140,35 +144,45 @@ impl DependencyTemplate for WorkerDependencyTemplate {
       .get_parent_block(&dep.id)
       .and_then(|block| {
         compilation
+          .build_chunk_graph_artifact
           .chunk_graph
-          .get_block_chunk_group(block, &compilation.chunk_group_by_ukey)
+          .get_block_chunk_group(
+            block,
+            &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
+          )
       })
       .map(|entrypoint| entrypoint.get_entrypoint_chunk())
-      .and_then(|ukey| compilation.chunk_by_ukey.get(&ukey))
-      .and_then(|chunk| chunk.id(&compilation.chunk_ids_artifact))
+      .and_then(|ukey| {
+        compilation
+          .build_chunk_graph_artifact
+          .chunk_by_ukey
+          .get(&ukey)
+      })
+      .and_then(|chunk| chunk.id())
       .and_then(|chunk_id| serde_json::to_string(chunk_id).ok())
       .expect("failed to get json stringified chunk id");
     let worker_import_base_url = if !dep.public_path.is_empty() {
       format!("\"{}\"", dep.public_path)
     } else {
-      RuntimeGlobals::PUBLIC_PATH.to_string()
+      runtime_template.render_runtime_globals(&RuntimeGlobals::PUBLIC_PATH)
     };
 
-    runtime_requirements.insert(RuntimeGlobals::PUBLIC_PATH);
-    runtime_requirements.insert(RuntimeGlobals::BASE_URI);
-    runtime_requirements.insert(RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME);
+    let mut worker_import_str = format!(
+      "/* worker import */{} + {}({}), {}",
+      worker_import_base_url,
+      runtime_template.render_runtime_globals(&RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME),
+      chunk_id,
+      runtime_template.render_runtime_globals(&RuntimeGlobals::BASE_URI)
+    );
+
+    if dep.need_new_url {
+      worker_import_str = format!("new URL({worker_import_str})");
+    }
 
     source.replace(
       dep.range_path.start,
       dep.range_path.end,
-      format!(
-        "/* worker import */{} + {}({}), {}",
-        worker_import_base_url,
-        RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME,
-        chunk_id,
-        RuntimeGlobals::BASE_URI
-      )
-      .as_str(),
+      worker_import_str.as_str(),
       None,
     );
   }

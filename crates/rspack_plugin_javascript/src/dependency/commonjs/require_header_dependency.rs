@@ -1,8 +1,8 @@
-use rspack_cacheable::{cacheable, cacheable_dyn, with::Skip};
+use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsContextDependency, AsModuleDependency, Dependency, DependencyCodeGeneration, DependencyId,
   DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType, RuntimeGlobals,
-  SharedSourceMap, TemplateContext, TemplateReplaceSource,
+  TemplateContext, TemplateReplaceSource,
 };
 
 #[cacheable]
@@ -10,16 +10,15 @@ use rspack_core::{
 pub struct RequireHeaderDependency {
   id: DependencyId,
   range: DependencyRange,
-  #[cacheable(with=Skip)]
-  source_map: Option<SharedSourceMap>,
+  loc: Option<DependencyLocation>,
 }
 
 impl RequireHeaderDependency {
-  pub fn new(range: DependencyRange, source_map: Option<SharedSourceMap>) -> Self {
+  pub fn new(range: DependencyRange, loc: Option<DependencyLocation>) -> Self {
     Self {
       id: DependencyId::new(),
       range,
-      source_map,
+      loc,
     }
   }
 }
@@ -31,7 +30,7 @@ impl Dependency for RequireHeaderDependency {
   }
 
   fn loc(&self) -> Option<DependencyLocation> {
-    self.range.to_loc(self.source_map.as_ref())
+    self.loc.clone()
   }
 
   fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
@@ -72,14 +71,12 @@ impl DependencyTemplate for RequireHeaderDependencyTemplate {
       .expect("RequireHeaderDependencyTemplate should only be used for RequireHeaderDependency");
 
     let TemplateContext {
-      runtime_requirements,
-      ..
+      runtime_template, ..
     } = code_generatable_context;
-    runtime_requirements.insert(RuntimeGlobals::REQUIRE);
     source.replace(
       dep.range.start,
       dep.range.end,
-      RuntimeGlobals::REQUIRE.name(),
+      &runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
       None,
     );
   }

@@ -66,26 +66,6 @@ export default {
 };
 ```
 
-- 允许异步循环(例如 `import('some/module')`) 并手动处理所有检测到的循环
-
-```ts title="rspack.config.mjs"
-import { rspack } from '@rspack/core';
-
-export default {
-  entry: './src/index.js',
-  plugins: [
-    new rspack.CircularDependencyRspackPlugin({
-      allowAsyncCycles: true,
-      onDetected(entrypoint, modules, compilation) {
-        compilation.errors.push(
-          new Error(`Cycle in ${entrypoint}: ${modules.join(' -> ')}`),
-        );
-      },
-    }),
-  ],
-};
-```
-
 ## 选项
 
 ### failOnError
@@ -102,25 +82,6 @@ export default {
   plugins: [
     new rspack.CircularDependencyRspackPlugin({
       failOnError: true,
-    }),
-  ],
-};
-```
-
-### allowAsyncCycles
-
-- **类型:** `boolean`
-- **默认值:** `false`
-
-允许异步导入造成的循环依赖被忽略。异步导入包括 `import()` 调用、以及用于 lazy compilation 的弱引入、热模块连接等等。
-
-```js title="rspack.config.mjs"
-import { rspack } from '@rspack/core';
-
-export default {
-  plugins: [
-    new rspack.CircularDependencyRspackPlugin({
-      allowAsyncCycles: true,
     }),
   ],
 };

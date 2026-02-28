@@ -37,12 +37,12 @@ impl DependencyTemplate for ESMCompatibilityDependencyTemplate {
     code_generatable_context: &mut TemplateContext,
   ) {
     let TemplateContext {
-      runtime_requirements,
       init_fragments,
       compilation,
       module,
       runtime,
       concatenation_scope,
+      runtime_template,
       ..
     } = code_generatable_context;
     if concatenation_scope.is_some() {
@@ -53,19 +53,18 @@ impl DependencyTemplate for ESMCompatibilityDependencyTemplate {
       .module_by_identifier(&module.identifier())
       .expect("should have mgm");
     let name = Atom::from("__esModule");
-    let exports_info = module_graph
+    let exports_info = compilation
+      .exports_info_artifact
       .get_prefetched_exports_info(&module.identifier(), PrefetchExportsInfoMode::Default);
     let used = exports_info
       .get_read_only_export_info(&name)
       .get_used(*runtime);
     if !matches!(used, UsageState::Unused) {
-      runtime_requirements.insert(RuntimeGlobals::MAKE_NAMESPACE_OBJECT);
-      runtime_requirements.insert(RuntimeGlobals::EXPORTS);
       init_fragments.push(Box::new(NormalInitFragment::new(
         format!(
           "{}({});\n",
-          RuntimeGlobals::MAKE_NAMESPACE_OBJECT,
-          module.get_exports_argument()
+          runtime_template.render_runtime_globals(&RuntimeGlobals::MAKE_NAMESPACE_OBJECT),
+          runtime_template.render_exports_argument(module.get_exports_argument()),
         ),
         InitFragmentStage::StageESMExports,
         0,
@@ -74,22 +73,29 @@ impl DependencyTemplate for ESMCompatibilityDependencyTemplate {
       )));
     }
 
-    if ModuleGraph::is_async(compilation, &module.identifier()) {
-      runtime_requirements.insert(RuntimeGlobals::MODULE);
-      runtime_requirements.insert(RuntimeGlobals::ASYNC_MODULE);
+    if ModuleGraph::is_async(&compilation.async_modules_artifact, &module.identifier()) {
       init_fragments.push(Box::new(NormalInitFragment::new(
         format!(
-          "{}({}, async function (__webpack_handle_async_dependencies__, __webpack_async_result__) {{ try {{\n",
-          RuntimeGlobals::ASYNC_MODULE,
-          module_graph
-            .module_by_identifier(&module.identifier())
-            .expect("should have mgm")
-            .get_module_argument()
+          "{}({}, async function (__rspack_load_async_deps, __rspack_async_done) {{ try {{\n",
+          runtime_template.render_runtime_globals(&RuntimeGlobals::ASYNC_MODULE),
+          runtime_template.render_module_argument(
+            module_graph
+              .module_by_identifier(&module.identifier())
+              .expect("should have mgm")
+              .get_module_argument()
+          ),
         ),
         InitFragmentStage::StageAsyncBoundary,
         0,
         InitFragmentKey::unique(),
-        Some(format!("\n__webpack_async_result__();\n}} catch(e) {{ __webpack_async_result__(e); }} }}{});", if module.build_meta().has_top_level_await { ", 1" } else { "" })),
+        Some(format!(
+          "\n__rspack_async_done();\n}} catch(e) {{ __rspack_async_done(e); }} }}{});",
+          if module.build_meta().has_top_level_await {
+            ", 1"
+          } else {
+            ""
+          }
+        )),
       )));
     }
   }

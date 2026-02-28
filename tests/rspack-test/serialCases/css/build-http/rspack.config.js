@@ -1,0 +1,22 @@
+const path = require("path");
+
+/** @type {import("@rspack/core").Configuration} */
+module.exports = {
+	target: "web",
+	mode: "development",
+	experiments: {
+		buildHttp: {
+			allowedUris: [() => true],
+			lockfileLocation: path.resolve(__dirname, "./lock-files/lock.json"),
+			cacheLocation: path.resolve(__dirname, "./lock-files/test")
+		},
+	},
+	module: {
+		rules: [
+			{
+				test: /\.css$/,
+				type: "css/auto"
+			}
+		]
+	}
+};

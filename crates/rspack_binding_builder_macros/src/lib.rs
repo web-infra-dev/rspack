@@ -4,7 +4,7 @@
 //! This crate is used for creating a custom binding. It is not intended to be used directly by non-custom binding users.
 //!
 //! # Guide
-//! [Rspack Custom binding](https://rspack-contrib.github.io/rspack-rust-book/custom-binding/getting-started/index.html)
+//! [Rspack Custom binding](https://rstackjs.github.io/rspack-rust-book/custom-binding/getting-started/index.html)
 
 mod register_plugin;
 

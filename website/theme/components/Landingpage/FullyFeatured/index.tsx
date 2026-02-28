@@ -1,4 +1,4 @@
-import { Link } from '@rspress/core/theme';
+import { Link } from '@rspress/core/theme-original';
 import { FullyFeatured as BaseFullyFeatured } from '@rstack-dev/doc-ui/fully-featured';
 import {
   containerStyle,

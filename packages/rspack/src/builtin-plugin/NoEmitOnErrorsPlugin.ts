@@ -1,8 +1,8 @@
-import { BuiltinPluginName } from "@rspack/binding";
+import { BuiltinPluginName } from '@rspack/binding';
 
-import { create } from "./base";
+import { create } from './base';
 
 export const NoEmitOnErrorsPlugin = create(
-	BuiltinPluginName.NoEmitOnErrorsPlugin,
-	() => undefined
+  BuiltinPluginName.NoEmitOnErrorsPlugin,
+  () => undefined,
 );

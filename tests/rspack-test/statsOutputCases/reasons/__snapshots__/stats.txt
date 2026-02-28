@@ -1,0 +1,5 @@
+./index.js xx bytes [built] [code generated]
+  entry ./index
+./a.js xx bytes [built] [code generated]
+  cjs self exports reference self ./a.js
+  cjs require ./a ./index.js 1:19-24

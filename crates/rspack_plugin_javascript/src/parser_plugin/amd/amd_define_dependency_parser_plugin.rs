@@ -1,10 +1,11 @@
 use std::borrow::Cow;
 
 use rspack_core::{
-  BuildMetaDefaultObject, BuildMetaExportsType, ConstDependency, ContextDependency, ContextMode,
-  ContextNameSpaceObject, ContextOptions, Dependency, DependencyCategory, RuntimeGlobals, SpanExt,
+  BoxDependencyTemplate, BuildMetaDefaultObject, BuildMetaExportsType, ContextDependency,
+  ContextMode, ContextNameSpaceObject, ContextOptions, Dependency, DependencyCategory,
+  RuntimeGlobals, RuntimeRequirementsDependency,
 };
-use rspack_util::atom::Atom;
+use rspack_util::{SpanExt, atom::Atom};
 use rustc_hash::FxHashMap;
 use swc_core::{
   common::Spanned,
@@ -70,7 +71,7 @@ fn is_callable(expr: &Expr) -> bool {
   is_unbound_function_expression(expr) || is_bound_function_expression(expr)
 }
 
-/// define('ui/foo/bar', ['./baz', '../qux'], ...);
+/// `define('ui/foo/bar', ['./baz', '../qux'], ...);`
 /// - 'ui/foo/baz'
 /// - 'ui/qux'
 fn lookup<'a>(parent: &str, module: &'a str) -> Cow<'a, str> {
@@ -95,20 +96,17 @@ fn lookup<'a>(parent: &str, module: &'a str) -> Cow<'a, str> {
 const REQUIRE: &str = "require";
 const MODULE: &str = "module";
 const EXPORTS: &str = "exports";
-const RESERVED_NAMES: [&str; 3] = [REQUIRE, MODULE, EXPORTS];
+const RESERVED_NAMES: [&str; 3] = [REQUIRE, EXPORTS, MODULE];
 
 fn get_lit_str(expr: &Expr) -> Option<Atom> {
   expr.as_lit().and_then(|lit| match lit {
-    Lit::Str(s) => Some(s.value.clone()),
+    Lit::Str(s) => Some(s.value.to_atom_lossy().into_owned()),
     _ => None,
   })
 }
 
 fn get_ident_name(pat: &Pat) -> Atom {
-  pat
-    .as_ident()
-    .map(|ident| ident.sym.clone())
-    .unwrap_or("".into())
+  pat.as_ident().map_or("".into(), |ident| ident.sym.clone())
 }
 
 impl AMDDefineDependencyParserPlugin {
@@ -117,16 +115,16 @@ impl AMDDefineDependencyParserPlugin {
     parser: &mut JavascriptParser,
     call_expr: &CallExpr,
     param: &BasicEvaluatedExpression,
-    identifiers: &mut FxHashMap<usize, &'static str>, // param index => "require" | "module" | "exports"
+    identifiers: &mut FxHashMap<usize, Atom>, // param index => "require" | "module" | "exports"
     named_module: &Option<Atom>,
   ) -> Option<bool> {
     if param.is_array() {
       let items = param.items();
       for (idx, item) in items.iter().enumerate() {
         if item.is_string() {
-          let item = item.string();
-          if let Some(i) = RESERVED_NAMES.iter().position(|s| s == item) {
-            identifiers.insert(idx, RESERVED_NAMES[i]);
+          let item = item.string().as_str();
+          if RESERVED_NAMES.contains(&item) {
+            identifiers.insert(idx, item.into());
           }
         }
         let result = self.process_item(parser, call_expr, item, named_module);
@@ -140,15 +138,13 @@ impl AMDDefineDependencyParserPlugin {
       let array = param.array();
       for (i, request) in array.iter().enumerate() {
         if request == "require" {
-          identifiers.insert(i, REQUIRE);
-          deps.push(AMDRequireArrayItem::String(
-            RuntimeGlobals::REQUIRE.name().into(),
-          ));
+          identifiers.insert(i, REQUIRE.into());
+          deps.push(AMDRequireArrayItem::Require);
         } else if request == "exports" {
-          identifiers.insert(i, EXPORTS);
+          identifiers.insert(i, EXPORTS.into());
           deps.push(AMDRequireArrayItem::String(request.into()));
         } else if request == "module" {
-          identifiers.insert(i, MODULE);
+          identifiers.insert(i, MODULE.into());
           deps.push(AMDRequireArrayItem::String(request.into()));
         } else if let Some(local_module) = parser.get_local_module_mut(request) {
           local_module.flag_used();
@@ -159,12 +155,11 @@ impl AMDDefineDependencyParserPlugin {
           let mut dep = AMDRequireItemDependency::new(request.as_str().into(), None);
           dep.set_optional(parser.in_try);
           deps.push(AMDRequireArrayItem::AMDRequireItemDependency { dep_id: *dep.id() });
-          parser.dependencies.push(Box::new(dep));
+          parser.add_dependency(Box::new(dep));
         }
       }
-      let range = param.range();
-      let dep = AMDRequireArrayDependency::new(deps, (range.0, range.1 - 1).into());
-      parser.presentational_dependencies.push(Box::new(dep));
+      let dep = AMDRequireArrayDependency::new(deps, param.range().into());
+      parser.add_presentational_dependency(Box::new(dep));
       return Some(true);
     }
     None
@@ -190,28 +185,22 @@ impl AMDDefineDependencyParserPlugin {
       return Some(true);
     } else if param.is_string() {
       let param_str = param.string();
-      let range = {
-        let (l, h) = param.range();
-        (l, h - 1)
-      };
+      let range = param.range();
 
-      let dep = if param_str == "require" {
-        Box::new(ConstDependency::new(
+      let dep: BoxDependencyTemplate = if param_str == "require" {
+        Box::new(RuntimeRequirementsDependency::new(
           range.into(),
-          RuntimeGlobals::REQUIRE.name().into(),
-          Some(RuntimeGlobals::REQUIRE),
+          RuntimeGlobals::REQUIRE,
         ))
       } else if param_str == "exports" {
-        Box::new(ConstDependency::new(
+        Box::new(RuntimeRequirementsDependency::new(
           range.into(),
-          EXPORTS.into(),
-          Some(RuntimeGlobals::EXPORTS),
+          RuntimeGlobals::EXPORTS,
         ))
       } else if param_str == "module" {
-        Box::new(ConstDependency::new(
+        Box::new(RuntimeRequirementsDependency::new(
           range.into(),
-          MODULE.into(),
-          Some(RuntimeGlobals::MODULE),
+          RuntimeGlobals::MODULE,
         ))
       } else if let Some(local_module) = parser.get_local_module_mut(
         &named_module
@@ -225,7 +214,7 @@ impl AMDDefineDependencyParserPlugin {
           Some(range.into()),
           false,
         ));
-        parser.presentational_dependencies.push(dep);
+        parser.add_presentational_dependency(dep);
         return Some(true);
       } else {
         let mut dep = Box::new(AMDRequireItemDependency::new(
@@ -233,12 +222,12 @@ impl AMDDefineDependencyParserPlugin {
           Some(range.into()),
         ));
         dep.set_optional(parser.in_try);
-        parser.dependencies.push(dep);
+        parser.add_dependency(dep);
         return Some(true);
       };
       // TODO: how to implement this?
       // dep.loc = /** @type {DependencyLocation} */ (expr.loc);
-      parser.presentational_dependencies.push(dep);
+      parser.add_presentational_dependency(dep);
       return Some(true);
     }
     None
@@ -251,7 +240,7 @@ impl AMDDefineDependencyParserPlugin {
     param: &BasicEvaluatedExpression,
   ) -> Option<bool> {
     let call_span = call_expr.span();
-    let param_range = (param.range().0, param.range().1 - 1);
+    let param_range = param.range();
 
     let result = create_context_dependency(param, parser);
 
@@ -271,10 +260,11 @@ impl AMDDefineDependencyParserPlugin {
       end: call_span.real_hi(),
       referenced_exports: None,
       attributes: None,
+      phase: None,
     };
     let mut dep = AMDRequireContextDependency::new(options, param_range.into(), parser.in_try);
     *dep.critical_mut() = result.critical;
-    parser.dependencies.push(Box::new(dep));
+    parser.add_dependency(Box::new(dep));
     Some(true)
   }
 
@@ -464,8 +454,8 @@ impl AMDDefineDependencyParserPlugin {
           }
           let idx = i - fn_params_offset;
           i += 1;
-          if let Some(&name) = identifiers.get(&idx) {
-            fn_renames.insert(get_ident_name(param), name);
+          if let Some(name) = identifiers.get(&idx) {
+            fn_renames.insert(get_ident_name(param), name.clone());
             return false;
           }
           true
@@ -480,7 +470,7 @@ impl AMDDefineDependencyParserPlugin {
         let idx = i - fn_params_offset;
         i += 1;
         if idx < RESERVED_NAMES.len() {
-          fn_renames.insert(get_ident_name(param), RESERVED_NAMES[idx]);
+          fn_renames.insert(get_ident_name(param), RESERVED_NAMES[idx].into());
           return false;
         }
         true
@@ -493,12 +483,12 @@ impl AMDDefineDependencyParserPlugin {
         true,
         fn_params.expect("fn_params should not be None").into_iter(),
         |parser| {
-          for (name, &rename_identifier) in fn_renames.iter() {
+          for (name, rename_identifier) in fn_renames.iter() {
             let variable = parser
               .get_variable_info(rename_identifier)
               .map(|info| ExportedVariableInfo::VariableInfo(info.id()))
-              .unwrap_or(ExportedVariableInfo::Name(rename_identifier.to_string()));
-            parser.set_variable(name.to_string(), variable);
+              .unwrap_or(ExportedVariableInfo::Name(rename_identifier.clone()));
+            parser.set_variable(name.clone(), variable);
           }
 
           parser.in_try = in_try;
@@ -549,12 +539,12 @@ impl AMDDefineDependencyParserPlugin {
                   .is_some_and(|ident| !RESERVED_NAMES.contains(&ident.sym.as_str()))
               }),
             |parser| {
-              for (name, &rename_identifier) in fn_renames.iter() {
+              for (name, rename_identifier) in fn_renames.iter() {
                 let variable = parser
                   .get_variable_info(rename_identifier)
                   .map(|info| ExportedVariableInfo::VariableInfo(info.id()))
-                  .unwrap_or(ExportedVariableInfo::Name(rename_identifier.to_string()));
-                parser.set_variable(name.to_string(), variable);
+                  .unwrap_or(ExportedVariableInfo::Name(rename_identifier.clone()));
+                parser.set_variable(name.clone(), variable);
               }
 
               parser.in_try = in_try;
@@ -578,9 +568,10 @@ impl AMDDefineDependencyParserPlugin {
       parser.walk_expression(expr);
     }
 
-    let local_module = named_module
-      .as_ref()
-      .map(|name| parser.add_local_module(name.as_str()));
+    if let Some(name) = &named_module {
+      let dep_idx = parser.next_presentational_dependency_idx();
+      parser.add_local_module(name, dep_idx);
+    }
 
     let dep = Box::new(AMDDefineDependency::new(
       call_expr.span.into(),
@@ -588,10 +579,9 @@ impl AMDDefineDependencyParserPlugin {
       func.map(|expr| expr.span().into()),
       obj.map(|expr| expr.span().into()),
       named_module,
-      local_module,
     ));
 
-    parser.presentational_dependencies.push(dep);
+    parser.add_presentational_dependency(dep);
 
     Some(true)
   }
@@ -611,21 +601,13 @@ impl JavascriptParserPlugin for AMDDefineDependencyParserPlugin {
     }
   }
 
-  /**
-   * unlike js, it's hard to share the LocalModule instance in Rust.
-   * so the AMDDefineDependency will get a clone of LocalModule in parser.local_modules.
-   * synchronize the used flag to the AMDDefineDependency's local_module at the end of the parse.
-   */
   fn finish(&self, parser: &mut JavascriptParser) -> Option<bool> {
-    for dep in parser.presentational_dependencies.iter_mut() {
-      if let Some(define_dep) = dep.as_any_mut().downcast_mut::<AMDDefineDependency>()
-        && let Some(local_module) = define_dep.get_local_module_mut()
-        && parser
-          .local_modules
-          .get(local_module.get_idx())
-          .is_some_and(|m| m.is_used())
+    for local_module in std::mem::take(&mut parser.local_modules) {
+      let dep_idx = local_module.amd_dep_idx();
+      if let Some(dep) = parser.get_presentational_dependency_mut(dep_idx)
+        && let Some(dep) = dep.as_any_mut().downcast_mut::<AMDDefineDependency>()
       {
-        local_module.flag_used();
+        dep.set_local_module(local_module);
       }
     }
     None

@@ -1,4 +1,4 @@
-use std::{fs, path::PathBuf};
+use std::{fs, path::PathBuf, rc::Rc, sync::Arc};
 
 use glob::glob;
 use rspack_javascript_compiler::{JavaScriptCompiler, transform::SwcOptions};
@@ -6,7 +6,7 @@ use rspack_swc_plugin_ts_collector::TypeExportsCollector;
 use rustc_hash::FxHashSet;
 use swc_core::{
   atoms::Atom,
-  common::FileName,
+  common::{FileName, comments::SingleThreadedComments},
   ecma::{
     ast::noop_pass,
     parser::{Syntax, TsSyntax},
@@ -34,13 +34,15 @@ fn type_exports() {
     let mut options = SwcOptions::default();
     options.config.jsc.syntax = Some(Syntax::Typescript(TsSyntax::default()));
     let mut type_exports_results = FxHashSet::default();
+    let comments = Rc::new(SingleThreadedComments::default());
     let _ = compiler
       .transform(
         source,
-        Some(FileName::Real(input)),
+        Some(Arc::new(FileName::Real(input))),
+        comments,
         options,
         None,
-        |program| {
+        |program, _| {
           program.visit_with(&mut TypeExportsCollector::new(&mut type_exports_results));
         },
         |_| noop_pass(),

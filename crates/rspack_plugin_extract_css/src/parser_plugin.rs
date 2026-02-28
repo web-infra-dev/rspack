@@ -79,7 +79,7 @@ impl JavascriptParserPlugin for PluginCssExtractParserPlugin {
     } else {
       vec![]
     };
-    parser.dependencies.extend(deps);
+    parser.add_dependencies(deps);
     None
   }
 }

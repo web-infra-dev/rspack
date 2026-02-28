@@ -34,7 +34,7 @@ impl State {
 }
 
 #[derive(Debug)]
-pub struct LoaderContext<Context> {
+pub struct LoaderContext<Context: Send> {
   pub hot: bool,
   pub resource_data: Arc<ResourceData>,
   #[debug(skip)]
@@ -61,7 +61,7 @@ pub struct LoaderContext<Context> {
   pub plugin: Option<Arc<dyn LoaderRunnerPlugin<Context = Context>>>,
 }
 
-impl<Context> LoaderContext<Context> {
+impl<Context: Send> LoaderContext<Context> {
   pub fn remaining_request(&self) -> LoaderItemList<'_, Context> {
     if self.loader_index >= self.loader_items.len() as i32 - 1 {
       return Default::default();
@@ -98,25 +98,25 @@ impl<Context> LoaderContext<Context> {
   /// The resource part of the request, including query and fragment.
   /// E.g. /abc/resource.js?query=1#some-fragment
   pub fn resource(&self) -> &str {
-    &self.resource_data.resource
+    self.resource_data.resource()
   }
 
   /// The resource part of the request.
   /// E.g. /abc/resource.js
   pub fn resource_path(&self) -> Option<&Utf8Path> {
-    self.resource_data.resource_path.as_deref()
+    self.resource_data.path()
   }
 
   /// The query of the request
   /// E.g. query=1
   pub fn resource_query(&self) -> Option<&str> {
-    self.resource_data.resource_query.as_deref()
+    self.resource_data.query()
   }
 
   /// The fragment of the request
   /// E.g. some-fragment
   pub fn resource_fragment(&self) -> Option<&str> {
-    self.resource_data.resource_fragment.as_deref()
+    self.resource_data.fragment()
   }
 
   pub fn content(&self) -> Option<&Content> {

@@ -1,10 +1,10 @@
 use std::path::PathBuf;
 
-use rspack_cacheable::{disable_cacheable, with::AsString};
+use rspack_cacheable::{disable_cacheable, utils::PortablePath, with::As};
 
 #[disable_cacheable]
 struct FileInfo {
-  #[cacheable(with=AsString)]
+  #[cacheable(with=As<PortablePath>)]
   path: PathBuf,
 }
 

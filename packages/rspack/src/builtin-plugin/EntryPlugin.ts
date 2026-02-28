@@ -1,21 +1,21 @@
 import {
-	BuiltinPluginName,
-	EntryDependency,
-	type JsEntryOptions,
-	type JsEntryPluginOptions
-} from "@rspack/binding";
+  BuiltinPluginName,
+  EntryDependency,
+  type JsEntryOptions,
+  type JsEntryPluginOptions,
+} from '@rspack/binding';
 
-import type { EntryDescriptionNormalized } from "../config";
-import { create } from "./base";
+import type { EntryDescriptionNormalized } from '../config';
+import { create } from './base';
 
 /**
  * Options for the `EntryPlugin`.
  */
-export type EntryOptions = Omit<EntryDescriptionNormalized, "import"> & {
-	/**
-	 * The name of the entry chunk.
-	 */
-	name?: string;
+export type EntryOptions = Omit<EntryDescriptionNormalized, 'import'> & {
+  /**
+   * The name of the entry chunk.
+   */
+  name?: string;
 };
 
 /**
@@ -25,44 +25,43 @@ export type EntryOptions = Omit<EntryDescriptionNormalized, "import"> & {
  * `entry` in `context` (absolute path).
  */
 const OriginEntryPlugin = create(
-	BuiltinPluginName.EntryPlugin,
-	(
-		context: string,
-		entry: string,
-		options: EntryOptions | string = ""
-	): JsEntryPluginOptions => {
-		const entryOptions =
-			typeof options === "string" ? { name: options } : options;
-		return {
-			context,
-			entry,
-			options: getRawEntryOptions(entryOptions)
-		};
-	},
-	"make"
+  BuiltinPluginName.EntryPlugin,
+  (
+    context: string,
+    entry: string,
+    options: EntryOptions | string = '',
+  ): JsEntryPluginOptions => {
+    const entryOptions =
+      typeof options === 'string' ? { name: options } : options;
+    return {
+      context,
+      entry,
+      options: getRawEntryOptions(entryOptions),
+    };
+  },
+  'make',
 );
 
 type EntryPluginType = typeof OriginEntryPlugin & {
-	createDependency(entry: string): EntryDependency;
+  createDependency(entry: string): EntryDependency;
 };
 
 export const EntryPlugin = OriginEntryPlugin as EntryPluginType;
 
-EntryPlugin.createDependency = request => new EntryDependency(request);
+EntryPlugin.createDependency = (request) => new EntryDependency(request);
 
 export function getRawEntryOptions(entry: EntryOptions): JsEntryOptions {
-	const runtime = entry.runtime;
-	const chunkLoading = entry.chunkLoading;
-	return {
-		name: entry.name,
-		publicPath: entry.publicPath,
-		baseUri: entry.baseUri,
-		runtime,
-		chunkLoading,
-		asyncChunks: entry.asyncChunks,
-		filename: entry.filename,
-		library: entry.library,
-		layer: entry.layer ?? undefined,
-		dependOn: entry.dependOn
-	};
+  return {
+    name: entry.name,
+    publicPath: entry.publicPath,
+    baseUri: entry.baseUri,
+    runtime: entry.runtime,
+    chunkLoading: entry.chunkLoading,
+    wasmLoading: entry.wasmLoading,
+    asyncChunks: entry.asyncChunks,
+    filename: entry.filename,
+    library: entry.library,
+    layer: entry.layer ?? undefined,
+    dependOn: entry.dependOn,
+  };
 }

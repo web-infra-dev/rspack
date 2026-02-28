@@ -8,7 +8,7 @@ This crate is used for creating a custom binding. It is not intended to be used 
 
 ## Guide
 
-[Rspack Custom binding](https://rspack-contrib.github.io/rspack-rust-book/custom-binding/getting-started/index.html)
+[Rspack Custom binding](https://rstackjs.github.io/rspack-rust-book/custom-binding/getting-started/index.html)
 
 ## Usage
 
@@ -24,10 +24,12 @@ to be used in the host.
 #### Parameters
 
 `register_plugin` macro accepts two arguments:
+
 - The name of the plugin
 - A resolver function that returns a `rspack_core::BoxPlugin`
 
 The resolver function accepts two arguments:
+
 - `env`: The environment of the plugin, it is the same as `napi::bindgen_prelude::Env`
 - `options`: The options of the plugin, it is the same as `napi::bindgen_prelude::Unknown<'_>`
 
@@ -71,5 +73,8 @@ const plugin = registerMyBannerPlugin();
 To actually use the plugin, you need to wrap it with `require('@rspack/core').experiments.createNativePlugin`:
 
 ```js
-require('@rspack/core').experiments.createNativePlugin("MyBannerPlugin", (options) => options)
+require('@rspack/core').experiments.createNativePlugin(
+  'MyBannerPlugin',
+  (options) => options,
+);
 ```

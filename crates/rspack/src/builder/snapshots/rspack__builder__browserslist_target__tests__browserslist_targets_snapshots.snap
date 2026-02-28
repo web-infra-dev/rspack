@@ -62,6 +62,7 @@ expression: results
             const: Some(
                 false,
             ),
+            method_shorthand: None,
             arrow_function: Some(
                 false,
             ),
@@ -89,6 +90,7 @@ expression: results
             async_function: Some(
                 false,
             ),
+            import_meta_dirname_and_filename: None,
         },
     ),
     (
@@ -150,6 +152,7 @@ expression: results
             const: Some(
                 false,
             ),
+            method_shorthand: None,
             arrow_function: Some(
                 false,
             ),
@@ -177,6 +180,7 @@ expression: results
             async_function: Some(
                 false,
             ),
+            import_meta_dirname_and_filename: None,
         },
     ),
     (
@@ -238,6 +242,7 @@ expression: results
             const: Some(
                 true,
             ),
+            method_shorthand: None,
             arrow_function: Some(
                 true,
             ),
@@ -265,6 +270,7 @@ expression: results
             async_function: Some(
                 true,
             ),
+            import_meta_dirname_and_filename: None,
         },
     ),
     (
@@ -326,6 +332,7 @@ expression: results
             const: Some(
                 false,
             ),
+            method_shorthand: None,
             arrow_function: Some(
                 false,
             ),
@@ -353,6 +360,7 @@ expression: results
             async_function: Some(
                 false,
             ),
+            import_meta_dirname_and_filename: None,
         },
     ),
     (
@@ -414,6 +422,7 @@ expression: results
             const: Some(
                 false,
             ),
+            method_shorthand: None,
             arrow_function: Some(
                 false,
             ),
@@ -441,6 +450,7 @@ expression: results
             async_function: Some(
                 false,
             ),
+            import_meta_dirname_and_filename: None,
         },
     ),
     (
@@ -502,6 +512,7 @@ expression: results
             const: Some(
                 false,
             ),
+            method_shorthand: None,
             arrow_function: Some(
                 false,
             ),
@@ -529,6 +540,7 @@ expression: results
             async_function: Some(
                 false,
             ),
+            import_meta_dirname_and_filename: None,
         },
     ),
     (
@@ -590,6 +602,7 @@ expression: results
             const: Some(
                 true,
             ),
+            method_shorthand: None,
             arrow_function: Some(
                 true,
             ),
@@ -617,6 +630,7 @@ expression: results
             async_function: Some(
                 true,
             ),
+            import_meta_dirname_and_filename: None,
         },
     ),
     (
@@ -678,6 +692,7 @@ expression: results
             const: Some(
                 true,
             ),
+            method_shorthand: None,
             arrow_function: Some(
                 true,
             ),
@@ -705,6 +720,7 @@ expression: results
             async_function: Some(
                 true,
             ),
+            import_meta_dirname_and_filename: None,
         },
     ),
     (
@@ -766,6 +782,7 @@ expression: results
             const: Some(
                 true,
             ),
+            method_shorthand: None,
             arrow_function: Some(
                 true,
             ),
@@ -793,6 +810,7 @@ expression: results
             async_function: Some(
                 true,
             ),
+            import_meta_dirname_and_filename: None,
         },
     ),
     (
@@ -854,6 +872,7 @@ expression: results
             const: Some(
                 true,
             ),
+            method_shorthand: None,
             arrow_function: Some(
                 true,
             ),
@@ -881,6 +900,7 @@ expression: results
             async_function: Some(
                 true,
             ),
+            import_meta_dirname_and_filename: None,
         },
     ),
     (
@@ -942,6 +962,7 @@ expression: results
             const: Some(
                 true,
             ),
+            method_shorthand: None,
             arrow_function: Some(
                 true,
             ),
@@ -969,6 +990,7 @@ expression: results
             async_function: Some(
                 true,
             ),
+            import_meta_dirname_and_filename: None,
         },
     ),
     (
@@ -1030,6 +1052,7 @@ expression: results
             const: Some(
                 true,
             ),
+            method_shorthand: None,
             arrow_function: Some(
                 true,
             ),
@@ -1057,6 +1080,7 @@ expression: results
             async_function: Some(
                 true,
             ),
+            import_meta_dirname_and_filename: None,
         },
     ),
     (
@@ -1118,6 +1142,7 @@ expression: results
             const: Some(
                 true,
             ),
+            method_shorthand: None,
             arrow_function: Some(
                 true,
             ),
@@ -1145,6 +1170,7 @@ expression: results
             async_function: Some(
                 true,
             ),
+            import_meta_dirname_and_filename: None,
         },
     ),
     (
@@ -1206,6 +1232,7 @@ expression: results
             const: Some(
                 true,
             ),
+            method_shorthand: None,
             arrow_function: Some(
                 true,
             ),
@@ -1233,6 +1260,7 @@ expression: results
             async_function: Some(
                 false,
             ),
+            import_meta_dirname_and_filename: None,
         },
     ),
     (
@@ -1294,6 +1322,7 @@ expression: results
             const: Some(
                 true,
             ),
+            method_shorthand: None,
             arrow_function: Some(
                 true,
             ),
@@ -1321,6 +1350,7 @@ expression: results
             async_function: Some(
                 true,
             ),
+            import_meta_dirname_and_filename: None,
         },
     ),
     (
@@ -1382,6 +1412,7 @@ expression: results
             const: Some(
                 true,
             ),
+            method_shorthand: None,
             arrow_function: Some(
                 true,
             ),
@@ -1409,6 +1440,7 @@ expression: results
             async_function: Some(
                 true,
             ),
+            import_meta_dirname_and_filename: None,
         },
     ),
     (
@@ -1470,6 +1502,7 @@ expression: results
             const: Some(
                 true,
             ),
+            method_shorthand: None,
             arrow_function: Some(
                 true,
             ),
@@ -1497,6 +1530,7 @@ expression: results
             async_function: Some(
                 true,
             ),
+            import_meta_dirname_and_filename: None,
         },
     ),
     (
@@ -1558,6 +1592,7 @@ expression: results
             const: Some(
                 true,
             ),
+            method_shorthand: None,
             arrow_function: Some(
                 true,
             ),
@@ -1585,6 +1620,7 @@ expression: results
             async_function: Some(
                 true,
             ),
+            import_meta_dirname_and_filename: None,
         },
     ),
     (
@@ -1646,6 +1682,7 @@ expression: results
             const: Some(
                 true,
             ),
+            method_shorthand: None,
             arrow_function: Some(
                 true,
             ),
@@ -1673,6 +1710,7 @@ expression: results
             async_function: Some(
                 true,
             ),
+            import_meta_dirname_and_filename: None,
         },
     ),
     (
@@ -1734,6 +1772,7 @@ expression: results
             const: Some(
                 true,
             ),
+            method_shorthand: None,
             arrow_function: Some(
                 true,
             ),
@@ -1761,6 +1800,7 @@ expression: results
             async_function: Some(
                 true,
             ),
+            import_meta_dirname_and_filename: None,
         },
     ),
     (
@@ -1822,6 +1862,7 @@ expression: results
             const: Some(
                 false,
             ),
+            method_shorthand: None,
             arrow_function: Some(
                 false,
             ),
@@ -1849,6 +1890,7 @@ expression: results
             async_function: Some(
                 false,
             ),
+            import_meta_dirname_and_filename: None,
         },
     ),
     (
@@ -1910,6 +1952,7 @@ expression: results
             const: Some(
                 true,
             ),
+            method_shorthand: None,
             arrow_function: Some(
                 true,
             ),
@@ -1937,6 +1980,7 @@ expression: results
             async_function: Some(
                 true,
             ),
+            import_meta_dirname_and_filename: None,
         },
     ),
     (
@@ -1998,6 +2042,7 @@ expression: results
             const: Some(
                 true,
             ),
+            method_shorthand: None,
             arrow_function: Some(
                 true,
             ),
@@ -2025,6 +2070,7 @@ expression: results
             async_function: Some(
                 true,
             ),
+            import_meta_dirname_and_filename: None,
         },
     ),
     (
@@ -2086,6 +2132,7 @@ expression: results
             const: Some(
                 false,
             ),
+            method_shorthand: None,
             arrow_function: Some(
                 false,
             ),
@@ -2113,6 +2160,7 @@ expression: results
             async_function: Some(
                 false,
             ),
+            import_meta_dirname_and_filename: None,
         },
     ),
     (
@@ -2174,6 +2222,7 @@ expression: results
             const: Some(
                 false,
             ),
+            method_shorthand: None,
             arrow_function: Some(
                 false,
             ),
@@ -2201,6 +2250,7 @@ expression: results
             async_function: Some(
                 false,
             ),
+            import_meta_dirname_and_filename: None,
         },
     ),
     (
@@ -2262,6 +2312,7 @@ expression: results
             const: Some(
                 false,
             ),
+            method_shorthand: None,
             arrow_function: Some(
                 false,
             ),
@@ -2289,6 +2340,7 @@ expression: results
             async_function: Some(
                 false,
             ),
+            import_meta_dirname_and_filename: None,
         },
     ),
     (
@@ -2350,6 +2402,7 @@ expression: results
             const: Some(
                 false,
             ),
+            method_shorthand: None,
             arrow_function: Some(
                 false,
             ),
@@ -2377,6 +2430,7 @@ expression: results
             async_function: Some(
                 false,
             ),
+            import_meta_dirname_and_filename: None,
         },
     ),
     (
@@ -2438,6 +2492,7 @@ expression: results
             const: Some(
                 true,
             ),
+            method_shorthand: None,
             arrow_function: Some(
                 true,
             ),
@@ -2465,6 +2520,7 @@ expression: results
             async_function: Some(
                 true,
             ),
+            import_meta_dirname_and_filename: None,
         },
     ),
     (
@@ -2526,6 +2582,7 @@ expression: results
             const: Some(
                 true,
             ),
+            method_shorthand: None,
             arrow_function: Some(
                 true,
             ),
@@ -2553,6 +2610,7 @@ expression: results
             async_function: Some(
                 true,
             ),
+            import_meta_dirname_and_filename: None,
         },
     ),
     (
@@ -2614,6 +2672,7 @@ expression: results
             const: Some(
                 true,
             ),
+            method_shorthand: None,
             arrow_function: Some(
                 true,
             ),
@@ -2641,6 +2700,7 @@ expression: results
             async_function: Some(
                 true,
             ),
+            import_meta_dirname_and_filename: None,
         },
     ),
     (
@@ -2702,6 +2762,7 @@ expression: results
             const: Some(
                 true,
             ),
+            method_shorthand: None,
             arrow_function: Some(
                 true,
             ),
@@ -2729,6 +2790,7 @@ expression: results
             async_function: Some(
                 false,
             ),
+            import_meta_dirname_and_filename: None,
         },
     ),
     (
@@ -2790,6 +2852,7 @@ expression: results
             const: Some(
                 true,
             ),
+            method_shorthand: None,
             arrow_function: Some(
                 true,
             ),
@@ -2817,6 +2880,7 @@ expression: results
             async_function: Some(
                 false,
             ),
+            import_meta_dirname_and_filename: None,
         },
     ),
     (
@@ -2878,6 +2942,7 @@ expression: results
             const: Some(
                 true,
             ),
+            method_shorthand: None,
             arrow_function: Some(
                 true,
             ),
@@ -2905,6 +2970,7 @@ expression: results
             async_function: Some(
                 false,
             ),
+            import_meta_dirname_and_filename: None,
         },
     ),
     (
@@ -2966,6 +3032,7 @@ expression: results
             const: Some(
                 false,
             ),
+            method_shorthand: None,
             arrow_function: Some(
                 true,
             ),
@@ -2993,6 +3060,7 @@ expression: results
             async_function: Some(
                 false,
             ),
+            import_meta_dirname_and_filename: None,
         },
     ),
     (
@@ -3055,6 +3123,7 @@ expression: results
             const: Some(
                 true,
             ),
+            method_shorthand: None,
             arrow_function: Some(
                 true,
             ),
@@ -3082,6 +3151,7 @@ expression: results
             async_function: Some(
                 true,
             ),
+            import_meta_dirname_and_filename: None,
         },
     ),
     (
@@ -3128,6 +3198,7 @@ expression: results
             const: Some(
                 true,
             ),
+            method_shorthand: None,
             arrow_function: Some(
                 true,
             ),
@@ -3155,6 +3226,7 @@ expression: results
             async_function: Some(
                 true,
             ),
+            import_meta_dirname_and_filename: None,
         },
     ),
     (
@@ -3216,6 +3288,7 @@ expression: results
             const: Some(
                 false,
             ),
+            method_shorthand: None,
             arrow_function: Some(
                 false,
             ),
@@ -3243,6 +3316,7 @@ expression: results
             async_function: Some(
                 false,
             ),
+            import_meta_dirname_and_filename: None,
         },
     ),
 ]

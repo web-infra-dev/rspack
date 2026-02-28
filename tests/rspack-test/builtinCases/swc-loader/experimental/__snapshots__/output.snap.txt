@@ -1,0 +1,21 @@
+```js title=main.js
+import * as __rspack_external__static_package_json_fde7981b from "./static-package.json" with {"type":"json"};
+(self["rspackChunk"] = self["rspackChunk"] || []).push([["main"], {
+"./index.js"() {
+
+;// CONCATENATED MODULE: external "./static-package.json"
+
+;// CONCATENATED MODULE: ./index.js
+
+console.log(__rspack_external__static_package_json_fde7981b);
+
+
+},
+
+},function(__webpack_require__) {
+var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }
+var __webpack_exports__ = (__webpack_exec__("./index.js"));
+
+}
+])
+```

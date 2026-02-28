@@ -12,7 +12,9 @@ pub struct DependencyVisitor {
 impl Visit for DependencyVisitor {
   /// handle `import .. from "..."`
   fn visit_import_decl(&mut self, node: &ImportDecl) {
-    self.requests.push(node.src.value.to_string());
+    self
+      .requests
+      .push(node.src.value.to_string_lossy().to_string());
   }
 
   /// handle `import("...")` and `require("...")`
@@ -28,19 +30,21 @@ impl Visit for DependencyVisitor {
       && let Some(args) = node.args.first()
       && let Expr::Lit(Lit::Str(s)) = args.expr.as_ref()
     {
-      self.requests.push(s.value.to_string());
+      self.requests.push(s.value.to_string_lossy().to_string());
     }
   }
 
   /// handle `export * from "..."`
   fn visit_export_all(&mut self, node: &ExportAll) {
-    self.requests.push(node.src.value.to_string());
+    self
+      .requests
+      .push(node.src.value.to_string_lossy().to_string());
   }
 
   /// handle `export .. from "..."`
   fn visit_named_export(&mut self, node: &swc_core::ecma::ast::NamedExport) {
     if let Some(src) = &node.src {
-      self.requests.push(src.value.to_string());
+      self.requests.push(src.value.to_string_lossy().to_string());
     }
   }
 }

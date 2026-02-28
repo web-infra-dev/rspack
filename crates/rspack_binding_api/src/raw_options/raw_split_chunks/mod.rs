@@ -189,15 +189,15 @@ impl<'a> From<RawSplitChunksOptions<'a>> for rspack_plugin_split_chunks::PluginO
             .min_chunks
             .unwrap_or(if enforce { 1 } else { overall_min_chunks });
 
-          let r#type = v
-            .r#type
-            .map(create_module_type_filter)
-            .unwrap_or_else(rspack_plugin_split_chunks::create_default_module_type_filter);
+          let r#type = v.r#type.map_or_else(
+            rspack_plugin_split_chunks::create_default_module_type_filter,
+            create_module_type_filter,
+          );
 
-          let layer = v
-            .layer
-            .map(create_module_layer_filter)
-            .unwrap_or_else(rspack_plugin_split_chunks::create_default_module_layer_filter);
+          let layer = v.layer.map_or_else(
+            rspack_plugin_split_chunks::create_default_module_layer_filter,
+            create_module_layer_filter,
+          );
 
           let mut name = v.name.map_or(default_chunk_option_name(), |name| {
             normalize_raw_chunk_name(name)
@@ -213,11 +213,14 @@ impl<'a> From<RawSplitChunksOptions<'a>> for rspack_plugin_split_chunks::PluginO
             test: v.test.map_or(default_cache_group_test(), |test| {
               normalize_raw_cache_group_test(test)
             }),
-            chunk_filter: v.chunks.map(create_chunks_filter).unwrap_or_else(|| {
-              overall_chunk_filter
-                .clone()
-                .unwrap_or_else(rspack_plugin_split_chunks::create_async_chunk_filter)
-            }),
+            chunk_filter: v.chunks.map_or_else(
+              || {
+                overall_chunk_filter
+                  .clone()
+                  .unwrap_or_else(rspack_plugin_split_chunks::create_async_chunk_filter)
+              },
+              create_chunks_filter,
+            ),
             min_chunks,
             min_size,
             min_size_reduction,

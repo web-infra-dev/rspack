@@ -22,11 +22,12 @@ static UNSPECIFIED_EXTERNAL_TYPE_REGEXP: LazyLock<Regex> =
 pub struct ExternalsPlugin {
   externals: Vec<ExternalItem>,
   r#type: ExternalType,
+  place_in_initial: bool,
 }
 
 impl ExternalsPlugin {
-  pub fn new(r#type: ExternalType, externals: Vec<ExternalItem>) -> Self {
-    Self::new_inner(externals, r#type)
+  pub fn new(r#type: ExternalType, externals: Vec<ExternalItem>, place_in_initial: bool) -> Self {
+    Self::new_inner(externals, r#type, place_in_initial)
   }
 
   fn handle_external(
@@ -137,6 +138,7 @@ impl ExternalsPlugin {
       r#type.unwrap_or(external_module_type),
       dependency.request().to_owned(),
       dependency_meta,
+      self.place_in_initial,
     ))
   }
 }

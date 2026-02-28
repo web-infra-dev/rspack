@@ -1,10 +1,15 @@
-use rspack_cacheable::{cacheable, cacheable_dyn, with::Skip};
+use rspack_cacheable::{
+  cacheable, cacheable_dyn,
+  with::{AsOption, AsPreset, AsVec},
+};
 use rspack_core::{
   AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
   DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
-  FactorizeInfo, ModuleDependency, SharedSourceMap, TemplateContext, TemplateReplaceSource,
-  module_id,
+  ExportsInfoArtifact, ExtendedReferencedExport, FactorizeInfo, ModuleDependency, ModuleGraph,
+  ModuleGraphCacheArtifact, ReferencedExport, RuntimeSpec, TemplateContext, TemplateReplaceSource,
+  create_exports_object_referenced,
 };
+use swc_core::ecma::atoms::Atom;
 
 #[cacheable]
 #[derive(Debug, Clone)]
@@ -14,8 +19,9 @@ pub struct CommonJsRequireDependency {
   optional: bool,
   range: DependencyRange,
   range_expr: Option<DependencyRange>,
-  #[cacheable(with=Skip)]
-  source_map: Option<SharedSourceMap>,
+  loc: Option<DependencyLocation>,
+  #[cacheable(with=AsOption<AsVec<AsVec<AsPreset>>>)]
+  referenced_exports: Option<Vec<Vec<Atom>>>,
   factorize_info: FactorizeInfo,
 }
 
@@ -25,7 +31,8 @@ impl CommonJsRequireDependency {
     range: DependencyRange,
     range_expr: Option<DependencyRange>,
     optional: bool,
-    source_map: Option<SharedSourceMap>,
+    loc: Option<DependencyLocation>,
+    referenced_exports: Option<Vec<Vec<Atom>>>,
   ) -> Self {
     Self {
       id: DependencyId::new(),
@@ -33,7 +40,8 @@ impl CommonJsRequireDependency {
       optional,
       range,
       range_expr,
-      source_map,
+      loc,
+      referenced_exports,
       factorize_info: Default::default(),
     }
   }
@@ -46,7 +54,7 @@ impl Dependency for CommonJsRequireDependency {
   }
 
   fn loc(&self) -> Option<DependencyLocation> {
-    self.range.to_loc(self.source_map.as_ref())
+    self.loc.clone()
   }
 
   fn category(&self) -> &DependencyCategory {
@@ -57,8 +65,30 @@ impl Dependency for CommonJsRequireDependency {
     &DependencyType::CjsRequire
   }
 
-  fn range(&self) -> Option<&DependencyRange> {
-    self.range_expr.as_ref()
+  fn range(&self) -> Option<DependencyRange> {
+    self.range_expr
+  }
+
+  fn get_referenced_exports(
+    &self,
+    _module_graph: &ModuleGraph,
+    _module_graph_cache: &ModuleGraphCacheArtifact,
+    _exports_info_artifact: &ExportsInfoArtifact,
+    _runtime: Option<&RuntimeSpec>,
+  ) -> Vec<ExtendedReferencedExport> {
+    if let Some(referenced_exports) = &self.referenced_exports {
+      return referenced_exports
+        .iter()
+        .map(|referenced_export| {
+          ExtendedReferencedExport::Export(ReferencedExport::new(
+            referenced_export.clone(),
+            false,
+            false,
+          ))
+        })
+        .collect();
+    }
+    create_exports_object_referenced()
   }
 
   fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
@@ -124,14 +154,16 @@ impl DependencyTemplate for CommonJsRequireDependencyTemplate {
 
     source.replace(
       dep.range.start,
-      dep.range.end - 1,
-      module_id(
-        code_generatable_context.compilation,
-        &dep.id,
-        &dep.request,
-        false,
-      )
-      .as_str(),
+      dep.range.end,
+      code_generatable_context
+        .runtime_template
+        .module_id(
+          code_generatable_context.compilation,
+          &dep.id,
+          &dep.request,
+          false,
+        )
+        .as_str(),
       None,
     );
   }

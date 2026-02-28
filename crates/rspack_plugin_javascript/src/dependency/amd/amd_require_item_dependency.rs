@@ -2,7 +2,7 @@ use rspack_cacheable::{cacheable, cacheable_dyn, with::AsPreset};
 use rspack_core::{
   AffectType, AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration,
   DependencyId, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
-  FactorizeInfo, ModuleDependency, TemplateContext, TemplateReplaceSource, module_raw,
+  FactorizeInfo, ModuleDependency, TemplateContext, TemplateReplaceSource,
 };
 use rspack_util::atom::Atom;
 
@@ -39,8 +39,8 @@ impl Dependency for AMDRequireItemDependency {
     &self.id
   }
 
-  fn range(&self) -> Option<&DependencyRange> {
-    self.range.as_ref()
+  fn range(&self) -> Option<DependencyRange> {
+    self.range
   }
 
   fn category(&self) -> &DependencyCategory {
@@ -110,9 +110,8 @@ impl DependencyTemplate for AMDRequireItemDependencyTemplate {
       return;
     };
     // ModuleDependencyTemplateAsRequireId
-    let content = module_raw(
+    let content = code_generatable_context.runtime_template.module_raw(
       code_generatable_context.compilation,
-      code_generatable_context.runtime_requirements,
       &dep.id,
       &dep.request,
       dep.weak(),

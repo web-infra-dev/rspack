@@ -1,0 +1,3 @@
+Object {
+  placeholder: my-app-_tailwind_module_css-placeholder-gray-700,
+}

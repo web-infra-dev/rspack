@@ -10,7 +10,7 @@ For Node.js users, you don't need to worry about interoperability issues with No
 
 Rspack provides the [plugins](/config/plugins) configuration, which is used to register a set of Rspack or webpack plugins to customize the build process.
 
-Here is an example of using the [webpack-bundle-analyzer](https://github.com/webpack-contrib/webpack-bundle-analyzer) in Rspack configuration:
+Here is an example of using the [webpack-bundle-analyzer](https://github.com/webpack/webpack-bundle-analyzer) in Rspack configuration:
 
 <Tabs>
   <Tab label="ESM">
@@ -123,7 +123,7 @@ const PLUGIN_NAME = 'MyPlugin';
 
 export class MyPlugin {
   apply(compiler) {
-    compiler.hooks.compilation.tap(PLUGIN_NAME, compilation => {
+    compiler.hooks.compilation.tap(PLUGIN_NAME, (compilation) => {
       console.log('The Rspack build process is starting!');
     });
   }
@@ -138,7 +138,7 @@ const PLUGIN_NAME = 'MyPlugin';
 
 class MyPlugin {
   apply(compiler) {
-    compiler.hooks.compilation.tap(PLUGIN_NAME, compilation => {
+    compiler.hooks.compilation.tap(PLUGIN_NAME, (compilation) => {
       console.log('The Rspack build process is starting!');
     });
   }
@@ -161,7 +161,7 @@ const PLUGIN_NAME = 'MyPlugin';
 
 export class MyPlugin implements RspackPluginInstance {
   apply(compiler: Compiler) {
-    compiler.hooks.compilation.tap(PLUGIN_NAME, compilation => {
+    compiler.hooks.compilation.tap(PLUGIN_NAME, (compilation) => {
       console.log('The Rspack build process is starting!');
     });
   }

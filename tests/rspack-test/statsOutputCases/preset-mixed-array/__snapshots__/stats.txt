@@ -1,0 +1,12 @@
+minimal:
+  1 asset
+  1 module
+  minimal (Rspack x.x.x) compiled successfully in X s
+
+none:
+  none (Rspack x.x.x) compiled successfully in X s
+
+verbose:
+  Entrypoint main xx bytes = verbose.js
+  ./index.js xx bytes [built] [code generated]
+  verbose (Rspack x.x.x) compiled successfully
