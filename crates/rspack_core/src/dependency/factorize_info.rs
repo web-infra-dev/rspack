@@ -41,11 +41,23 @@ impl FactorizeInfo {
     }
   }
 
-  pub fn revoke(dep: &mut dyn Dependency) -> Option<FactorizeInfo> {
+  pub(crate) fn revoke(dep: &mut dyn Dependency) -> Option<FactorizeInfo> {
     if let Some(d) = dep.as_context_dependency_mut() {
       Some(std::mem::take(d.factorize_info_mut()))
     } else if let Some(d) = dep.as_module_dependency_mut() {
       Some(std::mem::take(d.factorize_info_mut()))
+    } else {
+      None
+    }
+  }
+
+  pub(crate) fn set(dep: &mut dyn Dependency, info: FactorizeInfo) -> Option<()> {
+    if let Some(d) = dep.as_context_dependency_mut() {
+      *d.factorize_info_mut() = info;
+      Some(())
+    } else if let Some(d) = dep.as_module_dependency_mut() {
+      *d.factorize_info_mut() = info;
+      Some(())
     } else {
       None
     }
