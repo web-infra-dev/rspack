@@ -11,7 +11,7 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use self::context::TaskContext;
 use super::BuildModuleGraphArtifact;
 use crate::{
-  BuildDependency, Compilation, ExportsInfoArtifact,
+  BuildDependency, Compilation, ExportsInfoArtifact, FactorizeInfo, ResourceId,
   utils::task_loop::{Task, run_task_loop},
 };
 
@@ -66,5 +66,52 @@ pub async fn repair(
 
   let mut ctx = TaskContext::new(compilation, artifact, exports_info_artifact);
   run_task_loop(&mut ctx, init_tasks).await?;
+  sync_file_counters(&mut ctx.artifact);
   Ok((ctx.artifact, ctx.exports_info_artifact))
+}
+
+fn sync_file_counters(artifact: &mut BuildModuleGraphArtifact) {
+  let active_modules = artifact
+    .affected_modules
+    .active()
+    .copied()
+    .collect::<Vec<_>>();
+  let active_dependencies = artifact
+    .affected_dependencies
+    .active()
+    .copied()
+    .collect::<Vec<_>>();
+
+  let BuildModuleGraphArtifact {
+    module_graph,
+    file_dependencies,
+    context_dependencies,
+    missing_dependencies,
+    build_dependencies,
+    ..
+  } = artifact;
+  let module_graph = &*module_graph;
+
+  for module_id in active_modules {
+    let Some(module) = module_graph.module_by_identifier(&module_id) else {
+      continue;
+    };
+    let build_info = module.build_info();
+    let resource_id = ResourceId::from(module_id);
+    file_dependencies.add_files(&resource_id, &build_info.file_dependencies);
+    context_dependencies.add_files(&resource_id, &build_info.context_dependencies);
+    missing_dependencies.add_files(&resource_id, &build_info.missing_dependencies);
+    build_dependencies.add_files(&resource_id, &build_info.build_dependencies);
+  }
+
+  for dependency_id in active_dependencies {
+    let dependency = module_graph.dependency_by_id(&dependency_id);
+    let Some(factorize_info) = FactorizeInfo::get_from(dependency) else {
+      continue;
+    };
+    let resource_id = ResourceId::from(dependency_id);
+    file_dependencies.add_files(&resource_id, factorize_info.file_dependencies());
+    context_dependencies.add_files(&resource_id, factorize_info.context_dependencies());
+    missing_dependencies.add_files(&resource_id, factorize_info.missing_dependencies());
+  }
 }

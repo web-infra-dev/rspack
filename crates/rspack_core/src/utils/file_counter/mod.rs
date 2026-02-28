@@ -1,6 +1,6 @@
 mod resource_id;
 
-use std::hash::BuildHasherDefault;
+use std::{collections::hash_map::RawEntryMut, hash::BuildHasherDefault};
 
 use rspack_paths::{ArcPath, ArcPathMap, ArcPathSet};
 use rustc_hash::FxHashSet as HashSet;
@@ -21,13 +21,21 @@ impl FileCounter {
   ///
   /// It will add resource_id at the PathBuf in inner hashmap
   pub fn add_files(&mut self, resource_id: &ResourceId, paths: &ArcPathSet) {
+    self.inner.reserve(paths.len());
+    let resource_id = *resource_id;
     for path in paths {
-      let list = self.inner.entry(path.clone()).or_default();
-      if list.is_empty() {
-        self.incremental_info.mark_as_add(path);
+      match self.inner.raw_entry_mut().from_key(path) {
+        RawEntryMut::Occupied(mut occupied) => {
+          // multiple additions are allowed without additional checks to see if the addition was successful
+          occupied.get_mut().insert(resource_id);
+        }
+        RawEntryMut::Vacant(vacant) => {
+          self.incremental_info.mark_as_add(path);
+          let mut resources = HashSet::default();
+          resources.insert(resource_id);
+          vacant.insert(path.clone(), resources);
+        }
       }
-      // multiple additions are allowed without additional checks to see if the addition was successful
-      list.insert(resource_id.clone());
     }
   }
 
@@ -39,19 +47,24 @@ impl FileCounter {
   /// If PathBuf does not exist, panic will occur.
   pub fn remove_files(&mut self, resource_id: &ResourceId, paths: &ArcPathSet) {
     for path in paths {
-      let Some(list) = self.inner.get_mut(path) else {
-        panic!("unable to remove untracked file {}", path.to_string_lossy());
-      };
-      if !list.remove(resource_id) {
-        panic!(
-          "unable to remove path '{}' with resource_id '{:?}', it has not been added.",
-          path.to_string_lossy(),
-          resource_id,
-        )
-      }
-      if list.is_empty() {
-        self.incremental_info.mark_as_remove(path);
-        self.inner.remove(path);
+      match self.inner.raw_entry_mut().from_key(path) {
+        RawEntryMut::Occupied(mut occupied) => {
+          let list = occupied.get_mut();
+          if !list.remove(resource_id) {
+            panic!(
+              "unable to remove path '{}' with resource_id '{:?}', it has not been added.",
+              path.to_string_lossy(),
+              resource_id,
+            )
+          }
+          if list.is_empty() {
+            self.incremental_info.mark_as_remove(path);
+            occupied.remove_entry();
+          }
+        }
+        RawEntryMut::Vacant(_) => {
+          panic!("unable to remove untracked file {}", path.to_string_lossy());
+        }
       }
     }
   }

@@ -1,7 +1,7 @@
 use crate::{DependencyId, ModuleIdentifier};
 
 /// The resource using the path at file counter.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ResourceId {
   Module(ModuleIdentifier),
   Dependency(DependencyId),
