@@ -179,7 +179,12 @@ impl Task<TaskContext> for FactorizeResultTask {
       // so add all dependencies here.
       artifact.affected_dependencies.mark_as_add(dep.id());
 
-      if FactorizeInfo::set_arc(dep, std::mem::take(&mut factorize_info)).is_none() {
+      let info = std::mem::take(&mut factorize_info);
+      if let Some(d) = dep.as_context_dependency() {
+        d.set_factorize_info(info);
+      } else if let Some(d) = dep.as_module_dependency() {
+        d.set_factorize_info(info);
+      } else {
         unreachable!("only module dependency and context dependency can factorize")
       }
     }

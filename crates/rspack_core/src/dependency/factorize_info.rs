@@ -2,7 +2,7 @@ use rspack_cacheable::cacheable;
 use rspack_error::Diagnostic;
 use rspack_paths::ArcPathSet;
 
-use super::{ArcDependency, Dependency, DependencyId};
+use super::{Dependency, DependencyId};
 
 #[cacheable]
 #[derive(Debug, Clone, Default)]
@@ -36,32 +36,6 @@ impl FactorizeInfo {
       Some(d.factorize_info())
     } else if let Some(d) = dep.as_module_dependency() {
       Some(d.factorize_info())
-    } else {
-      None
-    }
-  }
-
-  pub(crate) fn revoke_arc(dep: &ArcDependency) -> Option<FactorizeInfo> {
-    if let Some(d) = dep.as_context_dependency() {
-      let info = d.factorize_info();
-      d.set_factorize_info(Default::default());
-      Some(info)
-    } else if let Some(d) = dep.as_module_dependency() {
-      let info = d.factorize_info();
-      d.set_factorize_info(Default::default());
-      Some(info)
-    } else {
-      None
-    }
-  }
-
-  pub(crate) fn set_arc(dep: &ArcDependency, info: FactorizeInfo) -> Option<()> {
-    if let Some(d) = dep.as_context_dependency() {
-      d.set_factorize_info(info);
-      Some(())
-    } else if let Some(d) = dep.as_module_dependency() {
-      d.set_factorize_info(info);
-      Some(())
     } else {
       None
     }

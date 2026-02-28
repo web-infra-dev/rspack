@@ -132,7 +132,18 @@ impl BuildModuleGraphArtifact {
     {
       self.make_failed_dependencies.remove(&dep_id);
 
-      let info = FactorizeInfo::revoke_arc(mg.dependency_by_id(&dep_id));
+      let dep = mg.dependency_by_id(&dep_id);
+      let info = if let Some(d) = dep.as_context_dependency() {
+        let info = d.factorize_info();
+        d.set_factorize_info(Default::default());
+        Some(info)
+      } else if let Some(d) = dep.as_module_dependency() {
+        let info = d.factorize_info();
+        d.set_factorize_info(Default::default());
+        Some(info)
+      } else {
+        None
+      };
       if let Some(info) = info {
         let resource_id = ResourceId::from(dep_id);
         self
@@ -161,7 +172,18 @@ impl BuildModuleGraphArtifact {
     self.make_failed_dependencies.remove(dep_id);
 
     let mg = &mut self.module_graph;
-    let factorize_info = FactorizeInfo::revoke_arc(mg.dependency_by_id(dep_id));
+    let dep = mg.dependency_by_id(dep_id);
+    let factorize_info = if let Some(d) = dep.as_context_dependency() {
+      let info = d.factorize_info();
+      d.set_factorize_info(Default::default());
+      Some(info)
+    } else if let Some(d) = dep.as_module_dependency() {
+      let info = d.factorize_info();
+      d.set_factorize_info(Default::default());
+      Some(info)
+    } else {
+      None
+    };
     let revoke_dep_ids = if let Some(factorize_info) = factorize_info {
       let resource_id = ResourceId::from(dep_id);
       self
