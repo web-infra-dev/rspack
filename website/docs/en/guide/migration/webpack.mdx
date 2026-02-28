@@ -13,31 +13,31 @@ For projects not using webpack 5, there are other migration guides that can be r
 
 ## Installing Rspack
 
-In your project directory, install Rspack as a `devDependencies`:
+Install Rspack in your project directory:
 
-<PackageManagerTabs command="add @rspack/core @rspack/cli -D" />
+<PackageManagerTabs command="add @rspack/core @rspack/cli @rspack/dev-server -D" />
+
+Both `@rspack/cli` and `@rspack/dev-server` are optional dependencies:
+
+- If you are not using `webpack-cli`, no need to install `@rspack/cli`.
+- If you are not using `webpack-dev-server`, no need to install `@rspack/dev-server`.
 
 Now you can remove the webpack-related dependencies from your project:
 
 <PackageManagerTabs command="remove webpack webpack-cli webpack-dev-server" />
 
-:::tip
-In some cases, you will still need to keep `webpack` as a dev dependency, such as when using [vue-loader](https://github.com/vuejs/vue-loader) (you can use [rspack-vue-loader](https://github.com/rstackjs/rspack-vue-loader) instead).
-
-This is because these packages directly `import` subpaths of webpack and couple with webpack. If you encounter this issue, you can provide feedback to the maintainers of these plugins, asking them if they can make `webpack` an optional dependency.
-:::
-
 ## Updating package.json
 
-Update your build scripts to use Rspack instead of webpack:
+Update your build scripts to use Rspack instead of webpack, see [CLI](/api/cli) for more details.
 
 ```diff title="package.json"
 {
   "scripts": {
--   "serve": "webpack serve",
+-   "dev": "webpack serve",
 -   "build": "webpack build",
-+   "serve": "rspack serve",
++   "dev": "rspack dev",
 +   "build": "rspack build",
++   "preview": "rspack preview",
   }
 }
 ```
@@ -51,15 +51,7 @@ Rspack commands can specify the configuration file with `-c` or `--config`, simi
 However, unlike webpack, if a configuration file is not explicitly specified, Rspack defaults to using `rspack.config.js`.
 :::
 
-Rspack is actively working on implementing webpack's upcoming features, so some configuration defaults differ from webpack 5, as shown below:
-
-| Configuration     | webpack Default | Rspack Default |
-| ----------------- | --------------- | -------------- |
-| node.global       | true            | 'warn'         |
-| node.\_\_filename | 'mock'          | 'warn-mock'    |
-| node.\_\_dirname  | 'mock'          | 'warn-mock'    |
-
-You can refer to [Configure Rspack](/config/index) to see the configurations supported by Rspack.
+Rspack supports most webpack configuration options. See [Configure Rspack](/config/index) for the complete list of supported options.
 
 ## Webpack built-in plugins
 
@@ -67,22 +59,22 @@ Rspack has implemented most of webpack's built-in plugins, with the same names a
 
 For example, replacing the [DefinePlugin](/plugins/webpack/define-plugin):
 
-```diff title="rspack.config.js"
-- const webpack = require('webpack');
-+ const { rspack } = require('@rspack/core');
+```js title="rspack.config.js"
+const webpack = require('webpack'); // [!code --]
+const { rspack } = require('@rspack/core'); // [!code ++]
 
 module.exports = {
   //...
   plugins: [
--   new webpack.DefinePlugin({
-+   new rspack.DefinePlugin({
+    new webpack.DefinePlugin({ // [!code --]
+    new rspack.DefinePlugin({ // [!code ++]
       // ...
     }),
   ],
 }
 ```
 
-See [Webpack-aligned built-in plugins](/plugins/webpack/index) for more information about supported webpack plugins in Rspack.
+See [Built-in plugins](/plugins/webpack/index) for more information about supported webpack plugins in Rspack.
 
 ## Community plugins
 
@@ -90,25 +82,25 @@ Rspack supports most of the webpack community plugins and also offers alternativ
 
 Check [Plugin compat](/guide/compatibility/plugin) for more information on Rspack's compatibility with popular webpack community plugins.
 
-### `copy-webpack-plugin`
+### copy-webpack-plugin
 
 Use [rspack.CopyRspackPlugin](/plugins/rspack/copy-rspack-plugin) instead of [copy-webpack-plugin](https://github.com/webpack/copy-webpack-plugin):
 
-```diff title="rspack.config.js"
-- const CopyWebpackPlugin = require('copy-webpack-plugin');
-+ const { rspack } = require('@rspack/core');
+```js title="rspack.config.js"
+const CopyWebpackPlugin = require('copy-webpack-plugin'); // [!code --]
+const { rspack } = require('@rspack/core'); // [!code ++]
 
 module.exports = {
   plugins: [
--   new CopyWebpackPlugin({
-+   new rspack.CopyRspackPlugin({
+    new CopyWebpackPlugin({ // [!code --]
+    new rspack.CopyRspackPlugin({ // [!code ++]
       // ...
     }),
   ]
 }
 ```
 
-### `mini-css-extract-plugin`
+### mini-css-extract-plugin
 
 Use [rspack.CssExtractRspackPlugin](/plugins/rspack/css-extract-rspack-plugin) instead of [mini-css-extract-plugin](https://github.com/webpack/mini-css-extract-plugin):
 
@@ -132,136 +124,149 @@ module.exports = {
 +         rspack.CssExtractRspackPlugin.loader,
           "css-loader"
         ],
-+       type: 'javascript/auto'
       }
     ]
   }
 }
 ```
 
-### `tsconfig-paths-webpack-plugin`
+### tsconfig-paths-webpack-plugin
 
-Use [resolve.tsConfig](/config/resolve#resolvetsconfig) instead of [tsconfig-paths-webpack-plugin](https://github.com/dividab/tsconfig-paths-webpack-plugin):
+Use [resolve.tsConfig](/config/resolve#resolvetsconfig) option instead of [tsconfig-paths-webpack-plugin](https://github.com/dividab/tsconfig-paths-webpack-plugin):
 
-```diff title="rspack.config.js"
-- const TsconfigPathsPlugin = require('tsconfig-paths-webpack-plugin');
+```js title="rspack.config.js"
+const TsconfigPathsPlugin = require('tsconfig-paths-webpack-plugin'); // [!code --]
 
 module.exports = {
   resolve: {
--   plugins: [new TsconfigPathsPlugin({})]
-+   tsConfig: {}
-  }
-}
+    plugins: [new TsconfigPathsPlugin({})], // [!code --]
+    tsConfig: {}, // [!code ++]
+  },
+};
 ```
 
-### `fork-ts-checker-webpack-plugin`
+### fork-ts-checker-webpack-plugin
 
 Use [ts-checker-rspack-plugin](https://github.com/rstackjs/ts-checker-rspack-plugin) instead of [fork-ts-checker-webpack-plugin](https://github.com/TypeStrong/fork-ts-checker-webpack-plugin):
 
-```diff title="rspack.config.js"
-- const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
-+ const { TsCheckerRspackPlugin } = require('ts-checker-rspack-plugin');
+```js title="rspack.config.js"
+const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin'); // [!code --]
+const { TsCheckerRspackPlugin } = require('ts-checker-rspack-plugin'); // [!code ++]
 
 module.exports = {
   plugins: [
--   new ForkTsCheckerWebpackPlugin()
-+   new TsCheckerRspackPlugin()
-  ]
-}
+    new ForkTsCheckerWebpackPlugin(), // [!code --]
+    new TsCheckerRspackPlugin(), // [!code ++]
+  ],
+};
 ```
 
 ## Loaders
 
-Rspack's loader runner is fully compatible with webpack's loader functionality, supporting the vast majority of webpack loaders.
-You can use your existing loaders without any changes. However, to achieve the best performance, consider migrating the following loaders:
+Rspack is compatible with most webpack loaders, so existing loaders can typically be reused without changes.
 
-### [babel-loader](https://github.com/babel/babel-loader) / [swc-loader](https://swc.rs/docs/usage/swc-loader) → builtin:swc-loader
+For optimal performance and consistency, we recommend the following migrations where applicable:
 
-Using `builtin:swc-loader` offers better performance compared to the `babel-loader` and the external `swc-loader`, as it avoids frequent communication between JavaScript and Rust.
+### babel-loader
+
+Migrate [babel-loader](https://github.com/babel/babel-loader) to [builtin:swc-loader](/guide/features/builtin-swc-loader) to use Rspack's built-in SWC transform for better performance.
 
 If you need custom transformation logic using Babel plugins, you can retain `babel-loader`, but it is recommended to limit its use to fewer files to prevent significant performance degradation.
 
+- Replace [@babel/preset-typescript](http://npmjs.com/package/@babel/preset-typescript) with SWC's `syntax: 'typescript'` option:
+
 ```diff title="rspack.config.js"
 module.exports = {
-   module: {
-     rules: [
--      {
--        test: /\.tsx?$/i,
--        use: [
--          {
--            loader: 'babel-loader',
--            options: {
--              presets: ['@babel/preset-typescript'],
--            },
--          },
--        ],
--        test: /\.jsx?$/i,
--        use: [
--          {
--            loader: 'babel-loader',
--            options: {
--              presets: ['@babel/preset-react'],
--            },
--          },
--        ],
--      },
-+      {
+  module: {
+    rules: [
+      {
+-        test: /\.(j|t)sx?$/,
 +        test: /\.(j|t)s$/,
-+        exclude: [/[\\/]node_modules[\\/]/],
-+        loader: 'builtin:swc-loader',
-+        options: {
-+          jsc: {
-+            parser: {
-+              syntax: 'typescript',
-+            },
-+            externalHelpers: true,
-+            transform: {
-+              react: {
-+                runtime: 'automatic',
-+                development: !prod,
-+                refresh: !prod,
+        exclude: [/[\\/]node_modules[\\/]/],
+        use: [
+          {
+-            loader: 'babel-loader',
++            loader: 'builtin:swc-loader',
+            options: {
+-              presets: ['@babel/preset-typescript'],
++              jsc: {
++                parser: {
++                  syntax: 'typescript',
++                },
 +              },
-+            },
-+          },
-+          env: {
-+            targets: 'Chrome >= 48',
-+          },
-+        },
-+      },
-+      {
-+        test: /\.(j|t)sx$/,
-+        loader: 'builtin:swc-loader',
-+        exclude: [/[\\/]node_modules[\\/]/],
-+        options: {
-+          jsc: {
-+            parser: {
-+              syntax: 'typescript',
-+              tsx: true,
-+            },
-+            transform: {
-+              react: {
-+                runtime: 'automatic',
-+                development: !prod,
-+                refresh: !prod,
-+              },
-+            },
-+            externalHelpers: true,
-+          },
-+          env: {
-+            targets: 'Chrome >= 48', // browser compatibility
-+          },
-+        },
-+      },
-     ],
-   },
- };
+            },
+          },
+        ],
+      },
+    ],
+  },
+};
 ```
 
-### [file-loader](https://github.com/webpack-contrib/raw-loader) / [url-loader](https://github.com/webpack-contrib/url-loader) / [raw-loader](https://github.com/webpack-contrib/raw-loader) → [Asset Modules](/guide/features/asset-module)
+- Replace [@babel/preset-react](http://npmjs.com/package/@babel/preset-react) with SWC's `jsc.transform.react` option:
 
-Rspack implements webpack 5's [Asset Modules](https://webpack.js.org/guides/asset-modules), using asset modules to replace `file-loader`, `url-loader`, and `raw-loader` for better performance.
+```diff title="rspack.config.js"
++const isDev = process.env.NODE_ENV === 'development';
 
-#### file-loader → asset/resource
+module.exports = {
+  module: {
+    rules: [
+      {
+        test: /\.(j|t)sx?$/,
+        exclude: [/[\\/]node_modules[\\/]/],
+        use: [
+          {
+-            loader: 'babel-loader',
++            loader: 'builtin:swc-loader',
+            options: {
+-              presets: ['@babel/preset-typescript', '@babel/preset-react'],
++              jsc: {
++                parser: {
++                  syntax: 'typescript',
++                  tsx: true,
++                },
++                transform: {
++                  react: {
++                    runtime: 'automatic',
++                    development: isDev,
++                    refresh: isDev,
++                  },
++                },
++              },
+            },
+          },
+        ],
+      },
+    ],
+  },
+};
+```
+
+### swc-loader
+
+When migrating external [swc-loader](https://swc.rs/docs/usage/swc-loader) to [builtin:swc-loader](/guide/features/builtin-swc-loader), only the loader name changes to `builtin:swc-loader`; all the options remain exactly the same as your original `swc-loader` config.
+
+```js title="rspack.config.js"
+module.exports = {
+  module: {
+    rules: [
+      {
+        test: /\.(j|t)sx?$/,
+        use: [
+          {
+            loader: 'swc-loader', // [!code --]
+            loader: 'builtin:swc-loader', // [!code ++]
+          },
+        ],
+      },
+    ],
+  },
+};
+```
+
+### file-loader
+
+Migrate [file-loader](https://github.com/webpack-contrib/file-loader) to [Asset Modules](/guide/features/asset-module) with `asset/resource`.
 
 ```diff title="rspack.config.js"
  module.exports = {
@@ -280,7 +285,9 @@ Rspack implements webpack 5's [Asset Modules](https://webpack.js.org/guides/asse
  };
 ```
 
-#### url-loader → asset/inline
+### url-loader
+
+Migrate [url-loader](https://github.com/webpack-contrib/url-loader) to [Asset Modules](/guide/features/asset-module) with `asset/inline`.
 
 ```diff title="rspack.config.js"
  module.exports = {
@@ -299,7 +306,9 @@ Rspack implements webpack 5's [Asset Modules](https://webpack.js.org/guides/asse
  };
 ```
 
-#### raw-loader → asset/source
+### raw-loader
+
+Migrate [raw-loader](https://github.com/webpack-contrib/raw-loader) to [Asset Modules](/guide/features/asset-module) with `asset/source`.
 
 ```diff title="rspack.config.js"
  module.exports = {

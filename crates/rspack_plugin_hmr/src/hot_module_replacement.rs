@@ -1,7 +1,8 @@
 use std::sync::LazyLock;
 
 use rspack_core::{
-  Compilation, RuntimeGlobals, RuntimeModule, RuntimeTemplate, impl_runtime_module,
+  Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext, RuntimeTemplate,
+  impl_runtime_module,
 };
 use rspack_plugin_runtime::extract_runtime_globals_from_ejs;
 use rspack_util::test::is_hot_test;
@@ -29,8 +30,11 @@ impl RuntimeModule for HotModuleReplacementRuntimeModule {
     )]
   }
 
-  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
-    let content = compilation.runtime_template.render(
+  async fn generate(
+    &self,
+    context: &RuntimeModuleGenerateContext<'_>,
+  ) -> rspack_error::Result<String> {
+    let content = context.runtime_template.render(
       self.id.as_str(),
       Some(serde_json::json!({
         "_is_hot_test": is_hot_test(),

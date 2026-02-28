@@ -33,4 +33,11 @@ mod test_regex {
     assert!(ends_with_js_ignore_case.test(".js"));
     assert!(ends_with_js_ignore_case.test(".JS"));
   }
+
+  #[test]
+  fn rust_regex_constructor() {
+    let regex = RspackRegex::new_rust_regex("^foo$", "").expect("should compile");
+    assert!(regex.test("foo"));
+    assert!(!regex.test("foobar"));
+  }
 }

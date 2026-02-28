@@ -8,7 +8,9 @@ use rspack_util::{atom::Atom, ext::DynHash};
 use super::{
   ExportInfoData, ExportProvided, ExportsInfo, ProvidedExports, UsageState, UsedName, UsedNameItem,
 };
-use crate::{ExportsInfoData, InlinedUsedName, ModuleGraph, RuntimeSpec, UsageKey, UsedExports};
+use crate::{
+  ExportsInfoArtifact, ExportsInfoData, InlinedUsedName, RuntimeSpec, UsageKey, UsedExports,
+};
 
 #[derive(Debug, Clone)]
 pub enum PrefetchExportsInfoMode<'a> {
@@ -290,7 +292,7 @@ impl<'a> PrefetchedExportsInfoWrapper<'a> {
     for (_, export_info) in self.get_exports_in_exports_info(exports_info) {
       match export_info.provided() {
         Some(ExportProvided::Provided | ExportProvided::Unknown) | None => {
-          ret.push(export_info.name().cloned().unwrap_or("".into()));
+          ret.push(export_info.name().cloned().unwrap_or_else(|| "".into()));
         }
         _ => {}
       }
@@ -464,12 +466,12 @@ impl ExportsInfoGetter {
    */
   pub fn prefetch<'a>(
     id: &ExportsInfo,
-    mg: &'a ModuleGraph,
+    exports_info_artifact: &'a ExportsInfoArtifact,
     mode: PrefetchExportsInfoMode<'a>,
   ) -> PrefetchedExportsInfoWrapper<'a> {
     fn prefetch_exports<'a>(
       id: &ExportsInfo,
-      mg: &'a ModuleGraph,
+      exports_info_artifact: &'a ExportsInfoArtifact,
       res: &mut UkeyMap<ExportsInfo, &'a ExportsInfoData>,
       mode: PrefetchExportsInfoMode<'a>,
     ) {
@@ -477,7 +479,7 @@ impl ExportsInfoGetter {
         return;
       }
 
-      let exports_info = id.as_data(mg);
+      let exports_info = id.as_data(exports_info_artifact);
       let mut nested_exports = vec![];
       match mode {
         PrefetchExportsInfoMode::Default => {}
@@ -510,12 +512,17 @@ impl ExportsInfoGetter {
       res.insert(*id, exports_info);
 
       for (nested_exports_info, nested_mode) in nested_exports {
-        prefetch_exports(&nested_exports_info, mg, res, nested_mode);
+        prefetch_exports(
+          &nested_exports_info,
+          exports_info_artifact,
+          res,
+          nested_mode,
+        );
       }
     }
 
     let mut res = UkeyMap::default();
-    prefetch_exports(id, mg, &mut res, mode.clone());
+    prefetch_exports(id, exports_info_artifact, &mut res, mode.clone());
     PrefetchedExportsInfoWrapper {
       exports: Arc::new(res),
       entry: *id,
@@ -525,15 +532,15 @@ impl ExportsInfoGetter {
 
   pub fn prefetch_used_info_without_name(
     id: &ExportsInfo,
-    mg: &ModuleGraph,
+    exports_info_artifact: &ExportsInfoArtifact,
     runtime: Option<&RuntimeSpec>,
   ) -> PrefetchedExportsInfoUsed {
     fn is_exports_info_used(
       info: &ExportsInfo,
       runtime: Option<&RuntimeSpec>,
-      mg: &ModuleGraph,
+      exports_info_artifact: &ExportsInfoArtifact,
     ) -> bool {
-      let exports_info = info.as_data(mg);
+      let exports_info = info.as_data(exports_info_artifact);
       if exports_info.other_exports_info().is_used(runtime) {
         return true;
       }
@@ -543,11 +550,13 @@ impl ExportsInfoGetter {
         .any(|export_info| export_info.is_used(runtime))
     }
 
-    let is_used = is_exports_info_used(id, runtime, mg);
+    let is_used = is_exports_info_used(id, runtime, exports_info_artifact);
     let is_module_used = if is_used {
       true
     } else {
-      id.as_data(mg).side_effects_only_info().is_used(runtime)
+      id.as_data(exports_info_artifact)
+        .side_effects_only_info()
+        .is_used(runtime)
     };
 
     PrefetchedExportsInfoUsed {
@@ -613,12 +622,12 @@ impl ExportsInfoGetter {
 
   pub fn from_meta<'a>(
     meta: (ExportsInfo, Vec<ExportsInfo>),
-    mg: &'a ModuleGraph,
+    exports_info_artifact: &'a ExportsInfoArtifact,
   ) -> PrefetchedExportsInfoWrapper<'a> {
     let (entry, exports) = meta;
     let exports = exports
       .into_iter()
-      .map(|e| (e, mg.get_exports_info_by_id(&e)))
+      .map(|e| (e, exports_info_artifact.get_exports_info_by_id(&e)))
       .collect::<UkeyMap<_, _>>();
 
     PrefetchedExportsInfoWrapper {

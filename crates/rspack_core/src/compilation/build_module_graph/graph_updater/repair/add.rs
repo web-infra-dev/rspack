@@ -93,6 +93,10 @@ impl Task<TaskContext> for AddTask {
 
     module_graph.add_module_graph_module(*self.module_graph_module);
 
+    context
+      .exports_info_artifact
+      .new_exports_info(module_identifier);
+
     set_resolved_module(
       module_graph,
       self.original_module_identifier,
@@ -112,9 +116,7 @@ impl Task<TaskContext> for AddTask {
       resolver_factory: context.resolver_factory.clone(),
       compiler_options: context.compiler_options.clone(),
       plugin_driver: context.plugin_driver.clone(),
-      runtime_template: context
-        .runtime_template
-        .create_module_codegen_runtime_template(),
+      runtime_template: context.runtime_template.create_module_code_template(),
       fs: context.fs.clone(),
       forwarded_ids,
     })])

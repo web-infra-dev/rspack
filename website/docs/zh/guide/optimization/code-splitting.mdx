@@ -35,7 +35,7 @@ console.log('bar.js');
 
 1. 参考 [模块方法 - Dynamic import()](/api/runtime-api/module-methods#dynamic-import) 了解详细的 dynamic import API，以及如何在 dynamic import 中使用动态表达式和 magic comments。
 2. 虽然 `shared.js` 在 2 个 chunks 中重复出现，但它只会被执行一次，不用担心重复模块会重复执行的问题。
-3. 使用 [output.asyncChunks 选项](/config/output/#outputasyncchunks) 可以控制动态导入的模块是否生成独立的异步 chunk。
+3. 使用 [output.asyncChunks 选项](/config/output#outputasyncchunks) 可以控制动态导入的模块是否生成独立的异步 chunk。
 
 :::
 

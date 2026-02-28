@@ -2,7 +2,9 @@ use rspack_util::atom::Atom;
 use rustc_hash::FxHashMap as HashMap;
 
 use super::{ExportInfoTargetValue, ExportProvided, ExportsInfo, UsageState};
-use crate::{CanInlineUse, DependencyId, EvaluatedInlinableValue, ModuleGraph, UsedNameItem};
+use crate::{
+  CanInlineUse, DependencyId, EvaluatedInlinableValue, ExportsInfoArtifact, UsedNameItem,
+};
 
 #[derive(Debug, Clone, Hash, Eq, PartialEq)]
 pub enum ExportName {
@@ -24,8 +26,8 @@ pub struct ExportInfo {
 }
 
 impl ExportInfo {
-  pub fn as_data<'a>(&self, mg: &'a ModuleGraph) -> &'a ExportInfoData {
-    let exports_info = self.exports_info.as_data(mg);
+  pub fn as_data<'a>(&self, exports_info_artifact: &'a ExportsInfoArtifact) -> &'a ExportInfoData {
+    let exports_info = self.exports_info.as_data(exports_info_artifact);
 
     (match &self.export_name {
       ExportName::Other => exports_info.other_exports_info(),
@@ -36,8 +38,11 @@ impl ExportInfo {
     }) as _
   }
 
-  pub fn as_data_mut<'a>(&self, mg: &'a mut ModuleGraph) -> &'a mut ExportInfoData {
-    let exports_info = self.exports_info.as_data_mut(mg);
+  pub fn as_data_mut<'a>(
+    &self,
+    exports_info_artifact: &'a mut ExportsInfoArtifact,
+  ) -> &'a mut ExportInfoData {
+    let exports_info = self.exports_info.as_data_mut(exports_info_artifact);
 
     (match &self.export_name {
       ExportName::Other => exports_info.other_exports_info_mut(),

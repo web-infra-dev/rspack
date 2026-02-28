@@ -3,8 +3,8 @@ use std::sync::LazyLock;
 use hashlink::{LinkedHashMap, LinkedHashSet};
 use itertools::Itertools;
 use rspack_core::{
-  Compilation, ModuleId, RuntimeGlobals, RuntimeModule, RuntimeTemplate, SourceType,
-  impl_runtime_module,
+  Compilation, ModuleId, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext,
+  RuntimeTemplate, SourceType, impl_runtime_module,
 };
 use rspack_plugin_runtime::extract_runtime_globals_from_ejs;
 use rustc_hash::FxHashMap;
@@ -34,7 +34,12 @@ impl RuntimeModule for ShareRuntimeModule {
     vec![(self.id.to_string(), INITIALIZE_SHARING_TEMPLATE.to_string())]
   }
 
-  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
+  async fn generate(
+    &self,
+    context: &RuntimeModuleGenerateContext<'_>,
+  ) -> rspack_error::Result<String> {
+    let compilation = context.compilation;
+    let runtime_template = context.runtime_template;
     let chunk_ukey = self
       .chunk
       .expect("should have chunk in <ShareRuntimeModule as RuntimeModule>::generate");
@@ -121,14 +126,11 @@ impl RuntimeModule for ShareRuntimeModule {
     let initialize_sharing_impl = if self.enhanced {
       format!(
         "{initialize_sharing} = {initialize_sharing} || function() {{ throw new Error(\"should have {initialize_sharing}\") }}",
-        initialize_sharing = compilation
-          .runtime_template
-          .render_runtime_globals(&RuntimeGlobals::INITIALIZE_SHARING)
+        initialize_sharing =
+          runtime_template.render_runtime_globals(&RuntimeGlobals::INITIALIZE_SHARING)
       )
     } else {
-      compilation
-        .runtime_template
-        .render(self.id.as_str(), None)?
+      runtime_template.render(self.id.as_str(), None)?
     };
     Ok(format!(
       r#"
@@ -136,12 +138,8 @@ impl RuntimeModule for ShareRuntimeModule {
 {require_name}.initializeSharingData = {{ scopeToSharingDataMapping: {{ {scope_to_data_init} }}, uniqueName: {unique_name} }};
 {initialize_sharing_impl}
 "#,
-      require_name = compilation
-        .runtime_template
-        .render_runtime_globals(&RuntimeGlobals::REQUIRE),
-      share_scope_map = compilation
-        .runtime_template
-        .render_runtime_globals(&RuntimeGlobals::SHARE_SCOPE_MAP),
+      require_name = runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
+      share_scope_map = runtime_template.render_runtime_globals(&RuntimeGlobals::SHARE_SCOPE_MAP),
       scope_to_data_init = scope_to_data_init,
       unique_name = json_stringify(&compilation.options.output.unique_name),
       initialize_sharing_impl = initialize_sharing_impl,

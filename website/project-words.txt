@@ -184,6 +184,7 @@ svgr
 swcjsminimizerplugin
 swcjsminimizerrspackplugin
 swcpack
+swcrc
 sxzz
 systemjs
 tailwind

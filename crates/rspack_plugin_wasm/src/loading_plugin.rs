@@ -33,6 +33,7 @@ async fn fetch_compile_async_wasm_plugin_runtime_requirements_in_tree(
     return Ok(None);
   }
 
+  let runtime_template = compilation.runtime_template.create_runtime_code_template();
   runtime_requirements_mut.insert(RuntimeGlobals::PUBLIC_PATH);
   runtime_modules_to_add.push((
     *chunk_ukey,
@@ -40,9 +41,7 @@ async fn fetch_compile_async_wasm_plugin_runtime_requirements_in_tree(
       &compilation.runtime_template,
       format!(
         "fetch({} + $PATH)",
-        compilation
-          .runtime_template
-          .render_runtime_globals(&RuntimeGlobals::PUBLIC_PATH)
+        runtime_template.render_runtime_globals(&RuntimeGlobals::PUBLIC_PATH)
       ),
       true,
     )

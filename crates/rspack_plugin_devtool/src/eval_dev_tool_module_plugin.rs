@@ -6,7 +6,7 @@ use derive_more::Debug;
 use rspack_core::{
   ChunkInitFragments, ChunkUkey, Compilation, CompilationAdditionalModuleRuntimeRequirements,
   CompilationParams, CompilerCompilation, Filename, Module, ModuleIdentifier, PathData, Plugin,
-  RuntimeGlobals,
+  RuntimeCodeTemplate, RuntimeGlobals,
   rspack_sources::{BoxSource, RawStringSource, Source, SourceExt},
 };
 use rspack_error::Result;
@@ -92,6 +92,7 @@ async fn render_module_content(
   module: &dyn Module,
   render_source: &mut RenderSource,
   _init_fragments: &mut ChunkInitFragments,
+  runtime_template: &RuntimeCodeTemplate<'_>,
 ) -> Result<()> {
   let origin_source = render_source.source.clone();
   if let Some(cached_source) = self.cache.get(&origin_source) {
@@ -163,9 +164,7 @@ async fn render_module_content(
       if compilation.options.output.trusted_types.is_some() {
         format!(
           "{}({})",
-          compilation
-            .runtime_template
-            .render_runtime_globals(&RuntimeGlobals::CREATE_SCRIPT),
+          runtime_template.render_runtime_globals(&RuntimeGlobals::CREATE_SCRIPT),
           module_content
         )
       } else {

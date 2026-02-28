@@ -3,7 +3,7 @@ use swc_core::ecma::ast::MemberExpr;
 
 #[derive(PartialEq, Debug, Default)]
 pub struct RslibParserPlugin {
-  pub intercept_api_plugin: bool,
+  intercept_api_plugin: bool,
 }
 
 impl RslibParserPlugin {

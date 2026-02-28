@@ -4,7 +4,12 @@ use async_trait::async_trait;
 use rspack_cacheable::cacheable;
 use rspack_collections::Identifier;
 
-use crate::{ChunkUkey, Compilation, Module, RuntimeGlobals};
+use crate::{ChunkUkey, Compilation, Module, RuntimeCodeTemplate, RuntimeGlobals};
+
+pub struct RuntimeModuleGenerateContext<'a> {
+  pub compilation: &'a Compilation,
+  pub runtime_template: &'a RuntimeCodeTemplate<'a>,
+}
 
 #[async_trait]
 pub trait RuntimeModule:
@@ -26,12 +31,20 @@ pub trait RuntimeModule:
   fn template(&self) -> Vec<(String, String)> {
     vec![]
   }
-  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String>;
+  async fn generate(
+    &self,
+    context: &RuntimeModuleGenerateContext<'_>,
+  ) -> rspack_error::Result<String>;
   async fn generate_with_custom(&self, compilation: &Compilation) -> rspack_error::Result<String> {
     if let Some(custom_source) = self.get_custom_source() {
       Ok(custom_source)
     } else {
-      self.generate(compilation).await
+      let runtime_template = compilation.runtime_template.create_runtime_code_template();
+      let context = RuntimeModuleGenerateContext {
+        compilation,
+        runtime_template: &runtime_template,
+      };
+      self.generate(&context).await
     }
   }
   fn additional_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {

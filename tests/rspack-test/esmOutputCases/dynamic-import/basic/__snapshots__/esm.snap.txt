@@ -2,14 +2,14 @@
 // ./dynamic.js
 /* export default */ const dynamic = (42);
 
-export { dynamic };
+export default dynamic;
 
 ```
 
 ```mjs title=main.mjs
 // ./index.js
 it('should support dynamic import', async () => {
-	const value = await import("./dynamic_js.mjs").then((mod) => ({ default: mod.dynamic }))
+	const value = await import("./dynamic_js.mjs")
 	expect(value.default).toBe(42)
 })
 

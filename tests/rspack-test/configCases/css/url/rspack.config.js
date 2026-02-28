@@ -1,7 +1,7 @@
 "use strict";
 
 const path = require("path");
-const webpack = require("@rspack/core");
+const { rspack } = require("@rspack/core");
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = [
@@ -32,7 +32,7 @@ module.exports = [
 			"external-url-2.png": "test",
 			"schema:test": "asset 'img.png'"
 		},
-		plugins: [new webpack.IgnorePlugin({ resourceRegExp: /ignore\.png/ })]
+		plugins: [new rspack.IgnorePlugin({ resourceRegExp: /ignore\.png/ })]
 	},
 	{
 		target: "web",

@@ -6,7 +6,7 @@ use rspack_util::atom::Atom;
 use serde::Serialize;
 
 use super::{ExportInfoData, NEXT_EXPORTS_INFO_UKEY};
-use crate::ModuleGraph;
+use crate::ExportsInfoArtifact;
 
 #[cacheable]
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd, Serialize)]
@@ -20,12 +20,15 @@ impl ExportsInfo {
     Self(NEXT_EXPORTS_INFO_UKEY.fetch_add(1, Relaxed).into())
   }
 
-  pub fn as_data<'a>(&self, mg: &'a ModuleGraph) -> &'a ExportsInfoData {
-    mg.get_exports_info_by_id(self)
+  pub fn as_data<'a>(&self, exports_info_artifact: &'a ExportsInfoArtifact) -> &'a ExportsInfoData {
+    exports_info_artifact.get_exports_info_by_id(self)
   }
 
-  pub fn as_data_mut<'a>(&self, mg: &'a mut ModuleGraph) -> &'a mut ExportsInfoData {
-    mg.get_exports_info_mut_by_id(self)
+  pub fn as_data_mut<'a>(
+    &self,
+    exports_info_artifact: &'a mut ExportsInfoArtifact,
+  ) -> &'a mut ExportsInfoData {
+    exports_info_artifact.get_exports_info_mut_by_id(self)
   }
 }
 
@@ -64,6 +67,7 @@ impl ExportsInfoData {
     *self = ExportsInfoData::default();
     self.id = id;
   }
+
   pub fn id(&self) -> ExportsInfo {
     self.id
   }

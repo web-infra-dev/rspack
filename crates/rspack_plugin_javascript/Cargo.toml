@@ -15,6 +15,7 @@ either = { workspace = true }
 fast-glob = { workspace = true }
 indexmap = { workspace = true }
 itertools = { workspace = true }
+memchr = { workspace = true }
 num-bigint = { workspace = true }
 once_cell = { workspace = true }
 rayon = { workspace = true }
@@ -34,6 +35,7 @@ rspack_regex = { workspace = true }
 rspack_util = { workspace = true }
 rustc-hash = { workspace = true }
 serde_json = { workspace = true }
+slotmap = { workspace = true }
 sugar_path = { workspace = true }
 swc_core = { workspace = true, features = [
   "__parser",

@@ -34,3 +34,9 @@ it("should allow to read own exports via module.exports()", () => {
 //   var e = require("./reading-self-from-this-call");
 //   expect(e.test()).toBe("abc");
 // });
+
+it("should preserve optional chaining on exports self reference", () => {
+	var e = require("./reading-self-optional-chaining");
+	expect(e.getPath()).toBe(null);
+	expect(e.getSimple()).toBe("default");
+});

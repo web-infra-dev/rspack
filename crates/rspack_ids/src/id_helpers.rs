@@ -11,8 +11,8 @@ use itertools::{
 use rspack_collections::{DatabaseItem, Identifier, UkeyMap};
 use rspack_core::{
   BoxModule, Chunk, ChunkByUkey, ChunkGraph, ChunkGroupByUkey, ChunkNamedIdArtifact, ChunkUkey,
-  Compilation, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, ModuleIdsArtifact,
-  compare_runtime,
+  Compilation, ExportsInfoArtifact, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
+  ModuleIdsArtifact, compare_runtime,
 };
 use rspack_util::{
   comparators::{compare_ids, compare_numbers},
@@ -56,7 +56,7 @@ pub fn get_used_module_ids_and_modules_with_artifact(
   compilation
     .get_module_graph()
     .modules()
-    .values()
+    .map(|(_, module)| module)
     .filter(|m| m.need_id())
     .for_each(|module| {
       let module_id = ChunkGraph::get_module_id(module_ids_artifact, module.identifier());
@@ -203,6 +203,7 @@ pub fn compare_modules_by_pre_order_index_or_identifier(
   }
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn get_short_chunk_name(
   chunk: &Chunk,
   chunk_graph: &ChunkGraph,
@@ -211,6 +212,7 @@ pub fn get_short_chunk_name(
   module_graph: &ModuleGraph,
   module_graph_cache: &ModuleGraphCacheArtifact,
   named_chunk_ids_artifact: &ChunkNamedIdArtifact,
+  exports_info_artifact: &ExportsInfoArtifact,
 ) -> String {
   if let Some(name) = named_chunk_ids_artifact
     .chunk_short_names
@@ -220,7 +222,12 @@ pub fn get_short_chunk_name(
   }
 
   let modules = chunk_graph
-    .get_chunk_root_modules(&chunk.ukey(), module_graph, module_graph_cache)
+    .get_chunk_root_modules(
+      &chunk.ukey(),
+      module_graph,
+      module_graph_cache,
+      exports_info_artifact,
+    )
     .iter()
     .map(|id| {
       module_graph
@@ -261,6 +268,7 @@ pub fn shorten_long_string(string: String, delimiter: &str) -> String {
   }
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn get_long_chunk_name(
   chunk: &Chunk,
   chunk_graph: &ChunkGraph,
@@ -269,13 +277,19 @@ pub fn get_long_chunk_name(
   module_graph: &ModuleGraph,
   module_graph_cache: &ModuleGraphCacheArtifact,
   named_chunk_ids_artifact: &ChunkNamedIdArtifact,
+  exports_info_artifact: &ExportsInfoArtifact,
 ) -> String {
   if let Some(name) = named_chunk_ids_artifact.chunk_long_names.get(&chunk.ukey()) {
     return name.clone();
   }
 
   let modules = chunk_graph
-    .get_chunk_root_modules(&chunk.ukey(), module_graph, module_graph_cache)
+    .get_chunk_root_modules(
+      &chunk.ukey(),
+      module_graph,
+      module_graph_cache,
+      exports_info_artifact,
+    )
     .iter()
     .map(|id| {
       module_graph
@@ -311,13 +325,19 @@ pub fn get_full_chunk_name(
   module_graph: &ModuleGraph,
   module_graph_cache: &ModuleGraphCacheArtifact,
   context: &str,
+  exports_info_artifact: &ExportsInfoArtifact,
 ) -> String {
   if let Some(name) = chunk.name() {
     return name.to_owned();
   }
 
   let full_module_names = chunk_graph
-    .get_chunk_root_modules(&chunk.ukey(), module_graph, module_graph_cache)
+    .get_chunk_root_modules(
+      &chunk.ukey(),
+      module_graph,
+      module_graph_cache,
+      exports_info_artifact,
+    )
     .iter()
     .filter_map(|id| module_graph.module_by_identifier(id))
     .map(|module| get_full_module_name(module, context))
@@ -421,13 +441,36 @@ fn compare_chunks_by_groups(
 ) -> Ordering {
   let a_groups: Vec<_> = a
     .get_sorted_groups_iter(chunk_group_by_ukey)
-    .map(|group| chunk_group_by_ukey.expect_get(group).index)
+    .map(|group| chunk_group_by_ukey.expect_get(group))
     .collect();
+  let a_groups_index = a_groups.iter().map(|group| group.index).collect_vec();
+
   let b_groups: Vec<_> = b
     .get_sorted_groups_iter(chunk_group_by_ukey)
-    .map(|group| chunk_group_by_ukey.expect_get(group).index)
+    .map(|group| chunk_group_by_ukey.expect_get(group))
     .collect();
-  a_groups.cmp(&b_groups)
+  let b_groups_index = b_groups.iter().map(|group| group.index).collect_vec();
+
+  let groups_ordering = a_groups_index.cmp(&b_groups_index);
+
+  if groups_ordering != Ordering::Equal {
+    return groups_ordering;
+  }
+
+  let Some(group) = a_groups.first() else {
+    return Ordering::Equal;
+  };
+
+  let a_in_children = group
+    .chunks
+    .iter()
+    .find_position(|child| **child == a.ukey());
+  let b_in_children = group
+    .chunks
+    .iter()
+    .find_position(|child| **child == b.ukey());
+
+  a_in_children.cmp(&b_in_children)
 }
 
 pub fn compare_chunks_natural<'a>(

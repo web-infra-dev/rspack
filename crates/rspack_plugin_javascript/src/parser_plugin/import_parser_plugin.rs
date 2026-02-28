@@ -364,9 +364,11 @@ impl JavascriptParserPlugin for ImportParserPlugin {
             dyn_imported.span().hi,
           ),
         ));
+        let range = DependencyRange::from(import_call_span);
+        let loc = parser.to_dependency_location(range);
         let mut block = AsyncDependenciesBlock::new(
           *parser.module_identifier,
-          Into::<DependencyRange>::into(import_call_span).to_loc(Some(parser.source())),
+          loc,
           None,
           vec![dep],
           Some(param.string().clone()),

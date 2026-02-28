@@ -330,7 +330,7 @@ type DevtoolModuleFilenameTemplate =
 
 - **Default:** `webpack://[namespace]/[resource-path]?[loaders]'`
 
-This option is only used when [`devtool`](/config/devtool.html) uses an option that requires module names.
+This option is only used when [`devtool`](/config/devtool) uses an option that requires module names.
 
 Customize the names used in each source map's `sources` array. This can be done by passing a template string or function. For example, when using `devtool: 'eval'`.
 
@@ -506,7 +506,7 @@ export default {
 
 This option determines the name of each output bundle. The bundle is written to the directory specified by the [`output.path`](#outputpath) option.
 
-For a single [`entry`](/config/entry.html) point, this can be a static name.
+For a single [`entry`](/config/entry) point, this can be a static name.
 
 ```js title="rspack.config.mjs"
 export default {
@@ -528,7 +528,7 @@ Rspack performs code splitting optimizations on user input code, which may inclu
 
 :::
 
-Use [Entry](/config/entry.html) name:
+Use [Entry](/config/entry) name:
 
 ```js title="rspack.config.mjs"
 export default {

@@ -2,7 +2,8 @@ use std::hash::Hash;
 
 use rspack_core::{
   ChunkGraph, ChunkKind, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
-  CompilationParams, CompilerCompilation, Plugin, RuntimeGlobals, RuntimeModule, RuntimeVariable,
+  CompilationParams, CompilerCompilation, Plugin, RuntimeCodeTemplate, RuntimeGlobals,
+  RuntimeModule, RuntimeVariable,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt};
@@ -107,6 +108,7 @@ async fn render_chunk(
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
   render_source: &mut RenderSource,
+  runtime_template: &RuntimeCodeTemplate<'_>,
 ) -> Result<()> {
   let hooks = JsPlugin::get_compilation_hooks(compilation.id());
   let chunk = compilation
@@ -131,7 +133,7 @@ async fn render_chunk(
     source.add(render_source.source.clone());
     if has_runtime_modules {
       source.add(RawStringSource::from_static(","));
-      source.add(render_chunk_runtime_modules(compilation, chunk_ukey).await?);
+      source.add(render_chunk_runtime_modules(compilation, chunk_ukey, runtime_template).await?);
     }
     source.add(RawStringSource::from_static(")"));
   } else {
@@ -151,12 +153,10 @@ async fn render_chunk(
       source.add(RawStringSource::from_static(","));
       source.add(RawStringSource::from(format!(
         "function({}) {{\n",
-        compilation
-          .runtime_template
-          .render_runtime_globals(&RuntimeGlobals::REQUIRE)
+        runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
       )));
       if has_runtime_modules {
-        source.add(render_runtime_modules(compilation, chunk_ukey).await?);
+        source.add(render_runtime_modules(compilation, chunk_ukey, runtime_template).await?);
       }
       if has_entry {
         let entries = compilation
@@ -166,7 +166,8 @@ async fn render_chunk(
         let runtime_requirements =
           ChunkGraph::get_tree_runtime_requirements(compilation, chunk_ukey);
         let passive = !runtime_requirements.contains(RuntimeGlobals::STARTUP_ENTRYPOINT);
-        let start_up_source = generate_entry_startup(compilation, chunk_ukey, entries, passive);
+        let start_up_source =
+          generate_entry_startup(compilation, chunk_ukey, entries, passive, runtime_template);
         let last_entry_module = entries
           .keys()
           .next_back()
@@ -183,15 +184,14 @@ async fn render_chunk(
             chunk_ukey,
             last_entry_module,
             &mut render_source,
+            runtime_template,
           )
           .await?;
         source.add(render_source.source);
         if runtime_requirements.contains(RuntimeGlobals::RETURN_EXPORTS_FROM_RUNTIME) {
           source.add(RawStringSource::from(format!(
             "return {};\n",
-            compilation
-              .runtime_template
-              .render_runtime_variable(&RuntimeVariable::Exports)
+            runtime_template.render_runtime_variable(&RuntimeVariable::Exports)
           )));
         }
       }

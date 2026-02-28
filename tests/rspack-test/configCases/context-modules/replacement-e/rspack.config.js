@@ -1,7 +1,7 @@
 "use strict";
 
 const path = require("path");
-const webpack = require("@rspack/core");
+const { rspack } = require("@rspack/core");
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
@@ -9,7 +9,7 @@ module.exports = {
 		modules: ["...", path.resolve(__dirname, "new-context/modules")]
 	},
 	plugins: [
-		new webpack.ContextReplacementPlugin(
+		new rspack.ContextReplacementPlugin(
 			/replacement.e$/,
 			"new-context",
 			true,

@@ -1,6 +1,6 @@
 "use strict";
 
-const webpack = require("@rspack/core");
+const { rspack } = require("@rspack/core");
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
@@ -8,7 +8,7 @@ module.exports = {
 		concatenateModules: true
 	},
 	plugins: [
-		new webpack.DefinePlugin({
+		new rspack.DefinePlugin({
 			PROPERTY: JSON.stringify("foo")
 		})
 	]

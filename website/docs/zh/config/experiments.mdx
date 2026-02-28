@@ -165,7 +165,7 @@ export default {
 - **默认值：** `false`
 
 默认情况下，Rspack 使用 Watchpack 来监听文件变化，这在大多数情况下都能正常工作，但在某些特定的环境下可能会出现问题。
-例如在大量文件变化时，Watchpack 可能会出现性能问题, 更多详情请参考 [Watchpack issue #233](https://github.com/webpack/watchpack/issues/223)。
+例如在大量文件变化时，Watchpack 可能会出现性能问题, 更多详情请参考 [Watchpack issue #223](https://github.com/webpack/watchpack/issues/223)。
 
 如果你使用默认的 watcher 出现性能问题，可以尝试启用 `nativeWatcher`。
 
@@ -196,7 +196,7 @@ export default {
 因此，Rspack 提供了 `useInputFileSystem` 配置项，用于控制是使用原生文件系统还是自定义的 inputFileSystem。
 一般项目中，只有少量文件需要通过自定义文件系统访问，合理配置 `experiments.useInputFileSystem` 可以确保 Rspack 高效运行。
 
-下面的例子演示了如何替换默认的 inputFileSystem 为一个自定义的文件系统，只要自定义文件系统满足 [`InputFileSystem`](/zh/api/javascript-api/compiler#inputfilesystem-1) 的接口定义。
+下面的例子演示了如何替换默认的 inputFileSystem 为一个自定义的文件系统，只要自定义文件系统满足 [`InputFileSystem`](/api/javascript-api/compiler#inputfilesystem-1) 的接口定义。
 更多细节参考[测试用例](https://github.com/web-infra-dev/rspack/tree/main/tests/rspack-test/configCases/input-file-system/webpack.config.js)。
 
 ```js title="rspack.config.mjs"

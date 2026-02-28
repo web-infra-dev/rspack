@@ -1,5 +1,6 @@
 use std::{
   collections::HashMap,
+  ffi::c_void,
   hash::Hash,
   ptr::NonNull,
   sync::{Arc, RwLock},
@@ -42,8 +43,8 @@ use rspack_core::{
   NormalModuleFactoryFactorize, NormalModuleFactoryFactorizeHook, NormalModuleFactoryResolve,
   NormalModuleFactoryResolveForScheme, NormalModuleFactoryResolveForSchemeHook,
   NormalModuleFactoryResolveHook, NormalModuleFactoryResolveResult, ResourceData, RuntimeGlobals,
-  RuntimeModule, Scheme, build_module_graph::BuildModuleGraphArtifact, parse_resource,
-  rspack_sources::RawStringSource,
+  RuntimeModule, RuntimeModuleGenerateContext, Scheme,
+  build_module_graph::BuildModuleGraphArtifact, parse_resource, rspack_sources::RawStringSource,
 };
 use rspack_error::Diagnostic;
 use rspack_hash::RspackHash;
@@ -72,6 +73,7 @@ use rspack_plugin_runtime::{
   RuntimePluginLinkPrefetch, RuntimePluginLinkPrefetchHook, RuntimePluginLinkPreload,
   RuntimePluginLinkPreloadHook,
 };
+use rspack_tasks::within_compiler_context;
 
 use crate::{
   asset::JsAssetEmittedArgs,
@@ -1258,11 +1260,28 @@ impl CompilationExecuteModule for CompilationExecuteModuleTap {
 impl CompilationFinishModules for CompilationFinishModulesTap {
   async fn run(
     &self,
-    compilation: &mut Compilation,
-    async_modules_artifact: &mut AsyncModulesArtifact,
+    compilation: &Compilation,
+    _async_modules_artifact: &mut AsyncModulesArtifact,
+    exports_info_artifact: &mut rspack_core::ExportsInfoArtifact,
   ) -> rspack_error::Result<()> {
-    let compilation = JsCompilationWrapper::new(compilation);
-    self.function.call_with_promise(compilation).await
+    let compiler_context = compilation.compiler_context.clone();
+    let previous_ptr_addr = compiler_context
+      .exports_info_artifact_ptr()
+      .map_or(0usize, |ptr| ptr as usize);
+    compiler_context
+      .set_exports_info_artifact_ptr(Some(exports_info_artifact as *mut _ as *mut c_void));
+    let result = within_compiler_context(compiler_context.clone(), async {
+      let compilation = JsCompilationWrapper::new(compilation);
+      self.function.call_with_promise(compilation).await
+    })
+    .await;
+    let previous_ptr = if previous_ptr_addr == 0 {
+      None
+    } else {
+      Some(previous_ptr_addr as *mut c_void)
+    };
+    compiler_context.set_exports_info_artifact_ptr(previous_ptr);
+    result
   }
 
   fn stage(&self) -> i32 {
@@ -1417,7 +1436,12 @@ impl CompilationRuntimeModule for CompilationRuntimeModuleTap {
     let Some(module) = runtime_modules.get(m) else {
       return Ok(());
     };
-    let source_string = module.generate(compilation).await?;
+    let runtime_template = compilation.runtime_template.create_runtime_code_template();
+    let context = RuntimeModuleGenerateContext {
+      compilation,
+      runtime_template: &runtime_template,
+    };
+    let source_string = module.generate(&context).await?;
     let arg = JsRuntimeModuleArg {
       module: JsRuntimeModule {
         source: Some(JsSourceToJs::from(source_string)),
@@ -1527,7 +1551,11 @@ impl CompilationAfterProcessAssets for CompilationAfterProcessAssetsTap {
 
 #[async_trait]
 impl CompilationSeal for CompilationSealTap {
-  async fn run(&self, _compilation: &mut Compilation) -> rspack_error::Result<()> {
+  async fn run(
+    &self,
+    _compilation: &Compilation,
+    _diagnostics: &mut Vec<Diagnostic>,
+  ) -> rspack_error::Result<()> {
     self.function.call_with_sync(()).await
   }
 

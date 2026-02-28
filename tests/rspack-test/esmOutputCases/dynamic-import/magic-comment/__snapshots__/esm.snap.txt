@@ -1,3 +1,15 @@
+```mjs title=0.mjs
+
+export { default, value } from "./shared.mjs";
+
+```
+
+```mjs title=1.mjs
+
+export { default_0 as default, value_0 as value } from "./shared.mjs";
+
+```
+
 ```mjs title=main.mjs
 import {fileURLToPath as __rspack_fileURLToPath} from "node:url";
 import {dirname as __rspack_dirname} from "node:path";
@@ -22,8 +34,8 @@ it('should support dynamic import', async () => {
 	expect(content).toContain('// ./m1.js')
 	expect(content).toContain('// ./m2.js')
 
-	const value = await import("./shared.mjs").then((mod) => ({ default: mod.m1,value: mod.value }))
-	const value2 = await import("./shared.mjs").then((mod) => ({ default: mod.m2,value: mod.m2_value }))
+	const value = await import("./0.mjs")
+	const value2 = await import("./1.mjs")
 
 	expect(value).toHaveProperty('default', 42)
 	expect(value).toHaveProperty('value', 1)
@@ -100,6 +112,7 @@ const value = 1
 /* export default */ const m2 = (42);
 const m2_value = 2
 
-export { m1, m2, m2_value, value };
+export { m2 as default_0, m2_value as value_0, value };
+export default m1;
 
 ```

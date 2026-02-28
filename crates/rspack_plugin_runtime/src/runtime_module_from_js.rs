@@ -4,7 +4,8 @@ use derive_more::Debug;
 use futures::future::BoxFuture;
 use rspack_cacheable::with::Unsupported;
 use rspack_core::{
-  Compilation, RuntimeModule, RuntimeModuleStage, RuntimeTemplate, impl_runtime_module,
+  RuntimeModule, RuntimeModuleGenerateContext, RuntimeModuleStage, RuntimeTemplate,
+  impl_runtime_module,
 };
 
 type GenerateFn = Arc<dyn Fn() -> BoxFuture<'static, rspack_error::Result<String>> + Send + Sync>;
@@ -45,7 +46,7 @@ impl RuntimeModuleFromJs {
 
 #[async_trait::async_trait]
 impl RuntimeModule for RuntimeModuleFromJs {
-  async fn generate(&self, _: &Compilation) -> rspack_error::Result<String> {
+  async fn generate(&self, _: &RuntimeModuleGenerateContext<'_>) -> rspack_error::Result<String> {
     let res = (self.generator)().await?;
     Ok(res)
   }

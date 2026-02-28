@@ -18,14 +18,16 @@ impl PassExt for SealPass {
       wait_for_signal("seal compilation");
     }
     // https://github.com/webpack/webpack/blob/main/lib/Compilation.js#L2809
+    let mut diagnostics = vec![];
     compilation
       .plugin_driver
       .clone()
       .compilation_hooks
       .seal
-      .call(compilation)
+      .call(compilation, &mut diagnostics)
       .await
       .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.seal"))?;
+    compilation.extend_diagnostics(diagnostics);
 
     Ok(())
   }

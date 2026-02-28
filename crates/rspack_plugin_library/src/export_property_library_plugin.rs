@@ -3,8 +3,9 @@ use std::hash::Hash;
 use rspack_core::{
   AsyncModulesArtifact, CanInlineUse, ChunkUkey, Compilation,
   CompilationAdditionalChunkRuntimeRequirements, CompilationFinishModules, CompilationParams,
-  CompilerCompilation, EntryData, LibraryExport, LibraryOptions, LibraryType, ModuleIdentifier,
-  Plugin, RuntimeGlobals, RuntimeModule, UsageState, get_entry_runtime, property_access,
+  CompilerCompilation, EntryData, ExportsInfoArtifact, LibraryExport, LibraryOptions, LibraryType,
+  ModuleIdentifier, Plugin, RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule, UsageState,
+  get_entry_runtime, property_access,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
 };
 use rspack_error::Result;
@@ -76,6 +77,7 @@ async fn render_startup(
   chunk_ukey: &ChunkUkey,
   _module: &ModuleIdentifier,
   render_source: &mut RenderSource,
+  _runtime_template: &RuntimeCodeTemplate<'_>,
 ) -> Result<()> {
   let Some(options) = self.get_options_for_chunk(compilation, chunk_ukey) else {
     return Ok(());
@@ -112,9 +114,11 @@ async fn js_chunk_hash(
 #[plugin_hook(CompilationFinishModules for ExportPropertyLibraryPlugin)]
 async fn finish_modules(
   &self,
-  compilation: &mut Compilation,
+  compilation: &Compilation,
   _async_modules_artifact: &mut AsyncModulesArtifact,
+  exports_info_artifact: &mut ExportsInfoArtifact,
 ) -> Result<()> {
+  let module_graph = compilation.get_module_graph();
   let mut runtime_info = Vec::with_capacity(compilation.entries.len());
   for (entry_name, entry) in compilation.entries.iter() {
     let EntryData {
@@ -127,7 +131,6 @@ async fn finish_modules(
       .library
       .as_ref()
       .or_else(|| compilation.options.output.library.as_ref());
-    let module_graph = compilation.get_module_graph();
     let module_of_last_dep = dependencies
       .last()
       .and_then(|dep| module_graph.get_module_by_dependency_id(dep));
@@ -153,19 +156,16 @@ async fn finish_modules(
   }
 
   for (runtime, export, module_identifier) in runtime_info {
-    let module_graph = compilation
-      .build_module_graph_artifact
-      .get_module_graph_mut();
     if let Some(export) = export {
-      let export_info = module_graph
+      let export_info = exports_info_artifact
         .get_exports_info_data_mut(&module_identifier)
         .ensure_export_info(&(export.as_str()).into());
-      let info = export_info.as_data_mut(module_graph);
+      let info = export_info.as_data_mut(exports_info_artifact);
       info.set_used(UsageState::Used, Some(&runtime));
       info.set_can_mangle_use(Some(false));
       info.set_can_inline_use(Some(CanInlineUse::No));
     } else {
-      let exports_info = module_graph.get_exports_info_data_mut(&module_identifier);
+      let exports_info = exports_info_artifact.get_exports_info_data_mut(&module_identifier);
       if self.ns_object_used {
         exports_info.set_used_in_unknown_way(Some(&runtime));
       } else {

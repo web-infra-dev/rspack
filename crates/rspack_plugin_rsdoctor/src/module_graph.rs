@@ -3,8 +3,8 @@ use std::sync::{Arc, atomic::AtomicI32};
 use rayon::iter::{IntoParallelRefIterator, ParallelBridge, ParallelIterator};
 use rspack_collections::{Identifiable, Identifier, IdentifierMap};
 use rspack_core::{
-  BoxModule, ChunkGraph, Compilation, Context, DependencyId, DependencyType, Module, ModuleGraph,
-  ModuleIdsArtifact, ModuleType, PrefetchExportsInfoMode, UsageState,
+  BoxModule, ChunkGraph, Compilation, Context, DependencyId, DependencyType, ExportsInfoArtifact,
+  Module, ModuleGraph, ModuleIdsArtifact, ModuleType, PrefetchExportsInfoMode, UsageState,
   rspack_sources::{MapOptions, ObjectPool},
 };
 use rspack_paths::Utf8PathBuf;
@@ -19,7 +19,7 @@ use crate::{
 
 pub fn collect_json_module_sizes(
   modules: &IdentifierMap<&BoxModule>,
-  module_graph: &ModuleGraph,
+  exports_info_artifact: &ExportsInfoArtifact,
 ) -> RsdoctorJsonModuleSizes {
   let mut json_sizes: RsdoctorJsonModuleSizes = RsdoctorJsonModuleSizes::default();
 
@@ -32,8 +32,8 @@ pub fn collect_json_module_sizes(
       continue;
     };
 
-    let exports_info =
-      module_graph.get_prefetched_exports_info(module_id, PrefetchExportsInfoMode::Default);
+    let exports_info = exports_info_artifact
+      .get_prefetched_exports_info(module_id, PrefetchExportsInfoMode::Default);
 
     let final_json = match json_data {
       json::JsonValue::Object(_) | json::JsonValue::Array(_) => {
@@ -45,7 +45,12 @@ pub fn collect_json_module_sizes(
           });
 
         if needs_tree_shaking {
-          create_object_for_exports_info(json_data.clone(), &exports_info, None, module_graph)
+          create_object_for_exports_info(
+            json_data.clone(),
+            &exports_info,
+            None,
+            exports_info_artifact,
+          )
         } else {
           json_data.clone()
         }

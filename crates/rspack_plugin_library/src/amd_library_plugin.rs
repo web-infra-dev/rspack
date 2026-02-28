@@ -3,7 +3,7 @@ use std::hash::Hash;
 use rspack_core::{
   ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements, CompilationParams,
   CompilerCompilation, ExternalModule, Filename, LibraryName, LibraryNonUmdObject, LibraryOptions,
-  LibraryType, PathData, Plugin, RuntimeGlobals, RuntimeModule, SourceType,
+  LibraryType, PathData, Plugin, RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule, SourceType,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
 };
 use rspack_error::{Result, error_bail};
@@ -92,6 +92,7 @@ async fn render(
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
   render_source: &mut RenderSource,
+  _runtime_template: &RuntimeCodeTemplate<'_>,
 ) -> Result<()> {
   let Some(options) = self.get_options_for_chunk(compilation, chunk_ukey)? else {
     return Ok(());

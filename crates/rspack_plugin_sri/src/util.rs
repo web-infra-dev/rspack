@@ -3,8 +3,8 @@ use std::{borrow::Cow, sync::LazyLock};
 use cow_utils::CowUtils;
 use indexmap::IndexSet;
 use rspack_core::{
-  AssetInfo, ChunkGroupUkey, ChunkUkey, Compilation, ManifestAssetType,
-  ModuleCodegenRuntimeTemplate, RuntimeGlobals, SourceType,
+  AssetInfo, ChunkGroupUkey, ChunkUkey, Compilation, ManifestAssetType, ModuleCodeTemplate,
+  RuntimeGlobals, SourceType,
 };
 
 use crate::{SubresourceIntegrityHashFunction, integrity::compute_integrity};
@@ -19,10 +19,7 @@ pub static PLACEHOLDER_REGEX: LazyLock<regex::Regex> = LazyLock::new(|| {
   .expect("should initialize `Regex`")
 });
 
-pub fn get_hash_variable(
-  runtime_template: &ModuleCodegenRuntimeTemplate,
-  source_type: SourceType,
-) -> String {
+pub fn get_hash_variable(runtime_template: &ModuleCodeTemplate, source_type: SourceType) -> String {
   let require_name =
     runtime_template.render_runtime_globals_without_adding(&RuntimeGlobals::REQUIRE);
   match source_type {
