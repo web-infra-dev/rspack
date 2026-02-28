@@ -23,6 +23,14 @@ async function loadRemoteMatrix() {
   };
 }
 
+async function getRemoteBridgeManifest() {
+  const instance = __webpack_require__.federation?.instance;
+  expect(typeof instance?.loadRemote).toBe('function');
+  const bridge = await instance.loadRemote('rscRemote/__rspack_rsc_bridge__');
+  expect(typeof bridge?.getManifest).toBe('function');
+  return bridge.getManifest();
+}
+
 it('should consume mixed RSC expose patterns over HTTP federation', async () => {
   const {
     RemoteClient,
@@ -45,12 +53,17 @@ it('should consume mixed RSC expose patterns over HTTP federation', async () => 
     expect(typeof mixedElement).toBe('object');
 
     const manifest = __webpack_require__.rscM;
+    const remoteManifest = await getRemoteBridgeManifest();
     expect(manifest).toBeDefined();
     expect(Object.keys(manifest.clientManifest).length).toBeGreaterThan(0);
     expect(Object.keys(manifest.clientManifest).some((key) => key.includes('RemoteClient'))).toBe(
       true,
     );
     expect(Object.keys(manifest.serverConsumerModuleMap).length).toBeGreaterThan(0);
+    expect(manifest.moduleLoading?.rscRemote).toEqual(remoteManifest.moduleLoading);
+    expect(Array.isArray(manifest.entryJsFiles)).toBe(true);
+    expect(manifest.entryJsFiles?.rscRemote).toEqual(remoteManifest.entryJsFiles);
+    expect(manifest.entryCssFiles?.rscRemote).toEqual(remoteManifest.entryCssFiles);
 
     const prefixedActionIds = Object.keys(manifest.serverManifest).filter((id) =>
       id.startsWith('remote:rscRemote:'),
