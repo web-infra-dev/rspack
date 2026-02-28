@@ -1,9 +1,15 @@
-use rspack_cacheable::{cacheable, cacheable_dyn};
+use rspack_cacheable::{
+  cacheable, cacheable_dyn,
+  with::{AsOption, AsPreset, AsVec},
+};
 use rspack_core::{
   AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
   DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
-  FactorizeInfo, ModuleDependency, TemplateContext, TemplateReplaceSource,
+  ExportsInfoArtifact, ExtendedReferencedExport, FactorizeInfo, ModuleDependency, ModuleGraph,
+  ModuleGraphCacheArtifact, ReferencedExport, RuntimeSpec, TemplateContext, TemplateReplaceSource,
+  create_exports_object_referenced,
 };
+use swc_core::ecma::atoms::Atom;
 
 #[cacheable]
 #[derive(Debug, Clone)]
@@ -14,6 +20,8 @@ pub struct CommonJsRequireDependency {
   range: DependencyRange,
   range_expr: Option<DependencyRange>,
   loc: Option<DependencyLocation>,
+  #[cacheable(with=AsOption<AsVec<AsVec<AsPreset>>>)]
+  referenced_exports: Option<Vec<Vec<Atom>>>,
   factorize_info: FactorizeInfo,
 }
 
@@ -24,6 +32,7 @@ impl CommonJsRequireDependency {
     range_expr: Option<DependencyRange>,
     optional: bool,
     loc: Option<DependencyLocation>,
+    referenced_exports: Option<Vec<Vec<Atom>>>,
   ) -> Self {
     Self {
       id: DependencyId::new(),
@@ -32,6 +41,7 @@ impl CommonJsRequireDependency {
       range,
       range_expr,
       loc,
+      referenced_exports,
       factorize_info: Default::default(),
     }
   }
@@ -57,6 +67,28 @@ impl Dependency for CommonJsRequireDependency {
 
   fn range(&self) -> Option<DependencyRange> {
     self.range_expr
+  }
+
+  fn get_referenced_exports(
+    &self,
+    _module_graph: &ModuleGraph,
+    _module_graph_cache: &ModuleGraphCacheArtifact,
+    _exports_info_artifact: &ExportsInfoArtifact,
+    _runtime: Option<&RuntimeSpec>,
+  ) -> Vec<ExtendedReferencedExport> {
+    if let Some(referenced_exports) = &self.referenced_exports {
+      return referenced_exports
+        .iter()
+        .map(|referenced_export| {
+          ExtendedReferencedExport::Export(ReferencedExport::new(
+            referenced_export.clone(),
+            false,
+            false,
+          ))
+        })
+        .collect();
+    }
+    create_exports_object_referenced()
   }
 
   fn could_affect_referencing_module(&self) -> rspack_core::AffectType {

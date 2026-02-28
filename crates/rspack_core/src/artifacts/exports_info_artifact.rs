@@ -8,10 +8,10 @@ use crate::{
   module_graph::rollback,
 };
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default)]
 pub struct ExportsInfoArtifact {
   module_exports_info: IdentifierMap<ExportsInfo>,
-  exports_info_map: rollback::OverlayMap<ExportsInfo, ExportsInfoData>,
+  exports_info_map: rollback::RollbackAtomMap<ExportsInfo, ExportsInfoData>,
 }
 
 impl ArtifactExt for ExportsInfoArtifact {

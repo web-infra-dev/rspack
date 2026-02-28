@@ -20,8 +20,9 @@ pub struct BuilderOptions {
 pub fn basic_compiler_builder(options: BuilderOptions) -> CompilerBuilder {
   let mut builder = Compiler::builder();
 
-  let dir = PathBuf::from(env!("CARGO_WORKSPACE_DIR"))
-    .join(".bench/rspack-benchcases")
+  let benchcases_dir = std::env::var("RSPACK_BENCHCASES_DIR")
+    .expect("RSPACK_BENCHCASES_DIR is required and must be an absolute path, e.g. RSPACK_BENCHCASES_DIR=/path/to/.bench/rspack-benchcases");
+  let dir = PathBuf::from(benchcases_dir)
     .canonicalize()
     .unwrap()
     .join(options.project);

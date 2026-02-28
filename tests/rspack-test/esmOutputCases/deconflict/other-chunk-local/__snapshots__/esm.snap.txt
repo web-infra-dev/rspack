@@ -9,7 +9,7 @@ it('should have deconflicted symbol', async () => {
 	expect((/* inlined export .value */42)).toBe(42)
 	expect(local).toBe('index')
 	expect(index_local).toBe('')
-	const {value: v} = await import("./other_js.mjs").then((mod) => ({ value: mod.value }))
+	const {value: v} = await import("./other_js.mjs")
 	expect(v).toBe((/* inlined export .value */42))
 })
 

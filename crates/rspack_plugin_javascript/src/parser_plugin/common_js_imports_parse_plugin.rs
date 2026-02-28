@@ -31,6 +31,7 @@ fn create_commonjs_require_context_dependency(
   param: &BasicEvaluatedExpression,
   call_expr: &CallExpr,
   arg_expr: &Expr,
+  referenced_exports: Option<Vec<Vec<Atom>>>,
 ) -> CommonJsRequireContextDependency {
   let result = create_context_dependency(param, parser);
 
@@ -49,7 +50,7 @@ fn create_commonjs_require_context_dependency(
     replaces: result.replaces,
     start: span.real_lo(),
     end: span.real_hi(),
-    referenced_exports: None,
+    referenced_exports,
     attributes: None,
     phase: None,
   };
@@ -102,6 +103,22 @@ fn create_require_resolve_context_dependency(
     phase: None,
   };
   RequireResolveContextDependency::new(options, range, parser.in_try)
+}
+
+fn is_require_call_expr(call: &CallExpr) -> bool {
+  if let Some(callee) = call.callee.as_expr() {
+    if let Some(ident) = callee.as_ident() {
+      return ident.sym == expr_name::REQUIRE;
+    }
+    if let Some(member) = callee.as_member()
+      && let Some(obj) = member.obj.as_ident()
+      && obj.sym == expr_name::MODULE
+      && let Some(prop) = member.prop.as_ident()
+    {
+      return prop.sym == expr_name::REQUIRE;
+    }
+  }
+  false
 }
 
 enum CallOrNewExpr<'a> {
@@ -282,12 +299,23 @@ impl CommonJsImportsParserPlugin {
       let (start, end) = param.range();
       let range_expr = DependencyRange::new(start, end);
       let loc = parser.to_dependency_location(range_expr);
+      let referenced_exports = parser
+        .destructuring_assignment_properties
+        .get(&span)
+        .map(|keys| {
+          let mut refs = Vec::new();
+          keys.traverse_on_leaf(&mut |stack| {
+            refs.push(stack.iter().map(|p| p.id.clone()).collect());
+          });
+          refs
+        });
       let dep = CommonJsRequireDependency::new(
         param.string().clone(),
         range_expr,
         Some(span.into()),
         parser.in_try,
         loc,
+        referenced_exports,
       );
       parser.add_dependency(Box::new(dep));
       true
@@ -303,7 +331,23 @@ impl CommonJsImportsParserPlugin {
     let Some(argument_expr) = &call_expr.args.first().map(|expr| expr.expr.as_ref()) else {
       unreachable!("ensure require includes arguments")
     };
-    let dep = create_commonjs_require_context_dependency(parser, param, call_expr, argument_expr);
+    let referenced_exports = parser
+      .destructuring_assignment_properties
+      .get(&call_expr.span)
+      .map(|keys| {
+        let mut refs = Vec::new();
+        keys.traverse_on_leaf(&mut |stack| {
+          refs.push(stack.iter().map(|p| p.id.clone()).collect());
+        });
+        refs
+      });
+    let dep = create_commonjs_require_context_dependency(
+      parser,
+      param,
+      call_expr,
+      argument_expr,
+      referenced_exports,
+    );
     parser.add_dependency(Box::new(dep));
     Some(true)
   }
@@ -434,6 +478,18 @@ impl CommonJsImportsParserPlugin {
 }
 
 impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
+  fn can_collect_destructuring_assignment_properties(
+    &self,
+    _parser: &mut JavascriptParser,
+    expr: &Expr,
+  ) -> Option<bool> {
+    let call = expr.as_call()?;
+    if is_require_call_expr(call) {
+      return Some(true);
+    }
+    None
+  }
+
   fn can_rename(&self, _parser: &mut JavascriptParser, for_name: &str) -> Option<bool> {
     if for_name == expr_name::REQUIRE {
       Some(true)

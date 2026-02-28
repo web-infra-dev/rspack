@@ -174,6 +174,7 @@ impl Module for LazyCompilationProxyModule {
       None,
       false,
       None,
+      None,
     );
     let mut dependencies = vec![];
     let mut blocks = vec![];

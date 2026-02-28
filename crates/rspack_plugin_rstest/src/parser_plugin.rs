@@ -98,6 +98,7 @@ impl RstestParserPlugin {
             Some(call_expr.span.into()),
             parser.in_try,
             loc,
+            None,
           );
           parser.add_dependency(Box::new(dep));
 
@@ -508,6 +509,7 @@ impl RstestParserPlugin {
                   Some(call_expr.span.into()),
                   parser.in_try,
                   loc,
+                  None,
                 );
 
                 let callee_range = call_expr.callee.span().into();

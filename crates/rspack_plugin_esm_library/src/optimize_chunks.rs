@@ -1,6 +1,11 @@
 use rayon::prelude::*;
-use rspack_collections::{IdentifierMap, UkeyDashSet, UkeyMap, UkeySet};
-use rspack_core::{ChunkGroupUkey, ChunkUkey, Compilation, incremental::Mutation};
+use rspack_collections::{IdentifierMap, IdentifierSet, UkeyDashSet, UkeyMap, UkeySet};
+use rspack_core::{
+  ChunkGroupUkey, ChunkUkey, Compilation, DependenciesBlock, DependencyType, Logger,
+  incremental::Mutation,
+};
+
+use crate::EsmLibraryPlugin;
 
 /// Ensure that all entry chunks only export the exports used by other chunks,
 /// this requires no other chunks depend on the entry chunk to get exports
@@ -243,4 +248,189 @@ pub(crate) fn optimize_runtime_chunks(compilation: &mut Compilation) {
     new_chunk.set_prevent_integration(true);
     new_chunk.add_group(entrypoint_ukey);
   }
+}
+
+/// Create an empty facade chunk that will only contain re-exports.
+/// The module stays in the original chunk — the facade re-exports from it.
+fn create_facade_chunk(compilation: &mut Compilation, source_chunk_ukey: ChunkUkey) -> ChunkUkey {
+  let new_chunk_ukey =
+    Compilation::add_chunk(&mut compilation.build_chunk_graph_artifact.chunk_by_ukey);
+  if let Some(mut mutation) = compilation.incremental.mutations_write() {
+    mutation.add(Mutation::ChunkAdd {
+      chunk: new_chunk_ukey,
+    });
+  }
+  compilation
+    .build_chunk_graph_artifact
+    .chunk_graph
+    .add_chunk(new_chunk_ukey);
+
+  let [Some(source_chunk), Some(new_chunk)] = compilation
+    .build_chunk_graph_artifact
+    .chunk_by_ukey
+    .get_many_mut([&source_chunk_ukey, &new_chunk_ukey])
+  else {
+    unreachable!()
+  };
+
+  source_chunk.split(
+    new_chunk,
+    &mut compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
+  );
+
+  // No module movement — the facade chunk is empty, only re-exports.
+  new_chunk_ukey
+}
+
+pub(crate) fn ensure_dyn_import_namespace_facades(
+  compilation: &mut Compilation,
+  concatenated_modules: &IdentifierSet,
+) -> (UkeySet<ChunkUkey>, IdentifierSet, IdentifierMap<ChunkUkey>) {
+  let module_graph = compilation.get_module_graph();
+  // all_dyn_targets: all scope-hoisted modules that are dynamically imported
+  // namespace_targets: subset that are imported as namespace (need facade split for multi-module chunks)
+  let mut all_dyn_targets = IdentifierSet::default();
+  let mut namespace_targets = IdentifierSet::default();
+
+  for (module_id, module) in module_graph.modules() {
+    if !concatenated_modules.contains(module_id) {
+      continue;
+    }
+    for dep_id in module
+      .get_blocks()
+      .iter()
+      .filter_map(|block| module_graph.block_by_id(block))
+      .flat_map(|block| block.get_dependencies())
+    {
+      let dep = module_graph.dependency_by_id(dep_id);
+      if dep.dependency_type() != &DependencyType::DynamicImport {
+        continue;
+      }
+      let exports_info_artifact = &compilation.exports_info_artifact;
+
+      let Some(conn) = module_graph.connection_by_dependency_id(dep_id) else {
+        continue;
+      };
+      if !conn.is_target_active(
+        module_graph,
+        None,
+        &compilation.module_graph_cache_artifact,
+        exports_info_artifact,
+      ) {
+        continue;
+      }
+      let target = conn.module_identifier();
+      all_dyn_targets.insert(*target);
+
+      if !concatenated_modules.contains(target) {
+        continue;
+      }
+
+      let exports_info = exports_info_artifact
+        .get_exports_info(target)
+        .as_data(exports_info_artifact);
+
+      if exports_info.other_exports_info().is_used(None) {
+        namespace_targets.insert(*target);
+      }
+    }
+  }
+
+  // Classify targets: which are already in single-module/entry chunks vs which need splitting.
+  // We must do this while module_graph is still borrowed, then drop it before mutations.
+  let mut already_strict = UkeySet::default();
+  let mut needs_split = Vec::new();
+
+  let entrypoint_chunks: UkeySet<ChunkUkey> = compilation
+    .build_chunk_graph_artifact
+    .entrypoints
+    .values()
+    .map(|entrypoint_ukey| {
+      compilation
+        .build_chunk_graph_artifact
+        .chunk_group_by_ukey
+        .expect_get(entrypoint_ukey)
+        .get_entrypoint_chunk()
+    })
+    .collect();
+
+  // Precompute: which modules are referenced from a different chunk?
+  // For each module's outgoing active connections, if the target is in another chunk,
+  // mark the target as cross-chunk referenced. O(total_connections) once.
+  let mut cross_chunk_referenced = IdentifierSet::default();
+  for chunk_ukey in compilation.build_chunk_graph_artifact.chunk_by_ukey.keys() {
+    let modules = compilation
+      .build_chunk_graph_artifact
+      .chunk_graph
+      .get_chunk_modules_identifier(chunk_ukey);
+    for m in modules {
+      let outgoings = module_graph.get_active_outcoming_connections_by_module(
+        m,
+        None,
+        module_graph,
+        &compilation.module_graph_cache_artifact,
+        &compilation.exports_info_artifact,
+      );
+      for target in outgoings.keys() {
+        let target_chunks = compilation
+          .build_chunk_graph_artifact
+          .chunk_graph
+          .get_module_chunks(*target);
+        if target_chunks.iter().any(|c| c != chunk_ukey) {
+          cross_chunk_referenced.insert(*target);
+        }
+      }
+    }
+  }
+
+  for module_id in &all_dyn_targets {
+    let Some(module) = module_graph.module_by_identifier(module_id) else {
+      continue;
+    };
+    if module.as_external_module().is_some() {
+      continue;
+    }
+
+    let chunk_ukey = EsmLibraryPlugin::get_module_chunk(*module_id, compilation);
+    let chunk_modules = compilation
+      .build_chunk_graph_artifact
+      .chunk_graph
+      .get_chunk_modules_identifier(&chunk_ukey);
+
+    if chunk_modules.len() <= 1 || entrypoint_chunks.contains(&chunk_ukey) {
+      // Single-module or entry chunk: exports are already correct.
+      // Mark as strict so link_entry_module_exports registers all exports,
+      // allowing dyn_import.rs to skip .then() remapping.
+      already_strict.insert(chunk_ukey);
+    } else if namespace_targets.contains(module_id) {
+      // Multi-module chunk with namespace import.
+      // However, if none of the other modules in this chunk are referenced from
+      // other chunks, the chunk's exports will only be the dyn-imported module's
+      // exports — no name conflicts possible, so no facade is needed.
+      let has_cross_chunk_sibling = chunk_modules
+        .iter()
+        .any(|other_m| other_m != module_id && cross_chunk_referenced.contains(other_m));
+      if has_cross_chunk_sibling {
+        needs_split.push((*module_id, chunk_ukey));
+      } else {
+        already_strict.insert(chunk_ukey);
+      }
+    }
+    // Multi-module chunk with only named imports: .then() remapping handles it, no split needed.
+  }
+
+  needs_split.sort_by_key(|(module_id, _)| *module_id);
+
+  let mut strict_chunks = already_strict;
+  let mut facade_mapping = IdentifierMap::default();
+  let logger = compilation.get_logger("rspack.EsmLibraryPlugin");
+  logger.debug(format!("create facade chunks: {needs_split:?}"));
+
+  for (module_id, chunk_ukey) in needs_split {
+    let facade_chunk_ukey = create_facade_chunk(compilation, chunk_ukey);
+    strict_chunks.insert(facade_chunk_ukey);
+    facade_mapping.insert(module_id, facade_chunk_ukey);
+  }
+
+  (strict_chunks, all_dyn_targets, facade_mapping)
 }

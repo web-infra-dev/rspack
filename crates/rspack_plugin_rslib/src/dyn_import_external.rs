@@ -63,7 +63,7 @@ pub fn cutout_star_re_export_externals(
         continue;
       };
       let external_type = external_module.get_external_type().as_str();
-      if external_type != "module" && external_type != "module-import" {
+      if !external_type.starts_with("module") {
         continue;
       }
 
@@ -287,7 +287,7 @@ impl DependencyTemplate for ExportImportedDependencyTemplate {
       && let Some(module) = module
         .and_then(|mid| mg.module_by_identifier(mid))
         .and_then(|m| {
-          m.as_external_module().filter(|&m| m.get_external_type() == "module" || m.get_external_type() == "module-import")
+          m.as_external_module().filter(|&m| m.get_external_type().starts_with("module"))
         })
       // TODO: should cache calculate results for this
       && code_generatable_context

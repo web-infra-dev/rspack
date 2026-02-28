@@ -312,11 +312,6 @@ pub struct ChunkLinkContext {
   pub refs: FxHashMap<String, Ref>,
 
   /**
-  Map::<module, (is_module_in_chunk, symbol_binding)>
-  */
-  pub dyn_refs: FxHashMap<String, (bool, Ref)>,
-
-  /**
   all used symbols in current chunk
   */
   pub used_names: FxHashSet<Atom>,
@@ -341,7 +336,6 @@ impl ChunkLinkContext {
       namespace_object_sources: Default::default(),
       init_fragments: Default::default(),
       refs: Default::default(),
-      dyn_refs: Default::default(),
       used_names: Default::default(),
       exported_symbols: Default::default(),
       raw_import_stmts: Default::default(),
