@@ -152,7 +152,7 @@ impl Task<TaskContext> for FactorizeResultTask {
     let FactorizeResultTask {
       original_module_identifier,
       factory_result,
-      mut dependencies,
+      dependencies,
       mut factorize_info,
       from_unlazy,
     } = *self;
@@ -174,17 +174,12 @@ impl Task<TaskContext> for FactorizeResultTask {
       .missing_dependencies
       .add_files(&resource_id, factorize_info.missing_dependencies());
 
-    for dep in &mut dependencies {
+    for dep in &dependencies {
       // Some dependencies do not come from the process_dependencies task,
       // so add all dependencies here.
       artifact.affected_dependencies.mark_as_add(dep.id());
 
-      let dep_mut = if let Some(dep) = Arc::get_mut(dep) {
-        dep
-      } else {
-        unreachable!("factorize dependencies should be uniquely owned")
-      };
-      if FactorizeInfo::set(dep_mut, std::mem::take(&mut factorize_info)).is_none() {
+      if FactorizeInfo::set_arc(dep, std::mem::take(&mut factorize_info)).is_none() {
         unreachable!("only module dependency and context dependency can factorize")
       }
     }

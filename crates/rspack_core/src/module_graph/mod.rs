@@ -1,9 +1,6 @@
 pub mod internal;
 pub mod rollback;
 
-use std::sync::Arc;
-
-use dyn_clone::clone_box;
 use internal::try_get_module_graph_module_mut_by_identifier;
 use rayon::prelude::*;
 use rspack_error::Result;
@@ -59,7 +56,7 @@ pub(crate) struct ModuleGraphData {
   pub(crate) modules: rollback::RollbackMap<ModuleIdentifier, BoxModule>,
 
   /// Dependencies indexed by `DependencyId`.
-  dependencies: HashMap<DependencyId, ArcDependency>,
+  pub(super) dependencies: HashMap<DependencyId, ArcDependency>,
   /// AsyncDependenciesBlocks indexed by `AsyncDependenciesBlockIdentifier`.
   blocks: HashMap<AsyncDependenciesBlockIdentifier, Box<AsyncDependenciesBlock>>,
 
@@ -585,23 +582,6 @@ impl ModuleGraph {
       .dependencies
       .get(dependency_id)
       .unwrap_or_else(|| panic!("Dependency with ID {dependency_id:?} not found"))
-  }
-
-  /// Get a mutable dependency by ID, panicking if not found.
-  ///
-  /// **PREFERRED METHOD**: Use this for ALL internal Rust code when you need to
-  /// modify dependencies. Dependencies should always be accessible in internal
-  /// operations, so this method enforces that invariant with a clear panic message.
-  pub fn dependency_by_id_mut(&mut self, dependency_id: &DependencyId) -> &mut dyn Dependency {
-    let dep = self
-      .inner
-      .dependencies
-      .get_mut(dependency_id)
-      .unwrap_or_else(|| panic!("Dependency with ID {dependency_id:?} not found"));
-    if Arc::strong_count(dep) != 1 {
-      *dep = Arc::from(clone_box(dep.as_ref()));
-    }
-    Arc::get_mut(dep).unwrap_or_else(|| panic!("Dependency with ID {dependency_id:?} not found"))
   }
 
   /// Uniquely identify a module by its dependency

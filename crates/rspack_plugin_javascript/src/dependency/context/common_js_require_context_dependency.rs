@@ -1,4 +1,6 @@
-use rspack_cacheable::{cacheable, cacheable_dyn};
+use std::sync::{Arc, Mutex};
+
+use rspack_cacheable::{cacheable, cacheable_dyn, with::Skip};
 use rspack_core::{
   AsModuleDependency, ContextDependency, ContextOptions, Dependency, DependencyCategory,
   DependencyCodeGeneration, DependencyId, DependencyLocation, DependencyRange, DependencyTemplate,
@@ -22,7 +24,8 @@ pub struct CommonJsRequireContextDependency {
   resource_identifier: ResourceIdentifier,
   options: ContextOptions,
   optional: bool,
-  critical: Option<Diagnostic>,
+  #[cacheable(with=Skip)]
+  critical: Arc<Mutex<Option<Diagnostic>>>,
   factorize_info: FactorizeInfo,
 }
 
@@ -43,7 +46,7 @@ impl CommonJsRequireContextDependency {
       resource_identifier,
       optional,
       id: DependencyId::new(),
-      critical: None,
+      critical: Default::default(),
       factorize_info: Default::default(),
     }
   }
@@ -135,12 +138,19 @@ impl ContextDependency for CommonJsRequireContextDependency {
     rspack_core::ContextTypePrefix::Normal
   }
 
-  fn critical(&self) -> &Option<Diagnostic> {
-    &self.critical
+  fn critical(&self) -> Option<Diagnostic> {
+    self
+      .critical
+      .lock()
+      .expect("context dependency critical poisoned")
+      .clone()
   }
 
-  fn critical_mut(&mut self) -> &mut Option<Diagnostic> {
-    &mut self.critical
+  fn set_critical(&self, diagnostic: Option<Diagnostic>) {
+    *self
+      .critical
+      .lock()
+      .expect("context dependency critical poisoned") = diagnostic;
   }
 
   fn factorize_info(&self) -> &FactorizeInfo {

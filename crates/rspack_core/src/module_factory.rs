@@ -1,12 +1,11 @@
 use std::{fmt::Debug, sync::Arc};
 
-use dyn_clone::clone_box;
 use rspack_error::{Diagnostic, Result};
 use rspack_paths::{ArcPath, ArcPathSet};
 
 use crate::{
-  ArcDependency, BoxModule, CompilationId, CompilerId, CompilerOptions, Context, Dependency,
-  ModuleIdentifier, ModuleLayer, Resolve, ResolverFactory,
+  ArcDependency, BoxModule, CompilationId, CompilerId, CompilerOptions, Context, ModuleIdentifier,
+  ModuleLayer, Resolve, ResolverFactory,
 };
 
 #[derive(Debug, Clone)]
@@ -35,17 +34,6 @@ impl ModuleFactoryCreateData {
       .dependencies
       .get(index)
       .unwrap_or_else(|| panic!("Dependency at index {index} not found"))
-  }
-
-  pub fn dependency_mut(&mut self, index: usize) -> &mut dyn Dependency {
-    let dep = self
-      .dependencies
-      .get_mut(index)
-      .unwrap_or_else(|| panic!("Dependency at index {index} not found"));
-    if Arc::strong_count(dep) != 1 {
-      *dep = Arc::from(clone_box(dep.as_ref()));
-    }
-    Arc::get_mut(dep).unwrap_or_else(|| panic!("Dependency at index {index} not found"))
   }
 
   pub fn add_file_dependency<F: Into<ArcPath>>(&mut self, file: F) {

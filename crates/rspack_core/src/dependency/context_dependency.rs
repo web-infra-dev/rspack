@@ -15,17 +15,9 @@ pub trait ContextDependency: Dependency {
 
   fn type_prefix(&self) -> ContextTypePrefix;
 
-  fn critical(&self) -> &Option<Diagnostic>;
-  #[doc(hidden)]
-  fn critical_mut(&mut self) -> &mut Option<Diagnostic>;
+  fn critical(&self) -> Option<Diagnostic>;
 
-  fn set_critical(&self, diagnostic: Option<Diagnostic>) {
-    // SAFETY: callers must ensure there is no aliasing mutable access.
-    let this = self as *const Self as *mut Self;
-    unsafe {
-      *(*this).critical_mut() = diagnostic;
-    }
-  }
+  fn set_critical(&self, diagnostic: Option<Diagnostic>);
 
   fn factorize_info(&self) -> &FactorizeInfo;
   fn factorize_info_mut(&mut self) -> &mut FactorizeInfo;

@@ -1,4 +1,6 @@
-use rspack_cacheable::{cacheable, cacheable_dyn};
+use std::sync::{Arc, Mutex};
+
+use rspack_cacheable::{cacheable, cacheable_dyn, with::Skip};
 use rspack_core::{
   AsModuleDependency, ContextDependency, ContextOptions, Dependency, DependencyCategory,
   DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
@@ -17,7 +19,8 @@ pub struct RequireContextDependency {
   range: DependencyRange,
   resource_identifier: ResourceIdentifier,
   optional: bool,
-  critical: Option<Diagnostic>,
+  #[cacheable(with=Skip)]
+  critical: Arc<Mutex<Option<Diagnostic>>>,
   factorize_info: FactorizeInfo,
 }
 
@@ -30,7 +33,7 @@ impl RequireContextDependency {
       id: DependencyId::new(),
       resource_identifier,
       optional,
-      critical: None,
+      critical: Default::default(),
       factorize_info: Default::default(),
     }
   }
@@ -96,12 +99,19 @@ impl ContextDependency for RequireContextDependency {
     rspack_core::ContextTypePrefix::Normal
   }
 
-  fn critical(&self) -> &Option<Diagnostic> {
-    &self.critical
+  fn critical(&self) -> Option<Diagnostic> {
+    self
+      .critical
+      .lock()
+      .expect("context dependency critical poisoned")
+      .clone()
   }
 
-  fn critical_mut(&mut self) -> &mut Option<Diagnostic> {
-    &mut self.critical
+  fn set_critical(&self, diagnostic: Option<Diagnostic>) {
+    *self
+      .critical
+      .lock()
+      .expect("context dependency critical poisoned") = diagnostic;
   }
 
   fn factorize_info(&self) -> &FactorizeInfo {
