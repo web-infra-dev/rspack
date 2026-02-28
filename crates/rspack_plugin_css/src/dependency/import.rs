@@ -92,12 +92,11 @@ impl ModuleDependency for CssImportDependency {
     &self.request
   }
 
-  fn factorize_info(&self) -> FactorizeInfo {
+  fn factorize_info(&self) -> std::sync::MutexGuard<'_, FactorizeInfo> {
     self
       .factorize_info
       .lock()
       .expect("dependency factorize_info poisoned")
-      .clone()
   }
 
   fn set_factorize_info(&self, info: FactorizeInfo) {

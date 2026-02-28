@@ -134,13 +134,11 @@ impl BuildModuleGraphArtifact {
 
       let dep = mg.dependency_by_id(&dep_id);
       let info = if let Some(d) = dep.as_context_dependency() {
-        let info = d.factorize_info();
-        d.set_factorize_info(Default::default());
-        Some(info)
+        let mut info = d.factorize_info();
+        Some(std::mem::take(&mut *info))
       } else if let Some(d) = dep.as_module_dependency() {
-        let info = d.factorize_info();
-        d.set_factorize_info(Default::default());
-        Some(info)
+        let mut info = d.factorize_info();
+        Some(std::mem::take(&mut *info))
       } else {
         None
       };
@@ -174,13 +172,11 @@ impl BuildModuleGraphArtifact {
     let mg = &mut self.module_graph;
     let dep = mg.dependency_by_id(dep_id);
     let factorize_info = if let Some(d) = dep.as_context_dependency() {
-      let info = d.factorize_info();
-      d.set_factorize_info(Default::default());
-      Some(info)
+      let mut info = d.factorize_info();
+      Some(std::mem::take(&mut *info))
     } else if let Some(d) = dep.as_module_dependency() {
-      let info = d.factorize_info();
-      d.set_factorize_info(Default::default());
-      Some(info)
+      let mut info = d.factorize_info();
+      Some(std::mem::take(&mut *info))
     } else {
       None
     };
