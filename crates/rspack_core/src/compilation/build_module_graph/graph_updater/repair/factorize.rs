@@ -1,14 +1,13 @@
 use std::sync::Arc;
 
-use dyn_clone::clone_box;
 use rspack_error::Diagnostic;
 use rspack_sources::BoxSource;
 
 use super::{TaskContext, add::AddTask};
 use crate::{
-  ArcDependency, BoxDependency, CompilationId, CompilerId, CompilerOptions, Context, FactorizeInfo,
-  ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, ModuleLayer,
-  Resolve, ResolverFactory,
+  ArcDependency, CompilationId, CompilerId, CompilerOptions, Context, FactorizeInfo, ModuleFactory,
+  ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, ModuleLayer, Resolve,
+  ResolverFactory,
   module_graph::ModuleGraphModule,
   utils::{
     ResourceId,
@@ -70,11 +69,6 @@ impl Task<TaskContext> for FactorizeTask {
           .map(|d| d.request().to_string())
       })
       .unwrap_or_default();
-    let dependencies = self
-      .dependencies
-      .iter()
-      .map(|dep| clone_box(dep.as_ref()))
-      .collect();
     // Error and result are not mutually exclusive in webpack module factorization.
     // Rspack puts results that need to be shared in both error and ok in [ModuleFactoryCreateData].
     let mut create_data = ModuleFactoryCreateData {
@@ -84,7 +78,7 @@ impl Task<TaskContext> for FactorizeTask {
       options: self.options.clone(),
       context,
       request,
-      dependencies,
+      dependencies: self.dependencies,
       issuer: self.issuer,
       issuer_identifier: self.original_module_identifier,
       issuer_layer,
@@ -144,7 +138,7 @@ pub struct FactorizeResultTask {
   pub original_module_identifier: Option<ModuleIdentifier>,
   /// Result will be available if [crate::ModuleFactory::create] returns `Ok`.
   pub factory_result: Option<ModuleFactoryResult>,
-  pub dependencies: Vec<BoxDependency>,
+  pub dependencies: Vec<ArcDependency>,
   pub factorize_info: FactorizeInfo,
   pub from_unlazy: bool,
 }
@@ -185,7 +179,12 @@ impl Task<TaskContext> for FactorizeResultTask {
       // so add all dependencies here.
       artifact.affected_dependencies.mark_as_add(dep.id());
 
-      if FactorizeInfo::set(dep.as_mut(), std::mem::take(&mut factorize_info)).is_none() {
+      let dep_mut = if let Some(dep) = Arc::get_mut(dep) {
+        dep
+      } else {
+        unreachable!("factorize dependencies should be uniquely owned")
+      };
+      if FactorizeInfo::set(dep_mut, std::mem::take(&mut factorize_info)).is_none() {
         unreachable!("only module dependency and context dependency can factorize")
       }
     }

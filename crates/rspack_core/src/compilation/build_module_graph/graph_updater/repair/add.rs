@@ -2,7 +2,7 @@ use rspack_error::Result;
 
 use super::{TaskContext, build::BuildTask, lazy::process_unlazy_dependencies};
 use crate::{
-  BoxDependency, BoxModule, ModuleIdentifier,
+  ArcDependency, BoxModule, ModuleIdentifier,
   compilation::build_module_graph::ForwardedIdSet,
   module_graph::{ModuleGraph, ModuleGraphModule},
   utils::task_loop::{Task, TaskResult, TaskType},
@@ -13,7 +13,7 @@ pub struct AddTask {
   pub original_module_identifier: Option<ModuleIdentifier>,
   pub module: BoxModule,
   pub module_graph_module: Box<ModuleGraphModule>,
-  pub dependencies: Vec<BoxDependency>,
+  pub dependencies: Vec<ArcDependency>,
   pub from_unlazy: bool,
 }
 
@@ -131,7 +131,7 @@ impl Task<TaskContext> for AddTask {
 fn set_resolved_module(
   module_graph: &mut ModuleGraph,
   original_module_identifier: Option<ModuleIdentifier>,
-  dependencies: Vec<BoxDependency>,
+  dependencies: Vec<ArcDependency>,
   module_identifier: ModuleIdentifier,
 ) -> Result<()> {
   for dependency in dependencies {
@@ -140,7 +140,7 @@ fn set_resolved_module(
       *dependency.id(),
       module_identifier,
     )?;
-    module_graph.add_dependency(dependency.into());
+    module_graph.add_dependency(dependency);
   }
   Ok(())
 }
