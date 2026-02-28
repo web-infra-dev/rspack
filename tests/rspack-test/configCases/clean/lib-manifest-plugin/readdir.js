@@ -28,8 +28,12 @@ module.exports = function readDir(from) {
 		} else {
 			const relative = path.relative(from, cursor);
 			collectedFiles.push(handlePath(relative));
+
 		}
 	}
+
+	collectedFiles.sort();
+	collectedDirectories.sort();
 
 	return {
 		files: collectedFiles,

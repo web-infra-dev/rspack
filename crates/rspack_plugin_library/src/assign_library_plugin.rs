@@ -4,11 +4,13 @@ use futures::future::join_all;
 use regex::Regex;
 use rspack_collections::DatabaseItem;
 use rspack_core::{
-  BoxModule, CanInlineUse, Chunk, ChunkUkey, CodeGenerationDataTopLevelDeclarations, Compilation,
+  AsyncModulesArtifact, BoxModule, CanInlineUse, Chunk, ChunkUkey,
+  CodeGenerationDataTopLevelDeclarations, Compilation,
   CompilationAdditionalChunkRuntimeRequirements, CompilationFinishModules, CompilationParams,
-  CompilerCompilation, EntryData, ExportProvided, Filename, LibraryExport, LibraryName,
-  LibraryNonUmdObject, LibraryOptions, ModuleIdentifier, PathData, Plugin, PrefetchExportsInfoMode,
-  RuntimeGlobals, SourceType, UsageState, get_entry_runtime, property_access,
+  CompilerCompilation, EntryData, ExportProvided, ExportsInfoArtifact, Filename, LibraryExport,
+  LibraryName, LibraryNonUmdObject, LibraryOptions, ModuleIdentifier, PathData, Plugin,
+  PrefetchExportsInfoMode, RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule, RuntimeVariable,
+  SourceType, UsageState, get_entry_runtime, property_access,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
   to_identifier,
 };
@@ -19,6 +21,7 @@ use rspack_plugin_javascript::{
   JavascriptModulesChunkHash, JavascriptModulesEmbedInRuntimeBailout, JavascriptModulesRender,
   JavascriptModulesRenderStartup, JavascriptModulesStrictRuntimeBailout, JsPlugin, RenderSource,
 };
+use swc_core::atoms::Atom;
 
 use crate::utils::{COMMON_LIBRARY_NAME_MESSAGE, get_options_for_chunk};
 
@@ -97,16 +100,16 @@ impl AssignLibraryPlugin {
     if matches!(self.options.unnamed, Unnamed::Error) {
       if !matches!(
         library.name,
-        Some(LibraryName::NonUmdObject(LibraryNonUmdObject::Array(_)))
-          | Some(LibraryName::NonUmdObject(LibraryNonUmdObject::String(_)))
+        Some(LibraryName::NonUmdObject(
+          LibraryNonUmdObject::Array(_) | LibraryNonUmdObject::String(_)
+        ))
       ) {
         error_bail!("Library name must be a string or string array. {COMMON_LIBRARY_NAME_MESSAGE}")
       }
     } else if let Some(name) = &library.name
       && !matches!(
         name,
-        LibraryName::NonUmdObject(LibraryNonUmdObject::Array(_))
-          | LibraryName::NonUmdObject(LibraryNonUmdObject::String(_))
+        LibraryName::NonUmdObject(LibraryNonUmdObject::Array(_) | LibraryNonUmdObject::String(_))
       )
     {
       error_bail!(
@@ -154,18 +157,12 @@ impl AssignLibraryPlugin {
           .get_path(
             &Filename::from(v),
             PathData::default()
-              .chunk_id_optional(
-                chunk
-                  .id(&compilation.chunk_ids_artifact)
-                  .map(|id| id.as_str()),
-              )
+              .chunk_id_optional(chunk.id().map(|id| id.as_str()))
               .chunk_hash_optional(chunk.rendered_hash(
                 &compilation.chunk_hashes_artifact,
                 compilation.options.output.hash_digest_length,
               ))
-              .chunk_name_optional(
-                chunk.name_for_filename_template(&compilation.chunk_ids_artifact),
-              )
+              .chunk_name_optional(chunk.name_for_filename_template())
               .content_hash_optional(chunk.rendered_content_hash_by_source_type(
                 &compilation.chunk_hashes_artifact,
                 &SourceType::JavaScript,
@@ -217,12 +214,16 @@ async fn render(
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
   render_source: &mut RenderSource,
+  _runtime_template: &RuntimeCodeTemplate<'_>,
 ) -> Result<()> {
   let Some(options) = self.get_options_for_chunk(compilation, chunk_ukey)? else {
     return Ok(());
   };
   if self.options.declare {
-    let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+    let chunk = compilation
+      .build_chunk_graph_artifact
+      .chunk_by_ukey
+      .expect_get(chunk_ukey);
     let base = &self
       .get_resolved_full_name(&options, compilation, chunk)
       .await?[0];
@@ -248,13 +249,17 @@ async fn render_startup(
   chunk_ukey: &ChunkUkey,
   module: &ModuleIdentifier,
   render_source: &mut RenderSource,
+  runtime_template: &RuntimeCodeTemplate<'_>,
 ) -> Result<()> {
   let Some(options) = self.get_options_for_chunk(compilation, chunk_ukey)? else {
     return Ok(());
   };
   let mut source = ConcatSource::default();
   source.add(render_source.source.clone());
-  let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+  let chunk = compilation
+    .build_chunk_graph_artifact
+    .chunk_by_ukey
+    .expect_get(chunk_ukey);
   let full_name_resolved = self
     .get_resolved_full_name(&options, compilation, chunk)
     .await?;
@@ -262,12 +267,14 @@ async fn render_startup(
     .export
     .map(|e| property_access(e, 0))
     .unwrap_or_default();
+  let exports_name = runtime_template.render_runtime_variable(&RuntimeVariable::Exports);
   if matches!(self.options.unnamed, Unnamed::Static) {
     let export_target = access_with_init(&full_name_resolved, self.options.prefix.len(), true);
-    let module_graph = compilation.get_module_graph();
-    let exports_info =
-      module_graph.get_prefetched_exports_info(module, PrefetchExportsInfoMode::Default);
+    let exports_info = compilation
+      .exports_info_artifact
+      .get_prefetched_exports_info(module, PrefetchExportsInfoMode::Default);
     let mut provided = vec![];
+    let exports_name = runtime_template.render_runtime_variable(&RuntimeVariable::Exports);
     for (_, export_info) in exports_info.exports() {
       if matches!(export_info.provided(), Some(ExportProvided::NotProvided)) {
         continue;
@@ -276,29 +283,30 @@ async fn render_startup(
       provided.push(export_info_name.clone());
       let name_access = property_access([export_info_name], 0);
       source.add(RawStringSource::from(format!(
-        "{export_target}{name_access} = __webpack_exports__{export_access}{name_access};\n"
+        "{export_target}{name_access} = {exports_name}{export_access}{name_access};\n"
       )));
     }
 
-    let mut exports = "__webpack_exports__";
+    let mut exports = exports_name.as_str();
+    let exports_assign_export = "__rspack_exports_export";
     if !export_access.is_empty() {
       source.add(RawStringSource::from(format!(
-        "var __webpack_exports_export__ = __webpack_exports__{export_access};\n"
+        "var {exports_assign_export} = {exports_name}{export_access};\n"
       )));
-      exports = "__webpack_exports_export__";
+      exports = exports_assign_export;
     }
     source.add(RawStringSource::from(format!(
-      "for(var __webpack_i__ in {exports}) {{\n"
+      "for(var __rspack_i in {exports}) {{\n"
     )));
     let has_provided = !provided.is_empty();
     if has_provided {
       source.add(RawStringSource::from(format!(
-        "  if({}.indexOf(__webpack_i__) === -1) {{\n",
+        "  if({}.indexOf(__rspack_i) === -1) {{\n",
         serde_json::to_string(&provided).to_rspack_result()?
       )));
     }
     source.add(RawStringSource::from(format!(
-      "{}  {export_target}[__webpack_i__] = {exports}[__webpack_i__];\n",
+      "{}  {export_target}[__rspack_i] = {exports}[__rspack_i];\n",
       match has_provided {
         true => "  ",
         false => "",
@@ -315,26 +323,28 @@ async fn render_startup(
       "Object.defineProperty({export_target}, '__esModule', {{ value: true }});\n",
     )));
   } else if self.is_copy(&options) {
+    let exports_assign = "__rspack_exports_target";
     source.add(RawStringSource::from(format!(
-      "var __webpack_export_target__ = {};\n",
+      "var {exports_assign} = {};\n",
       access_with_init(&full_name_resolved, self.options.prefix.len(), true)
     )));
-    let mut exports = "__webpack_exports__";
+    let mut exports = exports_name.as_str();
+    let exports_assign_export = "__rspack_exports_export";
     if !export_access.is_empty() {
       source.add(RawStringSource::from(format!(
-        "var __webpack_exports_export__ = __webpack_exports__{export_access};\n"
+        "var {exports_assign_export} = {exports_name}{export_access};\n"
       )));
-      exports = "__webpack_exports_export__";
+      exports = exports_assign_export;
     }
     source.add(RawStringSource::from(format!(
-      "for(var __webpack_i__ in {exports}) __webpack_export_target__[__webpack_i__] = {exports}[__webpack_i__];\n"
+      "for(var __rspack_i in {exports}) {exports_assign}[__rspack_i] = {exports}[__rspack_i];\n"
     )));
     source.add(RawStringSource::from(format!(
-      "if({exports}.__esModule) Object.defineProperty(__webpack_export_target__, '__esModule', {{ value: true }});\n"
+      "if({exports}.__esModule) Object.defineProperty({exports_assign}, '__esModule', {{ value: true }});\n"
     )));
   } else {
     source.add(RawStringSource::from(format!(
-      "{} = __webpack_exports__{export_access};\n",
+      "{} = {exports_name}{export_access};\n",
       access_with_init(&full_name_resolved, self.options.prefix.len(), false)
     )));
   }
@@ -353,7 +363,10 @@ async fn js_chunk_hash(
     return Ok(());
   };
   PLUGIN_NAME.hash(hasher);
-  let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+  let chunk = compilation
+    .build_chunk_graph_artifact
+    .chunk_by_ukey
+    .expect_get(chunk_ukey);
   let full_resolved_name = self
     .get_resolved_full_name(&options, compilation, chunk)
     .await?;
@@ -393,7 +406,7 @@ async fn embed_in_runtime_bailout(
       .get_resolved_full_name(&options, compilation, chunk)
       .await?;
     if let Some(base) = full_name.first()
-      && top_level_decls.contains(&base.as_str().into())
+      && top_level_decls.contains(&Atom::new(base.as_str()))
     {
       return Ok(Some(format!(
         "it declares '{base}' on top-level, which conflicts with the current library output."
@@ -428,7 +441,13 @@ async fn strict_runtime_bailout(
 }
 
 #[plugin_hook(CompilationFinishModules for AssignLibraryPlugin)]
-async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
+async fn finish_modules(
+  &self,
+  compilation: &Compilation,
+  _async_modules_artifact: &mut AsyncModulesArtifact,
+  exports_info_artifact: &mut ExportsInfoArtifact,
+) -> Result<()> {
+  let module_graph = compilation.get_module_graph();
   let mut runtime_info = Vec::with_capacity(compilation.entries.len());
   for (entry_name, entry) in compilation.entries.iter() {
     let EntryData {
@@ -441,7 +460,6 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
       .library
       .as_ref()
       .or_else(|| compilation.options.output.library.as_ref());
-    let module_graph = compilation.get_module_graph();
     let module_of_last_dep = dependencies
       .last()
       .and_then(|dep| module_graph.get_module_by_dependency_id(dep));
@@ -467,18 +485,18 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
   }
 
   for (runtime, export, module_identifier) in runtime_info {
-    let mut module_graph = compilation.get_module_graph_mut();
     if let Some(export) = export {
-      let export_info = module_graph
-        .get_exports_info(&module_identifier)
-        .get_export_info(&mut module_graph, &(export.as_str()).into());
-      let info = export_info.as_data_mut(&mut module_graph);
+      let export_info = exports_info_artifact
+        .get_exports_info_data_mut(&module_identifier)
+        .ensure_export_info(&(export.as_str()).into());
+      let info = export_info.as_data_mut(exports_info_artifact);
       info.set_used(UsageState::Used, Some(&runtime));
       info.set_can_mangle_use(Some(false));
       info.set_can_inline_use(Some(CanInlineUse::No));
     } else {
-      let exports_info = module_graph.get_exports_info(&module_identifier);
-      exports_info.set_used_in_unknown_way(&mut module_graph, Some(&runtime));
+      exports_info_artifact
+        .get_exports_info_data_mut(&module_identifier)
+        .set_used_in_unknown_way(Some(&runtime));
     }
   }
   Ok(())
@@ -506,9 +524,10 @@ impl Plugin for AssignLibraryPlugin {
 #[plugin_hook(CompilationAdditionalChunkRuntimeRequirements for AssignLibraryPlugin)]
 async fn additional_chunk_runtime_requirements(
   &self,
-  compilation: &mut Compilation,
+  compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
   runtime_requirements: &mut RuntimeGlobals,
+  _runtime_modules: &mut Vec<Box<dyn RuntimeModule>>,
 ) -> Result<()> {
   if self
     .get_options_for_chunk(compilation, chunk_ukey)?

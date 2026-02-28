@@ -144,7 +144,6 @@ pub fn statement_if(scanner: &mut JavascriptParser, stmt: &IfStmt) -> Option<boo
     scanner.add_presentational_dependency(Box::new(ConstDependency::new(
       param.range().into(),
       boolean.to_string().into_boxed_str(),
-      None,
     )));
   } else {
     scanner.walk_expression(&stmt.test);
@@ -178,7 +177,6 @@ pub fn statement_if(scanner: &mut JavascriptParser, stmt: &IfStmt) -> Option<boo
       )
         .into(),
       replacement.into_boxed_str(),
-      None,
     )))
   }
   Some(boolean)

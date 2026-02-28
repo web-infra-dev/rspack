@@ -7,54 +7,54 @@
  * Copyright (c) JS Foundation and other contributors
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
-import { AbstractMethodError } from "../../lib/AbstractMethodError";
+import { AbstractMethodError } from '../../lib/AbstractMethodError';
 
 export default class Hash {
-	/**
-	 * @param data data
-	 * @param inputEncoding data encoding
-	 * @returns updated hash
-	 */
-	update(data: string, inputEncoding: string): this;
+  /**
+   * @param data data
+   * @param inputEncoding data encoding
+   * @returns updated hash
+   */
+  update(data: string, inputEncoding: string): this;
 
-	/**
-	 * @param data data
-	 * @returns updated hash
-	 */
-	update(data: Buffer): this;
+  /**
+   * @param data data
+   * @returns updated hash
+   */
+  update(data: Buffer): this;
 
-	/**
-	 * Update hash {@link https://nodejs.org/api/crypto.html#crypto_hash_update_data_inputencoding}
-	 * @abstract
-	 * @param data data
-	 * @param inputEncoding data encoding
-	 * @returns updated hash
-	 */
-	update(): this {
-		throw new AbstractMethodError();
-	}
+  /**
+   * Update hash {@link https://nodejs.org/api/crypto.html#crypto_hash_update_data_inputencoding}
+   * @abstract
+   * @param data data
+   * @param inputEncoding data encoding
+   * @returns updated hash
+   */
+  update(): this {
+    throw new AbstractMethodError();
+  }
 
-	/**
-	 * Calculates the digest without encoding
-	 * @abstract
-	 * @returns {Buffer} digest
-	 */
-	digest(): Buffer;
+  /**
+   * Calculates the digest without encoding
+   * @abstract
+   * @returns {Buffer} digest
+   */
+  digest(): Buffer;
 
-	/**
-	 * Calculates the digest with encoding
-	 * @abstract
-	 * @param encoding encoding of the return value
-	 * @returns {string} digest
-	 */
-	digest(encoding: string): string;
+  /**
+   * Calculates the digest with encoding
+   * @abstract
+   * @param encoding encoding of the return value
+   * @returns {string} digest
+   */
+  digest(encoding: string): string;
 
-	/**
-	 * Calculates the digest {@link https://nodejs.org/api/crypto.html#crypto_hash_digest_encoding}
-	 * @param {string=} encoding encoding of the return value
-	 * @returns {string|Buffer} digest
-	 */
-	digest(): string | Buffer {
-		throw new AbstractMethodError();
-	}
+  /**
+   * Calculates the digest {@link https://nodejs.org/api/crypto.html#crypto_hash_digest_encoding}
+   * @param {string=} encoding encoding of the return value
+   * @returns {string|Buffer} digest
+   */
+  digest(): string | Buffer {
+    throw new AbstractMethodError();
+  }
 }

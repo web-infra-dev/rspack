@@ -1,3 +1,3 @@
-it("should compile", function(done) {
+it("should compile", () => new Promise(done => {
 	done();
-});
+}));

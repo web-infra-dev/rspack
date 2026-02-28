@@ -240,8 +240,8 @@ impl ReadableFileSystem for NativeFileSystem {
             for path in zip.dirs.iter().chain(zip.files.keys()) {
               let pathbuf = PathBuf::from(path);
               if let Some(file_name) = pathbuf.file_name() {
-                let parent_path = pathbuf.parent().unwrap_or(Path::new("."));
-                if PathBuf::from(&info.zip_path) == parent_path {
+                let parent_path = pathbuf.parent().unwrap_or_else(|| Path::new("."));
+                if Path::new(&info.zip_path) == parent_path {
                   res.push(file_name.to_string_lossy().to_string());
                 }
               }

@@ -80,19 +80,26 @@ __webpack_require__.rstest_mock = (id, modFactory) => {
   if (typeof modFactory === 'string' || typeof modFactory === 'number') {
     __webpack_module_cache__[id] = { exports: __webpack_require__(modFactory) };
   } else if (typeof modFactory === 'function') {
-    if (modFactory.constructor.name === 'AsyncFunction') {
-        __webpack_module_cache__[id] = async () => {
-          const exports = await modFactory();
-          __webpack_require__.r(exports);
-          __webpack_module_cache__[id] = { exports, id, loaded: true };
-      }
-    } else {
-      const exports = modFactory();
-      __webpack_require__.r(exports);
-      __webpack_module_cache__[id] = { exports, id, loaded: true };
-    }
+          const finalModFactory = function (
+        __unused_webpack_module,
+        __webpack_exports__,
+        __webpack_require__,
+      ) {
+        __webpack_require__.r(__webpack_exports__);
+        const res = modFactory();
+        for (const key in res) {
+          __webpack_require__.d(__webpack_exports__, {
+            [key]: () => res[key],
+          });
+        }
+      };
+
+      __webpack_modules__[id] = finalModFactory;
+      delete __webpack_module_cache__[id];
   }
 };
+
+__webpack_require__.rstest_mock_require = __webpack_require__.rstest_mock;
 
 __webpack_require__.rstest_do_mock = (id, modFactory) => {
   let requiredModule = undefined
@@ -110,6 +117,10 @@ __webpack_require__.rstest_do_mock = (id, modFactory) => {
     __webpack_require__.r(exports);
     __webpack_module_cache__[id] = { exports, id, loaded: true };
   }
+};
+
+__webpack_require__.rstest_hoisted = (fn) => {
+  return fn();
 };
 `;
 			}
@@ -132,7 +143,7 @@ __webpack_require__.rstest_do_mock = (id, modFactory) => {
 	}
 }
 
-const rstestEntry = entry => {
+const rstestEntry = (entry, rstestPluginOptions = {}) => {
 	return {
 		entry,
 		target: "node",
@@ -147,13 +158,25 @@ const rstestEntry = entry => {
 			concatenateModules: false,
 			moduleIds: "named"
 		},
+		module: {
+			rules: [
+				{
+					test: /\.js$/,
+					loader: path.resolve(__dirname, './importActualLoader.mjs'),
+					with: {
+						rstest: 'importActual'
+					}
+				}
+			]
+		},
 		plugins: [
 			new RstestSimpleRuntimePlugin(),
 			new RstestPlugin({
 				injectModulePathName: true,
 				hoistMockModule: true,
 				importMetaPathName: true,
-				manualMockRoot: path.resolve(__dirname, "__mocks__")
+				manualMockRoot: path.resolve(__dirname, "__mocks__"),
+				...rstestPluginOptions,
 			})
 		]
 	};
@@ -165,6 +188,7 @@ module.exports = [
 	rstestEntry("./mockFactory.js"),
 	rstestEntry("./manualMock.js"),
 	rstestEntry("./importActual.js"),
+	rstestEntry("./importActualHoisted.js"),
 	rstestEntry("./requireActual.js"),
 	{
 		entry: "./test.js",
@@ -177,5 +201,13 @@ module.exports = [
 			mangleExports: false
 		}
 	},
-	rstestEntry("./mockFirstArgIsImport.js")
+	rstestEntry("./mockFirstArgIsImport.js"),
+	rstestEntry("./globals/importActual.js"),
+	rstestEntry("./globals-false/importActual.js", { globals: false }),
+	{
+		...rstestEntry("./hoisted.js"),
+		externals: {
+			"@rstest/core": "global @rstest/core"
+		}
+	}
 ];

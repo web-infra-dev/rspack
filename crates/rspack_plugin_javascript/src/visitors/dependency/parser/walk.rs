@@ -25,7 +25,7 @@ use super::{
 };
 use crate::{
   parser_plugin::{JavascriptParserPlugin, is_logic_op},
-  visitors::{ExportedVariableInfo, VariableDeclaration},
+  visitors::{ExportedVariableInfo, ExprRef, VariableDeclaration},
 };
 
 fn warp_ident_to_pat(ident: Ident) -> Pat {
@@ -488,8 +488,9 @@ impl JavascriptParser<'_> {
   }
 
   fn walk_this_expression(&mut self, expr: &ThisExpr) {
-    // TODO: `this.hooks.call_hooks_for_names`
-    self.plugin_drive.clone().this(self, expr);
+    "this".call_hooks_name(self, |this, for_name| {
+      this.plugin_drive.clone().this(this, expr, for_name)
+    });
   }
 
   pub(crate) fn walk_template_expression(&mut self, expr: &Tpl) {
@@ -585,7 +586,7 @@ impl JavascriptParser<'_> {
 
   fn walk_jsx_attr_value(&mut self, value: &JSXAttrValue) {
     match value {
-      JSXAttrValue::Lit(_) => (),
+      JSXAttrValue::Str(_) => (),
       JSXAttrValue::JSXExprContainer(container) => self.walk_jsx_expr_container(container),
       JSXAttrValue::JSXElement(element) => self.walk_jsx_element(element),
       JSXAttrValue::JSXFragment(fragment) => self.walk_jsx_fragment(fragment),
@@ -801,7 +802,9 @@ impl JavascriptParser<'_> {
 
   fn walk_member_expression(&mut self, expr: &MemberExpr) {
     // println!("{:#?}", expr);
-    if let Some(expr_info) = self.get_member_expression_info(expr, AllowedMemberTypes::all()) {
+    if let Some(expr_info) =
+      self.get_member_expression_info(ExprRef::Member(expr), AllowedMemberTypes::all())
+    {
       match expr_info {
         MemberExpressionInfo::Expression(expr_info) => {
           let drive = self.plugin_drive.clone();
@@ -845,7 +848,7 @@ impl JavascriptParser<'_> {
                 this,
                 expr,
                 &expr_info.callee_members,
-                &expr_info.call,
+                expr_info.call,
                 &expr_info.members,
                 &expr_info.member_ranges,
                 for_name,
@@ -855,7 +858,7 @@ impl JavascriptParser<'_> {
           {
             return;
           }
-          self.walk_call_expression(&expr_info.call);
+          self.walk_call_expression(expr_info.call);
           return;
         }
       }
@@ -929,15 +932,18 @@ impl JavascriptParser<'_> {
         && rename_identifier
           .call_hooks_name(parser, |this, for_name| drive.can_rename(this, for_name))
           .unwrap_or_default()
-        && !rename_identifier
+      {
+        if !rename_identifier
           .call_hooks_name(parser, |this, for_name| drive.rename(this, expr, for_name))
           .unwrap_or_default()
-      {
-        let variable = parser
-          .get_variable_info(&rename_identifier)
-          .map(|info| ExportedVariableInfo::VariableInfo(info.id()))
-          .unwrap_or(ExportedVariableInfo::Name(rename_identifier));
-        return Some(variable);
+        {
+          let variable = parser
+            .get_variable_info(&rename_identifier)
+            .map(|info| ExportedVariableInfo::VariableInfo(info.id()))
+            .unwrap_or(ExportedVariableInfo::Name(rename_identifier));
+          return Some(variable);
+        }
+        return None;
       }
       parser.walk_expression(expr);
       None
@@ -1069,29 +1075,35 @@ impl JavascriptParser<'_> {
         } else if let Expr::Fn(fn_expr) = &**callee
           && is_simple_function(&fn_expr.function.params)
         {
+          // ((…) => { }(…))
+          self._walk_iife(callee, expr.args.iter().map(|arg| &*arg.expr), None)
+        } else if let Expr::Arrow(arrow_expr) = &**callee
+          && arrow_expr.params.iter().all(|p| p.as_ident().is_some())
+        {
           // (function(…) { }(…))
           self._walk_iife(callee, expr.args.iter().map(|arg| &*arg.expr), None)
         } else {
           if let Expr::Member(member) = &**callee {
-            if let Some(MemberExpressionInfo::Call(expr_info)) =
-              self.get_member_expression_info(member, AllowedMemberTypes::CallExpression)
-              && expr_info
-                .root_info
-                .call_hooks_name(self, |this, for_name| {
-                  this
-                    .plugin_drive
-                    .clone()
-                    .call_member_chain_of_call_member_chain(
-                      this,
-                      expr,
-                      &expr_info.callee_members,
-                      &expr_info.call,
-                      &expr_info.members,
-                      &expr_info.member_ranges,
-                      for_name,
-                    )
-                })
-                .unwrap_or_default()
+            if let Some(MemberExpressionInfo::Call(expr_info)) = self.get_member_expression_info(
+              ExprRef::Member(member),
+              AllowedMemberTypes::CallExpression,
+            ) && expr_info
+              .root_info
+              .call_hooks_name(self, |this, for_name| {
+                this
+                  .plugin_drive
+                  .clone()
+                  .call_member_chain_of_call_member_chain(
+                    this,
+                    expr,
+                    &expr_info.callee_members,
+                    expr_info.call,
+                    &expr_info.members,
+                    &expr_info.member_ranges,
+                    for_name,
+                  )
+              })
+              .unwrap_or_default()
             {
               return;
             }
@@ -1115,16 +1127,14 @@ impl JavascriptParser<'_> {
           if evaluated_callee.is_identifier() {
             let members = evaluated_callee
               .members()
-              .map(Cow::Borrowed)
-              .unwrap_or_else(|| Cow::Owned(Vec::new()));
-            let members_optionals = evaluated_callee
-              .members_optionals()
-              .map(Cow::Borrowed)
-              .unwrap_or_else(|| Cow::Owned(members.iter().map(|_| false).collect::<Vec<_>>()));
+              .map_or_else(|| Cow::Owned(Vec::new()), Cow::Borrowed);
+            let members_optionals = evaluated_callee.members_optionals().map_or_else(
+              || Cow::Owned(members.iter().map(|_| false).collect::<Vec<_>>()),
+              Cow::Borrowed,
+            );
             let member_ranges = evaluated_callee
               .member_ranges()
-              .map(Cow::Borrowed)
-              .unwrap_or_else(|| Cow::Owned(Vec::new()));
+              .map_or_else(|| Cow::Owned(Vec::new()), Cow::Borrowed);
             let drive = self.plugin_drive.clone();
             if evaluated_callee
               .root_info()
@@ -1300,7 +1310,7 @@ impl JavascriptParser<'_> {
       self.walk_assign_target_pattern(pat);
     } else if let Some(SimpleAssignTarget::Member(member)) = expr.left.as_simple() {
       if let Some(MemberExpressionInfo::Expression(expr_name)) =
-        self.get_member_expression_info(member, AllowedMemberTypes::Expression)
+        self.get_member_expression_info(ExprRef::Member(member), AllowedMemberTypes::Expression)
         && expr_name
           .root_info
           .call_hooks_name(self, |parser, for_name| {
@@ -1533,9 +1543,12 @@ impl JavascriptParser<'_> {
       self.walk_expression(super_class);
     }
 
-    let scope_params = if let Some(pat) = class_decl_or_expr
-      .ident()
-      .map(|ident| warp_ident_to_pat(ident.clone()))
+    // TODO: define variable for class expression in block pre walk
+    let scope_params = if let ClassDeclOrExpr::Expr(class_expr) = class_decl_or_expr
+      && let Some(pat) = class_expr
+        .ident
+        .as_ref()
+        .map(|ident| warp_ident_to_pat(ident.clone()))
     {
       vec![Cow::Owned(pat)]
     } else {

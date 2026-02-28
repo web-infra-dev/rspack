@@ -1,8 +1,8 @@
-# 从 Rspack 0.x 迁移
+# 从 0.x 升级到 v1
 
-当前文档列出了从 Rspack v0.7 到 v1.0 的所有不兼容更新，你可以参考此文档来迁移。
+当前文档列出了从 Rspack 0.7 到 1.0 的所有不兼容更新，你可以参考此文档来迁移。
 
-> 查看 [Breaking changes in Rspack v1.0.0](https://github.com/web-infra-dev/rspack/discussions/6626) 了解更多细节。
+> 查看 [Breaking changes in Rspack 1.0](https://github.com/web-infra-dev/rspack/discussions/6626) 了解更多细节。
 
 ## 配置项默认值调整
 
@@ -270,8 +270,8 @@ export default {
 Rspack 支持 [NormalModuleFactory](/api/plugin-api/normal-module-factory-hooks) 的 [resolve](/api/plugin-api/normal-module-factory-hooks#resolve) 钩子，在大多数情况下，你可以使用该钩子替代 `Resolver` 的 `resolve` 钩子来实现相关的功能。
 
 ```js
-compiler.hooks.normalModuleFactory.tap('PLUGIN', normalModuleFactory => {
-  normalModuleFactory.hooks.resolve.tap('PLUGIN', data => {
+compiler.hooks.normalModuleFactory.tap('PLUGIN', (normalModuleFactory) => {
+  normalModuleFactory.hooks.resolve.tap('PLUGIN', (data) => {
     // 重定向模块
     if (data.request === './foo.js') {
       data.request = './bar.js';

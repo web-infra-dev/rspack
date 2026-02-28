@@ -17,10 +17,6 @@ impl<T: std::fmt::Debug> TWithDiagnosticArray<T> {
     &self.diagnostic
   }
 
-  pub fn take_inner(self) -> T {
-    self.inner
-  }
-
   pub fn split_into_parts(self) -> (T, Vec<Diagnostic>) {
     (self.inner, self.diagnostic)
   }

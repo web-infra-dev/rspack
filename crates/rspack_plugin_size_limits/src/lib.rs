@@ -46,7 +46,7 @@ impl SizeLimitsPlugin {
   async fn get_entrypoint_size(&self, entrypoint: &ChunkGroup, compilation: &Compilation) -> f64 {
     let mut size = 0.0;
 
-    for filename in entrypoint.get_files(&compilation.chunk_by_ukey) {
+    for filename in entrypoint.get_files(&compilation.build_chunk_graph_artifact.chunk_by_ukey) {
       let asset = compilation.assets().get(&filename);
 
       if let Some(asset) = asset {
@@ -88,8 +88,7 @@ impl SizeLimitsPlugin {
     let asset_list: String = detail
       .iter()
       .map(|(name, size)| format!("\n  {} ({})", name, format_size(*size)))
-      .collect::<Vec<String>>()
-      .join("");
+      .collect::<String>();
     let title = String::from("assets over size limit warning");
     let message = format!(
       "asset size limit: The following asset(s) exceed the recommended size limit ({}). This can impact web performance.\nAssets:{}",
@@ -120,8 +119,7 @@ impl SizeLimitsPlugin {
             .join("\n")
         )
       })
-      .collect::<Vec<_>>()
-      .join("");
+      .collect::<String>();
     let title = String::from("entrypoints over size limit warning");
     let message = format!(
       "entrypoint size limit: The following entrypoint(s) combined asset size exceeds the recommended limit ({}). This can impact web performance.\nEntrypoints:{}",
@@ -136,8 +134,8 @@ impl SizeLimitsPlugin {
 #[plugin_hook(CompilerAfterEmit for SizeLimitsPlugin)]
 async fn after_emit(&self, compilation: &mut Compilation) -> Result<()> {
   let hints = &self.options.hints;
-  let max_asset_size = self.options.max_asset_size.unwrap_or(250000.0);
-  let max_entrypoint_size = self.options.max_entrypoint_size.unwrap_or(250000.0);
+  let max_asset_size = self.options.max_asset_size.unwrap_or(250_000.0);
+  let max_entrypoint_size = self.options.max_entrypoint_size.unwrap_or(250_000.0);
   let mut checked_assets: HashMap<String, bool> = HashMap::default();
   let mut checked_chunk_groups: HashMap<ChunkGroupUkey, bool> = HashMap::default();
 
@@ -175,8 +173,11 @@ async fn after_emit(&self, compilation: &mut Compilation) -> Result<()> {
 
   let mut entrypoints_over_limit = vec![];
 
-  for (name, ukey) in compilation.entrypoints.iter() {
-    let entry = compilation.chunk_group_by_ukey.expect_get(ukey);
+  for (name, ukey) in compilation.build_chunk_graph_artifact.entrypoints.iter() {
+    let entry = compilation
+      .build_chunk_graph_artifact
+      .chunk_group_by_ukey
+      .expect_get(ukey);
     let size = self.get_entrypoint_size(entry, compilation).await;
     let is_over_size_limit = size > max_entrypoint_size;
 
@@ -184,7 +185,7 @@ async fn after_emit(&self, compilation: &mut Compilation) -> Result<()> {
     if is_over_size_limit {
       let mut files = vec![];
 
-      for filename in entry.get_files(&compilation.chunk_by_ukey) {
+      for filename in entry.get_files(&compilation.build_chunk_graph_artifact.chunk_by_ukey) {
         let asset = compilation.assets().get(&filename);
 
         if let Some(asset) = asset
@@ -221,9 +222,12 @@ async fn after_emit(&self, compilation: &mut Compilation) -> Result<()> {
 
     if !diagnostics.is_empty() {
       let has_async_chunk = compilation
+        .build_chunk_graph_artifact
         .chunk_by_ukey
         .values()
-        .any(|chunk| !chunk.can_be_initial(&compilation.chunk_group_by_ukey));
+        .any(|chunk| {
+          !chunk.can_be_initial(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
+        });
 
       if !has_async_chunk {
         let title = String::from("no async chunks warning");
@@ -246,6 +250,7 @@ async fn after_emit(&self, compilation: &mut Compilation) -> Result<()> {
 
   for (ukey, checked) in checked_chunk_groups.iter() {
     compilation
+      .build_chunk_graph_artifact
       .chunk_group_by_ukey
       .expect_get_mut(ukey)
       .set_is_over_size_limit(*checked);

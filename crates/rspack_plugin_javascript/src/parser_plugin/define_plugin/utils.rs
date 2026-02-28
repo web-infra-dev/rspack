@@ -1,17 +1,12 @@
-use std::{borrow::Cow, sync::LazyLock};
+use std::borrow::Cow;
 
 use itertools::Itertools as _;
-use regex::Regex;
-use rspack_core::{ConstDependency, RuntimeGlobals};
+use rspack_core::{
+  BoxDependencyTemplate, ConstDependency, RuntimeGlobals, RuntimeRequirementsDependency,
+};
 use serde_json::{Value, json};
 
 use crate::visitors::{DestructuringAssignmentProperties, JavascriptParser};
-
-static WEBPACK_REQUIRE_FUNCTION_REGEXP: LazyLock<Regex> = LazyLock::new(|| {
-  Regex::new("__webpack_require__\\s*(!?\\.)")
-    .expect("should init `WEBPACK_REQUIRE_FUNCTION_REGEXP`")
-});
-static WEBPACK_REQUIRE_IDENTIFIER: &str = "__webpack_require__";
 
 pub fn gen_const_dep(
   parser: &JavascriptParser,
@@ -19,7 +14,7 @@ pub fn gen_const_dep(
   for_name: &str,
   start: u32,
   end: u32,
-) -> ConstDependency {
+) -> Vec<BoxDependencyTemplate> {
   let code = if parser.in_short_hand {
     format!("{for_name}: {code}")
   } else {
@@ -27,16 +22,26 @@ pub fn gen_const_dep(
   };
 
   let to_const_dep = |requirements: Option<RuntimeGlobals>| {
-    ConstDependency::new(
+    let mut res: Vec<BoxDependencyTemplate> = vec![];
+    res.push(Box::new(ConstDependency::new(
       (start, end).into(),
       code.clone().into_boxed_str(),
-      requirements,
-    )
+    )));
+    if let Some(requirements) = requirements {
+      res.push(Box::new(RuntimeRequirementsDependency::add_only(
+        requirements,
+      )));
+    }
+    res
   };
 
-  if WEBPACK_REQUIRE_FUNCTION_REGEXP.is_match(&code) {
+  if parser
+    .parser_runtime_requirements
+    .require_regex
+    .is_match(&code)
+  {
     to_const_dep(Some(RuntimeGlobals::REQUIRE))
-  } else if code.contains(WEBPACK_REQUIRE_IDENTIFIER) {
+  } else if code.contains(&parser.parser_runtime_requirements.require) {
     to_const_dep(Some(RuntimeGlobals::REQUIRE_SCOPE))
   } else {
     to_const_dep(None)

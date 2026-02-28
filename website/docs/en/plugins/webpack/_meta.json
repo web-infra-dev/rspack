@@ -28,6 +28,6 @@
   "runtime-chunk-plugin",
   "source-map-dev-tool-plugin",
   "split-chunks-plugin",
-  "warn-case-sensitive-modules-plugin",
+  "case-sensitive-plugin",
   "internal-plugins"
 ]

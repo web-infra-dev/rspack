@@ -1,16 +1,36 @@
 ```mjs title=dynamic_js.mjs
 import { __webpack_require__ } from "./runtime.mjs";
 __webpack_require__.add({
-"./dynamic.js": 
+"./dynamic.js"
 /*!********************!*\
   !*** ./dynamic.js ***!
   \********************/
-(function (__unused_webpack_module, exports) {
+(__unused_rspack_module, exports) {
 exports.value = 42
 
 
-}),
+},
 });
+const dynamic = __webpack_require__("./dynamic.js");
+var dynamic_default = /*#__PURE__*/__webpack_require__.n(dynamic);
+var dynamic_default_0 = dynamic_default();
+var value = dynamic.value;
+
+export { value };
+export default dynamic_default_0;
+
+```
+
+```mjs title=esm_js.mjs
+import { __webpack_require__ } from "./runtime.mjs";
+import "./dynamic_js.mjs";
+
+// ./esm.js
+
+const dynamic = __webpack_require__("./dynamic.js");
+var value = dynamic.value;
+
+export { value };
 
 ```
 
@@ -19,7 +39,9 @@ import { __webpack_require__ } from "./runtime.mjs";
 // ./index.js
 it('should support dynamic import', async () => {
 	const mod = await import("./dynamic_js.mjs").then(__webpack_require__.t.bind(__webpack_require__, /*! ./dynamic */ "./dynamic.js", 19))
+	const mod2 = await import("./esm_js.mjs")
 	expect(mod.value).toBe(42)
+	expect(mod2.value).toBe(42)
 })
 
 
@@ -52,9 +74,16 @@ return module.exports;
 // expose the modules object (__webpack_modules__)
 __webpack_require__.m = __webpack_modules__;
 
-// esm library register module runtime
+// webpack/runtime/compat_get_default_export
 (() => {
-__webpack_require__.add = function registerModules(modules) { Object.assign(__webpack_require__.m, modules) }
+// getDefaultExport function for compatibility with non-ESM modules
+__webpack_require__.n = (module) => {
+	var getter = module && module.__esModule ?
+		() => (module['default']) :
+		() => (module);
+	__webpack_require__.d(getter, { a: getter });
+	return getter;
+};
 
 })();
 // webpack/runtime/create_fake_namespace_object
@@ -78,7 +107,7 @@ __webpack_require__.t = function(value, mode) {
   __webpack_require__.r(ns);
 	var def = {};
 	leafPrototypes = leafPrototypes || [null, getProto({}), getProto([]), getProto(getProto)];
-	for(var current = mode & 2 && value; typeof current == 'object' && !~leafPrototypes.indexOf(current); current = getProto(current)) {
+	for(var current = mode & 2 && value; (typeof current == 'object' || typeof current == 'function') && !~leafPrototypes.indexOf(current); current = getProto(current)) {
 		Object.getOwnPropertyNames(current).forEach((key) => { def[key] = () => (value[key]) });
 	}
 	def['default'] = () => (value);
@@ -95,6 +124,11 @@ __webpack_require__.d = (exports, definition) => {
         }
     }
 };
+})();
+// webpack/runtime/esm_register_module
+(() => {
+__webpack_require__.add = function registerModules(modules) { Object.assign(__webpack_require__.m, modules) }
+
 })();
 // webpack/runtime/has_own_property
 (() => {

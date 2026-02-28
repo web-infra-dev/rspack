@@ -4,10 +4,10 @@ use rspack_cacheable::{
 };
 use rspack_core::{
   AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
-  DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, ExportsType,
-  ExtendedReferencedExport, FactorizeInfo, ImportAttributes, ModuleDependency, ModuleGraph,
-  ModuleGraphCacheArtifact, ReferencedExport, TemplateContext, TemplateReplaceSource,
-  create_exports_object_referenced, module_namespace_promise,
+  DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, ExportsInfoArtifact,
+  ExportsType, ExtendedReferencedExport, FactorizeInfo, ImportAttributes, ImportPhase,
+  ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ReferencedExport, ResourceIdentifier,
+  TemplateContext, TemplateReplaceSource, create_exports_object_referenced,
 };
 use swc_core::ecma::atoms::Atom;
 
@@ -18,6 +18,7 @@ pub fn create_import_dependency_referenced_exports(
   referenced_exports: &Option<Vec<Vec<Atom>>>,
   mg: &ModuleGraph,
   mg_cache: &ModuleGraphCacheArtifact,
+  exports_info_artifact: &ExportsInfoArtifact,
 ) -> Vec<ExtendedReferencedExport> {
   if let Some(referenced_exports) = referenced_exports {
     let mut refs = vec![];
@@ -38,7 +39,8 @@ pub fn create_import_dependency_referenced_exports(
         else {
           return create_exports_object_referenced();
         };
-        let exports_type = imported_module.get_exports_type(mg, mg_cache, strict);
+        let exports_type =
+          imported_module.get_exports_type(mg, mg_cache, exports_info_artifact, strict);
         if matches!(
           exports_type,
           ExportsType::DefaultOnly | ExportsType::DefaultWithNamed
@@ -68,8 +70,9 @@ pub struct ImportDependency {
   #[cacheable(with=AsOption<AsVec<AsVec<AsPreset>>>)]
   referenced_exports: Option<Vec<Vec<Atom>>>,
   attributes: Option<ImportAttributes>,
+  phase: ImportPhase,
   pub comments: Vec<(bool, String)>,
-  resource_identifier: String,
+  resource_identifier: ResourceIdentifier,
   factorize_info: FactorizeInfo,
   optional: bool,
 }
@@ -80,6 +83,7 @@ impl ImportDependency {
     range: DependencyRange,
     referenced_exports: Option<Vec<Vec<Atom>>>,
     attributes: Option<ImportAttributes>,
+    phase: ImportPhase,
     optional: bool,
     comments: Vec<(bool, String)>,
   ) -> Self {
@@ -91,6 +95,7 @@ impl ImportDependency {
       id: DependencyId::new(),
       referenced_exports,
       attributes,
+      phase,
       resource_identifier,
       factorize_info: Default::default(),
       optional,
@@ -125,6 +130,10 @@ impl Dependency for ImportDependency {
     self.attributes.as_ref()
   }
 
+  fn get_phase(&self) -> ImportPhase {
+    self.phase
+  }
+
   fn range(&self) -> Option<DependencyRange> {
     Some(self.range)
   }
@@ -133,6 +142,7 @@ impl Dependency for ImportDependency {
     &self,
     module_graph: &rspack_core::ModuleGraph,
     module_graph_cache: &ModuleGraphCacheArtifact,
+    exports_info_artifact: &ExportsInfoArtifact,
     _runtime: Option<&rspack_core::RuntimeSpec>,
   ) -> Vec<rspack_core::ExtendedReferencedExport> {
     create_import_dependency_referenced_exports(
@@ -140,6 +150,7 @@ impl Dependency for ImportDependency {
       &self.referenced_exports,
       module_graph,
       module_graph_cache,
+      exports_info_artifact,
     )
   }
 
@@ -207,15 +218,19 @@ impl DependencyTemplate for ImportDependencyTemplate {
     source.replace(
       range.start,
       range.end,
-      module_namespace_promise(
-        code_generatable_context,
-        dep.id(),
-        block,
-        dep.request(),
-        dep.dependency_type().as_str(),
-        false,
-      )
-      .as_str(),
+      code_generatable_context
+        .runtime_template
+        .module_namespace_promise(
+          code_generatable_context.compilation,
+          code_generatable_context.module.identifier(),
+          dep.id(),
+          block,
+          dep.request(),
+          dep.dependency_type().as_str(),
+          false,
+          dep.get_phase(),
+        )
+        .as_str(),
       None,
     );
   }

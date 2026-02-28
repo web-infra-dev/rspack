@@ -130,6 +130,7 @@ module.exports.JsCompilation = __napiModule.exports.JsCompilation
 module.exports.JsCompiler = __napiModule.exports.JsCompiler
 module.exports.JsContextModuleFactoryAfterResolveData = __napiModule.exports.JsContextModuleFactoryAfterResolveData
 module.exports.JsContextModuleFactoryBeforeResolveData = __napiModule.exports.JsContextModuleFactoryBeforeResolveData
+module.exports.JsCoordinator = __napiModule.exports.JsCoordinator
 module.exports.JsDependencies = __napiModule.exports.JsDependencies
 module.exports.JsEntries = __napiModule.exports.JsEntries
 module.exports.JsExportsInfo = __napiModule.exports.JsExportsInfo

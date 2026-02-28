@@ -17,17 +17,17 @@
   "resolve-plugin-un-support-desc": "`resolve.plugins` option not supported",
   "progress-plugin-desc": "Use [webpackbar](https://www.npmjs.com/package/webpackbar) instead",
   "webpack-virtual-modules-desc": "Use [VirtualModulesPlugin](/plugins/rspack/virtual-modules-plugin) instead",
-  "webpack-manifest-plugin-desc": "Use [rspack-manifest-plugin](https://github.com/rspack-contrib/rspack-manifest-plugin) instead",
+  "webpack-manifest-plugin-desc": "Use [rspack-manifest-plugin](https://github.com/rstackjs/rspack-manifest-plugin) instead",
   "workbox-webpack-plugin-desc": "Use [@aaroon/workbox-rspack-plugin](https://github.com/Clarkkkk/workbox-rspack-plugin) instead",
   "webpack-subresource-integrity-desc": "Use [SubresourceIntegrityPlugin](/plugins/rspack/subresource-integrity-plugin) instead",
   "react-refresh-webpack-plugin-desc": "Use [@rspack/plugin-react-refresh](/guide/tech/react#rspackplugin-react-refresh) instead",
   "@nx/webpack-desc": "Use [@nx/rspack](https://www.npmjs.com/package/@nx/rspack) instead",
   "webpack-filter-warnings-plugin-desc": "Use [ignoreWarnings](/config/other-options#ignorewarnings) instead",
   "speed-measure-webpack-plugin-desc": "Use [Rsdoctor](/guide/optimization/use-rsdoctor) instead",
-  "eslint-webpack-plugin-desc": "Use [eslint-rspack-plugin](https://github.com/rspack-contrib/eslint-rspack-plugin) instead",
+  "eslint-webpack-plugin-desc": "Use [eslint-rspack-plugin](https://github.com/rstackjs/eslint-rspack-plugin) instead",
   "circular-dependency-plugin-desc": "Use [CircularDependencyRspackPlugin](/plugins/rspack/circular-dependency-rspack-plugin) instead",
-  "html-webpack-tags-plugin-desc": "Use [html-rspack-tags-plugin](https://github.com/rspack-contrib/html-rspack-tags-plugin) instead",
+  "html-webpack-tags-plugin-desc": "Use [html-rspack-tags-plugin](https://github.com/rstackjs/html-rspack-tags-plugin) instead",
   "needs-html-webpack-plugin": "This plugin depends on html-webpack-plugin",
   "webpack-assets-manifest-desc": "Only supports basic usage",
-  "fork-ts-checker-webpack-plugin-desc": "Use [ts-checker-rspack-plugin](https://github.com/rspack-contrib/ts-checker-rspack-plugin) instead"
+  "fork-ts-checker-webpack-plugin-desc": "Use [ts-checker-rspack-plugin](https://github.com/rstackjs/ts-checker-rspack-plugin) instead"
 }

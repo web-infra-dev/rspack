@@ -20,11 +20,13 @@ define(["named1", "named2"], function(named1, named2) {
 		expect(named2).toBe("named2");
 	});
 
-	it("should load the named modules in require dependencies", function(done) {
-		require(["named3", "named4"], function (named3, named4) {
-			expect(named3).toBe("named3");
-			expect(named4).toBe("named4");
-			done();
+	it("should load the named modules in require dependencies", async function() {
+		await new Promise((resolve, reject) => {
+			require(["named3", "named4"], function (named3, named4) {
+				expect(named3).toBe("named3");
+				expect(named4).toBe("named4");
+				resolve();
+			});
 		});
 	});
 });

@@ -7,7 +7,7 @@ module.exports = {
 	target: "web",
 	output: {
 		filename: "[name].js",
-		libraryTarget: "umd"
+		library: { type: "umd" }
 	},
 	externals: ["external0", "external1", "external2", "fs", "path"],
 	optimization: {

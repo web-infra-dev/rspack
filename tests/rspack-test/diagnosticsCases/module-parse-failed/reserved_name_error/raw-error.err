@@ -1,12 +1,12 @@
 Array [
   Object {
     code: ModuleParseError,
-    moduleIdentifier: <TEST_TOOLS_ROOT>/diagnosticsCases/module-parse-failed/reserved_name_error/index.js,
+    moduleIdentifier: <TEST_ROOT>/diagnosticsCases/module-parse-failed/reserved_name_error/index.js,
     moduleName: ./index.js,
   },
   Object {
     code: ModuleParseError,
-    moduleIdentifier: <TEST_TOOLS_ROOT>/diagnosticsCases/module-parse-failed/reserved_name_error/index.js,
+    moduleIdentifier: <TEST_ROOT>/diagnosticsCases/module-parse-failed/reserved_name_error/index.js,
     moduleName: ./index.js,
   },
 ]

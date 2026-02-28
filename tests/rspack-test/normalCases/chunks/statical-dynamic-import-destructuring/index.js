@@ -1,14 +1,12 @@
-it("should load only used exports", async (done) => {
+it("should load only used exports", async () => {
 	const { default: def, usedExports } = await import("../statical-dynamic-import/dir1/a");
 	expect(def).toBe(3);
 	expect(usedExports).toEqual(["default", "usedExports"]);
-	done();
 });
 
-it("should get warning on using 'webpackExports' with destructuring assignment", async (done) => {
+it("should get warning on using 'webpackExports' with destructuring assignment", async () => {
 	const { default: def } = await import(/* webpackExports: ["a"] */"../statical-dynamic-import/dir1/a?2");
 	expect(def).toBe(3);
-	done();
 });
 
 it("should not tree-shake default export for exportsType=default module", async () => {

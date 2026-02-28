@@ -28,7 +28,7 @@ function run({ default: value2, asyncDep: value3 }) {
 			entry: path.resolve(__dirname, "./index"),
 			output: {
 				path: path.resolve(__dirname, "../../js/buildDeps/" + process.argv[2]),
-				libraryTarget: "commonjs2"
+				library: { type: "commonjs2" }
 			},
 			plugins: [
 				new webpack.DefinePlugin({

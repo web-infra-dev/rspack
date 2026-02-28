@@ -1,20 +1,81 @@
-const { rspack } = require("@rspack/core");
+const devtool = "eval-source-map";
 
-/** @type {import("@rspack/core").Configuration} */
-module.exports = {
-	node: {
-		__dirname: false,
-		__filename: false
+/** @type {import("@rspack/core").Configuration[]} */
+module.exports = [
+	{
+		devtool
 	},
-	devtool: "eval-source-map",
-	externals: ["source-map"],
-	externalsType: "commonjs",
-	optimization: {
-		moduleIds: 'named'
+	{
+		devtool,
+		optimization: {
+			moduleIds: "natural"
+		}
 	},
-	plugins: [
-		new rspack.DefinePlugin({
-			CONTEXT: JSON.stringify(__dirname)
-		})
-	]
-};
+	{
+		devtool,
+		optimization: {
+			moduleIds: "named"
+		}
+	},
+	{
+		devtool,
+		optimization: {
+			moduleIds: "deterministic"
+		}
+	},
+	// TODO: support size module ids 
+	// {
+	// 	devtool,
+	// 	optimization: {
+	// 		moduleIds: "size"
+	// 	}
+	// },
+	{
+		entry: "./index?foo=bar",
+		devtool,
+		optimization: {
+			moduleIds: "named"
+		}
+	},
+	{
+		entry: "./index.js?foo=bar",
+		devtool,
+		optimization: {
+			moduleIds: "named"
+		}
+	},
+	{
+		entry: "alias",
+		devtool,
+		optimization: {
+			moduleIds: "named"
+		},
+		resolve: {
+			alias: {
+				alias: "./index?foo=bar"
+			}
+		}
+	},
+	{
+		entry: "pkg",
+		devtool,
+		optimization: {
+			moduleIds: "named"
+		}
+	},
+	{
+		entry: "./index.ts?foo=bar",
+		devtool,
+		optimization: {
+			moduleIds: "named"
+		},
+		module: {
+			rules: [
+				{
+					test: /\.ts$/,
+					loader: 'builtin:swc-loader',
+				}
+			]
+		}
+	}
+];

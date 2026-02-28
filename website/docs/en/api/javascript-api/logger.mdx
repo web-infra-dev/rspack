@@ -48,7 +48,7 @@ export class MyRspackPlugin {
     const logger = compiler.getInfrastructureLogger(PLUGIN_NAME);
     logger.log('log from compiler');
 
-    compiler.hooks.compilation.tap(PLUGIN_NAME, compilation => {
+    compiler.hooks.compilation.tap(PLUGIN_NAME, (compilation) => {
       // access Logger from compilation
       const logger = compilation.getLogger(PLUGIN_NAME);
       logger.info('log from compilation');

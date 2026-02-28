@@ -4,9 +4,7 @@ module.exports = {
 		splitChunks: false,
 		sideEffects: false
 	},
-	experiments: {
-		incremental: {
-			buildChunkGraph: true
-		}
+	incremental: {
+		buildChunkGraph: true
 	}
 };

@@ -11,6 +11,6 @@ it("should keep pure comment of unused export default", () => {
 });
 
 it("should keep pure comment of used export default", () => {
-  const methodName = "function __WEBPACK_DEFAULT_EXPORT__()";
+  const methodName = "function __rspack_default_export()";
   expect(content).toContain(`${pureComment}${methodName}`)
 });

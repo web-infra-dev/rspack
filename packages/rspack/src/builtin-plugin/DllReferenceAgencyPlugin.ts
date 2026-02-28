@@ -1,15 +1,15 @@
 import {
-	BuiltinPluginName,
-	type RawDllReferenceAgencyPluginOptions
-} from "@rspack/binding";
-import { create } from "./base";
+  BuiltinPluginName,
+  type RawDllReferenceAgencyPluginOptions,
+} from '@rspack/binding';
+import { create } from './base';
 
 export type DllReferenceAgencyPluginOptions =
-	RawDllReferenceAgencyPluginOptions;
+  RawDllReferenceAgencyPluginOptions;
 
 export const DllReferenceAgencyPlugin = create(
-	BuiltinPluginName.DllReferenceAgencyPlugin,
-	(
-		options: DllReferenceAgencyPluginOptions
-	): RawDllReferenceAgencyPluginOptions => options
+  BuiltinPluginName.DllReferenceAgencyPlugin,
+  (
+    options: DllReferenceAgencyPluginOptions,
+  ): RawDllReferenceAgencyPluginOptions => options,
 );

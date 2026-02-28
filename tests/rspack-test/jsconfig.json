@@ -1,0 +1,13 @@
+{
+  "exclude": [
+    "node_modules",
+    "dist",
+    "js/**/*"
+  ],
+  "include": [
+    "**/*"
+  ],
+  "compilerOptions": {
+    "types": ["./rstest.d.ts"]
+  }
+}

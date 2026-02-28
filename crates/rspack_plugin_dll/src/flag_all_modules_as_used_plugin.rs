@@ -1,9 +1,10 @@
 use rspack_collections::IdentifierSet;
 use rspack_core::{
   BoxModule, Compilation, CompilationBuildModule, CompilationId, CompilationOptimizeDependencies,
-  CompilerId, FactoryMeta, Plugin, RuntimeSpec, get_entry_runtime,
+  CompilerId, ExportsInfoArtifact, FactoryMeta, Plugin, RuntimeSpec, SideEffectsOptimizeArtifact,
+  build_module_graph::BuildModuleGraphArtifact, get_entry_runtime,
 };
-use rspack_error::Result;
+use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
 
 #[plugin]
@@ -39,7 +40,14 @@ impl Plugin for FlagAllModulesAsUsedPlugin {
 }
 
 #[plugin_hook(CompilationOptimizeDependencies for FlagAllModulesAsUsedPlugin)]
-async fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
+async fn optimize_dependencies(
+  &self,
+  compilation: &Compilation,
+  _side_effects_optimize_artifact: &mut SideEffectsOptimizeArtifact,
+  build_module_graph_artifact: &mut BuildModuleGraphArtifact,
+  exports_info_artifact: &mut ExportsInfoArtifact,
+  _diagnostics: &mut Vec<Diagnostic>,
+) -> Result<Option<bool>> {
   let entries = &compilation.entries;
 
   let runtime = compilation
@@ -51,13 +59,14 @@ async fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<O
       a
     });
 
-  let mut mg = compilation.get_module_graph_mut();
+  let mg = build_module_graph_artifact.get_module_graph_mut();
 
-  let module_id_list: IdentifierSet = mg.modules().keys().copied().collect();
+  let module_id_list: IdentifierSet = mg.modules_keys().copied().collect();
 
   for module_id in module_id_list {
-    let exports_info = mg.get_exports_info(&module_id);
-    exports_info.set_used_in_unknown_way(&mut mg, Some(&runtime));
+    exports_info_artifact
+      .get_exports_info_data_mut(&module_id)
+      .set_used_in_unknown_way(Some(&runtime));
   }
 
   Ok(None)

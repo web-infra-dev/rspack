@@ -5,6 +5,7 @@
 
 ## Asset Files
 - Bundle: bundle.js
+- Bundle: style2_module_css.chunk.CURRENT_HASH.js
 
 ## Manifest
 

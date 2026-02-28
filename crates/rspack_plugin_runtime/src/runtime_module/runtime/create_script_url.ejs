@@ -1,1 +1,5 @@
-<%- CREATE_SCRIPT_URL %> = <%- returningFunction(_return, "url") %>
+<% if (_trusted_types) { %>
+<%- CREATE_SCRIPT_URL %> = <%- returningFunction(GET_TRUSTED_TYPES_POLICY + "().createScriptURL(url)", "url" ) %>
+<% } else { %>
+<%- CREATE_SCRIPT_URL %> = <%- returningFunction("url", "url" ) %>
+<% } %>

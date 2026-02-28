@@ -3,11 +3,11 @@ use std::hash::Hash;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
-  AsyncDependenciesBlockIdentifier, BuildContext, BuildInfo, BuildMeta, BuildResult,
-  CodeGenerationResult, Compilation, CompilerOptions, ConcatenationScope, DependenciesBlock,
-  DependencyId, FactoryMeta, Module, ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult,
-  ModuleGraph, ModuleLayer, RuntimeSpec, SourceType, impl_module_meta_info, impl_source_map_config,
-  module_update_hash, rspack_sources::BoxSource,
+  AsyncDependenciesBlockIdentifier, BoxModule, BuildContext, BuildInfo, BuildMeta, BuildResult,
+  CodeGenerationResult, Compilation, CompilerOptions, DependenciesBlock, DependencyId, FactoryMeta,
+  Module, ModuleCodeGenerationContext, ModuleExt, ModuleFactory, ModuleFactoryCreateData,
+  ModuleFactoryResult, ModuleGraph, ModuleLayer, RuntimeSpec, SourceType, impl_module_meta_info,
+  impl_source_map_config, module_update_hash, rspack_sources::BoxSource,
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
 use rspack_hash::{RspackHash, RspackHashDigest};
@@ -108,9 +108,9 @@ impl Module for CssModule {
     let index_suffix = if self.identifier_index > 0 {
       let mut index_buffer = itoa::Buffer::new();
       let index_str = index_buffer.format(self.identifier_index);
-      format!("({})", index_str)
+      format!("({index_str})")
     } else {
-      "".into()
+      String::new()
     };
     std::borrow::Cow::Owned(format!(
       "css {}{}{}{}{}",
@@ -119,21 +119,21 @@ impl Module for CssModule {
       if let Some(layer) = &self.css_layer {
         format!(" (layer {layer})")
       } else {
-        "".into()
+        String::new()
       },
       if let Some(supports) = &self.supports
         && !supports.is_empty()
       {
         format!(" (supports {supports})")
       } else {
-        "".into()
+        String::new()
       },
       if let Some(media) = &self.media
         && !media.is_empty()
       {
         format!(" (media {media})")
       } else {
-        "".into()
+        String::new()
       }
     ))
   }
@@ -167,20 +167,23 @@ impl Module for CssModule {
   }
 
   async fn build(
-    &mut self,
+    mut self: Box<Self>,
     build_context: BuildContext,
     _compilation: Option<&Compilation>,
   ) -> Result<BuildResult> {
     self.build_info.hash = Some(self.compute_hash(&build_context.compiler_options));
-    Ok(Default::default())
+    Ok(BuildResult {
+      module: BoxModule::new(self),
+      dependencies: vec![],
+      blocks: vec![],
+      optimization_bailouts: vec![],
+    })
   }
 
   // #[tracing::instrument("ExtractCssModule::code_generation", skip_all, fields(identifier = ?self.identifier()))]
   async fn code_generation(
     &self,
-    _compilation: &Compilation,
-    _runtime: Option<&RuntimeSpec>,
-    _concatenation_scope: Option<ConcatenationScope>,
+    _code_generation_context: &mut ModuleCodeGenerationContext,
   ) -> Result<CodeGenerationResult> {
     Ok(CodeGenerationResult::default())
   }
@@ -239,9 +242,9 @@ impl ModuleFactory for CssModuleFactory {
       .downcast_ref::<CssDependency>()
       .expect("unreachable");
 
-    Ok(ModuleFactoryResult::new_with_module(Box::new(
-      CssModule::new(css_dep.clone()),
-    )))
+    Ok(ModuleFactoryResult::new_with_module(
+      CssModule::new(css_dep.clone()).boxed(),
+    ))
   }
 }
 

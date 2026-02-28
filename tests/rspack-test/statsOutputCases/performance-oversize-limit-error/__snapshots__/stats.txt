@@ -2,8 +2,8 @@ asset main.js xx KiB [emitted] [big] (name: main)
 asset sec.js xx KiB [emitted] [big] (name: sec)
 Entrypoint main [big] xx KiB = main.js
 Entrypoint sec [big] xx KiB = sec.js
-./index.js 16 bytes [built] [code generated]
-./index2.js 16 bytes [built] [code generated]
+./index.js xx bytes [built] [code generated]
+./index2.js xx bytes [built] [code generated]
 ./a.js xx KiB [built] [code generated]
 
 ERROR in × asset size limit: The following asset(s) exceed the recommended size limit (xx KiB). This can impact web performance.Assets:

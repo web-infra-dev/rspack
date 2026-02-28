@@ -23,12 +23,14 @@ module.exports = [
 				// 		exportsOnly: true
 				// 	},
 				// 	type: "css/global"
-				// }
+				// },
+				{
+					test: /\.css$/,
+					type: "css/auto"
+				}
 			]
 		},
-		experiments: {
-			css: true
-		},
+
 		node: {
 			__dirname: false
 		}

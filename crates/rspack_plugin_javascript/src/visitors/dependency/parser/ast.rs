@@ -1,0 +1,93 @@
+use swc_core::ecma::ast::*;
+
+/// A reference-based wrapper around SWC AST expression types.
+///
+/// This enum holds references to various expression types to avoid
+/// unnecessary cloning during AST traversal and analysis. The lifetime
+/// `'ast` represents the lifetime of the original AST node being referenced.
+#[derive(Debug)]
+pub enum ExprRef<'ast> {
+  This(&'ast ThisExpr),
+  Array(&'ast ArrayLit),
+  Object(&'ast ObjectLit),
+  Fn(&'ast FnExpr),
+  Unary(&'ast UnaryExpr),
+  Update(&'ast UpdateExpr),
+  Bin(&'ast BinExpr),
+  Assign(&'ast AssignExpr),
+  Member(&'ast MemberExpr),
+  SuperProp(&'ast SuperPropExpr),
+  Cond(&'ast CondExpr),
+  Call(&'ast CallExpr),
+  New(&'ast NewExpr),
+  Seq(&'ast SeqExpr),
+  Ident(&'ast Ident),
+  Lit(&'ast Lit),
+  Tpl(&'ast Tpl),
+  TaggedTpl(&'ast TaggedTpl),
+  Arrow(&'ast ArrowExpr),
+  Class(&'ast ClassExpr),
+  Yield(&'ast YieldExpr),
+  MetaProp(&'ast MetaPropExpr),
+  Await(&'ast AwaitExpr),
+  Paren(&'ast ParenExpr),
+  JSXMember(&'ast JSXMemberExpr),
+  JSXNamespacedName(&'ast JSXNamespacedName),
+  JSXEmpty(&'ast JSXEmptyExpr),
+  JSXElement(&'ast JSXElement),
+  JSXFragment(&'ast JSXFragment),
+  TsTypeAssertion(&'ast TsTypeAssertion),
+  TsConstAssertion(&'ast TsConstAssertion),
+  TsNonNull(&'ast TsNonNullExpr),
+  TsAs(&'ast TsAsExpr),
+  TsInstantiation(&'ast TsInstantiation),
+  TsSatisfies(&'ast TsSatisfiesExpr),
+  PrivateName(&'ast PrivateName),
+  OptChain(&'ast OptChainExpr),
+  Invalid(&'ast Invalid),
+}
+
+impl<'ast> From<&'ast Expr> for ExprRef<'ast> {
+  fn from(expr: &'ast Expr) -> Self {
+    match expr {
+      Expr::This(this_expr) => ExprRef::This(this_expr),
+      Expr::Array(array_lit) => ExprRef::Array(array_lit),
+      Expr::Object(object_lit) => ExprRef::Object(object_lit),
+      Expr::Fn(fn_expr) => ExprRef::Fn(fn_expr),
+      Expr::Unary(unary_expr) => ExprRef::Unary(unary_expr),
+      Expr::Update(update_expr) => ExprRef::Update(update_expr),
+      Expr::Bin(bin_expr) => ExprRef::Bin(bin_expr),
+      Expr::Assign(assign_expr) => ExprRef::Assign(assign_expr),
+      Expr::Member(member_expr) => ExprRef::Member(member_expr),
+      Expr::SuperProp(super_prop_expr) => ExprRef::SuperProp(super_prop_expr),
+      Expr::Cond(cond_expr) => ExprRef::Cond(cond_expr),
+      Expr::Call(call_expr) => ExprRef::Call(call_expr),
+      Expr::New(new_expr) => ExprRef::New(new_expr),
+      Expr::Seq(seq_expr) => ExprRef::Seq(seq_expr),
+      Expr::Ident(ident) => ExprRef::Ident(ident),
+      Expr::Lit(lit) => ExprRef::Lit(lit),
+      Expr::Tpl(tpl) => ExprRef::Tpl(tpl),
+      Expr::TaggedTpl(tagged_tpl) => ExprRef::TaggedTpl(tagged_tpl),
+      Expr::Arrow(arrow_expr) => ExprRef::Arrow(arrow_expr),
+      Expr::Class(class_expr) => ExprRef::Class(class_expr),
+      Expr::Yield(yield_expr) => ExprRef::Yield(yield_expr),
+      Expr::MetaProp(meta_prop_expr) => ExprRef::MetaProp(meta_prop_expr),
+      Expr::Await(await_expr) => ExprRef::Await(await_expr),
+      Expr::Paren(paren_expr) => ExprRef::Paren(paren_expr),
+      Expr::JSXMember(jsxmember_expr) => ExprRef::JSXMember(jsxmember_expr),
+      Expr::JSXNamespacedName(jsxnamespaced_name) => ExprRef::JSXNamespacedName(jsxnamespaced_name),
+      Expr::JSXEmpty(jsxempty_expr) => ExprRef::JSXEmpty(jsxempty_expr),
+      Expr::JSXElement(jsxelement) => ExprRef::JSXElement(jsxelement),
+      Expr::JSXFragment(jsxfragment) => ExprRef::JSXFragment(jsxfragment),
+      Expr::TsTypeAssertion(ts_type_assertion) => ExprRef::TsTypeAssertion(ts_type_assertion),
+      Expr::TsConstAssertion(ts_const_assertion) => ExprRef::TsConstAssertion(ts_const_assertion),
+      Expr::TsNonNull(ts_non_null_expr) => ExprRef::TsNonNull(ts_non_null_expr),
+      Expr::TsAs(ts_as_expr) => ExprRef::TsAs(ts_as_expr),
+      Expr::TsInstantiation(ts_instantiation) => ExprRef::TsInstantiation(ts_instantiation),
+      Expr::TsSatisfies(ts_satisfies_expr) => ExprRef::TsSatisfies(ts_satisfies_expr),
+      Expr::PrivateName(private_name) => ExprRef::PrivateName(private_name),
+      Expr::OptChain(opt_chain_expr) => ExprRef::OptChain(opt_chain_expr),
+      Expr::Invalid(invalid) => ExprRef::Invalid(invalid),
+    }
+  }
+}

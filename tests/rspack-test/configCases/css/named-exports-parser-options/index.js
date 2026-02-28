@@ -8,7 +8,8 @@ it("should able to import with different namedExports", () => {
 	expect(style3).toEqual(nsObj({ class: '_style_module_css_named-class' }));
 });
 
-it("should able to import with different namedExports (async)", (done) => {
+it("should able to import with different namedExports (async)", () => new Promise((resolve, reject) => {
+	const done = err => (err ? reject(err) : resolve());
 	Promise.all([
 		import("./style.module.css"),
 		import("./style.module.css?default"),
@@ -22,4 +23,4 @@ it("should able to import with different namedExports (async)", (done) => {
 		expect(style3).toEqual(nsObj({ class: '_style_module_css_named-class' }));
 		done()
 	}, done)
-});
+}));

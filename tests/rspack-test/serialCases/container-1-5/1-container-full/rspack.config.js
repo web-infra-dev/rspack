@@ -17,7 +17,7 @@ const commonMF = {
 		"./ComponentB": "./ComponentB",
 		"./ComponentC": "./ComponentC"
 	},
-	shared: ["react"]
+	shared: ["mocked-react"]
 };
 
 /** @type {import("@rspack/core").Configuration[]} */
@@ -43,10 +43,8 @@ module.exports = [
 	},
 	{
 		...common,
-		experiments: {
-			outputModule: true
-		},
 		output: {
+			module: true,
 			filename: "module/[name].mjs",
 			uniqueName: "1-container-full-mjs"
 		},

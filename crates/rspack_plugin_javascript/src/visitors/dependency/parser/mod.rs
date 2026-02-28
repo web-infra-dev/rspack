@@ -1,5 +1,7 @@
+pub mod ast;
 mod call_hooks_name;
 pub mod estree;
+mod location_advancer;
 mod walk;
 mod walk_block_pre;
 mod walk_module_pre;
@@ -10,7 +12,6 @@ use std::{
   fmt::Display,
   hash::{Hash, Hasher},
   rc::Rc,
-  sync::Arc,
 };
 
 use bitflags::bitflags;
@@ -21,18 +22,16 @@ use rspack_cacheable::{
 };
 use rspack_core::{
   AsyncDependenciesBlock, BoxDependency, BoxDependencyTemplate, BuildInfo, BuildMeta,
-  CompilerOptions, DependencyRange, FactoryMeta, JavascriptParserCommonjsExportsOption,
-  JavascriptParserOptions, ModuleIdentifier, ModuleLayer, ModuleType, ParseMeta, ResourceData,
-  TypeReexportPresenceMode,
+  CompilerOptions, DependencyLocation, DependencyRange, FactoryMeta,
+  JavascriptParserCommonjsExportsOption, JavascriptParserOptions, ModuleIdentifier, ModuleLayer,
+  ModuleType, ParseMeta, ResourceData, SideEffectsBailoutItemWithSpan,
 };
 use rspack_error::{Diagnostic, Result};
-use rspack_util::SpanExt;
+use rspack_util::{SpanExt, fx_hash::FxIndexSet};
 use rustc_hash::{FxHashMap, FxHashSet};
 use swc_core::{
   atoms::Atom,
-  common::{
-    BytePos, Mark, SourceFile, SourceMap, Span, Spanned, comments::Comments, util::take::Take,
-  },
+  common::{BytePos, Mark, Span, Spanned, comments::Comments},
   ecma::{
     ast::{
       ArrayPat, AssignPat, AssignTargetPat, CallExpr, Decl, Expr, Ident, Lit, MemberExpr,
@@ -46,6 +45,7 @@ use swc_core::{
 use crate::{
   BoxJavascriptParserPlugin,
   dependency::local_module::LocalModule,
+  parser_and_generator::ParserRuntimeRequirementsData,
   parser_plugin::{
     self, ImportsReferencesState, InnerGraphState, JavaScriptParserPluginDrive,
     JavascriptParserPlugin,
@@ -53,6 +53,7 @@ use crate::{
   utils::eval::{self, BasicEvaluatedExpression},
   visitors::{
     ScanDependenciesResult,
+    dependency::parser::{ast::ExprRef, location_advancer::DependencyLocationAdvancer},
     scope_info::{
       ScopeInfoDB, ScopeInfoId, TagInfo, TagInfoId, VariableInfo, VariableInfoFlags, VariableInfoId,
     },
@@ -81,8 +82,8 @@ where
 }
 
 #[derive(Debug)]
-pub struct ExtractedMemberExpressionChainData {
-  pub object: Expr,
+pub struct ExtractedMemberExpressionChainData<'ast> {
+  pub object: ExprRef<'ast>,
   pub members: Vec<Atom>,
   pub members_optionals: Vec<bool>,
   pub member_ranges: Vec<Span>,
@@ -97,15 +98,14 @@ bitflags! {
 }
 
 #[derive(Debug)]
-pub enum MemberExpressionInfo {
-  Call(CallExpressionInfo),
+pub enum MemberExpressionInfo<'ast> {
+  Call(CallExpressionInfo<'ast>),
   Expression(ExpressionExpressionInfo),
 }
 
 #[derive(Debug)]
-pub struct CallExpressionInfo {
-  pub call: CallExpr,
-  pub callee_name: String,
+pub struct CallExpressionInfo<'ast> {
+  pub call: &'ast CallExpr,
   pub root_info: ExportedVariableInfo,
   pub callee_members: Vec<Atom>,
   pub members: Vec<Atom>,
@@ -150,6 +150,17 @@ impl RootName for Expr {
       Expr::Ident(ident) => ident.get_root_name(),
       Expr::This(this) => this.get_root_name(),
       Expr::MetaProp(meta) => meta.get_root_name(),
+      _ => None,
+    }
+  }
+}
+
+impl RootName for ExprRef<'_> {
+  fn get_root_name(&self) -> Option<Atom> {
+    match self {
+      ExprRef::Ident(ident) => ident.get_root_name(),
+      ExprRef::This(this) => this.get_root_name(),
+      ExprRef::MetaProp(meta) => meta.get_root_name(),
       _ => None,
     }
   }
@@ -226,7 +237,7 @@ pub struct DestructuringAssignmentProperty {
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct DestructuringAssignmentProperties {
   #[cacheable(with=AsVec<AsCacheable>)]
-  inner: FxHashSet<DestructuringAssignmentProperty>,
+  inner: FxIndexSet<DestructuringAssignmentProperty>,
 }
 
 impl Hash for DestructuringAssignmentProperties {
@@ -238,7 +249,7 @@ impl Hash for DestructuringAssignmentProperties {
 }
 
 impl DestructuringAssignmentProperties {
-  pub fn new(properties: FxHashSet<DestructuringAssignmentProperty>) -> Self {
+  pub fn new(properties: FxIndexSet<DestructuringAssignmentProperty>) -> Self {
     Self { inner: properties }
   }
 
@@ -254,11 +265,11 @@ impl DestructuringAssignmentProperties {
     self.inner.iter()
   }
 
-  pub fn traverse_on_left<'a, F>(&'a self, on_left_node: &mut F)
+  pub fn traverse_on_leaf<'a, F>(&'a self, on_leaf_node: &mut F)
   where
     F: FnMut(&mut Vec<&'a DestructuringAssignmentProperty>),
   {
-    self.traverse_impl(on_left_node, &mut |_| {}, &mut Vec::new());
+    self.traverse_impl(on_leaf_node, &mut |_| {}, &mut Vec::new());
   }
 
   pub fn traverse_on_enter<'a, F>(&'a self, on_enter_node: &mut F)
@@ -270,7 +281,7 @@ impl DestructuringAssignmentProperties {
 
   fn traverse_impl<'a, L, E>(
     &'a self,
-    on_left_node: &mut L,
+    on_leaf_node: &mut L,
     on_enter_node: &mut E,
     stack: &mut Vec<&'a DestructuringAssignmentProperty>,
   ) where
@@ -281,9 +292,9 @@ impl DestructuringAssignmentProperties {
       stack.push(prop);
       on_enter_node(stack);
       if let Some(pattern) = &prop.pattern {
-        pattern.traverse_impl(on_left_node, on_enter_node, stack);
+        pattern.traverse_impl(on_leaf_node, on_enter_node, stack);
       } else {
-        on_left_node(stack);
+        on_leaf_node(stack);
       }
       stack.pop();
     }
@@ -316,8 +327,7 @@ pub struct JavascriptParser<'parser> {
   #[allow(clippy::vec_box)]
   blocks: Vec<Box<AsyncDependenciesBlock>>,
   // ===== inputs =======
-  pub source_map: Arc<SourceMap>,
-  pub(crate) source_file: &'parser SourceFile,
+  pub(crate) source: &'parser str,
   pub parse_meta: ParseMeta,
   pub comments: Option<&'parser dyn Comments>,
   pub factory_meta: Option<&'parser FactoryMeta>,
@@ -326,7 +336,8 @@ pub struct JavascriptParser<'parser> {
   pub resource_data: &'parser ResourceData,
   pub(crate) compiler_options: &'parser CompilerOptions,
   pub(crate) javascript_options: &'parser JavascriptParserOptions,
-  pub(crate) module_type: &'parser ModuleType,
+  pub parser_runtime_requirements: &'parser ParserRuntimeRequirementsData,
+  pub module_type: &'parser ModuleType,
   pub(crate) module_layer: Option<&'parser ModuleLayer>,
   pub module_identifier: &'parser ModuleIdentifier,
   pub(crate) plugin_drive: Rc<JavaScriptParserPluginDrive>,
@@ -351,13 +362,15 @@ pub struct JavascriptParser<'parser> {
   pub(crate) last_esm_import_order: i32,
   pub(crate) inner_graph: InnerGraphState,
   pub(crate) has_inlinable_const_decls: bool,
+  pub(crate) side_effects_item: Option<SideEffectsBailoutItemWithSpan>,
+  pub(crate) is_renaming: Option<Atom>,
+  pub(crate) location_advancer: DependencyLocationAdvancer,
 }
 
 impl<'parser> JavascriptParser<'parser> {
   #[allow(clippy::too_many_arguments)]
   pub fn new(
-    source_map: Arc<SourceMap>,
-    source_file: &'parser SourceFile,
+    source: &'parser str,
     compiler_options: &'parser CompilerOptions,
     javascript_options: &'parser JavascriptParserOptions,
     comments: Option<&'parser dyn Comments>,
@@ -372,9 +385,10 @@ impl<'parser> JavascriptParser<'parser> {
     unresolved_mark: Mark,
     parser_plugins: &'parser mut Vec<BoxJavascriptParserPlugin>,
     parse_meta: ParseMeta,
+    parser_runtime_requirements: &'parser ParserRuntimeRequirementsData,
   ) -> Self {
     let warning_diagnostics: Vec<Diagnostic> = Vec::with_capacity(4);
-    let mut errors = Vec::with_capacity(4);
+    let errors = Vec::with_capacity(4);
     let dependencies = Vec::with_capacity(64);
     let blocks = Vec::with_capacity(64);
     let presentational_dependencies = Vec::with_capacity(64);
@@ -399,9 +413,7 @@ impl<'parser> JavascriptParser<'parser> {
 
     if module_type.is_js_auto() || module_type.is_js_esm() {
       plugins.push(Box::new(parser_plugin::ESMTopLevelThisParserPlugin));
-      plugins.push(Box::new(parser_plugin::ESMDetectionParserPlugin::new(
-        compiler_options.experiments.top_level_await,
-      )));
+      plugins.push(Box::new(parser_plugin::ESMDetectionParserPlugin::default()));
       plugins.push(Box::new(
         parser_plugin::ImportMetaContextDependencyParserPlugin,
       ));
@@ -437,13 +449,21 @@ impl<'parser> JavascriptParser<'parser> {
           commonjs_exports == JavascriptParserCommonjsExportsOption::SkipInEsm,
         )));
       }
-      if compiler_options.node.is_some() {
-        plugins.push(Box::new(parser_plugin::NodeStuffPlugin));
-      }
+    }
+
+    // NodeStuffPlugin: handle __dirname/__filename/global (CJS) and import.meta.dirname/filename (ESM)
+    // CJS features require node options; ESM features are always available for ESM-capable modules
+    let handle_cjs =
+      (module_type.is_js_auto() || module_type.is_js_dynamic()) && compiler_options.node.is_some();
+    let handle_esm = module_type.is_js_auto() || module_type.is_js_esm();
+    if handle_cjs || handle_esm {
+      plugins.push(Box::new(parser_plugin::NodeStuffPlugin::new(
+        handle_cjs, handle_esm,
+      )));
     }
 
     if module_type.is_js_auto() || module_type.is_js_dynamic() || module_type.is_js_esm() {
-      plugins.push(Box::new(parser_plugin::WebpackIsIncludedPlugin));
+      plugins.push(Box::new(parser_plugin::IsIncludedPlugin));
       plugins.push(Box::new(parser_plugin::ExportsInfoApiPlugin));
       plugins.push(Box::new(parser_plugin::APIPlugin::new(
         compiler_options.output.module,
@@ -458,13 +478,9 @@ impl<'parser> JavascriptParser<'parser> {
       plugins.push(Box::new(parser_plugin::OverrideStrictPlugin));
     }
 
-    // disabled by default for now, it's still experimental
-    if javascript_options.inline_const.unwrap_or_default() {
-      if !compiler_options.experiments.inline_const {
-        errors.push(rspack_error::error!("inlineConst is still an experimental feature. To continue using it, please enable 'experiments.inlineConst'.").into());
-      } else {
-        plugins.push(Box::new(parser_plugin::InlineConstPlugin));
-      }
+    if compiler_options.optimization.inline_exports {
+      build_info.inline_exports = true;
+      plugins.push(Box::new(parser_plugin::InlineConstPlugin));
     }
     if compiler_options.optimization.inner_graph {
       plugins.push(Box::new(parser_plugin::InnerGraphPlugin::new(
@@ -472,14 +488,10 @@ impl<'parser> JavascriptParser<'parser> {
       )));
     }
 
-    if !matches!(
-      javascript_options
-        .type_reexports_presence
-        .unwrap_or_default(),
-      TypeReexportPresenceMode::NoTolerant
-    ) && !compiler_options.experiments.type_reexports_presence
-    {
-      errors.push(rspack_error::error!("typeReexportsPresence is still an experimental feature. To continue using it, please enable 'experiments.typeReexportsPresence'.").into());
+    if compiler_options.optimization.side_effects.is_true() {
+      plugins.push(Box::new(parser_plugin::SideEffectsParserPlugin::new(
+        unresolved_mark,
+      )));
     }
 
     let plugin_drive = Rc::new(JavaScriptParserPluginDrive::new(plugins));
@@ -489,8 +501,7 @@ impl<'parser> JavascriptParser<'parser> {
       last_esm_import_order: 0,
       comments,
       javascript_options,
-      source_map,
-      source_file,
+      source,
       errors,
       warning_diagnostics,
       dependencies,
@@ -525,6 +536,10 @@ impl<'parser> JavascriptParser<'parser> {
       parse_meta,
       local_modules: Default::default(),
       has_inlinable_const_decls: true,
+      side_effects_item: None,
+      parser_runtime_requirements,
+      is_renaming: None,
+      location_advancer: DependencyLocationAdvancer::new(),
     }
   }
 
@@ -535,6 +550,7 @@ impl<'parser> JavascriptParser<'parser> {
         blocks: self.blocks,
         presentational_dependencies: self.presentational_dependencies,
         warning_diagnostics: self.warning_diagnostics,
+        side_effects_item: self.side_effects_item,
       })
     } else {
       Err(self.errors)
@@ -555,6 +571,10 @@ impl<'parser> JavascriptParser<'parser> {
 
   pub fn next_dependency_idx(&self) -> usize {
     self.dependencies.len()
+  }
+
+  pub fn get_dependencies(&self) -> &[BoxDependency] {
+    &self.dependencies
   }
 
   pub fn get_dependency_mut(&mut self, idx: usize) -> Option<&mut BoxDependency> {
@@ -608,16 +628,16 @@ impl<'parser> JavascriptParser<'parser> {
     self.errors.push(error);
   }
 
-  pub fn add_errors(&mut self, errors: impl IntoIterator<Item = Diagnostic>) {
-    self.errors.extend(errors);
-  }
-
   pub fn add_warning(&mut self, warning: Diagnostic) {
     self.warning_diagnostics.push(warning);
   }
 
   pub fn add_warnings(&mut self, warnings: impl IntoIterator<Item = Diagnostic>) {
     self.warning_diagnostics.extend(warnings);
+  }
+
+  pub fn source(&self) -> &str {
+    self.source
   }
 
   pub fn is_top_level_scope(&self) -> bool {
@@ -858,50 +878,49 @@ impl<'parser> JavascriptParser<'parser> {
     self.definitions_db.set(self.definitions, name, new_info);
   }
 
-  fn _get_member_expression_info(
+  fn _get_member_expression_info<'ast>(
     &mut self,
-    object: Expr,
+    object: ExprRef<'ast>,
     mut members: Vec<Atom>,
     mut members_optionals: Vec<bool>,
     mut member_ranges: Vec<Span>,
     allowed_types: AllowedMemberTypes,
-  ) -> Option<MemberExpressionInfo> {
+  ) -> Option<MemberExpressionInfo<'ast>> {
     match object {
-      Expr::Call(expr) => {
+      ExprRef::Call(expr) => {
         if !allowed_types.contains(AllowedMemberTypes::CallExpression) {
           return None;
         }
         let callee = expr.callee.as_expr()?;
         let (root_name, mut root_members) = if let Some(member) = callee.as_member() {
-          let extracted = self.extract_member_expression_chain(member);
+          let extracted = self.extract_member_expression_chain(ExprRef::Member(member));
           let root_name = extracted.object.get_root_name()?;
           (root_name, extracted.members)
         } else {
           (callee.get_root_name()?, vec![])
         };
         let NameInfo {
-          name: resolved_root,
-          info: root_info,
+          info: root_info, ..
         } = self.get_name_info_from_variable(&root_name)?;
 
-        let callee_name = object_and_members_to_name(resolved_root.to_string(), &root_members);
         root_members.reverse();
         members.reverse();
         members_optionals.reverse();
         member_ranges.reverse();
+        let root_name_for_info = root_name.clone();
         Some(MemberExpressionInfo::Call(CallExpressionInfo {
           call: expr,
-          callee_name,
-          root_info: root_info
-            .map(|i| ExportedVariableInfo::VariableInfo(i.id()))
-            .unwrap_or_else(|| ExportedVariableInfo::Name(root_name)),
+          root_info: root_info.map_or_else(
+            || ExportedVariableInfo::Name(root_name_for_info),
+            |i| ExportedVariableInfo::VariableInfo(i.id()),
+          ),
           callee_members: root_members,
           members,
           members_optionals,
           member_ranges,
         }))
       }
-      Expr::MetaProp(_) | Expr::Ident(_) | Expr::This(_) => {
+      ExprRef::MetaProp(_) | ExprRef::Ident(_) | ExprRef::This(_) => {
         if !allowed_types.contains(AllowedMemberTypes::Expression) {
           return None;
         }
@@ -916,11 +935,13 @@ impl<'parser> JavascriptParser<'parser> {
         members.reverse();
         members_optionals.reverse();
         member_ranges.reverse();
+        let root_name_for_info = root_name.clone();
         Some(MemberExpressionInfo::Expression(ExpressionExpressionInfo {
           name,
-          root_info: root_info
-            .map(|i| ExportedVariableInfo::VariableInfo(i.id()))
-            .unwrap_or_else(|| ExportedVariableInfo::Name(root_name)),
+          root_info: root_info.map_or_else(
+            || ExportedVariableInfo::Name(root_name_for_info),
+            |i| ExportedVariableInfo::VariableInfo(i.id()),
+          ),
           members,
           members_optionals,
           member_ranges,
@@ -930,24 +951,24 @@ impl<'parser> JavascriptParser<'parser> {
     }
   }
 
-  pub fn get_member_expression_info_from_expr(
+  pub fn get_member_expression_info_from_expr<'ast>(
     &mut self,
-    expr: &Expr,
+    expr: &'ast Expr,
     allowed_types: AllowedMemberTypes,
-  ) -> Option<MemberExpressionInfo> {
-    expr
-      .as_member()
-      .and_then(|member| self.get_member_expression_info(member, allowed_types))
-      .or_else(|| {
-        self._get_member_expression_info(expr.clone(), vec![], vec![], vec![], allowed_types)
-      })
+  ) -> Option<MemberExpressionInfo<'ast>> {
+    match expr {
+      Expr::Member(_) | Expr::OptChain(_) => {
+        self.get_member_expression_info(expr.into(), allowed_types)
+      }
+      _ => self._get_member_expression_info(expr.into(), vec![], vec![], vec![], allowed_types),
+    }
   }
 
-  pub fn get_member_expression_info(
+  pub fn get_member_expression_info<'ast>(
     &mut self,
-    expr: &MemberExpr,
+    expr: ExprRef<'ast>,
     allowed_types: AllowedMemberTypes,
-  ) -> Option<MemberExpressionInfo> {
+  ) -> Option<MemberExpressionInfo<'ast>> {
     let ExtractedMemberExpressionChainData {
       object,
       members,
@@ -963,18 +984,18 @@ impl<'parser> JavascriptParser<'parser> {
     )
   }
 
-  pub fn extract_member_expression_chain(
+  pub fn extract_member_expression_chain<'ast>(
     &self,
-    expr: &MemberExpr,
-  ) -> ExtractedMemberExpressionChainData {
-    let mut object = Expr::Member(expr.clone());
+    expr: ExprRef<'ast>,
+  ) -> ExtractedMemberExpressionChainData<'ast> {
+    let mut object = expr;
     let mut members = Vec::new();
     let mut members_optionals = Vec::new();
     let mut member_ranges = Vec::new();
     let mut in_optional_chain = self.member_expr_in_optional_chain;
     loop {
-      match &mut object {
-        Expr::Member(expr) => {
+      match object {
+        ExprRef::Member(expr) => {
           if let Some(computed) = expr.prop.as_computed() {
             let Expr::Lit(lit) = &*computed.expr else {
               break;
@@ -985,10 +1006,12 @@ impl<'parser> JavascriptParser<'parser> {
               Lit::Null(_) => "null".into(),
               Lit::Num(n) => n.value.to_string().into(),
               Lit::BigInt(i) => i.value.to_string().into(),
-              Lit::Regex(r) => r.exp.clone(),
+              Lit::Regex(r) => r.exp.clone().into(),
               Lit::JSXText(_) => unreachable!(),
             };
-            members.push(value);
+            // Since members are not used across rspack javascript parser plugin,
+            // we directly makes it atom here
+            members.push(value.to_atom_lossy().into_owned());
             member_ranges.push(expr.obj.span());
           } else if let Some(ident) = expr.prop.as_ident() {
             members.push(ident.sym.clone());
@@ -997,13 +1020,13 @@ impl<'parser> JavascriptParser<'parser> {
             break;
           }
           members_optionals.push(in_optional_chain);
-          object = *expr.obj.take();
+          object = expr.obj.as_ref().into();
           in_optional_chain = false;
         }
-        Expr::OptChain(expr) => {
+        ExprRef::OptChain(expr) => {
           in_optional_chain = expr.optional;
-          if let OptChainBase::Member(member) = &mut *expr.base {
-            object = Expr::Member(member.take());
+          if let OptChainBase::Member(member) = expr.base.as_ref() {
+            object = ExprRef::Member(member);
           } else {
             break;
           }
@@ -1254,7 +1277,7 @@ impl<'parser> JavascriptParser<'parser> {
       return;
     };
 
-    if str.value.as_str() == "use strict" {
+    if str.value == "use strict" {
       self.set_strict(true);
     }
   }
@@ -1399,5 +1422,11 @@ impl JavascriptParser<'_> {
       }
       _ => None,
     }
+  }
+
+  pub fn to_dependency_location(&mut self, range: DependencyRange) -> Option<DependencyLocation> {
+    self
+      .location_advancer
+      .compute_dependency_location(self.source, range)
   }
 }

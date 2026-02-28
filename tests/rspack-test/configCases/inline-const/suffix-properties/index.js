@@ -9,7 +9,7 @@ it("should generate correct code for inline value with properties access", () =>
   expect(constants.REMOVE_i["toFixed"](1)).toBe("123456.0");
   // END:A
   const block = generated.match(/\/\/ START:A([\s\S]*)\/\/ END:A/)[1];
-  expect(block.includes(`/* inlined export .REMOVE_s.toUpperCase */ ("remove").toUpperCase()`)).toBe(true);
-  expect(block.includes(`/* inlined export .REMOVE_b.valueOf */ (true).valueOf().toString()`)).toBe(true);
-  expect(block.includes(`/* inlined export .REMOVE_i.toFixed */ (123456).toFixed(1)`)).toBe(true);
+  expect(block.includes(`((/* inlined export .REMOVE_s.toUpperCase */"remove").toUpperCase())`)).toBe(true);
+  expect(block.includes(`((/* inlined export .REMOVE_b.valueOf */true).valueOf().toString())`)).toBe(true);
+  expect(block.includes(`((/* inlined export .REMOVE_i.toFixed */123456).toFixed(1))`)).toBe(true);
 })

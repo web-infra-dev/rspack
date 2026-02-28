@@ -1,3 +1,5 @@
+const { HtmlRspackPlugin } = require("@rspack/core");
+
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	entry: {
@@ -5,16 +7,15 @@ module.exports = {
 			import: ["./index.js"]
 		}
 	},
-	builtins: {
-		html: [
-			{
-				meta: {
-					viewport: {
-						name: "viewport",
-						content: "width=device-width, initial-scale=1, shrink-to-fit=no"
-					}
+	plugins: [
+		new HtmlRspackPlugin({
+			meta: {
+				viewport: {
+					name: "viewport",
+					content: "width=device-width, initial-scale=1, shrink-to-fit=no"
 				}
 			}
-		]
-	}
+		})
+	],
+
 };

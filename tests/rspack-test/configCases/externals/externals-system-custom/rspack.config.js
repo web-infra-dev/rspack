@@ -1,7 +1,7 @@
-/** @type {import("../../../../types").Configuration} */
+/** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	output: {
-		libraryTarget: "system"
+		library: { type: "system" }
 	},
 	target: "web",
 	node: {

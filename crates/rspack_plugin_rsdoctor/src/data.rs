@@ -178,9 +178,12 @@ pub struct RsdoctorModuleIdsPatch {
   pub module_ids: Vec<RsdoctorModuleId>,
 }
 
+pub type RsdoctorJsonModuleSizes = rustc_hash::FxHashMap<String, i32>;
+
 #[derive(Debug, Default)]
 pub struct RsdoctorModuleSourcesPatch {
   pub module_original_sources: Vec<RsdoctorModuleOriginalSource>,
+  pub json_module_sizes: RsdoctorJsonModuleSizes,
 }
 
 #[derive(Debug, Default)]

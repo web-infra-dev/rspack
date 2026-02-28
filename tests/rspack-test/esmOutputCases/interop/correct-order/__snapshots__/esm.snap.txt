@@ -1,25 +1,25 @@
 ```mjs title=main.mjs
 import { __webpack_require__ } from "./runtime.mjs";
 __webpack_require__.add({
-"./bar.cjs": 
+"./bar.cjs"
 /*!*****************!*\
   !*** ./bar.cjs ***!
   \*****************/
-(function (module) {
+(module) {
 module.exports = 'bar'
 globalThis.testValue = 'bar';
 
 
-}),
-"./foo.cjs": 
+},
+"./foo.cjs"
 /*!*****************!*\
   !*** ./foo.cjs ***!
   \*****************/
-(function (module) {
+(module) {
 module.exports = 'foo'
 globalThis.testValue = 'foo';
 
-}),
+},
 });
 // ./index.js
 const foo = __webpack_require__("./foo.cjs");
@@ -64,11 +64,6 @@ return module.exports;
 // expose the modules object (__webpack_modules__)
 __webpack_require__.m = __webpack_modules__;
 
-// esm library register module runtime
-(() => {
-__webpack_require__.add = function registerModules(modules) { Object.assign(__webpack_require__.m, modules) }
-
-})();
 // webpack/runtime/compat_get_default_export
 (() => {
 // getDefaultExport function for compatibility with non-ESM modules
@@ -90,6 +85,11 @@ __webpack_require__.d = (exports, definition) => {
         }
     }
 };
+})();
+// webpack/runtime/esm_register_module
+(() => {
+__webpack_require__.add = function registerModules(modules) { Object.assign(__webpack_require__.m, modules) }
+
 })();
 // webpack/runtime/has_own_property
 (() => {

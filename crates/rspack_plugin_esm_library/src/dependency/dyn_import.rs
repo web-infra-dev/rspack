@@ -1,15 +1,15 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, sync::Arc};
 
+use atomic_refcell::AtomicRefCell;
+use rspack_collections::IdentifierMap;
 use rspack_core::{
-  Dependency, DependencyId, DependencyTemplate, ExportsType, ExtendedReferencedExport,
-  FakeNamespaceObjectMode, ModuleGraph, RuntimeGlobals, TemplateContext, UsageState,
-  get_exports_type, missing_module_promise, module_id,
+  ChunkUkey, Dependency, DependencyId, DependencyTemplate, ExportsType, FakeNamespaceObjectMode,
+  ModuleGraph, RuntimeGlobals, TemplateContext, get_exports_type,
 };
 use rspack_plugin_javascript::dependency::ImportDependency;
+use rspack_plugin_rslib::dyn_import_external::render_dyn_import_external_module;
 
 use crate::EsmLibraryPlugin;
-
-pub static NAMESPACE_SYMBOL: &str = "mod";
 
 fn then_expr(
   code_generatable_context: &mut TemplateContext,
@@ -17,9 +17,9 @@ fn then_expr(
   request: &str,
 ) -> String {
   let TemplateContext {
-    runtime_requirements,
     compilation,
     module,
+    runtime_template,
     ..
   } = code_generatable_context;
   if compilation
@@ -27,27 +27,27 @@ fn then_expr(
     .module_identifier_by_dependency_id(dep_id)
     .is_none()
   {
-    return missing_module_promise(request);
+    return runtime_template.missing_module_promise(request);
   };
 
   let exports_type = get_exports_type(
-    &compilation.get_module_graph(),
+    compilation.get_module_graph(),
     &compilation.module_graph_cache_artifact,
+    &compilation.exports_info_artifact,
     dep_id,
     &module.identifier(),
   );
-  let module_id_expr = module_id(compilation, dep_id, request, false);
+  let module_id_expr = runtime_template.module_id(compilation, dep_id, request, false);
 
   let mut fake_type = FakeNamespaceObjectMode::PROMISE_LIKE;
   let mut appending;
 
   match exports_type {
     ExportsType::Namespace => {
-      runtime_requirements.insert(RuntimeGlobals::REQUIRE);
       appending = format!(
         ".then({}.bind({}, {module_id_expr}))",
-        RuntimeGlobals::REQUIRE,
-        RuntimeGlobals::REQUIRE
+        runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
+        runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
       );
     }
     _ => {
@@ -60,34 +60,33 @@ fn then_expr(
       ) {
         fake_type |= FakeNamespaceObjectMode::MERGE_PROPERTIES;
       }
-      runtime_requirements.insert(RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT);
       if ModuleGraph::is_async(
-        compilation,
+        &compilation.async_modules_artifact,
         compilation
           .get_module_graph()
           .module_identifier_by_dependency_id(dep_id)
           .expect("should have module"),
       ) {
-        runtime_requirements.insert(RuntimeGlobals::REQUIRE);
         appending = format!(
           ".then({}.bind({}, {module_id_expr}))",
-          RuntimeGlobals::REQUIRE,
-          RuntimeGlobals::REQUIRE
+          runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
+          runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
         );
         appending.push_str(
           format!(
-            ".then(function(m){{\n return {}(m, {fake_type}) \n}})",
-            RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT
+            r#".then(function(m){{
+ return {}(m, {fake_type}) 
+}})"#,
+            runtime_template.render_runtime_globals(&RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT)
           )
           .as_str(),
         );
       } else {
         fake_type |= FakeNamespaceObjectMode::MODULE_ID;
-        runtime_requirements.insert(RuntimeGlobals::REQUIRE);
         appending = format!(
           ".then({}.bind({}, {module_id_expr}, {fake_type}))",
-          RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT,
-          RuntimeGlobals::REQUIRE
+          runtime_template.render_runtime_globals(&RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT),
+          runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
         );
       }
     }
@@ -95,8 +94,12 @@ fn then_expr(
   appending
 }
 
-#[derive(Debug, Default)]
-pub struct DynamicImportDependencyTemplate;
+#[derive(Debug)]
+pub struct DynamicImportDependencyTemplate {
+  /// module_id → facade_chunk_ukey. Shared with EsmLibraryPlugin.
+  /// Written during optimize_chunks, read during code generation.
+  pub facade_chunks: Arc<AtomicRefCell<IdentifierMap<ChunkUkey>>>,
+}
 
 impl DependencyTemplate for DynamicImportDependencyTemplate {
   fn render(
@@ -118,7 +121,9 @@ impl DependencyTemplate for DynamicImportDependencyTemplate {
       .request();
 
     let Some(ref_module) = module_graph.get_module_by_dependency_id(dep_id) else {
-      let missing_promise = missing_module_promise(request);
+      let missing_promise = code_generatable_context
+        .runtime_template
+        .missing_module_promise(request);
       source.replace(
         import_dep.range.start,
         import_dep.range.end,
@@ -128,7 +133,12 @@ impl DependencyTemplate for DynamicImportDependencyTemplate {
       return;
     };
 
-    let ref_chunk = EsmLibraryPlugin::get_module_chunk(
+    if let Some(external_module) = ref_module.as_external_module() {
+      render_dyn_import_external_module(import_dep, external_module, source);
+      return;
+    }
+
+    let source_chunk = EsmLibraryPlugin::get_module_chunk(
       ref_module.identifier(),
       code_generatable_context.compilation,
     );
@@ -139,6 +149,16 @@ impl DependencyTemplate for DynamicImportDependencyTemplate {
         .expect("should have parent module for import dep"),
       code_generatable_context.compilation,
     );
+
+    // If there's a facade chunk for this module, redirect the import to the facade.
+    // The facade chunk is empty (only re-exports), so import() yields the correct namespace directly.
+    let ref_chunk_ukey = {
+      let facade_map = self.facade_chunks.borrow();
+      facade_map
+        .get(&ref_module.identifier())
+        .copied()
+        .unwrap_or(source_chunk)
+    };
 
     /*
     For:
@@ -159,13 +179,18 @@ impl DependencyTemplate for DynamicImportDependencyTemplate {
       b. if refModule is not scope hoisted
         const { a, b } = await import('./ref-chunk').then(() => __webpack_require__(./refModule));
     */
-    let already_in_chunk = ref_chunk == orig_chunk;
+    let already_in_chunk = ref_chunk_ukey == orig_chunk;
+    let ref_chunk = code_generatable_context
+      .compilation
+      .build_chunk_graph_artifact
+      .chunk_by_ukey
+      .expect_get(&ref_chunk_ukey);
     let import_promise = if already_in_chunk {
       Cow::Borrowed("Promise.resolve()")
     } else {
       Cow::Owned(format!(
         "import(\"__RSPACK_ESM_CHUNK_{}\")",
-        ref_chunk.as_u32()
+        ref_chunk.expect_id().as_str()
       ))
     };
 
@@ -181,9 +206,6 @@ impl DependencyTemplate for DynamicImportDependencyTemplate {
         ),
         None,
       );
-      code_generatable_context
-        .runtime_requirements
-        .insert(RuntimeGlobals::REQUIRE);
       return;
     };
 
@@ -206,101 +228,31 @@ impl DependencyTemplate for DynamicImportDependencyTemplate {
       return;
     }
 
-    // importer and importee are both scope hoisted
-    let ref_exports = dep.get_referenced_exports(
-      &module_graph,
-      &code_generatable_context
+    // For empty facade chunks (0 modules, only re-exports) or single-module chunks,
+    // the chunk's exports exactly match the module's exports
+    // (ensured by link_entry_module_exports with strict_exports).
+    // No .then() remapping needed — import() directly yields the correct namespace.
+    if !already_in_chunk {
+      let chunk_modules = code_generatable_context
         .compilation
-        .module_graph_cache_artifact,
-      None,
-    );
-
-    let render_exports = if !ref_exports.is_empty()
-      && !ref_exports.iter().any(|ref_exports| match ref_exports {
-        ExtendedReferencedExport::Array(atoms) => atoms.is_empty(),
-        ExtendedReferencedExport::Export(referenced_export) => referenced_export.name.is_empty(),
-      }) {
-      // we only extract the named exports
-      // const { a, b } = await import('./refModule');
-      // const { a, b } = await import('./refChunk').then(mod => ({ a: __WEBPACK_MODULE_DYNAMIC_REFERENCE__0_a, b: __WEBPACK_MODULE_DYNAMIC_REFERENCE__0_b }));
-      let ref_exports = ref_exports
-        .iter()
-        .flat_map(|ref_exports| match ref_exports {
-          ExtendedReferencedExport::Array(atoms) => atoms
-            .iter()
-            .map(|atom| {
-              format!(
-                "{atom}: {}",
-                concatenation_scope.create_dynamic_module_reference(
-                  &ref_module.identifier(),
-                  already_in_chunk,
-                  atom
-                )
-              )
-            })
-            .collect::<Vec<_>>(),
-          ExtendedReferencedExport::Export(referenced_export) => referenced_export
-            .name
-            .iter()
-            .map(|atom| {
-              format!(
-                "{atom}: {}",
-                concatenation_scope.create_dynamic_module_reference(
-                  &ref_module.identifier(),
-                  already_in_chunk,
-                  atom
-                )
-              )
-            })
-            .collect::<Vec<_>>(),
-        })
-        .collect::<Vec<_>>();
-      ref_exports.join(",")
-    } else {
-      let ref_exports_info = module_graph.get_prefetched_exports_info(
-        &ref_module.identifier(),
-        rspack_core::PrefetchExportsInfoMode::Default,
-      );
-      let all_exports = ref_exports_info.get_relevant_exports(None);
-      all_exports
-        .iter()
-        .filter(|export| !matches!(export.get_used(None), UsageState::Unused))
-        .filter_map(|export| export.name())
-        .map(|ref_export| {
-          format!(
-            "{}: {}",
-            ref_export,
-            concatenation_scope.create_dynamic_module_reference(
-              &ref_module.identifier(),
-              already_in_chunk,
-              ref_export
-            )
-          )
-        })
-        .collect::<Vec<_>>()
-        .join(",")
-    };
+        .build_chunk_graph_artifact
+        .chunk_graph
+        .get_chunk_modules_identifier(&ref_chunk_ukey);
+      if chunk_modules.len() <= 1 {
+        source.replace(
+          import_dep.range.start,
+          import_dep.range.end,
+          &import_promise,
+          None,
+        );
+        return;
+      }
+    }
 
     source.replace(
       import_dep.range.start,
       import_dep.range.end,
-      &format!(
-        "{}{}",
-        import_promise,
-        if render_exports.is_empty() {
-          Cow::Borrowed("")
-        } else {
-          Cow::Owned(format!(
-            ".then(({}) => ({{ {} }}))",
-            if already_in_chunk {
-              ""
-            } else {
-              NAMESPACE_SYMBOL
-            },
-            render_exports
-          ))
-        }
-      ),
+      &import_promise,
       None,
     );
   }

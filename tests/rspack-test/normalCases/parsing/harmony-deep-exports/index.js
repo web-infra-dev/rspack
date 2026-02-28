@@ -45,29 +45,17 @@ it("should be able to call a deep function in commonjs", () => {
 it("should report consistent exports info", () => {
 	const x1 = counter.exportsInfo;
 
-	if (process.env.NODE_ENV === "production") {
-		expect(x1.incrementInfo).toBe(true);
-		expect(x1.counterInfo).toBe(true);
-		expect(x1.resetInfo).toBe(true);
-		expect(x1.unusedExport).toBe(false);
-		expect(x1.unusedExportInfo).toBe(false);
-		expect(x1.somethingElse).toBe(false);
-		expect(x1.somethingElseInfo).toBe(false);
-		expect(C.exportsInfo.nsInfo).toBe(true);
-		expect(C.exportsInfo.ns2).toBe(false);
-		expect(C.exportsInfo.ns2Info).toBe(false);
-	} else if (process.env.NODE_ENV === "development") {
-		expect(x1.incrementInfo).toBe(undefined);
-		expect(x1.counterInfo).toBe(undefined);
-		expect(x1.resetInfo).toBe(undefined);
-		expect(x1.unusedExport).toBe(true);
-		expect(x1.unusedExportInfo).toBe(undefined);
-		expect(x1.somethingElse).toBe(true);
-		expect(x1.somethingElseInfo).toBe(undefined);
-		expect(C.exportsInfo.nsInfo).toBe(undefined);
-		expect(C.exportsInfo.ns2).toBe(true);
-		expect(C.exportsInfo.ns2Info).toBe(undefined);
-	}
+	expect(x1.incrementInfo).toBe(true);
+	expect(x1.counterInfo).toBe(true);
+	expect(x1.resetInfo).toBe(true);
+	expect(x1.unusedExport).toBe(false);
+	expect(x1.unusedExportInfo).toBe(false);
+	expect(x1.somethingElse).toBe(false);
+	expect(x1.somethingElseInfo).toBe(false);
+	expect(C.exportsInfo.nsInfo).toBe(true);
+	expect(C.exportsInfo.ns2).toBe(false);
+	expect(C.exportsInfo.ns2Info).toBe(false);
+
 	expect(x1.increment).toBe(true);
 	expect(x1.counter).toBe(true);
 	expect(x1.reset).toBe(true);

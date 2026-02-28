@@ -63,11 +63,10 @@ pub(super) fn register_global_trace(
     let mut state = state.borrow_mut();
     if let TraceState::Uninitialized = *state {
       let mut tracer: Box<dyn Tracer> = match layer.as_str() {
-        "logger" => Box::new(StdoutTracer),
+        "logger" => Box::new(StdoutTracer::default()),
         "perfetto" => Box::new(PerfettoTracer::default()),
         _ => anyhow::bail!(
-          "Unexpected layer: {}, supported layers:'logger', 'perfetto' ",
-          layer
+          "Unexpected layer: {layer}, supported layers:'logger', 'perfetto' "
         ),
       };
       if let Some(layer) = tracer.setup(&output) {
@@ -125,9 +124,7 @@ pub(super) fn sync_trace_event(events: Vec<RawTraceEvent>) {
             name: event.name,
             track_name: event.track_name,
             process_name: event.process_name,
-            args: event
-              .args
-              .map(|args| args.into_iter().map(|(k, v)| (k, v.to_string())).collect()),
+            args: event.args.map(|args| args.into_iter().collect()),
             uuid: event.uuid,
             ts: event.ts.get_u64().1,
             ph: event.ph,

@@ -20,7 +20,11 @@ pub struct Chunk {
 impl Chunk {
   fn as_ref(&self) -> napi::Result<(&'static Compilation, &'static rspack_core::Chunk)> {
     let compilation = unsafe { self.compilation.as_ref() };
-    if let Some(chunk) = compilation.chunk_by_ukey.get(&self.chunk_ukey) {
+    if let Some(chunk) = compilation
+      .build_chunk_graph_artifact
+      .chunk_by_ukey
+      .get(&self.chunk_ukey)
+    {
       Ok((compilation, chunk))
     } else {
       Err(napi::Error::from_reason(format!(
@@ -45,7 +49,7 @@ impl Chunk {
   #[napi(getter)]
   pub fn id(&self) -> napi::Result<Either<&str, ()>> {
     let (compilation, chunk) = self.as_ref()?;
-    Ok(match chunk.id(&compilation.chunk_ids_artifact) {
+    Ok(match chunk.id() {
       Some(id) => Either::A(id.as_str()),
       None => Either::B(()),
     })
@@ -54,12 +58,7 @@ impl Chunk {
   #[napi(getter)]
   pub fn ids(&self) -> napi::Result<Vec<&str>> {
     let (compilation, chunk) = self.as_ref()?;
-    Ok(
-      chunk
-        .id(&compilation.chunk_ids_artifact)
-        .map(|id| vec![id.as_str()])
-        .unwrap_or_default(),
-    )
+    Ok(chunk.id().map(|id| vec![id.as_str()]).unwrap_or_default())
   }
 
   #[napi(getter)]
@@ -168,19 +167,19 @@ impl Chunk {
   #[napi]
   pub fn is_only_initial(&self) -> napi::Result<bool> {
     let (compilation, chunk) = self.as_ref()?;
-    Ok(chunk.is_only_initial(&compilation.chunk_group_by_ukey))
+    Ok(chunk.is_only_initial(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey))
   }
 
   #[napi]
   pub fn can_be_initial(&self) -> napi::Result<bool> {
     let (compilation, chunk) = self.as_ref()?;
-    Ok(chunk.can_be_initial(&compilation.chunk_group_by_ukey))
+    Ok(chunk.can_be_initial(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey))
   }
 
   #[napi]
   pub fn has_runtime(&self) -> napi::Result<bool> {
     let (compilation, chunk) = self.as_ref()?;
-    Ok(chunk.has_runtime(&compilation.chunk_group_by_ukey))
+    Ok(chunk.has_runtime(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey))
   }
 
   #[napi(ts_return_type = "Chunk[]")]
@@ -188,7 +187,7 @@ impl Chunk {
     let (compilation, chunk) = self.as_ref()?;
     Ok(
       chunk
-        .get_all_async_chunks(&compilation.chunk_group_by_ukey)
+        .get_all_async_chunks(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
         .into_iter()
         .map(|chunk_ukey| ChunkWrapper::new(chunk_ukey, compilation))
         .collect::<Vec<_>>(),
@@ -200,7 +199,7 @@ impl Chunk {
     let (compilation, chunk) = self.as_ref()?;
     Ok(
       chunk
-        .get_all_initial_chunks(&compilation.chunk_group_by_ukey)
+        .get_all_initial_chunks(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
         .into_iter()
         .map(|chunk_ukey| ChunkWrapper::new(chunk_ukey, compilation))
         .collect::<Vec<_>>(),
@@ -212,7 +211,7 @@ impl Chunk {
     let (compilation, chunk) = self.as_ref()?;
     Ok(
       chunk
-        .get_all_referenced_chunks(&compilation.chunk_group_by_ukey)
+        .get_all_referenced_chunks(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
         .into_iter()
         .map(|chunk_ukey| ChunkWrapper::new(chunk_ukey, compilation))
         .collect::<Vec<_>>(),
@@ -225,7 +224,12 @@ impl Chunk {
     let mut groups = chunk
       .groups()
       .iter()
-      .filter_map(|group| compilation.chunk_group_by_ukey.get(group))
+      .filter_map(|group| {
+        compilation
+          .build_chunk_graph_artifact
+          .chunk_group_by_ukey
+          .get(group)
+      })
       .collect::<Vec<_>>();
     groups.sort_unstable_by(|a, b| a.index.cmp(&b.index));
     Ok(
@@ -240,7 +244,8 @@ impl Chunk {
   pub fn get_entry_options(&self) -> napi::Result<Option<EntryOptionsDTO>> {
     let (compilation, chunk) = self.as_ref()?;
 
-    let entry_options = chunk.get_entry_options(&compilation.chunk_group_by_ukey);
+    let entry_options =
+      chunk.get_entry_options(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey);
 
     Ok(entry_options.map(|options| EntryOptionsDTO::new(options.clone())))
   }

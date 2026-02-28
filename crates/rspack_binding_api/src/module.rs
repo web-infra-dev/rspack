@@ -3,10 +3,11 @@ use std::{any::TypeId, cell::RefCell, ptr::NonNull, sync::Arc};
 
 use napi::{CallContext, JsObject, JsString, JsSymbol, NapiRaw};
 use napi_derive::napi;
-use rspack_collections::{IdentifierMap, UkeyMap};
+use rspack_collections::{Identifier, IdentifierMap, UkeyMap};
 use rspack_core::{
   BindingCell, BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, Compilation, CompilerId,
   FactoryMeta, LibIdentOptions, Module as _, ModuleIdentifier, RuntimeModuleStage, SourceType,
+  internal,
 };
 use rspack_napi::{
   OneShotInstanceRef, WeakRef, napi::bindgen_prelude::*, string::JsStringExt,
@@ -25,7 +26,7 @@ use crate::{
   define_symbols,
   dependency::DependencyWrapper,
   modules::{ConcatenatedModule, ContextModule, ExternalModule, NormalModule},
-  source::{JsCompatSource, JsCompatSourceOwned, ToJsCompatSource},
+  source::{JsSourceFromJs, JsSourceToJs},
 };
 
 define_symbols! {
@@ -187,7 +188,7 @@ impl Module {
       let mut reference: Reference<Module> =
         unsafe { Reference::from_napi_value(raw_env, this.raw())? };
       let new_build_info = BuildInfo::new(reference.downgrade());
-      let mut new_instrance = new_build_info.get_jsobject(env)?;
+      let mut new_instance = new_build_info.get_jsobject(env)?;
 
       let names = input_object.get_all_property_names(
         napi::KeyCollectionMode::OwnOnly,
@@ -200,12 +201,9 @@ impl Module {
           let name_clone = Object::from_raw(env.raw(), name.raw());
           let name_str = name_clone.coerce_to_string()?.into_string();
           // known build info properties
-          if name_str == "assets" {
-            // TODO: Currently, setting assets is not supported.
-            continue;
-          } else {
+          if name_str != "assets" {
             let value = input_object.get_property::<Unknown, Unknown>(name)?;
-            new_instrance.set_property::<Unknown, Unknown>(name, value)?;
+            new_instance.set_property::<Unknown, Unknown>(name, value)?;
           }
         }
       }
@@ -216,9 +214,9 @@ impl Module {
           let napi_val = ToNapiValue::to_napi_value(env.raw(), once_cell.get().unwrap())?;
           JsSymbol::from_napi_value(env.raw(), napi_val)
         };
-        this.set_property(sym, new_instrance)
+        this.set_property(sym, new_instance)
       })?;
-      reference.build_info_ref = Some(WeakRef::new(raw_env, &mut new_instrance)?);
+      reference.build_info_ref = Some(WeakRef::new(raw_env, &mut new_instance)?);
       Ok(())
     }
 
@@ -339,15 +337,16 @@ impl Module {
     )
   }
 
-  #[napi(js_name = "_originalSource", enumerable = false)]
-  pub fn original_source(&mut self, env: &Env) -> napi::Result<Either<JsCompatSource<'_>, ()>> {
+  #[napi(
+    js_name = "_originalSource",
+    ts_return_type = "JsSource",
+    enumerable = false
+  )]
+  pub fn original_source(&mut self, env: &Env) -> napi::Result<Either<JsSourceToJs, ()>> {
     let (_, module) = self.as_ref()?;
 
     Ok(match module.source() {
-      Some(source) => match source.to_js_compat_source(env).ok() {
-        Some(s) => Either::A(s),
-        None => Either::B(()),
-      },
+      Some(source) => Either::A(source.as_ref().try_into()?),
       None => Either::B(()),
     })
   }
@@ -394,9 +393,13 @@ impl Module {
       dependencies
         .iter()
         .filter_map(|dependency_id| {
-          module_graph
-            .dependency_by_id(dependency_id)
-            .map(|dep| DependencyWrapper::new(dep.as_ref(), compilation.id(), Some(compilation)))
+          internal::try_dependency_by_id(module_graph, dependency_id).map(|dep| {
+            DependencyWrapper::new(
+              (&**dep) as &dyn rspack_core::Dependency,
+              compilation.id(),
+              Some(compilation),
+            )
+          })
         })
         .collect::<Vec<_>>(),
     )
@@ -430,13 +433,13 @@ impl Module {
   #[napi(
     js_name = "_emitFile",
     enumerable = false,
-    ts_args_type = "filename: string, source: JsCompatSource, assetInfo?: AssetInfo | undefined | null"
+    ts_args_type = "filename: string, source: JsSource, assetInfo?: AssetInfo | undefined | null"
   )]
   pub fn emit_file(
     &mut self,
     env: &Env,
     filename: String,
-    source: JsCompatSource,
+    source: JsSourceFromJs,
     object: Option<Object>,
   ) -> napi::Result<()> {
     let module = self.as_mut()?;
@@ -456,7 +459,7 @@ impl Module {
     module.build_info_mut().assets.insert(
       filename,
       rspack_core::CompilationAsset {
-        source: Some(source.into()),
+        source: Some(source.try_into()?),
         info: asset_info,
       },
     );
@@ -734,10 +737,13 @@ pub struct JsExecuteModuleArg {
 #[derive(Default)]
 #[napi(object)]
 pub struct JsRuntimeModule {
-  pub source: Option<JsCompatSourceOwned>,
+  #[napi(ts_type = "JsSource")]
+  pub source: Option<JsSourceToJs>,
   pub module_identifier: String,
   pub constructor_name: String,
   pub name: String,
+  pub stage: u32,
+  pub isolate: bool,
 }
 
 #[napi(object, object_from_js = false)]
@@ -763,7 +769,8 @@ pub struct JsAddingRuntimeModule {
 impl From<JsAddingRuntimeModule> for RuntimeModuleFromJs {
   fn from(value: JsAddingRuntimeModule) -> Self {
     Self {
-      name: value.name,
+      chunk: None,
+      id: Identifier::from(value.name),
       full_hash: value.full_hash,
       dependent_hash: value.dependent_hash,
       isolate: value.isolate,
@@ -781,13 +788,13 @@ impl From<JsAddingRuntimeModule> for RuntimeModuleFromJs {
 
 #[napi(object, object_to_js = false)]
 pub struct JsBuildMeta {
-  pub strict_esm_module: bool,
-  pub has_top_level_await: bool,
-  pub esm: bool,
-  #[napi(ts_type = "'unset' | 'default' | 'namespace' | 'flagged' | 'dynamic'")]
-  pub exports_type: String,
-  #[napi(ts_type = "'false' | 'redirect' | JsBuildMetaDefaultObjectRedirectWarn")]
-  pub default_object: JsBuildMetaDefaultObject,
+  pub strict_esm_module: Option<bool>,
+  pub has_top_level_await: Option<bool>,
+  pub esm: Option<bool>,
+  #[napi(ts_type = "undefined | 'unset' | 'default' | 'namespace' | 'flagged' | 'dynamic'")]
+  pub exports_type: Option<String>,
+  #[napi(ts_type = "undefined | 'false' | 'redirect' | JsBuildMetaDefaultObjectRedirectWarn")]
+  pub default_object: Option<JsBuildMetaDefaultObject>,
   pub side_effect_free: Option<bool>,
   #[napi(ts_type = "Array<[string, string]> | undefined")]
   pub exports_final_name: Option<Vec<Vec<String>>>,
@@ -805,24 +812,32 @@ impl From<JsBuildMeta> for BuildMeta {
       exports_type: raw_exports_type,
     } = value;
 
-    let default_object = match raw_default_object {
-      Either::A(s) => match s.as_str() {
-        "false" => BuildMetaDefaultObject::False,
-        "redirect" => BuildMetaDefaultObject::Redirect,
-        _ => unreachable!(),
-      },
-      Either::B(default_object) => BuildMetaDefaultObject::RedirectWarn {
-        ignore: default_object.redirect_warn.ignore,
-      },
+    let default_object = if let Some(raw_default_object) = raw_default_object {
+      match raw_default_object {
+        Either::A(s) => match s.as_str() {
+          "false" => BuildMetaDefaultObject::False,
+          "redirect" => BuildMetaDefaultObject::Redirect,
+          _ => unreachable!(),
+        },
+        Either::B(default_object) => BuildMetaDefaultObject::RedirectWarn {
+          ignore: default_object.redirect_warn.ignore,
+        },
+      }
+    } else {
+      BuildMetaDefaultObject::False
     };
 
-    let exports_type = match raw_exports_type.as_str() {
-      "unset" => BuildMetaExportsType::Unset,
-      "default" => BuildMetaExportsType::Default,
-      "namespace" => BuildMetaExportsType::Namespace,
-      "flagged" => BuildMetaExportsType::Flagged,
-      "dynamic" => BuildMetaExportsType::Dynamic,
-      _ => unreachable!(),
+    let exports_type = if let Some(raw_exports_type) = raw_exports_type {
+      match raw_exports_type.as_str() {
+        "unset" => BuildMetaExportsType::Unset,
+        "default" => BuildMetaExportsType::Default,
+        "namespace" => BuildMetaExportsType::Namespace,
+        "flagged" => BuildMetaExportsType::Flagged,
+        "dynamic" => BuildMetaExportsType::Dynamic,
+        _ => unreachable!(),
+      }
+    } else {
+      BuildMetaExportsType::Unset
     };
 
     let exports_final_name = raw_exports_final_name.map(|exports_name| {
@@ -843,9 +858,9 @@ impl From<JsBuildMeta> for BuildMeta {
     });
 
     Self {
-      strict_esm_module,
-      has_top_level_await,
-      esm,
+      strict_esm_module: strict_esm_module.unwrap_or_default(),
+      has_top_level_await: has_top_level_await.unwrap_or_default(),
+      esm: esm.unwrap_or_default(),
       exports_type,
       default_object,
       side_effect_free,

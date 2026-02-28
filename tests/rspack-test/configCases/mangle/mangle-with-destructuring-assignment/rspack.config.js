@@ -1,4 +1,4 @@
-// const { getRuntimeKey } = require("../../../../lib/util/runtime");
+// const { getRuntimeKey } = require("@rspack/corelib/util/runtime");
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {

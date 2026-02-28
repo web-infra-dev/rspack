@@ -294,7 +294,7 @@ pub mod test_pack_utils {
         SplitPackStrategy::new(
           root.join("cache"),
           root.join("temp"),
-          fs.clone(),
+          fs,
           Some(1_usize),
           Some(2_usize),
         )

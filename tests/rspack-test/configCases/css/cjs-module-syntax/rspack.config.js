@@ -8,11 +8,15 @@ module.exports = [
 				"css/auto": {
 					esModule: false
 				}
-			}
+			},
+			rules: [
+				{
+					test: /\.css$/,
+					type: "css/auto"
+				}
+			]
 		},
-		experiments: {
-			css: true
-		}
+
 	},
 	{
 		target: "node",
@@ -22,10 +26,14 @@ module.exports = [
 				"css/auto": {
 					esModule: false
 				}
-			}
+			},
+			rules: [
+				{
+					test: /\.css$/,
+					type: "css/auto"
+				}
+			]
 		},
-		experiments: {
-			css: true
-		}
+
 	}
 ];

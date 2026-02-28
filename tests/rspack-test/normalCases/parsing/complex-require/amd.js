@@ -1,5 +1,5 @@
 
-it("should parse template strings in amd requires", function(done) {
+it("should parse template strings in amd requires", () => new Promise(done => {
 	var name = "abc";
 	var suffix = "Test";
 
@@ -17,9 +17,10 @@ it("should parse template strings in amd requires", function(done) {
 			done()
 		}
 	}
-})
+}))
 
-it("should parse .concat strings in amd requires", function(done) {
+
+it("should parse .concat strings in amd requires", () => new Promise(done => {
 	var name = "abc";
 	var suffix = "Test";
 
@@ -36,4 +37,4 @@ it("should parse .concat strings in amd requires", function(done) {
 			done()
 		}
 	}
-})
+}))

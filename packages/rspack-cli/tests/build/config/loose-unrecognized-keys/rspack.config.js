@@ -1,4 +1,4 @@
 module.exports = {
-	entry: "./index.js",
-	_additionalProperty: "test"
+  entry: './index.js',
+  _additionalProperty: 'test',
 };

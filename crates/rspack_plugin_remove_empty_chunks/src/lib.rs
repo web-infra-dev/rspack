@@ -14,29 +14,34 @@ impl RemoveEmptyChunksPlugin {
     let logger = compilation.get_logger(self.name());
     let start = logger.time("remove empty chunks");
 
-    let chunk_graph = &mut compilation.chunk_graph;
+    let chunk_graph = &mut compilation.build_chunk_graph_artifact.chunk_graph;
     let empty_chunks = compilation
+      .build_chunk_graph_artifact
       .chunk_by_ukey
       .values()
       .filter(|chunk| {
         chunk_graph.get_number_of_chunk_modules(&chunk.ukey()) == 0
-          && !chunk.has_runtime(&compilation.chunk_group_by_ukey)
+          && !chunk.has_runtime(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
           && chunk_graph.get_number_of_entry_modules(&chunk.ukey()) == 0
-          && chunk
-            .get_entry_options(&compilation.chunk_group_by_ukey)
-            .is_none()
       })
       .map(|chunk| chunk.ukey())
       .collect::<Vec<_>>();
 
-    empty_chunks.iter().for_each(|chunk_ukey| {
-      if let Some(mut chunk) = compilation.chunk_by_ukey.remove(chunk_ukey) {
-        chunk_graph.disconnect_chunk(&mut chunk, &mut compilation.chunk_group_by_ukey);
-        if let Some(mutations) = compilation.incremental.mutations_write() {
+    for chunk_ukey in empty_chunks.iter() {
+      if let Some(mut chunk) = compilation
+        .build_chunk_graph_artifact
+        .chunk_by_ukey
+        .remove(chunk_ukey)
+      {
+        chunk_graph.disconnect_chunk(
+          &mut chunk,
+          &mut compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
+        );
+        if let Some(mut mutations) = compilation.incremental.mutations_write() {
           mutations.add(Mutation::ChunkRemove { chunk: *chunk_ukey });
         }
       }
-    });
+    }
 
     logger.time_end(start);
   }

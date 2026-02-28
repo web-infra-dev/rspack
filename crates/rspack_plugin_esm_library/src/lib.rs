@@ -1,7 +1,12 @@
 mod chunk_link;
 mod dependency;
+mod esm_lib_parser_plugin;
 mod link;
+mod optimize_chunks;
 mod plugin;
+mod preserve_modules;
 mod render;
 mod runtime;
+mod split_chunks;
 pub use plugin::EsmLibraryPlugin;
+pub use split_chunks::{GetNameGetter, ModuleFilter, ModuleTypeFilter};

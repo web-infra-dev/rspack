@@ -1,7 +1,7 @@
 import "./style.css";
 
-it("should compile with warning", done => {
-	const style = getComputedStyle(document.body);
-	expect(style.getPropertyValue("background")).toBe(" red");
-	done();
+it("should compile with warning", async () => {
+	// jsdom can not parse @namespace correctly
+	const link = document.getElementsByTagName("link")[0];
+	expect(getLinkSheet(link)).toContain("background: red;");
 });

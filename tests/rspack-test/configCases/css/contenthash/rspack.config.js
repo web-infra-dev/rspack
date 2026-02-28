@@ -8,7 +8,12 @@ module.exports = {
 		chunkFilename: "async.[name].[contenthash].js",
 		cssChunkFilename: "async.[name].[contenthash].css"
 	},
-	experiments: {
-		css: true
+	module: {
+		rules: [
+			{
+				test: /\.css$/,
+				type: "css/auto"
+			}
+		]
 	}
 };

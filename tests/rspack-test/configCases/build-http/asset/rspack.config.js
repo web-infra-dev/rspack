@@ -2,6 +2,7 @@ const path = require("path");
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
+	target: 'web',
 	mode: "development",
 	module: {
 		rules: [
@@ -17,6 +18,5 @@ module.exports = {
 			lockfileLocation: path.resolve(__dirname, "./lock-files/lock.json"),
 			cacheLocation: path.resolve(__dirname, "./lock-files/test")
 		},
-		css: false
 	}
 };

@@ -1,6 +1,7 @@
 use rspack_core::{
   ChunkInitFragments, ChunkUkey, Compilation, CompilationParams, CompilerCompilation,
   InitFragmentExt, InitFragmentKey, InitFragmentStage, Module, NormalInitFragment, Plugin,
+  RuntimeCodeTemplate,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -34,6 +35,7 @@ async fn render_module_content(
   module: &dyn Module,
   _source: &mut RenderSource,
   init_fragments: &mut ChunkInitFragments,
+  _runtime_template: &RuntimeCodeTemplate<'_>,
 ) -> Result<()> {
   if module.build_info().need_create_require {
     let need_prefix = compilation
@@ -45,8 +47,14 @@ async fn render_module_content(
     init_fragments.push(
       NormalInitFragment::new(
         format!(
-          "import {{ createRequire as __WEBPACK_EXTERNAL_createRequire }} from \"{}\";\n",
-          if need_prefix { "node:module" } else { "module" }
+          "import {{ createRequire as __rspack_createRequire }} from \"{}\";\n{} __rspack_createRequire_require = __rspack_createRequire({}.url);\n",
+          if need_prefix { "node:module" } else { "module" },
+          if compilation.options.output.environment.supports_const() {
+            "const"
+          } else {
+            "var"
+          },
+          compilation.options.output.import_meta_name
         ),
         InitFragmentStage::StageESMImports,
         0,

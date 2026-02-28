@@ -7,7 +7,7 @@ module.exports = {
 	},
 	output: {
 		filename: "[name].js",
-		libraryTarget: "commonjs2"
+		library: { type: "commonjs2" }
 	},
 	optimization: {
 		chunkIds: "named",

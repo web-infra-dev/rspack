@@ -1,24 +1,22 @@
 // @ts-nocheck
 module.exports = () => {
-	const warnings = [];
-	let oldWarn;
+  const warnings = [];
+  let oldWarn;
 
-	beforeEach(done => {
-		oldWarn = console.warn;
-		console.warn = m => warnings.push(m);
-		done();
-	});
+  beforeEach(() => {
+    oldWarn = console.warn;
+    console.warn = (m) => warnings.push(m);
+  });
 
-	afterEach(done => {
-		expectWarning();
-		console.warn = oldWarn;
-		done();
-	});
+  afterEach(() => {
+    expectWarning();
+    console.warn = oldWarn;
+  });
 
-	const expectWarning = (...regexp) => {
-		expect(warnings).toEqual(regexp.map(r => expect.stringMatching(r)));
-		warnings.length = 0;
-	};
+  const expectWarning = (...regexp) => {
+    expect(warnings).toEqual(regexp.map((r) => expect.stringMatching(r)));
+    warnings.length = 0;
+  };
 
-	return expectWarning;
+  return expectWarning;
 };

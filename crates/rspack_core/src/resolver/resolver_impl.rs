@@ -4,16 +4,17 @@ use std::{
   sync::Arc,
 };
 
-use rspack_error::{Error, Severity};
+use rspack_error::{Error, Severity, cyan, yellow};
 use rspack_fs::ReadableFileSystem;
 use rspack_loader_runner::DescriptionData;
 use rspack_paths::AssertUtf8;
-use rspack_util::location::try_line_column_length_to_offset_length;
+use rspack_util::location::byte_line_column_to_offset;
 use rustc_hash::FxHashSet as HashSet;
 
 use super::{ResolveResult, Resource, boxfs::BoxFS};
 use crate::{
-  Alias, AliasMap, DependencyCategory, Resolve, ResolveArgs, ResolveOptionsWithDependencyType,
+  Alias, AliasMap, DependencyCategory, PnpManifest, Resolve, ResolveArgs,
+  ResolveOptionsWithDependencyType,
 };
 
 #[derive(Debug, Default, Clone)]
@@ -299,6 +300,19 @@ fn to_rspack_resolver_options(
     .into_iter()
     .map(PathBuf::from)
     .collect();
+  let pnp_manifest = match options.pnp_manifest {
+    Some(PnpManifest::Path(p)) => Some(p.into()),
+    Some(PnpManifest::Disabled) => None,
+    None => {
+      if options.pnp.unwrap_or(false) {
+        std::env::current_dir()
+          .ok()
+          .and_then(|cwd| pnp::find_closest_pnp_manifest_path(&cwd))
+      } else {
+        None
+      }
+    }
+  };
 
   rspack_resolver::ResolveOptions {
     fallback,
@@ -324,6 +338,7 @@ fn to_rspack_resolver_options(
     builtin_modules: options.builtin_modules,
     imports_fields,
     enable_pnp: options.pnp.unwrap_or(false),
+    pnp_manifest,
   }
 }
 
@@ -337,17 +352,13 @@ fn map_rspack_resolver_error(
     rspack_resolver::ResolveError::NotFound(_) => map_resolver_error(false, args),
     rspack_resolver::ResolveError::JSON(error) => {
       if let Some(content) = &error.content {
-        let rope = ropey::Rope::from(&**content);
-        let Some((offset, _)) =
-          try_line_column_length_to_offset_length(&rope, error.line, error.column, 0)
-        else {
+        let Some(offset) = byte_line_column_to_offset(content, error.line, error.column) else {
           return rspack_error::error!(format!(
             "JSON parse error: {:?} in '{}'",
             error,
             error.path.display()
           ));
         };
-        drop(rope);
 
         fn ceil_char_boundary(content: &str, mut index: usize) -> usize {
           if index > content.len() {
@@ -402,11 +413,17 @@ fn map_resolver_error(is_recursion: bool, args: &ResolveArgs<'_>) -> Error {
   let importer = args.importer;
   if importer.is_none() {
     return rspack_error::error!(format!(
-      "Module not found: Can't resolve '{request}' in '{context}'"
+      "Module not found: Can't resolve {} in {}",
+      yellow(&format!("'{request}'")),
+      cyan(&format!("'{context}'")),
     ));
   }
 
-  let message = format!("Can't resolve '{request}' in '{context}'");
+  let message = format!(
+    "Can't resolve {} in {}",
+    yellow(&format!("'{request}'")),
+    cyan(&format!("'{context}'"))
+  );
   let mut error = Error::from_string(
     None,
     args

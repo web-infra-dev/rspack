@@ -11,14 +11,14 @@ use rspack_loader_runner::{AdditionalData, ParseMeta, ResourceData};
 use rspack_sources::BoxSource;
 use rspack_util::{ext::AsAny, source_map::SourceMapKind};
 use rustc_hash::{FxHashMap, FxHashSet};
-use swc_core::{atoms::Atom, common::Span};
+use swc_core::atoms::Atom;
 
 use crate::{
   AsyncDependenciesBlock, BoxDependency, BoxDependencyTemplate, BoxLoader, BoxModuleDependency,
   BuildInfo, BuildMeta, ChunkGraph, CodeGenerationData, Compilation, CompilerOptions,
-  ConcatenationScope, Context, EvaluatedInlinableValue, FactoryMeta, Module, ModuleGraph,
-  ModuleIdentifier, ModuleLayer, ModuleType, NormalModule, ParserOptions, RuntimeGlobals,
-  RuntimeSpec, SourceType,
+  ConcatenationScope, Context, DependencyLocation, DependencyRange, EvaluatedInlinableValue,
+  FactoryMeta, Module, ModuleCodeTemplate, ModuleGraph, ModuleIdentifier, ModuleLayer, ModuleType,
+  NormalModule, ParserOptions, RuntimeSpec, SourceType,
 };
 
 #[derive(Debug)]
@@ -31,6 +31,7 @@ pub struct ParseContext<'a> {
   pub module_user_request: &'a str,
   pub module_parser_options: Option<&'a ParserOptions>,
   pub module_source_map_kind: SourceMapKind,
+  pub module_match_resource: Option<&'a ResourceData>,
   #[debug(skip)]
   pub loaders: &'a [BoxLoader],
   pub resource_data: &'a ResourceData,
@@ -40,6 +41,7 @@ pub struct ParseContext<'a> {
   pub parse_meta: ParseMeta,
   pub build_info: &'a mut BuildInfo,
   pub build_meta: &'a mut BuildMeta,
+  pub runtime_template: &'a ModuleCodeTemplate,
 }
 
 #[cacheable]
@@ -88,14 +90,15 @@ impl SideEffectsBailoutItem {
 
 #[derive(Debug)]
 pub struct SideEffectsBailoutItemWithSpan {
-  pub span: Span,
+  pub range: DependencyRange,
+  pub loc: Option<DependencyLocation>,
   /// The type of AstNode
   pub ty: String,
 }
 
 impl SideEffectsBailoutItemWithSpan {
-  pub fn new(span: Span, ty: String) -> Self {
-    Self { span, ty }
+  pub fn new(range: DependencyRange, loc: Option<DependencyLocation>, ty: String) -> Self {
+    Self { range, loc, ty }
   }
 }
 
@@ -112,7 +115,7 @@ pub struct ParseResult {
 #[derive(Debug)]
 pub struct GenerateContext<'a> {
   pub compilation: &'a Compilation,
-  pub runtime_requirements: &'a mut RuntimeGlobals,
+  pub runtime_template: &'a mut ModuleCodeTemplate,
   pub data: &'a mut CodeGenerationData,
   pub requested_source_type: SourceType,
   pub runtime: Option<&'a RuntimeSpec>,

@@ -25,9 +25,6 @@ module.exports = {
 			}
 		]
 	},
-	experiments: {
-		outputModule: true
-	},
 	optimization: {
 		concatenateModules: false,
 		avoidEntryIife: true,

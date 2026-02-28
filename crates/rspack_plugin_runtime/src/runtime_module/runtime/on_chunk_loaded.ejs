@@ -14,7 +14,7 @@ var deferred = [];
 		for (var j = 0; j < chunkIds.length; j++) {
 			if (
 				(priority & (1 === 0) || notFulfilled >= priority) &&
-				Object.keys(<%- ON_CHUNKS_LOADED %>).every(<%- returningFunction("__webpack_require__.O[key](chunkIds[j])", "key") %>)<%# dojang template engine limitation: variables can't be rendered in functions, so __webpack_require__.O needs to be hard-coded %>
+				Object.keys(<%- ON_CHUNKS_LOADED %>).every(<%- returningFunction("$$RUNTIME_GLOBAL_ON_CHUNKS_LOADED$$[key](chunkIds[j])", "key") %>)
 			) {
 				chunkIds.splice(j--, 1);
 			} else {

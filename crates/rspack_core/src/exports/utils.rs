@@ -83,7 +83,7 @@ impl EvaluatedInlinableValue {
     Self::String(v)
   }
 
-  pub fn render(&self) -> String {
+  pub fn render(&self, comment: &str) -> String {
     let s: Cow<str> = match self {
       Self::Null => "null".into(),
       Self::Undefined => "undefined".into(),
@@ -94,18 +94,22 @@ impl EvaluatedInlinableValue {
       }
       Self::String(v) => json_stringify(v.as_str()).into(),
     };
-    format!("({s})")
+    format!("({comment}{s})")
   }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum CanInlineUse {
+  // Must have this initial state to get the correct dependency condition of inline value
+  // at flag_dependency_usage_plugin. If it's just bool and the initial state is true like
+  // mangleExports, then the dependency condition of inline value will be false and the
+  // flag_dependency_usage_plugin will not collect the usage of these dependency.
   HasInfo,
   Yes,
   No,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub enum UsedNameItem {
   Str(Atom),
   Inlined(EvaluatedInlinableValue),
@@ -125,8 +129,8 @@ impl InlinedUsedName {
     }
   }
 
-  pub fn render(&self) -> String {
-    let mut inlined = self.value.render();
+  pub fn render(&self, comment: &str) -> String {
+    let mut inlined = self.value.render(comment);
     inlined.push_str(&property_access(&self.suffix, 0));
     inlined
   }
@@ -147,10 +151,6 @@ pub enum UsedName {
 }
 
 impl UsedName {
-  pub fn is_inlined(&self) -> bool {
-    matches!(self, UsedName::Inlined { .. })
-  }
-
   pub fn append(&mut self, item: impl IntoIterator<Item = Atom>) {
     match self {
       UsedName::Normal(vec) => vec.extend(item),

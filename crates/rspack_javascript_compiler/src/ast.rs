@@ -5,7 +5,6 @@ use swc_core::{
   common::{GLOBALS, Globals, Mark, SourceMap, errors::Handler, sync::Lrc, util::take::Take},
   ecma::{
     ast::{Module, Program as SwcProgram},
-    transforms::base::helpers::{HELPERS, HelperData, Helpers},
     visit::{Fold, FoldWith, Visit, VisitMut, VisitMutWith, VisitWith},
   },
 };
@@ -73,7 +72,6 @@ impl Take for Program {
 /// Swc transform context
 pub struct Context {
   pub globals: Globals,
-  pub helpers: HelperData,
   pub top_level_mark: Mark,
   pub unresolved_mark: Mark,
   pub source_map: Arc<SourceMap>,
@@ -83,13 +81,10 @@ impl Context {
   pub fn new(source_map: Arc<SourceMap>, globals: Option<Globals>) -> Self {
     let globals = globals.unwrap_or_default();
     // generate preset mark & helpers
-    let (top_level_mark, unresolved_mark, helpers) = GLOBALS.set(&globals, || {
-      (Mark::new(), Mark::new(), Helpers::new(true).data())
-    });
+    let (top_level_mark, unresolved_mark) = GLOBALS.set(&globals, || (Mark::new(), Mark::new()));
 
     Self {
       globals,
-      helpers,
       top_level_mark,
       unresolved_mark,
       source_map,
@@ -100,7 +95,6 @@ impl Context {
 impl std::fmt::Debug for Context {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     f.debug_struct("Context")
-      .field("helpers", &self.helpers)
       .field("top_level_mark", &self.top_level_mark)
       .field("unresolved_mark", &self.unresolved_mark)
       .finish()
@@ -154,17 +148,8 @@ impl Ast {
     self
   }
 
-  pub fn with_program(mut self, program: Program) -> Self {
-    self.program = program;
-    self
-  }
-
   pub fn get_context(&self) -> &Context {
     &self.context
-  }
-
-  pub fn into_program(self) -> Program {
-    self.program
   }
 
   pub fn transform<F, R>(&mut self, f: F) -> R
@@ -172,9 +157,7 @@ impl Ast {
     F: FnOnce(&mut Program, &Context) -> R,
   {
     let Self { program, context } = self;
-    GLOBALS.set(&context.globals, || {
-      HELPERS.set(&Helpers::from_data(context.helpers), || f(program, context))
-    })
+    GLOBALS.set(&context.globals, || f(program, context))
   }
 
   pub fn transform_with_handler<F, R>(&mut self, cm: Lrc<SourceMap>, f: F) -> Result<R, BatchErrors>
@@ -193,8 +176,6 @@ impl Ast {
     F: FnOnce(&Program, &Context) -> R,
   {
     let Self { program, context } = self;
-    GLOBALS.set(&context.globals, || {
-      HELPERS.set(&Helpers::from_data(context.helpers), || f(program, context))
-    })
+    GLOBALS.set(&context.globals, || f(program, context))
   }
 }

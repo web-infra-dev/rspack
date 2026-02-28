@@ -43,9 +43,7 @@ const config = {
 			}
 		}
 	],
-	experiments: {
-		incremental: true
-	}
+	incremental: true
 };
 
 module.exports = config;

@@ -1,7 +1,7 @@
 Array [
   Object {
     code: ModuleParseWarning,
-    moduleIdentifier: css/auto|<TEST_TOOLS_ROOT>/diagnosticsCases/module-parse-failed/invalid-css-local-class/index.module.css,
+    moduleIdentifier: css/auto|<TEST_ROOT>/diagnosticsCases/module-parse-failed/invalid-css-local-class/index.module.css,
     moduleName: ./index.module.css,
   },
 ]

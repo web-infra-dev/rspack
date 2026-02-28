@@ -1,7 +1,9 @@
 use rayon::prelude::*;
 use rspack_collections::{DatabaseItem, UkeyMap};
-use rspack_core::{CompilationChunkIds, Plugin, incremental::IncrementalPasses};
-use rspack_error::Result;
+use rspack_core::{
+  ChunkByUkey, ChunkNamedIdArtifact, CompilationChunkIds, Plugin, incremental::IncrementalPasses,
+};
+use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
 use rustc_hash::{FxBuildHasher, FxHashMap};
 
@@ -23,22 +25,26 @@ impl DeterministicChunkIdsPlugin {
 }
 
 #[plugin_hook(CompilationChunkIds for DeterministicChunkIdsPlugin)]
-async fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> rspack_error::Result<()> {
+async fn chunk_ids(
+  &self,
+  compilation: &rspack_core::Compilation,
+  chunk_by_ukey: &mut ChunkByUkey,
+  _named_chunk_ids_artifact: &mut ChunkNamedIdArtifact,
+  diagnostics: &mut Vec<Diagnostic>,
+) -> rspack_error::Result<()> {
   if let Some(diagnostic) = compilation.incremental.disable_passes(
     IncrementalPasses::CHUNK_IDS,
     "DeterministicChunkIdsPlugin (optimization.chunkIds = \"deterministic\")",
     "it requires calculating the id of all the chunks, which is a global effect",
-  ) {
-    if let Some(diagnostic) = diagnostic {
-      compilation.push_diagnostic(diagnostic);
-    }
-    compilation.chunk_ids_artifact.clear();
+  ) && let Some(diagnostic) = diagnostic
+  {
+    diagnostics.push(diagnostic);
   }
 
-  let mut used_ids = get_used_chunk_ids(compilation);
+  let mut used_ids = get_used_chunk_ids(chunk_by_ukey);
   let used_ids_len = used_ids.len();
 
-  let chunk_graph = &compilation.chunk_graph;
+  let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
   let module_graph = compilation.get_module_graph();
   let module_graph_cache = &compilation.module_graph_cache_artifact;
   let context = self
@@ -50,10 +56,9 @@ async fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> rspack_
   let expand_factor = 10;
   let salt = 10;
 
-  let chunks = compilation
-    .chunk_by_ukey
+  let chunks = chunk_by_ukey
     .values()
-    .filter(|chunk| chunk.id(&compilation.chunk_ids_artifact).is_none())
+    .filter(|chunk| chunk.id().is_none())
     .collect::<Vec<_>>();
   let mut chunk_key_to_id =
     FxHashMap::with_capacity_and_hasher(chunks.len(), FxBuildHasher::default());
@@ -66,9 +71,10 @@ async fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> rspack_
         get_full_chunk_name(
           chunk,
           chunk_graph,
-          &module_graph,
+          module_graph,
           module_graph_cache,
           &context,
+          &compilation.exports_info_artifact,
         ),
       )
     })
@@ -82,12 +88,12 @@ async fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> rspack_
       chunk_names
         .get(&chunk.ukey())
         .expect("should have generated full chunk name")
-        .to_string()
+        .clone()
     },
     |a, b| {
       compare_chunks_natural(
         chunk_graph,
-        &compilation.chunk_group_by_ukey,
+        &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
         &compilation.module_ids_artifact,
         a,
         b,
@@ -110,10 +116,10 @@ async fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> rspack_
     salt,
   );
 
-  chunk_key_to_id.into_iter().for_each(|(chunk_ukey, id)| {
-    let chunk = compilation.chunk_by_ukey.expect_get_mut(&chunk_ukey);
-    chunk.set_id(&mut compilation.chunk_ids_artifact, id.to_string());
-  });
+  for (chunk_ukey, id) in chunk_key_to_id {
+    let chunk = chunk_by_ukey.expect_get_mut(&chunk_ukey);
+    chunk.set_id(id.to_string());
+  }
 
   Ok(())
 }

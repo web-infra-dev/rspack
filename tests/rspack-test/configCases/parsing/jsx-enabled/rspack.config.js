@@ -5,9 +5,6 @@ const baseConfig = {
 	mode: "production",
 	context: __dirname,
 	entry: "./index.jsx",
-	experiments: {
-		"outputModule": true
-	},
 	externalsType: "module-import",
 	externals: {
 		'react': 'react',
@@ -20,8 +17,10 @@ const baseConfig = {
 			type: 'modern-module',
 		},
 	},
+	plugins: [
+		new rspack.experiments.RslibPlugin()
+	],
 	optimization: {
-		avoidEntryIife: true,
 		minimize: false,
 	},
 	module: {
@@ -102,6 +101,7 @@ module.exports = [
 		name: "test-output",
 		entry: "./test.js",
 		output: {
+			...baseConfig.output,
 			filename: "test.js"
 		}
 	}

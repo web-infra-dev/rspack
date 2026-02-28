@@ -13,7 +13,7 @@ function existForModule(chunk, module) {
 	return module in modules;
 }
 
-it("worked", done => {
+it("worked", () => {
 	expect(existForModule(require("./x_js-y_js.js"), "./x.js")).toBe(true);
 	expect(existForModule(require("./x_js-y_js.js"), "./y.js")).toBe(true);
 
@@ -38,5 +38,4 @@ it("worked", done => {
 	expect(existForModule(require("./async-g.js"), "./x.js")).toBe(true);
 	expect(existForModule(require("./async-g.js"), "./y.js")).toBe(false);
 
-	done();
 });

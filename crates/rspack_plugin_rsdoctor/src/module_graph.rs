@@ -1,18 +1,70 @@
 use std::sync::{Arc, atomic::AtomicI32};
 
 use rayon::iter::{IntoParallelRefIterator, ParallelBridge, ParallelIterator};
-use rspack_collections::{Identifier, IdentifierMap};
+use rspack_collections::{Identifiable, Identifier, IdentifierMap};
 use rspack_core::{
-  BoxModule, ChunkGraph, Compilation, Context, DependencyId, DependencyType, Module, ModuleGraph,
-  ModuleIdsArtifact, rspack_sources::MapOptions,
+  BoxModule, ChunkGraph, Compilation, Context, DependencyId, DependencyType, ExportsInfoArtifact,
+  Module, ModuleGraph, ModuleIdsArtifact, ModuleType, PrefetchExportsInfoMode, UsageState,
+  rspack_sources::{MapOptions, ObjectPool},
 };
 use rspack_paths::Utf8PathBuf;
+use rspack_plugin_json::create_object_for_exports_info;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
+use thread_local::ThreadLocal;
 
 use crate::{
-  ChunkUkey, ModuleKind, ModuleUkey, RsdoctorDependency, RsdoctorModule, RsdoctorModuleId,
-  RsdoctorModuleOriginalSource,
+  ChunkUkey, ModuleKind, ModuleUkey, RsdoctorDependency, RsdoctorJsonModuleSizes, RsdoctorModule,
+  RsdoctorModuleId, RsdoctorModuleOriginalSource,
 };
+
+pub fn collect_json_module_sizes(
+  modules: &IdentifierMap<&BoxModule>,
+  exports_info_artifact: &ExportsInfoArtifact,
+) -> RsdoctorJsonModuleSizes {
+  let mut json_sizes: RsdoctorJsonModuleSizes = RsdoctorJsonModuleSizes::default();
+
+  for (module_id, module) in modules.iter() {
+    if module.module_type() != &ModuleType::Json {
+      continue;
+    }
+
+    let Some(json_data) = module.build_info().json_data.as_ref() else {
+      continue;
+    };
+
+    let exports_info = exports_info_artifact
+      .get_prefetched_exports_info(module_id, PrefetchExportsInfoMode::Default);
+
+    let final_json = match json_data {
+      json::JsonValue::Object(_) | json::JsonValue::Array(_) => {
+        let needs_tree_shaking = exports_info.other_exports_info().get_used(None)
+          == UsageState::Unused
+          || exports_info.exports().any(|(_, info)| {
+            let used = info.get_used(None);
+            used == UsageState::Unused || used == UsageState::OnlyPropertiesUsed
+          });
+
+        if needs_tree_shaking {
+          create_object_for_exports_info(
+            json_data.clone(),
+            &exports_info,
+            None,
+            exports_info_artifact,
+          )
+        } else {
+          json_data.clone()
+        }
+      }
+      _ => json_data.clone(),
+    };
+
+    let json_str = json::stringify(final_json);
+    let size = ("module.exports = ".len() + json_str.len()) as i32;
+    json_sizes.insert(module_id.to_string(), size);
+  }
+
+  json_sizes
+}
 
 pub fn collect_modules(
   modules: &IdentifierMap<&BoxModule>,
@@ -52,6 +104,7 @@ pub fn collect_modules(
             .collect::<HashSet<_>>()
         })
         .unwrap_or_default();
+
       (
         module_id.to_owned(),
         RsdoctorModule {
@@ -64,7 +117,7 @@ pub fn collect_modules(
           } else {
             ModuleKind::Normal
           },
-          layer: module.get_layer().map(|layer| layer.to_string()),
+          layer: module.get_layer().cloned(),
           dependencies: HashSet::default(),
           imported: HashSet::default(),
           modules: HashSet::default(),
@@ -125,6 +178,8 @@ pub fn collect_module_original_sources(
   compilation: &Compilation,
 ) -> Vec<RsdoctorModuleOriginalSource> {
   let ifs = compilation.input_filesystem.clone();
+
+  let tls: ThreadLocal<ObjectPool> = ThreadLocal::new();
   modules
     .par_iter()
     .filter_map(|(module_id, module)| {
@@ -135,11 +190,12 @@ pub fn collect_module_original_sources(
       } else {
         module.as_normal_module()?
       };
-      let module_ukey = module_ukeys.get(module_id)?;
       let resource = module.resource_resolved_data().resource().to_owned();
+      let module_ukey = module_ukeys.get(module_id)?;
+      let object_pool = tls.get_or(ObjectPool::default);
       let source = module
         .source()
-        .and_then(|s| s.map(&MapOptions::default()))
+        .and_then(|s| s.map(object_pool, &MapOptions::default()))
         .and_then(|s| {
           let idx = s.sources().iter().position(|s| s.eq(&resource))?;
           let source = s.sources_content().get(idx)?;
@@ -159,6 +215,24 @@ pub fn collect_module_original_sources(
             source: content,
           })
         })?;
+
+      let mut source = source;
+
+      let (map, result_map) = compilation.code_generation_results.inner();
+      let module_identifier = module.identifier();
+      let code_gen_key = if map.contains_key(&module_identifier) {
+        &module_identifier
+      } else {
+        module_id
+      };
+
+      if let Some(entry) = map.get(code_gen_key)
+        && let Some(id) = entry.values().next()
+        && let Some(res) = result_map.get(id)
+      {
+        source.size = res.inner().values().map(|s| s.size() as i32).sum();
+      }
+
       Some(source)
     })
     .collect::<Vec<_>>()
@@ -179,7 +253,7 @@ pub fn collect_module_dependencies(
         .get_outgoing_connections(module_id)
         .filter_map(|conn| {
           let dep = module_graph
-            .dependency_by_id(&conn.dependency_id)?
+            .dependency_by_id(&conn.dependency_id)
             .as_module_dependency()?;
 
           if matches!(

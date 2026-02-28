@@ -1,1 +1,1 @@
-module.exports = () => false;
+module.exports = () => "not stable on CI"

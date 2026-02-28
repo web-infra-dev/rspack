@@ -3,9 +3,9 @@ use std::{borrow::Cow, iter};
 use either::Either;
 use itertools::Itertools;
 use rspack_core::{
-  AsyncDependenciesBlock, BoxDependency, ConstDependency, ContextDependency, ContextMode,
-  ContextNameSpaceObject, ContextOptions, Dependency, DependencyCategory, DependencyRange,
-  RuntimeGlobals, SharedSourceMap,
+  AsyncDependenciesBlock, BoxDependency, ContextDependency, ContextMode, ContextNameSpaceObject,
+  ContextOptions, Dependency, DependencyCategory, DependencyRange, RuntimeGlobals,
+  RuntimeRequirementsDependency,
 };
 use rspack_error::{Error, Severity};
 use rspack_util::{SpanExt, atom::Atom};
@@ -76,9 +76,7 @@ impl AMDRequireDependenciesBlockParserPlugin {
       let array = param.array();
       for request in array.iter() {
         if request == "require" {
-          deps.push(AMDRequireArrayItem::String(
-            RuntimeGlobals::REQUIRE.name().into(),
-          ));
+          deps.push(AMDRequireArrayItem::Require);
         } else if request == "exports" || request == "module" {
           deps.push(AMDRequireArrayItem::String(request.into()));
         } else if let Some(local_module) = parser.get_local_module_mut(request) {
@@ -124,24 +122,21 @@ impl AMDRequireDependenciesBlockParserPlugin {
       let range = param.range();
 
       if param_str == "require" {
-        let dep = Box::new(ConstDependency::new(
+        let dep = Box::new(RuntimeRequirementsDependency::new(
           range.into(),
-          RuntimeGlobals::REQUIRE.name().into(),
-          Some(RuntimeGlobals::REQUIRE),
+          RuntimeGlobals::REQUIRE,
         ));
         parser.add_presentational_dependency(dep);
       } else if param_str == "module" {
-        let dep = Box::new(ConstDependency::new(
+        let dep = Box::new(RuntimeRequirementsDependency::new(
           range.into(),
-          "module".into(),
-          Some(RuntimeGlobals::MODULE),
+          RuntimeGlobals::MODULE,
         ));
         parser.add_presentational_dependency(dep);
       } else if param_str == "exports" {
-        let dep = Box::new(ConstDependency::new(
+        let dep = Box::new(RuntimeRequirementsDependency::new(
           range.into(),
-          "exports".into(),
-          Some(RuntimeGlobals::EXPORTS),
+          RuntimeGlobals::EXPORTS,
         ));
         parser.add_presentational_dependency(dep);
       } else if let Some(local_module) = parser.get_local_module_mut(param_str) {
@@ -195,6 +190,7 @@ impl AMDRequireDependenciesBlockParserPlugin {
       end: call_span.real_hi(),
       referenced_exports: None,
       attributes: None,
+      phase: None,
     };
     let mut dep = AMDRequireContextDependency::new(options, param_range.into(), parser.in_try);
     *dep.critical_mut() = result.critical;
@@ -226,7 +222,7 @@ impl AMDRequireDependenciesBlockParserPlugin {
         return Some(result.map(|item| item.expect("")).join("|"));
       }
     } else if param.is_string() {
-      return Some(param.string().to_string());
+      return Some(param.string().clone());
     }
     None
   }
@@ -305,8 +301,8 @@ impl AMDRequireDependenciesBlockParserPlugin {
       error_callback_arg.map(|arg| arg.expr.span().into()),
     ));
 
-    let source_map: SharedSourceMap = parser.source_map.clone();
-    let block_loc = Into::<DependencyRange>::into(call_expr.span).to_loc(Some(&source_map));
+    let range = DependencyRange::from(call_expr.span);
+    let block_loc = parser.to_dependency_location(range);
 
     if call_expr.args.len() == 1 {
       let mut block_deps: Vec<BoxDependency> = vec![dep];
@@ -346,7 +342,7 @@ impl AMDRequireDependenciesBlockParserPlugin {
         let mut error: Error = create_traceable_error(
           "UnsupportedFeatureWarning".into(),
           "Cannot statically analyse 'require(…, …)'".into(),
-          parser.source_file,
+          parser.source.to_string(),
           call_expr.span.into(),
         );
         error.severity = Severity::Warning;

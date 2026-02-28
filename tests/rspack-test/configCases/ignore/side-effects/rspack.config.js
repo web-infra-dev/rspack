@@ -1,8 +1,8 @@
 "use strict";
 
-const webpack = require("@rspack/core");
+const { rspack } = require("@rspack/core");
 
-/** @type {import("../../../../").Configuration} */
+/** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	entry: "./test.js",
 	resolve: {
@@ -11,7 +11,7 @@ module.exports = {
 			"./ignored-module": false
 		}
 	},
-	plugins: [new webpack.IgnorePlugin({ resourceRegExp: /(b\.js|b)$/ })],
+	plugins: [new rspack.IgnorePlugin({ resourceRegExp: /(b\.js|b)$/ })],
 	optimization: {
 		sideEffects: true
 	}

@@ -21,7 +21,11 @@ pub struct ChunkGroup {
 impl ChunkGroup {
   fn as_ref(&self) -> napi::Result<(&'static Compilation, &'static rspack_core::ChunkGroup)> {
     let compilation = unsafe { self.compilation.as_ref() };
-    if let Some(chunk_group) = compilation.chunk_group_by_ukey.get(&self.chunk_group_ukey) {
+    if let Some(chunk_group) = compilation
+      .build_chunk_graph_artifact
+      .chunk_group_by_ukey
+      .get(&self.chunk_group_ukey)
+    {
       Ok((compilation, chunk_group))
     } else {
       Err(napi::Error::from_reason(format!(
@@ -131,7 +135,8 @@ impl ChunkGroup {
   #[napi(ts_return_type = "Chunk")]
   pub fn get_runtime_chunk(&self) -> napi::Result<ChunkWrapper> {
     let (compilation, chunk_group) = self.as_ref()?;
-    let chunk_ukey = chunk_group.get_runtime_chunk(&compilation.chunk_group_by_ukey);
+    let chunk_ukey =
+      chunk_group.get_runtime_chunk(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey);
     Ok(ChunkWrapper::new(chunk_ukey, compilation))
   }
 
@@ -151,6 +156,7 @@ impl ChunkGroup {
         .iter()
         .filter_map(|chunk_ukey| {
           compilation
+            .build_chunk_graph_artifact
             .chunk_by_ukey
             .get(chunk_ukey)
             .map(|chunk| chunk.files().iter())

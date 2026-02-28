@@ -1,10 +1,6 @@
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	entry: "./index.mjs",
-	experiments: {
-		outputModule: true,
-		css: true
-	},
 	name: "esm",
 	target: "web",
 	output: {
@@ -14,6 +10,14 @@ module.exports = {
 		chunkFilename: "[name].mjs",
 		chunkFormat: "module",
 		crossOriginLoading: "anonymous"
+	},
+	module: {
+		rules: [
+			{
+				test: /\.css$/,
+				type: "css/auto"
+			}
+		]
 	},
 	performance: {
 		hints: false

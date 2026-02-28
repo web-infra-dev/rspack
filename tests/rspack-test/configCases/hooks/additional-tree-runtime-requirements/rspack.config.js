@@ -1,7 +1,6 @@
-const { RuntimeGlobals } = require("@rspack/core");
-
 class Plugin {
 	apply(compiler) {
+		const RuntimeGlobals = compiler.rspack.RuntimeGlobals;
 		compiler.hooks.thisCompilation.tap("TestFakePlugin", compilation => {
 			compilation.hooks.additionalTreeRuntimeRequirements.tap(
 				"TestFakePlugin",

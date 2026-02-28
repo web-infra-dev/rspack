@@ -4,10 +4,10 @@ use rspack_cacheable::{
 };
 use rspack_core::{
   AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
-  DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, ExportsInfoGetter,
-  ExtendedReferencedExport, FactorizeInfo, GetUsedNameParam, ModuleDependency, ModuleGraph,
-  ModuleGraphCacheArtifact, PrefetchExportsInfoMode, RuntimeGlobals, RuntimeSpec, TemplateContext,
-  TemplateReplaceSource, UsedName, property_access,
+  DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, ExportsInfoArtifact,
+  ExportsInfoGetter, ExtendedReferencedExport, FactorizeInfo, GetUsedNameParam, ModuleDependency,
+  ModuleGraph, ModuleGraphCacheArtifact, PrefetchExportsInfoMode, RuntimeSpec, TemplateContext,
+  TemplateReplaceSource, UsedName, property_access_with_optional,
 };
 use swc_core::atoms::Atom;
 
@@ -21,17 +21,25 @@ pub struct CommonJsSelfReferenceDependency {
   base: ExportsBase,
   #[cacheable(with=AsVec<AsPreset>)]
   names: Vec<Atom>,
+  names_optionals: Vec<bool>,
   is_call: bool,
   factorize_info: FactorizeInfo,
 }
 
 impl CommonJsSelfReferenceDependency {
-  pub fn new(range: DependencyRange, base: ExportsBase, names: Vec<Atom>, is_call: bool) -> Self {
+  pub fn new(
+    range: DependencyRange,
+    base: ExportsBase,
+    names: Vec<Atom>,
+    names_optionals: Vec<bool>,
+    is_call: bool,
+  ) -> Self {
     Self {
       id: DependencyId::new(),
       range,
       base,
       names,
+      names_optionals,
       is_call,
       factorize_info: Default::default(),
     }
@@ -64,6 +72,7 @@ impl Dependency for CommonJsSelfReferenceDependency {
     &self,
     _module_graph: &ModuleGraph,
     _module_graph_cache: &ModuleGraphCacheArtifact,
+    _exports_info_artifact: &ExportsInfoArtifact,
     _runtime: Option<&RuntimeSpec>,
   ) -> Vec<ExtendedReferencedExport> {
     if self.is_call {
@@ -134,7 +143,7 @@ impl DependencyTemplate for CommonJsSelfReferenceDependencyTemplate {
       compilation,
       module,
       runtime,
-      runtime_requirements,
+      runtime_template,
       ..
     } = code_generatable_context;
     let module_graph = compilation.get_module_graph();
@@ -144,22 +153,21 @@ impl DependencyTemplate for CommonJsSelfReferenceDependencyTemplate {
 
     let used = if dep.names.is_empty() {
       let used_name = if dep.names.is_empty() {
-        let exports_info = ExportsInfoGetter::prefetch_used_info_without_name(
-          &module_graph.get_exports_info(&module.identifier()),
-          &module_graph,
-          *runtime,
-          false,
-        );
+        let exports_info_used = compilation
+          .exports_info_artifact
+          .get_prefetched_exports_info_used(&module.identifier(), *runtime);
         ExportsInfoGetter::get_used_name(
-          GetUsedNameParam::WithoutNames(&exports_info),
+          GetUsedNameParam::WithoutNames(&exports_info_used),
           *runtime,
           &dep.names,
         )
       } else {
-        let exports_info = module_graph.get_prefetched_exports_info(
-          &module.identifier(),
-          PrefetchExportsInfoMode::Nested(&dep.names),
-        );
+        let exports_info = compilation
+          .exports_info_artifact
+          .get_prefetched_exports_info(
+            &module.identifier(),
+            PrefetchExportsInfoMode::Nested(&dep.names),
+          );
         ExportsInfoGetter::get_used_name(
           GetUsedNameParam::WithNames(&exports_info),
           *runtime,
@@ -176,14 +184,14 @@ impl DependencyTemplate for CommonJsSelfReferenceDependencyTemplate {
     let module_argument = module.get_module_argument();
 
     let base = if dep.base.is_exports() {
-      runtime_requirements.insert(RuntimeGlobals::EXPORTS);
-      exports_argument.to_string()
+      runtime_template.render_exports_argument(exports_argument)
     } else if dep.base.is_module_exports() {
-      runtime_requirements.insert(RuntimeGlobals::MODULE);
-      format!("{module_argument}.exports")
+      format!(
+        "{}.exports",
+        runtime_template.render_module_argument(module_argument)
+      )
     } else if dep.base.is_this() {
-      runtime_requirements.insert(RuntimeGlobals::THIS_AS_EXPORTS);
-      "this".to_string()
+      runtime_template.render_this_exports()
     } else {
       unreachable!();
     };
@@ -192,10 +200,14 @@ impl DependencyTemplate for CommonJsSelfReferenceDependencyTemplate {
       dep.range.start,
       dep.range.end,
       &match used {
-        UsedName::Normal(used) => format!("{}{}", base, property_access(used, 0)),
+        UsedName::Normal(used) => format!(
+          "{}{}",
+          base,
+          property_access_with_optional(used, &dep.names_optionals, 0)
+        ),
         // Export a inlinable const from cjs is not possible for now, so self reference a inlinable
         // const is also not possible for now, but we compat it here
-        UsedName::Inlined(inlined) => inlined.render(),
+        UsedName::Inlined(inlined) => inlined.render(""),
       },
       None,
     )

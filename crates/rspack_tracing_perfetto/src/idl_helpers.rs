@@ -8,6 +8,7 @@ use std::{
 
 use micromegas_perfetto::protos::{self as idl, TracePacket};
 
+#[cfg_attr(allocative, allocative::root)]
 static CUSTOM_SCOPE_NAMES: LazyLock<Mutex<HashMap<String, u64>>> =
   LazyLock::new(|| Mutex::new(HashMap::new()));
 

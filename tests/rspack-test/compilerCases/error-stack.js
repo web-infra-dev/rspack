@@ -1,6 +1,6 @@
 let error;
 
-/** @type {import('@rspack/core').TCompilerCaseConfig[]} */
+/** @type {import('@rspack/test-tools').TCompilerCaseConfig[]} */
 module.exports = [{
 	description: "should print error with stack information with sync callback",
 	error: true,

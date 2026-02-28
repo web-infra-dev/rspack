@@ -9,6 +9,7 @@ module.exports = {
 		usedExports: true,
 		providedExports: true,
 		minimize: false,
-		mangleExports: "size"
-	}
+		mangleExports: "size",
+		inlineExports: false
+	},
 };

@@ -1,4 +1,4 @@
-./index.js 19 bytes [built] [code generated]
-webpack/runtime/define_property_getters 285 bytes [code generated]
-webpack/runtime/has_own_property 88 bytes [code generated]
-webpack/runtime/make_namespace_object 274 bytes [code generated]
+./index.js xx bytes [built] [code generated]
+webpack/runtime/define_property_getters xx bytes [code generated]
+webpack/runtime/has_own_property xx bytes [code generated]
+webpack/runtime/make_namespace_object xx bytes [code generated]

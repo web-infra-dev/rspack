@@ -2,9 +2,10 @@ use std::{borrow::Cow, hash::Hash};
 
 use rspack_core::{
   Chunk, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements, CompilationParams,
-  CompilerCompilation, ExternalModule, ExternalRequest, Filename, LibraryAuxiliaryComment,
-  LibraryCustomUmdObject, LibraryName, LibraryNonUmdObject, LibraryOptions, LibraryType,
-  ModuleGraph, ModuleGraphCacheArtifact, PathData, Plugin, RuntimeGlobals, SourceType,
+  CompilerCompilation, ExportsInfoArtifact, ExternalModule, ExternalRequest, Filename,
+  LibraryAuxiliaryComment, LibraryCustomUmdObject, LibraryName, LibraryNonUmdObject,
+  LibraryOptions, LibraryType, ModuleGraph, ModuleGraphCacheArtifact, PathData, Plugin,
+  RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule, SourceType,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt, error};
@@ -97,6 +98,7 @@ async fn render(
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
   render_source: &mut RenderSource,
+  _runtime_template: &RuntimeCodeTemplate<'_>,
 ) -> Result<()> {
   let Some(options) = self.get_options_for_chunk(compilation, chunk_ukey) else {
     return Ok(());
@@ -106,10 +108,14 @@ async fn render(
     .output
     .environment
     .supports_arrow_function();
-  let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+  let chunk = compilation
+    .build_chunk_graph_artifact
+    .chunk_by_ukey
+    .expect_get(chunk_ukey);
   let module_graph = compilation.get_module_graph();
   let module_graph_cache = &compilation.module_graph_cache_artifact;
   let modules = compilation
+    .build_chunk_graph_artifact
     .chunk_graph
     .get_chunk_modules_identifier(chunk_ukey)
     .iter()
@@ -129,7 +135,11 @@ async fn render(
 
   if self.optional_amd_external_as_global {
     for module in &externals {
-      if module_graph.is_optional(&module.id, module_graph_cache) {
+      if module_graph.is_optional(
+        &module.id,
+        module_graph_cache,
+        &compilation.exports_info_artifact,
+      ) {
         optional_externals.push(*module);
       } else {
         required_externals.push(*module);
@@ -168,7 +178,7 @@ async fn render(
   let define = if let (Some(amd), Some(_)) = &(&names.amd, named_define) {
     format!(
       "define({}, {}, {amd_factory});\n",
-      library_name(&[amd.to_string()], chunk, compilation).await?,
+      library_name(std::slice::from_ref(amd), chunk, compilation).await?,
       externals_dep_array(&required_externals)?
     )
   } else {
@@ -183,7 +193,7 @@ async fn render(
   } else if let Some(root) = &names.root {
     library_name(root, chunk, compilation).await?
   } else {
-    "".to_string()
+    String::new()
   };
 
   let factory = if names.commonjs.is_some() || names.root.is_some() {
@@ -192,7 +202,13 @@ async fn render(
       exports[{}] = factory({});\n",
       get_auxiliary_comment("commonjs", auxiliary_comment),
       name,
-      externals_require_array("commonjs", &externals, &module_graph, module_graph_cache)?,
+      externals_require_array(
+        "commonjs",
+        &externals,
+        module_graph,
+        module_graph_cache,
+        &compilation.exports_info_artifact,
+      )?,
     );
     let root_code = format!(
       "{}
@@ -226,7 +242,13 @@ async fn render(
     } else {
       format!(
         "var a = typeof exports === 'object' ? factory({}) : factory({});\n",
-        externals_require_array("commonjs", &externals, &module_graph, module_graph_cache)?,
+        externals_require_array(
+          "commonjs",
+          &externals,
+          module_graph,
+          module_graph_cache,
+          &compilation.exports_info_artifact,
+        )?,
         externals_root_array(&externals)?
       )
     };
@@ -248,7 +270,13 @@ async fn render(
           module.exports = factory({});
       }}"#,
     get_auxiliary_comment("commonjs2", auxiliary_comment),
-    externals_require_array("commonjs2", &externals, &module_graph, module_graph_cache)?
+    externals_require_array(
+      "commonjs2",
+      &externals,
+      module_graph,
+      module_graph_cache,
+      &compilation.exports_info_artifact,
+    )?
   )));
   source.add(RawStringSource::from(format!(
     "else if(typeof define === 'function' && define.amd) {{
@@ -289,9 +317,10 @@ async fn js_chunk_hash(
 #[plugin_hook(CompilationAdditionalChunkRuntimeRequirements for UmdLibraryPlugin)]
 async fn additional_chunk_runtime_requirements(
   &self,
-  compilation: &mut Compilation,
+  compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
   runtime_requirements: &mut RuntimeGlobals,
+  _runtime_modules: &mut Vec<Box<dyn RuntimeModule>>,
 ) -> Result<()> {
   let Some(_) = self.get_options_for_chunk(compilation, chunk_ukey) else {
     return Ok(());
@@ -326,16 +355,12 @@ async fn replace_keys(v: String, chunk: &Chunk, compilation: &Compilation) -> Re
     .get_path(
       &Filename::from(v),
       PathData::default()
-        .chunk_id_optional(
-          chunk
-            .id(&compilation.chunk_ids_artifact)
-            .map(|id| id.as_str()),
-        )
+        .chunk_id_optional(chunk.id().map(|id| id.as_str()))
         .chunk_hash_optional(chunk.rendered_hash(
           &compilation.chunk_hashes_artifact,
           compilation.options.output.hash_digest_length,
         ))
-        .chunk_name_optional(chunk.name_for_filename_template(&compilation.chunk_ids_artifact))
+        .chunk_name_optional(chunk.name_for_filename_template())
         .content_hash_optional(chunk.rendered_content_hash_by_source_type(
           &compilation.chunk_hashes_artifact,
           &SourceType::JavaScript,
@@ -350,6 +375,7 @@ fn externals_require_array(
   externals: &[&ExternalModule],
   module_graph: &ModuleGraph,
   module_graph_cache: &ModuleGraphCacheArtifact,
+  exports_info_artifact: &ExportsInfoArtifact,
 ) -> Result<String> {
   Ok(
     externals
@@ -367,7 +393,7 @@ fn externals_require_array(
         } else {
           format!("require({primary})")
         };
-        if module_graph.is_optional(&m.id, module_graph_cache) {
+        if module_graph.is_optional(&m.id, module_graph_cache, exports_info_artifact) {
           expr = format!("(function webpackLoadOptionalExternalModule() {{ try {{ return {expr}; }} catch(e) {{}} }}())");
         }
         Ok(expr)
@@ -406,8 +432,7 @@ fn accessor_to_object_access<S: AsRef<str>>(accessor: impl IntoIterator<Item = S
         serde_json::to_string(s.as_ref()).expect("failed to serde_json::to_string")
       )
     })
-    .collect::<Vec<_>>()
-    .join("")
+    .collect::<String>()
 }
 
 fn accessor_access(base: Option<&str>, accessor: &[String]) -> String {
@@ -448,5 +473,5 @@ fn get_auxiliary_comment(t: &str, auxiliary_comment: Option<&LibraryAuxiliaryCom
   {
     return format!("\t// {value} \n");
   }
-  "".to_string()
+  String::new()
 }

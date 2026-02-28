@@ -1,1 +1,0 @@
-module.exports = () => "FIXME: should be able to use global in a harmony module failed"

@@ -1,9 +1,9 @@
 import { Table } from '@builtIns/Table';
 import { useLang } from '@rspress/core/runtime';
+import { Link } from '@rspress/core/theme';
 import Markdown from 'markdown-to-jsx';
 import type React from 'react';
 import * as i18n from './i18n';
-import S from './PluginSupportStatusTable.module.scss';
 
 export enum CompatibleStatus {
   NotCompatible = 0,
@@ -100,12 +100,12 @@ export const CommunityPluginCompatibleTable: React.FC = () => {
     },
     {
       name: 'compression-webpack-plugin',
-      url: 'https://github.com/webpack-contrib/compression-webpack-plugin',
+      url: 'https://github.com/webpack/compression-webpack-plugin',
       status: CompatibleStatus.Compatible,
     },
     {
       name: 'css-minimizer-webpack-plugin',
-      url: 'https://github.com/webpack-contrib/css-minimizer-webpack-plugin',
+      url: 'https://github.com/webpack/css-minimizer-webpack-plugin',
       status: CompatibleStatus.Compatible,
       description: i18n[lang]['css-minimizer-webpack-plugin-desc'],
     },
@@ -140,17 +140,17 @@ export const CommunityPluginCompatibleTable: React.FC = () => {
     },
     {
       name: 'html-minimizer-webpack-plugin',
-      url: 'https://github.com/webpack-contrib/html-minimizer-webpack-plugin',
+      url: 'https://github.com/webpack/html-minimizer-webpack-plugin',
       status: CompatibleStatus.Compatible,
     },
     {
       name: 'json-minimizer-webpack-plugin',
-      url: 'https://github.com/webpack-contrib/json-minimizer-webpack-plugin',
+      url: 'https://github.com/webpack/json-minimizer-webpack-plugin',
       status: CompatibleStatus.Compatible,
     },
     {
       name: 'stylelint-webpack-plugin',
-      url: 'https://github.com/webpack-contrib/stylelint-webpack-plugin',
+      url: 'https://github.com/webpack/stylelint-webpack-plugin',
       status: CompatibleStatus.Compatible,
     },
     {
@@ -379,7 +379,6 @@ export const CommunityPluginCompatibleTable: React.FC = () => {
 
   return (
     <Table
-      className={S.PluginSupportStatusTable}
       header={[
         {
           name: lang === 'zh' ? '插件' : 'Plugin',
@@ -404,11 +403,7 @@ export const CommunityPluginCompatibleTable: React.FC = () => {
           const statusText = `${symbol} ${lang === 'zh' ? zh : en}`;
 
           return {
-            name: (
-              <a href={url} target="_blank" rel="noreferrer">
-                {name}
-              </a>
-            ),
+            name: <Link href={url}>{name}</Link>,
             status: statusText,
             notes: getNotesText(lang, description, status),
           };

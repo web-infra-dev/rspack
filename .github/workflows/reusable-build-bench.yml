@@ -30,7 +30,7 @@ jobs:
         shell: bash
     steps:
       - name: Checkout
-        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
         with:
           ref: ${{ inputs.ref }}
           clean: ${{ runner.environment == 'github-hosted' }}
@@ -42,7 +42,7 @@ jobs:
           key: build-bench-${{ inputs.target }}
 
       - name: Install cargo-codspeed binary
-        uses: taiki-e/install-action@6f69ec9970ed0c500b1b76d648e05c4c7e0e5671 # v2
+        uses: taiki-e/install-action@dfcb1ee29051d97c8d0f2d437199570008fd5612 # v2
         with:
           tool: cargo-codspeed@2.10.1
 
@@ -67,6 +67,7 @@ jobs:
           chmod +x  target/codspeed/instrumentation/rspack_benchmark/benches
 
       - name: Pnpm Setup
+        timeout-minutes: 5
         uses: ./.github/actions/pnpm/setup
 
       - name: Pnpm Install
@@ -78,6 +79,9 @@ jobs:
       - name: Run benchmark
         uses: ./.github/actions/codspeed
         timeout-minutes: 30
+        env:
+          RAYON_NUM_THREADS: 1
         with:
+          mode: 'simulation'
           run: pnpm run bench:ci
           token: ${{ secrets.CODSPEED_TOKEN }}

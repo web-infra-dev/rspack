@@ -3,7 +3,9 @@ module.exports = {
 	target: "node",
 	entry: "./src/index.js",
 	output: {
-		filename: "[name].js"
+		filename: "[name].js",
+		// use md4 to avoid the order of similarity in max size split algorithm
+		hashFunction: "md4"
 	},
 	optimization: {
 		chunkIds: "named",

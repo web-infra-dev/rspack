@@ -5,7 +5,7 @@ use rspack_core::{
   DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
   DependencyTemplateType, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
   PrefetchExportsInfoMode, RuntimeCondition, RuntimeSpec, TemplateContext, TemplateReplaceSource,
-  UsageState, UsedByExports, filter_runtime, runtime_condition_expression,
+  UsageState, UsedByExports, filter_runtime,
 };
 use rspack_util::ext::DynHash;
 
@@ -39,8 +39,8 @@ impl PureExpressionDependency {
       }
       Some(UsedByExports::Bool(false)) => RuntimeCondition::Boolean(false),
       Some(UsedByExports::Set(ref set)) => {
-        let module_graph = compilation.get_module_graph();
-        let exports_info = module_graph
+        let exports_info = compilation
+          .exports_info_artifact
           .get_prefetched_exports_info(&self.module_identifier, PrefetchExportsInfoMode::Default);
         filter_runtime(runtime, |cur_runtime| {
           set.iter().any(|id| {
@@ -136,12 +136,18 @@ impl DependencyTemplate for PureExpressionDependencyTemplate {
     let condition = match &runtime_condition {
       rspack_core::RuntimeCondition::Boolean(true) => return,
       rspack_core::RuntimeCondition::Boolean(false) => None,
-      rspack_core::RuntimeCondition::Spec(_spec) => Some(runtime_condition_expression(
-        &code_generatable_context.compilation.chunk_graph,
-        Some(&runtime_condition),
-        code_generatable_context.runtime,
-        code_generatable_context.runtime_requirements,
-      )),
+      rspack_core::RuntimeCondition::Spec(_spec) => Some(
+        code_generatable_context
+          .runtime_template
+          .runtime_condition_expression(
+            &code_generatable_context
+              .compilation
+              .build_chunk_graph_artifact
+              .chunk_graph,
+            Some(&runtime_condition),
+            code_generatable_context.runtime,
+          ),
+      ),
     };
 
     if let Some(condition) = condition {

@@ -1,6 +1,7 @@
 # Case dispose-removed-chunk: Step 2
 
 ## Changed Files
+- a.js
 - b.js
 - module.js
 
@@ -8,8 +9,8 @@
 - Bundle: b_js.CURRENT_HASH.js
 - Bundle: bundle.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 35
-- Update: b_js.LAST_HASH.hot-update.js, size: 426
-- Update: main.LAST_HASH.hot-update.js, size: 182
+- Update: b_js.LAST_HASH.hot-update.js, size: 341
+- Update: main.LAST_HASH.hot-update.js, size: 181
 
 ## Manifest
 
@@ -34,20 +35,16 @@
 #### Changed Content
 ```js
 "use strict";
-self["webpackHotUpdate"]("b_js", {
-"./b.js": 
-/*!**************!*\
-  !*** ./b.js ***!
-  \**************/
-(function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+self["rspackHotUpdate"]("b_js", {
+"./b.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  "default": () => (__WEBPACK_DEFAULT_EXPORT__)
+  "default": () => (__rspack_default_export)
 });
-/* ESM default export */ const __WEBPACK_DEFAULT_EXPORT__ = ("version b2");
+/* export default */ const __rspack_default_export = ("version b2");
 
 
-}),
+},
 
 });
 ```
@@ -65,7 +62,7 @@ __webpack_require__.d(__webpack_exports__, {
 #### Changed Content
 ```js
 "use strict";
-self["webpackHotUpdate"]("main", {},function(__webpack_require__) {
+self["rspackHotUpdate"]("main", {},function(__webpack_require__) {
 // webpack/runtime/get_full_hash
 (() => {
 __webpack_require__.h = () => ("CURRENT_HASH")

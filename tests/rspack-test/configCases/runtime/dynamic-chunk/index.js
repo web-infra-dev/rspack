@@ -1,6 +1,4 @@
-it("load dynamic chunk", function (done) {
-	import("./dynamic").then(module => {
-		expect(module.value).toBe("dynamic");
-		done();
-	});
+it("load dynamic chunk", async function () {
+	const module = await import("./dynamic");
+	expect(module.value).toBe("dynamic");
 });

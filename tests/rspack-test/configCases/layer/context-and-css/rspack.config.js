@@ -1,13 +1,9 @@
-/** @type {import("../../../../").Configuration} */
+/** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	target: "web",
 	entry: {
 		light: { import: "./light.js", layer: "light" },
 		dark: { import: "./dark.js", layer: "dark" }
-	},
-	experiments: {
-		layers: true,
-		css: true
 	},
 	optimization: {
 		runtimeChunk: "single"
@@ -46,6 +42,10 @@ module.exports = {
 						]
 					}
 				]
+			},
+			{
+				test: /\.css$/,
+				type: "css/auto"
 			}
 		]
 	}

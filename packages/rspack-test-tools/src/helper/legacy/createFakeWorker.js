@@ -1,30 +1,30 @@
 // @ts-nocheck
-"use strict";
+'use strict';
 
-const path = require("path");
+const path = require('path');
 
 module.exports = (env, { outputDirectory }) =>
-	class Worker {
-		constructor(resource, options = {}) {
-			const isFileURL = /^file:/i.test(resource);
-			const isBlobURL = /^blob:/i.test(resource);
+  class Worker {
+    constructor(resource, options = {}) {
+      const isFileURL = /^file:/i.test(resource);
+      const isBlobURL = /^blob:/i.test(resource);
 
-			if (!isFileURL && !isBlobURL) {
-				env.expect(resource.origin).toBe("https://test.cases");
-				env.expect(resource.pathname.startsWith("/path/")).toBe(true);
-			}
+      if (!isFileURL && !isBlobURL) {
+        env.expect(resource.origin).toBe('https://test.cases');
+        env.expect(resource.pathname.startsWith('/path/')).toBe(true);
+      }
 
-			this.url = resource;
-			const file = isFileURL
-				? resource
-				: path.resolve(
-					outputDirectory,
-					isBlobURL
-						? options.originalURL.pathname.slice(6)
-						: resource.pathname.slice(6)
-				);
+      this.url = resource;
+      const file = isFileURL
+        ? resource
+        : path.resolve(
+            outputDirectory,
+            isBlobURL
+              ? options.originalURL.pathname.slice(6)
+              : resource.pathname.slice(6),
+          );
 
-			const workerBootstrap = `
+      const workerBootstrap = `
 const { parentPort } = require("worker_threads");
 const { URL, fileURLToPath } = require("url");
 const path = require("path");
@@ -32,22 +32,39 @@ const fs = require("fs");
 global.self = global;
 self.URL = URL;
 self.location = new URL(${JSON.stringify(
-				isBlobURL
-					? resource.toString().replace("nodedata:", "https://test.cases/path/")
-					: resource.toString()
-			)});
+        isBlobURL
+          ? resource.toString().replace('nodedata:', 'https://test.cases/path/')
+          : resource.toString(),
+      )});
 const urlToPath = url => {
   if (/^file:/i.test(url)) return fileURLToPath(url);
 	if (url.startsWith("https://test.cases/path/")) url = url.slice(24);
 	return path.resolve(${JSON.stringify(outputDirectory)}, \`./\${url}\`);
 };
 self.importScripts = url => {
-	${options.type === "module"
-					? 'throw new Error("importScripts is not supported in module workers")'
-					: "require(urlToPath(url))"
-				};
+	${
+    options.type === 'module'
+      ? 'throw new Error("importScripts is not supported in module workers")'
+      : 'require(urlToPath(url))'
+  };
 };
 self.fetch = async url => {
+	if (typeof url === "string" ? url.endsWith(".wasm") : url.toString().endsWith(".wasm")) {
+		return new Promise((resolve, reject) => {
+			fs.readFile(require("node:url").fileURLToPath(url), (err, data) => {
+				if (err) {
+					reject(err);
+					return;
+				}
+				return resolve(
+					new Response(data, {
+						headers: { "Content-Type": "application/wasm" }
+					})
+				);
+			});
+		});
+	}
+
 	try {
 		const buffer = await new Promise((resolve, reject) =>
 			fs.readFile(urlToPath(url), (err, b) =>
@@ -55,7 +72,9 @@ self.fetch = async url => {
 			)
 		);
 		return {
-		  headers: { get(name) { } },
+		  headers: { get(name) {
+				if (name.toLowerCase() === "content-type") {}
+			} },
 			status: 200,
 			ok: true,
 			arrayBuffer() { return buffer; },
@@ -75,7 +94,7 @@ self.fetch = async url => {
 self.postMessage = data => {
 	parentPort.postMessage(data);
 };
-if (${options.type === "module"}) {
+if (${options.type === 'module'}) {
 	import(${JSON.stringify(file)}).then(() => {
 		parentPort.on("message", data => {
 			if(self.onmessage) self.onmessage({
@@ -92,31 +111,31 @@ if (${options.type === "module"}) {
 	require(${JSON.stringify(file)});
 }
 `;
-			this.worker = new (require("worker_threads").Worker)(workerBootstrap, {
-				eval: true
-			});
+      this.worker = new (require('worker_threads').Worker)(workerBootstrap, {
+        eval: true,
+      });
 
-			this._onmessage = undefined;
-		}
+      this._onmessage = undefined;
+    }
 
-		// eslint-disable-next-line accessor-pairs
-		set onmessage(value) {
-			if (this._onmessage) this.worker.off("message", this._onmessage);
-			this.worker.on(
-				"message",
-				(this._onmessage = (data) => {
-					value({
-						data
-					});
-				})
-			);
-		}
+    // eslint-disable-next-line accessor-pairs
+    set onmessage(value) {
+      if (this._onmessage) this.worker.off('message', this._onmessage);
+      this.worker.on(
+        'message',
+        (this._onmessage = (data) => {
+          value({
+            data,
+          });
+        }),
+      );
+    }
 
-		postMessage(data) {
-			this.worker.postMessage(data);
-		}
+    postMessage(data) {
+      this.worker.postMessage(data);
+    }
 
-		terminate() {
-			return this.worker.terminate();
-		}
-	};
+    terminate() {
+      return this.worker.terminate();
+    }
+  };

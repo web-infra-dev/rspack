@@ -19,7 +19,4 @@ module.exports = {
 				`dir5/dir6/runtime~${entrypoint.name.split("/").pop()}`
 		}
 	},
-	experiments: {
-		outputModule: true
-	}
 };

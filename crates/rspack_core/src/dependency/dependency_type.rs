@@ -13,11 +13,10 @@ pub enum DependencyType {
   Unknown,
   ExportInfoApi,
   Entry,
-  // ESM import
+  // ESM
   EsmImport,
   EsmImportSpecifier,
-  // ESM export
-  EsmExport,
+  EsmExportImport,
   EsmExportImportedSpecifier,
   EsmExportSpecifier,
   EsmExportExpression,
@@ -44,6 +43,8 @@ pub enum DependencyType {
   AmdRequireItem,
   // new URL("./foo", import.meta.url)
   NewUrl,
+  // new URL() context
+  NewUrlContext,
   // new Worker()
   NewWorker,
   // create script url
@@ -74,6 +75,8 @@ pub enum DependencyType {
   ImportContext,
   // import.meta.webpackContext
   ImportMetaContext,
+  // import.meta.resolve
+  ImportMetaResolve,
   // commonjs require context
   CommonJSRequireContext,
   // require.context
@@ -96,6 +99,10 @@ pub enum DependencyType {
   ContainerExposed,
   /// container entry,
   ContainerEntry,
+  /// share container entry
+  ShareContainerEntry,
+  /// share container fallback
+  ShareContainerFallback,
   /// remote to external,
   RemoteToExternal,
   /// fallback
@@ -109,8 +116,8 @@ pub enum DependencyType {
   ProvideModuleForShared,
   /// consume shared fallback
   ConsumeSharedFallback,
-  /// Webpack is included
-  WebpackIsIncluded,
+  /// is included
+  IsIncluded,
   LoaderImport,
   LazyImport,
   ModuleDecorator,
@@ -120,6 +127,10 @@ pub enum DependencyType {
   RstestModulePath,
   RstestMockModuleId,
   RstestHoistMock,
+  /// RSC entry that aggregates all "use client" and CSS modules for one Rspack entry
+  RscEntry,
+  /// RSC client reference to an individual "use client" or CSS module, not subject to lazy compilation
+  RscClientReference,
 }
 
 impl DependencyType {
@@ -128,7 +139,7 @@ impl DependencyType {
       DependencyType::Unknown => "unknown",
       DependencyType::Entry => "entry",
       DependencyType::EsmImport => "esm import",
-      DependencyType::EsmExport => "esm export",
+      DependencyType::EsmExportImport => "esm export import",
       DependencyType::EsmExportSpecifier => "esm export specifier",
       DependencyType::EsmExportImportedSpecifier => "esm export import specifier",
       DependencyType::EsmImportSpecifier => "esm import specifier",
@@ -146,6 +157,7 @@ impl DependencyType {
       DependencyType::AmdRequire => "amd",
       DependencyType::AmdRequireItem => "amd require",
       DependencyType::NewUrl => "new URL()",
+      DependencyType::NewUrlContext => "new URL() context",
       DependencyType::NewWorker => "new Worker()",
       DependencyType::CreateScriptUrl => "create script url",
       DependencyType::ImportMetaHotAccept => "import.meta.webpackHot.accept",
@@ -178,8 +190,11 @@ impl DependencyType {
       DependencyType::ExportInfoApi => "export info api",
       // TODO: mode
       DependencyType::ImportMetaContext => "import.meta context",
+      DependencyType::ImportMetaResolve => "import.meta.resolve",
       DependencyType::ContainerExposed => "container exposed",
       DependencyType::ContainerEntry => "container entry",
+      DependencyType::ShareContainerEntry => "share container entry",
+      DependencyType::ShareContainerFallback => "share container fallback",
       DependencyType::DllEntry => "dll entry",
       DependencyType::RemoteToExternal => "remote to external",
       DependencyType::RemoteToFallback => "fallback",
@@ -188,7 +203,7 @@ impl DependencyType {
       DependencyType::ProvideSharedModule => "provide shared module",
       DependencyType::ProvideModuleForShared => "provide module for shared",
       DependencyType::ConsumeSharedFallback => "consume shared fallback",
-      DependencyType::WebpackIsIncluded => "__webpack_is_included__",
+      DependencyType::IsIncluded => "__webpack_is_included__",
       DependencyType::LazyImport => "lazy import()",
       DependencyType::ModuleDecorator => "module decorator",
       DependencyType::DelegatedSource => "delegated source",
@@ -196,6 +211,8 @@ impl DependencyType {
       DependencyType::RstestModulePath => "rstest module path",
       DependencyType::RstestMockModuleId => "rstest mock module id",
       DependencyType::RstestHoistMock => "rstest hoist mock",
+      DependencyType::RscEntry => "rsc entry",
+      DependencyType::RscClientReference => "rsc client reference",
     }
   }
 }

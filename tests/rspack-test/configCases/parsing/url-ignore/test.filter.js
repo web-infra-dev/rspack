@@ -1,1 +1,0 @@
-module.exports = () => "TODO: support webpackIgnore of magic comments when parsing worker"

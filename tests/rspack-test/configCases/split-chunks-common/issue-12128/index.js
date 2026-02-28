@@ -2,5 +2,5 @@ it("should be main", function () {
 	require("./a");
 	require("./b");
 
-	expect(window["webpackChunk"].length).toBe(1);
+	expect(window["rspackChunk"].length).toBe(1);
 });

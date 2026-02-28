@@ -9,7 +9,7 @@ use napi_derive::napi;
 use rspack_collections::IdentifierMap;
 use rspack_core::{
   EntrypointsStatsOption, ExtendedStatsOptions, Stats, StatsChunk, StatsModule, StatsUsedExports,
-  rspack_sources::{RawBufferSource, RawSource, Source},
+  rspack_sources::{RawBufferSource, Source, SourceValue},
 };
 use rspack_error::Severity;
 use rspack_napi::napi::{
@@ -326,7 +326,7 @@ impl<'a> From<(String, rspack_core::LogType)> for JsStatsLogging<'a> {
         subsec_nanos,
       } => {
         let mut time_buffer = itoa::Buffer::new();
-        let time_str = time_buffer.format(secs * 1000 + subsec_nanos as u64 / 1000000);
+        let time_str = time_buffer.format(secs * 1000 + subsec_nanos as u64 / 1_000_000);
         Self {
           name: value.0,
           r#type: "time",
@@ -487,7 +487,6 @@ pub struct JsStatsModuleCommonAttributes<'a> {
   pub failed: Option<bool>,
   pub errors: Option<u32>,
   pub warnings: Option<u32>,
-  pub profile: Option<JsStatsModuleProfile>,
 
   // ids
   pub chunks: Option<Vec<&'a str>>,
@@ -569,16 +568,9 @@ impl<'a> TryFrom<StatsModule<'a>> for JsStatsModule<'a> {
   type Error = napi::Error;
 
   fn try_from(stats: StatsModule<'a>) -> std::result::Result<Self, Self::Error> {
-    let source = stats.source.map(|source| {
-      if let Some(raw_source) = source.as_any().downcast_ref::<RawBufferSource>() {
-        return JsStatsModuleSource::B(Buffer::from(raw_source.buffer().to_vec()));
-      }
-      if let Some(raw_source) = source.as_any().downcast_ref::<RawSource>()
-        && raw_source.is_buffer()
-      {
-        return JsStatsModuleSource::B(Buffer::from(raw_source.buffer().to_vec()));
-      }
-      JsStatsModuleSource::A(CowStrWrapper::new(source.source()))
+    let source = stats.source.map(|source| match source.source() {
+      SourceValue::String(string) => JsStatsModuleSource::A(CowStrWrapper::new(string)),
+      SourceValue::Buffer(bytes) => JsStatsModuleSource::B(Buffer::from(bytes.to_vec())),
     });
 
     let mut sizes = stats
@@ -637,7 +629,6 @@ impl<'a> TryFrom<StatsModule<'a>> for JsStatsModule<'a> {
       reasons,
       assets: stats.assets,
       source,
-      profile: stats.profile.map(|p| p.into()),
       orphan: stats.orphan,
       provided_exports: stats.provided_exports.map(AtomVecWrapper::new),
       optimization_bailout: stats.optimization_bailout.map(StringSliceWrapper::new),
@@ -800,7 +791,7 @@ impl<'a> TryFrom<StatsChunk<'a>> for JsStatsChunk<'a> {
 
   fn try_from(stats: StatsChunk<'a>) -> std::result::Result<Self, Self::Error> {
     let mut runtime = stats.runtime.iter().map(|r| r.as_ref()).collect::<Vec<_>>();
-    runtime.sort();
+    runtime.sort_unstable();
 
     let mut sizes = stats
       .sizes
@@ -1254,7 +1245,7 @@ pub fn create_stats_warnings<'a>(
 
   let stats_warnings = rspack_core::create_stats_errors(
     compilation,
-    &module_graph,
+    module_graph,
     &mut diagnostics,
     colored.unwrap_or(false),
   );

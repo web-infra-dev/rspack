@@ -1,34 +1,5 @@
-const { RuntimeModule, RuntimeGlobals } = require("@rspack/core");
+const { RuntimeModule } = require("@rspack/core");
 
-class IsolateRuntimeModule extends RuntimeModule {
-	constructor(chunk) {
-		super("mock-isolate");
-	}
-
-	generate() {
-		return `
-      __webpack_require__.mock = function() {
-        return someGlobalValue;
-      };
-    `;
-	}
-}
-
-class NonIsolateRuntimeModule extends RuntimeModule {
-	constructor(chunk) {
-		super("mock-non-isolate");
-	}
-
-	shouldIsolate() {
-		return false;
-	}
-
-	generate() {
-		return `
-      var someGlobalValue = "isolated";
-    `;
-	}
-}
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
@@ -45,6 +16,37 @@ module.exports = {
 	},
 	plugins: [
 		compiler => {
+			const RuntimeGlobals = compiler.rspack.RuntimeGlobals;
+
+			class IsolateRuntimeModule extends RuntimeModule {
+				constructor(chunk) {
+					super("mock-isolate");
+				}
+
+				generate() {
+					return `
+						${RuntimeGlobals.require}.mock = function() {
+							return someGlobalValue;
+						};
+					`;
+				}
+			}
+
+			class NonIsolateRuntimeModule extends RuntimeModule {
+				constructor(chunk) {
+					super("mock-non-isolate");
+				}
+
+				shouldIsolate() {
+					return false;
+				}
+
+				generate() {
+					return `
+						var someGlobalValue = "isolated";
+					`;
+				}
+			}
 			compiler.hooks.thisCompilation.tap("MockRuntimePlugin", compilation => {
 				compilation.hooks.additionalTreeRuntimeRequirements.tap(
 					"MockRuntimePlugin",

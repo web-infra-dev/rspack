@@ -8,7 +8,7 @@ use rkyv::{
 use serde_json::{Map, Value};
 
 use super::AsPreset;
-use crate::{DeserializeError, SerializeError};
+use crate::{Error, Result};
 
 pub struct SerdeJsonResolver {
   inner: StringResolver,
@@ -29,12 +29,12 @@ impl ArchiveWith<Value> for AsPreset {
 
 impl<S> SerializeWith<Value, S> for AsPreset
 where
-  S: Fallible<Error = SerializeError> + Writer,
+  S: Fallible<Error = Error> + Writer,
 {
   #[inline]
-  fn serialize_with(field: &Value, serializer: &mut S) -> Result<Self::Resolver, SerializeError> {
+  fn serialize_with(field: &Value, serializer: &mut S) -> Result<Self::Resolver> {
     let value = serde_json::to_string(field)
-      .map_err(|_| SerializeError::MessageError("serialize serde_json value failed"))?;
+      .map_err(|_| Error::MessageError("serialize serde_json value failed"))?;
     let inner = ArchivedString::serialize_from_str(&value, serializer)?;
     Ok(SerdeJsonResolver { value, inner })
   }
@@ -42,12 +42,12 @@ where
 
 impl<D> DeserializeWith<ArchivedString, Value, D> for AsPreset
 where
-  D: Fallible<Error = DeserializeError>,
+  D: Fallible<Error = Error>,
 {
   #[inline]
-  fn deserialize_with(field: &ArchivedString, _: &mut D) -> Result<Value, DeserializeError> {
+  fn deserialize_with(field: &ArchivedString, _: &mut D) -> Result<Value> {
     serde_json::from_str(field)
-      .map_err(|_| DeserializeError::MessageError("deserialize serde_json value failed"))
+      .map_err(|_| Error::MessageError("deserialize serde_json value failed"))
   }
 }
 
@@ -69,15 +69,12 @@ impl ArchiveWith<Map<String, Value>> for AsPreset {
 
 impl<S> SerializeWith<Map<String, Value>, S> for AsPreset
 where
-  S: Fallible<Error = SerializeError> + Writer,
+  S: Fallible<Error = Error> + Writer,
 {
   #[inline]
-  fn serialize_with(
-    field: &Map<String, Value>,
-    serializer: &mut S,
-  ) -> Result<Self::Resolver, SerializeError> {
+  fn serialize_with(field: &Map<String, Value>, serializer: &mut S) -> Result<Self::Resolver> {
     let value = serde_json::to_string(field)
-      .map_err(|_| SerializeError::MessageError("serialize serde_json value failed"))?;
+      .map_err(|_| Error::MessageError("serialize serde_json value failed"))?;
     let inner = ArchivedString::serialize_from_str(&value, serializer)?;
     Ok(SerdeJsonResolver { value, inner })
   }
@@ -85,14 +82,11 @@ where
 
 impl<D> DeserializeWith<ArchivedString, Map<String, Value>, D> for AsPreset
 where
-  D: Fallible<Error = DeserializeError>,
+  D: Fallible<Error = Error>,
 {
   #[inline]
-  fn deserialize_with(
-    field: &ArchivedString,
-    _: &mut D,
-  ) -> Result<Map<String, Value>, DeserializeError> {
+  fn deserialize_with(field: &ArchivedString, _: &mut D) -> Result<Map<String, Value>> {
     serde_json::from_str(field)
-      .map_err(|_| DeserializeError::MessageError("deserialize serde_json value failed"))
+      .map_err(|_| Error::MessageError("deserialize serde_json value failed"))
   }
 }

@@ -254,7 +254,9 @@ impl std::fmt::Display for RspackError {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     if self.parent_error_name.as_deref() == Some("ModuleBuildError") {
       // https://github.com/webpack/webpack/blob/93743d233ab4fa36738065ebf8df5f175323b906/lib/ModuleBuildError.js
-      if let Some(stack) = &self.stack {
+      if let Some(stack) = &self.stack
+        && !stack.is_empty()
+      {
         if self.hide_stack != Some(true) {
           write!(f, "{stack}")
         } else {
@@ -287,7 +289,7 @@ impl From<&Error> for RspackError {
   fn from(value: &Error) -> Self {
     let mut name = "Error".to_string();
     if let Some(code) = &value.code {
-      name = code.to_string();
+      name = code.clone();
     }
 
     let mut message = value.to_string();
@@ -402,10 +404,10 @@ impl<T> RspackResultToNapiResultExt<T, Error, ErrorCode> for Result<T, Error> {
   fn to_napi_result(self) -> napi::Result<T, ErrorCode> {
     self.map_err(|e| {
       napi::Error::new(
-        e.code
-          .as_ref()
-          .map(|code| ErrorCode::Custom(code.to_string()))
-          .unwrap_or_else(|| ErrorCode::Napi(napi::Status::GenericFailure)),
+        e.code.as_ref().map_or_else(
+          || ErrorCode::Napi(napi::Status::GenericFailure),
+          |code| ErrorCode::Custom(code.clone()),
+        ),
         e.to_string(),
       )
     })
@@ -416,10 +418,10 @@ impl<T> RspackResultToNapiResultExt<T, Error, ErrorCode> for Result<T, Error> {
   ) -> napi::Result<T, ErrorCode> {
     self.map_err(|e| {
       napi::Error::new(
-        e.code
-          .as_ref()
-          .map(|code| ErrorCode::Custom(code.to_string()))
-          .unwrap_or_else(|| ErrorCode::Napi(napi::Status::GenericFailure)),
+        e.code.as_ref().map_or_else(
+          || ErrorCode::Napi(napi::Status::GenericFailure),
+          |code| ErrorCode::Custom(code.clone()),
+        ),
         f(e),
       )
     })

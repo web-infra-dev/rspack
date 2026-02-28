@@ -4,5 +4,13 @@ module.exports = {
 	node: false,
 	devtool: "source-map",
 	externals: ["source-map"],
-	externalsType: "commonjs"
+	externalsType: "commonjs",
+	module: {
+		rules: [
+			{
+				test: /\.css$/,
+				type: 'css/auto'
+			}
+		]
+	}
 };

@@ -7,12 +7,12 @@ use rspack_core::{
   AsContextDependency, ConnectionState, Dependency, DependencyCategory, DependencyCodeGeneration,
   DependencyCondition, DependencyConditionFn, DependencyId, DependencyLocation, DependencyRange,
   DependencyTemplate, DependencyTemplateType, DependencyType, ExportPresenceMode, ExportProvided,
-  ExportsInfoGetter, ExportsType, ExtendedReferencedExport, FactorizeInfo, ForwardId,
-  GetUsedNameParam, ImportAttributes, JavascriptParserOptions, ModuleDependency, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleReferenceOptions, PrefetchExportsInfoMode,
-  ReferencedExport, RuntimeSpec, SharedSourceMap, TemplateContext, TemplateReplaceSource,
-  UsedByExports, UsedName, create_exports_object_referenced, export_from_import, get_exports_type,
-  property_access, to_normal_comment,
+  ExportsInfoArtifact, ExportsInfoGetter, ExportsType, ExtendedReferencedExport, FactorizeInfo,
+  ForwardId, GetUsedNameParam, ImportAttributes, ImportPhase, JavascriptParserOptions,
+  ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection,
+  ModuleReferenceOptions, PrefetchExportsInfoMode, ReferencedExport, ResourceIdentifier,
+  RuntimeSpec, TemplateContext, TemplateReplaceSource, UsedByExports, UsedName,
+  create_exports_object_referenced, get_exports_type, property_access, to_normal_comment,
 };
 use rspack_error::Diagnostic;
 use rspack_util::json_stringify;
@@ -46,8 +46,9 @@ pub struct ESMImportSpecifierDependency {
   used_by_exports: Option<UsedByExports>,
   #[cacheable(with=AsOption<AsCacheable>)]
   referenced_properties_in_destructuring: Option<DestructuringAssignmentProperties>,
-  resource_identifier: String,
+  resource_identifier: ResourceIdentifier,
   export_presence_mode: ExportPresenceMode,
+  phase: ImportPhase,
   attributes: Option<ImportAttributes>,
   pub evaluated_in_operator: bool,
   loc: Option<DependencyLocation>,
@@ -56,7 +57,7 @@ pub struct ESMImportSpecifierDependency {
 }
 
 impl ESMImportSpecifierDependency {
-  #[allow(clippy::too_many_arguments)]
+  #[allow(clippy::too_many_arguments, clippy::fn_params_excessive_bools)]
   pub fn new(
     request: Atom,
     name: Atom,
@@ -69,12 +70,12 @@ impl ESMImportSpecifierDependency {
     direct_import: bool,
     export_presence_mode: ExportPresenceMode,
     referenced_properties_in_destructuring: Option<DestructuringAssignmentProperties>,
+    phase: ImportPhase,
     attributes: Option<ImportAttributes>,
-    source_map: Option<SharedSourceMap>,
+    loc: Option<DependencyLocation>,
   ) -> Self {
     let resource_identifier =
       create_resource_identifier_for_esm_dependency(&request, attributes.as_ref());
-    let loc = range.to_loc(source_map.as_ref());
     Self {
       id: DependencyId::new(),
       request,
@@ -91,6 +92,7 @@ impl ESMImportSpecifierDependency {
       evaluated_in_operator: false,
       namespace_object_as_context: false,
       referenced_properties_in_destructuring,
+      phase,
       attributes,
       resource_identifier,
       loc,
@@ -100,8 +102,7 @@ impl ESMImportSpecifierDependency {
 
   pub fn get_ids<'a>(&'a self, mg: &'a ModuleGraph) -> &'a [Atom] {
     mg.get_dep_meta_if_existing(&self.id)
-      .map(|meta| meta.ids.as_slice())
-      .unwrap_or_else(|| self.ids.as_slice())
+      .map_or_else(|| self.ids.as_slice(), |meta| meta.ids.as_slice())
   }
 
   pub fn get_referenced_exports_in_destructuring(
@@ -110,7 +111,7 @@ impl ESMImportSpecifierDependency {
   ) -> Vec<ExtendedReferencedExport> {
     if let Some(referenced_properties) = &self.referenced_properties_in_destructuring {
       let mut refs = Vec::new();
-      referenced_properties.traverse_on_left(&mut |stack| {
+      referenced_properties.traverse_on_leaf(&mut |stack| {
         let ids_in_destructuring = stack.iter().map(|p| p.id.clone());
         if let Some(ids) = ids {
           let mut ids = ids.to_vec();
@@ -126,7 +127,12 @@ impl ESMImportSpecifierDependency {
         .map(|name| ExtendedReferencedExport::Export(ReferencedExport::new(name, true, false)))
         .collect::<Vec<_>>()
     } else if let Some(v) = ids {
-      vec![ExtendedReferencedExport::Array(v.to_vec())]
+      vec![ExtendedReferencedExport::Export(ReferencedExport {
+        name: v.to_vec(),
+        can_mangle: true,
+        // Need access the export value to trigger side effects for deferred module
+        can_inline: !self.phase.is_defer(),
+      })]
     } else {
       create_exports_object_referenced()
     }
@@ -136,11 +142,7 @@ impl ESMImportSpecifierDependency {
     options
       .import_exports_presence
       .or(options.exports_presence)
-      .unwrap_or(if let Some(true) = options.strict_export_presence {
-        ExportPresenceMode::Error
-      } else {
-        ExportPresenceMode::Auto
-      })
+      .unwrap_or(ExportPresenceMode::Error)
   }
 
   pub fn set_used_by_exports(&mut self, used_by_exports: Option<UsedByExports>) {
@@ -164,6 +166,10 @@ impl Dependency for ESMImportSpecifierDependency {
 
   fn source_order(&self) -> Option<i32> {
     Some(self.source_order)
+  }
+
+  fn get_phase(&self) -> ImportPhase {
+    self.phase
   }
 
   fn get_attributes(&self) -> Option<&ImportAttributes> {
@@ -197,17 +203,19 @@ impl Dependency for ESMImportSpecifierDependency {
     &self,
     module_graph: &ModuleGraph,
     module_graph_cache: &ModuleGraphCacheArtifact,
+    exports_info_artifact: &ExportsInfoArtifact,
   ) -> Option<Vec<Diagnostic>> {
     let module = module_graph.get_parent_module(&self.id)?;
     let module = module_graph.module_by_identifier(module)?;
     if let Some(should_error) = self
       .export_presence_mode
-      .get_effective_export_presence(&**module)
+      .get_effective_export_presence(module.as_ref())
       && let Some(diagnostic) = esm_import_dependency_get_linking_error(
         self,
         self.get_ids(module_graph),
         module_graph,
         module_graph_cache,
+        exports_info_artifact,
         &self.name,
         false,
         should_error,
@@ -222,6 +230,7 @@ impl Dependency for ESMImportSpecifierDependency {
     &self,
     module_graph: &ModuleGraph,
     module_graph_cache: &ModuleGraphCacheArtifact,
+    exports_info_artifact: &ExportsInfoArtifact,
     _runtime: Option<&RuntimeSpec>,
   ) -> Vec<ExtendedReferencedExport> {
     let mut ids = self.get_ids(module_graph);
@@ -237,8 +246,13 @@ impl Dependency for ESMImportSpecifierDependency {
       let parent_module = module_graph
         .get_parent_module(&self.id)
         .expect("should have parent module");
-      let exports_type =
-        get_exports_type(module_graph, module_graph_cache, &self.id, parent_module);
+      let exports_type = get_exports_type(
+        module_graph,
+        module_graph_cache,
+        exports_info_artifact,
+        &self.id,
+        parent_module,
+      );
       match exports_type {
         ExportsType::DefaultOnly | ExportsType::DefaultWithNamed => {
           if ids.len() == 1 {
@@ -328,8 +342,6 @@ impl ESMImportSpecifierDependencyTemplate {
     code_generatable_context: &mut TemplateContext,
   ) -> String {
     let TemplateContext {
-      compilation,
-      runtime,
       concatenation_scope,
       ..
     } = code_generatable_context;
@@ -342,6 +354,7 @@ impl ESMImportSpecifierDependencyTemplate {
           con.module_identifier(),
           &ModuleReferenceOptions {
             asi_safe: Some(dep.asi_safe),
+            deferred_import: dep.phase.is_defer(),
             ..Default::default()
           },
         )
@@ -351,6 +364,7 @@ impl ESMImportSpecifierDependencyTemplate {
           con.module_identifier(),
           &ModuleReferenceOptions {
             asi_safe: Some(dep.asi_safe),
+            deferred_import: dep.phase.is_defer(),
             ..Default::default()
           },
         ) + property_access(ids, 0).as_str()
@@ -362,24 +376,44 @@ impl ESMImportSpecifierDependencyTemplate {
             ids: ids.to_vec(),
             call: dep.call,
             direct_import: dep.direct_import,
+            deferred_import: dep.phase.is_defer(),
             ..Default::default()
           },
         )
       }
     } else {
-      let import_var = compilation.get_import_var(&dep.id, *runtime);
-      esm_import_dependency_apply(dep, dep.source_order, code_generatable_context);
-      export_from_import(
-        code_generatable_context,
-        true,
-        &dep.request,
-        &import_var,
-        ids,
-        &dep.id,
-        dep.call,
-        !dep.direct_import,
-        Some(dep.shorthand || dep.asi_safe),
-      )
+      let mg = code_generatable_context.compilation.get_module_graph();
+      let target_module = mg.get_module_by_dependency_id(&dep.id);
+      let import_var = code_generatable_context.compilation.get_import_var(
+        code_generatable_context.module.identifier(),
+        target_module,
+        dep.user_request(),
+        dep.phase,
+        code_generatable_context.runtime,
+      );
+      esm_import_dependency_apply(dep, dep.source_order, dep.phase, code_generatable_context);
+      let mut new_init_fragment = vec![];
+      let res = code_generatable_context
+        .runtime_template
+        .export_from_import(
+          code_generatable_context.compilation,
+          &mut new_init_fragment,
+          code_generatable_context.module.identifier(),
+          code_generatable_context.runtime,
+          true,
+          &dep.request,
+          &import_var,
+          ids,
+          &dep.id,
+          dep.call,
+          !dep.direct_import,
+          Some(dep.shorthand || dep.asi_safe),
+          dep.phase,
+        );
+      code_generatable_context
+        .init_fragments
+        .extend(new_init_fragment);
+      res
     }
   }
 
@@ -395,24 +429,25 @@ impl ESMImportSpecifierDependencyTemplate {
       return;
     };
     let TemplateContext {
-      compilation,
       runtime,
       module: self_module,
       ..
     } = code_generatable_context;
+    let compilation = code_generatable_context.compilation;
     let mg = compilation.get_module_graph();
     let Some(module) = mg.get_module_by_dependency_id(&dep.id) else {
       return;
     };
-    let exports_info = mg.get_prefetched_exports_info(
-      con.module_identifier(),
-      PrefetchExportsInfoMode::Nested(ids),
-    );
+    let exports_info = compilation
+      .exports_info_artifact
+      .get_prefetched_exports_info(
+        con.module_identifier(),
+        PrefetchExportsInfoMode::Nested(ids),
+      );
     let exports_type = module.get_exports_type(
-      &mg,
-      &code_generatable_context
-        .compilation
-        .module_graph_cache_artifact,
+      mg,
+      &compilation.module_graph_cache_artifact,
+      &compilation.exports_info_artifact,
       self_module.build_meta().strict_esm_module,
     );
     let first = ids
@@ -499,22 +534,25 @@ impl DependencyTemplate for ESMImportSpecifierDependencyTemplate {
       .expect(
         "ESMImportSpecifierDependencyTemplate should only be used for ESMImportSpecifierDependency",
       );
-    let TemplateContext {
-      compilation,
-      runtime,
-      ..
-    } = code_generatable_context;
+    let compilation = code_generatable_context.compilation;
+    let runtime = code_generatable_context.runtime;
     let module_graph = compilation.get_module_graph();
-    let ids = dep.get_ids(&module_graph);
+    let ids = dep.get_ids(module_graph);
     let connection = module_graph.connection_by_dependency_id(&dep.id);
     // Early return if target is not active and export is not inlined
     if let Some(con) = connection
       && !con.is_target_active(
-        &module_graph,
-        *runtime,
+        module_graph,
+        runtime,
         &compilation.module_graph_cache_artifact,
+        &compilation.exports_info_artifact,
       )
-      && !is_export_inlined(&module_graph, con.module_identifier(), ids, *runtime)
+      && !is_export_inlined(
+        &compilation.exports_info_artifact,
+        con.module_identifier(),
+        ids,
+        runtime,
+      )
     {
       return;
     }
@@ -551,10 +589,11 @@ impl DependencyTemplate for ESMImportSpecifierDependencyTemplate {
           .and_then(|id| module_graph.module_by_identifier(id))
           .expect("should have parent module");
         let exports_type = module.get_exports_type(
-          &module_graph,
+          module_graph,
           &code_generatable_context
             .compilation
             .module_graph_cache_artifact,
+          &code_generatable_context.compilation.exports_info_artifact,
           self_module.build_meta().strict_esm_module,
         );
         if matches!(
@@ -571,10 +610,15 @@ impl DependencyTemplate for ESMImportSpecifierDependencyTemplate {
         let mut concated_ids = prefixed_ids.clone();
         concated_ids.extend(stack.iter().map(|p| p.id.clone()));
         let Some(new_name) = ExportsInfoGetter::get_used_name(
-          GetUsedNameParam::WithNames(&module_graph.get_prefetched_exports_info(
-            &module.identifier(),
-            PrefetchExportsInfoMode::Nested(&concated_ids),
-          )),
+          GetUsedNameParam::WithNames(
+            &code_generatable_context
+              .compilation
+              .exports_info_artifact
+              .get_prefetched_exports_info(
+                &module.identifier(),
+                PrefetchExportsInfoMode::Nested(&concated_ids),
+              ),
+          ),
           code_generatable_context.runtime,
           &concated_ids,
         )
@@ -613,10 +657,9 @@ impl DependencyConditionFn for ESMImportSpecifierDependencyCondition {
     runtime: Option<&RuntimeSpec>,
     module_graph: &ModuleGraph,
     _module_graph_cache: &ModuleGraphCacheArtifact,
+    exports_info_artifact: &ExportsInfoArtifact,
   ) -> ConnectionState {
-    let dependency = module_graph
-      .dependency_by_id(&connection.dependency_id)
-      .expect("should have dependency");
+    let dependency = module_graph.dependency_by_id(&connection.dependency_id);
     let dependency = dependency
       .downcast_ref::<ESMImportSpecifierDependency>()
       .expect("should be ESMImportSpecifierDependency");
@@ -626,10 +669,12 @@ impl DependencyConditionFn for ESMImportSpecifierDependencyCondition {
         connection,
         runtime,
         module_graph,
+        exports_info_artifact,
       ) && connection_active_used_by_exports(
         connection,
         runtime,
         module_graph,
+        exports_info_artifact,
         dependency.used_by_exports.as_ref(),
       ),
     )

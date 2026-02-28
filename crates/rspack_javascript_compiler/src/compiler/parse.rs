@@ -62,7 +62,7 @@ impl JavaScriptCompiler {
           errs
             .dedup_ecma_errors()
             .into_iter()
-            .map(|err| ecma_parse_error_deduped_to_rspack_error(err, &fm))
+            .map(|err| ecma_parse_error_deduped_to_rspack_error(err, fm.src.to_string()))
             .collect::<Vec<_>>(),
         )
       })
@@ -70,7 +70,7 @@ impl JavaScriptCompiler {
 
   pub fn parse_with_lexer(
     self,
-    fm: &SourceFile,
+    source: &str,
     lexer: Lexer,
     is_module: IsModule,
     comments: Option<SwcComments>,
@@ -89,7 +89,7 @@ impl JavaScriptCompiler {
           errs
             .dedup_ecma_errors()
             .into_iter()
-            .map(|err| ecma_parse_error_deduped_to_rspack_error(err, fm))
+            .map(|err| ecma_parse_error_deduped_to_rspack_error(err, source.to_string()))
             .collect::<Vec<_>>(),
         )
       })
@@ -112,7 +112,7 @@ impl JavaScriptCompiler {
           errs
             .dedup_ecma_errors()
             .into_iter()
-            .map(|err| ecma_parse_error_deduped_to_rspack_error(err, &fm))
+            .map(|err| ecma_parse_error_deduped_to_rspack_error(err, fm.src.to_string()))
             .collect::<Vec<_>>(),
         )
       })
@@ -124,7 +124,6 @@ fn parse_with_lexer(
   is_module: IsModule,
   with_tokens: bool,
 ) -> Result<(SwcProgram, Option<Vec<TokenAndSpan>>), Vec<parser::error::Error>> {
-  use swc_ecma_lexer::common::parser::{Parser as _, buffer::Buffer};
   let inner = || {
     // don't call capturing when with_tokens is false to avoid performance cost
     let (tokens, program_result, mut errors) = if with_tokens {

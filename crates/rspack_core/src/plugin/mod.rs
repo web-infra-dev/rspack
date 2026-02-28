@@ -7,7 +7,7 @@ pub use context::*;
 pub use plugin_driver::*;
 use rspack_error::Result;
 
-use crate::compiler::CompilationId;
+use crate::CompilationId;
 
 pub trait Plugin: fmt::Debug + Send + Sync {
   fn name(&self) -> &'static str {

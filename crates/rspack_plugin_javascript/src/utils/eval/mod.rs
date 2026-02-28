@@ -264,7 +264,7 @@ impl<'a> BasicEvaluatedExpression<'a> {
     } else if self.is_undefined() {
       Some("undefined".to_string())
     } else if self.is_string() {
-      Some(self.string().to_string())
+      Some(self.string().clone())
     } else if self.is_number() {
       Some(self.number().to_string())
     } else if self.is_array() {

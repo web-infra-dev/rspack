@@ -1,6 +1,5 @@
-// TODO: move to webpack-test after merged into webpack
 
-/** @type {import("../../../../types").Configuration} */
+/** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	entry: {
 		bundle0: "./index.js",

@@ -1,6 +1,6 @@
 const path = require("path");
 const fs = require("fs");
-const webpack = require("@rspack/core");
+const { rspack } = require("@rspack/core");
 
 const common = {
 	module: {
@@ -8,11 +8,12 @@ const common = {
 			{
 				test: /\.png$/,
 				type: "asset"
+			},
+			{
+				test: /\.css$/,
+				type: "css/auto"
 			}
 		]
-	},
-	experiments: {
-		css: true
 	},
 	plugins: [
 		{
@@ -31,7 +32,7 @@ const common = {
 
 							compilation.emitAsset(
 								"test.js",
-								new webpack.sources.RawSource(data)
+								new rspack.sources.RawSource(data)
 							);
 						}
 					);
@@ -91,10 +92,6 @@ const esm = i => ({
 		assetModuleFilename: `${i}/[name][ext][query]`,
 		module: true
 	},
-	experiments: {
-		outputModule: true,
-		css: true
-	}
 });
 
 const node = i => ({

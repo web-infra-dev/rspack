@@ -19,3 +19,6 @@ rspack_core          = { workspace = true }
 rspack_error         = { workspace = true }
 rspack_loader_runner = { workspace = true }
 serde_json           = { workspace = true }
+
+[lints]
+workspace = true

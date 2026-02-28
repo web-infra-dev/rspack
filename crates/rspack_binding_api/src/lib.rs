@@ -1,13 +1,13 @@
 #![recursion_limit = "256"]
 #![allow(deprecated)]
 #![allow(unused)]
+#![allow(trivial_numeric_casts)]
 
 //! `rspack_binding_api` is the core binding layer in the Rspack project, responsible for exposing Rspack core functionality written in Rust to JavaScript/TypeScript environments. It provides complete API interfaces for compilation, building, module processing, and other functionalities.
 //!
 //! ## Features
 //!
 //! - `browser`: Enable browser environment support
-//! - `color-backtrace`: Enable colored error backtraces
 //! - `debug_tool`: Enable debug tools
 //! - `plugin`: Enable SWC plugin support
 //! - `sftrace-setup`: Enable performance tracing setup
@@ -82,6 +82,7 @@ mod normal_module_factory;
 mod options;
 mod panic;
 mod path_data;
+mod platform;
 mod plugins;
 mod raw_options;
 mod resolver;
@@ -101,6 +102,7 @@ mod virtual_modules;
 
 use std::{
   cell::RefCell,
+  mem::ManuallyDrop,
   sync::{Arc, RwLock},
 };
 
@@ -108,7 +110,8 @@ use napi::{CallContext, bindgen_prelude::*};
 pub use raw_options::{CustomPluginBuilder, register_custom_plugin};
 use rspack_collections::UkeyMap;
 use rspack_core::{
-  BoxDependency, Compilation, CompilerId, EntryOptions, ModuleIdentifier, PluginExt,
+  BoxDependency, Compilation, CompilerId, CompilerPlatform, EntryOptions, ModuleIdentifier,
+  PluginExt,
 };
 use rspack_error::Diagnostic;
 use rspack_fs::{IntermediateFileSystem, NativeFileSystem, ReadableFileSystem};
@@ -126,6 +129,7 @@ use crate::{
   error::{ErrorCode, RspackResultToNapiResultExt},
   fs_node::{HybridFileSystem, NodeFileSystem, ThreadsafeNodeFS},
   module::ModuleObject,
+  platform::RawCompilerPlatform,
   plugins::{
     JsCleanupPlugin, JsHooksAdapterPlugin, RegisterJsTapKind, RegisterJsTaps, buildtime_plugins,
   },
@@ -159,8 +163,11 @@ fn cleanup_revoked_modules(ctx: CallContext) -> Result<()> {
 
 #[napi(custom_finalize)]
 struct JsCompiler {
+  // whether to skip drop compiler in finalize
+  unsafe_fast_drop: bool,
   js_hooks_plugin: JsHooksAdapterPlugin,
-  compiler: Compiler,
+  // call drop manually to avoid unnecessary drop overhead in cli build
+  compiler: ManuallyDrop<Compiler>,
   state: CompilerState,
   include_dependencies_map: FxHashMap<String, FxHashMap<EntryOptions, BoxDependency>>,
   entry_dependencies_map: FxHashMap<String, FxHashMap<EntryOptions, BoxDependency>>,
@@ -183,6 +190,8 @@ impl JsCompiler {
     intermediate_filesystem: Option<ThreadsafeNodeFS>,
     input_filesystem: Option<ThreadsafeNodeFS>,
     mut resolver_factory_reference: Reference<JsResolverFactory>,
+    unsafe_fast_drop: bool,
+    platform: RawCompilerPlatform,
   ) -> Result<Self> {
     tracing::info!(name:"rspack_version", version = rspack_workspace::rspack_pkg_version!());
     tracing::info!(name:"raw_options", options=?&options);
@@ -197,6 +206,8 @@ impl JsCompiler {
         rspack_loader_lightningcss::LightningcssLoaderPlugin::new(),
       ));
       plugins.push(Box::new(rspack_loader_swc::SwcLoaderPlugin::new()));
+      plugins.push(Box::new(rspack_plugin_rsc::ClientEntryLoaderPlugin::new()));
+      plugins.push(Box::new(rspack_plugin_rsc::ActionEntryLoaderPlugin::new()));
       plugins.push(Box::new(
         rspack_loader_react_refresh::ReactRefreshLoaderPlugin::new(),
       ));
@@ -291,6 +302,8 @@ impl JsCompiler {
           None
         };
 
+      let platform = Arc::new(CompilerPlatform::from(platform));
+
       let rspack = rspack_core::Compiler::new(
         compiler_path,
         compiler_options,
@@ -306,20 +319,21 @@ impl JsCompiler {
         Some(resolver_factory),
         Some(loader_resolver_factory),
         Some(compiler_context.clone()),
+        platform,
       );
 
       Ok(Self {
-        compiler: Compiler::from(rspack),
+        compiler: ManuallyDrop::new(Compiler::from(rspack)),
         state: CompilerState::init(),
         js_hooks_plugin,
         include_dependencies_map: Default::default(),
         entry_dependencies_map: Default::default(),
         compiler_context,
         virtual_file_store,
+        unsafe_fast_drop,
       })
     })
   }
-
   #[napi]
   pub fn set_non_skippable_registers(&self, kinds: Vec<RegisterJsTapKind>) {
     self.js_hooks_plugin.set_non_skippable_registers(kinds)
@@ -369,8 +383,8 @@ impl JsCompiler {
           async move {
             compiler
               .rebuild(
-                HashSet::from_iter(changed_files.into_iter()),
-                HashSet::from_iter(removed_files.into_iter()),
+                changed_files.into_iter().collect::<HashSet<_>>(),
+                removed_files.into_iter().collect::<HashSet<_>>(),
               )
               .await
               .to_napi_result_with_message(|e| {
@@ -403,6 +417,11 @@ impl JsCompiler {
       .virtual_file_store
       .as_ref()
       .map(|store| JsVirtualFileStore::new(store.clone()))
+  }
+
+  #[napi]
+  pub fn get_compiler_id(&self) -> External<CompilerId> {
+    External::new(self.compiler.id())
   }
 }
 
@@ -460,7 +479,7 @@ impl JsCompiler {
 }
 
 impl ObjectFinalize for JsCompiler {
-  fn finalize(self, _env: Env) -> Result<()> {
+  fn finalize(mut self, _env: Env) -> Result<()> {
     let compiler_id = self.compiler.id();
 
     COMPILER_REFERENCES.with(|ref_cell| {
@@ -469,6 +488,11 @@ impl ObjectFinalize for JsCompiler {
     });
 
     ModuleObject::cleanup_by_compiler_id(&compiler_id);
+    if (!self.unsafe_fast_drop) {
+      unsafe {
+        ManuallyDrop::drop(&mut self.compiler);
+      }
+    }
     Ok(())
   }
 }
@@ -480,26 +504,6 @@ fn concurrent_compiler_error() -> Error<ErrorCode> {
   )
 }
 
-#[cfg(target_family = "wasm")]
-const _: () = {
-  #[used]
-  #[unsafe(link_section = ".init_array")]
-  static __CTOR: unsafe extern "C" fn() = init;
-
-  unsafe extern "C" fn init() {
-    #[cfg(feature = "browser")]
-    rspack_browser::panic::install_panic_handler();
-    #[cfg(not(feature = "browser"))]
-    panic::install_panic_handler();
-    let rt = tokio::runtime::Builder::new_multi_thread()
-      .max_blocking_threads(1)
-      .enable_all()
-      .build()
-      .expect("Create tokio runtime failed");
-    create_custom_tokio_runtime(rt);
-  }
-};
-
 #[cfg(not(target_family = "wasm"))]
 #[napi::ctor::ctor(crate_path = ::napi::ctor)]
 fn init() {
@@ -508,6 +512,12 @@ fn init() {
     thread,
   };
 
+  #[cfg(feature = "tracy-client")]
+  {
+    use tracy_client::register_demangler;
+    tracy_client::Client::start();
+    register_demangler!();
+  }
   #[cfg(feature = "sftrace-setup")]
   if std::env::var_os("SFTRACE_OUTPUT_FILE").is_some() {
     unsafe {
@@ -520,11 +530,7 @@ fn init() {
   const ENV_BLOCKING_THREADS: &str = "RSPACK_BLOCKING_THREADS";
   // reduce default blocking threads on macOS cause macOS holds IORWLock on every file open
   // reference from https://github.com/oven-sh/bun/pull/17577/files#diff-c9bc275f9466e5179bb80454b6445c7041d2a0fb79932dd5de7a5c3196bdbd75R144
-  let default_blocking_threads = if std::env::consts::OS == "macos" {
-    8
-  } else {
-    512
-  };
+  let default_blocking_threads = 4;
   let blocking_threads = std::env::var(ENV_BLOCKING_THREADS)
     .ok()
     .and_then(|v| v.parse::<usize>().ok())
@@ -589,6 +595,20 @@ fn node_init(mut _exports: Object, env: Env) -> Result<()> {
 
 #[napi(module_exports)]
 fn rspack_module_exports(exports: Object, env: Env) -> Result<()> {
+  #[cfg(target_family = "wasm")]
+  {
+    #[cfg(feature = "browser")]
+    rspack_browser::panic::install_panic_handler();
+    #[cfg(not(feature = "browser"))]
+    panic::install_panic_handler();
+    let rt = tokio::runtime::Builder::new_multi_thread()
+      .max_blocking_threads(1)
+      .enable_all()
+      .build()
+      .expect("Create tokio runtime failed");
+    create_custom_tokio_runtime(rt);
+  }
+
   node_init(exports, env)?;
   module::export_symbols(exports, env)?;
   build_info::export_symbols(exports, env)?;

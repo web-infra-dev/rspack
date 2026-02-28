@@ -78,13 +78,15 @@ impl DependencyTemplate for CreateScriptUrlDependencyTemplate {
       .downcast_ref::<CreateScriptUrlDependency>()
       .expect("CreateScriptUrlDependencyTemplate should be used for CreateScriptUrlDependency");
 
-    code_generatable_context
-      .runtime_requirements
-      .insert(RuntimeGlobals::CREATE_SCRIPT_URL);
-
     source.insert(
       dep.range_path.start,
-      format!("{}(", RuntimeGlobals::CREATE_SCRIPT_URL).as_str(),
+      format!(
+        "{}(",
+        code_generatable_context
+          .runtime_template
+          .render_runtime_globals(&RuntimeGlobals::CREATE_SCRIPT_URL),
+      )
+      .as_str(),
       None,
     );
     source.insert(dep.range_path.end, ")", None);

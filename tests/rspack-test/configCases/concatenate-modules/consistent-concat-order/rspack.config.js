@@ -16,10 +16,8 @@ module.exports = {
 		concatenateModules: true,
 		sideEffects: true,
 		moduleIds: "named",
-		minimize: false
+		minimize: false,
+		// inlineExports will inline all shared-*.js, so there won't have a shared.js which is splitted out by splitChunks
+		inlineExports: false
 	},
-	experiments: {
-		// inlineConst will inline [a-g].js into export-imported.js, so the order check will fail
-		inlineConst: false,
-	}
 };

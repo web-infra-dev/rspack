@@ -9,6 +9,6 @@ it("should prefer relative", () => {
 
 	const style = getComputedStyle(document.body);
 
-	expect(style.getPropertyValue("background")).toBe(" red");
-	expect(style.getPropertyValue("color")).toBe(" red");
+	expect(style.getPropertyValue("background")).toBe("red");
+	expect(style.getPropertyValue("color")).toBe("rgb(255, 0, 0)");
 });

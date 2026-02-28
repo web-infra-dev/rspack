@@ -1,0 +1,26 @@
+```mjs title=main.mjs
+// ./lib-defer.js
+const v = await (() => 42)()
+
+
+
+// ./lib.js
+await 42
+const lib = 42
+
+
+// ./index.js
+ // this is a defer module
+ // this has tla
+
+it('should has correct exec order and export value', async () => {
+	const { demo } = await import(/*webpackIgnore: true*/ './main.mjs')
+	expect(demo).toBe(84)
+})
+
+const index_demo = (/* inlined export .lib */42) + v
+
+
+export { index_demo as demo };
+
+```

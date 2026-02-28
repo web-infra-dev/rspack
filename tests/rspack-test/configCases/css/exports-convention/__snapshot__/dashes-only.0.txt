@@ -1,0 +1,10 @@
+Object {
+  btn-info-is-disabled: _style_module_css_dashes-only-btn-info_is-disabled,
+  btn-info-is-disabled-1: _style_module_css_dashes-only-btn--info_is-disabled_1,
+  class: _style_module_css_dashes-only-class,
+  default: _style_module_css_dashes-only-default,
+  foo: bar,
+  foo-bar: _style_module_css_dashes-only-foo_bar,
+  my-btn-info-is-disabled: value,
+  simple: _style_module_css_dashes-only-simple,
+}

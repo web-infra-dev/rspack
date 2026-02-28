@@ -5,12 +5,12 @@ on:
     inputs:
       dry_run:
         type: boolean
-        description: "DryRun release"
+        description: 'DryRun release'
         required: true
         default: false
       push_tags:
         type: boolean
-        description: "Push tags to repository"
+        description: 'Push tags to repository'
         required: true
         default: true
 
@@ -20,7 +20,7 @@ jobs:
     uses: ./.github/workflows/reusable-rust-test.yml
     with:
       # Use separated strategy to check all crates
-      cargo-check-strategy: "separated"
+      cargo-check-strategy: 'separated'
 
   release_crates:
     environment: crate
@@ -32,7 +32,7 @@ jobs:
     if: ${{ github.event_name == 'workflow_dispatch' }}
     steps:
       - name: Checkout Repo
-        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
         with:
           fetch-depth: 0
 
@@ -42,7 +42,7 @@ jobs:
           save-if: true
           key: release
 
-      - uses: cargo-bins/cargo-binstall@20aa316bab4942180bbbabe93237858e8d77f1ed # v1.15.5
+      - uses: cargo-bins/cargo-binstall@80aaafe04903087c333980fa2686259ddd34b2d9 # v1.16.6
 
       - name: Install cargo-workspaces
         run: cargo binstall --no-confirm cargo-workspaces@0.4.0 --force

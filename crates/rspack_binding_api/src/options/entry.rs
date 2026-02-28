@@ -3,7 +3,10 @@ use napi_derive::napi;
 use rspack_core::{EntryOptions, EntryRuntime};
 
 use super::library::JsLibraryOptions;
-use crate::{filename::JsFilename, raw_options::RawChunkLoading};
+use crate::{
+  filename::JsFilename,
+  raw_options::{RawChunkLoading, RawWasmLoading},
+};
 
 #[derive(Debug)]
 #[napi(object, object_to_js = false)]
@@ -36,6 +39,8 @@ pub struct JsEntryOptions {
   pub runtime: Option<JsEntryRuntime>,
   #[napi(ts_type = "false | string")]
   pub chunk_loading: Option<RawChunkLoading>,
+  #[napi(ts_type = "false | string")]
+  pub wasm_loading: Option<RawWasmLoading>,
   pub async_chunks: Option<bool>,
   #[napi(ts_type = "\"auto\" | JsFilename")]
   pub public_path: Option<JsFilename>,
@@ -52,6 +57,7 @@ impl From<JsEntryOptions> for EntryOptions {
       name: value.name,
       runtime: value.runtime.map(|r| JsEntryRuntimeWrapper(r).into()),
       chunk_loading: value.chunk_loading.map(Into::into),
+      wasm_loading: value.wasm_loading.map(Into::into),
       async_chunks: value.async_chunks,
       public_path: value.public_path.map(Into::into),
       base_uri: value.base_uri,

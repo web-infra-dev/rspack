@@ -1,2 +1,2 @@
-import "./empty.css";
-import "./body.css";
+import './empty.css';
+import './body.css';

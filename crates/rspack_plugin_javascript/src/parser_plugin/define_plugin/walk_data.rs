@@ -274,9 +274,10 @@ impl WalkData {
           .with_on_expression(Box::new(
             move |record, parser, span, start, end, for_name| {
               let code = code_to_string(&record.code, Some(!parser.is_asi_position(span.lo)), None);
-              parser.add_presentational_dependency(Box::new(gen_const_dep(
-                parser, code, for_name, start, end,
-              )));
+              for dep in gen_const_dep(parser, code, for_name, start, end) {
+                parser.add_presentational_dependency(dep);
+              }
+
               Some(true)
             },
           ));
@@ -311,13 +312,15 @@ impl WalkData {
                 return None;
               }
               debug_assert!(!parser.in_short_hand);
-              parser.add_presentational_dependency(Box::new(gen_const_dep(
+              for dep in gen_const_dep(
                 parser,
                 Cow::Owned(format!("{}", json!(evaluated.string()))),
                 "",
                 start,
                 end,
-              )));
+              ) {
+                parser.add_presentational_dependency(dep);
+              }
               Some(true)
             })
         }));
@@ -347,9 +350,9 @@ impl WalkData {
         .with_on_expression(Box::new(
           move |record, parser, span, start, end, for_name| {
             let code = code_to_string(&record.object, Some(!parser.is_asi_position(span.lo)), None);
-            parser.add_presentational_dependency(Box::new(gen_const_dep(
-              parser, code, for_name, start, end,
-            )));
+            for dep in gen_const_dep(parser, code, for_name, start, end) {
+              parser.add_presentational_dependency(dep);
+            }
             Some(true)
           },
         ));
@@ -370,9 +373,9 @@ impl WalkData {
               Some(!parser.is_asi_position(span.lo)),
               parser.destructuring_assignment_properties.get(&span),
             );
-            parser.add_presentational_dependency(Box::new(gen_const_dep(
-              parser, code, for_name, start, end,
-            )));
+            for dep in gen_const_dep(parser, code, for_name, start, end) {
+              parser.add_presentational_dependency(dep);
+            }
             Some(true)
           },
         ));
@@ -400,9 +403,9 @@ impl WalkData {
     }
 
     fn walk_object(obj: &Map<String, Value>, prefix: Cow<str>, walk_data: &mut WalkData) {
-      obj.iter().for_each(|(key, code)| {
-        walk_code(code, prefix.clone(), Cow::Owned(key.to_string()), walk_data)
-      })
+      obj
+        .iter()
+        .for_each(|(key, code)| walk_code(code, prefix.clone(), Cow::Owned(key.clone()), walk_data))
     }
 
     let object = definitions.clone().into_iter().collect();

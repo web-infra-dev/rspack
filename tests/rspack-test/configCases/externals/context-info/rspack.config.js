@@ -20,7 +20,4 @@ module.exports = {
 			return callback();
 		}
 	],
-	experiments: {
-		layers: true
-	}
 };

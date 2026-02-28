@@ -3,9 +3,7 @@ const common = {
 	optimization: {
 		realContentHash: false
 	},
-	experiments: {
-		css: true
-	}
+
 };
 
 /** @type {import("@rspack/core").Configuration[]} */
@@ -64,6 +62,7 @@ module.exports = [
 			]
 		}
 	},
+	// MAYBE: support function type of exportsConvention
 	{
 		...common,
 		output: {

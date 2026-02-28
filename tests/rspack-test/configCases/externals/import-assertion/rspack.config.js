@@ -8,14 +8,12 @@ const {
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	output: {
+		module: true,
 		library: {
 			type: "module"
 		}
 	},
 	target: ["web", "es2020"],
-	experiments: {
-		outputModule: true
-	},
 	plugins: [
 		{
 			apply(compiler) {

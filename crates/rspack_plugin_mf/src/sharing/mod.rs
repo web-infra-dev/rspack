@@ -1,3 +1,4 @@
+pub mod collect_shared_entry_plugin;
 pub mod consume_shared_fallback_dependency;
 pub mod consume_shared_module;
 pub mod consume_shared_plugin;
@@ -9,3 +10,7 @@ pub mod provide_shared_module_factory;
 pub mod provide_shared_plugin;
 pub mod share_runtime_module;
 pub mod share_runtime_plugin;
+pub mod shared_container_plugin;
+pub mod shared_container_runtime_module;
+pub mod shared_used_exports_optimizer_plugin;
+pub mod shared_used_exports_optimizer_runtime_module;

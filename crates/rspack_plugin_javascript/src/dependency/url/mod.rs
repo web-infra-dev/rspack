@@ -6,9 +6,9 @@ use rspack_core::{
   AsContextDependency, CodeGenerationPublicPathAutoReplace, ConnectionState, Dependency,
   DependencyCategory, DependencyCodeGeneration, DependencyCondition, DependencyConditionFn,
   DependencyId, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
-  FactorizeInfo, JavascriptParserUrl, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
-  ModuleGraphConnection, RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource,
-  URLStaticMode, UsedByExports, module_id,
+  ExportsInfoArtifact, FactorizeInfo, JavascriptParserUrl, ModuleDependency, ModuleGraph,
+  ModuleGraphCacheArtifact, ModuleGraphConnection, RuntimeGlobals, RuntimeSpec, TemplateContext,
+  TemplateReplaceSource, URLStaticMode, UsedByExports,
 };
 use swc_core::ecma::atoms::Atom;
 
@@ -111,7 +111,7 @@ pub struct URLDependencyTemplate;
 
 pub static URL_STATIC_PLACEHOLDER: &str = "RSPACK_AUTO_URL_STATIC_PLACEHOLDER_";
 pub static URL_STATIC_PLACEHOLDER_RE: LazyLock<Regex> = LazyLock::new(|| {
-  Regex::new(&format!(r#"{}(?<dep>\d+)"#, URL_STATIC_PLACEHOLDER)).expect("should be valid regex")
+  Regex::new(&format!(r#"{URL_STATIC_PLACEHOLDER}(?<dep>\d+)"#)).expect("should be valid regex")
 });
 
 impl URLDependencyTemplate {
@@ -133,23 +133,20 @@ impl DependencyTemplate for URLDependencyTemplate {
       .expect("URLDependencyTemplate should be used for URLDependency");
     let TemplateContext {
       compilation,
-      runtime_requirements,
+      runtime_template,
       ..
     } = code_generatable_context;
 
-    runtime_requirements.insert(RuntimeGlobals::REQUIRE);
-
     match dep.mode {
       Some(JavascriptParserUrl::Relative) => {
-        runtime_requirements.insert(RuntimeGlobals::RELATIVE_URL);
         source.replace(
           dep.range.start,
           dep.range.end,
           format!(
             "/* asset import */ new {}({}({}))",
-            RuntimeGlobals::RELATIVE_URL,
-            RuntimeGlobals::REQUIRE,
-            module_id(compilation, &dep.id, &dep.request, false),
+            runtime_template.render_runtime_globals(&RuntimeGlobals::RELATIVE_URL),
+            runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
+            runtime_template.module_id(compilation, &dep.id, &dep.request, false),
           )
           .as_str(),
           None,
@@ -176,15 +173,14 @@ impl DependencyTemplate for URLDependencyTemplate {
         );
       }
       _ => {
-        runtime_requirements.insert(RuntimeGlobals::BASE_URI);
         source.replace(
           dep.range_url.start,
           dep.range_url.end,
           format!(
             "/* asset import */{}({}), {}",
-            RuntimeGlobals::REQUIRE,
-            module_id(compilation, &dep.id, &dep.request, false),
-            RuntimeGlobals::BASE_URI
+            runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
+            runtime_template.module_id(compilation, &dep.id, &dep.request, false),
+            runtime_template.render_runtime_globals(&RuntimeGlobals::BASE_URI)
           )
           .as_str(),
           None,
@@ -203,10 +199,9 @@ impl DependencyConditionFn for URLDependencyCondition {
     runtime: Option<&RuntimeSpec>,
     module_graph: &ModuleGraph,
     _module_graph_cache: &ModuleGraphCacheArtifact,
+    exports_info_artifact: &ExportsInfoArtifact,
   ) -> ConnectionState {
-    let dependency = module_graph
-      .dependency_by_id(&connection.dependency_id)
-      .expect("should have dependency");
+    let dependency = module_graph.dependency_by_id(&connection.dependency_id);
     let dependency = dependency
       .downcast_ref::<URLDependency>()
       .expect("should be URLDependency");
@@ -214,6 +209,7 @@ impl DependencyConditionFn for URLDependencyCondition {
       connection,
       runtime,
       module_graph,
+      exports_info_artifact,
       dependency.used_by_exports.as_ref(),
     ))
   }

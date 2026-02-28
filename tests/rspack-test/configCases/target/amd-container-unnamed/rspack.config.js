@@ -1,5 +1,5 @@
-const webpack = require("@rspack/core");
-/** @type {import("../../../../types").Configuration} */
+const { rspack } = require("@rspack/core");
+/** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	output: {
 		library: {
@@ -12,7 +12,7 @@ module.exports = {
 		__filename: false
 	},
 	plugins: [
-		new webpack.BannerPlugin({
+		new rspack.BannerPlugin({
 			raw: true,
 			banner:
 				"function define(fn) { fn(); }\nconst window = {};\nwindow['clientContainer'] = { define };\n"

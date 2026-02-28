@@ -4,7 +4,7 @@ use swc_core::ecma::ast::{Expr, MemberExpr};
 use super::BasicEvaluatedExpression;
 use crate::{
   parser_plugin::JavascriptParserPlugin,
-  visitors::{AllowedMemberTypes, JavascriptParser, MemberExpressionInfo},
+  visitors::{AllowedMemberTypes, ExprRef, JavascriptParser, MemberExpressionInfo},
 };
 
 pub fn eval_member_expression<'a>(
@@ -13,7 +13,7 @@ pub fn eval_member_expression<'a>(
   expr: &'a Expr,
 ) -> Option<BasicEvaluatedExpression<'a>> {
   let ret = if let Some(MemberExpressionInfo::Expression(info)) =
-    parser.get_member_expression_info(member, AllowedMemberTypes::Expression)
+    parser.get_member_expression_info(ExprRef::Member(member), AllowedMemberTypes::Expression)
   {
     parser
       .plugin_drive

@@ -3,12 +3,12 @@ use std::{borrow::Cow, sync::Arc};
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::Identifiable;
 use rspack_core::{
-  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo,
-  BuildMeta, BuildResult, ChunkGraph, CodeGenerationData, CodeGenerationResult, Compilation,
-  ConcatenationScope, Context, DependenciesBlock, DependencyId, DependencyRange, FactoryMeta,
-  LibIdentOptions, Module, ModuleFactoryCreateData, ModuleGraph, ModuleIdentifier, ModuleLayer,
-  ModuleType, RuntimeGlobals, RuntimeSpec, SourceType, TemplateContext, ValueCacheVersions,
-  impl_module_meta_info, module_namespace_promise, module_update_hash,
+  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, BuildContext,
+  BuildInfo, BuildMeta, BuildResult, ChunkGraph, CodeGenerationResult, Compilation, Context,
+  DependenciesBlock, DependencyId, DependencyRange, FactoryMeta, ImportPhase, LibIdentOptions,
+  Module, ModuleArgument, ModuleCodeGenerationContext, ModuleFactoryCreateData, ModuleGraph,
+  ModuleIdentifier, ModuleLayer, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
+  ValueCacheVersions, impl_module_meta_info, module_update_hash,
   rspack_sources::{BoxSource, RawStringSource},
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
@@ -164,7 +164,7 @@ impl Module for LazyCompilationProxyModule {
   }
 
   async fn build(
-    &mut self,
+    mut self: Box<Self>,
     _build_context: BuildContext,
     _compilation: Option<&Compilation>,
   ) -> Result<BuildResult> {
@@ -173,6 +173,7 @@ impl Module for LazyCompilationProxyModule {
       DependencyRange::new(0, 0),
       None,
       false,
+      None,
       None,
     );
     let mut dependencies = vec![];
@@ -193,6 +194,7 @@ impl Module for LazyCompilationProxyModule {
     }
 
     Ok(BuildResult {
+      module: BoxModule::new(self),
       dependencies,
       blocks,
       optimization_bailouts: vec![],
@@ -202,14 +204,13 @@ impl Module for LazyCompilationProxyModule {
   // #[tracing::instrument("LazyCompilationProxyModule::code_generation", skip_all, fields(identifier = ?self.identifier()))]
   async fn code_generation(
     &self,
-    compilation: &Compilation,
-    _runtime: Option<&RuntimeSpec>,
-    mut concatenation_scope: Option<ConcatenationScope>,
+    code_generation_context: &mut ModuleCodeGenerationContext,
   ) -> Result<CodeGenerationResult> {
-    let mut runtime_requirements = RuntimeGlobals::empty();
-    runtime_requirements.insert(RuntimeGlobals::MODULE);
-    runtime_requirements.insert(RuntimeGlobals::REQUIRE);
-    let mut codegen_data = CodeGenerationData::default();
+    let ModuleCodeGenerationContext {
+      compilation,
+      runtime_template,
+      ..
+    } = code_generation_context;
 
     let client_dep_id = self.dependencies[0];
     let module_graph = &compilation.get_module_graph();
@@ -221,14 +222,17 @@ impl Module for LazyCompilationProxyModule {
     let block = self.blocks.first();
 
     let client = format!(
-      "var client = __webpack_require__(\"{}\");\nvar data = {};",
+      "var client = {}(\"{}\");\nvar data = {};",
+      runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
       ChunkGraph::get_module_id(&compilation.module_ids_artifact, *client_module)
         .expect("should have module id"),
       serde_json::to_string(&self.identifier).expect("should serialize identifier")
     );
 
+    let module_argument = runtime_template.render_module_argument(ModuleArgument::Module);
+
     let keep_active = format!(
-      "var dispose = client.activate({{ data: data, active: {}, module: module, onError: onError }})",
+      "var dispose = client.activate({{ data: data, active: {}, module: {module_argument}, onError: onError }})",
       block.is_some()
     );
 
@@ -242,37 +246,26 @@ impl Module for LazyCompilationProxyModule {
         .module_identifier_by_dependency_id(&dep_id)
         .expect("should have module");
 
-      let mut template_ctx = TemplateContext {
-        compilation,
-        module: module_graph
-          .module_by_identifier(module)
-          .expect("should have module")
-          .as_ref(),
-        runtime_requirements: &mut runtime_requirements,
-        init_fragments: &mut vec![],
-        runtime: None,
-        concatenation_scope: concatenation_scope.as_mut(),
-        data: &mut codegen_data,
-      };
-
       RawStringSource::from(format!(
         "{client}
-        module.exports = {};
-        if (module.hot) {{
-          module.hot.accept();
-          module.hot.accept({}, function() {{ module.hot.invalidate(); }});
-          module.hot.dispose(function(data) {{ delete data.resolveSelf; }});
-          if (module.hot.data && module.hot.data.resolveSelf)
-            module.hot.data.resolveSelf(module.exports);
+        {module_argument}.exports = {};
+        if ({module_argument}.hot) {{
+          {module_argument}.hot.accept();
+          {module_argument}.hot.accept({}, function() {{ {module_argument}.hot.invalidate(); }});
+          {module_argument}.hot.dispose(function(data) {{ delete data.resolveSelf; }});
+          if ({module_argument}.hot.data && {module_argument}.hot.data.resolveSelf)
+            {module_argument}.hot.data.resolveSelf({module_argument}.exports);
         }}
         ",
-        module_namespace_promise(
-          &mut template_ctx,
+        runtime_template.module_namespace_promise(
+          compilation,
+          *module,
           &dep_id,
           Some(block_id),
           &self.resource,
           "import()",
-          false
+          false,
+          ImportPhase::Evaluation,
         ),
         json_stringify(
           ChunkGraph::get_module_id(&compilation.module_ids_artifact, *module)
@@ -283,22 +276,18 @@ impl Module for LazyCompilationProxyModule {
       RawStringSource::from(format!(
         "{client}
         var resolveSelf, onError;
-        module.exports = new Promise(function(resolve, reject) {{ resolveSelf = resolve; onError = reject; }});
-        if (module.hot) {{
-          module.hot.accept();
-          if (module.hot.data && module.hot.data.resolveSelf) module.hot.data.resolveSelf(module.exports);
-          module.hot.dispose(function(data) {{ data.resolveSelf = resolveSelf; dispose(data); }});
+        {module_argument}.exports = new Promise(function(resolve, reject) {{ resolveSelf = resolve; onError = reject; }});
+        if ({module_argument}.hot) {{
+          {module_argument}.hot.accept();
+          if ({module_argument}.hot.data && {module_argument}.hot.data.resolveSelf) {module_argument}.hot.data.resolveSelf({module_argument}.exports);
+          {module_argument}.hot.dispose(function(data) {{ data.resolveSelf = resolveSelf; dispose(data); }});
         }}
         {keep_active}
       "
       ))
     };
 
-    let mut codegen_result = CodeGenerationResult::default().with_javascript(Arc::new(source));
-    codegen_result.runtime_requirements = runtime_requirements;
-    codegen_result.data = codegen_data;
-
-    Ok(codegen_result)
+    Ok(CodeGenerationResult::default().with_javascript(Arc::new(source)))
   }
 
   async fn get_runtime_hash(

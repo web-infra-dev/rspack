@@ -6,6 +6,8 @@ module.exports = {
 		providedExports: true
 	},
 	stats: {
+		assets: true,
+		modules: true,
 		usedExports: true,
 		providedExports: true
 	}

@@ -4,7 +4,7 @@ description: Install Node.js with pnpm global cache
 
 inputs:
   node-version:
-    default: "20"
+    default: '22'
     required: false
     type: string
 
@@ -12,12 +12,11 @@ runs:
   using: composite
   steps:
     - name: Install Node.js
-      uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+      uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f # v6
       with:
         node-version: ${{ inputs.node-version }}
 
     - name: Enable corepack
-      if: ${{ inputs.node-version != '16' }}
       shell: bash
       run: |
         if [[ "${{runner.os}}" == "Windows" ]]; then
@@ -28,13 +27,3 @@ runs:
         npm install -g corepack@0.31.0 --force
         echo "Corepack version: $(corepack --version)"
         corepack enable
-
-    # https://pnpm.io/continuous-integration#github-actions
-    # Uses `packageManagement` field from package.json
-    - name: Install pnpm
-      if: ${{ inputs.node-version == '16' }}
-      uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4
-      with:
-        dest: ${{ runner.tool_cache }}/pnpm
-        # Use `@pnpm/exe` for Node 16
-        standalone: true

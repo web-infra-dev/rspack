@@ -3,7 +3,7 @@ use std::borrow::Cow;
 use rspack_core::{
   AsyncDependenciesBlock, ChunkGroupOptions, ContextDependency, ContextNameSpaceObject,
   ContextOptions, DependencyCategory, DependencyRange, DependencyType, DynamicImportFetchPriority,
-  DynamicImportMode, GroupOptions, ImportAttributes, SharedSourceMap,
+  DynamicImportMode, GroupOptions, ImportAttributes, ImportPhase,
 };
 use rspack_error::{Error, Severity};
 use rspack_util::{SpanExt, swc::get_swc_comments};
@@ -19,6 +19,7 @@ use swc_core::{
 use super::JavascriptParserPlugin;
 use crate::{
   dependency::{ImportContextDependency, ImportDependency, ImportEagerDependency},
+  magic_comment::try_extract_magic_comment,
   utils::object_properties::{get_attributes, get_value_by_obj_prop},
   visitors::{
     AllowedMemberTypes, ContextModuleScanResult, ExportedVariableInfo, JavascriptParser,
@@ -26,7 +27,6 @@ use crate::{
     context_reg_exp, create_context_dependency, create_traceable_error, get_non_optional_part,
     parse_order_string,
   },
-  webpack_comment::try_extract_webpack_magic_comment,
 };
 
 const DYNAMIC_IMPORT_TAG: &str = "dynamic import";
@@ -163,7 +163,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
       .get(&ident.span())
     {
       let mut refs = Vec::new();
-      keys.traverse_on_left(&mut |stack| {
+      keys.traverse_on_leaf(&mut |stack| {
         refs.push(stack.iter().map(|p| p.id.clone()).collect());
       });
       for ids in refs {
@@ -259,42 +259,36 @@ impl JavascriptParserPlugin for ImportParserPlugin {
       .get_order();
     let dynamic_import_fetch_priority = parser.javascript_options.dynamic_import_fetch_priority;
 
-    let magic_comment_options =
-      try_extract_webpack_magic_comment(parser, node.span, dyn_imported.span());
-    if magic_comment_options
-      .get_webpack_ignore()
-      .unwrap_or_default()
-    {
+    let magic_comment_options = try_extract_magic_comment(parser, node.span, dyn_imported.span());
+    if magic_comment_options.get_ignore().unwrap_or_default() {
       return None;
     }
 
-    let mode = magic_comment_options
-      .get_webpack_mode()
-      .map(|x| DynamicImportMode::from(x.as_str()))
-      .unwrap_or(dynamic_import_mode.expect("should have dynamic_import_mode"));
-    let chunk_name = magic_comment_options
-      .get_webpack_chunk_name()
-      .map(|x| x.to_owned());
+    let mode = magic_comment_options.get_mode().map_or(
+      dynamic_import_mode.expect("should have dynamic_import_mode"),
+      |x| DynamicImportMode::from(x.as_str()),
+    );
+    let chunk_name = magic_comment_options.get_chunk_name().map(|x| x.to_owned());
     let chunk_prefetch = magic_comment_options
-      .get_webpack_prefetch()
+      .get_prefetch()
       .and_then(|x| parse_order_string(x.as_str()))
       .or(dynamic_import_prefetch);
     let chunk_preload = magic_comment_options
-      .get_webpack_preload()
+      .get_preload()
       .and_then(|x| parse_order_string(x.as_str()))
       .or(dynamic_import_preload);
     let fetch_priority = magic_comment_options
       .get_fetch_priority()
       .map(|x| DynamicImportFetchPriority::from(x.as_str()))
       .or(dynamic_import_fetch_priority);
-    let include = magic_comment_options.get_webpack_include();
-    let exclude = magic_comment_options.get_webpack_exclude();
-    let mut exports = magic_comment_options.get_webpack_exports().map(|x| {
+    let include = magic_comment_options.get_include();
+    let exclude = magic_comment_options.get_exclude();
+    let mut exports = magic_comment_options.get_exports().map(|x| {
       x.iter()
         .map(|name| vec![Atom::from(name.as_str())])
         .collect::<Vec<_>>()
     });
-    let has_webpack_exports_comment = exports.is_some();
+    let has_exports_magic_comment = exports.is_some();
 
     let referenced_in_destructuring = parser
       .destructuring_assignment_properties
@@ -306,7 +300,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
       import_then.and_then(|import_then| get_fulfilled_callback_namespace_obj(import_then));
     if let Some(keys) = referenced_in_destructuring {
       let mut refs = Vec::new();
-      keys.traverse_on_left(&mut |stack| {
+      keys.traverse_on_leaf(&mut |stack| {
         refs.push(stack.iter().map(|p| p.id.clone()).collect());
       });
       exports = Some(refs);
@@ -315,16 +309,26 @@ impl JavascriptParserPlugin for ImportParserPlugin {
     let is_statical = referenced_in_destructuring.is_some()
       || referenced_in_member.is_some()
       || referenced_fulfilled_ns_obj.is_some();
-    if is_statical && has_webpack_exports_comment {
+    if is_statical && has_exports_magic_comment {
       let mut error: Error = create_traceable_error(
         "Useless magic comments".into(),
         "You don't need `webpackExports` if the usage of dynamic import is statically analyse-able. You can safely remove the `webpackExports` magic comment.".into(),
-        parser.source_file,
+        parser.source.to_string(),
         import_call_span.into(),
       );
       error.severity = Severity::Warning;
       error.hide_stack = Some(true);
       parser.add_warning(error.into());
+    }
+
+    let phase: ImportPhase = node
+      .callee
+      .as_import()
+      .expect("should be import")
+      .phase
+      .into();
+    if phase.is_defer() && !parser.compiler_options.experiments.defer_import {
+      parser.add_error(rspack_error::error!("deferImport is still an experimental feature. To continue using it, please enable 'experiments.deferImport'.").into());
     }
 
     let attributes = get_attributes_from_call_expr(node);
@@ -337,6 +341,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
           import_call_span.into(),
           exports,
           attributes,
+          phase,
         );
         let dep_idx = parser.next_dependency_idx();
         parser.add_dependency(Box::new(dep));
@@ -351,6 +356,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
           import_call_span.into(),
           exports,
           attributes,
+          phase,
           parser.in_try,
           get_swc_comments(
             parser.comments,
@@ -358,10 +364,11 @@ impl JavascriptParserPlugin for ImportParserPlugin {
             dyn_imported.span().hi,
           ),
         ));
-        let source_map: SharedSourceMap = parser.source_map.clone();
+        let range = DependencyRange::from(import_call_span);
+        let loc = parser.to_dependency_location(range);
         let mut block = AsyncDependenciesBlock::new(
           *parser.module_identifier,
-          Into::<DependencyRange>::into(import_call_span).to_loc(Some(&source_map)),
+          loc,
           None,
           vec![dep],
           Some(param.string().clone()),
@@ -403,7 +410,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
           include,
           exclude,
           category: DependencyCategory::Esm,
-          request: format!("{}{}{}", context.clone(), query, fragment),
+          request: format!("{context}{query}{fragment}"),
           context,
           namespace_object: if parser.build_meta.strict_esm_module {
             ContextNameSpaceObject::Strict
@@ -421,6 +428,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
           end: import_call_span.real_hi(),
           referenced_exports: exports,
           attributes,
+          phase: Some(phase),
         },
         import_call_span.into(),
         dyn_imported.span().into(),
@@ -574,7 +582,7 @@ fn walk_import_then_fulfilled_callback(
             .dynamic_import_references
             .get_import_mut_expect(&import_call.span());
           let mut refs = Vec::new();
-          keys.traverse_on_left(&mut |stack| {
+          keys.traverse_on_leaf(&mut |stack| {
             refs.push(stack.iter().map(|p| p.id.clone()).collect());
           });
           for ids in refs {

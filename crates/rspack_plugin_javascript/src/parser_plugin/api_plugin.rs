@@ -1,20 +1,20 @@
-use rspack_core::{ConstDependency, RuntimeGlobals, RuntimeRequirementsDependency};
+use rspack_core::{ConstDependency, ModuleArgument, RuntimeGlobals, RuntimeRequirementsDependency};
 use rspack_error::{Error, Severity};
 use rspack_util::SpanExt;
 use swc_core::{
-  common::{SourceFile, Span, Spanned},
-  ecma::ast::{CallExpr, Ident, UnaryExpr},
+  common::{Span, Spanned},
+  ecma::ast::{CallExpr, Ident, Pat, UnaryExpr},
 };
 
 use crate::{
-  dependency::ModuleArgumentDependency,
+  dependency::{ModuleArgumentDependency, RequireMainDependency},
   parser_plugin::JavascriptParserPlugin,
   utils::eval::{self, BasicEvaluatedExpression},
-  visitors::{JavascriptParser, create_traceable_error},
+  visitors::{JavascriptParser, Statement, VariableDeclaration, create_traceable_error},
 };
 
 fn expression_not_supported(
-  file: &SourceFile,
+  source: &str,
   name: &str,
   is_call: bool,
   expr_span: Span,
@@ -25,39 +25,36 @@ fn expression_not_supported(
       "{name}{} is not supported by Rspack.",
       if is_call { "()" } else { "" }
     ),
-    file,
+    source.to_owned(),
     expr_span.into(),
   );
   error.severity = Severity::Warning;
   error.hide_stack = Some(true);
   (
     error,
-    Box::new(ConstDependency::new(
-      expr_span.into(),
-      "(void 0)".into(),
-      None,
-    )),
+    Box::new(ConstDependency::new(expr_span.into(), "(void 0)".into())),
   )
 }
 
-const WEBPACK_HASH: &str = "__webpack_hash__";
-const WEBPACK_LAYER: &str = "__webpack_layer__";
-const WEBPACK_PUBLIC_PATH: &str = "__webpack_public_path__";
-const WEBPACK_MODULES: &str = "__webpack_modules__";
-const WEBPACK_MODULE: &str = "__webpack_module__";
-const WEBPACK_CHUNK_LOAD: &str = "__webpack_chunk_load__";
-const WEBPACK_BASE_URI: &str = "__webpack_base_uri__";
-const NON_WEBPACK_REQUIRE: &str = "__non_webpack_require__";
-const SYSTEM_CONTEXT: &str = "__system_context__";
-const WEBPACK_SHARE_SCOPES: &str = "__webpack_share_scopes__";
-const WEBPACK_INIT_SHARING: &str = "__webpack_init_sharing__";
-const WEBPACK_NONCE: &str = "__webpack_nonce__";
-const WEBPACK_CHUNK_NAME: &str = "__webpack_chunkname__";
-const WEBPACK_RUNTIME_ID: &str = "__webpack_runtime_id__";
-const WEBPACK_REQUIRE: &str = RuntimeGlobals::REQUIRE.name();
-const WEBPACK_GET_SCRIPT_FILENAME: &str = "__webpack_get_script_filename__";
-const RSPACK_VERSION: &str = "__rspack_version__";
-const RSPACK_UNIQUE_ID: &str = "__rspack_unique_id__";
+const API_HASH: &str = "__webpack_hash__";
+const API_LAYER: &str = "__webpack_layer__";
+const API_PUBLIC_PATH: &str = "__webpack_public_path__";
+const API_MODULES: &str = "__webpack_modules__";
+const API_MODULE: &str = "__webpack_module__";
+const API_CHUNK_LOAD: &str = "__webpack_chunk_load__";
+const API_BASE_URI: &str = "__webpack_base_uri__";
+const API_NON_REQUIRE: &str = "__non_webpack_require__";
+const API_SYSTEM_CONTEXT: &str = "__system_context__";
+const API_SHARE_SCOPES: &str = "__webpack_share_scopes__";
+const API_INIT_SHARING: &str = "__webpack_init_sharing__";
+const API_NONCE: &str = "__webpack_nonce__";
+const API_CHUNK_NAME: &str = "__webpack_chunkname__";
+const API_RUNTIME_ID: &str = "__webpack_runtime_id__";
+const API_REQUIRE: &str = "__webpack_require__";
+const API_GET_SCRIPT_FILENAME: &str = "__webpack_get_script_filename__";
+const API_VERSION: &str = "__rspack_version__";
+const API_UNIQUE_ID: &str = "__rspack_unique_id__";
+const API_RSC_MANIFEST: &str = "__rspack_rsc_manifest__";
 
 pub struct APIPluginOptions {
   module: bool,
@@ -76,23 +73,24 @@ impl APIPlugin {
 
 fn get_typeof_evaluate_of_api(sym: &str) -> Option<&str> {
   match sym {
-    WEBPACK_REQUIRE => Some("function"),
-    WEBPACK_HASH => Some("string"),
-    WEBPACK_PUBLIC_PATH => Some("string"),
-    WEBPACK_MODULES => Some("object"),
-    WEBPACK_MODULE => Some("object"),
-    WEBPACK_CHUNK_LOAD => Some("function"),
-    WEBPACK_BASE_URI => Some("string"),
-    NON_WEBPACK_REQUIRE => None,
-    SYSTEM_CONTEXT => Some("object"),
-    WEBPACK_SHARE_SCOPES => Some("object"),
-    WEBPACK_INIT_SHARING => Some("function"),
-    WEBPACK_NONCE => Some("string"),
-    WEBPACK_CHUNK_NAME => Some("string"),
-    WEBPACK_RUNTIME_ID => None,
-    WEBPACK_GET_SCRIPT_FILENAME => Some("function"),
-    RSPACK_VERSION => Some("string"),
-    RSPACK_UNIQUE_ID => Some("string"),
+    API_REQUIRE => Some("function"),
+    API_HASH => Some("string"),
+    API_PUBLIC_PATH => Some("string"),
+    API_MODULES => Some("object"),
+    API_MODULE => Some("object"),
+    API_CHUNK_LOAD => Some("function"),
+    API_BASE_URI => Some("string"),
+    API_NON_REQUIRE => None,
+    API_SYSTEM_CONTEXT => Some("object"),
+    API_SHARE_SCOPES => Some("object"),
+    API_INIT_SHARING => Some("function"),
+    API_NONCE => Some("string"),
+    API_CHUNK_NAME => Some("string"),
+    API_RUNTIME_ID => None,
+    API_GET_SCRIPT_FILENAME => Some("function"),
+    API_VERSION => Some("string"),
+    API_UNIQUE_ID => Some("string"),
+    API_RSC_MANIFEST => Some("object"),
     _ => None,
   }
 }
@@ -104,7 +102,7 @@ impl JavascriptParserPlugin for APIPlugin {
     expr: &'a UnaryExpr,
     for_name: &str,
   ) -> Option<BasicEvaluatedExpression<'a>> {
-    if for_name == WEBPACK_LAYER {
+    if for_name == API_LAYER {
       let value = if parser.module_layer.is_none() {
         "object"
       } else {
@@ -129,160 +127,145 @@ impl JavascriptParserPlugin for APIPlugin {
     for_name: &str,
   ) -> Option<bool> {
     match for_name {
-      WEBPACK_REQUIRE => {
-        parser.add_presentational_dependency(Box::new(ConstDependency::new(
+      API_REQUIRE => {
+        parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
           ident.span.into(),
-          RuntimeGlobals::REQUIRE.name().into(),
-          Some(RuntimeGlobals::REQUIRE),
+          RuntimeGlobals::REQUIRE,
         )));
         Some(true)
       }
-      WEBPACK_HASH => {
-        parser.add_presentational_dependency(Box::new(ConstDependency::new(
+      API_HASH => {
+        parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::call(
           ident.span.into(),
-          format!("{}()", RuntimeGlobals::GET_FULL_HASH).into(),
-          Some(RuntimeGlobals::GET_FULL_HASH),
+          RuntimeGlobals::GET_FULL_HASH,
         )));
         Some(true)
       }
-      WEBPACK_LAYER => {
+      API_LAYER => {
         parser.add_presentational_dependency(Box::new(ConstDependency::new(
           ident.span.into(),
           serde_json::to_string(&parser.module_layer)
             .expect("should stringify JSON")
             .into(),
-          None,
         )));
         Some(true)
       }
-      WEBPACK_PUBLIC_PATH => {
-        parser.add_presentational_dependency(Box::new(ConstDependency::new(
+      API_PUBLIC_PATH => {
+        parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
           ident.span.into(),
-          RuntimeGlobals::PUBLIC_PATH.name().into(),
-          Some(RuntimeGlobals::PUBLIC_PATH),
+          RuntimeGlobals::PUBLIC_PATH,
         )));
         Some(true)
       }
-      WEBPACK_MODULES => {
-        parser.add_presentational_dependency(Box::new(ConstDependency::new(
+      API_MODULES => {
+        parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
           ident.span.into(),
-          RuntimeGlobals::MODULE_FACTORIES.name().into(),
-          Some(RuntimeGlobals::MODULE_FACTORIES),
+          RuntimeGlobals::MODULE_FACTORIES,
         )));
         Some(true)
       }
-      WEBPACK_CHUNK_LOAD => {
-        parser.add_presentational_dependency(Box::new(ConstDependency::new(
+      API_CHUNK_LOAD => {
+        parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
           ident.span.into(),
-          RuntimeGlobals::ENSURE_CHUNK.name().into(),
-          Some(RuntimeGlobals::ENSURE_CHUNK),
+          RuntimeGlobals::ENSURE_CHUNK,
         )));
         Some(true)
       }
-      WEBPACK_MODULE => {
-        parser.add_presentational_dependency(Box::new(ModuleArgumentDependency::new(
-          None,
+      API_MODULE => {
+        let range = ident.span.into();
+        let loc = parser.to_dependency_location(range);
+        parser
+          .add_presentational_dependency(Box::new(ModuleArgumentDependency::new(None, range, loc)));
+        Some(true)
+      }
+      API_BASE_URI => {
+        parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
           ident.span.into(),
-          Some(parser.source_map.clone()),
+          RuntimeGlobals::BASE_URI,
         )));
         Some(true)
       }
-      WEBPACK_BASE_URI => {
-        parser.add_presentational_dependency(Box::new(ConstDependency::new(
-          ident.span.into(),
-          RuntimeGlobals::BASE_URI.name().into(),
-          Some(RuntimeGlobals::BASE_URI),
-        )));
-        Some(true)
-      }
-      NON_WEBPACK_REQUIRE => {
+      API_NON_REQUIRE => {
         let content = if self.options.module {
           parser.build_info.need_create_require = true;
-          format!(
-            "__WEBPACK_EXTERNAL_createRequire({}.url)",
-            parser.compiler_options.output.import_meta_name
-          )
-          .into()
+          "__rspack_createRequire_require".into()
         } else {
           "require".into()
         };
         parser.add_presentational_dependency(Box::new(ConstDependency::new(
           ident.span.into(),
           content,
-          None,
         )));
         Some(true)
       }
-      SYSTEM_CONTEXT => {
-        parser.add_presentational_dependency(Box::new(ConstDependency::new(
+      API_SYSTEM_CONTEXT => {
+        parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
           ident.span.into(),
-          RuntimeGlobals::SYSTEM_CONTEXT.name().into(),
-          Some(RuntimeGlobals::SYSTEM_CONTEXT),
+          RuntimeGlobals::SYSTEM_CONTEXT,
         )));
         Some(true)
       }
-      WEBPACK_SHARE_SCOPES => {
-        parser.add_presentational_dependency(Box::new(ConstDependency::new(
+      API_SHARE_SCOPES => {
+        parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
           ident.span.into(),
-          RuntimeGlobals::SHARE_SCOPE_MAP.name().into(),
-          Some(RuntimeGlobals::SHARE_SCOPE_MAP),
+          RuntimeGlobals::SHARE_SCOPE_MAP,
         )));
         Some(true)
       }
-      WEBPACK_INIT_SHARING => {
-        parser.add_presentational_dependency(Box::new(ConstDependency::new(
+      API_INIT_SHARING => {
+        parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
           ident.span.into(),
-          RuntimeGlobals::INITIALIZE_SHARING.name().into(),
-          Some(RuntimeGlobals::INITIALIZE_SHARING),
+          RuntimeGlobals::INITIALIZE_SHARING,
         )));
         Some(true)
       }
-      WEBPACK_NONCE => {
-        parser.add_presentational_dependency(Box::new(ConstDependency::new(
+      API_NONCE => {
+        parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
           ident.span.into(),
-          RuntimeGlobals::SCRIPT_NONCE.name().into(),
-          Some(RuntimeGlobals::SCRIPT_NONCE),
+          RuntimeGlobals::SCRIPT_NONCE,
         )));
         Some(true)
       }
-      WEBPACK_CHUNK_NAME => {
-        parser.add_presentational_dependency(Box::new(ConstDependency::new(
+      API_CHUNK_NAME => {
+        parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
           ident.span.into(),
-          RuntimeGlobals::CHUNK_NAME.name().into(),
-          Some(RuntimeGlobals::CHUNK_NAME),
+          RuntimeGlobals::CHUNK_NAME,
         )));
         Some(true)
       }
-      WEBPACK_RUNTIME_ID => {
-        parser.add_presentational_dependency(Box::new(ConstDependency::new(
+      API_RUNTIME_ID => {
+        parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
           ident.span.into(),
-          RuntimeGlobals::RUNTIME_ID.name().into(),
-          Some(RuntimeGlobals::RUNTIME_ID),
+          RuntimeGlobals::RUNTIME_ID,
         )));
         Some(true)
       }
-      WEBPACK_GET_SCRIPT_FILENAME => {
-        parser.add_presentational_dependency(Box::new(ConstDependency::new(
+      API_GET_SCRIPT_FILENAME => {
+        parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
           ident.span.into(),
-          RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME.name().into(),
-          Some(RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME),
+          RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME,
         )));
         Some(true)
       }
       // rspack specific
-      RSPACK_VERSION => {
-        parser.add_presentational_dependency(Box::new(ConstDependency::new(
+      API_VERSION => {
+        parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::call(
           ident.span.into(),
-          format!("{}()", RuntimeGlobals::RSPACK_VERSION).into(),
-          Some(RuntimeGlobals::RSPACK_VERSION),
+          RuntimeGlobals::RSPACK_VERSION,
         )));
         Some(true)
       }
-      RSPACK_UNIQUE_ID => {
-        parser.add_presentational_dependency(Box::new(ConstDependency::new(
+      API_UNIQUE_ID => {
+        parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
           ident.span.into(),
-          format!("{}", RuntimeGlobals::RSPACK_UNIQUE_ID).into(),
-          Some(RuntimeGlobals::RSPACK_UNIQUE_ID),
+          RuntimeGlobals::RSPACK_UNIQUE_ID,
+        )));
+        Some(true)
+      }
+      API_RSC_MANIFEST => {
+        parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
+          ident.span.into(),
+          RuntimeGlobals::RSC_MANIFEST,
         )));
         Some(true)
       }
@@ -297,7 +280,7 @@ impl JavascriptParserPlugin for APIPlugin {
     start: u32,
     end: u32,
   ) -> Option<eval::BasicEvaluatedExpression<'static>> {
-    if for_name == WEBPACK_LAYER {
+    if for_name == API_LAYER {
       if let Some(layer) = parser.module_layer {
         Some(eval::evaluate_to_string(layer.into(), start, end))
       } else {
@@ -323,50 +306,80 @@ impl JavascriptParserPlugin for APIPlugin {
       || for_name == "module.parent.require"
     {
       let (warning, dep) =
-        expression_not_supported(parser.source_file, for_name, false, member_expr.span());
+        expression_not_supported(parser.source, for_name, false, member_expr.span());
       parser.add_warning(warning.into());
       parser.add_presentational_dependency(dep);
       return Some(true);
     }
 
     if for_name == "require.cache" {
-      parser.add_presentational_dependency(Box::new(ConstDependency::new(
+      parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
         member_expr.span().into(),
-        RuntimeGlobals::MODULE_CACHE.name().into(),
-        Some(RuntimeGlobals::MODULE_CACHE),
+        RuntimeGlobals::MODULE_CACHE,
       )));
       return Some(true);
     }
 
     if for_name == "require.main" {
-      let mut runtime_requirements = RuntimeGlobals::default();
-      runtime_requirements.insert(RuntimeGlobals::MODULE_CACHE);
-      runtime_requirements.insert(RuntimeGlobals::ENTRY_MODULE_ID);
-      parser.add_presentational_dependency(Box::new(ConstDependency::new(
+      parser.add_presentational_dependency(Box::new(RequireMainDependency::new(
         member_expr.span().into(),
-        format!(
-          "{}[{}]",
-          RuntimeGlobals::MODULE_CACHE,
-          RuntimeGlobals::ENTRY_MODULE_ID
-        )
-        .into(),
-        Some(runtime_requirements),
       )));
       return Some(true);
     }
 
     if for_name == "__webpack_module__.id" {
-      parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
-        RuntimeGlobals::MODULE_ID,
-      )));
+      let range = member_expr.span.into();
+      let loc = parser.to_dependency_location(range);
       parser.add_presentational_dependency(Box::new(ModuleArgumentDependency::new(
         Some("id".into()),
-        member_expr.span().into(),
-        Some(parser.source_map.clone()),
+        range,
+        loc,
       )));
       return Some(true);
     }
 
+    None
+  }
+
+  fn pre_declarator(
+    &self,
+    parser: &mut JavascriptParser,
+    declarator: &swc_core::ecma::ast::VarDeclarator,
+    _declaration: VariableDeclaration<'_>,
+  ) -> Option<bool> {
+    // Check if we're at top level scope and the declarator is a simple identifier named "module"
+    if parser.is_top_level_scope()
+      && let Pat::Ident(ident) = &declarator.name
+      && ident.id.sym.as_ref() == "module"
+    {
+      parser.build_info.module_argument = ModuleArgument::RspackModule;
+    }
+    None
+  }
+
+  fn pre_statement(&self, parser: &mut JavascriptParser, stmt: Statement) -> Option<bool> {
+    // Check if we're at top level scope
+    if parser.is_top_level_scope() {
+      match stmt {
+        Statement::Fn(fn_decl) => {
+          // Check for function declaration named "module"
+          if let Some(ident) = fn_decl.ident()
+            && ident.sym.as_ref() == "module"
+          {
+            parser.build_info.module_argument = ModuleArgument::RspackModule;
+          }
+        }
+        Statement::Class(class_decl) => {
+          // Check for class declaration named "module"
+          if let Some(ident) = class_decl.ident()
+            && ident.sym.as_ref() == "module"
+          {
+            parser.build_info.module_argument = ModuleArgument::RspackModule;
+          }
+        }
+        _ => {}
+      }
+    }
     None
   }
 
@@ -383,7 +396,7 @@ impl JavascriptParserPlugin for APIPlugin {
       || for_name == "module.parent.require"
     {
       let (warning, dep) =
-        expression_not_supported(parser.source_file, for_name, true, call_expr.span());
+        expression_not_supported(parser.source, for_name, true, call_expr.span());
       parser.add_warning(warning.into());
       parser.add_presentational_dependency(dep);
       return Some(true);

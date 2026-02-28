@@ -3,7 +3,7 @@ function escapeRegExp(string) {
 }
 
 export function isAsyncModule(content, moduleId) {
-  const regex = new RegExp(`\\"${escapeRegExp(moduleId)}\\":.*\\{\\s([\\S\\s]*?)__webpack_require__\\.r\\(__webpack_exports__\\);`)
+  const regex = new RegExp(`\\"${escapeRegExp(moduleId)}\\".*\\(.*\\).*\\{\\s([\\S\\s]*?)__webpack_require__\\.r\\(__webpack_exports__\\);`)
   const result = regex.exec(content)
   try {
     const [, header] = result;

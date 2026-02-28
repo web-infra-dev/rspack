@@ -1,8 +1,9 @@
 module.exports = {
-	findBundle: function() {
+	findBundle: function () {
 		return [
-			"./a.js",
-			"./b.js",
+			// DIFF: if the entry is ignored, webpack will generate an empty module which only contains a comment in it
+			// "./a.js",
+			// "./b.js",
 			"./bundle0.js"
 		]
 	}

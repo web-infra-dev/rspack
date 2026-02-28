@@ -1,30 +1,31 @@
-use rspack_collections::Identifier;
-use rspack_core::{Compilation, RuntimeGlobals, RuntimeModule, impl_runtime_module};
+use rspack_core::{
+  RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext, RuntimeTemplate, impl_runtime_module,
+};
 
 #[impl_runtime_module]
 #[derive(Debug)]
 pub struct AmdOptionsRuntimeModule {
-  id: Identifier,
   options: String,
 }
 
 impl AmdOptionsRuntimeModule {
-  pub fn new(options: String) -> Self {
-    Self::with_default(Identifier::from("webpack/runtime/amd_options"), options)
+  pub fn new(runtime_template: &RuntimeTemplate, options: String) -> Self {
+    Self::with_default(runtime_template, options)
   }
 }
 
 #[async_trait::async_trait]
 impl RuntimeModule for AmdOptionsRuntimeModule {
-  fn name(&self) -> Identifier {
-    self.id
-  }
-
-  async fn generate(&self, _compilation: &Compilation) -> rspack_error::Result<String> {
+  async fn generate(
+    &self,
+    context: &RuntimeModuleGenerateContext<'_>,
+  ) -> rspack_error::Result<String> {
     Ok(format!(
       "{} = {}",
-      RuntimeGlobals::AMD_OPTIONS.name(),
-      self.options
+      context
+        .runtime_template
+        .render_runtime_globals(&RuntimeGlobals::AMD_OPTIONS),
+      self.options,
     ))
   }
 }

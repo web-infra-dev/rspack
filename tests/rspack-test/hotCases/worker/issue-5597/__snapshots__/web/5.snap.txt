@@ -14,10 +14,10 @@
 - Manifest: [runtime of workerA_js].LAST_HASH.hot-update.json, size: 43
 - Manifest: [runtime of workerB_js].LAST_HASH.hot-update.json, size: 43
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
-- Update: main.LAST_HASH.hot-update.js, size: 182
-- Update: shared.LAST_HASH.hot-update.js, size: 835
-- Update: workerA_js.LAST_HASH.hot-update.js, size: 576
-- Update: workerB_js.LAST_HASH.hot-update.js, size: 576
+- Update: main.LAST_HASH.hot-update.js, size: 181
+- Update: shared.LAST_HASH.hot-update.js, size: 624
+- Update: workerA_js.LAST_HASH.hot-update.js, size: 473
+- Update: workerB_js.LAST_HASH.hot-update.js, size: 473
 
 ## Manifest
 
@@ -58,7 +58,7 @@
 #### Changed Content
 ```js
 "use strict";
-self["webpackHotUpdate"]("main", {},function(__webpack_require__) {
+self["rspackHotUpdate"]("main", {},function(__webpack_require__) {
 // webpack/runtime/get_full_hash
 (() => {
 __webpack_require__.h = () => ("CURRENT_HASH")
@@ -82,33 +82,25 @@ __webpack_require__.h = () => ("CURRENT_HASH")
 #### Changed Content
 ```js
 "use strict";
-self["webpackHotUpdate"]("shared", {
-"./moduleAs.js": 
-/*!*********************!*\
-  !*** ./moduleAs.js ***!
-  \*********************/
-(function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+self["rspackHotUpdate"]("shared", {
+"./moduleAs.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  "default": () => (__WEBPACK_DEFAULT_EXPORT__)
+  "default": () => (__rspack_default_export)
 });
-/* ESM default export */ const __WEBPACK_DEFAULT_EXPORT__ = (5);
+/* export default */ const __rspack_default_export = (5);
 
 
-}),
-"./moduleBs.js": 
-/*!*********************!*\
-  !*** ./moduleBs.js ***!
-  \*********************/
-(function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+},
+"./moduleBs.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  "default": () => (__WEBPACK_DEFAULT_EXPORT__)
+  "default": () => (__rspack_default_export)
 });
-/* ESM default export */ const __WEBPACK_DEFAULT_EXPORT__ = (5);
+/* export default */ const __rspack_default_export = (5);
 
 
-}),
+},
 
 });
 ```
@@ -126,20 +118,16 @@ __webpack_require__.d(__webpack_exports__, {
 #### Changed Content
 ```js
 "use strict";
-self["webpackHotUpdate"]("workerA_js", {
-"./moduleA.js": 
-/*!********************!*\
-  !*** ./moduleA.js ***!
-  \********************/
-(function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+self["rspackHotUpdate"]("workerA_js", {
+"./moduleA.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  "default": () => (__WEBPACK_DEFAULT_EXPORT__)
+  "default": () => (__rspack_default_export)
 });
-/* ESM default export */ const __WEBPACK_DEFAULT_EXPORT__ = (5);
+/* export default */ const __rspack_default_export = (5);
 
 
-}),
+},
 
 },function(__webpack_require__) {
 // webpack/runtime/get_full_hash
@@ -164,20 +152,16 @@ __webpack_require__.h = () => ("CURRENT_HASH")
 #### Changed Content
 ```js
 "use strict";
-self["webpackHotUpdate"]("workerB_js", {
-"./moduleB.js": 
-/*!********************!*\
-  !*** ./moduleB.js ***!
-  \********************/
-(function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+self["rspackHotUpdate"]("workerB_js", {
+"./moduleB.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  "default": () => (__WEBPACK_DEFAULT_EXPORT__)
+  "default": () => (__rspack_default_export)
 });
-/* ESM default export */ const __WEBPACK_DEFAULT_EXPORT__ = (5);
+/* export default */ const __rspack_default_export = (5);
 
 
-}),
+},
 
 },function(__webpack_require__) {
 // webpack/runtime/get_full_hash
@@ -188,3 +172,44 @@ __webpack_require__.h = () => ("CURRENT_HASH")
 }
 );
 ```
+
+
+
+
+## Runtime
+### Status
+
+```txt
+check => prepare => dispose => apply => idle
+```
+
+
+
+### JavaScript
+
+#### Outdated
+
+Outdated Modules:
+
+
+
+Outdated Dependencies:
+```json
+{}
+```
+
+#### Updated
+
+Updated Modules:
+
+
+Updated Runtime:
+- `__webpack_require__.h`
+
+
+#### Callback
+
+Accepted Callback:
+
+
+Disposed Callback:

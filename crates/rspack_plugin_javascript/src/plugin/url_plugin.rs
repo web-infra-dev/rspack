@@ -3,8 +3,8 @@ use std::sync::Arc;
 use rspack_core::{
   ChunkInitFragments, ChunkUkey, CodeGenerationDataFilename, Compilation, CompilationParams,
   CompilerCompilation, DependencyId, JavascriptParserUrl, Module, ModuleType,
-  NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, Plugin, URLStaticMode,
-  rspack_sources::ReplaceSource,
+  NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, Plugin, RuntimeCodeTemplate,
+  URLStaticMode, rspack_sources::ReplaceSource,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -37,7 +37,7 @@ async fn compilation(
 async fn normal_module_factory_parser(
   &self,
   _module_type: &ModuleType,
-  parser: &mut dyn ParserAndGenerator,
+  parser: &mut Box<dyn ParserAndGenerator>,
   parser_options: Option<&ParserOptions>,
 ) -> Result<()> {
   if let Some(parser) = parser.downcast_mut::<JavaScriptParserAndGenerator>() {
@@ -63,14 +63,19 @@ async fn render_module_content(
   module: &dyn Module,
   render_source: &mut RenderSource,
   _init_fragments: &mut ChunkInitFragments,
+  _runtime_template: &RuntimeCodeTemplate<'_>,
 ) -> Result<()> {
-  let runtime = compilation.chunk_by_ukey.expect_get(chunk_ukey).runtime();
+  let runtime = compilation
+    .build_chunk_graph_artifact
+    .chunk_by_ukey
+    .expect_get(chunk_ukey)
+    .runtime();
   let module_graph = compilation.get_module_graph();
   let codegen_result = compilation
     .code_generation_results
     .get(&module.identifier(), Some(runtime));
   if codegen_result.data.contains::<URLStaticMode>() {
-    let content = render_source.source.source().clone();
+    let content = render_source.source.source().into_string_lossy();
     let mut replace_source = ReplaceSource::new(render_source.source.clone());
     let replacement = URL_STATIC_PLACEHOLDER_RE
       .find_iter(&content)

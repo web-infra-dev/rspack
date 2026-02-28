@@ -10,7 +10,7 @@ class FailPlugin {
 	}
 }
 
-/** @type {import("../../../../src/index").RspackOptions} */
+/** @type {import("@rspack/coresrc/index").RspackOptions} */
 module.exports = {
 	plugins: [
 		undefinedValue && new FailPlugin(),

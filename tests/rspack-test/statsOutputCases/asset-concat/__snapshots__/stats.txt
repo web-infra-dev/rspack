@@ -1,10 +1,10 @@
 asset c560fa876f51d750.png xx KiB [emitted] [immutable] [from: images/file.png] (auxiliary name: main)
 asset bundle.js xx KiB [emitted] (name: main)
-asset static/file.html 12 bytes [emitted] [from: static/file.html] (auxiliary name: main)
+asset static/file.html xx bytes [emitted] [from: static/file.html] (auxiliary name: main)
 orphan modules xx KiB [orphan] 8 modules
 runtime modules xx KiB 2 modules
 cacheable modules xx KiB (javascript) xx KiB (asset)
   ./index.js + 9 modules xx KiB [code generated]
-  ./images/file.png 42 bytes (javascript) xx KiB (asset) [built] [code generated]
-  ./static/file.html 42 bytes (javascript) 12 bytes (asset) [built] [code generated]
+  ./images/file.png xx bytes (javascript) xx KiB (asset) [built] [code generated]
+  ./static/file.html xx bytes (javascript) xx bytes (asset) [built] [code generated]
 Rspack x.x.x compiled successfully in X s

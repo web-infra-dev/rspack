@@ -3,10 +3,11 @@ use std::{cmp::Ordering, fmt};
 use indexmap::IndexMap;
 use itertools::Itertools;
 use rspack_cacheable::with::Unsupported;
-use rspack_collections::{DatabaseItem, Identifier, UkeyIndexMap, UkeyIndexSet};
+use rspack_collections::{DatabaseItem, UkeyIndexMap, UkeyIndexSet};
 use rspack_core::{
   Chunk, ChunkGraph, ChunkUkey, Compilation, Filename, PathData, RuntimeGlobals, RuntimeModule,
-  SourceType, get_filename_without_hash_length, impl_runtime_module,
+  RuntimeModuleGenerateContext, RuntimeTemplate, SourceType, get_filename_without_hash_length,
+  has_hash_placeholder, impl_runtime_module,
 };
 use rspack_util::itoa;
 use rustc_hash::FxHashMap;
@@ -19,8 +20,6 @@ type GetFilenameForChunk = Box<dyn Fn(&Chunk, &Compilation) -> Option<Filename> 
 
 #[impl_runtime_module]
 pub struct GetChunkFilenameRuntimeModule {
-  id: Identifier,
-  chunk: Option<ChunkUkey>,
   #[cacheable(with=Unsupported)]
   content_type: &'static str,
   source_type: SourceType,
@@ -51,6 +50,7 @@ impl GetChunkFilenameRuntimeModule {
     F: Fn(&RuntimeGlobals) -> bool + Sync + Send + 'static,
     T: Fn(&Chunk, &Compilation) -> Option<Filename> + Sync + Send + 'static,
   >(
+    runtime_template: &RuntimeTemplate,
     content_type: &'static str,
     name: &'static str,
     source_type: SourceType,
@@ -58,9 +58,9 @@ impl GetChunkFilenameRuntimeModule {
     all_chunks: F,
     filename_for_chunk: T,
   ) -> Self {
-    Self::with_default(
-      Identifier::from(format!("webpack/runtime/get {name} chunk filename")),
-      None,
+    Self::with_name(
+      runtime_template,
+      &format!("get {name} chunk filename"),
       content_type,
       source_type,
       global,
@@ -72,10 +72,6 @@ impl GetChunkFilenameRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for GetChunkFilenameRuntimeModule {
-  fn name(&self) -> Identifier {
-    self.id
-  }
-
   fn template(&self) -> Vec<(String, String)> {
     vec![(
       self.id.to_string(),
@@ -87,33 +83,50 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
     true
   }
 
-  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
+  async fn generate(
+    &self,
+    context: &RuntimeModuleGenerateContext<'_>,
+  ) -> rspack_error::Result<String> {
+    let compilation = context.compilation;
+    let runtime_template = context.runtime_template;
     let chunks = self
       .chunk
-      .and_then(|chunk_ukey| compilation.chunk_by_ukey.get(&chunk_ukey))
+      .and_then(|chunk_ukey| {
+        compilation
+          .build_chunk_graph_artifact
+          .chunk_by_ukey
+          .get(&chunk_ukey)
+      })
       .map(|chunk| {
         let runtime_requirements = get_chunk_runtime_requirements(compilation, &chunk.ukey());
         if (self.all_chunks)(runtime_requirements) {
-          chunk.get_all_referenced_chunks(&compilation.chunk_group_by_ukey)
+          chunk
+            .get_all_referenced_chunks(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
         } else {
-          let mut chunks = chunk.get_all_async_chunks(&compilation.chunk_group_by_ukey);
+          let mut chunks =
+            chunk.get_all_async_chunks(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey);
+
           if ChunkGraph::get_tree_runtime_requirements(compilation, &chunk.ukey())
             .contains(RuntimeGlobals::ENSURE_CHUNK_INCLUDE_ENTRIES)
           {
             chunks.extend(
               compilation
+                .build_chunk_graph_artifact
                 .chunk_graph
-                .get_chunk_entry_dependent_chunks_iterable(
+                .get_runtime_chunk_dependent_chunks_iterable(
                   &chunk.ukey(),
-                  &compilation.chunk_by_ukey,
-                  &compilation.chunk_group_by_ukey,
+                  &compilation.build_chunk_graph_artifact.chunk_by_ukey,
+                  &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
                 ),
             );
           }
-          for entrypoint in
-            chunk.get_all_referenced_async_entrypoints(&compilation.chunk_group_by_ukey)
-          {
-            let entrypoint = compilation.chunk_group_by_ukey.expect_get(&entrypoint);
+          for entrypoint in chunk.get_all_referenced_async_entrypoints(
+            &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
+          ) {
+            let entrypoint = compilation
+              .build_chunk_graph_artifact
+              .chunk_group_by_ukey
+              .expect_get(&entrypoint);
             chunks.insert(entrypoint.get_entrypoint_chunk());
           }
           chunks
@@ -129,7 +142,12 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
     if let Some(chunks) = chunks {
       chunks
         .iter()
-        .filter_map(|chunk_ukey| compilation.chunk_by_ukey.get(chunk_ukey))
+        .filter_map(|chunk_ukey| {
+          compilation
+            .build_chunk_graph_artifact
+            .chunk_by_ukey
+            .get(chunk_ukey)
+        })
         .for_each(|chunk| {
           let filename = (self.filename_for_chunk)(chunk, compilation);
 
@@ -180,17 +198,13 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
         })
         .collect::<UkeyIndexSet<ChunkUkey>>();
       let (fake_filename, hash_len_map) =
-        get_filename_without_hash_length(&Filename::from(dynamic_filename.to_string()));
+        get_filename_without_hash_length(&Filename::from(dynamic_filename.clone()));
 
       let chunk_id = "\" + chunkId + \"";
       let chunk_name = stringify_dynamic_chunk_map(
-        |c| {
-          c.name_for_filename_template(&compilation.chunk_ids_artifact)
-            .map(|s| s.to_string())
-        },
+        |c| c.name_for_filename_template().map(|s| s.to_string()),
         &chunks,
         &chunk_map,
-        compilation,
       );
       let chunk_runtime = stringify_dynamic_chunk_map(
         |c| {
@@ -199,7 +213,6 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
         },
         &chunks,
         &chunk_map,
-        compilation,
       );
       let chunk_hash = stringify_dynamic_chunk_map(
         |c| {
@@ -216,7 +229,6 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
         },
         &chunks,
         &chunk_map,
-        compilation,
       );
       let content_hash = stringify_dynamic_chunk_map(
         |c| {
@@ -232,7 +244,6 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
         },
         &chunks,
         &chunk_map,
-        compilation,
       );
       let full_hash = match hash_len_map
         .get("[fullhash]")
@@ -243,11 +254,14 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
           let hash_len_str = hash_len_buffer.format(*hash_len);
           format!(
             "\" + {}().slice(0, {}) + \"",
-            RuntimeGlobals::GET_FULL_HASH,
+            runtime_template.render_runtime_globals(&RuntimeGlobals::GET_FULL_HASH),
             hash_len_str
           )
         }
-        None => format!("\" + {}() + \"", RuntimeGlobals::GET_FULL_HASH),
+        None => format!(
+          "\" + {}() + \"",
+          runtime_template.render_runtime_globals(&RuntimeGlobals::GET_FULL_HASH)
+        ),
       };
 
       Some(
@@ -283,15 +297,12 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
         let (fake_filename, hash_len_map) = get_filename_without_hash_length(filename_template);
 
         let chunk_id = chunk
-          .id(&compilation.chunk_ids_artifact)
+          .id()
           .map(|chunk_id| unquoted_stringify(Some(chunk_id), chunk_id.as_str()));
         let chunk_name = match chunk.name() {
-          Some(chunk_name) => Some(unquoted_stringify(
-            chunk.id(&compilation.chunk_ids_artifact),
-            chunk_name,
-          )),
+          Some(chunk_name) => Some(unquoted_stringify(chunk.id(), chunk_name)),
           None => chunk
-            .id(&compilation.chunk_ids_artifact)
+            .id()
             .map(|chunk_id| unquoted_stringify(Some(chunk_id), chunk_id.as_str())),
         };
         let chunk_hash = chunk
@@ -300,7 +311,7 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
             compilation.options.output.hash_digest_length,
           )
           .map(|chunk_hash| {
-            let hash = unquoted_stringify(chunk.id(&compilation.chunk_ids_artifact), chunk_hash);
+            let hash = unquoted_stringify(chunk.id(), chunk_hash);
             match hash_len_map.get("[chunkhash]") {
               Some(hash_len) => hash[..*hash_len].to_string(),
               None => hash,
@@ -311,7 +322,7 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
           .and_then(|content_hash| content_hash.get(&self.source_type))
           .map(|i| {
             let hash = unquoted_stringify(
-              chunk.id(&compilation.chunk_ids_artifact),
+              chunk.id(),
               i.rendered(compilation.options.output.hash_digest_length),
             );
             match hash_len_map.get("[contenthash]") {
@@ -328,11 +339,14 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
             let hash_len_str = hash_len_buffer.format(*hash_len);
             format!(
               "\" + {}().slice(0, {}) + \"",
-              RuntimeGlobals::GET_FULL_HASH,
+              runtime_template.render_runtime_globals(&RuntimeGlobals::GET_FULL_HASH),
               hash_len_str
             )
           }
-          None => format!("\" + {}() + \"", RuntimeGlobals::GET_FULL_HASH),
+          None => format!(
+            "\" + {}() + \"",
+            runtime_template.render_runtime_globals(&RuntimeGlobals::GET_FULL_HASH)
+          ),
         };
         let chunk_runtime = chunk.runtime().as_str();
 
@@ -348,11 +362,7 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
                   .render(
                     PathData::default()
                       .chunk_name_optional(chunk.name())
-                      .chunk_id_optional(
-                        chunk
-                          .id(&compilation.chunk_ids_artifact)
-                          .map(|id| id.as_str()),
-                      ),
+                      .chunk_id_optional(chunk.id().map(|id| id.as_str())),
                     None,
                   )
                   .await?
@@ -370,7 +380,7 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
           )
           .await?;
 
-        if let Some(chunk_id) = chunk.id(&compilation.chunk_ids_artifact) {
+        if let Some(chunk_id) = chunk.id() {
           static_urls
             .entry(filename)
             .or_insert(Vec::new())
@@ -379,7 +389,7 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
       }
     }
 
-    let source = compilation.runtime_template.render(&self.id, Some(serde_json::json!({
+    let source = runtime_template.render(&self.id, Some(serde_json::json!({
       "_global": self.global,
       "_static_urls": static_urls
                         .iter()
@@ -391,7 +401,15 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
     Ok(source)
   }
 
-  fn attach(&mut self, chunk: ChunkUkey) {
-    self.chunk = Some(chunk);
+  fn additional_runtime_requirements(&self, compilation: &Compilation) -> RuntimeGlobals {
+    if (self.source_type == SourceType::JavaScript
+      && has_hash_placeholder(compilation.options.output.chunk_filename.as_str()))
+      || (self.source_type == SourceType::Css
+        && has_hash_placeholder(compilation.options.output.css_chunk_filename.as_str()))
+    {
+      RuntimeGlobals::GET_FULL_HASH
+    } else {
+      RuntimeGlobals::default()
+    }
   }
 }

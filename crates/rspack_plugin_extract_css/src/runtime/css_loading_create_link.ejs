@@ -1,0 +1,17 @@
+var linkTag = document.createElement("link");
+<%- _set_attributes %>
+linkTag.rel = "stylesheet";
+<% if (_set_linktype != "") { %>
+linkTag.type = <%- _set_linktype %>;
+<% } %>
+if (<%- SCRIPT_NONCE %>) {
+  linkTag.nonce = <%- SCRIPT_NONCE %>;
+}
+linkTag.href = fullhref;
+<% if (_cross_origin == "use-credentials") { %>
+linkTag.crossOrigin = "use-credentials";
+<% } else if (_cross_origin != "") { %>
+if (linkTag.href.indexOf(window.location.origin + '/') !== 0) {
+  linkTag.crossOrigin = '<%- _cross_origin %>';
+}
+<% } %>

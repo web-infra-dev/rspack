@@ -95,11 +95,7 @@ impl JavascriptParserPlugin for InitializeEvaluating {
       } else {
         let raw = arg1.regexp();
         let regexp = eval_regexp_to_regexp(&raw.0, &raw.1);
-        Cow::Owned(
-          regexp
-            .replace(param.string().as_ref(), arg2.string())
-            .to_owned(),
-        )
+        Cow::Owned(regexp.replace(param.string().as_ref(), arg2.string()))
       };
       res.set_string(s.to_string());
       res.set_side_effects(param.could_have_side_effects());
@@ -119,7 +115,7 @@ impl JavascriptParserPlugin for InitializeEvaluating {
           continue;
         }
         let mut new_string = if arg_expr.is_string() {
-          arg_expr.string().to_string()
+          arg_expr.string().clone()
         } else {
           format!("{}", arg_expr.number())
         };
@@ -131,12 +127,10 @@ impl JavascriptParserPlugin for InitializeEvaluating {
           string_suffix.as_ref().unwrap_or(&arg_expr).range().1,
         );
         eval.set_string(new_string);
-        eval.set_side_effects(
-          string_suffix
-            .as_ref()
-            .map(|s| s.could_have_side_effects())
-            .unwrap_or_else(|| arg_expr.could_have_side_effects()),
-        );
+        eval.set_side_effects(string_suffix.as_ref().map_or_else(
+          || arg_expr.could_have_side_effects(),
+          |s| s.could_have_side_effects(),
+        ));
         string_suffix = Some(eval);
       }
       if has_unknown_params {
@@ -182,12 +176,10 @@ impl JavascriptParserPlugin for InitializeEvaluating {
         let mut eval =
           BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.real_hi());
         eval.set_string(new_string);
-        eval.set_side_effects(
-          string_suffix
-            .as_ref()
-            .map(|s| s.could_have_side_effects())
-            .unwrap_or_else(|| param.could_have_side_effects()),
-        );
+        eval.set_side_effects(string_suffix.as_ref().map_or_else(
+          || param.could_have_side_effects(),
+          |s| s.could_have_side_effects(),
+        ));
         return Some(eval);
       }
     } else if property == SPLIT_METHOD_NAME

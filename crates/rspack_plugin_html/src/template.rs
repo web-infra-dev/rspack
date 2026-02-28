@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use anyhow::{Context, anyhow};
 use itertools::Itertools;
-use rspack_core::{Compilation, CrossOriginLoading, Mode};
+use rspack_core::{Compilation, Mode};
 use rspack_dojang::{Dojang, Operand, dojang::DojangOptions};
 use rspack_error::{AnyhowResultToRspackResultExt, Result, ToStringResultToRspackResultExt, error};
 use rspack_paths::AssertUtf8;
@@ -152,10 +152,7 @@ impl HtmlTemplate {
             },
             "output": {
               "publicPath": config.get_public_path(compilation, filename).await,
-            "crossOriginLoading": match &compilation.options.output.cross_origin_loading {
-                CrossOriginLoading::Disable => "false",
-                CrossOriginLoading::Enable(value) => value,
-            },
+              "crossOriginLoading": compilation.options.output.cross_origin_loading.to_string(),
             }
           },
         }),
@@ -197,7 +194,7 @@ impl HtmlTemplate {
   }
 
   pub async fn render(&mut self, config: &HtmlRspackPluginOptions) -> Result<String> {
-    let parameters = self.parameters.to_owned().expect("should have parameters");
+    let parameters = self.parameters.clone().expect("should have parameters");
     match &self.render {
       TemplateRender::Template(content) => {
         // process with template parameters
@@ -271,7 +268,7 @@ pub fn render_tag(op: Operand) -> Operand {
         .iter()
         .map(|val| match render_tag(val.to_owned()) {
           Operand::Value(val) => val.as_str().unwrap_or_default().to_string(),
-          _ => "".to_string(),
+          _ => String::new(),
         })
         .join(""),
     )),

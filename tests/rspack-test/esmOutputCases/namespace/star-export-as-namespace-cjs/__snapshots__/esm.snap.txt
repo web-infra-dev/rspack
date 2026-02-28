@@ -1,15 +1,15 @@
 ```mjs title=main.mjs
 import { __webpack_require__ } from "./runtime.mjs";
 __webpack_require__.add({
-"./foo.js": 
+"./foo.js"
 /*!****************!*\
   !*** ./foo.js ***!
   \****************/
-(function (__unused_webpack_module, exports) {
+(__unused_rspack_module, exports) {
 exports.foo = 123
 
 
-}),
+},
 });
 // ./bar.js
 const foo_0 = __webpack_require__("./foo.js");
@@ -56,11 +56,6 @@ return module.exports;
 // expose the modules object (__webpack_modules__)
 __webpack_require__.m = __webpack_modules__;
 
-// esm library register module runtime
-(() => {
-__webpack_require__.add = function registerModules(modules) { Object.assign(__webpack_require__.m, modules) }
-
-})();
 // webpack/runtime/create_fake_namespace_object
 (() => {
 var getProto = Object.getPrototypeOf ? (obj) => (Object.getPrototypeOf(obj)) : (obj) => (obj.__proto__);
@@ -82,7 +77,7 @@ __webpack_require__.t = function(value, mode) {
   __webpack_require__.r(ns);
 	var def = {};
 	leafPrototypes = leafPrototypes || [null, getProto({}), getProto([]), getProto(getProto)];
-	for(var current = mode & 2 && value; typeof current == 'object' && !~leafPrototypes.indexOf(current); current = getProto(current)) {
+	for(var current = mode & 2 && value; (typeof current == 'object' || typeof current == 'function') && !~leafPrototypes.indexOf(current); current = getProto(current)) {
 		Object.getOwnPropertyNames(current).forEach((key) => { def[key] = () => (value[key]) });
 	}
 	def['default'] = () => (value);
@@ -99,6 +94,11 @@ __webpack_require__.d = (exports, definition) => {
         }
     }
 };
+})();
+// webpack/runtime/esm_register_module
+(() => {
+__webpack_require__.add = function registerModules(modules) { Object.assign(__webpack_require__.m, modules) }
+
 })();
 // webpack/runtime/has_own_property
 (() => {

@@ -5,29 +5,21 @@
 ```mjs title=main.mjs
 import { __webpack_require__ } from "./runtime.mjs";
 __webpack_require__.add({
-"./index.js": 
+"./asset.js"
 /*!******************!*\
-  !*** ./index.js ***!
+  !*** ./asset.js ***!
   \******************/
-(function (__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
+(module, __unused_rspack_exports, __webpack_require__) {
+module.exports = __webpack_require__.p + "ef46db3751d8e999.js";
+
+},
+});
+// ./index.js
 
 function neverUse() {
 	new URL("./ef46db3751d8e999.js", import.meta.url)(function foo() {})();
 }
 neverUse.bind(neverUse)
-
-
-}),
-"./asset.js": 
-/*!******************!*\
-  !*** ./asset.js ***!
-  \******************/
-(function (module, __unused_webpack_exports, __webpack_require__) {
-module.exports = __webpack_require__.p + "ef46db3751d8e999.js";
-
-}),
-});
-const index = __webpack_require__("./index.js");
 
 
 ```
@@ -57,7 +49,7 @@ return module.exports;
 // expose the modules object (__webpack_modules__)
 __webpack_require__.m = __webpack_modules__;
 
-// esm library register module runtime
+// webpack/runtime/esm_register_module
 (() => {
 __webpack_require__.add = function registerModules(modules) { Object.assign(__webpack_require__.m, modules) }
 

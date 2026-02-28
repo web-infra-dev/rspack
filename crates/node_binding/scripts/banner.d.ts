@@ -90,6 +90,13 @@ export interface RspackError extends Error {
 }
 
 export type DependencyLocation = SyntheticDependencyLocation | RealDependencyLocation;
+
+export interface JsSource {
+	source: string | Buffer
+	map?: string
+}
+
+export type CompilerId = void;
 /* -- banner.d.ts end -- */
 
 /* -- napi-rs generated below -- */

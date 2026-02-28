@@ -4,9 +4,9 @@ use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   AsContextDependency, AsModuleDependency, DEFAULT_EXPORT, Dependency, DependencyCodeGeneration,
   DependencyId, DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType,
-  DependencyType, ESMExportInitFragment, ExportNameOrSpec, ExportsInfoGetter, ExportsOfExportsSpec,
-  ExportsSpec, ForwardId, GetUsedNameParam, ModuleGraph, ModuleGraphCacheArtifact,
-  PrefetchExportsInfoMode, RuntimeGlobals, SharedSourceMap, TemplateContext, TemplateReplaceSource,
+  DependencyType, ESMExportInitFragment, ExportNameOrSpec, ExportsInfoArtifact, ExportsInfoGetter,
+  ExportsOfExportsSpec, ExportsSpec, ForwardId, GetUsedNameParam, ModuleGraph,
+  ModuleGraphCacheArtifact, PrefetchExportsInfoMode, TemplateContext, TemplateReplaceSource,
   UsedName, property_access, rspack_sources::ReplacementEnforce,
 };
 use swc_core::atoms::Atom;
@@ -55,9 +55,8 @@ impl ESMExportExpressionDependency {
     range_stmt: DependencyRange,
     prefix: String,
     declaration: Option<DeclarationId>,
-    source_map: Option<SharedSourceMap>,
+    loc: Option<DependencyLocation>,
   ) -> Self {
-    let loc = range.to_loc(source_map.as_ref());
     Self {
       id: DependencyId::default(),
       range,
@@ -87,6 +86,7 @@ impl Dependency for ESMExportExpressionDependency {
     &self,
     _mg: &ModuleGraph,
     _mg_cache: &ModuleGraphCacheArtifact,
+    _exports_info_artifact: &ExportsInfoArtifact,
   ) -> Option<ExportsSpec> {
     Some(ExportsSpec {
       exports: ExportsOfExportsSpec::Names(vec![ExportNameOrSpec::String(
@@ -157,14 +157,13 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
     let TemplateContext {
       compilation,
       runtime,
-      runtime_requirements,
       module,
       init_fragments,
       concatenation_scope,
+      runtime_template,
       ..
     } = code_generatable_context;
 
-    let mg = compilation.get_module_graph();
     let module_identifier = module.identifier();
 
     if let Some(declaration) = &dep.declaration {
@@ -185,7 +184,9 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
         scope.register_export(JS_DEFAULT_KEYWORD.clone(), name.to_string());
       } else if let Some(used) = ExportsInfoGetter::get_used_name(
         GetUsedNameParam::WithNames(
-          &mg.get_prefetched_exports_info(&module_identifier, PrefetchExportsInfoMode::Default),
+          &compilation
+            .exports_info_artifact
+            .get_prefetched_exports_info(&module_identifier, PrefetchExportsInfoMode::Default),
         ),
         *runtime,
         std::slice::from_ref(&JS_DEFAULT_KEYWORD),
@@ -210,7 +211,7 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
       source.replace(
         dep.range_stmt.start,
         dep.range.start,
-        format!("/* ESM default export */ {}", dep.prefix).as_str(),
+        format!("/* export default */ {}", dep.prefix).as_str(),
         None,
       );
     } else {
@@ -219,18 +220,19 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
       let content = if let Some(scope) = concatenation_scope {
         scope.register_export(JS_DEFAULT_KEYWORD.clone(), DEFAULT_EXPORT.to_string());
         format!(
-          "/* ESM default export */ {} {DEFAULT_EXPORT} = ",
+          "/* export default */ {} {DEFAULT_EXPORT} = ",
           if supports_const { "const" } else { "var" }
         )
       } else if let Some(used) = ExportsInfoGetter::get_used_name(
         GetUsedNameParam::WithNames(
-          &mg.get_prefetched_exports_info(&module_identifier, PrefetchExportsInfoMode::Default),
+          &compilation
+            .exports_info_artifact
+            .get_prefetched_exports_info(&module_identifier, PrefetchExportsInfoMode::Default),
         ),
         *runtime,
         std::slice::from_ref(&JS_DEFAULT_KEYWORD),
       ) {
         if let UsedName::Normal(used) = used {
-          runtime_requirements.insert(RuntimeGlobals::EXPORTS);
           if supports_const {
             init_fragments.push(Box::new(ESMExportInitFragment::new(
               module.get_exports_argument(),
@@ -244,19 +246,19 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
                 DEFAULT_EXPORT.into(),
               )],
             )));
-            format!("/* ESM default export */ const {DEFAULT_EXPORT} = ")
+            format!("/* export default */ const {DEFAULT_EXPORT} = ")
           } else {
             format!(
-              r#"/* ESM default export */ {}{} = "#,
-              module.get_exports_argument(),
+              r#"/* export default */ {}{} = "#,
+              runtime_template.render_exports_argument(module.get_exports_argument()),
               property_access(used, 0)
             )
           }
         } else {
-          format!("/* inlined ESM default export */ var {DEFAULT_EXPORT} = ")
+          format!("/* inlined export default */ var {DEFAULT_EXPORT} = ")
         }
       } else {
-        format!("/* unused ESM default export */ var {DEFAULT_EXPORT} = ")
+        format!("/* unused export default */ var {DEFAULT_EXPORT} = ")
       };
 
       source.replace(

@@ -1,13 +1,7 @@
 /** @type {import("@rspack/core").Configuration} */
 const base = {
-	output: {
-		module: true
-	},
 	optimization: {
 		concatenateModules: true
-	},
-	experiments: {
-		outputModule: true
 	},
 	target: "es2020"
 };
@@ -18,6 +12,7 @@ module.exports = [
 		...base,
 		name: "module-avoidEntryIife-false",
 		output: {
+			module: true,
 			filename: "module-avoidEntryIife-false.mjs"
 		},
 		optimization: {
@@ -28,6 +23,7 @@ module.exports = [
 		...base,
 		name: "module-avoidEntryIife-true",
 		output: {
+			module: true,
 			filename: "module-avoidEntryIife-true.mjs"
 		},
 		optimization: {

@@ -1,4 +1,5 @@
-it("should handle bound function expressions", function(done) {
+it("should handle bound function expressions", () => new Promise((resolve, reject) => {
+	const done = err => (err ? reject(err) : resolve());
 	require.ensure(
 		[],
 		function(require) {
@@ -14,16 +15,18 @@ it("should handle bound function expressions", function(done) {
 			);
 		}.bind({ test: true })
 	);
-});
+}));
 
-it("should handle require.ensure without function expression", function(done) {
+it("should handle require.ensure without function expression",() => new Promise((resolve, reject) => {
+	const done = err => (err ? reject(err) : resolve());
 	function f() {
 		done();
 	}
 	require.ensure([], f);
-});
+}));
 
-it("should parse expression in require.ensure, which isn't a function expression", function(done) {
+it("should parse expression in require.ensure, which isn't a function expression", () => new Promise((resolve, reject) => {
+	const done = err => (err ? reject(err) : resolve());
 	require.ensure(
 		[],
 		(function() {
@@ -33,9 +36,10 @@ it("should parse expression in require.ensure, which isn't a function expression
 			};
 		})()
 	);
-});
+}));
 
-it("should accept an already included module", function(done) {
+it("should accept an already included module", () => new Promise((resolve, reject) => {
+	const done = err => (err ? reject(err) : resolve());
 	if (Math.random() < 0) require("./require.include");
 	var value = null;
 	require.ensure([], function(require) {
@@ -46,4 +50,4 @@ it("should accept an already included module", function(done) {
 		expect(value).toBe("require.include");
 		done();
 	});
-});
+}));

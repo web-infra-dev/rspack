@@ -3,7 +3,7 @@ use std::borrow::Cow;
 use either::Either;
 use rspack_core::{
   AsyncDependenciesBlock, BoxDependency, ChunkGroupOptions, ConstDependency, DependencyRange,
-  GroupOptions, SharedSourceMap,
+  GroupOptions,
 };
 use rspack_util::SpanExt;
 use swc_core::{
@@ -46,7 +46,6 @@ impl JavascriptParserPlugin for RequireEnsureDependenciesBlockParserPlugin {
       parser.add_presentational_dependency(Box::new(ConstDependency::new(
         expr.span().into(),
         "'function'".into(),
-        None,
       )));
       true
     })
@@ -75,16 +74,12 @@ impl JavascriptParserPlugin for RequireEnsureDependenciesBlockParserPlugin {
     let chunk_name = match expr
       .args
       .get(3)
-      .or(error_expr.as_ref().and(None)) // !errorExpression
-      .or(expr.args.get(2))
+      .or_else(|| if error_expr.is_some() { None } else { expr.args.get(2) }) // !errorExpression
     {
-      Some(arg) => {
-        let chunk_name_expr = parser.evaluate_expression(&arg.expr);
-        match chunk_name_expr.as_string() {
-          Some(chunk_name_expr) => Some(chunk_name_expr),
-          None => return None,
-        }
-      }
+      Some(arg) => match parser.evaluate_expression(&arg.expr).as_string() {
+        Some(chunk_name) => Some(chunk_name),
+        None => return None,
+      },
       None => None,
     };
 
@@ -139,14 +134,9 @@ impl JavascriptParserPlugin for RequireEnsureDependenciesBlockParserPlugin {
       }
     }));
 
-    let source_map: SharedSourceMap = parser.source_map.clone();
-    let mut block = AsyncDependenciesBlock::new(
-      *parser.module_identifier,
-      Into::<DependencyRange>::into(expr.span).to_loc(Some(&source_map)),
-      None,
-      deps,
-      None,
-    );
+    let range = DependencyRange::from(expr.span);
+    let loc = parser.to_dependency_location(range);
+    let mut block = AsyncDependenciesBlock::new(*parser.module_identifier, loc, None, deps, None);
     block.set_group_options(GroupOptions::ChunkGroup(
       ChunkGroupOptions::default().name_optional(chunk_name),
     ));

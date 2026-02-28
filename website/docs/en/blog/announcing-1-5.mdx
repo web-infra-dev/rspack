@@ -65,7 +65,7 @@ export default {
 
 Real-world benchmarks show that barrel file optimization delivers substantial performance gains across applications at different scales:
 
-- [Benchmark](https://github.com/rspack-contrib/build-tools-performance/tree/main/cases/ui-components):
+- [Benchmark](https://github.com/rstackjs/build-tools-performance/tree/main/cases/ui-components):
 
 | Metric             | Before |  After | Improvement |
 | ------------------ | -----: | -----: | ----------: |
@@ -154,7 +154,7 @@ Key benefits:
 - **Full compatibility** — Retains all existing JavaScript APIs without requiring changes to your project.
 - **Developer-friendly** — The official template includes a complete development environment and publishing workflow.
 
-You can get started quickly with the [official template](https://github.com/rspack-contrib/rspack-binding-template). For more details, see the [design rationale](https://rspack-contrib.github.io/rspack-rust-book/custom-binding/getting-started/rationale.html). Note that this approach introduces additional maintenance costs and is recommended only when extreme performance optimization is required.
+You can get started quickly with the [official template](https://github.com/rstackjs/rspack-binding-template). For more details, see the [design rationale](https://rstackjs.github.io/rspack-rust-book/custom-binding/getting-started/rationale.html). Note that this approach introduces additional maintenance costs and is recommended only when extreme performance optimization is required.
 
 ### Const inline optimization
 
@@ -214,7 +214,7 @@ With `inlineEnum` enabled:
 ```
 
 Note that when `inlineEnum` is enabled, Rspack will inline all enums by default.
-If you only want to inline `const enums`, please refer to this [example](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/inline-const-enum).
+If you only want to inline `const enums`, please refer to this [example](https://github.com/rstackjs/rstack-examples/tree/main/rspack/inline-const-enum).
 
 > For more details, see the [experiments.inlineEnum documentation](/config/experiments#experimentsinlineenum).
 
@@ -344,7 +344,7 @@ For projects still running on Node.js 16, please follow these steps to upgrade:
 
 ### Resolver JavaScript API
 
-To make it easier for our users to leverage Rspack's module resolution capabilities, we have integrated [rspack-resolver](https://github.com/web-infra-dev/rspack-resolver) into the Rspack JavaScript API.
+To make it easier for our users to leverage Rspack's module resolution capabilities, we have integrated [rspack-resolver](https://github.com/rstackjs/rspack-resolver) into the Rspack JavaScript API.
 It provides module resolution functionality similar to [enhanced-resolve](https://github.com/webpack/enhanced-resolve).
 
 For usage details, please refer to the [Resolver API documentation](/api/javascript-api/resolver#resolver-api).

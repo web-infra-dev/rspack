@@ -18,6 +18,6 @@ it("should inline for const enum for const-only mode", () => {
   expect(E2.B).toBe(1);
   // END:B
   const block = generated.match(/\/\/ START:B([\s\S]*)\/\/ END:B/)[1];
-  expect(block.includes(`(/* inlined export .E2.A */ (0)).toBe(0)`)).toBe(true);
-  expect(block.includes(`(/* inlined export .E2.B */ (1)).toBe(1)`)).toBe(true);
+  expect(block.includes(`((/* inlined export .E2.A */0)).toBe(0)`)).toBe(true);
+  expect(block.includes(`((/* inlined export .E2.B */1)).toBe(1)`)).toBe(true);
 })

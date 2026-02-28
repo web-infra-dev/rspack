@@ -2,9 +2,7 @@
 module.exports = {
 	entry: "./index.cjs",
 	optimization: {
-		moduleIds: "named"
+		moduleIds: "named",
+		inlineExports: true
 	},
-	experiments: {
-		inlineConst: true
-	}
 };

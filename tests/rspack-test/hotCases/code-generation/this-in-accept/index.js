@@ -1,15 +1,15 @@
 import x from "./module";
 
-it("should have correct this context in accept handler", (done) => {
-	expect(x).toEqual("ok1");
-
-    (function() {
+it("should have correct this context in accept handler", async () => {
+    expect(x).toEqual("ok1");
+    let value;
+    (function () {
         module.hot.accept("./module", () => {
-            expect(x).toEqual("ok2");
-            expect(this).toEqual({ ok: true });
-            done();
+            value = this;
         });
     }).call({ ok: true });
 
-	NEXT(require("../../update")(done));
+    await NEXT_HMR();
+    expect(x).toEqual("ok2");
+    expect(value).toEqual({ ok: true });
 });

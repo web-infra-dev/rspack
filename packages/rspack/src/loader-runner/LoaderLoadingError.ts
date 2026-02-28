@@ -9,11 +9,11 @@
  */
 
 class LoadingLoaderError extends Error {
-	constructor(message: string) {
-		super(message);
-		this.name = "LoaderRunnerError";
-		Error.captureStackTrace(this, this.constructor);
-	}
+  constructor(message: string) {
+    super(message);
+    this.name = 'LoaderRunnerError';
+    Error.captureStackTrace(this, this.constructor);
+  }
 }
 
 export default LoadingLoaderError;

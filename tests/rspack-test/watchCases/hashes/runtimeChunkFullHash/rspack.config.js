@@ -5,6 +5,7 @@ module.exports = {
 		entry2: "./index2.js"
 	},
 	output: {
+		module: true,
 		chunkLoading: "import",
 		chunkFormat: "module",
 		filename: "[name].[contenthash:8].js",
@@ -14,8 +15,12 @@ module.exports = {
 		runtimeChunk: true,
 		minimize: false
 	},
-	experiments: {
-		css: true,
-		outputModule: true
+	module: {
+		rules: [
+			{
+				test: /\.css$/,
+				type: "css/auto"
+			}
+		]
 	}
 };

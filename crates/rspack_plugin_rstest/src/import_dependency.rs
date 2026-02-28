@@ -2,8 +2,8 @@ use rspack_cacheable::cacheable;
 use rspack_core::{
   AsyncDependenciesBlockIdentifier, ChunkGraph, Compilation, Dependency, DependencyCodeGeneration,
   DependencyId, DependencyTemplate, DependencyTemplateType, DependencyType, ExportsType,
-  FakeNamespaceObjectMode, ModuleDependency, ModuleGraph, RuntimeGlobals, TemplateContext,
-  TemplateReplaceSource, block_promise, get_exports_type, module_id_expr, module_raw, weak_error,
+  FakeNamespaceObjectMode, ModuleCodeTemplate, ModuleDependency, ModuleGraph, RuntimeGlobals,
+  TemplateContext, TemplateReplaceSource, get_exports_type,
 };
 use rspack_plugin_javascript::dependency::ImportDependency;
 
@@ -63,6 +63,7 @@ impl DependencyTemplate for ImportDependencyTemplate {
 
 pub fn module_id_rstest(
   compilation: &Compilation,
+  runtime_template: &mut ModuleCodeTemplate,
   id: &DependencyId,
   request: &str,
   weak: bool,
@@ -73,7 +74,7 @@ pub fn module_id_rstest(
     && let Some(module_id) =
       ChunkGraph::get_module_id(&compilation.module_ids_artifact, *module_identifier)
   {
-    module_id_expr(&compilation.options, request, module_id)
+    runtime_template.module_id_expr(request, module_id)
   } else if weak {
     "null /* weak dependency, without id */".to_string()
   } else {
@@ -82,8 +83,6 @@ pub fn module_id_rstest(
     format!("\"{request}\"")
   }
 }
-
-const WEBPACK_REQUIRE_IMPORT_ACTUAL: &str = "__webpack_require__.rstest_import_actual";
 
 // To support use `__webpack_require__.import_actual` for `importActual`.
 fn module_namespace_promise_rstest(
@@ -96,7 +95,7 @@ fn module_namespace_promise_rstest(
   is_import_actual: bool,
 ) -> String {
   let TemplateContext {
-    runtime_requirements,
+    runtime_template,
     compilation,
     module,
     ..
@@ -106,31 +105,37 @@ fn module_namespace_promise_rstest(
     .module_identifier_by_dependency_id(dep_id)
     .is_none()
   {
-    return format!("__webpack_require__(\"{request}\")");
+    return format!(
+      "{}(\"{request}\")",
+      runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
+    );
   };
 
-  let promise = block_promise(block, runtime_requirements, compilation, message);
+  let promise = runtime_template.block_promise(block, compilation, message);
   let exports_type = get_exports_type(
-    &compilation.get_module_graph(),
+    compilation.get_module_graph(),
     &compilation.module_graph_cache_artifact,
+    &compilation.exports_info_artifact,
     dep_id,
     &module.identifier(),
   );
 
-  let module_id_expr = module_id_rstest(compilation, dep_id, request, weak);
+  let module_id_expr = module_id_rstest(compilation, runtime_template, dep_id, request, weak);
 
   let final_require = if is_import_actual {
-    WEBPACK_REQUIRE_IMPORT_ACTUAL
+    format!(
+      "{}.rstest_import_actual",
+      runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
+    )
   } else {
-    "__webpack_require__"
+    runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
   };
 
   let header = if weak {
-    runtime_requirements.insert(RuntimeGlobals::MODULE_FACTORIES);
     Some(format!(
       "if(!{}[{module_id_expr}]) {{\n {} \n}}",
-      RuntimeGlobals::MODULE_FACTORIES,
-      weak_error(request)
+      runtime_template.render_runtime_globals(&RuntimeGlobals::MODULE_FACTORIES),
+      runtime_template.weak_error(request)
     ))
   } else {
     None
@@ -142,10 +147,9 @@ fn module_namespace_promise_rstest(
       if let Some(header) = header {
         appending = format!(
           ".then(function() {{ {header}\nreturn {}}})",
-          module_raw(compilation, runtime_requirements, dep_id, request, weak)
+          runtime_template.module_raw(compilation, dep_id, request, weak)
         )
       } else {
-        runtime_requirements.insert(RuntimeGlobals::REQUIRE);
         appending = format!(".then({final_require}.bind({final_require}, {module_id_expr}))");
       }
     }
@@ -159,9 +163,8 @@ fn module_namespace_promise_rstest(
       ) {
         fake_type |= FakeNamespaceObjectMode::MERGE_PROPERTIES;
       }
-      runtime_requirements.insert(RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT);
       if ModuleGraph::is_async(
-        compilation,
+        &compilation.async_modules_artifact,
         compilation
           .get_module_graph()
           .module_identifier_by_dependency_id(dep_id)
@@ -170,16 +173,15 @@ fn module_namespace_promise_rstest(
         if let Some(header) = header {
           appending = format!(
             ".then(function() {{\n {header}\nreturn {}\n}})",
-            module_raw(compilation, runtime_requirements, dep_id, request, weak)
+            runtime_template.module_raw(compilation, dep_id, request, weak)
           )
         } else {
-          runtime_requirements.insert(RuntimeGlobals::REQUIRE);
           appending = format!(".then({final_require}.bind({final_require}, {module_id_expr}))");
         }
         appending.push_str(
           format!(
             ".then(function(m){{\n return {}(m, {fake_type}) \n}})",
-            RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT
+            runtime_template.render_runtime_globals(&RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT)
           )
           .as_str(),
         );
@@ -188,14 +190,13 @@ fn module_namespace_promise_rstest(
         if let Some(header) = header {
           let expr = format!(
             "{}({module_id_expr}, {fake_type}))",
-            RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT
+            runtime_template.render_runtime_globals(&RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT)
           );
           appending = format!(".then(function() {{\n {header} return {expr};\n}})");
         } else {
-          runtime_requirements.insert(RuntimeGlobals::REQUIRE);
           appending = format!(
             ".then({}.bind({}, {module_id_expr}, {fake_type}))",
-            RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT,
+            runtime_template.render_runtime_globals(&RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT),
             final_require
           );
         }

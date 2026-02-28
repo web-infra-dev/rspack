@@ -12,6 +12,7 @@ use rspack_cacheable::{
   with::{AsPreset, Unsupported},
 };
 use rspack_error::ToStringResultToRspackResultExt;
+use rspack_paths::Utf8PathBuf;
 use rspack_util::{MergeFrom, atom::Atom, base64, ext::CowExt};
 
 use crate::{AssetInfo, PathData, ReplaceAllPlaceholder, ResourceParsedData, parse_resource};
@@ -39,7 +40,7 @@ enum FilenameKind {
   Fn(#[cacheable(with=Unsupported)] Arc<dyn FilenameFn>),
 }
 
-/// Filename template string or function
+/// Filename placeholders or function
 ///
 /// The function type is generic. The default function type `Arc<dyn FilenameFn>` is thread-safe,
 /// implements `Hash` and `Eq`, and its error type is `rspack_error::Error`.
@@ -96,6 +97,11 @@ impl MergeFrom for Filename {
 impl From<String> for Filename {
   fn from(value: String) -> Self {
     Self(FilenameKind::Template(Atom::from(value)))
+  }
+}
+impl From<&Utf8PathBuf> for Filename {
+  fn from(value: &Utf8PathBuf) -> Self {
+    Self(FilenameKind::Template(Atom::from(value.as_str())))
   }
 }
 impl From<&str> for Filename {

@@ -22,10 +22,12 @@ module.exports = {
 					filename: "[name][ext]",
 					publicPath: "https://test.rspack.rs/cdn/"
 				}
+			},
+			{
+				test: /\.css$/,
+				type: "css/auto"
 			}
 		]
 	},
-	experiments: {
-		css: true
-	}
+
 };

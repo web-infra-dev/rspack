@@ -1,5 +1,5 @@
-const log = jest.spyOn(console, "log").mockImplementation(() => {});
-const error = jest.spyOn(console, "error").mockImplementation(() => {});
+const log = rstest.spyOn(console, "log").mockImplementation(() => {});
+const error = rstest.spyOn(console, "error").mockImplementation(() => {});
 
 console.log("Hello, world!");
 console.error("Hello, world!");

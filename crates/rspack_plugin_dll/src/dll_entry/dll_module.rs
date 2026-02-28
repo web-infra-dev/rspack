@@ -4,11 +4,11 @@ use async_trait::async_trait;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
-  AsyncDependenciesBlockIdentifier, BuildContext, BuildInfo, BuildMeta, BuildResult,
-  CodeGenerationResult, Compilation, ConcatenationScope, Context, DependenciesBlock, Dependency,
-  DependencyId, EntryDependency, FactoryMeta, Module, ModuleGraph, ModuleType, RuntimeGlobals,
-  RuntimeSpec, SourceType, ValueCacheVersions, impl_module_meta_info, impl_source_map_config,
-  module_update_hash,
+  AsyncDependenciesBlockIdentifier, BoxModule, BuildContext, BuildInfo, BuildMeta, BuildResult,
+  CodeGenerationResult, Compilation, Context, DependenciesBlock, Dependency, DependencyId,
+  EntryDependency, FactoryMeta, Module, ModuleArgument, ModuleCodeGenerationContext, ModuleGraph,
+  ModuleType, RuntimeGlobals, RuntimeSpec, SourceType, ValueCacheVersions, impl_module_meta_info,
+  impl_source_map_config, module_update_hash,
   rspack_sources::{BoxSource, RawStringSource},
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
@@ -78,7 +78,7 @@ impl Module for DllModule {
   }
 
   async fn build(
-    &mut self,
+    mut self: Box<Self>,
     _build_context: BuildContext,
     _compilation: Option<&Compilation>,
   ) -> Result<BuildResult> {
@@ -91,30 +91,28 @@ impl Module for DllModule {
       .collect::<Vec<_>>();
 
     Ok(BuildResult {
+      module: BoxModule::new(self),
       dependencies,
-      ..Default::default()
+      blocks: vec![],
+      optimization_bailouts: vec![],
     })
   }
 
   async fn code_generation(
     &self,
-    _compilation: &Compilation,
-    _runtime: Option<&RuntimeSpec>,
-    _concatenation_scope: Option<ConcatenationScope>,
+    code_generation_context: &mut ModuleCodeGenerationContext,
   ) -> Result<CodeGenerationResult> {
-    let mut runtime_requirements = RuntimeGlobals::default();
-    runtime_requirements.insert(RuntimeGlobals::REQUIRE);
-    runtime_requirements.insert(RuntimeGlobals::MODULE);
+    let ModuleCodeGenerationContext {
+      runtime_template, ..
+    } = code_generation_context;
 
-    let mut code_generation_result = CodeGenerationResult {
-      runtime_requirements,
-      ..Default::default()
-    };
+    let mut code_generation_result = CodeGenerationResult::default();
 
     code_generation_result =
       code_generation_result.with_javascript(Arc::new(RawStringSource::from(format!(
-        "module.exports = {}",
-        RuntimeGlobals::REQUIRE.name()
+        "{}.exports = {}",
+        runtime_template.render_module_argument(ModuleArgument::Module),
+        runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
       ))));
 
     Ok(code_generation_result)

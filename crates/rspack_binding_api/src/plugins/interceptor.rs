@@ -1,4 +1,6 @@
 use std::{
+  collections::HashMap,
+  ffi::c_void,
   hash::Hash,
   ptr::NonNull,
   sync::{Arc, RwLock},
@@ -10,39 +12,41 @@ use napi::{
   Env, JsValue,
   bindgen_prelude::{Buffer, FromNapiValue, Function, JsValuesTupleIntoVec, Promise, ToNapiValue},
 };
-use rspack_collections::IdentifierSet;
+use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
-  AfterResolveResult, AssetEmittedInfo, BeforeResolveResult, BindingCell, BoxModule, ChunkUkey,
-  Compilation, CompilationAdditionalTreeRuntimeRequirements,
+  AfterResolveResult, AssetEmittedInfo, AsyncModulesArtifact, BeforeResolveResult, BindingCell,
+  BoxModule, ChunkGraph, ChunkUkey, Compilation, CompilationAdditionalTreeRuntimeRequirements,
   CompilationAdditionalTreeRuntimeRequirementsHook, CompilationAfterOptimizeModules,
   CompilationAfterOptimizeModulesHook, CompilationAfterProcessAssets,
   CompilationAfterProcessAssetsHook, CompilationAfterSeal, CompilationAfterSealHook,
-  CompilationBuildModule, CompilationBuildModuleHook, CompilationChunkAsset,
-  CompilationChunkAssetHook, CompilationChunkHash, CompilationChunkHashHook,
-  CompilationExecuteModule, CompilationExecuteModuleHook, CompilationFinishModules,
-  CompilationFinishModulesHook, CompilationId, CompilationOptimizeChunkModules,
-  CompilationOptimizeChunkModulesHook, CompilationOptimizeModules, CompilationOptimizeModulesHook,
-  CompilationOptimizeTree, CompilationOptimizeTreeHook, CompilationParams,
-  CompilationProcessAssets, CompilationProcessAssetsHook, CompilationRuntimeModule,
-  CompilationRuntimeModuleHook, CompilationRuntimeRequirementInTree,
-  CompilationRuntimeRequirementInTreeHook, CompilationSeal, CompilationSealHook,
-  CompilationStillValidModule, CompilationStillValidModuleHook, CompilationSucceedModule,
-  CompilationSucceedModuleHook, CompilerAfterEmit, CompilerAfterEmitHook, CompilerAssetEmitted,
-  CompilerAssetEmittedHook, CompilerCompilation, CompilerCompilationHook, CompilerEmit,
-  CompilerEmitHook, CompilerFinishMake, CompilerFinishMakeHook, CompilerId, CompilerMake,
-  CompilerMakeHook, CompilerShouldEmit, CompilerShouldEmitHook, CompilerThisCompilation,
-  CompilerThisCompilationHook, ContextModuleFactoryAfterResolve,
+  CompilationBeforeModuleIds, CompilationBeforeModuleIdsHook, CompilationBuildModule,
+  CompilationBuildModuleHook, CompilationChunkAsset, CompilationChunkAssetHook,
+  CompilationChunkHash, CompilationChunkHashHook, CompilationExecuteModule,
+  CompilationExecuteModuleHook, CompilationFinishModules, CompilationFinishModulesHook,
+  CompilationId, CompilationOptimizeChunkModules, CompilationOptimizeChunkModulesHook,
+  CompilationOptimizeModules, CompilationOptimizeModulesHook, CompilationOptimizeTree,
+  CompilationOptimizeTreeHook, CompilationParams, CompilationProcessAssets,
+  CompilationProcessAssetsHook, CompilationRuntimeModule, CompilationRuntimeModuleHook,
+  CompilationRuntimeRequirementInTree, CompilationRuntimeRequirementInTreeHook, CompilationSeal,
+  CompilationSealHook, CompilationStillValidModule, CompilationStillValidModuleHook,
+  CompilationSucceedModule, CompilationSucceedModuleHook, CompilerAfterEmit, CompilerAfterEmitHook,
+  CompilerAssetEmitted, CompilerAssetEmittedHook, CompilerCompilation, CompilerCompilationHook,
+  CompilerEmit, CompilerEmitHook, CompilerFinishMake, CompilerFinishMakeHook, CompilerId,
+  CompilerMake, CompilerMakeHook, CompilerShouldEmit, CompilerShouldEmitHook,
+  CompilerThisCompilation, CompilerThisCompilationHook, ContextModuleFactoryAfterResolve,
   ContextModuleFactoryAfterResolveHook, ContextModuleFactoryBeforeResolve,
   ContextModuleFactoryBeforeResolveHook, ExecuteModuleId, Module, ModuleFactoryCreateData,
-  ModuleIdentifier, NormalModuleCreateData, NormalModuleFactoryAfterResolve,
-  NormalModuleFactoryAfterResolveHook, NormalModuleFactoryBeforeResolve,
-  NormalModuleFactoryBeforeResolveHook, NormalModuleFactoryCreateModule,
-  NormalModuleFactoryCreateModuleHook, NormalModuleFactoryFactorize,
-  NormalModuleFactoryFactorizeHook, NormalModuleFactoryResolve,
+  ModuleId, ModuleIdentifier, ModuleIdsArtifact, NormalModuleCreateData,
+  NormalModuleFactoryAfterResolve, NormalModuleFactoryAfterResolveHook,
+  NormalModuleFactoryBeforeResolve, NormalModuleFactoryBeforeResolveHook,
+  NormalModuleFactoryCreateModule, NormalModuleFactoryCreateModuleHook,
+  NormalModuleFactoryFactorize, NormalModuleFactoryFactorizeHook, NormalModuleFactoryResolve,
   NormalModuleFactoryResolveForScheme, NormalModuleFactoryResolveForSchemeHook,
   NormalModuleFactoryResolveHook, NormalModuleFactoryResolveResult, ResourceData, RuntimeGlobals,
-  Scheme, parse_resource, rspack_sources::RawStringSource,
+  RuntimeModule, RuntimeModuleGenerateContext, Scheme,
+  build_module_graph::BuildModuleGraphArtifact, parse_resource, rspack_sources::RawStringSource,
 };
+use rspack_error::Diagnostic;
 use rspack_hash::RspackHash;
 use rspack_hook::{Hook, Interceptor};
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
@@ -64,10 +68,12 @@ use rspack_plugin_rsdoctor::{
   RsdoctorPluginModuleSources, RsdoctorPluginModuleSourcesHook,
 };
 use rspack_plugin_runtime::{
-  CreateScriptData, LinkPrefetchData, LinkPreloadData, RuntimePluginCreateScript,
-  RuntimePluginCreateScriptHook, RuntimePluginLinkPrefetch, RuntimePluginLinkPrefetchHook,
-  RuntimePluginLinkPreload, RuntimePluginLinkPreloadHook,
+  CreateLinkData, CreateScriptData, LinkPrefetchData, LinkPreloadData, RuntimePluginCreateLink,
+  RuntimePluginCreateLinkHook, RuntimePluginCreateScript, RuntimePluginCreateScriptHook,
+  RuntimePluginLinkPrefetch, RuntimePluginLinkPrefetchHook, RuntimePluginLinkPreload,
+  RuntimePluginLinkPreloadHook,
 };
+use rspack_tasks::within_compiler_context;
 
 use crate::{
   asset::JsAssetEmittedArgs,
@@ -77,6 +83,7 @@ use crate::{
     JsContextModuleFactoryAfterResolveDataWrapper, JsContextModuleFactoryAfterResolveResult,
     JsContextModuleFactoryBeforeResolveDataWrapper, JsContextModuleFactoryBeforeResolveResult,
   },
+  dependency::DependencyWrapper,
   html::{
     JsAfterEmitData, JsAfterTemplateExecutionData, JsAlterAssetTagGroupsData, JsAlterAssetTagsData,
     JsBeforeAssetTagGenerationData, JsBeforeEmitData,
@@ -92,11 +99,39 @@ use crate::{
   },
   runtime::{
     JsAdditionalTreeRuntimeRequirementsArg, JsAdditionalTreeRuntimeRequirementsResult,
-    JsCreateScriptData, JsLinkPrefetchData, JsLinkPreloadData, JsRuntimeGlobals,
-    JsRuntimeRequirementInTreeArg, JsRuntimeRequirementInTreeResult,
+    JsCreateLinkData, JsCreateScriptData, JsLinkPrefetchData, JsLinkPreloadData, JsRuntimeGlobals,
+    JsRuntimeRequirementInTreeArg, JsRuntimeRequirementInTreeResult, JsRuntimeSpec,
   },
-  source::ToJsCompatSourceOwned,
+  source::JsSourceToJs,
 };
+
+#[napi(object)]
+pub struct JsModuleForIds {
+  pub identifier: String,
+}
+
+#[napi(object)]
+pub struct JsBeforeModuleIdsArg {
+  pub modules: Vec<JsModuleForIds>,
+}
+
+impl JsBeforeModuleIdsArg {
+  pub fn new(_compilation: &Compilation, modules: &IdentifierSet) -> Self {
+    Self {
+      modules: modules
+        .iter()
+        .map(|id| JsModuleForIds {
+          identifier: id.to_string(),
+        })
+        .collect(),
+    }
+  }
+}
+
+#[napi(object)]
+pub struct JsBeforeModuleIdsResult {
+  pub assignments: HashMap<String, String>,
+}
 
 #[napi(object)]
 pub struct JsTap<'f> {
@@ -234,7 +269,7 @@ impl<T: 'static + ToNapiValue, R: 'static + FromNapiValue> RegisterJsTapsInner<T
     hook: &impl Hook,
   ) -> rspack_error::Result<RegisterFunctionOutput<T, R>> {
     let mut used_stages = Vec::from_iter(hook.used_stages());
-    used_stages.sort();
+    used_stages.sort_unstable();
     self.register.call_with_sync(used_stages).await
   }
 
@@ -340,6 +375,7 @@ pub enum RegisterJsTapKind {
   CompilationAfterOptimizeModules,
   CompilationOptimizeTree,
   CompilationOptimizeChunkModules,
+  CompilationBeforeModuleIds,
   CompilationAdditionalTreeRuntimeRequirements,
   CompilationRuntimeRequirementInTree,
   CompilationRuntimeModule,
@@ -365,6 +401,7 @@ pub enum RegisterJsTapKind {
   HtmlPluginBeforeEmit,
   HtmlPluginAfterEmit,
   RuntimePluginCreateScript,
+  RuntimePluginCreateLink,
   RuntimePluginLinkPreload,
   RuntimePluginLinkPrefetch,
   RsdoctorPluginModuleGraph,
@@ -476,6 +513,11 @@ pub struct RegisterJsTaps {
   )]
   pub register_compilation_optimize_chunk_modules_taps: RegisterFunction<(), Promise<Option<bool>>>,
   #[napi(
+    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsBeforeModuleIdsArg) => JsBeforeModuleIdsResult); stage: number; }>"
+  )]
+  pub register_compilation_before_module_ids_taps:
+    RegisterFunction<JsBeforeModuleIdsArg, JsBeforeModuleIdsResult>,
+  #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: Chunk) => Buffer); stage: number; }>"
   )]
   pub register_compilation_chunk_hash_taps: RegisterFunction<ChunkWrapper, Buffer>,
@@ -584,6 +626,10 @@ pub struct RegisterJsTaps {
     RegisterFunction<JsCreateScriptData, Option<String>>,
   #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsLinkPreloadData) => String); stage: number; }>"
+  )]
+  pub register_runtime_plugin_create_link_taps: RegisterFunction<JsCreateLinkData, Option<String>>,
+  #[napi(
+    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsCreateLinkData) => String); stage: number; }>"
   )]
   pub register_runtime_plugin_link_preload_taps:
     RegisterFunction<JsLinkPreloadData, Option<String>>,
@@ -740,6 +786,13 @@ define_register!(
   tap = CompilationOptimizeChunkModulesTap<(), Promise<Option<bool>>> @ CompilationOptimizeChunkModulesHook,
   cache = false,
   kind = RegisterJsTapKind::CompilationOptimizeChunkModules,
+  skip = true,
+);
+define_register!(
+  RegisterCompilationBeforeModuleIdsTaps,
+  tap = CompilationBeforeModuleIdsTap<JsBeforeModuleIdsArg, JsBeforeModuleIdsResult> @ CompilationBeforeModuleIdsHook,
+  cache = false,
+  kind = RegisterJsTapKind::CompilationBeforeModuleIds,
   skip = true,
 );
 define_register!(
@@ -928,6 +981,13 @@ define_register!(
   tap = RuntimePluginCreateScriptTap<JsCreateScriptData, Option<String>> @ RuntimePluginCreateScriptHook,
   cache = true,
   kind = RegisterJsTapKind::RuntimePluginCreateScript,
+  skip = true,
+);
+define_register!(
+  RegisterRuntimePluginCreateLinkTaps,
+  tap = RuntimePluginCreateLinkTap<JsCreateLinkData, Option<String>> @ RuntimePluginCreateLinkHook,
+  cache = true,
+  kind = RegisterJsTapKind::RuntimePluginCreateLink,
   skip = true,
 );
 define_register!(
@@ -1198,9 +1258,30 @@ impl CompilationExecuteModule for CompilationExecuteModuleTap {
 
 #[async_trait]
 impl CompilationFinishModules for CompilationFinishModulesTap {
-  async fn run(&self, compilation: &mut Compilation) -> rspack_error::Result<()> {
-    let compilation = JsCompilationWrapper::new(compilation);
-    self.function.call_with_promise(compilation).await
+  async fn run(
+    &self,
+    compilation: &Compilation,
+    _async_modules_artifact: &mut AsyncModulesArtifact,
+    exports_info_artifact: &mut rspack_core::ExportsInfoArtifact,
+  ) -> rspack_error::Result<()> {
+    let compiler_context = compilation.compiler_context.clone();
+    let previous_ptr_addr = compiler_context
+      .exports_info_artifact_ptr()
+      .map_or(0usize, |ptr| ptr as usize);
+    compiler_context
+      .set_exports_info_artifact_ptr(Some(exports_info_artifact as *mut _ as *mut c_void));
+    let result = within_compiler_context(compiler_context.clone(), async {
+      let compilation = JsCompilationWrapper::new(compilation);
+      self.function.call_with_promise(compilation).await
+    })
+    .await;
+    let previous_ptr = if previous_ptr_addr == 0 {
+      None
+    } else {
+      Some(previous_ptr_addr as *mut c_void)
+    };
+    compiler_context.set_exports_info_artifact_ptr(previous_ptr);
+    result
   }
 
   fn stage(&self) -> i32 {
@@ -1210,7 +1291,11 @@ impl CompilationFinishModules for CompilationFinishModulesTap {
 
 #[async_trait]
 impl CompilationOptimizeModules for CompilationOptimizeModulesTap {
-  async fn run(&self, _compilation: &mut Compilation) -> rspack_error::Result<Option<bool>> {
+  async fn run(
+    &self,
+    _compilation: &Compilation,
+    _diagnostics: &mut Vec<rspack_error::Diagnostic>,
+  ) -> rspack_error::Result<Option<bool>> {
     self.function.call_with_sync(()).await
   }
 
@@ -1221,7 +1306,7 @@ impl CompilationOptimizeModules for CompilationOptimizeModulesTap {
 
 #[async_trait]
 impl CompilationAfterOptimizeModules for CompilationAfterOptimizeModulesTap {
-  async fn run(&self, _compilation: &mut Compilation) -> rspack_error::Result<()> {
+  async fn run(&self, _compilation: &Compilation) -> rspack_error::Result<()> {
     self.function.call_with_sync(()).await
   }
 
@@ -1232,7 +1317,7 @@ impl CompilationAfterOptimizeModules for CompilationAfterOptimizeModulesTap {
 
 #[async_trait]
 impl CompilationOptimizeTree for CompilationOptimizeTreeTap {
-  async fn run(&self, _compilation: &mut Compilation) -> rspack_error::Result<()> {
+  async fn run(&self, _compilation: &Compilation) -> rspack_error::Result<()> {
     self.function.call_with_promise(()).await
   }
 
@@ -1253,14 +1338,39 @@ impl CompilationOptimizeChunkModules for CompilationOptimizeChunkModulesTap {
 }
 
 #[async_trait]
+impl CompilationBeforeModuleIds for CompilationBeforeModuleIdsTap {
+  async fn run(
+    &self,
+    compilation: &Compilation,
+    modules: &IdentifierSet,
+    module_ids: &mut ModuleIdsArtifact,
+  ) -> rspack_error::Result<()> {
+    let arg = JsBeforeModuleIdsArg::new(compilation, modules);
+    let result: JsBeforeModuleIdsResult = self.function.call_with_sync(arg).await?;
+
+    for (identifier_str, id) in result.assignments {
+      let identifier = ModuleIdentifier::from(identifier_str.as_str());
+      ChunkGraph::set_module_id(module_ids, identifier, ModuleId::from(id));
+    }
+
+    Ok(())
+  }
+
+  fn stage(&self) -> i32 {
+    self.stage
+  }
+}
+
+#[async_trait]
 impl CompilationAdditionalTreeRuntimeRequirements
   for CompilationAdditionalTreeRuntimeRequirementsTap
 {
   async fn run(
     &self,
-    compilation: &mut Compilation,
+    compilation: &Compilation,
     chunk_ukey: &ChunkUkey,
     runtime_requirements: &mut RuntimeGlobals,
+    _runtime_modules: &mut Vec<Box<dyn RuntimeModule>>,
   ) -> rspack_error::Result<()> {
     let arg = JsAdditionalTreeRuntimeRequirementsArg {
       chunk: ChunkWrapper::new(*chunk_ukey, compilation),
@@ -1268,7 +1378,11 @@ impl CompilationAdditionalTreeRuntimeRequirements
     };
     let result = self.function.call_with_sync(arg).await?;
     if let Some(result) = result {
-      let _ = std::mem::replace(runtime_requirements, result.as_runtime_globals());
+      runtime_requirements.insert(
+        result
+          .as_runtime_globals()
+          .difference(*runtime_requirements),
+      );
     }
     Ok(())
   }
@@ -1282,11 +1396,12 @@ impl CompilationAdditionalTreeRuntimeRequirements
 impl CompilationRuntimeRequirementInTree for CompilationRuntimeRequirementInTreeTap {
   async fn run(
     &self,
-    compilation: &mut Compilation,
+    compilation: &Compilation,
     chunk_ukey: &ChunkUkey,
     all_runtime_requirements: &RuntimeGlobals,
     runtime_requirements: &RuntimeGlobals,
     runtime_requirements_mut: &mut RuntimeGlobals,
+    _runtime_modules_to_add: &mut Vec<(ChunkUkey, Box<dyn RuntimeModule>)>,
   ) -> rspack_error::Result<Option<()>> {
     let arg = JsRuntimeRequirementInTreeArg {
       chunk: ChunkWrapper::new(*chunk_ukey, compilation),
@@ -1313,38 +1428,39 @@ impl CompilationRuntimeRequirementInTree for CompilationRuntimeRequirementInTree
 impl CompilationRuntimeModule for CompilationRuntimeModuleTap {
   async fn run(
     &self,
-    compilation: &mut Compilation,
+    compilation: &Compilation,
     m: &ModuleIdentifier,
     chunk_ukey: &ChunkUkey,
+    runtime_modules: &mut IdentifierMap<Box<dyn RuntimeModule>>,
   ) -> rspack_error::Result<()> {
-    let Some(module) = compilation.runtime_modules.get(m) else {
+    let Some(module) = runtime_modules.get(m) else {
       return Ok(());
     };
-    let source_str = module.generate(compilation).await?;
+    let runtime_template = compilation.runtime_template.create_runtime_code_template();
+    let context = RuntimeModuleGenerateContext {
+      compilation,
+      runtime_template: &runtime_template,
+    };
+    let source_string = module.generate(&context).await?;
     let arg = JsRuntimeModuleArg {
       module: JsRuntimeModule {
-        source: Some(
-          RawStringSource::from(source_str)
-            .to_js_compat_source_owned()
-            .unwrap_or_else(|err| panic!("Failed to generate runtime module source: {err}")),
-        ),
+        source: Some(JsSourceToJs::from(source_string)),
         module_identifier: module.identifier().to_string(),
         constructor_name: module.get_constructor_name(),
         name: module
           .name()
           .as_str()
-          .cow_replace("webpack/runtime/", "")
+          .cow_replace(compilation.runtime_template.runtime_module_prefix(), "")
           .into_owned(),
+        stage: module.stage().into(),
+        isolate: module.should_isolate(),
       },
       chunk: ChunkWrapper::new(*chunk_ukey, compilation),
     };
     if let Some(module) = self.function.call_with_sync(arg).await?
       && let Some(source) = module.source
     {
-      let module = compilation
-        .runtime_modules
-        .get_mut(m)
-        .expect("should have module");
+      let module = runtime_modules.get_mut(m).expect("should have module");
       match source.source {
         napi::Either::A(string) => {
           module.set_custom_source(string);
@@ -1419,7 +1535,11 @@ impl CompilationProcessAssets for CompilationProcessAssetsTap {
 
 #[async_trait]
 impl CompilationAfterProcessAssets for CompilationAfterProcessAssetsTap {
-  async fn run(&self, compilation: &mut Compilation) -> rspack_error::Result<()> {
+  async fn run(
+    &self,
+    compilation: &Compilation,
+    _diagnostics: &mut Vec<Diagnostic>,
+  ) -> rspack_error::Result<()> {
     let compilation = JsCompilationWrapper::new(compilation);
     self.function.call_with_sync(compilation).await
   }
@@ -1431,7 +1551,11 @@ impl CompilationAfterProcessAssets for CompilationAfterProcessAssetsTap {
 
 #[async_trait]
 impl CompilationSeal for CompilationSealTap {
-  async fn run(&self, _compilation: &mut Compilation) -> rspack_error::Result<()> {
+  async fn run(
+    &self,
+    _compilation: &Compilation,
+    _diagnostics: &mut Vec<Diagnostic>,
+  ) -> rspack_error::Result<()> {
     self.function.call_with_sync(()).await
   }
 
@@ -1442,7 +1566,7 @@ impl CompilationSeal for CompilationSealTap {
 
 #[async_trait]
 impl CompilationAfterSeal for CompilationAfterSealTap {
-  async fn run(&self, _compilation: &mut Compilation) -> rspack_error::Result<()> {
+  async fn run(&self, _compilation: &Compilation) -> rspack_error::Result<()> {
     self.function.call_with_promise(()).await
   }
 
@@ -1766,6 +1890,24 @@ impl RuntimePluginCreateScript for RuntimePluginCreateScriptTap {
     if let Some(code) = self
       .function
       .call_with_sync(JsCreateScriptData::from(data.clone()))
+      .await?
+    {
+      data.code = code;
+    }
+    Ok(data)
+  }
+
+  fn stage(&self) -> i32 {
+    self.stage
+  }
+}
+
+#[async_trait]
+impl RuntimePluginCreateLink for RuntimePluginCreateLinkTap {
+  async fn run(&self, mut data: CreateLinkData) -> rspack_error::Result<CreateLinkData> {
+    if let Some(code) = self
+      .function
+      .call_with_sync(JsCreateLinkData::from(data.clone()))
       .await?
     {
       data.code = code;

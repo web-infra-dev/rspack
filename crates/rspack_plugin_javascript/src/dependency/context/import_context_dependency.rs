@@ -1,9 +1,10 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
+use rspack_collections::Identifier;
 use rspack_core::{
   AsModuleDependency, ContextDependency, ContextOptions, Dependency, DependencyCategory,
   DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
-  DependencyTemplateType, DependencyType, FactorizeInfo, ModuleGraph, ModuleGraphCacheArtifact,
-  TemplateContext, TemplateReplaceSource,
+  DependencyTemplateType, DependencyType, ExportsInfoArtifact, FactorizeInfo, ModuleGraph,
+  ModuleGraphCacheArtifact, ResourceIdentifier, TemplateContext, TemplateReplaceSource,
 };
 use rspack_error::Diagnostic;
 use swc_core::atoms::Atom;
@@ -12,6 +13,16 @@ use super::{
   context_dependency_template_as_require_call, create_resource_identifier_for_context_dependency,
 };
 
+fn create_resource_identifier(options: &ContextOptions) -> Identifier {
+  let mut resource_identifier =
+    create_resource_identifier_for_context_dependency(None, options).to_string();
+  if let Some(attributes) = &options.attributes {
+    resource_identifier
+      .push_str(&serde_json::to_string(attributes).expect("json stringify failed"));
+  }
+  resource_identifier.into()
+}
+
 #[cacheable]
 #[derive(Debug, Clone)]
 pub struct ImportContextDependency {
@@ -19,7 +30,7 @@ pub struct ImportContextDependency {
   options: ContextOptions,
   range: DependencyRange,
   value_range: DependencyRange,
-  resource_identifier: String,
+  resource_identifier: ResourceIdentifier,
   optional: bool,
   critical: Option<Diagnostic>,
   factorize_info: FactorizeInfo,
@@ -32,21 +43,21 @@ impl ImportContextDependency {
     value_range: DependencyRange,
     optional: bool,
   ) -> Self {
-    let resource_identifier = create_resource_identifier_for_context_dependency(None, &options);
     Self {
-      options,
+      id: DependencyId::new(),
+      resource_identifier: create_resource_identifier(&options),
       range,
       value_range,
-      id: DependencyId::new(),
-      resource_identifier,
       optional,
       critical: None,
       factorize_info: Default::default(),
+      options,
     }
   }
 
   pub fn set_referenced_exports(&mut self, referenced_exports: Vec<Vec<Atom>>) {
     self.options.referenced_exports = Some(referenced_exports);
+    self.resource_identifier = create_resource_identifier(&self.options);
   }
 }
 
@@ -76,6 +87,7 @@ impl Dependency for ImportContextDependency {
     &self,
     _module_graph: &ModuleGraph,
     _module_graph_cache: &ModuleGraphCacheArtifact,
+    _exports_info_artifact: &ExportsInfoArtifact,
   ) -> Option<Vec<Diagnostic>> {
     if let Some(critical) = self.critical() {
       return Some(vec![critical.clone()]);

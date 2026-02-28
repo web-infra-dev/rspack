@@ -8,6 +8,7 @@ version.workspace = true
 [dependencies]
 async-trait              = { workspace = true }
 cow-utils                = { workspace = true }
+itertools                = { workspace = true }
 regex                    = { workspace = true }
 rspack_cacheable         = { workspace = true }
 rspack_collections       = { workspace = true }
@@ -28,3 +29,6 @@ ustr                     = { workspace = true }
 
 [package.metadata.cargo-shear]
 ignored = ["tracing", "tokio"]
+
+[lints]
+workspace = true

@@ -1,7 +1,10 @@
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	mode: "development",
-	experiments: {
-		inlineConst: true
+	output: {
+		pathinfo: false
+	},
+	optimization: {
+		inlineExports: true
 	}
 };

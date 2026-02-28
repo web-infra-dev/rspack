@@ -8,12 +8,10 @@ use swc_core::{common::Spanned, ecma::ast::CallExpr};
 use super::JavascriptParserPlugin;
 use crate::{
   dependency::RequireContextDependency,
-  visitors::{JavascriptParser, clean_regexp_in_context_module},
+  visitors::{JavascriptParser, clean_regexp_in_context_module, default_context_reg_exp},
 };
 
 pub struct RequireContextDependencyParserPlugin;
-
-const DEFAULT_REGEXP_STR: &str = r"^\.\/.*$";
 
 impl JavascriptParserPlugin for RequireContextDependencyParserPlugin {
   fn call(&self, parser: &mut JavascriptParser, expr: &CallExpr, for_name: &str) -> Option<bool> {
@@ -39,17 +37,14 @@ impl JavascriptParserPlugin for RequireContextDependencyParserPlugin {
       let reg_exp_expr = parser.evaluate_expression(&expr.args[2].expr);
       let reg_exp = if !reg_exp_expr.is_regexp() {
         // FIXME: return `None` in webpack
-        RspackRegex::new(DEFAULT_REGEXP_STR).expect("reg should success")
+        default_context_reg_exp()
       } else {
         let (expr, flags) = reg_exp_expr.regexp();
         RspackRegex::with_flags(expr.as_str(), flags.as_str()).expect("reg should success")
       };
       (reg_exp, Some(expr.args[2].expr.span().into()))
     } else {
-      (
-        RspackRegex::new(DEFAULT_REGEXP_STR).expect("reg should success"),
-        None,
-      )
+      (default_context_reg_exp(), None)
     };
 
     let recursive = if expr.args.len() >= 2 {
@@ -79,8 +74,8 @@ impl JavascriptParserPlugin for RequireContextDependencyParserPlugin {
           include: None,
           exclude: None,
           category: DependencyCategory::CommonJS,
-          request: request_expr.string().to_string(),
-          context: request_expr.string().to_string(),
+          request: request_expr.string().clone(),
+          context: request_expr.string().clone(),
           namespace_object: rspack_core::ContextNameSpaceObject::Unset,
           group_options: None,
           replaces: Vec::new(),
@@ -88,6 +83,7 @@ impl JavascriptParserPlugin for RequireContextDependencyParserPlugin {
           end: expr.span().real_hi(),
           referenced_exports: None,
           attributes: None,
+          phase: None,
         },
         expr.span.into(),
         parser.in_try,

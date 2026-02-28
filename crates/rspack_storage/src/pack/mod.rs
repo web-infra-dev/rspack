@@ -85,4 +85,7 @@ impl Storage for PackStorage {
   async fn reset(&self) {
     self.manager.reset().await;
   }
+  async fn scopes(&self) -> Result<Vec<String>> {
+    self.manager.scopes().await
+  }
 }

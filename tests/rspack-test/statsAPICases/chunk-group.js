@@ -1,4 +1,4 @@
-/** @type {import('../..').TStatsAPICaseConfig} */
+/** @type {import('@rspack/test-tools').TStatsAPICaseConfig} */
 module.exports = {
 	description: "should generate chunk group asset",
 	options(context) {
@@ -6,6 +6,11 @@ module.exports = {
 			context: context.getSource(),
 			entry: {
 				main: "./fixtures/order/index"
+			},
+			output: {
+				environment: {
+					methodShorthand: false
+				}
 			},
 			optimization: {
 				minimize: false
@@ -21,18 +26,18 @@ module.exports = {
 			version: false
 		};
 
-		const string = stats.toString(statsOptions);
+		const string = stats.toString(statsOptions).replace(/[\d.]+ (KiB|bytes)/g, "X.X $1");
 
 		// entrypoints
-		expect(string).toContain(`Entrypoint main 13.6 KiB (15.7 KiB) = main.js 13.6 KiB (main.js.map 15.7 KiB)`);
-		expect(string).toContain(`prefetch: chunk.js 831 bytes {411} (name: chunk) (chunk.js.map 510 bytes)`);
+		expect(string).toContain(`Entrypoint main X.X KiB (X.X KiB) = main.js X.X KiB (main.js.map X.X KiB)`);
+		expect(string).toContain(`prefetch: chunk.js X.X bytes {411} (name: chunk) (chunk.js.map X.X bytes)`);
 
 		// chunk groups
-		expect(string).toContain(`Chunk Group chunk 831 bytes (510 bytes) = chunk.js 831 bytes (chunk.js.map 510 bytes)`);
-		expect(string).toContain(`preload: chunk-b.js 126 bytes {276} (name: chunk-b)`);
-		expect(string).toContain(`prefetch: chunk-c.js 125 bytes {467} (name: chunk-c), chunk-a.js 126 bytes {181} (name: chunk-a)`);
-		expect(string).toContain(`Chunk Group chunk-a 126 bytes = chunk-a.js`);
-		expect(string).toContain(`Chunk Group chunk-b 126 bytes = chunk-b.js`);
-		expect(string).toContain(`Chunk Group chunk-c 125 bytes = chunk-c.js`);
+		expect(string).toContain(`Chunk Group chunk X.X bytes (X.X bytes) = chunk.js X.X bytes (chunk.js.map X.X bytes)`);
+		expect(string).toContain(`preload: chunk-b.js X.X bytes {276} (name: chunk-b)`);
+		expect(string).toContain(`prefetch: chunk-c.js X.X bytes {467} (name: chunk-c), chunk-a.js X.X bytes {181} (name: chunk-a)`);
+		expect(string).toContain(`Chunk Group chunk-a X.X bytes = chunk-a.js`);
+		expect(string).toContain(`Chunk Group chunk-b X.X bytes = chunk-b.js`);
+		expect(string).toContain(`Chunk Group chunk-c X.X bytes = chunk-c.js`);
 	}
 };

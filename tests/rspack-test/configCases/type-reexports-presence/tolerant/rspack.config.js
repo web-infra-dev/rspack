@@ -21,10 +21,8 @@ module.exports = /** @type {import("@rspack/core").Configuration} */ ({
 									syntax: "typescript"
 								}
 							},
-							rspackExperiments: {
-								collectTypeScriptInfo: {
-									typeExports: true
-								}
+							collectTypeScriptInfo: {
+								typeExports: true
 							}
 						}
 					}
@@ -32,7 +30,4 @@ module.exports = /** @type {import("@rspack/core").Configuration} */ ({
 			}
 		]
 	},
-	experiments: {
-		typeReexportsPresence: true
-	}
 });

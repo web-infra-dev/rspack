@@ -1,18 +1,19 @@
-use rspack_collections::Identifier;
-use rspack_core::{ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, impl_runtime_module};
+use rspack_core::{
+  Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext, RuntimeTemplate,
+  impl_runtime_module,
+};
 
 use crate::get_chunk_runtime_requirements;
 
 #[impl_runtime_module]
 #[derive(Debug)]
 pub struct EnsureChunkRuntimeModule {
-  id: Identifier,
-  chunk: Option<ChunkUkey>,
+  has_async_chunks: bool,
 }
 
-impl Default for EnsureChunkRuntimeModule {
-  fn default() -> Self {
-    Self::with_default(Identifier::from("webpack/runtime/ensure_chunk"), None)
+impl EnsureChunkRuntimeModule {
+  pub fn new(runtime_template: &RuntimeTemplate, has_async_chunks: bool) -> Self {
+    Self::with_default(runtime_template, has_async_chunks)
   }
 }
 
@@ -32,10 +33,6 @@ impl EnsureChunkRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for EnsureChunkRuntimeModule {
-  fn name(&self) -> Identifier {
-    self.id
-  }
-
   fn template(&self) -> Vec<(String, String)> {
     vec![
       (
@@ -49,7 +46,12 @@ impl RuntimeModule for EnsureChunkRuntimeModule {
     ]
   }
 
-  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
+  async fn generate(
+    &self,
+    context: &RuntimeModuleGenerateContext<'_>,
+  ) -> rspack_error::Result<String> {
+    let compilation = context.compilation;
+    let runtime_template = context.runtime_template;
     let chunk_ukey = self.chunk.expect("should have chunk");
     let runtime_requirements = get_chunk_runtime_requirements(compilation, &chunk_ukey);
     let source = if runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS) {
@@ -59,23 +61,24 @@ impl RuntimeModule for EnsureChunkRuntimeModule {
         ""
       };
 
-      compilation.runtime_template.render(
+      runtime_template.render(
         &self.template_id(TemplateId::Raw),
         Some(serde_json::json!({
-          "_args": format!("chunkId{}", fetch_priority),
           "_fetch_priority": fetch_priority,
         })),
       )?
     } else {
-      compilation
-        .runtime_template
-        .render(&self.template_id(TemplateId::WithInline), None)?
+      runtime_template.render(&self.template_id(TemplateId::WithInline), None)?
     };
 
     Ok(source)
   }
 
-  fn attach(&mut self, chunk: ChunkUkey) {
-    self.chunk = Some(chunk);
+  fn additional_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
+    if self.has_async_chunks {
+      RuntimeGlobals::ENSURE_CHUNK_HANDLERS
+    } else {
+      RuntimeGlobals::default()
+    }
   }
 }

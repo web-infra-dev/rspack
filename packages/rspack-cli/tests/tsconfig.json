@@ -3,7 +3,8 @@
   "compilerOptions": {
     "strict": false,
     "checkJs": false,
-    "rootDir": "."
+    "rootDir": ".",
+    "types": ["@rstest/core/globals"]
   },
   "include": ["."],
   "references": []

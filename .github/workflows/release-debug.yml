@@ -6,9 +6,9 @@ on:
       commit:
         required: true
         type: string
-        description: "Commit SHA"
+        description: 'Commit SHA'
   workflow_run:
-    workflows: ["Release Full"]
+    workflows: ['Release Full']
     types:
       - completed
 permissions:
@@ -33,7 +33,7 @@ jobs:
     environment: npm-canary
     steps:
       - name: Checkout Branch
-        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
         with:
           fetch-depth: 1
           ref: ${{inputs.commit || github.event.workflow_run.head_sha }}
@@ -48,12 +48,15 @@ jobs:
         uses: actions/download-artifact@v4.1.7
         with:
           path: artifacts
+          pattern: bindings-*
 
       - name: Clean artifacts
         run: find artifacts -type f -name '*.d.ts'  | xargs rm -f
 
       - name: Move artifacts
-        run: node scripts/build-npm.cjs
+        run: |
+          ls -R artifacts
+          node scripts/build-npm.cjs
 
       - name: Show binding packages
         run: ls -R npm

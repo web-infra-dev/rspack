@@ -2,30 +2,18 @@ import getValue, { getError, id } from "./a";
 
 const moduleId = id;
 
-it("should abort when module is not accepted", done => {
+it("should abort when module is not accepted", async () => {
 	expect(getValue()).toBe(1);
 	expect(getError()).toBe(false);
-	NEXT(
-		require("../../update")(done, true, () => {
-			expect(getValue()).toBe(2);
-			expect(getError()).toBe(true);
-			NEXT(
-				require("../../update")(done, true, () => {
-					expect(getValue()).toBe(2);
-					expect(getError()).toBe(true);
-					NEXT(
-						require("../../update")(done, true, () => {
-							expect(getValue()).toBe(4);
-							expect(getError()).toBe(false);
-							done();
-						})
-					);
-				})
-			);
-		})
-	);
+	await NEXT_HMR();
+	expect(getValue()).toBe(2);
+	expect(getError()).toBe(true);
+	await NEXT_HMR();
+	expect(getValue()).toBe(2);
+	expect(getError()).toBe(true);
+	await NEXT_HMR();
+	expect(getValue()).toBe(4);
+	expect(getError()).toBe(false);
 });
 
-if (module.hot) {
-	module.hot.accept("./a");
-}
+module.hot.accept("./a");

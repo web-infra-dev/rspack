@@ -13,6 +13,8 @@ use miette::{
 use owo_colors::{OwoColorize, Style};
 use unicode_width::UnicodeWidthChar;
 
+use crate::colors::dim;
+
 /**
 A [`ReportHandler`] that displays a given [`Report`](crate::Report) in a
 quasi-graphical way, using terminal colors, unicode drawing characters, and
@@ -78,40 +80,10 @@ impl GraphicalReportHandler {
     self
   }
 
-  /// Whether to enable error code linkification using [`Diagnostic::url()`].
-  pub fn with_links(mut self, links: bool) -> Self {
-    self.links = if links {
-      LinkStyle::Link
-    } else {
-      LinkStyle::Text
-    };
-    self
-  }
-
   /// Include the cause chain of the top-level error in the graphical output,
   /// if available.
   pub fn with_cause_chain(mut self) -> Self {
     self.with_cause_chain = true;
-    self
-  }
-
-  /// Do not include the cause chain of the top-level error in the graphical
-  /// output.
-  pub fn without_cause_chain(mut self) -> Self {
-    self.with_cause_chain = false;
-    self
-  }
-
-  /// Whether to include [`Diagnostic::url()`] in the output.
-  ///
-  /// Disabling this is not recommended, but can be useful for more easily
-  /// reproducible tests, as `url(docsrs)` links are version-dependent.
-  pub fn with_urls(mut self, urls: bool) -> Self {
-    self.links = match (self.links, urls) {
-      (_, false) => LinkStyle::None,
-      (LinkStyle::None, true) => LinkStyle::Link,
-      (links, true) => links,
-    };
     self
   }
 
@@ -124,12 +96,6 @@ impl GraphicalReportHandler {
   /// Sets the width to wrap the report at.
   pub fn with_width(mut self, width: usize) -> Self {
     self.termwidth = width;
-    self
-  }
-
-  /// Sets the 'global' footer for this handler.
-  pub fn with_footer(mut self, footer: String) -> Self {
-    self.footer = Some(footer);
     self
   }
 
@@ -181,7 +147,7 @@ impl GraphicalReportHandler {
       let code = if let Some(code) = diagnostic.code() {
         format!("{code} ")
       } else {
-        "".to_string()
+        String::new()
       };
       let link = format!(
         "\u{1b}]8;;{}\u{1b}\\{}{}\u{1b}]8;;\u{1b}\\",
@@ -212,7 +178,7 @@ impl GraphicalReportHandler {
     };
 
     let initial_indent = format!("  {} ", severity_icon.style(severity_style));
-    let rest_indent = format!("  {} ", self.theme.characters.vbar.style(severity_style));
+    let rest_indent = format!("  {} ", dim(&self.theme.characters.vbar));
     let width = self.termwidth.saturating_sub(2);
     let opts = textwrap::Options::new(width)
       .initial_indent(&initial_indent)
@@ -237,22 +203,18 @@ impl GraphicalReportHandler {
         } else {
           self.theme.characters.lbot
         };
-        let initial_indent = format!(
+        let initial_indent = dim(&format!(
           "  {}{}{} ",
           char, self.theme.characters.hbar, self.theme.characters.rarrow
-        )
-        .style(severity_style)
+        ))
         .to_string();
-        let rest_indent = format!(
-          "  {}   ",
-          if is_last {
-            ' '
-          } else {
-            self.theme.characters.vbar
-          }
-        )
-        .style(severity_style)
-        .to_string();
+
+        let rest_indent = if is_last {
+          "      ".to_string()
+        } else {
+          dim(&format!("  {}   ", self.theme.characters.vbar)).to_string()
+        };
+
         let opts = textwrap::Options::new(width)
           .initial_indent(&initial_indent)
           .subsequent_indent(&rest_indent);
@@ -390,7 +352,7 @@ impl GraphicalReportHandler {
     // sorting is your friend
     let labels = labels
       .iter()
-      .zip(self.theme.styles.highlights.iter().cloned().cycle())
+      .zip(self.theme.styles.highlights.iter().copied().cycle())
       .map(|(label, st)| FancySpan::new(label.label().map(String::from), *label.inner(), st))
       .collect::<Vec<_>>();
 
@@ -412,9 +374,7 @@ impl GraphicalReportHandler {
     // numbers need!
     let linum_width = lines[..]
       .last()
-      .map(|line| line.line_number)
-      // It's possible for the source to be an empty string.
-      .unwrap_or(0)
+      .map_or(0, |line| line.line_number)
       .to_string()
       .len();
 
@@ -754,7 +714,7 @@ impl GraphicalReportHandler {
       f,
       "{} {}",
       self.theme.characters.hbar.style(hl.style),
-      hl.label().unwrap_or_else(|| "".into()),
+      hl.label().unwrap_or_default(),
     )?;
     Ok(())
   }

@@ -12,8 +12,10 @@ export function CountProvider({ children }) {
 }
 
 export function ContextComponent() {
-	const { count, setCount } = React.useContext(CountContext);
-	return <div id="context" onClick={() => setCount((count) => `${count}-click`)}>
-		{count}
-	</div>
+  const { count, setCount } = React.useContext(CountContext);
+  return (
+    <div id="context" onClick={() => setCount((count) => `${count}-click`)}>
+      {count}
+    </div>
+  );
 }

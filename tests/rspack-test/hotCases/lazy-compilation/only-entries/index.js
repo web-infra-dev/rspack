@@ -1,4 +1,5 @@
-it("should not lazily compile to import() when not configured", done => {
+it("should not lazily compile to import() when not configured", () => new Promise((resolve, reject) => {
+	const done = err => (err ? reject(err) : resolve());
 	let resolved;
 	const promise = import("./module").then(r => (resolved = r));
 	expect(resolved).toBe(undefined);
@@ -6,4 +7,4 @@ it("should not lazily compile to import() when not configured", done => {
 		expect(resolved).toHaveProperty("default", 42);
 		done();
 	}, 1000);
-});
+}));

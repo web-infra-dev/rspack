@@ -6,7 +6,7 @@ use std::{
 use rspack_collections::IdentifierSet;
 use rspack_core::{
   BoxModule, Compilation, CompilationId, CompilationParams, CompilerCompilation, CompilerId,
-  CompilerMake, DependencyType, EntryDependency, LibIdentOptions, Module, ModuleFactory,
+  CompilerMake, DependencyType, EntryDependency, LibIdentOptions, Module, ModuleExt, ModuleFactory,
   ModuleFactoryCreateData, ModuleIdentifier, NormalModuleCreateData, NormalModuleFactoryModule,
   Plugin,
 };
@@ -20,7 +20,7 @@ use crate::{
   utils::calc_value_dependency_key,
 };
 
-static WEBPACK_DEV_SERVER_CLIENT_RE: LazyLock<RspackRegex> = LazyLock::new(|| {
+static DEV_SERVER_CLIENT_RE: LazyLock<RspackRegex> = LazyLock::new(|| {
   RspackRegex::new(
     r#"(webpack|rspack)[/\\]hot[/\\]|(webpack|rspack)-dev-server[/\\]client|(webpack|rspack)-hot-middleware[/\\]client"#,
   )
@@ -183,7 +183,7 @@ async fn normal_module_factory_module(
     return Ok(());
   }
 
-  if WEBPACK_DEV_SERVER_CLIENT_RE.test(create_data.resource_resolve_data.resource())
+  if DEV_SERVER_CLIENT_RE.test(create_data.resource_resolve_data.resource())
     || !self
       .check_test(
         module_factory_create_data.compiler_id,
@@ -212,7 +212,7 @@ async fn normal_module_factory_module(
     context: module_factory_create_data.options.context.as_str(),
   });
 
-  *module = Box::new(LazyCompilationProxyModule::new(
+  *module = LazyCompilationProxyModule::new(
     module_identifier,
     readable_identifier,
     lib_ident.map(|ident| ident.into_owned()),
@@ -220,7 +220,8 @@ async fn normal_module_factory_module(
     create_data.resource_resolve_data.resource().to_owned(),
     active,
     self.client.clone(),
-  ));
+  )
+  .boxed();
 
   Ok(())
 }
@@ -228,16 +229,14 @@ async fn normal_module_factory_module(
 #[plugin_hook(CompilerMake for LazyCompilationPlugin<T: Backend, F: LazyCompilationTestCheck>)]
 async fn compiler_make(&self, compilation: &mut Compilation) -> Result<()> {
   let active_modules = self.backend.lock().await.current_active_modules().await?;
-  let mut module_graph = compilation.get_module_graph_mut();
-  let mut errors = vec![];
+  let module_graph = compilation
+    .build_module_graph_artifact
+    .get_module_graph_mut();
   for module_id in &active_modules {
     let Some(active_module) = module_graph.module_by_identifier_mut(module_id) else {
-      errors.push(rspack_error::error!("cannot find module instance for id {module_id}").into());
       continue;
     };
-
     let Some(active_module) = active_module.downcast_mut::<LazyCompilationProxyModule>() else {
-      errors.push(rspack_error::error!("cannot find module instance for id {module_id}").into());
       continue;
     };
 
@@ -246,7 +245,6 @@ async fn compiler_make(&self, compilation: &mut Compilation) -> Result<()> {
 
   *self.active_modules.write().await = active_modules.into_iter().collect();
 
-  compilation.extend_diagnostics(errors);
   Ok(())
 }
 

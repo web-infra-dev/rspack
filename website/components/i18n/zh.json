@@ -17,17 +17,17 @@
   "resolve-plugin-un-support-desc": "不支持 `resolve.plugins`",
   "progress-plugin-desc": "使用 [webpackbar](https://www.npmjs.com/package/webpackbar) 替代",
   "webpack-virtual-modules-desc": "使用 [VirtualModulesPlugin](/plugins/rspack/virtual-modules-plugin) 替代",
-  "webpack-manifest-plugin-desc": "使用 [rspack-manifest-plugin](https://github.com/rspack-contrib/rspack-manifest-plugin) 替代",
+  "webpack-manifest-plugin-desc": "使用 [rspack-manifest-plugin](https://github.com/rstackjs/rspack-manifest-plugin) 替代",
   "workbox-webpack-plugin-desc": "使用 [@aaroon/workbox-rspack-plugin](https://github.com/Clarkkkk/workbox-rspack-plugin) 替代",
   "webpack-subresource-integrity-desc": "使用 [SubresourceIntegrityPlugin](/zh/plugins/rspack/subresource-integrity-plugin) 替代",
   "react-refresh-webpack-plugin-desc": "使用 [@rspack/plugin-react-refresh](/zh/guide/tech/react#rspackplugin-react-refresh) 替代",
   "@nx/webpack-desc": "使用 [@nx/rspack](https://www.npmjs.com/package/@nx/rspack) 替代",
   "webpack-filter-warnings-plugin-desc": "使用 [ignoreWarnings](/config/other-options#ignorewarnings) 替代",
   "speed-measure-webpack-plugin-desc": "使用 [Rsdoctor](/guide/optimization/use-rsdoctor) 替代",
-  "eslint-webpack-plugin-desc": "使用 [eslint-rspack-plugin](https://github.com/rspack-contrib/eslint-rspack-plugin) 替代",
+  "eslint-webpack-plugin-desc": "使用 [eslint-rspack-plugin](https://github.com/rstackjs/eslint-rspack-plugin) 替代",
   "circular-dependency-plugin-desc": "使用 [CircularDependencyRspackPlugin](/zh/plugins/rspack/circular-dependency-rspack-plugin) 替代",
-  "html-webpack-tags-plugin-desc": "使用 [html-rspack-tags-plugin](https://github.com/rspack-contrib/html-rspack-tags-plugin) 替代",
+  "html-webpack-tags-plugin-desc": "使用 [html-rspack-tags-plugin](https://github.com/rstackjs/html-rspack-tags-plugin) 替代",
   "needs-html-webpack-plugin": "该插件依赖了 html-webpack-plugin",
   "webpack-assets-manifest-desc": "仅支持基础用法",
-  "fork-ts-checker-webpack-plugin-desc": "使用 [ts-checker-rspack-plugin](https://github.com/rspack-contrib/ts-checker-rspack-plugin) 替代"
+  "fork-ts-checker-webpack-plugin-desc": "使用 [ts-checker-rspack-plugin](https://github.com/rstackjs/ts-checker-rspack-plugin) 替代"
 }

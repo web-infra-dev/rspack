@@ -1,8 +1,7 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   Compilation, DependencyCodeGeneration, DependencyLocation, DependencyRange, DependencyTemplate,
-  DependencyTemplateType, RuntimeGlobals, RuntimeSpec, SharedSourceMap, TemplateContext,
-  TemplateReplaceSource,
+  DependencyTemplateType, RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource,
 };
 use rspack_util::ext::DynHash;
 
@@ -15,12 +14,7 @@ pub struct ModuleArgumentDependency {
 }
 
 impl ModuleArgumentDependency {
-  pub fn new(
-    id: Option<String>,
-    range: DependencyRange,
-    source_map: Option<SharedSourceMap>,
-  ) -> Self {
-    let loc = range.to_loc(source_map.as_ref());
+  pub fn new(id: Option<String>, range: DependencyRange, loc: Option<DependencyLocation>) -> Self {
     Self { id, range, loc }
   }
 
@@ -69,24 +63,34 @@ impl DependencyTemplate for ModuleArgumentDependencyTemplate {
       .expect("ModuleArgumentDependencyTemplate should be used for ModuleArgumentDependency");
 
     let TemplateContext {
-      runtime_requirements,
       compilation,
       module,
+      runtime_template,
       ..
     } = code_generatable_context;
 
-    runtime_requirements.insert(RuntimeGlobals::MODULE);
-
-    let module_argument = compilation
-      .get_module_graph()
-      .module_by_identifier(&module.identifier())
-      .expect("should have mgm")
-      .get_module_argument();
+    let module_argument = runtime_template.render_module_argument(
+      compilation
+        .get_module_graph()
+        .module_by_identifier(&module.identifier())
+        .expect("should have mgm")
+        .get_module_argument(),
+    );
 
     let content = if let Some(id) = &dep.id {
+      match id.as_str() {
+        "id" => runtime_template
+          .runtime_requirements_mut()
+          .insert(RuntimeGlobals::MODULE_ID),
+        "loaded" => runtime_template
+          .runtime_requirements_mut()
+          .insert(RuntimeGlobals::MODULE_LOADED),
+        _ => {}
+      };
+
       format!("{module_argument}.{id}")
     } else {
-      format!("{module_argument}")
+      module_argument
     };
 
     source.replace(dep.range.start, dep.range.end, content.as_str(), None);

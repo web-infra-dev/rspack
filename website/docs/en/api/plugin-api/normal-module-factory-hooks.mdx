@@ -25,7 +25,7 @@ The `beforeResolve` hook is called at the very beginning of the module resolutio
 compiler.hooks.compilation.tap(
   'MyPlugin',
   (compilation, { normalModuleFactory }) => {
-    normalModuleFactory.hooks.beforeResolve.tap('MyPlugin', resolveData => {
+    normalModuleFactory.hooks.beforeResolve.tap('MyPlugin', (resolveData) => {
       // access and modify module request information
       console.log(JSON.stringify(resolveData, null, 2));
     });
@@ -55,7 +55,7 @@ The `factorize` hook is used to add custom logic before a module is instantiated
 compiler.hooks.compilation.tap(
   'MyPlugin',
   (compilation, { normalModuleFactory }) => {
-    normalModuleFactory.hooks.factorize.tap('MyPlugin', resolveData => {
+    normalModuleFactory.hooks.factorize.tap('MyPlugin', (resolveData) => {
       // access and modify module request information
       console.log(JSON.stringify(resolveData, null, 2));
     });
@@ -87,7 +87,7 @@ Called before the request is resolved, it should return `undefined` to continue.
 compiler.hooks.compilation.tap(
   'MyPlugin',
   (compilation, { normalModuleFactory }) => {
-    normalModuleFactory.hooks.resolve.tap('MyPlugin', resolveData => {
+    normalModuleFactory.hooks.resolve.tap('MyPlugin', (resolveData) => {
       // access and modify module request information
       console.log(JSON.stringify(resolveData, null, 2));
     });
@@ -121,7 +121,7 @@ The `afterResolve` hook is used to further process or modify the results after t
 compiler.hooks.compilation.tap(
   'MyPlugin',
   (compilation, { normalModuleFactory }) => {
-    normalModuleFactory.hooks.afterResolve.tap('MyPlugin', resolveData => {
+    normalModuleFactory.hooks.afterResolve.tap('MyPlugin', (resolveData) => {
       // access and modify the resolved module information
       console.log(JSON.stringify(resolveData, null, 2));
     });
@@ -153,7 +153,7 @@ compiler.hooks.compilation.tap(
   (compilation, { normalModuleFactory }) => {
     normalModuleFactory.hooks.resolveForScheme
       .for('https')
-      .tap('MyPlugin', resourceData => {
+      .tap('MyPlugin', (resourceData) => {
         console.log(JSON.stringify(resourceData, null, 2));
       });
   },

@@ -1,27 +1,28 @@
 mod chunk;
 mod max_request;
-mod max_size;
-mod min_size;
+pub mod max_size;
+pub mod min_size;
 mod module_group;
 
 use std::{borrow::Cow, cmp::Ordering, fmt::Debug};
 
 use itertools::Itertools;
-use rspack_collections::{IdentifierMap, UkeyMap, UkeySet};
+use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
+use rspack_collections::{DatabaseItem, IdentifierMap, UkeyMap, UkeySet};
 use rspack_core::{ChunkUkey, Compilation, CompilationOptimizeChunks, Logger, Plugin};
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
-use rspack_util::tracing_preset::TRACING_BENCH_TARGET;
-use rustc_hash::FxHashMap;
+use rspack_util::{fx_hash::FxIndexMap, tracing_preset::TRACING_BENCH_TARGET};
 use tracing::instrument;
 
 use crate::{
   CacheGroup, SplitChunkSizes,
   common::FallbackCacheGroup,
+  get_module_sizes,
   module_group::{IndexedCacheGroup, ModuleGroup},
 };
 
-type ModuleGroupMap = FxHashMap<String, ModuleGroup>;
+type ModuleGroupMap = FxIndexMap<String, ModuleGroup>;
 
 #[derive(Debug)]
 pub struct PluginOptions {
@@ -51,21 +52,57 @@ impl SplitChunksPlugin {
     let logger = compilation.get_logger(self.name());
     let start = logger.time("prepare module data");
 
-    let all_modules = compilation
+    let mut all_modules = compilation
       .get_module_graph()
-      .modules()
-      .keys()
+      .modules_keys()
       .copied()
       .collect::<Vec<_>>();
+    // Sort modules to ensure deterministic processing order
+    all_modules.sort_unstable();
 
-    let module_sizes = Self::get_module_sizes(&all_modules, compilation);
+    let module_sizes = get_module_sizes(all_modules.par_iter().copied(), compilation);
     let module_chunks = Self::get_module_chunks(&all_modules, compilation);
     logger.time_end(start);
+
+    let chunk_index_map: UkeyMap<ChunkUkey, u64> = {
+      let mut ordered_chunks = compilation
+        .build_chunk_graph_artifact
+        .chunk_by_ukey
+        .values()
+        .collect::<Vec<_>>();
+
+      ordered_chunks.sort_by_cached_key(|chunk| {
+        // sort by (group.index, chunk index in group)
+        let group = chunk
+          .groups()
+          .iter()
+          .map(|group| {
+            compilation
+              .build_chunk_graph_artifact
+              .chunk_group_by_ukey
+              .expect_get(group)
+          })
+          .min_by(|group1, group2| group1.index.cmp(&group2.index))
+          .expect("chunk should have at least one group");
+        let chunk_index = group
+          .chunks
+          .iter()
+          .position(|c| *c == chunk.ukey())
+          .expect("chunk should be in its group");
+        (group.index, chunk_index)
+      });
+
+      ordered_chunks
+        .iter()
+        .enumerate()
+        .map(|(index, chunk)| (chunk.ukey(), index as u64 + 1))
+        .collect()
+    };
 
     let start = logger.time("prepare cache groups");
     let mut priority_cache_groups = vec![];
 
-    for (priority, cache_groups) in self
+    for (priority, cache_groups) in &self
       .cache_groups
       .iter()
       .enumerate()
@@ -78,7 +115,6 @@ impl SplitChunksPlugin {
         v => v,
       })
       .chunk_by(|v| v.cache_group.priority)
-      .into_iter()
     {
       priority_cache_groups.push((priority, cache_groups.into_iter().collect::<Vec<_>>()));
     }
@@ -87,14 +123,13 @@ impl SplitChunksPlugin {
     let mut removed_module_chunks: IdentifierMap<UkeySet<ChunkUkey>> = IdentifierMap::default();
 
     let mut combinator = module_group::Combinator::default();
-    let module_graph = compilation.get_module_graph();
 
     if self
       .cache_groups
       .iter()
       .any(|cache_group| !cache_group.used_exports)
     {
-      combinator.prepare_group_by_chunks(&all_modules, &module_chunks);
+      combinator.prepare_group_by_chunks(&all_modules, &module_chunks, &chunk_index_map);
     }
 
     if self
@@ -104,9 +139,10 @@ impl SplitChunksPlugin {
     {
       combinator.prepare_group_by_used_exports(
         &all_modules,
-        &module_graph,
-        &compilation.chunk_by_ukey,
+        &compilation.exports_info_artifact,
+        &compilation.build_chunk_graph_artifact.chunk_by_ukey,
         &module_chunks,
+        &chunk_index_map,
       );
     }
 
@@ -123,6 +159,7 @@ impl SplitChunksPlugin {
           &removed_module_chunks,
           compilation,
           &module_chunks,
+          &chunk_index_map,
         )
         .await?;
       tracing::trace!("prepared module_group_map {:#?}", module_group_map);
@@ -149,7 +186,10 @@ impl SplitChunksPlugin {
           &mut is_reuse_existing_chunk_with_all_modules,
         );
 
-        let new_chunk_mut = compilation.chunk_by_ukey.expect_get_mut(&new_chunk);
+        let new_chunk_mut = compilation
+          .build_chunk_graph_artifact
+          .chunk_by_ukey
+          .expect_get_mut(&new_chunk);
         tracing::trace!(
           "{module_group_key}, get Chunk {:?} with is_reuse_existing_chunk: {is_reuse_existing_chunk:?} and {is_reuse_existing_chunk_with_all_modules:?}",
           new_chunk_mut.chunk_reason()
@@ -260,6 +300,7 @@ impl Debug for SplitChunksPlugin {
 async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
   self.inner_impl(compilation).await?;
   compilation
+    .build_chunk_graph_artifact
     .chunk_graph
     .generate_dot(compilation, "after-split-chunks")
     .await;

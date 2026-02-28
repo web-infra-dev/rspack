@@ -13,7 +13,6 @@ mod factorize_info;
 mod loader_import;
 mod module_dependency;
 mod runtime_requirements_dependency;
-mod runtime_template;
 mod static_exports_dependency;
 
 use std::sync::Arc;
@@ -35,22 +34,27 @@ pub use module_dependency::*;
 pub use runtime_requirements_dependency::{
   RuntimeRequirementsDependency, RuntimeRequirementsDependencyTemplate,
 };
-pub use runtime_template::*;
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde::Serialize;
 pub use static_exports_dependency::{StaticExportsDependency, StaticExportsSpec};
 use swc_core::ecma::atoms::Atom;
 
 use crate::{
-  ConnectionState, EvaluatedInlinableValue, ModuleGraph, ModuleGraphCacheArtifact,
-  ModuleGraphConnection, ModuleIdentifier, RuntimeSpec,
+  ConnectionState, EvaluatedInlinableValue, ExportsInfoArtifact, ExtendedReferencedExport,
+  ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, RuntimeSpec,
 };
+
+#[derive(Debug, Clone)]
+pub enum ProcessModuleReferencedExports {
+  Map(FxHashMap<String, ExtendedReferencedExport>),
+  ExtendRef(Vec<ExtendedReferencedExport>),
+}
 
 #[derive(Debug, Default)]
 pub struct ExportSpec {
   pub name: Atom,
   pub export: Option<Nullable<Vec<Atom>>>,
-  pub exports: Option<Vec<ExportNameOrSpec>>,
+  pub exports: Option<ExportSpecExports>,
   pub can_mangle: Option<bool>,
   pub terminal_binding: Option<bool>,
   pub priority: Option<u8>,
@@ -58,6 +62,47 @@ pub struct ExportSpec {
   pub from: Option<ModuleGraphConnection>,
   pub from_export: Option<ModuleGraphConnection>,
   pub inlinable: Option<EvaluatedInlinableValue>,
+}
+
+#[derive(Debug, Default)]
+pub struct ExportSpecExports {
+  pub exports: Vec<ExportNameOrSpec>,
+  /// This is used to tell FlagDependencyExportsPlugin that the nested exports that is not
+  /// fully statical, there are maybe some export that dynamically defined by prototype or
+  /// other way, e.g. json exports or enum exports, it's possible to write:
+  ///
+  /// ```js
+  /// import { obj } from "./data.json";
+  /// obj.toString(); // existed but will have an ESModulesLinkingError for toString not exist
+  /// ```
+  ///
+  /// or
+  ///
+  /// ```ts
+  /// export enum Kind { A, B };
+  /// export namespace Kind {
+  ///   export const isA = (value: Kind) => value === Kind.A
+  /// }
+  /// Kind.isB = (value: Kind) => value === Kind.B
+  /// ```
+  ///
+  /// But for now we only use it for enum exports, if there are issues about json exports then
+  /// we can also apply this to json exports
+  pub unknown_provided: bool,
+}
+
+impl ExportSpecExports {
+  pub fn new(exports: Vec<ExportNameOrSpec>) -> Self {
+    Self {
+      exports,
+      unknown_provided: false,
+    }
+  }
+
+  pub fn with_unknown_provided(mut self, unknown_provided: bool) -> Self {
+    self.unknown_provided = unknown_provided;
+    self
+  }
 }
 
 #[derive(Debug)]
@@ -113,7 +158,7 @@ impl ExportsSpec {
     match &self.exports {
       ExportsOfExportsSpec::UnknownExports => false,
       ExportsOfExportsSpec::NoExports => false,
-      ExportsOfExportsSpec::Names(names) => names.iter().any(|name| match name {
+      ExportsOfExportsSpec::Names(exports) => exports.iter().any(|name| match name {
         ExportNameOrSpec::String(_) => false,
         ExportNameOrSpec::ExportSpec(spec) => spec.exports.is_some(),
       }),
@@ -128,6 +173,7 @@ pub trait DependencyConditionFn: Sync + Send {
     runtime: Option<&RuntimeSpec>,
     module_graph: &ModuleGraph,
     module_graph_cache: &ModuleGraphCacheArtifact,
+    exports_info_artifact: &ExportsInfoArtifact,
   ) -> ConnectionState;
 }
 
@@ -145,10 +191,15 @@ impl DependencyCondition {
     runtime: Option<&RuntimeSpec>,
     mg: &ModuleGraph,
     module_graph_cache: &ModuleGraphCacheArtifact,
+    exports_info_artifact: &ExportsInfoArtifact,
   ) -> ConnectionState {
-    self
-      .0
-      .get_connection_state(connection, runtime, mg, module_graph_cache)
+    self.0.get_connection_state(
+      connection,
+      runtime,
+      mg,
+      module_graph_cache,
+      exports_info_artifact,
+    )
   }
 }
 
@@ -175,5 +226,38 @@ impl ImportAttributes {
 
   pub fn insert(&mut self, k: String, v: String) -> Option<String> {
     self.0.insert(k, v)
+  }
+}
+
+#[rspack_cacheable::cacheable]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
+pub enum ImportPhase {
+  #[default]
+  Evaluation,
+  Source,
+  Defer,
+}
+
+impl ImportPhase {
+  pub fn is_defer(&self) -> bool {
+    matches!(self, ImportPhase::Defer)
+  }
+
+  pub fn as_str(&self) -> &'static str {
+    match self {
+      ImportPhase::Evaluation => "evaluation",
+      ImportPhase::Source => "source",
+      ImportPhase::Defer => "defer",
+    }
+  }
+}
+
+impl From<swc_core::ecma::ast::ImportPhase> for ImportPhase {
+  fn from(phase: swc_core::ecma::ast::ImportPhase) -> Self {
+    match phase {
+      swc_core::ecma::ast::ImportPhase::Evaluation => Self::Evaluation,
+      swc_core::ecma::ast::ImportPhase::Source => Self::Source,
+      swc_core::ecma::ast::ImportPhase::Defer => Self::Defer,
+    }
   }
 }

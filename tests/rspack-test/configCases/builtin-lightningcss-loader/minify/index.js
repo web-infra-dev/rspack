@@ -9,5 +9,5 @@ it("css content minifyed", () => {
 		"utf-8"
 	);
 
-	expect(css.toString()).toMatchFileSnapshot(path.join(__SNAPSHOT__, 'bundle0.css.txt'))
+	expect(css.toString()).toMatchFileSnapshotSync(path.join(__SNAPSHOT__, 'bundle0.css.txt'))
 });

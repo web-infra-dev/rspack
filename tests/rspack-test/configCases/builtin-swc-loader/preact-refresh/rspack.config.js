@@ -40,20 +40,5 @@ module.exports = {
 		new rspack.DefinePlugin({
 			STUB: JSON.stringify("<div></div>")
 		}),
-		{
-			apply(compiler) {
-				compiler.hooks.compilation.tap("_", compilation => {
-					compilation.hooks.processAssets.tap("_", assets => {
-						compilation.updateAsset(
-							"bundle0.js",
-							new ConcatSource(
-								new RawSource("const self = globalThis;"), // mock self to NodeJs specific global object
-								assets["bundle0.js"]
-							)
-						);
-					});
-				});
-			}
-		}
 	]
 };

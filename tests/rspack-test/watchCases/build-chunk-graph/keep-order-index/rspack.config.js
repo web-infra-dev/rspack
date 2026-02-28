@@ -1,20 +1,19 @@
 const { rspack } = require("@rspack/core");
 
-/** @type {import("webpack").Configuration} */
+/** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	plugins: [new rspack.CssExtractRspackPlugin({ ignoreOrder: true })],
 	module: {
 		rules: [
 			{
 				test: /\.css$/,
+        type: 'javascript/auto',
 				use: [rspack.CssExtractRspackPlugin.loader, "css-loader"]
 			}
 		]
 	},
-	experiments: {
-		incremental: {
-			buildChunkGraph: true
-		}
+	incremental: {
+		buildChunkGraph: true
 	},
 	optimization: {
 		splitChunks: {
@@ -27,9 +26,5 @@ module.exports = {
 				}
 			}
 		}
-	},
-	experiments: {
-		css: false,
-		incremental: true
 	}
 };

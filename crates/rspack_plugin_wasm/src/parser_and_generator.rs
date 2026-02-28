@@ -1,20 +1,12 @@
-use std::{
-  borrow::Cow,
-  collections::hash_map::DefaultHasher,
-  hash::{Hash, Hasher},
-};
+use std::borrow::Cow;
 
 use indexmap::IndexMap;
-use rspack_cacheable::{
-  cacheable, cacheable_dyn,
-  with::{AsInner, AsMap},
-};
+use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
-  AssetInfo, BoxDependency, BuildMetaExportsType, ChunkGraph, CodeGenerationData, Compilation,
-  Dependency, DependencyId, DependencyType, Filename, GenerateContext, Module, ModuleDependency,
-  ModuleGraph, ModuleIdentifier, ModuleInitFragments, NormalModule, ParseContext, ParseResult,
-  ParserAndGenerator, PathData, RuntimeGlobals, SourceType, StaticExportsDependency,
-  StaticExportsSpec, TemplateContext, export_from_import, import_statement,
+  BoxDependency, BuildMetaExportsType, Dependency, DependencyId, DependencyType, ExportsArgument,
+  GenerateContext, ImportPhase, Module, ModuleArgument, ModuleDependency, ModuleGraph,
+  ModuleIdentifier, ModuleInitFragments, ParseContext, ParseResult, ParserAndGenerator,
+  RuntimeGlobals, SourceType, StaticExportsDependency, StaticExportsSpec,
   rspack_sources::{BoxSource, RawStringSource, Source, SourceExt},
 };
 use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
@@ -22,14 +14,11 @@ use rspack_util::{itoa, json_stringify};
 use swc_core::atoms::Atom;
 use wasmparser::{Import, Parser, Payload};
 
-use crate::{ModuleIdToFileName, dependency::WasmImportDependency};
+use crate::dependency::WasmImportDependency;
 
 #[cacheable]
 #[derive(Debug)]
-pub struct AsyncWasmParserAndGenerator {
-  #[cacheable(with=AsInner<AsMap>)]
-  pub(crate) module_id_to_filename: ModuleIdToFileName,
-}
+pub struct AsyncWasmParserAndGenerator;
 
 pub(crate) static WASM_SOURCE_TYPE: &[SourceType; 2] = &[SourceType::Wasm, SourceType::JavaScript];
 
@@ -143,28 +132,18 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
     let GenerateContext {
       compilation,
       runtime,
+      runtime_template,
       ..
     } = generate_context;
-    let wasm_filename_template = &compilation.options.output.webassembly_module_filename;
-    let hash = hash_for_source(source);
-    let normal_module = module
-      .as_normal_module()
-      .expect("module should be a NormalModule in AsyncWasmParserAndGenerator::generate");
-    let wasm_path_with_info =
-      render_wasm_name(compilation, normal_module, wasm_filename_template, &hash).await?;
-
-    self
-      .module_id_to_filename
-      .insert(module.identifier(), wasm_path_with_info.clone());
+    let hash = module
+      .build_info()
+      .hash
+      .as_ref()
+      .map(|hash| hash.rendered(16))
+      .expect("should build info have hash");
 
     match generate_context.requested_source_type {
       SourceType::JavaScript => {
-        let runtime_requirements = &mut generate_context.runtime_requirements;
-        runtime_requirements.insert(RuntimeGlobals::MODULE);
-        runtime_requirements.insert(RuntimeGlobals::MODULE_ID);
-        runtime_requirements.insert(RuntimeGlobals::EXPORTS);
-        runtime_requirements.insert(RuntimeGlobals::INSTANTIATE_WASM);
-
         let mut dep_modules = IndexMap::<ModuleIdentifier, DepModule>::new();
         let mut promises: Vec<String> = vec![];
 
@@ -173,7 +152,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
         module
           .get_dependencies()
           .iter()
-          .map(|id| module_graph.dependency_by_id(id).expect("should be ok"))
+          .map(|id| module_graph.dependency_by_id(id))
           .filter(|dep| dep.dependency_type() == &DependencyType::WasmImport)
           .map(|dep| {
             (
@@ -192,8 +171,11 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
               let dep_module = dep_modules.entry(mgm.module_identifier).or_insert_with(|| {
                 let mut len_buffer = itoa::Buffer::new();
                 let len_str = len_buffer.format(len);
-                let import_var = format!("WEBPACK_IMPORTED_MODULE_{}", len_str);
-                if ModuleGraph::is_async(compilation, &mgm.module_identifier) {
+                let import_var = format!("rspack_import_{len_str}");
+                if ModuleGraph::is_async(
+                  &compilation.async_modules_artifact,
+                  &mgm.module_identifier,
+                ) {
                   promises.push(import_var.clone());
                 }
                 DepModule {
@@ -209,13 +191,13 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
         let (imports_code, imports_compat_code): (Vec<String>, Vec<String>) = dep_modules
           .iter()
           .map(|(_, dep_module)| {
-            import_statement(
+            runtime_template.import_statement(
               module,
               compilation,
-              runtime_requirements,
               &dep_module.deps[0].0,
               &dep_module.import_var,
               dep_module.request,
+              ImportPhase::Evaluation,
               false,
             )
           })
@@ -223,15 +205,6 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
         let imports_code = imports_code.join("");
         let imports_compat_code = imports_compat_code.join("");
 
-        let mut template_context = TemplateContext {
-          compilation,
-          module,
-          runtime_requirements,
-          init_fragments: &mut ModuleInitFragments::default(),
-          runtime: *runtime,
-          concatenation_scope: None,
-          data: &mut CodeGenerationData::default(),
-        };
         let import_obj_request_items = dep_modules
           .into_values()
           .map(|dep_module| {
@@ -239,8 +212,11 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
               .deps
               .into_iter()
               .map(|(dep_id, export_name)| {
-                let export = export_from_import(
-                  &mut template_context,
+                let export = runtime_template.export_from_import(
+                  compilation,
+                  &mut ModuleInitFragments::default(),
+                  module.identifier(),
+                  *runtime,
                   true,
                   dep_module.request,
                   &dep_module.import_var,
@@ -249,6 +225,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
                   false,
                   false,
                   Some(true),
+                  ImportPhase::Evaluation,
                 );
                 let name = json_stringify(&export_name);
                 format!("{name}: {export}")
@@ -269,41 +246,41 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
           None
         };
 
+        let module_argument = runtime_template.render_module_argument(ModuleArgument::Module);
+        let exports_argument = runtime_template.render_exports_argument(ExportsArgument::Exports);
         let instantiate_call = format!(
-          "{}(exports, module.id, {} {})",
-          RuntimeGlobals::INSTANTIATE_WASM,
-          serde_json::to_string(&hash).expect("should be ok"),
+          r#"{}({exports_argument}, {}, "{}" {})"#,
+          runtime_template.render_runtime_globals(&RuntimeGlobals::INSTANTIATE_WASM),
+          runtime_template.render_runtime_globals(&RuntimeGlobals::MODULE_ID),
+          &hash,
           imports_obj.unwrap_or_default()
         );
 
         let source = if !promises.is_empty() {
-          generate_context
-            .runtime_requirements
-            .insert(RuntimeGlobals::ASYNC_MODULE);
           let promises = promises.join(", ");
           let decl = format!(
-            "var __webpack_instantiate__ = function ([{promises}]) {{\n{imports_compat_code}return {instantiate_call};\n}}\n",
+            "var __rspack_instantiate__ = function ([{promises}]) {{\n{imports_compat_code}return {instantiate_call};\n}}\n",
           );
           let async_dependencies = format!(
-"{}(module, async function (__webpack_handle_async_dependencies__, __webpack_async_result__) {{
+"{}({module_argument}, async function (__rspack_load_async_deps, __rspack_async_done) {{
   try {{
 {imports_code}
-    var __webpack_async_dependencies__ = __webpack_handle_async_dependencies__([{promises}]);
-    var [{promises}] = __webpack_async_dependencies__.then ? (await __webpack_async_dependencies__)() : __webpack_async_dependencies__;
+    var __rspack_async_deps = __rspack_load_async_deps([{promises}]);
+    var [{promises}] = __rspack_async_deps.then ? (await __rspack_async_deps)() : __rspack_async_deps;
     {imports_compat_code}await {instantiate_call};
 
-  __webpack_async_result__();
+  __rspack_async_done();
 
-  }} catch(e) {{ __webpack_async_result__(e); }}
+  }} catch(e) {{ __rspack_async_done(e); }}
 }}, 1);
 ",
-            RuntimeGlobals::ASYNC_MODULE,
+            runtime_template.render_runtime_globals(&RuntimeGlobals::ASYNC_MODULE),
           );
 
           RawStringSource::from(format!("{decl}{async_dependencies}"))
         } else {
           RawStringSource::from(format!(
-            "{imports_code}{imports_compat_code}module.exports = {instantiate_call};"
+            "{imports_code}{imports_compat_code}{module_argument}.exports = {instantiate_call};"
           ))
         };
 
@@ -321,32 +298,4 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
   ) -> Option<Cow<'static, str>> {
     Some("Module Concatenation is not implemented for AsyncWasmParserAndGenerator".into())
   }
-}
-
-async fn render_wasm_name(
-  compilation: &Compilation,
-  normal_module: &NormalModule,
-  wasm_filename_template: &Filename,
-  hash: &str,
-) -> Result<(String, AssetInfo)> {
-  compilation
-    .get_asset_path_with_info(
-      wasm_filename_template,
-      PathData::default()
-        .module_id_optional(
-          ChunkGraph::get_module_id(&compilation.module_ids_artifact, normal_module.id())
-            .map(|s| PathData::prepare_id(s.as_str()))
-            .as_deref(),
-        )
-        .filename(normal_module.resource_resolved_data().resource())
-        .content_hash(hash)
-        .hash(hash),
-    )
-    .await
-}
-
-fn hash_for_source(source: &BoxSource) -> String {
-  let mut hasher = DefaultHasher::new();
-  source.hash(&mut hasher);
-  format!("{:016x}", hasher.finish())
 }

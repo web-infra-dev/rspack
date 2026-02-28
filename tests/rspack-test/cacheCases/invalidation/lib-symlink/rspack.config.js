@@ -11,13 +11,11 @@ const libLinkedPath = path.join(nodeModulesPath, "tools");
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	context: __dirname,
-	experiments: {
-		cache: {
-			type: "persistent",
-			snapshot: {
-				immutablePaths: [path.join(__dirname, "./file.js")],
-				managedPaths: [path.join(__dirname, "./libs"), /node_modules/]
-			}
+	cache: {
+		type: "persistent",
+		snapshot: {
+			immutablePaths: [path.join(__dirname, "./file.js")],
+			managedPaths: [path.join(__dirname, "./libs"), /node_modules/]
 		}
 	},
 	plugins: [

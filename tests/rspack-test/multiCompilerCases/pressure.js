@@ -4,6 +4,7 @@ const total = 100;
 const runnings = [];
 let finish = 0;
 
+/** @type {import('@rspack/test-tools').TMultiCompilerCaseConfig[]} */
 module.exports = [{
   description: "should work well in multiCompilers",
   options(context) {

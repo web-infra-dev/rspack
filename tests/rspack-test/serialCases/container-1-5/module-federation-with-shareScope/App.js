@@ -1,4 +1,4 @@
-import React from "react";
+import React from "mocked-react";
 import ComponentA from "containerA/ComponentA";
 import ComponentB from "containerB/ComponentB";
 import LocalComponentB from "./ComponentB";

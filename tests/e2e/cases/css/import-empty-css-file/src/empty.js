@@ -1,1 +1,1 @@
-import "./empty.css";
+import './empty.css';

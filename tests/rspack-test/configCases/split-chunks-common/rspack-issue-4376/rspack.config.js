@@ -6,7 +6,7 @@ module.exports = [
 		target: "node",
 		output: {
 			filename: "default-[name].js",
-			libraryTarget: "commonjs2"
+			library: { type: "commonjs2" }
 		},
 		optimization: {
 			splitChunks: {
@@ -21,7 +21,7 @@ module.exports = [
 		target: "node",
 		output: {
 			filename: "many-vendors-[name].js",
-			libraryTarget: "commonjs2"
+			library: { type: "commonjs2" }
 		},
 		optimization: {
 			splitChunks: {

@@ -52,10 +52,12 @@ fn extract_deps(
 impl JavascriptParser<'_> {
   fn create_hmr_expression_handler(&mut self, span: Span) {
     self.build_info.module_concatenation_bailout = Some(String::from("Hot Module Replacement"));
+    let range = DependencyRange::from(span);
+    let loc = self.to_dependency_location(range);
     self.add_presentational_dependency(Box::new(ModuleArgumentDependency::new(
       Some("hot".into()),
       span.into(),
-      Some(self.source_map.clone()),
+      loc,
     )));
   }
 
@@ -65,10 +67,12 @@ impl JavascriptParser<'_> {
     create_dependency: CreateDependency,
   ) -> Option<bool> {
     self.build_info.module_concatenation_bailout = Some(String::from("Hot Module Replacement"));
+    let callee_range = DependencyRange::from(call_expr.callee.span());
+    let loc = self.to_dependency_location(callee_range);
     self.add_presentational_dependency(Box::new(ModuleArgumentDependency::new(
       Some("hot.accept".into()),
       call_expr.callee.span().into(),
-      Some(self.source_map.clone()),
+      loc,
     )));
     let dependencies = extract_deps(self, call_expr, create_dependency);
     if !dependencies.is_empty() {
@@ -79,11 +83,13 @@ impl JavascriptParser<'_> {
       } else {
         DependencyRange::new(call_expr.span().real_hi() - 1, 0)
       };
+      let call_range = DependencyRange::from(call_expr.span());
+      let loc = self.to_dependency_location(call_range);
       self.add_presentational_dependency(Box::new(ESMAcceptDependency::new(
         range,
         callback_arg.is_some(),
         dependency_ids,
-        Some(self.source_map.clone()),
+        loc,
       )));
       self.add_dependencies(dependencies);
       for arg in call_expr.args.iter().skip(1) {
@@ -101,10 +107,12 @@ impl JavascriptParser<'_> {
     create_dependency: CreateDependency,
   ) -> Option<bool> {
     self.build_info.module_concatenation_bailout = Some(String::from("Hot Module Replacement"));
+    let callee_range = DependencyRange::from(call_expr.callee.span());
+    let loc = self.to_dependency_location(callee_range);
     self.add_presentational_dependency(Box::new(ModuleArgumentDependency::new(
       Some("hot.decline".into()),
       call_expr.callee.span().into(),
-      Some(self.source_map.clone()),
+      loc,
     )));
     let dependencies = extract_deps(self, call_expr, create_dependency);
     self.add_dependencies(dependencies);
@@ -199,9 +207,9 @@ impl JavascriptParserPlugin for ImportMetaHotReplacementParserPlugin {
     start: u32,
     end: u32,
   ) -> Option<crate::utils::eval::BasicEvaluatedExpression<'static>> {
-    if for_name == expr_name::IMPORT_META_WEBPACK_HOT {
+    if for_name == expr_name::IMPORT_META_HOT {
       Some(eval::evaluate_to_identifier(
-        expr_name::IMPORT_META_WEBPACK_HOT.into(),
+        expr_name::IMPORT_META_HOT.into(),
         expr_name::IMPORT_META.into(),
         Some(true),
         start,
@@ -218,7 +226,7 @@ impl JavascriptParserPlugin for ImportMetaHotReplacementParserPlugin {
     expr: &swc_core::ecma::ast::MemberExpr,
     for_name: &str,
   ) -> Option<bool> {
-    if for_name == expr_name::IMPORT_META_WEBPACK_HOT {
+    if for_name == expr_name::IMPORT_META_HOT {
       parser.create_hmr_expression_handler(expr.span());
       Some(true)
     } else {
@@ -232,11 +240,11 @@ impl JavascriptParserPlugin for ImportMetaHotReplacementParserPlugin {
     call_expr: &swc_core::ecma::ast::CallExpr,
     for_name: &str,
   ) -> Option<bool> {
-    if for_name == expr_name::IMPORT_META_WEBPACK_HOT_ACCEPT {
+    if for_name == expr_name::IMPORT_META_HOT_ACCEPT {
       parser.create_accept_handler(call_expr, |request, range| {
         Box::new(ImportMetaHotAcceptDependency::new(request, range))
       })
-    } else if for_name == expr_name::IMPORT_META_WEBPACK_HOT_DECLINE {
+    } else if for_name == expr_name::IMPORT_META_HOT_DECLINE {
       parser.create_decline_handler(call_expr, |request, range| {
         Box::new(ImportMetaHotDeclineDependency::new(request, range))
       })

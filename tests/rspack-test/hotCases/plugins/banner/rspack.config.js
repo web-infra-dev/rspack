@@ -5,7 +5,7 @@ module.exports = {
 	plugins: [
 		new rspack.BannerPlugin({
 			banner:
-				"global.bannerIndex = typeof global.bannerIndex === 'number' ? global.bannerIndex + 1 : 0;",
+				"globalThis.bannerIndex = typeof globalThis.bannerIndex === 'number' ? globalThis.bannerIndex + 1 : 0;",
 			raw: true
 		})
 	]

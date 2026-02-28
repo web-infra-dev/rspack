@@ -2,40 +2,38 @@ mod context_dependency_helper;
 mod parser;
 mod util;
 
-use std::sync::Arc;
-
 use rspack_core::{
   AsyncDependenciesBlock, BoxDependency, BoxDependencyTemplate, BuildInfo, BuildMeta,
   CompilerOptions, FactoryMeta, ModuleIdentifier, ModuleLayer, ModuleType, ParseMeta,
-  ParserOptions, ResourceData,
+  ParserOptions, ResourceData, SideEffectsBailoutItemWithSpan,
 };
 use rspack_error::Diagnostic;
 use rspack_javascript_compiler::ast::Program;
 use rustc_hash::FxHashSet;
-use swc_core::common::{BytePos, Mark, SourceFile, SourceMap, comments::Comments};
+use swc_core::common::{BytePos, Mark, comments::Comments};
 
 pub use self::{
   context_dependency_helper::{ContextModuleScanResult, create_context_dependency},
   parser::{
     AllowedMemberTypes, CallExpressionInfo, CallHooksName, DestructuringAssignmentProperties,
     DestructuringAssignmentProperty, ExportedVariableInfo, JavascriptParser, MemberExpressionInfo,
-    RootName, TagInfoData, TopLevelScope, estree::*,
+    RootName, TagInfoData, TopLevelScope, ast::*, estree::*,
   },
   util::*,
 };
-use crate::BoxJavascriptParserPlugin;
+use crate::{BoxJavascriptParserPlugin, parser_and_generator::ParserRuntimeRequirementsData};
 
 pub struct ScanDependenciesResult {
   pub dependencies: Vec<BoxDependency>,
   pub blocks: Vec<Box<AsyncDependenciesBlock>>,
   pub presentational_dependencies: Vec<BoxDependencyTemplate>,
   pub warning_diagnostics: Vec<Diagnostic>,
+  pub side_effects_item: Option<SideEffectsBailoutItemWithSpan>,
 }
 
 #[allow(clippy::too_many_arguments)]
 pub fn scan_dependencies(
-  source_map: Arc<SourceMap>,
-  source_file: &SourceFile,
+  source: &str,
   program: &Program,
   resource_data: &ResourceData,
   compiler_options: &CompilerOptions,
@@ -50,10 +48,10 @@ pub fn scan_dependencies(
   unresolved_mark: Mark,
   parser_plugins: &mut Vec<BoxJavascriptParserPlugin>,
   parse_meta: ParseMeta,
+  parser_runtime_requirements: &ParserRuntimeRequirementsData,
 ) -> Result<ScanDependenciesResult, Vec<Diagnostic>> {
   let mut parser = JavascriptParser::new(
-    source_map,
-    source_file,
+    source,
     compiler_options,
     module_parser_options
       .and_then(|p| p.get_javascript())
@@ -70,6 +68,7 @@ pub fn scan_dependencies(
     unresolved_mark,
     parser_plugins,
     parse_meta,
+    parser_runtime_requirements,
   );
 
   parser.walk_program(program.get_inner_program());

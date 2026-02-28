@@ -11,14 +11,15 @@ it("should load a module of non-default type without extension from dll", functi
 	expect(require("dll/f")).toBe("f");
 });
 
-it("should load an async module from dll", function(done) {
+it("should load an async module from dll", () => new Promise((resolve, reject) => {
+	const done = err => (err ? reject(err) : resolve());
 	require("dll/b")()
 		.then(function(c) {
 			expect(c).toEqual(nsObj({ default: "c" }));
 			done();
 		})
 		.catch(done);
-});
+}));
 
 it("should load an ES module from dll (default export)", function() {
 	expect(d).toBe("d");

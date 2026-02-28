@@ -1,4 +1,4 @@
-const { experiments } = require("@rspack/core");
+const { SubresourceIntegrityPlugin } = require("@rspack/core");
 
 module.exports = {
 	mode: "production",
@@ -7,14 +7,7 @@ module.exports = {
 		main: "./index.js"
 	},
 	output: {
-		crossOriginLoading: "anonymous"
+		crossOriginLoading: "anonymous",
 	},
-	plugins: [new experiments.SubresourceIntegrityPlugin()],
-	experiments: {
-		rspackFuture: {
-			bundlerInfo: {
-				force: false
-			}
-		}
-	}
+	plugins: [new SubresourceIntegrityPlugin()],
 };

@@ -1,6 +1,6 @@
 Object {
-  class: bd00b1e0e0954270-class a700d75440d0c95b-lessClass,
-  ghi: bd00b1e0e0954270-ghi,
-  other: bd00b1e0e0954270-other _59c82bab3b83825a-scssClass,
-  otherClassName: bd00b1e0e0954270-otherClassName globalClassName,
+  class: eac61ee5de81a66e aff81d9361892b2d,
+  ghi: d897d66818179c8a,
+  other: be012b4395318923 a5b763cdab63af12,
+  otherClassName: _22fc90d931da146b globalClassName,
 }

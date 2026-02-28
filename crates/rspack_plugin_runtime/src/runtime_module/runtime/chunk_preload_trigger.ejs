@@ -1,4 +1,4 @@
-var chunkToChildrenMap = <%- CHUNK_MAP %>;
+var chunkToChildrenMap = <%- _chunk_map %>;
 <%- ENSURE_CHUNK_HANDLERS %>.preload =  <%- basicFunction("chunkId") %> {
   var chunks = chunkToChildrenMap[chunkId];
   Array.isArray(chunks) && chunks.map(<%- PRELOAD_CHUNK %>);

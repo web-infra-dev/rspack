@@ -1,6 +1,6 @@
 import OldReact from "old-react";
 import OldReactSingleton from "old-react-singleton";
-import React from "react";
+import React from "mocked-react";
 import ComponentC from "containerB/ComponentC";
 
 export default () => {

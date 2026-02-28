@@ -1,11 +1,13 @@
-const { RuntimeGlobals } = require("@rspack/core");
-
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	entry: "./index.mjs",
-	experiments: {
-		outputModule: true,
-		css: true
+	module: {
+		rules: [
+			{
+				test: /\.css$/,
+				type: "css/auto"
+			}
+		]
 	},
 	name: "esm",
 	target: "web",
@@ -20,6 +22,7 @@ module.exports = {
 	plugins: [
 		{
 			apply(compiler) {
+				const RuntimeGlobals = compiler.rspack.RuntimeGlobals;
 				compiler.hooks.compilation.tap("Test", compilation => {
 					compilation.hooks.processAssets.tap(
 						{

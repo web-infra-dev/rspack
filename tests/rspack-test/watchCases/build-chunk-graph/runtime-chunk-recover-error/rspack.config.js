@@ -1,4 +1,4 @@
-const config = (index, parallelCodeSplitting) => ({
+const config = index => ({
 	entry: {
 		entry1: "./entry1.js",
 		entry2: "./entry2.js"
@@ -9,14 +9,9 @@ const config = (index, parallelCodeSplitting) => ({
 	optimization: {
 		runtimeChunk: "single"
 	},
-	experiments: {
-		parallelCodeSplitting,
-		incremental: {
-			buildChunkGraph: true
-		}
+	incremental: {
+		buildChunkGraph: true
 	}
 });
 
-module.exports = [true, false].map((parallelCodeSplitting, index) =>
-	config(index, parallelCodeSplitting)
-);
+module.exports = [0, 1].map(index => config(index));

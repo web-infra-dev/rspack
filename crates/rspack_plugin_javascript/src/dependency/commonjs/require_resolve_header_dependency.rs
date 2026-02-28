@@ -2,7 +2,7 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AffectType, AsContextDependency, AsModuleDependency, Dependency, DependencyCodeGeneration,
   DependencyId, DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType,
-  SharedSourceMap, TemplateContext, TemplateReplaceSource,
+  TemplateContext, TemplateReplaceSource,
 };
 
 #[cacheable]
@@ -14,8 +14,7 @@ pub struct RequireResolveHeaderDependency {
 }
 
 impl RequireResolveHeaderDependency {
-  pub fn new(range: DependencyRange, source_map: Option<SharedSourceMap>) -> Self {
-    let loc = range.to_loc(source_map.as_ref());
+  pub fn new(range: DependencyRange, loc: Option<DependencyLocation>) -> Self {
     Self {
       id: DependencyId::new(),
       range,

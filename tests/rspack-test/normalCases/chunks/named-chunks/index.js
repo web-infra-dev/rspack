@@ -1,4 +1,5 @@
-it("should handle named chunks", function(done) {
+it("should handle named chunks", () => new Promise((resolve, reject) => {
+	const done = err => (err ? reject(err) : resolve());
 	var sync = false;
 	require.ensure([], function(require) {
 		require("./empty?a");
@@ -17,9 +18,10 @@ it("should handle named chunks", function(done) {
 			done();
 		}, "named-chunk");
 	}
-});
+}));
 
-it("should handle empty named chunks", function(done) {
+it("should handle empty named chunks", () => new Promise((resolve, reject) => {
+	const done = err => (err ? reject(err) : resolve());
 	var sync = false;
 	require.ensure([], function(require) {
 		expect(sync).toBeTruthy();
@@ -32,9 +34,10 @@ it("should handle empty named chunks", function(done) {
 	setImmediate(function() {
 		sync = false;
 	});
-});
+}));
 
-it("should handle named chunks when there is an error callback", function(done) {
+it("should handle named chunks when there is an error callback",() => new Promise((resolve, reject) => {
+	const done = err => (err ? reject(err) : resolve());
 	var sync = false;
 	require.ensure([], function(require) {
 		require("./empty?e");
@@ -53,9 +56,10 @@ it("should handle named chunks when there is an error callback", function(done) 
 			done();
 		}, function(error) {}, "named-chunk-for-error-callback");
 	}
-});
+}));
 
-it("should handle empty named chunks when there is an error callback", function(done) {
+it("should handle empty named chunks when there is an error callback", () => new Promise((resolve, reject) => {
+	const done = err => (err ? reject(err) : resolve());
 	var sync = false;
 	require.ensure([], function(require) {
 		expect(sync).toBeTruthy();
@@ -68,9 +72,10 @@ it("should handle empty named chunks when there is an error callback", function(
 	setImmediate(function() {
 		sync = false;
 	});
-});
+}));
 
-it("should be able to use named chunks in import()", function(done) {
+it("should be able to use named chunks in import()", () => new Promise((resolve, reject) => {
+	const done = err => (err ? reject(err) : resolve());
 	var sync = false;
 	import("./empty?import1-in-chunk1" /* webpackChunkName: "import-named-chunk-1" */).then(function(result){
 		var i = 0;
@@ -91,9 +96,10 @@ it("should be able to use named chunks in import()", function(done) {
 			sync = false;
 		});
 	});
-});
+}));
 
-it("should be able to use named chunk in context import()", function(done) {
+it("should be able to use named chunk in context import()", () => new Promise((resolve, reject) => {
+	const done = err => (err ? reject(err) : resolve());
 	// cspell:ignore mpty
 	var mpty = "mpty";
 	var sync = false;
@@ -116,4 +122,4 @@ it("should be able to use named chunk in context import()", function(done) {
 			sync = false;
 		});
 	});
-});
+}));

@@ -26,8 +26,13 @@ impl JsModuleGraph {
     }
   }
 
-  fn as_ref(&self) -> napi::Result<(&'static Compilation, ModuleGraph<'static>)> {
+  fn as_ref(&self) -> napi::Result<(&'static Compilation, &'static ModuleGraph)> {
     let compilation = unsafe { self.compilation.as_ref() };
+    if compilation.build_module_graph_artifact.is_stolen() {
+      return Err(napi::Error::from_reason(
+        "ModuleGraph is not available during module graph building phase".to_string(),
+      ));
+    }
     let module_graph = compilation.get_module_graph();
 
     Ok((compilation, module_graph))
@@ -83,7 +88,7 @@ impl JsModuleGraph {
     js_module: ModuleObjectRef,
     js_runtime: Either<String, Vec<String>>,
   ) -> napi::Result<Option<Either<bool, Vec<JsString<'a>>>>> {
-    let (_, module_graph) = self.as_ref()?;
+    let (compilation, _) = self.as_ref()?;
 
     let mut runtime = ustr::UstrSet::default();
     match js_runtime {
@@ -94,7 +99,8 @@ impl JsModuleGraph {
         runtime.extend(vec.iter().map(String::as_str).map(ustr::Ustr::from));
       }
     };
-    let exports_info = module_graph
+    let exports_info = compilation
+      .exports_info_artifact
       .get_prefetched_exports_info(&js_module.identifier, PrefetchExportsInfoMode::Default);
     let used_exports = exports_info.get_used_exports(Some(&RuntimeSpec::new(runtime)));
     Ok(match used_exports {
@@ -118,8 +124,10 @@ impl JsModuleGraph {
 
   #[napi(ts_args_type = "module: Module")]
   pub fn get_exports_info(&self, module: ModuleObjectRef) -> napi::Result<JsExportsInfo> {
-    let (compilation, module_graph) = self.as_ref()?;
-    let exports_info = module_graph.get_exports_info(&module.identifier);
+    let (compilation, _) = self.as_ref()?;
+    let exports_info = compilation
+      .exports_info_artifact
+      .get_exports_info(&module.identifier);
     Ok(JsExportsInfo::new(exports_info, compilation))
   }
 
@@ -257,6 +265,9 @@ impl JsModuleGraph {
   #[napi(ts_args_type = "module: Module")]
   pub fn is_async(&self, module: ModuleObjectRef) -> napi::Result<bool> {
     let (compilation, _) = self.as_ref()?;
-    Ok(ModuleGraph::is_async(compilation, &module.identifier))
+    Ok(ModuleGraph::is_async(
+      &compilation.async_modules_artifact,
+      &module.identifier,
+    ))
   }
 }

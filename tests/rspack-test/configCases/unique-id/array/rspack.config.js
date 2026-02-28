@@ -1,10 +1,8 @@
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
-	experiments: {
-		rspackFuture: {
-			bundlerInfo: {
-				force: ["uniqueId"]
-			}
+	output: {
+		bundlerInfo: {
+			force: ["uniqueId"]
 		}
-	}
+	},
 };

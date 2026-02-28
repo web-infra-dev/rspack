@@ -2,7 +2,7 @@ import { PackageManagerTabs } from '@theme';
 
 # 迁移 Storybook
 
-如果你正在使用 [Storybook](https://storybook.js.org/) 的 React / Vue 框架并且使用 webpack 5 构建，那么可以使用 [storybook-rsbuild](https://github.com/rspack-contrib/storybook-rsbuild) 替换 `@storybook/react-webpack5` 构建，`storybook-rsbuild` 基于 Rsbuild 实现，以 Rspack 作为底层构建工具，支持开箱即用，文档可参考 [storybook-rsbuild](https://github.com/rspack-contrib/storybook-rsbuild)。
+如果你正在使用 [Storybook](https://storybook.js.org/) 的 React / Vue 框架并且使用 webpack 5 构建，那么可以使用 [storybook-rsbuild](https://github.com/rstackjs/storybook-rsbuild) 替换 `@storybook/react-webpack5` 构建，`storybook-rsbuild` 基于 Rsbuild 实现，以 Rspack 作为底层构建工具，支持开箱即用，文档可参考 [storybook-rsbuild](https://github.com/rstackjs/storybook-rsbuild)。
 
 下面将以 React 为例，介绍如何迁移 Storybook webpack 5 项目，Vue 项目迁移步骤与 React 相似。
 
@@ -44,8 +44,8 @@ export default {
 
 ## 示例
 
-在 [rspack-contrib/storybook-rsbuild](https://github.com/rspack-contrib/storybook-rsbuild/tree/main/sandboxes) 仓库中提供了 React / Vue 项目的 Storybook 示例。
+在 [rstackjs/storybook-rsbuild](https://github.com/rstackjs/storybook-rsbuild/tree/main/sandboxes) 仓库中提供了 React / Vue 项目的 Storybook 示例。
 
 ## 局限
 
-Rspack 正在逐步完善对 Storybook 的完整支持，目前有部分能力不支持，具体见 [storybook-rsbuild - Roadmap](https://github.com/rspack-contrib/storybook-rsbuild#roadmap)。
+Rspack 正在逐步完善对 Storybook 的完整支持，目前有部分能力不支持，具体见 [storybook-rsbuild - Roadmap](https://github.com/rstackjs/storybook-rsbuild#roadmap)。

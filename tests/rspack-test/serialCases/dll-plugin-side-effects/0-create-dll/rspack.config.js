@@ -7,7 +7,7 @@ module.exports = {
 	output: {
 		filename: "dll.js",
 		chunkFilename: "[id].dll.js",
-		libraryTarget: "commonjs2"
+		library: { type: "commonjs2" }
 	},
 	module: {
 		rules: [

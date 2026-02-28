@@ -10,6 +10,6 @@ it("generated code should use hotUpdateGlobal", async () => {
 		path.resolve(__dirname, "b.js"),
 		"utf-8"
 	);
-	expect(a).toContain('self["webpackHotUpdatea"]');
-	expect(b).toContain('self["webpackHotUpdateb"]');
+	expect(a).toContain('self["rspackHotUpdatea"]');
+	expect(b).toContain('self["rspackHotUpdateb"]');
 });

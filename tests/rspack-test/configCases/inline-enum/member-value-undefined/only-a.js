@@ -6,7 +6,7 @@ export const test = (it, generated) => {
     expect(E.A).toBe("a");
     // END:ONLY_A
     const block = generated.match(/\/\/ START:ONLY_A([\s\S]*)\/\/ END:ONLY_A/)[1];
-    expect(block.includes(`(/* inlined export .E.A */ ("a")).toBe("a")`)).toBe(true);
+    expect(block.includes(`((/* inlined export .E.A */"a")).toBe("a")`)).toBe(true);
   })
 
   it("should remove the module if only enum member A is used", () => {

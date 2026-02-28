@@ -1,5 +1,5 @@
 {
-  "name": "webpack-test-ignore-warnings",
+  "name": "rspack-test-ignore-warnings",
   "license": "MIT",
-  "homepage": "https://github.com/webpack/webpack"
+  "homepage": "https://github.com/web-infra-dev/rspack"
 }

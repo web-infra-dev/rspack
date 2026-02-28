@@ -29,9 +29,6 @@ module.exports = {
 			}
 		]
 	},
-	experiments: {
-		outputModule: true
-	},
 	optimization: {
 		concatenateModules: true,
 		avoidEntryIife: true,
@@ -52,7 +49,7 @@ module.exports = {
 							);
 						assert(preseveImport);
 						const hasExports =
-							/export\s{\simg_namespaceObject\sas\sdefault\s}/.test(jsContent);
+							/export\sdefault\simg_namespaceObject/.test(jsContent);
 						assert(hasExports);
 					});
 				});

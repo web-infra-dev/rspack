@@ -8,9 +8,10 @@ use rspack_sources::BoxSource;
 use rspack_util::source_map::{ModuleSourceMapConfig, SourceMapKind};
 
 use crate::{
-  AsyncDependenciesBlockIdentifier, BoxModule, BuildInfo, BuildMeta, CodeGenerationResult,
-  Compilation, ConcatenationScope, Context, DependenciesBlock, DependencyId, FactoryMeta, Module,
-  ModuleGraph, ModuleIdentifier, ModuleType, RuntimeSpec, SourceType, ValueCacheVersions,
+  AsyncDependenciesBlockIdentifier, BoxModule, BuildContext, BuildInfo, BuildMeta, BuildResult,
+  CodeGenerationResult, Compilation, Context, DependenciesBlock, DependencyId, FactoryMeta, Module,
+  ModuleCodeGenerationContext, ModuleGraph, ModuleIdentifier, ModuleType, RuntimeSpec, SourceType,
+  ValueCacheVersions,
 };
 
 #[cacheable]
@@ -26,14 +27,14 @@ pub struct TempModule {
 impl TempModule {
   pub fn transform_from(module: OwnedOrRef<BoxModule>) -> OwnedOrRef<BoxModule> {
     let m = module.as_ref();
-    OwnedOrRef::Owned(Box::new(Self {
+    OwnedOrRef::Owned(BoxModule::new(Box::new(Self {
       id: m.identifier(),
       build_info: m.build_info().clone(),
       build_meta: m.build_meta().clone(),
       dependencies: m.get_dependencies().to_vec(),
       // clean all of blocks
       blocks: vec![],
-    }))
+    })))
   }
 }
 
@@ -103,9 +104,7 @@ impl Module for TempModule {
 
   async fn code_generation(
     &self,
-    _compilation: &Compilation,
-    _runtime: Option<&RuntimeSpec>,
-    _concatenation_scope: Option<ConcatenationScope>,
+    _code_generation_context: &mut ModuleCodeGenerationContext,
   ) -> Result<CodeGenerationResult> {
     unreachable!()
   }
@@ -116,6 +115,19 @@ impl Module for TempModule {
     _runtime: Option<&RuntimeSpec>,
   ) -> Result<RspackHashDigest> {
     unreachable!()
+  }
+
+  async fn build(
+    self: Box<Self>,
+    _build_context: BuildContext,
+    _compilation: Option<&Compilation>,
+  ) -> Result<BuildResult> {
+    Ok(BuildResult {
+      module: BoxModule::new(self),
+      dependencies: vec![],
+      blocks: vec![],
+      optimization_bailouts: vec![],
+    })
   }
 }
 

@@ -36,21 +36,19 @@ it("should prefetch and preload child chunks on chunk load", () => {
 	// Test normal script loading
 	link = document.head._children[3];
 	expect(link._type).toBe("link");
-	expect(link.rel).toBe("modulepreload");
-	expect(link.href).toBe("https://example.com/public/path/chunk1-b.mjs");
-
-	link = document.head._children[4];
-	expect(link._type).toBe("link");
 	expect(link.rel).toBe("preload");
 	expect(link.as).toBe("style");
 	expect(link.href).toBe("https://example.com/public/path/chunk1-a-css.css");
 
-	link = document.head._children[5];
+	link = document.head._children[4];
 	expect(link._type).toBe("link");
 	expect(link.rel).toBe("modulepreload");
 	expect(link.href).toBe("https://example.com/public/path/chunk1-a-css.mjs");
 
-
+	link = document.head._children[5];
+	expect(link._type).toBe("link");
+	expect(link.rel).toBe("modulepreload");
+	expect(link.href).toBe("https://example.com/public/path/chunk1-b.mjs");
 
 	return promise.then(() => {
 		expect(document.head._children).toHaveLength(8);

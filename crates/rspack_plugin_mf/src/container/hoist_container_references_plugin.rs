@@ -20,7 +20,7 @@ use std::{
 use async_trait::async_trait;
 use rspack_core::{
   Compilation, CompilationOptimizeChunks, CompilerCompilation, Dependency, DependencyId,
-  ModuleIdentifier, Plugin, RuntimeSpec, incremental::Mutation,
+  ModuleIdentifier, Plugin, incremental::Mutation,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -193,28 +193,36 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
     .collect::<FxHashSet<_>>();
 
   // Hoist referenced modules to their runtime chunk
-  let entries = compilation
+  let runtime_chunk_by_runtime = compilation
     .get_chunk_graph_entries()
-    .filter_map(|entry| {
+    .filter_map(|runtime_chunk| {
       compilation
+        .build_chunk_graph_artifact
         .chunk_by_ukey
-        .get(&entry)
-        .map(|chunk| (chunk.runtime(), entry))
+        .get(&runtime_chunk)
+        .map(|chunk| (chunk.runtime().clone(), runtime_chunk))
     })
+    .flat_map(|(runtime, runtime_chunk)| runtime.into_iter().map(move |r| (r, runtime_chunk)))
     .collect::<FxHashMap<_, _>>();
   for module in &all_modules_to_hoist {
     let runtime_chunks = compilation
+      .build_chunk_graph_artifact
       .chunk_graph
-      .get_module_runtimes_iter(*module, &compilation.chunk_by_ukey)
+      .get_module_runtimes_iter(
+        *module,
+        &compilation.build_chunk_graph_artifact.chunk_by_ukey,
+      )
       .flat_map(|runtime| runtime.iter())
-      .filter_map(|runtime| entries.get(&RuntimeSpec::from_iter([*runtime])).copied())
+      .filter_map(|runtime| runtime_chunk_by_runtime.get(runtime).copied())
       .collect::<Vec<_>>();
     for runtime_chunk in runtime_chunks {
       if !compilation
+        .build_chunk_graph_artifact
         .chunk_graph
         .is_module_in_chunk(module, runtime_chunk)
       {
         compilation
+          .build_chunk_graph_artifact
           .chunk_graph
           .connect_chunk_and_module(runtime_chunk, *module);
       }
@@ -222,9 +230,13 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
   }
 
   // Disconnect hoisted modules from non-runtime chunks, this is safe since we already hoist them to runtime chunk
-  let runtime_chunks = entries.values().copied().collect::<FxHashSet<_>>();
+  let runtime_chunks = runtime_chunk_by_runtime
+    .values()
+    .copied()
+    .collect::<FxHashSet<_>>();
   for module in all_modules_to_hoist {
     let non_runtime_chunks = compilation
+      .build_chunk_graph_artifact
       .chunk_graph
       .get_module_chunks(module)
       .iter()
@@ -233,24 +245,46 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
       .collect::<Vec<_>>();
     for chunk in non_runtime_chunks {
       compilation
+        .build_chunk_graph_artifact
         .chunk_graph
         .disconnect_chunk_and_module(&chunk, module);
 
-      if compilation.chunk_graph.get_number_of_chunk_modules(&chunk) == 0
-        && compilation.chunk_graph.get_number_of_entry_modules(&chunk) == 0
-        && let Some(mut removed_chunk) = compilation.chunk_by_ukey.remove(&chunk)
+      if compilation
+        .build_chunk_graph_artifact
+        .chunk_graph
+        .get_number_of_chunk_modules(&chunk)
+        == 0
+        && compilation
+          .build_chunk_graph_artifact
+          .chunk_graph
+          .get_number_of_entry_modules(&chunk)
+          == 0
+        && let Some(mut removed_chunk) = compilation
+          .build_chunk_graph_artifact
+          .chunk_by_ukey
+          .remove(&chunk)
       {
         compilation
+          .build_chunk_graph_artifact
           .chunk_graph
-          .disconnect_chunk(&mut removed_chunk, &mut compilation.chunk_group_by_ukey);
-        compilation.chunk_graph.remove_chunk(&chunk);
+          .disconnect_chunk(
+            &mut removed_chunk,
+            &mut compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
+          );
+        compilation
+          .build_chunk_graph_artifact
+          .chunk_graph
+          .remove_chunk(&chunk);
 
         // Remove from named chunks if it has a name
         if let Some(name) = removed_chunk.name() {
-          compilation.named_chunks.remove(name);
+          compilation
+            .build_chunk_graph_artifact
+            .named_chunks
+            .remove(name);
         }
         // Record mutation
-        if let Some(mutations) = compilation.incremental.mutations_write() {
+        if let Some(mut mutations) = compilation.incremental.mutations_write() {
           mutations.add(Mutation::ChunkRemove { chunk });
         }
       }

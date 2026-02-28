@@ -3,16 +3,14 @@
 let warnings = [];
 let oldWarn;
 
-beforeEach(done => {
+beforeEach(() => {
 	oldWarn = console.warn;
 	console.warn = m => warnings.push(m);
-	done();
 });
 
-afterEach(done => {
+afterEach(() => {
 	expectWarning();
 	console.warn = oldWarn;
-	done();
 });
 
 const expectWarning = regexp => {

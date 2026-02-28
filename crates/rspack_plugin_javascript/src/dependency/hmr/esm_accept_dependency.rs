@@ -1,8 +1,7 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   DependencyCodeGeneration, DependencyId, DependencyLocation, DependencyRange, DependencyTemplate,
-  DependencyTemplateType, RuntimeCondition, SharedSourceMap, TemplateContext,
-  TemplateReplaceSource, import_statement, runtime_condition_expression,
+  DependencyTemplateType, ImportPhase, RuntimeCondition, TemplateContext, TemplateReplaceSource,
 };
 
 use crate::dependency::import_emitted_runtime;
@@ -21,9 +20,8 @@ impl ESMAcceptDependency {
     range: DependencyRange,
     has_callback: bool,
     dependency_ids: Vec<DependencyId>,
-    source_map: Option<SharedSourceMap>,
+    loc: Option<DependencyLocation>,
   ) -> Self {
-    let loc = range.to_loc(source_map.as_ref());
     Self {
       range,
       has_callback,
@@ -70,74 +68,75 @@ impl DependencyTemplate for ESMAcceptDependencyTemplate {
       compilation,
       module,
       runtime,
-      runtime_requirements,
+      runtime_template,
       ..
     } = code_generatable_context;
 
     let mut content = String::default();
     let module_graph = compilation.get_module_graph();
+    let module_identifier = module.identifier();
     dep.dependency_ids.iter().for_each(|id| {
       let dependency = module_graph.dependency_by_id(id);
-      let runtime_condition =
-        match dependency.and_then(|dep| module_graph.get_module_by_dependency_id(dep.id())) {
-          Some(ref_module) => {
-            import_emitted_runtime::get_runtime(&module.identifier(), &ref_module.identifier())
-          }
-          None => RuntimeCondition::Boolean(false),
-        };
+      let target_module = module_graph.get_module_by_dependency_id(dependency.id());
+      let runtime_condition = match target_module {
+        Some(target_module) => {
+          import_emitted_runtime::get_runtime(&module_identifier, &target_module.identifier())
+        }
+        None => RuntimeCondition::Boolean(false),
+      };
 
       if matches!(runtime_condition, RuntimeCondition::Boolean(false)) {
         return;
       }
 
       let condition = {
-        runtime_condition_expression(
-          &compilation.chunk_graph,
+        runtime_template.runtime_condition_expression(
+          &compilation.build_chunk_graph_artifact.chunk_graph,
           Some(&runtime_condition),
           *runtime,
-          runtime_requirements,
         )
       };
 
-      let request = if let Some(dependency) = dependency.and_then(|d| d.as_module_dependency()) {
-        Some(dependency.request())
+      let module_dependency = dependency
+        .as_module_dependency()
+        .expect("should be module dependency");
+      let phase = ImportPhase::Evaluation;
+      let import_var = compilation.get_import_var(
+        module_identifier,
+        target_module,
+        module_dependency.user_request(),
+        phase,
+        *runtime,
+      );
+      let stmts = runtime_template.import_statement(
+        *module,
+        compilation,
+        id,
+        &import_var,
+        module_dependency.request(),
+        phase,
+        true,
+      );
+      if condition == "true" {
+        content.push_str(stmts.0.as_str());
+        content.push_str(stmts.1.as_str());
       } else {
-        dependency
-          .and_then(|d| d.as_context_dependency())
-          .map(|d| d.request())
-      };
-      if let Some(request) = request {
-        let import_var = compilation.get_import_var(id, *runtime);
-        let stmts = import_statement(
-          *module,
-          compilation,
-          runtime_requirements,
-          id,
-          &import_var,
-          request,
-          true,
-        );
-        if condition == "true" {
-          content.push_str(stmts.0.as_str());
-          content.push_str(stmts.1.as_str());
-        } else {
-          content.push_str(format!("if ({condition}) {{\n").as_str());
-          content.push_str(stmts.0.as_str());
-          content.push_str(stmts.1.as_str());
-          content.push_str("\n}\n");
-        }
+        content.push_str(format!("if ({condition}) {{\n").as_str());
+        content.push_str(stmts.0.as_str());
+        content.push_str(stmts.1.as_str());
+        content.push_str("\n}\n");
       }
     });
 
     if dep.has_callback {
       source.insert(
         dep.range.start,
-        format!("function(__WEBPACK_OUTDATED_DEPENDENCIES__) {{\n{content}(").as_str(),
+        format!("function(__rspack_hmr_outdated) {{\n{content}(").as_str(),
         None,
       );
       source.insert(
         dep.range.end,
-        ")(__WEBPACK_OUTDATED_DEPENDENCIES__); }.bind(this)",
+        ")(__rspack_hmr_outdated); }.bind(this)",
         None,
       );
     } else {

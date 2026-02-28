@@ -1,1 +1,1 @@
-module.exports = () => "FIXME: entry path parsed failed"
+module.exports = () => "TODO: support wired entry names"

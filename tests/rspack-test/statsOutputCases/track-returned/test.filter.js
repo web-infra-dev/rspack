@@ -1,1 +1,1 @@
-module.exports = () => "FIXME: not stop walking when meeting return statement";
+module.exports = () => "TODO: stop walking when meeting return statement";

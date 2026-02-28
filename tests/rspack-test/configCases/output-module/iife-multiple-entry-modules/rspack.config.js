@@ -1,4 +1,4 @@
-/** @type {import("../../../../").Configuration[]} */
+/** @type {import("@rspack/core").Configuration[]} */
 module.exports = [
 	{
 		entry: ["./index1.js", "./index2.js"],
@@ -7,9 +7,6 @@ module.exports = [
 		},
 		optimization: {
 			concatenateModules: true
-		},
-		experiments: {
-			outputModule: true
 		},
 		target: "es2020"
 	},

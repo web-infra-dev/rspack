@@ -1,6 +1,6 @@
 Array [
   Object {
-    moduleIdentifier: <TEST_TOOLS_ROOT>/diagnosticsCases/factorize/cannot-resolve-context/index.js,
+    moduleIdentifier: <TEST_ROOT>/diagnosticsCases/factorize/cannot-resolve-context/index.js,
     moduleName: ./index.js,
   },
 ]

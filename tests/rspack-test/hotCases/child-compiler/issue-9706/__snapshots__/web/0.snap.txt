@@ -1,0 +1,13 @@
+# Case issue-9706: Step 0
+
+## Changed Files
+
+
+## Asset Files
+- Bundle: bundle.js
+- Bundle: test.js
+
+## Manifest
+
+
+## Update

@@ -16,7 +16,7 @@ const commonMF = {
 		"./ComponentB": "./ComponentB",
 		"./ComponentC": "./ComponentC"
 	},
-	shared: ["react"],
+	shared: ["mocked-react"],
 	shareScope: "test-scope"
 };
 
@@ -44,8 +44,7 @@ module.exports = [
 	// {
 	// 	...common,
 	// 	experiments: {
-	// 		outputModule: true
-	// 	},
+	// 		// 	},
 	// 	output: {
 	// 		filename: "module/[name].mjs",
 	// 		uniqueName: "mf-with-shareScope-mjs"

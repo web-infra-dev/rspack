@@ -1,15 +1,15 @@
 ```mjs title=main.mjs
 import { __webpack_require__ } from "./runtime.mjs";
 __webpack_require__.add({
-"./foo.js": 
+"./foo.js"
 /*!****************!*\
   !*** ./foo.js ***!
   \****************/
-(function (__unused_webpack_module, exports) {
+(__unused_rspack_module, exports) {
 exports.foo = 123
 
 
-}),
+},
 });
 // ./index.js
 const foo = __webpack_require__("./foo.js");
@@ -48,7 +48,7 @@ return module.exports;
 // expose the modules object (__webpack_modules__)
 __webpack_require__.m = __webpack_modules__;
 
-// esm library register module runtime
+// webpack/runtime/esm_register_module
 (() => {
 __webpack_require__.add = function registerModules(modules) { Object.assign(__webpack_require__.m, modules) }
 

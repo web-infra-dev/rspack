@@ -1,5 +1,5 @@
 const path = require("path");
-/** @type {import('../../..').TDefaultsCaseConfig} */
+/** @type {import('@rspack/test-tools').TDefaultsCaseConfig} */
 module.exports = {
 	description: "browserslist",
 	options: context => ({
@@ -7,26 +7,26 @@ module.exports = {
 	}),
 	diff: e =>
 		e.toMatchInlineSnapshot(`
-		- Expected
-		+ Received
+			- Expected
+			+ Received
 
-		@@ ... @@
-		-   "context": "<cwd>",
-		+   "context": "<RSPACK_ROOT>-test-tools/tests/fixtures/browserslist",
-		@@ ... @@
-		-     "chunkLoadingGlobal": "webpackChunk_rspack_tests",
-		+     "chunkLoadingGlobal": "webpackChunk",
-		@@ ... @@
-		-     "devtoolNamespace": "@rspack/tests",
-		+     "devtoolNamespace": "",
-		@@ ... @@
-		-     "hotUpdateGlobal": "webpackHotUpdate_rspack_tests",
-		+     "hotUpdateGlobal": "webpackHotUpdate",
-		@@ ... @@
-		-     "uniqueName": "@rspack/tests",
-		+     "uniqueName": "",
-		@@ ... @@
-		-       "<cwd>",
-		+       "<RSPACK_ROOT>-test-tools/tests/fixtures/browserslist",
-	`)
+			@@ ... @@
+			-   "context": "<cwd>",
+			+   "context": "<TEST_TOOLS_ROOT>/tests/fixtures/browserslist",
+			@@ ... @@
+			-     "chunkLoadingGlobal": "rspackChunk_rspack_tests",
+			+     "chunkLoadingGlobal": "rspackChunk",
+			@@ ... @@
+			-     "devtoolNamespace": "@rspack/tests",
+			+     "devtoolNamespace": "",
+			@@ ... @@
+			-     "hotUpdateGlobal": "rspackHotUpdate_rspack_tests",
+			+     "hotUpdateGlobal": "rspackHotUpdate",
+			@@ ... @@
+			-     "uniqueName": "@rspack/tests",
+			+     "uniqueName": "",
+			@@ ... @@
+			-       "<cwd>",
+			+       "<TEST_TOOLS_ROOT>/tests/fixtures/browserslist",
+		`)
 };

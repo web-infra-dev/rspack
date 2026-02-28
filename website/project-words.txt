@@ -35,6 +35,7 @@ CRACO
 cssextractrspackplugin
 dail
 darwin
+deconflict
 devongovett
 devserverdevmiddleware
 devserverhot
@@ -47,9 +48,6 @@ esbuild
 etags
 evanw
 experimentscss
-experimentsrspackfuture
-experimentsrspackfuturedisableapplyentrylazily
-experimentsrspackfuturenewresolver
 externalstypecommonjs
 faga295
 fargs
@@ -147,6 +145,7 @@ proxying
 px2rem
 pxtorem
 quininer
+qwertyui
 recognise
 resolvepnp
 Rollup
@@ -160,6 +159,7 @@ rspackplugin
 rspeedy
 rspress
 rstack
+rstackjs
 rstest
 ruid
 ruleoneof
@@ -167,6 +167,7 @@ ruleparserdataurlcondition
 Rust
 rustup
 samply
+samsung
 sanyuan
 Shenzhen
 shiki
@@ -183,6 +184,7 @@ svgr
 swcjsminimizerplugin
 swcjsminimizerrspackplugin
 swcpack
+swcrc
 sxzz
 systemjs
 tailwind
@@ -192,6 +194,7 @@ tiktok
 tokio
 Towhk
 Trae
+tsgo
 tsgolint
 tuchg
 typeofs

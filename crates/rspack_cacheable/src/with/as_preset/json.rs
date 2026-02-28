@@ -8,7 +8,7 @@ use rkyv::{
 };
 
 use super::AsPreset;
-use crate::{DeserializeError, SerializeError};
+use crate::{Error, Result};
 
 pub struct JsonResolver {
   inner: StringResolver,
@@ -28,13 +28,10 @@ impl ArchiveWith<JsonValue> for AsPreset {
 
 impl<S> SerializeWith<JsonValue, S> for AsPreset
 where
-  S: Fallible<Error = SerializeError> + Writer,
+  S: Fallible<Error = Error> + Writer,
 {
   #[inline]
-  fn serialize_with(
-    field: &JsonValue,
-    serializer: &mut S,
-  ) -> Result<Self::Resolver, SerializeError> {
+  fn serialize_with(field: &JsonValue, serializer: &mut S) -> Result<Self::Resolver> {
     let value = json::stringify(field.clone());
     let inner = ArchivedString::serialize_from_str(&value, serializer)?;
     Ok(JsonResolver { value, inner })
@@ -43,10 +40,10 @@ where
 
 impl<D> DeserializeWith<ArchivedString, JsonValue, D> for AsPreset
 where
-  D: Fallible<Error = DeserializeError>,
+  D: Fallible<Error = Error>,
 {
   #[inline]
-  fn deserialize_with(field: &ArchivedString, _: &mut D) -> Result<JsonValue, DeserializeError> {
-    json::parse(field).map_err(|_| DeserializeError::MessageError("deserialize json value failed"))
+  fn deserialize_with(field: &ArchivedString, _: &mut D) -> Result<JsonValue> {
+    json::parse(field).map_err(|_| Error::MessageError("deserialize json value failed"))
   }
 }

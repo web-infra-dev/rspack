@@ -5,7 +5,17 @@ module.exports = {
 		concatenateModules: true,
 		minimize: false
 	},
-	experiments: {
-		css: true
+	module: {
+		rules: [
+			{
+				test: /\.css$/,
+				type: "css/auto"
+			}
+		]
+	},
+	stats: {
+		entrypoints: true,
+		assets: true,
+		modules: true,
 	}
 };

@@ -1,4 +1,4 @@
-const webpack = require("@rspack/core");
+const { rspack } = require("@rspack/core");
 
 const common = {
 	optimization: {
@@ -47,12 +47,14 @@ const common = {
 						}
 					}
 				]
+			},
+			{
+				test: /\.css$/,
+				type: "css/auto"
 			}
 		]
 	},
-	experiments: {
-		css: true
-	}
+
 };
 
 /** @type {import("@rspack/core").Configuration} */
@@ -62,7 +64,7 @@ module.exports = [
 		mode: "development",
 		target: "web",
 		plugins: [
-			new webpack.DefinePlugin({
+			new rspack.DefinePlugin({
 				"process.env.TARGET": JSON.stringify("web")
 			})
 		]
@@ -72,7 +74,7 @@ module.exports = [
 		mode: "production",
 		target: "web",
 		plugins: [
-			new webpack.DefinePlugin({
+			new rspack.DefinePlugin({
 				"process.env.TARGET": JSON.stringify("web")
 			})
 		]
@@ -82,7 +84,7 @@ module.exports = [
 		mode: "development",
 		target: "node",
 		plugins: [
-			new webpack.DefinePlugin({
+			new rspack.DefinePlugin({
 				"process.env.TARGET": JSON.stringify("node")
 			})
 		]
@@ -92,7 +94,7 @@ module.exports = [
 		mode: "production",
 		target: "node",
 		plugins: [
-			new webpack.DefinePlugin({
+			new rspack.DefinePlugin({
 				"process.env.TARGET": JSON.stringify("node")
 			})
 		]

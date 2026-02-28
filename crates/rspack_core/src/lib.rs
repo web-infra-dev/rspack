@@ -2,12 +2,18 @@ use std::{fmt, sync::Arc};
 mod artifacts;
 mod binding;
 mod compilation;
+mod transient_cache;
+
 mod exports;
 mod value_cache_versions;
 pub use artifacts::*;
 pub use binding::*;
-pub use compilation::make::{ExecuteModuleId, ForwardId, LazyUntil};
+pub use compilation::{
+  build_module_graph::{ExecuteModuleId, ForwardId, LazyUntil},
+  *,
+};
 pub use exports::*;
+pub use transient_cache::*;
 pub use value_cache_versions::ValueCacheVersions;
 mod dependencies_block;
 pub mod diagnostics;
@@ -18,17 +24,14 @@ pub use dependencies_block::{
 mod fake_namespace_object;
 pub use fake_namespace_object::*;
 mod runtime_template;
-pub use runtime_template::*;
-mod module_profile;
-pub use module_profile::*;
 use rspack_collections::Database;
+pub use runtime_template::*;
 pub mod external_module;
 pub use external_module::*;
 mod logger;
 pub use logger::*;
 pub mod cache;
 mod normal_module;
-pub mod old_cache;
 mod raw_module;
 pub use raw_module::*;
 pub mod module;
@@ -38,7 +41,7 @@ pub use module::*;
 pub use parser_and_generator::*;
 mod runtime_globals;
 pub use normal_module::*;
-pub use runtime_globals::RuntimeGlobals;
+pub use runtime_globals::{MODULE_GLOBALS, REQUIRE_SCOPE_GLOBALS, RuntimeGlobals, RuntimeVariable};
 mod plugin;
 pub use plugin::*;
 mod context_module;
@@ -72,7 +75,6 @@ use ustr::Ustr;
 pub use utils::*;
 mod chunk_graph;
 pub use chunk_graph::*;
-pub mod build_chunk_graph;
 mod stats;
 pub use stats::*;
 mod runtime;
@@ -120,6 +122,7 @@ pub enum SourceType {
   Remote,
   ShareInit,
   ConsumeShared,
+  ShareContainerShared,
   Custom(#[cacheable(with=AsPreset)] Ustr),
   #[default]
   Unknown,
@@ -139,6 +142,7 @@ impl std::fmt::Display for SourceType {
       SourceType::Remote => write!(f, "remote"),
       SourceType::ShareInit => write!(f, "share-init"),
       SourceType::ConsumeShared => write!(f, "consume-shared"),
+      SourceType::ShareContainerShared => write!(f, "share-container-shared"),
       SourceType::Unknown => write!(f, "unknown"),
       SourceType::CssImport => write!(f, "css-import"),
       SourceType::Custom(source_type) => f.write_str(source_type),
@@ -158,6 +162,7 @@ impl From<&str> for SourceType {
       "remote" => Self::Remote,
       "share-init" => Self::ShareInit,
       "consume-shared" => Self::ConsumeShared,
+      "share-container-shared" => Self::ShareContainerShared,
       "unknown" => Self::Unknown,
       "css-import" => Self::CssImport,
       other => SourceType::Custom(other.into()),
@@ -173,6 +178,7 @@ impl From<&ModuleType> for SourceType {
       ModuleType::WasmSync | ModuleType::WasmAsync => Self::Wasm,
       ModuleType::Asset | ModuleType::AssetInline | ModuleType::AssetResource => Self::Asset,
       ModuleType::ConsumeShared => Self::ConsumeShared,
+      ModuleType::ShareContainerShared => Self::ShareContainerShared,
       _ => Self::Unknown,
     }
   }
@@ -193,21 +199,19 @@ pub enum ModuleType {
   AssetInline,
   AssetResource,
   AssetSource,
+  AssetBytes,
   Asset,
   Runtime,
   Remote,
   Fallback,
   ProvideShared,
   ConsumeShared,
+  ShareContainerShared,
   SelfReference,
   Custom(#[cacheable(with=AsPreset)] Ustr),
 }
 
 impl ModuleType {
-  pub fn is_css_like(&self) -> bool {
-    matches!(self, Self::Css | Self::CssModule | Self::CssAuto)
-  }
-
   pub fn is_js_like(&self) -> bool {
     matches!(
       self,
@@ -262,11 +266,13 @@ impl ModuleType {
       ModuleType::AssetSource => "asset/source",
       ModuleType::AssetResource => "asset/resource",
       ModuleType::AssetInline => "asset/inline",
+      ModuleType::AssetBytes => "asset/bytes",
       ModuleType::Runtime => "runtime",
       ModuleType::Remote => "remote-module",
       ModuleType::Fallback => "fallback-module",
       ModuleType::ProvideShared => "provide-module",
       ModuleType::ConsumeShared => "consume-shared-module",
+      ModuleType::ShareContainerShared => "share-container-shared-module",
       ModuleType::SelfReference => "self-reference-module",
 
       ModuleType::Custom(custom) => custom.as_str(),
@@ -302,6 +308,7 @@ impl From<&str> for ModuleType {
       "asset/resource" => Self::AssetResource,
       "asset/source" => Self::AssetSource,
       "asset/inline" => Self::AssetInline,
+      "asset/bytes" => Self::AssetBytes,
 
       custom => Self::Custom(custom.into()),
     }

@@ -6,8 +6,7 @@ module.exports = {
 	},
 	output: {
 		filename: "[name].js",
-		library: "MyLibrary",
-		libraryTarget: "umd",
+		library: { type: "umd", name: "MyLibrary" },
 		chunkLoading: "jsonp",
 		chunkFormat: "array-push",
 		globalObject: "this"

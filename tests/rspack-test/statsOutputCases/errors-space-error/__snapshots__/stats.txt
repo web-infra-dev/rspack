@@ -1,88 +1,88 @@
-assets by status 36 bytes [cached] 1 asset
-./loader.js!./index.js 1 bytes [built] [code generated] [2 errors]
+assets by status xx bytes [cached] 1 asset
+./loader.js!./index.js xx bytes [built] [code generated] [2 errors]
 
 ERROR in ./index.js (./loader.js!./index.js)
-  × Module Error (from <TEST_TOOLS_ROOT>/statsOutputCases/errors-space-error/loader.js):loader error1
+  × Module Error (from <TEST_ROOT>/statsOutputCases/errors-space-error/loader.js):loader error1
 
 ERROR in ./index.js (./loader.js!./index.js)
-  × Module Error (from <TEST_TOOLS_ROOT>/statsOutputCases/errors-space-error/loader.js):loader error2
+  × Module Error (from <TEST_ROOT>/statsOutputCases/errors-space-error/loader.js):loader error2
 
 2 errors have detailed information that is not shown.
 Use 'stats.errorDetails: true' resp. '--stats-error-details' to show it.
 
 Rspack x.x.x compiled with 2 errors in X s
 
-assets by status 36 bytes [cached] 1 asset
-./loader.js!./index.js 1 bytes [built] [code generated] [2 errors]
+assets by status xx bytes [cached] 1 asset
+./loader.js!./index.js xx bytes [built] [code generated] [2 errors]
 
 ERROR in ./index.js (./loader.js!./index.js)
-  × Module Error (from <TEST_TOOLS_ROOT>/statsOutputCases/errors-space-error/loader.js):loader error1
+  × Module Error (from <TEST_ROOT>/statsOutputCases/errors-space-error/loader.js):loader error1
 
 ERROR in ./index.js (./loader.js!./index.js)
-  × Module Error (from <TEST_TOOLS_ROOT>/statsOutputCases/errors-space-error/loader.js):loader error2
+  × Module Error (from <TEST_ROOT>/statsOutputCases/errors-space-error/loader.js):loader error2
 
 2 errors have detailed information that is not shown.
 Use 'stats.errorDetails: true' resp. '--stats-error-details' to show it.
 
 Rspack x.x.x compiled with 2 errors in X s
 
-assets by status 36 bytes [cached] 1 asset
-./loader.js!./index.js 1 bytes [built] [code generated] [2 errors]
+assets by status xx bytes [cached] 1 asset
+./loader.js!./index.js xx bytes [built] [code generated] [2 errors]
 
 ERROR in ./index.js (./loader.js!./index.js)
-  × Module Error (from <TEST_TOOLS_ROOT>/statsOutputCases/errors-space-error/loader.js):loader error1
+  × Module Error (from <TEST_ROOT>/statsOutputCases/errors-space-error/loader.js):loader error1
 
 ERROR in ./index.js (./loader.js!./index.js)
-  × Module Error (from <TEST_TOOLS_ROOT>/statsOutputCases/errors-space-error/loader.js):loader error2
+  × Module Error (from <TEST_ROOT>/statsOutputCases/errors-space-error/loader.js):loader error2
 
 2 errors have detailed information that is not shown.
 Use 'stats.errorDetails: true' resp. '--stats-error-details' to show it.
 
 Rspack x.x.x compiled with 2 errors in X s
 
-assets by status 36 bytes [cached] 1 asset
-./loader.js!./index.js 1 bytes [built] [code generated] [2 errors]
+assets by status xx bytes [cached] 1 asset
+./loader.js!./index.js xx bytes [built] [code generated] [2 errors]
 
 ERROR in ./index.js (./loader.js!./index.js)
-  × Module Error (from <TEST_TOOLS_ROOT>/statsOutputCases/errors-space-error/loader.js):loader errorX
+  × Module Error (from <TEST_ROOT>/statsOutputCases/errors-space-error/loader.js):loader errorX
 stack1
 
 ERROR in ./index.js (./loader.js!./index.js)
-  × Module Error (from <TEST_TOOLS_ROOT>/statsOutputCases/errors-space-error/loader.js):loader error2
+  × Module Error (from <TEST_ROOT>/statsOutputCases/errors-space-error/loader.js):loader error2
 
 1 error has detailed information that is not shown.
 Use 'stats.errorDetails: true' resp. '--stats-error-details' to show it.
 
 Rspack x.x.x compiled with 2 errors in X s
 
-assets by status 36 bytes [cached] 1 asset
-./loader.js!./index.js 1 bytes [built] [code generated] [2 errors]
+assets by status xx bytes [cached] 1 asset
+./loader.js!./index.js xx bytes [built] [code generated] [2 errors]
 
 ERROR in ./index.js (./loader.js!./index.js)
-  × Module Error (from <TEST_TOOLS_ROOT>/statsOutputCases/errors-space-error/loader.js):loader errorX
+  × Module Error (from <TEST_ROOT>/statsOutputCases/errors-space-error/loader.js):loader errorX
 stackX
 stackX
 stack3
 
 ERROR in ./index.js (./loader.js!./index.js)
-  × Module Error (from <TEST_TOOLS_ROOT>/statsOutputCases/errors-space-error/loader.js):loader error2
+  × Module Error (from <TEST_ROOT>/statsOutputCases/errors-space-error/loader.js):loader error2
 
 1 error has detailed information that is not shown.
 Use 'stats.errorDetails: true' resp. '--stats-error-details' to show it.
 
 Rspack x.x.x compiled with 2 errors in X s
 
-assets by status 36 bytes [cached] 1 asset
-./loader.js!./index.js 1 bytes [built] [code generated] [2 errors]
+assets by status xx bytes [cached] 1 asset
+./loader.js!./index.js xx bytes [built] [code generated] [2 errors]
 
 ERROR in ./index.js (./loader.js!./index.js)
-  × Module Error (from <TEST_TOOLS_ROOT>/statsOutputCases/errors-space-error/loader.js):loader errorX
+  × Module Error (from <TEST_ROOT>/statsOutputCases/errors-space-error/loader.js):loader errorX
 stackX
 stackX
 stack3
 
 ERROR in ./index.js (./loader.js!./index.js)
-  × Module Error (from <TEST_TOOLS_ROOT>/statsOutputCases/errors-space-error/loader.js):loader errorX
+  × Module Error (from <TEST_ROOT>/statsOutputCases/errors-space-error/loader.js):loader errorX
 stackX
 stack2
 

@@ -32,25 +32,25 @@ macro_rules! expect {
 use std::{borrow::Cow, future::ready, sync::Arc};
 
 use builder_context::BuiltinPluginOptions;
+use derive_more::Debug;
 use devtool::DevtoolFlags;
 use externals::ExternalsPresets;
 use indexmap::IndexMap;
 use rspack_core::{
   AssetParserDataUrl, AssetParserDataUrlOptions, AssetParserOptions, BoxPlugin, ByDependency,
-  CacheOptions, ChunkLoading, ChunkLoadingType, CleanOptions, Compiler, CompilerOptions, Context,
-  CrossOriginLoading, CssAutoGeneratorOptions, CssAutoParserOptions, CssExportsConvention,
-  CssGeneratorOptions, CssModuleGeneratorOptions, CssModuleParserOptions, CssParserOptions,
-  DynamicImportMode, EntryDescription, EntryOptions, EntryRuntime, Environment,
-  ExperimentCacheOptions, Experiments, ExternalItem, ExternalType, Filename, GeneratorOptions,
+  CacheOptions, ChunkLoading, ChunkLoadingType, CleanOptions, Compiler, CompilerOptions,
+  CompilerPlatform, Context, CrossOriginLoading, CssAutoGeneratorOptions, CssAutoParserOptions,
+  CssExportsConvention, CssGeneratorOptions, CssModuleGeneratorOptions, CssModuleParserOptions,
+  CssParserImport, CssParserOptions, DynamicImportMode, EntryDescription, EntryOptions,
+  EntryRuntime, Environment, Experiments, ExternalItem, ExternalType, Filename, GeneratorOptions,
   GeneratorOptionsMap, JavascriptParserCommonjsExportsOption, JavascriptParserCommonjsOptions,
   JavascriptParserOptions, JavascriptParserOrder, JavascriptParserUrl, JsonGeneratorOptions,
   JsonParserOptions, LibraryName, LibraryNonUmdObject, LibraryOptions, LibraryType,
   MangleExportsOption, Mode, ModuleNoParseRules, ModuleOptions, ModuleRule, ModuleRuleEffect,
   ModuleType, NodeDirnameOption, NodeFilenameOption, NodeGlobalOption, NodeOption, Optimization,
   OutputOptions, ParseOption, ParserOptions, ParserOptionsMap, PathInfo, PublicPath, Resolve,
-  RspackFuture, RuleSetCondition, RuleSetLogicalConditions, SideEffectOption, StatsOptions,
-  TrustedTypes, UsedExportsOption, WasmLoading, WasmLoadingType,
-  incremental::{IncrementalOptions, IncrementalPasses},
+  RuleSetCondition, RuleSetLogicalConditions, SideEffectOption, StatsOptions, TrustedTypes,
+  UsedExportsOption, WasmLoading, WasmLoadingType, incremental::IncrementalOptions,
 };
 use rspack_error::{Error, Result};
 use rspack_fs::{IntermediateFileSystem, ReadableFileSystem, WritableFileSystem};
@@ -235,14 +235,6 @@ impl CompilerBuilder {
     self
   }
 
-  /// Set whether to enable profiling.
-  ///
-  /// See [`CompilerOptionsBuilder::profile`] for more details.
-  pub fn profile(&mut self, profile: bool) -> &mut Self {
-    self.options_builder.profile(profile);
-    self
-  }
-
   /// Set options for module configuration.
   ///
   /// Both are accepted:
@@ -386,15 +378,13 @@ impl CompilerBuilder {
   ///
   /// ```rust
   /// use rspack::builder::{Builder as _, ExperimentsBuilder};
-  /// use rspack_core::{Compiler, Experiments, incremental::IncrementalOptions};
+  /// use rspack_core::{Compiler, Experiments};
   ///
   /// // Using builder without calling `build()`
-  /// let compiler = Compiler::builder()
-  ///   .experiments(ExperimentsBuilder::default().incremental(IncrementalOptions::empty_passes()));
+  /// let compiler = Compiler::builder().experiments(ExperimentsBuilder::default().css(true));
   ///
   /// // `Experiments::builder` equals to `ExperimentsBuilder::default()`
-  /// let compiler = Compiler::builder()
-  ///   .experiments(Experiments::builder().incremental(IncrementalOptions::empty_passes()));
+  /// let compiler = Compiler::builder().experiments(Experiments::builder().css(true));
   ///
   /// // Or directly passing `Experiments`
   /// // let compiler = Compiler::builder().experiments(Experiments { ... });
@@ -406,6 +396,14 @@ impl CompilerBuilder {
     V: Into<ExperimentsBuilder>,
   {
     self.options_builder.experiments(experiments);
+    self
+  }
+
+  /// Set options for incremental builds.
+  ///
+  /// See [`CompilerOptionsBuilder::incremental`] for more details.
+  pub fn incremental(&mut self, incremental: IncrementalOptions) -> &mut Self {
+    self.options_builder.incremental(incremental);
     self
   }
 
@@ -447,6 +445,7 @@ impl CompilerBuilder {
     let mut builder_context = BuilderContext::default();
     let compiler_options = self.options_builder.build(&mut builder_context)?;
     let mut plugins = builder_context.take_plugins(&compiler_options);
+    let platform = builder_context.take_platform();
     plugins.append(&mut self.plugins);
 
     let input_filesystem = self.input_filesystem.take();
@@ -464,6 +463,7 @@ impl CompilerBuilder {
       None,
       None,
       compiler_context,
+      Arc::new(platform),
     ))
   }
 }
@@ -581,12 +581,12 @@ pub struct CompilerOptionsBuilder {
   resolve_loader: Option<Resolve>,
   /// The type of externals.
   devtool: Option<Devtool>,
-  /// The type of externals.
-  profile: Option<bool>,
   /// Whether to fail on the first error.
   bail: Option<bool>,
   /// Performance optimization options.
   experiments: Option<ExperimentsBuilder>,
+  /// Options for incremental builds.
+  incremental: Option<IncrementalOptions>,
   /// Options for module configuration.
   module: Option<ModuleOptionsBuilder>,
   /// Options for stats.
@@ -616,9 +616,9 @@ impl From<&mut CompilerOptionsBuilder> for CompilerOptionsBuilder {
       resolve: value.resolve.take(),
       resolve_loader: value.resolve_loader.take(),
       devtool: value.devtool.take(),
-      profile: value.profile.take(),
       bail: value.bail.take(),
       experiments: value.experiments.take(),
+      incremental: value.incremental.take(),
       module: value.module.take(),
       output: value.output.take(),
       stats: value.stats.take(),
@@ -717,12 +717,6 @@ impl CompilerOptionsBuilder {
   /// Set whether to fail on the first error.
   pub fn bail(&mut self, bail: bool) -> &mut Self {
     self.bail = Some(bail);
-    self
-  }
-
-  /// Set whether to enable profiling.
-  pub fn profile(&mut self, profile: bool) -> &mut Self {
-    self.profile = Some(profile);
     self
   }
 
@@ -858,15 +852,13 @@ impl CompilerOptionsBuilder {
   ///
   /// ```rust
   /// use rspack::builder::{Builder as _, ExperimentsBuilder};
-  /// use rspack_core::{Compiler, Experiments, incremental::IncrementalOptions};
+  /// use rspack_core::{Compiler, Experiments};
   ///
   /// // Using builder without calling `build()`
-  /// let compiler = Compiler::builder()
-  ///   .experiments(ExperimentsBuilder::default().incremental(IncrementalOptions::empty_passes()));
+  /// let compiler = Compiler::builder().experiments(ExperimentsBuilder::default().css(true));
   ///
   /// // `Experiments::builder` equals to `ExperimentsBuilder::default()`
-  /// let compiler = Compiler::builder()
-  ///   .experiments(Experiments::builder().incremental(IncrementalOptions::empty_passes()));
+  /// let compiler = Compiler::builder().experiments(Experiments::builder().css(true));
   ///
   /// // Or directly passing `Experiments`
   /// // let compiler = Compiler::builder().experiments(Experiments { ... });
@@ -876,6 +868,12 @@ impl CompilerOptionsBuilder {
     V: Into<ExperimentsBuilder>,
   {
     self.experiments = Some(experiments.into());
+    self
+  }
+
+  /// Set options for incremental builds.
+  pub fn incremental(&mut self, incremental: IncrementalOptions) -> &mut Self {
+    self.incremental = Some(incremental);
     self
   }
 
@@ -912,6 +910,7 @@ impl CompilerOptionsBuilder {
       vec!["web".to_string()]
     });
     let target_properties = get_targets_properties(&target, &context);
+    builder_context.platform = CompilerPlatform::from(&target_properties);
 
     let development = matches!(self.mode, Some(Mode::Development));
     let production = matches!(self.mode, Some(Mode::Production) | None);
@@ -934,13 +933,10 @@ impl CompilerOptionsBuilder {
       }
     });
 
-    let profile = d!(self.profile.take(), false);
     let bail = d!(self.bail.take(), false);
     let cache = d!(self.cache.take(), {
       if development {
-        CacheOptions::Memory {
-          max_generations: None,
-        }
+        CacheOptions::Memory { max_generations: 1 }
       } else {
         CacheOptions::Disabled
       }
@@ -948,11 +944,10 @@ impl CompilerOptionsBuilder {
 
     // apply experiments defaults
     let mut experiments_builder = f!(self.experiments.take(), Experiments::builder);
-    let mut experiments = experiments_builder.build(builder_context, development, production)?;
-    // Disable experiments cache if global cache is set to `Disabled`
-    if matches!(cache, CacheOptions::Disabled) {
-      experiments.cache = ExperimentCacheOptions::Disabled;
-    }
+    let experiments = experiments_builder.build(builder_context, development, production)?;
+
+    // apply incremental defaults
+    let incremental = f!(self.incremental.take(), IncrementalOptions::advanced_silent);
 
     let async_web_assembly = expect!(experiments_builder.async_web_assembly);
     if async_web_assembly {
@@ -967,7 +962,6 @@ impl CompilerOptionsBuilder {
         .push(BuiltinPluginOptions::CssModulesPlugin);
     }
     let future_defaults = expect!(experiments_builder.future_defaults);
-    let output_module = expect!(experiments_builder.output_module);
 
     // apply module defaults
     let module = f!(self.module.take(), ModuleOptions::builder).build(
@@ -984,7 +978,7 @@ impl CompilerOptionsBuilder {
     let output = output_builder.build(
       builder_context,
       &context,
-      output_module,
+      output_builder.module.unwrap_or_default(),
       Some(&target_properties),
       is_affected_by_browserslist,
       development,
@@ -1006,17 +1000,16 @@ impl CompilerOptionsBuilder {
         filename: (!inline).then_some(output.source_map_filename.as_str().to_string()),
         module_filename_template: output_builder
           .devtool_module_filename_template
-          .map(|t| rspack_plugin_devtool::ModuleFilenameTemplate::String(t.as_str().to_string()))
-          .clone(),
+          .map(|t| rspack_plugin_devtool::ModuleFilenameTemplate::String(t.as_str().to_string())),
         append: hidden.then_some(rspack_plugin_devtool::Append::Disabled),
         columns: !cheap,
         fallback_module_filename_template: output_builder
           .devtool_fallback_module_filename_template
-          .map(|t| rspack_plugin_devtool::ModuleFilenameTemplate::String(t.as_str().to_string()))
-          .clone(),
+          .map(|t| rspack_plugin_devtool::ModuleFilenameTemplate::String(t.as_str().to_string())),
         module: if module_maps { true } else { !cheap },
         namespace: output_builder.devtool_namespace.clone(),
         no_sources,
+        ignore_list: None,
         file_context: None,
         public_path: None,
         source_root: None,
@@ -1039,8 +1032,7 @@ impl CompilerOptionsBuilder {
       let options = rspack_plugin_devtool::EvalDevToolModulePluginOptions {
         module_filename_template: output_builder
           .devtool_module_filename_template
-          .map(|t| rspack_plugin_devtool::ModuleFilenameTemplate::String(t.as_str().to_string()))
-          .clone(),
+          .map(|t| rspack_plugin_devtool::ModuleFilenameTemplate::String(t.as_str().to_string())),
         namespace: output_builder.devtool_namespace.clone(),
         source_url_comment: None,
       };
@@ -1156,7 +1148,7 @@ impl CompilerOptionsBuilder {
 
     // apply node defaults
     let node = f!(self.node.take(), <Option<NodeOption>>::builder)
-      .build(&target_properties, output_module)?;
+      .build(&target_properties, output.module)?;
 
     // apply optimization defaults
     let optimization = f!(self.optimization.take(), Optimization::builder).build(
@@ -1194,6 +1186,7 @@ impl CompilerOptionsBuilder {
           name: Some(name),
           runtime: desc.runtime.map(EntryRuntime::String),
           chunk_loading: desc.chunk_loading,
+          wasm_loading: desc.wasm_loading,
           async_chunks: desc.async_chunks,
           public_path: desc.public_path,
           base_uri: desc.base_uri,
@@ -1263,9 +1256,9 @@ impl CompilerOptionsBuilder {
       stats,
       cache,
       experiments,
+      incremental,
       node,
       optimization,
-      profile,
       amd,
       bail,
       __references: Default::default(),
@@ -1708,9 +1701,9 @@ impl ModuleOptionsBuilder {
           unknown_context_critical: Some(true),
           wrapped_context_critical: Some(false),
           wrapped_context_reg_exp: Some(RspackRegex::new(".*").expect("should initialize `Regex`")),
-          strict_export_presence: Some(false),
           worker: Some(vec!["...".to_string()]),
           import_meta: Some(true),
+          require_alias: Some(false),
           require_as_expression: Some(true),
           require_dynamic: Some(true),
           require_resolve: Some(true),
@@ -1719,7 +1712,6 @@ impl ModuleOptionsBuilder {
           }),
           import_dynamic: Some(true),
           commonjs_magic_comments: Some(false),
-          inline_const: Some(false),
           jsx: Some(false),
           ..Default::default()
         }),
@@ -1753,18 +1745,21 @@ impl ModuleOptionsBuilder {
     if css {
       let css_parser_options = ParserOptions::Css(CssParserOptions {
         named_exports: Some(true),
+        resolve_import: Some(CssParserImport::Bool(true)),
         url: Some(true),
       });
-      parser.insert("css".to_string(), css_parser_options.clone());
+      parser.insert("css".to_string(), css_parser_options);
 
       let css_auto_parser_options = ParserOptions::CssAuto(CssAutoParserOptions {
         named_exports: Some(true),
+        resolve_import: Some(CssParserImport::Bool(true)),
         url: Some(true),
       });
       parser.insert("css/auto".to_string(), css_auto_parser_options);
 
       let css_module_parser_options = ParserOptions::CssModule(CssModuleParserOptions {
         named_exports: Some(true),
+        resolve_import: Some(CssParserImport::Bool(true)),
         url: Some(true),
       });
       parser.insert("css/module".to_string(), css_module_parser_options);
@@ -2151,8 +2146,6 @@ pub struct OutputOptionsBuilder {
   chunk_load_timeout: Option<u32>,
   /// Set the chunk format.
   chunk_format: Option<String>,
-  /// Set the charset.
-  charset: Option<bool>,
   /// Set the filename.
   filename: Option<Filename>,
   /// Set the chunk filename.
@@ -2238,7 +2231,6 @@ impl From<OutputOptions> for OutputOptionsBuilder {
       chunk_loading_global: Some(value.chunk_loading_global),
       chunk_load_timeout: Some(value.chunk_load_timeout),
       chunk_format: None,
-      charset: Some(value.charset),
       filename: Some(value.filename),
       chunk_filename: Some(value.chunk_filename),
       cross_origin_loading: Some(value.cross_origin_loading),
@@ -2292,7 +2284,6 @@ impl From<&mut OutputOptionsBuilder> for OutputOptionsBuilder {
       chunk_loading_global: value.chunk_loading_global.take(),
       chunk_load_timeout: value.chunk_load_timeout.take(),
       chunk_format: value.chunk_format.take(),
-      charset: value.charset.take(),
       filename: value.filename.take(),
       chunk_filename: value.chunk_filename.take(),
       cross_origin_loading: value.cross_origin_loading.take(),
@@ -2424,14 +2415,6 @@ impl OutputOptionsBuilder {
   /// The format of chunks (formats included by default are 'array-push' (web/webworker), 'commonjs' (node.js), 'module' (ESM).
   pub fn chunk_format(&mut self, chunk_format: String) -> &mut Self {
     self.chunk_format = Some(chunk_format);
-    self
-  }
-
-  /// Add charset="utf-8" to the HTML <script> tag.
-  ///
-  /// Default set to `true`.
-  pub fn charset(&mut self, charset: bool) -> &mut Self {
-    self.charset = Some(charset);
     self
   }
 
@@ -2813,16 +2796,14 @@ impl OutputOptionsBuilder {
     });
 
     let chunk_loading_global = f!(self.chunk_loading_global.take(), || {
-      format!("webpackChunk{}", rspack_core::to_identifier(&unique_name))
+      format!("rspackChunk{}", rspack_core::to_identifier(&unique_name))
     });
 
     let chunk_load_timeout = d!(self.chunk_load_timeout.take(), 120_000);
 
-    let charset = d!(self.charset.take(), true);
-
     let hot_update_global = f!(self.hot_update_global.take(), || {
       format!(
-        "webpackHotUpdate{}",
+        "rspackHotUpdate{}",
         rspack_core::to_identifier(&unique_name)
       )
     });
@@ -3049,11 +3030,27 @@ impl OutputOptionsBuilder {
         .map(|types| { types.into_iter().collect::<HashSet<_>>() }),
       || {
         let mut enabled_wasm_loading_types = HashSet::default();
-        if let WasmLoading::Enable(ty) = wasm_loading {
-          enabled_wasm_loading_types.insert(ty);
+        if let WasmLoading::Enable(ty) = &wasm_loading {
+          enabled_wasm_loading_types.insert(ty.clone());
         }
-        if let WasmLoading::Enable(ty) = worker_wasm_loading {
-          enabled_wasm_loading_types.insert(ty);
+        if let WasmLoading::Enable(ty) = &worker_wasm_loading {
+          enabled_wasm_loading_types.insert(ty.clone());
+        }
+        // Check if chunkLoading is universal, then enable universal wasm loading
+        if matches!(&chunk_loading, ChunkLoading::Enable(ChunkLoadingType::Custom(s)) if s == "universal")
+        {
+          enabled_wasm_loading_types.insert(WasmLoadingType::Universal);
+        }
+        if matches!(&worker_chunk_loading, ChunkLoading::Enable(ChunkLoadingType::Custom(s)) if s == "universal")
+        {
+          enabled_wasm_loading_types.insert(WasmLoadingType::Universal);
+        }
+        for (_, desc) in entry.iter() {
+          if let Some(ChunkLoading::Enable(ChunkLoadingType::Custom(s))) = &desc.chunk_loading
+            && s == "universal"
+          {
+            enabled_wasm_loading_types.insert(WasmLoadingType::Universal);
+          }
         }
         // for (_, desc) in entry.iter() {
         //   if let Some(wasm_loading) = &desc.wasm_loading {
@@ -3090,23 +3087,44 @@ impl OutputOptionsBuilder {
     }
 
     let mut environment = f!(self.environment.take(), Environment::default);
-    environment.global_this = tp.and_then(|t| t.global_this);
-    environment.big_int_literal = tp.map(|t| optimistic!(t.big_int_literal));
-    environment.r#const = tp.map(|t| optimistic!(t.r#const));
-    environment.arrow_function = tp.map(|t| optimistic!(t.arrow_function));
-    environment.async_function = tp.map(|t| optimistic!(t.async_function));
-    environment.for_of = tp.map(|t| optimistic!(t.for_of));
-    environment.destructuring = tp.map(|t| optimistic!(t.destructuring));
-    environment.optional_chaining = tp.map(|t| optimistic!(t.optional_chaining));
-    environment.node_prefix_for_core_modules =
-      tp.map(|t| optimistic!(t.node_prefix_for_core_modules));
-    environment.template_literal = tp.map(|t| optimistic!(t.template_literal));
-    environment.dynamic_import =
-      tp.map(|t| conditionally_optimistic!(t.dynamic_import, output_module));
-    environment.dynamic_import_in_worker =
-      tp.map(|t| conditionally_optimistic!(t.dynamic_import_in_worker, output_module));
-    environment.module = tp.map(|t| conditionally_optimistic!(t.module, output_module));
-    environment.document = tp.map(|t| optimistic!(t.document));
+    environment.global_this = tp.and_then(|t| t.global_this).unwrap_or_default();
+    environment.big_int_literal = tp
+      .map(|t| optimistic!(t.big_int_literal))
+      .unwrap_or_default();
+    environment.r#const = tp.map(|t| optimistic!(t.r#const)).unwrap_or_default();
+    environment.method_shorthand = tp
+      .map(|t| optimistic!(t.method_shorthand))
+      .unwrap_or_default();
+    environment.arrow_function = tp
+      .map(|t| optimistic!(t.arrow_function))
+      .unwrap_or_default();
+    environment.async_function = tp
+      .map(|t| optimistic!(t.async_function))
+      .unwrap_or_default();
+    environment.for_of = tp.map(|t| optimistic!(t.for_of)).unwrap_or_default();
+    environment.destructuring = tp.map(|t| optimistic!(t.destructuring)).unwrap_or_default();
+    environment.optional_chaining = tp
+      .map(|t| optimistic!(t.optional_chaining))
+      .unwrap_or_default();
+    environment.node_prefix_for_core_modules = tp
+      .map(|t| optimistic!(t.node_prefix_for_core_modules))
+      .unwrap_or_default();
+    environment.import_meta_dirname_and_filename = tp
+      .and_then(|t| t.import_meta_dirname_and_filename)
+      .unwrap_or_default();
+    environment.template_literal = tp
+      .map(|t| optimistic!(t.template_literal))
+      .unwrap_or_default();
+    environment.dynamic_import = tp
+      .map(|t| conditionally_optimistic!(t.dynamic_import, output_module))
+      .unwrap_or_default();
+    environment.dynamic_import_in_worker = tp
+      .map(|t| conditionally_optimistic!(t.dynamic_import_in_worker, output_module))
+      .unwrap_or_default();
+    environment.module = tp
+      .map(|t| conditionally_optimistic!(t.module, output_module))
+      .unwrap_or_default();
+    environment.document = tp.map(|t| optimistic!(t.document)).unwrap_or_default();
 
     Ok(OutputOptions {
       path,
@@ -3120,7 +3138,6 @@ impl OutputOptionsBuilder {
       chunk_loading,
       chunk_loading_global,
       chunk_load_timeout,
-      charset,
       filename,
       chunk_filename,
       cross_origin_loading,
@@ -3185,6 +3202,8 @@ pub struct OptimizationOptionsBuilder {
   inner_graph: Option<bool>,
   /// Whether to enable mangle exports.
   mangle_exports: Option<MangleExportsOption>,
+  /// Whether to enable inline exports.
+  inline_exports: Option<bool>,
   /// Whether to enable concatenate modules.
   concatenate_modules: Option<bool>,
   /// Whether to enable real content hash.
@@ -3209,6 +3228,7 @@ impl From<Optimization> for OptimizationOptionsBuilder {
       used_exports: Some(value.used_exports),
       inner_graph: Some(value.inner_graph),
       mangle_exports: Some(value.mangle_exports),
+      inline_exports: Some(value.inline_exports),
       concatenate_modules: Some(value.concatenate_modules),
       avoid_entry_iife: Some(value.avoid_entry_iife),
       remove_empty_chunks: None,
@@ -3240,6 +3260,7 @@ impl From<&mut OptimizationOptionsBuilder> for OptimizationOptionsBuilder {
       used_exports: value.used_exports.take(),
       inner_graph: value.inner_graph.take(),
       mangle_exports: value.mangle_exports.take(),
+      inline_exports: value.inline_exports.take(),
       concatenate_modules: value.concatenate_modules.take(),
       real_content_hash: value.real_content_hash.take(),
       avoid_entry_iife: value.avoid_entry_iife.take(),
@@ -3535,6 +3556,7 @@ impl OptimizationOptionsBuilder {
         .push(BuiltinPluginOptions::SideEffectsFlagPlugin);
     }
 
+    let inline_exports = d!(self.inline_exports, production);
     let mangle_exports = f!(self.mangle_exports.take(), || {
       if production {
         MangleExportsOption::Deterministic
@@ -3638,6 +3660,7 @@ impl OptimizationOptionsBuilder {
       used_exports,
       inner_graph,
       mangle_exports,
+      inline_exports,
       concatenate_modules,
       avoid_entry_iife,
       real_content_hash,
@@ -3650,24 +3673,10 @@ impl OptimizationOptionsBuilder {
 /// [`Experiments`]: rspack_core::options::Experiments
 #[derive(Debug, Default)]
 pub struct ExperimentsBuilder {
-  /// Whether to enable module layers feature.  
-  layers: Option<bool>,
-  /// Incremental passes.
-  incremental: Option<IncrementalOptions>,
-  /// Whether to enable top level await.
-  top_level_await: Option<bool>,
-  /// Rspack future.
-  rspack_future: Option<RspackFuture>,
-  /// Cache options.
-  cache: Option<ExperimentCacheOptions>,
-  /// Whether to enable output module.
-  output_module: Option<bool>,
   /// Whether to enable future defaults.
   future_defaults: Option<bool>,
   /// Whether to enable css.
   css: Option<bool>,
-  /// Whether to enable parallel code splitting.
-  parallel_code_splitting: Option<bool>,
   /// Whether to enable async web assembly.
   async_web_assembly: Option<bool>,
   // TODO: lazy compilation
@@ -3676,13 +3685,6 @@ pub struct ExperimentsBuilder {
 impl From<Experiments> for ExperimentsBuilder {
   fn from(value: Experiments) -> Self {
     ExperimentsBuilder {
-      layers: Some(value.layers),
-      incremental: Some(value.incremental),
-      top_level_await: Some(value.top_level_await),
-      rspack_future: Some(value.rspack_future),
-      cache: Some(value.cache),
-      parallel_code_splitting: Some(value.parallel_code_splitting),
-      output_module: None,
       future_defaults: None,
       css: Some(value.css),
       async_web_assembly: None,
@@ -3693,45 +3695,14 @@ impl From<Experiments> for ExperimentsBuilder {
 impl From<&mut ExperimentsBuilder> for ExperimentsBuilder {
   fn from(value: &mut ExperimentsBuilder) -> Self {
     ExperimentsBuilder {
-      layers: value.layers.take(),
-      incremental: value.incremental.take(),
-      top_level_await: value.top_level_await.take(),
-      rspack_future: value.rspack_future.take(),
-      cache: value.cache.take(),
-      output_module: value.output_module.take(),
       future_defaults: value.future_defaults.take(),
       css: value.css.take(),
-      parallel_code_splitting: value.parallel_code_splitting.take(),
       async_web_assembly: value.async_web_assembly.take(),
     }
   }
 }
 
 impl ExperimentsBuilder {
-  /// Set whether to enable layers.
-  pub fn layers(&mut self, layers: bool) -> &mut Self {
-    self.layers = Some(layers);
-    self
-  }
-
-  /// Set the incremental passes.
-  pub fn incremental(&mut self, incremental: IncrementalOptions) -> &mut Self {
-    self.incremental = Some(incremental);
-    self
-  }
-
-  /// Set whether to enable top level await.
-  pub fn top_level_await(&mut self, top_level_await: bool) -> &mut Self {
-    self.top_level_await = Some(top_level_await);
-    self
-  }
-
-  /// Set the cache options.
-  pub fn cache(&mut self, cache: ExperimentCacheOptions) -> &mut Self {
-    self.cache = Some(cache);
-    self
-  }
-
   /// Set whether to enable future defaults.
   pub fn future_defaults(&mut self, future_defaults: bool) -> &mut Self {
     self.future_defaults = Some(future_defaults);
@@ -3750,63 +3721,23 @@ impl ExperimentsBuilder {
     self
   }
 
-  /// Set whether to enable parallel code splitting.
-  pub fn parallel_code_splitting(&mut self, parallel_code_splitting: bool) -> &mut Self {
-    self.parallel_code_splitting = Some(parallel_code_splitting);
-    self
-  }
-
   /// Build [`Experiments`] from options.
   ///
   /// [`Experiments`]: rspack_core::options::Experiments
   fn build(
     &mut self,
     _builder_context: &mut BuilderContext,
-    development: bool,
-    production: bool,
+    _development: bool,
+    _production: bool,
   ) -> Result<Experiments> {
-    let layers = d!(self.layers, false);
-    let incremental = f!(self.incremental.take(), || {
-      let passes = if !production {
-        IncrementalPasses::MAKE | IncrementalPasses::EMIT_ASSETS
-      } else {
-        IncrementalPasses::empty()
-      };
-      IncrementalOptions {
-        silent: true,
-        passes,
-      }
-    });
-    let top_level_await = d!(self.top_level_await, true);
-    let cache = f!(self.cache.take(), || {
-      if development {
-        ExperimentCacheOptions::Memory
-      } else {
-        ExperimentCacheOptions::Disabled
-      }
-    });
-    let rspack_future = d!(self.rspack_future.take(), RspackFuture {});
-
     // Builder specific
     let future_defaults = w!(self.future_defaults, false);
     w!(self.css, *future_defaults);
-    w!(self.async_web_assembly, *future_defaults);
-    w!(self.output_module, false);
-
-    let parallel_code_splitting = d!(self.parallel_code_splitting, false);
+    w!(self.async_web_assembly, true);
 
     Ok(Experiments {
-      layers,
-      incremental,
-      top_level_await,
-      rspack_future,
-      parallel_code_splitting,
-      cache,
       css: d!(self.css, false),
-      inline_const: false,
-      inline_enum: false,
-      type_reexports_presence: false,
-      lazy_barrel: false,
+      defer_import: false,
     })
   }
 }
@@ -3864,7 +3795,7 @@ mod test {
   fn mutable_builder_into_owned_builder() {
     let _ = CompilerOptions::builder()
       .optimization(OptimizationOptionsBuilder::default().node_env("development".to_string()))
-      .output(OutputOptionsBuilder::default().charset(true))
+      .output(OutputOptionsBuilder::default())
       .experiments(ExperimentsBuilder::default().future_defaults(true))
       .module(ModuleOptionsBuilder::default().no_parse(ModuleNoParseRules::Rules(vec![])))
       .node(NodeOptionBuilder::default().dirname(NodeDirnameOption::EvalOnly))

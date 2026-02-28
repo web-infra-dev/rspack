@@ -9,9 +9,10 @@ use cow_utils::CowUtils;
 use rspack_core::{Compilation, CompilationId, CompilationProcessAssets, Filename, Plugin};
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rspack_util::fx_hash::FxDashMap;
 use sugar_path::SugarPath;
-use swc_html::visit::VisitMutWith;
 
 use crate::{
   AfterEmitData, AfterTemplateExecutionData, AlterAssetTagGroupsData, AlterAssetTagsData,
@@ -28,6 +29,7 @@ use crate::{
 /// We should make sure that there's no read-write and write-write conflicts for each hook instance by looking up [HtmlRspackPlugin::get_compilation_hooks_mut]
 type ArcHtmlPluginHooks = Arc<AtomicRefCell<HtmlPluginHooks>>;
 
+#[cfg_attr(allocative, allocative::root)]
 static COMPILATION_HOOKS_MAP: LazyLock<FxDashMap<CompilationId, ArcHtmlPluginHooks>> =
   LazyLock::new(Default::default);
 
@@ -95,7 +97,7 @@ async fn generate_html(
     .await?;
 
   let asset_tags: HtmlPluginAssetTags =
-    HtmlPluginAssetTags::from_assets(config, &before_generation_data.assets, &assets_info.1);
+    HtmlPluginAssetTags::from_assets(config, &before_generation_data.assets);
 
   let alter_asset_tags_data = hooks
     .borrow()
@@ -138,7 +140,7 @@ async fn generate_html(
 
   let template_execution_result = template.render(config).await?;
 
-  let mut after_template_execution_data = hooks
+  let after_template_execution_data = hooks
     .borrow()
     .after_template_execution
     .call(AfterTemplateExecutionData {
@@ -150,13 +152,6 @@ async fn generate_html(
       uid: config.uid,
     })
     .await?;
-
-  let has_doctype = after_template_execution_data.html.contains("!DOCTYPE")
-    || after_template_execution_data.html.contains("!doctype");
-  if !has_doctype {
-    after_template_execution_data.html =
-      format!("<!DOCTYPE html>{}", after_template_execution_data.html);
-  }
 
   let parser = HtmlCompiler::new(config);
 
@@ -178,12 +173,6 @@ async fn generate_html(
 
   let raw_html = parser.codegen(&mut current_ast, compilation)?;
   let html = raw_html.cow_replace("$$RSPACK_URL_AMP$$", "&");
-
-  let html = if has_doctype {
-    html
-  } else {
-    html.cow_replace("<!DOCTYPE html>", "")
-  };
 
   Ok((
     template_file_name.to_string(),
@@ -278,7 +267,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       .borrow()
       .after_emit
       .call(AfterEmitData {
-        output_name: html_asset.0.to_string(),
+        output_name: html_asset.0.clone(),
         compilation_id: compilation.id(),
         uid: config.uid,
       })

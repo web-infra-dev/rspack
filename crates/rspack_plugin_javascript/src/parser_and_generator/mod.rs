@@ -1,11 +1,16 @@
-use std::{borrow::Cow, sync::Arc};
+use std::{
+  borrow::Cow,
+  sync::{Arc, LazyLock},
+};
 
+use regex::Regex;
 use rspack_cacheable::{cacheable, cacheable_dyn, with::Skip};
 use rspack_core::{
   AsyncDependenciesBlockIdentifier, BuildMetaExportsType, COLLECTED_TYPESCRIPT_INFO_PARSE_META_KEY,
   ChunkGraph, CollectedTypeScriptInfo, Compilation, DependenciesBlock, DependencyId,
-  DependencyRange, GenerateContext, Module, ModuleGraph, ModuleType, ParseContext, ParseResult,
-  ParserAndGenerator, SideEffectsBailoutItem, SourceType, TemplateContext, TemplateReplaceSource,
+  GenerateContext, Module, ModuleCodeTemplate, ModuleGraph, ModuleType, ParseContext, ParseResult,
+  ParserAndGenerator, RuntimeGlobals, SideEffectsBailoutItem, SourceType, TemplateContext,
+  TemplateReplaceSource,
   diagnostics::map_box_diagnostics_to_module_parse_diagnostics,
   remove_bom, render_init_fragments,
   rspack_sources::{BoxSource, ReplaceSource, Source, SourceExt},
@@ -14,7 +19,7 @@ use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnostic
 use rspack_javascript_compiler::JavaScriptCompiler;
 use swc_core::{
   base::config::IsModule,
-  common::{FileName, SyntaxContext, comments::Comments, input::SourceFileInput},
+  common::{BytePos, input::SourceFileInput},
   ecma::{
     ast,
     parser::{EsSyntax, Syntax, lexer::Lexer},
@@ -24,7 +29,7 @@ use swc_core::{
 use swc_node_comments::SwcComments;
 
 use crate::{
-  BoxJavascriptParserPlugin, SideEffectsFlagPluginVisitor, SyntaxContextInfo,
+  BoxJavascriptParserPlugin,
   dependency::ESMCompatibilityDependency,
   visitors::{ScanDependenciesResult, scan_dependencies, semicolon, swc_visitor::resolver},
 };
@@ -35,6 +40,35 @@ fn module_type_to_is_module(value: &ModuleType) -> IsModule {
     ModuleType::JsEsm => IsModule::Bool(true),
     ModuleType::JsDynamic => IsModule::Bool(false),
     _ => IsModule::Unknown,
+  }
+}
+
+#[derive(Debug)]
+pub struct ParserRuntimeRequirementsData {
+  pub module: String,
+  pub exports: String,
+  pub require: String,
+  pub require_regex: &'static LazyLock<Regex>,
+}
+
+static LEGACY_REQUIRE_REGEX: LazyLock<Regex> = LazyLock::new(|| {
+  Regex::new("__webpack_require__\\s*(!?\\.)").expect("should init `REQUIRE_FUNCTION_REGEX`")
+});
+
+impl ParserRuntimeRequirementsData {
+  pub fn new(runtime_template: &ModuleCodeTemplate) -> Self {
+    let require_name =
+      runtime_template.render_runtime_globals_without_adding(&RuntimeGlobals::REQUIRE);
+    let module_name =
+      runtime_template.render_runtime_globals_without_adding(&RuntimeGlobals::MODULE);
+    let exports_name =
+      runtime_template.render_runtime_globals_without_adding(&RuntimeGlobals::EXPORTS);
+    Self {
+      require_regex: &LEGACY_REQUIRE_REGEX,
+      module: module_name,
+      exports: exports_name,
+      require: require_name,
+    }
   }
 }
 
@@ -90,10 +124,12 @@ impl JavaScriptParserAndGenerator {
     if let Some(dependency) = compilation
       .get_module_graph()
       .dependency_by_id(dependency_id)
-      .expect("should have dependency")
       .as_dependency_code_generation()
     {
-      if let Some(template) = compilation.get_dependency_template(dependency) {
+      if let Some(template) = dependency
+        .dependency_template()
+        .and_then(|template_type| compilation.get_dependency_template(template_type))
+      {
         template.render(dependency, source, context)
       } else {
         panic!(
@@ -131,6 +167,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       module_layer,
       resource_data,
       compiler_options,
+      runtime_template,
       factory_meta,
       build_info,
       build_meta,
@@ -167,16 +204,8 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     };
 
     let source = remove_bom(source);
-    let cm: Arc<swc_core::common::SourceMap> = Default::default();
-    let fm = cm.new_source_file(
-      Arc::new(FileName::Custom(
-        resource_data
-          .path()
-          .map(|p| p.as_str().to_string())
-          .unwrap_or_default(),
-      )),
-      source.source().to_string(),
-    );
+    let source_string = source.source().into_string_lossy();
+
     let comments = SwcComments::default();
     let target = ast::EsVersion::EsNext;
 
@@ -197,14 +226,18 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         ..Default::default()
       }),
       target,
-      SourceFileInput::from(&*fm),
+      SourceFileInput::new(
+        &source_string,
+        BytePos(1),
+        BytePos(source_string.len() as u32 + 1),
+      ),
       Some(&comments),
     );
 
     let javascript_compiler = JavaScriptCompiler::new();
 
     let (mut ast, tokens) = match javascript_compiler.parse_with_lexer(
-      &fm,
+      &source_string,
       parser_lexer,
       module_type_to_is_module(module_type),
       Some(comments.clone()),
@@ -233,17 +266,17 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     });
 
     let unresolved_mark = ast.get_context().unresolved_mark;
+    let parser_runtime_requirements = ParserRuntimeRequirementsData::new(runtime_template);
 
     let ScanDependenciesResult {
       dependencies,
       blocks,
       presentational_dependencies,
       mut warning_diagnostics,
-      ..
+      mut side_effects_item,
     } = match ast.visit(|program, _| {
       scan_dependencies(
-        cm.clone(),
-        &fm,
+        &source_string,
         program,
         resource_data,
         compiler_options,
@@ -258,6 +291,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         unresolved_mark,
         &mut self.parser_plugins,
         parse_meta,
+        &parser_runtime_requirements,
       )
     }) {
       Ok(result) => result,
@@ -270,25 +304,10 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     let mut side_effects_bailout = None;
 
     if compiler_options.optimization.side_effects.is_true() {
-      ast.transform(|program, context| {
-        let unresolved_ctxt = SyntaxContext::empty().apply_mark(context.unresolved_mark);
-        let mut visitor = SideEffectsFlagPluginVisitor::new(
-          SyntaxContextInfo::new(unresolved_ctxt),
-          program.comments.as_ref().map(|c| c as &dyn Comments),
-        );
-        program.visit_with(&mut visitor);
-        build_meta.side_effect_free = Some(visitor.side_effects_item.is_none());
-        // Take the item from visitor is safe, because the field is only used in this place
-        side_effects_bailout = visitor
-          .side_effects_item
-          .take()
-          .and_then(|item| -> Option<_> {
-            let source = source.source();
-            let msg = Into::<DependencyRange>::into(item.span)
-              .to_loc(Some(source.as_ref()))?
-              .to_string();
-            Some(SideEffectsBailoutItem { msg, ty: item.ty })
-          })
+      build_meta.side_effect_free = Some(side_effects_item.is_none());
+      side_effects_bailout = side_effects_item.take().and_then(|item| -> Option<_> {
+        let msg = item.loc?.to_string();
+        Some(SideEffectsBailoutItem { msg, ty: item.ty })
       });
     }
 
@@ -324,11 +343,11 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       let mut context = TemplateContext {
         compilation,
         module,
-        runtime_requirements: generate_context.runtime_requirements,
         init_fragments: &mut init_fragments,
         runtime: generate_context.runtime,
         concatenation_scope: generate_context.concatenation_scope.take(),
         data: generate_context.data,
+        runtime_template: generate_context.runtime_template,
       };
 
       module.get_dependencies().iter().for_each(|dependency_id| {
@@ -337,7 +356,10 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
 
       if let Some(dependencies) = module.get_presentational_dependencies() {
         dependencies.iter().for_each(|dependency| {
-          if let Some(template) = compilation.get_dependency_template(dependency.as_ref()) {
+          if let Some(template) = dependency
+            .dependency_template()
+            .and_then(|template_type| compilation.get_dependency_template(template_type))
+          {
             template.render(dependency.as_ref(), &mut source, &mut context)
           } else {
             panic!(

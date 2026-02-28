@@ -18,6 +18,7 @@ dyn-clone = { workspace = true }
 either = { workspace = true }
 futures = { workspace = true }
 hashlink = { workspace = true }
+heck = { workspace = true }
 hex = { workspace = true }
 indexmap = { workspace = true, features = ["rayon"] }
 indoc = { workspace = true }
@@ -31,7 +32,6 @@ paste = { workspace = true }
 rayon = { workspace = true }
 regex = { workspace = true }
 rkyv = { workspace = true, optional = true }
-ropey = { workspace = true }
 rspack_cacheable = { workspace = true }
 rspack_collections = { workspace = true }
 rspack_dojang = { workspace = true }
@@ -77,8 +77,14 @@ swc_core = { workspace = true, features = [
 swc_node_comments = { workspace = true }
 tokio = { workspace = true, features = ["rt", "macros"] }
 tracing = { workspace = true }
+urlencoding = { workspace = true }
 ustr = { workspace = true }
 winnow = { workspace = true }
+
+pnp                            = { workspace = true }
+swc_experimental_ecma_ast      = { workspace = true }
+swc_experimental_ecma_parser   = { workspace = true }
+swc_experimental_ecma_semantic = { workspace = true }
 
 [dev-dependencies]
 pretty_assertions = { workspace = true }

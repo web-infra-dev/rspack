@@ -15,12 +15,11 @@ module.exports = {
 							jsc: {
 								parser: {
 									syntax: "typescript"
-								}
+								},
+								target: "esnext"
 							},
-							rspackExperiments: {
-								collectTypeScriptInfo: {
-									exportedEnum: true
-								}
+							collectTypeScriptInfo: {
+								exportedEnum: true
 							}
 						}
 					}
@@ -28,7 +27,7 @@ module.exports = {
 			}
 		]
 	},
-	experiments: {
-		inlineEnum: true
+	optimization: {
+		inlineExports: true
 	}
 };

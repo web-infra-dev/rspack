@@ -9,9 +9,15 @@ module.exports = [
 		optimization: {
 			chunkIds: 'named'
 		},
-		experiments: {
-			css: true
-		}
+		module: {
+			rules: [
+				{
+					test: /\.css$/,
+					type: "css/auto"
+				}
+			]
+		},
+
 	},
 	{
 		target: "web",
@@ -20,8 +26,14 @@ module.exports = [
 			chunkIds: 'named'
 		},
 		performance: false,
-		experiments: {
-			css: true
-		}
+		module: {
+			rules: [
+				{
+					test: /\.css$/,
+					type: "css/auto"
+				}
+			]
+		},
+
 	}
 ];

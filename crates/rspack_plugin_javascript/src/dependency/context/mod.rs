@@ -4,6 +4,7 @@ mod import_context_dependency;
 mod import_meta_context_dependency;
 mod require_context_dependency;
 mod require_resolve_context_dependency;
+mod url_context_dependency;
 
 pub use amd_require_context_dependency::{
   AMDRequireContextDependency, AMDRequireContextDependencyTemplate,
@@ -21,14 +22,15 @@ pub use require_resolve_context_dependency::{
   RequireResolveContextDependency, RequireResolveContextDependencyTemplate,
 };
 use rspack_core::{
-  ContextDependency, ContextMode, ContextOptions, DependencyRange, GroupOptions, TemplateContext,
-  TemplateReplaceSource, module_raw,
+  ContextDependency, ContextMode, ContextOptions, DependencyRange, GroupOptions,
+  ResourceIdentifier, TemplateContext, TemplateReplaceSource,
 };
+pub use url_context_dependency::{URLContextDependency, URLContextDependencyTemplate};
 
 fn create_resource_identifier_for_context_dependency(
   context: Option<&str>,
   options: &ContextOptions,
-) -> String {
+) -> ResourceIdentifier {
   let context = context.unwrap_or_default();
   let request = &options.request;
   let recursive = options.recursive.to_string();
@@ -75,7 +77,7 @@ fn create_resource_identifier_for_context_dependency(
   let id = format!(
     "context{context}|ctx request{request} {recursive} {regexp} {include} {exclude} {mode} {group_options} {referenced_exports}"
   );
-  id
+  id.into()
 }
 
 fn context_dependency_template_as_require_call(
@@ -87,12 +89,12 @@ fn context_dependency_template_as_require_call(
 ) {
   let TemplateContext {
     compilation,
-    runtime_requirements,
+    runtime_template,
     ..
   } = code_generatable_context;
   let id = dep.id();
 
-  let mut expr = module_raw(compilation, runtime_requirements, id, dep.request(), false);
+  let mut expr = runtime_template.module_raw(compilation, id, dep.request(), false);
 
   if compilation
     .get_module_graph()
@@ -119,14 +121,13 @@ fn context_dependency_template_as_id(
 ) {
   let TemplateContext {
     compilation,
-    runtime_requirements,
+    runtime_template,
     ..
   } = code_generatable_context;
   let id = dep.id();
 
-  let expr = module_raw(
+  let expr = runtime_template.module_raw(
     compilation,
-    runtime_requirements,
     id,
     dep.request(),
     dep.options().mode == ContextMode::Weak,

@@ -1,15 +1,19 @@
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	entry: "./index.mjs",
-	experiments: {
-		outputModule: true,
-		css: true
+	module: {
+		rules: [
+			{
+				test: /\.css$/,
+				type: "css/auto"
+			}
+		]
 	},
 	name: "esm",
 	target: "web",
 	output: {
-		publicPath: "",
 		module: true,
+		publicPath: "",
 		filename: "bundle0.mjs",
 		chunkFilename: "[name].mjs",
 		crossOriginLoading: "anonymous",

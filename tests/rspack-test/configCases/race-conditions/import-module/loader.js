@@ -7,6 +7,7 @@ module.exports.pitch = function (request) {
 		`${this.resourcePath}.webpack[javascript/auto]!=!!!${request}`,
 		{},
 		(err, result) => {
+			console.error(err);
 			if (err) return callback(err);
 			if (finished) return;
 			finished = true;

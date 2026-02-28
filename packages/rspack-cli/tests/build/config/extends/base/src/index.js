@@ -1,1 +1,1 @@
-console.log("Base extends test");
+console.log('Base extends test');

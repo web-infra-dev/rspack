@@ -2,11 +2,7 @@ use napi::Either;
 use rspack_core::{Reflector, WeakBindingCell};
 use rustc_hash::FxHashMap;
 
-use crate::{
-  module::ModuleObjectRef,
-  runtime::JsRuntimeSpec,
-  source::{JsCompatSourceOwned, ToJsCompatSourceOwned},
-};
+use crate::{module::ModuleObjectRef, runtime::JsRuntimeSpec, source::JsSourceToJs};
 
 // Map<string, Source>
 #[napi]
@@ -38,12 +34,12 @@ impl Sources {
 
 #[napi]
 impl Sources {
-  #[napi(js_name = "_get")]
-  pub fn get(&self, source_type: String) -> napi::Result<Option<JsCompatSourceOwned>> {
+  #[napi(js_name = "_get", ts_return_type = "JsSource | null")]
+  pub fn get(&self, source_type: String) -> napi::Result<Option<JsSourceToJs>> {
     let source_type = rspack_core::SourceType::from(source_type.as_str());
     self.with_ref(|sources| match sources.get(&source_type) {
       Some(source) => {
-        let source = ToJsCompatSourceOwned::to_js_compat_source_owned(source.as_ref())?;
+        let source = source.as_ref().try_into()?;
         Ok(Some(source))
       }
       None => Ok(None),

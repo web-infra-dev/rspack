@@ -1,4 +1,5 @@
-it("should allow to access __webpack_get_script_filename__ ", done => {
+it("should allow to access __webpack_get_script_filename__ ", () => new Promise((resolve, reject) => {
+	const done = err => (err ? reject(err) : resolve());
 	const oldFn = __webpack_get_script_filename__;
 	__webpack_get_script_filename__ = chunk => {
 		const filename = oldFn(chunk);
@@ -14,4 +15,4 @@ it("should allow to access __webpack_get_script_filename__ ", done => {
 			done();
 		}
 	);
-});
+}));

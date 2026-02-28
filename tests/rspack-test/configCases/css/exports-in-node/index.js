@@ -17,9 +17,8 @@ it("should allow to import a css module", () => {
 	expect(def).toBe("default");
 });
 
-it("should allow to dynamic import a css module", done => {
-	import("../pseudo-export/style.module.css").then(x => {
-		try {
+it("should allow to dynamic import a css module", async () => {
+	await import("../pseudo-export/style.module.css").then(x => {
 			expect(x).toEqual(
 				nsObj({
 					a: "a",
@@ -29,16 +28,11 @@ it("should allow to dynamic import a css module", done => {
 					default: "default"
 				})
 			);
-		} catch (e) {
-			return done(e);
-		}
-		done();
-	}, done);
+	});
 });
 
-it("should allow to reexport a css module", done => {
-	import("../pseudo-export/reexported").then(x => {
-		try {
+it("should allow to reexport a css module", async () => {
+	await import("../pseudo-export/reexported").then(x => {
 			expect(x).toEqual(
 				nsObj({
 					a: "a",
@@ -47,16 +41,11 @@ it("should allow to reexport a css module", done => {
 					whitespace: "abc\n\tdef",
 				})
 			);
-		} catch (e) {
-			return done(e);
-		}
-		done();
-	}, done);
+	});
 });
 
-it("should allow to import a css module", done => {
-	import("../pseudo-export/imported").then(({ default: x }) => {
-		try {
+it("should allow to import a css module", async () => {
+	await import("../pseudo-export/imported").then(({ default: x }) => {
 			expect(x).toEqual(
 				nsObj({
 					a: "a",
@@ -66,9 +55,5 @@ it("should allow to import a css module", done => {
 					default: "default"
 				})
 			);
-		} catch (e) {
-			return done(e);
-		}
-		done();
-	}, done);
+	});
 });

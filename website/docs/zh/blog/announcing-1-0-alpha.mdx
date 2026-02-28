@@ -122,8 +122,8 @@ Rspack 1.0 对齐了 webpack 的 [experiment.css](/config/experiments#experiment
 
 在 webpack 生态中，有三种常用的方式来打包 CSS 文件：
 
-1. 使用 [css-loader](https://github.com/webpack-contrib/css-loader) 和 [mini-css-extract-plugin](https://github.com/webpack-contrib/mini-css-extract-plugin)，生成独立的 CSS 文件。
-2. 使用 [css-loader](https://github.com/webpack-contrib/css-loader) 和 [style-loader](https://github.com/webpack-contrib/style-loader)，将 CSS 通过 `<style>` 标签注入。
+1. 使用 [css-loader](https://github.com/webpack/css-loader) 和 [mini-css-extract-plugin](https://github.com/webpack/mini-css-extract-plugin)，生成独立的 CSS 文件。
+2. 使用 [css-loader](https://github.com/webpack/css-loader) 和 [style-loader](https://github.com/webpack/style-loader)，将 CSS 通过 `<style>` 标签注入。
 3. 使用 [experiment.css](/config/experiments#experimentscss)，这是 webpack 5 引入的实验性功能，提供 CSS 原生支持。
 
 在 0.x 版本中，Rspack 默认启用了 `experiment.css`，这会与 css-loader 产生冲突。用户需要手动关闭 `experiment.css` 才能使用 css-loader。

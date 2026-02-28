@@ -1,12 +1,16 @@
 [
+  {
+    "type": "section-header",
+    "label": "开始"
+  },
   "index",
   {
-    "type": "dir",
+    "type": "dir-section-header",
     "name": "development",
     "label": "开发"
   },
   {
-    "type": "dir",
+    "type": "dir-section-header",
     "name": "architecture",
     "label": "架构"
   }

@@ -1,3 +1,6 @@
 export * from './lib3'
 
-export const lib2 = 42
+const v = 42
+
+export { v as lib2 }
+export * as path from 'path'

@@ -34,7 +34,7 @@ class TestPlugin {
 	}
 }
 
-/** @type {import('../..').TStatsAPICaseConfig} */
+/** @type {import('@rspack/test-tools').TStatsAPICaseConfig} */
 module.exports = {
 	description: "should have children when using childCompiler",
 	options(context) {

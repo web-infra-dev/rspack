@@ -580,7 +580,7 @@ export default {
     {
       apply(compiler) {
         const { RuntimeGlobals } = compiler.rspack;
-        compiler.hooks.thisCompilation.tap('CustomPlugin', compilation => {
+        compiler.hooks.thisCompilation.tap('CustomPlugin', (compilation) => {
           compilation.hooks.additionalTreeRuntimeRequirements.tap(
             'CustomPlugin',
             (_, set) => {
@@ -635,7 +635,7 @@ export default {
           }
         }
 
-        compiler.hooks.thisCompilation.tap('CustomPlugin', compilation => {
+        compiler.hooks.thisCompilation.tap('CustomPlugin', (compilation) => {
           compilation.hooks.runtimeRequirementInTree
             .for(RuntimeGlobals.ensureChunkHandlers)
             .tap('CustomPlugin', (chunk, set) => {
@@ -673,7 +673,7 @@ export default {
     {
       apply(compiler) {
         const { RuntimeGlobals } = compiler.rspack;
-        compiler.hooks.compilation.tap('CustomPlugin', compilation => {
+        compiler.hooks.compilation.tap('CustomPlugin', (compilation) => {
           compilation.hooks.runtimeModule.tap(
             'CustomPlugin',
             (module, chunk) => {
@@ -734,14 +734,14 @@ console.log(__webpack_require__.p);
 - 在 `PROCESS_ASSETS_STAGE_ADDITIONAL` 阶段输出一个新的 asset：
 
 ```js
-compiler.hooks.thisCompilation.tap('MyPlugin', compilation => {
+compiler.hooks.thisCompilation.tap('MyPlugin', (compilation) => {
   const { Compilation } = compiler.rspack;
   compilation.hooks.processAssets.tap(
     {
       name: 'MyPlugin',
       stage: Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL,
     },
-    assets => {
+    (assets) => {
       const { RawSource } = compiler.rspack.sources;
       const source = new RawSource('This is a new asset!');
       compilation.emitAsset('new-asset.txt', source);
@@ -753,14 +753,14 @@ compiler.hooks.thisCompilation.tap('MyPlugin', compilation => {
 - 更新一个已经存在的 asset：
 
 ```js
-compiler.hooks.thisCompilation.tap('MyPlugin', compilation => {
+compiler.hooks.thisCompilation.tap('MyPlugin', (compilation) => {
   const { Compilation } = compiler.rspack;
   compilation.hooks.processAssets.tap(
     {
       name: 'MyPlugin',
       stage: Compilation.PROCESS_ASSETS_STAGE_ADDITIONS,
     },
-    assets => {
+    (assets) => {
       const asset = assets['foo.js'];
       if (!asset) {
         return;
@@ -780,14 +780,14 @@ compiler.hooks.thisCompilation.tap('MyPlugin', compilation => {
 - 移除一个 asset：
 
 ```js
-compiler.hooks.thisCompilation.tap('MyPlugin', compilation => {
+compiler.hooks.thisCompilation.tap('MyPlugin', (compilation) => {
   const { Compilation } = compiler.rspack;
   compilation.hooks.processAssets.tap(
     {
       name: 'MyPlugin',
       stage: Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE,
     },
-    assets => {
+    (assets) => {
       const assetName = 'unwanted-script.js';
       if (assets[assetName]) {
         compilation.deleteAsset(assetName);
@@ -840,7 +840,7 @@ compiler.hooks.thisCompilation.tap('MyPlugin', compilation => {
 - **示例：**
 
 ```js
-compilation.hooks.afterProcessAssets.tap('MyPlugin', assets => {
+compilation.hooks.afterProcessAssets.tap('MyPlugin', (assets) => {
   console.log('assets', Object.keys(assets));
 });
 ```
@@ -926,7 +926,7 @@ compilation.hooks.afterProcessAssets.tap('MyPlugin', assets => {
 以如下插件为例：
 
 ```js
-compilation.hooks.statsPreset.for('my-preset').tap('MyPlugin', options => {
+compilation.hooks.statsPreset.for('my-preset').tap('MyPlugin', (options) => {
   if (options.all === undefined) options.all = true;
 });
 ```
@@ -961,7 +961,7 @@ type CreateStatsOptionsContext = {
 以如下插件为例：
 
 ```js
-compilation.hooks.statsNormalize.tap('MyPlugin', options => {
+compilation.hooks.statsNormalize.tap('MyPlugin', (options) => {
   if (options.myOption === undefined) options.myOption = [];
 
   if (!Array.isArray(options.myOption)) options.myOptions = [options.myOptions];

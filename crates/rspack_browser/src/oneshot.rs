@@ -24,9 +24,7 @@ pub fn channel<T>() -> (Sender<T>, Receiver<T>) {
     inner: inner.clone(),
   };
 
-  let rx = Receiver {
-    inner: inner.clone(),
-  };
+  let rx = Receiver { inner };
 
   (tx, rx)
 }

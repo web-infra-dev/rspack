@@ -5,8 +5,14 @@ module.exports = {
 	entry: {
 		main: "./index.js"
 	},
-	experiments: {
-		css: true
+,
+	module: {
+		rules: [
+			{
+				test: /\.css$/,
+				type: "css/auto"
+			}
+		]
 	},
 	plugins: [
 		function () {

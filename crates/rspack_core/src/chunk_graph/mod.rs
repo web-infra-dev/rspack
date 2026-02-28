@@ -47,6 +47,7 @@ impl ChunkGraph {
     // <td title="chunk_group_name"></td><td title="chunk1"></td><td title="chunk2"></td>
     let get_debug_chunk_group_info = |chunk_group_ukey: &ChunkGroupUkey| {
       let chunk_group = compilation
+        .build_chunk_graph_artifact
         .chunk_group_by_ukey
         .get(chunk_group_ukey)
         .expect("should have chunk group");
@@ -89,6 +90,7 @@ impl ChunkGraph {
         .iter()
         .map(|chunk_ukey| {
           let chunk: &crate::Chunk = compilation
+            .build_chunk_graph_artifact
             .chunk_by_ukey
             .get(chunk_ukey)
             .expect("should have chunk");
@@ -101,9 +103,16 @@ impl ChunkGraph {
         .map(|chunk_name| format!("    <tr><td>{chunk_name}</td></tr>"))
         .join("\n");
 
-      let table_body = requests.to_string();
+      let table_body = requests;
 
-      format!("\n<<table bgcolor=\"{bg_color}\">\n{table_header}\n{table_body}\n</table>>\n")
+      format!(
+        r#"
+<<table bgcolor="{bg_color}">
+{table_header}
+{table_body}
+</table>>
+"#
+      )
     };
 
     // push entry_point chunk group into visiting queue
@@ -113,6 +122,7 @@ impl ChunkGraph {
     // bfs visit all chunk groups
     while let Some(chunk_group_ukey) = visiting_groups.pop() {
       let chunk_group = compilation
+        .build_chunk_graph_artifact
         .chunk_group_by_ukey
         .get(&chunk_group_ukey)
         .expect("should have chunk group");

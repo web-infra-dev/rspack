@@ -52,7 +52,7 @@ const worker = new Worker(new URL('./node-worker.js', import.meta.url));
 - `navigator.serviceWorker.register()`: used to register Service Workers, see [ServiceWorkerContainer](https://developer.mozilla.org/en-US/docs/Web/API/ServiceWorkerContainer/register)
 
 ```js
-navigator.serviceWorker.register('./sw.js').then(registration => {
+navigator.serviceWorker.register('./sw.js').then((registration) => {
   console.log('Service worker registration succeeded:', registration);
 });
 ```
@@ -63,9 +63,9 @@ To support additional custom syntax, you can configure it through [`module.parse
 
 For usage examples, see:
 
-- [examples/worker](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/worker)
-- [examples/monaco-editor-js](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/monaco-editor-js)
-- [examples/monaco-editor-ts-react](https://github.com/rspack-contrib/rstack-examples/tree/main/rspack/monaco-editor-ts-react)
+- [examples/worker](https://github.com/rstackjs/rstack-examples/tree/main/rspack/worker)
+- [examples/monaco-editor-js](https://github.com/rstackjs/rstack-examples/tree/main/rspack/monaco-editor-js)
+- [examples/monaco-editor-ts-react](https://github.com/rstackjs/rstack-examples/tree/main/rspack/monaco-editor-ts-react)
 
 ### Notes
 
@@ -87,7 +87,7 @@ For usage examples, see:
 `worker-loader` is provided only as a temporary solution to facilitate project migration to Rspack. It is recommended to use the `new Worker()` syntax instead.
 :::
 
-Rspack also supports worker-loader. However, since [worker-loader](https://github.com/webpack-contrib/worker-loader) is no longer maintained, please use [worker-rspack-loader](https://github.com/rspack-contrib/worker-rspack-loader) as a replacement.
+Rspack also supports worker-loader. However, since [worker-loader](https://github.com/webpack-contrib/worker-loader) is no longer maintained, please use [worker-rspack-loader](https://github.com/rstackjs/worker-rspack-loader) as a replacement.
 
 Use [resolveLoader](/config/resolve-loader) to replace worker-loader with worker-rspack-loader:
 

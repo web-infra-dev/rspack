@@ -1,22 +1,22 @@
-use cow_utils::CowUtils;
-use rspack_collections::Identifier;
-use rspack_core::{Compilation, RuntimeModule, RuntimeModuleStage, impl_runtime_module};
+use rspack_core::{
+  RuntimeModule, RuntimeModuleGenerateContext, RuntimeModuleStage, RuntimeTemplate,
+  impl_runtime_module,
+};
 
 #[impl_runtime_module]
 #[derive(Debug)]
 pub struct RspackUniqueIdRuntimeModule {
-  id: Identifier,
   bundler_name: String,
   bundler_version: String,
 }
 
 impl RspackUniqueIdRuntimeModule {
-  pub fn new(bundler_name: String, bundler_version: String) -> Self {
-    Self::with_default(
-      Identifier::from("webpack/runtime/rspack_unique_id"),
-      bundler_name,
-      bundler_version,
-    )
+  pub fn new(
+    runtime_template: &RuntimeTemplate,
+    bundler_name: String,
+    bundler_version: String,
+  ) -> Self {
+    Self::with_default(runtime_template, bundler_name, bundler_version)
   }
 }
 
@@ -25,16 +25,25 @@ impl RuntimeModule for RspackUniqueIdRuntimeModule {
   fn stage(&self) -> RuntimeModuleStage {
     RuntimeModuleStage::Attach
   }
-  fn name(&self) -> Identifier {
-    self.id
+  fn template(&self) -> Vec<(String, String)> {
+    vec![(
+      self.id.to_string(),
+      include_str!("runtime/get_unique_id.ejs").to_string(),
+    )]
   }
 
-  async fn generate(&self, _: &Compilation) -> rspack_error::Result<String> {
-    Ok(
-      include_str!("runtime/get_unique_id.js")
-        .cow_replace("$BUNDLER_NAME$", &self.bundler_name)
-        .cow_replace("$BUNDLER_VERSION$", &self.bundler_version)
-        .into_owned(),
-    )
+  async fn generate(
+    &self,
+    context: &RuntimeModuleGenerateContext<'_>,
+  ) -> rspack_error::Result<String> {
+    let source = context.runtime_template.render(
+      &self.id,
+      Some(serde_json::json!({
+        "_bundler_name": &self.bundler_name,
+        "_bundler_version": &self.bundler_version,
+      })),
+    )?;
+
+    Ok(source)
   }
 }

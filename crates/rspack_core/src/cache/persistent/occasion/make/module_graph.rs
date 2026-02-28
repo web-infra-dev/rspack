@@ -1,7 +1,10 @@
-use std::sync::Arc;
+use std::sync::{
+  Arc,
+  atomic::{AtomicUsize, Ordering},
+};
 
 use rayon::prelude::*;
-use rspack_cacheable::{SerializeError, cacheable, from_bytes, to_bytes, utils::OwnedOrRef};
+use rspack_cacheable::{cacheable, utils::OwnedOrRef};
 use rspack_collections::IdentifierSet;
 use rspack_error::Result;
 use rustc_hash::FxHashSet as HashSet;
@@ -12,13 +15,13 @@ use super::{
 };
 use crate::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, Dependency,
-  DependencyId, DependencyParents, ExportsInfoData, ModuleGraph, ModuleGraphConnection,
-  ModuleGraphModule, ModuleGraphPartial, ModuleIdentifier, RayonConsumer,
-  cache::persistent::cacheable_context::CacheableContext,
-  compilation::make::{LazyDependencies, ModuleToLazyMake},
+  DependencyId, DependencyParents, ModuleGraph, ModuleGraphConnection, ModuleGraphModule,
+  ModuleIdentifier, RayonConsumer,
+  cache::persistent::codec::CacheCodec,
+  compilation::build_module_graph::{LazyDependencies, ModuleToLazyMake},
 };
 
-const SCOPE: &str = "occasion_make_module_graph";
+pub const SCOPE: &str = "occasion_make_module_graph";
 
 /// The value struct of current storage scope
 #[cacheable]
@@ -36,20 +39,20 @@ struct Node<'a> {
 
 #[tracing::instrument("Cache::Occasion::Make::ModuleGraph::save", skip_all)]
 pub fn save_module_graph(
-  partial: &ModuleGraphPartial,
+  mg: &ModuleGraph,
   module_to_lazy_make: &ModuleToLazyMake,
-  revoked_modules: &IdentifierSet,
+  removed_modules: &IdentifierSet,
   need_update_modules: &IdentifierSet,
   storage: &Arc<dyn Storage>,
-  context: &CacheableContext,
+  codec: &CacheCodec,
 ) {
-  let mg = ModuleGraph::new([Some(partial), None], None);
-  for identifier in revoked_modules {
+  for identifier in removed_modules {
     storage.remove(SCOPE, identifier.as_bytes());
   }
 
   // save module_graph
-  let nodes = need_update_modules
+  let saved_count = AtomicUsize::new(0);
+  need_update_modules
     .par_iter()
     .map(|identifier| {
       let mgm = mg
@@ -68,9 +71,7 @@ pub fn save_module_graph(
         .par_iter()
         .map(|dep_id| {
           (
-            mg.dependency_by_id(dep_id)
-              .expect("should have dependency")
-              .into(),
+            mg.dependency_by_id(dep_id).into(),
             mg.get_parent_block(dep_id).map(Into::into),
           )
         })
@@ -95,9 +96,9 @@ pub fn save_module_graph(
         blocks,
         lazy_info,
       };
-      match to_bytes(&node, context) {
+      match codec.encode(&node) {
         Ok(bytes) => (identifier.as_bytes().to_vec(), bytes),
-        Err(err @ SerializeError::UnsupportedField) => {
+        Err(err) if err.to_string().contains("unsupported field") => {
           tracing::warn!("to bytes failed {:?}", err);
           // try use alternatives
           node.module = TempModule::transform_from(node.module);
@@ -107,7 +108,7 @@ pub fn save_module_graph(
             .map(|(dep, _)| (TempDependency::transform_from(dep), None))
             .collect();
           node.blocks = vec![];
-          if let Ok(bytes) = to_bytes(&node, context) {
+          if let Ok(bytes) = codec.encode(&node) {
             (identifier.as_bytes().to_vec(), bytes)
           } else {
             panic!("alternatives serialize failed")
@@ -118,35 +119,34 @@ pub fn save_module_graph(
         }
       }
     })
-    .collect::<Vec<_>>();
+    .consume(|(id, bytes)| {
+      storage.set(SCOPE, id, bytes);
+      saved_count.fetch_add(1, Ordering::Relaxed);
+    });
 
-  tracing::debug!("save {} modules", nodes.len());
-
-  for (id, bytes) in nodes {
-    storage.set(SCOPE, id, bytes)
-  }
+  tracing::debug!("save {} modules", saved_count.load(Ordering::Relaxed));
 }
 
 #[tracing::instrument("Cache::Occasion::Make::ModuleGraph::recovery", skip_all)]
 pub async fn recovery_module_graph(
   storage: &Arc<dyn Storage>,
-  context: &CacheableContext,
-) -> Result<(ModuleGraphPartial, ModuleToLazyMake, HashSet<DependencyId>)> {
+  codec: &CacheCodec,
+) -> Result<(ModuleGraph, ModuleToLazyMake, HashSet<DependencyId>)> {
   let mut need_check_dep = vec![];
-  let mut partial = ModuleGraphPartial::default();
+  let mut mg = ModuleGraph::default();
   let mut module_to_lazy_make = ModuleToLazyMake::default();
-  let mut mg = ModuleGraph::new([None, None], Some(&mut partial));
   storage
     .load(SCOPE)
     .await?
     .into_par_iter()
     .map(|(_, v)| {
-      from_bytes::<Node, CacheableContext>(&v, context)
+      codec
+        .decode::<Node>(&v)
         .expect("unexpected module graph deserialize failed")
     })
     .with_max_len(1)
     .consume(|node| {
-      let mut mgm = node.mgm.into_owned();
+      let mgm = node.mgm.into_owned();
       let module = node.module.into_owned();
       for (index_in_block, (dep, parent_block)) in node.dependencies.into_iter().enumerate() {
         let dep = dep.into_owned();
@@ -173,19 +173,12 @@ pub async fn recovery_module_graph(
         module_to_lazy_make
           .update_module_lazy_dependencies(module.identifier(), Some(lazy_info.into_owned()));
       }
-      // recovery exports/export info
-      let exports_info = ExportsInfoData::default();
-      mgm.exports = exports_info.id();
-      mg.set_exports_info(exports_info.id(), exports_info);
-
       mg.add_module_graph_module(mgm);
       mg.add_module(module);
     });
   // recovery incoming connections
   for (dep_id, module_identifier) in need_check_dep {
-    let mgm = mg
-      .module_graph_module_by_identifier_mut(&module_identifier)
-      .expect("should mgm exist");
+    let mgm = mg.module_graph_module_by_identifier_mut(&module_identifier);
     mgm.add_incoming_connection(dep_id);
   }
 
@@ -205,6 +198,6 @@ pub async fn recovery_module_graph(
     mg.cache_recovery_connection(connection);
   }
 
-  tracing::debug!("recovery {} module", mg.modules().len());
-  Ok((partial, module_to_lazy_make, entry_dependencies))
+  tracing::debug!("recovery {} module", mg.modules_len());
+  Ok((mg, module_to_lazy_make, entry_dependencies))
 }

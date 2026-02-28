@@ -25,11 +25,11 @@ module.exports = {
 				if (err) {
 					throw err
 				}
-				stats.push(stat.toJson().assets)
+				stats.push(stat.toJson({ assets: true }).assets)
 				compiler.run((_, stat) => {
-					stats.push(stat.toJson().assets)
+					stats.push(stat.toJson({ assets: true }).assets)
 					compiler.run((_, stat) => {
-						stats.push(stat.toJson().assets)
+						stats.push(stat.toJson({ assets: true }).assets)
 						resolve();
 					});
 				});

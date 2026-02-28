@@ -6,13 +6,13 @@ use rkyv::{
   with::{ArchiveWith, DeserializeWith, SerializeWith},
 };
 
-use crate::{DeserializeError, SerializeError};
+use crate::{Error, Result};
 
 pub struct AsString;
 
 pub trait AsStringConverter {
-  fn to_string(&self) -> Result<String, SerializeError>;
-  fn from_str(s: &str) -> Result<Self, DeserializeError>
+  fn to_string(&self) -> Result<String>;
+  fn from_str(s: &str) -> Result<Self>
   where
     Self: Sized;
 }
@@ -39,10 +39,10 @@ where
 impl<T, S> SerializeWith<T, S> for AsString
 where
   T: AsStringConverter,
-  S: Fallible<Error = SerializeError> + Writer + ?Sized,
+  S: Fallible<Error = Error> + Writer + ?Sized,
 {
   #[inline]
-  fn serialize_with(field: &T, serializer: &mut S) -> Result<Self::Resolver, SerializeError> {
+  fn serialize_with(field: &T, serializer: &mut S) -> Result<Self::Resolver> {
     let value = field.to_string()?;
     let inner = ArchivedString::serialize_from_str(&value, serializer)?;
     Ok(AsStringResolver { value, inner })
@@ -52,24 +52,10 @@ where
 impl<T, D> DeserializeWith<ArchivedString, T, D> for AsString
 where
   T: AsStringConverter,
-  D: Fallible<Error = DeserializeError> + ?Sized,
+  D: Fallible<Error = Error> + ?Sized,
 {
   #[inline]
-  fn deserialize_with(field: &ArchivedString, _: &mut D) -> Result<T, DeserializeError> {
+  fn deserialize_with(field: &ArchivedString, _: &mut D) -> Result<T> {
     AsStringConverter::from_str(field.as_str())
-  }
-}
-
-// for pathbuf
-use std::path::PathBuf;
-impl AsStringConverter for PathBuf {
-  fn to_string(&self) -> Result<String, SerializeError> {
-    Ok(self.to_string_lossy().to_string())
-  }
-  fn from_str(s: &str) -> Result<Self, DeserializeError>
-  where
-    Self: Sized,
-  {
-    Ok(PathBuf::from(s))
   }
 }

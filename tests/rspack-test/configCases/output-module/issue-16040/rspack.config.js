@@ -1,12 +1,9 @@
-// CHANGE: use native css extract plugin
-// const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 const MiniCssExtractPlugin = require("@rspack/core").CssExtractRspackPlugin;
 
 module.exports = {
 	mode: "production",
 	devtool: false,
 	experiments: {
-		outputModule: true,
 		css: false
 	},
 	output: {
@@ -15,7 +12,7 @@ module.exports = {
 		chunkFilename: "[name].chunk.js",
 		assetModuleFilename: "[hash][ext][query]",
 		module: true,
-		libraryTarget: "module",
+		library: { type: "module" },
 		chunkFormat: "module",
 		chunkLoading: "import",
 		environment: {
@@ -27,6 +24,7 @@ module.exports = {
 	module: {
 		rules: [
 			{
+				type: 'javascript/auto',
 				test: /\.css$/i,
 				use: [MiniCssExtractPlugin.loader, "css-loader"]
 			}

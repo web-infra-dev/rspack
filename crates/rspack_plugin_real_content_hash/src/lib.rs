@@ -14,7 +14,7 @@ use rayon::prelude::*;
 use regex::Regex;
 use rspack_core::{
   AssetInfo, BindingCell, Compilation, CompilationId, CompilationProcessAssets, Logger, Plugin,
-  rspack_sources::{BoxSource, RawStringSource, SourceExt},
+  rspack_sources::{BoxSource, RawStringSource, SourceExt, SourceValue},
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_hash::RspackHash;
@@ -92,7 +92,7 @@ async fn inner_impl(compilation: &mut Compilation) -> Result<()> {
       hash_to_asset_names
         .entry(hash)
         .and_modify(|names| names.push(name))
-        .or_insert(vec![name]);
+        .or_insert_with(|| vec![name]);
     }
   }
   logger.time_end(start);
@@ -195,7 +195,7 @@ async fn inner_impl(compilation: &mut Compilation) -> Result<()> {
             unsafe { token.used((&hooks, &compilation, &batch_sources, old_hash, asset_names)) };
           s.spawn(
             |(hooks, compilation, batch_sources, old_hash, mut asset_names)| async move {
-              asset_names.sort();
+              asset_names.sort_unstable();
               let mut asset_contents = asset_names
                 .iter()
                 .filter_map(|name| batch_sources.get(&(old_hash.as_str(), name)))
@@ -220,7 +220,7 @@ async fn inner_impl(compilation: &mut Compilation) -> Result<()> {
                 new_hash.rendered(old_hash.len()).to_string()
               };
 
-              Ok((old_hash.to_string(), new_hash))
+              Ok((old_hash.clone(), new_hash))
             },
           );
         });
@@ -315,9 +315,8 @@ impl AssetData {
   pub fn new(source: BoxSource, info: &AssetInfo, hash_ac: &AhoCorasick) -> Self {
     let mut own_hashes = HashSet::default();
     let mut referenced_hashes = HashSet::default();
-    // TODO(ahabhgk): source.is_buffer() instead of String::from_utf8().is_ok()
-    let content = if let Ok(content) = String::from_utf8(source.buffer().to_vec()) {
-      for hash in hash_ac.find_iter(&content) {
+    let content = if let SourceValue::String(content) = source.source() {
+      for hash in hash_ac.find_iter(content.as_ref()) {
         let hash = &content[hash.range()];
         if info.content_hash.contains(hash) {
           own_hashes.insert(hash.to_string());
@@ -325,7 +324,7 @@ impl AssetData {
         }
         referenced_hashes.insert(hash.to_string());
       }
-      AssetDataContent::String(content)
+      AssetDataContent::String(content.into_owned())
     } else {
       AssetDataContent::Buffer
     };

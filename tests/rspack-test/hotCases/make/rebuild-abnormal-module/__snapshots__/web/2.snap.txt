@@ -6,7 +6,7 @@
 ## Asset Files
 - Bundle: bundle.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
-- Update: main.LAST_HASH.hot-update.js, size: 970
+- Update: main.LAST_HASH.hot-update.js, size: 756
 
 ## Manifest
 
@@ -32,33 +32,25 @@
 #### Changed Content
 ```js
 "use strict";
-self["webpackHotUpdate"]("main", {
-"./file.js": 
-/*!*****************!*\
-  !*** ./file.js ***!
-  \*****************/
-(function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+self["rspackHotUpdate"]("main", {
+"./file.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  "default": () => (__WEBPACK_DEFAULT_EXPORT__)
+  "default": () => (__rspack_default_export)
 });
-/* ESM default export */ const __WEBPACK_DEFAULT_EXPORT__ = (3);
+/* export default */ const __rspack_default_export = (3);
 
 
-}),
-"./loader.js!./a.js": 
-/*!**************************!*\
-  !*** ./loader.js!./a.js ***!
-  \**************************/
-(function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+},
+"./loader.js!./a.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  "default": () => (__WEBPACK_DEFAULT_EXPORT__)
+  "default": () => (__rspack_default_export)
 });
-/* ESM default export */ const __WEBPACK_DEFAULT_EXPORT__ = ("a");
+/* export default */ const __rspack_default_export = ("a");
 
 
-}),
+},
 
 },function(__webpack_require__) {
 // webpack/runtime/get_full_hash
@@ -88,17 +80,13 @@ check => prepare => dispose => apply => fail
 
 Outdated Modules:
 - ./file.js
+- ./index.js
 - ./loader.js!./a.js
 
 
 Outdated Dependencies:
 ```json
-{
-  "./index.js": [
-    "./file.js",
-    "./loader.js!./a.js"
-  ]
-}
+{}
 ```
 
 #### Updated
@@ -114,6 +102,6 @@ Updated Runtime:
 #### Callback
 
 Accepted Callback:
-- ./file.js
+
 
 Disposed Callback:

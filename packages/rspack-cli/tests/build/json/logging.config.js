@@ -1,5 +1,5 @@
 module.exports = {
-	infrastructureLogging: {
-		level: "log"
-	}
+  infrastructureLogging: {
+    level: 'log',
+  },
 };

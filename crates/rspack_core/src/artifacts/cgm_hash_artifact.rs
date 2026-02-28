@@ -1,11 +1,17 @@
 use rspack_collections::IdentifierMap;
 use rspack_hash::RspackHashDigest;
 
-use crate::{ModuleIdentifier, RuntimeSpec, RuntimeSpecMap};
+use crate::{
+  ArtifactExt, ModuleIdentifier, RuntimeSpec, RuntimeSpecMap, incremental::IncrementalPasses,
+};
 
 #[derive(Debug, Default)]
 pub struct CgmHashArtifact {
   module_to_hashes: IdentifierMap<RuntimeSpecMap<RspackHashDigest>>,
+}
+
+impl ArtifactExt for CgmHashArtifact {
+  const PASS: IncrementalPasses = IncrementalPasses::MODULES_HASHES;
 }
 
 impl CgmHashArtifact {

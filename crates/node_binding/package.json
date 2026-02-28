@@ -1,6 +1,6 @@
 {
   "name": "@rspack/binding",
-  "version": "1.5.8",
+  "version": "2.0.0-beta.4",
   "license": "MIT",
   "description": "Node binding for rspack",
   "main": "binding.js",
@@ -23,8 +23,8 @@
     "build:release": "node scripts/build.js --profile release",
     "build:dev:wasm": "DISABLE_PLUGIN=1 RUST_TARGET=wasm32-wasip1-threads node scripts/build.js",
     "build:release:wasm": "DISABLE_PLUGIN=1 RUST_TARGET=wasm32-wasip1-threads node scripts/build.js --profile release-wasi",
-    "build:dev:browser": "DISABLE_PLUGIN=1 RUST_TARGET=wasm32-wasip1-threads BROWSER=1 node scripts/build.js",
-    "build:release:browser": "DISABLE_PLUGIN=1 RUST_TARGET=wasm32-wasip1-threads BROWSER=1 node scripts/build.js --profile release-wasi",
+    "build:dev:browser": "DISABLE_PLUGIN=1 RUST_TARGET=wasm32-wasip1-threads RSPACK_TARGET_BROWSER=1 node scripts/build.js",
+    "build:release:browser": "DISABLE_PLUGIN=1 RUST_TARGET=wasm32-wasip1-threads RSPACK_TARGET_BROWSER=1 node scripts/build.js --profile release-wasi",
     "move-binding": "node scripts/move-binding",
     "test": "tsc -p tsconfig.type-test.json"
   },
@@ -33,8 +33,8 @@
   "repository": "web-infra-dev/rspack",
   "devDependencies": {
     "@napi-rs/cli": "3.0.4",
-    "@napi-rs/wasm-runtime": "^1.0.5",
-    "emnapi": "^1.5.0",
+    "@napi-rs/wasm-runtime": "1.0.7",
+    "emnapi": "^1.8.1",
     "typescript": "^5.9.3"
   },
   "napi": {
@@ -51,8 +51,7 @@
       "aarch64-unknown-linux-gnu",
       "aarch64-apple-darwin",
       "aarch64-unknown-linux-musl",
-      "aarch64-pc-windows-msvc",
-      "wasm32-wasip1-threads"
+      "aarch64-pc-windows-msvc"
     ],
     "wasm": {
       "initialMemory": 16384,

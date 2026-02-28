@@ -199,6 +199,8 @@ pub async fn module_rule_matcher<'a>(
     }
   }
 
+  matched_rules.push(&module_rule.effect);
+
   if let Some(rules) = &module_rule.rules {
     module_rules_matcher(
       rules,
@@ -234,6 +236,6 @@ pub async fn module_rule_matcher<'a>(
       return Ok(false);
     }
   }
-  matched_rules.push(&module_rule.effect);
+
   Ok(true)
 }

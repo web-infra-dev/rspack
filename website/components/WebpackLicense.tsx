@@ -1,4 +1,5 @@
 import { useLang } from '@rspress/core/runtime';
+import { Link } from '@rspress/core/theme';
 import type { FC } from 'react';
 
 const WebpackLicense: FC<{ from: string | string[] }> = ({ from }) => {
@@ -24,9 +25,9 @@ const WebpackLicense: FC<{ from: string | string[] }> = ({ from }) => {
             following links and is subject to the CC BY 4.0 license.
           </p>
           <ul>
-            {links.map(link => (
+            {links.map((link) => (
               <li key={link}>
-                <a href={link}>{link}</a>
+                <Link href={link}>{link}</Link>
               </li>
             ))}
           </ul>
@@ -47,11 +48,11 @@ const WebpackLicense: FC<{ from: string | string[] }> = ({ from }) => {
           本节内容派生于以下链接指向的内容 ，并遵守 CC BY 4.0 许可证的规定。
         </p>
         <ul>
-          {links.map(link => (
+          {links.map((link) => (
             <li key={link}>
-              <a key={link} href={link}>
+              <Link key={link} href={link}>
                 {link}
-              </a>
+              </Link>
             </li>
           ))}
         </ul>

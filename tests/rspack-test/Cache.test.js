@@ -1,13 +1,10 @@
-// Need to run some webpack-test
-process.env.RSPACK_CONFIG_VALIDATE = "loose-silent";
-
 const path = require("path");
 const { describeByWalk, createCacheCase } = require("@rspack/test-tools");
 const tempDir = path.resolve(__dirname, `./js/temp`);
 
 // Run tests rspack-test/tests/cacheCases in target async-node
 describeByWalk(
-	"cache",
+	__filename,
 	(name, src, dist) => {
 		createCacheCase(name, src, dist, "async-node", path.join(tempDir, name));
 	},

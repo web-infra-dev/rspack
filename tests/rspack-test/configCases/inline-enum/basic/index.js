@@ -1,10 +1,11 @@
 import * as enums from "./enum";
 import * as reexported from "./re-export";
-import * as destructing from "./enum.destructing";
+import * as destructuring from "./enum.destructuring";
 import * as sideEffects from "./enum.side-effects";
 import * as reexportedSideEffects from "./re-export.side-effects";
 import * as notOnlyPropertiesUsed from "./enum.not-only-properties-used";
 import * as exportAs from "./enum.export-as";
+import * as reexportDestructuring from "./re-export.reexprt-destructuring";
 
 const generated = /** @type {string} */ (__non_webpack_require__("fs").readFileSync(__filename, "utf-8"));
 
@@ -14,8 +15,8 @@ it("should inline enums", () => {
   expect(enums.E.B).toBe(1);
   // END:A
   const block = generated.match(/\/\/ START:A([\s\S]*)\/\/ END:A/)[1];
-  expect(block.includes(`(/* inlined export .E.A */ (0)).toBe(0)`)).toBe(true);
-  expect(block.includes(`(/* inlined export .E.B */ (1)).toBe(1)`)).toBe(true);
+  expect(block.includes(`((/* inlined export .E.A */0)).toBe(0)`)).toBe(true);
+  expect(block.includes(`((/* inlined export .E.B */1)).toBe(1)`)).toBe(true);
 })
 
 it("should inline enums with re-export", () => {
@@ -24,13 +25,13 @@ it("should inline enums with re-export", () => {
   expect(reexported.E.B).toBe(1);
   // END:B
   const block = generated.match(/\/\/ START:B([\s\S]*)\/\/ END:B/)[1];
-  expect(block.includes(`(/* inlined export .E.A */ (0)).toBe(0)`)).toBe(true);
-  expect(block.includes(`(/* inlined export .E.B */ (1)).toBe(1)`)).toBe(true);
+  expect(block.includes(`((/* inlined export .E.A */0)).toBe(0)`)).toBe(true);
+  expect(block.includes(`((/* inlined export .E.B */1)).toBe(1)`)).toBe(true);
 })
 
-it("should not inline enums with destructing", () => {
+it("should not inline enums with destructuring", () => {
   // START:C
-  const { A, B } = destructing.E;
+  const { A, B } = destructuring.E;
   expect(A).toBe(0);
   expect(B).toBe(1);
   // END:C
@@ -40,14 +41,14 @@ it("should not inline enums with destructing", () => {
   expect(block.includes("inlined export")).toBe(false);
 })
 
-it("should allow inline enums if the rest exports is not used with destructing", () => {
+it("should allow inline enums if the rest exports is not used with destructuring", () => {
   // START:D
-  expect(destructing.E.C).toBe(2);
-  expect(destructing.E.D).toBe(3);
+  expect(destructuring.E.C).toBe(2);
+  expect(destructuring.E.D).toBe(3);
   // END:D
   const block = generated.match(/\/\/ START:D([\s\S]*)\/\/ END:D/)[1];
-  expect(block.includes(`(/* inlined export .E.C */ (2)).toBe(2)`)).toBe(true);
-  expect(block.includes(`(/* inlined export .E.D */ (3)).toBe(3)`)).toBe(true);
+  expect(block.includes(`((/* inlined export .E.C */2)).toBe(2)`)).toBe(true);
+  expect(block.includes(`((/* inlined export .E.D */3)).toBe(3)`)).toBe(true);
 })
 
 it("should respect side effects when inline enums", () => {
@@ -56,7 +57,7 @@ it("should respect side effects when inline enums", () => {
   expect(globalThis.__sideEffects).toBe("enum.side-effects.ts");
   // END:E
   const block = generated.match(/\/\/ START:E([\s\S]*)\/\/ END:E/)[1];
-  expect(block.includes(`(/* inlined export .E.A */ (0)).toBe(0)`)).toBe(true);
+  expect(block.includes(`((/* inlined export .E.A */0)).toBe(0)`)).toBe(true);
 })
 
 it("should respect side effects when inline enums with re-exports", () => {
@@ -92,7 +93,7 @@ it("should remove the module if all enum members are inlined and side effects fr
     })
   } else {
     inlinedSideEffectsFreeModuleIds.forEach(m => {
-      expect(generated.includes(`"${m}": (function`)).toBe(false);
+      expect(generated.includes(`"${m}"(`)).toBe(false);
     })
   }
 })
@@ -105,20 +106,20 @@ it("should keep the module if all enum members are inlined but have side effects
     })
   } else {
     inlinedSideEffectsNotFreeModuleIds.forEach(m => {
-      expect(generated.includes(`"${m}": (function`)).toBe(true);
+      expect(generated.includes(`"${m}"(`)).toBe(true);
     })
   }
 })
 
 it("should keep the module if part of the enum members are inlined and side effects free", () => {
-  const partialInlinedSideEffectsFreeModuleIds = ["./enum.destructing.ts"];
+  const partialInlinedSideEffectsFreeModuleIds = ["./enum.destructuring.ts"];
   if (CONCATENATED) {
     partialInlinedSideEffectsFreeModuleIds.forEach(m => {
       expect(generated.includes(`;// CONCATENATED MODULE: ${m}`)).toBe(true);
     })
   } else {
     partialInlinedSideEffectsFreeModuleIds.forEach(m => {
-      expect(generated.includes(`"${m}": (function`)).toBe(true);
+      expect(generated.includes(`"${m}"(`)).toBe(true);
     })
   }
 })
@@ -126,4 +127,8 @@ it("should keep the module if part of the enum members are inlined and side effe
 it("should not inline no-inlinable enums", () => {
   expect(exportAs.InlineE1.A).toEqual({});
   expect(exportAs.InlineE.A).toBe(0);
+})
+
+it("should not inline for reexported destructuring", () => {
+  expect(reexportDestructuring.e.E.A).toBe(reexportDestructuring.getValue());
 })

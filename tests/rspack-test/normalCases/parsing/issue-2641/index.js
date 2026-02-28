@@ -1,13 +1,15 @@
-it("should require existing module with supplied error callback", function(done) {
+it("should require existing module with supplied error callback", () => new Promise((resolve, reject) => {
+	const done = err => (err ? reject(err) : resolve());
 	require(['./file'], function(file){
 		try {
 			expect(file).toBe("file");
 			done();
 		} catch(e) { done(e); }
 	}, function(error) { done(error); });
-});
+}));
 
-it("should call error callback on missing module", function(done) {
+it("should call error callback on missing module", () => new Promise((resolve, reject) => {
+	const done = err => (err ? reject(err) : resolve());
 	require(['./file', './missingModule'], function(file){}, function(error) {
 		try {
 			expect(error).toBeInstanceOf(Error);
@@ -17,9 +19,10 @@ it("should call error callback on missing module", function(done) {
 			done(e);
 		}
 	});
-});
+}));
 
-it("should call error callback on missing module in context", function(done) {
+it("should call error callback on missing module in context", () => new Promise((resolve, reject) => {
+	const done = err => (err ? reject(err) : resolve());
 	(function(module) {
 		require(['./' + module], function(file){}, function(error) {
 			try {
@@ -29,9 +32,10 @@ it("should call error callback on missing module in context", function(done) {
 			} catch(e) { done(e); }
 		});
 	})('missingModule');
-});
+}));
 
-it("should call error callback on exception thrown in loading module", function(done) {
+it("should call error callback on exception thrown in loading module", () => new Promise((resolve, reject) => {
+	const done = err => (err ? reject(err) : resolve());
 	require(['./throwing'], function(){}, function(error) {
 		try {
 			expect(error).toBeInstanceOf(Error);
@@ -39,9 +43,10 @@ it("should call error callback on exception thrown in loading module", function(
 			done();
 		} catch(e) { done(e); }
 	});
-});
+}));
 
-it("should not call error callback on exception thrown in require callback", function(done) {
+it("should not call error callback on exception thrown in require callback", () => new Promise((resolve, reject) => {
+	const done = err => (err ? reject(err) : resolve());
 	require(['./throwing'], function() {
 		throw new Error('message');
 	}, function(error) {
@@ -51,4 +56,4 @@ it("should not call error callback on exception thrown in require callback", fun
 			done();
 		} catch(e) { done(e); }
 	});
-});
+}));

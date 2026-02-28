@@ -18,7 +18,6 @@ rspack_hook              = { workspace = true }
 rspack_loader_runner     = { workspace = true }
 rspack_plugin_javascript = { workspace = true }
 rspack_plugin_runtime    = { workspace = true }
-rspack_sources           = { workspace = true }
 rspack_util              = { workspace = true }
 
 async-trait = { workspace = true }
@@ -34,3 +33,6 @@ tracing     = { workspace = true }
 
 [package.metadata.cargo-shear]
 ignored = ["tracing", "rspack_hash"]
+
+[lints]
+workspace = true

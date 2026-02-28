@@ -1,28 +1,23 @@
-use std::{fmt::Debug, rc::Rc, sync::LazyLock};
+use std::{borrow::Cow, fmt::Debug, rc::Rc};
 
 use rayon::prelude::*;
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   BoxModule, Compilation, CompilationOptimizeDependencies, ConnectionState, DependencyExtraMeta,
-  DependencyId, FactoryMeta, Logger, MaybeDynamicTargetExportInfo, ModuleFactoryCreateData,
+  DependencyId, ExportsInfoArtifact, FactoryMeta, GetTargetResult, Logger, ModuleFactoryCreateData,
   ModuleGraph, ModuleGraphConnection, ModuleIdentifier, NormalModuleCreateData,
-  NormalModuleFactoryModule, Plugin, PrefetchExportsInfoMode, ResolvedExportInfoTarget,
-  SideEffectsBailoutItemWithSpan, SideEffectsDoOptimize, SideEffectsDoOptimizeMoveTarget,
+  NormalModuleFactoryModule, Plugin, PrefetchExportsInfoMode, RayonConsumer,
+  ResolvedExportInfoTarget, SideEffectsDoOptimize, SideEffectsDoOptimizeMoveTarget,
   SideEffectsOptimizeArtifact,
+  build_module_graph::BuildModuleGraphArtifact,
+  can_move_target, get_target,
   incremental::{self, IncrementalPasses, Mutation},
 };
-use rspack_error::Result;
+use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_paths::{AssertUtf8, Utf8Path};
 use sugar_path::SugarPath;
-use swc_core::{
-  common::{GLOBALS, Spanned, SyntaxContext, comments, comments::Comments},
-  ecma::{
-    ast::*,
-    utils::{ExprCtx, ExprExt},
-    visit::{Visit, VisitWith, noop_visit_type},
-  },
-};
+use swc_core::ecma::ast::*;
 
 use crate::dependency::{ESMExportImportedSpecifierDependency, ESMImportSpecifierDependency};
 
@@ -75,491 +70,6 @@ fn glob_match_with_normalized_pattern(pattern: &str, string: &str) -> bool {
     String::from("**/") + trim_start
   };
   fast_glob::glob_match(&normalized_glob, string.trim_start_matches("./"))
-}
-
-pub struct SideEffectsFlagPluginVisitor<'a> {
-  unresolved_ctxt: SyntaxContext,
-  pub side_effects_item: Option<SideEffectsBailoutItemWithSpan>,
-  is_top_level: bool,
-  comments: Option<&'a dyn Comments>,
-}
-
-impl Debug for SideEffectsFlagPluginVisitor<'_> {
-  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    f.debug_struct("SideEffectsFlagPluginVisitor")
-      .field("unresolved_ctxt", &self.unresolved_ctxt)
-      .field("side_effects_span", &self.side_effects_item)
-      .field("is_top_level", &self.is_top_level)
-      .finish()
-  }
-}
-
-#[derive(Debug)]
-pub struct SyntaxContextInfo {
-  unresolved_ctxt: SyntaxContext,
-}
-
-impl SyntaxContextInfo {
-  pub fn new(unresolved_ctxt: SyntaxContext) -> Self {
-    Self { unresolved_ctxt }
-  }
-}
-
-impl<'a> SideEffectsFlagPluginVisitor<'a> {
-  pub fn new(mark_info: SyntaxContextInfo, comments: Option<&'a dyn Comments>) -> Self {
-    Self {
-      unresolved_ctxt: mark_info.unresolved_ctxt,
-      side_effects_item: None,
-      is_top_level: true,
-      comments,
-    }
-  }
-}
-
-impl Visit for SideEffectsFlagPluginVisitor<'_> {
-  noop_visit_type!();
-  fn visit_program(&mut self, node: &Program) {
-    assert!(GLOBALS.is_set());
-    node.visit_children_with(self);
-  }
-
-  fn visit_module(&mut self, node: &Module) {
-    for module_item in &node.body {
-      match module_item {
-        ModuleItem::ModuleDecl(decl) => match decl {
-          ModuleDecl::Import(_) => {}
-          ModuleDecl::ExportDecl(decl) => decl.visit_with(self),
-          // `export { foo } from 'mod'`
-          // `export { foo as bar } from 'mod'`
-          ModuleDecl::ExportNamed(_) => {}
-          ModuleDecl::ExportDefaultDecl(decl) => {
-            decl.visit_with(self);
-          }
-          ModuleDecl::ExportDefaultExpr(expr) => {
-            if !is_pure_expression(&expr.expr, self.unresolved_ctxt, self.comments) {
-              self.side_effects_item = Some(SideEffectsBailoutItemWithSpan::new(
-                expr.span,
-                String::from("ExportDefaultExpr"),
-              ));
-            }
-          }
-          // export * from './x'
-          ModuleDecl::ExportAll(_) => {}
-          ModuleDecl::TsImportEquals(_) => unreachable!(),
-          ModuleDecl::TsExportAssignment(_) => unreachable!(),
-          ModuleDecl::TsNamespaceExport(_) => unreachable!(),
-        },
-        ModuleItem::Stmt(stmt) => stmt.visit_with(self),
-      }
-    }
-  }
-
-  fn visit_script(&mut self, node: &Script) {
-    for stmt in &node.body {
-      stmt.visit_with(self);
-    }
-  }
-
-  fn visit_stmt(&mut self, node: &Stmt) {
-    if !self.is_top_level {
-      return;
-    }
-    self.analyze_stmt_side_effects(node);
-    node.visit_children_with(self);
-  }
-
-  fn visit_export_decl(&mut self, node: &ExportDecl) {
-    if !is_pure_decl(&node.decl, self.unresolved_ctxt, self.comments) {
-      self.side_effects_item = Some(SideEffectsBailoutItemWithSpan::new(
-        node.decl.span(),
-        String::from("Decl"),
-      ));
-    }
-    node.visit_children_with(self);
-  }
-  fn visit_class_member(&mut self, node: &ClassMember) {
-    if let Some(key) = node.class_key()
-      && key.is_computed()
-    {
-      key.visit_with(self);
-    }
-
-    let top_level = self.is_top_level;
-    self.is_top_level = false;
-    node.visit_children_with(self);
-    self.is_top_level = top_level;
-  }
-
-  fn visit_fn_decl(&mut self, node: &FnDecl) {
-    let top_level = self.is_top_level;
-    self.is_top_level = false;
-    node.visit_children_with(self);
-    self.is_top_level = top_level;
-  }
-
-  fn visit_fn_expr(&mut self, node: &FnExpr) {
-    let top_level = self.is_top_level;
-    self.is_top_level = false;
-    node.visit_children_with(self);
-    self.is_top_level = top_level;
-  }
-
-  fn visit_arrow_expr(&mut self, node: &ArrowExpr) {
-    let top_level = self.is_top_level;
-    self.is_top_level = false;
-    node.visit_children_with(self);
-    self.is_top_level = top_level;
-  }
-}
-
-impl SideEffectsFlagPluginVisitor<'_> {
-  /// If we find a stmt that has side effects, we will skip the rest of the stmts.
-  /// And mark the module as having side effects.
-  fn analyze_stmt_side_effects(&mut self, ele: &Stmt) {
-    if self.side_effects_item.is_some() {
-      return;
-    }
-    match ele {
-      Stmt::If(stmt) => {
-        if !is_pure_expression(&stmt.test, self.unresolved_ctxt, self.comments) {
-          self.side_effects_item = Some(SideEffectsBailoutItemWithSpan::new(
-            stmt.span(),
-            String::from("Statement"),
-          ));
-        }
-      }
-      Stmt::While(stmt) => {
-        if !is_pure_expression(&stmt.test, self.unresolved_ctxt, self.comments) {
-          self.side_effects_item = Some(SideEffectsBailoutItemWithSpan::new(
-            stmt.span(),
-            String::from("Statement"),
-          ));
-        }
-      }
-      Stmt::DoWhile(stmt) => {
-        if !is_pure_expression(&stmt.test, self.unresolved_ctxt, self.comments) {
-          self.side_effects_item = Some(SideEffectsBailoutItemWithSpan::new(
-            stmt.span(),
-            String::from("Statement"),
-          ));
-        }
-      }
-      Stmt::For(stmt) => {
-        let pure_init = match stmt.init {
-          Some(ref init) => match init {
-            VarDeclOrExpr::VarDecl(decl) => {
-              is_pure_var_decl(decl, self.unresolved_ctxt, self.comments)
-            }
-            VarDeclOrExpr::Expr(expr) => {
-              is_pure_expression(expr, self.unresolved_ctxt, self.comments)
-            }
-          },
-          None => true,
-        };
-
-        if !pure_init {
-          self.side_effects_item = Some(SideEffectsBailoutItemWithSpan::new(
-            stmt.span(),
-            String::from("Statement"),
-          ));
-          return;
-        }
-
-        let pure_test = match &stmt.test {
-          Some(test) => is_pure_expression(test, self.unresolved_ctxt, self.comments),
-          None => true,
-        };
-
-        if !pure_test {
-          self.side_effects_item = Some(SideEffectsBailoutItemWithSpan::new(
-            stmt.span(),
-            String::from("Statement"),
-          ));
-          return;
-        }
-
-        let pure_update = match stmt.update {
-          Some(ref expr) => is_pure_expression(expr, self.unresolved_ctxt, self.comments),
-          None => true,
-        };
-
-        if !pure_update {
-          self.side_effects_item = Some(SideEffectsBailoutItemWithSpan::new(
-            stmt.span(),
-            String::from("Statement"),
-          ));
-        }
-      }
-      Stmt::Expr(stmt) => {
-        if !is_pure_expression(&stmt.expr, self.unresolved_ctxt, self.comments) {
-          self.side_effects_item = Some(SideEffectsBailoutItemWithSpan::new(
-            stmt.span(),
-            String::from("Statement"),
-          ));
-        }
-      }
-      Stmt::Switch(stmt) => {
-        if !is_pure_expression(&stmt.discriminant, self.unresolved_ctxt, self.comments) {
-          self.side_effects_item = Some(SideEffectsBailoutItemWithSpan::new(
-            stmt.span(),
-            String::from("Statement"),
-          ));
-        }
-      }
-      Stmt::Decl(stmt) => {
-        if !is_pure_decl(stmt, self.unresolved_ctxt, self.comments) {
-          self.side_effects_item = Some(SideEffectsBailoutItemWithSpan::new(
-            stmt.span(),
-            String::from("Statement"),
-          ));
-        }
-      }
-      Stmt::Empty(_) => {}
-      Stmt::Labeled(_) => {}
-      Stmt::Block(_) => {}
-      _ => {
-        self.side_effects_item = Some(SideEffectsBailoutItemWithSpan::new(
-          ele.span(),
-          String::from("Statement"),
-        ))
-      }
-    };
-  }
-}
-
-static PURE_COMMENTS: LazyLock<regex::Regex> =
-  LazyLock::new(|| regex::Regex::new("^\\s*(#|@)__PURE__\\s*$").expect("Should create the regex"));
-
-fn is_pure_call_expr(
-  expr: &Expr,
-  unresolved_ctxt: SyntaxContext,
-  comments: Option<&dyn Comments>,
-) -> bool {
-  let Expr::Call(call_expr) = expr else {
-    unreachable!();
-  };
-  let callee = &call_expr.callee;
-  let pure_flag = comments
-    .and_then(|comments| {
-      if let Some(comment_list) = comments.get_leading(callee.span().lo) {
-        return Some(comment_list.iter().any(|comment| {
-          comment.kind == comments::CommentKind::Block && PURE_COMMENTS.is_match(&comment.text)
-        }));
-      }
-      None
-    })
-    .unwrap_or(false);
-  if !pure_flag {
-    !expr.may_have_side_effects(ExprCtx {
-      unresolved_ctxt,
-      in_strict: false,
-      is_unresolved_ref_safe: false,
-      remaining_depth: 4,
-    })
-  } else {
-    call_expr.args.iter().all(|arg| {
-      if arg.spread.is_some() {
-        false
-      } else {
-        is_pure_expression(&arg.expr, unresolved_ctxt, comments)
-      }
-    })
-  }
-}
-
-pub fn is_pure_pat<'a>(
-  pat: &'a Pat,
-  unresolved_ctxt: SyntaxContext,
-  comments: Option<&'a dyn Comments>,
-) -> bool {
-  match pat {
-    Pat::Ident(_) => true,
-    Pat::Array(array_pat) => array_pat.elems.iter().all(|ele| {
-      if let Some(pat) = ele {
-        is_pure_pat(pat, unresolved_ctxt, comments)
-      } else {
-        true
-      }
-    }),
-    Pat::Rest(_) => true,
-    Pat::Invalid(_) | Pat::Assign(_) | Pat::Object(_) => false,
-    Pat::Expr(expr) => is_pure_expression(expr, unresolved_ctxt, comments),
-  }
-}
-
-pub fn is_pure_function<'a>(
-  function: &'a Function,
-  unresolved_ctxt: SyntaxContext,
-  comments: Option<&'a dyn Comments>,
-) -> bool {
-  if !function
-    .params
-    .iter()
-    .all(|param| is_pure_pat(&param.pat, unresolved_ctxt, comments))
-  {
-    return false;
-  }
-
-  true
-}
-
-pub fn is_pure_expression<'a>(
-  expr: &'a Expr,
-  unresolved_ctxt: SyntaxContext,
-  comments: Option<&'a dyn Comments>,
-) -> bool {
-  pub fn _is_pure_expression<'a>(
-    expr: &'a Expr,
-    unresolved_ctxt: SyntaxContext,
-    comments: Option<&'a dyn Comments>,
-  ) -> bool {
-    match expr {
-      Expr::Call(_) => is_pure_call_expr(expr, unresolved_ctxt, comments),
-      Expr::Paren(_) => unreachable!(),
-      _ => !expr.may_have_side_effects(ExprCtx {
-        unresolved_ctxt,
-        is_unresolved_ref_safe: true,
-        in_strict: false,
-        remaining_depth: 4,
-      }),
-    }
-  }
-  _is_pure_expression(expr, unresolved_ctxt, comments)
-}
-
-pub fn is_pure_class_member<'a>(
-  member: &'a ClassMember,
-  unresolved_ctxt: SyntaxContext,
-  comments: Option<&'a dyn Comments>,
-) -> bool {
-  let is_key_pure = match member.class_key() {
-    Some(PropName::Ident(_ident)) => true,
-    Some(PropName::Str(_)) => true,
-    Some(PropName::Num(_)) => true,
-    Some(PropName::Computed(computed)) => {
-      is_pure_expression(&computed.expr, unresolved_ctxt, comments)
-    }
-    Some(PropName::BigInt(_)) => true,
-    None => true,
-  };
-  if !is_key_pure {
-    return false;
-  }
-  let is_static = member.is_static();
-  let is_value_pure = match member {
-    ClassMember::Constructor(_) => true,
-    ClassMember::Method(_) => true,
-    ClassMember::PrivateMethod(_) => true,
-    ClassMember::ClassProp(prop) => {
-      if let Some(ref value) = prop.value {
-        is_pure_expression(value, unresolved_ctxt, comments)
-      } else {
-        true
-      }
-    }
-    ClassMember::PrivateProp(prop) => {
-      if let Some(ref value) = prop.value {
-        is_pure_expression(value, unresolved_ctxt, comments)
-      } else {
-        true
-      }
-    }
-    ClassMember::TsIndexSignature(_) => unreachable!(),
-    ClassMember::Empty(_) => true,
-    ClassMember::StaticBlock(_) => false,
-    ClassMember::AutoAccessor(_) => false,
-  };
-  if is_static && !is_value_pure {
-    return false;
-  }
-  true
-}
-
-pub fn is_pure_decl(
-  stmt: &Decl,
-  unresolved_ctxt: SyntaxContext,
-  comments: Option<&dyn Comments>,
-) -> bool {
-  match stmt {
-    Decl::Class(class) => is_pure_class(&class.class, unresolved_ctxt, comments),
-    Decl::Fn(_) => true,
-    Decl::Var(var) => is_pure_var_decl(var, unresolved_ctxt, comments),
-    Decl::Using(_) => false,
-    Decl::TsInterface(_) => unreachable!(),
-    Decl::TsTypeAlias(_) => unreachable!(),
-
-    Decl::TsEnum(_) => unreachable!(),
-    Decl::TsModule(_) => unreachable!(),
-  }
-}
-
-pub fn is_pure_class(
-  class: &Class,
-  unresolved_ctxt: SyntaxContext,
-  comments: Option<&dyn Comments>,
-) -> bool {
-  if let Some(ref super_class) = class.super_class
-    && !is_pure_expression(super_class, unresolved_ctxt, comments)
-  {
-    return false;
-  }
-  let is_pure_key = |key: &PropName| -> bool {
-    match key {
-      PropName::BigInt(_) | PropName::Ident(_) | PropName::Str(_) | PropName::Num(_) => true,
-      PropName::Computed(computed) => is_pure_expression(&computed.expr, unresolved_ctxt, comments),
-    }
-  };
-
-  class.body.iter().all(|item| -> bool {
-    match item {
-      ClassMember::Constructor(_) => class.super_class.is_none(),
-      ClassMember::Method(method) => is_pure_key(&method.key),
-      ClassMember::PrivateMethod(method) => is_pure_expression(
-        &Expr::PrivateName(method.key.clone()),
-        unresolved_ctxt,
-        comments,
-      ),
-      ClassMember::ClassProp(prop) => {
-        is_pure_key(&prop.key)
-          && (!prop.is_static
-            || if let Some(ref value) = prop.value {
-              is_pure_expression(value, unresolved_ctxt, comments)
-            } else {
-              true
-            })
-      }
-      ClassMember::PrivateProp(prop) => {
-        is_pure_expression(
-          &Expr::PrivateName(prop.key.clone()),
-          unresolved_ctxt,
-          comments,
-        ) && (!prop.is_static
-          || if let Some(ref value) = prop.value {
-            is_pure_expression(value, unresolved_ctxt, comments)
-          } else {
-            true
-          })
-      }
-      ClassMember::TsIndexSignature(_) => unreachable!(),
-      ClassMember::Empty(_) => true,
-      ClassMember::StaticBlock(_) => true,
-      ClassMember::AutoAccessor(_) => true,
-    }
-  })
-}
-
-fn is_pure_var_decl<'a>(
-  var: &'a VarDecl,
-  unresolved_ctxt: SyntaxContext,
-  comments: Option<&'a dyn Comments>,
-) -> bool {
-  var.decls.iter().all(|decl| {
-    if let Some(ref init) = decl.init {
-      is_pure_expression(init, unresolved_ctxt, comments)
-    } else {
-      true
-    }
-  })
 }
 
 pub trait ClassExt {
@@ -640,23 +150,26 @@ async fn nmf_module(
 }
 
 #[plugin_hook(CompilationOptimizeDependencies for SideEffectsFlagPlugin,tracing=false)]
-async fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
+async fn optimize_dependencies(
+  &self,
+  compilation: &Compilation,
+  side_effects_optimize_artifact: &mut SideEffectsOptimizeArtifact,
+  build_module_graph_artifact: &mut BuildModuleGraphArtifact,
+  exports_info_artifact: &mut ExportsInfoArtifact,
+  _diagnostics: &mut Vec<Diagnostic>,
+) -> Result<Option<bool>> {
   let logger = compilation.get_logger("rspack.SideEffectsFlagPlugin");
   let start = logger.time("update connections");
 
-  let mut side_effects_optimize_artifact =
-    std::mem::take(&mut compilation.side_effects_optimize_artifact);
-  let module_graph = compilation.get_module_graph();
+  let module_graph = build_module_graph_artifact.get_module_graph();
 
-  let all_modules = module_graph.modules();
-
-  let side_effects_state_map: IdentifierMap<ConnectionState> = all_modules
-    .par_iter()
+  let side_effects_state_map: IdentifierMap<ConnectionState> = module_graph
+    .modules_par()
     .map(|(module_identifier, module)| {
       (
         *module_identifier,
         module.get_side_effects_connection_state(
-          &module_graph,
+          module_graph,
           &compilation.module_graph_cache_artifact,
           &mut Default::default(),
           &mut Default::default(),
@@ -668,13 +181,17 @@ async fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<O
   let inner_start = logger.time("prepare connections");
   let modules: IdentifierSet = if let Some(mutations) = compilation
     .incremental
-    .mutations_read(IncrementalPasses::SIDE_EFFECTS)
+    .mutations_read(IncrementalPasses::OPTIMIZE_DEPENDENCIES)
     && !side_effects_optimize_artifact.is_empty()
   {
-    side_effects_optimize_artifact.retain(|dependency_id, _| {
-      module_graph
+    side_effects_optimize_artifact.retain(|dependency_id, do_optimize| {
+      let dep_exist = module_graph
         .connection_by_dependency_id(dependency_id)
-        .is_some()
+        .is_some();
+      let target_module_exist = module_graph
+        .module_by_identifier(&do_optimize.target_module)
+        .is_some();
+      dep_exist && target_module_exist
     });
 
     fn affected_incoming_modules(
@@ -689,9 +206,7 @@ async fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<O
         if modules.contains(&original_module) {
           continue;
         }
-        let Some(dep) = module_graph.dependency_by_id(&connection.dependency_id) else {
-          continue;
-        };
+        let dep = module_graph.dependency_by_id(&connection.dependency_id);
         if dep.is::<ESMExportImportedSpecifierDependency>() && modules.insert(original_module) {
           affected_incoming_modules(&original_module, module_graph, modules);
         }
@@ -703,7 +218,7 @@ async fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<O
       |mut modules, mutation| match mutation {
         Mutation::ModuleAdd { module } | Mutation::ModuleUpdate { module } => {
           if modules.insert(*module) {
-            affected_incoming_modules(module, &module_graph, &mut modules);
+            affected_incoming_modules(module, module_graph, &mut modules);
           }
           modules.extend(
             module_graph
@@ -716,22 +231,22 @@ async fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<O
       },
     );
 
-    tracing::debug!(target: incremental::TRACING_TARGET, passes = %IncrementalPasses::SIDE_EFFECTS, %mutations, ?modules);
-    let logger = compilation.get_logger("rspack.incremental.sideEffects");
+    tracing::debug!(target: incremental::TRACING_TARGET, passes = %IncrementalPasses::OPTIMIZE_DEPENDENCIES, %mutations, ?modules);
+    let logger = compilation.get_logger("rspack.incremental.optimizeDependencies");
     logger.log(format!(
       "{} modules are affected, {} in total",
       modules.len(),
-      all_modules.len()
+      module_graph.modules_len()
     ));
 
     modules
   } else {
-    all_modules.keys().copied().collect()
+    module_graph.modules_keys().copied().collect()
   };
   logger.time_end(inner_start);
 
   let inner_start = logger.time("find optimizable connections");
-  let artifact: SideEffectsOptimizeArtifact = modules
+  modules
     .par_iter()
     .filter(|module| side_effects_state_map[module] == ConnectionState::Active(false))
     .flat_map(|module| {
@@ -742,52 +257,56 @@ async fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<O
     .map(|connection| {
       (
         connection.dependency_id,
-        can_optimize_connection(connection, &side_effects_state_map, &module_graph),
+        can_optimize_connection(
+          connection,
+          &side_effects_state_map,
+          module_graph,
+          exports_info_artifact,
+        ),
       )
     })
-    .collect();
+    .consume(|(dep_id, can_optimize)| {
+      if let Some(do_optimize) = can_optimize {
+        side_effects_optimize_artifact.insert(dep_id, do_optimize);
+      } else {
+        side_effects_optimize_artifact.remove(&dep_id);
+      }
+    });
   logger.time_end(inner_start);
 
-  let mut do_optimizes: Vec<(DependencyId, SideEffectsDoOptimize)> = if compilation
-    .incremental
-    .passes_enabled(IncrementalPasses::SIDE_EFFECTS)
-  {
-    side_effects_optimize_artifact.extend(artifact);
-    side_effects_optimize_artifact.clone()
-  } else {
-    artifact
-  }
-  .into_iter()
-  .filter_map(|(connection, do_optimize)| do_optimize.map(|i| (connection, i)))
-  .collect();
+  let mut do_optimizes = side_effects_optimize_artifact.clone();
 
   let inner_start = logger.time("do optimize connections");
   let mut do_optimized_count = 0;
   while !do_optimizes.is_empty() {
     do_optimized_count += do_optimizes.len();
 
-    let mut module_graph = compilation.get_module_graph_mut();
+    let module_graph = build_module_graph_artifact.get_module_graph_mut();
+
     let new_connections: Vec<_> = do_optimizes
       .into_iter()
       .map(|(dependency, do_optimize)| {
-        do_optimize_connection(dependency, do_optimize, &mut module_graph)
+        do_optimize_connection(dependency, do_optimize, module_graph, exports_info_artifact)
       })
       .collect();
 
-    let module_graph = compilation.get_module_graph();
+    let module_graph = build_module_graph_artifact.get_module_graph();
     do_optimizes = new_connections
       .into_par_iter()
       .filter(|(_, module)| side_effects_state_map[module] == ConnectionState::Active(false))
       .filter_map(|(connection, _)| module_graph.connection_by_dependency_id(&connection))
       .filter_map(|connection| {
-        can_optimize_connection(connection, &side_effects_state_map, &module_graph)
-          .map(|i| (connection.dependency_id, i))
+        can_optimize_connection(
+          connection,
+          &side_effects_state_map,
+          module_graph,
+          exports_info_artifact,
+        )
+        .map(|i| (connection.dependency_id, i))
       })
       .collect();
   }
   logger.time_end(inner_start);
-
-  compilation.side_effects_optimize_artifact = side_effects_optimize_artifact;
 
   logger.time_end(start);
   logger.log(format!("optimized {do_optimized_count} connections"));
@@ -799,6 +318,7 @@ fn do_optimize_connection(
   dependency: DependencyId,
   do_optimize: SideEffectsDoOptimize,
   module_graph: &mut ModuleGraph,
+  exports_info_artifact: &mut ExportsInfoArtifact,
 ) -> (DependencyId, ModuleIdentifier) {
   let SideEffectsDoOptimize {
     ids,
@@ -819,7 +339,7 @@ fn do_optimize_connection(
   }) = need_move_target
   {
     export_info
-      .as_data_mut(module_graph)
+      .as_data_mut(exports_info_artifact)
       .do_move_target(dependency, target_export);
   }
   (dependency, target_module)
@@ -830,20 +350,23 @@ fn can_optimize_connection(
   connection: &ModuleGraphConnection,
   side_effects_state_map: &IdentifierMap<ConnectionState>,
   module_graph: &ModuleGraph,
+  exports_info_artifact: &ExportsInfoArtifact,
 ) -> Option<SideEffectsDoOptimize> {
   let original_module = connection.original_module_identifier?;
   let dependency_id = connection.dependency_id;
-  let dep = module_graph.dependency_by_id(&dependency_id)?;
+  let dep = module_graph.dependency_by_id(&dependency_id);
 
   if let Some(dep) = dep.downcast_ref::<ESMExportImportedSpecifierDependency>()
     && let Some(name) = &dep.name
   {
-    let exports_info =
-      module_graph.get_prefetched_exports_info(&original_module, PrefetchExportsInfoMode::Default);
+    let exports_info = exports_info_artifact
+      .get_prefetched_exports_info(&original_module, PrefetchExportsInfoMode::Default);
     let export_info = exports_info.get_export_info_without_mut_module_graph(name);
 
-    let target = export_info.can_move_target(
+    let target = can_move_target(
+      &export_info,
       module_graph,
+      exports_info_artifact,
       Rc::new(|target: &ResolvedExportInfoTarget| {
         side_effects_state_map[&target.module] == ConnectionState::Active(false)
       }),
@@ -853,21 +376,20 @@ fn can_optimize_connection(
     }
 
     let ids = dep.get_ids(module_graph);
-    let processed_ids = target
-      .export
-      .as_ref()
-      .map(|item| {
-        let mut ret = Vec::from_iter(item.iter().cloned());
+    let processed_ids = target.export.as_ref().map_or_else(
+      || ids.get(1..).unwrap_or_default().to_vec(),
+      |item| {
+        let mut ret = item.clone();
         ret.extend_from_slice(ids.get(1..).unwrap_or_default());
         ret
-      })
-      .unwrap_or_else(|| ids.get(1..).unwrap_or_default().to_vec());
+      },
+    );
     let need_move_target = match export_info {
-      MaybeDynamicTargetExportInfo::Static(export_info) => Some(SideEffectsDoOptimizeMoveTarget {
+      Cow::Borrowed(export_info) => Some(SideEffectsDoOptimizeMoveTarget {
         export_info: export_info.id(),
         target_export: target.export,
       }),
-      MaybeDynamicTargetExportInfo::Dynamic { .. } => None,
+      Cow::Owned { .. } => None,
     };
 
     return Some(SideEffectsDoOptimize {
@@ -882,29 +404,35 @@ fn can_optimize_connection(
     && let ids = dep.get_ids(module_graph)
     && !ids.is_empty()
   {
-    let exports_info = module_graph.get_prefetched_exports_info(
+    let exports_info = exports_info_artifact.get_prefetched_exports_info(
       connection.module_identifier(),
       PrefetchExportsInfoMode::Default,
     );
     let export_info = exports_info.get_export_info_without_mut_module_graph(&ids[0]);
 
-    let target = export_info.get_target(
+    let Some(GetTargetResult::Target(target)) = get_target(
+      &export_info,
       module_graph,
+      exports_info_artifact,
       Rc::new(|target: &ResolvedExportInfoTarget| {
         side_effects_state_map[&target.module] == ConnectionState::Active(false)
       }),
-    )?;
+      &mut Default::default(),
+    ) else {
+      return None;
+    };
+
     if !module_graph.can_update_module(&dependency_id, &target.module) {
       return None;
     }
 
-    let processed_ids = target
-      .export
-      .map(|mut item| {
+    let processed_ids = target.export.map_or_else(
+      || ids[1..].to_vec(),
+      |mut item| {
         item.extend_from_slice(&ids[1..]);
         item
-      })
-      .unwrap_or_else(|| ids[1..].to_vec());
+      },
+    );
 
     return Some(SideEffectsDoOptimize {
       ids: processed_ids,

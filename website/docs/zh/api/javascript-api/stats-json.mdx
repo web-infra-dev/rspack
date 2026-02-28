@@ -248,14 +248,6 @@ type StatsModule = {
 
   // 模块的源代码
   source?: string | Buffer;
-
-  // 模块各阶段编译耗时统计（单位为毫秒，需开启 profile 配置）
-  profile?: {
-    // 查找模块
-    resolving: number;
-    // 编译模块
-    building: number;
-  };
 };
 ```
 
@@ -298,7 +290,7 @@ type StatsChunkGroup = {
     prefetch?: Array<StatsChunkGroup>;
   };
   // 子 chunk group 加载文件顺序，按照优先级排序
-  children?: {
+  childAssets?: {
     // 需 preload 的资源文件
     preload?: Array<string>;
     // 需 prefetch 的资源文件

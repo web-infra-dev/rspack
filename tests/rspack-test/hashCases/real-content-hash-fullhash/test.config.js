@@ -1,4 +1,4 @@
-/** @type {import('../../..').THashCaseConfig} */
+/** @type {import('@rspack/test-tools').THashCaseConfig} */
 module.exports = {
 	validate(stats) {
 		const fullhash = stats.hash;

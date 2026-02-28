@@ -1,1 +1,1 @@
-console.log("Nested extends test");
+console.log('Nested extends test');

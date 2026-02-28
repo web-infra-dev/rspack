@@ -4,13 +4,15 @@ class TestPlugin {
 	apply(compiler) {
 		compiler.hooks.thisCompilation.tap("custom", compilation => {
 			compilation.hooks.optimizeModules.tap("test plugin", () => {
-				stats = compiler._lastCompilation.getStats().toJson({});
+				stats = compiler._lastCompilation.getStats().toJson({
+					entrypoints: true,
+				});
 			});
 		});
 	}
 }
 
-/** @type {import('../..').TStatsAPICaseConfig} */
+/** @type {import('@rspack/test-tools').TStatsAPICaseConfig} */
 module.exports = {
 	description: "should have null as placeholders in stats before chunkIds",
 	options(context) {

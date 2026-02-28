@@ -1,5 +1,3 @@
-use std::any::Any;
-
 use rkyv::{
   Archive, Archived, Deserialize, Place, Resolver, Serialize,
   de::Pooling,
@@ -8,13 +6,13 @@ use rkyv::{
   with::{ArchiveWith, DeserializeWith, SerializeWith},
 };
 
-use crate::{DeserializeError, SerializeError, context::ContextGuard};
+use crate::{Error, Result, context::ContextGuard};
 
 pub trait AsConverter<T> {
-  fn serialize(data: &T, ctx: &dyn Any) -> Result<Self, SerializeError>
+  fn serialize(data: &T, guard: &ContextGuard) -> Result<Self>
   where
     Self: Sized;
-  fn deserialize(self, ctx: &dyn Any) -> Result<T, DeserializeError>;
+  fn deserialize(self, guard: &ContextGuard) -> Result<T>;
 }
 
 pub struct As<A> {
@@ -43,12 +41,12 @@ where
 impl<T, A, S> SerializeWith<T, S> for As<A>
 where
   A: AsConverter<T> + Archive + Serialize<S>,
-  S: Fallible<Error = SerializeError> + Sharing + ?Sized,
+  S: Fallible<Error = Error> + Sharing + ?Sized,
 {
   #[inline]
-  fn serialize_with(field: &T, serializer: &mut S) -> Result<Self::Resolver, SerializeError> {
-    let ctx = ContextGuard::sharing_context(serializer)?;
-    let value = <A as AsConverter<T>>::serialize(field, ctx)?;
+  fn serialize_with(field: &T, serializer: &mut S) -> Result<Self::Resolver> {
+    let guard = ContextGuard::sharing_guard(serializer)?;
+    let value = <A as AsConverter<T>>::serialize(field, guard)?;
     Ok(AsResolver {
       resolver: value.serialize(serializer)?,
       value,
@@ -60,12 +58,12 @@ impl<T, A, D> DeserializeWith<Archived<A>, T, D> for As<A>
 where
   A: AsConverter<T> + Archive,
   A::Archived: Deserialize<A, D>,
-  D: Fallible<Error = DeserializeError> + Pooling + ?Sized,
+  D: Fallible<Error = Error> + Pooling + ?Sized,
 {
   #[inline]
-  fn deserialize_with(field: &Archived<A>, de: &mut D) -> Result<T, DeserializeError> {
+  fn deserialize_with(field: &Archived<A>, de: &mut D) -> Result<T> {
     let field = A::Archived::deserialize(field, de)?;
-    let ctx = ContextGuard::pooling_context(de)?;
-    field.deserialize(ctx)
+    let guard = ContextGuard::pooling_guard(de)?;
+    field.deserialize(guard)
   }
 }

@@ -24,7 +24,7 @@ pub(crate) async fn loader_should_yield(
   loader_context: &LoaderContext<RunnerContext>,
 ) -> Result<Option<bool>> {
   match loader_context.state() {
-    s @ LoaderState::Init | s @ LoaderState::ProcessResource | s @ LoaderState::Finished => {
+    s @ (LoaderState::Init | LoaderState::ProcessResource | LoaderState::Finished) => {
       panic!("Unexpected loader runner state: {s:?}")
     }
     LoaderState::Pitching => {
@@ -103,13 +103,6 @@ pub(crate) fn merge_loader_context(
     .collect();
 
   if let Some(error) = from.error {
-    let details = if let Some(stack) = &error.stack
-      && error.hide_stack.unwrap_or(false)
-    {
-      Some(stack.to_string())
-    } else {
-      None
-    };
     return Err(error.with_parent_error_name("ModuleBuildError").into());
   }
 

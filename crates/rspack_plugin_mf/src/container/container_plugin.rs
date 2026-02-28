@@ -1,9 +1,10 @@
 use std::sync::Arc;
 
 use rspack_core::{
-  ChunkUkey, Compilation, CompilationParams, CompilationRuntimeRequirementInTree,
-  CompilerCompilation, CompilerMake, DependencyType, EntryOptions, EntryRuntime, Filename,
-  LibraryOptions, Plugin, RuntimeGlobals,
+  ChunkUkey, Compilation, CompilationAdditionalTreeRuntimeRequirements, CompilationParams,
+  CompilationRuntimeRequirementInTree, CompilerCompilation, CompilerMake, DependencyType,
+  EntryOptions, EntryRuntime, Filename, LibraryOptions, Plugin, RuntimeGlobals, RuntimeModule,
+  SourceType,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -95,19 +96,63 @@ async fn make(&self, compilation: &mut Compilation) -> Result<()> {
   Ok(())
 }
 
+#[plugin_hook(CompilationAdditionalTreeRuntimeRequirements for ContainerPlugin)]
+async fn additional_tree_runtime_requirements(
+  &self,
+  compilation: &Compilation,
+  chunk_ukey: &ChunkUkey,
+  runtime_requirements: &mut RuntimeGlobals,
+  _runtime_modules: &mut Vec<Box<dyn RuntimeModule>>,
+) -> Result<()> {
+  let Some(entry_options) = compilation
+    .build_chunk_graph_artifact
+    .chunk_by_ukey
+    .get(chunk_ukey)
+    .and_then(|chunk| {
+      chunk.get_entry_options(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
+    })
+  else {
+    return Ok(());
+  };
+  if matches!(&entry_options.name, Some(name) if name == &self.options.name)
+    && compilation
+      .build_chunk_graph_artifact
+      .chunk_graph
+      .has_chunk_module_by_source_type(
+        chunk_ukey,
+        SourceType::Expose,
+        compilation.get_module_graph(),
+      )
+    && compilation
+      .build_chunk_graph_artifact
+      .chunk_graph
+      .has_chunk_entry_dependent_chunks(
+        chunk_ukey,
+        &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
+      )
+  {
+    runtime_requirements.insert(RuntimeGlobals::STARTUP_CHUNK_DEPENDENCIES);
+  }
+  Ok(())
+}
+
 #[plugin_hook(CompilationRuntimeRequirementInTree for ContainerPlugin)]
 async fn runtime_requirements_in_tree(
   &self,
-  compilation: &mut Compilation,
+  compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
   _all_runtime_requirements: &RuntimeGlobals,
   runtime_requirements: &RuntimeGlobals,
   runtime_requirements_mut: &mut RuntimeGlobals,
+  runtime_modules_to_add: &mut Vec<(ChunkUkey, Box<dyn RuntimeModule>)>,
 ) -> Result<Option<()>> {
   if runtime_requirements.contains(RuntimeGlobals::CURRENT_REMOTE_GET_SCOPE) {
     runtime_requirements_mut.insert(RuntimeGlobals::HAS_OWN_PROPERTY);
     if self.options.enhanced {
-      compilation.add_runtime_module(chunk_ukey, Box::new(ExposeRuntimeModule::new()))?;
+      runtime_modules_to_add.push((
+        *chunk_ukey,
+        Box::new(ExposeRuntimeModule::new(&compilation.runtime_template)),
+      ));
     }
   }
   Ok(None)
@@ -121,6 +166,10 @@ impl Plugin for ContainerPlugin {
   fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
     ctx.compiler_hooks.compilation.tap(compilation::new(self));
     ctx.compiler_hooks.make.tap(make::new(self));
+    ctx
+      .compilation_hooks
+      .additional_tree_runtime_requirements
+      .tap(additional_tree_runtime_requirements::new(self));
     ctx
       .compilation_hooks
       .runtime_requirement_in_tree

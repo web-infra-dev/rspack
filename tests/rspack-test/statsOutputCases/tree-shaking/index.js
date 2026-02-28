@@ -6,4 +6,4 @@ import { y } from "./edge";
 
 console.log(a1, a2, a3, a4, c2, c4, y);
 
-require.include("./require.include");
+// require.include("./require.include");

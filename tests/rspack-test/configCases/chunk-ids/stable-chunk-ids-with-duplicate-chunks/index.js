@@ -15,5 +15,5 @@ it("should have stable chunkIds and chunk content", async () => {
 		snapshot += `${key}\n\n::\n\n${content}\n`;
 		snapshot += '==============================================================\n';
 	}
-	expect(snapshot).toMatchFileSnapshot(path.join(__SNAPSHOT__, 'snapshot.txt'));
+	expect(snapshot).toMatchFileSnapshotSync(path.join(__SNAPSHOT__, 'snapshot.txt'));
 })

@@ -11,5 +11,5 @@ it("should compile", async () => {
 
 	expect(
 		fs.readFileSync(path.resolve(__dirname, "./shared.css")).toString()
-	).toMatchFileSnapshot(path.join(__SNAPSHOT__, 'shared.css.txt'));
+	).toMatchFileSnapshotSync(path.join(__SNAPSHOT__, 'shared.css.txt'));
 });

@@ -1,12 +1,15 @@
-const { experiments, container } = require("@rspack/core");
+const { SubresourceIntegrityPlugin, container } = require("@rspack/core");
 
 module.exports = {
 	target: "web",
 	optimization: {
 		moduleIds: "named"
 	},
+	performance: {
+		hints: false
+	},
 	plugins: [
-		new experiments.SubresourceIntegrityPlugin(),
+		new SubresourceIntegrityPlugin(),
 		new container.ModuleFederationPlugin({
 			name: "app",
 			filename: "remoteEntry.js",

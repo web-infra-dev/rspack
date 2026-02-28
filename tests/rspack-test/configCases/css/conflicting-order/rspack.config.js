@@ -2,8 +2,13 @@
 module.exports = {
 	target: "web",
 	mode: "development",
-	experiments: {
-		css: true
+	module: {
+		rules: [
+			{
+				test: /\.css$/,
+				type: "css/auto"
+			}
+		]
 	},
 	optimization: {
 		splitChunks: {

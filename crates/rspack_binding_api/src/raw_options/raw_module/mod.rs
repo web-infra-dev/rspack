@@ -1,23 +1,30 @@
-use std::{fmt::Formatter, ptr::NonNull, sync::Arc};
+use std::{
+  fmt::Formatter,
+  ptr::NonNull,
+  sync::{Arc, LazyLock},
+};
 
-use derive_more::with_trait::Debug;
+use derive_more::Debug;
+use futures::future::BoxFuture;
 use napi::{
   Either,
   bindgen_prelude::{Buffer, Either3, FnArgs},
 };
 use napi_derive::napi;
+use regex::Regex;
 use rspack_core::{
   AssetGeneratorDataUrl, AssetGeneratorDataUrlFnCtx, AssetGeneratorDataUrlOptions,
   AssetGeneratorOptions, AssetInlineGeneratorOptions, AssetParserDataUrl,
   AssetParserDataUrlOptions, AssetParserOptions, AssetResourceGeneratorOptions,
   CssAutoGeneratorOptions, CssAutoParserOptions, CssGeneratorOptions, CssModuleGeneratorOptions,
-  CssModuleParserOptions, CssParserOptions, DescriptionData, DynamicImportFetchPriority,
-  DynamicImportMode, ExportPresenceMode, FuncUseCtx, GeneratorOptions, GeneratorOptionsMap,
-  JavascriptParserCommonjsExportsOption, JavascriptParserCommonjsOptions, JavascriptParserOptions,
-  JavascriptParserOrder, JavascriptParserUrl, JsonGeneratorOptions, JsonParserOptions,
-  ModuleNoParseRule, ModuleNoParseRules, ModuleNoParseTestFn, ModuleOptions, ModuleRule,
-  ModuleRuleEffect, ModuleRuleEnforce, ModuleRuleUse, ModuleRuleUseLoader, OverrideStrict,
-  ParseOption, ParserOptions, ParserOptionsMap, TypeReexportPresenceMode,
+  CssModuleParserOptions, CssParserImport, CssParserImportContext, CssParserOptions,
+  DescriptionData, DynamicImportFetchPriority, DynamicImportMode, ExportPresenceMode, FuncUseCtx,
+  GeneratorOptions, GeneratorOptionsMap, JavascriptParserCommonjsExportsOption,
+  JavascriptParserCommonjsOptions, JavascriptParserOptions, JavascriptParserOrder,
+  JavascriptParserUrl, JsonGeneratorOptions, JsonParserOptions, ModuleNoParseRule,
+  ModuleNoParseRules, ModuleNoParseTestFn, ModuleOptions, ModuleRule, ModuleRuleEffect,
+  ModuleRuleEnforce, ModuleRuleUse, ModuleRuleUseLoader, OverrideStrict, ParseOption,
+  ParserOptions, ParserOptionsMap, TypeReexportPresenceMode,
 };
 use rspack_error::error;
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
@@ -51,7 +58,7 @@ pub enum RawRuleSetCondition {
   func(ThreadsafeFunction<serde_json::Value, bool>),
 }
 
-impl Debug for RawRuleSetCondition {
+impl std::fmt::Debug for RawRuleSetCondition {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     match self {
       RawRuleSetCondition::string(s) => write!(f, "RawRuleSetCondition::string({s:?})"),
@@ -176,6 +183,8 @@ pub struct RawModuleRule {
   /// Specifies the category of the loader. No value means normal loader.
   #[napi(ts_type = "'pre' | 'post'")]
   pub enforce: Option<String>,
+  /// Whether to extract source maps from the module.
+  pub extract_source_map: Option<bool>,
 }
 
 #[derive(Debug, Default)]
@@ -276,10 +285,12 @@ pub struct RawJavascriptParserOptions {
   pub exports_presence: Option<String>,
   pub import_exports_presence: Option<String>,
   pub reexport_exports_presence: Option<String>,
-  pub strict_export_presence: Option<bool>,
   pub worker: Option<Vec<String>>,
   pub override_strict: Option<String>,
   pub import_meta: Option<bool>,
+  /// This option is experimental in Rspack only and subject to change or be removed anytime.
+  /// @experimental
+  pub require_alias: Option<bool>,
   /// This option is experimental in Rspack only and subject to change or be removed anytime.
   /// @experimental
   pub require_as_expression: Option<bool>,
@@ -297,13 +308,11 @@ pub struct RawJavascriptParserOptions {
   pub commonjs_magic_comments: Option<bool>,
   /// This option is experimental in Rspack only and subject to change or be removed anytime.
   /// @experimental
-  pub inline_const: Option<bool>,
-  /// This option is experimental in Rspack only and subject to change or be removed anytime.
-  /// @experimental
   pub type_reexports_presence: Option<String>,
   /// This option is experimental in Rspack only and subject to change or be removed anytime.
   /// @experimental
   pub jsx: Option<bool>,
+  pub defer_import: Option<bool>,
 }
 
 #[napi(object)]
@@ -349,7 +358,6 @@ impl From<RawJavascriptParserOptions> for JavascriptParserOptions {
       reexport_exports_presence: value
         .reexport_exports_presence
         .map(|e| ExportPresenceMode::from(e.as_str())),
-      strict_export_presence: value.strict_export_presence,
       type_reexports_presence: value
         .type_reexports_presence
         .map(|e| TypeReexportPresenceMode::from(e.as_str())),
@@ -358,6 +366,7 @@ impl From<RawJavascriptParserOptions> for JavascriptParserOptions {
         .override_strict
         .map(|e| OverrideStrict::from(e.as_str())),
       import_meta: value.import_meta,
+      require_alias: value.require_alias,
       require_as_expression: value.require_as_expression,
       require_dynamic: value.require_dynamic,
       require_resolve: value.require_resolve,
@@ -366,22 +375,25 @@ impl From<RawJavascriptParserOptions> for JavascriptParserOptions {
           exports: JavascriptParserCommonjsExportsOption::from(flag),
         },
         Either::B(options) => {
-          let exports = options
-            .exports
-            .map(|exports| match exports {
-              Either::A(flag) => JavascriptParserCommonjsExportsOption::from(flag),
-              Either::B(RawJavascriptParserCommonjsExports::SkipInEsm) => {
-                JavascriptParserCommonjsExportsOption::SkipInEsm
-              }
-            })
-            .unwrap_or(JavascriptParserCommonjsExportsOption::Enable);
+          let exports =
+            options
+              .exports
+              .map_or(
+                JavascriptParserCommonjsExportsOption::Enable,
+                |exports| match exports {
+                  Either::A(flag) => JavascriptParserCommonjsExportsOption::from(flag),
+                  Either::B(RawJavascriptParserCommonjsExports::SkipInEsm) => {
+                    JavascriptParserCommonjsExportsOption::SkipInEsm
+                  }
+                },
+              );
           JavascriptParserCommonjsOptions { exports }
         }
       }),
       import_dynamic: value.import_dynamic,
       commonjs_magic_comments: value.commonjs_magic_comments,
-      inline_const: value.inline_const,
       jsx: value.jsx,
+      defer_import: value.defer_import,
     }
   }
 }
@@ -455,11 +467,47 @@ impl From<RawAssetParserDataUrlOptions> for AssetParserDataUrlOptions {
   }
 }
 
-#[derive(Debug, Default)]
+// Use tuple to pass arguments separately to JS function
+#[derive(Debug)]
 #[napi(object)]
+pub struct RawCssImportContext {
+  pub url: String,
+  pub media: Option<String>,
+  pub resource_path: String,
+  pub supports: Option<String>,
+  pub layer: Option<String>,
+}
+
+type RawCssImportFn = ThreadsafeFunction<RawCssImportContext, bool>;
+
+fn convert_import_option(import: Option<Either<bool, RawCssImportFn>>) -> Option<CssParserImport> {
+  import.map(|i| match i {
+    Either::A(b) => CssParserImport::Bool(b),
+    Either::B(f) => CssParserImport::Func(Arc::new(move |args: CssParserImportContext| {
+      let f = f.clone();
+      Box::pin(async move {
+        f.call_with_sync(RawCssImportContext {
+          url: args.url,
+          media: args.media,
+          resource_path: args.resource_path,
+          supports: args.supports,
+          layer: args.layer,
+        })
+        .await
+      })
+    })),
+  })
+}
+
+#[derive(Debug, Default)]
+#[napi(object, object_to_js = false)]
 pub struct RawCssParserOptions {
   pub named_exports: Option<bool>,
   pub url: Option<bool>,
+  #[napi(
+    ts_type = "boolean | ((context: { url: string, media: string | undefined, resourcePath: string, supports: string | undefined, layer: string | undefined }) => boolean)"
+  )]
+  pub resolve_import: Option<Either<bool, RawCssImportFn>>,
 }
 
 impl From<RawCssParserOptions> for CssParserOptions {
@@ -467,15 +515,20 @@ impl From<RawCssParserOptions> for CssParserOptions {
     Self {
       named_exports: value.named_exports,
       url: value.url,
+      resolve_import: convert_import_option(value.resolve_import),
     }
   }
 }
 
 #[derive(Debug, Default)]
-#[napi(object)]
+#[napi(object, object_to_js = false)]
 pub struct RawCssAutoParserOptions {
   pub named_exports: Option<bool>,
   pub url: Option<bool>,
+  #[napi(
+    ts_type = "boolean | ((context: { url: string, media: string | undefined, resourcePath: string, supports: string | undefined, layer: string | undefined }) => boolean)"
+  )]
+  pub resolve_import: Option<Either<bool, RawCssImportFn>>,
 }
 
 impl From<RawCssAutoParserOptions> for CssAutoParserOptions {
@@ -483,15 +536,20 @@ impl From<RawCssAutoParserOptions> for CssAutoParserOptions {
     Self {
       named_exports: value.named_exports,
       url: value.url,
+      resolve_import: convert_import_option(value.resolve_import),
     }
   }
 }
 
 #[derive(Debug, Default)]
-#[napi(object)]
+#[napi(object, object_to_js = false)]
 pub struct RawCssModuleParserOptions {
   pub named_exports: Option<bool>,
   pub url: Option<bool>,
+  #[napi(
+    ts_type = "boolean | ((context: { url: string, media: string | undefined, resourcePath: string, supports: string | undefined, layer: string | undefined }) => boolean)"
+  )]
+  pub resolve_import: Option<Either<bool, RawCssImportFn>>,
 }
 
 impl From<RawCssModuleParserOptions> for CssModuleParserOptions {
@@ -499,6 +557,7 @@ impl From<RawCssModuleParserOptions> for CssModuleParserOptions {
     Self {
       named_exports: value.named_exports,
       url: value.url,
+      resolve_import: convert_import_option(value.resolve_import),
     }
   }
 }
@@ -806,6 +865,7 @@ impl From<RawCssModuleGeneratorOptions> for CssModuleGeneratorOptions {
 }
 
 #[napi(object, object_to_js = false)]
+#[derive(Debug)]
 pub struct RawModuleOptions {
   pub rules: Vec<RawModuleRule>,
   pub parser: Option<HashMap<String, RawParserOptions>>,
@@ -813,18 +873,8 @@ pub struct RawModuleOptions {
   #[napi(
     ts_type = "string | RegExp | ((request: string) => boolean) | (string | RegExp | ((request: string) => boolean))[]"
   )]
+  #[debug(skip)]
   pub no_parse: Option<RawModuleNoParseRules>,
-}
-
-impl Debug for RawModuleOptions {
-  fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-    f.debug_struct("RawModuleOptions")
-      .field("rules", &self.rules)
-      .field("parser", &self.parser)
-      .field("generator", &self.generator)
-      .field("no_parse", &"...")
-      .finish()
-  }
 }
 
 #[derive(Debug, Clone)]
@@ -970,7 +1020,9 @@ impl TryFrom<RawModuleRule> for ModuleRule {
         resolve: value.resolve.map(|raw| raw.try_into()).transpose()?,
         side_effects: value.side_effects,
         enforce,
+        extract_source_map: value.extract_source_map,
       },
+      extract_source_map: value.extract_source_map,
     })
   }
 }
@@ -984,6 +1036,7 @@ impl TryFrom<RawModuleOptions> for ModuleOptions {
       .into_iter()
       .map(|rule| rule.try_into())
       .collect::<rspack_error::Result<Vec<ModuleRule>>>()?;
+
     Ok(ModuleOptions {
       rules,
       parser: value

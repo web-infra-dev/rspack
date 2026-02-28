@@ -13,9 +13,13 @@ module.exports = {
 				exportsConvention: "camel-case",
 				exportsOnly: true
 			}
-		}
+		},
+		rules: [
+			{
+				test: /\.css$/,
+				type: "css/auto"
+			}
+		]
 	},
-	experiments: {
-		css: true
-	}
+
 };

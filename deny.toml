@@ -223,8 +223,6 @@ skip = [
     { crate = "path-clean", reason = "external dependency"},
     { crate = "ptr_meta", reason = "external dependency"},
     { crate = "ptr_meta_derive", reason = "external dependency"},
-    { crate = "regex-automata", reason = "external dependency"},
-    { crate = "regex-syntax", reason = "external dependency"},
     { crate = "rkyv", reason = "FIXME: need to be fixed"},
     { crate = "rkyv_derive", reason = "FIXME: need to be fixed"},
     { crate = "syn", reason = "external dependency"},
@@ -232,6 +230,7 @@ skip = [
     { crate = "thiserror-impl", reason = "external dependency"},
     { crate = "unicode-width", reason = "external dependency"},
     { crate = "wasi", reason = "external dependency"},
+    { crate = "windows-core", reason = "external dependency"},
     { crate = "windows-targets", reason = "external dependency"},
     { crate = "windows_aarch64_gnullvm", reason = "external dependency"},
     { crate = "windows_aarch64_msvc", reason = "external dependency"},
@@ -242,16 +241,16 @@ skip = [
     { crate = "windows_x86_64_msvc", reason = "external dependency"},
     { crate = "windows-sys", reason = "external dependency"},
     { crate = "bitflags", reason = "external dependency"},
-    
+    { crate = "foldhash", reason = "external dependency" },
     { crate = "wasmparser", reason = "external dependency"},
     { crate = "windows_i686_gnullvm", reason = "external dependency"},
-
+    { crate = "hermit-abi", reason = "external dependency"},
+    { crate = "supports-color", reason = "external dependency"},
     { crate = "zerocopy", reason = "external dependency"},
     { crate = "linux-raw-sys", reason = "external dependency"},
     { crate = "rustix", reason = "external dependency"},
-
-    { crate = "winnow", reason = "external dependency"},
-    { crate = "heck", reason = "external dependency"},
+    { crate = "ctor", reason = "external dependency"},
+    { crate = "windows-link", reason = "external dependency"},
 ]
 # Similarly to `skip` allows you to skip certain crates during duplicate
 # detection. Unlike skip, it also includes the entire tree of transitive
@@ -260,6 +259,7 @@ skip = [
 skip-tree = [
     #"ansi_term@0.11.0", # will be skipped along with _all_ of its direct and transitive dependencies
     #{ crate = "ansi_term@0.11.0", depth = 20 },
+    { crate = "icu_normalizer", reason = "external dependency (between swc crate and url crate)"},
 ]
 
 [bans.workspace-dependencies]

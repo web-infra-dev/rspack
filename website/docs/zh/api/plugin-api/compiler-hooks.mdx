@@ -229,7 +229,7 @@ resolver 设置完成之后触发。
 ```js
 class ExamplePlugin {
   apply(compiler) {
-    compiler.hooks.beforeRun.tap('ExamplePlugin', compiler => {
+    compiler.hooks.beforeRun.tap('ExamplePlugin', (compiler) => {
       console.log('Build is about to start...');
     });
   }
@@ -280,7 +280,7 @@ class ExamplePlugin {
 ```js
 class ExamplePlugin {
   apply(compiler) {
-    compiler.hooks.beforeRun.tap('ExamplePlugin', compiler => {
+    compiler.hooks.beforeRun.tap('ExamplePlugin', (compiler) => {
       console.log('Build start...');
     });
   }
@@ -333,7 +333,7 @@ class ExamplePlugin {
 ```js
 class ExamplePlugin {
   apply(compiler) {
-    compiler.hooks.watchRun.tap('ExamplePlugin', compiler => {
+    compiler.hooks.watchRun.tap('ExamplePlugin', (compiler) => {
       const { modifiedFiles, removedFiles } = compiler;
       if (modifiedFiles) {
         console.log('Changed files:', Array.from(modifiedFiles));
@@ -395,10 +395,10 @@ class ExamplePlugin {
 ```js
 class ExamplePlugin {
   apply(compiler) {
-    compiler.hooks.thisCompilation.tap('ExamplePlugin', compilation => {
+    compiler.hooks.thisCompilation.tap('ExamplePlugin', (compilation) => {
       console.log('compilation created:', compilation);
 
-      compilation.hooks.make.tap('ExamplePlugin', compilation => {
+      compilation.hooks.make.tap('ExamplePlugin', (compilation) => {
         console.log("compilation's make hook called:", compilation);
       });
     });
@@ -431,10 +431,10 @@ class ExamplePlugin {
 ```js
 class ExamplePlugin {
   apply(compiler) {
-    compiler.hooks.compilation.tap('ExamplePlugin', compilation => {
+    compiler.hooks.compilation.tap('ExamplePlugin', (compilation) => {
       console.log('compilation created:', compilation);
 
-      compilation.hooks.make.tap('ExamplePlugin', compilation => {
+      compilation.hooks.make.tap('ExamplePlugin', (compilation) => {
         console.log("compilation's make hook called:", compilation);
       });
     });
@@ -517,7 +517,7 @@ class ExamplePlugin {
 - **示例：**
 
 ```js
-compiler.hooks.shouldEmit.tap('MyPlugin', compilation => {
+compiler.hooks.shouldEmit.tap('MyPlugin', (compilation) => {
   // 返回 true 以输出 output 结果，否则返回 false
   return true;
 });

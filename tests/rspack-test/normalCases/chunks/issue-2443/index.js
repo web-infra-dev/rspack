@@ -1,4 +1,5 @@
-it("should be able to use expressions in import (directory)", function(done) {
+it("should be able to use expressions in import (directory)", () => new Promise((resolve, reject) => {
+	const done = err => (err ? reject(err) : resolve());
 	function load(name, expected, callback) {
 		import("./dir/" + name + "/file.js")
 			.then(function(result) {
@@ -23,4 +24,4 @@ it("should be able to use expressions in import (directory)", function(done) {
 			});
 		});
 	});
-});
+}));

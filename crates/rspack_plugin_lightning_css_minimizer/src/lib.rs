@@ -16,13 +16,15 @@ use rspack_core::{
   ChunkUkey, Compilation, CompilationChunkHash, CompilationProcessAssets, Plugin,
   diagnostics::MinifyError,
   rspack_sources::{
-    MapOptions, RawStringSource, SourceExt, SourceMap, SourceMapSource, SourceMapSourceOptions,
+    MapOptions, ObjectPool, RawStringSource, SourceExt, SourceMap, SourceMapSource,
+    SourceMapSourceOptions,
   },
 };
 use rspack_error::{Diagnostic, Result, ToStringResultToRspackResultExt};
 use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
-use rspack_util::asset_condition::AssetConditions;
+use rspack_util::asset_condition::{AssetConditions, AssetConditionsObject, match_object};
+use thread_local::ThreadLocal;
 
 static CSS_ASSET_REGEXP: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"\.css(\?.*)?$").expect("Invalid RegExp"));
@@ -61,7 +63,7 @@ pub struct MinimizerOptions {
   pub targets: Option<Browsers>,
   pub include: Option<u32>,
   pub exclude: Option<u32>,
-  pub draft: Option<Draft>,
+  pub drafts: Option<Draft>,
   pub non_standard: Option<NonStandard>,
   pub pseudo_classes: Option<PseudoClasses>,
   pub unused_symbols: Vec<String>,
@@ -72,7 +74,7 @@ impl Hash for MinimizerOptions {
     self.error_recovery.hash(state);
     self.include.hash(state);
     self.exclude.hash(state);
-    self.draft.hash(state);
+    self.drafts.hash(state);
     self.non_standard.hash(state);
     self.unused_symbols.hash(state);
     if let Some(pseudo_classes) = &self.pseudo_classes {
@@ -102,25 +104,6 @@ pub struct LightningCssMinimizerRspackPlugin {
   options: PluginOptions,
 }
 
-pub fn match_object(obj: &PluginOptions, str: &str) -> bool {
-  if let Some(condition) = &obj.test
-    && !condition.try_match(str)
-  {
-    return false;
-  }
-  if let Some(condition) = &obj.include
-    && !condition.try_match(str)
-  {
-    return false;
-  }
-  if let Some(condition) = &obj.exclude
-    && condition.try_match(str)
-  {
-    return false;
-  }
-  true
-}
-
 impl LightningCssMinimizerRspackPlugin {
   pub fn new(options: PluginOptions) -> Self {
     Self::new_inner(options)
@@ -143,6 +126,13 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let options = &self.options;
   let minimizer_options = &self.options.minimizer_options;
   let all_warnings: RwLock<Vec<Diagnostic>> = Default::default();
+  let condition_object = AssetConditionsObject {
+    test: options.test.as_ref(),
+    include: options.include.as_ref(),
+    exclude: options.exclude.as_ref(),
+  };
+
+  let tls: ThreadLocal<ObjectPool> = ThreadLocal::new();
   compilation
     .assets_mut()
     .par_iter_mut()
@@ -151,7 +141,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         return false;
       }
 
-      let is_matched = match_object(options, filename);
+      let is_matched = match_object(&condition_object, filename);
 
       if !is_matched || original.get_info().minimized.unwrap_or(false) {
         return false;
@@ -165,13 +155,14 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       }
 
       if let Some(original_source) = original.get_source() {
-        let input = original_source.source().into_owned();
-        let input_source_map = original_source.map(&MapOptions::default());
+        let input = original_source.source().into_string_lossy().into_owned();
+        let object_pool = tls.get_or(ObjectPool::default);
+        let input_source_map = original_source.map(object_pool, &MapOptions::default());
 
         let mut parser_flags = ParserFlags::empty();
         parser_flags.set(
           ParserFlags::CUSTOM_MEDIA,
-          matches!(&minimizer_options.draft, Some(draft) if draft.custom_media),
+          matches!(&minimizer_options.drafts, Some(drafts) if drafts.custom_media),
         );
         parser_flags.set(
           ParserFlags::DEEP_SELECTOR_COMBINATOR,
@@ -193,7 +184,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           let mut stylesheet = StyleSheet::parse(
             &input,
             ParserOptions {
-              filename: filename.to_string(),
+              filename: filename.clone(),
               css_modules: None,
               source_index: 0,
               error_recovery: minimizer_options.error_recovery,
@@ -208,13 +199,11 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
             include: minimizer_options
               .include
               .as_ref()
-              .map(|include| Features::from_bits_truncate(*include))
-              .unwrap_or(Features::empty()),
+              .map_or(Features::empty(), |include| Features::from_bits_truncate(*include)),
             exclude: minimizer_options
               .exclude
               .as_ref()
-              .map(|exclude| Features::from_bits_truncate(*exclude))
-              .unwrap_or(Features::empty()),
+              .map_or(Features::empty(), |exclude| Features::from_bits_truncate(*exclude)),
           };
           let mut unused_symbols = HashSet::from_iter(minimizer_options.unused_symbols.clone());
           if self.options.remove_unused_local_idents
@@ -279,7 +268,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
                 .to_rspack_result()?,
             )
             .expect("should be able to generate source-map"),
-            original_source: Some(input),
+            original_source: Some(Arc::from(input)),
             inner_source_map: input_source_map,
             remove_original_source: true,
           })

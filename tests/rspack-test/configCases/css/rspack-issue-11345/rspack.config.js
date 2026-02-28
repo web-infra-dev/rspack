@@ -10,13 +10,14 @@ module.exports = {
 			{
 				test: /\.svg$/,
 				type: "asset/resource"
+			},
+			{
+				test: /\.css$/,
+				type: "css/auto"
 			}
 		]
 	},
 	output: {
 		filename: "[name].js"
-	},
-	experiments: {
-		css: true
 	}
 };

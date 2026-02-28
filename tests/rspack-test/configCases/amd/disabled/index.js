@@ -1,8 +1,8 @@
-it("should compile", function(done) {
+it("should compile", () => new Promise(done => {
 	done();
-});
+}));
 
-it("should disable define", function(done) {
+it("should disable define", () => new Promise(done => {
 	expect(typeof define).toBe('undefined')
 	done()
-})
+}));

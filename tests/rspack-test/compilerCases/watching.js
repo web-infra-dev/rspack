@@ -2,7 +2,7 @@ const { createFsFromVolume, Volume } = require("memfs");
 const deprecationTracking = require("@rspack/test-tools/helper/legacy/deprecationTracking");
 let tracker = null;
 
-/** @type {import('@rspack/core').TCompilerCaseConfig[]} */
+/** @type {import('@rspack/test-tools').TCompilerCaseConfig[]} */
 module.exports = [{
   description: "should set compiler.watching correctly",
   options(context) {

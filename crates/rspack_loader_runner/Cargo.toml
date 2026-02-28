@@ -24,3 +24,6 @@ rspack_util        = { workspace = true }
 serde_json         = { workspace = true }
 tracing            = { workspace = true }
 winnow             = { workspace = true }
+
+[lints]
+workspace = true

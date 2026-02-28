@@ -5,9 +5,9 @@ module.exports = {
 		index: "./index.js"
 	},
 	output: {
+		module: true,
 		filename: `[name].js`,
 		chunkFilename: `async.js`,
-		module: true,
 		library: {
 			type: "modern-module"
 		},
@@ -16,9 +16,6 @@ module.exports = {
 		chunkLoading: "import"
 	},
 	externalsType: "module-import",
-	experiments: {
-		outputModule: true
-	},
 	optimization: {
 		concatenateModules: true,
 		avoidEntryIife: true,

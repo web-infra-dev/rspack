@@ -1,0 +1,50 @@
+```mjs title=main.mjs
+import * as __rspack_external_fs from "fs";
+
+// fs
+
+// ./index.js
+
+// reexport named default
+
+// reexport default
+
+
+
+
+
+
+
+
+;
+
+it('should compile and import success', async () => {
+	// make sure fs usedName is Namespace
+	expect(__rspack_external_fs).toBeDefined()
+	const {
+		fs,
+		/* star re-exported */ readFileSync,
+		/* renamed re-exported */ r,
+		default: defaultExport,
+		fsNs,
+		readFile
+	} = await import(/*webpackIgnore: true*/'./main.mjs')
+	expect(fs).toBeDefined()
+	expect(defaultExport).toBeDefined()
+	expect(fsNs).toBeDefined()
+	expect(readFileSync).toBeDefined()
+	expect(r).toBeDefined()
+	expect(readFile).toBeDefined()
+})
+
+var default_0 = __rspack_external_fs["default"];
+var fs_0 = __rspack_external_fs["default"];
+var index_named = (/* inlined export .named */42);
+var r_0 = __rspack_external_fs.readFile;
+var readFile_0 = __rspack_external_fs.readFile;
+var index_starExports = (/* inlined export .starExports */42);
+export { __rspack_external_fs as fsNs, fs_0 as fs, index_named as named, index_starExports as starExports, r_0 as r, readFile_0 as readFile };
+export * from "fs";
+export default default_0;
+
+```

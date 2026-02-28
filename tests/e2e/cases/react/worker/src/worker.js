@@ -1,6 +1,6 @@
-import Button from "./Button";
+import Button from './Button';
 
 self.onmessage = () => {
-	Button.add();
-	postMessage(Button.get());
+  Button.add();
+  postMessage(Button.get());
 };

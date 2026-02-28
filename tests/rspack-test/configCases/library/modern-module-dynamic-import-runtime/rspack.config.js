@@ -1,5 +1,6 @@
-/** @type {import("@rspack/core").Configuration} */
+const rspack = require("@rspack/core");
 
+/** @type {import("@rspack/core").Configuration} */
 const basic = {
 	output: {
 		filename: `[name].js`,
@@ -8,9 +9,6 @@ const basic = {
 		library: {
 			type: "modern-module"
 		},
-		iife: false,
-		chunkFormat: "module",
-		chunkLoading: "import"
 	},
 	externals: {
 		react: "react-alias",
@@ -22,9 +20,9 @@ const basic = {
 		jquery: "jquery-alias"
 	},
 	externalsType: "module-import",
-	experiments: {
-		outputModule: true
-	},
+	plugins: [
+		new rspack.experiments.RslibPlugin()
+	],
 	optimization: {
 		concatenateModules: true,
 		avoidEntryIife: true,
@@ -50,7 +48,8 @@ module.exports = [
 			index: "./index.js"
 		},
 		output: {
-			filename: "index.js"
-		}
+			module: true,
+			filename: "index.mjs"
+		},
 	}
 ];

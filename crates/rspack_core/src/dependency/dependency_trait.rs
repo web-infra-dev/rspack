@@ -12,9 +12,9 @@ use super::{
   dependency_template::AsDependencyCodeGeneration, module_dependency::*,
 };
 use crate::{
-  AsContextDependency, ConnectionState, Context, ExtendedReferencedExport, ForwardId,
-  ImportAttributes, LazyUntil, ModuleGraph, ModuleGraphCacheArtifact, ModuleLayer, RuntimeSpec,
-  create_exports_object_referenced,
+  AsContextDependency, ConnectionState, Context, ExportsInfoArtifact, ExtendedReferencedExport,
+  ForwardId, ImportAttributes, ImportPhase, LazyUntil, ModuleGraph, ModuleGraphCacheArtifact,
+  ModuleLayer, RuntimeSpec, create_exports_object_referenced,
 };
 
 #[derive(Debug, Clone, Copy)]
@@ -55,6 +55,10 @@ pub trait Dependency:
     None
   }
 
+  fn get_phase(&self) -> ImportPhase {
+    ImportPhase::Evaluation
+  }
+
   fn get_attributes(&self) -> Option<&ImportAttributes> {
     None
   }
@@ -63,6 +67,7 @@ pub trait Dependency:
     &self,
     _mg: &ModuleGraph,
     _module_graph_cache: &ModuleGraphCacheArtifact,
+    _exports_info_artifact: &ExportsInfoArtifact,
   ) -> Option<ExportsSpec> {
     None
   }
@@ -97,6 +102,7 @@ pub trait Dependency:
     &self,
     _module_graph: &ModuleGraph,
     _module_graph_cache: &ModuleGraphCacheArtifact,
+    _exports_info_artifact: &ExportsInfoArtifact,
   ) -> Option<Vec<Diagnostic>> {
     None
   }
@@ -105,6 +111,7 @@ pub trait Dependency:
     &self,
     _module_graph: &ModuleGraph,
     _module_graph_cache: &ModuleGraphCacheArtifact,
+    _exports_info_artifact: &ExportsInfoArtifact,
     _runtime: Option<&RuntimeSpec>,
   ) -> Vec<ExtendedReferencedExport> {
     create_exports_object_referenced()

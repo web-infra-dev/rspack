@@ -31,9 +31,7 @@ module.exports = {
 						compiler,
 						"non-existing"
 					)
-				).toThrowErrorMatchingInlineSnapshot(
-					`Chunk loading type "non-existing" is not enabled. EnableChunkLoadingPlugin need to be used to enable this type of chunk loading. This usually happens through the "output.enabledChunkLoadingTypes" option. If you are using a function as entry which sets "chunkLoading", you need to add all potential chunk loading types to "output.enabledChunkLoadingTypes". These types are enabled: custom, import, async-node`
-				);
+				).toThrow("Chunk loading type \"non-existing\" is not enabled. EnableChunkLoadingPlugin need to be used to enable this type of chunk loading. This usually happens through the \"output.enabledChunkLoadingTypes\" option. If you are using a function as entry which sets \"chunkLoading\", you need to add all potential chunk loading types to \"output.enabledChunkLoadingTypes\". These types are enabled: custom, import, async-node");
 			});
 		}
 	]

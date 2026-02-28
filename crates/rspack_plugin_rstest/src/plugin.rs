@@ -15,10 +15,15 @@ use rspack_plugin_javascript::{
 };
 
 use crate::{
+  esm_import_dependency::{
+    RstestESMImportSideEffectDependencyTemplate, RstestESMImportSpecifierDependencyTemplate,
+  },
   import_dependency::ImportDependencyTemplate,
   mock_method_dependency::MockMethodDependencyTemplate,
   mock_module_id_dependency::MockModuleIdDependencyTemplate,
-  module_path_name_dependency::ModulePathNameDependencyTemplate, parser_plugin::RstestParserPlugin,
+  module_path_name_dependency::ModulePathNameDependencyTemplate,
+  parser_plugin::RstestParserPlugin,
+  url_dependency::RstestUrlDependencyTemplate,
 };
 
 #[derive(Debug)]
@@ -27,6 +32,8 @@ pub struct RstestPluginOptions {
   pub hoist_mock_module: bool,
   pub import_meta_path_name: bool,
   pub manual_mock_root: String,
+  pub preserve_new_url: Vec<String>,
+  pub globals: bool,
 }
 
 #[derive(Debug)]
@@ -52,7 +59,7 @@ impl RstestPlugin {
     old: BoxSource,
     replace_map: &std::collections::HashMap<String, MockFlagPos>,
   ) -> BoxSource {
-    let old_source = old.to_owned();
+    let old_source = old.clone();
     let mut replace = ReplaceSource::new(old_source);
 
     for (mocked_id, pos) in replace_map {
@@ -71,7 +78,7 @@ impl RstestPlugin {
         pos.content_with_flag_start,
         pos.content_with_flag_end,
       ) {
-        let content = old.source()[content_start..content_end].to_string();
+        let content = &old.source().into_string_lossy()[content_start..content_end];
         replace.replace(
           placeholder_start as u32,
           placeholder_end as u32 + 1, // consider the trailing semicolon
@@ -95,17 +102,20 @@ impl RstestPlugin {
 async fn nmf_parser(
   &self,
   module_type: &ModuleType,
-  parser: &mut dyn ParserAndGenerator,
+  parser: &mut Box<dyn ParserAndGenerator>,
   _parser_options: Option<&ParserOptions>,
 ) -> Result<()> {
   if module_type.is_js_like()
     && let Some(parser) = parser.downcast_mut::<JavaScriptParserAndGenerator>()
   {
     parser.add_parser_plugin(Box::new(RstestParserPlugin::new(
-      self.options.module_path_name,
-      self.options.hoist_mock_module,
-      self.options.import_meta_path_name,
-      self.options.manual_mock_root.clone(),
+      crate::parser_plugin::RstestParserPluginOptions {
+        module_path_name: self.options.module_path_name,
+        hoist_mock_module: self.options.hoist_mock_module,
+        import_meta_path_name: self.options.import_meta_path_name,
+        manual_mock_root: self.options.manual_mock_root.clone(),
+        globals: self.options.globals,
+      },
     )) as BoxJavascriptParserPlugin);
   }
 
@@ -142,11 +152,30 @@ async fn compilation_stage_9999(
   compilation: &mut Compilation,
   _params: &mut CompilationParams,
 ) -> Result<()> {
+  // Override ESM import template for importActual hoist ordering.
+  compilation.set_dependency_template(
+    RstestESMImportSideEffectDependencyTemplate::template_type(),
+    Arc::new(RstestESMImportSideEffectDependencyTemplate::default()),
+  );
+  compilation.set_dependency_template(
+    RstestESMImportSpecifierDependencyTemplate::template_type(),
+    Arc::new(RstestESMImportSpecifierDependencyTemplate::default()),
+  );
+
   // Override the default import dependency template.
   compilation.set_dependency_template(
     ImportDependencyTemplate::template_type(),
     Arc::new(ImportDependencyTemplate::default()),
   );
+
+  if !self.options.preserve_new_url.is_empty() {
+    compilation.set_dependency_template(
+      RstestUrlDependencyTemplate::template_type(),
+      Arc::new(RstestUrlDependencyTemplate::new(
+        self.options.preserve_new_url.clone(),
+      )),
+    );
+  }
 
   Ok(())
 }
@@ -163,21 +192,31 @@ struct MockFlagPos {
 
 #[plugin_hook(CompilationProcessAssets for RstestPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_ADDITIONAL)]
 async fn mock_hoist_process_assets(&self, compilation: &mut Compilation) -> Result<()> {
-  let mut files = vec![];
+  let mut files = Vec::with_capacity(compilation.build_chunk_graph_artifact.chunk_by_ukey.len());
 
-  for chunk in compilation.chunk_by_ukey.values() {
+  for chunk in compilation
+    .build_chunk_graph_artifact
+    .chunk_by_ukey
+    .values()
+  {
     for file in chunk.files() {
       files.push(file.clone());
     }
   }
-  let regex = regex::Regex::new(r"\/\* RSTEST:(MOCK|UNMOCK|MOCKREQUIRE)_(.*?):(.*?) \*\/")
+
+  let regex = regex::Regex::new(r"\/\* RSTEST:(MOCK|UNMOCK|MOCKREQUIRE|HOISTED)_(.*?):(.*?) \*\/")
     .expect("should initialize `Regex`");
 
   for file in files {
     let mut pos_map: std::collections::HashMap<String, MockFlagPos> =
       std::collections::HashMap::new();
     let _res = compilation.update_asset(file.as_str(), |old, info| {
-      let content = old.source().to_string();
+      // Only handles JavaScript.
+      if info.javascript_module.is_none() {
+        return Ok((old, info));
+      }
+
+      let content = old.source().into_string_lossy();
       let captures: Vec<_> = regex.captures_iter(&content).collect();
 
       for c in captures {

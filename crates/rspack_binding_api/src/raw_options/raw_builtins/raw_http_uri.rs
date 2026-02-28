@@ -58,12 +58,12 @@ impl HttpClient for JsHttpClient {
     let result = func
       .call_with_promise((url_owned, headers_owned).into())
       .await
-      .map_err(|e| anyhow::anyhow!("Error calling JavaScript HTTP client: {}", e))?;
+      .map_err(|e| anyhow::anyhow!("Error calling JavaScript HTTP client: {e}"))?;
 
     Ok(HttpResponse {
       status: result.status,
       headers: result.headers,
-      body: result.body.to_vec(),
+      body: result.body,
     })
   }
 }

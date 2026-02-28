@@ -1,4 +1,5 @@
 import { useLang } from '@rspress/core/runtime';
+import { Link } from '@rspress/core/theme';
 import type { FC } from 'react';
 
 type DefaultValue = {
@@ -30,12 +31,12 @@ const PropertyType: FC<{ type: string; defaultValueList?: DefaultValue[] }> = ({
                 {index > 0 && <span>, </span>}
                 {mode && (
                   <>
-                    <a
+                    <Link
                       style={{ marginLeft: '4px' }}
                       href={`/config/mode#${mode}`}
                     >
                       {mode} {lang === 'zh' ? '模式' : 'mode'}
-                    </a>
+                    </Link>
                     &nbsp;
                     <span>{lang === 'zh' ? '为' : 'is'}</span>
                   </>

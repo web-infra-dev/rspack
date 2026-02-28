@@ -7,3 +7,5 @@ it("should isolated module entry1 work", async () => {
 	expect(value).toBe(2);
 	await NEXT_START();
 });
+
+module.hot.accept("./file");

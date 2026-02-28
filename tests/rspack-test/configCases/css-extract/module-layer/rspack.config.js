@@ -45,7 +45,6 @@ module.exports = {
 		})
 	],
 	experiments: {
-		layers: true,
 		css: false
 	}
 };

@@ -19,10 +19,10 @@ import Columns from '@components/Columns';
 以下示例在 `processAssets` 阶段打印此次构建中新增的产物：
 
 ```js
-compiler.hooks.compilation.tap('MyPlugin', compilation => {
+compiler.hooks.compilation.tap('MyPlugin', (compilation) => {
   compilation.hooks.processAssets.tapPromise('MyPlugin', async () => {
     const cache = compilation.getCache('MyPlugin');
-    const currentAssets = compilation.getAssets().map(i => i.name);
+    const currentAssets = compilation.getAssets().map((i) => i.name);
     const lastAssets = await cache.getPromise('assets', null);
     if (lastAssets) {
       for (const asset of currentAssets) {
@@ -94,7 +94,7 @@ compiler.hooks.compilation.tap('MyPlugin', compilation => {
 ```js title=MyPlugin.js
 const createAssetsData = async () => {
   console.log('only called once');
-  return compilation.getAssets().map(i => i.name);
+  return compilation.getAssets().map((i) => i.name);
 };
 
 compilation.hooks.processAssets.tapPromise('MyPlugin', async () => {

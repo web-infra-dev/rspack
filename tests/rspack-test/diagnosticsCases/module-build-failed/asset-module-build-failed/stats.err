@@ -1,5 +1,5 @@
 ERROR in ./logo.svg
-  × Module build failed:
+  × Module build failed (from ./my-loader.js):
   ╰─▶   × Error: Failed to load
         │     at xxx
         │     at xxx

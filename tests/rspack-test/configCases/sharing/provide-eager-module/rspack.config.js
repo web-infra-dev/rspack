@@ -1,7 +1,7 @@
 // eslint-disable-next-line node/no-unpublished-require
 const { ProvideSharedPlugin } = require("@rspack/core").sharing;
 
-/** @type {import("../../../../types").Configuration} */
+/** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	mode: "development",
 	plugins: [

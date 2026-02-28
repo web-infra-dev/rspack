@@ -1,4 +1,4 @@
 Object {
-  simple-bar: bd00b1e0e0954270-simple-bar e631de715f468814-imported-simple,
-  simple-foo: bd00b1e0e0954270-simple-foo e631de715f468814-imported-simple,
+  simple-bar: aae4ff18a077a47a ea6d3355f0608c9e,
+  simple-foo: a8ca61fffe156174 ea6d3355f0608c9e,
 }

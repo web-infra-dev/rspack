@@ -1,24 +1,25 @@
-use rspack_collections::Identifier;
-use rspack_core::{Compilation, RuntimeGlobals, RuntimeModule, impl_runtime_module};
+use rspack_core::{
+  Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext, RuntimeTemplate,
+  impl_runtime_module,
+};
 
 #[impl_runtime_module]
 #[derive(Debug)]
 pub struct ChunkPrefetchPreloadFunctionRuntimeModule {
-  id: Identifier,
   runtime_function: RuntimeGlobals,
   runtime_handlers: RuntimeGlobals,
 }
 
 impl ChunkPrefetchPreloadFunctionRuntimeModule {
   pub fn new(
+    runtime_template: &RuntimeTemplate,
     child_type: &str,
     runtime_function: RuntimeGlobals,
     runtime_handlers: RuntimeGlobals,
   ) -> Self {
-    Self::with_default(
-      Identifier::from(format!(
-        "webpack/runtime/chunk_prefetch_function/{child_type}"
-      )),
+    Self::with_name(
+      runtime_template,
+      child_type,
       runtime_function,
       runtime_handlers,
     )
@@ -27,10 +28,6 @@ impl ChunkPrefetchPreloadFunctionRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for ChunkPrefetchPreloadFunctionRuntimeModule {
-  fn name(&self) -> Identifier {
-    self.id
-  }
-
   fn template(&self) -> Vec<(String, String)> {
     vec![(
       self.id.to_string(),
@@ -38,15 +35,23 @@ impl RuntimeModule for ChunkPrefetchPreloadFunctionRuntimeModule {
     )]
   }
 
-  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
-    let source = compilation.runtime_template.render(
+  async fn generate(
+    &self,
+    context: &RuntimeModuleGenerateContext<'_>,
+  ) -> rspack_error::Result<String> {
+    let runtime_template = context.runtime_template;
+    let source = runtime_template.render(
       &self.id,
       Some(serde_json::json!({
-        "RUNTIME_HANDLERS":  &self.runtime_handlers.to_string(),
-        "RUNTIME_FUNCTION": &self.runtime_function.to_string(),
+        "_runtime_handlers":  runtime_template.render_runtime_globals(&self.runtime_handlers),
+        "_runtime_function": runtime_template.render_runtime_globals(&self.runtime_function),
       })),
     )?;
 
     Ok(source)
+  }
+
+  fn additional_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
+    self.runtime_handlers
   }
 }

@@ -15,14 +15,6 @@ static WINDOWS_ABS_PATH_REGEXP: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"^[a-zA-Z]:[/\\]").expect("TODO:"));
 static WINDOWS_PATH_SEPARATOR: &[char] = &['/', '\\'];
 
-pub fn make_paths_relative(context: &str, identifier: &str) -> String {
-  SEGMENTS_SPLIT_REGEXP
-    .split(identifier)
-    .map(|s| absolute_to_request(context, s))
-    .collect::<Vec<_>>()
-    .join("")
-}
-
 /// # Example
 ///  ```ignore
 /// assert_eq!(
@@ -32,9 +24,7 @@ pub fn make_paths_relative(context: &str, identifier: &str) -> String {
 /// ```
 fn split_at_query_mark(path: &str) -> (&str, Option<&str>) {
   let query_mark_pos = path.find('?');
-  query_mark_pos
-    .map(|pos| (&path[..pos], Some(&path[pos..])))
-    .unwrap_or((path, None))
+  query_mark_pos.map_or((path, None), |pos| (&path[..pos], Some(&path[pos..])))
 }
 
 // Port from https://github.com/webpack/webpack/blob/4b4ca3bb53f36a5b8fc6bc1bd976ed7af161bd80/lib/util/identifier.js#L30
@@ -98,6 +88,13 @@ pub fn relative_path_to_request(rel: &str) -> Cow<'_, str> {
 
 fn request_to_absolute(context: &str, relative_path: &str) -> String {
   if relative_path.starts_with("./") || relative_path.starts_with("../") {
+    let relative_path = if relative_path.starts_with("./") {
+      relative_path
+        .strip_prefix("./")
+        .expect("should start with ./")
+    } else {
+      relative_path
+    };
     Path::new(context)
       .join(relative_path)
       .to_string_lossy()
@@ -108,9 +105,16 @@ fn request_to_absolute(context: &str, relative_path: &str) -> String {
 }
 
 pub fn make_paths_absolute(context: &str, identifier: &str) -> String {
-  SEGMENTS_SPLIT_REGEXP
-    .split(identifier)
+  split_keep(&SEGMENTS_SPLIT_REGEXP, identifier)
+    .into_iter()
     .map(|str| request_to_absolute(context, str))
+    .collect()
+}
+
+pub fn make_paths_relative(context: &str, identifier: &str) -> String {
+  split_keep(&SEGMENTS_SPLIT_REGEXP, identifier)
+    .into_iter()
+    .map(|str| absolute_to_request(context, str))
     .collect()
 }
 
@@ -120,4 +124,34 @@ pub fn strip_zero_width_space_for_fragment(s: &str) -> Cow<'_, str> {
 
 pub fn insert_zero_width_space_for_fragment(s: &str) -> Cow<'_, str> {
   s.cow_replace("#", "\u{200b}#")
+}
+
+fn split_keep<'a>(r: &Regex, text: &'a str) -> Vec<&'a str> {
+  let mut result = Vec::new();
+  let mut last = 0;
+  for (index, matched) in text.match_indices(r) {
+    if last != index {
+      result.push(&text[last..index]);
+    }
+    result.push(matched);
+    last = index + matched.len();
+  }
+  if last < text.len() {
+    result.push(&text[last..]);
+  }
+  result
+}
+
+static REQUEST_TO_ID_REGEX1: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"^(\.\.?/)+").expect("Failed to initialize REQUEST_TO_ID_REGEX1"));
+static REQUEST_TO_ID_REGEX2: LazyLock<Regex> = LazyLock::new(|| {
+  Regex::new(r"(^[.-]|[^a-zA-Z0-9_-])+").expect("Failed to initialize REQUEST_TO_ID_REGEX2")
+});
+
+/// Convert a request string to a valid identifier by removing relative path prefixes
+/// and replacing illegal characters with underscores
+pub fn request_to_id(request: &str) -> String {
+  REQUEST_TO_ID_REGEX2
+    .replace_all(&REQUEST_TO_ID_REGEX1.replace(request, ""), "_")
+    .to_string()
 }

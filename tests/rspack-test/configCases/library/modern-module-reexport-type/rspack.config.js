@@ -16,10 +16,8 @@ module.exports = {
 		library: {
 			type: "modern-module"
 		},
+		filename: '[name].mjs',
 		chunkFormat: "module"
-	},
-	experiments: {
-		outputModule: true
 	},
 	resolve: {
 		extensions: [".ts"]
@@ -28,6 +26,11 @@ module.exports = {
 		concatenateModules: true
 	},
 	module: {
+		parser: {
+			javascript: {
+				exportsPresence: 'auto',
+			}
+		},
 		rules: [
 			{
 				test: /\.ts$/,

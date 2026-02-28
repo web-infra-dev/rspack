@@ -39,7 +39,7 @@ export default {
 
 入口模块的路径可以是一个相对路径，也可以是一个绝对路径。
 
-当 `entry` 被设置为相对路径时，Rspack 会使用 [context 配置项](/config/context.html) 设置的值作为基础路径，默认为 Node.js 进程的当前工作目录，即 `process.cwd()`。
+当 `entry` 被设置为相对路径时，Rspack 会使用 [context 配置项](/config/context) 设置的值作为基础路径，默认为 Node.js 进程的当前工作目录，即 `process.cwd()`。
 
 你也可以使用 Node.js 中的 [path 模块](https://nodejs.org/api/path.html) 来生成一个绝对路径，并传递给 `entry` 配置项：
 
@@ -222,11 +222,9 @@ export default {
   defaultValueList={[{ defaultValue: 'undefined' }]}
 />
 
-指定当前入口的模块所在的 layer。用于在 split chunks, [rules](/config/module#ruleissuerlayer)、stats、externals 中通过 layer 匹配使对应的配置生效。
+指定当前入口的模块所在的 layer。用于在 split chunks, [rules](/config/module-rules#rulesissuerlayer)、stats、externals 中通过 layer 匹配使对应的配置生效。
 
-:::warning
-只有在 [experiments.layers = true](/config/experiments#experimentslayers) 时该配置才会生效。
-:::
+更多关于 layer 的信息，请参考 [Layer 指南](/guide/features/layer)。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -235,9 +233,6 @@ export default {
       import: './src/index.js',
       layer: 'layer-name',
     },
-  },
-  experiments: {
-    layers: true,
   },
 };
 ```
@@ -250,7 +245,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   entry: () => './demo',
 };
 ```
@@ -259,8 +253,7 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
-  entry: () => new Promise(resolve => resolve(['./demo', './demo2'])),
+  entry: () => new Promise((resolve) => resolve(['./demo', './demo2'])),
 };
 ```
 

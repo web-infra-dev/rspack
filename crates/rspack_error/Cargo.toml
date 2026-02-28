@@ -20,3 +20,6 @@ termcolor          = { workspace = true }
 textwrap           = { workspace = true }
 
 unicode-width = { workspace = true }
+
+[lints]
+workspace = true

@@ -4,6 +4,8 @@ use rspack_cacheable::{
   cacheable,
   with::{AsRefStr, AsVec},
 };
+#[cfg(allocative)]
+use rspack_util::allocative;
 use rustc_hash::FxHashMap;
 use ustr::{Ustr, UstrSet};
 
@@ -11,6 +13,7 @@ use crate::{EntryOptions, EntryRuntime};
 
 #[cacheable]
 #[derive(Debug, Default, Clone)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct RuntimeSpec {
   #[cacheable(with=AsVec<AsRefStr>)]
   inner: UstrSet,
@@ -157,6 +160,7 @@ pub fn is_runtime_equal(a: &RuntimeSpec, b: &RuntimeSpec) -> bool {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum RuntimeCondition {
   Boolean(bool),
   Spec(RuntimeSpec),
@@ -197,10 +201,6 @@ pub fn merge_runtime(a: &RuntimeSpec, b: &RuntimeSpec) -> RuntimeSpec {
   let mut set = a.inner.clone();
   set.extend(b.inner.iter().copied());
   RuntimeSpec::new(set)
-}
-
-pub fn runtime_to_string(runtime: &RuntimeSpec) -> String {
-  format!("{runtime}")
 }
 
 pub fn filter_runtime(
@@ -391,16 +391,12 @@ impl<T> RuntimeSpecMap<T> {
 
           self
             .map
-            .insert(get_runtime_key(&single_runtime).to_string(), single_value);
-          self
-            .map
-            .insert(get_runtime_key(&runtime).to_string(), value);
+            .insert(get_runtime_key(&single_runtime).clone(), single_value);
+          self.map.insert(get_runtime_key(&runtime).clone(), value);
         }
       }
       RuntimeMode::Map => {
-        self
-          .map
-          .insert(get_runtime_key(&runtime).to_string(), value);
+        self.map.insert(get_runtime_key(&runtime).clone(), value);
       }
     }
   }
@@ -451,9 +447,7 @@ impl RuntimeSpecSet {
   }
 
   pub fn set(&mut self, runtime: RuntimeSpec) {
-    self
-      .map
-      .insert(get_runtime_key(&runtime).to_string(), runtime);
+    self.map.insert(get_runtime_key(&runtime).clone(), runtime);
   }
 
   pub fn contains(&self, runtime: &RuntimeSpec) -> bool {

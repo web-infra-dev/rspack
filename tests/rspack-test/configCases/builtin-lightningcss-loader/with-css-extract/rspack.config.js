@@ -28,7 +28,5 @@ module.exports = {
 			filename: "bundle0.css"
 		})
 	],
-	experiments: {
-		css: true
-	}
+
 };

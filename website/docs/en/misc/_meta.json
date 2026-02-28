@@ -1,16 +1,16 @@
 [
   {
-    "type": "dir",
+    "type": "dir-section-header",
     "name": "planning",
     "label": "Planning"
   },
   {
-    "type": "dir",
+    "type": "dir-section-header",
     "name": "team",
     "label": "Team"
   },
   {
-    "type": "dir",
+    "type": "dir-section-header",
     "name": "branding",
     "label": "Branding"
   }

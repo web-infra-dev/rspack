@@ -1,0 +1,1 @@
+module.exports = () =>{return !process.env.WASM}

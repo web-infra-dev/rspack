@@ -1,2 +1,2 @@
 
-module.exports = () => "FIXME: missing warnings"
+module.exports = () => "TODO: support parsing createRequire in CommonJsImportsParserPlugin"

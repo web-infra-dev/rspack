@@ -1,7 +1,6 @@
-it("import with template string should work well", done => {
-	import(`./logo1`).then(res => {
+it("import with template string should work well", async () => {
+	await import(`./logo1`).then(res => {
 		expect(res.default).toBe("logo1");
-		done();
 	});
 });
 

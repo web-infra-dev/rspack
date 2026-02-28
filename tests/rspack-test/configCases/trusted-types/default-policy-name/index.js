@@ -7,8 +7,8 @@ it("should use default trusted types policy name", function () {
 	window.trustedTypes = {
 		createPolicy: () => rules
 	};
-	const createScriptURLSpy = jest.spyOn(rules, "createScriptURL");
-	const createPolicySpy = jest.spyOn(window.trustedTypes, "createPolicy");
+	const createScriptURLSpy = rstest.spyOn(rules, "createScriptURL");
+	const createPolicySpy = rstest.spyOn(window.trustedTypes, "createPolicy");
 
 	const promise = import(
 		"./empty?b" /* webpackChunkName: "default-policy-name" */
@@ -20,7 +20,7 @@ it("should use default trusted types policy name", function () {
 		"https://test.cases/path/default-policy-name.web.js"
 	);
 	expect(createPolicySpy).toHaveBeenCalledWith(
-		"webpack",
+		"rspack",
 		expect.objectContaining({
 			createScriptURL: expect.anything()
 		})

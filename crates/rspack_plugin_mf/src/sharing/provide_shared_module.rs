@@ -4,12 +4,11 @@ use async_trait::async_trait;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
-  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo,
-  BuildMeta, BuildResult, CodeGenerationResult, Compilation, ConcatenationScope, Context,
-  DependenciesBlock, DependencyId, FactoryMeta, LibIdentOptions, Module, ModuleGraph,
-  ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType, async_module_factory,
-  impl_module_meta_info, impl_source_map_config, module_update_hash, rspack_sources::BoxSource,
-  sync_module_factory,
+  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, BuildContext,
+  BuildInfo, BuildMeta, BuildResult, CodeGenerationResult, Compilation, Context, DependenciesBlock,
+  DependencyId, FactoryMeta, LibIdentOptions, Module, ModuleCodeGenerationContext, ModuleGraph,
+  ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType, impl_module_meta_info,
+  impl_source_map_config, module_update_hash, rspack_sources::BoxSource,
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
 use rspack_hash::{RspackHash, RspackHashDigest};
@@ -41,6 +40,7 @@ pub struct ProvideSharedModule {
   singleton: Option<bool>,
   required_version: Option<ConsumeVersion>,
   strict_version: Option<bool>,
+  tree_shaking_mode: Option<String>,
   factory_meta: Option<FactoryMeta>,
   build_info: BuildInfo,
   build_meta: BuildMeta,
@@ -57,6 +57,7 @@ impl ProvideSharedModule {
     singleton: Option<bool>,
     required_version: Option<ConsumeVersion>,
     strict_version: Option<bool>,
+    tree_shaking_mode: Option<String>,
   ) -> Self {
     let identifier = format!(
       "provide shared module ({}) {}@{} = {}",
@@ -76,6 +77,7 @@ impl ProvideSharedModule {
       singleton,
       required_version,
       strict_version,
+      tree_shaking_mode,
       factory_meta: None,
       build_info: BuildInfo {
         strict: true,
@@ -84,6 +86,10 @@ impl ProvideSharedModule {
       build_meta: Default::default(),
       source_map_kind: SourceMapKind::empty(),
     }
+  }
+
+  pub fn share_key(&self) -> &str {
+    &self.name
   }
 }
 
@@ -145,7 +151,7 @@ impl Module for ProvideSharedModule {
   }
 
   async fn build(
-    &mut self,
+    mut self: Box<Self>,
     _build_context: BuildContext,
     _: Option<&Compilation>,
   ) -> Result<BuildResult> {
@@ -160,37 +166,32 @@ impl Module for ProvideSharedModule {
     }
 
     Ok(BuildResult {
+      module: BoxModule::new(self),
       dependencies,
       blocks,
-      ..Default::default()
+      optimization_bailouts: vec![],
     })
   }
 
   // #[tracing::instrument("ProvideSharedModule::code_generation", skip_all, fields(identifier = ?self.identifier()))]
   async fn code_generation(
     &self,
-    compilation: &Compilation,
-    _runtime: Option<&RuntimeSpec>,
-    _: Option<ConcatenationScope>,
+    code_generation_context: &mut ModuleCodeGenerationContext,
   ) -> Result<CodeGenerationResult> {
+    let ModuleCodeGenerationContext {
+      compilation,
+      runtime_template,
+      ..
+    } = code_generation_context;
+
     let mut code_generation_result = CodeGenerationResult::default();
-    code_generation_result
-      .runtime_requirements
+    runtime_template
+      .runtime_requirements_mut()
       .insert(RuntimeGlobals::INITIALIZE_SHARING);
     let factory = if self.eager {
-      sync_module_factory(
-        &self.get_dependencies()[0],
-        &self.request,
-        compilation,
-        &mut code_generation_result.runtime_requirements,
-      )
+      runtime_template.sync_module_factory(&self.get_dependencies()[0], &self.request, compilation)
     } else {
-      async_module_factory(
-        &self.get_blocks()[0],
-        &self.request,
-        compilation,
-        &mut code_generation_result.runtime_requirements,
-      )
+      runtime_template.async_module_factory(&self.get_blocks()[0], &self.request, compilation)
     };
     code_generation_result
       .data
@@ -206,6 +207,7 @@ impl Module for ProvideSharedModule {
             singleton: self.singleton,
             strict_version: self.strict_version,
             required_version: self.required_version.clone(),
+            tree_shaking_mode: self.tree_shaking_mode.clone(),
           }),
         }],
       });

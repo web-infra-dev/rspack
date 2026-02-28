@@ -4,9 +4,9 @@ use rspack_collections::IdentifierMap;
 use rspack_core::{
   BoxDependency, ChunkUkey, CodeGenerationExportsFinalNames, Compilation,
   CompilationOptimizeChunkModules, CompilationParams, CompilerCompilation, CompilerFinishMake,
-  ConcatenatedModule, ConcatenatedModuleExportsDefinitions, DependenciesBlock, Dependency,
-  DependencyId, LibraryOptions, ModuleDependency, ModuleGraph, ModuleIdentifier, Plugin,
-  PrefetchExportsInfoMode, RuntimeSpec, UsedNameItem,
+  ConcatenatedModule, ConcatenatedModuleExportsDefinitions, DependencyId, ExportsType,
+  LibraryOptions, ModuleGraph, ModuleIdentifier, Plugin, PrefetchExportsInfoMode,
+  RuntimeCodeTemplate, RuntimeSpec, RuntimeVariable, UsedNameItem,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
   to_identifier,
 };
@@ -16,81 +16,17 @@ use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{
   ConcatConfiguration, JavascriptModulesChunkHash, JavascriptModulesRenderStartup, JsPlugin,
   ModuleConcatenationPlugin, RenderSource,
-  dependency::{
-    ESMExportImportedSpecifierDependency, ESMImportSideEffectDependency, ImportDependency,
-  },
+  dependency::{ESMExportImportedSpecifierDependency, ESMImportSideEffectDependency},
 };
 use rustc_hash::FxHashSet as HashSet;
 
 use super::modern_module::ModernModuleReexportStarExternalDependency;
 use crate::{
-  modern_module::{
-    ModernModuleImportDependency, ModernModuleImportDependencyTemplate,
-    ModernModuleReexportStarExternalDependencyTemplate,
-  },
+  modern_module::ModernModuleReexportStarExternalDependencyTemplate,
   utils::{COMMON_LIBRARY_NAME_MESSAGE, get_options_for_chunk},
 };
 
 const PLUGIN_NAME: &str = "rspack.ModernModuleLibraryPlugin";
-
-/// Replaces ImportDependency instances with ModernModuleImportDependency for external modules.
-/// This function iterates through all modules and their blocks to find ImportDependencies
-/// that point to external modules, then creates ModernModuleImportDependency replacements.
-pub fn replace_import_dependencies_for_external_modules(
-  compilation: &mut Compilation,
-) -> Result<()> {
-  let mg = compilation.get_module_graph();
-  let mut deps_to_replace: Vec<BoxDependency> = Vec::new();
-
-  for module in mg.modules().values() {
-    for block_id in module.get_blocks() {
-      let Some(block) = mg.block_by_id(block_id) else {
-        continue;
-      };
-      for block_dep_id in block.get_dependencies() {
-        let block_dep = mg.dependency_by_id(block_dep_id);
-        if let Some(block_dep) = block_dep
-          && let Some(import_dependency) = block_dep.as_any().downcast_ref::<ImportDependency>()
-        {
-          let import_dep_connection = mg.connection_by_dependency_id(block_dep_id);
-          if let Some(import_dep_connection) = import_dep_connection {
-            // Try find the connection with a import dependency pointing to an external module.
-            // If found, remove the connection and add a new import dependency to performs the external module ID replacement.
-            let import_module_id = import_dep_connection.module_identifier();
-            let Some(import_module) = mg.module_by_identifier(import_module_id) else {
-              continue;
-            };
-
-            if let Some(external_module) = import_module.as_external_module() {
-              let new_dep = ModernModuleImportDependency::new(
-                *block_dep.id(),
-                import_dependency.request().into(),
-                external_module.request.clone(),
-                external_module.external_type.clone(),
-                import_dependency.range,
-                import_dependency.get_attributes().cloned(),
-                import_dependency.comments.clone(),
-              );
-
-              deps_to_replace.push(Box::new(new_dep));
-            }
-          }
-        }
-      }
-    }
-  }
-
-  let mut mg = compilation.get_module_graph_mut();
-  for dep in deps_to_replace {
-    let dep_id = dep.id();
-    // remove connection
-    mg.revoke_dependency(dep_id, false);
-    // overwrite dependency
-    mg.add_dependency(dep);
-  }
-
-  Ok(())
-}
 
 #[plugin]
 #[derive(Debug, Default)]
@@ -135,12 +71,11 @@ impl ModernModuleLibraryPlugin {
   // Force trigger concatenation for single modules what bails from `ModuleConcatenationPlugin.is_empty`,
   // to keep all chunks can benefit from runtime optimization.
   async fn optimize_chunk_modules_impl(&self, compilation: &mut Compilation) -> Result<()> {
-    let module_graph: rspack_core::ModuleGraph = compilation.get_module_graph();
+    let module_graph = compilation.get_module_graph();
 
     let module_ids: Vec<_> = module_graph
       .module_graph_modules()
-      .keys()
-      .copied()
+      .map(|(id, _)| *id)
       .collect();
 
     let mut concatenated_module_ids = HashSet::default();
@@ -173,10 +108,14 @@ impl ModernModuleLibraryPlugin {
       })
       .collect::<HashSet<_>>();
 
-    for module_id in unconcatenated_module_ids.into_iter() {
+    for module_id in unconcatenated_module_ids {
       let chunk_runtime = compilation
+        .build_chunk_graph_artifact
         .chunk_graph
-        .get_module_runtimes_iter(*module_id, &compilation.chunk_by_ukey)
+        .get_module_runtimes_iter(
+          *module_id,
+          &compilation.build_chunk_graph_artifact.chunk_by_ukey,
+        )
         .fold(RuntimeSpec::default(), |mut acc, r| {
           acc.extend(r);
           acc
@@ -205,7 +144,7 @@ impl ModernModuleLibraryPlugin {
 
     // Reexport star from external module.
     // Only preserve star reexports for module graph entry, nested reexports are not supported.
-    for dep_id in &compilation.make_artifact.entry_dependencies {
+    for dep_id in &compilation.build_module_graph_artifact.entry_dependencies {
       let Some(module) = mg.get_module_by_dependency_id(dep_id) else {
         continue;
       };
@@ -220,11 +159,11 @@ impl ModernModuleLibraryPlugin {
         });
 
       for dep_id in module.get_dependencies() {
-        if let Some(export_dep) = mg.dependency_by_id(dep_id)
-          && let Some(reexport_dep) = export_dep
-            .as_any()
-            .downcast_ref::<ESMExportImportedSpecifierDependency>()
-          && self.reexport_star_from_external_module(reexport_dep, &mg)
+        let export_dep = mg.dependency_by_id(dep_id);
+        if let Some(reexport_dep) = export_dep
+          .as_any()
+          .downcast_ref::<ESMExportImportedSpecifierDependency>()
+          && self.reexport_star_from_external_module(reexport_dep, mg)
         {
           let reexport_connection = mg.connection_by_dependency_id(&reexport_dep.id);
           if let Some(reexport_connection) = reexport_connection {
@@ -240,12 +179,12 @@ impl ModernModuleLibraryPlugin {
                 let reexport_star_count = connections
                   .iter()
                   .filter(|c| {
-                    if let Some(dep) = mg.dependency_by_id(c)
-                      && let Some(dep) = dep
-                        .as_any()
-                        .downcast_ref::<ESMExportImportedSpecifierDependency>()
+                    let dep = mg.dependency_by_id(c);
+                    if let Some(dep) = dep
+                      .as_any()
+                      .downcast_ref::<ESMExportImportedSpecifierDependency>()
                     {
-                      return self.reexport_star_from_external_module(dep, &mg);
+                      return self.reexport_star_from_external_module(dep, mg);
                     }
 
                     false
@@ -255,16 +194,11 @@ impl ModernModuleLibraryPlugin {
                 let side_effect_count = connections
                   .iter()
                   .filter(|c| {
-                    if let Some(dep) = mg.dependency_by_id(c)
-                      && dep
-                        .as_any()
-                        .downcast_ref::<ESMImportSideEffectDependency>()
-                        .is_some()
-                    {
-                      return true;
-                    }
-
-                    false
+                    let dep = mg.dependency_by_id(c);
+                    dep
+                      .as_any()
+                      .downcast_ref::<ESMImportSideEffectDependency>()
+                      .is_some()
                   })
                   .count();
 
@@ -294,7 +228,9 @@ impl ModernModuleLibraryPlugin {
       }
     }
 
-    let mut mg = compilation.get_module_graph_mut();
+    let mg = compilation
+      .build_module_graph_artifact
+      .get_module_graph_mut();
     for dep in deps_to_replace {
       let dep_id = dep.id();
       external_connections.remove(dep_id);
@@ -319,13 +255,18 @@ async fn render_startup(
   chunk_ukey: &ChunkUkey,
   module_id: &ModuleIdentifier,
   render_source: &mut RenderSource,
+  runtime_template: &RuntimeCodeTemplate<'_>,
 ) -> Result<()> {
-  let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+  let chunk = compilation
+    .build_chunk_graph_artifact
+    .chunk_by_ukey
+    .expect_get(chunk_ukey);
   let codegen = compilation
     .code_generation_results
     .get(module_id, Some(chunk.runtime()));
 
-  let mut exports = vec![];
+  // export local as exported
+  let mut exports: Vec<(String, Option<String>)> = vec![];
   let mut exports_with_property_access = vec![];
   let mut exports_with_inlined = vec![];
 
@@ -336,14 +277,23 @@ async fn render_startup(
   let mut source = ConcatSource::default();
   let module_graph = compilation.get_module_graph();
   source.add(render_source.source.clone());
-
+  let module = module_graph
+    .module_by_identifier(module_id)
+    .expect("should have module");
+  let exports_type = module.get_exports_type(
+    module_graph,
+    &compilation.module_graph_cache_artifact,
+    &compilation.exports_info_artifact,
+    module.build_meta().strict_esm_module,
+  );
   if let Some(exports_final_names) = codegen
     .data
     .get::<CodeGenerationExportsFinalNames>()
     .map(|d: &CodeGenerationExportsFinalNames| d.inner())
   {
-    let exports_info =
-      module_graph.get_prefetched_exports_info(module_id, PrefetchExportsInfoMode::Default);
+    let exports_info = compilation
+      .exports_info_artifact
+      .get_prefetched_exports_info(module_id, PrefetchExportsInfoMode::Default);
     for (_, export_info) in exports_info.exports() {
       let info_name = export_info.name().expect("should have name");
       let used_name = export_info
@@ -368,50 +318,121 @@ async fn render_startup(
         if contains_char(final_name, "[]().") {
           exports_with_property_access.push((final_name, info_name));
         } else if info_name == final_name {
-          exports.push(info_name.to_string());
+          exports.push((info_name.to_string(), None));
         } else {
-          exports.push(format!("{final_name} as {info_name}"));
+          exports.push((final_name.clone(), Some(info_name.to_string())));
         }
       }
     }
 
+    let exports_name = runtime_template.render_runtime_variable(&RuntimeVariable::Exports);
+
     for (final_name, info_name) in exports_with_property_access.iter() {
-      let var_name = format!("__webpack_exports__{}", to_identifier(info_name));
+      let var_name = format!("{exports_name}{}", to_identifier(info_name));
 
       source.add(RawStringSource::from(format!(
         "var {var_name} = {final_name};\n"
       )));
 
-      exports.push(format!("{var_name} as {info_name}"));
+      exports.push((var_name, Some(info_name.to_string())));
     }
 
     for (inlined, info_name) in exports_with_inlined.iter() {
-      let var_name = format!("__webpack_exports__{}", to_identifier(info_name));
+      let var_name = format!("{exports_name}{}", to_identifier(info_name));
 
       source.add(RawStringSource::from(format!(
         "var {var_name} = {};\n",
-        inlined.render()
+        inlined.render("")
       )));
 
-      exports.push(format!("{var_name} as {info_name}"));
+      exports.push((var_name, Some(info_name.to_string())));
     }
   }
 
   if !exports.is_empty() && !compilation.options.output.iife {
-    source.add(RawStringSource::from(format!(
-      "export {{ {} }};\n",
-      exports.join(", ")
-    )));
+    let exports_string = match exports_type {
+      ExportsType::DefaultOnly => render_as_default_only_export(&exports),
+      ExportsType::DefaultWithNamed | ExportsType::Dynamic => {
+        render_as_default_with_named_exports(&exports)
+      }
+      ExportsType::Namespace => render_as_named_exports(&exports),
+    };
+    source.add(RawStringSource::from(exports_string));
   }
 
   render_source.source = source.boxed();
   Ok(())
 }
 
+pub fn render_as_default_only_export(exports: &[(String, Option<String>)]) -> String {
+  render_as_default_export_impl(exports)
+}
+
+pub fn render_as_named_exports(exports: &[(String, Option<String>)]) -> String {
+  render_as_named_exports_impl(exports, false)
+}
+
+pub fn render_as_default_with_named_exports(exports: &[(String, Option<String>)]) -> String {
+  format!(
+    "{}\n{}",
+    render_as_named_exports_impl(exports, true),
+    render_as_default_only_export(exports),
+  )
+}
+
+fn render_as_named_exports_impl(
+  exports: &[(String, Option<String>)],
+  ignore_default: bool,
+) -> String {
+  format!(
+    "export {{ {} }};\n",
+    exports
+      .iter()
+      .filter(|(_, exported)| {
+        if ignore_default {
+          !matches!(exported.as_deref(), Some("default"))
+        } else {
+          true
+        }
+      })
+      .map(|(local, exported)| {
+        if let Some(exported) = exported {
+          format!("{local} as {exported}")
+        } else {
+          local.clone()
+        }
+      })
+      .collect::<Vec<_>>()
+      .join(", ")
+  )
+}
+
+pub fn render_as_default_export_impl(exports: &[(String, Option<String>)]) -> String {
+  if let Some((local, _)) = exports
+    .iter()
+    .find(|(_, exported)| matches!(exported.as_deref(), Some("default")))
+  {
+    return format!("export {{ {local} as default }};\n",);
+  }
+
+  format!(
+    "var __rspack_exports_default = {{ {} }};\nexport default __rspack_exports_default;\n",
+    exports
+      .iter()
+      .map(|(local, exported)| {
+        if let Some(exported) = exported {
+          format!("{exported}: {local}")
+        } else {
+          local.clone()
+        }
+      })
+      .collect::<Vec<_>>()
+      .join(", ")
+  )
+}
+
 #[plugin_hook(CompilerFinishMake for ModernModuleLibraryPlugin)]
 async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
-  // Replace ImportDependency instances with ModernModuleImportDependency for external modules
-  replace_import_dependencies_for_external_modules(compilation)?;
   self.preserve_reexports_star(compilation)?;
 
   Ok(())
@@ -448,10 +469,6 @@ async fn compilation(
   hooks.render_startup.tap(render_startup::new(self));
   hooks.chunk_hash.tap(js_chunk_hash::new(self));
 
-  compilation.set_dependency_template(
-    ModernModuleImportDependencyTemplate::template_type(),
-    Arc::new(ModernModuleImportDependencyTemplate::default()),
-  );
   compilation.set_dependency_template(
     ModernModuleReexportStarExternalDependencyTemplate::template_type(),
     Arc::new(ModernModuleReexportStarExternalDependencyTemplate::default()),

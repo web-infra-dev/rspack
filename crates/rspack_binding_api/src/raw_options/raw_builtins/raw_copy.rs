@@ -5,7 +5,7 @@ use napi::{
   bindgen_prelude::{Buffer, FnArgs, Promise},
 };
 use napi_derive::napi;
-use rspack_core::rspack_sources::RawSource;
+use rspack_core::rspack_sources::{RawBufferSource, RawStringSource, SourceExt};
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use rspack_plugin_copy::{
   CopyGlobOptions, CopyPattern, CopyRspackPluginOptions, Info, Related, ToOption, ToType,
@@ -207,8 +207,8 @@ impl From<RawCopyPattern> for CopyPattern {
             f.call_with_promise((input.into(), absolute_filename.to_owned()).into())
               .await
               .map(|input| match input {
-                Either::A(s) => RawSource::from(s),
-                Either::B(b) => RawSource::from(Vec::<u8>::from(b)),
+                Either::A(s) => RawStringSource::from(s).boxed(),
+                Either::B(b) => RawBufferSource::from(Vec::<u8>::from(b)).boxed(),
               })
           })
         })

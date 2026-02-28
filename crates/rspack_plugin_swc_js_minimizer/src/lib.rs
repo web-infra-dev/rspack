@@ -14,7 +14,7 @@ use rspack_core::{
   CompilerCompilation, Plugin,
   diagnostics::MinifyError,
   rspack_sources::{
-    ConcatSource, MapOptions, RawStringSource, Source, SourceExt, SourceMapSource,
+    ConcatSource, MapOptions, ObjectPool, RawStringSource, Source, SourceExt, SourceMapSource,
     SourceMapSourceOptions,
   },
 };
@@ -33,6 +33,7 @@ pub use swc_ecma_minifier::option::{
   MangleOptions,
   terser::{TerserCompressorOptions, TerserEcmaVersion},
 };
+use thread_local::ThreadLocal;
 
 const PLUGIN_NAME: &str = "rspack.SwcJsMinimizerRspackPlugin";
 
@@ -172,6 +173,8 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         .unwrap_or_else(|_| panic!("`{condition}` is invalid extractComments condition"))
     });
   let enter_span = tracing::Span::current();
+
+  let tls: ThreadLocal<ObjectPool> = ThreadLocal::new();
   compilation
     .assets_mut()
     .par_iter_mut()
@@ -189,8 +192,9 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       let _guard = enter_span.enter();
       let filename = filename.split('?').next().expect("Should have filename");
       if let Some(original_source) = original.get_source() {
-        let input = original_source.source().to_string();
-        let input_source_map = original_source.map(&MapOptions::default());
+        let input = original_source.source().into_string_lossy().into_owned();
+        let object_pool = tls.get_or(ObjectPool::default);
+        let input_source_map = original_source.map(object_pool, &MapOptions::default());
 
         let is_module = if let Some(module) = minimizer_options.module {
           Some(module)
@@ -222,7 +226,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
               let dir = Path::new(filename).parent().expect("should has parent");
               let raw = Path::new(&comments_filename).strip_prefix(dir).expect("should has common prefix").to_string_lossy();
               let relative = raw.cow_replace('\\', "/");
-              Some(format!("/*! For license information please see {relative} */"))
+              Some(format!("/*! LICENSE: {relative} */"))
             },
             OptionWrapper::Disabled => None,
             OptionWrapper::Custom(value) => Some(format!("/*! {value} */"))
@@ -287,14 +291,14 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
                   filename.to_string(),
                   ExtractedCommentsInfo {
                     source: RawStringSource::from(extracted_comments.join("\n\n")).boxed(),
-                    comments_file_name: extract_comments.filename.to_string(),
+                    comments_file_name: extract_comments.filename.clone(),
                   },
                 );
             }
           }
         };
 
-        let output = match javascript_compiler.minify(
+        let mut output = match javascript_compiler.minify(
           swc_core::common::FileName::Custom(filename.to_string()),
           input,
           js_minify_options,
@@ -312,33 +316,80 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
             },
         };
 
-        let source = if let Some(source_map) = output.map {
-          SourceMapSource::new(SourceMapSourceOptions {
-            value: output.code,
-            name: filename,
-            source_map,
-            original_source: None,
-            inner_source_map: input_source_map,
-            remove_original_source: true,
-          })
-          .boxed()
-        } else {
-          RawStringSource::from(output.code).boxed()
-        };
-        let source = if let Some(Some(banner)) = extract_comments_option.map(|option| option.banner)
-          && all_extracted_comments
+        let banner = if all_extracted_comments
           .lock()
           .expect("all_extract_comments lock failed")
-          .contains_key(filename)
-        {
-          ConcatSource::new([
-            RawStringSource::from(banner).boxed(),
-            RawStringSource::from_static("\n").boxed(),
-            source
-          ]).boxed()
-        } else {
-          source
+          .contains_key(filename) {
+            extract_comments_option.and_then(|option| option.banner)
+          } else {
+            None
+          };
+
+        let source = match banner {
+            Some(banner) => {
+              // There are two cases with banner:
+              // 1. There's no shebang, we just prepend the banner to the code.
+              // 2. There's a shebang, we prepend the shebang, then the banner, then the code.
+
+              let mut shebang = None;
+              if output.code.starts_with("#!") {
+                if let Some(line_pos) = output.code.find('\n') {
+                  shebang = Some(output.code[0..line_pos + 1].to_string());
+                  output.code = output.code[line_pos + 1..].to_string();
+                } else {
+                  // Handle shebang without newline - treat entire content as shebang
+                  shebang = Some(output.code.clone());
+                  output.code = String::new();
+                }
+              }
+
+              let source = if let Some(source_map) = output.map {
+                SourceMapSource::new(SourceMapSourceOptions {
+                  value: output.code,
+                  name: filename,
+                  source_map,
+                  original_source: None,
+                  inner_source_map: input_source_map,
+                  remove_original_source: true,
+                })
+                .boxed()
+              } else {
+                RawStringSource::from(output.code).boxed()
+              };
+
+              if let Some(shebang) = shebang {
+                ConcatSource::new([
+                  RawStringSource::from(shebang).boxed(),
+                  RawStringSource::from(banner).boxed(),
+                  RawStringSource::from_static("\n").boxed(),
+                  source
+                ]).boxed()
+              } else {
+                ConcatSource::new([
+                  RawStringSource::from(banner).boxed(),
+                  RawStringSource::from_static("\n").boxed(),
+                  source
+                ]).boxed()
+              }
+            },
+            None => {
+              // If there's no banner, we don't need to handle `output.code` at all.
+              if let Some(source_map) = output.map {
+                SourceMapSource::new(SourceMapSourceOptions {
+                  value: output.code,
+                  name: filename,
+                  source_map,
+                  original_source: None,
+                  inner_source_map: input_source_map,
+                  remove_original_source: true,
+                })
+                .boxed()
+              } else {
+                RawStringSource::from(output.code).boxed()
+              }
+            },
         };
+
         original.set_source(Some(source));
         original.get_info_mut().minimized.replace(true);
       }

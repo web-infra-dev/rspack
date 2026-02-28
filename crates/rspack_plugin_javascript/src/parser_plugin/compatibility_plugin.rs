@@ -1,6 +1,4 @@
-use rspack_core::{
-  BoxDependencyTemplate, ConstDependency, ContextDependency, DependencyRange, RuntimeGlobals,
-};
+use rspack_core::{BoxDependencyTemplate, ConstDependency, ContextDependency, DependencyRange};
 use rspack_util::{SpanExt, itoa};
 use swc_core::{
   atoms::Atom,
@@ -14,11 +12,11 @@ use crate::{
   visitors::{JavascriptParser, Statement, TagInfoData, VariableDeclaration, expr_name},
 };
 
-const NESTED_WEBPACK_IDENTIFIER_TAG: &str = "_identifier__nested_webpack_identifier__";
+pub const NESTED_IDENTIFIER_TAG: &str = "_identifier__nested_rspack_identifier__";
 
 #[derive(Debug, Clone)]
-struct NestedRequireData {
-  name: String,
+pub struct NestedRequireData {
+  pub name: String,
   update: bool,
   loc: DependencyRange,
   in_short_hand: bool,
@@ -39,7 +37,7 @@ impl CompatibilityPlugin {
     if !second.is_bool() || !matches!(second.as_bool(), Some(true)) {
       return None;
     }
-    let dep = ConstDependency::new(expr.callee.span().into(), "require".into(), None);
+    let dep = ConstDependency::new(expr.callee.span().into(), "require".into());
     if let Some(last) = parser.pop_dependency() {
       if let Some(last) = last.downcast_ref::<CommonJsRequireContextDependency>()
         && let options = last.options()
@@ -65,7 +63,7 @@ impl CompatibilityPlugin {
   ) {
     parser.tag_variable(
       name,
-      NESTED_WEBPACK_IDENTIFIER_TAG,
+      NESTED_IDENTIFIER_TAG,
       Some(NestedRequireData {
         name: rename,
         update: false,
@@ -88,11 +86,8 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
       .or_else(|| ast.as_script().and_then(|s| s.shebang.as_ref()))
       .is_some()
     {
-      parser.add_presentational_dependency(Box::new(ConstDependency::new(
-        (0, 0).into(),
-        "//".into(),
-        None,
-      )));
+      parser
+        .add_presentational_dependency(Box::new(ConstDependency::new((0, 0).into(), "//".into())));
     }
 
     None
@@ -106,7 +101,7 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
   ) -> Option<bool> {
     let ident = decl.name.as_ident()?;
 
-    if ident.sym.as_str() == RuntimeGlobals::REQUIRE.name() {
+    if ident.sym.as_str() == parser.parser_runtime_requirements.require {
       let start = ident.span().real_lo();
       let end = ident.span().real_hi();
       self.tag_nested_require_data(
@@ -117,18 +112,18 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
           let start_str = start_buffer.format(start);
           let mut end_buffer = itoa::Buffer::new();
           let end_str = end_buffer.format(end);
-          format!("__nested_webpack_require_{}_{}__", start_str, end_str)
+          format!("__nested_rspack_require_{start_str}_{end_str}__")
         },
         parser.in_short_hand,
         start,
         end,
       );
       return Some(true);
-    } else if ident.sym == RuntimeGlobals::EXPORTS.name() {
+    } else if ident.sym.as_str() == parser.parser_runtime_requirements.exports {
       self.tag_nested_require_data(
         parser,
         ident.sym.clone(),
-        "__nested_webpack_exports__".to_string(),
+        "__nested_rspack_exports__".to_string(),
         parser.in_short_hand,
         ident.span().real_lo(),
         ident.span().real_hi(),
@@ -145,17 +140,17 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
     ident: &swc_core::ecma::ast::Ident,
     for_name: &str,
   ) -> Option<bool> {
-    if for_name == RuntimeGlobals::EXPORTS.name() {
+    if for_name == parser.parser_runtime_requirements.exports {
       self.tag_nested_require_data(
         parser,
         ident.sym.clone(),
-        "__nested_webpack_exports__".to_string(),
+        "__nested_rspack_exports__".to_string(),
         parser.in_short_hand,
         ident.span().real_lo(),
         ident.span().real_hi(),
       );
       return Some(true);
-    } else if for_name == RuntimeGlobals::REQUIRE.name() {
+    } else if for_name == parser.parser_runtime_requirements.require {
       let start = ident.span().real_lo();
       let end = ident.span().real_hi();
       self.tag_nested_require_data(
@@ -166,7 +161,7 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
           let start_str = start_buffer.format(start);
           let mut end_buffer = itoa::Buffer::new();
           let end_str = end_buffer.format(end);
-          format!("__nested_webpack_require_{}_{}__", start_str, end_str)
+          format!("__nested_rspack_require_{start_str}_{end_str}__")
         },
         parser.in_short_hand,
         start,
@@ -181,7 +176,7 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
     let fn_decl = stmt.as_function_decl()?;
     let ident = fn_decl.ident()?;
     let name = &ident.sym;
-    if name != RuntimeGlobals::REQUIRE.name() {
+    if name.as_str() != parser.parser_runtime_requirements.require {
       None
     } else {
       self.tag_nested_require_data(
@@ -190,7 +185,7 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
         {
           let mut lo_buffer = itoa::Buffer::new();
           let lo_str = lo_buffer.format(fn_decl.span().real_lo());
-          format!("__nested_webpack_require_{}__", lo_str)
+          format!("__nested_rspack_require_{lo_str}__")
         },
         parser.in_short_hand,
         ident.span().real_lo(),
@@ -206,7 +201,7 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
     ident: &swc_core::ecma::ast::Ident,
     for_name: &str,
   ) -> Option<bool> {
-    if for_name != NESTED_WEBPACK_IDENTIFIER_TAG {
+    if for_name != NESTED_IDENTIFIER_TAG {
       return None;
     }
     let tag_info = parser
@@ -221,11 +216,10 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
       deps.push(Box::new(ConstDependency::new(
         nested_require_data.loc,
         if shorthand {
-          format!("{}: {}", ident.sym, name.clone()).into()
+          format!("{}: {}", ident.sym, name).into()
         } else {
           name.clone().into()
         },
-        None,
       )));
       nested_require_data.update = true;
     }
@@ -234,11 +228,10 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
     deps.push(Box::new(ConstDependency::new(
       ident.span.into(),
       if parser.in_short_hand {
-        format!("{}: {}", ident.sym, name.clone()).into()
+        format!("{}: {}", ident.sym, name).into()
       } else {
-        name.clone().into()
+        name.into()
       },
-      None,
     )));
     parser.add_presentational_dependencies(deps);
     Some(true)

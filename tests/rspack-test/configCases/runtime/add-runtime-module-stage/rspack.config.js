@@ -1,24 +1,4 @@
-const { RuntimeModule, RuntimeGlobals } = require("@rspack/core");
-
-class MockNormalRuntimeModule extends RuntimeModule {
-	constructor(chunk) {
-		super("mock-normal", RuntimeModule.STAGE_NORMAL);
-	}
-
-	generate() {
-		return `__webpack_require__.mockNormal = "normal";`;
-	}
-}
-
-class MockTriggerRuntimeModule extends RuntimeModule {
-	constructor(chunk) {
-		super("mock-trigger", RuntimeModule.STAGE_TRIGGER);
-	}
-
-	generate() {
-		return `__webpack_require__.mockTrigger = "trigger";`;
-	}
-}
+const { RuntimeModule } = require("@rspack/core");
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
@@ -38,6 +18,28 @@ module.exports = {
 		 * @param {import('@rspack/core').Compiler} compiler
 		 */
 		compiler => {
+			const RuntimeGlobals = compiler.rspack.RuntimeGlobals;
+
+			class MockNormalRuntimeModule extends RuntimeModule {
+				constructor(chunk) {
+					super("mock-normal", RuntimeModule.STAGE_NORMAL);
+				}
+
+				generate() {
+					return `${RuntimeGlobals.require}.mockNormal = "normal";`;
+				}
+			}
+
+			class MockTriggerRuntimeModule extends RuntimeModule {
+				constructor(chunk) {
+					super("mock-trigger", RuntimeModule.STAGE_TRIGGER);
+				}
+
+				generate() {
+					return `${RuntimeGlobals.require}.mockTrigger = "trigger";`;
+				}
+			}
+
 			compiler.hooks.thisCompilation.tap("MockRuntimePlugin", compilation => {
 				compilation.hooks.additionalTreeRuntimeRequirements.tap(
 					"MockRuntimePlugin",

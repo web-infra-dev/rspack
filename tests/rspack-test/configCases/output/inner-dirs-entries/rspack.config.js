@@ -8,7 +8,7 @@ module.exports = {
 	},
 	target: "node",
 	output: {
-		libraryTarget: "commonjs2",
+		library: { type: "commonjs2" },
 		pathinfo: true,
 		filename: "[name].js",
 		chunkFilename: "[name].chunk.min.js"

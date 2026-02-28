@@ -44,10 +44,8 @@ module.exports = [
 	},
 	{
 		...common,
-		experiments: {
-			outputModule: true
-		},
 		output: {
+			module: true,
 			filename: "module/[name].mjs",
 			uniqueName: "mf-with-shareScope-mjs"
 		},

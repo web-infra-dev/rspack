@@ -1,14 +1,12 @@
-it("should load only used exports", async (done) => {
+it("should load only used exports", async () => {
 	const m = await import("./dir1/a");
 	expect(m.default).toBe(3);
 	expect(m.usedExports).toEqual(["default", "usedExports"]);
-	done();
 });
 
-it("should get warning on using 'webpackExports' with statically analyze-able dynamic import", async (done) => {
+it("should get warning on using 'webpackExports' with statically analyze-able dynamic import", async () => {
 	const m = await import(/* webpackExports: ["default"] */"./dir1/a?2");
 	expect(m.a).toBe(1);
-	done();
 });
 
 it("should not tree-shake default export for exportsType=default module", async () => {

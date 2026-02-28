@@ -1,11 +1,8 @@
-const webpack = require("@rspack/core");
+const { rspack } = require("@rspack/core");
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	target: ["node", "es2020"],
-	experiments: {
-		outputModule: true
-	},
 	output: {
 		module: true,
 		iife: true
@@ -26,7 +23,7 @@ module.exports = {
 						() => {
 							compilation.emitAsset(
 								"mod.js",
-								new webpack.sources.RawSource(
+								new rspack.sources.RawSource(
 									"module.exports = 'module text';\n"
 								)
 							);

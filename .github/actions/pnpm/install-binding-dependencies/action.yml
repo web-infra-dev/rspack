@@ -4,9 +4,9 @@ description: Run pnpm install for node_binding
 
 inputs:
   save-if:
-    default: "false"
+    default: 'false'
     required: false
-    description: "whether to save pnpm cache"
+    description: 'whether to save pnpm cache'
 
 runs:
   using: composite

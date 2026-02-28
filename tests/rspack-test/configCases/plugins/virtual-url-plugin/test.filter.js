@@ -1,0 +1,1 @@
+module.exports = () => "TODO: support virtual url plugin";

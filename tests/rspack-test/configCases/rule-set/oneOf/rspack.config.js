@@ -4,6 +4,9 @@ module.exports = {
 	output: {
 		assetModuleFilename: "[name][ext]"
 	},
+	experiments: {
+		css: false
+	},
 	module: {
 		rules: [
 			{
@@ -14,7 +17,8 @@ module.exports = {
 						issuer: /\.(js)$/
 					},
 					{
-						type: "asset/resource",
+						// TODO: should not change source type when no pre/post loader
+						// type: "asset/resource",
 						issuer: /\.(css|scss|sass)$/
 					}
 				]

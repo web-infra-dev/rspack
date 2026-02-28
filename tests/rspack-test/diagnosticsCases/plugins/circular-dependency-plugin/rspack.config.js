@@ -1,6 +1,6 @@
 const { CircularDependencyRspackPlugin } = require("@rspack/core");
-const startFn = jest.fn();
-const endFn = jest.fn();
+const startFn = rstest.fn();
+const endFn = rstest.fn();
 
 module.exports = {
 	entry: {
@@ -12,10 +12,8 @@ module.exports = {
 		ff: {
 			import: "./multiple-circular/a.js",
 			layer: "f"
-		}
-	},
-	experiments: {
-		layers: true
+		},
+		gg: "./dynamic-circular/index.js"
 	},
 	module: {
 		rules: [

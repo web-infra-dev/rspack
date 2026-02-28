@@ -5,7 +5,10 @@ module.exports = {
 	optimization: {
 		chunkIds: "named",
 		moduleIds: "named",
-		concatenateModules: false
+		concatenateModules: false,
+		// inlineExports will inline shared.js into b.js, and 2-transitive-overriding will check
+		// the __webpack_modules__ of this container, so disable inlineExports to avoid test fail
+		inlineExports: false
 	},
 	output: {
 		uniqueName: "1-transitive-overriding"
@@ -23,9 +26,4 @@ module.exports = {
 			}
 		})
 	],
-	experiments: {
-		// inlineConst will inline shared.js into b.js, and 2-transitive-overriding will check
-		// the __webpack_modules__ of this container, so disable inlineConst to avoid test fail
-		inlineConst: false,
-	}
 };

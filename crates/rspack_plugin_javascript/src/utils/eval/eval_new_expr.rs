@@ -1,5 +1,5 @@
 use rspack_util::SpanExt;
-use swc_core::ecma::ast::NewExpr;
+use swc_core::{atoms::Atom, ecma::ast::NewExpr};
 
 use super::BasicEvaluatedExpression;
 use crate::{utils::eval, visitors::JavascriptParser};
@@ -14,7 +14,9 @@ pub fn eval_new_expression<'a>(
     // FIXME: call hooks
     return None;
   }
-  // FIXME: should detect RegExpr variable info
+  if scanner.get_variable_info(&Atom::from("RegExp")).is_some() {
+    return None;
+  }
   let Some(args) = &expr.args else {
     let mut res = BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.real_hi());
     res.set_regexp(String::new(), String::new());

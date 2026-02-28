@@ -4,12 +4,12 @@ const fs = __non_webpack_require__("fs");
 const path = __non_webpack_require__("path");
 
 it("a should load a chunk with css", () => {
-	const linkStart = document.getElementsByTagName("link").length;
-	const scriptStart = document.getElementsByTagName("script").length;
+	const linkStart = Array.from(document.getElementsByTagName("link")).length;
+	const scriptStart = Array.from(document.getElementsByTagName("script")).length;
 	const promise = import("./chunk");
 
-	const links = document.getElementsByTagName("link").slice(linkStart);
-	const scripts = document.getElementsByTagName("script").slice(scriptStart);
+	const links = Array.from(document.getElementsByTagName("link")).slice(linkStart);
+	const scripts = Array.from(document.getElementsByTagName("script")).slice(scriptStart);
 
 	expect(links.length).toBe(1);
 	expect(scripts.length).toBe(1);
@@ -27,37 +27,16 @@ it("a should load a chunk with css", () => {
 			"utf-8"
 		)
 		.trim();
-	expect(css).toMatchInlineSnapshot(`
-		".chunk {
-			color: red;
-		}"
-	`);
-
+	expect(css).toMatchFileSnapshotSync(path.resolve(__SNAPSHOT__, `${__STATS_I__}/a.0.css`));
 	return promise;
 });
 
 it("a should generate correct css", () => {
 	const css = fs.readFileSync(path.resolve(__dirname, "a.css"), "utf-8").trim();
-	expect(css).toMatchInlineSnapshot(`
-		".dependency {
-			color: red;
-		}
-
-		.a {
-			color: red;
-		}"
-	`);
+	expect(css).toMatchFileSnapshotSync(path.resolve(__SNAPSHOT__, `${__STATS_I__}/a.1.css`));
 });
 
 it("c should generate correct css", () => {
 	const css = fs.readFileSync(path.resolve(__dirname, "c.css"), "utf-8").trim();
-	expect(css).toMatchInlineSnapshot(`
-		".dependency {
-			color: red;
-		}
-
-		.c {
-			color: red;
-		}"
-	`);
+	expect(css).toMatchFileSnapshotSync(path.resolve(__SNAPSHOT__, `${__STATS_I__}/a.2.css`));
 });

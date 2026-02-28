@@ -25,7 +25,6 @@ import { Stability } from '../../../components/ApiMeta';
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   externals: {
     jquery: 'jquery',
   },
@@ -52,7 +51,6 @@ $('.my-element').animate(/* ... */);
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   externals: 'jquery',
 };
 ```
@@ -61,7 +59,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   externals: {
     jquery: 'jquery',
   },
@@ -74,7 +71,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   externals: {
     jquery: 'commonjs jquery',
   },
@@ -85,7 +81,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   externals: {
     subtract: ['./math', 'subtract'],
   },
@@ -100,7 +95,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   externals: {
     subtract: ['commonjs ./math', 'subtract'],
   },
@@ -110,13 +104,13 @@ export default {
 ### 对象
 
 :::warning
-带有 `{ root, commonjs, commonjs2, amd, ... }` 的对象只允许用于 [`libraryTarget: 'umd'`](/config/output#outputlibrarytarget) 和 [`externalsType: 'umd'`](#externalstype)。其他库的 target 不允许这样做。
+带有 `{ root, commonjs, commonjs2, amd, ... }` 的对象只允许用于 [`library.type: 'umd'`](/config/output#outputlibrarytarget) 和 [`externalsType: 'umd'`](#externalstype)。其他库的 target 不允许这样做。
 :::
 
 ```js title="rspack.config.mjs"
 export default {
   externals: {
-    // 在 `libraryTarget: 'umd'` 和 `externalsType: 'umd'` 时，需严格遵循以下格式：
+    // 在 `library.type: 'umd'` 和 `externalsType: 'umd'` 时，需严格遵循以下格式：
     lodash: {
       root: '_', // 指向全局变量
       commonjs: 'lodash',
@@ -149,14 +143,15 @@ export default {
 回调函数接收三个参数：
 
 - `err` (`Error`): 用于标识外部化导入时是否出现错误。如果有错误，这应该是唯一使用的参数。
-- `result` (`string | string[] | object`): 使用其他外部格式描述外部模块（[字符串](#字符串)，[字符串数组](#字符串数组)或[对象](#对象) ）。
+- `result` (`string | string[] | object | boolean`): 描述外部模块。
+  - `string | string[] | object`: 使用其他外部格式描述外部模块（[字符串](#字符串)，[字符串数组](#字符串数组)或[对象](#对象)）。
+  - `boolean`: 传递 `true` 会将依赖外部化，使用原始的请求路径作为外部模块名称。传递 `false` 会告诉 Rspack 跳过剩余的 external 配置并打包该依赖。
 - `type` (`string`): 指示 [externalsType](#externalstype) 的可选参数（如果还没有在 `result` 参数中指出的话）。
 
 例如，要外部化所有导入路径与正则表达式匹配的导入，可以这样做：
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   externals: [
     function ({ context, request }, callback) {
       if (/^yourregex$/.test(request)) {
@@ -228,7 +223,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   externals: /^(jquery|\$)$/i,
 };
 ```
@@ -241,7 +235,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   externals: [
     {
       // 字符串
@@ -277,7 +270,7 @@ export default {
 - **类型：** `string`
 - **默认值：** `'var'`
 
-指定 externals 的默认类型。当 external 被设置为 `amd`，`umd`，`system` 以及 `jsonp` 时，[`output.libraryTarget`](/config/output#outputlibrarytarget) 的值也应相同。例如，你只能在 `amd` 库中使用 `amd` 的 externals。
+指定 externals 的默认类型。当 external 被设置为 `amd`，`umd`，`system` 以及 `jsonp` 时，[`output.library.type`](/config/output#outputlibrarytype) 的值也应相同。例如，你只能在 `amd` 库中使用 `amd` 的 externals。
 
 支持的类型如下：
 
@@ -305,7 +298,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   externalsType: 'promise',
 };
 ```
@@ -322,7 +314,6 @@ import fs from 'fs-extra';
 
 ```js title="rspack.config.mjs"
 export default {
-  // ...
   externalsType: 'commonjs',
   externals: {
     'fs-extra': 'fs-extra',
@@ -351,7 +342,6 @@ jq('.my-element').animate(/* ... */);
 
 ```js title="rspack.config.mjs"
 export default {
-  // ...
   externalsType: 'global',
   externals: {
     jquery: '$',
@@ -373,7 +363,7 @@ jq('.my-element').animate(/* ... */);
 
 将 externals 的默认类型指定为 `'module'`。Rspack 将为模块中使用的 externals 生成类似 `import * as X from '...'` 的代码。
 
-确保开启了 [`experiments.outputModule`](/config/experiments#experimentsoutputmodule)，否则 Rspack 会抛出错误。
+确保开启了 [`output.module`](/config/output#outputmodule)。
 
 **示例**
 
@@ -384,8 +374,8 @@ jq('.my-element').animate(/* ... */);
 
 ```js title="rspack.config.mjs"
 export default {
-  experiments: {
-    outputModule: true,
+  output: {
+    module: true,
   },
   externalsType: 'module',
   externals: {
@@ -397,9 +387,9 @@ export default {
 将会转换为类似下面的代码：
 
 ```js
-import * as __WEBPACK_EXTERNAL_MODULE_jquery__ from 'jquery';
+import * as __rspack_external_jquery from 'jquery';
 
-const jq = __WEBPACK_EXTERNAL_MODULE_jquery__['default'];
+const jq = __rspack_external_jquery['default'];
 jq('.my-element').animate(/* ... */);
 ```
 
@@ -431,7 +421,7 @@ export default {
 
 ```js
 var __webpack_modules__ = {
-  jquery: module => {
+  jquery: (module) => {
     module.exports = import('jquery');
   },
 };
@@ -475,11 +465,11 @@ export default {
 将会转换为类似下面的代码：
 
 ```js
-import * as __WEBPACK_EXTERNAL_MODULE_lodash__ from 'lodash';
-const lodash = __WEBPACK_EXTERNAL_MODULE_jquery__;
+import * as __rspack_external_lodash from 'lodash';
+const lodash = __rspack_external_jquery;
 
 var __webpack_modules__ = {
-  jquery: module => {
+  jquery: (module) => {
     module.exports = import('jquery');
   },
 };
@@ -557,13 +547,13 @@ var __webpack_modules__ = {
   },
 };
 
-// webpack runtime...
+// Rspack runtime...
 
 async function foo() {
   const jq = await Promise.resolve(/* import() */).then(
     __webpack_require__.bind(__webpack_require__, 'jquery'),
   );
-  (0, lodash__WEBPACK_IMPORTED_MODULE_0__.attempt)(() =>
+  (0, lodash__rspack_import_0__.attempt)(() =>
     jq('.my-element').animate(/* ... */),
   );
 }
@@ -615,7 +605,6 @@ jq('.my-element').animate(/* ... */);
 
 ```js title="rspack.config.mjs"
 export default {
-  // ...
   externalsType: 'promise',
   externals: {
     jquery: '$',
@@ -641,7 +630,6 @@ jq('.my-element').animate(/* ... */);
 
 ```js title="rspack.config.mjs"
 export default {
-  // ...
   externalsType: 'self',
   externals: {
     jquery: '$',
@@ -695,7 +683,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  // ...
   externalsType: 'script',
   externals: {
     lodash: ['https://cdn.jsdelivr.net/npm/lodash@4.17.19/lodash.min.js', '_'],
@@ -714,7 +701,6 @@ console.log(_.head([1, 2, 3]));
 
 ```js title="rspack.config.mjs"
 export default {
-  // ...
   externalsType: 'script',
   externals: {
     lodash: [
@@ -735,7 +721,7 @@ console.log(window._.head(['a', 'b'])); // logs a here
 ```
 
 :::tip
-当使用 HTML `<script>` 标签加载代码时，Rspack 运行时会尝试查找与 `src` 属性匹配或具有特定 `data-webpack` 属性的现有 `<script>` 标签。对于 chunk 加载，`data-webpack` 属性的值将是 `'[output.uniqueName]:chunk-[chunkId]'`，而外部脚本的值将是 `'[output.uniqueName]:[global]'`。
+当使用 HTML `<script>` 标签加载代码时，Rspack 运行时会尝试查找与 `src` 属性匹配或具有特定 `data-rspack` 属性的现有 `<script>` 标签。对于 chunk 加载，`data-rspack` 属性的值将是 `'[output.uniqueName]:chunk-[chunkId]'`，而外部脚本的值将是 `'[output.uniqueName]:[global]'`。
 :::
 
 ### externalsType.this
@@ -751,7 +737,6 @@ jq('.my-element').animate(/* ... */);
 
 ```js title="rspack.config.mjs"
 export default {
-  // ...
   externalsType: 'this',
   externals: {
     jquery: '$',
@@ -779,7 +764,6 @@ jq('.my-element').animate(/* ... */);
 
 ```js title="rspack.config.mjs"
 export default {
-  // ...
   externalsType: 'var',
   externals: {
     jquery: '$',
@@ -807,7 +791,6 @@ jq('.my-element').animate(/* ... */);
 
 ```js title="rspack.config.mjs"
 export default {
-  // ...
   externalsType: 'window',
   externals: {
     jquery: '$',
@@ -884,7 +867,6 @@ jq('.my-element').animate(/* ... */);
 
 ```js title="rspack.config.mjs"
 export default {
-  // ...
   externalsPresets: {
     node: true,
   },

@@ -1,7 +1,15 @@
+const { DefinePlugin } = require("@rspack/core");
+
 /** @type {import("@rspack/core").Configuration[]} */
 module.exports = [
 	{
-		target: "web"
+		target: "web",
+		plugins: [
+			// TODO: support type: "module" injection
+			new DefinePlugin({
+				MODULE_FLAG: "undefined"
+			})
+		]
 	},
 	{
 		output: {
@@ -10,24 +18,40 @@ module.exports = [
 		target: "web",
 		optimization: {
 			runtimeChunk: "single"
-		}
-	},
-	{
-		target: "web",
-		experiments: {
-			outputModule: true
-		}
+		},
+		plugins: [
+			// TODO: support type: "module" injection
+			new DefinePlugin({
+				MODULE_FLAG: "undefined"
+			})
+		]
 	},
 	{
 		target: "web",
 		output: {
-			filename: "[name].bundle3.mjs"
+			module: true
+		},
+		plugins: [
+			// TODO: support type: "module" injection
+			new DefinePlugin({
+				MODULE_FLAG: "\"module\""
+			})
+		]
+	},
+	{
+		target: "web",
+		output: {
+			filename: "[name].bundle3.mjs",
+			module: true,
 		},
 		optimization: {
 			runtimeChunk: "single"
 		},
-		experiments: {
-			outputModule: true
-		}
+		plugins: [
+			// TODO: support type: "module" injection
+			new DefinePlugin({
+				MODULE_FLAG: "\"module\""
+			})
+		]
 	}
 ];

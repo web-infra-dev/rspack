@@ -1,4 +1,5 @@
 module.exports = {
+	noTests: true,
 	moduleScope(scope) {
 		const link = scope.window.document.createElement("link");
 		link.rel = "stylesheet";

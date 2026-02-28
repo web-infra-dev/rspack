@@ -25,6 +25,7 @@ pub struct ModuleFilenameTemplateFnCtx {
   pub resource: String,
   pub resource_path: String,
   pub absolute_resource_path: String,
+  pub relative_resource_path: Option<String>,
   pub loaders: String,
   pub all_loaders: String,
   pub query: String,
@@ -33,8 +34,8 @@ pub struct ModuleFilenameTemplateFnCtx {
   pub namespace: String,
 }
 
-#[derive(Debug, PartialEq, Eq, Hash)]
-enum ModuleOrSource {
-  Source(String),
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+enum SourceReference {
+  Source(Arc<str>),
   Module(ModuleIdentifier),
 }

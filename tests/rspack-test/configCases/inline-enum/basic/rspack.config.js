@@ -5,7 +5,8 @@ function config(index, { concatenateModules } = {}) {
 	return {
 		entry: "./index.js",
 		output: {
-			filename: `bundle.${index}.js`
+			filename: `bundle.${index}.js`,
+			pathinfo: false,
 		},
 		resolve: {
 			extensions: [".ts", "..."]
@@ -21,12 +22,11 @@ function config(index, { concatenateModules } = {}) {
 								jsc: {
 									parser: {
 										syntax: "typescript"
-									}
+									},
+									target: "esnext"
 								},
-								rspackExperiments: {
-									collectTypeScriptInfo: {
-										exportedEnum: true
-									}
+								collectTypeScriptInfo: {
+									exportedEnum: true
 								}
 							}
 						}
@@ -43,11 +43,9 @@ function config(index, { concatenateModules } = {}) {
 		],
 		optimization: {
 			concatenateModules,
-			moduleIds: "named"
+			moduleIds: "named",
+			inlineExports: true
 		},
-		experiments: {
-			inlineEnum: true
-		}
 	};
 }
 

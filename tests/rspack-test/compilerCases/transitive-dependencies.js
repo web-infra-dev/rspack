@@ -1,5 +1,5 @@
 
-/** @type {import('@rspack/core').TCompilerCaseConfig} */
+/** @type {import('@rspack/test-tools').TCompilerCaseConfig} */
 module.exports = {
   description: "should compile a file with transitive dependencies",
   options(context) {

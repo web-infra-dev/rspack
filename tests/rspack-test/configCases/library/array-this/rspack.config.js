@@ -2,8 +2,7 @@
 module.exports = {
 	target: "web",
 	output: {
-		library: ["a", "b"],
-		libraryTarget: "this",
+		library: { type: "this", name: ["a", "b"] },
 		environment: {
 			arrowFunction: false
 		}

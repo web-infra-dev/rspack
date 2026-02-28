@@ -14,8 +14,8 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet};
 use serde::Serialize;
 
 use crate::{
-  AssetInfo, BindingCell, ChunkInitFragments, ConcatenationScope, ModuleIdentifier, RuntimeGlobals,
-  RuntimeSpec, RuntimeSpecMap, SourceType,
+  ArtifactExt, AssetInfo, BindingCell, ChunkInitFragments, ConcatenationScope, ModuleIdentifier,
+  RuntimeGlobals, RuntimeSpec, RuntimeSpecMap, SourceType, incremental::IncrementalPasses,
 };
 
 #[derive(Clone, Debug)]
@@ -145,16 +145,6 @@ impl CodeGenerationResult {
     self
   }
 
-  pub fn with_css(mut self, generation_result: BoxSource) -> Self {
-    self.inner.insert(SourceType::Css, generation_result);
-    self
-  }
-
-  pub fn with_asset(mut self, generation_result: BoxSource) -> Self {
-    self.inner.insert(SourceType::Asset, generation_result);
-    self
-  }
-
   pub fn inner(&self) -> &HashMap<SourceType, BoxSource> {
     &self.inner
   }
@@ -200,6 +190,10 @@ pub static CODE_GEN_RESULT_ID: AtomicU32 = AtomicU32::new(0);
 pub struct CodeGenerationResults {
   module_generation_result_map: HashMap<CodeGenResultId, BindingCell<CodeGenerationResult>>,
   map: IdentifierMap<RuntimeSpecMap<CodeGenResultId>>,
+}
+
+impl ArtifactExt for CodeGenerationResults {
+  const PASS: IncrementalPasses = IncrementalPasses::MODULES_CODEGEN;
 }
 
 impl CodeGenerationResults {
@@ -294,26 +288,6 @@ impl CodeGenerationResults {
           .values()
           .next()
           .and_then(|m| self.module_generation_result_map.get(m))
-      })
-      .unwrap_or_else(|| panic!("No code generation result for {module_identifier}"))
-  }
-
-  /**
-   * This API should be used carefully, it will return one of the code generation result,
-   * make sure the module has the same code generation result for all runtimes.
-   */
-  pub fn get_one_mut(
-    &mut self,
-    module_identifier: &ModuleIdentifier,
-  ) -> &mut BindingCell<CodeGenerationResult> {
-    self
-      .map
-      .get(module_identifier)
-      .and_then(|entry| {
-        entry
-          .values()
-          .next()
-          .and_then(|m| self.module_generation_result_map.get_mut(m))
       })
       .unwrap_or_else(|| panic!("No code generation result for {module_identifier}"))
   }

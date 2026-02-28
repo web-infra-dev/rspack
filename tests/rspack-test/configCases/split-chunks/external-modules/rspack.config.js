@@ -41,7 +41,7 @@ module.exports = {
 		}),
 		compiler => {
 			compiler.hooks.afterEmit.tap("PLUGIN", compilation => {
-				const stats = compilation.getStats().toJson();
+				const stats = compilation.getStats().toJson({ chunks: true });
 				const entryChunk = stats.chunks.find(chunk => chunk.entry);
 				expect(entryChunk.modules[0].name).toBe('external "./external"');
 			});

@@ -2,7 +2,9 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "outDir": "dist",
-    "rootDir": "src"
+    "rootDir": "src",
+    "types": ["./rstest.d.ts"],
+    "noUnusedParameters": false
   },
   "include": ["src"],
   "exclude": ["viewer"],

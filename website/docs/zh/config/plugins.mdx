@@ -31,7 +31,6 @@ Rspack 附带了许多内置插件，你可以通过 `rspack.PluginName` 访问�
 import { rspack } from '@rspack/core';
 
 export default {
-  //...
   plugins: [
     new rspack.DefinePlugin({
       // 传入插件选项
@@ -49,7 +48,6 @@ import { rspack } from '@rspack/core';
 import HtmlWebpackPlugin from 'html-webpack-plugin';
 
 export default {
-  //...
   plugins: [new HtmlWebpackPlugin()],
 };
 ```

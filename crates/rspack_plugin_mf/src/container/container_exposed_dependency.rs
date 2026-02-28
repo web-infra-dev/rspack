@@ -1,7 +1,7 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsContextDependency, AsDependencyCodeGeneration, Dependency, DependencyCategory, DependencyId,
-  DependencyType, FactorizeInfo, ModuleDependency,
+  DependencyType, FactorizeInfo, ModuleDependency, ResourceIdentifier,
 };
 
 #[cacheable]
@@ -10,18 +10,32 @@ pub struct ContainerExposedDependency {
   id: DependencyId,
   request: String,
   pub exposed_name: String,
-  resource_identifier: String,
+  resource_identifier: ResourceIdentifier,
+  dependency_type: DependencyType,
   factorize_info: FactorizeInfo,
 }
 
 impl ContainerExposedDependency {
   pub fn new(exposed_name: String, request: String) -> Self {
-    let resource_identifier = format!("exposed dependency {exposed_name}={request}");
+    let resource_identifier = format!("exposed dependency {exposed_name}={request}").into();
     Self {
       id: DependencyId::new(),
       request,
       exposed_name,
       resource_identifier,
+      dependency_type: DependencyType::ContainerExposed,
+      factorize_info: Default::default(),
+    }
+  }
+
+  pub fn new_shared_fallback(request: String) -> Self {
+    let resource_identifier = format!("share-container-fallback:{request}").into();
+    Self {
+      id: DependencyId::new(),
+      request,
+      exposed_name: String::new(),
+      resource_identifier,
+      dependency_type: DependencyType::ShareContainerFallback,
       factorize_info: Default::default(),
     }
   }
@@ -38,7 +52,7 @@ impl Dependency for ContainerExposedDependency {
   }
 
   fn dependency_type(&self) -> &DependencyType {
-    &DependencyType::ContainerExposed
+    &self.dependency_type
   }
 
   fn resource_identifier(&self) -> Option<&str> {

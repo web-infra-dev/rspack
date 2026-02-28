@@ -1,7 +1,7 @@
-const webpack = require("@rspack/core");
+const { rspack } = require("@rspack/core");
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
-	plugins: [new webpack.HotModuleReplacementPlugin()],
+	plugins: [new rspack.HotModuleReplacementPlugin()],
 	target: "web",
 	mode: "development",
 	module: {
@@ -10,10 +10,12 @@ module.exports = {
 				test: /stylesheet\.js$/i,
 				use: ["./a-pitching-loader.js"],
 				type: "asset/source"
+			},
+			{
+				test: /\.css$/,
+				type: "css/auto"
 			}
 		]
 	},
-	experiments: {
-		css: true
-	}
+
 };

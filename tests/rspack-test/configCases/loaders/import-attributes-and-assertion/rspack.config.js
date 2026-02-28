@@ -1,7 +1,7 @@
 
 // Rspack don't support assert since it's deprecated
 
-/** @type {import("../../../../").Configuration} */
+/** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	module: {
 		rules: [

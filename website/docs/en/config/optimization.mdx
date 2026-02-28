@@ -9,40 +9,32 @@ import WebpackLicense from '@components/WebpackLicense';
 
 Rspack will select appropriate optimization configuration based on the [`mode`](/config/mode). You can also customize the configuration via [`optimization`](/config/optimization).
 
-## optimization.moduleIds
+## optimization.avoidEntryIife
 
-<PropertyType
-  type="'natural' | 'named' | 'deterministic'"
-  defaultValueList={[
-    { defaultValue: "'deterministic'", mode: 'production' },
-    { defaultValue: "'named'", mode: 'development' },
-  ]}
-/>
+<ApiMeta addedVersion="1.2.0" />
 
-Tells Rspack which algorithm to use when generating module ids.
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
 
-The following string values are supported:
+Use `optimization.avoidEntryIife` to avoid wrapping the entry module in an IIFE when it is required (search for `"This entry needs to be wrapped in an IIFE because"` in [rspack_plugin_javascript](https://github.com/web-infra-dev/rspack/blob/main/crates/rspack_plugin_javascript/src/plugin/mod.rs)). This approach helps optimize performance for JavaScript engines and helps tree shaking when building ESM libraries.
 
-| option          | description                                                                                                                    |
-| --------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| `natural`       | Use numeric ids in order of usage.                                                                                             |
-| `named`         | Use meaningful, easy-to-debug content as id.                                                                                   |
-| `deterministic` | Use the hashed module identifier as the id to benefit from long-term caching. By default a minimum length of 3 digits is used. |
+Currently, `optimization.avoidEntryIife` can only optimize a single entry module along with other modules.
 
 ```js title="rspack.config.mjs"
 export default {
   optimization: {
-    moduleIds: 'deterministic',
+    avoidEntryIife: true,
   },
 };
 ```
 
-The `deterministic` option is useful for long term caching, and results in smaller bundles compared to hashed. Length of the numeric value is chosen to fill a maximum of 80% of the id space. By default a minimum length of 3 digits is used when `optimization.moduleIds` is set to `deterministic`.
+:::warning
+The `⁠optimization.avoidEntryIife` option can negatively affect build performance. If you prioritize build performance over these optimizations, consider not enabling this option.
+:::
 
 ## optimization.chunkIds
 
 <PropertyType
-  type="'named' | 'deterministic'"
+  type="'natural' | 'named' | 'deterministic' | 'size' | 'total-size'"
   defaultValueList={[
     { defaultValue: "'named'", mode: 'development' },
     { defaultValue: "'deterministic'", mode: 'production' },
@@ -67,6 +59,185 @@ export default {
     chunkIds: 'deterministic',
   },
 };
+```
+
+## optimization.concatenateModules
+
+<PropertyType
+  type="boolean"
+  defaultValueList={[
+    { defaultValue: 'true', mode: 'production' },
+    { defaultValue: 'false', mode: 'development' },
+  ]}
+/>
+
+Tells Rspack to find segments of the module graph which can be safely concatenated into a single module. Depends on [optimization.providedExports](#optimizationprovidedexports) and [optimization.usedExports](#optimizationusedexports). By default `optimization.concatenateModules` is enabled in `production` mode and disabled elsewise.
+
+```js title="rspack.config.mjs"
+export default {
+  optimization: {
+    concatenateModules: false,
+  },
+};
+```
+
+## optimization.emitOnErrors
+
+<PropertyType
+  type="boolean"
+  defaultValueList={[
+    { defaultValue: 'false', mode: 'production' },
+    { defaultValue: 'true', mode: 'development' },
+  ]}
+/>
+
+Use the `optimization.emitOnErrors` to emit assets whenever there are errors while compiling. This ensures that erroring assets are emitted. The errors are emitted into the generated code and will cause errors at runtime.
+
+```js title="rspack.config.mjs"
+export default {
+  optimization: {
+    emitOnErrors: true,
+  },
+};
+```
+
+## optimization.inlineExports
+
+<ApiMeta addedVersion="1.7.0" />
+
+<PropertyType
+  type="boolean"
+  defaultValueList={[
+    { defaultValue: 'true', mode: 'production' },
+    { defaultValue: 'false', mode: 'development' },
+  ]}
+/>
+
+Performs cross-module inline optimization for:
+
+1. Exported constant value in leaf modules of the module graph:
+   - `null` or `undefined`
+   - `boolean` values (`true` or `false`)
+   - `number` with length \<= 6
+   - `string` with length \<= 6
+
+2. Exported TypeScript enums that collected by [`builtin:swc-loader collectTypeScriptInfo.exportedEnum`](/guide/features/builtin-swc-loader#collecttypescriptinfoexportedenum)
+
+This optimization helps reduce bundle size and can improve runtime performance.
+
+A common use case is with `constants.js` files:
+
+```js
+// constants.js
+export const A = true;
+export const B = 'hello';
+
+// index.js
+import { A, B } from './constants';
+console.log(A ? 1 : 2);
+console.log(B.length);
+```
+
+When `inlineExports` is enabled, constant values will be inlined at their usage sites:
+
+```js
+// Bundled by Rspack: output.js
+const __webpack_modules__ = {
+  './index.js': () => {
+    // Constants are inlined directly
+    console.log(true ? 1 : 2);
+    console.log('hello'.length);
+    // If all exports from constants.js are inlined, the constants.js module
+    // will be optimized away and won't appear in the final output
+  },
+};
+```
+
+:::tip
+Since this feature relies on module export usage information ([optimization.usedExports](#optimizationusedexports)), it is recommended to enable it only in production mode where `usedExports` is enabled by default.
+:::
+
+For more details, refer to the [inline const example](https://github.com/rstackjs/rstack-examples/tree/main/rspack/inline-const).
+
+## optimization.innerGraph
+
+<PropertyType
+  type="boolean"
+  defaultValueList={[
+    { defaultValue: 'true', mode: 'production' },
+    { defaultValue: 'false', mode: 'development' },
+  ]}
+/>
+
+`optimization.innerGraph` tells Rspack whether to perform a more detailed analysis of variable assignments. This helps Rspack to identify unused module exports, thereby reducing the size of the bundled output.
+
+For example:
+
+```js
+import { value } from 'lib';
+
+const value2 = value;
+
+function f1() {
+  console.log(value);
+}
+
+function f2() {
+  console.log(value2);
+}
+```
+
+Here we assign the `value` to `value2`. Both `value2` and `value` are accessed within the functions `f2` and `f1` respectively, but the functions are not called, hence `value2` and `value` are not actually used, thus the import of `value` can be removed.
+
+## optimization.mangleExports
+
+<PropertyType
+  type="boolean | 'deterministic' | 'size'"
+  defaultValueList={[
+    { defaultValue: 'true', mode: 'production' },
+    { defaultValue: 'false', mode: 'development' },
+  ]}
+/>
+
+`optimization.mangleExports` controls how export names are mangled.
+
+The following values are supported:
+
+| option            | description                                                                                                    |
+| ----------------- | -------------------------------------------------------------------------------------------------------------- |
+| `'size'`          | Use the shortest possible export names to reduce bundle size.                                                  |
+| `'deterministic'` | Use short and stable export names for better long-term cache stability. Enabled by default in production mode. |
+| `true`            | Same as `'deterministic'`.                                                                                     |
+| `false`           | Disable export mangling and keep original export names. Enabled by default in development mode.                |
+
+For example, with the following source code:
+
+```js title="src/math.js"
+export const veryLongExportName = 1;
+```
+
+When `mangleExports` is disabled, the export name is preserved:
+
+```js title="dist/main.js"
+__webpack_require__.d(__webpack_exports__, {
+  veryLongExportName: () => veryLongExportName,
+});
+```
+
+When `mangleExports` is set to `'size'`, the export name is shortened:
+
+```js title="rspack.config.mjs"
+export default {
+  optimization: {
+    mangleExports: 'size',
+  },
+};
+```
+
+```js title="dist/main.js"
+__webpack_require__.d(__webpack_exports__, {
+  a: () => veryLongExportName,
+});
 ```
 
 ## optimization.mergeDuplicateChunks
@@ -156,6 +327,99 @@ export default {
 };
 ```
 
+## optimization.moduleIds
+
+<PropertyType
+  type="'natural' | 'named' | 'deterministic'"
+  defaultValueList={[
+    { defaultValue: "'deterministic'", mode: 'production' },
+    { defaultValue: "'named'", mode: 'development' },
+  ]}
+/>
+
+Tells Rspack which algorithm to use when generating module ids.
+
+The following string values are supported:
+
+| option          | description                                                                                                                    |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `natural`       | Use numeric ids in order of usage.                                                                                             |
+| `named`         | Use meaningful, easy-to-debug content as id.                                                                                   |
+| `deterministic` | Use the hashed module identifier as the id to benefit from long-term caching. By default a minimum length of 3 digits is used. |
+
+```js title="rspack.config.mjs"
+export default {
+  optimization: {
+    moduleIds: 'deterministic',
+  },
+};
+```
+
+The `deterministic` option is useful for long term caching, and results in smaller bundles compared to hashed. Length of the numeric value is chosen to fill a maximum of 80% of the id space. By default a minimum length of 3 digits is used when `optimization.moduleIds` is set to `deterministic`.
+
+## optimization.nodeEnv
+
+<PropertyType
+  type="boolean | string"
+  defaultValueList={[{ defaultValue: 'false' }]}
+/>
+
+Tells Rspack to set `process.env.NODE_ENV` to a given string value. `optimization.nodeEnv` uses [DefinePlugin](/plugins/webpack/define-plugin) unless set to false.
+`optimization.nodeEnv` **defaults** to [mode](/config/mode) if set, else falls back to `'production'`.
+
+Possible values:
+
+- any string: the value to set `process.env.NODE_ENV` to.
+- false: do not modify/set the value of `process.env.NODE_ENV`.
+
+```js title="rspack.config.mjs"
+export default {
+  optimization: {
+    nodeEnv: 'production',
+  },
+};
+```
+
+:::tip
+When [mode](/config/mode) is set to `'none'`, `optimization.nodeEnv` defaults to `false`.
+:::
+
+## optimization.providedExports
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+
+After enabling, Rspack will analyze which exports the module provides, including re-exported modules. A warning or error will be issued when importing members that reference non-existent exports. By default, `optimization.providedExports` is enabled. This analysis will increase build time. You may consider disabling this configuration in development mode. Disabling it may lead to errors related to runtime circular dependencies as mentioned in the [SideEffects section](/guide/optimization/tree-shaking#reexports-optimization).
+
+```js title="rspack.config.mjs"
+export default {
+  optimization: {
+    providedExports: false,
+  },
+};
+```
+
+## optimization.realContentHash
+
+<PropertyType
+  type="boolean"
+  defaultValueList={[
+    { defaultValue: 'true', mode: 'production' },
+    { defaultValue: 'false', mode: 'development' },
+  ]}
+/>
+
+Adds an additional hash compilation pass after the assets have been processed to get the correct asset content hashes. This feature will enable by default in production mode.
+
+If realContentHash is set to false, internal data is used to calculate the hash and it can change when assets are identical in some cases.
+
+```js title="rspack.config.mjs"
+export default {
+  optimization: {
+    realContentHash: true,
+  },
+};
+```
+
 ## optimization.removeAvailableModules
 
 <PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
@@ -207,7 +471,7 @@ Setting it to `true` or `'multiple'` will add an additional chunk containing onl
 export default {
   optimization: {
     runtimeChunk: {
-      name: entrypoint => `runtime~${entrypoint.name}`,
+      name: (entrypoint) => `runtime~${entrypoint.name}`,
     },
   },
 };
@@ -240,41 +504,6 @@ export default {
 Imported modules are initialized for each runtime chunk separately, so if you include multiple entry chunks on a page, beware of this behavior. You will need to set `optimization.runtimeChunk` to `'single'` or use another configuration that ensures the page only contains one runtime instance.
 :::
 
-## optimization.realContentHash
-
-<PropertyType
-  type="boolean | 'flag'"
-  defaultValueList={[
-    { defaultValue: 'true', mode: 'production' },
-    { defaultValue: 'false', mode: 'development' },
-  ]}
-/>
-
-Adds an additional hash compilation pass after the assets have been processed to get the correct asset content hashes. This feature will enable by default in production mode.
-
-If realContentHash is set to false, internal data is used to calculate the hash and it can change when assets are identical in some cases.
-
-```js title="rspack.config.mjs"
-export default {
-  //...
-  optimization: {
-    realContentHash: true,
-  },
-};
-```
-
-## optimization.splitChunks
-
-<PropertyType type="false | object" />
-
-Rspack supports splitting chunks with the `optimization.splitChunks` configuration item.
-
-It is enabled by default for dynamically imported modules.
-
-To turn it off, set it to `false`.
-
-See available options for configuring this behavior in the [SplitChunksPlugin](/plugins/webpack/split-chunks-plugin) page.
-
 ## optimization.sideEffects
 
 <PropertyType
@@ -285,24 +514,22 @@ See available options for configuring this behavior in the [SplitChunksPlugin](/
   ]}
 />
 
-If you only want Rspack use the manual `sideEffects` flag via (`package.json` and `module.rule.sideEffects`) and don't analyse source code:
+If you only want Rspack use the manual `sideEffects` flag via (`package.json` and `rules[].sideEffects`) and don't analyse source code:
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   optimization: {
     sideEffects: 'flag',
   },
 };
 ```
 
-`flag` tells Rspack to recognise the sideEffects flag in package.json or [module.rule.sideEffects](/config/module#rulesideeffects) to skip over modules which are flagged to contain no side effects when exports are not used.
+`flag` tells Rspack to recognise the sideEffects flag in package.json or [rules[].sideEffects](/config/module-rules#rulessideeffects) to skip over modules which are flagged to contain no side effects when exports are not used.
 
 `true` tells Rspack not only recognise the sideEffects flag, but also analyse modules which are not flagged explicitly, and determine if they have side effects or not.
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   optimization: {
     sideEffects: true,
   },
@@ -315,20 +542,17 @@ This dependency has a build time cost, but eliminating modules has positive impa
 Effect of this optimization depends on your codebase, try it for possible performance wins.
 :::
 
-## optimization.providedExports
+## optimization.splitChunks
 
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+<PropertyType type="false | object" />
 
-After enabling, Rspack will analyze which exports the module provides, including re-exported modules. A warning or error will be issued when importing members that reference non-existent exports. By default, `optimization.providedExports` is enabled. This analysis will increase build time. You may consider disabling this configuration in development mode. Disabling it may lead to errors related to runtime circular dependencies as mentioned in the [SideEffects section](/guide/optimization/tree-shaking#reexports-optimization).
+Rspack supports splitting chunks with the `optimization.splitChunks` configuration item.
 
-```js title="rspack.config.mjs"
-export default {
-  //...
-  optimization: {
-    providedExports: false,
-  },
-};
-```
+It is enabled by default for dynamically imported modules.
+
+To turn it off, set it to `false`.
+
+See available options for configuring this behavior in the [SplitChunksPlugin](/plugins/webpack/split-chunks-plugin) page.
 
 ## optimization.usedExports
 
@@ -346,7 +570,6 @@ Exports are not generated for unused exports, export names are mangled to single
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   optimization: {
     usedExports: false,
   },
@@ -357,151 +580,8 @@ To opt-out from used exports analysis per runtime:
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   optimization: {
     usedExports: 'global',
   },
 };
 ```
-
-## optimization.mangleExports
-
-<PropertyType
-  type="boolean | 'deterministic' | 'size' "
-  defaultValueList={[
-    { defaultValue: 'deterministic', mode: 'production' },
-    { defaultValue: 'false', mode: 'development' },
-  ]}
-/>
-
-`optimization.mangleExports` allows to control export mangling.
-
-The following values are supported:
-
-| option          | description                                                                                                                        |
-| --------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| 'named'         | Use meaningful, easy-to-debug content as id. This option is enabled by default in development mode                                 |
-| 'deterministic' | Use the hashed module identifier as the id to benefit from long-term caching. This option is enabled by default in production mode |
-| true            | Same as 'deterministic'                                                                                                            |
-| false           | Keep original name. Good for readability and debugging.                                                                            |
-
-## optimization.innerGraph
-
-<PropertyType
-  type="boolean"
-  defaultValueList={[
-    { defaultValue: 'true', mode: 'production' },
-    { defaultValue: 'false', mode: 'development' },
-  ]}
-/>
-
-`optimization.innerGraph` tells Rspack whether to perform a more detailed analysis of variable assignments. This helps Rspack to identify unused module exports, thereby reducing the size of the bundled output.
-
-For example:
-
-```js
-import { value } from 'lib';
-
-const value2 = value;
-
-function f1() {
-  console.log(value);
-}
-
-function f2() {
-  console.log(value2);
-}
-```
-
-Here we assign the `value` to `value2`. Both `value2` and `value` are accessed within the functions `f2` and `f1` respectively, but the functions are not called, hence `value2` and `value` are not actually used, thus the import of `value` can be removed.
-
-## optimization.concatenateModules
-
-<PropertyType
-  type="boolean"
-  defaultValueList={[
-    { defaultValue: 'true', mode: 'production' },
-    { defaultValue: 'false', mode: 'development' },
-  ]}
-/>
-
-Tells Rspack to find segments of the module graph which can be safely concatenated into a single module. Depends on [optimization.providedExports](#optimizationprovidedexports) and [optimization.usedExports](#optimizationusedexports). By default `optimization.concatenateModules` is enabled in `production` mode and disabled elsewise.
-
-```js title="rspack.config.mjs"
-export default {
-  optimization: {
-    concatenateModules: false,
-  },
-};
-```
-
-## optimization.nodeEnv
-
-<PropertyType
-  type="boolean | string"
-  defaultValueList={[{ defaultValue: 'false' }]}
-/>
-
-Tells Rspack to set `process.env.NODE_ENV` to a given string value. `optimization.nodeEnv` uses [DefinePlugin](/plugins/webpack/define-plugin) unless set to false.
-`optimization.nodeEnv` **defaults** to [mode](/config/mode) if set, else falls back to `'production'`.
-
-Possible values:
-
-- any string: the value to set `process.env.NODE_ENV` to.
-- false: do not modify/set the value of `process.env.NODE_ENV`.
-
-```js title="rspack.config.mjs"
-export default {
-  //...
-  optimization: {
-    nodeEnv: 'production',
-  },
-};
-```
-
-:::tip
-When [mode](/config/mode) is set to `'none'`, `optimization.nodeEnv` defaults to `false`.
-:::
-
-## optimization.emitOnErrors
-
-<PropertyType
-  type="boolean"
-  defaultValueList={[
-    { defaultValue: 'false', mode: 'production' },
-    { defaultValue: 'true', mode: 'development' },
-  ]}
-/>
-
-Use the `optimization.emitOnErrors` to emit assets whenever there are errors while compiling. This ensures that erroring assets are emitted. The errors are emitted into the generated code and will cause errors at runtime.
-
-```js title="rspack.config.mjs"
-export default {
-  optimization: {
-    emitOnErrors: true,
-  },
-};
-```
-
-## optimization.avoidEntryIife
-
-<ApiMeta addedVersion="1.2.0" />
-
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
-
-Use `optimization.avoidEntryIife` to avoid wrapping the entry module in an IIFE when it is required (search for `"This entry needs to be wrapped in an IIFE because"` in [rspack_plugin_javascript](https://github.com/web-infra-dev/rspack/blob/main/crates/rspack_plugin_javascript/src/plugin/mod.rs)). This approach helps optimize performance for JavaScript engines and helps tree shaking when building ESM libraries.
-
-Currently, `optimization.avoidEntryIife` can only optimize a single entry module along with other modules.
-
-```js title="rspack.config.mjs"
-export default {
-  //...
-  optimization: {
-    avoidEntryIife: true,
-  },
-};
-```
-
-:::warning
-The `⁠optimization.avoidEntryIife` option can negatively affect build performance, if you prioritize build performance over these optimizations, consider do not enable this option.
-:::

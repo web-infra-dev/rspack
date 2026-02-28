@@ -58,7 +58,7 @@
         "activeMatch": "/contribute"
       },
       {
-        "text": "在线体验 ↗",
+        "text": "在线体验",
         "link": "https://playground.rspack.rs"
       }
     ]
@@ -69,6 +69,10 @@
       {
         "text": "更新日志",
         "link": "https://github.com/web-infra-dev/rspack/releases"
+      },
+      {
+        "text": "Rspack 1.x 文档",
+        "link": "http://v1.rspack.rs/zh/"
       },
       {
         "text": "Rspack 0.x 文档",

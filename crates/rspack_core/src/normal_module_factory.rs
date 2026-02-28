@@ -10,12 +10,13 @@ use winnow::prelude::*;
 use crate::{
   AssetInlineGeneratorOptions, AssetResourceGeneratorOptions, BoxLoader, BoxModule,
   CompilerOptions, Context, CssAutoGeneratorOptions, CssAutoParserOptions,
-  CssModuleGeneratorOptions, CssModuleParserOptions, Dependency, DependencyCategory, FactoryMeta,
-  FuncUseCtx, GeneratorOptions, ModuleExt, ModuleFactory, ModuleFactoryCreateData,
-  ModuleFactoryResult, ModuleIdentifier, ModuleLayer, ModuleRuleEffect, ModuleRuleEnforce,
-  ModuleRuleUse, ModuleRuleUseLoader, ModuleType, NormalModule, ParserAndGenerator, ParserOptions,
-  RawModule, Resolve, ResolveArgs, ResolveOptionsWithDependencyType, ResolveResult, Resolver,
-  ResolverFactory, ResourceData, ResourceParsedData, RunnerContext, SharedPluginDriver,
+  CssModuleGeneratorOptions, CssModuleParserOptions, Dependency, DependencyCategory,
+  DependencyType, FactoryMeta, FuncUseCtx, GeneratorOptions, ModuleExt, ModuleFactory,
+  ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, ModuleLayer, ModuleRuleEffect,
+  ModuleRuleEnforce, ModuleRuleUse, ModuleRuleUseLoader, ModuleType, NormalModule,
+  ParserAndGenerator, ParserOptions, RawModule, Resolve, ResolveArgs,
+  ResolveOptionsWithDependencyType, ResolveResult, Resolver, ResolverFactory, ResourceData,
+  ResourceParsedData, RunnerContext, RuntimeGlobals, SharedPluginDriver,
   diagnostics::EmptyDependency, module_rules_matcher, parse_resource, resolve,
   stringify_loaders_and_resource,
 };
@@ -28,8 +29,9 @@ define_hook!(NormalModuleFactoryResolveInScheme: SeriesBail(data: &mut ModuleFac
 define_hook!(NormalModuleFactoryAfterResolve: SeriesBail(data: &mut ModuleFactoryCreateData, create_data: &mut NormalModuleCreateData) -> bool,tracing=false);
 define_hook!(NormalModuleFactoryCreateModule: SeriesBail(data: &mut ModuleFactoryCreateData, create_data: &mut NormalModuleCreateData) -> BoxModule,tracing=false);
 define_hook!(NormalModuleFactoryModule: Series(data: &mut ModuleFactoryCreateData, create_data: &mut NormalModuleCreateData, module: &mut BoxModule),tracing=false);
-define_hook!(NormalModuleFactoryParser: Series(module_type: &ModuleType, parser: &mut dyn ParserAndGenerator, parser_options: Option<&ParserOptions>),tracing=false);
+define_hook!(NormalModuleFactoryParser: Series(module_type: &ModuleType, parser: &mut Box<dyn ParserAndGenerator>, parser_options: Option<&ParserOptions>),tracing=false);
 define_hook!(NormalModuleFactoryResolveLoader: SeriesBail(context: &Context, resolver: &Resolver, l: &ModuleRuleUseLoader) -> BoxLoader,tracing=false);
+define_hook!(NormalModuleFactoryAfterFactorize: Series(data: &mut ModuleFactoryCreateData, module: &mut BoxModule),tracing=false);
 
 pub enum NormalModuleFactoryResolveResult {
   Module(BoxModule),
@@ -52,6 +54,7 @@ pub struct NormalModuleFactoryHooks {
   /// So this hook is used to resolve inline loader (inline loader requests).
   // should move to ResolverFactory?
   pub resolve_loader: NormalModuleFactoryResolveLoaderHook,
+  pub after_factorize: NormalModuleFactoryAfterFactorizeHook,
 }
 
 #[derive(Debug)]
@@ -67,7 +70,16 @@ impl ModuleFactory for NormalModuleFactory {
     if let Some(before_resolve_data) = self.before_resolve(data).await? {
       return Ok(before_resolve_data);
     }
-    let factory_result = self.factorize(data).await?;
+    let mut factory_result = self.factorize(data).await?;
+
+    if let Some(module) = &mut factory_result.module {
+      self
+        .plugin_driver
+        .normal_module_factory_hooks
+        .after_factorize
+        .call(data, module)
+        .await?;
+    }
 
     Ok(factory_result)
   }
@@ -326,13 +338,30 @@ impl NormalModuleFactory {
             let ident = format!("{}/{}", &data.context, resource);
             let module_identifier = ModuleIdentifier::from(format!("ignored|{ident}"));
 
-            let mut raw_module = RawModule::new(
-              "/* (ignored) */".to_owned(),
-              module_identifier,
-              format!("{resource} (ignored)"),
-              Default::default(),
-            )
-            .boxed();
+            let mut raw_module = if matches!(
+              dependency_type,
+              DependencyType::CssUrl | DependencyType::NewUrl
+            ) {
+              // use RawModule instead of RawDataUrlModule
+              RawModule::new(
+                r#"/* (ignored-asset) */
+module.exports = "data:,";
+"#
+                .to_owned(),
+                module_identifier,
+                format!("{} (ignored-asset)", data.request),
+                RuntimeGlobals::MODULE,
+              )
+              .boxed()
+            } else {
+              RawModule::new(
+                "/* (ignored) */".to_owned(),
+                module_identifier,
+                format!("{} (ignored)", data.request),
+                Default::default(),
+              )
+              .boxed()
+            };
 
             raw_module.set_factory_meta(FactoryMeta {
               side_effect_free: Some(true),
@@ -350,7 +379,7 @@ impl NormalModuleFactory {
     };
 
     let resolved_module_rules = if let Some(match_resource_data) = &mut match_resource_data
-      && let Ok((module, module_type)) = match_webpack_ext(match_resource_data.resource())
+      && let Ok((module, module_type)) = match_ext(match_resource_data.resource())
     {
       match_module_type = Some(module_type.into());
       match_resource_data.set_resource(module.into());
@@ -482,11 +511,6 @@ impl NormalModuleFactory {
       self.calculate_module_type(match_module_type, &resolved_module_rules);
     let resolved_module_layer =
       self.calculate_module_layer(data.issuer_layer.as_ref(), &resolved_module_rules);
-    if resolved_module_layer.is_some() && !self.options.experiments.layers {
-      return Err(error!(
-        "'Rule.layer' is only allowed when 'experiments.layers' is enabled"
-      ));
-    }
 
     let resolved_resolve_options = self.calculate_resolve_options(&resolved_module_rules);
     let (resolved_parser_options, resolved_generator_options) =
@@ -498,6 +522,7 @@ impl NormalModuleFactory {
         resolved_generator_options,
       );
     let resolved_side_effects = self.calculate_side_effects(&resolved_module_rules);
+    let resolved_extract_source_map = self.calculate_extract_source_map(&resolved_module_rules);
     let mut resolved_parser_and_generator = self
       .plugin_driver
       .registered_parser_and_generator_builder
@@ -517,7 +542,7 @@ impl NormalModuleFactory {
       .parser
       .call(
         &resolved_module_type,
-        resolved_parser_and_generator.as_mut(),
+        &mut resolved_parser_and_generator,
         resolved_parser_options.as_ref(),
       )
       .await?;
@@ -573,6 +598,7 @@ impl NormalModuleFactory {
         resolved_resolve_options,
         loaders,
         create_data.context.clone().map(|x| x.into()),
+        resolved_extract_source_map,
       )
       .boxed()
     };
@@ -634,6 +660,17 @@ impl NormalModuleFactory {
       }
     }
     side_effect_res
+  }
+
+  fn calculate_extract_source_map(&self, module_rules: &[&ModuleRuleEffect]) -> Option<bool> {
+    let mut extract_source_map_res = None;
+    // extract_source_map from module rule has higher priority
+    for rule in module_rules.iter() {
+      if rule.extract_source_map.is_some() {
+        extract_source_map_res = rule.extract_source_map;
+      }
+    }
+    extract_source_map_res
   }
 
   fn calculate_parser_and_generator_options(
@@ -907,15 +944,18 @@ fn match_resource(mut input: &str) -> winnow::ModalResult<(&str, &str)> {
   Ok((res, whole_matched))
 }
 
-fn match_webpack_ext(mut input: &str) -> winnow::ModalResult<(&str, &str)> {
+fn match_ext(mut input: &str) -> winnow::ModalResult<(&str, &str)> {
   use winnow::{
-    combinator::{delimited, eof, preceded, terminated},
+    combinator::{alt, delimited, eof, preceded, terminated},
     token::take_until,
   };
 
   let parser = (
-    take_until(0.., ".webpack"),
-    preceded(".webpack", delimited('[', take_until(1.., ']'), ']')),
+    alt((take_until(0.., ".rspack"), take_until(0.., ".webpack"))),
+    preceded(
+      alt((".rspack", ".webpack")),
+      delimited('[', take_until(1.., ']'), ']'),
+    ),
   );
 
   terminated(parser, eof).parse_next(&mut input)
@@ -929,14 +969,25 @@ fn test_split_element() {
 }
 
 #[test]
-fn test_match_webpack_ext() {
-  assert!(match_webpack_ext("foo.webpack[type/javascript]").is_ok());
-  let cap = match_webpack_ext("foo.webpack[type/javascript]").unwrap();
+fn test_match_ext() {
+  assert!(match_ext("foo.webpack[type/javascript]").is_ok());
+  let cap = match_ext("foo.webpack[type/javascript]").unwrap();
 
   assert_eq!(cap, ("foo", "type/javascript"));
 
   assert_eq!(
-    match_webpack_ext("foo.css.webpack[javascript/auto]"),
+    match_ext("foo.css.webpack[javascript/auto]"),
+    Ok(("foo.css", "javascript/auto"))
+  );
+
+  // Test .rspack support
+  assert!(match_ext("foo.rspack[type/javascript]").is_ok());
+  let cap = match_ext("foo.rspack[type/javascript]").unwrap();
+
+  assert_eq!(cap, ("foo", "type/javascript"));
+
+  assert_eq!(
+    match_ext("foo.css.rspack[javascript/auto]"),
     Ok(("foo.css", "javascript/auto"))
   );
 }

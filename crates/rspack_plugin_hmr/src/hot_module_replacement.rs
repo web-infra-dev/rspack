@@ -1,32 +1,50 @@
-use cow_utils::CowUtils;
-use rspack_collections::Identifier;
-use rspack_core::{Compilation, RuntimeModule, impl_runtime_module};
-use rspack_util::test::{HOT_TEST_DEFINE_GLOBAL, HOT_TEST_STATUS_CHANGE};
+use std::sync::LazyLock;
+
+use rspack_core::{
+  Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext, RuntimeTemplate,
+  impl_runtime_module,
+};
+use rspack_plugin_runtime::extract_runtime_globals_from_ejs;
+use rspack_util::test::is_hot_test;
+
+static HOT_MODULE_REPLACEMENT_TEMPLATE: &str = include_str!("runtime/hot_module_replacement.ejs");
+static HOT_MODULE_REPLACEMENT_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
+  LazyLock::new(|| extract_runtime_globals_from_ejs(HOT_MODULE_REPLACEMENT_TEMPLATE));
 
 #[impl_runtime_module]
 #[derive(Debug)]
-pub struct HotModuleReplacementRuntimeModule {
-  id: Identifier,
-}
+pub struct HotModuleReplacementRuntimeModule {}
 
-impl Default for HotModuleReplacementRuntimeModule {
-  fn default() -> Self {
-    Self::with_default(Identifier::from("webpack/runtime/hot_module_replacement"))
+impl HotModuleReplacementRuntimeModule {
+  pub fn new(runtime_template: &RuntimeTemplate) -> Self {
+    Self::with_default(runtime_template)
   }
 }
 
 #[async_trait::async_trait]
 impl RuntimeModule for HotModuleReplacementRuntimeModule {
-  fn name(&self) -> Identifier {
-    self.id
+  fn template(&self) -> Vec<(String, String)> {
+    vec![(
+      self.id.to_string(),
+      HOT_MODULE_REPLACEMENT_TEMPLATE.to_string(),
+    )]
   }
 
-  async fn generate(&self, _compilation: &Compilation) -> rspack_error::Result<String> {
-    Ok(
-      include_str!("runtime/hot_module_replacement.js")
-        .cow_replace("$HOT_TEST_GLOBAL$", &HOT_TEST_DEFINE_GLOBAL)
-        .cow_replace("$HOT_TEST_STATUS$", &HOT_TEST_STATUS_CHANGE)
-        .into_owned(),
-    )
+  async fn generate(
+    &self,
+    context: &RuntimeModuleGenerateContext<'_>,
+  ) -> rspack_error::Result<String> {
+    let content = context.runtime_template.render(
+      self.id.as_str(),
+      Some(serde_json::json!({
+        "_is_hot_test": is_hot_test(),
+      })),
+    )?;
+
+    Ok(content)
+  }
+
+  fn additional_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
+    *HOT_MODULE_REPLACEMENT_RUNTIME_REQUIREMENTS
   }
 }

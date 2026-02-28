@@ -4,10 +4,10 @@ use rspack_core::{
   AssetInfo, CachedConstDependencyTemplate, ChunkGraph, ChunkKind, ChunkUkey, Compilation,
   CompilationAdditionalTreeRuntimeRequirements, CompilationChunkHash, CompilationContentHash,
   CompilationId, CompilationParams, CompilationRenderManifest, CompilerCompilation,
-  ConstDependencyTemplate, DependencyType, IgnoreErrorModuleFactory, ModuleGraph, ModuleType,
-  ParserAndGenerator, PathData, Plugin, RenderManifestEntry, RuntimeGlobals,
-  RuntimeRequirementsDependencyTemplate, SelfModuleFactory, SourceType,
-  get_js_chunk_filename_template,
+  ConstDependencyTemplate, DependencyType, IgnoreErrorModuleFactory, ManifestAssetType,
+  ModuleGraph, ModuleType, ParserAndGenerator, PathData, Plugin, RenderManifestEntry,
+  RuntimeGlobals, RuntimeModule, RuntimeRequirementsDependencyTemplate, SelfModuleFactory,
+  SourceType, get_js_chunk_filename_template,
   rspack_sources::{BoxSource, CachedSource, SourceExt},
 };
 use rspack_error::{Diagnostic, Result};
@@ -29,14 +29,15 @@ use crate::{
     ExportInfoDependencyTemplate, ExternalModuleDependencyTemplate,
     ImportContextDependencyTemplate, ImportDependencyTemplate, ImportEagerDependencyTemplate,
     ImportMetaContextDependencyTemplate, ImportMetaHotAcceptDependencyTemplate,
-    ImportMetaHotDeclineDependencyTemplate, ModuleArgumentDependencyTemplate,
-    ModuleDecoratorDependencyTemplate, ModuleHotAcceptDependencyTemplate,
-    ModuleHotDeclineDependencyTemplate, ProvideDependencyTemplate,
-    PureExpressionDependencyTemplate, RequireContextDependencyTemplate,
+    ImportMetaHotDeclineDependencyTemplate, ImportMetaResolveDependencyTemplate,
+    ImportMetaResolveHeaderDependencyTemplate, IsIncludedDependencyTemplate,
+    ModuleArgumentDependencyTemplate, ModuleDecoratorDependencyTemplate,
+    ModuleHotAcceptDependencyTemplate, ModuleHotDeclineDependencyTemplate,
+    ProvideDependencyTemplate, PureExpressionDependencyTemplate, RequireContextDependencyTemplate,
     RequireEnsureDependencyTemplate, RequireHeaderDependencyTemplate,
-    RequireResolveContextDependencyTemplate, RequireResolveDependencyTemplate,
-    RequireResolveHeaderDependencyTemplate, URLDependencyTemplate,
-    WebpackIsIncludedDependencyTemplate, WorkerDependencyTemplate,
+    RequireMainDependencyTemplate, RequireResolveContextDependencyTemplate,
+    RequireResolveDependencyTemplate, RequireResolveHeaderDependencyTemplate,
+    URLContextDependencyTemplate, URLDependencyTemplate, WorkerDependencyTemplate,
     amd_define_dependency::AMDDefineDependencyTemplate,
     amd_require_array_dependency::AMDRequireArrayDependencyTemplate,
     amd_require_dependency::AMDRequireDependencyTemplate,
@@ -63,7 +64,7 @@ async fn compilation(
     params.normal_module_factory.clone(),
   );
   compilation.set_dependency_factory(
-    DependencyType::EsmExport,
+    DependencyType::EsmExportImport,
     params.normal_module_factory.clone(),
   );
   compilation.set_dependency_factory(
@@ -135,6 +136,10 @@ async fn compilation(
     DependencyType::ImportMetaContext,
     params.context_module_factory.clone(),
   );
+  compilation.set_dependency_factory(
+    DependencyType::ImportMetaResolve,
+    params.normal_module_factory.clone(),
+  );
   // ImportPlugin
   compilation.set_dependency_factory(
     DependencyType::DynamicImport,
@@ -151,6 +156,10 @@ async fn compilation(
   );
   // URLPlugin
   compilation.set_dependency_factory(DependencyType::NewUrl, params.normal_module_factory.clone());
+  compilation.set_dependency_factory(
+    DependencyType::NewUrlContext,
+    params.context_module_factory.clone(),
+  );
   // ProvidePlugin
   compilation.set_dependency_factory(
     DependencyType::Provided,
@@ -163,7 +172,7 @@ async fn compilation(
   );
   // other
   compilation.set_dependency_factory(
-    DependencyType::WebpackIsIncluded,
+    DependencyType::IsIncluded,
     Arc::new(IgnoreErrorModuleFactory {
       normal_module_factory: params.normal_module_factory.clone(),
     }),
@@ -304,6 +313,14 @@ async fn compilation(
     Arc::new(ImportMetaContextDependencyTemplate::default()),
   );
   compilation.set_dependency_template(
+    ImportMetaResolveDependencyTemplate::template_type(),
+    Arc::new(ImportMetaResolveDependencyTemplate::default()),
+  );
+  compilation.set_dependency_template(
+    ImportMetaResolveHeaderDependencyTemplate::template_type(),
+    Arc::new(ImportMetaResolveHeaderDependencyTemplate::default()),
+  );
+  compilation.set_dependency_template(
     RequireContextDependencyTemplate::template_type(),
     Arc::new(RequireContextDependencyTemplate::default()),
   );
@@ -337,6 +354,10 @@ async fn compilation(
     URLDependencyTemplate::template_type(),
     Arc::new(URLDependencyTemplate::default()),
   );
+  compilation.set_dependency_template(
+    URLContextDependencyTemplate::template_type(),
+    Arc::new(URLContextDependencyTemplate::default()),
+  );
   // worker dependency templates
   compilation.set_dependency_template(
     CreateScriptUrlDependencyTemplate::template_type(),
@@ -351,8 +372,8 @@ async fn compilation(
     Arc::new(ExportInfoDependencyTemplate::default()),
   );
   compilation.set_dependency_template(
-    WebpackIsIncludedDependencyTemplate::template_type(),
-    Arc::new(WebpackIsIncludedDependencyTemplate::default()),
+    IsIncludedDependencyTemplate::template_type(),
+    Arc::new(IsIncludedDependencyTemplate::default()),
   );
   compilation.set_dependency_template(
     ModuleArgumentDependencyTemplate::template_type(),
@@ -375,6 +396,10 @@ async fn compilation(
     RuntimeRequirementsDependencyTemplate::template_type(),
     Arc::new(RuntimeRequirementsDependencyTemplate::default()),
   );
+  compilation.set_dependency_template(
+    RequireMainDependencyTemplate::template_type(),
+    Arc::new(RequireMainDependencyTemplate::default()),
+  );
   // Rstest
   compilation.set_dependency_factory(
     DependencyType::RstestMockModuleId,
@@ -386,14 +411,19 @@ async fn compilation(
 #[plugin_hook(CompilationAdditionalTreeRuntimeRequirements for JsPlugin)]
 async fn additional_tree_runtime_requirements(
   &self,
-  compilation: &mut Compilation,
+  compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
   runtime_requirements: &mut RuntimeGlobals,
+  _runtime_modules: &mut Vec<Box<dyn RuntimeModule>>,
 ) -> Result<()> {
   if !runtime_requirements.contains(RuntimeGlobals::STARTUP_NO_DEFAULT)
     && compilation
+      .build_chunk_graph_artifact
       .chunk_graph
-      .has_chunk_entry_dependent_chunks(chunk_ukey, &compilation.chunk_group_by_ukey)
+      .has_chunk_entry_dependent_chunks(
+        chunk_ukey,
+        &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
+      )
   {
     runtime_requirements.insert(RuntimeGlobals::ON_CHUNKS_LOADED);
     runtime_requirements.insert(RuntimeGlobals::REQUIRE);
@@ -410,9 +440,10 @@ async fn chunk_hash(
 ) -> Result<()> {
   self.get_chunk_hash(chunk_ukey, compilation, hasher).await?;
   if compilation
+    .build_chunk_graph_artifact
     .chunk_by_ukey
     .expect_get(chunk_ukey)
-    .has_runtime(&compilation.chunk_group_by_ukey)
+    .has_runtime(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
   {
     self
       .update_hash_with_bootstrap(chunk_ukey, compilation, hasher)
@@ -428,19 +459,23 @@ async fn content_hash(
   chunk_ukey: &ChunkUkey,
   hashes: &mut FxHashMap<SourceType, RspackHash>,
 ) -> Result<()> {
-  let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+  let chunk = compilation
+    .build_chunk_graph_artifact
+    .chunk_by_ukey
+    .expect_get(chunk_ukey);
   let mut hasher = hashes
     .entry(SourceType::JavaScript)
     .or_insert_with(|| RspackHash::from(&compilation.options.output));
 
-  if !chunk.has_runtime(&compilation.chunk_group_by_ukey) {
-    chunk.id(&compilation.chunk_ids_artifact).hash(&mut hasher);
+  if !chunk.has_runtime(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey) {
+    chunk.id().hash(&mut hasher);
   }
 
   let module_graph = compilation.get_module_graph();
   let mut ordered_modules = compilation
+    .build_chunk_graph_artifact
     .chunk_graph
-    .get_chunk_modules_identifier_by_source_type(chunk_ukey, SourceType::JavaScript, &module_graph);
+    .get_chunk_modules_identifier_by_source_type(chunk_ukey, SourceType::JavaScript, module_graph);
   // SAFETY: module identifier is unique
   ordered_modules.sort_unstable();
 
@@ -462,6 +497,7 @@ async fn content_hash(
     });
 
   for (runtime_module_identifier, _) in compilation
+    .build_chunk_graph_artifact
     .chunk_graph
     .get_chunk_runtime_modules_in_order(chunk_ukey, compilation)
   {
@@ -484,32 +520,43 @@ async fn render_manifest(
   manifest: &mut Vec<RenderManifestEntry>,
   _diagnostics: &mut Vec<Diagnostic>,
 ) -> Result<()> {
-  let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+  let chunk = compilation
+    .build_chunk_graph_artifact
+    .chunk_by_ukey
+    .expect_get(chunk_ukey);
+  let runtime_template = compilation.runtime_template.create_runtime_code_template();
   let is_hot_update = matches!(chunk.kind(), ChunkKind::HotUpdate);
   let is_main_chunk = chunk.groups().iter().any(|group_ukey| {
-    let group = compilation.chunk_group_by_ukey.expect_get(group_ukey);
+    let group = compilation
+      .build_chunk_graph_artifact
+      .chunk_group_by_ukey
+      .expect_get(group_ukey);
 
     group.is_initial() && group.kind.is_entrypoint() && &group.get_entrypoint_chunk() == chunk_ukey
   });
-  let is_runtime_chunk = chunk.has_runtime(&compilation.chunk_group_by_ukey);
+  let is_runtime_chunk =
+    chunk.has_runtime(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey);
 
   if !is_hot_update
-    && !is_main_chunk
-    && !is_runtime_chunk
-    && !chunk_has_js(
+    && is_runtime_chunk
+    && !chunk_has_runtime_or_js(
       chunk_ukey,
-      &compilation.chunk_graph,
-      &compilation.get_module_graph(),
+      &compilation.build_chunk_graph_artifact.chunk_graph,
+      compilation.get_module_graph(),
     )
+  {
+    return Ok(());
+  }
+  if !is_hot_update && !is_main_chunk && !is_runtime_chunk && !chunk_has_js(chunk_ukey, compilation)
   {
     return Ok(());
   }
   let filename_template = get_js_chunk_filename_template(
     chunk,
     &compilation.options.output,
-    &compilation.chunk_group_by_ukey,
+    &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
   );
-  let mut asset_info = AssetInfo::default();
+  let mut asset_info = AssetInfo::default().with_asset_type(ManifestAssetType::JavaScript);
   asset_info.set_javascript_module(compilation.options.output.module);
   let output_path = compilation
     .get_path_with_info(
@@ -519,12 +566,8 @@ async fn render_manifest(
           &compilation.chunk_hashes_artifact,
           compilation.options.output.hash_digest_length,
         ))
-        .chunk_id_optional(
-          chunk
-            .id(&compilation.chunk_ids_artifact)
-            .map(|id| id.as_str()),
-        )
-        .chunk_name_optional(chunk.name_for_filename_template(&compilation.chunk_ids_artifact))
+        .chunk_id_optional(chunk.id().map(|id| id.as_str()))
+        .chunk_name_optional(chunk.name_for_filename_template())
         .content_hash_optional(chunk.rendered_content_hash_by_source_type(
           &compilation.chunk_hashes_artifact,
           &SourceType::JavaScript,
@@ -543,21 +586,21 @@ async fn render_manifest(
     .use_cache(compilation, chunk, &SourceType::JavaScript, || async {
       let source = if let Some(source) = hooks
         .render_chunk_content
-        .call(compilation, chunk_ukey, &mut asset_info)
+        .call(compilation, chunk_ukey, &mut asset_info, &runtime_template)
         .await?
       {
         source.source
       } else if is_hot_update {
         self
-          .render_chunk(compilation, chunk_ukey, &output_path)
+          .render_chunk(compilation, chunk_ukey, &output_path, &runtime_template)
           .await?
       } else if is_runtime_chunk {
         self
-          .render_main(compilation, chunk_ukey, &output_path)
+          .render_main(compilation, chunk_ukey, &output_path, &runtime_template)
           .await?
       } else {
         self
-          .render_chunk(compilation, chunk_ukey, &output_path)
+          .render_chunk(compilation, chunk_ukey, &output_path, &runtime_template)
           .await?
       };
       Ok((CachedSource::new(source).boxed(), Vec::new()))
@@ -627,10 +670,40 @@ pub struct ExtractedCommentsInfo {
   pub comments_file_name: String,
 }
 
-fn chunk_has_js(chunk: &ChunkUkey, chunk_graph: &ChunkGraph, module_graph: &ModuleGraph) -> bool {
-  if chunk_graph.get_number_of_entry_modules(chunk) > 0 {
-    true
-  } else {
-    chunk_graph.has_chunk_module_by_source_type(chunk, SourceType::JavaScript, module_graph)
+pub fn chunk_has_js(chunk_ukey: &ChunkUkey, compilation: &Compilation) -> bool {
+  if compilation
+    .build_chunk_graph_artifact
+    .chunk_graph
+    .get_number_of_entry_modules(chunk_ukey)
+    > 0
+  {
+    return true;
   }
+
+  compilation
+    .build_chunk_graph_artifact
+    .chunk_graph
+    .has_chunk_module_by_source_type(
+      chunk_ukey,
+      SourceType::JavaScript,
+      compilation.get_module_graph(),
+    )
+}
+
+fn chunk_has_runtime_or_js(
+  chunk: &ChunkUkey,
+  chunk_graph: &ChunkGraph,
+  module_graph: &ModuleGraph,
+) -> bool {
+  if chunk_graph
+    .get_chunk_runtime_modules_iterable(chunk)
+    .next()
+    .is_some()
+  {
+    return true;
+  }
+  if chunk_graph.has_chunk_module_by_source_type(chunk, SourceType::JavaScript, module_graph) {
+    return true;
+  }
+  false
 }

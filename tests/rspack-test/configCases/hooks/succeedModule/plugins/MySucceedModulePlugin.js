@@ -1,4 +1,4 @@
-const mockFn = jest.fn();
+const mockFn = rstest.fn();
 
 class MySucceedModulePlugin {
 	apply(compiler) {

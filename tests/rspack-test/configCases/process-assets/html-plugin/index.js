@@ -12,7 +12,7 @@ it("should result in the correct HTML", () => {
 	expect(content).toMatch(/<\/script> <script/);
 
 	// check inlined js is minimized
-	expect(content).toMatch(/For license information please see inline-/);
+	expect(content).toMatch(/LICENSE: inline-/);
 
 	// contains references to normal-[contenthash].js
 	expect(content).toMatch(/normal-.{20}\.js/);

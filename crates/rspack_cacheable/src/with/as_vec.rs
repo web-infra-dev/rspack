@@ -8,7 +8,7 @@ use rkyv::{
   with::{ArchiveWith, DeserializeWith, SerializeWith},
 };
 
-use crate::{DeserializeError, with::AsCacheable};
+use crate::{Error, Result, with::AsCacheable};
 
 struct RefWrapper<'o, A, O>(&'o O, PhantomData<A>);
 
@@ -40,9 +40,7 @@ pub trait AsVecConverter {
   type Item;
   fn len(&self) -> usize;
   fn iter(&self) -> impl Iterator<Item = &Self::Item>;
-  fn from(
-    data: impl Iterator<Item = Result<Self::Item, DeserializeError>>,
-  ) -> Result<Self, DeserializeError>
+  fn from(data: impl Iterator<Item = Result<Self::Item>>) -> Result<Self>
   where
     Self: Sized;
 }
@@ -79,10 +77,10 @@ where
 impl<T, A, O, D> DeserializeWith<ArchivedVec<A::Archived>, T, D> for AsVec<A>
 where
   T: AsVecConverter<Item = O>,
-  D: Fallible<Error = DeserializeError> + ?Sized,
+  D: Fallible<Error = Error> + ?Sized,
   A: ArchiveWith<O> + DeserializeWith<A::Archived, O, D>,
 {
-  fn deserialize_with(field: &ArchivedVec<A::Archived>, d: &mut D) -> Result<T, DeserializeError> {
+  fn deserialize_with(field: &ArchivedVec<A::Archived>, d: &mut D) -> Result<T> {
     T::from(field.iter().map(|item| A::deserialize_with(item, d)))
   }
 }
@@ -96,10 +94,8 @@ impl<T> AsVecConverter for Vec<T> {
   fn iter(&self) -> impl Iterator<Item = &Self::Item> {
     <[T]>::iter(self)
   }
-  fn from(
-    data: impl Iterator<Item = Result<Self::Item, DeserializeError>>,
-  ) -> Result<Self, DeserializeError> {
-    data.collect::<Result<Vec<_>, DeserializeError>>()
+  fn from(data: impl Iterator<Item = Result<Self::Item>>) -> Result<Self> {
+    data.collect::<Result<Vec<_>>>()
   }
 }
 
@@ -116,10 +112,8 @@ where
   fn iter(&self) -> impl Iterator<Item = &Self::Item> {
     self.iter()
   }
-  fn from(
-    data: impl Iterator<Item = Result<Self::Item, DeserializeError>>,
-  ) -> Result<Self, DeserializeError> {
-    data.collect::<Result<std::collections::HashSet<T, S>, DeserializeError>>()
+  fn from(data: impl Iterator<Item = Result<Self::Item>>) -> Result<Self> {
+    data.collect::<Result<std::collections::HashSet<T, S>>>()
   }
 }
 
@@ -136,9 +130,7 @@ where
   fn iter(&self) -> impl Iterator<Item = &Self::Item> {
     self.iter()
   }
-  fn from(
-    data: impl Iterator<Item = Result<Self::Item, DeserializeError>>,
-  ) -> Result<Self, DeserializeError> {
-    data.collect::<Result<indexmap::IndexSet<T, S>, DeserializeError>>()
+  fn from(data: impl Iterator<Item = Result<Self::Item>>) -> Result<Self> {
+    data.collect::<Result<indexmap::IndexSet<T, S>>>()
   }
 }

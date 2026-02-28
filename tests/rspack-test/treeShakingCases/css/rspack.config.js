@@ -1,3 +1,4 @@
+const { DefinePlugin } = require("@rspack/core");
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	module: {
@@ -10,10 +11,12 @@ module.exports = {
 			{
 				test: /\.module\.css/,
 				type: "css/auto"
+			},
+			{
+				test: /\.css$/,
+				type: "css/auto"
 			}
 		]
 	},
-	experiments: {
-		css: true
-	}
+
 };
