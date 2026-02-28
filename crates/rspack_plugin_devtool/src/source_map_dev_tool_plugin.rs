@@ -13,8 +13,8 @@ use rayon::prelude::*;
 use regex::Regex;
 use rspack_collections::DatabaseItem;
 use rspack_core::{
-  AssetInfo, Chunk, ChunkUkey, Compilation, CompilationAsset, CompilationProcessAssets, Filename,
-  Logger, ModuleIdentifier, PathData, Plugin,
+  AssetInfo, CONTENT_HASH_PLACEHOLDER, Chunk, ChunkUkey, Compilation, CompilationAsset,
+  CompilationProcessAssets, Filename, Logger, ModuleIdentifier, PathData, Plugin,
   rspack_sources::{
     BoxSource, ConcatSource, MapOptions, ObjectPool, RawStringSource, Source, SourceExt, SourceMap,
   },
@@ -619,9 +619,14 @@ impl SourceMapDevToolPlugin {
                   None => Cow::Borrowed(asset_filename.as_ref()),
                 };
 
-                let mut hasher = RspackHash::from(&compilation.options.output);
-                hasher.write(source_map_json.as_bytes());
-                let digest = hasher.digest(&compilation.options.output.hash_digest);
+                let content_hash = if source_map_filename_config.as_str().contains(CONTENT_HASH_PLACEHOLDER) {
+                  let mut hasher = RspackHash::from(&compilation.options.output);
+                  hasher.write(source_map_json.as_bytes());
+                  let digest = hasher.digest(&compilation.options.output.hash_digest);
+                  Some(digest.encoded())
+                } else {
+                  None
+                };
 
                 let data = PathData::default().filename(&filename);
                 let data = match chunk {
@@ -638,7 +643,7 @@ impl SourceMapDevToolPlugin {
                     .chunk_name_optional(
                       chunk.name_for_filename_template(),
                     )
-                    .content_hash_optional(Some(digest.encoded())),
+                    .content_hash_optional(content_hash),
                   None => data,
                 };
                 let source_map_filename = compilation
