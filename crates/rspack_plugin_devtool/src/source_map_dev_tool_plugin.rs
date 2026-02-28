@@ -30,6 +30,7 @@ use rspack_util::{
 };
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use sugar_path::SugarPath;
+use thread_local::ThreadLocal;
 
 use crate::{
   ModuleFilenameTemplateFn, SourceReference, generate_debug_id::generate_debug_id,
@@ -309,6 +310,7 @@ impl SourceMapDevToolPlugin {
       include: self.include.as_ref(),
       exclude: self.exclude.as_ref(),
     };
+    let tls = ThreadLocal::new();
 
     let results: Vec<Result<Option<TaskAndSourceNames>>> = match &self.module_filename_template {
       ModuleFilenameTemplate::String(template) => {
@@ -328,14 +330,24 @@ impl SourceMapDevToolPlugin {
             };
 
             let map_options = map_options.clone();
-            let s =
-              unsafe { token.used((self, compilation, file_to_chunk, output_path, template)) };
+            let s = unsafe {
+              token.used((
+                self,
+                compilation,
+                file_to_chunk,
+                output_path,
+                template,
+                &tls,
+              ))
+            };
             s.spawn(
-              |(plugin, compilation, file_to_chunk, output_path, template)| async move {
-                let pool = ObjectPool::default();
-                let source_map = match source.map(&pool, &map_options) {
-                  Some(sm) => sm,
-                  None => return Ok(None),
+              |(plugin, compilation, file_to_chunk, output_path, template, tls)| async move {
+                let source_map = {
+                  let object_pool = tls.get_or(ObjectPool::default);
+                  match source.map(object_pool, &map_options) {
+                    Some(sm) => sm,
+                    None => return Ok(None),
+                  }
                 };
 
                 let source_references = compute_source_references(compilation, &source_map);
@@ -420,14 +432,25 @@ impl SourceMapDevToolPlugin {
 
             let asset_filename: Arc<str> = Arc::from(asset_filename);
             let map_options = map_options.clone();
-            let s =
-              unsafe { token.used((self, compilation, output_path, f, source, asset_filename)) };
+            let s = unsafe {
+              token.used((
+                self,
+                compilation,
+                output_path,
+                f,
+                source,
+                asset_filename,
+                &tls,
+              ))
+            };
             s.spawn(
-              |(plugin, compilation, output_path, f, source, asset_filename)| async move {
-                let pool = ObjectPool::default();
-                let source_map = match source.map(&pool, &map_options) {
-                  Some(sm) => sm,
-                  None => return Ok(None),
+              |(plugin, compilation, output_path, f, source, asset_filename, tls)| async move {
+                let source_map = {
+                  let object_pool = tls.get_or(ObjectPool::default);
+                  match source.map(object_pool, &map_options) {
+                    Some(sm) => sm,
+                    None => return Ok(None),
+                  }
                 };
 
                 let source_references = compute_source_references(compilation, &source_map);
