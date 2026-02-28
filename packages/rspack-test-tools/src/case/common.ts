@@ -1,6 +1,6 @@
+import path from 'node:path';
 import type { Compilation, Compiler, RspackOptions, Stats } from '@rspack/core';
 import fs from 'fs-extra';
-import path from 'path';
 import merge from 'webpack-merge';
 import { readConfigFile } from '../helper';
 import { normalizePlaceholder } from '../helper/expect/placeholder';

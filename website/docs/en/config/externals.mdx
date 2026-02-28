@@ -25,7 +25,6 @@ For example, to include [jQuery](https://jquery.com/) from a CDN instead of bund
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   externals: {
     jquery: 'jquery',
   },
@@ -52,7 +51,6 @@ You can also use the shortcut syntax if you're defining only 1 external:
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   externals: 'jquery',
 };
 ```
@@ -61,7 +59,6 @@ equals to
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   externals: {
     jquery: 'jquery',
   },
@@ -74,7 +71,6 @@ For example, if the external library is a [CommonJS module](#externalstypecommon
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   externals: {
     jquery: 'commonjs jquery',
   },
@@ -85,7 +81,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   externals: {
     subtract: ['./math', 'subtract'],
   },
@@ -100,7 +95,6 @@ Similar to the [string syntax](#string), you can specify the external library ty
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   externals: {
     subtract: ['commonjs ./math', 'subtract'],
   },
@@ -158,7 +152,6 @@ As an example, to externalize all imports where the import path matches a regula
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   externals: [
     function ({ context, request }, callback) {
       if (/^yourregex$/.test(request)) {
@@ -230,7 +223,6 @@ Every dependency that matches the given regular expression will be excluded from
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   externals: /^(jquery|\$)$/i,
 };
 ```
@@ -243,7 +235,6 @@ Sometimes you may want to use a combination of the above syntaxes. This can be d
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   externals: [
     {
       // String
@@ -307,7 +298,6 @@ Supported types:
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   externalsType: 'promise',
 };
 ```

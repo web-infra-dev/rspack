@@ -2,8 +2,8 @@ use std::hash::Hash;
 
 use rspack_core::{
   ChunkUkey, Compilation, CompilationParams, CompilerCompilation, ExportProvided, ExportsType,
-  LibraryOptions, ModuleGraph, ModuleIdentifier, Plugin, PrefetchExportsInfoMode, RuntimeVariable,
-  UsedNameItem, property_access,
+  LibraryOptions, ModuleGraph, ModuleIdentifier, Plugin, PrefetchExportsInfoMode,
+  RuntimeCodeTemplate, RuntimeVariable, UsedNameItem, property_access,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
   to_identifier, to_module_export_name,
 };
@@ -67,13 +67,12 @@ async fn render_startup(
   chunk_ukey: &ChunkUkey,
   module: &ModuleIdentifier,
   render_source: &mut RenderSource,
+  runtime_template: &RuntimeCodeTemplate<'_>,
 ) -> Result<()> {
   let Some(_) = self.get_options_for_chunk(compilation, chunk_ukey)? else {
     return Ok(());
   };
-  let exports_name = compilation
-    .runtime_template
-    .render_runtime_variable(&RuntimeVariable::Exports);
+  let exports_name = runtime_template.render_runtime_variable(&RuntimeVariable::Exports);
   let mut source = ConcatSource::default();
   let is_async = ModuleGraph::is_async(&compilation.async_modules_artifact, module);
   let module_graph = compilation.get_module_graph();
@@ -85,14 +84,16 @@ async fn render_startup(
       "{exports_name} = await {exports_name};\n"
     )));
   }
-  let exports_info =
-    module_graph.get_prefetched_exports_info(module, PrefetchExportsInfoMode::Default);
+  let exports_info = compilation
+    .exports_info_artifact
+    .get_prefetched_exports_info(module, PrefetchExportsInfoMode::Default);
   let boxed_module = module_graph
     .module_by_identifier(module)
     .expect("should have build meta");
   let exports_type = boxed_module.get_exports_type(
     module_graph,
     &compilation.module_graph_cache_artifact,
+    &compilation.exports_info_artifact,
     boxed_module.build_info().strict,
   );
   for (_, export_info) in exports_info.exports() {

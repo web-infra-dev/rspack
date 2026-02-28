@@ -29,7 +29,7 @@ When [mode](/config/mode) is set to `production`, Rspack enables several tree sh
 - [usedExports](/config/optimization#optimizationusedexports): Detects which module exports are used, enabling removal of unused exports.
 - [sideEffects](/config/optimization#optimizationsideeffects): Analyzes modules for side effects. Modules without side effects can be further optimized through re-exports.
 - [providedExports](/config/optimization#optimizationprovidedExports): Analyzes all exports and tracks their re-export sources.
-- [innerGraph](/config/optimization#optimizationsinnergraph): Tracks variable usage to more accurately determine if exports are actually used.
+- [innerGraph](/config/optimization#optimizationinnergraph): Tracks variable usage to more accurately determine if exports are actually used.
 
 The following examples illustrate how these options work. For clarity, we'll use simplified code to demonstrate code removal.
 

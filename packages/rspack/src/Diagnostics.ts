@@ -184,8 +184,11 @@ export function createDiagnosticArray(
       if (name === 'length') {
         return adm.length;
       }
-      if (typeof name === 'string' && !Number.isNaN(Number.parseInt(name))) {
-        return adm.get(Number.parseInt(name));
+      if (
+        typeof name === 'string' &&
+        !Number.isNaN(Number.parseInt(name, 10))
+      ) {
+        return adm.get(Number.parseInt(name, 10));
       }
       if (Object.prototype.hasOwnProperty.call(arrayExtensions, name)) {
         return arrayExtensions[name];
@@ -198,11 +201,11 @@ export function createDiagnosticArray(
           "The 'length' property is read-only and cannot be assigned a new value.",
         );
       }
-      if (typeof name === 'symbol' || Number.isNaN(Number.parseInt(name))) {
+      if (typeof name === 'symbol' || Number.isNaN(Number.parseInt(name, 10))) {
         target[name] = value;
       } else {
         // numeric string
-        adm.set(Number.parseInt(name), value);
+        adm.set(Number.parseInt(name, 10), value);
       }
       return true;
     },

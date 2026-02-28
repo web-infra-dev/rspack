@@ -13,5 +13,12 @@ module.exports = {
 			publicPath: "/dist/"
 		}
 	},
+	module: {
+		parser: {
+			javascript: {
+				exportsPresence: "auto",
+			}
+		}
+	},
 	plugins: [new HotModuleReplacementPlugin()]
 };

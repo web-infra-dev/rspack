@@ -12,8 +12,8 @@ use indexmap::{IndexMap, IndexSet};
 use regex::{Captures, Regex};
 use rspack_core::{
   ChunkGraph, Compilation, CompilerOptions, CssExportsConvention, GenerateContext, LocalIdentName,
-  ModuleArgument, ModuleCodegenRuntimeTemplate, PathData, RESERVED_IDENTIFIER, ResourceData,
-  RuntimeGlobals, RuntimeSpec, UsedNameItem,
+  ModuleArgument, ModuleCodeTemplate, PathData, RESERVED_IDENTIFIER, ResourceData, RuntimeGlobals,
+  RuntimeSpec, UsedNameItem,
   rspack_sources::{ConcatSource, RawStringSource},
   to_identifier,
 };
@@ -150,7 +150,7 @@ pub fn css_modules_exports_to_string<'a>(
   module: &dyn rspack_core::Module,
   compilation: &Compilation,
   runtime: Option<&RuntimeSpec>,
-  runtime_template: &mut ModuleCodegenRuntimeTemplate,
+  runtime_template: &mut ModuleCodeTemplate,
   ns_obj: &str,
   left: &str,
   right: &str,
@@ -185,16 +185,18 @@ if ({module_argument}.hot.data && {module_argument}.hot.data.exports && {module_
 pub fn stringified_exports<'a>(
   exports: IndexMap<&'a str, &'a IndexSet<CssExport>>,
   compilation: &Compilation,
-  runtime_template: &mut ModuleCodegenRuntimeTemplate,
+  runtime_template: &mut ModuleCodeTemplate,
   module: &dyn rspack_core::Module,
   runtime: Option<&RuntimeSpec>,
 ) -> Result<(&'static str, String)> {
   let mut stringified_exports = String::new();
   let module_graph = compilation.get_module_graph();
-  let exports_info = module_graph.get_prefetched_exports_info(
-    &module.identifier(),
-    rspack_core::PrefetchExportsInfoMode::Default,
-  );
+  let exports_info = compilation
+    .exports_info_artifact
+    .get_prefetched_exports_info(
+      &module.identifier(),
+      rspack_core::PrefetchExportsInfoMode::Default,
+    );
   for (key, elements) in exports {
     let export_info = exports_info.get_read_only_export_info(&Atom::from(key));
     let used_name = export_info.get_used_name(None, runtime);
@@ -233,10 +235,12 @@ pub fn stringified_exports<'a>(
               })
               .expect("should have css from module");
 
-            let from_exports_info = module_graph.get_prefetched_exports_info(
-              &from.module_identifier,
-              rspack_core::PrefetchExportsInfoMode::Default,
-            );
+            let from_exports_info = compilation
+              .exports_info_artifact
+              .get_prefetched_exports_info(
+                &from.module_identifier,
+                rspack_core::PrefetchExportsInfoMode::Default,
+              );
             let from_used_name = match from_exports_info
               .get_read_only_export_info(&Atom::from(ident.as_str()))
               .get_used_name(None, runtime)
@@ -286,6 +290,7 @@ pub fn css_modules_exports_to_concatenate_module_string<'a>(
     compilation,
     concatenation_scope,
     runtime,
+    runtime_template,
     ..
   } = generate_context;
   let Some(scope) = concatenation_scope else {
@@ -293,10 +298,12 @@ pub fn css_modules_exports_to_concatenate_module_string<'a>(
   };
   let module_graph = compilation.get_module_graph();
   let mut used_identifiers = HashSet::default();
-  let exports_info = module_graph.get_prefetched_exports_info(
-    &module.identifier(),
-    rspack_core::PrefetchExportsInfoMode::Default,
-  );
+  let exports_info = compilation
+    .exports_info_artifact
+    .get_prefetched_exports_info(
+      &module.identifier(),
+      rspack_core::PrefetchExportsInfoMode::Default,
+    );
   for (key, elements) in exports {
     let export_info = exports_info.get_read_only_export_info(&Atom::from(key));
     let used_name = export_info.get_used_name(None, *runtime);
@@ -335,10 +342,12 @@ pub fn css_modules_exports_to_concatenate_module_string<'a>(
               })
               .expect("should have css from module");
 
-            let from_exports_info = module_graph.get_prefetched_exports_info(
-              &from.module_identifier,
-              rspack_core::PrefetchExportsInfoMode::Default,
-            );
+            let from_exports_info = compilation
+              .exports_info_artifact
+              .get_prefetched_exports_info(
+                &from.module_identifier,
+                rspack_core::PrefetchExportsInfoMode::Default,
+              );
             let from_used_name = match from_exports_info
               .get_read_only_export_info(&Atom::from(ident.as_str()))
               .get_used_name(None, *runtime)
@@ -354,9 +363,7 @@ pub fn css_modules_exports_to_concatenate_module_string<'a>(
             .expect("should json stringify module id");
             format!(
               "{}({from})[{}]",
-              compilation
-                .runtime_template
-                .render_runtime_globals(&RuntimeGlobals::REQUIRE),
+              runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
               from_used_name
             )
           }

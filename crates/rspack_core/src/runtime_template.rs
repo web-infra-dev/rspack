@@ -1,5 +1,5 @@
 use std::{
-  fmt::Debug,
+  fmt::{Debug, Write},
   sync::{Arc, LazyLock, Mutex},
 };
 
@@ -17,10 +17,10 @@ use swc_core::atoms::Atom;
 
 use crate::{
   AsyncDependenciesBlockIdentifier, ChunkGraph, Compilation, CompilerOptions, DependenciesBlock,
-  DependencyId, DependencyType, ExportsArgument, ExportsInfoGetter, ExportsType,
-  FakeNamespaceObjectMode, GenerateContext, GetUsedNameParam, ImportPhase, InitFragment,
-  InitFragmentExt, InitFragmentKey, InitFragmentStage, Module, ModuleArgument, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleId, ModuleIdentifier, NormalInitFragment, PathInfo,
+  DependencyId, DependencyType, ExportsArgument, ExportsInfoArtifact, ExportsInfoGetter,
+  ExportsType, FakeNamespaceObjectMode, GenerateContext, GetUsedNameParam, ImportPhase,
+  InitFragment, InitFragmentExt, InitFragmentKey, InitFragmentStage, Module, ModuleArgument,
+  ModuleGraph, ModuleGraphCacheArtifact, ModuleId, ModuleIdentifier, NormalInitFragment, PathInfo,
   PrefetchExportsInfoMode, RuntimeCondition, RuntimeGlobals, RuntimeSpec, UsedName,
   compile_boolean_matcher_from_lists, contextify, property_access,
   runtime_globals::{RuntimeVariable, runtime_globals_to_string, runtime_variable_to_string},
@@ -158,74 +158,6 @@ impl RuntimeTemplate {
     }
   }
 
-  pub fn render(&self, key: &str, params: Option<serde_json::Value>) -> Result<String, Error> {
-    let mut render_params = Value::Object(Default::default());
-
-    render_params
-      .as_object_mut()
-      .unwrap_or_else(|| unreachable!())
-      .extend(
-        self
-          .runtime_globals
-          .iter()
-          .map(|(k, v)| (k.clone(), v.clone())),
-      );
-
-    if let Some(params) = params {
-      match params {
-        Value::Object(params) => {
-          for (k, v) in params {
-            render_params
-              .as_object_mut()
-              .unwrap_or_else(|| unreachable!())
-              .insert(k, v);
-          }
-        }
-        _ => panic!("Should receive a map value"),
-      }
-    }
-
-    if let Some((executer, file_content)) = self
-      .dojang
-      .as_ref()
-      .expect("dojang should be initialized")
-      .templates
-      .get(key)
-    {
-      executer
-        .render(
-          &mut Context::new(render_params),
-          &self
-            .dojang
-            .as_ref()
-            .expect("dojang should be initialized")
-            .templates,
-          &self
-            .dojang
-            .as_ref()
-            .expect("dojang should be initialized")
-            .functions,
-          file_content,
-          &mut Mutex::new(std::collections::HashMap::new()),
-        )
-        // Replace Windows-style line endings (\r\n) with Unix-style (\n) to ensure consistent runtime templates across platforms
-        .map(|render| render.cow_replace("\r\n", "\n").to_string())
-        .to_rspack_result_with_message(|e| {
-          format!("Runtime module: failed to render template {key} from: {e}")
-        })
-    } else {
-      Err(error!("Runtime module: Template {key} is not found"))
-    }
-  }
-
-  pub fn render_runtime_globals(&self, runtime_globals: &RuntimeGlobals) -> String {
-    runtime_globals_to_string(runtime_globals, &self.compiler_options)
-  }
-
-  pub fn render_runtime_variable(&self, runtime_variable: &RuntimeVariable) -> String {
-    runtime_variable_to_string(runtime_variable, &self.compiler_options)
-  }
-
   pub fn runtime_module_prefix(&self) -> &'static str {
     "webpack/runtime/"
   }
@@ -247,8 +179,16 @@ impl RuntimeTemplate {
     Identifier::from(format!("{}{custom}", self.runtime_module_prefix()))
   }
 
-  pub fn create_module_codegen_runtime_template(&self) -> ModuleCodegenRuntimeTemplate {
-    ModuleCodegenRuntimeTemplate::new(self.compiler_options.clone())
+  pub fn create_module_code_template(&self) -> ModuleCodeTemplate {
+    ModuleCodeTemplate::new(self.compiler_options.clone())
+  }
+
+  pub fn create_runtime_code_template<'a>(&'a self) -> RuntimeCodeTemplate<'a> {
+    RuntimeCodeTemplate::new(
+      self.compiler_options.clone(),
+      self.runtime_globals.clone(),
+      self.dojang.as_ref().expect("dojang should be initialized"),
+    )
   }
 }
 
@@ -458,6 +398,7 @@ pub fn render_make_deferred_namespace_mode_from_exports_type(exports_type: Expor
 pub fn get_exports_type(
   module_graph: &ModuleGraph,
   module_graph_cache: &ModuleGraphCacheArtifact,
+  exports_info_artifact: &ExportsInfoArtifact,
   id: &DependencyId,
   parent_module: &ModuleIdentifier,
 ) -> ExportsType {
@@ -465,12 +406,19 @@ pub fn get_exports_type(
     .module_by_identifier(parent_module)
     .expect("should have mgm")
     .get_strict_esm_module();
-  get_exports_type_with_strict(module_graph, module_graph_cache, id, strict)
+  get_exports_type_with_strict(
+    module_graph,
+    module_graph_cache,
+    exports_info_artifact,
+    id,
+    strict,
+  )
 }
 
 pub fn get_exports_type_with_strict(
   module_graph: &ModuleGraph,
   module_graph_cache: &ModuleGraphCacheArtifact,
+  exports_info_artifact: &ExportsInfoArtifact,
   id: &DependencyId,
   strict: bool,
 ) -> ExportsType {
@@ -480,7 +428,12 @@ pub fn get_exports_type_with_strict(
   module_graph
     .module_by_identifier(module)
     .expect("should have module")
-    .get_exports_type(module_graph, module_graph_cache, strict)
+    .get_exports_type(
+      module_graph,
+      module_graph_cache,
+      exports_info_artifact,
+      strict,
+    )
 }
 
 pub fn get_outgoing_async_modules(
@@ -544,12 +497,12 @@ pub fn get_outgoing_async_modules(
 }
 
 #[derive(Debug)]
-pub struct ModuleCodegenRuntimeTemplate {
+pub struct ModuleCodeTemplate {
   compiler_options: Arc<CompilerOptions>,
   runtime_requirements: RuntimeGlobals,
 }
 
-impl ModuleCodegenRuntimeTemplate {
+impl ModuleCodeTemplate {
   pub fn new(compiler_options: Arc<CompilerOptions>) -> Self {
     Self {
       compiler_options,
@@ -984,6 +937,7 @@ impl ModuleCodegenRuntimeTemplate {
     let exports_type = get_exports_type(
       mg,
       &compilation.module_graph_cache_artifact,
+      &compilation.exports_info_artifact,
       id,
       &module.identifier(),
     );
@@ -1035,8 +989,13 @@ impl ModuleCodegenRuntimeTemplate {
       return self.missing_module(request);
     };
 
-    let exports_type =
-      get_exports_type(mg, &compilation.module_graph_cache_artifact, id, &module_id);
+    let exports_type = get_exports_type(
+      mg,
+      &compilation.module_graph_cache_artifact,
+      &compilation.exports_info_artifact,
+      id,
+      &module_id,
+    );
 
     let target_module_identifier = target_module.identifier();
 
@@ -1051,10 +1010,14 @@ impl ModuleCodegenRuntimeTemplate {
         if is_deferred && !matches!(exports_type, ExportsType::Namespace) {
           let name = &export_name[1..];
           let Some(used) = ExportsInfoGetter::get_used_name(
-            GetUsedNameParam::WithNames(&mg.get_prefetched_exports_info(
-              &target_module_identifier,
-              PrefetchExportsInfoMode::Nested(name),
-            )),
+            GetUsedNameParam::WithNames(
+              &compilation
+                .exports_info_artifact
+                .get_prefetched_exports_info(
+                  &target_module_identifier,
+                  PrefetchExportsInfoMode::Nested(name),
+                ),
+            ),
             runtime,
             name,
           ) else {
@@ -1160,10 +1123,14 @@ impl ModuleCodegenRuntimeTemplate {
       .unwrap_or(export_name);
     if !export_name.is_empty() {
       let used_name = match ExportsInfoGetter::get_used_name(
-        GetUsedNameParam::WithNames(&mg.get_prefetched_exports_info(
-          &target_module_identifier,
-          PrefetchExportsInfoMode::Nested(export_name),
-        )),
+        GetUsedNameParam::WithNames(
+          &compilation
+            .exports_info_artifact
+            .get_prefetched_exports_info(
+              &target_module_identifier,
+              PrefetchExportsInfoMode::Nested(export_name),
+            ),
+        ),
         runtime,
         export_name,
       ) {
@@ -1262,6 +1229,7 @@ impl ModuleCodegenRuntimeTemplate {
     let exports_type = get_exports_type(
       mg,
       &compilation.module_graph_cache_artifact,
+      &compilation.exports_info_artifact,
       dep_id,
       &module_id,
     );
@@ -1319,11 +1287,13 @@ impl ModuleCodegenRuntimeTemplate {
             )
           );
         }
-        appending.push_str(&format!(
+        write!(
+          appending,
           ".then({}.bind({}, {module_id_expr}, {mode}))",
           self.render_runtime_globals(&RuntimeGlobals::MAKE_DEFERRED_NAMESPACE_OBJECT),
           self.render_runtime_globals(&RuntimeGlobals::REQUIRE)
-        ));
+        )
+        .expect("infallible write to String");
       } else if let Some(header) = header {
         let rendered_async_deps_fn =
           self.render_runtime_globals(&RuntimeGlobals::MAKE_DEFERRED_NAMESPACE_OBJECT);
@@ -1466,5 +1436,118 @@ return {}
       },
       "",
     )
+  }
+}
+
+pub struct RuntimeCodeTemplate<'a> {
+  compiler_options: Arc<CompilerOptions>,
+  runtime_globals: Arc<Map<String, Value>>,
+  dojang: &'a Dojang,
+}
+
+impl<'a> RuntimeCodeTemplate<'a> {
+  pub fn new(
+    compiler_options: Arc<CompilerOptions>,
+    runtime_globals: Arc<Map<String, Value>>,
+    dojang: &'a Dojang,
+  ) -> Self {
+    Self {
+      compiler_options,
+      runtime_globals,
+      dojang,
+    }
+  }
+
+  pub fn render_runtime_globals(&self, runtime_globals: &RuntimeGlobals) -> String {
+    runtime_globals_to_string(runtime_globals, &self.compiler_options)
+  }
+
+  pub fn render_runtime_variable(&self, runtime_variable: &RuntimeVariable) -> String {
+    runtime_variable_to_string(runtime_variable, &self.compiler_options)
+  }
+
+  pub fn render_exports_argument(&self, exports_argument: ExportsArgument) -> String {
+    match exports_argument {
+      ExportsArgument::Exports => "exports".to_string(),
+      ExportsArgument::RspackExports => self.render_runtime_variable(&RuntimeVariable::Exports),
+    }
+  }
+
+  pub fn render_module_argument(&self, module_argument: ModuleArgument) -> String {
+    match module_argument {
+      ModuleArgument::Module => "module".to_string(),
+      ModuleArgument::RspackModule => self.render_runtime_variable(&RuntimeVariable::Module),
+    }
+  }
+
+  pub fn render_this_exports(&self) -> String {
+    "this".to_string()
+  }
+
+  pub fn render(&self, key: &str, params: Option<serde_json::Value>) -> Result<String, Error> {
+    let mut render_params = Value::Object(Default::default());
+
+    render_params
+      .as_object_mut()
+      .unwrap_or_else(|| unreachable!())
+      .extend(
+        self
+          .runtime_globals
+          .iter()
+          .map(|(k, v)| (k.clone(), v.clone())),
+      );
+
+    if let Some(params) = params {
+      match params {
+        Value::Object(params) => {
+          for (k, v) in params {
+            render_params
+              .as_object_mut()
+              .unwrap_or_else(|| unreachable!())
+              .insert(k, v);
+          }
+        }
+        _ => panic!("Should receive a map value"),
+      }
+    }
+
+    if let Some((executer, file_content)) = self.dojang.templates.get(key) {
+      executer
+        .render(
+          &mut Context::new(render_params),
+          &self.dojang.templates,
+          &self.dojang.functions,
+          file_content,
+          &mut Mutex::new(std::collections::HashMap::new()),
+        )
+        // Replace Windows-style line endings (\r\n) with Unix-style (\n) to ensure consistent runtime templates across platforms
+        .map(|render| render.cow_replace("\r\n", "\n").to_string())
+        .to_rspack_result_with_message(|e| {
+          format!("Runtime module: failed to render template {key} from: {e}")
+        })
+    } else {
+      Err(error!("Runtime module: Template {key} is not found"))
+    }
+  }
+
+  pub fn basic_function(&self, args: &str, body: &str) -> String {
+    if self
+      .compiler_options
+      .output
+      .environment
+      .supports_arrow_function()
+    {
+      format!(
+        r#"({args}) => {{
+{body}
+}}"#
+      )
+    } else {
+      format!(
+        r#"function({args}) {{
+{body}
+}}"#
+      )
+    }
   }
 }

@@ -1,6 +1,6 @@
 use rspack_core::{
-  Compilation, Filename, PublicPath, RuntimeGlobals, RuntimeModule, RuntimeTemplate,
-  has_hash_placeholder, impl_runtime_module,
+  Filename, PublicPath, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext,
+  RuntimeTemplate, has_hash_placeholder, impl_runtime_module,
 };
 
 #[impl_runtime_module]
@@ -17,10 +17,14 @@ impl PublicPathRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for PublicPathRuntimeModule {
-  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
+  async fn generate(
+    &self,
+    context: &RuntimeModuleGenerateContext<'_>,
+  ) -> rspack_error::Result<String> {
+    let compilation = context.compilation;
     Ok(format!(
       "{} = \"{}\";",
-      compilation
+      context
         .runtime_template
         .render_runtime_globals(&RuntimeGlobals::PUBLIC_PATH),
       &PublicPath::render_filename(compilation, &self.public_path).await,

@@ -7,7 +7,7 @@ use rspack_cacheable::cacheable;
 use rspack_core::{
   AsyncModulesArtifact, BoxDependency, ChunkUkey, Compilation,
   CompilationAdditionalTreeRuntimeRequirements, CompilationFinishModules, CompilerFinishMake,
-  EntryOptions, Plugin, RuntimeGlobals, RuntimeModule,
+  EntryOptions, ExportsInfoArtifact, Plugin, RuntimeGlobals, RuntimeModule,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -97,8 +97,9 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
 #[plugin_hook(CompilationFinishModules for ModuleFederationRuntimePlugin, stage = 1000)]
 async fn finish_modules(
   &self,
-  compilation: &mut Compilation,
+  compilation: &Compilation,
   async_modules_artifact: &mut AsyncModulesArtifact,
+  _exports_info_artifact: &mut ExportsInfoArtifact,
 ) -> Result<()> {
   if !self.options.experiments.async_startup {
     return Ok(());
@@ -112,7 +113,7 @@ async fn finish_modules(
       .downcast_ref::<ContainerEntryModule>()
       .is_some()
     {
-      async_modules_artifact.insert(module_identifier);
+      async_modules_artifact.insert(*module_identifier);
     }
   }
 

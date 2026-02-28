@@ -29,7 +29,7 @@ impl<'jsobject> TryFrom<JsSourceFromJs<'jsobject>> for BoxSource {
       Either::A(string) => {
         if let Some(json) = value.map {
           let source_map =
-            SourceMap::from_json(&json).map_err(|e| napi::Error::from_reason(format!("{}", e)))?;
+            SourceMap::from_json(&json).map_err(|e| napi::Error::from_reason(format!("{e}")))?;
           Ok(
             SourceMapSource::new(WithoutOriginalOptions {
               value: string,

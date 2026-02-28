@@ -4,8 +4,9 @@ use rspack_core::{
   AsyncDependenciesBlockIdentifier, ChunkUkey, Compilation,
   CompilationAdditionalTreeRuntimeRequirements, CompilationDependencyReferencedExports,
   CompilationOptimizeDependencies, CompilationProcessAssets, DependenciesBlock, Dependency,
-  DependencyId, DependencyType, ExtendedReferencedExport, ModuleGraph, ModuleIdentifier, Plugin,
-  RuntimeGlobals, RuntimeModule, RuntimeModuleExt, RuntimeSpec, SideEffectsOptimizeArtifact,
+  DependencyId, DependencyType, ExportsInfoArtifact, ExtendedReferencedExport, Module, ModuleGraph,
+  ModuleIdentifier, Plugin, RuntimeGlobals, RuntimeModule, RuntimeModuleExt, RuntimeSpec,
+  SideEffectsOptimizeArtifact,
   build_module_graph::BuildModuleGraphArtifact,
   rspack_sources::{RawStringSource, SourceExt, SourceValue},
 };
@@ -129,11 +130,12 @@ async fn optimize_dependencies(
   _compilation: &Compilation,
   _side_effects_optimize_artifact: &mut SideEffectsOptimizeArtifact,
   build_module_graph_artifact: &mut BuildModuleGraphArtifact,
+  exports_info_artifact: &mut ExportsInfoArtifact,
   _diagnostics: &mut Vec<Diagnostic>,
 ) -> Result<Option<bool>> {
   let module_ids: Vec<_> = {
     let module_graph = build_module_graph_artifact.get_module_graph();
-    module_graph.modules().keys().copied().collect()
+    module_graph.modules_keys().copied().collect()
   };
   self.apply_custom_exports();
   for module_id in module_ids {
@@ -240,12 +242,10 @@ async fn optimize_dependencies(
           continue;
         }
 
-        let module_graph_mut = build_module_graph_artifact.get_module_graph_mut();
-        module_graph_mut.active_all_exports_info();
+        exports_info_artifact.reset_all_exports_info_used();
         // mark used for collected modules
         for module_id in &modules_to_process {
-          let exports_info = module_graph_mut.get_exports_info(module_id);
-          let exports_info_data = exports_info.as_data_mut(module_graph_mut);
+          let exports_info_data = exports_info_artifact.get_exports_info_data_mut(module_id);
 
           for export_name in runtime_reference_exports.iter() {
             let export_atom = Atom::from(export_name.as_str());
@@ -257,8 +257,8 @@ async fn optimize_dependencies(
         }
 
         // find if can update real share module
-        let exports_info = module_graph_mut.get_exports_info(&real_shared_identifier);
-        let exports_info_data = exports_info.as_data_mut(module_graph_mut);
+        let exports_info_data =
+          exports_info_artifact.get_exports_info_data_mut(&real_shared_identifier);
         let can_update_module_used_stage = {
           let exports_view = exports_info_data.exports();
           if exports_view.is_empty() {
@@ -432,6 +432,7 @@ fn dependency_referenced_exports(
       final_exports = esm_dep.get_referenced_exports(
         module_graph,
         &compilation.module_graph_cache_artifact,
+        &compilation.exports_info_artifact,
         _runtime,
       );
     }

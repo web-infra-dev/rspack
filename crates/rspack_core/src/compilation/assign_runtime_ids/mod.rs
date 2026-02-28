@@ -27,7 +27,7 @@ impl PassExt for AssignRuntimeIdsPass {
           Some(EntryRuntime::String(s)) => Some(s.to_owned()),
           _ => None,
         })
-        .or(entrypoint.name().map(|n| n.to_string()));
+        .or_else(|| entrypoint.name().map(|n| n.to_string()));
       if let (Some(runtime), Some(chunk)) = (
         runtime,
         chunk_by_ukey.get(&entrypoint.get_runtime_chunk(chunk_group_by_ukey)),

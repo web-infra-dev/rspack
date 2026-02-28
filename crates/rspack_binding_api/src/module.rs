@@ -201,10 +201,7 @@ impl Module {
           let name_clone = Object::from_raw(env.raw(), name.raw());
           let name_str = name_clone.coerce_to_string()?.into_string();
           // known build info properties
-          if name_str == "assets" {
-            // TODO: Currently, setting assets is not supported.
-            continue;
-          } else {
+          if name_str != "assets" {
             let value = input_object.get_property::<Unknown, Unknown>(name)?;
             new_instance.set_property::<Unknown, Unknown>(name, value)?;
           }

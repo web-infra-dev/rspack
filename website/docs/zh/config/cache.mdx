@@ -22,6 +22,7 @@ type CacheOptions =
       buildDependencies?: string[];
       version?: string;
       portable?: boolean;
+      readonly?: boolean;
       snapshot?: {
         immutablePaths?: Array<string | RegExp>;
         unmanagedPaths?: Array<string | RegExp>;
@@ -146,6 +147,28 @@ export default {
 项目目录之外的文件（`config.context` 之外）会被转换为相对路径。如果这些文件在新环境中不存在，将会触发相关模块的重新构建。
 
 :::
+
+### cache.readonly
+
+- **类型：** `boolean`
+
+- **默认值：** `false`
+
+启用只读缓存模式。启用后，缓存将仅从磁盘读取而不会被写入，这在 CI 环境中非常有用，可以使用预热的缓存而不修改它。
+
+**示例：**
+
+仅在 CI 启用：
+
+```js title="rspack.config.mjs"
+export default {
+  cache: {
+    type: 'persistent',
+    // 请确保你的 CI 环境设置了 `process.env.CI`（或类似的环境变量）
+    readonly: Boolean(process.env.CI),
+  },
+};
+```
 
 ### cache.snapshot
 

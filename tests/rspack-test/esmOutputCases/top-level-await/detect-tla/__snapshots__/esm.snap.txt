@@ -11,8 +11,8 @@ function cb(v) {
   return v
 }
 
-const index_mod = await import("./async_js.mjs").then((mod) => ({ value: mod.value }))
-const {value: value} = cb(index_mod);
+const mod = await import("./async_js.mjs")
+const {value: value} = cb(mod);
 
 it('should have correct value', () => {
   expect(value()).toBe(42);

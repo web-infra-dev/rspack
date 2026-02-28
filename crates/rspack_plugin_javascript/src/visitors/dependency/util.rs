@@ -1,3 +1,5 @@
+use std::sync::LazyLock;
+
 use rspack_core::DependencyRange;
 use rspack_error::{Diagnostic, Error, Severity};
 use rspack_regex::RspackRegex;
@@ -7,6 +9,9 @@ use swc_core::{
 };
 
 use super::JavascriptParser;
+
+static DEFAULT_CONTEXT_REGEXP: LazyLock<RspackRegex> =
+  LazyLock::new(|| RspackRegex::new(r"^\.\/.*$").expect("reg failed"));
 
 pub mod expr_name {
   pub const MODULE: &str = "module";
@@ -50,6 +55,11 @@ pub fn create_traceable_error(
     title,
     message,
   )
+}
+
+#[inline]
+pub fn default_context_reg_exp() -> RspackRegex {
+  DEFAULT_CONTEXT_REGEXP.clone()
 }
 
 pub fn context_reg_exp(

@@ -432,8 +432,13 @@ impl<'a> BuiltinPlugin<'a> {
       BuiltinPluginName::EsmLibraryPlugin => {
         let options = downcast_into::<RawEsmLibraryPlugin>(self.options)
           .map_err(|report| napi::Error::from_reason(report.to_string()))?;
-        plugins
-          .push(EsmLibraryPlugin::new(options.preserve_modules.as_deref().map(Into::into)).boxed());
+        plugins.push(
+          EsmLibraryPlugin::new(
+            options.preserve_modules.as_deref().map(Into::into),
+            options.split_chunks.map(Into::into),
+          )
+          .boxed(),
+        );
       }
       BuiltinPluginName::ArrayPushCallbackChunkFormatPlugin => {
         plugins.push(ArrayPushCallbackChunkFormatPlugin::default().boxed());
@@ -511,7 +516,7 @@ impl<'a> BuiltinPlugin<'a> {
           .into_iter()
           .map(Into::into)
           .collect();
-        provides.sort_unstable_by_key(|(k, _)| k.to_string());
+        provides.sort_unstable_by_key(|(k, _)| k.clone());
         plugins.push(ProvideSharedPlugin::new(provides).boxed())
       }
       BuiltinPluginName::CollectSharedEntryPlugin => {

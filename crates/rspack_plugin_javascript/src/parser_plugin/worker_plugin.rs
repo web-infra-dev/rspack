@@ -90,7 +90,7 @@ fn add_dependencies(
   let runtime = digest
     .rendered(output_options.hash_digest_length)
     .to_owned();
-  let range = parsed_options.as_ref().and_then(|options| options.range);
+  let options_range = parsed_options.as_ref().and_then(|options| options.range);
   let name = parsed_options.and_then(|options| options.name);
   let output_module = output_options.module;
   let dep = Box::new(WorkerDependency::new(
@@ -100,13 +100,10 @@ fn add_dependencies(
     parsed_path.range.into(),
     need_new_url,
   ));
-  let mut block = AsyncDependenciesBlock::new(
-    *parser.module_identifier,
-    Into::<DependencyRange>::into(span).to_loc(Some(parser.source())),
-    None,
-    vec![dep],
-    None,
-  );
+  let range = DependencyRange::from(span);
+  let loc = parser.to_dependency_location(range);
+  let mut block =
+    AsyncDependenciesBlock::new(*parser.module_identifier, loc, None, vec![dep], None);
   block.set_group_options(GroupOptions::Entrypoint(Box::new(EntryOptions {
     name,
     runtime: Some(runtime.into()),
@@ -130,13 +127,13 @@ fn add_dependencies(
     )));
   }
 
-  if let Some(range) = range {
+  if let Some(options_range) = options_range {
     parser.add_presentational_dependency(Box::new(ConstDependency::new(
-      (range.0, range.0).into(),
+      (options_range.0, options_range.0).into(),
       "Object.assign({}, ".into(),
     )));
     parser.add_presentational_dependency(Box::new(ConstDependency::new(
-      (range.1, range.1).into(),
+      (options_range.1, options_range.1).into(),
       format!(
         ", {{ type: {} }})",
         if output_module {

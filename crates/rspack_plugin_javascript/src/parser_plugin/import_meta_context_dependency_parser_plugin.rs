@@ -13,7 +13,9 @@ use crate::{
     eval::{self, BasicEvaluatedExpression},
     object_properties::{get_bool_by_obj_prop, get_literal_str_by_obj_prop, get_regex_by_obj_prop},
   },
-  visitors::{JavascriptParser, clean_regexp_in_context_module, context_reg_exp, expr_name},
+  visitors::{
+    JavascriptParser, clean_regexp_in_context_module, default_context_reg_exp, expr_name,
+  },
 };
 
 fn create_import_meta_context_dependency(
@@ -45,11 +47,10 @@ fn create_import_meta_context_dependency(
       }
       None
     })?;
-  let reg = r"^\.\/.*$";
   let context_options = if let Some(obj) = node.args.get(1).and_then(|arg| arg.expr.as_object()) {
     let regexp = get_regex_by_obj_prop(obj, "regExp");
     let regexp_span = regexp.map(|r| r.span().into());
-    let regexp = regexp.map_or(RspackRegex::new(reg).expect("reg failed"), |regexp| {
+    let regexp = regexp.map_or_else(default_context_reg_exp, |regexp| {
       RspackRegex::try_from(regexp).expect("reg failed")
     });
     let include = get_regex_by_obj_prop(obj, "include")
@@ -84,7 +85,7 @@ fn create_import_meta_context_dependency(
       mode: ContextMode::Sync,
       include: None,
       exclude: None,
-      reg_exp: context_reg_exp(reg, "", None, parser),
+      reg_exp: clean_regexp_in_context_module(default_context_reg_exp(), None, parser),
       category: DependencyCategory::Esm,
       request: context.clone(),
       context,

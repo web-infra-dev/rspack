@@ -20,9 +20,11 @@ impl JavascriptParserPlugin for EsmLibParserPlugin {
             | DependencyType::CjsRequire
             | DependencyType::CjsSelfReference
             | DependencyType::CommonJSRequireContext
+            | DependencyType::ModuleDecorator
         )
       })
     {
+      // make module without any exports or module accessing not bail out
       parser.build_meta.exports_type = rspack_core::BuildMetaExportsType::Namespace;
       parser.add_presentational_dependency(Box::new(ESMCompatibilityDependency));
     }

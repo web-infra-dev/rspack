@@ -326,7 +326,7 @@ impl<'a> From<(String, rspack_core::LogType)> for JsStatsLogging<'a> {
         subsec_nanos,
       } => {
         let mut time_buffer = itoa::Buffer::new();
-        let time_str = time_buffer.format(secs * 1000 + subsec_nanos as u64 / 1000000);
+        let time_str = time_buffer.format(secs * 1000 + subsec_nanos as u64 / 1_000_000);
         Self {
           name: value.0,
           r#type: "time",
@@ -791,7 +791,7 @@ impl<'a> TryFrom<StatsChunk<'a>> for JsStatsChunk<'a> {
 
   fn try_from(stats: StatsChunk<'a>) -> std::result::Result<Self, Self::Error> {
     let mut runtime = stats.runtime.iter().map(|r| r.as_ref()).collect::<Vec<_>>();
-    runtime.sort();
+    runtime.sort_unstable();
 
     let mut sizes = stats
       .sizes

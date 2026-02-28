@@ -43,18 +43,35 @@ impl Compilation {
     // possible to depend on full hash, but for library type commonjs/module, it's possible to
     // have non-runtime chunks depend on full hash, the library format plugin is using
     // dependent_full_hash hook to declare it.
-    let mut full_hash_chunks = UkeySet::default();
-    for chunk_ukey in self.build_chunk_graph_artifact.chunk_by_ukey.keys() {
-      let chunk_dependent_full_hash = plugin_driver
-        .compilation_hooks
-        .dependent_full_hash
-        .call(self, chunk_ukey)
-        .await?
-        .unwrap_or_default();
-      if chunk_dependent_full_hash {
-        full_hash_chunks.insert(*chunk_ukey);
-      }
-    }
+    let mut full_hash_chunks: UkeySet<_> = self
+      .build_chunk_graph_artifact
+      .chunk_by_ukey
+      .keys()
+      .copied()
+      .collect::<Vec<_>>()
+      .into_par_iter()
+      .try_fold(
+        UkeySet::default,
+        |mut local_set, chunk_ukey| -> Result<UkeySet<_>> {
+          let mut chunk_dependent_full_hash = false;
+          plugin_driver.compilation_hooks.dependent_full_hash.call(
+            self,
+            &chunk_ukey,
+            &mut chunk_dependent_full_hash,
+          )?;
+          if chunk_dependent_full_hash {
+            local_set.insert(chunk_ukey);
+          }
+          Ok(local_set)
+        },
+      )
+      .try_reduce(
+        UkeySet::default,
+        |mut acc, local_set| -> Result<UkeySet<_>> {
+          acc.extend(local_set);
+          Ok(acc)
+        },
+      )?;
     if !full_hash_chunks.is_empty()
       && let Some(diagnostic) = self.incremental.disable_passes(
         IncrementalPasses::CHUNKS_HASHES,
@@ -199,7 +216,8 @@ impl Compilation {
         .map(|runtime_chunk| (runtime_chunk, (Vec::new(), 0)))
         .collect();
     let mut remaining: u32 = 0;
-    for runtime_chunk_ukey in runtime_chunks_map.keys().copied().collect::<Vec<_>>() {
+    let runtime_chunk_keys: Vec<_> = runtime_chunks_map.keys().copied().collect();
+    for runtime_chunk_ukey in runtime_chunk_keys {
       let runtime_chunk = self
         .build_chunk_graph_artifact
         .chunk_by_ukey
@@ -302,7 +320,7 @@ impl Compilation {
         .map(|chunk| {
           chunk
             .name()
-            .or(chunk.id().map(|id| id.as_str()))
+            .or_else(|| chunk.id().map(|id| id.as_str()))
             .unwrap_or("no id chunk")
         })
         .join(", ");
@@ -444,9 +462,7 @@ impl Compilation {
           let s = unsafe { token.used((&self, runtime_module_identifier, runtime_module)) };
           s.spawn(
             |(compilation, runtime_module_identifier, runtime_module)| async {
-              let mut runtime_template = compilation
-                .runtime_template
-                .create_module_codegen_runtime_template();
+              let mut runtime_template = compilation.runtime_template.create_module_code_template();
               let mut code_generation_context = ModuleCodeGenerationContext {
                 compilation,
                 runtime: None,

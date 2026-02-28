@@ -1,8 +1,8 @@
 "use strict";
 
-const webpack = require("@rspack/core");
+const { rspack } = require("@rspack/core");
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
-	plugins: [new webpack.ContextReplacementPlugin(/folder$/, false, /(a|b)/)]
+	plugins: [new rspack.ContextReplacementPlugin(/folder$/, false, /(a|b)/)]
 };

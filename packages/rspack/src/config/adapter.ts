@@ -577,7 +577,6 @@ function getRawJavascriptParserOptions(
       parser.reexportExportsPresence === false
         ? 'false'
         : parser.reexportExportsPresence,
-    strictExportPresence: parser.strictExportPresence,
     worker:
       typeof parser.worker === 'boolean'
         ? parser.worker
@@ -630,6 +629,7 @@ function getRawCssParserOptions(
   return {
     namedExports: parser.namedExports,
     url: parser.url,
+    resolveImport: parser.resolveImport as any,
   };
 }
 

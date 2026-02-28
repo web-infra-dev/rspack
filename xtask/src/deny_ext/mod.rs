@@ -92,11 +92,11 @@ fn enforce_workspace_version() -> anyhow::Result<()> {
     eprintln!(
       "\nSummary: {checked_crates} crates checked, {total_dependencies} dependencies analyzed"
     );
-    anyhow::bail!("Some dependencies are not using workspace=true");
+    anyhow::bail!("Some workspace dependency or lint settings are invalid");
   }
 
   println!("Summary: {checked_crates} crates checked, {total_dependencies} dependencies analyzed");
-  println!("All workspace members correctly use workspace=true for their dependencies");
+  println!("All workspace members correctly use workspace=true for dependencies and lints");
   Ok(())
 }
 
@@ -115,6 +115,8 @@ fn check_crate_dependencies(
     .unwrap_or("unknown");
 
   let mut deps_count = 0;
+
+  check_crate_workspace_lints(&toml_value, crate_name, errors);
 
   // Check regular dependencies
   if let Some(deps) = toml_value.get("dependencies").and_then(|d| d.as_table()) {
@@ -151,6 +153,38 @@ fn check_crate_dependencies(
   }
 
   Ok(deps_count)
+}
+
+fn check_crate_workspace_lints(
+  toml_value: &toml::Value,
+  crate_name: &str,
+  errors: &mut Vec<String>,
+) {
+  let Some(lints) = toml_value.get("lints").and_then(|l| l.as_table()) else {
+    errors.push(format!(
+      "{crate_name}: missing [lints] section, expected [lints] workspace = true to enable clippy workspace lints"
+    ));
+    return;
+  };
+
+  match lints.get("workspace") {
+    Some(toml::Value::Boolean(true)) => {}
+    Some(toml::Value::Boolean(false)) => {
+      errors.push(format!(
+        "{crate_name}: [lints].workspace is false, expected true to enable clippy workspace lints"
+      ));
+    }
+    Some(_) => {
+      errors.push(format!(
+        "{crate_name}: [lints].workspace has invalid value, expected true"
+      ));
+    }
+    None => {
+      errors.push(format!(
+        "{crate_name}: missing [lints].workspace = true to enable clippy workspace lints"
+      ));
+    }
+  }
 }
 
 fn check_dependency_section(

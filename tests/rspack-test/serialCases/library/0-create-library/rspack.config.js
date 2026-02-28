@@ -1,5 +1,5 @@
 const path = require("path");
-const webpack = require("@rspack/core");
+const { rspack } = require("@rspack/core");
 /** @type {function(any, any): import("@rspack/core").Configuration[]} */
 module.exports = (env, { testPath }) => [
 	{
@@ -265,7 +265,7 @@ module.exports = (env, { testPath }) => [
 			}
 		},
 		plugins: [
-			new webpack.BannerPlugin({
+			new rspack.BannerPlugin({
 				raw: true,
 				banner: "module.exports = () => globalName;\n"
 			})
@@ -285,7 +285,7 @@ module.exports = (env, { testPath }) => [
 			}
 		},
 		plugins: [
-			new webpack.BannerPlugin({
+			new rspack.BannerPlugin({
 				raw: true,
 				banner: "module.exports = () => globalName;\n"
 			})

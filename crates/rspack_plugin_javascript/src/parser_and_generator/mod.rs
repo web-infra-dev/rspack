@@ -8,9 +8,9 @@ use rspack_cacheable::{cacheable, cacheable_dyn, with::Skip};
 use rspack_core::{
   AsyncDependenciesBlockIdentifier, BuildMetaExportsType, COLLECTED_TYPESCRIPT_INFO_PARSE_META_KEY,
   ChunkGraph, CollectedTypeScriptInfo, Compilation, DependenciesBlock, DependencyId,
-  DependencyRange, GenerateContext, Module, ModuleCodegenRuntimeTemplate, ModuleGraph, ModuleType,
-  ParseContext, ParseResult, ParserAndGenerator, RuntimeGlobals, SideEffectsBailoutItem,
-  SourceType, TemplateContext, TemplateReplaceSource,
+  GenerateContext, Module, ModuleCodeTemplate, ModuleGraph, ModuleType, ParseContext, ParseResult,
+  ParserAndGenerator, RuntimeGlobals, SideEffectsBailoutItem, SourceType, TemplateContext,
+  TemplateReplaceSource,
   diagnostics::map_box_diagnostics_to_module_parse_diagnostics,
   remove_bom, render_init_fragments,
   rspack_sources::{BoxSource, ReplaceSource, Source, SourceExt},
@@ -56,7 +56,7 @@ static LEGACY_REQUIRE_REGEX: LazyLock<Regex> = LazyLock::new(|| {
 });
 
 impl ParserRuntimeRequirementsData {
-  pub fn new(runtime_template: &ModuleCodegenRuntimeTemplate) -> Self {
+  pub fn new(runtime_template: &ModuleCodeTemplate) -> Self {
     let require_name =
       runtime_template.render_runtime_globals_without_adding(&RuntimeGlobals::REQUIRE);
     let module_name =
@@ -126,7 +126,10 @@ impl JavaScriptParserAndGenerator {
       .dependency_by_id(dependency_id)
       .as_dependency_code_generation()
     {
-      if let Some(template) = compilation.get_dependency_template(dependency) {
+      if let Some(template) = dependency
+        .dependency_template()
+        .and_then(|template_type| compilation.get_dependency_template(template_type))
+      {
         template.render(dependency, source, context)
       } else {
         panic!(
@@ -303,10 +306,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     if compiler_options.optimization.side_effects.is_true() {
       build_meta.side_effect_free = Some(side_effects_item.is_none());
       side_effects_bailout = side_effects_item.take().and_then(|item| -> Option<_> {
-        let source = source.source().into_string_lossy();
-        let msg = Into::<DependencyRange>::into(item.span)
-          .to_loc(Some(source.as_ref()))?
-          .to_string();
+        let msg = item.loc?.to_string();
         Some(SideEffectsBailoutItem { msg, ty: item.ty })
       });
     }
@@ -356,7 +356,10 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
 
       if let Some(dependencies) = module.get_presentational_dependencies() {
         dependencies.iter().for_each(|dependency| {
-          if let Some(template) = compilation.get_dependency_template(dependency.as_ref()) {
+          if let Some(template) = dependency
+            .dependency_template()
+            .and_then(|template_type| compilation.get_dependency_template(template_type))
+          {
             template.render(dependency.as_ref(), &mut source, &mut context)
           } else {
             panic!(

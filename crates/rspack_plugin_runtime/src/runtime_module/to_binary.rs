@@ -1,4 +1,6 @@
-use rspack_core::{Compilation, RuntimeModule, RuntimeTemplate, impl_runtime_module};
+use rspack_core::{
+  RuntimeModule, RuntimeModuleGenerateContext, RuntimeTemplate, impl_runtime_module,
+};
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -19,12 +21,16 @@ impl RuntimeModule for ToBinaryRuntimeModule {
     )]
   }
 
-  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
+  async fn generate(
+    &self,
+    context: &RuntimeModuleGenerateContext<'_>,
+  ) -> rspack_error::Result<String> {
+    let compilation = context.compilation;
     let is_node_platform = compilation.platform.is_node();
     let is_web_platform = compilation.platform.is_web();
     let is_neutral_platform = compilation.platform.is_neutral();
 
-    let source = compilation.runtime_template.render(
+    let source = context.runtime_template.render(
       &self.id,
       Some(serde_json::json!({
         "_is_node_platform": is_node_platform,

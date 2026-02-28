@@ -49,7 +49,7 @@ async fn create_module_hashes_pass_impl(compilation: &mut Compilation) -> Result
 
     // check if module runtime changes
     let mg = compilation.get_module_graph();
-    for mi in mg.modules().keys() {
+    for mi in mg.modules_keys() {
       let module_runtimes = compilation
         .build_chunk_graph_artifact
         .chunk_graph
@@ -105,15 +105,14 @@ async fn create_module_hashes_pass_impl(compilation: &mut Compilation) -> Result
     logger.log(format!(
       "{} modules are affected, {} in total",
       modules.len(),
-      mg.modules().len()
+      mg.modules_len()
     ));
 
     modules
   } else {
     compilation
       .get_module_graph()
-      .modules()
-      .keys()
+      .modules_keys()
       .copied()
       .collect()
   };

@@ -300,7 +300,9 @@ impl ContextModuleFactory {
       Ok(ResolveResult::Resource(resource)) => {
         let mut dependency_options = dependency.options().clone();
         dependency_options.recursive = before_resolve_data.recursive;
-        dependency_options.reg_exp = before_resolve_data.reg_exp.clone();
+        dependency_options
+          .reg_exp
+          .clone_from(&before_resolve_data.reg_exp);
 
         let options = ContextModuleOptions {
           addon: loader_request.clone(),
@@ -319,7 +321,9 @@ impl ContextModuleFactory {
         // should create an empty context module when ignored
         let mut dependency_options = dependency.options().clone();
         dependency_options.recursive = before_resolve_data.recursive;
-        dependency_options.reg_exp = before_resolve_data.reg_exp.clone();
+        dependency_options
+          .reg_exp
+          .clone_from(&before_resolve_data.reg_exp);
 
         let options = ContextModuleOptions {
           addon: loader_request.clone(),
@@ -383,10 +387,12 @@ impl ContextModuleFactory {
         let parsed_resource = parse_resource(after_resolve_data.resource.as_str());
         if let Some(parsed_resource) = parsed_resource {
           if let Some(query) = &parsed_resource.query {
-            context_module_options.resource_query = query.clone();
+            context_module_options.resource_query.clone_from(query);
           }
           if let Some(fragment) = &parsed_resource.fragment {
-            context_module_options.resource_fragment = fragment.clone();
+            context_module_options
+              .resource_fragment
+              .clone_from(fragment);
           }
         }
 

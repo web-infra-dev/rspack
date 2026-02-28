@@ -76,8 +76,6 @@ module.exports = [
             moduleIds: 'named',
             concatenateModules: true,
         },
-        // TODO: enable lazy compilation when it works with RSC
-        lazyCompilation: false,
     },
     {
         mode: 'production',
@@ -98,7 +96,5 @@ module.exports = [
             moduleIds: 'named',
             concatenateModules: true,
         },
-        // TODO: enable lazy compilation when it works with RSC
-        lazyCompilation: false,
     },
 ];

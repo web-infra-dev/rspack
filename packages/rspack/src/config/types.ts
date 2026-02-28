@@ -831,6 +831,8 @@ export type ResolveOptions = {
   byDependency?: Record<string, ResolveOptions>;
   /** enable Yarn PnP */
   pnp?: boolean;
+  /** Path to PnP manifest file */
+  pnpManifest?: string | false;
 };
 
 /** Used to configure the Rspack module resolution */
@@ -999,6 +1001,18 @@ export type AssetParserOptions = {
 export type CssParserNamedExports = boolean;
 export type CssParserUrl = boolean;
 
+export type CssParserResolveImportContext = {
+  url: string;
+  media: string | undefined;
+  resourcePath: string;
+  supports: string | undefined;
+  layer: string | undefined;
+};
+
+export type CssParserResolveImport =
+  | boolean
+  | ((context: CssParserResolveImportContext) => boolean);
+
 /** Options object for `css` modules. */
 export type CssParserOptions = {
   /**
@@ -1012,6 +1026,12 @@ export type CssParserOptions = {
    * @default true
    * */
   url?: CssParserUrl;
+
+  /**
+   * Allow to enable/disables `@import` at-rules handling.
+   * @default true
+   * */
+  resolveImport?: CssParserResolveImport;
 };
 
 /** Options object for `css/auto` modules. */
@@ -1027,6 +1047,12 @@ export type CssAutoParserOptions = {
    * @default true
    * */
   url?: CssParserUrl;
+
+  /**
+   * Allow to enable/disables `@import` at-rules handling.
+   * @default true
+   * */
+  resolveImport?: CssParserResolveImport;
 };
 
 /** Options object for `css/module` modules. */
@@ -1042,6 +1068,12 @@ export type CssModuleParserOptions = {
    * @default true
    * */
   url?: CssParserUrl;
+
+  /**
+   * Allow to enable/disables `@import` at-rules handling.
+   * @default true
+   * */
+  resolveImport?: CssParserResolveImport;
 };
 
 type ExportsPresence = 'error' | 'warn' | 'auto' | false;
@@ -1117,7 +1149,7 @@ export type JavascriptParserOptions = {
 
   /**
    * Warn or error for using non-existent exports and conflicting re-exports.
-   * @default 'auto'
+   * @default 'error'
    */
   exportsPresence?: ExportsPresence;
 
@@ -1126,9 +1158,6 @@ export type JavascriptParserOptions = {
 
   /** Warn or error for conflicting re-exports */
   reexportExportsPresence?: ExportsPresence;
-
-  /** Emit errors instead of warnings when imported names don't exist in imported module. */
-  strictExportPresence?: boolean;
 
   /** Provide custom syntax for Worker parsing, commonly used to support Worklet */
   worker?: string[] | boolean;
@@ -1834,6 +1863,12 @@ export type PersistentCacheOptions = {
    * @default false
    */
   portable?: boolean;
+  /**
+   * Enable read-only mode. When enabled, the cache will only be read from disk and never written to.
+   * @description This is useful for CI environments where you want to use a pre-warmed cache without modifying it.
+   * @default false
+   */
+  readonly?: boolean;
 };
 
 /**
@@ -2720,6 +2755,11 @@ export type Incremental = {
    * Enable incremental build chunk graph.
    */
   buildChunkGraph?: boolean;
+
+  /**
+   * Enable incremental optimize chunk modules.
+   */
+  optimizeChunkModules?: boolean;
 
   /**
    * Enable incremental module ids.

@@ -2,8 +2,8 @@ use std::sync::LazyLock;
 
 use itertools::Itertools;
 use rspack_core::{
-  ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleStage, RuntimeTemplate,
-  impl_runtime_module,
+  ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext,
+  RuntimeModuleStage, RuntimeTemplate, impl_runtime_module,
 };
 
 use crate::extract_runtime_globals_from_ejs;
@@ -36,7 +36,11 @@ impl RuntimeModule for ChunkPrefetchStartupRuntimeModule {
     )]
   }
 
-  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
+  async fn generate(
+    &self,
+    context: &RuntimeModuleGenerateContext<'_>,
+  ) -> rspack_error::Result<String> {
+    let compilation = context.compilation;
     let chunk_ukey = self.chunk.expect("chunk do not attached");
 
     let source = self
@@ -65,7 +69,7 @@ impl RuntimeModule for ChunkPrefetchStartupRuntimeModule {
           })
           .collect_vec();
 
-        let source = compilation.runtime_template.render(
+        let source = context.runtime_template.render(
           &self.id,
           Some(serde_json::json!({
             "_chunk_ids": serde_json::to_string(&group_chunk_ids).expect("invalid json tostring"),

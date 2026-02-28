@@ -2,7 +2,7 @@ import { readFile } from 'fs/promises';
 import { resolve } from 'path';
 import { run } from '../../utils/test-utils';
 
-describe.concurrent('rspack cli', () => {
+describe('rspack cli', () => {
   describe('should config not found', () => {
     it('should throw an error when config file does not found', async () => {
       const { stderr } = await run(__dirname, ['-c', 'not-found-config.js']);

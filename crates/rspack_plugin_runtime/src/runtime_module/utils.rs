@@ -1,7 +1,7 @@
 use itertools::Itertools;
 use rspack_collections::{UkeyIndexMap, UkeyIndexSet};
 use rspack_core::{
-  Chunk, ChunkLoading, ChunkUkey, Compilation, PathData, RuntimeTemplate, SourceType,
+  Chunk, ChunkLoading, ChunkUkey, Compilation, PathData, RuntimeCodeTemplate, SourceType,
   chunk_graph_chunk::ChunkId, get_js_chunk_filename_template, get_undo_path,
 };
 use rspack_error::Result;
@@ -225,7 +225,7 @@ fn stringify_map<T: std::fmt::Display>(map: &HashMap<&str, T>) -> String {
 pub fn generate_javascript_hmr_runtime(
   key: &str,
   method: &str,
-  runtime_template: &RuntimeTemplate,
+  runtime_template: &RuntimeCodeTemplate,
 ) -> Result<String> {
   runtime_template.render(
     key,

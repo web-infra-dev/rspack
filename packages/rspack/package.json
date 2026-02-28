@@ -1,6 +1,6 @@
 {
   "name": "@rspack/core",
-  "version": "2.0.0-beta.0",
+  "version": "2.0.0-beta.4",
   "webpackVersion": "5.75.0",
   "license": "MIT",
   "description": "The fast Rust-based web bundler with webpack-compatible API",
@@ -24,10 +24,7 @@
     "prepare": "prebundle && node ./move-tinypool.js",
     "build": "rslib build",
     "build:browser": "rslib build -c rslib.browser.config.ts",
-    "dev": "rslib build --watch",
-    "doc-coverage": "tsx ./scripts/check-documentation-coverage.ts",
-    "api-extractor": "api-extractor run --verbose",
-    "api-extractor:ci": "api-extractor run --verbose || diff temp/core.api.md etc/core.api.md"
+    "dev": "rslib build --watch"
   },
   "files": [
     "dist",
@@ -48,15 +45,15 @@
   "devDependencies": {
     "@ast-grep/napi": "^0.40.5",
     "@napi-rs/wasm-runtime": "1.0.7",
-    "@rsbuild/plugin-node-polyfill": "^1.4.3",
+    "@rsbuild/plugin-node-polyfill": "^1.4.4",
     "@rspack/lite-tapable": "1.1.0",
-    "@rslib/core": "0.19.4",
+    "@rslib/core": "0.19.6",
     "@swc/types": "0.1.25",
-    "@types/node": "^20.19.31",
+    "@types/node": "^20.19.33",
     "@types/watchpack": "^2.4.5",
     "browserslist-load-config": "^1.0.1",
     "browserslist-to-es-version": "^1.4.1",
-    "enhanced-resolve": "5.18.4",
+    "enhanced-resolve": "5.19.0",
     "glob-to-regexp": "^0.4.1",
     "memfs": "4.53.0",
     "prebundle": "^1.6.2",
@@ -64,13 +61,13 @@
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
     "watchpack": "^2.4.4",
-    "webpack-sources": "3.3.3"
+    "webpack-sources": "3.3.4"
   },
   "dependencies": {
     "@rspack/binding": "workspace:*"
   },
   "peerDependencies": {
-    "@module-federation/runtime-tools": "0.24.1",
+    "@module-federation/runtime-tools": "^0.24.1 || ^2.0.0",
     "@swc/helpers": ">=0.5.1"
   },
   "peerDependenciesMeta": {

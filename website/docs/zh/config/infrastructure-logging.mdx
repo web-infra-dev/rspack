@@ -14,7 +14,6 @@ import WebpackLicense from '@components/WebpackLicense';
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   infrastructureLogging: {
     appendOnly: true,
     level: 'verbose',
@@ -37,7 +36,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   infrastructureLogging: {
     colors: true,
     level: 'verbose',
@@ -60,7 +58,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   infrastructureLogging: {
     console: yourCustomConsole(),
   },
@@ -76,7 +73,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   infrastructureLogging: {
     level: 'info',
     debug: ['MyPlugin', /MyPlugin/, (name) => name.contains('MyPlugin')],
@@ -102,7 +98,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   infrastructureLogging: {
     level: 'info',
   },
@@ -118,7 +113,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   infrastructureLogging: {
     stream: process.stderr,
   },

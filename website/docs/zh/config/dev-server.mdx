@@ -52,7 +52,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   devServer: {
     allowedHosts: 'all',
   },
@@ -63,7 +62,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   devServer: {
     allowedHosts: 'auto',
   },
@@ -83,7 +81,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   devServer: {
     client: {
       logging: 'info',
@@ -101,7 +98,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   devServer: {
     client: {
       overlay: true,
@@ -124,7 +120,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   devServer: {
     client: {
       overlay: {
@@ -143,7 +138,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   devServer: {
     client: {
       overlay: {
@@ -172,7 +166,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   devServer: {
     client: {
       progress: true,
@@ -190,7 +183,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   devServer: {
     client: {
       reconnect: true,
@@ -203,7 +195,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   devServer: {
     client: {
       reconnect: false,
@@ -216,7 +207,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   devServer: {
     client: {
       reconnect: 5,
@@ -238,7 +228,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   devServer: {
     client: {
       webSocketTransport: 'ws',
@@ -262,7 +251,6 @@ import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 
 export default {
-  //...
   devServer: {
     client: {
       webSocketTransport: require.resolve('./CustomClient'),
@@ -280,7 +268,6 @@ import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 
 export default {
-  //...
   devServer: {
     client: {
       webSocketTransport: require.resolve('./CustomClient'),
@@ -308,7 +295,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   devServer: {
     client: {
       webSocketURL: {
@@ -337,7 +323,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   devServer: {
     compress: true,
   },
@@ -374,7 +359,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   devServer: {
     headers: {
       'X-Custom-Foo': 'bar',
@@ -387,7 +371,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   devServer: {
     headers: [
       {
@@ -407,7 +390,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   devServer: {
     headers: () => {
       return { 'X-Bar': ['key1=value1', 'key2=value2'] };
@@ -425,7 +407,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   devServer: {
     historyApiFallback: true,
   },
@@ -436,7 +417,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   devServer: {
     historyApiFallback: {
       rewrites: [
@@ -453,7 +433,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   devServer: {
     historyApiFallback: {
       disableDotRule: true,
@@ -473,7 +452,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   devServer: {
     host: '0.0.0.0',
   },
@@ -501,7 +479,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   devServer: {
     hot: true,
   },
@@ -512,7 +489,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   devServer: {
     hot: 'only',
   },
@@ -528,7 +504,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   devServer: {
     liveReload: false,
   },
@@ -547,7 +522,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   devServer: {
     onListening: function (devServer) {
       if (!devServer) {
@@ -570,7 +544,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   devServer: {
     open: true,
   },
@@ -581,7 +554,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   devServer: {
     open: ['/my-page'],
   },
@@ -592,7 +564,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   devServer: {
     open: ['/my-page', '/another-page'],
   },
@@ -603,7 +574,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   devServer: {
     open: {
       app: {
@@ -618,7 +588,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   devServer: {
     open: {
       target: ['first.html', 'http://localhost:8080/second.html'],
@@ -644,7 +613,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   devServer: {
     port: 8080,
   },
@@ -655,7 +623,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   devServer: {
     port: 'auto',
   },
@@ -681,7 +648,6 @@ Rspack 中 `@rspack/dev-server` 使用的是 `webpack-dev-server` v5 版本，`d
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   devServer: {
     proxy: [
       {
@@ -699,7 +665,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   devServer: {
     proxy: [
       {
@@ -716,7 +681,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   devServer: {
     proxy: [
       {
@@ -741,7 +705,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   devServer: {
     proxy: [
       {
@@ -763,7 +726,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   devServer: {
     proxy: [
       {
@@ -779,7 +741,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   devServer: {
     devMiddleware: {
       index: false, // 启用根代理
@@ -798,7 +759,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   devServer: {
     proxy: [
       {
@@ -820,7 +780,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   devServer: {
     server: 'http',
   },
@@ -831,7 +790,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   devServer: {
     server: 'https',
   },
@@ -842,7 +800,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   devServer: {
     server: 'spdy',
   },
@@ -853,7 +810,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   devServer: {
     server: {
       type: 'https',
@@ -883,7 +839,6 @@ import { fileURLToPath } from 'node:url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default {
-  //...
   devServer: {
     server: {
       type: 'https',
@@ -909,7 +864,6 @@ const fs = require('fs');
 const path = require('node:path');
 
 module.exports = {
-  //...
   devServer: {
     server: {
       type: 'https',
@@ -990,7 +944,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   devServer: {
     static: false,
   },
@@ -1001,7 +954,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   devServer: {
     static: ['assets'],
   },
@@ -1012,7 +964,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   devServer: {
     static: ['assets', 'css'],
   },
@@ -1027,7 +978,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   devServer: {
     watchFiles: ['src/**/*.php', 'public/**/*'],
   },
@@ -1038,7 +988,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   devServer: {
     watchFiles: {
       paths: ['src/**/*.php', 'public/**/*'],
@@ -1060,7 +1009,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   devServer: {
     webSocketServer: 'ws',
   },

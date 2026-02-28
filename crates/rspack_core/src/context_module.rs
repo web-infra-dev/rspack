@@ -1,4 +1,4 @@
-use std::{borrow::Cow, hash::Hash, sync::Arc};
+use std::{borrow::Cow, fmt::Write, hash::Hash, sync::Arc};
 
 use cow_utils::CowUtils;
 use derive_more::Debug;
@@ -26,15 +26,15 @@ use rustc_hash::FxHashMap as HashMap;
 use swc_core::atoms::Atom;
 
 use crate::{
-  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo,
-  BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, BuildResult, ChunkGraph,
+  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, BuildContext,
+  BuildInfo, BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, BuildResult, ChunkGraph,
   ChunkGroupOptions, CodeGenerationResult, Compilation, ContextElementDependency,
   DependenciesBlock, Dependency, DependencyCategory, DependencyId, DependencyLocation,
   DynamicImportMode, ExportsType, FactoryMeta, FakeNamespaceObjectMode, GroupOptions,
   ImportAttributes, ImportPhase, LibIdentOptions, Module, ModuleArgument,
-  ModuleCodeGenerationContext, ModuleCodegenRuntimeTemplate, ModuleGraph, ModuleId,
-  ModuleIdsArtifact, ModuleLayer, ModuleType, RealDependencyLocation, Resolve, RuntimeGlobals,
-  RuntimeSpec, SourceType, contextify, get_exports_type_with_strict, get_outgoing_async_modules,
+  ModuleCodeGenerationContext, ModuleCodeTemplate, ModuleGraph, ModuleId, ModuleIdsArtifact,
+  ModuleLayer, ModuleType, RealDependencyLocation, Resolve, RuntimeGlobals, RuntimeSpec,
+  SourceType, contextify, get_exports_type_with_strict, get_outgoing_async_modules,
   impl_module_meta_info, module_update_hash, to_path,
 };
 
@@ -242,6 +242,7 @@ impl ContextModule {
       let exports_type = get_exports_type_with_strict(
         compilation.get_module_graph(),
         &compilation.module_graph_cache_artifact,
+        &compilation.exports_info_artifact,
         dep,
         matches!(
           self.options.context_options.namespace_object,
@@ -321,7 +322,7 @@ impl ContextModule {
     async_module: bool,
     async_deps: Option<String>,
     fake_map_data_expr: &str,
-    runtime_template: &mut ModuleCodegenRuntimeTemplate,
+    runtime_template: &mut ModuleCodeTemplate,
   ) -> String {
     let source = if let FakeMapValue::Bit(bit) = fake_map {
       if *bit == FakeNamespaceObjectMode::NAMESPACE {
@@ -399,7 +400,7 @@ impl ContextModule {
   fn get_source_for_empty_async_context(
     &self,
     compilation: &Compilation,
-    runtime_template: &mut ModuleCodegenRuntimeTemplate,
+    runtime_template: &mut ModuleCodeTemplate,
   ) -> String {
     formatdoc! {r#"
       function webpackEmptyAsyncContext(req) {{
@@ -425,7 +426,7 @@ impl ContextModule {
   fn get_source_for_empty_context(
     &self,
     compilation: &Compilation,
-    runtime_template: &mut ModuleCodegenRuntimeTemplate,
+    runtime_template: &mut ModuleCodeTemplate,
   ) -> String {
     formatdoc! {r#"
       function webpackEmptyContext(req) {{
@@ -448,7 +449,7 @@ impl ContextModule {
   fn get_source_string(
     &self,
     compilation: &Compilation,
-    runtime_template: &mut ModuleCodegenRuntimeTemplate,
+    runtime_template: &mut ModuleCodeTemplate,
   ) -> String {
     match self.options.context_options.mode {
       ContextMode::Lazy => {
@@ -499,7 +500,7 @@ impl ContextModule {
   fn get_lazy_source(
     &self,
     compilation: &Compilation,
-    runtime_template: &mut ModuleCodegenRuntimeTemplate,
+    runtime_template: &mut ModuleCodeTemplate,
   ) -> String {
     let module_graph = compilation.get_module_graph();
     let blocks = self
@@ -691,7 +692,7 @@ impl ContextModule {
     &self,
     compilation: &Compilation,
     block_id: &AsyncDependenciesBlockIdentifier,
-    runtime_template: &mut ModuleCodegenRuntimeTemplate,
+    runtime_template: &mut ModuleCodeTemplate,
   ) -> String {
     let mg = compilation.get_module_graph();
     let block = mg.block_by_id_expect(block_id);
@@ -760,7 +761,7 @@ impl ContextModule {
   fn get_async_weak_source(
     &self,
     compilation: &Compilation,
-    runtime_template: &mut ModuleCodegenRuntimeTemplate,
+    runtime_template: &mut ModuleCodeTemplate,
   ) -> String {
     let dependencies = self.get_dependencies();
     let map = self.get_user_request_map(dependencies, compilation);
@@ -839,7 +840,7 @@ impl ContextModule {
   fn get_sync_weak_source(
     &self,
     compilation: &Compilation,
-    runtime_template: &mut ModuleCodegenRuntimeTemplate,
+    runtime_template: &mut ModuleCodeTemplate,
   ) -> String {
     let dependencies = self.get_dependencies();
     let map = self.get_user_request_map(dependencies, compilation);
@@ -885,7 +886,7 @@ impl ContextModule {
   fn get_eager_source(
     &self,
     compilation: &Compilation,
-    runtime_template: &mut ModuleCodegenRuntimeTemplate,
+    runtime_template: &mut ModuleCodeTemplate,
   ) -> String {
     let dependencies = self.get_dependencies();
     let map = self.get_user_request_map(dependencies, compilation);
@@ -951,7 +952,7 @@ impl ContextModule {
   fn get_sync_source(
     &self,
     compilation: &Compilation,
-    runtime_template: &mut ModuleCodegenRuntimeTemplate,
+    runtime_template: &mut ModuleCodeTemplate,
   ) -> String {
     let dependencies = self.get_dependencies();
     let map = self.get_user_request_map(dependencies, compilation);
@@ -1110,7 +1111,7 @@ impl Module for ContextModule {
   }
 
   async fn build(
-    &mut self,
+    mut self: Box<Self>,
     _build_context: BuildContext,
     _: Option<&Compilation>,
   ) -> Result<BuildResult> {
@@ -1205,6 +1206,7 @@ impl Module for ContextModule {
     }
 
     Ok(BuildResult {
+      module: BoxModule::new(self),
       dependencies,
       blocks,
       optimization_bailouts: vec![],
@@ -1307,13 +1309,13 @@ fn create_identifier(options: &ContextModuleOptions, resource: Option<&str>) -> 
     }
     id += "|groupOptions: {";
     if let Some(o) = group.prefetch_order {
-      id.push_str(&format!("prefetchOrder: {o},"));
+      write!(id, "prefetchOrder: {o},").expect("infallible write to String");
     }
     if let Some(o) = group.preload_order {
-      id.push_str(&format!("preloadOrder: {o},"));
+      write!(id, "preloadOrder: {o},").expect("infallible write to String");
     }
     if let Some(o) = group.fetch_priority {
-      id.push_str(&format!("fetchPriority: {o},"));
+      write!(id, "fetchPriority: {o},").expect("infallible write to String");
     }
     id += "}";
   }

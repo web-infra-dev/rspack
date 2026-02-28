@@ -1,8 +1,5 @@
 use std::{collections::hash_map::Iter as HashMapIter, fmt::Debug, hash::Hash};
 
-use rayon::iter::{
-  Either, IntoParallelRefMutIterator as RayonIntoParallelRefMutIterator, ParallelIterator,
-};
 use rustc_hash::FxHashMap as HashMap;
 
 #[derive(Debug, Clone)]
@@ -182,81 +179,13 @@ where
     }
   }
 
-  fn materialize_all(&mut self)
-  where
-    V: Clone,
-  {
-    if self.overlay.is_none() {
-      return;
-    }
-
-    let cloned_missing = {
-      let overlay_keys = self.overlay.as_ref().expect("overlay checked above");
-      self
-        .base
-        .iter()
-        .filter_map(|(key, value)| {
-          if overlay_keys.contains_key(key) {
-            None
-          } else {
-            Some((key.clone(), value.clone()))
-          }
-        })
-        .collect::<Vec<_>>()
-    };
-
-    let overlay = self.overlay();
-    for (key, value) in cloned_missing {
-      overlay
-        .entry(key)
-        .or_insert_with(|| OverlayValue::Value(value));
-    }
-  }
-
   fn overlay(&mut self) -> &mut HashMap<K, OverlayValue<V>> {
     self.overlay.get_or_insert_with(HashMap::default)
-  }
-
-  fn overlay_filter<'a>(entry: (&'a K, &'a mut OverlayValue<V>)) -> Option<(&'a K, &'a mut V)> {
-    match entry.1 {
-      OverlayValue::Value(value) => Some((entry.0, value)),
-      OverlayValue::Tombstone => None,
-    }
-  }
-}
-
-impl<'data, K, V> RayonIntoParallelRefMutIterator<'data> for OverlayMap<K, V>
-where
-  K: Eq + Hash + Clone + Send + Sync + 'data,
-  V: Clone + Send + 'data,
-{
-  type Item = (&'data K, &'data mut V);
-  type Iter = Either<
-    rayon::collections::hash_map::IterMut<'data, K, V>,
-    rayon::iter::FilterMap<
-      rayon::collections::hash_map::IterMut<'data, K, OverlayValue<V>>,
-      fn((&'data K, &'data mut OverlayValue<V>)) -> Option<(&'data K, &'data mut V)>,
-    >,
-  >;
-
-  fn par_iter_mut(&'data mut self) -> Self::Iter {
-    match self.overlay.as_mut() {
-      Some(_) => {
-        self.materialize_all();
-        let iter = self
-          .overlay()
-          .par_iter_mut()
-          .filter_map(Self::overlay_filter as fn(_) -> _);
-        Either::Right(iter)
-      }
-      None => Either::Left(self.base.par_iter_mut()),
-    }
   }
 }
 
 #[cfg(test)]
 mod tests {
-  use rayon::prelude::*;
   use rustc_hash::FxHashMap as HashMap;
 
   use super::OverlayMap;
@@ -318,24 +247,6 @@ mod tests {
       .expect("should clone base into overlay") = 5;
 
     assert_eq!(map.get(&"a".to_string()), Some(&5));
-
-    map.reset();
-
-    assert_eq!(map.get(&"a".to_string()), Some(&1));
-  }
-
-  #[test]
-  fn par_iter_mut_materializes_base_entries() {
-    let mut map = OverlayMap::new(
-      [("a".to_string(), 1)]
-        .into_iter()
-        .collect::<HashMap<_, _>>(),
-    );
-
-    map.checkpoint();
-    map.par_iter_mut().for_each(|(_, value)| *value += 1);
-
-    assert_eq!(map.get(&"a".to_string()), Some(&2));
 
     map.reset();
 

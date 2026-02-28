@@ -1,0 +1,47 @@
+```mjs title=entry2.mjs
+import "./shared.mjs";
+
+// ./entry2.js
+
+
+const entry2 = "entry2"
+
+export { entry2 };
+
+```
+
+```mjs title=entry3.mjs
+import "./shared.mjs";
+
+// ./entry3.js
+
+
+const entry3 = "entry3"
+
+export { entry3 };
+
+```
+
+```mjs title=main.mjs
+
+// ./entry1.js
+
+
+
+it('should have all exports', async () => {
+  const {  entry3, entry2 } = await import(/*webpackIgnore: true*/'./main.mjs')
+
+  expect(entry2).toBe('entry2')
+  expect(entry3).toBe('entry3')
+})
+export { entry2 } from "./entry2.mjs";
+export { entry3 } from "./entry3.mjs";
+
+```
+
+```mjs title=shared.mjs
+// ./shared.js
+// side effects
+console.log.bind()
+
+```

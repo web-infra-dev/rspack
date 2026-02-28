@@ -133,7 +133,7 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
     Ok(JsLoaderContext {
       resource: cx.resource_data.resource().to_owned(),
       module: ModuleObject::with_ptr(
-        NonNull::new(module as *const dyn Module as *mut dyn Module).unwrap(),
+        NonNull::new(module.as_ref() as *const dyn Module as *mut dyn Module).unwrap(),
         cx.context.compiler_id,
       ),
       hot: cx.hot,

@@ -27,7 +27,7 @@ use crate::{
     client_entry_loader::CLIENT_ENTRY_LOADER_IDENTIFIER,
   },
   manifest_runtime_module::RscManifestRuntimeModule,
-  plugin_state::{ActionIdNamePair, PLUGIN_STATES, PluginState},
+  plugin_state::{ActionIdNamePair, ClientModuleImport, PLUGIN_STATES, PluginState},
 };
 
 #[derive(Debug)]
@@ -291,11 +291,16 @@ impl RscServerPlugin {
       .collect();
     compilation.add_include(add_include_args).await?;
     for (dependency_id, runtime) in included_dependencies {
-      let mg = compilation.get_module_graph_mut();
-      let Some(module) = mg.get_module_by_dependency_id(&dependency_id) else {
-        continue;
+      let module_identifier = {
+        let mg = compilation.get_module_graph();
+        let Some(module) = mg.get_module_by_dependency_id(&dependency_id) else {
+          continue;
+        };
+        module.identifier()
       };
-      let info = mg.get_exports_info_data_mut(&module.identifier());
+      let info = compilation
+        .exports_info_artifact
+        .get_exports_info_data_mut(&module_identifier);
       info.set_used_in_unknown_way(Some(&runtime));
     }
 
@@ -371,11 +376,16 @@ impl RscServerPlugin {
       .collect();
     compilation.add_include(add_include_args).await?;
     for (dependency_id, runtime) in included_dependencies {
-      let mg = compilation.get_module_graph_mut();
-      let Some(m) = mg.get_module_by_dependency_id(&dependency_id) else {
-        continue;
+      let module_identifier = {
+        let mg = compilation.get_module_graph();
+        let Some(m) = mg.get_module_by_dependency_id(&dependency_id) else {
+          continue;
+        };
+        m.identifier()
       };
-      let info = mg.get_exports_info_data_mut(&m.identifier());
+      let info = compilation
+        .exports_info_artifact
+        .get_exports_info_data_mut(&module_identifier);
       info.set_used_in_unknown_way(Some(&runtime));
     }
 
@@ -396,17 +406,14 @@ impl RscServerPlugin {
       css_imports,
     } = client_entry;
 
-    let client_browser_loader = {
-      let mut serializer = form_urlencoded::Serializer::new(String::new());
+    let client_entries = {
+      let mut modules = Vec::new();
       let merged_css_imports = css_imports.values().flatten().collect::<FxHashSet<_>>();
       for request in merged_css_imports {
-        #[allow(clippy::unwrap_used)]
-        let module_json = serde_json::to_string(&json!({
-            "request": request,
-            "ids": []
-        }))
-        .unwrap();
-        serializer.append_pair("modules", &module_json);
+        modules.push(ClientModuleImport {
+          request: request.clone(),
+          ids: vec![],
+        });
       }
 
       plugin_state
@@ -416,20 +423,12 @@ impl RscServerPlugin {
         .extend(css_imports.into_iter());
 
       for (request, ids) in &client_imports {
-        #[allow(clippy::unwrap_used)]
-        let module_json = serde_json::to_string(&json!({
-            "request": request,
-            "ids": ids
-        }))
-        .unwrap();
-        serializer.append_pair("modules", &module_json);
+        modules.push(ClientModuleImport {
+          request: request.clone(),
+          ids: ids.iter().cloned().collect(),
+        });
       }
-      serializer.append_pair("server", "false");
-      format!(
-        "{}?{}!",
-        CLIENT_ENTRY_LOADER_IDENTIFIER,
-        serializer.finish()
-      )
+      modules
     };
 
     let client_server_loader = {
@@ -455,7 +454,7 @@ impl RscServerPlugin {
     // Inject the entry to the client compiler.
     plugin_state
       .injected_client_entries
-      .insert(entry_name.clone(), client_browser_loader);
+      .insert(entry_name.clone(), client_entries);
 
     if !should_inject_ssr_modules {
       return None;

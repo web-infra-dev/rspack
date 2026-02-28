@@ -163,10 +163,7 @@ macro_rules! impl_module_methods {
               let name_clone = napi::bindgen_prelude::Object::from_raw(env.raw(), name.raw());
               let name_str = name_clone.coerce_to_string()?.into_string();
               // known build info properties
-              if name_str == "assets" {
-                // TODO: Currently, setting assets is not supported.
-                continue;
-              } else {
+              if name_str != "assets" {
                 let value = input_object.get_property::<napi::bindgen_prelude::Unknown, napi::bindgen_prelude::Unknown>(name)?;
                 new_instance.set_property::<napi::bindgen_prelude::Unknown, napi::bindgen_prelude::Unknown>(name, value)?;
               }
