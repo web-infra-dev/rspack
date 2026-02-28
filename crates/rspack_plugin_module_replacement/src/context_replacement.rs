@@ -3,7 +3,7 @@ use std::sync::Arc;
 use rspack_core::{
   AfterResolveResult, BeforeResolveResult, ContextElementDependency,
   ContextModuleFactoryAfterResolve, ContextModuleFactoryBeforeResolve, ContextModuleOptions,
-  DependencyId, DependencyType, Plugin,
+  DependencyId, DependencyType, Plugin, clear_context_dependency_critical,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -59,9 +59,7 @@ async fn cmf_before_resolve(&self, mut result: BeforeResolveResult) -> Result<Be
     //   new_content_callback(&mut result).await?;
     // } else {
     for d in &mut data.dependencies {
-      if let Some(d) = d.as_context_dependency_mut() {
-        *d.critical_mut() = None;
-      }
+      clear_context_dependency_critical(d.as_ref());
     }
     // }
   }
@@ -131,9 +129,7 @@ async fn cmf_after_resolve(&self, mut result: AfterResolveResult) -> Result<Afte
     //   new_content_callback(&mut result).await?;
     // } else {
     for d in &mut data.dependencies {
-      if let Some(d) = d.as_context_dependency_mut() {
-        *d.critical_mut() = None;
-      }
+      clear_context_dependency_critical(d.as_ref());
     }
     // }
   }

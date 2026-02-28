@@ -171,7 +171,7 @@ impl ContextModuleFactory {
     data: &mut ModuleFactoryCreateData,
   ) -> Result<BeforeResolveResult> {
     let dependency = data.dependencies[0]
-      .as_context_dependency_mut()
+      .as_context_dependency()
       .expect("should be context dependency");
     let dependency_options = dependency.options();
 
