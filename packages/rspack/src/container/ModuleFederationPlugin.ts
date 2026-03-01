@@ -47,6 +47,9 @@ export class ModuleFederationPlugin {
     const target = compiler.options.target;
     const isNodeLikeBuild = isNodeLikeTarget(target);
     const isRscMfOptIn = this._options.experiments?.rsc === true;
+    if (isRscMfOptIn && isNodeLikeBuild) {
+      validateRscMfOptions(this._options, target);
+    }
     const isRscMfEnabled = isRscMfOptIn && isNodeLikeBuild;
     const options = isRscMfEnabled
       ? augmentRscBridgeExposes(this._options)
@@ -381,6 +384,49 @@ function isNodeLikeTarget(target: unknown): boolean {
   if (target === false) return false;
   const targets = getTargetValues(target);
   return targets.some((value) => value.includes('node'));
+}
+
+function hasAsyncNodeTarget(target: unknown): boolean {
+  if (target === false) return false;
+  const targets = getTargetValues(target);
+  return targets.some((value) => value.includes('async-node'));
+}
+
+function hasNodeRuntimePlugin(options: ModuleFederationPluginOptions): boolean {
+  const runtimePlugins = getRuntimePlugins(options);
+  for (const pluginSpec of runtimePlugins) {
+    const pluginPath = Array.isArray(pluginSpec) ? pluginSpec[0] : pluginSpec;
+    if (
+      typeof pluginPath === 'string' &&
+      pluginPath.includes('@module-federation/node/runtimePlugin')
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function validateRscMfOptions(
+  options: ModuleFederationPluginOptions,
+  target: unknown,
+): void {
+  const validationErrors: string[] = [];
+  if (!hasAsyncNodeTarget(target)) {
+    validationErrors.push('`target` must include `"async-node"`.');
+  }
+  if (options.experiments?.asyncStartup !== true) {
+    validationErrors.push('`experiments.asyncStartup` must be `true`.');
+  }
+  if (!hasNodeRuntimePlugin(options)) {
+    validationErrors.push(
+      '`runtimePlugins` must include `@module-federation/node/runtimePlugin`.',
+    );
+  }
+  if (validationErrors.length > 0) {
+    throw new Error(
+      `[ModuleFederationPlugin.rsc] Invalid configuration:\n${validationErrors.join('\n')}`,
+    );
+  }
 }
 
 function augmentRscBridgeExposes(
