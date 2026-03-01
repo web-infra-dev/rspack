@@ -1,5 +1,5 @@
 [toolchain]
 profile = "default"
-components = ["rust-src"]
+components = ["rust-src", "clippy", "rustfmt"]
 # Use nightly for better access to the latest Rust features.
 channel = "nightly-2025-11-13"

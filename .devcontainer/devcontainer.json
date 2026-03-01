@@ -5,13 +5,10 @@
   "build": {
     "dockerfile": "Dockerfile"
   },
-  // Use 'mounts' to make the cargo cache persistent in a Docker Volume.
+  // Cargo cache is warmed in postCreateCommand; toolchain is preinstalled in the image.
+  // Optional: mount a volume at a path used only for registry (e.g. .cargo in workspace) if needed.
   // "mounts": [
-  // 	{
-  // 		"source": "devcontainer-cargo-cache-${devcontainerId}",
-  // 		"target": "/usr/local/cargo",
-  // 		"type": "volume"
-  // 	}
+  //   { "source": "devcontainer-cargo-cache-${devcontainerId}", "target": "/usr/local/cargo", "type": "volume" }
   // ]
   // Features to add to the dev container. More info: https://containers.dev/features.
   "features": {
@@ -24,7 +21,7 @@
   // Use 'forwardPorts' to make a list of ports inside the container available locally.
   // "forwardPorts": [],
   // Use 'postCreateCommand' to run commands after the container is created.
-  // "postCreateCommand": "rustc --version",
+  "postCreateCommand": "cargo fetch 2>/dev/null || true; cargo check -p rspack_core --tests 2>/dev/null || true",
   "postAttachCommand": "pnpm run init",
   // Configure tool-specific properties.
   // Add extensions for vscode
