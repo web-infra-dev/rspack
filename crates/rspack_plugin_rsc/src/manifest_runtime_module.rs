@@ -2,8 +2,9 @@
 
 use indoc::formatdoc;
 use rspack_core::{
-  ChunkGraph, Compilation, ModuleGraph, ModuleId, ModuleIdentifier, RuntimeGlobals, RuntimeModule,
-  RuntimeModuleGenerateContext, RuntimeModuleStage, RuntimeTemplate, impl_runtime_module,
+  ChunkGraph, Compilation, Module, ModuleGraph, ModuleId, ModuleIdentifier, RuntimeGlobals,
+  RuntimeModule, RuntimeModuleGenerateContext, RuntimeModuleStage, RuntimeTemplate,
+  impl_runtime_module,
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_util::fx_hash::FxIndexSet;

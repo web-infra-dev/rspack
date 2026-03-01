@@ -1,4 +1,4 @@
-# Module Federation in Rspack: deep technical map
+# Module Federation In Rspack: Deep Technical Map
 
 Last verified against repository state on 2026-02-07.
 
@@ -20,7 +20,7 @@ Branch update reflected in this revision (`feat/mf-layers`):
 - Enhanced runtime path is array-scope aware; legacy non-enhanced runtime keeps scalar share-scope behavior.
 - `container-1-5/*-layers-full` scenarios are now part of the documented verification surface.
 
-## 1) Mental model
+## 1) Mental Model
 
 Rspack MF has two stacked layers:
 
@@ -40,9 +40,9 @@ For MF v1.0 (`ModuleFederationPluginV1` directly):
 - Same container/reference/share foundation, but no v1.5 runtime bootstrap orchestration.
 - `enhanced` defaults to `false` unless explicitly enabled.
 
-## 2) Touchpoint inventory (By Layer)
+## 2) Touchpoint Inventory (By Layer)
 
-### 2.1 Public JS API + orchestration
+### 2.1 Public JS API + Orchestration
 
 - `packages/rspack/src/container/ModuleFederationPlugin.ts`
 - `packages/rspack/src/container/ModuleFederationPluginV1.ts`
@@ -54,7 +54,7 @@ For MF v1.0 (`ModuleFederationPluginV1` directly):
 - `packages/rspack/src/runtime/moduleFederationDefaultRuntime.js`
 - `packages/rspack/src/exports.ts`
 
-### 2.2 JS Sharing/Tree-Shaking orchestration
+### 2.2 JS Sharing/Tree-Shaking Orchestration
 
 - `packages/rspack/src/sharing/ShareRuntimePlugin.ts`
 - `packages/rspack/src/sharing/SharePlugin.ts`
@@ -67,13 +67,13 @@ For MF v1.0 (`ModuleFederationPluginV1` directly):
 - `packages/rspack/src/sharing/SharedUsedExportsOptimizerPlugin.ts`
 - `packages/rspack/src/sharing/utils.ts`
 
-### 2.3 JS -> Rust binding layer
+### 2.3 JS -> Rust Binding Layer
 
 - `crates/rspack_binding_api/src/raw_options/raw_builtins/raw_mf.rs`
 - `crates/rspack_binding_api/src/raw_options/raw_builtins/mod.rs`
 - `crates/node_binding/napi-binding.d.ts`
 
-### 2.4 Rust MF core
+### 2.4 Rust MF Core
 
 - `crates/rspack_plugin_mf/src/lib.rs`
 - Container subsystem: `crates/rspack_plugin_mf/src/container/*`
@@ -140,12 +140,12 @@ Manifest files (complete):
 - `crates/rspack_plugin_mf/src/manifest/options.rs`
 - `crates/rspack_plugin_mf/src/manifest/utils.rs`
 
-### 2.5 Build-time Packaging for browser runtime
+### 2.5 Build-time Packaging For Browser Runtime
 
 - `packages/rspack/rslib.config.ts`
 - `packages/rspack/rslib.browser.config.ts`
 
-## 3) End-to-End Execution flow
+## 3) End-to-End Execution Flow
 
 ### 3.1 User config -> JS plugin orchestration
 
@@ -226,7 +226,7 @@ At runtime, the emitted modules + runtime modules coordinate via globals on `__w
 - `__webpack_require__.remotesLoadingData`
 - `__webpack_require__.consumesLoadingData`
 
-## 4) JS layer details
+## 4) JS Layer Details
 
 ### 4.1 `ModuleFederationPlugin` (v1.5 facade)
 
@@ -330,7 +330,7 @@ Key behaviors:
 
 - Also emits a transformed runtime artifact for Node package dist.
 
-## 5) NAPI/Raw Option bridge
+## 5) NAPI/Raw Option Bridge
 
 ### 5.1 Raw option structs
 
@@ -359,7 +359,7 @@ Current bridge behavior (important for layered MF):
 - Builtin names exposed in `crates/node_binding/napi-binding.d.ts` (`BuiltinPluginName`).
 - Construction switch in `crates/rspack_binding_api/src/raw_options/raw_builtins/mod.rs` instantiates concrete Rust plugins.
 
-## 6) Rust core internals
+## 6) Rust Core Internals
 
 ### 6.1 Container subsystem
 
@@ -603,7 +603,7 @@ Compilation-scoped hook registry:
 
 Used for decoupled coordination among container/reference/runtime/hoist plugins.
 
-## 7) Runtime data contracts and globals
+## 7) Runtime Data Contracts And Globals
 
 ### 7.1 Core globals populated by Rust runtime modules
 
@@ -719,7 +719,7 @@ Guard condition:
 - `treeShakingSharedDir`: output dir for independent shared fallback assets.
 - `treeShakingSharedPlugins`, `treeShakingSharedExcludePlugins`: plugin control for fallback build.
 
-## 9) Enhanced vs Non-Enhanced behavior
+## 9) Enhanced vs Non-Enhanced Behavior
 
 Enhanced mode (`enhanced: true`) is used by `ModuleFederationPlugin` v1.5 path.
 
@@ -738,7 +738,7 @@ Key differences:
   - enhanced: supports array-capable share scope payloads end-to-end.
   - non-enhanced: intentionally keeps legacy scalar contracts (single emitted scope for remotes loading and container init path).
 
-## 10) Manifest pipeline
+## 10) Manifest Pipeline
 
 ### 10.1 JS side
 
@@ -767,7 +767,7 @@ Key differences:
 
 - Emits structural metadata but leaves asset lists empty and marks unknown usage where appropriate.
 
-## 11) Test coverage map (Representative)
+## 11) Test Coverage Map (Representative)
 
 ### 11.1 Async startup and runtime wrapping
 
@@ -825,7 +825,7 @@ Key differences:
 - `tests/rspack-test/serialCases/container-1-5/8-layers-full/*`
 - `tests/rspack-test/configCases/sharing/tree-shaking-shared/*`
 
-## 12) Notable nuances / gotchas
+## 12) Notable Nuances / Gotchas
 
 1. Runtime tools dependency:
 
@@ -857,7 +857,7 @@ Key differences:
 - Enhanced runtime paths are array-capable for share scopes.
 - Non-enhanced runtime paths intentionally remain scalar to preserve legacy templates/contracts.
 
-## 13) Quick “Where to debug What” guide
+## 13) Quick “Where To Debug What” Guide
 
 - Remote resolution/factorization issues:
   - `packages/rspack/src/container/ContainerReferencePlugin.ts`

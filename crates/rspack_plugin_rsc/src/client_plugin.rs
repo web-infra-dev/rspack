@@ -6,8 +6,8 @@ use rspack_collections::Identifier;
 use rspack_core::{
   ChunkGraph, ChunkGroup, ChunkGroupUkey, ChunkUkey, Compilation, CompilationAfterProcessAssets,
   CompilationParams, CompilerCompilation, CompilerFailed, CompilerId, CompilerMake,
-  CrossOriginLoading, DependenciesBlock, Dependency, DependencyId, DependencyType, Logger,
-  ModuleGraph, ModuleId, ModuleIdentifier, ModuleType, Plugin,
+  CrossOriginLoading, DependenciesBlock, Dependency, DependencyId, DependencyType, EntryDependency,
+  Logger, ModuleGraph, ModuleId, ModuleIdentifier, ModuleType, Plugin,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};

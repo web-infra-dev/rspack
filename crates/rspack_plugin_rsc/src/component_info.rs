@@ -1,7 +1,7 @@
 use derive_more::Debug;
 use rspack_core::{
-  Compilation, DependencyId, Module, ModuleIdentifier, ModuleType, PrefetchExportsInfoMode,
-  RscMeta, RscModuleType, RuntimeSpec,
+  Compilation, DependencyId, ExportsInfoGetter, Module, ModuleIdentifier, ModuleType,
+  PrefetchExportsInfoMode, RscMeta, RscModuleType, RuntimeSpec,
 };
 use rspack_plugin_javascript::dependency::{
   CommonJsExportRequireDependency, ESMExportImportedSpecifierDependency,
