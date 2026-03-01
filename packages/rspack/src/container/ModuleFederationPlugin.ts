@@ -392,20 +392,6 @@ function hasAsyncNodeTarget(target: unknown): boolean {
   return targets.some((value) => value.includes('async-node'));
 }
 
-function hasNodeRuntimePlugin(options: ModuleFederationPluginOptions): boolean {
-  const runtimePlugins = getRuntimePlugins(options);
-  for (const pluginSpec of runtimePlugins) {
-    const pluginPath = Array.isArray(pluginSpec) ? pluginSpec[0] : pluginSpec;
-    if (
-      typeof pluginPath === 'string' &&
-      pluginPath.includes('@module-federation/node/runtimePlugin')
-    ) {
-      return true;
-    }
-  }
-  return false;
-}
-
 function validateRscMfOptions(
   options: ModuleFederationPluginOptions,
   target: unknown,
@@ -416,11 +402,6 @@ function validateRscMfOptions(
   }
   if (options.experiments?.asyncStartup !== true) {
     validationErrors.push('`experiments.asyncStartup` must be `true`.');
-  }
-  if (!hasNodeRuntimePlugin(options)) {
-    validationErrors.push(
-      '`runtimePlugins` must include `@module-federation/node/runtimePlugin`.',
-    );
   }
   if (validationErrors.length > 0) {
     throw new Error(
