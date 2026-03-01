@@ -60,10 +60,17 @@ it('should consume mixed RSC expose patterns over HTTP federation', async () => 
       true,
     );
     expect(Object.keys(manifest.serverConsumerModuleMap).length).toBeGreaterThan(0);
-    expect(manifest.moduleLoading?.rscRemote).toEqual(remoteManifest.moduleLoading);
+    const remoteScopedManifest = manifest.remoteManifests?.rscRemote;
+    expect(remoteScopedManifest?.moduleLoading ?? manifest.moduleLoading?.rscRemote).toEqual(
+      remoteManifest.moduleLoading,
+    );
     expect(Array.isArray(manifest.entryJsFiles)).toBe(true);
-    expect(manifest.entryJsFiles?.rscRemote).toEqual(remoteManifest.entryJsFiles);
-    expect(manifest.entryCssFiles?.rscRemote).toEqual(remoteManifest.entryCssFiles);
+    expect(remoteScopedManifest?.entryJsFiles ?? manifest.entryJsFiles?.rscRemote).toEqual(
+      remoteManifest.entryJsFiles,
+    );
+    expect(remoteScopedManifest?.entryCssFiles ?? manifest.entryCssFiles?.rscRemote).toEqual(
+      remoteManifest.entryCssFiles,
+    );
 
     const prefixedActionIds = Object.keys(manifest.serverManifest).filter((id) =>
       id.startsWith('remote:rscRemote:'),
