@@ -12,7 +12,7 @@ pub struct ContainerExposedDependency {
   pub exposed_name: String,
   resource_identifier: ResourceIdentifier,
   dependency_type: DependencyType,
-  #[cacheable(with=rspack_cacheable::with::Skip)]
+  #[cacheable(with=rspack_cacheable::with::As<FactorizeInfo>)]
   factorize_info: std::sync::Arc<std::sync::Mutex<FactorizeInfo>>,
 }
 

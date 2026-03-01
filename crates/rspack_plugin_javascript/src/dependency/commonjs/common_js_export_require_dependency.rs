@@ -32,7 +32,7 @@ pub struct CommonJsExportRequireDependency {
   #[cacheable(with=AsVec<AsPreset>)]
   ids: Vec<Atom>,
   result_used: bool,
-  #[cacheable(with=rspack_cacheable::with::Skip)]
+  #[cacheable(with=rspack_cacheable::with::As<FactorizeInfo>)]
   factorize_info: std::sync::Arc<std::sync::Mutex<FactorizeInfo>>,
 }
 

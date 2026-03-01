@@ -53,7 +53,7 @@ pub struct ESMImportSpecifierDependency {
   pub evaluated_in_operator: bool,
   loc: Option<DependencyLocation>,
   pub namespace_object_as_context: bool,
-  #[cacheable(with=rspack_cacheable::with::Skip)]
+  #[cacheable(with=rspack_cacheable::with::As<FactorizeInfo>)]
   factorize_info: std::sync::Arc<std::sync::Mutex<FactorizeInfo>>,
 }
 

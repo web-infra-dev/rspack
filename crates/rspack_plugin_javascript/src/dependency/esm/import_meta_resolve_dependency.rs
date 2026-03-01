@@ -13,7 +13,7 @@ pub struct ImportMetaResolveDependency {
   pub request: String,
   range: DependencyRange,
   optional: bool,
-  #[cacheable(with=rspack_cacheable::with::Skip)]
+  #[cacheable(with=rspack_cacheable::with::As<FactorizeInfo>)]
   factorize_info: std::sync::Arc<std::sync::Mutex<FactorizeInfo>>,
 }
 

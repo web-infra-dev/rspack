@@ -12,7 +12,7 @@ pub struct IsIncludeDependency {
   pub range: DependencyRange,
   pub id: DependencyId,
   pub request: String,
-  #[cacheable(with=rspack_cacheable::with::Skip)]
+  #[cacheable(with=rspack_cacheable::with::As<FactorizeInfo>)]
   factorize_info: std::sync::Arc<std::sync::Mutex<FactorizeInfo>>,
 }
 

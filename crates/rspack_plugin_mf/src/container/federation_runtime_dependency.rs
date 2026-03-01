@@ -13,7 +13,7 @@ const FEDERATION_RUNTIME_DEPENDENCY_TYPE: DependencyType = DependencyType::EsmIm
 pub struct FederationRuntimeDependency {
   pub id: DependencyId,
   request: String,
-  #[cacheable(with=rspack_cacheable::with::Skip)]
+  #[cacheable(with=rspack_cacheable::with::As<FactorizeInfo>)]
   factorize_info: std::sync::Arc<std::sync::Mutex<FactorizeInfo>>,
 }
 

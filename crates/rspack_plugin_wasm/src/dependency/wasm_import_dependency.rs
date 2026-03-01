@@ -16,7 +16,7 @@ pub struct WasmImportDependency {
   request: String,
   // only_direct_import: bool,
   span: Option<DependencyRange>,
-  #[cacheable(with=rspack_cacheable::with::Skip)]
+  #[cacheable(with=rspack_cacheable::with::As<FactorizeInfo>)]
   factorize_info: std::sync::Arc<std::sync::Mutex<FactorizeInfo>>,
 }
 

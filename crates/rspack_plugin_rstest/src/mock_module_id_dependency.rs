@@ -16,7 +16,7 @@ pub struct MockModuleIdDependency {
   pub weak: bool,
   range: DependencyRange,
   optional: bool,
-  #[cacheable(with=rspack_cacheable::with::Skip)]
+  #[cacheable(with=rspack_cacheable::with::As<FactorizeInfo>)]
   factorize_info: std::sync::Arc<std::sync::Mutex<FactorizeInfo>>,
   category: DependencyCategory,
   pub suffix: Option<String>,

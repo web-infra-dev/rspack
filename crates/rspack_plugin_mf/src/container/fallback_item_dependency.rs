@@ -9,7 +9,7 @@ use rspack_core::{
 pub struct FallbackItemDependency {
   id: DependencyId,
   request: String,
-  #[cacheable(with=rspack_cacheable::with::Skip)]
+  #[cacheable(with=rspack_cacheable::with::As<FactorizeInfo>)]
   factorize_info: std::sync::Arc<std::sync::Mutex<FactorizeInfo>>,
 }
 

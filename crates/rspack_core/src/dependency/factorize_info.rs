@@ -1,3 +1,5 @@
+use std::sync::{Arc, Mutex};
+
 use rspack_cacheable::cacheable;
 use rspack_error::Diagnostic;
 use rspack_paths::ArcPathSet;
@@ -63,5 +65,26 @@ impl FactorizeInfo {
 
   pub fn diagnostics(&self) -> &[Diagnostic] {
     &self.diagnostics
+  }
+}
+
+impl rspack_cacheable::with::AsConverter<Arc<Mutex<FactorizeInfo>>> for FactorizeInfo {
+  fn serialize(
+    data: &Arc<Mutex<FactorizeInfo>>,
+    _guard: &rspack_cacheable::ContextGuard,
+  ) -> rspack_cacheable::Result<Self> {
+    Ok(
+      data
+        .lock()
+        .expect("dependency factorize_info poisoned")
+        .clone(),
+    )
+  }
+
+  fn deserialize(
+    self,
+    _guard: &rspack_cacheable::ContextGuard,
+  ) -> rspack_cacheable::Result<Arc<Mutex<FactorizeInfo>>> {
+    Ok(Arc::new(Mutex::new(self)))
   }
 }

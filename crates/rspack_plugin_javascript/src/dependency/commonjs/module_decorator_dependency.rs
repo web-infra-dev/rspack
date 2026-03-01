@@ -14,7 +14,7 @@ pub struct ModuleDecoratorDependency {
   decorator: RuntimeGlobals,
   allow_exports_access: bool,
   id: DependencyId,
-  #[cacheable(with=rspack_cacheable::with::Skip)]
+  #[cacheable(with=rspack_cacheable::with::As<FactorizeInfo>)]
   factorize_info: std::sync::Arc<std::sync::Mutex<FactorizeInfo>>,
 }
 

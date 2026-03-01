@@ -22,7 +22,7 @@ pub struct CommonJsRequireDependency {
   loc: Option<DependencyLocation>,
   #[cacheable(with=AsOption<AsVec<AsVec<AsPreset>>>)]
   referenced_exports: Option<Vec<Vec<Atom>>>,
-  #[cacheable(with=rspack_cacheable::with::Skip)]
+  #[cacheable(with=rspack_cacheable::with::As<FactorizeInfo>)]
   factorize_info: std::sync::Arc<std::sync::Mutex<FactorizeInfo>>,
 }
 

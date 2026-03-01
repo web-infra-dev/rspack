@@ -17,7 +17,7 @@ pub struct CssComposeDependency {
   #[cacheable(with=AsVec<AsPreset>)]
   names: Vec<Atom>,
   range: DependencyRange,
-  #[cacheable(with=rspack_cacheable::with::Skip)]
+  #[cacheable(with=rspack_cacheable::with::As<FactorizeInfo>)]
   factorize_info: std::sync::Arc<std::sync::Mutex<FactorizeInfo>>,
 }
 

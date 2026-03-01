@@ -59,7 +59,7 @@ pub struct ESMExportImportedSpecifierDependency {
   resource_identifier: ResourceIdentifier,
   export_presence_mode: ExportPresenceMode,
   loc: Option<DependencyLocation>,
-  #[cacheable(with=rspack_cacheable::with::Skip)]
+  #[cacheable(with=rspack_cacheable::with::As<FactorizeInfo>)]
   factorize_info: std::sync::Arc<std::sync::Mutex<FactorizeInfo>>,
   lazy_make: bool,
 }

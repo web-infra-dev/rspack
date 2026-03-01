@@ -24,7 +24,7 @@ pub struct URLDependency {
   range_url: DependencyRange,
   used_by_exports: Option<UsedByExports>,
   mode: Option<JavascriptParserUrl>,
-  #[cacheable(with=rspack_cacheable::with::Skip)]
+  #[cacheable(with=rspack_cacheable::with::As<FactorizeInfo>)]
   factorize_info: std::sync::Arc<std::sync::Mutex<FactorizeInfo>>,
 }
 

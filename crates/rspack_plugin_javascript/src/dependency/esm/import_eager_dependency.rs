@@ -27,7 +27,7 @@ pub struct ImportEagerDependency {
   attributes: Option<ImportAttributes>,
   phase: ImportPhase,
   resource_identifier: ResourceIdentifier,
-  #[cacheable(with=rspack_cacheable::with::Skip)]
+  #[cacheable(with=rspack_cacheable::with::As<FactorizeInfo>)]
   factorize_info: std::sync::Arc<std::sync::Mutex<FactorizeInfo>>,
 }
 

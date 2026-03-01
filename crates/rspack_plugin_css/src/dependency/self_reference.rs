@@ -22,7 +22,7 @@ pub struct CssSelfReferenceLocalIdentDependency {
   id: DependencyId,
   names: Vec<String>,
   replaces: Vec<CssSelfReferenceLocalIdentReplacement>,
-  #[cacheable(with=rspack_cacheable::with::Skip)]
+  #[cacheable(with=rspack_cacheable::with::As<FactorizeInfo>)]
   factorize_info: std::sync::Arc<std::sync::Mutex<FactorizeInfo>>,
 }
 

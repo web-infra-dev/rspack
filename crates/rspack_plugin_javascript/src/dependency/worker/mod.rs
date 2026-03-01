@@ -19,7 +19,7 @@ pub struct WorkerDependency {
   public_path: String,
   range: DependencyRange,
   range_path: DependencyRange,
-  #[cacheable(with=rspack_cacheable::with::Skip)]
+  #[cacheable(with=rspack_cacheable::with::As<FactorizeInfo>)]
   factorize_info: std::sync::Arc<std::sync::Mutex<FactorizeInfo>>,
   need_new_url: bool,
 }

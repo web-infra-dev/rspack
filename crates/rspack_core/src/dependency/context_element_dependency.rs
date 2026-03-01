@@ -31,7 +31,7 @@ pub struct ContextElementDependency {
   pub referenced_exports: Option<Vec<Vec<Atom>>>,
   pub dependency_type: DependencyType,
   pub attributes: Option<ImportAttributes>,
-  #[cacheable(with=rspack_cacheable::with::Skip)]
+  #[cacheable(with=rspack_cacheable::with::As<FactorizeInfo>)]
   pub factorize_info: std::sync::Arc<std::sync::Mutex<FactorizeInfo>>,
 }
 
