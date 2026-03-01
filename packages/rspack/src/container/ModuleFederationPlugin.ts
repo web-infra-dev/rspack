@@ -21,7 +21,6 @@ const require = createRequire(import.meta.url);
 declare const MF_RUNTIME_CODE: string;
 const RSC_BRIDGE_EXPOSE = './__rspack_rsc_bridge__';
 const RSC_LAYER = 'react-server-components';
-const NODE_RUNTIME_PLUGIN_REQUEST = '@module-federation/node/runtimePlugin';
 
 export interface ModuleFederationPluginOptions extends Omit<
   ModuleFederationPluginV1Options,
@@ -48,9 +47,6 @@ export class ModuleFederationPlugin {
     const target = compiler.options.target;
     const isNodeLikeBuild = isNodeLikeTarget(target);
     const isRscMfOptIn = this._options.experiments?.rsc === true;
-    if (isRscMfOptIn && isNodeLikeBuild) {
-      validateRscMfOptions(this._options, compiler);
-    }
     const isRscMfEnabled = isRscMfOptIn && isNodeLikeBuild;
     const options = isRscMfEnabled
       ? augmentRscBridgeExposes(this._options)
@@ -385,71 +381,6 @@ function isNodeLikeTarget(target: unknown): boolean {
   if (target === false) return false;
   const targets = getTargetValues(target);
   return targets.some((value) => value.includes('node'));
-}
-
-function hasAsyncNodeTarget(target: unknown): boolean {
-  const targets = getTargetValues(target);
-  return targets.some(
-    (value) => value === 'async-node' || value.startsWith('async-node'),
-  );
-}
-
-function hasNodeRuntimePlugin(
-  runtimePlugins: RuntimePlugins | undefined,
-): boolean {
-  if (!runtimePlugins || runtimePlugins.length === 0) {
-    return false;
-  }
-  const normalize = (value: string) => value.replace(/\\/g, '/').toLowerCase();
-  return runtimePlugins.some((pluginSpec) => {
-    const pluginPath = Array.isArray(pluginSpec) ? pluginSpec[0] : pluginSpec;
-    if (typeof pluginPath !== 'string') return false;
-    const normalized = normalize(pluginPath);
-    return (
-      normalized.includes(normalize(NODE_RUNTIME_PLUGIN_REQUEST)) ||
-      (normalized.includes('@module-federation/node') &&
-        normalized.includes('runtimeplugin'))
-    );
-  });
-}
-
-function validateRscMfOptions(
-  options: ModuleFederationPluginOptions,
-  compiler: Compiler,
-) {
-  const errors: string[] = [];
-  if (!hasAsyncNodeTarget(compiler.options.target)) {
-    errors.push('`target` must include `"async-node"`.');
-  }
-  if (options.experiments?.asyncStartup !== true) {
-    errors.push('`experiments.asyncStartup` must be `true`.');
-  }
-  if (!hasNodeRuntimePlugin(options.runtimePlugins)) {
-    errors.push(
-      '`runtimePlugins` must include `@module-federation/node/runtimePlugin`.',
-    );
-  }
-
-  if (errors.length === 0) return;
-
-  throw new Error(
-    [
-      '[ModuleFederationPlugin] Invalid RSC federation server configuration.',
-      ...errors.map((item, index) => `${index + 1}. ${item}`),
-      '',
-      'Expected configuration snippet:',
-      'new rspack.container.ModuleFederationPlugin({',
-      '  // ...',
-      '  runtimePlugins: [require.resolve("@module-federation/node/runtimePlugin")],',
-      '  experiments: {',
-      '    asyncStartup: true,',
-      '    rsc: true,',
-      '  },',
-      '});',
-      '',
-      'And compiler target should be "async-node".',
-    ].join('\n'),
-  );
 }
 
 function augmentRscBridgeExposes(
