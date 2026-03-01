@@ -1,4 +1,4 @@
-# Rspack React Server Components Example
+# Rspack React Server Components example
 
 This example is a server-driven app built with Rspack and React Server Components (RSC). In this setup, routing happens on the server, delivering HTML on initial page load, and client side rendering on subsequent navigations. It also demonstrates React Server Actions to perform mutations, both by calling as a function and as the target of an HTML form.
 
