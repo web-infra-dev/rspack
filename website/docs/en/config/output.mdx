@@ -1525,8 +1525,9 @@ Only available when `library.type` is set to `modern-module`.
 When enabled, Rspack will preserve the original directory structure of modules within the specified directory.
 
 ```js
-import path from 'path';
-module.exports = {
+import path from 'node:path';
+
+export default {
   output: {
     library: {
       type: 'modern-module',

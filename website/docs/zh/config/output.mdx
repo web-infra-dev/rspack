@@ -1516,8 +1516,9 @@ define('MyLibrary', [], factory);
 当启用后，Rspack 会保留传入目录下模块的原始文件结构。
 
 ```js
-import path from 'path';
-module.exports = {
+import path from 'node:path';
+
+export default {
   output: {
     library: {
       type: 'modern-module',
