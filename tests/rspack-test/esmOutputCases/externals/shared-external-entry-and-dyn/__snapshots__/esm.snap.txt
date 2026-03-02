@@ -1,4 +1,4 @@
-```mjs title=async_js.mjs
+```mjs title=async.mjs
 // fs?3cf4
 
 // ./async.js
@@ -22,7 +22,7 @@ import { readFile } from "fs";
 
 
 it('should handle external used in both entry and dynamic import', async () => {
-	const mod = await import("./async_js.mjs")
+	const mod = await import("./async.mjs")
 	expect(mod.readFile).toBeDefined()
 	expect(readFile).toBeDefined()
 	expect(mod.readFile).toBe(readFile)

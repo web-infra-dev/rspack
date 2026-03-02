@@ -1,11 +1,11 @@
-use std::sync::Arc;
+use std::{collections::HashMap, path::Path, sync::Arc};
 
 use atomic_refcell::AtomicRefCell;
 use rayon::prelude::*;
 use rspack_collections::{IdentifierMap, IdentifierSet, UkeyDashSet, UkeyMap, UkeySet};
 use rspack_core::{
-  ChunkGroupUkey, ChunkUkey, Compilation, DependenciesBlock, DependencyType, find_new_name,
-  get_cached_readable_identifier, incremental::Mutation, split_readable_identifier,
+  ChunkGroupUkey, ChunkUkey, Compilation, DependenciesBlock, DependencyType, ModuleIdentifier,
+  find_new_name, get_cached_readable_identifier, incremental::Mutation, split_readable_identifier,
 };
 use rspack_util::{atom::Atom, fx_hash::FxHashSet};
 
@@ -405,4 +405,140 @@ pub(crate) fn analyze_dyn_import_targets(
   }
 
   (strict_chunks, all_dyn_targets, namespace_targets)
+}
+
+/// Compute a short name from a module identifier.
+///
+/// Rules:
+/// - If the filename stem is "index", use the parent directory name
+/// - Otherwise, use the filename stem (without extension)
+///
+/// Examples:
+/// - `node_modules/lib/index.js` → `lib`
+/// - `/path/to/src/index.js` → `src`
+/// - `/path/to/src/app.js` → `app`
+fn short_name_from_identifier(identifier: &str) -> Option<String> {
+  let path = Path::new(identifier);
+  let stem = path.file_stem()?.to_str()?;
+  if stem == "index" {
+    let parent = path.parent()?;
+    let dir_name = parent.file_name()?.to_str()?;
+    Some(dir_name.to_string())
+  } else {
+    Some(stem.to_string())
+  }
+}
+
+/// For unnamed dynamic-import chunks with exactly one root module,
+/// assign a short name derived from the root module's identifier.
+///
+/// Names are deduplicated: if a name conflicts with any existing named chunk
+/// or another computed name, a `~N` suffix is appended (deterministic index).
+pub(crate) fn assign_dyn_import_chunk_short_names(compilation: &mut Compilation) {
+  let module_graph = compilation.get_module_graph();
+
+  // Collect all existing named chunks
+  let mut used_names: HashMap<String, usize> = HashMap::default();
+  for name in compilation.build_chunk_graph_artifact.named_chunks.keys() {
+    used_names.insert(name.clone(), 1);
+  }
+
+  // Collect candidates: (chunk_ukey, root_module_identifier) for unnamed non-initial chunks
+  // with exactly one root module
+  let mut candidates: Vec<(ChunkUkey, ModuleIdentifier)> = Vec::new();
+
+  for (chunk_ukey, chunk) in compilation.build_chunk_graph_artifact.chunk_by_ukey.iter() {
+    // Skip chunks that already have a name
+    if chunk.name().is_some() {
+      continue;
+    }
+    // Only target non-initial chunks (dynamic import chunks)
+    if chunk.can_be_initial(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey) {
+      continue;
+    }
+    let root_modules = compilation
+      .build_chunk_graph_artifact
+      .chunk_graph
+      .get_chunk_root_modules(
+        chunk_ukey,
+        module_graph,
+        &compilation.module_graph_cache_artifact,
+        &compilation.exports_info_artifact,
+      );
+    if root_modules.len() == 1 {
+      candidates.push((*chunk_ukey, root_modules[0]));
+    }
+  }
+
+  // Sort by module identifier for deterministic ordering
+  candidates.sort_by(|a, b| a.1.cmp(&b.1));
+
+  // Compute short names and track duplicates
+  // name_to_chunks: maps base_name → list of (chunk_ukey, module_identifier) in sorted order
+  let mut name_to_chunks: Vec<(String, Vec<(ChunkUkey, ModuleIdentifier)>)> = Vec::new();
+  let mut name_index_map: HashMap<String, usize> = HashMap::default();
+
+  for (chunk_ukey, module_id) in &candidates {
+    let Some(module_path) = module_graph
+      .module_by_identifier(module_id)
+      .expect("should have module")
+      .name_for_condition()
+    else {
+      continue;
+    };
+    let Some(base_name) = short_name_from_identifier(module_path.as_ref()) else {
+      continue;
+    };
+    if let Some(&idx) = name_index_map.get(&base_name) {
+      name_to_chunks[idx].1.push((*chunk_ukey, *module_id));
+    } else {
+      let idx = name_to_chunks.len();
+      name_index_map.insert(base_name.clone(), idx);
+      name_to_chunks.push((base_name, vec![(*chunk_ukey, *module_id)]));
+    }
+  }
+
+  // Assign names, handling deduplication
+  let mut assignments: Vec<(ChunkUkey, String)> = Vec::new();
+
+  for (base_name, chunks) in &name_to_chunks {
+    if chunks.len() == 1 && !used_names.contains_key(base_name) {
+      // Unique name, no conflict
+      assignments.push((chunks[0].0, base_name.clone()));
+      used_names.insert(base_name.clone(), 1);
+    } else {
+      // Need dedup suffixes: chunks are already sorted by module identifier
+      for (chunk_ukey, _module_id) in chunks {
+        let mut index = used_names.get(base_name).copied().unwrap_or(0);
+        let name = loop {
+          let candidate = if index == 0 {
+            base_name.clone()
+          } else {
+            format!("{base_name}~{index}")
+          };
+          if !used_names.contains_key(&candidate) {
+            break candidate;
+          }
+          index += 1;
+        };
+        // Record the next index to try for this base_name
+        used_names.insert(base_name.clone(), index + 1);
+        used_names.insert(name.clone(), 1);
+        assignments.push((*chunk_ukey, name));
+      }
+    }
+  }
+
+  // Apply assignments
+  for (chunk_ukey, name) in assignments {
+    let chunk = compilation
+      .build_chunk_graph_artifact
+      .chunk_by_ukey
+      .expect_get_mut(&chunk_ukey);
+    chunk.set_name(Some(name.clone()));
+    compilation
+      .build_chunk_graph_artifact
+      .named_chunks
+      .insert(name, chunk_ukey);
+  }
 }
