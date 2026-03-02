@@ -3560,6 +3560,7 @@ dependencies = [
  "rspack_tasks",
  "rustc-hash",
  "serde_json",
+ "supports-color 3.0.2",
  "tokio",
 ]
 

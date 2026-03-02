@@ -1704,7 +1704,7 @@ CompilerOptions {
         no_parse: None,
     },
     stats: StatsOptions {
-        colors: true,
+        colors: <env-dependent>,
     },
     cache: Disabled,
     experiments: Experiments {

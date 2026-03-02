@@ -60,6 +60,7 @@ use rspack_paths::{AssertUtf8, Utf8PathBuf};
 use rspack_regex::RspackRegex;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use serde_json::json;
+use supports_color::Stream;
 use target::{TargetProperties, get_targets_properties};
 
 /// Error type for builder
@@ -1242,7 +1243,11 @@ impl CompilerOptionsBuilder {
       .push(BuiltinPluginOptions::WorkerPlugin);
 
     // TODO: stats plugins
-    let stats = d!(self.stats.take(), StatsOptions { colors: true });
+    let default_stats_colors = supports_color::on(Stream::Stdout).is_some();
+    let default_stats = StatsOptions {
+      colors: default_stats_colors,
+    };
+    let stats = d!(self.stats.take(), default_stats);
 
     let amd = self.amd.take();
 

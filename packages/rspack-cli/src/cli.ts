@@ -208,12 +208,6 @@ export class RspackCLI {
             | 'errors-warnings',
         };
       }
-      if (
-        this.colors.isColorSupported &&
-        typeof item.stats.colors === 'undefined'
-      ) {
-        item.stats.colors = true;
-      }
       return item;
     };
 
