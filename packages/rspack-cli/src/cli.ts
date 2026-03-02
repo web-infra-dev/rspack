@@ -15,7 +15,7 @@ import cac, { type CAC } from 'cac';
 import { BuildCommand } from './commands/build';
 import { PreviewCommand } from './commands/preview';
 import { ServeCommand } from './commands/serve';
-import type { RspackCLIColors, RspackCLILogger } from './types';
+import type { RspackCLILogger } from './types';
 import { loadExtendedConfig, loadRspackConfig } from './utils/loadConfig';
 import type {
   CommonOptions,
@@ -26,6 +26,14 @@ type Command = 'serve' | 'build';
 
 declare global {
   const RSPACK_CLI_VERSION: string;
+}
+
+interface RspackCLIColors {
+  isColorSupported: boolean;
+  red(text: string): string;
+  yellow(text: string): string;
+  cyan(text: string): string;
+  green(text: string): string;
 }
 
 function isEnvColorSupported(): boolean {
@@ -122,7 +130,7 @@ export class RspackCLI {
     return compiler;
   }
 
-  createColors(useColor?: boolean): RspackCLIColors {
+  private createColors(useColor?: boolean): RspackCLIColors {
     const envSupported = isEnvColorSupported();
     const enabled = useColor ?? envSupported;
 
@@ -163,7 +171,7 @@ export class RspackCLI {
     this.program.parse(argv);
   }
 
-  async registerCommands() {
+  private async registerCommands() {
     const builtinCommands = [
       new BuildCommand(),
       new ServeCommand(),
@@ -173,7 +181,7 @@ export class RspackCLI {
       await command.apply(this);
     }
   }
-  async buildConfig(
+  private async buildConfig(
     item: RspackOptions | MultiRspackOptions,
     pathMap: WeakMap<RspackOptions, string[]>,
     options: CommonOptionsForBuildAndServe,
