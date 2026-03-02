@@ -73,13 +73,6 @@ const coreTeam: Member[] = [
     desc: 'Rspack core team, webpack contributor',
   },
   {
-    id: 'h-a-n-a',
-    name: 'Hana',
-    avatar: 'https://avatars.githubusercontent.com/u/10465670?s=120&v=4',
-    x: 'https://x.com/_h_ana___',
-    desc: 'Rspack core team, NAPI contributor',
-  },
-  {
     id: 'jerrykingxyz',
     avatar: 'https://avatars.githubusercontent.com/u/9291503?s=120&v=4',
     desc: 'Rspack core team',
@@ -281,6 +274,13 @@ export const RandomContributorsList = () => {
       id: 'bvanjoi',
       avatar: 'https://avatars.githubusercontent.com/u/30187863?s=120&v=4',
       desc: 'Rspack & SWC core team, Rust language contributor',
+    },
+    {
+      id: 'h-a-n-a',
+      name: 'Hana',
+      avatar: 'https://avatars.githubusercontent.com/u/10465670?s=120&v=4',
+      x: 'https://x.com/_h_ana___',
+      desc: 'Rspack & Rolldown core team',
     },
   ];
 
