@@ -117,7 +117,7 @@ compiler.hooks.thisCompilation.tap('MyPlugin', (compilation) => {
   const { RawSource } = compiler.rspack.sources;
   compilation.hooks.processAssets.tap('MyPlugin', () => {
     const updatedSource = new RawSource(
-      `module.exports = "This is the updated"`,
+      `export default "This is the updated"`,
     );
     compilation.updateAsset('main.js', updatedSource, {
       minimized: true,
