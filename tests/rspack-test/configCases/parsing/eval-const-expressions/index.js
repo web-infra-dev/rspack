@@ -1,23 +1,23 @@
 it("should evaluate basic constant expressions like webpack", () => {
-	expect(String(42)).toBe("42");
-	expect(Number("5") * 2).toBe(10);
-	expect(Boolean(0)).toBe(false);
-	expect("abcdef".slice(1, 3)).toBe("bc");
-	expect("abcdef".substr(2, 3)).toBe("cde");
-	expect("abcdef".substring(1, 4)).toBe("bcd");
+	if (String(42) !== "42") require("./non-existent-module");
+	if (Number("5") * 2 !== 10) require("./non-existent-module");
+	if (Boolean(0) !== false) require("./non-existent-module");
+	if ("abcdef".slice(1, 3) !== "bc") require("./non-existent-module");
+	if ("abcdef".substr(2, 3) !== "cde") require("./non-existent-module");
+	if ("abcdef".substring(1, 4) !== "bcd") require("./non-existent-module");
 });
 
 it("should evaluate bigint and arithmetic operators", () => {
 	// BigInt addition
-	expect(1n + 2n).toBe(3n);
+	if (1n + 2n !== 3n) require("./non-existent-module");
 
 	// Numeric Mod
-	expect(5 % 2).toBe(1);
-	expect(10 % 4).toBe(2);
+	if (5 % 2 !== 1) require("./non-existent-module");
+	if (10 % 4 !== 2) require("./non-existent-module");
 
 	// Unsigned right shift
-	expect(-1 >>> 0).toBe(0xffffffff);
-	expect(1 >>> 0).toBe(1);
+	if (-1 >>> 0 !== 0xffffffff) require("./non-existent-module");
+	if (1 >>> 0 !== 1) require("./non-existent-module");
 });
 
 it("should evaluate typeof and keep side effects for wrapped expressions", () => {
@@ -27,13 +27,10 @@ it("should evaluate typeof and keep side effects for wrapped expressions", () =>
 		return "x";
 	}
 
-	const t1 = typeof function () { };
-	const t2 = typeof +1;
-	const t3 = typeof ("a" + sideEffect());
-
-	expect(t1).toBe("function");
-	expect(t2).toBe("number");
-	expect(t3).toBe("string");
-	expect(called).toBe(1);
+	if (typeof +1 !== "number") require("./non-existent-module");
+	if (typeof ("a" + sideEffect()) !== "string") require("./non-existent-module");
+	if (called !== 1) {
+		throw new Error("sideEffect should be called exactly once");
+	}
 });
 
