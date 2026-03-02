@@ -2422,17 +2422,17 @@ impl ConcatenatedModule {
           module_info
             .global_scope_ident
             .push(ident.to_legacy(ast, &semantic));
-          all_used_names.insert(Atom::new(ast.get_utf8(ident.id.sym(ast))));
+          all_used_names.insert(ast.get_atom(ident.id.sym(ast)));
         }
         if ident.is_class_expr_with_ident {
-          all_used_names.insert(Atom::new(ast.get_utf8(ident.id.sym(ast))));
+          all_used_names.insert(ast.get_atom(ident.id.sym(ast)));
           continue;
         }
         // deconflict naming from inner scope, the module level deconflict will be finished
         // you could see tests/webpack-test/cases/scope-hoisting/renaming-4967 as a example
         // during module eval phase.
         if semantic.node_scope(ident.id) != semantic.top_level_scope_id() {
-          all_used_names.insert(Atom::new(ast.get_utf8(ident.id.sym(ast))));
+          all_used_names.insert(ast.get_atom(ident.id.sym(ast)));
         }
         module_info.idents.push(ident.to_legacy(ast, &semantic));
       }
@@ -3279,7 +3279,7 @@ pub struct NewConcatenatedModuleIdent {
 impl NewConcatenatedModuleIdent {
   pub fn to_legacy(&self, ast: &Ast, semantic: &Semantic) -> ConcatenatedModuleIdent {
     let span = self.id.span(ast);
-    let sym = Atom::new(ast.get_utf8(self.id.sym(ast)));
+    let sym = ast.get_atom(self.id.sym(ast));
     let ctxt = semantic.node_scope(self.id).to_ctxt();
     ConcatenatedModuleIdent {
       id: swc_ecma_ast::Ident::new(sym, span, ctxt),
