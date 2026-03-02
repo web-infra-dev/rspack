@@ -273,7 +273,7 @@ impl Dependency for ESMImportSpecifierDependency {
         return create_exports_object_referenced();
       }
       // remove last one
-      ids = &ids[..ids.len() - 1];
+      ids = &ids[..ids.len().saturating_sub(1)];
     }
     self.get_referenced_exports_in_destructuring(Some(ids))
   }

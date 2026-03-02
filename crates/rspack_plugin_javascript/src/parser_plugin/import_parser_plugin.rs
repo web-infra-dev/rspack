@@ -231,7 +231,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
         || ids.len() > 1)
     {
       // remove last one
-      ids = &ids[..ids.len() - 1];
+      ids = &ids[..ids.len().saturating_sub(1)];
     }
     parser
       .dynamic_import_references
