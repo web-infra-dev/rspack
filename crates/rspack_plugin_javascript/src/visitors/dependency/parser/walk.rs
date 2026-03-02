@@ -268,8 +268,14 @@ impl JavascriptParser<'_> {
 
     if let Some(t) = finalizer_terminated {
       self.terminated = Some(t);
-    } else if try_terminated.is_some() && (stmt.handler.is_none() || handler_terminated.is_some()) {
-      self.terminated = handler_terminated.or(try_terminated);
+    } else if let Some(t) = try_terminated {
+      // If try block returns (not throws), we never run the catch, so code after
+      // try-catch is unreachable.  If try throws, only mark terminated when there
+      // is no handler or the handler also terminates.
+      let try_returns = matches!(t, ScopeTerminated::Return);
+      if try_returns || stmt.handler.is_none() || handler_terminated.is_some() {
+        self.terminated = handler_terminated.or(Some(t));
+      }
     }
 
     self.in_try = was_in_try;
