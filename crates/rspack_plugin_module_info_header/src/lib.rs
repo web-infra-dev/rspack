@@ -1,11 +1,12 @@
-use std::{hash::Hash, rc::Rc};
+use std::{borrow::Cow, hash::Hash, rc::Rc};
 
 use rspack_cacheable::with::AsVecConverter;
 use rspack_core::{
   BuildMetaExportsType, ChunkGraph, ChunkInitFragments, ChunkUkey, Compilation, CompilationParams,
   CompilerCompilation, ExportInfo, ExportProvided, ExportsInfoArtifact, ExportsInfoGetter,
-  GetTargetResult, Module, ModuleGraph, ModuleIdentifier, Plugin, PrefetchExportsInfoMode,
-  PrefetchedExportsInfoWrapper, RuntimeCodeTemplate, UsageState, get_target,
+  GetTargetResult, Module, ModuleGraph, ModuleIdentifier, OptimizationBailoutItem, Plugin,
+  PrefetchExportsInfoMode, PrefetchedExportsInfoWrapper, RuntimeCodeTemplate, UsageState,
+  get_target,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
   to_comment_with_nl,
 };
@@ -308,7 +309,11 @@ async fn render_js_module_package(
     }
 
     for b in module_graph.get_optimization_bailout(&module.identifier()) {
-      new_source.add(RawStringSource::from(to_comment_with_nl(&b.to_string())))
+      let s = match b {
+        OptimizationBailoutItem::Message(msg) => Cow::Borrowed(msg.as_str()),
+        b => Cow::Owned(b.to_string()),
+      };
+      new_source.add(RawStringSource::from(to_comment_with_nl(&s)));
     }
   }
 

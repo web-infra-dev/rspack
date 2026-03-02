@@ -9,7 +9,7 @@ use rspack_collections::{Identifier, IdentifierMap};
 use rspack_core::{
   ChunkGroupUkey, Compilation, CompilationAfterCodeGeneration, CompilationAfterProcessAssets,
   CompilationId, CompilationModuleIds, CompilationOptimizeChunkModules, CompilationOptimizeChunks,
-  CompilationParams, CompilerCompilation, ModuleIdsArtifact, Plugin,
+  CompilationParams, CompilerCompilation, ModuleIdsArtifact, OptimizationBailoutItem, Plugin,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
@@ -378,7 +378,13 @@ async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<
     if let Some(rsd_module) = rsd_modules.get_mut(module_id) {
       rsd_module.issuer_path = Some(issuer_path);
       let bailout_reason = module_graph.get_optimization_bailout(module_id);
-      rsd_module.bailout_reason = bailout_reason.iter().map(|b| b.to_string()).collect();
+      rsd_module.bailout_reason = bailout_reason
+        .iter()
+        .map(|b| match b {
+          OptimizationBailoutItem::Message(msg) => msg.as_str().to_owned(),
+          b => b.to_string(),
+        })
+        .collect();
     }
   }
 
