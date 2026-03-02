@@ -27,7 +27,7 @@ it("should evaluate typeof and keep side effects for wrapped expressions", () =>
 		return "x";
 	}
 
-	const t1 = typeof function () {};
+	const t1 = typeof function () { };
 	const t2 = typeof +1;
 	const t3 = typeof ("a" + sideEffect());
 

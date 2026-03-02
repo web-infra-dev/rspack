@@ -295,8 +295,12 @@ fn handle_add<'a>(
       return None;
     }
   } else if left.is_bigint() {
+    let had_side_effects = res.could_have_side_effects();
     if let (Some(l), Some(r)) = (left.bigint(), right.bigint()) {
       res.set_bigint(l.clone() + r.clone());
+      if had_side_effects {
+        res.set_side_effects(true);
+      }
       return Some(res);
     }
     return None;
@@ -419,8 +423,8 @@ pub fn handle_const_operation<'a>(
     return None;
   }
 
+  let had_side_effects = left.could_have_side_effects() || right.could_have_side_effects();
   let mut res = BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.real_hi());
-  res.set_side_effects(left.could_have_side_effects() || right.could_have_side_effects());
 
   match expr.op {
     BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div | BinaryOp::Mod | BinaryOp::Exp => {
@@ -435,6 +439,9 @@ pub fn handle_const_operation<'a>(
           BinaryOp::Exp => left_number.powf(right_number),
           _ => unreachable!(),
         });
+        if had_side_effects {
+          res.set_side_effects(true);
+        }
         Some(res)
       } else {
         None
@@ -451,6 +458,9 @@ pub fn handle_const_operation<'a>(
           _ => unreachable!(),
         };
         res.set_number(result);
+        if had_side_effects {
+          res.set_side_effects(true);
+        }
         Some(res)
       } else {
         None
@@ -466,6 +476,9 @@ pub fn handle_const_operation<'a>(
           BinaryOp::BitOr => left_number | right_number,
           _ => unreachable!(),
         } as f64);
+        if had_side_effects {
+          res.set_side_effects(true);
+        }
         Some(res)
       } else {
         None

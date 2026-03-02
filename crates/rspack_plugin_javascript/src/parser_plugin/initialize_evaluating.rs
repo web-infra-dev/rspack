@@ -99,31 +99,48 @@ impl JavascriptParserPlugin for InitializeEvaluating {
       property,
       SLICE_METHOD_NAME | SUBSTR_METHOD_NAME | SUBSTRING_METHOD_NAME
     ) && param.is_string()
-      && !expr.args.is_empty()
+      && (expr.args.len() == 1 || expr.args.len() == 2)
       && expr.args.iter().all(|a| a.spread.is_none())
     {
       let str = param.string();
       let arg1 = parser.evaluate_expression(&expr.args[0].expr);
-      if !arg1.is_number() {
+      if !arg1.is_number() || arg1.could_have_side_effects() {
         return None;
       }
       let result = if expr.args.len() == 1 {
-        mock_javascript_slice(str.as_str(), arg1.number())
+        match property {
+          SLICE_METHOD_NAME => mock_javascript_slice(str.as_str(), arg1.number()),
+          // 1-arg forms of substr/substring have additional edge cases;
+          // keep them unevaluated for now.
+          SUBSTR_METHOD_NAME | SUBSTRING_METHOD_NAME => return None,
+          _ => unreachable!(),
+        }
       } else {
         let arg2 = parser.evaluate_expression(&expr.args[1].expr);
-        if !arg2.is_number() {
+        if !arg2.is_number() || arg2.could_have_side_effects() {
           return None;
         }
         match property {
-          SLICE_METHOD_NAME | SUBSTRING_METHOD_NAME => {
-            mock_javascript_slice_range(str.as_str(), arg1.number(), arg2.number())
+          // Only fold simple non-negative, ordered indices for slice.
+          SLICE_METHOD_NAME => {
+            let start = arg1.number();
+            let end = arg2.number();
+            if start < 0.0 || end < 0.0 || end < start {
+              return None;
+            }
+            mock_javascript_slice_range(str.as_str(), start, end)
+          }
+          // substring has distinct semantics (clamps negatives, swaps indices).
+          SUBSTRING_METHOD_NAME => {
+            mock_javascript_substring_range(str.as_str(), arg1.number(), arg2.number())
           }
           SUBSTR_METHOD_NAME => mock_javascript_substr(str.as_str(), arg1.number(), arg2.number()),
-          _ => return None,
+          _ => unreachable!(),
         }
       };
       let mut res = BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.real_hi());
       res.set_string(result);
+      // param side effects are preserved; arg side effects are rejected above.
       res.set_side_effects(param.could_have_side_effects());
       return Some(res);
     } else if property == REPLACE_METHOD_NAME
@@ -280,22 +297,26 @@ fn mock_javascript_slice(str: &str, number: f64) -> String {
   } else if number == f64::NEG_INFINITY || number.is_nan() {
     str.to_string()
   } else {
+    let chars: Vec<char> = str.chars().collect();
+    let len = chars.len() as isize;
     let n = number.trunc() as isize;
-    if n >= str.len() as isize {
+    if n >= len {
       String::new()
     } else if n >= 0 {
-      str[n as usize..].to_string()
-    } else if n.unsigned_abs() >= str.len() {
+      chars[n as usize..].iter().collect()
+    } else if n.unsigned_abs() >= len as usize {
       str.to_string()
     } else {
-      str[str.len() - (n.unsigned_abs())..].to_string()
+      let start = len - n.unsigned_abs() as isize;
+      chars[start as usize..].iter().collect()
     }
   }
 }
 
 /// JS slice(start, end) / substring(start, end): [start, end), indices truncated to i32.
 fn mock_javascript_slice_range(str: &str, start: f64, end: f64) -> String {
-  let len = str.len() as i32;
+  let chars: Vec<char> = str.chars().collect();
+  let len = chars.len() as i32;
   let mut s = start.trunc() as i32;
   let mut e = end.trunc() as i32;
   if s < 0 {
@@ -313,12 +334,13 @@ fn mock_javascript_slice_range(str: &str, start: f64, end: f64) -> String {
   if s >= e {
     return String::new();
   }
-  str[s as usize..e as usize].to_string()
+  chars[s as usize..e as usize].iter().collect()
 }
 
 /// JS substr(start, length): from start take length chars. length undefined = to end.
 fn mock_javascript_substr(str: &str, start: f64, length: f64) -> String {
-  let len = str.len() as i32;
+  let chars: Vec<char> = str.chars().collect();
+  let len = chars.len() as i32;
   let mut s = start.trunc() as i32;
   let length_i = length.trunc() as i32;
   if s < 0 {
@@ -331,7 +353,36 @@ fn mock_javascript_substr(str: &str, start: f64, length: f64) -> String {
     return String::new();
   }
   let count = length_i.min(len.saturating_sub(s)) as usize;
-  str[s as usize..(s as usize + count)].to_string()
+  chars[s as usize..(s as usize + count)].iter().collect()
+}
+
+/// JS substring(start, end) with clamping and index swapping.
+fn mock_javascript_substring_range(str: &str, start: f64, end: f64) -> String {
+  let chars: Vec<char> = str.chars().collect();
+  let len = chars.len() as f64;
+  let mut start = if start.is_nan() || start < 0.0 {
+    0.0
+  } else if start > len {
+    len
+  } else {
+    start
+  };
+  let mut end = if end.is_nan() || end < 0.0 {
+    0.0
+  } else if end > len {
+    len
+  } else {
+    end
+  };
+  if start > end {
+    std::mem::swap(&mut start, &mut end);
+  }
+  let s = start.trunc() as usize;
+  let e = end.trunc() as usize;
+  if s >= e {
+    return String::new();
+  }
+  chars[s..e].iter().collect()
 }
 
 #[test]
