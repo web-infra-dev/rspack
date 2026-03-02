@@ -65,7 +65,19 @@ export default {
 };
 ```
 
-Multiple modules will be executed sequentially according to the order defined by the array, so the code in `pre.js` will be executed before the code in `post.js`.
+When an array is used for an entry, Rspack still creates a single chunk for that entry. Modules in the array are loaded in declaration order and merged into the same dependency graph, so `pre.js` runs before `post.js`.
+
+This pattern is commonly used to inject extra code before the main application entry, such as polyfills or development-only tooling, without adding manual imports in application source files.
+
+**Example: Injecting a polyfill**
+
+```js title="rspack.config.mjs"
+export default {
+  entry: {
+    main: ['./src/polyfill.js', './src/index.js'],
+  },
+};
+```
 
 ## Multiple entries
 
