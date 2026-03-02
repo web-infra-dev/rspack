@@ -269,11 +269,9 @@ impl JavascriptParser<'_> {
     if let Some(t) = finalizer_terminated {
       self.terminated = Some(t);
     } else if let Some(t) = try_terminated {
-      // If try block returns (not throws), we never run the catch, so code after
-      // try-catch is unreachable.  If try throws, only mark terminated when there
-      // is no handler or the handler also terminates.
-      let try_returns = matches!(t, ScopeTerminated::Return);
-      if try_returns || stmt.handler.is_none() || handler_terminated.is_some() {
+      // When there is no catch handler or the handler itself always terminates,
+      // code after the try/catch is unreachable and we can propagate termination.
+      if stmt.handler.is_none() || handler_terminated.is_some() {
         self.terminated = handler_terminated.or(Some(t));
       }
     }
@@ -355,25 +353,8 @@ impl JavascriptParser<'_> {
         self.walk_nested_statement(alt);
       }
     } else {
-      // Try to evaluate the condition to a compile-time boolean. This
-      // corresponds to webpack's ConstPlugin using `statementIf` +
-      // BasicEvaluatedExpression.whenConstant.
-      let evaluated = self.evaluate_expression(&stmt.test);
-      if evaluated.is_bool() {
-        if evaluated.bool() {
-          self.walk_nested_statement(&stmt.cons);
-        } else if let Some(alt) = &stmt.alt {
-          self.walk_nested_statement(alt);
-        }
-        // When the condition is statically known, we don't merge termination
-        // from both branches: we only execute the actually taken branch, so
-        // any `self.terminated` set inside stays active for following
-        // statements (like in webpack).
-        return;
-      }
-
-      // Fallback: unknown condition – walk both branches and only keep
-      // termination when *both* are terminated.
+      // Unknown or non-constant condition – walk the test for side effects and
+      // both branches, only keeping termination when *both* are terminated.
       self.walk_expression(&stmt.test);
       self.walk_nested_statement(&stmt.cons);
       let consequent_terminated = self.terminated;
