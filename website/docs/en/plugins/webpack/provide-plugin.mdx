@@ -54,7 +54,7 @@ Enable `process` object support within a browser context.
 
 ```js
 new rspack.ProvidePlugin({
-  process: [require.resolve('process/browser')],
+  process: ['process/browser'],
 });
 ```
 
