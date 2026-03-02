@@ -250,6 +250,7 @@ const DEFAULTS: StatsDefault = {
   chunksSort: () => false,
   assetsSort: () => '!size',
   outputPath: OFF_FOR_TO_STRING,
+  // Default stats.colors now follows the runtime environment via isStatsColorSupported()
   colors: () => isStatsColorSupported(),
 };
 

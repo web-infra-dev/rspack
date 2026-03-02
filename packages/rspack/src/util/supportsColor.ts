@@ -1,4 +1,4 @@
-import { isColorSupported } from 'picocolors';
+import picocolors from 'picocolors';
 
 /**
  * Whether the current environment supports color output (TTY, FORCE_COLOR, NO_COLOR, etc.).
@@ -6,5 +6,5 @@ import { isColorSupported } from 'picocolors';
  * @see https://github.com/web-infra-dev/rspack/issues/9353
  */
 export function isStatsColorSupported(): boolean {
-  return isColorSupported;
+  return picocolors.isColorSupported;
 }

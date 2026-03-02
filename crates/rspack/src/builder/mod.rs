@@ -1243,11 +1243,15 @@ impl CompilerOptionsBuilder {
       .push(BuiltinPluginOptions::WorkerPlugin);
 
     // TODO: stats plugins
-    let default_stats_colors = supports_color::on(Stream::Stdout).is_some();
-    let default_stats = StatsOptions {
-      colors: default_stats_colors,
+    let stats = match self.stats.take() {
+      Some(s) => s,
+      None => {
+        let default_stats_colors = supports_color::on(Stream::Stdout).is_some();
+        StatsOptions {
+          colors: default_stats_colors,
+        }
+      }
     };
-    let stats = d!(self.stats.take(), default_stats);
 
     let amd = self.amd.take();
 

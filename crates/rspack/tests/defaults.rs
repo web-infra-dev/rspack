@@ -15,12 +15,8 @@ async fn default_options() {
   settings.add_filter(&cwd.to_string_lossy(), "<cwd>");
   // stats.colors defaults to env-dependent (TTY / FORCE_COLOR / NO_COLOR)
   settings.add_filter(
-    "        colors: true,\n    },\n    cache",
-    "        colors: <env-dependent>,\n    },\n    cache",
-  );
-  settings.add_filter(
-    "        colors: false,\n    },\n    cache",
-    "        colors: <env-dependent>,\n    },\n    cache",
+    r"(?m)^\s*colors: (true|false),$",
+    "        colors: <env-dependent>,",
   );
   settings.bind(|| {
     insta::assert_debug_snapshot!(options);

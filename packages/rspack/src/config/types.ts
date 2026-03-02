@@ -2004,7 +2004,8 @@ export type StatsOptions = {
   errorsCount?: boolean;
   /**
    * Enables or disables the use of colors in the output.
-   * @default false
+   * When undefined, defaults to true if the environment supports color (TTY, FORCE_COLOR, or NO_COLOR unset), otherwise false.
+   * @default environment-dependent (see above)
    */
   colors?: boolean | StatsColorOptions;
   /**
