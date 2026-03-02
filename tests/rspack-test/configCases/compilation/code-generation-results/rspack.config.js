@@ -5,7 +5,7 @@ class Plugin {
      * @param {import("@rspack/core").Compiler} compiler
      */
     apply(compiler) {
-        const { Source } = compiler.webpack.sources;
+        const { Source } = compiler.rspack.sources;
 
         compiler.hooks.compilation.tap(PLUGIN_NAME, compilation => {
             compilation.hooks.afterProcessAssets.tap(PLUGIN_NAME, () => {
