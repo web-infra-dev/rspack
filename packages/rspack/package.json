@@ -64,8 +64,7 @@
     "webpack-sources": "3.3.4"
   },
   "dependencies": {
-    "@rspack/binding": "workspace:*",
-    "picocolors": "^1.1.1"
+    "@rspack/binding": "workspace:*"
   },
   "peerDependencies": {
     "@module-federation/runtime-tools": "^0.24.1 || ^2.0.0",

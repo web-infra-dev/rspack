@@ -12,7 +12,6 @@ import type {
 } from '@rspack/core';
 import { rspack } from '@rspack/core';
 import cac, { type CAC } from 'cac';
-import picocolors from 'picocolors';
 import { BuildCommand } from './commands/build';
 import { PreviewCommand } from './commands/preview';
 import { ServeCommand } from './commands/serve';
@@ -27,6 +26,45 @@ type Command = 'serve' | 'build';
 
 declare global {
   const RSPACK_CLI_VERSION: string;
+}
+
+function isEnvColorSupported(): boolean {
+  if (typeof process === 'undefined') return false;
+  const p = process;
+  const argv = p.argv ?? [];
+  const env = p.env ?? {};
+  return (
+    !('NO_COLOR' in env || argv.includes('--no-color')) &&
+    ('FORCE_COLOR' in env ||
+      argv.includes('--color') ||
+      p.platform === 'win32' ||
+      ((p.stdout as typeof process.stdout | undefined)?.isTTY &&
+        env.TERM !== 'dumb') ||
+      'CI' in env)
+  );
+}
+
+function createAnsiFormatter(
+  open: string,
+  close: string,
+  replace: string = open,
+) {
+  const closeLength = close.length;
+  return (input: string): string => {
+    const string = String(input);
+    let index = string.indexOf(close, open.length);
+    if (index === -1) {
+      return open + string + close;
+    }
+    let result = '';
+    let cursor = 0;
+    do {
+      result += string.substring(cursor, index) + replace;
+      cursor = index + closeLength;
+      index = string.indexOf(close, cursor);
+    } while (index !== -1);
+    return open + result + string.substring(cursor) + close;
+  };
 }
 
 export class RspackCLI {
@@ -85,10 +123,26 @@ export class RspackCLI {
   }
 
   createColors(useColor?: boolean): RspackCLIColors {
-    const shouldUseColor = useColor ?? picocolors.isColorSupported;
+    const envSupported = isEnvColorSupported();
+    const enabled = useColor ?? envSupported;
+
+    if (!enabled) {
+      const passthrough = (text: string) => String(text);
+      return {
+        isColorSupported: false,
+        red: passthrough,
+        yellow: passthrough,
+        cyan: passthrough,
+        green: passthrough,
+      };
+    }
+
     return {
-      ...picocolors.createColors(shouldUseColor),
-      isColorSupported: shouldUseColor,
+      isColorSupported: true,
+      red: createAnsiFormatter('\x1b[31m', '\x1b[39m'),
+      green: createAnsiFormatter('\x1b[32m', '\x1b[39m'),
+      yellow: createAnsiFormatter('\x1b[33m', '\x1b[39m'),
+      cyan: createAnsiFormatter('\x1b[36m', '\x1b[39m'),
     };
   }
 

@@ -368,9 +368,6 @@ importers:
       '@swc/helpers':
         specifier: '>=0.5.1'
         version: 0.5.18
-      picocolors:
-        specifier: ^1.1.1
-        version: 1.1.1
     devDependencies:
       '@ast-grep/napi':
         specifier: ^0.40.5
@@ -487,9 +484,6 @@ importers:
       execa:
         specifier: ^5.1.1
         version: 5.1.1
-      picocolors:
-        specifier: ^1.1.1
-        version: 1.1.1
       pirates:
         specifier: ^4.0.7
         version: 4.0.7
