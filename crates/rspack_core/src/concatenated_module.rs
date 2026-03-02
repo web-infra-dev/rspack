@@ -31,7 +31,7 @@ use swc_core::{
   ecma::visit::swc_ecma_ast,
 };
 use swc_experimental_ecma_ast::{
-  Ast, ClassExpr, EsVersion, Ident, ObjectPatProp, Prop, Visit, VisitWith,
+  Ast, ClassExpr, EsVersion, GetSpan, Ident, ObjectPatProp, Prop, StringAllocator, Visit, VisitWith,
 };
 use swc_experimental_ecma_parser::{EsSyntax, Parser, StringSource, Syntax};
 use swc_experimental_ecma_semantic::resolver::{Semantic, resolver};
@@ -2382,6 +2382,7 @@ impl ConcatenatedModule {
         })
         .unwrap_or(false);
 
+      let mut ast = Ast::new(fm.src.len(), StringAllocator::default());
       let lexer = swc_experimental_ecma_parser::Lexer::new(
         Syntax::Es(EsSyntax {
           jsx,
@@ -2390,12 +2391,13 @@ impl ConcatenatedModule {
         EsVersion::EsNext,
         StringSource::new(fm.src.as_str()),
         Some(&comments),
+        ast.string_allocator(),
       );
-      let p = Parser::new_from(lexer);
+      let mut p = Parser::new_from(&mut ast, lexer);
       let ret = p.parse_module();
 
-      let ret = match ret {
-        Ok(ret) => ret,
+      let module = match ret {
+        Ok(module) => module,
         Err(err) => {
           // return empty error as we already push error to compilation.diagnostics
           return Err(Error::from_string(
@@ -2408,10 +2410,10 @@ impl ConcatenatedModule {
         }
       };
       let mut all_used_names = HashSet::default();
-      let ast = &ret.ast;
+      let ast = &ast;
 
-      let semantic = resolver(ret.root, ast);
-      let ids = collect_ident(ast, ret.root);
+      let semantic = resolver(module, ast);
+      let ids = collect_ident(ast, module);
 
       module_info.module_ctxt = semantic.top_level_scope_id().to_ctxt();
       module_info.global_ctxt = semantic.unresolved_scope_id().to_ctxt();
