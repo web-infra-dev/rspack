@@ -15,7 +15,7 @@ import cac, { type CAC } from 'cac';
 import { BuildCommand } from './commands/build';
 import { PreviewCommand } from './commands/preview';
 import { ServeCommand } from './commands/serve';
-import type { RspackCLILogger } from './types';
+import type { RspackCLIColors, RspackCLILogger } from './types';
 import { loadExtendedConfig, loadRspackConfig } from './utils/loadConfig';
 import type {
   CommonOptions,
@@ -26,14 +26,6 @@ type Command = 'serve' | 'build';
 
 declare global {
   const RSPACK_CLI_VERSION: string;
-}
-
-interface RspackCLIColors {
-  isColorSupported: boolean;
-  red(text: string): string;
-  yellow(text: string): string;
-  cyan(text: string): string;
-  green(text: string): string;
 }
 
 function isEnvColorSupported(): boolean {
