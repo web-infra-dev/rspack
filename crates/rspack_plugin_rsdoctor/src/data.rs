@@ -188,6 +188,7 @@ pub struct RsdoctorSourcePosition {
 pub struct RsdoctorModuleGraph {
   pub modules: Vec<RsdoctorModule>,
   pub dependencies: Vec<RsdoctorDependency>,
+  pub connections: Vec<RsdoctorConnection>,
   pub chunk_modules: Vec<RsdoctorChunkModules>,
 }
 

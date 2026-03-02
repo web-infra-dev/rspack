@@ -351,3 +351,62 @@ pub fn collect_module_side_effects_locations(
     })
     .collect::<HashMap<_, _>>()
 }
+
+pub fn collect_modules_connections_infos(
+  modules: &IdentifierMap<&BoxModule>,
+  module_ukeys: &HashMap<Identifier, ModuleUkey>,
+  module_graph: &ModuleGraph,
+  module_graph_cache: &ModuleGraphCacheArtifact,
+  exports_info_artifact: &ExportsInfoArtifact,
+) -> Vec<RsdoctorConnection> {
+  let connection_ukey_counter = Arc::new(AtomicI32::new(0));
+
+  modules
+    .par_iter()
+    .flat_map(|(module_id, _)| {
+      let Some(module_ukey) = module_ukeys.get(module_id).copied() else {
+        return vec![];
+      };
+
+      module_graph
+        .get_incoming_connections(module_id)
+        .filter_map(|conn| {
+          let dep = module_graph.dependency_by_id(&conn.dependency_id);
+          let dependency_type = dep.dependency_type().to_string();
+          let user_request = dep
+            .as_module_dependency()
+            .map(|d| d.user_request().to_string())
+            .unwrap_or_default();
+          let loc = dep.loc().map(|l| l.to_string());
+
+          let origin_module = conn
+            .original_module_identifier
+            .as_ref()
+            .and_then(|id| module_ukeys.get(id).copied());
+          let resolved_module = module_ukeys.get(&conn.resolved_module).copied()?;
+
+          let active = conn.is_active(
+            module_graph,
+            None,
+            module_graph_cache,
+            exports_info_artifact,
+          );
+
+          let ukey = connection_ukey_counter.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+
+          Some(RsdoctorConnection {
+            ukey,
+            dependency_id: conn.dependency_id.as_u32().to_string(),
+            module: module_ukey,
+            origin_module,
+            resolved_module,
+            dependency_type,
+            user_request,
+            loc,
+            active,
+          })
+        })
+        .collect::<Vec<_>>()
+    })
+    .collect()
+}
