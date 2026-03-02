@@ -7,8 +7,8 @@ use rustc_hash::FxHashMap as HashMap;
 use super::BuildModuleGraphArtifact;
 use crate::{
   Compilation, CompilationId, CompilerId, CompilerOptions, CompilerPlatform, DependencyTemplate,
-  DependencyTemplateType, DependencyType, ExportsInfoArtifact, ModuleFactory, ResolverFactory,
-  RuntimeTemplate, SharedPluginDriver, incremental::Incremental, module_graph::ModuleGraph,
+  DependencyTemplateType, DependencyType, ModuleFactory, ResolverFactory, RuntimeTemplate,
+  SharedPluginDriver, incremental::Incremental, module_graph::ModuleGraph,
 };
 
 #[derive(Debug)]
@@ -30,15 +30,10 @@ pub struct TaskContext {
   pub runtime_template: RuntimeTemplate,
 
   pub artifact: BuildModuleGraphArtifact,
-  pub exports_info_artifact: ExportsInfoArtifact,
 }
 
 impl TaskContext {
-  pub fn new(
-    compilation: &Compilation,
-    artifact: BuildModuleGraphArtifact,
-    exports_info_artifact: ExportsInfoArtifact,
-  ) -> Self {
+  pub fn new(compilation: &Compilation, artifact: BuildModuleGraphArtifact) -> Self {
     Self {
       compiler_id: compilation.compiler_id(),
       compilation_id: compilation.id(),
@@ -55,7 +50,6 @@ impl TaskContext {
       output_fs: compilation.output_filesystem.clone(),
       runtime_template: RuntimeTemplate::new(compilation.options.clone()),
       artifact,
-      exports_info_artifact,
     }
   }
 }
@@ -95,10 +89,6 @@ impl TaskContext {
       &mut *compilation.build_module_graph_artifact,
       &mut self.artifact,
     );
-    std::mem::swap(
-      &mut *compilation.exports_info_artifact,
-      &mut self.exports_info_artifact,
-    );
     compilation
   }
 
@@ -106,10 +96,6 @@ impl TaskContext {
     std::mem::swap(
       &mut *compilation.build_module_graph_artifact,
       &mut self.artifact,
-    );
-    std::mem::swap(
-      &mut *compilation.exports_info_artifact,
-      &mut self.exports_info_artifact,
     );
   }
 }

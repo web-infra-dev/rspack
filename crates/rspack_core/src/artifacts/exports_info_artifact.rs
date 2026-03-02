@@ -15,7 +15,7 @@ pub struct ExportsInfoArtifact {
 }
 
 impl ArtifactExt for ExportsInfoArtifact {
-  const PASS: IncrementalPasses = IncrementalPasses::BUILD_MODULE_GRAPH;
+  const PASS: IncrementalPasses = IncrementalPasses::FINISH_MODULES;
 
   fn recover(incremental: &Incremental, new: &mut Self, old: &mut Self) {
     if incremental.mutations_readable(Self::PASS) {
@@ -48,6 +48,10 @@ impl ExportsInfoArtifact {
       .module_exports_info
       .get(module_identifier)
       .unwrap_or_else(|| panic!("{} {:#?}", module_identifier, &self))
+  }
+
+  pub fn has_exports_info(&self, module_identifier: &ModuleIdentifier) -> bool {
+    self.module_exports_info.contains_key(module_identifier)
   }
 
   pub fn get_exports_info_data(&self, module_identifier: &ModuleIdentifier) -> &ExportsInfoData {

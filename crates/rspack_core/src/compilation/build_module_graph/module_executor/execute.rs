@@ -96,6 +96,7 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
 
     let ExecutorTaskContext {
       origin_context,
+      exports_info_artifact,
       entries,
       ..
     } = context;
@@ -217,10 +218,26 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
     }
 
     let mut compilation = origin_context.transform_to_temp_compilation();
+    std::mem::swap(
+      &mut *compilation.exports_info_artifact,
+      exports_info_artifact,
+    );
     let main_compilation_plugin_driver = compilation.plugin_driver.clone();
     compilation.plugin_driver = compilation.buildtime_plugin_driver.clone();
 
     tracing::debug!("modules: {:?}", &modules);
+
+    for module_identifier in modules.iter() {
+      if !compilation
+        .exports_info_artifact
+        .has_exports_info(module_identifier)
+      {
+        compilation
+          .exports_info_artifact
+          .new_exports_info(*module_identifier);
+      }
+    }
+    // dbg!(&modules, &compilation.exports_info_artifact);
 
     let mut chunk_graph = ChunkGraph::default();
 
@@ -414,6 +431,10 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
         }
       })
       .collect_vec();
+    std::mem::swap(
+      &mut *compilation.exports_info_artifact,
+      exports_info_artifact,
+    );
     origin_context.recovery_from_temp_compilation(compilation);
     result_sender
       .send(ExecuteResult {

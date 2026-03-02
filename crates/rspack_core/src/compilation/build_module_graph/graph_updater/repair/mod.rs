@@ -11,16 +11,15 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use self::context::TaskContext;
 use super::BuildModuleGraphArtifact;
 use crate::{
-  BuildDependency, Compilation, ExportsInfoArtifact,
+  BuildDependency, Compilation,
   utils::task_loop::{Task, run_task_loop},
 };
 
 pub async fn repair(
   compilation: &Compilation,
   mut artifact: BuildModuleGraphArtifact,
-  exports_info_artifact: ExportsInfoArtifact,
   build_dependencies: HashSet<BuildDependency>,
-) -> Result<(BuildModuleGraphArtifact, ExportsInfoArtifact)> {
+) -> Result<BuildModuleGraphArtifact> {
   let module_graph = artifact.get_module_graph_mut();
   let mut grouped_deps = HashMap::default();
   for (dep_id, parent_module_identifier) in build_dependencies {
@@ -64,7 +63,7 @@ pub async fn repair(
     })
     .collect::<Vec<_>>();
 
-  let mut ctx = TaskContext::new(compilation, artifact, exports_info_artifact);
+  let mut ctx = TaskContext::new(compilation, artifact);
   run_task_loop(&mut ctx, init_tasks).await?;
-  Ok((ctx.artifact, ctx.exports_info_artifact))
+  Ok(ctx.artifact)
 }

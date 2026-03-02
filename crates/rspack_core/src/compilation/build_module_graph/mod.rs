@@ -17,7 +17,7 @@ pub use self::{
   module_executor::{ExecuteModuleId, ExecutedRuntimeModule, ModuleExecutor},
 };
 pub use crate::{BuildModuleGraphArtifact, BuildModuleGraphArtifactState};
-use crate::{Compilation, ExportsInfoArtifact, logger::Logger};
+use crate::{Compilation, logger::Logger};
 
 pub async fn build_module_graph_pass(compilation: &mut Compilation) -> Result<()> {
   let logger = compilation.get_logger("rspack.Compiler");
@@ -38,11 +38,8 @@ impl Compilation {
     }
 
     let artifact = self.build_module_graph_artifact.steal();
-    let exports_info_artifact = self.exports_info_artifact.steal();
-    let (artifact, exports_info_artifact) =
-      build_module_graph(self, artifact, exports_info_artifact).await?;
+    let artifact = build_module_graph(self, artifact).await?;
     self.build_module_graph_artifact = artifact.into();
-    self.exports_info_artifact = exports_info_artifact.into();
 
     self.in_finish_make.store(true, Ordering::Release);
 
@@ -57,8 +54,7 @@ impl Compilation {
 pub async fn build_module_graph(
   compilation: &Compilation,
   mut artifact: BuildModuleGraphArtifact,
-  exports_info_artifact: ExportsInfoArtifact,
-) -> Result<(BuildModuleGraphArtifact, ExportsInfoArtifact)> {
+) -> Result<BuildModuleGraphArtifact> {
   let mut params = Vec::with_capacity(6);
 
   if !compilation.entries.is_empty() {
@@ -82,10 +78,8 @@ pub async fn build_module_graph(
     params.push(UpdateParam::RemovedFiles(compilation.removed_files.clone()));
   }
 
-  // reset temporary data
-  artifact.reset_temporary_data();
-  let artifacts = update_module_graph(compilation, artifact, exports_info_artifact, params).await?;
-  Ok(artifacts)
+  let artifact = update_module_graph(compilation, artifact, params).await?;
+  Ok(artifact)
 }
 
 /// Clean up module graph when finish make.
@@ -98,12 +92,10 @@ pub async fn build_module_graph(
 pub async fn finish_build_module_graph(
   compilation: &Compilation,
   artifact: BuildModuleGraphArtifact,
-  exports_info_artifact: ExportsInfoArtifact,
-) -> Result<(BuildModuleGraphArtifact, ExportsInfoArtifact)> {
+) -> Result<BuildModuleGraphArtifact> {
   update_module_graph(
     compilation,
     artifact,
-    exports_info_artifact,
     vec![UpdateParam::BuildEntryAndClean(
       compilation
         .entries

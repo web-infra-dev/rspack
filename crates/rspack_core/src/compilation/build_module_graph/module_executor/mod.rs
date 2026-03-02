@@ -79,11 +79,11 @@ impl ModuleExecutor {
     make_artifact.reset_temporary_data();
 
     // update the module affected by modified_files
-    (make_artifact, exports_info_artifact) =
-      update_module_graph(compilation, make_artifact, exports_info_artifact, params).await?;
+    make_artifact = update_module_graph(compilation, make_artifact, params).await?;
 
     let mut ctx = ExecutorTaskContext {
-      origin_context: TaskContext::new(compilation, make_artifact, exports_info_artifact),
+      origin_context: TaskContext::new(compilation, make_artifact),
+      exports_info_artifact,
       tracker: Default::default(),
       entries: std::mem::take(&mut self.entries),
       executed_entry_deps: Default::default(),
@@ -117,7 +117,7 @@ impl ModuleExecutor {
     };
     let mut make_artifact = ctx.origin_context.artifact;
     let mut entries = ctx.entries;
-    let mut exports_info_artifact = ctx.origin_context.exports_info_artifact;
+    let mut exports_info_artifact = ctx.exports_info_artifact;
 
     // clean removed entries
     let removed_module = compilation
@@ -128,10 +128,9 @@ impl ModuleExecutor {
     entries.retain(|k, v| {
       !removed_module.contains(&k.origin_module_identifier) || ctx.executed_entry_deps.contains(v)
     });
-    (make_artifact, exports_info_artifact) = update_module_graph(
+    make_artifact = update_module_graph(
       compilation,
       make_artifact,
-      exports_info_artifact,
       vec![UpdateParam::BuildEntryAndClean(
         entries.values().copied().collect(),
       )],
