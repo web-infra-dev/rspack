@@ -310,6 +310,7 @@ pub struct JavascriptParserOptions {
   pub unknown_context_critical: Option<bool>,
   pub expr_context_critical: Option<bool>,
   pub wrapped_context_critical: Option<bool>,
+  pub strict_this_context_on_imports: Option<bool>,
   pub wrapped_context_reg_exp: Option<RspackRegex>,
   pub exports_presence: Option<ExportPresenceMode>,
   pub import_exports_presence: Option<ExportPresenceMode>,

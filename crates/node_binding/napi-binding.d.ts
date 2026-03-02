@@ -2382,6 +2382,7 @@ export interface RawJavascriptParserOptions {
   exprContextCritical?: boolean
   unknownContextCritical?: boolean
   wrappedContextCritical?: boolean
+  strictThisContextOnImports?: boolean
   wrappedContextRegExp?: RegExp
   exportsPresence?: string
   importExportsPresence?: string

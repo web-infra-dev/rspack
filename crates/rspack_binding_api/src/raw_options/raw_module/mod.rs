@@ -280,6 +280,7 @@ pub struct RawJavascriptParserOptions {
   pub expr_context_critical: Option<bool>,
   pub unknown_context_critical: Option<bool>,
   pub wrapped_context_critical: Option<bool>,
+  pub strict_this_context_on_imports: Option<bool>,
   #[napi(ts_type = "RegExp")]
   pub wrapped_context_reg_exp: Option<RspackRegex>,
   pub exports_presence: Option<String>,
@@ -349,6 +350,7 @@ impl From<RawJavascriptParserOptions> for JavascriptParserOptions {
       unknown_context_critical: value.unknown_context_critical,
       wrapped_context_reg_exp: value.wrapped_context_reg_exp,
       wrapped_context_critical: value.wrapped_context_critical,
+      strict_this_context_on_imports: value.strict_this_context_on_imports,
       exports_presence: value
         .exports_presence
         .map(|e| ExportPresenceMode::from(e.as_str())),

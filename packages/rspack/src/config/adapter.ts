@@ -569,6 +569,7 @@ function getRawJavascriptParserOptions(
     exprContextCritical: parser.exprContextCritical,
     unknownContextCritical: parser.unknownContextCritical,
     wrappedContextCritical: parser.wrappedContextCritical,
+    strictThisContextOnImports: parser.strictThisContextOnImports,
     wrappedContextRegExp: parser.wrappedContextRegExp,
     exportsPresence:
       parser.exportsPresence === false ? 'false' : parser.exportsPresence,
