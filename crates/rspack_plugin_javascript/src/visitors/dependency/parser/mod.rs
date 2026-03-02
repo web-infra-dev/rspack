@@ -192,6 +192,12 @@ pub struct NameInfo<'a> {
   pub info: Option<&'a VariableInfo>,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ScopeTerminated {
+  Return,
+  Throw,
+}
+
 #[derive(Clone, Copy, Debug)]
 pub enum TopLevelScope {
   Top,
@@ -347,6 +353,7 @@ pub struct JavascriptParser<'parser> {
   pub(crate) top_level_scope: TopLevelScope,
   pub(crate) current_tag_info: Option<TagInfoId>,
   pub in_try: bool,
+  pub(crate) terminated: Option<ScopeTerminated>,
   pub(crate) in_short_hand: bool,
   pub(crate) in_tagged_template_tag: bool,
   pub(crate) member_expr_in_optional_chain: bool,
@@ -513,6 +520,7 @@ impl<'parser> JavascriptParser<'parser> {
       presentational_dependencies,
       blocks,
       in_try: false,
+      terminated: None,
       in_short_hand: false,
       top_level_scope: TopLevelScope::Top,
       is_esm: matches!(module_type, ModuleType::JsEsm),
@@ -1314,7 +1322,7 @@ impl JavascriptParser<'_> {
     source: String,
     error_title: T,
   ) -> Option<BasicEvaluatedExpression<'static>> {
-    eval::eval_source(self, source, error_title)
+    eval::eval_source(self, source, error_title.to_string())
   }
 
   // same as `JavascriptParser._initializeEvaluating` in webpack

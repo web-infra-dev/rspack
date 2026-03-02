@@ -20,7 +20,7 @@ use swc_core::{
 
 use super::{
   AllowedMemberTypes, CallHooksName, JavascriptParser, MemberExpressionInfo, RootName,
-  TopLevelScope,
+  ScopeTerminated, TopLevelScope,
   estree::{ClassDeclOrExpr, MaybeNamedClassDecl, MaybeNamedFunctionDecl, Statement},
 };
 use crate::{
@@ -33,21 +33,31 @@ fn warp_ident_to_pat(ident: Ident) -> Pat {
 }
 
 impl JavascriptParser<'_> {
-  fn in_block_scope<F>(&mut self, f: F)
+  fn in_block_scope<F>(&mut self, in_executed_path: bool, f: F)
   where
     F: FnOnce(&mut Self),
   {
     let old_definitions = self.definitions;
     let old_top_level_scope = self.top_level_scope;
     let old_in_tagged_template_tag = self.in_tagged_template_tag;
+    let old_in_try = self.in_try;
+    let old_terminated = self.terminated;
 
     self.in_tagged_template_tag = false;
     self.definitions = self.definitions_db.create_child(old_definitions);
     f(self);
 
+    let terminated = self.terminated;
+
     self.definitions = old_definitions;
     self.top_level_scope = old_top_level_scope;
     self.in_tagged_template_tag = old_in_tagged_template_tag;
+    self.in_try = old_in_try;
+    self.terminated = old_terminated;
+
+    if in_executed_path && let Some(t) = terminated {
+      self.terminated = Some(t);
+    }
   }
 
   pub fn in_class_scope<'a, I, F>(&mut self, has_this: bool, params: I, f: F)
@@ -59,9 +69,11 @@ impl JavascriptParser<'_> {
     let old_in_try = self.in_try;
     let old_top_level_scope = self.top_level_scope;
     let old_in_tagged_template_tag = self.in_tagged_template_tag;
+    let old_terminated = self.terminated;
 
     self.in_try = false;
     self.in_tagged_template_tag = false;
+    self.terminated = None;
     self.definitions = self.definitions_db.create_child(old_definitions);
 
     if has_this {
@@ -78,6 +90,7 @@ impl JavascriptParser<'_> {
     self.definitions = old_definitions;
     self.top_level_scope = old_top_level_scope;
     self.in_tagged_template_tag = old_in_tagged_template_tag;
+    self.terminated = old_terminated;
   }
 
   pub(crate) fn in_function_scope<'a, I, F>(&mut self, has_this: bool, params: I, f: F)
@@ -88,9 +101,11 @@ impl JavascriptParser<'_> {
     let old_definitions = self.definitions;
     let old_top_level_scope = self.top_level_scope;
     let old_in_tagged_template_tag = self.in_tagged_template_tag;
+    let old_terminated = self.terminated;
 
     self.definitions = self.definitions_db.create_child(old_definitions);
     self.in_tagged_template_tag = false;
+    self.terminated = None;
     if has_this {
       self.undefined_variable(&"this".into());
     }
@@ -102,6 +117,7 @@ impl JavascriptParser<'_> {
     self.definitions = old_definitions;
     self.top_level_scope = old_top_level_scope;
     self.in_tagged_template_tag = old_in_tagged_template_tag;
+    self.terminated = old_terminated;
   }
 
   pub fn walk_module_items(&mut self, statements: &Vec<ModuleItem>) {
@@ -148,8 +164,23 @@ impl JavascriptParser<'_> {
   }
 
   pub fn walk_statements(&mut self, statements: &Vec<Stmt>) {
+    let mut only_function_declaration = false;
     for statement in statements {
-      self.walk_statement(statement.into());
+      let stmt: Statement = statement.into();
+      if only_function_declaration
+        && !matches!(stmt, Statement::Fn(_))
+        && self
+          .plugin_drive
+          .clone()
+          .unused_statement(self, stmt)
+          .unwrap_or(false)
+      {
+        continue;
+      }
+      self.walk_statement(stmt);
+      if self.terminated.is_some() {
+        only_function_declaration = true;
+      }
     }
   }
 
@@ -195,16 +226,21 @@ impl JavascriptParser<'_> {
   }
 
   fn walk_with_statement(&mut self, stmt: &WithStmt) {
-    self.walk_expression(&stmt.obj);
-    self.walk_nested_statement(&stmt.body);
+    self.in_block_scope(true, |this| {
+      this.walk_expression(&stmt.obj);
+      this.walk_nested_statement(&stmt.body);
+    });
   }
 
   fn walk_while_statement(&mut self, stmt: &WhileStmt) {
-    self.walk_expression(&stmt.test);
-    self.walk_nested_statement(&stmt.body);
+    self.in_block_scope(false, |this| {
+      this.walk_expression(&stmt.test);
+      this.walk_nested_statement(&stmt.body);
+    });
   }
 
   fn walk_try_statement(&mut self, stmt: &TryStmt) {
+    let was_in_try = self.in_try;
     if self.in_try {
       self.walk_statement(Statement::Block(&stmt.block));
     } else {
@@ -213,17 +249,40 @@ impl JavascriptParser<'_> {
       self.in_try = false;
     }
 
+    let try_terminated = self.terminated;
+    self.terminated = None;
+
+    let mut handler_terminated = None;
     if let Some(handler) = &stmt.handler {
       self.walk_catch_clause(handler);
+      handler_terminated = self.terminated;
+      self.terminated = None;
     }
 
+    let mut finalizer_terminated = None;
     if let Some(finalizer) = &stmt.finalizer {
       self.walk_statement(Statement::Block(finalizer));
+      finalizer_terminated = self.terminated;
+      self.terminated = None;
     }
+
+    if let Some(t) = finalizer_terminated {
+      self.terminated = Some(t);
+    } else if let Some(t) = try_terminated {
+      // If try block returns (not throws), we never run the catch, so code after
+      // try-catch is unreachable. If try throws, only mark terminated when there
+      // is no handler or the handler also terminates.
+      let try_returns = matches!(t, ScopeTerminated::Return);
+      if try_returns || stmt.handler.is_none() || handler_terminated.is_some() {
+        self.terminated = handler_terminated.or(Some(t));
+      }
+    }
+
+    self.in_try = was_in_try;
   }
 
   fn walk_catch_clause(&mut self, catch_clause: &CatchClause) {
-    self.in_block_scope(|this| {
+    self.in_block_scope(true, |this| {
       if let Some(param) = &catch_clause.param {
         this.enter_pattern(Cow::Borrowed(param), |this, ident| {
           this.define_variable(ident.sym.clone());
@@ -243,7 +302,7 @@ impl JavascriptParser<'_> {
   }
 
   fn walk_switch_cases(&mut self, cases: &Vec<SwitchCase>) {
-    self.in_block_scope(|this| {
+    self.in_block_scope(false, |this| {
       for case in cases {
         if !case.cons.is_empty() {
           let prev = this.prev_statement;
@@ -256,6 +315,7 @@ impl JavascriptParser<'_> {
           this.walk_expression(test);
         }
         this.walk_statements(&case.cons);
+        this.terminated = None;
       }
     })
   }
@@ -264,10 +324,22 @@ impl JavascriptParser<'_> {
     if let Some(arg) = &stmt.arg {
       self.walk_expression(arg);
     }
+    if self.is_top_level_scope() {
+      return;
+    }
+    // Mark current scope as terminated by return. This mirrors webpack's
+    // `scope.terminated` behavior driven by `hooks.terminate`, which is
+    // always tapped to `true` by its ConstPlugin for return statements.
+    self.terminated = Some(ScopeTerminated::Return);
   }
 
   fn walk_throw_stmt(&mut self, stmt: &ThrowStmt) {
     self.walk_expression(&stmt.arg);
+    if self.is_top_level_scope() {
+      return;
+    }
+    // Same as above but for throw statements.
+    self.terminated = Some(ScopeTerminated::Throw);
   }
 
   fn walk_labeled_statement(&mut self, stmt: &LabeledStmt) {
@@ -283,16 +355,26 @@ impl JavascriptParser<'_> {
         self.walk_nested_statement(alt);
       }
     } else {
+      // Unknown or non-constant condition – walk the test for side effects and
+      // both branches, only keeping termination when *both* are terminated.
       self.walk_expression(&stmt.test);
       self.walk_nested_statement(&stmt.cons);
+      let consequent_terminated = self.terminated;
+      self.terminated = None;
       if let Some(alt) = &stmt.alt {
         self.walk_nested_statement(alt);
       }
+      let alternate_terminated = self.terminated;
+      self.terminated = if consequent_terminated.is_some() && alternate_terminated.is_some() {
+        alternate_terminated
+      } else {
+        None
+      };
     }
   }
 
   fn walk_for_statement(&mut self, stmt: &ForStmt) {
-    self.in_block_scope(|this| {
+    self.in_block_scope(false, |this| {
       if let Some(init) = &stmt.init {
         match init {
           VarDeclOrExpr::VarDecl(decl) => {
@@ -322,7 +404,7 @@ impl JavascriptParser<'_> {
   }
 
   fn walk_for_of_statement(&mut self, stmt: &ForOfStmt) {
-    self.in_block_scope(|this| {
+    self.in_block_scope(false, |this| {
       this.walk_for_head(&stmt.left);
       this.walk_expression(&stmt.right);
       if let Some(body) = stmt.body.as_block() {
@@ -337,7 +419,7 @@ impl JavascriptParser<'_> {
   }
 
   fn walk_for_in_statement(&mut self, stmt: &ForInStmt) {
-    self.in_block_scope(|this| {
+    self.in_block_scope(false, |this| {
       this.walk_for_head(&stmt.left);
       this.walk_expression(&stmt.right);
       if let Some(body) = stmt.body.as_block() {
@@ -1393,7 +1475,7 @@ impl JavascriptParser<'_> {
   }
 
   fn walk_block_statement(&mut self, stmt: &BlockStmt) {
-    self.in_block_scope(|this| {
+    self.in_block_scope(true, |this| {
       let prev = this.prev_statement;
       this.block_pre_walk_statements(&stmt.stmts);
       this.prev_statement = prev;
