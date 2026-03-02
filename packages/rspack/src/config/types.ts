@@ -1159,6 +1159,9 @@ export type JavascriptParserOptions = {
   /** Warn or error for conflicting re-exports */
   reexportExportsPresence?: ExportsPresence;
 
+  /** Handle the this context correctly according to the spec for namespace objects. */
+  strictThisContextOnImports?: boolean;
+
   /** Provide custom syntax for Worker parsing, commonly used to support Worklet */
   worker?: string[] | boolean;
 

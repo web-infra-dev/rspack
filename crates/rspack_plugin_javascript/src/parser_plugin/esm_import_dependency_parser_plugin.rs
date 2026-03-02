@@ -264,7 +264,7 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
     let mut ids = settings.ids;
     ids.extend(non_optional_members.iter().cloned());
     let direct_import = members.is_empty();
-    let dep = ESMImportSpecifierDependency::new(
+    let mut dep = ESMImportSpecifierDependency::new(
       settings.source,
       settings.name,
       settings.source_order,
@@ -282,6 +282,11 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
       settings.attributes,
       parser.to_dependency_location(DependencyRange::from(call_expr.callee.span())),
     );
+    dep.namespace_object_as_context = !direct_import
+      && parser
+        .javascript_options
+        .strict_this_context_on_imports
+        .unwrap_or(false);
     let dep_idx = parser.next_dependency_idx();
     parser.add_dependency(Box::new(dep));
 

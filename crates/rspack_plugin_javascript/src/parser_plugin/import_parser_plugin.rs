@@ -223,7 +223,13 @@ impl JavascriptParserPlugin for ImportParserPlugin {
     let data = ImportTagData::downcast(tag_info.data.clone()?);
     let mut ids = get_non_optional_part(members, members_optionals);
     let direct_import = members.is_empty();
-    if !direct_import && ids.len() > 1 {
+    if !direct_import
+      && (parser
+        .javascript_options
+        .strict_this_context_on_imports
+        .unwrap_or(false)
+        || ids.len() > 1)
+    {
       // remove last one
       ids = &ids[..ids.len() - 1];
     }
