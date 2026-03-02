@@ -361,9 +361,6 @@ pub struct JavascriptParser<'parser> {
   pub(crate) statement_path: Vec<StatementPath>,
   pub(crate) prev_statement: Option<StatementPath>,
   pub is_esm: bool,
-  /// Cache for eval_source parse warnings to avoid emitting duplicate
-  /// diagnostics when the same inline source fails to parse multiple times.
-  pub(crate) eval_source_warnings: FxHashSet<(String, String)>,
   pub(crate) destructuring_assignment_properties: DestructuringAssignmentPropertiesMap,
   pub(crate) dynamic_import_references: ImportsReferencesState,
   pub(crate) worker_index: u32,
@@ -549,7 +546,6 @@ impl<'parser> JavascriptParser<'parser> {
       current_tag_info: None,
       prev_statement: None,
       inner_graph: InnerGraphState::new(),
-      eval_source_warnings: Default::default(),
       parse_meta,
       local_modules: Default::default(),
       has_inlinable_const_decls: true,

@@ -33,21 +33,15 @@ pub fn eval_source(
   );
   match result {
     Err(err) => {
-      // Push the error to diagnostics, but avoid emitting duplicate warnings
-      // for the same (error_title, source) pair within a single module.
-      let key = (error_title.clone(), fm.src.clone().into_string());
-      if parser.eval_source_warnings.insert(key) {
-        // First time we've seen this failing inline source in this parser.
-        let mut error = Error::from_string(
-          Some(fm.src.clone().into_string()),
-          err.span().real_lo() as usize,
-          err.span().real_hi() as usize,
-          format!("{error_title} warning"),
-          format!("failed to parse {}", json!(fm.src.as_str())),
-        );
-        error.severity = Severity::Warning;
-        parser.add_warning(error.into());
-      }
+      let mut error = Error::from_string(
+        Some(fm.src.clone().into_string()),
+        err.span().real_lo() as usize,
+        err.span().real_hi() as usize,
+        format!("{error_title} warning"),
+        format!("failed to parse {}", json!(fm.src.as_str())),
+      );
+      error.severity = Severity::Warning;
+      parser.add_warning(error.into());
       None
     }
     Ok(mut expr) => {
