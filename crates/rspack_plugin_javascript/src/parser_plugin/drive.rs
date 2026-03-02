@@ -498,6 +498,21 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
     None
   }
 
+  fn evaluate_call_expression<'a>(
+    &self,
+    parser: &mut JavascriptParser,
+    name: &str,
+    expr: &'a CallExpr,
+  ) -> Option<BasicEvaluatedExpression<'a>> {
+    for plugin in &self.plugins {
+      let res = plugin.evaluate_call_expression(parser, name, expr);
+      if res.is_some() {
+        return res;
+      }
+    }
+    None
+  }
+
   fn evaluate_call_expression_member<'a>(
     &self,
     parser: &mut JavascriptParser,

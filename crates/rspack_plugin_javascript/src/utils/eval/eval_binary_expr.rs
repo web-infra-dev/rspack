@@ -295,7 +295,10 @@ fn handle_add<'a>(
       return None;
     }
   } else if left.is_bigint() {
-    // TODO: handle `left.is_bigint`
+    if let (Some(l), Some(r)) = (left.bigint(), right.bigint()) {
+      res.set_bigint(l.clone() + r.clone());
+      return Some(res);
+    }
     return None;
   } else if left.is_wrapped() {
     if let Some(postfix) = &left.postfix
@@ -420,7 +423,7 @@ pub fn handle_const_operation<'a>(
   res.set_side_effects(left.could_have_side_effects() || right.could_have_side_effects());
 
   match expr.op {
-    BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div | BinaryOp::Exp => {
+    BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div | BinaryOp::Mod | BinaryOp::Exp => {
       if let Some(left_number) = left.as_number()
         && let Some(right_number) = right.as_number()
       {
@@ -428,6 +431,7 @@ pub fn handle_const_operation<'a>(
           BinaryOp::Sub => left_number - right_number,
           BinaryOp::Mul => left_number * right_number,
           BinaryOp::Div => left_number / right_number,
+          BinaryOp::Mod => left_number % right_number,
           BinaryOp::Exp => left_number.powf(right_number),
           _ => unreachable!(),
         });
@@ -436,21 +440,17 @@ pub fn handle_const_operation<'a>(
         None
       }
     }
-    BinaryOp::LShift | BinaryOp::RShift => {
-      if let Some(left_number) = left.as_int()
-        && let Some(right_number) = right.as_int()
-      {
-        // only the lower 5 bits are used when shifting, so don't do anything
-        // if the shift amount is outside [0,32)
-        if (0..32).contains(&right_number) {
-          res.set_number(match expr.op {
-            BinaryOp::LShift => left_number << right_number,
-            BinaryOp::RShift => left_number >> right_number,
-            _ => unreachable!(),
-          } as f64);
-        } else {
-          res.set_number(left_number as f64);
-        }
+    BinaryOp::LShift | BinaryOp::RShift | BinaryOp::ZeroFillRShift => {
+      if let Some(left_int) = left.as_int() {
+        let right_int = right.as_int()?;
+        let shift_bits = (right_int as u32) & 31;
+        let result = match expr.op {
+          BinaryOp::LShift => (left_int << shift_bits) as f64,
+          BinaryOp::RShift => (left_int >> shift_bits) as f64,
+          BinaryOp::ZeroFillRShift => (left_int as u32).wrapping_shr(shift_bits) as f64,
+          _ => unreachable!(),
+        };
+        res.set_number(result);
         Some(res)
       } else {
         None
