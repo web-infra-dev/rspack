@@ -7,6 +7,7 @@ import type { Compilation, CreateStatsOptionsContext } from '../Compilation';
 import type { Compiler } from '../Compiler';
 import type { StatsOptions } from '../config';
 import type { StatsError } from '../Stats';
+import { isStatsColorSupported } from '../util/supportsColor';
 
 const applyDefaults = (
   options: Partial<StatsOptions>,
@@ -249,7 +250,8 @@ const DEFAULTS: StatsDefault = {
   chunksSort: () => false,
   assetsSort: () => '!size',
   outputPath: OFF_FOR_TO_STRING,
-  colors: () => false,
+  // Default stats.colors now follows the runtime environment via isStatsColorSupported()
+  colors: () => isStatsColorSupported(),
 };
 
 const normalizeFilter: (

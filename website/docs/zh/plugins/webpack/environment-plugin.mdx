@@ -102,7 +102,8 @@ if ('false') {
 下面的 `EnvironmentPlugin` 配置提供了对应于仓库最后一次 Git 提交的 `process.env.GIT_VERSION`（例如 "v5.4.0-2-g25139f57f"）和 `process.env.GIT_AUTHOR_DATE`（例如 "2020-11-04T12:25:16+01:00"）：
 
 ```js
-const child_process = require('child_process');
+import child_process from 'node:child_process';
+
 function git(command) {
   return child_process.execSync(`git ${command}`, { encoding: 'utf8' }).trim();
 }

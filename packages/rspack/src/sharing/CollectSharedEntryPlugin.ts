@@ -59,7 +59,7 @@ export class CollectSharedEntryPlugin extends RspackBuiltinPlugin {
           {
             name: 'CollectSharedEntry',
             stage:
-              compiler.webpack.Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_INLINE,
+              compiler.rspack.Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_INLINE,
           },
           () => {
             compilation.getAssets().forEach((asset) => {

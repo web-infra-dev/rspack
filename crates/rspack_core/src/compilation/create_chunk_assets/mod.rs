@@ -17,7 +17,7 @@ impl PassExt for CreateChunkAssetsPass {
 
   async fn run_pass(&self, compilation: &mut Compilation) -> Result<()> {
     let plugin_driver = compilation.plugin_driver.clone();
-    compilation.create_chunk_assets(plugin_driver).await?;
+    create_chunk_assets(compilation, plugin_driver).await?;
     Ok(())
   }
 
@@ -26,171 +26,177 @@ impl PassExt for CreateChunkAssetsPass {
   }
 }
 
-impl Compilation {
-  #[instrument("Compilation::create_chunk_assets",target=TRACING_BENCH_TARGET, skip_all)]
-  async fn create_chunk_assets(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
-    if (self.options.output.filename.has_hash_placeholder()
-      || self.options.output.chunk_filename.has_hash_placeholder()
-      || self.options.output.css_filename.has_hash_placeholder()
-      || self
-        .options
-        .output
-        .css_chunk_filename
-        .has_hash_placeholder())
-      && let Some(diagnostic) = self.incremental.disable_passes(
-        IncrementalPasses::CHUNK_ASSET,
-        "Chunk filename that dependent on full hash",
-        "chunk filename that dependent on full hash is not supported in incremental compilation",
-      )
-      && let Some(diagnostic) = diagnostic
-    {
-      self.push_diagnostic(diagnostic);
-    }
+#[instrument("Compilation::create_chunk_assets",target=TRACING_BENCH_TARGET, skip_all)]
+pub async fn create_chunk_assets(
+  compilation: &mut Compilation,
+  plugin_driver: SharedPluginDriver,
+) -> Result<()> {
+  if (compilation.options.output.filename.has_hash_placeholder()
+    || compilation
+      .options
+      .output
+      .chunk_filename
+      .has_hash_placeholder()
+    || compilation
+      .options
+      .output
+      .css_filename
+      .has_hash_placeholder()
+    || compilation
+      .options
+      .output
+      .css_chunk_filename
+      .has_hash_placeholder())
+    && let Some(diagnostic) = compilation.incremental.disable_passes(
+      IncrementalPasses::CHUNK_ASSET,
+      "Chunk filename that dependent on full hash",
+      "chunk filename that dependent on full hash is not supported in incremental compilation",
+    )
+    && let Some(diagnostic) = diagnostic
+  {
+    compilation.push_diagnostic(diagnostic);
+  }
 
-    // Check if CHUNK_ASSET pass is disabled, and clear artifact if needed
-    if !self
-      .incremental
-      .passes_enabled(IncrementalPasses::CHUNK_ASSET)
-    {
-      self.chunk_render_artifact.clear();
-    }
+  // Check if CHUNK_ASSET pass is disabled, and clear artifact if needed
+  if !compilation
+    .incremental
+    .passes_enabled(IncrementalPasses::CHUNK_ASSET)
+  {
+    compilation.chunk_render_artifact.clear();
+  }
 
-    let chunks = if let Some(mutations) = self
-      .incremental
-      .mutations_read(IncrementalPasses::CHUNK_ASSET)
-      && !self.chunk_render_artifact.is_empty()
-    {
-      let removed_chunks = mutations.iter().filter_map(|mutation| match mutation {
-        Mutation::ChunkRemove { chunk } => Some(*chunk),
-        _ => None,
-      });
-      for removed_chunk in removed_chunks {
-        self.chunk_render_artifact.remove(&removed_chunk);
-      }
-      self.chunk_render_artifact.retain(|chunk, _| {
-        self
-          .build_chunk_graph_artifact
-          .chunk_by_ukey
-          .contains(chunk)
-      });
-      let chunks: UkeySet<ChunkUkey> = mutations
-        .iter()
-        .filter_map(|mutation| match mutation {
-          Mutation::ChunkSetHashes { chunk } => Some(*chunk),
-          _ => None,
-        })
-        .collect();
-      tracing::debug!(target: incremental::TRACING_TARGET, passes = %IncrementalPasses::CHUNK_ASSET, %mutations);
-      let logger = self.get_logger("rspack.incremental.chunkAsset");
-      logger.log(format!(
-        "{} chunks are affected, {} in total",
-        chunks.len(),
-        self.build_chunk_graph_artifact.chunk_by_ukey.len()
-      ));
-      chunks
-    } else {
-      self
+  let chunks = if let Some(mutations) = compilation
+    .incremental
+    .mutations_read(IncrementalPasses::CHUNK_ASSET)
+    && !compilation.chunk_render_artifact.is_empty()
+  {
+    let removed_chunks = mutations.iter().filter_map(|mutation| match mutation {
+      Mutation::ChunkRemove { chunk } => Some(*chunk),
+      _ => None,
+    });
+    for removed_chunk in removed_chunks {
+      compilation.chunk_render_artifact.remove(&removed_chunk);
+    }
+    compilation.chunk_render_artifact.retain(|chunk, _| {
+      compilation
         .build_chunk_graph_artifact
         .chunk_by_ukey
-        .keys()
-        .copied()
-        .collect()
-    };
-    let results = rspack_futures::scope::<_, Result<_>>(|token| {
-      chunks.iter().for_each(|chunk| {
-        // SAFETY: await immediately and trust caller to poll future entirely
-        let s = unsafe { token.used((&self, &plugin_driver, chunk)) };
-
-        s.spawn(|(this, plugin_driver, chunk)| async {
-          let mut manifests = Vec::new();
-          let mut diagnostics = Vec::new();
-          plugin_driver
-            .compilation_hooks
-            .render_manifest
-            .call(this, chunk, &mut manifests, &mut diagnostics)
-            .await?;
-
-          rspack_error::Result::Ok((
-            *chunk,
-            ChunkRenderResult {
-              manifests,
-              diagnostics,
-            },
-          ))
-        });
+        .contains(chunk)
+    });
+    let chunks: UkeySet<ChunkUkey> = mutations
+      .iter()
+      .filter_map(|mutation| match mutation {
+        Mutation::ChunkSetHashes { chunk } => Some(*chunk),
+        _ => None,
       })
+      .collect();
+    tracing::debug!(target: incremental::TRACING_TARGET, passes = %IncrementalPasses::CHUNK_ASSET, %mutations);
+    let logger = compilation.get_logger("rspack.incremental.chunkAsset");
+    logger.log(format!(
+      "{} chunks are affected, {} in total",
+      chunks.len(),
+      compilation.build_chunk_graph_artifact.chunk_by_ukey.len()
+    ));
+    chunks
+  } else {
+    compilation
+      .build_chunk_graph_artifact
+      .chunk_by_ukey
+      .keys()
+      .copied()
+      .collect()
+  };
+  let compilation_ref = &*compilation;
+  let results = rspack_futures::scope::<_, Result<_>>(|token| {
+    chunks.iter().for_each(|chunk| {
+      // SAFETY: await immediately and trust caller to poll future entirely
+      let s = unsafe { token.used((compilation_ref, &plugin_driver, chunk)) };
+
+      s.spawn(|(this, plugin_driver, chunk)| async {
+        let mut manifests = Vec::new();
+        let mut diagnostics = Vec::new();
+        plugin_driver
+          .compilation_hooks
+          .render_manifest
+          .call(this, chunk, &mut manifests, &mut diagnostics)
+          .await?;
+
+        rspack_error::Result::Ok((
+          *chunk,
+          ChunkRenderResult {
+            manifests,
+            diagnostics,
+          },
+        ))
+      });
     })
-    .await;
+  })
+  .await;
 
-    let mut chunk_render_results = ChunkRenderArtifact::default();
-    for result in results {
-      let item = result.to_rspack_result()?;
-      let (key, value) = item?;
-      chunk_render_results.insert(key, value);
-    }
-    let chunk_ukey_and_manifest = if self
-      .incremental
-      .passes_enabled(IncrementalPasses::CHUNK_ASSET)
-    {
-      self.chunk_render_artifact.extend(chunk_render_results);
-      self.chunk_render_artifact.clone()
-    } else {
-      chunk_render_results
-    };
+  let mut chunk_render_results = ChunkRenderArtifact::default();
+  for result in results {
+    let item = result.to_rspack_result()?;
+    let (key, value) = item?;
+    chunk_render_results.insert(key, value);
+  }
+  let chunk_ukey_and_manifest = if compilation
+    .incremental
+    .passes_enabled(IncrementalPasses::CHUNK_ASSET)
+  {
+    compilation
+      .chunk_render_artifact
+      .extend(chunk_render_results);
+    compilation.chunk_render_artifact.clone()
+  } else {
+    chunk_render_results
+  };
 
-    for (
-      chunk_ukey,
-      ChunkRenderResult {
-        manifests,
-        diagnostics,
-      },
-    ) in chunk_ukey_and_manifest
-    {
-      self.extend_diagnostics(diagnostics);
+  for (
+    chunk_ukey,
+    ChunkRenderResult {
+      manifests,
+      diagnostics,
+    },
+  ) in chunk_ukey_and_manifest
+  {
+    compilation.extend_diagnostics(diagnostics);
 
-      for file_manifest in manifests {
-        let filename = file_manifest.filename;
-        let current_chunk = self
-          .build_chunk_graph_artifact
-          .chunk_by_ukey
-          .expect_get_mut(&chunk_ukey);
+    for file_manifest in manifests {
+      let filename = file_manifest.filename;
+      let current_chunk = compilation
+        .build_chunk_graph_artifact
+        .chunk_by_ukey
+        .expect_get_mut(&chunk_ukey);
 
-        current_chunk.set_rendered(true);
-        if file_manifest.auxiliary {
-          current_chunk.add_auxiliary_file(filename.clone());
-        } else {
-          current_chunk.add_file(filename.clone());
-        }
-
-        self.emit_asset(
-          filename.clone(),
-          CompilationAsset::new(Some(file_manifest.source), file_manifest.info),
-        );
-
-        _ = self
-          .chunk_asset(chunk_ukey, &filename, plugin_driver.clone())
-          .await;
+      current_chunk.set_rendered(true);
+      if file_manifest.auxiliary {
+        current_chunk.add_auxiliary_file(filename.clone());
+      } else {
+        current_chunk.add_file(filename.clone());
       }
+
+      compilation.emit_asset(
+        filename.clone(),
+        CompilationAsset::new(Some(file_manifest.source), file_manifest.info),
+      );
+
+      _ = chunk_asset(compilation, chunk_ukey, &filename, plugin_driver.clone()).await;
     }
-
-    Ok(())
   }
 
-  // #[instrument(
-  //   name = "Compilation:chunk_asset",
-  //   skip(self, plugin_driver, chunk_ukey)
-  // )]
-  async fn chunk_asset(
-    &self,
-    chunk_ukey: ChunkUkey,
-    filename: &str,
-    plugin_driver: SharedPluginDriver,
-  ) -> Result<()> {
-    plugin_driver
-      .compilation_hooks
-      .chunk_asset
-      .call(self, &chunk_ukey, filename)
-      .await?;
-    Ok(())
-  }
+  Ok(())
+}
+
+async fn chunk_asset(
+  compilation: &Compilation,
+  chunk_ukey: ChunkUkey,
+  filename: &str,
+  plugin_driver: SharedPluginDriver,
+) -> Result<()> {
+  plugin_driver
+    .compilation_hooks
+    .chunk_asset
+    .call(compilation, &chunk_ukey, filename)
+    .await?;
+  Ok(())
 }

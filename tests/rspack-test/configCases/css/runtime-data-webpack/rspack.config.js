@@ -21,7 +21,7 @@ module.exports = {
 						{
 							name: "Test",
 							stage:
-								compiler.webpack.Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_SIZE
+								compiler.rspack.Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_SIZE
 						},
 						assets => {
 							const name = "bundle0.css";
@@ -29,7 +29,7 @@ module.exports = {
 
 							compilation.updateAsset(
 								name,
-								new compiler.webpack.sources.RawSource(
+								new compiler.rspack.sources.RawSource(
 									`${code.replace(
 										"head{",
 										".class, head, body{"

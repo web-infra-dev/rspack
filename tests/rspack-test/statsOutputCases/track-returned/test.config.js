@@ -1,5 +1,7 @@
+"use strict";
+
 module.exports = {
 	validate(stats) {
-		expect(stats.compilation.modules.size).toBe(8);
+		expect(stats.toJson({ modules: true }).children[0].modules.length).toBe(241);
 	}
 };
