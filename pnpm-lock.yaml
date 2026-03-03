@@ -178,10 +178,10 @@ importers:
   examples/rsc-mf-host:
     dependencies:
       '@types/node':
-        specifier: ^20.19.31
+        specifier: ^20.19.33
         version: 20.19.33
       '@types/react':
-        specifier: ^19.2.10
+        specifier: ^19.2.14
         version: 19.2.14
       '@types/react-dom':
         specifier: ^19.2.3
@@ -209,8 +209,8 @@ importers:
         specifier: 0.24.1
         version: 0.24.1
       '@playwright/test':
-        specifier: 1.57.0
-        version: 1.57.0
+        specifier: 1.58.2
+        version: 1.58.2
       '@rspack/cli':
         specifier: workspace:*
         version: link:../../packages/rspack-cli
@@ -221,7 +221,7 @@ importers:
         specifier: ~1.2.1
         version: 1.2.1(@rspack/core@packages+rspack)(webpack@5.102.1)
       '@rspack/plugin-react-refresh':
-        specifier: ^1.6.0
+        specifier: ^1.6.1
         version: 1.6.1(react-refresh@0.18.0)(webpack-hot-middleware@2.26.1)
       '@types/express':
         specifier: ^5.0.6
@@ -230,7 +230,7 @@ importers:
         specifier: ^8.18.1
         version: 8.18.1
       css-loader:
-        specifier: ^7.1.3
+        specifier: ^7.1.4
         version: 7.1.4(@rspack/core@packages+rspack)(webpack@5.102.1)
       react-refresh:
         specifier: ^0.18.0
@@ -251,16 +251,16 @@ importers:
         specifier: ^2.26.1
         version: 2.26.1
       ws:
-        specifier: ^8.18.3
+        specifier: ^8.19.0
         version: 8.19.0
 
   examples/rsc-mf-remote:
     dependencies:
       '@types/node':
-        specifier: ^20.19.31
+        specifier: ^20.19.33
         version: 20.19.33
       '@types/react':
-        specifier: ^19.2.10
+        specifier: ^19.2.14
         version: 19.2.14
       '@types/react-dom':
         specifier: ^19.2.3
@@ -297,7 +297,7 @@ importers:
         specifier: ~1.2.1
         version: 1.2.1(@rspack/core@packages+rspack)(webpack@5.102.1)
       '@rspack/plugin-react-refresh':
-        specifier: ^1.6.0
+        specifier: ^1.6.1
         version: 1.6.1(react-refresh@0.18.0)(webpack-hot-middleware@2.26.1)
       '@types/express':
         specifier: ^5.0.6
@@ -306,7 +306,7 @@ importers:
         specifier: ^8.18.1
         version: 8.18.1
       css-loader:
-        specifier: ^7.1.3
+        specifier: ^7.1.4
         version: 7.1.4(@rspack/core@packages+rspack)(webpack@5.102.1)
       react-refresh:
         specifier: ^0.18.0
@@ -327,7 +327,7 @@ importers:
         specifier: ^2.26.1
         version: 2.26.1
       ws:
-        specifier: ^8.18.3
+        specifier: ^8.19.0
         version: 8.19.0
 
   examples/vanilla:
@@ -3240,11 +3240,6 @@ packages:
   '@pkgjs/parseargs@0.11.0':
     resolution: {integrity: sha512-+1VkjdD0QBLPodGrJUeqarH8VAIvQODIbwh9XpP5Syisf7YoQgsJKPNFoqqLQlu+VQ/tVSshMR6loPMn8U+dPg==}
     engines: {node: '>=14'}
-
-  '@playwright/test@1.57.0':
-    resolution: {integrity: sha512-6TyEnHgd6SArQO8UO2OMTxshln3QMWBtPGrOCgs3wVEmQmwyuNtB10IZMfmYDE0riwNR1cu4q+pPcxMVtaG3TA==}
-    engines: {node: '>=18'}
-    hasBin: true
 
   '@playwright/test@1.58.2':
     resolution: {integrity: sha512-akea+6bHYBBfA9uQqSYmlJXn61cTa+jbO87xVLCWbTqbWadRVmhxlXATaOjOgcBaWU4ePo0wB41KMFv3o35IXA==}
@@ -7303,18 +7298,8 @@ packages:
   pkg-types@2.3.0:
     resolution: {integrity: sha512-SIqCzDRg0s9npO5XQ3tNZioRY1uK06lA41ynBC1YmFTmnY6FjUjVt6s4LoADmwoig1qqD0oK8h1p/8mlMx8Oig==}
 
-  playwright-core@1.57.0:
-    resolution: {integrity: sha512-agTcKlMw/mjBWOnD6kFZttAAGHgi/Nw0CZ2o6JqWSbMlI219lAFLZZCyqByTsvVAJq5XA5H8cA6PrvBRpBWEuQ==}
-    engines: {node: '>=18'}
-    hasBin: true
-
   playwright-core@1.58.2:
     resolution: {integrity: sha512-yZkEtftgwS8CsfYo7nm0KE8jsvm6i/PTgVtB8DL726wNf6H2IMsDuxCpJj59KDaxCtSnrWan2AeDqM7JBaultg==}
-    engines: {node: '>=18'}
-    hasBin: true
-
-  playwright@1.57.0:
-    resolution: {integrity: sha512-ilYQj1s8sr2ppEJ2YVadYBN0Mb3mdo9J0wQ+UuDhzYqURwSoW4n1Xs5vs7ORwgDGmyEh33tRMeS8KhdkMoLXQw==}
     engines: {node: '>=18'}
     hasBin: true
 
@@ -11131,10 +11116,6 @@ snapshots:
 
   '@pkgjs/parseargs@0.11.0':
     optional: true
-
-  '@playwright/test@1.57.0':
-    dependencies:
-      playwright: 1.57.0
 
   '@playwright/test@1.58.2':
     dependencies:
@@ -16131,15 +16112,7 @@ snapshots:
       exsolve: 1.0.7
       pathe: 2.0.3
 
-  playwright-core@1.57.0: {}
-
   playwright-core@1.58.2: {}
-
-  playwright@1.57.0:
-    dependencies:
-      playwright-core: 1.57.0
-    optionalDependencies:
-      fsevents: 2.3.2
 
   playwright@1.58.2:
     dependencies:

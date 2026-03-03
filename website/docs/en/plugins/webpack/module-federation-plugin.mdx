@@ -58,6 +58,9 @@ When enabled for Node builds, Rspack validates and requires:
 
 - `target` includes `"async-node"`
 - `experiments.asyncStartup` is `true`
+
+For RSC host/remote runtime, you must also configure:
+
 - `runtimePlugins` includes `@module-federation/node/runtimePlugin`
 
 Rspack does not auto-inject `@module-federation/node/runtimePlugin`; keep it in user config.

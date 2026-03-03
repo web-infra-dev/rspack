@@ -7,7 +7,7 @@ use rspack_core::{
   ChunkGraph, ChunkGroup, ChunkGroupUkey, ChunkUkey, Compilation, CompilationAfterProcessAssets,
   CompilationParams, CompilerCompilation, CompilerFailed, CompilerId, CompilerMake,
   CrossOriginLoading, DependenciesBlock, Dependency, DependencyId, DependencyType, Logger,
-  EntryDependency, ModuleGraph, ModuleId, ModuleIdentifier, ModuleType, Plugin,
+  ModuleGraph, ModuleId, ModuleIdentifier, ModuleType, Plugin,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};

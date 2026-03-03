@@ -21,7 +21,6 @@ const require = createRequire(import.meta.url);
 declare const MF_RUNTIME_CODE: string;
 const RSC_BRIDGE_EXPOSE = './__rspack_rsc_bridge__';
 const RSC_LAYER = 'react-server-components';
-const NODE_RUNTIME_PLUGIN_REQUEST = '@module-federation/node/runtimePlugin';
 
 export interface ModuleFederationPluginOptions extends Omit<
   ModuleFederationPluginV1Options,
@@ -48,9 +47,6 @@ export class ModuleFederationPlugin {
     const target = compiler.options.target;
     const isNodeLikeBuild = isNodeLikeTarget(target);
     const isRscMfOptIn = this._options.experiments?.rsc === true;
-    if (isRscMfOptIn && isNodeLikeBuild) {
-      validateRscMfOptions(this._options, compiler);
-    }
     const isRscMfEnabled = isRscMfOptIn && isNodeLikeBuild;
     const options = isRscMfEnabled
       ? augmentRscBridgeExposes(this._options)
@@ -387,71 +383,6 @@ function isNodeLikeTarget(target: unknown): boolean {
   return targets.some((value) => value.includes('node'));
 }
 
-function hasAsyncNodeTarget(target: unknown): boolean {
-  const targets = getTargetValues(target);
-  return targets.some(
-    (value) => value === 'async-node' || value.startsWith('async-node'),
-  );
-}
-
-function hasNodeRuntimePlugin(
-  runtimePlugins: RuntimePlugins | undefined,
-): boolean {
-  if (!runtimePlugins || runtimePlugins.length === 0) {
-    return false;
-  }
-  const normalize = (value: string) => value.replace(/\\/g, '/').toLowerCase();
-  return runtimePlugins.some((pluginSpec) => {
-    const pluginPath = Array.isArray(pluginSpec) ? pluginSpec[0] : pluginSpec;
-    if (typeof pluginPath !== 'string') return false;
-    const normalized = normalize(pluginPath);
-    return (
-      normalized.includes(normalize(NODE_RUNTIME_PLUGIN_REQUEST)) ||
-      (normalized.includes('@module-federation/node') &&
-        normalized.includes('runtimeplugin'))
-    );
-  });
-}
-
-function validateRscMfOptions(
-  options: ModuleFederationPluginOptions,
-  compiler: Compiler,
-) {
-  const errors: string[] = [];
-  if (!hasAsyncNodeTarget(compiler.options.target)) {
-    errors.push('`target` must include `"async-node"`.');
-  }
-  if (options.experiments?.asyncStartup !== true) {
-    errors.push('`experiments.asyncStartup` must be `true`.');
-  }
-  if (!hasNodeRuntimePlugin(options.runtimePlugins)) {
-    errors.push(
-      '`runtimePlugins` must include `@module-federation/node/runtimePlugin`.',
-    );
-  }
-
-  if (errors.length === 0) return;
-
-  throw new Error(
-    [
-      '[ModuleFederationPlugin] Invalid RSC federation server configuration.',
-      ...errors.map((item, index) => `${index + 1}. ${item}`),
-      '',
-      'Expected configuration snippet:',
-      'new rspack.container.ModuleFederationPlugin({',
-      '  // ...',
-      '  runtimePlugins: [require.resolve("@module-federation/node/runtimePlugin")],',
-      '  experiments: {',
-      '    asyncStartup: true,',
-      '    rsc: true,',
-      '  },',
-      '});',
-      '',
-      'And compiler target should be "async-node".',
-    ].join('\n'),
-  );
-}
-
 function augmentRscBridgeExposes(
   options: ModuleFederationPluginOptions,
 ): ModuleFederationPluginOptions {
@@ -598,6 +529,12 @@ function getInlineRscRuntimePluginFactorySource(): string {
     '    manifest.serverManifest = isObject(manifest.serverManifest) ? manifest.serverManifest : {};',
     '    manifest.clientManifest = isObject(manifest.clientManifest) ? manifest.clientManifest : {};',
     '    manifest.serverConsumerModuleMap = isObject(manifest.serverConsumerModuleMap) ? manifest.serverConsumerModuleMap : {};',
+    '    manifest.moduleLoading = isObject(manifest.moduleLoading) ? manifest.moduleLoading : {};',
+    '    manifest.entryCssFiles = isObject(manifest.entryCssFiles) ? manifest.entryCssFiles : {};',
+    '    manifest.entryJsFiles = Array.isArray(manifest.entryJsFiles) ? manifest.entryJsFiles : [];',
+    '    manifest.remoteManifests = isObject(manifest.remoteManifests)',
+    '      ? Object.assign(Object.create(null), manifest.remoteManifests)',
+    '      : Object.create(null);',
     '    return manifest;',
     '  };',
     '  var ensureBridge = async function(alias) {',
@@ -656,6 +593,14 @@ function getInlineRscRuntimePluginFactorySource(): string {
     '      target[key] = value;',
     '    }',
     '  };',
+    '  var cloneEntryCssFiles = function(entryCssFiles) {',
+    '    if (!isObject(entryCssFiles)) return {};',
+    '    return Object.fromEntries(Object.entries(entryCssFiles).map(function(entry) {',
+    '      var resource = entry[0];',
+    '      var files = entry[1];',
+    '      return [resource, Array.isArray(files) ? files.slice() : files];',
+    '    }));',
+    '  };',
     '  var remapConsumerNode = function(alias, value, namespacedClientIds) {',
     '    if (!isObject(value)) return value;',
     '    return Object.fromEntries(Object.entries(value).map(function(entry) {',
@@ -680,14 +625,15 @@ function getInlineRscRuntimePluginFactorySource(): string {
     '        var entry = _entries[_i];',
     '        var key = entry[0];',
     '        var value = entry[1];',
+    "        var scopedClientManifestKey = MODULE_PREFIX + alias + ':' + String(key);",
     '        var nextValue = isObject(value) ? Object.assign({}, value) : value;',
     '        if (isObject(nextValue) && nextValue.id != null) {',
     '          var namespacedClientId = getNamespacedModuleId(alias, nextValue.id);',
     '          namespacedClientIds[String(nextValue.id)] = namespacedClientId;',
     '          nextValue.id = namespacedClientId;',
     '        }',
-    "        assertNoConflict(hostManifest.clientManifest, key, nextValue, alias, 'clientManifest');",
-    '        hostManifest.clientManifest[key] = nextValue;',
+    "        assertNoConflict(hostManifest.clientManifest, scopedClientManifestKey, nextValue, alias, 'clientManifest');",
+    '        hostManifest.clientManifest[scopedClientManifestKey] = nextValue;',
     '      }',
     '    }',
     '    if (isObject(remoteManifest.serverConsumerModuleMap)) {',
@@ -702,6 +648,39 @@ function getInlineRscRuntimePluginFactorySource(): string {
     "        assertNoConflict(hostManifest.serverConsumerModuleMap, scopedModuleId, nextValue, alias, 'serverConsumerModuleMap');",
     '        hostManifest.serverConsumerModuleMap[scopedModuleId] = nextValue;',
     '      }',
+    '    }',
+    '    var remoteManifestBucket = Object.prototype.hasOwnProperty.call(hostManifest.remoteManifests, alias)',
+    '      ? hostManifest.remoteManifests[alias]',
+    '      : Object.create(null);',
+    '    hostManifest.remoteManifests[alias] = remoteManifestBucket;',
+    '    if (isObject(remoteManifest.moduleLoading)) {',
+    '      var nextModuleLoading = Object.assign({}, remoteManifest.moduleLoading);',
+    "      assertNoConflict(remoteManifestBucket, 'moduleLoading', nextModuleLoading, alias, 'moduleLoading');",
+    '      remoteManifestBucket.moduleLoading = nextModuleLoading;',
+    '      var legacyModuleLoading = isObject(hostManifest.moduleLoading) ? hostManifest.moduleLoading : {};',
+    "      assertNoConflict(legacyModuleLoading, alias, nextModuleLoading, alias, 'moduleLoading');",
+    '      legacyModuleLoading[alias] = nextModuleLoading;',
+    '      hostManifest.moduleLoading = legacyModuleLoading;',
+    '    }',
+    '    if (isObject(remoteManifest.entryCssFiles)) {',
+    '      var nextEntryCssFiles = cloneEntryCssFiles(remoteManifest.entryCssFiles);',
+    "      assertNoConflict(remoteManifestBucket, 'entryCssFiles', nextEntryCssFiles, alias, 'entryCssFiles');",
+    '      remoteManifestBucket.entryCssFiles = nextEntryCssFiles;',
+    '      var legacyEntryCssFiles = isObject(hostManifest.entryCssFiles) ? hostManifest.entryCssFiles : {};',
+    "      assertNoConflict(legacyEntryCssFiles, alias, nextEntryCssFiles, alias, 'entryCssFiles');",
+    '      legacyEntryCssFiles[alias] = nextEntryCssFiles;',
+    '      hostManifest.entryCssFiles = legacyEntryCssFiles;',
+    '    }',
+    '    if (Array.isArray(remoteManifest.entryJsFiles) || isObject(remoteManifest.entryJsFiles)) {',
+    '      var nextEntryJsFiles = Array.isArray(remoteManifest.entryJsFiles)',
+    '        ? remoteManifest.entryJsFiles.slice()',
+    '        : Object.assign({}, remoteManifest.entryJsFiles);',
+    "      assertNoConflict(remoteManifestBucket, 'entryJsFiles', nextEntryJsFiles, alias, 'entryJsFiles');",
+    '      remoteManifestBucket.entryJsFiles = nextEntryJsFiles;',
+    '      var legacyEntryJsFiles = Array.isArray(hostManifest.entryJsFiles) || isObject(hostManifest.entryJsFiles) ? hostManifest.entryJsFiles : {};',
+    "      assertNoConflict(legacyEntryJsFiles, alias, nextEntryJsFiles, alias, 'entryJsFiles');",
+    '      legacyEntryJsFiles[alias] = nextEntryJsFiles;',
+    '      hostManifest.entryJsFiles = legacyEntryJsFiles;',
     '    }',
     '    var remoteServerManifest = remoteManifest.serverManifest;',
     '    if (!isObject(remoteServerManifest)) return;',
@@ -727,9 +706,10 @@ function getInlineRscRuntimePluginFactorySource(): string {
     "      name: 'rspack-rsc-runtime-plugin',",
     '      onLoad: async function(args) {',
     '        var alias = (args && args.remote && args.remote.alias) || (args && args.pkgNameOrAlias) || (args && args.remote && args.remote.name);',
-    '        if (!alias || mergedRemoteAliases.has(alias)) return args;',
+    '        if (!alias) return args;',
     '        var expose = typeof (args && args.expose) === "string" ? args.expose : "";',
     '        if (expose.includes(RSC_BRIDGE_EXPOSE)) return args;',
+    '        if (mergedRemoteAliases.has(alias)) return args;',
     '        mergedRemoteAliases.add(alias);',
     '        try {',
     '          var bridge = await ensureBridge(alias);',
