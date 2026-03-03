@@ -31,6 +31,7 @@ import type { Compiler } from '../Compiler';
 import { normalizeStatsPreset } from '../Stats';
 import { isNil } from '../util';
 import { parseResource } from '../util/identifier';
+import { isStatsColorSupported } from '../util/supportsColor';
 import {
   type ComposeJsUseOptions,
   createRawModuleRuleUses,
@@ -815,7 +816,11 @@ function getRawNode(node: Node): RawOptions['node'] {
 
 function getRawStats(stats: StatsValue): RawOptions['stats'] {
   const statsOptions = normalizeStatsPreset(stats);
+  const colors =
+    statsOptions.colors === undefined
+      ? isStatsColorSupported()
+      : Boolean(statsOptions.colors);
   return {
-    colors: Boolean(statsOptions.colors),
+    colors,
   };
 }
