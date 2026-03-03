@@ -1,34 +1,19 @@
 ```mjs title=main.mjs
-import {fileURLToPath as __rspack_fileURLToPath} from "node:url";
-import {dirname as __rspack_dirname} from "node:path";
-import { createRequire as __rspack_createRequire } from "node:module";
-const __rspack_createRequire_require = __rspack_createRequire(import.meta.url);
-import { __webpack_require__ } from "./runtime.mjs";
-// node:fs
-const external_node_fs_namespaceObject = __rspack_createRequire_require("node:fs");
+// ./index.js
+it('should handle mixed: single-module chunk + multi-module chunk', async () => {
+	// solo is alone in its chunk - direct import works
+	const solo = await import("./solo_js.mjs")
+	expect(solo).toHaveProperty('default', 'solo')
+	expect(solo).toHaveProperty('value', 100)
 
-var external_node_fs_default = /*#__PURE__*/__webpack_require__.n(external_node_fs_namespaceObject);// node:path
-const external_node_path_namespaceObject = __rspack_createRequire_require("node:path");
+	// m1 and mX share a chunk via magic comment - need namespace objects
+	const m1 = await import("./shared.mjs").then(m => m.m1_namespaceObject)
+	const m2 = await import("./shared.mjs").then(m => m.m2_namespaceObject)
 
-var external_node_path_default = /*#__PURE__*/__webpack_require__.n(external_node_path_namespaceObject);// ./index.js
-var index_dirname = __rspack_dirname(__rspack_fileURLToPath(import.meta.url));
-
-
-
-it('should support dynamic import', async () => {
-	const shared = external_node_path_default().resolve(index_dirname, 'shared.mjs')
-	const content = external_node_fs_default().readFileSync(shared, 'utf-8')
-
-	expect(content).toContain('// ./m1.js')
-	expect(content).toContain('// ./m2.js')
-
-	const value = await import("./shared.mjs").then(m => m.m1_namespaceObject)
-	const value2 = await import("./shared.mjs").then(m => m.m2_namespaceObject)
-
-	expect(value).toHaveProperty('default', 42)
-	expect(value).toHaveProperty('value', 1)
-	expect(value2).toHaveProperty('default', 42)
-	expect(value2).toHaveProperty('value', 2)
+	expect(m1).toHaveProperty('default', 'hello')
+	expect(m1).toHaveProperty('value', 1)
+	expect(m2).toHaveProperty('default', 'world')
+	expect(m2).toHaveProperty('value', 2)
 })
 
 
@@ -55,18 +40,6 @@ __webpack_modules__[moduleId](module, module.exports, __webpack_require__);
 return module.exports;
 }
 
-// webpack/runtime/compat_get_default_export
-(() => {
-// getDefaultExport function for compatibility with non-ESM modules
-__webpack_require__.n = (module) => {
-	var getter = module && module.__esModule ?
-		() => (module['default']) :
-		() => (module);
-	__webpack_require__.d(getter, { a: getter });
-	return getter;
-};
-
-})();
 // webpack/runtime/define_property_getters
 (() => {
 __webpack_require__.d = (exports, definition) => {
@@ -120,14 +93,24 @@ __webpack_require__.d(m2_namespaceObject, {
 
 
 // ./m1.js
-/* export default */ const m1 = (42);
-const value = 1
+/* export default */ const m1 = ('hello');
+const value = 1;
 
 // ./m2.js
-/* export default */ const m2 = (42);
-const m2_value = 2
+/* export default */ const m2 = ('world');
+const m2_value = 2;
 
 export { m1_namespaceObject, m2 as default_0, m2_namespaceObject, m2_value as value_0, value };
 export default m1;
+
+```
+
+```mjs title=solo_js.mjs
+// ./solo.js
+/* export default */ const solo = ('solo');
+const value = 100;
+
+export { value };
+export default solo;
 
 ```

@@ -1,45 +1,11 @@
-```mjs title=ab-chunk.mjs
-import { __webpack_require__ } from "./runtime.mjs";
-// NAMESPACE OBJECT: ./a.js
-var a_namespaceObject = {};
-__webpack_require__.r(a_namespaceObject);
-__webpack_require__.d(a_namespaceObject, { 
-  value: () => (value) });
-
-
-// NAMESPACE OBJECT: ./b.js
-var b_namespaceObject = {};
-__webpack_require__.r(b_namespaceObject);
-__webpack_require__.d(b_namespaceObject, { 
-  value: () => (b_value) });
-
-
-// ./a.js
-const value = 1
-
-// ./b.js
-const b_value = 2
-
-export { a_namespaceObject, b_namespaceObject, b_value as value_0, value };
-
-```
-
 ```mjs title=main.mjs
-import { value, value_0 as b_value } from "./ab-chunk.mjs";
-
 // ./index.js
+it('should support dyn import with no conflicting exports', async () => {
+	const a = await import("./shared.mjs").then(m => m.a_namespaceObject)
+	const b = await import("./shared.mjs").then(m => m.b_namespaceObject)
 
-
-
-it('should handle conflicting exports from multi-module chunk', async () => {
-	expect(value).toBe(1)
-	expect(b_value).toBe(2)
-
-	const modA = await import("./ab-chunk.mjs").then(m => m.a_namespaceObject)
-	const modB = await import("./ab-chunk.mjs").then(m => m.b_namespaceObject)
-
-	expect(modA.value).toBe(1)
-	expect(modB.value).toBe(2)
+	expect(a).toHaveProperty('foo', 1)
+	expect(b).toHaveProperty('bar', 2)
 })
 
 
@@ -97,5 +63,31 @@ __webpack_require__.r = (exports) => {
 })();
 
 export { __webpack_require__ };
+
+```
+
+```mjs title=shared.mjs
+import { __webpack_require__ } from "./runtime.mjs";
+// NAMESPACE OBJECT: ./a.js
+var a_namespaceObject = {};
+__webpack_require__.r(a_namespaceObject);
+__webpack_require__.d(a_namespaceObject, { 
+  foo: () => (foo) });
+
+
+// NAMESPACE OBJECT: ./b.js
+var b_namespaceObject = {};
+__webpack_require__.r(b_namespaceObject);
+__webpack_require__.d(b_namespaceObject, { 
+  bar: () => (bar) });
+
+
+// ./a.js
+const foo = 1;
+
+// ./b.js
+const bar = 2;
+
+export { a_namespaceObject, b_namespaceObject, bar, foo };
 
 ```
