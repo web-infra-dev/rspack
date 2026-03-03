@@ -58,6 +58,9 @@ export default {
 
 - `target` 包含 `"async-node"`
 - `experiments.asyncStartup` 为 `true`
+
+对于 RSC 主机/远程运行时，还需要在配置中声明：
+
 - `runtimePlugins` 包含 `@module-federation/node/runtimePlugin`
 
 Rspack 不会自动注入 `@module-federation/node/runtimePlugin`，需要在用户配置中显式声明。
