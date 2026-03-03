@@ -5,7 +5,7 @@ class Plugin {
 		let hasEmittedAsset = false;
 		let contentLength = -1;
 		compiler.hooks.thisCompilation.tap(pluginName, compilation => {
-			const { RawSource } = compiler.webpack.sources;
+			const { RawSource } = compiler.rspack.sources;
 			compilation.hooks.processAssets.tap(pluginName, () => {
 				const buffer = Buffer.from("i am content of emit asset");
 				contentLength = buffer.length;

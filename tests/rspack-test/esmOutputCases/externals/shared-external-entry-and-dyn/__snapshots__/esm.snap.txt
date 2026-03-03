@@ -1,0 +1,33 @@
+```mjs title=async_js.mjs
+// fs?3cf4
+
+// ./async.js
+
+const asyncValue = 'async'
+
+var async_asyncValue = /* unused export */ undefined;
+export { async_asyncValue as asyncValue };
+export { readFile } from "fs";
+
+```
+
+```mjs title=main.mjs
+import { readFile } from "fs";
+
+// fs?771d
+
+// ./index.js
+
+
+
+
+it('should handle external used in both entry and dynamic import', async () => {
+	const mod = await import("./async_js.mjs")
+	expect(mod.readFile).toBeDefined()
+	expect(readFile).toBeDefined()
+	expect(mod.readFile).toBe(readFile)
+})
+
+export { readFile };
+
+```

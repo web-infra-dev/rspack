@@ -16,7 +16,7 @@ class Plugin {
 					stage: rspack.Compilation.PROCESS_ASSETS_STAGE_ADDITIONS,
 				},
 				() => {
-					compilation.emitAsset("/foo.txt", new compiler.webpack.sources.RawSource("foo"), {
+					compilation.emitAsset("/foo.txt", new compiler.rspack.sources.RawSource("foo"), {
 						bool: true,
 						number: 1,
 						string: "foo",

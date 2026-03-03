@@ -1,1 +1,0 @@
-module.exports = () => "TODO: support parser.scope.terminated"
