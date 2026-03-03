@@ -61,7 +61,7 @@ md4                 = { version = "0.10.2", default-features = false }
 memchr              = { version = "2.7.6", default-features = false }
 micromegas-perfetto = { version = "0.9.0", default-features = false }
 miette              = { version = "7.6.0", default-features = false }
-mimalloc            = { version = "0.2.4", package = "mimalloc-rspack", default-features = false }
+mimalloc            = { version = "0.1.48", default-features = false }
 mime_guess          = { version = "2.0.5", default-features = false, features = ["rev-mappings"] }
 notify              = { version = "8.2.0", default-features = false }
 num-bigint          = { version = "0.4.6", default-features = false }
@@ -95,6 +95,7 @@ slotmap             = { version = "1.1.1", default-features = false }
 smol_str            = { version = "0.3.5", default-features = false }
 stacker             = { version = "0.1.23", default-features = false }
 sugar_path          = { version = "2.0.1", default-features = false, features = ["cached_current_dir"] }
+supports-color      = { version = "3.0", default-features = false }
 syn                 = { version = "2.0.117", default-features = false }
 termcolor           = { version = "1.4.1", default-features = false }
 textwrap            = { version = "0.16.1", default-features = false }
@@ -135,19 +136,19 @@ rkyv      = { version = "=0.8.8", default-features = false, features = ["std", "
 
 # Must be pinned with the same swc versions
 pnp                 = { version = "0.12.8", default-features = false }
-swc                 = { version = "54.0.0", default-features = false }
-swc_config          = { version = "3.1.2", default-features = false }
-swc_core            = { version = "56.0.0", default-features = false, features = ["parallel_rayon"] }
-swc_ecma_minifier   = { version = "44.0.0", default-features = false }
-swc_error_reporters = { version = "20.0.0", default-features = false }
-swc_html            = { version = "30.0.0", default-features = false }
-swc_html_minifier   = { version = "44.0.0", default-features = false }
-swc_node_comments   = { version = "18.0.0", default-features = false }
-swc_plugin_runner   = { version = "24.0.0", default-features = false }
+swc                 = { version = "56.0.0", default-features = false }
+swc_config          = { version = "4.0.0", default-features = false }
+swc_core            = { version = "58.0.3", default-features = false, features = ["parallel_rayon"] }
+swc_ecma_minifier   = { version = "46.0.0", default-features = false }
+swc_error_reporters = { version = "21.0.0", default-features = false }
+swc_html            = { version = "31.0.0", default-features = false }
+swc_html_minifier   = { version = "46.0.0", default-features = false }
+swc_node_comments   = { version = "19.0.0", default-features = false }
+swc_plugin_runner   = { version = "25.0.0", default-features = false }
 
-swc_experimental_ecma_ast      = { version = "0.5.0", default-features = false }
-swc_experimental_ecma_parser   = { version = "0.5.0", default-features = false }
-swc_experimental_ecma_semantic = { version = "0.5.0", default-features = false }
+swc_experimental_ecma_ast      = { version = "0.6.0", default-features = false }
+swc_experimental_ecma_parser   = { version = "0.6.0", default-features = false }
+swc_experimental_ecma_semantic = { version = "0.6.0", default-features = false }
 
 rspack_dojang = { version = "0.1.11", default-features = false }
 tracy-client = { version = "=0.18.4", default-features = false, features = [

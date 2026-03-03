@@ -6,7 +6,7 @@ use rspack::builder::Builder as _;
 use rspack_benchmark::Criterion;
 use rspack_core::{
   Compilation, Compiler, Optimization, build_chunk_graph,
-  build_module_graph::build_module_graph_pass,
+  build_module_graph::{build_module_graph_pass, finish_build_module_graph},
   fast_set,
   incremental::{Incremental, IncrementalOptions},
 };
@@ -183,11 +183,15 @@ pub fn build_chunk_graph_benchmark_inner(c: &mut Criterion) {
     compiler.compilation.side_effects_optimize_artifact = side_effects_optimize_artifact.into();
     compiler.compilation.extend_diagnostics(diagnostics);
 
-    compiler
-      .compilation
-      .finish_build_module_graph()
-      .await
-      .unwrap();
+    // Finalize build module graph (clean entry deps, finalize artifacts)
+    let make_artifact = compiler.compilation.build_module_graph_artifact.steal();
+    let exports_info_artifact = compiler.compilation.exports_info_artifact.steal();
+    let (make_artifact, exports_info_artifact) =
+      finish_build_module_graph(&compiler.compilation, make_artifact, exports_info_artifact)
+        .await
+        .unwrap();
+    compiler.compilation.build_module_graph_artifact = make_artifact.into();
+    compiler.compilation.exports_info_artifact = exports_info_artifact.into();
   });
 
   assert!(compiler.compilation.get_errors().next().is_none());

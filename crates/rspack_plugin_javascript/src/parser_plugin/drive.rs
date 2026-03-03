@@ -343,6 +343,17 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
     None
   }
 
+  fn unused_statement(&self, parser: &mut JavascriptParser, stmt: Statement) -> Option<bool> {
+    for plugin in &self.plugins {
+      let res = plugin.unused_statement(parser, stmt);
+      // `SyncBailHook`
+      if res.is_some() {
+        return res;
+      }
+    }
+    None
+  }
+
   fn statement_if(&self, parser: &mut JavascriptParser, expr: &IfStmt) -> Option<bool> {
     for plugin in &self.plugins {
       let res = plugin.statement_if(parser, expr);
@@ -491,6 +502,21 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
     for plugin in &self.plugins {
       let res = plugin.evaluate_typeof(parser, expr, for_name);
       // `SyncBailHook`
+      if res.is_some() {
+        return res;
+      }
+    }
+    None
+  }
+
+  fn evaluate_call_expression<'a>(
+    &self,
+    parser: &mut JavascriptParser,
+    name: &str,
+    expr: &'a CallExpr,
+  ) -> Option<BasicEvaluatedExpression<'a>> {
+    for plugin in &self.plugins {
+      let res = plugin.evaluate_call_expression(parser, name, expr);
       if res.is_some() {
         return res;
       }

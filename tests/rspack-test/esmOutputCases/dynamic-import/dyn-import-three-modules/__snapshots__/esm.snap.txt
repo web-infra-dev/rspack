@@ -1,0 +1,126 @@
+```mjs title=main.mjs
+// ./index.js
+it('should handle three modules in one chunk with conflicting exports', async () => {
+	const a = await import("./merged.mjs").then(m => m.a_namespaceObject)
+	const b = await import("./merged.mjs").then(m => m.b_namespaceObject)
+	const c = await import("./merged.mjs").then(m => m.c_namespaceObject)
+
+	expect(a).toHaveProperty('default', 'a')
+	expect(a).toHaveProperty('name', 'module-a')
+	expect(a).toHaveProperty('id', 1)
+
+	expect(b).toHaveProperty('default', 'b')
+	expect(b).toHaveProperty('name', 'module-b')
+	expect(b).toHaveProperty('id', 2)
+
+	expect(c).toHaveProperty('default', 'c')
+	expect(c).toHaveProperty('name', 'module-c')
+	expect(c).toHaveProperty('id', 3)
+})
+
+
+```
+
+```mjs title=merged.mjs
+import { __webpack_require__ } from "./runtime.mjs";
+// NAMESPACE OBJECT: ./a.js
+var a_namespaceObject = {};
+__webpack_require__.r(a_namespaceObject);
+__webpack_require__.d(a_namespaceObject, { 
+  "default": () => (a),
+  id: () => (id),
+  name: () => (a_name) });
+
+
+// NAMESPACE OBJECT: ./b.js
+var b_namespaceObject = {};
+__webpack_require__.r(b_namespaceObject);
+__webpack_require__.d(b_namespaceObject, { 
+  "default": () => (b),
+  id: () => (b_id),
+  name: () => (b_name) });
+
+
+// NAMESPACE OBJECT: ./c.js
+var c_namespaceObject = {};
+__webpack_require__.r(c_namespaceObject);
+__webpack_require__.d(c_namespaceObject, { 
+  "default": () => (c),
+  id: () => (c_id),
+  name: () => (c_name) });
+
+
+// ./a.js
+/* export default */ const a = ('a');
+const a_name = 'module-a';
+const id = 1;
+
+// ./b.js
+/* export default */ const b = ('b');
+const b_name = 'module-b';
+const b_id = 2;
+
+// ./c.js
+/* export default */ const c = ('c');
+const c_name = 'module-c';
+const c_id = 3;
+
+export { a_name as name, a_namespaceObject, b as default_0, b_id as id_0, b_name as name_0, b_namespaceObject, c as default_1, c_id as id_1, c_name as name_1, c_namespaceObject, id };
+export default a;
+
+```
+
+```mjs title=runtime.mjs
+// The module cache
+var __webpack_module_cache__ = {};
+// The require function
+function __webpack_require__(moduleId) {
+// Check if module is in cache
+var cachedModule = __webpack_module_cache__[moduleId];
+if (cachedModule !== undefined) {
+return cachedModule.exports;
+}
+// Create a new module (and put it into the cache)
+var module = (__webpack_module_cache__[moduleId] = {
+exports: {}
+});
+// Execute the module function
+__webpack_modules__[moduleId](module, module.exports, __webpack_require__);
+
+// Return the exports of the module
+return module.exports;
+}
+
+// webpack/runtime/define_property_getters
+(() => {
+__webpack_require__.d = (exports, definition) => {
+	for(var key in definition) {
+        if(__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key)) {
+            Object.defineProperty(exports, key, { enumerable: true, get: definition[key] });
+        }
+    }
+};
+})();
+// webpack/runtime/esm_register_module
+(() => {
+__webpack_require__.add = function registerModules(modules) { Object.assign(__webpack_require__.m, modules) }
+
+})();
+// webpack/runtime/has_own_property
+(() => {
+__webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
+})();
+// webpack/runtime/make_namespace_object
+(() => {
+// define __esModule on exports
+__webpack_require__.r = (exports) => {
+	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+	}
+	Object.defineProperty(exports, '__esModule', { value: true });
+};
+})();
+
+export { __webpack_require__ };
+
+```

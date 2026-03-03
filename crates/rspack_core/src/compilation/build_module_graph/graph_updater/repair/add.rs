@@ -1,6 +1,6 @@
 use rspack_error::Result;
 
-use super::{TaskContext, build::BuildTask, lazy::ProcessUnlazyDependenciesTask};
+use super::{TaskContext, build::BuildTask, lazy::process_unlazy_dependencies};
 use crate::{
   BoxDependency, BoxModule, ModuleIdentifier,
   compilation::build_module_graph::ForwardedIdSet,
@@ -75,10 +75,15 @@ impl Task<TaskContext> for AddTask {
           .has_lazy_dependencies(&module_identifier)
           && !forwarded_ids.is_empty()
         {
-          return Ok(vec![Box::new(ProcessUnlazyDependenciesTask {
+          if let Some(task) = process_unlazy_dependencies(
+            &context.artifact.module_to_lazy_make,
+            module_graph,
             forwarded_ids,
-            original_module_identifier: module_identifier,
-          })]);
+            module_identifier,
+          ) {
+            return Ok(vec![Box::new(task)]);
+          }
+          return Ok(vec![]);
         }
       } else {
         let pending_forwarded_ids = context

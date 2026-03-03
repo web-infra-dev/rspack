@@ -404,13 +404,34 @@ impl EsmLibraryPlugin {
                 &mut chunk_link.used_names,
               );
 
-              if let Ref::Symbol(symbol_binding) = &mut binding
-                && matches!(
-                  concate_modules_map.get(&symbol_binding.module),
-                  Some(ModuleInfo::External(_))
-                )
-              {
-                chunk_link.imports.entry(symbol_binding.module).or_default();
+              if let Ref::Symbol(symbol_binding) = &mut binding {
+                let target_info = concate_modules_map.get(&symbol_binding.module);
+                if matches!(target_info, Some(ModuleInfo::External(_))) {
+                  chunk_link.imports.entry(symbol_binding.module).or_default();
+                } else if symbol_binding.ids.is_empty()
+                  && matches!(target_info, Some(ModuleInfo::Concatenated(_)))
+                {
+                  // For module-type externals stored as Concatenated, the raw_export_map
+                  // returns bare symbol names (e.g., "readFile") that aren't local variables.
+                  // When ids is empty, the symbol is directly referenced (not via property
+                  // access like ns.readFile), so we need to add an import from the external
+                  // source to make the binding available.
+                  let module_graph = compilation.get_module_graph();
+                  if let Some(ext) = module_graph
+                    .module_by_identifier(&symbol_binding.module)
+                    .and_then(|m| m.as_external_module())
+                  {
+                    let request = ext.user_request().to_string();
+                    let import_spec = chunk_link
+                      .raw_import_stmts
+                      .entry((request, None))
+                      .or_default();
+                    import_spec
+                      .atoms
+                      .entry(symbol_binding.symbol.clone())
+                      .or_insert_with(|| symbol_binding.symbol.clone());
+                  }
+                }
               }
 
               ns_obj.push(format!(
@@ -517,6 +538,21 @@ var {} = {{}};
     for id in &chunk_link.hoisted_modules {
       let concate_info = concate_modules_map[id].as_concatenated();
       all_used_names.extend(concate_info.all_used_names.clone());
+    }
+
+    // Pre-reserve namespace object names from dyn_import_ns_map so other
+    // symbols don't claim these names during deconflict
+    {
+      let ns_map = self.dyn_import_ns_map.borrow();
+      for id in chunk_link
+        .hoisted_modules
+        .iter()
+        .chain(chunk_link.decl_modules.iter())
+      {
+        if let Some(ns_name) = ns_map.get(id) {
+          all_used_names.insert(ns_name.clone());
+        }
+      }
     }
 
     // deconflict top level symbols
@@ -644,8 +680,15 @@ var {} = {{}};
         }
 
         // Handle namespaceObjectName for concatenated type
-        let namespace_object_name =
-          if let Some(ref namespace_export_symbol) = concate_info.namespace_export_symbol {
+        // If this module has a pre-assigned name from dyn_import_ns_map, use it directly
+        let namespace_object_name = {
+          let pre_assigned = {
+            let ns_map = self.dyn_import_ns_map.borrow();
+            ns_map.get(id).cloned()
+          };
+          if let Some(pre_assigned) = pre_assigned {
+            pre_assigned
+          } else if let Some(ref namespace_export_symbol) = concate_info.namespace_export_symbol {
             concate_info
               .get_internal_name(namespace_export_symbol)
               .cloned()
@@ -662,7 +705,8 @@ var {} = {{}};
               &all_used_names,
               &escaped_identifiers[&readable_identifier],
             )
-          };
+          }
+        };
         all_used_names.insert(namespace_object_name.clone());
         concate_info.namespace_object_name = Some(namespace_object_name.clone());
 
@@ -1116,6 +1160,7 @@ var {} = {{}};
     exports: &mut UkeyMap<ChunkUkey, ExportsContext>,
     required: &mut IdentifierIndexMap<ExternalInterop>,
     strict_current_chunk: bool,
+    allow_rename: bool,
   ) {
     let module_info = concate_modules_map
       .get_mut(&entry_module)
@@ -1131,7 +1176,7 @@ var {} = {{}};
             .expect("should have namespace name"),
           "default".to_string().into(),
           exports,
-          entry_chunk == current_chunk || strict_current_chunk,
+          !allow_rename && (entry_chunk == current_chunk || strict_current_chunk),
         );
 
         if entry_chunk != current_chunk
@@ -1143,7 +1188,7 @@ var {} = {{}};
             exported,
             "default".to_string().into(),
             exports,
-            true,
+            !allow_rename,
           );
         }
       }
@@ -1166,7 +1211,7 @@ var {} = {{}};
           symbol,
           "default".to_string().into(),
           exports,
-          true,
+          !allow_rename,
         );
       }
     }
@@ -1186,6 +1231,7 @@ var {} = {{}};
     entry_imports: &mut IdentifierIndexMap<FxHashMap<Atom, Atom>>,
     exports: &mut UkeyMap<ChunkUkey, ExportsContext>,
     escaped_identifiers: &FxHashMap<String, Vec<String>>,
+    allow_rename: bool,
   ) -> Vec<Diagnostic> {
     let mut errors = vec![];
     let context = &compilation.options.context;
@@ -1197,7 +1243,8 @@ var {} = {{}};
 
     // detect reexport star
     let mut star_re_exports_modules = IdentifierIndexSet::default();
-    let keep_export_name = current_chunk == entry_chunk || self.strict_export_chunk(current_chunk);
+    let keep_export_name =
+      !allow_rename && (current_chunk == entry_chunk || self.strict_export_chunk(current_chunk));
 
     let mut entry_exports = exports_info
       .exports()
@@ -1244,6 +1291,7 @@ var {} = {{}};
         exports,
         required,
         self.strict_export_chunk(current_chunk),
+        allow_rename,
       );
     } else {
       for name in entry_exports {
@@ -1298,10 +1346,10 @@ var {} = {{}};
                   export_name.clone(),
                   name.clone(),
                   exports,
-                  true,
+                  !allow_rename,
                 );
 
-                if exported.is_none() {
+                if exported.is_none() && !allow_rename {
                   errors.push(
                     rspack_error::error!(
                       "Entry {entry_module} has conflict exports: {name} has already been exported"
@@ -1329,10 +1377,12 @@ var {} = {{}};
                   local_name.clone(),
                   name.clone(),
                   exports,
-                  ref_chunk == entry_chunk || self.strict_export_chunk(ref_chunk),
+                  !allow_rename
+                    && (ref_chunk == entry_chunk || self.strict_export_chunk(ref_chunk)),
                 );
 
                 if exported.is_none()
+                  && !allow_rename
                   && (ref_chunk == entry_chunk || self.strict_export_chunk(ref_chunk))
                 {
                   errors.push(
@@ -1352,7 +1402,7 @@ var {} = {{}};
                     exported.clone(),
                     name.clone(),
                     exports,
-                    true,
+                    !allow_rename,
                   );
                 }
               }
@@ -1375,7 +1425,13 @@ var {} = {{}};
               .decl_before_exports
               .insert(format!("var {new_name} = {inlined_value};\n"));
 
-            Self::add_chunk_export(entry_chunk, new_name, name.clone(), exports, true);
+            Self::add_chunk_export(
+              entry_chunk,
+              new_name.clone(),
+              name.clone(),
+              exports,
+              !allow_rename,
+            );
           }
         }
       }
@@ -1390,6 +1446,7 @@ var {} = {{}};
           exports,
           required,
           self.strict_export_chunk(current_chunk),
+          allow_rename,
         );
       }
     }
@@ -1545,19 +1602,16 @@ var {} = {{}};
           entry_imports,
           &mut exports,
           escaped_identifiers,
+          false,
         ));
       }
     }
 
-    // link facade chunk (dyn import namespace) exports
-    // Similar to entry chunks, facade chunks need all exports registered with exact names.
-    // This handles star re-exports and ensures completeness beyond what dyn_refs provides.
-    //
-    // For modules with a facade chunk (empty, only re-exports):
-    //   current_chunk = source chunk (where the module actually lives)
-    //   entry_chunk = facade chunk (where exports are registered)
-    // For modules without a facade (single-module chunks):
-    //   current_chunk = entry_chunk = the module's chunk
+    // Link dynamic import target exports.
+    // Without facade chunks, exports go directly on the source chunk.
+    // For multi-module chunks where exports may be renamed, we generate a namespace
+    // object and record it in dyn_import_ns_map so that the dyn import template
+    // can render `.then(m => m.<ns_name>)`.
     {
       let entry_chunk_ukey_set: UkeySet<ChunkUkey> = compilation
         .build_chunk_graph_artifact
@@ -1572,57 +1626,77 @@ var {} = {{}};
         })
         .collect();
 
-      let facade_map = self.dyn_import_facade_chunks.borrow();
-      let facade_modules = {
+      let dyn_targets = {
         let all_dyn_targets = self.all_dyn_targets.borrow();
-        let mut facade_modules = all_dyn_targets.iter().copied().collect::<Vec<_>>();
-        facade_modules.sort();
-        facade_modules
+        let mut targets = all_dyn_targets.iter().copied().collect::<Vec<_>>();
+        targets.sort();
+        targets
       };
 
-      for facade_module in facade_modules {
-        let source_chunk = Self::get_module_chunk(facade_module, compilation);
+      for dyn_target in dyn_targets {
+        let source_chunk = Self::get_module_chunk(dyn_target, compilation);
         if entry_chunk_ukey_set.contains(&source_chunk) {
           continue;
         }
 
         if compilation
           .code_generation_results
-          .get_one(&facade_module)
+          .get_one(&dyn_target)
           .get(&SourceType::JavaScript)
           .is_none()
         {
           continue;
         }
 
-        // If there's a facade chunk, exports go to the facade; module code is in source_chunk.
-        // Otherwise, both are the same (single-module chunk).
-        let entry_chunk = facade_map
-          .get(&facade_module)
-          .copied()
-          .unwrap_or(source_chunk);
+        // No facade chunk — exports go directly on source_chunk
+        let target_chunk = source_chunk;
+        let is_strict = self.strict_export_chunk(target_chunk);
+        let allow_rename = !is_strict;
 
         let needed_namespace = needed_namespace_objects_by_ukey
-          .entry(entry_chunk)
+          .entry(target_chunk)
           .or_default();
-        let facade_imports = imports.entry(entry_chunk).or_default();
-        let required = required.entry(entry_chunk).or_default();
+        let target_imports = imports.entry(target_chunk).or_default();
+        let required = required.entry(target_chunk).or_default();
 
-        facade_imports.entry(facade_module).or_default();
+        target_imports.entry(dyn_target).or_default();
 
         errors.extend(self.link_entry_module_exports(
-          facade_module,
+          dyn_target,
           source_chunk,
-          entry_chunk,
+          target_chunk,
           compilation,
           concate_modules_map,
           required,
           link,
           needed_namespace,
-          facade_imports,
+          target_imports,
           &mut exports,
           escaped_identifiers,
+          allow_rename,
         ));
+
+        // Check if this module has a pre-assigned namespace name (set during optimize_chunks
+        // for scope-hoisted modules in non-strict multi-module chunks).
+        // The name matches info.namespace_object_name (forced during deconflict_symbols).
+        // Add the module to needed_namespace_objects so the standard namespace object
+        // gets generated, and export it directly by name.
+        let ns_name = {
+          let ns_map = self.dyn_import_ns_map.borrow();
+          ns_map.get(&dyn_target).cloned()
+        };
+
+        if let Some(ns_name) = ns_name {
+          needed_namespace.insert(dyn_target);
+
+          Self::add_chunk_export(
+            target_chunk,
+            ns_name.clone(),
+            ns_name.clone(),
+            &mut exports,
+            false,
+          );
+        }
       }
     }
 

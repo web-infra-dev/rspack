@@ -1099,6 +1099,18 @@ export interface JsRsdoctorChunkModules {
   modules: Array<number>
 }
 
+export interface JsRsdoctorConnection {
+  ukey: number
+  dependencyId: string
+  module: number
+  originModule?: number
+  resolvedModule: number
+  dependencyType: string
+  userRequest: string
+  loc?: string
+  active: boolean
+}
+
 export interface JsRsdoctorDependency {
   ukey: number
   kind: string
@@ -1124,7 +1136,6 @@ export interface JsRsdoctorExportInfo {
   from?: number
   variable?: number
   identifier?: JsRsdoctorStatement
-  sideEffects: Array<number>
 }
 
 export interface JsRsdoctorJsonModuleSize {
@@ -1146,6 +1157,7 @@ export interface JsRsdoctorModule {
   chunks: Array<number>
   issuerPath: Array<number>
   bailoutReason: Array<string>
+  sideEffectsLocations: Array<JsRsdoctorSideEffectLocation>
 }
 
 export interface JsRsdoctorModuleGraph {
@@ -1193,6 +1205,13 @@ export interface JsRsdoctorSideEffect {
   fromDependency?: number
   exports: Array<number>
   variable?: number
+}
+
+export interface JsRsdoctorSideEffectLocation {
+  location: string
+  nodeType: string
+  module: number
+  request: string
 }
 
 export interface JsRsdoctorSourceMapFeatures {
@@ -2382,13 +2401,14 @@ export interface RawJavascriptParserOptions {
   exprContextCritical?: boolean
   unknownContextCritical?: boolean
   wrappedContextCritical?: boolean
+  strictThisContextOnImports?: boolean
   wrappedContextRegExp?: RegExp
   exportsPresence?: string
   importExportsPresence?: string
   reexportExportsPresence?: string
   worker?: Array<string>
   overrideStrict?: string
-  importMeta?: boolean
+  importMeta?: string
   /**
    * This option is experimental in Rspack only and subject to change or be removed anytime.
    * @experimental
