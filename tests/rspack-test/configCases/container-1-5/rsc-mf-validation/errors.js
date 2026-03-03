@@ -1,3 +1,1 @@
-module.exports = [
-  /`experiments\.asyncStartup` must be `true`\./,
-];
+module.exports = [];
