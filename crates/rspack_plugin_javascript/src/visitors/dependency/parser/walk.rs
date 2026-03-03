@@ -268,10 +268,10 @@ impl JavascriptParser<'_> {
 
     if let Some(t) = finalizer_terminated {
       self.terminated = Some(t);
-    } else if let Some(t) = try_terminated {
-      if stmt.handler.is_none() || handler_terminated.is_some() {
-        self.terminated = handler_terminated.or(Some(t));
-      }
+    } else if let Some(t) = try_terminated
+      && (stmt.handler.is_none() || handler_terminated.is_some())
+    {
+      self.terminated = handler_terminated.or(Some(t));
     }
 
     self.in_try = was_in_try;
