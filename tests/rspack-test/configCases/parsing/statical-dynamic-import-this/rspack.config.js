@@ -3,6 +3,10 @@
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	module: {
-		strictThisContextOnImports: true
+		parser: {
+			javascript: {
+				strictThisContextOnImports: true
+			}
+		}
 	}
 };

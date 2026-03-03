@@ -120,6 +120,7 @@ impl JavascriptParserPlugin for RequireEnsureDependenciesBlockParserPlugin {
     }
     deps.extend(parser.collect_dependencies_for_block(|parser| {
       if let Some(success_expr) = &success_expr {
+        let old_terminated = parser.terminated;
         match success_expr.func {
           Either::Left(func) => {
             if let Some(body) = &func.function.body {
@@ -131,6 +132,7 @@ impl JavascriptParserPlugin for RequireEnsureDependenciesBlockParserPlugin {
             BlockStmtOrExpr::Expr(expr) => parser.walk_expression(expr),
           },
         }
+        parser.terminated = old_terminated;
       }
     }));
 

@@ -1637,6 +1637,9 @@ CompilerOptions {
                             wrapped_context_critical: Some(
                                 false,
                             ),
+                            strict_this_context_on_imports: Some(
+                                false,
+                            ),
                             wrapped_context_reg_exp: Some(
                                 RspackRegex {
                                     flags: "",
@@ -1654,7 +1657,7 @@ CompilerOptions {
                             ),
                             override_strict: None,
                             import_meta: Some(
-                                true,
+                                Enabled,
                             ),
                             require_alias: Some(
                                 false,

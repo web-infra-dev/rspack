@@ -561,11 +561,15 @@ function getRawJavascriptParserOptions(
     dynamicImportPreload: parser.dynamicImportPreload?.toString(),
     dynamicImportPrefetch: parser.dynamicImportPrefetch?.toString(),
     dynamicImportFetchPriority: parser.dynamicImportFetchPriority,
-    importMeta: parser.importMeta,
+    importMeta:
+      typeof parser.importMeta === 'boolean'
+        ? String(parser.importMeta)
+        : parser.importMeta,
     url: parser.url?.toString(),
     exprContextCritical: parser.exprContextCritical,
     unknownContextCritical: parser.unknownContextCritical,
     wrappedContextCritical: parser.wrappedContextCritical,
+    strictThisContextOnImports: parser.strictThisContextOnImports,
     wrappedContextRegExp: parser.wrappedContextRegExp,
     exportsPresence:
       parser.exportsPresence === false ? 'false' : parser.exportsPresence,

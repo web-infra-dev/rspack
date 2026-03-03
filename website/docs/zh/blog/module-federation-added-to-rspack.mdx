@@ -11,7 +11,7 @@ sidebar: false
 
 最新的 Rspack 0.5.0 引入了备受期待的模块联邦功能，以及新的 “v1.5” 模块联邦 API。这是模块联邦创建以来最重大的改进。v1.5 为用户和框架作者提供了额外的功能，这是原始设计所无法实现的。
 
-<div align="center">
+<div>
   <img
     src="https://assets.rspack.rs/rspack/assets/rspack-federation-with-rspack.png"
     width="50%"
@@ -63,7 +63,8 @@ v1.5 引入了运行时插件。这些插件可以通过 `runtimePlugins` 配置
 在 Rspack 中：
 
 ```js
-const { rspack } = require('@rspack/core');
+import { rspack } from '@rspack/core';
+import { fileURLToPath } from 'node:url';
 
 new rspack.container.ModuleFederationPlugin({
   name: 'app1',
@@ -71,7 +72,9 @@ new rspack.container.ModuleFederationPlugin({
   exposes: {
     './Button': './src/components/button.js',
   },
-  runtimePlugins: [require.resolve('./my-custom-plugin')]
+  runtimePlugins: [
+    fileURLToPath(new URL('./my-custom-plugin.js', import.meta.url)),
+  ],
   remotes: {
     app2: 'app2@http://localhost:3002/static/js/remoteEntry.js',
   },
@@ -79,13 +82,14 @@ new rspack.container.ModuleFederationPlugin({
     react: { singleton: true },
     'react-dom': { singleton: true },
   },
-})
+});
 ```
 
 在 webpack 中：
 
 ```js
-const { ModuleFederationPlugin } = require('@module-federation/enhanced');
+import { ModuleFederationPlugin } from '@module-federation/enhanced';
+import { fileURLToPath } from 'node:url';
 
 new ModuleFederationPlugin({
   name: 'app1',
@@ -93,7 +97,9 @@ new ModuleFederationPlugin({
   exposes: {
     './Button': './src/components/button.js',
   },
-  runtimePlugins: [require.resolve('./my-custom-plugin')]
+  runtimePlugins: [
+    fileURLToPath(new URL('./my-custom-plugin.js', import.meta.url)),
+  ],
   remotes: {
     app2: 'app2@http://localhost:3002/static/js/remoteEntry.js',
   },
@@ -101,7 +107,7 @@ new ModuleFederationPlugin({
     react: { singleton: true },
     'react-dom': { singleton: true },
   },
-})
+});
 ```
 
 模块联邦也可以以动态的方式使用，不需要任何构建时插件。你可以在此处阅读[更多有关 v1.5 运行时的信息](https://github.com/module-federation/universe/tree/feat/async-boundary-option/packages/runtime)。
