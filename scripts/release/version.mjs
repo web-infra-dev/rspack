@@ -99,7 +99,10 @@ export async function version_handler(version, options) {
     } else {
       nextVersion = semver.inc(lastVersion, version);
     }
-    // Rust crate version is major version of `@rspack/core` - 1
+    // Rust crate version mapping:
+    //   - crate major is always 0
+    //   - crate minor encodes the npm major and minor as (npm_major - 1) * 100 + npm_minor
+    //   - remaining npm components are placed into the crate patch segment
     const [nextMajor, nextMinor, ...remain] = nextVersion.split('.');
     const nextCrateVersion = `0.${(Number(nextMajor) - 1) * 100 + Number(nextMinor)}.${remain.join('.')}`;
     await $`${path.resolve(path.dirname(new URL(import.meta.url).pathname), '../../x')} crate-version custom ${nextCrateVersion}`;
