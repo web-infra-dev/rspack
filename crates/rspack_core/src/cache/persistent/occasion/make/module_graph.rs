@@ -3,7 +3,6 @@ use std::sync::{
   atomic::{AtomicUsize, Ordering},
 };
 
-use dyn_clone::clone_box;
 use rayon::prelude::*;
 use rspack_cacheable::{cacheable, utils::OwnedOrRef};
 use rspack_collections::IdentifierSet;
@@ -15,7 +14,7 @@ use super::{
   alternatives::{TempDependency, TempModule},
 };
 use crate::{
-  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, Dependency,
+  ArcDependency, AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxModule, Dependency,
   DependencyId, DependencyParents, ModuleGraph, ModuleGraphConnection, ModuleGraphModule,
   ModuleIdentifier, RayonConsumer,
   cache::persistent::codec::CacheCodec,
@@ -30,7 +29,7 @@ struct Node<'a> {
   pub mgm: OwnedOrRef<'a, ModuleGraphModule>,
   pub module: OwnedOrRef<'a, BoxModule>,
   pub dependencies: Vec<(
-    OwnedOrRef<'a, BoxDependency>,
+    OwnedOrRef<'a, ArcDependency>,
     Option<OwnedOrRef<'a, AsyncDependenciesBlockIdentifier>>,
   )>,
   pub connections: Vec<OwnedOrRef<'a, ModuleGraphConnection>>,
@@ -72,7 +71,7 @@ pub fn save_module_graph(
         .par_iter()
         .map(|dep_id| {
           (
-            clone_box(mg.dependency_by_id(dep_id).as_ref()).into(),
+            mg.dependency_by_id(dep_id).clone().into(),
             mg.get_parent_block(dep_id).map(Into::into),
           )
         })
@@ -159,7 +158,7 @@ pub async fn recovery_module_graph(
             index_in_block,
           },
         );
-        mg.add_dependency(dep.into());
+        mg.add_dependency(dep);
       }
       for con in node.connections {
         let con = con.into_owned();
@@ -195,8 +194,8 @@ pub async fn recovery_module_graph(
     let dep = TempDependency::default();
     let connection = ModuleGraphConnection::new(*dep.id(), None, mid, false);
     entry_dependencies.insert(*dep.id());
-    let dep: BoxDependency = Box::new(dep);
-    mg.add_dependency(dep.into());
+    let dep: ArcDependency = Arc::new(dep);
+    mg.add_dependency(dep);
     mg.cache_recovery_connection(connection);
   }
 

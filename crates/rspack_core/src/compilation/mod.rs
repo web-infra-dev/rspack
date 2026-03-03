@@ -63,7 +63,7 @@ use tracing::instrument;
 use ustr::Ustr;
 
 use crate::{
-  AsyncModulesArtifact, BindingCell, BoxDependency, BoxModule, BuildChunkGraphArtifact, CacheCount,
+  ArcDependency, AsyncModulesArtifact, BindingCell, BoxModule, BuildChunkGraphArtifact, CacheCount,
   CacheOptions, CgcRuntimeRequirementsArtifact, CgmHashArtifact, CgmRuntimeRequirementsArtifact,
   Chunk, ChunkByUkey, ChunkContentHash, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey,
   ChunkHashesArtifact, ChunkKind, ChunkNamedIdArtifact, ChunkRenderArtifact,
@@ -610,13 +610,13 @@ impl Compilation {
     }
   }
 
-  pub async fn add_entry(&mut self, entry: BoxDependency, options: EntryOptions) -> Result<()> {
+  pub async fn add_entry(&mut self, entry: ArcDependency, options: EntryOptions) -> Result<()> {
     let entry_id = *entry.id();
     let entry_name: Option<String> = options.name.clone();
     self
       .build_module_graph_artifact
       .get_module_graph_mut()
-      .add_dependency(entry.into());
+      .add_dependency(entry);
     if let Some(name) = &entry_name {
       if let Some(data) = self.entries.get_mut(name) {
         data.dependencies.push(entry_id);
@@ -644,7 +644,7 @@ impl Compilation {
     Ok(())
   }
 
-  pub async fn add_entry_batch(&mut self, args: Vec<(BoxDependency, EntryOptions)>) -> Result<()> {
+  pub async fn add_entry_batch(&mut self, args: Vec<(ArcDependency, EntryOptions)>) -> Result<()> {
     for (entry, options) in args {
       self.add_entry(entry, options).await?;
     }
@@ -672,7 +672,7 @@ impl Compilation {
     Ok(())
   }
 
-  pub async fn add_include(&mut self, args: Vec<(BoxDependency, EntryOptions)>) -> Result<()> {
+  pub async fn add_include(&mut self, args: Vec<(ArcDependency, EntryOptions)>) -> Result<()> {
     if !self.in_finish_make.load(Ordering::Acquire) {
       return Err(rspack_error::Error::error(
         "You can only call `add_include` during the finish make stage".into(),
@@ -684,7 +684,7 @@ impl Compilation {
       self
         .build_module_graph_artifact
         .get_module_graph_mut()
-        .add_dependency(entry.into());
+        .add_dependency(entry);
       if let Some(name) = options.name.clone() {
         if let Some(data) = self.entries.get_mut(&name) {
           data.include_dependencies.push(entry_id);

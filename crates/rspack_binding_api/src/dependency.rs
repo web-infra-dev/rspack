@@ -119,10 +119,10 @@ impl Dependency {
   pub fn set_critical(&mut self, val: bool) -> napi::Result<()> {
     let dependency = self.as_mut()?;
 
-    if let Some(dep) = dependency.as_context_dependency() {
-      if !val {
-        dep.set_critical(None);
-      }
+    if let Some(dep) = dependency.as_context_dependency()
+      && !val
+    {
+      dep.set_critical(None);
     }
     Ok(())
   }

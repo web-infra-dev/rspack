@@ -5,7 +5,7 @@ use std::{
 
 use regex::Regex;
 use rspack_core::{
-  BoxDependency, BoxModule, Compilation, CompilationParams, CompilerCompilation,
+  ArcDependency, BoxModule, Compilation, CompilationParams, CompilerCompilation,
   CompilerFinishMake, DependencyType, EntryOptions, ModuleFactoryCreateData,
   NormalModuleCreateData, NormalModuleFactoryModule, Plugin,
 };
@@ -210,7 +210,7 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
     .iter()
     .map(|(resource, config)| {
       (
-        Box::new(ProvideSharedDependency::new(
+        Arc::new(ProvideSharedDependency::new(
           config.share_scope.clone(),
           config.share_key.clone(),
           config.version.clone(),
@@ -220,7 +220,7 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
           config.required_version.clone(),
           config.strict_version,
           config.tree_shaking_mode.clone(),
-        )) as BoxDependency,
+        )) as ArcDependency,
         EntryOptions {
           name: None,
           ..Default::default()

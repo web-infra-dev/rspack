@@ -64,7 +64,7 @@ async fn compilation(
 async fn make(&self, compilation: &mut Compilation) -> Result<()> {
   compilation
     .add_entry(
-      Box::new(DllEntryDependency::new(&self.options)),
+      Arc::new(DllEntryDependency::new(&self.options)),
       EntryOptions {
         name: Some(self.options.name.clone()),
         ..Default::default()

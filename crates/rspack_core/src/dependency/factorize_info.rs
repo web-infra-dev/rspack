@@ -36,10 +36,10 @@ impl FactorizeInfo {
   pub fn get_from(dep: &dyn Dependency) -> Option<FactorizeInfo> {
     if let Some(d) = dep.as_context_dependency() {
       Some(d.factorize_info().clone())
-    } else if let Some(d) = dep.as_module_dependency() {
-      Some(d.factorize_info().clone())
     } else {
-      None
+      dep
+        .as_module_dependency()
+        .map(|d| d.factorize_info().clone())
     }
   }
 

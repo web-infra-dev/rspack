@@ -83,7 +83,7 @@ async fn make(&self, compilation: &mut Compilation) -> Result<()> {
 
   compilation
     .add_entry(
-      Box::new(dep),
+      Arc::new(dep),
       EntryOptions {
         name: Some(self.options.name.clone()),
         runtime: self.options.runtime.clone(),

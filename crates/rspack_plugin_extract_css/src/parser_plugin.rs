@@ -20,7 +20,7 @@ pub struct CssExtractJsonData {
 
 #[derive(Debug, Default)]
 pub struct PluginCssExtractParserPlugin {
-  cache: FxDashMap<String, Vec<BoxDependency>>,
+  cache: FxDashMap<String, Vec<CssExtractJsonData>>,
 }
 
 impl JavascriptParserPlugin for PluginCssExtractParserPlugin {
@@ -30,8 +30,44 @@ impl JavascriptParserPlugin for PluginCssExtractParserPlugin {
         .downcast::<String>()
         .map(|i| *i)
     {
-      if let Some(deps) = self.cache.get(&data_str) {
-        deps.clone()
+      if let Some(data) = self.cache.get(&data_str) {
+        data
+          .iter()
+          .enumerate()
+          .map(
+            |(
+              index,
+              CssExtractJsonData {
+                identifier,
+                content,
+                context,
+                media,
+                supports,
+                source_map,
+                identifier_index,
+                layer,
+              },
+            )| {
+              Box::new(CssDependency::new(
+                identifier.clone().into(),
+                parser.get_module_layer().cloned(),
+                layer.clone(),
+                content.clone(),
+                context.clone(),
+                media.clone(),
+                supports.clone(),
+                source_map.clone(),
+                *identifier_index,
+                DependencyRange::new(index as u32, (index + 1) as u32),
+                parser.build_info.cacheable,
+                parser.build_info.file_dependencies.clone(),
+                parser.build_info.context_dependencies.clone(),
+                parser.build_info.missing_dependencies.clone(),
+                parser.build_info.build_dependencies.clone(),
+              )) as BoxDependency
+            },
+          )
+          .collect::<Vec<_>>()
       } else if let Ok(data) = serde_json::from_str::<Vec<CssExtractJsonData>>(&data_str) {
         let deps = data
           .iter()
@@ -51,7 +87,7 @@ impl JavascriptParserPlugin for PluginCssExtractParserPlugin {
               },
             )| {
               Box::new(CssDependency::new(
-                identifier.into(),
+                identifier.clone().into(),
                 parser.get_module_layer().cloned(),
                 layer.clone(),
                 content.clone(),
@@ -70,7 +106,7 @@ impl JavascriptParserPlugin for PluginCssExtractParserPlugin {
             },
           )
           .collect::<Vec<_>>();
-        self.cache.insert(data_str, deps.clone());
+        self.cache.insert(data_str, data);
         parser.build_info.strict = true;
         deps
       } else {

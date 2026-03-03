@@ -1,7 +1,7 @@
 use rspack_cacheable::{cacheable, cacheable_dyn, utils::OwnedOrRef};
 
 use crate::{
-  AffectType, AsContextDependency, AsDependencyCodeGeneration, AsModuleDependency, BoxDependency,
+  AffectType, ArcDependency, AsContextDependency, AsDependencyCodeGeneration, AsModuleDependency,
   Dependency, DependencyId,
 };
 
@@ -12,8 +12,8 @@ pub struct TempDependency {
 }
 
 impl TempDependency {
-  pub fn transform_from(dep: OwnedOrRef<BoxDependency>) -> OwnedOrRef<BoxDependency> {
-    OwnedOrRef::Owned(Box::new(TempDependency {
+  pub fn transform_from(dep: OwnedOrRef<ArcDependency>) -> OwnedOrRef<ArcDependency> {
+    OwnedOrRef::Owned(std::sync::Arc::new(TempDependency {
       id: *dep.as_ref().id(),
     }))
   }

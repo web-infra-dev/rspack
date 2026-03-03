@@ -5,7 +5,7 @@ use derive_more::Debug;
 use futures::future::BoxFuture;
 use rspack_collections::{Identifiable, IdentifierMap};
 use rspack_core::{
-  BoxDependency, ChunkUkey, Compilation, CompilationParams, CompilationProcessAssets,
+  ArcDependency, ChunkUkey, Compilation, CompilationParams, CompilationProcessAssets,
   CompilationRuntimeRequirementInTree, CompilerDone, CompilerFailed, CompilerFinishMake,
   CompilerThisCompilation, Dependency, DependencyId, EntryDependency, EntryOptions, Logger, Plugin,
   RuntimeGlobals, RuntimeModule, RuntimeSpec, get_entry_runtime,
@@ -41,7 +41,7 @@ struct ClientEntry {
 #[derive(Debug)]
 struct InjectedSsrEntry {
   runtime: RuntimeSpec,
-  add_entry: (BoxDependency, EntryOptions),
+  add_entry: (ArcDependency, EntryOptions),
   dependency_id: DependencyId,
 }
 
@@ -55,7 +55,7 @@ struct ActionEntry {
 #[derive(Debug)]
 struct InjectedActionEntry {
   pub runtime: RuntimeSpec,
-  pub add_entry: (BoxDependency, EntryOptions),
+  pub add_entry: (ArcDependency, EntryOptions),
 }
 
 type OnServerComponentChanges = Box<dyn Fn() -> BoxFuture<'static, Result<()>> + Sync + Send>;
@@ -280,7 +280,7 @@ impl RscServerPlugin {
           .map(|injected| (*injected.add_entry.0.id(), injected.runtime.clone())),
       )
       .collect();
-    let add_include_args: Vec<(BoxDependency, EntryOptions)> = add_ssr_modules_list
+    let add_include_args: Vec<(ArcDependency, EntryOptions)> = add_ssr_modules_list
       .into_iter()
       .map(|injected_ssr_entry| injected_ssr_entry.add_entry)
       .chain(
@@ -370,7 +370,7 @@ impl RscServerPlugin {
       .iter()
       .map(|action_entry| (*action_entry.add_entry.0.id(), action_entry.runtime.clone()))
       .collect();
-    let add_include_args: Vec<(BoxDependency, EntryOptions)> = added_client_action_entry_list
+    let add_include_args: Vec<(ArcDependency, EntryOptions)> = added_client_action_entry_list
       .into_iter()
       .map(|action_entry| action_entry.add_entry)
       .collect();
@@ -470,7 +470,7 @@ impl RscServerPlugin {
     Some(InjectedSsrEntry {
       runtime,
       add_entry: (
-        Box::new(ssr_entry_dependency),
+        Arc::new(ssr_entry_dependency),
         EntryOptions {
           name: Some(entry_name),
           ..Default::default()
@@ -525,7 +525,7 @@ impl RscServerPlugin {
     Some(InjectedActionEntry {
       runtime,
       add_entry: (
-        Box::new(action_entry_dep),
+        Arc::new(action_entry_dep),
         EntryOptions {
           name: Some(entry_name),
           layer: Some(layer),

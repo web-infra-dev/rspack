@@ -58,7 +58,7 @@ impl From<Identifier> for AsyncDependenciesBlockIdentifier {
 }
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct AsyncDependenciesBlock {
   id: AsyncDependenciesBlockIdentifier,
   group_options: Option<GroupOptions>,

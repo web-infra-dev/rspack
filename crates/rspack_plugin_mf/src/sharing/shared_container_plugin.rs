@@ -64,7 +64,7 @@ async fn make(&self, compilation: &mut Compilation) -> Result<()> {
 
   compilation
     .add_entry(
-      Box::new(dep),
+      Arc::new(dep),
       rspack_core::EntryOptions {
         name: Some(self.options.name.clone()),
         filename: self.options.file_name.clone(),

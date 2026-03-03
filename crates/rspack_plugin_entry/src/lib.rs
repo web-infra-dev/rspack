@@ -1,13 +1,13 @@
 use std::sync::LazyLock;
 
 use rspack_core::{
-  BoxDependency, Compilation, CompilationParams, CompilerCompilation, CompilerMake, Context,
+  ArcDependency, Compilation, CompilationParams, CompilerCompilation, CompilerMake, Context,
   DependencyType, EntryDependency, EntryOptions, Plugin,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 
-type LazyDependency = LazyLock<BoxDependency, Box<dyn FnOnce() -> BoxDependency + Send>>;
+type LazyDependency = LazyLock<ArcDependency, Box<dyn FnOnce() -> ArcDependency + Send>>;
 
 #[plugin]
 #[derive(Debug)]
@@ -23,7 +23,7 @@ impl EntryPlugin {
     let layer = options.layer.clone();
     let name = options.name.is_none();
     let dependency: LazyDependency = LazyLock::new(Box::new(move || {
-      Box::new(EntryDependency::new(entry_request, context, layer, name))
+      std::sync::Arc::new(EntryDependency::new(entry_request, context, layer, name))
     }));
 
     Self::new_inner(dependency, options)

@@ -1,4 +1,4 @@
-use std::collections::hash_map::Entry;
+use std::{collections::hash_map::Entry, sync::Arc};
 
 use super::{
   super::graph_updater::repair::{context::TaskContext, factorize::FactorizeTask},
@@ -7,7 +7,7 @@ use super::{
   overwrite::overwrite_tasks,
 };
 use crate::{
-  ArcDependency, BoxDependency, Context, LoaderImportDependency,
+  ArcDependency, Context, LoaderImportDependency,
   utils::task_loop::{Task, TaskResult, TaskType},
 };
 
@@ -44,15 +44,14 @@ impl Task<ExecutorTaskContext> for EntryTask {
     let (dep_id, is_new) = match entries.entry(meta.clone()) {
       Entry::Vacant(v) => {
         // not exist, generate a new dependency
-        let dep: BoxDependency = Box::new(LoaderImportDependency::new(
+        let dep: ArcDependency = Arc::new(LoaderImportDependency::new(
           meta.request.clone(),
           origin_module_context.unwrap_or_else(|| Context::from("")),
         ));
-        let dep_arc: ArcDependency = dep.clone().into();
         let dep_id = *dep.id();
 
         let mg = TaskContext::get_module_graph_mut(&mut origin_context.artifact);
-        mg.add_dependency(dep.clone().into());
+        mg.add_dependency(dep.clone());
 
         res.extend(overwrite_tasks(vec![Box::new(FactorizeTask {
           compiler_id: origin_context.compiler_id,
@@ -72,7 +71,7 @@ impl Task<ExecutorTaskContext> for EntryTask {
           issuer: None,
           issuer_layer: meta.layer.clone(),
           original_module_context: None,
-          dependencies: vec![dep_arc],
+          dependencies: vec![dep],
           resolve_options: None,
           options: origin_context.compiler_options.clone(),
           resolver_factory: origin_context.resolver_factory.clone(),

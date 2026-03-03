@@ -71,7 +71,7 @@ impl Dependency for AMDRequireContextDependency {
     _exports_info_artifact: &ExportsInfoArtifact,
   ) -> Option<Vec<Diagnostic>> {
     if let Some(critical) = self.critical() {
-      return Some(vec![critical.clone()]);
+      return Some(vec![critical]);
     }
     None
   }
