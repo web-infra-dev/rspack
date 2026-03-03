@@ -191,8 +191,8 @@ pub async fn render_module(
     let module_id =
       ChunkGraph::get_module_id(&compilation.module_ids_artifact, module.identifier())
         .expect("should have module_id in render_module");
-    sources.add(RawStringSource::from(rspack_util::json_stringify_str(
-      module_id.as_str(),
+    sources.add(RawStringSource::from(rspack_util::json_stringify(
+      module_id,
     )));
 
     let mut post_module_container = {

@@ -175,10 +175,9 @@ impl ExternalInterop {
         "const {name} = {}{}({});\n",
         if is_async { "await " } else { "" },
         runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
-        rspack_util::json_stringify_str(
+        rspack_util::json_stringify(
           ChunkGraph::get_module_id(&compilation.module_ids_artifact, self.module)
             .unwrap_or_else(|| panic!("should set module id for {:?}", self.module))
-            .as_str()
         )
       )));
 
@@ -224,10 +223,9 @@ impl ExternalInterop {
       source.add(RawStringSource::from(format!(
         "{}({});\n",
         runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
-        rspack_util::json_stringify_str(
+        rspack_util::json_stringify(
           ChunkGraph::get_module_id(&compilation.module_ids_artifact, self.module)
             .unwrap_or_else(|| panic!("should set module id for {}", self.module))
-            .as_str()
         )
       )));
     }

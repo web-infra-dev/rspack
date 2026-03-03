@@ -265,7 +265,7 @@ async fn render_chunk(
         ));
       }
 
-      let module_id_expr = rspack_util::json_stringify_str(module_id.as_str());
+      let module_id_expr = rspack_util::json_stringify(module_id);
 
       if use_startup_entrypoint {
         entry_module_ids.push(module_id_expr);

@@ -249,10 +249,9 @@ pub fn stringified_exports<'a>(
               _ => json_stringify_str(&unescape(ident)),
             };
 
-            let from = rspack_util::json_stringify_str(
+            let from = rspack_util::json_stringify(
               ChunkGraph::get_module_id(&compilation.module_ids_artifact, from.module_identifier)
-                .expect("should have module")
-                .as_str(),
+                .expect("should have module"),
             );
             format!(
               "{}({from})[{}]",
@@ -356,10 +355,9 @@ pub fn css_modules_exports_to_concatenate_module_string<'a>(
               _ => json_stringify_str(ident),
             };
 
-            let from = rspack_util::json_stringify_str(
+            let from = rspack_util::json_stringify(
               ChunkGraph::get_module_id(&compilation.module_ids_artifact, from.module_identifier)
-                .expect("should have module")
-                .as_str(),
+                .expect("should have module"),
             );
             format!(
               "{}({from})[{}]",
