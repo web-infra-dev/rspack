@@ -95,7 +95,13 @@ impl<'a> HtmlCompiler<'a> {
         .flat_map(|error| vec![html_parse_error_to_traceable_error(error, &fm).into()])
         .collect();
       document
-        .map(|doc| CompiledDocument::Document(doc).with_diagnostic(diagnostics))
+        .map(|doc| {
+          if has_doctype {
+            CompiledDocument::Document(doc).with_diagnostic(diagnostics)
+          } else {
+            CompiledDocument::DocumentWithoutDoctype(doc).with_diagnostic(diagnostics)
+          }
+        })
         .map_err(|e| html_parse_error_to_traceable_error(e, &fm))
     } else {
       let context_element = create_html_content_element();
