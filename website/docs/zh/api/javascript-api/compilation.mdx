@@ -110,17 +110,15 @@ updateAsset(
 ): void;
 ```
 
-以下示例将 `main.js` 的产物内容替换，且不触发代码压缩：
+以下示例将 `main.js` 的产物内容替换：
 
 ```js
 compiler.hooks.thisCompilation.tap('MyPlugin', (compilation) => {
   const { RawSource } = compiler.rspack.sources;
   compilation.hooks.processAssets.tap('MyPlugin', () => {
-    const updatedSource = new RawSource(
-      `module.exports = "This is the updated"`,
-    );
+    const updatedSource = new RawSource(`console.log("Updated");`);
     compilation.updateAsset('main.js', updatedSource, {
-      minimized: true,
+      // optional asset info...
     });
   });
 });

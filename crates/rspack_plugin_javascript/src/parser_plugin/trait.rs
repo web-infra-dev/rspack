@@ -54,6 +54,17 @@ pub trait JavascriptParserPlugin {
     None
   }
 
+  /// Called for statements after a terminating point (when only function
+  /// declarations should still be processed). Plugins may eliminate or
+  /// transform such unused statements.
+  ///
+  /// Return:
+  /// - `Some(true)` means the statement is fully handled and should be skipped
+  /// - Other values mean the parser should still walk the statement
+  fn unused_statement(&self, _parser: &mut JavascriptParser, _stmt: Statement) -> Option<bool> {
+    None
+  }
+
   fn module_declaration(&self, _parser: &mut JavascriptParser, _decl: &ModuleDecl) -> Option<bool> {
     None
   }
@@ -104,6 +115,17 @@ pub trait JavascriptParserPlugin {
     _start: u32,
     _end: u32,
   ) -> Option<BasicEvaluatedExpression<'static>> {
+    None
+  }
+
+  /// Evaluate CallExpression when callee is an Identifier (e.g. String(), Number()).
+  /// Mirrors webpack's hooks.evaluateCallExpression.
+  fn evaluate_call_expression<'a>(
+    &self,
+    _parser: &mut JavascriptParser,
+    _name: &str,
+    _expr: &'a CallExpr,
+  ) -> Option<BasicEvaluatedExpression<'a>> {
     None
   }
 

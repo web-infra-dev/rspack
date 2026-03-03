@@ -259,6 +259,7 @@ module.exports = {
 			        requireAsExpression: true,
 			        requireDynamic: true,
 			        requireResolve: true,
+			        strictThisContextOnImports: false,
 			        typeReexportsPresence: no-tolerant,
 			        unknownContextCritical: true,
 			        url: true,

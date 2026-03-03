@@ -16,7 +16,7 @@ class Plugin {
 
 			const once = new Set();
 			const customRuntimeGlobal = "__webpack_require__.custom";
-			const { RuntimeModule } = compiler.webpack;
+			const { RuntimeModule } = compiler.rspack;
 
 			class CustomRuntimeModule extends RuntimeModule {
 				constructor() {

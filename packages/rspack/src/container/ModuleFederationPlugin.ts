@@ -363,7 +363,7 @@ function getDefaultEntryRuntime(
     `const __module_federation_library_type__ = ${JSON.stringify(libraryType)}`,
     IS_BROWSER
       ? MF_RUNTIME_CODE
-      : compiler.webpack.Template.getFunctionContent(
+      : compiler.rspack.Template.getFunctionContent(
           require('./moduleFederationDefaultRuntime.js').default,
         ),
   ].join(';');

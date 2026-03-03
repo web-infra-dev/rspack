@@ -9,8 +9,8 @@ use rspack_core::{
   BoxDependency, BoxModule, Compilation, CompilationOptimizeChunkModules, DependencyId,
   DependencyType, ExportProvided, ExportsInfoArtifact, ExtendedReferencedExport, GetTargetResult,
   ImportedByDeferModulesArtifact, LibIdentOptions, Logger, ModuleGraph, ModuleGraphCacheArtifact,
-  ModuleGraphConnection, ModuleGraphModule, ModuleIdentifier, Plugin, PrefetchExportsInfoMode,
-  ProvidedExports, RuntimeCondition, RuntimeSpec, SourceType,
+  ModuleGraphConnection, ModuleGraphModule, ModuleIdentifier, OptimizationBailoutItem, Plugin,
+  PrefetchExportsInfoMode, ProvidedExports, RuntimeCondition, RuntimeSpec, SourceType,
   concatenated_module::{
     ConcatenatedInnerModule, ConcatenatedModule, RootModuleContext, is_esm_dep_like,
   },
@@ -159,7 +159,9 @@ impl ModuleConcatenationPlugin {
   ) {
     self.set_inner_bailout_reason(module, reason.clone());
     mg.get_optimization_bailout_mut(module)
-      .push(format_bailout_reason(&reason));
+      .push(OptimizationBailoutItem::Message(format_bailout_reason(
+        &reason,
+      )));
   }
 
   fn set_inner_bailout_reason(&self, module: &ModuleIdentifier, reason: Cow<'static, str>) {
@@ -1260,7 +1262,9 @@ impl ModuleConcatenationPlugin {
         let module_graph = compilation.get_module_graph_mut();
         let optimization_bailouts = module_graph.get_optimization_bailout_mut(current_root);
         for warning in current_configuration.get_warnings_sorted() {
-          optimization_bailouts.push(self.format_bailout_warning(warning.0, &warning.1));
+          optimization_bailouts.push(OptimizationBailoutItem::Message(
+            self.format_bailout_warning(warning.0, &warning.1),
+          ));
         }
       }
     }

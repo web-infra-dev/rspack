@@ -1,50 +1,33 @@
-use super::{TaskContext, process_dependencies::ProcessDependenciesTask};
+use super::process_dependencies::ProcessDependenciesTask;
 use crate::{
   DependencyId, ModuleIdentifier,
-  compilation::build_module_graph::ForwardedIdSet,
-  task_loop::{Task, TaskResult, TaskType},
+  compilation::build_module_graph::{ForwardedIdSet, ModuleToLazyMake},
+  module_graph::ModuleGraph,
 };
 
-#[derive(Debug)]
-pub struct ProcessUnlazyDependenciesTask {
-  pub forwarded_ids: ForwardedIdSet,
-  pub original_module_identifier: ModuleIdentifier,
-}
+pub fn process_unlazy_dependencies(
+  module_to_lazy_make: &ModuleToLazyMake,
+  module_graph: &mut ModuleGraph,
+  forwarded_ids: ForwardedIdSet,
+  original_module_identifier: ModuleIdentifier,
+) -> Option<ProcessDependenciesTask> {
+  let lazy_dependencies = module_to_lazy_make
+    .get_lazy_dependencies(&original_module_identifier)
+    .expect("only module has lazy dependencies should run into process_unlazy_dependencies");
 
-#[async_trait::async_trait]
-impl Task<TaskContext> for ProcessUnlazyDependenciesTask {
-  fn get_task_type(&self) -> TaskType {
-    TaskType::Main
+  let dependencies_to_process: Vec<DependencyId> = lazy_dependencies
+    .requested_lazy_dependencies(&forwarded_ids)
+    .into_iter()
+    .filter(|dep| module_graph.dependency_by_id_mut(dep).unset_lazy())
+    .collect();
+
+  if dependencies_to_process.is_empty() {
+    return None;
   }
 
-  async fn main_run(self: Box<Self>, context: &mut TaskContext) -> TaskResult<TaskContext> {
-    let ProcessUnlazyDependenciesTask {
-      forwarded_ids,
-      original_module_identifier,
-    } = *self;
-
-    let lazy_dependencies = context
-      .artifact
-      .module_to_lazy_make
-      .get_lazy_dependencies(&original_module_identifier)
-      .expect("only module has lazy dependencies should run into ProcessUnlazyDependenciesTask");
-
-    let module_graph = &mut context.artifact.module_graph;
-    let dependencies_to_process: Vec<DependencyId> = lazy_dependencies
-      .requested_lazy_dependencies(&forwarded_ids)
-      .into_iter()
-      .filter(|dep| {
-        let dep = module_graph.dependency_by_id_mut(dep);
-        dep.unset_lazy()
-      })
-      .collect();
-    if dependencies_to_process.is_empty() {
-      return Ok(vec![]);
-    }
-    return Ok(vec![Box::new(ProcessDependenciesTask {
-      dependencies: dependencies_to_process,
-      original_module_identifier,
-      from_unlazy: true,
-    })]);
-  }
+  Some(ProcessDependenciesTask {
+    dependencies: dependencies_to_process,
+    original_module_identifier,
+    from_unlazy: true,
+  })
 }

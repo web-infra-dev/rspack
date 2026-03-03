@@ -35,10 +35,11 @@ use crate::{
   CompilationAsset, CompilationId, CompilerId, CompilerOptions, ConcatenationScope,
   ConnectionState, Context, ContextModule, DependenciesBlock, DependencyId, ExportProvided,
   ExportsInfoArtifact, ExternalModule, GetTargetResult, ModuleCodeTemplate, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleLayer, ModuleType, NormalModule, PrefetchExportsInfoMode,
-  RawModule, Resolve, ResolverFactory, RuntimeSpec, SelfModule, SharedPluginDriver, SourceType,
-  concatenated_module::ConcatenatedModule, dependencies_block::dependencies_block_update_hash,
-  get_target, value_cache_versions::ValueCacheVersions,
+  ModuleGraphCacheArtifact, ModuleLayer, ModuleType, NormalModule, OptimizationBailoutItem,
+  PrefetchExportsInfoMode, RawModule, Resolve, ResolverFactory, RuntimeSpec, SelfModule,
+  SharedPluginDriver, SourceType, concatenated_module::ConcatenatedModule,
+  dependencies_block::dependencies_block_update_hash, get_target,
+  value_cache_versions::ValueCacheVersions,
 };
 
 pub struct BuildContext {
@@ -237,7 +238,7 @@ pub struct BuildResult {
   /// Whether the result is cacheable, i.e shared between builds.
   pub dependencies: Vec<BoxDependency>,
   pub blocks: Vec<Box<AsyncDependenciesBlock>>,
-  pub optimization_bailouts: Vec<String>,
+  pub optimization_bailouts: Vec<OptimizationBailoutItem>,
 }
 
 #[cacheable]

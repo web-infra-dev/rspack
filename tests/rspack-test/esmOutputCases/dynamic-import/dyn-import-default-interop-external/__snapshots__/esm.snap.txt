@@ -1,0 +1,29 @@
+```mjs title=main.mjs
+// ./index.js
+it('should dynamically import module with default interop from external', async () => {
+	const mod = await import("./wrapper_js.mjs")
+	expect(mod.default).toBeDefined()
+	expect(mod.readFile).toBeDefined()
+	expect(mod.ns).toBeDefined()
+})
+
+
+```
+
+```mjs title=wrapper_js.mjs
+import * as __rspack_external_fs from "fs";
+
+// fs
+
+// ./wrapper.js
+
+
+;
+
+
+var default_0 = __rspack_external_fs["default"];
+var readFile = __rspack_external_fs.readFile;
+export { __rspack_external_fs as ns, readFile };
+export default default_0;
+
+```

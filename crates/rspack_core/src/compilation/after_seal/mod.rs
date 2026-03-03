@@ -13,14 +13,19 @@ impl PassExt for AfterSealPass {
 
   async fn run_pass(&self, compilation: &mut Compilation) -> Result<()> {
     let plugin_driver = compilation.plugin_driver.clone();
-    compilation.after_seal(plugin_driver).await?;
+    after_seal(compilation, plugin_driver).await?;
     Ok(())
   }
 }
 
-impl Compilation {
-  #[instrument("Compilation:after_seal", target=TRACING_BENCH_TARGET,skip_all)]
-  async fn after_seal(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
-    plugin_driver.compilation_hooks.after_seal.call(self).await
-  }
+#[instrument("Compilation:after_seal", target=TRACING_BENCH_TARGET,skip_all)]
+pub async fn after_seal(
+  compilation: &mut Compilation,
+  plugin_driver: SharedPluginDriver,
+) -> Result<()> {
+  plugin_driver
+    .compilation_hooks
+    .after_seal
+    .call(compilation)
+    .await
 }

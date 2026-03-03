@@ -94,7 +94,7 @@ Rspack 也支持了 worker-loader，不过由于 [worker-loader](https://github.
 <Tabs>
   <Tab label="ESM">
 ```js title="rspack.config.mjs"
-import { createRequire } from 'module';
+import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
 

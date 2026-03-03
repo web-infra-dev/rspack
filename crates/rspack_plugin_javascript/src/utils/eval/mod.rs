@@ -503,6 +503,10 @@ impl<'a> BasicEvaluatedExpression<'a> {
     self.string.as_ref().expect("make sure string exist")
   }
 
+  pub fn bigint(&self) -> Option<&BigInt> {
+    self.bigint.as_ref()
+  }
+
   pub fn identifier(&self) -> &Atom {
     assert!(self.is_identifier());
     self
