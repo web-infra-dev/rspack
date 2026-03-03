@@ -48,7 +48,7 @@ export class ModuleFederationPlugin {
     const isNodeLikeBuild = isNodeLikeTarget(target);
     const isRscMfOptIn = this._options.experiments?.rsc === true;
     if (isRscMfOptIn && isNodeLikeBuild) {
-      validateRscMfOptions(this._options, target);
+      validateRscMfOptions(this._options);
     }
     const isRscMfEnabled = isRscMfOptIn && isNodeLikeBuild;
     const options = isRscMfEnabled
@@ -386,20 +386,8 @@ function isNodeLikeTarget(target: unknown): boolean {
   return targets.some((value) => value.includes('node'));
 }
 
-function hasAsyncNodeTarget(target: unknown): boolean {
-  if (target === false) return false;
-  const targets = getTargetValues(target);
-  return targets.some((value) => value.includes('async-node'));
-}
-
-function validateRscMfOptions(
-  options: ModuleFederationPluginOptions,
-  target: unknown,
-): void {
+function validateRscMfOptions(options: ModuleFederationPluginOptions): void {
   const validationErrors: string[] = [];
-  if (!hasAsyncNodeTarget(target)) {
-    validationErrors.push('`target` must include `"async-node"`.');
-  }
   if (options.experiments?.asyncStartup !== true) {
     validationErrors.push('`experiments.asyncStartup` must be `true`.');
   }

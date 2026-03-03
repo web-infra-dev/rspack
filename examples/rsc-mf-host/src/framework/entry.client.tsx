@@ -73,7 +73,7 @@ async function main() {
       <BrowserRoot />
     </React.StrictMode>
   );
-  if (typeof window !== 'undefined' && '__NO_HYDRATE' in window) {
+  if ('__NO_HYDRATE' in globalThis) {
     createRoot(document).render(browserRoot);
   } else {
     hydrateRoot(document, browserRoot, {
