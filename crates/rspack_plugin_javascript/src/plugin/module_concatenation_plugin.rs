@@ -6,18 +6,20 @@ use rspack_collections::{
   Identifiable, IdentifierDashMap, IdentifierIndexSet, IdentifierMap, IdentifierSet,
 };
 use rspack_core::{
-  BoxDependency, BoxModule, Compilation, CompilationOptimizeChunkModules, DependencyId,
-  DependencyType, ExportProvided, ExportsInfoArtifact, ExtendedReferencedExport, GetTargetResult,
-  ImportedByDeferModulesArtifact, LibIdentOptions, Logger, ModuleGraph, ModuleGraphCacheArtifact,
-  ModuleGraphConnection, ModuleGraphModule, ModuleIdentifier, Plugin, PrefetchExportsInfoMode,
-  ProvidedExports, RuntimeCondition, RuntimeSpec, SourceType,
+  AsyncModulesArtifact, BoxDependency, BoxModule, BuildChunkGraphArtifact, Compilation,
+  CompilationOptimizeChunkModules, DependencyId, DependencyType, ExportProvided,
+  ExportsInfoArtifact, ExtendedReferencedExport, GetTargetResult, ImportedByDeferModulesArtifact,
+  LibIdentOptions, Logger, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection,
+  ModuleGraphModule, ModuleIdentifier, Plugin, PrefetchExportsInfoMode, ProvidedExports,
+  RuntimeCondition, RuntimeSpec, SourceType,
+  build_module_graph::BuildModuleGraphArtifact,
   concatenated_module::{
     ConcatenatedInnerModule, ConcatenatedModule, RootModuleContext, is_esm_dep_like,
   },
   filter_runtime, get_cached_readable_identifier, get_target,
   incremental::IncrementalPasses,
 };
-use rspack_error::{Result, ToStringResultToRspackResultExt};
+use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_util::itoa;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
@@ -231,6 +233,11 @@ impl ModuleConcatenationPlugin {
   #[allow(clippy::too_many_arguments)]
   fn try_to_add(
     compilation: &Compilation,
+    chunk_graph: &rspack_core::ChunkGraph,
+    chunk_by_ukey: &rspack_core::ChunkByUkey,
+    module_graph: &ModuleGraph,
+    module_graph_cache: &ModuleGraphCacheArtifact,
+    exports_info_artifact: &ExportsInfoArtifact,
     config: &mut ConcatConfiguration,
     module_id: &ModuleIdentifier,
     runtime: Option<&RuntimeSpec>,
@@ -261,11 +268,6 @@ impl ModuleConcatenationPlugin {
       statistics.already_in_config += 1;
       return None;
     }
-
-    let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
-    let chunk_by_ukey = &compilation.build_chunk_graph_artifact.chunk_by_ukey;
-    let module_graph = compilation.get_module_graph();
-    let module_graph_cache = &compilation.module_graph_cache_artifact;
 
     let incoming_modules = if let Some(incomings) = success_cache.get(module_id, runtime) {
       statistics.cache_hit += 1;
@@ -347,7 +349,7 @@ impl ModuleConcatenationPlugin {
                 cached_module_runtime,
                 module_graph,
                 module_graph_cache,
-                &compilation.exports_info_artifact,
+                exports_info_artifact,
               )
             });
 
@@ -417,7 +419,7 @@ impl ModuleConcatenationPlugin {
                 cached_module_runtime,
                 module_graph,
                 module_graph_cache,
-                &compilation.exports_info_artifact,
+                exports_info_artifact,
               )
             })
             .collect();
@@ -532,7 +534,7 @@ impl ModuleConcatenationPlugin {
                 module_graph,
                 runtime,
                 module_graph_cache,
-                &compilation.exports_info_artifact,
+                exports_info_artifact,
               )
             });
 
@@ -609,6 +611,11 @@ impl ModuleConcatenationPlugin {
     for origin_module in &incoming_modules {
       if let Some(problem) = Self::try_to_add(
         compilation,
+        chunk_graph,
+        chunk_by_ukey,
+        module_graph,
+        module_graph_cache,
+        exports_info_artifact,
         config,
         origin_module,
         runtime,
@@ -634,7 +641,7 @@ impl ModuleConcatenationPlugin {
     for imp in Self::get_imports(
       module_graph,
       module_graph_cache,
-      &compilation.exports_info_artifact,
+      exports_info_artifact,
       *module_id,
       runtime,
       imports_cache,
@@ -647,11 +654,15 @@ impl ModuleConcatenationPlugin {
   }
 
   pub async fn process_concatenated_configuration(
-    compilation: &mut Compilation,
+    compilation: &Compilation,
+    build_chunk_graph_artifact: &mut BuildChunkGraphArtifact,
+    build_module_graph_artifact: &mut BuildModuleGraphArtifact,
+    async_modules_artifact: &mut AsyncModulesArtifact,
+    exports_info_artifact: &mut ExportsInfoArtifact,
     config: ConcatConfiguration,
     used_modules: &mut HashSet<ModuleIdentifier>,
   ) -> Result<()> {
-    let module_graph = compilation.get_module_graph();
+    let module_graph = build_module_graph_artifact.get_module_graph();
 
     let root_module_id = config.root_module;
     if used_modules.contains(&root_module_id) {
@@ -752,14 +763,20 @@ impl ModuleConcatenationPlugin {
       .await?;
     new_module = build_result.module;
 
-    let mut chunk_graph = std::mem::take(&mut compilation.build_chunk_graph_artifact.chunk_graph);
-    let module_graph = compilation.get_module_graph_mut();
+    let mut chunk_graph = std::mem::take(&mut build_chunk_graph_artifact.chunk_graph);
+    let module_graph = build_module_graph_artifact.get_module_graph_mut();
     let module_graph_module = ModuleGraphModule::new(new_module.identifier());
     module_graph.add_module_graph_module(module_graph_module);
-    ModuleGraph::clone_module_attributes(compilation, &root_module_id, &new_module.identifier());
+    ModuleGraph::clone_module_attributes(
+      module_graph,
+      exports_info_artifact,
+      async_modules_artifact,
+      &root_module_id,
+      &new_module.identifier(),
+    );
     // integrate
 
-    let module_graph = compilation.get_module_graph_mut();
+    let module_graph = build_module_graph_artifact.get_module_graph_mut();
     for m in modules_set {
       if m == &root_module_id {
         continue;
@@ -839,16 +856,24 @@ impl ModuleConcatenationPlugin {
       !inner_connection
     });
     module_graph.add_module(new_module);
-    compilation.build_chunk_graph_artifact.chunk_graph = chunk_graph;
+    build_chunk_graph_artifact.chunk_graph = chunk_graph;
     Ok(())
   }
 
-  async fn optimize_chunk_modules_impl(&self, compilation: &mut Compilation) -> Result<()> {
+  async fn optimize_chunk_modules_impl(
+    &self,
+    compilation: &Compilation,
+    build_chunk_graph_artifact: &mut BuildChunkGraphArtifact,
+    build_module_graph_artifact: &mut BuildModuleGraphArtifact,
+    async_modules_artifact: &mut AsyncModulesArtifact,
+    exports_info_artifact: &mut ExportsInfoArtifact,
+    imported_by_defer_modules_artifact: &mut ImportedByDeferModulesArtifact,
+  ) -> Result<()> {
     let logger = compilation.get_logger("rspack.ModuleConcatenationPlugin");
 
     if compilation.options.experiments.defer_import {
-      let mut imported_by_defer_modules_artifact = ImportedByDeferModulesArtifact::default();
-      let module_graph = compilation.get_module_graph();
+      let mut new_imported_by_defer_modules_artifact = ImportedByDeferModulesArtifact::default();
+      let module_graph = build_module_graph_artifact.get_module_graph();
       for (_, dep) in module_graph.dependencies() {
         if dep.get_phase().is_defer()
           && matches!(
@@ -857,16 +882,16 @@ impl ModuleConcatenationPlugin {
           )
           && let Some(module) = module_graph.module_identifier_by_dependency_id(dep.id())
         {
-          imported_by_defer_modules_artifact.insert(*module);
+          new_imported_by_defer_modules_artifact.insert(*module);
         }
       }
-      compilation.imported_by_defer_modules_artifact = imported_by_defer_modules_artifact.into();
+      *imported_by_defer_modules_artifact = new_imported_by_defer_modules_artifact;
     }
 
     let mut relevant_modules = vec![];
     let mut possible_inners = IdentifierSet::default();
     let start = logger.time("select relevant modules");
-    let module_graph = compilation.get_module_graph();
+    let module_graph = build_module_graph_artifact.get_module_graph();
 
     // filter modules that can be root
     let modules: Vec<_> = module_graph
@@ -879,28 +904,25 @@ impl ModuleConcatenationPlugin {
         let mut can_be_root = true;
         let mut can_be_inner = true;
         let mut bailout_reason = vec![];
-        let number_of_module_chunks = compilation
-          .build_chunk_graph_artifact
+        let number_of_module_chunks = build_chunk_graph_artifact
           .chunk_graph
           .get_number_of_module_chunks(module_id);
-        let is_entry_module = compilation
-          .build_chunk_graph_artifact
+        let is_entry_module = build_chunk_graph_artifact
           .chunk_graph
           .is_entry_module(&module_id);
-        let module_graph = compilation.get_module_graph();
+        let module_graph = build_module_graph_artifact.get_module_graph();
         let m = module_graph
           .module_by_identifier(&module_id)
           .expect("should have module");
 
-        if let Some(reason) = m.get_concatenation_bailout_reason(
-          module_graph,
-          &compilation.build_chunk_graph_artifact.chunk_graph,
-        ) {
+        if let Some(reason) =
+          m.get_concatenation_bailout_reason(module_graph, &build_chunk_graph_artifact.chunk_graph)
+        {
           bailout_reason.push(reason);
           return (false, false, module_id, bailout_reason);
         }
 
-        if ModuleGraph::is_async(&compilation.async_modules_artifact, &module_id) {
+        if ModuleGraph::is_async(async_modules_artifact, &module_id) {
           bailout_reason.push("Module is async".into());
           return (false, false, module_id, bailout_reason);
         }
@@ -914,8 +936,7 @@ impl ModuleConcatenationPlugin {
           return (false, false, module_id, bailout_reason);
         }
 
-        let exports_info = compilation
-          .exports_info_artifact
+        let exports_info = exports_info_artifact
           .get_prefetched_exports_info(&module_id, PrefetchExportsInfoMode::Default);
         let relevant_exports = exports_info.get_relevant_exports(None);
         let unknown_exports = relevant_exports
@@ -926,7 +947,7 @@ impl ModuleConcatenationPlugin {
                 get_target(
                   export_info,
                   module_graph,
-                  &compilation.exports_info_artifact,
+                  exports_info_artifact,
                   Rc::new(|_| true),
                   &mut Default::default()
                 ),
@@ -1001,7 +1022,7 @@ impl ModuleConcatenationPlugin {
           bailout_reason.push("Module is an entry point".into());
         }
 
-        if module_graph.is_deferred(&compilation.imported_by_defer_modules_artifact, &module_id) {
+        if module_graph.is_deferred(imported_by_defer_modules_artifact, &module_id) {
           bailout_reason.push("Module is deferred".into());
           can_be_inner = false;
         }
@@ -1016,7 +1037,7 @@ impl ModuleConcatenationPlugin {
       })
       .collect();
 
-    let module_graph = compilation.get_module_graph_mut();
+    let module_graph = build_module_graph_artifact.get_module_graph_mut();
 
     for (can_be_root, can_be_inner, module_id, bailout_reason) in res {
       if can_be_root {
@@ -1030,7 +1051,7 @@ impl ModuleConcatenationPlugin {
       }
     }
 
-    let module_graph = compilation.get_module_graph();
+    let module_graph = build_module_graph_artifact.get_module_graph();
     logger.time_end(start);
     let mut relevant_len_buffer = itoa::Buffer::new();
     let relevant_len_str = relevant_len_buffer.format(relevant_modules.len());
@@ -1058,7 +1079,7 @@ impl ModuleConcatenationPlugin {
     let mut used_as_inner: IdentifierSet = IdentifierSet::default();
     let mut imports_cache = RuntimeIdentifierCache::<IdentifierIndexSet>::default();
 
-    let module_graph = compilation.get_module_graph();
+    let module_graph = build_module_graph_artifact.get_module_graph();
     let module_graph_cache = &compilation.module_graph_cache_artifact;
     let module_static_cache = &compilation.module_static_cache;
     let compilation_context = &compilation.options.context;
@@ -1070,8 +1091,7 @@ impl ModuleConcatenationPlugin {
     let modules_without_runtime_cache = cache_modules
       .into_par_iter()
       .map(|module_id| {
-        let exports_info = compilation
-          .exports_info_artifact
+        let exports_info = exports_info_artifact
           .get_prefetched_exports_info(&module_id, PrefetchExportsInfoMode::Default);
         let provided_names = matches!(
           exports_info.get_provided_exports(),
@@ -1081,13 +1101,9 @@ impl ModuleConcatenationPlugin {
           .module_by_identifier(&module_id)
           .expect("should have module");
         let mut runtime = RuntimeSpec::default();
-        for r in compilation
-          .build_chunk_graph_artifact
+        for r in build_chunk_graph_artifact
           .chunk_graph
-          .get_module_runtimes_iter(
-            module_id,
-            &compilation.build_chunk_graph_artifact.chunk_by_ukey,
-          )
+          .get_module_runtimes_iter(module_id, &build_chunk_graph_artifact.chunk_by_ukey)
         {
           runtime.extend(r);
         }
@@ -1112,7 +1128,7 @@ impl ModuleConcatenationPlugin {
             let imported_names = module_dep.get_referenced_exports(
               module_graph,
               module_graph_cache,
-              &compilation.exports_info_artifact,
+              exports_info_artifact,
               None,
             );
 
@@ -1127,7 +1143,7 @@ impl ModuleConcatenationPlugin {
                   module_graph,
                   Some(&runtime),
                   module_graph_cache,
-                  &compilation.exports_info_artifact,
+                  exports_info_artifact,
                 ),
               ),
             ))
@@ -1147,12 +1163,11 @@ impl ModuleConcatenationPlugin {
               module_graph,
               Some(&runtime),
               module_graph_cache,
-              &compilation.exports_info_artifact,
+              exports_info_artifact,
             ),
           );
         }
-        let number_of_chunks = compilation
-          .build_chunk_graph_artifact
+        let number_of_chunks = build_chunk_graph_artifact
           .chunk_graph
           .get_number_of_module_chunks(module_id);
         (
@@ -1177,10 +1192,9 @@ impl ModuleConcatenationPlugin {
       let NoRuntimeModuleCache { runtime, .. } = modules_without_runtime_cache
         .get(current_root)
         .expect("should have module");
-      let module_graph = compilation.get_module_graph();
+      let module_graph = build_module_graph_artifact.get_module_graph();
       let module_graph_cache = &compilation.module_graph_cache_artifact;
-      let exports_info = compilation
-        .exports_info_artifact
+      let exports_info = exports_info_artifact
         .get_prefetched_exports_info(current_root, PrefetchExportsInfoMode::Default);
       let filtered_runtime = filter_runtime(Some(runtime), |r| exports_info.is_module_used(r));
       let active_runtime = match filtered_runtime {
@@ -1200,7 +1214,7 @@ impl ModuleConcatenationPlugin {
       let imports = Self::get_imports(
         module_graph,
         module_graph_cache,
-        &compilation.exports_info_artifact,
+        exports_info_artifact,
         *current_root,
         active_runtime.as_ref(),
         &mut imports_cache,
@@ -1219,6 +1233,11 @@ impl ModuleConcatenationPlugin {
         import_candidates.clear();
         match Self::try_to_add(
           compilation,
+          &build_chunk_graph_artifact.chunk_graph,
+          &build_chunk_graph_artifact.chunk_by_ukey,
+          module_graph,
+          module_graph_cache,
+          exports_info_artifact,
           &mut current_configuration,
           &imp,
           Some(runtime),
@@ -1257,7 +1276,7 @@ impl ModuleConcatenationPlugin {
         concat_configurations.push(current_configuration);
       } else {
         stats_empty_configurations += 1;
-        let module_graph = compilation.get_module_graph_mut();
+        let module_graph = build_module_graph_artifact.get_module_graph_mut();
         let optimization_bailouts = module_graph.get_optimization_bailout_mut(current_root);
         for warning in current_configuration.get_warnings_sorted() {
           optimization_bailouts.push(self.format_bailout_warning(warning.0, &warning.1));
@@ -1332,54 +1351,47 @@ impl ModuleConcatenationPlugin {
       batch.push(config);
     }
 
-    let new_modules = rspack_futures::scope::<_, Result<_>>(|token| {
-      batch.into_iter().for_each(|config| {
-        let s = unsafe { token.used(&*compilation) };
-        s.spawn(move |compilation| async move {
-          let modules_set = config.get_modules();
-          let new_module = create_concatenated_module(compilation, &config).await?;
-          let new_module_id = new_module.identifier();
-          let connections = prepare_concatenated_module_connections(
-            compilation,
-            &new_module_id,
-            modules_set,
-            |m, con, dep| {
-              con.original_module_identifier.as_ref() == Some(m)
-                && !(is_esm_dep_like(dep) && modules_set.contains(con.module_identifier()))
-            },
-          );
-          let (root_outgoings, root_incomings) = prepare_concatenated_root_module_connections(
-            compilation,
-            &config.root_module,
-            |m, c, dep| {
-              let other_module = if c.module_identifier() == m {
-                c.original_module_identifier
-              } else {
-                Some(*c.module_identifier())
-              };
-              let inner_connection = is_esm_dep_like(dep)
-                && if let Some(other_module) = other_module {
-                  modules_set.contains(&other_module)
-                } else {
-                  false
-                };
-              !inner_connection
-            },
-          );
-          Ok((
-            new_module,
-            connections,
-            root_outgoings,
-            root_incomings,
-            config,
-          ))
-        });
-      });
-    })
-    .await
-    .into_iter()
-    .map(|r| r.to_rspack_result())
-    .collect::<Result<Vec<_>>>()?;
+    let mut new_modules = Vec::with_capacity(batch.len());
+    for config in batch {
+      let modules_set = config.get_modules();
+      let module_graph = build_module_graph_artifact.get_module_graph();
+      let new_module = create_concatenated_module(compilation, module_graph, &config).await?;
+      let new_module_id = new_module.identifier();
+      let connections = prepare_concatenated_module_connections(
+        module_graph,
+        &new_module_id,
+        modules_set,
+        |m, con, dep| {
+          con.original_module_identifier.as_ref() == Some(m)
+            && !(is_esm_dep_like(dep) && modules_set.contains(con.module_identifier()))
+        },
+      );
+      let (root_outgoings, root_incomings) = prepare_concatenated_root_module_connections(
+        module_graph,
+        &config.root_module,
+        |m, c, dep| {
+          let other_module = if c.module_identifier() == m {
+            c.original_module_identifier
+          } else {
+            Some(*c.module_identifier())
+          };
+          let inner_connection = is_esm_dep_like(dep)
+            && if let Some(other_module) = other_module {
+              modules_set.contains(&other_module)
+            } else {
+              false
+            };
+          !inner_connection
+        },
+      );
+      new_modules.push((
+        new_module,
+        connections,
+        root_outgoings,
+        root_incomings,
+        config,
+      ));
+    }
 
     let mut set_original_mid_tasks = vec![];
     let mut set_mid_tasks = vec![];
@@ -1387,10 +1399,17 @@ impl ModuleConcatenationPlugin {
     let mut remove_connection_tasks = vec![];
 
     for res in new_modules {
-      let (new_module, outgoings, root_outgoings, root_incomings, config) = res?;
+      let (new_module, outgoings, root_outgoings, root_incomings, config) = res;
       let new_module_id = new_module.identifier();
       let root_module_id = config.root_module;
-      add_concatenated_module(compilation, new_module, config);
+      add_concatenated_module(
+        build_chunk_graph_artifact,
+        build_module_graph_artifact,
+        async_modules_artifact,
+        exports_info_artifact,
+        new_module,
+        config,
+      );
 
       for connection in outgoings.iter().chain(root_outgoings.iter()) {
         set_original_mid_tasks.push((*connection, new_module_id));
@@ -1404,7 +1423,7 @@ impl ModuleConcatenationPlugin {
       remove_connection_tasks.push((root_module_id, root_outgoings, root_incomings));
     }
 
-    let module_graph = compilation.get_module_graph_mut();
+    let module_graph = build_module_graph_artifact.get_module_graph_mut();
     module_graph.batch_set_connections_original_module(set_original_mid_tasks);
     module_graph.batch_set_connections_module(set_mid_tasks);
     module_graph.batch_add_connections(add_connection_tasks);
@@ -1415,7 +1434,16 @@ impl ModuleConcatenationPlugin {
 }
 
 #[plugin_hook(CompilationOptimizeChunkModules for ModuleConcatenationPlugin)]
-async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
+async fn optimize_chunk_modules(
+  &self,
+  compilation: &Compilation,
+  build_chunk_graph_artifact: &mut BuildChunkGraphArtifact,
+  build_module_graph_artifact: &mut BuildModuleGraphArtifact,
+  async_modules_artifact: &mut AsyncModulesArtifact,
+  exports_info_artifact: &mut ExportsInfoArtifact,
+  imported_by_defer_modules_artifact: &mut ImportedByDeferModulesArtifact,
+  diagnostics: &mut Vec<Diagnostic>,
+) -> Result<Option<bool>> {
   if let Some(diagnostic) = compilation.incremental.disable_passes(
     IncrementalPasses::MODULES_HASHES
     | IncrementalPasses::MODULE_IDS
@@ -1425,10 +1453,19 @@ async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<
     "ModuleConcatenationPlugin (optimization.concatenateModules = true)",
     "it requires calculating the modules that can be concatenated based on all the modules, which is a global effect",
   ) && let Some(diagnostic) = diagnostic {
-      compilation.push_diagnostic(diagnostic);
+      diagnostics.push(diagnostic);
   }
 
-  self.optimize_chunk_modules_impl(compilation).await?;
+  self
+    .optimize_chunk_modules_impl(
+      compilation,
+      build_chunk_graph_artifact,
+      build_module_graph_artifact,
+      async_modules_artifact,
+      exports_info_artifact,
+      imported_by_defer_modules_artifact,
+    )
+    .await?;
 
   Ok(None)
 }
@@ -1471,9 +1508,9 @@ pub struct NoRuntimeModuleCache {
 
 async fn create_concatenated_module(
   compilation: &Compilation,
+  module_graph: &ModuleGraph,
   config: &ConcatConfiguration,
 ) -> Result<BoxModule> {
-  let module_graph = compilation.get_module_graph();
   let root_module_id = config.root_module;
   let modules_set = config.get_modules();
 
@@ -1564,7 +1601,7 @@ async fn create_concatenated_module(
 }
 
 fn prepare_concatenated_module_connections<F>(
-  compilation: &Compilation,
+  module_graph: &ModuleGraph,
   new_module: &ModuleIdentifier,
   modules_set: &IdentifierIndexSet,
   filter_connection: F,
@@ -1572,7 +1609,7 @@ fn prepare_concatenated_module_connections<F>(
 where
   F: Fn(&ModuleIdentifier, &ModuleGraphConnection, &BoxDependency) -> bool,
 {
-  let mg = compilation.get_module_graph();
+  let mg = module_graph;
   let mut res = vec![];
   for m in modules_set.iter() {
     if m == new_module {
@@ -1599,14 +1636,14 @@ where
 }
 
 fn prepare_concatenated_root_module_connections<F>(
-  compilation: &Compilation,
+  module_graph: &ModuleGraph,
   root_module_id: &ModuleIdentifier,
   filter_connection: F,
 ) -> (Vec<DependencyId>, Vec<DependencyId>)
 where
   F: Fn(&ModuleIdentifier, &ModuleGraphConnection, &BoxDependency) -> bool,
 {
-  let mg = compilation.get_module_graph();
+  let mg = module_graph;
   let mut outgoings = vec![];
   let old_mgm_connections = mg
     .module_graph_module_by_identifier(root_module_id)
@@ -1644,29 +1681,38 @@ where
 }
 
 fn add_concatenated_module(
-  compilation: &mut Compilation,
+  build_chunk_graph_artifact: &mut BuildChunkGraphArtifact,
+  build_module_graph_artifact: &mut BuildModuleGraphArtifact,
+  async_modules_artifact: &mut AsyncModulesArtifact,
+  exports_info_artifact: &mut ExportsInfoArtifact,
   new_module: BoxModule,
   config: ConcatConfiguration,
 ) {
   let root_module_id = config.root_module;
   let modules_set = config.get_modules();
 
-  let module_graph = compilation.get_module_graph();
+  let module_graph = build_module_graph_artifact.get_module_graph();
   let box_module = module_graph
     .module_by_identifier(&root_module_id)
     .expect("should have module");
   let root_module_source_types = box_module.source_types(module_graph);
   let is_root_module_asset_module = root_module_source_types.contains(&SourceType::Asset);
 
-  let mut chunk_graph = std::mem::take(&mut compilation.build_chunk_graph_artifact.chunk_graph);
-  let module_graph = compilation.get_module_graph_mut();
+  let mut chunk_graph = std::mem::take(&mut build_chunk_graph_artifact.chunk_graph);
+  let module_graph = build_module_graph_artifact.get_module_graph_mut();
 
   let module_graph_module = ModuleGraphModule::new(new_module.identifier());
   module_graph.add_module_graph_module(module_graph_module);
-  ModuleGraph::clone_module_attributes(compilation, &root_module_id, &new_module.identifier());
+  ModuleGraph::clone_module_attributes(
+    module_graph,
+    exports_info_artifact,
+    async_modules_artifact,
+    &root_module_id,
+    &new_module.identifier(),
+  );
   // integrate
 
-  let module_graph = compilation.get_module_graph_mut();
+  let module_graph = build_module_graph_artifact.get_module_graph_mut();
 
   for m in modules_set.iter() {
     if *m == root_module_id {
@@ -1723,7 +1769,7 @@ fn add_concatenated_module(
   }
 
   module_graph.add_module(new_module);
-  compilation.build_chunk_graph_artifact.chunk_graph = chunk_graph;
+  build_chunk_graph_artifact.chunk_graph = chunk_graph;
 }
 
 fn is_connection_active_in_runtime(

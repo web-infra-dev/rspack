@@ -9,7 +9,7 @@ use rustc_hash::FxHashMap as HashMap;
 use swc_core::ecma::atoms::Atom;
 
 use crate::{
-  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, AsyncModulesArtifact, Compilation,
+  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, AsyncModulesArtifact,
   DependenciesBlock, Dependency, ExportInfo, ExportName, ImportedByDeferModulesArtifact,
   ModuleGraphCacheArtifact, RuntimeSpec, UsedNameItem,
 };
@@ -327,11 +327,12 @@ impl ModuleGraph {
 
   /// Make sure both source and target module are exists in module graph
   pub fn clone_module_attributes(
-    compilation: &mut Compilation,
+    module_graph: &mut ModuleGraph,
+    exports_info_artifact: &mut ExportsInfoArtifact,
+    async_modules_artifact: &mut AsyncModulesArtifact,
     source_module: &ModuleIdentifier,
     target_module: &ModuleIdentifier,
   ) {
-    let module_graph = compilation.get_module_graph_mut();
     let old_mgm = module_graph
       .module_graph_module_by_identifier(source_module)
       .expect("should have mgm");
@@ -347,19 +348,11 @@ impl ModuleGraph {
     new_mgm.pre_order_index = assign_tuple.1;
     new_mgm.depth = assign_tuple.2;
 
-    let exports_info = compilation
-      .exports_info_artifact
-      .get_exports_info(source_module);
-    compilation
-      .exports_info_artifact
-      .set_exports_info(*target_module, exports_info);
+    let exports_info = exports_info_artifact.get_exports_info(source_module);
+    exports_info_artifact.set_exports_info(*target_module, exports_info);
 
-    let is_async = ModuleGraph::is_async(&compilation.async_modules_artifact, source_module);
-    ModuleGraph::set_async(
-      &mut compilation.async_modules_artifact,
-      *target_module,
-      is_async,
-    );
+    let is_async = ModuleGraph::is_async(async_modules_artifact, source_module);
+    ModuleGraph::set_async(async_modules_artifact, *target_module, is_async);
   }
 
   pub fn move_module_connections(

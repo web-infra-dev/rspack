@@ -2,11 +2,13 @@ use std::{hash::Hash, sync::Arc};
 
 use rspack_collections::IdentifierMap;
 use rspack_core::{
-  BoxDependency, ChunkUkey, CodeGenerationExportsFinalNames, Compilation,
-  CompilationOptimizeChunkModules, CompilationParams, CompilerCompilation, CompilerFinishMake,
-  ConcatenatedModule, ConcatenatedModuleExportsDefinitions, DependencyId, ExportsType,
-  LibraryOptions, ModuleGraph, ModuleIdentifier, Plugin, PrefetchExportsInfoMode,
-  RuntimeCodeTemplate, RuntimeSpec, RuntimeVariable, UsedNameItem,
+  AsyncModulesArtifact, BoxDependency, BuildChunkGraphArtifact, ChunkUkey,
+  CodeGenerationExportsFinalNames, Compilation, CompilationOptimizeChunkModules, CompilationParams,
+  CompilerCompilation, CompilerFinishMake, ConcatenatedModule,
+  ConcatenatedModuleExportsDefinitions, DependencyId, ExportsInfoArtifact, ExportsType,
+  ImportedByDeferModulesArtifact, LibraryOptions, ModuleGraph, ModuleIdentifier, Plugin,
+  PrefetchExportsInfoMode, RuntimeCodeTemplate, RuntimeSpec, RuntimeVariable, UsedNameItem,
+  build_module_graph::BuildModuleGraphArtifact,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
   to_identifier,
 };
@@ -70,8 +72,15 @@ impl ModernModuleLibraryPlugin {
   // The `optimize_chunk_modules_impl` here will be invoked after the one in `ModuleConcatenationPlugin`.
   // Force trigger concatenation for single modules what bails from `ModuleConcatenationPlugin.is_empty`,
   // to keep all chunks can benefit from runtime optimization.
-  async fn optimize_chunk_modules_impl(&self, compilation: &mut Compilation) -> Result<()> {
-    let module_graph = compilation.get_module_graph();
+  async fn optimize_chunk_modules_impl(
+    &self,
+    compilation: &Compilation,
+    build_chunk_graph_artifact: &mut BuildChunkGraphArtifact,
+    build_module_graph_artifact: &mut BuildModuleGraphArtifact,
+    async_modules_artifact: &mut AsyncModulesArtifact,
+    exports_info_artifact: &mut ExportsInfoArtifact,
+  ) -> Result<()> {
+    let module_graph = build_module_graph_artifact.get_module_graph();
 
     let module_ids: Vec<_> = module_graph
       .module_graph_modules()
@@ -109,13 +118,9 @@ impl ModernModuleLibraryPlugin {
       .collect::<HashSet<_>>();
 
     for module_id in unconcatenated_module_ids {
-      let chunk_runtime = compilation
-        .build_chunk_graph_artifact
+      let chunk_runtime = build_chunk_graph_artifact
         .chunk_graph
-        .get_module_runtimes_iter(
-          *module_id,
-          &compilation.build_chunk_graph_artifact.chunk_by_ukey,
-        )
+        .get_module_runtimes_iter(*module_id, &build_chunk_graph_artifact.chunk_by_ukey)
         .fold(RuntimeSpec::default(), |mut acc, r| {
           acc.extend(r);
           acc
@@ -128,6 +133,10 @@ impl ModernModuleLibraryPlugin {
 
       ModuleConcatenationPlugin::process_concatenated_configuration(
         compilation,
+        build_chunk_graph_artifact,
+        build_module_graph_artifact,
+        async_modules_artifact,
+        exports_info_artifact,
         current_configuration,
         &mut used_modules,
       )
@@ -453,8 +462,25 @@ async fn js_chunk_hash(
 }
 
 #[plugin_hook(CompilationOptimizeChunkModules for ModernModuleLibraryPlugin)]
-async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
-  self.optimize_chunk_modules_impl(compilation).await?;
+async fn optimize_chunk_modules(
+  &self,
+  compilation: &Compilation,
+  build_chunk_graph_artifact: &mut BuildChunkGraphArtifact,
+  build_module_graph_artifact: &mut BuildModuleGraphArtifact,
+  async_modules_artifact: &mut AsyncModulesArtifact,
+  exports_info_artifact: &mut ExportsInfoArtifact,
+  _imported_by_defer_modules_artifact: &mut ImportedByDeferModulesArtifact,
+  _diagnostics: &mut Vec<rspack_error::Diagnostic>,
+) -> Result<Option<bool>> {
+  self
+    .optimize_chunk_modules_impl(
+      compilation,
+      build_chunk_graph_artifact,
+      build_module_graph_artifact,
+      async_modules_artifact,
+      exports_info_artifact,
+    )
+    .await?;
   Ok(None)
 }
 
