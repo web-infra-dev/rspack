@@ -1,3 +1,5 @@
+use rspack_util::json_stringify_str;
+
 use crate::utils::property_name::{RESERVED_IDENTIFIER, SAFE_IDENTIFIER};
 
 fn render_property_access(result: &mut String, property: &str, optional: bool) {
@@ -9,7 +11,7 @@ fn render_property_access(result: &mut String, property: &str, optional: bool) {
     }
     result.push_str(property);
   } else {
-    let quoted = serde_json::to_string(property).expect("should render property");
+    let quoted = json_stringify_str(property);
     if optional {
       result.push_str("?.[");
     } else {

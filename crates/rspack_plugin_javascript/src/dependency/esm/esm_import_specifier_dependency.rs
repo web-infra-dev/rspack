@@ -15,7 +15,7 @@ use rspack_core::{
   create_exports_object_referenced, get_exports_type, property_access, to_normal_comment,
 };
 use rspack_error::Diagnostic;
-use rspack_util::json_stringify;
+use rspack_util::json_stringify_str;
 use swc_core::ecma::atoms::Atom;
 
 use super::{
@@ -540,7 +540,7 @@ impl ESMImportSpecifierDependencyTemplate {
         source.replace(
           dep.range.start,
           dep.range.end,
-          &format!("{} in {code}", json_stringify(&used_name)),
+          &format!("{} in {code}", json_stringify_str(used_name.as_str())),
           None,
         )
       }

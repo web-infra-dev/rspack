@@ -109,11 +109,11 @@ impl ModuleChunkLoadingRuntimeModule {
     let base_uri = chunk
       .get_entry_options(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
       .and_then(|options| options.base_uri.as_ref())
-      .and_then(|base_uri| serde_json::to_string(base_uri).ok())
+      .map(|base_uri| rspack_util::json_stringify_str(base_uri))
       .unwrap_or_else(|| {
         format!(
           "new URL({}, {}.url);",
-          serde_json::to_string(root_output_dir).expect("should able to be serde_json::to_string"),
+          rspack_util::json_stringify_str(root_output_dir),
           compilation.options.output.import_meta_name
         )
       });

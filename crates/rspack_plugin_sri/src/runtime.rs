@@ -176,9 +176,9 @@ fn generate_sri_hash_placeholders(
     chunks
       .into_iter()
       .filter_map(|c| {
-        let chunk_id = serde_json::to_string(c.as_str()).ok()?;
+        let chunk_id = rspack_util::json_stringify_str(c.as_str());
         let placeholder =
-          serde_json::to_string(&make_placeholder(asset_type, hash_funcs, c.as_str())).ok()?;
+          rspack_util::json_stringify_str(&make_placeholder(asset_type, hash_funcs, c.as_str()));
         Some(format!("{chunk_id}: {placeholder}"))
       })
       .collect::<Vec<_>>()

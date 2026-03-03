@@ -21,8 +21,8 @@ use rspack_sources::{
   BoxSource, CachedSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt,
 };
 use rspack_util::{
-  SpanExt, ext::DynHash, fx_hash::FxIndexMap, itoa, json_stringify, source_map::SourceMapKind,
-  swc::join_atom,
+  SpanExt, ext::DynHash, fx_hash::FxIndexMap, itoa, json_stringify_str, json_stringify_str_into,
+  source_map::SourceMapKind, swc::join_atom,
 };
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 use swc_core::{
@@ -638,7 +638,9 @@ pub fn render_imports(source: &str, attr: Option<&str>, import_spec: &ImportSpec
   let default_import = import_spec.default_import.as_ref();
   let ns_import = import_spec.ns_import.as_ref();
 
-  let source_str = format!("{}{}", json_stringify(&source), attr.unwrap_or_default());
+  let mut source_str = String::new();
+  json_stringify_str_into(source, &mut source_str);
+  source_str.push_str(attr.unwrap_or_default());
 
   let mut render_default = false;
   let mut render_ns = false;
@@ -1621,9 +1623,10 @@ impl Module for ConcatenatedModule {
       if let Some(info) = info.try_as_external()
         && info.deferred
       {
-        let module_id = json_stringify(
+        let module_id = json_stringify_str(
           ChunkGraph::get_module_id(&compilation.module_ids_artifact, info.module)
-            .expect("should have module id"),
+            .expect("should have module id")
+            .as_str(),
         );
         let module = module_graph
           .module_by_identifier(&info.module)
@@ -1653,9 +1656,10 @@ impl Module for ConcatenatedModule {
             .expect("should have deferred_name"),
         )));
         if info.deferred_namespace_object_used {
-          let module_id = json_stringify(
+          let module_id = json_stringify_str(
             ChunkGraph::get_module_id(&compilation.module_ids_artifact, info.module)
-              .expect("should have module id"),
+              .expect("should have module id")
+              .as_str(),
           );
           let module = module_graph
             .module_by_identifier(&info.module)
@@ -1735,11 +1739,11 @@ impl Module for ConcatenatedModule {
               "var {} = {}({});",
               info.name.as_ref().expect("should have name"),
               runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
-              serde_json::to_string(
+              json_stringify_str(
                 ChunkGraph::get_module_id(&compilation.module_ids_artifact, info.module)
                   .expect("should have module id")
+                  .as_str()
               )
-              .expect("should json stringify module id")
             )));
 
             name.clone_from(&info.name);

@@ -263,7 +263,7 @@ installedChunks[chunkId] = 0;
           "[{}].forEach(loadCssChunkData.bind(null, {}, 0));",
           initial_chunk_ids
             .iter()
-            .map(|id| serde_json::to_string(id).expect("should ok to convert to string"))
+            .map(|id| rspack_util::json_stringify_str(id.as_str()))
             .collect::<Vec<_>>()
             .join(","),
           runtime_template.render_runtime_globals(&RuntimeGlobals::MODULE_FACTORIES)
@@ -273,7 +273,7 @@ installedChunks[chunkId] = 0;
           initial_chunk_ids
             .iter()
             .map(|id| {
-              let id = serde_json::to_string(id).expect("should ok to convert to string");
+              let id = rspack_util::json_stringify_str(id.as_str());
               format!(
                 "loadCssChunkData({}, 0, {});",
                 runtime_template.render_runtime_globals(&RuntimeGlobals::MODULE_FACTORIES),

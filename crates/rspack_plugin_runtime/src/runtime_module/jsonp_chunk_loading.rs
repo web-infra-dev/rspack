@@ -114,7 +114,7 @@ impl JsonpChunkLoadingRuntimeModule {
     let base_uri = chunk
       .get_entry_options(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
       .and_then(|options| options.base_uri.as_ref())
-      .and_then(|base_uri| serde_json::to_string(base_uri).ok())
+      .map(|base_uri| rspack_util::json_stringify_str(base_uri))
       .unwrap_or_else(|| "document.baseURI || self.location.href".to_string());
     format!(
       "{} = {};\n",
@@ -380,7 +380,7 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
       let source_with_hmr = runtime_template
         .render(&self.template_id(TemplateId::WithHmr), Some(serde_json::json!({
           "_global_object": &compilation.options.output.global_object,
-          "_hot_update_global": &serde_json::to_string(&compilation.options.output.hot_update_global).expect("failed to serde_json::to_string(hot_update_global)"),
+          "_hot_update_global": &rspack_util::json_stringify_str(&compilation.options.output.hot_update_global),
         })))?;
 
       source.push_str(&source_with_hmr);

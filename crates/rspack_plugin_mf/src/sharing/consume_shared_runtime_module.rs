@@ -6,6 +6,7 @@ use rspack_core::{
   impl_runtime_module,
 };
 use rspack_plugin_runtime::extract_runtime_globals_from_ejs;
+use rspack_util::json_stringify_str;
 use rustc_hash::FxHashMap;
 
 use super::consume_shared_plugin::ConsumeVersion;
@@ -102,10 +103,10 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
       if let Some(data) = code_gen.data.get::<CodeGenerationDataConsumeShared>() {
         module_id_to_consume_data_mapping.insert(id, format!(
           "{{ shareScope: {}, shareKey: {}, import: {}, requiredVersion: {}, strictVersion: {}, singleton: {}, eager: {}, fallback: {}, treeShakingMode: {} }}",
-          json_stringify(&data.share_scope),
-          json_stringify(&data.share_key),
+          json_stringify_str(&data.share_scope),
+          json_stringify_str(&data.share_key),
           json_stringify(&data.import),
-          json_stringify(&data.required_version.as_ref().map_or_else(|| "*".to_string(), |v| v.to_string())),
+          json_stringify_str(&data.required_version.as_ref().map_or_else(|| "*".to_string(), |v| v.to_string())),
           json_stringify(&data.strict_version),
           json_stringify(&data.singleton),
           json_stringify(&data.eager),
@@ -171,7 +172,7 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
         "{{{}}}",
         module_id_to_consume_data_mapping
           .into_iter()
-          .map(|(k, v)| format!("{}: {}", json_stringify(&k), v))
+          .map(|(k, v)| format!("{}: {}", json_stringify_str(&k), v))
           .collect::<Vec<_>>()
           .join(", ")
       )

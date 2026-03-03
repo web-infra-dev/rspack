@@ -175,12 +175,11 @@ impl ExternalInterop {
         "const {name} = {}{}({});\n",
         if is_async { "await " } else { "" },
         runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
-        serde_json::to_string(
+        rspack_util::json_stringify_str(
           ChunkGraph::get_module_id(&compilation.module_ids_artifact, self.module)
             .unwrap_or_else(|| panic!("should set module id for {:?}", self.module))
             .as_str()
         )
-        .expect("module id to string should success")
       )));
 
       if let Some(namespace_object) = &self.namespace_object {
@@ -225,12 +224,11 @@ impl ExternalInterop {
       source.add(RawStringSource::from(format!(
         "{}({});\n",
         runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
-        serde_json::to_string(
+        rspack_util::json_stringify_str(
           ChunkGraph::get_module_id(&compilation.module_ids_artifact, self.module)
             .unwrap_or_else(|| panic!("should set module id for {}", self.module))
             .as_str()
         )
-        .expect("module id to string should success")
       )));
     }
 

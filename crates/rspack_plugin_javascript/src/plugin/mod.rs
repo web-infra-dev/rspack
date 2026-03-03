@@ -490,7 +490,7 @@ var {} = {{}};
 
           let module_id = ChunkGraph::get_module_id(&compilation.module_ids_artifact, *module)
             .expect("should have module id");
-          let mut module_id_expr = serde_json::to_string(module_id).expect("invalid module_id");
+          let mut module_id_expr = rspack_util::json_stringify_str(module_id.as_str());
           if runtime_requirements.contains(RuntimeGlobals::ENTRY_MODULE_ID) {
             module_id_expr = format!(
               "{} = {module_id_expr}",

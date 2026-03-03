@@ -14,7 +14,7 @@ use rspack_plugin_javascript::{
   JsPlugin, RenderSource, impl_plugin_for_js_plugin::chunk_has_js,
   runtime::render_chunk_runtime_modules,
 };
-use rspack_util::{itoa, json_stringify};
+use rspack_util::{itoa, json_stringify_str};
 use rustc_hash::FxHashSet as HashSet;
 
 use super::update_hash_for_entry_startup;
@@ -144,7 +144,7 @@ async fn render_chunk(
     .expect_get(chunk_ukey);
   let base_chunk_output_name = get_chunk_output_name(chunk, compilation).await?;
 
-  let chunk_id_json_string = json_stringify(chunk.expect_id());
+  let chunk_id_json_string = json_stringify_str(chunk.expect_id().as_str());
 
   let mut sources = ConcatSource::default();
   sources.add(RawStringSource::from(format!(
@@ -265,7 +265,7 @@ async fn render_chunk(
         ));
       }
 
-      let module_id_expr = serde_json::to_string(module_id).expect("invalid module_id");
+      let module_id_expr = rspack_util::json_stringify_str(module_id.as_str());
 
       if use_startup_entrypoint {
         entry_module_ids.push(module_id_expr);
