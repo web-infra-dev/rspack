@@ -100,10 +100,8 @@ export async function version_handler(version, options) {
       nextVersion = semver.inc(lastVersion, version);
     }
     // Rust crate version is major version of `@rspack/core` - 1
-    const nextCrateVersion = nextVersion.replace(
-      /^(\d+)/,
-      (match, major) => Number.parseInt(major, 10) - 1,
-    );
+    const [nextMajor, nextMinor, ...remain] = nextVersion.split('.');
+    const nextCrateVersion = `0.${(Number(nextMajor) - 1) * 100 + Number(nextMinor)}.${remain.join('.')}`;
     await $`${path.resolve(path.dirname(new URL(import.meta.url).pathname), '../../x')} crate-version custom ${nextCrateVersion}`;
   }
 
