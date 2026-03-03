@@ -3,8 +3,8 @@ use std::sync::Arc;
 use rspack_core::{
   ChunkUkey, Compilation, CompilationAdditionalTreeRuntimeRequirements, CompilationParams,
   CompilationRuntimeRequirementInTree, CompilerCompilation, CompilerMake, DependencyType,
-  EntryOptions, EntryRuntime, Filename, LibraryOptions, Plugin, RuntimeGlobals, RuntimeModule,
-  SourceType,
+  EntryOptions, EntryRuntime, Filename, LibraryOptions, ModuleLayer, Plugin, RuntimeGlobals,
+  RuntimeModule, SourceType,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -31,6 +31,7 @@ pub struct ContainerPluginOptions {
 #[derive(Debug, Clone, Serialize)]
 pub struct ExposeOptions {
   pub name: Option<String>,
+  pub layer: Option<ModuleLayer>,
   pub import: Vec<String>,
 }
 
