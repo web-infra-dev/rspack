@@ -30,6 +30,7 @@ use crate::config::HtmlRspackPluginOptions;
 #[derive(Debug)]
 pub enum CompiledDocument {
   Document(Document),
+  DocumentWithoutDoctype(Document),
   DocumentFragment(DocumentFragment),
 }
 
@@ -37,6 +38,7 @@ impl CompiledDocument {
   pub fn visit_mut_with<V: VisitMut>(&mut self, visitor: &mut V) {
     match self {
       CompiledDocument::Document(ast) => ast.visit_mut_with(visitor),
+      CompiledDocument::DocumentWithoutDoctype(ast) => ast.visit_mut_with(visitor),
       CompiledDocument::DocumentFragment(ast) => ast.visit_mut_with(visitor),
     }
   }
@@ -47,6 +49,7 @@ impl CompiledDocument {
   ) -> Result<()> {
     match self {
       CompiledDocument::Document(ast) => codegen.emit(ast).to_rspack_result(),
+      CompiledDocument::DocumentWithoutDoctype(ast) => codegen.emit(ast).to_rspack_result(),
       CompiledDocument::DocumentFragment(ast) => codegen.emit(ast).to_rspack_result(),
     }
   }
@@ -67,15 +70,25 @@ impl<'a> HtmlCompiler<'a> {
     source: String,
   ) -> Result<TWithDiagnosticArray<CompiledDocument>> {
     let cm = Lrc::new(SourceMap::new(FilePathMapping::empty()));
-    let has_doctype = source
-      .trim_start()
-      .cow_to_ascii_lowercase()
-      .starts_with("<!doctype");
-    let fm = cm.new_source_file(Arc::new(FileName::Custom(path.to_string())), source);
+    let doc = source.trim_start().cow_to_ascii_lowercase();
+    let has_doctype = doc.starts_with("<!doctype");
+    let is_document = has_doctype
+      || source.is_empty()
+      || doc.starts_with("<html")
+      || (doc.contains("<body") && doc.contains("</body>"))
+      || (doc.contains("<head") && doc.contains("</head>"));
+    let fm = cm.new_source_file(
+      Arc::new(FileName::Custom(path.to_string())),
+      if is_document && !has_doctype {
+        format!("<!DOCTYPE html>{source}")
+      } else {
+        source
+      },
+    );
 
     let mut errors = vec![];
 
-    if has_doctype {
+    if is_document {
       let document = parse_file_as_document(fm.as_ref(), ParserConfig::default(), &mut errors);
       let diagnostics: Vec<rspack_error::Diagnostic> = errors
         .into_iter()
@@ -85,7 +98,7 @@ impl<'a> HtmlCompiler<'a> {
         .map(|doc| CompiledDocument::Document(doc).with_diagnostic(diagnostics))
         .map_err(|e| html_parse_error_to_traceable_error(e, &fm))
     } else {
-      let context_element = create_body_context_element();
+      let context_element = create_html_content_element();
       let document_fragment = parse_file_as_document_fragment(
         fm.as_ref(),
         &context_element,
@@ -119,13 +132,15 @@ impl<'a> HtmlCompiler<'a> {
     if minify {
       // Minify can't leak to user land because it doesn't implement `ToNapiValue` Trait
       GLOBALS.set(&Default::default(), || match ast {
-        CompiledDocument::Document(ast) => minify_document_with_custom_css_minifier(
-          ast,
-          &MinifyOptions::<()>::default(),
-          &NoopCssMinifier,
-        ),
+        CompiledDocument::Document(ast) | CompiledDocument::DocumentWithoutDoctype(ast) => {
+          minify_document_with_custom_css_minifier(
+            ast,
+            &MinifyOptions::<()>::default(),
+            &NoopCssMinifier,
+          )
+        }
         CompiledDocument::DocumentFragment(ast) => {
-          let context_element = create_body_context_element();
+          let context_element = create_html_content_element();
           minify_document_fragment_with_custom_css_minifier(
             ast,
             &context_element,
@@ -140,14 +155,18 @@ impl<'a> HtmlCompiler<'a> {
     let wr = BasicHtmlWriter::new(&mut output, None, writer_config);
     let mut r#gen = CodeGenerator::new(wr, codegen_config);
     ast.emit_to_codegen(&mut r#gen)?;
-    Ok(output)
+    if matches!(ast, CompiledDocument::DocumentWithoutDoctype(_)) {
+      Ok(output.cow_replace("<!DOCTYPE html>", "").to_string())
+    } else {
+      Ok(output)
+    }
   }
 }
 
-fn create_body_context_element() -> Element {
+fn create_html_content_element() -> Element {
   Element {
     span: DUMMY_SP,
-    tag_name: "body".into(),
+    tag_name: "html".into(),
     namespace: Namespace::HTML,
     attributes: vec![],
     children: vec![],
