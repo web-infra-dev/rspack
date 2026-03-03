@@ -1,6 +1,7 @@
+"use strict";
+
 module.exports = {
 	validate(stats) {
-		const s = stats.stats ? stats.stats[0] : stats;
-		expect(s.compilation.modules.size).toBe(8);
+		expect(stats.toJson({ modules: true }).children[0].modules.length).toBe(241);
 	}
 };
