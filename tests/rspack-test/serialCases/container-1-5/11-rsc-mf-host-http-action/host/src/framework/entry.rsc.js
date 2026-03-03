@@ -48,6 +48,10 @@ it('should execute all remote server actions via prefixed action ids', async () 
     const manifest = __webpack_require__.rscM;
     const remoteManifest = await getRemoteBridgeManifest();
     expect(manifest).toBeDefined();
+    const hostClientManifestKeys = Object.keys(manifest.clientManifest || {});
+    expect(hostClientManifestKeys.some((key) => key.startsWith('remote-module:rscRemote:'))).toBe(
+      true,
+    );
     const remoteScopedManifest = manifest.remoteManifests?.rscRemote;
     expect(remoteScopedManifest?.moduleLoading ?? manifest.moduleLoading?.rscRemote).toEqual(
       remoteManifest.moduleLoading,

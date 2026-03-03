@@ -55,8 +55,9 @@ it('should consume mixed RSC expose patterns over HTTP federation', async () => 
     const manifest = __webpack_require__.rscM;
     const remoteManifest = await getRemoteBridgeManifest();
     expect(manifest).toBeDefined();
-    expect(Object.keys(manifest.clientManifest).length).toBeGreaterThan(0);
-    expect(Object.keys(manifest.clientManifest).some((key) => key.includes('RemoteClient'))).toBe(
+    const hostClientManifestKeys = Object.keys(manifest.clientManifest || {});
+    expect(hostClientManifestKeys.length).toBeGreaterThan(0);
+    expect(hostClientManifestKeys.some((key) => key.startsWith('remote-module:rscRemote:'))).toBe(
       true,
     );
     expect(Object.keys(manifest.serverConsumerModuleMap).length).toBeGreaterThan(0);
