@@ -638,11 +638,7 @@ pub fn render_imports(source: &str, attr: Option<&str>, import_spec: &ImportSpec
   let default_import = import_spec.default_import.as_ref();
   let ns_import = import_spec.ns_import.as_ref();
 
-  let source_str = format!(
-    "{}{}",
-    json_stringify_str(&source),
-    attr.unwrap_or_default()
-  );
+  let source_str = format!("{}{}", json_stringify_str(source), attr.unwrap_or_default());
 
   let mut render_default = false;
   let mut render_ns = false;

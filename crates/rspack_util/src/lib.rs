@@ -64,6 +64,10 @@ where
 }
 
 pub fn json_stringify<T: ?Sized + serde::Serialize + std::fmt::Debug>(v: &T) -> String {
+  serde_json::to_string(v).unwrap_or_else(|e| panic!("{e}: {v:?} should able to json stringify"))
+}
+
+pub fn json_stringify_pretty<T: ?Sized + serde::Serialize + std::fmt::Debug>(v: &T) -> String {
   serde_json::to_string_pretty(v)
     .unwrap_or_else(|e| panic!("{e}: {v:?} should able to json stringify"))
 }

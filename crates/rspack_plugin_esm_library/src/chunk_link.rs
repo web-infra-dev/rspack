@@ -178,6 +178,7 @@ impl ExternalInterop {
         rspack_util::json_stringify(
           ChunkGraph::get_module_id(&compilation.module_ids_artifact, self.module)
             .unwrap_or_else(|| panic!("should set module id for {:?}", self.module))
+            .as_str()
         )
       )));
 
@@ -226,6 +227,7 @@ impl ExternalInterop {
         rspack_util::json_stringify(
           ChunkGraph::get_module_id(&compilation.module_ids_artifact, self.module)
             .unwrap_or_else(|| panic!("should set module id for {}", self.module))
+            .as_str()
         )
       )));
     }
