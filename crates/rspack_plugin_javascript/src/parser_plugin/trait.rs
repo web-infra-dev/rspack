@@ -118,6 +118,17 @@ pub trait JavascriptParserPlugin {
     None
   }
 
+  /// Evaluate CallExpression when callee is an Identifier (e.g. String(), Number()).
+  /// Mirrors webpack's hooks.evaluateCallExpression.
+  fn evaluate_call_expression<'a>(
+    &self,
+    _parser: &mut JavascriptParser,
+    _name: &str,
+    _expr: &'a CallExpr,
+  ) -> Option<BasicEvaluatedExpression<'a>> {
+    None
+  }
+
   fn evaluate_call_expression_member<'a>(
     &self,
     _parser: &mut JavascriptParser,
