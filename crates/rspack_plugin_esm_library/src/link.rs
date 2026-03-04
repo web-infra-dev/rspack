@@ -10,7 +10,7 @@ use rspack_core::{
   BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, ChunkInitFragments, ChunkUkey,
   CodeGenerationPublicPathAutoReplace, Compilation, ConcatenatedModuleIdent, DependencyType,
   ExportInfoHashKey, ExportMode, ExportProvided, ExportsInfoArtifact, ExportsInfoGetter,
-  ExportsType, FindTargetResult, GetUsedNameParam, IdentCollector, ModuleGraph,
+  ExportsType, FindTargetResult, GetUsedNameParam, IdentCollector, ImportSpec, ModuleGraph,
   ModuleGraphCacheArtifact, ModuleIdentifier, ModuleInfo, NAMESPACE_OBJECT_EXPORT, PathData,
   PrefetchExportsInfoMode, RuntimeGlobals, SourceType, URLStaticMode, UsageState, UsedName,
   UsedNameItem, escape_name, find_new_name, find_target, get_cached_readable_identifier,
@@ -40,7 +40,7 @@ use swc_core::{
 
 use crate::{
   EsmLibraryPlugin,
-  chunk_link::{ChunkLinkContext, ExternalInterop, ReExportFrom, Ref, SymbolRef},
+  chunk_link::{ChunkLinkContext, ExternalInterop, RawImportSource, ReExportFrom, Ref, SymbolRef},
 };
 
 pub(crate) trait GetMut<K, V> {
@@ -424,7 +424,7 @@ impl EsmLibraryPlugin {
                     let request = ext.user_request().to_string();
                     let import_spec = chunk_link
                       .raw_import_stmts
-                      .entry((request, None))
+                      .entry(RawImportSource::Source((request, None)))
                       .or_default();
                     import_spec
                       .atoms
@@ -579,7 +579,7 @@ var {} = {{}};
           for ((source, attr), imported_atoms) in import_map.iter() {
             let total_imported_atoms = chunk_link
               .raw_import_stmts
-              .entry((source.clone(), attr.clone()))
+              .entry(RawImportSource::Source((source.clone(), attr.clone())))
               .or_default();
 
             if let Some(ns_import) = &imported_atoms.namespace {
@@ -868,10 +868,22 @@ var {} = {{}};
 
             match info {
               rspack_core::ModuleInfo::External(mut external_module_info) => {
-                // we use __webpack_require__.add({...}) to register modules
-                external_module_info
-                  .runtime_requirements
-                  .insert(RuntimeGlobals::REQUIRE | RuntimeGlobals::MODULE_FACTORIES);
+                let has_javascript_source = compilation
+                  .code_generation_results
+                  .get(&id, None)
+                  .get(&SourceType::JavaScript)
+                  .is_some();
+                let used_in_chunk = !compilation
+                  .build_chunk_graph_artifact
+                  .chunk_graph
+                  .get_module_chunks(id)
+                  .is_empty();
+                if has_javascript_source && used_in_chunk {
+                  // we use __webpack_require__.add({...}) to register modules
+                  external_module_info
+                    .runtime_requirements
+                    .insert(RuntimeGlobals::REQUIRE | RuntimeGlobals::MODULE_FACTORIES);
+                }
                 Ok(ModuleInfo::External(external_module_info))
               }
               rspack_core::ModuleInfo::Concatenated(mut concate_info) => {
@@ -1729,6 +1741,41 @@ var {} = {{}};
       let mut refs = FxIndexMap::default();
       let needed_namespace_objects = needed_namespace_objects_by_ukey.entry(*chunk).or_default();
       let chunk_imports = imports.entry(*chunk).or_default();
+      let required = required.entry(*chunk).or_default();
+      let runtime_chunk = Self::get_runtime_chunk(*chunk, compilation);
+
+      // check if needs runtime
+      for m in chunk_link
+        .decl_modules
+        .iter()
+        .chain(chunk_link.hoisted_modules.iter())
+      {
+        let info = &concate_modules_map[m];
+        let runtime_requirements = info.get_runtime_requirements();
+        if !runtime_requirements.is_empty() && runtime_chunk != *chunk {
+          let runtime_template = compilation.runtime_template.create_runtime_code_template();
+          let require_symbol: Atom = runtime_template
+            .render_runtime_globals(&RuntimeGlobals::REQUIRE)
+            .into();
+          Self::add_chunk_export(
+            runtime_chunk,
+            require_symbol.clone(),
+            require_symbol.clone(),
+            &mut exports,
+            true,
+          );
+          chunk_link.raw_import_stmts.insert(
+            RawImportSource::Chunk(runtime_chunk),
+            ImportSpec {
+              atoms: std::iter::once((require_symbol.clone(), require_symbol.clone())).collect(),
+              default_import: None,
+              ns_import: None,
+            },
+          );
+          break;
+        }
+      }
+
       // if one chunk has multiple modules that require the same
       // module, the first module require imported module, the
       // followings should not require the module again.
@@ -1739,8 +1786,6 @@ var {} = {{}};
       // foo; // access foo again, but no require call
       // ```
       for m in chunk_link.hoisted_modules.clone() {
-        let current_required = required.entry(*chunk).or_default();
-
         let module = module_graph
           .module_by_identifier(&m)
           .expect("should have module");
@@ -1790,7 +1835,7 @@ var {} = {{}};
               */
               None,
               &mut chunk_link.used_names,
-              current_required,
+              required,
             );
           }
         }
@@ -1822,7 +1867,7 @@ var {} = {{}};
               module.build_meta().strict_esm_module,
               options.asi_safe,
               &mut Default::default(),
-              current_required,
+              required,
               &mut chunk_link.used_names,
             );
 
@@ -1985,12 +2030,16 @@ var {} = {{}};
 
       for (source, _) in &chunk_link.raw_star_exports {
         let key = (source.clone(), None);
-        if let Some(import_spec) = chunk_link.raw_import_stmts.get(&key)
+        if let Some(import_spec) = chunk_link
+          .raw_import_stmts
+          .get(&RawImportSource::Source(key.clone()))
           && import_spec.atoms.is_empty()
           && import_spec.default_import.is_none()
           && import_spec.ns_import.is_none()
         {
-          chunk_link.raw_import_stmts.swap_remove(&key);
+          chunk_link
+            .raw_import_stmts
+            .swap_remove(&RawImportSource::Source(key));
         }
       }
 
@@ -2000,6 +2049,10 @@ var {} = {{}};
           // import 'externals'
           continue;
         }
+
+        let RawImportSource::Source(key) = key else {
+          continue;
+        };
 
         if key.1.is_some() {
           // TODO: optimize import attributes
@@ -2030,7 +2083,9 @@ var {} = {{}};
       }
 
       for (key, locals) in removed_import_stmts {
-        chunk_link.raw_import_stmts.swap_remove(&key);
+        chunk_link
+          .raw_import_stmts
+          .swap_remove(&RawImportSource::Source(key.clone()));
 
         // change it from normal export to re-export
         for (local, imported) in locals {

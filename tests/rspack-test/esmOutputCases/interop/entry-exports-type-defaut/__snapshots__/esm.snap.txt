@@ -6,6 +6,7 @@ export { default, foo } from "./json.mjs";
 
 ```mjs title=cjsBundle.mjs
 import { __webpack_require__ } from "./runtime.mjs";
+
 __webpack_require__.add({
 "./cjs.js"
 /*!****************!*\

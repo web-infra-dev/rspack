@@ -519,7 +519,7 @@ async fn additional_chunk_runtime_requirements(
   }
 
   if !runtime_requirements.is_empty() {
-    runtime_requirements.insert(RuntimeGlobals::REQUIRE);
+    runtime_requirements.insert(RuntimeGlobals::REQUIRE_SCOPE);
   }
 
   Ok(())
@@ -535,7 +535,7 @@ async fn runtime_requirements_in_tree(
   _runtime_requirements_mut: &mut RuntimeGlobals,
   runtime_modules_to_add: &mut Vec<(ChunkUkey, Box<dyn RuntimeModule>)>,
 ) -> Result<Option<()>> {
-  if runtime_requirements.contains(RuntimeGlobals::REQUIRE) {
+  if runtime_requirements.contains(RuntimeGlobals::MODULE_FACTORIES) {
     runtime_modules_to_add.push((
       *chunk_ukey,
       Box::new(EsmRegisterModuleRuntimeModule::new(
@@ -562,7 +562,7 @@ async fn additional_tree_runtime_requirements(
 }
 
 static RSPACK_ESM_CHUNK_PLACEHOLDER_RE: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r##"__RSPACK_ESM_CHUNK_[^'"]+"##).expect("should have regex"));
+  LazyLock::new(|| Regex::new(r##"__RSPACK_ESM_CHUNK_[^'"\\]+"##).expect("should have regex"));
 
 #[plugin_hook(CompilationProcessAssets for EsmLibraryPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_AFTER_OPTIMIZE_HASH)]
 async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
@@ -611,7 +611,11 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
             .get(chunk_ukey)
             .expect("should have chunk for chunk ukey")
         }) else {
-          unreachable!("This should not happen, please file an issue");
+          return Err(rspack_error::error!(
+            "chunk_id '{}' not found in chunk_ids_to_ukey. Available: {:?}",
+            chunk_id,
+            chunk_ids_to_ukey.keys().collect::<Vec<_>>()
+          ));
         };
 
         let js_files = chunk
@@ -633,11 +637,11 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         }
         if js_files.is_empty() {
           return Err(rspack_error::error!(
-            "chunk {:?} should have at least one file",
-            chunk.id()
+            "chunk {} should have at least one file",
+            chunk_id
           ));
         }
-        let chunk_path = output_path.join(js_files.first().expect("should have at least one file"));
+        let chunk_path = output_path.join(js_files.first().expect("have at least one file"));
         let relative = chunk_path.relative(self_path.as_path());
         let relative = relative
           .to_slash()
