@@ -1,5 +1,6 @@
 module.exports = {
 	validate(stats) {
-		expect(stats.compilation.modules.size).toBe(8);
+		const s = stats.stats ? stats.stats[0] : stats;
+		expect(s.compilation.modules.size).toBe(8);
 	}
 };

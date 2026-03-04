@@ -25,7 +25,7 @@ For example, if you are developing a loader and want to showcase its usage from 
   <Tab label="ESM">
 
 ```js title="rspack.config.mjs"
-import { createRequire } from 'module';
+import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
 

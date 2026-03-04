@@ -1,0 +1,24 @@
+```mjs title=main.mjs
+// ./index.js
+it('should dynamically import module with mixed external re-exports and local exports', async () => {
+	const mod = await import("./wrapper_js.mjs")
+	expect(mod.readFile).toBeDefined()
+	expect(mod.localValue).toBe(42)
+	expect(mod.localFn()).toBe('hello')
+})
+
+
+```
+
+```mjs title=wrapper_js.mjs
+// fs
+
+// ./wrapper.js
+
+const localValue = 42
+const localFn = () => 'hello'
+
+export { localFn, localValue };
+export { readFile } from "fs";
+
+```

@@ -1,0 +1,34 @@
+```mjs title=main.mjs
+// ./index.js
+
+
+it('should dynamically import module that re-exports from cross-chunk module', async () => {
+	expect((/* inlined export .value */42)).toBe(42)
+
+	const mod = await import("./wrapper_js.mjs")
+	expect(mod.value).toBe(42)
+	expect(mod.helper()).toBe(1)
+})
+
+
+```
+
+```mjs title=shared-chunk.mjs
+// ./shared.js
+const value = 42
+const helper = () => 1
+
+export { helper };
+
+```
+
+```mjs title=wrapper_js.mjs
+
+// ./wrapper.js
+
+
+var wrapper_value = (/* inlined export .value */42);
+export { wrapper_value as value };
+export { helper } from "./shared-chunk.mjs";
+
+```

@@ -30,7 +30,7 @@ module.exports = {
 					CHILD_ID,
 					outputOptions
 				);
-				const SingleEntryPlugin = compiler.webpack.EntryPlugin;
+				const SingleEntryPlugin = compiler.rspack.EntryPlugin;
 				new SingleEntryPlugin(
 					compiler.context,
 					path.join(__dirname, CHILD_FILENAME),

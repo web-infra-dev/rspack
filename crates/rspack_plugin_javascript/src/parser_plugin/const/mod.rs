@@ -2,11 +2,15 @@ mod if_stmt;
 mod logic_expr;
 
 use rspack_core::{CachedConstDependency, ConstDependency};
+use rspack_util::SpanExt;
 use swc_core::common::Spanned;
 
 pub use self::logic_expr::is_logic_op;
 use super::JavascriptParserPlugin;
-use crate::{utils::eval::evaluate_to_string, visitors::JavascriptParser};
+use crate::{
+  utils::eval::evaluate_to_string,
+  visitors::{JavascriptParser, Statement},
+};
 
 pub struct ConstPlugin;
 
@@ -123,5 +127,36 @@ impl JavascriptParserPlugin for ConstPlugin {
       )),
       _ => None,
     }
+  }
+
+  fn unused_statement(&self, parser: &mut JavascriptParser, stmt: Statement) -> Option<bool> {
+    // Skip top level scope to align with webpack's ConstPlugin behavior.
+    if parser.is_top_level_scope() {
+      return None;
+    }
+
+    // Compute hoisted declarations from the dead statement without cloning the AST.
+    let include_function_declarations = !parser.is_strict();
+    let declarations = self::if_stmt::get_hoisted_declarations(stmt, include_function_declarations);
+
+    let replacement_body = if declarations.is_empty() {
+      "{}".to_string()
+    } else {
+      let mut names: Vec<&str> = declarations.iter().map(|decl| decl.sym.as_str()).collect();
+      names.sort_unstable();
+      format!("{{ var {} }}", names.join(", "))
+    };
+
+    // Prepend the same comment as webpack for easier debugging.
+    let mut replacement = String::from("// removed by dead control flow\n");
+    replacement.push_str(&replacement_body);
+
+    let span = stmt.span();
+    parser.add_presentational_dependency(Box::new(ConstDependency::new(
+      (span.real_lo(), span.real_hi()).into(),
+      replacement.into_boxed_str(),
+    )));
+
+    Some(true)
   }
 }

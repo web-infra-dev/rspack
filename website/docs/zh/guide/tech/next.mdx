@@ -20,7 +20,7 @@ import { Tabs, Tab, PackageManagerTabs } from '@theme';
 
 ## 使用
 
-在项目的 `next.config.js` 或 `next.config.ts` 中，对现有配置进行包装：
+在项目的 `next.config.mjs` 或 `next.config.ts` 中，对现有配置进行包装：
 
 <Tabs>
   <Tab label="next.config.ts">
@@ -37,17 +37,17 @@ export default withRspack(nextConfig);
 ```
 
   </Tab>
-  <Tab label="next.config.js">
+  <Tab label="next.config.mjs">
 
-```ts
-const withRspack = require('next-rspack');
+```js
+import withRspack from 'next-rspack';
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   /* config options here */
 };
 
-module.exports = withRspack(nextConfig);
+export default withRspack(nextConfig);
 ```
 
   </Tab>
@@ -59,10 +59,10 @@ module.exports = withRspack(nextConfig);
 
 得益于 Rspack 对 webpack 的兼容性，在使用 `next-rspack` 时，可以沿用与 webpack 相同的方式来自定义配置。
 
-在 `next.config.js` 中，通过以下回调函数来修改 Rspack 配置：
+在 `next.config.mjs` 中，通过以下回调函数来修改 Rspack 配置：
 
-```ts title="next.config.js"
-module.exports = {
+```js title="next.config.mjs"
+export default {
   webpack: (
     config,
     { buildId, dev, isServer, defaultLoaders, nextRuntime, webpack },
@@ -79,11 +79,11 @@ module.exports = {
 
 此外，你可以使用 [next-compose-plugins](https://www.npmjs.com/package/next-compose-plugins) 来快速将 `next-rspack` 与其他 Next.js 插件集成：
 
-```js title="next.config.js"
-const withPlugins = require('next-compose-plugins');
-const withRspack = require('next-rspack');
+```js title="next.config.mjs"
+import withPlugins from 'next-compose-plugins';
+import withRspack from 'next-rspack';
 
-module.exports = withPlugins([
+export default withPlugins([
   [withRspack],
   // 其他插件写在这里
 ]);

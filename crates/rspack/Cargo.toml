@@ -31,6 +31,7 @@ rspack_paths        = { workspace = true }
 rspack_regex        = { workspace = true }
 rustc-hash          = { workspace = true }
 serde_json          = { workspace = true }
+supports-color      = { workspace = true }
 
 # Plugins
 rspack_plugin_asset                   = { workspace = true }
@@ -61,8 +62,9 @@ rspack_loader_swc            = { workspace = true, optional = true }
 
 
 [dev-dependencies]
-insta = { workspace = true, features = ["filters"] }
-tokio = { workspace = true }
+insta          = { workspace = true, features = ["filters"] }
+supports-color = { workspace = true }
+tokio          = { workspace = true }
 
 [lints]
 workspace = true

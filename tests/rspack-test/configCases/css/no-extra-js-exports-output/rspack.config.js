@@ -57,7 +57,7 @@ const common = (i) => ({
 						{
 							name: "copy-webpack-plugin",
 							stage:
-								compiler.webpack.Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL
+								compiler.rspack.Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL
 						},
 						() => {
 							const data = fs.readFileSync(

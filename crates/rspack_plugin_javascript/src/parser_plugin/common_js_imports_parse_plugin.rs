@@ -360,6 +360,14 @@ impl CommonJsImportsParserPlugin {
       return None;
     }
 
+    // Skip adding require() as a dependency when in unreachable code after
+    // return/throw (e.g. require("fail") in dead code should not be resolved).
+    // We still walk the AST so scope and other code are correct (issue-19514,
+    // dead-code-elimination). Mirrors import_parser_plugin's dynamic import check.
+    if parser.terminated.is_some() && !parser.is_top_level_scope() {
+      return Some(true);
+    }
+
     if let ExprOrSpread {
       spread: None,
       expr: argument_expr,

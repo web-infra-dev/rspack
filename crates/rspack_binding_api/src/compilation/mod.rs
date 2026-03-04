@@ -15,7 +15,7 @@ use napi_derive::napi;
 use rspack_collections::{DatabaseItem, IdentifierSet};
 use rspack_core::{
   ArcDependency, BindingCell, Compilation, CompilationId, EntryOptions, ExportsInfoArtifact,
-  FactorizeInfo, ModuleIdentifier, Reflector, rspack_sources::BoxSource,
+  FactorizeInfo, ModuleIdentifier, OptimizationBailoutItem, Reflector, rspack_sources::BoxSource,
 };
 use rspack_error::{Diagnostic, Severity, ToStringResultToRspackResultExt};
 use rspack_napi::napi::bindgen_prelude::*;
@@ -246,7 +246,12 @@ impl JsCompilation {
         .get_module_graph()
         .module_graph_modules()
         .map(|(_, mgm)| mgm)
-        .flat_map(|item| item.optimization_bailout.clone())
+        .flat_map(|item| {
+          item.optimization_bailout.iter().map(|b| match b {
+            OptimizationBailoutItem::Message(msg) => msg.as_str().to_owned(),
+            b => b.to_string(),
+          })
+        })
         .map(|item| JsStatsOptimizationBailout { inner: item })
         .collect::<Vec<_>>(),
     )

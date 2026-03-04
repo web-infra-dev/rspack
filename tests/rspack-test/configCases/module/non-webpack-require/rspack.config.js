@@ -24,7 +24,7 @@ module.exports = {
 						{
 							name: "copy-webpack-plugin",
 							stage:
-								compiler.webpack.Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL
+								compiler.rspack.Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL
 						},
 						() => {
 							compilation.emitAsset(
@@ -39,7 +39,7 @@ module.exports = {
 						{
 							name: "copy-webpack-plugin",
 							stage:
-								compiler.webpack.Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL
+								compiler.rspack.Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL
 						},
 						() => {
 							compilation.emitAsset(

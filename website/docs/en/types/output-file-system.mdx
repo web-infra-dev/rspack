@@ -1,7 +1,8 @@
 <>
 
 ```ts
-import fs from 'fs';
+import fs from 'node:fs';
+
 type OutputFileSystem = {
   writeFile: typeof fs.writeFile;
   mkdir: typeof fs.mkdir;
