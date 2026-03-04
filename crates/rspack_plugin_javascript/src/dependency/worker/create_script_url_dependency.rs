@@ -88,6 +88,6 @@ impl DependencyTemplate for CreateScriptUrlDependencyTemplate {
       ),
       None,
     );
-    source.insert(dep.range_path.end, ")", None);
+    source.insert_static(dep.range_path.end, ")", None);
   }
 }

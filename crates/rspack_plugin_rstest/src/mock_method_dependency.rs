@@ -286,7 +286,7 @@ impl MockMethodDependencyTemplate {
 
     // Comment out original callee and replace with runtime method
     // `rs.hoisted` -> `/* rs.hoisted */ __webpack_require__.rstest_hoisted`
-    source.replace(callee_range.start, callee_range.start, "/* ", None);
+    source.replace_static(callee_range.start, callee_range.start, "/* ", None);
     source.replace(
       callee_range.end,
       callee_range.end,
@@ -308,7 +308,7 @@ impl MockMethodDependencyTemplate {
     callee_range: &DependencyRange,
   ) {
     // Comment out original callee and add HOIST_START + runtime method
-    source.replace(callee_range.start, callee_range.start, "/* ", None);
+    source.replace_static(callee_range.start, callee_range.start, "/* ", None);
     source.replace(
       callee_range.end,
       callee_range.end,
@@ -335,7 +335,7 @@ impl MockMethodDependencyTemplate {
     mock_method: &str,
     callee_range: &DependencyRange,
   ) {
-    source.replace(callee_range.start, callee_range.start, "/* ", None);
+    source.replace_static(callee_range.start, callee_range.start, "/* ", None);
     source.replace(
       callee_range.end,
       callee_range.end,

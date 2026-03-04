@@ -85,7 +85,7 @@ impl RstestPlugin {
           format! {"// [Rstest mock hoist] \"{mocked_id}\"\n{content};\n\n"},
           None,
         );
-        replace.replace(
+        replace.replace_static(
           content_with_flag_start as u32,
           content_with_flag_end as u32,
           "",

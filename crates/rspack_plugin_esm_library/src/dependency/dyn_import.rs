@@ -227,28 +227,6 @@ impl DependencyTemplate for DynamicImportDependencyTemplate {
       ns_map.get(&ref_module.identifier()).cloned()
     };
 
-    source.replace(
-      import_dep.range.start,
-      import_dep.range.end,
-      format!(
-        "{}{}",
-        import_promise,
-        if render_exports.is_empty() {
-          Cow::Borrowed("")
-        } else {
-          Cow::Owned(format!(
-            ".then(({}) => ({{ {} }}))",
-            if already_in_chunk {
-              ""
-            } else {
-              NAMESPACE_SYMBOL
-            },
-            render_exports
-          ))
-        }
-      ),
-      None,
-    );
     if let Some(ns_name) = ns_name {
       // Module's exports were renamed in the chunk or accessed as namespace.
       // Use .then(m => m.<ns_name>) to get the correct module namespace.

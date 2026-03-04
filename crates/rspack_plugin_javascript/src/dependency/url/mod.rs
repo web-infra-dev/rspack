@@ -165,8 +165,7 @@ impl DependencyTemplate for URLDependencyTemplate {
               "{AUTO_PUBLIC_PATH_PLACEHOLDER}{URL_STATIC_PLACEHOLDER}{}",
               &dep.id.as_u32()
             )),
-          )
-          .as_str(),
+          ),
           None,
         );
       }

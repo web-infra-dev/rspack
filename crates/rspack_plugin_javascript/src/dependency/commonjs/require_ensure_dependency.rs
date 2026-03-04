@@ -110,7 +110,7 @@ impl DependencyTemplate for RequireEnsureDependencyTemplate {
         ),
         None,
       );
-      source.replace(error_handler_range.end, dep.range.end, ")", None);
+      source.replace_static(error_handler_range.end, dep.range.end, ")", None);
     } else {
       source.replace(
         dep.content_range.end,

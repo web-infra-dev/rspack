@@ -514,10 +514,10 @@ impl ESMImportSpecifierDependencyTemplate {
     };
     match value {
       Some(ExportProvided::Provided) => {
-        source.replace(dep.range.start, dep.range.end, " true", None);
+        source.replace_static(dep.range.start, dep.range.end, " true", None);
       }
       Some(ExportProvided::NotProvided) => {
-        source.replace(dep.range.start, dep.range.end, " false", None)
+        source.replace_static(dep.range.start, dep.range.end, " false", None)
       }
       _ => {
         let Some(used_name) = ExportsInfoGetter::get_used_name(

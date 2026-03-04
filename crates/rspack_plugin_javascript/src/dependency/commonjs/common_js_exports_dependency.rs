@@ -255,7 +255,7 @@ impl DependencyTemplate for CommonJsExportsDependencyTemplate {
               ),
               None,
             );
-            source.replace(value_range.end, dep.range.end, "))", None);
+            source.replace_static(value_range.end, dep.range.end, "))", None);
           } else {
             panic!("Unexpected base type");
           }
@@ -276,7 +276,7 @@ impl DependencyTemplate for CommonJsExportsDependencyTemplate {
             "__webpack_unused_export__ = (",
             None,
           );
-          source.replace(value_range.end, dep.range.end, ")", None);
+          source.replace_static(value_range.end, dep.range.end, ")", None);
         }
       } else {
         panic!("Define property need value range");
