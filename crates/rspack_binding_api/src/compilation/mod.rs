@@ -520,9 +520,8 @@ impl JsCompilation {
   #[napi]
   pub fn get_stats(&self, reference: Reference<JsCompilation>, env: Env) -> Result<JsStats> {
     Ok(JsStats::new(reference.share_with(env, |compilation| {
-      let exports_info_artifact = compilation.exports_info_artifact_ref()?;
       let compilation = compilation.as_ref()?;
-      let stats = compilation.get_stats_with_exports_info_artifact(exports_info_artifact);
+      let stats = compilation.get_stats();
 
       Ok(stats)
     })?))

@@ -989,15 +989,25 @@ impl Compilation {
     &self.logging
   }
 
-  pub fn get_stats(&self) -> Stats<'_> {
-    self.get_stats_with_exports_info_artifact(&self.exports_info_artifact)
-  }
-
-  pub fn get_stats_with_exports_info_artifact<'a>(
-    &'a self,
-    exports_info_artifact: &'a ExportsInfoArtifact,
-  ) -> Stats<'a> {
-    Stats::new(self, exports_info_artifact)
+  pub fn get_stats<'a>(&'a self) -> Stats<'a> {
+    Stats::new(
+      self.options.as_ref(),
+      &self.assets,
+      &self.emitted_assets,
+      &self.diagnostics,
+      &self.logging,
+      self.hash.as_ref(),
+      &self.exports_info_artifact,
+      &self.module_graph_cache_artifact,
+      &self.build_module_graph_artifact,
+      &self.build_chunk_graph_artifact,
+      &self.module_ids_artifact,
+      &self.chunk_hashes_artifact,
+      &self.code_generated_modules,
+      &self.runtime_modules,
+      &self.runtime_modules_code_generation_source,
+      self.module_executor.as_ref(),
+    )
   }
 
   pub fn add_named_chunk(
