@@ -209,7 +209,7 @@ jobs:
           # Also set generic CXX/CC for fallback
           export CXX="$WASI_SDK_PATH/bin/clang++"
           export CC="$WASI_SDK_PATH/bin/clang"
-          
+
           DISABLE_PLUGIN=1 RUST_TARGET=wasm32-wasip1-threads RSPACK_TARGET_BROWSER=1 pnpm build:binding:${{ inputs.profile }}
           DISABLE_PLUGIN=1 RUST_TARGET=wasm32-wasip1-threads pnpm build:binding:${{ inputs.profile }}
 
@@ -236,7 +236,7 @@ jobs:
           # Also set generic CXX/CC for fallback
           export CXX="$WASI_SDK_PATH/bin/clang++"
           export CC="$WASI_SDK_PATH/bin/clang"
-          
+
           pnpm --filter @rspack/binding build:release:browser
           pnpm --filter @rspack/binding build:release:wasm
 
