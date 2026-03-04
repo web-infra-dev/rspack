@@ -68,25 +68,6 @@ impl JsCompilation {
     Ok(unsafe { self.inner.as_mut() })
   }
 
-  pub(crate) fn exports_info_artifact_ref(&self) -> napi::Result<&'static ExportsInfoArtifact> {
-    let compilation = self.as_ref()?;
-    if let Some(ptr) =
-      exports_info_artifact_context::current_exports_info_artifact(compilation.compiler_id())
-    {
-      // SAFETY: the pointer is set by `with_exports_info_artifact` and remains valid
-      // for the duration of the scoped future.
-      return Ok(unsafe { &*ptr });
-    }
-
-    if let Some(exports_info_artifact) = compilation.exports_info_artifact.try_read() {
-      return Ok(exports_info_artifact);
-    }
-    Err(napi::Error::new(
-      napi::Status::GenericFailure,
-      "Cannot access exports info artifact after it was stolen from compilation.".to_string(),
-    ))
-  }
-
   pub(crate) fn exports_info_artifact_mut(
     &mut self,
   ) -> napi::Result<&'static mut ExportsInfoArtifact> {
