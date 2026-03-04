@@ -1007,6 +1007,10 @@ impl ModuleGraph {
 
     self
       .inner
+      .dependency_id_to_module_identifier
+      .insert(connection.dependency_id, *connection.module_identifier());
+    self
+      .inner
       .connections
       .insert(connection.dependency_id, connection);
   }
