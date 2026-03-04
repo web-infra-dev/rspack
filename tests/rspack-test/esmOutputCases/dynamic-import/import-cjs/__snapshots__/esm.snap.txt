@@ -1,4 +1,4 @@
-```mjs title=dynamic_js.mjs
+```mjs title=dynamic.mjs
 import { __webpack_require__ } from "./runtime.mjs";
 __webpack_require__.add({
 "./dynamic.js"
@@ -21,9 +21,9 @@ export default dynamic_default_0;
 
 ```
 
-```mjs title=esm_js.mjs
+```mjs title=esm.mjs
 import { __webpack_require__ } from "./runtime.mjs";
-import "./dynamic_js.mjs";
+import "./dynamic.mjs";
 
 // ./esm.js
 
@@ -38,8 +38,8 @@ export { value };
 import { __webpack_require__ } from "./runtime.mjs";
 // ./index.js
 it('should support dynamic import', async () => {
-	const mod = await import("./dynamic_js.mjs").then(__webpack_require__.t.bind(__webpack_require__, /*! ./dynamic */ "./dynamic.js", 19))
-	const mod2 = await import("./esm_js.mjs")
+	const mod = await import("./dynamic.mjs").then(__webpack_require__.t.bind(__webpack_require__, /*! ./dynamic */ "./dynamic.js", 19))
+	const mod2 = await import("./esm.mjs")
 	expect(mod.value).toBe(42)
 	expect(mod2.value).toBe(42)
 })

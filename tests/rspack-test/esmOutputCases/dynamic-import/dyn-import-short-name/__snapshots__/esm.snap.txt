@@ -1,0 +1,27 @@
+```mjs title=app.mjs
+// ./src/app.js
+const value = 1
+
+export { value };
+
+```
+
+```mjs title=lib.mjs
+// ./lib/index.js
+const value = 2
+
+export { value };
+
+```
+
+```mjs title=main.mjs
+// ./index.js
+it('should assign short names to dynamic import chunks', async () => {
+	const app = await import("./app.mjs")
+	const lib = await import("./lib.mjs")
+	expect(app.value).toBe(1)
+	expect(lib.value).toBe(2)
+})
+
+
+```
