@@ -103,7 +103,7 @@ fn context_dependency_template_as_require_call(
     && let Some(value_range) = value_range
   {
     for (content, start, end) in &dep.options().replaces {
-      source.replace(*start, *end, content.to_string(), None);
+      source.replace(*start, *end, content.clone(), None);
     }
     source.replace_static(value_range.end, range.end, ")", None);
     expr.push('(');
@@ -143,7 +143,7 @@ fn context_dependency_template_as_id(
   }
 
   for (content, start, end) in &dep.options().replaces {
-    source.replace(*start, *end, content.to_string(), None);
+    source.replace(*start, *end, content.clone(), None);
   }
 
   source.replace(
