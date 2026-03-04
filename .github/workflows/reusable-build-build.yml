@@ -191,10 +191,9 @@ jobs:
         if: ${{ inputs.target == 'wasm32-wasip1-threads' && inputs.profile != 'release' }}
         run: |
           # Install WASI SDK for C++ standard library support (needed by simdutf)
-          WASI_SDK_VERSION="21.0"
           WASI_SDK_DIR="$HOME/wasi-sdk"
           if [ ! -d "$WASI_SDK_DIR" ]; then
-            curl -L "https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-${WASI_SDK_VERSION}/wasi-sdk-${WASI_SDK_VERSION}-linux.tar.gz" -o wasi-sdk.tar.gz
+            curl -L "https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-30/wasi-sdk-30.0-x86_64-linux.tar.gz" -o wasi-sdk.tar.gz
             mkdir -p "$WASI_SDK_DIR"
             tar -xzf wasi-sdk.tar.gz -C "$WASI_SDK_DIR" --strip-components=1
             rm wasi-sdk.tar.gz
@@ -219,10 +218,9 @@ jobs:
         if: ${{ inputs.target == 'wasm32-wasip1-threads' && inputs.profile == 'release' }}
         run: |
           # Install WASI SDK for C++ standard library support (needed by simdutf)
-          WASI_SDK_VERSION="21.0"
           WASI_SDK_DIR="$HOME/wasi-sdk"
           if [ ! -d "$WASI_SDK_DIR" ]; then
-            curl -L "https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-${WASI_SDK_VERSION}/wasi-sdk-${WASI_SDK_VERSION}-linux.tar.gz" -o wasi-sdk.tar.gz
+            curl -L "https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-30/wasi-sdk-30.0-x86_64-linux.tar.gz" -o wasi-sdk.tar.gz
             mkdir -p "$WASI_SDK_DIR"
             tar -xzf wasi-sdk.tar.gz -C "$WASI_SDK_DIR" --strip-components=1
             rm wasi-sdk.tar.gz
