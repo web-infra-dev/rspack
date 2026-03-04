@@ -1,4 +1,8 @@
-use std::{borrow::Cow, hash::BuildHasherDefault};
+use std::{
+  borrow::Cow,
+  hash::BuildHasherDefault,
+  sync::atomic::{AtomicU8, Ordering},
+};
 
 use dashmap::DashSet;
 use either::Either;
@@ -28,6 +32,12 @@ use crate::{
   rspack_sources::BoxSource,
 };
 
+const STATS_ARTIFACT_FALLBACK_EXPORTS_INFO: u8 = 1 << 0;
+const STATS_ARTIFACT_FALLBACK_MODULE_GRAPH_CACHE: u8 = 1 << 1;
+const STATS_ARTIFACT_FALLBACK_BUILD_MODULE_GRAPH: u8 = 1 << 2;
+const STATS_ARTIFACT_FALLBACK_MODULE_IDS: u8 = 1 << 3;
+const STATS_ARTIFACT_FALLBACK_CHUNK_HASHES: u8 = 1 << 4;
+
 #[derive(Debug)]
 pub struct Stats<'compilation> {
   pub options: &'compilation CompilerOptions,
@@ -52,6 +62,7 @@ pub struct Stats<'compilation> {
   default_build_module_graph_artifact: BuildModuleGraphArtifact,
   default_module_ids_artifact: ModuleIdsArtifact,
   default_chunk_hashes_artifact: ChunkHashesArtifact,
+  artifact_fallback_flags: AtomicU8,
 }
 
 impl<'compilation> Clone for Stats<'compilation> {
@@ -78,6 +89,7 @@ impl<'compilation> Clone for Stats<'compilation> {
       default_build_module_graph_artifact: BuildModuleGraphArtifact::new(),
       default_module_ids_artifact: Default::default(),
       default_chunk_hashes_artifact: Default::default(),
+      artifact_fallback_flags: AtomicU8::new(self.artifact_fallback_flags.load(Ordering::Relaxed)),
     }
   }
 }
@@ -124,28 +136,70 @@ impl<'compilation> Stats<'compilation> {
       default_build_module_graph_artifact: BuildModuleGraphArtifact::new(),
       default_module_ids_artifact: Default::default(),
       default_chunk_hashes_artifact: Default::default(),
+      artifact_fallback_flags: AtomicU8::new(0),
     }
   }
 
-  pub fn exports_info_artifact(&self) -> &ExportsInfoArtifact {
+  fn mark_artifact_fallback(&self, artifact_flag: u8) {
     self
-      .exports_info_artifact
-      .try_read()
-      .unwrap_or(&self.default_exports_info_artifact)
+      .artifact_fallback_flags
+      .fetch_or(artifact_flag, Ordering::Relaxed);
+  }
+
+  pub fn clear_artifact_fallback_flags(&self) {
+    self.artifact_fallback_flags.store(0, Ordering::Relaxed);
+  }
+
+  pub fn artifact_fallback_flags(&self) -> u8 {
+    self.artifact_fallback_flags.load(Ordering::Relaxed)
+  }
+
+  pub fn take_artifact_fallback_flags(&self) -> u8 {
+    self.artifact_fallback_flags.swap(0, Ordering::Relaxed)
+  }
+
+  pub fn artifact_fallback_names(flags: u8) -> Vec<&'static str> {
+    let mut names = Vec::new();
+    if flags & STATS_ARTIFACT_FALLBACK_EXPORTS_INFO != 0 {
+      names.push("exportsInfo");
+    }
+    if flags & STATS_ARTIFACT_FALLBACK_MODULE_GRAPH_CACHE != 0 {
+      names.push("moduleGraph");
+    }
+    if flags & STATS_ARTIFACT_FALLBACK_BUILD_MODULE_GRAPH != 0 {
+      names.push("buildModuleGraph");
+    }
+    if flags & STATS_ARTIFACT_FALLBACK_MODULE_IDS != 0 {
+      names.push("moduleIds");
+    }
+    if flags & STATS_ARTIFACT_FALLBACK_CHUNK_HASHES != 0 {
+      names.push("chunkHashes");
+    }
+    names
+  }
+
+  pub fn exports_info_artifact(&self) -> &ExportsInfoArtifact {
+    self.exports_info_artifact.try_read().unwrap_or_else(|| {
+      self.mark_artifact_fallback(STATS_ARTIFACT_FALLBACK_EXPORTS_INFO);
+      &self.default_exports_info_artifact
+    })
   }
 
   pub fn module_graph_cache_artifact(&self) -> &ModuleGraphCacheArtifact {
-    self
-      .module_graph_cache
-      .try_read()
-      .unwrap_or(&self.default_module_graph_cache_artifact)
+    self.module_graph_cache.try_read().unwrap_or_else(|| {
+      self.mark_artifact_fallback(STATS_ARTIFACT_FALLBACK_MODULE_GRAPH_CACHE);
+      &self.default_module_graph_cache_artifact
+    })
   }
 
   pub fn build_module_graph_artifact(&self) -> &BuildModuleGraphArtifact {
     self
       .build_module_graph_artifact
       .try_read()
-      .unwrap_or(&self.default_build_module_graph_artifact)
+      .unwrap_or_else(|| {
+        self.mark_artifact_fallback(STATS_ARTIFACT_FALLBACK_BUILD_MODULE_GRAPH);
+        &self.default_build_module_graph_artifact
+      })
   }
 
   pub fn build_chunk_graph_artifact(&self) -> &BuildChunkGraphArtifact {
@@ -153,17 +207,17 @@ impl<'compilation> Stats<'compilation> {
   }
 
   pub fn module_ids_artifact(&self) -> &ModuleIdsArtifact {
-    self
-      .module_ids_artifact
-      .try_read()
-      .unwrap_or(&self.default_module_ids_artifact)
+    self.module_ids_artifact.try_read().unwrap_or_else(|| {
+      self.mark_artifact_fallback(STATS_ARTIFACT_FALLBACK_MODULE_IDS);
+      &self.default_module_ids_artifact
+    })
   }
 
   pub fn chunk_hashes_artifact(&self) -> &ChunkHashesArtifact {
-    self
-      .chunk_hashes_artifact
-      .try_read()
-      .unwrap_or(&self.default_chunk_hashes_artifact)
+    self.chunk_hashes_artifact.try_read().unwrap_or_else(|| {
+      self.mark_artifact_fallback(STATS_ARTIFACT_FALLBACK_CHUNK_HASHES);
+      &self.default_chunk_hashes_artifact
+    })
   }
 }
 

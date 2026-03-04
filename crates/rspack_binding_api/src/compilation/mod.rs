@@ -68,24 +68,14 @@ impl JsCompilation {
 
   pub(crate) fn exports_info_artifact_ref(&self) -> napi::Result<&'static ExportsInfoArtifact> {
     let compilation = self.as_ref()?;
-    if let Some(ptr) = compilation.compiler_context.exports_info_artifact_ptr() {
-      // SAFETY: pointer is injected by binding hook phases and valid in current scope.
-      Ok(unsafe { &*(ptr as *const ExportsInfoArtifact) })
-    } else {
-      Ok(&compilation.exports_info_artifact)
-    }
+    Ok(&compilation.exports_info_artifact)
   }
 
   pub(crate) fn exports_info_artifact_mut(
     &mut self,
   ) -> napi::Result<&'static mut ExportsInfoArtifact> {
     let compilation = self.as_mut()?;
-    if let Some(ptr) = compilation.compiler_context.exports_info_artifact_ptr() {
-      // SAFETY: pointer is injected by binding hook phases and valid in current scope.
-      Ok(unsafe { &mut *(ptr as *mut ExportsInfoArtifact) })
-    } else {
-      Ok(&mut compilation.exports_info_artifact)
-    }
+    Ok(&mut compilation.exports_info_artifact)
   }
 }
 

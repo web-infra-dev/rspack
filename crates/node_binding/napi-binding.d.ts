@@ -430,6 +430,7 @@ export declare class JsResolverFactory {
 export declare class JsStats {
   toJson(jsOptions: JsStatsOptions): JsStatsCompilation
   getLogging(acceptedTypes: number): Array<JsStatsLogging>
+  __internal_getArtifactFallbackFlags(): number
 }
 
 export declare class KnownBuildInfo {
