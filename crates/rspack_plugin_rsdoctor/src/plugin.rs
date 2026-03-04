@@ -504,7 +504,7 @@ async fn after_process_assets(
     .get(&compilation.id())
     .expect("should have entrypoint ukey map");
   let entrypoint_assets = collect_entrypoint_assets(
-    &compilation.entrypoints(),
+    compilation.entrypoints(),
     &rsd_assets,
     &entrypoint_ukey_map,
     chunk_group_by_ukey,
