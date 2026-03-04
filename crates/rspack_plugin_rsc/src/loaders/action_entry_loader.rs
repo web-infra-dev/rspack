@@ -111,7 +111,7 @@ impl Loader<RunnerContext> for ActionEntryLoader {
             "export {{ {} as \"{}\" }} from {}",
             exported_name,
             id,
-            serde_json::to_string(path).to_rspack_result()?
+            rspack_util::json_stringify_str(path)
           ))
         },
       )

@@ -2246,6 +2246,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "078e285eafdfb6c4b434e0d31e8cfcb5115b651496faca5749b88fafd4f23bfd"
 
 [[package]]
+name = "json-escape-simd"
+version = "3.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a3c2a6c0b4b5637c41719973ef40c6a1cf564f9db6958350de6193fbee9c23f5"
+
+[[package]]
 name = "json-strip-comments"
 version = "3.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4225,7 +4231,6 @@ dependencies = [
  "rspack_hash",
  "rspack_hook",
  "rspack_util",
- "serde_json",
  "tracing",
  "urlencoding",
 ]
@@ -4443,7 +4448,6 @@ dependencies = [
  "rspack_plugin_split_chunks",
  "rspack_util",
  "serde",
- "serde_json",
  "sugar_path",
  "swc_core",
  "tokio",
@@ -4639,6 +4643,7 @@ dependencies = [
  "rspack_hash",
  "rspack_hook",
  "rspack_plugin_javascript",
+ "rspack_util",
  "rustc-hash",
  "serde_json",
  "swc_core",
@@ -4882,6 +4887,7 @@ dependencies = [
  "rspack_hook",
  "rspack_plugin_asset",
  "rspack_plugin_javascript",
+ "rspack_util",
  "rustc-hash",
  "serde_json",
  "swc_core",
@@ -5027,7 +5033,6 @@ dependencies = [
  "rspack_plugin_runtime",
  "rspack_util",
  "rustc-hash",
- "serde_json",
  "sha2",
  "tokio",
  "tracing",
@@ -5244,6 +5249,7 @@ dependencies = [
  "dashmap 6.1.0",
  "indexmap",
  "itoa",
+ "json-escape-simd",
  "memchr",
  "once_cell",
  "regex",

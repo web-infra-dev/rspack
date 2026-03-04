@@ -675,7 +675,7 @@ impl<C: InitFragmentRenderContext> InitFragment<C> for ExternalModuleInitFragmen
     let start = format!(
       "import {} from {};\n",
       imports_string,
-      serde_json::to_string(&self.imported_module).expect("invalid json tostring")
+      rspack_util::json_stringify_str(&self.imported_module)
     );
 
     Ok(InitFragmentContents { start, end: None })

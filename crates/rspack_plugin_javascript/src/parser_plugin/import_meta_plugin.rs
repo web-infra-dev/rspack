@@ -258,7 +258,7 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
           } else {
             content.push(format!(
               r#"[{}]: {}"#,
-              serde_json::to_string(&prop.id).expect("json stringify failed"),
+              rspack_util::json_stringify_str(&prop.id),
               self.import_meta_unknown_property(&vec![prop.id.to_string()])
             ));
           }

@@ -461,9 +461,7 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
       if let Some(dirname) = dirname {
         parser.add_presentational_dependency(Box::new(ConstDependency::new(
           ident.span.into(),
-          serde_json::to_string(&dirname)
-            .expect("should render dirname")
-            .into(),
+          rspack_util::json_stringify_str(&dirname).into(),
         )));
         return Some(true);
       }
@@ -515,9 +513,7 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
       if let Some(filename) = filename {
         parser.add_presentational_dependency(Box::new(ConstDependency::new(
           ident.span.into(),
-          serde_json::to_string(&filename)
-            .expect("should render filename")
-            .into(),
+          rspack_util::json_stringify_str(&filename).into(),
         )));
         return Some(true);
       }
