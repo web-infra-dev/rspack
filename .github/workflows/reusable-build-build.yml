@@ -190,6 +190,27 @@ jobs:
       - name: Build wasm32-wasip1-threads with linux in Docker
         if: ${{ inputs.target == 'wasm32-wasip1-threads' && inputs.profile != 'release' }}
         run: |
+          # Install WASI SDK for C++ standard library support (needed by simdutf)
+          WASI_SDK_VERSION="21.0"
+          WASI_SDK_DIR="$HOME/wasi-sdk"
+          if [ ! -d "$WASI_SDK_DIR" ]; then
+            curl -L "https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-${WASI_SDK_VERSION}/wasi-sdk-${WASI_SDK_VERSION}-linux.tar.gz" -o wasi-sdk.tar.gz
+            mkdir -p "$WASI_SDK_DIR"
+            tar -xzf wasi-sdk.tar.gz -C "$WASI_SDK_DIR" --strip-components=1
+            rm wasi-sdk.tar.gz
+          fi
+          export WASI_SDK_PATH="$WASI_SDK_DIR"
+          # Set target-specific environment variables that cc-rs checks for
+          export CXX_wasm32_wasip1_threads="$WASI_SDK_PATH/bin/clang++"
+          export CXX_wasm32-wasip1-threads="$WASI_SDK_PATH/bin/clang++"
+          export CXXFLAGS_wasm32_wasip1_threads="--target=wasm32-wasi --sysroot=$WASI_SDK_PATH/share/wasi-sysroot"
+          export CXXFLAGS_wasm32-wasip1-threads="--target=wasm32-wasi --sysroot=$WASI_SDK_PATH/share/wasi-sysroot"
+          export CC_wasm32_wasip1_threads="$WASI_SDK_PATH/bin/clang"
+          export CC_wasm32-wasip1-threads="$WASI_SDK_PATH/bin/clang"
+          # Also set generic CXX/CC for fallback
+          export CXX="$WASI_SDK_PATH/bin/clang++"
+          export CC="$WASI_SDK_PATH/bin/clang"
+          
           DISABLE_PLUGIN=1 RUST_TARGET=wasm32-wasip1-threads RSPACK_TARGET_BROWSER=1 pnpm build:binding:${{ inputs.profile }}
           DISABLE_PLUGIN=1 RUST_TARGET=wasm32-wasip1-threads pnpm build:binding:${{ inputs.profile }}
 
@@ -197,6 +218,27 @@ jobs:
       - name: Build wasm32-wasip1-threads(release-wasi) with linux in Docker
         if: ${{ inputs.target == 'wasm32-wasip1-threads' && inputs.profile == 'release' }}
         run: |
+          # Install WASI SDK for C++ standard library support (needed by simdutf)
+          WASI_SDK_VERSION="21.0"
+          WASI_SDK_DIR="$HOME/wasi-sdk"
+          if [ ! -d "$WASI_SDK_DIR" ]; then
+            curl -L "https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-${WASI_SDK_VERSION}/wasi-sdk-${WASI_SDK_VERSION}-linux.tar.gz" -o wasi-sdk.tar.gz
+            mkdir -p "$WASI_SDK_DIR"
+            tar -xzf wasi-sdk.tar.gz -C "$WASI_SDK_DIR" --strip-components=1
+            rm wasi-sdk.tar.gz
+          fi
+          export WASI_SDK_PATH="$WASI_SDK_DIR"
+          # Set target-specific environment variables that cc-rs checks for
+          export CXX_wasm32_wasip1_threads="$WASI_SDK_PATH/bin/clang++"
+          export CXX_wasm32-wasip1-threads="$WASI_SDK_PATH/bin/clang++"
+          export CXXFLAGS_wasm32_wasip1_threads="--target=wasm32-wasi --sysroot=$WASI_SDK_PATH/share/wasi-sysroot"
+          export CXXFLAGS_wasm32-wasip1-threads="--target=wasm32-wasi --sysroot=$WASI_SDK_PATH/share/wasi-sysroot"
+          export CC_wasm32_wasip1_threads="$WASI_SDK_PATH/bin/clang"
+          export CC_wasm32-wasip1-threads="$WASI_SDK_PATH/bin/clang"
+          # Also set generic CXX/CC for fallback
+          export CXX="$WASI_SDK_PATH/bin/clang++"
+          export CC="$WASI_SDK_PATH/bin/clang"
+          
           pnpm --filter @rspack/binding build:release:browser
           pnpm --filter @rspack/binding build:release:wasm
 
