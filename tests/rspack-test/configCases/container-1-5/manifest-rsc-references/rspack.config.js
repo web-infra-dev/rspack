@@ -3,8 +3,8 @@ const { ModuleFederationPlugin } = require("@rspack/core").container;
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	optimization: {
-		chunkIds: "named",
-		moduleIds: "named"
+		chunkIds: "deterministic",
+		moduleIds: "deterministic"
 	},
 	output: {
 		chunkFilename: "[id].js"
