@@ -27,20 +27,27 @@ impl Task<TaskContext> for ProcessDependenciesTask {
       dependencies,
       from_unlazy,
     } = *self;
-    let mut sorted_dependencies = HashMap::default();
-
-    // First mark all dependencies as added
-    for dependency_id in &dependencies {
-      context
-        .artifact
-        .affected_dependencies
-        .mark_as_add(dependency_id);
-    }
+    let mut sorted_dependencies: HashMap<Cow<str>, Vec<_>> = HashMap::default();
+    sorted_dependencies.reserve(dependencies.len());
 
     let module_graph = &mut context.artifact.module_graph;
+    let module = module_graph
+      .module_by_identifier(&original_module_identifier)
+      .expect("Module expected");
+    let original_module_source = module.as_normal_module().and_then(|m| m.source().cloned());
+    let original_module_context = module.get_context();
+    let original_module_issuer = module
+      .as_normal_module()
+      .and_then(|m| m.name_for_condition());
+    let original_module_layer = module.get_layer().cloned();
+    let original_module_resolve_options = module.get_resolve_options();
 
     for dependency_id in dependencies {
       let dependency = module_graph.dependency_by_id(&dependency_id);
+      context
+        .artifact
+        .affected_dependencies
+        .mark_as_add(&dependency_id);
       // FIXME: now only module/context dependency can put into resolve queue.
       // FIXME: should align webpack
       let resource_identifier = if let Some(module_dependency) = dependency.as_module_dependency() {
@@ -65,21 +72,13 @@ impl Task<TaskContext> for ProcessDependenciesTask {
       if let Some(resource_identifier) = resource_identifier {
         sorted_dependencies
           .entry(resource_identifier)
-          .or_insert(vec![])
+          .or_default()
           .push(dependency.clone());
       }
     }
 
-    let module = module_graph
-      .module_by_identifier(&original_module_identifier)
-      .expect("Module expected");
-
-    let mut res: Vec<Box<dyn Task<TaskContext>>> = vec![];
+    let mut res: Vec<Box<dyn Task<TaskContext>>> = Vec::with_capacity(sorted_dependencies.len());
     for dependencies in sorted_dependencies.into_values() {
-      let original_module_source = module_graph
-        .module_by_identifier(&original_module_identifier)
-        .and_then(|m| m.as_normal_module())
-        .and_then(|m| m.source().cloned());
       let dependency = &dependencies[0];
       let dependency_type = dependency.dependency_type();
       // TODO move module_factory calculate to dependency factories
@@ -98,15 +97,13 @@ impl Task<TaskContext> for ProcessDependenciesTask {
         compiler_id: context.compiler_id,
         compilation_id: context.compilation_id,
         module_factory,
-        original_module_identifier: Some(module.identifier()),
-        original_module_context: module.get_context(),
-        original_module_source,
-        issuer: module
-          .as_normal_module()
-          .and_then(|module| module.name_for_condition()),
-        issuer_layer: module.get_layer().cloned(),
+        original_module_identifier: Some(original_module_identifier),
+        original_module_context: original_module_context.clone(),
+        original_module_source: original_module_source.clone(),
+        issuer: original_module_issuer.clone(),
+        issuer_layer: original_module_layer.clone(),
         dependencies,
-        resolve_options: module.get_resolve_options(),
+        resolve_options: original_module_resolve_options.clone(),
         options: context.compiler_options.clone(),
         resolver_factory: context.resolver_factory.clone(),
         from_unlazy,
