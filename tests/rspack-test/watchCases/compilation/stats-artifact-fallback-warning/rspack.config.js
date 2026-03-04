@@ -4,7 +4,8 @@ const captureStdio = require("@rspack/test-tools/helper/legacy/captureStdio");
 const INCOMPLETE_STATS_WARNING =
 	"Stats output may be incomplete because some compilation artifacts were unavailable";
 
-let canCheckWarning = false;
+let staleCompilation = null;
+let staleInnerStats = null;
 let warningChecked = false;
 
 /** @type {import('@rspack/core').Configuration} */
@@ -20,19 +21,18 @@ module.exports = {
 	plugins: [
 		{
 			apply(compiler) {
-				compiler.hooks.make.tap("PLUGIN", compilation => {
-					if (!canCheckWarning || warningChecked) {
+				compiler.hooks.make.tap("PLUGIN", () => {
+					if (!staleCompilation || !staleInnerStats || warningChecked) {
 						return;
 					}
 					warningChecked = true;
 
-					const innerStats = compilation.__internal_getInner().getStats();
-					const statsOptions = compilation.createStatsOptions(
-						{ all: false, errors: true, warnings: true },
-						{ forToString: false }
-					);
-
 					setTimeout(() => {
+						const statsOptions = staleCompilation.createStatsOptions(
+							{ all: false, errors: true, warnings: true },
+							{ forToString: false }
+						);
+
 						const oldWarn = console.warn;
 						const warningLogs = [];
 						console.warn = (...args) => {
@@ -40,11 +40,7 @@ module.exports = {
 						};
 
 						const capture = captureStdio(process.stderr);
-						const json = innerStats.toJson(statsOptions);
-						const fallbackFlags =
-							typeof innerStats.__internal_getArtifactFallbackFlags === "function"
-								? innerStats.__internal_getArtifactFallbackFlags()
-								: "unknown";
+						const json = staleInnerStats.toJson(statsOptions);
 						const warningOutput = capture.toString();
 						capture.restore();
 						console.warn = oldWarn;
@@ -53,7 +49,13 @@ module.exports = {
 							throw new Error("Expected binding stats json to be an object");
 						}
 
+						const fallbackFlags =
+							typeof staleInnerStats.__internal_getArtifactFallbackFlags ===
+							"function"
+								? staleInnerStats.__internal_getArtifactFallbackFlags()
+								: "unknown";
 						const warningMessages = warningLogs.join("\n") + "\n" + warningOutput;
+
 						if (
 							!warningMessages.includes(INCOMPLETE_STATS_WARNING) ||
 							!warningMessages.includes("compiler.hooks.done")
@@ -65,8 +67,11 @@ module.exports = {
 					});
 				});
 
-				compiler.hooks.done.tap("PLUGIN", () => {
-					canCheckWarning = true;
+				compiler.hooks.done.tap("PLUGIN", stats => {
+					if (!staleCompilation) {
+						staleCompilation = stats.compilation;
+						staleInnerStats = staleCompilation.__internal_getInner().getStats();
+					}
 				});
 			}
 		}
