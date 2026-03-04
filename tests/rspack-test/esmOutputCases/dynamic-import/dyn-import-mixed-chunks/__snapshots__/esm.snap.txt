@@ -1,0 +1,116 @@
+```mjs title=main.mjs
+// ./index.js
+it('should handle mixed: single-module chunk + multi-module chunk', async () => {
+	// solo is alone in its chunk - direct import works
+	const solo = await import("./solo.mjs")
+	expect(solo).toHaveProperty('default', 'solo')
+	expect(solo).toHaveProperty('value', 100)
+
+	// m1 and mX share a chunk via magic comment - need namespace objects
+	const m1 = await import("./shared.mjs").then(m => m.m1_namespaceObject)
+	const m2 = await import("./shared.mjs").then(m => m.m2_namespaceObject)
+
+	expect(m1).toHaveProperty('default', 'hello')
+	expect(m1).toHaveProperty('value', 1)
+	expect(m2).toHaveProperty('default', 'world')
+	expect(m2).toHaveProperty('value', 2)
+})
+
+
+```
+
+```mjs title=runtime.mjs
+// The module cache
+var __webpack_module_cache__ = {};
+// The require function
+function __webpack_require__(moduleId) {
+// Check if module is in cache
+var cachedModule = __webpack_module_cache__[moduleId];
+if (cachedModule !== undefined) {
+return cachedModule.exports;
+}
+// Create a new module (and put it into the cache)
+var module = (__webpack_module_cache__[moduleId] = {
+exports: {}
+});
+// Execute the module function
+__webpack_modules__[moduleId](module, module.exports, __webpack_require__);
+
+// Return the exports of the module
+return module.exports;
+}
+
+// webpack/runtime/define_property_getters
+(() => {
+__webpack_require__.d = (exports, definition) => {
+	for(var key in definition) {
+        if(__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key)) {
+            Object.defineProperty(exports, key, { enumerable: true, get: definition[key] });
+        }
+    }
+};
+})();
+// webpack/runtime/esm_register_module
+(() => {
+__webpack_require__.add = function registerModules(modules) { Object.assign(__webpack_require__.m, modules) }
+
+})();
+// webpack/runtime/has_own_property
+(() => {
+__webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
+})();
+// webpack/runtime/make_namespace_object
+(() => {
+// define __esModule on exports
+__webpack_require__.r = (exports) => {
+	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+	}
+	Object.defineProperty(exports, '__esModule', { value: true });
+};
+})();
+
+export { __webpack_require__ };
+
+```
+
+```mjs title=shared.mjs
+import { __webpack_require__ } from "./runtime.mjs";
+// NAMESPACE OBJECT: ./m1.js
+var m1_namespaceObject = {};
+__webpack_require__.r(m1_namespaceObject);
+__webpack_require__.d(m1_namespaceObject, { 
+  "default": () => (m1),
+  value: () => (value) });
+
+
+// NAMESPACE OBJECT: ./m2.js
+var m2_namespaceObject = {};
+__webpack_require__.r(m2_namespaceObject);
+__webpack_require__.d(m2_namespaceObject, { 
+  "default": () => (m2),
+  value: () => (m2_value) });
+
+
+// ./m1.js
+/* export default */ const m1 = ('hello');
+const value = 1;
+
+// ./m2.js
+/* export default */ const m2 = ('world');
+const m2_value = 2;
+
+export { m1_namespaceObject, m2 as default_0, m2_namespaceObject, m2_value as value_0, value };
+export default m1;
+
+```
+
+```mjs title=solo.mjs
+// ./solo.js
+/* export default */ const solo = ('solo');
+const value = 100;
+
+export { value };
+export default solo;
+
+```

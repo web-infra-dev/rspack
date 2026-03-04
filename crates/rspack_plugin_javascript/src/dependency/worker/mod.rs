@@ -159,7 +159,7 @@ impl DependencyTemplate for WorkerDependencyTemplate {
           .get(&ukey)
       })
       .and_then(|chunk| chunk.id())
-      .and_then(|chunk_id| serde_json::to_string(chunk_id).ok())
+      .map(|chunk_id| rspack_util::json_stringify_str(chunk_id.as_str()))
       .expect("failed to get json stringified chunk id");
     let worker_import_base_url = if !dep.public_path.is_empty() {
       format!("\"{}\"", dep.public_path)

@@ -1113,10 +1113,10 @@ export type JavascriptParserOptions = {
   dynamicImportFetchPriority?: 'low' | 'high' | 'auto';
 
   /**
-   * Enable or disable evaluating import.meta.
-   * @default true
+   * Enable or disable evaluating import.meta. Set to 'preserve-unknown' to preserve unknown properties for runtime evaluation.
+   * @default 'preserve-unknown'
    */
-  importMeta?: boolean;
+  importMeta?: boolean | 'preserve-unknown';
 
   /**
    * Enable parsing of new URL() syntax.
@@ -1158,6 +1158,9 @@ export type JavascriptParserOptions = {
 
   /** Warn or error for conflicting re-exports */
   reexportExportsPresence?: ExportsPresence;
+
+  /** Handle the this context correctly according to the spec for namespace objects. */
+  strictThisContextOnImports?: boolean;
 
   /** Provide custom syntax for Worker parsing, commonly used to support Worklet */
   worker?: string[] | boolean;
@@ -2004,7 +2007,8 @@ export type StatsOptions = {
   errorsCount?: boolean;
   /**
    * Enables or disables the use of colors in the output.
-   * @default false
+   * When undefined, defaults to true if the environment supports color (TTY, FORCE_COLOR, or NO_COLOR unset), otherwise false.
+   * @default environment-dependent (see above)
    */
   colors?: boolean | StatsColorOptions;
   /**

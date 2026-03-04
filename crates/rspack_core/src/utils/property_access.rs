@@ -1,16 +1,24 @@
+use rspack_util::json_stringify_str;
+
 use crate::utils::property_name::{RESERVED_IDENTIFIER, SAFE_IDENTIFIER};
 
 fn render_property_access(result: &mut String, property: &str, optional: bool) {
-  let prefix = if optional { "?." } else { "." };
   if SAFE_IDENTIFIER.is_match(property) && !RESERVED_IDENTIFIER.contains(property) {
-    result.push_str(&format!("{prefix}{property}"));
-  } else {
-    let quoted = serde_json::to_string(property).expect("should render property");
     if optional {
-      result.push_str(&format!("?.[{quoted}]"));
+      result.push_str("?.");
     } else {
-      result.push_str(&format!("[{quoted}]"));
+      result.push('.');
     }
+    result.push_str(property);
+  } else {
+    let quoted = json_stringify_str(property);
+    if optional {
+      result.push_str("?.[");
+    } else {
+      result.push('[');
+    }
+    result.push_str(&quoted);
+    result.push(']');
   }
 }
 
