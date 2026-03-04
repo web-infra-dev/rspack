@@ -201,11 +201,8 @@ jobs:
           export WASI_SDK_PATH="$WASI_SDK_DIR"
           # Set target-specific environment variables that cc-rs checks for
           export CXX_wasm32_wasip1_threads="$WASI_SDK_PATH/bin/clang++"
-          export CXX_wasm32-wasip1-threads="$WASI_SDK_PATH/bin/clang++"
           export CXXFLAGS_wasm32_wasip1_threads="--target=wasm32-wasi --sysroot=$WASI_SDK_PATH/share/wasi-sysroot"
-          export CXXFLAGS_wasm32-wasip1-threads="--target=wasm32-wasi --sysroot=$WASI_SDK_PATH/share/wasi-sysroot"
           export CC_wasm32_wasip1_threads="$WASI_SDK_PATH/bin/clang"
-          export CC_wasm32-wasip1-threads="$WASI_SDK_PATH/bin/clang"
           # Also set generic CXX/CC for fallback
           export CXX="$WASI_SDK_PATH/bin/clang++"
           export CC="$WASI_SDK_PATH/bin/clang"
@@ -228,11 +225,8 @@ jobs:
           export WASI_SDK_PATH="$WASI_SDK_DIR"
           # Set target-specific environment variables that cc-rs checks for
           export CXX_wasm32_wasip1_threads="$WASI_SDK_PATH/bin/clang++"
-          export CXX_wasm32-wasip1-threads="$WASI_SDK_PATH/bin/clang++"
           export CXXFLAGS_wasm32_wasip1_threads="--target=wasm32-wasi --sysroot=$WASI_SDK_PATH/share/wasi-sysroot"
-          export CXXFLAGS_wasm32-wasip1-threads="--target=wasm32-wasi --sysroot=$WASI_SDK_PATH/share/wasi-sysroot"
           export CC_wasm32_wasip1_threads="$WASI_SDK_PATH/bin/clang"
-          export CC_wasm32-wasip1-threads="$WASI_SDK_PATH/bin/clang"
           # Also set generic CXX/CC for fallback
           export CXX="$WASI_SDK_PATH/bin/clang++"
           export CC="$WASI_SDK_PATH/bin/clang"
