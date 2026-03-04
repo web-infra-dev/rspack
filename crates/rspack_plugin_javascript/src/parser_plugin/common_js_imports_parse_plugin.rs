@@ -75,6 +75,7 @@ impl RequireReferences {
 #[derive(Debug, PartialEq, Eq, Hash)]
 struct RequireDependencyLocator {
   dep_idx: usize,
+  block_idx: Option<usize>,
   dep_type: DependencyType,
 }
 
@@ -394,6 +395,7 @@ impl CommonJsImportsParserPlugin {
       if let Some(require_references) = parser.common_js_require_references.get_require_mut(&span) {
         require_references.dep_locator = Some(RequireDependencyLocator {
           dep_idx,
+          block_idx: parser.collecting_dependencies_for_block,
           dep_type: DependencyType::CjsRequire,
         });
       }
@@ -435,6 +437,7 @@ impl CommonJsImportsParserPlugin {
     {
       require_references.dep_locator = Some(RequireDependencyLocator {
         dep_idx,
+        block_idx: parser.collecting_dependencies_for_block,
         dep_type: DependencyType::CommonJSRequireContext,
       });
     }
@@ -910,7 +913,14 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
       .common_js_require_references
       .take_all_require_references()
     {
-      let Some(dep) = parser.get_dependency_mut(locator.dep_idx) else {
+      let dep = if let Some(block_idx) = locator.block_idx
+        && let Some(block) = parser.get_block_mut(block_idx)
+      {
+        block.get_dependency_mut(locator.dep_idx)
+      } else {
+        parser.get_dependency_mut(locator.dep_idx)
+      };
+      let Some(dep) = dep else {
         continue;
       };
       match locator.dep_type {

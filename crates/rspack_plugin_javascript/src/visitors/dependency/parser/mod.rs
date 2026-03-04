@@ -373,6 +373,7 @@ pub struct JavascriptParser<'parser> {
   pub(crate) side_effects_item: Option<SideEffectsBailoutItemWithSpan>,
   pub(crate) is_renaming: Option<Atom>,
   pub(crate) location_advancer: DependencyLocationAdvancer,
+  pub(crate) collecting_dependencies_for_block: Option<usize>,
 }
 
 impl<'parser> JavascriptParser<'parser> {
@@ -555,6 +556,7 @@ impl<'parser> JavascriptParser<'parser> {
       parser_runtime_requirements,
       is_renaming: None,
       location_advancer: DependencyLocationAdvancer::new(),
+      collecting_dependencies_for_block: None,
     }
   }
 
@@ -598,10 +600,14 @@ impl<'parser> JavascriptParser<'parser> {
 
   pub fn collect_dependencies_for_block(
     &mut self,
+    block_idx: usize,
+    deps: Vec<BoxDependency>,
     f: impl FnOnce(&mut JavascriptParser),
   ) -> Vec<BoxDependency> {
-    let old_deps = std::mem::take(&mut self.dependencies);
+    let old_deps = std::mem::replace(&mut self.dependencies, deps);
+    let old_block_idx = self.collecting_dependencies_for_block.replace(block_idx);
     f(self);
+    self.collecting_dependencies_for_block = old_block_idx;
     std::mem::replace(&mut self.dependencies, old_deps)
   }
 
