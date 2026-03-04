@@ -19,7 +19,7 @@ use rspack_core::{
 };
 use rspack_error::{Diagnostic, Error, Result, Severity, ToStringResultToRspackResultExt};
 use rspack_hash::RspackHash;
-use rspack_util::{atom::Atom, identifier::make_paths_relative, itoa, json_stringify};
+use rspack_util::{atom::Atom, identifier::make_paths_relative, itoa, json_stringify_str};
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::parser_and_generator::CssExport;
@@ -214,7 +214,7 @@ pub fn stringified_exports<'a>(
            id: _,
            orig_name: _,
          }| match from {
-          None => json_stringify(&ident),
+          None => json_stringify_str(ident),
           Some(from_name) => {
             let from = module
               .get_dependencies()
@@ -245,15 +245,14 @@ pub fn stringified_exports<'a>(
               .get_read_only_export_info(&Atom::from(ident.as_str()))
               .get_used_name(None, runtime)
             {
-              Some(UsedNameItem::Str(name)) => json_stringify(&unescape(name.as_str())),
-              _ => json_stringify(&unescape(ident)),
+              Some(UsedNameItem::Str(name)) => json_stringify_str(&unescape(name.as_str())),
+              _ => json_stringify_str(&unescape(ident)),
             };
 
-            let from = serde_json::to_string(
+            let from = rspack_util::json_stringify(
               ChunkGraph::get_module_id(&compilation.module_ids_artifact, from.module_identifier)
                 .expect("should have module"),
-            )
-            .expect("should json stringify module id");
+            );
             format!(
               "{}({from})[{}]",
               runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
@@ -267,7 +266,7 @@ pub fn stringified_exports<'a>(
     writeln!(
       stringified_exports,
       "  {}: {},",
-      json_stringify(&used_name),
+      json_stringify_str(&used_name),
       content
     )
     .to_rspack_result()?;
@@ -321,7 +320,7 @@ pub fn css_modules_exports_to_concatenate_module_string<'a>(
            id: _,
            orig_name: _,
          }| match from {
-          None => json_stringify(&ident),
+          None => json_stringify_str(ident),
           Some(from_name) => {
             let from = module
               .get_dependencies()
@@ -352,15 +351,14 @@ pub fn css_modules_exports_to_concatenate_module_string<'a>(
               .get_read_only_export_info(&Atom::from(ident.as_str()))
               .get_used_name(None, *runtime)
             {
-              Some(UsedNameItem::Str(name)) => json_stringify(&name),
-              _ => json_stringify(&ident),
+              Some(UsedNameItem::Str(name)) => json_stringify_str(&name),
+              _ => json_stringify_str(ident),
             };
 
-            let from = serde_json::to_string(
+            let from = rspack_util::json_stringify(
               ChunkGraph::get_module_id(&compilation.module_ids_artifact, from.module_identifier)
                 .expect("should have module"),
-            )
-            .expect("should json stringify module id");
+            );
             format!(
               "{}({from})[{}]",
               runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),

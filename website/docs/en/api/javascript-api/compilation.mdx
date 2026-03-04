@@ -62,7 +62,7 @@ emitAsset(
 ): void;
 ```
 
-The following code will add a new asset named `asset-name.js` and will not be compressed:
+The following code will add a new asset named `asset-name.js` and will not be compressed because `minimized` is set to `true`:
 
 ```js
 compiler.hooks.thisCompilation.tap('MyPlugin', (compilation) => {
@@ -110,17 +110,15 @@ updateAsset(
 ): void;
 ```
 
-The following code replaces the content of `main.js` and not to minimize it:
+The following code replaces the content of `main.js`:
 
 ```js
 compiler.hooks.thisCompilation.tap('MyPlugin', (compilation) => {
   const { RawSource } = compiler.rspack.sources;
   compilation.hooks.processAssets.tap('MyPlugin', () => {
-    const updatedSource = new RawSource(
-      `module.exports = "This is the updated"`,
-    );
+    const updatedSource = new RawSource(`console.log("Updated");`);
     compilation.updateAsset('main.js', updatedSource, {
-      minimized: true,
+      // optional asset info...
     });
   });
 });

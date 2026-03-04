@@ -1,6 +1,7 @@
 use indoc::formatdoc;
 use rspack_core::{Module, NormalModule, RscModuleType};
-use rspack_error::{Result, ToStringResultToRspackResultExt};
+use rspack_error::Result;
+use rspack_util::json_stringify_str;
 use swc::atoms::Wtf8Atom;
 
 fn to_cjs_server_entry(resource: &str, server_refs: &[Wtf8Atom]) -> Result<String> {
@@ -18,8 +19,8 @@ fn to_cjs_server_entry(resource: &str, server_refs: &[Wtf8Atom]) -> Result<Strin
               {resource}
             );
           "#,
-          request = serde_json::to_string(&format!("{resource}?rsc-server-entry-proxy=true")).to_rspack_result()?,
-          resource = serde_json::to_string(&resource).to_rspack_result()?
+          request = json_stringify_str(&format!("{resource}?rsc-server-entry-proxy=true")),
+          resource = json_stringify_str(resource)
         });
       }
       Some(ident) => {
@@ -32,8 +33,8 @@ fn to_cjs_server_entry(resource: &str, server_refs: &[Wtf8Atom]) -> Result<Strin
             );
           "#,
           ident = ident,
-          request = serde_json::to_string(&format!("{resource}?rsc-server-entry-proxy=true")).to_rspack_result()?,
-          resource = serde_json::to_string(&resource).to_rspack_result()?
+          request = json_stringify_str(&format!("{resource}?rsc-server-entry-proxy=true")),
+          resource = json_stringify_str(resource)
         });
       }
       _ => {}
@@ -58,8 +59,8 @@ fn to_esm_server_entry(resource: &str, server_refs: &[Wtf8Atom]) -> Result<Strin
               {resource}
             );
           "#,
-          request = serde_json::to_string(&format!("{resource}?rsc-server-entry-proxy=true")).to_rspack_result()?,
-          resource = serde_json::to_string(&resource).to_rspack_result()?
+          request = json_stringify_str(&format!("{resource}?rsc-server-entry-proxy=true")),
+          resource = json_stringify_str(resource)
         });
       }
       Some(ident) => {
@@ -72,8 +73,8 @@ fn to_esm_server_entry(resource: &str, server_refs: &[Wtf8Atom]) -> Result<Strin
             );
           "#,
           ident = ident,
-          request = serde_json::to_string(&format!("{resource}?rsc-server-entry-proxy=true")).to_rspack_result()?,
-          resource = serde_json::to_string(&resource).to_rspack_result()?
+          request = json_stringify_str(&format!("{resource}?rsc-server-entry-proxy=true")),
+          resource = json_stringify_str(resource)
         });
       }
       _ => {}
@@ -87,15 +88,14 @@ fn to_esm_client_entry(resource: &str, client_refs: &[Wtf8Atom]) -> Result<Strin
   let mut esm_source =
     String::from("import { registerClientReference } from \"react-server-dom-rspack/server\"\n");
 
-  let resource_literal = serde_json::to_string(resource).to_rspack_result()?;
+  let resource_literal = json_stringify_str(resource);
 
-  let call_error_literal = serde_json::to_string(&format!(
+  let call_error_literal = json_stringify_str(&format!(
     "Attempted to call the default export of {resource_literal} from \
     the server, but it's on the client. It's not possible to invoke a \
     client function from the server, it can only be rendered as a \
     Component or passed to props of a Client Component."
-  ))
-  .to_rspack_result()?;
+  ));
 
   for client_ref in client_refs {
     match client_ref.as_str() {
@@ -138,15 +138,14 @@ fn to_cjs_client_entry(resource: &str, client_refs: &[Wtf8Atom]) -> Result<Strin
     "const { registerClientReference } = require(\"react-server-dom-rspack/server\");\n",
   );
 
-  let resource_literal = serde_json::to_string(resource).to_rspack_result()?;
+  let resource_literal = json_stringify_str(resource);
 
-  let call_error_literal = serde_json::to_string(&format!(
+  let call_error_literal = json_stringify_str(&format!(
     "Attempted to call the default export of {resource_literal} from \
     the server, but it's on the client. It's not possible to invoke a \
     client function from the server, it can only be rendered as a \
     Component or passed to props of a Client Component."
-  ))
-  .to_rspack_result()?;
+  ));
 
   for client_ref in client_refs {
     match client_ref.as_str() {

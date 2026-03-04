@@ -21,8 +21,8 @@ use rspack_sources::{
   BoxSource, CachedSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt,
 };
 use rspack_util::{
-  SpanExt, ext::DynHash, fx_hash::FxIndexMap, itoa, json_stringify, source_map::SourceMapKind,
-  swc::join_atom,
+  SpanExt, ext::DynHash, fx_hash::FxIndexMap, itoa, json_stringify, json_stringify_str,
+  source_map::SourceMapKind, swc::join_atom,
 };
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 use swc_core::{
@@ -31,7 +31,7 @@ use swc_core::{
   ecma::visit::swc_ecma_ast,
 };
 use swc_experimental_ecma_ast::{
-  Ast, ClassExpr, EsVersion, Ident, ObjectPatProp, Prop, Visit, VisitWith,
+  Ast, ClassExpr, EsVersion, GetSpan, Ident, ObjectPatProp, Prop, StringAllocator, Visit, VisitWith,
 };
 use swc_experimental_ecma_parser::{EsSyntax, Parser, StringSource, Syntax};
 use swc_experimental_ecma_semantic::resolver::{Semantic, resolver};
@@ -638,7 +638,7 @@ pub fn render_imports(source: &str, attr: Option<&str>, import_spec: &ImportSpec
   let default_import = import_spec.default_import.as_ref();
   let ns_import = import_spec.ns_import.as_ref();
 
-  let source_str = format!("{}{}", json_stringify(&source), attr.unwrap_or_default());
+  let source_str = format!("{}{}", json_stringify_str(source), attr.unwrap_or_default());
 
   let mut render_default = false;
   let mut render_ns = false;
@@ -1735,11 +1735,10 @@ impl Module for ConcatenatedModule {
               "var {} = {}({});",
               info.name.as_ref().expect("should have name"),
               runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
-              serde_json::to_string(
+              json_stringify(
                 ChunkGraph::get_module_id(&compilation.module_ids_artifact, info.module)
                   .expect("should have module id")
               )
-              .expect("should json stringify module id")
             )));
 
             name.clone_from(&info.name);
@@ -2382,6 +2381,7 @@ impl ConcatenatedModule {
         })
         .unwrap_or(false);
 
+      let mut ast = Ast::new(fm.src.len(), StringAllocator::default());
       let lexer = swc_experimental_ecma_parser::Lexer::new(
         Syntax::Es(EsSyntax {
           jsx,
@@ -2390,12 +2390,13 @@ impl ConcatenatedModule {
         EsVersion::EsNext,
         StringSource::new(fm.src.as_str()),
         Some(&comments),
+        ast.string_allocator(),
       );
-      let p = Parser::new_from(lexer);
+      let mut p = Parser::new_from(&mut ast, lexer);
       let ret = p.parse_module();
 
-      let ret = match ret {
-        Ok(ret) => ret,
+      let module = match ret {
+        Ok(module) => module,
         Err(err) => {
           // return empty error as we already push error to compilation.diagnostics
           return Err(Error::from_string(
@@ -2408,10 +2409,10 @@ impl ConcatenatedModule {
         }
       };
       let mut all_used_names = HashSet::default();
-      let ast = &ret.ast;
+      let ast = &ast;
 
-      let semantic = resolver(ret.root, ast);
-      let ids = collect_ident(ast, ret.root);
+      let semantic = resolver(module, ast);
+      let ids = collect_ident(ast, module);
 
       module_info.module_ctxt = semantic.top_level_scope_id().to_ctxt();
       module_info.global_ctxt = semantic.unresolved_scope_id().to_ctxt();
@@ -2420,17 +2421,17 @@ impl ConcatenatedModule {
           module_info
             .global_scope_ident
             .push(ident.to_legacy(ast, &semantic));
-          all_used_names.insert(Atom::new(ast.get_utf8(ident.id.sym(ast))));
+          all_used_names.insert(ast.get_atom(ident.id.sym(ast)));
         }
         if ident.is_class_expr_with_ident {
-          all_used_names.insert(Atom::new(ast.get_utf8(ident.id.sym(ast))));
+          all_used_names.insert(ast.get_atom(ident.id.sym(ast)));
           continue;
         }
         // deconflict naming from inner scope, the module level deconflict will be finished
         // you could see tests/webpack-test/cases/scope-hoisting/renaming-4967 as a example
         // during module eval phase.
         if semantic.node_scope(ident.id) != semantic.top_level_scope_id() {
-          all_used_names.insert(Atom::new(ast.get_utf8(ident.id.sym(ast))));
+          all_used_names.insert(ast.get_atom(ident.id.sym(ast)));
         }
         module_info.idents.push(ident.to_legacy(ast, &semantic));
       }
@@ -3277,7 +3278,7 @@ pub struct NewConcatenatedModuleIdent {
 impl NewConcatenatedModuleIdent {
   pub fn to_legacy(&self, ast: &Ast, semantic: &Semantic) -> ConcatenatedModuleIdent {
     let span = self.id.span(ast);
-    let sym = Atom::new(ast.get_utf8(self.id.sym(ast)));
+    let sym = ast.get_atom(self.id.sym(ast));
     let ctxt = semantic.node_scope(self.id).to_ctxt();
     ConcatenatedModuleIdent {
       id: swc_ecma_ast::Ident::new(sym, span, ctxt),

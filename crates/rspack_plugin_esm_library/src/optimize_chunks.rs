@@ -1,9 +1,13 @@
+use std::{collections::HashMap, path::Path, sync::Arc};
+
+use atomic_refcell::AtomicRefCell;
 use rayon::prelude::*;
 use rspack_collections::{IdentifierMap, IdentifierSet, UkeyDashSet, UkeyMap, UkeySet};
 use rspack_core::{
-  ChunkGroupUkey, ChunkUkey, Compilation, DependenciesBlock, DependencyType, Logger,
-  incremental::Mutation,
+  ChunkGroupUkey, ChunkUkey, Compilation, DependenciesBlock, DependencyType, ModuleIdentifier,
+  find_new_name, get_cached_readable_identifier, incremental::Mutation, split_readable_identifier,
 };
+use rspack_util::{atom::Atom, fx_hash::FxHashSet};
 
 use crate::EsmLibraryPlugin;
 
@@ -250,45 +254,20 @@ pub(crate) fn optimize_runtime_chunks(compilation: &mut Compilation) {
   }
 }
 
-/// Create an empty facade chunk that will only contain re-exports.
-/// The module stays in the original chunk — the facade re-exports from it.
-fn create_facade_chunk(compilation: &mut Compilation, source_chunk_ukey: ChunkUkey) -> ChunkUkey {
-  let new_chunk_ukey =
-    Compilation::add_chunk(&mut compilation.build_chunk_graph_artifact.chunk_by_ukey);
-  if let Some(mut mutation) = compilation.incremental.mutations_write() {
-    mutation.add(Mutation::ChunkAdd {
-      chunk: new_chunk_ukey,
-    });
-  }
-  compilation
-    .build_chunk_graph_artifact
-    .chunk_graph
-    .add_chunk(new_chunk_ukey);
-
-  let [Some(source_chunk), Some(new_chunk)] = compilation
-    .build_chunk_graph_artifact
-    .chunk_by_ukey
-    .get_many_mut([&source_chunk_ukey, &new_chunk_ukey])
-  else {
-    unreachable!()
-  };
-
-  source_chunk.split(
-    new_chunk,
-    &mut compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
-  );
-
-  // No module movement — the facade chunk is empty, only re-exports.
-  new_chunk_ukey
-}
-
-pub(crate) fn ensure_dyn_import_namespace_facades(
-  compilation: &mut Compilation,
+/// Analyze dynamic import targets to identify:
+/// - all_dyn_targets: all scope-hoisted modules that are dynamically imported
+/// - namespace_targets: subset that are imported as namespace
+/// - strict_chunks: single-module or entry chunks where exports are guaranteed correct
+///
+/// Also pre-assigns namespace object names in `dyn_import_ns_map` for scope-hoisted
+/// modules in multi-module non-strict chunks. These names are used both by the
+/// dynamic import template (during code generation) and the linker (after code generation).
+pub(crate) fn analyze_dyn_import_targets(
+  compilation: &Compilation,
   concatenated_modules: &IdentifierSet,
-) -> (UkeySet<ChunkUkey>, IdentifierSet, IdentifierMap<ChunkUkey>) {
+  dyn_import_ns_map: &Arc<AtomicRefCell<IdentifierMap<Atom>>>,
+) -> (UkeySet<ChunkUkey>, IdentifierSet, IdentifierSet) {
   let module_graph = compilation.get_module_graph();
-  // all_dyn_targets: all scope-hoisted modules that are dynamically imported
-  // namespace_targets: subset that are imported as namespace (need facade split for multi-module chunks)
   let mut all_dyn_targets = IdentifierSet::default();
   let mut namespace_targets = IdentifierSet::default();
 
@@ -336,10 +315,8 @@ pub(crate) fn ensure_dyn_import_namespace_facades(
     }
   }
 
-  // Classify targets: which are already in single-module/entry chunks vs which need splitting.
-  // We must do this while module_graph is still borrowed, then drop it before mutations.
-  let mut already_strict = UkeySet::default();
-  let mut needs_split = Vec::new();
+  // Classify chunks: single-module or entry chunks get strict exports
+  let mut strict_chunks = UkeySet::default();
 
   let entrypoint_chunks: UkeySet<ChunkUkey> = compilation
     .build_chunk_graph_artifact
@@ -353,35 +330,6 @@ pub(crate) fn ensure_dyn_import_namespace_facades(
         .get_entrypoint_chunk()
     })
     .collect();
-
-  // Precompute: which modules are referenced from a different chunk?
-  // For each module's outgoing active connections, if the target is in another chunk,
-  // mark the target as cross-chunk referenced. O(total_connections) once.
-  let mut cross_chunk_referenced = IdentifierSet::default();
-  for chunk_ukey in compilation.build_chunk_graph_artifact.chunk_by_ukey.keys() {
-    let modules = compilation
-      .build_chunk_graph_artifact
-      .chunk_graph
-      .get_chunk_modules_identifier(chunk_ukey);
-    for m in modules {
-      let outgoings = module_graph.get_active_outcoming_connections_by_module(
-        m,
-        None,
-        module_graph,
-        &compilation.module_graph_cache_artifact,
-        &compilation.exports_info_artifact,
-      );
-      for target in outgoings.keys() {
-        let target_chunks = compilation
-          .build_chunk_graph_artifact
-          .chunk_graph
-          .get_module_chunks(*target);
-        if target_chunks.iter().any(|c| c != chunk_ukey) {
-          cross_chunk_referenced.insert(*target);
-        }
-      }
-    }
-  }
 
   for module_id in &all_dyn_targets {
     let Some(module) = module_graph.module_by_identifier(module_id) else {
@@ -397,40 +345,200 @@ pub(crate) fn ensure_dyn_import_namespace_facades(
       .chunk_graph
       .get_chunk_modules_identifier(&chunk_ukey);
 
-    if chunk_modules.len() <= 1 || entrypoint_chunks.contains(&chunk_ukey) {
+    // Count only non-external modules: external modules don't contribute code to the chunk,
+    // so a chunk with 1 scope-hoisted module + N externals is effectively single-module.
+    let non_external_count = chunk_modules
+      .iter()
+      .filter(|m| {
+        module_graph
+          .module_by_identifier(m)
+          .is_some_and(|mod_| mod_.as_external_module().is_none())
+      })
+      .count();
+
+    if non_external_count <= 1 || entrypoint_chunks.contains(&chunk_ukey) {
       // Single-module or entry chunk: exports are already correct.
-      // Mark as strict so link_entry_module_exports registers all exports,
-      // allowing dyn_import.rs to skip .then() remapping.
-      already_strict.insert(chunk_ukey);
-    } else if namespace_targets.contains(module_id) {
-      // Multi-module chunk with namespace import.
-      // However, if none of the other modules in this chunk are referenced from
-      // other chunks, the chunk's exports will only be the dyn-imported module's
-      // exports — no name conflicts possible, so no facade is needed.
-      let has_cross_chunk_sibling = chunk_modules
-        .iter()
-        .any(|other_m| other_m != module_id && cross_chunk_referenced.contains(other_m));
-      if has_cross_chunk_sibling {
-        needs_split.push((*module_id, chunk_ukey));
-      } else {
-        already_strict.insert(chunk_ukey);
+      strict_chunks.insert(chunk_ukey);
+    }
+  }
+
+  // Pre-assign namespace object names for scope-hoisted dyn targets in non-strict chunks.
+  // Use the same naming scheme as regular namespace objects (find_new_name("namespaceObject", ...))
+  // so the name matches what deconflict_symbols would produce.
+  // These names must be determined before code generation so the dynamic import template
+  // can emit `.then(m => m.<ns_name>)`.
+  {
+    let mut ns_map = dyn_import_ns_map.borrow_mut();
+    let mut sorted_targets: Vec<_> = all_dyn_targets.iter().copied().collect();
+    sorted_targets.sort();
+
+    // Track used names per chunk to avoid collisions between multiple dyn targets
+    let mut chunk_used_names: UkeyMap<ChunkUkey, FxHashSet<Atom>> = UkeyMap::default();
+
+    for module_id in &sorted_targets {
+      if !concatenated_modules.contains(module_id) {
+        continue;
+      }
+      let Some(module) = module_graph.module_by_identifier(module_id) else {
+        continue;
+      };
+      if module.as_external_module().is_some() {
+        continue;
+      }
+      let chunk_ukey = EsmLibraryPlugin::get_module_chunk(*module_id, compilation);
+      if strict_chunks.contains(&chunk_ukey) {
+        continue;
+      }
+      // Compute namespace_object_name using the same logic as deconflict_symbols
+      let readable_identifier = get_cached_readable_identifier(
+        module_id,
+        module_graph,
+        &compilation.module_static_cache,
+        &compilation.options.context,
+      );
+      let escaped_idents = split_readable_identifier(&readable_identifier);
+      let used_names = chunk_used_names.entry(chunk_ukey).or_default();
+      let ns_name = find_new_name("namespaceObject", used_names, &escaped_idents);
+      used_names.insert(ns_name.clone());
+      ns_map.insert(*module_id, ns_name);
+    }
+  }
+
+  (strict_chunks, all_dyn_targets, namespace_targets)
+}
+
+/// Compute a short name from a module identifier.
+///
+/// Rules:
+/// - If the filename stem is "index", use the parent directory name
+/// - Otherwise, use the filename stem (without extension)
+///
+/// Examples:
+/// - `node_modules/lib/index.js` → `lib`
+/// - `/path/to/src/index.js` → `src`
+/// - `/path/to/src/app.js` → `app`
+fn short_name_from_identifier(identifier: &str) -> Option<String> {
+  let path = Path::new(identifier);
+  let stem = path.file_stem()?.to_str()?;
+  if stem == "index" {
+    let parent = path.parent()?;
+    let dir_name = parent.file_name()?.to_str()?;
+    Some(dir_name.to_string())
+  } else {
+    Some(stem.to_string())
+  }
+}
+
+/// For unnamed dynamic-import chunks with exactly one root module,
+/// assign a short name derived from the root module's identifier.
+///
+/// Names are deduplicated: if a name conflicts with any existing named chunk
+/// or another computed name, a `~N` suffix is appended (deterministic index).
+pub(crate) fn assign_dyn_import_chunk_short_names(compilation: &mut Compilation) {
+  let module_graph = compilation.get_module_graph();
+
+  // Collect all existing named chunks
+  let mut used_names: HashMap<String, usize> = HashMap::default();
+  for name in compilation.build_chunk_graph_artifact.named_chunks.keys() {
+    used_names.insert(name.clone(), 1);
+  }
+
+  // Collect candidates: (chunk_ukey, root_module_identifier) for unnamed non-initial chunks
+  // with exactly one root module
+  let mut candidates: Vec<(ChunkUkey, ModuleIdentifier)> = Vec::new();
+
+  for (chunk_ukey, chunk) in compilation.build_chunk_graph_artifact.chunk_by_ukey.iter() {
+    // Skip chunks that already have a name
+    if chunk.name().is_some() {
+      continue;
+    }
+    // Only target non-initial chunks (dynamic import chunks)
+    if chunk.can_be_initial(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey) {
+      continue;
+    }
+    let root_modules = compilation
+      .build_chunk_graph_artifact
+      .chunk_graph
+      .get_chunk_root_modules(
+        chunk_ukey,
+        module_graph,
+        &compilation.module_graph_cache_artifact,
+        &compilation.exports_info_artifact,
+      );
+    if root_modules.len() == 1 {
+      candidates.push((*chunk_ukey, root_modules[0]));
+    }
+  }
+
+  // Sort by module identifier for deterministic ordering
+  candidates.sort_by(|a, b| a.1.cmp(&b.1));
+
+  // Compute short names and track duplicates
+  // name_to_chunks: maps base_name → list of (chunk_ukey, module_identifier) in sorted order
+  let mut name_to_chunks: Vec<(String, Vec<(ChunkUkey, ModuleIdentifier)>)> = Vec::new();
+  let mut name_index_map: HashMap<String, usize> = HashMap::default();
+
+  for (chunk_ukey, module_id) in &candidates {
+    let Some(module_path) = module_graph
+      .module_by_identifier(module_id)
+      .expect("should have module")
+      .name_for_condition()
+    else {
+      continue;
+    };
+    let Some(base_name) = short_name_from_identifier(module_path.as_ref()) else {
+      continue;
+    };
+    if let Some(&idx) = name_index_map.get(&base_name) {
+      name_to_chunks[idx].1.push((*chunk_ukey, *module_id));
+    } else {
+      let idx = name_to_chunks.len();
+      name_index_map.insert(base_name.clone(), idx);
+      name_to_chunks.push((base_name, vec![(*chunk_ukey, *module_id)]));
+    }
+  }
+
+  // Assign names, handling deduplication
+  let mut assignments: Vec<(ChunkUkey, String)> = Vec::new();
+
+  for (base_name, chunks) in &name_to_chunks {
+    if chunks.len() == 1 && !used_names.contains_key(base_name) {
+      // Unique name, no conflict
+      assignments.push((chunks[0].0, base_name.clone()));
+      used_names.insert(base_name.clone(), 1);
+    } else {
+      // Need dedup suffixes: chunks are already sorted by module identifier
+      for (chunk_ukey, _module_id) in chunks {
+        let mut index = used_names.get(base_name).copied().unwrap_or(0);
+        let name = loop {
+          let candidate = if index == 0 {
+            base_name.clone()
+          } else {
+            format!("{base_name}~{index}")
+          };
+          if !used_names.contains_key(&candidate) {
+            break candidate;
+          }
+          index += 1;
+        };
+        // Record the next index to try for this base_name
+        used_names.insert(base_name.clone(), index + 1);
+        used_names.insert(name.clone(), 1);
+        assignments.push((*chunk_ukey, name));
       }
     }
-    // Multi-module chunk with only named imports: .then() remapping handles it, no split needed.
   }
 
-  needs_split.sort_by_key(|(module_id, _)| *module_id);
-
-  let mut strict_chunks = already_strict;
-  let mut facade_mapping = IdentifierMap::default();
-  let logger = compilation.get_logger("rspack.EsmLibraryPlugin");
-  logger.debug(format!("create facade chunks: {needs_split:?}"));
-
-  for (module_id, chunk_ukey) in needs_split {
-    let facade_chunk_ukey = create_facade_chunk(compilation, chunk_ukey);
-    strict_chunks.insert(facade_chunk_ukey);
-    facade_mapping.insert(module_id, facade_chunk_ukey);
+  // Apply assignments
+  for (chunk_ukey, name) in assignments {
+    let chunk = compilation
+      .build_chunk_graph_artifact
+      .chunk_by_ukey
+      .expect_get_mut(&chunk_ukey);
+    chunk.set_name(Some(name.clone()));
+    compilation
+      .build_chunk_graph_artifact
+      .named_chunks
+      .insert(name, chunk_ukey);
   }
-
-  (strict_chunks, all_dyn_targets, facade_mapping)
 }

@@ -15,7 +15,7 @@ use rspack_core::{
   create_exports_object_referenced, get_exports_type, property_access, to_normal_comment,
 };
 use rspack_error::Diagnostic;
-use rspack_util::json_stringify;
+use rspack_util::json_stringify_str;
 use swc_core::ecma::atoms::Atom;
 
 use super::{
@@ -273,7 +273,7 @@ impl Dependency for ESMImportSpecifierDependency {
         return create_exports_object_referenced();
       }
       // remove last one
-      ids = &ids[..ids.len() - 1];
+      ids = &ids[..ids.len().saturating_sub(1)];
     }
     self.get_referenced_exports_in_destructuring(Some(ids))
   }
@@ -342,7 +342,9 @@ impl ESMImportSpecifierDependencyTemplate {
     code_generatable_context: &mut TemplateContext,
   ) -> String {
     let TemplateContext {
+      compilation,
       concatenation_scope,
+      runtime,
       ..
     } = code_generatable_context;
     if let Some(scope) = concatenation_scope
@@ -358,16 +360,40 @@ impl ESMImportSpecifierDependencyTemplate {
             ..Default::default()
           },
         )
-      } else if dep.namespace_object_as_context && ids.len() == 1 {
-        // ConcatenationScope::create_module_reference(&dep, module, options)
-        scope.create_module_reference(
-          con.module_identifier(),
-          &ModuleReferenceOptions {
-            asi_safe: Some(dep.asi_safe),
-            deferred_import: dep.phase.is_defer(),
-            ..Default::default()
-          },
-        ) + property_access(ids, 0).as_str()
+      } else if dep.namespace_object_as_context {
+        match ExportsInfoGetter::get_used_name(
+          GetUsedNameParam::WithNames(
+            &compilation
+              .exports_info_artifact
+              .get_prefetched_exports_info(
+                con.module_identifier(),
+                PrefetchExportsInfoMode::Nested(ids),
+              ),
+          ),
+          *runtime,
+          ids,
+        ) {
+          Some(UsedName::Normal(used_name)) => {
+            scope.create_module_reference(
+              con.module_identifier(),
+              &ModuleReferenceOptions {
+                asi_safe: Some(dep.asi_safe),
+                deferred_import: dep.phase.is_defer(),
+                ..Default::default()
+              },
+            ) + property_access(used_name, 0).as_str()
+          }
+          Some(UsedName::Inlined(inlined)) => inlined.render(&to_normal_comment(&format!(
+            "inlined export {}",
+            property_access(ids, 0)
+          ))),
+          None => {
+            let mut result =
+              to_normal_comment(&format!("unused export {}", property_access(ids, 0)));
+            result.push_str(" undefined");
+            result
+          }
+        }
       } else {
         scope.create_module_reference(
           con.module_identifier(),
@@ -392,28 +418,29 @@ impl ESMImportSpecifierDependencyTemplate {
         code_generatable_context.runtime,
       );
       esm_import_dependency_apply(dep, dep.source_order, dep.phase, code_generatable_context);
-      let mut new_init_fragment = vec![];
-      let res = code_generatable_context
-        .runtime_template
-        .export_from_import(
-          code_generatable_context.compilation,
-          &mut new_init_fragment,
-          code_generatable_context.module.identifier(),
-          code_generatable_context.runtime,
-          true,
-          &dep.request,
-          &import_var,
-          ids,
-          &dep.id,
-          dep.call,
-          !dep.direct_import,
-          Some(dep.shorthand || dep.asi_safe),
-          dep.phase,
-        );
-      code_generatable_context
-        .init_fragments
-        .extend(new_init_fragment);
-      res
+      let TemplateContext {
+        compilation,
+        module,
+        runtime,
+        init_fragments,
+        runtime_template,
+        ..
+      } = code_generatable_context;
+      runtime_template.export_from_import(
+        compilation,
+        init_fragments,
+        module.identifier(),
+        *runtime,
+        true,
+        &dep.request,
+        &import_var,
+        ids,
+        &dep.id,
+        dep.call,
+        !dep.direct_import,
+        Some(dep.shorthand || dep.asi_safe),
+        dep.phase,
+      )
     }
   }
 
@@ -513,7 +540,7 @@ impl ESMImportSpecifierDependencyTemplate {
         source.replace(
           dep.range.start,
           dep.range.end,
-          format!("{} in {code}", json_stringify(&used_name)),
+          format!("{} in {code}", json_stringify_str(used_name.as_str())),
           None,
         )
       }

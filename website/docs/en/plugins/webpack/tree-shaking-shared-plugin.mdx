@@ -16,11 +16,10 @@ import { Stability, ApiMeta } from '@components/ApiMeta';
 
 **Usage**
 
-```js
-// rspack.config.js
-const { TreeShakingSharedPlugin } = require('@rspack/core');
+```js title="rspack.config.mjs"
+import { TreeShakingSharedPlugin } from '@rspack/core';
 
-module.exports = {
+export default {
   plugins: [
     new TreeShakingSharedPlugin({
       secondary: true,

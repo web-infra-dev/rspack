@@ -80,10 +80,8 @@ impl SwcLoader {
       }
 
       if loader_context.context.source_map_kind.enabled() {
-        if let Some(pre_source_map) = loader_context.source_map().cloned()
-          && let Ok(source_map) = pre_source_map.to_json()
-        {
-          swc_options.config.input_source_map = Some(InputSourceMap::Str(source_map))
+        if let Some(pre_source_map) = loader_context.source_map().cloned() {
+          swc_options.config.input_source_map = Some(InputSourceMap::Str(pre_source_map.to_json()))
         }
       } else {
         swc_options.config.input_source_map = Some(InputSourceMap::Bool(false));

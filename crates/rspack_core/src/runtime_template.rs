@@ -1146,13 +1146,12 @@ impl ModuleCodeTemplate {
           )));
         }
         None => {
-          return format!(
-            "{} undefined",
-            to_normal_comment(&format!(
-              "unused export {}",
-              property_access(export_name, 0)
-            ))
-          );
+          let mut result = to_normal_comment(&format!(
+            "unused export {}",
+            property_access(export_name, 0)
+          ));
+          result.push_str(" undefined");
+          return result;
         }
       };
       let comment = if used_name != export_name {

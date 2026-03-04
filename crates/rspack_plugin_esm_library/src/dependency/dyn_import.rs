@@ -3,11 +3,12 @@ use std::{borrow::Cow, sync::Arc};
 use atomic_refcell::AtomicRefCell;
 use rspack_collections::IdentifierMap;
 use rspack_core::{
-  ChunkUkey, Dependency, DependencyId, DependencyTemplate, ExportsType, FakeNamespaceObjectMode,
-  ModuleGraph, RuntimeGlobals, TemplateContext, get_exports_type,
+  Dependency, DependencyId, DependencyTemplate, ExportsType, FakeNamespaceObjectMode, ModuleGraph,
+  RuntimeGlobals, TemplateContext, get_exports_type,
 };
 use rspack_plugin_javascript::dependency::ImportDependency;
 use rspack_plugin_rslib::dyn_import_external::render_dyn_import_external_module;
+use rspack_util::atom::Atom;
 
 use crate::EsmLibraryPlugin;
 
@@ -75,7 +76,7 @@ fn then_expr(
         appending.push_str(
           format!(
             r#".then(function(m){{
- return {}(m, {fake_type}) 
+ return {}(m, {fake_type})
 }})"#,
             runtime_template.render_runtime_globals(&RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT)
           )
@@ -96,9 +97,11 @@ fn then_expr(
 
 #[derive(Debug)]
 pub struct DynamicImportDependencyTemplate {
-  /// module_id → facade_chunk_ukey. Shared with EsmLibraryPlugin.
-  /// Written during optimize_chunks, read during code generation.
-  pub facade_chunks: Arc<AtomicRefCell<IdentifierMap<ChunkUkey>>>,
+  /// module_id → namespace export name in the chunk.
+  /// For modules whose exports were renamed in a multi-module chunk,
+  /// the import needs `.then(m => m.<ns_name>)` to get the correct namespace.
+  /// Written during link, read during code generation.
+  pub dyn_import_ns_map: Arc<AtomicRefCell<IdentifierMap<Atom>>>,
 }
 
 impl DependencyTemplate for DynamicImportDependencyTemplate {
@@ -138,7 +141,7 @@ impl DependencyTemplate for DynamicImportDependencyTemplate {
       return;
     }
 
-    let source_chunk = EsmLibraryPlugin::get_module_chunk(
+    let ref_chunk_ukey = EsmLibraryPlugin::get_module_chunk(
       ref_module.identifier(),
       code_generatable_context.compilation,
     );
@@ -149,16 +152,6 @@ impl DependencyTemplate for DynamicImportDependencyTemplate {
         .expect("should have parent module for import dep"),
       code_generatable_context.compilation,
     );
-
-    // If there's a facade chunk for this module, redirect the import to the facade.
-    // The facade chunk is empty (only re-exports), so import() yields the correct namespace directly.
-    let ref_chunk_ukey = {
-      let facade_map = self.facade_chunks.borrow();
-      facade_map
-        .get(&ref_module.identifier())
-        .copied()
-        .unwrap_or(source_chunk)
-    };
 
     /*
     For:
@@ -172,11 +165,11 @@ impl DependencyTemplate for DynamicImportDependencyTemplate {
         const { a, b } = await Promise.resolve().then(() => __webpack_require__(./refModule));
 
     2. if refModule is in other chunks
-      a. if refModule is scope hoisted
-        const { a, b } = await import('./ref-chunk').then((ns) => ({ a: ns.a, b: ns.b }));
-        const unknownImports = await import('./refModule').then((ns) => ns);
-
-      b. if refModule is not scope hoisted
+      a. if refModule is scope hoisted and exports NOT renamed
+        const { a, b } = await import('./ref-chunk');
+      b. if refModule is scope hoisted and exports renamed (or namespace access)
+        const { a, b } = await import('./ref-chunk').then(m => m.__ns_name);
+      c. if refModule is not scope hoisted
         const { a, b } = await import('./ref-chunk').then(() => __webpack_require__(./refModule));
     */
     let already_in_chunk = ref_chunk_ukey == orig_chunk;
@@ -228,33 +221,15 @@ impl DependencyTemplate for DynamicImportDependencyTemplate {
       return;
     }
 
-    // For empty facade chunks (0 modules, only re-exports) or single-module chunks,
-    // the chunk's exports exactly match the module's exports
-    // (ensured by link_entry_module_exports with strict_exports).
-    // No .then() remapping needed — import() directly yields the correct namespace.
-    if !already_in_chunk {
-      let chunk_modules = code_generatable_context
-        .compilation
-        .build_chunk_graph_artifact
-        .chunk_graph
-        .get_chunk_modules_identifier(&ref_chunk_ukey);
-      if chunk_modules.len() <= 1 {
-        source.replace(
-          import_dep.range.start,
-          import_dep.range.end,
-          &import_promise,
-          None,
-        );
-        return;
-      }
-    }
+    // Check if the module needs namespace remapping (exports were renamed or namespace access)
+    let ns_name = {
+      let ns_map = self.dyn_import_ns_map.borrow();
+      ns_map.get(&ref_module.identifier()).cloned()
+    };
 
     source.replace(
       import_dep.range.start,
       import_dep.range.end,
-<<<<<<< Updated upstream
-      &import_promise,
-=======
       format!(
         "{}{}",
         import_promise,
@@ -272,8 +247,25 @@ impl DependencyTemplate for DynamicImportDependencyTemplate {
           ))
         }
       ),
->>>>>>> Stashed changes
       None,
     );
+    if let Some(ns_name) = ns_name {
+      // Module's exports were renamed in the chunk or accessed as namespace.
+      // Use .then(m => m.<ns_name>) to get the correct module namespace.
+      source.replace(
+        import_dep.range.start,
+        import_dep.range.end,
+        format!("{import_promise}.then(m => m.{ns_name})"),
+        None,
+      );
+    } else {
+      // Module's exports are not renamed in the chunk — direct import works.
+      source.replace(
+        import_dep.range.start,
+        import_dep.range.end,
+        import_promise.into_owned(),
+        None,
+      );
+    }
   }
 }

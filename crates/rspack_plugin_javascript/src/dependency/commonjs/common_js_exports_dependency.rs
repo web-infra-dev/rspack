@@ -270,7 +270,7 @@ impl DependencyTemplate for CommonJsExportsDependencyTemplate {
             )
             .boxed(),
           );
-          source.replace(
+          source.replace_static(
             dep.range.start,
             value_range.start,
             "__webpack_unused_export__ = (",

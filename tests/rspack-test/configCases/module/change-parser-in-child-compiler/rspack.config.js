@@ -12,8 +12,8 @@ module.exports = {
 						publicPath: ""
 					},
 					[
-						new compiler.webpack.library.EnableLibraryPlugin("commonjs"),
-						new compiler.webpack.EntryPlugin(
+						new compiler.rspack.library.EnableLibraryPlugin("commonjs"),
+						new compiler.rspack.EntryPlugin(
 							compilation.options.context,
 							"./child-entry.js",
 							{

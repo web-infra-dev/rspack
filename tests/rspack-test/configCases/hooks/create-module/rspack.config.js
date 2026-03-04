@@ -7,7 +7,7 @@ module.exports = {
 					compiler.hooks.compilation.tap("mock-plugin", compilation => {
 						nmf.hooks.createModule.tap("mock-plugin", createData => {
 							if (createData.matchResource?.endsWith(".vanilla.css")) {
-								const { RawSource } = compiler.webpack.sources;
+								const { RawSource } = compiler.rspack.sources;
 								compilation.emitAsset(
 									"./createData.json",
 									new RawSource(JSON.stringify(createData, null, 2)),

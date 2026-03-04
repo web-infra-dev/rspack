@@ -14,9 +14,7 @@ use rspack_core::{
   RuntimeGlobals, RuntimeSpec, SourceType,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
 };
-use rspack_error::{
-  Diagnostic, IntoTWithDiagnosticArray, Result, ToStringResultToRspackResultExt, error,
-};
+use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, error};
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_util::{base64, ext::DynHash, identifier::make_paths_relative};
@@ -550,14 +548,14 @@ impl ParserAndGenerator for AssetParserAndGenerator {
             generate_context
               .data
               .insert(CodeGenerationDataUrl::new(encoded_source.clone()));
-            serde_json::to_string(&encoded_source).to_rspack_result()?
+            rspack_util::json_stringify_str(&encoded_source)
           } else {
             format!(
               "{}({})",
               generate_context
                 .runtime_template
                 .render_runtime_globals(&RuntimeGlobals::TO_BINARY),
-              serde_json::to_string(&encoded_source).to_rspack_result()?
+              rspack_util::json_stringify_str(&encoded_source)
             )
           }
         } else if parsed_asset_config.is_inline() {
@@ -588,7 +586,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
             .data
             .insert(CodeGenerationDataUrl::new(encoded_source.clone()));
 
-          serde_json::to_string(&encoded_source).to_rspack_result()?
+          rspack_util::json_stringify_str(&encoded_source)
         } else if parsed_asset_config.is_resource() {
           let contenthash = self.hash_for_source(source, &compilation.options);
           let contenthash = contenthash.rendered(compilation.options.output.hash_digest_length);
@@ -609,10 +607,9 @@ impl ParserAndGenerator for AssetParserAndGenerator {
             generate_context
               .data
               .insert(CodeGenerationPublicPathAutoReplace(true));
-            serde_json::to_string(&format!(
+            rspack_util::json_stringify_str(&format!(
               "{AUTO_PUBLIC_PATH_PLACEHOLDER}{original_filename}"
             ))
-            .to_rspack_result()?
           } else if let Some(public_path) =
             module_generator_options.and_then(|x| x.asset_public_path())
           {
@@ -632,8 +629,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
               }
               PublicPath::Auto => public_path.render(compilation, &filename).await,
             };
-            serde_json::to_string(&format!("{public_path}{original_filename}"))
-              .to_rspack_result()?
+            rspack_util::json_stringify_str(&format!("{public_path}{original_filename}"))
           } else {
             format!(
               r#"{} + "{}""#,

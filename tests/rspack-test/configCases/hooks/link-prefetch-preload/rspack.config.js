@@ -8,7 +8,7 @@ module.exports = {
 	plugins: [
 		{
 			apply(compiler) {
-				const RuntimePlugin = compiler.webpack.RuntimePlugin;
+				const RuntimePlugin = compiler.rspack.RuntimePlugin;
 				compiler.hooks.compilation.tap("mock-plugin", compilation => {
 					const hooks = RuntimePlugin.getCompilationHooks(compilation);
 					hooks.linkPrefetch.tap("mock-plugin", (code, chunk) => {

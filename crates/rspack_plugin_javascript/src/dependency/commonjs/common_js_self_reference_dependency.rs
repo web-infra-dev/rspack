@@ -199,17 +199,8 @@ impl DependencyTemplate for CommonJsSelfReferenceDependencyTemplate {
     source.replace(
       dep.range.start,
       dep.range.end,
-<<<<<<< Updated upstream
-      &match used {
-        UsedName::Normal(used) => format!(
-          "{}{}",
-          base,
-          property_access_with_optional(used, &dep.names_optionals, 0)
-        ),
-=======
       match used {
-        UsedName::Normal(used) => format!("{}{}", base, property_access(used, 0)),
->>>>>>> Stashed changes
+        UsedName::Normal(used) => format!("{}{}", base, property_access_with_optional(used, 0)),
         // Export a inlinable const from cjs is not possible for now, so self reference a inlinable
         // const is also not possible for now, but we compat it here
         UsedName::Inlined(inlined) => inlined.render(""),

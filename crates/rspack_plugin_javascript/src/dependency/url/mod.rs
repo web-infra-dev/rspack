@@ -161,12 +161,12 @@ impl DependencyTemplate for URLDependencyTemplate {
           dep.range.end,
           format!(
             "new URL({}, import.meta.url)",
-            serde_json::to_string(&format!(
+            rspack_util::json_stringify_str(&format!(
               "{AUTO_PUBLIC_PATH_PLACEHOLDER}{URL_STATIC_PLACEHOLDER}{}",
               &dep.id.as_u32()
-            ))
-            .expect("should serde"),
-          ),
+            )),
+          )
+          .as_str(),
           None,
         );
       }
