@@ -5141,6 +5141,7 @@ dependencies = [
 [[package]]
 name = "rspack_sources"
 version = "0.4.17"
+source = "git+https://github.com/rstackjs/rspack-sources?rev=refs%2Fpull%2F218%2Fhead#7254dfc5565d8a46ca5b09def5c4916ed8c76468"
 dependencies = [
  "dyn-clone",
  "json-escape-simd",
