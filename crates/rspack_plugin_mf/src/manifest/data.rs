@@ -39,6 +39,8 @@ pub struct StatsExpose {
   pub requires: Vec<String>,
   #[serde(default)]
   pub assets: StatsAssetsGroup,
+  #[serde(default, skip_serializing_if = "Option::is_none")]
+  pub rsc: Option<RscReferenceMeta>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -56,6 +58,8 @@ pub struct StatsShared {
   pub usedIn: Vec<String>,
   #[serde(default)]
   pub usedExports: Vec<String>,
+  #[serde(default, skip_serializing_if = "Option::is_none")]
+  pub rsc: Option<RscReferenceMeta>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -68,6 +72,27 @@ pub struct StatsRemote {
   pub entry: Option<String>,
   #[serde(default)]
   pub usedIn: Vec<String>,
+  #[serde(default, skip_serializing_if = "Option::is_none")]
+  pub rsc: Option<RscReferenceMeta>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct RscActionRef {
+  pub id: String,
+  pub name: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+pub struct RscReferenceMeta {
+  pub lookup: String,
+  #[serde(default, skip_serializing_if = "Option::is_none")]
+  pub moduleType: Option<String>,
+  #[serde(default, skip_serializing_if = "Option::is_none")]
+  pub resource: Option<String>,
+  #[serde(default)]
+  pub clientReferences: Vec<String>,
+  #[serde(default)]
+  pub serverActions: Vec<RscActionRef>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -113,6 +138,8 @@ pub struct ManifestExpose {
   pub name: String,
   pub path: String,
   pub assets: StatsAssetsGroup,
+  #[serde(default, skip_serializing_if = "Option::is_none")]
+  pub rsc: Option<RscReferenceMeta>,
 }
 
 #[derive(Debug, Serialize, Clone)]
@@ -126,6 +153,8 @@ pub struct ManifestShared {
   pub singleton: Option<bool>,
   #[serde(default)]
   pub assets: StatsAssetsGroup,
+  #[serde(default, skip_serializing_if = "Option::is_none")]
+  pub rsc: Option<RscReferenceMeta>,
 }
 
 #[derive(Debug, Serialize, Clone)]
@@ -135,6 +164,8 @@ pub struct ManifestRemote {
   pub alias: String,
   #[serde(skip_serializing_if = "Option::is_none")]
   pub entry: Option<String>,
+  #[serde(default, skip_serializing_if = "Option::is_none")]
+  pub rsc: Option<RscReferenceMeta>,
 }
 
 #[derive(Debug, Serialize, Clone)]

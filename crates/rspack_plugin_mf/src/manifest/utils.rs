@@ -29,6 +29,7 @@ pub fn ensure_configured_remotes(
         moduleName: ".".to_string(),
         entry: target.entry.clone(),
         usedIn: vec!["UNKNOWN".to_string()],
+        rsc: None,
       });
     }
   }
@@ -133,6 +134,19 @@ pub fn compose_id_with_separator(container: &str, name: &str) -> String {
   format!("{container}:{name}")
 }
 
+pub fn compose_expose_lookup(container: &str, expose_path: &str) -> String {
+  let expose_key = expose_path.trim_start_matches("./");
+  format!("{container}/{expose_key}")
+}
+
+pub fn compose_remote_lookup(federation_container_name: &str, module_name: &str) -> String {
+  if module_name.is_empty() || module_name == "." {
+    federation_container_name.to_string()
+  } else {
+    format!("{federation_container_name}/{module_name}")
+  }
+}
+
 pub fn is_hot_file(file: &str) -> bool {
   file.contains(HOT_UPDATE_SUFFIX)
 }
@@ -170,6 +184,7 @@ pub fn ensure_shared_entry<'a>(
       assets: super::data::StatsAssetsGroup::default(),
       usedIn: Vec::new(),
       usedExports: Vec::new(),
+      rsc: None,
     })
 }
 
