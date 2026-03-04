@@ -23,8 +23,8 @@ use crate::{
   magic_comment::try_extract_magic_comment,
   utils::eval::{self, BasicEvaluatedExpression},
   visitors::{
-    JavascriptParser, TagInfoData, VariableDeclaration, context_reg_exp, create_context_dependency,
-    create_traceable_error, expr_name, get_non_optional_part,
+    JavascriptParser, TagInfoData, VariableDeclaration, VariableDeclarationKind, context_reg_exp,
+    create_context_dependency, create_traceable_error, expr_name, get_non_optional_part,
   },
 };
 
@@ -592,12 +592,13 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
     &self,
     parser: &mut JavascriptParser,
     declarator: &VarDeclarator,
-    _declaration: VariableDeclaration<'_>,
+    declaration: VariableDeclaration<'_>,
   ) -> Option<bool> {
-    if let Some(init) = &declarator.init
+    if declaration.kind() != VariableDeclarationKind::Var
+      && let Some(init) = &declarator.init
       && let Some(call) = init.as_call()
-      && is_require_call_expr(call)
       && let Some(binding) = declarator.name.as_ident()
+      && is_require_call_expr(call)
     {
       parser.define_variable(binding.id.sym.clone());
       tag_commonjs_require_referenced(parser, call, binding.id.sym.clone());
@@ -687,8 +688,14 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
       .expect_get_tag_info(parser.current_tag_info?);
     let data = RequireTagData::downcast(tag_info.data.clone()?);
     let mut ids = get_non_optional_part(members, members_optionals);
-    if !members.is_empty() && ids.len() > 1 {
-      ids = &ids[..ids.len() - 1];
+    if !members.is_empty()
+      && (parser
+        .javascript_options
+        .strict_this_context_on_imports
+        .unwrap_or(false)
+        || ids.len() > 1)
+    {
+      ids = &ids[..ids.len().saturating_sub(1)];
     }
     parser
       .common_js_require_references
