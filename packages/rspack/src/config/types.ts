@@ -2541,8 +2541,10 @@ export type OptimizationSplitChunksOptions = {
 export type Optimization = {
   /**
    * Which algorithm to use when choosing module ids.
+   * Setting to `false` disables the built-in algorithm, allowing a custom plugin
+   * (e.g. HashedModuleIdsPlugin) to provide module ids instead.
    */
-  moduleIds?: 'named' | 'natural' | 'deterministic';
+  moduleIds?: false | 'named' | 'natural' | 'deterministic';
 
   /**
    * Which algorithm to use when choosing chunk ids.

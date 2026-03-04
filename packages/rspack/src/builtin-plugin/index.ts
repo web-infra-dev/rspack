@@ -35,6 +35,7 @@ export * from './FetchCompileAsyncWasmPlugin';
 export * from './FileUriPlugin';
 export * from './FlagDependencyExportsPlugin';
 export * from './FlagDependencyUsagePlugin';
+export * from './HashedModuleIdsPlugin';
 export * from './HotModuleReplacementPlugin';
 export * from './HttpExternalsRspackPlugin';
 export * from './HttpUriPlugin';

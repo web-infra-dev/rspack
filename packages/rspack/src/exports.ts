@@ -111,6 +111,7 @@ export {
   DynamicEntryPlugin,
   EntryPlugin,
   ExternalsPlugin,
+  HashedModuleIdsPlugin,
   HotModuleReplacementPlugin,
   IgnorePlugin,
   type IgnorePluginOptions,

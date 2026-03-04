@@ -3493,6 +3493,7 @@ impl OptimizationOptionsBuilder {
           .plugins
           .push(BuiltinPluginOptions::NaturalModuleIdsPlugin);
       }
+      "false" => {}
       _ => {
         return Err(
           BuilderError::Option(
