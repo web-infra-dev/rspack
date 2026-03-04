@@ -1519,28 +1519,26 @@ async fn create_concatenated_module(
     module_argument: box_module.get_module_argument(),
     exports_argument: box_module.get_exports_argument(),
   };
-  let modules = modules_set
-    .iter()
-    .map(|id| {
-      let module = module_graph
-        .module_by_identifier(id)
-        .unwrap_or_else(|| panic!("should have module {id}"));
+  let mut modules = Vec::with_capacity(modules_set.len());
+  for id in modules_set.iter() {
+    let module = module_graph
+      .module_by_identifier(id)
+      .unwrap_or_else(|| panic!("should have module {id}"));
 
-      ConcatenatedInnerModule {
-        id: *id,
-        size: module.size(
-          Some(&rspack_core::SourceType::JavaScript),
-          Some(compilation),
-        ),
-        shorten_id: get_cached_readable_identifier(
-          id,
-          module_graph,
-          &compilation.module_static_cache,
-          &compilation.options.context,
-        ),
-      }
-    })
-    .collect::<Vec<_>>();
+    modules.push(ConcatenatedInnerModule {
+      id: *id,
+      size: module.size(
+        Some(&rspack_core::SourceType::JavaScript),
+        Some(compilation),
+      ),
+      shorten_id: get_cached_readable_identifier(
+        id,
+        module_graph,
+        &compilation.module_static_cache,
+        &compilation.options.context,
+      ),
+    });
+  }
   let mut new_module = BoxModule::new(Box::from(ConcatenatedModule::create(
     root_module_ctxt,
     modules,

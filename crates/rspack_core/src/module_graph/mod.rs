@@ -92,6 +92,7 @@ pub(crate) struct ModuleGraphData {
   /// ModuleGraphConnection indexed by `DependencyId`.
   /// modified here https://github.com/web-infra-dev/rspack/blob/9ae2f0f3be22370197cd9ed3308982f84f2bb738/crates/rspack_plugin_javascript/src/plugin/module_concatenation_plugin.rs#L820
   connections: rollback::OverlayMap<DependencyId, ModuleGraphConnection>,
+  dependency_id_to_module_identifier: rollback::OverlayMap<DependencyId, ModuleIdentifier>,
 
   /***************** only Modified during Seal Phase ********************/
   // setting here https://github.com/web-infra-dev/rspack/blob/9ae2f0f3be22370197cd9ed3308982f84f2bb738/crates/rspack_plugin_javascript/src/plugin/side_effects_flag_plugin.rs#L318
@@ -102,6 +103,7 @@ impl ModuleGraphData {
     self.modules.checkpoint();
     self.module_graph_modules.checkpoint();
     self.connections.checkpoint();
+    self.dependency_id_to_module_identifier.checkpoint();
     // dep_meta_map is not used for build_module_graph
   }
   // reset to checkpoint
@@ -109,6 +111,7 @@ impl ModuleGraphData {
     self.modules.reset();
     self.module_graph_modules.reset();
     self.connections.reset();
+    self.dependency_id_to_module_identifier.reset();
     // reset data to save memory
     self.dep_meta_map.clear();
   }
@@ -248,6 +251,7 @@ impl ModuleGraph {
 
     if module_identifier.is_some() {
       self.inner.connections.remove(dep_id);
+      self.inner.dependency_id_to_module_identifier.remove(dep_id);
     }
     if force {
       self.inner.dependencies.remove(dep_id);
@@ -416,10 +420,7 @@ impl ModuleGraph {
         .expect("should have connection");
       let dependency = self.dependency_by_id(&dep_id);
       if filter_connection(connection, dependency) {
-        let connection = self
-          .connection_by_dependency_id_mut(&dep_id)
-          .expect("should have connection");
-        connection.set_module_identifier(*new_module);
+        self.modify_connection_module_identifier(&dep_id, new_module);
         affected_incoming_connection.push(dep_id);
       }
     }
@@ -614,11 +615,7 @@ impl ModuleGraph {
     &self,
     dep_id: &DependencyId,
   ) -> Option<&ModuleIdentifier> {
-    self
-      .inner
-      .connections
-      .get(dep_id)
-      .map(|con| con.module_identifier())
+    self.inner.dependency_id_to_module_identifier.get(dep_id)
   }
 
   pub fn get_module_by_dependency_id(&self, dep_id: &DependencyId) -> Option<&BoxModule> {
@@ -655,6 +652,11 @@ impl ModuleGraph {
       .inner
       .connections
       .insert(connection.dependency_id, connection);
+
+    self
+      .inner
+      .dependency_id_to_module_identifier
+      .insert(dependency_id, module_id);
 
     // set to module incoming connection
     {
@@ -920,12 +922,28 @@ impl ModuleGraph {
     connection.module_identifier() != module_id
   }
 
-  pub fn do_update_module(&mut self, dep_id: &DependencyId, module_id: &ModuleIdentifier) {
+  pub fn modify_connection_module_identifier(
+    &mut self,
+    dep_id: &DependencyId,
+    module_identifier: &ModuleIdentifier,
+  ) {
+    self
+      .inner
+      .dependency_id_to_module_identifier
+      .insert(*dep_id, *module_identifier);
     let connection = self
       .connection_by_dependency_id_mut(dep_id)
-      .unwrap_or_else(|| panic!("{dep_id:?}"));
-    let old_module_identifier = *connection.module_identifier();
-    connection.set_module_identifier(*module_id);
+      .expect("should have connection");
+    connection.set_module_identifier(*module_identifier);
+  }
+
+  pub fn do_update_module(&mut self, dep_id: &DependencyId, module_id: &ModuleIdentifier) {
+    let old_module_identifier = *self
+      .connection_by_dependency_id_mut(dep_id)
+      .unwrap_or_else(|| panic!("{dep_id:?}"))
+      .module_identifier();
+
+    self.modify_connection_module_identifier(dep_id, module_id);
 
     // remove dep_id from old module mgm incoming connection
     let old_mgm = self.module_graph_module_by_identifier_mut(&old_module_identifier);
@@ -1010,6 +1028,10 @@ impl ModuleGraph {
       .collect::<Vec<_>>();
 
     for (dep_id, con) in changed {
+      self
+        .inner
+        .dependency_id_to_module_identifier
+        .insert(dep_id, *con.module_identifier());
       self.inner.connections.insert(dep_id, con);
     }
   }
@@ -1028,6 +1050,10 @@ impl ModuleGraph {
       .collect::<Vec<_>>();
 
     for (dep_id, con) in changed {
+      self
+        .inner
+        .dependency_id_to_module_identifier
+        .insert(dep_id, *con.module_identifier());
       self.inner.connections.insert(dep_id, con);
     }
   }

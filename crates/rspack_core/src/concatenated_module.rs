@@ -529,8 +529,6 @@ impl ConcatenatedModule {
     mut modules: Vec<ConcatenatedInnerModule>,
     runtime: Option<RuntimeSpec>,
   ) -> Self {
-    // make the hash consistent
-    modules.sort_by(|a, b| a.id.cmp(&b.id));
     let RootModuleContext {
       module_argument,
       exports_argument,
@@ -560,11 +558,12 @@ impl ConcatenatedModule {
   // TODO: caching https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/ConcatenatedModule.js#L663-L664
   pub fn create(
     root_module_ctxt: RootModuleContext,
-    modules: Vec<ConcatenatedInnerModule>,
+    mut modules: Vec<ConcatenatedInnerModule>,
     hash_function: Option<HashFunction>,
     runtime: Option<RuntimeSpec>,
     compilation: &Compilation,
   ) -> Self {
+    modules.sort_unstable_by(|a, b| a.id.cmp(&b.id));
     let id = Self::create_identifier(&root_module_ctxt, &modules, hash_function);
     Self::new(id.as_str().into(), root_module_ctxt, modules, runtime)
   }
@@ -578,7 +577,6 @@ impl ConcatenatedModule {
     for m in modules {
       identifiers.push(m.shorten_id.as_str());
     }
-    identifiers.sort_unstable();
     let mut hash = RspackHash::new(&hash_function.unwrap_or(HashFunction::MD4));
     if let Some(id) = identifiers.first() {
       hash.write(id.as_bytes());
@@ -774,8 +772,8 @@ impl Module for ConcatenatedModule {
     let modules = self
       .modules
       .iter()
-      .map(|item| Some(&item.id))
-      .collect::<HashSet<_>>();
+      .map(|item| item.id)
+      .collect::<IdentifierSet>();
 
     let root_module = module_graph
       .module_by_identifier(&self.root_module_ctxt.id)
@@ -799,7 +797,7 @@ impl Module for ConcatenatedModule {
       for dep_id in module.get_dependencies().iter() {
         let dep = module_graph.dependency_by_id(dep_id);
         let module_id_of_dep = module_graph.module_identifier_by_dependency_id(dep_id);
-        if !is_esm_dep_like(dep) || !modules.contains(&module_id_of_dep) {
+        if !is_esm_dep_like(dep) || !module_id_of_dep.is_some_and(|id| modules.contains(id)) {
           self.dependencies.push(*dep_id);
         }
       }
