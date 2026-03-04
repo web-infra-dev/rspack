@@ -33,7 +33,7 @@ on:
   push:
     branches:
       - main
-      - v2
+      - v1.x
     paths-ignore:
       - '**/*.md'
       - 'website/**'
@@ -177,6 +177,8 @@ jobs:
         run: pnpm run build:js
 
       - name: Run rspack-ecosystem-ci
+        env:
+          RSBUILD_REF: v1.x
         run: |
           # prepare rspack
           cp ./crates/node_binding/*.node ./npm/linux-x64-gnu/

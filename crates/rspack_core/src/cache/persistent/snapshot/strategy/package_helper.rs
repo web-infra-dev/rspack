@@ -6,10 +6,7 @@ use rspack_paths::{ArcPath, ArcPathDashMap, AssertUtf8};
 /// A helper for finding package.json versions in directory hierarchies.
 #[derive(Debug)]
 pub struct PackageHelper {
-  /// File system abstraction for reading package.json files.
   fs: Arc<dyn ReadableFileSystem>,
-
-  /// Cache mapping directory paths to their resolved package versions.
   version_cache: ArcPathDashMap<Option<String>>,
 }
 
