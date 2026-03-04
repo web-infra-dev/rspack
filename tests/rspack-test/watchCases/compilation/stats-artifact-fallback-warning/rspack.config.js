@@ -1,4 +1,3 @@
-const path = require("path");
 const captureStdio = require("@rspack/test-tools/helper/legacy/captureStdio");
 
 const INCOMPLETE_STATS_WARNING =
@@ -10,14 +9,6 @@ let warningChecked = false;
 
 /** @type {import('@rspack/core').Configuration} */
 module.exports = {
-	module: {
-		rules: [
-			{
-				test: /index\\.js$/,
-				use: [path.join(__dirname, "warning-loader.js")]
-			}
-		]
-	},
 	plugins: [
 		{
 			apply(compiler) {
@@ -28,8 +19,8 @@ module.exports = {
 					warningChecked = true;
 
 					setTimeout(() => {
-						const statsOptions = staleCompilation.createStatsOptions(
-							{ all: false, errors: true, warnings: true },
+						const options = staleCompilation.createStatsOptions(
+							{ all: true },
 							{ forToString: false }
 						);
 
@@ -40,28 +31,22 @@ module.exports = {
 						};
 
 						const capture = captureStdio(process.stderr);
-						const json = staleInnerStats.toJson(statsOptions);
+						const json = staleInnerStats.toJson(options);
 						const warningOutput = capture.toString();
 						capture.restore();
 						console.warn = oldWarn;
 
 						if (!json || typeof json !== "object") {
-							throw new Error("Expected binding stats json to be an object");
+							throw new Error("Expected stats json to be an object");
 						}
 
-						const fallbackFlags =
-							typeof staleInnerStats.__internal_getArtifactFallbackFlags ===
-							"function"
-								? staleInnerStats.__internal_getArtifactFallbackFlags()
-								: "unknown";
-						const warningMessages = warningLogs.join("\n") + "\n" + warningOutput;
-
+						const warnings = `${warningLogs.join("\n")}\n${warningOutput}`;
 						if (
-							!warningMessages.includes(INCOMPLETE_STATS_WARNING) ||
-							!warningMessages.includes("compiler.hooks.done")
+							!warnings.includes(INCOMPLETE_STATS_WARNING) ||
+							!warnings.includes("compiler.hooks.done")
 						) {
 							throw new Error(
-								`Expected incomplete stats warning to be printed, flags=${fallbackFlags}, got: ${warningMessages}`
+								`Expected incomplete stats warning to be printed, got: ${warnings}`
 							);
 						}
 					});

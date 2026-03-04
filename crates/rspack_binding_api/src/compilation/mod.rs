@@ -3,6 +3,7 @@ mod code_generation_results;
 mod dependencies;
 mod diagnostics;
 pub mod entries;
+mod exports_info_artifact_context;
 
 use std::{cell::RefCell, collections::HashMap, path::Path, ptr::NonNull};
 
@@ -11,6 +12,7 @@ pub use code_generation_results::*;
 use dependencies::JsDependencies;
 use diagnostics::Diagnostics;
 use entries::JsEntries;
+pub(crate) use exports_info_artifact_context::with_exports_info_artifact;
 use napi_derive::napi;
 use rspack_collections::{DatabaseItem, IdentifierSet};
 use rspack_core::{
@@ -68,14 +70,42 @@ impl JsCompilation {
 
   pub(crate) fn exports_info_artifact_ref(&self) -> napi::Result<&'static ExportsInfoArtifact> {
     let compilation = self.as_ref()?;
-    Ok(&compilation.exports_info_artifact)
+    if let Some(ptr) =
+      exports_info_artifact_context::current_exports_info_artifact(compilation.compiler_id())
+    {
+      // SAFETY: the pointer is set by `with_exports_info_artifact` and remains valid
+      // for the duration of the scoped future.
+      return Ok(unsafe { &*ptr });
+    }
+
+    if let Some(exports_info_artifact) = compilation.exports_info_artifact.try_read() {
+      return Ok(exports_info_artifact);
+    }
+    Err(napi::Error::new(
+      napi::Status::GenericFailure,
+      "Cannot access exports info artifact after it was stolen from compilation.".to_string(),
+    ))
   }
 
   pub(crate) fn exports_info_artifact_mut(
     &mut self,
   ) -> napi::Result<&'static mut ExportsInfoArtifact> {
     let compilation = self.as_mut()?;
-    Ok(&mut compilation.exports_info_artifact)
+    if let Some(ptr) =
+      exports_info_artifact_context::current_exports_info_artifact(compilation.compiler_id())
+    {
+      // SAFETY: the pointer is set by `with_exports_info_artifact` and remains valid
+      // for the duration of the scoped future.
+      return Ok(unsafe { &mut *ptr });
+    }
+
+    if let Some(exports_info_artifact) = compilation.exports_info_artifact.try_write() {
+      return Ok(exports_info_artifact);
+    }
+    Err(napi::Error::new(
+      napi::Status::GenericFailure,
+      "Cannot mutate exports info artifact after it was stolen from compilation.".to_string(),
+    ))
   }
 }
 

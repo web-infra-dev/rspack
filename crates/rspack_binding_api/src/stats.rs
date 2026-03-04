@@ -1237,11 +1237,6 @@ impl JsStats {
   fn hash(&self) -> Option<&str> {
     self.inner.get_hash()
   }
-
-  #[napi(js_name = "__internal_getArtifactFallbackFlags")]
-  pub fn internal_get_artifact_fallback_flags(&self) -> u32 {
-    self.inner.artifact_fallback_flags() as u32
-  }
 }
 
 fn emit_incomplete_stats_warning(env: &Env, artifact_fallback_flags: u8) -> Result<()> {
@@ -1269,7 +1264,8 @@ pub fn create_stats_warnings<'a>(
   warnings: Vec<RspackError>,
   colored: Option<bool>,
 ) -> Result<Array<'a>> {
-  let module_graph = compilation.get_module_graph();
+  let stats = compilation.get_stats();
+  let module_graph = stats.module_graph();
 
   let mut diagnostics = warnings
     .into_iter()

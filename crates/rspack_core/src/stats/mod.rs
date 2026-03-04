@@ -423,9 +423,15 @@ impl Stats<'_> {
       .collect::<Result<Vec<_>>>()?;
     modules.extend(runtime_modules);
 
-    let executor_module_graph = self
-      .module_executor
-      .map(|executor| executor.make_artifact.get_module_graph());
+    let executor_module_graph = self.module_executor.and_then(|executor| {
+      executor
+        .make_artifact
+        .try_read()
+        .map(|artifact| artifact.get_module_graph())
+    });
+    if self.module_executor.is_some() && executor_module_graph.is_none() {
+      self.mark_artifact_fallback(STATS_ARTIFACT_FALLBACK_BUILD_MODULE_GRAPH);
+    }
     let executor_module_graph_cache = ModuleGraphCacheArtifact::default();
     let executor_exports_info_artifact = self
       .module_executor
