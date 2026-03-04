@@ -11,6 +11,9 @@ module.exports = {
       "process.env.NODE_ENV": "'production'",
     }
   },
+  output: {
+    chunkLoadingGlobal: 'rspackChunk',
+  },
   optimization: {
     providedExports: true,
     usedExports: true,
