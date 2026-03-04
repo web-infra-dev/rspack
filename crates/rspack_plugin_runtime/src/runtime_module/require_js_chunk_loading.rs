@@ -79,20 +79,22 @@ impl RequireChunkLoadingRuntimeModule {
     let base_uri = chunk
       .get_entry_options(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
       .and_then(|options| options.base_uri.as_ref())
-      .map(|base_uri| rspack_util::json_stringify_str(base_uri))
-      .unwrap_or_else(|| {
-        format!(
-          "require(\"url\").pathToFileURL({})",
-          if root_output_dir != "./" {
-            format!(
-              "__dirname + {}",
-              rspack_util::json_stringify_str(&format!("/{root_output_dir}"))
-            )
-          } else {
-            "__filename".to_string()
-          }
-        )
-      });
+      .map_or_else(
+        || {
+          format!(
+            "require(\"url\").pathToFileURL({})",
+            if root_output_dir != "./" {
+              format!(
+                "__dirname + {}",
+                rspack_util::json_stringify_str(&format!("/{root_output_dir}"))
+              )
+            } else {
+              "__filename".to_string()
+            }
+          )
+        },
+        |base_uri| rspack_util::json_stringify_str(base_uri),
+      );
     format!(
       "{} = {};\n",
       runtime_template.render_runtime_globals(&RuntimeGlobals::BASE_URI),

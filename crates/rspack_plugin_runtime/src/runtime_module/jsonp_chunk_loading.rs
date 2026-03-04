@@ -1,4 +1,4 @@
-use std::{ptr::NonNull, sync::LazyLock};
+use std::{borrow::Cow, ptr::NonNull, sync::LazyLock};
 
 use rspack_collections::DatabaseItem;
 use rspack_core::{
@@ -114,8 +114,10 @@ impl JsonpChunkLoadingRuntimeModule {
     let base_uri = chunk
       .get_entry_options(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
       .and_then(|options| options.base_uri.as_ref())
-      .map(|base_uri| rspack_util::json_stringify_str(base_uri))
-      .unwrap_or_else(|| "document.baseURI || self.location.href".to_string());
+      .map_or_else(
+        || Cow::Borrowed("document.baseURI || self.location.href"),
+        |base_uri| Cow::Owned(rspack_util::json_stringify_str(base_uri)),
+      );
     format!(
       "{} = {};\n",
       runtime_template.render_runtime_globals(&RuntimeGlobals::BASE_URI),
