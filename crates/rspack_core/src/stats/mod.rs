@@ -16,26 +16,42 @@ mod r#struct;
 pub use r#struct::*;
 
 use crate::{
-  BoxModule, BoxRuntimeModule, Chunk, ChunkGraph, ChunkGroupOrderKey, ChunkGroupUkey, ChunkUkey,
-  Compilation, ExportsInfoArtifact, LogType, ModuleGraph, ModuleGraphCacheArtifact,
-  ModuleIdentifier, OptimizationBailoutItem, PrefetchExportsInfoMode, ProvidedExports, RuntimeSpec,
-  SourceType, UsedExports, compilation::build_module_graph::ExecutedRuntimeModule,
+  BoxModule, BoxRuntimeModule, BuildChunkGraphArtifact, BuildModuleGraphArtifact, Chunk,
+  ChunkGraph, ChunkGroupOrderKey, ChunkGroupUkey, ChunkHashesArtifact, ChunkUkey, Compilation,
+  ExportsInfoArtifact, LogType, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
+  ModuleIdsArtifact, OptimizationBailoutItem, PrefetchExportsInfoMode, ProvidedExports,
+  RuntimeSpec, SourceType, UsedExports, compilation::build_module_graph::ExecutedRuntimeModule,
 };
 
 #[derive(Debug, Clone)]
 pub struct Stats<'compilation> {
   pub compilation: &'compilation Compilation,
   pub exports_info_artifact: &'compilation ExportsInfoArtifact,
+  pub module_graph_cache_artifact: &'compilation ModuleGraphCacheArtifact,
+  pub build_chunk_graph_artifact: &'compilation BuildChunkGraphArtifact,
+  pub module_ids_artifact: &'compilation ModuleIdsArtifact,
+  pub chunk_hashes_artifact: &'compilation ChunkHashesArtifact,
+  pub build_module_graph_artifact: &'compilation BuildModuleGraphArtifact,
 }
 
 impl<'compilation> Stats<'compilation> {
   pub fn new(
     compilation: &'compilation Compilation,
     exports_info_artifact: &'compilation ExportsInfoArtifact,
+    module_graph_cache_artifact: &'compilation ModuleGraphCacheArtifact,
+    build_chunk_graph_artifact: &'compilation BuildChunkGraphArtifact,
+    module_ids_artifact: &'compilation ModuleIdsArtifact,
+    chunk_hashes_artifact: &'compilation ChunkHashesArtifact,
+    build_module_graph_artifact: &'compilation BuildModuleGraphArtifact,
   ) -> Self {
     Self {
       compilation,
       exports_info_artifact,
+      module_graph_cache_artifact,
+      build_chunk_graph_artifact,
+      module_ids_artifact,
+      chunk_hashes_artifact,
+      build_module_graph_artifact,
     }
   }
 }
@@ -45,12 +61,7 @@ impl Stats<'_> {
     let mut compilation_file_to_chunks: HashMap<&String, Vec<&Chunk>> = HashMap::default();
     let mut compilation_file_to_auxiliary_chunks: HashMap<&String, Vec<&Chunk>> =
       HashMap::default();
-    for chunk in self
-      .compilation
-      .build_chunk_graph_artifact
-      .chunk_by_ukey
-      .values()
-    {
+    for chunk in self.build_chunk_graph_artifact.chunk_by_ukey.values() {
       for file in chunk.files() {
         let chunks = compilation_file_to_chunks.entry(file).or_default();
         chunks.push(chunk);
@@ -219,7 +230,7 @@ impl Stats<'_> {
     f: impl Fn(Vec<StatsModule>) -> T,
   ) -> Result<T> {
     let module_graph = self.compilation.get_module_graph();
-    let module_graph_cache = &self.compilation.module_graph_cache_artifact;
+    let module_graph_cache = self.module_graph_cache_artifact;
 
     let mut modules: Vec<StatsModule> = module_graph
       .modules()
@@ -311,18 +322,14 @@ impl Stats<'_> {
     f: impl Fn(Vec<StatsChunk>) -> T,
   ) -> Result<T> {
     let module_graph = self.compilation.get_module_graph();
-    let module_graph_cache = &self.compilation.module_graph_cache_artifact;
-    let chunk_graph = &self.compilation.build_chunk_graph_artifact.chunk_graph;
+    let module_graph_cache = self.module_graph_cache_artifact;
+    let chunk_graph = &self.build_chunk_graph_artifact.chunk_graph;
     let context = &self.compilation.options.context;
-    let chunk_group_by_ukey = &self
-      .compilation
-      .build_chunk_graph_artifact
-      .chunk_group_by_ukey;
+    let chunk_group_by_ukey = &self.build_chunk_graph_artifact.chunk_group_by_ukey;
 
     let orders = [ChunkGroupOrderKey::Prefetch, ChunkGroupOrderKey::Preload];
 
     let mut chunks: Vec<StatsChunk> = self
-      .compilation
       .build_chunk_graph_artifact
       .chunk_by_ukey
       .values()
@@ -353,7 +360,6 @@ impl Stats<'_> {
 
         let chunk_modules = if options.chunk_modules {
           let chunk_modules = self
-            .compilation
             .build_chunk_graph_artifact
             .chunk_graph
             .get_chunk_modules(&c.ukey(), module_graph);
@@ -380,7 +386,7 @@ impl Stats<'_> {
 
         let (parents, children, siblings) = options
           .chunk_relations
-          .then(|| get_chunk_relations(c, self.compilation))
+          .then(|| get_chunk_relations(c, self.build_chunk_graph_artifact))
           .map_or((None, None, None), |(parents, children, siblings)| {
             (Some(parents), Some(children), Some(siblings))
           });
@@ -421,8 +427,7 @@ impl Stats<'_> {
                 .unwrap_or_default();
 
               let module_id = origin.module.and_then(|identifier| {
-                ChunkGraph::get_module_id(&self.compilation.module_ids_artifact, identifier)
-                  .cloned()
+                ChunkGraph::get_module_id(self.module_ids_artifact, identifier).cloned()
               });
 
               StatsOriginRecord {
@@ -452,12 +457,7 @@ impl Stats<'_> {
           id_hints,
           names: c.name().map(|n| vec![n]).unwrap_or_default(),
           entry: c.has_entry_module(chunk_graph),
-          initial: c.can_be_initial(
-            &self
-              .compilation
-              .build_chunk_graph_artifact
-              .chunk_group_by_ukey,
-          ),
+          initial: c.can_be_initial(&self.build_chunk_graph_artifact.chunk_group_by_ukey),
           size: chunk_graph.get_chunk_modules_size(&c.ukey(), self.compilation),
           modules: chunk_modules,
           parents,
@@ -470,7 +470,7 @@ impl Stats<'_> {
           rendered: c.rendered(),
           origins,
           hash: c.rendered_hash(
-            &self.compilation.chunk_hashes_artifact,
+            self.chunk_hashes_artifact,
             self.compilation.options.output.hash_digest_length,
           ),
         })
@@ -498,7 +498,6 @@ impl Stats<'_> {
     chunk_group_children: bool,
   ) -> StatsChunkGroup<'a> {
     let cg = self
-      .compilation
       .build_chunk_graph_artifact
       .chunk_group_by_ukey
       .expect_get(ukey);
@@ -507,7 +506,6 @@ impl Stats<'_> {
       .iter()
       .filter_map(|c| {
         self
-          .compilation
           .build_chunk_graph_artifact
           .chunk_by_ukey
           .expect_get(c)
@@ -520,11 +518,7 @@ impl Stats<'_> {
       .chunks
       .par_iter()
       .map(|c| {
-        let chunk = self
-          .compilation
-          .build_chunk_graph_artifact
-          .chunk_by_ukey
-          .expect_get(c);
+        let chunk = self.build_chunk_graph_artifact.chunk_by_ukey.expect_get(c);
         chunk.files().par_iter().map(|file| StatsChunkGroupAsset {
           name: file.as_str(),
           size: get_asset_size(file, self.compilation),
@@ -537,11 +531,7 @@ impl Stats<'_> {
       cg.chunks
         .par_iter()
         .map(|c| {
-          let chunk = self
-            .compilation
-            .build_chunk_graph_artifact
-            .chunk_by_ukey
-            .expect_get(c);
+          let chunk = self.build_chunk_graph_artifact.chunk_by_ukey.expect_get(c);
           chunk
             .auxiliary_files()
             .par_iter()
@@ -564,20 +554,14 @@ impl Stats<'_> {
             self,
             &ordered_children,
             &ChunkGroupOrderKey::Preload,
-            &self
-              .compilation
-              .build_chunk_graph_artifact
-              .chunk_group_by_ukey,
+            &self.build_chunk_graph_artifact.chunk_group_by_ukey,
             chunk_group_auxiliary,
           ),
           prefetch: get_chunk_group_ordered_children(
             self,
             &ordered_children,
             &ChunkGroupOrderKey::Prefetch,
-            &self
-              .compilation
-              .build_chunk_graph_artifact
-              .chunk_group_by_ukey,
+            &self.build_chunk_graph_artifact.chunk_group_by_ukey,
             chunk_group_auxiliary,
           ),
         },
@@ -585,20 +569,14 @@ impl Stats<'_> {
           preload: get_chunk_group_oreded_child_assets(
             &ordered_children,
             &ChunkGroupOrderKey::Preload,
-            &self
-              .compilation
-              .build_chunk_graph_artifact
-              .chunk_group_by_ukey,
-            &self.compilation.build_chunk_graph_artifact.chunk_by_ukey,
+            &self.build_chunk_graph_artifact.chunk_group_by_ukey,
+            &self.build_chunk_graph_artifact.chunk_by_ukey,
           ),
           prefetch: get_chunk_group_oreded_child_assets(
             &ordered_children,
             &ChunkGroupOrderKey::Prefetch,
-            &self
-              .compilation
-              .build_chunk_graph_artifact
-              .chunk_group_by_ukey,
-            &self.compilation.build_chunk_graph_artifact.chunk_by_ukey,
+            &self.build_chunk_graph_artifact.chunk_group_by_ukey,
+            &self.build_chunk_graph_artifact.chunk_by_ukey,
           ),
         },
       )
@@ -629,7 +607,6 @@ impl Stats<'_> {
     chunk_group_children: bool,
   ) -> Vec<StatsChunkGroup<'_>> {
     self
-      .compilation
       .build_chunk_graph_artifact
       .entrypoints
       .par_iter()
@@ -645,7 +622,6 @@ impl Stats<'_> {
     chunk_group_children: bool,
   ) -> Vec<StatsChunkGroup<'_>> {
     let mut named_chunk_groups: Vec<StatsChunkGroup> = self
-      .compilation
       .build_chunk_graph_artifact
       .named_chunk_groups
       .par_iter()
@@ -673,13 +649,13 @@ impl Stats<'_> {
             Some(get_stats_module_name_and_id(
               self.compilation.module_by_identifier(identifier)?,
               self.compilation,
+              self.module_ids_artifact,
             ))
           })
           .unzip();
 
         let chunk = d.chunk.map(ChunkUkey::from).map(|key| {
           self
-            .compilation
             .build_chunk_graph_artifact
             .chunk_by_ukey
             .expect_get(&key)
@@ -690,6 +666,7 @@ impl Stats<'_> {
           module_graph,
           self.compilation,
           &self.compilation.options,
+          self.module_ids_artifact,
         );
         let code = d.code.clone();
         StatsError {
@@ -705,22 +682,10 @@ impl Stats<'_> {
           file: d.file.as_ref().map(|file| file.as_path()),
 
           chunk_name: chunk.and_then(|c| c.name()),
-          chunk_entry: chunk.map(|c| {
-            c.has_runtime(
-              &self
-                .compilation
-                .build_chunk_graph_artifact
-                .chunk_group_by_ukey,
-            )
-          }),
-          chunk_initial: chunk.map(|c| {
-            c.can_be_initial(
-              &self
-                .compilation
-                .build_chunk_graph_artifact
-                .chunk_group_by_ukey,
-            )
-          }),
+          chunk_entry: chunk
+            .map(|c| c.has_runtime(&self.build_chunk_graph_artifact.chunk_group_by_ukey)),
+          chunk_initial: chunk
+            .map(|c| c.can_be_initial(&self.build_chunk_graph_artifact.chunk_group_by_ukey)),
           chunk_id: chunk.and_then(|c| c.id().map(|id| id.as_str())),
           details: d.details.clone(),
           stack: d.stack.clone(),
@@ -748,13 +713,13 @@ impl Stats<'_> {
             Some(get_stats_module_name_and_id(
               self.compilation.module_by_identifier(identifier)?,
               self.compilation,
+              self.module_ids_artifact,
             ))
           })
           .unzip();
 
         let chunk = d.chunk.map(ChunkUkey::from).map(|key| {
           self
-            .compilation
             .build_chunk_graph_artifact
             .chunk_by_ukey
             .expect_get(&key)
@@ -765,6 +730,7 @@ impl Stats<'_> {
           module_graph,
           self.compilation,
           &self.compilation.options,
+          self.module_ids_artifact,
         );
 
         let code = d.code.clone();
@@ -782,22 +748,10 @@ impl Stats<'_> {
           file: d.file.as_ref().map(|file| file.as_path()),
 
           chunk_name: chunk.and_then(|c| c.name()),
-          chunk_entry: chunk.map(|c| {
-            c.has_runtime(
-              &self
-                .compilation
-                .build_chunk_graph_artifact
-                .chunk_group_by_ukey,
-            )
-          }),
-          chunk_initial: chunk.map(|c| {
-            c.can_be_initial(
-              &self
-                .compilation
-                .build_chunk_graph_artifact
-                .chunk_group_by_ukey,
-            )
-          }),
+          chunk_entry: chunk
+            .map(|c| c.has_runtime(&self.build_chunk_graph_artifact.chunk_group_by_ukey)),
+          chunk_initial: chunk
+            .map(|c| c.can_be_initial(&self.build_chunk_graph_artifact.chunk_group_by_ukey)),
           chunk_id: chunk.and_then(|c| c.id().map(|id| id.as_str())),
           details: d.details.clone(),
           stack: d.stack.clone(),
@@ -853,7 +807,6 @@ impl Stats<'_> {
         .unwrap_or_default()
     } else {
       self
-        .compilation
         .build_module_graph_artifact
         .built_modules()
         .contains(&identifier)
@@ -882,7 +835,7 @@ impl Stats<'_> {
             None,
           )
         } else {
-          get_stats_module_name_and_id(i, self.compilation)
+          get_stats_module_name_and_id(i, self.compilation, self.module_ids_artifact)
         }
       })
       .unzip();
@@ -931,7 +884,6 @@ impl Stats<'_> {
         true
       } else {
         self
-          .compilation
           .build_chunk_graph_artifact
           .chunk_graph
           .get_number_of_module_chunks(identifier)
@@ -955,7 +907,7 @@ impl Stats<'_> {
             None,
           )
         } else {
-          get_stats_module_name_and_id(i, self.compilation)
+          get_stats_module_name_and_id(i, self.compilation, self.module_ids_artifact)
         };
         issuer_path.push(StatsModuleIssuer {
           identifier: i.identifier(),
@@ -1000,7 +952,7 @@ impl Stats<'_> {
       stats.id = if executed {
         None
       } else {
-        ChunkGraph::get_module_id(&self.compilation.module_ids_artifact, identifier).cloned()
+        ChunkGraph::get_module_id(self.module_ids_artifact, identifier).cloned()
       };
       stats.issuer_id = issuer_id.flatten();
 
@@ -1008,7 +960,6 @@ impl Stats<'_> {
         vec![]
       } else {
         self
-          .compilation
           .build_chunk_graph_artifact
           .chunk_graph
           .get_chunk_graph_module(mgm.module_identifier)
@@ -1018,7 +969,6 @@ impl Stats<'_> {
               .iter()
               .filter_map(|k| {
                 self
-                  .compilation
                   .build_chunk_graph_artifact
                   .chunk_by_ukey
                   .expect_get(k)
@@ -1068,7 +1018,7 @@ impl Stats<'_> {
                   None,
                 )
               } else {
-                get_stats_module_name_and_id(m, self.compilation)
+                get_stats_module_name_and_id(m, self.compilation, self.module_ids_artifact)
               }
             })
             .unzip();
@@ -1082,7 +1032,7 @@ impl Stats<'_> {
                   None,
                 )
               } else {
-                get_stats_module_name_and_id(m, self.compilation)
+                get_stats_module_name_and_id(m, self.compilation, self.module_ids_artifact)
               }
             })
             .unzip();
@@ -1104,7 +1054,6 @@ impl Stats<'_> {
             module_id: module_id.flatten(),
             module_chunks: connection.original_module_identifier.and_then(|id| {
               if self
-                .compilation
                 .build_chunk_graph_artifact
                 .chunk_graph
                 .chunk_graph_module_by_module_identifier
@@ -1112,7 +1061,6 @@ impl Stats<'_> {
               {
                 Some(
                   self
-                    .compilation
                     .build_chunk_graph_artifact
                     .chunk_graph
                     .get_number_of_module_chunks(id) as u32,
@@ -1328,14 +1276,12 @@ impl Stats<'_> {
     options: &ExtendedStatsOptions,
   ) -> Result<StatsModule<'a>> {
     let mut chunks: Vec<&str> = self
-      .compilation
       .build_chunk_graph_artifact
       .chunk_graph
       .get_module_chunks(*identifier)
       .iter()
       .filter_map(|k| {
         self
-          .compilation
           .build_chunk_graph_artifact
           .chunk_by_ukey
           .expect_get(k)
@@ -1396,7 +1342,6 @@ impl Stats<'_> {
 
     if stats.built || stats.code_generated || options.cached_modules {
       let orphan = self
-        .compilation
         .build_chunk_graph_artifact
         .chunk_graph
         .get_number_of_module_chunks(*identifier)
@@ -1459,6 +1404,7 @@ pub fn create_stats_errors<'a>(
           Some(get_stats_module_name_and_id(
             compilation.module_by_identifier(identifier)?,
             compilation,
+            &compilation.module_ids_artifact,
           ))
         })
         .unzip();
@@ -1475,6 +1421,7 @@ pub fn create_stats_errors<'a>(
         module_graph,
         compilation,
         &compilation.options,
+        &compilation.module_ids_artifact,
       );
 
       let code = d.code.clone();

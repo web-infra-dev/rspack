@@ -990,14 +990,34 @@ impl Compilation {
   }
 
   pub fn get_stats(&self) -> Stats<'_> {
-    self.get_stats_with_exports_info_artifact(&self.exports_info_artifact)
+    self.get_stats_with_artifacts(
+      &self.exports_info_artifact,
+      &self.module_graph_cache_artifact,
+      &self.build_chunk_graph_artifact,
+      &self.module_ids_artifact,
+      &self.chunk_hashes_artifact,
+      &self.build_module_graph_artifact,
+    )
   }
 
-  pub fn get_stats_with_exports_info_artifact<'a>(
+  pub fn get_stats_with_artifacts<'a>(
     &'a self,
     exports_info_artifact: &'a ExportsInfoArtifact,
+    module_graph_cache_artifact: &'a ModuleGraphCacheArtifact,
+    build_chunk_graph_artifact: &'a BuildChunkGraphArtifact,
+    module_ids_artifact: &'a ModuleIdsArtifact,
+    chunk_hashes_artifact: &'a ChunkHashesArtifact,
+    build_module_graph_artifact: &'a BuildModuleGraphArtifact,
   ) -> Stats<'a> {
-    Stats::new(self, exports_info_artifact)
+    Stats::new(
+      self,
+      exports_info_artifact,
+      module_graph_cache_artifact,
+      build_chunk_graph_artifact,
+      module_ids_artifact,
+      chunk_hashes_artifact,
+      build_module_graph_artifact,
+    )
   }
 
   pub fn add_named_chunk(

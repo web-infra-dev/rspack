@@ -522,7 +522,14 @@ impl JsCompilation {
     Ok(JsStats::new(reference.share_with(env, |compilation| {
       let exports_info_artifact = compilation.exports_info_artifact_ref()?;
       let compilation = compilation.as_ref()?;
-      let stats = compilation.get_stats_with_exports_info_artifact(exports_info_artifact);
+      let stats = compilation.get_stats_with_artifacts(
+        exports_info_artifact,
+        &compilation.module_graph_cache_artifact,
+        &compilation.build_chunk_graph_artifact,
+        &compilation.module_ids_artifact,
+        &compilation.chunk_hashes_artifact,
+        &compilation.build_module_graph_artifact,
+      );
 
       Ok(stats)
     })?))

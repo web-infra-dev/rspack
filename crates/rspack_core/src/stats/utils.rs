@@ -10,8 +10,9 @@ use super::{
   StatsModule, StatsModuleTrace,
 };
 use crate::{
-  BoxModule, Chunk, ChunkByUkey, ChunkGraph, ChunkGroupByUkey, ChunkGroupOrderKey, ChunkGroupUkey,
-  Compilation, CompilerOptions, ModuleGraph, ModuleId,
+  BoxModule, BuildChunkGraphArtifact, Chunk, ChunkByUkey, ChunkGraph, ChunkGroupByUkey,
+  ChunkGroupOrderKey, ChunkGroupUkey, Compilation, CompilerOptions, ModuleGraph, ModuleId,
+  ModuleIdsArtifact,
 };
 
 pub fn get_asset_size(file: &str, compilation: &Compilation) -> usize {
@@ -43,10 +44,11 @@ pub fn sort_modules(modules: &mut [StatsModule]) {
 pub fn get_stats_module_name_and_id<'s>(
   module: &'s BoxModule,
   compilation: &Compilation,
+  module_ids_artifact: &ModuleIdsArtifact,
 ) -> (Cow<'s, str>, Option<ModuleId>) {
   let identifier = module.identifier();
   let name = module.readable_identifier(&compilation.options.context);
-  let id = ChunkGraph::get_module_id(&compilation.module_ids_artifact, identifier).cloned();
+  let id = ChunkGraph::get_module_id(module_ids_artifact, identifier).cloned();
   (name, id)
 }
 
@@ -103,26 +105,18 @@ pub fn get_chunk_group_oreded_child_assets<'a>(
 
 pub fn get_chunk_relations<'a>(
   chunk: &Chunk,
-  compilation: &'a Compilation,
+  build_chunk_graph_artifact: &'a BuildChunkGraphArtifact,
 ) -> (Vec<&'a str>, Vec<&'a str>, Vec<&'a str>) {
   let mut parents = HashSet::default();
   let mut children = HashSet::default();
   let mut siblings = HashSet::default();
 
   for cg in chunk.groups() {
-    if let Some(cg) = compilation
-      .build_chunk_graph_artifact
-      .chunk_group_by_ukey
-      .get(cg)
-    {
+    if let Some(cg) = build_chunk_graph_artifact.chunk_group_by_ukey.get(cg) {
       for p in &cg.parents {
-        if let Some(pg) = compilation
-          .build_chunk_graph_artifact
-          .chunk_group_by_ukey
-          .get(p)
-        {
+        if let Some(pg) = build_chunk_graph_artifact.chunk_group_by_ukey.get(p) {
           for c in &pg.chunks {
-            if let Some(c) = compilation.build_chunk_graph_artifact.chunk_by_ukey.get(c)
+            if let Some(c) = build_chunk_graph_artifact.chunk_by_ukey.get(c)
               && let Some(id) = c.id()
             {
               parents.insert(id.as_str());
@@ -132,13 +126,9 @@ pub fn get_chunk_relations<'a>(
       }
 
       for p in &cg.children {
-        if let Some(pg) = compilation
-          .build_chunk_graph_artifact
-          .chunk_group_by_ukey
-          .get(p)
-        {
+        if let Some(pg) = build_chunk_graph_artifact.chunk_group_by_ukey.get(p) {
           for c in &pg.chunks {
-            if let Some(c) = compilation.build_chunk_graph_artifact.chunk_by_ukey.get(c)
+            if let Some(c) = build_chunk_graph_artifact.chunk_by_ukey.get(c)
               && let Some(id) = c.id()
             {
               children.insert(id.as_str());
@@ -148,7 +138,7 @@ pub fn get_chunk_relations<'a>(
       }
 
       for c in &cg.chunks {
-        if let Some(c) = compilation.build_chunk_graph_artifact.chunk_by_ukey.get(c)
+        if let Some(c) = build_chunk_graph_artifact.chunk_by_ukey.get(c)
           && c.id() != chunk.id()
           && let Some(id) = c.id()
         {
@@ -174,6 +164,7 @@ pub fn get_module_trace<'a>(
   module_graph: &'a ModuleGraph,
   compilation: &'a Compilation,
   options: &CompilerOptions,
+  module_ids_artifact: &ModuleIdsArtifact,
 ) -> Vec<StatsModuleTrace<'a>> {
   let mut module_trace = vec![];
   let mut visited_modules = HashSet::<Identifier>::default();
@@ -192,18 +183,13 @@ pub fn get_module_trace<'a>(
     let origin_stats_module = StatsErrorModuleTraceModule {
       identifier: origin_module.identifier(),
       name: origin_module.readable_identifier(&options.context),
-      id: ChunkGraph::get_module_id(&compilation.module_ids_artifact, origin_module.identifier())
-        .cloned(),
+      id: ChunkGraph::get_module_id(module_ids_artifact, origin_module.identifier()).cloned(),
     };
 
     let current_stats_module = StatsErrorModuleTraceModule {
       identifier: current_module.identifier(),
       name: current_module.readable_identifier(&options.context),
-      id: ChunkGraph::get_module_id(
-        &compilation.module_ids_artifact,
-        current_module.identifier(),
-      )
-      .cloned(),
+      id: ChunkGraph::get_module_id(module_ids_artifact, current_module.identifier()).cloned(),
     };
     let dependencies = module_graph
       .get_incoming_connections(&module_identifier)
