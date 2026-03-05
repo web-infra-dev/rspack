@@ -3258,7 +3258,7 @@ pub fn find_new_name(old_name: &str, used_names: &HashSet<Atom>, extra_info: &[A
     numbered.push_str(&base_with_underscore);
     numbered.push_str(i_buffer.format(i));
 
-    // 同上，base 已经 escape 过，追加 '_' 和数字仍然是合法 identifier。
+    // Same as above: `base` is already escaped, appending '_' and a number still yields a valid identifier.
     let candidate: Atom = Atom::from(numbered.as_str());
     if !used_names.contains(&candidate) {
       return candidate;
