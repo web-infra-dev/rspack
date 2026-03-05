@@ -42,7 +42,7 @@ pub(crate) use self::{
   api_plugin::APIPlugin,
   check_var_decl::CheckVarDeclaratorIdent,
   common_js_exports_parse_plugin::CommonJsExportsParserPlugin,
-  common_js_imports_parse_plugin::CommonJsImportsParserPlugin,
+  common_js_imports_parse_plugin::{CommonJsImportsParserPlugin, RequireReferencesState},
   common_js_plugin::CommonJsPlugin,
   compatibility_plugin::CompatibilityPlugin,
   r#const::{ConstPlugin, is_logic_op},
