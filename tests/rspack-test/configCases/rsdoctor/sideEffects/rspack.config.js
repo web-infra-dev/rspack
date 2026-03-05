@@ -53,6 +53,8 @@ module.exports = {
 
 								const utilsLoc = utilsModule.sideEffectsLocations[0];
 								expect(utilsLoc.nodeType).toBe("Statement");
+								expect(utilsLoc.module).toBe(utilsModule.ukey);
+								expect(utilsLoc.request).toContain("utils.js");
 
 								// pure.js should NOT have side effects locations
 								const pureModule = modules.find(m =>
@@ -62,6 +64,13 @@ module.exports = {
 									expect(
 										pureModule.sideEffectsLocations?.length ?? 0
 									).toBe(0);
+								}
+
+								// sideEffectsLocations.module should always point to current module ukey
+								for (const mod of modulesWithSideEffects) {
+									for (const loc of mod.sideEffectsLocations) {
+										expect(loc.module).toBe(mod.ukey);
+									}
 								}
 							}
 						);
