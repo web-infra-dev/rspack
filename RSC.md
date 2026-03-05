@@ -1,27 +1,27 @@
-# RSC in Rspack: Full Repo Breakdown
+# RSC in Rspack: full repo breakdown
 
 RSC in this repo is implemented as a coordinated multi-compiler pipeline (server + client), with SWC directive transforms feeding metadata into a Rust plugin that injects entries/loaders and emits a runtime manifest.
 
-## 1) Public API Surface (What Users Configure)
+## 1) Public API surface (What users Configure)
 
 - `experiments.rsc` is exported at `/Users/zackjackson/rspack/packages/rspack/src/exports.ts:400` and wired from `/Users/zackjackson/rspack/packages/rspack/src/builtin-plugin/rsc/index.ts:14`.
 - `createPlugins()` returns paired `ServerPlugin` + `ClientPlugin` that share one coordinator (`/Users/zackjackson/rspack/packages/rspack/src/builtin-plugin/rsc/index.ts:21`).
 - Layer constants are exposed as `Layers.rsc = "react-server-components"` and `Layers.ssr = "server-side-rendering"` (`/Users/zackjackson/rspack/packages/rspack/src/builtin-plugin/rsc/index.ts:41`).
 - SWC opt-in is `rspackExperiments.reactServerComponents` (`/Users/zackjackson/rspack/packages/rspack/src/builtin-loader/swc/types.ts:32`).
 
-## 2) JS-Side Coordinator and Watch Behavior
+## 2) JS-Side Coordinator and watch behavior
 
 - JS `Coordinator` bridges to Rust `JsCoordinator`, provides server compiler ID, and synchronizes watch behavior (`/Users/zackjackson/rspack/packages/rspack/src/builtin-plugin/rsc/Coordinator.ts:9`).
 - Server compiler proxies client dependencies into server watched deps (`/Users/zackjackson/rspack/packages/rspack/src/builtin-plugin/rsc/Coordinator.ts:45`).
 - Client compiler watch is forced to ignore all files; server invalidation drives client invalidation (`/Users/zackjackson/rspack/packages/rspack/src/builtin-plugin/rsc/Coordinator.ts:77`).
 
-## 3) Binding and Plugin Registration
+## 3) Binding and plugin registration
 
 - NAPI bridge types for RSC plugins/coordinator: `/Users/zackjackson/rspack/crates/rspack_binding_api/src/plugins/rsc.rs:21`.
 - Builtin plugin names include `RscServerPlugin` and `RscClientPlugin` (`/Users/zackjackson/rspack/crates/rspack_binding_api/src/raw_options/raw_builtins/mod.rs:252`).
 - Loader plugins for RSC are always registered in compiler bootstrap: `ClientEntryLoaderPlugin` and `ActionEntryLoaderPlugin` (`/Users/zackjackson/rspack/crates/rspack_binding_api/src/lib.rs:204`).
 
-## 4) Core RSC Metadata Model
+## 4) Core RSC metadata model
 
 - `RscModuleType` (`ServerEntry | Server | Client`) and `RscMeta` live in `/Users/zackjackson/rspack/crates/rspack_core/src/module.rs:56`.
 - Metadata fields: `server_refs`, `client_refs`, `is_cjs`, `action_ids` (`/Users/zackjackson/rspack/crates/rspack_core/src/module.rs:72`).
