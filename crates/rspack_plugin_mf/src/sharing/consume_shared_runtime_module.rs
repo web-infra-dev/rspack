@@ -92,6 +92,7 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
     let mut chunk_to_module_mapping = FxHashMap::default();
     let mut module_id_to_consume_data_mapping = FxHashMap::default();
     let mut initial_consumes = Vec::new();
+    let enhanced = self.enhanced;
     let mut add_module = |module: ModuleIdentifier, chunk: &Chunk, ids: &mut Vec<String>| {
       let id = ChunkGraph::get_module_id(&compilation.module_ids_artifact, module)
         .map(|s| s.to_string())
@@ -102,11 +103,12 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
         .get(&module, Some(chunk.runtime()));
       if let Some(data) = code_gen.data.get::<CodeGenerationDataConsumeShared>() {
         let share_scope_json = if enhanced {
-          json_stringify_str(&data.share_scope)
+          json_stringify(&data.share_scope)
         } else {
           json_stringify_str(
             data
               .share_scope
+              .scopes()
               .first()
               .map(|s| s.as_str())
               .unwrap_or("default"),
