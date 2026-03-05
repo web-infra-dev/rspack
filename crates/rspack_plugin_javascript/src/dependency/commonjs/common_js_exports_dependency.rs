@@ -51,6 +51,23 @@ impl ExportsBase {
   }
 }
 
+// we can't mangle names that are in an empty object because one could access the prototype property
+// when export isn't set yet. It's different for different targets. so here we only list common properties.
+static PROTOTYPE_PROPS: [&str; 12] = [
+  "constructor",
+  "__defineGetter__",
+  "__defineSetter__",
+  "hasOwnProperty",
+  "__lookupGetter__",
+  "__lookupSetter__",
+  "isPrototypeOf",
+  "propertyIsEnumerable",
+  "toString",
+  "valueOf",
+  "__proto__",
+  "toLocaleString",
+];
+
 #[cacheable]
 #[derive(Debug, Clone)]
 pub struct CommonJsExportsDependency {
@@ -103,9 +120,10 @@ impl Dependency for CommonJsExportsDependency {
     _mg_cache: &ModuleGraphCacheArtifact,
     _exports_info_artifact: &ExportsInfoArtifact,
   ) -> Option<ExportsSpec> {
+    let name = self.names[0].clone();
     let vec = vec![ExportNameOrSpec::ExportSpec(ExportSpec {
-      name: self.names[0].clone(),
-      can_mangle: Some(false), // in webpack, object own property may not be mangled
+      can_mangle: Some(!PROTOTYPE_PROPS.contains(&name.as_str())),
+      name,
       ..Default::default()
     })];
     Some(ExportsSpec {
