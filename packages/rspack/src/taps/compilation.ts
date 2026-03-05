@@ -408,9 +408,7 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
           queried.call(proxiedModules);
 
           return {
-            assignments: Object.fromEntries(
-              Array.from(assignments.entries()).map(([k, v]) => [k, String(v)]),
-            ),
+            assignments: Object.fromEntries(assignments.entries()),
           };
         };
       },
