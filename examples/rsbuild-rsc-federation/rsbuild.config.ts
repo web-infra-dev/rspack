@@ -5,6 +5,40 @@ import { rspack } from '@rspack/core';
 import { Layers, pluginRSC } from 'rsbuild-plugin-rsc';
 
 const containerName = 'rsbuild_container';
+type EnvironmentName = 'server' | 'client';
+
+const unifiedExposes = {
+  './button': {
+    import: './src/exposed-client.tsx',
+    environments: ['server', 'client'],
+    layers: {
+      server: Layers.rsc,
+    },
+  },
+  './consumer': {
+    import: './src/rsc-consumer.ts',
+    environments: ['server'],
+    layers: {
+      server: Layers.rsc,
+    },
+  },
+} as const;
+
+function resolveExposes(environment: EnvironmentName) {
+  return Object.fromEntries(
+    Object.entries(unifiedExposes)
+      .filter(([, definition]) => definition.environments.includes(environment))
+      .map(([exposeKey, definition]) => [
+        exposeKey,
+        {
+          import: definition.import,
+          ...(definition.layers[environment]
+            ? { layer: definition.layers[environment] }
+            : {}),
+        },
+      ]),
+  );
+}
 
 const rscLayerShared = {
   singleton: true,
@@ -59,6 +93,7 @@ export default defineConfig({
   tools: {
     rspack: (config, { target }) => {
       const isServerBuild = target === 'node';
+      const environment: EnvironmentName = isServerBuild ? 'server' : 'client';
 
       if (isServerBuild) {
         config.target = 'async-node';
@@ -73,22 +108,7 @@ export default defineConfig({
             ? { type: 'commonjs-module' }
             : { type: 'var', name: containerName },
           manifest: isServerBuild ? true : { fileName: 'mf-manifest.client' },
-          exposes: isServerBuild
-            ? {
-                './button': {
-                  import: './src/exposed-client.tsx',
-                  layer: Layers.rsc,
-                },
-                './consumer': {
-                  import: './src/rsc-consumer.ts',
-                  layer: Layers.rsc,
-                },
-              }
-            : {
-                './button': {
-                  import: './src/exposed-client.tsx',
-                },
-              },
+          exposes: resolveExposes(environment),
           remotes: {
             remote: 'remote@http://localhost:3002/remoteEntry.js',
           },
