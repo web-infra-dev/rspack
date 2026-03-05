@@ -21,6 +21,16 @@ function createVirtualModuleId(kind, key) {
   return `mf_rsc_${kind}_${stableHash(key)}`;
 }
 
+function toUniqueStringArray(items) {
+  const deduped = new Set();
+  for (const item of items) {
+    if (typeof item === 'string' && item) {
+      deduped.add(item);
+    }
+  }
+  return [...deduped];
+}
+
 function normalizeExportedModule(moduleValue) {
   if (
     moduleValue &&
@@ -70,6 +80,98 @@ function normalizeServerActions(value) {
     }
   }
   return actions;
+}
+
+function createRscRegistrationPayload(manifestJson) {
+  const exposes = Array.isArray(manifestJson?.exposes)
+    ? manifestJson.exposes
+    : [];
+  const shared = Array.isArray(manifestJson?.shared) ? manifestJson.shared : [];
+  const exposePayload = [];
+  const sharedPayload = [];
+
+  for (const expose of exposes) {
+    const rscMeta = expose?.rsc;
+    if (!rscMeta) {
+      continue;
+    }
+    const clientReferences = normalizeStringArray(rscMeta.clientReferences);
+    const serverActions = normalizeServerActions(rscMeta.serverActions);
+    if (clientReferences.length === 0 && serverActions.length === 0) {
+      continue;
+    }
+    const moduleIdentity =
+      rscMeta.lookup || rscMeta.resource || expose.path || expose.name || '.';
+    exposePayload.push({
+      exposePath: expose.path,
+      moduleIdentity,
+      manifestKeys: toUniqueStringArray([
+        rscMeta.resource,
+        rscMeta.lookup,
+        moduleIdentity,
+      ]),
+      clientReferences,
+      serverActions,
+    });
+  }
+
+  for (const sharedItem of shared) {
+    const rscMeta = sharedItem?.rsc;
+    if (!rscMeta || typeof sharedItem?.name !== 'string' || !sharedItem.name) {
+      continue;
+    }
+    const clientReferences = normalizeStringArray(rscMeta.clientReferences);
+    const serverActions = normalizeServerActions(rscMeta.serverActions);
+    if (clientReferences.length === 0 && serverActions.length === 0) {
+      continue;
+    }
+    const moduleIdentity = rscMeta.lookup || rscMeta.resource || sharedItem.name;
+    sharedPayload.push({
+      shareKey: sharedItem.name,
+      moduleIdentity,
+      manifestKeys: toUniqueStringArray([
+        rscMeta.resource,
+        rscMeta.lookup,
+        moduleIdentity,
+      ]),
+      clientReferences,
+      serverActions,
+    });
+  }
+
+  return {
+    sourceId: manifestJson?.id || manifestJson?.name || '',
+    buildVersion: manifestJson?.metaData?.buildInfo?.buildVersion || '',
+    exposePayload,
+    sharedPayload,
+  };
+}
+
+function buildManifestIdentityKeys({
+  remoteAlias,
+  remoteName,
+  remoteEntry,
+  remoteVersion,
+  remoteBuildVersion,
+  manifestUrl,
+  manifestJson,
+}) {
+  const keys = [
+    remoteAlias && `alias:${remoteAlias}`,
+    remoteName && `name:${remoteName}`,
+    remoteEntry && `entry:${remoteEntry}`,
+    remoteVersion && remoteName && `version:${remoteName}:${remoteVersion}`,
+    remoteBuildVersion &&
+      remoteName &&
+      `build:${remoteName}:${remoteBuildVersion}`,
+    manifestUrl && `manifestUrl:${manifestUrl}`,
+    manifestJson?.id && `manifestId:${manifestJson.id}`,
+    manifestJson?.name && `manifestName:${manifestJson.name}`,
+    manifestJson?.metaData?.buildInfo?.buildVersion &&
+      manifestJson?.name &&
+      `manifestBuild:${manifestJson.name}:${manifestJson.metaData.buildInfo.buildVersion}`,
+  ];
+  return toUniqueStringArray(keys);
 }
 
 function ensureRscManifest() {
@@ -178,6 +280,7 @@ function toExposeRequest(remoteAlias, exposePath) {
 
 export default function mfRscRegistrationRuntimePlugin() {
   const registrationFingerprintByAlias = new Map();
+  const stagedPayloadByIdentity = new Map();
 
   const loadRemoteModule = (request) =>
     __webpack_require__.federation.instance
@@ -242,102 +345,89 @@ export default function mfRscRegistrationRuntimePlugin() {
     });
   };
 
-  const registerRscDataFromManifest = (remoteAlias, manifestJson) => {
-    const exposes = Array.isArray(manifestJson?.exposes)
-      ? manifestJson.exposes
-      : [];
-    const shared = Array.isArray(manifestJson?.shared) ? manifestJson.shared : [];
+  const cacheStagedPayload = (identityKeys, payload) => {
+    for (const key of identityKeys) {
+      stagedPayloadByIdentity.set(key, payload);
+    }
+  };
+
+  const getStagedPayload = (identityKeys) => {
+    for (const key of identityKeys) {
+      const stagedPayload = stagedPayloadByIdentity.get(key);
+      if (stagedPayload) {
+        return stagedPayload;
+      }
+    }
+    return undefined;
+  };
+
+  const registerRscPayload = (remoteAlias, payload) => {
     const fingerprint = JSON.stringify({
-      id: manifestJson?.id || manifestJson?.name || '',
-      buildVersion: manifestJson?.metaData?.buildInfo?.buildVersion || '',
-      exposeRscKeys: exposes
-        .filter((item) => item?.rsc)
-        .map((item) => item.rsc.lookup || item.rsc.resource || item.path || ''),
-      sharedRscKeys: shared
-        .filter((item) => item?.rsc)
-        .map((item) => item.rsc.lookup || item.rsc.resource || item.name || ''),
+      id: payload.sourceId,
+      buildVersion: payload.buildVersion,
+      exposeRscKeys: payload.exposePayload.map(
+        (item) => item.moduleIdentity || '',
+      ),
+      sharedRscKeys: payload.sharedPayload.map(
+        (item) => item.moduleIdentity || '',
+      ),
     });
     if (registrationFingerprintByAlias.get(remoteAlias) === fingerprint) {
       return;
     }
 
-    for (const expose of exposes) {
-      const rscMeta = expose?.rsc;
-      if (!rscMeta) {
-        continue;
-      }
-
-      const clientReferences = normalizeStringArray(rscMeta.clientReferences);
-      const serverActions = normalizeServerActions(rscMeta.serverActions);
-      const exposeRequest = toExposeRequest(remoteAlias, expose.path);
-      const moduleIdentity = rscMeta.lookup || rscMeta.resource || exposeRequest;
-      const manifestKeys = new Set(
-        [rscMeta.resource, rscMeta.lookup, moduleIdentity].filter(Boolean),
-      );
-
-      if (clientReferences.length > 0) {
+    for (const expose of payload.exposePayload) {
+      const exposeRequest = toExposeRequest(remoteAlias, expose.exposePath);
+      if (expose.clientReferences.length > 0) {
         const moduleId = createVirtualModuleId(
           'client_expose',
-          `${remoteAlias}:${moduleIdentity}`,
+          `${remoteAlias}:${expose.moduleIdentity}`,
         );
-        registerClientReferenceModule(moduleId, clientReferences, () =>
+        registerClientReferenceModule(moduleId, expose.clientReferences, () =>
           loadRemoteModule(exposeRequest),
         );
-        for (const moduleKey of manifestKeys) {
+        for (const moduleKey of expose.manifestKeys) {
           ensureClientManifestEntry(moduleKey, moduleId);
         }
       }
 
-      if (serverActions.length > 0) {
+      if (expose.serverActions.length > 0) {
         const moduleId = createVirtualModuleId(
           'action_expose',
-          `${remoteAlias}:${moduleIdentity}`,
+          `${remoteAlias}:${expose.moduleIdentity}`,
         );
-        registerServerActionModule(moduleId, serverActions, () =>
+        registerServerActionModule(moduleId, expose.serverActions, () =>
           loadRemoteModule(exposeRequest),
         );
-        for (const action of serverActions) {
+        for (const action of expose.serverActions) {
           ensureServerActionManifestEntry(action.id, moduleId);
         }
       }
     }
 
-    for (const sharedItem of shared) {
-      const rscMeta = sharedItem?.rsc;
-      if (!rscMeta || typeof sharedItem?.name !== 'string' || !sharedItem.name) {
-        continue;
-      }
-
-      const shareKey = sharedItem.name;
-      const clientReferences = normalizeStringArray(rscMeta.clientReferences);
-      const serverActions = normalizeServerActions(rscMeta.serverActions);
-      const moduleIdentity = rscMeta.lookup || rscMeta.resource || shareKey;
-      const manifestKeys = new Set(
-        [rscMeta.resource, rscMeta.lookup, moduleIdentity].filter(Boolean),
-      );
-
-      if (clientReferences.length > 0) {
+    for (const sharedItem of payload.sharedPayload) {
+      if (sharedItem.clientReferences.length > 0) {
         const moduleId = createVirtualModuleId(
           'client_shared',
-          `${remoteAlias}:${moduleIdentity}`,
+          `${remoteAlias}:${sharedItem.moduleIdentity}`,
         );
-        registerClientReferenceModule(moduleId, clientReferences, () =>
-          loadSharedModule(shareKey),
+        registerClientReferenceModule(moduleId, sharedItem.clientReferences, () =>
+          loadSharedModule(sharedItem.shareKey),
         );
-        for (const moduleKey of manifestKeys) {
+        for (const moduleKey of sharedItem.manifestKeys) {
           ensureClientManifestEntry(moduleKey, moduleId);
         }
       }
 
-      if (serverActions.length > 0) {
+      if (sharedItem.serverActions.length > 0) {
         const moduleId = createVirtualModuleId(
           'action_shared',
-          `${remoteAlias}:${moduleIdentity}`,
+          `${remoteAlias}:${sharedItem.moduleIdentity}`,
         );
-        registerServerActionModule(moduleId, serverActions, () =>
-          loadSharedModule(shareKey),
+        registerServerActionModule(moduleId, sharedItem.serverActions, () =>
+          loadSharedModule(sharedItem.shareKey),
         );
-        for (const action of serverActions) {
+        for (const action of sharedItem.serverActions) {
           ensureServerActionManifestEntry(action.id, moduleId);
         }
       }
@@ -352,6 +442,7 @@ export default function mfRscRegistrationRuntimePlugin() {
       args?.remote?.alias ||
       args?.remoteInfo?.alias ||
       args?.remote?.name;
+    const remoteName = args?.remoteInfo?.name || args?.remote?.name;
     if (!remoteAlias) {
       return;
     }
@@ -361,19 +452,69 @@ export default function mfRscRegistrationRuntimePlugin() {
       typeof configuredEntry === 'string' && configuredEntry.endsWith('.json')
         ? configuredEntry
         : undefined;
-    const manifestJson =
-      (manifestUrl && (await readManifestJson(args.origin, manifestUrl))) ||
-      pickManifestFromSnapshotCache(args.origin, args?.remoteInfo?.name);
+    const identityKeys = buildManifestIdentityKeys({
+      remoteAlias,
+      remoteName,
+      remoteEntry: configuredEntry,
+      remoteVersion: args?.remoteSnapshot?.version || args?.remoteInfo?.version,
+      remoteBuildVersion:
+        args?.remoteSnapshot?.buildVersion || args?.remoteInfo?.buildVersion,
+      manifestUrl,
+    });
 
-    if (!manifestJson) {
+    let payload = getStagedPayload(identityKeys);
+    if (!payload) {
+      const manifestJson =
+        (manifestUrl && (await readManifestJson(args.origin, manifestUrl))) ||
+        pickManifestFromSnapshotCache(args.origin, args?.remoteInfo?.name);
+      if (!manifestJson) {
+        return;
+      }
+      payload = createRscRegistrationPayload(manifestJson);
+      const manifestIdentityKeys = buildManifestIdentityKeys({
+        remoteAlias,
+        remoteName,
+        remoteEntry: configuredEntry,
+        remoteVersion:
+          args?.remoteSnapshot?.version || args?.remoteInfo?.version,
+        remoteBuildVersion:
+          args?.remoteSnapshot?.buildVersion || args?.remoteInfo?.buildVersion,
+        manifestUrl,
+        manifestJson,
+      });
+      cacheStagedPayload(manifestIdentityKeys, payload);
+    }
+
+    if (!payload) {
       return;
     }
 
-    registerRscDataFromManifest(remoteAlias, manifestJson);
+    registerRscPayload(remoteAlias, payload);
   };
 
   return {
     name: 'mf-rsc-registration-runtime-plugin',
+    async loadRemoteSnapshot(args) {
+      if (args?.from !== 'manifest' || !args?.manifestJson) {
+        return args;
+      }
+      const remoteAlias = args?.moduleInfo?.alias || args?.moduleInfo?.name;
+      const remoteName = args?.moduleInfo?.name;
+      const payload = createRscRegistrationPayload(args.manifestJson);
+      const identityKeys = buildManifestIdentityKeys({
+        remoteAlias,
+        remoteName,
+        remoteEntry: args?.moduleInfo?.entry,
+        remoteVersion: args?.remoteSnapshot?.version || args?.moduleInfo?.version,
+        remoteBuildVersion:
+          args?.remoteSnapshot?.buildVersion ||
+          args?.manifestJson?.metaData?.buildInfo?.buildVersion,
+        manifestUrl: args?.manifestUrl,
+        manifestJson: args?.manifestJson,
+      });
+      cacheStagedPayload(identityKeys, payload);
+      return args;
+    },
     async afterResolve(args) {
       await tryRegisterManifest(args);
       return args;
