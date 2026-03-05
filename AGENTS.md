@@ -145,3 +145,30 @@ These documents provide detailed context about the project structure, coding sta
 - [Testing Guide](website/docs/en/contribute/development/testing.mdx)
 - [Debugging Guide](website/docs/en/contribute/development/debugging.mdx)
 - [API Docs](website/docs/en/api/index.mdx)
+
+## Cursor Cloud specific instructions
+
+### Environment
+
+- **Rust nightly-2025-11-13** is pinned in `rust-toolchain.toml` and auto-selected in `/workspace`.
+- **Node.js v22** and **pnpm 10.26.2** are required (see root `package.json` `engines` / `packageManager`).
+- No external services (databases, Docker, etc.) are needed; Rspack is fully self-contained.
+
+### Building after changes
+
+- After Rust changes: `pnpm run build:binding:dev` (~6 min cold, faster incremental), then `pnpm run build:js`.
+- After JS/TS-only changes: `pnpm run build:js` (~10 s).
+- Full dev build: `pnpm run build:cli:dev` (equivalent to binding:dev + build:js).
+
+### Running rspack locally
+
+- The CLI entrypoint is `packages/rspack-cli/bin/rspack.js`. Run with `node packages/rspack-cli/bin/rspack.js build` or `serve` from a project directory.
+- When testing from outside the monorepo, `@rspack/core` must be resolvable. Either symlink or use an absolute require in the config.
+
+### Lint / test quick reference
+
+See the "Code quality" and "Testing" sections above for all commands. Key notes:
+- `pnpm run lint-ci:js` is the non-write (check-only) JS lint; `pnpm run lint:js` auto-fixes.
+- `pnpm run test:unit` runs JS tests across all `@rspack/*` packages (includes the large `tests/rspack-test` suite). Expect ~4 min.
+- `pnpm run test:rs` runs Rust tests (~12 min). It excludes binding/NAPI crates that require a full Node environment.
+- One known flaky test: `configCases/builtin-swc-loader/swc-loader-incompatible-wasm-plugin` may timeout in constrained environments.
