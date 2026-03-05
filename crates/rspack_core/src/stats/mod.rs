@@ -38,24 +38,82 @@ const STATS_ARTIFACT_FALLBACK_BUILD_MODULE_GRAPH: u8 = 1 << 2;
 const STATS_ARTIFACT_FALLBACK_MODULE_IDS: u8 = 1 << 3;
 const STATS_ARTIFACT_FALLBACK_CHUNK_HASHES: u8 = 1 << 4;
 
+#[derive(Debug, Clone, Copy)]
+pub struct StatsContext<'compilation>(&'compilation Compilation);
+
+impl<'compilation> StatsContext<'compilation> {
+  pub fn new(compilation: &'compilation Compilation) -> Self {
+    Self(compilation)
+  }
+
+  fn options(&self) -> &'compilation CompilerOptions {
+    self.0.options.as_ref()
+  }
+
+  fn assets(&self) -> &'compilation CompilationAssets {
+    self.0.assets()
+  }
+
+  fn emitted_assets(&self) -> &'compilation DashSet<String, BuildHasherDefault<FxHasher>> {
+    &self.0.emitted_assets
+  }
+
+  fn diagnostics(&self) -> &'compilation [Diagnostic] {
+    self.0.diagnostics()
+  }
+
+  fn logging(&self) -> &'compilation CompilationLogging {
+    self.0.get_logging()
+  }
+
+  fn hash(&self) -> Option<&'compilation RspackHashDigest> {
+    self.0.hash.as_ref()
+  }
+
+  fn exports_info_artifact(&self) -> &'compilation StealCell<ExportsInfoArtifact> {
+    &self.0.exports_info_artifact
+  }
+
+  fn module_graph_cache_artifact(&self) -> &'compilation StealCell<ModuleGraphCacheArtifact> {
+    &self.0.module_graph_cache_artifact
+  }
+
+  fn build_module_graph_artifact(&self) -> &'compilation StealCell<BuildModuleGraphArtifact> {
+    &self.0.build_module_graph_artifact
+  }
+
+  fn build_chunk_graph_artifact(&self) -> &'compilation BuildChunkGraphArtifact {
+    &self.0.build_chunk_graph_artifact
+  }
+
+  fn module_ids_artifact(&self) -> &'compilation StealCell<ModuleIdsArtifact> {
+    &self.0.module_ids_artifact
+  }
+
+  fn chunk_hashes_artifact(&self) -> &'compilation StealCell<ChunkHashesArtifact> {
+    &self.0.chunk_hashes_artifact
+  }
+
+  fn code_generated_modules(&self) -> &'compilation IdentifierSet {
+    &self.0.code_generated_modules
+  }
+
+  fn runtime_modules(&self) -> &'compilation IdentifierMap<BoxRuntimeModule> {
+    &self.0.runtime_modules
+  }
+
+  fn runtime_modules_code_generation_source(&self) -> &'compilation IdentifierMap<BoxSource> {
+    &self.0.runtime_modules_code_generation_source
+  }
+
+  fn module_executor(&self) -> Option<&'compilation ModuleExecutor> {
+    self.0.module_executor.as_ref()
+  }
+}
+
 #[derive(Debug)]
 pub struct Stats<'compilation> {
-  pub options: &'compilation CompilerOptions,
-  pub assets: &'compilation CompilationAssets,
-  pub emitted_assets: &'compilation DashSet<String, BuildHasherDefault<FxHasher>>,
-  pub diagnostics: &'compilation [Diagnostic],
-  pub logging: &'compilation CompilationLogging,
-  pub hash: Option<&'compilation RspackHashDigest>,
-  exports_info_artifact: &'compilation StealCell<ExportsInfoArtifact>,
-  module_graph_cache: &'compilation StealCell<ModuleGraphCacheArtifact>,
-  build_module_graph_artifact: &'compilation StealCell<BuildModuleGraphArtifact>,
-  build_chunk_graph_artifact: &'compilation BuildChunkGraphArtifact,
-  module_ids_artifact: &'compilation StealCell<ModuleIdsArtifact>,
-  chunk_hashes_artifact: &'compilation StealCell<ChunkHashesArtifact>,
-  pub code_generated_modules: &'compilation IdentifierSet,
-  pub runtime_modules: &'compilation IdentifierMap<BoxRuntimeModule>,
-  pub runtime_modules_code_generation_source: &'compilation IdentifierMap<BoxSource>,
-  pub module_executor: Option<&'compilation ModuleExecutor>,
+  context: StatsContext<'compilation>,
 
   default_exports_info_artifact: ExportsInfoArtifact,
   default_module_graph_cache_artifact: ModuleGraphCacheArtifact,
@@ -68,22 +126,7 @@ pub struct Stats<'compilation> {
 impl<'compilation> Clone for Stats<'compilation> {
   fn clone(&self) -> Self {
     Self {
-      options: self.options,
-      assets: self.assets,
-      emitted_assets: self.emitted_assets,
-      diagnostics: self.diagnostics,
-      logging: self.logging,
-      hash: self.hash,
-      exports_info_artifact: self.exports_info_artifact,
-      module_graph_cache: self.module_graph_cache,
-      build_module_graph_artifact: self.build_module_graph_artifact,
-      build_chunk_graph_artifact: self.build_chunk_graph_artifact,
-      module_ids_artifact: self.module_ids_artifact,
-      chunk_hashes_artifact: self.chunk_hashes_artifact,
-      code_generated_modules: self.code_generated_modules,
-      runtime_modules: self.runtime_modules,
-      runtime_modules_code_generation_source: self.runtime_modules_code_generation_source,
-      module_executor: self.module_executor,
+      context: self.context,
       default_exports_info_artifact: Default::default(),
       default_module_graph_cache_artifact: Default::default(),
       default_build_module_graph_artifact: BuildModuleGraphArtifact::new(),
@@ -95,42 +138,9 @@ impl<'compilation> Clone for Stats<'compilation> {
 }
 
 impl<'compilation> Stats<'compilation> {
-  #[allow(clippy::too_many_arguments)]
-  pub fn new(
-    options: &'compilation CompilerOptions,
-    assets: &'compilation CompilationAssets,
-    emitted_assets: &'compilation DashSet<String, BuildHasherDefault<FxHasher>>,
-    diagnostics: &'compilation [Diagnostic],
-    logging: &'compilation CompilationLogging,
-    hash: Option<&'compilation RspackHashDigest>,
-    exports_info_artifact: &'compilation StealCell<ExportsInfoArtifact>,
-    module_graph_cache: &'compilation StealCell<ModuleGraphCacheArtifact>,
-    build_module_graph_artifact: &'compilation StealCell<BuildModuleGraphArtifact>,
-    build_chunk_graph_artifact: &'compilation BuildChunkGraphArtifact,
-    module_ids_artifact: &'compilation StealCell<ModuleIdsArtifact>,
-    chunk_hashes_artifact: &'compilation StealCell<ChunkHashesArtifact>,
-    code_generated_modules: &'compilation IdentifierSet,
-    runtime_modules: &'compilation IdentifierMap<BoxRuntimeModule>,
-    runtime_modules_code_generation_source: &'compilation IdentifierMap<BoxSource>,
-    module_executor: Option<&'compilation ModuleExecutor>,
-  ) -> Self {
+  pub fn new(context: StatsContext<'compilation>) -> Self {
     Self {
-      options,
-      assets,
-      emitted_assets,
-      diagnostics,
-      logging,
-      hash,
-      exports_info_artifact,
-      module_graph_cache,
-      build_module_graph_artifact,
-      build_chunk_graph_artifact,
-      module_ids_artifact,
-      chunk_hashes_artifact,
-      code_generated_modules,
-      runtime_modules,
-      runtime_modules_code_generation_source,
-      module_executor,
+      context,
       default_exports_info_artifact: Default::default(),
       default_module_graph_cache_artifact: Default::default(),
       default_build_module_graph_artifact: BuildModuleGraphArtifact::new(),
@@ -178,23 +188,72 @@ impl<'compilation> Stats<'compilation> {
     names
   }
 
+  pub fn options(&self) -> &'compilation CompilerOptions {
+    self.context.options()
+  }
+
+  pub fn assets(&self) -> &'compilation CompilationAssets {
+    self.context.assets()
+  }
+
+  pub fn emitted_assets(&self) -> &'compilation DashSet<String, BuildHasherDefault<FxHasher>> {
+    self.context.emitted_assets()
+  }
+
+  pub fn diagnostics(&self) -> &'compilation [Diagnostic] {
+    self.context.diagnostics()
+  }
+
+  pub fn logging(&self) -> &'compilation CompilationLogging {
+    self.context.logging()
+  }
+
+  pub fn hash(&self) -> Option<&'compilation RspackHashDigest> {
+    self.context.hash()
+  }
+
+  pub fn code_generated_modules(&self) -> &'compilation IdentifierSet {
+    self.context.code_generated_modules()
+  }
+
+  pub fn runtime_modules(&self) -> &'compilation IdentifierMap<BoxRuntimeModule> {
+    self.context.runtime_modules()
+  }
+
+  pub fn runtime_modules_code_generation_source(&self) -> &'compilation IdentifierMap<BoxSource> {
+    self.context.runtime_modules_code_generation_source()
+  }
+
+  pub fn module_executor(&self) -> Option<&'compilation ModuleExecutor> {
+    self.context.module_executor()
+  }
+
   pub fn exports_info_artifact(&self) -> &ExportsInfoArtifact {
-    self.exports_info_artifact.try_read().unwrap_or_else(|| {
-      self.mark_artifact_fallback(STATS_ARTIFACT_FALLBACK_EXPORTS_INFO);
-      &self.default_exports_info_artifact
-    })
+    self
+      .context
+      .exports_info_artifact()
+      .try_read()
+      .unwrap_or_else(|| {
+        self.mark_artifact_fallback(STATS_ARTIFACT_FALLBACK_EXPORTS_INFO);
+        &self.default_exports_info_artifact
+      })
   }
 
   pub fn module_graph_cache_artifact(&self) -> &ModuleGraphCacheArtifact {
-    self.module_graph_cache.try_read().unwrap_or_else(|| {
-      self.mark_artifact_fallback(STATS_ARTIFACT_FALLBACK_MODULE_GRAPH_CACHE);
-      &self.default_module_graph_cache_artifact
-    })
+    self
+      .context
+      .module_graph_cache_artifact()
+      .try_read()
+      .unwrap_or_else(|| {
+        self.mark_artifact_fallback(STATS_ARTIFACT_FALLBACK_MODULE_GRAPH_CACHE);
+        &self.default_module_graph_cache_artifact
+      })
   }
 
   pub fn build_module_graph_artifact(&self) -> &BuildModuleGraphArtifact {
     self
-      .build_module_graph_artifact
+      .context
+      .build_module_graph_artifact()
       .try_read()
       .unwrap_or_else(|| {
         self.mark_artifact_fallback(STATS_ARTIFACT_FALLBACK_BUILD_MODULE_GRAPH);
@@ -203,21 +262,29 @@ impl<'compilation> Stats<'compilation> {
   }
 
   pub fn build_chunk_graph_artifact(&self) -> &BuildChunkGraphArtifact {
-    self.build_chunk_graph_artifact
+    self.context.build_chunk_graph_artifact()
   }
 
   pub fn module_ids_artifact(&self) -> &ModuleIdsArtifact {
-    self.module_ids_artifact.try_read().unwrap_or_else(|| {
-      self.mark_artifact_fallback(STATS_ARTIFACT_FALLBACK_MODULE_IDS);
-      &self.default_module_ids_artifact
-    })
+    self
+      .context
+      .module_ids_artifact()
+      .try_read()
+      .unwrap_or_else(|| {
+        self.mark_artifact_fallback(STATS_ARTIFACT_FALLBACK_MODULE_IDS);
+        &self.default_module_ids_artifact
+      })
   }
 
   pub fn chunk_hashes_artifact(&self) -> &ChunkHashesArtifact {
-    self.chunk_hashes_artifact.try_read().unwrap_or_else(|| {
-      self.mark_artifact_fallback(STATS_ARTIFACT_FALLBACK_CHUNK_HASHES);
-      &self.default_chunk_hashes_artifact
-    })
+    self
+      .context
+      .chunk_hashes_artifact()
+      .try_read()
+      .unwrap_or_else(|| {
+        self.mark_artifact_fallback(STATS_ARTIFACT_FALLBACK_CHUNK_HASHES);
+        &self.default_chunk_hashes_artifact
+      })
   }
 }
 
@@ -226,7 +293,7 @@ impl Stats<'_> {
     let mut compilation_file_to_chunks: HashMap<&String, Vec<&Chunk>> = HashMap::default();
     let mut compilation_file_to_auxiliary_chunks: HashMap<&String, Vec<&Chunk>> =
       HashMap::default();
-    for chunk in self.build_chunk_graph_artifact.chunk_by_ukey.values() {
+    for chunk in self.build_chunk_graph_artifact().chunk_by_ukey.values() {
       for file in chunk.files() {
         let chunks = compilation_file_to_chunks.entry(file).or_default();
         chunks.push(chunk);
@@ -241,7 +308,7 @@ impl Stats<'_> {
     }
 
     let mut assets: HashMap<&String, StatsAsset> = self
-      .assets
+      .assets()
       .par_iter()
       .filter_map(|(name, asset)| {
         asset.get_source().map(|source| {
@@ -293,13 +360,13 @@ impl Stats<'_> {
                 copied: asset.info.copied,
                 is_over_size_limit: asset.info.is_over_size_limit,
               },
-              emitted: self.emitted_assets.contains(name),
+              emitted: self.emitted_assets().contains(name),
             },
           )
         })
       })
       .collect::<HashMap<_, _>>();
-    for asset in self.assets.values() {
+    for asset in self.assets().values() {
       if let Some(source_map) = &asset.get_info().related.source_map {
         assets.remove(source_map);
       }
@@ -417,24 +484,24 @@ impl Stats<'_> {
       .collect::<Result<_>>()?;
 
     let runtime_modules = self
-      .runtime_modules
+      .runtime_modules()
       .par_iter()
       .map(|(identifier, module)| self.get_runtime_module(identifier, module, options))
       .collect::<Result<Vec<_>>>()?;
     modules.extend(runtime_modules);
 
-    let executor_module_graph = self.module_executor.and_then(|executor| {
+    let executor_module_graph = self.module_executor().and_then(|executor| {
       executor
         .make_artifact
         .try_read()
         .map(|artifact| artifact.get_module_graph())
     });
-    if self.module_executor.is_some() && executor_module_graph.is_none() {
+    if self.module_executor().is_some() && executor_module_graph.is_none() {
       self.mark_artifact_fallback(STATS_ARTIFACT_FALLBACK_BUILD_MODULE_GRAPH);
     }
     let executor_module_graph_cache = ModuleGraphCacheArtifact::default();
     let executor_exports_info_artifact = self
-      .module_executor
+      .module_executor()
       .map(|executor| &executor.exports_info_artifact);
     if let Some(executor_module_graph) = &executor_module_graph
       && let Some(executor_exports_info_artifact) = executor_exports_info_artifact
@@ -460,8 +527,9 @@ impl Stats<'_> {
       modules.extend(executed_modules);
     }
 
-    if let Some(executed_runtime_modules) =
-      self.module_executor.map(|me| &me.executed_runtime_modules)
+    if let Some(executed_runtime_modules) = self
+      .module_executor()
+      .map(|me| &me.executed_runtime_modules)
     {
       let runtime_modules: Vec<StatsModule> = executed_runtime_modules
         .iter()
@@ -489,7 +557,7 @@ impl Stats<'_> {
     let module_graph_cache = self.module_graph_cache_artifact();
     let build_chunk_graph_artifact = self.build_chunk_graph_artifact();
     let chunk_graph = &build_chunk_graph_artifact.chunk_graph;
-    let context = &self.options.context;
+    let context = &self.options().context;
     let chunk_group_by_ukey = &build_chunk_graph_artifact.chunk_group_by_ukey;
 
     let orders = [ChunkGroupOrderKey::Prefetch, ChunkGroupOrderKey::Preload];
@@ -637,15 +705,15 @@ impl Stats<'_> {
             &c.ukey(),
             chunk_graph,
             module_graph,
-            self.runtime_modules,
-            self.runtime_modules_code_generation_source,
+            self.runtime_modules(),
+            self.runtime_modules_code_generation_source(),
           ),
           reason: c.chunk_reason(),
           rendered: c.rendered(),
           origins,
           hash: c.rendered_hash(
             self.chunk_hashes_artifact(),
-            self.options.output.hash_digest_length,
+            self.options().output.hash_digest_length,
           ),
         })
       })
@@ -696,7 +764,7 @@ impl Stats<'_> {
         let chunk = build_chunk_graph_artifact.chunk_by_ukey.expect_get(c);
         chunk.files().par_iter().map(|file| StatsChunkGroupAsset {
           name: file.as_str(),
-          size: get_asset_size(file, self.assets),
+          size: get_asset_size(file, self.assets()),
         })
       })
       .flatten()
@@ -712,7 +780,7 @@ impl Stats<'_> {
             .par_iter()
             .map(|file| StatsChunkGroupAsset {
               name: file.as_str(),
-              size: get_asset_size(file, self.assets),
+              size: get_asset_size(file, self.assets()),
             })
         })
         .flatten()
@@ -814,7 +882,7 @@ impl Stats<'_> {
   }
 
   pub fn get_errors<T>(&self, f: impl Fn(Vec<StatsError>) -> T) -> T {
-    let diagnostic_displayer = StringDisplayer::new(self.options.stats.colors, false);
+    let diagnostic_displayer = StringDisplayer::new(self.options().stats.colors, false);
     let get_offset = |d: &Diagnostic| {
       d.labels
         .as_ref()
@@ -823,7 +891,7 @@ impl Stats<'_> {
         .unwrap_or_default()
     };
     let mut sorted_errors = self
-      .diagnostics
+      .diagnostics()
       .iter()
       .filter(|d| d.is_error())
       .collect::<Vec<_>>();
@@ -842,7 +910,7 @@ impl Stats<'_> {
             Some(get_stats_module_name_and_id(
               self.module_graph().module_by_identifier(identifier)?,
               self.module_ids_artifact(),
-              &self.options.context,
+              &self.options().context,
             ))
           })
           .unzip();
@@ -858,7 +926,7 @@ impl Stats<'_> {
           module_identifier,
           self.module_graph(),
           self.module_ids_artifact(),
-          &self.options.context,
+          &self.options().context,
         );
         let code = d.code.clone();
         StatsError {
@@ -890,7 +958,7 @@ impl Stats<'_> {
   }
 
   pub fn get_warnings<T>(&self, f: impl Fn(Vec<StatsError>) -> T) -> T {
-    let diagnostic_displayer = StringDisplayer::new(self.options.stats.colors, false);
+    let diagnostic_displayer = StringDisplayer::new(self.options().stats.colors, false);
     let get_offset = |d: &Diagnostic| {
       d.labels
         .as_ref()
@@ -899,7 +967,7 @@ impl Stats<'_> {
         .unwrap_or_default()
     };
     let mut sorted_warnings = self
-      .diagnostics
+      .diagnostics()
       .iter()
       .filter(|d| d.is_warn())
       .collect::<Vec<_>>();
@@ -918,7 +986,7 @@ impl Stats<'_> {
             Some(get_stats_module_name_and_id(
               self.module_graph().module_by_identifier(identifier)?,
               self.module_ids_artifact(),
-              &self.options.context,
+              &self.options().context,
             ))
           })
           .unzip();
@@ -934,7 +1002,7 @@ impl Stats<'_> {
           module_identifier,
           self.module_graph(),
           self.module_ids_artifact(),
-          &self.options.context,
+          &self.options().context,
         );
 
         let code = d.code.clone();
@@ -969,7 +1037,7 @@ impl Stats<'_> {
 
   pub fn get_logging(&self) -> Vec<(String, LogType)> {
     self
-      .logging
+      .logging()
       .iter()
       .map(|item| {
         let (name, logs) = item.pair();
@@ -982,9 +1050,9 @@ impl Stats<'_> {
 
   pub fn get_hash(&self) -> Option<&str> {
     self
-      .hash
+      .hash()
       .as_ref()
-      .map(|hash| hash.rendered(self.options.output.hash_digest_length))
+      .map(|hash| hash.rendered(self.options().output.hash_digest_length))
   }
 
   #[allow(clippy::too_many_arguments)]
@@ -1006,7 +1074,7 @@ impl Stats<'_> {
 
     let built = if executed {
       self
-        .module_executor
+        .module_executor()
         .map(|executor| executor.make_artifact.built_modules().contains(&identifier))
         .unwrap_or_default()
     } else {
@@ -1016,7 +1084,7 @@ impl Stats<'_> {
         .contains(&identifier)
     };
 
-    let code_generated = self.code_generated_modules.contains(&identifier);
+    let code_generated = self.code_generated_modules().contains(&identifier);
 
     let sizes = module
       .source_types(module_graph)
@@ -1031,9 +1099,9 @@ impl Stats<'_> {
     let (issuer_name, issuer_id) = issuer
       .map(|i| {
         if executed {
-          (i.readable_identifier(&self.options.context), None)
+          (i.readable_identifier(&self.options().context), None)
         } else {
-          get_stats_module_name_and_id(i, self.module_ids_artifact(), &self.options.context)
+          get_stats_module_name_and_id(i, self.module_ids_artifact(), &self.options().context)
         }
       })
       .unzip();
@@ -1100,9 +1168,9 @@ impl Stats<'_> {
       let mut current_issuer = issuer;
       while let Some(i) = current_issuer {
         let (name, id) = if executed {
-          (i.readable_identifier(&self.options.context), None)
+          (i.readable_identifier(&self.options().context), None)
         } else {
-          get_stats_module_name_and_id(i, self.module_ids_artifact(), &self.options.context)
+          get_stats_module_name_and_id(i, self.module_ids_artifact(), &self.options().context)
         };
         issuer_path.push(StatsModuleIssuer {
           identifier: i.identifier(),
@@ -1114,21 +1182,21 @@ impl Stats<'_> {
       issuer_path.reverse();
 
       let errors = self
-        .diagnostics
+        .diagnostics()
         .iter()
         .filter(|d| d.is_error())
         .filter(|d| d.module_identifier.is_some_and(|id| id == identifier))
         .count() as u32;
 
       let warnings = self
-        .diagnostics
+        .diagnostics()
         .iter()
         .filter(|d| d.is_warn())
         .filter(|d| d.module_identifier.is_some_and(|id| id == identifier))
         .count() as u32;
 
       stats.identifier = Some(identifier);
-      stats.name = Some(module.readable_identifier(&self.options.context));
+      stats.name = Some(module.readable_identifier(&self.options().context));
       stats.name_for_condition = module.name_for_condition().map(|n| n.to_string());
       stats.pre_order_index = module_graph.get_pre_order_index(&identifier);
       stats.post_order_index = module_graph.get_post_order_index(&identifier);
@@ -1210,9 +1278,9 @@ impl Stats<'_> {
             .and_then(|i| module_graph.module_by_identifier(&i))
             .map(|m| {
               if executed {
-                (m.readable_identifier(&self.options.context), None)
+                (m.readable_identifier(&self.options().context), None)
               } else {
-                get_stats_module_name_and_id(m, self.module_ids_artifact(), &self.options.context)
+                get_stats_module_name_and_id(m, self.module_ids_artifact(), &self.options().context)
               }
             })
             .unzip();
@@ -1221,9 +1289,9 @@ impl Stats<'_> {
             .and_then(|i| module_graph.module_by_identifier(&i))
             .map(|m| {
               if executed {
-                (m.readable_identifier(&self.options.context), None)
+                (m.readable_identifier(&self.options().context), None)
               } else {
-                get_stats_module_name_and_id(m, self.module_ids_artifact(), &self.options.context)
+                get_stats_module_name_and_id(m, self.module_ids_artifact(), &self.options().context)
               }
             })
             .unzip();
@@ -1281,7 +1349,7 @@ impl Stats<'_> {
     }
 
     if options.used_exports {
-      stats.used_exports = if !executed && self.options.optimization.used_exports.is_enable() {
+      stats.used_exports = if !executed && self.options().optimization.used_exports.is_enable() {
         let exports_info = exports_info_artifact
           .get_prefetched_exports_info(&module.identifier(), PrefetchExportsInfoMode::Default);
         let used_exports = exports_info.get_used_exports(None);
@@ -1296,7 +1364,7 @@ impl Stats<'_> {
     }
 
     if options.provided_exports {
-      stats.provided_exports = if !executed && self.options.optimization.provided_exports {
+      stats.provided_exports = if !executed && self.options().optimization.provided_exports {
         let exports_info = exports_info_artifact
           .get_prefetched_exports_info(&module.identifier(), PrefetchExportsInfoMode::Default);
         let provided_exports = exports_info.get_provided_exports();
@@ -1363,7 +1431,7 @@ impl Stats<'_> {
     options: &ExtendedStatsOptions,
   ) -> Result<StatsModule<'_>> {
     let built = false;
-    let code_generated = self.code_generated_modules.contains(identifier);
+    let code_generated = self.code_generated_modules().contains(identifier);
 
     let mut stats = StatsModule {
       r#type: "module",
@@ -1459,13 +1527,13 @@ impl Stats<'_> {
     options: &ExtendedStatsOptions,
   ) -> Result<StatsModule<'a>> {
     let mut chunks: Vec<&str> = self
-      .build_chunk_graph_artifact
+      .build_chunk_graph_artifact()
       .chunk_graph
       .get_module_chunks(*identifier)
       .iter()
       .filter_map(|k| {
         self
-          .build_chunk_graph_artifact
+          .build_chunk_graph_artifact()
           .chunk_by_ukey
           .expect_get(k)
           .id()
@@ -1475,9 +1543,9 @@ impl Stats<'_> {
     chunks.sort_unstable();
 
     let built = false;
-    let code_generated = self.code_generated_modules.contains(identifier);
+    let code_generated = self.code_generated_modules().contains(identifier);
     let size = self
-      .runtime_modules_code_generation_source
+      .runtime_modules_code_generation_source()
       .get(identifier)
       .map_or(0 as f64, |source| source.size() as f64);
 
@@ -1524,13 +1592,13 @@ impl Stats<'_> {
 
     if stats.built || stats.code_generated || options.cached_modules {
       let orphan = self
-        .build_chunk_graph_artifact
+        .build_chunk_graph_artifact()
         .chunk_graph
         .get_number_of_module_chunks(*identifier)
         == 0;
 
       stats.identifier = Some(module.identifier());
-      stats.name = Some(module.readable_identifier(&self.options.context));
+      stats.name = Some(module.readable_identifier(&self.options().context));
       stats.name_for_condition = module.name_for_condition().map(|n| n.to_string());
       stats.cacheable = Some(!(module.full_hash() || module.dependent_hash()));
       stats.optional = Some(false);
