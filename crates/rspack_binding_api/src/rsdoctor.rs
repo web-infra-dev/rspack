@@ -362,8 +362,15 @@ impl From<RsdoctorModuleOriginalSource> for JsRsdoctorModuleOriginalSource {
 }
 
 #[napi(object)]
+pub struct JsRsdoctorJsonModuleSize {
+  pub identifier: String,
+  pub size: i32,
+}
+
+#[napi(object)]
 pub struct JsRsdoctorModuleSourcesPatch {
   pub module_original_sources: Vec<JsRsdoctorModuleOriginalSource>,
+  pub json_module_sizes: Vec<JsRsdoctorJsonModuleSize>,
 }
 
 impl From<RsdoctorModuleSourcesPatch> for JsRsdoctorModuleSourcesPatch {
@@ -373,6 +380,11 @@ impl From<RsdoctorModuleSourcesPatch> for JsRsdoctorModuleSourcesPatch {
         .module_original_sources
         .into_iter()
         .map(|m| m.into())
+        .collect(),
+      json_module_sizes: value
+        .json_module_sizes
+        .into_iter()
+        .map(|(identifier, size)| JsRsdoctorJsonModuleSize { identifier, size })
         .collect(),
     }
   }
