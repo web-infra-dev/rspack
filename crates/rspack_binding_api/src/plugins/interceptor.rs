@@ -77,7 +77,7 @@ use rspack_tasks::within_compiler_context;
 use crate::{
   asset::JsAssetEmittedArgs,
   chunk::{ChunkWrapper, JsChunkAssetArgs},
-  compilation::{JsCompilationWrapper, with_exports_info_artifact},
+  compilation::JsCompilationWrapper,
   context_module_factory::{
     JsContextModuleFactoryAfterResolveDataWrapper, JsContextModuleFactoryAfterResolveResult,
     JsContextModuleFactoryBeforeResolveDataWrapper, JsContextModuleFactoryBeforeResolveResult,
@@ -1261,18 +1261,13 @@ impl CompilationFinishModules for CompilationFinishModulesTap {
     &self,
     compilation: &Compilation,
     _async_modules_artifact: &mut AsyncModulesArtifact,
-    exports_info_artifact: &mut rspack_core::ExportsInfoArtifact,
+    _exports_info_artifact: &mut rspack_core::ExportsInfoArtifact,
   ) -> rspack_error::Result<()> {
     let compiler_context = compilation.compiler_context.clone();
-    let compiler_id = compilation.compiler_id();
-    with_exports_info_artifact(
-      compiler_id,
-      exports_info_artifact,
-      within_compiler_context(compiler_context.clone(), async {
-        let compilation = JsCompilationWrapper::new(compilation);
-        self.function.call_with_promise(compilation).await
-      }),
-    )
+    within_compiler_context(compiler_context, async {
+      let compilation = JsCompilationWrapper::new(compilation);
+      self.function.call_with_promise(compilation).await
+    })
     .await
   }
 
