@@ -2,27 +2,6 @@
 
 RSC in this repo is implemented as a coordinated multi-compiler pipeline (server + client), with SWC directive transforms feeding metadata into a Rust plugin that injects entries/loaders and emits a runtime manifest.
 
-## Current state snapshot (2026-03-05)
-
-- RSC-aware MF manifest metadata is implemented and emitted in both:
-  - `mf-stats.json`
-  - `mf-manifest.json`
-- Manifest `rsc` payload uses canonical MF keys:
-  - shared: `shareKey`
-  - exposes: `<container>/<exposeKey>`
-  - remotes: `<remote>/<moduleName>`
-- Payload vocabulary is aligned to native RSC concepts:
-  - `clientReferences`
-  - `serverActions` (`{ id, name }`)
-- Concatenated-module and module-graph collection paths are covered in manifest extraction logic.
-- Low-analysis mode behavior is explicit: `disableAssetsAnalyze` omits manifest `rsc` blocks.
-- A runnable rsbuild validation example now exists:
-  - `examples/rsbuild-rsc-federation`
-  - `examples/rsbuild-rsc-federation-shared`
-  - includes layered singleton sharing and manifest assertion script.
-
-> Note: Some file references below were originally recorded from a local absolute path capture. Use repository-relative paths under this workspace when navigating.
-
 ## 1) Public API surface (What users Configure)
 
 - `experiments.rsc` is exported at `/Users/zackjackson/rspack/packages/rspack/src/exports.ts:400` and wired from `/Users/zackjackson/rspack/packages/rspack/src/builtin-plugin/rsc/index.ts:14`.
@@ -131,138 +110,51 @@ RSC in this repo is implemented as a coordinated multi-compiler pipeline (server
 
 This is a static code-path map of how RSC is implemented and wired in the current repo snapshot.
 
-## 14) Making RSC work with Module Federation
+## 14) RSC + Module Federation current state
 
-To make RSC and Module Federation work predictably in Rspack, the integration should be modeled as **three separate federation planes** instead of one global plane:
+Rspack now includes a manifest-level integration that captures RSC metadata in Module Federation manifest output. This is a **data-contract integration** (for runtime services / tooling), not a remote runtime-merge bridge.
 
-1. `client` plane (browser/hydration)
-2. `ssr` plane (`Layers.ssr`, server render)
-3. `rsc` plane (`Layers.rsc`, server components + server actions)
+### 14.1 What is implemented now
 
-Each plane should have its own `shareScope`, exposed entries, and remote endpoints.
+- `mf-stats.json` and `mf-manifest.json` can include optional `rsc` blocks for:
+  - `shared[]`
+  - `exposes[]`
+  - `remotes[]`
+- Data is extracted from `module.build_info().rsc` (including concatenated-module inner modules) in `crates/rspack_plugin_mf/src/manifest/mod.rs`.
+- Payload shape:
+  - `lookup`
+  - `moduleType` (`client | server-entry | server`)
+  - `resource`
+  - `clientReferences`
+  - `serverActions` (`{ id, name }[]`)
 
-### 14.1 Why this split is required in current code
+### 14.2 Canonical lookup keys used by MF manifest
 
-- RSC manifest/resource flow currently relies on resource identity from normal modules; non-normal modules are effectively skipped:
-  - `/Users/zackjackson/rspack/crates/rspack_plugin_rsc/src/utils.rs`
-  - `/Users/zackjackson/rspack/crates/rspack_plugin_rsc/src/component_info.rs`
-  - `/Users/zackjackson/rspack/crates/rspack_plugin_rsc/src/client_plugin.rs`
-  - `/Users/zackjackson/rspack/crates/rspack_plugin_rsc/src/manifest_runtime_module.rs`
-- MF has strong `shareScope` plumbing (container, remotes, consume/provide runtime), but not first-class issuer-layer-aware selection in the Rust sharing plugins:
-  - `/Users/zackjackson/rspack/crates/rspack_plugin_mf/src/sharing/consume_shared_plugin.rs`
-  - `/Users/zackjackson/rspack/crates/rspack_plugin_mf/src/sharing/provide_shared_plugin.rs`
+- Shared references: `lookup = shareKey`
+- Exposed references: `lookup = <containerName>/<exposeKey>`
+  - example: `app1/button`
+- Remote references: `lookup = <federationContainerName>/<moduleName>`
+  - for root remote request, `lookup = <federationContainerName>`
 
-### 14.2 Existing MF primitives you can build on
+These keys are intentionally semantic/cross-build friendly and are better suited for runtime services than raw module ids or resource paths.
 
-- `ContainerPlugin` and `ContainerReferencePlugin` already carry `share_scope` into container/remote modules and runtime:
-  - `/Users/zackjackson/rspack/crates/rspack_plugin_mf/src/container/container_plugin.rs`
-  - `/Users/zackjackson/rspack/crates/rspack_plugin_mf/src/container/container_reference_plugin.rs`
-  - `/Users/zackjackson/rspack/crates/rspack_plugin_mf/src/container/remote_module.rs`
-  - `/Users/zackjackson/rspack/crates/rspack_plugin_mf/src/container/remote_runtime_module.rs`
-- Share runtime initialization and registration are already scope-oriented:
-  - `/Users/zackjackson/rspack/crates/rspack_plugin_mf/src/sharing/share_runtime_module.rs`
-  - `/Users/zackjackson/rspack/crates/rspack_plugin_mf/src/sharing/initializeSharing.ejs`
-- JS plugin surface already normalizes `shareScope` for remotes/shared:
-  - `/Users/zackjackson/rspack/packages/rspack/src/container/ModuleFederationPlugin.ts`
-  - `/Users/zackjackson/rspack/packages/rspack/src/container/ModuleFederationPluginV1.ts`
-  - `/Users/zackjackson/rspack/packages/rspack/src/sharing/SharePlugin.ts`
+### 14.3 Behavior in low-analysis mode
 
-### 14.3 Proposed architecture
+- With `disableAssetsAnalyze: true`, MF manifest keeps structural entries but does **not** attach `rsc` metadata.
+- This keeps behavior consistent with existing low-analysis semantics where deep graph-derived metadata is omitted.
 
-Use one logical app, but with per-plane federation contracts:
+### 14.4 Verification coverage in repo
 
-- Client plane:
-  - target `web`
-  - share scope `default` (or `client`)
-  - expose client-safe modules only
-- SSR plane:
-  - target `node`
-  - layer `server-side-rendering`
-  - share scope `ssr`
-  - expose SSR entry/render modules
-- RSC plane:
-  - target `node`
-  - layer `react-server-components`
-  - share scope `rsc`
-  - expose RSC modules and server action entrypoints
+- RSC plugin baseline fixtures:
+  - `tests/rspack-test/configCases/rsc-plugin/server-entry`
+  - `tests/rspack-test/configCases/rsc-plugin/server-actions-production`
+  - `tests/rspack-test/configCases/rsc-plugin/with-concatenated-module`
+- MF manifest + RSC metadata fixture:
+  - `tests/rspack-test/configCases/container-1-5/manifest-rsc-references`
+- `disableAssetsAnalyze` omission coverage:
+  - `tests/rspack-test/configCases/container-1-5/manifest-disable-assets-analyze`
 
-### 14.4 Concrete implementation touchpoints
+### 14.5 Known boundary (not implemented here)
 
-1. Add layer-aware sharing config end-to-end.
-
-- Extend shared option types with layer gating (for example `layer`, `issuerLayer`) in:
-  - `/Users/zackjackson/rspack/packages/rspack/src/sharing/SharePlugin.ts`
-- Carry those fields through raw binding option structs in:
-  - `/Users/zackjackson/rspack/crates/rspack_binding_api/src/raw_options/raw_builtins/raw_mf.rs`
-- In Rust sharing plugins, filter matched consume/provide entries by `ModuleFactoryCreateData.issuer_layer` before creating consume/provide shared modules:
-  - `/Users/zackjackson/rspack/crates/rspack_plugin_mf/src/sharing/consume_shared_plugin.rs`
-  - `/Users/zackjackson/rspack/crates/rspack_plugin_mf/src/sharing/provide_shared_plugin.rs`
-
-2. Teach RSC manifest/resource collection about federated modules.
-
-- Introduce a stable synthetic resource identity for remote modules (for example `mf://<remote>/<request>`) in:
-  - `/Users/zackjackson/rspack/crates/rspack_plugin_rsc/src/utils.rs`
-- Ensure collection paths no longer skip federated modules by empty resource checks:
-  - `/Users/zackjackson/rspack/crates/rspack_plugin_rsc/src/component_info.rs`
-  - `/Users/zackjackson/rspack/crates/rspack_plugin_rsc/src/client_plugin.rs`
-  - `/Users/zackjackson/rspack/crates/rspack_plugin_rsc/src/manifest_runtime_module.rs`
-
-3. Add host/remote RSC manifest bridge.
-
-- Remote side should expose its RSC manifest data (`__webpack_require__.rscM`) through a known federated export or runtime hook.
-- Host server runtime should merge remote manifest data into its working manifest before resolving client references/actions.
-- Most natural insertion points:
-  - `/Users/zackjackson/rspack/packages/rspack/src/container/ModuleFederationPlugin.ts`
-  - `/Users/zackjackson/rspack/crates/rspack_plugin_mf/src/container/remote_runtime_module.rs`
-  - `/Users/zackjackson/rspack/packages/rspack/src/container/ModuleFederationManifestPlugin.ts` (optional metadata extension)
-
-4. Namespace action IDs at federation boundary.
-
-- Server action IDs are deterministic hashes from SWC transform:
-  - `/Users/zackjackson/rspack/crates/rspack_loader_swc/src/rsc_transforms/server_actions.rs`
-- Add a remote namespace at host merge/dispatch layer (for example `<remote>::<actionId>`) to avoid cross-remote collisions.
-
-### 14.5 Dependency sharing guidance by plane
-
-- Client share scope: `react`, `react-dom`, `react-server-dom-rspack/client`
-- SSR share scope: server renderer deps (and `react` if needed by SSR render path)
-- RSC share scope: `react`, `react-server-dom-rspack/server`
-- Keep singletons scoped per plane, not globally across all planes.
-
-### 14.6 Exposing/remotes strategy
-
-- Avoid one container serving mixed runtime semantics.
-- Prefer distinct remote entry files per plane (`remote-client.js`, `remote-ssr.js`, `remote-rsc.js`) or equivalent distinct named containers.
-- Keep server-only exports out of client container contracts.
-- For `react-server` condition handling, preserve existing layer-based resolve rules (`Layers.rsc` + `issuerLayer: Layers.rsc`) already used in RSC fixtures:
-  - `/Users/zackjackson/rspack/tests/rspack-test/configCases/rsc-plugin/server-entry/rspack.config.js`
-  - `/Users/zackjackson/rspack/tests/rspack-test/configCases/rsc-plugin/server-actions-production/rspack.config.js`
-  - `/Users/zackjackson/rspack/tests/rspack-test/configCases/rsc-plugin/with-concatenated-module/rspack.config.js`
-
-### 14.7 Tests and samples to use/extend
-
-RSC baseline fixtures:
-
-- `/Users/zackjackson/rspack/tests/rspack-test/configCases/rsc-plugin/server-entry`
-- `/Users/zackjackson/rspack/tests/rspack-test/configCases/rsc-plugin/server-actions-production`
-- `/Users/zackjackson/rspack/tests/rspack-test/configCases/rsc-plugin/with-concatenated-module`
-
-MF layer/shareScope baselines:
-
-- `/Users/zackjackson/rspack/tests/rspack-test/serialCases/container-1-5/5-layers-full`
-- `/Users/zackjackson/rspack/tests/rspack-test/serialCases/container-1-5/6-layers-full`
-- `/Users/zackjackson/rspack/tests/rspack-test/serialCases/container-1-5/7-layers-full`
-- `/Users/zackjackson/rspack/tests/rspack-test/serialCases/container-1-5/8-layers-full`
-
-MF e2e baselines:
-
-- `/Users/zackjackson/rspack/tests/e2e/cases/module-federation`
-
-Recommended new tests:
-
-1. Host SSR consumes remote RSC client boundary; verify merged manifest resolves remote client module IDs.
-2. Host triggers remote server action; verify action loads and executes through merged action manifest.
-3. Same shared package in different layers/scopes does not cross-contaminate (client vs ssr vs rsc).
-4. Expose/remotes contracts reject server-only modules from client-plane container.
-
-This gives a practical path that aligns with current plugin/runtime architecture while adding the missing layer-aware share matching and RSC manifest federation bridge.
+- This work does **not** merge remote `__webpack_require__.rscM` payloads into host runtime manifests.
+- It provides stable manifest metadata for federation entries; runtime-side cross-remote manifest hydration/merging remains a separate feature.
