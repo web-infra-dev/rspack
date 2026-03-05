@@ -2,7 +2,7 @@
 // ./index.js
 it('should handle mixed: single-module chunk + multi-module chunk', async () => {
 	// solo is alone in its chunk - direct import works
-	const solo = await import("./solo_js.mjs")
+	const solo = await import("./solo.mjs")
 	expect(solo).toHaveProperty('default', 'solo')
 	expect(solo).toHaveProperty('value', 100)
 
@@ -105,7 +105,7 @@ export default m1;
 
 ```
 
-```mjs title=solo_js.mjs
+```mjs title=solo.mjs
 // ./solo.js
 /* export default */ const solo = ('solo');
 const value = 100;

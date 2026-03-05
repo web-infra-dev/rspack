@@ -1,7 +1,8 @@
 use std::{borrow::Cow, sync::LazyLock};
 
 use regex::Regex;
-use rspack_error::{Result, ToStringResultToRspackResultExt};
+use rspack_error::Result;
+use rspack_util::json_stringify_str;
 use rustc_hash::FxHashSet as HashSet;
 
 pub static SAFE_IDENTIFIER: LazyLock<Regex> =
@@ -65,9 +66,7 @@ pub fn property_name(prop: &str) -> Result<Cow<'_, str>> {
   if SAFE_IDENTIFIER.is_match(prop) && !RESERVED_IDENTIFIER.contains(prop) {
     Ok(Cow::from(prop))
   } else {
-    serde_json::to_string(prop)
-      .to_rspack_result()
-      .map(Cow::from)
+    Ok(Cow::from(json_stringify_str(prop)))
   }
 }
 
@@ -79,8 +78,6 @@ pub fn export_name(name: &str) -> Result<Cow<'_, str>> {
   if SAFE_IDENTIFIER.is_match(name) {
     Ok(Cow::from(name))
   } else {
-    serde_json::to_string(name)
-      .to_rspack_result()
-      .map(Cow::from)
+    Ok(Cow::from(json_stringify_str(name)))
   }
 }

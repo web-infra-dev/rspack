@@ -1,13 +1,13 @@
 import {
   getRandomPort,
-  normalizeStderr,
+  normalizeStdout,
   runWatch,
 } from '../../utils/test-utils';
 
 describe('should run preview command with ts config file as expected', () => {
   it.concurrent('should work', async () => {
     const port = await getRandomPort();
-    const { stderr } = await runWatch(
+    const { stdout } = await runWatch(
       __dirname,
       ['preview', '--port', port.toString()],
       {
@@ -15,6 +15,8 @@ describe('should run preview command with ts config file as expected', () => {
       },
     );
 
-    expect(normalizeStderr(stderr)).toContain('Project is running at');
+    expect(normalizeStdout(stdout)).toMatch(
+      /Local:\s+http:\/\/localhost:\d+\//,
+    );
   });
 });

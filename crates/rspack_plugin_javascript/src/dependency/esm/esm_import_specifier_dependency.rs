@@ -15,7 +15,7 @@ use rspack_core::{
   create_exports_object_referenced, get_exports_type, property_access, to_normal_comment,
 };
 use rspack_error::Diagnostic;
-use rspack_util::json_stringify;
+use rspack_util::json_stringify_str;
 use swc_core::ecma::atoms::Atom;
 
 use super::{
@@ -388,10 +388,10 @@ impl ESMImportSpecifierDependencyTemplate {
             property_access(ids, 0)
           ))),
           None => {
-            format!(
-              "{} undefined",
-              to_normal_comment(&format!("unused export {}", property_access(ids, 0)))
-            )
+            let mut result =
+              to_normal_comment(&format!("unused export {}", property_access(ids, 0)));
+            result.push_str(" undefined");
+            result
           }
         }
       } else {
@@ -418,28 +418,29 @@ impl ESMImportSpecifierDependencyTemplate {
         code_generatable_context.runtime,
       );
       esm_import_dependency_apply(dep, dep.source_order, dep.phase, code_generatable_context);
-      let mut new_init_fragment = vec![];
-      let res = code_generatable_context
-        .runtime_template
-        .export_from_import(
-          code_generatable_context.compilation,
-          &mut new_init_fragment,
-          code_generatable_context.module.identifier(),
-          code_generatable_context.runtime,
-          true,
-          &dep.request,
-          &import_var,
-          ids,
-          &dep.id,
-          dep.call,
-          !dep.direct_import,
-          Some(dep.shorthand || dep.asi_safe),
-          dep.phase,
-        );
-      code_generatable_context
-        .init_fragments
-        .extend(new_init_fragment);
-      res
+      let TemplateContext {
+        compilation,
+        module,
+        runtime,
+        init_fragments,
+        runtime_template,
+        ..
+      } = code_generatable_context;
+      runtime_template.export_from_import(
+        compilation,
+        init_fragments,
+        module.identifier(),
+        *runtime,
+        true,
+        &dep.request,
+        &import_var,
+        ids,
+        &dep.id,
+        dep.call,
+        !dep.direct_import,
+        Some(dep.shorthand || dep.asi_safe),
+        dep.phase,
+      )
     }
   }
 
@@ -539,7 +540,7 @@ impl ESMImportSpecifierDependencyTemplate {
         source.replace(
           dep.range.start,
           dep.range.end,
-          &format!("{} in {code}", json_stringify(&used_name)),
+          &format!("{} in {code}", json_stringify_str(used_name.as_str())),
           None,
         )
       }

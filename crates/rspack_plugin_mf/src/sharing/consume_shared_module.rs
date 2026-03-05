@@ -12,13 +12,13 @@ use rspack_core::{
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
 use rspack_hash::{RspackHash, RspackHashDigest};
-use rspack_util::{ext::DynHash, source_map::SourceMapKind};
+use rspack_util::{ext::DynHash, json_stringify_str, source_map::SourceMapKind};
 
 use super::{
   consume_shared_fallback_dependency::ConsumeSharedFallbackDependency,
   consume_shared_runtime_module::CodeGenerationDataConsumeShared,
 };
-use crate::{ConsumeOptions, utils::json_stringify};
+use crate::ConsumeOptions;
 
 #[impl_source_map_config]
 #[cacheable]
@@ -212,8 +212,8 @@ impl Module for ConsumeSharedModule {
 
     let mut function = String::from("loaders.load");
     let mut args = vec![
-      json_stringify(&self.options.share_scope),
-      json_stringify(&self.options.share_key),
+      json_stringify_str(&self.options.share_scope),
+      json_stringify_str(&self.options.share_key),
     ];
     if let Some(version) = &self.options.required_version {
       if self.options.strict_version {
@@ -222,7 +222,7 @@ impl Module for ConsumeSharedModule {
       if self.options.singleton {
         function += "Singleton";
       }
-      let version = json_stringify(&version.to_string());
+      let version = json_stringify_str(&version.to_string());
       args.push(format!("loaders.parseRange({version})"));
       function += "VersionCheck";
     } else if self.options.singleton {

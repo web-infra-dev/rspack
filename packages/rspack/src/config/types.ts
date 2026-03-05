@@ -2931,7 +2931,7 @@ export type WatchOptions = {
 
 //#region DevServer
 /**
- * Options for devServer, it based on `webpack-dev-server@5`
+ * Options for dev server
  * */
 export type DevServer = DevServerOptions;
 

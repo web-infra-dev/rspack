@@ -15,7 +15,7 @@ use rspack_core::{
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
 use rspack_hash::{RspackHash, RspackHashDigest};
-use rspack_util::source_map::SourceMapKind;
+use rspack_util::{json_stringify_str, source_map::SourceMapKind};
 use rustc_hash::FxHashSet;
 
 use super::{
@@ -397,7 +397,7 @@ var init = function(shareScope, initScope) {{
         has_own_property =
           runtime_template.render_runtime_globals(&RuntimeGlobals::HAS_OWN_PROPERTY),
         share_scope_map = runtime_template.render_runtime_globals(&RuntimeGlobals::SHARE_SCOPE_MAP),
-        share_scope = json_stringify(&self.share_scope),
+        share_scope = json_stringify_str(&self.share_scope),
         initialize_sharing =
           runtime_template.render_runtime_globals(&RuntimeGlobals::INITIALIZE_SHARING),
         define_property_getters =
@@ -497,7 +497,7 @@ impl ExposeModuleMap {
       .map(|(name, factory)| {
         format!(
           "{}: {},",
-          json_stringify(name),
+          json_stringify_str(name),
           runtime_template.basic_function("", factory)
         )
       })

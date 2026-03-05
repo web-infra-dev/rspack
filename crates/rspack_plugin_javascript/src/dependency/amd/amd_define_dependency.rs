@@ -9,7 +9,7 @@ use rspack_core::{
   DependencyTemplateType, DependencyType, ExportsArgument, ModuleArgument, ModuleCodeTemplate,
   RuntimeGlobals, TemplateContext, TemplateReplaceSource,
 };
-use rspack_util::{atom::Atom, json_stringify};
+use rspack_util::{atom::Atom, json_stringify_str};
 
 use super::local_module::LocalModule;
 
@@ -120,7 +120,7 @@ impl Branch {
         format!(
           "!({var_name}module = {{ id: {module_id}, exports: {{}}, loaded: false }}, {var_name} = (#).call({var_name}module.exports, {require}, {var_name}module.exports, {var_name}module), {var_name}module.loaded = true, {var_name} === undefined && ({var_name} = {var_name}module.exports))",
           var_name = local_module_var,
-          module_id = json_stringify(named_module),
+          module_id = json_stringify_str(named_module),
           require = runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
         )
       }
@@ -129,7 +129,7 @@ impl Branch {
         format!(
           "!({var_name}factory = (#), (typeof {var_name}factory === 'function' ? (({var_name}module = {{ id: {module_id}, exports: {{}}, loaded: false }}), ({var_name} = {var_name}factory.call({var_name}module.exports, {require}, {var_name}module.exports, {var_name}module)), ({var_name}module.loaded = true), {var_name} === undefined && ({var_name} = {var_name}module.exports)) : {var_name} = {var_name}factory))",
           var_name = local_module_var,
-          module_id = json_stringify(named_module),
+          module_id = json_stringify_str(named_module),
           require = runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
         )
       }

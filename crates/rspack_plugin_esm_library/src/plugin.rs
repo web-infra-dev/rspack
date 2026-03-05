@@ -38,7 +38,10 @@ use crate::{
   chunk_link::ChunkLinkContext,
   dependency::dyn_import::DynamicImportDependencyTemplate,
   esm_lib_parser_plugin::EsmLibParserPlugin,
-  optimize_chunks::{analyze_dyn_import_targets, ensure_entry_exports, optimize_runtime_chunks},
+  optimize_chunks::{
+    analyze_dyn_import_targets, assign_dyn_import_chunk_short_names, ensure_entry_exports,
+    optimize_runtime_chunks,
+  },
   preserve_modules::preserve_modules,
   runtime::EsmRegisterModuleRuntimeModule,
 };
@@ -692,6 +695,8 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
   *self.strict_export_chunks.borrow_mut() = strict_chunks;
   *self.all_dyn_targets.borrow_mut() = all_dyn_targets;
   *self.namespace_targets.borrow_mut() = namespace_targets;
+
+  assign_dyn_import_chunk_short_names(compilation);
 
   Ok(None)
 }

@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use rspack_core::{
   RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext, RuntimeTemplate, impl_runtime_module,
 };
@@ -31,14 +33,16 @@ impl RuntimeModule for BaseUriRuntimeModule {
         chunk.get_entry_options(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
       })
       .and_then(|options| options.base_uri.as_ref())
-      .and_then(|base_uri| serde_json::to_string(base_uri).ok())
-      .unwrap_or_else(|| "undefined".to_string());
+      .map_or_else(
+        || Cow::Borrowed("undefined"),
+        |base_uri| Cow::Owned(rspack_util::json_stringify_str(base_uri)),
+      );
     Ok(format!(
       "{} = {};\n",
       context
         .runtime_template
         .render_runtime_globals(&RuntimeGlobals::BASE_URI),
-      base_uri
+      base_uri.as_ref()
     ))
   }
 }

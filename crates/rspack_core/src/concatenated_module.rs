@@ -21,8 +21,8 @@ use rspack_sources::{
   BoxSource, CachedSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt,
 };
 use rspack_util::{
-  SpanExt, ext::DynHash, fx_hash::FxIndexMap, itoa, json_stringify, source_map::SourceMapKind,
-  swc::join_atom,
+  SpanExt, ext::DynHash, fx_hash::FxIndexMap, itoa, json_stringify, json_stringify_str,
+  source_map::SourceMapKind, swc::join_atom,
 };
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 use swc_core::{
@@ -638,7 +638,7 @@ pub fn render_imports(source: &str, attr: Option<&str>, import_spec: &ImportSpec
   let default_import = import_spec.default_import.as_ref();
   let ns_import = import_spec.ns_import.as_ref();
 
-  let source_str = format!("{}{}", json_stringify(&source), attr.unwrap_or_default());
+  let source_str = format!("{}{}", json_stringify_str(source), attr.unwrap_or_default());
 
   let mut render_default = false;
   let mut render_ns = false;
@@ -1735,11 +1735,10 @@ impl Module for ConcatenatedModule {
               "var {} = {}({});",
               info.name.as_ref().expect("should have name"),
               runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
-              serde_json::to_string(
+              json_stringify(
                 ChunkGraph::get_module_id(&compilation.module_ids_artifact, info.module)
                   .expect("should have module id")
               )
-              .expect("should json stringify module id")
             )));
 
             name.clone_from(&info.name);

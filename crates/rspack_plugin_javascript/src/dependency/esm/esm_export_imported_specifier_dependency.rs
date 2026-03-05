@@ -809,7 +809,7 @@ impl ESMExportImportedSpecifierDependency {
         } else if let Some(item) = ignored.iter().next() {
           content += &format!(
             "if(__rspack_import_key !== {}) ",
-            serde_json::to_string(item).expect("should serialize to string")
+            rspack_util::json_stringify_str(item)
           );
         }
         content += "__rspack_reexport[__rspack_import_key] =";
@@ -973,7 +973,7 @@ impl ESMExportImportedSpecifierDependency {
       "if({}({}, {})) {}({}, {{ {}: function() {{ return {}; }} }});\n",
       runtime_template.render_runtime_globals(&RuntimeGlobals::HAS_OWN_PROPERTY),
       name,
-      serde_json::to_string(&first_value_key.to_string()).expect("should serialize to string"),
+      rspack_util::json_stringify_str(&first_value_key),
       runtime_template.render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS),
       runtime_template.render_exports_argument(exports_name),
       property_name(&key).expect("should have property_name"),
