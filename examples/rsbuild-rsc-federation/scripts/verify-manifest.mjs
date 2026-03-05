@@ -206,12 +206,12 @@ for (const shareName of expectedSingletonShares) {
 }
 
 invariant(
-  clientStats.name === 'rsbuild_container_client',
-  `Expected client stats container name "rsbuild_container_client", got "${clientStats.name}"`,
+  clientStats.name === 'rsbuild_container',
+  `Expected client stats container name "rsbuild_container", got "${clientStats.name}"`,
 );
 invariant(
-  clientManifest.name === 'rsbuild_container_client',
-  `Expected client manifest container name "rsbuild_container_client", got "${clientManifest.name}"`,
+  clientManifest.name === 'rsbuild_container',
+  `Expected client manifest container name "rsbuild_container", got "${clientManifest.name}"`,
 );
 invariant(
   clientStats.exposes.some((item) => item.path === './button'),

@@ -4,6 +4,8 @@ import { pluginReact } from '@rsbuild/plugin-react';
 import { rspack } from '@rspack/core';
 import { Layers, pluginRSC } from 'rsbuild-plugin-rsc';
 
+const containerName = 'rsbuild_container';
+
 const rscLayerShared = {
   singleton: true,
   requiredVersion: false,
@@ -65,13 +67,11 @@ export default defineConfig({
       config.plugins ||= [];
       config.plugins.push(
         new rspack.container.ModuleFederationPlugin({
-          name: isServerBuild
-            ? 'rsbuild_container'
-            : 'rsbuild_container_client',
+          name: containerName,
           filename: isServerBuild ? 'remoteEntry.js' : 'remoteEntry.client.js',
           library: isServerBuild
             ? { type: 'commonjs-module' }
-            : { type: 'var', name: 'rsbuild_container_client' },
+            : { type: 'var', name: containerName },
           manifest: isServerBuild ? true : { fileName: 'mf-manifest.client' },
           exposes: isServerBuild
             ? {
