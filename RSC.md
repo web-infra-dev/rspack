@@ -2,6 +2,27 @@
 
 RSC in this repo is implemented as a coordinated multi-compiler pipeline (server + client), with SWC directive transforms feeding metadata into a Rust plugin that injects entries/loaders and emits a runtime manifest.
 
+## Current state snapshot (2026-03-05)
+
+- RSC-aware MF manifest metadata is implemented and emitted in both:
+  - `mf-stats.json`
+  - `mf-manifest.json`
+- Manifest `rsc` payload uses canonical MF keys:
+  - shared: `shareKey`
+  - exposes: `<container>/<exposeKey>`
+  - remotes: `<remote>/<moduleName>`
+- Payload vocabulary is aligned to native RSC concepts:
+  - `clientReferences`
+  - `serverActions` (`{ id, name }`)
+- Concatenated-module and module-graph collection paths are covered in manifest extraction logic.
+- Low-analysis mode behavior is explicit: `disableAssetsAnalyze` omits manifest `rsc` blocks.
+- A runnable rsbuild validation example now exists:
+  - `examples/rsbuild-rsc-federation`
+  - `examples/rsbuild-rsc-federation-shared`
+  - includes layered singleton sharing and manifest assertion script.
+
+> Note: Some file references below were originally recorded from a local absolute path capture. Use repository-relative paths under this workspace when navigating.
+
 ## 1) Public API surface (What users Configure)
 
 - `experiments.rsc` is exported at `/Users/zackjackson/rspack/packages/rspack/src/exports.ts:400` and wired from `/Users/zackjackson/rspack/packages/rspack/src/builtin-plugin/rsc/index.ts:14`.

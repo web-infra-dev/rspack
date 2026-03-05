@@ -1,6 +1,6 @@
 # Module Federation in Rspack: deep technical map
 
-Last verified against repository state on 2026-02-07.
+Last verified against repository state on 2026-03-05.
 
 This document explains how Module Federation (MF) works in Rspack end-to-end, including:
 
@@ -13,12 +13,21 @@ This document explains how Module Federation (MF) works in Rspack end-to-end, in
 - Manifest generation pipeline.
 - Test coverage map for critical behavior.
 
-Branch update reflected in this revision (`feat/mf-layers`):
+Current state reflected in this revision (`cursor/rsbuild-rsc-federation-example-5928`):
 
-- `shareScope` now flows as `string | string[]` through JS options, NAPI bindings, and Rust MF internals.
-- Layer-aware sharing fields (`request`, `issuerLayer`, `layer`) are now preserved through JS normalization and Rust consume/provide pipelines.
-- Enhanced runtime path is array-scope aware; legacy non-enhanced runtime keeps scalar share-scope behavior.
-- `container-1-5/*-layers-full` scenarios are now part of the documented verification surface.
+- MF manifest has additive RSC metadata blocks on `shared`, `exposes`, and `remotes`.
+- Canonical RSC lookup keys are now:
+  - shared: `shareKey`
+  - exposes: `<containerName>/<exposeKey>`
+  - remotes: `<remoteName>/<moduleName>`
+- RSC metadata extraction is sourced from compile metadata (`build_info.rsc`) in Rust manifest generation.
+- `manifest.disableAssetsAnalyze: true` omits `rsc` metadata in the low-analysis path.
+- New focused verification coverage exists at:
+  - `tests/rspack-test/configCases/container-1-5/manifest-rsc-references`
+  - `tests/rspack-test/configCases/container-1-5/manifest-disable-assets-analyze`
+- Added runnable rsbuild validation example (RSC + MF + layered shared singletons):
+  - `examples/rsbuild-rsc-federation`
+  - `examples/rsbuild-rsc-federation-shared`
 
 ## 1) Mental model
 
