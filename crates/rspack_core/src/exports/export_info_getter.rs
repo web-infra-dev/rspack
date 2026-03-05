@@ -71,7 +71,6 @@ impl ExportInfoData {
         let runtime_len = runtime.len();
 
         if runtime_len <= used_len {
-          // 遍历 runtime，按 runtime item 查表（原有行为）
           for item in runtime.iter() {
             let Some(usage) = used_in_runtime.get(item) else {
               continue;
@@ -82,7 +81,6 @@ impl ExportInfoData {
             max = std::cmp::max(max, *usage);
           }
         } else {
-          // 反向遍历：当 used_in_runtime 比 runtime 小时，遍历 map 并看 runtime 是否包含该 key
           for (rt, usage) in used_in_runtime.iter() {
             if !runtime.contains(rt) {
               continue;
