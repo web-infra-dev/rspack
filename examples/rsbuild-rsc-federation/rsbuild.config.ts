@@ -94,6 +94,9 @@ export default defineConfig({
     rspack: (config, { target }) => {
       const isServerBuild = target === 'node';
       const environment: EnvironmentName = isServerBuild ? 'server' : 'client';
+      const remotes = {
+        remote: 'remote',
+      };
 
       if (isServerBuild) {
         config.target = 'async-node';
@@ -109,9 +112,7 @@ export default defineConfig({
             : { type: 'var', name: containerName },
           manifest: isServerBuild ? true : { fileName: 'mf-manifest.client' },
           exposes: resolveExposes(environment),
-          remotes: {
-            remote: 'remote@http://localhost:3002/remoteEntry.js',
-          },
+          remotes,
           runtimePlugins: isServerBuild
             ? ['@module-federation/node/runtimePlugin']
             : [],
@@ -146,8 +147,5 @@ export default defineConfig({
 
       return config;
     },
-  },
-  output: {
-    minify: false,
   },
 });
