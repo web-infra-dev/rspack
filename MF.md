@@ -759,13 +759,24 @@ Key differences:
   - `shared`
   - `exposes`
   - `remotes`
+- When asset analysis is enabled, also derives optional `rsc` reference metadata from module graph `build_info.rsc` for `shared`/`exposes`/`remotes` entries.
+  - `shared.rsc.lookup` uses `shareKey`
+  - `exposes.rsc.lookup` uses `<container>/<exposeKey>`
+  - `remotes.rsc.lookup` uses `<remote>/<moduleName>` (or `<remote>` for root)
 - Emits:
   - stats JSON
   - manifest JSON derived from stats
+  - with optional `rsc` payload shape:
+    - `lookup`
+    - `moduleType` (`client | server-entry | server`)
+    - `resource`
+    - `clientReferences`
+    - `serverActions` (`{ id, name }[]`)
 
 `disable_assets_analyze` path:
 
 - Emits structural metadata but leaves asset lists empty and marks unknown usage where appropriate.
+- Omits `rsc` metadata consistently in this low-analysis mode.
 
 ## 11) Test coverage map (Representative)
 
@@ -784,6 +795,7 @@ Key differences:
 - `tests/rspack-test/configCases/container-1-5/manifest-disable-assets-analyze/*`
 - `tests/rspack-test/configCases/container-1-5/manifest-file-name/*`
 - `tests/rspack-test/configCases/container-1-5/manifest-entry-filter/*`
+- `tests/rspack-test/configCases/container-1-5/manifest-rsc-references/*`
 
 ### 11.3 Runtime plugins and plugin params
 
@@ -838,6 +850,7 @@ Key differences:
 3. Manifest docs vs current behavior:
 
 - Current tests/code for `disableAssetsAnalyze` keep `shared` and `exposes` entries but with empty asset lists (not fully omitted structures).
+- In the same mode, `rsc` metadata is intentionally omitted (it is not collected via a separate lightweight pass).
 
 4. Remote alias map derivation:
 
