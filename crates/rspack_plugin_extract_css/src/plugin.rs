@@ -38,6 +38,9 @@ use crate::{
 pub static PLUGIN_NAME: &str = "css-extract-rspack-plugin";
 
 pub static MODULE_TYPE_STR: LazyLock<Ustr> = LazyLock::new(|| Ustr::from("css/mini-extract"));
+
+static MEDIA_RE: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r#";|\s*$"#).expect("should compile"));
 pub static MODULE_TYPE: LazyLock<ModuleType> =
   LazyLock::new(|| ModuleType::Custom(*MODULE_TYPE_STR));
 pub static SOURCE_TYPE: LazyLock<[SourceType; 1]> =
@@ -427,8 +430,6 @@ despite it was not able to fulfill desired ordering with these modules:
           external_source.add(header);
         }
         if let Some(media) = &module.media {
-          static MEDIA_RE: LazyLock<Regex> =
-            LazyLock::new(|| Regex::new(r#";|\s*$"#).expect("should compile"));
           let new_content = MEDIA_RE.replace_all(content.as_ref(), media);
           external_source.add(RawStringSource::from(new_content.to_string() + "\n"));
         } else {

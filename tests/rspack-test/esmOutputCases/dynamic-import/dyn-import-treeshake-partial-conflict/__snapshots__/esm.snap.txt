@@ -1,0 +1,28 @@
+```mjs title=main.mjs
+// ./index.js
+it('should skip namespace when tree-shaking removes one side of a conflict', async () => {
+	// Both modules export `value`, but only a.value is used.
+	// b.value is tree-shaken, so the conflict disappears.
+	const { value, foo } = await import("./shared.mjs")
+	const { bar } = await import("./shared.mjs")
+
+	expect(value).toBe(1)
+	expect(foo).toBe('a-foo')
+	expect(bar).toBe('b-bar')
+})
+
+
+```
+
+```mjs title=shared.mjs
+// ./a.js
+const value = 1;
+const foo = 'a-foo';
+
+// ./b.js
+const b_value = 2;
+const bar = 'b-bar';
+
+export { bar, foo, value };
+
+```

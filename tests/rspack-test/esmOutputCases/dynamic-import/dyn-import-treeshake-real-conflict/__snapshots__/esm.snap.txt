@@ -1,19 +1,15 @@
 ```mjs title=main.mjs
 // ./index.js
-it('should handle mixed: single-module chunk + multi-module chunk', async () => {
-	// solo is alone in its chunk - direct import works
-	const solo = await import("./solo.mjs")
-	expect(solo).toHaveProperty('default', 'solo')
-	expect(solo).toHaveProperty('value', 100)
+it('should keep namespace when both conflicting exports are used', async () => {
+	// Both modules export `value` and both are used — real conflict.
+	// Namespace objects are required to disambiguate.
+	const { value: aValue, foo } = await import("./shared.mjs").then(m => m.a_namespaceObject)
+	const { value: bValue, bar } = await import("./shared.mjs").then(m => m.b_namespaceObject)
 
-	// m1 and mX share a chunk via magic comment - need namespace objects
-	const m1 = await import("./shared.mjs").then(m => m.m1_namespaceObject)
-	const m2 = await import("./shared.mjs").then(m => m.m2_namespaceObject)
-
-	expect(m1).toHaveProperty('default', 'hello')
-	expect(m1).toHaveProperty('value', 1)
-	expect(m2).toHaveProperty('default', 'world')
-	expect(m2).toHaveProperty('value', 2)
+	expect(aValue).toBe(1)
+	expect(bValue).toBe(2)
+	expect(foo).toBe('a-foo')
+	expect(bar).toBe('b-bar')
 })
 
 
@@ -76,40 +72,30 @@ export { __webpack_require__ };
 
 ```mjs title=shared.mjs
 import { __webpack_require__ } from "./runtime.mjs";
-// NAMESPACE OBJECT: ./m1.js
-var m1_namespaceObject = {};
-__webpack_require__.r(m1_namespaceObject);
-__webpack_require__.d(m1_namespaceObject, { 
-  "default": () => (m1),
+// NAMESPACE OBJECT: ./a.js
+var a_namespaceObject = {};
+__webpack_require__.r(a_namespaceObject);
+__webpack_require__.d(a_namespaceObject, { 
+  foo: () => (foo),
   value: () => (value) });
 
 
-// NAMESPACE OBJECT: ./m2.js
-var m2_namespaceObject = {};
-__webpack_require__.r(m2_namespaceObject);
-__webpack_require__.d(m2_namespaceObject, { 
-  "default": () => (m2),
-  value: () => (m2_value) });
+// NAMESPACE OBJECT: ./b.js
+var b_namespaceObject = {};
+__webpack_require__.r(b_namespaceObject);
+__webpack_require__.d(b_namespaceObject, { 
+  bar: () => (bar),
+  value: () => (b_value) });
 
 
-// ./m1.js
-/* export default */ const m1 = ('hello');
+// ./a.js
 const value = 1;
+const foo = 'a-foo';
 
-// ./m2.js
-/* export default */ const m2 = ('world');
-const m2_value = 2;
+// ./b.js
+const b_value = 2;
+const bar = 'b-bar';
 
-export { m1_namespaceObject, m2_namespaceObject };
-
-```
-
-```mjs title=solo.mjs
-// ./solo.js
-/* export default */ const solo = ('solo');
-const value = 100;
-
-export { value };
-export default solo;
+export { a_namespaceObject, b_namespaceObject };
 
 ```
