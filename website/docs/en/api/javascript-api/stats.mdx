@@ -27,6 +27,22 @@ Compilation ===============> Stats JSON =================> Stats Output
 
 Create a stats object related to a compilation through [`compilation.getStats()`](/api/javascript-api/compilation#getstats) or `new Stats(compilation)`.
 
+:::warning Timing matters
+
+`stats.toJson()` and `stats.toString()` rely on compilation artifacts that are finalized in `compiler.hooks.done`. If they are called at other times (for example, on stale `Stats` objects captured earlier), some stats fields can be incomplete.
+
+For complete and stable stats output, call these methods in `compiler.hooks.done`:
+
+```js
+compiler.hooks.done.tap('MyPlugin', (stats) => {
+  const json = stats.toJson({ all: false, errors: true, warnings: true });
+  const text = stats.toString({ preset: 'errors-warnings' });
+  // consume json/text
+});
+```
+
+:::
+
 ## Stats methods
 
 ### hasErrors
@@ -65,7 +81,7 @@ stats.toJson({
 Return the compilation information in the form of a formatted string (similar to the output of [CLI](/api/cli)).
 
 ```ts
-toJson(opts?: StatsValue): string;
+toString(opts?: StatsValue): string;
 ```
 
 Options are the same as `stats.toJson(options)` with one addition:
