@@ -32,7 +32,7 @@ use crate::{
   module_graph::{
     collect_concatenated_modules, collect_json_module_sizes, collect_module_dependencies,
     collect_module_ids, collect_module_original_sources, collect_module_side_effects_locations,
-    collect_modules, collect_modules_connections_infos,
+    collect_modules, collect_side_effects_only_imports,
   },
 };
 
@@ -397,12 +397,17 @@ async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<
     }
   }
 
-  let connections = collect_modules_connections_infos(
+  let module_ukey_to_info: HashMap<ModuleUkey, (String, bool)> = rsd_modules
+    .values()
+    .map(|m| (m.ukey, (m.path.clone(), m.is_entry)))
+    .collect();
+  let side_effects_only_imports = collect_side_effects_only_imports(
     &modules,
     &module_ukey_map,
     module_graph,
     &compilation.module_graph_cache_artifact,
     &compilation.exports_info_artifact,
+    &module_ukey_to_info,
   );
 
   // 7. collect chunk modules
@@ -416,8 +421,8 @@ async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<
       .call(&mut RsdoctorModuleGraph {
         modules: rsd_modules.into_values().collect::<Vec<_>>(),
         dependencies: rsd_dependencies.into_values().collect::<Vec<_>>(),
-        connections,
         chunk_modules,
+        side_effects_only_imports,
       })
       .await
     {

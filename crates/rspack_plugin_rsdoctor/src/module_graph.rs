@@ -14,9 +14,9 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use thread_local::ThreadLocal;
 
 use crate::{
-  ChunkUkey, ModuleKind, ModuleUkey, RsdoctorConnection, RsdoctorDependency,
-  RsdoctorJsonModuleSizes, RsdoctorModule, RsdoctorModuleId, RsdoctorModuleOriginalSource,
-  RsdoctorSideEffectLocation,
+  ChunkUkey, ModuleKind, ModuleUkey, RsdoctorDependency, RsdoctorJsonModuleSizes, RsdoctorModule,
+  RsdoctorModuleId, RsdoctorModuleOriginalSource, RsdoctorSideEffectLocation,
+  RsdoctorSideEffectsOnlyImport, RsdoctorSideEffectsOnlyImportConnection,
 };
 
 pub fn collect_json_module_sizes(
@@ -353,24 +353,23 @@ pub fn collect_module_side_effects_locations(
     .collect::<HashMap<_, _>>()
 }
 
-pub fn collect_modules_connections_infos(
+pub fn collect_side_effects_only_imports(
   modules: &IdentifierMap<&BoxModule>,
   module_ukeys: &HashMap<Identifier, ModuleUkey>,
   module_graph: &ModuleGraph,
   module_graph_cache: &ModuleGraphCacheArtifact,
   exports_info_artifact: &ExportsInfoArtifact,
-) -> Vec<RsdoctorConnection> {
-  let connection_ukey_counter = Arc::new(AtomicI32::new(0));
-
-  modules
+  module_ukey_to_info: &HashMap<ModuleUkey, (String, bool)>,
+) -> Vec<RsdoctorSideEffectsOnlyImport> {
+  let active_connections = modules
     .par_iter()
     .flat_map(|(module_id, _)| {
-      let Some(module_ukey) = module_ukeys.get(module_id).copied() else {
+      if module_ukeys.get(module_id).is_none() {
         return vec![];
-      };
+      }
 
       module_graph
-        .get_incoming_connections(module_id)
+        .get_outgoing_connections(module_id)
         .filter_map(|conn| {
           let dep = module_graph.dependency_by_id(&conn.dependency_id);
           let dependency_type = dep.dependency_type().to_string();
@@ -378,7 +377,6 @@ pub fn collect_modules_connections_infos(
             .as_module_dependency()
             .map(|d| d.user_request().to_string())
             .unwrap_or_default();
-          let loc = dep.loc().map(|l| l.to_string());
 
           let origin_module = conn
             .original_module_identifier
@@ -393,21 +391,58 @@ pub fn collect_modules_connections_infos(
             exports_info_artifact,
           );
 
-          let ukey = connection_ukey_counter.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+          if !active {
+            return None;
+          }
 
-          Some(RsdoctorConnection {
-            ukey,
-            dependency_id: conn.dependency_id.as_u32().to_string(),
-            module: module_ukey,
-            origin_module,
+          Some((
             resolved_module,
-            dependency_type,
-            user_request,
-            loc,
-            active,
-          })
+            RsdoctorSideEffectsOnlyImportConnection {
+              origin_module,
+              dependency_type,
+              user_request,
+            },
+          ))
         })
         .collect::<Vec<_>>()
     })
-    .collect()
+    .collect::<Vec<_>>();
+
+  let mut grouped: HashMap<ModuleUkey, Vec<RsdoctorSideEffectsOnlyImportConnection>> =
+    HashMap::default();
+
+  for (resolved_module, connection) in active_connections {
+    grouped.entry(resolved_module).or_default().push(connection);
+  }
+
+  grouped
+    .into_iter()
+    .filter_map(|(module_ukey, connections)| {
+      let (path, is_entry) = module_ukey_to_info.get(&module_ukey)?;
+
+      // Entry modules are expected to be referenced directly — skip them.
+      if *is_entry {
+        return None;
+      }
+
+      if connections.len() != 1 {
+        return None;
+      }
+
+      let connection = &connections[0];
+      if !connection
+        .dependency_type
+        .to_lowercase()
+        .contains("esm import")
+      {
+        return None;
+      }
+
+      Some(RsdoctorSideEffectsOnlyImport {
+        module_ukey,
+        module_path: path.clone(),
+        connections,
+      })
+    })
+    .collect::<Vec<_>>()
 }
