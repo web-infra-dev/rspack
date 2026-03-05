@@ -47,6 +47,12 @@ impl CommonJsRequireContextDependency {
       factorize_info: Default::default(),
     }
   }
+
+  pub fn set_referenced_exports(&mut self, referenced_exports: Vec<Vec<swc_core::atoms::Atom>>) {
+    self.options.referenced_exports = Some(referenced_exports);
+    self.resource_identifier =
+      create_resource_identifier_for_context_dependency(None, &self.options);
+  }
 }
 
 #[cacheable_dyn]

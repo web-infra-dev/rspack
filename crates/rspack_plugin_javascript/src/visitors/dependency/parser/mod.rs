@@ -48,7 +48,7 @@ use crate::{
   parser_and_generator::ParserRuntimeRequirementsData,
   parser_plugin::{
     self, ImportsReferencesState, InnerGraphState, JavaScriptParserPluginDrive,
-    JavascriptParserPlugin,
+    JavascriptParserPlugin, RequireReferencesState,
   },
   utils::eval::{self, BasicEvaluatedExpression},
   visitors::{
@@ -363,6 +363,7 @@ pub struct JavascriptParser<'parser> {
   pub is_esm: bool,
   pub(crate) destructuring_assignment_properties: DestructuringAssignmentPropertiesMap,
   pub(crate) dynamic_import_references: ImportsReferencesState,
+  pub(crate) common_js_require_references: RequireReferencesState,
   pub(crate) worker_index: u32,
   pub(crate) parser_exports_state: Option<bool>,
   pub(crate) local_modules: Vec<LocalModule>,
@@ -372,6 +373,7 @@ pub struct JavascriptParser<'parser> {
   pub(crate) side_effects_item: Option<SideEffectsBailoutItemWithSpan>,
   pub(crate) is_renaming: Option<Atom>,
   pub(crate) location_advancer: DependencyLocationAdvancer,
+  pub(crate) collecting_dependencies_for_block: Option<usize>,
 }
 
 impl<'parser> JavascriptParser<'parser> {
@@ -541,6 +543,7 @@ impl<'parser> JavascriptParser<'parser> {
       member_expr_in_optional_chain: false,
       destructuring_assignment_properties: Default::default(),
       dynamic_import_references: Default::default(),
+      common_js_require_references: Default::default(),
       semicolons,
       statement_path: Default::default(),
       current_tag_info: None,
@@ -553,6 +556,7 @@ impl<'parser> JavascriptParser<'parser> {
       parser_runtime_requirements,
       is_renaming: None,
       location_advancer: DependencyLocationAdvancer::new(),
+      collecting_dependencies_for_block: None,
     }
   }
 
@@ -596,10 +600,14 @@ impl<'parser> JavascriptParser<'parser> {
 
   pub fn collect_dependencies_for_block(
     &mut self,
+    block_idx: usize,
+    deps: Vec<BoxDependency>,
     f: impl FnOnce(&mut JavascriptParser),
   ) -> Vec<BoxDependency> {
-    let old_deps = std::mem::take(&mut self.dependencies);
+    let old_deps = std::mem::replace(&mut self.dependencies, deps);
+    let old_block_idx = self.collecting_dependencies_for_block.replace(block_idx);
     f(self);
+    self.collecting_dependencies_for_block = old_block_idx;
     std::mem::replace(&mut self.dependencies, old_deps)
   }
 
