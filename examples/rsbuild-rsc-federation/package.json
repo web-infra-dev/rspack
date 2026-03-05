@@ -4,8 +4,10 @@
   "type": "module",
   "scripts": {
     "build": "rsbuild build",
+    "dev:e2e": "rsbuild dev --port 3330",
     "verify:manifest": "node ./scripts/verify-manifest.mjs",
-    "build:verify": "pnpm run build && pnpm run verify:manifest"
+    "build:verify": "pnpm run build && pnpm run verify:manifest",
+    "test:e2e": "playwright test --config ./playwright.config.ts"
   },
   "dependencies": {
     "react": "^19.2.4",
@@ -15,8 +17,10 @@
   },
   "devDependencies": {
     "@module-federation/runtime-tools": "0.24.1",
+    "@playwright/test": "1.58.2",
     "@rsbuild/core": "2.0.0-beta.7",
     "@rsbuild/plugin-react": "^1.4.5",
+    "@rspack/core": "workspace:*",
     "@types/node": "^20.19.33",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",

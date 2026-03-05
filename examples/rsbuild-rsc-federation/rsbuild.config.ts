@@ -88,6 +88,10 @@ export default defineConfig({
       config.optimization.moduleIds = 'deterministic';
       config.optimization.chunkIds = 'deterministic';
 
+      if (isServerBuild) {
+        config.target = 'async-node';
+      }
+
       config.output ||= {};
       config.output.chunkFilename ||= '[id].js';
 
@@ -120,6 +124,9 @@ export default defineConfig({
               },
           remotes: {
             remote: 'remote@http://localhost:3002/remoteEntry.js',
+          },
+          experiments: {
+            asyncStartup: true,
           },
           shared: isServerBuild
             ? {

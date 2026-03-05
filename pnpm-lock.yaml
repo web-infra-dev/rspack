@@ -188,7 +188,7 @@ importers:
         version: 19.2.4(react@19.2.4)
       react-server-dom-rspack:
         specifier: 0.0.1-beta.0
-        version: 0.0.1-beta.0(@rspack/core@2.0.0-beta.5(@module-federation/runtime-tools@0.24.1)(@swc/helpers@0.5.19))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+        version: 0.0.1-beta.0(@rspack/core@packages+rspack)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       rsbuild-rsc-federation-shared:
         specifier: workspace:*
         version: link:../rsbuild-rsc-federation-shared
@@ -196,12 +196,18 @@ importers:
       '@module-federation/runtime-tools':
         specifier: 0.24.1
         version: 0.24.1
+      '@playwright/test':
+        specifier: 1.58.2
+        version: 1.58.2
       '@rsbuild/core':
         specifier: 2.0.0-beta.7
         version: 2.0.0-beta.7(core-js@3.48.0)
       '@rsbuild/plugin-react':
         specifier: ^1.4.5
         version: 1.4.5(@rsbuild/core@2.0.0-beta.7(core-js@3.48.0))
+      '@rspack/core':
+        specifier: workspace:*
+        version: link:../../packages/rspack
       '@types/node':
         specifier: ^20.19.33
         version: 20.19.33
@@ -213,7 +219,7 @@ importers:
         version: 19.2.3(@types/react@19.2.14)
       rsbuild-plugin-rsc:
         specifier: 0.0.1-beta.0
-        version: 0.0.1-beta.0(@rsbuild/core@2.0.0-beta.7(core-js@3.48.0))(react-server-dom-rspack@0.0.1-beta.0(@rspack/core@2.0.0-beta.5(@module-federation/runtime-tools@0.24.1)(@swc/helpers@0.5.19))(react-dom@19.2.4(react@19.2.4))(react@19.2.4))
+        version: 0.0.1-beta.0(@rsbuild/core@2.0.0-beta.7(core-js@3.48.0))(react-server-dom-rspack@0.0.1-beta.0(@rspack/core@packages+rspack)(react-dom@19.2.4(react@19.2.4))(react@19.2.4))
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
@@ -429,7 +435,7 @@ importers:
         version: 1.0.7
       '@rsbuild/plugin-node-polyfill':
         specifier: ^1.4.4
-        version: 1.4.4(@rsbuild/core@2.0.0-beta.7(core-js@3.48.0))
+        version: 1.4.4(@rsbuild/core@1.7.3)
       '@rslib/core':
         specifier: 0.19.6
         version: 0.19.6(@microsoft/api-extractor@7.56.3(@types/node@20.19.33))(typescript@5.9.3)
@@ -10580,7 +10586,7 @@ snapshots:
     optionalDependencies:
       core-js: 3.48.0
 
-  '@rsbuild/plugin-node-polyfill@1.4.4(@rsbuild/core@2.0.0-beta.7(core-js@3.48.0))':
+  '@rsbuild/plugin-node-polyfill@1.4.4(@rsbuild/core@1.7.3)':
     dependencies:
       assert: 2.1.0
       browserify-zlib: 0.2.0
@@ -10606,7 +10612,7 @@ snapshots:
       util: 0.12.5
       vm-browserify: 1.1.2
     optionalDependencies:
-      '@rsbuild/core': 2.0.0-beta.7(core-js@3.48.0)
+      '@rsbuild/core': 1.7.3
 
   '@rsbuild/plugin-react@1.4.5(@rsbuild/core@2.0.0-beta.3(@module-federation/runtime-tools@0.24.1)(core-js@3.48.0))':
     dependencies:
@@ -15775,10 +15781,10 @@ snapshots:
     optionalDependencies:
       '@rsbuild/core': 2.0.0-beta.7(core-js@3.48.0)
 
-  rsbuild-plugin-rsc@0.0.1-beta.0(@rsbuild/core@2.0.0-beta.7(core-js@3.48.0))(react-server-dom-rspack@0.0.1-beta.0(@rspack/core@2.0.0-beta.5(@module-federation/runtime-tools@0.24.1)(@swc/helpers@0.5.19))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)):
+  rsbuild-plugin-rsc@0.0.1-beta.0(@rsbuild/core@2.0.0-beta.7(core-js@3.48.0))(react-server-dom-rspack@0.0.1-beta.0(@rspack/core@packages+rspack)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)):
     dependencies:
       '@rsbuild/core': 2.0.0-beta.7(core-js@3.48.0)
-      react-server-dom-rspack: 0.0.1-beta.0(@rspack/core@2.0.0-beta.5(@module-federation/runtime-tools@0.24.1)(@swc/helpers@0.5.19))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      react-server-dom-rspack: 0.0.1-beta.0(@rspack/core@packages+rspack)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
 
   rspack-vue-loader@17.5.0(@rspack/core@packages+rspack)(vue@3.5.29(typescript@5.9.3)):
     dependencies:

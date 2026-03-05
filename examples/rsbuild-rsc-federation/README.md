@@ -60,3 +60,18 @@ pnpm --filter examples-rsbuild-rsc-federation run verify:manifest
 ```
 
 The verification script fails fast on any mismatch and prints the resolved manifest file paths on success.
+
+## E2E smoke test
+
+This example includes a small Playwright e2e that validates:
+
+- app renders (`client entry ready`)
+- client component text renders (`InteractiveClientDemo`)
+- client interactivity works (counter increments on button clicks)
+
+Run:
+
+```bash
+pnpm --filter examples-rsbuild-rsc-federation... install
+pnpm --filter examples-rsbuild-rsc-federation run test:e2e
+```
