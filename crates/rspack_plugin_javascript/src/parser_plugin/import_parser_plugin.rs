@@ -24,8 +24,8 @@ use crate::{
   visitors::{
     AllowedMemberTypes, ContextModuleScanResult, ExportedVariableInfo, JavascriptParser,
     MemberExpressionInfo, Statement, TagInfoData, TopLevelScope, VariableDeclaration,
-    context_reg_exp, create_context_dependency, create_traceable_error, get_non_optional_part,
-    parse_order_string,
+    VariableDeclarationKind, context_reg_exp, create_context_dependency, create_traceable_error,
+    get_non_optional_part, parse_order_string,
   },
 };
 
@@ -131,9 +131,10 @@ impl JavascriptParserPlugin for ImportParserPlugin {
     &self,
     parser: &mut JavascriptParser,
     declarator: &VarDeclarator,
-    _declaration: VariableDeclaration<'_>,
+    declaration: VariableDeclaration<'_>,
   ) -> Option<bool> {
-    if let Some(init) = &declarator.init
+    if declaration.kind() != VariableDeclarationKind::Var
+      && let Some(init) = &declarator.init
       && let Some(expr) = init.as_await_expr()
       && let Some(call) = expr.arg.as_call()
       && call.callee.is_import()
