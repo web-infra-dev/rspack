@@ -13,7 +13,7 @@ it("should capture RSC references for shared modules by shareKey", () => {
 	expect(shared.rsc.lookup).toBe("rsc-shared-key");
 	expect(shared.rsc.moduleType).toBe("client");
 	expect(shared.rsc.clientReferences).toEqual(
-		expect.arrayContaining(["sharedAction", "sharedValue"])
+		expect.arrayContaining(["SharedClientComponent", "sharedAction", "sharedValue"])
 	);
 	expect(shared.rsc.serverActions.length).toBeGreaterThan(0);
 });

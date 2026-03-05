@@ -1,10 +1,10 @@
 "use client";
 
 import remoteButton from "remote/Button";
-import { sharedAction, sharedValue } from "shared-rsc";
+import { SharedClientComponent, sharedAction, sharedValue } from "shared-rsc";
 
 export default function ExposedButton() {
-	return `${sharedValue}:${typeof remoteButton}`;
+	return `${sharedValue}:${typeof remoteButton}:${typeof SharedClientComponent}`;
 }
 
 export async function exposedAction() {

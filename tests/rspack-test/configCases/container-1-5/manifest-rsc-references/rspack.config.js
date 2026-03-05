@@ -71,8 +71,14 @@ module.exports = {
 			},
 			shared: {
 				"shared-rsc": {
+					request: "shared-rsc",
+					import: "shared-rsc",
 					shareKey: "rsc-shared-key",
-					requiredVersion: "^1.0.0"
+					shareScope: "rsc",
+					requiredVersion: "^1.0.0",
+					layer: "react-server-components",
+					issuerLayer: "react-server-components",
+					singleton: true
 				}
 			}
 		})
