@@ -35,6 +35,11 @@ class BeforeModuleIdsTestPlugin {
             module.id = 42;
             customIdsAssigned.set(module.identifier, module.id);
           }
+
+          if (module.identifier && module.identifier.includes("b.js")) {
+            module.id = 0;
+            customIdsAssigned.set(module.identifier, module.id);
+          }
         }
       });
     });
@@ -54,6 +59,10 @@ class BeforeModuleIdsTestPlugin {
       const aModule = json.modules.find(m => m.identifier && m.identifier.includes("a.js"));
       strict(aModule, "a.js module should exist in stats");
       strict(aModule.id === 42, `Module ID should be 42 (number) but got '${aModule.id}' (${typeof aModule.id})`);
+
+      const bModule = json.modules.find(m => m.identifier && m.identifier.includes("b.js"));
+      strict(bModule, "b.js module should exist in stats");
+      strict(bModule.id === 0, `Module ID should be 0 (number) but got '${bModule.id}' (${typeof bModule.id})`);
     });
   }
 }
