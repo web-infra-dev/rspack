@@ -6,7 +6,6 @@ const captureStdio = require("@rspack/test-tools/helper/legacy/captureStdio");
 // graph rebuild, so JS wrapper should short-circuit with placeholder output.
 const STALE_STATS_HASH = "XXXX";
 
-let staleCompilation = null;
 let staleStats = null;
 let warningChecked = false;
 
@@ -16,13 +15,13 @@ module.exports = {
 		{
 			apply(compiler) {
 				compiler.hooks.make.tap("PLUGIN", () => {
-					if (!staleCompilation || !staleStats || warningChecked) {
+					if (!staleStats || warningChecked) {
 						return;
 					}
 					warningChecked = true;
 
 					setTimeout(() => {
-						const options = staleCompilation.createStatsOptions(
+						const options = staleStats.compilation.createStatsOptions(
 							{ all: true },
 							{ forToString: false }
 						);
@@ -43,7 +42,7 @@ module.exports = {
 							throw new Error("Expected stats json to be an object");
 						}
 
-							if (warningLogs.length !== 0) {
+						if (warningLogs.length !== 0) {
 							throw new Error(
 								`Expected stale stats to use JS-side fallback (no warning), got: ${warningLogs.join(
 									"\n"
@@ -60,12 +59,11 @@ module.exports = {
 				});
 
 				compiler.hooks.done.tap("PLUGIN", stats => {
-					if (!staleCompilation) {
-						staleCompilation = stats.compilation;
+					if (!staleStats) {
 						staleStats = stats;
 					}
 				});
-			}
-		}
-	]
+			},
+		},
+	],
 };
