@@ -350,25 +350,6 @@ const normalizeStderr = (stderr) => {
 
   normalizedStderr = normalizedStderr.replace(/:[0-9]+\//g, ':<port>/');
 
-  if (!/On Your Network \(IPv6\)/.test(stderr)) {
-    // Github Actions doesn't' support IPv6 on ubuntu in some cases
-    normalizedStderr = normalizedStderr.split('\n');
-
-    const ipv4MessageIndex = normalizedStderr.findIndex((item) =>
-      /On Your Network \(IPv4\)/.test(item),
-    );
-
-    if (ipv4MessageIndex !== -1) {
-      normalizedStderr.splice(
-        ipv4MessageIndex + 1,
-        0,
-        '<i> [rspack-dev-server] On Your Network (IPv6): http://[<network-ip-v6>]:<port>/',
-      );
-    }
-
-    normalizedStderr = normalizedStderr.join('\n');
-  }
-
   // the warning below is causing CI failure on some jobs
   if (/Gracefully shutting down/.test(stderr)) {
     normalizedStderr = normalizedStderr.replace(
