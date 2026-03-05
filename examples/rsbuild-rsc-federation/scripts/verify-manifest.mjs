@@ -221,7 +221,6 @@ const expectedClientSingletonShares = [
   'react',
   'react/jsx-runtime',
   'react-dom',
-  'react-server-dom-rspack/client.browser',
 ];
 for (const shareName of expectedClientSingletonShares) {
   const sharedEntry = clientStats.shared.find(

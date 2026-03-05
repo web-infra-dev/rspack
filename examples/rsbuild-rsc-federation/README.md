@@ -47,7 +47,6 @@ Client:
 - `react` (`singleton: true`, client scope)
 - `react/jsx-runtime` (`singleton: true`, client scope)
 - `react-dom` (`singleton: true`, client scope)
-- `react-server-dom-rspack/client.browser` (`singleton: true`, client scope)
 
 ## Run
 

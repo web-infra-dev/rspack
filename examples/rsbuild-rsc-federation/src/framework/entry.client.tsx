@@ -1,8 +1,5 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
-import { createFromFetch } from 'react-server-dom-rspack/client.browser';
-
-void createFromFetch;
 
 function InteractiveClientDemo() {
   const [count, setCount] = React.useState(0);

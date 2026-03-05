@@ -1,11 +1,8 @@
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { defineConfig } from '@rsbuild/core';
 import { pluginReact } from '@rsbuild/plugin-react';
 import { rspack } from '@rspack/core';
 import { Layers, pluginRSC } from 'rsbuild-plugin-rsc';
-
-const rootDir = fileURLToPath(new URL('.', import.meta.url));
 
 const rscLayerShared = {
   singleton: true,
@@ -34,7 +31,7 @@ export default defineConfig({
     pluginReact(),
     pluginRSC({
       layers: {
-        ssr: path.join(rootDir, './src/framework/entry.ssr.tsx'),
+        ssr: path.join(import.meta.dirname, './src/framework/entry.ssr.tsx'),
       },
     }),
   ],
@@ -75,12 +72,6 @@ export default defineConfig({
         {
           test: /rsbuild-rsc-federation-shared[\\/]index\.js$/,
           layer: Layers.rsc,
-        },
-        {
-          issuerLayer: Layers.rsc,
-          resolve: {
-            conditionNames: ['react-server', '...'],
-          },
         },
       );
 
@@ -150,7 +141,6 @@ export default defineConfig({
                 react: clientLayerShared,
                 'react/jsx-runtime': clientLayerShared,
                 'react-dom': clientLayerShared,
-                'react-server-dom-rspack/client.browser': clientLayerShared,
               },
         }),
       );
