@@ -17,7 +17,7 @@ exports.foo = 42
 (__unused_rspack_module, exports) {
 var __webpack_unused_export__;
 __webpack_unused_export__ = true
-exports["default"] = 'esm'
+exports.A = 'esm'
 
 
 },
@@ -34,7 +34,7 @@ it('should have correct import', () => {
 	expect(foo).toHaveProperty('foo')
 	expect(foo.foo).toBe(42)
 
-	expect(from_esm["default"]).toBe('esm')
+	expect(from_esm.A).toBe('esm')
 
 	expect(foo.foo).toBe(42)
 	expect((/* inlined export .value */"value")).toBe('value')
