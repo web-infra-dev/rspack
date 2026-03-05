@@ -67,15 +67,30 @@ impl ExportInfoData {
     if let Some(used_in_runtime) = self.used_in_runtime() {
       let mut max = UsageState::Unused;
       if let Some(runtime) = runtime {
-        for item in runtime.iter() {
-          let Some(usage) = used_in_runtime.get(item) else {
-            continue;
-          };
-          match usage {
-            UsageState::Used => return UsageState::Used,
-            _ => {
-              max = std::cmp::max(max, *usage);
+        let used_len = used_in_runtime.len();
+        let runtime_len = runtime.len();
+
+        if runtime_len <= used_len {
+          // 遍历 runtime，按 runtime item 查表（原有行为）
+          for item in runtime.iter() {
+            let Some(usage) = used_in_runtime.get(item) else {
+              continue;
+            };
+            if *usage == UsageState::Used {
+              return UsageState::Used;
             }
+            max = std::cmp::max(max, *usage);
+          }
+        } else {
+          // 反向遍历：当 used_in_runtime 比 runtime 小时，遍历 map 并看 runtime 是否包含该 key
+          for (rt, usage) in used_in_runtime.iter() {
+            if !runtime.contains(rt) {
+              continue;
+            }
+            if *usage == UsageState::Used {
+              return UsageState::Used;
+            }
+            max = std::cmp::max(max, *usage);
           }
         }
       } else {
