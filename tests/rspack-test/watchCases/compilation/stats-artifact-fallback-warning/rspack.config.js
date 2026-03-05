@@ -1,7 +1,7 @@
 const captureStdio = require("@rspack/test-tools/helper/legacy/captureStdio");
 
 const INCOMPLETE_STATS_WARNING =
-	"Stats output may be incomplete because some compilation artifacts were unavailable";
+	"Stats output may be incomplete because some compilation artifacts were unavailable (buildModuleGraph). For complete stats data, call `stats.toJson()` inside `compiler.hooks.done`.";
 
 let staleCompilation = null;
 let staleInnerStats = null;
@@ -40,13 +40,11 @@ module.exports = {
 							throw new Error("Expected stats json to be an object");
 						}
 
-						const warnings = `${warningLogs.join("\n")}\n${warningOutput}`;
-						if (
-							!warnings.includes(INCOMPLETE_STATS_WARNING) ||
-							!warnings.includes("compiler.hooks.done")
-						) {
+						if (warningLogs.length !== 1 || warningLogs[0] !== INCOMPLETE_STATS_WARNING) {
 							throw new Error(
-								`Expected incomplete stats warning to be printed, got: ${warnings}`
+								`Expected exact incomplete stats warning.\nExpected: ${INCOMPLETE_STATS_WARNING}\nActual: ${warningLogs.join(
+									"\n"
+								)}\nStderr: ${warningOutput}`
 							);
 						}
 					});

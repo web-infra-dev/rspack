@@ -228,6 +228,41 @@ impl<'compilation> Stats<'compilation> {
     self.context.module_executor()
   }
 
+  fn module_executor_make_artifact(&self) -> Option<&BuildModuleGraphArtifact> {
+    let module_executor = self.module_executor()?;
+    if let Some(make_artifact) = module_executor.make_artifact.try_read() {
+      Some(make_artifact)
+    } else {
+      self.mark_artifact_fallback(STATS_ARTIFACT_FALLBACK_BUILD_MODULE_GRAPH);
+      None
+    }
+  }
+
+  fn module_executor_module_graph(&self) -> Option<&ModuleGraph> {
+    self
+      .module_executor_make_artifact()
+      .map(|artifact| artifact.get_module_graph())
+  }
+
+  fn module_executor_exports_info_artifact(&self) -> Option<&ExportsInfoArtifact> {
+    let module_executor = self.module_executor()?;
+    Some(
+      module_executor
+        .exports_info_artifact
+        .try_read()
+        .unwrap_or_else(|| {
+          self.mark_artifact_fallback(STATS_ARTIFACT_FALLBACK_EXPORTS_INFO);
+          &self.default_exports_info_artifact
+        }),
+    )
+  }
+
+  fn module_executor_is_module_built(&self, identifier: &ModuleIdentifier) -> bool {
+    self
+      .module_executor_make_artifact()
+      .is_some_and(|artifact| artifact.built_modules().contains(identifier))
+  }
+
   pub fn exports_info_artifact(&self) -> &ExportsInfoArtifact {
     self
       .context
@@ -490,22 +525,12 @@ impl Stats<'_> {
       .collect::<Result<Vec<_>>>()?;
     modules.extend(runtime_modules);
 
-    let executor_module_graph = self.module_executor().and_then(|executor| {
-      executor
-        .make_artifact
-        .try_read()
-        .map(|artifact| artifact.get_module_graph())
-    });
-    if self.module_executor().is_some() && executor_module_graph.is_none() {
-      self.mark_artifact_fallback(STATS_ARTIFACT_FALLBACK_BUILD_MODULE_GRAPH);
-    }
+    let executor_module_graph = self.module_executor_module_graph();
     let executor_module_graph_cache = ModuleGraphCacheArtifact::default();
-    let executor_exports_info_artifact = self
-      .module_executor()
-      .map(|executor| &executor.exports_info_artifact);
-    if let Some(executor_module_graph) = &executor_module_graph
-      && let Some(executor_exports_info_artifact) = executor_exports_info_artifact
-    {
+    if let Some(executor_module_graph) = &executor_module_graph {
+      let executor_exports_info_artifact = self
+        .module_executor_exports_info_artifact()
+        .unwrap_or(&self.default_exports_info_artifact);
       let executed_modules: Vec<StatsModule> = executor_module_graph
         .modules()
         .map(|(_, module)| module)
@@ -1073,10 +1098,7 @@ impl Stats<'_> {
       .unwrap_or_else(|| panic!("Could not find ModuleGraphModule by identifier: {identifier:?}"));
 
     let built = if executed {
-      self
-        .module_executor()
-        .map(|executor| executor.make_artifact.built_modules().contains(&identifier))
-        .unwrap_or_default()
+      self.module_executor_is_module_built(&identifier)
     } else {
       self
         .build_module_graph_artifact()
