@@ -243,7 +243,7 @@ impl Module for ConsumeSharedModule {
 
     let mut function = String::from("loaders.load");
     let mut args = vec![
-      json_stringify_str(&self.options.share_scope),
+      json_stringify(&self.options.share_scope),
       json_stringify_str(&self.options.share_key),
     ];
     if let Some(version) = &self.options.required_version {

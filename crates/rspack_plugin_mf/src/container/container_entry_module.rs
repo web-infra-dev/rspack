@@ -399,13 +399,7 @@ var init = function(shareScope, initScope) {{
         has_own_property =
           runtime_template.render_runtime_globals(&RuntimeGlobals::HAS_OWN_PROPERTY),
         share_scope_map = runtime_template.render_runtime_globals(&RuntimeGlobals::SHARE_SCOPE_MAP),
-        share_scope = json_stringify(
-          &self
-            .share_scope
-            .first()
-            .cloned()
-            .unwrap_or_else(|| "default".to_string())
-        ),
+        share_scope = json_stringify(&self.share_scope),
         initialize_sharing =
           runtime_template.render_runtime_globals(&RuntimeGlobals::INITIALIZE_SHARING),
         define_property_getters =
