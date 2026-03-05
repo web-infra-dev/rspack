@@ -29,13 +29,18 @@ macro_rules! expect {
   };
 }
 
-use std::{borrow::Cow, future::ready, sync::Arc};
+use std::{
+  borrow::Cow,
+  future::ready,
+  sync::{Arc, LazyLock},
+};
 
 use builder_context::BuiltinPluginOptions;
 use derive_more::Debug;
 use devtool::DevtoolFlags;
 use externals::ExternalsPresets;
 use indexmap::IndexMap;
+use regex::Regex;
 use rspack_core::{
   AssetParserDataUrl, AssetParserDataUrlOptions, AssetParserOptions, BoxPlugin, ByDependency,
   CacheOptions, ChunkLoading, ChunkLoadingType, CleanOptions, Compiler, CompilerOptions,
@@ -2694,6 +2699,10 @@ impl OutputOptionsBuilder {
       }
     });
 
+    static CHUNK_FILENAME_BASENAME_RE: LazyLock<Regex> = LazyLock::new(|| {
+      Regex::new(r"(^|\/)([^/]*(?:\?|$))").expect("should initialize chunk filename basename regex")
+    });
+
     let chunk_filename = f!(self.chunk_filename.take(), || {
       // Get template string from filename if it's not a function
       if let Some(template) = filename.template() {
@@ -2707,8 +2716,7 @@ impl OutputOptionsBuilder {
           filename.clone()
         } else {
           // Otherwise prefix "[id]." in front of the basename to make it changing
-          let new_template = regex::Regex::new(r"(^|\/)([^/]*(?:\?|$))")
-            .expect("should initialize `Regex`")
+          let new_template = CHUNK_FILENAME_BASENAME_RE
             .replace(template, "$1[id].$2")
             .into_owned();
           Filename::from(new_template)
@@ -2724,10 +2732,13 @@ impl OutputOptionsBuilder {
       CrossOriginLoading::Disable
     );
 
+    static JS_EXTENSION_IN_FILENAME_RE: LazyLock<Regex> = LazyLock::new(|| {
+      Regex::new(r"\.[mc]?js(\?|$)").expect("should initialize js extension in filename regex")
+    });
+
     let css_filename = f!(self.css_filename.take(), || {
       if let Some(template) = filename.template() {
-        let new_template = regex::Regex::new(r"\.[mc]?js(\?|$)")
-          .expect("should initialize `Regex`")
+        let new_template = JS_EXTENSION_IN_FILENAME_RE
           .replace(template, ".css$1")
           .into_owned();
         Filename::from(new_template)
@@ -2738,8 +2749,7 @@ impl OutputOptionsBuilder {
 
     let css_chunk_filename = f!(self.css_chunk_filename.take(), || {
       if let Some(template) = chunk_filename.template() {
-        let new_template = regex::Regex::new(r"\.[mc]?js(\?|$)")
-          .expect("should initialize `Regex`")
+        let new_template = JS_EXTENSION_IN_FILENAME_RE
           .replace(template, ".css$1")
           .into_owned();
         Filename::from(new_template)
@@ -2761,6 +2771,11 @@ impl OutputOptionsBuilder {
     });
 
     // Generate unique name from library name or package.json
+    static LIBRARY_NAME_PLACEHOLDER_RE: LazyLock<Regex> = LazyLock::new(|| {
+      Regex::new(r"^\[(\\*[\w:]+\\*)\](\.)|(\.)\[(\\*[\w:]+\\*)\](\.|\z)|\[(\\*[\w:]+\\*)\]")
+        .expect("failed to create library name placeholder regex")
+    });
+
     let unique_name = f!(self.unique_name.take(), || {
       if let Some(library) = &self.library
         && let Some(name) = &library.name
@@ -2772,29 +2787,25 @@ impl OutputOptionsBuilder {
         };
 
         // Clean up library name using regex
-        let re = regex::Regex::new(
-          r"^\[(\\*[\w:]+\\*)\](\.)|(\.)\[(\\*[\w:]+\\*)\](\.|\z)|\[(\\*[\w:]+\\*)\]",
-        )
-        .expect("failed to create regex");
+        let cleaned_name =
+          LIBRARY_NAME_PLACEHOLDER_RE.replace_all(&library_name, |caps: &regex::Captures| {
+            let content = caps
+              .get(1)
+              .or_else(|| caps.get(4))
+              .or_else(|| caps.get(6))
+              .map_or("", |m| m.as_str());
 
-        let cleaned_name = re.replace_all(&library_name, |caps: &regex::Captures| {
-          let content = caps
-            .get(1)
-            .or_else(|| caps.get(4))
-            .or_else(|| caps.get(6))
-            .map_or("", |m| m.as_str());
-
-          if content.starts_with('\\') && content.ends_with('\\') {
-            format!(
-              "{}{}{}",
-              caps.get(3).map_or("", |_| "."),
-              format_args!("[{}]", &content[1..content.len() - 1]),
-              caps.get(2).map_or("", |_| ".")
-            )
-          } else {
-            String::new()
-          }
-        });
+            if content.starts_with('\\') && content.ends_with('\\') {
+              format!(
+                "{}{}{}",
+                caps.get(3).map_or("", |_| "."),
+                format_args!("[{}]", &content[1..content.len() - 1]),
+                caps.get(2).map_or("", |_| ".")
+              )
+            } else {
+              String::new()
+            }
+          });
 
         if !cleaned_name.is_empty() {
           return cleaned_name.into_owned();
