@@ -1,0 +1,14 @@
+{
+  "name": "rsbuild-rsc-federation-shared",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./index.js",
+  "exports": {
+    ".": "./index.js"
+  },
+  "dependencies": {
+    "react": "^19.2.4",
+    "react-server-dom-rspack": "0.0.1-beta.0"
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "name": "examples-rsbuild-rsc-federation",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "rsbuild build",
+    "verify:manifest": "node ./scripts/verify-manifest.mjs",
+    "build:verify": "pnpm run build && pnpm run verify:manifest"
+  },
+  "dependencies": {
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "react-server-dom-rspack": "0.0.1-beta.0",
+    "rsbuild-rsc-federation-shared": "workspace:*"
+  },
+  "devDependencies": {
+    "@module-federation/runtime-tools": "0.24.1",
+    "@rsbuild/core": "2.0.0-beta.7",
+    "@rsbuild/plugin-react": "^1.4.5",
+    "@types/node": "^20.19.33",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "rsbuild-plugin-rsc": "0.0.1-beta.0",
+    "typescript": "^5.9.3"
+  }
+}
