@@ -4,7 +4,7 @@ use atomic_refcell::AtomicRefCell;
 use rspack_collections::IdentifierMap;
 use rspack_core::{
   Dependency, DependencyId, DependencyTemplate, ExportsType, FakeNamespaceObjectMode, ModuleGraph,
-  RuntimeGlobals, TemplateContext, get_exports_type,
+  ModuleReferenceOptions, RuntimeGlobals, TemplateContext, get_exports_type,
 };
 use rspack_plugin_javascript::dependency::ImportDependency;
 use rspack_plugin_rslib::dyn_import_external::render_dyn_import_external_module;
@@ -221,7 +221,31 @@ impl DependencyTemplate for DynamicImportDependencyTemplate {
       return;
     }
 
-    // Check if the module needs namespace remapping (exports were renamed or namespace access)
+    if already_in_chunk {
+      // Same chunk + scope hoisted: the module's variables are already in scope.
+      // Use a namespace module reference so the link phase resolves it to the
+      // module's namespace object (e.g., `Promise.resolve(dynamic_namespaceObject)`).
+      let ns_ref = concatenation_scope.create_module_reference(
+        &ref_module.identifier(),
+        &ModuleReferenceOptions {
+          ids: vec![],
+          call: false,
+          direct_import: true,
+          deferred_import: false,
+          asi_safe: Some(true),
+          ..Default::default()
+        },
+      );
+      source.replace(
+        import_dep.range.start,
+        import_dep.range.end,
+        &format!("Promise.resolve({ns_ref})"),
+        None,
+      );
+      return;
+    }
+
+    // Cross-chunk: check if the module needs namespace remapping (exports were renamed or namespace access)
     let ns_name = {
       let ns_map = self.dyn_import_ns_map.borrow();
       ns_map.get(&ref_module.identifier()).cloned()
