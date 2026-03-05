@@ -9,7 +9,8 @@ use rspack_plugin_rsdoctor::{
   RsdoctorModuleGraphModule, RsdoctorModuleId, RsdoctorModuleIdsPatch,
   RsdoctorModuleOriginalSource, RsdoctorModuleSourcesPatch, RsdoctorPluginChunkGraphFeature,
   RsdoctorPluginModuleGraphFeature, RsdoctorPluginOptions, RsdoctorPluginSourceMapFeature,
-  RsdoctorSideEffect, RsdoctorSideEffectLocation, RsdoctorSourcePosition, RsdoctorSourceRange,
+  RsdoctorSideEffect, RsdoctorSideEffectLocation, RsdoctorSideEffectsOnlyImport,
+  RsdoctorSideEffectsOnlyImportConnection, RsdoctorSourcePosition, RsdoctorSourceRange,
   RsdoctorStatement, RsdoctorVariable,
 };
 
@@ -108,6 +109,40 @@ impl From<RsdoctorConnection> for JsRsdoctorConnection {
       user_request: value.user_request,
       loc: value.loc,
       active: value.active,
+    }
+  }
+}
+
+#[napi(object)]
+pub struct JsRsdoctorSideEffectsOnlyImportConnection {
+  pub origin_module: Option<i32>,
+  pub dependency_type: String,
+  pub user_request: String,
+}
+
+impl From<RsdoctorSideEffectsOnlyImportConnection> for JsRsdoctorSideEffectsOnlyImportConnection {
+  fn from(value: RsdoctorSideEffectsOnlyImportConnection) -> Self {
+    JsRsdoctorSideEffectsOnlyImportConnection {
+      origin_module: value.origin_module,
+      dependency_type: value.dependency_type,
+      user_request: value.user_request,
+    }
+  }
+}
+
+#[napi(object)]
+pub struct JsRsdoctorSideEffectsOnlyImport {
+  pub module_ukey: i32,
+  pub module_path: String,
+  pub connections: Vec<JsRsdoctorSideEffectsOnlyImportConnection>,
+}
+
+impl From<RsdoctorSideEffectsOnlyImport> for JsRsdoctorSideEffectsOnlyImport {
+  fn from(value: RsdoctorSideEffectsOnlyImport) -> Self {
+    JsRsdoctorSideEffectsOnlyImport {
+      module_ukey: value.module_ukey,
+      module_path: value.module_path,
+      connections: value.connections.into_iter().map(|c| c.into()).collect(),
     }
   }
 }
@@ -355,6 +390,7 @@ pub struct JsRsdoctorModuleGraph {
   pub modules: Vec<JsRsdoctorModule>,
   pub dependencies: Vec<JsRsdoctorDependency>,
   pub chunk_modules: Vec<JsRsdoctorChunkModules>,
+  pub side_effects_only_imports: Vec<JsRsdoctorSideEffectsOnlyImport>,
 }
 
 impl From<RsdoctorModuleGraph> for JsRsdoctorModuleGraph {
@@ -363,6 +399,11 @@ impl From<RsdoctorModuleGraph> for JsRsdoctorModuleGraph {
       modules: value.modules.into_iter().map(|m| m.into()).collect(),
       dependencies: value.dependencies.into_iter().map(|d| d.into()).collect(),
       chunk_modules: value.chunk_modules.into_iter().map(|c| c.into()).collect(),
+      side_effects_only_imports: value
+        .side_effects_only_imports
+        .into_iter()
+        .map(|s| s.into())
+        .collect(),
     }
   }
 }

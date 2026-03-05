@@ -1164,6 +1164,7 @@ export interface JsRsdoctorModuleGraph {
   modules: Array<JsRsdoctorModule>
   dependencies: Array<JsRsdoctorDependency>
   chunkModules: Array<JsRsdoctorChunkModules>
+  sideEffectsOnlyImports: Array<JsRsdoctorSideEffectsOnlyImport>
 }
 
 export interface JsRsdoctorModuleGraphModule {
@@ -1212,6 +1213,18 @@ export interface JsRsdoctorSideEffectLocation {
   nodeType: string
   module: number
   request: string
+}
+
+export interface JsRsdoctorSideEffectsOnlyImport {
+  moduleUkey: number
+  modulePath: string
+  connections: Array<JsRsdoctorSideEffectsOnlyImportConnection>
+}
+
+export interface JsRsdoctorSideEffectsOnlyImportConnection {
+  originModule?: number
+  dependencyType: string
+  userRequest: string
 }
 
 export interface JsRsdoctorSourceMapFeatures {
