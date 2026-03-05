@@ -28,6 +28,14 @@ impl<T> StealCell<T> {
     Self(Some(value))
   }
 
+  pub fn try_read(&self) -> Option<&T> {
+    self.0.as_ref()
+  }
+
+  pub fn try_write(&mut self) -> Option<&mut T> {
+    self.0.as_mut()
+  }
+
   pub fn is_stolen(&self) -> bool {
     self.0.is_none()
   }
