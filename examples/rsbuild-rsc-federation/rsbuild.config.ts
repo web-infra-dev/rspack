@@ -112,6 +112,9 @@ export default defineConfig({
           remotes: {
             remote: 'remote@http://localhost:3002/remoteEntry.js',
           },
+          runtimePlugins: isServerBuild
+            ? ['@module-federation/node/runtimePlugin']
+            : [],
           experiments: {
             asyncStartup: true,
           },

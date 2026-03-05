@@ -16,6 +16,7 @@
     "rsbuild-rsc-federation-shared": "workspace:*"
   },
   "devDependencies": {
+    "@module-federation/node": "^2.7.32",
     "@module-federation/runtime-tools": "0.24.1",
     "@playwright/test": "1.58.2",
     "@rsbuild/core": "2.0.0-beta.7",
