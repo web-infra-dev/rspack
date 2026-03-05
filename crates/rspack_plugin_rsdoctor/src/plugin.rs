@@ -422,7 +422,6 @@ async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<
       .call(&mut RsdoctorModuleGraph {
         modules: rsd_modules.into_values().collect::<Vec<_>>(),
         dependencies: rsd_dependencies.into_values().collect::<Vec<_>>(),
-        connections,
         chunk_modules,
         connections_only_imports,
       })
