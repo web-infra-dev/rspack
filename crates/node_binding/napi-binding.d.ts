@@ -712,7 +712,7 @@ export interface JsBeforeModuleIdsArg {
 }
 
 export interface JsBeforeModuleIdsResult {
-  assignments: Record<string, string>
+  assignments: Record<string, string | number>
 }
 
 export interface JsBuildMeta {
