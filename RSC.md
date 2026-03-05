@@ -27,7 +27,7 @@ RSC in this repo is implemented as a coordinated multi-compiler pipeline (server
 - Metadata fields: `server_refs`, `client_refs`, `is_cjs`, `action_ids` (`/Users/zackjackson/rspack/crates/rspack_core/src/module.rs:72`).
 - This metadata is stored on `BuildInfo.rsc` (`/Users/zackjackson/rspack/crates/rspack_core/src/module.rs:113`).
 
-## 5) SWC RSC transform pipeline (Directive/Compiler Semantics)
+## 5) SWC RSC transform pipeline (Directive/Compiler semantics)
 
 - RSC pass entrypoint: `/Users/zackjackson/rspack/crates/rspack_loader_swc/src/rsc_transforms/mod.rs:18`.
 - It detects `react-server-components` layer and skips duplicate metadata generation for `?rsc-server-entry-proxy=true` (`/Users/zackjackson/rspack/crates/rspack_loader_swc/src/rsc_transforms/mod.rs:26`).

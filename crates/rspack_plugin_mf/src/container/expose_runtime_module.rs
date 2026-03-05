@@ -2,9 +2,9 @@ use rspack_core::{
   ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext,
   RuntimeModuleStage, RuntimeTemplate, SourceType, impl_runtime_module,
 };
-use rspack_util::json_stringify_str;
 
 use super::container_entry_module::CodeGenerationDataExpose;
+use crate::utils::json_stringify;
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -80,7 +80,7 @@ impl RuntimeModule for ExposeRuntimeModule {
 }};
 "#,
       module_map,
-      json_stringify_str(&data.share_scope)
+      json_stringify(&data.share_scope)
     );
     source += &format!(
       "{require_name}.getContainer = {require_name}.getContainer || function() {{ throw new Error(\"should have {require_name}.getContainer\") }};",
