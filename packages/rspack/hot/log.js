@@ -84,6 +84,4 @@ log.groupEnd = groupEnd;
 log.setLogLevel = setLogLevel;
 log.formatError = formatError;
 
-// TODO: remove default export when rspack-dev-server refactored
-export default log;
 export { log };

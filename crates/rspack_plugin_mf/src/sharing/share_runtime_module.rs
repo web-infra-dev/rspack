@@ -96,7 +96,6 @@ impl RuntimeModule for ShareRuntimeModule {
                 "{{ name: {}, version: {}, factory: {}, eager: {}, layer: {}, treeShakingMode: {}",
                 json_stringify(&info.name),
                 json_stringify(&info.version.to_string()),
-
                 info.factory,
                 if info.eager { "1" } else { "0" },
                 json_stringify(&info.layer),
