@@ -14,20 +14,39 @@ This example is based on the [`rsbuild-plugin-rsc` `examples/server`](https://gi
   - server (`target: node`)
   - client (`target: web`)
 
-## Environment plugin application
+## Host/remote topology
+
+This package is the **host** app. It consumes the remote app at:
+
+- server runtime: `remote@http://localhost:3331/mf-manifest.json`
+- client runtime: `remote@http://localhost:3331/mf-manifest.client.json`
 
 `tools.rspack` injects `ModuleFederationPlugin` for both environments with environment-specific options:
 
 - **Server build**
-  - container: `rsbuild_container`
+  - container: `rsbuild_host`
   - entry: `remoteEntry.js`
   - manifest files: `mf-stats.json` and `mf-manifest.json`
   - exposes: `./button`, `./composed`, `./consumer`, `./server-mixed`
+  - runtime plugins:
+    - `@module-federation/node/runtimePlugin`
+    - `./src/framework/mf-rsc-registration-runtime-plugin.js`
 - **Client build**
-  - container: `rsbuild_container_client`
+  - container: `rsbuild_host`
   - entry: `remoteEntry.client.js`
   - manifest files: `mf-manifest.client-stats.json` and `mf-manifest.client.json`
   - exposes: `./button`, `./composed`
+  - runtime plugins:
+    - `./src/framework/mf-rsc-registration-runtime-plugin.js`
+
+## Dynamic RSC registration runtime plugin
+
+The host includes a dedicated MF runtime plugin that dynamically registers
+remote/shared RSC metadata into `__webpack_require__.rscM` using MF runtime
+lifecycle hooks (`afterResolve`, `onLoad`) and `mf-manifest.json` data.
+
+This implementation intentionally avoids exposing `__webpack_require__` on
+global scopes.
 
 ## Shared singleton matrix
 

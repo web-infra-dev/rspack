@@ -118,14 +118,17 @@ for (const app of appUrls) {
       expect(manifest.name).toBe('rsbuild_host');
       expect(clientStats.name).toBe('rsbuild_host');
       expect(clientManifest.name).toBe('rsbuild_host');
-      const remoteEntry = stats.remotes.find(
-        (remote: {
-          alias: string;
-          moduleName: string;
-          rsc?: { lookup?: string };
-        }) => remote.alias === 'remote' && remote.moduleName === 'button',
-      );
-      expect(remoteEntry?.rsc?.lookup).toBe('remote/button');
+      const expectedRemoteModules = ['button', 'consumer', 'server-mixed'];
+      for (const moduleName of expectedRemoteModules) {
+        const remoteEntry = stats.remotes.find(
+          (remote: {
+            alias: string;
+            moduleName: string;
+            rsc?: { lookup?: string };
+          }) => remote.alias === 'remote' && remote.moduleName === moduleName,
+        );
+        expect(remoteEntry?.rsc?.lookup).toBe(`remote/${moduleName}`);
+      }
     } else {
       expect(stats.name).toBe('rsbuild_remote');
       expect(manifest.name).toBe('rsbuild_remote');
