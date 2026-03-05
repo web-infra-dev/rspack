@@ -641,26 +641,41 @@ export default {
 
 ## devServer.proxy
 
-- **Type:** `[object, function]`
+- **Type:** `ProxyConfigArray`
 
-:::tip
+Configure proxy rules for the dev server, and forward requests to the specified service.
 
-`@rspack/dev-server` in Rspack uses the `webpack-dev-server` v5, and `devServer.proxy` is an array type. If the configuration you use is the object type of the v4 version, you need to first migrate it according to the [webpack-dev-server/migration-v5.md](https://github.com/webpack/webpack-dev-server/blob/master/migration-v5.md) migration.
+This feature is powered by [http-proxy-middleware v3](https://github.com/chimurai/http-proxy-middleware). You can use [all options](https://github.com/chimurai/http-proxy-middleware#options) provided by `http-proxy-middleware`.
 
-:::
+### Basic usage
 
-Proxying some URLs can be useful when you have a separate API backend development server and you want to send API requests on the same domain.
-
-The dev-server makes use of the powerful [http-proxy-middleware](https://github.com/chimurai/http-proxy-middleware) package. Check out its [documentation](https://github.com/chimurai/http-proxy-middleware#options) for more advanced usages. Note that some of `http-proxy-middleware`'s features do not require a `target` key, e.g. its `router` feature, but you will still need to include a `target` key in your configuration here, otherwise `@rspack/dev-server` won't pass it along to `http-proxy-middleware`.
-
-With a backend on `localhost:3000`, you can use this to enable proxying:
+Forward `/api/*` requests to `https://example.com`:
 
 ```js title="rspack.config.mjs"
 export default {
   devServer: {
     proxy: [
       {
-        context: ['/api'],
+        // http://localhost:8080/api -> https://example.com/api
+        // http://localhost:8080/api/users -> https://example.com/api/users
+        pathFilter: '/api',
+        target: 'https://example.com',
+      },
+    ],
+  },
+};
+```
+
+You can also proxy to a local service:
+
+```js title="rspack.config.mjs"
+export default {
+  devServer: {
+    proxy: [
+      {
+        // http://localhost:8080/api -> http://localhost:3000/api
+        // http://localhost:8080/api/foo -> http://localhost:3000/api/foo
+        pathFilter: '/api',
         target: 'http://localhost:3000',
       },
     ],
@@ -668,112 +683,42 @@ export default {
 };
 ```
 
-A request to `/api/users` will now proxy the request to `http://localhost:3000/api/users`.
+### Path rewrite
 
-If you don't want `/api` to be passed along, we need to rewrite the path:
+Use `pathRewrite` to rewrite request paths, for example rewriting `/foo` to `/bar` on the target service:
 
 ```js title="rspack.config.mjs"
 export default {
   devServer: {
     proxy: [
       {
-        context: ['/api'],
-        target: 'http://localhost:3000',
-        pathRewrite: { '^/api': '' },
+        // http://localhost:8080/foo -> https://example.com/bar
+        // http://localhost:8080/foo/baz -> https://example.com/bar/baz
+        pathFilter: '/foo',
+        target: 'https://example.com',
+        pathRewrite: { '^/foo': '/bar' },
       },
     ],
   },
 };
 ```
 
-A backend server running on HTTPS with an invalid certificate will not be accepted by default. If you want to, modify your configuration like this:
+### Path filter
+
+`pathFilter` matches request paths for proxying, and supports strings, arrays, and functions. `context` is an alias of `pathFilter`.
 
 ```js title="rspack.config.mjs"
 export default {
   devServer: {
     proxy: [
       {
-        context: ['/api'],
-        target: 'http://localhost:3000',
-        secure: false,
-      },
-    ],
-  },
-};
-```
-
-Sometimes you don't want to proxy everything. It is possible to bypass the proxy based on the return value of a function.
-
-In the function, you get access to the request, response, and proxy options.
-
-- Return `null` or `undefined` to continue processing the request with proxy.
-- Return `false` to produce a 404 error for the request.
-- Return a path to serve from, instead of continuing to proxy the request.
-
-E.g. for a browser request, you want to serve an HTML page, but for an API request, you want to proxy it. You could do something like this:
-
-```js title="rspack.config.mjs"
-export default {
-  devServer: {
-    proxy: [
-      {
-        context: ['/api'],
-        target: 'http://localhost:3000',
-        bypass: function (req, res, proxyOptions) {
-          if (req.headers.accept.indexOf('html') !== -1) {
-            console.log('Skipping proxy for browser request.');
-            return '/index.html';
-          }
+        // Only proxy /api traffic that is not an HTML request.
+        // http://localhost:8080/api/users -> https://example.com/api/users
+        pathFilter: (pathname, req) => {
+          const accept = req.headers.accept || '';
+          return pathname.startsWith('/api') && !accept.includes('html');
         },
-      },
-    ],
-  },
-};
-```
-
-If you want to proxy multiple, specific paths to the same target, you can use an array of one or more objects with a `context` property:
-
-```js title="rspack.config.mjs"
-export default {
-  devServer: {
-    proxy: [
-      {
-        context: ['/auth', '/api'],
-        target: 'http://localhost:3000',
-      },
-    ],
-  },
-};
-```
-
-Note that requests to root won't be proxied by default. To enable root proxying, the [`devMiddleware.index`](#devserverdevmiddleware) option should be specified as a falsy value:
-
-```js title="rspack.config.mjs"
-export default {
-  devServer: {
-    devMiddleware: {
-      index: false, // specify to enable root proxying
-    },
-    proxy: [
-      {
-        context: () => true,
-        target: 'http://localhost:1234',
-      },
-    ],
-  },
-};
-```
-
-The origin of the host header is kept when proxying by default, you can set `changeOrigin` to `true` to override this behaviour. It is useful in some cases like using [name-based virtual hosted sites](https://en.wikipedia.org/wiki/Virtual_hosting#Name-based).
-
-```js title="rspack.config.mjs"
-export default {
-  devServer: {
-    proxy: [
-      {
-        context: ['/api'],
-        target: 'http://localhost:3000',
-        changeOrigin: true,
+        target: 'https://example.com',
       },
     ],
   },

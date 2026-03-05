@@ -8,7 +8,7 @@ test('remove optimized module should not panic', async ({
 
   fileAction.deleteFile('comp/Button.js');
 
-  const overlay = page.frameLocator('#webpack-dev-server-client-overlay');
+  const overlay = page.frameLocator('#rspack-dev-server-client-overlay');
   await expect(
     overlay.getByText("Module not found: Can't resolve './Button.js'"),
   ).toBeVisible();

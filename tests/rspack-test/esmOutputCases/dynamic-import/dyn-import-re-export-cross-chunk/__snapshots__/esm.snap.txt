@@ -5,7 +5,7 @@
 it('should dynamically import module that re-exports from cross-chunk module', async () => {
 	expect((/* inlined export .value */42)).toBe(42)
 
-	const mod = await import("./wrapper_js.mjs")
+	const mod = await import("./wrapper.mjs")
 	expect(mod.value).toBe(42)
 	expect(mod.helper()).toBe(1)
 })
@@ -22,7 +22,7 @@ export { helper };
 
 ```
 
-```mjs title=wrapper_js.mjs
+```mjs title=wrapper.mjs
 
 // ./wrapper.js
 

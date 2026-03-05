@@ -1,4 +1,4 @@
-```mjs title=dynamic_js.mjs
+```mjs title=dynamic.mjs
 // ./dynamic.js
 /* export default */ const dynamic = (42);
 
@@ -9,7 +9,7 @@ export default dynamic;
 ```mjs title=main.mjs
 // ./index.js
 it('should support dynamic import', async () => {
-	const value = await import("./dynamic_js.mjs")
+	const value = await import("./dynamic.mjs")
 	expect(value.default).toBe(42)
 })
 

@@ -792,7 +792,7 @@ export default {
 
 在生成 HTML 产物前调用，修改 HTML 产物内容的最终机会。
 
-- **类型：** `SyncHook<[BeforeEmitData]>`
+- **类型：** `AsyncSeriesWaterfallHook<[BeforeEmitData]>`
 - **参数：**
   ```ts
   type BeforeEmitData = {
@@ -836,7 +836,7 @@ export default {
 
 在生成 HTML 产物后调用，仅用于事件通知。
 
-- **类型：** `SyncHook<[AfterEmitData]>`
+- **类型：** `AsyncSeriesWaterfallHook<[AfterEmitData]>`
 - **参数：**
   ```ts
   type AfterEmitData = {

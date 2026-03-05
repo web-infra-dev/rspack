@@ -68,19 +68,18 @@ impl ImportScriptsChunkLoadingRuntimeModule {
     let base_uri = if let Some(base_uri) = chunk
       .get_entry_options(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
       .and_then(|options| options.base_uri.as_ref())
-      .and_then(|base_uri| serde_json::to_string(base_uri).ok())
+      .map(|base_uri| rspack_util::json_stringify_str(base_uri))
     {
       base_uri
     } else {
       let root_output_dir = get_output_dir(chunk, compilation, false).await?;
       format!(
         "self.location + {}",
-        serde_json::to_string(&if root_output_dir.is_empty() {
+        rspack_util::json_stringify_str(&if root_output_dir.is_empty() {
           String::new()
         } else {
           format!("/../{root_output_dir}")
         })
-        .expect("should able to be serde_json::to_string")
       )
     };
     Ok(format!(
@@ -241,7 +240,7 @@ impl RuntimeModule for ImportScriptsChunkLoadingRuntimeModule {
       let source_with_hmr = runtime_template.render(&self.template_id(TemplateId::WithHmr), Some(serde_json::json!({
         "_with_create_script_url": self.with_create_script_url,
         "_global_object": &compilation.options.output.global_object.as_str(),
-        "_hot_update_global": &serde_json::to_string(&compilation.options.output.hot_update_global).expect("failed to serde_json::to_string(hot_update_global)"),
+        "_hot_update_global": &rspack_util::json_stringify_str(&compilation.options.output.hot_update_global),
       })))?;
       source.push_str(&source_with_hmr);
       let hmr_runtime = generate_javascript_hmr_runtime(

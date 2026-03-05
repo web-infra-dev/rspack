@@ -1,7 +1,7 @@
 ```mjs title=main.mjs
 // ./index.js
 it('should dynamically import module that re-exports from external', async () => {
-	const mod = await import("./wrapper_js.mjs")
+	const mod = await import("./wrapper.mjs")
 	expect(mod.readFile).toBeDefined()
 	expect(mod.fsDefault).toBeDefined()
 })
@@ -9,7 +9,7 @@ it('should dynamically import module that re-exports from external', async () =>
 
 ```
 
-```mjs title=wrapper_js.mjs
+```mjs title=wrapper.mjs
 // fs
 
 // ./wrapper.js

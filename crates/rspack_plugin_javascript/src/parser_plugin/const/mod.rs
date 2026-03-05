@@ -78,9 +78,7 @@ impl JavascriptParserPlugin for ConstPlugin {
         parser.add_presentational_dependency(Box::new(CachedConstDependency::new(
           ident.span.into(),
           "__resourceFragment".into(),
-          serde_json::to_string(resource_fragment)
-            .expect("should render module id")
-            .into(),
+          rspack_util::json_stringify_str(resource_fragment).into(),
         )));
         Some(true)
       }
@@ -89,9 +87,7 @@ impl JavascriptParserPlugin for ConstPlugin {
         parser.add_presentational_dependency(Box::new(CachedConstDependency::new(
           ident.span.into(),
           "__resourceQuery".into(),
-          serde_json::to_string(resource_query)
-            .expect("should render module id")
-            .into(),
+          rspack_util::json_stringify_str(resource_query).into(),
         )));
         Some(true)
       }

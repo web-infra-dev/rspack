@@ -22,7 +22,7 @@ if (import.meta.webpackHot) {
           log('warning', '[HMR] Cannot find update. Need to do a full reload!');
           log(
             'warning',
-            '[HMR] (Probably because of restarting the webpack-dev-server)',
+            '[HMR] (Probably because of restarting the rspack-dev-server)',
           );
           return;
         }

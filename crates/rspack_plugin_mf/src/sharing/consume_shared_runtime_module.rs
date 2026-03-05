@@ -6,6 +6,7 @@ use rspack_core::{
   impl_runtime_module,
 };
 use rspack_plugin_runtime::extract_runtime_globals_from_ejs;
+use rspack_util::json_stringify_str;
 use rustc_hash::FxHashMap;
 
 use super::consume_shared_plugin::ConsumeVersion;
@@ -144,6 +145,7 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
           )
         };
         module_id_to_consume_data_mapping.insert(id, consume_data);
+
       }
     };
     // Match enhanced/webpack behavior: include all referenced chunks so async ones are mapped too
@@ -203,7 +205,7 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
         "{{{}}}",
         module_id_to_consume_data_mapping
           .into_iter()
-          .map(|(k, v)| format!("{}: {}", json_stringify(&k), v))
+          .map(|(k, v)| format!("{}: {}", json_stringify_str(&k), v))
           .collect::<Vec<_>>()
           .join(", ")
       )
