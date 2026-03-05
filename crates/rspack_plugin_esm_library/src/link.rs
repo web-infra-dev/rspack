@@ -748,6 +748,24 @@ var {} = {{}};
       }
     }
 
+    // Build a targeted set for external module name deconfliction:
+    // Start from chunk_link.used_names (cross-chunk accumulated names) and add
+    // import binding names from raw_import_stmts. We do NOT use all_used_names here
+    // because it contains binding_to_ref keys (e.g., `cjs`, `foo`) that will be
+    // replaced during rendering and should not block external module names.
+    let mut external_used_names = chunk_link.used_names.clone();
+    for import_spec in chunk_link.raw_import_stmts.values() {
+      if let Some(ns) = &import_spec.ns_import {
+        external_used_names.insert(ns.clone());
+      }
+      for atom in import_spec.atoms.values() {
+        external_used_names.insert(atom.clone());
+      }
+      if let Some(default_import) = &import_spec.default_import {
+        external_used_names.insert(default_import.clone());
+      }
+    }
+
     for external_module in chunk_link.decl_modules.iter() {
       let ModuleInfo::External(info) = &mut concate_modules_map[external_module] else {
         unreachable!("should be un-scope-hoisted module");
@@ -761,11 +779,13 @@ var {} = {{}};
           context,
         );
 
-        info.name = Some(find_new_name(
+        let name = find_new_name(
           "",
-          &chunk_link.used_names,
+          &external_used_names,
           &escaped_identifiers[&readable_identifier],
-        ));
+        );
+        external_used_names.insert(name.clone());
+        info.name = Some(name);
       }
     }
 
