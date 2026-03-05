@@ -1254,7 +1254,7 @@ For complete stats data, call `stats.toJson()` inside `compiler.hooks.done`."
   let global = env.get_global()?;
   let console = global.get_named_property::<Object>("console")?;
   let warn = console.get_named_property::<Function<'_, (String,), ()>>("warn")?;
-  warn.apply(&console, (message,))?;
+  warn.apply(console, (message,))?;
   Ok(())
 }
 
