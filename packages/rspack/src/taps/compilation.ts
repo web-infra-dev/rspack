@@ -396,11 +396,14 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
                 return typeof value === 'function' ? value.bind(target) : value;
               },
               set(_target, prop, value) {
-                if (prop === 'id' && value !== null) {
+                if (
+                  prop === 'id' &&
+                  (typeof value === 'string' || typeof value === 'number')
+                ) {
                   assignments.set(m.identifier, value);
                   return true;
                 }
-                return false; // Don't allow other mutations
+                return false;
               },
             });
           });
