@@ -51,7 +51,7 @@ pub fn stringify_chunks(chunks: &HashSet<ChunkId>, value: u8) -> String {
       prev
         + format!(
           r#"{}: {value},"#,
-          serde_json::to_string(cur).expect("chunk to_string failed")
+          rspack_util::json_stringify_str(cur.as_str())
         )
         .as_str()
     })
@@ -123,7 +123,7 @@ pub fn unquoted_stringify(chunk_id: Option<&ChunkId>, str: &str) -> String {
   {
     return "\" + chunkId + \"".to_string();
   }
-  let result = serde_json::to_string(&str).expect("invalid json");
+  let result = rspack_util::json_stringify_str(str);
   result[1..result.len() - 1].to_string()
 }
 
@@ -148,10 +148,7 @@ where
       if value.as_str() == chunk_id.as_str() {
         use_id = true;
       } else {
-        result.insert(
-          chunk_id.as_str(),
-          serde_json::to_string(&value).expect("invalid json"),
-        );
+        result.insert(chunk_id.as_str(), rspack_util::json_stringify_str(&value));
         last_key = Some(chunk_id.as_str());
         entries += 1;
       }
@@ -165,7 +162,7 @@ where
       if use_id {
         format!(
           "(chunkId === {} ? {} : chunkId)",
-          serde_json::to_string(&last_key).expect("invalid json"),
+          rspack_util::json_stringify_str(last_key),
           result.get(last_key).expect("cannot find last key")
         )
       } else {
@@ -192,12 +189,7 @@ pub fn stringify_static_chunk_map(filename: &String, chunk_ids: &[&str]) -> Stri
     let content = chunk_ids
       .iter()
       .sorted_unstable()
-      .map(|chunk_id| {
-        format!(
-          "{}:1",
-          serde_json::to_string(chunk_id).expect("invalid json to_string")
-        )
-      })
+      .map(|chunk_id| format!("{}:1", rspack_util::json_stringify_str(chunk_id)))
       .join(",");
     format!("{{ {content} }}[chunkId]")
   };
@@ -214,7 +206,7 @@ fn stringify_map<T: std::fmt::Display>(map: &HashMap<&str, T>) -> String {
         prev
           + format!(
             r#"{}: {},"#,
-            serde_json::to_string(cur).expect("json stringify failed"),
+            rspack_util::json_stringify_str(cur),
             map.get(cur).expect("get key from map")
           )
           .as_str()

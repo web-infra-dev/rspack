@@ -267,9 +267,7 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
       Some(
         compilation
           .get_path(
-            &Filename::from(
-              serde_json::to_string(fake_filename.as_str()).expect("invalid json to_string"),
-            ),
+            &Filename::from(rspack_util::json_stringify_str(fake_filename.as_str())),
             PathData::default()
               .chunk_id(chunk_id)
               .chunk_hash(&chunk_hash)
@@ -353,11 +351,9 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
         let filename = compilation
           .get_path(
             &Filename::from(if let Some(template) = fake_filename.template() {
-              #[allow(clippy::unwrap_used)]
-              serde_json::to_string(template).unwrap()
+              rspack_util::json_stringify_str(template)
             } else {
-              #[allow(clippy::unwrap_used)]
-              serde_json::to_string(
+              rspack_util::json_stringify_str(
                 fake_filename
                   .render(
                     PathData::default()
@@ -368,7 +364,6 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
                   .await?
                   .as_str(),
               )
-              .unwrap()
             }),
             PathData::default()
               .chunk_id_optional(chunk_id.as_deref())

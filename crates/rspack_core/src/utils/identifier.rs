@@ -10,7 +10,7 @@ pub fn to_module_export_name(name: &str) -> String {
   if is_valid_prop_ident(name) {
     name.into()
   } else {
-    serde_json::to_string(name).expect("json stringify failed")
+    rspack_util::json_stringify_str(name)
   }
 }
 
