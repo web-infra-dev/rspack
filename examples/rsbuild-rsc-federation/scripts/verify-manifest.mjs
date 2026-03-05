@@ -66,6 +66,20 @@ const manifestPath =
 
 const stats = readJSON(statsPath);
 const manifest = readJSON(manifestPath);
+const clientStatsPath = path.join(distDir, 'mf-manifest.client-stats.json');
+const clientManifestPath = path.join(distDir, 'mf-manifest.client.json');
+
+invariant(
+  fs.existsSync(clientStatsPath),
+  `Expected client stats manifest at ${clientStatsPath}`,
+);
+invariant(
+  fs.existsSync(clientManifestPath),
+  `Expected client manifest at ${clientManifestPath}`,
+);
+
+const clientStats = readJSON(clientStatsPath);
+const clientManifest = readJSON(clientManifestPath);
 
 const sharedStats = stats.shared.find((item) => item.name === 'rsc-shared-key');
 invariant(sharedStats, 'Expected shared entry for "rsc-shared-key" in stats');
@@ -191,6 +205,40 @@ for (const shareName of expectedSingletonShares) {
   );
 }
 
+invariant(
+  clientStats.name === 'rsbuild_container_client',
+  `Expected client stats container name "rsbuild_container_client", got "${clientStats.name}"`,
+);
+invariant(
+  clientManifest.name === 'rsbuild_container_client',
+  `Expected client manifest container name "rsbuild_container_client", got "${clientManifest.name}"`,
+);
+invariant(
+  clientStats.exposes.some((item) => item.path === './button'),
+  'Expected client stats to include expose "./button"',
+);
+const expectedClientSingletonShares = [
+  'react',
+  'react/jsx-runtime',
+  'react-dom',
+  'react-server-dom-rspack/client.browser',
+];
+for (const shareName of expectedClientSingletonShares) {
+  const sharedEntry = clientStats.shared.find(
+    (item) => item.name === shareName,
+  );
+  invariant(
+    sharedEntry,
+    `Expected client shared singleton "${shareName}" in client stats`,
+  );
+  invariant(
+    sharedEntry.singleton === true,
+    `Expected client shared singleton "${shareName}" to be true`,
+  );
+}
+
 console.log('[verify-manifest] verified manifest and stats successfully');
 console.log(`[verify-manifest] stats: ${statsPath}`);
 console.log(`[verify-manifest] manifest: ${manifestPath}`);
+console.log(`[verify-manifest] client stats: ${clientStatsPath}`);
+console.log(`[verify-manifest] client manifest: ${clientManifestPath}`);

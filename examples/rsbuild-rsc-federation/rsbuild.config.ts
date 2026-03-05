@@ -23,6 +23,12 @@ const ssrLayerShared = {
   issuerLayer: Layers.ssr,
 } as const;
 
+const clientLayerShared = {
+  singleton: true,
+  requiredVersion: false,
+  shareScope: 'client',
+} as const;
+
 export default defineConfig({
   plugins: [
     pluginReact(),
@@ -53,6 +59,8 @@ export default defineConfig({
   },
   tools: {
     rspack: (config, { target }) => {
+      const isServerBuild = target === 'node';
+
       config.module ||= {};
       config.module.rules ||= [];
       config.module.rules.push(
@@ -76,10 +84,6 @@ export default defineConfig({
         },
       );
 
-      if (target !== 'node') {
-        return config;
-      }
-
       config.optimization ||= {};
       config.optimization.moduleIds = 'deterministic';
       config.optimization.chunkIds = 'deterministic';
@@ -90,40 +94,57 @@ export default defineConfig({
       config.plugins ||= [];
       config.plugins.push(
         new rspack.container.ModuleFederationPlugin({
-          name: 'rsbuild_container',
-          filename: 'remoteEntry.js',
-          library: { type: 'commonjs-module' },
-          manifest: true,
-          exposes: {
-            './button': {
-              import: './src/exposed-client.tsx',
-              layer: Layers.rsc,
-            },
-            './consumer': {
-              import: './src/rsc-consumer.ts',
-              layer: Layers.rsc,
-            },
-          },
+          name: isServerBuild
+            ? 'rsbuild_container'
+            : 'rsbuild_container_client',
+          filename: isServerBuild ? 'remoteEntry.js' : 'remoteEntry.client.js',
+          library: isServerBuild
+            ? { type: 'commonjs-module' }
+            : { type: 'var', name: 'rsbuild_container_client' },
+          manifest: isServerBuild ? true : { fileName: 'mf-manifest.client' },
+          exposes: isServerBuild
+            ? {
+                './button': {
+                  import: './src/exposed-client.tsx',
+                  layer: Layers.rsc,
+                },
+                './consumer': {
+                  import: './src/rsc-consumer.ts',
+                  layer: Layers.rsc,
+                },
+              }
+            : {
+                './button': {
+                  import: './src/exposed-client.tsx',
+                },
+              },
           remotes: {
             remote: 'remote@http://localhost:3002/remoteEntry.js',
           },
-          shared: {
-            react: rscLayerShared,
-            'react/jsx-runtime': rscLayerShared,
-            'react-dom': ssrLayerShared,
-            'react-dom/server': ssrLayerShared,
-            'react-server-dom-rspack/server.node': rscLayerShared,
-            'rsbuild-rsc-federation-shared': {
-              request: 'rsbuild-rsc-federation-shared',
-              import: 'rsbuild-rsc-federation-shared',
-              shareKey: 'rsc-shared-key',
-              shareScope: 'rsc',
-              requiredVersion: '^1.0.0',
-              singleton: true,
-              layer: Layers.rsc,
-              issuerLayer: Layers.rsc,
-            },
-          },
+          shared: isServerBuild
+            ? {
+                react: rscLayerShared,
+                'react/jsx-runtime': rscLayerShared,
+                'react-dom': ssrLayerShared,
+                'react-dom/server': ssrLayerShared,
+                'react-server-dom-rspack/server.node': rscLayerShared,
+                'rsbuild-rsc-federation-shared': {
+                  request: 'rsbuild-rsc-federation-shared',
+                  import: 'rsbuild-rsc-federation-shared',
+                  shareKey: 'rsc-shared-key',
+                  shareScope: 'rsc',
+                  requiredVersion: '^1.0.0',
+                  singleton: true,
+                  layer: Layers.rsc,
+                  issuerLayer: Layers.rsc,
+                },
+              }
+            : {
+                react: clientLayerShared,
+                'react/jsx-runtime': clientLayerShared,
+                'react-dom': clientLayerShared,
+                'react-server-dom-rspack/client.browser': clientLayerShared,
+              },
         }),
       );
 
