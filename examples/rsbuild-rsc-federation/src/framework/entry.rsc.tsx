@@ -6,7 +6,6 @@ import {
   sharedAction,
   sharedValue,
 } from 'rsbuild-rsc-federation-shared';
-import ExposedButton from '../exposed-client';
 import { consumeRemoteAndShared } from '../rsc-consumer';
 import { renderSsrShell } from './entry.ssr';
 
@@ -24,7 +23,6 @@ export default async function RscRoot() {
 
   return (
     <main data-summary={summary} data-ssr-length={ssrShell.length}>
-      <ExposedButton />
       <p>{summary}</p>
     </main>
   );

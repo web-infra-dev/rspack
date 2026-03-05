@@ -58,33 +58,9 @@ export default defineConfig({
     rspack: (config, { target }) => {
       const isServerBuild = target === 'node';
 
-      config.module ||= {};
-      config.module.rules ||= [];
-      config.module.rules.push(
-        {
-          test: /src[\\/]exposed-client\.tsx$/,
-          layer: Layers.rsc,
-        },
-        {
-          test: /src[\\/]rsc-consumer\.ts$/,
-          layer: Layers.rsc,
-        },
-        {
-          test: /rsbuild-rsc-federation-shared[\\/]index\.js$/,
-          layer: Layers.rsc,
-        },
-      );
-
-      config.optimization ||= {};
-      config.optimization.moduleIds = 'deterministic';
-      config.optimization.chunkIds = 'deterministic';
-
       if (isServerBuild) {
         config.target = 'async-node';
       }
-
-      config.output ||= {};
-      config.output.chunkFilename ||= '[id].js';
 
       config.plugins ||= [];
       config.plugins.push(
