@@ -23,6 +23,11 @@ use swc_core::{
 
 use super::{cjs_finder::contains_cjs, import_analyzer::ImportMap};
 
+static NODE_MODULES_PATH_REGEX: Lazy<Regex> = Lazy::new(|| {
+  #[allow(clippy::unwrap_used)]
+  Regex::new(r"node_modules[\\/]").unwrap()
+});
+
 #[derive(Clone, Debug, Deserialize)]
 #[serde(untagged)]
 pub enum Config {
@@ -431,11 +436,7 @@ impl ReactServerComponentValidator {
   }
 
   fn is_from_node_modules(&self, filepath: &str) -> bool {
-    static RE: Lazy<Regex> = Lazy::new(|| {
-      #[allow(clippy::unwrap_used)]
-      Regex::new(r"node_modules[\\/]").unwrap()
-    });
-    RE.is_match(filepath)
+    NODE_MODULES_PATH_REGEX.is_match(filepath)
   }
 
   // Asserts the server lib apis
