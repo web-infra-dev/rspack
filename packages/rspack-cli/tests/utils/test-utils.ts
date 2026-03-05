@@ -372,7 +372,7 @@ const normalizeStderr = (stderr) => {
   // the warning below is causing CI failure on some jobs
   if (/Gracefully shutting down/.test(stderr)) {
     normalizedStderr = normalizedStderr.replace(
-      '\n<i> [rspack-dev-server] Gracefully shutting down. To force exit, press ^C again. Please wait...',
+      '\n<i> [rspack-dev-server] Gracefully shutting down. Press ^C again to force exit...',
       '',
     );
   }
