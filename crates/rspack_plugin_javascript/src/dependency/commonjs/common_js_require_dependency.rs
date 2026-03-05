@@ -45,6 +45,10 @@ impl CommonJsRequireDependency {
       factorize_info: Default::default(),
     }
   }
+
+  pub fn set_referenced_exports(&mut self, referenced_exports: Vec<Vec<Atom>>) {
+    self.referenced_exports = Some(referenced_exports);
+  }
 }
 
 #[cacheable_dyn]
