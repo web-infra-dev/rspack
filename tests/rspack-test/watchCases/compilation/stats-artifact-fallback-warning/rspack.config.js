@@ -1,10 +1,13 @@
 const captureStdio = require("@rspack/test-tools/helper/legacy/captureStdio");
 
-const INCOMPLETE_STATS_WARNING =
-	"Stats output may be incomplete because some compilation artifacts were unavailable (buildModuleGraph). For complete stats data, call `stats.toJson()` inside `compiler.hooks.done`.";
+// Verify stale Stats object captured from done hook follows JS-side fallback path
+// and does not trigger native artifact-based incomplete warnings.
+// This aligns with watch incremental behavior: stale `stats` may outlive internal
+// graph rebuild, so JS wrapper should short-circuit with placeholder output.
+const STALE_STATS_HASH = "XXXX";
 
 let staleCompilation = null;
-let staleInnerStats = null;
+let staleStats = null;
 let warningChecked = false;
 
 /** @type {import('@rspack/core').Configuration} */
@@ -13,7 +16,7 @@ module.exports = {
 		{
 			apply(compiler) {
 				compiler.hooks.make.tap("PLUGIN", () => {
-					if (!staleCompilation || !staleInnerStats || warningChecked) {
+					if (!staleCompilation || !staleStats || warningChecked) {
 						return;
 					}
 					warningChecked = true;
@@ -31,7 +34,7 @@ module.exports = {
 						};
 
 						const capture = captureStdio(process.stderr);
-						const json = staleInnerStats.toJson(options);
+						const json = staleStats.toJson(options);
 						const warningOutput = capture.toString();
 						capture.restore();
 						console.warn = oldWarn;
@@ -40,11 +43,17 @@ module.exports = {
 							throw new Error("Expected stats json to be an object");
 						}
 
-						if (warningLogs.length !== 1 || warningLogs[0] !== INCOMPLETE_STATS_WARNING) {
+							if (warningLogs.length !== 0) {
 							throw new Error(
-								`Expected exact incomplete stats warning.\nExpected: ${INCOMPLETE_STATS_WARNING}\nActual: ${warningLogs.join(
+								`Expected stale stats to use JS-side fallback (no warning), got: ${warningLogs.join(
 									"\n"
 								)}\nStderr: ${warningOutput}`
+							);
+						}
+
+						if (json.hash !== STALE_STATS_HASH) {
+							throw new Error(
+								`Expected stale stats placeholder hash ${STALE_STATS_HASH}, got ${json.hash}`
 							);
 						}
 					});
@@ -53,7 +62,7 @@ module.exports = {
 				compiler.hooks.done.tap("PLUGIN", stats => {
 					if (!staleCompilation) {
 						staleCompilation = stats.compilation;
-						staleInnerStats = staleCompilation.__internal_getInner().getStats();
+						staleStats = stats;
 					}
 				});
 			}
