@@ -665,7 +665,8 @@ export default {
       {
         // http://localhost:8080/api -> http://localhost:3000/api
         // http://localhost:8080/api/foo -> http://localhost:3000/api/foo
-        '/api': 'http://localhost:3000',
+        pathFilter: '/api',
+        target: 'http://localhost:3000',
       },
     ],
   },
