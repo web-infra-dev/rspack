@@ -1125,7 +1125,6 @@ impl Module for ConcatenatedModule {
                   .get(&readable_identifier)
                   .expect("should have escaped identifier"),
               );
-              name_allocator.insert(new_name.clone());
               info.internal_names.insert(name.clone(), new_name.clone());
               top_level_declarations.insert(new_name.clone());
 
@@ -1195,7 +1194,6 @@ impl Module for ConcatenatedModule {
                         .expect("should have escaped identifier"),
                     )
                   };
-                  name_allocator.insert(new_name.clone());
                   // if the imported symbol is exported, we rename the export as well
                   if let Some(raw_export_map) = info.raw_export_map.as_mut()
                     && raw_export_map.contains_key(atom)
@@ -1250,7 +1248,6 @@ impl Module for ConcatenatedModule {
               )
             };
           if let Some(namespace_object_name) = namespace_object_name {
-            name_allocator.insert(namespace_object_name.clone());
             info.namespace_object_name = Some(namespace_object_name.clone());
             top_level_declarations.insert(namespace_object_name);
           }
@@ -1273,7 +1270,6 @@ impl Module for ConcatenatedModule {
               .get(&readable_identifier)
               .expect("should have escaped identifier"),
           );
-          name_allocator.insert(external_name.clone());
           info.name = Some(external_name.clone());
           top_level_declarations.insert(external_name.clone());
 
@@ -1284,7 +1280,6 @@ impl Module for ConcatenatedModule {
                 .get(&readable_identifier)
                 .expect("should have escaped identifier"),
             );
-            name_allocator.insert(external_name.clone());
             info.deferred_name = Some(external_name.clone());
             top_level_declarations.insert(external_name.clone());
 
@@ -1294,7 +1289,6 @@ impl Module for ConcatenatedModule {
                 .get(&readable_identifier)
                 .expect("should have escaped identifier"),
             );
-            name_allocator.insert(external_name_interop.clone());
             info.deferred_namespace_object_name = Some(external_name_interop.clone());
             top_level_declarations.insert(external_name_interop.clone());
           }
@@ -1308,7 +1302,6 @@ impl Module for ConcatenatedModule {
             .get(&readable_identifier)
             .expect("should have escaped identifier"),
         );
-        name_allocator.insert(external_name_interop.clone());
         info.set_interop_namespace_object_name(Some(external_name_interop.clone()));
         top_level_declarations.insert(external_name_interop.clone());
       }
@@ -1322,7 +1315,6 @@ impl Module for ConcatenatedModule {
             .get(&readable_identifier)
             .expect("should have escaped identifier"),
         );
-        name_allocator.insert(external_name_interop.clone());
         info.set_interop_namespace_object2_name(Some(external_name_interop.clone()));
         top_level_declarations.insert(external_name_interop.clone());
       }
@@ -1337,7 +1329,6 @@ impl Module for ConcatenatedModule {
             .get(&readable_identifier)
             .expect("should have escaped identifier"),
         );
-        name_allocator.insert(external_name_interop.clone());
         info.set_interop_default_access_name(Some(external_name_interop.clone()));
         top_level_declarations.insert(external_name_interop.clone());
       }
