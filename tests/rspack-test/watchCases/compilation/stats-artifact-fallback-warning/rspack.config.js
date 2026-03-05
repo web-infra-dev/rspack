@@ -3,8 +3,7 @@ const captureStdio = require("@rspack/test-tools/helper/legacy/captureStdio");
 const INCOMPLETE_STATS_WARNING =
 	"Stats output may be incomplete because some compilation artifacts were unavailable (buildModuleGraph). For complete stats data, call `stats.toJson()` inside `compiler.hooks.done`.";
 
-let staleCompilation = null;
-let staleInnerStats = null;
+let staleStats = null;
 let warningChecked = false;
 
 /** @type {import('@rspack/core').Configuration} */
@@ -13,13 +12,13 @@ module.exports = {
 		{
 			apply(compiler) {
 				compiler.hooks.make.tap("PLUGIN", () => {
-					if (!staleCompilation || !staleInnerStats || warningChecked) {
+					if (!staleStats || warningChecked) {
 						return;
 					}
 					warningChecked = true;
 
 					setTimeout(() => {
-						const options = staleCompilation.createStatsOptions(
+						const options = staleStats.compilation.createStatsOptions(
 							{ all: true },
 							{ forToString: false }
 						);
@@ -31,7 +30,7 @@ module.exports = {
 						};
 
 						const capture = captureStdio(process.stderr);
-						const json = staleInnerStats.toJson(options);
+						const json = staleStats.toJson(options);
 						const warningOutput = capture.toString();
 						capture.restore();
 						console.warn = oldWarn;
@@ -51,9 +50,8 @@ module.exports = {
 				});
 
 				compiler.hooks.done.tap("PLUGIN", stats => {
-					if (!staleCompilation) {
-						staleCompilation = stats.compilation;
-						staleInnerStats = staleCompilation.__internal_getInner().getStats();
+					if (!staleStats) {
+						staleStats = stats;
 					}
 				});
 			}
