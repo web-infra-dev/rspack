@@ -70,6 +70,10 @@ impl JsCompilation {
     &mut self,
   ) -> napi::Result<&'static mut ExportsInfoArtifact> {
     let compilation = self.as_mut()?;
+    if let Some(ptr) = compilation.compiler_context.exports_info_artifact_ptr() {
+      // SAFETY: pointer is injected by binding hook phases and valid in current scope.
+      return Ok(unsafe { &mut *(ptr as *mut ExportsInfoArtifact) });
+    }
     if let Some(exports_info_artifact) = compilation.exports_info_artifact.try_write() {
       return Ok(exports_info_artifact);
     }
