@@ -1249,8 +1249,9 @@ var {} = {{}};
     let mut entry_exports = exports_info
       .exports()
       .iter()
-      .filter(|(_, export_info)| {
-        !matches!(export_info.provided(), Some(ExportProvided::NotProvided))
+      .filter(|(name, export_info)| {
+        !(matches!(export_info.provided(), Some(ExportProvided::NotProvided))
+          || allow_rename && export_info.get_used_name(Some(name), None).is_none())
       })
       .map(|(name, _)| name.clone())
       .collect::<FxIndexSet<_>>();
@@ -1260,7 +1261,9 @@ var {} = {{}};
       module_graph,
       &compilation.module_graph_cache_artifact,
       &compilation.exports_info_artifact,
-      true,
+      // For dynamic imports (allow_rename=true), own exports are already collected
+      // and filtered by usage above — only collect `export *` targets here.
+      !allow_rename,
     )
     .iter()
     .for_each(|either| {
@@ -1661,32 +1664,17 @@ var {} = {{}};
 
         target_imports.entry(dyn_target).or_default();
 
-        errors.extend(self.link_entry_module_exports(
-          dyn_target,
-          source_chunk,
-          target_chunk,
-          compilation,
-          concate_modules_map,
-          required,
-          link,
-          needed_namespace,
-          target_imports,
-          &mut exports,
-          escaped_identifiers,
-          allow_rename,
-        ));
-
         // Check if this module has a pre-assigned namespace name (set during optimize_chunks
         // for scope-hoisted modules in non-strict multi-module chunks).
-        // The name matches info.namespace_object_name (forced during deconflict_symbols).
-        // Add the module to needed_namespace_objects so the standard namespace object
-        // gets generated, and export it directly by name.
         let ns_name = {
           let ns_map = self.dyn_import_ns_map.borrow();
           ns_map.get(&dyn_target).cloned()
         };
 
         if let Some(ns_name) = ns_name {
+          // When a namespace object exists, consumers access this module via
+          // `.then(m => m.<ns>)` — no need to export individual module exports.
+          // Just export the namespace object itself.
           needed_namespace.insert(dyn_target);
 
           Self::add_chunk_export(
@@ -1696,6 +1684,22 @@ var {} = {{}};
             &mut exports,
             false,
           );
+        } else {
+          // No namespace object — export individual module exports directly on the chunk.
+          errors.extend(self.link_entry_module_exports(
+            dyn_target,
+            source_chunk,
+            target_chunk,
+            compilation,
+            concate_modules_map,
+            required,
+            link,
+            needed_namespace,
+            target_imports,
+            &mut exports,
+            escaped_identifiers,
+            allow_rename,
+          ));
         }
       }
     }

@@ -65,8 +65,7 @@ const b_id = 2;
 const c_name = 'module-c';
 const c_id = 3;
 
-export { a_name as name, a_namespaceObject, b as default_0, b_id as id_0, b_name as name_0, b_namespaceObject, c as default_1, c_id as id_1, c_name as name_1, c_namespaceObject, id };
-export default a;
+export { a_namespaceObject, b_namespaceObject, c_namespaceObject };
 
 ```
 
