@@ -30,18 +30,19 @@ pub async fn build_module_graph_pass(compilation: &mut Compilation) -> Result<()
 #[instrument("Compilation:build_module_graph",target=TRACING_BENCH_TARGET, skip_all)]
 pub async fn do_build_module_graph(compilation: &mut Compilation) -> Result<()> {
   // run module_executor
-  if let Some(module_executor) = &mut compilation.module_executor {
-    let mut module_executor = std::mem::take(module_executor);
+  if let Some(mut module_executor) = compilation.take_module_executor() {
     module_executor
       .before_build_module_graph(compilation)
       .await?;
-    compilation.module_executor = Some(module_executor);
+    compilation.set_module_executor(Some(module_executor));
   }
 
-  let artifact = compilation.build_module_graph_artifact.steal();
+  let mut artifact = compilation.build_module_graph_artifact.steal();
+  compilation.set_module_executor(artifact.module_executor.take());
   let exports_info_artifact = compilation.exports_info_artifact.steal();
-  let (artifact, exports_info_artifact) =
+  let (mut artifact, exports_info_artifact) =
     build_module_graph(compilation, artifact, exports_info_artifact).await?;
+  artifact.module_executor = compilation.take_module_executor();
   compilation.build_module_graph_artifact = artifact.into();
   compilation.exports_info_artifact = exports_info_artifact.into();
 
