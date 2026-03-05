@@ -1265,7 +1265,9 @@ pub fn create_stats_warnings<'a>(
   colored: Option<bool>,
 ) -> Result<Array<'a>> {
   let stats = compilation.get_stats();
-  let module_graph = stats.module_graph();
+  let Some(module_graph) = stats.module_graph() else {
+    return env.create_array(0);
+  };
 
   let mut diagnostics = warnings
     .into_iter()

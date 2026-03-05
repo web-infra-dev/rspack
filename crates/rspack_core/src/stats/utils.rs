@@ -53,6 +53,7 @@ pub fn get_stats_module_name_and_id<'s>(
 
 pub fn get_chunk_group_ordered_children<'a>(
   stats: &'a Stats,
+  module_graph: &'a ModuleGraph,
   ordered_children: &HashMap<ChunkGroupOrderKey, Vec<ChunkGroupUkey>>,
   order_key: &'a ChunkGroupOrderKey,
   chunk_group_by_ukey: &'a ChunkGroupByUkey,
@@ -65,6 +66,7 @@ pub fn get_chunk_group_ordered_children<'a>(
     .map(|ukey| {
       let cg = chunk_group_by_ukey.expect_get(ukey);
       stats.get_chunk_group(
+        module_graph,
         cg.name().unwrap_or_default(),
         ukey,
         chunk_group_auxiliary,
