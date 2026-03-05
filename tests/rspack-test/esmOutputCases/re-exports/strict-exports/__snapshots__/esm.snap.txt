@@ -1,4 +1,4 @@
-```mjs title=chunk_js.mjs
+```mjs title=chunk.mjs
 import { __webpack_require__ } from "./runtime.mjs";
 import "./index_js.mjs";
 
@@ -30,7 +30,7 @@ const cjs = __webpack_require__("./cjs.js");
 
 
 it('should only contains needed exports', async () => {
-	await import("./chunk_js.mjs")
+	await import("./chunk.mjs")
 	expect((0,cjs.foo)()).toBe(42)
 
 	const exports = await import(/*webpackIgnore: true*/'./main.mjs')

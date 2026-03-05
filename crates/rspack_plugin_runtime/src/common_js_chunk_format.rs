@@ -13,7 +13,7 @@ use rspack_plugin_javascript::{
   JavascriptModulesChunkHash, JavascriptModulesRenderChunk, JsPlugin, RenderSource,
   runtime::render_chunk_runtime_modules,
 };
-use rspack_util::json_stringify;
+use rspack_util::json_stringify_str;
 
 use crate::{
   generate_entry_startup, get_chunk_output_name, get_relative_path, get_runtime_chunk_output_name,
@@ -136,7 +136,7 @@ async fn render_chunk(
   let mut sources = ConcatSource::default();
   sources.add(RawStringSource::from(format!(
     "exports.ids = [{}];\n",
-    json_stringify(chunk.expect_id())
+    json_stringify_str(chunk.expect_id().as_str())
   )));
   sources.add(RawStringSource::from_static("exports.modules = "));
   sources.add(render_source.source.clone());
@@ -158,7 +158,7 @@ async fn render_chunk(
 var {} = require({});
 "#,
       runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
-      json_stringify(&get_relative_path(
+      json_stringify_str(&get_relative_path(
         base_chunk_output_name
           .trim_start_matches("/")
           .trim_start_matches("\\"),

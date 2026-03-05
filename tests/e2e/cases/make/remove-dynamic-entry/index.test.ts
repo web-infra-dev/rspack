@@ -17,7 +17,7 @@ test('should compile', async ({ page, fileAction, rspack }) => {
     expect(await page.locator('#index1').innerText()).toBe('index1 updated');
   }).toPass();
   await expect(page.locator('#index2')).toHaveCount(0);
-  await expect(page.locator('#webpack-dev-server-client-overlay')).toHaveCount(
+  await expect(page.locator('#rspack-dev-server-client-overlay')).toHaveCount(
     0,
   );
 

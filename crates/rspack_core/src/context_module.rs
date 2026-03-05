@@ -19,7 +19,7 @@ use rspack_sources::{BoxSource, OriginalSource, RawStringSource, SourceExt};
 use rspack_util::{
   fx_hash::FxIndexMap,
   identifier::make_paths_relative,
-  itoa, json_stringify,
+  itoa, json_stringify, json_stringify_pretty,
   source_map::{ModuleSourceMapConfig, SourceMapKind},
 };
 use rustc_hash::FxHashMap as HashMap;
@@ -281,7 +281,7 @@ impl ContextModule {
   fn get_fake_map_init_statement(&self, fake_map: &FakeMapValue) -> String {
     match fake_map {
       FakeMapValue::Bit(_) => String::new(),
-      FakeMapValue::Map(map) => format!("var fakeMap = {}", json_stringify(map)),
+      FakeMapValue::Map(map) => format!("var fakeMap = {}", json_stringify_pretty(map)),
     }
   }
 
@@ -311,7 +311,7 @@ impl ContextModule {
     async_deps_map: Option<&HashMap<String, Vec<ModuleId>>>,
   ) -> String {
     match async_deps_map {
-      Some(map) => format!("var asyncDepsMap = {};", json_stringify(map)),
+      Some(map) => format!("var asyncDepsMap = {};", json_stringify_pretty(map)),
       None => String::new(),
     }
   }
@@ -682,7 +682,7 @@ impl ContextModule {
       {module}.exports = __rspack_async_context;
       "#,
       module = runtime_template.render_module_argument(ModuleArgument::Module),
-      map = json_stringify(&map),
+      map = json_stringify_pretty(&map),
       keys = runtime_template.returning_function("Object.keys(map)", ""),
       id = json_stringify(self.get_module_id(&compilation.module_ids_artifact))
     }
@@ -750,7 +750,7 @@ impl ContextModule {
       {module}.exports = __rspack_async_context;
       "#,
       module = runtime_template.render_module_argument(ModuleArgument::Module),
-      map = json_stringify(&map),
+      map = json_stringify_pretty(&map),
       fake_map_init_statement = self.get_fake_map_init_statement(&fake_map),
       async_deps_map_init_statement = self.get_module_deferred_async_deps_map_init_statement(async_deps_map.as_ref()),
       keys = runtime_template.returning_function("Object.keys(map)", ""),
@@ -829,7 +829,7 @@ impl ContextModule {
       {module}.exports = __rspack_async_context;
       "#,
       module = runtime_template.render_module_argument(ModuleArgument::Module),
-      map = json_stringify(&map),
+      map = json_stringify_pretty(&map),
       fake_map_init_statement = self.get_fake_map_init_statement(&fake_map),
       async_deps_map_init_statement = self.get_module_deferred_async_deps_map_init_statement(async_deps_map.as_ref()),
       keys = runtime_template.returning_function("Object.keys(map)", ""),
@@ -874,7 +874,7 @@ impl ContextModule {
       {module}.exports = __rspack_context;
       "#,
       module = runtime_template.render_module_argument(ModuleArgument::Module),
-      map = json_stringify(&map),
+      map = json_stringify_pretty(&map),
       fake_map_init_statement = self.get_fake_map_init_statement(&fake_map),
       module_factories = runtime_template.render_runtime_globals(&RuntimeGlobals::MODULE_FACTORIES),
       has_own_property = runtime_template.render_runtime_globals(&RuntimeGlobals::HAS_OWN_PROPERTY),
@@ -941,7 +941,7 @@ impl ContextModule {
       {module}.exports = __rspack_async_context;
       "#,
       module = runtime_template.render_module_argument(ModuleArgument::Module),
-      map = json_stringify(&map),
+      map = json_stringify_pretty(&map),
       fake_map_init_statement = self.get_fake_map_init_statement(&fake_map),
       async_deps_map_init_statement = self.get_module_deferred_async_deps_map_init_statement(async_deps_map.as_ref()),
       keys = runtime_template.returning_function("Object.keys(map)", ""),
@@ -981,7 +981,7 @@ impl ContextModule {
       __rspack_context.id = {id};
       "#,
       module = runtime_template.render_module_argument(ModuleArgument::Module),
-      map = json_stringify(&map),
+      map = json_stringify_pretty(&map),
       fake_map_init_statement = self.get_fake_map_init_statement(&fake_map),
       has_own_property = runtime_template.render_runtime_globals(&RuntimeGlobals::HAS_OWN_PROPERTY),
       keys = runtime_template.returning_function("Object.keys(map)", ""),

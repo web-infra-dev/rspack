@@ -1,6 +1,6 @@
 {
   "name": "monorepo",
-  "version": "2.0.0-beta.4",
+  "version": "2.0.0-beta.5",
   "license": "MIT",
   "description": "The fast Rust-based web bundler with webpack-compatible API",
   "private": true,
@@ -59,13 +59,13 @@
     "pnpm": "10.26.2"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.4.4",
+    "@biomejs/biome": "^2.4.5",
     "@rslint/core": "0.2.1",
     "@rspack/cli": "workspace:*",
     "@rstest/core": "^0.8.5",
     "@taplo/cli": "^0.7.0",
     "@types/is-ci": "^3.0.4",
-    "@types/node": "^20.19.33",
+    "@types/node": "^20.19.35",
     "check-dependency-version-consistency": "^6.0.0",
     "commander": "14.0.3",
     "cross-env": "^10.1.0",

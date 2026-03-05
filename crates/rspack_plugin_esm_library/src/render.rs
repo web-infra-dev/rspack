@@ -506,13 +506,13 @@ var {} = {{}};
         if name == "*" {
           final_source.add(RawStringSource::from(format!(
             "export * from {};\n",
-            serde_json::to_string(source).expect("should have correct request")
+            rspack_util::json_stringify_str(source)
           )));
         } else {
           let name_str = export_name(name).expect("should have export_name");
           final_source.add(RawStringSource::from(format!(
             "export * as {name_str} from {};\n",
-            serde_json::to_string(source).expect("should have correct request")
+            rspack_util::json_stringify_str(source)
           )));
         }
       }

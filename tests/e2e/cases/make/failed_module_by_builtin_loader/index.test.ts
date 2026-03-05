@@ -8,7 +8,7 @@ test('should compile', async ({ page, fileAction, rspack }) => {
   );
 
   await page.reload();
-  await expect(page.locator('#webpack-dev-server-client-overlay')).toHaveCount(
+  await expect(page.locator('#rspack-dev-server-client-overlay')).toHaveCount(
     1,
   );
   let stats = rspack.compiler._lastCompilation
@@ -20,7 +20,7 @@ test('should compile', async ({ page, fileAction, rspack }) => {
     content.replace("div.innerText = 'er;", "div.innerText = 'index';"),
   );
   await page.reload();
-  await expect(page.locator('#webpack-dev-server-client-overlay')).toHaveCount(
+  await expect(page.locator('#rspack-dev-server-client-overlay')).toHaveCount(
     0,
   );
   await expect(page.getByText('index')).toBeVisible();

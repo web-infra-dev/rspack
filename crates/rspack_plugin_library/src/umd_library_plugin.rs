@@ -8,7 +8,7 @@ use rspack_core::{
   RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule, SourceType,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
 };
-use rspack_error::{Result, ToStringResultToRspackResultExt, error};
+use rspack_error::{Result, error};
 use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{
@@ -345,8 +345,7 @@ impl Plugin for UmdLibraryPlugin {
 }
 
 async fn library_name(v: &[String], chunk: &Chunk, compilation: &Compilation) -> Result<String> {
-  let value =
-    serde_json::to_string(v.last().expect("should have last")).expect("invalid module_id");
+  let value = rspack_util::json_stringify_str(v.last().expect("should have last"));
   replace_keys(value, chunk, compilation).await
 }
 
@@ -387,7 +386,7 @@ fn externals_require_array(
             .get(external_type)
             .ok_or_else(|| error!("Missing external configuration for type: {external_type}"))?,
         };
-        let primary = serde_json::to_string(request.primary()).to_rspack_result()?;
+        let primary = rspack_util::json_stringify_str(request.primary());
         let mut expr = if let Some(rest) = request.rest() {
           format!("require({}){}", primary, &accessor_to_object_access(rest))
         } else {
@@ -426,12 +425,7 @@ fn externals_root_array(modules: &[&ExternalModule]) -> Result<String> {
 fn accessor_to_object_access<S: AsRef<str>>(accessor: impl IntoIterator<Item = S>) -> String {
   accessor
     .into_iter()
-    .map(|s| {
-      format!(
-        "[{}]",
-        serde_json::to_string(s.as_ref()).expect("failed to serde_json::to_string")
-      )
-    })
+    .map(|s| format!("[{}]", rspack_util::json_stringify_str(s.as_ref())))
     .collect::<String>()
 }
 

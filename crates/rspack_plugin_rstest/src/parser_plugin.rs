@@ -11,7 +11,7 @@ use rspack_plugin_javascript::{
   },
   visitors::{JavascriptParser, Statement, VariableDeclaration, create_traceable_error},
 };
-use rspack_util::{SpanExt, atom::Atom, json_stringify, swc::get_swc_comments};
+use rspack_util::{SpanExt, atom::Atom, json_stringify_str, swc::get_swc_comments};
 use swc_core::{
   common::{Span, Spanned},
   ecma::ast::{CallExpr, Callee, Ident, MemberExpr, UnaryExpr},
@@ -548,7 +548,7 @@ impl RstestParserPlugin {
   fn process_import_meta(&self, parser: &mut JavascriptParser, r#type: ModulePathType) -> String {
     if r#type == ModulePathType::FileName {
       if let Some(resource_path) = parser.resource_data.path() {
-        json_stringify(resource_path.as_str())
+        json_stringify_str(resource_path.as_str())
       } else {
         "''".to_string()
       }
@@ -559,7 +559,7 @@ impl RstestParserPlugin {
         .and_then(|p| p.parent())
         .map(|p| p.to_string())
         .unwrap_or_default();
-      json_stringify(&resource_path)
+      json_stringify_str(&resource_path)
     }
   }
 
