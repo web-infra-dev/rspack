@@ -529,8 +529,6 @@ impl ConcatenatedModule {
     mut modules: Vec<ConcatenatedInnerModule>,
     runtime: Option<RuntimeSpec>,
   ) -> Self {
-    // make the hash consistent
-    modules.sort_by(|a, b| a.id.cmp(&b.id));
     let RootModuleContext {
       module_argument,
       exports_argument,
@@ -560,11 +558,12 @@ impl ConcatenatedModule {
   // TODO: caching https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/ConcatenatedModule.js#L663-L664
   pub fn create(
     root_module_ctxt: RootModuleContext,
-    modules: Vec<ConcatenatedInnerModule>,
+    mut modules: Vec<ConcatenatedInnerModule>,
     hash_function: Option<HashFunction>,
     runtime: Option<RuntimeSpec>,
     compilation: &Compilation,
   ) -> Self {
+    modules.sort_unstable_by(|a, b| a.id.cmp(&b.id));
     let id = Self::create_identifier(&root_module_ctxt, &modules, hash_function);
     Self::new(id.as_str().into(), root_module_ctxt, modules, runtime)
   }
@@ -578,7 +577,6 @@ impl ConcatenatedModule {
     for m in modules {
       identifiers.push(m.shorten_id.as_str());
     }
-    identifiers.sort_unstable();
     let mut hash = RspackHash::new(&hash_function.unwrap_or(HashFunction::MD4));
     if let Some(id) = identifiers.first() {
       hash.write(id.as_bytes());
@@ -2408,21 +2406,33 @@ impl ConcatenatedModule {
           ));
         }
       };
-      let mut all_used_names = HashSet::default();
       let ast = &ast;
-
       let semantic = resolver(module, ast);
       let ids = collect_ident(ast, module);
 
       module_info.module_ctxt = semantic.top_level_scope_id().to_ctxt();
       module_info.global_ctxt = semantic.unresolved_scope_id().to_ctxt();
+
+      let top_level_scope_id = semantic.top_level_scope_id();
+      let mut all_used_names = HashSet::default();
+      all_used_names.reserve(ids.len());
+      module_info.idents.reserve(ids.len());
+      module_info.global_scope_ident.reserve(ids.len());
+      let mut binding_to_ref: FxIndexMap<(Atom, SyntaxContext), Vec<ConcatenatedModuleIdent>> =
+        FxIndexMap::default();
+      binding_to_ref.reserve(ids.len());
+
       for ident in ids {
-        if semantic.node_scope(ident.id).to_ctxt() == module_info.global_ctxt {
-          module_info
-            .global_scope_ident
-            .push(ident.to_legacy(ast, &semantic));
-          all_used_names.insert(ast.get_atom(ident.id.sym(ast)));
-        }
+        let scope = semantic.node_scope(ident.id);
+        let is_global = scope.to_ctxt() == module_info.global_ctxt;
+        let legacy = if is_global {
+          let leg = ident.to_legacy(ast, &semantic);
+          module_info.global_scope_ident.push(leg.clone());
+          all_used_names.insert(leg.id.sym.clone());
+          Some(leg)
+        } else {
+          None
+        };
         if ident.is_class_expr_with_ident {
           all_used_names.insert(ast.get_atom(ident.id.sym(ast)));
           continue;
@@ -2430,26 +2440,17 @@ impl ConcatenatedModule {
         // deconflict naming from inner scope, the module level deconflict will be finished
         // you could see tests/webpack-test/cases/scope-hoisting/renaming-4967 as a example
         // during module eval phase.
-        if semantic.node_scope(ident.id) != semantic.top_level_scope_id() {
+        if scope != top_level_scope_id {
           all_used_names.insert(ast.get_atom(ident.id.sym(ast)));
         }
-        module_info.idents.push(ident.to_legacy(ast, &semantic));
+        let legacy = legacy.unwrap_or_else(|| ident.to_legacy(ast, &semantic));
+        module_info.idents.push(legacy.clone());
+        binding_to_ref
+          .entry((legacy.id.sym.clone(), legacy.id.ctxt))
+          .or_default()
+          .push(legacy);
       }
       module_info.all_used_names = all_used_names;
-
-      let mut binding_to_ref: FxIndexMap<(Atom, SyntaxContext), Vec<ConcatenatedModuleIdent>> =
-        Default::default();
-
-      for ident in module_info.idents.iter() {
-        match binding_to_ref.entry((ident.id.sym.clone(), ident.id.ctxt)) {
-          indexmap::map::Entry::Occupied(mut occ) => {
-            occ.get_mut().push(ident.clone());
-          }
-          indexmap::map::Entry::Vacant(vac) => {
-            vac.insert(vec![ident.clone()]);
-          }
-        };
-      }
       module_info.binding_to_ref = binding_to_ref;
       let result_source = ReplaceSource::new(source.clone());
       module_info.has_ast = true;
