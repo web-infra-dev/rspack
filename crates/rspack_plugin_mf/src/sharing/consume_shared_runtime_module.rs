@@ -145,7 +145,6 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
           )
         };
         module_id_to_consume_data_mapping.insert(id, consume_data);
-
       }
     };
     // Match enhanced/webpack behavior: include all referenced chunks so async ones are mapped too
