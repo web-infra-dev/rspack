@@ -13,14 +13,15 @@ use rspack_core::{
   ApplyContext, AssetInfo, AsyncModulesArtifact, BoxModule, BuildModuleGraphArtifact, ChunkUkey,
   Compilation, CompilationAdditionalChunkRuntimeRequirements,
   CompilationAdditionalTreeRuntimeRequirements, CompilationAfterCodeGeneration,
-  CompilationConcatenationScope, CompilationFinishModules, CompilationOptimizeChunks,
-  CompilationOptimizeDependencies, CompilationParams, CompilationProcessAssets,
-  CompilationRuntimeRequirementInTree, CompilerCompilation, ConcatenatedModuleInfo,
-  ConcatenationScope, DependencyType, ExportsInfoArtifact, ExternalModuleInfo, GetTargetResult,
-  Logger, ModuleFactoryCreateData, ModuleGraph, ModuleIdentifier, ModuleInfo, ModuleType,
-  NormalModuleFactoryAfterFactorize, NormalModuleFactoryParser, ParserAndGenerator, ParserOptions,
-  Plugin, PrefetchExportsInfoMode, RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule,
-  SideEffectsOptimizeArtifact, get_target, is_esm_dep_like,
+  CompilationConcatenationScope, CompilationFinishModules, CompilationOptimizeChunkModules,
+  CompilationOptimizeChunks, CompilationOptimizeDependencies, CompilationParams,
+  CompilationProcessAssets, CompilationRuntimeRequirementInTree, CompilerCompilation,
+  ConcatenatedModuleInfo, ConcatenationScope, DependencyType, ExportsInfoArtifact,
+  ExternalModuleInfo, GetTargetResult, Logger, ModuleFactoryCreateData, ModuleGraph,
+  ModuleIdentifier, ModuleInfo, ModuleType, NormalModuleFactoryAfterFactorize,
+  NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, Plugin, PrefetchExportsInfoMode,
+  RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule, SideEffectsOptimizeArtifact, get_target,
+  is_esm_dep_like,
   rspack_sources::{ReplaceSource, Source},
 };
 use rspack_error::{Diagnostic, Result};
@@ -742,6 +743,51 @@ async fn after_factorize(
   Ok(())
 }
 
+#[plugin_hook(CompilationOptimizeChunkModules for EsmLibraryPlugin, stage = 100)]
+async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
+  let mut groups: FxHashMap<String, Vec<ModuleIdentifier>> = FxHashMap::default();
+  let mg = compilation.get_module_graph();
+  let cg = &compilation.build_chunk_graph_artifact.chunk_graph;
+
+  let modules_map = self.concatenated_modules_map.read().await;
+
+  for (id, module) in mg.modules() {
+    if module.as_external_module().is_some() {
+      let id_str = id.as_str();
+      if modules_map[id].is_external()
+        && let Some(pipe_pos) = id_str.rfind('|')
+        && cg
+          .try_get_module_chunks(id)
+          .is_some_and(|chunks| !chunks.is_empty())
+      {
+        let base = id_str[..pipe_pos].to_string();
+        groups.entry(base).or_default().push(*id);
+      }
+    }
+  }
+
+  // Phase 2: Merge duplicates
+  for mut module_ids in groups.into_values() {
+    module_ids.sort_unstable();
+    if module_ids.len() <= 1 {
+      continue;
+    }
+
+    let canonical_id = module_ids[0];
+
+    for &dup_id in &module_ids[1..] {
+      let cg = &mut compilation.build_chunk_graph_artifact.chunk_graph;
+      cg.replace_module(&dup_id, &canonical_id);
+
+      // 1. Move incoming connections from duplicate to canonical
+      let mg = compilation.get_module_graph_mut();
+      mg.move_module_connections(&dup_id, &canonical_id, |_, _| true);
+    }
+  }
+
+  Ok(None)
+}
+
 #[plugin_hook(CompilationOptimizeDependencies for EsmLibraryPlugin)]
 async fn optimize_dependencies(
   &self,
@@ -820,6 +866,11 @@ impl Plugin for EsmLibraryPlugin {
       .compilation_hooks
       .optimize_dependencies
       .tap(optimize_dependencies::new(self));
+
+    ctx
+      .compilation_hooks
+      .optimize_chunk_modules
+      .tap(optimize_chunk_modules::new(self));
 
     ctx.normal_module_factory_hooks.parser.tap(parse::new(self));
     ctx

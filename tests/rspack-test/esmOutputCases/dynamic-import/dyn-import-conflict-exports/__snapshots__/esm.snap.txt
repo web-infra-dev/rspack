@@ -20,12 +20,12 @@ const value = 1
 // ./b.js
 const b_value = 2
 
-export { a_namespaceObject, b_namespaceObject, b_value as value_0, value };
+export { a_namespaceObject, b_namespaceObject, b_value, value };
 
 ```
 
 ```mjs title=main.mjs
-import { value, value_0 as b_value } from "./ab-chunk.mjs";
+import { value, b_value } from "./ab-chunk.mjs";
 
 // ./index.js
 
