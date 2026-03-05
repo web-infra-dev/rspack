@@ -66,26 +66,21 @@ impl JsCompilation {
     Ok(unsafe { self.inner.as_mut() })
   }
 
-  pub(crate) fn exports_info_artifact_ref(&self) -> napi::Result<&'static ExportsInfoArtifact> {
-    let compilation = self.as_ref()?;
-    if let Some(ptr) = compilation.compiler_context.exports_info_artifact_ptr() {
-      // SAFETY: pointer is injected by binding hook phases and valid in current scope.
-      Ok(unsafe { &*(ptr as *const ExportsInfoArtifact) })
-    } else {
-      Ok(&compilation.exports_info_artifact)
-    }
-  }
-
   pub(crate) fn exports_info_artifact_mut(
     &mut self,
   ) -> napi::Result<&'static mut ExportsInfoArtifact> {
     let compilation = self.as_mut()?;
     if let Some(ptr) = compilation.compiler_context.exports_info_artifact_ptr() {
       // SAFETY: pointer is injected by binding hook phases and valid in current scope.
-      Ok(unsafe { &mut *(ptr as *mut ExportsInfoArtifact) })
-    } else {
-      Ok(&mut compilation.exports_info_artifact)
+      return Ok(unsafe { &mut *(ptr as *mut ExportsInfoArtifact) });
     }
+    if let Some(exports_info_artifact) = compilation.exports_info_artifact.try_write() {
+      return Ok(exports_info_artifact);
+    }
+    Err(napi::Error::new(
+      napi::Status::GenericFailure,
+      "Cannot mutate exports info artifact after it was stolen from compilation.".to_string(),
+    ))
   }
 }
 
@@ -520,9 +515,8 @@ impl JsCompilation {
   #[napi]
   pub fn get_stats(&self, reference: Reference<JsCompilation>, env: Env) -> Result<JsStats> {
     Ok(JsStats::new(reference.share_with(env, |compilation| {
-      let exports_info_artifact = compilation.exports_info_artifact_ref()?;
       let compilation = compilation.as_ref()?;
-      let stats = compilation.get_stats_with_exports_info_artifact(exports_info_artifact);
+      let stats = compilation.get_stats();
 
       Ok(stats)
     })?))

@@ -77,7 +77,7 @@ use crate::{
   ModuleGraphCacheArtifact, ModuleIdentifier, ModuleIdsArtifact, ModuleStaticCache, PathData,
   ProcessRuntimeRequirementsCacheArtifact, ResolverFactory, RuntimeGlobals, RuntimeKeyMap,
   RuntimeMode, RuntimeModule, RuntimeSpec, RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver,
-  SideEffectsOptimizeArtifact, SourceType, Stats, StealCell, ValueCacheVersions,
+  SideEffectsOptimizeArtifact, SourceType, Stats, StatsContext, StealCell, ValueCacheVersions,
   compilation::build_module_graph::{
     BuildModuleGraphArtifact, ModuleExecutor, UpdateParam, update_module_graph,
   },
@@ -989,15 +989,8 @@ impl Compilation {
     &self.logging
   }
 
-  pub fn get_stats(&self) -> Stats<'_> {
-    self.get_stats_with_exports_info_artifact(&self.exports_info_artifact)
-  }
-
-  pub fn get_stats_with_exports_info_artifact<'a>(
-    &'a self,
-    exports_info_artifact: &'a ExportsInfoArtifact,
-  ) -> Stats<'a> {
-    Stats::new(self, exports_info_artifact)
+  pub fn get_stats<'a>(&'a self) -> Stats<'a> {
+    Stats::new(StatsContext::new(self))
   }
 
   pub fn add_named_chunk(
