@@ -390,6 +390,7 @@ pub struct RawManifestExposeOption {
 #[napi(object)]
 pub struct RawManifestSharedOption {
   pub name: String,
+  pub share_key: String,
   pub version: Option<String>,
   pub required_version: Option<String>,
   pub singleton: Option<bool>,
@@ -458,6 +459,7 @@ impl From<RawModuleFederationManifestPluginOptions> for ModuleFederationManifest
         .into_iter()
         .map(|shared| ManifestSharedOption {
           name: shared.name,
+          share_key: shared.share_key,
           version: shared.version,
           required_version: shared.required_version,
           singleton: shared.singleton,

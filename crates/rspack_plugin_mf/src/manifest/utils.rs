@@ -171,12 +171,14 @@ pub fn ensure_shared_entry<'a>(
   shared_map: &'a mut HashMap<String, StatsShared>,
   container_name: &str,
   pkg: &str,
+  share_key: &str,
 ) -> &'a mut StatsShared {
   shared_map
     .entry(pkg.to_string())
     .or_insert_with(|| StatsShared {
       id: compose_id_with_separator(container_name, pkg),
       name: pkg.to_string(),
+      share_key: share_key.to_string(),
       version: String::new(),
       requiredVersion: None,
       // default singleton to true

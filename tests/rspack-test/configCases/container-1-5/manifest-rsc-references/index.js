@@ -6,11 +6,12 @@ const manifestPath = path.join(__dirname, "mf-manifest.json");
 const stats = JSON.parse(fs.readFileSync(statsPath, "utf-8"));
 const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf-8"));
 
-it("should capture RSC references for shared modules by shareKey", () => {
-	const shared = stats.shared.find(item => item.name === "rsc-shared-key");
+it("should capture RSC references for shared modules by package key", () => {
+	const shared = stats.shared.find(item => item.name === "shared-rsc");
 	expect(shared).toBeDefined();
+	expect(shared.shareKey).toBe("rsc-shared-key");
 	expect(shared.rsc).toBeDefined();
-	expect(shared.rsc.lookup).toBe("rsc-shared-key");
+	expect(shared.rsc.lookup).toBe(shared.shareKey);
 	expect(shared.rsc.moduleType).toBe("client");
 	expect(shared.rsc.clientReferences).toEqual(
 		expect.arrayContaining(["SharedClientComponent", "sharedAction", "sharedValue"])
@@ -44,7 +45,8 @@ it("should persist RSC metadata in mf-manifest.json", () => {
 	expect(manifest.shared).toEqual(
 		expect.arrayContaining([
 			expect.objectContaining({
-				name: "rsc-shared-key",
+				name: "shared-rsc",
+				shareKey: "rsc-shared-key",
 				rsc: expect.objectContaining({
 					lookup: "rsc-shared-key"
 				})

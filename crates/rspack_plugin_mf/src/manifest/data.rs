@@ -47,6 +47,8 @@ pub struct StatsExpose {
 pub struct StatsShared {
   pub id: String,
   pub name: String,
+  #[serde(rename = "shareKey")]
+  pub share_key: String,
   pub version: String,
   #[serde(default)]
   pub requiredVersion: Option<String>,
@@ -146,6 +148,8 @@ pub struct ManifestExpose {
 pub struct ManifestShared {
   pub id: String,
   pub name: String,
+  #[serde(rename = "shareKey")]
+  pub share_key: String,
   pub version: String,
   #[serde(default)]
   pub requiredVersion: Option<String>,

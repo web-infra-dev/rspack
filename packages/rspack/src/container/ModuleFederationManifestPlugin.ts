@@ -116,6 +116,7 @@ export type ManifestExposeOption = {
 
 export type ManifestSharedOption = {
   name: string;
+  shareKey: string;
   version?: string;
   requiredVersion?: string;
   singleton?: boolean;
@@ -250,7 +251,7 @@ function collectManifestShared(
     (item) => item,
   );
   const result = parsed.map(([key, config]) => {
-    const name = config.shareKey || key;
+    const shareKey = config.shareKey || key;
     const version =
       typeof config.version === 'string' ? config.version : undefined;
     const requiredVersion =
@@ -258,7 +259,8 @@ function collectManifestShared(
         ? config.requiredVersion
         : undefined;
     return {
-      name,
+      name: key,
+      shareKey,
       version,
       requiredVersion,
       singleton: config.singleton,

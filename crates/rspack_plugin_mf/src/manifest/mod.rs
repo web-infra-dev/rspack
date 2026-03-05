@@ -68,6 +68,37 @@ fn rsc_module_type_priority(module_type: &str) -> u8 {
   }
 }
 
+fn resolve_manifest_shared_option<'a>(
+  shared_options: &'a [ManifestSharedOption],
+  concrete_share_key: &str,
+) -> (String, Option<&'a ManifestSharedOption>) {
+  if let Some(shared) = shared_options
+    .iter()
+    .find(|shared| shared.share_key == concrete_share_key)
+  {
+    return (shared.name.clone(), Some(shared));
+  }
+
+  let prefix_match = shared_options
+    .iter()
+    .filter(|shared| {
+      shared.share_key.ends_with('/') && concrete_share_key.starts_with(&shared.share_key)
+    })
+    .max_by_key(|shared| shared.share_key.len());
+
+  if let Some(shared) = prefix_match {
+    let remainder = &concrete_share_key[shared.share_key.len()..];
+    let manifest_name = if shared.name.ends_with('/') {
+      format!("{}{}", shared.name, remainder)
+    } else {
+      shared.name.clone()
+    };
+    return (manifest_name, Some(shared));
+  }
+
+  (concrete_share_key.to_string(), None)
+}
+
 fn collect_rsc_candidates_for_module(
   compilation: &Compilation,
   module_identifier: &ModuleIdentifier,
@@ -318,6 +349,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       .map(|shared| StatsShared {
         id: compose_id_with_separator(&container_name, &shared.name),
         name: shared.name.clone(),
+        share_key: shared.share_key.clone(),
         version: shared.version.clone().unwrap_or_default(),
         requiredVersion: shared.required_version.clone(),
         // default singleton to true when not provided by user
@@ -461,12 +493,15 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 
       if matches!(module_type, ModuleType::ProvideShared) {
         if let Some((pkg, ver)) = parse_provide_shared_identifier(&identifier) {
-          let entry = ensure_shared_entry(&mut shared_map, &container_name, &pkg);
+          let (manifest_name, matched_shared) =
+            resolve_manifest_shared_option(&self.options.shared, &pkg);
+          let entry = ensure_shared_entry(&mut shared_map, &container_name, &manifest_name, &pkg);
           if entry.version.is_empty() {
             entry.version = ver;
           }
+          entry.share_key = pkg.clone();
           // overlay user-configured shared options (singleton/requiredVersion/version)
-          if let Some(opt) = self.options.shared.iter().find(|s| s.name == pkg) {
+          if let Some(opt) = matched_shared {
             if let Some(singleton) = opt.singleton {
               entry.singleton = Some(singleton);
             }
@@ -477,7 +512,9 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
               entry.version = cfg_ver;
             }
           }
-          let targets = shared_module_targets.entry(pkg.clone()).or_default();
+          let targets = shared_module_targets
+            .entry(manifest_name.clone())
+            .or_default();
           for connection in module_graph.get_outgoing_connections(&module_identifier) {
             let referenced = *connection.module_identifier();
             if should_collect_module(&referenced) {
@@ -507,10 +544,12 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         else {
           continue;
         };
-        let pkg = consume_shared_module.share_key().to_string();
-        if pkg.is_empty() {
+        let share_key = consume_shared_module.share_key().to_string();
+        if share_key.is_empty() {
           continue;
         }
+        let (pkg, matched_shared) =
+          resolve_manifest_shared_option(&self.options.shared, &share_key);
         let required = consume_shared_module
           .required_version()
           .map(ToString::to_string);
@@ -529,12 +568,13 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           .entry(pkg.clone())
           .or_default()
           .extend(target_ids.into_iter());
-        let entry = ensure_shared_entry(&mut shared_map, &container_name, &pkg);
+        let entry = ensure_shared_entry(&mut shared_map, &container_name, &pkg, &share_key);
+        entry.share_key = share_key.clone();
         if entry.requiredVersion.is_none() && required.is_some() {
           entry.requiredVersion = required;
         }
         // overlay user-configured shared options
-        if let Some(opt) = self.options.shared.iter().find(|s| s.name == pkg) {
+        if let Some(opt) = matched_shared {
           if let Some(singleton) = opt.singleton {
             entry.singleton = Some(singleton);
           }
@@ -630,8 +670,13 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       let Some(module_ids) = shared_module_targets.get(pkg) else {
         continue;
       };
+      let lookup = if shared_entry.share_key.is_empty() {
+        pkg.clone()
+      } else {
+        shared_entry.share_key.clone()
+      };
       shared_entry.rsc =
-        build_rsc_reference_meta_from_modules(compilation, pkg.clone(), module_ids.iter().copied());
+        build_rsc_reference_meta_from_modules(compilation, lookup, module_ids.iter().copied());
     }
 
     for (expose_file_key, expose) in exposes_map.iter_mut() {
@@ -842,6 +887,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       .map(|s| ManifestShared {
         id: s.id,
         name: s.name,
+        share_key: s.share_key,
         version: s.version,
         requiredVersion: s.requiredVersion,
         singleton: s.singleton,
