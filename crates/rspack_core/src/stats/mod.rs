@@ -1139,9 +1139,7 @@ impl Stats<'_> {
     options: &ExtendedStatsOptions,
   ) -> Result<StatsModule<'a>> {
     let identifier = module.identifier();
-    let mgm = module_graph
-      .module_graph_module_by_identifier(&identifier)
-      .unwrap_or_else(|| panic!("Could not find ModuleGraphModule by identifier: {identifier:?}"));
+    let mgm = module_graph.module_graph_module_by_identifier(&identifier);
 
     let built = if executed {
       self.module_executor_is_module_built(&identifier)
@@ -1294,7 +1292,7 @@ impl Stats<'_> {
         self
           .build_chunk_graph_artifact()
           .chunk_graph
-          .get_chunk_graph_module(mgm.module_identifier)
+          .get_chunk_graph_module(identifier)
           .map(|cgm| {
             cgm
               .chunks
@@ -1335,8 +1333,8 @@ impl Stats<'_> {
 
     if options.reasons {
       let mut reasons: Vec<StatsModuleReason> = mgm
-        .incoming_connections()
-        .iter()
+        .into_iter()
+        .flat_map(|mgm| mgm.incoming_connections().iter())
         .filter_map(|dep_id| {
           // the connection is removed
           let connection = module_graph.connection_by_dependency_id(dep_id)?;
@@ -1447,13 +1445,17 @@ impl Stats<'_> {
     if options.optimization_bailout {
       stats.optimization_bailout = Some(
         mgm
-          .optimization_bailout
-          .iter()
-          .map(|b| match b {
-            OptimizationBailoutItem::Message(msg) => Cow::Borrowed(msg.as_str()),
-            b => Cow::Owned(b.to_string()),
+          .map(|mgm| {
+            mgm
+              .optimization_bailout
+              .iter()
+              .map(|b| match b {
+                OptimizationBailoutItem::Message(msg) => Cow::Borrowed(msg.as_str()),
+                b => Cow::Owned(b.to_string()),
+              })
+              .collect()
           })
-          .collect(),
+          .unwrap_or_default(),
       );
     }
 
