@@ -17,6 +17,7 @@ use rustc_hash::FxHashSet;
 use swc_core::atoms::Atom;
 
 use super::ExportsBase;
+use crate::dependency::commonjs::PROTOTYPE_PROPS;
 
 #[cacheable]
 #[allow(unused)]
@@ -229,7 +230,7 @@ impl Dependency for CommonJsExportRequireDependency {
         exports: ExportsOfExportsSpec::Names(vec![ExportNameOrSpec::ExportSpec(ExportSpec {
           name: name.to_owned(),
           from: Some(from.to_owned()),
-          can_mangle: Some(false),
+          can_mangle: Some(!PROTOTYPE_PROPS.contains(&name.as_str())),
           export: Some(if ids.is_empty() {
             Nullable::Null
           } else {
@@ -289,7 +290,7 @@ impl Dependency for CommonJsExportRequireDependency {
       Some(ExportsSpec {
         exports: ExportsOfExportsSpec::Names(vec![ExportNameOrSpec::ExportSpec(ExportSpec {
           name: name.to_owned(),
-          can_mangle: Some(false),
+          can_mangle: Some(!PROTOTYPE_PROPS.contains(&name.as_str())),
           ..Default::default()
         })]),
         dependencies: None,

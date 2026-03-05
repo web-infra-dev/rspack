@@ -14,6 +14,7 @@ mod require_resolve_header_dependency;
 pub use common_js_export_require_dependency::{
   CommonJsExportRequireDependency, CommonJsExportRequireDependencyTemplate,
 };
+pub(self) use common_js_exports_dependency::PROTOTYPE_PROPS;
 pub use common_js_exports_dependency::{
   CommonJsExportsDependency, CommonJsExportsDependencyTemplate, ExportsBase,
 };

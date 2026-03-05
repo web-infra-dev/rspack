@@ -53,7 +53,7 @@ impl ExportsBase {
 
 // we can't mangle names that are in an empty object because one could access the prototype property
 // when export isn't set yet. It's different for different targets. so here we only list common properties.
-static PROTOTYPE_PROPS: [&str; 12] = [
+pub static PROTOTYPE_PROPS: [&str; 12] = [
   "constructor",
   "__defineGetter__",
   "__defineSetter__",
