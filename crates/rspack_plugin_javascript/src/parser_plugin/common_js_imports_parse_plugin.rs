@@ -23,8 +23,9 @@ use crate::{
   magic_comment::try_extract_magic_comment,
   utils::eval::{self, BasicEvaluatedExpression},
   visitors::{
-    JavascriptParser, TagInfoData, VariableDeclaration, VariableDeclarationKind, context_reg_exp,
-    create_context_dependency, create_traceable_error, expr_name, get_non_optional_part,
+    AtomMembers, JavascriptParser, TagInfoData, VariableDeclaration, VariableDeclarationKind,
+    context_reg_exp, create_context_dependency, create_traceable_error, expr_name,
+    get_non_optional_part,
   },
 };
 
@@ -53,9 +54,16 @@ impl RequireReferencesState {
   ) -> impl Iterator<Item = (RequireDependencyLocator, Vec<Vec<Atom>>)> + use<> {
     let inner = std::mem::take(&mut self.inner);
     inner.into_values().filter_map(|value| {
-      value
-        .dep_locator
-        .map(|dep_locator| (dep_locator, value.references))
+      value.dep_locator.map(|dep_locator| {
+        (
+          dep_locator,
+          value
+            .references
+            .into_iter()
+            .map(AtomMembers::into_vec)
+            .collect(),
+        )
+      })
     })
   }
 }
@@ -63,11 +71,11 @@ impl RequireReferencesState {
 #[derive(Debug, Default)]
 struct RequireReferences {
   dep_locator: Option<RequireDependencyLocator>,
-  references: Vec<Vec<Atom>>,
+  references: Vec<AtomMembers>,
 }
 
 impl RequireReferences {
-  pub fn add_reference(&mut self, reference: Vec<Atom>) {
+  pub fn add_reference(&mut self, reference: AtomMembers) {
     self.references.push(reference);
   }
 }
@@ -626,7 +634,7 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
       {
         let mut refs = Vec::new();
         keys.traverse_on_leaf(&mut |stack| {
-          refs.push(stack.iter().map(|p| p.id.clone()).collect());
+          refs.push(stack.iter().map(|p| p.id.clone()).collect::<AtomMembers>());
         });
         for ids in refs {
           parser
@@ -638,7 +646,7 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
         parser
           .common_js_require_references
           .get_require_mut_expect(&data.require_span)
-          .add_reference(vec![]);
+          .add_reference(AtomMembers::new());
       }
       return Some(true);
     }
@@ -670,7 +678,7 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
     parser
       .common_js_require_references
       .get_require_mut_expect(&data.require_span)
-      .add_reference(ids.to_vec());
+      .add_reference(ids.iter().cloned().collect());
     Some(true)
   }
 
@@ -703,7 +711,7 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
     parser
       .common_js_require_references
       .get_require_mut_expect(&data.require_span)
-      .add_reference(ids.to_vec());
+      .add_reference(ids.iter().cloned().collect());
     parser.walk_expr_or_spread(&expr.args);
     Some(true)
   }

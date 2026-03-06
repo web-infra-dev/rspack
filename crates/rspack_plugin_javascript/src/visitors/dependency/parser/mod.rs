@@ -29,6 +29,7 @@ use rspack_core::{
 use rspack_error::{Diagnostic, Result};
 use rspack_util::{SpanExt, fx_hash::FxIndexSet};
 use rustc_hash::{FxHashMap, FxHashSet};
+use smallvec::SmallVec;
 use swc_core::{
   atoms::Atom,
   common::{BytePos, Mark, Span, Spanned, comments::Comments},
@@ -81,12 +82,17 @@ where
   }
 }
 
+// Most parsed member chains are one or two segments long, so keep them inline.
+pub type AtomMembers = SmallVec<[Atom; 2]>;
+pub type OptionalMembers = SmallVec<[bool; 2]>;
+pub type MemberRanges = SmallVec<[Span; 2]>;
+
 #[derive(Debug)]
 pub struct ExtractedMemberExpressionChainData<'ast> {
   pub object: ExprRef<'ast>,
-  pub members: Vec<Atom>,
-  pub members_optionals: Vec<bool>,
-  pub member_ranges: Vec<Span>,
+  pub members: AtomMembers,
+  pub members_optionals: OptionalMembers,
+  pub member_ranges: MemberRanges,
 }
 
 bitflags! {
@@ -107,19 +113,19 @@ pub enum MemberExpressionInfo<'ast> {
 pub struct CallExpressionInfo<'ast> {
   pub call: &'ast CallExpr,
   pub root_info: ExportedVariableInfo,
-  pub callee_members: Vec<Atom>,
-  pub members: Vec<Atom>,
-  pub members_optionals: Vec<bool>,
-  pub member_ranges: Vec<Span>,
+  pub callee_members: AtomMembers,
+  pub members: AtomMembers,
+  pub members_optionals: OptionalMembers,
+  pub member_ranges: MemberRanges,
 }
 
 #[derive(Debug)]
 pub struct ExpressionExpressionInfo {
   pub name: String,
   pub root_info: ExportedVariableInfo,
-  pub members: Vec<Atom>,
-  pub members_optionals: Vec<bool>,
-  pub member_ranges: Vec<Span>,
+  pub members: AtomMembers,
+  pub members_optionals: OptionalMembers,
+  pub member_ranges: MemberRanges,
 }
 
 #[derive(Debug, Clone)]
@@ -902,9 +908,9 @@ impl<'parser> JavascriptParser<'parser> {
   fn _get_member_expression_info<'ast>(
     &mut self,
     object: ExprRef<'ast>,
-    mut members: Vec<Atom>,
-    mut members_optionals: Vec<bool>,
-    mut member_ranges: Vec<Span>,
+    mut members: AtomMembers,
+    mut members_optionals: OptionalMembers,
+    mut member_ranges: MemberRanges,
     allowed_types: AllowedMemberTypes,
   ) -> Option<MemberExpressionInfo<'ast>> {
     match object {
@@ -918,7 +924,7 @@ impl<'parser> JavascriptParser<'parser> {
           let root_name = extracted.object.get_root_name()?;
           (root_name, extracted.members)
         } else {
-          (callee.get_root_name()?, vec![])
+          (callee.get_root_name()?, AtomMembers::new())
         };
         let NameInfo {
           info: root_info, ..
@@ -981,7 +987,13 @@ impl<'parser> JavascriptParser<'parser> {
       Expr::Member(_) | Expr::OptChain(_) => {
         self.get_member_expression_info(expr.into(), allowed_types)
       }
-      _ => self._get_member_expression_info(expr.into(), vec![], vec![], vec![], allowed_types),
+      _ => self._get_member_expression_info(
+        expr.into(),
+        AtomMembers::new(),
+        OptionalMembers::new(),
+        MemberRanges::new(),
+        allowed_types,
+      ),
     }
   }
 
@@ -1010,9 +1022,9 @@ impl<'parser> JavascriptParser<'parser> {
     expr: ExprRef<'ast>,
   ) -> ExtractedMemberExpressionChainData<'ast> {
     let mut object = expr;
-    let mut members = Vec::new();
-    let mut members_optionals = Vec::new();
-    let mut member_ranges = Vec::new();
+    let mut members = AtomMembers::new();
+    let mut members_optionals = OptionalMembers::new();
+    let mut member_ranges = MemberRanges::new();
     let mut in_optional_chain = self.member_expr_in_optional_chain;
     loop {
       match object {
