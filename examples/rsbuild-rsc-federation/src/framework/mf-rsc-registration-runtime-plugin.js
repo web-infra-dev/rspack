@@ -125,7 +125,8 @@ function createRscRegistrationPayload(manifestJson) {
     if (clientReferences.length === 0 && serverActions.length === 0) {
       continue;
     }
-    const moduleIdentity = rscMeta.lookup || rscMeta.resource || sharedItem.name;
+    const moduleIdentity =
+      rscMeta.lookup || rscMeta.resource || sharedItem.name;
     sharedPayload.push({
       shareKey: sharedItem.name,
       moduleIdentity,
@@ -237,7 +238,10 @@ async function readManifestJson(origin, manifestUrl) {
     }
   }
 
-  let response = await origin?.loaderHook?.lifecycle?.fetch?.emit?.(manifestUrl, {});
+  let response = await origin?.loaderHook?.lifecycle?.fetch?.emit?.(
+    manifestUrl,
+    {},
+  );
   const hasResponseClass = typeof Response !== 'undefined';
   if (!response || (hasResponseClass && !(response instanceof Response))) {
     if (typeof fetch !== 'function') {
@@ -265,7 +269,10 @@ function pickManifestFromSnapshotCache(origin, remoteName) {
     if (!cachedManifest || typeof cachedManifest !== 'object') {
       continue;
     }
-    if (cachedManifest.name === remoteName || cachedManifest.id === remoteName) {
+    if (
+      cachedManifest.name === remoteName ||
+      cachedManifest.id === remoteName
+    ) {
       return cachedManifest;
     }
   }
@@ -457,8 +464,10 @@ export default function mfRscRegistrationRuntimePlugin() {
           'client_shared',
           `${remoteAlias}:${sharedItem.moduleIdentity}`,
         );
-        registerClientReferenceModule(moduleId, sharedItem.clientReferences, () =>
-          loadSharedModule(sharedItem.shareKey),
+        registerClientReferenceModule(
+          moduleId,
+          sharedItem.clientReferences,
+          () => loadSharedModule(sharedItem.shareKey),
         );
         nextState.moduleIds.add(moduleId);
         for (const moduleKey of sharedItem.manifestKeys) {
@@ -560,7 +569,8 @@ export default function mfRscRegistrationRuntimePlugin() {
         remoteAlias,
         remoteName,
         remoteEntry: args?.moduleInfo?.entry,
-        remoteVersion: args?.remoteSnapshot?.version || args?.moduleInfo?.version,
+        remoteVersion:
+          args?.remoteSnapshot?.version || args?.moduleInfo?.version,
         remoteBuildVersion:
           args?.remoteSnapshot?.buildVersion ||
           args?.manifestJson?.metaData?.buildInfo?.buildVersion,
